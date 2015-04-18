@@ -1,7 +1,11 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Simulator (
+    run
   ) where
 
-import           Icicle.Data
+import           System.IO
 
-import           P
+
+run :: IO ()
+run =
+  putStrLn "yoyo, something should go here..."
