@@ -35,3 +35,4 @@ optimisation
 
 To be completed after prototype. A discussion of optimisation techniques
 useful to icicle expressions.
+
