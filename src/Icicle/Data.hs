@@ -4,10 +4,6 @@ module Icicle.Data (
   , Value (..)
   ) where
 
-import           Data.Text
-
-import           P
-
 data Fact =
   Fact
 
