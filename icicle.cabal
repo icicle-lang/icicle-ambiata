@@ -13,6 +13,9 @@ description:           icicle.
 library
   build-depends:
                        base                            >= 3          && < 5
+                     , attoparsec                      == 0.12.*
+                     , bifunctors                      == 4.2.*
+                     , either                          == 4.3.*
                      , filepath                        == 1.3.*
                      , p
                      , text                            == 1.2.*
@@ -30,13 +33,18 @@ library
                        BuildInfo_icicle
                        Icicle
                        Icicle.Data
+                       Icicle.Serial
                        Icicle.Simulator
 
 executable             icicle
     ghc-options:       -Wall -threaded -O2
     main-is:           main/icicle.hs
     build-depends:     base
+                     , either
                      , icicle
+                     , filepath
+                     , p
+                     , text
                      , x-optparse
 
 test-suite test
@@ -53,6 +61,8 @@ test-suite test
                        base                            >= 3          && < 5
                      , icicle
                      , orphanarium-core
+                     , orphanarium-corpus
                      , p
+                     , text
                      , QuickCheck                      == 2.7.*
                      , quickcheck-instances            == 0.3.*
