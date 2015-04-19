@@ -69,32 +69,73 @@ The basic invariants are:
    entity / attribute.
 
 
+expressions
+-----------
+
+### types of expressions
+
+Ivory contains notes on some required expressions:
+
+ - https://github.com/ambiata/ivory/blob/master/doc/design/feature-gen.md
+
+Supporting this will be the existing corpus of ivory dictionaries.
+
+
+### outputs
+
+One complication is that there are two distinct outputs from each
+expression:
+
+ - The decision of which facts are interesting to a given snapshot.
+
+ - The output of the actual computation.
+
+
 specification
 -------------
 
 A prototype implementation is being built before we finalize the
-complete specification.
+complete specification of the icicle.
 
 
 prototype
 ---------
 
-### goals
+The goals of the v0 prototype implementation are:
 
  - identify language primitives.
+
  - identify a reasonable heuristic for cost, to help elliminate skew in
    the case of distributed computation.
+
  - determine an appropriate algorithm for arranging and fusing
    computation/expressions.
 
-MTH: Complete. Example expressions, limitations, simplifications, metadata/dictionary.
+ - determine scope and plausibility of static verification.
+
+ - propotype and iterate on surface syntax.
+
+ - best strategy for code-gen given primitives (shallow embedding,
+   with supporting libraries vs bit twiddling).
 
 
 simulation
 ----------
 
-MTH: Spec out.
+The simulation engine for the prototype shall use ivory EAVT text format
+as an ingestion. From this text format it shall:
 
+ - Parse each row into raw facts.
+
+ - Join in a dictionary to convert raw facts into typed facts.
+
+ - Sort by entity and attribute, then group into like entity and attribute,
+   then perform a secondary sort on time.
+
+ - Take a compiled expression and run over each group. There should be two
+   outputs produced:
+     1. A feed of all the facts that were used to compute values.
+     2. A feed of all computed values, EAV format.
 
 optimisation
 ------------
