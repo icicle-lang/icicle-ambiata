@@ -33,6 +33,7 @@ library
                        BuildInfo_icicle
                        Icicle
                        Icicle.Data
+                       Icicle.Encoding
                        Icicle.Serial
                        Icicle.Simulator
 

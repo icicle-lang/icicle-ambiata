@@ -55,7 +55,7 @@ data AsAt a =
 
 data Value =
     StringValue Text
-  | IntValue Text
+  | IntValue Int
   | DoubleValue Double
   | BooleanValue Bool
   | DateValue Date
@@ -96,8 +96,11 @@ data Concrete =
   deriving (Eq, Show)
 
 data Virtual =
-  Virtual Expression
-  deriving (Eq, Show)
+  Virtual {
+      concrete :: Attribute
+    , virtual  :: Attribute
+    , exp      :: Expression
+    } deriving (Eq, Show)
 
 data Expression =
   Expression -- the point of this exercise --
