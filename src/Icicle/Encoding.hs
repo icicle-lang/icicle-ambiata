@@ -52,7 +52,8 @@ primitiveEncoding e
    DoubleEncoding   -> True
    BooleanEncoding  -> True
    DateEncoding     -> True
-   _                -> False
+   StructEncoding _ -> False
+   ListEncoding   _ -> False
 
 
 -- | Attempt to get encoding of value.

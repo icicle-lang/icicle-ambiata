@@ -26,14 +26,14 @@ prop_value_type e =
 
 prop_json_roundtrip e =
  forAll  (valueOfEncoding e)
- $ \v -> (valueOfJSON e . jsonOfValue "TOMBSTONE") v === Right v
+ $ \v -> (valueOfJSON e . jsonOfValue "☠") v === Right v
 
 -- As above, but all the way to text and back
 -- =====================
 
 prop_text_roundtrip e =
  forAll  (valueOfEncoding e)
- $ \v -> (parseValue e . renderValue "TOMBSTONE") v === Right v
+ $ \v -> (parseValue e . renderValue "☠") v === Right v
 
 
 
