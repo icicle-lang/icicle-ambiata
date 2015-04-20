@@ -4,6 +4,7 @@
 module Icicle.Test.Arbitrary where
 
 import           Icicle.Data
+import           Icicle.Encoding
 
 import           Orphanarium.Corpus
 
@@ -11,6 +12,7 @@ import           Test.QuickCheck
 import           Test.QuickCheck.Instances ()
 
 import           P
+import           Data.List (nubBy)
 
 
 instance Arbitrary Entity where
@@ -25,6 +27,11 @@ instance Arbitrary DateTime where
   arbitrary =
     DateTime <$> elements muppets -- FIX replace with an actual DateTime
 
+instance Arbitrary Date where
+  arbitrary =
+    Date <$> elements muppets -- FIX replace with an actual Date
+
+
 instance Arbitrary Fact' where
   arbitrary =
     Fact'
@@ -37,3 +44,64 @@ instance Arbitrary a => Arbitrary (AsAt a) where
     AsAt
       <$> arbitrary
       <*> arbitrary
+
+instance Arbitrary Encoding where
+  arbitrary =
+    oneof [ return StringEncoding
+          , return IntEncoding
+          , return DoubleEncoding
+          , return BooleanEncoding
+          , return DateEncoding
+          , StructEncoding . nubEq <$> smaller arbitrary
+          , ListEncoding           <$> smaller arbitrary]
+   where
+    nubEq
+     = nubBy ((==) `on` attributeOfStructField)
+    
+    smaller g
+     = sized (\s -> resize (s `div` 2) g)
+
+instance Arbitrary StructField where
+  arbitrary =
+    oneof [ MandatoryField <$> arbitrary <*> arbitrary
+          , OptionalField  <$> arbitrary <*> arbitrary]
+
+
+valueOfEncoding :: Encoding -> Gen Value
+valueOfEncoding e
+ = case e of
+    StringEncoding
+     -> StringValue  <$> arbitrary
+    IntEncoding
+     -> IntValue     <$> arbitrary
+    DoubleEncoding
+     -> DoubleValue  <$> arbitrary
+    BooleanEncoding
+     -> BooleanValue <$> arbitrary
+    DateEncoding
+     -> DateValue    <$> arbitrary
+
+    StructEncoding sfs
+     ->  StructValue . Struct . P.concat
+     <$> mapM attrValue sfs
+
+    ListEncoding le
+     ->  ListValue   . List
+     <$> listOfEncoding le
+ where
+
+  attrValue (MandatoryField attr enc)
+   = do v <- valueOfEncoding enc
+        return [(attr, v)]
+
+  attrValue (OptionalField attr enc)
+   = do b <- arbitrary
+        v <- valueOfEncoding enc
+        case b of
+         True  -> return [(attr, v)]
+         False -> return []
+
+  listOfEncoding le
+   = do r <- arbitrary :: Gen [()]
+        mapM (const (valueOfEncoding le)) r
+

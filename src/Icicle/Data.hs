@@ -113,10 +113,10 @@ data Encoding =
   | BooleanEncoding
   | DateEncoding
   | StructEncoding [StructField]
-  | ListEncoding Encoding
+  | ListEncoding    Encoding
   deriving (Eq, Show)
 
 data StructField =
     MandatoryField Attribute Encoding
-  | OptionalField Attribute Encoding
+  | OptionalField  Attribute Encoding
   deriving (Eq, Show)
