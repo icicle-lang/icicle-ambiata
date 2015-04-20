@@ -6,6 +6,7 @@ module Icicle.Encoding (
   , renderDecodeError
   , renderValue
   , decodeValue
+  , encodingOfValue
   ) where
 
 import           Data.Text      as T
@@ -27,6 +28,43 @@ renderDecodeError (DecodeErrorBadInput val enc) =
   "Could not decode value '" <> val <> "' of type " <> T.pack (show enc)
 renderDecodeError (DecodeErrorUnhandledEncoding enc) =
   "Could not decode encoding " <> T.pack (show enc)
+
+
+-- | Attempt to get encoding of value.
+-- This can fail in two ways:
+--   - a list is given, but not all values of the list are the same;
+--   - a tombstone is given.
+--
+-- There is one ambiguous case, the empty list, where we default to list of string.
+encodingOfValue :: Value -> Maybe Encoding
+encodingOfValue val
+ = case val of
+    StringValue  _ -> return StringEncoding
+    IntValue     _ -> return IntEncoding
+    DoubleValue  _ -> return DoubleEncoding
+    BooleanValue _ -> return BooleanEncoding
+    DateValue    _ -> return DateEncoding
+    StructValue  s -> StructEncoding <$> encodingOfStruct s
+    ListValue    l -> ListEncoding   <$> encodingOfList   l
+
+    Tombstone      -> Nothing
+ where
+  encodingOfStruct (Struct s)
+   = mapM getStructField s
+
+  getStructField (a,v)
+   = MandatoryField a <$> encodingOfValue v
+
+  encodingOfList (List vals)
+   = do es <- mapM encodingOfValue vals
+        case es of
+         []
+          -> return StringEncoding
+         (x:xs)
+          -> if   P.all (==x) xs
+             then return x
+             else Nothing
+
 
 
 -- | Render value in a form readable by "decodeValue".
