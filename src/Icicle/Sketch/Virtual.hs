@@ -7,9 +7,6 @@
 {-# LANGUAGE TypeFamilies #-}
 
 module Icicle.Sketch.Virtual where
-
-
-
 -- | The top level for a virtual feature.
 -- Parameterised by concrete feature's type and output type.
 type TopLevel x u = Program x () u
