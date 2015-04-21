@@ -16,16 +16,16 @@ module Icicle.Encoding (
   ) where
 
 import           Data.Attoparsec.ByteString
-import           Data.Text      as T
-import           Data.Text.Read as T
-import           Data.Text.Encoding as T
+import           Data.Text              as T
+import           Data.Text.Read         as T
+import           Data.Text.Encoding     as T
 
-import qualified Data.Aeson     as A
-import qualified Data.Scientific as S
+import qualified Data.Aeson             as A
+import qualified Data.Scientific        as S
 
-import qualified Data.HashMap.Strict as HM
-import qualified Data.Vector         as V
-import qualified Data.ByteString.Lazy as BS
+import qualified Data.HashMap.Strict    as HM
+import qualified Data.Vector            as V
+import qualified Data.ByteString.Lazy   as BS
 
 import           Icicle.Data
 
