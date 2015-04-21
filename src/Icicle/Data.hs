@@ -13,6 +13,7 @@ module Icicle.Data (
   , Encoding (..)
   , StructField (..)
   , StructFieldType (..)
+  , attributeOfStructField
   ) where
 
 import           Data.Text
@@ -103,6 +104,10 @@ data Encoding =
 data StructField =
     StructField StructFieldType Attribute Encoding
   deriving (Eq, Show)
+
+attributeOfStructField :: StructField -> Attribute
+attributeOfStructField (StructField _ attr _)
+  = attr
 
 
 data StructFieldType =

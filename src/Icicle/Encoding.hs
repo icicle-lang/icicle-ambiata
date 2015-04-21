@@ -12,7 +12,7 @@ module Icicle.Encoding (
   , primitiveEncoding
   , valueOfJSON
   , jsonOfValue
-  , attributeOfStructField
+  , parseFact
   ) where
 
 import           Data.Attoparsec.ByteString
@@ -28,13 +28,16 @@ import qualified Data.Vector            as V
 import qualified Data.ByteString.Lazy   as BS
 
 import           Icicle.Data
+import           Icicle.Dictionary
 
 import           P
 
 
 data DecodeError =
-   DecodeErrorBadInput Text Encoding
+   DecodeErrorBadInput           Text Encoding
  | DecodeErrorMissingStructField Attribute
+ | DecodeErrorNotInDictionary    Attribute
+ | DecodeErrorValueForVirtual    Attribute
    deriving (Eq, Show)
 
 
@@ -43,6 +46,10 @@ renderDecodeError (DecodeErrorBadInput val enc) =
   "Could not decode value '" <> val <> "' of type " <> T.pack (show enc)
 renderDecodeError (DecodeErrorMissingStructField attr) =
   "Missing struct field " <> getAttribute attr
+renderDecodeError (DecodeErrorNotInDictionary attr) =
+  "Given attribute is not in dictionary: " <> getAttribute attr
+renderDecodeError (DecodeErrorValueForVirtual attr) =
+  "Cannot set values for virtual features: " <> getAttribute attr
 
 primitiveEncoding :: Encoding -> Bool
 primitiveEncoding e
@@ -297,7 +304,24 @@ readAll r t
  = Nothing
 
 
-attributeOfStructField :: StructField -> Attribute
-attributeOfStructField (StructField _ attr _)
-  = attr
+
+parseFact :: Dictionary -> Fact' -> Either DecodeError Fact
+parseFact (Dictionary dict) fact'
+ = do   def <- maybeToRight (DecodeErrorNotInDictionary attr)
+                            (P.find ((==attr).fst) dict)
+        case snd def of
+         ConcreteDefinition enc
+          -> factOf <$> parseValue enc (value' fact')
+         VirtualDefinition _
+          -> Left (DecodeErrorValueForVirtual attr)
+
+ where
+  attr = attribute' fact'
+
+  factOf v
+   = Fact
+    { entity    = entity'    fact'
+    , attribute = attribute' fact'
+    , value     = v
+    }
 

@@ -4,7 +4,6 @@
 module Icicle.Test.Arbitrary where
 
 import           Icicle.Data
-import           Icicle.Encoding
 
 import           Orphanarium.Corpus
 

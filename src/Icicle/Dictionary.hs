@@ -1,8 +1,10 @@
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
 module Icicle.Dictionary (
     Dictionary (..)
   , Definition (..)
   , Virtual (..)
+  , demographics
   ) where
 
 import           Icicle.Data
@@ -34,3 +36,13 @@ data Expression =
   deriving (Eq, Show)
 
 
+
+-- | Example demographics dictionary
+-- Hard-coded for now
+demographics :: Dictionary
+demographics =
+ Dictionary 
+ [ (Attribute "gender",             ConcreteDefinition StringEncoding)
+ , (Attribute "age",                ConcreteDefinition IntEncoding)
+ , (Attribute "state_of_residence", ConcreteDefinition StringEncoding)
+ , (Attribute "salary",             ConcreteDefinition IntEncoding) ]

@@ -25,14 +25,14 @@ main = getArgs >>= \args -> case args of
   ["--help"] ->
     usage
   [factset] ->
-    orDie renderParseError $ run factset
+    orDie renderParseError $ run demographics factset
   _ ->
     usage >> exitFailure
 
 
-run :: FilePath -> EitherT ParseError IO ()
-run p =
-  EitherT $ (mapM parseEavt . T.lines <$> T.readFile p) >>= mapM print
+run :: Dictionary -> FilePath -> EitherT ParseError IO ()
+run dict p =
+  EitherT $ (mapM (decodeEavt dict) . T.lines <$> T.readFile p) >>= mapM print
 
 
 usage :: IO ()
