@@ -9,55 +9,43 @@
 module Icicle.Sketch.Virtual where
 
 
--- | For simplicity we'll only have a few types for now
-data BaseType
- = IntT | StringT | BoolT
- | UnitT
- | PairT BaseType BaseType
- | ListT BaseType
+
+-- | The top level for a virtual feature.
+-- Parameterised by concrete feature's type and output type.
+type TopLevel x u = Program x () u
 
 
--- | Convert our subset of types into Haskell types.
--- Really just for evaluation.
-type family ValueOf (t :: BaseType) :: * where
- ValueOf IntT        = Int
- ValueOf StringT     = String
- ValueOf BoolT       = Bool
- ValueOf UnitT       = ()
- ValueOf (ListT t)   = [ValueOf t]
- ValueOf (PairT a b) = (ValueOf a, ValueOf b)
+-- | Program
+--      (concrete feature type)
+--      (scalar environment type)
+--      (output type)
+data Program :: * -> * -> * -> * where
+ -- | Called "In" because it's the "In" of a "Let"
+ In         :: ScalarExp t u
+            -> Program x t u 
+ -- | Scalar let
+ LetS       :: ScalarExp t v
+            -> Program x (v,t) u
+            -> Program x t u
+ -- | Reduce let.
+ -- The reduce here cannot mention any previously bound scalars.
+ LetR       :: Latest x v
+            -> Program x (v,t) u
+            -> Program x t u
 
 
--- | Stratified so we can't have streams of streams
-data Type
- = Scalar BaseType
- | Stream BaseType
-
-
--- | Either take the latest N entries, or the most recent.
-data Virtual :: Type -> BaseType -> * where
- TakeN      :: Int
-            -> Transforms t s
-            -> Reduce s u
-            -> Virtual (Stream t) u
-
-{-
- - -- This is a boring case for now
- TakeLast   :: ScalarExp t        u
-            -> ScalarExp UnitT    u
-            -> Virtual (Scalar t) u
--}
-  
+data Latest :: * -> * -> * where
+ Latest :: Int -> Transforms x t -> Reduce t u -> Latest x u
 
 -- | All stream computations end with a fold
-data Reduce :: BaseType -> BaseType -> * where
- Reduce :: ScalarExp   UnitT a
-        -> ScalarExp  (PairT a t) a
+data Reduce :: * -> * -> * where
+ Reduce :: ScalarExp  ()     a
+        -> ScalarExp  (a,t)  a
         -> Reduce      t     a
 
 
 -- | A chain of stream transformers with no fusion-preventing deps
-data Transforms :: BaseType -> BaseType -> * where
+data Transforms :: * -> * -> * where
  End    :: Transforms  t  t
  Chain  :: Transform   t  u
         -> Transforms  u  v
@@ -67,20 +55,20 @@ data Transforms :: BaseType -> BaseType -> * where
 -- | A single stream transformer
 -- These can all be fused into the final fold, of course,
 -- but folds are rather annoying to compose.
-data Transform :: BaseType -> BaseType -> * where
+data Transform :: * -> * -> * where
  Map    :: ScalarExp   t  u
         -> Transform   t  u
- Filter :: ScalarExp   t  BoolT
+ Filter :: ScalarExp   t  Bool
         -> Transform   t  t
 
 
 -- For now, we'll cheat and use Haskell functions as scalar expressions (HOAS)
 type ScalarExp t u
- = ValueOf t -> ValueOf u
+ = t -> u
 
 {-
 -- | Scalar expression with list of available bindings
-data ScalarExp :: [BaseType] -> BaseType -> * where
+data ScalarExp :: [*] -> * -> * where
  Var    :: Index     ixs t
         -> ScalarExp ixs t
 
@@ -91,8 +79,8 @@ data ScalarExp :: [BaseType] -> BaseType -> * where
 
 
 -- | Primitive binary operators
-data BinOp :: BaseType -> * where
- Plus   :: BinOp IntT
- Append :: BinOp StringT
+data BinOp :: * -> * where
+ Plus   :: BinOp Int
+ Append :: BinOp String
 
 -}
