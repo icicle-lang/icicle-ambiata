@@ -4,6 +4,7 @@
 {-# LANGUAGE TypeFamilies #-}
 
 module Icicle.Sketch.Stratified where
+import Icicle.Sketch.Lists
 
 -- Stratification:
 -- there are four or so stages of execution:
@@ -51,14 +52,6 @@ type family GetScalar t where
 type family ReplaceScalar t u where
  ReplaceScalar (Pre t)  u = Pre t
  ReplaceScalar (Post t) u = Post u
-
--- De bruijn indices.
--- Use a list of types as the environment,
--- then the index is the variable name
-data Index :: [*] -> * -> * where
- Here  :: Index (x ': xs) x
- There :: Index xs x -> Index (y ': xs) x
-
 
 -- The top-level expression has to be a single post-scalar
 -- based on concrete feature "x".
@@ -119,3 +112,4 @@ data Exp :: * -> [*] -> * -> * where
  Const
      :: a
      -> Exp c           xs (Pre a)
+
