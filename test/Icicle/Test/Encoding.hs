@@ -19,7 +19,7 @@ import           Test.QuickCheck
 
 prop_value_type e =
  forAll (valueOfEncoding e)
- $ \v -> primitiveEncoding e ==> (encodingOfValue v == Just e)
+ $ \v -> valueSatisfiesEncoding v e
 
 -- JSON roundtrip works
 -- =====================

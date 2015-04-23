@@ -8,33 +8,36 @@ module Icicle.Encoding (
   , renderDecodeError
   , renderValue
   , parseValue
-  , encodingOfValue
+  , valueSatisfiesEncoding
   , primitiveEncoding
   , valueOfJSON
   , jsonOfValue
-  , attributeOfStructField
+  , parseFact
   ) where
 
 import           Data.Attoparsec.ByteString
-import           Data.Text      as T
-import           Data.Text.Read as T
-import           Data.Text.Encoding as T
+import           Data.Text              as T
+import           Data.Text.Read         as T
+import           Data.Text.Encoding     as T
 
-import qualified Data.Aeson     as A
-import qualified Data.Scientific as S
+import qualified Data.Aeson             as A
+import qualified Data.Scientific        as S
 
-import qualified Data.HashMap.Strict as HM
-import qualified Data.Vector         as V
-import qualified Data.ByteString.Lazy as BS
+import qualified Data.HashMap.Strict    as HM
+import qualified Data.Vector            as V
+import qualified Data.ByteString.Lazy   as BS
 
 import           Icicle.Data
+import           Icicle.Dictionary
 
 import           P
 
 
 data DecodeError =
-   DecodeErrorBadInput Text Encoding
+   DecodeErrorBadInput           Text Encoding
  | DecodeErrorMissingStructField Attribute
+ | DecodeErrorNotInDictionary    Attribute
+ | DecodeErrorValueForVirtual    Attribute
    deriving (Eq, Show)
 
 
@@ -43,6 +46,10 @@ renderDecodeError (DecodeErrorBadInput val enc) =
   "Could not decode value '" <> val <> "' of type " <> T.pack (show enc)
 renderDecodeError (DecodeErrorMissingStructField attr) =
   "Missing struct field " <> getAttribute attr
+renderDecodeError (DecodeErrorNotInDictionary attr) =
+  "Given attribute is not in dictionary: " <> getAttribute attr
+renderDecodeError (DecodeErrorValueForVirtual attr) =
+  "Cannot set values for virtual features: " <> getAttribute attr
 
 primitiveEncoding :: Encoding -> Bool
 primitiveEncoding e
@@ -56,40 +63,55 @@ primitiveEncoding e
    ListEncoding   _ -> False
 
 
--- | Attempt to get encoding of value.
--- This can fail in two ways:
---   - a list is given, but not all values of the list are the same;
---   - a tombstone is given.
---
--- There is one ambiguous case, the empty list, where we default to list of string.
-encodingOfValue :: Value -> Maybe Encoding
-encodingOfValue val
+-- | Check whether a value satisfies given encoding.
+-- This is only really useful for testing.
+valueSatisfiesEncoding :: Value -> Encoding -> Bool
+valueSatisfiesEncoding val enc
  = case val of
-    StringValue  _ -> return StringEncoding
-    IntValue     _ -> return IntEncoding
-    DoubleValue  _ -> return DoubleEncoding
-    BooleanValue _ -> return BooleanEncoding
-    DateValue    _ -> return DateEncoding
-    StructValue  s -> StructEncoding <$> encodingOfStruct s
-    ListValue    l -> ListEncoding   <$> encodingOfList   l
+    StringValue  _
+     -> enc == StringEncoding
+    IntValue     _
+     -> enc == IntEncoding
+    DoubleValue  _
+     -> enc == DoubleEncoding
+    BooleanValue _
+     -> enc == BooleanEncoding
+    DateValue    _
+     -> enc == DateEncoding
 
-    Tombstone      -> Nothing
+    StructValue  (Struct vals)
+     | StructEncoding fields <- enc
+     -> P.all (valueHasField fields) vals
+     && P.all (fieldHasValue vals)   fields
+     | otherwise
+     -> False
+
+    ListValue    (List ls)
+     | ListEncoding le <- enc
+     -> P.all (flip valueSatisfiesEncoding le) ls
+     | otherwise
+     -> False
+
+    Tombstone
+     -> True
  where
-  encodingOfStruct (Struct s)
-   = mapM getStructField s
+  valueHasField fields (attr,v)
+   | Just f <- P.find ((==attr).attributeOfStructField) fields
+   , StructField _ _ e <- f
+   = valueSatisfiesEncoding v e
+   | otherwise
+   = False
 
-  getStructField (a,v)
-   = MandatoryField a <$> encodingOfValue v
+  fieldHasValue vals (StructField Mandatory attr _)
+   | Just _ <- P.find ((==attr).fst)                    vals
+   = True
+   | otherwise
+   = False
 
-  encodingOfList (List vals)
-   = do es <- mapM encodingOfValue vals
-        case es of
-         []
-          -> return StringEncoding
-         (x:xs)
-          -> if   P.all (==x) xs
-             then return x
-             else Nothing
+  fieldHasValue _    (StructField Optional _ _)
+   = True
+
+   
 
 
 
@@ -228,14 +250,14 @@ valueOfJSON e v
 
   getStructField obj field
    = case field of
-      MandatoryField attr enc
+      StructField Mandatory attr enc
        | Just val <- getField obj attr
        -> do    v' <- valueOfJSON enc val
                 return [(attr, v')]
        | otherwise
        -> Left  (DecodeErrorMissingStructField attr)
 
-      OptionalField  attr enc
+      StructField Optional  attr enc
        | Just val <- getField obj attr
        -> do    v' <- valueOfJSON enc val
                 return [(attr, v')]
@@ -282,9 +304,24 @@ readAll r t
  = Nothing
 
 
-attributeOfStructField :: StructField -> Attribute
-attributeOfStructField (MandatoryField attr _)
-  = attr
-attributeOfStructField (OptionalField attr _)
-  = attr
+
+parseFact :: Dictionary -> Fact' -> Either DecodeError Fact
+parseFact (Dictionary dict) fact'
+ = do   def <- maybeToRight (DecodeErrorNotInDictionary attr)
+                            (P.find ((==attr).fst) dict)
+        case snd def of
+         ConcreteDefinition enc
+          -> factOf <$> parseValue enc (value' fact')
+         VirtualDefinition _
+          -> Left (DecodeErrorValueForVirtual attr)
+
+ where
+  attr = attribute' fact'
+
+  factOf v
+   = Fact
+    { entity    = entity'    fact'
+    , attribute = attribute' fact'
+    , value     = v
+    }
 

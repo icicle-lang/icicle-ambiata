@@ -4,7 +4,6 @@
 module Icicle.Test.Arbitrary where
 
 import           Icicle.Data
-import           Icicle.Encoding
 
 import           Orphanarium.Corpus
 
@@ -63,9 +62,11 @@ instance Arbitrary Encoding where
 
 instance Arbitrary StructField where
   arbitrary =
-    oneof [ MandatoryField <$> arbitrary <*> arbitrary
-          , OptionalField  <$> arbitrary <*> arbitrary]
+    StructField <$> arbitrary <*> arbitrary <*> arbitrary
 
+instance Arbitrary StructFieldType where
+  arbitrary =
+    oneof [return Mandatory, return Optional]
 
 valueOfEncoding :: Encoding -> Gen Value
 valueOfEncoding e
@@ -75,7 +76,10 @@ valueOfEncoding e
     IntEncoding
      -> IntValue     <$> arbitrary
     DoubleEncoding
-     -> DoubleValue  <$> arbitrary
+     -- Only generate doubles with small amount of precision
+     -- as going to and from text can lose something.
+     -> DoubleValue  . (/10) . fromIntegral
+                     <$> (arbitrary :: Gen Int)
     BooleanEncoding
      -> BooleanValue <$> arbitrary
     DateEncoding
@@ -90,11 +94,11 @@ valueOfEncoding e
      <$> listOfEncoding le
  where
 
-  attrValue (MandatoryField attr enc)
+  attrValue (StructField Mandatory attr enc)
    = do v <- valueOfEncoding enc
         return [(attr, v)]
 
-  attrValue (OptionalField attr enc)
+  attrValue (StructField Optional attr enc)
    = do b <- arbitrary
         v <- valueOfEncoding enc
         case b of

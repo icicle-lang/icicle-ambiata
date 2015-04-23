@@ -38,6 +38,7 @@ library
                        BuildInfo_icicle
                        Icicle
                        Icicle.Data
+                       Icicle.Dictionary
                        Icicle.Encoding
                        Icicle.Serial
                        Icicle.Simulator
