@@ -8,8 +8,8 @@ Computation based on a few discrete stages, where each stage cannot depend on la
 
 - Pre-computations: constants, setting up arrays, reading lookup tables
 - Worker functions: can use pre-computation values, but cannot directly load lookup tables from disk
-- Streams: on-line stream computations such as filtering, mapping, taking the latest N of input
-- Reductions on streams: each stream can be folded, where worker functions and initial values cannot depend on streams or other reductions
+- Streams: on-line stream computations such as filtering, mapping, taking the first N of input
+- Reductions on streams: each stream can be folded, where worker functions and initial values cannot depend on streams or other reductions. Latest N is actually a reduction.
 - Post-computations: cannot touch streams, but only the result of reductions and pre-computations
 
 
@@ -28,27 +28,28 @@ It would be *nice* if we could ensure no-allocation in expressions, but I fear t
 For now, I suggest we leave this burden on the user.
 
 ```
-Exp ::= Exp Int    +  Exp Int
-      | Exp Int    -  Exp Int
-      | Exp Double +. Exp Double
-      | Exp Double -. Exp Double
+Exp ::= Exp Int    +  Exp Int                       : Exp Int
+      | Exp Int    -  Exp Int                       : Exp Int
+      | Exp Double +. Exp Double                    : Exp Double
+      | Exp Double -. Exp Double                    : Exp Double
       | ...
-      | update (Exp Int) (Exp a) (Exp (Array a))
+      | update (Exp Int) (Exp a) (Exp (Array a))    : Exp (Array a)
+      | generate (Exp Int) (Exp (Int -> a))         : Exp (Array a)
+      | index  (Exp Int) (Exp (Array a))            : Exp a
       | ...
-      | Var
+      | Var                                         : Exp a
 ```
 
 
 Precomputation
 --------------
-Precomputation stage is just setting constants, allocating initial arrays, and loading lookup tables from disk.
+Precomputation stage is just setting constants, and loading lookup tables from disk.
+Presumably initial arrays and maps would be allocated here, too.
 
 ```
 Pre ::= Load File
-      | Allocate (Exp Int)
       | Exp t
 ```
-(I'm not convinced that "allocate" needs to be here, instead of just in Exp.)
 
 
 Worker functions
@@ -65,17 +66,20 @@ Stream transformers must be online: they require no buffering, use no random acc
 All expressions here are worker functions, only able to access the precomputations and their arguments.
 
 ```
-Stream  ::= Latest (Exp Int)                    : Stream (concrete feature type)
+Stream  ::= Source                              : Stream (concrete feature type)
+          | Take   (Exp Int) (Stream a)         : Stream a
           | Filter (Exp (a -> Bool)) (Stream a) : Stream a
           | Map    (Exp (a -> b))    (Stream a) : Stream b
-          | Scan   (Exp (a -> a -> a)) (Exp a)
-                                     (Stream a) : Stream a
 ```
 
 These are not strictly necessary from an expressiveness standpoint, as a fold on each of these could be rewritten as a fold on the original data.
 However, making these explicit makes composition a lot easier than with folds.
 
-I'm not sure whether Scan (running sum) is necessary.
+I had Scan here before, but a) I'm not convinced it's necessary, and b) it complicates lookbehind computation.
+
+Similarly, Drop could be added, but it also complicates lookbehind.
+
+The important part for lookbehind is that these are stateless, operating only on the current index and the current value.
 
 Reductions
 ----------
@@ -87,8 +91,13 @@ Again, the expressions here can only refer to precomputations and their argument
 
 ```
 Reduction   ::= Reduce (Exp b) (Exp (b -> a -> b)) (Stream a) : Reduction b
-              | HeadOrDefault (Exp b)                         : Reduction b
+              | Latest (Exp Int)                   (Stream a) : Reduction (Array a)
 ```
+
+Latest should use a circular buffer to take the last N elements from an array.
+This could really be implemented with Reduce, but it seems so fundamental that it's worth including.
+Latest also has very different lookbehind semantics from a latest implemented with lookbehind.
+The important part is that latest does not actually allow inspection of all the *values* of the stream, because they will be stored and then thrown away.
 
 
 Postcomputations
@@ -122,15 +131,26 @@ In the concrete language, we could just recognise "+" and compile it to either "
 
 Computing lookbehind
 -----------------------
-We need to know upfront, without executing the program, how much lookbehind or historical data is necessary.
-It looks like this is just computing the maximum of all the "Latest" streams.
-At the moment this is an Exp which could rely on lookup data, but if that's a problem we can just require it to be a constant int.
+Along with the "obvious" value semantics, each program needs to keep track of which stream values were used to compute the output.
+
+It is important that the Stream computations cannot depend on previous stream values, which means that if a stream value contributes to the output, that stream value depends on no previous stream values.
+
+Each value passed to a fold reduction is assumed to be used, but latests only use their last N values, which is why latests aren't implemented as folds.
+
+Postcomputations cannot access stream values, but we can assume that all reductions are used.
+
+What about "numflips" or a sum over all time?
+Since it's simply a reduce over all previous data, and the previous data isn't going to change, we should be able to just use the previous reduce value etc.
+
+So in summary, each fold reduction should output its current value as the lookbehind, and each latest reduction should output the values it used.
+Note that the fold reduction's value will not necessarily be the output value of the virtual feature, as a postcomputation could modify that.
+
 
 Code generation
 ---------------
-I'm pretty confident that with these restrictions we'll be able to compile into a single loop over the source stream.
+I'm pretty confident that with these restrictions we'll be able to compile into a single loop over the source stream, potentially followed by folds over latest arrays and so on.
 Precomputations and postcomputations are easy, they just go before and after the loop.
-We also initialise all the reductions to their initial values before the loop.
+We also initialise all the fold reductions to their initial values before the loop.
 Since the only stream combinators take only one input, it should fall out pretty easily too.
 
 
@@ -139,5 +159,58 @@ Fusion / tupling
 It should also be "quite easy" to merge two virtual features based on the same concrete feature into a single computation.
 There can be no data dependencies between the two, so we should be able to just give all the bindings fresh names and append all the pres together, all the streams together, and so on.
 
-The lookbehind of the fused "superfeature" should be the maximum of the two, which fits the definition above.
+The lookbehind of the fused "superfeature" should be the union of the two.
+
+
+Updating old data
+-----------------
+I assume that if we update historical data, we will need to go back to the snapshot for the earliest update and recompute all afterwards..
+
+I also assume that if we change the virtual features, we will need to recompute using all data.
+
+
+Concrete language
+-----------------
+The above has been describing the core language, not the concrete language; we will want to provide a nicer layer for people to write in.
+
+Things like "+" should work for any kind of number, but for code generation it's better to know exactly which plus we're talking about.
+
+There is a distinction between Streams and Arrays, with unintuitive or messy details like "Latest" takes a Stream and returns an Array, but "Take" takes a Stream and returns a Stream.
+This distinction should simplify code generation and lookbehind computation a lot, but makes the user's life more difficult.
+The concrete language should allow treating Streams and Arrays the same in most cases, eg "Sum(Source)" and "Sum(Latest(10,Source))" should both work, but would be translated to a stream reduce and a latest followed by array reduce, respectively.
+
+```
+Sum(Source)
+==>
+PRE=========
+
+STREAMS=====
+s = Source
+
+REDUCTIONS==
+r = Fold (+) 0 s
+
+POST========
+return r
+```
+
+
+```
+Sum( Latest(10, Source) )
+==>
+PRE=========
+
+STREAMS=====
+s = Source
+
+REDUCTIONS==
+l = Latest(10, s)
+
+POST========
+r = ArrayFold (+) 0 s
+
+return r
+```
+
+
 
