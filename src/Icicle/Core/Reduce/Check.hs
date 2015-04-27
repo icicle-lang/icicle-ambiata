@@ -49,5 +49,5 @@ checkReduce se r
             
  where
   checkX
-   = mapLeft ReduceErrorExp . checkExp (pres se)
+   = mapLeft ReduceErrorExp . checkExp (scalars se)
 

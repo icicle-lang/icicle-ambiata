@@ -3,7 +3,7 @@
 module Icicle.Core.Stream.Check (
       checkStream
     , StreamEnv (..)
-    , emptyEnv
+    , streamEnv
     ) where
 
 import              Icicle.Core.Type
@@ -20,13 +20,13 @@ import              Data.Either.Combinators
 
 data StreamEnv n =
  StreamEnv
- { pres     :: Env n Type
+ { scalars  :: Env n Type
  , streams  :: Env n ValType
  , concrete :: ValType
  }
 
-emptyEnv :: Env n Type -> ValType -> StreamEnv n
-emptyEnv pre conc
+streamEnv :: Env n Type -> ValType -> StreamEnv n
+streamEnv pre conc
  = StreamEnv pre Map.empty conc
 
 
@@ -40,7 +40,7 @@ checkStream se s
      -> return (concrete se)
     STrans st f n
      -> do  inp <- lookupOrDie StreamErrorVarNotInEnv (streams se) n
-            fty <- mapLeft     StreamErrorExp $ checkExp (pres se) f
+            fty <- mapLeft     StreamErrorExp $ checkExp (scalars se) f
 
             requireSame (StreamErrorTypeError f)
                         (funOfVal $ inputOfStreamTransform st) (funOfVal inp)

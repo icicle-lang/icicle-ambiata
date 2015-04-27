@@ -19,4 +19,6 @@ data Program n =
  , streams      :: [(Name n, Stream n)]
  , reduces      :: [(Name n, Reduce n)]
  , postcomps    :: [(Name n, Exp n)]
+ , returns      :: Exp n
  }
+
