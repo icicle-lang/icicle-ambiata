@@ -17,6 +17,7 @@ library
                      , attoparsec                      == 0.12.*
                      , bifunctors                      == 4.2.*
                      , bytestring                      == 0.10.*
+                     , containers                      == 0.5.*
                      , either                          == 4.3.*
                      , filepath                        == 1.3.*
                      , p
@@ -25,6 +26,7 @@ library
                      , transformers                    >= 0.3        && < 0.5
                      , unordered-containers            == 0.2.*
                      , vector                          == 0.10.*
+                     , wl-pprint                       == 1.2.*
 
 
   ghc-options:
@@ -37,9 +39,32 @@ library
                        Paths_icicle
                        BuildInfo_icicle
                        Icicle
+
+                       Icicle.Core.Base
+                       Icicle.Core.Type
+                       Icicle.Core.Exp.Exp
+                       Icicle.Core.Exp.Error
+                       Icicle.Core.Exp.Check
+                       Icicle.Core.Exp.Prim
+                       Icicle.Core.Exp
+                       Icicle.Core.Stream.Stream
+                       Icicle.Core.Stream.Error
+                       Icicle.Core.Stream.Check
+                       Icicle.Core.Stream
+                       Icicle.Core.Reduce.Reduce
+                       Icicle.Core.Reduce.Error
+                       Icicle.Core.Reduce.Check
+                       Icicle.Core.Reduce
+                       Icicle.Core.Program.Program
+                       Icicle.Core.Program.Check
+                       Icicle.Core.Program.Error
+
+                       Icicle.Core.Eval.Exp
+
                        Icicle.Data
                        Icicle.Dictionary
                        Icicle.Encoding
+                       Icicle.Internal.Pretty
                        Icicle.Serial
                        Icicle.Simulator
 

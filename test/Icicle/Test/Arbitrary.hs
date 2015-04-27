@@ -105,7 +105,9 @@ valueOfEncoding e
          True  -> return [(attr, v)]
          False -> return []
 
+  -- This seems to generate way too large lists sometimes
   listOfEncoding le
-   = do r <- arbitrary :: Gen [()]
-        mapM (const (valueOfEncoding le)) r
+   = smaller $ listOf (valueOfEncoding le)
 
+  smaller g
+   = sized (\s -> resize (s `div` 2) g)
