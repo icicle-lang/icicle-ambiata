@@ -20,12 +20,12 @@ import              Data.Either.Combinators
 
 data StreamEnv n =
  StreamEnv
- { pres     :: Env n
- , streams  :: Env n
+ { pres     :: Env n Type
+ , streams  :: Env n ValType
  , concrete :: ValType
  }
 
-emptyEnv :: Env n -> ValType -> StreamEnv n
+emptyEnv :: Env n Type -> ValType -> StreamEnv n
 emptyEnv pre conc
  = StreamEnv pre Map.empty conc
 
@@ -40,34 +40,12 @@ checkStream se s
      -> return (concrete se)
     STrans st f n
      -> do  inp <- lookupOrDie StreamErrorVarNotInEnv (streams se) n
-            fty <- mapLeft StreamErrorExp $ checkExp (pres se) f
-            checkStreamTransform f st inp fty
+            fty <- mapLeft     StreamErrorExp $ checkExp (pres se) f
 
- where
-  -- TODO: clean this up.
-  -- probably much easier if we add type arguments to StreamTransform.
-  -- types should be ValTypes.
-  checkStreamTransform f st inp fty
-   = case st of
-      SFilter
-       | fty == FunT [inp] BoolT
-       , FunT [] i <- inp
-       -> return i
-       | otherwise
-       -> Left (StreamErrorTypeError f (Just $ FunT [inp] BoolT) fty)
+            requireSame (StreamErrorTypeError f)
+                        (funOfVal $ inputOfStreamTransform st) (funOfVal inp)
+            requireSame (StreamErrorTypeError f)
+                        (typeOfStreamTransform st)              fty
 
-      SMap
-       | FunT [from] to <- fty
-       , from == inp
-       -> return to
-       | otherwise
-       -> Left (StreamErrorTypeError f Nothing fty)
+            return (outputOfStreamTransform st)
 
-      STake
-       | fty == FunT [] IntT
-       , FunT [] i <- inp
-       -> return i
-       | otherwise
-       -> Left (StreamErrorTypeError f (Just $ FunT [] IntT) fty)
-            
-            

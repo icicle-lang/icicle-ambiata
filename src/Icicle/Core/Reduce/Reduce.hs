@@ -5,6 +5,7 @@ module Icicle.Core.Reduce.Reduce (
 
 import              Icicle.Internal.Pretty
 import              Icicle.Core.Base
+import              Icicle.Core.Type
 import              Icicle.Core.Exp
 
 import              P
@@ -12,8 +13,8 @@ import              P
 
 
 data Reduce n
- = RFold   (Exp n) (Exp n) (Name n)
- | RLatest (Exp n)         (Name n)
+ = RFold   ValType ValType (Exp n) (Exp n) (Name n)
+ | RLatest ValType         (Exp n)         (Name n)
  deriving (Eq,Ord,Show)
 
 
@@ -21,6 +22,13 @@ data Reduce n
 
 
 instance (Pretty n) => Pretty (Reduce n) where
- pretty (RFold k z n) = text "rfold  " <+> parens (pretty k) <+> parens (pretty z) <+> pretty n
- pretty (RLatest x n) = text "rlatest" <+> parens (pretty x) <+> pretty n
+ pretty (RFold t a k z n)
+  =   text "rfold  "
+  <+> text "[" <> pretty t <> text "]"
+  <+> text "[" <> pretty a <> text "]"
+  <+> parens (pretty k) <+> parens (pretty z) <+> pretty n
+ pretty (RLatest t x n)
+  =   text "rlatest"
+  <+> text "[" <> pretty t <> text "]"
+  <+> parens (pretty x) <+> pretty n
 

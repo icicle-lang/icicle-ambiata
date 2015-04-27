@@ -16,9 +16,7 @@ data ReduceError n
  -- Worker function doesn't type check
  | ReduceErrorExp           (ExpError n)
  -- can't do something with worker function
- | ReduceErrorTypeError     (Exp n) (Maybe Type) Type
- -- this should never happen; StreamEnv should really be an environment of ValTypes
- | ReduceErrorStreamIsFunType  (Name n)
+ | ReduceErrorTypeError     (Exp n) Type Type
  deriving Show
 
 instance (Pretty n) => Pretty (ReduceError n) where
@@ -36,8 +34,4 @@ instance (Pretty n) => Pretty (ReduceError n) where
      <+> indent 4 (text "Exp:      " <> pretty x <> line
                 <> text "Expected: " <> pretty t <> line
                 <> text "Actual:   " <> pretty y)
-
-    ReduceErrorStreamIsFunType n
-     ->  text "Impossible: stream is fun type: " <> pretty n
-
 

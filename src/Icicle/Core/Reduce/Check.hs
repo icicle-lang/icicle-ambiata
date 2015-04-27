@@ -22,35 +22,32 @@ checkReduce
         -> Either (ReduceError n) ValType
 checkReduce se r
  = case r of
-    RFold k z n
+    RFold t a k z n
      -> do  inp <- lookupOrDie ReduceErrorNoSuchStream (streams se) n
             kty <- checkX k
             zty <- checkX z
-            case zty of
-             FunT [] acc
-              -> do  expect k kty (FunT [funOfVal acc, inp] acc)
-                     return acc
 
-             _
-              -> Left (ReduceErrorTypeError z Nothing zty)
+            requireSame (ReduceErrorTypeError k)
+                        (funOfVal t)                     (funOfVal inp)
+            requireSame (ReduceErrorTypeError k)
+                        (FunT [funOfVal a, funOfVal t] a) kty
+            requireSame (ReduceErrorTypeError z)
+                        (funOfVal a)                      zty
 
-    RLatest num n
+            return a
+
+    RLatest t num n
      -> do  inp <- lookupOrDie ReduceErrorNoSuchStream (streams se) n
-            numty <- checkX num
-            expect num numty (funOfVal IntT)
-            case inp of
-             FunT [] i
-              -> return i
-             _
-              -> Left (ReduceErrorStreamIsFunType n)
+            nty <- checkX num
+
+            requireSame (ReduceErrorTypeError num)
+                        (funOfVal t)                     (funOfVal inp)
+            requireSame (ReduceErrorTypeError num)
+                        (funOfVal IntT)                   nty
+
+            return (ArrayT t)
             
  where
   checkX
    = mapLeft ReduceErrorExp . checkExp (pres se)
-
-  expect xx actual expected
-   | actual == expected
-   = return ()
-   | otherwise
-   = Left (ReduceErrorTypeError xx (Just expected) actual)
 

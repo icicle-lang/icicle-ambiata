@@ -10,6 +10,7 @@ module Icicle.Core.Type (
     , insertOrDie
 
     , canApply
+    , requireSame
 
     ) where
 
@@ -49,10 +50,10 @@ canApply (FunT args p) q
     _
      -> Nothing
 
-type Env n = Map.Map (Name n) Type
+type Env n t = Map.Map (Name n) t
 
 
-lookupOrDie :: Ord n => (Name n -> err) -> Env n -> Name n -> Either err Type
+lookupOrDie :: Ord n => (Name n -> err) -> Env n t -> Name n -> Either err t
 lookupOrDie err e n
  = maybeToRight
         (err n)
@@ -60,7 +61,7 @@ lookupOrDie err e n
 
 
 -- Insert unique
-insertOrDie :: Ord n => (Name n -> err) -> Env n -> Name n -> Type -> Either err (Env n)
+insertOrDie :: Ord n => (Name n -> err) -> Env n t -> Name n -> t -> Either err (Env n t)
 insertOrDie err e n t
  = case Map.lookup n e of
     Just _
@@ -68,6 +69,15 @@ insertOrDie err e n t
     _
      -> return $ Map.insert n t e
 
+
+requireSame 
+    :: (Type -> Type -> err)
+    ->  Type -> Type -> Either err ()
+requireSame err p q
+ | p == q
+ = return ()
+ | otherwise
+ = Left $ err p q
 
 
 -- Pretty printing ---------------

@@ -27,14 +27,14 @@ checkExp0 :: (Ord n) => Exp n -> Either (ExpError n) Type
 checkExp0 = checkExp Map.empty
 
 
-checkExp :: (Ord n) => Env n -> Exp n -> Either (ExpError n) Type
+checkExp :: (Ord n) => Env n Type -> Exp n -> Either (ExpError n) Type
 checkExp e x
  = do   t <- typecheck e x
         _ <- primsFullyApplied x
         return t
 
 
-typecheck :: (Ord n) => Env n -> Exp n -> Either (ExpError n) Type
+typecheck :: (Ord n) => Env n Type -> Exp n -> Either (ExpError n) Type
 typecheck e xx
  = case xx of
     XVar n

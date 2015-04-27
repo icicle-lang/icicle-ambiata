@@ -16,7 +16,7 @@ data StreamError n
  -- Worker function doesn't type check
  | StreamErrorExp           (ExpError n)
  -- can't do something with worker function
- | StreamErrorTypeError     (Exp n) (Maybe Type) Type
+ | StreamErrorTypeError     (Exp n) Type Type
  deriving Show
 
 instance (Pretty n) => Pretty (StreamError n) where
