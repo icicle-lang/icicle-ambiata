@@ -7,6 +7,7 @@ import              Icicle.Internal.Pretty
 import              Icicle.Core.Base
 import              Icicle.Core.Type
 import              Icicle.Core.Exp.Exp
+import              Icicle.Core.Exp.Prim
 
 import              P
 
@@ -18,6 +19,9 @@ data CheckError n
  -- For simplicity, require all names to be unique.
  -- This removes shadowing complications
  | CheckErrorNameNotUnique (Name n)
+
+ -- Primitives cannot be partially applied
+ | CheckErrorPrimitiveNotFullyApplied Prim (Exp n)
  deriving Show
 
 instance (Pretty n) => Pretty (CheckError n) where
@@ -34,3 +38,7 @@ instance (Pretty n) => Pretty (CheckError n) where
     CheckErrorNameNotUnique n
      ->  text "Bound name is not unique: " <> pretty n
      <+> text "(for simplicity, we require all core names to be unique)"
+
+    CheckErrorPrimitiveNotFullyApplied p x
+     ->  text "The primitive " <> pretty p <> text " is not fully applied in expression " <> pretty x
+

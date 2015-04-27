@@ -45,6 +45,8 @@ library
                        Icicle.Core.Exp.Error
                        Icicle.Core.Exp.Check
                        Icicle.Core.Exp.Prim
+                       Icicle.Core.Exp
+                       Icicle.Core.Eval.Exp
                        Icicle.Data
                        Icicle.Dictionary
                        Icicle.Encoding
