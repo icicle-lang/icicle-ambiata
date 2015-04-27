@@ -25,13 +25,13 @@ data Value n
  | VArray [Value n]
  | VPair  (Value n) (Value n)
  | VFun   (Heap n)  (Name n)  (Exp n)
- deriving Show
+ deriving (Show, Eq)
 
 data RuntimeError n
  = RuntimeErrorBadApplication (Value n) (Value n)
  | RuntimeErrorVarNotInHeap (Name n)
  | RuntimeErrorPrimBadArgs Prim [Value n]
- deriving Show
+ deriving (Show, Eq)
 
 -- Big step evaluation
 eval0 :: Ord n => Exp n -> Either (RuntimeError n) (Value n)

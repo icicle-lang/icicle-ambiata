@@ -4,6 +4,7 @@ module Icicle.Core.Type (
     , FunType (..)
     , Type
     , funOfVal
+    , arrow
 
     , Env
     , lookupOrDie
@@ -39,6 +40,10 @@ type Type = FunType
 
 funOfVal :: ValType -> FunType
 funOfVal = FunT []
+
+arrow :: FunType -> FunType -> FunType
+arrow from (FunT args to)
+ = FunT (from:args) to
 
 
 canApply :: Type -> Type -> Maybe Type

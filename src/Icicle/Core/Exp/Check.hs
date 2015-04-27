@@ -50,7 +50,9 @@ typecheck e xx
 
     XLam n t x
      -> do  e' <- insertOrDie ExpErrorNameNotUnique e n (FunT [] t)
-            typecheck e' x
+            tt <- typecheck e' x
+            return (funOfVal t `arrow` tt)
+
 
     XLet n x i
      -> do  x' <- go x

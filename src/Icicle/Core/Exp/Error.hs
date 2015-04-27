@@ -22,7 +22,7 @@ data ExpError n
 
  -- Primitives cannot be partially applied
  | ExpErrorPrimitiveNotFullyApplied Prim (Exp n)
- deriving Show
+ deriving (Show, Eq, Ord)
 
 instance (Pretty n) => Pretty (ExpError n) where
  pretty e
