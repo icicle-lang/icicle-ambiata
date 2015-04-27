@@ -39,6 +39,7 @@ library
                        Paths_icicle
                        BuildInfo_icicle
                        Icicle
+
                        Icicle.Core.Base
                        Icicle.Core.Type
                        Icicle.Core.Exp.Exp
@@ -46,7 +47,18 @@ library
                        Icicle.Core.Exp.Check
                        Icicle.Core.Exp.Prim
                        Icicle.Core.Exp
+                       Icicle.Core.Stream.Stream
+                       Icicle.Core.Stream.Error
+                       Icicle.Core.Stream.Check
+                       Icicle.Core.Stream
+                       Icicle.Core.Reduce.Reduce
+                       Icicle.Core.Reduce.Error
+                       Icicle.Core.Reduce.Check
+                       Icicle.Core.Reduce
+                       Icicle.Core.Program.Program
+
                        Icicle.Core.Eval.Exp
+
                        Icicle.Data
                        Icicle.Dictionary
                        Icicle.Encoding

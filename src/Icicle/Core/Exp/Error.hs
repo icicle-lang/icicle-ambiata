@@ -1,6 +1,6 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Core.Exp.Error (
-      CheckError (..)
+      ExpError (..)
     ) where
 
 import              Icicle.Internal.Pretty
@@ -11,34 +11,34 @@ import              Icicle.Core.Exp.Prim
 
 import              P
 
-data CheckError n
+data ExpError n
  -- No such variable
- = CheckErrorVarNotInEnv (Name n)
+ = ExpErrorVarNotInEnv (Name n)
  -- Application of x1 to x2, types don't match
- | CheckErrorApp (Exp n) (Exp n) Type Type
+ | ExpErrorApp (Exp n) (Exp n) Type Type
  -- For simplicity, require all names to be unique.
  -- This removes shadowing complications
- | CheckErrorNameNotUnique (Name n)
+ | ExpErrorNameNotUnique (Name n)
 
  -- Primitives cannot be partially applied
- | CheckErrorPrimitiveNotFullyApplied Prim (Exp n)
+ | ExpErrorPrimitiveNotFullyApplied Prim (Exp n)
  deriving Show
 
-instance (Pretty n) => Pretty (CheckError n) where
+instance (Pretty n) => Pretty (ExpError n) where
  pretty e
   = case e of
-    CheckErrorVarNotInEnv n
+    ExpErrorVarNotInEnv n
      -> text "Variable not bound: " <> pretty n
-    CheckErrorApp fun arg funt argt
+    ExpErrorApp fun arg funt argt
      ->  text "Application types don't fit: "
      <+> indent 4 ( text "Fun: " <> pretty fun
                 <+> text "With type: " <> pretty funt
                 <+> text "Arg: " <> pretty arg
                 <+> text "With type: " <> pretty argt)
-    CheckErrorNameNotUnique n
+    ExpErrorNameNotUnique n
      ->  text "Bound name is not unique: " <> pretty n
      <+> text "(for simplicity, we require all core names to be unique)"
 
-    CheckErrorPrimitiveNotFullyApplied p x
+    ExpErrorPrimitiveNotFullyApplied p x
      ->  text "The primitive " <> pretty p <> text " is not fully applied in expression " <> pretty x
 

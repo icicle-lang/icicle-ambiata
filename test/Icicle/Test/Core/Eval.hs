@@ -19,7 +19,7 @@ import           Test.QuickCheck
 -- =====================
 
 prop_progress x =
- isRight (checkExp x)
+ isRight     (checkExp0 x)
  ==> isRight (eval0 x)
 
 return []
