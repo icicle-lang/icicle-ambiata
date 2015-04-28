@@ -1,3 +1,4 @@
+-- | Stream reductions such as fold and latestN.
 {-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Core.Reduce (
     module X

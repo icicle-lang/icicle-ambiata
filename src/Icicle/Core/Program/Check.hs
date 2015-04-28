@@ -1,4 +1,4 @@
--- A whole core program
+-- | Typechecking an entire core program
 {-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Core.Program.Check (
       Program (..)

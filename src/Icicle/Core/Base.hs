@@ -1,3 +1,4 @@
+-- | Base definitions for Core programs.
 {-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Core.Base (
       Name (..)

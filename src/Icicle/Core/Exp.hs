@@ -1,3 +1,4 @@
+-- | Core expressions
 {-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Core.Exp (
     module X

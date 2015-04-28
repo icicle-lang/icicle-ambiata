@@ -1,3 +1,4 @@
+-- | Reductions over a stream
 {-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Core.Reduce.Reduce (
       Reduce     (..)

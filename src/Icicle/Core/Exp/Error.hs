@@ -1,3 +1,4 @@
+-- | Errors that can occur when typechecking an expression
 {-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Core.Exp.Error (
       ExpError (..)
@@ -14,8 +15,10 @@ import              P
 data ExpError n
  -- No such variable
  = ExpErrorVarNotInEnv (Name n)
+
  -- Application of x1 to x2, types don't match
  | ExpErrorApp (Exp n) (Exp n) Type Type
+
  -- For simplicity, require all names to be unique.
  -- This removes shadowing complications
  | ExpErrorNameNotUnique (Name n)
@@ -23,6 +26,7 @@ data ExpError n
  -- Primitives cannot be partially applied
  | ExpErrorPrimitiveNotFullyApplied Prim (Exp n)
  deriving (Show, Eq, Ord)
+
 
 instance (Pretty n) => Pretty (ExpError n) where
  pretty e

@@ -1,4 +1,4 @@
--- A whole core program
+-- | Typechecking errors for a core program
 {-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Core.Program.Error (
       ProgramError (..)
@@ -12,6 +12,8 @@ import              Icicle.Core.Reduce
 
 import              P
 
+
+-- | Possible errors, mainly deferred to component
 data ProgramError n
  = ProgramErrorPre      (ExpError    n)
  | ProgramErrorStream   (StreamError n)
@@ -19,6 +21,7 @@ data ProgramError n
  | ProgramErrorPost     (ExpError    n)
  | ProgramErrorReturn   (ExpError    n)
  | ProgramErrorNameNotUnique (Name n)
+
 
 instance (Pretty n) => Pretty (ProgramError n) where
  pretty e
