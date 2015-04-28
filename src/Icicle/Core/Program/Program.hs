@@ -38,6 +38,7 @@ data Program n =
  -- | The single return value
  , returns      :: Exp n
  }
+ deriving (Show, Eq, Ord)
 
 
 -- Pretty printing -------------

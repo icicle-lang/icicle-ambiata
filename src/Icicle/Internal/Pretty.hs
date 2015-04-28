@@ -17,7 +17,12 @@ import              Text.PrettyPrint.Leijen as PJOIN
 
 import              P
 
+import              Data.Text               as T
+
 instance Monoid Doc where
  mempty  =  PJOIN.empty
  mappend = (PJOIN.<>)
 
+-- We also need to be able to pretty Data.Text...
+instance Pretty Text where
+ pretty t = text (T.unpack t)

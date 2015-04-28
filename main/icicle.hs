@@ -8,6 +8,9 @@ import           Data.Text as T
 import           Data.Text.IO as T
 
 import           Icicle
+import qualified Icicle.Internal.Pretty as PP
+import qualified Icicle.Core.Program.Program as Program
+import qualified Icicle.Core.Program.Check   as Program
 
 import           P
 
@@ -24,6 +27,8 @@ main = getArgs >>= \args -> case args of
     usage
   ["--help"] ->
     usage
+  ["--dictionary"] ->
+     showDictionary demographics
   [factset] ->
     orDie renderParseError $ run demographics factset
   _ ->
@@ -35,6 +40,40 @@ run dict p =
   EitherT $ (mapM (decodeEavt dict) . T.lines <$> T.readFile p) >>= mapM print
 
 
+-- Show the virtual features
+showDictionary :: Dictionary -> IO ()
+showDictionary d
+ = do   T.putStrLn "Virtual features:"
+        let vs = getVirtualFeatures d
+        mapM_ showVirtual vs
+ where
+  getVirtualFeatures (Dictionary fs)
+   = P.concatMap getV fs
+
+  getV (a, VirtualDefinition v)
+   = [(a,v)]
+  getV _
+   = []
+
+  showVirtual (a,v)
+   = do T.putStrLn ("Name: "     <> getAttribute a)
+        T.putStrLn ("Concrete: " <> getAttribute (concrete v))
+
+        let prog = program v
+        let check = Program.checkProgram prog
+
+        T.putStrLn ("Program: ")
+        print (PP.indent 4 $ PP.pretty prog)
+
+        case check of
+         Left err
+          -> do T.putStrLn "Type error:"
+                print (PP.indent 4 $ PP.pretty err)
+         Right ty
+          -> do T.putStrLn "Has type:"
+                print (PP.indent 4 $ PP.pretty ty)
+
+
 usage :: IO ()
 usage = T.putStrLn . T.unlines $ [
     "icicle FACTSET"
@@ -42,4 +81,8 @@ usage = T.putStrLn . T.unlines $ [
   , "  FACTSET     A path to a factset in textual EAVT format, currently"
   , "              it is expected that this factset would abide by the"
   , "              predifined 'demographics' dictionary."
+  , ""
+  , "icicle --dictionary"
+  , ""
+  , "              Show and typecheck the virtual features"
   ]
