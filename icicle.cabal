@@ -60,6 +60,9 @@ library
                        Icicle.Core.Program.Error
 
                        Icicle.Core.Eval.Exp
+                       Icicle.Core.Eval.Stream
+                       Icicle.Core.Eval.Reduce
+                       Icicle.Core.Eval.Program
 
                        Icicle.Data
                        Icicle.Dictionary

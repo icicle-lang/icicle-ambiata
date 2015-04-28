@@ -4,8 +4,10 @@
 module Icicle.Core.Eval.Exp (
       Value (..)
     , RuntimeError(..)
+    , Heap
     , eval0
     , eval
+    , applyValues
     ) where
 
 import Icicle.Core.Base
@@ -24,6 +26,7 @@ type Heap n
 -- | Values are relatively simple, except for functions.
 data Value n
  = VInt   Int
+ | VBool  Bool
  | VArray [Value n]
  | VPair  (Value n) (Value n)
  -- | A function carries its own heap, the name of its argument, and the expression to apply.
@@ -71,13 +74,8 @@ eval h xx
     XApp p q
      -> do  p' <- eval h p
             q' <- eval h q
-            case p' of
-             VFun hh nm x
-                    -- Evaluate expression with argument added to heap
-              -> do hh' <- insertUnique nm q' hh
-                    eval hh' x
-             _
-              -> Left (RuntimeErrorBadApplication p' q')
+            -- Perform application
+            applyValues p' q'
 
     -- Primitive with no arguments - probably a constant.
     XPrim p
@@ -113,11 +111,47 @@ eval h xx
      _
       -> Left (RuntimeErrorPrimBadArgs p vs) 
 
-  -- By requiring unique variable names and not having general lambdas,
-  -- we don't need capture avoiding substitution.
-  insertUnique n v hh
-   | Just v' <- Map.lookup n hh
-   = Left (RuntimeErrorVarNotUnique n v v')
-   | otherwise
-   = return (Map.insert n v hh)
+
+
+-- | Apply two values together
+--
+-- It is a bit annoying that we can't just use XApps,
+-- as the expression language has no construct for Values.
+--
+-- I could add a Value term to the language, but values
+-- can be closures which we don't want in the language.
+--
+-- This is exposed because Stream needs has values
+-- and needs to apply them to Exps.
+--
+applyValues
+        :: Ord n
+        => Value n
+        -> Value n
+        -> Either (RuntimeError n) (Value n)
+applyValues f arg
+ = case f of
+    VFun hh nm x
+           -- Evaluate expression with argument added to heap
+     -> do hh' <- insertUnique nm arg hh
+           eval hh' x
+    _
+     -> Left (RuntimeErrorBadApplication f arg)
+
+
+
+-- By requiring unique variable names and not having general lambdas,
+-- we don't need capture avoiding substitution.
+insertUnique
+        :: Ord n
+        => Name n
+        -> Value n
+        -> Heap n
+        -> Either (RuntimeError n) (Heap n)
+
+insertUnique n v hh
+ | Just v' <- Map.lookup n hh
+ = Left (RuntimeErrorVarNotUnique n v v')
+ | otherwise
+ = return (Map.insert n v hh)
 
