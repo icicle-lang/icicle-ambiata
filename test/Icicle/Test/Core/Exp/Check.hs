@@ -2,7 +2,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
-module Icicle.Test.Core.Check where
+module Icicle.Test.Core.Exp.Check where
 
 import           Icicle.Test.Core.Arbitrary
 import           Icicle.Core.Exp

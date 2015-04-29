@@ -2,7 +2,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
-module Icicle.Test.Core.Eval where
+module Icicle.Test.Core.Exp.Eval where
 
 import           Icicle.Test.Core.Arbitrary
 import           Icicle.Core.Exp
@@ -21,6 +21,12 @@ import           Test.QuickCheck
 prop_progress x =
  isRight     (checkExp0 x)
  ==> isRight (eval0 x)
+
+-- Inverse: if a program goes wrong, it can't be well typed
+prop_progress_inverse x =
+     isLeft (eval0 x)
+ ==> isLeft (checkExp0 x)
+
 
 -- Prefixing a let with a fresh name doesn't change the semantics,
 -- except for functions where the heap is affected.

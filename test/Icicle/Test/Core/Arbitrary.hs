@@ -11,6 +11,10 @@ import           Icicle.Core.Exp
 import           Icicle.Core.Type
 import           Icicle.Core.Eval.Exp
 
+import           Icicle.Core.Stream
+import           Icicle.Core.Reduce
+import           Icicle.Core.Program.Program
+
 import           Icicle.Test.Arbitrary.Base
 import           Orphanarium.Corpus
 
@@ -31,7 +35,8 @@ data Var
 fresh :: Int -> Name Var
 fresh = Name . Var "_fresh"
 
--- | Check if values are equal except for functions
+-- | Check if values are equal except for functions/closures
+-- Because closure heaps can differ..
 equalExceptFunctions :: Eq n => Value n -> Value n -> Bool
 equalExceptFunctions p q
  | VFun{} <- p
@@ -47,6 +52,7 @@ equalExceptFunctionsE p q
  = p' `equalExceptFunctions` q'
  | otherwise
  = p == q
+
 
 instance PP.Pretty Var where
  pretty (Var t i) = PP.text (show t) <> PP.text (show i)
@@ -73,17 +79,38 @@ instance Arbitrary ValType where
   arbitrary =
    -- Need to be careful about making smaller things.
    -- It's fine if they're big, but they have to fit in memory.
-   oneof [ return  $  IntT
-         , ArrayT <$> smaller arbitrary
-         , PairT  <$> smaller arbitrary <*> smaller arbitrary
+   oneof_sized_vals
+         [ IntT ]
+         [ ArrayT <$> arbitrary
+         , PairT  <$> arbitrary <*> arbitrary
          ]
 
 instance Arbitrary n => Arbitrary (Exp n) where
   arbitrary =
-    oneof [ XVar  <$> arbitrary
-          , XApp  <$> smaller arbitrary <*> smaller arbitrary
-          , XPrim <$> arbitrary
-          , XLam  <$> arbitrary <*> smaller arbitrary <*> smaller arbitrary
-          , XLet  <$> arbitrary <*> smaller arbitrary <*> smaller arbitrary
+    oneof_sized
+          [ XVar  <$> arbitrary
+          , XPrim <$> arbitrary ]
+          [ XApp  <$> arbitrary <*> arbitrary
+          , XLam  <$> arbitrary <*> arbitrary <*> arbitrary
+          , XLet  <$> arbitrary <*> arbitrary <*> arbitrary
           ]
+
+instance Arbitrary n => Arbitrary (Stream n) where
+ arbitrary =
+   oneof_sized_vals
+         [ Source ]
+         [ STrans <$> st <*> arbitrary <*> arbitrary ]
+  where
+   st = oneof [ SFilter <$> arbitrary
+              , SMap    <$> arbitrary <*> arbitrary
+              , STake   <$> arbitrary ]
+
+instance Arbitrary n => Arbitrary (Reduce n) where
+ arbitrary =
+   oneof [ RFold   <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+         , RLatest <$> arbitrary <*> arbitrary <*> arbitrary ]
+
+instance Arbitrary n => Arbitrary (Program n) where
+ arbitrary =
+   Program <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
 

@@ -47,13 +47,14 @@ instance Arbitrary a => Arbitrary (AsAt a) where
 
 instance Arbitrary Encoding where
   arbitrary =
-    oneof [ return StringEncoding
-          , return IntEncoding
-          , return DoubleEncoding
-          , return BooleanEncoding
-          , return DateEncoding
-          , StructEncoding . nubEq <$> smaller arbitrary
-          , ListEncoding           <$> smaller arbitrary]
+    oneof_sized_vals
+          [ StringEncoding
+          , IntEncoding
+          , DoubleEncoding
+          , BooleanEncoding
+          , DateEncoding ] 
+          [ StructEncoding . nubEq <$> arbitrary
+          , ListEncoding           <$> arbitrary ]
    where
     nubEq
      = nubBy ((==) `on` attributeOfStructField)
