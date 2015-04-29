@@ -5,6 +5,7 @@ module Icicle.Test.Arbitrary where
 
 import           Icicle.Data
 
+import           Icicle.Test.Arbitrary.Base
 import           Orphanarium.Corpus
 
 import           Test.QuickCheck
@@ -57,8 +58,6 @@ instance Arbitrary Encoding where
     nubEq
      = nubBy ((==) `on` attributeOfStructField)
     
-    smaller g
-     = sized (\s -> resize (s `div` 2) g)
 
 instance Arbitrary StructField where
   arbitrary =
@@ -109,5 +108,3 @@ valueOfEncoding e
   listOfEncoding le
    = smaller $ listOf (valueOfEncoding le)
 
-  smaller g
-   = sized (\s -> resize (s `div` 2) g)

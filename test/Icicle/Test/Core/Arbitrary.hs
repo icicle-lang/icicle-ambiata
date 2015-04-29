@@ -11,6 +11,7 @@ import           Icicle.Core.Exp
 import           Icicle.Core.Type
 import           Icicle.Core.Eval.Exp
 
+import           Icicle.Test.Arbitrary.Base
 import           Orphanarium.Corpus
 
 import           Test.QuickCheck
@@ -76,9 +77,6 @@ instance Arbitrary ValType where
          , ArrayT <$> smaller arbitrary
          , PairT  <$> smaller arbitrary <*> smaller arbitrary
          ]
-   where
-    smaller g
-     = sized (\s -> resize (s `div` 2) g)
 
 instance Arbitrary n => Arbitrary (Exp n) where
   arbitrary =
@@ -88,7 +86,4 @@ instance Arbitrary n => Arbitrary (Exp n) where
           , XLam  <$> arbitrary <*> smaller arbitrary <*> smaller arbitrary
           , XLet  <$> arbitrary <*> smaller arbitrary <*> smaller arbitrary
           ]
-   where
-    smaller g
-     = sized (\s -> resize (s `div` 2) g)
 
