@@ -3,13 +3,14 @@
 
 
 import           Control.Monad.Trans.Either
+import           Control.Monad.Trans.Class
 
 import           Data.Text as T
 import           Data.Text.IO as T
 
 import           Icicle
 import qualified Icicle.Internal.Pretty as PP
-import qualified Icicle.Core.Program.Program as Program
+-- import qualified Icicle.Core.Program.Program as Program
 import qualified Icicle.Core.Program.Check   as Program
 
 import           P
@@ -37,8 +38,16 @@ main = getArgs >>= \args -> case args of
 
 run :: Dictionary -> FilePath -> EitherT ParseError IO ()
 run dict p =
-  EitherT $ (mapM (decodeEavt dict) . T.lines <$> T.readFile p) >>= mapM print
+  do    ls  <- lift
+             $ T.lines <$> T.readFile p
 
+        vs  <- hoistEither
+             $ mapM (decodeEavt dict) ls
+
+        let s = streams vs
+        let v = evaluateVirtuals dict s
+
+        lift $ mapM_ print v
 
 -- Show the virtual features
 showDictionary :: Dictionary -> IO ()

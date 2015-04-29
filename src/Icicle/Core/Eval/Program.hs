@@ -30,6 +30,7 @@ data RuntimeError n
  | RuntimeErrorPost     (XV.RuntimeError n)
  | RuntimeErrorReturn   (XV.RuntimeError n)
  | RuntimeErrorVarNotUnique (Name n)
+ deriving (Show, Eq)
 
 
 -- | Evaluate a program.

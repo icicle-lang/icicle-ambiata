@@ -80,6 +80,7 @@ executable             icicle
                      , filepath
                      , p
                      , text
+                     , transformers
                      , x-optparse
 
 test-suite test
