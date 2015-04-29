@@ -99,18 +99,41 @@ eval h xx
    = case (p,vs) of
 
      (PrimArith PrimArithPlus,      [VInt i, VInt j])
-      -> return $ VInt (i+j)
-
+      -> return $ VInt $ i + j
      (PrimArith PrimArithMinus,     [VInt i, VInt j])
-      -> return $ VInt (i-j)
+      -> return $ VInt $ i - j
+     (PrimArith PrimArithDiv,       [VInt i, VInt j])
+      -> return $ VInt $ i `div` j
 
+     (PrimRelation PrimRelationGt,  [VInt i, VInt j])
+      -> return $ VBool $ i >  j
+     (PrimRelation PrimRelationGe,  [VInt i, VInt j])
+      -> return $ VBool $ i >= j
+     (PrimRelation PrimRelationLt,  [VInt i, VInt j])
+      -> return $ VBool $ i <  j
+     (PrimRelation PrimRelationLe,  [VInt i, VInt j])
+      -> return $ VBool $ i <= j
+     (PrimRelation PrimRelationEq,  [VInt i, VInt j])
+      -> return $ VBool $ i == j
+     (PrimRelation PrimRelationNe,  [VInt i, VInt j])
+      -> return $ VBool $ i /= j
+
+     (PrimLogical  PrimLogicalNot,  [VBool u])
+      -> return $ VBool $ not u
+     (PrimLogical  PrimLogicalAnd,  [VBool u, VBool v])
+      -> return $ VBool $ u && v
+     (PrimLogical  PrimLogicalOr,   [VBool u, VBool v])
+      -> return $ VBool $ u || v
+
+     (PrimConst (PrimConstBool b),  [])
+      -> return $ VBool b
      (PrimConst (PrimConstInt i),   [])
       -> return $ VInt i
+
 
      -- Something went wrong
      _
       -> Left (RuntimeErrorPrimBadArgs p vs) 
-
 
 
 -- | Apply two values together

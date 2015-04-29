@@ -56,6 +56,12 @@ demographics =
                                   $ Virtual (Attribute "salary") program_sum)
  , (Attribute "num_salary",         VirtualDefinition
                                   $ Virtual (Attribute "salary") program_count)
+ , (Attribute "sum_salary_above_70k",
+                                    VirtualDefinition
+                                  $ Virtual (Attribute "salary") program_filt_sum)
+ , (Attribute "latest2",
+                                    VirtualDefinition
+                                  $ Virtual (Attribute "salary") (program_latest 2))
  ]
 
 
@@ -101,3 +107,40 @@ program_count
   const1 = X.XLam (N.Name "ignored") T.IntT
          $ X.XPrim $ X.PrimConst $ X.PrimConstInt 1
 
+
+-- | Filtered sum
+program_filt_sum :: P.Program Text
+program_filt_sum
+ = P.Program
+ { P.input      = T.IntT
+ , P.precomps   = []
+ , P.streams    = [(N.Name "inp", S.Source)
+                  ,(N.Name "filts", S.STrans (S.SFilter T.IntT) gt (N.Name "inp"))]
+ , P.reduces    = [(N.Name "sum",   fold_sum (N.Name "filts"))]
+ , P.postcomps  = []
+ , P.returns    = X.XVar (N.Name "sum")
+ }
+ where
+  -- \e -> e > 70000
+  gt     = X.XLam (N.Name "elem") T.IntT
+         ( (X.XPrim $ X.PrimRelation $ X.PrimRelationGt)
+         `X.XApp`
+           (X.XVar  $ N.Name "elem")
+         `X.XApp`
+           (X.XPrim $ X.PrimConst    $ X.PrimConstInt 70000)
+           )
+
+
+-- | Latest N
+program_latest :: Int -> P.Program Text
+program_latest n
+ = P.Program
+ { P.input      = T.IntT
+ , P.precomps   = []
+ , P.streams    = [(N.Name "inp", S.Source)]
+ , P.reduces    = [(N.Name "latest", R.RLatest T.IntT (constI n) (N.Name "inp"))]
+ , P.postcomps  = []
+ , P.returns    = X.XVar (N.Name "latest")
+ }
+ where
+  constI i = X.XPrim $ X.PrimConst $ X.PrimConstInt i

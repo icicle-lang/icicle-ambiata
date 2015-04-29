@@ -81,7 +81,8 @@ evaluateVirtual virt facts
 
 evaluateVirtualValue :: P.Program Text -> [(DateTime, Value)] -> Result
 evaluateVirtualValue p vs
- = do   vs' <- mapM valueToCore vs
+        -- Just drop the date for now
+ = do   vs' <- mapM (valueToCore.snd) vs
 
         xv  <- mapLeft SimulateErrorRuntime
              $ PV.eval vs' p
@@ -89,12 +90,14 @@ evaluateVirtualValue p vs
         valueFromCore xv
 
 
--- | Just drop the date for now
-valueToCore :: (DateTime, Value) -> Either SimulateError (XV.Value Text)
-valueToCore (_,v)
+valueToCore :: Value -> Either SimulateError (XV.Value Text)
+valueToCore v
  = case v of
     IntValue i     -> return $ XV.VInt i
     BooleanValue b -> return $ XV.VBool b
+    ListValue (List ls)
+                   -> XV.VArray
+                            <$> mapM valueToCore ls
     _              -> Left   $ SimulateErrorCannotConvertToCore v
 
 
@@ -103,5 +106,7 @@ valueFromCore v
  = case v of
     XV.VInt i      -> return $ IntValue i
     XV.VBool b     -> return $ BooleanValue b
+    XV.VArray vs   -> ListValue . List
+                  <$> mapM valueFromCore vs
     _              -> Left   $ SimulateErrorCannotConvertFromCore v
 
