@@ -46,6 +46,7 @@ library
                        Icicle.Core.Exp.Error
                        Icicle.Core.Exp.Check
                        Icicle.Core.Exp.Prim
+                       Icicle.Core.Exp.Combinators
                        Icicle.Core.Exp
                        Icicle.Core.Stream.Stream
                        Icicle.Core.Stream.Error

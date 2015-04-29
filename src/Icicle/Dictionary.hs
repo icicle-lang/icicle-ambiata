@@ -12,6 +12,7 @@ import           Icicle.Data
 import qualified Icicle.Core.Base            as N -- N for name
 import qualified Icicle.Core.Type            as T
 import qualified Icicle.Core.Exp             as X
+import           Icicle.Core.Exp.Combinators
 import qualified Icicle.Core.Stream          as S
 import qualified Icicle.Core.Reduce          as R
 import qualified Icicle.Core.Program.Program as P
@@ -74,21 +75,17 @@ program_sum
  , P.streams    = [(N.Name "inp", S.Source)]
  , P.reduces    = [(N.Name "red", fold_sum (N.Name "inp"))]
  , P.postcomps  = []
- , P.returns    = X.XVar (N.Name "red")
+ , P.returns    = var "red"
  }
 
 fold_sum :: N.Name Text -> R.Reduce Text
 fold_sum inp
  = R.RFold t t
-        ( X.XLam a t
-        $ X.XLam b t
-        $ add `X.XApp` X.XVar a `X.XApp` X.XVar b)
-        (X.XPrim $ X.PrimConst $ X.PrimConstInt 0) inp
+        (lam t $ \a -> lam t $ \b -> a +~ b)
+        (constI 0)
+        inp
  where
-  a = N.Name "a"
-  b = N.Name "b"
   t = T.IntT
-  add = X.XPrim $ X.PrimArith $ X.PrimArithPlus
 
 
 -- | Count
@@ -104,8 +101,7 @@ program_count
  , P.returns    = X.XVar (N.Name "count")
  }
  where
-  const1 = X.XLam (N.Name "ignored") T.IntT
-         $ X.XPrim $ X.PrimConst $ X.PrimConstInt 1
+  const1 = lam T.IntT $ \_ -> constI 1
 
 
 -- | Filtered sum
@@ -121,14 +117,8 @@ program_filt_sum
  , P.returns    = X.XVar (N.Name "sum")
  }
  where
-  -- \e -> e > 70000
-  gt     = X.XLam (N.Name "elem") T.IntT
-         ( (X.XPrim $ X.PrimRelation $ X.PrimRelationGt)
-         `X.XApp`
-           (X.XVar  $ N.Name "elem")
-         `X.XApp`
-           (X.XPrim $ X.PrimConst    $ X.PrimConstInt 70000)
-           )
+  -- e > 70000
+  gt = lam T.IntT $ \e -> e >~ constI 70000
 
 
 -- | Latest N
@@ -142,5 +132,3 @@ program_latest n
  , P.postcomps  = []
  , P.returns    = X.XVar (N.Name "latest")
  }
- where
-  constI i = X.XPrim $ X.PrimConst $ X.PrimConstInt i
