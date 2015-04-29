@@ -51,9 +51,11 @@ demographics =
  , (Attribute "state_of_residence", ConcreteDefinition StringEncoding)
  , (Attribute "salary",             ConcreteDefinition IntEncoding)
  
-  -- A useless virtual feature
+  -- Useless virtual features
  , (Attribute "sum_salary",         VirtualDefinition
                                   $ Virtual (Attribute "salary") program_sum)
+ , (Attribute "num_salary",         VirtualDefinition
+                                  $ Virtual (Attribute "salary") program_count)
  ]
 
 
@@ -81,4 +83,21 @@ fold_sum inp
   b = N.Name "b"
   t = T.IntT
   add = X.XPrim $ X.PrimArith $ X.PrimArithPlus
+
+
+-- | Count
+program_count :: P.Program Text
+program_count
+ = P.Program
+ { P.input      = T.IntT
+ , P.precomps   = []
+ , P.streams    = [(N.Name "inp", S.Source)
+                  ,(N.Name "ones", S.STrans (S.SMap T.IntT T.IntT) const1 (N.Name "inp"))]
+ , P.reduces    = [(N.Name "count", fold_sum (N.Name "ones"))]
+ , P.postcomps  = []
+ , P.returns    = X.XVar (N.Name "count")
+ }
+ where
+  const1 = X.XLam (N.Name "ignored") T.IntT
+         $ X.XPrim $ X.PrimConst $ X.PrimConstInt 1
 
