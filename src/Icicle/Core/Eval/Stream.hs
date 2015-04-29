@@ -22,6 +22,15 @@ import qualified    Data.Map as Map
 
 
 -- | A stream value is just a list of values
+--
+-- TODO: attach a cookie to each stream value.
+-- the cookie should be passed around unchanged as the stream is mapped, dropped if the value is dropped by a filter etc.
+--
+-- Reduce should then return list of used cookies; all input for fold and latest n for latest.
+-- Actually reduce could create a new cookie of current reduce values so that could be used tomorrow as the new starting point.
+-- That would basically be the latest input value's cookie.
+-- Talk to Mark to make sure that's feasible.
+--
 type StreamValue n
  = [XV.Value n]
 

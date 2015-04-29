@@ -45,20 +45,20 @@ data Program n =
 
 instance Pretty n => Pretty (Program n) where
  pretty p
-  =     text "Program " <> brackets (pretty $ input p) <> line
-  <>    text "PRE"                                     <> line    
+  =     text "Program (source : Stream " <> pretty (input p) <> text ")" <> line
+  <>    text "Precomputations:"                        <> line    
   <>    ppbinds (precomps p)                           <> line
-  <>    text "STR"                                     <> line    
+  <>    text "Stream transformers:"                    <> line    
   <>    ppbinds (streams p)                            <> line
-  <>    text "RED"                                     <> line    
+  <>    text "Reductions:"                             <> line    
   <>    ppbinds (reduces p)                            <> line
-  <>    text "POST"                                    <> line    
+  <>    text "Postcomputations:"                       <> line    
   <>    ppbinds (postcomps p)                          <> line
-  <>    text "IN"                                      <> line    
-  <>    pretty  (returns   p)                          <> line
+  <>    text "Returning:"                              <> line    
+  <>    indent 4 (pretty  $ returns   p)               <> line
 
   where
    ppbinds :: (Pretty a, Pretty b) => [(a,b)] -> Doc
    ppbinds
     = vcat
-    . fmap (\(a,b) -> pretty a <+> indent 8 (text "=" <+> pretty b))
+    . fmap (\(a,b) -> pretty a <+> text "=" <> line <> indent 4 (pretty b))
