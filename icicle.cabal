@@ -41,6 +41,8 @@ library
                        BuildInfo_icicle
                        Icicle
 
+                       Icicle.BubbleGum
+
                        Icicle.Core.Base
                        Icicle.Core.Type
                        Icicle.Core.Exp.Exp
