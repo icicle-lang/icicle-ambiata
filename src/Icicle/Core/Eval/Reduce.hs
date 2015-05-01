@@ -10,8 +10,10 @@ module Icicle.Core.Eval.Reduce (
     , eval
     ) where
 
-import Icicle.Core.Type
-import Icicle.Core.Reduce
+import              Icicle.BubbleGum
+
+import              Icicle.Core.Type
+import              Icicle.Core.Reduce
 import qualified    Icicle.Core.Eval.Exp    as XV
 import qualified    Icicle.Core.Eval.Stream as SV
 
@@ -26,6 +28,11 @@ import qualified    Data.Map as Map
 type RuntimeError n
  = SV.RuntimeError n
 
+-- | Evaluating a reduction also gives us the history of its inputs
+type ReduceValue n =
+ ( BubbleGumOutput n (XV.Value n)
+ , XV.Value n )
+
 
 -- | Evaluate a reduction.
 -- We take the precomputation environment and the stream environment.
@@ -34,7 +41,7 @@ eval    :: Ord n
         => XV.Heap        n
         -> SV.StreamHeap  n
         -> Reduce n
-        -> Either (RuntimeError n) (XV.Value n)
+        -> Either (RuntimeError n) (ReduceValue n)
 eval xh sh r
  = case r of
     -- Fold over all stream data
@@ -45,7 +52,15 @@ eval xh sh r
             -- Evaluate the zero with no arguments
             z' <- evalX z
             -- Perform the fold!
-            foldM (apply2 k) z' sv
+            v  <- foldM (apply2 k) z' (fmap snd $ fst sv)
+
+            -- Check if the input is windowed
+            let bg  | SV.Windowed _ <- snd sv
+                    = BubbleGumFacts $ flavoursOfSource $ fst sv
+                    | otherwise
+                    = BubbleGumReduction v
+            
+            return (bg, v)
 
     -- Get most recent or last num elements
     RLatest _ num n
@@ -57,9 +72,9 @@ eval xh sh r
             -- It better be an Int
             case num' of
              XV.VInt i
-              -> return
-               $ XV.VArray
-               $ latest i sv
+              -> let sv' = latest i $ fst sv
+                 in  return ( BubbleGumFacts $ flavoursOfSource sv'
+                            , XV.VArray $ fmap snd sv' )
              _
               -> Left (SV.RuntimeErrorExpNotOfType num' IntT)
 
@@ -86,4 +101,7 @@ eval xh sh r
   latest i vs
    = let len = length vs
      in  drop (len - i) vs
+
+  flavoursOfSource
+   = fmap (\(BubbleGumFact f _, _) -> f)
 

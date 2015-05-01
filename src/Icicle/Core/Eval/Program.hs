@@ -2,20 +2,24 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Core.Eval.Program (
       RuntimeError (..)
+    , ProgramValue (..)
     , eval
     ) where
 
-import Icicle.Data.DateTime
-import Icicle.Core.Base
-import Icicle.Core.Type
-import Icicle.Core.Exp
-import Icicle.Core.Stream
-import Icicle.Core.Reduce
+import              Icicle.BubbleGum
+
+import              Icicle.Core.Base
+import              Icicle.Core.Type
+import              Icicle.Core.Exp
+import              Icicle.Core.Stream
+import              Icicle.Core.Reduce
 
 import qualified    Icicle.Core.Program.Program as P
 import qualified    Icicle.Core.Eval.Exp    as XV
 import qualified    Icicle.Core.Eval.Stream as SV
 import qualified    Icicle.Core.Eval.Reduce as RV
+
+import              Icicle.Data.DateTime
 
 import              P
 
@@ -34,22 +38,32 @@ data RuntimeError n
  deriving (Show, Eq)
 
 
+-- | The result of evaluating a whole program:
+-- some value, and the minimum facts needed to compute next value.
+data ProgramValue n =
+ ProgramValue {
+    value   :: XV.Value n
+ ,  history :: [BubbleGumOutput n (XV.Value n)]
+ }
+
 -- | Evaluate a program.
 -- We take no environments, but do take the concrete feature values.
 eval    :: Ord n
         => DateTime
         -> SV.DatedStreamValue n
         -> P.Program n
-        -> Either (RuntimeError n) (XV.Value n)
+        -> Either (RuntimeError n) (ProgramValue n)
 eval d sv p
  = do   pres    <- evalExps RuntimeErrorPre Map.empty   (P.precomps     p)
         stms    <- evalStms pres d sv       Map.empty   (P.streams      p)
-        reds    <- evalReds pres            stms        (P.reduces      p)
+        (bgs,reds)
+                <- evalReds pres            stms        (P.reduces      p)
         post    <- evalExps RuntimeErrorPost reds       (P.postcomps    p)
 
-        mapLeft RuntimeErrorReturn
+        ret     <- mapLeft RuntimeErrorReturn
                  $ XV.eval post
                  $ P.returns p
+        return $ ProgramValue ret bgs
 
 
 -- | Evaluate all expression bindings, collecting up expression heap as we go
@@ -97,18 +111,22 @@ evalReds
         => XV.Heap n
         -> SV.StreamHeap  n
         -> [(Name n, Reduce n)]
-        -> Either (RuntimeError n) (XV.Heap n)
+        -> Either (RuntimeError n) ([BubbleGumOutput n (XV.Value n)], XV.Heap n)
 
 evalReds xh _ []
- = return xh
+ = return ([], xh)
 
 evalReds xh sh ((n,red):bs)
- = do   v   <- mapLeft RuntimeErrorReduce
+ = do   (bg,v)
+            <- mapLeft RuntimeErrorReduce
              $ RV.eval xh sh red
         -- Evaluate the remaining reductions before inserting into heap
         -- This shouldn't affect the semantics since names are unique.
-        xh'  <- evalReds xh sh bs
-        insertUnique xh' n v
+        (bgs, xh')
+            <- evalReds xh sh bs
+        xh''
+            <- insertUnique xh' n v
+        return (bg:bgs, xh'')
 
 
 -- Return an error if name already has a value

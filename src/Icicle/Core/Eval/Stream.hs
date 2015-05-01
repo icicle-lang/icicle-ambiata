@@ -5,16 +5,20 @@ module Icicle.Core.Eval.Stream (
       StreamValue
     , DatedStreamValue
     , StreamHeap 
+    , StreamWindow (..)
     , RuntimeError (..)
     , eval
     ) where
 
-import Icicle.Data
-import Icicle.Data.DateTime
-import Icicle.Core.Base
-import Icicle.Core.Type
-import Icicle.Core.Stream
+import              Icicle.BubbleGum
+
+import              Icicle.Core.Base
+import              Icicle.Core.Type
+import              Icicle.Core.Stream
 import qualified    Icicle.Core.Eval.Exp    as XV -- eXpression eVal
+
+import              Icicle.Data
+import              Icicle.Data.DateTime
 
 import              P
 
@@ -35,10 +39,13 @@ import qualified    Data.Map as Map
 -- Talk to Mark to make sure that's feasible.
 --
 type StreamValue n
- = [XV.Value n]
+ = ([(BubbleGumFact, XV.Value n)], StreamWindow)
+
+data StreamWindow = Windowed Int | UnWindowed
+ deriving (Eq,Ord,Show)
 
 type DatedStreamValue n
- = [AsAt (XV.Value n)]
+ = [AsAt (BubbleGumFact, XV.Value n)]
 
 -- | A stream heap maps from names to stream values
 type StreamHeap n
@@ -67,14 +74,16 @@ eval window_check xh concreteValues sh s
  = case s of
     -- Raw input is easy
     Source
-     -> return $ fmap fact concreteValues
+     -> return (fmap fact concreteValues, UnWindowed)
 
     -- Windowed input.
     -- The dates are assured to be increasing, so we could really use a takeWhile.dropWhile or something
     SourceWindowedDays window
-     -> return $ fmap fact
+     -> return ( fmap fact
                $ filter (\v -> withinWindow (time v) window_check window)
                $ concreteValues
+
+               , Windowed window)
 
     -- Transformers are slightly more involved
     STrans st x n
@@ -83,7 +92,9 @@ eval window_check xh concreteValues sh s
                                 (Map.lookup n sh)
 
             -- Now execute the transformer over those values
-            evalTrans st x sv
+            sv' <- evalTrans st x (fst sv)
+            -- Transformers preserve windows
+            return (sv', snd sv)
 
  where
   -- Evaluate transform over given values.
@@ -91,10 +102,10 @@ eval window_check xh concreteValues sh s
   evalTrans st x sv
    = case st of
       SFilter _
-       -> filterM (evalFilt x) sv
+       -> filterM (evalFilt x . snd) sv
 
       SMap _ _
-       -> mapM    (applyX  x) sv
+       -> mapM    (applySnd x) sv
 
       -- Take first N elements
       STake _
@@ -107,7 +118,6 @@ eval window_check xh concreteValues sh s
                   -> return $ take i sv
                  _
                   -> Left (RuntimeErrorExpNotOfType v IntT)
-
 
   -- Apply x to arg, if it's a bool we know whether to filter
   evalFilt x arg
@@ -131,4 +141,8 @@ eval window_check xh concreteValues sh s
    = do fV <- evalX fX
         mapLeft RuntimeErrorExp
             $ XV.applyValues fV argV
+
+  applySnd fX (bubble, argV)
+   = do v' <- applyX fX argV
+        return (bubble, v')
 

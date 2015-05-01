@@ -1,6 +1,6 @@
 -- | This needs cleaning up but the idea is there
 {-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE TupleSections #-}
+{-# LANGUAGE OverloadedStrings #-}
 module Icicle.Simulator (
     streams
   , Partition
@@ -11,6 +11,7 @@ import           Data.List
 import           Data.Either.Combinators
 import           Data.Text (Text)
 
+import qualified Icicle.BubbleGum   as B
 import           Icicle.Data
 import           Icicle.Dictionary
 
@@ -86,11 +87,12 @@ evaluateVirtualValue p date vs
         xv  <- mapLeft SimulateErrorRuntime
              $ PV.eval date vs' p
 
-        valueFromCore xv
+        v'  <- valueFromCore $ PV.value xv
+        return v'
  where
   toCore a
    = do v' <- valueToCore $ fact a
-        return a { fact = v' }
+        return a { fact = (B.BubbleGumFact (B.Flavour 0 (time a)) (Attribute "TODO"), v') }
 
 
 valueToCore :: Value -> Either SimulateError (XV.Value Text)

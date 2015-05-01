@@ -10,10 +10,8 @@ module Icicle.BubbleGum (
     , BubbleGumOutput (..)
     ) where
 
-import           Icicle.Core.Base
 import           Icicle.Data
 import           P
-import           Data.Text
 
 
 -- | Each flavour has a unique id, and a date.
@@ -34,13 +32,15 @@ data BubbleGumFact
 
 
 -- | The bubblegum we get back after evaluating a program.
--- We might get several of these.
-data BubbleGumOutput
+-- We might get several of these from a single program.
+--
+-- TODO: add Attribute and reduction name here
+data BubbleGumOutput n v
  -- | Result of a *full* reduction, as opposed to a windowed reduction. 
  -- There might be multiple reductions in a single feature,
  -- so we want the name of the reduction variable too.
- = BubbleGumReduction   Attribute (Name Text) Value
+ = BubbleGumReduction   v
 
  -- | List of facts used for windowed reduction or latest
- | BubbleGumWindow      [Flavour] Attribute
+ | BubbleGumFacts       [Flavour]
 
