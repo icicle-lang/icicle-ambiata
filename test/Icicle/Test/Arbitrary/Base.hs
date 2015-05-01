@@ -31,3 +31,7 @@ oneof_sized_vals :: [a] -> [Gen a] -> Gen a
 oneof_sized_vals smalls bigs
  = oneof_sized (fmap return smalls) bigs
 
+-- | For when you only want values
+oneof_vals :: [a] -> Gen a
+oneof_vals = oneof . fmap return
+

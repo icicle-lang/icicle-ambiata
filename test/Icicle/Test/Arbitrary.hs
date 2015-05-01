@@ -4,6 +4,7 @@
 module Icicle.Test.Arbitrary where
 
 import           Icicle.Data
+import           Icicle.Data.DateTime
 
 import           Icicle.Test.Arbitrary.Base
 import           Orphanarium.Corpus
@@ -25,7 +26,7 @@ instance Arbitrary Attribute where
 
 instance Arbitrary DateTime where
   arbitrary =
-    DateTime <$> elements muppets -- FIX replace with an actual DateTime
+    dateOfYMD <$> oneof_vals [2010..2014] <*> oneof_vals [1..12] <*> oneof_vals [1..28]
 
 instance Arbitrary Date where
   arbitrary =

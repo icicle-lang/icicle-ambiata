@@ -18,6 +18,8 @@ module Icicle.Data (
 
 import           Data.Text
 
+import           Icicle.Data.DateTime
+
 import           P
 
 
@@ -83,11 +85,6 @@ data Date =
       getDate       :: Text -- FIX complete, make these real...
     } deriving (Eq, Show)
 
-
-data DateTime =
-  DateTime {
-      getDateTime   :: Text -- FIX complete, make these real...
-    } deriving (Eq, Ord, Show)
 
 
 data Encoding =

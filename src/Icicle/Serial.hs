@@ -15,6 +15,7 @@ import           Data.Either.Combinators
 import           Data.Text as T
 
 import           Icicle.Data
+import           Icicle.Data.DateTime
 import           Icicle.Dictionary
 import           Icicle.Encoding
 
@@ -36,7 +37,7 @@ renderEavt f =
             (getEntity . entity' . fact) f
   <> "|" <> (getAttribute . attribute' . fact) f
   <> "|" <> (value' . fact) f
-  <> "|" <> (getDateTime . time) f
+  <> "|" <> (renderDate . time) f
 
 parseEavt :: Text -> Either ParseError (AsAt Fact')
 parseEavt =
@@ -52,7 +53,14 @@ eavtParser =
          <* pipe
          <*> column
          <* pipe)
-   <*> (DateTime <$> column)
+   <*> date
+
+-- | TODO: implement parsing dates as well
+date :: Parser DateTime
+date
+ = dateOfYMD <$> decimal <* dash <*> decimal <* dash <*> decimal
+
+
 
 column :: Parser Text
 column =
@@ -61,6 +69,11 @@ column =
 pipe :: Parser Char
 pipe =
   char '|'
+
+dash :: Parser Char
+dash =
+  char '-'
+
 
 decodeEavt :: Dictionary -> Text -> Either ParseError (AsAt Fact)
 decodeEavt dict t
