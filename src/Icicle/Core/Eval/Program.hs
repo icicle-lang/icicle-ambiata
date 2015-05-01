@@ -1,7 +1,7 @@
 -- | Evaluate an entire program
 {-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Core.Eval.Program (
-      RuntimeError
+      RuntimeError (..)
     , eval
     ) where
 
