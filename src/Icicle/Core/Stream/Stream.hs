@@ -18,6 +18,7 @@ import              P
 
 data Stream n
  = Source
+ | SourceWindowedDays Int
  | STrans StreamTransform (Exp n) (Name n)
  deriving (Eq,Ord,Show)
 
@@ -57,6 +58,10 @@ outputOfStreamTransform st
 
 instance (Pretty n) => Pretty (Stream n) where
  pretty Source         = text "source"
+
+ pretty (SourceWindowedDays i)
+                       = text "sourceWindowedDays" <+> text (show i)
+
  pretty (STrans t x n) = pretty t <+> parens (pretty x) <+> pretty n
 
 instance Pretty StreamTransform where

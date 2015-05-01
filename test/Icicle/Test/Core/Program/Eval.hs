@@ -10,12 +10,17 @@ import           Icicle.Core.Program.Check
 -- import qualified Icicle.Core.Eval.Exp       as XV
 import qualified Icicle.Core.Eval.Program   as PV
 
+import           Icicle.Data.DateTime
+
 import           P
 
 import           System.IO
 
 import           Test.QuickCheck
 
+
+-- Just choose some date; it doesn't matter
+someDate = dateOfYMD 2015 1 1
 
 -- Well typed programs don't go wrong
 -- =====================
@@ -26,12 +31,12 @@ import           Test.QuickCheck
 -- We need another generator that only makes valid programs
 zprop_progress x =
  isRight     (checkProgram x)
- ==> isRight (PV.eval [] x)
+ ==> isRight (PV.eval someDate [] x)
 
 -- Instead, try saying if it has a runtime error, it can't be type safe
 -- Most randomly generated programs will have runtime errors, and won't type check
 prop_progress x =
- isLeft      (PV.eval [] x)
+ isLeft      (PV.eval someDate [] x)
  ==> isLeft  (checkProgram x)
 
 -- It would be nice to say something about inputs,

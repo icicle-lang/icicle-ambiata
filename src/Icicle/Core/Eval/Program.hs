@@ -5,6 +5,7 @@ module Icicle.Core.Eval.Program (
     , eval
     ) where
 
+import Icicle.Data.DateTime
 import Icicle.Core.Base
 import Icicle.Core.Type
 import Icicle.Core.Exp
@@ -36,12 +37,13 @@ data RuntimeError n
 -- | Evaluate a program.
 -- We take no environments, but do take the concrete feature values.
 eval    :: Ord n
-        => SV.StreamValue n
+        => DateTime
+        -> SV.DatedStreamValue n
         -> P.Program n
         -> Either (RuntimeError n) (XV.Value n)
-eval sv p
+eval d sv p
  = do   pres    <- evalExps RuntimeErrorPre Map.empty   (P.precomps     p)
-        stms    <- evalStms pres sv         Map.empty   (P.streams      p)
+        stms    <- evalStms pres d sv       Map.empty   (P.streams      p)
         reds    <- evalReds pres            stms        (P.reduces      p)
         post    <- evalExps RuntimeErrorPost reds       (P.postcomps    p)
 
@@ -72,19 +74,20 @@ evalExps err env ((n,x):bs)
 evalStms
         :: Ord n
         => XV.Heap n
-        -> SV.StreamValue n
+        -> DateTime
+        -> SV.DatedStreamValue n
         -> SV.StreamHeap  n
         -> [(Name n, Stream n)]
         -> Either (RuntimeError n) (SV.StreamHeap n)
 
-evalStms _ _ sh []
+evalStms _ _ _ sh []
  = return sh
 
-evalStms xh svs sh ((n,strm):bs)
+evalStms xh d svs sh ((n,strm):bs)
  = do   v   <- mapLeft RuntimeErrorStream
-             $ SV.eval xh svs sh strm
+             $ SV.eval d xh svs sh strm
         sh' <- insertUnique sh n v
-        evalStms xh svs sh' bs
+        evalStms xh d svs sh' bs
         
 
 -- | Evaluate all reduction bindings, inserting to expression heap as we go

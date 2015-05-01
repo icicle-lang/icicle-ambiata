@@ -26,7 +26,7 @@ data Partition =
   Partition
     Entity
     Attribute
-    [(DateTime, Value)]
+    [AsAt Value]
   deriving (Eq,Show)
 
 type Result = Either SimulateError Value
@@ -57,37 +57,40 @@ makePartition []
 makePartition fs@(f:_)
  = [ Partition  (entity    $ fact f)
                 (attribute $ fact f)
-                (fmap (\f' -> (time f', value $ fact f')) fs) ]
+                (fmap (\f' -> AsAt (value $ fact f') (time f')) fs) ]
 
 
-evaluateVirtuals :: Dictionary -> [Partition] -> [(Attribute, [(Entity, Result)])]
-evaluateVirtuals (Dictionary fields) facts
+evaluateVirtuals :: Dictionary -> DateTime -> [Partition] -> [(Attribute, [(Entity, Result)])]
+evaluateVirtuals (Dictionary fields) date facts
  = P.concatMap go fields
  where
   go (attr, VirtualDefinition virt)
-   = [(attr, evaluateVirtual virt facts)]
+   = [(attr, evaluateVirtual virt date facts)]
   go _
    = []
 
-evaluateVirtual  :: Virtual -> [Partition] -> [(Entity, Result)]
-evaluateVirtual virt facts
+evaluateVirtual  :: Virtual -> DateTime -> [Partition] -> [(Entity, Result)]
+evaluateVirtual virt date facts
  = P.concatMap go facts
  where
   go (Partition ent attr values)
    | attr == concrete virt
-   = [(ent, evaluateVirtualValue (program virt) values)]
+   = [(ent, evaluateVirtualValue (program virt) date values)]
    | otherwise
    = []
 
-evaluateVirtualValue :: P.Program Text -> [(DateTime, Value)] -> Result
-evaluateVirtualValue p vs
-        -- Just drop the date for now
- = do   vs' <- mapM (valueToCore.snd) vs
+evaluateVirtualValue :: P.Program Text -> DateTime -> [AsAt Value] -> Result
+evaluateVirtualValue p date vs
+ = do   vs' <- mapM toCore vs
 
         xv  <- mapLeft SimulateErrorRuntime
-             $ PV.eval vs' p
+             $ PV.eval date vs' p
 
         valueFromCore xv
+ where
+  toCore a
+   = do v' <- valueToCore $ fact a
+        return a { fact = v' }
 
 
 valueToCore :: Value -> Either SimulateError (XV.Value Text)

@@ -9,6 +9,8 @@ import           Data.Text as T
 import           Data.Text.IO as T
 
 import           Icicle
+import           Icicle.Data.DateTime
+
 import qualified Icicle.Internal.Pretty as PP
 -- import qualified Icicle.Core.Program.Program as Program
 import qualified Icicle.Core.Program.Check   as Program
@@ -45,7 +47,8 @@ run dict p =
              $ mapM (decodeEavt dict) ls
 
         let s = streams vs
-        let v = evaluateVirtuals dict s
+        -- TODO add date as a command line argument
+        let v = evaluateVirtuals dict (dateOfYMD 2015 1 1) s
 
         lift $ mapM_ print v
 

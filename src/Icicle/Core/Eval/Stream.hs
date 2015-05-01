@@ -3,11 +3,14 @@
 {-# LANGUAGE PatternGuards #-}
 module Icicle.Core.Eval.Stream (
       StreamValue
+    , DatedStreamValue
     , StreamHeap 
     , RuntimeError (..)
     , eval
     ) where
 
+import Icicle.Data
+import Icicle.Data.DateTime
 import Icicle.Core.Base
 import Icicle.Core.Type
 import Icicle.Core.Stream
@@ -34,6 +37,9 @@ import qualified    Data.Map as Map
 type StreamValue n
  = [XV.Value n]
 
+type DatedStreamValue n
+ = [AsAt (XV.Value n)]
+
 -- | A stream heap maps from names to stream values
 type StreamHeap n
  = Map.Map (Name n) (StreamValue n)
@@ -51,16 +57,24 @@ data RuntimeError n
 -- We take the precomputation environment, the stream of concrete values,
 -- and the heap with all preceding streams stored.
 eval    :: Ord n
-        => XV.Heap     n
-        -> StreamValue n
+        => DateTime     -- Snapshot date for checking against windows
+        -> XV.Heap     n
+        -> DatedStreamValue n   -- Concrete inputs start with dates attached
         -> StreamHeap  n
         -> Stream n
         -> Either (RuntimeError n) (StreamValue n)
-eval xh concreteValues sh s
+eval window_check xh concreteValues sh s
  = case s of
     -- Raw input is easy
     Source
-     -> return concreteValues
+     -> return $ fmap fact concreteValues
+
+    -- Windowed input.
+    -- The dates are assured to be increasing, so we could really use a takeWhile.dropWhile or something
+    SourceWindowedDays window
+     -> return $ fmap fact
+               $ filter (\v -> withinWindow (time v) window_check window)
+               $ concreteValues
 
     -- Transformers are slightly more involved
     STrans st x n
