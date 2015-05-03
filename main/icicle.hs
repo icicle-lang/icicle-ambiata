@@ -50,7 +50,19 @@ run dict p =
         -- TODO add date as a command line argument
         let v = evaluateVirtuals dict (dateOfYMD 2015 1 1) s
 
-        lift $ mapM_ print v
+        lift $ mapM_ (print.prettyResult) v
+ where
+  prettyResult (attr, vals)
+   =      PP.text "Virtual feature: " <> PP.text (T.unpack $ getAttribute attr)
+   PP.<$> PP.indent 4 (PP.vcat $ fmap prettyResultEnt vals)
+
+  prettyResultEnt (ent, res)
+   =      PP.text "Entity:  " <> PP.text (show $ getEntity ent)
+   PP.<$> case res of
+            Left e
+                -> PP.text "Error:   " PP.<$> PP.indent 4 (PP.text $ show e) <> PP.line
+            Right (v,hist)
+                -> PP.text "Value:   " <> PP.text (show v) PP.<$> PP.text "History: " <> PP.indent 0 (PP.vcat $ fmap (PP.text . show) hist) <> PP.line
 
 -- Show the virtual features
 showDictionary :: Dictionary -> IO ()
@@ -68,13 +80,13 @@ showDictionary d
    = []
 
   showVirtual (a,v)
-   = do T.putStrLn ("Name: "     <> getAttribute a)
+   = do T.putStrLn ("Name:     "     <> getAttribute a)
         T.putStrLn ("Concrete: " <> getAttribute (concrete v))
 
         let prog = program v
         let check = Program.checkProgram prog
 
-        T.putStrLn ("Program: ")
+        T.putStrLn ("Program:  ")
         print (PP.indent 4 $ PP.pretty prog)
 
         case check of

@@ -53,18 +53,29 @@ demographics =
  , (Attribute "salary",             ConcreteDefinition IntEncoding)
  
   -- Useless virtual features
- , (Attribute "sum_salary",         VirtualDefinition
+ , (Attribute "sum of all salary",      
+                                    VirtualDefinition
                                   $ Virtual (Attribute "salary") program_sum)
- , (Attribute "num_salary",         VirtualDefinition
+
+ , (Attribute "count all salary entries",
+                                    VirtualDefinition
                                   $ Virtual (Attribute "salary") program_count)
- , (Attribute "mean_salary",        VirtualDefinition
+
+ , (Attribute "mean of all salary",
+                                    VirtualDefinition
                                   $ Virtual (Attribute "salary") program_mean)
- , (Attribute "sum_salary_above_70k",
+
+ , (Attribute "filter >= 70k; sum",
                                     VirtualDefinition
                                   $ Virtual (Attribute "salary") program_filt_sum)
- , (Attribute "latest2",
+
+ , (Attribute "Latest 2 salary entries, unwindowed",
                                     VirtualDefinition
                                   $ Virtual (Attribute "salary") (program_latest 2))
+
+ , (Attribute "Sum of last 3000 days",
+                                    VirtualDefinition
+                                  $ Virtual (Attribute "salary") (program_windowed_sum 3000))
  ]
 
 
@@ -151,3 +162,16 @@ program_latest n
  , P.postcomps  = []
  , P.returns    = X.XVar (N.Name "latest")
  }
+
+-- | Sum of last n days
+program_windowed_sum :: Int -> P.Program Text
+program_windowed_sum days
+ = P.Program
+ { P.input      = T.IntT
+ , P.precomps   = []
+ , P.streams    = [(N.Name "inp", S.SourceWindowedDays days)]
+ , P.reduces    = [(N.Name "sum",   fold_sum (N.Name "inp"))]
+ , P.postcomps  = []
+ , P.returns    = X.XVar (N.Name "sum")
+ }
+
