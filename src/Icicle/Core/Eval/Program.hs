@@ -119,7 +119,7 @@ evalReds xh _ []
 evalReds xh sh ((n,red):bs)
  = do   (bg,v)
             <- mapLeft RuntimeErrorReduce
-             $ RV.eval xh sh red
+             $ RV.eval n xh sh red
         -- Evaluate the remaining reductions before inserting into heap
         -- This shouldn't affect the semantics since names are unique.
         (bgs, xh')

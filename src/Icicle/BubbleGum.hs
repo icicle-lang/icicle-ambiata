@@ -8,8 +8,10 @@ module Icicle.BubbleGum (
       Flavour (..)
     , BubbleGumFact (..)
     , BubbleGumOutput (..)
+    , mapValue
     ) where
 
+import           Icicle.Core.Base
 import           Icicle.Data
 import           P
 
@@ -28,7 +30,8 @@ data Flavour =
 -- | Piece of bubblegum attached to a single fact.
 -- These are used as inputs to a program.
 data BubbleGumFact
- = BubbleGumFact        Flavour Attribute
+ = BubbleGumFact        Flavour
+ deriving (Show, Eq, Ord)
 
 
 -- | The bubblegum we get back after evaluating a program.
@@ -39,8 +42,16 @@ data BubbleGumOutput n v
  -- | Result of a *full* reduction, as opposed to a windowed reduction. 
  -- There might be multiple reductions in a single feature,
  -- so we want the name of the reduction variable too.
- = BubbleGumReduction   v
+ = BubbleGumReduction   (Name n) v
 
  -- | List of facts used for windowed reduction or latest
  | BubbleGumFacts       [Flavour]
+ deriving (Show, Eq, Ord)
+
+
+mapValue :: Applicative m => (v -> m v') -> BubbleGumOutput n v -> m (BubbleGumOutput n v')
+mapValue f b
+ = case b of
+    BubbleGumReduction n v -> BubbleGumReduction n <$> f v
+    BubbleGumFacts     fs  -> pure (BubbleGumFacts      fs)
 

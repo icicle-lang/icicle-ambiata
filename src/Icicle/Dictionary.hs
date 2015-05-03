@@ -57,6 +57,8 @@ demographics =
                                   $ Virtual (Attribute "salary") program_sum)
  , (Attribute "num_salary",         VirtualDefinition
                                   $ Virtual (Attribute "salary") program_count)
+ , (Attribute "mean_salary",        VirtualDefinition
+                                  $ Virtual (Attribute "salary") program_mean)
  , (Attribute "sum_salary_above_70k",
                                     VirtualDefinition
                                   $ Virtual (Attribute "salary") program_filt_sum)
@@ -99,6 +101,23 @@ program_count
  , P.reduces    = [(N.Name "count", fold_sum (N.Name "ones"))]
  , P.postcomps  = []
  , P.returns    = X.XVar (N.Name "count")
+ }
+ where
+  const1 = lam T.IntT $ \_ -> constI 1
+
+
+-- | Mean salary
+program_mean :: P.Program Text
+program_mean
+ = P.Program
+ { P.input      = T.IntT
+ , P.precomps   = []
+ , P.streams    = [(N.Name "inp", S.Source)
+                  ,(N.Name "ones", S.STrans (S.SMap T.IntT T.IntT) const1 (N.Name "inp"))]
+ , P.reduces    = [(N.Name "count", fold_sum (N.Name "ones"))
+                  ,(N.Name "sum",   fold_sum (N.Name "inp"))]
+ , P.postcomps  = []
+ , P.returns    = var "sum" /~ var "count"
  }
  where
   const1 = lam T.IntT $ \_ -> constI 1

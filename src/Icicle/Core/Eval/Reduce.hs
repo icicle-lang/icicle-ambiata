@@ -12,6 +12,7 @@ module Icicle.Core.Eval.Reduce (
 
 import              Icicle.BubbleGum
 
+import              Icicle.Core.Base
 import              Icicle.Core.Type
 import              Icicle.Core.Reduce
 import qualified    Icicle.Core.Eval.Exp    as XV
@@ -38,11 +39,12 @@ type ReduceValue n =
 -- We take the precomputation environment and the stream environment.
 -- A single value is returned.
 eval    :: Ord n
-        => XV.Heap        n
+        => Name           n
+        -> XV.Heap        n
         -> SV.StreamHeap  n
         -> Reduce n
         -> Either (RuntimeError n) (ReduceValue n)
-eval xh sh r
+eval reduction_name xh sh r
  = case r of
     -- Fold over all stream data
     RFold _ _ k z n
@@ -58,7 +60,7 @@ eval xh sh r
             let bg  | SV.Windowed _ <- snd sv
                     = BubbleGumFacts $ flavoursOfSource $ fst sv
                     | otherwise
-                    = BubbleGumReduction v
+                    = BubbleGumReduction reduction_name v
             
             return (bg, v)
 
@@ -103,5 +105,5 @@ eval xh sh r
      in  drop (len - i) vs
 
   flavoursOfSource
-   = fmap (\(BubbleGumFact f _, _) -> f)
+   = fmap (\(BubbleGumFact f, _) -> f)
 

@@ -30,7 +30,7 @@ data Partition =
     [AsAt Value]
   deriving (Eq,Show)
 
-type Result = Either SimulateError Value
+type Result = Either SimulateError (Value, [B.BubbleGumOutput Text Value])
 
 data SimulateError
  = SimulateErrorRuntime (PV.RuntimeError Text)
@@ -88,11 +88,12 @@ evaluateVirtualValue p date vs
              $ PV.eval date vs' p
 
         v'  <- valueFromCore $ PV.value xv
-        return v'
+        bg' <- mapM (B.mapValue valueFromCore) (PV.history xv)
+        return (v', bg')
  where
   toCore a
    = do v' <- valueToCore $ fact a
-        return a { fact = (B.BubbleGumFact (B.Flavour 0 (time a)) (Attribute "TODO"), v') }
+        return a { fact = (B.BubbleGumFact $ B.Flavour 0 $ time a, v') }
 
 
 valueToCore :: Value -> Either SimulateError (XV.Value Text)
