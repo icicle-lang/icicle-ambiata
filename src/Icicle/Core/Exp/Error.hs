@@ -34,14 +34,14 @@ instance (Pretty n) => Pretty (ExpError n) where
     ExpErrorVarNotInEnv n
      -> text "Variable not bound: " <> pretty n
     ExpErrorApp fun arg funt argt
-     ->  text "Application types don't fit: "
-     <+> indent 4 ( text "Fun: " <> pretty fun
-                <+> text "With type: " <> pretty funt
-                <+> text "Arg: " <> pretty arg
-                <+> text "With type: " <> pretty argt)
+     ->  text "Application error:"
+     <+> indent 0 ( text "Fun: " <> pretty fun              <> line
+                 <> text "With type: " <> pretty funt       <> line
+                 <> text "Arg: " <> pretty arg              <> line
+                 <> text "With type: " <> pretty argt       <> line)
     ExpErrorNameNotUnique n
-     ->  text "Bound name is not unique: " <> pretty n
-     <+> text "(for simplicity, we require all core names to be unique)"
+     ->  text "Bound name is not unique: " <> pretty n                  <> line
+     <>  text "(for simplicity, we require all core names to be unique)"
 
     ExpErrorPrimitiveNotFullyApplied p x
      ->  text "The primitive " <> pretty p <> text " is not fully applied in expression " <> pretty x

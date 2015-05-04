@@ -66,6 +66,8 @@ data Value =
   | DateValue       Date
   | StructValue     Struct
   | ListValue       List
+  | PairValue       Value Value
+  | MapValue        [(Value, Value)]
   | Tombstone
   deriving (Eq, Show)
 

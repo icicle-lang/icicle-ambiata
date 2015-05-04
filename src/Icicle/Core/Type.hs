@@ -40,6 +40,8 @@ data ValType =
    IntT
  | BoolT
  | ArrayT ValType
+ | MapT   ValType ValType
+ | OptionT        ValType
  | PairT  ValType ValType
  -- I don't think it will be too much of a stretch to add more types later.
  -- | Struct | String | Double | ...
@@ -141,7 +143,9 @@ requireSame err p q
 instance Pretty ValType where
  pretty IntT            = text "Int"
  pretty BoolT           = text "Bool"
- pretty (ArrayT t)      = text "[" <> pretty t <> text "]"
+ pretty (ArrayT t)      = text "Array " <> pretty t
+ pretty (MapT k v)      = text "Map" <+> pretty k <+> pretty v
+ pretty (OptionT a)     = text "Option" <+> pretty a
  pretty (PairT a b)     = text "(" <> pretty a <> text ", " <> pretty b <> text ")"
 
 

@@ -9,6 +9,7 @@ module Icicle.Simulator (
 
 import           Data.List
 import           Data.Either.Combinators
+import qualified Data.Map           as Map
 import           Data.Text (Text)
 
 import qualified Icicle.BubbleGum   as B
@@ -104,6 +105,12 @@ valueToCore v
     ListValue (List ls)
                    -> XV.VArray
                             <$> mapM valueToCore ls
+
+    PairValue a b  -> XV.VPair <$> valueToCore a <*> valueToCore b
+
+    MapValue  kvs  -> XV.VMap . Map.fromList
+                            <$> mapM (\(a,b) -> (,) <$> valueToCore a <*> valueToCore b) kvs
+
     _              -> Left   $ SimulateErrorCannotConvertToCore v
 
 
@@ -114,5 +121,11 @@ valueFromCore v
     XV.VBool b     -> return $ BooleanValue b
     XV.VArray vs   -> ListValue . List
                   <$> mapM valueFromCore vs
-    _              -> Left   $ SimulateErrorCannotConvertFromCore v
+    XV.VPair a b   -> PairValue <$> valueFromCore a <*> valueFromCore b
+    XV.VSome a     -> valueFromCore a
+    XV.VNone       -> return Tombstone
+    XV.VMap vs     -> MapValue
+                  <$> mapM (\(a,b) -> (,) <$> valueFromCore a <*> valueFromCore b) (Map.toList vs)
+
+    XV.VFun{}      -> Left   $ SimulateErrorCannotConvertFromCore v
 

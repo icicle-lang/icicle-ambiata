@@ -29,9 +29,12 @@ data Value n
  | VBool  Bool
  | VArray [Value n]
  | VPair  (Value n) (Value n)
+ | VSome  (Value n)
+ | VNone
+ | VMap   (Map.Map (Value n) (Value n))
  -- | A function carries its own heap, the name of its argument, and the expression to apply.
  | VFun   (Heap n)  (Name n)  (Exp n)
- deriving (Show, Eq)
+ deriving (Show, Ord, Eq)
 
 
 -- | Things that can go wrong (but shouldn't!)
@@ -96,44 +99,184 @@ eval h xx
  where
   -- Evaluate a primitive, given list of argument values
   evalPrim p vs
-   = case (p,vs) of
+   = let primError = Left $ RuntimeErrorPrimBadArgs p vs
+   in case p of
 
-     (PrimArith PrimArithPlus,      [VInt i, VInt j])
+     PrimArith PrimArithPlus
+      | [VInt i, VInt j] <- vs
       -> return $ VInt $ i + j
-     (PrimArith PrimArithMinus,     [VInt i, VInt j])
+      | otherwise
+      -> primError
+
+     PrimArith PrimArithMinus
+      | [VInt i, VInt j] <- vs
       -> return $ VInt $ i - j
-     (PrimArith PrimArithDiv,       [VInt i, VInt j])
+      | otherwise
+      -> primError
+
+     PrimArith PrimArithDiv
+      | [VInt i, VInt j] <- vs
       -> return $ VInt $ i `div` j
+      | otherwise
+      -> primError
 
-     (PrimRelation PrimRelationGt,  [VInt i, VInt j])
+
+     PrimRelation PrimRelationGt
+      | [VInt i, VInt j] <- vs
       -> return $ VBool $ i >  j
-     (PrimRelation PrimRelationGe,  [VInt i, VInt j])
+      | otherwise
+      -> primError
+
+     PrimRelation PrimRelationGe
+      | [VInt i, VInt j] <- vs
       -> return $ VBool $ i >= j
-     (PrimRelation PrimRelationLt,  [VInt i, VInt j])
+      | otherwise
+      -> primError
+
+     PrimRelation PrimRelationLt
+      | [VInt i, VInt j] <- vs
       -> return $ VBool $ i <  j
-     (PrimRelation PrimRelationLe,  [VInt i, VInt j])
+      | otherwise
+      -> primError
+
+     PrimRelation PrimRelationLe
+      | [VInt i, VInt j] <- vs
       -> return $ VBool $ i <= j
-     (PrimRelation PrimRelationEq,  [VInt i, VInt j])
+      | otherwise
+      -> primError
+
+     PrimRelation PrimRelationEq
+      | [VInt i, VInt j] <- vs
       -> return $ VBool $ i == j
-     (PrimRelation PrimRelationNe,  [VInt i, VInt j])
+      | otherwise
+      -> primError
+
+     PrimRelation PrimRelationNe
+      | [VInt i, VInt j] <- vs
       -> return $ VBool $ i /= j
+      | otherwise
+      -> primError
 
-     (PrimLogical  PrimLogicalNot,  [VBool u])
+
+     PrimLogical  PrimLogicalNot
+      | [VBool u] <- vs
       -> return $ VBool $ not u
-     (PrimLogical  PrimLogicalAnd,  [VBool u, VBool v])
+      | otherwise
+      -> primError
+
+     PrimLogical  PrimLogicalAnd
+      | [VBool u, VBool v] <- vs
       -> return $ VBool $ u && v
-     (PrimLogical  PrimLogicalOr,   [VBool u, VBool v])
+      | otherwise
+      -> primError
+
+     PrimLogical  PrimLogicalOr
+      | [VBool u, VBool v] <- vs
       -> return $ VBool $ u || v
+      | otherwise
+      -> primError
 
-     (PrimConst (PrimConstBool b),  [])
+
+     PrimConst (PrimConstBool b)
+      | [] <- vs
       -> return $ VBool b
-     (PrimConst (PrimConstInt i),   [])
+      | otherwise
+      -> primError
+
+     PrimConst (PrimConstInt i)
+      | [] <- vs
       -> return $ VInt i
+      | otherwise
+      -> primError
+
+     PrimConst (PrimConstPair _ _)
+      | [x,y] <- vs
+      -> return $ VPair x y
+      | otherwise
+      -> primError
+
+     PrimConst (PrimConstSome _)
+      | [v] <- vs
+      -> return $ VSome v
+      | otherwise
+      -> primError
+
+     PrimConst (PrimConstNone _)
+      | [] <- vs
+      -> return $ VNone
+      | otherwise
+      -> primError
+
+     PrimConst (PrimConstArrayEmpty _)
+      | [] <- vs
+      -> return $ VArray []
+      | otherwise
+      -> primError
+
+     PrimConst (PrimConstMapEmpty _ _)
+      | [] <- vs
+      -> return $ VMap Map.empty
+      | otherwise
+      -> primError
 
 
-     -- Something went wrong
-     _
-      -> Left (RuntimeErrorPrimBadArgs p vs) 
+     -- Folds and destructions
+     PrimFold PrimFoldBool _
+      | [VBool True, t, _] <- vs
+      -> return t
+      | [VBool False, _, f] <- vs
+      -> return f
+      | otherwise
+      -> primError
+
+     PrimFold (PrimFoldPair _ _) _
+      | [f,v]       <- vs
+      , VPair a b   <- v
+      -> applies f [a,b]
+      | otherwise
+      -> primError
+
+     PrimFold (PrimFoldArray _) _
+      | [k, z, VArray as] <- vs
+      -> foldM (\a c -> applies k [a,c]) z as
+      | otherwise
+      -> primError
+
+     PrimFold (PrimFoldOption _) _
+      | [s, _, VSome v] <- vs
+      -> applies s [v]
+      | [_, n, VNone] <- vs
+      -> return n
+      | otherwise
+      -> primError
+
+     PrimFold (PrimFoldMap _ _) _
+      | [k, z, VMap mm] <- vs
+      -> foldM (\a (b,c) -> applies k [a,b,c]) z
+       $ Map.toList mm
+      | otherwise
+      -> primError
+
+     PrimMap (PrimMapInsertOrUpdate _ _)
+      | [upd, ins, key, VMap mm] <- vs
+      -> case Map.lookup key mm of
+          Nothing
+           -> return $ VMap $ Map.insert key ins mm
+          Just v
+           -> do    v' <- applyValues upd v
+                    return $ VMap $ Map.insert key v' mm
+      | otherwise
+      -> primError
+
+
+  applies :: Ord n => Value n -> [Value n] -> Either (RuntimeError n) (Value n)
+  applies = foldM applyValues
+
+
+
+
+
+
 
 
 -- | Apply two values together

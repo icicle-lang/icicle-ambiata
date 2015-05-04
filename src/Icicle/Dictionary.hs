@@ -13,6 +13,7 @@ import qualified Icicle.Core.Base            as N -- N for name
 import qualified Icicle.Core.Type            as T
 import qualified Icicle.Core.Exp             as X
 import           Icicle.Core.Exp.Combinators
+import qualified Icicle.Core.Exp.Prim        as P
 import qualified Icicle.Core.Stream          as S
 import qualified Icicle.Core.Reduce          as R
 import qualified Icicle.Core.Program.Program as P
@@ -76,6 +77,10 @@ demographics =
  , (Attribute "Sum of last 3000 days",
                                     VirtualDefinition
                                   $ Virtual (Attribute "salary") (program_windowed_sum 3000))
+
+ , (Attribute "Count unique",
+                                    VirtualDefinition
+                                  $ Virtual (Attribute "salary") program_count_unique)
  ]
 
 
@@ -175,3 +180,19 @@ program_windowed_sum days
  , P.returns    = X.XVar (N.Name "sum")
  }
 
+program_count_unique :: P.Program Text
+program_count_unique
+ = P.Program
+ { P.input      = T.IntT
+ , P.precomps   = []
+ , P.streams    = [(N.Name "inp",  S.Source)]
+ , P.reduces    = [(N.Name "uniq",
+                        R.RFold T.IntT mT
+                        (lam mT $ \acc -> lam T.IntT $ \v -> X.XPrim (P.PrimMap $ P.PrimMapInsertOrUpdate T.IntT T.IntT) @~ (lam T.IntT $ \_ -> constI 1) @~ constI 1 @~ v @~ acc)
+                        (X.XPrim (P.PrimConst $ P.PrimConstMapEmpty T.IntT T.IntT))
+                        (N.Name "inp"))]
+ , P.postcomps  = [(N.Name "size", X.XPrim (P.PrimFold (P.PrimFoldMap T.IntT T.IntT) T.IntT) @~ (lam T.IntT $ \a -> lam T.IntT $ \_ -> lam T.IntT $ \b -> a +~ b) @~ constI 0 @~ var "uniq")]
+ , P.returns    = var "size"
+ }
+ where
+  mT = T.MapT T.IntT T.IntT
