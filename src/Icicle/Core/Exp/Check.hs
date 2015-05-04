@@ -33,12 +33,21 @@ checkExp0 = checkExp Map.empty
 --  - normal type check
 --  - names must be unique
 --  - primitives must be fully applied
+--  - top-level must be value type
 --
 -- If successful, returns type of expression
 --
 checkExp :: (Ord n) => Env n Type -> Exp n -> Either (ExpError n) Type
 checkExp e x
  = do   t <- typecheck e x
+
+        -- Check if top-level is a value type
+        case t of
+         FunT [] _
+          -> return ()
+         FunT (_:_) _
+          -> Left (ExpErrorTopLevelNotValueType x t)
+
         _ <- primsFullyApplied x
         return t
 

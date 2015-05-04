@@ -52,6 +52,11 @@ outputOfStreamTransform st
     STake   t -> t
 
 
+instance Rename Stream where
+ rename _ Source                 = Source
+ rename _ (SourceWindowedDays i) = SourceWindowedDays i
+ rename f (STrans t x n)         = STrans t (rename f x) (f n)
+
 
 -- Pretty printing ---------------
 

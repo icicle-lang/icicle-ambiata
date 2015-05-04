@@ -54,6 +54,12 @@ takePrimApps xx
     _               -> Nothing
 
 
+instance Rename Exp where
+ rename f (XVar n) = XVar (f n)
+ rename f (XApp p q) = XApp (rename f p) (rename f q)
+ rename _ (XPrim p) = XPrim p
+ rename f (XLam n t b) = XLam (f n) t (rename f b)
+ rename f (XLet n p q) = XLet (f n) (rename f p) (rename f q)
 
 -- Pretty printing ---------------
 

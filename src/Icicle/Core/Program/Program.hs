@@ -41,6 +41,20 @@ data Program n =
  deriving (Show, Eq, Ord)
 
 
+instance Rename Program where
+ rename f p
+  = p
+  { precomps    = binds  f (precomps   p)
+  , streams     = binds  f (streams    p)
+  , reduces     = binds  f (reduces    p)
+  , postcomps   = binds  f (postcomps  p)
+  , returns     = rename f (returns    p)
+  }
+  where
+   binds :: Rename r => (Name n -> Name n') -> [(Name n, r n)] -> [(Name n', r n')]
+   binds ff = fmap (\(a,b) -> (ff a, rename ff b))
+
+
 -- Pretty printing -------------
 
 instance Pretty n => Pretty (Program n) where

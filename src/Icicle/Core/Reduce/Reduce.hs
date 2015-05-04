@@ -19,6 +19,11 @@ data Reduce n
  deriving (Eq,Ord,Show)
 
 
+instance Rename Reduce where
+ rename f (RFold t a k z n) = RFold t a (rename f k) (rename f z) (f n)
+ rename f (RLatest t   x n) = RLatest t              (rename f x) (f n)
+
+
 -- Pretty printing ---------------
 
 

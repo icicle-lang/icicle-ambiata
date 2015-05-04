@@ -62,6 +62,7 @@ library
                        Icicle.Core.Program.Program
                        Icicle.Core.Program.Check
                        Icicle.Core.Program.Error
+                       Icicle.Core.Program.Fusion
 
                        Icicle.Core.Eval.Exp
                        Icicle.Core.Eval.Stream
