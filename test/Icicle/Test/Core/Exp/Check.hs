@@ -10,6 +10,8 @@ import           Icicle.Core.Type
 
 import           P
 
+import qualified    Data.Map as Map
+
 import           System.IO
 
 import           Test.QuickCheck
@@ -26,9 +28,10 @@ prop_prefixletconst x =
  checkExp0 x == checkExp0 (XLet (fresh 0) (XPrim $ PrimConst $ PrimConstInt 0) x)
 
 
--- Wrapping in a lambda does affect type, but not *whether* type exists
+-- Wrapping in a lambda does affect typechecking, but not *whether* type exists
+-- This is not true for checkExp which does not allow top-level functions, but true for typecheck.
 prop_lamwrap x =
- isRight (checkExp0 x) == isRight (checkExp0 (XLam (fresh 0) IntT x))
+ isRight (typecheck Map.empty x) == isRight (typecheck Map.empty (XLam (fresh 0) IntT x))
 
 
 

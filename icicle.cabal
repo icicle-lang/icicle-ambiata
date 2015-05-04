@@ -111,3 +111,4 @@ test-suite test
                      , aeson                           == 0.8.*
                      , QuickCheck                      == 2.7.*
                      , quickcheck-instances            == 0.3.*
+                     , containers                      == 0.5.*

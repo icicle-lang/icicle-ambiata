@@ -46,7 +46,7 @@ checkExp e x
          FunT [] _
           -> return ()
          FunT (_:_) _
-          -> Left (ExpErrorTopLevelNotValueType x t)
+          -> Left (ExpErrorTopLevelNotValueType t)
 
         _ <- primsFullyApplied x
         return t
