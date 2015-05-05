@@ -23,7 +23,6 @@ import              Icicle.Data.DateTime
 import              P
 
 import              Data.Either.Combinators
-import              Data.List     (take)
 import qualified    Data.Map as Map
 
 
@@ -114,18 +113,6 @@ eval window_check xh concreteValues sh s
 
       SMap _ _
        -> mapM    (applySnd x) sv
-
-      -- Take first N elements
-      STake _
-       -> do    -- Evaluate worker expression with no arguments
-                v <- evalX x
-                case v of
-                 -- It better be an int
-                 -- otherwise, it's a type error
-                 XV.VInt i
-                  -> return $ take i sv
-                 _
-                  -> Left (RuntimeErrorExpNotOfType v IntT)
 
   -- Apply x to arg, if it's a bool we know whether to filter
   evalFilt x arg

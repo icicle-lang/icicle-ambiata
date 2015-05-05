@@ -131,8 +131,7 @@ instance Arbitrary n => Arbitrary (Stream n) where
          [ STrans <$> st <*> arbitrary <*> arbitrary ]
   where
    st = oneof [ SFilter <$> arbitrary
-              , SMap    <$> arbitrary <*> arbitrary
-              , STake   <$> arbitrary ]
+              , SMap    <$> arbitrary <*> arbitrary ]
 
 instance Arbitrary n => Arbitrary (Reduce n) where
  arbitrary =

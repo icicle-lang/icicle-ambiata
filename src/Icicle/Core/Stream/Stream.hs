@@ -26,7 +26,6 @@ data Stream n
 data StreamTransform
  = SFilter ValType
  | SMap    ValType ValType
- | STake   ValType
  deriving (Eq,Ord,Show)
 
 typeOfStreamTransform :: StreamTransform -> Type
@@ -34,14 +33,12 @@ typeOfStreamTransform st
  = case st of
     SFilter t -> FunT [funOfVal t] BoolT
     SMap  p q -> FunT [funOfVal p] q
-    STake   _ -> FunT []           IntT
 
 inputOfStreamTransform :: StreamTransform -> ValType
 inputOfStreamTransform st
  = case st of
     SFilter t -> t
     SMap  p _ -> p
-    STake   t -> t
 
 
 outputOfStreamTransform :: StreamTransform -> ValType
@@ -49,7 +46,6 @@ outputOfStreamTransform st
  = case st of
     SFilter t -> t
     SMap  _ q -> q
-    STake   t -> t
 
 
 instance Rename Stream where
@@ -72,5 +68,4 @@ instance (Pretty n) => Pretty (Stream n) where
 instance Pretty StreamTransform where
  pretty (SFilter t) = text "sfilter [" <> pretty t <> text "]"
  pretty (SMap p q)  = text "smap    [" <> pretty p <> text "] [" <> pretty q <> text "]"
- pretty (STake t)   = text "stake   [" <> pretty t <> text "]"
 
