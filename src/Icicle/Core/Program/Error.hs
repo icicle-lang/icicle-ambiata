@@ -1,4 +1,4 @@
--- A whole core program
+-- | Typechecking errors for a core program
 {-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Core.Program.Error (
       ProgramError (..)
@@ -6,12 +6,15 @@ module Icicle.Core.Program.Error (
 
 import              Icicle.Internal.Pretty
 import              Icicle.Core.Base
+import              Icicle.Core.Type
 import              Icicle.Core.Exp
 import              Icicle.Core.Stream
 import              Icicle.Core.Reduce
 
 import              P
 
+
+-- | Possible errors, mainly deferred to component
 data ProgramError n
  = ProgramErrorPre      (ExpError    n)
  | ProgramErrorStream   (StreamError n)
@@ -19,6 +22,9 @@ data ProgramError n
  | ProgramErrorPost     (ExpError    n)
  | ProgramErrorReturn   (ExpError    n)
  | ProgramErrorNameNotUnique (Name n)
+ | ProgramErrorReturnNotValueType Type
+ deriving Show
+
 
 instance (Pretty n) => Pretty (ProgramError n) where
  pretty e
@@ -35,6 +41,9 @@ instance (Pretty n) => Pretty (ProgramError n) where
      -> text "Return error: " <> ind (pretty err)
     ProgramErrorNameNotUnique n
      -> text "Name not unique: " <> pretty n
+    ProgramErrorReturnNotValueType t
+     ->  text "The return expression has type " <> pretty t <> text " but should be a value type."
+
   where
    ind d
     = line <> indent 4 d

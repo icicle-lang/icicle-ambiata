@@ -94,6 +94,12 @@ valueSatisfiesEncoding val enc
 
     Tombstone
      -> True
+
+    -- TODO: add pair and map encodings
+    PairValue{}
+     -> False
+    MapValue{}
+     -> False
  where
   valueHasField fields (attr,v)
    | Just f <- P.find ((==attr).attributeOfStructField) fields
@@ -136,6 +142,11 @@ renderValue tombstone val
     -> json
    Tombstone
     -> tombstone
+
+   PairValue{}
+    -> json
+   MapValue{}
+    -> json
  where
   json
    = T.decodeUtf8
@@ -288,6 +299,10 @@ jsonOfValue tombstone val
      -> A.Array  $ V.fromList $ fmap (jsonOfValue tombstone) l
     Tombstone
      -> tombstone
+    PairValue a b
+     -> A.Array $ V.fromList [jsonOfValue tombstone a, jsonOfValue tombstone b]
+    MapValue kvs
+     -> A.Array $ V.fromList $ fmap (jsonOfValue tombstone . uncurry PairValue) kvs
  where
   insert hm (attr,v)
    = HM.insert (getAttribute attr) (jsonOfValue tombstone v) hm

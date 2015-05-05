@@ -2,13 +2,15 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
-module Icicle.Test.Core.Check where
+module Icicle.Test.Core.Exp.Check where
 
 import           Icicle.Test.Core.Arbitrary
 import           Icicle.Core.Exp
 import           Icicle.Core.Type
 
 import           P
+
+import qualified    Data.Map as Map
 
 import           System.IO
 
@@ -26,14 +28,27 @@ prop_prefixletconst x =
  checkExp0 x == checkExp0 (XLet (fresh 0) (XPrim $ PrimConst $ PrimConstInt 0) x)
 
 
--- Wrapping in a lambda does affect type, but not *whether* type exists
+-- Wrapping in a lambda does affect typechecking, but not *whether* type exists
 prop_lamwrap x =
  isRight (checkExp0 x) == isRight (checkExp0 (XLam (fresh 0) IntT x))
+
+
+-- Try to build an expression for type.
+-- This is only testing that the generator succeeds with relatively few missed cases.
+prop_genExpForType t =
+ forAll (tryExpForType (FunT [] t) Map.empty)
+ $ \x -> checkExp0 x == Right (FunT [] t) ==> True
+
+-- Again, try generating two with the same type.
+prop_genExpForType2 t =
+ forAll (tryExpForType (FunT [] t) Map.empty) $ \x ->
+ forAll (tryExpForType (FunT [] t) Map.empty) $ \y ->
+ checkExp0 x == Right (FunT [] t) && checkExp0 y == Right (FunT [] t) ==> True
+
+
 
 
 
 return []
 tests :: IO Bool
 tests = $quickCheckAll
-
-

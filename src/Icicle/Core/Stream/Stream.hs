@@ -18,6 +18,7 @@ import              P
 
 data Stream n
  = Source
+ | SourceWindowedDays Int
  | STrans StreamTransform (Exp n) (Name n)
  deriving (Eq,Ord,Show)
 
@@ -25,7 +26,6 @@ data Stream n
 data StreamTransform
  = SFilter ValType
  | SMap    ValType ValType
- | STake   ValType
  deriving (Eq,Ord,Show)
 
 typeOfStreamTransform :: StreamTransform -> Type
@@ -33,14 +33,12 @@ typeOfStreamTransform st
  = case st of
     SFilter t -> FunT [funOfVal t] BoolT
     SMap  p q -> FunT [funOfVal p] q
-    STake   _ -> FunT []           IntT
 
 inputOfStreamTransform :: StreamTransform -> ValType
 inputOfStreamTransform st
  = case st of
     SFilter t -> t
     SMap  p _ -> p
-    STake   t -> t
 
 
 outputOfStreamTransform :: StreamTransform -> ValType
@@ -48,8 +46,12 @@ outputOfStreamTransform st
  = case st of
     SFilter t -> t
     SMap  _ q -> q
-    STake   t -> t
 
+
+instance Rename Stream where
+ rename _ Source                 = Source
+ rename _ (SourceWindowedDays i) = SourceWindowedDays i
+ rename f (STrans t x n)         = STrans t (rename f x) (f n)
 
 
 -- Pretty printing ---------------
@@ -57,10 +59,13 @@ outputOfStreamTransform st
 
 instance (Pretty n) => Pretty (Stream n) where
  pretty Source         = text "source"
+
+ pretty (SourceWindowedDays i)
+                       = text "sourceWindowedDays" <+> text (show i)
+
  pretty (STrans t x n) = pretty t <+> parens (pretty x) <+> pretty n
 
 instance Pretty StreamTransform where
  pretty (SFilter t) = text "sfilter [" <> pretty t <> text "]"
  pretty (SMap p q)  = text "smap    [" <> pretty p <> text "] [" <> pretty q <> text "]"
- pretty (STake t)   = text "stake   [" <> pretty t <> text "]"
 

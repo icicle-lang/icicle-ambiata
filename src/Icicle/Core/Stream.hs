@@ -1,3 +1,4 @@
+-- | Stream transformations such as filter, map and take.
 {-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Core.Stream (
     module X

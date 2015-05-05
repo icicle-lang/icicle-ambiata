@@ -18,6 +18,7 @@ library
                      , bifunctors                      == 4.2.*
                      , bytestring                      == 0.10.*
                      , containers                      == 0.5.*
+                     , dates                           == 0.2.*
                      , either                          == 4.3.*
                      , filepath                        == 1.3.*
                      , p
@@ -40,12 +41,15 @@ library
                        BuildInfo_icicle
                        Icicle
 
+                       Icicle.BubbleGum
+
                        Icicle.Core.Base
                        Icicle.Core.Type
                        Icicle.Core.Exp.Exp
                        Icicle.Core.Exp.Error
                        Icicle.Core.Exp.Check
                        Icicle.Core.Exp.Prim
+                       Icicle.Core.Exp.Combinators
                        Icicle.Core.Exp
                        Icicle.Core.Stream.Stream
                        Icicle.Core.Stream.Error
@@ -58,10 +62,16 @@ library
                        Icicle.Core.Program.Program
                        Icicle.Core.Program.Check
                        Icicle.Core.Program.Error
+                       Icicle.Core.Program.Fusion
 
                        Icicle.Core.Eval.Exp
+                       Icicle.Core.Eval.Stream
+                       Icicle.Core.Eval.Reduce
+                       Icicle.Core.Eval.Program
 
                        Icicle.Data
+                       Icicle.Data.DateTime
+
                        Icicle.Dictionary
                        Icicle.Encoding
                        Icicle.Internal.Pretty
@@ -77,6 +87,7 @@ executable             icicle
                      , filepath
                      , p
                      , text
+                     , transformers
                      , x-optparse
 
 test-suite test
@@ -100,3 +111,4 @@ test-suite test
                      , aeson                           == 0.8.*
                      , QuickCheck                      == 2.7.*
                      , quickcheck-instances            == 0.3.*
+                     , containers                      == 0.5.*

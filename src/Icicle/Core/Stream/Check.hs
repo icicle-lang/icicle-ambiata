@@ -38,6 +38,8 @@ checkStream se s
  = case s of
     Source
      -> return (concrete se)
+    SourceWindowedDays _
+     -> return (concrete se)
     STrans st f n
      -> do  inp <- lookupOrDie StreamErrorVarNotInEnv (streams se) n
             fty <- mapLeft     StreamErrorExp $ checkExp (scalars se) f

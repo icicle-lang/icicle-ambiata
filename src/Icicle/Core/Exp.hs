@@ -1,3 +1,5 @@
+-- | Core expressions
+-- Don't export Combinators - it's only for testing
 {-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Core.Exp (
     module X

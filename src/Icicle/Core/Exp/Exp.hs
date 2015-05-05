@@ -1,3 +1,4 @@
+-- | Definition of expressions
 {-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Core.Exp.Exp (
       Exp     (..)
@@ -13,17 +14,28 @@ import              Icicle.Core.Exp.Prim
 import              P
 
 
-
+-- | Incredibly simple expressions;
 data Exp n
+ -- | Read a variable from heap
  = XVar (Name n)
+
+ -- | Apply something
  | XApp (Exp n) (Exp n)
+
+ -- | A predefined primitive
  | XPrim Prim
- -- Only really used for arguments passed to primitives such as fold
+
+ -- | Lambda abstraction:
+ -- This is only really used for arguments passed to primitives such as fold.
  | XLam (Name n) ValType (Exp n)
+
+ -- | Let binding
  | XLet (Name n) (Exp n) (Exp n)
  deriving (Eq,Ord,Show)
 
 
+-- | Split an expression into its function part and any arguments applied to it.
+-- If it's not an application, arguments will be empty.
 takeApps :: Exp n -> (Exp n, [Exp n]) 
 takeApps xx
  = case xx of
@@ -34,6 +46,7 @@ takeApps xx
      -> (xx, [])
 
 
+-- | Check if an expression is a primitive application
 takePrimApps :: Exp n -> Maybe (Prim, [Exp n])
 takePrimApps xx
  = case takeApps xx of
@@ -41,8 +54,14 @@ takePrimApps xx
     _               -> Nothing
 
 
--- Pretty printing ---------------
+instance Rename Exp where
+ rename f (XVar n) = XVar (f n)
+ rename f (XApp p q) = XApp (rename f p) (rename f q)
+ rename _ (XPrim p) = XPrim p
+ rename f (XLam n t b) = XLam (f n) t (rename f b)
+ rename f (XLet n p q) = XLet (f n) (rename f p) (rename f q)
 
+-- Pretty printing ---------------
 
 instance (Pretty n) => Pretty (Exp n) where
  pretty (XVar n) = pretty n

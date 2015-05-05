@@ -4,7 +4,9 @@
 module Icicle.Test.Arbitrary where
 
 import           Icicle.Data
+import           Icicle.Data.DateTime
 
+import           Icicle.Test.Arbitrary.Base
 import           Orphanarium.Corpus
 
 import           Test.QuickCheck
@@ -24,7 +26,7 @@ instance Arbitrary Attribute where
 
 instance Arbitrary DateTime where
   arbitrary =
-    DateTime <$> elements muppets -- FIX replace with an actual DateTime
+    dateOfYMD <$> oneof_vals [2010..2014] <*> oneof_vals [1..12] <*> oneof_vals [1..28]
 
 instance Arbitrary Date where
   arbitrary =
@@ -46,19 +48,18 @@ instance Arbitrary a => Arbitrary (AsAt a) where
 
 instance Arbitrary Encoding where
   arbitrary =
-    oneof [ return StringEncoding
-          , return IntEncoding
-          , return DoubleEncoding
-          , return BooleanEncoding
-          , return DateEncoding
-          , StructEncoding . nubEq <$> smaller arbitrary
-          , ListEncoding           <$> smaller arbitrary]
+    oneof_sized_vals
+          [ StringEncoding
+          , IntEncoding
+          , DoubleEncoding
+          , BooleanEncoding
+          , DateEncoding ] 
+          [ StructEncoding . nubEq <$> arbitrary
+          , ListEncoding           <$> arbitrary ]
    where
     nubEq
      = nubBy ((==) `on` attributeOfStructField)
     
-    smaller g
-     = sized (\s -> resize (s `div` 2) g)
 
 instance Arbitrary StructField where
   arbitrary =
@@ -109,5 +110,3 @@ valueOfEncoding e
   listOfEncoding le
    = smaller $ listOf (valueOfEncoding le)
 
-  smaller g
-   = sized (\s -> resize (s `div` 2) g)
