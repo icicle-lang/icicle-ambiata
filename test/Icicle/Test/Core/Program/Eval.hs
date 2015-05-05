@@ -4,7 +4,7 @@
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 module Icicle.Test.Core.Program.Eval where
 
-import           Icicle.Test.Core.Arbitrary ()
+import           Icicle.Test.Core.Arbitrary
 -- import           Icicle.Core.Program.Program
 import           Icicle.Core.Program.Check
 -- import qualified Icicle.Core.Eval.Exp       as XV
@@ -18,7 +18,6 @@ import           System.IO
 
 import           Test.QuickCheck
 
-
 -- Just choose some date; it doesn't matter
 someDate = dateOfYMD 2015 1 1
 
@@ -29,13 +28,14 @@ someDate = dateOfYMD 2015 1 1
 -- that type check is just infeasible.
 --
 -- We need another generator that only makes valid programs
-zprop_progress x =
- isRight     (checkProgram x)
- ==> isRight (PV.eval someDate [] x)
+prop_progress t =
+ forAll (programForStreamType t)
+ $ \p ->
+    isRight     (checkProgram p) ==> isRight (PV.eval someDate [] p)
 
 -- Instead, try saying if it has a runtime error, it can't be type safe
 -- Most randomly generated programs will have runtime errors, and won't type check
-prop_progress x =
+prop_progress_inverse x =
  isLeft      (PV.eval someDate [] x)
  ==> isLeft  (checkProgram x)
 

@@ -33,8 +33,8 @@ prop_progress_inverse x =
 -- heap still looks different. 
 -- =====================
 
-prop_prefixlet x =
- eval0 x `equalExceptFunctionsE` eval0 (XLet (fresh 0) x x)
+prop_prefixlet =
+ withTypedExp $ \x _ -> eval0 x `equalExceptFunctionsE` eval0 (XLet (fresh 0) x x)
 
 
 -- Constant evaluates to constant. How quaint.

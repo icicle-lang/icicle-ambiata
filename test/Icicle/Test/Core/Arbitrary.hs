@@ -13,7 +13,7 @@ import           Icicle.Core.Eval.Exp
 
 import           Icicle.Core.Stream
 import           Icicle.Core.Reduce
-import           Icicle.Core.Program.Program
+import           Icicle.Core.Program.Program    as P
 
 import           Icicle.Test.Arbitrary.Base
 import           Orphanarium.Corpus
@@ -173,12 +173,24 @@ tryExpForType ty env
    = do -- Try to get a primitive that has the right return type
         p <- arbitrary `suchThatMaybe` ((==r) . functionReturns . typeOfPrim)
         case p of
-         -- Give up, generate a random one
-         Nothing -> arbitrary
-         -- For each argument of the primitive, generate a new expression
+         -- Give up.
+         -- Maybe we can generate a constant based on the type
+         Nothing
+          -> case r of
+              IntT     -> fillprim $ PrimConst (PrimConstInt 0)
+              BoolT    -> fillprim $ PrimConst (PrimConstBool False)
+              ArrayT i -> fillprim $ PrimConst (PrimConstArrayEmpty i)
+              MapT k v -> fillprim $ PrimConst (PrimConstMapEmpty k v)
+              OptionT i -> fillprim $ PrimConst (PrimConstNone i)
+              PairT a b -> fillprim $ PrimConst (PrimConstPair a b)
+
          Just p'
-          -> do as <- mapM (flip tryExpForType env) (functionArguments $ typeOfPrim p')
-                return $ P.foldl XApp (XPrim p') as
+          -> fillprim p'
+
+  -- For each argument of the primitive, generate a new expression
+  fillprim p
+   = do as <- mapM (flip tryExpForType env) (functionArguments $ typeOfPrim p)
+        return $ P.foldl XApp (XPrim p) as
 
   context r
    | not $ Map.null env
@@ -203,8 +215,111 @@ withTypedExp prop
      checkExp0 x == Right (FunT [] t) ==> prop x t
             
 
+-- | Attempt to generate well typed expressions
+-- Again, no promises.
+programForStreamType :: ValType -> Gen (Program Var)
+programForStreamType streamType
+ = do   -- generate pres
+        npres       <- choose (0,2) :: Gen Int
+        (pE, pres)  <- gen_exps Map.empty npres
+
+        nstrs       <- choose (1,3) :: Gen Int
+        (sE,strs)   <- gen_streams Map.empty pE nstrs
+
+        nreds       <- choose (1,3) :: Gen Int
+        (rE,reds)   <- gen_reduces sE pE nreds
+
+        nposts      <- choose (0,2) :: Gen Int
+        (eE, posts) <- gen_exps rE nposts
+
+        retT        <- arbitrary
+        ret         <- gen_exp (FunT [] retT) eE
+
+        return Program
+               { P.input        = streamType
+               , P.precomps     = pres
+               , P.streams      = strs
+               , P.reduces      = reds
+               , P.postcomps    = posts
+               , P.returns      = ret
+               }
+
+ where
+  -- Generate an expression, and try very hard to make sure it's well typed
+  gen_exp t e
+   = do x <- tryExpForType t e `suchThatMaybe` ((== Right t) . checkExp e)
+        -- (but don't try so hard that we loop forever)
+        case x of
+         Just x' -> return x'
+         Nothing -> arbitrary
+
+  -- Generate a bunch of expressions, collecting up the environment
+  gen_exps env 0
+   = return (env, [])
+  gen_exps env n
+   = do t   <- arbitrary
+        x   <- gen_exp (FunT [] t) env
+        nm  <- freshInEnv env
+        let env' = Map.insert nm (FunT [] t) env
+        (env'', xs) <- gen_exps env' (n-1)
+        return (env'', (nm, x) : xs)
+
+  gen_streams :: Env Var ValType -> Env Var Type -> Int -> Gen (Env Var ValType, [(Name Var, Stream Var)])
+  gen_streams sE _pE 0
+   = return (sE, [])
+  gen_streams sE pE n
+   = do (t,str) <- stream sE pE
+        nm      <- freshInEnv (sE :: Env Var ValType) :: Gen (Name Var)
+        (env', ss) <- gen_streams (Map.insert nm t sE) pE (n-1)
+        return (env', (nm, str) : ss)
+    
+
+  stream :: Env Var ValType -> Env Var Type -> Gen (ValType, Stream Var)
+  stream s_env pre_env
+   | Map.null s_env
+   = streamSource
+   | otherwise
+   = oneof [ streamSource
+           , streamTransformer s_env pre_env ]
+
+  streamSource
+   = oneof [ return (streamType, Source)
+           , (,) streamType . SourceWindowedDays <$> arbitrary ]
+
+  streamTransformer :: Env Var ValType -> Env Var Type -> Gen (ValType, Stream Var)
+  streamTransformer s_env pre_env
+   = do (i,t) <- oneof $ fmap return $ Map.toList s_env
+
+        st <- oneof [ return $ SFilter t
+                    , SMap t <$> arbitrary ]
+
+        let ty = typeOfStreamTransform st
+        let ot = outputOfStreamTransform st
+        (,) ot <$> (STrans <$> return st <*> gen_exp ty pre_env <*> return i)
+        
+  gen_reduces :: Env Var ValType -> Env Var Type -> Int -> Gen (Env Var Type, [(Name Var, Reduce Var)])
+  gen_reduces _sE pE 0
+   = return (pE, [])
+  gen_reduces sE pE n
+   = do (t,red) <- gen_reduce sE pE
+        nm      <- freshInEnv pE
+        (env', rs) <- gen_reduces sE (Map.insert nm (FunT [] t) pE) (n-1)
+        return (env', (nm, red) : rs)
+
+  gen_reduce sE pE
+   = do (i,t) <- oneof $ fmap return $ Map.toList sE
+        oneof   [ do ix <- gen_exp (FunT [] IntT) pE
+                     return (ArrayT t, RLatest t ix i)
+                , do at <- arbitrary
+                     kx <- gen_exp (FunT [FunT [] at, FunT [] t] at) pE
+                     zx <- gen_exp (FunT [] at) pE
+                     return (at, RFold t at kx zx i)
+                ]
+    
+
+
 -- | Generate a new name that isn't in the environment.
 -- This is fairly safe - should always succeed.
-freshInEnv :: Env Var Type -> Gen (Name Var)
+freshInEnv :: Env Var t -> Gen (Name Var)
 freshInEnv env
  = arbitrary `suchThat` (not . flip Map.member env)

@@ -29,22 +29,33 @@ someDate = dateOfYMD 2015 1 1
 left = Var "left" 0
 right = Var "right" 0
 
-prop_fuseself :: Program Var -> Property
-prop_fuseself x =
- isRight (checkProgram x)
- ==> isRight (fusePrograms left x right x)
+prop_fuseself t =
+ forAll (programForStreamType t)
+ $ \p ->
+ isRight (checkProgram p)
+ ==> isRight (fusePrograms left p right p)
 
-prop_fuseself_eval :: Program Var -> Property
-prop_fuseself_eval x
- | Right v  <- PV.eval someDate [] x
- , Right x' <- fusePrograms left x right x
- = case PV.eval someDate [] x' of
-    Left _
-     -> property False
-    Right vv
-     -> property (PV.value vv == XV.VPair (PV.value v) (PV.value v))
- | otherwise
- = False ==> False -- Ignore
+prop_fuseself_eval t =
+ forAll (programForStreamType t)
+ $ \p ->
+   case (fusePrograms left p right p) of
+    Right p'
+     | Right v  <- PV.eval someDate [] p
+     -> case PV.eval someDate [] p' of
+        Left _
+         -> property False
+        Right vv
+         -> property (PV.value vv == XV.VPair (PV.value v) (PV.value v))
+    _ -> False ==> False -- ignore
+
+
+prop_fuse2 t =
+ forAll (programForStreamType t)
+ $ \p1 ->
+ forAll (programForStreamType t)
+ $ \p2 ->
+ isRight (checkProgram p1) && isRight (checkProgram p2)
+ ==> isRight (fusePrograms left p1 right p2)
 
 {-
 zprop_fuseeval :: Program Var -> Program Var -> Property
@@ -63,5 +74,5 @@ zprop_fuseeval x y =
 
 return []
 tests :: IO Bool
--- tests = $quickCheckAll
-tests = $forAllProperties $ quickCheckWithResult (stdArgs {maxSuccess = 100, maxSize = 5, maxDiscardRatio = 10000})
+tests = $quickCheckAll
+-- tests = $forAllProperties $ quickCheckWithResult (stdArgs {maxSuccess = 100, maxSize = 5, maxDiscardRatio = 10000})
