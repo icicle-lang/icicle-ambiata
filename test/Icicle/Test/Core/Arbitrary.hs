@@ -55,9 +55,11 @@ equalExceptFunctionsE p q
  = p == q
 
 
+-- Sometimes it's nice to be able to pretty print our generated programs
 instance PP.Pretty Var where
  pretty (Var t i) = PP.text (show t) <> PP.text (show i)
 
+-- Generate totally arbitrary, totally random variables
 instance Arbitrary Var where
   arbitrary =
    sized $ \size ->
@@ -110,6 +112,8 @@ instance Arbitrary ValType where
          , OptionT <$> arbitrary
          ]
 
+-- Totally arbitrary expressions.
+-- These *probably* won't type check, but sometimes you get lucky.
 instance Arbitrary n => Arbitrary (Exp n) where
   arbitrary =
     oneof_sized
@@ -219,19 +223,25 @@ withTypedExp prop
 -- Again, no promises.
 programForStreamType :: ValType -> Gen (Program Var)
 programForStreamType streamType
- = do   -- generate pres
+ = do   -- Generate a few precomputation expressions
         npres       <- choose (0,2) :: Gen Int
         (pE, pres)  <- gen_exps Map.empty npres
 
+        -- We need at least one stream
+        -- otherwise there isn't much point to the program,
+        -- it'd just be a constant computation
         nstrs       <- choose (1,3) :: Gen Int
         (sE,strs)   <- gen_streams Map.empty pE nstrs
 
+        -- And at least one reduction
         nreds       <- choose (1,3) :: Gen Int
         (rE,reds)   <- gen_reduces sE pE nreds
 
+        -- Postcomputations with access to the reduction values
         nposts      <- choose (0,2) :: Gen Int
         (eE, posts) <- gen_exps rE nposts
 
+        -- Finally, everything is wrapped up into one return value
         retT        <- arbitrary
         ret         <- gen_exp (FunT [] retT) eE
 
@@ -246,9 +256,9 @@ programForStreamType streamType
 
  where
   -- Generate an expression, and try very hard to make sure it's well typed
+  -- (but don't try so hard that we loop forever)
   gen_exp t e
    = do x <- tryExpForType t e `suchThatMaybe` ((== Right t) . checkExp e)
-        -- (but don't try so hard that we loop forever)
         case x of
          Just x' -> return x'
          Nothing -> arbitrary
@@ -264,28 +274,34 @@ programForStreamType streamType
         (env'', xs) <- gen_exps env' (n-1)
         return (env'', (nm, x) : xs)
 
+  -- Generate some streams
   gen_streams :: Env Var ValType -> Env Var Type -> Int -> Gen (Env Var ValType, [(Name Var, Stream Var)])
   gen_streams sE _pE 0
    = return (sE, [])
   gen_streams sE pE n
-   = do (t,str) <- stream sE pE
+   = do (t,str) <- gen_stream sE pE
         nm      <- freshInEnv (sE :: Env Var ValType) :: Gen (Name Var)
         (env', ss) <- gen_streams (Map.insert nm t sE) pE (n-1)
         return (env', (nm, str) : ss)
     
 
-  stream :: Env Var ValType -> Env Var Type -> Gen (ValType, Stream Var)
-  stream s_env pre_env
+  -- Generate a single stream.
+  -- If the stream environment is empty, we need to take from the source.
+  -- If there's something in there already, we could do either
+  gen_stream :: Env Var ValType -> Env Var Type -> Gen (ValType, Stream Var)
+  gen_stream s_env pre_env
    | Map.null s_env
    = streamSource
    | otherwise
    = oneof [ streamSource
            , streamTransformer s_env pre_env ]
 
+  -- Raw source or windowed
   streamSource
    = oneof [ return (streamType, Source)
            , (,) streamType . SourceWindowedDays <$> arbitrary ]
 
+  -- Transformer: filter or map
   streamTransformer :: Env Var ValType -> Env Var Type -> Gen (ValType, Stream Var)
   streamTransformer s_env pre_env
    = do (i,t) <- oneof $ fmap return $ Map.toList s_env
@@ -296,7 +312,8 @@ programForStreamType streamType
         let ty = typeOfStreamTransform st
         let ot = outputOfStreamTransform st
         (,) ot <$> (STrans <$> return st <*> gen_exp ty pre_env <*> return i)
-        
+
+  -- Generate some reductions using given stream environment
   gen_reduces :: Env Var ValType -> Env Var Type -> Int -> Gen (Env Var Type, [(Name Var, Reduce Var)])
   gen_reduces _sE pE 0
    = return (pE, [])
@@ -306,6 +323,7 @@ programForStreamType streamType
         (env', rs) <- gen_reduces sE (Map.insert nm (FunT [] t) pE) (n-1)
         return (env', (nm, red) : rs)
 
+  -- A reduction is either a fold or a latest
   gen_reduce sE pE
    = do (i,t) <- oneof $ fmap return $ Map.toList sE
         oneof   [ do ix <- gen_exp (FunT [] IntT) pE

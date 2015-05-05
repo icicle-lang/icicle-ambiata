@@ -1,4 +1,5 @@
 -- | Helper combinators for constructing core expressions
+-- These are quite useful until we have a real source language and parser.
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Icicle.Core.Exp.Combinators where

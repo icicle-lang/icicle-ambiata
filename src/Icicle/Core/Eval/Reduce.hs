@@ -38,6 +38,7 @@ type ReduceValue n =
 -- | Evaluate a reduction.
 -- We take the precomputation environment and the stream environment.
 -- A single value is returned.
+-- The name of this reduction is used to produce the value history, or bubblegum
 eval    :: Ord n
         => Name           n
         -> XV.Heap        n
@@ -56,12 +57,15 @@ eval reduction_name xh sh r
             -- Perform the fold!
             v  <- foldM (apply2 k) z' (fmap snd $ fst sv)
 
-            -- Check if the input is windowed
+            -- Check if the input is windowed;
             let bg  | SV.Windowed _ <- snd sv
+                    -- since values drop off the start of the window, we can't just
+                    -- store the end result of the fold
                     = BubbleGumFacts $ flavoursOfSource $ fst sv
                     | otherwise
+                    -- but for an unwindowed reduction, we can incrementally compute
                     = BubbleGumReduction reduction_name v
-            
+
             return (bg, v)
 
     -- Get most recent or last num elements
@@ -74,9 +78,12 @@ eval reduction_name xh sh r
             -- It better be an Int
             case num' of
              XV.VInt i
+                 -- Take the latest i 
               -> let sv' = latest i $ fst sv
+                 -- and split into history and values
                  in  return ( BubbleGumFacts $ flavoursOfSource sv'
                             , XV.VArray $ fmap snd sv' )
+
              _
               -> Left (SV.RuntimeErrorExpNotOfType num' IntT)
 
@@ -104,6 +111,7 @@ eval reduction_name xh sh r
    = let len = length vs
      in  drop (len - i) vs
 
+  -- Get the history of some stream input
   flavoursOfSource
    = fmap (\(BubbleGumFact f, _) -> f)
 

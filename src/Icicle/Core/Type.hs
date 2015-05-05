@@ -86,7 +86,7 @@ arrow from (FunT args to)
  = FunT (from:args) to
 
 
--- |
+-- | Get list of arguments to function type
 functionArguments :: Type -> [Type]
 functionArguments (FunT args _)
  = args

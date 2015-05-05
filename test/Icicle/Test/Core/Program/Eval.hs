@@ -23,24 +23,21 @@ someDate = dateOfYMD 2015 1 1
 
 -- Well typed programs don't go wrong
 -- =====================
-
--- This is nice to know, but generating all programs and restricting to only those
--- that type check is just infeasible.
 --
--- We need another generator that only makes valid programs
+-- Restrict it to only good programs.
 prop_progress t =
  forAll (programForStreamType t)
  $ \p ->
     isRight     (checkProgram p) ==> isRight (PV.eval someDate [] p)
 
--- Instead, try saying if it has a runtime error, it can't be type safe
+-- Also, try the inverse: if it has a runtime error, it can't be type safe.
 -- Most randomly generated programs will have runtime errors, and won't type check
 prop_progress_inverse x =
  isLeft      (PV.eval someDate [] x)
  ==> isLeft  (checkProgram x)
 
 -- It would be nice to say something about inputs,
--- but we would need to be able to generate well typed values.
+-- but we need to be able to generate well typed values.
 -- A well typed program can still error if its inputs are of the wrong type.
 
 

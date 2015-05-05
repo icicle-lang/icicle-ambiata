@@ -51,4 +51,3 @@ prop_constprefix i =
 return []
 tests :: IO Bool
 tests = $quickCheckAll
--- tests = $forAllProperties $ quickCheckWithResult (stdArgs {maxSuccess = 1000})

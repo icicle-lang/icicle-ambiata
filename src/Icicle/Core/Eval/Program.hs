@@ -56,6 +56,9 @@ eval    :: Ord n
 eval d sv p
  = do   pres    <- evalExps RuntimeErrorPre Map.empty   (P.precomps     p)
         stms    <- evalStms pres d sv       Map.empty   (P.streams      p)
+
+        -- Get the history and results of reductions.
+        -- The history is returned as-is but values are used in further computations
         (bgs,reds)
                 <- evalReds pres            stms        (P.reduces      p)
         post    <- evalExps RuntimeErrorPost reds       (P.postcomps    p)

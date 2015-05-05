@@ -28,24 +28,27 @@ import qualified    Data.Map as Map
 
 
 
--- | A stream value is just a list of values
+-- | A stream value is a list of values, but also the list of cookies or bubblegum.
+-- This bubblegum is used to track the flow - which values are used by the computation,
+-- and specifically which values will be needed by tomorrow's or next computation.
 --
--- TODO: attach a cookie to each stream value.
--- the cookie should be passed around unchanged as the stream is mapped, dropped if the value is dropped by a filter etc.
---
--- Reduce should then return list of used cookies; all input for fold and latest n for latest.
--- Actually reduce could create a new cookie of current reduce values so that could be used tomorrow as the new starting point.
--- That would basically be the latest input value's cookie.
--- Talk to Mark to make sure that's feasible.
---
+-- We also need to know whether the stream is windowed: if it is not windowed, any
+-- reduction like sum can just start where it left off.
+-- If it is windowed, we instead store the values needed to recompute, as values will drop off
+-- the start of the window.
 type StreamValue n
  = ([(BubbleGumFact, XV.Value n)], StreamWindow)
 
+-- | Whether this stream is the result - directly or indirectly - of a windowed source
 data StreamWindow = Windowed Int | UnWindowed
  deriving (Eq,Ord,Show)
 
+-- | Right at the start, we need dates on the stream values.
+-- These can be used by windowing functions or ignored.
+-- Afterwards they are thrown away, but could still be included in the value itself.
 type DatedStreamValue n
  = [AsAt (BubbleGumFact, XV.Value n)]
+
 
 -- | A stream heap maps from names to stream values
 type StreamHeap n
@@ -64,11 +67,11 @@ data RuntimeError n
 -- We take the precomputation environment, the stream of concrete values,
 -- and the heap with all preceding streams stored.
 eval    :: Ord n
-        => DateTime     -- Snapshot date for checking against windows
-        -> XV.Heap     n
-        -> DatedStreamValue n   -- Concrete inputs start with dates attached
-        -> StreamHeap  n
-        -> Stream n
+        => DateTime             -- ^ Snapshot date for checking against windows
+        -> XV.Heap          n   -- ^ The expression heap with precomputations
+        -> DatedStreamValue n   -- ^ Concrete inputs start with dates attached
+        -> StreamHeap       n   -- ^ Any streams that have already been evaluated
+        -> Stream           n   -- ^ Stream to evaluate
         -> Either (RuntimeError n) (StreamValue n)
 eval window_check xh concreteValues sh s
  = case s of
@@ -98,7 +101,12 @@ eval window_check xh concreteValues sh s
 
  where
   -- Evaluate transform over given values.
-  -- We don't need the stream heap any more
+  -- We don't need the stream heap any more.
+  --
+  -- The stream values still have their bubblegum attached
+  -- but that doesn't really matter here.
+  -- We just need to dig down into the expression without
+  -- losing the bubblegum.
   evalTrans st x sv
    = case st of
       SFilter _
@@ -142,6 +150,7 @@ eval window_check xh concreteValues sh s
         mapLeft RuntimeErrorExp
             $ XV.applyValues fV argV
 
+  -- Apply an expression to a stream value, keeping the bubblegum intact
   applySnd fX (bubble, argV)
    = do v' <- applyX fX argV
         return (bubble, v')

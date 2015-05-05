@@ -52,6 +52,3 @@ prop_genExpForType2 t =
 return []
 tests :: IO Bool
 tests = $quickCheckAll
-
--- tests = $forAllProperties $ quickCheckWithResult (stdArgs {maxSuccess = 10000})
-

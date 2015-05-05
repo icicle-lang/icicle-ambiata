@@ -6,7 +6,6 @@
 module Icicle.Test.Core.Program.Fusion where
 
 import           Icicle.Test.Core.Arbitrary
--- import           Icicle.Core.Program.Program
 import           Icicle.Core.Program.Check
 import           Icicle.Core.Program.Fusion
 import qualified Icicle.Core.Eval.Exp       as XV
@@ -23,52 +22,66 @@ import           Test.QuickCheck
 
 -- Just choose some date; it doesn't matter
 someDate = dateOfYMD 2015 1 1
+eval = PV.eval someDate []
 
--- We can always fuse a well typed program with itself
--- =====================
 left = Var "left" 0
 right = Var "right" 0
 
+-- We can always fuse a well typed program with itself
+-- =====================
 prop_fuseself t =
  forAll (programForStreamType t)
  $ \p ->
  isRight (checkProgram p)
  ==> isRight (fusePrograms left p right p)
 
+-- And if we fuse the program with itself, we get a pair of the two values back
 prop_fuseself_eval t =
  forAll (programForStreamType t)
  $ \p ->
+   -- Fuse typechecks its args
    case (fusePrograms left p right p) of
     Right p'
-     | Right v  <- PV.eval someDate [] p
-     -> case PV.eval someDate [] p' of
+     | Right v  <- eval p
+     -> case eval p' of
+        -- An evaluation error - this is bad
         Left _
          -> property False
+        -- Evaluation succeeded so the values must match
         Right vv
          -> property (PV.value vv == XV.VPair (PV.value v) (PV.value v))
-    _ -> False ==> False -- ignore
+    _ -> property Discard
 
 
+-- We can also fuse any two well typed programs
 prop_fuse2 t =
  forAll (programForStreamType t)
  $ \p1 ->
  forAll (programForStreamType t)
  $ \p2 ->
+ -- If both type check, fuse must return a new program
  isRight (checkProgram p1) && isRight (checkProgram p2)
  ==> isRight (fusePrograms left p1 right p2)
 
-{-
-zprop_fuseeval :: Program Var -> Program Var -> Property
-zprop_fuseeval x y =
- case (PV.eval someDate [] x, PV.eval someDate [] y, fusePrograms left x right y) of
- (Right xv, Right yv, Right p')
-  -> case PV.eval someDate [] p' of
-      Right r -> True ==> PV.value r == XV.VPair (PV.value xv) (PV.value yv)
-      _       -> True  ==> False
- _
-  -> False ==> False
--}
 
+-- We can also fuse any two well typed programs
+prop_fuseeval2 t =
+ forAll (programForStreamType t)
+ $ \p1 ->
+ forAll (programForStreamType t)
+ $ \p2 ->
+ -- Evaluate both input programs and try to fuse together
+ case (eval p1, eval p2, fusePrograms left p1 right p2) of
+  (Right v1, Right v2, Right p')
+      -- Evaluate the fused program
+   -> case eval p' of
+       -- It should not be an error
+       Left  _  -> property False
+       -- It evaluated fine, so the values should match
+       Right v' -> property (PV.value v' == XV.VPair (PV.value v1) (PV.value v2))
+
+  -- The input programs must be bad, so throw it away
+  _ -> property Discard
 
 
 
