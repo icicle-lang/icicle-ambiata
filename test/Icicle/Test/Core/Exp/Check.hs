@@ -34,9 +34,25 @@ prop_lamwrap x =
  isRight (typecheck Map.empty x) == isRight (typecheck Map.empty (XLam (fresh 0) IntT x))
 
 
+-- Try to build an expression for type.
+-- This is only testing that the generator succeeds with relatively few missed cases.
+prop_genExpForType t =
+ forAll (tryExpForType (FunT [] t) Map.empty)
+ $ \x -> checkExp0 x == Right (FunT [] t) ==> True
+
+-- Again, try generating two with the same type.
+prop_genExpForType2 t =
+ forAll (tryExpForType (FunT [] t) Map.empty) $ \x ->
+ forAll (tryExpForType (FunT [] t) Map.empty) $ \y ->
+ checkExp0 x == Right (FunT [] t) && checkExp0 y == Right (FunT [] t) ==> True
+
+
+
+
 
 return []
 tests :: IO Bool
 tests = $quickCheckAll
 
+-- tests = $forAllProperties $ quickCheckWithResult (stdArgs {maxSuccess = 10000})
 

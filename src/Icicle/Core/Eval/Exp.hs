@@ -222,9 +222,9 @@ eval h xx
 
      -- Folds and destructions
      PrimFold PrimFoldBool _
-      | [VBool True, t, _] <- vs
+      | [t, _, VBool True] <- vs
       -> return t
-      | [VBool False, _, f] <- vs
+      | [_, f, VBool False] <- vs
       -> return f
       | otherwise
       -> primError

@@ -19,6 +19,8 @@ module Icicle.Core.Type (
     , lookupOrDie
     , insertOrDie
 
+    , functionArguments
+    , functionReturns
     , canApply
     , requireSame
 
@@ -83,6 +85,16 @@ arrow :: FunType -> FunType -> FunType
 arrow from (FunT args to)
  = FunT (from:args) to
 
+
+-- |
+functionArguments :: Type -> [Type]
+functionArguments (FunT args _)
+ = args
+
+-- | Get final return type of function
+functionReturns :: Type -> ValType
+functionReturns (FunT _ r)
+ = r
 
 -- | Check if a function type can be applied to an argument.
 -- If successful, returns the result type; otherwise Nothing.
