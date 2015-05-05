@@ -39,7 +39,15 @@ checkProgram p
         post    <- checkExps ProgramErrorPost reds        (P.postcomps    p)
 
         -- Finally, check the return against the postcomputation environment
-        mapLeft ProgramErrorReturn $ checkExp post        (P.returns      p)
+        rt <- mapLeft ProgramErrorReturn $ checkExp post        (P.returns      p)
+
+        -- Check if top-level is a value type
+        case rt of
+         FunT [] _
+          -> return rt
+         FunT (_:_) _
+          -> Left (ProgramErrorReturnNotValueType rt)
+
 
 
 -- | Check all expression bindings, collecting up environment as we go

@@ -25,9 +25,6 @@ data ExpError n
 
  -- Primitives cannot be partially applied
  | ExpErrorPrimitiveNotFullyApplied Prim (Exp n)
-
- -- Top-level should be a value type
- | ExpErrorTopLevelNotValueType Type
  deriving (Show, Eq, Ord)
 
 
@@ -48,7 +45,4 @@ instance (Pretty n) => Pretty (ExpError n) where
 
     ExpErrorPrimitiveNotFullyApplied p x
      ->  text "The primitive " <> pretty p <> text " is not fully applied in expression " <> pretty x
-
-    ExpErrorTopLevelNotValueType t
-     ->  text "The top-level expression has type " <> pretty t <> text " but should be a value type." <> line
 

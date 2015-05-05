@@ -29,9 +29,8 @@ prop_prefixletconst x =
 
 
 -- Wrapping in a lambda does affect typechecking, but not *whether* type exists
--- This is not true for checkExp which does not allow top-level functions, but true for typecheck.
 prop_lamwrap x =
- isRight (typecheck Map.empty x) == isRight (typecheck Map.empty (XLam (fresh 0) IntT x))
+ isRight (checkExp0 x) == isRight (checkExp0 (XLam (fresh 0) IntT x))
 
 
 -- Try to build an expression for type.
