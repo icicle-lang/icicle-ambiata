@@ -6,11 +6,13 @@ module Icicle.Test.Core.Arbitrary where
 
 import qualified Icicle.Internal.Pretty as PP
 
-import           Icicle.Core.Base
-import           Icicle.Core.Exp
-import           Icicle.Core.Type
-import           Icicle.Core.Eval.Exp
+import           Icicle.Common.Base
+import           Icicle.Common.Exp
+import           Icicle.Common.Type
+import           Icicle.Common.Value
 
+import qualified Icicle.Core.Exp                as X
+import           Icicle.Core.Exp.Prim
 import           Icicle.Core.Stream
 import           Icicle.Core.Reduce
 import           Icicle.Core.Program.Program    as P
@@ -38,7 +40,7 @@ fresh = Name . Var "_fresh"
 
 -- | Check if values are equal except for functions/closures
 -- Because closure heaps can differ..
-equalExceptFunctions :: Eq n => Value n -> Value n -> Bool
+equalExceptFunctions :: (Eq n, Eq p) => Value n p -> Value n p -> Bool
 equalExceptFunctions p q
  | VFun{} <- p
  , VFun{} <- q
@@ -46,7 +48,7 @@ equalExceptFunctions p q
  | otherwise
  = p == q
 
-equalExceptFunctionsE :: (Eq n, Eq l) => Either l (Value n) -> Either l (Value n) -> Bool
+equalExceptFunctionsE :: (Eq n, Eq p, Eq l) => Either l (Value n p) -> Either l (Value n p) -> Bool
 equalExceptFunctionsE p q
  | Right p' <- p
  , Right q' <- q
@@ -114,7 +116,7 @@ instance Arbitrary ValType where
 
 -- Totally arbitrary expressions.
 -- These *probably* won't type check, but sometimes you get lucky.
-instance Arbitrary n => Arbitrary (Exp n) where
+instance (Arbitrary n, Arbitrary p) => Arbitrary (Exp n p) where
   arbitrary =
     oneof_sized
           [ XVar  <$> arbitrary
@@ -144,7 +146,7 @@ instance Arbitrary n => Arbitrary (Program n) where
 
 
 -- | Make an effort to generate a well typed expression, but no promises
-tryExpForType :: Type -> Env Var Type -> Gen (Exp Var)
+tryExpForType :: Type -> Env Var Type -> Gen (Exp Var Prim)
 tryExpForType ty env
  = case ty of
     -- If ty is a first-order function, create a lambda
@@ -211,11 +213,11 @@ tryExpForType ty env
 -- | Generate a well typed expression.
 -- If we can't generate a well typed expression we want quickcheck to count it as
 -- failing to satisfy a precondition.
-withTypedExp :: Testable prop => (Exp Var -> ValType -> prop) -> Property
+withTypedExp :: Testable prop => (Exp Var Prim -> ValType -> prop) -> Property
 withTypedExp prop
  = forAll arbitrary $ \t ->
    forAll (tryExpForType (FunT [] t) Map.empty) $ \x ->
-     checkExp0 x == Right (FunT [] t) ==> prop x t
+     checkExp0 X.coreFragment x == Right (FunT [] t) ==> prop x t
             
 
 -- | Attempt to generate well typed expressions
@@ -257,7 +259,7 @@ programForStreamType streamType
   -- Generate an expression, and try very hard to make sure it's well typed
   -- (but don't try so hard that we loop forever)
   gen_exp t e
-   = do x <- tryExpForType t e `suchThatMaybe` ((== Right t) . checkExp e)
+   = do x <- tryExpForType t e `suchThatMaybe` ((== Right t) . checkExp X.coreFragment e)
         case x of
          Just x' -> return x'
          Nothing -> arbitrary

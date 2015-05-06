@@ -5,8 +5,9 @@
 module Icicle.Test.Core.Exp.Check where
 
 import           Icicle.Test.Core.Arbitrary
+import           Icicle.Common.Exp
+import           Icicle.Common.Type
 import           Icicle.Core.Exp
-import           Icicle.Core.Type
 
 import           P
 
@@ -21,29 +22,29 @@ import           Test.QuickCheck
 -- =====================
 
 prop_prefixlet x =
- checkExp0 x == checkExp0 (XLet (fresh 0) x x)
+ checkExp0 coreFragment x == checkExp0 coreFragment (XLet (fresh 0) x x)
 
 -- Prefixing a let with a known good expression doesn't affect
 prop_prefixletconst x =
- checkExp0 x == checkExp0 (XLet (fresh 0) (XPrim $ PrimConst $ PrimConstInt 0) x)
+ checkExp0 coreFragment x == checkExp0 coreFragment (XLet (fresh 0) (XPrim $ PrimConst $ PrimConstInt 0) x)
 
 
 -- Wrapping in a lambda does affect typechecking, but not *whether* type exists
 prop_lamwrap x =
- isRight (checkExp0 x) == isRight (checkExp0 (XLam (fresh 0) IntT x))
+ isRight (checkExp0 coreFragment x) == isRight (checkExp0 coreFragment (XLam (fresh 0) IntT x))
 
 
 -- Try to build an expression for type.
 -- This is only testing that the generator succeeds with relatively few missed cases.
 prop_genExpForType t =
  forAll (tryExpForType (FunT [] t) Map.empty)
- $ \x -> checkExp0 x == Right (FunT [] t) ==> True
+ $ \x -> checkExp0 coreFragment x == Right (FunT [] t) ==> True
 
 -- Again, try generating two with the same type.
 prop_genExpForType2 t =
  forAll (tryExpForType (FunT [] t) Map.empty) $ \x ->
  forAll (tryExpForType (FunT [] t) Map.empty) $ \y ->
- checkExp0 x == Right (FunT [] t) && checkExp0 y == Right (FunT [] t) ==> True
+ checkExp0 coreFragment x == Right (FunT [] t) && checkExp0 coreFragment y == Right (FunT [] t) ==> True
 
 
 
