@@ -1,0 +1,62 @@
+-- | Definition of expressions
+{-# LANGUAGE NoImplicitPrelude #-}
+module Icicle.Common.Exp.Exp (
+      Exp     (..)
+    , renameExp
+    ) where
+
+import              Icicle.Internal.Pretty
+import              Icicle.Common.Base
+import              Icicle.Common.Type
+
+import              P
+
+
+-- | Incredibly simple expressions;
+data Exp n p
+ -- | Read a variable from heap
+ = XVar (Name n)
+
+ -- | Apply something
+ | XApp (Exp n p) (Exp n p)
+
+ -- | A predefined primitive
+ | XPrim p
+
+ -- | Lambda abstraction:
+ -- This is only really used for arguments passed to primitives such as fold.
+ | XLam (Name n) ValType (Exp n p)
+
+ -- | Let binding
+ | XLet (Name n) (Exp n p) (Exp n p)
+ deriving (Eq,Ord,Show)
+
+
+renameExp :: (Name n -> Name n') -> Exp n p -> Exp n' p
+renameExp f (XVar n) = XVar (f n)
+renameExp f (XApp p q) = XApp (renameExp f p) (renameExp f q)
+renameExp _ (XPrim p) = XPrim p
+renameExp f (XLam n t b) = XLam (f n) t (renameExp f b)
+renameExp f (XLet n p q) = XLet (f n) (renameExp f p) (renameExp f q)
+
+-- Pretty printing ---------------
+
+instance (Pretty n, Pretty p) => Pretty (Exp n p) where
+ pretty (XVar n) = pretty n
+
+ pretty (XApp p q) = pretty p <+> inner q
+  where
+   inner i
+    = case i of
+       XApp{} -> parens $ pretty i
+       XLam{} -> parens $ pretty i
+       _      ->          pretty i
+
+ pretty (XPrim p)  = pretty p
+ pretty (XLam b t x) = text "\\" <> pretty b <> text " : " <> pretty t <> text ". " <> pretty x
+ pretty (XLet b x i) = text "let " <> pretty b
+                    <> text " = "  <> align (pretty x)
+                   </> text " in " <> align (pretty i)
+
+
+

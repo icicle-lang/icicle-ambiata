@@ -8,7 +8,7 @@
 -- and everything simpler.
 --
 {-# LANGUAGE NoImplicitPrelude #-}
-module Icicle.Core.Type (
+module Icicle.Common.Type (
       ValType (..)
     , FunType (..)
     , Type
@@ -27,7 +27,7 @@ module Icicle.Core.Type (
     ) where
 
 import              Icicle.Internal.Pretty
-import              Icicle.Core.Base
+import              Icicle.Common.Base
 
 import              P
 

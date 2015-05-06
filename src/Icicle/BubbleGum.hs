@@ -11,7 +11,7 @@ module Icicle.BubbleGum (
     , mapValue
     ) where
 
-import           Icicle.Core.Base
+import           Icicle.Common.Base
 import           Icicle.Data
 import           P
 

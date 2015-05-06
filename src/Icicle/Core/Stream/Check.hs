@@ -6,7 +6,7 @@ module Icicle.Core.Stream.Check (
     , streamEnv
     ) where
 
-import              Icicle.Core.Type
+import              Icicle.Common.Type
 import              Icicle.Core.Exp
 
 import              Icicle.Core.Stream.Stream
@@ -42,7 +42,7 @@ checkStream se s
      -> return (concrete se)
     STrans st f n
      -> do  inp <- lookupOrDie StreamErrorVarNotInEnv (streams se) n
-            fty <- mapLeft     StreamErrorExp $ checkExp (scalars se) f
+            fty <- mapLeft     StreamErrorExp $ checkExp coreFragment (scalars se) f
 
             requireSame (StreamErrorTypeError f)
                         (funOfVal $ inputOfStreamTransform st) (funOfVal inp)

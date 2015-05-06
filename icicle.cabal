@@ -43,11 +43,17 @@ library
 
                        Icicle.BubbleGum
 
-                       Icicle.Core.Base
-                       Icicle.Core.Type
+                       Icicle.Common.Base
+                       Icicle.Common.Exp.Check
+                       Icicle.Common.Exp.Compounds
+                       Icicle.Common.Exp.Error
+                       Icicle.Common.Exp.Exp
+                       Icicle.Common.Exp.Eval
+                       Icicle.Common.Fragment
+                       Icicle.Common.Type
+                       Icicle.Common.Value
+
                        Icicle.Core.Exp.Exp
-                       Icicle.Core.Exp.Error
-                       Icicle.Core.Exp.Check
                        Icicle.Core.Exp.Prim
                        Icicle.Core.Exp.Combinators
                        Icicle.Core.Exp

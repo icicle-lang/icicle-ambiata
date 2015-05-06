@@ -3,7 +3,7 @@ module Icicle.Core.Reduce.Check (
       checkReduce
     ) where
 
-import              Icicle.Core.Type
+import              Icicle.Common.Type
 import              Icicle.Core.Exp
 
 import              Icicle.Core.Reduce.Reduce
@@ -49,5 +49,5 @@ checkReduce se r
             
  where
   checkX
-   = mapLeft ReduceErrorExp . checkExp (scalars se)
+   = mapLeft ReduceErrorExp . checkExp coreFragment (scalars se)
 

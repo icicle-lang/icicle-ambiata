@@ -12,7 +12,7 @@ module Icicle.Core.Exp.Prim (
     ) where
 
 import              Icicle.Internal.Pretty
-import              Icicle.Core.Type
+import              Icicle.Common.Type
 
 import              P
 

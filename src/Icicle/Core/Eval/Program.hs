@@ -8,13 +8,15 @@ module Icicle.Core.Eval.Program (
 
 import              Icicle.BubbleGum
 
-import              Icicle.Core.Base
-import              Icicle.Core.Type
+import              Icicle.Common.Base
+import              Icicle.Common.Type
+import              Icicle.Common.Value as V
 import              Icicle.Core.Exp
 import              Icicle.Core.Stream
 import              Icicle.Core.Reduce
 
 import qualified    Icicle.Core.Program.Program as P
+import qualified    Icicle.Common.Exp.Eval  as XV
 import qualified    Icicle.Core.Eval.Exp    as XV
 import qualified    Icicle.Core.Eval.Stream as SV
 import qualified    Icicle.Core.Eval.Reduce as RV
@@ -29,12 +31,13 @@ import qualified    Data.Map as Map
 
 -- | Things that can go wrong for program evaluation
 data RuntimeError n
- = RuntimeErrorPre      (XV.RuntimeError n)
+ = RuntimeErrorPre      (XV.RuntimeError n Prim)
  | RuntimeErrorStream   (SV.RuntimeError n)
  | RuntimeErrorReduce   (RV.RuntimeError n)
- | RuntimeErrorPost     (XV.RuntimeError n)
- | RuntimeErrorReturn   (XV.RuntimeError n)
+ | RuntimeErrorPost     (XV.RuntimeError n Prim)
+ | RuntimeErrorReturn   (XV.RuntimeError n Prim)
  | RuntimeErrorVarNotUnique (Name n)
+ | RuntimeErrorReturnNotBaseType (V.Value n Prim)
  deriving (Show, Eq)
 
 
@@ -42,15 +45,15 @@ data RuntimeError n
 -- some value, and the minimum facts needed to compute next value.
 data ProgramValue n =
  ProgramValue {
-    value   :: XV.Value n
- ,  history :: [BubbleGumOutput n (XV.Value n)]
+    value   :: V.BaseValue
+ ,  history :: [BubbleGumOutput n V.BaseValue]
  }
 
 -- | Evaluate a program.
 -- We take no environments, but do take the concrete feature values.
 eval    :: Ord n
         => DateTime
-        -> SV.DatedStreamValue n
+        -> SV.DatedStreamValue
         -> P.Program n
         -> Either (RuntimeError n) (ProgramValue n)
 eval d sv p
@@ -64,25 +67,28 @@ eval d sv p
         post    <- evalExps RuntimeErrorPost reds       (P.postcomps    p)
 
         ret     <- mapLeft RuntimeErrorReturn
-                 $ XV.eval post
+                 $ XV.eval XV.evalPrim post
                  $ P.returns p
-        return $ ProgramValue ret bgs
+        ret'    <- case ret of
+                    V.VFun{}     -> Left (RuntimeErrorReturnNotBaseType ret)
+                    V.VBase ret' -> return ret'
+        return $ ProgramValue ret' bgs
 
 
 -- | Evaluate all expression bindings, collecting up expression heap as we go
 evalExps
         :: Ord n
-        => (XV.RuntimeError n -> RuntimeError n)
-        -> XV.Heap n
+        => (XV.RuntimeError n Prim -> RuntimeError n)
+        -> V.Heap n Prim
         -> [(Name n, Exp n)]
-        -> Either (RuntimeError n) (XV.Heap n)
+        -> Either (RuntimeError n) (V.Heap n Prim)
 
 evalExps _ env []
  = return env
 
 evalExps err env ((n,x):bs)
  = do   v   <- mapLeft err
-             $ XV.eval env x
+             $ XV.eval XV.evalPrim env x
         env' <- insertUnique env n v
         evalExps err env' bs
 
@@ -90,9 +96,9 @@ evalExps err env ((n,x):bs)
 -- | Evaluate all stream bindings, collecting up stream heap as we go
 evalStms
         :: Ord n
-        => XV.Heap n
+        => V.Heap n Prim
         -> DateTime
-        -> SV.DatedStreamValue n
+        -> SV.DatedStreamValue
         -> SV.StreamHeap  n
         -> [(Name n, Stream n)]
         -> Either (RuntimeError n) (SV.StreamHeap n)
@@ -111,10 +117,10 @@ evalStms xh d svs sh ((n,strm):bs)
 -- return expression heap at the end, throwing away streams
 evalReds
         :: Ord n
-        => XV.Heap n
+        => V.Heap n Prim
         -> SV.StreamHeap  n
         -> [(Name n, Reduce n)]
-        -> Either (RuntimeError n) ([BubbleGumOutput n (XV.Value n)], XV.Heap n)
+        -> Either (RuntimeError n) ([BubbleGumOutput n V.BaseValue], V.Heap n Prim)
 
 evalReds xh _ []
  = return ([], xh)
@@ -128,7 +134,7 @@ evalReds xh sh ((n,red):bs)
         (bgs, xh')
             <- evalReds xh sh bs
         xh''
-            <- insertUnique xh' n v
+            <- insertUnique xh' n (V.VBase v)
         return (bg:bgs, xh'')
 
 

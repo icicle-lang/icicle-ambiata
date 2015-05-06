@@ -5,12 +5,14 @@ module Icicle.Core.Stream.Stream (
     , typeOfStreamTransform
     , inputOfStreamTransform
     , outputOfStreamTransform
+    , renameStream
     ) where
 
 import              Icicle.Internal.Pretty
-import              Icicle.Core.Base
-import              Icicle.Core.Type
+import              Icicle.Common.Base
+import              Icicle.Common.Type
 import              Icicle.Core.Exp
+import              Icicle.Common.Exp.Exp (renameExp)
 
 import              P
 
@@ -48,10 +50,10 @@ outputOfStreamTransform st
     SMap  _ q -> q
 
 
-instance Rename Stream where
- rename _ Source                 = Source
- rename _ (SourceWindowedDays i) = SourceWindowedDays i
- rename f (STrans t x n)         = STrans t (rename f x) (f n)
+renameStream :: (Name n -> Name n') -> Stream n -> Stream n'
+renameStream _ Source                 = Source
+renameStream _ (SourceWindowedDays i) = SourceWindowedDays i
+renameStream f (STrans t x n)         = STrans t (renameExp f x) (f n)
 
 
 -- Pretty printing ---------------
