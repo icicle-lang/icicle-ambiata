@@ -8,7 +8,6 @@ module Icicle.Test.Core.Program.Fusion where
 import           Icicle.Test.Core.Arbitrary
 import           Icicle.Core.Program.Check
 import           Icicle.Core.Program.Fusion
-import qualified Icicle.Core.Eval.Exp       as XV
 import qualified Icicle.Core.Eval.Program   as PV
 import qualified Icicle.Common.Value        as V
 

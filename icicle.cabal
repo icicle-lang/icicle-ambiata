@@ -45,6 +45,7 @@ library
 
                        Icicle.Common.Base
                        Icicle.Common.Exp
+                       Icicle.Common.Exp.Alpha
                        Icicle.Common.Exp.Check
                        Icicle.Common.Exp.Compounds
                        Icicle.Common.Exp.Error
