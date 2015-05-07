@@ -6,6 +6,10 @@ module Icicle.Test.Core.Arbitrary where
 
 import qualified Icicle.Internal.Pretty as PP
 
+import           Icicle.BubbleGum
+import           Icicle.Data            (AsAt(..))
+import           Icicle.Data.DateTime
+
 import           Icicle.Common.Base
 import           Icicle.Common.Exp
 import           Icicle.Common.Type
@@ -342,3 +346,42 @@ programForStreamType streamType
 freshInEnv :: Env Var t -> Gen (Name Var)
 freshInEnv env
  = arbitrary `suchThat` (not . flip Map.member env)
+
+
+-- | Generate a value for given value type
+baseValueForType :: ValType -> Gen BaseValue
+baseValueForType t
+ = case t of
+    IntT
+     -> VInt <$> arbitrary
+    BoolT
+     -> VBool <$> arbitrary
+    ArrayT t'
+     -> VArray <$> listOf (baseValueForType t')
+    PairT a b
+     -> VPair <$> baseValueForType a <*> baseValueForType b
+    OptionT t'
+     -> oneof_sized [ return VNone ]
+                    [ VSome <$> baseValueForType t' ]
+    MapT k v
+     -> VMap . Map.fromList
+     <$> listOf ((,) <$> baseValueForType k <*> baseValueForType v)
+
+
+inputsForType :: ValType -> Gen ([AsAt (BubbleGumFact, BaseValue)], DateTime)
+inputsForType t
+ = sized
+ $ \s -> do start   <- arbitrary
+            num     <- choose (0, s)
+            go num [] start
+ where
+  go 0 acc d
+   = return (acc, dateOfDays d)
+  go n acc d
+   = do val <- baseValueForType t
+        let d'  = dateOfDays d
+        let entry = AsAt (BubbleGumFact (Flavour d d'), val) d'
+
+        -- relatively small date increments
+        diff    <- choose (0,2)
+        go (n-1) (acc <> [entry]) (d+diff)
