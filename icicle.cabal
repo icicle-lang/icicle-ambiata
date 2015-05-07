@@ -42,6 +42,9 @@ library
                        BuildInfo_icicle
                        Icicle
 
+                       Icicle.Avalanche.Program
+                       Icicle.Avalanche.FromCore
+
                        Icicle.BubbleGum
 
                        Icicle.Common.Base

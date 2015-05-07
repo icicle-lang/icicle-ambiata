@@ -6,6 +6,8 @@ module Icicle.Core.Stream.Stream (
     , inputOfStreamTransform
     , outputOfStreamTransform
     , renameStream
+    , isStreamWindowed
+    , inputOfStream
     ) where
 
 import              Icicle.Internal.Pretty
@@ -15,6 +17,7 @@ import              Icicle.Core.Exp
 import              Icicle.Common.Exp.Exp (renameExp)
 
 import              P
+import qualified    Data.List   as List
 
 
 
@@ -54,6 +57,24 @@ renameStream :: (Name n -> Name n') -> Stream n -> Stream n'
 renameStream _ Source                 = Source
 renameStream _ (SourceWindowedDays i) = SourceWindowedDays i
 renameStream f (STrans t x n)         = STrans t (renameExp f x) (f n)
+
+
+-- | Check if given stream originates from a windowed or not
+isStreamWindowed :: Eq n => [(Name n, Stream n)] -> Name n -> Bool
+isStreamWindowed ss nm
+ = case List.lookup nm ss of
+    Just Source                 -> False
+    Just (SourceWindowedDays _) -> True
+    Just (STrans _ _ inp)       -> isStreamWindowed ss inp
+
+    Nothing -> False -- error...
+
+
+-- | Get name of input stream, if applicable
+inputOfStream :: Stream n -> Maybe (Name n)
+inputOfStream  Source                = Nothing
+inputOfStream (SourceWindowedDays _) = Nothing
+inputOfStream (STrans _ _ inp)       = Just inp
 
 
 -- Pretty printing ---------------
