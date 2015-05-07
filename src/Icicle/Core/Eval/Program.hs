@@ -48,6 +48,7 @@ data ProgramValue n =
     value   :: V.BaseValue
  ,  history :: [BubbleGumOutput n V.BaseValue]
  }
+ deriving (Show, Eq)
 
 -- | Evaluate a program.
 -- We take no environments, but do take the concrete feature values.

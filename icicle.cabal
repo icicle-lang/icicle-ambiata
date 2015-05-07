@@ -70,6 +70,7 @@ library
                        Icicle.Core.Reduce
                        Icicle.Core.Program.Program
                        Icicle.Core.Program.Check
+                       Icicle.Core.Program.Condense
                        Icicle.Core.Program.Error
                        Icicle.Core.Program.Fusion
 
