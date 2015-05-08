@@ -42,6 +42,7 @@ data RuntimeError n p
  | RuntimeErrorPre           (XV.RuntimeError n p)
  | RuntimeErrorAccumulator   (XV.RuntimeError n p)
  | RuntimeErrorLoop          (XV.RuntimeError n p)
+ | RuntimeErrorLoopAccumulatorBad (Name n)
  | RuntimeErrorPost          (XV.RuntimeError n p)
  | RuntimeErrorReturn        (XV.RuntimeError n p)
  | RuntimeErrorNotBaseValue  (Value n p)
@@ -134,13 +135,15 @@ evalProgram evalPrim now values p
         -- Initialise all the accumulators into their own heap
         accs  <- Map.fromList <$> mapM (initAcc evalPrim pres) (accums   p)
 
-        -- Push the accumulators back into scalar heap
-        let pres' = updateHeapFromAccs pres accs
-
         -- Keep evaluating the same loop for every value
         -- with accumulator and scalar heaps threaded through
-        (accs', env')
-              <- foldM (evalLoop evalPrim now (loop p)) (accs, pres') values
+        accs' <- foldM (evalLoop evalPrim now (loop p) pres) accs values
+
+        -- Push the accumulators back into scalar heap
+        let env'  = updateHeapFromAccs pres accs'
+
+        -- Grab the history out of the accumulator heap while we're at it
+        let bgs = bubbleGumOutputOfAccumulatorHeap accs'
 
         -- Use final scalar heap to evaluate postcomputations
         posts <- mapLeft RuntimeErrorPost
@@ -150,9 +153,6 @@ evalProgram evalPrim now values p
         ret   <- mapLeft RuntimeErrorReturn
                 (XV.eval evalPrim posts (returns p))
              >>= baseValue
-
-        -- Finally, grab the history out of the accumulator heap
-        let bgs = bubbleGumOutputOfAccumulatorHeap accs'
 
         return (bgs, ret)
 
@@ -200,13 +200,14 @@ evalLoop
         => XV.EvalPrim n p
         -> DateTime
         -> Loop n p
-        -> (AccumulatorHeap n, Heap n p)
+        -> Heap n p
+        -> AccumulatorHeap n
         -> AsAt (BubbleGumFact, BaseValue)
-        -> Either (RuntimeError n p) (AccumulatorHeap n, Heap n p)
+        -> Either (RuntimeError n p) (AccumulatorHeap n)
 
-evalLoop evalPrim now (Loop _ stmts) (ah, xh) input
+evalLoop evalPrim now (Loop _ stmts) xh ah input
  -- Just go through all the statements
- = foldM (evalStmt evalPrim now input) (ah, xh) stmts
+ = foldM (evalStmt evalPrim now xh input) ah stmts
 
 
 -- | Evaluate a single statement for a single value
@@ -214,12 +215,13 @@ evalStmt
         :: Ord n
         => XV.EvalPrim n p
         -> DateTime
+        -> Heap n p
         -> AsAt (BubbleGumFact, BaseValue)
-        -> (AccumulatorHeap n, Heap n p)
+        -> AccumulatorHeap n
         -> Statement n p
-        -> Either (RuntimeError n p) (AccumulatorHeap n, Heap n p)
+        -> Either (RuntimeError n p) (AccumulatorHeap n)
 
-evalStmt evalPrim now input (ah, xh) stmt
+evalStmt evalPrim now xh input ah stmt
  = case stmt of
     If x stmts
      -> do  v   <- eval x >>= baseValue
@@ -230,44 +232,47 @@ evalStmt evalPrim now input (ah, xh) stmt
              -- This is not ideal, but if it is not a boolean,
              -- our type checker will catch it.
              _
-              -> return (ah, xh)
+              -> return ah
 
     IfWindowed window stmts
         -- Check the input fact's time against now
      -> if   withinWindow (time input) now window
         then go' stmts
-        else return (ah, xh)
+        else return ah
 
     -- Evaluate and insert the value into the heap.
-    -- Note that this doesn't actually clear the value after the scope:
-    -- the typechecker will assure us that it won't be read again after
-    -- it disappears from scope.
     Let n x stmts
      -> do  v <- eval x
-            go (ah, Map.insert n v xh) stmts
+            go (Map.insert n v xh) ah stmts
 
     -- Store the input in the heap.
     UseSource n stmts
-     -> go (ah, Map.insert n (VBase $ snd $ fact input) xh) stmts
+     -> go (Map.insert n (VBase $ snd $ fact input) xh) ah stmts
 
     -- Update accumulator
     Update n x
-     -> do  v   <- eval x >>= baseValue
-            ah' <- updateOrPush ah n (fst $ fact input) v
-            return (ah', updateHeapFromAccs xh ah')
+     -> do  vf  <- eval x
+            -- Get the current value and apply the function
+            v   <- case Map.lookup n ah of
+                    Just (_, AVFold _ vacc)
+                     ->  mapLeft RuntimeErrorLoop
+                        (XV.applyValues evalPrim vf (VBase vacc))
+                     >>= baseValue
+                    _
+                     -> Left (RuntimeErrorLoopAccumulatorBad n)
+
+            updateOrPush ah n (fst $ fact input) v
 
     -- Push a value to a latest accumulator.
-    -- This is actually the same as an update, but the typechecker
-    -- will disallow pushing to a fold and so on.
     Push n x
      -> do  v   <- eval x >>= baseValue
             ah' <- updateOrPush ah n (fst $ fact input) v
-            return (ah', updateHeapFromAccs xh ah')
+            return ah'
 
  where
   -- Go through all the substatements
-  go = foldM (evalStmt evalPrim now input)
-  go' = go (ah, xh)
+  go xh' = foldM (evalStmt evalPrim now xh' input)
+  go' = go xh ah
 
   -- Raise Exp error to Avalanche
   eval = mapLeft RuntimeErrorLoop

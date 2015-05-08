@@ -76,8 +76,10 @@ data Statement n p
 
  -- Leaf nodes
  -- | Update a resumable or windowed fold accumulator,
+ -- with Exp : acc -> acc
  | Update (Name n) (Exp n p)
  -- | Push to a latest accumulator
+ -- with Exp : elem
  | Push   (Name n) (Exp n p)
  deriving (Eq, Ord, Show)
 

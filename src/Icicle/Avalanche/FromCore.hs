@@ -116,8 +116,9 @@ statementOfReduce
 statementOfReduce elemName (n,r)
  = case r of
     -- Apply fold's konstrukt to current accumulator value and input value
-    CR.RFold _ _ k _ inp
-     -> Update n (k `XApp` (XVar n) `XApp` (XVar $ elemName inp))
+    CR.RFold _ ta k _ inp
+     -- Darn - arguments wrong way around!
+     -> Update n (XLam n ta (k `XApp` (XVar n) `XApp` (XVar $ elemName inp)))
     -- Push most recent inp
     CR.RLatest _ _ inp
      -> Push n (XVar $ elemName inp)
