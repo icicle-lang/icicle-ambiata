@@ -62,7 +62,7 @@ makeStatements
         -> [Statement n Prim]
 makeStatements elemName strs reds
  = let sources = filter ((==Nothing) . CS.inputOfStream . snd) strs
-   in  concatMap (insertStream elemName strs reds) sources
+   in  fmap (insertStream elemName strs reds) sources
 
 
 -- | Create statements for given stream, its child streams, and its reduces
@@ -72,7 +72,7 @@ insertStream
         -> [(Name n, CS.Stream n)]
         -> [(Name n, CR.Reduce n)]
         ->  (Name n, CS.Stream n)
-        -> [Statement n Prim]
+        -> Statement n Prim
 insertStream elemName strs reds (n, strm)
        -- Get the reduces and their updates
  = let reds' = filter ((==n) . CR.inputOfReduce . snd) reds
@@ -80,15 +80,15 @@ insertStream elemName strs reds (n, strm)
 
        -- Get all streams that use this directly as input
        strs' = filter ((==Just n) . CS.inputOfStream . snd) strs
-       subs  = concatMap (insertStream elemName strs reds) strs'
+       subs  = fmap   (insertStream elemName strs reds)     strs'
 
        -- All statements together
        alls     = upds <> subs
        
        -- The sources need a name to refer to the input by
-       allSrc   = UseSource (elemName n) : alls
+       allSrc   = UseSource (elemName n) alls
        -- Bind something or other
-       allLet x = Let (elemName n) x : alls
+       allLet x = Let (elemName n) x     alls
 
    in case strm of
        -- Sources just bind the input and do their children
@@ -97,11 +97,11 @@ insertStream elemName strs reds (n, strm)
 
        -- If within i days
        CS.SourceWindowedDays i
-        -> [IfWindowed i allSrc]
+        -> IfWindowed i [allSrc]
 
        -- Filters become ifs
        CS.STrans (CS.SFilter _) x inp
-        -> [If (x `XApp` XVar (elemName inp)) $ allLet $ XVar $ elemName inp]
+        -> If (x `XApp` XVar (elemName inp)) [allLet $ XVar $ elemName inp]
 
        -- Maps apply given function and then do their children
        CS.STrans (CS.SMap _ _) x inp

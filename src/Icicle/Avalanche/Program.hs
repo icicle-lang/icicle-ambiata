@@ -64,18 +64,21 @@ data Loop n p =
 
 -- | Part of a loop
 data Statement n p
+ -- Branches
  -- | An IF for filters
- = If (Exp n p) [Statement n p]
+ = If (Exp n p)                 [Statement n p]
  -- | An if for windows
- | IfWindowed Int [Statement n p]
+ | IfWindowed Int               [Statement n p]
+ -- | Local binding, so the name better be unique
+ | Let    (Name n) (Exp n p)    [Statement n p]
+ -- | Bind source value to name
+ | UseSource (Name n)           [Statement n p]
+
+ -- Leaf nodes
  -- | Update a resumable or windowed fold accumulator,
  | Update (Name n) (Exp n p)
  -- | Push to a latest accumulator
  | Push   (Name n) (Exp n p)
- -- | Local binding, so the name better be unique
- | Let    (Name n) (Exp n p)
- -- | Bind source value to name
- | UseSource (Name n)
  deriving (Eq, Ord, Show)
 
 

@@ -226,7 +226,7 @@ evalStmt evalPrim now input (ah, xh) stmt
             case v of
              -- Predicate must be true
              VBool True
-              -> go stmts
+              -> go' stmts
              -- This is not ideal, but if it is not a boolean,
              -- our type checker will catch it.
              _
@@ -235,8 +235,20 @@ evalStmt evalPrim now input (ah, xh) stmt
     IfWindowed window stmts
         -- Check the input fact's time against now
      -> if   withinWindow (time input) now window
-        then go stmts
+        then go' stmts
         else return (ah, xh)
+
+    -- Evaluate and insert the value into the heap.
+    -- Note that this doesn't actually clear the value after the scope:
+    -- the typechecker will assure us that it won't be read again after
+    -- it disappears from scope.
+    Let n x stmts
+     -> do  v <- eval x
+            go (ah, Map.insert n v xh) stmts
+
+    -- Store the input in the heap.
+    UseSource n stmts
+     -> go (ah, Map.insert n (VBase $ snd $ fact input) xh) stmts
 
     -- Update accumulator
     Update n x
@@ -252,22 +264,10 @@ evalStmt evalPrim now input (ah, xh) stmt
             ah' <- updateOrPush ah n (fst $ fact input) v
             return (ah', updateHeapFromAccs xh ah')
 
-    -- Evaluate and insert the value into the heap.
-    -- Note that this doesn't actually clear the value after the scope:
-    -- nor indeed does it really define any scope.
-    -- The typechecker will assure us that it won't be read again after
-    -- it disappears from scope.
-    Let n x
-     -> do  v <- eval x
-            return (ah, Map.insert n v xh)
-
-    -- Store the input in the heap.
-    UseSource n
-     -> return (ah, Map.insert n (VBase $ snd $ fact input) xh)
-
  where
   -- Go through all the substatements
-  go = foldM (evalStmt evalPrim now input) (ah, xh)
+  go = foldM (evalStmt evalPrim now input)
+  go' = go (ah, xh)
 
   -- Raise Exp error to Avalanche
   eval = mapLeft RuntimeErrorLoop
