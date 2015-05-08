@@ -118,7 +118,10 @@ statementOfReduce elemName (n,r)
     -- Apply fold's konstrukt to current accumulator value and input value
     CR.RFold _ ta k _ inp
      -- Darn - arguments wrong way around!
-     -> Update n (XLam n ta (k `XApp` (XVar n) `XApp` (XVar $ elemName inp)))
+     -- TODO: need to generate fresh name here
+     -- or disable uniqueness checking
+     -> let n' = elemName $ elemName n
+        in  Update n (XLam n' ta (k `XApp` (XVar n') `XApp` (XVar $ elemName inp)))
     -- Push most recent inp
     CR.RLatest _ _ inp
      -> Push n (XVar $ elemName inp)

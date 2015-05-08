@@ -45,6 +45,7 @@ library
                        Icicle.Avalanche.Program
                        Icicle.Avalanche.FromCore
                        Icicle.Avalanche.Eval
+                       Icicle.Avalanche.Check
 
                        Icicle.BubbleGum
 

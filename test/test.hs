@@ -8,6 +8,7 @@ import qualified Icicle.Test.Core.Program.Fusion
 import qualified Icicle.Test.Core.Program.Condense
 
 import qualified Icicle.Test.Avalanche.EvalCommutes
+import qualified Icicle.Test.Avalanche.CheckCommutes
 
 import           Orphanarium.Core.Main
 
@@ -25,4 +26,5 @@ main =
     , Icicle.Test.Core.Program.Condense.tests
 
     , Icicle.Test.Avalanche.EvalCommutes.tests
+    , Icicle.Test.Avalanche.CheckCommutes.tests
     ]
