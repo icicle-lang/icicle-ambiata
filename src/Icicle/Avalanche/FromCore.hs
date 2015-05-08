@@ -18,15 +18,22 @@ import              P
 -- | Convert an entire program to Avalanche
 programFromCore :: Ord n
                 => (Name n -> Name n)
+                -- ^ We introduce scalar bindings for elements of streams.
+                -- Because the stream names might conflict with existing scalar names,
+                -- we prefix the names of streams with something
                 -> C.Program n
                 -> A.Program n Prim
 programFromCore elemName p
  = A.Program
  { A.precomps   = C.precomps    p
+ -- Create accumulators for each reduce
  , A.accums     = fmap accum (C.reduces p)
+
+ -- Nest the streams into a single loop
  , A.loop       = A.Loop (C.input p)
                 $ makeStatements elemName
                   (C.streams p) (C.reduces p)
+
  , A.postcomps  = C.postcomps   p
  , A.returns    = C.returns     p
  }
@@ -58,7 +65,7 @@ makeStatements elemName strs reds
    in  concatMap (insertStream elemName strs reds) sources
 
 
--- | Insert given stream and all reduces it uses into list of statements
+-- | Create statements for given stream, its child streams, and its reduces
 insertStream
         :: Ord n
         => (Name n -> Name n)
@@ -84,15 +91,19 @@ insertStream elemName strs reds (n, strm)
        allLet x = Let (elemName n) x : alls
 
    in case strm of
+       -- Sources just bind the input and do their children
        CS.Source
         -> allSrc
 
+       -- If within i days
        CS.SourceWindowedDays i
         -> [IfWindowed i allSrc]
 
+       -- Filters become ifs
        CS.STrans (CS.SFilter _) x inp
         -> [If (x `XApp` XVar (elemName inp)) $ allLet $ XVar $ elemName inp]
 
+       -- Maps apply given function and then do their children
        CS.STrans (CS.SMap _ _) x inp
         -> allLet $ XApp x $ XVar $ elemName inp
 

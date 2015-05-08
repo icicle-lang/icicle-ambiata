@@ -1,4 +1,4 @@
--- | Avalanche programs
+-- | Evaluate Avalanche programs
 {-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Avalanche.Eval (
     evalProgram
@@ -22,15 +22,21 @@ import              Data.List   (take, reverse, sort)
 import qualified    Data.Map    as Map
 
 
+-- | Store history information about the accumulators
 type AccumulatorHeap n
  = Map.Map (Name n) ([BubbleGumFact], AccumulatorValue)
 
+-- | The value of an accumulator
 data AccumulatorValue
+ -- | Whether this fold is windowed or not
  = AVFold Bool BaseValue
+ -- | Accumulator storing latest N values
+ -- Stored in reverse so we can just cons or take it
  | AVLatest Int [BaseValue]
  deriving (Eq, Ord, Show)
 
 
+-- | What can go wrong evaluating an Avalanche
 data RuntimeError n p
  = RuntimeErrorNoAccumulator (Name n)
  | RuntimeErrorPre           (XV.RuntimeError n p)
@@ -43,10 +49,13 @@ data RuntimeError n p
  deriving (Eq, Show)
 
 
+-- | Extract base value; return an error if it's a closure
 baseValue :: Value n p -> Either (RuntimeError n p) BaseValue
 baseValue v
  = getBaseValue (RuntimeErrorNotBaseValue v) v
 
+
+-- | Update value or push value to an accumulator, taking care of history
 updateOrPush
         :: Ord n
         => AccumulatorHeap n
@@ -69,6 +78,7 @@ updateOrPush heap n bg v
            , AVLatest num (take num (v : vs)) ) heap
 
 
+-- | For each accumulator value, write its scalar value back into the environment.
 updateHeapFromAccs
         :: Ord n
         => Heap n p
@@ -86,6 +96,7 @@ updateHeapFromAccs env accs
        -> Map.insert n (VBase $ VArray $ reverse vs) e
 
 
+-- | For each accumulator value, get the history information
 bubbleGumOutputOfAccumulatorHeap
         :: Ord n
         => AccumulatorHeap n
@@ -105,6 +116,8 @@ bubbleGumOutputOfAccumulatorHeap acc
   flav (BubbleGumFact f) = f
 
 
+-- | Evaluate an entire program
+-- with given primitive evaluator and values
 evalProgram
         :: Ord n
         => XV.EvalPrim n p
@@ -114,28 +127,37 @@ evalProgram
         -> Either (RuntimeError n p) ([BubbleGumOutput n BaseValue], BaseValue)
 
 evalProgram evalPrim now values p
- = do   pres  <- mapLeft RuntimeErrorPre
+ = do   -- Precomputations are just expressions
+        pres  <- mapLeft RuntimeErrorPre
                $ XV.evalExps evalPrim Map.empty  (precomps p)
         
+        -- Initialise all the accumulators into their own heap
         accs  <- Map.fromList <$> mapM (initAcc evalPrim pres) (accums   p)
 
+        -- Push the accumulators back into scalar heap
         let pres' = updateHeapFromAccs pres accs
 
+        -- Keep evaluating the same loop for every value
+        -- with accumulator and scalar heaps threaded through
         (accs', env')
               <- foldM (evalLoop evalPrim now (loop p)) (accs, pres') values
 
+        -- Use final scalar heap to evaluate postcomputations
         posts <- mapLeft RuntimeErrorPost
                 $ XV.evalExps evalPrim env' (postcomps p)
 
+        -- Then use postcomputations to evaluate the return value
         ret   <- mapLeft RuntimeErrorReturn
                 (XV.eval evalPrim posts (returns p))
              >>= baseValue
 
+        -- Finally, grab the history out of the accumulator heap
         let bgs = bubbleGumOutputOfAccumulatorHeap accs'
 
         return (bgs, ret)
 
 
+-- | Initialise an accumulator
 initAcc :: Ord n
         => XV.EvalPrim n p
         -> Heap n p
@@ -144,6 +166,7 @@ initAcc :: Ord n
 
 initAcc evalPrim env (Accumulator n t)
  = do av <- getValue
+      -- There is no history yet, just a value
       return (n, ([], av))
  where
   ev x
@@ -153,11 +176,15 @@ initAcc evalPrim env (Accumulator n t)
 
   getValue
    = case t of
+     -- Start with initial value.
+     -- TODO: take list of previously saved resumes, and lookup here
      Resumable _ x
       -> AVFold False <$> ev x
      Windowed  _ x
       -> AVFold True <$> ev x
      Latest    _ x
+            -- Figure out how many latest to store,
+            -- but nothing is stored yet
       -> do v    <- ev x
             case v of
              VInt i
@@ -166,6 +193,8 @@ initAcc evalPrim env (Accumulator n t)
               -> Left (RuntimeErrorAccumulatorLatestNotInt v)
 
 
+-- | Evaluate an entire loop for a single value
+-- Takes accumulator and scalar heaps and value, returns new heaps.
 evalLoop
         :: Ord n
         => XV.EvalPrim n p
@@ -174,10 +203,13 @@ evalLoop
         -> (AccumulatorHeap n, Heap n p)
         -> AsAt (BubbleGumFact, BaseValue)
         -> Either (RuntimeError n p) (AccumulatorHeap n, Heap n p)
+
 evalLoop evalPrim now (Loop _ stmts) (ah, xh) input
+ -- Just go through all the statements
  = foldM (evalStmt evalPrim now input) (ah, xh) stmts
 
 
+-- | Evaluate a single statement for a single value
 evalStmt
         :: Ord n
         => XV.EvalPrim n p
@@ -186,41 +218,58 @@ evalStmt
         -> (AccumulatorHeap n, Heap n p)
         -> Statement n p
         -> Either (RuntimeError n p) (AccumulatorHeap n, Heap n p)
+
 evalStmt evalPrim now input (ah, xh) stmt
  = case stmt of
     If x stmts
      -> do  v   <- eval x >>= baseValue
             case v of
+             -- Predicate must be true
              VBool True
               -> go stmts
+             -- This is not ideal, but if it is not a boolean,
+             -- our type checker will catch it.
              _
               -> return (ah, xh)
 
     IfWindowed window stmts
+        -- Check the input fact's time against now
      -> if   withinWindow (time input) now window
         then go stmts
         else return (ah, xh)
 
+    -- Update accumulator
     Update n x
      -> do  v   <- eval x >>= baseValue
             ah' <- updateOrPush ah n (fst $ fact input) v
             return (ah', updateHeapFromAccs xh ah')
 
+    -- Push a value to a latest accumulator.
+    -- This is actually the same as an update, but the typechecker
+    -- will disallow pushing to a fold and so on.
     Push n x
      -> do  v   <- eval x >>= baseValue
             ah' <- updateOrPush ah n (fst $ fact input) v
             return (ah', updateHeapFromAccs xh ah')
 
+    -- Evaluate and insert the value into the heap.
+    -- Note that this doesn't actually clear the value after the scope:
+    -- nor indeed does it really define any scope.
+    -- The typechecker will assure us that it won't be read again after
+    -- it disappears from scope.
     Let n x
      -> do  v <- eval x
             return (ah, Map.insert n v xh)
 
+    -- Store the input in the heap.
     UseSource n
      -> return (ah, Map.insert n (VBase $ snd $ fact input) xh)
 
  where
+  -- Go through all the substatements
   go = foldM (evalStmt evalPrim now input) (ah, xh)
 
+  -- Raise Exp error to Avalanche
   eval = mapLeft RuntimeErrorLoop
        . XV.eval evalPrim xh
 
