@@ -4,6 +4,7 @@ module Icicle.Common.Value (
       Heap
     , Value     (..)
     , BaseValue (..)
+    , getBaseValue
     ) where
 
 import              Icicle.Common.Base
@@ -40,6 +41,10 @@ data BaseValue
  | VMap   (Map.Map BaseValue BaseValue)
  deriving (Show, Ord, Eq)
 
+
+getBaseValue :: e -> Value n p -> Either e BaseValue
+getBaseValue e VFun{}    = Left e
+getBaseValue _ (VBase v) = Right v
 
 -- TODO: typeOfValue
 -- TODO: pretty instance

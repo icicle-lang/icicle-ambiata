@@ -6,6 +6,7 @@ module Icicle.Common.Exp.Eval (
     , EvalPrim
     , eval0
     , eval
+    , evalExps
     , applyValues
     ) where
 
@@ -24,9 +25,6 @@ data RuntimeError n p
  = RuntimeErrorBadApplication (Value n p) (Value n p)
  | RuntimeErrorVarNotInHeap (Name n)
  | RuntimeErrorPrimBadArgs p [Value n p]
- -- | Variables must be unique.
- -- This lets us be lazy with capture-avoiding substitution.
- | RuntimeErrorVarNotUnique (Name n) (Value n p) (Value n p)
  deriving (Show, Eq)
 
 type EvalPrim n p = p -> [Value n p] -> Either (RuntimeError n p) (Value n p)
@@ -76,7 +74,7 @@ eval evalPrim h xx
     -- Evaluate definition, put it into heap, then evaluate "in" part
     XLet n d i
      -> do  d' <- go h d
-            h' <- insertUnique n d' h
+            let h' = Map.insert n d' h
             go h' i
  where
   go = eval evalPrim
@@ -108,25 +106,24 @@ applyValues evalPrim f arg
  = case f of
     VFun hh nm x
            -- Evaluate expression with argument added to heap
-     -> do hh' <- insertUnique nm arg hh
-           eval evalPrim hh' x
+     -> eval evalPrim (Map.insert nm arg hh) x
     _
      -> Left (RuntimeErrorBadApplication f arg)
 
 
-
--- By requiring unique variable names and not having general lambdas,
--- we don't need capture avoiding substitution.
-insertUnique
+-- | Evaluate all expression bindings, collecting up expression heap as we go
+evalExps
         :: Ord n
-        => Name n
-        -> Value n p
-        -> Heap n p
+        => EvalPrim n p
+        -> Heap     n p
+        -> [(Name n, Exp n p)]
         -> Either (RuntimeError n p) (Heap n p)
 
-insertUnique n v hh
- | Just v' <- Map.lookup n hh
- = Left (RuntimeErrorVarNotUnique n v v')
- | otherwise
- = return (Map.insert n v hh)
+evalExps _ env []
+ = return env
+
+evalExps evalPrim env ((n,x):bs)
+ = do   v    <- eval evalPrim env x
+        evalExps evalPrim (Map.insert n v env) bs
+
 

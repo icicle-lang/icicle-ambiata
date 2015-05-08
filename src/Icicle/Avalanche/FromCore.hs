@@ -16,13 +16,17 @@ import qualified    Icicle.Core.Stream          as CS
 import              P
 
 -- | Convert an entire program to Avalanche
-programFromCore :: Ord n => C.Program n -> A.Program n Prim
-programFromCore p
+programFromCore :: Ord n
+                => (Name n -> Name n)
+                -> C.Program n
+                -> A.Program n Prim
+programFromCore elemName p
  = A.Program
  { A.precomps   = C.precomps    p
  , A.accums     = fmap accum (C.reduces p)
  , A.loop       = A.Loop (C.input p)
-                $ makeStatements (C.streams p) (C.reduces p)
+                $ makeStatements elemName
+                  (C.streams p) (C.reduces p)
  , A.postcomps  = C.postcomps   p
  , A.returns    = C.returns     p
  }
@@ -45,37 +49,39 @@ programFromCore p
 -- repeatedly insert each stream into the statements wherever it fits
 makeStatements
         :: Ord n
-        => [(Name n, CS.Stream n)]
+        => (Name n -> Name n)
+        -> [(Name n, CS.Stream n)]
         -> [(Name n, CR.Reduce n)]
         -> [Statement n Prim]
-makeStatements strs reds
+makeStatements elemName strs reds
  = let sources = filter ((==Nothing) . CS.inputOfStream . snd) strs
-   in  concatMap (insertStream strs reds) sources
+   in  concatMap (insertStream elemName strs reds) sources
 
 
 -- | Insert given stream and all reduces it uses into list of statements
 insertStream
         :: Ord n
-        => [(Name n, CS.Stream n)]
+        => (Name n -> Name n)
+        -> [(Name n, CS.Stream n)]
         -> [(Name n, CR.Reduce n)]
         ->  (Name n, CS.Stream n)
         -> [Statement n Prim]
-insertStream strs reds (n, strm)
+insertStream elemName strs reds (n, strm)
        -- Get the reduces and their updates
  = let reds' = filter ((==n) . CR.inputOfReduce . snd) reds
-       upds  = fmap statementOfReduce reds'
+       upds  = fmap (statementOfReduce elemName) reds'
 
        -- Get all streams that use this directly as input
        strs' = filter ((==Just n) . CS.inputOfStream . snd) strs
-       subs  = concatMap (insertStream strs reds) strs'
+       subs  = concatMap (insertStream elemName strs reds) strs'
 
        -- All statements together
        alls     = upds <> subs
        
        -- The sources need a name to refer to the input by
-       allSrc   = UseSource n : alls
+       allSrc   = UseSource (elemName n) : alls
        -- Bind something or other
-       allLet x = Let n x : alls
+       allLet x = Let (elemName n) x : alls
 
    in case strm of
        CS.Source
@@ -85,21 +91,23 @@ insertStream strs reds (n, strm)
         -> [IfWindowed i allSrc]
 
        CS.STrans (CS.SFilter _) x inp
-        -> [If x $ allLet $ XVar inp]
+        -> [If (x `XApp` XVar (elemName inp)) $ allLet $ XVar $ elemName inp]
 
        CS.STrans (CS.SMap _ _) x inp
-        -> allLet $ XApp x $ XVar inp
+        -> allLet $ XApp x $ XVar $ elemName inp
 
 
 -- | Get update statement for given reduce
 statementOfReduce
-        :: (Name n, CR.Reduce n) -> Statement n Prim
-statementOfReduce (n,r)
+        :: (Name n -> Name n)
+        -> (Name n, CR.Reduce n)
+        -> Statement n Prim
+statementOfReduce elemName (n,r)
  = case r of
     -- Apply fold's konstrukt to current accumulator value and input value
     CR.RFold _ _ k _ inp
-     -> Update n (k `XApp` (XVar n) `XApp` (XVar inp))
+     -> Update n (k `XApp` (XVar n) `XApp` (XVar $ elemName inp))
     -- Push most recent inp
     CR.RLatest _ _ inp
-     -> Push n (XVar inp)
+     -> Push n (XVar $ elemName inp)
 

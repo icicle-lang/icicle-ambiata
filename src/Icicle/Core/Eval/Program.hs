@@ -58,40 +58,24 @@ eval    :: Ord n
         -> P.Program n
         -> Either (RuntimeError n) (ProgramValue n)
 eval d sv p
- = do   pres    <- evalExps RuntimeErrorPre Map.empty   (P.precomps     p)
+ = do   pres    <- mapLeft RuntimeErrorPre
+                 $ XV.evalExps XV.evalPrim  Map.empty   (P.precomps     p)
         stms    <- evalStms pres d sv       Map.empty   (P.streams      p)
 
         -- Get the history and results of reductions.
         -- The history is returned as-is but values are used in further computations
         (bgs,reds)
                 <- evalReds pres            stms        (P.reduces      p)
-        post    <- evalExps RuntimeErrorPost reds       (P.postcomps    p)
+
+        post    <- mapLeft RuntimeErrorPost
+                 $ XV.evalExps XV.evalPrim  reds        (P.postcomps    p)
 
         ret     <- mapLeft RuntimeErrorReturn
                  $ XV.eval XV.evalPrim post
                  $ P.returns p
-        ret'    <- case ret of
-                    V.VFun{}     -> Left (RuntimeErrorReturnNotBaseType ret)
-                    V.VBase ret' -> return ret'
+        ret'    <- V.getBaseValue (RuntimeErrorReturnNotBaseType ret) ret
+
         return $ ProgramValue ret' bgs
-
-
--- | Evaluate all expression bindings, collecting up expression heap as we go
-evalExps
-        :: Ord n
-        => (XV.RuntimeError n Prim -> RuntimeError n)
-        -> V.Heap n Prim
-        -> [(Name n, Exp n)]
-        -> Either (RuntimeError n) (V.Heap n Prim)
-
-evalExps _ env []
- = return env
-
-evalExps err env ((n,x):bs)
- = do   v   <- mapLeft err
-             $ XV.eval XV.evalPrim env x
-        env' <- insertUnique env n v
-        evalExps err env' bs
 
 
 -- | Evaluate all stream bindings, collecting up stream heap as we go
