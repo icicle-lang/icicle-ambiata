@@ -17,13 +17,16 @@ import              P
 
 -- | Convert an entire program to Avalanche
 programFromCore :: Ord n
-                => (Name n -> Name n)
+                => n
                 -- ^ We introduce scalar bindings for elements of streams.
                 -- Because the stream names might conflict with existing scalar names,
-                -- we prefix the names of streams with something
+                -- we prefix the names of streams with something.
+                -- Suggest "element" or something.
+                -> n
+                -- ^ As above, this is the "accumulator" prefix.
                 -> C.Program n
                 -> A.Program n Prim
-programFromCore elemName p
+programFromCore elemPrefix accPrefix p
  = A.Program
  { A.precomps   = C.precomps    p
  -- Create accumulators for each reduce
@@ -31,7 +34,7 @@ programFromCore elemName p
 
  -- Nest the streams into a single loop
  , A.loop       = A.Loop (C.input p)
-                $ makeStatements elemName
+                $ makeStatements elemPrefix accPrefix
                   (C.streams p) (C.reduces p)
 
  , A.postcomps  = C.postcomps   p
@@ -56,39 +59,41 @@ programFromCore elemName p
 -- repeatedly insert each stream into the statements wherever it fits
 makeStatements
         :: Ord n
-        => (Name n -> Name n)
+        => n
+        -> n
         -> [(Name n, CS.Stream n)]
         -> [(Name n, CR.Reduce n)]
         -> [Statement n Prim]
-makeStatements elemName strs reds
+makeStatements elemPrefix accPrefix strs reds
  = let sources = filter ((==Nothing) . CS.inputOfStream . snd) strs
-   in  fmap (insertStream elemName strs reds) sources
+   in  fmap (insertStream elemPrefix accPrefix strs reds) sources
 
 
 -- | Create statements for given stream, its child streams, and its reduces
 insertStream
         :: Ord n
-        => (Name n -> Name n)
+        => n
+        -> n
         -> [(Name n, CS.Stream n)]
         -> [(Name n, CR.Reduce n)]
         ->  (Name n, CS.Stream n)
         -> Statement n Prim
-insertStream elemName strs reds (n, strm)
+insertStream elemPrefix accPrefix strs reds (n, strm)
        -- Get the reduces and their updates
  = let reds' = filter ((==n) . CR.inputOfReduce . snd) reds
-       upds  = fmap (statementOfReduce elemName) reds'
+       upds  = fmap (statementOfReduce elemPrefix accPrefix) reds'
 
        -- Get all streams that use this directly as input
        strs' = filter ((==Just n) . CS.inputOfStream . snd) strs
-       subs  = fmap   (insertStream elemName strs reds)     strs'
+       subs  = fmap   (insertStream elemPrefix accPrefix strs reds)     strs'
 
        -- All statements together
        alls     = upds <> subs
        
        -- The sources need a name to refer to the input by
-       allSrc   = UseSource (elemName n) alls
+       allSrc   = UseSource (NameMod elemPrefix n) alls
        -- Bind something or other
-       allLet x = Let (elemName n) x     alls
+       allLet x = Let (NameMod elemPrefix n) x     alls
 
    in case strm of
        -- Sources just bind the input and do their children
@@ -101,28 +106,29 @@ insertStream elemName strs reds (n, strm)
 
        -- Filters become ifs
        CS.STrans (CS.SFilter _) x inp
-        -> If (x `XApp` XVar (elemName inp)) [allLet $ XVar $ elemName inp]
+        -> If (x `XApp` XVar (NameMod elemPrefix inp)) [allLet $ XVar $ NameMod elemPrefix inp]
 
        -- Maps apply given function and then do their children
        CS.STrans (CS.SMap _ _) x inp
-        -> allLet $ XApp x $ XVar $ elemName inp
+        -> allLet $ XApp x $ XVar $ NameMod elemPrefix inp
 
 
 -- | Get update statement for given reduce
 statementOfReduce
-        :: (Name n -> Name n)
+        :: n
+        -> n
         -> (Name n, CR.Reduce n)
         -> Statement n Prim
-statementOfReduce elemName (n,r)
+statementOfReduce elemPrefix accPrefix (n,r)
  = case r of
     -- Apply fold's konstrukt to current accumulator value and input value
     CR.RFold _ ta k _ inp
      -- Darn - arguments wrong way around!
      -- TODO: need to generate fresh name here
      -- or disable uniqueness checking
-     -> let n' = elemName $ elemName n
-        in  Update n (XLam n' ta (k `XApp` (XVar n') `XApp` (XVar $ elemName inp)))
+     -> let n' = NameMod accPrefix n
+        in  Update n (XLam n' ta (k `XApp` (XVar n') `XApp` (XVar $ NameMod elemPrefix inp)))
     -- Push most recent inp
     CR.RLatest _ _ inp
-     -> Push n (XVar $ elemName inp)
+     -> Push n (XVar $ NameMod elemPrefix inp)
 

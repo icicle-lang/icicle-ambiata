@@ -12,20 +12,18 @@ import qualified Icicle.Core.Eval.Program   as PV
 import qualified Icicle.Avalanche.FromCore  as AC
 import qualified Icicle.Avalanche.Eval      as AE
 
-import           Icicle.Common.Base
-
 import           Icicle.Internal.Pretty
 
 import           P
 
 import           System.IO
 
-
 import           Test.QuickCheck
 import           Data.List (sort)
 
 -- We need a way to differentiate stream variables from scalars
-elemName n = NameMod (Var "element" 0) n
+elemPrefix = Var "element" 0
+accPrefix  = Var "accumulator" 0
 
 -- A well typed core program evaluates to a value in avalanche
 prop_eval_right t =
@@ -34,7 +32,7 @@ prop_eval_right t =
  forAll (inputsForType t)
  $ \(vs,d) ->
     isRight     (checkProgram p) ==>
-     isRight $ AE.evalProgram XV.evalPrim d vs $ AC.programFromCore elemName p
+     isRight $ AE.evalProgram XV.evalPrim d vs $ AC.programFromCore elemPrefix accPrefix p
 
 
 -- going to core doesn't affect value
@@ -44,7 +42,7 @@ prop_eval_commutes_value t =
  forAll (inputsForType t)
  $ \(vs,d) -> counterexample (show $ pretty p) $
     isRight     (checkProgram p) ==>
-     case (AE.evalProgram XV.evalPrim d vs $ AC.programFromCore elemName p, PV.eval d vs p) of
+     case (AE.evalProgram XV.evalPrim d vs $ AC.programFromCore elemPrefix accPrefix p, PV.eval d vs p) of
       (Right (_, aval), Right cres)
        ->   aval === PV.value   cres
       (_, Left _)
@@ -60,7 +58,7 @@ prop_eval_commutes_history t =
  forAll (inputsForType t)
  $ \(vs,d) ->
     isRight     (checkProgram p) ==>
-     case (AE.evalProgram XV.evalPrim d vs $ AC.programFromCore elemName p, PV.eval d vs p) of
+     case (AE.evalProgram XV.evalPrim d vs $ AC.programFromCore elemPrefix accPrefix p, PV.eval d vs p) of
       (Right (abg, _), Right cres)
        ->  (sort abg)  === (sort $ PV.history cres)
       _
