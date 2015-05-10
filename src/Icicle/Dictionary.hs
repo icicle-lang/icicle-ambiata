@@ -9,9 +9,9 @@ module Icicle.Dictionary (
 
 import           Icicle.Data
 
-import qualified Icicle.Core.Base            as N -- N for name
-import qualified Icicle.Core.Type            as T
-import qualified Icicle.Core.Exp             as X
+import qualified Icicle.Common.Base            as N -- N for name
+import qualified Icicle.Common.Type            as T
+import qualified Icicle.Common.Exp.Exp         as X
 import           Icicle.Core.Exp.Combinators
 import qualified Icicle.Core.Exp.Prim        as P
 import qualified Icicle.Core.Stream          as S

@@ -4,10 +4,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Icicle.Core.Exp.Combinators where
 
-import              Icicle.Core.Base
-import              Icicle.Core.Type
+import              Icicle.Common.Base
+import              Icicle.Common.Type
 import              Icicle.Core.Exp.Prim
-import              Icicle.Core.Exp.Exp
+import qualified    Icicle.Core.Exp.Exp     as X
+import              Icicle.Common.Exp.Exp
 
 import              System.IO.Unsafe
 import              System.IO
@@ -16,68 +17,68 @@ import              P
 import              Data.Text   as T
 
 -- | Right-associative application
-($~) :: Exp n -> Exp n -> Exp n
+($~) :: X.Exp n -> X.Exp n -> X.Exp n
 ($~) x y = XApp x y
 infixr 0 $~
 
 -- | Left-associative application
-(@~) :: Exp n -> Exp n -> Exp n
+(@~) :: X.Exp n -> X.Exp n -> X.Exp n
 (@~) x y = XApp x y
 infixl 0 @~
 
 
-var  :: n -> Exp n
+var  :: n -> X.Exp n
 var = XVar . Name
 
 
-constI :: Int -> Exp n
+constI :: Int -> X.Exp n
 constI = XPrim . PrimConst . PrimConstInt
 
-constB :: Bool -> Exp n
+constB :: Bool -> X.Exp n
 constB = XPrim . PrimConst . PrimConstBool
 
 
-prim2 :: Prim -> Exp n -> Exp n -> Exp n
+prim2 :: Prim -> X.Exp n -> X.Exp n -> X.Exp n
 prim2 p x y = XPrim p @~ x @~ y
 
-(+~) :: Exp n -> Exp n -> Exp n
+(+~) :: X.Exp n -> X.Exp n -> X.Exp n
 (+~) = prim2 (PrimArith PrimArithPlus)
 infixl 6 +~
 
-(-~) :: Exp n -> Exp n -> Exp n
+(-~) :: X.Exp n -> X.Exp n -> X.Exp n
 (-~) = prim2 (PrimArith PrimArithMinus)
 infixl 6 -~
 
-(/~) :: Exp n -> Exp n -> Exp n
+(/~) :: X.Exp n -> X.Exp n -> X.Exp n
 (/~) = prim2 (PrimArith PrimArithDiv)
 infixl 7 /~
 
-(>~) :: Exp n -> Exp n -> Exp n
+(>~) :: X.Exp n -> X.Exp n -> X.Exp n
 (>~) = prim2 (PrimRelation PrimRelationGt)
 infix 4 >~
 
-(>=~) :: Exp n -> Exp n -> Exp n
+(>=~) :: X.Exp n -> X.Exp n -> X.Exp n
 (>=~) = prim2 (PrimRelation PrimRelationGe)
 infix 4 >=~
 
-(<~) :: Exp n -> Exp n -> Exp n
+(<~) :: X.Exp n -> X.Exp n -> X.Exp n
 (<~) = prim2 (PrimRelation PrimRelationLt)
 infix 4 <~
 
-(<=~) :: Exp n -> Exp n -> Exp n
+(<=~) :: X.Exp n -> X.Exp n -> X.Exp n
 (<=~) = prim2 (PrimRelation PrimRelationLe)
 infix 4 <=~
 
-(==~) :: Exp n -> Exp n -> Exp n
+(==~) :: X.Exp n -> X.Exp n -> X.Exp n
 (==~) = prim2 (PrimRelation PrimRelationEq)
 infix 4 ==~
 
-(/=~) :: Exp n -> Exp n -> Exp n
+(/=~) :: X.Exp n -> X.Exp n -> X.Exp n
 (/=~) = prim2 (PrimRelation PrimRelationNe)
 infix 4 /=~
 
 
-lam :: ValType -> (Exp Text -> Exp Text) -> Exp Text
+lam :: ValType -> (X.Exp Text -> X.Exp Text) -> X.Exp Text
 lam t f
  = unsafePerformIO
  $ do   n <- lam_get_counter

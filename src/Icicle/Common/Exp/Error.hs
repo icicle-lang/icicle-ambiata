@@ -1,34 +1,33 @@
 -- | Errors that can occur when typechecking an expression
 {-# LANGUAGE NoImplicitPrelude #-}
-module Icicle.Core.Exp.Error (
+module Icicle.Common.Exp.Error (
       ExpError (..)
     ) where
 
 import              Icicle.Internal.Pretty
-import              Icicle.Core.Base
-import              Icicle.Core.Type
-import              Icicle.Core.Exp.Exp
-import              Icicle.Core.Exp.Prim
+import              Icicle.Common.Base
+import              Icicle.Common.Type
+import              Icicle.Common.Exp.Exp
 
 import              P
 
-data ExpError n
+data ExpError n p
  -- No such variable
  = ExpErrorVarNotInEnv (Name n)
 
  -- Application of x1 to x2, types don't match
- | ExpErrorApp (Exp n) (Exp n) Type Type
+ | ExpErrorApp (Exp n p) (Exp n p) Type Type
 
  -- For simplicity, require all names to be unique.
  -- This removes shadowing complications
  | ExpErrorNameNotUnique (Name n)
 
  -- Primitives cannot be partially applied
- | ExpErrorPrimitiveNotFullyApplied Prim (Exp n)
+ | ExpErrorPrimitiveNotFullyApplied p (Exp n p)
  deriving (Show, Eq, Ord)
 
 
-instance (Pretty n) => Pretty (ExpError n) where
+instance (Pretty n, Pretty p) => Pretty (ExpError n p) where
  pretty e
   = case e of
     ExpErrorVarNotInEnv n

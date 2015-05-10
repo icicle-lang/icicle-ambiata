@@ -5,10 +5,12 @@ module Icicle.Data.DateTime (
     DateTime (..)
   , renderDate
   , dateOfYMD
+  , dateOfDays
   , withinWindow
   ) where
 
-import qualified Data.Dates as D
+import qualified Data.Dates         as D
+import qualified Data.Time.Calendar as C
 
 import           Data.Text  as T
 
@@ -36,6 +38,13 @@ dateOfYMD :: Int -> Int -> Int -> DateTime
 dateOfYMD y m d
  = DateTime
  $ D.DateTime y m d 0 0 0
+
+dateOfDays :: Int -> DateTime
+dateOfDays d
+ = DateTime
+ $ D.dayToDateTime
+ $ C.ModifiedJulianDay
+ $ toInteger d
 
 -- | Check whether two given dates are within a days window
 -- TODO: datesDifference calculates the absolute difference but we don't want abs.

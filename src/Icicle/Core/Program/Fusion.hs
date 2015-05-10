@@ -4,14 +4,14 @@ module Icicle.Core.Program.Fusion (
     fusePrograms
   ) where
 
-import Icicle.Core.Base
-import Icicle.Core.Type
+import Icicle.Common.Base
+import Icicle.Common.Type
 import Icicle.Core.Program.Program
 import Icicle.Core.Program.Check
 import Icicle.Core.Program.Error
-import Icicle.Core.Exp.Exp
 import Icicle.Core.Exp.Combinators
 import Icicle.Core.Exp.Prim
+import qualified Icicle.Common.Exp.Exp as X
 
 -- import              Data.Either.Combinators
 import              P
@@ -35,7 +35,7 @@ fusePrograms ln lp rn rp
         , streams   = streams   lp' <> streams   rp'
         , reduces   = reduces   lp' <> reduces   rp'
         , postcomps = postcomps lp' <> postcomps rp'
-        , returns   = XPrim (PrimConst (PrimConstPair lt rt)) @~ returns lp' @~ returns rp'
+        , returns   = X.XPrim (PrimConst (PrimConstPair lt rt)) @~ returns lp' @~ returns rp'
         }
     (le, re)
      -> Left
@@ -43,7 +43,7 @@ fusePrograms ln lp rn rp
 
  where
   prefix pre 
-   = rename (NameMod pre)
+   = renameProgram (NameMod pre)
   lp' = prefix ln lp
   rp' = prefix rn rp
 

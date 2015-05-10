@@ -2,12 +2,15 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Core.Reduce.Reduce (
       Reduce     (..)
+    , renameReduce
+    , inputOfReduce
     ) where
 
 import              Icicle.Internal.Pretty
-import              Icicle.Core.Base
-import              Icicle.Core.Type
+import              Icicle.Common.Base
+import              Icicle.Common.Type
 import              Icicle.Core.Exp
+import              Icicle.Common.Exp.Exp (renameExp)
 
 import              P
 
@@ -19,9 +22,15 @@ data Reduce n
  deriving (Eq,Ord,Show)
 
 
-instance Rename Reduce where
- rename f (RFold t a k z n) = RFold t a (rename f k) (rename f z) (f n)
- rename f (RLatest t   x n) = RLatest t              (rename f x) (f n)
+renameReduce :: (Name n -> Name n') -> Reduce n -> Reduce n'
+renameReduce f (RFold t a k z n) = RFold t a (renameExp f k) (renameExp f z) (f n)
+renameReduce f (RLatest t   x n) = RLatest t                 (renameExp f x) (f n)
+
+
+-- | Get name of input stream for given reduction
+inputOfReduce :: Reduce n -> Name n
+inputOfReduce (RFold _ _ _ _ inp) = inp
+inputOfReduce (RLatest   _ _ inp) = inp
 
 
 -- Pretty printing ---------------

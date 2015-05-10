@@ -4,8 +4,8 @@ module Icicle.Core.Stream.Error (
     ) where
 
 import              Icicle.Internal.Pretty
-import              Icicle.Core.Base
-import              Icicle.Core.Type
+import              Icicle.Common.Base
+import              Icicle.Common.Type
 import              Icicle.Core.Exp
 
 import              P
@@ -14,7 +14,7 @@ data StreamError n
  -- No such stream variable
  = StreamErrorVarNotInEnv   (Name n)
  -- Worker function doesn't type check
- | StreamErrorExp           (ExpError n)
+ | StreamErrorExp           (ExpError n Prim)
  -- can't do something with worker function
  | StreamErrorTypeError     (Exp n) Type Type
  deriving Show

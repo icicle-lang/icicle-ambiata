@@ -4,8 +4,8 @@ module Icicle.Core.Reduce.Error (
     ) where
 
 import              Icicle.Internal.Pretty
-import              Icicle.Core.Base
-import              Icicle.Core.Type
+import              Icicle.Common.Base
+import              Icicle.Common.Type
 import              Icicle.Core.Exp
 
 import              P
@@ -14,7 +14,7 @@ data ReduceError n
  -- No such stream variable
  = ReduceErrorNoSuchStream  (Name n)
  -- Worker function doesn't type check
- | ReduceErrorExp           (ExpError n)
+ | ReduceErrorExp           (ExpError n Prim)
  -- can't do something with worker function
  | ReduceErrorTypeError     (Exp n) Type Type
  deriving Show

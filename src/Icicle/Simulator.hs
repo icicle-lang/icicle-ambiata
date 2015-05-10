@@ -18,7 +18,7 @@ import           Icicle.Dictionary
 
 import           P
 
-import qualified Icicle.Core.Eval.Exp     as XV
+import qualified Icicle.Common.Value      as V
 import qualified Icicle.Core.Eval.Program as PV
 import qualified Icicle.Core.Program.Program as P
 
@@ -36,7 +36,7 @@ type Result = Either SimulateError (Value, [B.BubbleGumOutput Text Value])
 data SimulateError
  = SimulateErrorRuntime (PV.RuntimeError Text)
  | SimulateErrorCannotConvertToCore        Value
- | SimulateErrorCannotConvertFromCore  (XV.Value Text)
+ | SimulateErrorCannotConvertFromCore      V.BaseValue
   deriving (Eq,Show)
 
 
@@ -97,35 +97,33 @@ evaluateVirtualValue p date vs
         return a { fact = (B.BubbleGumFact $ B.Flavour 0 $ time a, v') }
 
 
-valueToCore :: Value -> Either SimulateError (XV.Value Text)
+valueToCore :: Value -> Either SimulateError V.BaseValue
 valueToCore v
  = case v of
-    IntValue i     -> return $ XV.VInt i
-    BooleanValue b -> return $ XV.VBool b
+    IntValue i     -> return $ V.VInt i
+    BooleanValue b -> return $ V.VBool b
     ListValue (List ls)
-                   -> XV.VArray
+                   -> V.VArray
                             <$> mapM valueToCore ls
 
-    PairValue a b  -> XV.VPair <$> valueToCore a <*> valueToCore b
+    PairValue a b  -> V.VPair <$> valueToCore a <*> valueToCore b
 
-    MapValue  kvs  -> XV.VMap . Map.fromList
+    MapValue  kvs  -> V.VMap . Map.fromList
                             <$> mapM (\(a,b) -> (,) <$> valueToCore a <*> valueToCore b) kvs
 
     _              -> Left   $ SimulateErrorCannotConvertToCore v
 
 
-valueFromCore :: XV.Value Text -> Either SimulateError Value
+valueFromCore :: V.BaseValue -> Either SimulateError Value
 valueFromCore v
  = case v of
-    XV.VInt i      -> return $ IntValue i
-    XV.VBool b     -> return $ BooleanValue b
-    XV.VArray vs   -> ListValue . List
+    V.VInt i      -> return $ IntValue i
+    V.VBool b     -> return $ BooleanValue b
+    V.VArray vs   -> ListValue . List
                   <$> mapM valueFromCore vs
-    XV.VPair a b   -> PairValue <$> valueFromCore a <*> valueFromCore b
-    XV.VSome a     -> valueFromCore a
-    XV.VNone       -> return Tombstone
-    XV.VMap vs     -> MapValue
+    V.VPair a b   -> PairValue <$> valueFromCore a <*> valueFromCore b
+    V.VSome a     -> valueFromCore a
+    V.VNone       -> return Tombstone
+    V.VMap vs     -> MapValue
                   <$> mapM (\(a,b) -> (,) <$> valueFromCore a <*> valueFromCore b) (Map.toList vs)
-
-    XV.VFun{}      -> Left   $ SimulateErrorCannotConvertFromCore v
 

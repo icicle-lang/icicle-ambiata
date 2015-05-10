@@ -5,8 +5,8 @@ module Icicle.Core.Program.Check (
     , checkProgram
     ) where
 
-import              Icicle.Core.Base
-import              Icicle.Core.Type
+import              Icicle.Common.Base
+import              Icicle.Common.Type
 import              Icicle.Core.Exp             as X
 import              Icicle.Core.Stream          as S
 import              Icicle.Core.Reduce          as R
@@ -39,7 +39,7 @@ checkProgram p
         post    <- checkExps ProgramErrorPost reds        (P.postcomps    p)
 
         -- Finally, check the return against the postcomputation environment
-        rt <- mapLeft ProgramErrorReturn $ checkExp post        (P.returns      p)
+        rt <- mapLeft ProgramErrorReturn $ checkExp coreFragment post (P.returns      p)
 
         -- Check if top-level is a value type
         case rt of
@@ -53,7 +53,7 @@ checkProgram p
 -- | Check all expression bindings, collecting up environment as we go
 checkExps
         :: Ord n
-        => (ExpError n -> ProgramError n)
+        => (ExpError n Prim -> ProgramError n)
         -> Env n Type
         -> [(Name n, Exp n)]
         -> Either (ProgramError n) (Env n Type)
@@ -63,7 +63,7 @@ checkExps _ env []
 
 checkExps err env ((n,x):bs)
  = do   t    <- mapLeft err
-              $ checkExp env x
+              $ checkExp coreFragment env x
         env' <- insertOrDie ProgramErrorNameNotUnique env n t
         checkExps err env' bs
 

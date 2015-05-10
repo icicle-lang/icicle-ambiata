@@ -12,10 +12,13 @@ module Icicle.Core.Eval.Stream (
 
 import              Icicle.BubbleGum
 
-import              Icicle.Core.Base
-import              Icicle.Core.Type
+import              Icicle.Common.Base
+import              Icicle.Common.Type
+import              Icicle.Common.Value as V
 import              Icicle.Core.Stream
+import qualified    Icicle.Common.Exp.Eval  as XV -- eXpression eVal
 import qualified    Icicle.Core.Eval.Exp    as XV -- eXpression eVal
+import              Icicle.Core.Exp.Prim
 
 import              Icicle.Data
 import              Icicle.Data.DateTime
@@ -35,8 +38,8 @@ import qualified    Data.Map as Map
 -- reduction like sum can just start where it left off.
 -- If it is windowed, we instead store the values needed to recompute, as values will drop off
 -- the start of the window.
-type StreamValue n
- = ([(BubbleGumFact, XV.Value n)], StreamWindow)
+type StreamValue
+ = ([(BubbleGumFact, V.BaseValue)], StreamWindow)
 
 -- | Whether this stream is the result - directly or indirectly - of a windowed source
 data StreamWindow = Windowed Int | UnWindowed
@@ -45,20 +48,21 @@ data StreamWindow = Windowed Int | UnWindowed
 -- | Right at the start, we need dates on the stream values.
 -- These can be used by windowing functions or ignored.
 -- Afterwards they are thrown away, but could still be included in the value itself.
-type DatedStreamValue n
- = [AsAt (BubbleGumFact, XV.Value n)]
+type DatedStreamValue
+ = [AsAt (BubbleGumFact, V.BaseValue)]
 
 
 -- | A stream heap maps from names to stream values
 type StreamHeap n
- = Map.Map (Name n) (StreamValue n)
+ = Map.Map (Name n) StreamValue
 
 
 -- | Things that can go wrong for stream evaluation
 data RuntimeError n
- = RuntimeErrorExp          (XV.RuntimeError n)
+ = RuntimeErrorExp          (XV.RuntimeError n Prim)
  | RuntimeErrorNoSuchStream (Name n)
- | RuntimeErrorExpNotOfType (XV.Value n) ValType
+ | RuntimeErrorExpNotOfType (V.Value n Prim) ValType
+ | RuntimeErrorExpNotBaseType (V.Value n Prim)
  deriving (Show, Eq)
 
 
@@ -67,11 +71,11 @@ data RuntimeError n
 -- and the heap with all preceding streams stored.
 eval    :: Ord n
         => DateTime             -- ^ Snapshot date for checking against windows
-        -> XV.Heap          n   -- ^ The expression heap with precomputations
-        -> DatedStreamValue n   -- ^ Concrete inputs start with dates attached
+        -> V.Heap      n Prim   -- ^ The expression heap with precomputations
+        -> DatedStreamValue     -- ^ Concrete inputs start with dates attached
         -> StreamHeap       n   -- ^ Any streams that have already been evaluated
         -> Stream           n   -- ^ Stream to evaluate
-        -> Either (RuntimeError n) (StreamValue n)
+        -> Either (RuntimeError n) StreamValue
 eval window_check xh concreteValues sh s
  = case s of
     -- Raw input is easy
@@ -118,7 +122,7 @@ eval window_check xh concreteValues sh s
   evalFilt x arg
    = do v <- applyX x arg
         case v of
-         XV.VBool b
+         V.VBase (V.VBool b)
           -> return b
          _
           -> Left (RuntimeErrorExpNotOfType v BoolT)
@@ -127,7 +131,7 @@ eval window_check xh concreteValues sh s
   -- raise to a stream error if it fails
   evalX
    = mapLeft RuntimeErrorExp
-   . XV.eval xh
+   . XV.eval XV.evalPrim xh
 
   -- Apply an expression to a value.
   -- First we need to evaluate the function to a value,
@@ -135,10 +139,12 @@ eval window_check xh concreteValues sh s
   applyX fX argV
    = do fV <- evalX fX
         mapLeft RuntimeErrorExp
-            $ XV.applyValues fV argV
+            $ XV.applyValues XV.evalPrim fV (V.VBase argV)
 
   -- Apply an expression to a stream value, keeping the bubblegum intact
   applySnd fX (bubble, argV)
    = do v' <- applyX fX argV
-        return (bubble, v')
+        case v' of
+         V.VBase v'' -> return (bubble, v'')
+         V.VFun{}    -> Left (RuntimeErrorExpNotBaseType v')
 

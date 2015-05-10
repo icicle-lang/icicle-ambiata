@@ -30,16 +30,21 @@ prop_progress t =
  $ \p ->
     isRight     (checkProgram p) ==> isRight (PV.eval someDate [] p)
 
+
+-- Evaluate on actual input
+prop_progress_values t =
+ forAll (programForStreamType t)
+ $ \p ->
+ forAll (inputsForType t)
+ $ \(vs,d) ->
+    isRight     (checkProgram p) ==> isRight (PV.eval d vs p)
+
+
 -- Also, try the inverse: if it has a runtime error, it can't be type safe.
 -- Most randomly generated programs will have runtime errors, and won't type check
 prop_progress_inverse x =
  isLeft      (PV.eval someDate [] x)
  ==> isLeft  (checkProgram x)
-
--- It would be nice to say something about inputs,
--- but we need to be able to generate well typed values.
--- A well typed program can still error if its inputs are of the wrong type.
-
 
 
 return []

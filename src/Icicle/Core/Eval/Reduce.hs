@@ -12,11 +12,14 @@ module Icicle.Core.Eval.Reduce (
 
 import              Icicle.BubbleGum
 
-import              Icicle.Core.Base
-import              Icicle.Core.Type
+import              Icicle.Common.Base
+import              Icicle.Common.Type
+import              Icicle.Common.Value as V
 import              Icicle.Core.Reduce
+import qualified    Icicle.Common.Exp.Eval  as XV
 import qualified    Icicle.Core.Eval.Exp    as XV
 import qualified    Icicle.Core.Eval.Stream as SV
+import              Icicle.Core.Exp.Prim
 
 import              P
 
@@ -31,8 +34,8 @@ type RuntimeError n
 
 -- | Evaluating a reduction also gives us the history of its inputs
 type ReduceValue n =
- ( BubbleGumOutput n (XV.Value n)
- , XV.Value n )
+ ( BubbleGumOutput n V.BaseValue
+ , V.BaseValue )
 
 
 -- | Evaluate a reduction.
@@ -41,7 +44,7 @@ type ReduceValue n =
 -- The name of this reduction is used to produce the value history, or bubblegum
 eval    :: Ord n
         => Name           n
-        -> XV.Heap        n
+        -> V.Heap         n Prim
         -> SV.StreamHeap  n
         -> Reduce n
         -> Either (RuntimeError n) (ReduceValue n)
@@ -55,7 +58,11 @@ eval reduction_name xh sh r
             -- Evaluate the zero with no arguments
             z' <- evalX z
             -- Perform the fold!
-            v  <- foldM (apply2 k) z' (fmap snd $ fst sv)
+            v  <- foldM (apply2 k) z' (fmap (V.VBase . snd) $ fst sv)
+
+            v' <- case v of
+                   V.VFun{}   -> Left (SV.RuntimeErrorExpNotBaseType v)
+                   V.VBase v' -> return v'
 
             -- Check if the input is windowed;
             let bg  | SV.Windowed _ <- snd sv
@@ -64,9 +71,9 @@ eval reduction_name xh sh r
                     = BubbleGumFacts $ flavoursOfSource $ fst sv
                     | otherwise
                     -- but for an unwindowed reduction, we can incrementally compute
-                    = BubbleGumReduction reduction_name v
+                    = BubbleGumReduction reduction_name v'
 
-            return (bg, v)
+            return (bg, v')
 
     -- Get most recent or last num elements
     RLatest _ num n
@@ -77,12 +84,12 @@ eval reduction_name xh sh r
             num' <- evalX num
             -- It better be an Int
             case num' of
-             XV.VInt i
+             V.VBase (V.VInt i)
                  -- Take the latest i 
               -> let sv' = latest i $ fst sv
                  -- and split into history and values
                  in  return ( BubbleGumFacts $ flavoursOfSource sv'
-                            , XV.VArray $ fmap snd sv' )
+                            , V.VArray $ fmap snd sv' )
 
              _
               -> Left (SV.RuntimeErrorExpNotOfType num' IntT)
@@ -92,7 +99,7 @@ eval reduction_name xh sh r
   -- raise to a stream error if it fails
   evalX
    = mapLeft SV.RuntimeErrorExp
-   . XV.eval xh
+   . XV.eval XV.evalPrim xh
 
   -- Apply expression to two value arguments.
   apply2 fX aV bV
@@ -103,7 +110,7 @@ eval reduction_name xh sh r
 
   appV f a
    = mapLeft SV.RuntimeErrorExp
-   $ XV.applyValues f a
+   $ XV.applyValues XV.evalPrim f a
 
   -- In real code we use a circular buffer, but here we can
   -- afford to keep everything in memory

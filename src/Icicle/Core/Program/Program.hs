@@ -2,11 +2,13 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Core.Program.Program (
       Program (..)
+    , renameProgram
     ) where
 
 import              Icicle.Internal.Pretty
-import              Icicle.Core.Base
-import              Icicle.Core.Type
+import              Icicle.Common.Base
+import              Icicle.Common.Type
+import              Icicle.Common.Exp.Exp (renameExp)
 import              Icicle.Core.Exp
 import              Icicle.Core.Stream.Stream
 import              Icicle.Core.Reduce.Reduce
@@ -41,18 +43,17 @@ data Program n =
  deriving (Show, Eq, Ord)
 
 
-instance Rename Program where
- rename f p
+renameProgram :: (Name n -> Name n') -> Program n -> Program n'
+renameProgram f p
   = p
-  { precomps    = binds  f (precomps   p)
-  , streams     = binds  f (streams    p)
-  , reduces     = binds  f (reduces    p)
-  , postcomps   = binds  f (postcomps  p)
-  , returns     = rename f (returns    p)
+  { precomps    = binds  renameExp      (precomps   p)
+  , streams     = binds  renameStream   (streams    p)
+  , reduces     = binds  renameReduce   (reduces    p)
+  , postcomps   = binds  renameExp      (postcomps  p)
+  , returns     =        renameExp f    (returns    p)
   }
   where
-   binds :: Rename r => (Name n -> Name n') -> [(Name n, r n)] -> [(Name n', r n')]
-   binds ff = fmap (\(a,b) -> (ff a, rename ff b))
+   binds r = fmap (\(a,b) -> (f a, r f b))
 
 
 -- Pretty printing -------------

@@ -5,8 +5,8 @@ module Icicle.Core.Program.Error (
     ) where
 
 import              Icicle.Internal.Pretty
-import              Icicle.Core.Base
-import              Icicle.Core.Type
+import              Icicle.Common.Base
+import              Icicle.Common.Type
 import              Icicle.Core.Exp
 import              Icicle.Core.Stream
 import              Icicle.Core.Reduce
@@ -16,11 +16,11 @@ import              P
 
 -- | Possible errors, mainly deferred to component
 data ProgramError n
- = ProgramErrorPre      (ExpError    n)
+ = ProgramErrorPre      (ExpError    n Prim)
  | ProgramErrorStream   (StreamError n)
  | ProgramErrorReduce   (ReduceError n)
- | ProgramErrorPost     (ExpError    n)
- | ProgramErrorReturn   (ExpError    n)
+ | ProgramErrorPost     (ExpError    n Prim)
+ | ProgramErrorReturn   (ExpError    n Prim)
  | ProgramErrorNameNotUnique (Name n)
  | ProgramErrorReturnNotValueType Type
  deriving Show

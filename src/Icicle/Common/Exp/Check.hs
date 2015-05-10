@@ -2,21 +2,20 @@
 -- and other invariants
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE PatternGuards #-}
-module Icicle.Core.Exp.Check (
+module Icicle.Common.Exp.Check (
       -- Perform all checks
       checkExp
       -- Perform all checks with an empty environment
     , checkExp0
       -- Do normal type checking
     , typecheck
-      -- All primitives must be fully applied
-    , primsFullyApplied
     ) where
 
-import              Icicle.Core.Type
-import              Icicle.Core.Exp.Exp
-import              Icicle.Core.Exp.Error
-import              Icicle.Core.Exp.Prim
+import              Icicle.Common.Type
+import              Icicle.Common.Exp.Compounds
+import              Icicle.Common.Exp.Exp
+import              Icicle.Common.Exp.Error
+import              Icicle.Common.Fragment
 
 import              P
 
@@ -24,8 +23,8 @@ import qualified    Data.Map as Map
 
 
 -- | Perform type checking and invariant checking with empty environment
-checkExp0 :: (Ord n) => Exp n -> Either (ExpError n) Type
-checkExp0 = checkExp Map.empty
+checkExp0 :: (Ord n) => Fragment p -> Exp n p -> Either (ExpError n p) Type
+checkExp0 frag x = checkExp frag Map.empty x
 
 
 -- | Perform type checking and invariant checking with given environment
@@ -36,18 +35,25 @@ checkExp0 = checkExp Map.empty
 --
 -- If successful, returns type of expression
 --
-checkExp :: (Ord n) => Env n Type -> Exp n -> Either (ExpError n) Type
-checkExp e x
- = do   t <- typecheck e x
+checkExp :: (Ord n) => Fragment p -> Env n Type -> Exp n p -> Either (ExpError n p) Type
+checkExp frag e x
+ = do   -- Perform normal type checking first
+        t <- typecheck frag e x
 
-        _ <- primsFullyApplied x
+        -- Check other invariants
+        
+        -- Primitives must be fully applied
+        case primsFullyApplied frag of
+          True  -> checkPrimsFullyApplied frag x
+          False -> return ()
+
         return t
 
 
 -- | Typecheck expression, returning type if successful.
 -- Also checks name uniqueness invariant while building up environment.
-typecheck :: (Ord n) => Env n Type -> Exp n -> Either (ExpError n) Type
-typecheck e xx
+typecheck :: (Ord n) => Fragment p -> Env n Type -> Exp n p -> Either (ExpError n p) Type
+typecheck frag e xx
  = case xx of
     -- Variable must exist
     XVar n
@@ -64,30 +70,30 @@ typecheck e xx
 
     -- Look up primitive type
     XPrim p
-     ->     return (typeOfPrim p)
+     ->     return (typeOfPrim frag p)
 
     -- Abstraction
     XLam n t x
      -> do  e' <- insertOrDie ExpErrorNameNotUnique e n (FunT [] t)
-            tt <- typecheck e' x
+            tt <- typecheck frag e' x
             return (funOfVal t `arrow` tt)
 
     -- Let binding
     XLet n x i
      -> do  x' <- go x
             e' <- insertOrDie ExpErrorNameNotUnique e n x'
-            typecheck e' i
+            typecheck frag e' i
 
  where
   -- Descend into new expression with same environment
-  go = typecheck e
+  go = typecheck frag e
 
 
 
 -- | Check if all primitives are fully applied.
 -- Only checks the number of arguments; the types are handled above.
-primsFullyApplied :: (Ord n) => Exp n -> Either (ExpError n) ()
-primsFullyApplied xx
+checkPrimsFullyApplied :: (Ord n) => Fragment p -> Exp n p -> Either (ExpError n p) ()
+checkPrimsFullyApplied frag xx
  = case xx of
     -- Variables are ok
     XVar{}
@@ -97,13 +103,13 @@ primsFullyApplied xx
     -- recursively check all arguments, and check that number of arguments is fine
     XApp{}
      | Just (p,as) <- takePrimApps xx
-     -> mapM_ primsFullyApplied as
+     -> mapM_ go as
      >> check p (length as)
 
     -- Non-primitive application; recurse
     XApp p q
-     -> primsFullyApplied p
-     >> primsFullyApplied q
+     -> go p
+     >> go q
 
     -- Non-applied primitive, so better not take arguments
     XPrim p
@@ -111,19 +117,22 @@ primsFullyApplied xx
 
     -- Abstraction
     XLam _ _ x
-     -> primsFullyApplied x
+     -> go x
 
     -- Let binding
     XLet _ d i
-     -> primsFullyApplied d
-     >> primsFullyApplied i
+     -> go d
+     >> go i
 
  where
+  -- Recurse with same fragment
+  go = checkPrimsFullyApplied frag
+
   ok = return ()
 
   -- Get type of primitive and check how many arguments it takes against how many it got
   check p n
-   = case typeOfPrim p of
+   = case typeOfPrim frag p of
       FunT args _
        | length args == n
        -> ok
