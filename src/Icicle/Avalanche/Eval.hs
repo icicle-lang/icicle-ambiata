@@ -207,7 +207,10 @@ evalLoop
 
 evalLoop evalPrim now (FactLoop _ bind stmts) xh ah input
  -- Just go through all the statements
- = foldM (evalStmt evalPrim now (Map.insert bind (VBase $ snd $ fact input) xh) input) ah stmts
+ = foldM (evalStmt evalPrim now xh' input) ah stmts
+ where
+  xh' = Map.insert bind streamvalue xh
+  streamvalue = VBase $ VPair (snd $ fact input) (VDateTime $ time input)
 
 
 -- | Evaluate a single statement for a single value

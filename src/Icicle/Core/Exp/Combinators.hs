@@ -37,6 +37,11 @@ constI = XValue IntT  . VInt
 constB :: Bool -> X.Exp n
 constB = XValue BoolT . VBool
 
+fstOfSource :: ValType -> X.Exp Text -> X.Exp Text
+fstOfSource ty p
+ = XPrim (PrimFold (PrimFoldPair ty DateTimeT) ty)
+    @~ (lam ty $ \x -> lam DateTimeT $ \_ -> x) @~ p
+
 
 prim2 :: Prim -> X.Exp n -> X.Exp n -> X.Exp n
 prim2 p x y = XPrim p @~ x @~ y

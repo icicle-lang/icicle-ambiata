@@ -80,12 +80,12 @@ eval window_check xh concreteValues sh s
  = case s of
     -- Raw input is easy
     Source
-     -> return (fmap fact concreteValues, UnWindowed)
+     -> return (fmap streamvalue concreteValues, UnWindowed)
 
     -- Windowed input.
     -- The dates are assured to be increasing, so we could really use a takeWhile.dropWhile or something
     SourceWindowedDays window
-     -> return ( fmap fact
+     -> return ( fmap streamvalue
                $ filter (\v -> withinWindow (time v) window_check window)
                $ concreteValues
 
@@ -103,6 +103,9 @@ eval window_check xh concreteValues sh s
             return (sv', snd sv)
 
  where
+  streamvalue v
+   = (fst $ fact v, VPair (snd $ fact v) (VDateTime $ time v))
+
   -- Evaluate transform over given values.
   -- We don't need the stream heap any more.
   --

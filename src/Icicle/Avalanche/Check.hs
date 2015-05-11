@@ -92,9 +92,11 @@ checkLoop
         -> FactLoop n p
         -> Either (ProgramError n p) ()
 checkLoop frag env accs (FactLoop inputType inputBind stmts_)
- = go (Map.insert inputBind (FunT [] inputType) env) stmts_
+ = go (Map.insert inputBind streamType env) stmts_
 
  where
+  streamType = FunT [] (PairT inputType DateTimeT)
+
   go e stmts = mapM_ (checkStmt e) stmts
 
   checkStmt e s

@@ -91,11 +91,16 @@ program_sum
  = P.Program
  { P.input      = T.IntT
  , P.precomps   = []
- , P.streams    = [(N.Name "inp", S.Source)]
- , P.reduces    = [(N.Name "red", fold_sum (N.Name "inp"))]
+ , P.streams    = [(N.Name "inp", S.Source)
+                  ,(N.Name "inp2", map_fst T.IntT (N.Name "inp"))]
+ , P.reduces    = [(N.Name "red", fold_sum (N.Name "inp2"))]
  , P.postcomps  = []
  , P.returns    = var "red"
  }
+
+map_fst :: T.ValType -> N.Name Text -> S.Stream Text
+map_fst ty inp
+ = S.STrans (S.SMap (T.PairT ty T.DateTimeT) ty) (lam (T.PairT ty T.DateTimeT) $ \p -> fstOfSource ty p) inp
 
 fold_sum :: N.Name Text -> R.Reduce Text
 fold_sum inp
@@ -114,13 +119,13 @@ program_count
  { P.input      = T.IntT
  , P.precomps   = []
  , P.streams    = [(N.Name "inp", S.Source)
-                  ,(N.Name "ones", S.STrans (S.SMap T.IntT T.IntT) const1 (N.Name "inp"))]
+                  ,(N.Name "ones", S.STrans (S.SMap (T.PairT T.IntT T.DateTimeT) T.IntT) const1 (N.Name "inp"))]
  , P.reduces    = [(N.Name "count", fold_sum (N.Name "ones"))]
  , P.postcomps  = []
  , P.returns    = X.XVar (N.Name "count")
  }
  where
-  const1 = lam T.IntT $ \_ -> constI 1
+  const1 = lam (T.PairT T.IntT T.DateTimeT) $ \_ -> constI 1
 
 
 -- | Mean salary
@@ -130,14 +135,15 @@ program_mean
  { P.input      = T.IntT
  , P.precomps   = []
  , P.streams    = [(N.Name "inp", S.Source)
-                  ,(N.Name "ones", S.STrans (S.SMap T.IntT T.IntT) const1 (N.Name "inp"))]
+                  ,(N.Name "inp2", map_fst T.IntT (N.Name "inp"))
+                  ,(N.Name "ones", S.STrans (S.SMap (T.PairT T.IntT T.DateTimeT) T.IntT) const1 (N.Name "inp"))]
  , P.reduces    = [(N.Name "count", fold_sum (N.Name "ones"))
-                  ,(N.Name "sum",   fold_sum (N.Name "inp"))]
+                  ,(N.Name "sum",   fold_sum (N.Name "inp2"))]
  , P.postcomps  = []
  , P.returns    = var "sum" /~ var "count"
  }
  where
-  const1 = lam T.IntT $ \_ -> constI 1
+  const1 = lam (T.PairT T.IntT T.DateTimeT) $ \_ -> constI 1
 
 
 -- | Filtered sum
@@ -147,7 +153,8 @@ program_filt_sum
  { P.input      = T.IntT
  , P.precomps   = []
  , P.streams    = [(N.Name "inp", S.Source)
-                  ,(N.Name "filts", S.STrans (S.SFilter T.IntT) gt (N.Name "inp"))]
+                  ,(N.Name "inp2", map_fst T.IntT (N.Name "inp"))
+                  ,(N.Name "filts", S.STrans (S.SFilter T.IntT) gt (N.Name "inp2"))]
  , P.reduces    = [(N.Name "sum",   fold_sum (N.Name "filts"))]
  , P.postcomps  = []
  , P.returns    = X.XVar (N.Name "sum")
@@ -164,7 +171,7 @@ program_latest n
  { P.input      = T.IntT
  , P.precomps   = []
  , P.streams    = [(N.Name "inp", S.Source)]
- , P.reduces    = [(N.Name "latest", R.RLatest T.IntT (constI n) (N.Name "inp"))]
+ , P.reduces    = [(N.Name "latest", R.RLatest (T.PairT T.IntT T.DateTimeT) (constI n) (N.Name "inp"))]
  , P.postcomps  = []
  , P.returns    = X.XVar (N.Name "latest")
  }
@@ -175,8 +182,9 @@ program_windowed_sum days
  = P.Program
  { P.input      = T.IntT
  , P.precomps   = []
- , P.streams    = [(N.Name "inp", S.SourceWindowedDays days)]
- , P.reduces    = [(N.Name "sum",   fold_sum (N.Name "inp"))]
+ , P.streams    = [(N.Name "inp", S.SourceWindowedDays days)
+                  ,(N.Name "inp2", map_fst T.IntT (N.Name "inp"))]
+ , P.reduces    = [(N.Name "sum",   fold_sum (N.Name "inp2"))]
  , P.postcomps  = []
  , P.returns    = X.XVar (N.Name "sum")
  }
@@ -186,12 +194,13 @@ program_count_unique
  = P.Program
  { P.input      = T.IntT
  , P.precomps   = []
- , P.streams    = [(N.Name "inp",  S.Source)]
+ , P.streams    = [(N.Name "inp",  S.Source)
+                  ,(N.Name "inp2", map_fst T.IntT (N.Name "inp"))]
  , P.reduces    = [(N.Name "uniq",
                         R.RFold T.IntT mT
                         (lam mT $ \acc -> lam T.IntT $ \v -> X.XPrim (P.PrimMap $ P.PrimMapInsertOrUpdate T.IntT T.IntT) @~ (lam T.IntT $ \_ -> constI 1) @~ constI 1 @~ v @~ acc)
                         (X.XValue (T.MapT T.IntT T.IntT) $ N.VMap $ Map.empty)
-                        (N.Name "inp"))]
+                        (N.Name "inp2"))]
  , P.postcomps  = [(N.Name "size", X.XPrim (P.PrimFold (P.PrimFoldMap T.IntT T.IntT) T.IntT) @~ (lam T.IntT $ \a -> lam T.IntT $ \_ -> lam T.IntT $ \b -> a +~ b) @~ constI 0 @~ var "uniq")]
  , P.returns    = var "size"
  }

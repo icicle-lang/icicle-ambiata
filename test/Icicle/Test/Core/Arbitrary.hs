@@ -297,8 +297,10 @@ programForStreamType streamType
 
   -- Raw source or windowed
   streamSource
-   = oneof [ return (streamType, Source)
-           , (,) streamType . SourceWindowedDays <$> arbitrary ]
+   = oneof [ return (sourceType, Source)
+           , (,) sourceType . SourceWindowedDays <$> arbitrary ]
+
+  sourceType = PairT streamType DateTimeT
 
   -- Transformer: filter or map
   streamTransformer :: Env Var ValType -> Env Var Type -> Gen (ValType, Stream Var)
