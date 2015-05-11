@@ -44,6 +44,7 @@ import qualified    Data.Map as Map
 data ValType =
    IntT
  | BoolT
+ | DateTimeT
  | ArrayT ValType
  | MapT   ValType ValType
  | OptionT        ValType
@@ -164,6 +165,10 @@ valueMatchesType v t
  , BoolT        <- t
  = True
 
+ | VDateTime _  <- v
+ , DateTimeT    <- t
+ = True
+
  | VArray vs    <- v
  , ArrayT t'    <- t
  = all (flip valueMatchesType t') vs
@@ -196,6 +201,7 @@ valueMatchesType v t
 instance Pretty ValType where
  pretty IntT            = text "Int"
  pretty BoolT           = text "Bool"
+ pretty DateTimeT       = text "DateTime"
  pretty (ArrayT t)      = text "Array " <> pretty t
  pretty (MapT k v)      = text "Map" <+> pretty k <+> pretty v
  pretty (OptionT a)     = text "Option" <+> pretty a

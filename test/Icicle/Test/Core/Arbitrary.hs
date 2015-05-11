@@ -22,6 +22,7 @@ import           Icicle.Core.Reduce
 import           Icicle.Core.Program.Program    as P
 
 import           Icicle.Test.Arbitrary.Base
+import           Icicle.Test.Arbitrary ()
 import           Orphanarium.Corpus
 
 import           Test.QuickCheck
@@ -103,7 +104,8 @@ instance Arbitrary ValType where
    -- It's fine if they're big, but they have to fit in memory.
    oneof_sized_vals
          [ IntT
-         , BoolT ]
+         , BoolT
+         , DateTimeT ]
          [ ArrayT <$> arbitrary
          , PairT  <$> arbitrary <*> arbitrary
          , MapT  <$> arbitrary <*> arbitrary
@@ -348,6 +350,8 @@ baseValueForType t
      -> VInt <$> arbitrary
     BoolT
      -> VBool <$> arbitrary
+    DateTimeT
+     -> VDateTime <$> arbitrary
     ArrayT t'
      -> smaller (VArray <$> listOf (baseValueForType t'))
     PairT a b

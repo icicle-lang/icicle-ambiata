@@ -6,9 +6,11 @@ module Icicle.Common.Base (
     ) where
 
 import              Icicle.Internal.Pretty
+import              Icicle.Data.DateTime
 
 import              P
-import qualified    Data.Map as Map
+import qualified    Data.Map    as Map
+import qualified    Data.Text   as T
 
 
 -- | User defined names.
@@ -28,6 +30,7 @@ data Name n =
 data BaseValue
  = VInt   Int
  | VBool  Bool
+ | VDateTime        DateTime
  | VArray [BaseValue]
  | VPair  BaseValue BaseValue
  | VSome  BaseValue
@@ -50,6 +53,8 @@ instance Pretty BaseValue where
       -> pretty i
      VBool b
       -> pretty b
+     VDateTime dt
+      -> text $ T.unpack $ renderDate dt
      VArray vs
       -> pretty vs
      VPair a b
