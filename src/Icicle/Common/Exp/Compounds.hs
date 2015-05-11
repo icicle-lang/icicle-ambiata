@@ -1,12 +1,18 @@
 -- | Some useful things to do with expressions
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE PatternGuards #-}
 module Icicle.Common.Exp.Compounds (
       takeApps
     , takePrimApps
+    , substMaybe
+    , freevars
     ) where
 
+import              Icicle.Common.Base
 import              Icicle.Common.Exp.Exp
 import              P
+
+import qualified    Data.Set    as Set
 
 
 -- | Split an expression into its function part and any arguments applied to it.
@@ -29,3 +35,67 @@ takePrimApps xx
     _               -> Nothing
 
 
+-- | Collect all free variables in an expression
+-- i.e. those that are not bound by lets or lambdas.
+freevars
+        :: Ord n
+        => Exp n p
+        -> Set.Set (Name n)
+freevars xx
+ = case xx of
+    XVar n      -> Set.singleton n
+    XApp p q    -> freevars p <> freevars q
+    XPrim{}     -> Set.empty
+    XLam n _ x  -> Set.delete n (freevars x)
+    XLet n x y  -> freevars x <> Set.delete n (freevars y)
+
+
+-- | Substitute an expression in, but if it would require renaming
+-- just give up and return Nothing
+substMaybe
+        :: Ord  n
+        => Name n
+        -> Exp  n p
+        -> Exp  n p
+        -> Maybe (Exp n p)
+substMaybe name payload into
+ = go into
+ where
+  payload_free = freevars payload
+
+  go xx
+   = case xx of
+      XVar n
+       | n == name
+       -> return payload
+       | otherwise
+       -> return xx
+      XApp p q
+       -> XApp <$> go p <*> go q
+      XPrim{}
+       -> return xx
+
+      XLam n t x
+       -- If the name clashes, we can't do anything
+       | (n `Set.member` payload_free) || n == name
+       , name `Set.member` freevars x
+       -> Nothing
+
+       -- If name isn't mentioned in x, we don't need to do anything
+       | not (name `Set.member` freevars x)
+       -> return xx
+
+       -- Name is mentioned and no clashes, so proceed
+       | otherwise
+       -> XLam n t <$> go x
+
+      XLet n x1 x2
+       | (n `Set.member` payload_free) || n == name
+       , name `Set.member` freevars x2
+       -> Nothing
+
+       | not (name `Set.member` freevars x2)
+       -> return xx
+
+       | otherwise
+       -> XLet n <$> go x1 <*> go x2

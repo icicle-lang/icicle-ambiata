@@ -84,6 +84,47 @@ data Statement n p
  deriving (Eq, Ord, Show)
 
 
+instance TransformX Program where
+ transformX names exps p
+  = Program
+  { precomps  = fmap bind                    $ precomps  p
+  , accums    = fmap (transformX names exps) $ accums    p
+  , loop      =       transformX names exps  $ loop      p
+  , postcomps = fmap bind                    $ postcomps p
+  , returns   =                        exps  $ returns   p
+  }
+  where
+   bind (n,x) = (names n, exps x)
+
+instance TransformX Accumulator where
+ transformX names exps (Accumulator n at)
+  = case at of
+     Resumable t x  -> Accumulator (names n) $ Resumable t $ exps x
+     Windowed  t x  -> Accumulator (names n) $ Windowed  t $ exps x
+     Latest    t x  -> Accumulator (names n) $ Latest    t $ exps x
+
+instance TransformX Loop where
+ transformX names exps (Loop t stmts)
+  = Loop t
+  $ fmap (transformX names exps) stmts
+
+instance TransformX Statement where
+ transformX names exps stmt
+  = case stmt of
+     If x ss
+      -> If (exps x) (go ss)
+     IfWindowed i ss
+      -> IfWindowed i (go ss)
+     Let n x ss
+      -> Let (names n) (exps x) (go ss)
+     UseSource n ss
+      -> UseSource (names n) (go ss)
+     Update n x
+      -> Update (names n) (exps x)
+     Push n x
+      -> Push (names n) (exps x)
+  where
+   go = fmap (transformX names exps)
 
 -- Pretty printing -------------
 

@@ -3,6 +3,7 @@
 module Icicle.Common.Exp.Exp (
       Exp     (..)
     , renameExp
+    , TransformX (..)
     ) where
 
 import              Icicle.Internal.Pretty
@@ -38,6 +39,9 @@ renameExp f (XApp p q) = XApp (renameExp f p) (renameExp f q)
 renameExp _ (XPrim p) = XPrim p
 renameExp f (XLam n t b) = XLam (f n) t (renameExp f b)
 renameExp f (XLet n p q) = XLet (f n) (renameExp f p) (renameExp f q)
+
+class TransformX x where
+ transformX :: (Name n -> Name n') -> (Exp n p -> Exp n' p') -> x n p -> x n' p'
 
 -- Pretty printing ---------------
 

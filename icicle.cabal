@@ -46,6 +46,7 @@ library
                        Icicle.Avalanche.FromCore
                        Icicle.Avalanche.Eval
                        Icicle.Avalanche.Check
+                       Icicle.Avalanche.Simp
 
                        Icicle.BubbleGum
 
@@ -57,6 +58,8 @@ library
                        Icicle.Common.Exp.Error
                        Icicle.Common.Exp.Exp
                        Icicle.Common.Exp.Eval
+                       Icicle.Common.Exp.Simp
+                       Icicle.Common.Exp.Simp.Beta
                        Icicle.Common.Fragment
                        Icicle.Common.Type
                        Icicle.Common.Value

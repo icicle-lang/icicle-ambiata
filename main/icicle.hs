@@ -15,6 +15,7 @@ import qualified Icicle.Internal.Pretty as PP
 import qualified Icicle.Core.Program.Check   as Program
 
 import qualified Icicle.Avalanche.FromCore   as AvC
+import qualified Icicle.Avalanche.Simp       as AvS
 
 import           P
 
@@ -98,7 +99,7 @@ showDictionary d
           -> do T.putStrLn "Has type:"
                 print (PP.indent 4 $ PP.pretty ty)
          
-        let av = AvC.programFromCore "elem" "accum" prog
+        let av = AvS.simpAvalanche $ AvC.programFromCore "elem" "accum" prog
         T.putStrLn "Avalanche:"
         print (PP.indent 4 $ PP.pretty av)
 
