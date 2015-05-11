@@ -8,6 +8,7 @@ module Icicle.Core.Exp.Prim (
     , PrimConst(..)
     , PrimFold (..)
     , PrimMap  (..)
+    , PrimDateTime (..)
     , typeOfPrim
     ) where
 
@@ -21,13 +22,16 @@ import              P
 -- Pretty empty for now.
 data Prim
  = PrimArith    PrimArith
- | PrimRelation PrimRelation
+ -- | Relation prims like less than, equal etc work for a bunch of different types
+ | PrimRelation PrimRelation ValType
  | PrimLogical  PrimLogical
  | PrimConst    PrimConst
  -- | Fold and return type
  | PrimFold     PrimFold ValType
  -- | Map primitives
  | PrimMap      PrimMap
+ -- | Date primitives
+ | PrimDateTime PrimDateTime
  deriving (Eq, Ord, Show)
 
 -- | Arithmetic primitives
@@ -74,6 +78,12 @@ data PrimMap
  = PrimMapInsertOrUpdate ValType ValType
  deriving (Eq, Ord, Show)
 
+-- | DateTime primitives
+data PrimDateTime
+ = PrimDateTimeDaysDifference
+ deriving (Eq, Ord, Show)
+
+
 
 -- | A primitive always has a well-defined type
 typeOfPrim :: Prim -> Type
@@ -83,9 +93,9 @@ typeOfPrim p
     PrimArith _
      -> FunT [intT, intT] IntT
 
-    -- All relations are ints
-    PrimRelation _
-     -> FunT [intT, intT] BoolT
+    -- All relations are binary to bool
+    PrimRelation _ val
+     -> FunT [funOfVal val, funOfVal val] BoolT
 
     -- Logical relations
     PrimLogical PrimLogicalNot
@@ -116,6 +126,8 @@ typeOfPrim p
     PrimMap (PrimMapInsertOrUpdate k v)
      -> FunT [FunT [funOfVal v] v, funOfVal v, funOfVal k, funOfVal (MapT k v)] (MapT k v)
 
+    PrimDateTime PrimDateTimeDaysDifference
+     -> FunT [funOfVal DateTimeT, funOfVal DateTimeT] IntT
  where
   intT = FunT [] IntT
 
@@ -127,12 +139,17 @@ instance Pretty Prim where
  pretty (PrimArith PrimArithMinus)      = text  "sub#"
  pretty (PrimArith PrimArithDiv)        = text  "div#"
 
- pretty (PrimRelation PrimRelationGt)   = text  "gt#"
- pretty (PrimRelation PrimRelationGe)   = text  "ge#"
- pretty (PrimRelation PrimRelationLt)   = text  "lt#"
- pretty (PrimRelation PrimRelationLe)   = text  "le#"
- pretty (PrimRelation PrimRelationEq)   = text  "eq#"
- pretty (PrimRelation PrimRelationNe)   = text  "ne#"
+ pretty (PrimRelation rel t)
+  = text prel <+> brackets (pretty t)
+  where
+   prel
+    = case rel of
+       PrimRelationGt -> "gt#"
+       PrimRelationGe -> "ge#"
+       PrimRelationLt -> "lt#"
+       PrimRelationLe -> "le#"
+       PrimRelationEq -> "eq#"
+       PrimRelationNe -> "ne#"
 
  pretty (PrimLogical  PrimLogicalNot)   = text  "not#"
  pretty (PrimLogical  PrimLogicalAnd)   = text  "and#"
@@ -157,4 +174,7 @@ instance Pretty Prim where
 
  pretty (PrimMap (PrimMapInsertOrUpdate k v))
   = text "Map_insertOrUpdate#" <+> brackets (pretty k) <+> brackets (pretty v)
+
+ pretty (PrimDateTime PrimDateTimeDaysDifference)
+  = text "DateTime_daysDifference#"
 

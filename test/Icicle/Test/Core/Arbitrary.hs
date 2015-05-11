@@ -81,8 +81,8 @@ instance Arbitrary Prim where
     oneof_sized_vals
           [ PrimArith PrimArithMinus
           , PrimArith PrimArithPlus
-          , PrimRelation PrimRelationGt
-          , PrimRelation PrimRelationGe
+          , PrimRelation PrimRelationGt IntT
+          , PrimRelation PrimRelationGe IntT
           , PrimLogical  PrimLogicalNot
           , PrimLogical  PrimLogicalAnd
           ]

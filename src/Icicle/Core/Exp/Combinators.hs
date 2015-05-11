@@ -59,27 +59,27 @@ infixl 6 -~
 infixl 7 /~
 
 (>~) :: X.Exp n -> X.Exp n -> X.Exp n
-(>~) = prim2 (PrimRelation PrimRelationGt)
+(>~) = prim2 (PrimRelation PrimRelationGt IntT)
 infix 4 >~
 
 (>=~) :: X.Exp n -> X.Exp n -> X.Exp n
-(>=~) = prim2 (PrimRelation PrimRelationGe)
+(>=~) = prim2 (PrimRelation PrimRelationGe IntT)
 infix 4 >=~
 
 (<~) :: X.Exp n -> X.Exp n -> X.Exp n
-(<~) = prim2 (PrimRelation PrimRelationLt)
+(<~) = prim2 (PrimRelation PrimRelationLt IntT)
 infix 4 <~
 
 (<=~) :: X.Exp n -> X.Exp n -> X.Exp n
-(<=~) = prim2 (PrimRelation PrimRelationLe)
+(<=~) = prim2 (PrimRelation PrimRelationLe IntT)
 infix 4 <=~
 
 (==~) :: X.Exp n -> X.Exp n -> X.Exp n
-(==~) = prim2 (PrimRelation PrimRelationEq)
+(==~) = prim2 (PrimRelation PrimRelationEq IntT)
 infix 4 ==~
 
 (/=~) :: X.Exp n -> X.Exp n -> X.Exp n
-(/=~) = prim2 (PrimRelation PrimRelationNe)
+(/=~) = prim2 (PrimRelation PrimRelationNe IntT)
 infix 4 /=~
 
 

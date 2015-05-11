@@ -9,6 +9,7 @@ import Icicle.Common.Base
 import Icicle.Common.Value
 import Icicle.Common.Exp.Eval
 import Icicle.Core.Exp.Prim
+import qualified    Icicle.Data.DateTime as DT
 
 import              P
 
@@ -40,8 +41,12 @@ evalPrim p vs
       -> primError
 
 
-     PrimRelation rel
-      | [VBase (VInt i), VBase (VInt j)] <- vs
+     PrimRelation rel _
+      -- It is safe to assume they are of the same value type
+      -- and "ordable", if we assume that it typechecks.
+      -- So we should be able to rely on the BaseValue Ord instance
+      -- without unwrapping the different types
+      | [VBase i, VBase j] <- vs
       -> return $ VBase $ VBool
        $ case rel of
           PrimRelationGt -> i >  j
@@ -135,6 +140,15 @@ evalPrim p vs
 
       | otherwise
       -> primError
+
+
+     -- Date stuff
+     PrimDateTime PrimDateTimeDaysDifference
+      | [VBase (VDateTime a), VBase (VDateTime b)] <- vs
+      -> return $ VBase $ VInt $ DT.daysDifference a b
+      | otherwise
+      -> primError
+
 
  where
   applies :: Ord n => Value n Prim -> [Value n Prim] -> Either (RuntimeError n Prim) (Value n Prim)
