@@ -12,8 +12,9 @@ import           Icicle
 import           Icicle.Data.DateTime
 
 import qualified Icicle.Internal.Pretty as PP
--- import qualified Icicle.Core.Program.Program as Program
 import qualified Icicle.Core.Program.Check   as Program
+
+import qualified Icicle.Avalanche.FromCore   as AvC
 
 import           P
 
@@ -96,6 +97,11 @@ showDictionary d
          Right ty
           -> do T.putStrLn "Has type:"
                 print (PP.indent 4 $ PP.pretty ty)
+         
+        let av = AvC.programFromCore "elem" "accum" prog
+        T.putStrLn "Avalanche:"
+        print (PP.indent 4 $ PP.pretty av)
+
 
 
 usage :: IO ()

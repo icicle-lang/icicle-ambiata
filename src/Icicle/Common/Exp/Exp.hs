@@ -44,11 +44,15 @@ renameExp f (XLet n p q) = XLet (f n) (renameExp f p) (renameExp f q)
 instance (Pretty n, Pretty p) => Pretty (Exp n p) where
  pretty (XVar n) = pretty n
 
- pretty (XApp p q) = pretty p <+> inner q
+ pretty (XApp p q) = inner' p <+> inner q
   where
    inner i
     = case i of
        XApp{} -> parens $ pretty i
+       XLam{} -> parens $ pretty i
+       _      ->          pretty i
+   inner' i
+    = case i of
        XLam{} -> parens $ pretty i
        _      ->          pretty i
 

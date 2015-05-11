@@ -12,7 +12,7 @@ import              Icicle.Common.Base
 import              Icicle.Common.Type
 import              Icicle.Common.Exp
 
--- import              Icicle.Internal.Pretty
+import              Icicle.Internal.Pretty
 
 import              P
 
@@ -84,4 +84,69 @@ data Statement n p
  deriving (Eq, Ord, Show)
 
 
--- instance (Pretty n, Pretty p) => Pretty (Program n p)
+
+-- Pretty printing -------------
+
+instance (Pretty n, Pretty p) => Pretty (Program n p) where
+ pretty p
+  =   vcat (semis $ fmap prettyX (precomps  p)) <> line
+  <>  vcat (semis $ fmap pretty  (accums    p)) <> line
+  <>                     pretty  (loop      p)  <> line
+  <>  vcat (semis $ fmap prettyX (postcomps p)) <> line
+  <>  text "return"  <+> pretty  (returns   p)
+  where
+   semis = fmap (<> text ";")
+   prettyX  (a,b) = pretty a <+> text "=" <+> pretty b
+
+
+instance (Pretty n, Pretty p) => Pretty (Accumulator n p) where
+ pretty (Accumulator n acc)
+  =   pretty n <+> text "="
+  <+> (case acc of
+       Resumable t x -> pptx t x <+> text "(Resumable)"
+       Windowed  t x -> pptx t x <+> text "(Windowed)"
+       Latest    t x -> text "Latest" <+> pretty x <+> text ":" <+> pretty t)
+   where
+    pptx t x = pretty x <+> text ":" <+> pretty t
+
+
+instance (Pretty n, Pretty p) => Pretty (Loop n p) where
+ pretty (Loop t stmts)
+  =  text "for facts :" <+> pretty t <+> text "{" <> line
+  <> indent 2 (semis stmts)     <> line
+  <> text "}"
+  where
+   semis = vcat . fmap (<> text ";") . fmap pretty
+
+
+instance (Pretty n, Pretty p) => Pretty (Statement n p) where
+ pretty s
+  = case s of
+     If x stmts
+      -> text "if (" <> pretty x <> text ") {" <> line
+      <> semis stmts
+      <> text "}"
+
+     IfWindowed i stmts
+      -> text "windowed " <> pretty i <> text " {" <> line
+      <> semis stmts
+      <> text "}"
+
+     Let n x stmts
+      -> text "let" <+> pretty n <+> text "=" <+> pretty x <+> text "in {" <> line
+      <> semis stmts
+      <> text "}"
+
+     UseSource n stmts
+      -> text "source as" <+> pretty n <+> text "in {" <> line
+      <> semis stmts
+      <> text "}"
+
+     Update n x
+      -> text "update" <+> pretty n <+> text "with" <+> pretty x
+
+     Push n x
+      -> text "push" <+> pretty n <+> text "with" <+> pretty x
+
+  where
+   semis stmts = (indent 2 $ vcat $ fmap (<> text ";") $ fmap pretty stmts) <> line
