@@ -89,10 +89,10 @@ checkLoop
         => Fragment p
         -> Env  n Type
         -> Env  n AccType
-        -> Loop n p
+        -> FactLoop n p
         -> Either (ProgramError n p) ()
-checkLoop frag env accs (Loop inputType stmts_)
- = go env stmts_
+checkLoop frag env accs (FactLoop inputType inputBind stmts_)
+ = go (Map.insert inputBind (FunT [] inputType) env) stmts_
 
  where
   go e stmts = mapM_ (checkStmt e) stmts
@@ -112,9 +112,6 @@ checkLoop frag env accs (Loop inputType stmts_)
        -> do t <- mapLeft ProgramErrorExp
                 $ checkExp frag e x
              go (Map.insert n t e) stmts
-
-      UseSource n stmts
-       -> go (Map.insert n (FunT [] inputType) e) stmts
    
       Update n x
        -> do t <- mapLeft ProgramErrorExp

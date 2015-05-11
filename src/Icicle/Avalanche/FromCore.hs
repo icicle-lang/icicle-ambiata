@@ -33,7 +33,7 @@ programFromCore elemPrefix accPrefix p
  , A.accums     = fmap accum (C.reduces p)
 
  -- Nest the streams into a single loop
- , A.loop       = A.Loop (C.input p)
+ , A.loop       = A.FactLoop (C.input p) (Name elemPrefix)
                 $ makeStatements elemPrefix accPrefix
                   (C.streams p) (C.reduces p)
 
@@ -90,19 +90,17 @@ insertStream elemPrefix accPrefix strs reds (n, strm)
        -- All statements together
        alls     = upds <> subs
        
-       -- The sources need a name to refer to the input by
-       allSrc   = UseSource (NameMod elemPrefix n) alls
        -- Bind something or other
        allLet x = Let (NameMod elemPrefix n) x     alls
 
    in case strm of
        -- Sources just bind the input and do their children
        CS.Source
-        -> allSrc
+        -> allLet $ XVar $ Name elemPrefix
 
        -- If within i days
        CS.SourceWindowedDays i
-        -> IfWindowed i [allSrc]
+        -> IfWindowed i [allLet $ XVar $ Name elemPrefix]
 
        -- Filters become ifs
        CS.STrans (CS.SFilter _) x inp

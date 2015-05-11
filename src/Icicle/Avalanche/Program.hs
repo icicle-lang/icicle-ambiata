@@ -4,7 +4,7 @@ module Icicle.Avalanche.Program (
     Program         (..)
   , Accumulator     (..)
   , AccumulatorType (..)
-  , Loop            (..)
+  , FactLoop        (..)
   , Statement       (..)
   ) where
 
@@ -21,7 +21,7 @@ data Program n p =
   Program
   { precomps    :: [(Name n, Exp n p)]
   , accums      :: [Accumulator n p]
-  , loop        :: Loop n p
+  , loop        :: FactLoop n p
   , postcomps   :: [(Name n, Exp n p)]
   , returns     :: Exp n p
   }
@@ -57,9 +57,10 @@ data AccumulatorType n p
 
 -- | A streaming loop over the inputs.
 -- This will be run for every marked value from last execution, plus the new values.
-data Loop n p =
-  Loop  ValType -- ^ What are we iterating over?
-        [Statement n p]
+data FactLoop n p =
+  FactLoop  ValType             -- ^ What are we iterating over?
+            (Name n)            -- ^ What do we call the input?
+            [Statement n p]     -- ^ What do we execute?
  deriving (Eq, Ord, Show)
 
 -- | Part of a loop
@@ -71,8 +72,6 @@ data Statement n p
  | IfWindowed Int               [Statement n p]
  -- | Local binding, so the name better be unique
  | Let    (Name n) (Exp n p)    [Statement n p]
- -- | Bind source value to name
- | UseSource (Name n)           [Statement n p]
 
  -- Leaf nodes
  -- | Update a resumable or windowed fold accumulator,
@@ -103,9 +102,9 @@ instance TransformX Accumulator where
      Windowed  t x  -> Accumulator (names n) $ Windowed  t $ exps x
      Latest    t x  -> Accumulator (names n) $ Latest    t $ exps x
 
-instance TransformX Loop where
- transformX names exps (Loop t stmts)
-  = Loop t
+instance TransformX FactLoop where
+ transformX names exps (FactLoop t bind stmts)
+  = FactLoop t (names bind)
   $ fmap (transformX names exps) stmts
 
 instance TransformX Statement where
@@ -117,8 +116,6 @@ instance TransformX Statement where
       -> IfWindowed i (go ss)
      Let n x ss
       -> Let (names n) (exps x) (go ss)
-     UseSource n ss
-      -> UseSource (names n) (go ss)
      Update n x
       -> Update (names n) (exps x)
      Push n x
@@ -144,16 +141,14 @@ instance (Pretty n, Pretty p) => Pretty (Accumulator n p) where
  pretty (Accumulator n acc)
   =   pretty n <+> text "="
   <+> (case acc of
-       Resumable t x -> pptx t x <+> text "(Resumable)"
-       Windowed  t x -> pptx t x <+> text "(Windowed)"
-       Latest    t x -> text "Latest" <+> pretty x <+> text ":" <+> pretty t)
-   where
-    pptx t x = pretty x <+> text ":" <+> pretty t
+       Resumable _ x -> pretty x <+> text "(Resumable)"
+       Windowed  _ x -> pretty x <+> text "(Windowed)"
+       Latest    _ x -> text "Latest" <+> pretty x)
 
 
-instance (Pretty n, Pretty p) => Pretty (Loop n p) where
- pretty (Loop t stmts)
-  =  text "for facts :" <+> pretty t <+> text "{" <> line
+instance (Pretty n, Pretty p) => Pretty (FactLoop n p) where
+ pretty (FactLoop t bind stmts)
+  =  text "for facts as" <+> pretty bind <+> text ":" <+> pretty t <+> text "{" <> line
   <> indent 2 (semis stmts)     <> line
   <> text "}"
   where
@@ -175,11 +170,6 @@ instance (Pretty n, Pretty p) => Pretty (Statement n p) where
 
      Let n x stmts
       -> text "let" <+> pretty n <+> text "=" <+> pretty x <+> text "in {" <> line
-      <> semis stmts
-      <> text "}"
-
-     UseSource n stmts
-      -> text "source as" <+> pretty n <+> text "in {" <> line
       <> semis stmts
       <> text "}"
 

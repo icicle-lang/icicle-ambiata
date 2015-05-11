@@ -60,9 +60,10 @@ instance (Pretty n, Pretty p) => Pretty (Exp n p) where
   where
    inner i
     = case i of
-       XApp{} -> parens $ pretty i
-       XLam{} -> parens $ pretty i
-       _      ->          pretty i
+       XApp{}   -> parens $ pretty i
+       XLam{}   -> parens $ pretty i
+       XValue{} -> parens $ pretty i
+       _        ->          pretty i
    inner' i
     = case i of
        XLam{} -> parens $ pretty i
