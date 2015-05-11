@@ -44,8 +44,9 @@ freevars
 freevars xx
  = case xx of
     XVar n      -> Set.singleton n
-    XApp p q    -> freevars p <> freevars q
     XPrim{}     -> Set.empty
+    XValue{}    -> Set.empty
+    XApp p q    -> freevars p <> freevars q
     XLam n _ x  -> Set.delete n (freevars x)
     XLet n x y  -> freevars x <> Set.delete n (freevars y)
 
@@ -72,7 +73,10 @@ substMaybe name payload into
        -> return xx
       XApp p q
        -> XApp <$> go p <*> go q
+
       XPrim{}
+       -> return xx
+      XValue{}
        -> return xx
 
       XLam n t x

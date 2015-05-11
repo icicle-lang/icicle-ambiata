@@ -39,7 +39,7 @@ import qualified    Data.Map as Map
 -- If it is windowed, we instead store the values needed to recompute, as values will drop off
 -- the start of the window.
 type StreamValue
- = ([(BubbleGumFact, V.BaseValue)], StreamWindow)
+ = ([(BubbleGumFact, BaseValue)], StreamWindow)
 
 -- | Whether this stream is the result - directly or indirectly - of a windowed source
 data StreamWindow = Windowed Int | UnWindowed
@@ -49,7 +49,7 @@ data StreamWindow = Windowed Int | UnWindowed
 -- These can be used by windowing functions or ignored.
 -- Afterwards they are thrown away, but could still be included in the value itself.
 type DatedStreamValue
- = [AsAt (BubbleGumFact, V.BaseValue)]
+ = [AsAt (BubbleGumFact, BaseValue)]
 
 
 -- | A stream heap maps from names to stream values
@@ -122,7 +122,7 @@ eval window_check xh concreteValues sh s
   evalFilt x arg
    = do v <- applyX x arg
         case v of
-         V.VBase (V.VBool b)
+         V.VBase (VBool b)
           -> return b
          _
           -> Left (RuntimeErrorExpNotOfType v BoolT)

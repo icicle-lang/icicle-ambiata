@@ -34,8 +34,8 @@ type RuntimeError n
 
 -- | Evaluating a reduction also gives us the history of its inputs
 type ReduceValue n =
- ( BubbleGumOutput n V.BaseValue
- , V.BaseValue )
+ ( BubbleGumOutput n BaseValue
+ , BaseValue )
 
 
 -- | Evaluate a reduction.
@@ -84,12 +84,12 @@ eval reduction_name xh sh r
             num' <- evalX num
             -- It better be an Int
             case num' of
-             V.VBase (V.VInt i)
+             V.VBase (VInt i)
                  -- Take the latest i 
               -> let sv' = latest i $ fst sv
                  -- and split into history and values
                  in  return ( BubbleGumFacts $ flavoursOfSource sv'
-                            , V.VArray $ fmap snd sv' )
+                            , VArray $ fmap snd sv' )
 
              _
               -> Left (SV.RuntimeErrorExpNotOfType num' IntT)

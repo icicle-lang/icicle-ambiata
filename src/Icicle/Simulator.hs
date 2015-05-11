@@ -18,7 +18,7 @@ import           Icicle.Dictionary
 
 import           P
 
-import qualified Icicle.Common.Value      as V
+import qualified Icicle.Common.Base       as V
 import qualified Icicle.Core.Eval.Program as PV
 import qualified Icicle.Core.Program.Program as P
 

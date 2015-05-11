@@ -24,6 +24,9 @@ data ExpError n p
 
  -- Primitives cannot be partially applied
  | ExpErrorPrimitiveNotFullyApplied p (Exp n p)
+
+ -- Value not of type
+ | ExpErrorValueNotOfType BaseValue ValType
  deriving (Show, Eq, Ord)
 
 
@@ -44,4 +47,7 @@ instance (Pretty n, Pretty p) => Pretty (ExpError n p) where
 
     ExpErrorPrimitiveNotFullyApplied p x
      ->  text "The primitive " <> pretty p <> text " is not fully applied in expression " <> pretty x
+
+    ExpErrorValueNotOfType v t
+     ->  text "The value " <> pretty v <> text " does not have type " <> pretty t
 

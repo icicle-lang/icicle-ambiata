@@ -40,6 +40,7 @@ beta isValue toplevel
       XLet n v x
        -> XLet n (go v) (go x)
   
+      XValue{}        -> xx
       XVar{}          -> xx
       XPrim{}         -> xx
 
@@ -50,4 +51,5 @@ isSimpleValue xx
  = case xx of
     XPrim{} -> True
     XVar{}  -> True
+    XValue{}-> True
     _       -> False

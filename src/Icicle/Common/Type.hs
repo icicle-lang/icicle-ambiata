@@ -8,6 +8,7 @@
 -- and everything simpler.
 --
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE PatternGuards #-}
 module Icicle.Common.Type (
       ValType (..)
     , FunType (..)
@@ -23,6 +24,8 @@ module Icicle.Common.Type (
     , functionReturns
     , canApply
     , requireSame
+
+    , valueMatchesType
 
     ) where
 
@@ -148,6 +151,44 @@ requireSame err p q
  = return ()
  | otherwise
  = Left $ err p q
+
+
+valueMatchesType :: BaseValue -> ValType -> Bool
+valueMatchesType v t
+
+ | VInt _       <- v
+ , IntT         <- t
+ = True
+
+ | VBool _      <- v
+ , BoolT        <- t
+ = True
+
+ | VArray vs    <- v
+ , ArrayT t'    <- t
+ = all (flip valueMatchesType t') vs
+
+ | VPair a b    <- v
+ , PairT p q    <- t
+ =  valueMatchesType a p
+ && valueMatchesType b q
+
+ | VSome a      <- v
+ , OptionT p    <- t
+ =  valueMatchesType a p
+
+ | VNone        <- v
+ , OptionT _    <- t
+ = True
+
+ | VMap mv      <- v
+ , MapT p q     <- t
+ =  all (flip valueMatchesType p) (Map.keys  mv)
+ && all (flip valueMatchesType q) (Map.elems mv)
+
+ | otherwise
+ = False
+
 
 
 -- Pretty printing ---------------

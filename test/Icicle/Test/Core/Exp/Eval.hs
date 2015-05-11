@@ -9,6 +9,7 @@ import qualified Icicle.Core.Exp    as X
 import           Icicle.Core.Exp
 import           Icicle.Core.Eval.Exp
 import           Icicle.Common.Exp
+import           Icicle.Common.Base
 import           Icicle.Common.Value
 
 import           P

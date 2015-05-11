@@ -45,8 +45,8 @@ data RuntimeError n
 -- some value, and the minimum facts needed to compute next value.
 data ProgramValue n =
  ProgramValue {
-    value   :: V.BaseValue
- ,  history :: [BubbleGumOutput n V.BaseValue]
+    value   :: BaseValue
+ ,  history :: [BubbleGumOutput n BaseValue]
  }
  deriving (Show, Eq)
 
@@ -105,7 +105,7 @@ evalReds
         => V.Heap n Prim
         -> SV.StreamHeap  n
         -> [(Name n, Reduce n)]
-        -> Either (RuntimeError n) ([BubbleGumOutput n V.BaseValue], V.Heap n Prim)
+        -> Either (RuntimeError n) ([BubbleGumOutput n BaseValue], V.Heap n Prim)
 
 evalReds xh _ []
  = return ([], xh)

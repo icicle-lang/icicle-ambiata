@@ -3,7 +3,6 @@
 module Icicle.Common.Value (
       Heap
     , Value     (..)
-    , BaseValue (..)
     , getBaseValue
     ) where
 
@@ -26,19 +25,6 @@ data Value n p
  -- | A function carries its own heap, the name of its argument, and the expression to apply.
  -- Actually - we might want the type of the argument here too, for typeOfValue
  | VFun   (Heap n p)  (Name n)  (Exp n p)
- deriving (Show, Ord, Eq)
-
-
--- | Base values - real values that can be serialised and whatnot
--- Note that subvalues of these are also base values - so we can't have, say, a pair of functions.
-data BaseValue
- = VInt   Int
- | VBool  Bool
- | VArray [BaseValue]
- | VPair  BaseValue BaseValue
- | VSome  BaseValue
- | VNone
- | VMap   (Map.Map BaseValue BaseValue)
  deriving (Show, Ord, Eq)
 
 

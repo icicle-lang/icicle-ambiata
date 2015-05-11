@@ -5,6 +5,7 @@ module Icicle.Core.Eval.Exp (
       evalPrim
     ) where
 
+import Icicle.Common.Base
 import Icicle.Common.Value
 import Icicle.Common.Exp.Eval
 import Icicle.Core.Exp.Prim
