@@ -37,6 +37,7 @@ programFromCore elemPrefix accPrefix p
                 $ makeStatements elemPrefix accPrefix
                   (C.streams p) (C.reduces p)
 
+ , A.postdate   = C.postdate    p
  , A.postcomps  = C.postcomps   p
  , A.returns    = C.returns     p
  }

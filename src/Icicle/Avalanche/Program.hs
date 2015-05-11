@@ -22,6 +22,7 @@ data Program n p =
   { precomps    :: [(Name n, Exp n p)]
   , accums      :: [Accumulator n p]
   , loop        :: FactLoop n p
+  , postdate    :: Maybe (Name n)
   , postcomps   :: [(Name n, Exp n p)]
   , returns     :: Exp n p
   }
@@ -89,6 +90,7 @@ instance TransformX Program where
   { precomps  = fmap bind                    $ precomps  p
   , accums    = fmap (transformX names exps) $ accums    p
   , loop      =       transformX names exps  $ loop      p
+  , postdate  = fmap names                   $ postdate  p
   , postcomps = fmap bind                    $ postcomps p
   , returns   =                        exps  $ returns   p
   }
@@ -130,11 +132,17 @@ instance (Pretty n, Pretty p) => Pretty (Program n p) where
   =   vcat (semis $ fmap prettyX (precomps  p)) <> line
   <>  vcat (semis $ fmap pretty  (accums    p)) <> line
   <>                     pretty  (loop      p)  <> line
+  <>  postdateline
   <>  vcat (semis $ fmap prettyX (postcomps p)) <> line
   <>  text "return"  <+> pretty  (returns   p)
   where
    semis = fmap (<> text ";")
    prettyX  (a,b) = pretty a <+> text "=" <+> pretty b
+
+   postdateline
+    = case postdate p of
+      Nothing -> text ""
+      Just nm -> text "let " <> pretty nm <> text " = date; " <> line
 
 
 instance (Pretty n, Pretty p) => Pretty (Accumulator n p) where

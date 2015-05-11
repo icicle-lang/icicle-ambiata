@@ -1,5 +1,6 @@
 -- | Fusing two programs together
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE PatternGuards #-}
 module Icicle.Core.Program.Fusion (
     fusePrograms
   ) where
@@ -34,7 +35,8 @@ fusePrograms ln lp rn rp
         , precomps  = precomps  lp' <> precomps  rp'
         , streams   = streams   lp' <> streams   rp'
         , reduces   = reduces   lp' <> reduces   rp'
-        , postcomps = postcomps lp' <> postcomps rp'
+        , postdate  = postdate'
+        , postcomps = postdate'bind <> postcomps lp' <> postcomps rp'
         , returns   = X.XPrim (PrimConst (PrimConstPair lt rt)) @~ returns lp' @~ returns rp'
         }
     (le, re)
@@ -46,4 +48,22 @@ fusePrograms ln lp rn rp
    = renameProgram (NameMod pre)
   lp' = prefix ln lp
   rp' = prefix rn rp
+
+  -- Get new date binding for use in postcomputation.
+  (postdate', postdate'bind)
+  -- If both use the date, we need to bind both values
+   | Just ld <- postdate lp'
+   , Just rd <- postdate rp'
+   = (Just ld, [(rd, X.XVar ld)])
+
+   -- Only one uses the date
+   | Just ld <- postdate lp'
+   = (Just ld, [])
+
+   | Just rd <- postdate rp'
+   = (Just rd, [])
+
+   -- Neither use the date
+   | otherwise
+   = (Nothing, [])
 

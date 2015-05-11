@@ -94,6 +94,7 @@ program_sum
  , P.streams    = [(N.Name "inp", S.Source)
                   ,(N.Name "inp2", map_fst T.IntT (N.Name "inp"))]
  , P.reduces    = [(N.Name "red", fold_sum (N.Name "inp2"))]
+ , P.postdate   = Nothing
  , P.postcomps  = []
  , P.returns    = var "red"
  }
@@ -121,6 +122,7 @@ program_count
  , P.streams    = [(N.Name "inp", S.Source)
                   ,(N.Name "ones", S.STrans (S.SMap (T.PairT T.IntT T.DateTimeT) T.IntT) const1 (N.Name "inp"))]
  , P.reduces    = [(N.Name "count", fold_sum (N.Name "ones"))]
+ , P.postdate   = Nothing
  , P.postcomps  = []
  , P.returns    = X.XVar (N.Name "count")
  }
@@ -139,6 +141,7 @@ program_mean
                   ,(N.Name "ones", S.STrans (S.SMap (T.PairT T.IntT T.DateTimeT) T.IntT) const1 (N.Name "inp"))]
  , P.reduces    = [(N.Name "count", fold_sum (N.Name "ones"))
                   ,(N.Name "sum",   fold_sum (N.Name "inp2"))]
+ , P.postdate   = Nothing
  , P.postcomps  = []
  , P.returns    = var "sum" /~ var "count"
  }
@@ -156,6 +159,7 @@ program_filt_sum
                   ,(N.Name "inp2", map_fst T.IntT (N.Name "inp"))
                   ,(N.Name "filts", S.STrans (S.SFilter T.IntT) gt (N.Name "inp2"))]
  , P.reduces    = [(N.Name "sum",   fold_sum (N.Name "filts"))]
+ , P.postdate   = Nothing
  , P.postcomps  = []
  , P.returns    = X.XVar (N.Name "sum")
  }
@@ -172,6 +176,7 @@ program_latest n
  , P.precomps   = []
  , P.streams    = [(N.Name "inp", S.Source)]
  , P.reduces    = [(N.Name "latest", R.RLatest (T.PairT T.IntT T.DateTimeT) (constI n) (N.Name "inp"))]
+ , P.postdate   = Nothing
  , P.postcomps  = []
  , P.returns    = X.XVar (N.Name "latest")
  }
@@ -185,6 +190,7 @@ program_windowed_sum days
  , P.streams    = [(N.Name "inp", S.SourceWindowedDays days)
                   ,(N.Name "inp2", map_fst T.IntT (N.Name "inp"))]
  , P.reduces    = [(N.Name "sum",   fold_sum (N.Name "inp2"))]
+ , P.postdate   = Nothing
  , P.postcomps  = []
  , P.returns    = X.XVar (N.Name "sum")
  }
@@ -201,6 +207,7 @@ program_count_unique
                         (lam mT $ \acc -> lam T.IntT $ \v -> X.XPrim (P.PrimMap $ P.PrimMapInsertOrUpdate T.IntT T.IntT) @~ (lam T.IntT $ \_ -> constI 1) @~ constI 1 @~ v @~ acc)
                         (X.XValue (T.MapT T.IntT T.IntT) $ N.VMap $ Map.empty)
                         (N.Name "inp2"))]
+ , P.postdate   = Nothing
  , P.postcomps  = [(N.Name "size", X.XPrim (P.PrimFold (P.PrimFoldMap T.IntT T.IntT) T.IntT) @~ (lam T.IntT $ \a -> lam T.IntT $ \_ -> lam T.IntT $ \b -> a +~ b) @~ constI 0 @~ var "uniq")]
  , P.returns    = var "size"
  }

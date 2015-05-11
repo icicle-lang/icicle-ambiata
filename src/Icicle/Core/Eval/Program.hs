@@ -67,8 +67,13 @@ eval d sv p
         (bgs,reds)
                 <- evalReds pres            stms        (P.reduces      p)
 
+        -- Insert date into environment if necessary
+        let reds' = case P.postdate p of
+                    Nothing -> reds
+                    Just nm -> Map.insert nm (VBase $ VDateTime d) reds
+
         post    <- mapLeft RuntimeErrorPost
-                 $ XV.evalExps XV.evalPrim  reds        (P.postcomps    p)
+                 $ XV.evalExps XV.evalPrim  reds'       (P.postcomps    p)
 
         ret     <- mapLeft RuntimeErrorReturn
                  $ XV.eval XV.evalPrim post

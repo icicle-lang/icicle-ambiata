@@ -145,9 +145,14 @@ evalProgram evalPrim now values p
         -- Grab the history out of the accumulator heap while we're at it
         let bgs = bubbleGumOutputOfAccumulatorHeap accs'
 
+        -- Fill date if necesary
+        let env'' = case postdate p of
+                    Nothing -> env'
+                    Just nm -> Map.insert nm (VBase $ VDateTime now) env'
+
         -- Use final scalar heap to evaluate postcomputations
         posts <- mapLeft RuntimeErrorPost
-                $ XV.evalExps evalPrim env' (postcomps p)
+                $ XV.evalExps evalPrim env'' (postcomps p)
 
         -- Then use postcomputations to evaluate the return value
         ret   <- mapLeft RuntimeErrorReturn

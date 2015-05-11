@@ -144,7 +144,7 @@ instance Arbitrary n => Arbitrary (Reduce n) where
 
 instance Arbitrary n => Arbitrary (Program n) where
  arbitrary =
-   Program <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+   Program <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
 
 
 -- | Make an effort to generate a well typed expression, but no promises
@@ -236,9 +236,17 @@ programForStreamType streamType
         nreds       <- choose (1,3) :: Gen Int
         (rE,reds)   <- gen_reduces sE pE nreds
 
+        -- Do we want a date?
+        dat <- oneof  [ return Nothing
+                      , Just <$> freshInEnv rE ]
+        let rE' = case dat of
+                  Nothing -> rE
+                  Just nm -> Map.insert nm (FunT [] DateTimeT) rE
+                   
+
         -- Postcomputations with access to the reduction values
         nposts      <- choose (0,2) :: Gen Int
-        (eE, posts) <- gen_exps rE nposts
+        (eE, posts) <- gen_exps rE' nposts
 
         -- Finally, everything is wrapped up into one return value
         retT        <- arbitrary
@@ -249,6 +257,7 @@ programForStreamType streamType
                , P.precomps     = pres
                , P.streams      = strs
                , P.reduces      = reds
+               , P.postdate     = dat
                , P.postcomps    = posts
                , P.returns      = ret
                }

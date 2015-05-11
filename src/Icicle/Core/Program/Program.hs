@@ -34,6 +34,10 @@ data Program n =
  -- as that would require two passes!
  , reduces      :: [(Name n, Reduce n)]
 
+ -- | Whether the snapshot date is available in the postcomputations.
+ -- If so, the name of variable to use.
+ , postdate     :: Maybe (Name n)
+
  -- | Postcomputations with access to precomputations and reduces
  , postcomps    :: [(Name n, Exp n)]
 
@@ -49,6 +53,7 @@ renameProgram f p
   { precomps    = binds  renameExp      (precomps   p)
   , streams     = binds  renameStream   (streams    p)
   , reduces     = binds  renameReduce   (reduces    p)
+  , postdate    =        fmap f         (postdate   p)
   , postcomps   = binds  renameExp      (postcomps  p)
   , returns     =        renameExp f    (returns    p)
   }
@@ -67,7 +72,7 @@ instance Pretty n => Pretty (Program n) where
   <>    ppbinds (streams p)                            <> line
   <>    text "Reductions:"                             <> line    
   <>    ppbinds (reduces p)                            <> line
-  <>    text "Postcomputations:"                       <> line    
+  <>    text "Postcomputations" <> ppdate              <> line    
   <>    ppbinds (postcomps p)                          <> line
   <>    text "Returning:"                              <> line    
   <>    indent 4 (pretty  $ returns   p)               <> line
@@ -77,3 +82,9 @@ instance Pretty n => Pretty (Program n) where
    ppbinds
     = vcat
     . fmap (\(a,b) -> pretty a <+> text "=" <> line <> indent 4 (pretty b))
+
+   ppdate
+    = case postdate p of
+       Nothing -> text ":"
+       Just n  -> text " with date as " <> pretty n <> text ":"
+
