@@ -21,6 +21,7 @@ import qualified Icicle.Core.Program.Program as P
 import           P
 
 import           Data.Text
+import qualified Data.Map                    as Map
 
 
 data Dictionary =
@@ -189,7 +190,7 @@ program_count_unique
  , P.reduces    = [(N.Name "uniq",
                         R.RFold T.IntT mT
                         (lam mT $ \acc -> lam T.IntT $ \v -> X.XPrim (P.PrimMap $ P.PrimMapInsertOrUpdate T.IntT T.IntT) @~ (lam T.IntT $ \_ -> constI 1) @~ constI 1 @~ v @~ acc)
-                        (X.XPrim (P.PrimConst $ P.PrimConstMapEmpty T.IntT T.IntT))
+                        (X.XValue (T.MapT T.IntT T.IntT) $ N.VMap $ Map.empty)
                         (N.Name "inp"))]
  , P.postcomps  = [(N.Name "size", X.XPrim (P.PrimFold (P.PrimFoldMap T.IntT T.IntT) T.IntT) @~ (lam T.IntT $ \a -> lam T.IntT $ \_ -> lam T.IntT $ \b -> a +~ b) @~ constI 0 @~ var "uniq")]
  , P.returns    = var "size"

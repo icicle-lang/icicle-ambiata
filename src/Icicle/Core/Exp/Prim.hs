@@ -56,13 +56,8 @@ data PrimLogical
 
 -- | Constant primitives and constructors
 data PrimConst
- = PrimConstInt  Int
- | PrimConstBool Bool
- | PrimConstPair ValType ValType
+ = PrimConstPair ValType ValType
  | PrimConstSome ValType
- | PrimConstNone ValType
- | PrimConstArrayEmpty ValType
- | PrimConstMapEmpty   ValType ValType
  deriving (Eq, Ord, Show)
 
 -- | Folds and destructing things
@@ -101,20 +96,10 @@ typeOfPrim p
      -> FunT [funOfVal BoolT, funOfVal BoolT] BoolT
 
     -- Constants
-    PrimConst (PrimConstInt _)
-     -> intT
-    PrimConst (PrimConstBool _)
-     -> FunT [] BoolT
     PrimConst (PrimConstPair a b)
      -> FunT [funOfVal a, funOfVal b] (PairT a b)
     PrimConst (PrimConstSome a)
      -> FunT [funOfVal a] (OptionT a)
-    PrimConst (PrimConstNone a)
-     -> FunT [] (OptionT a)
-    PrimConst (PrimConstArrayEmpty a)
-     -> FunT [] (ArrayT a)
-    PrimConst (PrimConstMapEmpty k v)
-     -> FunT [] (MapT k v)
 
     -- Folds
     PrimFold PrimFoldBool ret
@@ -153,16 +138,8 @@ instance Pretty Prim where
  pretty (PrimLogical  PrimLogicalAnd)   = text  "and#"
  pretty (PrimLogical  PrimLogicalOr)    = text  "or#"
 
- pretty (PrimConst (PrimConstInt i))    = text (show i)
- pretty (PrimConst (PrimConstBool b))   = text (show b)
-
  pretty (PrimConst (PrimConstPair a b)) = text "pair#" <+> brackets (pretty a) <+> brackets (pretty b)
  pretty (PrimConst (PrimConstSome t))   = text "some#" <+> brackets (pretty t)
- pretty (PrimConst (PrimConstNone t))   = text "none#" <+> brackets (pretty t)
- pretty (PrimConst (PrimConstArrayEmpty t))
-                                        = text "Array_empty#" <+> brackets (pretty t)
- pretty (PrimConst (PrimConstMapEmpty k v))
-                                        = text "Map_empty#" <+> brackets (pretty k) <+> brackets (pretty v)
 
  pretty (PrimFold f ret)
   = let f' = case f of

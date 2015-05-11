@@ -8,6 +8,7 @@ import           Icicle.Test.Core.Arbitrary
 import           Icicle.Common.Exp
 import           Icicle.Common.Type
 import           Icicle.Core.Exp
+import           Icicle.Core.Exp.Combinators
 
 import           P
 
@@ -26,7 +27,7 @@ prop_prefixlet x =
 
 -- Prefixing a let with a known good expression doesn't affect
 prop_prefixletconst x =
- checkExp0 coreFragment x == checkExp0 coreFragment (XLet (fresh 0) (XPrim $ PrimConst $ PrimConstInt 0) x)
+ checkExp0 coreFragment x == checkExp0 coreFragment (XLet (fresh 0) (constI 0) x)
 
 
 -- Wrapping in a lambda does affect typechecking, but not *whether* type exists

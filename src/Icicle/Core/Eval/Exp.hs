@@ -72,18 +72,6 @@ evalPrim p vs
       -> primError
 
 
-     PrimConst (PrimConstBool b)
-      | [] <- vs
-      -> return $ VBase $ VBool b
-      | otherwise
-      -> primError
-
-     PrimConst (PrimConstInt i)
-      | [] <- vs
-      -> return $ VBase $ VInt i
-      | otherwise
-      -> primError
-
      PrimConst (PrimConstPair _ _)
       | [VBase x,VBase y] <- vs
       -> return $ VBase $ VPair x y
@@ -93,24 +81,6 @@ evalPrim p vs
      PrimConst (PrimConstSome _)
       | [VBase v] <- vs
       -> return $ VBase $ VSome v
-      | otherwise
-      -> primError
-
-     PrimConst (PrimConstNone _)
-      | [] <- vs
-      -> return $ VBase $ VNone
-      | otherwise
-      -> primError
-
-     PrimConst (PrimConstArrayEmpty _)
-      | [] <- vs
-      -> return $ VBase $ VArray []
-      | otherwise
-      -> primError
-
-     PrimConst (PrimConstMapEmpty _ _)
-      | [] <- vs
-      -> return $ VBase $ VMap Map.empty
       | otherwise
       -> primError
 

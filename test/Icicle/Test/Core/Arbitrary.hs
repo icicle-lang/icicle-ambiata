@@ -84,17 +84,9 @@ instance Arbitrary Prim where
           , PrimRelation PrimRelationGe
           , PrimLogical  PrimLogicalNot
           , PrimLogical  PrimLogicalAnd
-          , PrimConst (PrimConstInt 0)
-          , PrimConst (PrimConstInt 1)
-          , PrimConst (PrimConstInt 2)
-          , PrimConst (PrimConstBool True)
-          , PrimConst (PrimConstBool False)
           ]
-          [ PrimConst <$> PrimConstArrayEmpty <$> arbitrary
-          , PrimConst <$> (PrimConstPair <$> arbitrary <*> arbitrary)
+          [ PrimConst <$> (PrimConstPair <$> arbitrary <*> arbitrary)
           , PrimConst . PrimConstSome <$> arbitrary
-          , PrimConst . PrimConstNone <$> arbitrary
-          , PrimConst <$> (PrimConstMapEmpty <$> arbitrary <*> arbitrary)
 
           , PrimFold   PrimFoldBool <$> arbitrary
           , PrimFold <$> (PrimFoldPair <$> arbitrary <*> arbitrary) <*> arbitrary
@@ -124,7 +116,11 @@ instance (Arbitrary n, Arbitrary p) => Arbitrary (Exp n p) where
   arbitrary =
     oneof_sized
           [ XVar  <$> arbitrary
-          , XPrim <$> arbitrary ]
+          , XPrim <$> arbitrary
+          , do  t <- arbitrary
+                v <- baseValueForType t
+                return $ XValue t v
+          ]
           [ XApp  <$> arbitrary <*> arbitrary
           , XLam  <$> arbitrary <*> arbitrary <*> arbitrary
           , XLet  <$> arbitrary <*> arbitrary <*> arbitrary
@@ -171,10 +167,12 @@ tryExpForType ty env
     -- If we can't pull something from the context, fall back to a primitive.
     -- If we can't generate a primitive, we're basically out of luck.
     FunT [] ret
-     -> oneof [ primitive ret
+     -> oneof_sized
+              [ XValue ret <$> baseValueForType ret
+              , context   ret ]
+              [ primitive ret
               -- Because context falls back to primitive, it doesn't hurt to double
               -- its chances
-              , context   ret
               , context   ret ]
 
  where
@@ -185,13 +183,7 @@ tryExpForType ty env
          -- Give up.
          -- Maybe we can generate a constant based on the type
          Nothing
-          -> case r of
-              IntT     -> fillprim $ PrimConst (PrimConstInt 0)
-              BoolT    -> fillprim $ PrimConst (PrimConstBool False)
-              ArrayT i -> fillprim $ PrimConst (PrimConstArrayEmpty i)
-              MapT k v -> fillprim $ PrimConst (PrimConstMapEmpty k v)
-              OptionT i -> fillprim $ PrimConst (PrimConstNone i)
-              PairT a b -> fillprim $ PrimConst (PrimConstPair a b)
+          -> XValue r <$> baseValueForType r
 
          Just p'
           -> fillprim p'
@@ -357,15 +349,16 @@ baseValueForType t
     BoolT
      -> VBool <$> arbitrary
     ArrayT t'
-     -> VArray <$> listOf (baseValueForType t')
+     -> smaller (VArray <$> listOf (baseValueForType t'))
     PairT a b
-     -> VPair <$> baseValueForType a <*> baseValueForType b
+     -> smaller (VPair <$> baseValueForType a <*> baseValueForType b)
     OptionT t'
      -> oneof_sized [ return VNone ]
                     [ VSome <$> baseValueForType t' ]
     MapT k v
-     -> VMap . Map.fromList
-     <$> listOf ((,) <$> baseValueForType k <*> baseValueForType v)
+     -> smaller
+       (VMap . Map.fromList
+     <$> listOf ((,) <$> baseValueForType k <*> baseValueForType v))
 
 
 inputsForType :: ValType -> Gen ([AsAt (BubbleGumFact, BaseValue)], DateTime)

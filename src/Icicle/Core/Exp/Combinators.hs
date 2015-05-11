@@ -32,10 +32,10 @@ var = XVar . Name
 
 
 constI :: Int -> X.Exp n
-constI = XPrim . PrimConst . PrimConstInt
+constI = XValue IntT  . VInt
 
 constB :: Bool -> X.Exp n
-constB = XPrim . PrimConst . PrimConstBool
+constB = XValue BoolT . VBool
 
 
 prim2 :: Prim -> X.Exp n -> X.Exp n -> X.Exp n
