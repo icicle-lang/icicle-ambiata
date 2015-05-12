@@ -37,9 +37,9 @@ checkProgram
         -> Program n p
         -> Either (ProgramError n p) Type
 checkProgram frag p
- = do   pres    <- checkExps Map.empty
+ = do   pres    <- checkExps (Map.singleton (binddate p) (FunT [] DateTimeT))
                  $ precomps p
-        
+
         accs    <- Map.fromList
                <$> (mapM (checkAcc pres)            
                  $ accums p)
@@ -48,11 +48,8 @@ checkProgram frag p
 
         -- Put the accs in the environment
         let env' = Map.union (Map.map typeOfAccType accs) pres
-        let env''= case postdate p of
-                   Nothing -> env'
-                   Just nm -> Map.insert nm (FunT [] DateTimeT) env'
 
-        posts   <- checkExps env''
+        posts   <- checkExps env'
                  $ postcomps p
 
         mapLeft ProgramErrorExp

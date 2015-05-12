@@ -99,7 +99,7 @@ showDictionary d
           -> do T.putStrLn "Has type:"
                 print (PP.indent 4 $ PP.pretty ty)
          
-        let av = AvS.simpAvalanche $ AvC.programFromCore "elem" "accum" prog
+        let av = AvS.simpAvalanche $ AvC.programFromCore (AvC.namerText id) prog
         T.putStrLn "Avalanche:"
         print (PP.indent 4 $ PP.pretty av)
 

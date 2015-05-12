@@ -130,7 +130,9 @@ evalProgram
 evalProgram evalPrim now values p
  = do   -- Precomputations are just expressions
         pres  <- mapLeft RuntimeErrorPre
-               $ XV.evalExps evalPrim Map.empty  (precomps p)
+               $ XV.evalExps evalPrim
+                    (Map.singleton (binddate p) $ VBase $ VDateTime $ now)
+                    (precomps p)
         
         -- Initialise all the accumulators into their own heap
         accs  <- Map.fromList <$> mapM (initAcc evalPrim pres) (accums   p)
@@ -145,14 +147,9 @@ evalProgram evalPrim now values p
         -- Grab the history out of the accumulator heap while we're at it
         let bgs = bubbleGumOutputOfAccumulatorHeap accs'
 
-        -- Fill date if necesary
-        let env'' = case postdate p of
-                    Nothing -> env'
-                    Just nm -> Map.insert nm (VBase $ VDateTime now) env'
-
         -- Use final scalar heap to evaluate postcomputations
         posts <- mapLeft RuntimeErrorPost
-                $ XV.evalExps evalPrim env'' (postcomps p)
+                $ XV.evalExps evalPrim env' (postcomps p)
 
         -- Then use postcomputations to evaluate the return value
         ret   <- mapLeft RuntimeErrorReturn

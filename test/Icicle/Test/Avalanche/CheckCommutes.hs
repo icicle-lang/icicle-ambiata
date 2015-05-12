@@ -20,15 +20,14 @@ import           System.IO
 import           Test.QuickCheck
 
 -- We need a way to differentiate stream variables from scalars
-elemPrefix = Var "element" 0
-accPrefix  = Var "accumulator" 0
+namer = Convert.namerText (flip Var 0)
 
 -- A well typed core program is well typed under Avalanche
 prop_check_commutes t =
  forAll (programForStreamType t)
  $ \p ->
     isRight     (checkProgram p) ==>
-     let conv = Convert.programFromCore elemPrefix accPrefix p in
+     let conv = Convert.programFromCore namer p in
      case Check.checkProgram coreFragment conv of
       Right _
        -> property True

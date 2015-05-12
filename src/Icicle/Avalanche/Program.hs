@@ -19,10 +19,10 @@ import              P
 -- | An entire Avalanche program
 data Program n p =
   Program
-  { precomps    :: [(Name n, Exp n p)]
+  { binddate    :: Name n
+  , precomps    :: [(Name n, Exp n p)]
   , accums      :: [Accumulator n p]
   , loop        :: FactLoop n p
-  , postdate    :: Maybe (Name n)
   , postcomps   :: [(Name n, Exp n p)]
   , returns     :: Exp n p
   }
@@ -87,10 +87,10 @@ data Statement n p
 instance TransformX Program where
  transformX names exps p
   = Program
-  { precomps  = fmap bind                    $ precomps  p
+  { binddate  =      names                   $ binddate  p
+  , precomps  = fmap bind                    $ precomps  p
   , accums    = fmap (transformX names exps) $ accums    p
   , loop      =       transformX names exps  $ loop      p
-  , postdate  = fmap names                   $ postdate  p
   , postcomps = fmap bind                    $ postcomps p
   , returns   =                        exps  $ returns   p
   }
@@ -129,20 +129,15 @@ instance TransformX Statement where
 
 instance (Pretty n, Pretty p) => Pretty (Program n p) where
  pretty p
-  =   vcat (semis $ fmap prettyX (precomps  p)) <> line
+  =   text "let " <> pretty (binddate p) <> text " = date; " <> line
+  <>  vcat (semis $ fmap prettyX (precomps  p)) <> line
   <>  vcat (semis $ fmap pretty  (accums    p)) <> line
   <>                     pretty  (loop      p)  <> line
-  <>  postdateline
   <>  vcat (semis $ fmap prettyX (postcomps p)) <> line
   <>  text "return"  <+> pretty  (returns   p)
   where
    semis = fmap (<> text ";")
    prettyX  (a,b) = pretty a <+> text "=" <+> pretty b
-
-   postdateline
-    = case postdate p of
-      Nothing -> text ""
-      Just nm -> text "let " <> pretty nm <> text " = date; " <> line
 
 
 instance (Pretty n, Pretty p) => Pretty (Accumulator n p) where
