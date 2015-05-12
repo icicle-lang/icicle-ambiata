@@ -130,3 +130,17 @@ test-suite test
                      , QuickCheck                      == 2.7.*
                      , quickcheck-instances            == 0.3.*
                      , containers                      == 0.5.*
+
+test-suite test-cli
+  type:                exitcode-stdio-1.0
+
+  main-is:             test-cli.hs
+
+  ghc-options:         -Wall -threaded -O2
+
+  hs-source-dirs:
+                       test
+
+  build-depends:
+                       base                            >= 3          && < 5
+                     , orphanarium-core
