@@ -103,6 +103,8 @@ showDictionary d
         T.putStrLn "Avalanche:"
         print (PP.indent 4 $ PP.pretty av)
 
+        T.putStrLn ""
+
 
 
 usage :: IO ()

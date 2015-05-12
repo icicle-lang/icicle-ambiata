@@ -12,31 +12,31 @@ import qualified    Icicle.Internal.Pretty as PP
 
 import              P
 import              System.IO
+import              Test.QuickCheck
 
 check_virtual prog
  = case checkProgram prog of
-    Left err
-     -> do  putStrLn "With program:"
-            print (PP.pretty prog)
-            putStrLn "Got typechecking error:"
-            print (PP.pretty err)
-            return False
+    Left err 
+     -> counterexample ("With program:" <> show (PP.pretty prog))
+      $ counterexample ("Got typechecking error:" <> show (PP.pretty err))
+      $ False
     Right _
-     -> return True
+     -> property True
 
 check_attributes (Dictionary attrs)
- = and <$> mapM check attrs
+ = conjoin
+ $ fmap check attrs
  where
   check (_, ConcreteDefinition _)
-   = return True
+   = property True
   check (_, VirtualDefinition virtual)
    = check_virtual (program virtual)
 
+
+prop_virtuals_typecheck
+ = once (check_attributes demographics)
+
+return []
 tests :: IO Bool
-tests
- = do   putStrLn "=== test/Icicle/Test/Dictionary/Types: typechecking demogrpahics === "
-        res <- check_attributes demographics
-        case res of
-         True  -> putStrLn "+++ OK"
-         False -> putStrLn "--- FAIL"
-        return res
+tests = $quickCheckAll
+
