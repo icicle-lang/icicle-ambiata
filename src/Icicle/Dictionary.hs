@@ -82,6 +82,10 @@ demographics =
  , (Attribute "Count unique",
                                     VirtualDefinition
                                   $ Virtual (Attribute "salary") program_count_unique)
+
+ , (Attribute "Days since latest",
+                                    VirtualDefinition
+                                  $ Virtual (Attribute "salary") program_days_since_latest)
  ]
 
 
@@ -213,3 +217,30 @@ program_count_unique
  }
  where
   mT = T.MapT T.IntT T.IntT
+
+program_days_since_latest :: P.Program Text
+program_days_since_latest
+ = P.Program
+ { P.input      = T.IntT
+ , P.precomps   = []
+ , P.streams    = [(N.Name "inp",  S.Source)
+                  -- extract snd of pair
+                  ,(N.Name "dates", S.STrans (S.SMap (T.PairT T.IntT T.DateTimeT) T.DateTimeT)
+                                        (lam (T.PairT T.IntT T.DateTimeT) $ \p ->
+                                           X.XPrim (P.PrimFold (P.PrimFoldPair T.IntT T.DateTimeT) T.DateTimeT)
+                                        @~ (lam T.IntT $ \_ -> lam T.DateTimeT $ \b -> b )
+                                        @~ p)
+                                        (N.Name "inp")) ]
+
+ , P.reduces    = [(N.Name "last", R.RLatest T.DateTimeT (constI 1) (N.Name "dates"))]
+
+ , P.postdate   = Just (N.Name "now")
+ , P.postcomps  = [(N.Name "days", X.XPrim (P.PrimFold (P.PrimFoldArray T.DateTimeT) (T.OptionT T.IntT))
+                                    @~ (lam (T.OptionT T.IntT) $ \_ -> lam T.DateTimeT $ \b ->
+                                            X.XPrim (P.PrimConst $ P.PrimConstSome T.IntT)
+                                            @~ (X.XPrim (P.PrimDateTime P.PrimDateTimeDaysDifference) @~ b @~ var "now" ))
+                                    @~ X.XValue (T.OptionT T.IntT) N.VNone @~ var "last")]
+
+ , P.returns    = var "days"
+ }
+
