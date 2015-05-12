@@ -9,8 +9,11 @@ module Icicle.Avalanche.FromCore (
 
 import              Icicle.Common.Base
 import              Icicle.Common.Exp
+import              Icicle.Common.Type
 
 import              Icicle.Core.Exp.Prim
+import              Icicle.Core.Exp.Combinators
+
 import              Icicle.Avalanche.Program    as A
 import qualified    Icicle.Core.Program.Program as C
 import qualified    Icicle.Core.Reduce          as CR
@@ -55,7 +58,7 @@ programFromCore namer p
 
  -- Nest the streams into a single loop
  , A.loop       = A.FactLoop (C.input p) (namerFact namer)
-                $ makeStatements namer
+                $ makeStatements namer (C.input p)
                   (C.streams p) (C.reduces p)
 
  , A.postcomps  = makepostdate
@@ -87,30 +90,32 @@ programFromCore namer p
 makeStatements
         :: Ord n
         => Namer n
+        -> ValType
         -> [(Name n, CS.Stream n)]
         -> [(Name n, CR.Reduce n)]
         -> [Statement n Prim]
-makeStatements namer strs reds
+makeStatements namer inputType strs reds
  = let sources = filter ((==Nothing) . CS.inputOfStream . snd) strs
-   in  fmap (insertStream namer strs reds) sources
+   in  fmap (insertStream namer inputType strs reds) sources
 
 
 -- | Create statements for given stream, its child streams, and its reduces
 insertStream
         :: Ord n
         => Namer n
+        -> ValType
         -> [(Name n, CS.Stream n)]
         -> [(Name n, CR.Reduce n)]
         ->  (Name n, CS.Stream n)
         -> Statement n Prim
-insertStream namer strs reds (n, strm)
+insertStream namer inputType strs reds (n, strm)
        -- Get the reduces and their updates
  = let reds' = filter ((==n) . CR.inputOfReduce . snd) reds
        upds  = fmap (statementOfReduce namer) reds'
 
        -- Get all streams that use this directly as input
        strs' = filter ((==Just n) . CS.inputOfStream . snd) strs
-       subs  = fmap   (insertStream namer strs reds)     strs'
+       subs  = fmap   (insertStream namer inputType strs reds)     strs'
 
        -- All statements together
        alls     = upds <> subs
@@ -125,7 +130,19 @@ insertStream namer strs reds (n, strm)
 
        -- If within i days
        CS.SourceWindowedDays i
-        -> IfWindowed i [allLet $ XVar $ namerFact namer]
+        -> let unpair    = XPrim (PrimFold (PrimFoldPair inputType DateTimeT) BoolT)
+               factValue = namerElemPrefix namer (namerFact namer)
+               factDate  = namerElemPrefix namer (namerDate namer)
+               nowDate   = namerDate namer
+               diff      = XPrim (PrimDateTime PrimDateTimeDaysDifference)
+
+               check  = XLam factValue  inputType
+                      $ XLam factDate   DateTimeT
+                      $ (diff @~ XVar factDate @~ XVar nowDate) <=~ constI i
+
+               window = unpair @~ check @~ XVar (namerFact namer)
+               
+           in If window [allLet $ XVar $ namerFact namer]
 
        -- Filters become ifs
        CS.STrans (CS.SFilter _) x inp

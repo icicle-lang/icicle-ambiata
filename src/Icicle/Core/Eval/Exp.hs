@@ -52,7 +52,7 @@ evalPrim p vs
           PrimRelationGt -> i >  j
           PrimRelationGe -> i >= j
           PrimRelationLt -> i <  j
-          PrimRelationLe -> i <  j
+          PrimRelationLe -> i <= j
           PrimRelationEq -> i == j
           PrimRelationNe -> i /= j
       | otherwise

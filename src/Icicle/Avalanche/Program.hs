@@ -69,8 +69,6 @@ data Statement n p
  -- Branches
  -- | An IF for filters
  = If (Exp n p)                 [Statement n p]
- -- | An if for windows
- | IfWindowed Int               [Statement n p]
  -- | Local binding, so the name better be unique
  | Let    (Name n) (Exp n p)    [Statement n p]
 
@@ -114,8 +112,6 @@ instance TransformX Statement where
   = case stmt of
      If x ss
       -> If (exps x) (go ss)
-     IfWindowed i ss
-      -> IfWindowed i (go ss)
      Let n x ss
       -> Let (names n) (exps x) (go ss)
      Update n x
@@ -163,11 +159,6 @@ instance (Pretty n, Pretty p) => Pretty (Statement n p) where
   = case s of
      If x stmts
       -> text "if (" <> pretty x <> text ") {" <> line
-      <> semis stmts
-      <> text "}"
-
-     IfWindowed i stmts
-      -> text "windowed " <> pretty i <> text " {" <> line
       <> semis stmts
       <> text "}"
 

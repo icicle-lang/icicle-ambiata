@@ -107,9 +107,6 @@ checkLoop frag env accs (FactLoop inputType inputBind stmts_)
              requireSame (ProgramErrorWrongType x) t (FunT [] BoolT)
              go e stmts
 
-      IfWindowed _ stmts
-       ->    go e stmts
-
       Let n x stmts
        -> do t <- mapLeft ProgramErrorExp
                 $ checkExp frag e x

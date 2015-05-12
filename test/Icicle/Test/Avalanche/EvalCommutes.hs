@@ -56,7 +56,7 @@ prop_eval_commutes_history t =
  forAll (programForStreamType t)
  $ \p ->
  forAll (inputsForType t)
- $ \(vs,d) ->
+ $ \(vs,d) -> counterexample (show $ pretty p) $
     isRight     (checkProgram p) ==>
      case (AE.evalProgram XV.evalPrim d vs $ AC.programFromCore namer p, PV.eval d vs p) of
       (Right (abg, _), Right cres)

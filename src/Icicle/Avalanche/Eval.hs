@@ -239,12 +239,6 @@ evalStmt evalPrim now xh input ah stmt
              _
               -> return ah
 
-    IfWindowed window stmts
-        -- Check the input fact's time against now
-     -> if   withinWindow (time input) now window
-        then go' stmts
-        else return ah
-
     -- Evaluate and insert the value into the heap.
     Let n x stmts
      -> do  v <- eval x
