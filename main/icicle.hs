@@ -11,8 +11,9 @@ import           Data.Text.IO as T
 import           Icicle
 import           Icicle.Data.DateTime
 
-import qualified Icicle.Internal.Pretty as PP
+import qualified Icicle.Internal.Pretty      as PP
 import qualified Icicle.Core.Program.Check   as Program
+import qualified Icicle.Common.Fresh         as Fresh
 
 import qualified Icicle.Avalanche.FromCore   as AvC
 import qualified Icicle.Avalanche.Simp       as AvS
@@ -99,7 +100,8 @@ showDictionary d
           -> do T.putStrLn "Has type:"
                 print (PP.indent 4 $ PP.pretty ty)
          
-        let av = AvS.simpAvalanche $ AvC.programFromCore (AvC.namerText id) prog
+        let av = AvS.simpAvalanche (Fresh.counterPrefixNameState "anf")
+               $ AvC.programFromCore (AvC.namerText id) prog
         T.putStrLn "Avalanche:"
         print (PP.indent 4 $ PP.pretty av)
 

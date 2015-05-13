@@ -2,8 +2,10 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE PatternGuards #-}
 module Icicle.Common.Exp.Compounds (
-      takeApps
+      makeApps
+    , takeApps
     , takePrimApps
+    , makeLets
     , substMaybe
     , freevars
     , allvars
@@ -14,6 +16,18 @@ import              Icicle.Common.Exp.Exp
 import              P
 
 import qualified    Data.Set    as Set
+
+
+-- | Apply an expression to any number of arguments
+makeApps :: Exp n p -> [Exp n p] -> Exp n p
+makeApps f args
+ = foldl XApp f args
+
+
+-- | Prefix an expression with some let bindings
+makeLets :: [(Name n, Exp n p)] -> Exp n p -> Exp n p
+makeLets bs x
+ = foldr (uncurry XLet) x bs
 
 
 -- | Split an expression into its function part and any arguments applied to it.

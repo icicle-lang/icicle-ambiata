@@ -51,6 +51,7 @@ library
                        Icicle.BubbleGum
 
                        Icicle.Common.Base
+                       Icicle.Common.Fresh
                        Icicle.Common.Exp
                        Icicle.Common.Exp.Alpha
                        Icicle.Common.Exp.Check
@@ -60,6 +61,7 @@ library
                        Icicle.Common.Exp.Eval
                        Icicle.Common.Exp.Simp
                        Icicle.Common.Exp.Simp.Beta
+                       Icicle.Common.Exp.Simp.ANormal
                        Icicle.Common.Fragment
                        Icicle.Common.Type
                        Icicle.Common.Value
