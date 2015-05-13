@@ -47,7 +47,7 @@ renameExp f (XLam n t b) = XLam (f n) t (renameExp f b)
 renameExp f (XLet n p q) = XLet (f n) (renameExp f p) (renameExp f q)
 
 class TransformX x where
- transformX :: (Name n -> Name n') -> (Exp n p -> Exp n' p') -> x n p -> x n' p'
+ transformX :: (Applicative m, Monad m) => (Name n -> m (Name n')) -> (Exp n p -> m (Exp n' p')) -> x n p -> m (x n' p')
 
 -- Pretty printing ---------------
 

@@ -56,16 +56,16 @@ run dict p =
         lift $ mapM_ (print.prettyResult) v
  where
   prettyResult (attr, vals)
-   =      PP.text "Virtual feature: " <> PP.text (T.unpack $ getAttribute attr)
-   PP.<$> PP.indent 4 (PP.vcat $ fmap prettyResultEnt vals)
+   =       PP.text "Virtual feature: " <> PP.text (T.unpack $ getAttribute attr)
+   PP.<$$> PP.indent 4 (PP.vcat $ fmap prettyResultEnt vals)
 
   prettyResultEnt (ent, res)
-   =      PP.text "Entity:  " <> PP.text (show $ getEntity ent)
-   PP.<$> case res of
+   =       PP.text "Entity:  " <> PP.text (show $ getEntity ent)
+   PP.<$$> case res of
             Left e
-                -> PP.text "Error:   " PP.<$> PP.indent 4 (PP.text $ show e) <> PP.line
+                -> PP.text "Error:   " PP.<$$> PP.indent 4 (PP.text $ show e) <> PP.line
             Right (v,hist)
-                -> PP.text "Value:   " <> PP.text (show v) PP.<$> PP.text "History: " <> PP.indent 0 (PP.vcat $ fmap (PP.text . show) hist) <> PP.line
+                -> PP.text "Value:   " <> PP.text (show v) PP.<$$> PP.text "History: " <> PP.indent 0 (PP.vcat $ fmap (PP.text . show) hist) <> PP.line
 
 -- Show the virtual features
 showDictionary :: Dictionary -> IO ()
@@ -100,10 +100,12 @@ showDictionary d
           -> do T.putStrLn "Has type:"
                 print (PP.indent 4 $ PP.pretty ty)
          
-        let av = AvS.simpAvalanche (Fresh.counterPrefixNameState "anf")
-               $ AvC.programFromCore (AvC.namerText id) prog
+        let av   = AvC.programFromCore (AvC.namerText id) prog
+        let avs  = snd
+                 $ Fresh.runFresh (AvS.simpAvalanche av)
+                                  (Fresh.counterPrefixNameState "anf")
         T.putStrLn "Avalanche:"
-        print (PP.indent 4 $ PP.pretty av)
+        print (PP.indent 4 $ PP.pretty avs)
 
         T.putStrLn ""
 

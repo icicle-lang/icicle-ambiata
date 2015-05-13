@@ -84,42 +84,56 @@ data Statement n p
 
 instance TransformX Program where
  transformX names exps p
-  = Program
-  { binddate  =      names                   $ binddate  p
-  , precomps  = fmap bind                    $ precomps  p
-  , accums    = fmap (transformX names exps) $ accums    p
-  , loop      =       transformX names exps  $ loop      p
-  , postcomps = fmap bind                    $ postcomps p
-  , returns   =                        exps  $ returns   p
-  }
+  = do  binddate'  <-      names                   $ binddate  p
+        precomps'  <- mapM bind                    $ precomps  p
+        accums'    <- mapM (transformX names exps) $ accums    p
+        loop'      <-       transformX names exps  $ loop      p
+        postcomps' <- mapM bind                    $ postcomps p
+        returns'   <-                        exps  $ returns   p
+        return $ Program 
+               { binddate  = binddate'
+               , precomps  = precomps'
+               , accums    = accums'
+               , loop      = loop'
+               , postcomps = postcomps'
+               , returns   = returns'
+               }
   where
-   bind (n,x) = (names n, exps x)
+   bind (n,x)
+    = do n' <- names n
+         x' <- exps x
+         return (n', x')
 
 instance TransformX Accumulator where
  transformX names exps (Accumulator n at)
-  = case at of
-     Resumable t x  -> Accumulator (names n) $ Resumable t $ exps x
-     Windowed  t x  -> Accumulator (names n) $ Windowed  t $ exps x
-     Latest    t x  -> Accumulator (names n) $ Latest    t $ exps x
+  = do n' <- names n
+       case at of
+        Resumable t x
+         -> Accumulator n' . Resumable t <$> exps x
+        Windowed  t x
+         -> Accumulator n' . Windowed  t <$> exps x
+        Latest    t x
+         -> Accumulator n' . Latest    t <$> exps x
 
 instance TransformX FactLoop where
  transformX names exps (FactLoop t bind stmts)
-  = FactLoop t (names bind)
-  $ fmap (transformX names exps) stmts
+  = FactLoop t
+    <$> names bind
+    <*> mapM (transformX names exps) stmts
 
 instance TransformX Statement where
  transformX names exps stmt
   = case stmt of
      If x ss
-      -> If (exps x) (go ss)
+      -> If <$> exps x <*> go ss
      Let n x ss
-      -> Let (names n) (exps x) (go ss)
+      -> Let <$> names n <*> exps x <*> go ss
      Update n x
-      -> Update (names n) (exps x)
+      -> Update <$> names n <*> exps x
      Push n x
-      -> Push (names n) (exps x)
+      -> Push <$> names n <*> exps x
   where
-   go = fmap (transformX names exps)
+   go = mapM (transformX names exps)
 
 -- Pretty printing -------------
 

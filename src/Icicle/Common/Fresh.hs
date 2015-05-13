@@ -57,3 +57,10 @@ instance Functor (Fresh n) where
  fmap f p
   = p >>= (return . f)
 
+instance Applicative (Fresh n) where
+ pure = return
+ (<*>) f x
+  = do f' <- f
+       x' <- x
+       return $ f' x'
+ 
