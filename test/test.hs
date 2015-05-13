@@ -12,6 +12,7 @@ import qualified Icicle.Test.Core.Program.Condense
 
 import qualified Icicle.Test.Avalanche.EvalCommutes
 import qualified Icicle.Test.Avalanche.CheckCommutes
+import qualified Icicle.Test.Avalanche.SimpCommutes
 
 import qualified Icicle.Test.Dictionary.Types
 
@@ -35,6 +36,7 @@ main
 
         , Icicle.Test.Avalanche.EvalCommutes.tests
         , Icicle.Test.Avalanche.CheckCommutes.tests
+        , Icicle.Test.Avalanche.SimpCommutes.tests
 
         , Icicle.Test.Dictionary.Types.tests
         ]

@@ -176,6 +176,10 @@ instance (Pretty n, Pretty p) => Pretty (Statement n p) where
       <> semis stmts
       <> text "}"
 
+     Let n x [sub@(Let _ _ _)]
+      -> text "let" <+> pretty n <+> text "=" <+> pretty x <> line
+      <> pretty sub
+
      Let n x stmts
       -> text "let" <+> pretty n <+> text "=" <+> pretty x <+> text "in {" <> line
       <> semis stmts

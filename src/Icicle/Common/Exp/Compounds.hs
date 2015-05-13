@@ -6,9 +6,10 @@ module Icicle.Common.Exp.Compounds (
     , takeApps
     , takePrimApps
     , makeLets
-    , substMaybe
+    , takeLets
     , freevars
     , allvars
+    , substMaybe
     ) where
 
 import              Icicle.Common.Base
@@ -22,12 +23,6 @@ import qualified    Data.Set    as Set
 makeApps :: Exp n p -> [Exp n p] -> Exp n p
 makeApps f args
  = foldl XApp f args
-
-
--- | Prefix an expression with some let bindings
-makeLets :: [(Name n, Exp n p)] -> Exp n p -> Exp n p
-makeLets bs x
- = foldr (uncurry XLet) x bs
 
 
 -- | Split an expression into its function part and any arguments applied to it.
@@ -48,6 +43,23 @@ takePrimApps xx
  = case takeApps xx of
     (XPrim p, args) -> Just (p, args)
     _               -> Nothing
+
+
+-- | Prefix an expression with some let bindings
+makeLets :: [(Name n, Exp n p)] -> Exp n p -> Exp n p
+makeLets bs x
+ = foldr (uncurry XLet) x bs
+
+-- | Pull out the top-level let bindings
+takeLets :: Exp n p -> ([(Name n, Exp n p)], Exp n p)
+takeLets xx
+ = case xx of
+    XLet n x y
+     -> let (bs, y') = takeLets y
+        in  ((n,x) : bs, y')
+    _
+     -> ([], xx)
+
 
 
 -- | Collect all free variables in an expression
