@@ -6,6 +6,7 @@ module Icicle.Common.Exp.Compounds (
     , takePrimApps
     , substMaybe
     , freevars
+    , allvars
     ) where
 
 import              Icicle.Common.Base
@@ -49,6 +50,22 @@ freevars xx
     XApp p q    -> freevars p <> freevars q
     XLam n _ x  -> Set.delete n (freevars x)
     XLet n x y  -> freevars x <> Set.delete n (freevars y)
+
+
+-- | Collect all variable names in an expression:
+-- free and bound
+allvars
+        :: Ord n
+        => Exp n p
+        -> Set.Set (Name n)
+allvars xx
+ = case xx of
+    XVar n      -> Set.singleton n
+    XPrim{}     -> Set.empty
+    XValue{}    -> Set.empty
+    XApp p q    -> allvars p <> allvars q
+    XLam n _ x  -> Set.singleton n <> allvars x
+    XLet n x y  -> Set.singleton n <> allvars x <> allvars y
 
 
 -- | Substitute an expression in, but if it would require renaming
