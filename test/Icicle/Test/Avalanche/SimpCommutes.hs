@@ -32,7 +32,7 @@ prop_simp_commutes_value t =
  forAll (programForStreamType t)
  $ \p ->
  forAll (inputsForType t)
- $ \(vs,d) -> counterexample (show $ pretty p) $
+ $ \(vs,d) ->
     isRight     (checkProgram p) ==>
      let p' = AC.programFromCore namer p
 
@@ -41,7 +41,9 @@ prop_simp_commutes_value t =
                         (AS.simpAvalanche p')
                         (Fresh.counterNameState (Name . Var "anf") 0)
          eval = AE.evalProgram XV.evalPrim d vs
-     in (eval p') === (eval simp)
+     in counterexample (show $ pretty p')
+      $ counterexample (show $ pretty simp)
+       (eval p' === eval simp)
 
 
 return []

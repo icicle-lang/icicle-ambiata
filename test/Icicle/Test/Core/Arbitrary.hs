@@ -112,6 +112,10 @@ instance Arbitrary ValType where
          , OptionT <$> arbitrary
          ]
 
+instance Arbitrary FunType where
+  arbitrary =
+   FunT <$> arbitrary <*> arbitrary
+
 -- Totally arbitrary expressions.
 -- These *probably* won't type check, but sometimes you get lucky.
 instance (Arbitrary n, Arbitrary p) => Arbitrary (Exp n p) where
@@ -175,7 +179,8 @@ tryExpForType ty env
               [ primitive ret
               -- Because context falls back to primitive, it doesn't hurt to double
               -- its chances
-              , context   ret ]
+              , context   ret
+              , letty     ret ]
 
  where
   primitive r
@@ -207,6 +212,13 @@ tryExpForType ty env
    | otherwise
    = primitive r
         
+  letty r
+   = do t  <- arbitrary
+        n  <- arbitrary
+        x  <- tryExpForType t env
+        let env' = Map.insert n t env
+        XLet n x <$> tryExpForType (FunT [] r) env'
+
 
 -- | Generate a well typed expression.
 -- If we can't generate a well typed expression we want quickcheck to count it as
