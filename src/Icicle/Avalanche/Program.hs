@@ -139,7 +139,7 @@ instance TransformX Statement where
 
 instance (Pretty n, Pretty p) => Pretty (Program n p) where
  pretty p
-  =   text "let " <> pretty (binddate p) <> text " = date; " <> line
+  =   pretty (binddate p) <> text " = date; " <> line
   <>  vcat (semis $ fmap prettyX (precomps  p)) <> line
   <>  vcat (semis $ fmap pretty  (accums    p)) <> line
   <>                     pretty  (loop      p)  <> line
@@ -177,11 +177,11 @@ instance (Pretty n, Pretty p) => Pretty (Statement n p) where
       <> text "}"
 
      Let n x [sub@(Let _ _ _)]
-      -> text "let" <+> pretty n <+> text "=" <+> pretty x <> line
+      -> pretty n <+> text "=" <+> pretty x <> text "; and" <> line
       <> pretty sub
 
      Let n x stmts
-      -> text "let" <+> pretty n <+> text "=" <+> pretty x <+> text "in {" <> line
+      -> pretty n <+> text "=" <+> pretty x <> text "; in {" <> line
       <> semis stmts
       <> text "}"
 

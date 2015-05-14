@@ -69,7 +69,7 @@ instance (Pretty n, Pretty p) => Pretty (Exp n p) where
        XLam{} -> parens $ pretty i
        _      ->          pretty i
 
- pretty (XLam b t x) = text "\\" <> pretty b <> text " : " <> pretty t <> text ". " <> pretty x
+ pretty (XLam b t x) = text "\\" <> pretty b <> text " : " <> pretty t <> text ". " <> align (pretty x)
 
  pretty (XLet b x i) = text "let " <> pretty b
                     <> text " = "  <> align (pretty x)
