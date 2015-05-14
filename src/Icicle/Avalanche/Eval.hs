@@ -268,6 +268,8 @@ evalStmt evalPrim now xh input ah stmt
                      -> Left (RuntimeErrorLoopAccumulatorBad n)
             go (Map.insert n v xh) ah stmts
 
+    Block stmts
+     -> go xh ah stmts
 
     -- Update accumulator
     Write n x

@@ -124,6 +124,9 @@ checkLoop frag env accs (FactLoop inputType inputBind stmts_)
               _
                -> Left ProgramErrorTODO
 
+      Block stmts
+       -> go e stmts
+
       Write n x
        -> do t <- mapLeft ProgramErrorExp
                 $ checkExp frag e x
