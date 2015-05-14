@@ -35,15 +35,21 @@ alphaEquality' m x1 x2
  , XVar n2          <- x2
  = lookupBoth m (n1, n2)
 
- -- Recurse with same map
- | XApp x11 x12     <- x1
- , XApp x21 x22     <- x2
- = go x11 x21 && go x12 x22
-
  -- Simple primitive
  | XPrim p1         <- x1
  , XPrim p2         <- x2
  = p1 == p2
+
+ -- Base values
+ | XValue t1 v1     <- x1
+ , XValue t2 v2     <- x2
+ =  t1 == t2
+ && v1 == v2
+
+ -- Recurse with same map
+ | XApp x11 x12     <- x1
+ , XApp x21 x22     <- x2
+ = go x11 x21 && go x12 x22
 
  -- Types must match. Names can be different, so add them to bijection
  | XLam n1 t1 x1'   <- x1

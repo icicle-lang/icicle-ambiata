@@ -9,7 +9,7 @@ import           Icicle.Test.Core.Arbitrary
 import           Icicle.Core.Program.Check
 import           Icicle.Core.Program.Fusion
 import qualified Icicle.Core.Eval.Program   as PV
-import qualified Icicle.Common.Value        as V
+import qualified Icicle.Common.Base         as V
 
 import           Icicle.Data.DateTime
 

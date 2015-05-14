@@ -45,8 +45,8 @@ data RuntimeError n
 -- some value, and the minimum facts needed to compute next value.
 data ProgramValue n =
  ProgramValue {
-    value   :: V.BaseValue
- ,  history :: [BubbleGumOutput n V.BaseValue]
+    value   :: BaseValue
+ ,  history :: [BubbleGumOutput n BaseValue]
  }
  deriving (Show, Eq)
 
@@ -67,8 +67,13 @@ eval d sv p
         (bgs,reds)
                 <- evalReds pres            stms        (P.reduces      p)
 
+        -- Insert date into environment if necessary
+        let reds' = case P.postdate p of
+                    Nothing -> reds
+                    Just nm -> Map.insert nm (VBase $ VDateTime d) reds
+
         post    <- mapLeft RuntimeErrorPost
-                 $ XV.evalExps XV.evalPrim  reds        (P.postcomps    p)
+                 $ XV.evalExps XV.evalPrim  reds'       (P.postcomps    p)
 
         ret     <- mapLeft RuntimeErrorReturn
                  $ XV.eval XV.evalPrim post
@@ -105,7 +110,7 @@ evalReds
         => V.Heap n Prim
         -> SV.StreamHeap  n
         -> [(Name n, Reduce n)]
-        -> Either (RuntimeError n) ([BubbleGumOutput n V.BaseValue], V.Heap n Prim)
+        -> Either (RuntimeError n) ([BubbleGumOutput n BaseValue], V.Heap n Prim)
 
 evalReds xh _ []
  = return ([], xh)

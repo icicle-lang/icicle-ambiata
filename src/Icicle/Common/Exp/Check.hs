@@ -59,6 +59,11 @@ typecheck frag e xx
     XVar n
      -> lookupOrDie ExpErrorVarNotInEnv e n
 
+    XValue t v
+     -> if   valueMatchesType v t
+        then return (FunT [] t)
+        else Left (ExpErrorValueNotOfType v t)
+
     -- Application
     XApp p q
      -> do  p' <- go p
@@ -97,6 +102,9 @@ checkPrimsFullyApplied frag xx
  = case xx of
     -- Variables are ok
     XVar{}
+     -> ok
+
+    XValue{}
      -> ok
 
     -- Application to primitive:

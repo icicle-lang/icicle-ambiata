@@ -37,9 +37,9 @@ checkProgram
         -> Program n p
         -> Either (ProgramError n p) Type
 checkProgram frag p
- = do   pres    <- checkExps Map.empty
+ = do   pres    <- checkExps (Map.singleton (binddate p) (FunT [] DateTimeT))
                  $ precomps p
-        
+
         accs    <- Map.fromList
                <$> (mapM (checkAcc pres)            
                  $ accums p)
@@ -89,12 +89,14 @@ checkLoop
         => Fragment p
         -> Env  n Type
         -> Env  n AccType
-        -> Loop n p
+        -> FactLoop n p
         -> Either (ProgramError n p) ()
-checkLoop frag env accs (Loop inputType stmts_)
- = go env stmts_
+checkLoop frag env accs (FactLoop inputType inputBind stmts_)
+ = go (Map.insert inputBind streamType env) stmts_
 
  where
+  streamType = FunT [] (PairT inputType DateTimeT)
+
   go e stmts = mapM_ (checkStmt e) stmts
 
   checkStmt e s
@@ -105,16 +107,10 @@ checkLoop frag env accs (Loop inputType stmts_)
              requireSame (ProgramErrorWrongType x) t (FunT [] BoolT)
              go e stmts
 
-      IfWindowed _ stmts
-       ->    go e stmts
-
       Let n x stmts
        -> do t <- mapLeft ProgramErrorExp
                 $ checkExp frag e x
              go (Map.insert n t e) stmts
-
-      UseSource n stmts
-       -> go (Map.insert n (FunT [] inputType) e) stmts
    
       Update n x
        -> do t <- mapLeft ProgramErrorExp

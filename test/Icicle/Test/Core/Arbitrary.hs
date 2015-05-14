@@ -22,6 +22,7 @@ import           Icicle.Core.Reduce
 import           Icicle.Core.Program.Program    as P
 
 import           Icicle.Test.Arbitrary.Base
+import           Icicle.Test.Arbitrary ()
 import           Orphanarium.Corpus
 
 import           Test.QuickCheck
@@ -80,21 +81,13 @@ instance Arbitrary Prim where
     oneof_sized_vals
           [ PrimArith PrimArithMinus
           , PrimArith PrimArithPlus
-          , PrimRelation PrimRelationGt
-          , PrimRelation PrimRelationGe
+          , PrimRelation PrimRelationGt IntT
+          , PrimRelation PrimRelationGe IntT
           , PrimLogical  PrimLogicalNot
           , PrimLogical  PrimLogicalAnd
-          , PrimConst (PrimConstInt 0)
-          , PrimConst (PrimConstInt 1)
-          , PrimConst (PrimConstInt 2)
-          , PrimConst (PrimConstBool True)
-          , PrimConst (PrimConstBool False)
           ]
-          [ PrimConst <$> PrimConstArrayEmpty <$> arbitrary
-          , PrimConst <$> (PrimConstPair <$> arbitrary <*> arbitrary)
+          [ PrimConst <$> (PrimConstPair <$> arbitrary <*> arbitrary)
           , PrimConst . PrimConstSome <$> arbitrary
-          , PrimConst . PrimConstNone <$> arbitrary
-          , PrimConst <$> (PrimConstMapEmpty <$> arbitrary <*> arbitrary)
 
           , PrimFold   PrimFoldBool <$> arbitrary
           , PrimFold <$> (PrimFoldPair <$> arbitrary <*> arbitrary) <*> arbitrary
@@ -111,12 +104,17 @@ instance Arbitrary ValType where
    -- It's fine if they're big, but they have to fit in memory.
    oneof_sized_vals
          [ IntT
-         , BoolT ]
+         , BoolT
+         , DateTimeT ]
          [ ArrayT <$> arbitrary
          , PairT  <$> arbitrary <*> arbitrary
          , MapT  <$> arbitrary <*> arbitrary
          , OptionT <$> arbitrary
          ]
+
+instance Arbitrary FunType where
+  arbitrary =
+   FunT <$> arbitrary <*> arbitrary
 
 -- Totally arbitrary expressions.
 -- These *probably* won't type check, but sometimes you get lucky.
@@ -124,7 +122,11 @@ instance (Arbitrary n, Arbitrary p) => Arbitrary (Exp n p) where
   arbitrary =
     oneof_sized
           [ XVar  <$> arbitrary
-          , XPrim <$> arbitrary ]
+          , XPrim <$> arbitrary
+          , do  t <- arbitrary
+                v <- baseValueForType t
+                return $ XValue t v
+          ]
           [ XApp  <$> arbitrary <*> arbitrary
           , XLam  <$> arbitrary <*> arbitrary <*> arbitrary
           , XLet  <$> arbitrary <*> arbitrary <*> arbitrary
@@ -146,7 +148,7 @@ instance Arbitrary n => Arbitrary (Reduce n) where
 
 instance Arbitrary n => Arbitrary (Program n) where
  arbitrary =
-   Program <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+   Program <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
 
 
 -- | Make an effort to generate a well typed expression, but no promises
@@ -171,11 +173,14 @@ tryExpForType ty env
     -- If we can't pull something from the context, fall back to a primitive.
     -- If we can't generate a primitive, we're basically out of luck.
     FunT [] ret
-     -> oneof [ primitive ret
+     -> oneof_sized
+              [ XValue ret <$> baseValueForType ret
+              , context   ret ]
+              [ primitive ret
               -- Because context falls back to primitive, it doesn't hurt to double
               -- its chances
               , context   ret
-              , context   ret ]
+              , letty     ret ]
 
  where
   primitive r
@@ -185,13 +190,7 @@ tryExpForType ty env
          -- Give up.
          -- Maybe we can generate a constant based on the type
          Nothing
-          -> case r of
-              IntT     -> fillprim $ PrimConst (PrimConstInt 0)
-              BoolT    -> fillprim $ PrimConst (PrimConstBool False)
-              ArrayT i -> fillprim $ PrimConst (PrimConstArrayEmpty i)
-              MapT k v -> fillprim $ PrimConst (PrimConstMapEmpty k v)
-              OptionT i -> fillprim $ PrimConst (PrimConstNone i)
-              PairT a b -> fillprim $ PrimConst (PrimConstPair a b)
+          -> XValue r <$> baseValueForType r
 
          Just p'
           -> fillprim p'
@@ -213,6 +212,13 @@ tryExpForType ty env
    | otherwise
    = primitive r
         
+  letty r
+   = do t  <- arbitrary
+        n  <- freshInEnv env
+        x  <- tryExpForType t env
+        let env' = Map.insert n t env
+        XLet n x <$> tryExpForType (FunT [] r) env'
+
 
 -- | Generate a well typed expression.
 -- If we can't generate a well typed expression we want quickcheck to count it as
@@ -242,9 +248,17 @@ programForStreamType streamType
         nreds       <- choose (1,3) :: Gen Int
         (rE,reds)   <- gen_reduces sE pE nreds
 
+        -- Do we want a date?
+        dat <- oneof  [ return Nothing
+                      , Just <$> freshInEnv rE ]
+        let rE' = case dat of
+                  Nothing -> rE
+                  Just nm -> Map.insert nm (FunT [] DateTimeT) rE
+                   
+
         -- Postcomputations with access to the reduction values
         nposts      <- choose (0,2) :: Gen Int
-        (eE, posts) <- gen_exps rE nposts
+        (eE, posts) <- gen_exps rE' nposts
 
         -- Finally, everything is wrapped up into one return value
         retT        <- arbitrary
@@ -255,6 +269,7 @@ programForStreamType streamType
                , P.precomps     = pres
                , P.streams      = strs
                , P.reduces      = reds
+               , P.postdate     = dat
                , P.postcomps    = posts
                , P.returns      = ret
                }
@@ -303,8 +318,10 @@ programForStreamType streamType
 
   -- Raw source or windowed
   streamSource
-   = oneof [ return (streamType, Source)
-           , (,) streamType . SourceWindowedDays <$> arbitrary ]
+   = oneof [ return (sourceType, Source)
+           , (,) sourceType . SourceWindowedDays <$> arbitrary ]
+
+  sourceType = PairT streamType DateTimeT
 
   -- Transformer: filter or map
   streamTransformer :: Env Var ValType -> Env Var Type -> Gen (ValType, Stream Var)
@@ -356,16 +373,19 @@ baseValueForType t
      -> VInt <$> arbitrary
     BoolT
      -> VBool <$> arbitrary
+    DateTimeT
+     -> VDateTime <$> arbitrary
     ArrayT t'
-     -> VArray <$> listOf (baseValueForType t')
+     -> smaller (VArray <$> listOf (baseValueForType t'))
     PairT a b
-     -> VPair <$> baseValueForType a <*> baseValueForType b
+     -> smaller (VPair <$> baseValueForType a <*> baseValueForType b)
     OptionT t'
      -> oneof_sized [ return VNone ]
                     [ VSome <$> baseValueForType t' ]
     MapT k v
-     -> VMap . Map.fromList
-     <$> listOf ((,) <$> baseValueForType k <*> baseValueForType v)
+     -> smaller
+       (VMap . Map.fromList
+     <$> listOf ((,) <$> baseValueForType k <*> baseValueForType v))
 
 
 inputsForType :: ValType -> Gen ([AsAt (BubbleGumFact, BaseValue)], DateTime)

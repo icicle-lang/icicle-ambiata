@@ -35,8 +35,12 @@ checkProgram p
         -- Check reduces against streams and pres
         reds    <- checkReduces stms                      (P.reduces      p)
 
+        -- Insert date if necessary
+        let reds' = case P.postdate p of
+                    Nothing -> reds
+                    Just nm -> Map.insert nm (FunT [] DateTimeT) reds
         -- Check postcomputations with precomputations and reduces
-        post    <- checkExps ProgramErrorPost reds        (P.postcomps    p)
+        post    <- checkExps ProgramErrorPost reds'       (P.postcomps    p)
 
         -- Finally, check the return against the postcomputation environment
         rt <- mapLeft ProgramErrorReturn $ checkExp coreFragment post (P.returns      p)

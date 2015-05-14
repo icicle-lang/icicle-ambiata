@@ -11,11 +11,17 @@ import           Data.Text.IO as T
 import           Icicle
 import           Icicle.Data.DateTime
 
-import qualified Icicle.Internal.Pretty as PP
--- import qualified Icicle.Core.Program.Program as Program
+import qualified Icicle.Internal.Pretty      as PP
 import qualified Icicle.Core.Program.Check   as Program
+import qualified Icicle.Core.Program.Fusion  as Program
+import qualified Icicle.Core.Program.Condense as Program
+import qualified Icicle.Common.Fresh         as Fresh
+
+import qualified Icicle.Avalanche.FromCore   as AvC
+import qualified Icicle.Avalanche.Simp       as AvS
 
 import           P
+import           Data.List as List
 
 import           System.Environment
 import           System.Exit
@@ -32,6 +38,8 @@ main = getArgs >>= \args -> case args of
     usage
   ["--dictionary"] ->
      showDictionary demographics
+  ["--fuse"] ->
+     showFused demographics
   [factset] ->
     orDie renderParseError $ run demographics factset
   _ ->
@@ -53,16 +61,17 @@ run dict p =
         lift $ mapM_ (print.prettyResult) v
  where
   prettyResult (attr, vals)
-   =      PP.text "Virtual feature: " <> PP.text (T.unpack $ getAttribute attr)
-   PP.<$> PP.indent 4 (PP.vcat $ fmap prettyResultEnt vals)
+   =       PP.text "Virtual feature: " <> PP.text (T.unpack $ getAttribute attr)
+   PP.<$$> PP.indent 4 (PP.vcat $ fmap prettyResultEnt vals)
 
   prettyResultEnt (ent, res)
-   =      PP.text "Entity:  " <> PP.text (show $ getEntity ent)
-   PP.<$> case res of
+   =       PP.text "Entity:  " <> PP.text (show $ getEntity ent)
+   PP.<$$> case res of
             Left e
-                -> PP.text "Error:   " PP.<$> PP.indent 4 (PP.text $ show e) <> PP.line
+                -> PP.text "Error:   " PP.<$$> PP.indent 4 (PP.text $ show e) <> PP.line
             Right (v,hist)
-                -> PP.text "Value:   " <> PP.text (show v) PP.<$> PP.text "History: " <> PP.indent 0 (PP.vcat $ fmap (PP.text . show) hist) <> PP.line
+                -> PP.text "Value:   " <> PP.text (show v) PP.<$$> PP.text "History: " <> PP.indent 0 (PP.vcat $ fmap (PP.text . show) hist) <> PP.line
+
 
 -- Show the virtual features
 showDictionary :: Dictionary -> IO ()
@@ -71,20 +80,16 @@ showDictionary d
         let vs = getVirtualFeatures d
         mapM_ showVirtual vs
  where
-  getVirtualFeatures (Dictionary fs)
-   = P.concatMap getV fs
-
-  getV (a, VirtualDefinition v)
-   = [(a,v)]
-  getV _
-   = []
-
   showVirtual (a,v)
-   = do T.putStrLn ("Name:     "     <> getAttribute a)
+   = do T.putStrLn ("Name:     " <> getAttribute a)
         T.putStrLn ("Concrete: " <> getAttribute (concrete v))
+        showProgram $ program v
 
-        let prog = program v
-        let check = Program.checkProgram prog
+
+-- | Show a single program as Core, type check it, then its avalanche
+showProgram :: Program.Program Text -> IO ()
+showProgram prog
+ = do   let check = Program.checkProgram prog
 
         T.putStrLn ("Program:  ")
         print (PP.indent 4 $ PP.pretty prog)
@@ -96,6 +101,32 @@ showDictionary d
          Right ty
           -> do T.putStrLn "Has type:"
                 print (PP.indent 4 $ PP.pretty ty)
+         
+        let av   = AvC.programFromCore (AvC.namerText id) prog
+        let avs  = snd
+                 $ Fresh.runFresh (AvS.simpAvalanche av)
+                                  (Fresh.counterPrefixNameState "anf")
+        T.putStrLn "Avalanche:"
+        print (PP.indent 4 $ PP.pretty avs)
+
+        T.putStrLn ""
+
+
+-- Fuse all the virtual features into concrete buckets and show the result
+showFused :: Dictionary -> IO ()
+showFused d
+ = do   let vs = getVirtualFeatures d
+        let cs = List.groupBy (\(_,v) (_,v') -> concrete v == concrete v') vs
+
+        T.putStrLn "All fused"
+        mapM_ showConcrete cs
+        
+ where
+  showConcrete vs
+   = do let ps = fmap (\(a,v) -> (getAttribute a, program v)) vs
+        case Program.fuseMultiple ps of
+         Left err -> T.putStrLn (T.pack $ show err)
+         Right p' -> showProgram $ Program.condenseProgram p'
 
 
 usage :: IO ()
@@ -109,4 +140,8 @@ usage = T.putStrLn . T.unlines $ [
   , "icicle --dictionary"
   , ""
   , "              Show and typecheck the virtual features"
+  , ""
+  , "icicle --fuse"
+  , ""
+  , "              Show virtual features fused together"
   ]

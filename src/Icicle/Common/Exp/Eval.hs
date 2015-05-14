@@ -48,6 +48,9 @@ eval evalPrim h xx
      -> maybeToRight (RuntimeErrorVarNotInHeap n)
                      (Map.lookup n h)
 
+    XValue _ bv
+     -> return $ VBase bv
+
     -- Application of primitive.
     -- Primitives must be fully applied, so evalPrim will eat all the arguments.
     XApp{}

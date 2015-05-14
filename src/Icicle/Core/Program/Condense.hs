@@ -5,6 +5,8 @@
 {-# LANGUAGE PatternGuards #-}
 module Icicle.Core.Program.Condense (
     condenseProgram
+  , condenseStreams
+  , condenseReduces
   ) where
 
 import Icicle.Common.Base
@@ -15,9 +17,13 @@ import Icicle.Core.Stream.Stream
 
 import              P
 
--- | Condense the stream operations together
+-- | Condense streams then reductions
 condenseProgram :: Ord n => Program n -> Program n
-condenseProgram p
+condenseProgram = condenseReduces . condenseStreams
+
+-- | Condense the stream operations together
+condenseStreams :: Ord n => Program n -> Program n
+condenseStreams p
  = let (ss,rs) = go [] (streams p) (reduces p)
    in  p { streams = ss
          , reduces = rs }
@@ -35,6 +41,30 @@ condenseProgram p
    -- This is a unique stream so tack it on
    | otherwise
    = go (seen <> [(n,t)]) ts reds
+
+
+-- | Condense the reduces together
+condenseReduces :: Ord n => Program n -> Program n
+condenseReduces p
+ = let (rs,xs) = go [] [] (reduces p)
+   in  p { reduces   = rs
+         -- For each removed reduce, prepend a postcomputation binding
+         , postcomps = xs <> postcomps p }
+ where
+  go seen xs []
+   = (seen, xs)
+
+  -- Check if reduce is like any we've already seen
+  go seen xs ((n,t):ts)
+   | ((n',_):_) <- filter (reduceEquivalent t . snd) seen
+   -- If so, we can just add an expression binding it.
+   -- Reductions cannot refer to other reductions, so we do not need to substitute in.
+   = go seen (xs <> [(n, XVar n')]) ts
+
+   -- This is a unique reduce so tack it on; we don't need to bind it
+   | otherwise
+   = go (seen <> [(n,t)]) xs ts
+
 
 
 -- | Check if two streams are equivalent
@@ -87,5 +117,29 @@ substStreamName from to ss rs
        -> RLatest t x to
       _
        -> r
+
+
+-- | Check if two reductions are equivalent
+reduceEquivalent :: Ord n => Reduce n -> Reduce n -> Bool
+reduceEquivalent r r'
+
+ | RFold tt  ta  xk  xz  inp  <- r
+ , RFold tt' ta' xk' xz' inp' <- r'
+ =  tt == tt'
+ && ta == ta'
+ && xk `alphaEquality` xk'
+ && xz `alphaEquality` xz'
+ && inp == inp'
+
+ | RLatest tt  xn  inp        <- r
+ , RLatest tt' xn' inp'       <- r'
+ =  tt == tt'
+ && xn `alphaEquality` xn'
+ && inp == inp'
+
+ -- Must be different constructors
+ | otherwise
+ = False
+
 
 

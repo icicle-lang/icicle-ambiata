@@ -67,7 +67,7 @@ All expressions here are worker functions, only able to access the precomputatio
 
 ```
 Stream  ::= Source                              : Stream (concrete feature type)
-          | Take   (Exp Int) (Stream a)         : Stream a
+          | SourceWindowed Days                 : Stream (concrete feature type)
           | Filter (Exp (a -> Bool)) (Stream a) : Stream a
           | Map    (Exp (a -> b))    (Stream a) : Stream b
 ```
@@ -75,7 +75,7 @@ Stream  ::= Source                              : Stream (concrete feature type)
 These are not strictly necessary from an expressiveness standpoint, as a fold on each of these could be rewritten as a fold on the original data.
 However, making these explicit makes composition a lot easier than with folds.
 
-I had Scan here before, but a) I'm not convinced it's necessary, and b) it complicates lookbehind computation.
+I had Scan and Take here before, but a) I'm not convinced they are necessary, and b) they complicate lookbehind computation.
 
 Similarly, Drop could be added, but it also complicates lookbehind.
 
@@ -106,6 +106,11 @@ Postcomputations
 Finally, the result of the reductions might need to be modified somehow.
 Postcomputations can be any expression, referring to precomputations, the result of reductions and previous postcomputations.
 Postcomputations cannot refer to streams.
+
+Postcomputations are also the only place that the current or snapshot date can be read and used.
+By disallowing reductions and stream transformers from using the current date, we ensure determinism:
+the stream transformers have the same output each time they are run on the same data.
+This is very important for computing lookbehind and so on, since we know that only same values that are needed today will be needed tomorrow.
 
 
 Types
@@ -142,7 +147,12 @@ Postcomputations cannot access stream values, but we can assume that all reducti
 What about "numflips" or a sum over all time?
 Since it's simply a reduce over all previous data, and the previous data isn't going to change, we should be able to just use the previous reduce value etc.
 
-So in summary, each fold reduction should output its current value as the lookbehind, and each latest reduction should output the values it used.
+There are three types of reductions: 
+
+- latest N: the used facts are stored
+- windowed: the used facts are stored
+- fold over all time: the current accumulator value is stored as lookbehind
+
 Note that the fold reduction's value will not necessarily be the output value of the virtual feature, as a postcomputation could modify that.
 
 

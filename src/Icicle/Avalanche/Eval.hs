@@ -130,7 +130,9 @@ evalProgram
 evalProgram evalPrim now values p
  = do   -- Precomputations are just expressions
         pres  <- mapLeft RuntimeErrorPre
-               $ XV.evalExps evalPrim Map.empty  (precomps p)
+               $ XV.evalExps evalPrim
+                    (Map.singleton (binddate p) $ VBase $ VDateTime $ now)
+                    (precomps p)
         
         -- Initialise all the accumulators into their own heap
         accs  <- Map.fromList <$> mapM (initAcc evalPrim pres) (accums   p)
@@ -199,15 +201,18 @@ evalLoop
         :: Ord n
         => XV.EvalPrim n p
         -> DateTime
-        -> Loop n p
+        -> FactLoop n p
         -> Heap n p
         -> AccumulatorHeap n
         -> AsAt (BubbleGumFact, BaseValue)
         -> Either (RuntimeError n p) (AccumulatorHeap n)
 
-evalLoop evalPrim now (Loop _ stmts) xh ah input
+evalLoop evalPrim now (FactLoop _ bind stmts) xh ah input
  -- Just go through all the statements
- = foldM (evalStmt evalPrim now xh input) ah stmts
+ = foldM (evalStmt evalPrim now xh' input) ah stmts
+ where
+  xh' = Map.insert bind streamvalue xh
+  streamvalue = VBase $ VPair (snd $ fact input) (VDateTime $ time input)
 
 
 -- | Evaluate a single statement for a single value
@@ -234,20 +239,10 @@ evalStmt evalPrim now xh input ah stmt
              _
               -> return ah
 
-    IfWindowed window stmts
-        -- Check the input fact's time against now
-     -> if   withinWindow (time input) now window
-        then go' stmts
-        else return ah
-
     -- Evaluate and insert the value into the heap.
     Let n x stmts
      -> do  v <- eval x
             go (Map.insert n v xh) ah stmts
-
-    -- Store the input in the heap.
-    UseSource n stmts
-     -> go (Map.insert n (VBase $ snd $ fact input) xh) ah stmts
 
     -- Update accumulator
     Update n x

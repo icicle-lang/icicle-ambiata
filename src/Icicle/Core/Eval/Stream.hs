@@ -39,7 +39,7 @@ import qualified    Data.Map as Map
 -- If it is windowed, we instead store the values needed to recompute, as values will drop off
 -- the start of the window.
 type StreamValue
- = ([(BubbleGumFact, V.BaseValue)], StreamWindow)
+ = ([(BubbleGumFact, BaseValue)], StreamWindow)
 
 -- | Whether this stream is the result - directly or indirectly - of a windowed source
 data StreamWindow = Windowed Int | UnWindowed
@@ -49,7 +49,7 @@ data StreamWindow = Windowed Int | UnWindowed
 -- These can be used by windowing functions or ignored.
 -- Afterwards they are thrown away, but could still be included in the value itself.
 type DatedStreamValue
- = [AsAt (BubbleGumFact, V.BaseValue)]
+ = [AsAt (BubbleGumFact, BaseValue)]
 
 
 -- | A stream heap maps from names to stream values
@@ -80,12 +80,12 @@ eval window_check xh concreteValues sh s
  = case s of
     -- Raw input is easy
     Source
-     -> return (fmap fact concreteValues, UnWindowed)
+     -> return (fmap streamvalue concreteValues, UnWindowed)
 
     -- Windowed input.
     -- The dates are assured to be increasing, so we could really use a takeWhile.dropWhile or something
     SourceWindowedDays window
-     -> return ( fmap fact
+     -> return ( fmap streamvalue
                $ filter (\v -> withinWindow (time v) window_check window)
                $ concreteValues
 
@@ -103,6 +103,9 @@ eval window_check xh concreteValues sh s
             return (sv', snd sv)
 
  where
+  streamvalue v
+   = (fst $ fact v, VPair (snd $ fact v) (VDateTime $ time v))
+
   -- Evaluate transform over given values.
   -- We don't need the stream heap any more.
   --
@@ -122,7 +125,7 @@ eval window_check xh concreteValues sh s
   evalFilt x arg
    = do v <- applyX x arg
         case v of
-         V.VBase (V.VBool b)
+         V.VBase (VBool b)
           -> return b
          _
           -> Left (RuntimeErrorExpNotOfType v BoolT)

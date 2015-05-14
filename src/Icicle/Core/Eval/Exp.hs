@@ -5,9 +5,11 @@ module Icicle.Core.Eval.Exp (
       evalPrim
     ) where
 
+import Icicle.Common.Base
 import Icicle.Common.Value
 import Icicle.Common.Exp.Eval
 import Icicle.Core.Exp.Prim
+import qualified    Icicle.Data.DateTime as DT
 
 import              P
 
@@ -39,14 +41,18 @@ evalPrim p vs
       -> primError
 
 
-     PrimRelation rel
-      | [VBase (VInt i), VBase (VInt j)] <- vs
+     PrimRelation rel _
+      -- It is safe to assume they are of the same value type
+      -- and "ordable", if we assume that it typechecks.
+      -- So we should be able to rely on the BaseValue Ord instance
+      -- without unwrapping the different types
+      | [VBase i, VBase j] <- vs
       -> return $ VBase $ VBool
        $ case rel of
           PrimRelationGt -> i >  j
           PrimRelationGe -> i >= j
           PrimRelationLt -> i <  j
-          PrimRelationLe -> i <  j
+          PrimRelationLe -> i <= j
           PrimRelationEq -> i == j
           PrimRelationNe -> i /= j
       | otherwise
@@ -71,18 +77,6 @@ evalPrim p vs
       -> primError
 
 
-     PrimConst (PrimConstBool b)
-      | [] <- vs
-      -> return $ VBase $ VBool b
-      | otherwise
-      -> primError
-
-     PrimConst (PrimConstInt i)
-      | [] <- vs
-      -> return $ VBase $ VInt i
-      | otherwise
-      -> primError
-
      PrimConst (PrimConstPair _ _)
       | [VBase x,VBase y] <- vs
       -> return $ VBase $ VPair x y
@@ -92,24 +86,6 @@ evalPrim p vs
      PrimConst (PrimConstSome _)
       | [VBase v] <- vs
       -> return $ VBase $ VSome v
-      | otherwise
-      -> primError
-
-     PrimConst (PrimConstNone _)
-      | [] <- vs
-      -> return $ VBase $ VNone
-      | otherwise
-      -> primError
-
-     PrimConst (PrimConstArrayEmpty _)
-      | [] <- vs
-      -> return $ VBase $ VArray []
-      | otherwise
-      -> primError
-
-     PrimConst (PrimConstMapEmpty _ _)
-      | [] <- vs
-      -> return $ VBase $ VMap Map.empty
       | otherwise
       -> primError
 
@@ -164,6 +140,15 @@ evalPrim p vs
 
       | otherwise
       -> primError
+
+
+     -- Date stuff
+     PrimDateTime PrimDateTimeDaysDifference
+      | [VBase (VDateTime a), VBase (VDateTime b)] <- vs
+      -> return $ VBase $ VInt $ DT.daysDifference a b
+      | otherwise
+      -> primError
+
 
  where
   applies :: Ord n => Value n Prim -> [Value n Prim] -> Either (RuntimeError n Prim) (Value n Prim)

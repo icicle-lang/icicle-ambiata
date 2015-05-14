@@ -2,11 +2,9 @@ Existing virtual features
 =========================
 
 If we can express all these, we're doing OK.
-This is just using a made-up core syntax, and windowed expressions which aren't implemented.
-The plan is to add constant size windows and make it so precomputations, streams and reductions can only use the current/snapshot/chord date if they are windowed.
+This is just using a made-up core syntax, but it's similar to what the existing pretty printer outputs.
 
-I'm assuming that we can add array, map and set primitives fairly easily.
-I'm also ignoring tombstones for now, but I think we can add an option/maybe-ish type for that.
+I'm ignoring tombstones for now, but I figure we can use an option/maybe type for that.
 
 
 CountBy

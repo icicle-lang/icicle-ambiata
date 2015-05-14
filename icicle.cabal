@@ -46,10 +46,12 @@ library
                        Icicle.Avalanche.FromCore
                        Icicle.Avalanche.Eval
                        Icicle.Avalanche.Check
+                       Icicle.Avalanche.Simp
 
                        Icicle.BubbleGum
 
                        Icicle.Common.Base
+                       Icicle.Common.Fresh
                        Icicle.Common.Exp
                        Icicle.Common.Exp.Alpha
                        Icicle.Common.Exp.Check
@@ -57,6 +59,9 @@ library
                        Icicle.Common.Exp.Error
                        Icicle.Common.Exp.Exp
                        Icicle.Common.Exp.Eval
+                       Icicle.Common.Exp.Simp
+                       Icicle.Common.Exp.Simp.Beta
+                       Icicle.Common.Exp.Simp.ANormal
                        Icicle.Common.Fragment
                        Icicle.Common.Type
                        Icicle.Common.Value
@@ -127,3 +132,17 @@ test-suite test
                      , QuickCheck                      == 2.7.*
                      , quickcheck-instances            == 0.3.*
                      , containers                      == 0.5.*
+
+test-suite test-cli
+  type:                exitcode-stdio-1.0
+
+  main-is:             test-cli.hs
+
+  ghc-options:         -Wall -threaded -O2
+
+  hs-source-dirs:
+                       test
+
+  build-depends:
+                       base                            >= 3          && < 5
+                     , orphanarium-core

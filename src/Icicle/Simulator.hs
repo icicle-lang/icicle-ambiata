@@ -14,11 +14,12 @@ import           Data.Text (Text)
 
 import qualified Icicle.BubbleGum   as B
 import           Icicle.Data
+import           Icicle.Data.DateTime
 import           Icicle.Dictionary
 
 import           P
 
-import qualified Icicle.Common.Value      as V
+import qualified Icicle.Common.Base       as V
 import qualified Icicle.Core.Eval.Program as PV
 import qualified Icicle.Core.Program.Program as P
 
@@ -119,6 +120,7 @@ valueFromCore v
  = case v of
     V.VInt i      -> return $ IntValue i
     V.VBool b     -> return $ BooleanValue b
+    V.VDateTime d -> return $ DateValue $ Date $ renderDate d
     V.VArray vs   -> ListValue . List
                   <$> mapM valueFromCore vs
     V.VPair a b   -> PairValue <$> valueFromCore a <*> valueFromCore b

@@ -4,6 +4,7 @@ module Icicle.Dictionary (
     Dictionary (..)
   , Definition (..)
   , Virtual (..)
+  , getVirtualFeatures
   , demographics
   ) where
 
@@ -21,6 +22,7 @@ import qualified Icicle.Core.Program.Program as P
 import           P
 
 import           Data.Text
+import qualified Data.Map                    as Map
 
 
 data Dictionary =
@@ -42,6 +44,17 @@ data Virtual =
     } deriving (Eq, Show)
 
 
+-- | Get all virtual features from dictionary
+getVirtualFeatures :: Dictionary -> [(Attribute, Virtual)]
+getVirtualFeatures (Dictionary fs)
+ = P.concatMap getV fs
+ where
+  getV (a, VirtualDefinition v)
+   = [(a,v)]
+  getV _
+   = []
+
+
 
 -- | Example demographics dictionary
 -- Hard-coded for now
@@ -54,33 +67,37 @@ demographics =
  , (Attribute "salary",             ConcreteDefinition IntEncoding)
  
   -- Useless virtual features
- , (Attribute "sum of all salary",      
+ , (Attribute "sum",      
                                     VirtualDefinition
                                   $ Virtual (Attribute "salary") program_sum)
 
- , (Attribute "count all salary entries",
+ , (Attribute "count",
                                     VirtualDefinition
                                   $ Virtual (Attribute "salary") program_count)
 
- , (Attribute "mean of all salary",
+ , (Attribute "mean",
                                     VirtualDefinition
                                   $ Virtual (Attribute "salary") program_mean)
 
- , (Attribute "filter >= 70k; sum",
+ , (Attribute "filter",
                                     VirtualDefinition
                                   $ Virtual (Attribute "salary") program_filt_sum)
 
- , (Attribute "Latest 2 salary entries, unwindowed",
+ , (Attribute "latest",
                                     VirtualDefinition
                                   $ Virtual (Attribute "salary") (program_latest 2))
 
- , (Attribute "Sum of last 3000 days",
+ , (Attribute "windowed",
                                     VirtualDefinition
                                   $ Virtual (Attribute "salary") (program_windowed_sum 3000))
 
- , (Attribute "Count unique",
+ , (Attribute "unique",
                                     VirtualDefinition
                                   $ Virtual (Attribute "salary") program_count_unique)
+
+ , (Attribute "days_since",
+                                    VirtualDefinition
+                                  $ Virtual (Attribute "salary") program_days_since_latest)
  ]
 
 
@@ -90,11 +107,17 @@ program_sum
  = P.Program
  { P.input      = T.IntT
  , P.precomps   = []
- , P.streams    = [(N.Name "inp", S.Source)]
- , P.reduces    = [(N.Name "red", fold_sum (N.Name "inp"))]
+ , P.streams    = [(N.Name "inp", S.Source)
+                  ,(N.Name "inp2", map_fst T.IntT (N.Name "inp"))]
+ , P.reduces    = [(N.Name "red", fold_sum (N.Name "inp2"))]
+ , P.postdate   = Nothing
  , P.postcomps  = []
  , P.returns    = var "red"
  }
+
+map_fst :: T.ValType -> N.Name Text -> S.Stream Text
+map_fst ty inp
+ = S.STrans (S.SMap (T.PairT ty T.DateTimeT) ty) (lam (T.PairT ty T.DateTimeT) $ \p -> fstOfSource ty p) inp
 
 fold_sum :: N.Name Text -> R.Reduce Text
 fold_sum inp
@@ -113,13 +136,14 @@ program_count
  { P.input      = T.IntT
  , P.precomps   = []
  , P.streams    = [(N.Name "inp", S.Source)
-                  ,(N.Name "ones", S.STrans (S.SMap T.IntT T.IntT) const1 (N.Name "inp"))]
+                  ,(N.Name "ones", S.STrans (S.SMap (T.PairT T.IntT T.DateTimeT) T.IntT) const1 (N.Name "inp"))]
  , P.reduces    = [(N.Name "count", fold_sum (N.Name "ones"))]
+ , P.postdate   = Nothing
  , P.postcomps  = []
  , P.returns    = X.XVar (N.Name "count")
  }
  where
-  const1 = lam T.IntT $ \_ -> constI 1
+  const1 = lam (T.PairT T.IntT T.DateTimeT) $ \_ -> constI 1
 
 
 -- | Mean salary
@@ -129,14 +153,16 @@ program_mean
  { P.input      = T.IntT
  , P.precomps   = []
  , P.streams    = [(N.Name "inp", S.Source)
-                  ,(N.Name "ones", S.STrans (S.SMap T.IntT T.IntT) const1 (N.Name "inp"))]
+                  ,(N.Name "inp2", map_fst T.IntT (N.Name "inp"))
+                  ,(N.Name "ones", S.STrans (S.SMap (T.PairT T.IntT T.DateTimeT) T.IntT) const1 (N.Name "inp"))]
  , P.reduces    = [(N.Name "count", fold_sum (N.Name "ones"))
-                  ,(N.Name "sum",   fold_sum (N.Name "inp"))]
+                  ,(N.Name "sum",   fold_sum (N.Name "inp2"))]
+ , P.postdate   = Nothing
  , P.postcomps  = []
  , P.returns    = var "sum" /~ var "count"
  }
  where
-  const1 = lam T.IntT $ \_ -> constI 1
+  const1 = lam (T.PairT T.IntT T.DateTimeT) $ \_ -> constI 1
 
 
 -- | Filtered sum
@@ -146,8 +172,10 @@ program_filt_sum
  { P.input      = T.IntT
  , P.precomps   = []
  , P.streams    = [(N.Name "inp", S.Source)
-                  ,(N.Name "filts", S.STrans (S.SFilter T.IntT) gt (N.Name "inp"))]
+                  ,(N.Name "inp2", map_fst T.IntT (N.Name "inp"))
+                  ,(N.Name "filts", S.STrans (S.SFilter T.IntT) gt (N.Name "inp2"))]
  , P.reduces    = [(N.Name "sum",   fold_sum (N.Name "filts"))]
+ , P.postdate   = Nothing
  , P.postcomps  = []
  , P.returns    = X.XVar (N.Name "sum")
  }
@@ -163,7 +191,8 @@ program_latest n
  { P.input      = T.IntT
  , P.precomps   = []
  , P.streams    = [(N.Name "inp", S.Source)]
- , P.reduces    = [(N.Name "latest", R.RLatest T.IntT (constI n) (N.Name "inp"))]
+ , P.reduces    = [(N.Name "latest", R.RLatest (T.PairT T.IntT T.DateTimeT) (constI n) (N.Name "inp"))]
+ , P.postdate   = Nothing
  , P.postcomps  = []
  , P.returns    = X.XVar (N.Name "latest")
  }
@@ -174,8 +203,10 @@ program_windowed_sum days
  = P.Program
  { P.input      = T.IntT
  , P.precomps   = []
- , P.streams    = [(N.Name "inp", S.SourceWindowedDays days)]
- , P.reduces    = [(N.Name "sum",   fold_sum (N.Name "inp"))]
+ , P.streams    = [(N.Name "inp", S.SourceWindowedDays days)
+                  ,(N.Name "inp2", map_fst T.IntT (N.Name "inp"))]
+ , P.reduces    = [(N.Name "sum",   fold_sum (N.Name "inp2"))]
+ , P.postdate   = Nothing
  , P.postcomps  = []
  , P.returns    = X.XVar (N.Name "sum")
  }
@@ -185,14 +216,43 @@ program_count_unique
  = P.Program
  { P.input      = T.IntT
  , P.precomps   = []
- , P.streams    = [(N.Name "inp",  S.Source)]
+ , P.streams    = [(N.Name "inp",  S.Source)
+                  ,(N.Name "inp2", map_fst T.IntT (N.Name "inp"))]
  , P.reduces    = [(N.Name "uniq",
                         R.RFold T.IntT mT
                         (lam mT $ \acc -> lam T.IntT $ \v -> X.XPrim (P.PrimMap $ P.PrimMapInsertOrUpdate T.IntT T.IntT) @~ (lam T.IntT $ \_ -> constI 1) @~ constI 1 @~ v @~ acc)
-                        (X.XPrim (P.PrimConst $ P.PrimConstMapEmpty T.IntT T.IntT))
-                        (N.Name "inp"))]
+                        (X.XValue (T.MapT T.IntT T.IntT) $ N.VMap $ Map.empty)
+                        (N.Name "inp2"))]
+ , P.postdate   = Nothing
  , P.postcomps  = [(N.Name "size", X.XPrim (P.PrimFold (P.PrimFoldMap T.IntT T.IntT) T.IntT) @~ (lam T.IntT $ \a -> lam T.IntT $ \_ -> lam T.IntT $ \b -> a +~ b) @~ constI 0 @~ var "uniq")]
  , P.returns    = var "size"
  }
  where
   mT = T.MapT T.IntT T.IntT
+
+program_days_since_latest :: P.Program Text
+program_days_since_latest
+ = P.Program
+ { P.input      = T.IntT
+ , P.precomps   = []
+ , P.streams    = [(N.Name "inp",  S.Source)
+                  -- extract snd of pair
+                  ,(N.Name "dates", S.STrans (S.SMap (T.PairT T.IntT T.DateTimeT) T.DateTimeT)
+                                        (lam (T.PairT T.IntT T.DateTimeT) $ \p ->
+                                           X.XPrim (P.PrimFold (P.PrimFoldPair T.IntT T.DateTimeT) T.DateTimeT)
+                                        @~ (lam T.IntT $ \_ -> lam T.DateTimeT $ \b -> b )
+                                        @~ p)
+                                        (N.Name "inp")) ]
+
+ , P.reduces    = [(N.Name "last", R.RLatest T.DateTimeT (constI 1) (N.Name "dates"))]
+
+ , P.postdate   = Just (N.Name "now")
+ , P.postcomps  = [(N.Name "days", X.XPrim (P.PrimFold (P.PrimFoldArray T.DateTimeT) (T.OptionT T.IntT))
+                                    @~ (lam (T.OptionT T.IntT) $ \_ -> lam T.DateTimeT $ \b ->
+                                            X.XPrim (P.PrimConst $ P.PrimConstSome T.IntT)
+                                            @~ (X.XPrim (P.PrimDateTime P.PrimDateTimeDaysDifference) @~ b @~ var "now" ))
+                                    @~ X.XValue (T.OptionT T.IntT) N.VNone @~ var "last")]
+
+ , P.returns    = var "days"
+ }
+

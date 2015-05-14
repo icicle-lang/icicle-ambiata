@@ -7,8 +7,10 @@ module Icicle.Test.Core.Exp.Eval where
 import           Icicle.Test.Core.Arbitrary
 import qualified Icicle.Core.Exp    as X
 import           Icicle.Core.Exp
+import           Icicle.Core.Exp.Combinators
 import           Icicle.Core.Eval.Exp
 import           Icicle.Common.Exp
+import           Icicle.Common.Base
 import           Icicle.Common.Value
 
 import           P
@@ -43,12 +45,12 @@ prop_prefixlet =
 -- Constant evaluates to constant. How quaint.
 -- =====================
 prop_const i =
- eval0 evalPrim ((XPrim $ PrimConst $ PrimConstInt i) :: X.Exp Var) == Right (VBase $ VInt i)
+ eval0 evalPrim (constI i :: X.Exp Var) == Right (VBase $ VInt i)
 
 -- And likewise, putting anything that typechecks before the constant still evalutes fine
 -- =====================
 prop_constprefix i =
- withTypedExp $ \x _ -> eval0 evalPrim (XLet (fresh 0) x (XPrim $ PrimConst $ PrimConstInt i)) == Right (VBase $ VInt i)
+ withTypedExp $ \x _ -> eval0 evalPrim (XLet (fresh 0) x (constI i)) == Right (VBase $ VInt i)
 
 
 return []

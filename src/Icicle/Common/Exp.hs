@@ -9,5 +9,6 @@ import              Icicle.Common.Exp.Compounds  as X
 import              Icicle.Common.Exp.Error      as X
 import              Icicle.Common.Exp.Eval       as X
 import              Icicle.Common.Exp.Exp        as X
+import              Icicle.Common.Exp.Simp       as X
 
 
