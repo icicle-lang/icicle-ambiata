@@ -88,8 +88,12 @@ instance TransformX Program where
         precomps'  <- mapM bind                    $ precomps  p
         accums'    <- mapM (transformX names exps) $ accums    p
         loop'      <-       transformX names exps  $ loop      p
-        postcomps' <- mapM bind                    $ postcomps p
-        returns'   <-                        exps  $ returns   p
+
+        let ret     = makeLets (postcomps p) (returns p)
+        ret'       <- exps ret
+        let (postcomps',returns')
+                    = takeLets ret'
+
         return $ Program 
                { binddate  = binddate'
                , precomps  = precomps'
