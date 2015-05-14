@@ -214,7 +214,7 @@ tryExpForType ty env
         
   letty r
    = do t  <- arbitrary
-        n  <- arbitrary
+        n  <- freshInEnv env
         x  <- tryExpForType t env
         let env' = Map.insert n t env
         XLet n x <$> tryExpForType (FunT [] r) env'
