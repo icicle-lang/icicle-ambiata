@@ -10,10 +10,12 @@ module Icicle.Common.Exp.Compounds (
     , freevars
     , allvars
     , substMaybe
+    , subst
     ) where
 
 import              Icicle.Common.Base
 import              Icicle.Common.Exp.Exp
+import              Icicle.Common.Fresh
 import              P
 
 import qualified    Data.Set    as Set
@@ -137,7 +139,7 @@ substMaybe name payload into
        -> XLam n t <$> go x
 
       XLet n x1 x2
-       -- If the let's name is clashes with the substitution we're trying to make
+       -- If the let's name clashes with the substitution we're trying to make
        -- and the *body* of the let needs to be substituted into,
        -- we cannot proceed.
        -- (It doesn't matter if the definition, x1, mentions name because "n" is not bound there)
@@ -153,3 +155,67 @@ substMaybe name payload into
        -- Proceed as usual
        | otherwise
        -> XLet n <$> go x1 <*> go x2
+
+
+-- | Substitute an expression in, 
+-- using fresh names to avoid capture
+subst
+        :: Ord  n
+        => Name n
+        -> Exp  n p
+        -> Exp  n p
+        -> Fresh n (Exp n p)
+subst name payload into
+ = go into
+ where
+  payload_free = freevars payload
+
+  go xx
+   = case xx of
+      XVar n
+       | n == name
+       -> return payload
+       | otherwise
+       -> return xx
+      XApp p q
+       -> XApp <$> go p <*> go q
+
+      XPrim{}
+       -> return xx
+      XValue{}
+       -> return xx
+
+      XLam n t x
+       -- If the name clashes, we need to rename n
+       | (n `Set.member` payload_free) || n == name
+       , name `Set.member` freevars x
+       -> do    n' <- fresh
+                x' <- subst n (XVar n') x
+                XLam n' t <$> go x'
+
+       -- If name isn't mentioned in x, we don't need to do anything
+       | not (name `Set.member` freevars x)
+       -> return xx
+
+       -- Name is mentioned and no clashes, so proceed
+       | otherwise
+       -> XLam n t <$> go x
+
+      XLet n x1 x2
+       -- If the let's name clashes with the substitution we're trying to make,
+       -- we need to rename
+       | (n `Set.member` payload_free) || n == name
+       , name `Set.member` freevars x2
+       -> do    n'  <- fresh
+                x2' <- subst n (XVar n') x2
+                XLet n' <$> go x1 <*> go x2'
+
+       -- If name is not mentioned in x1 or x2, we do not need to perform any substitution.
+       |  not (name `Set.member` freevars x1)
+       && not (name `Set.member` freevars x2)
+       -> return xx
+
+       -- Proceed as usual
+       | otherwise
+       -> XLet n <$> go x1 <*> go x2
+
