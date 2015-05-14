@@ -65,17 +65,19 @@ checkProgram frag p
    = do t <- checkExp frag e x
         return (Map.insert n t e)
 
-  checkAcc env (Accumulator n at)
+  checkAcc env (Accumulator n at ty x)
    = case at of
-      Resumable ty x
+      Resumable
        -> checkUpdate env n x ty
-      Windowed ty x
+      Windowed
        -> checkUpdate env n x ty
-      Latest ty x
+      Latest
        -> do    t <- mapLeft ProgramErrorExp
                    $ checkExp frag env x
                 requireSame (ProgramErrorWrongType x) t (FunT [] IntT)
                 return (n, ATPush ty)
+      Mutable
+       -> checkUpdate env n x ty
 
   checkUpdate env n x ty
    = do t <- mapLeft ProgramErrorExp
@@ -111,8 +113,18 @@ checkLoop frag env accs (FactLoop inputType inputBind stmts_)
        -> do t <- mapLeft ProgramErrorExp
                 $ checkExp frag e x
              go (Map.insert n t e) stmts
-   
-      Update n x
+
+      Read n acc stmts
+       -> do a <- maybeToRight ProgramErrorTODO
+                $ Map.lookup acc accs
+
+             case a of
+              ATUpdate accTy
+               -> go (Map.insert n (FunT [] accTy) e) stmts
+              _
+               -> Left ProgramErrorTODO
+
+      Write n x
        -> do t <- mapLeft ProgramErrorExp
                 $ checkExp frag e x
 
@@ -121,7 +133,7 @@ checkLoop frag env accs (FactLoop inputType inputBind stmts_)
 
              case a of
               ATUpdate accTy
-               -> requireSame (ProgramErrorWrongType x) t (FunT [FunT [] accTy] accTy)
+               -> requireSame (ProgramErrorWrongType x) t (FunT [] accTy)
               _
                -> Left ProgramErrorTODO
    

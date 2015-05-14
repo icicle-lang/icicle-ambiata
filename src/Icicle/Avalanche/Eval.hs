@@ -33,6 +33,9 @@ data AccumulatorValue
  -- | Accumulator storing latest N values
  -- Stored in reverse so we can just cons or take it
  | AVLatest Int [BaseValue]
+
+ -- | A mutable value with no history attached
+ | AVMutable BaseValue
  deriving (Eq, Ord, Show)
 
 
@@ -77,6 +80,9 @@ updateOrPush heap n bg v
            $ Map.insert n
            ( take num (bg : bgs)
            , AVLatest num (take num (v : vs)) ) heap
+         (_, AVMutable _)
+          -> return
+           $ Map.insert n ([], AVMutable v) heap
 
 
 -- | For each accumulator value, write its scalar value back into the environment.
@@ -95,6 +101,8 @@ updateHeapFromAccs env accs
        -> Map.insert n (VBase v') e
       AVLatest _ vs
        -> Map.insert n (VBase $ VArray $ reverse vs) e
+      AVMutable v'
+       -> Map.insert n (VBase v') e
 
 
 -- | For each accumulator value, get the history information
@@ -104,15 +112,17 @@ bubbleGumOutputOfAccumulatorHeap
         -> [BubbleGumOutput n (BaseValue)]
 
 bubbleGumOutputOfAccumulatorHeap acc
- = fmap mk
+ = concatMap  mk
  $ Map.toList acc
  where
   mk (n, (_, AVFold False v))
-   = BubbleGumReduction n v
+   = [BubbleGumReduction n v]
   mk (_, (bgs, AVFold True _))
-   = BubbleGumFacts $ sort $ fmap flav bgs
+   = [BubbleGumFacts $ sort $ fmap flav bgs]
   mk (_, (bgs, AVLatest _ _))
-   = BubbleGumFacts $ sort $ fmap flav bgs
+   = [BubbleGumFacts $ sort $ fmap flav bgs]
+  mk (_, (_, AVMutable _))
+   = []
   
   flav (BubbleGumFact f) = f
 
@@ -166,28 +176,30 @@ initAcc :: Ord n
         -> Accumulator n p
         -> Either (RuntimeError n p) (Name n, ([BubbleGumFact], AccumulatorValue))
 
-initAcc evalPrim env (Accumulator n t)
+initAcc evalPrim env (Accumulator n at _ x)
  = do av <- getValue
       -- There is no history yet, just a value
       return (n, ([], av))
  where
-  ev x
+  ev
    = do v <- mapLeft RuntimeErrorAccumulator
            $ XV.eval evalPrim env x
         baseValue v
 
   getValue
-   = case t of
+   = case at of
      -- Start with initial value.
      -- TODO: take list of previously saved resumes, and lookup here
-     Resumable _ x
-      -> AVFold False <$> ev x
-     Windowed  _ x
-      -> AVFold True <$> ev x
-     Latest    _ x
+     Resumable
+      -> AVFold False <$> ev
+     Windowed
+      -> AVFold True <$> ev
+     Mutable
+      -> AVMutable <$> ev
+     Latest
             -- Figure out how many latest to store,
             -- but nothing is stored yet
-      -> do v    <- ev x
+      -> do v    <- ev
             case v of
              VInt i
               -> return $ AVLatest i []
@@ -244,25 +256,28 @@ evalStmt evalPrim now xh input ah stmt
      -> do  v <- eval x
             go (Map.insert n v xh) ah stmts
 
-    -- Update accumulator
-    Update n x
-     -> do  vf  <- eval x
-            -- Get the current value and apply the function
-            v   <- case Map.lookup n ah of
+    -- Read from an accumulator
+    Read n acc stmts
+     -> do  -- Get the current value and apply the function
+            v   <- case Map.lookup acc ah of
                     Just (_, AVFold _ vacc)
-                     ->  mapLeft RuntimeErrorLoop
-                        (XV.applyValues evalPrim vf (VBase vacc))
-                     >>= baseValue
+                     -> return $ VBase vacc
+                    Just (_, AVMutable vacc)
+                     -> return $ VBase vacc
                     _
                      -> Left (RuntimeErrorLoopAccumulatorBad n)
+            go (Map.insert n v xh) ah stmts
 
+
+    -- Update accumulator
+    Write n x
+     -> do  v   <- eval x >>= baseValue
             updateOrPush ah n (fst $ fact input) v
 
     -- Push a value to a latest accumulator.
     Push n x
      -> do  v   <- eval x >>= baseValue
-            ah' <- updateOrPush ah n (fst $ fact input) v
-            return ah'
+            updateOrPush ah n (fst $ fact input) v
 
  where
   -- Go through all the substatements

@@ -47,8 +47,11 @@ pullStmt stm
     Let n x subs
      -> pres x (\x' -> Let n x' $ go subs)
 
-    Update n x
-     -> pres x (Update n)
+    Read n acc subs
+     -> Read n acc (go subs)
+
+    Write n x
+     -> pres x (Write n)
     Push n x
      -> pres x (Push n)
 

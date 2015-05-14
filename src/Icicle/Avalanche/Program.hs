@@ -32,27 +32,34 @@ data Program n p =
 -- | Mutable accumulators
 data Accumulator n p
  = Accumulator (Name n)
-               (AccumulatorType n p)
+               AccumulatorType
+               ValType
+               (Exp n p)
  deriving (Eq, Ord, Show)
 
 
 -- | There are three different kinds of reductions,
--- so three different kinds of accumulators.
-data AccumulatorType n p
+-- each a different kind of accumulator.
+-- Additionally, we have non-core accumulators that don't affect history.
+data AccumulatorType
  -- | Resumable folds, where we store the value for next time
  --
  -- Exp is initial value - only if no history.
- = Resumable ValType (Exp n p)
+ = Resumable
  -- | Windowed but not latest folds, where for each update we mark
  -- the current fact as necessary for next time
  --
  -- Exp is initial value.
- | Windowed  ValType (Exp n p)
+ | Windowed
  -- | Latest N, where the value is not so much updated as a
  -- fact is pushed on
  --
  -- Exp is size/count.
- | Latest    ValType (Exp n p)
+ | Latest
+
+ -- | Another kind of accumulator.
+ -- Just a mutable variable with no history.
+ | Mutable
  deriving (Eq, Ord, Show)
 
 
@@ -72,10 +79,17 @@ data Statement n p
  -- | Local binding, so the name better be unique
  | Let    (Name n) (Exp n p)    [Statement n p]
 
+ -- | Read from a non-latest accumulator.
+ -- First name is what to call it, second is what accumulator.
+ -- As let:
+ --      Let  local = accumulator,
+ --      Read local = accumulator.
+ | Read   (Name n) (Name n)     [Statement n p]
+
  -- Leaf nodes
  -- | Update a resumable or windowed fold accumulator,
- -- with Exp : acc -> acc
- | Update (Name n) (Exp n p)
+ -- with Exp : acc
+ | Write (Name n) (Exp n p)
  -- | Push to a latest accumulator
  -- with Exp : elem
  | Push   (Name n) (Exp n p)
@@ -109,15 +123,10 @@ instance TransformX Program where
          return (n', x')
 
 instance TransformX Accumulator where
- transformX names exps (Accumulator n at)
+ transformX names exps (Accumulator n at t x)
   = do n' <- names n
-       case at of
-        Resumable t x
-         -> Accumulator n' . Resumable t <$> exps x
-        Windowed  t x
-         -> Accumulator n' . Windowed  t <$> exps x
-        Latest    t x
-         -> Accumulator n' . Latest    t <$> exps x
+       x' <- exps  x
+       return $ Accumulator n' at t x'
 
 instance TransformX FactLoop where
  transformX names exps (FactLoop t bind stmts)
@@ -132,8 +141,10 @@ instance TransformX Statement where
       -> If <$> exps x <*> go ss
      Let n x ss
       -> Let <$> names n <*> exps x <*> go ss
-     Update n x
-      -> Update <$> names n <*> exps x
+     Read n acc ss
+      -> Read <$> names n <*> names acc <*> go ss
+     Write n x
+      -> Write <$> names n <*> exps x
      Push n x
       -> Push <$> names n <*> exps x
   where
@@ -155,12 +166,13 @@ instance (Pretty n, Pretty p) => Pretty (Program n p) where
 
 
 instance (Pretty n, Pretty p) => Pretty (Accumulator n p) where
- pretty (Accumulator n acc)
+ pretty (Accumulator n acc _ x)
   =   pretty n <+> text "="
   <+> (case acc of
-       Resumable _ x -> pretty x <+> text "(Resumable)"
-       Windowed  _ x -> pretty x <+> text "(Windowed)"
-       Latest    _ x -> text "Latest" <+> pretty x)
+       Resumable -> pretty x <+> text "(Resumable)"
+       Windowed  -> pretty x <+> text "(Windowed)"
+       Latest    -> text "Latest" <+> pretty x <+> text "elements"
+       Mutable   -> pretty x <+> text "(Mutable)")
 
 
 instance (Pretty n, Pretty p) => Pretty (FactLoop n p) where
@@ -189,11 +201,16 @@ instance (Pretty n, Pretty p) => Pretty (Statement n p) where
       <> semis stmts
       <> text "}"
 
-     Update n x
-      -> text "update" <+> pretty n <+> text "with" <+> pretty x
+     Read n acc stmts
+      -> text "read" <+> pretty n <+> text "=" <+> pretty acc <> text "; in {" <> line
+      <> semis stmts
+      <> text "}"
+
+     Write n x
+      -> text "update" <+> pretty n <+> text "=" <+> pretty x
 
      Push n x
-      -> text "push" <+> pretty n <+> text "with" <+> pretty x
+      -> text "push" <+> pretty n <+> text "=" <+> pretty x
 
   where
    semis stmts = (indent 2 $ vcat $ fmap (<> text ";") $ fmap pretty stmts) <> line

@@ -68,16 +68,16 @@ programFromCore namer p
  where
   -- Create a latest accumulator
   accum (n, CR.RLatest ty x _)
-   = A.Accumulator n (A.Latest ty x)
+   = A.Accumulator n A.Latest ty x
   
   -- Fold accumulator
   accum (n, CR.RFold _ ty _ x inp)
    -- If it's windowed, create windowed accumulator
    | CS.isStreamWindowed (C.streams p) inp
-   = A.Accumulator n (A.Windowed ty x)
+   = A.Accumulator n A.Windowed ty x
    -- Not windowed, so resumable fold
    | otherwise
-   = A.Accumulator n (A.Resumable ty x)
+   = A.Accumulator n A.Resumable ty x
 
   makepostdate
    = case C.postdate p of
@@ -161,10 +161,11 @@ statementOfReduce
 statementOfReduce namer (n,r)
  = case r of
     -- Apply fold's konstrukt to current accumulator value and input value
-    CR.RFold _ ta k _ inp
+    CR.RFold _ _  k _ inp
      -- Darn - arguments wrong way around!
      -> let n' = namerAccPrefix namer n
-        in  Update n (XLam n' ta (k `XApp` (XVar n') `XApp` (XVar $ namerElemPrefix namer inp)))
+        in  Read n' n
+          [ Write n (k `XApp` (XVar n') `XApp` (XVar $ namerElemPrefix namer inp)) ]
     -- Push most recent inp
     CR.RLatest _ _ inp
      -> Push n (XVar $ namerElemPrefix namer inp)
