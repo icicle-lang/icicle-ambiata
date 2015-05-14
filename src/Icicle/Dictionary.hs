@@ -4,6 +4,7 @@ module Icicle.Dictionary (
     Dictionary (..)
   , Definition (..)
   , Virtual (..)
+  , getVirtualFeatures
   , demographics
   ) where
 
@@ -43,6 +44,17 @@ data Virtual =
     } deriving (Eq, Show)
 
 
+-- | Get all virtual features from dictionary
+getVirtualFeatures :: Dictionary -> [(Attribute, Virtual)]
+getVirtualFeatures (Dictionary fs)
+ = P.concatMap getV fs
+ where
+  getV (a, VirtualDefinition v)
+   = [(a,v)]
+  getV _
+   = []
+
+
 
 -- | Example demographics dictionary
 -- Hard-coded for now
@@ -55,35 +67,35 @@ demographics =
  , (Attribute "salary",             ConcreteDefinition IntEncoding)
  
   -- Useless virtual features
- , (Attribute "sum of all salary",      
+ , (Attribute "sum",      
                                     VirtualDefinition
                                   $ Virtual (Attribute "salary") program_sum)
 
- , (Attribute "count all salary entries",
+ , (Attribute "count",
                                     VirtualDefinition
                                   $ Virtual (Attribute "salary") program_count)
 
- , (Attribute "mean of all salary",
+ , (Attribute "mean",
                                     VirtualDefinition
                                   $ Virtual (Attribute "salary") program_mean)
 
- , (Attribute "filter >= 70k; sum",
+ , (Attribute "filter",
                                     VirtualDefinition
                                   $ Virtual (Attribute "salary") program_filt_sum)
 
- , (Attribute "Latest 2 salary entries, unwindowed",
+ , (Attribute "latest",
                                     VirtualDefinition
                                   $ Virtual (Attribute "salary") (program_latest 2))
 
- , (Attribute "Sum of last 3000 days",
+ , (Attribute "windowed",
                                     VirtualDefinition
                                   $ Virtual (Attribute "salary") (program_windowed_sum 3000))
 
- , (Attribute "Count unique",
+ , (Attribute "unique",
                                     VirtualDefinition
                                   $ Virtual (Attribute "salary") program_count_unique)
 
- , (Attribute "Days since latest",
+ , (Attribute "days_since",
                                     VirtualDefinition
                                   $ Virtual (Attribute "salary") program_days_since_latest)
  ]
