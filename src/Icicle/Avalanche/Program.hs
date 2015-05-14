@@ -154,25 +154,24 @@ instance TransformX Statement where
 
 instance (Pretty n, Pretty p) => Pretty (Program n p) where
  pretty p
-  =   pretty (binddate p) <> text " = date; " <> line
-  <>  vcat (semis $ fmap prettyX (precomps  p)) <> line
-  <>  vcat (semis $ fmap pretty  (accums    p)) <> line
+  =   pretty (binddate p) <> text " = date " <> line
+  <>  vcat (        fmap prettyX (precomps  p)) <> line
+  <>  vcat (        fmap pretty  (accums    p)) <> line
   <>                     pretty  (loop      p)  <> line
-  <>  vcat (semis $ fmap prettyX (postcomps p)) <> line
+  <>  vcat (        fmap prettyX (postcomps p)) <> line
   <>  text "return"  <+> pretty  (returns   p)
   where
-   semis = fmap (<> text ";")
    prettyX  (a,b) = pretty a <+> text "=" <+> pretty b
 
 
 instance (Pretty n, Pretty p) => Pretty (Accumulator n p) where
  pretty (Accumulator n acc _ x)
-  =   pretty n <+> text "="
+  =   pretty n <+> text "=" <+> pretty x
   <+> (case acc of
-       Resumable -> pretty x <+> text "(Resumable)"
-       Windowed  -> pretty x <+> text "(Windowed)"
-       Latest    -> text "Latest" <+> pretty x <+> text "elements"
-       Mutable   -> pretty x <+> text "(Mutable)")
+       Resumable -> text "(Resumable)"
+       Windowed  -> text "(Windowed)"
+       Latest    -> text "(Latest)"
+       Mutable   -> text "(Mutable)")
 
 
 instance (Pretty n, Pretty p) => Pretty (FactLoop n p) where
@@ -181,36 +180,29 @@ instance (Pretty n, Pretty p) => Pretty (FactLoop n p) where
   <> indent 2 (semis stmts)     <> line
   <> text "}"
   where
-   semis = vcat . fmap (<> text ";") . fmap pretty
+   semis = vcat . fmap pretty
 
 
 instance (Pretty n, Pretty p) => Pretty (Statement n p) where
  pretty s
   = case s of
      If x stmts
-      -> text "if (" <> pretty x <> text ") {" <> line
-      <> semis stmts
-      <> text "}"
-
-     Let n x [sub@(Let _ _ _)]
-      -> pretty n <+> text "=" <+> pretty x <> text "; and" <> line
-      <> pretty sub
+      -> text "if (" <> pretty x <> text "):" <> line
+      <> indent 2 (semis stmts)
 
      Let n x stmts
-      -> pretty n <+> text "=" <+> pretty x <> text "; in {" <> line
-      <> semis stmts
-      <> text "}"
+      -> pretty n <+> text "=" <+> pretty x <> line
+      <> indent 2 (semis stmts)
 
      Read n acc stmts
-      -> text "read" <+> pretty n <+> text "=" <+> pretty acc <> text "; in {" <> line
-      <> semis stmts
-      <> text "}"
+      -> text "read" <+> pretty n <+> text "=" <+> pretty acc <> line
+      <> indent 2 (semis stmts)
 
      Write n x
-      -> text "update" <+> pretty n <+> text "=" <+> pretty x
+      -> text "update" <+> pretty n <+> text "=" <+> pretty x <> line
 
      Push n x
       -> text "push" <+> pretty n <+> text "=" <+> pretty x
 
   where
-   semis stmts = (indent 2 $ vcat $ fmap (<> text ";") $ fmap pretty stmts) <> line
+   semis stmts = vcat $ fmap pretty stmts
