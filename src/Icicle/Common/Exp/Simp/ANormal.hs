@@ -143,6 +143,6 @@ isNormal xx
     XVar{}   -> True
     XPrim{}  -> True
     XValue{} -> True
+    XLam{}   -> True
     XApp{}   -> False
-    XLam{}   -> False
     XLet{}   -> False

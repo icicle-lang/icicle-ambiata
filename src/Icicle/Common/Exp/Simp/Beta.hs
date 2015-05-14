@@ -52,4 +52,5 @@ isSimpleValue xx
     XPrim{} -> True
     XVar{}  -> True
     XValue{}-> True
+    XLam{}  -> True
     _       -> False
