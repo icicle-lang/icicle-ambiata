@@ -137,12 +137,19 @@ substMaybe name payload into
        -> XLam n t <$> go x
 
       XLet n x1 x2
+       -- If the let's name is clashes with the substitution we're trying to make
+       -- and the *body* of the let needs to be substituted into,
+       -- we cannot proceed.
+       -- (It doesn't matter if the definition, x1, mentions name because "n" is not bound there)
        | (n `Set.member` payload_free) || n == name
        , name `Set.member` freevars x2
        -> Nothing
 
-       | not (name `Set.member` freevars x2)
+       -- If name is not mentioned in x1 or x2, we do not need to perform any substitution.
+       |  not (name `Set.member` freevars x1)
+       && not (name `Set.member` freevars x2)
        -> return xx
 
+       -- Proceed as usual
        | otherwise
        -> XLet n <$> go x1 <*> go x2
