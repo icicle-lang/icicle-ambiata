@@ -1,8 +1,4 @@
 -- | Simple reduce evaluation
---
--- TODO: also compute required facts / lookbehind?
---       requires changing this and stream evaluation
---
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE PatternGuards #-}
 module Icicle.Core.Eval.Reduce (
