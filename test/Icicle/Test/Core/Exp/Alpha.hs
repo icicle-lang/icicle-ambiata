@@ -9,6 +9,8 @@ import           Icicle.Core.Eval.Exp
 import           Icicle.Common.Base
 import           Icicle.Common.Exp
 
+import qualified Data.Set as Set
+
 import           P
 
 import           System.IO
@@ -23,10 +25,24 @@ prop_alpha_self x =
 
 
 -- Any CLOSED expression is alpha equivalent to itself after prefixing
--- TODO: implement freevars or closed check
 -- =====================
-zzz_disabled_prop_alpha_self_prefix x =
- x `alphaEquality` renameExp (NameMod 0) x
+prop_alpha_self_prefix_closed x =
+ Set.null (freevars x) ==>
+     x `alphaEquality` renameExp (NameMod 0) x
+
+-- We can rename anything that isn't free
+-- =====================
+prop_alpha_self_prefix x =
+
+ let fv    = freevars x
+
+     ren n = if   Set.member n fv
+             then n
+             else NameMod 0 n
+
+     x'    = renameExp ren x
+
+ in  x `alphaEquality` x'
 
 
 -- If two things evaluate to a different value, they can't be alpha equivalent
