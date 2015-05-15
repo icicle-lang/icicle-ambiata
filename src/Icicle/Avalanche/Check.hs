@@ -6,6 +6,7 @@ module Icicle.Avalanche.Check (
 
 import              Icicle.Avalanche.Program
 
+import              Icicle.Common.Base
 import              Icicle.Common.Fragment
 import              Icicle.Common.Type
 import              Icicle.Common.Exp
@@ -18,7 +19,11 @@ import qualified    Data.Map    as Map
 data ProgramError n p
  = ProgramErrorExp (ExpError n p)
  | ProgramErrorWrongType (Exp n p) Type Type
- | ProgramErrorTODO -- TODO
+ | ProgramErrorNoSuchAccumulator (Name n)
+ | ProgramErrorWrongAccumulatorType (Name n)
+ | ProgramErrorMultipleFactLops
+ | ProgramErrorNoReturn
+ | ProgramErrorConflictingReturnTypes [Maybe Type]
  deriving (Show, Eq, Ord)
 
 data AccType
@@ -26,143 +31,143 @@ data AccType
  | ATPush   ValType
  deriving (Show, Eq, Ord)
 
-typeOfAccType :: AccType -> Type
-typeOfAccType (ATUpdate t) = FunT [] t
-typeOfAccType (ATPush   t) = FunT [] (ArrayT t)
 
-
+-- TODO:
+--  - check that there is only one fact loop, and it is not inside another loop
+--  - unique names: proper unique
 checkProgram
         :: Ord n
         => Fragment p
         -> Program n p
         -> Either (ProgramError n p) Type
 checkProgram frag p
- = do   pres    <- checkExps (Map.singleton (binddate p) (FunT [] DateTimeT))
-                 $ precomps p
+ = do   let xh = Map.singleton (binddate p) (FunT [] DateTimeT)
+        let ah = Map.empty
+        ret <- checkStatement frag xh ah (statements p)
+        case ret of
+         Just r    -> return r
+         Nothing   -> Left ProgramErrorNoReturn
 
-        accs    <- Map.fromList
-               <$> (mapM (checkAcc pres)            
-                 $ accums p)
 
-        checkLoop frag pres accs $ loop p
-
-        -- Put the accs in the environment
-        let env' = Map.union (Map.map typeOfAccType accs) pres
-
-        posts   <- checkExps env'
-                 $ postcomps p
-
-        mapLeft ProgramErrorExp
-                 $ checkExp frag posts
-                 $ returns p
-        
- where
-  checkExps env xs
-   = mapLeft ProgramErrorExp
-   $ foldM checkExp1 env xs
-
-  checkExp1 e (n,x)
-   = do t <- checkExp frag e x
-        return (Map.insert n t e)
-
-  checkAcc env (Accumulator n at ty x)
-   = case at of
-      Resumable
-       -> checkUpdate env n x ty
-      Windowed
-       -> checkUpdate env n x ty
-      Latest
-       -> do    t <- mapLeft ProgramErrorExp
-                   $ checkExp frag env x
-                requireSame (ProgramErrorWrongType x) t (FunT [] IntT)
-                return (n, ATPush ty)
-      Mutable
-       -> checkUpdate env n x ty
-
-  checkUpdate env n x ty
-   = do t <- mapLeft ProgramErrorExp
-           $ checkExp frag env x
-        requireSame (ProgramErrorWrongType x) t (FunT [] ty)
-        return (n, ATUpdate ty)
-
-  
-checkLoop
+checkStatement
         :: Ord n
         => Fragment p
         -> Env  n Type
         -> Env  n AccType
-        -> FactLoop n p
-        -> Either (ProgramError n p) ()
-checkLoop frag env accs (FactLoop inputType inputBind stmts_)
- = go (Map.insert inputBind streamType env) stmts_
+        -> Statement n p
+        -> Either (ProgramError n p) (Maybe Type)
+checkStatement frag xh ah stmt
+ = case stmt of
+    If x stmts elses
+     -> do t <- mapLeft ProgramErrorExp
+              $ checkExp frag xh x
+           requireSame (ProgramErrorWrongType x) t (FunT [] BoolT)
+           thenty <- go xh stmts
+           elsety <- go xh elses
+           
+           case thenty == elsety of
+            True  -> return thenty
+            False -> Left (ProgramErrorConflictingReturnTypes [thenty, elsety])
+
+    Let n x stmts
+     -> do t <- mapLeft ProgramErrorExp
+              $ checkExp frag xh x
+           go (Map.insert n t xh) stmts
+
+    ForeachInts n from to stmts 
+     -> do tf <- mapLeft ProgramErrorExp
+               $ checkExp frag xh from
+           tt <- mapLeft ProgramErrorExp
+               $ checkExp frag xh to
+
+           requireSame (ProgramErrorWrongType from) tf (FunT [] IntT)
+           requireSame (ProgramErrorWrongType to)   tt (FunT [] IntT)
+           
+           go (Map.insert n (FunT [] IntT) xh) stmts
+
+    ForeachFacts n ty stmts 
+     -> go (Map.insert n (FunT [] (PairT ty DateTimeT)) xh) stmts
+
+
+    Block []
+     -> return Nothing
+    Block [stmts]
+     -> go xh stmts
+    Block (s:ss)
+     -> go xh s >> go xh (Block ss)
+
+    InitAccumulator acc stmts
+     -> do (n, at) <- checkAcc acc
+           checkStatement frag xh (Map.insert n at ah) stmts
+
+    Read n acc stmts
+     -> do a <- maybeToRight (ProgramErrorNoSuchAccumulator acc)
+              $ Map.lookup acc ah
+
+           case a of
+            ATUpdate accTy
+             -> go (Map.insert n (FunT [] accTy) xh) stmts
+            ATPush accTy
+             -> go (Map.insert n (FunT [] (ArrayT accTy)) xh) stmts
+
+    Write n x
+     -> do t <- mapLeft ProgramErrorExp
+              $ checkExp frag xh x
+
+           a <- maybeToRight (ProgramErrorNoSuchAccumulator n)
+              $ Map.lookup n ah
+
+           case a of
+            ATUpdate accTy
+             -> do requireSame (ProgramErrorWrongType x) t (FunT [] accTy)
+                   return Nothing
+            _
+             -> Left (ProgramErrorWrongAccumulatorType n)
+ 
+    Push n x
+     -> do t <- mapLeft ProgramErrorExp
+              $ checkExp frag xh x
+
+           a <- maybeToRight (ProgramErrorNoSuchAccumulator n)
+              $ Map.lookup n ah
+
+           case a of
+            ATPush elemTy
+             -> do requireSame (ProgramErrorWrongType x) t (FunT [] elemTy)
+                   return Nothing
+            _
+             -> Left (ProgramErrorWrongAccumulatorType n)
+
+    Return x
+     -> do t <- mapLeft ProgramErrorExp
+              $ checkExp frag xh x
+        
+           return (Just t)
+
+
+
 
  where
-  streamType = FunT [] (PairT inputType DateTimeT)
+  go xh' = checkStatement frag xh' ah
 
-  go e stmts = checkStmt e stmts
+  checkAcc (Accumulator n at ty x)
+   = case at of
+      Resumable
+       -> checkUpdate n x ty
+      Windowed
+       -> checkUpdate n x ty
+      Latest
+       -> do    t <- mapLeft ProgramErrorExp
+                   $ checkExp frag xh x
+                requireSame (ProgramErrorWrongType x) t (FunT [] IntT)
+                return (n, ATPush ty)
+      Mutable
+       -> checkUpdate n x ty
 
-  checkStmt e s
-   = case s of
-      If x stmts elses
-       -> do t <- mapLeft ProgramErrorExp
-                $ checkExp frag e x
-             requireSame (ProgramErrorWrongType x) t (FunT [] BoolT)
-             go e stmts
-             go e elses
+  checkUpdate n x ty
+   = do t <- mapLeft ProgramErrorExp
+           $ checkExp frag xh x
+        requireSame (ProgramErrorWrongType x) t (FunT [] ty)
+        return (n, ATUpdate ty)
 
-      Let n x stmts
-       -> do t <- mapLeft ProgramErrorExp
-                $ checkExp frag e x
-             go (Map.insert n t e) stmts
-
-      Foreach n from to stmts 
-       -> do tf <- mapLeft ProgramErrorExp
-                 $ checkExp frag e from
-             tt <- mapLeft ProgramErrorExp
-                 $ checkExp frag e to
-
-             requireSame (ProgramErrorWrongType from) tf (FunT [] IntT)
-             requireSame (ProgramErrorWrongType to)   tt (FunT [] IntT)
-             
-             go (Map.insert n (FunT [] IntT) e) stmts
-
-      Block stmts
-       -> mapM_ (go e) stmts
-
-      Read n acc stmts
-       -> do a <- maybeToRight ProgramErrorTODO
-                $ Map.lookup acc accs
-
-             case a of
-              ATUpdate accTy
-               -> go (Map.insert n (FunT [] accTy) e) stmts
-              _
-               -> Left ProgramErrorTODO
-
-      Write n x
-       -> do t <- mapLeft ProgramErrorExp
-                $ checkExp frag e x
-
-             a <- maybeToRight ProgramErrorTODO
-                $ Map.lookup n accs
-
-             case a of
-              ATUpdate accTy
-               -> requireSame (ProgramErrorWrongType x) t (FunT [] accTy)
-              _
-               -> Left ProgramErrorTODO
-   
-      Push n x
-       -> do t <- mapLeft ProgramErrorExp
-                $ checkExp frag e x
-
-             a <- maybeToRight ProgramErrorTODO
-                $ Map.lookup n accs
-
-             case a of
-              ATPush elemTy
-               -> requireSame (ProgramErrorWrongType x) t (FunT [] elemTy)
-              _
-               -> Left ProgramErrorTODO
-
-
+  

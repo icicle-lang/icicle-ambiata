@@ -51,34 +51,52 @@ programFromCore :: Ord n
                 -> A.Program n Prim
 programFromCore namer p
  = A.Program
- { A.binddate   = namerDate namer
- , A.precomps   = C.precomps    p
- -- Create accumulators for each reduce
- , A.accums     = fmap accum (C.reduces p)
-
- -- Nest the streams into a single loop
- , A.loop       = A.FactLoop (C.input p) (namerFact namer)
-                $ Block
-                $ makeStatements namer (C.input p)
-                                       (C.streams p) (C.reduces p)
-
- , A.postcomps  = makepostdate
-               <> C.postcomps   p
- , A.returns    = C.returns     p
+ { A.binddate
+    = namerDate namer
+ , A.statements
+    = lets (C.precomps p)
+    $ accums
+    ( factLoop <>
+      readaccums
+    ( lets (makepostdate <> C.postcomps p) returnStmt) )
  }
  where
+  lets stmts inner
+   = foldr (\(n,x) a -> Let n x a) inner stmts
+
+  accums inner
+   = foldr (\ac s -> InitAccumulator (accum ac) s)
+            inner
+           (C.reduces p)
+
+  -- Nest the streams into a single loop
+  factLoop
+   = ForeachFacts (namerFact namer) (C.input p)
+   $ Block
+   $ makeStatements namer (C.input p)
+                                       (C.streams p) (C.reduces p)
+
+  returnStmt
+   = A.Return (C.returns p)
+
   -- Create a latest accumulator
   accum (n, CR.RLatest ty x _)
-   = A.Accumulator n A.Latest ty x
+   = A.Accumulator (namerAccPrefix namer n) A.Latest ty x
   
   -- Fold accumulator
   accum (n, CR.RFold _ ty _ x inp)
    -- If it's windowed, create windowed accumulator
    | CS.isStreamWindowed (C.streams p) inp
-   = A.Accumulator n A.Windowed ty x
+   = A.Accumulator (namerAccPrefix namer n) A.Windowed ty x
    -- Not windowed, so resumable fold
    | otherwise
-   = A.Accumulator n A.Resumable ty x
+   = A.Accumulator (namerAccPrefix namer n) A.Resumable ty x
+
+  readaccums inner 
+   = foldr (\ac s -> Read (fst ac) (namerAccPrefix namer $ fst ac) s)
+            inner
+           (C.reduces p)
+
 
   makepostdate
    = case C.postdate p of
@@ -168,9 +186,9 @@ statementOfReduce namer (n,r)
     CR.RFold _ _  k _ inp
      -- Darn - arguments wrong way around!
      -> let n' = namerAccPrefix namer n
-        in  Read n' n
-          $ Write n (k `XApp` (XVar n') `XApp` (XVar $ namerElemPrefix namer inp))
+        in  Read n' n'
+          $ Write n' (k `XApp` (XVar n') `XApp` (XVar $ namerElemPrefix namer inp))
     -- Push most recent inp
     CR.RLatest _ _ inp
-     -> Push n (XVar $ namerElemPrefix namer inp)
+     -> Push (namerAccPrefix namer n) (XVar $ namerElemPrefix namer inp)
 

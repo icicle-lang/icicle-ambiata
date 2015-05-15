@@ -5,6 +5,8 @@
 module Icicle.Test.Avalanche.EvalCommutes where
 
 import           Icicle.Test.Core.Arbitrary
+import           Icicle.BubbleGum
+import           Icicle.Common.Base
 import           Icicle.Core.Program.Check
 import qualified Icicle.Core.Eval.Exp       as XV
 import qualified Icicle.Core.Eval.Program   as PV
@@ -60,9 +62,15 @@ prop_eval_commutes_history t =
     isRight     (checkProgram p) ==>
      case (AE.evalProgram XV.evalPrim d vs $ AC.programFromCore namer p, PV.eval d vs p) of
       (Right (abg, _), Right cres)
-       ->  (sort abg)  === (sort $ PV.history cres)
+       ->  (sort abg)  === (fmap prefixBubbleGum $ sort $ PV.history cres)
       _
        -> property False
+
+
+prefixBubbleGum (BubbleGumReduction n v)
+ = BubbleGumReduction (NameMod (Var "acc" 0) n) v
+prefixBubbleGum bg
+ = bg
 
 
 
