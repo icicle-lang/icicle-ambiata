@@ -46,6 +46,8 @@ data RuntimeError n p
  | RuntimeErrorAccumulator   (XV.RuntimeError n p)
  | RuntimeErrorLoop          (XV.RuntimeError n p)
  | RuntimeErrorLoopAccumulatorBad (Name n)
+ | RuntimeErrorIfNotBool     BaseValue
+ | RuntimeErrorForeachNotInt BaseValue BaseValue
  | RuntimeErrorPost          (XV.RuntimeError n p)
  | RuntimeErrorReturn        (XV.RuntimeError n p)
  | RuntimeErrorNotBaseValue  (Value n p)
@@ -221,7 +223,7 @@ evalLoop
 
 evalLoop evalPrim now (FactLoop _ bind stmts) xh ah input
  -- Just go through all the statements
- = foldM (evalStmt evalPrim now xh' input) ah stmts
+ = evalStmt evalPrim now xh' input ah stmts
  where
   xh' = Map.insert bind streamvalue xh
   streamvalue = VBase $ VPair (snd $ fact input) (VDateTime $ time input)
@@ -240,21 +242,37 @@ evalStmt
 
 evalStmt evalPrim now xh input ah stmt
  = case stmt of
-    If x stmts
+    If x stmts elses
      -> do  v   <- eval x >>= baseValue
             case v of
-             -- Predicate must be true
+             -- Run "then" or "else"?
              VBool True
               -> go' stmts
-             -- This is not ideal, but if it is not a boolean,
-             -- our type checker will catch it.
-             _
-              -> return ah
+             VBool False
+              -> go' elses
+             _-> Left (RuntimeErrorIfNotBool v)
 
     -- Evaluate and insert the value into the heap.
     Let n x stmts
      -> do  v <- eval x
             go (Map.insert n v xh) ah stmts
+
+    Foreach n from to stmts
+     -> do  fromv <- eval from >>= baseValue
+            tov   <- eval to   >>= baseValue
+            case (fromv, tov) of
+             (VInt fromi, VInt toi)
+              -> -- Open-closed interval [from,to)
+                 -- ie "foreach i in 0 to 0" does not run
+                 foldM (\ah' index -> go (Map.insert n (VBase $ VInt index) xh) ah' stmts)
+                         ah
+                       [fromi .. toi-1]
+             _
+              -> Left $ RuntimeErrorForeachNotInt fromv tov
+
+    Block stmts
+     -> foldM (go xh) ah stmts
+
 
     -- Read from an accumulator
     Read n acc stmts
@@ -268,9 +286,6 @@ evalStmt evalPrim now xh input ah stmt
                      -> Left (RuntimeErrorLoopAccumulatorBad n)
             go (Map.insert n v xh) ah stmts
 
-    Block stmts
-     -> go xh ah stmts
-
     -- Update accumulator
     Write n x
      -> do  v   <- eval x >>= baseValue
@@ -283,7 +298,7 @@ evalStmt evalPrim now xh input ah stmt
 
  where
   -- Go through all the substatements
-  go xh' = foldM (evalStmt evalPrim now xh' input)
+  go xh' = evalStmt evalPrim now xh' input
   go' = go xh ah
 
   -- Raise Exp error to Avalanche

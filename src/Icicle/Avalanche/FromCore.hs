@@ -58,8 +58,9 @@ programFromCore namer p
 
  -- Nest the streams into a single loop
  , A.loop       = A.FactLoop (C.input p) (namerFact namer)
+                $ Block
                 $ makeStatements namer (C.input p)
-                  (C.streams p) (C.reduces p)
+                                       (C.streams p) (C.reduces p)
 
  , A.postcomps  = makepostdate
                <> C.postcomps   p
@@ -118,7 +119,7 @@ insertStream namer inputType strs reds (n, strm)
        subs  = fmap   (insertStream namer inputType strs reds)     strs'
 
        -- All statements together
-       alls     = upds <> subs
+       alls     = Block (upds <> subs)
        
        -- Bind some element
        allLet x = Let (namerElemPrefix namer n) x     alls
@@ -142,11 +143,14 @@ insertStream namer inputType strs reds (n, strm)
 
                window = unpair @~ check @~ XVar (namerFact namer)
                
-           in If window [allLet $ XVar $ namerFact namer]
+           in If window (allLet $ XVar $ namerFact namer)
+                         mempty
 
        -- Filters become ifs
        CS.STrans (CS.SFilter _) x inp
-        -> If (x `XApp` XVar (namerElemPrefix namer inp)) [allLet $ XVar $ namerElemPrefix namer inp]
+        -> If (x `XApp` XVar (namerElemPrefix namer inp))
+              (allLet $ XVar $ namerElemPrefix namer inp)
+               mempty
 
        -- Maps apply given function and then do their children
        CS.STrans (CS.SMap _ _) x inp
@@ -165,7 +169,7 @@ statementOfReduce namer (n,r)
      -- Darn - arguments wrong way around!
      -> let n' = namerAccPrefix namer n
         in  Read n' n
-          [ Write n (k `XApp` (XVar n') `XApp` (XVar $ namerElemPrefix namer inp)) ]
+          $ Write n (k `XApp` (XVar n') `XApp` (XVar $ namerElemPrefix namer inp))
     -- Push most recent inp
     CR.RLatest _ _ inp
      -> Push n (XVar $ namerElemPrefix namer inp)

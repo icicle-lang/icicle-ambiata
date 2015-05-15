@@ -99,20 +99,35 @@ checkLoop frag env accs (FactLoop inputType inputBind stmts_)
  where
   streamType = FunT [] (PairT inputType DateTimeT)
 
-  go e stmts = mapM_ (checkStmt e) stmts
+  go e stmts = checkStmt e stmts
 
   checkStmt e s
    = case s of
-      If x stmts
+      If x stmts elses
        -> do t <- mapLeft ProgramErrorExp
                 $ checkExp frag e x
              requireSame (ProgramErrorWrongType x) t (FunT [] BoolT)
              go e stmts
+             go e elses
 
       Let n x stmts
        -> do t <- mapLeft ProgramErrorExp
                 $ checkExp frag e x
              go (Map.insert n t e) stmts
+
+      Foreach n from to stmts 
+       -> do tf <- mapLeft ProgramErrorExp
+                 $ checkExp frag e from
+             tt <- mapLeft ProgramErrorExp
+                 $ checkExp frag e to
+
+             requireSame (ProgramErrorWrongType from) tf (FunT [] IntT)
+             requireSame (ProgramErrorWrongType to)   tt (FunT [] IntT)
+             
+             go (Map.insert n (FunT [] IntT) e) stmts
+
+      Block stmts
+       -> mapM_ (go e) stmts
 
       Read n acc stmts
        -> do a <- maybeToRight ProgramErrorTODO
@@ -123,9 +138,6 @@ checkLoop frag env accs (FactLoop inputType inputBind stmts_)
                -> go (Map.insert n (FunT [] accTy) e) stmts
               _
                -> Left ProgramErrorTODO
-
-      Block stmts
-       -> go e stmts
 
       Write n x
        -> do t <- mapLeft ProgramErrorExp
