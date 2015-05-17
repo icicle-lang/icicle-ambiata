@@ -4,6 +4,7 @@ module Icicle.Avalanche.Check (
     checkProgram
   ) where
 
+import              Icicle.Avalanche.Statement.Statement
 import              Icicle.Avalanche.Program
 
 import              Icicle.Common.Base

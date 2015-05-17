@@ -4,6 +4,7 @@ module Icicle.Avalanche.Eval (
     evalProgram
   ) where
 
+import              Icicle.Avalanche.Statement.Statement
 import              Icicle.Avalanche.Program
 
 import              Icicle.BubbleGum

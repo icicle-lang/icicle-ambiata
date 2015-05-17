@@ -47,6 +47,8 @@ library
                        Icicle.Avalanche.Eval
                        Icicle.Avalanche.Check
                        Icicle.Avalanche.Simp
+                       Icicle.Avalanche.Statement.Statement
+                       Icicle.Avalanche.Statement.Simp
 
                        Icicle.BubbleGum
 

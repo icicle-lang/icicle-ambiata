@@ -14,6 +14,7 @@ import              Icicle.Common.Type
 import              Icicle.Core.Exp.Prim
 import              Icicle.Core.Exp.Combinators
 
+import              Icicle.Avalanche.Statement.Statement as A
 import              Icicle.Avalanche.Program    as A
 import qualified    Icicle.Core.Program.Program as C
 import qualified    Icicle.Core.Reduce          as CR
