@@ -61,6 +61,8 @@ library
                        Icicle.Common.Exp.Error
                        Icicle.Common.Exp.Exp
                        Icicle.Common.Exp.Eval
+                       Icicle.Common.Exp.Prim.Minimal
+                       Icicle.Common.Exp.Prim.Eval
                        Icicle.Common.Exp.Simp
                        Icicle.Common.Exp.Simp.Beta
                        Icicle.Common.Exp.Simp.ANormal

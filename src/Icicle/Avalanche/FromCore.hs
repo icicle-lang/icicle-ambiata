@@ -14,6 +14,8 @@ import              Icicle.Common.Type
 import              Icicle.Core.Exp.Prim
 import              Icicle.Core.Exp.Combinators
 
+import qualified    Icicle.Common.Exp.Prim.Minimal as Min
+
 import              Icicle.Avalanche.Statement.Statement as A
 import              Icicle.Avalanche.Program    as A
 import qualified    Icicle.Core.Program.Program as C
@@ -154,7 +156,7 @@ insertStream namer inputType strs reds (n, strm)
                factValue = namerElemPrefix namer (namerFact namer)
                factDate  = namerElemPrefix namer (namerDate namer)
                nowDate   = namerDate namer
-               diff      = XPrim (PrimDateTime PrimDateTimeDaysDifference)
+               diff      = XPrim (PrimMinimal $ Min.PrimDateTime Min.PrimDateTimeDaysDifference)
 
                check  = XLam factValue  inputType
                       $ XLam factDate   DateTimeT

@@ -14,6 +14,7 @@ import Icicle.Core.Program.Error
 import Icicle.Core.Exp.Combinators
 import Icicle.Core.Exp.Prim
 import qualified Icicle.Common.Exp.Exp as X
+import qualified Icicle.Common.Exp.Prim.Minimal as Min
 
 import              P
 
@@ -51,7 +52,7 @@ fuseProgramsDistinctNames lp rp
         , reduces   = reduces   lp <> reduces   rp
         , postdate  = postdate'
         , postcomps = postdate'bind <> postcomps lp <> postcomps rp
-        , returns   = X.XPrim (PrimConst (PrimConstPair lt rt)) @~ returns lp @~ returns rp
+        , returns   = X.XPrim (PrimMinimal $ Min.PrimConst (Min.PrimConstPair lt rt)) @~ returns lp @~ returns rp
         }
     (le, re)
      -> Left

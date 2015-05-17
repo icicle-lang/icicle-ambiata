@@ -15,6 +15,7 @@ import qualified Icicle.Common.Type            as T
 import qualified Icicle.Common.Exp.Exp         as X
 import           Icicle.Core.Exp.Combinators
 import qualified Icicle.Core.Exp.Prim        as P
+import qualified Icicle.Common.Exp.Prim.Minimal as PM
 import qualified Icicle.Core.Stream          as S
 import qualified Icicle.Core.Reduce          as R
 import qualified Icicle.Core.Program.Program as P
@@ -249,8 +250,8 @@ program_days_since_latest
  , P.postdate   = Just (N.Name "now")
  , P.postcomps  = [(N.Name "days", X.XPrim (P.PrimFold (P.PrimFoldArray T.DateTimeT) (T.OptionT T.IntT))
                                     @~ (lam (T.OptionT T.IntT) $ \_ -> lam T.DateTimeT $ \b ->
-                                            X.XPrim (P.PrimConst $ P.PrimConstSome T.IntT)
-                                            @~ (X.XPrim (P.PrimDateTime P.PrimDateTimeDaysDifference) @~ b @~ var "now" ))
+                                            X.XPrim (P.PrimMinimal $ PM.PrimConst $ PM.PrimConstSome T.IntT)
+                                            @~ (X.XPrim (P.PrimMinimal $ PM.PrimDateTime PM.PrimDateTimeDaysDifference) @~ b @~ var "now" ))
                                     @~ X.XValue (T.OptionT T.IntT) N.VNone @~ var "last")]
 
  , P.returns    = var "days"

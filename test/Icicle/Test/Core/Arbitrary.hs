@@ -14,6 +14,7 @@ import           Icicle.Common.Base
 import           Icicle.Common.Exp
 import           Icicle.Common.Type
 import           Icicle.Common.Value
+import qualified Icicle.Common.Exp.Prim.Minimal as PM
 
 import qualified Icicle.Core.Exp                as X
 import           Icicle.Core.Exp.Prim
@@ -76,20 +77,25 @@ instance Arbitrary n => Arbitrary (Name n) where
   arbitrary =
     Name <$> arbitrary
 
+instance Arbitrary PM.Prim where
+ arbitrary
+  = oneof
+          [ return $ PM.PrimArith PM.PrimArithMinus
+          , return $ PM.PrimArith PM.PrimArithPlus
+          , return $ PM.PrimRelation PM.PrimRelationGt IntT
+          , return $ PM.PrimRelation PM.PrimRelationGe IntT
+          , return $ PM.PrimLogical  PM.PrimLogicalNot
+          , return $ PM.PrimLogical  PM.PrimLogicalAnd
+          , PM.PrimConst <$> (PM.PrimConstPair <$> arbitrary <*> arbitrary)
+          , PM.PrimConst . PM.PrimConstSome <$> arbitrary
+          ]
+
 instance Arbitrary Prim where
   arbitrary =
-    oneof_sized_vals
-          [ PrimArith PrimArithMinus
-          , PrimArith PrimArithPlus
-          , PrimRelation PrimRelationGt IntT
-          , PrimRelation PrimRelationGe IntT
-          , PrimLogical  PrimLogicalNot
-          , PrimLogical  PrimLogicalAnd
+    oneof_sized
+          [ PrimMinimal <$> arbitrary
           ]
-          [ PrimConst <$> (PrimConstPair <$> arbitrary <*> arbitrary)
-          , PrimConst . PrimConstSome <$> arbitrary
-
-          , PrimFold   PrimFoldBool <$> arbitrary
+          [ PrimFold   PrimFoldBool <$> arbitrary
           , PrimFold <$> (PrimFoldPair <$> arbitrary <*> arbitrary) <*> arbitrary
           , PrimFold <$> (PrimFoldArray <$> arbitrary) <*> arbitrary
           , PrimFold <$> (PrimFoldOption <$> arbitrary) <*> arbitrary
