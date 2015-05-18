@@ -49,6 +49,8 @@ library
                        Icicle.Avalanche.Simp
                        Icicle.Avalanche.Statement.Statement
                        Icicle.Avalanche.Statement.Simp
+                       Icicle.Avalanche.Statement.Flatten
+                       Icicle.Avalanche.Prim.Flat
 
                        Icicle.BubbleGum
 

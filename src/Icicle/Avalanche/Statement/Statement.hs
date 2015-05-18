@@ -70,12 +70,13 @@ instance Monoid (Statement n p) where
 
 -- | Mutable accumulators
 data Accumulator n p
- = Accumulator (Name n)
-               AccumulatorType
-               ValType
-               (Exp n p)
+ = Accumulator
+ { accName      :: Name n
+ , accKind      :: AccumulatorType
+ , accValType   :: ValType
+ , accInit      :: Exp n p
+ }
  deriving (Eq, Ord, Show)
-
 
 -- | There are three different kinds of reductions,
 -- each a different kind of accumulator.

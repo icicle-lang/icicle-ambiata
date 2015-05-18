@@ -17,8 +17,10 @@ import qualified Icicle.Core.Program.Fusion  as Program
 import qualified Icicle.Core.Program.Condense as Program
 import qualified Icicle.Common.Fresh         as Fresh
 
+import qualified Icicle.Avalanche.Program    as AvP
 import qualified Icicle.Avalanche.FromCore   as AvC
 import qualified Icicle.Avalanche.Simp       as AvS
+import qualified Icicle.Avalanche.Statement.Flatten as AvF
 
 import           P
 import           Data.List as List
@@ -108,6 +110,15 @@ showProgram prog
                                   (Fresh.counterPrefixNameState "anf")
         T.putStrLn "Avalanche:"
         print (PP.indent 4 $ PP.pretty avs)
+
+        let avf  = snd
+                 $ Fresh.runFresh (do   s'  <- AvF.flatten (AvP.statements avs)
+                                        AvS.simpAvalanche (avs { AvP.statements = s'}))
+                                  (Fresh.counterPrefixNameState "flat")
+
+        T.putStrLn ""
+        T.putStrLn "Flattened:"
+        print (PP.indent 4 $ PP.pretty avf)
 
         T.putStrLn ""
 
