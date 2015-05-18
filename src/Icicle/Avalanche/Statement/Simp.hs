@@ -143,21 +143,30 @@ substXinS name payload s
   go  = substXinS name payload
 
 
--- | Three things?
--- * Find let bindings that have already been bound
--- * Remove let bindings that are not mentioned
--- * Remove some other useless code
+-- | Thresher transform - throw out the chaff.
+-- Three things:
+--  * Find let bindings that have already been bound:
+--      keep an environment of previously bound expressions,
+--      at each let binding check if it's already been seen.
+--  * Remove let bindings that are not mentioned:
+--      check freevariables of free statement.
+--  * Remove some other useless code:
+--      statements that do not update accumulators or return a value are silly.
+--
 thresher :: (Ord n, Eq p) => Statement n p -> Fresh n (Statement n p)
 thresher statements
  = go [] statements
  where
   go env s
+   -- Check if it actually does anything:
+   -- updates accumulators, returns a value, etc
    | not $ hasEffect Set.empty s
    = return mempty
    | otherwise
    = case s of
       If x ss es
        -> If x <$> go env ss <*> go env es
+
       Let n x ss
        | not $ Set.member n $ stmtFreeX ss
        -> go env ss
@@ -165,12 +174,12 @@ thresher statements
        -> Let n (XVar n') <$> go env ss
 
        | otherwise
-       -> Let n x <$> go ((n,x):env) ss
+       -> Let n x <$> go ((n,x): clear n env) ss
       
       ForeachInts n from to ss 
-       -> ForeachInts n from to <$> go env ss
+       -> ForeachInts n from to <$> go (clear n env) ss
       ForeachFacts n ty ss 
-       -> ForeachFacts n ty <$> go env ss
+       -> ForeachFacts n ty <$> go (clear n env) ss
 
       Block ss
        -> Block <$> mapM (go env) ss
@@ -182,7 +191,7 @@ thresher statements
        | not $ Set.member n $ stmtFreeX ss
        -> go env ss
        | otherwise
-       -> Read n acc <$> go env ss
+       -> Read n acc <$> go (clear n env) ss
 
       Write n x
        -> return $ Write n x
@@ -191,10 +200,33 @@ thresher statements
       Return x
        -> return $ Return x
 
+  -- The environment stores previously bound expressions.
+  -- These expressions can refer to names that are bound upwards.
+  -- This would be fine if there were no shadowing, but with shadowing we may end up
+  -- rebinding a name that is mentioned in another expression:
+  --
+  -- let a = 10
+  -- let b = a + 1
+  -- let a = 8
+  -- let s = a + 1
+  -- in  s
+  --
+  -- Here, s and b are locally alpha equivalent, but not really equivalent because they
+  -- refer to different "a"s.
+  -- When we see the second "a" binding, then, we must remove "b" from the environment of
+  -- previously bound expressions.
+  --
+  clear n env
+   = filter (\(n',x') -> n' /= n && not (Set.member n $ freevars x')) env
 
+
+-- | Check whether a statement writes to any accumulators or returns a value.
+-- The first argument is a set of accumulators to ignore.
+-- If it does not update or return, it is probably dead code.
 hasEffect :: Ord n => Set.Set (Name n) -> Statement n p -> Bool
 hasEffect ignore s
  = case s of
+    -- If any substatements have an effect, the superstatement does.
     If _ ss es
      -> go ss || go es
     Let _ _ ss
@@ -205,34 +237,49 @@ hasEffect ignore s
      -> go ss
     Block ss
      -> any go ss
-    -- So, we can ignore the newly created var
-    -- because any changes will go out of scope!
+
+    -- We can ignore the newly created var
+    -- because any changes will go out of scope:
+    -- externally any updates are pure.
     InitAccumulator acc ss
      -> hasEffect (Set.insert (accName acc) ignore) ss
 
+    -- Reading is fine on its own
     Read _ _ ss
      -> go ss
 
+    -- Writing or pushing is an effect,
+    -- unless we're explicitly ignoring this accumulator
     Write n _
      -> not $ Set.member n ignore
     Push  n _
      -> not $ Set.member n ignore
 
+    -- A return is kind of an effect.
+    -- Well, it means the returned value is visible from outside
+    -- so maybe "potentially useful" is better than "effect"
     Return _
-     -- This is weird.
      -> True
  where
   go = hasEffect ignore
 
 
+-- | Find free *expression* variables in statements.
+-- Note that this ignores accumulators, as they are a different scope.
 stmtFreeX :: Ord n => Statement n p -> Set.Set (Name n)
 stmtFreeX s
  = case s of
+    -- Simple recursion for most cases
     If x ss es
      -> freevars x `Set.union` stmtFreeX ss `Set.union` stmtFreeX es
+    -- We want the free variables of x,
+    -- but need to hide "n" from the free variables of ss:
+    -- n is not free in there any more.
     Let n x ss
      -> freevars x `Set.union`
         Set.delete n (stmtFreeX ss)
+
+    -- More boilerplate. I should do something about this.
     ForeachInts n x y ss
      -> freevars x `Set.union` freevars y `Set.union`
         Set.delete n (stmtFreeX ss)
@@ -241,18 +288,24 @@ stmtFreeX s
     Block ss
      -> Set.unions $ fmap stmtFreeX ss
 
-    -- Accumulators are in a different scope
-    InitAccumulator _ ss
-     -> stmtFreeX ss
+    -- Accumulators are in a different scope,
+    -- so the binding doesn't hide anything.
+    -- Still check the initialise expression though.
+    InitAccumulator acc ss
+     -> freevars (accInit acc) `Set.union` stmtFreeX ss
 
-    -- this is binding a new var..
+    -- We're binding a new expression variable from an accumulator.
+    -- The accumulator doesn't matter - but we need to hide n from
+    -- the substatement's free variables.
     Read n _ ss
      -> Set.delete n (stmtFreeX ss)
 
-    Write n x
-     -> Set.insert n (freevars x)
-    Push  n x
-     -> Set.insert n (freevars x)
+    -- Leaves that use expressions.
+    -- Here, the n is an accumulator variable, so doesn't affect expressions.
+    Write _ x
+     -> freevars x
+    Push  _ x
+     -> freevars x
 
     Return x
      -> freevars x
