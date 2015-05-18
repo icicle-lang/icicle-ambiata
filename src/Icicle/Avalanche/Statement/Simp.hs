@@ -1,9 +1,11 @@
 -- | Simplifying and transforming statements
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE PatternGuards #-}
 module Icicle.Avalanche.Statement.Simp (
     pullLets
   , forwardStmts
   , substXinS
+  , thresher
   ) where
 
 import              Icicle.Avalanche.Statement.Statement
@@ -14,6 +16,8 @@ import              Icicle.Common.Exp.Simp.Beta
 import              Icicle.Common.Fresh
 
 import              P
+
+import qualified    Data.Set as Set
 
 
 
@@ -137,3 +141,118 @@ substXinS name payload s
  where
   sub = subst     name payload
   go  = substXinS name payload
+
+
+-- | Three things?
+-- * Find let bindings that have already been bound
+-- * Remove let bindings that are not mentioned
+-- * Remove some other useless code
+thresher :: (Ord n, Eq p) => Statement n p -> Fresh n (Statement n p)
+thresher statements
+ = go [] statements
+ where
+  go env s
+   | not $ hasEffect Set.empty s
+   = return mempty
+   | otherwise
+   = case s of
+      If x ss es
+       -> If x <$> go env ss <*> go env es
+      Let n x ss
+       | not $ Set.member n $ stmtFreeX ss
+       -> go env ss
+       | ((n',_):_) <- filter (\(_,x') -> x `alphaEquality` x') env
+       -> Let n (XVar n') <$> go env ss
+
+       | otherwise
+       -> Let n x <$> go ((n,x):env) ss
+      
+      ForeachInts n from to ss 
+       -> ForeachInts n from to <$> go env ss
+      ForeachFacts n ty ss 
+       -> ForeachFacts n ty <$> go env ss
+
+      Block ss
+       -> Block <$> mapM (go env) ss
+
+      InitAccumulator acc ss
+       -> InitAccumulator acc <$> go env ss
+
+      Read n acc ss 
+       | not $ Set.member n $ stmtFreeX ss
+       -> go env ss
+       | otherwise
+       -> Read n acc <$> go env ss
+
+      Write n x
+       -> return $ Write n x
+      Push n x
+       -> return $ Push n x
+      Return x
+       -> return $ Return x
+
+
+hasEffect :: Ord n => Set.Set (Name n) -> Statement n p -> Bool
+hasEffect ignore s
+ = case s of
+    If _ ss es
+     -> go ss || go es
+    Let _ _ ss
+     -> go ss
+    ForeachInts _ _ _ ss
+     -> go ss
+    ForeachFacts _ _ ss
+     -> go ss
+    Block ss
+     -> any go ss
+    -- So, we can ignore the newly created var
+    -- because any changes will go out of scope!
+    InitAccumulator acc ss
+     -> hasEffect (Set.insert (accName acc) ignore) ss
+
+    Read _ _ ss
+     -> go ss
+
+    Write n _
+     -> not $ Set.member n ignore
+    Push  n _
+     -> not $ Set.member n ignore
+
+    Return _
+     -- This is weird.
+     -> True
+ where
+  go = hasEffect ignore
+
+
+stmtFreeX :: Ord n => Statement n p -> Set.Set (Name n)
+stmtFreeX s
+ = case s of
+    If x ss es
+     -> freevars x `Set.union` stmtFreeX ss `Set.union` stmtFreeX es
+    Let n x ss
+     -> freevars x `Set.union`
+        Set.delete n (stmtFreeX ss)
+    ForeachInts n x y ss
+     -> freevars x `Set.union` freevars y `Set.union`
+        Set.delete n (stmtFreeX ss)
+    ForeachFacts _ _ ss
+     -> stmtFreeX ss
+    Block ss
+     -> Set.unions $ fmap stmtFreeX ss
+
+    -- Accumulators are in a different scope
+    InitAccumulator _ ss
+     -> stmtFreeX ss
+
+    -- this is binding a new var..
+    Read n _ ss
+     -> Set.delete n (stmtFreeX ss)
+
+    Write n x
+     -> Set.insert n (freevars x)
+    Push  n x
+     -> Set.insert n (freevars x)
+
+    Return x
+     -> freevars x

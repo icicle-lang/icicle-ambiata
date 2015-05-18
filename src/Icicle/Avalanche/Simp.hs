@@ -13,9 +13,11 @@ import              Icicle.Avalanche.Program
 
 import              P
 
-simpAvalanche :: (Show n, Show p, Ord n) => Program n p -> Fresh n (Program n p)
+simpAvalanche :: (Show n, Show p, Ord n, Eq p) => Program n p -> Fresh n (Program n p)
 simpAvalanche p
  = do p' <- transformX return simp p
       s' <- forwardStmts $ pullLets $ statements p'
-      return $ p { statements = s' }
+      s'' <- thresher s'
+      s''' <- forwardStmts s''
+      return $ p { statements = s''' }
 
