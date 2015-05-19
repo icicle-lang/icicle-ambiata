@@ -134,7 +134,7 @@ thresher statements
    -- Check if it actually does anything:
    -- updates accumulators, returns a value, etc.
    -- If it doesn't, we might as well return a nop
-   | not $ hasEffect Set.empty s
+   | not $ hasEffect s
    = return (env, mempty)
 
    | otherwise
@@ -190,91 +190,88 @@ thresher statements
 
 
 -- | Check whether a statement writes to any accumulators or returns a value.
--- The first argument is a set of accumulators to ignore.
 -- If it does not update or return, it is probably dead code.
-hasEffect :: Ord n => Set.Set (Name n) -> Statement n p -> Bool
-hasEffect ignore s
- = case s of
-    -- If any substatements have an effect, the superstatement does.
-    If _ ss es
-     -> go ss || go es
-    Let _ _ ss
-     -> go ss
-    ForeachInts _ _ _ ss
-     -> go ss
-    ForeachFacts _ _ ss
-     -> go ss
-    Block ss
-     -> any go ss
+--
+-- The first argument is a set of accumulators to ignore.
+hasEffect :: Ord n => Statement n p -> Bool
+hasEffect statements
+ = runIdentity
+ $ foldStmt down up (||) Set.empty False statements
+ where
+  down ignore   s
+   -- We can ignore the newly created var
+   -- because any changes will go out of scope:
+   -- externally any updates are pure.
+   | InitAccumulator acc _ <- s
+   = return $ Set.insert (accName acc) ignore
+   | otherwise
+   = return   ignore
 
-    -- We can ignore the newly created var
-    -- because any changes will go out of scope:
-    -- externally any updates are pure.
-    InitAccumulator acc ss
-     -> hasEffect (Set.insert (accName acc) ignore) ss
-
-    -- Reading is fine on its own
-    Read _ _ ss
-     -> go ss
-
-    -- Writing or pushing is an effect,
-    -- unless we're explicitly ignoring this accumulator
-    Write n _
-     -> not $ Set.member n ignore
-    Push  n _
-     -> not $ Set.member n ignore
+  up   ignore r s
+   -- Writing or pushing is an effect,
+   -- unless we're explicitly ignoring this accumulator
+   | Write n _ <- s
+   = return $ not $ Set.member n ignore
+   | Push  n _ <- s
+   = return $ not $ Set.member n ignore
 
     -- A return is kind of an effect.
     -- Well, it means the returned value is visible from outside
     -- so maybe "potentially useful" is better than "effect"
-    Return _
-     -> True
- where
-  go = hasEffect ignore
+   | Return _  <- s
+   = return True
+
+   -- If any substatements have an effect, the superstatement does.
+   | otherwise
+   = return r
 
 
 -- | Find free *expression* variables in statements.
 -- Note that this ignores accumulators, as they are a different scope.
 stmtFreeX :: Ord n => Statement n p -> Set.Set (Name n)
-stmtFreeX s
- = case s of
-    -- Simple recursion for most cases
-    If x ss es
-     -> freevars x `Set.union` stmtFreeX ss `Set.union` stmtFreeX es
-    -- We want the free variables of x,
-    -- but need to hide "n" from the free variables of ss:
-    -- n is not free in there any more.
-    Let n x ss
-     -> freevars x `Set.union`
-        Set.delete n (stmtFreeX ss)
+stmtFreeX statements
+ = runIdentity
+ $ foldStmt down up Set.union () Set.empty statements
+ where
+  down _ _
+   = return ()
 
-    -- More boilerplate. I should do something about this.
-    ForeachInts n x y ss
-     -> freevars x `Set.union` freevars y `Set.union`
-        Set.delete n (stmtFreeX ss)
-    ForeachFacts _ _ ss
-     -> stmtFreeX ss
-    Block ss
-     -> Set.unions $ fmap stmtFreeX ss
+  up _ subvars s
+   = let ret x = return (freevars x `Set.union` subvars)
+     in  case s of
+          -- Simply recursion for most cases
+          If x _ _
+           -> ret x
+          -- We want the free variables of x,
+          -- but need to hide "n" from the free variables of ss:
+          -- n is not free in there any more.
+          Let n x _
+           -> return (freevars x `Set.union` Set.delete n subvars)
+          ForeachInts n x y ss
+           -> return (freevars x `Set.union` freevars y `Set.union` Set.delete n subvars)
 
-    -- Accumulators are in a different scope,
-    -- so the binding doesn't hide anything.
-    -- Still check the initialise expression though.
-    InitAccumulator acc ss
-     -> freevars (accInit acc) `Set.union` stmtFreeX ss
+          -- Accumulators are in a different scope,
+          -- so the binding doesn't hide anything.
+          -- Still check the initialise expression though.
+          InitAccumulator acc _
+           -> ret (accInit acc)
 
-    -- We're binding a new expression variable from an accumulator.
-    -- The accumulator doesn't matter - but we need to hide n from
-    -- the substatement's free variables.
-    Read n _ ss
-     -> Set.delete n (stmtFreeX ss)
+          -- We're binding a new expression variable from an accumulator.
+          -- The accumulator doesn't matter - but we need to hide n from
+          -- the substatement's free variables.
+          Read n _ _
+           -> return (Set.delete n subvars)
 
-    -- Leaves that use expressions.
-    -- Here, the n is an accumulator variable, so doesn't affect expressions.
-    Write _ x
-     -> freevars x
-    Push  _ x
-     -> freevars x
+          -- Leaves that use expressions.
+          -- Here, the name is an accumulator variable, so doesn't affect expressions.
+          Write _ x
+           -> ret x
+          Push  _ x
+           -> ret x
+          Return x
+           -> ret x
 
-    Return x
-     -> freevars x
+          -- Leftovers: just the union of the under bits
+          _
+           -> return subvars
+

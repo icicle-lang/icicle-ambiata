@@ -5,6 +5,7 @@ module Icicle.Avalanche.Statement.Statement (
   , Accumulator     (..)
   , AccumulatorType (..)
   , transformUDStmt
+  , foldStmt
   ) where
 
 import              Icicle.Common.Base
@@ -139,6 +140,50 @@ transformUDStmt fun env statements
            -> return $ Push n x
           Return x
            -> return $ Return x
+
+foldStmt
+        :: (Applicative m, Functor m, Monad m)
+        => (env ->        Statement n p -> m env)
+        -> (env -> res -> Statement n p -> m res)
+        -> (res -> res -> res)
+        -> env
+        -> res
+        -> Statement n p
+        -> m res
+foldStmt down up rjoin env res statements
+ = go env statements
+ where
+  go e s
+   = do  e' <- down e s
+         let sub1 ss = go e' ss >>= \r' -> up e' r' s
+
+         case s of
+          If _ ss es
+           -> do    r1 <- go e' ss
+                    r2 <- go e' es
+                    let r' = rjoin r1 r2
+                    up e' r' s
+          Let _ _ ss
+           -> sub1 ss
+          ForeachInts _ _ _ ss
+           -> sub1 ss
+          ForeachFacts _ _ ss
+           -> sub1 ss
+          Block ss
+           -> do    rs <- mapM (go e') ss
+                    let r' = foldl rjoin res rs
+                    up e' r' s
+          InitAccumulator _ ss
+           -> sub1 ss
+          Read _ _ ss
+           -> sub1 ss
+          Write{}
+           -> up e' res s
+          Push{}
+           -> up e' res s
+          Return{}
+           -> up e' res s
+
 
 
 instance TransformX Statement where
