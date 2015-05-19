@@ -4,6 +4,7 @@ module Icicle.Avalanche.Prim.Flat (
       Prim   (..)
     , PrimProject (..)
     , PrimUnsafe    (..)
+    , PrimUpdate    (..)
     , typeOfPrim
   ) where
 
@@ -26,6 +27,9 @@ data Prim
  -- | Unsafe projections
  | PrimUnsafe          PrimUnsafe
 
+ -- | Safe updates
+ | PrimUpdate          PrimUpdate
+
  | PrimTODO String
  deriving (Eq, Ord, Show)
 
@@ -34,6 +38,7 @@ data PrimProject
  = PrimProjectPair Bool  ValType ValType
  | PrimProjectArrayLength ValType
  | PrimProjectMapLength   ValType ValType
+ | PrimProjectMapLookup   ValType ValType
  | PrimProjectOptionIsSome ValType
  deriving (Eq, Ord, Show)
 
@@ -42,6 +47,10 @@ data PrimUnsafe
  = PrimUnsafeArrayIndex ValType
  | PrimUnsafeMapIndex   ValType ValType
  | PrimUnsafeOptionGet  ValType
+ deriving (Eq, Ord, Show)
+
+data PrimUpdate
+ = PrimUpdateMapPut  ValType ValType
  deriving (Eq, Ord, Show)
 
 
@@ -67,6 +76,10 @@ typeOfPrim p
     PrimProject (PrimProjectMapLength a b)
      -> FunT [funOfVal (MapT a b)] IntT
 
+    PrimProject (PrimProjectMapLookup a b)
+     -> FunT [funOfVal (MapT a b), funOfVal a] (OptionT b)
+
+
     PrimProject (PrimProjectOptionIsSome a)
      -> FunT [funOfVal (OptionT a)] BoolT
 
@@ -79,6 +92,9 @@ typeOfPrim p
 
     PrimUnsafe  (PrimUnsafeOptionGet a)
      -> FunT [funOfVal (OptionT a)] a
+
+    PrimUpdate  (PrimUpdateMapPut a b)
+     -> FunT [funOfVal (MapT a b), funOfVal a, funOfVal b] (MapT a b)
 
     PrimTODO _
      -> FunT [] IntT
@@ -98,6 +114,8 @@ instance Pretty Prim where
   = text "Array_length#" <+> brackets (pretty a)
  pretty (PrimProject (PrimProjectMapLength a b))
   = text "Map_length#" <+> brackets (pretty a) <+> brackets (pretty b)
+ pretty (PrimProject (PrimProjectMapLookup a b))
+  = text "Map_lookup#" <+> brackets (pretty a) <+> brackets (pretty b)
  pretty (PrimProject (PrimProjectOptionIsSome a))
   = text "Option_isSome#" <+> brackets (pretty a)
 
@@ -110,6 +128,9 @@ instance Pretty Prim where
 
  pretty (PrimUnsafe (PrimUnsafeOptionGet a))
   = text "unsafe_Option_get#" <+> brackets (pretty a)
+
+ pretty (PrimUpdate (PrimUpdateMapPut a b))
+  = text "Map_put#" <+> brackets (pretty a) <+> brackets (pretty b)
 
 
  pretty (PrimTODO str)

@@ -111,14 +111,19 @@ showProgram prog
         T.putStrLn "Avalanche:"
         print (PP.indent 4 $ PP.pretty avs)
 
-        let avf  = snd
-                 $ Fresh.runFresh (do   s'  <- AvF.flatten (AvP.statements avs)
-                                        AvS.simpAvalanche (avs { AvP.statements = s'}))
-                                  (Fresh.counterPrefixNameState "flat")
+        let avf  = Fresh.runFreshT (AvF.flatten (AvP.statements avs))
+                                   (Fresh.counterPrefixNameState "flat")
+        case avf of
+         Left err
+          -> do T.putStrLn "Flattening error:"
+                print err
+         Right avf'
+          -> do let avfs = snd $ Fresh.runFresh (AvS.simpAvalanche (avs { AvP.statements = snd avf'}))
+                                          (Fresh.counterPrefixNameState "simp")
 
-        T.putStrLn ""
-        T.putStrLn "Flattened:"
-        print (PP.indent 4 $ PP.pretty avf)
+                T.putStrLn ""
+                T.putStrLn "Flattened:"
+                print (PP.indent 4 $ PP.pretty avfs)
 
         T.putStrLn ""
 

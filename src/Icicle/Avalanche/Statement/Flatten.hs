@@ -20,13 +20,21 @@ import              Icicle.Common.Fresh
 import              Icicle.Internal.Pretty
 
 import              P
-import Prelude (error)
+import              Control.Monad.Trans.Class
 import              Data.List (reverse)
+import              Data.String (String)
 
+data FlattenError n
+ = FlattenError String
+ | FlattenErrorPrimBadArgs Core.Prim [Exp n Core.Prim]
+ deriving (Eq, Ord, Show)
+
+type FlatM n
+ = FreshT n (Either (FlattenError n)) (Statement n Flat.Prim)
 
 flatten :: (Ord n, Pretty n)
         => Statement n Core.Prim
-        -> Fresh n (Statement n Flat.Prim)
+        -> FlatM n
 flatten s
  = case s of
     If x ts es
@@ -74,8 +82,8 @@ flatten s
 
 flatX   :: (Ord n, Pretty n)
         => Exp n Core.Prim
-        -> (Exp n Flat.Prim -> Fresh n (Statement n Flat.Prim))
-        -> Fresh n (Statement n Flat.Prim)
+        -> (Exp n Flat.Prim -> FlatM n)
+        -> FlatM n
 
 flatX xx stm
  = convX
@@ -95,13 +103,13 @@ flatX xx stm
        -> flatPrim p xs
 
        | otherwise
-       -> error ("Flatten: TODO: application of non-primitive: " <> show (pretty $ xx, pretty x'))
+       -> lift $ Left $ FlattenError ("Flatten: TODO: application of non-primitive: " <> show (pretty $ xx, pretty x'))
 
       XPrim p
        -> flatPrim p []
 
       XLam{}
-       -> error ("Flatten: TODO: unapplied lam: " <> show (pretty x'))
+       -> lift $ Left $ FlattenError ("Flatten: TODO: application of non-primitive: " <> show (pretty $ xx, pretty x'))
 
 
       XLet n p q
@@ -116,8 +124,51 @@ flatX xx stm
 
       Core.PrimFold pf ta
        -> flatFold pf ta xs
+      Core.PrimMap (Core.PrimMapInsertOrUpdate tk tv)
+       | [upd, ins, key, map]   <- xs
+       -> flatX key
+       $ \key'
+       -> flatX map
+       $ \map'
+       -> do    nexist <- fresh
+                let xexist = XPrim (Flat.PrimProject (Flat.PrimProjectMapLookup tk tv))
+                                 `makeApps` [map', key']
+
+                let xisSome  = XPrim (Flat.PrimProject (Flat.PrimProjectOptionIsSome tv))
+                         `makeApps` [XVar nexist]
+
+                -- Only get the value inside the some branch
+                nexistSome <- fresh
+                let xexistSome = XPrim (Flat.PrimUnsafe (Flat.PrimUnsafeOptionGet tv))
+                                `makeApps` [XVar nexist]
+
+                -- Name for the actual value we're storing
+                nputval <- fresh
+
+                nput <- fresh
+                -- Perform put; nputval needs to be bound with actual value before
+                let xput = XPrim (Flat.PrimUpdate (Flat.PrimUpdateMapPut tk tv))
+                         `makeApps` [map', key', XVar nputval]
+                
+
+                upd' <- flatX (upd `makeApps` [XVar nexistSome]) $ \upd'
+                 ->      Let nputval upd'
+                      .  Let nput    xput
+                     <$> flatX (XVar nput) stm
+
+                ins'  <- flatX ins $ \ins'
+                 ->      Let nputval ins'
+                      .  Let nput    xput
+                     <$> flatX (XVar nput) stm
+
+                return
+                 $ Let nexist xexist
+                 $ If xisSome
+                     ( Let nexistSome xexistSome upd')
+                     ( ins' )
+
       _
-       -> primApps (Flat.PrimTODO (show (pretty p))) [] []
+       -> lift $ Left $ FlattenErrorPrimBadArgs p xs
 
   primApps p [] conv
    = stm
