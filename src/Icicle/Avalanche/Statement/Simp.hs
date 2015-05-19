@@ -17,49 +17,48 @@ import              Icicle.Common.Fresh
 
 import              P
 
+import              Data.Functor.Identity
 import qualified    Data.Set as Set
 
 
 
 pullLets :: Statement n p -> Statement n p
-pullLets stm
- = case stm of
-    If x subs elses
-     -> pres x (\x' -> If x' (pullLets subs) (pullLets elses))
-    Let n x subs
-     -> pres x (\x' -> Let n x' $ pullLets subs)
-
-    ForeachInts n from to subs
-     -> pres from
-     $ \from'
-     -> pres to
-     $ \to'
-     -> ForeachInts n from' to' $ pullLets subs
-
-    ForeachFacts n ty subs
-     -> ForeachFacts n ty $ pullLets subs
-     
-    Block subs
-     -> Block (fmap pullLets subs)
-
-    InitAccumulator (Accumulator n at vt x) subs
-     -> pres x (\x' -> InitAccumulator (Accumulator n at vt x') $ pullLets subs)
-
-    Read n acc subs
-     -> Read n acc (pullLets subs)
-
-    Write n x
-     -> pres x (Write n)
-    Push n x
-     -> pres x (Push n)
-
-    Return x
-     -> pres x (\x' -> Return x')
-
+pullLets statements
+ = runIdentity
+ $ transformUDStmt trans () statements
  where
+  trans _ s
+   = case s of
+      If x subs elses
+       -> pres x $ \x' -> If x' subs elses
+      Let n x subs
+       -> pres x $ \x' -> Let n x' subs
+
+      ForeachInts n from to subs
+       -> pres2 from to $ \from' to' -> ForeachInts n from' to' subs
+
+      InitAccumulator (Accumulator n at vt x) subs
+       -> pres x $ \x' -> InitAccumulator (Accumulator n at vt x') subs
+
+      Write n x
+       -> pres x $ Write n
+      Push n x
+       -> pres x $ Push n
+
+      Return x
+       -> pres x $ Return
+
+      _
+       -> return ((), s)
+
   pres x instmt
    = let (bs, x') = takeLets x
-     in  foldr mkLet (instmt x') bs
+     in  return ((), foldr mkLet (instmt x') bs)
+
+  pres2 x y instmt
+   = let (bs, x') = takeLets x
+         (cs, y') = takeLets y
+     in  return ((), foldr mkLet (instmt x' y') (bs<>cs))
 
   mkLet (n,x) s
    = Let n x s
@@ -67,80 +66,54 @@ pullLets stm
 
 -- | Let-forwarding on statements
 forwardStmts :: Ord n => Statement n p -> Fresh n (Statement n p)
-forwardStmts s
- = case s of
-    If x ss es
-     -> If x    <$> go ss <*> go es
-
-    Let n x ss
-     | isSimpleValue x
-     -> substXinS n x ss
-
-     | otherwise
-     -> Let n x <$> go ss
-
-    ForeachInts n from to ss
-     -> ForeachInts n from to <$> go ss
-
-    ForeachFacts n ty ss
-     -> ForeachFacts n ty <$> go ss
-
-    Block ss
-     -> Block <$> mapM go ss
-
-    InitAccumulator acc ss
-     -> InitAccumulator acc <$> go ss
-
-    Read n acc ss
-     -> Read n acc <$> go ss 
-
-    Write n x
-     -> return $ Write n x
-    Push  n x
-     -> return $ Push  n x
-
-    Return  x
-     -> return $ Return  x
-
+forwardStmts statements
+ = transformUDStmt trans () statements
  where
-  go = forwardStmts
+  trans _ s
+   = case s of
+      Let n x ss
+       | isSimpleValue x
+       -> do    s' <- substXinS n x ss
+                return ((), s')
+      
+      _ -> return ((), s)
 
 
 substXinS :: Ord n => Name n -> Exp n p -> Statement n p -> Fresh n (Statement n p)
-substXinS name payload s
- = case s of
-    If x ss es
-     -> If <$> sub x <*> go ss <*> go es
-    Let n x ss
-     -- TODO name avoiding grr
-     -> Let n <$> sub x <*> go ss
-
-    ForeachInts n from to ss
-     -> ForeachInts n <$> sub from <*> sub to <*> go ss
-
-    ForeachFacts n ty ss
-     -> ForeachFacts n ty <$> go ss
-
-    Block ss
-     -> Block <$> mapM go ss
-
-    InitAccumulator (Accumulator n at vt x) ss
-     -> InitAccumulator <$> (Accumulator n at vt <$> sub x) <*> go ss
-
-    Read n acc ss
-     -> Read n acc <$> go ss
-
-    Write n x
-     -> Write n <$> sub x
-    Push  n x
-     -> Push  n <$> sub x
-
-    Return  x
-     -> Return  <$> sub x
-
+substXinS name payload statements
+ -- TODO name avoiding grr
+ = transformUDStmt trans () statements
  where
+  trans _ s
+   = case s of
+      If x ss es
+       -> sub1 x $ \x' -> If x' ss es
+      Let n x ss
+       -> sub1 x $ \x' -> Let n x' ss
+
+      ForeachInts n from to ss
+       -> do    from' <- sub from
+                to'   <- sub to
+                return ((), ForeachInts n from' to' ss)
+
+      InitAccumulator (Accumulator n at vt x) ss
+       -> sub1 x $ \x' -> InitAccumulator (Accumulator n at vt x') ss
+
+      Write n x
+       -> sub1 x $ Write n
+      Push  n x
+       -> sub1 x $ Push n
+
+      Return  x
+       -> sub1 x $ Return
+
+      _
+       -> return ((), s)
+
   sub = subst     name payload
-  go  = substXinS name payload
+  sub1 x f
+   = do x' <- sub x
+        return ((), f x')
 
 
 -- | Thresher transform - throw out the chaff.
@@ -155,50 +128,46 @@ substXinS name payload s
 --
 thresher :: (Ord n, Eq p) => Statement n p -> Fresh n (Statement n p)
 thresher statements
- = go [] statements
+ = transformUDStmt trans [] statements
  where
-  go env s
+  trans env s
    -- Check if it actually does anything:
-   -- updates accumulators, returns a value, etc
+   -- updates accumulators, returns a value, etc.
+   -- If it doesn't, we might as well return a nop
    | not $ hasEffect Set.empty s
-   = return mempty
+   = return (env, mempty)
+
    | otherwise
    = case s of
-      If x ss es
-       -> If x <$> go env ss <*> go env es
-
+      -- Unmentioned let - just return the substatement
       Let n x ss
        | not $ Set.member n $ stmtFreeX ss
-       -> go env ss
+       -> return (env, ss)
+      -- Duplicate let: change to refer to existing one
        | ((n',_):_) <- filter (\(_,x') -> x `alphaEquality` x') env
-       -> Let n (XVar n') <$> go env ss
+       -> return (env, Let n (XVar n') ss)
 
+      -- Normal let: remember the name and expression for later
        | otherwise
-       -> Let n x <$> go ((n,x): clear n env) ss
+       -> return ((n,x) : clear n env, s)
       
-      ForeachInts n from to ss 
-       -> ForeachInts n from to <$> go (clear n env) ss
-      ForeachFacts n ty ss 
-       -> ForeachFacts n ty <$> go (clear n env) ss
+      -- New variables are bound, so clear the environment
+      ForeachInts n _ _ _
+       -> return (clear n env, s)
+      ForeachFacts n _ _
+       -> return (clear n env, s)
 
-      Block ss
-       -> Block <$> mapM (go env) ss
-
-      InitAccumulator acc ss
-       -> InitAccumulator acc <$> go env ss
-
-      Read n acc ss 
+      -- Read that's never used
+      Read n _ ss 
        | not $ Set.member n $ stmtFreeX ss
-       -> go env ss
+       -> return (env, ss)
+      -- Read is used, but we still need to clear the environment
        | otherwise
-       -> Read n acc <$> go (clear n env) ss
+       -> return (clear n env, s)
 
-      Write n x
-       -> return $ Write n x
-      Push n x
-       -> return $ Push n x
-      Return x
-       -> return $ Return x
+      -- Anything else, we just recurse
+      _
+       -> return (env, s)
 
   -- The environment stores previously bound expressions.
   -- These expressions can refer to names that are bound upwards.

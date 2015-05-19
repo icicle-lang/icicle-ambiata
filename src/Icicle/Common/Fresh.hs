@@ -2,7 +2,9 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE ExistentialQuantification #-}
 module Icicle.Common.Fresh (
-      Fresh    (..)
+      FreshT   (..)
+    , Fresh
+    , runFresh
     , NameState
     , mkNameState
     , counterNameState
@@ -13,11 +15,20 @@ module Icicle.Common.Fresh (
 import              Icicle.Common.Base
 import              P
 
+import              Control.Monad.Trans.Class
+import              Data.Functor.Identity
 import qualified    Data.Text as T
 
-newtype Fresh n a
- = Fresh
- { runFresh :: NameState n -> (NameState n, a) }
+newtype FreshT n m a
+ = FreshT
+ { runFreshT :: NameState n -> m (NameState n, a) }
+
+type Fresh n a = FreshT n Identity a
+
+runFresh :: Fresh n a -> NameState n -> (NameState n, a)
+runFresh f ns
+ = runIdentity
+ $ runFreshT f ns
 
 data NameState n
  = forall s.
@@ -35,32 +46,40 @@ counterPrefixNameState :: T.Text -> NameState T.Text
 counterPrefixNameState prefix
  = counterNameState (\i -> NameMod prefix $ Name $ T.pack $ show i) 0
 
-fresh :: Fresh n (Name n)
+fresh :: Monad m => FreshT n m (Name n)
 fresh
- = Fresh
+ = FreshT
  $ \ns ->
    case ns of
     NameState f s
      -> let (n,s') = f s
-        in  (NameState f s', n)
+        in  return (NameState f s', n)
 
-instance Monad (Fresh n) where
+instance Monad m => Monad (FreshT n m) where
  (>>=) p q
-  = Fresh
-  $ \ns ->
-     let (ns',a) = runFresh p ns
-     in runFresh (q a) ns'
+  = FreshT
+  $ \ns
+  -> do (ns',a) <- runFreshT p ns
+        runFreshT (q a) ns'
 
- return a = Fresh $ \ns -> (ns, a)
+ return a = FreshT $ \ns -> return (ns, a)
 
-instance Functor (Fresh n) where
+instance Monad m => Functor (FreshT n m) where
  fmap f p
   = p >>= (return . f)
 
-instance Applicative (Fresh n) where
+instance Monad m => Applicative (FreshT n m) where
  pure = return
  (<*>) f x
   = do f' <- f
        x' <- x
        return $ f' x'
  
+
+instance MonadTrans (FreshT n) where
+ lift m
+  = FreshT
+  $ \ns
+  -> do v <- m
+        return (ns, v)
+

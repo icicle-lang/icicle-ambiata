@@ -4,6 +4,7 @@ module Icicle.Avalanche.Statement.Statement (
     Statement       (..)
   , Accumulator     (..)
   , AccumulatorType (..)
+  , transformUDStmt
   ) where
 
 import              Icicle.Common.Base
@@ -105,6 +106,40 @@ data AccumulatorType
 
 
 -- Transforming -------------
+
+transformUDStmt
+        :: (Applicative m, Functor m, Monad m)
+        => (env -> Statement n p -> m (env, Statement n p))
+        -> env
+        -> Statement n p
+        -> m (Statement n p)
+transformUDStmt fun env statements
+ = go env statements
+ where
+  go e s
+   = do  (e', s') <- fun e s
+         case s' of
+          If x ss es
+           -> If x <$> go e' ss <*> go e' es
+          Let n x ss
+           -> Let n x <$> go e' ss
+          ForeachInts n from to ss
+           -> ForeachInts n from to <$> go e' ss
+          ForeachFacts n ty ss
+           -> ForeachFacts n ty <$> go e' ss
+          Block ss
+           -> Block <$> mapM (go e') ss
+          InitAccumulator acc ss
+           -> InitAccumulator acc <$> go e' ss
+          Read n acc ss
+           -> Read n acc <$> go e' ss
+          Write n x
+           -> return $ Write n x
+          Push n x
+           -> return $ Push n x
+          Return x
+           -> return $ Return x
+
 
 instance TransformX Statement where
  transformX names exps stmt
