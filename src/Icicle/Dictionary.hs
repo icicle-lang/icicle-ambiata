@@ -96,6 +96,11 @@ demographics =
                                     VirtualDefinition
                                   $ Virtual (Attribute "salary") program_count_unique)
 
+ , (Attribute "count_by",
+                                    VirtualDefinition
+                                  $ Virtual (Attribute "salary") program_count_by)
+
+
  , (Attribute "days_since",
                                     VirtualDefinition
                                   $ Virtual (Attribute "salary") program_days_since_latest)
@@ -222,7 +227,7 @@ program_count_unique
  , P.reduces    = [(N.Name "uniq",
                         R.RFold T.IntT mT
                         (lam mT $ \acc -> lam T.IntT $ \v -> X.XPrim (P.PrimMap $ P.PrimMapInsertOrUpdate T.IntT T.IntT) @~ (lam T.IntT $ \_ -> constI 1) @~ constI 1 @~ v @~ acc)
-                        (X.XValue (T.MapT T.IntT T.IntT) $ N.VMap $ Map.empty)
+                        (X.XValue mT $ N.VMap $ Map.empty)
                         (N.Name "inp2"))]
  , P.postdate   = Nothing
  , P.postcomps  = [(N.Name "size", X.XPrim (P.PrimFold (P.PrimFoldMap T.IntT T.IntT) T.IntT) @~ (lam T.IntT $ \a -> lam T.IntT $ \_ -> lam T.IntT $ \b -> a +~ b) @~ constI 0 @~ var "uniq")]
@@ -230,6 +235,27 @@ program_count_unique
  }
  where
   mT = T.MapT T.IntT T.IntT
+
+
+program_count_by :: P.Program Text
+program_count_by
+ = P.Program
+ { P.input      = T.IntT
+ , P.precomps   = []
+ , P.streams    = [(N.Name "inp",  S.Source)
+                  ,(N.Name "inp2", map_fst T.IntT (N.Name "inp"))]
+ , P.reduces    = [(N.Name "uniq",
+                        R.RFold T.IntT mT
+                        (lam mT $ \acc -> lam T.IntT $ \v -> X.XPrim (P.PrimMap $ P.PrimMapInsertOrUpdate T.IntT T.IntT) @~ (lam T.IntT $ \a -> a +~ constI 1) @~ constI 1 @~ v @~ acc)
+                        (X.XValue mT $ N.VMap $ Map.empty)
+                        (N.Name "inp2"))]
+ , P.postdate   = Nothing
+ , P.postcomps  = []
+ , P.returns    = var "uniq"
+ }
+ where
+  mT = T.MapT T.IntT T.IntT
+
 
 program_days_since_latest :: P.Program Text
 program_days_since_latest
