@@ -6,6 +6,7 @@ module Icicle.Avalanche.Statement.Simp (
   , forwardStmts
   , substXinS
   , thresher
+  , nestBlocks
   ) where
 
 import              Icicle.Avalanche.Statement.Statement
@@ -18,6 +19,7 @@ import              Icicle.Common.Fresh
 import              P
 
 import              Data.Functor.Identity
+import              Data.List (reverse)
 import qualified    Data.Set as Set
 
 
@@ -247,7 +249,7 @@ stmtFreeX statements
           -- n is not free in there any more.
           Let n x _
            -> return (freevars x `Set.union` Set.delete n subvars)
-          ForeachInts n x y ss
+          ForeachInts n x y _
            -> return (freevars x `Set.union` freevars y `Set.union` Set.delete n subvars)
 
           -- Accumulators are in a different scope,
@@ -274,4 +276,71 @@ stmtFreeX statements
           -- Leftovers: just the union of the under bits
           _
            -> return subvars
+
+
+-- | Nest blocks in further.
+-- for example,
+--
+-- > Block [ Let x (Let y ...)
+-- >       , baloney ]
+--
+-- could be translated to
+--
+-- > Let x $
+-- > Block [ Let y ...
+-- >       , baloney ]
+-- 
+-- this does not affect semantics so long as x isn't free in baloney.
+-- In fact, it doesn't do anything except allowing thresher to
+-- remove more duplicates.
+--   
+-- Note that the above example is only one step: nesting would then be
+-- recursively performed etc.
+nestBlocks :: Ord n => Statement n p -> Fresh n (Statement n p)
+nestBlocks statements
+ = transformUDStmt trans () statements
+ where
+  trans _ s
+   = case s of
+      Block bs
+        -> goBlock (concatMap catBlock bs) []
+      _ -> return ((), s)
+
+
+  goBlock [] [pre]
+   = return ((), pre)
+  goBlock [] pres
+   = return ((), Block $ reverse pres)
+
+  goBlock (Let n x inner : baloney : ls) pres
+   = do (n',inner') <- maybeRename n baloney inner
+        goBlock (Let n' x (inner' <> baloney) : ls) pres
+
+  goBlock (InitAccumulator acc inner : baloney : ls) pres
+   = do goBlock (InitAccumulator acc (inner <> baloney) : ls) pres
+
+  goBlock (Read nx nacc inner : baloney : ls) pres
+   = do (nx',inner') <- maybeRename nx baloney inner
+        goBlock (Read nx' nacc (inner' <> baloney) : ls) pres
+
+  goBlock (skip : ls) pres
+   = goBlock ls (skip : pres)
+
+  -- concatMap catBlock
+  -- should flatten out the nested blocks
+  catBlock (Block bs)
+   = bs
+  catBlock b
+   = [b]
+
+  -- Check if we need to rename the let binding - and do it
+  maybeRename n check inner
+   | n `Set.member` stmtFreeX check
+   = do n'      <- fresh
+        inner'  <- substXinS n (XVar n') inner
+        return (n', inner')
+
+   | otherwise
+   =    return (n, inner)
+
 
