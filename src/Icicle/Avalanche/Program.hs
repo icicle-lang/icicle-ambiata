@@ -5,6 +5,7 @@ module Icicle.Avalanche.Program (
   ) where
 
 import              Icicle.Avalanche.Statement.Statement
+import qualified    Icicle.Avalanche.Statement.Scoped as Scoped
 import              Icicle.Common.Base
 import              Icicle.Common.Exp
 
@@ -35,6 +36,6 @@ instance TransformX Program where
 instance (Pretty n, Pretty p) => Pretty (Program n p) where
  pretty p
   =   pretty (binddate   p) <> text " = DATE" <> line
-  <>  pretty (statements p)
+  <>  pretty (Scoped.scopedOfStatement $ statements p)
 
 

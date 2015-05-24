@@ -267,7 +267,7 @@ instance (Pretty n, Pretty p) => Pretty (Statement n p) where
       <> semisScope stmts
 
      Write n x
-      -> text "update" <+> pretty n <+> text "=" <+> pretty x <> line
+      -> text "write" <+> pretty n <+> text "=" <+> pretty x <> line
 
      Push n x
       -> text "push" <+> pretty n <+> text "=" <+> pretty x
