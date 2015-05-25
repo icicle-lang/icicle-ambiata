@@ -3,6 +3,7 @@
 module Icicle.Core.Exp.Exp (
       Exp
     , coreFragment
+    , coreFragmentWorkerFun
     ) where
 
 import              Icicle.Common.Fragment
@@ -18,6 +19,10 @@ coreFragment
  = Fragment
  { typeOfPrim           = Prim.typeOfPrim
  , primsFullyApplied    = True
+ , allowLambdas         = AllowLambdasAsPrimArgs
  }
 
-
+coreFragmentWorkerFun :: Fragment Prim.Prim
+coreFragmentWorkerFun
+ = coreFragment
+ { allowLambdas = AllowLambdasAsPrimArgsAndTop }

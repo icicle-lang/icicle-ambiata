@@ -10,6 +10,7 @@
 -- don't actually correspond to the scopes.
 -- 
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE PatternGuards #-}
 module Icicle.Avalanche.Statement.Scoped (
     Scoped          (..)
   , Binding         (..)
@@ -31,7 +32,7 @@ data Scoped n p
  = If   (Exp n p)   (Scoped n p)    (Scoped n p)
  | ForeachInts  (Name n) (Exp n p)  (Exp n p) (Scoped n p)
  | ForeachFacts (Name n) ValType    (Scoped n p)
- | Block                        [Binding n p] [Scoped n p]
+ | Block                        [Either (Binding n p) (Scoped n p)]
  | Write (Name n) (Exp n p)
  | Push  (Name n) (Exp n p)
  | Return         (Exp n p)
@@ -44,35 +45,36 @@ data Binding n p
 scopedOfStatement :: S.Statement n p -> Scoped n p
 scopedOfStatement s
  = case bindsOfStatement s of
-    ([], [s']) -> s'
-    (bs, ss) -> Block bs ss
+    [Right s'] -> s'
+    bs         -> Block bs
 
-bindsOfStatement :: S.Statement n p -> ([Binding n p], [Scoped n p])
+bindsOfStatement :: S.Statement n p -> [Either (Binding n p) (Scoped n p)]
 bindsOfStatement s
  = case s of
     S.If x ss es
-     -> ([], [If x (scopedOfStatement ss) (scopedOfStatement es)])
+     -> [Right $ If x (scopedOfStatement ss) (scopedOfStatement es)]
     S.ForeachInts n from to ss
-     -> ([], [ForeachInts n from to (scopedOfStatement ss)])
+     -> [Right $ ForeachInts n from to (scopedOfStatement ss)]
     S.ForeachFacts n vt ss
-     -> ([], [ForeachFacts n vt (scopedOfStatement ss)])
+     -> [Right $ ForeachFacts n vt (scopedOfStatement ss)]
     S.Block ss
-     -> ([], fmap scopedOfStatement ss)
+     -- -> fmap (Right . scopedOfStatement) ss
+     -> concatMap bindsOfStatement ss
     S.Write n x
-     -> ([], [Write n x])
+     -> [Right $ Write n x]
     S.Push n x
-     -> ([], [Push n x])
+     -> [Right $ Push n x]
     S.Return x
-     -> ([], [Return x])
+     -> [Right $ Return x]
     S.InitAccumulator acc ss
-     -> let (bs,s') = bindsOfStatement ss
-        in  (InitAccumulator acc : bs, s')
+     -> let bs = bindsOfStatement ss
+        in  Left (InitAccumulator acc) : bs
     S.Let n x ss
-     -> let (bs,s') = bindsOfStatement ss
-        in  (Let n x : bs, s')
+     -> let bs = bindsOfStatement ss
+        in  Left (Let n x) : bs
     S.Read n acc ss
-     -> let (bs,s') = bindsOfStatement ss
-        in  (Read n acc : bs, s')
+     -> let bs = bindsOfStatement ss
+        in  Left (Read n acc) : bs
 
 
 statementOfScoped :: Scoped n p -> S.Statement n p
@@ -84,10 +86,20 @@ statementOfScoped s
      -> S.ForeachInts n from to (statementOfScoped ss)
     ForeachFacts n vt ss
      -> S.ForeachFacts n vt (statementOfScoped ss)
-    Block [] ss
-     -> S.Block (fmap statementOfScoped ss)
-    Block (b:bs) ss
-     -> let rest = statementOfScoped (Block bs ss)
+    Block []
+     -> S.Block []
+    Block bs@(Right _ : _)
+     | (ss,bs') <- spanMaybe rightToMaybe bs
+     -> let rest = statementOfScoped (Block bs')
+            res'
+             | S.Block [] <- rest
+             = []
+             | otherwise
+             = [rest]
+
+        in  S.Block (fmap statementOfScoped ss <> res')
+    Block (Left b:bs)
+     -> let rest = statementOfScoped (Block bs)
         in  case b of
              InitAccumulator acc
               -> S.InitAccumulator acc rest
@@ -104,6 +116,20 @@ statementOfScoped s
      -> S.Return x
 
 
+spanMaybe :: (a -> Maybe b) -> [a] -> ([b],[a])
+spanMaybe f as
+ = go as
+ where
+  go [] = ([],[])
+  go (a:as')
+   = case f a of
+      Nothing
+       -> ([], a:as')
+      Just b
+       -> let (bs'',as'') = go as'
+          in  (b:bs'', as'')
+
+
 -- Pretty printing -------------
 
 instance (Pretty n, Pretty p) => Pretty (Scoped n p) where
@@ -113,8 +139,8 @@ instance (Pretty n, Pretty p) => Pretty (Scoped n p) where
       -> text "if (" <> pretty x <> text ") "
       <> inner stmts
       <> case elses of
-          Block [] [] -> text ""
-          _           -> text " else " <> inner elses
+          Block [] -> text ""
+          _        -> text " else " <> inner elses
 
      ForeachInts n from to ss
       -> text "foreach ("
@@ -128,15 +154,9 @@ instance (Pretty n, Pretty p) => Pretty (Scoped n p) where
       <> text ") "
       <> inner ss
 
-     Block [] ss
+     Block bs
       -> text "{" <> line
-      <> indent 2 (vcat (fmap pretty ss))
-      <> line <> text "}"
-     Block bs ss
-      -> text "{" <> line
-      <> indent 2 (vcat (fmap pretty bs))
-      <> line <> line
-      <> indent 2 (vcat (fmap pretty ss))
+      <> indent 2 (vcat (fmap (either pretty pretty) bs))
       <> line <> text "}"
 
      Write n x
@@ -151,8 +171,8 @@ instance (Pretty n, Pretty p) => Pretty (Scoped n p) where
       <> text ";"
 
   where
-   inner si@(Block _ _) = pretty si
-   inner si             = text "{" <> line <> indent 2 (pretty si) <> line <> text "} " <> line
+   inner si@(Block _) = pretty si
+   inner si           = text "{" <> line <> indent 2 (pretty si) <> line <> text "} " <> line
 
 
 instance (Pretty n, Pretty p) => Pretty (Binding n p) where

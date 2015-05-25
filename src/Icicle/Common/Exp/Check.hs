@@ -47,6 +47,11 @@ checkExp frag e x
           True  -> checkPrimsFullyApplied frag x
           False -> return ()
 
+        case allowLambdas frag of
+          AllowLambdas                 -> return ()
+          AllowLambdasAsPrimArgs       -> checkLambdasAllowed False x
+          AllowLambdasAsPrimArgsAndTop -> checkLambdasAllowed True  x
+
         return t
 
 
@@ -146,4 +151,49 @@ checkPrimsFullyApplied frag xx
        -> ok
        | otherwise
        -> Left $ ExpErrorPrimitiveNotFullyApplied p xx
+
+
+-- | Check if lambdas are only in allowed placed
+checkLambdasAllowed :: (Ord n) => Bool -> Exp n p -> Either (ExpError n p) ()
+checkLambdasAllowed allowedHere xx
+ = case xx of
+    -- Variables are ok
+    XVar{}
+     -> ok
+
+    XValue{}
+     -> ok
+
+    -- Application to primitive:
+    -- recursively check all arguments, and check that number of arguments is fine
+    XApp{}
+     | Just (_,as) <- takePrimApps xx
+     -> mapM_ (checkLambdasAllowed True) as
+
+    -- Non-primitive application; recurse but no lams allowed
+    XApp p q
+     -> go p
+     >> go q
+
+    -- Non-applied primitive, ok
+    XPrim _
+     -> ok
+
+    -- Abstraction
+    XLam _ _ x
+     | allowedHere
+     -> checkLambdasAllowed allowedHere x
+     | otherwise
+     -> err
+
+    -- Let binding
+    XLet _ d i
+     -> go d
+     >> go i
+
+ where
+  -- Recurse, not at top level any more
+  go = checkLambdasAllowed False
+  ok = return ()
+  err = Left $ ExpErrorLambdaNotAllowedHere xx
 

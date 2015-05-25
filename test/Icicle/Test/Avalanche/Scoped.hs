@@ -35,10 +35,11 @@ prop_scoped_and_back t =
     isRight     (checkProgram p) ==>
      let p' = AC.programFromCore namer p
 
-         scop = (AS.statementOfScoped $ AS.scopedOfStatement $ AP.statements p')
-         p''  = p' { AP.statements = scop }
+         scop = AS.scopedOfStatement $ AP.statements p'
+         p''  = p' { AP.statements = AS.statementOfScoped scop }
          eval = AE.evalProgram XV.evalPrim d vs
      in counterexample (show $ pretty p')
+      $ counterexample (show $ pretty scop)
       $ counterexample (show $ pretty p'')
        (eval p' === eval p'')
 

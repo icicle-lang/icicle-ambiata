@@ -10,6 +10,7 @@ module Icicle.Avalanche.FromCore (
 import              Icicle.Common.Base
 import              Icicle.Common.Exp
 import              Icicle.Common.Type
+import qualified    Icicle.Common.Exp.Simp.Beta as Beta
 
 import              Icicle.Core.Exp.Prim
 import              Icicle.Core.Exp.Combinators
@@ -169,13 +170,13 @@ insertStream namer inputType strs reds (n, strm)
 
        -- Filters become ifs
        CS.STrans (CS.SFilter _) x inp
-        -> If (x `XApp` XVar (namerElemPrefix namer inp))
+        -> If (Beta.betaToLets (x `XApp` XVar (namerElemPrefix namer inp)))
               (allLet $ XVar $ namerElemPrefix namer inp)
                mempty
 
        -- Maps apply given function and then do their children
        CS.STrans (CS.SMap _ _) x inp
-        -> allLet $ XApp x $ XVar $ namerElemPrefix namer inp
+        -> allLet $ Beta.betaToLets $ XApp x $ XVar $ namerElemPrefix namer inp
 
 
 -- | Get update statement for given reduce
@@ -190,7 +191,7 @@ statementOfReduce namer (n,r)
      -- Darn - arguments wrong way around!
      -> let n' = namerAccPrefix namer n
         in  Read n' n'
-          $ Write n' (k `XApp` (XVar n') `XApp` (XVar $ namerElemPrefix namer inp))
+          $ Write n' (Beta.betaToLets (k `XApp` (XVar n') `XApp` (XVar $ namerElemPrefix namer inp)))
     -- Push most recent inp
     CR.RLatest _ _ inp
      -> Push (namerAccPrefix namer n) (XVar $ namerElemPrefix namer inp)

@@ -284,7 +284,7 @@ programForStreamType streamType
   -- Generate an expression, and try very hard to make sure it's well typed
   -- (but don't try so hard that we loop forever)
   gen_exp t e
-   = do x <- tryExpForType t e `suchThatMaybe` ((== Right t) . checkExp X.coreFragment e)
+   = do x <- tryExpForType t e `suchThatMaybe` ((== Right t) . checkExp X.coreFragmentWorkerFun e)
         case x of
          Just x' -> return x'
          Nothing -> arbitrary

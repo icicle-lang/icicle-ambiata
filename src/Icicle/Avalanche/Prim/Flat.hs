@@ -13,7 +13,6 @@ import              Icicle.Common.Type
 import qualified    Icicle.Common.Exp.Prim.Minimal as Min
 
 import              P
-import              Prelude (String)
 
 
 -- | Primitives for flattened avalanche programs
@@ -29,8 +28,6 @@ data Prim
 
  -- | Safe updates
  | PrimUpdate          PrimUpdate
-
- | PrimTODO String
  deriving (Eq, Ord, Show)
 
 
@@ -96,9 +93,6 @@ typeOfPrim p
     PrimUpdate  (PrimUpdateMapPut a b)
      -> FunT [funOfVal (MapT a b), funOfVal a, funOfVal b] (MapT a b)
 
-    PrimTODO _
-     -> FunT [] IntT
-
 
 -- Pretty -------------
 
@@ -131,8 +125,4 @@ instance Pretty Prim where
 
  pretty (PrimUpdate (PrimUpdateMapPut a b))
   = text "Map_put#" <+> brackets (pretty a) <+> brackets (pretty b)
-
-
- pretty (PrimTODO str)
-  = text "todo#" <+> text str
 

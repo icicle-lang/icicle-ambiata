@@ -32,7 +32,7 @@ prop_prefixletconst x =
 
 -- Wrapping in a lambda does affect typechecking, but not *whether* type exists
 prop_lamwrap x =
- isRight (checkExp0 coreFragment x) == isRight (checkExp0 coreFragment (XLam (fresh 0) IntT x))
+ isRight (checkExp0 coreFragmentWorkerFun x) == isRight (checkExp0 coreFragmentWorkerFun (XLam (fresh 0) IntT x))
 
 
 -- Try to build an expression for type.
