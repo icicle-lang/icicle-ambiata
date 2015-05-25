@@ -21,6 +21,7 @@ import           System.IO
 
 import           Test.QuickCheck
 
+-- TODO XXX FIXME: argh! beta isn't being tested properly because we aren't generating applied lambdas!
 
 -- Performing beta reduction
 prop_beta_evaluation
@@ -31,7 +32,7 @@ prop_beta_evaluation
       $ counterexample (show $ pretty x')
        (eval0 evalPrim x === eval0 evalPrim x')
 
--- Converting to a-normal form preserves type
+-- Beta reduction preserves type
 prop_beta_type
  = withTypedExp
  $ \x _
@@ -46,6 +47,26 @@ prop_beta_always_evaluation
     in  counterexample (show $ pretty x)
       $ counterexample (show $ pretty x')
        (eval0 evalPrim x === eval0 evalPrim x')
+
+
+-- Converting all beta reductions to lets
+prop_betaToLets_evaluation
+ = withTypedExp
+ $ \x _
+ -> let x' = Beta.betaToLets x
+    in  counterexample (show $ pretty x)
+      $ counterexample (show $ pretty x')
+       (eval0 evalPrim x === eval0 evalPrim x')
+
+-- Beta reduction preserves type
+prop_betaToLets_type
+ = withTypedExp
+ $ \x _
+ -> checkExp0 coreFragment x == checkExp0 coreFragment
+   ( Beta.betaToLets x)
+
+
+
 
 
 -- Converting to a-normal form

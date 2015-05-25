@@ -8,6 +8,7 @@ module Icicle.Common.Exp.Eval (
     , eval
     , evalExps
     , applyValues
+    , applies
     ) where
 
 import Icicle.Common.Base
@@ -113,6 +114,15 @@ applyValues evalPrim f arg
     _
      -> Left (RuntimeErrorBadApplication f arg)
 
+
+-- | Apply a value to a bunch of arguments
+applies
+        :: Ord n
+        => EvalPrim n p
+        -> Value n p
+        -> [Value n p]
+        -> Either (RuntimeError n p) (Value n p)
+applies evalPrim = foldM (applyValues evalPrim)
 
 -- | Evaluate all expression bindings, collecting up expression heap as we go
 evalExps

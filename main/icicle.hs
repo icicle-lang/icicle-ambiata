@@ -17,8 +17,10 @@ import qualified Icicle.Core.Program.Fusion  as Program
 import qualified Icicle.Core.Program.Condense as Program
 import qualified Icicle.Common.Fresh         as Fresh
 
+import qualified Icicle.Avalanche.Program    as AvP
 import qualified Icicle.Avalanche.FromCore   as AvC
 import qualified Icicle.Avalanche.Simp       as AvS
+import qualified Icicle.Avalanche.Statement.Flatten as AvF
 
 import           P
 import           Data.List as List
@@ -108,6 +110,20 @@ showProgram prog
                                   (Fresh.counterPrefixNameState "anf")
         T.putStrLn "Avalanche:"
         print (PP.indent 4 $ PP.pretty avs)
+
+        let avf  = Fresh.runFreshT (AvF.flatten (AvP.statements avs))
+                                   (Fresh.counterPrefixNameState "flat")
+        case avf of
+         Left err
+          -> do T.putStrLn "Flattening error:"
+                print err
+         Right avf'
+          -> do let avfs = snd $ Fresh.runFresh (AvS.simpAvalanche (avs { AvP.statements = snd avf'}))
+                                          (Fresh.counterPrefixNameState "simp")
+
+                T.putStrLn ""
+                T.putStrLn "Flattened:"
+                print (PP.indent 4 $ PP.pretty avfs)
 
         T.putStrLn ""
 

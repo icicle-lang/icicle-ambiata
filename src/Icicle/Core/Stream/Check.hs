@@ -42,7 +42,7 @@ checkStream se s
      -> return $ PairT (concrete se) DateTimeT
     STrans st f n
      -> do  inp <- lookupOrDie StreamErrorVarNotInEnv (streams se) n
-            fty <- mapLeft     StreamErrorExp $ checkExp coreFragment (scalars se) f
+            fty <- mapLeft     StreamErrorExp $ checkExp coreFragmentWorkerFun (scalars se) f
 
             requireSame (StreamErrorTypeError f)
                         (funOfVal $ inputOfStreamTransform st) (funOfVal inp)

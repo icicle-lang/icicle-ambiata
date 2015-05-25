@@ -9,11 +9,11 @@ import Icicle.Common.Base
 import Icicle.Common.Value
 import Icicle.Common.Exp.Eval
 import Icicle.Core.Exp.Prim
-import qualified    Icicle.Data.DateTime as DT
 
 import              P
 
 import qualified    Data.Map as Map
+import qualified    Icicle.Common.Exp.Prim.Eval as Min
 
 
 -- | Evaluate a primitive, given list of argument values
@@ -21,74 +21,8 @@ evalPrim :: Ord n => EvalPrim n Prim
 evalPrim p vs
  = let primError = Left $ RuntimeErrorPrimBadArgs p vs
    in case p of
-
-     PrimArith PrimArithPlus
-      | [VBase (VInt i), VBase (VInt j)] <- vs
-      -> return $ VBase $ VInt $ i + j
-      | otherwise
-      -> primError
-
-     PrimArith PrimArithMinus
-      | [VBase (VInt i), VBase (VInt j)] <- vs
-      -> return $ VBase $ VInt $ i - j
-      | otherwise
-      -> primError
-
-     PrimArith PrimArithDiv
-      | [VBase (VInt i), VBase (VInt j)] <- vs
-      -> return $ VBase $ VInt $ i `div` j
-      | otherwise
-      -> primError
-
-
-     PrimRelation rel _
-      -- It is safe to assume they are of the same value type
-      -- and "ordable", if we assume that it typechecks.
-      -- So we should be able to rely on the BaseValue Ord instance
-      -- without unwrapping the different types
-      | [VBase i, VBase j] <- vs
-      -> return $ VBase $ VBool
-       $ case rel of
-          PrimRelationGt -> i >  j
-          PrimRelationGe -> i >= j
-          PrimRelationLt -> i <  j
-          PrimRelationLe -> i <= j
-          PrimRelationEq -> i == j
-          PrimRelationNe -> i /= j
-      | otherwise
-      -> primError
-
-     PrimLogical  PrimLogicalNot
-      | [VBase (VBool u)] <- vs
-      -> return $ VBase $ VBool $ not u
-      | otherwise
-      -> primError
-
-     PrimLogical  PrimLogicalAnd
-      | [VBase (VBool u), VBase (VBool v)] <- vs
-      -> return $ VBase $ VBool $ u && v
-      | otherwise
-      -> primError
-
-     PrimLogical  PrimLogicalOr
-      | [VBase (VBool u), VBase (VBool v)] <- vs
-      -> return $ VBase $ VBool $ u || v
-      | otherwise
-      -> primError
-
-
-     PrimConst (PrimConstPair _ _)
-      | [VBase x,VBase y] <- vs
-      -> return $ VBase $ VPair x y
-      | otherwise
-      -> primError
-
-     PrimConst (PrimConstSome _)
-      | [VBase v] <- vs
-      -> return $ VBase $ VSome v
-      | otherwise
-      -> primError
-
+     PrimMinimal m
+      -> Min.evalPrim m p vs
 
      -- Folds and destructions
      PrimFold PrimFoldBool _
@@ -102,19 +36,19 @@ evalPrim p vs
      PrimFold (PrimFoldPair _ _) _
       | [f,VBase v] <- vs
       , VPair a b   <- v
-      -> applies f [VBase a, VBase b]
+      -> applies' f [VBase a, VBase b]
       | otherwise
       -> primError
 
      PrimFold (PrimFoldArray _) _
       | [k, z, VBase (VArray as)] <- vs
-      -> foldM (\a c -> applies k [a,VBase c]) z as
+      -> foldM (\a c -> applies' k [a,VBase c]) z as
       | otherwise
       -> primError
 
      PrimFold (PrimFoldOption _) _
       | [s, _, VBase (VSome v)] <- vs
-      -> applies s [VBase v]
+      -> applies' s [VBase v]
       | [_, n, VBase (VNone)] <- vs
       -> return n
       | otherwise
@@ -122,7 +56,7 @@ evalPrim p vs
 
      PrimFold (PrimFoldMap _ _) _
       | [k, z, VBase (VMap mm)] <- vs
-      -> foldM (\a (b,c) -> applies k [a,VBase b,VBase c]) z
+      -> foldM (\a (b,c) -> applies' k [a,VBase b,VBase c]) z
        $ Map.toList mm
       | otherwise
       -> primError
@@ -141,16 +75,6 @@ evalPrim p vs
       | otherwise
       -> primError
 
-
-     -- Date stuff
-     PrimDateTime PrimDateTimeDaysDifference
-      | [VBase (VDateTime a), VBase (VDateTime b)] <- vs
-      -> return $ VBase $ VInt $ DT.daysDifference a b
-      | otherwise
-      -> primError
-
-
  where
-  applies :: Ord n => Value n Prim -> [Value n Prim] -> Either (RuntimeError n Prim) (Value n Prim)
-  applies = foldM (applyValues evalPrim)
+  applies' = applies evalPrim
 

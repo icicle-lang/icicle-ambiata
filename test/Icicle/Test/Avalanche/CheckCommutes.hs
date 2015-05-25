@@ -34,7 +34,7 @@ prop_check_commutes t =
       Left err
        -> counterexample (show err)
         $ counterexample (show $ pretty p)
-        $ counterexample (show conv) False
+        $ counterexample (show $ pretty conv) False
      
 
 

@@ -15,6 +15,7 @@ import qualified Icicle.Common.Type            as T
 import qualified Icicle.Common.Exp.Exp         as X
 import           Icicle.Core.Exp.Combinators
 import qualified Icicle.Core.Exp.Prim        as P
+import qualified Icicle.Common.Exp.Prim.Minimal as PM
 import qualified Icicle.Core.Stream          as S
 import qualified Icicle.Core.Reduce          as R
 import qualified Icicle.Core.Program.Program as P
@@ -94,6 +95,11 @@ demographics =
  , (Attribute "unique",
                                     VirtualDefinition
                                   $ Virtual (Attribute "salary") program_count_unique)
+
+ , (Attribute "count_by",
+                                    VirtualDefinition
+                                  $ Virtual (Attribute "salary") program_count_by)
+
 
  , (Attribute "days_since",
                                     VirtualDefinition
@@ -221,7 +227,7 @@ program_count_unique
  , P.reduces    = [(N.Name "uniq",
                         R.RFold T.IntT mT
                         (lam mT $ \acc -> lam T.IntT $ \v -> X.XPrim (P.PrimMap $ P.PrimMapInsertOrUpdate T.IntT T.IntT) @~ (lam T.IntT $ \_ -> constI 1) @~ constI 1 @~ v @~ acc)
-                        (X.XValue (T.MapT T.IntT T.IntT) $ N.VMap $ Map.empty)
+                        (X.XValue mT $ N.VMap $ Map.empty)
                         (N.Name "inp2"))]
  , P.postdate   = Nothing
  , P.postcomps  = [(N.Name "size", X.XPrim (P.PrimFold (P.PrimFoldMap T.IntT T.IntT) T.IntT) @~ (lam T.IntT $ \a -> lam T.IntT $ \_ -> lam T.IntT $ \b -> a +~ b) @~ constI 0 @~ var "uniq")]
@@ -229,6 +235,27 @@ program_count_unique
  }
  where
   mT = T.MapT T.IntT T.IntT
+
+
+program_count_by :: P.Program Text
+program_count_by
+ = P.Program
+ { P.input      = T.IntT
+ , P.precomps   = []
+ , P.streams    = [(N.Name "inp",  S.Source)
+                  ,(N.Name "inp2", map_fst T.IntT (N.Name "inp"))]
+ , P.reduces    = [(N.Name "uniq",
+                        R.RFold T.IntT mT
+                        (lam mT $ \acc -> lam T.IntT $ \v -> X.XPrim (P.PrimMap $ P.PrimMapInsertOrUpdate T.IntT T.IntT) @~ (lam T.IntT $ \a -> a +~ constI 1) @~ constI 1 @~ v @~ acc)
+                        (X.XValue mT $ N.VMap $ Map.empty)
+                        (N.Name "inp2"))]
+ , P.postdate   = Nothing
+ , P.postcomps  = []
+ , P.returns    = var "uniq"
+ }
+ where
+  mT = T.MapT T.IntT T.IntT
+
 
 program_days_since_latest :: P.Program Text
 program_days_since_latest
@@ -249,8 +276,8 @@ program_days_since_latest
  , P.postdate   = Just (N.Name "now")
  , P.postcomps  = [(N.Name "days", X.XPrim (P.PrimFold (P.PrimFoldArray T.DateTimeT) (T.OptionT T.IntT))
                                     @~ (lam (T.OptionT T.IntT) $ \_ -> lam T.DateTimeT $ \b ->
-                                            X.XPrim (P.PrimConst $ P.PrimConstSome T.IntT)
-                                            @~ (X.XPrim (P.PrimDateTime P.PrimDateTimeDaysDifference) @~ b @~ var "now" ))
+                                            X.XPrim (P.PrimMinimal $ PM.PrimConst $ PM.PrimConstSome T.IntT)
+                                            @~ (X.XPrim (P.PrimMinimal $ PM.PrimDateTime PM.PrimDateTimeDaysDifference) @~ b @~ var "now" ))
                                     @~ X.XValue (T.OptionT T.IntT) N.VNone @~ var "last")]
 
  , P.returns    = var "days"

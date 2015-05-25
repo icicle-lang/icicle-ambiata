@@ -6,6 +6,7 @@ module Icicle.Data.DateTime (
   , renderDate
   , dateOfYMD
   , dateOfDays
+  , daysOfDate
   , withinWindow
   , daysDifference
   ) where
@@ -47,17 +48,21 @@ dateOfDays d
  $ C.ModifiedJulianDay
  $ toInteger d
 
+daysOfDate :: DateTime -> Int
+daysOfDate d
+ = fromInteger
+ $ C.toModifiedJulianDay
+ $ D.dateTimeToDay
+ $ getDateTime d
+
 -- | Check whether two given dates are within a days window
--- TODO: datesDifference calculates the absolute difference but we don't want abs.
 withinWindow :: DateTime -> DateTime -> Int -> Bool
 withinWindow fact now window
  = let diff =  daysDifference fact now
    in  diff <= window
 
 -- | Find number of days between to dates
--- TODO: datesDifference calculates the absolute difference but we don't want abs.
 daysDifference :: DateTime -> DateTime -> Int
 daysDifference fact now
- = fromInteger
- $ getDateTime fact `D.datesDifference` getDateTime now
+ = daysOfDate now - daysOfDate fact
 

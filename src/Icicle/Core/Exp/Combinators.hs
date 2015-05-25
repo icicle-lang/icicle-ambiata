@@ -10,6 +10,7 @@ import              Icicle.Core.Exp.Prim
 import qualified    Icicle.Core.Exp.Exp     as X
 import              Icicle.Common.Exp.Exp
 import              Icicle.Common.Exp.Compounds
+import qualified    Icicle.Common.Exp.Prim.Minimal as Min
 
 import              P
 import qualified    Data.Text   as T
@@ -49,39 +50,39 @@ prim2 :: Prim -> X.Exp n -> X.Exp n -> X.Exp n
 prim2 p x y = XPrim p @~ x @~ y
 
 (+~) :: X.Exp n -> X.Exp n -> X.Exp n
-(+~) = prim2 (PrimArith PrimArithPlus)
+(+~) = prim2 (PrimMinimal $ Min.PrimArith Min.PrimArithPlus)
 infixl 6 +~
 
 (-~) :: X.Exp n -> X.Exp n -> X.Exp n
-(-~) = prim2 (PrimArith PrimArithMinus)
+(-~) = prim2 (PrimMinimal $ Min.PrimArith Min.PrimArithMinus)
 infixl 6 -~
 
 (/~) :: X.Exp n -> X.Exp n -> X.Exp n
-(/~) = prim2 (PrimArith PrimArithDiv)
+(/~) = prim2 (PrimMinimal $ Min.PrimArith Min.PrimArithDiv)
 infixl 7 /~
 
 (>~) :: X.Exp n -> X.Exp n -> X.Exp n
-(>~) = prim2 (PrimRelation PrimRelationGt IntT)
+(>~) = prim2 (PrimMinimal $ Min.PrimRelation Min.PrimRelationGt IntT)
 infix 4 >~
 
 (>=~) :: X.Exp n -> X.Exp n -> X.Exp n
-(>=~) = prim2 (PrimRelation PrimRelationGe IntT)
+(>=~) = prim2 (PrimMinimal $ Min.PrimRelation Min.PrimRelationGe IntT)
 infix 4 >=~
 
 (<~) :: X.Exp n -> X.Exp n -> X.Exp n
-(<~) = prim2 (PrimRelation PrimRelationLt IntT)
+(<~) = prim2 (PrimMinimal $ Min.PrimRelation Min.PrimRelationLt IntT)
 infix 4 <~
 
 (<=~) :: X.Exp n -> X.Exp n -> X.Exp n
-(<=~) = prim2 (PrimRelation PrimRelationLe IntT)
+(<=~) = prim2 (PrimMinimal $ Min.PrimRelation Min.PrimRelationLe IntT)
 infix 4 <=~
 
 (==~) :: X.Exp n -> X.Exp n -> X.Exp n
-(==~) = prim2 (PrimRelation PrimRelationEq IntT)
+(==~) = prim2 (PrimMinimal $ Min.PrimRelation Min.PrimRelationEq IntT)
 infix 4 ==~
 
 (/=~) :: X.Exp n -> X.Exp n -> X.Exp n
-(/=~) = prim2 (PrimRelation PrimRelationNe IntT)
+(/=~) = prim2 (PrimMinimal $ Min.PrimRelation Min.PrimRelationNe IntT)
 infix 4 /=~
 
 

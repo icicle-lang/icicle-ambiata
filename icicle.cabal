@@ -47,6 +47,12 @@ library
                        Icicle.Avalanche.Eval
                        Icicle.Avalanche.Check
                        Icicle.Avalanche.Simp
+                       Icicle.Avalanche.Statement.Statement
+                       Icicle.Avalanche.Statement.Scoped
+                       Icicle.Avalanche.Statement.Simp
+                       Icicle.Avalanche.Statement.Flatten
+                       Icicle.Avalanche.Prim.Flat
+                       Icicle.Avalanche.Prim.Eval
 
                        Icicle.BubbleGum
 
@@ -59,6 +65,8 @@ library
                        Icicle.Common.Exp.Error
                        Icicle.Common.Exp.Exp
                        Icicle.Common.Exp.Eval
+                       Icicle.Common.Exp.Prim.Minimal
+                       Icicle.Common.Exp.Prim.Eval
                        Icicle.Common.Exp.Simp
                        Icicle.Common.Exp.Simp.Beta
                        Icicle.Common.Exp.Simp.ANormal
@@ -132,6 +140,7 @@ test-suite test
                      , QuickCheck                      == 2.7.*
                      , quickcheck-instances            == 0.3.*
                      , containers                      == 0.5.*
+                     , either
 
 test-suite test-cli
   type:                exitcode-stdio-1.0
