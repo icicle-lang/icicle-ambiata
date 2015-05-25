@@ -14,6 +14,7 @@ module Icicle.Avalanche.Statement.Scoped (
     Scoped          (..)
   , Binding         (..)
   , scopedOfStatement
+  , statementOfScoped
   ) where
 
 import              Icicle.Common.Base
@@ -74,6 +75,34 @@ bindsOfStatement s
         in  (Read n acc : bs, s')
 
 
+statementOfScoped :: Scoped n p -> S.Statement n p
+statementOfScoped s
+ = case s of
+    If x ss es
+     -> S.If x (statementOfScoped ss) (statementOfScoped es)
+    ForeachInts n from to ss
+     -> S.ForeachInts n from to (statementOfScoped ss)
+    ForeachFacts n vt ss
+     -> S.ForeachFacts n vt (statementOfScoped ss)
+    Block [] ss
+     -> S.Block (fmap statementOfScoped ss)
+    Block (b:bs) ss
+     -> let rest = statementOfScoped (Block bs ss)
+        in  case b of
+             InitAccumulator acc
+              -> S.InitAccumulator acc rest
+             Let n x
+              -> S.Let n x rest
+             Read n acc
+              -> S.Read n acc rest
+
+    Write n x
+     -> S.Write n x
+    Push n x
+     -> S.Push n x
+    Return x
+     -> S.Return x
+
 
 -- Pretty printing -------------
 
@@ -85,7 +114,7 @@ instance (Pretty n, Pretty p) => Pretty (Scoped n p) where
       <> inner stmts
       <> case elses of
           Block [] [] -> text ""
-          _           -> text "else" <> inner elses
+          _           -> text " else " <> inner elses
 
      ForeachInts n from to ss
       -> text "foreach ("
@@ -106,7 +135,7 @@ instance (Pretty n, Pretty p) => Pretty (Scoped n p) where
      Block bs ss
       -> text "{" <> line
       <> indent 2 (vcat (fmap pretty bs))
-      <> line
+      <> line <> line
       <> indent 2 (vcat (fmap pretty ss))
       <> line <> text "}"
 
