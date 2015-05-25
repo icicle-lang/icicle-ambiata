@@ -22,26 +22,33 @@ import              Icicle.Internal.Pretty
 import              P
 import              Control.Monad.Trans.Class
 import              Data.List (reverse)
-import              Data.String (String)
 
 data FlattenError n
- = FlattenError String
+ = FlattenErrorApplicationNonPrimitive (Exp n Core.Prim)
+ | FlattenErrorBareLambda (Exp n Core.Prim)
  | FlattenErrorPrimBadArgs Core.Prim [Exp n Core.Prim]
  deriving (Eq, Ord, Show)
 
 type FlatM n
  = FreshT n (Either (FlattenError n)) (Statement n Flat.Prim)
 
+
+-- | Flatten the primitives in a statement.
+-- This just calls @flatX@ for every expression, wrapping the statement.
 flatten :: (Ord n, Pretty n)
         => Statement n Core.Prim
         -> FlatM n
 flatten s
  = case s of
     If x ts es
-     -> flatX x (\x' -> If x' <$> flatten ts <*> flatten es)
+     -> flatX x
+     $ \x'
+     -> If x' <$> flatten ts <*> flatten es
 
     Let n x ss
-     -> flatX x (\x' -> Let n x' <$> flatten ss)
+     -> flatX x
+     $ \x'
+     -> Let n x' <$> flatten ss
 
     ForeachInts n from to ss
      -> flatX from
@@ -51,10 +58,10 @@ flatten s
      -> ForeachInts n from' to' <$> flatten ss
 
     ForeachFacts n vt ss
-     ->     ForeachFacts n vt <$> flatten ss
+     -> ForeachFacts n vt <$> flatten ss
 
     Block ss
-     ->     Block <$> mapM flatten ss
+     -> Block <$> mapM flatten ss
 
     InitAccumulator acc ss
      -> flatX (accInit acc)
@@ -62,7 +69,7 @@ flatten s
      -> InitAccumulator (acc { accInit = x' }) <$> flatten ss
 
     Read n m ss
-     ->     Read n m <$> flatten ss
+     -> Read n m <$> flatten ss
 
     Write n x
      -> flatX x
@@ -80,6 +87,8 @@ flatten s
      -> return $ Return x'
 
 
+-- | Flatten an expression, wrapping the statement with any lets or loops or other bindings
+-- The statement function takes the new expression.
 flatX   :: (Ord n, Pretty n)
         => Exp n Core.Prim
         -> (Exp n Flat.Prim -> FlatM n)
@@ -88,88 +97,103 @@ flatX   :: (Ord n, Pretty n)
 flatX xx stm
  = convX
  where
+  -- Do a bit of simplification.
+  -- Betas must be converted to lets even if they are not simple values:
+  -- Unapplied lambdas aren't really able to be converted, since
+  -- we're lifting some expressions to statements, and there is no statement-level
+  -- lambda, only expression-level lambda.
   x' = beta isSimpleValue
      $ betaToLets xx
 
+  -- Convert the simplified expression.
   convX
    = case x' of
+      -- If it doesn't do anything interesting, we can just call the statement
+      -- with the original expression
       XVar n
        -> stm $ XVar n
       XValue vt bv
        -> stm $ XValue vt bv
 
       XApp{}
+       -- Primitive applications are where it gets interesting.
+       -- See below
        | Just (p,xs) <- takePrimApps x'
        -> flatPrim p xs
 
+       -- What is the function of this application?
+       --
+       -- It's not a primitive.
+       -- It's not a lambda, since we did betaToLets above.
+       -- It's not a value, since that wouldn't typecheck
+       -- It's not a let-bound variable, since lets can't bind funs & so wouldn't typecheck.
+       --
+       -- Therefore, this should not happen for a valid program.
        | otherwise
-       -> lift $ Left $ FlattenError ("Flatten: TODO: application of non-primitive: " <> show (pretty $ xx, pretty x'))
+       -> lift $ Left $ FlattenErrorApplicationNonPrimitive x'
 
       XPrim p
        -> flatPrim p []
 
+      -- Unapplied lambda: this should not happen for a well-typed program
       XLam{}
-       -> lift $ Left $ FlattenError ("Flatten: TODO: application of non-primitive: " <> show (pretty $ xx, pretty x'))
+       -> lift $ Left $ FlattenErrorBareLambda x'
 
 
+      -- Convert expression lets into statement lets
       XLet n p q
        -> flatX p
        $ \p'
        -> Let n p' <$> flatX q stm
 
+
+  -- Handle primitive applications.
+  -- PrimFolds get turned into loops and whatnot
   flatPrim p xs
    = case p of
+      -- Arithmetic and simple stuff are easy, just move it over
       Core.PrimMinimal pm
        -> primApps (Flat.PrimMinimal pm) xs []
 
+      -- Handle folds below
       Core.PrimFold pf ta
        -> flatFold pf ta xs
+
+      -- Map: insert value into map, or if key already exists,
+      -- apply update function to existing value
       Core.PrimMap (Core.PrimMapInsertOrUpdate tk tv)
        | [upd, ins, key, map]   <- xs
        -> flatX key
        $ \key'
        -> flatX map
        $ \map'
-       -> do    nexist <- fresh
-                let xexist = XPrim (Flat.PrimProject (Flat.PrimProjectMapLookup tk tv))
-                                 `makeApps` [map', key']
+       -> let fpLookup    = XPrim (Flat.PrimProject (Flat.PrimProjectMapLookup tk tv))
+              fpIsSome    = XPrim (Flat.PrimProject (Flat.PrimProjectOptionIsSome tv))
+              fpOptionGet = XPrim (Flat.PrimUnsafe (Flat.PrimUnsafeOptionGet tv))
+              fpUpdate    = XPrim (Flat.PrimUpdate (Flat.PrimUpdateMapPut tk tv))
 
-                let xisSome  = XPrim (Flat.PrimProject (Flat.PrimProjectOptionIsSome tv))
-                         `makeApps` [XVar nexist]
+              update val
+                     =  slet    (fpOptionGet `XApp` val)                $ \val'
+                     -> flatX   (upd `XApp` val')                       $ \upd'
+                     -> slet    (makeApps fpUpdate [map', key', upd'])  $ \map''
+                     -> stm map''
 
-                -- Only get the value inside the some branch
-                nexistSome <- fresh
-                let xexistSome = XPrim (Flat.PrimUnsafe (Flat.PrimUnsafeOptionGet tv))
-                                `makeApps` [XVar nexist]
+              insert
+                     =  flatX   ins                                     $ \ins'
+                     -> slet    (makeApps fpUpdate [map', key', ins'])  $ \map''
+                     -> stm map''
 
-                -- Name for the actual value we're storing
-                nputval <- fresh
+         in slet (makeApps fpLookup [map', key'])                       $ \val
+         ->  If (fpIsSome `XApp` val)
+                <$> update val
+                <*> insert
 
-                nput <- fresh
-                -- Perform put; nputval needs to be bound with actual value before
-                let xput = XPrim (Flat.PrimUpdate (Flat.PrimUpdateMapPut tk tv))
-                         `makeApps` [map', key', XVar nputval]
-                
-
-                upd' <- flatX (upd `makeApps` [XVar nexistSome]) $ \upd'
-                 ->      Let nputval upd'
-                      .  Let nput    xput
-                     <$> flatX (XVar nput) stm
-
-                ins'  <- flatX ins $ \ins'
-                 ->      Let nputval ins'
-                      .  Let nput    xput
-                     <$> flatX (XVar nput) stm
-
-                return
-                 $ Let nexist xexist
-                 $ If xisSome
-                     ( Let nexistSome xexistSome upd')
-                     ( ins' )
-
-      _
+       -- Map with wrong arguments
+       | otherwise
        -> lift $ Left $ FlattenErrorPrimBadArgs p xs
 
+  -- Convert arguments to a simple primitive.
+  -- conv is what we've already converted
   primApps p [] conv
    = stm
    $ makeApps (XPrim p)
@@ -180,89 +204,103 @@ flatX xx stm
    $ \a'
    -> primApps p as (a' : conv)
 
-  flatFold Core.PrimFoldBool _ [the, els, bo]
+  -- Create a let binding with a fresh name
+  slet x ss
+   = do n  <- fresh
+        Let n x <$> ss (XVar n)
+
+  -- For loop with fresh name for iterator
+  forI to ss
+   = do n  <- fresh
+        ForeachInts n (XValue IntT (VInt 0)) to <$> ss (XVar n)
+
+  -- Handle primitive folds
+  --
+  -- Bool is just an if
+  flatFold Core.PrimFoldBool _ [then_, else_, pred]
    -- XXX: we are using "stm" twice here,
    -- so duplicating branches.
    -- I don't think this is a biggie
    -- (yet)
-   = flatX bo
-   $ \bo'
-   -> do    the'  <- flatX the stm
-            els'  <- flatX els stm
-            return $ If bo' the' els'
+   = flatX pred
+   $ \pred'
+   -> If pred'
+        <$> flatX then_ stm
+        <*> flatX else_ stm
 
+  -- Turn unpair# into fst and snd projections
   flatFold (Core.PrimFoldPair ta tb) _ [fun, pr]
-   =     flatX pr
-        $ \pr'
-        -> do   p1 <- fresh
-                p2 <- fresh
-                let fun' = makeApps fun [XVar p1, XVar p2]
-                s' <- flatX (fun') stm
-                
-                return
-                  $ Let p1 (proj False ta tb pr')
-                  $ Let p2 (proj True  ta tb pr')
-                      s'
+   = flatX pr
+   $ \pr'
+   -> slet (proj False ta tb pr') $ \p1
+   -> slet (proj True  ta tb pr') $ \p2
+   -> flatX (fun `makeApps` [p1, p2]) stm
 
+  -- Array fold becomes a loop
   flatFold (Core.PrimFoldArray telem) tacc [k, z, arr]
    = do accN <- fresh
-        iter <- fresh
-        elm  <- fresh
-
         stm' <- stm (XVar accN)
 
+        let fpArrayLen = XPrim (Flat.PrimProject $ Flat.PrimProjectArrayLength telem)
+        let fpArrayIx  = XPrim (Flat.PrimUnsafe  $ Flat.PrimUnsafeArrayIndex   telem)
 
-        -- Crumbs!
-        loop <- flatX arr $ \arr'
-         -> let len = XPrim (Flat.PrimProject $ Flat.PrimProjectArrayLength telem) `XApp` arr'
-            in  ForeachInts iter (XValue IntT (VInt 0)) len
-             .  Read accN accN
-             .  Let  elm  (makeApps
-                                (XPrim (Flat.PrimUnsafe $ Flat.PrimUnsafeArrayIndex telem))
-                                [arr', XVar iter])
-            <$> flatX (makeApps k [ XVar accN, XVar elm  ])
-                      (return . Write accN)
+        -- Loop body updates accumulator with k function
+        loop <-  flatX arr                                  $ \arr'
+             ->  forI   (fpArrayLen `XApp` arr')            $ \iter
+             ->  fmap   (Read accN accN)                    $
+                 slet   (fpArrayIx `makeApps` [arr', iter]) $ \elm
+             ->  flatX  (makeApps k [XVar accN, elm])       $ \x
+             ->  return (Write accN x)
 
+        -- Initialise accumulator with value z, execute loop, read from accumulator
         flatX z $ \z' ->
             return (InitAccumulator (Accumulator accN Mutable tacc z')
                    (loop <> Read accN accN stm'))
 
 
+  -- Fold over map. Very similar to above
   flatFold (Core.PrimFoldMap tk tv) tacc [k, z, arr]
    = do accN <- fresh
-        iter <- fresh
-        elm  <- fresh
-        efst <- fresh
-        esnd <- fresh
-
         stm' <- stm (XVar accN)
 
+        let fpMapLen   = XPrim (Flat.PrimProject $ Flat.PrimProjectMapLength tk tv)
+        let fpMapIx    = XPrim (Flat.PrimUnsafe  $ Flat.PrimUnsafeMapIndex   tk tv)
 
-        -- Crumbs! Copy and paste not so good!
-        loop <- flatX arr $ \arr'
-         -> let len = XPrim (Flat.PrimProject $ Flat.PrimProjectMapLength tk tv) `XApp` arr'
-            in  ForeachInts iter (XValue IntT (VInt 0)) len
-             .  Read accN accN
-             .  Let  elm  (makeApps
-                                (XPrim (Flat.PrimUnsafe $ Flat.PrimUnsafeMapIndex tk tv))
-                                [arr', XVar iter])
-             .  Let  efst (proj False tk tv $ XVar elm )
-             .  Let  esnd (proj True  tk tv $ XVar elm )
-            <$> flatX (makeApps k
-                                [ XVar accN
-                                , XVar efst
-                                , XVar esnd ])
-                      (return . Write accN)
+        -- Loop is the same as for array, except we're grabing the keys and values
+        loop <- flatX arr                                   $ \arr'
+             -> forI    (fpMapLen `XApp` arr')              $ \iter
+             -> fmap    (Read accN accN)                    $
+                slet    (fpMapIx `makeApps` [arr', iter])   $ \elm
+             -> slet    (proj False tk tv elm)              $ \efst
+             -> slet    (proj True  tk tv elm)              $ \esnd
+             -> flatX   (makeApps k [XVar accN, efst, esnd])$ \x
+             -> return  (Write accN x)
 
         flatX z $ \z' ->
             return (InitAccumulator (Accumulator accN Mutable tacc z')
                    (loop <> Read accN accN stm'))
 
 
+  -- Fold over an option is just "maybe" combinator.
+  flatFold (Core.PrimFoldOption ta) _ [xsome, xnone, opt]
+   = let fpIsSome    = XPrim (Flat.PrimProject  (Flat.PrimProjectOptionIsSome ta))
+         fpOptionGet = XPrim (Flat.PrimUnsafe   (Flat.PrimUnsafeOptionGet     ta))
+     in  flatX opt
+      $ \opt'
+      -- If we have a value
+      -> If (fpIsSome `XApp` opt')
+         -- Rip the value out and apply it
+         <$> slet (fpOptionGet `XApp` opt')
+             (\val -> flatX (xsome `XApp` val) stm)
 
-  flatFold pf _ _
-   = primApps (Flat.PrimTODO (show pf)) [] []
+         -- There's no value so return the none branch
+         <*> flatX xnone stm
 
+  -- None of the above cases apply, so must be bad arguments
+  flatFold pf rt xs
+   = lift $ Left $ FlattenErrorPrimBadArgs (Core.PrimFold pf rt) xs
+
+  -- Create a fst# or snd#
   proj t ta tb e
    = (XPrim
     $ Flat.PrimProject
