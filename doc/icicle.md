@@ -316,3 +316,126 @@ There must be a simpler way.
 
 
 
+More examples
+=============
+
+CountDays
+---------
+
+Some sort of consecutive group by will probably come in handy for other things, too.
+```
+GroupByFold
+    :: Eq k
+    => (a -> v -> a)
+    -> (a -> v -> a)
+    -> a
+    -> Stream (k, v)
+    -> a
+
+GroupByFold new old none vals
+ = snd
+ $ Fold
+    (\ds v ->
+        -- If last seen date is same as this date, don't update
+        if   Some v == fst ds
+        then (Some v, old (snd ds) (snd v))
+        -- Otherwise update last seen date and increment
+        else (Some v, new (snd ds) (snd v)) )
+
+    -- Start with no last seen date
+    (None, none)
+    vals
+
+FoldNumGroupedEntries
+    :: Eq k
+    => (a -> Int -> a) -> a
+    -> Stream (k,v)
+    -> a
+FoldNumGroupedEntries k z s =
+ let New s =
+        case s of
+         -- Use old day's count
+         Some (e,v) -> (0, k v e)
+         -- First day - start from nothing
+         None       -> (0, z)
+   in New
+    $ GroupByFold
+        -- New day, apply k to old day and reset count
+        (\s _ -> Some (New s))
+        -- Day already seen; increment num entries
+        (\s _ -> case s of
+                  Some (e,v) -> Some (e+1, v)
+                  -- This shouldn't happen.
+                  None       -> Some (0, z))
+        -- Start from nothing
+        None
+
+```
+
+But with these ugly prelude functions, we can write count days and max days pretty simply:
+```
+FoldNumGroupedEntries (\s _ -> s + 1) 0 SourceDated
+```
+
+MaxDays
+-------
+
+```
+FoldNumGroupedEntries Max 0 SourceDated
+```
+
+Compare this to the SQL version.
+This isn't a perfect comparison because we also have the definition of `FoldNumGroupedEntries`, but we can hide it in the prelude.
+```
+SELECT MAX(z.c) FROM (SELECT COUNT(*) AS c FROM days GROUP BY day) z;
+```
+
+DaysSinceEarliest
+-----------------
+
+A "first" would be nice. This is just a fold.
+It'd be pretty easy to make this a last too.
+```
+First :: Stream a -> Option a
+First xs = 
+ Fold (\a k -> option Some (Some k) a) None xs
+```
+
+Now we just need the days since.
+```
+DaysSinceEarliest :: Stream (Date, a) -> Int
+DaysSinceEarliest xs =
+  case First xs of
+   Some (d,_) -> Some (daysDifference Now d)
+   None       -> None
+```
+
+
+FilteredOverTotal
+-----------------
+This looks like an interesting one.
+
+```
+Count (Filter (>0) Source) / Count Source
+```
+
+but to do this in SQL:
+```
+SELECT
+  filt.c / total.c
+FROM
+  (SELECT COUNT(*) as c FROM source WHERE value > 0) filt,
+  (SELECT COUNT(*) as c FROM source) total;
+```
+
+Well, the second query would probably be optimised to just a statistics table lookup, but whatever.
+
+Actually, here's another SQL query:
+```
+SELECT
+    COUNT(case when val <= 0 then null else val end),
+    COUNT(*), 
+    COUNT(case when val <= 0 then null else val end) / COUNT(*)
+FROM
+    source;
+```
