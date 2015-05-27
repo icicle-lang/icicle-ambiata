@@ -4,6 +4,18 @@ Icicle concrete syntax
 Sum
 ---
 
+Core:
+```
+Program
+Stream
+    feat = Source
+Reduction
+    sum  = Fold (+) 0 feat
+Return
+    sum
+```
+
+
 Haskell:
 (Whatever - this would be defined in Prelude anyway.)
 ```
@@ -59,6 +71,18 @@ for (V* cur = feat; ix != feat_end; ++ix) {
 
 Count
 -----
+
+Core:
+```
+Program
+Stream
+    feat = Source
+    ones = Map (\x -> 1) feat
+Reduction
+    count= Fold (+) 0 ones
+Return
+    count
+```
 
 Haskell
 ```
@@ -118,6 +142,18 @@ for (V* cur = feat; ix != feat_end; ++ix) {
 Windowed count
 --------------
 
+Core:
+```
+Program
+Stream
+    feat = SourceWindowed 30
+    ones = Map (\x -> 1) feat
+Reduction
+    count= Fold (+) 0 ones
+Return
+    count
+```
+
 Haskell
 ```
 window i
@@ -156,10 +192,20 @@ for (V* cur = feat; ix != feat_end; ++ix) {
 CountBy
 -------
 
+Core:
+```
+Program
+Stream
+    feat    = Source
+Reduction
+    counts  = Fold (\map v -> Map.insertWith (+1) 1 v map) Map.empty feat
+Return
+    counts
+```
+
 Haskell
 ```
-countBy
- = fold (\map v -> Map.insertWith (+1) 1 v map) Map.empty
+length . group
 ```
 
 SQL
@@ -198,6 +244,29 @@ for (V* v = feat; v != feat_end; ++v) {
 CountDays
 --------
 
+Core:
+```
+Program
+Stream
+    feat    = Source
+    dates   = Map dateOf feat
+Reduction
+    uniques = Fold
+                (\ds v ->
+                    -- If last seen date is same as this date, don't update
+                    if   Just v == fst ds
+                    then ds
+                    -- Otherwise update last seen date and increment
+                    else (Just v, snd ds + 1) )
+
+                -- Start with no last seen date
+                (Nothing, 0) 
+                dates
+Return
+    snd uniques
+```
+
+
 Haskell
 ```
 count $ groupBy ((==) `on` dateOf) feat
@@ -231,6 +300,29 @@ return seen;
 
 MaxDays
 --------
+
+Core: (just pretend we have triples)
+```
+Program
+Stream
+    feat    = Source
+    dates   = Map dateOf feat
+Reduction
+    uniques = Fold
+                (\(date, today, maxum) v ->
+                    -- If last seen date is same as this date, increment num on this day
+                    if   Just v == date
+                    then (date, today + 1, max maxum (today + 1))
+                    -- Otherwise we're on a new day, so reset today to 0 but keep maxum
+                    else (Just v, 0, maxum) )
+
+                -- Start with no last seen date and no max
+                (Nothing, 0, 0) 
+                dates
+Return
+    fst uniques
+```
+
 
 Haskell
 ```
@@ -270,6 +362,19 @@ return seen;
 DaysSinceEarliest
 -----------------
 
+```
+Program
+Reduction
+    first   = Fold (\a v -> if a == Nothing then Just v else a)
+                    Nothing
+                    Source
+Postcomputation with now : Date
+    since   = map (\f -> daysOf (now - f)) first
+Returning
+    since
+```
+
+
 Haskell
 ```
 safeHead $ map (diff unsafeDateNow . dateOf) feat
@@ -302,6 +407,20 @@ return days;
 
 FilteredOverTotal
 ----------------
+
+Core:
+```
+Program
+Stream
+    feat    = Source
+    filt    = Filter (>0) feat
+Reduction
+    cfeat   = Fold (+) 0 feat
+    cfilt   = Fold (+) 0 filt
+Return
+    cfeat / cfilt
+```
+
 
 Haskell
 ```
