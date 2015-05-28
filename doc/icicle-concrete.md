@@ -4,6 +4,11 @@ Icicle concrete syntax
 Sum
 ---
 
+Icicle:
+```
+sum feat
+```
+
 Core:
 ```
 Program
@@ -71,6 +76,11 @@ for (V* cur = feat; ix != feat_end; ++ix) {
 
 Count
 -----
+
+Icicle:
+```
+count feat
+```
 
 Core:
 ```
@@ -142,6 +152,11 @@ for (V* cur = feat; ix != feat_end; ++ix) {
 Windowed count
 --------------
 
+Icicle:
+```
+count (windowed feat (> 30 days))
+```
+
 Core:
 ```
 Program
@@ -191,6 +206,13 @@ for (V* cur = feat; ix != feat_end; ++ix) {
 
 CountBy
 -------
+
+Icicle:
+```
+[ count ms | ms <- group feat ]
+
+groupWith count feat
+```
 
 Core:
 ```
@@ -243,6 +265,12 @@ for (V* v = feat; v != feat_end; ++v) {
 
 CountDays
 --------
+
+Icicle:
+```
+count (groupDays feat)
+```
+
 
 Core:
 ```
@@ -300,6 +328,10 @@ return seen;
 
 MaxDays
 --------
+Icicle:
+```
+max [ count d | d <- groupDays feat ]
+```
 
 Core: (just pretend we have triples)
 ```
@@ -361,6 +393,14 @@ return seen;
 
 DaysSinceEarliest
 -----------------
+Icicle:
+```
+now - dateOf (oldest feat)
+
+???
+
+[ now - dateOf f | f <- oldest feat ]
+```
 
 ```
 Program
@@ -407,6 +447,14 @@ return days;
 
 FilteredOverTotal
 ----------------
+Icicle?
+```
+count (filter (>0) feat) / count feat
+
+count [ f | f <- feat, f > 0] / count feat
+
+count ( feat where (>0) ) / count feat
+```
 
 Core:
 ```
@@ -466,6 +514,21 @@ return filtd / count;
 
 Standard deviation
 -------
+Icicle
+```
+let sqs  = avg (feat^2)
+    mean = avg  feat
+in  sqrt (sqs - mean * mean)
+
+
+sqrt (
+    ( sum (feat*feat) - sum feat * sum feat )
+    / count feat
+)
+
+
+sqrt (avg (feat*feat) - avg feat * avg feat)
+```
 
 
 Haskell
@@ -546,6 +609,10 @@ Return
 
 Most recent value from 30-60 days ago
 ----------------------
+Icicle:
+```
+newest (windowed feat (> 30days) (< 60days))
+```
 
 Haskell
 ```
@@ -593,6 +660,10 @@ Returns
 
 Average of last calendar month
 ----------------------
+Icicle:
+```
+avg (windowed feat (=1month))
+```
 
 Haskell
 ```
@@ -685,6 +756,11 @@ Return
 
 Average of last three months
 ------------------------
+Icicle:
+```
+avg (windowed feat (< 3 months))
+```
+
 Haskell
 ```
 avg
@@ -715,6 +791,11 @@ Return
 
 Number of zeroes in last 3 entries
 ---------------
+Icicle?
+```
+count (latest 3 feat == 0)
+```
+
 Haskell
 ```
 length
@@ -746,6 +827,11 @@ Return
 
 If zero in last entry, but not in entry before.
 -----------------------------------------------
+Icicle?
+```
+[ a == 0 && b /= 0 | [a,b] <- latest 2 feat ]
+```
+
 Haskell
 ```
 case latest 2 feat of
@@ -805,6 +891,18 @@ return (a == 0 && b != 0);
 
 Fraction of zeroes
 ------------------
+Icicle??
+
+If we have "auto-promotion" of eg (*) to (zipWith (*)) and (*5) to (map (*5)) or whatever,
+then it's tempting to imagine that (==0) should mean (filter (==0)).
+
+But this is wrong, because why should it be filter and not (map (==0))? and what does (==) applied to two vectors do - return the pairs that satisfy?
+That's stupid.
+So I propose that if we had autopromotion sort of thing this would always return 1:
+```
+count (feat==0) / count feat
+```
+
 Core
 ```
 Stream
@@ -822,11 +920,24 @@ See FilteredOverTotal.
 
 Exponentially smoothed value
 ----------------------------
+Icicle?
+```
+fold1 (\a v -> a * 0.5 + v * 0.5) feat
+```
+
 Is this roughly correct?
 
 Haskell
 ```
-foldl (\a v -> a * 0.5 + v * 0.5) 0 feat
+foldl1_safe k
+ = foldl
+    (\a v -> case a of
+              Nothing -> Just v
+              Just a' -> Just $ k a' v)
+    Nothing
+        
+
+foldl1_safe (\a v -> a * 0.5 + v * 0.5) feat
 ```
 
 SQL
@@ -836,6 +947,14 @@ FROM   feat
 ORDER BY date DESC
 ```
 
+Lucid
+```
+moving
+ where
+  moving = value fby moving * 0.5 + value * 0.5
+ end
+```
+
 Core
 ```
 Stream
@@ -843,8 +962,10 @@ Stream
 Reduction
     recent_avg
         = Fold
-            (\a v -> a * 0.5 + v * 0.5)
-            0
+            (\a v -> case a of
+                      Nothing -> Just v
+                      Just a' -> Just $ a' * 0.5 + v * 0.5)
+            Nothing
             feat
 Return
     recent_avg
@@ -853,8 +974,13 @@ Return
 C
 ```
 int v = 0;
+int v_set = 0;
 for (V* cur = feat; cur != feat_end; ++cur) {
-    v = v * 0.5 + cur->value * 0.5;
+    if (v_set) {
+        v = v * 0.5 + cur->value * 0.5;
+    } else {
+        v = cur->value;
+    }
 }
 return v;
 ```
