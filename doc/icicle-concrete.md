@@ -463,45 +463,399 @@ for (V* v = feat; v != feat_end; ++v) {
 return filtd / count;
 ```
 
-More
-----
 
-More examples to do, from Aaron:
-
- - Value from month before
- - Average from 3 months before
- - Average of all months
- - standard deviation over all months
- - relative standard deviation (S.d. divided by mean)
- - Is last month's usage 1/2 SD outside persons typical usage, above/below?
- - Usage zero in last month indicator
- - Usage zero in last 3 months indicator
- - If usage is zero in last month, but not in month before that.
- - Irregularity - Fraction of months where this person has zero usage in this feature.
- - Exponentially smoothed value
-
-Name
+Standard deviation
 -------
 
 
 Haskell
 ```
+let mean = sum feat / length feat
+    devs = map (\v -> (v - mean) ^ 2) feat
+in  sqrt (sum devs / length feat)
+
+==>
+
+let sqs  = sum $ map (^2) feat
+    mean = sum            feat
+in  sqrt ((sqs - mean * mean) / length feat)
+
+==>
+
+let (mean,sqs) 
+         = fold ((+) *** (+))   (0,0)
+         $ map  (\v -> (v, v*v)) feat
+in  sqrt ((sqs - mean * mean) / length feat)
 ```
+
 SQL
 ```
+SELECT
+    sqrt(
+        avg(value * value) - (avg(value) * avg(value))
+    )
+FROM
+    feat
+
+OR (if you're lucky)
+
+SELECT stddev(value) FROM feat
 ```
-R
-```
-```
-LINQ
-```
-```
-Lucid
-```
-```
-RDO
-```
-```
+
 C:
 ```
+double mean = 0;
+double sqs  = 0;
+int    len  = 0;
+for (V* cur = feat; cur != feat_end; ++cur) {
+    mean += cur->value;
+    sqs  += cur->value * cur->value;
+    len  += 1;
+}
+return sqrt((sqs - mean * mean) / len);
 ```
+
+Core:
+```
+Program
+Stream
+    feat    = Source
+    sqs_s   = Map (\v -> v*v) feat
+Reduction
+    mean    = Fold (+) 0 feat
+    sqs     = Fold (+) 0 sqs_s
+Return
+    sqrt ((sqs - mean * mean) / len)
+```
+
+Relative standard deviation (S.d. divided by mean)
+-------------------
+Core:
+```
+Program
+Stream
+    feat    = Source
+    sqs_s   = Map (\v -> v*v) feat
+Reduction
+    mean    = Fold (+) 0 feat
+    sqs     = Fold (+) 0 sqs_s
+Return
+    sqrt ((sqs - mean * mean) / len) / (mean / len)
+```
+
+
+Most recent value from 30-60 days ago
+----------------------
+
+Haskell
+```
+safeLast
+ $ filter (\f -> let ago = diff unsafeNow $ dateOf f
+                  in ago > 30 && ago < 60)
+   feat
+```
+
+SQL
+```
+SELECT TOP 1
+ *
+FROM
+ feat
+WHERE
+ days - now() between 30 and 60
+ORDER BY
+ days DESC
+```
+
+C:
+```
+V* recent = null;
+for (V* cur = feat; cur != feat_end; ++cur) {
+    if (cur->days > 30 && cur->days < 60) {
+        recent = cur;
+    }
+}
+return recent;
+```
+
+Core:
+actually this one is a problem right now: only postcomputations can and "newer than" windows can access the current date.
+Two options: add "between window" primitive, or allow filters to access current date if windowed.
+```
+Program
+Stream
+    wind   = WindowBetween 60 30
+Reduction
+    recent = LatestN 1 wind
+Returns
+    listToMaybe recent
+```
+
+Average of last calendar month
+----------------------
+
+Haskell
+```
+let sameMonthAs a b = a{day=1} == b{day=1}
+    lastMonth   = unsafeDateNow - 1 month
+    fs = filter (\f -> dateOf f `sameMonthAs` unsafeDateNow) feat
+in  avg fs
+```
+
+SQL
+```
+SELECT  avg(value)
+FROM    feat
+WHERE   month date = month (now() - 1 month)
+    AND year  date = year  (now() - 1 month)
+```
+
+C
+```
+double sum   = 0;
+double count = 0;
+int dt = minus_month(now(), 1);
+for (...) {
+    if (same_month(dt, v->date)) {
+        sum += v->value;
+        count += 1;
+    }
+}
+return sum / count;
+```
+
+Core: this is hard to express because the reduction can't use the current date.
+Map of averages by month:
+```
+Program
+Stream
+    feat = Source
+Reduction
+    avg = Fold (\m f ->
+                    let v     = valueOf f
+                        month = monthOf $ dateOf f
+                    in  Map.insertWith ((+v) *** (+1)) (v,1) m month)
+          Map.empty feat
+Post
+    maybe_sum_count = avg.lookup (Now - 1 month)
+    mean            = case maybe_sum_count of Nothing -> 0; Just (s,c) -> s / c
+Return
+    mean
+```
+But we can actually window the input in this case:
+```
+Program
+Stream
+    feat = SourceWindowed 70
+Reduction
+    avg = Fold (\m f ->
+                    let v     = valueOf f
+                        month = monthOf $ dateOf f
+                    in  Map.insertWith ((+v) *** (+1)) (v,1) m month)
+          Map.empty feat
+Post
+    maybe_sum_count = avg.lookup (Now - 1 month)
+    mean            = case maybe_sum_count of Nothing -> 0; Just (s,c) -> s / c
+Return
+    mean
+```
+Having the current date in the filter would make it much simpler.
+```
+Program
+Stream
+    feat = SourceWindowed 70
+    last = Filter (\f -> dateOf f `sameMonthAs` unsafeDateNow - 1 month) feat
+Reduction
+    sum   = Fold (+) 0 last
+    count = Fold (const (+1)) 0 last
+Return
+    sum / count
+```
+But a window by calendar months actually seems even simpler.
+```
+Program
+Stream
+    feat = WindowBetween (1 month) (2 months)
+Reduction
+    sum   = Fold (+) 0 feat
+    count = Fold (const (+1)) 0 feat
+Return
+    sum / count
+```
+
+Average of last three months
+------------------------
+Haskell
+```
+avg
+ $ filter (\v -> ... ) feat
+```
+
+SQL
+```
+SELECT
+    avg(value)
+FROM
+    feat
+WHERE
+    month date >= month now() - 3
+```
+
+Core
+```
+Program
+Stream
+    feat = SourceWindowed (3 months)
+Reduction
+    sum   = Fold (+) 0 feat
+    count = Fold (const (+1)) 0 feat
+Return
+    sum / count
+```
+
+Number of zeroes in last 3 entries
+---------------
+Haskell
+```
+length
+ $ filter (==0)
+ $ latest 3 feat
+```
+
+SQL
+```
+SELECT
+ count(*)
+FROM
+ (SELECT TOP 3 * FROM feat ORDER BY date DESC) z
+WHERE
+ z.value = 0
+```
+
+Core
+```
+Stream
+    feat = Source
+Reduction
+    last = Latest 3
+Postcomputation
+    zeros = Array.filter (==0) last
+Return
+    count zeros
+```
+
+If zero in last entry, but not in entry before.
+-----------------------------------------------
+Haskell
+```
+case latest 2 feat of
+ [a,b]
+  -> a == 0 && b /= 0
+ _
+  -> False
+```
+
+SQL
+```
+SELECT
+    CASE WHEN a.value = 0 AND b.value <> 0
+         THEN 1
+         ELSE 0
+    END
+FROM
+    (SELECT TOP 1   FROM feat ORDER BY date DESC) a,
+    (SELECT TOP 1 FROM (SELECT TOP 2 FROM feat ORDER BY date DESC) ORDER BY date asc) b
+
+OR
+
+SELECT
+    CASE WHEN a.value = 0 AND b.value <> 0
+         THEN 1
+         ELSE 0
+    END
+FROM
+    (SELECT FROM feat ORDER BY date DESC OFFSET 0 ROWS FETCH FIRST 1 ROWS ONLY) a,
+    (SELECT FROM feat ORDER BY date DESC OFFSET 1 ROWS FETCH FIRST 1 ROWS ONLY) b,
+```
+
+Core
+```
+Stream
+    feat = Source
+Reduction
+    last = Latest 2
+Return
+    case (index last 0, index last 1) of
+     (Some a, Some b)
+      -> a == 0 && b /= 0
+     _
+      -> False
+```
+
+C:
+```
+int a = 0;
+int b = 0;
+for (V* cur = feat; cur != ...) {
+    b = a;
+    a = cur->value;
+}
+return (a == 0 && b != 0);
+```
+
+Fraction of zeroes
+------------------
+Core
+```
+Stream
+    feat = Source
+    zeroes = Filter (==0) feat
+Reduction
+    countA = Fold (const (+1)) 0 feat
+    countZ = Fold (const (+1)) 0 zeroes
+Return
+    countZ / countA
+```
+
+See FilteredOverTotal.
+
+
+Exponentially smoothed value
+----------------------------
+Is this roughly correct?
+
+Haskell
+```
+foldl (\a v -> a * 0.5 + v * 0.5) 0 feat
+```
+
+SQL
+```
+SELECT sum(value / pow(2,ROWNUM))
+FROM   feat
+ORDER BY date DESC
+```
+
+Core
+```
+Stream
+    feat = Source
+Reduction
+    recent_avg
+        = Fold
+            (\a v -> a * 0.5 + v * 0.5)
+            0
+            feat
+Return
+    recent_avg
+```
+
+C
+```
+int v = 0;
+for (V* cur = feat; cur != feat_end; ++cur) {
+    v = v * 0.5 + cur->value * 0.5;
+}
+return v;
+```
+
