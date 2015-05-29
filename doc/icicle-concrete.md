@@ -301,9 +301,17 @@ for (V* v = feat; v != feat_end; ++v) {
 
 Datomic/datalog (not sure if the :with is correct)
 ```
+; query
+[:find ?cat (count ?cat) .
+ :with ?cat
+ :in [[?cat :feat]]] 
+ 
+;; rather than this
 [:find ?cat (count ?cat)
  :with ?cat
  :where [?cat :feat]]
+ 
+;; http://docs.datomic.com/query.html#outline-container-5-17-1
 ```
 
 
@@ -449,12 +457,10 @@ for (V* v = feat; v != feat_end; ++v) {
 return seen;
 ```
 
-Datomic/datalog - no idea
+Datomic/datalog
 ```
-max ...
-[:find ?d (count ?d)
- :where [?f :feat]
-        [?f :feat/date ?d]]
+[:find (max ?d)
+ :where [_ :feat/date ?d]]
 ```
 
 
