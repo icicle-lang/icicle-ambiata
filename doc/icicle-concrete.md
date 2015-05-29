@@ -73,6 +73,12 @@ for (V* cur = feat; ix != feat_end; ++ix) {
 }
 ```
 
+Datomic/datalog
+```
+[:find (sum ?f)
+ :where [?f :feat]]
+```
+
 
 Count
 -----
@@ -148,6 +154,13 @@ for (V* cur = feat; ix != feat_end; ++ix) {
 ```
 
 
+Datomic/datalog
+```
+[:find (count ?f)
+ :where [?f :feat]]
+```
+
+
 
 Windowed count
 --------------
@@ -204,6 +217,16 @@ for (V* cur = feat; ix != feat_end; ++ix) {
 }
 ```
 
+Datomic/datalog
+```
+[:find (count ?f)
+ :where [?f :feat]
+        [?f :feat/date ?d]
+        [(daysAgo ?d) ?ago]
+        [(< ?ago 30)]]
+```
+
+
 CountBy
 -------
 
@@ -227,7 +250,7 @@ Return
 
 Haskell
 ```
-length . group
+map length $ group feat
 ```
 
 SQL
@@ -262,6 +285,14 @@ for (V* v = feat; v != feat_end; ++v) {
     cats[v->cat]++;
 }
 ```
+
+Datomic/datalog (not sure if the :with is correct)
+```
+[:find ?cat (count ?cat)
+ :with ?cat
+ :where [?cat :feat]]
+```
+
 
 CountDays
 --------
@@ -325,6 +356,14 @@ for (V* v = feat; v != feat_end; ++v) {
 
 return seen;
 ```
+
+Datomic/datalog
+```
+[:find (count-distinct ?d)
+ :where [?f :feat]
+        [?f :feat/date ?d]]
+```
+
 
 MaxDays
 --------
@@ -390,6 +429,15 @@ for (V* v = feat; v != feat_end; ++v) {
 
 return seen;
 ```
+
+Datomic/datalog - no idea
+```
+max ...
+[:find ?d (count ?d)
+ :where [?f :feat]
+        [?f :feat/date ?d]]
+```
+
 
 DaysSinceEarliest
 -----------------
@@ -528,7 +576,24 @@ sqrt (
 
 
 sqrt (avg (feat*feat) - avg feat * avg feat)
+
+
+stddev feat
 ```
+
+Core:
+```
+Program
+Stream
+    feat    = Source
+    sqs_s   = Map (\v -> v*v) feat
+Reduction
+    mean    = Fold (+) 0 feat
+    sqs     = Fold (+) 0 sqs_s
+Return
+    sqrt ((sqs - mean * mean) / len)
+```
+
 
 
 Haskell
@@ -578,18 +643,12 @@ for (V* cur = feat; cur != feat_end; ++cur) {
 return sqrt((sqs - mean * mean) / len);
 ```
 
-Core:
+Datomic/datalog
 ```
-Program
-Stream
-    feat    = Source
-    sqs_s   = Map (\v -> v*v) feat
-Reduction
-    mean    = Fold (+) 0 feat
-    sqs     = Fold (+) 0 sqs_s
-Return
-    sqrt ((sqs - mean * mean) / len)
+[:find (stddev ?f)
+ :where [?f :feat]]
 ```
+
 
 Relative standard deviation (S.d. divided by mean)
 -------------------
@@ -613,6 +672,20 @@ Icicle:
 ```
 newest (windowed feat (> 30days) (< 60days))
 ```
+
+Core:
+actually this one is a problem right now: only postcomputations can and "newer than" windows can access the current date.
+Two options: add "between window" primitive, or allow filters to access current date if windowed.
+```
+Program
+Stream
+    wind   = WindowBetween 60 30
+Reduction
+    recent = LatestN 1 wind
+Returns
+    listToMaybe recent
+```
+
 
 Haskell
 ```
@@ -645,54 +718,11 @@ for (V* cur = feat; cur != feat_end; ++cur) {
 return recent;
 ```
 
-Core:
-actually this one is a problem right now: only postcomputations can and "newer than" windows can access the current date.
-Two options: add "between window" primitive, or allow filters to access current date if windowed.
-```
-Program
-Stream
-    wind   = WindowBetween 60 30
-Reduction
-    recent = LatestN 1 wind
-Returns
-    listToMaybe recent
-```
-
 Average of last calendar month
 ----------------------
 Icicle:
 ```
 avg (windowed feat (=1month))
-```
-
-Haskell
-```
-let sameMonthAs a b = a{day=1} == b{day=1}
-    lastMonth   = unsafeDateNow - 1 month
-    fs = filter (\f -> dateOf f `sameMonthAs` unsafeDateNow) feat
-in  avg fs
-```
-
-SQL
-```
-SELECT  avg(value)
-FROM    feat
-WHERE   month date = month (now() - 1 month)
-    AND year  date = year  (now() - 1 month)
-```
-
-C
-```
-double sum   = 0;
-double count = 0;
-int dt = minus_month(now(), 1);
-for (...) {
-    if (same_month(dt, v->date)) {
-        sum += v->value;
-        count += 1;
-    }
-}
-return sum / count;
 ```
 
 Core: this is hard to express because the reduction can't use the current date.
@@ -754,12 +784,67 @@ Return
     sum / count
 ```
 
+
+Haskell
+```
+let sameMonthAs a b = a{day=1} == b{day=1}
+    lastMonth   = unsafeDateNow - 1 month
+    fs = filter (\f -> dateOf f `sameMonthAs` unsafeDateNow) feat
+in  avg fs
+```
+
+SQL
+```
+SELECT  avg(value)
+FROM    feat
+WHERE   month date = month (now() - 1 month)
+    AND year  date = year  (now() - 1 month)
+```
+
+C
+```
+double sum   = 0;
+double count = 0;
+int dt = minus_month(now(), 1);
+for (...) {
+    if (same_month(dt, v->date)) {
+        sum += v->value;
+        count += 1;
+    }
+}
+return sum / count;
+```
+
+Datomic/datalog
+```
+[:find (avg ?f)
+ :where [?f :feat]
+        [?f :feat/date ?d]
+        [(monthOf ?d) ?md]
+        [(now) ?now]
+        [(monthOf ?now) ?mn]
+        [= ?md ?mn]]
+```
+
 Average of last three months
 ------------------------
 Icicle:
 ```
 avg (windowed feat (< 3 months))
 ```
+
+Core
+```
+Program
+Stream
+    feat = SourceWindowed (3 months)
+Reduction
+    sum   = Fold (+) 0 feat
+    count = Fold (const (+1)) 0 feat
+Return
+    sum / count
+```
+
 
 Haskell
 ```
@@ -775,18 +860,6 @@ FROM
     feat
 WHERE
     month date >= month now() - 3
-```
-
-Core
-```
-Program
-Stream
-    feat = SourceWindowed (3 months)
-Reduction
-    sum   = Fold (+) 0 feat
-    count = Fold (const (+1)) 0 feat
-Return
-    sum / count
 ```
 
 Number of zeroes in last 3 entries
@@ -832,6 +905,21 @@ Icicle?
 [ a == 0 && b /= 0 | [a,b] <- latest 2 feat ]
 ```
 
+Core
+```
+Stream
+    feat = Source
+Reduction
+    last = Latest 2
+Return
+    case (index last 0, index last 1) of
+     (Some a, Some b)
+      -> a == 0 && b /= 0
+     _
+      -> False
+```
+
+
 Haskell
 ```
 case latest 2 feat of
@@ -862,20 +950,6 @@ SELECT
 FROM
     (SELECT FROM feat ORDER BY date DESC OFFSET 0 ROWS FETCH FIRST 1 ROWS ONLY) a,
     (SELECT FROM feat ORDER BY date DESC OFFSET 1 ROWS FETCH FIRST 1 ROWS ONLY) b,
-```
-
-Core
-```
-Stream
-    feat = Source
-Reduction
-    last = Latest 2
-Return
-    case (index last 0, index last 1) of
-     (Some a, Some b)
-      -> a == 0 && b /= 0
-     _
-      -> False
 ```
 
 C:
@@ -925,7 +999,23 @@ Icicle?
 fold1 (\a v -> a * 0.5 + v * 0.5) feat
 ```
 
-Is this roughly correct?
+Core
+```
+Stream
+    feat = Source
+Reduction
+    recent_avg
+        = Fold
+            (\a v -> case a of
+                      Nothing -> Just v
+                      Just a' -> Just $ a' * 0.5 + v * 0.5)
+            Nothing
+            feat
+Return
+    recent_avg
+```
+
+
 
 Haskell
 ```
@@ -953,22 +1043,6 @@ moving
  where
   moving = value fby moving * 0.5 + value * 0.5
  end
-```
-
-Core
-```
-Stream
-    feat = Source
-Reduction
-    recent_avg
-        = Fold
-            (\a v -> case a of
-                      Nothing -> Just v
-                      Just a' -> Just $ a' * 0.5 + v * 0.5)
-            Nothing
-            feat
-Return
-    recent_avg
 ```
 
 C
