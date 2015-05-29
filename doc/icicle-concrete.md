@@ -7,6 +7,9 @@ Sum
 Icicle:
 ```
 sum feat
+
+open salary;
+sum value
 ```
 
 Core:
@@ -86,6 +89,9 @@ Count
 Icicle:
 ```
 count feat
+
+open salary;
+count
 ```
 
 Core:
@@ -167,7 +173,11 @@ Windowed count
 
 Icicle:
 ```
-count (windowed feat (> 30 days))
+count (windowed feat (< 30 days))
+
+open salary;
+windowed newer than 30 days;
+count
 ```
 
 Core:
@@ -235,6 +245,9 @@ Icicle:
 [ count ms | ms <- group feat ]
 
 groupWith count feat
+
+open salary;
+count grouped by value
 ```
 
 Core:
@@ -300,6 +313,9 @@ CountDays
 Icicle:
 ```
 count (groupDays feat)
+
+open salary;
+count distinct date
 ```
 
 
@@ -370,6 +386,9 @@ MaxDays
 Icicle:
 ```
 max [ count d | d <- groupDays feat ]
+
+open salary;
+max (count grouped by date)
 ```
 
 Core: (just pretend we have triples)
@@ -448,6 +467,9 @@ now - dateOf (oldest feat)
 ???
 
 [ now - dateOf f | f <- oldest feat ]
+
+open salary;
+daysDifference now (oldest date)
 ```
 
 ```
@@ -502,6 +524,11 @@ count (filter (>0) feat) / count feat
 count [ f | f <- feat, f > 0] / count feat
 
 count ( feat where (>0) ) / count feat
+
+open feat;
+let v = count where value > 0;
+let y = count;
+v / y
 ```
 
 Core:
@@ -579,6 +606,15 @@ sqrt (avg (feat*feat) - avg feat * avg feat)
 
 
 stddev feat
+
+
+open feat;
+let sqr = average (value * value);
+let mnn = average  value;
+sqrt (sqr - mnn * mnn)
+
+open feat;
+stddev value
 ```
 
 Core:
@@ -671,6 +707,10 @@ Most recent value from 30-60 days ago
 Icicle:
 ```
 newest (windowed feat (> 30days) (< 60days))
+
+open feat;
+windowed between 30 and 60 days;
+newest value
 ```
 
 Core:
@@ -723,6 +763,10 @@ Average of last calendar month
 Icicle:
 ```
 avg (windowed feat (=1month))
+
+open feat;
+windowed between 1 and 2 months;
+average value
 ```
 
 Core: this is hard to express because the reduction can't use the current date.
@@ -831,6 +875,10 @@ Average of last three months
 Icicle:
 ```
 avg (windowed feat (< 3 months))
+
+open feat;
+windowed newer than 3 months;
+average value
 ```
 
 Core
@@ -867,6 +915,10 @@ Number of zeroes in last 3 entries
 Icicle?
 ```
 count (latest 3 feat == 0)
+
+open feat;
+latest 3 entries;
+count where value == 0
 ```
 
 Haskell
@@ -903,6 +955,12 @@ If zero in last entry, but not in entry before.
 Icicle?
 ```
 [ a == 0 && b /= 0 | [a,b] <- latest 2 feat ]
+
+open feat;
+latest 2 entries;
+let a = newest value;
+let b = oldest value;
+a == 0 and b /= 0
 ```
 
 Core
@@ -975,6 +1033,11 @@ That's stupid.
 So I propose that if we had autopromotion sort of thing this would always return 1:
 ```
 count (feat==0) / count feat
+
+open feat;
+let c = count where value == 0;
+let t = count;
+c / t
 ```
 
 Core
@@ -997,6 +1060,10 @@ Exponentially smoothed value
 Icicle?
 ```
 fold1 (\a v -> a * 0.5 + v * 0.5) feat
+
+open feat;
+fold smooth = value * 0.5 + smooth * 0.5;
+smooth
 ```
 
 Core
