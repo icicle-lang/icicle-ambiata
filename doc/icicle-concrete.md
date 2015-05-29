@@ -292,13 +292,6 @@ Datomic/datalog (not sure if the :with is correct)
 [:find ?cat (count ?cat) .
  :with ?cat
  :in [[?cat :feat]]] 
- 
-;; rather than this
-[:find ?cat (count ?cat)
- :with ?cat
- :where [?cat :feat]]
- 
-;; http://docs.datomic.com/query.html#outline-container-5-17-1
 ```
 
 
@@ -368,8 +361,8 @@ return seen;
 Datomic/datalog
 ```
 [:find (count-distinct ?d)
- :where [?f :feat]
-        [?f :feat/date ?d]]
+ :where [_ :feat]
+        [_ :feat/date ?d]]
 ```
 
 
@@ -498,6 +491,12 @@ if (feat != feat_end) {
 return days;
 ```
 
+Datalog
+```
+;; Basically a the min of the max 5
+[:find [(min 1 (max 5 ?d))]
+ :where [?f :feat/date ?d]]
+```
 
 FilteredOverTotal
 ----------------
