@@ -106,6 +106,9 @@ library
                        Icicle.Serial
                        Icicle.Simulator
 
+                       Icicle.Source.Query
+                       Icicle.Source.Eval
+
 executable             icicle
     ghc-options:       -Wall -threaded -O2
     main-is:           main/icicle.hs
