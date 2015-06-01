@@ -8,8 +8,8 @@ Icicle:
 ```
 sum feat
 
-feature feat;
-sum value
+feature feat
+~> sum value
 ```
 
 Core:
@@ -90,8 +90,8 @@ Icicle:
 ```
 count feat
 
-feature feat;
-count
+feature feat
+~> count
 ```
 
 Core:
@@ -175,9 +175,9 @@ Icicle:
 ```
 count (windowed feat (< 30 days))
 
-feature feat;
-windowed newer than 30 days;
-count
+feature feat
+~> windowed newer than 30 days
+~> count
 ```
 
 Core:
@@ -246,9 +246,9 @@ Icicle:
 
 groupWith count feat
 
-feature feat;
-group by value;
-count
+feature feat
+~> group by value
+~> count
 ```
 
 Core:
@@ -323,9 +323,9 @@ Icicle:
 ```
 count (groupDays feat)
 
-feature feat;
-distinct date;
-count
+feature feat
+~> distinct date
+~> count
 ```
 
 
@@ -397,8 +397,8 @@ Icicle:
 ```
 max [ count d | d <- groupDays feat ]
 
-feature feat;
-max (group by date; count)
+feature feat
+~> max (group by date ~> count)
 ```
 
 Core: (just pretend we have triples)
@@ -476,8 +476,8 @@ now - dateOf (oldest feat)
 
 [ now - dateOf f | f <- oldest feat ]
 
-feature feat;
-daysDifference now (oldest date)
+feature feat
+~> now - oldest date
 ```
 
 ```
@@ -533,10 +533,10 @@ count [ f | f <- feat, f > 0] / count feat
 
 count ( feat where (>0) ) / count feat
 
-feature feat;
-let v = (filter value > 0; count);
-let y = count;
-v / y
+feature feat
+~> let v = (filter value > 0 ~> count)
+~> let y = count
+~> v / y
 ```
 
 Core:
@@ -616,13 +616,13 @@ sqrt (avg (feat*feat) - avg feat * avg feat)
 stddev feat
 
 
-feature feat;
-let sqr = average (value * value);
-let mnn = average  value;
-sqrt (sqr - mnn * mnn)
+feature feat
+~> let sqr = average (value * value)
+~> let mnn = average  value
+~> sqrt (sqr - mnn * mnn)
 
-feature feat;
-stddev value
+feature feat
+~> stddev value
 ```
 
 Core:
@@ -716,9 +716,9 @@ Icicle:
 ```
 newest (windowed feat (> 30days) (< 60days))
 
-feature feat;
-windowed between 30 and 60 days;
-newest value
+feature feat
+~> windowed between 30 and 60 days
+~> newest value
 ```
 
 Core:
@@ -772,9 +772,9 @@ Icicle:
 ```
 avg (windowed feat (=1month))
 
-feature feat;
-windowed between 1 and 2 months;
-average value
+feature feat
+~> windowed between 1 and 2 months
+~> average value
 ```
 
 Core: this is hard to express because the reduction can't use the current date.
@@ -884,9 +884,9 @@ Icicle:
 ```
 avg (windowed feat (< 3 months))
 
-feature feat;
-windowed newer than 3 months;
-average value
+feature feat
+~> windowed newer than 3 months
+~> average value
 ```
 
 Core
@@ -924,10 +924,10 @@ Icicle?
 ```
 count (latest 3 feat == 0)
 
-feature feat;
-latest 3 entries;
-filter value == 0;
-count
+feature feat
+~> latest 3 entries
+~> filter value == 0
+~> count
 ```
 
 Haskell
@@ -965,11 +965,11 @@ Icicle?
 ```
 [ a == 0 && b /= 0 | [a,b] <- latest 2 feat ]
 
-feature feat;
-latest 2 entries;
-let a = newest value;
-let b = oldest value;
-a == 0 and b /= 0
+feature feat
+~> latest 2 entries
+~> let a = newest value
+~> let b = oldest value
+~> a == 0 and b /= 0
 ```
 
 Core
@@ -1043,10 +1043,10 @@ So I propose that if we had autopromotion sort of thing this would always return
 ```
 count (feat==0) / count feat
 
-feature feat;
-let c = (filter value == 0; count);
-let t = count;
-c / t
+feature feat
+~> let c = (filter value == 0 ~> count)
+~> let t = count
+~> c / t
 ```
 
 Core
@@ -1070,9 +1070,9 @@ Icicle?
 ```
 fold1 (\a v -> a * 0.5 + v * 0.5) feat
 
-feature feat;
-fold smooth = value * 0.5 + smooth * 0.5;
-smooth
+feature feat
+~> let fold smooth = value * 0.5 + smooth * 0.5
+~> smooth
 ```
 
 Core
