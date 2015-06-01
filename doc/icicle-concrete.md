@@ -8,7 +8,7 @@ Icicle:
 ```
 sum feat
 
-open salary;
+feature feat;
 sum value
 ```
 
@@ -90,7 +90,7 @@ Icicle:
 ```
 count feat
 
-open salary;
+feature feat;
 count
 ```
 
@@ -175,7 +175,7 @@ Icicle:
 ```
 count (windowed feat (< 30 days))
 
-open salary;
+feature feat;
 windowed newer than 30 days;
 count
 ```
@@ -246,8 +246,9 @@ Icicle:
 
 groupWith count feat
 
-open salary;
-count grouped by value
+feature feat;
+group by value;
+count
 ```
 
 Core:
@@ -322,8 +323,9 @@ Icicle:
 ```
 count (groupDays feat)
 
-open salary;
-count distinct date
+feature feat;
+distinct date;
+count
 ```
 
 
@@ -395,8 +397,8 @@ Icicle:
 ```
 max [ count d | d <- groupDays feat ]
 
-open salary;
-max (count grouped by date)
+feature feat;
+max (group by date; count)
 ```
 
 Core: (just pretend we have triples)
@@ -474,7 +476,7 @@ now - dateOf (oldest feat)
 
 [ now - dateOf f | f <- oldest feat ]
 
-open salary;
+feature feat;
 daysDifference now (oldest date)
 ```
 
@@ -531,8 +533,8 @@ count [ f | f <- feat, f > 0] / count feat
 
 count ( feat where (>0) ) / count feat
 
-open feat;
-let v = count where value > 0;
+feature feat;
+let v = (filter value > 0; count);
 let y = count;
 v / y
 ```
@@ -614,12 +616,12 @@ sqrt (avg (feat*feat) - avg feat * avg feat)
 stddev feat
 
 
-open feat;
+feature feat;
 let sqr = average (value * value);
 let mnn = average  value;
 sqrt (sqr - mnn * mnn)
 
-open feat;
+feature feat;
 stddev value
 ```
 
@@ -714,7 +716,7 @@ Icicle:
 ```
 newest (windowed feat (> 30days) (< 60days))
 
-open feat;
+feature feat;
 windowed between 30 and 60 days;
 newest value
 ```
@@ -770,7 +772,7 @@ Icicle:
 ```
 avg (windowed feat (=1month))
 
-open feat;
+feature feat;
 windowed between 1 and 2 months;
 average value
 ```
@@ -882,7 +884,7 @@ Icicle:
 ```
 avg (windowed feat (< 3 months))
 
-open feat;
+feature feat;
 windowed newer than 3 months;
 average value
 ```
@@ -922,9 +924,10 @@ Icicle?
 ```
 count (latest 3 feat == 0)
 
-open feat;
+feature feat;
 latest 3 entries;
-count where value == 0
+filter value == 0;
+count
 ```
 
 Haskell
@@ -962,7 +965,7 @@ Icicle?
 ```
 [ a == 0 && b /= 0 | [a,b] <- latest 2 feat ]
 
-open feat;
+feature feat;
 latest 2 entries;
 let a = newest value;
 let b = oldest value;
@@ -1040,8 +1043,8 @@ So I propose that if we had autopromotion sort of thing this would always return
 ```
 count (feat==0) / count feat
 
-open feat;
-let c = count where value == 0;
+feature feat;
+let c = (filter value == 0; count);
 let t = count;
 c / t
 ```
@@ -1067,7 +1070,7 @@ Icicle?
 ```
 fold1 (\a v -> a * 0.5 + v * 0.5) feat
 
-open feat;
+feature feat;
 fold smooth = value * 0.5 + smooth * 0.5;
 smooth
 ```
