@@ -84,7 +84,7 @@ evalQ q vs env
                         let ins = Map.insert (foldBind f)
                         v' <- foldM (\a v -> evalX (foldWork f) [] (ins a v)) z' vs'
 
-                        evalQ q' vs (ins v' env)
+                        VSome <$> evalQ q' vs (ins v' env)
                  | otherwise
                  -> return VNone
 
