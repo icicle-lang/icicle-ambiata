@@ -3,6 +3,7 @@ module Icicle.Source.Query (
     QueryTop  (..)
   , Query     (..)
   , Context   (..)
+  , Fold      (..)
   , Agg       (..)
   , Exp       (..)
   , Op        (..)
@@ -32,8 +33,21 @@ data Context n
  | GroupBy  (Exp n)
  | Distinct (Exp n)
  | Filter   (Exp n)
- | Fold n   (Exp n) (Maybe (Exp n))
+ | LetFold  (Fold n)
  | Let  (Maybe Sort) n   (Exp n)
+ deriving (Show, Eq, Ord)
+
+data Fold n
+ = Fold
+ { foldBind :: n
+ , foldInit :: Exp n
+ , foldWork :: Exp n
+ , foldType :: FoldType }
+ deriving (Show, Eq, Ord)
+
+data FoldType
+ = FoldTypeFoldl1
+ -- | FoldTypeFoldl
  deriving (Show, Eq, Ord)
 
 data Sort = Stream | Aggregate

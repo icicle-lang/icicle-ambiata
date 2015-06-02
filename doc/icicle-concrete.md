@@ -1071,7 +1071,7 @@ Icicle?
 fold1 (\a v -> a * 0.5 + v * 0.5) feat
 
 feature feat
-~> let fold smooth = value * 0.5 + smooth * 0.5
+~> let fold smooth = value : value * 0.5 + smooth * 0.5 
 ~> smooth
 ```
 

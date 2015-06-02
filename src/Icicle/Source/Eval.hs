@@ -78,10 +78,15 @@ evalQ q vs env
                         vs' <- filterM (\v -> isTrue <$> evalX p [] v) vs
                         evalQ q' vs' env
 
-                Fold _bnd _k_exp _z_exp
-                 -> do  -- v' <- evalF bnd k_exp z_exp vs env
-                        -- evalQ q' vs (Map.insert bnd v' env)
-                        evalQ q' vs env
+                LetFold f
+                 | (z:vs') <- vs
+                 -> do  z' <- evalX (foldInit f) [] z
+                        let ins = Map.insert (foldBind f)
+                        v' <- foldM (\a v -> evalX (foldWork f) [] (ins a v)) z' vs'
+
+                        evalQ q' vs (ins v' env)
+                 | otherwise
+                 -> return VNone
 
                 Let s n x
                  -> let str = mapM (\v -> Map.insert n <$> evalX x [] v <*> return v) vs
@@ -161,27 +166,3 @@ evalA ag vs _env
      -> return $ VNone
 
 
-{-
-evalF   :: Ord n
-        => n
-        -> Exp n
-        -> Maybe (Exp n)
-        -> [Record n]
-        -> Record n
-        -> Either (EvalError n) BaseValue
-evalF bnd k z vs env
- = case z of
-    Nothing
-     | (z',vs') <- vs
-     -> go z' vs'
-
-     | [] <- vs
-     -> Right $ VNone
-
-    Just z'
-     -> go z' vs
-
- where
-  go z' vs'
-   = foldM (const id) (Map.insert bnd z' env) vs
--}
