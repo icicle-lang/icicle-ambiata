@@ -12,7 +12,8 @@ import qualified        Data.Text as T
 
 import                  Prelude   (read)
 
-
+-- TODO: handle strings and floats.
+-- TODO: strings will require error handling
 lexer :: T.Text -> [Token]
 lexer ts
  = go $ T.stripStart ts
@@ -30,7 +31,11 @@ lexer ts
        | C.isDigit c
        -> let (a,b) = T.span C.isDigit t'
               v     = T.unpack $ T.cons c a
-          in  TLiteral (LitInt (read v)) : go b
+              -- Read will always 'succeed' since we know it's just digits
+              -- (If it's too big 'read Int' just silently overflows)
+              -- TODO error on overflow
+              i     = read v
+          in  TLiteral (LitInt i) : go b
 
        | c == '('
        -> TParenL : go t'

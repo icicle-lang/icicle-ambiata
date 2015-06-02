@@ -16,6 +16,8 @@ import                  P
 import qualified        Data.Text as T
 import                  Data.Text (Text)
 import                  Data.List (lookup)
+
+-- Bounded hack for getting names of all keywords
 import                  Prelude (Enum(..), Bounded(..), minBound,maxBound)
 
 data Token
@@ -60,6 +62,7 @@ data Keyword
 
 
 
+-- TODO: Strings, floats
 data Literal
  = LitInt Int
  deriving (Eq, Ord, Show)
@@ -73,6 +76,7 @@ data Variable
  deriving (Eq, Ord, Show)
 
 
+-- | Each keyword with their name
 keywords :: [(Text, Keyword)]
 keywords
  = fmap (\k -> (T.toLower $ T.pack $ show k, k))
