@@ -139,7 +139,31 @@ evalX x vs env
               -> return $ VInt (i `div` j)
               | otherwise
               -> err
-     
+
+             Mul
+              | [VInt i, VInt j] <- args
+              -> return $ VInt (i * j)
+              | otherwise
+              -> err
+
+             Add
+              | [VInt i, VInt j] <- args
+              -> return $ VInt (i + j)
+              | otherwise
+              -> err
+
+             Sub
+              | [VInt i, VInt j] <- args
+              -> return $ VInt (i - j)
+              | otherwise
+              -> err
+
+             Negate
+              | [VInt i] <- args
+              -> return $ VInt $ negate i
+              | otherwise
+              -> err
+
 
 
 

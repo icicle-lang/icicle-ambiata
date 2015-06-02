@@ -84,8 +84,7 @@ exp
    = pVariable
   agg
    =   pKeyword T.Count  *> return Q.Count
-   <|> pKeyword T.Newest *> (Q.Newest <$> exp) 
-   <|> pKeyword T.Oldest *> (Q.Oldest <$> exp) 
+   <|> asum (fmap (\(k,q) -> pKeyword k *> (q <$> exp)) aggregates)
 
   parens
    =   pParenL *> query <* pParenR
@@ -98,3 +97,11 @@ windowUnit
  where
   unit kw q
    = pKeyword kw >> return q
+
+
+aggregates :: [(T.Keyword, Q.Exp Var -> Q.Agg Var)]
+aggregates
+ = [(T.Newest, Q.Newest)
+   ,(T.Oldest, Q.Oldest)
+   ]
+

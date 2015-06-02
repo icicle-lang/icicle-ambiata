@@ -80,5 +80,9 @@ data Exp n
 
 data Op
  = Div
+ | Mul
+ | Add
+ | Sub
+ | Negate
  deriving (Show, Eq, Ord)
 

@@ -120,6 +120,7 @@ library
                        Icicle.Source.Lexer.Token
                        Icicle.Source.Lexer.Lexer
                        Icicle.Source.Parser.Token
+                       Icicle.Source.Parser.Operators
                        Icicle.Source.Parser.Parser
 
 executable             icicle
