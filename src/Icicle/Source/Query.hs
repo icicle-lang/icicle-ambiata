@@ -3,7 +3,9 @@ module Icicle.Source.Query (
     QueryTop  (..)
   , Query     (..)
   , Context   (..)
+  , WindowUnit(..)
   , Fold      (..)
+  , FoldType  (..)
   , Agg       (..)
   , Exp       (..)
   , Op        (..)
@@ -28,13 +30,19 @@ data Query n
  deriving (Show, Eq, Ord)
 
 data Context n
- = Windowed
+ = Windowed WindowUnit (Maybe WindowUnit)
  | Latest Int
  | GroupBy  (Exp n)
  | Distinct (Exp n)
  | Filter   (Exp n)
  | LetFold  (Fold n)
  | Let  (Maybe Sort) n   (Exp n)
+ deriving (Show, Eq, Ord)
+
+data WindowUnit
+ = Days Int
+ | Months Int
+ | Weeks Int
  deriving (Show, Eq, Ord)
 
 data Fold n

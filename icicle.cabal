@@ -117,8 +117,10 @@ library
 
                        Icicle.Source.Query
                        Icicle.Source.Eval
+                       Icicle.Source.Lexer.Token
+                       Icicle.Source.Lexer.Lexer
                        Icicle.Source.Parser.Token
-                       Icicle.Source.Parser.Lexer
+                       Icicle.Source.Parser.Parser
 
 executable             icicle
     ghc-options:       -Wall -threaded -O2

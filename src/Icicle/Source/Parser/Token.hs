@@ -1,102 +1,76 @@
 {-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards #-}
 module Icicle.Source.Parser.Token (
-    Token    (..)
-  , Keyword  (..)
-  , Operator (..)
-  , Literal  (..)
-  , Variable (..)
-  , keywordOrVar
-  , operator
+    Parser
+  , Var
+  , pTok
+  , pSatisfy
+  , pEq
+  , pKeyword
+  , pVariable
+  , pLitInt
+  , pParenL
+  , pParenR
+  , pFlowsInto
   ) where
+
+import qualified        Icicle.Source.Lexer.Token as T
 
 import                  P
 
-import qualified        Data.Text as T
-import                  Data.Text (Text)
-import                  Data.List (lookup)
+import                  Text.Parsec
 
--- Bounded hack for getting names of all keywords
-import                  Prelude (Enum(..), Bounded(..), minBound,maxBound)
+type Parser a
+ = Parsec [T.Token] () a
 
-data Token
- -- | Primitive keywords
- = TKeyword  Keyword
- -- | Ints, strings, whatever
- | TLiteral  Literal
- -- | Function operators like (+) (>)
- | TOperator Operator
- -- | Names. I dunno
- | TVariable Variable
+type Var = T.Variable
 
- -- | '('
- | TParenL
- -- | ')'
- | TParenR
- -- | '=' as in let bindings
- | TEqual
- -- | ':' as in cons or "followed by" for folds
- | TFollowedBy
+pTok :: (T.Token -> Maybe a) -> Parser a
+pTok p
+ = tokenPrim show pos p
+ where
+  -- TODO: source positions
+  pos s _ _ = s
 
- -- | '~>' for composition
- | TDataFlow
- deriving (Eq, Ord, Show)
 
-data Keyword
- = Feature
- | Let
- | Windowed
- | Between
- | And
- | Group
- | Distinct
- | Latest
- | Filter
- | Newest
- | Oldest
- | Count
- | Max
- | Average
- deriving (Eq, Ord, Show, Enum, Bounded)
+pSatisfy :: (T.Token -> Bool) -> Parser T.Token
+pSatisfy p
+ = pTok (\t -> if p t then Just t else Nothing)
+
+pEq :: T.Token -> Parser ()
+pEq t
+ = pSatisfy (==t) >> return ()
+
+
+pKeyword :: T.Keyword -> Parser ()
+pKeyword kw
+ = pEq (T.TKeyword kw)
+
+
+pVariable :: Parser Var
+pVariable 
+ = pTok get
+ where
+  get (T.TVariable v) = Just v
+  get  _              = Nothing
 
 
 
--- TODO: Strings, floats
-data Literal
- = LitInt Int
- deriving (Eq, Ord, Show)
+pLitInt :: Parser Int
+pLitInt
+ = pTok get
+ where
+  get (T.TLiteral (T.LitInt i))
+   = Just i
+  get _
+   = Nothing
 
-data Operator
- = Operator Text
- deriving (Eq, Ord, Show)
+pParenL :: Parser ()
+pParenL = pEq T.TParenL
 
-data Variable
- = Variable Text
- deriving (Eq, Ord, Show)
+pParenR :: Parser ()
+pParenR = pEq T.TParenR
 
-
--- | Each keyword with their name
-keywords :: [(Text, Keyword)]
-keywords
- = fmap (\k -> (T.toLower $ T.pack $ show k, k))
-  [minBound .. maxBound]
-
-keywordOrVar :: Text -> Token
-keywordOrVar t
- | Just k <- lookup t keywords
- = TKeyword    k
- | otherwise
- = TVariable $ Variable t
-
-operator :: Text -> Token
-operator t
- | t == "="
- = TEqual
- | t == ":"
- = TFollowedBy
- | t == "~>"
- = TDataFlow
- | otherwise
- = TOperator $ Operator t
+pFlowsInto :: Parser ()
+pFlowsInto = pEq T.TDataFlow
 

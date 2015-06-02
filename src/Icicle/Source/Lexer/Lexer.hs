@@ -1,9 +1,9 @@
 {-# LANGUAGE NoImplicitPrelude #-}
-module Icicle.Source.Parser.Lexer (
+module Icicle.Source.Lexer.Lexer (
     lexer
   ) where
 
-import Icicle.Source.Parser.Token
+import Icicle.Source.Lexer.Token
 
 import                  P
 
@@ -14,6 +14,7 @@ import                  Prelude   (read)
 
 -- TODO: handle strings and floats.
 -- TODO: strings will require error handling
+-- TODO: we also need source positions here
 lexer :: T.Text -> [Token]
 lexer ts
  = go $ T.stripStart ts
