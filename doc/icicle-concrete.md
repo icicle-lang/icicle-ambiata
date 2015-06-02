@@ -176,7 +176,7 @@ Icicle:
 count (windowed feat (< 30 days))
 
 feature feat
-~> windowed newer than 30 days
+~> windowed 30 days
 ~> count
 ```
 
@@ -247,7 +247,7 @@ Icicle:
 groupWith count feat
 
 feature feat
-~> group by value
+~> group value
 ~> count
 ```
 
@@ -398,7 +398,7 @@ Icicle:
 max [ count d | d <- groupDays feat ]
 
 feature feat
-~> max (group by date ~> count)
+~> max (group date ~> count)
 ```
 
 Core: (just pretend we have triples)
@@ -885,7 +885,7 @@ Icicle:
 avg (windowed feat (< 3 months))
 
 feature feat
-~> windowed newer than 3 months
+~> windowed 3 months
 ~> average value
 ```
 
@@ -925,7 +925,7 @@ Icicle?
 count (latest 3 feat == 0)
 
 feature feat
-~> latest 3 entries
+~> latest 3
 ~> filter value == 0
 ~> count
 ```
@@ -966,7 +966,7 @@ Icicle?
 [ a == 0 && b /= 0 | [a,b] <- latest 2 feat ]
 
 feature feat
-~> latest 2 entries
+~> latest 2
 ~> let a = newest value
 ~> let b = oldest value
 ~> a == 0 and b /= 0
