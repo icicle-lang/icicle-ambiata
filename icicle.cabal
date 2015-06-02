@@ -14,7 +14,6 @@ library
   build-depends:
                        base                            >= 3          && < 5
                      , aeson                           == 0.8.*
-                     , attoparsec                      == 0.12.*
                      , bifunctors                      == 4.2.*
                      , bytestring                      == 0.10.*
                      , containers                      == 0.5.*
@@ -29,6 +28,16 @@ library
                      , unordered-containers            == 0.2.*
                      , vector                          == 0.10.*
                      , wl-pprint                       == 1.2.*
+
+                     -- Well, it might look very odd that we're using both attoparsec
+                     -- and parsec.
+                     -- The thing is, attoparsec only operates on raw strings, and our source parser
+                     -- for Icicle should operate over tokens.
+                     -- Going over tokens instead of strings simplifies the parser itself and makes everything
+                     -- a bit cleaner.
+                     -- As an added benefit, parsec will give us nicer error messages.
+                     , attoparsec                      == 0.12.*
+                     ,     parsec                      == 3.1.*
 
 
   ghc-options:
