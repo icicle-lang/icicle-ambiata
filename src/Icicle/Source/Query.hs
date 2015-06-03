@@ -12,6 +12,7 @@ module Icicle.Source.Query (
   , Sort      (..)
   ) where
 
+import                  Icicle.Source.Query.Operators
 -- import                  Icicle.Internal.Pretty
 
 import                  P
@@ -76,13 +77,5 @@ data Exp n
  | Agg (Agg n)
  | Nested (Query n)
  | Op Op [Exp n]
- deriving (Show, Eq, Ord)
-
-data Op
- = Div
- | Mul
- | Add
- | Sub
- | Negate
  deriving (Show, Eq, Ord)
 

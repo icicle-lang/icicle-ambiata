@@ -115,8 +115,9 @@ library
                        Icicle.Serial
                        Icicle.Simulator
 
-                       Icicle.Source.Query
                        Icicle.Source.Eval
+                       Icicle.Source.Query
+                       Icicle.Source.Query.Operators
                        Icicle.Source.Lexer.Token
                        Icicle.Source.Lexer.Lexer
                        Icicle.Source.Parser.Token

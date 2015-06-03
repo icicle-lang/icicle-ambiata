@@ -10,9 +10,12 @@ module Icicle.Source.Parser.Parser (
 
 import qualified        Icicle.Source.Lexer.Token  as T
 import                  Icicle.Source.Parser.Token
+import                  Icicle.Source.Parser.Operators
 import qualified        Icicle.Source.Query        as Q
 
 import                  P hiding (exp)
+
+import                  Text.Parsec (many1, parserFail)
 
 top :: Parser (Q.QueryTop Var)
 top
@@ -72,19 +75,28 @@ context
         k <- exp
         return $ Q.LetFold (Q.Fold n z k Q.FoldTypeFoldl1)
 
-
 exp :: Parser (Q.Exp Var)
 exp
- -- TODO: handle operators
+ = do   xs <- many1 ((Left <$> exp1) <|> (Right <$> pOperator))
+        either (parserFail.show) return
+               (defix xs)
+
+exp1 :: Parser (Q.Exp Var)
+exp1
  =   (Q.Var     <$> var)
  <|> (Q.Agg     <$> agg)
- <|> (Q.Nested  <$> parens)
+ <|> (simpNested<$> parens)
  where
   var
    = pVariable
   agg
    =   pKeyword T.Count  *> return Q.Count
-   <|> asum (fmap (\(k,q) -> pKeyword k *> (q <$> exp)) aggregates)
+   <|> asum (fmap (\(k,q) -> pKeyword k *> (q <$> exp1)) aggregates)
+
+  simpNested (Q.Query [] x)
+   = x
+  simpNested q
+   = Q.Nested q
 
   parens
    =   pParenL *> query <* pParenR
@@ -96,7 +108,7 @@ windowUnit
         unit T.Days (Q.Days i) <|> unit T.Months (Q.Months i) <|> unit T.Weeks (Q.Weeks i)
  where
   unit kw q
-   = pKeyword kw >> return q
+   = pKeyword kw *> return q
 
 
 aggregates :: [(T.Keyword, Q.Exp Var -> Q.Agg Var)]
