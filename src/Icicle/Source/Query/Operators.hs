@@ -8,7 +8,13 @@ module Icicle.Source.Query.Operators (
   , OpsOfSymbol (..)
   , fixity
   , symbol
+  , precedencePrefix
+  , precedenceApplication
+  , precedenceAlwaysParens
+  , precedenceNeverParens
   ) where
+
+import                  Icicle.Internal.Pretty
 
 import                  P
 
@@ -65,4 +71,29 @@ symbol s
     _   -> OpsOfSymbol  Nothing    Nothing
  where
   inf o = OpsOfSymbol (Just o) Nothing
+
+
+-- | Prefix operators are baked in to the parser, but these are used for pretty printing.
+precedencePrefix :: (Int,Assoc)
+precedencePrefix = (9, AssocLeft)
+
+-- | Applications are baked in to the parser, but these are used for pretty printing.
+precedenceApplication :: (Int,Assoc)
+precedenceApplication = (10, AssocLeft)
+
+-- | Wrap this in parentheses no matter what.
+precedenceAlwaysParens :: (Int,Assoc)
+precedenceAlwaysParens = (-1, AssocLeft)
+
+-- | Never wrap this in parentheses: variable names, primitives etc
+precedenceNeverParens :: (Int,Assoc)
+precedenceNeverParens = (11, AssocLeft)
+
+
+instance Pretty Op where
+ pretty Div = "/"
+ pretty Mul = "*"
+ pretty Add = "+"
+ pretty Sub = "-"
+ pretty Negate = "-"
 
