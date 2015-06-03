@@ -1,9 +1,11 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Icicle.Source.Query.Operators (
-    Op     (..)
-  , Fixity (..)
-  , Assoc  (..)
+    Op          (..)
+  , Fixity      (..)
+  , Infixity    (..)
+  , Assoc       (..)
+  , OpsOfSymbol (..)
   , fixity
   , symbol
   ) where
@@ -21,8 +23,12 @@ data Op
  deriving (Show, Eq, Ord)
 
 data Fixity
+ = FInfix  Infixity
+ | FPrefix
+ deriving (Show, Eq, Ord)
+
+data Infixity
  = Infix Assoc Int
- | Prefix
  deriving (Show, Eq, Ord)
 
 data Assoc
@@ -33,22 +39,30 @@ data Assoc
 fixity :: Op -> Fixity
 fixity o
  = case o of
-    Div -> Infix AssocLeft 7
-    Mul -> Infix AssocLeft 7
-    Add -> Infix AssocLeft 6
-    Sub -> Infix AssocLeft 6
+    Div -> FInfix $ Infix AssocLeft 7
+    Mul -> FInfix $ Infix AssocLeft 7
+    Add -> FInfix $ Infix AssocLeft 6
+    Sub -> FInfix $ Infix AssocLeft 6
     Negate
-        -> Prefix
+        -> FPrefix
 
--- XXX: this should return
--- > (Maybe InfixOp, Maybe PrefixOp)
--- for a given symbol.
-symbol :: Text -> [Op]
+
+data OpsOfSymbol
+ = OpsOfSymbol
+ { opInfix  :: Maybe Op
+ , opPrefix :: Maybe Op }
+ deriving (Show, Eq, Ord)
+
+
+symbol :: Text -> OpsOfSymbol
 symbol s
  = case s of
-    "/" -> [Div]
-    "*" -> [Mul]
-    "+" -> [Add]
-    "-" -> [Sub, Negate]
-    _   -> []
+    "/" -> inf Div
+    "*" -> inf Mul
+    "+" -> inf Add
+    "-" -> OpsOfSymbol (Just Sub) (Just Negate)
+
+    _   -> OpsOfSymbol  Nothing    Nothing
+ where
+  inf o = OpsOfSymbol (Just o) Nothing
 

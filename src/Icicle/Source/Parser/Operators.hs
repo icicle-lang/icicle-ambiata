@@ -8,7 +8,7 @@ module Icicle.Source.Parser.Operators (
 
 import qualified        Icicle.Source.Lexer.Token       as T
 import qualified        Icicle.Source.Query             as Q
-import                  Icicle.Source.Query.Operators   as Q
+import                  Icicle.Source.Query.Operators
 
 import                  P
 
@@ -18,7 +18,6 @@ import                  Data.Either.Combinators
 data DefixError n
  = ErrorNoSuchPrefixOperator          Text
  | ErrorNoSuchInfixOperator           Text
- | ErrorOperatorAmbiguous             Text
  | ErrorExpectedExpressionGotEnd
  | ErrorExpectedOperatorGotExpression (Q.Exp n)
  | ErrorBUGPrefixInCrunch
@@ -26,7 +25,7 @@ data DefixError n
  deriving (Show, Eq, Ord)
 
 data Ops
- = Ops Text [(Q.Op, Q.Fixity)]
+ = Ops Text OpsOfSymbol
  deriving (Show, Eq, Ord)
 
  
@@ -36,14 +35,13 @@ defix inps
  = shuntX [] []
  $ fmap (mapRight get) inps
  where
-  -- Look up operator fixities and precedences.
+  -- Look up operators by symbol.
   -- There can be multiple operators for a given symbol,
   -- but one must be prefix and the other infix.
   -- (ie "-" means negation and subtraction)
   get (T.Operator sym)
    = Ops sym
-   $ fmap (\o -> (o, Q.fixity o))
-   $ Q.symbol sym
+   $ symbol sym
 
 
 -- | Shunting-yard algorithm
@@ -91,14 +89,12 @@ shuntPrefix (Left x : inps)
  = return (x, inps)
 
 shuntPrefix (Right (Ops sym ops) : inps)
- = case filter ((==Prefix).snd) ops of
-    [(o,_)]
+ = case opPrefix ops of
+    Just o
      -> do  (x, inps') <- shuntPrefix inps
             return (Q.Op o [x], inps')
-    [] 
+    Nothing
      -> Left $ ErrorNoSuchPrefixOperator sym
-    _
-     -> Left $ ErrorOperatorAmbiguous             sym
 
 
 -- | Shunt an infix operator
@@ -119,14 +115,12 @@ shuntI _xs _os (Left x : _)
 
 shuntI xs os (Right (Ops sym ops) : inps)
  -- Just get the infix ones
- = case filter ((/=Prefix).snd) ops of
-    [(o,fixy)]
-     -> do  (xs',os') <- crunchOperator xs os fixy
+ = case opInfix ops of
+    Just o
+     -> do  (xs',os') <- crunchOperator xs os $ fixity o
             shuntI xs' (o:os') inps
-    [] 
+    Nothing
      -> Left $ ErrorNoSuchInfixOperator sym
-    _
-     -> Left $ ErrorOperatorAmbiguous   sym
 
 
 -- | Prepare the stacks for putting a new operator on top.
@@ -137,14 +131,14 @@ crunchOperator
         -- ^ The expression stack
         -> [Q.Op]
         -- ^ The operators stack
-        -> Q.Fixity
+        -> Fixity
         -- ^ Operator we're about to push
         -> Either (DefixError n) ([Q.Exp n], [Q.Op])
 
 -- If we have two arguments to apply and an operator
 crunchOperator (x:y:xs) (o:os) f
  = case (f, fixity o) of
-    (Infix a1 p1, Infix _ p2)
+    (FInfix (Infix a1 p1), FInfix (Infix _ p2))
      -- If the precedence is less, apply the arguments
      | less a1 p1 p2
      -> return (Q.Op o [x,y] : xs, os)
@@ -154,6 +148,7 @@ crunchOperator (x:y:xs) (o:os) f
      -> return (x:y:xs, o:os)
     _
      -> Left $ ErrorBUGPrefixInCrunch
+
  where
   -- Look at the associativity of the new operator.
   -- Suppose the existing operator is the same operator:
