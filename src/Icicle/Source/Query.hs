@@ -1,4 +1,5 @@
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE PatternGuards #-}
 module Icicle.Source.Query (
     QueryTop  (..)
   , Query     (..)
@@ -6,10 +7,14 @@ module Icicle.Source.Query (
   , WindowUnit(..)
   , Fold      (..)
   , FoldType  (..)
-  , Agg       (..)
   , Exp       (..)
+  , Prim      (..)
+  , Agg       (..)
   , Op        (..)
   , Sort      (..)
+
+  , takeApps
+  , takePrimApps
   ) where
 
 import                  Icicle.Source.Query.Operators
@@ -63,19 +68,41 @@ data Sort = Stream | Aggregate
  deriving (Show, Eq, Ord)
 
 
-data Agg n
- = Count
- -- | Max (Exp n)
- -- | Average (Exp n)
- -- | Sum (Exp n)
- | Newest (Exp n)
- | Oldest (Exp n)
- deriving (Show, Eq, Ord)
-
 data Exp n
  = Var n
- | Agg (Agg n)
  | Nested (Query n)
- | Op Op [Exp n]
+ | App (Exp n) (Exp n)
+ | Prim Prim
+ deriving (Show, Eq, Ord)
+
+takeApps :: Exp n -> (Exp n, [Exp n])
+takeApps xx
+ = case xx of
+    App f x
+     -> let (f', xs) = takeApps f
+        in  (f', xs <> [x])
+    _
+     -> (xx, [])
+
+takePrimApps :: Exp n -> Maybe (Prim, [Exp n])
+takePrimApps x
+ | (Prim p, xs) <- takeApps x
+ = Just (p, xs)
+ | otherwise
+ = Nothing
+
+
+data Prim
+ = Op Op
+ | Agg Agg
+ deriving (Show, Eq, Ord)
+
+data Agg
+ = Count
+ -- | Max
+ -- | Average
+ -- | Sum
+ | Newest
+ | Oldest
  deriving (Show, Eq, Ord)
 

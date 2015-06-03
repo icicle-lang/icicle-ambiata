@@ -84,14 +84,15 @@ exp
 exp1 :: Parser (Q.Exp Var)
 exp1
  =   (Q.Var     <$> var)
- <|> (Q.Agg     <$> agg)
+ <|> (Q.Prim    <$> prims)
  <|> (simpNested<$> parens)
  where
   var
    = pVariable
-  agg
-   =   pKeyword T.Count  *> return Q.Count
-   <|> asum (fmap (\(k,q) -> pKeyword k *> (q <$> exp1)) aggregates)
+
+  -- TODO: this should be a lookup rather than asum
+  prims
+   =  asum (fmap (\(k,q) -> pKeyword k *> return q) primitives)
 
   simpNested (Q.Query [] x)
    = x
@@ -111,9 +112,10 @@ windowUnit
    = pKeyword kw *> return q
 
 
-aggregates :: [(T.Keyword, Q.Exp Var -> Q.Agg Var)]
-aggregates
- = [(T.Newest, Q.Newest)
-   ,(T.Oldest, Q.Oldest)
+primitives :: [(T.Keyword, Q.Prim)]
+primitives
+ = [(T.Newest, Q.Agg Q.Newest)
+   ,(T.Count,  Q.Agg Q.Count)
+   ,(T.Oldest, Q.Agg Q.Oldest)
    ]
 

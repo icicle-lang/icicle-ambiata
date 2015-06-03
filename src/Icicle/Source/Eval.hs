@@ -17,13 +17,17 @@ import qualified        Data.Map as Map
 data EvalError n
  = EvalErrorWindowWithNoDate BaseValue
  | EvalErrorNoSuchVariable   n
- | EvalErrorOpBadArgs        Op [BaseValue]
+ | EvalErrorOpBadArgs        Op  [BaseValue]
+ | EvalErrorAggBadArgs       Agg [Exp n]
 
  | EvalErrorExpWrongSort
  { evalErrorExp          :: Exp n
  , evalErrorExpectedSort :: Sort }
 
  | EvalErrorExpNeitherSort
+ { evalErrorExp          :: Exp n }
+
+ | EvalErrorApplicationOfNonPrimitive
  { evalErrorExp          :: Exp n }
  deriving (Show, Eq, Ord)
 
@@ -124,13 +128,31 @@ evalX x vs env
      | otherwise
      -> Left $ EvalErrorNoSuchVariable n
 
-    Agg ag
-     -> evalA ag vs env
-
     Nested q
      -> evalQ q vs env
 
-    Op o xs
+    App{}
+     | Just (p, xs) <- takePrimApps x
+     -> evalP p xs vs env
+     | otherwise
+     -> Left $ EvalErrorApplicationOfNonPrimitive x
+
+    Prim p
+     -> evalP p [] vs env
+
+
+evalP   :: Ord n
+        => Prim
+        -> [Exp n]
+        -> [Record n]
+        -> Record n
+        -> Either (EvalError n) BaseValue
+evalP p xs vs env
+ = case p of
+    Agg ag
+     -> evalA ag xs vs env
+
+    Op o
      -> do  args <- mapM (\x' -> evalX x' vs env) xs
             let err = Left $ EvalErrorOpBadArgs o args
             case o of
@@ -168,25 +190,37 @@ evalX x vs env
 
 
 evalA   :: Ord n
-        => Agg n
+        => Agg
+        -> [Exp n]
         -> [Record n]
         -> Record n
         -> Either (EvalError n) BaseValue
-evalA ag vs _env
+evalA ag xs vs _env
  = case ag of
     Count
+     | [] <- xs
      -> return $ VInt $ length vs
-
-    Newest x
-     | Just v <- foldl (\_ v -> Just v) Nothing vs
-     -> VSome <$> evalX x [] v
      | otherwise
-     -> return $ VNone
-     
-    Oldest x
-     | (v:_) <- vs
-     -> VSome <$> evalX x [] v
-     | otherwise
-     -> return $ VNone
+     -> err
 
+    Newest
+     | [x] <- xs
+     , Just v <- foldl (\_ v -> Just v) Nothing vs
+     -> VSome <$> evalX x [] v
+     | [_] <- xs
+     -> return $ VNone
+     | otherwise
+     -> err
+
+    Oldest
+     | [x] <- xs
+     , (v:_) <- vs
+     -> VSome <$> evalX x [] v
+     | [_] <- xs
+     -> return $ VNone
+     | otherwise
+     -> err
+
+ where
+  err = Left $ EvalErrorAggBadArgs ag xs
 

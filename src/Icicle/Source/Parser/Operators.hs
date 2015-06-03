@@ -86,13 +86,22 @@ shuntPrefix []
  = Left $ ErrorExpectedExpressionGotEnd
 
 shuntPrefix (Left x : inps)
- = return (x, inps)
+ = do   let (xs,inps') = exprs inps
+        let x' = foldl Q.App x xs
+        return (x', inps')
+ where
+  exprs (Left a : rs)
+   = let (xs, rs') = exprs rs
+     in  (a : xs, rs')
+
+  exprs rs
+   = ([],rs)
 
 shuntPrefix (Right (Ops sym ops) : inps)
  = case opPrefix ops of
     Just o
      -> do  (x, inps') <- shuntPrefix inps
-            return (Q.Op o [x], inps')
+            return (Q.Prim (Q.Op o) `Q.App` x, inps')
     Nothing
      -> Left $ ErrorNoSuchPrefixOperator sym
 
@@ -141,7 +150,7 @@ crunchOperator (x:y:xs) (o:os) f
     (FInfix (Infix a1 p1), FInfix (Infix _ p2))
      -- If the precedence is less, apply the arguments
      | less a1 p1 p2
-     -> return (Q.Op o [x,y] : xs, os)
+     -> return (Q.Prim (Q.Op o) `Q.App` x `Q.App` y : xs, os)
 
      -- Leave it alone
      | otherwise
@@ -178,7 +187,7 @@ finish [x] []
  = return x
 
 finish (x:y:xs) (o:os)
- = finish (Q.Op o [x,y] : xs) os
+ = finish (Q.Prim (Q.Op o) `Q.App` x `Q.App` y : xs) os
 
 finish xs os
  = Left $ ErrorBUGLeftovers xs os
