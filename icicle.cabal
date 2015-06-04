@@ -117,6 +117,9 @@ library
 
                        Icicle.Source.Eval
                        Icicle.Source.Query
+                       Icicle.Source.Query.Query
+                       Icicle.Source.Query.Context
+                       Icicle.Source.Query.Exp
                        Icicle.Source.Query.Operators
                        Icicle.Source.Lexer.Token
                        Icicle.Source.Lexer.Lexer
