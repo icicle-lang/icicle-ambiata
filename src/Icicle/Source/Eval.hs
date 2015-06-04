@@ -152,6 +152,9 @@ evalP p xs vs env
     Agg ag
      -> evalA ag xs vs env
 
+    Lit (LitInt i)
+     -> return (VInt i)
+
     Op o
      -> do  args <- mapM (\x' -> evalX x' vs env) xs
             let err = Left $ EvalErrorOpBadArgs o args

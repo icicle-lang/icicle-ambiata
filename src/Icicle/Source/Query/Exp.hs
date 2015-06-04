@@ -10,6 +10,7 @@ module Icicle.Source.Query.Exp (
     Exp'      (..)
   , Prim      (..)
   , Agg       (..)
+  , Lit       (..)
   , Op        (..)
 
   , takeApps
@@ -50,6 +51,7 @@ takePrimApps x
 data Prim
  = Op Op
  | Agg Agg
+ | Lit Lit
  deriving (Show, Eq, Ord)
 
 data Agg
@@ -60,6 +62,11 @@ data Agg
  | Newest
  | Oldest
  deriving (Show, Eq, Ord)
+
+data Lit
+ = LitInt Int
+ deriving (Show, Eq, Ord)
+
 
 
 instance (Pretty n, Pretty q) => Pretty (Exp' q n) where
@@ -156,10 +163,13 @@ precedenceOfX xx
 instance Pretty Prim where
  pretty (Op o)  = pretty o
  pretty (Agg a) = pretty a
+ pretty (Lit l) = pretty l
 
 instance Pretty Agg where
  pretty Count   = "count"
  pretty Newest  = "newest"
  pretty Oldest  = "oldest"
 
+instance Pretty Lit where
+ pretty (LitInt i) = text $ show i
 

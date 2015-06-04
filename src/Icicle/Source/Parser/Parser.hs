@@ -93,6 +93,7 @@ exp1
   -- TODO: this should be a lookup rather than asum
   prims
    =  asum (fmap (\(k,q) -> pKeyword k *> return q) primitives)
+   <|> ((Q.Lit . Q.LitInt) <$> pLitInt)
 
   simpNested (Q.Query [] x)
    = x
