@@ -6,6 +6,11 @@ module Icicle.Source.Query.Query (
   , Query     (..)
   , Exp
   , Context
+
+  , simplifyNestedQT
+  , simplifyNestedQ
+  , simplifyNestedC
+  , simplifyNestedX
   ) where
 
 import                  Icicle.Source.Query.Context
@@ -34,14 +39,52 @@ type Context n = Context' (Query n) n
 
 instance Pretty n => Pretty (QueryTop n) where
  pretty q
-  =   "feature" <+> pretty (feature q)
-  <> line       <>  pretty (query   q)
+  =   "feature"   <+> pretty (feature q)
+  <> line <> "~>" <+> pretty (query   q)
 
 instance Pretty n => Pretty (Query n) where
  pretty q
-  = vcat (fmap (("~>" <+>) . inp) (contexts q))
-  <> line
-  <>       "~>" <+>    inp  (final    q)
+  =  cat (fmap (\c -> inp c <> line <> "~> ") (contexts q))
+  <> inp                                     (final    q)
   where
   inp p = indent 0 $ pretty p
+
+
+simplifyNestedQT :: QueryTop n -> QueryTop n
+simplifyNestedQT q
+ = q { query = simplifyNestedQ $ query q }
+
+simplifyNestedQ :: Query n -> Query n
+simplifyNestedQ q
+ = Query (fmap simplifyNestedC $ contexts q)
+         (     simplifyNestedX $ final    q)
+
+simplifyNestedC :: Context n -> Context n
+simplifyNestedC c
+ = case c of
+    Windowed{} -> c
+    Latest{}   -> c
+    GroupBy  x -> GroupBy  $ simplifyNestedX x
+    Distinct x -> Distinct $ simplifyNestedX x
+    Filter   x -> Filter   $ simplifyNestedX x
+    LetFold  f -> LetFold f { foldInit = simplifyNestedX $ foldInit f
+                            , foldWork = simplifyNestedX $ foldWork f }
+    Let s n  x -> Let s n  $ simplifyNestedX x
+
+
+simplifyNestedX :: Exp n -> Exp n
+simplifyNestedX xx
+ = case xx of
+    Nested (Query [] x)
+     -> simplifyNestedX x
+    Nested q
+     -> Nested $ simplifyNestedQ q
+
+    App x y
+     -> App (simplifyNestedX x) (simplifyNestedX y)
+
+    Var{}
+     -> xx
+    Prim{}
+     -> xx
 

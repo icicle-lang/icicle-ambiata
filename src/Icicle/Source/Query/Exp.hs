@@ -80,8 +80,10 @@ prettyX outer_prec xx
     App{}
      -- Operators
      | Just (Op o, [x]) <- takePrimApps xx
+     , FPrefix <- fixity o
      -> pretty o <+> prettyX inner_prec x
      | Just (Op o, [x,y]) <- takePrimApps xx
+     , FInfix _ <- fixity o
      ->  prettyX inner_prec_1 x
      </> pretty  o
      <+> prettyX inner_prec_2 y
@@ -142,10 +144,17 @@ precedenceOfX :: Exp' q n -> (Int, Assoc)
 precedenceOfX xx
  -- Note: this is assuming that operators will only be applied to one or two arguments,
  -- and that the expression has the right number of arguments.
- | Just (Op o, _) <- takePrimApps xx
+ | Just (Op o, as) <- takePrimApps xx
  = case fixity o of
-    FInfix (Infix a p) -> (p, a)
-    FPrefix            -> precedencePrefix
+    FInfix (Infix a p)
+     | length as == 2
+     -> (p, a)
+    FPrefix 
+     | length as == 1
+     -> precedencePrefix
+
+    _
+     -> precedenceApplication
  | otherwise
  = case xx of
     Var{}

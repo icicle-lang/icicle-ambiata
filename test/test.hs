@@ -18,6 +18,8 @@ import qualified Icicle.Test.Avalanche.Scoped
 
 import qualified Icicle.Test.Dictionary.Types
 
+import qualified Icicle.Test.Source.PrettyParse
+
 import           Orphanarium.Core.Main
 
 
@@ -43,5 +45,7 @@ main
         , Icicle.Test.Avalanche.Scoped.tests
 
         , Icicle.Test.Dictionary.Types.tests
+
+        , Icicle.Test.Source.PrettyParse.tests
         ]
 

@@ -44,6 +44,7 @@ context
    <|> pKeyword T.Group    *> (Q.GroupBy  <$> exp)
    <|> pKeyword T.Distinct *> (Q.Distinct <$> exp)
    <|> pKeyword T.Filter   *> (Q.Filter   <$> exp)
+   <|> pKeyword T.Latest   *> (Q.Latest   <$> pLitInt)
    <|> pKeyword T.Let      *> (cletfold <|> clet)
 
   cwindowed
@@ -58,7 +59,7 @@ context
         t1 <- windowUnit
         pKeyword T.And
         t2 <- windowUnit
-        return $ Q.Windowed t1 $ Just t2
+        return $ Q.Windowed t2 $ Just t1
 
   clet
    = do n <- pVariable
