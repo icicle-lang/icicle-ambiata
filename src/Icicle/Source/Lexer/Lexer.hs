@@ -27,7 +27,7 @@ lexer ts
        | isVarStart c
        -> let (a,b) = T.span isVarRest t'
               v     = T.cons c a
-          in  keywordOrVar v : go b
+          in  keywordOrVar v : lexer b
 
        | C.isDigit c
        -> let (a,b) = T.span C.isDigit t'
@@ -36,21 +36,26 @@ lexer ts
               -- (If it's too big 'read Int' just silently overflows)
               -- TODO error on overflow
               i     = read v
-          in  TLiteral (LitInt i) : go b
+          in  TLiteral (LitInt i) : lexer b
 
        | c == '('
-       -> TParenL : go t'
+       -> TParenL : lexer t'
        | c == ')'
-       -> TParenR : go t'
+       -> TParenR : lexer t'
 
        | otherwise
-       -> let (a,b) = T.span (not . isVarRest) t'
+       -> let (a,b) = T.span isOperator t'
               v     = T.cons c a
-          in  operator v : go b
+          in  operator v : lexer b
 
   isVarStart c
    = C.isAlpha c || c == '_'
   isVarRest c
    = C.isAlphaNum c || c == '_'
+
+  isOperator c
+   =  not (isVarRest c)
+   && not (C.isSpace c)
+   && c /= '(' && c /= ')'
 
 
