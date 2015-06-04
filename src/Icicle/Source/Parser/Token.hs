@@ -45,11 +45,11 @@ pEq t
 
 pKeyword :: T.Keyword -> Parser ()
 pKeyword kw
- = pEq (T.TKeyword kw)
+ = pEq (T.TKeyword kw) <?> ("keyword " <> show kw)
 
 pOperator :: Parser T.Operator
 pOperator 
- = pTok get
+ = pTok get <?> "operator"
  where
   get (T.TOperator op) = Just op
   get  _               = Nothing
@@ -57,7 +57,7 @@ pOperator
 
 pVariable :: Parser Var
 pVariable 
- = pTok get
+ = pTok get <?> "variable"
  where
   get (T.TVariable v) = Just v
   get  _              = Nothing
@@ -66,7 +66,7 @@ pVariable
 
 pLitInt :: Parser Int
 pLitInt
- = pTok get
+ = pTok get <?> "number literal"
  where
   get (T.TLiteral (T.LitInt i))
    = Just i
@@ -74,11 +74,11 @@ pLitInt
    = Nothing
 
 pParenL :: Parser ()
-pParenL = pEq T.TParenL
+pParenL = pEq T.TParenL <?> "left parenthesis"
 
 pParenR :: Parser ()
-pParenR = pEq T.TParenR
+pParenR = pEq T.TParenR <?> "right parenthesis"
 
 pFlowsInto :: Parser ()
-pFlowsInto = pEq T.TDataFlow
+pFlowsInto = pEq T.TDataFlow <?> "flows into (~>)"
 

@@ -11,6 +11,8 @@ module Icicle.Source.Lexer.Token (
   , operator
   ) where
 
+import Icicle.Internal.Pretty
+
 import                  P
 
 import qualified        Data.Text as T
@@ -104,3 +106,6 @@ operator t
  | otherwise
  = TOperator $ Operator t
 
+
+instance Pretty Variable where
+ pretty (Variable v) = text $ T.unpack v

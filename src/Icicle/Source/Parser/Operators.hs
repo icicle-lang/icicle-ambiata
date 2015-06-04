@@ -127,7 +127,7 @@ shuntI xs os (Right (Ops sym ops) : inps)
  = case opInfix ops of
     Just o
      -> do  (xs',os') <- crunchOperator xs os $ fixity o
-            shuntI xs' (o:os') inps
+            shuntX xs' (o:os') inps
     Nothing
      -> Left $ ErrorNoSuchInfixOperator sym
 
@@ -148,9 +148,12 @@ crunchOperator
 crunchOperator (x:y:xs) (o:os) f
  = case (f, fixity o) of
     (FInfix (Infix a1 p1), FInfix (Infix _ p2))
-     -- If the precedence is less, apply the arguments
+     -- If the precedence is less, apply the arguments.
+     -- Note that this is reverse order, since the list is a stack
      | less a1 p1 p2
-     -> return (Q.Prim (Q.Op o) `Q.App` x `Q.App` y : xs, os)
+     -> let xs' = Q.Prim (Q.Op o) `Q.App` y `Q.App` x : xs
+        -- Check if we need to keep crunching
+        in  crunchOperator xs' os f
 
      -- Leave it alone
      | otherwise
@@ -187,7 +190,7 @@ finish [x] []
  = return x
 
 finish (x:y:xs) (o:os)
- = finish (Q.Prim (Q.Op o) `Q.App` x `Q.App` y : xs) os
+ = finish (Q.Prim (Q.Op o) `Q.App` y `Q.App` x : xs) os
 
 finish xs os
  = Left $ ErrorBUGLeftovers xs os
