@@ -6,8 +6,6 @@ Sum
 
 Icicle:
 ```
-sum feat
-
 feature feat
 ~> sum value
 ```
@@ -88,8 +86,6 @@ Count
 
 Icicle:
 ```
-count feat
-
 feature feat
 ~> count
 ```
@@ -173,8 +169,6 @@ Windowed count
 
 Icicle:
 ```
-count (windowed feat (< 30 days))
-
 feature feat
 ~> windowed 30 days
 ~> count
@@ -242,10 +236,6 @@ CountBy
 
 Icicle:
 ```
-[ count ms | ms <- group feat ]
-
-groupWith count feat
-
 feature feat
 ~> group value
 ~> count
@@ -321,8 +311,6 @@ CountDays
 
 Icicle:
 ```
-count (groupDays feat)
-
 feature feat
 ~> distinct date
 ~> count
@@ -395,8 +383,6 @@ MaxDays
 --------
 Icicle:
 ```
-max [ count d | d <- groupDays feat ]
-
 feature feat
 ~> max (group date ~> count)
 ```
@@ -470,12 +456,6 @@ DaysSinceEarliest
 -----------------
 Icicle:
 ```
-now - dateOf (oldest feat)
-
-???
-
-[ now - dateOf f | f <- oldest feat ]
-
 feature feat
 ~> now - oldest date
 ```
@@ -527,12 +507,6 @@ FilteredOverTotal
 ----------------
 Icicle?
 ```
-count (filter (>0) feat) / count feat
-
-count [ f | f <- feat, f > 0] / count feat
-
-count ( feat where (>0) ) / count feat
-
 feature feat
 ~> let v = (filter value > 0 ~> count)
 ~> let y = count
@@ -599,23 +573,6 @@ Standard deviation
 -------
 Icicle
 ```
-let sqs  = avg (feat^2)
-    mean = avg  feat
-in  sqrt (sqs - mean * mean)
-
-
-sqrt (
-    ( sum (feat*feat) - sum feat * sum feat )
-    / count feat
-)
-
-
-sqrt (avg (feat*feat) - avg feat * avg feat)
-
-
-stddev feat
-
-
 feature feat
 ~> let sqr = average (value * value)
 ~> let mnn = average  value
@@ -714,8 +671,6 @@ Most recent value from 30-60 days ago
 ----------------------
 Icicle:
 ```
-newest (windowed feat (> 30days) (< 60days))
-
 feature feat
 ~> windowed between 30 and 60 days
 ~> newest value
@@ -770,8 +725,6 @@ Average of last calendar month
 ----------------------
 Icicle:
 ```
-avg (windowed feat (=1month))
-
 feature feat
 ~> windowed between 1 and 2 months
 ~> average value
@@ -882,8 +835,6 @@ Average of last three months
 ------------------------
 Icicle:
 ```
-avg (windowed feat (< 3 months))
-
 feature feat
 ~> windowed 3 months
 ~> average value
@@ -922,8 +873,6 @@ Number of zeroes in last 3 entries
 ---------------
 Icicle?
 ```
-count (latest 3 feat == 0)
-
 feature feat
 ~> latest 3
 ~> filter value == 0
@@ -963,8 +912,6 @@ If zero in last entry, but not in entry before.
 -----------------------------------------------
 Icicle?
 ```
-[ a == 0 && b /= 0 | [a,b] <- latest 2 feat ]
-
 feature feat
 ~> latest 2
 ~> let a = newest value
@@ -1034,15 +981,7 @@ Fraction of zeroes
 ------------------
 Icicle??
 
-If we have "auto-promotion" of eg (*) to (zipWith (*)) and (*5) to (map (*5)) or whatever,
-then it's tempting to imagine that (==0) should mean (filter (==0)).
-
-But this is wrong, because why should it be filter and not (map (==0))? and what does (==) applied to two vectors do - return the pairs that satisfy?
-That's stupid.
-So I propose that if we had autopromotion sort of thing this would always return 1:
 ```
-count (feat==0) / count feat
-
 feature feat
 ~> let c = (filter value == 0 ~> count)
 ~> let t = count
@@ -1068,8 +1007,6 @@ Exponentially smoothed value
 ----------------------------
 Icicle?
 ```
-fold1 (\a v -> a * 0.5 + v * 0.5) feat
-
 feature feat
 ~> let fold smooth = value : value * 0.5 + smooth * 0.5 
 ~> smooth
