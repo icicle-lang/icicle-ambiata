@@ -69,7 +69,7 @@ simplifyNestedC c
     Filter   x -> Filter   $ simplifyNestedX x
     LetFold  f -> LetFold f { foldInit = simplifyNestedX $ foldInit f
                             , foldWork = simplifyNestedX $ foldWork f }
-    Let s n  x -> Let s n  $ simplifyNestedX x
+    Let   n  x -> Let   n  $ simplifyNestedX x
 
 
 simplifyNestedX :: Exp n -> Exp n

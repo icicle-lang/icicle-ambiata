@@ -20,10 +20,6 @@ data EvalError n
  | EvalErrorOpBadArgs        Op  [BaseValue]
  | EvalErrorAggBadArgs       Agg [Exp n]
 
- | EvalErrorExpWrongSort
- { evalErrorExp          :: Exp n
- , evalErrorExpectedSort :: Sort }
-
  | EvalErrorExpNeitherSort
  { evalErrorExp          :: Exp n }
 
@@ -92,27 +88,18 @@ evalQ q vs env
                  | otherwise
                  -> return VNone
 
-                Let s n x
+                Let n x
                  -> let str = mapM (\v -> Map.insert n <$> evalX x [] v <*> return v) vs
                         agg = Map.insert n <$> evalX x vs env <*> return env
-                    in  case s of
-                         Nothing
-                          | Right vs' <- str
-                          , Right env' <- agg
+                    in  case (str, agg) of
+                         (Right vs', Right env')
                           ->    evalQ q' vs' env'
-                          | Right vs' <- str
+                         (Right vs', _)
                           ->    evalQ q' vs' env
-                          | Right env' <- agg
+                         (_, Right env')
                           ->    evalQ q' vs  env'
-                          | otherwise
+                         (Left _, Left _)
                           -> Left $ EvalErrorExpNeitherSort x
-
-                         Just Stream
-                          -> do vs' <- str
-                                evalQ q' vs' env
-                         Just Aggregate
-                          -> do env' <- agg
-                                evalQ q' vs  env'
 
 
 evalX   :: Ord n

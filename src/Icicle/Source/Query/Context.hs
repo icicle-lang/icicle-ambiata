@@ -7,7 +7,6 @@ module Icicle.Source.Query.Context (
   , WindowUnit(..)
   , Fold      (..)
   , FoldType  (..)
-  , Sort      (..)
   ) where
 
 import                  Icicle.Source.Query.Exp
@@ -23,7 +22,7 @@ data Context' q n
  | Distinct             (Exp' q n)
  | Filter               (Exp' q n)
  | LetFold              (Fold q n)
- | Let (Maybe Sort) n   (Exp' q n)
+ | Let              n   (Exp' q n)
  deriving (Show, Eq, Ord)
 
 data WindowUnit
@@ -43,9 +42,6 @@ data Fold q n
 data FoldType
  = FoldTypeFoldl1
  -- | FoldTypeFoldl
- deriving (Show, Eq, Ord)
-
-data Sort = Stream | Aggregate
  deriving (Show, Eq, Ord)
 
 
@@ -74,7 +70,7 @@ instance (Pretty n, Pretty q) => Pretty (Context' q n) where
       <+> ":"
       <+> pretty (foldWork f)
 
-     Let _ b x
+     Let b x
       ->  "let"
       <+> pretty b
       <+> "="

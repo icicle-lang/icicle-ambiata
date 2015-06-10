@@ -65,7 +65,7 @@ context
    = do n <- pVariable
         pEq T.TEqual
         x <- exp
-        return $ Q.Let Nothing n x
+        return $ Q.Let n x
 
   cletfold
    = do pKeyword T.Fold

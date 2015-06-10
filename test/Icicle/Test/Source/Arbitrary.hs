@@ -74,8 +74,7 @@ instance Arbitrary n => Arbitrary (Context n) where
         , Distinct <$> arbitrary
         , Filter   <$> arbitrary
         , LetFold  <$> arbitrary
-        , Let Nothing
-                   <$> arbitrary <*> arbitrary
+        , Let      <$> arbitrary <*> arbitrary
         ]
 
 instance Arbitrary WindowUnit where
