@@ -16,23 +16,42 @@ C := latest Int
    | group  E
 
 E := sum Q
-   | max Q
    | count
    | E + E
 ```
 
+Types
+-----
+The concrete types don't matter so much here.
+
+- Time
+- Int
+- Enum?
+- Map τ τ'
+- Bool
+- and so on
+
+Universes
+----------
+Universes describe different kinds of computation, or where the computation occurs.
+The idea is pretty similar to the Pre/Stream/Reduce/Post stratification in Core, but here all the computations are mixed up.
+So we need to infer the universes before we can separate them out.
+
+(See "notes on staging" for references and how this compares.)
+
+- Val τ: some scalar value. scalar computations cannot use aggregations or groups!
+- Group τ τ': the result of a grouping, where τ is the key and τ' is the value.
+- Agg τ: some aggregate. aggregate computations can depend on values/scalars and groupings.
+
+Group is necessary because we can do aggregates over groups - but we can't do aggregates over aggregates.
+They are sort of half-way between aggregates and values, then.
+
+In the rules below, the variable ``u`` can be assumed to be bound by a forall over universes, or ``u τ`` where ``u`` is ``Val`` or ``Agg`` or whatever.
 
 Contexts
 --------
 
-Typechecking contexts that are threaded through with the current environment - the list of available bindings and their types.
-I'm not certain that splitting these into aggregates and scalars is necessary, when we have computations split into different universes anyway.
-
-- Γ: aΓΓregates: bindings like ``let x = sum y``
-    * These bindings are not available to value computations
-
-- Σ: Σcalars: available things in the current feature and scalar bindings
-    * The idea is that these exist for each record, but have no meaning in aggregate.
+- Γ: bindings of names and their universes and types.
 
 - Φ: Φeatures, a scalar environment for each concrete feature.
     * A scalar feature like salary would just have ``value : Int``
@@ -41,172 +60,103 @@ I'm not certain that splitting these into aggregates and scalars is necessary, w
     * This is only used at the top level, to look up the feature
 
 
-Universes?
-----------
-Universes describe the kind of computation, or where the computation occurs.
-The idea is pretty similar to the Pre/Stream/Reduce/Post stratification in Core, but here all the computations are mixed up.
-So we need to infer the universes before we can separate them out.
-
-- Agg τ: some aggregate. aggregate computations can depend on values/scalars and groupings.
-- Val τ: some scalar value. scalar computations cannot use aggregations!
-
-Actually, it looks like another one is needed:
-- Group τ τ': the result of a grouping, where τ is the key and τ' is the value.
-This is necessary because we can do aggregates over groups - but we can't do aggregates over aggregates.
-They are sort of half-way between aggregates and values, then.
-
-In the rules below, the variable ``u`` can be assumed to be bound by a forall over universes.
-
-Types
------
-The concrete types don't matter so much here.
-- Time
-- Int
-- Enum?
-- Map τ τ'
-- Bool
-- and so on
 
 Judgments
 ---------
 
 (Toplevel)
 Look up a concrete feature and use it. There can only be one of these in a program.
+The result has to be an aggregate or a group - if it were a value it could return an unboundedly large result.
 ```
-Φ ⊢ n : φ    φ, date : Time; ∅ ⊢ Q : Agg τ
-------------------------------------------
-        Φ ⊢ feature n ~> Q : Agg τ
+Φ ⊢ n : φ    {Val t | t in φ} date : Val Time ⊢ Q : u τ   u /= Val
+----------------------------------------------------------------
+             Φ ⊢ feature n ~> Q : u τ
 ```
 
 
-(LatestAgg)
-Getting the aggregate of the latest is itself an aggregate.
+(LatestNotVal)
+Getting the aggregate or grouping the latest is fine, and remains in the same universe.
 ```
-      Σ; Γ ⊢ Q : Agg τ
-----------------------------
-Σ; Γ ⊢ latest i ~> Q : Agg τ
+Γ ⊢ Q : u τ     u /= Val
+------------------------
+Γ ⊢ latest i ~> Q : u τ
 ```
 
 (LatestVal)
 The latest of a value is allowed, and the result is an aggregate array of the values
 ```
-          Σ; Γ ⊢ Q : Val τ
-------------------------------------
-Σ; Γ ⊢ latest i ~> Q : Agg (Array τ)
+            Γ ⊢ Q : Val τ
+---------------------------------
+Γ ⊢ latest i ~> Q : Agg (Array τ)
 ```
 
 (Filter)
 The predicate of a filter cannot mention aggregates - it must be in Val.
-The output is in Agg.
+Conversely, the output / rest of query cannot be in Val - it must be an aggregate or a group.
+
+* I'm not certain that this restriction is necessary; ``sum (filter p ~> x) == filter p ~> sum x`` is reasonable.
 ```
-Σ; ∅ ⊢ e : Val Bool        Σ; Γ ⊢ Q : Agg τ
--------------------------------------------
-       Σ; Γ ⊢ filter e ~> Q : Agg τ
+Γ ⊢ e : Val Bool    Γ ⊢ Q : u τ   u /= Val
+------------------------------------------
+        Γ ⊢ filter e ~> Q : u τ
 ```
 
 
 (Group)
 The expression we're grouping over must be enum-ish.
-```
-Σ; ∅ ⊢ e : Val τ    Enum τ    Σ; Γ ⊢ Q : Agg τ'
------------------------------------------------
-       Σ; Γ ⊢ group e ~> Q : Group τ τ'
-```
 
-(AggOfGroup)
-A group computation can be converted to an aggregate by constructing a map of all the values.
+* Disallowing nested groups
+* What about ``group date ~> date``? Perhaps the group by expression should be available as an aggregate in Q.
+
 ```
-  Σ; Γ ⊢ Q : Group τ τ'
--------------------------
-Σ; Γ ⊢ Q : Agg (Map τ τ')
+Γ ⊢ e : Val τ    Enum τ    Γ ⊢ Q : Agg τ'
+-----------------------------------------
+    Γ ⊢ group e ~> Q : Group τ τ'
 ```
 
 
 
-(LetVal)
+(Let)
 If the definition of a let is a value computation, we add it to just the scalar environment.
 ```
-Σ; Γ ⊢ e : Val τ      Σ, n : τ; Γ ⊢ Q : u τ'
----------------------------------------------------
-           Σ; Γ ⊢ let n = e ~> Q : u τ'
+Γ ⊢ e : u τ      n : u τ, Γ ⊢ Q : u' τ'
+---------------------------------------
+      Γ ⊢ let n = e ~> Q : u' τ'
 ```
 
-(LetAgg)
-If the definition of a let is an aggregate, it is only be available from aggregate computations.
+(Sum)
+The expression to sum on must be a value or group computation, and the output is an aggregate.
 ```
-Σ; Γ ⊢ e : Agg τ      Σ; Γ, n : τ ⊢ Q : Agg τ'
-----------------------------------------------
-        Σ; Γ ⊢ let n = e ~> Q : Agg τ'
+Γ ⊢ e : u Int     u /= Agg
+--------------------------
+    Γ ⊢ sum e : u Int
 ```
-
-
-(SumVal)
-The expression to sum on must be a value computation, and the output is an aggregate.
-```
-  Σ; ∅ ⊢ e : Val Int
-----------------------
-Σ; Γ ⊢ sum e : Agg Int
-```
-
-(SumGroup)
-We can also find the sum of a group.
-Note that we still clear the aggregate environment, as we don't want groups depending on previous aggregates over the whole thing. Is that right?
-```
-Σ; ∅ ⊢ e : Group τ Int
-----------------------
-Σ; Γ ⊢ sum e : Agg Int
-```
-
-
-(MaxVal)
-The same as SumVal.
-```
-  Σ; ∅ ⊢ e : Val Int
-----------------------
-Σ; Γ ⊢ max e : Agg Int
-```
-
-(MaxGroup)
-The same as SumGroup.
-```
-Σ; ∅ ⊢ e : Group τ Int
-----------------------
-Σ; Γ ⊢ max e : Agg Int
-```
-
 
 
 (Count)
 Count is always available.
 ```
-----------------------
-Σ; Γ ⊢ count : Agg Int
+-------------------
+Γ ⊢ count : Agg Int
 ```
 
 
 (Plus)
 Plus can work for aggregates or values. It can't really work for groups.
 ```
-Σ; Γ ⊢ e : u Int        Σ; Γ ⊢ e' : u Int      u ∈ Agg  ∨  u ∈ Val
-------------------------------------------------------------------
-                     Σ; Γ ⊢ e + e' : U Int
+Γ ⊢ e : u Int        Γ ⊢ e' : u Int      u /= Group
+---------------------------------------------------
+                 Γ ⊢ e + e' : u Int
 ```
 
 
 
-(ValVar)
+(Var)
 Variables are pretty simple; they just look in the environment
 ```
-   v : τ ∈ Σ
+   v : u τ ∈ Γ
 -----------------
-Σ; Γ ⊢ v : Val τ
-```
-
-(AggVar)
-```
-   v : τ ∈ Γ
------------------
-Σ; Γ ⊢ v : Agg τ
+Γ ⊢ v : u τ
 ```
 
 
@@ -214,35 +164,33 @@ Example derivations
 -------------------
 ### Simple sum
 ```
-           value : Int  ∈ {value : Int}
-        ------------------------------------  (ValVar)
-        value : Int; ∅ ⊢     value : Val Int
-        ------------------------------------- (SumVal)
-        value : Int; ∅ ⊢ sum value : Agg Int
+           value : Val Int  ∈ {value : Val Int}
+        ------------------------------------  (Var)
+        value : Val Int ⊢     value : Val Int
+        ------------------------------------- (Sum)
+        value : Val Int ⊢ sum value : Agg Int
    ------------------------------------------ (TopLevel)
-   Φ ⊢ feature salary ~> sum value : Agg Int
+   Φ ⊢ feature salary  ~> sum value : Agg Int
 ```
 
 ### Group by date, count
 ```
-   ---------------------  (ValVar)                 ---------------------- (Count)
+   ---------------------  (Var)                    ---------------------- (Count)
    ... ⊢ date : Val Time                           ... ⊢ count : Agg Int
-   --------------------------------------------------------------------- (Group)
-   value : Int, date : Time; ∅ ⊢ group date ~> count : Group    Time Int
-   ---------------------------------------------------------------------- (AggOfGroup)
-   value : Int, date : Time; ∅ ⊢ group date ~> count : Agg (Map Time Int)
+   ---------------------------------------------------------------------  (Group)
+   value : Int, date : Time    ⊢ group date ~> count : Group    Time Int
    ---------------------------------------------------------------------- (TopLevel)
-           Φ ⊢ feature salary ~> group date ~> count : Agg (Map Time Int)
+           Φ ⊢ feature salary ~> group date ~> count : Group    Time Int
 ```
 
 ### Nested group: maximum by days
 ```
-   ---------------------  (ValVar)                 ---------------------- (Count)
+   ---------------------  (Var)                    ---------------------- (Count)
    ... ⊢ date : Val Time                           ... ⊢ count : Agg Int
-   --------------------------------------------------------------------- (Group)
-   value : Int, date : Time; ∅ ⊢ group date ~> count : Group    Time Int
-   ---------------------------------------------------------------------- (MaxGroup)
-        value : Int, date : Time; ∅ ⊢ max (group date ~> count) : Agg Int
+   ---------------------------------------------------------------------  (Group)
+   value : Int, date : Time    ⊢ group date ~> count : Group    Time Int
+   ---------------------------------------------------------------------- (Max)
+        value : Int, date : Time    ⊢ max (group date ~> count) : Agg Int
         ----------------------------------------------------------------- (TopLevel)
                 Φ ⊢ feature salary ~> max (group date ~> count) : Agg Int
 ```
@@ -300,12 +248,28 @@ feature salary
 : Agg Int
 ```
 
-### Environments and universes
-Separating the environments is troublesome now that we have the Group universe. They should be one environment with each entry having a universe tag.
-
-
-
 Questions
 ---------
 
 - What about nested groups - is there any reason to disallow them?
+
+
+Notes on staging
+----------------
+
+This is probably closest to "lambda circle" in the MetaML paper.
+
+I believe the fundamental difference between our problem (values can't depend on aggregates)
+and the staging problem (compile time values can't depend on runtime values)
+is that in the staging problem, the same operations are available at every level.
+In our case, there are a lot of aggregate operations that are only available on the aggregate level.
+
+If we ignore the group universe for now, "aggregate" corresponds to the "runtime" stage, while "values" correspond to compile time.
+In lambda circle, this would mean that a type of "aggregate A" becomes "circle A".
+In that case, "sum" and so on are like "prev", having type "A -> circle A".
+Since there is no way to evaluate circles (as they correspond to open expressions) this means the worker for sum cannot evaluate aggregates.
+
+References:
+- "Staged Computation with Staged Lexical Scope" by Morten Rhiger, 2012.
+- "Staged Computation with Names and Necessity" by Aleksander Nanevski and Frank Pfenning, 1996; 
+- "MetaML and multi-stage programming with explicit annotations" by Walid Taha and Tim Sheard, 1997;
