@@ -8,7 +8,7 @@ import                  Icicle.Source.Type
 
 -- import                  Icicle.Internal.Pretty
 
--- import                  P
+import                  P
 
 data CheckError n
  = ErrorNoSuchVariable n
@@ -20,4 +20,5 @@ data CheckError n
  | ErrorTypeMismatch   UniverseType UniverseType
  | ErrorApplicationOfNonPrim (Exp n)
  | ErrorPrimBadArgs          (Exp n) [UniverseType]
+ deriving (Show, Eq, Ord)
 

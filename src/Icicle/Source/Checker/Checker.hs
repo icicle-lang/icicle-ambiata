@@ -41,7 +41,7 @@ checkQ  :: Ord      n
 checkQ ctx q
  = case contexts q of
     []
-     -> checkX ctx (final q)
+     -> checkX ctx (final q) >>= requireAggOrGroup
     (c:cs)
      -> let q' = q { contexts = cs }
             tq = checkQ ctx q'
@@ -49,7 +49,7 @@ checkQ ctx q
         in  case c of
              Windowed _ _
               -- TODO: check that range is valid
-              -> tq >>= requireAggOrGroup
+              -> tq
 
              Latest _
               -> tq >>= wrapAsAgg
@@ -73,15 +73,13 @@ checkQ ctx q
               -> do te <- checkX ctx e
                     expIsEnum c te
                     expIsElem c te
-                    t' <- tq
-                    requireAggOrGroup t'
+                    tq
 
              Filter   e
               -> do te <- checkX ctx e
                     expIsBool c te
                     expIsElem c te
-                    t' <- tq
-                    requireAggOrGroup t'
+                    tq
 
              LetFold f
               -> do ti <- checkX ctx  $ foldInit f
@@ -94,16 +92,15 @@ checkQ ctx q
 
                     expIsElem c tw
 
-                    let ctx'' = Map.insert (foldBind f) (ti { universe = AggU }) ctx
+                    let ctx'' = Map.insert (foldBind f) (UniverseType AggU $ baseType ti) ctx
                     t' <- checkQ ctx'' q'
-                    requireAggOrGroup t'
+                    return (t' { baseType = T.OptionT $ baseType t' })
 
 
              Let n e
               -> do te <- checkX ctx e
                     let ctx' = Map.insert n te ctx
-                    t' <- checkQ ctx' q'
-                    requireAggOrGroup t'
+                    checkQ ctx' q'
 
  where
   expIsBool c te
@@ -176,11 +173,11 @@ checkP x p args
      | Newest <- a
      , [t] <- args
      , canCast (universe t) Elem
-     -> return $ UniverseType AggU (baseType t)
+     -> return $ UniverseType AggU (T.OptionT $ baseType t)
      | Oldest <- a
      , [t] <- args
      , canCast (universe t) Elem
-     -> return $ UniverseType AggU (baseType t)
+     -> return $ UniverseType AggU (T.OptionT $ baseType t)
 
      | otherwise
      -> err
@@ -195,6 +192,8 @@ checkP x p args
 
   unary
    | [t] <- args
+   , baseType t == T.IntT
+   , notGroup $ universe t
    = return t
    | otherwise
    = err
@@ -204,6 +203,7 @@ checkP x p args
    , baseType a == T.IntT
    , baseType b == T.IntT
    , Just u <- maxOf (universe a) (universe b)
+   , notGroup u
    = return $ UniverseType u T.IntT
    | otherwise
    = err
@@ -223,4 +223,10 @@ checkP x p args
    = True
    | otherwise
    = False
+
+  notGroup a
+   | Group _ <- a
+   = False
+   | otherwise
+   = True
 
