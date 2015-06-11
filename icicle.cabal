@@ -129,6 +129,10 @@ library
                        Icicle.Source.Parser.Operators
                        Icicle.Source.Parser.Parser
 
+                       Icicle.Source.Type
+                       Icicle.Source.Checker.Checker
+                       Icicle.Source.Checker.Error
+
 executable             icicle
     ghc-options:       -Wall -threaded -O2
     main-is:           main/icicle.hs
