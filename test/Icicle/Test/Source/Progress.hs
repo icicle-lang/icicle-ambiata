@@ -7,6 +7,7 @@ module Icicle.Test.Source.Progress where
 
 import           Icicle.Internal.Pretty
 import           Icicle.Source.Checker.Checker
+import           Icicle.Source.Query
 import           Icicle.Source.Eval
 import           Icicle.Source.Type
 import qualified Icicle.Source.Lexer.Token as T
@@ -26,6 +27,7 @@ import qualified Data.Map as Map
 mkElems :: Map.Map T.Variable BaseType -> Map.Map T.Variable UniverseType
 mkElems = Map.map (UniverseType Elem)
 
+prop_progress_no_values :: Map.Map T.Variable BaseType -> Query () T.Variable -> Property
 prop_progress_no_values f q
  = counterexample pp
  $ counterexample (show typ)

@@ -2,13 +2,15 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards #-}
 module Icicle.Source.Lexer.Token (
-    Token    (..)
+    TOK
+  , Token    (..)
   , Keyword  (..)
   , Operator (..)
   , Literal  (..)
   , Variable (..)
   , keywordOrVar
   , operator
+  , SourcePos
   ) where
 
 import Icicle.Internal.Pretty
@@ -21,6 +23,11 @@ import                  Data.List (lookup)
 
 -- Bounded hack for getting names of all keywords
 import                  Prelude (Enum(..), Bounded(..), minBound,maxBound)
+
+-- Export source position type
+import                  Text.Parsec (SourcePos)
+
+type TOK = (Token, SourcePos)
 
 data Token
  -- | Primitive keywords

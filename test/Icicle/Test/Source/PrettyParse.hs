@@ -14,20 +14,26 @@ import           P
 
 import qualified Data.Text as T
 
+import           Data.Either.Combinators
+
 import           System.IO
 
 import           Test.QuickCheck
 
+import qualified Icicle.Source.Lexer.Token as T
+import           Icicle.Source.Query
 
+prop_parse_pretty_same :: QueryTop () T.Variable -> Property
 prop_parse_pretty_same q
  = counterexample pp
  $ counterexample pp'
- $ parsed === Right q
+ $ parsed' === Right q
  where
   pp = show $ pretty q
   t  = T.pack pp
 
   parsed = parseQueryTop t
+  parsed' = mapRight (reannotQT (const ())) parsed
 
   pp'  = case parsed of
           Left e -> show e

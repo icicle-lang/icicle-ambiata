@@ -22,26 +22,26 @@ instance Arbitrary T.Variable where
  arbitrary
   = T.Variable <$> elements muppets
 
-instance Arbitrary n => Arbitrary (Exp n) where
+instance Arbitrary n => Arbitrary (Exp () n) where
  arbitrary
   = oneof_sized
-        [ Var    <$> arbitrary
-        , Prim   <$> arbitrary ]
-        [ (simplifyNestedX . Nested) <$> arbitrary
-        , App    <$> arbitrary <*> arbitrary
+        [ Var    () <$> arbitrary
+        , Prim   () <$> arbitrary ]
+        [ (simplifyNestedX . Nested ()) <$> arbitrary
+        , App    () <$> arbitrary <*> arbitrary
         , preop
         , inop ]
 
   where
    preop
-    = App
-    <$> (Prim <$> operator_pre)
+    = App ()
+    <$> (Prim () <$> operator_pre)
     <*> arbitrary
 
    inop
-    = App
-    <$> (App
-            <$> (Prim <$> operator_bin)
+    = App ()
+    <$> (App ()
+            <$> (Prim () <$> operator_bin)
             <*> arbitrary)
     <*> arbitrary
 
@@ -65,16 +65,16 @@ instance Arbitrary Prim where
         , Agg   Newest
         , Agg   Oldest ]
 
-instance Arbitrary n => Arbitrary (Context n) where
+instance Arbitrary n => Arbitrary (Context () n) where
  arbitrary
   = oneof_sized
-        [ Windowed <$> arbitrary <*> arbitrary
-        , Latest . abs <$> arbitrary ]
-        [ GroupBy  <$> arbitrary
-        , Distinct <$> arbitrary
-        , Filter   <$> arbitrary
-        , LetFold  <$> arbitrary
-        , Let      <$> arbitrary <*> arbitrary
+        [ Windowed () <$> arbitrary <*> arbitrary
+        , Latest   () . abs <$> arbitrary ]
+        [ GroupBy  () <$> arbitrary
+        , Distinct () <$> arbitrary
+        , Filter   () <$> arbitrary
+        , LetFold  () <$> arbitrary
+        , Let      () <$> arbitrary <*> arbitrary
         ]
 
 instance Arbitrary WindowUnit where
@@ -86,15 +86,15 @@ instance Arbitrary WindowUnit where
   where
    pos = abs <$> arbitrary
 
-instance Arbitrary n => Arbitrary (Fold (Query n) n) where
+instance Arbitrary n => Arbitrary (Fold (Query () n) () n) where
  arbitrary
   = Fold <$> arbitrary <*> arbitrary <*> arbitrary <*> return FoldTypeFoldl1
 
 
-instance Arbitrary n => Arbitrary (Query n) where
+instance Arbitrary n => Arbitrary (Query () n) where
  arbitrary
   = Query <$> arbitrary <*> arbitrary
 
-instance Arbitrary n => Arbitrary (QueryTop n) where
+instance Arbitrary n => Arbitrary (QueryTop () n) where
  arbitrary
   = QueryTop <$> arbitrary <*> arbitrary

@@ -19,9 +19,9 @@ import Text.Parsec
 import P
 
 
-parseQueryTop :: Text -> Either ParseError (QueryTop Variable)
+parseQueryTop :: Text -> Either ParseError (QueryTop SourcePos Variable)
 parseQueryTop inp
- = let toks = lexer inp
+ = let toks = lexer "" inp
    in  runParser top () "" toks
 
 prettyParse :: Text -> [Char]

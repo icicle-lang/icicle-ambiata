@@ -15,14 +15,14 @@ import                  Icicle.Internal.Pretty
 import                  P
 
 
-data Context' q n
- = Windowed WindowUnit (Maybe WindowUnit)
- | Latest Int
- | GroupBy              (Exp' q n)
- | Distinct             (Exp' q n)
- | Filter               (Exp' q n)
- | LetFold              (Fold q n)
- | Let              n   (Exp' q n)
+data Context' q a n
+ = Windowed a WindowUnit (Maybe WindowUnit)
+ | Latest a Int
+ | GroupBy   a          (Exp' q a n)
+ | Distinct  a          (Exp' q a n)
+ | Filter    a          (Exp' q a n)
+ | LetFold   a          (Fold q a n)
+ | Let       a      n   (Exp' q a n)
  deriving (Show, Eq, Ord)
 
 data WindowUnit
@@ -31,11 +31,11 @@ data WindowUnit
  | Weeks  Int
  deriving (Show, Eq, Ord)
 
-data Fold q n
+data Fold q a n
  = Fold
  { foldBind :: n
- , foldInit :: Exp' q n
- , foldWork :: Exp' q n
+ , foldInit :: Exp' q a n
+ , foldWork :: Exp' q a n
  , foldType :: FoldType }
  deriving (Show, Eq, Ord)
 
@@ -45,24 +45,24 @@ data FoldType
  deriving (Show, Eq, Ord)
 
 
-instance (Pretty n, Pretty q) => Pretty (Context' q n) where
+instance (Pretty n, Pretty q) => Pretty (Context' q a n) where
  pretty cc
   = case cc of
-     Windowed newer Nothing
+     Windowed _ newer Nothing
       -> "windowed" <+> pretty newer
-     Windowed newer (Just older)
+     Windowed _ newer (Just older)
       -> "windowed between" <+> pretty older
                   <+> "and" <+> pretty newer
 
-     Latest   i
+     Latest   _ i
       -> "latest"   <+> pretty i
-     GroupBy  x
+     GroupBy  _ x
       -> "group"    <+> pretty x
-     Distinct x
+     Distinct _ x
       -> "distinct" <+> pretty x
-     Filter   x
+     Filter   _ x
       -> "filter"   <+> pretty x
-     LetFold f
+     LetFold  _ f
       ->  "let fold"
       <+> pretty (foldBind f)
       <+> "="
@@ -70,7 +70,7 @@ instance (Pretty n, Pretty q) => Pretty (Context' q n) where
       <+> ":"
       <+> pretty (foldWork f)
 
-     Let b x
+     Let _ b x
       ->  "let"
       <+> pretty b
       <+> "="

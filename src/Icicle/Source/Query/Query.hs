@@ -11,6 +11,11 @@ module Icicle.Source.Query.Query (
   , simplifyNestedQ
   , simplifyNestedC
   , simplifyNestedX
+
+  , reannotQT
+  , reannotQ
+  , reannotC
+  , reannotX
   ) where
 
 import                  Icicle.Source.Query.Context
@@ -20,29 +25,29 @@ import                  Icicle.Internal.Pretty
 import                  P
 
 
-data QueryTop n
+data QueryTop a n
  = QueryTop
  { feature  :: n
- , query    :: Query n }
+ , query    :: Query a n }
  deriving (Show, Eq, Ord)
 
-data Query n
+data Query a n
  = Query
- { contexts :: [Context n] 
- , final    :: Exp n }
+ { contexts :: [Context a n] 
+ , final    :: Exp a n }
  deriving (Show, Eq, Ord)
 
 -- | "Tie the knot" so expressions can have nested queries.
 -- See Exp.
-type Exp     n = Exp'     (Query n) n
-type Context n = Context' (Query n) n
+type Exp     a n = Exp'     (Query a n) a n
+type Context a n = Context' (Query a n) a n
 
-instance Pretty n => Pretty (QueryTop n) where
+instance Pretty n => Pretty (QueryTop a n) where
  pretty q
   =   "feature"   <+> pretty (feature q)
   <> line <> "~>" <+> pretty (query   q)
 
-instance Pretty n => Pretty (Query n) where
+instance Pretty n => Pretty (Query a n) where
  pretty q
   =  cat (fmap (\c -> inp c <> line <> "~> ") (contexts q))
   <> inp                                     (final    q)
@@ -50,41 +55,75 @@ instance Pretty n => Pretty (Query n) where
   inp p = indent 0 $ pretty p
 
 
-simplifyNestedQT :: QueryTop n -> QueryTop n
+simplifyNestedQT :: QueryTop a n -> QueryTop a n
 simplifyNestedQT q
  = q { query = simplifyNestedQ $ query q }
 
-simplifyNestedQ :: Query n -> Query n
+simplifyNestedQ :: Query a n -> Query a n
 simplifyNestedQ q
  = Query (fmap simplifyNestedC $ contexts q)
          (     simplifyNestedX $ final    q)
 
-simplifyNestedC :: Context n -> Context n
+simplifyNestedC :: Context a n -> Context a n
 simplifyNestedC c
  = case c of
-    Windowed{} -> c
-    Latest{}   -> c
-    GroupBy  x -> GroupBy  $ simplifyNestedX x
-    Distinct x -> Distinct $ simplifyNestedX x
-    Filter   x -> Filter   $ simplifyNestedX x
-    LetFold  f -> LetFold f { foldInit = simplifyNestedX $ foldInit f
-                            , foldWork = simplifyNestedX $ foldWork f }
-    Let   n  x -> Let   n  $ simplifyNestedX x
+    Windowed{}  -> c
+    Latest{}     -> c
+    GroupBy  a x -> GroupBy  a $ simplifyNestedX x
+    Distinct a x -> Distinct a $ simplifyNestedX x
+    Filter   a x -> Filter   a $ simplifyNestedX x
+    LetFold  a f -> LetFold a f { foldInit = simplifyNestedX $ foldInit f
+                                , foldWork = simplifyNestedX $ foldWork f }
+    Let a n  x -> Let a n  $ simplifyNestedX x
 
 
-simplifyNestedX :: Exp n -> Exp n
+simplifyNestedX :: Exp a n -> Exp a n
 simplifyNestedX xx
  = case xx of
-    Nested (Query [] x)
+    Nested _ (Query [] x)
      -> simplifyNestedX x
-    Nested q
-     -> Nested $ simplifyNestedQ q
+    Nested a q
+     -> Nested a $ simplifyNestedQ q
 
-    App x y
-     -> App (simplifyNestedX x) (simplifyNestedX y)
+    App a x y
+     -> App a (simplifyNestedX x) (simplifyNestedX y)
 
     Var{}
      -> xx
     Prim{}
      -> xx
+
+
+
+reannotX :: (a -> a') -> Exp a n -> Exp a' n
+reannotX f xx
+ = case xx of
+    Var    a n   -> Var    (f a)  n
+    Nested a q   -> Nested (f a) (reannotQ f q)
+    App    a x y -> App    (f a) (reannotX f x) (reannotX f y)
+    Prim   a p   -> Prim   (f a)  p
+
+reannotC :: (a -> a') -> Context a n -> Context a' n
+reannotC f cc
+ = case cc of
+    Windowed a b c -> Windowed (f a) b c
+    Latest   a i   -> Latest   (f a) i
+    GroupBy  a x   -> GroupBy  (f a) (reannotX f x)
+    Distinct a x   -> Distinct (f a) (reannotX f x)
+    Filter   a x   -> Filter   (f a) (reannotX f x)
+    LetFold  a ff  -> LetFold  (f a) (ff { foldInit = reannotX f (foldInit ff)
+                                         , foldWork = reannotX f (foldWork ff) })
+    Let      a n x -> Let      (f a) n (reannotX f x)
+
+reannotQ :: (a -> a') -> Query a n -> Query a' n
+reannotQ f q
+ = q
+ { contexts = fmap (reannotC f) (contexts q)
+ , final    =       reannotX f  (final    q)
+ }
+
+reannotQT :: (a -> a') -> QueryTop a n -> QueryTop a' n
+reannotQT f qt
+ = qt
+ { query = reannotQ f (query qt) }
 

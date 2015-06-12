@@ -19,13 +19,13 @@ import qualified        Data.Map as Map
 
 type FeatureMap n = Map.Map n (Map.Map n BaseType)
 type Env        n = Map.Map n UniverseType
-type Result     n = Either (CheckError n) UniverseType
+type Result   a n = Either (CheckError a n) UniverseType
 
 
 checkQT :: Ord n
         => FeatureMap n
-        -> QueryTop   n
-        -> Result     n
+        -> QueryTop a n
+        -> Result   a n
 checkQT features qt
  = case Map.lookup (feature qt) features of
     Just f
@@ -36,8 +36,8 @@ checkQT features qt
 
 checkQ  :: Ord      n
         => Env      n
-        -> Query    n
-        -> Result   n
+        -> Query  a n
+        -> Result a n
 checkQ ctx q
  = case contexts q of
     []
@@ -47,14 +47,14 @@ checkQ ctx q
             tq = checkQ ctx q'
 
         in  case c of
-             Windowed _ _
+             Windowed _ _ _
               -- TODO: check that range is valid
               -> tq
 
-             Latest _
+             Latest _ _
               -> tq >>= wrapAsAgg
 
-             GroupBy e
+             GroupBy _ e
               -> do te <- checkX ctx e
                     -- Check that the thing we're grouping by is enum-ish
                     expIsEnum c te
@@ -69,19 +69,19 @@ checkQ ctx q
 
                     return (UniverseType (Group $ baseType te) (baseType t'))
 
-             Distinct e
+             Distinct _ e
               -> do te <- checkX ctx e
                     expIsEnum c te
                     expIsElem c te
                     tq
 
-             Filter   e
+             Filter   _ e
               -> do te <- checkX ctx e
                     expIsBool c te
                     expIsElem c te
                     tq
 
-             LetFold f
+             LetFold _ f
               -> do ti <- checkX ctx  $ foldInit f
                     expIsElem c ti
                     let ctx' = Map.insert (foldBind f) ti ctx
@@ -97,7 +97,7 @@ checkQ ctx q
                     return (t' { baseType = T.OptionT $ baseType t' })
 
 
-             Let n e
+             Let _ n e
               -> do te <- checkX ctx e
                     let ctx' = Map.insert n te ctx
                     checkQ ctx' q'
@@ -132,21 +132,21 @@ checkQ ctx q
 
 checkX  :: Ord      n
         => Env      n
-        -> Exp      n
-        -> Result   n
+        -> Exp    a n
+        -> Result a n
 checkX ctx x
- | Just (prim, args) <- takePrimApps x
+ | Just (prim, _, args) <- takePrimApps x
  = do ts <- mapM (checkX ctx) args
       checkP x prim ts
  | otherwise
  = case x of
-    Var n
-     -> maybe (Left $ ErrorNoSuchVariable n) (return)
+    Var a n
+     -> maybe (Left $ ErrorNoSuchVariable a n) (return)
               (Map.lookup n ctx)
-    Nested q
+    Nested _ q
      -> checkQ ctx q
 
-    Prim p
+    Prim _ p
      -> checkP x p []
 
     App{}
@@ -154,10 +154,10 @@ checkX ctx x
 
 
 checkP  :: Ord      n
-        => Exp      n
+        => Exp    a n
         -> Prim
         -> [UniverseType]
-        -> Result   n
+        -> Result a n
 checkP x p args
  = case p of
     Op o

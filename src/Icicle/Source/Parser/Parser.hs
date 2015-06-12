@@ -15,9 +15,9 @@ import qualified        Icicle.Source.Query        as Q
 
 import                  P hiding (exp)
 
-import                  Text.Parsec (many1, parserFail)
+import                  Text.Parsec (many1, parserFail, getPosition)
 
-top :: Parser (Q.QueryTop Var)
+top :: Parser (Q.QueryTop T.SourcePos Var)
 top
  = do   pKeyword T.Feature
         v <- pVariable
@@ -26,14 +26,14 @@ top
         return $ Q.QueryTop v q
 
 
-query :: Parser (Q.Query Var)
+query :: Parser (Q.Query T.SourcePos Var)
 query
  = do   cs <- many context
         x  <- exp
         return $ Q.Query cs x
 
 
-context :: Parser (Q.Context Var)
+context :: Parser (Q.Context T.SourcePos Var)
 context
  = do   c <- context1
         pFlowsInto
@@ -41,52 +41,61 @@ context
  where
   context1
    =   pKeyword T.Windowed *> cwindowed
-   <|> pKeyword T.Group    *> (Q.GroupBy  <$> exp)
-   <|> pKeyword T.Distinct *> (Q.Distinct <$> exp)
-   <|> pKeyword T.Filter   *> (Q.Filter   <$> exp)
-   <|> pKeyword T.Latest   *> (Q.Latest   <$> pLitInt)
+   <|> pKeyword T.Group    *> (Q.GroupBy  <$> getPosition <*> exp)
+   <|> pKeyword T.Distinct *> (Q.Distinct <$> getPosition <*> exp)
+   <|> pKeyword T.Filter   *> (Q.Filter   <$> getPosition <*> exp)
+   <|> pKeyword T.Latest   *> (Q.Latest   <$> getPosition <*> pLitInt)
    <|> pKeyword T.Let      *> (cletfold <|> clet)
 
   cwindowed
    = cwindowed2 <|> cwindowed1
 
   cwindowed1
-   = do t1 <- windowUnit
-        return $ Q.Windowed t1 Nothing
+   = do p  <- getPosition
+        t1 <- windowUnit
+        return $ Q.Windowed p t1 Nothing
 
   cwindowed2
-   = do pKeyword T.Between 
+   = do p <- getPosition
+        pKeyword T.Between 
         t1 <- windowUnit
         pKeyword T.And
         t2 <- windowUnit
-        return $ Q.Windowed t2 $ Just t1
+        return $ Q.Windowed p t2 $ Just t1
 
   clet
-   = do n <- pVariable
+   = do p <- getPosition
+        n <- pVariable
         pEq T.TEqual
         x <- exp
-        return $ Q.Let n x
+        return $ Q.Let p n x
 
   cletfold
    = do pKeyword T.Fold
+        p <- getPosition
         n <- pVariable
         pEq T.TEqual
         z <- exp
         pEq T.TFollowedBy
         k <- exp
-        return $ Q.LetFold (Q.Fold n z k Q.FoldTypeFoldl1)
+        return $ Q.LetFold p (Q.Fold n z k Q.FoldTypeFoldl1)
 
-exp :: Parser (Q.Exp Var)
+exp :: Parser (Q.Exp T.SourcePos Var)
 exp
- = do   xs <- many1 ((Left <$> exp1) <|> (Right <$> pOperator))
+ = do   xs <- many1 ((Left <$> exp1) <|> op)
         either (parserFail.show) return
                (defix xs)
+ where
+  -- Get the position before reading the operator
+  op = do p <- getPosition
+          o <- pOperator
+          return (Right (o,p))
 
-exp1 :: Parser (Q.Exp Var)
+exp1 :: Parser (Q.Exp T.SourcePos Var)
 exp1
- =   (Q.Var     <$> var)
- <|> (Q.Prim    <$> prims)
- <|> (simpNested<$> parens)
+ =   (Q.Var     <$> getPosition <*> var)
+ <|> (Q.Prim    <$> getPosition <*> prims)
+ <|> (simpNested<$> getPosition <*> parens)
  where
   var
    = pVariable
@@ -96,10 +105,10 @@ exp1
    =  asum (fmap (\(k,q) -> pKeyword k *> return q) primitives)
    <|> ((Q.Lit . Q.LitInt) <$> pLitInt)
 
-  simpNested (Q.Query [] x)
+  simpNested _ (Q.Query [] x)
    = x
-  simpNested q
-   = Q.Nested q
+  simpNested p q
+   = Q.Nested p q
 
   parens
    =   pParenL *> query <* pParenR

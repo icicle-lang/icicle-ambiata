@@ -19,9 +19,9 @@ data DefixError n
  = ErrorNoSuchPrefixOperator          Text
  | ErrorNoSuchInfixOperator           Text
  | ErrorExpectedExpressionGotEnd
- | ErrorExpectedOperatorGotExpression (Q.Exp n)
+ | ErrorExpectedOperatorGotExpression (Q.Exp T.SourcePos n)
  | ErrorBUGPrefixInCrunch
- | ErrorBUGLeftovers [Q.Exp n] [Q.Op]
+ | ErrorBUGLeftovers [Q.Exp T.SourcePos n] [(Q.Op, T.SourcePos)]
  deriving (Show, Eq, Ord)
 
 data Ops
@@ -30,7 +30,7 @@ data Ops
 
  
 -- | Convert from infix operators to ast - "de-infixing"
-defix :: [Either (Q.Exp n) T.Operator] -> Either (DefixError n) (Q.Exp n)
+defix :: [Either (Q.Exp T.SourcePos n) (T.Operator, T.SourcePos)] -> Either (DefixError n) (Q.Exp T.SourcePos n)
 defix inps
  = shuntX [] []
  $ fmap (mapRight get) inps
@@ -39,9 +39,8 @@ defix inps
   -- There can be multiple operators for a given symbol,
   -- but one must be prefix and the other infix.
   -- (ie "-" means negation and subtraction)
-  get (T.Operator sym)
-   = Ops sym
-   $ symbol sym
+  get (T.Operator sym, pos)
+   = (Ops sym $ symbol sym, pos)
 
 
 -- | Shunting-yard algorithm
@@ -63,13 +62,13 @@ defix inps
 -- This is why it is split into two functions - shuntX for expressions of prefixes,
 -- shuntI for infix operators.
 
-shuntX  :: [Q.Exp n]
+shuntX  :: [Q.Exp T.SourcePos n]
         -- ^ The expression stack
-        -> [Q.Op]
+        -> [(Q.Op, T.SourcePos)]
         -- ^ The operators stack - binary operators only
-        -> [Either (Q.Exp n) Ops]
+        -> [Either (Q.Exp T.SourcePos n) (Ops, T.SourcePos)]
         -- ^ The inputs
-        -> Either (DefixError n) (Q.Exp n)
+        -> Either (DefixError n) (Q.Exp T.SourcePos n)
 
 -- Try to grab an expression off the front and proceed with infixes
 shuntX xs os inps
@@ -79,15 +78,15 @@ shuntX xs os inps
 
 -- | Try to grab an expression off the front, return it and the remaining input
 shuntPrefix
-        :: [Either (Q.Exp n) Ops]
-        -> Either (DefixError n) (Q.Exp n, [Either (Q.Exp n) Ops])
+        :: [Either (Q.Exp T.SourcePos n) (Ops, T.SourcePos)]
+        -> Either (DefixError n) (Q.Exp T.SourcePos n, [Either (Q.Exp T.SourcePos n) (Ops, T.SourcePos)])
 
 shuntPrefix []
  = Left $ ErrorExpectedExpressionGotEnd
 
 shuntPrefix (Left x : inps)
  = do   let (xs,inps') = exprs inps
-        let x' = foldl Q.App x xs
+        let x' = foldl Q.mkApp x xs
         return (x', inps')
  where
   exprs (Left a : rs)
@@ -97,23 +96,23 @@ shuntPrefix (Left x : inps)
   exprs rs
    = ([],rs)
 
-shuntPrefix (Right (Ops sym ops) : inps)
+shuntPrefix (Right (Ops sym ops, pos) : inps)
  = case opPrefix ops of
     Just o
      -> do  (x, inps') <- shuntPrefix inps
-            return (Q.Prim (Q.Op o) `Q.App` x, inps')
+            return (Q.Prim pos (Q.Op o) `Q.mkApp` x, inps')
     Nothing
      -> Left $ ErrorNoSuchPrefixOperator sym
 
 
 -- | Shunt an infix operator
-shuntI  :: [Q.Exp n]
+shuntI  :: [Q.Exp T.SourcePos n]
         -- ^ The expression stack
-        -> [Q.Op]
+        -> [(Q.Op, T.SourcePos)]
         -- ^ The operators stack - binary operators only
-        -> [Either (Q.Exp n) Ops]
+        -> [Either (Q.Exp T.SourcePos n) (Ops, T.SourcePos)]
         -- ^ The inputs
-        -> Either (DefixError n) (Q.Exp n)
+        -> Either (DefixError n) (Q.Exp T.SourcePos n)
 shuntI xs os []
  = finish xs os
 
@@ -122,12 +121,12 @@ shuntI _xs _os (Left x : _)
  -- This whole thing is structured incorrectly
  = Left $ ErrorExpectedOperatorGotExpression x
 
-shuntI xs os (Right (Ops sym ops) : inps)
+shuntI xs os (Right (Ops sym ops, pos) : inps)
  -- Just get the infix ones
  = case opInfix ops of
     Just o
      -> do  (xs',os') <- crunchOperator xs os $ fixity o
-            shuntX xs' (o:os') inps
+            shuntX xs' ((o,pos):os') inps
     Nothing
      -> Left $ ErrorNoSuchInfixOperator sym
 
@@ -136,28 +135,28 @@ shuntI xs os (Right (Ops sym ops) : inps)
 -- Depending on the new operator's precedence, we might need to apply
 -- top expressions to the top operator
 crunchOperator
-        :: [Q.Exp n]
+        :: [Q.Exp T.SourcePos n]
         -- ^ The expression stack
-        -> [Q.Op]
+        -> [(Q.Op, T.SourcePos)]
         -- ^ The operators stack
         -> Fixity
         -- ^ Operator we're about to push
-        -> Either (DefixError n) ([Q.Exp n], [Q.Op])
+        -> Either (DefixError n) ([Q.Exp T.SourcePos n], [(Q.Op, T.SourcePos)])
 
 -- If we have two arguments to apply and an operator
-crunchOperator (x:y:xs) (o:os) f
+crunchOperator (x:y:xs) ((o,pos):os) f
  = case (f, fixity o) of
     (FInfix (Infix a1 p1), FInfix (Infix _ p2))
      -- If the precedence is less, apply the arguments.
      -- Note that this is reverse order, since the list is a stack
      | less a1 p1 p2
-     -> let xs' = Q.Prim (Q.Op o) `Q.App` y `Q.App` x : xs
+     -> let xs' = Q.Prim pos (Q.Op o) `Q.mkApp` y `Q.mkApp` x : xs
         -- Check if we need to keep crunching
         in  crunchOperator xs' os f
 
      -- Leave it alone
      | otherwise
-     -> return (x:y:xs, o:os)
+     -> return (x:y:xs, (o,pos):os)
     _
      -> Left $ ErrorBUGPrefixInCrunch
 
@@ -181,16 +180,16 @@ crunchOperator xs os _
  = return (xs,os)
 
 
-finish  :: [Q.Exp n]
+finish  :: [Q.Exp T.SourcePos n]
         -- ^ The expression stack
-        -> [Q.Op]
+        -> [(Q.Op, T.SourcePos)]
         -- ^ The operators stack
-        -> Either (DefixError n) (Q.Exp n)
+        -> Either (DefixError n) (Q.Exp T.SourcePos n)
 finish [x] []
  = return x
 
-finish (x:y:xs) (o:os)
- = finish (Q.Prim (Q.Op o) `Q.App` y `Q.App` x : xs) os
+finish (x:y:xs) ((o,pos):os)
+ = finish (Q.Prim pos (Q.Op o) `Q.mkApp` y `Q.mkApp` x : xs) os
 
 finish xs os
  = Left $ ErrorBUGLeftovers xs os

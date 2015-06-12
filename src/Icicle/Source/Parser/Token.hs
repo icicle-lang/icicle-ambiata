@@ -22,16 +22,16 @@ import                  P
 import                  Text.Parsec
 
 type Parser a
- = Parsec [T.Token] () a
+ = Parsec [T.TOK] () a
 
 type Var = T.Variable
 
 pTok :: (T.Token -> Maybe a) -> Parser a
 pTok p
- = tokenPrim show pos p
+ = tokenPrim show pos (p.fst)
  where
   -- TODO: source positions
-  pos s _ _ = s
+  pos _ (_,sp) _ = sp
 
 
 pSatisfy :: (T.Token -> Bool) -> Parser T.Token

@@ -10,15 +10,15 @@ import                  Icicle.Source.Type
 
 import                  P
 
-data CheckError n
- = ErrorNoSuchVariable n
+data CheckError a n
+ = ErrorNoSuchVariable a n
  | ErrorNoSuchFeature n
- | ErrorReturnNotAggregate (Query n) UniverseType
- | ErrorContextExpNotBool  (Context n)   UniverseType
- | ErrorContextExpNotEnum  (Context n)   UniverseType
- | ErrorContextExpNotElem  (Context n)   UniverseType
+ | ErrorReturnNotAggregate (Query a n) UniverseType
+ | ErrorContextExpNotBool  (Context a n)   UniverseType
+ | ErrorContextExpNotEnum  (Context a n)   UniverseType
+ | ErrorContextExpNotElem  (Context a n)   UniverseType
  | ErrorTypeMismatch   UniverseType UniverseType
- | ErrorApplicationOfNonPrim (Exp n)
- | ErrorPrimBadArgs          (Exp n) [UniverseType]
+ | ErrorApplicationOfNonPrim (Exp a n)
+ | ErrorPrimBadArgs          (Exp a n) [UniverseType]
  deriving (Show, Eq, Ord)
 

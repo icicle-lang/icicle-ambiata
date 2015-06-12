@@ -14,17 +14,15 @@ import                  P
 import                  Data.List (zip, nubBy, groupBy, reverse, take)
 import qualified        Data.Map as Map
 
-data EvalError n
- = EvalErrorWindowWithNoDate BaseValue
- | EvalErrorNoSuchVariable   n
- | EvalErrorOpBadArgs        Op  [BaseValue]
- | EvalErrorAggBadArgs       Agg [Exp n]
+data EvalError a n
+ = EvalErrorWindowWithNoDate a BaseValue
+ | EvalErrorNoSuchVariable   a n
+ | EvalErrorOpBadArgs        a Op  [BaseValue]
+ | EvalErrorAggBadArgs       a Agg [Exp a n]
 
- | EvalErrorExpNeitherSort
- { evalErrorExp          :: Exp n }
+ | EvalErrorExpNeitherSort   a (Exp a n)
 
- | EvalErrorApplicationOfNonPrimitive
- { evalErrorExp          :: Exp n }
+ | EvalErrorApplicationOfNonPrimitive a (Exp a n)
  deriving (Show, Eq, Ord)
 
 type Record n
@@ -32,10 +30,10 @@ type Record n
 
 
 evalQ   :: Ord n
-        => Query n
+        => Query a n
         -> [Record n]
         -> Record n
-        -> Either (EvalError n) BaseValue
+        -> Either (EvalError a n) BaseValue
 evalQ q vs env
  = case contexts q of
     []
@@ -44,16 +42,16 @@ evalQ q vs env
     (c:cs)
      -> let q' = q { contexts = cs }
         in  case c of
-                Windowed _ _
+                Windowed _ _ _
                  -> let vs' = filter window vs
                         window _ = True -- TODO
                     in  evalQ q' vs' env
 
-                Latest i
+                Latest _ i
                  -> let vs' = reverse $ take i $ reverse vs
                     in  evalQ q' vs' env
 
-                GroupBy g
+                GroupBy _ g
                  -> do  gs <- mapM (evalX g []) vs
 
                         let vgs  = gs `zip` vs
@@ -62,7 +60,7 @@ evalQ q vs env
 
                         VArray <$> mapM (\vs' -> evalQ q' vs' env) vvs'
 
-                Distinct g
+                Distinct _ g
                  -> do  gs <- mapM (evalX g []) vs
 
                         let vgs  = gs `zip` vs
@@ -71,14 +69,14 @@ evalQ q vs env
 
                         evalQ q' vs' env
 
-                Filter p
+                Filter _ p
                  -> do  let isTrue (VBool True) = True
                             isTrue _            = False
 
                         vs' <- filterM (\v -> isTrue <$> evalX p [] v) vs
                         evalQ q' vs' env
 
-                LetFold f
+                LetFold _ f
                  | (z:vs') <- vs
                  -> do  z' <- evalX (foldInit f) [] z
                         let ins = Map.insert (foldBind f)
@@ -88,7 +86,7 @@ evalQ q vs env
                  | otherwise
                  -> return VNone
 
-                Let n x
+                Let a n x
                  -> let str = mapM (\v -> Map.insert n <$> evalX x [] v <*> return v) vs
                         agg = Map.insert n <$> evalX x vs env <*> return env
                     in  case (str, agg) of
@@ -99,52 +97,53 @@ evalQ q vs env
                          (_, Right env')
                           ->    evalQ q' vs  env'
                          (Left _, Left _)
-                          -> Left $ EvalErrorExpNeitherSort x
+                          -> Left $ EvalErrorExpNeitherSort a x
 
 
 evalX   :: Ord n
-        => Exp n
+        => Exp a n
         -> [Record n]
         -> Record n
-        -> Either (EvalError n) BaseValue
+        -> Either (EvalError a n) BaseValue
 evalX x vs env
  = case x of
-    Var n
+    Var a n
      | Just v <- Map.lookup n env
      -> return v
      | otherwise
-     -> Left $ EvalErrorNoSuchVariable n
+     -> Left $ EvalErrorNoSuchVariable a n
 
-    Nested q
+    Nested _ q
      -> evalQ q vs env
 
-    App{}
-     | Just (p, xs) <- takePrimApps x
-     -> evalP p xs vs env
+    App a _ _
+     | Just (p, a', xs) <- takePrimApps x
+     -> evalP a' p xs vs env
      | otherwise
-     -> Left $ EvalErrorApplicationOfNonPrimitive x
+     -> Left $ EvalErrorApplicationOfNonPrimitive a x
 
-    Prim p
-     -> evalP p [] vs env
+    Prim a p
+     -> evalP a p [] vs env
 
 
 evalP   :: Ord n
-        => Prim
-        -> [Exp n]
+        => a
+        -> Prim
+        -> [Exp a n]
         -> [Record n]
         -> Record n
-        -> Either (EvalError n) BaseValue
-evalP p xs vs env
+        -> Either (EvalError a n) BaseValue
+evalP ann p xs vs env
  = case p of
     Agg ag
-     -> evalA ag xs vs env
+     -> evalA ann ag xs vs env
 
     Lit (LitInt i)
      -> return (VInt i)
 
     Op o
      -> do  args <- mapM (\x' -> evalX x' vs env) xs
-            let err = Left $ EvalErrorOpBadArgs o args
+            let err = Left $ EvalErrorOpBadArgs ann o args
             case o of
              Div
               | [VInt i, VInt j] <- args
@@ -180,12 +179,13 @@ evalP p xs vs env
 
 
 evalA   :: Ord n
-        => Agg
-        -> [Exp n]
+        => a
+        -> Agg
+        -> [Exp a n]
         -> [Record n]
         -> Record n
-        -> Either (EvalError n) BaseValue
-evalA ag xs vs _env
+        -> Either (EvalError a n) BaseValue
+evalA ann ag xs vs _env
  = case ag of
     Count
      | [] <- xs
@@ -212,5 +212,5 @@ evalA ag xs vs _env
      -> err
 
  where
-  err = Left $ EvalErrorAggBadArgs ag xs
+  err = Left $ EvalErrorAggBadArgs ann ag xs
 
