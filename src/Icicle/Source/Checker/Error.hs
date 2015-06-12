@@ -13,12 +13,12 @@ import                  P
 data CheckError a n
  = ErrorNoSuchVariable a n
  | ErrorNoSuchFeature n
- | ErrorReturnNotAggregate (Query a n) UniverseType
- | ErrorContextExpNotBool  (Context a n)   UniverseType
- | ErrorContextExpNotEnum  (Context a n)   UniverseType
- | ErrorContextExpNotElem  (Context a n)   UniverseType
- | ErrorTypeMismatch   UniverseType UniverseType
- | ErrorApplicationOfNonPrim (Exp a n)
- | ErrorPrimBadArgs          (Exp a n) [UniverseType]
+ | ErrorReturnNotAggregate a (Query a n) UniverseType
+ | ErrorContextExpNotBool  a (Context a n)   UniverseType
+ | ErrorContextExpNotEnum  a (Context a n)   UniverseType
+ | ErrorContextExpNotElem  a (Context a n)   UniverseType
+ | ErrorTypeMismatch       a UniverseType UniverseType
+ | ErrorApplicationOfNonPrim a (Exp a n)
+ | ErrorPrimBadArgs          a (Exp a n) [UniverseType]
  deriving (Show, Eq, Ord)
 

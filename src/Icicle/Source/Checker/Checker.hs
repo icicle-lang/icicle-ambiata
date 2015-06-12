@@ -19,17 +19,18 @@ import qualified        Data.Map as Map
 
 type FeatureMap n = Map.Map n (Map.Map n BaseType)
 type Env        n = Map.Map n UniverseType
-type Result   a n = Either (CheckError a n) UniverseType
+type Result r a n = Either (CheckError a n) (r, UniverseType)
 
 
 checkQT :: Ord n
         => FeatureMap n
         -> QueryTop a n
-        -> Result   a n
+        -> Result (QueryTop (a,UniverseType) n) a n
 checkQT features qt
  = case Map.lookup (feature qt) features of
     Just f
-     -> checkQ (Map.map (UniverseType Elem) f) (query qt)
+     -> do  (q,t) <- checkQ (Map.map (UniverseType Elem) f) (query qt)
+            return (qt { query = q }, t)
     Nothing
      -> Left $ ErrorNoSuchFeature (feature qt)
 
@@ -37,127 +38,155 @@ checkQT features qt
 checkQ  :: Ord      n
         => Env      n
         -> Query  a n
-        -> Result a n
+        -> Result (Query (a,UniverseType) n) a n
 checkQ ctx q
  = case contexts q of
     []
-     -> checkX ctx (final q) >>= requireAggOrGroup
+     -> do  (x,t) <- checkX ctx (final q)
+            requireAggOrGroup (annotOfExp $ final q) t
+            return (Query [] x, t)
     (c:cs)
      -> let q' = q { contexts = cs }
             tq = checkQ ctx q'
 
         in  case c of
-             Windowed _ _ _
+             Windowed ann lo hi
               -- TODO: check that range is valid
-              -> tq
+              -> do (q'',t) <- tq
+                    let c' = Windowed (ann, t) lo hi
+                    return (wrap c' q'', t)
 
-             Latest _ _
-              -> tq >>= wrapAsAgg
+             Latest ann num
+              -> do (q'',t) <- tq
+                    let tA = wrapAsAgg t
+                    let c' = Latest (ann, tA) num
+                    return (wrap c' q'', tA)
 
-             GroupBy _ e
-              -> do te <- checkX ctx e
+             GroupBy ann e
+              -> do (e',te) <- checkX ctx e
                     -- Check that the thing we're grouping by is enum-ish
-                    expIsEnum c te
+                    expIsEnum ann c te
                     -- And contains no aggregates
-                    expIsElem c te
+                    expIsElem ann c te
 
-                    t' <- tq
+                    (q'',t') <- tq
                     -- The group contents must be an aggregate.
                     -- No nested groups
                     when (not $ isAgg $ universe t')
-                     $ Left $ ErrorReturnNotAggregate q' t'
+                     $ Left $ ErrorReturnNotAggregate ann q t'
 
-                    return (UniverseType (Group $ baseType te) (baseType t'))
+                    let t'' = UniverseType (Group $ baseType te) (baseType t')
+                    let c' = GroupBy (ann, t'') e'
+                    return (wrap c' q'', t'')
 
-             Distinct _ e
-              -> do te <- checkX ctx e
-                    expIsEnum c te
-                    expIsElem c te
-                    tq
+             Distinct ann e
+              -> do (e',te) <- checkX ctx e
+                    expIsEnum ann c te
+                    expIsElem ann c te
+                    (q'', t') <- tq
+                    let c' = Distinct (ann, t') e'
+                    return (wrap c' q'', t')
 
-             Filter   _ e
-              -> do te <- checkX ctx e
-                    expIsBool c te
-                    expIsElem c te
-                    tq
+             Filter   ann e
+              -> do (e', te) <- checkX ctx e
+                    expIsBool ann c te
+                    expIsElem ann c te
+                    (q'', t') <- tq
+                    let c' = Filter (ann, t') e'
+                    return (wrap c' q'', t')
 
-             LetFold _ f
-              -> do ti <- checkX ctx  $ foldInit f
-                    expIsElem c ti
+             LetFold ann f
+              -> do (init',ti) <- checkX ctx  $ foldInit f
+                    expIsElem ann c ti
                     let ctx' = Map.insert (foldBind f) ti ctx
-                    tw <- checkX ctx' $ foldWork f
+                    (work',tw) <- checkX ctx' $ foldWork f
 
                     when (ti /= tw)
-                      $ Left $ ErrorTypeMismatch ti tw
+                      $ Left $ ErrorTypeMismatch ann ti tw
 
-                    expIsElem c tw
+                    expIsElem ann c tw
 
                     let ctx'' = Map.insert (foldBind f) (UniverseType AggU $ baseType ti) ctx
-                    t' <- checkQ ctx'' q'
-                    return (t' { baseType = T.OptionT $ baseType t' })
+                    (q'',t') <- checkQ ctx'' q'
+
+                    let t'' = t' { baseType = T.OptionT $ baseType t' }
+                    let c'  = LetFold (ann,t'') (f { foldInit = init', foldWork = work' })
+                    return (wrap c' q'', t'')
 
 
-             Let _ n e
-              -> do te <- checkX ctx e
+             Let ann n e
+              -> do (e',te) <- checkX ctx e
                     let ctx' = Map.insert n te ctx
-                    checkQ ctx' q'
+                    (q'',t') <- checkQ ctx' q'
+                    let c'   = Let (ann,t') n e'
+                    return (wrap c' q'', t')
 
  where
-  expIsBool c te
+  expIsBool ann c te
    | T.BoolT <- baseType te
    = return ()
    | otherwise
-   = Left $ ErrorContextExpNotBool c te
+   = Left $ ErrorContextExpNotBool ann c te
 
-  expIsEnum c te
+  expIsEnum ann c te
    = when (not $ isEnum $ baseType te)
-         $ Left $ ErrorContextExpNotEnum c te
+         $ Left $ ErrorContextExpNotEnum ann c te
 
-  expIsElem c te
+  expIsElem ann c te
    = when (not $ isPureOrElem $ universe te)
-         $ Left $ ErrorContextExpNotElem c te
+         $ Left $ ErrorContextExpNotElem ann c te
 
-  requireAggOrGroup t
-   | isPureOrElem $ universe t
-   = Left $ ErrorReturnNotAggregate q t
-   | otherwise
-   = return t
+  requireAggOrGroup ann t
+   = when (isPureOrElem $ universe t)
+         $ Left $ ErrorReturnNotAggregate ann q t
 
   wrapAsAgg t
    | isPureOrElem $ universe t
-   = return (UniverseType AggU $ T.ArrayT $ baseType t)
+   = UniverseType AggU $ T.ArrayT $ baseType t
    | otherwise
-   = return t
+   = t
+
+  wrap cc qq
+   = qq { contexts = cc : contexts qq }
 
 
 checkX  :: Ord      n
         => Env      n
         -> Exp    a n
-        -> Result a n
+        -> Result (Exp (a,UniverseType) n) a n
 checkX ctx x
- | Just (prim, _, args) <- takePrimApps x
- = do ts <- mapM (checkX ctx) args
-      checkP x prim ts
+ | Just (prim, ann, args) <- takePrimApps x
+ = do xts <- mapM (checkX ctx) args
+      let xs = fmap fst xts
+      let ts = fmap snd xts
+      (_,t') <- checkP x prim ts
+      -- Here we are annotating the primitive with its result type
+      -- instead of the actual function type.
+      let x' = foldl mkApp (Prim (ann,t') prim) xs
+      return (x', t')
+
  | otherwise
  = case x of
-    Var a n
-     -> maybe (Left $ ErrorNoSuchVariable a n) (return)
+    Var ann n
+     -> maybe (Left $ ErrorNoSuchVariable ann n) (\t -> return (Var (ann,t) n, t))
               (Map.lookup n ctx)
-    Nested _ q
-     -> checkQ ctx q
+    Nested ann q
+     -> do (q',t') <- checkQ ctx q
+           return (Nested (ann,t') q', t')
 
-    Prim _ p
-     -> checkP x p []
+    Prim ann p
+     -> do (_,t') <- checkP x p []
+           return (Prim (ann,t') p, t')
 
-    App{}
-     -> Left $ ErrorApplicationOfNonPrim x
+    App a _ _
+     -> Left $ ErrorApplicationOfNonPrim a x
 
 
 checkP  :: Ord      n
         => Exp    a n
         -> Prim
         -> [UniverseType]
-        -> Result a n
+        -> Result () a n
 checkP x p args
  = case p of
     Op o
@@ -169,32 +198,32 @@ checkP x p args
     Agg a
      | Count <- a
      , [] <- args
-     -> return $ UniverseType AggU T.IntT
+     -> return ((), UniverseType AggU T.IntT)
      | Newest <- a
      , [t] <- args
      , canCast (universe t) Elem
-     -> return $ UniverseType AggU (T.OptionT $ baseType t)
+     -> return ((), UniverseType AggU (T.OptionT $ baseType t))
      | Oldest <- a
      , [t] <- args
      , canCast (universe t) Elem
-     -> return $ UniverseType AggU (T.OptionT $ baseType t)
+     -> return ((), UniverseType AggU (T.OptionT $ baseType t))
 
      | otherwise
      -> err
 
     Lit (LitInt _)
      | [] <- args
-     -> return $ UniverseType Pure T.IntT
+     -> return ((), UniverseType Pure T.IntT)
      | otherwise
      -> err
  where
-  err = Left $ ErrorPrimBadArgs x args
+  err = Left $ ErrorPrimBadArgs (annotOfExp x) x args
 
   unary
    | [t] <- args
    , baseType t == T.IntT
    , notGroup $ universe t
-   = return t
+   = return ((), t)
    | otherwise
    = err
 
@@ -204,7 +233,7 @@ checkP x p args
    , baseType b == T.IntT
    , Just u <- maxOf (universe a) (universe b)
    , notGroup u
-   = return $ UniverseType u T.IntT
+   = return ((), UniverseType u T.IntT)
    | otherwise
    = err
 
