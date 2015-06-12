@@ -83,6 +83,7 @@ library
                        Icicle.Common.Type
                        Icicle.Common.Value
 
+                       Icicle.Core
                        Icicle.Core.Exp.Exp
                        Icicle.Core.Exp.Prim
                        Icicle.Core.Exp.Combinators
