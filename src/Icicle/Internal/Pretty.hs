@@ -21,6 +21,7 @@ import              Text.PrettyPrint.Leijen as PJOIN
 import              P
 
 import              Data.Text               as T
+import              Data.String (IsString(..))
 
 instance Monoid Doc where
  mempty  =  PJOIN.empty
@@ -29,3 +30,8 @@ instance Monoid Doc where
 -- We also need to be able to pretty Data.Text...
 instance Pretty Text where
  pretty t = text (T.unpack t)
+
+-- String literals are nice to have.
+instance IsString Doc where
+ fromString = text
+

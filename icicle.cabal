@@ -14,7 +14,6 @@ library
   build-depends:
                        base                            >= 3          && < 5
                      , aeson                           == 0.8.*
-                     , attoparsec                      == 0.12.*
                      , bifunctors                      == 4.2.*
                      , bytestring                      == 0.10.*
                      , containers                      == 0.5.*
@@ -29,6 +28,16 @@ library
                      , unordered-containers            == 0.2.*
                      , vector                          == 0.10.*
                      , wl-pprint                       == 1.2.*
+
+                     -- Well, it might look very odd that we're using both attoparsec
+                     -- and parsec.
+                     -- The thing is, attoparsec only operates on raw strings, and our source parser
+                     -- for Icicle should operate over tokens.
+                     -- Going over tokens instead of strings simplifies the parser itself and makes everything
+                     -- a bit cleaner.
+                     -- As an added benefit, parsec will give us nicer error messages.
+                     , attoparsec                      == 0.12.*
+                     ,     parsec                      == 3.1.*
 
 
   ghc-options:
@@ -74,6 +83,7 @@ library
                        Icicle.Common.Type
                        Icicle.Common.Value
 
+                       Icicle.Core
                        Icicle.Core.Exp.Exp
                        Icicle.Core.Exp.Prim
                        Icicle.Core.Exp.Combinators
@@ -105,6 +115,24 @@ library
                        Icicle.Internal.Pretty
                        Icicle.Serial
                        Icicle.Simulator
+
+                       Icicle.Source.Eval
+                       Icicle.Source.Query
+                       Icicle.Source.Query.Query
+                       Icicle.Source.Query.Context
+                       Icicle.Source.Query.Exp
+                       Icicle.Source.Query.Operators
+                       Icicle.Source.Lexer.Token
+                       Icicle.Source.Lexer.Lexer
+
+                       Icicle.Source.Parser
+                       Icicle.Source.Parser.Token
+                       Icicle.Source.Parser.Operators
+                       Icicle.Source.Parser.Parser
+
+                       Icicle.Source.Type
+                       Icicle.Source.Checker.Checker
+                       Icicle.Source.Checker.Error
 
 executable             icicle
     ghc-options:       -Wall -threaded -O2
