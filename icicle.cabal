@@ -137,6 +137,8 @@ library
                        Icicle.Source.ToCore.Base
                        Icicle.Source.ToCore.ToCore
 
+                       Icicle.Repl
+
 executable             icicle
     ghc-options:       -Wall -threaded -O2
     main-is:           main/icicle.hs
