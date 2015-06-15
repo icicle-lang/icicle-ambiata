@@ -27,9 +27,12 @@ import qualified        Icicle.Common.Type as T
 import                  Icicle.Common.Fresh
 import                  Icicle.Common.Base
 
+import qualified        Icicle.Common.Exp.Prim.Minimal as Min
+
 import                  P
 
 import                  Control.Monad.Trans.Class
+import                  Data.List (zip, unzip)
 
 
 type Nm = Name Variable
@@ -127,30 +130,31 @@ convertReduce n t xx
  = case (p, args) of
     (Agg Count, [])
      -> mkFold T.IntT (\na _nv -> na CE.+~ CE.constI 1) (CE.constI 0)
-
-    (Lit (LitInt i), [])
-     -> freshly $ flip pre $ CE.constI i
-
-    (Op Add, [x,y])
-     -> do  (b1,n1) <- convertReduce n t x
-            (b2,n2) <- convertReduce n t y
-            let comp | Pure <- universe ty
-                     = pre
-                     | otherwise
-                     = post
-
-            let xx'  = CE.XVar n1 CE.+~ CE.XVar n2
-            (b',n') <- freshly $ flip comp xx'
-
-            return (b1 <> b2 <> b', n')
+    (Agg SumA, [])
+     -> mkFold T.IntT (\na nv -> na CE.+~ nv) (CE.constI 0)
 
 
-    --(Newest, [x])
+    --(Agg Newest, [x])
     -- ->
-    --(Oldest, [x])
+    --(Agg Oldest, [x])
     -- ->
+
     _
-     -> lift $ Left ConvertErrorTODO
+     -> do  (bs,nms) <- unzip <$> mapM (convertReduce n t) args
+            let tys  = fmap (baseType . snd . annotOfExp) args
+            let xs   = fmap  CE.XVar           nms
+            x' <- convertPrim p (baseType ty) (xs `zip` tys)
+
+            nm  <- fresh
+
+            let bs'  = mconcat bs
+            let b''  | Pure <- universe ty
+                     = pre nm x'
+                     | otherwise
+                     = post nm x'
+
+            return (bs' <> b'', nm)
+
 
  | Nested _ q <- xx
  = convertQuery n t q
@@ -174,13 +178,59 @@ convertExp nElem t x
  | Var _ (Variable "value") <- x
  = return (CE.XVar nElem)
 
- | Just (p, _, args) <- takePrimApps x
- , Op Add <- p
- = do   [x',y'] <- mapM (convertExp nElem t) args
-        return (x' CE.+~ y')
+ | Just (p, (_,retty), args) <- takePrimApps x
+ = do   args'   <- mapM (convertExp nElem t) args
+        let tys  = fmap (baseType . snd . annotOfExp) args
+        convertPrim p (baseType retty) (args' `zip` tys)
 
  | otherwise
  = lift $ Left ConvertErrorTODO
+
+
+convertPrim
+        :: Prim -> T.ValType
+        -> [(C.Exp Variable, T.ValType)]
+        -> ConvertM Variable (C.Exp Variable)
+convertPrim p _ xts
+ = do   p' <- go p
+        return $ CE.makeApps p' xs
+ where
+
+  go (Op o)
+   = (CE.XPrim . C.PrimMinimal) <$> goop o
+  go (Lit (LitInt i))
+   = return $ CE.constI i
+  go _
+   = lift $ Left ConvertErrorTODO
+
+  goop Add
+   = return $ Min.PrimArith Min.PrimArithPlus
+  goop Sub
+   = return $ Min.PrimArith Min.PrimArithMinus
+  goop Div
+   = return $ Min.PrimArith Min.PrimArithDiv
+  goop Gt
+   = Min.PrimRelation Min.PrimRelationGt <$> t1
+  goop Ge
+   = Min.PrimRelation Min.PrimRelationGe <$> t1
+  goop Lt
+   = Min.PrimRelation Min.PrimRelationLt <$> t1
+  goop Le
+   = Min.PrimRelation Min.PrimRelationLe <$> t1
+  goop Eq
+   = Min.PrimRelation Min.PrimRelationEq <$> t1
+  goop Ne
+   = Min.PrimRelation Min.PrimRelationNe <$> t1
+  goop _
+   = lift $ Left ConvertErrorTODO
+
+
+  t1
+   = case xts of
+      ((_,tt):_) -> return tt
+      []         -> lift $ Left ConvertErrorTODO
+
+  xs = fmap fst xts
 
 
 

@@ -192,7 +192,7 @@ instance Pretty Agg where
  pretty Count   = "count"
  pretty Newest  = "newest"
  pretty Oldest  = "oldest"
- pretty SumA    = "count"
+ pretty SumA    = "sum"
 
 instance Pretty Lit where
  pretty (LitInt i) = text $ show i
