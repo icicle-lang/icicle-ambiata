@@ -9,13 +9,18 @@ module Icicle.Source.ToCore.Base (
   , freshly
   ) where
 
-import qualified        Icicle.Core as C
+import qualified        Icicle.Core             as C
 import                  Icicle.Common.Fresh
 import                  Icicle.Common.Base
 import                  Icicle.Common.Type
-import                  Icicle.Common.Exp
+import qualified        Icicle.Common.Exp       as X
+
+import                  Icicle.Source.Query
+import                  Icicle.Source.Type
 
 import                  P
+
+import                  Data.String (String)
 
 data CoreBinds n
  = CoreBinds
@@ -38,7 +43,7 @@ programOfBinds inpType binds ret
  , C.reduces    = reduces   binds
  , C.postcomps  = postcomps binds
  , C.postdate   = Nothing
- , C.returns    = XVar ret
+ , C.returns    = X.XVar ret
  }
 
 instance Monoid (CoreBinds n) where
@@ -61,14 +66,21 @@ post n x = mempty { postcomps = [(n,x)] }
 
 
 
-data ConvertError n
- = ConvertErrorTODO
+data ConvertError a n
+ = ConvertErrorTODO a String
+ | ConvertErrorPrimAggregateNotAllowedHere a Agg
+ | ConvertErrorPrimNoArguments a Int Prim
+ | ConvertErrorGroupByHasNonGroupResult a UniverseType
+ | ConvertErrorExpNoSuchVariable a n
+ | ConvertErrorExpNestedQueryNotAllowedHere a (Query (a,UniverseType) n)
+ | ConvertErrorExpApplicationOfNonPrimitive a (Exp (a,UniverseType) n)
  deriving (Show, Eq, Ord)
 
-type ConvertM n a
- = FreshT n (Either (ConvertError n)) a
 
-freshly :: (Name n -> a) -> ConvertM n (a, Name n)
+type ConvertM a n r
+ = FreshT n (Either (ConvertError a n)) r
+
+freshly :: (Name n -> r) -> ConvertM a n (r, Name n)
 freshly f
  = do   n' <- fresh
         return (f n', n')

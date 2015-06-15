@@ -136,6 +136,7 @@ library
 
                        Icicle.Source.ToCore.Base
                        Icicle.Source.ToCore.ToCore
+                       Icicle.Source.ToCore.Prim
 
                        Icicle.Repl
 

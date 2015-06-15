@@ -12,6 +12,7 @@ module Icicle.Source.ToCore.ToCore (
 
 import                  Icicle.Source.Query
 import                  Icicle.Source.ToCore.Base
+import                  Icicle.Source.ToCore.Prim
 import                  Icicle.Source.Type
 
 -- TODO: this should not really rely on a specific name type,
@@ -27,7 +28,6 @@ import qualified        Icicle.Common.Type as T
 import                  Icicle.Common.Fresh
 import                  Icicle.Common.Base
 
-import qualified        Icicle.Common.Exp.Prim.Minimal as Min
 
 import                  P
 
@@ -39,7 +39,7 @@ type Nm = Name Variable
 
 convertQueryTop
         :: QueryTop (a,UniverseType) Variable
-        -> ConvertM Variable (C.Program Variable)
+        -> ConvertM a Variable (C.Program Variable)
 convertQueryTop qt
  = do   inp <- fresh
         -- TODO: look this up in context
@@ -53,7 +53,7 @@ convertQueryTop qt
 convertQuery
         :: Nm -> T.ValType
         -> Query (a,UniverseType) Variable
-        -> ConvertM Variable (CoreBinds Variable, Nm)
+        -> ConvertM a Variable (CoreBinds Variable, Nm)
 convertQuery n nt q
  = case contexts q of
     []
@@ -66,22 +66,23 @@ convertQuery n nt q
             let bs'  = strm n' (C.SourceWindowedDays days) <> bs
             return (bs', b)
     -- TODO: support other ranges
-    (Windowed _ _ _ : _)
-     -> lift $ Left ConvertErrorTODO
+    (Windowed (ann,_) _ _ : _)
+     -> lift $ Left $ ConvertErrorTODO ann "support window ranges"
 
-    (Latest _ i : _)
+    (Latest (ann,_) i : _)
      -> do  n'      <- fresh
-            (bs, b) <- convertArray n' nt q'
+            (bs, b) <- convertArray ann n' nt q'
             let bs'  = red n' (C.RLatest nt (CE.constI i) n) <> bs
             return (bs', b)
 
-    (GroupBy (_,UniverseType (Group t1) t2) e : _)
-     -> do  n'      <- fresh
+    (GroupBy (ann,retty) e : _)
+     -> do  (t1,t2) <- getGroupByMapType ann retty
+            n'      <- fresh
             nmap    <- fresh
             nval    <- fresh
      
-            (f,z)   <- convertGroupBy nval nt q'
-            e'      <- convertExp     nval nt e
+            (f,z)   <- convertGroupBy ann nval nt q'
+            e'      <- convertExp         nval nt e
 
             let mapt = T.MapT t1 t2
 
@@ -113,18 +114,30 @@ convertQuery n nt q
 
 
     -- TODO: distinct, let, let fold
-    _
-     -> lift $ Left ConvertErrorTODO
+    (Distinct (ann,_) _ : _)
+     -> lift $ Left $ ConvertErrorTODO ann "convertQuery.Distinct"
+    (Let (ann,_) _ _ : _)
+     -> lift $ Left $ ConvertErrorTODO ann "convertQuery.Let"
+    (LetFold (ann,_) _ : _)
+     -> lift $ Left $ ConvertErrorTODO ann "convertQuery.LetFold"
 
         
  where
   q' = q { contexts = drop 1 $ contexts q }
 
+  getGroupByMapType ann ty
+   | UniverseType (Group t1) t2         <- ty
+   = return (t1, t2)
+   | UniverseType AggU (T.MapT t1 t2)   <- ty
+   = return (t1, t2)
+   | otherwise
+   = lift $ Left $ ConvertErrorGroupByHasNonGroupResult ann ty
+
 
 convertReduce
         :: Nm   -> T.ValType
         -> Exp (a,UniverseType) Variable
-        -> ConvertM Variable (CoreBinds Variable, Nm)
+        -> ConvertM a Variable (CoreBinds Variable, Nm)
 convertReduce n t xx
  | Just (p, (_,ty), args) <- takePrimApps xx
  = case (p, args) of
@@ -143,7 +156,7 @@ convertReduce n t xx
      -> do  (bs,nms) <- unzip <$> mapM (convertReduce n t) args
             let tys  = fmap (baseType . snd . annotOfExp) args
             let xs   = fmap  CE.XVar           nms
-            x' <- convertPrim p (baseType ty) (xs `zip` tys)
+            x' <- convertPrim p (fst $ annotOfExp xx) (baseType ty) (xs `zip` tys)
 
             nm  <- fresh
 
@@ -159,7 +172,7 @@ convertReduce n t xx
  | Nested _ q <- xx
  = convertQuery n t q
  | otherwise
- = lift $ Left ConvertErrorTODO
+ = lift $ Left $ ConvertErrorTODO (fst $ annotOfExp xx) "convertReduce"
 
  where
   mkFold ta k z
@@ -173,80 +186,50 @@ convertReduce n t xx
 convertExp
         :: Nm   -> T.ValType
         -> Exp (a,UniverseType) Variable
-        -> ConvertM Variable (C.Exp Variable)
+        -> ConvertM a Variable (C.Exp Variable)
 convertExp nElem t x
  | Var _ (Variable "value") <- x
  = return (CE.XVar nElem)
 
- | Just (p, (_,retty), args) <- takePrimApps x
+ | Just (p, (ann,retty), args) <- takePrimApps x
  = do   args'   <- mapM (convertExp nElem t) args
         let tys  = fmap (baseType . snd . annotOfExp) args
-        convertPrim p (baseType retty) (args' `zip` tys)
+        convertPrim p ann (baseType retty) (args' `zip` tys)
+
+ | Nested _ (Query [] x') <- x
+ = convertExp nElem t x'
 
  | otherwise
- = lift $ Left ConvertErrorTODO
-
-
-convertPrim
-        :: Prim -> T.ValType
-        -> [(C.Exp Variable, T.ValType)]
-        -> ConvertM Variable (C.Exp Variable)
-convertPrim p _ xts
- = do   p' <- go p
-        return $ CE.makeApps p' xs
- where
-
-  go (Op o)
-   = (CE.XPrim . C.PrimMinimal) <$> goop o
-  go (Lit (LitInt i))
-   = return $ CE.constI i
-  go _
-   = lift $ Left ConvertErrorTODO
-
-  goop Add
-   = return $ Min.PrimArith Min.PrimArithPlus
-  goop Sub
-   = return $ Min.PrimArith Min.PrimArithMinus
-  goop Div
-   = return $ Min.PrimArith Min.PrimArithDiv
-  goop Gt
-   = Min.PrimRelation Min.PrimRelationGt <$> t1
-  goop Ge
-   = Min.PrimRelation Min.PrimRelationGe <$> t1
-  goop Lt
-   = Min.PrimRelation Min.PrimRelationLt <$> t1
-  goop Le
-   = Min.PrimRelation Min.PrimRelationLe <$> t1
-  goop Eq
-   = Min.PrimRelation Min.PrimRelationEq <$> t1
-  goop Ne
-   = Min.PrimRelation Min.PrimRelationNe <$> t1
-  goop _
-   = lift $ Left ConvertErrorTODO
-
-
-  t1
-   = case xts of
-      ((_,tt):_) -> return tt
-      []         -> lift $ Left ConvertErrorTODO
-
-  xs = fmap fst xts
-
+ = case x of
+    Var (ann,_) n
+     -> lift
+      $ Left
+      $ ConvertErrorExpNoSuchVariable ann n
+    Nested (ann,_) q
+     -> lift
+      $ Left
+      $ ConvertErrorExpNestedQueryNotAllowedHere ann q
+    App (ann,_) _ _
+     -> lift
+      $ Left
+      $ ConvertErrorExpApplicationOfNonPrimitive ann x
+    Prim (ann,retty) p
+     -> convertPrim p ann (baseType retty) []
 
 
 convertArray
-        :: Nm   -> T.ValType
+        :: a -> Nm -> T.ValType
         -> Query (a,UniverseType) Variable
-        -> ConvertM Variable (CoreBinds Variable, Nm)
-convertArray _n _t _q
- = lift $ Left ConvertErrorTODO
+        -> ConvertM a Variable (CoreBinds Variable, Nm)
+convertArray ann _n _t _q
+ = lift $ Left $ ConvertErrorTODO ann "convertArray"
 
 
 convertGroupBy
-        :: Nm   -> T.ValType
+        :: a -> Nm -> T.ValType
         -> Query (a,UniverseType) Variable
-        -> ConvertM Variable (C.Exp Variable, C.Exp Variable)
-convertGroupBy _nElem _t _q
- = lift $ Left ConvertErrorTODO
+        -> ConvertM a Variable (C.Exp Variable, C.Exp Variable)
+convertGroupBy ann _nElem _t _q
+ = lift $ Left $ ConvertErrorTODO ann "convertGroupBy"
 
 

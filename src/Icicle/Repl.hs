@@ -32,8 +32,8 @@ import qualified        Data.Text as T
 
 data ReplError
  = ReplErrorParseError SP.ParseError
- | ReplErrorCheckError (SC.CheckError SP.SourcePos Var)
- | ReplErrorConvertError (STC.ConvertError Var)
+ | ReplErrorCheckError   (SC.CheckError SP.SourcePos Var)
+ | ReplErrorConvertError (STC.ConvertError SP.SourcePos Var)
  deriving (Show)
 
 type Var        = SP.Variable
