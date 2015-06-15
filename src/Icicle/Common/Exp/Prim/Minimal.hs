@@ -32,6 +32,8 @@ data PrimArith
  = PrimArithPlus
  | PrimArithMinus
  | PrimArithDiv
+ | PrimArithMul
+ | PrimArithNegate
  deriving (Eq, Ord, Show)
 
 -- | Predicates like >=
@@ -68,7 +70,9 @@ data PrimDateTime
 typeOfPrim :: Prim -> Type
 typeOfPrim p
  = case p of
-    -- All arithmetics are int to int for now
+    -- All arithmetics are working on ints for now
+    PrimArith PrimArithNegate
+     -> FunT [intT] IntT
     PrimArith _
      -> FunT [intT, intT] IntT
 
@@ -102,6 +106,8 @@ instance Pretty Prim where
  pretty (PrimArith PrimArithPlus)       = text  "add#"
  pretty (PrimArith PrimArithMinus)      = text  "sub#"
  pretty (PrimArith PrimArithDiv)        = text  "div#"
+ pretty (PrimArith PrimArithMul)        = text  "mul#"
+ pretty (PrimArith PrimArithNegate)     = text  "negate#"
 
  pretty (PrimRelation rel t)
   = text prel <+> brackets (pretty t)

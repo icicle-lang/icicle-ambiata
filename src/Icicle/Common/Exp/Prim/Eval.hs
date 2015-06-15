@@ -46,6 +46,19 @@ evalPrim p originalP vs
       | otherwise
       -> primError
 
+     PrimArith PrimArithMul
+      | [VBase (VInt i), VBase (VInt j)] <- vs
+      -> return $ VBase $ VInt $ i * j
+      | otherwise
+      -> primError
+
+     PrimArith PrimArithNegate
+      | [VBase (VInt i)] <- vs
+      -> return $ VBase $ VInt $ negate i
+      | otherwise
+      -> primError
+
+
 
      PrimRelation rel _
       -- It is safe to assume they are of the same value type
