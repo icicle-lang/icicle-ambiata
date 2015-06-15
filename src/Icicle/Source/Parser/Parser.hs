@@ -15,27 +15,27 @@ import qualified        Icicle.Source.Query        as Q
 
 import                  P hiding (exp)
 
-import                  Text.Parsec (many1, parserFail, getPosition)
+import                  Text.Parsec (many1, parserFail, getPosition, (<?>))
 
 top :: Parser (Q.QueryTop T.SourcePos Var)
 top
- = do   pKeyword T.Feature
-        v <- pVariable
+ = do   pKeyword T.Feature                                  <?> "feature start"
+        v <- pVariable                                      <?> "concrete feature name"
         pFlowsInto
-        q <- query
+        q <- query                                          <?> "query"
         return $ Q.QueryTop v q
 
 
 query :: Parser (Q.Query T.SourcePos Var)
 query
- = do   cs <- many context
-        x  <- exp
+ = do   cs <- many context                                  <?> "contexts"
+        x  <- exp                                           <?> "expression"
         return $ Q.Query cs x
 
 
 context :: Parser (Q.Context T.SourcePos Var)
 context
- = do   c <- context1
+ = do   c <- context1                                       <?> "context"
         pFlowsInto
         return c
  where
@@ -65,24 +65,24 @@ context
 
   clet
    = do p <- getPosition
-        n <- pVariable
+        n <- pVariable                                      <?> "binding name"
         pEq T.TEqual
-        x <- exp
+        x <- exp                                            <?> "let definition expression"
         return $ Q.Let p n x
 
   cletfold
-   = do pKeyword T.Fold
+   = do pKeyword T.Fold                                     <?> "let fold"
         p <- getPosition
         n <- pVariable
         pEq T.TEqual
-        z <- exp
-        pEq T.TFollowedBy
-        k <- exp
+        z <- exp                                            <?> "initial value"
+        pEq T.TFollowedBy                                   <?> "colon (:)"
+        k <- exp                                            <?> "fold expression"
         return $ Q.LetFold p (Q.Fold n z k Q.FoldTypeFoldl1)
 
 exp :: Parser (Q.Exp T.SourcePos Var)
 exp
- = do   xs <- many1 ((Left <$> exp1) <|> op)
+ = do   xs <- many1 ((Left <$> exp1) <|> op)                <?> "expression"
         either (parserFail.show) return
                (defix xs)
  where
@@ -96,6 +96,7 @@ exp1
  =   (Q.Var     <$> getPosition <*> var)
  <|> (Q.Prim    <$> getPosition <*> prims)
  <|> (simpNested<$> getPosition <*> parens)
+ <?> "expression"
  where
   var
    = pVariable
@@ -104,6 +105,7 @@ exp1
   prims
    =  asum (fmap (\(k,q) -> pKeyword k *> return q) primitives)
    <|> ((Q.Lit . Q.LitInt) <$> pLitInt)
+   <?> "primitive"
 
   simpNested _ (Q.Query [] x)
    = x
@@ -111,12 +113,12 @@ exp1
    = Q.Nested p q
 
   parens
-   =   pParenL *> query <* pParenR
+   =   pParenL *> query <* pParenR                          <?> "sub-expression or nested query"
 
 
 windowUnit :: Parser Q.WindowUnit
 windowUnit
- = do   i <- pLitInt
+ = do   i <- pLitInt                                        <?> "window amount"
         unit T.Days (Q.Days i) <|> unit T.Months (Q.Months i) <|> unit T.Weeks (Q.Weeks i)
  where
   unit kw q
