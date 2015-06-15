@@ -72,7 +72,7 @@ data Agg
  = Count
  -- | Max
  -- | Average
- -- | Sum
+ | SumA
  | Newest
  | Oldest
  deriving (Show, Eq, Ord)
@@ -192,6 +192,7 @@ instance Pretty Agg where
  pretty Count   = "count"
  pretty Newest  = "newest"
  pretty Oldest  = "oldest"
+ pretty SumA    = "count"
 
 instance Pretty Lit where
  pretty (LitInt i) = text $ show i

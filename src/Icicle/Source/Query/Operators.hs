@@ -26,6 +26,13 @@ data Op
  | Add
  | Sub
  | Negate
+
+ | Lt
+ | Le
+ | Gt
+ | Ge
+ | Eq
+ | Ne
  deriving (Show, Eq, Ord)
 
 data Fixity
@@ -52,6 +59,13 @@ fixity o
     Negate
         -> FPrefix
 
+    Lt  -> FInfix $ Infix AssocLeft 4
+    Le  -> FInfix $ Infix AssocLeft 4
+    Gt  -> FInfix $ Infix AssocLeft 4
+    Ge  -> FInfix $ Infix AssocLeft 4
+    Eq  -> FInfix $ Infix AssocLeft 4
+    Ne  -> FInfix $ Infix AssocLeft 4
+
 
 data OpsOfSymbol
  = OpsOfSymbol
@@ -67,6 +81,13 @@ symbol s
     "*" -> inf Mul
     "+" -> inf Add
     "-" -> OpsOfSymbol (Just Sub) (Just Negate)
+
+    ">" -> inf Gt
+    ">="-> inf Ge
+    "<" -> inf Lt
+    "<="-> inf Le
+    "=="-> inf Eq
+    "/="-> inf Ne
 
     _   -> OpsOfSymbol  Nothing    Nothing
  where
@@ -96,4 +117,11 @@ instance Pretty Op where
  pretty Add = "+"
  pretty Sub = "-"
  pretty Negate = "-"
+
+ pretty Lt  = "<"
+ pretty Le  = "<="
+ pretty Gt  = ">"
+ pretty Ge  = ">="
+ pretty Eq  = "=="
+ pretty Ne  = "/="
 

@@ -193,11 +193,16 @@ checkP x p args
      | Negate <- o
      -> unary
      | otherwise
-     -> binary
+     -> binary o
 
     Agg a
      | Count <- a
      , [] <- args
+     -> return ((), UniverseType AggU T.IntT)
+     | SumA <- a
+     , [t] <- args
+     , canCast (universe t) Elem
+     , baseType t == T.IntT
      -> return ((), UniverseType AggU T.IntT)
      | Newest <- a
      , [t] <- args
@@ -227,15 +232,25 @@ checkP x p args
    | otherwise
    = err
 
-  binary
+  binary o
    | [a, b] <- args
    , baseType a == T.IntT
    , baseType b == T.IntT
    , Just u <- maxOf (universe a) (universe b)
    , notGroup u
-   = return ((), UniverseType u T.IntT)
+   = return ((), UniverseType u $ returnType o)
    | otherwise
    = err
+
+  returnType o
+   = case o of
+     Gt -> T.BoolT
+     Ge -> T.BoolT
+     Lt -> T.BoolT
+     Le -> T.BoolT
+     Eq -> T.BoolT
+     Ne -> T.BoolT
+     _  -> T.IntT
 
   maxOf a b
    | canCast a b

@@ -128,5 +128,6 @@ primitives
  = [(T.Newest, Q.Agg Q.Newest)
    ,(T.Count,  Q.Agg Q.Count)
    ,(T.Oldest, Q.Agg Q.Oldest)
+   ,(T.Sum,    Q.Agg Q.SumA)
    ]
 
