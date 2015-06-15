@@ -74,6 +74,7 @@ data ConvertError a n
  | ConvertErrorExpNoSuchVariable a n
  | ConvertErrorExpNestedQueryNotAllowedHere a (Query (a,UniverseType) n)
  | ConvertErrorExpApplicationOfNonPrimitive a (Exp (a,UniverseType) n)
+ | ConvertErrorReduceAggregateBadArguments a (Exp (a,UniverseType) n)
  deriving (Show, Eq, Ord)
 
 

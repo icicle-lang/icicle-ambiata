@@ -140,11 +140,20 @@ convertReduce
         -> ConvertM a Variable (CoreBinds Variable, Nm)
 convertReduce n t xx
  | Just (p, (_,ty), args) <- takePrimApps xx
- = case (p, args) of
-    (Agg Count, [])
-     -> mkFold T.IntT (\na _nv -> na CE.+~ CE.constI 1) (CE.constI 0)
-    (Agg SumA, [])
-     -> mkFold T.IntT (\na nv -> na CE.+~ nv) (CE.constI 0)
+ = case p of
+    Agg Count
+     | [] <- args
+     -> fresh >>= mkFold T.IntT (\na _nv -> na CE.+~ CE.constI 1) (CE.constI 0)
+     | otherwise
+     -> errAggBadArgs
+
+    Agg SumA
+     | [x] <- args
+     -> do  nv <- fresh
+            x' <- convertExp nv t x
+            mkFold T.IntT (\na _nv -> na CE.+~ x') (CE.constI 0) nv
+     | otherwise
+     -> errAggBadArgs
 
 
     --(Agg Newest, [x])
@@ -175,12 +184,18 @@ convertReduce n t xx
  = lift $ Left $ ConvertErrorTODO (fst $ annotOfExp xx) "convertReduce"
 
  where
-  mkFold ta k z
+  mkFold ta k z nv
    = do n' <- fresh
         na <- fresh
-        nv <- fresh
-        let k' = k (CE.XVar na) (CE.XVar nv)
+        let k' = CE.XLam na ta
+               $ CE.XLam nv t
+               $ k (CE.XVar na) (CE.XVar nv)
         return (red n' $ C.RFold t ta k' z n, n')
+
+  errAggBadArgs
+   = lift
+   $ Left
+   $ ConvertErrorReduceAggregateBadArguments (fst $ annotOfExp xx) xx
 
     
 convertExp

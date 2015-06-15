@@ -5,6 +5,7 @@ module Icicle.Repl (
   , sourceParse
   , sourceCheck
   , sourceConvert
+  , sourceParseConvert
   ) where
 
 import qualified        Icicle.Dictionary               as D
@@ -63,6 +64,14 @@ sourceConvert q
  where
   mkName i = Com.Name $ SP.Variable ("v" <> T.pack (show i))
   namer = Fresh.counterNameState mkName 0
+
+
+sourceParseConvert :: T.Text -> Either ReplError Program'
+sourceParseConvert t
+ = do   q <- sourceParse t
+        (q',_) <- sourceCheck D.demographics q
+        sourceConvert q'
+
 
 featureMapOfDictionary :: D.Dictionary -> Map.Map Var (Map.Map Var ST.BaseType)
 featureMapOfDictionary (D.Dictionary ds)
