@@ -152,6 +152,20 @@ executable             icicle
                      , transformers
                      , x-optparse
 
+executable             icicle-repl
+    ghc-options:       -Wall -threaded -O2
+    main-is:           main/icicle-repl.hs
+    build-depends:     base
+                     , either
+                     , icicle
+                     , filepath
+                     , haskeline
+                     , p
+                     , text
+                     , transformers
+                     , wl-pprint
+                     , x-optparse
+
 test-suite test
   type:                exitcode-stdio-1.0
 

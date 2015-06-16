@@ -29,7 +29,6 @@ import                  Icicle.Internal.Pretty
 import                  P
 
 import                  Data.Either.Combinators
-
 import qualified        Data.Map                        as Map
 import qualified        Data.Text                       as T
 
@@ -101,4 +100,3 @@ featureMapOfDictionary (D.Dictionary ds)
    = [(SP.Variable attr, Map.singleton (SP.Variable "value") Com.IntT)]
   go _
    = []
-
