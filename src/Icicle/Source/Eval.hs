@@ -175,6 +175,42 @@ evalP ann p xs vs env
               | otherwise
               -> err
 
+             Lt
+              | [VInt i, VInt j] <- args
+              -> return $ VBool $ i < j
+              | otherwise
+              -> err
+
+             Le
+              | [VInt i, VInt j] <- args
+              -> return $ VBool $ i <= j
+              | otherwise
+              -> err
+
+             Gt
+              | [VInt i, VInt j] <- args
+              -> return $ VBool $ i > j
+              | otherwise
+              -> err
+
+             Ge
+              | [VInt i, VInt j] <- args
+              -> return $ VBool $ i >= j
+              | otherwise
+              -> err
+
+             Eq
+              | [VInt i, VInt j] <- args
+              -> return $ VBool $ i == j
+              | otherwise
+              -> err
+
+             Ne
+              | [VInt i, VInt j] <- args
+              -> return $ VBool $ i /= j
+              | otherwise
+              -> err
+
 
 
 
@@ -190,6 +226,15 @@ evalA ann ag xs vs _env
     Count
      | [] <- xs
      -> return $ VInt $ length vs
+     | otherwise
+     -> err
+
+    SumA
+     | [x] <- xs
+     -> VInt <$> foldM (\a v -> do v' <- evalX x [] v
+                                   case v' of
+                                    VInt i -> return (a + i)
+                                    _      -> err) 0 vs
      | otherwise
      -> err
 

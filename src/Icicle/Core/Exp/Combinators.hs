@@ -16,6 +16,7 @@ import              P
 import qualified    Data.Text   as T
 import              Data.Text   (Text)
 import qualified    Data.Set    as Set
+import qualified    Data.Map    as Map
 
 import              Prelude (error)
 
@@ -39,6 +40,9 @@ constI = XValue IntT  . VInt
 
 constB :: Bool -> X.Exp n
 constB = XValue BoolT . VBool
+
+emptyMap :: ValType -> ValType -> X.Exp n
+emptyMap tk tv = XValue (MapT tk tv) (VMap Map.empty)
 
 fstOfSource :: ValType -> X.Exp Text -> X.Exp Text
 fstOfSource ty p

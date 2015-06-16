@@ -69,6 +69,7 @@ data Keyword
  | Months
  | Newest
  | Oldest
+ | Sum
  | Weeks
  | Windowed
  deriving (Eq, Ord, Show, Enum, Bounded)

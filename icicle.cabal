@@ -134,6 +134,12 @@ library
                        Icicle.Source.Checker.Checker
                        Icicle.Source.Checker.Error
 
+                       Icicle.Source.ToCore.Base
+                       Icicle.Source.ToCore.ToCore
+                       Icicle.Source.ToCore.Prim
+
+                       Icicle.Repl
+
 executable             icicle
     ghc-options:       -Wall -threaded -O2
     main-is:           main/icicle.hs

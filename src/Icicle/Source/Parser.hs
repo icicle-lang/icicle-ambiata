@@ -2,6 +2,9 @@
 module Icicle.Source.Parser (
     parseQueryTop
   , prettyParse
+  , ParseError
+  , SourcePos
+  , Variable    (..)
   ) where
 
 import Icicle.Source.Lexer.Lexer
