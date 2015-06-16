@@ -1,13 +1,17 @@
 {-# LANGUAGE PatternGuards #-}
 {-# LANGUAGE ViewPatterns  #-}
 
-import           Control.Monad
+import           Control.Monad (when)
+import           Control.Monad.IO.Class
 import           Data.Text                   (Text)
 import qualified Data.Text                   as T
-import qualified System.Console.Haskeline    as HL
+import qualified Data.Text.IO                as T
+import           System.Console.Haskeline    as HL
 import qualified Text.PrettyPrint.Leijen     as PP
 
 import qualified Icicle.Core.Program.Program as CP
+import           Icicle.Data
+import           Icicle.Dictionary
 import qualified Icicle.Repl                 as SR
 import qualified Icicle.Source.Parser        as SP
 
@@ -32,10 +36,10 @@ runRepl
 
 data ReplState
    = ReplState
-   { dataFeat :: Maybe String
-   , hasType  :: Bool
-   , hasCore  :: Bool
-   , hasEval  :: Bool }
+   { facts   :: [AsAt Fact]
+   , hasType :: Bool
+   , hasCore :: Bool
+   , hasEval :: Bool }
 
 -- | Settable REPL states
 data Set
@@ -51,7 +55,7 @@ data Command
 
 defaultState :: ReplState
 defaultState
-  = ReplState Nothing False False False
+  = ReplState [] False False False
 
 readCommand :: String -> Maybe Command
 readCommand (words -> ss)
@@ -87,15 +91,22 @@ handleLine state line = case readCommand line of
     return $ state { hasEval = v }
 
   Just (CommandLoad fp)      -> do
-    HL.outputStrLn "dunno"
-    return state
+    s  <- liftIO $ T.readFile fp
+    case SR.readFacts dict s of
+      Left e   -> prettyHL e >> return state
+      Right fs -> do
+        HL.outputStrLn "ok, loaded"
+        return $ state { facts = fs }
 
   -- An Icicle expression
   Nothing -> do
     when (hasCore state) $ case showCore (T.pack line) of
         Left  e -> HL.outputStrLn "REPL error:" >> prettyHL e
-        Right p -> HL.outputStrLn "Result:"     >> prettyHL p
+        Right p -> HL.outputStrLn "Core:"       >> prettyHL p
     return state
+
+  -- todo load dictionary
+  where dict = demographics
 
 prettyHL :: PP.Pretty a => a -> HL.InputT IO ()
 prettyHL x = HL.outputStrLn $ PP.displayS (PP.renderCompact $ PP.pretty x) ""

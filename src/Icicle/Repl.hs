@@ -6,6 +6,7 @@ module Icicle.Repl (
   , sourceCheck
   , sourceConvert
   , sourceParseConvert
+  , readFacts
   ) where
 
 import qualified        Icicle.Common.Fresh             as Fresh
@@ -15,6 +16,7 @@ import qualified        Icicle.Core.Program.Program     as Core
 
 import qualified        Icicle.Data                     as D
 import qualified        Icicle.Dictionary               as D
+import qualified        Icicle.Serial                   as S
 
 import qualified        Icicle.Source.Checker.Checker   as SC
 import qualified        Icicle.Source.Checker.Error     as SC
@@ -30,13 +32,16 @@ import                  P
 
 import                  Data.Either.Combinators
 import qualified        Data.Map                        as Map
+import                  Data.Text                       (Text)
 import qualified        Data.Text                       as T
+import qualified        Data.Traversable                as TR
 
 
 data ReplError
  = ReplErrorParseError SP.ParseError
  | ReplErrorCheckError   (SC.CheckError SP.SourcePos Var)
  | ReplErrorConvertError (STC.ConvertError SP.SourcePos Var)
+ | ReplErrorDecodeError S.ParseError
  deriving (Show)
 
 instance Pretty ReplError where
@@ -51,6 +56,9 @@ instance Pretty ReplError where
      ReplErrorConvertError ce
       -> "Convert error:" <> line
       <> indent 2 (pretty ce)
+     ReplErrorDecodeError d
+      -> "Decode error:" <> line
+      <> indent 2 (text $ show d)
 
 
 type Var        = SP.Variable
@@ -100,3 +108,9 @@ featureMapOfDictionary (D.Dictionary ds)
    = [(SP.Variable attr, Map.singleton (SP.Variable "value") Com.IntT)]
   go _
    = []
+
+
+readFacts :: D.Dictionary -> Text -> Either ReplError [D.AsAt D.Fact]
+readFacts dict raw
+  = mapLeft ReplErrorDecodeError
+  $ TR.traverse (S.decodeEavt dict) $ T.lines raw
