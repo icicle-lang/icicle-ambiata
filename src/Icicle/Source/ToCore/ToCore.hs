@@ -178,8 +178,10 @@ convertReduce n t xx
             return (bs' <> b'', nm)
 
 
- | Nested _ q <- xx
+ | Nested _ q   <- xx
  = convertQuery n t q
+ | Var _ v      <- xx
+ = return (mempty, Name v)
  | otherwise
  = lift $ Left $ ConvertErrorTODO (fst $ annotOfExp xx) "convertReduce"
 
