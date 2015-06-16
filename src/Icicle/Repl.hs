@@ -8,13 +8,13 @@ module Icicle.Repl (
   , sourceParseConvert
   ) where
 
-import qualified        Icicle.Dictionary               as D
-import qualified        Icicle.Data                     as D
-
 import qualified        Icicle.Common.Fresh             as Fresh
 import qualified        Icicle.Common.Base              as Com
 import qualified        Icicle.Common.Type              as Com
 import qualified        Icicle.Core.Program.Program     as Core
+
+import qualified        Icicle.Data                     as D
+import qualified        Icicle.Dictionary               as D
 
 import qualified        Icicle.Source.Checker.Checker   as SC
 import qualified        Icicle.Source.Checker.Error     as SC
@@ -24,12 +24,14 @@ import qualified        Icicle.Source.ToCore.ToCore     as STC
 import qualified        Icicle.Source.ToCore.Base       as STC
 import qualified        Icicle.Source.Type              as ST
 
+import                  Icicle.Internal.Pretty
+
 import                  P
 
 import                  Data.Either.Combinators
 
-import qualified        Data.Map as Map
-import qualified        Data.Text as T
+import qualified        Data.Map                        as Map
+import qualified        Data.Text                       as T
 
 
 data ReplError
@@ -37,6 +39,20 @@ data ReplError
  | ReplErrorCheckError   (SC.CheckError SP.SourcePos Var)
  | ReplErrorConvertError (STC.ConvertError SP.SourcePos Var)
  deriving (Show)
+
+instance Pretty ReplError where
+ pretty e 
+  = case e of
+     ReplErrorParseError p
+      -> "Parse error:" <> line
+      <> indent 2 (text $ show p)
+     ReplErrorCheckError ce
+      -> "Check error:" <> line
+      <> indent 2 (pretty ce)
+     ReplErrorConvertError ce
+      -> "Convert error:" <> line
+      <> indent 2 (pretty ce)
+
 
 type Var        = SP.Variable
 type QueryTop'  = SQ.QueryTop SP.SourcePos Var
