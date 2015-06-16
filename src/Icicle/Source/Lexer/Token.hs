@@ -1,6 +1,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards #-}
+{-# OPTIONS -fno-warn-orphans #-}
 module Icicle.Source.Lexer.Token (
     TOK
   , Token    (..)
@@ -117,3 +118,7 @@ operator t
 
 instance Pretty Variable where
  pretty (Variable v) = text $ T.unpack v
+
+instance Pretty SourcePos where
+ pretty sp = text $ show sp
+

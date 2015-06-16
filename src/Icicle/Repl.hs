@@ -24,6 +24,8 @@ import qualified        Icicle.Source.ToCore.ToCore     as STC
 import qualified        Icicle.Source.ToCore.Base       as STC
 import qualified        Icicle.Source.Type              as ST
 
+import                  Icicle.Internal.Pretty
+
 import                  P
 
 import                  Data.Either.Combinators
@@ -37,6 +39,20 @@ data ReplError
  | ReplErrorCheckError   (SC.CheckError SP.SourcePos Var)
  | ReplErrorConvertError (STC.ConvertError SP.SourcePos Var)
  deriving (Show)
+
+instance Pretty ReplError where
+ pretty e 
+  = case e of
+     ReplErrorParseError p
+      -> "Parse error:" <> line
+      <> indent 2 (text $ show p)
+     ReplErrorCheckError ce
+      -> "Check error:" <> line
+      <> indent 2 (pretty ce)
+     ReplErrorConvertError ce
+      -> "Convert error:" <> line
+      <> indent 2 (pretty ce)
+
 
 type Var        = SP.Variable
 type QueryTop'  = SQ.QueryTop SP.SourcePos Var
