@@ -15,7 +15,7 @@ import qualified        Icicle.Source.Query        as Q
 
 import                  P hiding (exp)
 
-import                  Text.Parsec (many1, parserFail, getPosition, (<?>))
+import                  Text.Parsec (many1, parserFail, getPosition, eof, (<?>))
 
 top :: Parser (Q.QueryTop T.SourcePos Var)
 top
@@ -23,6 +23,7 @@ top
         v <- pVariable                                      <?> "concrete feature name"
         pFlowsInto
         q <- query                                          <?> "query"
+        eof
         return $ Q.QueryTop v q
 
 
