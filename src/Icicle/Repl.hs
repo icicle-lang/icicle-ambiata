@@ -25,6 +25,7 @@ import qualified        Icicle.Source.ToCore.Base       as STC
 import qualified        Icicle.Source.Type              as ST
 
 import                  P
+
 import                  Data.Either.Combinators
 
 import qualified        Data.Map as Map
