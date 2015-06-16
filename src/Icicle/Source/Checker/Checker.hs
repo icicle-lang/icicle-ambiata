@@ -102,7 +102,7 @@ checkQ ctx q
                     (work',tw) <- checkX ctx' $ foldWork f
 
                     when (ti /= tw)
-                      $ Left $ ErrorTypeMismatch ann ti tw
+                      $ Left $ ErrorFoldTypeMismatch ann ti tw
 
                     expIsElem ann c tw
 

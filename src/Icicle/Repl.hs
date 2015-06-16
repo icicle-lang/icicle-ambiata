@@ -8,13 +8,13 @@ module Icicle.Repl (
   , sourceParseConvert
   ) where
 
-import qualified        Icicle.Dictionary               as D
-import qualified        Icicle.Data                     as D
-
 import qualified        Icicle.Common.Fresh             as Fresh
 import qualified        Icicle.Common.Base              as Com
 import qualified        Icicle.Common.Type              as Com
 import qualified        Icicle.Core.Program.Program     as Core
+
+import qualified        Icicle.Data                     as D
+import qualified        Icicle.Dictionary               as D
 
 import qualified        Icicle.Source.Checker.Checker   as SC
 import qualified        Icicle.Source.Checker.Error     as SC
@@ -28,8 +28,8 @@ import                  P
 
 import                  Data.Either.Combinators
 
-import qualified        Data.Map as Map
-import qualified        Data.Text as T
+import qualified        Data.Map                        as Map
+import qualified        Data.Text                       as T
 
 
 data ReplError

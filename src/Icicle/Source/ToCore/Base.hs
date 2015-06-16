@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Source.ToCore.Base (
@@ -17,6 +18,8 @@ import qualified        Icicle.Common.Exp       as X
 
 import                  Icicle.Source.Query
 import                  Icicle.Source.Type
+
+import                  Icicle.Internal.Pretty
 
 import                  P
 
@@ -85,4 +88,37 @@ freshly :: (Name n -> r) -> ConvertM a n (r, Name n)
 freshly f
  = do   n' <- fresh
         return (f n', n')
+
+
+-- | These errors should only occur if
+--   - there is a bug in the conversion (there is)
+--   - or the program shouldn't type check
+--
+--   so the pretty printing doesn't have to be as good as type checking.
+instance (Pretty a, Pretty n) => Pretty (ConvertError a n) where
+ pretty e
+  = case e of
+     ConvertErrorTODO a s
+      -> pretty a <> ": TODO: " <> text s
+
+     ConvertErrorPrimAggregateNotAllowedHere a agg
+      -> pretty a <> ": aggregate " <> pretty agg <> " not allowed in expression"
+    
+     ConvertErrorPrimNoArguments a num_args p
+      -> pretty a <> ": primitive " <> pretty p <> " expects " <> pretty num_args <> " arguments but got none"
+
+     ConvertErrorGroupByHasNonGroupResult a ut
+      -> pretty a <> ": group by has wrong return type; should be a group but got " <> pretty ut
+     
+     ConvertErrorExpNoSuchVariable a n
+      -> pretty a <> ": no such variable " <> pretty n
+
+     ConvertErrorExpNestedQueryNotAllowedHere a q
+      -> pretty a <> ": nested query not allowed in this expression: " <> pretty q
+
+     ConvertErrorExpApplicationOfNonPrimitive a x
+      -> pretty a <> ": application of non-function: " <> pretty x
+
+     ConvertErrorReduceAggregateBadArguments a x
+      -> pretty a <> ": bad arguments to aggregate: " <> pretty x
 
