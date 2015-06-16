@@ -1,4 +1,5 @@
-{-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE PatternGuards #-}
+{-# LANGUAGE ViewPatterns  #-}
 
 import           Control.Monad
 import           Data.Text                   (Text)
@@ -6,18 +7,16 @@ import qualified Data.Text                   as T
 import qualified System.Console.Haskeline    as HL
 import qualified Text.PrettyPrint.Leijen     as PP
 
-import           Icicle
 import qualified Icicle.Core.Program.Program as CP
 import qualified Icicle.Repl                 as SR
 import qualified Icicle.Source.Parser        as SP
-import           System.Environment
 
 main :: IO ()
 main = runRepl
 
 runRepl :: IO ()
 runRepl
-  = do putStrLn "icicle-repl"
+  = do putStrLn "welcome to iREPL"
        HL.runInputT HL.defaultSettings $ loop defaultState
   where
     loop :: ReplState -> HL.InputT IO ()
@@ -95,7 +94,7 @@ handleLine state line = case readCommand line of
   Nothing -> do
     when (hasCore state) $ case showCore (T.pack line) of
         Left  e -> HL.outputStrLn "REPL error:" >> prettyHL e
-        Right p -> HL.outputStrLn "Result:" >> prettyHL p
+        Right p -> HL.outputStrLn "Result:"     >> prettyHL p
     return state
 
 prettyHL :: PP.Pretty a => a -> HL.InputT IO ()
