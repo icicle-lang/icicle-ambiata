@@ -183,7 +183,7 @@ prettyE :: SR.ReplError -> HL.InputT IO ()
 prettyE e = HL.outputStrLn "REPL Error:" >> prettyHL e >> nl
 
 prettyHL :: PP.Pretty a => a -> HL.InputT IO ()
-prettyHL x = HL.outputStrLn $ PP.displayS (PP.renderCompact $ PP.pretty x) ""
+prettyHL x = HL.outputStrLn $ PP.displayS (PP.renderPretty 0.4 100 $ PP.pretty x) ""
 
 showFlag :: Bool -> String
 showFlag True  = "on"
