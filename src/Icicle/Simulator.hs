@@ -3,8 +3,12 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Icicle.Simulator (
     streams
-  , Partition
+  , Partition(..)
+  , SimulateError
   , evaluateVirtuals
+  , evaluateVirtualValue
+  , valueToCore
+  , valueFromCore
   ) where
 
 import           Data.List

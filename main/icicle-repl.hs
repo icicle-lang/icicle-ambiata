@@ -1,19 +1,28 @@
 {-# LANGUAGE PatternGuards #-}
 {-# LANGUAGE ViewPatterns  #-}
 
-import           Control.Monad (when)
+import           Control.Monad               (when)
 import           Control.Monad.IO.Class
+import           Data.Either.Combinators
 import           Data.Text                   (Text)
 import qualified Data.Text                   as T
 import qualified Data.Text.IO                as T
+import qualified Data.Traversable            as TR
 import           System.Console.Haskeline    as HL
 import qualified Text.PrettyPrint.Leijen     as PP
 
+import           Icicle.BubbleGum
 import qualified Icicle.Core.Program.Program as CP
 import           Icicle.Data
+import           Icicle.Data.DateTime
 import           Icicle.Dictionary
+import           Icicle.Internal.Rename
 import qualified Icicle.Repl                 as SR
+import qualified Icicle.Simulator            as S
 import qualified Icicle.Source.Parser        as SP
+import qualified Icicle.Source.Query         as SQ
+import qualified Icicle.Source.Type          as ST
+
 
 main :: IO ()
 main = runRepl
@@ -55,7 +64,7 @@ data Command
 
 defaultState :: ReplState
 defaultState
-  = ReplState [] False False False
+  = ReplState [] True True True
 
 readCommand :: String -> Maybe Command
 readCommand (words -> ss)
@@ -99,14 +108,74 @@ handleLine state line = case readCommand line of
         return $ state { facts = fs }
 
   -- An Icicle expression
+  -- we use the core evaluator instead of the source evaluator here
+  -- since it's more complete at the moment.
   Nothing -> do
-    when (hasCore state) $ case showCore (T.pack line) of
-        Left  e -> HL.outputStrLn "REPL error:" >> prettyHL e
-        Right p -> HL.outputStrLn "Core:"       >> prettyHL p
+    let checked = do
+          qt     <- SR.sourceParse (T.pack line)
+          (q, u) <- SR.sourceCheck dict qt
+          p      <- SR.sourceConvert q
+          return (q, u, p)
+
+    case checked of
+      Left  e      -> prettyE e
+      Right (q, u, p) -> do
+        when (hasType state) $ HL.outputStrLn "- Type:" >> prettyHL u >> nl
+        when (hasCore state) $ HL.outputStrLn "- Core:" >> prettyHL p >> nl
+        when (hasEval state) $ case coreEval allTime (facts state) q p of
+          Left  e -> prettyE e
+          Right r -> HL.outputStrLn "- Result:" >> prettyHL (show r) >> nl
+
     return state
 
-  -- todo load dictionary
-  where dict = demographics
+  where
+    -- todo load dictionary
+    dict = demographics
+    -- todo let user specify window
+    allTime = dateOfYMD 1970 1 1
+
+--------------------------------------------------------------------------------
+
+-- TODO these marshalling belongs functions somehere
+
+type QueryTopPUV = SQ.QueryTop (SP.SourcePos, ST.UniverseType) SP.Variable
+type ProgramV    = CP.Program SP.Variable
+
+unVar :: SP.Variable -> Text
+unVar (SP.Variable t)  = t
+
+coreEval
+  :: DateTime
+  -> [AsAt Fact]
+  -> QueryTopPUV
+  -> ProgramV
+  -> Either SR.ReplError [(Value, [BubbleGumOutput Text Value])]
+coreEval d fs (renameQT unVar -> query) (renameP unVar -> prog)
+  = let partitions = S.streams fs
+        feat       = SQ.feature query
+        result     = map (evalP feat) partitions
+    in  mapLeft SR.ReplErrorRuntime
+        . TR.sequenceA
+        . map snd
+        . concat
+        . filter (not . null)
+        $ result
+
+  where
+    evalP feat (S.Partition ent attr values)
+      | attr == Attribute feat = [(ent, evalV values)]
+      | otherwise              = []
+
+    evalV
+      = S.evaluateVirtualValue prog d
+
+--------------------------------------------------------------------------------
+
+nl :: HL.InputT IO ()
+nl = HL.outputStrLn ""
+
+prettyE :: SR.ReplError -> HL.InputT IO ()
+prettyE e = HL.outputStrLn "REPL Error:" >> prettyHL e >> nl
 
 prettyHL :: PP.Pretty a => a -> HL.InputT IO ()
 prettyHL x = HL.outputStrLn $ PP.displayS (PP.renderCompact $ PP.pretty x) ""
@@ -114,11 +183,3 @@ prettyHL x = HL.outputStrLn $ PP.displayS (PP.renderCompact $ PP.pretty x) ""
 showFlag :: Bool -> String
 showFlag True  = "on"
 showFlag False = "off"
-
---------------------------------------------------------------------------------
-
-type ProgramV = CP.Program SP.Variable
-
-showCore :: Text -> Either SR.ReplError ProgramV
-showCore = SR.sourceParseConvert
-
