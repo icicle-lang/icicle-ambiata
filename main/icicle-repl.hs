@@ -39,7 +39,7 @@ runRepl
     loop state
       = do line <- HL.getInputLine "> "
            case line of
-             Nothing      -> loop state
+             Nothing      -> return ()
              Just ":quit" -> return ()
              Just ":q"    -> return ()
              Just str     -> handleLine state str >>= loop
