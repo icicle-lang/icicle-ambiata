@@ -78,29 +78,35 @@ convertQuery n nt q
     (GroupBy (ann,retty) e : _)
      -> do  (t1,t2) <- getGroupByMapType ann retty
             n'      <- fresh
+            n''     <- fresh
             nmap    <- fresh
             nval    <- fresh
      
-            (f,z)   <- convertGroupBy ann nval nt q'
+            (f,z,x,tV)
+                    <- convertGroupBy     nval nt q'
             e'      <- convertExp         nval nt e
 
-            let mapt = T.MapT t1 t2
+            let mapt = T.MapT t1 tV
 
             let insertOrUpdate
                   = CE.XLam nmap mapt
                   $ CE.XLam nval nt
-                  ( CE.XPrim (C.PrimMap $ C.PrimMapInsertOrUpdate t1 t2)
-                    CE.@~ (f CE.@~ CE.XVar nval)
-                    CE.@~ (f CE.@~ CE.XVar nval CE.@~ z)
+                  ( CE.XPrim (C.PrimMap $ C.PrimMapInsertOrUpdate t1 tV)
+                    CE.@~  f
+                    CE.@~ (f CE.@~ z)
                     CE.@~  e'
                     CE.@~ CE.XVar nmap )
 
             let r = red n' 
                   $ C.RFold nt mapt insertOrUpdate 
-                  ( CE.emptyMap t1 t2)
+                  ( CE.emptyMap t1 tV)
                     n
+            let p = post n''
+                  ( CE.XPrim
+                        (C.PrimMap $ C.PrimMapMapValues t1 tV t2)
+                    CE.@~ x CE.@~ CE.XVar n' )
 
-            return (r, n')
+            return (r <> p, n'')
 
     (Filter _ e : _)
      -> do  n'      <- fresh
@@ -243,10 +249,74 @@ convertArray ann _n _t _q
 
 
 convertGroupBy
-        :: a -> Nm -> T.ValType
+        :: Nm -> T.ValType
         -> Query (a,UniverseType) Variable
-        -> ConvertM a Variable (C.Exp Variable, C.Exp Variable)
-convertGroupBy ann _nElem _t _q
- = lift $ Left $ ConvertErrorTODO ann "convertGroupBy"
+        -> ConvertM a Variable (C.Exp Variable, C.Exp Variable, C.Exp Variable, T.ValType)
+convertGroupBy nElem t q
+ = case contexts q of
+    []
+     | Nested _ qq <- final q
+     -> convertGroupBy nElem t qq
+     | Just (p, (_,retty), args) <- takePrimApps $ final q
+     -> case p of
+         Agg SumA
+          | [e] <- args
+          -> do let retty' = baseType retty
+                e' <- convertExp nElem t e
+
+                n  <- fresh
+                let k = CE.XLam n retty'
+                      ( CE.XVar n CE.+~ e' )
+                let z = CE.constI 0
+                x    <- idFun retty'
+
+                return (k, z, x, retty')
+
+          | otherwise
+          -> errAggBadArgs
+
+         _
+          -> errTODO $ annotOfExp $ final q
+     | otherwise
+      -> errTODO $ annotOfExp $ final q
+
+    (Filter _ e : _)
+     -> do  (k,z,x,tt) <- convertGroupBy nElem t q'
+            e'         <- convertExp     nElem t e
+            prev       <- fresh
+            let prev'   = CE.XVar prev
+            let k' = CE.XLam prev tt
+                   ( CE.XPrim (C.PrimFold C.PrimFoldBool tt)
+                     CE.@~ e' CE.@~ (k CE.@~ prev') CE.@~ prev' )
+            return (k', z, x, tt)
+
+    (Windowed (ann,_) _ _ : _)
+     -> errNotAllowed ann
+    (Latest (ann,_) _ : _)
+     -> errNotAllowed ann
+    (GroupBy (ann,_) _ : _)
+     -> errNotAllowed ann
+    (Distinct (ann,_) _ : _)
+     -> errNotAllowed ann
+    (Let (ann,_) _ _ : _)
+     -> errNotAllowed ann
+    (LetFold (ann,_) _ : _)
+     -> errNotAllowed ann
+
+
+ where
+  q' = q { contexts = drop 1 $ contexts q }
+
+  errNotAllowed ann
+   = lift $ Left $ ConvertErrorContextNotAllowedInGroupBy ann q
+  errTODO ann
+   = lift $ Left $ ConvertErrorTODO (fst ann) "convertGroupBy"
+
+  errAggBadArgs
+   = lift
+   $ Left
+   $ ConvertErrorReduceAggregateBadArguments (fst $ annotOfExp $ final q) $ final q
+
+  idFun tt = fresh >>= \n -> return (CE.XLam n tt (CE.XVar n))
 
 
