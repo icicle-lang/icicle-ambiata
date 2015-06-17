@@ -102,6 +102,7 @@ instance Arbitrary Prim where
           , PrimFold <$> (PrimFoldMap <$> arbitrary <*> arbitrary) <*> arbitrary
 
           , PrimMap <$> (PrimMapInsertOrUpdate <$> arbitrary <*> arbitrary)
+          , PrimMap <$> (PrimMapMapValues      <$> arbitrary <*> arbitrary <*> arbitrary)
           ]
           
 instance Arbitrary ValType where
