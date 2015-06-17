@@ -44,7 +44,7 @@ convertQueryTop
 convertQueryTop qt
  = do   inp <- fresh
         -- TODO: look this up in context
-        let inpTy = T.IntT
+        let inpTy = T.PairT T.IntT T.DateTimeT
 
         (bs,ret) <- convertQuery inp inpTy (query qt)
         let bs'   = strm inp C.Source <> bs
@@ -213,7 +213,16 @@ convertExp
         -> ConvertM a Variable (C.Exp Variable)
 convertExp nElem t x
  | Var _ (Variable "value") <- x
- = return (CE.XVar nElem)
+ = do   n1 <- fresh
+        n2 <- fresh
+        let fstF    = CE.XLam n1 t
+                    $ CE.XLam n2 T.DateTimeT
+                    $ CE.XVar n1
+        let unpair  = CE.XPrim (C.PrimFold (C.PrimFoldPair t T.DateTimeT) t)
+                    CE.@~ fstF
+                    CE.@~ CE.XVar nElem
+        
+        return unpair
 
  | Just (p, (ann,retty), args) <- takePrimApps x
  = do   args'   <- mapM (convertExp nElem t) args
