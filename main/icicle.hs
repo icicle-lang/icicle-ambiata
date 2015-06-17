@@ -47,8 +47,7 @@ main = getArgs >>= \args -> case args of
   _ ->
     usage >> exitFailure
 
-
-run :: Dictionary -> FilePath -> EitherT ParseError IO ()
+run :: Dictionary -> FilePath -> EitherT Icicle.ParseError IO ()
 run dict p =
   do    ls  <- lift
              $ T.lines <$> T.readFile p

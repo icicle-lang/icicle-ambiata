@@ -1,5 +1,7 @@
 -- | Base definitions common across all languages.
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE DeriveFunctor #-}
+
 module Icicle.Common.Base (
       Name   (..)
     , BaseValue (..)
@@ -20,7 +22,7 @@ data Name n =
  -- | Prefix a name.
  -- Very useful for generating fresh(ish) readable names.
  | NameMod  n (Name n)
- deriving (Eq,Ord,Show)
+ deriving (Eq,Ord,Show,Functor)
 
 
 -- | Base values - real values that can be serialised and whatnot
