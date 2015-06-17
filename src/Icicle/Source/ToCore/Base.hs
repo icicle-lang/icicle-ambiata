@@ -74,6 +74,7 @@ data ConvertError a n
  | ConvertErrorPrimAggregateNotAllowedHere a Agg
  | ConvertErrorPrimNoArguments a Int Prim
  | ConvertErrorGroupByHasNonGroupResult a UniverseType
+ | ConvertErrorContextNotAllowedInGroupBy a (Query (a,UniverseType) n)
  | ConvertErrorExpNoSuchVariable a n
  | ConvertErrorExpNestedQueryNotAllowedHere a (Query (a,UniverseType) n)
  | ConvertErrorExpApplicationOfNonPrimitive a (Exp (a,UniverseType) n)
@@ -110,6 +111,9 @@ instance (Pretty a, Pretty n) => Pretty (ConvertError a n) where
      ConvertErrorGroupByHasNonGroupResult a ut
       -> pretty a <> ": group by has wrong return type; should be a group but got " <> pretty ut
      
+     ConvertErrorContextNotAllowedInGroupBy a q
+      -> pretty a <> ": only filters and aggregates are allowed in group by (the rest are TODO): " <> pretty q
+
      ConvertErrorExpNoSuchVariable a n
       -> pretty a <> ": no such variable " <> pretty n
 
