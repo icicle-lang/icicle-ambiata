@@ -19,8 +19,7 @@ import qualified    Icicle.Common.Exp.Prim.Eval as Min
 -- | Evaluate a primitive, given list of argument values
 evalPrim :: Ord n => EvalPrim n Prim
 evalPrim p vs
- = let primError = Left $ RuntimeErrorPrimBadArgs p vs
-   in case p of
+ = case p of
      PrimMinimal m
       -> Min.evalPrim m p vs
 
@@ -67,14 +66,27 @@ evalPrim p vs
           Nothing
            -> return $ VBase $ VMap $ Map.insert key ins mm
           Just v
-           -> do    v' <- applyValues evalPrim upd (VBase v)
-                    case v' of
-                     VBase v'' -> return $ VBase $ VMap $ Map.insert key v'' mm
-                     VFun{}    -> primError
+           -> do    v' <- applyBase upd v
+                    return $ VBase $ VMap $ Map.insert key v' mm
 
+      | otherwise
+      -> primError
+
+     PrimMap (PrimMapMapValues _ _ _)
+      | [upd, VBase (VMap mm)] <- vs
+      -> (VBase . VMap) <$> mapM (applyBase upd) mm
       | otherwise
       -> primError
 
  where
   applies' = applies evalPrim
+
+  applyBase f v
+   = do v' <- applyValues evalPrim f (VBase v)
+        case v' of
+          VBase v'' -> return v''
+          VFun{}    -> primError
+
+  primError
+   = Left $ RuntimeErrorPrimBadArgs p vs
 

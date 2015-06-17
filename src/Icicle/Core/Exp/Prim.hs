@@ -37,6 +37,7 @@ data PrimFold
 -- | Map primitives
 data PrimMap
  = PrimMapInsertOrUpdate ValType ValType
+ | PrimMapMapValues ValType ValType ValType
  deriving (Eq, Ord, Show)
 
 
@@ -64,6 +65,10 @@ typeOfPrim p
     PrimMap (PrimMapInsertOrUpdate k v)
      -> FunT [FunT [funOfVal v] v, funOfVal v, funOfVal k, funOfVal (MapT k v)] (MapT k v)
 
+    PrimMap (PrimMapMapValues k v v')
+     -> FunT [FunT [funOfVal v] v', funOfVal (MapT k v)] (MapT k v')
+
+
 
 -- Pretty -------------
 
@@ -86,4 +91,7 @@ instance Pretty Prim where
 
  pretty (PrimMap (PrimMapInsertOrUpdate k v))
   = text "Map_insertOrUpdate#" <+> brackets (pretty k) <+> brackets (pretty v)
+
+ pretty (PrimMap (PrimMapMapValues k v v'))
+  = text "Map_mapValues#" <+> brackets (pretty k) <+> brackets (pretty v) <+> brackets (pretty v')
 

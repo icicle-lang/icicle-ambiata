@@ -24,6 +24,7 @@ import                  Icicle.Source.Lexer.Token (Variable(..))
 import qualified        Icicle.Core as C
 import qualified        Icicle.Core.Exp.Combinators as CE
 import qualified        Icicle.Common.Exp           as CE
+import qualified        Icicle.Common.Exp.Prim.Minimal as Min
 import qualified        Icicle.Common.Type as T
 import                  Icicle.Common.Fresh
 import                  Icicle.Common.Base
@@ -32,7 +33,7 @@ import                  Icicle.Common.Base
 import                  P
 
 import                  Control.Monad.Trans.Class
-import                  Data.List (zip, unzip)
+import                  Data.List (zip, unzip, unzip4)
 
 
 type Nm = Name Variable
@@ -43,7 +44,7 @@ convertQueryTop
 convertQueryTop qt
  = do   inp <- fresh
         -- TODO: look this up in context
-        let inpTy = T.IntT
+        let inpTy = T.PairT T.IntT T.DateTimeT
 
         (bs,ret) <- convertQuery inp inpTy (query qt)
         let bs'   = strm inp C.Source <> bs
@@ -78,29 +79,35 @@ convertQuery n nt q
     (GroupBy (ann,retty) e : _)
      -> do  (t1,t2) <- getGroupByMapType ann retty
             n'      <- fresh
+            n''     <- fresh
             nmap    <- fresh
             nval    <- fresh
      
-            (f,z)   <- convertGroupBy ann nval nt q'
+            (f,z,x,tV)
+                    <- convertGroupBy     nval nt q'
             e'      <- convertExp         nval nt e
 
-            let mapt = T.MapT t1 t2
+            let mapt = T.MapT t1 tV
 
             let insertOrUpdate
                   = CE.XLam nmap mapt
                   $ CE.XLam nval nt
-                  ( CE.XPrim (C.PrimMap $ C.PrimMapInsertOrUpdate t1 t2)
-                    CE.@~ (f CE.@~ CE.XVar nval)
-                    CE.@~ (f CE.@~ CE.XVar nval CE.@~ z)
+                  ( CE.XPrim (C.PrimMap $ C.PrimMapInsertOrUpdate t1 tV)
+                    CE.@~  f
+                    CE.@~ (f CE.@~ z)
                     CE.@~  e'
                     CE.@~ CE.XVar nmap )
 
             let r = red n' 
                   $ C.RFold nt mapt insertOrUpdate 
-                  ( CE.emptyMap t1 t2)
+                  ( CE.emptyMap t1 tV)
                     n
+            let p = post n''
+                  ( CE.XPrim
+                        (C.PrimMap $ C.PrimMapMapValues t1 tV t2)
+                    CE.@~ x CE.@~ CE.XVar n' )
 
-            return (r, n')
+            return (r <> p, n'')
 
     (Filter _ e : _)
      -> do  n'      <- fresh
@@ -178,8 +185,10 @@ convertReduce n t xx
             return (bs' <> b'', nm)
 
 
- | Nested _ q <- xx
+ | Nested _ q   <- xx
  = convertQuery n t q
+ | Var _ v      <- xx
+ = return (mempty, Name v)
  | otherwise
  = lift $ Left $ ConvertErrorTODO (fst $ annotOfExp xx) "convertReduce"
 
@@ -204,7 +213,16 @@ convertExp
         -> ConvertM a Variable (C.Exp Variable)
 convertExp nElem t x
  | Var _ (Variable "value") <- x
- = return (CE.XVar nElem)
+ = do   n1 <- fresh
+        n2 <- fresh
+        let fstF    = CE.XLam n1 t
+                    $ CE.XLam n2 T.DateTimeT
+                    $ CE.XVar n1
+        let unpair  = CE.XPrim (C.PrimFold (C.PrimFoldPair t T.DateTimeT) t)
+                    CE.@~ fstF
+                    CE.@~ CE.XVar nElem
+        
+        return unpair
 
  | Just (p, (ann,retty), args) <- takePrimApps x
  = do   args'   <- mapM (convertExp nElem t) args
@@ -241,10 +259,111 @@ convertArray ann _n _t _q
 
 
 convertGroupBy
-        :: a -> Nm -> T.ValType
+        :: Nm -> T.ValType
         -> Query (a,UniverseType) Variable
-        -> ConvertM a Variable (C.Exp Variable, C.Exp Variable)
-convertGroupBy ann _nElem _t _q
- = lift $ Left $ ConvertErrorTODO ann "convertGroupBy"
+        -> ConvertM a Variable (C.Exp Variable, C.Exp Variable, C.Exp Variable, T.ValType)
+convertGroupBy nElem t q
+ = case contexts q of
+    []
+     | Nested _ qq <- final q
+     -> convertGroupBy nElem t qq
+     | Just (p, (ann,retty), args) <- takePrimApps $ final q
+     -> case p of
+         Agg SumA
+          | [e] <- args
+          -> do let retty' = baseType retty
+                e' <- convertExp nElem t e
 
+                n  <- fresh
+                let k = CE.XLam n retty'
+                      ( CE.XVar n CE.+~ e' )
+                let z = CE.constI 0
+                x    <- idFun retty'
+
+                return (k, z, x, retty')
+
+          | otherwise
+          -> do (ks, zs, xs, ts) <- unzip4 <$> mapM (convertGroupBy nElem t . Query []) args
+
+                (zz, tt) <- pairs zs ts
+
+                let cp ns
+                        = convertPrim p ann
+                            (baseType retty)
+                            ((fmap (uncurry CE.XApp) (xs `zip` ns)) `zip` ts)
+                xx       <- unpairs cp ts (baseType retty)
+
+                let applyKs ns = fst <$> pairs (fmap (uncurry CE.XApp) (ks `zip` ns)) ts
+                kk       <- unpairs applyKs ts tt
+
+                return (kk, zz, xx, tt)
+
+         _
+          -> errTODO $ annotOfExp $ final q
+
+     | otherwise
+      -> errTODO $ annotOfExp $ final q
+
+    (Filter _ e : _)
+     -> do  (k,z,x,tt) <- convertGroupBy nElem t q'
+            e'         <- convertExp     nElem t e
+            prev       <- fresh
+            let prev'   = CE.XVar prev
+            let k' = CE.XLam prev tt
+                   ( CE.XPrim (C.PrimFold C.PrimFoldBool tt)
+                     CE.@~ e' CE.@~ (k CE.@~ prev') CE.@~ prev' )
+            return (k', z, x, tt)
+
+    (Windowed (ann,_) _ _ : _)
+     -> errNotAllowed ann
+    (Latest (ann,_) _ : _)
+     -> errNotAllowed ann
+    (GroupBy (ann,_) _ : _)
+     -> errNotAllowed ann
+    (Distinct (ann,_) _ : _)
+     -> errNotAllowed ann
+    (Let (ann,_) _ _ : _)
+     -> errNotAllowed ann
+    (LetFold (ann,_) _ : _)
+     -> errNotAllowed ann
+
+
+ where
+  q' = q { contexts = drop 1 $ contexts q }
+
+  errNotAllowed ann
+   = lift $ Left $ ConvertErrorContextNotAllowedInGroupBy ann q
+  errTODO ann
+   = lift $ Left $ ConvertErrorTODO (fst ann) "convertGroupBy"
+
+  idFun tt = fresh >>= \n -> return (CE.XLam n tt (CE.XVar n))
+
+  pairs (x1:xs) (t1:ts)
+   = return
+   $ foldl
+   (\(xa,ta) (x',t')
+    -> ( CE.XPrim
+            (C.PrimMinimal $ Min.PrimConst $ Min.PrimConstPair ta t')
+            CE.@~ xa CE.@~ x'
+       , T.PairT ta t'))
+   ( x1, t1 )
+   ( zip xs ts )
+
+  pairs _ _
+   -- TODO: this should be "unit"
+   = lift $ Left $ ConvertErrorTODO (fst $ annotOfExp $ final q) "convert GroupBy - constructing pairs for extract"
+
+
+  unpairs f [tx,ty] ret
+   = do nx <- fresh
+        ny <- fresh
+
+        f' <- f [CE.XVar nx, CE.XVar ny]
+
+        let xx = CE.XPrim (C.PrimFold (C.PrimFoldPair tx ty) ret)
+                 CE.@~ (CE.XLam nx tx $ CE.XLam ny ty $ f')
+        return xx
+
+  unpairs _ _ _
+   = lift $ Left $ ConvertErrorTODO (fst $ annotOfExp $ final q) "convert GroupBy - destructing pairs for extract"
 

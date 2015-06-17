@@ -23,6 +23,9 @@ import              P
 import              Control.Monad.Trans.Class
 import              Data.List (reverse)
 
+import qualified    Data.Map                       as Map
+
+
 data FlattenError n
  = FlattenErrorApplicationNonPrimitive (Exp n Core.Prim)
  | FlattenErrorBareLambda (Exp n Core.Prim)
@@ -192,6 +195,39 @@ flatX xx stm
        | otherwise
        -> lift $ Left $ FlattenErrorPrimBadArgs p xs
 
+      -- Map: create new empty map, for each element, etc
+      Core.PrimMap (Core.PrimMapMapValues tk tv tv')
+       | [upd, map]   <- xs
+       -> flatX map
+       $ \map'
+       -> do    accN <- fresh
+                let fpMapLen   = XPrim (Flat.PrimProject $ Flat.PrimProjectMapLength tk tv)
+                let fpMapIx    = XPrim (Flat.PrimUnsafe  $ Flat.PrimUnsafeMapIndex   tk tv)
+                let fpUpdate   = XPrim (Flat.PrimUpdate  $ Flat.PrimUpdateMapPut     tk tv')
+
+                stm' <- stm (XVar accN)
+
+                loop <- forI (fpMapLen `XApp` map')                 $ \iter
+                     -> fmap    (Read accN accN)                    $
+                        slet    (fpMapIx `makeApps` [map', iter])   $ \elm
+                     -> slet    (proj False tk tv elm)              $ \efst
+                     -> slet    (proj True  tk tv elm)              $ \esnd
+                     -> flatX   (upd `XApp` esnd)                   $ \esnd'
+                     -> slet    (fpUpdate `makeApps` [XVar accN, efst, esnd']) $ \map''
+                     -> return  (Write accN map'')
+
+
+                let mapT = MapT tk tv'
+                return $ InitAccumulator
+                            (Accumulator accN Mutable mapT $ XValue mapT $ VMap Map.empty)
+                            (loop <> Read accN accN stm')
+
+
+       -- Map with wrong arguments
+       | otherwise
+       -> lift $ Left $ FlattenErrorPrimBadArgs p xs
+
+
   -- Convert arguments to a simple primitive.
   -- conv is what we've already converted
   primApps p [] conv
@@ -266,7 +302,7 @@ flatX xx stm
         let fpMapLen   = XPrim (Flat.PrimProject $ Flat.PrimProjectMapLength tk tv)
         let fpMapIx    = XPrim (Flat.PrimUnsafe  $ Flat.PrimUnsafeMapIndex   tk tv)
 
-        -- Loop is the same as for array, except we're grabing the keys and values
+        -- Loop is the same as for array, except we're grabbing the keys and values
         loop <- flatX arr                                   $ \arr'
              -> forI    (fpMapLen `XApp` arr')              $ \iter
              -> fmap    (Read accN accN)                    $
