@@ -2,6 +2,7 @@
 {-# LANGUAGE PatternGuards     #-}
 {-# LANGUAGE TupleSections     #-}
 {-# LANGUAGE ViewPatterns      #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 import           Control.Monad               (when)
 import           Control.Monad.IO.Class
@@ -14,7 +15,6 @@ import qualified Data.Traversable            as TR
 import           System.Console.Haskeline    as HL
 import qualified Text.PrettyPrint.Leijen     as PP
 
-import           Icicle.BubbleGum
 import qualified Icicle.Core.Program.Program as CP
 import           Icicle.Data
 import           Icicle.Data.DateTime
