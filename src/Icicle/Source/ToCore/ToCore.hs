@@ -281,8 +281,10 @@ convertGroupBy nElem t q
                 x    <- idFun retty'
 
                 return (k, z, x, retty')
-
           | otherwise
+          -> errAggBadArgs
+
+         _
           -> do (ks, zs, xs, ts) <- unzip4 <$> mapM (convertGroupBy nElem t . Query []) args
 
                 (zz, tt) <- pairs zs ts
@@ -297,9 +299,6 @@ convertGroupBy nElem t q
                 kk       <- unpairs applyKs ts tt
 
                 return (kk, zz, xx, tt)
-
-         _
-          -> errTODO $ annotOfExp $ final q
 
      | otherwise
       -> errTODO $ annotOfExp $ final q
@@ -336,6 +335,12 @@ convertGroupBy nElem t q
   errTODO ann
    = lift $ Left $ ConvertErrorTODO (fst ann) "convertGroupBy"
 
+  errAggBadArgs
+   = lift
+   $ Left
+   $ ConvertErrorReduceAggregateBadArguments (fst $ annotOfExp $ final q) (final q)
+
+
   idFun tt = fresh >>= \n -> return (CE.XLam n tt (CE.XVar n))
 
   pairs (x1:xs) (t1:ts)
@@ -358,10 +363,14 @@ convertGroupBy nElem t q
    = do nx <- fresh
         ny <- fresh
 
+        nl <- fresh
+
         f' <- f [CE.XVar nx, CE.XVar ny]
 
-        let xx = CE.XPrim (C.PrimFold (C.PrimFoldPair tx ty) ret)
+        let xx = CE.XLam nl (T.PairT tx ty)
+               ( CE.XPrim (C.PrimFold (C.PrimFoldPair tx ty) ret)
                  CE.@~ (CE.XLam nx tx $ CE.XLam ny ty $ f')
+                 CE.@~ CE.XVar nl)
         return xx
 
   unpairs _ _ _
