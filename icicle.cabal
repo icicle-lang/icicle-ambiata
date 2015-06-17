@@ -113,6 +113,7 @@ library
                        Icicle.Dictionary
                        Icicle.Encoding
                        Icicle.Internal.Pretty
+                       Icicle.Internal.Rename
                        Icicle.Serial
                        Icicle.Simulator
 

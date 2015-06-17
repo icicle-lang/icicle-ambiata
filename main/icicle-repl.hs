@@ -1,9 +1,12 @@
-{-# LANGUAGE PatternGuards #-}
-{-# LANGUAGE ViewPatterns  #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE PatternGuards     #-}
+{-# LANGUAGE TupleSections     #-}
+{-# LANGUAGE ViewPatterns      #-}
 
 import           Control.Monad               (when)
 import           Control.Monad.IO.Class
 import           Data.Either.Combinators
+import           Data.Monoid
 import           Data.Text                   (Text)
 import qualified Data.Text                   as T
 import qualified Data.Text.IO                as T
@@ -124,7 +127,7 @@ handleLine state line = case readCommand line of
         when (hasCore state) $ HL.outputStrLn "- Core:" >> prettyHL p >> nl
         when (hasEval state) $ case coreEval allTime (facts state) q p of
           Left  e -> prettyE e
-          Right r -> HL.outputStrLn "- Result:" >> prettyHL (show r) >> nl
+          Right r -> HL.outputStrLn "- Result:" >> prettyHL r >> nl
 
     return state
 
@@ -149,19 +152,21 @@ coreEval
   -> [AsAt Fact]
   -> QueryTopPUV
   -> ProgramV
-  -> Either SR.ReplError [(Value, [BubbleGumOutput Text Value])]
+  -> Either SR.ReplError [(Entity, Value)]
 coreEval d fs (renameQT unVar -> query) (renameP unVar -> prog)
   = let partitions = S.streams fs
         feat       = SQ.feature query
         result     = map (evalP feat) partitions
     in  mapLeft SR.ReplErrorRuntime
         . TR.sequenceA
-        . map snd
+        . map (justVal . fmap (fmap fst))
         . concat
         . filter (not . null)
         $ result
 
   where
+    justVal (e, result) = fmap (e,) result
+
     evalP feat (S.Partition ent attr values)
       | attr == Attribute feat = [(ent, evalV values)]
       | otherwise              = []
@@ -183,3 +188,6 @@ prettyHL x = HL.outputStrLn $ PP.displayS (PP.renderCompact $ PP.pretty x) ""
 showFlag :: Bool -> String
 showFlag True  = "on"
 showFlag False = "off"
+
+instance PP.Pretty (Entity, Value) where
+  pretty (ent, val) = PP.pretty ent <> PP.comma <> PP.space <> PP.pretty val
