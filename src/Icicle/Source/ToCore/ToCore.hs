@@ -24,6 +24,7 @@ import                  Icicle.Source.Lexer.Token (Variable(..))
 import qualified        Icicle.Core as C
 import qualified        Icicle.Core.Exp.Combinators as CE
 import qualified        Icicle.Common.Exp           as CE
+import qualified        Icicle.Common.Exp.Prim.Minimal as Min
 import qualified        Icicle.Common.Type as T
 import                  Icicle.Common.Fresh
 import                  Icicle.Common.Base
@@ -32,7 +33,7 @@ import                  Icicle.Common.Base
 import                  P
 
 import                  Control.Monad.Trans.Class
-import                  Data.List (zip, unzip)
+import                  Data.List (zip, unzip, unzip4)
 
 
 type Nm = Name Variable
@@ -257,7 +258,7 @@ convertGroupBy nElem t q
     []
      | Nested _ qq <- final q
      -> convertGroupBy nElem t qq
-     | Just (p, (_,retty), args) <- takePrimApps $ final q
+     | Just (p, (ann,retty), args) <- takePrimApps $ final q
      -> case p of
          Agg SumA
           | [e] <- args
@@ -273,10 +274,24 @@ convertGroupBy nElem t q
                 return (k, z, x, retty')
 
           | otherwise
-          -> errAggBadArgs
+          -> do (ks, zs, xs, ts) <- unzip4 <$> mapM (convertGroupBy nElem t . Query []) args
+
+                (zz, tt) <- pairs zs ts
+
+                let cp ns
+                        = convertPrim p ann
+                            (baseType retty)
+                            ((fmap (uncurry CE.XApp) (xs `zip` ns)) `zip` ts)
+                xx       <- unpairs cp ts (baseType retty)
+
+                let applyKs ns = fst <$> pairs (fmap (uncurry CE.XApp) (ks `zip` ns)) ts
+                kk       <- unpairs applyKs ts tt
+
+                return (kk, zz, xx, tt)
 
          _
           -> errTODO $ annotOfExp $ final q
+
      | otherwise
       -> errTODO $ annotOfExp $ final q
 
@@ -312,11 +327,34 @@ convertGroupBy nElem t q
   errTODO ann
    = lift $ Left $ ConvertErrorTODO (fst ann) "convertGroupBy"
 
-  errAggBadArgs
-   = lift
-   $ Left
-   $ ConvertErrorReduceAggregateBadArguments (fst $ annotOfExp $ final q) $ final q
-
   idFun tt = fresh >>= \n -> return (CE.XLam n tt (CE.XVar n))
 
+  pairs (x1:xs) (t1:ts)
+   = return
+   $ foldl
+   (\(xa,ta) (x',t')
+    -> ( CE.XPrim
+            (C.PrimMinimal $ Min.PrimConst $ Min.PrimConstPair ta t')
+            CE.@~ xa CE.@~ x'
+       , T.PairT ta t'))
+   ( x1, t1 )
+   ( zip xs ts )
+
+  pairs _ _
+   -- TODO: this should be "unit"
+   = lift $ Left $ ConvertErrorTODO (fst $ annotOfExp $ final q) "convert GroupBy - constructing pairs for extract"
+
+
+  unpairs f [tx,ty] ret
+   = do nx <- fresh
+        ny <- fresh
+
+        f' <- f [CE.XVar nx, CE.XVar ny]
+
+        let xx = CE.XPrim (C.PrimFold (C.PrimFoldPair tx ty) ret)
+                 CE.@~ (CE.XLam nx tx $ CE.XLam ny ty $ f')
+        return xx
+
+  unpairs _ _ _
+   = lift $ Left $ ConvertErrorTODO (fst $ annotOfExp $ final q) "convert GroupBy - destructing pairs for extract"
 
