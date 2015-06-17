@@ -113,6 +113,7 @@ library
                        Icicle.Dictionary
                        Icicle.Encoding
                        Icicle.Internal.Pretty
+                       Icicle.Internal.Rename
                        Icicle.Serial
                        Icicle.Simulator
 
@@ -150,6 +151,20 @@ executable             icicle
                      , p
                      , text
                      , transformers
+                     , x-optparse
+
+executable             icicle-repl
+    ghc-options:       -Wall -threaded -O2
+    main-is:           main/icicle-repl.hs
+    build-depends:     base
+                     , either
+                     , icicle
+                     , filepath
+                     , haskeline
+                     , p
+                     , text
+                     , transformers
+                     , wl-pprint
                      , x-optparse
 
 test-suite test

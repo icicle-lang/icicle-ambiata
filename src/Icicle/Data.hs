@@ -17,6 +17,7 @@ module Icicle.Data (
   ) where
 
 import           Data.Text
+import qualified Text.PrettyPrint.Leijen as PP
 
 import           Icicle.Data.DateTime
 
@@ -28,6 +29,8 @@ newtype Entity =
       getEntity     :: Text
     } deriving (Eq, Ord, Show)
 
+instance PP.Pretty Entity where
+  pretty (Entity t) = PP.text (unpack t)
 
 newtype Attribute =
   Attribute {
@@ -71,6 +74,14 @@ data Value =
   | Tombstone
   deriving (Eq, Show)
 
+instance PP.Pretty Value where
+  pretty v = case v of
+    StringValue t  -> PP.text (unpack t)
+    IntValue    i  -> PP.int i
+    DoubleValue d  -> PP.double d
+    BooleanValue b -> PP.pretty b
+    -- I'm too lazy
+    _              -> PP.text (show v)
 
 data Struct =
   Struct    [(Attribute, Value)]
