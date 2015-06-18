@@ -63,7 +63,9 @@ instance Pretty ReplError where
      ReplErrorRuntime d
       -> "Runtime error:" <> line
       <> indent 2 (text $ show d)
-
+     ReplErrorFlatten d
+      -> "Flatten error:" <> line
+      <> indent 2 (text $ show d)
 
 type Var        = SP.Variable
 type QueryTop'  = SQ.QueryTop SP.SourcePos Var
