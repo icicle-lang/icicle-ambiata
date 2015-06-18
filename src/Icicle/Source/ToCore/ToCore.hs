@@ -71,11 +71,44 @@ convertQuery n nt q
     (Windowed (ann,_) _ _ : _)
      -> lift $ Left $ ConvertErrorTODO ann "support window ranges"
 
-    (Latest (ann,_) i : _)
-     -> do  n'      <- fresh
-            (bs, b) <- convertArray ann n' nt q'
-            let bs'  = red n' (C.RLatest nt (CE.constI i) n) <> bs
-            return (bs', b)
+
+    -- TODO: latest can actually have multiple 'aggregate passes',
+    -- eg you should be able to do
+    --
+    -- > latest 5 ~> value / sum value
+    --
+    -- since this only requires a second pass over the small array that is
+    -- already in memory.
+    --
+    -- However, at the moment we only support folds with single pass,
+    -- and not returning the whole array.
+    (Latest (_,_retty) i : _)
+     -> do  n'arr   <- fresh
+            n'fold  <- fresh
+            n'xtra  <- fresh
+
+            n'a     <- fresh
+            n'v     <- fresh
+
+            -- Destruct the aggregate into a fold expression:
+            -- x (fold k z inps)
+            -- where x :: tV -> retty
+            (k,z,x,tV)
+                    <- convertGroupBy     n'v nt q'
+
+            -- Because Map_insertOrUpdate and Array_fold take their "k" in a different order,
+            -- we need to flip the k here.
+            let k'    = CE.XLam n'a tV
+                      $ CE.XLam n'v nt
+                      $ beta
+                      ( k CE.@~ CE.XVar n'a)
+
+            let barr  = red  n'arr   (C.RLatest nt (CE.constI i) n)
+            let bfold = post n'fold  (CE.XPrim (C.PrimFold (C.PrimFoldArray nt) tV)
+                                      CE.@~ k' CE.@~ beta z CE.@~ CE.XVar n'arr)
+            let bxtra = post n'xtra (beta (x CE.@~ CE.XVar n'fold))
+
+            return (barr <> bfold <> bxtra, n'xtra)
 
     (GroupBy (ann,retty) e : _)
      -> do  (t1,t2) <- getGroupByMapType ann retty
@@ -88,8 +121,6 @@ convertQuery n nt q
                     <- convertGroupBy     nval nt q'
             e'      <- convertExp         nval nt e
 
-            let beta = Beta.betaToLets
-                     . Beta.beta Beta.isSimpleValue
             let k'   = beta k
             let z'   = beta z
             let x'   = beta x
@@ -147,6 +178,8 @@ convertQuery n nt q
    | otherwise
    = lift $ Left $ ConvertErrorGroupByHasNonGroupResult ann ty
 
+  beta = Beta.betaToLets
+       . Beta.beta Beta.isSimpleValue
 
 convertReduce
         :: Nm   -> T.ValType
@@ -271,14 +304,6 @@ convertExp nElem t x
       $ ConvertErrorExpApplicationOfNonPrimitive ann x
     Prim (ann,retty) p
      -> convertPrim p ann (baseType retty) []
-
-
-convertArray
-        :: a -> Nm -> T.ValType
-        -> Query (a,UniverseType) Variable
-        -> ConvertM a Variable (CoreBinds Variable, Nm)
-convertArray ann _n _t _q
- = lift $ Left $ ConvertErrorTODO ann "convertArray"
 
 
 convertGroupBy
