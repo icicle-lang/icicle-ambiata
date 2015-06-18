@@ -83,6 +83,8 @@ defaultState
 readCommand :: String -> Maybe Command
 readCommand ss = case words ss of
   []                    -> Just CommandBlank
+  ":h":_                -> Just CommandHelp
+  ":help":_             -> Just CommandHelp
   ":set":"+type":_      -> Just $ CommandSet $ ShowType True
   ":set":"-type":_      -> Just $ CommandSet $ ShowType False
   ":set":"+core":_      -> Just $ CommandSet $ ShowCore True
