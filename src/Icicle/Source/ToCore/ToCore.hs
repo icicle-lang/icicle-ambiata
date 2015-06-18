@@ -25,6 +25,7 @@ import qualified        Icicle.Core as C
 import qualified        Icicle.Core.Exp.Combinators as CE
 import qualified        Icicle.Common.Exp           as CE
 import qualified        Icicle.Common.Exp.Prim.Minimal as Min
+import qualified        Icicle.Common.Exp.Simp.Beta    as Beta
 import qualified        Icicle.Common.Type as T
 import                  Icicle.Common.Fresh
 import                  Icicle.Common.Base
@@ -83,9 +84,15 @@ convertQuery n nt q
             nmap    <- fresh
             nval    <- fresh
      
-            (f,z,x,tV)
+            (k,z,x,tV)
                     <- convertGroupBy     nval nt q'
             e'      <- convertExp         nval nt e
+
+            let beta = Beta.betaToLets
+                     . Beta.beta Beta.isSimpleValue
+            let k'   = beta k
+            let z'   = beta z
+            let x'   = beta x
 
             let mapt = T.MapT t1 tV
 
@@ -93,8 +100,8 @@ convertQuery n nt q
                   = CE.XLam nmap mapt
                   $ CE.XLam nval nt
                   ( CE.XPrim (C.PrimMap $ C.PrimMapInsertOrUpdate t1 tV)
-                    CE.@~  f
-                    CE.@~ (f CE.@~ z)
+                    CE.@~  k'
+                    CE.@~ (k' CE.@~ z')
                     CE.@~  e'
                     CE.@~ CE.XVar nmap )
 
@@ -105,7 +112,7 @@ convertQuery n nt q
             let p = post n''
                   ( CE.XPrim
                         (C.PrimMap $ C.PrimMapMapValues t1 tV t2)
-                    CE.@~ x CE.@~ CE.XVar n' )
+                    CE.@~ x' CE.@~ CE.XVar n' )
 
             return (r <> p, n'')
 
