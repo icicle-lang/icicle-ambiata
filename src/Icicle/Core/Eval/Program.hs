@@ -1,5 +1,6 @@
 -- | Evaluate an entire program
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
 module Icicle.Core.Eval.Program (
       RuntimeError (..)
     , ProgramValue (..)
@@ -23,6 +24,8 @@ import qualified    Icicle.Core.Eval.Reduce as RV
 
 import              Icicle.Data.DateTime
 
+import              Icicle.Internal.Pretty
+
 import              P
 
 import              Data.Either.Combinators
@@ -39,6 +42,29 @@ data RuntimeError n
  | RuntimeErrorVarNotUnique (Name n)
  | RuntimeErrorReturnNotBaseType (V.Value n Prim)
  deriving (Show, Eq)
+
+instance (Pretty n) => Pretty (RuntimeError n) where
+ pretty (RuntimeErrorPre p)
+  = "Precomputation error:" <> line
+  <> indent 2 (pretty p)
+ pretty (RuntimeErrorStream p)
+  = "Stream error:" <> line
+  <> indent 2 (pretty p)
+ pretty (RuntimeErrorReduce p)
+  = "Reduce error:" <> line
+  <> indent 2 (pretty p)
+ pretty (RuntimeErrorPost p)
+  = "Postcomputation error:" <> line
+  <> indent 2 (pretty p)
+ pretty (RuntimeErrorReturn p)
+  = "Return error:" <> line
+  <> indent 2 (pretty p)
+ pretty (RuntimeErrorVarNotUnique n)
+  = "Variable name not unique: " <> pretty n
+ pretty (RuntimeErrorReturnNotBaseType n)
+  = "Return has function type, but should be simple value: " <> line
+  <> "  Expression: " <> pretty n
+
 
 
 -- | The result of evaluating a whole program:

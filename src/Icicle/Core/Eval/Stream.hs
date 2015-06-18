@@ -1,5 +1,6 @@
 -- | Simple stream evaluation
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards #-}
 module Icicle.Core.Eval.Stream (
       StreamValue
@@ -22,6 +23,8 @@ import              Icicle.Core.Exp.Prim
 
 import              Icicle.Data
 import              Icicle.Data.DateTime
+
+import              Icicle.Internal.Pretty
 
 import              P
 
@@ -64,6 +67,22 @@ data RuntimeError n
  | RuntimeErrorExpNotOfType (V.Value n Prim) ValType
  | RuntimeErrorExpNotBaseType (V.Value n Prim)
  deriving (Show, Eq)
+
+
+instance (Pretty n) => Pretty (RuntimeError n) where
+ pretty (RuntimeErrorExp x)
+  = "Expression error:" <> line
+  <> indent 2 (pretty x)
+ pretty (RuntimeErrorNoSuchStream n)
+  = "No such stream variable: " <> pretty n
+ pretty (RuntimeErrorExpNotOfType v t)
+  = "Expression has wrong type: " <> line
+  <> "  Expression:    " <> pretty v <> line
+  <> "  Expected type: " <> pretty t
+ pretty (RuntimeErrorExpNotBaseType v)
+  = "Expression has function type, but should be simple value: " <> line
+  <> "  Expression:    " <> pretty v
+
 
 
 -- | Evaluate a stream.

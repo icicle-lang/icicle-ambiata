@@ -59,7 +59,7 @@ instance Pretty ReplError where
       <> indent 2 (pretty ce)
      ReplErrorDecode d
       -> "Decode error:" <> line
-      <> indent 2 (text $ show d)
+      <> indent 2 (pretty d)
      ReplErrorRuntime d
       -> "Runtime error:" <> line
       <> indent 2 (text $ show d)
@@ -114,7 +114,9 @@ featureMapOfDictionary (D.Dictionary ds)
  where
   go (Attribute attr, D.ConcreteDefinition _enc)
    -- TODO: convert Encoding to feature map
-   = [(SP.Variable attr, Map.singleton (SP.Variable "value") IntT)]
+   = [ ( SP.Variable attr
+       , Map.fromList   [ (SP.Variable "value", IntT)
+                        , (SP.Variable "date",  DateTimeT)])]
   go _
    = []
 

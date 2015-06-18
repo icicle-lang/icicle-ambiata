@@ -220,13 +220,29 @@ convertExp
         -> ConvertM a Variable (C.Exp Variable)
 convertExp nElem t x
  | Var _ (Variable "value") <- x
+ , T.PairT t1 t2 <- t
+ , T.DateTimeT <- t2
  = do   n1 <- fresh
         n2 <- fresh
-        let fstF    = CE.XLam n1 t
-                    $ CE.XLam n2 T.DateTimeT
+        let fstF    = CE.XLam n1 t1
+                    $ CE.XLam n2 t2
                     $ CE.XVar n1
-        let unpair  = CE.XPrim (C.PrimFold (C.PrimFoldPair t T.DateTimeT) t)
+        let unpair  = CE.XPrim (C.PrimFold (C.PrimFoldPair t1 t2) t1)
                     CE.@~ fstF
+                    CE.@~ CE.XVar nElem
+        
+        return unpair
+
+ | Var _ (Variable "date") <- x
+ , T.PairT t1 t2 <- t
+ , T.DateTimeT <- t2
+ = do   n1 <- fresh
+        n2 <- fresh
+        let sndF    = CE.XLam n1 t1
+                    $ CE.XLam n2 t2
+                    $ CE.XVar n2
+        let unpair  = CE.XPrim (C.PrimFold (C.PrimFoldPair t1 t2) t2)
+                    CE.@~ sndF
                     CE.@~ CE.XVar nElem
         
         return unpair
@@ -291,19 +307,34 @@ convertGroupBy nElem t q
           | otherwise
           -> errAggBadArgs
 
+         Agg Count
+          | [] <- args
+          -> do let retty' = baseType retty
+
+                n  <- fresh
+                let k = CE.XLam n retty'
+                      ( CE.XVar n CE.+~ CE.constI 1 )
+                let z = CE.constI 0
+                x    <- idFun retty'
+
+                return (k, z, x, retty')
+          | otherwise
+          -> errAggBadArgs
+
+
          _
           -> do (ks, zs, xs, ts) <- unzip4 <$> mapM (convertGroupBy nElem t . Query []) args
 
-                (zz, tt) <- pairs zs ts
+                (zz, tt) <- pairConstruct zs ts
 
                 let cp ns
                         = convertPrim p ann
                             (baseType retty)
                             ((fmap (uncurry CE.XApp) (xs `zip` ns)) `zip` ts)
-                xx       <- unpairs cp ts (baseType retty)
+                xx       <- pairDestruct cp ts (baseType retty)
 
-                let applyKs ns = fst <$> pairs (fmap (uncurry CE.XApp) (ks `zip` ns)) ts
-                kk       <- unpairs applyKs ts tt
+                let applyKs ns = fst <$> pairConstruct (fmap (uncurry CE.XApp) (ks `zip` ns)) ts
+                kk       <- pairDestruct applyKs ts tt
 
                 return (kk, zz, xx, tt)
 
@@ -350,36 +381,38 @@ convertGroupBy nElem t q
 
   idFun tt = fresh >>= \n -> return (CE.XLam n tt (CE.XVar n))
 
-  pairs (x1:xs) (t1:ts)
+  pairTypes ts
+   = foldr T.PairT T.UnitT ts
+
+  pairConstruct xs ts
    = return
-   $ foldl
+   $ foldr
    (\(xa,ta) (x',t')
     -> ( CE.XPrim
             (C.PrimMinimal $ Min.PrimConst $ Min.PrimConstPair ta t')
             CE.@~ xa CE.@~ x'
        , T.PairT ta t'))
-   ( x1, t1 )
+   ( CE.XValue T.UnitT VUnit, T.UnitT )
    ( zip xs ts )
 
-  pairs _ _
-   -- TODO: this should be "unit"
-   = lift $ Left $ ConvertErrorTODO (fst $ annotOfExp $ final q) "convert GroupBy - constructing pairs for extract"
+  pairDestruct f [] ret
+   = do nl <- fresh
+        f' <- f []
+        return $ CE.XLam nl ret $ f'
 
+  pairDestruct f (t1:ts) ret
+   = do nl <- fresh
+        n1 <- fresh
 
-  unpairs f [tx,ty] ret
-   = do nx <- fresh
-        ny <- fresh
+        let f' xs = f (CE.XVar n1 : xs)
+        let tr    = pairTypes ts
 
-        nl <- fresh
+        rest <- pairDestruct f' ts ret
 
-        f' <- f [CE.XVar nx, CE.XVar ny]
-
-        let xx = CE.XLam nl (T.PairT tx ty)
-               ( CE.XPrim (C.PrimFold (C.PrimFoldPair tx ty) ret)
-                 CE.@~ (CE.XLam nx tx $ CE.XLam ny ty $ f')
+        let xx = CE.XLam nl (T.PairT t1 tr)
+               ( CE.XPrim (C.PrimFold (C.PrimFoldPair t1 tr) ret)
+                 CE.@~ (CE.XLam n1 t1 $ rest)
                  CE.@~ CE.XVar nl)
-        return xx
 
-  unpairs _ _ _
-   = lift $ Left $ ConvertErrorTODO (fst $ annotOfExp $ final q) "convert GroupBy - destructing pairs for extract"
+        return xx
 
