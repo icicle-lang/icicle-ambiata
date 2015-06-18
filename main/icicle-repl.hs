@@ -1,6 +1,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TupleSections     #-}
 {-# LANGUAGE ViewPatterns      #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 import           Control.Monad                        (when)
 import           Control.Monad.IO.Class
@@ -44,7 +45,7 @@ runRepl
     loop state
       = do line <- HL.getInputLine "> "
            case line of
-             Nothing      -> loop state
+             Nothing      -> return ()
              Just ":quit" -> return ()
              Just ":q"    -> return ()
              Just str     -> handleLine state str >>= loop
@@ -231,7 +232,7 @@ prettyE :: SR.ReplError -> HL.InputT IO ()
 prettyE e = HL.outputStrLn "REPL Error:" >> prettyHL e >> nl
 
 prettyHL :: PP.Pretty a => a -> HL.InputT IO ()
-prettyHL x = HL.outputStrLn $ PP.displayS (PP.renderCompact $ PP.pretty x) ""
+prettyHL x = HL.outputStrLn $ PP.displayS (PP.renderPretty 0.4 100 $ PP.pretty x) ""
 
 showFlag :: Bool -> String
 showFlag True  = "on"

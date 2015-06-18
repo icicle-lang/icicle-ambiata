@@ -25,6 +25,7 @@ import qualified        Icicle.Core as C
 import qualified        Icicle.Core.Exp.Combinators as CE
 import qualified        Icicle.Common.Exp           as CE
 import qualified        Icicle.Common.Exp.Prim.Minimal as Min
+import qualified        Icicle.Common.Exp.Simp.Beta    as Beta
 import qualified        Icicle.Common.Type as T
 import                  Icicle.Common.Fresh
 import                  Icicle.Common.Base
@@ -83,9 +84,15 @@ convertQuery n nt q
             nmap    <- fresh
             nval    <- fresh
      
-            (f,z,x,tV)
+            (k,z,x,tV)
                     <- convertGroupBy     nval nt q'
             e'      <- convertExp         nval nt e
+
+            let beta = Beta.betaToLets
+                     . Beta.beta Beta.isSimpleValue
+            let k'   = beta k
+            let z'   = beta z
+            let x'   = beta x
 
             let mapt = T.MapT t1 tV
 
@@ -93,8 +100,8 @@ convertQuery n nt q
                   = CE.XLam nmap mapt
                   $ CE.XLam nval nt
                   ( CE.XPrim (C.PrimMap $ C.PrimMapInsertOrUpdate t1 tV)
-                    CE.@~  f
-                    CE.@~ (f CE.@~ z)
+                    CE.@~  k'
+                    CE.@~ (k' CE.@~ z')
                     CE.@~  e'
                     CE.@~ CE.XVar nmap )
 
@@ -105,7 +112,7 @@ convertQuery n nt q
             let p = post n''
                   ( CE.XPrim
                         (C.PrimMap $ C.PrimMapMapValues t1 tV t2)
-                    CE.@~ x CE.@~ CE.XVar n' )
+                    CE.@~ x' CE.@~ CE.XVar n' )
 
             return (r <> p, n'')
 
@@ -281,8 +288,10 @@ convertGroupBy nElem t q
                 x    <- idFun retty'
 
                 return (k, z, x, retty')
-
           | otherwise
+          -> errAggBadArgs
+
+         _
           -> do (ks, zs, xs, ts) <- unzip4 <$> mapM (convertGroupBy nElem t . Query []) args
 
                 (zz, tt) <- pairs zs ts
@@ -297,9 +306,6 @@ convertGroupBy nElem t q
                 kk       <- unpairs applyKs ts tt
 
                 return (kk, zz, xx, tt)
-
-         _
-          -> errTODO $ annotOfExp $ final q
 
      | otherwise
       -> errTODO $ annotOfExp $ final q
@@ -336,6 +342,12 @@ convertGroupBy nElem t q
   errTODO ann
    = lift $ Left $ ConvertErrorTODO (fst ann) "convertGroupBy"
 
+  errAggBadArgs
+   = lift
+   $ Left
+   $ ConvertErrorReduceAggregateBadArguments (fst $ annotOfExp $ final q) (final q)
+
+
   idFun tt = fresh >>= \n -> return (CE.XLam n tt (CE.XVar n))
 
   pairs (x1:xs) (t1:ts)
@@ -358,10 +370,14 @@ convertGroupBy nElem t q
    = do nx <- fresh
         ny <- fresh
 
+        nl <- fresh
+
         f' <- f [CE.XVar nx, CE.XVar ny]
 
-        let xx = CE.XPrim (C.PrimFold (C.PrimFoldPair tx ty) ret)
+        let xx = CE.XLam nl (T.PairT tx ty)
+               ( CE.XPrim (C.PrimFold (C.PrimFoldPair tx ty) ret)
                  CE.@~ (CE.XLam nx tx $ CE.XLam ny ty $ f')
+                 CE.@~ CE.XVar nl)
         return xx
 
   unpairs _ _ _
