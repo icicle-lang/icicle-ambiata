@@ -1,5 +1,6 @@
 -- | This is a very simple expression evaluator, the idea being to serve as a spec
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards #-}
 module Icicle.Common.Exp.Eval (
       RuntimeError(..)
@@ -16,6 +17,8 @@ import Icicle.Common.Value
 import Icicle.Common.Exp.Exp
 import Icicle.Common.Exp.Compounds
 
+import Icicle.Internal.Pretty
+
 import              P
 
 import qualified    Data.Map as Map
@@ -27,6 +30,19 @@ data RuntimeError n p
  | RuntimeErrorVarNotInHeap (Name n)
  | RuntimeErrorPrimBadArgs p [Value n p]
  deriving (Show, Eq)
+
+instance (Pretty n, Pretty p) => Pretty (RuntimeError n p) where
+ pretty (RuntimeErrorBadApplication x y)
+  = "Bad application:" <> line
+  <> "  Function: " <> pretty x   <> line
+  <> "  Argument: " <> pretty y
+ pretty (RuntimeErrorVarNotInHeap n)
+  = "No such expression variable: " <> pretty n
+ pretty (RuntimeErrorPrimBadArgs p vs)
+  = "Bad arguments to primitive: " <> line
+  <> "  Primitive: " <> pretty p <> line
+  <> "  Arguments: " <> pretty vs
+
 
 type EvalPrim n p = p -> [Value n p] -> Either (RuntimeError n p) (Value n p)
 

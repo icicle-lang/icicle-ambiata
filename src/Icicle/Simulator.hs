@@ -21,6 +21,8 @@ import           Icicle.Data
 import           Icicle.Data.DateTime
 import           Icicle.Dictionary
 
+import           Icicle.Internal.Pretty
+
 import           P
 
 import qualified Icicle.Common.Base       as V
@@ -43,6 +45,14 @@ data SimulateError
  | SimulateErrorCannotConvertToCore        Value
  | SimulateErrorCannotConvertFromCore      V.BaseValue
   deriving (Eq,Show)
+
+instance Pretty SimulateError where
+ pretty (SimulateErrorRuntime e)
+  = pretty e
+ pretty (SimulateErrorCannotConvertToCore v)
+  = "Cannot convert value to Core: " <> pretty v
+ pretty (SimulateErrorCannotConvertFromCore v)
+  = "Cannot convert value from Core: " <> pretty v
 
 
 streams :: [AsAt Fact] -> [Partition]
