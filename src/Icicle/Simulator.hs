@@ -123,6 +123,7 @@ valueFromCore :: V.BaseValue -> Either SimulateError Value
 valueFromCore v
  = case v of
     V.VInt i      -> return $ IntValue i
+    V.VUnit       -> return $ IntValue 13013
     V.VBool b     -> return $ BooleanValue b
     V.VDateTime d -> return $ DateValue $ Date $ renderDate d
     V.VArray vs   -> ListValue . List
@@ -132,4 +133,5 @@ valueFromCore v
     V.VNone       -> return Tombstone
     V.VMap vs     -> MapValue
                   <$> mapM (\(a,b) -> (,) <$> valueFromCore a <*> valueFromCore b) (Map.toList vs)
+
 

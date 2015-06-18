@@ -43,6 +43,7 @@ import qualified    Data.Map as Map
 -- deal with lambda lifting arbitrary functions.
 data ValType =
    IntT
+ | UnitT
  | BoolT
  | DateTimeT
  | ArrayT ValType
@@ -200,6 +201,7 @@ valueMatchesType v t
 
 instance Pretty ValType where
  pretty IntT            = text "Int"
+ pretty UnitT           = text "Unit"
  pretty BoolT           = text "Bool"
  pretty DateTimeT       = text "DateTime"
  pretty (ArrayT t)      = text "Array " <> pretty t

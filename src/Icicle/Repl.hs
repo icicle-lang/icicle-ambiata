@@ -112,7 +112,9 @@ featureMapOfDictionary (D.Dictionary ds)
  where
   go (Attribute attr, D.ConcreteDefinition _enc)
    -- TODO: convert Encoding to feature map
-   = [(SP.Variable attr, Map.singleton (SP.Variable "value") IntT)]
+   = [ ( SP.Variable attr
+       , Map.fromList   [ (SP.Variable "value", IntT)
+                        , (SP.Variable "date",  DateTimeT)])]
   go _
    = []
 
