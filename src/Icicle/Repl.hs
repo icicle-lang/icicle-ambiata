@@ -9,32 +9,31 @@ module Icicle.Repl (
   , readFacts
   ) where
 
-import           Icicle.BubbleGum
+import qualified Icicle.Avalanche.Statement.Flatten as AS
 import           Icicle.Common.Base
-import qualified Icicle.Common.Fresh           as Fresh
+import qualified Icicle.Common.Fresh                as Fresh
 import           Icicle.Common.Type
-import qualified Icicle.Core.Program.Program   as Core
+import qualified Icicle.Core.Program.Program        as Core
 import           Icicle.Data
-import qualified Icicle.Dictionary             as D
+import qualified Icicle.Dictionary                  as D
 import           Icicle.Internal.Pretty
-import qualified Icicle.Serial                 as S
-import qualified Icicle.Source.Checker.Checker as SC
-import qualified Icicle.Source.Checker.Error   as SC
-import qualified Icicle.Source.Parser          as SP
-import qualified Icicle.Source.Query           as SQ
-import qualified Icicle.Source.ToCore.Base     as STC
-import qualified Icicle.Source.ToCore.ToCore   as STC
-import qualified Icicle.Source.Type            as ST
-import qualified Icicle.Simulator as S
-import qualified Icicle.Core.Eval.Program as EP
+import qualified Icicle.Serial                      as S
+import qualified Icicle.Simulator                   as S
+import qualified Icicle.Source.Checker.Checker      as SC
+import qualified Icicle.Source.Checker.Error        as SC
+import qualified Icicle.Source.Parser               as SP
+import qualified Icicle.Source.Query                as SQ
+import qualified Icicle.Source.ToCore.Base          as STC
+import qualified Icicle.Source.ToCore.ToCore        as STC
+import qualified Icicle.Source.Type                 as ST
 
 import           P
 
 import           Data.Either.Combinators
-import qualified Data.Map                      as Map
-import           Data.Text                     (Text)
-import qualified Data.Text                     as T
-import qualified Data.Traversable              as TR
+import qualified Data.Map                           as Map
+import           Data.Text                          (Text)
+import qualified Data.Text                          as T
+import qualified Data.Traversable                   as TR
 
 
 data ReplError
@@ -43,6 +42,7 @@ data ReplError
  | ReplErrorConvert (STC.ConvertError SP.SourcePos Var)
  | ReplErrorDecode  S.ParseError
  | ReplErrorRuntime S.SimulateError
+ | ReplErrorFlatten (AS.FlattenError Text)
  deriving (Show)
 
 instance Pretty ReplError where
