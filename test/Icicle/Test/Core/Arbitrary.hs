@@ -111,6 +111,7 @@ instance Arbitrary ValType where
    -- It's fine if they're big, but they have to fit in memory.
    oneof_sized_vals
          [ IntT
+         , UnitT
          , BoolT
          , DateTimeT ]
          [ ArrayT <$> arbitrary
@@ -378,6 +379,8 @@ baseValueForType t
  = case t of
     IntT
      -> VInt <$> arbitrary
+    UnitT
+     -> return VUnit
     BoolT
      -> VBool <$> arbitrary
     DateTimeT
