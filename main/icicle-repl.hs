@@ -13,6 +13,7 @@ import qualified Data.Text                            as T
 import qualified Data.Text.IO                         as T
 import qualified Data.Traversable                     as TR
 import           System.Console.Haskeline             as HL
+import qualified System.Console.Terminal.Size         as TS
 import qualified Text.PrettyPrint.Leijen              as PP
 
 import qualified Icicle.Avalanche.FromCore            as AC
@@ -256,7 +257,15 @@ prettyE :: SR.ReplError -> HL.InputT IO ()
 prettyE e = HL.outputStrLn "REPL Error:" >> prettyHL e >> nl
 
 prettyHL :: PP.Pretty a => a -> HL.InputT IO ()
-prettyHL x = HL.outputStrLn $ PP.displayS (PP.renderPretty 0.4 100 $ PP.pretty x) ""
+prettyHL x
+ = do   width <- terminalWidth
+        let width' = maybe 80 id width
+        HL.outputStrLn $ PP.displayS (PP.renderPretty 0.8 width' $ PP.pretty x) ""
+
+terminalWidth :: HL.InputT IO (Maybe Int)
+terminalWidth
+ = fmap (fmap TS.width)
+ $ liftIO TS.size
 
 showFlag :: Bool -> String
 showFlag True  = "on"

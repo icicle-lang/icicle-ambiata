@@ -161,6 +161,7 @@ executable             icicle-repl
                      , icicle
                      , filepath
                      , haskeline
+                     , terminal-size
                      , p
                      , text
                      , transformers
