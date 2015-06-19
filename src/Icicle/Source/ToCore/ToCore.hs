@@ -543,7 +543,7 @@ convertGroupBy nElem t q
             let prev'   = CE.XVar prev
             let k' = CE.XLam prev tt
                    ( CE.XPrim (C.PrimFold C.PrimFoldBool tt)
-                     CE.@~ e' CE.@~ (k CE.@~ prev') CE.@~ prev' )
+                     CE.@~ (k CE.@~ prev') CE.@~ prev' CE.@~ e' )
             return (k', z, x, tt)
 
     (Windowed (ann,_) _ _ : _)
