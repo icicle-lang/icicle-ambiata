@@ -86,7 +86,7 @@ instance (Pretty n) => Pretty (Stream n) where
  pretty (SourceWindowedDays i)
                        = text "sourceWindowedDays" <+> text (show i)
 
- pretty (STrans t x n) = pretty t <+> parens (pretty x) <+> pretty n
+ pretty (STrans t x n) = pretty t </> parens (pretty x) </> pretty n
 
 instance Pretty StreamTransform where
  pretty (SFilter t) = text "sfilter [" <> pretty t <> text "]"

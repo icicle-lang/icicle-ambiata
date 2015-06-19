@@ -39,11 +39,11 @@ inputOfReduce (RLatest   _ _ inp) = inp
 instance (Pretty n) => Pretty (Reduce n) where
  pretty (RFold t a k z n)
   =   text "rfold  "
-  <+> text "[" <> pretty t <> text "]"
-  <+> text "[" <> pretty a <> text "]"
-  <+> parens (pretty k) <+> parens (pretty z) <+> pretty n
+  </> text "[" <> pretty t <> text "]"
+  </> text "[" <> pretty a <> text "]"
+  </> parens (pretty k) </> parens (pretty z) </> pretty n
  pretty (RLatest t x n)
   =   text "rlatest"
-  <+> text "[" <> pretty t <> text "]"
-  <+> parens (pretty x) <+> pretty n
+  </> text "[" <> pretty t <> text "]"
+  </> parens (pretty x) </> pretty n
 

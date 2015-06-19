@@ -36,13 +36,17 @@ welcome to iREPL
 > --
 > -- More interesting group
 > - Result:
-[homer, [(0,100),(1,250),(2,450)]
+[homer, [(0,100)
+        ,(1,250)
+        ,(2,450)]
 ,marge, [(0,10)]]
 
 > --
 > -- A group with filters
 > - Result:
-[homer, [(0,100),(1,250),(2,450)]
+[homer, [(0,100)
+        ,(1,250)
+        ,(2,450)]
 ,marge, [(0,15)]]
 
 > --
