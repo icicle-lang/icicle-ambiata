@@ -42,7 +42,6 @@ data BaseValue
  deriving (Show, Ord, Eq)
 
 
-
 -- Pretty printing ---------------
 
 instance Pretty n => Pretty (Name n) where
