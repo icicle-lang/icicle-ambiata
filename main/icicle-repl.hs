@@ -1,6 +1,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TupleSections     #-}
 {-# LANGUAGE ViewPatterns      #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 import           Control.Monad                        (when)
@@ -17,11 +18,11 @@ import qualified Text.PrettyPrint.Leijen              as PP
 import qualified Icicle.Avalanche.FromCore            as AC
 import qualified Icicle.Avalanche.Prim.Flat           as APF
 import qualified Icicle.Avalanche.Program             as AP
+import qualified Icicle.Avalanche.Simp                as AS
 import qualified Icicle.Avalanche.Statement.Flatten   as AF
-import qualified Icicle.Avalanche.Statement.Statement as AS
-import           Icicle.Common.Base
 import qualified Icicle.Common.Fresh                  as F
 import qualified Icicle.Core.Program.Program          as CP
+import qualified Icicle.Core.Exp.Prim                 as CP
 import           Icicle.Data
 import           Icicle.Data.DateTime
 import           Icicle.Dictionary
@@ -78,7 +79,7 @@ data Command
 
 defaultState :: ReplState
 defaultState
-  = ReplState [] True True True True True
+  = ReplState [] False False False False True
 
 readCommand :: String -> Maybe Command
 readCommand ss = case words ss of
@@ -126,11 +127,11 @@ handleLine state line = case readCommand line of
 
   Just (CommandSet (ShowAvalanche b)) -> do
     HL.outputStrLn $ "ok, avalanche is now " ++ showFlag b
-    return $ state { hasCore = b }
+    return $ state { hasAvalanche = b }
 
   Just (CommandSet (ShowFlatten b)) -> do
     HL.outputStrLn $ "ok, flatten is now " ++ showFlag b
-    return $ state { hasEval = b }
+    return $ state { hasFlatten = b }
 
   Just (CommandSet (ShowEval b)) -> do
     HL.outputStrLn $ "ok, eval is now " ++ showFlag b
@@ -141,7 +142,7 @@ handleLine state line = case readCommand line of
     case SR.readFacts dict s of
       Left e   -> prettyHL e >> return state
       Right fs -> do
-        HL.outputStrLn $ "ok, loaded " ++ fp
+        HL.outputStrLn $ "ok, loaded " ++ fp ++ ", " ++ show (length fs) ++ " rows"
         return $ state { facts = fs }
 
   -- We use the simulator to evaluate the Icicle expression.
@@ -159,7 +160,7 @@ handleLine state line = case readCommand line of
         when (hasType state) $ HL.outputStrLn "- Type:" >> prettyHL u >> nl
         when (hasCore state) $ HL.outputStrLn "- Core:" >> prettyHL p >> nl
         when (hasAvalanche state) $ do
-          let aprog = AC.programFromCore (AC.namerText id) prog
+          let aprog = coreAvalanche prog
           HL.outputStrLn "- Avalanche:" >> prettyHL aprog >> nl
         when (hasFlatten state) $ case coreFlatten prog of
           Left  e -> prettyE e
@@ -215,15 +216,27 @@ coreEval d fs (renameQT unVar -> query) prog
 
 -- | Converts Core to Avalanche then flattens the result.
 --
-coreFlatten :: ProgramT -> Either SR.ReplError (AS.Statement Text APF.Prim)
+coreFlatten :: ProgramT -> Either SR.ReplError (AP.Program Text APF.Prim)
 coreFlatten prog
-  = mapLeft  SR.ReplErrorFlatten
-  . mapRight snd
-  $ F.runFreshT
-  ( AF.flatten
-  $ AP.statements
-  $ AC.programFromCore (AC.namerText id) prog)
-  (F.counterNameState (Name . T.pack . show) 0)
+ = let av = coreAvalanche prog
+   in   mapLeft  SR.ReplErrorFlatten
+      . mapRight (simpAvalanche "simp")
+      . mapRight (\(_,s') -> av { AP.statements = s' })
+      $ F.runFreshT
+      ( AF.flatten
+      $ AP.statements av)
+      (F.counterPrefixNameState "flat")
+
+coreAvalanche :: ProgramT -> AP.Program Text CP.Prim
+coreAvalanche prog
+ = simpAvalanche "anf"
+ $ AC.programFromCore (AC.namerText id) prog
+
+simpAvalanche :: (Eq p, Show p) => Text -> AP.Program Text p -> AP.Program Text p
+simpAvalanche prefix av
+ = let simp = AS.simpAvalanche av
+       name = F.counterPrefixNameState prefix
+   in  snd $ F.runFresh simp name
 
 --------------------------------------------------------------------------------
 
