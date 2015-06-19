@@ -62,7 +62,7 @@ instance Pretty ReplError where
       <> indent 2 (pretty d)
      ReplErrorRuntime d
       -> "Runtime error:" <> line
-      <> indent 2 (text $ show d)
+      <> indent 2 (pretty d)
      ReplErrorFlatten d
       -> "Flatten error:" <> line
       <> indent 2 (text $ show d)
