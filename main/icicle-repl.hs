@@ -76,6 +76,9 @@ data Command
    | CommandHelp
    | CommandSet  Set
    | CommandLoad FilePath
+   -- It's rather odd to have comments in a REPL.
+   -- However, I want these printed out in the test output
+   | CommandComment String
 
 defaultState :: ReplState
 defaultState
@@ -97,6 +100,7 @@ readCommand ss = case words ss of
   ":set":"+flatten":_   -> Just $ CommandSet $ ShowFlatten True
   ":set":"-flatten":_   -> Just $ CommandSet $ ShowFlatten False
   ":load":f:_           -> Just $ CommandLoad f
+  ('-':'-':_):_         -> Just $ CommandComment $ ss
   _                     -> Nothing
 
 handleLine :: ReplState -> String -> HL.InputT IO ReplState
@@ -144,6 +148,11 @@ handleLine state line = case readCommand line of
       Right fs -> do
         HL.outputStrLn $ "ok, loaded " ++ fp ++ ", " ++ show (length fs) ++ " rows"
         return $ state { facts = fs }
+
+  Just (CommandComment comment) -> do
+    HL.outputStrLn comment
+    return state
+
 
   -- We use the simulator to evaluate the Icicle expression.
   Nothing -> do
