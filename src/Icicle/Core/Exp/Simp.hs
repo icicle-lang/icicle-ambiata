@@ -1,4 +1,5 @@
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE PatternGuards     #-}
 module Icicle.Core.Exp.Simp
      ( simp
      , simpX
@@ -87,6 +88,7 @@ simpMP = go
         | [(_, VInt x)] <- args
         -> let t = functionReturns (M.typeOfPrim pp)
            in  return $ XValue t (VInt (-x))
+        | otherwise -> Nothing
 
       -- * predicates on integers
       M.PrimRelation M.PrimRelationGt IntT
@@ -101,6 +103,22 @@ simpMP = go
         -> int2 args (==)
       M.PrimRelation M.PrimRelationNe IntT
         -> int2 args (/=)
+
+      -- * predicates on bools
+      M.PrimRelation M.PrimRelationGt BoolT
+        -> bool2 args (>)
+      M.PrimRelation M.PrimRelationGe BoolT
+        -> bool2 args (>=)
+      M.PrimRelation M.PrimRelationLt BoolT
+        -> bool2 args (<)
+      M.PrimRelation M.PrimRelationLe BoolT
+        -> bool2 args (<)
+      M.PrimRelation M.PrimRelationEq BoolT
+        -> bool2 args (==)
+      M.PrimRelation M.PrimRelationNe BoolT
+        -> bool2 args (/=)
+
+      M.PrimRelation _ _ -> Nothing
 
       -- * logical
       M.PrimLogical M.PrimLogicalAnd
@@ -117,20 +135,24 @@ simpMP = go
     bool1 args f
       | [(_, VBool x)] <- args
       = return $ XValue BoolT (VBool (f x))
+      | otherwise = Nothing
 
     bool2 args f
       | [(_, VBool x), (_, VBool y)] <- args
       = return $ XValue BoolT (VBool (f x y))
+      | otherwise = Nothing
 
     int2 args f
       | [(_, VInt x), (_, VInt y)] <- args
       = return $ XValue BoolT (VBool (f x y))
+      | otherwise = Nothing
 
     arith2 pp args f
       | [(_, VInt x), (_, VInt y)] <- args
       = let t = functionReturns (M.typeOfPrim pp)
             v = f x y
         in  return $ XValue t (VInt v)
+      | otherwise = Nothing
 
 
 takeValue :: Exp n p -> Maybe (ValType, BaseValue)
