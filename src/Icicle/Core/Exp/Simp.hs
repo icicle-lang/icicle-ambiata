@@ -43,10 +43,17 @@ simpX isValue = go
       -- * beta reduce primitive arguments
       XApp{}
         | Just (p, as) <- takePrimApps xx
-        -> makeApps (XPrim p) (fmap beta as)
+        -> makeApps (XPrim p) (fmap go as)
 
-      -- * leaves everything else alone
-      _ -> xx
+      XLam n t x1
+        -> XLam n t (go x1)
+
+      XLet n x1 x2
+        -> XLet n (go x1) (go x2)
+
+      XVar{}   -> xx
+      XPrim{}  -> xx
+      XValue{} -> xx
 
 -- | Primitive Simplifier
 --
