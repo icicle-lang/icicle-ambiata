@@ -54,9 +54,10 @@ simpX isValue = go
       XLet n x1 x2
         -> XLet n (go x1) (go x2)
 
-      XVar{}   -> xx
-      XPrim{}  -> xx
-      XValue{} -> xx
+      b@(XVar{})   -> b
+      b@(XPrim{})  -> b
+      b@(XValue{}) -> b
+
 
 -- | Primitive Simplifier
 --
