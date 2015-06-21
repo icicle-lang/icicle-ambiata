@@ -128,7 +128,7 @@ simpMP = go
     arith2 pp args f
       | [(_, VInt x), (_, VInt y)] <- args
       = let t = functionReturns (M.typeOfPrim pp)
-            v = x + y
+            v = f x y
         in  return $ XValue t (VInt v)
 
 
