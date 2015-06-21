@@ -45,6 +45,9 @@ simpX isValue = go
         | Just (p, as) <- takePrimApps xx
         -> makeApps (XPrim p) (fmap go as)
 
+      XApp p q
+        -> XApp (go p) (go q)
+
       XLam n t x1
         -> XLam n t (go x1)
 
