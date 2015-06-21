@@ -248,9 +248,72 @@ convertQuery n nt q
 
             return (r <> p, n'')
 
-    -- TODO: distinct, let, let fold
-    (Distinct (ann,_) _ : _)
-     -> lift $ Left $ ConvertErrorTODO ann "convertQuery.Distinct"
+    -- Distinct is very similar to a group by, except instead of performing the fold
+    -- as the elements are seen into the map,
+    -- we insert/update the element in the map, then fold over essentially the last-seen
+    -- for each group.
+    (Distinct (_,_) e : _)
+     -> do  let tkey = baseType $ snd $ annotOfExp e
+            let tval = nt
+
+            n'      <- fresh
+            n''     <- fresh
+            nmap    <- fresh
+            nacc    <- fresh
+            nval    <- fresh
+            n'ignore<- fresh
+
+            -- Convert the rest of the query into a fold.
+            -- This is executed as a Map fold at the end, rather than
+            -- as a stream fold.
+            (k,z,x,tV)
+                    <- convertGroupBy     nval nt q'
+
+            -- Convert the "by" to a simple expression.
+            -- This becomes the map insertion key.
+            e'      <- convertExp         nval nt e
+
+            -- Simplify the fold expressions a little bit,
+            -- by performing beta reduction.
+            let k'   = beta k
+            let z'   = beta z
+            let x'   = beta x
+
+            let mapt = T.MapT tkey tval
+
+            -- This is a little bit silly - 
+            -- this "insertOrUpdate" should really just be an insert.
+            -- Just put each element in the map, potentially overwriting the last one.
+            let insertOrUpdate
+                  = CE.XLam nmap mapt
+                  $ CE.XLam nval nt
+                  ( CE.XPrim (C.PrimMap $ C.PrimMapInsertOrUpdate tkey tval)
+                    CE.@~ (CE.XLam n'ignore nt $ CE.XVar nval)
+                    CE.@~ (CE.XVar nval)
+                    CE.@~  e'
+                    CE.@~ CE.XVar nmap )
+
+            -- Perform the map fold
+            let r = red n' 
+                  $ C.RFold nt mapt insertOrUpdate 
+                  ( CE.emptyMap tkey tval)
+                    n
+
+            -- Perform a fold over that map
+            let p = post n''
+                  ( x' CE.@~ 
+                  ( CE.XPrim
+                        (C.PrimFold (C.PrimFoldMap tkey tval) tV)
+                    CE.@~ (CE.XLam nacc     tV
+                         $ CE.XLam n'ignore tkey
+                         $ CE.XLam nval     tval
+                         ( k' CE.@~ CE.XVar nacc ))
+                    CE.@~ z'
+                    CE.@~ CE.XVar n'))
+
+            return (r <> p, n'')
+
+    -- TODO: let, let fold
     (Let (ann,_) _ _ : _)
      -> lift $ Left $ ConvertErrorTODO ann "convertQuery.Let"
     (LetFold (ann,_) _ : _)

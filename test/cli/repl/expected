@@ -55,4 +55,19 @@ welcome to iREPL
 > - Result:
 [homer, 400,marge, 10]
 
+> --
+> --
+> -- Distinct by value. Expect 5 and 3
+> - Result:
+[homer, 5,marge, 3]
+
+> --
+> -- Buckets of 100. Expect 5 and 1
+> - Result:
+[homer, 5,marge, 1]
+
+> -- Distinct by date. Expect 5 and 1
+> - Result:
+[homer, 5,marge, 1]
+
 > 
