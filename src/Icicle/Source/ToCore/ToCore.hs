@@ -208,12 +208,6 @@ convertQuery n nt q
             -- This becomes the map insertion key.
             e'      <- convertExp         nval nt e
 
-            -- Simplify the fold expressions a little bit,
-            -- by performing beta reduction.
-            let k'   = beta k
-            let z'   = beta z
-            let x'   = beta x
-
             let mapt = T.MapT t1 tV
 
             -- For each input element, we use the group by as the key, and insert into a map.
@@ -225,11 +219,12 @@ convertQuery n nt q
             -- with the zero accumulator.
             -- This is because the map doesn't start with "zero"s in it, unlike a normal fold.
             let insertOrUpdate
-                  = CE.XLam nmap mapt
+                  = beta
+                  $ CE.XLam nmap mapt
                   $ CE.XLam nval nt
                   ( CE.XPrim (C.PrimMap $ C.PrimMapInsertOrUpdate t1 tV)
-                    CE.@~  k'
-                    CE.@~ (k' CE.@~ z')
+                    CE.@~  k
+                    CE.@~ (k CE.@~ z)
                     CE.@~  e'
                     CE.@~ CE.XVar nmap )
 
@@ -245,7 +240,7 @@ convertQuery n nt q
             let p = post n''
                   ( CE.XPrim
                         (C.PrimMap $ C.PrimMapMapValues t1 tV t2)
-                    CE.@~ x' CE.@~ CE.XVar n' )
+                    CE.@~ beta x CE.@~ CE.XVar n' )
 
             return (r <> p, n'')
 
@@ -274,19 +269,14 @@ convertQuery n nt q
             -- This becomes the map insertion key.
             e'      <- convertExp         nval nt e
 
-            -- Simplify the fold expressions a little bit,
-            -- by performing beta reduction.
-            let k'   = beta k
-            let z'   = beta z
-            let x'   = beta x
-
             let mapt = T.MapT tkey tval
 
             -- This is a little bit silly - 
             -- this "insertOrUpdate" should really just be an insert.
             -- Just put each element in the map, potentially overwriting the last one.
             let insertOrUpdate
-                  = CE.XLam nmap mapt
+                  = beta
+                  $ CE.XLam nmap mapt
                   $ CE.XLam nval nt
                   ( CE.XPrim (C.PrimMap $ C.PrimMapInsertOrUpdate tkey tval)
                     CE.@~ (CE.XLam n'ignore nt $ CE.XVar nval)
@@ -302,14 +292,15 @@ convertQuery n nt q
 
             -- Perform a fold over that map
             let p = post n''
-                  ( x' CE.@~ 
+                  $ beta
+                  ( x CE.@~ 
                   ( CE.XPrim
                         (C.PrimFold (C.PrimFoldMap tkey tval) tV)
                     CE.@~ (CE.XLam nacc     tV
                          $ CE.XLam n'ignore tkey
                          $ CE.XLam nval     tval
-                         ( k' CE.@~ CE.XVar nacc ))
-                    CE.@~ z'
+                         ( k CE.@~ CE.XVar nacc ))
+                    CE.@~ z
                     CE.@~ CE.XVar n'))
 
             return (r <> p, n'')
