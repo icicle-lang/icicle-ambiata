@@ -14,6 +14,7 @@ import qualified Data.Text.IO                         as T
 import qualified Data.Traversable                     as TR
 import           System.Console.Haskeline             as HL
 import qualified System.Console.Terminal.Size         as TS
+import           System.Directory
 import qualified Text.PrettyPrint.Leijen              as PP
 
 import qualified Icicle.Avalanche.FromCore            as AC
@@ -41,9 +42,14 @@ main = runRepl
 runRepl :: IO ()
 runRepl
   = do putStrLn "welcome to iREPL"
-       HL.runInputT HL.defaultSettings $ loop defaultState
+       s <- settings
+       HL.runInputT s $ loop defaultState
   where
-    loop :: ReplState -> HL.InputT IO ()
+    settings
+      = do home <- getHomeDirectory
+           return $ HL.defaultSettings
+             { historyFile    = Just $ home <> "/.icicle-repl.history"
+             , autoAddHistory = True}
     loop state
       = do line <- HL.getInputLine "> "
            case line of
