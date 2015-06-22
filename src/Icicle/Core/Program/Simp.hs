@@ -30,7 +30,7 @@ simp = S.simp B.isSimpleValue
 simpProgram :: Ord n => Program n -> Fresh n (Program n)
 simpProgram p
   = do pres <- forall simp (precomps p)
-       poss <- forall simp (precomps p)
+       poss <- forall simp (postcomps p)
        ss   <- forall simpStream (streams p)
        rs   <- forall simpReduce (reduces p)
        return p { precomps  = pres

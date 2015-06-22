@@ -14,6 +14,7 @@ import           Icicle.Common.Base
 import qualified Icicle.Common.Fresh                as Fresh
 import           Icicle.Common.Type
 import qualified Icicle.Core.Program.Program        as Core
+import qualified Icicle.Core.Program.Simp           as Core
 import           Icicle.Data
 import qualified Icicle.Dictionary                  as D
 import           Icicle.Internal.Pretty
@@ -91,12 +92,16 @@ sourceCheck d q
 
 sourceConvert :: QueryTop'T -> Either ReplError Program'
 sourceConvert q
- = mapRight snd
+ = mapRight (simp.snd)
  $ mapLeft ReplErrorConvert
- $ Fresh.runFreshT (STC.convertQueryTop q) namer
+ $ Fresh.runFreshT (STC.convertQueryTop q) (namer "conv")
  where
-  mkName i = Name $ SP.Variable ("v" <> T.pack (show i))
-  namer = Fresh.counterNameState mkName 0
+  mkName prefix i = Name $ SP.Variable (prefix <> T.pack (show i))
+  namer prefix = Fresh.counterNameState (mkName prefix) 0
+
+  simp p
+   = snd
+   $ Fresh.runFresh (Core.simpProgram p) (namer "simp")
 
 
 sourceParseConvert :: T.Text -> Either ReplError Program'
