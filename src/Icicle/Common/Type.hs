@@ -162,6 +162,10 @@ valueMatchesType v t
  , IntT         <- t
  = True
 
+ | VUnit        <- v
+ , UnitT        <- t
+ = True
+
  | VBool _      <- v
  , BoolT        <- t
  = True

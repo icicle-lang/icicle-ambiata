@@ -651,10 +651,10 @@ convertGroupBy nElem t q
 
   -- Destruct nested pairs.
   -- Call "f" with expression for each element of the pair.
-  pairDestruct f [] ret
+  pairDestruct f [] _ret
    = do nl <- fresh
         f' <- f []
-        return $ CE.XLam nl ret $ f'
+        return $ CE.XLam nl T.UnitT $ f'
 
   pairDestruct f (t1:ts) ret
    = do nl <- fresh
