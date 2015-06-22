@@ -72,9 +72,10 @@ convertQueryTop
 convertQueryTop qt
  = do   inp <- fresh
         -- TODO: look this up in context
-        let inpTy = T.PairT T.IntT T.DateTimeT
+        let inpTy       = T.IntT
+        let inpTy'dated = T.PairT inpTy T.DateTimeT
 
-        (bs,ret) <- convertQuery inp inpTy (query qt)
+        (bs,ret) <- convertQuery inp inpTy'dated (query qt)
         let bs'   = strm inp C.Source <> bs
         return (programOfBinds inpTy bs' ret)
 

@@ -23,6 +23,7 @@ import qualified Icicle.Avalanche.Program             as AP
 import qualified Icicle.Avalanche.Simp                as AS
 import qualified Icicle.Avalanche.Statement.Flatten   as AF
 import qualified Icicle.Common.Fresh                  as F
+import qualified Icicle.Core.Program.Check            as CP
 import qualified Icicle.Core.Program.Program          as CP
 import qualified Icicle.Core.Exp.Prim                 as CP
 import           Icicle.Data
@@ -65,6 +66,7 @@ data ReplState
    { facts        :: [AsAt Fact]
    , hasType      :: Bool
    , hasCore      :: Bool
+   , hasCoreType  :: Bool
    , hasAvalanche :: Bool
    , hasFlatten   :: Bool
    , hasEval      :: Bool }
@@ -73,6 +75,7 @@ data ReplState
 data Set
    = ShowType Bool
    | ShowCore Bool
+   | ShowCoreType Bool
    | ShowEval Bool
    | ShowAvalanche Bool
    | ShowFlatten Bool
@@ -89,7 +92,7 @@ data Command
 
 defaultState :: ReplState
 defaultState
-  = ReplState [] False False False False True
+  = ReplState [] False False False False False True
 
 readCommand :: String -> Maybe Command
 readCommand ss = case words ss of
@@ -100,6 +103,8 @@ readCommand ss = case words ss of
   ":set":"-type":_      -> Just $ CommandSet $ ShowType False
   ":set":"+core":_      -> Just $ CommandSet $ ShowCore True
   ":set":"-core":_      -> Just $ CommandSet $ ShowCore False
+  ":set":"+core-type":_ -> Just $ CommandSet $ ShowCoreType True
+  ":set":"-core-type":_ -> Just $ CommandSet $ ShowCoreType False
   ":set":"+eval":_      -> Just $ CommandSet $ ShowEval True
   ":set":"-eval":_      -> Just $ CommandSet $ ShowEval False
   ":set":"+avalanche":_ -> Just $ CommandSet $ ShowAvalanche True
@@ -123,6 +128,7 @@ handleLine state line = case readCommand line of
       , ":load <filepath>   -- loads a data set"
       , ":set  +/-type      -- whether to show the checked expression type"
       , ":set  +/-core      -- whether to show the Core conversion"
+      , ":set  +/-core-type -- whether to show the Core conversion's type"
       , ":set  +/-eval      -- whether to show the result"
       , ":set  +/-avalanche -- whether to show the Avalanche conversion"
       , ":set  +/-flatten   -- whether to show flattened Avalanche conversion" ]
@@ -135,6 +141,10 @@ handleLine state line = case readCommand line of
   Just (CommandSet (ShowCore b)) -> do
     HL.outputStrLn $ "ok, core is now " ++ showFlag b
     return $ state { hasCore = b }
+
+  Just (CommandSet (ShowCoreType b)) -> do
+    HL.outputStrLn $ "ok, core-type is now " ++ showFlag b
+    return $ state { hasCoreType = b }
 
   Just (CommandSet (ShowAvalanche b)) -> do
     HL.outputStrLn $ "ok, avalanche is now " ++ showFlag b
@@ -175,6 +185,9 @@ handleLine state line = case readCommand line of
         let prog = renameP unVar p
         when (hasType state) $ HL.outputStrLn "- Type:" >> prettyHL u >> nl
         when (hasCore state) $ HL.outputStrLn "- Core:" >> prettyHL p >> nl
+        when (hasCoreType state) $ case CP.checkProgram p of
+          Left e  -> HL.outputStrLn "- Core type:" >> prettyHL e >> nl
+          Right r -> HL.outputStrLn "- Core type:" >> prettyHL r >> nl
         when (hasAvalanche state) $ do
           let aprog = coreAvalanche prog
           HL.outputStrLn "- Avalanche:" >> prettyHL aprog >> nl
