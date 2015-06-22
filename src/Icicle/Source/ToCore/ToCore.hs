@@ -319,9 +319,9 @@ convertQuery n nt q
   -- Group bys can live in either Aggregate or Group universe.
   -- Because Core is explicitly typed, we need to pull out the key type and value type.
   getGroupByMapType ann ty
-   | UniverseType (Group t1) t2         <- ty
+   | UniverseType (Universe (Group t1) _) t2         <- ty
    = return (t1, t2)
-   | UniverseType AggU (T.MapT t1 t2)   <- ty
+   | UniverseType (Universe AggU _) (T.MapT t1 t2)   <- ty
    = return (t1, t2)
    | otherwise
    = lift $ Left $ ConvertErrorGroupByHasNonGroupResult ann ty
@@ -382,7 +382,7 @@ convertReduce n t xx
             nm  <- fresh
 
             let bs'  = mconcat bs
-            let b''  | Pure <- universe ty
+            let b''  | Pure <- universeTemporality $ universe ty
                      = pre nm x'
                      | otherwise
                      = post nm x'
