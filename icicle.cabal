@@ -159,6 +159,7 @@ executable             icicle-repl
     build-depends:     base
                      , either
                      , icicle
+                     , directory
                      , filepath
                      , haskeline
                      , terminal-size
