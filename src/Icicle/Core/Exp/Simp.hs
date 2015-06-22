@@ -38,7 +38,7 @@ simpX isValue = go
       -- * constant folding for some primitives
       XApp{}
         | Just (p, as) <- takePrimApps xx
-        , Just args    <- sequenceA (fmap takeValue as)
+        , Just args    <- sequenceA (fmap (takeValue . go) as)
         -> fromMaybe xx (simpP p args)
 
       -- * beta reduce primitive arguments
@@ -128,8 +128,20 @@ simpMP = go
       M.PrimLogical M.PrimLogicalNot
         -> bool1 args not
 
-      -- * leaves baked-in constants and datetime alone
-      M.PrimConst    _ -> Nothing
+      -- * constructors
+      M.PrimConst    (M.PrimConstPair _ _)
+       | [(ta,va),(tb,vb)] <- args
+       -> return $ XValue (PairT ta tb) (VPair va vb)
+       | otherwise
+       -> Nothing
+
+      M.PrimConst    (M.PrimConstSome _)
+       | [(ta,va)] <- args
+       -> return $ XValue (OptionT ta) (VSome va)
+       | otherwise
+       -> Nothing
+
+      -- * leaves datetime alone
       M.PrimDateTime _ -> Nothing
 
     bool1 args f
