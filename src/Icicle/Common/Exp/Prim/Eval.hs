@@ -41,8 +41,10 @@ evalPrim p originalP vs
       -> primError
 
      PrimArith PrimArithDiv
+      | [_             , VBase (VInt 0)] <- vs
+      -> return $ VBase $ VNone
       | [VBase (VInt i), VBase (VInt j)] <- vs
-      -> return $ VBase $ VInt $ i `div` j
+      -> return $ VBase $ VSome $ VInt $ i `div` j
       | otherwise
       -> primError
 
