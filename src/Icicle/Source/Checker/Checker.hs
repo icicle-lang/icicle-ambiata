@@ -211,11 +211,11 @@ checkP x p args
      | Newest <- a
      , [t] <- args
      , isPureOrElem $ universe t
-     -> return ((), UniverseType (possibly $ universe t) (baseType t))
+     -> return ((), UniverseType (Universe AggU Possibly) (baseType t))
      | Oldest <- a
      , [t] <- args
      , isPureOrElem $ universe t
-     -> return ((), UniverseType (possibly $ universe t) (baseType t))
+     -> return ((), UniverseType (Universe AggU Possibly) (baseType t))
 
      | otherwise
      -> err

@@ -1,13 +1,17 @@
+{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TupleSections     #-}
 {-# LANGUAGE ViewPatterns      #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-import           Control.Monad                        (when)
+import           Control.Monad.Trans.Class
+import           Control.Monad.Trans.Either
 import           Control.Monad.IO.Class
 import           Data.Either.Combinators
 import           Data.Monoid
+import           Data.List                            (words)
+import           Data.String                          (String)
 import           Data.Text                            (Text)
 import qualified Data.Text                            as T
 import qualified Data.Text.IO                         as T
@@ -15,6 +19,7 @@ import qualified Data.Traversable                     as TR
 import           System.Console.Haskeline             as HL
 import qualified System.Console.Terminal.Size         as TS
 import           System.Directory
+import           System.IO
 import qualified Text.PrettyPrint.Leijen              as PP
 
 import qualified Icicle.Avalanche.FromCore            as AC
@@ -35,6 +40,9 @@ import qualified Icicle.Simulator                     as S
 import qualified Icicle.Source.Parser                 as SP
 import qualified Icicle.Source.Query                  as SQ
 import qualified Icicle.Source.Type                   as ST
+
+
+import           P
 
 
 main :: IO ()
@@ -135,27 +143,27 @@ handleLine state line = case readCommand line of
     return state
 
   Just (CommandSet (ShowType b)) -> do
-    HL.outputStrLn $ "ok, type is now " ++ showFlag b
+    HL.outputStrLn $ "ok, type is now " <> showFlag b
     return $ state { hasType = b }
 
   Just (CommandSet (ShowCore b)) -> do
-    HL.outputStrLn $ "ok, core is now " ++ showFlag b
+    HL.outputStrLn $ "ok, core is now " <> showFlag b
     return $ state { hasCore = b }
 
   Just (CommandSet (ShowCoreType b)) -> do
-    HL.outputStrLn $ "ok, core-type is now " ++ showFlag b
+    HL.outputStrLn $ "ok, core-type is now " <> showFlag b
     return $ state { hasCoreType = b }
 
   Just (CommandSet (ShowAvalanche b)) -> do
-    HL.outputStrLn $ "ok, avalanche is now " ++ showFlag b
+    HL.outputStrLn $ "ok, avalanche is now " <> showFlag b
     return $ state { hasAvalanche = b }
 
   Just (CommandSet (ShowFlatten b)) -> do
-    HL.outputStrLn $ "ok, flatten is now " ++ showFlag b
+    HL.outputStrLn $ "ok, flatten is now " <> showFlag b
     return $ state { hasFlatten = b }
 
   Just (CommandSet (ShowEval b)) -> do
-    HL.outputStrLn $ "ok, eval is now " ++ showFlag b
+    HL.outputStrLn $ "ok, eval is now " <> showFlag b
     return $ state { hasEval = b }
 
   Just (CommandLoad fp)      -> do
@@ -163,7 +171,7 @@ handleLine state line = case readCommand line of
     case SR.readFacts dict s of
       Left e   -> prettyHL e >> return state
       Right fs -> do
-        HL.outputStrLn $ "ok, loaded " ++ fp ++ ", " ++ show (length fs) ++ " rows"
+        HL.outputStrLn $ "ok, loaded " <> fp <> ", " <> show (length fs) <> " rows"
         return $ state { facts = fs }
 
   Just (CommandComment comment) -> do
@@ -173,30 +181,46 @@ handleLine state line = case readCommand line of
 
   -- We use the simulator to evaluate the Icicle expression.
   Nothing -> do
-    let checked = do
-          qt     <- SR.sourceParse (T.pack line)
-          (q, u) <- SR.sourceCheck dict qt
-          p      <- SR.sourceConvert q
-          return (q, u, p)
+
+    let hoist c = hoistEither c
+    let prettyOut setting heading p
+            = lift
+            $ when (setting state)
+            $ do    HL.outputStrLn heading
+                    prettyHL p
+                    nl
+
+    checked <- runEitherT $ do
+      parsed    <- hoist $ SR.sourceParse (T.pack line)
+      (annot, typ)
+                <- hoist $ SR.sourceCheck dict parsed
+
+      prettyOut hasType "- Type:" typ
+
+      core      <- hoist $ SR.sourceConvert annot
+      let core'  = renameP unVar core
+
+      prettyOut hasCore "- Core:" core'
+
+      case CP.checkProgram core' of
+       Left  e -> prettyOut hasCoreType "- Core type error:" e
+       Right t -> prettyOut hasCoreType "- Core type:" t
+
+      prettyOut hasAvalanche "- Avalanche:" (coreAvalanche core')
+
+      case coreFlatten core' of
+       Left  e -> prettyOut hasFlatten "- Flatten error:" e
+       Right f -> prettyOut hasFlatten "- Flattened:" f
+
+      case coreEval allTime (facts state) annot core' of
+       Left  e -> prettyOut hasEval "- Result error:" e
+       Right r -> prettyOut hasEval "- Result:" r
+
+      return ()
 
     case checked of
-      Left  e      -> prettyE e
-      Right (q, u, p) -> do
-        let prog = renameP unVar p
-        when (hasType state) $ HL.outputStrLn "- Type:" >> prettyHL u >> nl
-        when (hasCore state) $ HL.outputStrLn "- Core:" >> prettyHL p >> nl
-        when (hasCoreType state) $ case CP.checkProgram p of
-          Left e  -> HL.outputStrLn "- Core type:" >> prettyHL e >> nl
-          Right r -> HL.outputStrLn "- Core type:" >> prettyHL r >> nl
-        when (hasAvalanche state) $ do
-          let aprog = coreAvalanche prog
-          HL.outputStrLn "- Avalanche:" >> prettyHL aprog >> nl
-        when (hasFlatten state) $ case coreFlatten prog of
-          Left  e -> prettyE e
-          Right r -> HL.outputStrLn "- Flattened:" >> prettyHL r>> nl
-        when (hasEval state) $ case coreEval allTime (facts state) q prog of
-          Left  e -> prettyE e
-          Right r -> HL.outputStrLn "- Result:" >> prettyHL r >> nl
+      Left  e -> prettyE e
+      Right _ -> return ()
 
     return state
 
@@ -224,11 +248,11 @@ coreEval :: DateTime -> [AsAt Fact] -> QueryTopPUV -> ProgramT
 coreEval d fs (renameQT unVar -> query) prog
   = let partitions = S.streams fs
         feat       = SQ.feature query
-        result     = map (evalP feat) partitions
+        result     = fmap (evalP feat) partitions
     in  mapLeft SR.ReplErrorRuntime
-        . mapRight (map Result)
+        . mapRight (fmap Result)
         . TR.sequenceA
-        . map (justVal . fmap (fmap fst))
+        . fmap (justVal . fmap (fmap fst))
         . concat
         . filter (not . null)
         $ result
