@@ -97,6 +97,8 @@ data Command
    -- It's rather odd to have comments in a REPL.
    -- However, I want these printed out in the test output
    | CommandComment String
+   | CommandUnknown String
+   | CommandSetShow
 
 defaultState :: ReplState
 defaultState
@@ -107,39 +109,38 @@ readCommand ss = case words ss of
   []                    -> Just CommandBlank
   ":h":_                -> Just CommandHelp
   ":help":_             -> Just CommandHelp
-  ":set":"+type":_      -> Just $ CommandSet $ ShowType True
-  ":set":"-type":_      -> Just $ CommandSet $ ShowType False
-  ":set":"+core":_      -> Just $ CommandSet $ ShowCore True
-  ":set":"-core":_      -> Just $ CommandSet $ ShowCore False
-  ":set":"+core-type":_ -> Just $ CommandSet $ ShowCoreType True
-  ":set":"-core-type":_ -> Just $ CommandSet $ ShowCoreType False
-  ":set":"+eval":_      -> Just $ CommandSet $ ShowEval True
-  ":set":"-eval":_      -> Just $ CommandSet $ ShowEval False
-  ":set":"+avalanche":_ -> Just $ CommandSet $ ShowAvalanche True
-  ":set":"-avalanche":_ -> Just $ CommandSet $ ShowAvalanche False
-  ":set":"+flatten":_   -> Just $ CommandSet $ ShowFlatten True
-  ":set":"-flatten":_   -> Just $ CommandSet $ ShowFlatten False
-  ":load":f:_           -> Just $ CommandLoad f
+  [":set", "+type"]     -> Just $ CommandSet $ ShowType True
+  [":set", "-type"]     -> Just $ CommandSet $ ShowType False
+  [":set", "+core"]     -> Just $ CommandSet $ ShowCore True
+  [":set", "-core"]     -> Just $ CommandSet $ ShowCore False
+  [":set", "+core-type"]-> Just $ CommandSet $ ShowCoreType True
+  [":set", "-core-type"]-> Just $ CommandSet $ ShowCoreType False
+  [":set", "+eval"]     -> Just $ CommandSet $ ShowEval True
+  [":set", "-eval"]     -> Just $ CommandSet $ ShowEval False
+  [":set", "+avalanche"]-> Just $ CommandSet $ ShowAvalanche True
+  [":set", "-avalanche"]-> Just $ CommandSet $ ShowAvalanche False
+  [":set", "+flatten"]  -> Just $ CommandSet $ ShowFlatten True
+  [":set", "-flatten"]  -> Just $ CommandSet $ ShowFlatten False
+  [":set"]              -> Just $ CommandSetShow
+  [":load", f]          -> Just $ CommandLoad f
   ('-':'-':_):_         -> Just $ CommandComment $ ss
+  (':':_):_             -> Just $ CommandUnknown $ ss
   _                     -> Nothing
 
 handleLine :: ReplState -> String -> HL.InputT IO ReplState
 handleLine state line = case readCommand line of
   Just CommandBlank          -> do
-    HL.outputStrLn "please input a command or an Icicle expression"
+    return state
+  Just (CommandUnknown s)    -> do
+    HL.outputStrLn $ "unknown command '" <> s <> "'"
+    HL.outputStrLn $ "use :h for help"
     return state
   Just CommandHelp           -> do
-    mapM_ HL.outputStrLn
-      [ "Usage:"
-      , ":help or :h        -- shows this message"
-      , ":quit or :q        -- quits the REPL"
-      , ":load <filepath>   -- loads a data set"
-      , ":set  +/-type      -- whether to show the checked expression type"
-      , ":set  +/-core      -- whether to show the Core conversion"
-      , ":set  +/-core-type -- whether to show the Core conversion's type"
-      , ":set  +/-eval      -- whether to show the result"
-      , ":set  +/-avalanche -- whether to show the Avalanche conversion"
-      , ":set  +/-flatten   -- whether to show flattened Avalanche conversion" ]
+    usage
+    return state
+
+  Just CommandSetShow        -> do
+    showState state
     return state
 
   Just (CommandSet (ShowType b)) -> do
@@ -313,3 +314,34 @@ terminalWidth
 showFlag :: Bool -> String
 showFlag True  = "on"
 showFlag False = "off"
+
+
+showState :: ReplState -> HL.InputT IO ()
+showState state
+ = mapM_ HL.outputStrLn
+    [ flag "type:      " hasType
+    , flag "core:      " hasCore
+    , flag "core-type: " hasCoreType
+    , flag "eval:      " hasEval
+    , flag "avalanche: " hasAvalanche
+    , flag "flatten:   " hasFlatten
+    ]
+ where
+  flag nm setting
+   = nm <> showFlag (setting state)
+
+
+usage :: HL.InputT IO ()
+usage
+ = mapM_ HL.outputStrLn
+      [ "Usage:"
+      , ":help or :h        -- shows this message"
+      , ":quit or :q        -- quits the REPL"
+      , ":load <filepath>   -- loads a data set"
+      , ":set  +/-type      -- whether to show the checked expression type"
+      , ":set  +/-core      -- whether to show the Core conversion"
+      , ":set  +/-core-type -- whether to show the Core conversion's type"
+      , ":set  +/-eval      -- whether to show the result"
+      , ":set  +/-avalanche -- whether to show the Avalanche conversion"
+      , ":set  +/-flatten   -- whether to show flattened Avalanche conversion" ]
+
