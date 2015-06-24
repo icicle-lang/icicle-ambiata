@@ -164,9 +164,11 @@ convertQuery n nt q
             (k,z,x,tV)
                     <- convertGroupBy     n'v nt q'
 
+            let tV'  = baseType tV
+
             -- Because Map_insertOrUpdate and Array_fold take their "k" in a different order,
             -- we need to flip the k here.
-            let k'    = CE.XLam n'a tV
+            let k'    = CE.XLam n'a tV'
                       $ CE.XLam n'v nt
                       $ beta
                       ( k CE.@~ CE.XVar n'a)
@@ -176,7 +178,7 @@ convertQuery n nt q
             -- and the extraction of the actual result of the array.
             -- (See convertGroupBy)
             let barr  = red  n'arr   (C.RLatest nt (CE.constI i) n)
-            let bfold = post n'fold  (CE.XPrim (C.PrimFold (C.PrimFoldArray nt) tV)
+            let bfold = post n'fold  (CE.XPrim (C.PrimFold (C.PrimFoldArray nt) tV')
                                       CE.@~ k' CE.@~ beta z CE.@~ CE.XVar n'arr)
             let bxtra = post n'xtra (beta (x CE.@~ CE.XVar n'fold))
 
@@ -204,11 +206,13 @@ convertQuery n nt q
             (k,z,x,tV)
                     <- convertGroupBy     nval nt q'
 
+            let tV'  = baseType tV
+
             -- Convert the "by" to a simple expression.
             -- This becomes the map insertion key.
             e'      <- convertExp         nval nt e
 
-            let mapt = T.MapT t1 tV
+            let mapt = T.MapT t1 tV'
 
             -- For each input element, we use the group by as the key, and insert into a map.
             --
@@ -222,7 +226,7 @@ convertQuery n nt q
                   = beta
                   $ CE.XLam nmap mapt
                   $ CE.XLam nval nt
-                  ( CE.XPrim (C.PrimMap $ C.PrimMapInsertOrUpdate t1 tV)
+                  ( CE.XPrim (C.PrimMap $ C.PrimMapInsertOrUpdate t1 tV')
                     CE.@~  k
                     CE.@~ (k CE.@~ z)
                     CE.@~  e'
@@ -231,7 +235,7 @@ convertQuery n nt q
             -- Perform the map fold
             let r = red n' 
                   $ C.RFold nt mapt insertOrUpdate 
-                  ( CE.emptyMap t1 tV)
+                  ( CE.emptyMap t1 tV')
                     n
 
             -- After all the elements have been seen, we go through the map and perform
@@ -239,7 +243,7 @@ convertQuery n nt q
             -- This performs any fixups that couldn't be performed during the fold.
             let p = post n''
                   ( CE.XPrim
-                        (C.PrimMap $ C.PrimMapMapValues t1 tV t2)
+                        (C.PrimMap $ C.PrimMapMapValues t1 tV' t2)
                     CE.@~ beta x CE.@~ CE.XVar n' )
 
             return (r <> p, n'')
@@ -264,6 +268,8 @@ convertQuery n nt q
             -- as a stream fold.
             (k,z,x,tV)
                     <- convertGroupBy     nval nt q'
+
+            let tV'  = baseType tV
 
             -- Convert the "by" to a simple expression.
             -- This becomes the map insertion key.
@@ -295,8 +301,8 @@ convertQuery n nt q
                   $ beta
                   ( x CE.@~ 
                   ( CE.XPrim
-                        (C.PrimFold (C.PrimFoldMap tkey tval) tV)
-                    CE.@~ (CE.XLam nacc     tV
+                        (C.PrimFold (C.PrimFoldMap tkey tval) tV')
+                    CE.@~ (CE.XLam nacc     tV'
                          $ CE.XLam n'ignore tkey
                          $ CE.XLam nval     tval
                          ( k CE.@~ CE.XVar nacc ))
@@ -375,9 +381,9 @@ convertReduce n t xx
     -- so it might as well be a precomputation.
     _
      -> do  (bs,nms) <- unzip <$> mapM (convertReduce n t) args
-            let tys  = fmap (baseType . snd . annotOfExp) args
+            let tys  = fmap (snd . annotOfExp) args
             let xs   = fmap  CE.XVar           nms
-            x' <- convertPrim p (fst $ annotOfExp xx) (baseType ty) (xs `zip` tys)
+            x' <- convertPrim p (fst $ annotOfExp xx) ty (xs `zip` tys)
 
             nm  <- fresh
 
@@ -456,8 +462,8 @@ convertExp nElem t x
  -- Primitive application: convert arguments, then convert primitive
  | Just (p, (ann,retty), args) <- takePrimApps x
  = do   args'   <- mapM (convertExp nElem t) args
-        let tys  = fmap (baseType . snd . annotOfExp) args
-        convertPrim p ann (baseType retty) (args' `zip` tys)
+        let tys  = fmap (snd . annotOfExp) args
+        convertPrim p ann retty (args' `zip` tys)
 
  -- A real nested query should not appear here.
  -- However, if it has no contexts, it's really just a nested expression.
@@ -479,7 +485,7 @@ convertExp nElem t x
       $ Left
       $ ConvertErrorExpApplicationOfNonPrimitive ann x
     Prim (ann,retty) p
-     -> convertPrim p ann (baseType retty) []
+     -> convertPrim p ann retty []
 
 
 -- | Convert the body of a group by (or other query) into a fold:
@@ -510,7 +516,7 @@ convertExp nElem t x
 convertGroupBy
         :: Nm -> T.ValType
         -> Query (a,UniverseType) Variable
-        -> ConvertM a Variable (C.Exp Variable, C.Exp Variable, C.Exp Variable, T.ValType)
+        -> ConvertM a Variable (C.Exp Variable, C.Exp Variable, C.Exp Variable, UniverseType)
 convertGroupBy nElem t q
  = case contexts q of
     -- No contexts, just an expression
@@ -534,7 +540,7 @@ convertGroupBy nElem t q
                 let z = CE.constI 0
                 x    <- idFun retty'
 
-                return (k, z, x, retty')
+                return (k, z, x, retty)
           | otherwise
           -> errAggBadArgs
 
@@ -548,7 +554,7 @@ convertGroupBy nElem t q
                 let z = CE.constI 0
                 x    <- idFun retty'
 
-                return (k, z, x, retty')
+                return (k, z, x, retty)
           | otherwise
           -> errAggBadArgs
 
@@ -563,25 +569,25 @@ convertGroupBy nElem t q
                 --  just because there is no separate convertGroupX function)
                 (ks, zs, xs, ts) <- unzip4 <$> mapM (convertGroupBy nElem t . Query []) args
 
+                let ts' = fmap baseType ts
                 -- Create pairs for zeros
-                (zz, tt) <- pairConstruct zs ts
+                (zz, tt) <- pairConstruct zs ts'
 
                 -- For extraction:
                 --  destruct the pairs,
                 --  recursively extract the arguments,
                 --  apply the primitive
                 let cp ns
-                        = convertPrim p ann
-                            (baseType retty)
+                        = convertPrim p ann retty
                             ((fmap (uncurry CE.XApp) (xs `zip` ns)) `zip` ts)
-                xx       <- pairDestruct cp ts (baseType retty)
+                xx       <- pairDestruct cp ts' (baseType retty)
 
                 -- For konstrukt, we need to destruct the pairs, apply the sub-ks,
                 -- then box it up again in pairs.
-                let applyKs ns = fst <$> pairConstruct (fmap (uncurry CE.XApp) (ks `zip` ns)) ts
-                kk       <- pairDestruct applyKs ts tt
+                let applyKs ns = fst <$> pairConstruct (fmap (uncurry CE.XApp) (ks `zip` ns)) ts'
+                kk       <- pairDestruct applyKs ts' tt
 
-                return (kk, zz, xx, tt)
+                return (kk, zz, xx, retty { baseType = tt })
 
      -- It must be a variable or a non-primitive application
      | otherwise
@@ -595,9 +601,10 @@ convertGroupBy nElem t q
      -> do  (k,z,x,tt) <- convertGroupBy nElem t q'
             e'         <- convertExp     nElem t e
             prev       <- fresh
+            let tt'     = baseType tt
             let prev'   = CE.XVar prev
-            let k' = CE.XLam prev tt
-                   ( CE.XPrim (C.PrimFold C.PrimFoldBool tt)
+            let k' = CE.XLam prev tt'
+                   ( CE.XPrim (C.PrimFold C.PrimFoldBool tt')
                      CE.@~ (k CE.@~ prev') CE.@~ prev' CE.@~ e' )
             return (k', z, x, tt)
 
