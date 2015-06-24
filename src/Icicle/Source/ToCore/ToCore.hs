@@ -356,10 +356,28 @@ convertReduce n t xx
 
     Agg SumA
      | [x] <- args
+     , Definitely <- universePossibility $ universe ty
      -> do  nv <- fresh
             -- Convert the element expression and sum over it
             x' <- convertExp nv t x
             mkFold T.IntT (\na -> na CE.+~ x') (CE.constI 0) nv
+     | [x] <- args
+     , Possibly <- universePossibility $ universe ty
+     -> do  nv <- fresh
+            -- Convert the element expression and sum over it
+            x' <- convertExp nv t x
+
+            let plusX = CE.XPrim (C.PrimMinimal $ Min.PrimArith Min.PrimArithPlus)
+            let plusT = UniverseType (definitely $ universe ty) T.IntT
+            let argT  = UniverseType (possibly $ universe ty) T.IntT
+            na' <- fresh
+            fun <- applyPossibles plusX plusT
+                            [(CE.XVar na', argT), (x', argT)]
+
+            mkFold (T.OptionT T.IntT)
+                   (\na -> (CE.XLam na' (T.OptionT T.IntT) fun) CE.@~ na)
+                   (CE.some T.IntT $ CE.constI 0) nv
+
      | otherwise
      -> errAggBadArgs
 
