@@ -350,17 +350,20 @@ convertReduce n t xx
     Agg Count
      | [] <- args
      -- Count: just add 1, ignoring the value
-     -> fresh >>= mkFold T.IntT (\na -> na CE.+~ CE.constI 1) (CE.constI 0)
+     -> do  na <- fresh
+            nv <- fresh
+            mkFold T.IntT (CE.XVar na CE.+~ CE.constI 1) (CE.constI 0) na nv
      | otherwise
      -> errAggBadArgs
 
     Agg SumA
      | [x] <- args
      , Definitely <- universePossibility $ universe ty
-     -> do  nv <- fresh
+     -> do  na <- fresh
+            nv <- fresh
             -- Convert the element expression and sum over it
             x' <- convertExp nv t x
-            mkFold T.IntT (\na -> na CE.+~ x') (CE.constI 0) nv
+            mkFold T.IntT (CE.XVar na CE.+~ x') (CE.constI 0) na nv
      | [x] <- args
      , Possibly <- universePossibility $ universe ty
      -> do  nv <- fresh
@@ -370,26 +373,97 @@ convertReduce n t xx
             let plusX = CE.XPrim (C.PrimMinimal $ Min.PrimArith Min.PrimArithPlus)
             let plusT = UniverseType (definitely $ universe ty) T.IntT
             let argT  = UniverseType (possibly $ universe ty) T.IntT
-            na' <- fresh
+            na  <- fresh
             fun <- applyPossibles plusX plusT
-                            [(CE.XVar na', argT), (x', argT)]
+                            [(CE.XVar na, argT), (x', argT)]
 
-            mkFold (T.OptionT T.IntT)
-                   (\na -> (CE.XLam na' (T.OptionT T.IntT) fun) CE.@~ na)
-                   (CE.some T.IntT $ CE.constI 0) nv
+            mkFold (T.OptionT T.IntT) fun
+                   (CE.some T.IntT $ CE.constI 0) na nv
 
      | otherwise
      -> errAggBadArgs
 
+    -- Find the newest / most recent.
+    -- This just means the "last seen" one.
+    Agg Newest
+     | [x] <- args
+     -> do  na <- fresh
+            nv <- fresh
+            -- Convert the element expression
+            x' <- convertExp nv t x
 
-    -- TODO: implement newest and oldest.
-    -- These aren't hard to implement exactly, but the issue is they return "Maybe v"
-    -- while we want to be able to treat them as simply "v".
-    --
-    --(Agg Newest, [x])
-    -- ->
-    --(Agg Oldest, [x])
-    -- ->
+            let argT = snd $ annotOfExp x
+            let retty= T.OptionT $ baseType argT
+
+            -- Start with Nothing
+            let seed = CE.XValue retty VNone
+
+            -- If the expression is already a "possibly",
+            -- then its conversion already has type Option.
+            -- So we can just return it unchanged.
+            let fun
+                 | Possibly <- universePossibility $ universe argT
+                 = x'
+                 | otherwise
+                 -- Otherwise, wrap in a Some constructor
+                 = CE.some (baseType argT) x'
+
+            mkFold retty fun seed na nv
+
+     | otherwise
+     -> errAggBadArgs
+
+    -- Find the oldest, or first seen value.
+    Agg Oldest
+     | [x] <- args
+     -> do  na <- fresh
+            nv <- fresh
+            -- Convert the element expression
+            x' <- convertExp nv t x
+
+            let argT = snd $ annotOfExp x
+
+            -- If x' is a possibly, we actually want to carry around two levels
+            -- of options: that way we won't overwrite the Some Nothing, meaning
+            -- the first element has been seen but was Nothing.
+            let valty
+                     | Possibly <- universePossibility $ universe argT
+                     = T.OptionT $ baseType argT
+                     | otherwise
+                     = baseType argT
+            let retty= T.OptionT $ valty
+
+            let seed = CE.XValue retty VNone
+            let opt  = C.PrimFold (C.PrimFoldOption valty) retty
+
+            na' <- fresh
+            let return_acc
+                     = CE.XLam na' valty (CE.XVar na)
+            let some_arg
+                     = CE.some valty x'
+
+            let fun  = CE.XPrim opt
+                       CE.@~ return_acc
+                       CE.@~ some_arg
+                       CE.@~ CE.XVar na
+
+            (bs, n') <- mkFold retty fun seed na nv
+
+            n'' <- fresh
+            let flat
+                     | Possibly <- universePossibility $ universe argT
+                     = CE.XPrim (C.PrimFold (C.PrimFoldOption valty) valty)
+                       CE.@~ (CE.XLam na' valty (CE.XVar na'))
+                       CE.@~ (CE.XValue valty VNone)
+                       CE.@~ (CE.XVar n')
+                     | otherwise
+                     = CE.XVar n'
+
+            return (bs <> post n'' flat, n'')
+
+
+     | otherwise
+     -> errAggBadArgs
 
     -- For any other primitives:
     --   recurse into its arguments and get bindings for them
@@ -426,12 +500,11 @@ convertReduce n t xx
 
  where
   -- Helper for creating a stream fold binding
-  mkFold ta k z nv
+  mkFold ta k z na nv
    = do n' <- fresh
-        na <- fresh
         let k' = CE.XLam na ta
                $ CE.XLam nv t
-               $ k (CE.XVar na)
+               $ k
         return (red n' $ C.RFold t ta k' z n, n')
 
   -- Bad arguments to an aggregate
