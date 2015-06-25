@@ -56,7 +56,7 @@ instance (Pretty n, Pretty p) => Pretty (Exp n p) where
  pretty (XPrim p)   = pretty p
  pretty (XValue t v)= pretty v <+> text ":" <+> pretty t
 
- pretty (XApp p q)  = inner' p <+> inner q
+ pretty (XApp p q)  = align (inner' p </> inner q)
   where
    inner i
     = case i of
@@ -69,7 +69,7 @@ instance (Pretty n, Pretty p) => Pretty (Exp n p) where
        XLam{} -> parens $ pretty i
        _      ->          pretty i
 
- pretty (XLam b t x) = text "\\" <> pretty b <> text " : " <> pretty t <> text ". " <> align (pretty x)
+ pretty (XLam b t x) = align (text "\\" <> pretty b <> text " : " <> pretty t <> text ". " </> pretty x)
 
  pretty (XLet b x i) = text "let " <> pretty b
                     <> text " = "  <> align (pretty x)

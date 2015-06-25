@@ -1,0 +1,3 @@
+#!/bin/sh -eu
+dist/build/icicle-repl/icicle-repl < test/cli/repl/script | diff test/cli/repl/expected -
+

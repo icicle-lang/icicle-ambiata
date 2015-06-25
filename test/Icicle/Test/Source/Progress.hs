@@ -25,7 +25,7 @@ import qualified Data.Map as Map
 
 
 mkElems :: Map.Map T.Variable BaseType -> Map.Map T.Variable UniverseType
-mkElems = Map.map (UniverseType Elem)
+mkElems = Map.map (UniverseType (Universe Elem Definitely))
 
 prop_progress_no_values :: Map.Map T.Variable BaseType -> Query () T.Variable -> Property
 prop_progress_no_values f q

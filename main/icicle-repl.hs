@@ -1,30 +1,48 @@
+{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE PatternGuards     #-}
 {-# LANGUAGE TupleSections     #-}
 {-# LANGUAGE ViewPatterns      #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
-import           Control.Monad               (when)
+import           Control.Monad.Trans.Class
+import           Control.Monad.Trans.Either
 import           Control.Monad.IO.Class
 import           Data.Either.Combinators
 import           Data.Monoid
-import           Data.Text                   (Text)
-import qualified Data.Text                   as T
-import qualified Data.Text.IO                as T
-import qualified Data.Traversable            as TR
-import           System.Console.Haskeline    as HL
-import qualified Text.PrettyPrint.Leijen     as PP
+import           Data.List                            (words)
+import           Data.String                          (String)
+import           Data.Text                            (Text)
+import qualified Data.Text                            as T
+import qualified Data.Text.IO                         as T
+import qualified Data.Traversable                     as TR
+import           System.Console.Haskeline             as HL
+import qualified System.Console.Terminal.Size         as TS
+import           System.Directory
+import           System.IO
+import qualified Text.PrettyPrint.Leijen              as PP
 
-import           Icicle.BubbleGum
-import qualified Icicle.Core.Program.Program as CP
+import qualified Icicle.Avalanche.FromCore            as AC
+import qualified Icicle.Avalanche.Prim.Flat           as APF
+import qualified Icicle.Avalanche.Program             as AP
+import qualified Icicle.Avalanche.Simp                as AS
+import qualified Icicle.Avalanche.Statement.Flatten   as AF
+import qualified Icicle.Common.Fresh                  as F
+import qualified Icicle.Core.Program.Check            as CP
+import qualified Icicle.Core.Program.Program          as CP
+import qualified Icicle.Core.Exp.Prim                 as CP
 import           Icicle.Data
 import           Icicle.Data.DateTime
 import           Icicle.Dictionary
 import           Icicle.Internal.Rename
-import qualified Icicle.Repl                 as SR
-import qualified Icicle.Simulator            as S
-import qualified Icicle.Source.Parser        as SP
-import qualified Icicle.Source.Query         as SQ
-import qualified Icicle.Source.Type          as ST
+import qualified Icicle.Repl                          as SR
+import qualified Icicle.Simulator                     as S
+import qualified Icicle.Source.Parser                 as SP
+import qualified Icicle.Source.Query                  as SQ
+import qualified Icicle.Source.Type                   as ST
+
+
+import           P
 
 
 main :: IO ()
@@ -33,13 +51,18 @@ main = runRepl
 runRepl :: IO ()
 runRepl
   = do putStrLn "welcome to iREPL"
-       HL.runInputT HL.defaultSettings $ loop defaultState
+       s <- settings
+       HL.runInputT s $ loop defaultState
   where
-    loop :: ReplState -> HL.InputT IO ()
+    settings
+      = do home <- getHomeDirectory
+           return $ HL.defaultSettings
+             { historyFile    = Just $ home <> "/.icicle-repl.history"
+             , autoAddHistory = True}
     loop state
       = do line <- HL.getInputLine "> "
            case line of
-             Nothing      -> loop state
+             Nothing      -> return ()
              Just ":quit" -> return ()
              Just ":q"    -> return ()
              Just str     -> handleLine state str >>= loop
@@ -48,86 +71,157 @@ runRepl
 
 data ReplState
    = ReplState
-   { facts   :: [AsAt Fact]
-   , hasType :: Bool
-   , hasCore :: Bool
-   , hasEval :: Bool }
+   { facts        :: [AsAt Fact]
+   , hasType      :: Bool
+   , hasCore      :: Bool
+   , hasCoreType  :: Bool
+   , hasAvalanche :: Bool
+   , hasFlatten   :: Bool
+   , hasEval      :: Bool }
 
 -- | Settable REPL states
 data Set
-   = ShowType
-   | ShowCore
-   | ShowEval
+   = ShowType Bool
+   | ShowCore Bool
+   | ShowCoreType Bool
+   | ShowEval Bool
+   | ShowAvalanche Bool
+   | ShowFlatten Bool
 
 -- | REPL commands
 data Command
    = CommandBlank
+   | CommandHelp
    | CommandSet  Set
    | CommandLoad FilePath
+   -- It's rather odd to have comments in a REPL.
+   -- However, I want these printed out in the test output
+   | CommandComment String
+   | CommandUnknown String
+   | CommandSetShow
 
 defaultState :: ReplState
 defaultState
-  = ReplState [] True True True
+  = ReplState [] False False False False False True
 
 readCommand :: String -> Maybe Command
-readCommand (words -> ss)
-  | null ss                    = Just CommandBlank
-  | ":set":"show-type":_ <- ss = Just $ CommandSet ShowType
-  | ":set":"show-core":_ <- ss = Just $ CommandSet ShowCore
-  | ":set":"show-eval":_ <- ss = Just $ CommandSet ShowEval
-  | ":load":f:_          <- ss = Just $ CommandLoad f
-  | otherwise                  = Nothing
+readCommand ss = case words ss of
+  []                    -> Just CommandBlank
+  ":h":_                -> Just CommandHelp
+  ":help":_             -> Just CommandHelp
+  [":set", "+type"]     -> Just $ CommandSet $ ShowType True
+  [":set", "-type"]     -> Just $ CommandSet $ ShowType False
+  [":set", "+core"]     -> Just $ CommandSet $ ShowCore True
+  [":set", "-core"]     -> Just $ CommandSet $ ShowCore False
+  [":set", "+core-type"]-> Just $ CommandSet $ ShowCoreType True
+  [":set", "-core-type"]-> Just $ CommandSet $ ShowCoreType False
+  [":set", "+eval"]     -> Just $ CommandSet $ ShowEval True
+  [":set", "-eval"]     -> Just $ CommandSet $ ShowEval False
+  [":set", "+avalanche"]-> Just $ CommandSet $ ShowAvalanche True
+  [":set", "-avalanche"]-> Just $ CommandSet $ ShowAvalanche False
+  [":set", "+flatten"]  -> Just $ CommandSet $ ShowFlatten True
+  [":set", "-flatten"]  -> Just $ CommandSet $ ShowFlatten False
+  [":set"]              -> Just $ CommandSetShow
+  [":load", f]          -> Just $ CommandLoad f
+  ('-':'-':_):_         -> Just $ CommandComment $ ss
+  (':':_):_             -> Just $ CommandUnknown $ ss
+  _                     -> Nothing
 
 handleLine :: ReplState -> String -> HL.InputT IO ReplState
 handleLine state line = case readCommand line of
   Just CommandBlank          -> do
-    HL.outputStrLn "please input a command or an Icicle expression"
+    return state
+  Just (CommandUnknown s)    -> do
+    HL.outputStrLn $ "unknown command '" <> s <> "'"
+    HL.outputStrLn $ "use :h for help"
+    return state
+  Just CommandHelp           -> do
+    usage
     return state
 
-  -- Whether to show type of result
-  Just (CommandSet ShowType) -> do
-    let v = not (hasType state)
-    HL.outputStrLn $ concat ["ok, show-type is now ", showFlag v]
-    return $ state { hasType = v }
+  Just CommandSetShow        -> do
+    showState state
+    return state
 
-  -- Whether to show core
-  Just (CommandSet ShowCore) -> do
-    let v = not (hasCore state)
-    HL.outputStrLn $ concat ["ok, show-core is now ", showFlag v]
-    return $ state { hasCore = v }
+  Just (CommandSet (ShowType b)) -> do
+    HL.outputStrLn $ "ok, type is now " <> showFlag b
+    return $ state { hasType = b }
 
-  -- Whether to show eval result
-  Just (CommandSet ShowEval) -> do
-    let v = not (hasEval state)
-    HL.outputStrLn $ concat ["ok, show-eval is now ", showFlag v]
-    return $ state { hasEval = v }
+  Just (CommandSet (ShowCore b)) -> do
+    HL.outputStrLn $ "ok, core is now " <> showFlag b
+    return $ state { hasCore = b }
+
+  Just (CommandSet (ShowCoreType b)) -> do
+    HL.outputStrLn $ "ok, core-type is now " <> showFlag b
+    return $ state { hasCoreType = b }
+
+  Just (CommandSet (ShowAvalanche b)) -> do
+    HL.outputStrLn $ "ok, avalanche is now " <> showFlag b
+    return $ state { hasAvalanche = b }
+
+  Just (CommandSet (ShowFlatten b)) -> do
+    HL.outputStrLn $ "ok, flatten is now " <> showFlag b
+    return $ state { hasFlatten = b }
+
+  Just (CommandSet (ShowEval b)) -> do
+    HL.outputStrLn $ "ok, eval is now " <> showFlag b
+    return $ state { hasEval = b }
 
   Just (CommandLoad fp)      -> do
     s  <- liftIO $ T.readFile fp
     case SR.readFacts dict s of
       Left e   -> prettyHL e >> return state
       Right fs -> do
-        HL.outputStrLn "ok, loaded"
+        HL.outputStrLn $ "ok, loaded " <> fp <> ", " <> show (length fs) <> " rows"
         return $ state { facts = fs }
 
-  -- An Icicle expression
-  -- we use the core evaluator instead of the source evaluator here
-  -- since it's more complete at the moment.
+  Just (CommandComment comment) -> do
+    HL.outputStrLn comment
+    return state
+
+
+  -- We use the simulator to evaluate the Icicle expression.
   Nothing -> do
-    let checked = do
-          qt     <- SR.sourceParse (T.pack line)
-          (q, u) <- SR.sourceCheck dict qt
-          p      <- SR.sourceConvert q
-          return (q, u, p)
+
+    let hoist c = hoistEither c
+    let prettyOut setting heading p
+            = lift
+            $ when (setting state)
+            $ do    HL.outputStrLn heading
+                    prettyHL p
+                    nl
+
+    checked <- runEitherT $ do
+      parsed    <- hoist $ SR.sourceParse (T.pack line)
+      (annot, typ)
+                <- hoist $ SR.sourceCheck dict parsed
+
+      prettyOut hasType "- Type:" typ
+
+      core      <- hoist $ SR.sourceConvert annot
+      let core'  = renameP unVar core
+
+      prettyOut hasCore "- Core:" core'
+
+      case CP.checkProgram core' of
+       Left  e -> prettyOut hasCoreType "- Core type error:" e
+       Right t -> prettyOut hasCoreType "- Core type:" t
+
+      prettyOut hasAvalanche "- Avalanche:" (coreAvalanche core')
+
+      case coreFlatten core' of
+       Left  e -> prettyOut hasFlatten "- Flatten error:" e
+       Right f -> prettyOut hasFlatten "- Flattened:" f
+
+      case coreEval allTime (facts state) annot core' of
+       Left  e -> prettyOut hasEval "- Result error:" e
+       Right r -> prettyOut hasEval "- Result:" r
+
+      return ()
 
     case checked of
-      Left  e      -> prettyE e
-      Right (q, u, p) -> do
-        when (hasType state) $ HL.outputStrLn "- Type:" >> prettyHL u >> nl
-        when (hasCore state) $ HL.outputStrLn "- Core:" >> prettyHL p >> nl
-        when (hasEval state) $ case coreEval allTime (facts state) q p of
-          Left  e -> prettyE e
-          Right r -> HL.outputStrLn "- Result:" >> prettyHL r >> nl
+      Left  e -> prettyE e
+      Right _ -> return ()
 
     return state
 
@@ -139,27 +233,27 @@ handleLine state line = case readCommand line of
 
 --------------------------------------------------------------------------------
 
--- TODO these marshalling belongs functions somehere
-
 type QueryTopPUV = SQ.QueryTop (SP.SourcePos, ST.UniverseType) SP.Variable
-type ProgramV    = CP.Program SP.Variable
+type ProgramT    = CP.Program Text
+newtype Result   = Result (Entity, Value)
+
+instance PP.Pretty Result where
+  pretty (Result (ent, val))
+    = PP.pretty ent <> PP.comma <> PP.space <> PP.pretty val
 
 unVar :: SP.Variable -> Text
 unVar (SP.Variable t)  = t
 
-coreEval
-  :: DateTime
-  -> [AsAt Fact]
-  -> QueryTopPUV
-  -> ProgramV
-  -> Either SR.ReplError [(Entity, Value)]
-coreEval d fs (renameQT unVar -> query) (renameP unVar -> prog)
+coreEval :: DateTime -> [AsAt Fact] -> QueryTopPUV -> ProgramT
+         -> Either SR.ReplError [Result]
+coreEval d fs (renameQT unVar -> query) prog
   = let partitions = S.streams fs
         feat       = SQ.feature query
-        result     = map (evalP feat) partitions
+        result     = fmap (evalP feat) partitions
     in  mapLeft SR.ReplErrorRuntime
+        . mapRight (fmap Result)
         . TR.sequenceA
-        . map (justVal . fmap (fmap fst))
+        . fmap (justVal . fmap (fmap fst))
         . concat
         . filter (not . null)
         $ result
@@ -174,6 +268,30 @@ coreEval d fs (renameQT unVar -> query) (renameP unVar -> prog)
     evalV
       = S.evaluateVirtualValue prog d
 
+-- | Converts Core to Avalanche then flattens the result.
+--
+coreFlatten :: ProgramT -> Either SR.ReplError (AP.Program Text APF.Prim)
+coreFlatten prog
+ = let av = coreAvalanche prog
+   in   mapLeft  SR.ReplErrorFlatten
+      . mapRight (simpAvalanche "simp")
+      . mapRight (\(_,s') -> av { AP.statements = s' })
+      $ F.runFreshT
+      ( AF.flatten
+      $ AP.statements av)
+      (F.counterPrefixNameState "flat")
+
+coreAvalanche :: ProgramT -> AP.Program Text CP.Prim
+coreAvalanche prog
+ = simpAvalanche "anf"
+ $ AC.programFromCore (AC.namerText id) prog
+
+simpAvalanche :: (Eq p, Show p) => Text -> AP.Program Text p -> AP.Program Text p
+simpAvalanche prefix av
+ = let simp = AS.simpAvalanche av
+       name = F.counterPrefixNameState prefix
+   in  snd $ F.runFresh simp name
+
 --------------------------------------------------------------------------------
 
 nl :: HL.InputT IO ()
@@ -183,11 +301,47 @@ prettyE :: SR.ReplError -> HL.InputT IO ()
 prettyE e = HL.outputStrLn "REPL Error:" >> prettyHL e >> nl
 
 prettyHL :: PP.Pretty a => a -> HL.InputT IO ()
-prettyHL x = HL.outputStrLn $ PP.displayS (PP.renderCompact $ PP.pretty x) ""
+prettyHL x
+ = do   width <- terminalWidth
+        let width' = maybe 80 id width
+        HL.outputStrLn $ PP.displayS (PP.renderPretty 0.4 width' $ PP.pretty x) ""
+
+terminalWidth :: HL.InputT IO (Maybe Int)
+terminalWidth
+ = fmap (fmap TS.width)
+ $ liftIO TS.size
 
 showFlag :: Bool -> String
 showFlag True  = "on"
 showFlag False = "off"
 
-instance PP.Pretty (Entity, Value) where
-  pretty (ent, val) = PP.pretty ent <> PP.comma <> PP.space <> PP.pretty val
+
+showState :: ReplState -> HL.InputT IO ()
+showState state
+ = mapM_ HL.outputStrLn
+    [ flag "type:      " hasType
+    , flag "core:      " hasCore
+    , flag "core-type: " hasCoreType
+    , flag "eval:      " hasEval
+    , flag "avalanche: " hasAvalanche
+    , flag "flatten:   " hasFlatten
+    ]
+ where
+  flag nm setting
+   = nm <> showFlag (setting state)
+
+
+usage :: HL.InputT IO ()
+usage
+ = mapM_ HL.outputStrLn
+      [ "Usage:"
+      , ":help or :h        -- shows this message"
+      , ":quit or :q        -- quits the REPL"
+      , ":load <filepath>   -- loads a data set"
+      , ":set  +/-type      -- whether to show the checked expression type"
+      , ":set  +/-core      -- whether to show the Core conversion"
+      , ":set  +/-core-type -- whether to show the Core conversion's type"
+      , ":set  +/-eval      -- whether to show the result"
+      , ":set  +/-avalanche -- whether to show the Avalanche conversion"
+      , ":set  +/-flatten   -- whether to show flattened Avalanche conversion" ]
+

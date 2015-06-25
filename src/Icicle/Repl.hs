@@ -9,32 +9,32 @@ module Icicle.Repl (
   , readFacts
   ) where
 
-import           Icicle.BubbleGum
+import qualified Icicle.Avalanche.Statement.Flatten as AS
 import           Icicle.Common.Base
-import qualified Icicle.Common.Fresh           as Fresh
+import qualified Icicle.Common.Fresh                as Fresh
 import           Icicle.Common.Type
-import qualified Icicle.Core.Program.Program   as Core
+import qualified Icicle.Core.Program.Program        as Core
+import qualified Icicle.Core.Program.Simp           as Core
 import           Icicle.Data
-import qualified Icicle.Dictionary             as D
+import qualified Icicle.Dictionary                  as D
 import           Icicle.Internal.Pretty
-import qualified Icicle.Serial                 as S
-import qualified Icicle.Source.Checker.Checker as SC
-import qualified Icicle.Source.Checker.Error   as SC
-import qualified Icicle.Source.Parser          as SP
-import qualified Icicle.Source.Query           as SQ
-import qualified Icicle.Source.ToCore.Base     as STC
-import qualified Icicle.Source.ToCore.ToCore   as STC
-import qualified Icicle.Source.Type            as ST
-import qualified Icicle.Simulator as S
-import qualified Icicle.Core.Eval.Program as EP
+import qualified Icicle.Serial                      as S
+import qualified Icicle.Simulator                   as S
+import qualified Icicle.Source.Checker.Checker      as SC
+import qualified Icicle.Source.Checker.Error        as SC
+import qualified Icicle.Source.Parser               as SP
+import qualified Icicle.Source.Query                as SQ
+import qualified Icicle.Source.ToCore.Base          as STC
+import qualified Icicle.Source.ToCore.ToCore        as STC
+import qualified Icicle.Source.Type                 as ST
 
 import           P
 
 import           Data.Either.Combinators
-import qualified Data.Map                      as Map
-import           Data.Text                     (Text)
-import qualified Data.Text                     as T
-import qualified Data.Traversable              as TR
+import qualified Data.Map                           as Map
+import           Data.Text                          (Text)
+import qualified Data.Text                          as T
+import qualified Data.Traversable                   as TR
 
 
 data ReplError
@@ -43,6 +43,7 @@ data ReplError
  | ReplErrorConvert (STC.ConvertError SP.SourcePos Var)
  | ReplErrorDecode  S.ParseError
  | ReplErrorRuntime S.SimulateError
+ | ReplErrorFlatten (AS.FlattenError Text)
  deriving (Show)
 
 instance Pretty ReplError where
@@ -59,11 +60,13 @@ instance Pretty ReplError where
       <> indent 2 (pretty ce)
      ReplErrorDecode d
       -> "Decode error:" <> line
-      <> indent 2 (text $ show d)
+      <> indent 2 (pretty d)
      ReplErrorRuntime d
       -> "Runtime error:" <> line
+      <> indent 2 (pretty d)
+     ReplErrorFlatten d
+      -> "Flatten error:" <> line
       <> indent 2 (text $ show d)
-
 
 type Var        = SP.Variable
 type QueryTop'  = SQ.QueryTop SP.SourcePos Var
@@ -89,12 +92,16 @@ sourceCheck d q
 
 sourceConvert :: QueryTop'T -> Either ReplError Program'
 sourceConvert q
- = mapRight snd
+ = mapRight (simp.snd)
  $ mapLeft ReplErrorConvert
- $ Fresh.runFreshT (STC.convertQueryTop q) namer
+ $ Fresh.runFreshT (STC.convertQueryTop q) (namer "conv")
  where
-  mkName i = Name $ SP.Variable ("v" <> T.pack (show i))
-  namer = Fresh.counterNameState mkName 0
+  mkName prefix i = Name $ SP.Variable (prefix <> T.pack (show i))
+  namer prefix = Fresh.counterNameState (mkName prefix) 0
+
+  simp p
+   = snd
+   $ Fresh.runFresh (Core.simpProgram p) (namer "simp")
 
 
 sourceParseConvert :: T.Text -> Either ReplError Program'
@@ -112,7 +119,9 @@ featureMapOfDictionary (D.Dictionary ds)
  where
   go (Attribute attr, D.ConcreteDefinition _enc)
    -- TODO: convert Encoding to feature map
-   = [(SP.Variable attr, Map.singleton (SP.Variable "value") IntT)]
+   = [ ( SP.Variable attr
+       , Map.fromList   [ (SP.Variable "value", IntT)
+                        , (SP.Variable "date",  DateTimeT)])]
   go _
    = []
 

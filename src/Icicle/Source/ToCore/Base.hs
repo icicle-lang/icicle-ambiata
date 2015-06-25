@@ -8,6 +8,7 @@ module Icicle.Source.ToCore.Base (
   , pre, strm, red, post
   , programOfBinds
   , freshly
+  , applyPossibles
   ) where
 
 import qualified        Icicle.Core             as C
@@ -15,6 +16,8 @@ import                  Icicle.Common.Fresh
 import                  Icicle.Common.Base
 import                  Icicle.Common.Type
 import qualified        Icicle.Common.Exp       as X
+import qualified        Icicle.Common.Exp.Prim.Minimal as Min
+import qualified        Icicle.Common.Type      as T
 
 import                  Icicle.Source.Query
 import                  Icicle.Source.Type
@@ -90,6 +93,77 @@ freshly f
  = do   n' <- fresh
         return (f n', n')
 
+
+-- | Apply a function to some arguments, depending on the arguments' "possibility".
+-- If any of the arguments are "possibly", unwrap their possibilities and
+-- rewrap the entire expression in a possibility.
+--
+-- The function type here is the "raw" return type of the function.
+-- That is, its modality/possibility is unaffected by those of
+-- its arguments.
+--
+-- This means for division, the modality should be "Possible",
+-- but for addition the modality should be "Definitely"
+-- even if the addition is applied to Possible arguments,
+-- and the actual application's return type would be Possible.
+--
+applyPossibles  :: C.Exp n
+                -> UniverseType
+                -> [(C.Exp n, UniverseType)]
+                -> ConvertM a n (C.Exp n)
+applyPossibles f returns xts
+ -- Go through xts, building up the list of actual expressions
+ -- to apply as arguments, and keep track of whether we've
+ -- seen any possibles so far.
+ = go xts [] False
+
+ where
+  -- At the end of xts, apply the function to the arguments
+  go [] args anyPossibles
+   -- If we've seen any possibles, and the raw function itself
+   -- returns a definitely, we need to wrap the result
+   -- in a "Some" constructor.
+   | anyPossibles
+   , Definitely <- universePossibility $ universe returns
+   = return $ mkSome $ X.makeApps f args
+   -- Otherwise, we have seen no possibles or the raw function
+   -- itself returns possibles, so we can leave the return as-is.
+   | otherwise
+   = return $          X.makeApps f args
+
+  -- For each entry of xts..
+  go ((x,u):xts') args anyPossibles
+   -- This argument is a possible, so we need to unwrap it.
+   | Possibly <- universePossibility $ universe u
+   = do -- Generate a fresh name, and apply the function using that name.
+        -- Note that we have seen a possible and may need a "Some" wrapper.
+        n' <- fresh
+        f' <- go xts' (args <> [X.XVar n']) True
+
+        -- Use "FoldOption", equivalent to "maybe", to unwrap.
+        let nt   = baseType u
+        let retty= T.OptionT $ baseType returns
+        let opt  = C.PrimFold (C.PrimFoldOption nt) retty
+
+        -- Bind the fresh name in the function to fold
+        let fun  = X.XLam n' nt f'
+        let none = X.XValue retty VNone
+
+        -- Perform the option fold on the original expression
+        let wrap = X.makeApps (X.XPrim opt)
+                 [ fun, none, x ]
+
+        return wrap
+   
+   -- Simple case, it isn't a possible so we just apply the function
+   | otherwise
+   = go xts' (args <> [x]) anyPossibles
+
+  -- Primitive for Some (Just) constructor.
+  mkSome x
+   = X.XPrim (C.PrimMinimal $ Min.PrimConst $ Min.PrimConstSome $ baseType returns)
+    `X.XApp`  x
+        
 
 -- | These errors should only occur if
 --   - there is a bug in the conversion (there is)

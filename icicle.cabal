@@ -87,6 +87,7 @@ library
                        Icicle.Core.Exp.Exp
                        Icicle.Core.Exp.Prim
                        Icicle.Core.Exp.Combinators
+                       Icicle.Core.Exp.Simp
                        Icicle.Core.Exp
                        Icicle.Core.Stream.Stream
                        Icicle.Core.Stream.Error
@@ -100,6 +101,7 @@ library
                        Icicle.Core.Program.Check
                        Icicle.Core.Program.Condense
                        Icicle.Core.Program.Error
+                       Icicle.Core.Program.Simp
                        Icicle.Core.Program.Fusion
 
                        Icicle.Core.Eval.Exp
@@ -159,8 +161,10 @@ executable             icicle-repl
     build-depends:     base
                      , either
                      , icicle
+                     , directory
                      , filepath
                      , haskeline
+                     , terminal-size
                      , p
                      , text
                      , transformers

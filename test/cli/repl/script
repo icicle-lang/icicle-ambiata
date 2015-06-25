@@ -1,0 +1,38 @@
+-- Load the data
+:load test/cli/repl/data.psv
+-- 
+-- Try a simple sum. Expect 1500 and 30.
+feature salary ~> sum value
+--
+-- Now let's try average. Expect 300 and 10.
+feature salary ~> sum value / count
+--
+--
+-- Filtering
+feature salary ~> filter value > 10 ~> count
+--
+--
+-- What about the ratio of > 300 to all?
+feature salary ~> (filter value > 300 ~> count) / count
+--
+-- Simplest group-by I have
+feature salary ~> group value ~> count
+--
+-- More interesting group
+feature salary ~> group (value / 200) ~> sum value / count
+--
+-- A group with filters
+feature salary ~> group (value / 200) ~> filter value > 0 ~> sum value / count
+--
+--
+-- Average of latest 3 entries
+feature salary ~> latest 3 ~> sum value / count
+--
+--
+-- Distinct by value. Expect 5 and 3
+feature salary ~> distinct value ~> count
+--
+-- Buckets of 100. Expect 5 and 1
+feature salary ~> distinct value / 100 ~> count
+-- Distinct by date. Expect 5 and 1
+feature salary ~> distinct date ~> count

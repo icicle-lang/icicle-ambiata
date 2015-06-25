@@ -23,7 +23,6 @@ import qualified    Data.List   as List
 
 data Stream n
  = Source
- | SourceWindowedDays Int
  | STrans StreamTransform (Exp n) (Name n)
  deriving (Eq,Ord,Show)
 
@@ -31,6 +30,7 @@ data Stream n
 data StreamTransform
  = SFilter ValType
  | SMap    ValType ValType
+ | SWindow ValType
  deriving (Eq,Ord,Show)
 
 typeOfStreamTransform :: StreamTransform -> Type
@@ -38,12 +38,14 @@ typeOfStreamTransform st
  = case st of
     SFilter t -> FunT [funOfVal t] BoolT
     SMap  p q -> FunT [funOfVal p] q
+    SWindow _ -> FunT []           IntT
 
 inputOfStreamTransform :: StreamTransform -> ValType
 inputOfStreamTransform st
  = case st of
     SFilter t -> t
     SMap  p _ -> p
+    SWindow t -> t
 
 
 outputOfStreamTransform :: StreamTransform -> ValType
@@ -51,11 +53,11 @@ outputOfStreamTransform st
  = case st of
     SFilter t -> t
     SMap  _ q -> q
+    SWindow t -> t
 
 
 renameStream :: (Name n -> Name n') -> Stream n -> Stream n'
 renameStream _ Source                 = Source
-renameStream _ (SourceWindowedDays i) = SourceWindowedDays i
 renameStream f (STrans t x n)         = STrans t (renameExp f x) (f n)
 
 
@@ -64,7 +66,7 @@ isStreamWindowed :: Eq n => [(Name n, Stream n)] -> Name n -> Bool
 isStreamWindowed ss nm
  = case List.lookup nm ss of
     Just Source                 -> False
-    Just (SourceWindowedDays _) -> True
+    Just (STrans (SWindow _) _ _)-> True
     Just (STrans _ _ inp)       -> isStreamWindowed ss inp
 
     Nothing -> False -- error...
@@ -73,7 +75,6 @@ isStreamWindowed ss nm
 -- | Get name of input stream, if applicable
 inputOfStream :: Stream n -> Maybe (Name n)
 inputOfStream  Source                = Nothing
-inputOfStream (SourceWindowedDays _) = Nothing
 inputOfStream (STrans _ _ inp)       = Just inp
 
 
@@ -82,13 +83,10 @@ inputOfStream (STrans _ _ inp)       = Just inp
 
 instance (Pretty n) => Pretty (Stream n) where
  pretty Source         = text "source"
-
- pretty (SourceWindowedDays i)
-                       = text "sourceWindowedDays" <+> text (show i)
-
- pretty (STrans t x n) = pretty t <+> parens (pretty x) <+> pretty n
+ pretty (STrans t x n) = pretty t </> parens (pretty x) </> pretty n
 
 instance Pretty StreamTransform where
  pretty (SFilter t) = text "sfilter [" <> pretty t <> text "]"
  pretty (SMap p q)  = text "smap    [" <> pretty p <> text "] [" <> pretty q <> text "]"
+ pretty (SWindow t) = text "swindow [" <> pretty t <> text "]"
 

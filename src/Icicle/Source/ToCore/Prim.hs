@@ -7,11 +7,11 @@ module Icicle.Source.ToCore.Prim (
 
 import                  Icicle.Source.Query
 import                  Icicle.Source.ToCore.Base
+import                  Icicle.Source.Type
 
 import qualified        Icicle.Core as C
 import qualified        Icicle.Core.Exp.Combinators as CE
 import qualified        Icicle.Common.Exp           as CE
-import qualified        Icicle.Common.Type as T
 
 import qualified        Icicle.Common.Exp.Prim.Minimal as Min
 
@@ -33,13 +33,19 @@ import                  Control.Monad.Trans.Class
 --
 -- is ill typed.
 convertPrim
-        :: Prim -> a -> T.ValType
-        -> [(C.Exp n, T.ValType)]
+        :: Prim -> a -> UniverseType
+        -> [(C.Exp n, UniverseType)]
         -> ConvertM a n (C.Exp n)
-convertPrim p ann _ xts
+convertPrim p ann returns xts
  = do   p' <- go p
-        return $ CE.makeApps p' xs
+        applyPossibles p' rawReturnType xts
  where
+
+  rawReturnType
+   | Op Div <- p
+   = returns { universe = possibly (universe returns) }
+   | otherwise
+   = returns { universe = definitely (universe returns) }
 
   go (Op o)
    = (CE.XPrim . C.PrimMinimal) <$> goop o
@@ -76,13 +82,10 @@ convertPrim p ann _ xts
 
   t1 num_args
    = case xts of
-      ((_,tt):_) -> return tt
+      ((_,tt):_) -> return
+                  $ baseType tt
       []         -> lift 
                   $ Left
                   $ ConvertErrorPrimNoArguments ann num_args p
-
-  xs = fmap fst xts
-
-
 
 

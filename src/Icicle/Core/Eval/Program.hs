@@ -1,5 +1,6 @@
 -- | Evaluate an entire program
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
 module Icicle.Core.Eval.Program (
       RuntimeError (..)
     , ProgramValue (..)
@@ -23,6 +24,8 @@ import qualified    Icicle.Core.Eval.Reduce as RV
 
 import              Icicle.Data.DateTime
 
+import              Icicle.Internal.Pretty
+
 import              P
 
 import              Data.Either.Combinators
@@ -40,6 +43,29 @@ data RuntimeError n
  | RuntimeErrorReturnNotBaseType (V.Value n Prim)
  deriving (Show, Eq)
 
+instance (Pretty n) => Pretty (RuntimeError n) where
+ pretty (RuntimeErrorPre p)
+  = "Precomputation error:" <> line
+  <> indent 2 (pretty p)
+ pretty (RuntimeErrorStream p)
+  = "Stream error:" <> line
+  <> indent 2 (pretty p)
+ pretty (RuntimeErrorReduce p)
+  = "Reduce error:" <> line
+  <> indent 2 (pretty p)
+ pretty (RuntimeErrorPost p)
+  = "Postcomputation error:" <> line
+  <> indent 2 (pretty p)
+ pretty (RuntimeErrorReturn p)
+  = "Return error:" <> line
+  <> indent 2 (pretty p)
+ pretty (RuntimeErrorVarNotUnique n)
+  = "Variable name not unique: " <> pretty n
+ pretty (RuntimeErrorReturnNotBaseType n)
+  = "Return has function type, but should be simple value: " <> line
+  <> "  Expression: " <> pretty n
+
+
 
 -- | The result of evaluating a whole program:
 -- some value, and the minimum facts needed to compute next value.
@@ -54,7 +80,7 @@ data ProgramValue n =
 -- We take no environments, but do take the concrete feature values.
 eval    :: Ord n
         => DateTime
-        -> SV.DatedStreamValue
+        -> SV.InitialStreamValue
         -> P.Program n
         -> Either (RuntimeError n) (ProgramValue n)
 eval d sv p
@@ -88,7 +114,7 @@ evalStms
         :: Ord n
         => V.Heap n Prim
         -> DateTime
-        -> SV.DatedStreamValue
+        -> SV.InitialStreamValue
         -> SV.StreamHeap  n
         -> [(Name n, Stream n)]
         -> Either (RuntimeError n) (SV.StreamHeap n)

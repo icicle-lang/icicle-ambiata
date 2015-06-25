@@ -6,6 +6,7 @@ module Icicle.Test.Core.Exp.Simp where
 
 import           Icicle.Test.Core.Arbitrary
 import           Icicle.Core.Eval.Exp
+import qualified Icicle.Core.Exp.Simp               as CoreSimp
 import           Icicle.Core.Exp (coreFragment)
 import           Icicle.Common.Exp
 import qualified Icicle.Common.Exp.Simp.Beta        as Beta
@@ -90,6 +91,25 @@ prop_anormal_form_type
       $ counterexample (show $ pretty x')
       ( checkExp0 coreFragment x === checkExp0 coreFragment x')
 
+-- Core simplification preserves type
+prop_core_simp_type
+  = withTypedExp
+  $ \x _
+  -> let simple = snd
+                $ Fresh.runFresh (CoreSimp.simp Beta.isSimpleValue x)
+                                 (Fresh.counterNameState (Name . Var "anf") 0)
+     in  counterexample (show . pretty $ x)
+       $ counterexample (show . pretty $ simple)
+       ( checkExp0 coreFragment x == checkExp0 coreFragment simple)
+
+-- Core simplification preserves result
+prop_core_simp_eval
+ = withTypedExp
+ $ \x _
+ -> eval0 evalPrim x === eval0 evalPrim
+   ( snd
+   $ Fresh.runFresh (CoreSimp.simp Beta.isSimpleValue x)
+                    (Fresh.counterNameState (Name . Var "anf") 0))
 
 
 return []

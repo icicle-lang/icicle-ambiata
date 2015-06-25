@@ -75,10 +75,6 @@ streamEquivalent s s'
  , Source                <- s'
  = True
 
- | SourceWindowedDays n  <- s
- , SourceWindowedDays n' <- s'
- = n == n'
-
  | STrans st  x  inp     <- s
  , STrans st' x' inp'    <- s'
  =  st  == st'

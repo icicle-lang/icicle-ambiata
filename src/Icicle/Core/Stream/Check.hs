@@ -38,8 +38,6 @@ checkStream se s
  = case s of
     Source
      -> return $ PairT (concrete se) DateTimeT
-    SourceWindowedDays _
-     -> return $ PairT (concrete se) DateTimeT
     STrans st f n
      -> do  inp <- lookupOrDie StreamErrorVarNotInEnv (streams se) n
             fty <- mapLeft     StreamErrorExp $ checkExp coreFragmentWorkerFun (scalars se) f

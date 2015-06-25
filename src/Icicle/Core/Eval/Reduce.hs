@@ -17,6 +17,8 @@ import qualified    Icicle.Core.Eval.Exp    as XV
 import qualified    Icicle.Core.Eval.Stream as SV
 import              Icicle.Core.Exp.Prim
 
+import              Icicle.Data
+
 import              P
 
 import              Data.Either.Combinators
@@ -54,7 +56,7 @@ eval reduction_name xh sh r
             -- Evaluate the zero with no arguments
             z' <- evalX z
             -- Perform the fold!
-            v  <- foldM (apply2 k) z' (fmap (V.VBase . snd) $ fst sv)
+            v  <- foldM (apply2 k) z' (fmap (V.VBase . snd . fact) $ fst sv)
 
             v' <- case v of
                    V.VFun{}   -> Left (SV.RuntimeErrorExpNotBaseType v)
@@ -85,7 +87,7 @@ eval reduction_name xh sh r
               -> let sv' = latest i $ fst sv
                  -- and split into history and values
                  in  return ( BubbleGumFacts $ flavoursOfSource sv'
-                            , VArray $ fmap snd sv' )
+                            , VArray $ fmap (snd.fact) sv' )
 
              _
               -> Left (SV.RuntimeErrorExpNotOfType num' IntT)
@@ -116,5 +118,5 @@ eval reduction_name xh sh r
 
   -- Get the history of some stream input
   flavoursOfSource
-   = fmap (\(BubbleGumFact f, _) -> f)
+   = fmap (\(AsAt { fact = (BubbleGumFact f, _)}) -> f)
 

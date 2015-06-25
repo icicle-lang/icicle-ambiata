@@ -19,6 +19,8 @@ import           Icicle.Data.DateTime
 import           Icicle.Dictionary
 import           Icicle.Encoding
 
+import qualified Icicle.Internal.Pretty as PP
+
 import           P
 
 data ParseError =
@@ -31,6 +33,9 @@ renderParseError (ParseError err) =
   "Could not parse EAVT text line: " <> err
 renderParseError (DecodeError err) =
   "Could not decode EAVT according to dictionary: " <> renderDecodeError err
+
+instance PP.Pretty ParseError where
+ pretty d = PP.text $ T.unpack $ renderParseError d
 
 renderEavt :: AsAt Fact' -> Text
 renderEavt f =

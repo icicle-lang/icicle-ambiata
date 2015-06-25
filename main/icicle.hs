@@ -15,6 +15,7 @@ import qualified Icicle.Internal.Pretty      as PP
 import qualified Icicle.Core.Program.Check   as Program
 import qualified Icicle.Core.Program.Fusion  as Program
 import qualified Icicle.Core.Program.Condense as Program
+import qualified Icicle.Core.Program.Program as Program
 import qualified Icicle.Common.Fresh         as Fresh
 
 import qualified Icicle.Avalanche.Program    as AvP

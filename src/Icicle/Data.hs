@@ -37,6 +37,8 @@ newtype Attribute =
       getAttribute  :: Text
     } deriving (Eq, Ord, Show)
 
+instance PP.Pretty Attribute where
+  pretty (Attribute t) = PP.text (unpack t)
 
 data Fact =
   Fact {
@@ -60,6 +62,7 @@ data AsAt a =
     , time          :: DateTime
     } deriving (Eq, Show)
 
+--------------------------------------------------------------------------------
 
 data Value =
     StringValue     Text
@@ -76,29 +79,47 @@ data Value =
 
 instance PP.Pretty Value where
   pretty v = case v of
-    StringValue t  -> PP.text (unpack t)
-    IntValue    i  -> PP.int i
-    DoubleValue d  -> PP.double d
-    BooleanValue b -> PP.pretty b
-    -- I'm too lazy
-    _              -> PP.text (show v)
+    StringValue  t  -> PP.text (unpack t)
+    IntValue     i  -> PP.int i
+    DoubleValue  d  -> PP.double d
+    BooleanValue b  -> PP.pretty b
+    DateValue    d  -> PP.pretty d
+    StructValue  s  -> PP.pretty s
+    ListValue    l  -> PP.pretty l
+    PairValue v1 v2 -> PP.encloseSep PP.lparen PP.rparen PP.comma
+                                     [PP.pretty v1, PP.pretty v2]
+    MapValue vs     -> PP.pretty vs
+    Tombstone       -> PP.text "tombstone"
+
+--------------------------------------------------------------------------------
 
 data Struct =
   Struct    [(Attribute, Value)]
   deriving (Eq, Show)
 
+instance PP.Pretty Struct where
+  pretty (Struct avs) = PP.pretty avs
+
+--------------------------------------------------------------------------------
 
 data List =
   List      [Value]
   deriving (Eq, Show)
 
+instance PP.Pretty List where
+  pretty (List vs) = PP.pretty vs
+
+--------------------------------------------------------------------------------
 
 data Date =
   Date {
       getDate       :: Text -- FIX complete, make these real...
     } deriving (Eq, Show)
 
+instance PP.Pretty Date where
+  pretty (Date t) = PP.text (unpack t)
 
+--------------------------------------------------------------------------------
 
 data Encoding =
     StringEncoding

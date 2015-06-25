@@ -29,7 +29,7 @@ checkQT :: Ord n
 checkQT features qt
  = case Map.lookup (feature qt) features of
     Just f
-     -> do  (q,t) <- checkQ (Map.map (UniverseType Elem) f) (query qt)
+     -> do  (q,t) <- checkQ (Map.map (UniverseType $ Universe Elem Definitely) f) (query qt)
             return (qt { query = q }, t)
     Nothing
      -> Left $ ErrorNoSuchFeature (feature qt)
@@ -75,7 +75,7 @@ checkQ ctx q
                     when (not $ isAgg $ universe t')
                      $ Left $ ErrorReturnNotAggregate ann q t'
 
-                    let t'' = UniverseType (Group $ baseType te) (baseType t')
+                    let t'' = t' { universe = (Universe (Group $ baseType te) Definitely) }
                     let c' = GroupBy (ann, t'') e'
                     return (wrap c' q'', t'')
 
@@ -92,8 +92,9 @@ checkQ ctx q
                     expIsBool ann c te
                     expIsElem ann c te
                     (q'', t') <- tq
-                    let c' = Filter (ann, t') e'
-                    return (wrap c' q'', t')
+                    let t'' = t' { universe = castPossibilityWith (universe t') (universe te) }
+                    let c' = Filter (ann, t'') e'
+                    return (wrap c' q'', t'')
 
              LetFold ann f
               -> do (init',ti) <- checkX ctx  $ foldInit f
@@ -106,12 +107,12 @@ checkQ ctx q
 
                     expIsElem ann c tw
 
-                    let ctx'' = Map.insert (foldBind f) (UniverseType AggU $ baseType ti) ctx
+                    let ctx'' = Map.insert (foldBind f)
+                             (UniverseType (Universe AggU Possibly) $ baseType ti) ctx
                     (q'',t') <- checkQ ctx'' q'
 
-                    let t'' = t' { baseType = T.OptionT $ baseType t' }
-                    let c'  = LetFold (ann,t'') (f { foldInit = init', foldWork = work' })
-                    return (wrap c' q'', t'')
+                    let c'  = LetFold (ann,t') (f { foldInit = init', foldWork = work' })
+                    return (wrap c' q'', t')
 
 
              Let ann n e
@@ -142,7 +143,8 @@ checkQ ctx q
 
   wrapAsAgg t
    | isPureOrElem $ universe t
-   = UniverseType AggU $ T.ArrayT $ baseType t
+   = UniverseType (universe t) { universeTemporality = AggU }
+   $ T.ArrayT $ baseType t
    | otherwise
    = t
 
@@ -192,53 +194,58 @@ checkP x p args
     Op o
      | Negate <- o
      -> unary
+     | Div <- o
+     -> binary Possibly o
      | otherwise
-     -> binary o
+     -> binary Definitely o
 
     Agg a
      | Count <- a
      , [] <- args
-     -> return ((), UniverseType AggU T.IntT)
+     -> return ((), UniverseType (Universe AggU Definitely) T.IntT)
      | SumA <- a
      , [t] <- args
-     , canCast (universe t) Elem
+     , isPureOrElem $ universe t
      , baseType t == T.IntT
-     -> return ((), UniverseType AggU T.IntT)
+     -> return ((), UniverseType (aggu $ universe t) T.IntT)
      | Newest <- a
      , [t] <- args
-     , canCast (universe t) Elem
-     -> return ((), UniverseType AggU (T.OptionT $ baseType t))
+     , isPureOrElem $ universe t
+     -> return ((), UniverseType (Universe AggU Possibly) (baseType t))
      | Oldest <- a
      , [t] <- args
-     , canCast (universe t) Elem
-     -> return ((), UniverseType AggU (T.OptionT $ baseType t))
+     , isPureOrElem $ universe t
+     -> return ((), UniverseType (Universe AggU Possibly) (baseType t))
 
      | otherwise
      -> err
 
     Lit (LitInt _)
      | [] <- args
-     -> return ((), UniverseType Pure T.IntT)
+     -> return ((), UniverseType (Universe Pure Definitely) T.IntT)
      | otherwise
      -> err
  where
   err = Left $ ErrorPrimBadArgs (annotOfExp x) x args
 
+  aggu u = u { universeTemporality = AggU }
+
   unary
    | [t] <- args
    , baseType t == T.IntT
-   , notGroup $ universe t
+   , not $ isGroup $ universe t
    = return ((), t)
    | otherwise
    = err
 
-  binary o
+  binary poss o
    | [a, b] <- args
    , baseType a == T.IntT
    , baseType b == T.IntT
    , Just u <- maxOf (universe a) (universe b)
-   , notGroup u
-   = return ((), UniverseType u $ returnType o)
+   , poss'  <- maxOfPossibility (universePossibility u) poss
+   , not $ isGroup u
+   = return ((), UniverseType (u { universePossibility = poss'}) $ returnType o)
    | otherwise
    = err
 
@@ -251,26 +258,3 @@ checkP x p args
      Eq -> T.BoolT
      Ne -> T.BoolT
      _  -> T.IntT
-
-  maxOf a b
-   | canCast a b
-   = Just b
-   | canCast b a
-   = Just a
-   | otherwise
-   = Nothing
-
-  canCast a b
-   | a == Pure
-   = True
-   | a == b
-   = True
-   | otherwise
-   = False
-
-  notGroup a
-   | Group _ <- a
-   = False
-   | otherwise
-   = True
-

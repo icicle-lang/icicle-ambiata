@@ -38,6 +38,12 @@ var = XVar . Name
 constI :: Int -> X.Exp n
 constI = XValue IntT  . VInt
 
+some :: ValType -> X.Exp n -> X.Exp n
+some t x
+ = XPrim (PrimMinimal $ Min.PrimConst $ Min.PrimConstSome t)
+    @~ x
+
+
 constB :: Bool -> X.Exp n
 constB = XValue BoolT . VBool
 

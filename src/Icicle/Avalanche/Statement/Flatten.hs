@@ -4,6 +4,7 @@
 {-# LANGUAGE PatternGuards #-}
 module Icicle.Avalanche.Statement.Flatten (
     flatten
+  , FlattenError(..)
   ) where
 
 import              Icicle.Avalanche.Statement.Statement
@@ -21,9 +22,9 @@ import              Icicle.Internal.Pretty
 
 import              P
 import              Control.Monad.Trans.Class
-import              Data.List (reverse)
 
 import qualified    Data.Map                       as Map
+import              Data.List (reverse)
 
 
 data FlattenError n

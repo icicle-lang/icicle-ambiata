@@ -1,8 +1,7 @@
 -- | Typechecking an entire core program
 {-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Core.Program.Check (
-      Program (..)
-    , checkProgram
+      checkProgram
     ) where
 
 import              Icicle.Common.Base

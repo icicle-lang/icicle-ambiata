@@ -31,6 +31,7 @@ data Name n =
 -- This is in here to resolve circular dependency.
 data BaseValue
  = VInt   Int
+ | VUnit
  | VBool  Bool
  | VDateTime        DateTime
  | VArray [BaseValue]
@@ -53,6 +54,8 @@ instance Pretty BaseValue where
   = case v of
      VInt i
       -> pretty i
+     VUnit
+      -> text "()"
      VBool b
       -> pretty b
      VDateTime dt

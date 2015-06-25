@@ -111,6 +111,7 @@ instance Arbitrary ValType where
    -- It's fine if they're big, but they have to fit in memory.
    oneof_sized_vals
          [ IntT
+         , UnitT
          , BoolT
          , DateTimeT ]
          [ ArrayT <$> arbitrary
@@ -325,8 +326,7 @@ programForStreamType streamType
 
   -- Raw source or windowed
   streamSource
-   = oneof [ return (sourceType, Source)
-           , (,) sourceType . SourceWindowedDays <$> arbitrary ]
+   = return (sourceType, Source)
 
   sourceType = PairT streamType DateTimeT
 
@@ -336,6 +336,7 @@ programForStreamType streamType
    = do (i,t) <- oneof $ fmap return $ Map.toList s_env
 
         st <- oneof [ return $ SFilter t
+                    , return $ SWindow t
                     , SMap t <$> arbitrary ]
 
         let ty = typeOfStreamTransform st
@@ -378,6 +379,8 @@ baseValueForType t
  = case t of
     IntT
      -> VInt <$> arbitrary
+    UnitT
+     -> return VUnit
     BoolT
      -> VBool <$> arbitrary
     DateTimeT

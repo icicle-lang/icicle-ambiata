@@ -82,7 +82,7 @@ evalQ q vs env
                         let ins = Map.insert (foldBind f)
                         v' <- foldM (\a v -> evalX (foldWork f) [] (ins a v)) z' vs'
 
-                        VSome <$> evalQ q' vs (ins v' env)
+                        evalQ q' vs (ins v' env)
                  | otherwise
                  -> return VNone
 
@@ -145,7 +145,12 @@ evalP ann p xs vs env
      -> do  args <- mapM (\x' -> evalX x' vs env) xs
             let err = Left $ EvalErrorOpBadArgs ann o args
             case o of
+             _
+              | any (==VNone) args
+              -> return $ VNone
              Div
+              | [_,      VInt 0] <- args
+              -> return   VNone
               | [VInt i, VInt j] <- args
               -> return $ VInt (i `div` j)
               | otherwise
@@ -231,17 +236,28 @@ evalA ann ag xs vs _env
 
     SumA
      | [x] <- xs
-     -> VInt <$> foldM (\a v -> do v' <- evalX x [] v
+     -> do  v <- foldM (\a v -> do v' <- evalX x [] v
                                    case v' of
-                                    VInt i -> return (a + i)
-                                    _      -> err) 0 vs
+                                    VInt i
+                                     | Just a' <- a
+                                     -> return $ Just $ a' + i
+                                     | Nothing <- a
+                                     -> return Nothing
+                                    VNone
+                                     -> return Nothing
+                                    _      -> err) Nothing vs
+            return $ case v of
+             Nothing -> VNone
+             Just i  -> VInt i
+
      | otherwise
      -> err
 
+    -- TODO: what happens if the "newest" is possibly VNone?
     Newest
      | [x] <- xs
      , Just v <- foldl (\_ v -> Just v) Nothing vs
-     -> VSome <$> evalX x [] v
+     -> evalX x [] v
      | [_] <- xs
      -> return $ VNone
      | otherwise
@@ -250,7 +266,7 @@ evalA ann ag xs vs _env
     Oldest
      | [x] <- xs
      , (v:_) <- vs
-     -> VSome <$> evalX x [] v
+     -> evalX x [] v
      | [_] <- xs
      -> return $ VNone
      | otherwise
