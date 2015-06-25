@@ -322,6 +322,7 @@ programForStreamType streamType
    = streamSource
    | otherwise
    = oneof [ streamSource
+           , streamWindow      s_env pre_env
            , streamTransformer s_env pre_env ]
 
   -- Raw source or windowed
@@ -336,12 +337,24 @@ programForStreamType streamType
    = do (i,t) <- oneof $ fmap return $ Map.toList s_env
 
         st <- oneof [ return $ SFilter t
-                    , return $ SWindow t
                     , SMap t <$> arbitrary ]
 
         let ty = typeOfStreamTransform st
         let ot = outputOfStreamTransform st
         (,) ot <$> (STrans <$> return st <*> gen_exp ty pre_env <*> return i)
+
+  -- Window
+  streamWindow :: Env Var ValType -> Env Var Type -> Gen (ValType, Stream Var)
+  streamWindow s_env pre_env
+   = do (i,t) <- oneof $ fmap return $ Map.toList s_env
+
+        let intT = funOfVal IntT
+
+        newer <- gen_exp intT pre_env
+        older <- oneof [ return Nothing
+                       , Just <$> gen_exp intT pre_env ]
+
+        return (t, SWindow t newer older i)
 
   -- Generate some reductions using given stream environment
   gen_reduces :: Env Var ValType -> Env Var Type -> Int -> Gen (Env Var Type, [(Name Var, Reduce Var)])

@@ -104,16 +104,25 @@ eval window_check xh concreteValues sh s
 
     -- Windowed input.
     -- The dates are assured to be increasing, so we could really use a takeWhile.dropWhile or something
-    STrans (SWindow _) window n
+    SWindow _ newerThan olderThan n
      -> do  sv <- getInput n
-            w  <- evalX window
-            case w of
-             VBase (VInt i)
-              -> return ( filter (\v -> withinWindow (time v) window_check i)
+            newer  <- evalX newerThan
+            older  <- mapM evalX olderThan
+
+            let windowBy p wind =
+                 return ( filter (\v -> p (daysDifference (time v) window_check))
                         $ fst sv
-                        , Windowed i)
+                        , Windowed wind)
+
+            case (newer, older) of
+             (VBase (VInt newer'), Nothing)
+              -> windowBy (<= newer') newer'
+             (VBase (VInt newer'), Just (VBase (VInt older')))
+              -> windowBy (\d -> d <= newer' && d >= older') newer'
+             (VBase (VInt _), Just older')
+              -> Left $ RuntimeErrorExpNotOfType older' IntT
              _
-              -> Left $ RuntimeErrorExpNotOfType w IntT
+              -> Left $ RuntimeErrorExpNotOfType newer IntT
 
     -- Transformers are slightly more involved
     -- Evaluate transform over given values.

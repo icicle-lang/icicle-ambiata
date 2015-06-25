@@ -120,13 +120,6 @@ convertQuery n nt q
     -- fixed there.
     -- For now, this doesn't support "filter X ~> window Y", but only "window Y ~> filter X".
     --
-    -- TODO: change Core so windowing is not a stream source but a stream transformer.
-    (Windowed _ (Days days) Nothing : _)
-     -> do  n'      <- fresh
-            (bs, b) <- convertQuery n' nt q'
-            let bs'  = strm n' (C.STrans (C.SWindow nt) (CE.constI days) n) <> bs
-            return (bs', b)
-    -- Likewise, Core doesn't support double-sided windowing yet.
     -- We don't want unbounded "older than" windowing because then the window contents will
     -- continue to grow unboundedly.
     -- Instead, only allow "older than" windowing if there is also a "newer than" bound on the
@@ -134,10 +127,15 @@ convertQuery n nt q
     -- We could support "older than" by storing reduce result of the end of window and
     -- storing all corresponding newer thans in the snapshot, so if this ends up being an issue
     -- we can address it.
-    --
-    -- TODO: change Core to support window "between"
-    (Windowed (ann,_) _ _ : _)
-     -> lift $ Left $ ConvertErrorTODO ann "support window ranges"
+    (Windowed _ newerThan olderThan : _)
+     -> do  n'      <- fresh
+            (bs, b) <- convertQuery n' nt q'
+
+            let newerThan' =      convertWindowUnits newerThan
+            let olderThan' = fmap convertWindowUnits olderThan
+
+            let bs'  = strm n' (C.SWindow nt newerThan' olderThan' n) <> bs
+            return (bs', b)
 
 
     -- TODO: latest can actually have multiple 'aggregate passes',
@@ -317,7 +315,7 @@ convertQuery n nt q
     (LetFold (ann,_) _ : _)
      -> lift $ Left $ ConvertErrorTODO ann "convertQuery.LetFold"
 
-        
+
  where
   -- The remaining query after the current context is removed
   q' = q { contexts = drop 1 $ contexts q }
@@ -533,7 +531,7 @@ convertExp nElem t x
         let unpair  = CE.XPrim (C.PrimFold (C.PrimFoldPair t1 t2) t1)
                     CE.@~ fstF
                     CE.@~ CE.XVar nElem
-        
+
         return unpair
 
  | Var _ (Variable "date") <- x
@@ -547,7 +545,7 @@ convertExp nElem t x
         let unpair  = CE.XPrim (C.PrimFold (C.PrimFoldPair t1 t2) t2)
                     CE.@~ sndF
                     CE.@~ CE.XVar nElem
-        
+
         return unpair
 
  -- Primitive application: convert arguments, then convert primitive
@@ -770,3 +768,12 @@ convertGroupBy nElem t q
 
         return xx
 
+
+convertWindowUnits :: WindowUnit -> C.Exp Variable
+convertWindowUnits wu
+ = CE.constI
+ $ case wu of
+    Days d -> d
+    -- TODO: month should be... better
+    Months m -> m * 30
+    Weeks w -> w * 7

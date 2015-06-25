@@ -1,6 +1,7 @@
 -- | Convert Core programs to Avalanche
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PatternGuards #-}
 module Icicle.Avalanche.FromCore (
     programFromCore
   , Namer(..)
@@ -152,16 +153,25 @@ insertStream namer inputType strs reds (n, strm)
         -> allLet $ XVar $ namerFact namer
 
        -- If within i days
-       CS.STrans (CS.SWindow _) i inp
+       CS.SWindow _ newerThan olderThan inp
         -> let unpair    = XPrim (PrimFold (PrimFoldPair inputType DateTimeT) BoolT)
                factValue = namerElemPrefix namer (namerFact namer)
                factDate  = namerElemPrefix namer (namerDate namer)
                nowDate   = namerDate namer
                diff      = XPrim (PrimMinimal $ Min.PrimDateTime Min.PrimDateTimeDaysDifference)
 
-               check  = XLam factValue  inputType
+               check  | Just o' <- olderThan
+                      = XLam factValue  inputType
                       $ XLam factDate   DateTimeT
-                      $ (diff @~ XVar factDate @~ XVar nowDate) <=~ i
+                      ( XPrim (PrimMinimal $ Min.PrimLogical Min.PrimLogicalAnd)
+                        @~ (diff @~ XVar factDate @~ XVar nowDate) <=~ newerThan
+                        @~ (diff @~ XVar factDate @~ XVar nowDate) >=~ o' )
+
+                      | otherwise
+                      = XLam factValue  inputType
+                      $ XLam factDate   DateTimeT
+                      $ (diff @~ XVar factDate @~ XVar nowDate) <=~ newerThan
+
 
                window = unpair @~ check @~ XVar (namerFact namer)
                

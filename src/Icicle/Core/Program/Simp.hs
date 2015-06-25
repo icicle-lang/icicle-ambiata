@@ -46,9 +46,13 @@ simpStream :: Ord n => Stream n -> Fresh n (Stream n)
 simpStream ss = case ss of
   Source
     ->    return ss
-  STrans t x1 n
-    -> do x2 <- simp x1
-          return (STrans t x2 n)
+  SWindow t x mx n
+    -> do x'  <- simp x
+          mx' <- mapM simp mx
+          return (SWindow t x' mx' n)
+  STrans t x n
+    -> do x'  <- simp x
+          return (STrans t x' n)
 
 
 -- | Simp the exps in reduce, perhaps we can do something better
