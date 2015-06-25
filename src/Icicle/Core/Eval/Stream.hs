@@ -104,6 +104,26 @@ eval window_check xh concreteValues sh s
 
     -- Windowed input.
     -- The dates are assured to be increasing, so we could really use a takeWhile.dropWhile or something
+    --
+    -- TODO: this is incorrectly computing the history for double-sided windows.
+    -- When we have a window like "newer than 30 days, older than 5 days",
+    -- we drop the "newer than 5 days" out of the stream.
+    -- This means they do not show up in the history, but they should.
+    -- We probably need to tack a list of leftover bubblegums on each stream.
+    --
+    -- The other interesting question is about filters: when marking the "newer than 5 days"
+    -- as necessary for history, we could mark all of the entries and then filter them later,
+    -- when they are within the window.
+    -- Another option is to execute the filter on the newer entries, while marking them to be ignored by
+    -- folds and so on at the end.
+    -- This means you would still have to execute maps on them, if there were a filter after a map.
+    --
+    -- Both have advantages: marking all the newer potentially stores more in the snapshot, but does not duplicate
+    -- any work for maps, filters and so on, and defers some of the filtering work until it is necessary.
+    -- Whereas the other method may end up with smaller snapshots.
+    --
+    -- I suspect that marking all newer entries is simpler and sufficient.
+    --
     SWindow _ newerThan olderThan n
      -> do  sv <- getInput n
             newer  <- evalX newerThan
