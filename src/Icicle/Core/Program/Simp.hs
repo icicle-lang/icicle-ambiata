@@ -44,9 +44,9 @@ simpProgram p
 --
 simpStream :: Ord n => Stream n -> Fresh n (Stream n)
 simpStream ss = case ss of
-  Source               -> return ss
-  SourceWindowedDays _ -> return ss
-  STrans             t x1 n
+  Source
+    ->    return ss
+  STrans t x1 n
     -> do x2 <- simp x1
           return (STrans t x2 n)
 

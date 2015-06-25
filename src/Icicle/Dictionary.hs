@@ -209,9 +209,10 @@ program_windowed_sum days
  = P.Program
  { P.input      = T.IntT
  , P.precomps   = []
- , P.streams    = [(N.Name "inp", S.SourceWindowedDays days)
-                  ,(N.Name "inp2", map_fst T.IntT (N.Name "inp"))]
- , P.reduces    = [(N.Name "sum",   fold_sum (N.Name "inp2"))]
+ , P.streams    = [(N.Name "inp", S.Source)
+                  ,(N.Name "inp2", map_fst T.IntT (N.Name "inp"))
+                  ,(N.Name "inp3", S.STrans (S.SWindow T.IntT) (constI days) (N.Name "inp2"))]
+ , P.reduces    = [(N.Name "sum",   fold_sum (N.Name "inp3"))]
  , P.postdate   = Nothing
  , P.postcomps  = []
  , P.returns    = X.XVar (N.Name "sum")

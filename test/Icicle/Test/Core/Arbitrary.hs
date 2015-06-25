@@ -326,8 +326,7 @@ programForStreamType streamType
 
   -- Raw source or windowed
   streamSource
-   = oneof [ return (sourceType, Source)
-           , (,) sourceType . SourceWindowedDays <$> arbitrary ]
+   = return (sourceType, Source)
 
   sourceType = PairT streamType DateTimeT
 
@@ -337,6 +336,7 @@ programForStreamType streamType
    = do (i,t) <- oneof $ fmap return $ Map.toList s_env
 
         st <- oneof [ return $ SFilter t
+                    , return $ SWindow t
                     , SMap t <$> arbitrary ]
 
         let ty = typeOfStreamTransform st

@@ -124,7 +124,7 @@ convertQuery n nt q
     (Windowed _ (Days days) Nothing : _)
      -> do  n'      <- fresh
             (bs, b) <- convertQuery n' nt q'
-            let bs'  = strm n' (C.SourceWindowedDays days) <> bs
+            let bs'  = strm n' (C.STrans (C.SWindow nt) (CE.constI days) n) <> bs
             return (bs', b)
     -- Likewise, Core doesn't support double-sided windowing yet.
     -- We don't want unbounded "older than" windowing because then the window contents will

@@ -80,7 +80,7 @@ data ProgramValue n =
 -- We take no environments, but do take the concrete feature values.
 eval    :: Ord n
         => DateTime
-        -> SV.DatedStreamValue
+        -> SV.InitialStreamValue
         -> P.Program n
         -> Either (RuntimeError n) (ProgramValue n)
 eval d sv p
@@ -114,7 +114,7 @@ evalStms
         :: Ord n
         => V.Heap n Prim
         -> DateTime
-        -> SV.DatedStreamValue
+        -> SV.InitialStreamValue
         -> SV.StreamHeap  n
         -> [(Name n, Stream n)]
         -> Either (RuntimeError n) (SV.StreamHeap n)

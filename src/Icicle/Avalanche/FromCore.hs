@@ -152,7 +152,7 @@ insertStream namer inputType strs reds (n, strm)
         -> allLet $ XVar $ namerFact namer
 
        -- If within i days
-       CS.SourceWindowedDays i
+       CS.STrans (CS.SWindow _) i inp
         -> let unpair    = XPrim (PrimFold (PrimFoldPair inputType DateTimeT) BoolT)
                factValue = namerElemPrefix namer (namerFact namer)
                factDate  = namerElemPrefix namer (namerDate namer)
@@ -161,11 +161,11 @@ insertStream namer inputType strs reds (n, strm)
 
                check  = XLam factValue  inputType
                       $ XLam factDate   DateTimeT
-                      $ (diff @~ XVar factDate @~ XVar nowDate) <=~ constI i
+                      $ (diff @~ XVar factDate @~ XVar nowDate) <=~ i
 
                window = unpair @~ check @~ XVar (namerFact namer)
                
-           in If window (allLet $ XVar $ namerFact namer)
+           in If window (allLet $ XVar $ namerElemPrefix namer inp)
                          mempty
 
        -- Filters become ifs
