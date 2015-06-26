@@ -36,6 +36,7 @@ data Scoped n p
  | Write (Name n) (Exp n p)
  | Push  (Name n) (Exp n p)
  | Return         (Exp n p)
+ | KeepFactInHistory
 
 data Binding n p
  = InitAccumulator (S.Accumulator n p)
@@ -66,6 +67,8 @@ bindsOfStatement s
      -> [Right $ Push n x]
     S.Return x
      -> [Right $ Return x]
+    S.KeepFactInHistory
+     -> [Right $ KeepFactInHistory]
     S.InitAccumulator acc ss
      -> let bs = bindsOfStatement ss
         in  Left (InitAccumulator acc) : bs
@@ -114,6 +117,8 @@ statementOfScoped s
      -> S.Push n x
     Return x
      -> S.Return x
+    KeepFactInHistory
+     -> S.KeepFactInHistory
 
 
 spanMaybe :: (a -> Maybe b) -> [a] -> ([b],[a])
@@ -169,6 +174,10 @@ instance (Pretty n, Pretty p) => Pretty (Scoped n p) where
      Return x
       -> text "return" <+> pretty x
       <> text ";"
+     KeepFactInHistory
+      -> text "keep_fact_in_history"
+      <> text ";"
+
 
   where
    inner si@(Block _) = pretty si
