@@ -136,7 +136,7 @@ evalProgram evalPrim now values p
         (accs',ret) <- evalStmt evalPrim now xh values Nothing ah stmts
 
         -- Grab the history out of the accumulator heap while we're at it
-        let bgs = bubbleGumOutputOfAccumulatorHeap accs'
+        let bgs = bubbleGumNubOutputs $ bubbleGumOutputOfAccumulatorHeap accs'
 
         case ret of 
          Nothing -> Left RuntimeErrorNoReturn

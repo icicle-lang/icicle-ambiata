@@ -86,7 +86,7 @@ eval    :: Ord n
 eval d sv p
  = do   pres    <- mapLeft RuntimeErrorPre
                  $ XV.evalExps XV.evalPrim  Map.empty   (P.precomps     p)
-        stms    <- evalStms pres d sv       Map.empty   (P.streams      p)
+        (stms,bgleftovers) <- evalStms pres d sv       Map.empty   (P.streams      p)
 
         -- Get the history and results of reductions.
         -- The history is returned as-is but values are used in further computations
@@ -106,7 +106,7 @@ eval d sv p
                  $ P.returns p
         ret'    <- V.getBaseValue (RuntimeErrorReturnNotBaseType ret) ret
 
-        return $ ProgramValue ret' bgs
+        return $ ProgramValue ret' $ bubbleGumNubOutputs (bgs <> bgleftovers)
 
 
 -- | Evaluate all stream bindings, collecting up stream heap as we go
@@ -117,16 +117,21 @@ evalStms
         -> SV.InitialStreamValue
         -> SV.StreamHeap  n
         -> [(Name n, Stream n)]
-        -> Either (RuntimeError n) (SV.StreamHeap n)
+        -> Either (RuntimeError n) (SV.StreamHeap n, [BubbleGumOutput n BaseValue])
 
 evalStms _ _ _ sh []
- = return sh
+ = return (sh, [])
 
 evalStms xh d svs sh ((n,strm):bs)
  = do   v   <- mapLeft RuntimeErrorStream
              $ SV.eval d xh svs sh strm
-        sh' <- insertUnique sh n v
-        evalStms xh d svs sh' bs
+        sh' <- insertUnique sh n $ SV.evalStreamValue v
+
+        let out = bubbleGumOutputOfFacts
+                $ SV.evalMarkAsRequired v
+
+        (sh'', outs) <- evalStms xh d svs sh' bs
+        return (sh'', out : outs)
         
 
 -- | Evaluate all reduction bindings, inserting to expression heap as we go
