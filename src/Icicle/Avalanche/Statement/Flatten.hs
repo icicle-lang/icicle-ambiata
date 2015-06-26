@@ -90,6 +90,10 @@ flatten s
      $ \x'
      -> return $ Return x'
 
+    KeepFactInHistory
+     -> return $ KeepFactInHistory
+
+
 
 -- | Flatten an expression, wrapping the statement with any lets or loops or other bindings
 -- The statement function takes the new expression.

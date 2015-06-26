@@ -161,22 +161,27 @@ insertStream namer inputType strs reds (n, strm)
                diff      = XPrim (PrimMinimal $ Min.PrimDateTime Min.PrimDateTimeDaysDifference)
 
                check  | Just o' <- olderThan
-                      = XLam factValue  inputType
-                      $ XLam factDate   DateTimeT
-                      ( XPrim (PrimMinimal $ Min.PrimLogical Min.PrimLogicalAnd)
+                      = XPrim (PrimMinimal $ Min.PrimLogical Min.PrimLogicalAnd)
                         @~ (diff @~ XVar factDate @~ XVar nowDate) <=~ newerThan
-                        @~ (diff @~ XVar factDate @~ XVar nowDate) >=~ o' )
+                        @~ (diff @~ XVar factDate @~ XVar nowDate) >=~ o'
 
                       | otherwise
-                      = XLam factValue  inputType
-                      $ XLam factDate   DateTimeT
-                      $ (diff @~ XVar factDate @~ XVar nowDate) <=~ newerThan
+                      = (diff @~ XVar factDate @~ XVar nowDate) <=~ newerThan
 
+               window c = unpair
+                        @~ (XLam factValue  inputType $ XLam factDate   DateTimeT c)
+                        @~ XVar (namerFact namer)
 
-               window = unpair @~ check @~ XVar (namerFact namer)
+               else_  | Just o' <- olderThan
+                      = If (window ((diff @~ XVar factDate @~ XVar nowDate) <~ o' ))
+                           KeepFactInHistory
+                           mempty
+
+                      | otherwise
+                      = mempty
                
-           in If window (allLet $ XVar $ namerElemPrefix namer inp)
-                         mempty
+           in If (window check) (allLet $ XVar $ namerElemPrefix namer inp)
+                         else_
 
        -- Filters become ifs
        CS.STrans (CS.SFilter _) x inp

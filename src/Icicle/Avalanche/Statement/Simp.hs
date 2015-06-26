@@ -223,6 +223,11 @@ hasEffect statements
    | Return _  <- s
    = return True
 
+    -- Marking a fact as used is an effect.
+   | KeepFactInHistory  <- s
+   = return True
+
+
    -- If any substatements have an effect, the superstatement does.
    | otherwise
    = return r
