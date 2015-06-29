@@ -4,10 +4,10 @@ module Icicle.Source.Checker.Checker (
     checkQT
   , checkQ
   , checkX
-  , FeatureMap
   ) where
 
 import                  Icicle.Source.Checker.Error
+import                  Icicle.Source.ToCore.Context
 import                  Icicle.Source.Query
 import                  Icicle.Source.Type
 
@@ -18,19 +18,18 @@ import                  P
 import qualified        Data.Map as Map
 
 
-type FeatureMap n = Map.Map n (Map.Map n BaseType)
 type Env        n = Map.Map n UniverseType
 type Result r a n = Either (CheckError a n) (r, UniverseType)
 
 
 checkQT :: Ord n
-        => FeatureMap n
+        => Features n
         -> QueryTop a n
         -> Result (QueryTop (a,UniverseType) n) a n
 checkQT features qt
  = case Map.lookup (feature qt) features of
-    Just f
-     -> do  (q,t) <- checkQ (Map.map (UniverseType $ Universe Elem Definitely) f) (query qt)
+    Just (_,f)
+     -> do  (q,t) <- checkQ (envOfFeatureContext f) (query qt)
             return (qt { query = q }, t)
     Nothing
      -> Left $ ErrorNoSuchFeature (feature qt)

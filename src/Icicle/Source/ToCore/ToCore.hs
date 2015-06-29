@@ -26,14 +26,9 @@ module Icicle.Source.ToCore.ToCore (
 
 import                  Icicle.Source.Query
 import                  Icicle.Source.ToCore.Base
+import                  Icicle.Source.ToCore.Context
 import                  Icicle.Source.ToCore.Prim
 import                  Icicle.Source.Type
-
--- TODO: this should not really rely on a specific name type,
--- after structs are supported.
--- But for now just look for variable called "value" and know that is the
--- input element.
-import                  Icicle.Source.Lexer.Token (Variable(..))
 
 import qualified        Icicle.Core as C
 import qualified        Icicle.Core.Exp.Combinators as CE
@@ -50,8 +45,8 @@ import                  P
 import                  Control.Monad.Trans.Class
 import                  Data.List (zip, unzip, unzip4)
 
+import qualified        Data.Map as Map
 
-type Nm = Name Variable
 
 -- | Convert a top-level Query to Core.
 --
@@ -67,15 +62,20 @@ type Nm = Name Variable
 -- "AggU" or "Group" computations can be reductions on streams, or postcomputations.
 --
 convertQueryTop
-        :: QueryTop (a,UniverseType) Variable
-        -> ConvertM a Variable (C.Program Variable)
-convertQueryTop qt
+        :: Ord n
+        => Features n
+        -> QueryTop (a,UniverseType) n
+        -> ConvertM a n (C.Program n)
+convertQueryTop feats qt
  = do   inp <- fresh
-        -- TODO: look this up in context
-        let inpTy       = T.IntT
+        (ty,fs) <- lift
+                 $ maybeToRight (ConvertErrorNoSuchFeature (feature qt))
+                 $ Map.lookup (feature qt) feats
+
+        let inpTy       = ty
         let inpTy'dated = T.PairT inpTy T.DateTimeT
 
-        (bs,ret) <- convertQuery inp inpTy'dated (query qt)
+        (bs,ret) <- convertQuery fs inp inpTy'dated (query qt)
         let bs'   = strm inp C.Source <> bs
         return (programOfBinds inpTy bs' ret)
 
@@ -86,14 +86,16 @@ convertQueryTop qt
 -- It returns a list of program bindings, as well as the name of the binding
 -- that is being "returned" in the program - essentially the last added binding.
 convertQuery
-        :: Nm -> T.ValType
-        -> Query (a,UniverseType) Variable
-        -> ConvertM a Variable (CoreBinds Variable, Nm)
-convertQuery n nt q
+        :: Ord n
+        => FeatureContext n
+        -> Name n -> T.ValType
+        -> Query (a,UniverseType) n
+        -> ConvertM a n (CoreBinds n, Name n)
+convertQuery fs n nt q
  = case contexts q of
     -- There are no queries left, so deal with simple aggregates and nested queries.
     []
-     -> convertReduce n nt (final q)
+     -> convertReduce fs n nt (final q)
 
     -- Converting filters is probably the simplest conversion.
     --
@@ -107,9 +109,9 @@ convertQuery n nt q
     (Filter _ e : _)
      -> do  n'      <- fresh
             nv      <- fresh
-            e'      <- convertExp nv nt e
+            e'      <- convertExp   fs nv nt e
 
-            (bs, b) <- convertQuery n' nt q'
+            (bs, b) <- convertQuery fs n' nt q'
             let bs'  = strm n' (C.STrans (C.SFilter nt) (CE.XLam nv nt e') n) <> bs
 
             return (bs', b)
@@ -129,7 +131,7 @@ convertQuery n nt q
     -- we can address it.
     (Windowed _ newerThan olderThan : _)
      -> do  n'      <- fresh
-            (bs, b) <- convertQuery n' nt q'
+            (bs, b) <- convertQuery fs n' nt q'
 
             let newerThan' =      convertWindowUnits newerThan
             let olderThan' = fmap convertWindowUnits olderThan
@@ -160,7 +162,7 @@ convertQuery n nt q
             -- x (fold k z inps)
             -- where x :: tV -> retty
             (k,z,x,tV)
-                    <- convertGroupBy     n'v nt q'
+                    <- convertGroupBy fs     n'v nt q'
 
             let tV'  = baseType tV
 
@@ -202,13 +204,13 @@ convertQuery n nt q
             -- as well as the intermediate result type before extraction.
             -- See convertGroupBy.
             (k,z,x,tV)
-                    <- convertGroupBy     nval nt q'
+                    <- convertGroupBy  fs  nval nt q'
 
             let tV'  = baseType tV
 
             -- Convert the "by" to a simple expression.
             -- This becomes the map insertion key.
-            e'      <- convertExp         nval nt e
+            e'      <- convertExp      fs  nval nt e
 
             let mapt = T.MapT t1 tV'
 
@@ -265,13 +267,13 @@ convertQuery n nt q
             -- This is executed as a Map fold at the end, rather than
             -- as a stream fold.
             (k,z,x,tV)
-                    <- convertGroupBy     nval nt q'
+                    <- convertGroupBy   fs nval nt q'
 
             let tV'  = baseType tV
 
             -- Convert the "by" to a simple expression.
             -- This becomes the map insertion key.
-            e'      <- convertExp         nval nt e
+            e'      <- convertExp       fs nval nt e
 
             let mapt = T.MapT tkey tval
 
@@ -339,10 +341,12 @@ convertQuery n nt q
 -- This must be an aggregate, some primitive applied to at least one aggregate expression,
 -- or a nested query.
 convertReduce
-        :: Nm   -> T.ValType
-        -> Exp (a,UniverseType) Variable
-        -> ConvertM a Variable (CoreBinds Variable, Nm)
-convertReduce n t xx
+        :: Ord n
+        => FeatureContext n
+        -> Name n   -> T.ValType
+        -> Exp (a,UniverseType) n
+        -> ConvertM a n (CoreBinds n, Name n)
+convertReduce fs n t xx
  | Just (p, (_,ty), args) <- takePrimApps xx
  = case p of
     Agg Count
@@ -360,13 +364,13 @@ convertReduce n t xx
      -> do  na <- fresh
             nv <- fresh
             -- Convert the element expression and sum over it
-            x' <- convertExp nv t x
+            x' <- convertExp fs nv t x
             mkFold T.IntT (CE.XVar na CE.+~ x') (CE.constI 0) na nv
      | [x] <- args
      , Possibly <- universePossibility $ universe ty
      -> do  nv <- fresh
             -- Convert the element expression and sum over it
-            x' <- convertExp nv t x
+            x' <- convertExp fs nv t x
 
             let plusX = CE.XPrim (C.PrimMinimal $ Min.PrimArith Min.PrimArithPlus)
             let plusT = UniverseType (definitely $ universe ty) T.IntT
@@ -388,7 +392,7 @@ convertReduce n t xx
      -> do  na <- fresh
             nv <- fresh
             -- Convert the element expression
-            x' <- convertExp nv t x
+            x' <- convertExp fs nv t x
 
             let argT = snd $ annotOfExp x
             let retty= T.OptionT $ baseType argT
@@ -417,7 +421,7 @@ convertReduce n t xx
      -> do  na <- fresh
             nv <- fresh
             -- Convert the element expression
-            x' <- convertExp nv t x
+            x' <- convertExp fs nv t x
 
             let argT = snd $ annotOfExp x
 
@@ -470,7 +474,7 @@ convertReduce n t xx
     -- If the binding is Pure however, it must not rely on any aggregates,
     -- so it might as well be a precomputation.
     _
-     -> do  (bs,nms) <- unzip <$> mapM (convertReduce n t) args
+     -> do  (bs,nms) <- unzip <$> mapM (convertReduce fs n t) args
             let tys  = fmap (snd . annotOfExp) args
             let xs   = fmap  CE.XVar           nms
             x' <- convertPrim p (fst $ annotOfExp xx) ty (xs `zip` tys)
@@ -488,7 +492,7 @@ convertReduce n t xx
 
  -- Convert a nested query
  | Nested _ q   <- xx
- = convertQuery n t q
+ = convertQuery fs n t q
  -- Any variable must be a let-bound aggregate, so we can safely assume it has a binding.
  | Var _ v      <- xx
  = return (mempty, Name v)
@@ -515,33 +519,27 @@ convertReduce n t xx
 -- | Convert an element-level expression.
 -- These are worker functions for folds, filters and so on.
 convertExp
-        :: Nm   -> T.ValType
-        -> Exp (a,UniverseType) Variable
-        -> ConvertM a Variable (C.Exp Variable)
-convertExp nElem t x
+        :: Ord n
+        => FeatureContext n
+        -> Name n   -> T.ValType
+        -> Exp (a,UniverseType) n
+        -> ConvertM a n (C.Exp n)
+convertExp fs nElem t x
  -- TODO: these should be struct lookups, not hardcoded like this.
- | Var _ (Variable "value") <- x
- , T.PairT t1 t2 <- t
- , T.DateTimeT <- t2
- = return (CE.XPrim (C.PrimMinimal $ Min.PrimPair $ Min.PrimPairFst t1 t2)
-                    CE.@~ CE.XVar nElem)
-
- | Var _ (Variable "date") <- x
- , T.PairT t1 t2 <- t
- , T.DateTimeT <- t2
- = return (CE.XPrim (C.PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd t1 t2)
-                    CE.@~ CE.XVar nElem)
+ | Var _ v <- x
+ , Just (_, x') <- Map.lookup v fs
+ = return $ x' $ CE.XVar nElem
 
  -- Primitive application: convert arguments, then convert primitive
  | Just (p, (ann,retty), args) <- takePrimApps x
- = do   args'   <- mapM (convertExp nElem t) args
+ = do   args'   <- mapM (convertExp fs nElem t) args
         let tys  = fmap (snd . annotOfExp) args
         convertPrim p ann retty (args' `zip` tys)
 
  -- A real nested query should not appear here.
  -- However, if it has no contexts, it's really just a nested expression.
  | Nested _ (Query [] x') <- x
- = convertExp nElem t x'
+ = convertExp fs nElem t x'
 
  | otherwise
  = case x of
@@ -587,16 +585,18 @@ convertExp nElem t x
 --
 --
 convertGroupBy
-        :: Nm -> T.ValType
-        -> Query (a,UniverseType) Variable
-        -> ConvertM a Variable (C.Exp Variable, C.Exp Variable, C.Exp Variable, UniverseType)
-convertGroupBy nElem t q
+        :: Ord n
+        => FeatureContext n
+        -> Name n -> T.ValType
+        -> Query (a,UniverseType) n
+        -> ConvertM a n (C.Exp n, C.Exp n, C.Exp n, UniverseType)
+convertGroupBy fs nElem t q
  = case contexts q of
     -- No contexts, just an expression
     []
      -- Nested query; recurse
      | Nested _ qq <- final q
-     -> convertGroupBy nElem t qq
+     -> convertGroupBy fs nElem t qq
 
      -- Primitive application
      | Just (p, (ann,retty), args) <- takePrimApps $ final q
@@ -605,7 +605,7 @@ convertGroupBy nElem t q
          Agg SumA
           | [e] <- args
           -> do let retty' = baseType retty
-                e' <- convertExp nElem t e
+                e' <- convertExp fs nElem t e
 
                 n  <- fresh
                 let k = CE.XLam n retty'
@@ -640,7 +640,7 @@ convertGroupBy nElem t q
           -> do -- Convert all arguments
                 -- (create a query out of the expression,
                 --  just because there is no separate convertGroupX function)
-                (ks, zs, xs, ts) <- unzip4 <$> mapM (convertGroupBy nElem t . Query []) args
+                (ks, zs, xs, ts) <- unzip4 <$> mapM (convertGroupBy fs nElem t . Query []) args
 
                 let ts' = fmap baseType ts
                 -- Create pairs for zeros
@@ -671,8 +671,8 @@ convertGroupBy nElem t q
     --
     -- Note that this has different "history semantics" to the normal filter.
     (Filter _ e : _)
-     -> do  (k,z,x,tt) <- convertGroupBy nElem t q'
-            e'         <- convertExp     nElem t e
+     -> do  (k,z,x,tt) <- convertGroupBy fs nElem t q'
+            e'         <- convertExp     fs nElem t e
             prev       <- fresh
             let tt'     = baseType tt
             let prev'   = CE.XVar prev
@@ -755,7 +755,7 @@ convertGroupBy nElem t q
         return xx
 
 
-convertWindowUnits :: WindowUnit -> C.Exp Variable
+convertWindowUnits :: WindowUnit -> C.Exp n
 convertWindowUnits wu
  = CE.constI
  $ case wu of
