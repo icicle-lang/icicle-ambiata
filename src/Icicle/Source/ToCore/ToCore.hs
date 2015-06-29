@@ -523,30 +523,14 @@ convertExp nElem t x
  | Var _ (Variable "value") <- x
  , T.PairT t1 t2 <- t
  , T.DateTimeT <- t2
- = do   n1 <- fresh
-        n2 <- fresh
-        let fstF    = CE.XLam n1 t1
-                    $ CE.XLam n2 t2
-                    $ CE.XVar n1
-        let unpair  = CE.XPrim (C.PrimFold (C.PrimFoldPair t1 t2) t1)
-                    CE.@~ fstF
-                    CE.@~ CE.XVar nElem
-
-        return unpair
+ = return (CE.XPrim (C.PrimMinimal $ Min.PrimPair $ Min.PrimPairFst t1 t2)
+                    CE.@~ CE.XVar nElem)
 
  | Var _ (Variable "date") <- x
  , T.PairT t1 t2 <- t
  , T.DateTimeT <- t2
- = do   n1 <- fresh
-        n2 <- fresh
-        let sndF    = CE.XLam n1 t1
-                    $ CE.XLam n2 t2
-                    $ CE.XVar n2
-        let unpair  = CE.XPrim (C.PrimFold (C.PrimFoldPair t1 t2) t2)
-                    CE.@~ sndF
-                    CE.@~ CE.XVar nElem
-
-        return unpair
+ = return (CE.XPrim (C.PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd t1 t2)
+                    CE.@~ CE.XVar nElem)
 
  -- Primitive application: convert arguments, then convert primitive
  | Just (p, (ann,retty), args) <- takePrimApps x
@@ -761,10 +745,12 @@ convertGroupBy nElem t q
 
         rest <- pairDestruct f' ts ret
 
+        let xfst = CE.XPrim (C.PrimMinimal $ Min.PrimPair $ Min.PrimPairFst t1 tr) CE.@~ CE.XVar nl
+        let xsnd = CE.XPrim (C.PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd t1 tr) CE.@~ CE.XVar nl
+
         let xx = CE.XLam nl (T.PairT t1 tr)
-               ( CE.XPrim (C.PrimFold (C.PrimFoldPair t1 tr) ret)
-                 CE.@~ (CE.XLam n1 t1 $ rest)
-                 CE.@~ CE.XVar nl)
+               $ CE.XLet n1 xfst
+               ( rest CE.@~ xsnd )
 
         return xx
 

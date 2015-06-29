@@ -32,13 +32,6 @@ evalPrim p vs
       | otherwise
       -> primError
 
-     PrimFold (PrimFoldPair _ _) _
-      | [f,VBase v] <- vs
-      , VPair a b   <- v
-      -> applies' f [VBase a, VBase b]
-      | otherwise
-      -> primError
-
      PrimFold (PrimFoldArray _) _
       | [k, z, VBase (VArray as)] <- vs
       -> foldM (\a c -> applies' k [a,VBase c]) z as

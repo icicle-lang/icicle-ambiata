@@ -118,3 +118,19 @@ evalPrim p originalP vs
       | otherwise
       -> primError
 
+
+     PrimPair (PrimPairFst _ _)
+      | [VBase (VPair x _)] <- vs
+      -> return $ VBase $ x
+      | otherwise
+      -> primError
+
+     PrimPair (PrimPairSnd _ _)
+      | [VBase (VPair _ y)] <- vs
+      -> return $ VBase $ y
+      | otherwise
+      -> primError
+
+
+
+

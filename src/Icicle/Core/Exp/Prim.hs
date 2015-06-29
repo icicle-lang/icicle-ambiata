@@ -28,7 +28,6 @@ data Prim
 -- | Folds and destructing things
 data PrimFold
  = PrimFoldBool
- | PrimFoldPair   ValType ValType
  | PrimFoldArray  ValType
  | PrimFoldOption ValType
  | PrimFoldMap    ValType ValType
@@ -53,8 +52,6 @@ typeOfPrim p
     -- Folds
     PrimFold PrimFoldBool ret
      -> FunT [funOfVal ret, funOfVal ret, funOfVal BoolT] ret
-    PrimFold (PrimFoldPair a b) ret
-     -> FunT [FunT [funOfVal a, funOfVal b] ret, funOfVal (PairT a b)] ret
     PrimFold (PrimFoldArray a) ret
      -> FunT [FunT [funOfVal ret, funOfVal a] ret, funOfVal ret, funOfVal (ArrayT a)] ret
     PrimFold (PrimFoldOption a) ret
@@ -79,8 +76,6 @@ instance Pretty Prim where
   = let f' = case f of
               PrimFoldBool
                 -> text "if#"
-              PrimFoldPair a b
-                -> text "unpair#" <+> brackets (pretty a) <+> brackets (pretty b)
               PrimFoldArray a
                -> text "Array_fold#" <+> brackets (pretty a)
               PrimFoldOption a

@@ -4,6 +4,7 @@ module Icicle.Source.Checker.Checker (
     checkQT
   , checkQ
   , checkX
+  , FeatureMap
   ) where
 
 import                  Icicle.Source.Checker.Error

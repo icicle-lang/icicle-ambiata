@@ -88,6 +88,8 @@ instance Arbitrary PM.Prim where
           , return $ PM.PrimLogical  PM.PrimLogicalAnd
           , PM.PrimConst <$> (PM.PrimConstPair <$> arbitrary <*> arbitrary)
           , PM.PrimConst . PM.PrimConstSome <$> arbitrary
+          , PM.PrimPair <$> (PM.PrimPairFst <$> arbitrary <*> arbitrary)
+          , PM.PrimPair <$> (PM.PrimPairSnd <$> arbitrary <*> arbitrary)
           ]
 
 instance Arbitrary Prim where
@@ -96,7 +98,6 @@ instance Arbitrary Prim where
           [ PrimMinimal <$> arbitrary
           ]
           [ PrimFold   PrimFoldBool <$> arbitrary
-          , PrimFold <$> (PrimFoldPair <$> arbitrary <*> arbitrary) <*> arbitrary
           , PrimFold <$> (PrimFoldArray <$> arbitrary) <*> arbitrary
           , PrimFold <$> (PrimFoldOption <$> arbitrary) <*> arbitrary
           , PrimFold <$> (PrimFoldMap <$> arbitrary <*> arbitrary) <*> arbitrary

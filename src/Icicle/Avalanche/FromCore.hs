@@ -154,9 +154,7 @@ insertStream namer inputType strs reds (n, strm)
 
        -- If within i days
        CS.SWindow _ newerThan olderThan inp
-        -> let unpair    = XPrim (PrimFold (PrimFoldPair inputType DateTimeT) BoolT)
-               factValue = namerElemPrefix namer (namerFact namer)
-               factDate  = namerElemPrefix namer (namerDate namer)
+        -> let factDate  = namerElemPrefix namer (namerDate namer)
                nowDate   = namerDate namer
                diff      = XPrim (PrimMinimal $ Min.PrimDateTime Min.PrimDateTimeDaysDifference)
 
@@ -168,9 +166,10 @@ insertStream namer inputType strs reds (n, strm)
                       | otherwise
                       = (diff @~ XVar factDate @~ XVar nowDate) <=~ newerThan
 
-               window c = unpair
-                        @~ (XLam factValue  inputType $ XLam factDate   DateTimeT c)
-                        @~ XVar (namerFact namer)
+               window c = XLet factDate
+                            (XPrim (PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd inputType DateTimeT)
+                             @~ XVar (namerFact namer))
+                          c
 
                else_  | Just o' <- olderThan
                       = If (window ((diff @~ XVar factDate @~ XVar nowDate) <~ o' ))

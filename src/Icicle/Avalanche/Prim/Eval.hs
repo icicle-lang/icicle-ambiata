@@ -23,14 +23,6 @@ evalPrim p vs
      PrimMinimal m
       -> Min.evalPrim m p vs
 
-     PrimProject (PrimProjectPair which _ _)
-      | [VBase (VPair va vb)] <- vs
-      -> if   which
-         then return $ VBase vb
-         else return $ VBase va
-      | otherwise
-      -> primError
-
      PrimProject (PrimProjectArrayLength _)
       | [VBase (VArray var)]    <- vs
       -> return $ VBase $ VInt $ length var

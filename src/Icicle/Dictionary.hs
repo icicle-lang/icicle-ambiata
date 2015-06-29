@@ -267,8 +267,7 @@ program_days_since_latest
                   -- extract snd of pair
                   ,(N.Name "dates", S.STrans (S.SMap (T.PairT T.IntT T.DateTimeT) T.DateTimeT)
                                         (lam (T.PairT T.IntT T.DateTimeT) $ \p ->
-                                           X.XPrim (P.PrimFold (P.PrimFoldPair T.IntT T.DateTimeT) T.DateTimeT)
-                                        @~ (lam T.IntT $ \_ -> lam T.DateTimeT $ \b -> b )
+                                           X.XPrim (P.PrimMinimal $ PM.PrimPair $ PM.PrimPairSnd T.IntT T.DateTimeT)
                                         @~ p)
                                         (N.Name "inp")) ]
 

@@ -144,6 +144,19 @@ simpMP = go
       -- * leaves datetime alone
       M.PrimDateTime _ -> Nothing
 
+      M.PrimPair    (M.PrimPairFst ta _)
+       | [(_, VPair va _)] <- args
+       -> return $ XValue ta va
+       | otherwise
+       -> Nothing
+
+      M.PrimPair    (M.PrimPairSnd _ tb)
+       | [(_, VPair _ vb)] <- args
+       -> return $ XValue tb vb
+       | otherwise
+       -> Nothing
+
+
     bool1 args f
       | [(_, VBool x)] <- args
       = return $ XValue BoolT (VBool (f x))
