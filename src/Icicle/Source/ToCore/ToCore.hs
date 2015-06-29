@@ -311,11 +311,10 @@ convertQuery fs n nt q
 
             return (r <> p, n'')
 
-    -- TODO: let, let fold
-    (Let (ann,_) b def : _)
+    (Let _ b def : _)
      -> case universeTemporality $ universe $ snd $ annotOfExp def of
          Elem
-          -> do let t'  = baseType $ snd $ annotOfExp def
+          -> do let t'  = baseTypeOrOption $ snd $ annotOfExp def
                 let nt' = T.PairT t' nt
 
                 n'e     <- fresh
@@ -338,8 +337,22 @@ convertQuery fs n nt q
                 let bs   = strm n'r (C.STrans (C.SMap nt nt') (CE.XLam n'e nt pair) n)
                 (bs', n'') <- convertQuery fs' n'r nt' q'
                 return (bs <> bs', n'')
-         _
-          -> lift $ Left $ ConvertErrorTODO ann "convertQuery.Let"
+
+         Pure
+          -> do e'      <- convertExp       fs n nt def
+                let bs   = pre (Name b) e'
+                (bs', n') <- convertQuery fs n nt q'
+                return (bs <> bs', n')
+
+         AggU
+          -> do (bs,n')      <- convertReduce    fs n nt def
+                (bs',n'')    <- convertQuery     fs n nt q'
+                return (bs <> post (Name b) (CE.XVar n') <> bs', n'')
+
+         Group _
+          -> do (bs,n')      <- convertReduce    fs n nt def
+                (bs',n'')    <- convertQuery     fs n nt q'
+                return (bs <> post (Name b) (CE.XVar n') <> bs', n'')
 
     (LetFold (ann,_) _ : _)
      -> lift $ Left $ ConvertErrorTODO ann "convertQuery.LetFold"
@@ -455,11 +468,7 @@ convertReduce fs n t xx
             -- If x' is a possibly, we actually want to carry around two levels
             -- of options: that way we won't overwrite the Some Nothing, meaning
             -- the first element has been seen but was Nothing.
-            let valty
-                     | Possibly <- universePossibility $ universe argT
-                     = T.OptionT $ baseType argT
-                     | otherwise
-                     = baseType argT
+            let valty= baseTypeOrOption argT
             let retty= T.OptionT $ valty
 
             let seed = CE.XValue retty VNone
@@ -788,3 +797,10 @@ convertWindowUnits wu
     -- TODO: month should be... better
     Months m -> m * 30
     Weeks w -> w * 7
+
+baseTypeOrOption :: UniverseType -> BaseType
+baseTypeOrOption u
+ | Possibly <- universePossibility $ universe u
+ = T.OptionT $ baseType u
+ | otherwise
+ = baseType u
