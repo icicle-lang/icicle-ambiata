@@ -97,7 +97,12 @@ checkQ ctx q
                     return (wrap c' q'', t'')
 
              LetFold ann f
-              -> do (init',ti) <- checkX ctx  $ foldInit f
+              -> do -- Any mention of the binding in the zero case is an error.
+                    -- We need to explicitly remove it in case there was something
+                    -- already defined with the same name
+                    let ctxRemove = Map.delete (foldBind f) ctx
+
+                    (init',ti) <- checkX ctxRemove  $ foldInit f
                     expIsElem ann c ti
                     let ctx' = Map.insert (foldBind f) ti ctx
                     (work',tw) <- checkX ctx' $ foldWork f

@@ -354,8 +354,36 @@ convertQuery fs n nt q
                 (bs',n'')    <- convertQuery     fs n nt q'
                 return (bs <> post (Name b) (CE.XVar n') <> bs', n'')
 
-    (LetFold (ann,_) _ : _)
-     -> lift $ Left $ ConvertErrorTODO ann "convertQuery.LetFold"
+    (LetFold (_,retty) f@Fold{ foldType = FoldTypeFoldl1 } : _)
+     -> do  let t' = T.OptionT $ baseType retty
+            let tU = baseType retty
+            -- Remove bindings, just in case the same name has been used
+            let fs' = Map.delete (foldBind f) fs
+            n'e <- fresh
+
+            z   <- convertExp fs' n'e nt (foldInit f)
+            k   <- convertExp fs' n'e nt (foldWork f)
+
+            n'f <- fresh
+
+            let go  = CE.XLam n'f t'
+                    $ CE.XLam n'e nt
+                    ( CE.XPrim (C.PrimFold (C.PrimFoldOption tU) t')
+                        CE.@~ (CE.XLam (Name $ foldBind f) tU
+                              $ CE.some tU k)
+                        CE.@~ CE.some tU z
+                        CE.@~ (CE.XVar n'f))
+
+            let none = CE.XValue t' VNone
+            let bs = red (Name $ foldBind f) (C.RFold nt t' go none n)
+
+            
+            (bs', n'')      <- convertQuery fs' n nt q'
+
+            return (bs <> bs', n'')
+
+
+            
 
 
  where
