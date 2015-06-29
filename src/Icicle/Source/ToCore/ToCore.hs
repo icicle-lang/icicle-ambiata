@@ -312,8 +312,35 @@ convertQuery fs n nt q
             return (r <> p, n'')
 
     -- TODO: let, let fold
-    (Let (ann,_) _ _ : _)
-     -> lift $ Left $ ConvertErrorTODO ann "convertQuery.Let"
+    (Let (ann,_) b def : _)
+     -> case universeTemporality $ universe $ snd $ annotOfExp def of
+         Elem
+          -> do let t'  = baseType $ snd $ annotOfExp def
+                let nt' = T.PairT t' nt
+
+                n'e     <- fresh
+                
+                e'      <- convertExp       fs n'e nt def
+
+                let xfst = CE.XApp
+                         $ CE.XPrim $ C.PrimMinimal $ Min.PrimPair $ Min.PrimPairFst t' nt
+                let xsnd = CE.XApp
+                         $ CE.XPrim $ C.PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd t' nt
+
+                let fs'  = Map.insert b (t', xfst)
+                         $ Map.map (\(t,f) -> (t, f . xsnd)) fs
+
+                let pair = (CE.XPrim $ C.PrimMinimal $ Min.PrimConst $ Min.PrimConstPair t' nt)
+                         CE.@~ e' CE.@~ CE.XVar n'e
+
+
+                n'r     <- fresh
+                let bs   = strm n'r (C.STrans (C.SMap nt nt') (CE.XLam n'e nt pair) n)
+                (bs', n'') <- convertQuery fs' n'r nt' q'
+                return (bs <> bs', n'')
+         _
+          -> lift $ Left $ ConvertErrorTODO ann "convertQuery.Let"
+
     (LetFold (ann,_) _ : _)
      -> lift $ Left $ ConvertErrorTODO ann "convertQuery.LetFold"
 
@@ -525,7 +552,6 @@ convertExp
         -> Exp (a,UniverseType) n
         -> ConvertM a n (C.Exp n)
 convertExp fs nElem t x
- -- TODO: these should be struct lookups, not hardcoded like this.
  | Var _ v <- x
  , Just (_, x') <- Map.lookup v fs
  = return $ x' $ CE.XVar nElem
@@ -543,10 +569,9 @@ convertExp fs nElem t x
 
  | otherwise
  = case x of
-    Var (ann,_) n
-     -> lift
-      $ Left
-      $ ConvertErrorExpNoSuchVariable ann n
+    -- Variable must be bound as a precomputation
+    Var _ n
+     -> return $ CE.XVar $ Name n
     Nested (ann,_) q
      -> lift
       $ Left

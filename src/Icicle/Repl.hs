@@ -126,7 +126,7 @@ featureMapOfDictionary (D.Dictionary ds)
   go (Attribute attr, D.ConcreteDefinition _enc)
    -- TODO: convert Encoding to feature map
    = [ ( SP.Variable attr
-       , ( PairT IntT DateTimeT
+       , ( IntT
          , Map.fromList   [ (SP.Variable "value"
                             , ( IntT
                               , X.XApp (xfst IntT DateTimeT)))
