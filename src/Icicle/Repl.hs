@@ -10,7 +10,6 @@ module Icicle.Repl (
   ) where
 
 import qualified Icicle.Avalanche.Statement.Flatten as AS
-import           Icicle.Common.Base
 import qualified Icicle.Common.Fresh                as Fresh
 import           Icicle.Common.Type
 import qualified Icicle.Common.Exp.Prim.Minimal     as X
@@ -102,8 +101,7 @@ sourceConvert d q
  where
   d' = featureMapOfDictionary d
 
-  mkName prefix i = Name $ SP.Variable (prefix <> T.pack (show i))
-  namer prefix = Fresh.counterNameState (mkName prefix) 0
+  namer prefix = Fresh.counterPrefixNameState (SP.Variable . T.pack . show) (SP.Variable prefix)
 
   simp p
    = snd

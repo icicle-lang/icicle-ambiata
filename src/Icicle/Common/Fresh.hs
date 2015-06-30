@@ -10,6 +10,7 @@ module Icicle.Common.Fresh (
     , counterNameState
     , counterPrefixNameState
     , fresh
+    , freshPrefix
     ) where
 
 import              Icicle.Common.Base
@@ -17,7 +18,6 @@ import              P
 
 import              Control.Monad.Trans.Class
 import              Data.Functor.Identity
-import qualified    Data.Text as T
 
 newtype FreshT n m a
  = FreshT
@@ -42,9 +42,9 @@ counterNameState :: (Int -> Name n) -> Int -> NameState n
 counterNameState f i
  = mkNameState (\i' -> (f i', i'+1)) i
 
-counterPrefixNameState :: T.Text -> NameState T.Text
-counterPrefixNameState prefix
- = counterNameState (\i -> NameMod prefix $ Name $ T.pack $ show i) 0
+counterPrefixNameState :: (Int -> n) -> n -> NameState n
+counterPrefixNameState show' prefix
+ = counterNameState (\i -> NameMod prefix $ Name $ show' i) 0
 
 fresh :: Monad m => FreshT n m (Name n)
 fresh
@@ -54,6 +54,12 @@ fresh
     NameState f s
      -> let (n,s') = f s
         in  return (NameState f s', n)
+
+freshPrefix :: Monad m => n -> FreshT n m (Name n)
+freshPrefix pre
+ = do   n <- fresh
+        return (NameMod pre n)
+
 
 instance Monad m => Monad (FreshT n m) where
  (>>=) p q

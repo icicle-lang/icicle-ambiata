@@ -103,23 +103,23 @@ showProgram prog
          Right ty
           -> do T.putStrLn "Has type:"
                 print (PP.indent 4 $ PP.pretty ty)
-         
+
         let av   = AvC.programFromCore (AvC.namerText id) prog
         let avs  = snd
                  $ Fresh.runFresh (AvS.simpAvalanche av)
-                                  (Fresh.counterPrefixNameState "anf")
+                                  (Fresh.counterPrefixNameState (T.pack.show) "anf")
         T.putStrLn "Avalanche:"
         print (PP.indent 4 $ PP.pretty avs)
 
         let avf  = Fresh.runFreshT (AvF.flatten (AvP.statements avs))
-                                   (Fresh.counterPrefixNameState "flat")
+                                   (Fresh.counterPrefixNameState (T.pack.show) "flat")
         case avf of
          Left err
           -> do T.putStrLn "Flattening error:"
                 print err
          Right avf'
           -> do let avfs = snd $ Fresh.runFresh (AvS.simpAvalanche (avs { AvP.statements = snd avf'}))
-                                          (Fresh.counterPrefixNameState "simp")
+                                          (Fresh.counterPrefixNameState (T.pack.show) "simp")
 
                 T.putStrLn ""
                 T.putStrLn "Flattened:"

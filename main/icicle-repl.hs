@@ -279,7 +279,7 @@ coreFlatten prog
       $ F.runFreshT
       ( AF.flatten
       $ AP.statements av)
-      (F.counterPrefixNameState "flat")
+      (F.counterPrefixNameState (T.pack . show) "flat")
 
 coreAvalanche :: ProgramT -> AP.Program Text CP.Prim
 coreAvalanche prog
@@ -289,7 +289,7 @@ coreAvalanche prog
 simpAvalanche :: (Eq p, Show p) => Text -> AP.Program Text p -> AP.Program Text p
 simpAvalanche prefix av
  = let simp = AS.simpAvalanche av
-       name = F.counterPrefixNameState prefix
+       name = F.counterPrefixNameState (T.pack . show) prefix
    in  snd $ F.runFresh simp name
 
 --------------------------------------------------------------------------------
