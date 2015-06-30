@@ -4,10 +4,13 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
+{-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 module Icicle.Test.Source.Arbitrary where
 
 import           Icicle.Source.Query
 import qualified Icicle.Source.Lexer.Token as T
+import           Icicle.Common.Base
+import           Icicle.Common.Fresh
 
 import           Icicle.Test.Arbitrary.Base
 import           Orphanarium.Corpus
@@ -17,6 +20,10 @@ import           Test.QuickCheck.Instances ()
 
 import           P
 
+import qualified Data.Text as Text
+
+freshtest p
+ = snd <$> runFreshT p (counterNameState (\i -> Name $ T.Variable ("v" <> Text.pack (show i))) 0)
 
 instance Arbitrary T.Variable where
  arbitrary
@@ -88,7 +95,13 @@ instance Arbitrary WindowUnit where
 
 instance Arbitrary n => Arbitrary (Fold (Query () n) () n) where
  arbitrary
-  = Fold <$> arbitrary <*> arbitrary <*> arbitrary <*> return FoldTypeFoldl1
+  = Fold <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+
+instance Arbitrary FoldType where
+ arbitrary
+  = oneof
+        [ return FoldTypeFoldl1
+        , return FoldTypeFoldl ]
 
 
 instance Arbitrary n => Arbitrary (Query () n) where

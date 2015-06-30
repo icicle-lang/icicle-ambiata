@@ -20,6 +20,7 @@ import qualified Icicle.Test.Dictionary.Types
 
 import qualified Icicle.Test.Source.PrettyParse
 import qualified Icicle.Test.Source.Progress
+import qualified Icicle.Test.Source.Convert
 
 import           Orphanarium.Core.Main
 
@@ -49,5 +50,6 @@ main
 
         , Icicle.Test.Source.PrettyParse.tests
         , Icicle.Test.Source.Progress.tests
+        , Icicle.Test.Source.Convert.tests
         ]
 
