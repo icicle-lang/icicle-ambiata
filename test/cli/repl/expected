@@ -70,4 +70,11 @@ welcome to iREPL
 > - Result:
 [homer, 5,marge, 1]
 
+> --
+> --
+> -- Lets
+> -- Elem/Scalar lets
+> - Result:
+[homer, 3000,marge, 60]
+
 > 

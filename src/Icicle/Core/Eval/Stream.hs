@@ -8,6 +8,7 @@ module Icicle.Core.Eval.Stream (
     , StreamHeap 
     , StreamWindow (..)
     , RuntimeError (..)
+    , EvalResult   (..)
     , eval
     ) where
 
@@ -85,6 +86,25 @@ instance (Pretty n) => Pretty (RuntimeError n) where
   <> "  Expression:    " <> pretty v
 
 
+-- | The result of evaluating a stream.
+-- We keep track of the actual value from a stream,
+-- but also keep a list of bubblegum for those facts that
+-- are currently not used in the value, but will (or may) be required
+-- in subsequent runs.
+--
+-- In most cases, if something is filtered out, or too old to fit in a window,
+-- it will still be filtered out or too old when it is executed tomorrow.
+-- However, "older than" windows are a special case, because something not required today
+-- will be old enough in a later run.
+data EvalResult
+ = EvalResult
+ -- | The actual stream result
+ { evalStreamValue      :: StreamValue
+ -- | Any leftovers that have been filtered out,
+ -- but may be required in a later run
+ , evalMarkAsRequired   :: [BubbleGumFact]
+ }
+
 
 -- | Evaluate a stream.
 -- We take the precomputation environment, the stream of concrete values,
@@ -95,25 +115,61 @@ eval    :: Ord n
         -> InitialStreamValue   -- ^ Concrete inputs start with dates attached
         -> StreamHeap       n   -- ^ Any streams that have already been evaluated
         -> Stream           n   -- ^ Stream to evaluate
-        -> Either (RuntimeError n) StreamValue
+        -> Either (RuntimeError n) EvalResult
 eval window_check xh concreteValues sh s
  = case s of
     -- Raw input is easy
     Source
-     -> return (fmap streamvalue concreteValues, UnWindowed)
+     -> return
+     $ EvalResult
+        (fmap streamvalue concreteValues, UnWindowed)
+        []
 
     -- Windowed input.
     -- The dates are assured to be increasing, so we could really use a takeWhile.dropWhile or something
-    STrans (SWindow _) window n
+    --
+    -- When we have a window like "newer than 30 days, older than 5 days",
+    -- we drop the "newer than 5 days" out of the stream.
+    -- This means they do not show up in the history, but they should.
+    -- We do this by tacking a list of leftover bubblegums on each stream,
+    -- see evalMarkAsRequired above.
+    --
+    -- Another option is to keep the newer values around, still executing the filters
+    -- and maps on the newer entries, while marking them to be ignored by
+    -- folds and so on at the end.
+    -- This means you would still have to execute maps on them, if there were a filter after a map.
+    --
+    -- Both ways have advantages: marking all the newer potentially stores more in the snapshot, but does not duplicate
+    -- any work for maps, filters and so on, and defers some of the filtering work until it is necessary.
+    -- Whereas the other method may end up with smaller snapshots.
+    --
+    -- For now, I have gone with the first option:
+    -- marking all newer entries is simpler and sufficient.
+    --
+    SWindow _ newerThan olderThan n
      -> do  sv <- getInput n
-            w  <- evalX window
-            case w of
-             VBase (VInt i)
-              -> return ( filter (\v -> withinWindow (time v) window_check i)
+            newer  <- evalX newerThan
+            older  <- mapM evalX olderThan
+
+            let windowBy p p'history wind =
+                 return $
+                  EvalResult
+                        ( filter (\v -> p (daysDifference (time v) window_check))
                         $ fst sv
-                        , Windowed i)
+                        , Windowed wind)
+                        ( fmap (fst . fact)
+                        $ filter (\v -> p'history (daysDifference (time v) window_check))
+                        $ fst sv)
+
+            case (newer, older) of
+             (VBase (VInt newer'), Nothing)
+              -> windowBy (<= newer') (const False) newer'
+             (VBase (VInt newer'), Just (VBase (VInt older')))
+              -> windowBy (\d -> d <= newer' && d >= older') (< older') newer'
+             (VBase (VInt _), Just older')
+              -> Left $ RuntimeErrorExpNotOfType older' IntT
              _
-              -> Left $ RuntimeErrorExpNotOfType w IntT
+              -> Left $ RuntimeErrorExpNotOfType newer IntT
 
     -- Transformers are slightly more involved
     -- Evaluate transform over given values.
@@ -129,14 +185,14 @@ eval window_check xh concreteValues sh s
             -- Filter according to the actual value, not the date or other junk
             sv' <- filterM (evalFilt x . snd . fact) (fst sv)
             -- Transformers preserve windows
-            return (sv', snd sv)
+            return $ EvalResult (sv', snd sv) []
 
     STrans (SMap _ _) x n
      -> do  -- First get the input source of the transformer
             sv  <- getInput n
             -- Apply the expression to each value
             sv' <- mapM    (applySnd x) (fst sv)
-            return (sv', snd sv)
+            return $ EvalResult (sv', snd sv) []
 
 
  where

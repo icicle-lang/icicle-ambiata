@@ -7,6 +7,7 @@ module Icicle.Source.Checker.Checker (
   ) where
 
 import                  Icicle.Source.Checker.Error
+import                  Icicle.Source.ToCore.Context
 import                  Icicle.Source.Query
 import                  Icicle.Source.Type
 
@@ -17,19 +18,18 @@ import                  P
 import qualified        Data.Map as Map
 
 
-type FeatureMap n = Map.Map n (Map.Map n BaseType)
 type Env        n = Map.Map n UniverseType
 type Result r a n = Either (CheckError a n) (r, UniverseType)
 
 
 checkQT :: Ord n
-        => FeatureMap n
+        => Features n
         -> QueryTop a n
         -> Result (QueryTop (a,UniverseType) n) a n
 checkQT features qt
  = case Map.lookup (feature qt) features of
-    Just f
-     -> do  (q,t) <- checkQ (Map.map (UniverseType $ Universe Elem Definitely) f) (query qt)
+    Just (_,f)
+     -> do  (q,t) <- checkQ (envOfFeatureContext f) (query qt)
             return (qt { query = q }, t)
     Nothing
      -> Left $ ErrorNoSuchFeature (feature qt)
@@ -97,18 +97,38 @@ checkQ ctx q
                     return (wrap c' q'', t'')
 
              LetFold ann f
-              -> do (init',ti) <- checkX ctx  $ foldInit f
+              -> do -- Any mention of the binding in the zero case is an error.
+                    -- We need to explicitly remove it in case there was something
+                    -- already defined with the same name
+                    let ctxRemove = Map.delete (foldBind f) ctx
+
+                    (init',ti) <- checkX ctxRemove  $ foldInit f
+
+                    when (foldType f == FoldTypeFoldl && universeTemporality (universe ti) /= Pure)
+                     $ Left $ ErrorUniverseMismatch ann ti
+                            $ (universe ti) { universeTemporality = Pure }
+
                     expIsElem ann c ti
-                    let ctx' = Map.insert (foldBind f) ti ctx
+                    let ctx' = Map.insert (foldBind f) (UniverseType (Universe Pure Definitely) $ baseType ti) ctx
                     (work',tw) <- checkX ctx' $ foldWork f
 
-                    when (ti /= tw)
+                    when (baseType ti /= baseType tw)
                       $ Left $ ErrorFoldTypeMismatch ann ti tw
 
                     expIsElem ann c tw
 
+                    let possibility
+                              | FoldTypeFoldl1 <- foldType f
+                              = Possibly
+                              | Possibly <- universePossibility $ universe ti
+                              = Possibly
+                              | Possibly <- universePossibility $ universe tw
+                              = Possibly
+                              | otherwise
+                              = Definitely
+
                     let ctx'' = Map.insert (foldBind f)
-                             (UniverseType (Universe AggU Possibly) $ baseType ti) ctx
+                             (UniverseType (Universe AggU possibility) $ baseType ti) ctx
                     (q'',t') <- checkQ ctx'' q'
 
                     let c'  = LetFold (ann,t') (f { foldInit = init', foldWork = work' })

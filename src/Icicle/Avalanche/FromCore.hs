@@ -1,6 +1,7 @@
 -- | Convert Core programs to Avalanche
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PatternGuards #-}
 module Icicle.Avalanche.FromCore (
     programFromCore
   , Namer(..)
@@ -152,21 +153,34 @@ insertStream namer inputType strs reds (n, strm)
         -> allLet $ XVar $ namerFact namer
 
        -- If within i days
-       CS.STrans (CS.SWindow _) i inp
-        -> let unpair    = XPrim (PrimFold (PrimFoldPair inputType DateTimeT) BoolT)
-               factValue = namerElemPrefix namer (namerFact namer)
-               factDate  = namerElemPrefix namer (namerDate namer)
+       CS.SWindow _ newerThan olderThan inp
+        -> let factDate  = namerElemPrefix namer (namerDate namer)
                nowDate   = namerDate namer
                diff      = XPrim (PrimMinimal $ Min.PrimDateTime Min.PrimDateTimeDaysDifference)
 
-               check  = XLam factValue  inputType
-                      $ XLam factDate   DateTimeT
-                      $ (diff @~ XVar factDate @~ XVar nowDate) <=~ i
+               check  | Just o' <- olderThan
+                      = XPrim (PrimMinimal $ Min.PrimLogical Min.PrimLogicalAnd)
+                        @~ (diff @~ XVar factDate @~ XVar nowDate) <=~ newerThan
+                        @~ (diff @~ XVar factDate @~ XVar nowDate) >=~ o'
 
-               window = unpair @~ check @~ XVar (namerFact namer)
+                      | otherwise
+                      = (diff @~ XVar factDate @~ XVar nowDate) <=~ newerThan
+
+               window c = XLet factDate
+                            (XPrim (PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd inputType DateTimeT)
+                             @~ XVar (namerFact namer))
+                          c
+
+               else_  | Just o' <- olderThan
+                      = If (window ((diff @~ XVar factDate @~ XVar nowDate) <~ o' ))
+                           KeepFactInHistory
+                           mempty
+
+                      | otherwise
+                      = mempty
                
-           in If window (allLet $ XVar $ namerElemPrefix namer inp)
-                         mempty
+           in If (window check) (allLet $ XVar $ namerElemPrefix namer inp)
+                         else_
 
        -- Filters become ifs
        CS.STrans (CS.SFilter _) x inp

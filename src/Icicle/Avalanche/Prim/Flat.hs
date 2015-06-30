@@ -32,8 +32,7 @@ data Prim
 
 
 data PrimProject
- = PrimProjectPair Bool  ValType ValType
- | PrimProjectArrayLength ValType
+ = PrimProjectArrayLength ValType
  | PrimProjectMapLength   ValType ValType
  | PrimProjectMapLookup   ValType ValType
  | PrimProjectOptionIsSome ValType
@@ -60,12 +59,6 @@ typeOfPrim p
     -- All arithmetics are int to int for now
     PrimMinimal m
      -> Min.typeOfPrim m
-
-    PrimProject (PrimProjectPair False a b)
-     -> FunT [funOfVal (PairT a b)] a
-
-    PrimProject (PrimProjectPair True a b)
-     -> FunT [funOfVal (PairT a b)] b
 
     PrimProject (PrimProjectArrayLength a)
      -> FunT [funOfVal (ArrayT a)] IntT
@@ -98,11 +91,6 @@ typeOfPrim p
 
 instance Pretty Prim where
  pretty (PrimMinimal m) = pretty m
-
- pretty (PrimProject (PrimProjectPair False a b))
-  = text "fst#" <+> brackets (pretty a) <+> brackets (pretty b)
- pretty (PrimProject (PrimProjectPair True a b))
-  = text "snd#" <+> brackets (pretty a) <+> brackets (pretty b)
 
  pretty (PrimProject (PrimProjectArrayLength a))
   = text "Array_length#" <+> brackets (pretty a)

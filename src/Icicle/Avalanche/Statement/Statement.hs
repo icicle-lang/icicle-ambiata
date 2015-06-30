@@ -55,6 +55,9 @@ data Statement n p
 
  -- | Return a final value
  | Return (Exp n p)
+
+ -- | Mark the current fact as being historically relevant
+ | KeepFactInHistory
  deriving (Eq, Ord, Show)
 
 instance Monoid (Statement n p) where
@@ -140,6 +143,8 @@ transformUDStmt fun env statements
            -> return $ Push n x
           Return x
            -> return $ Return x
+          KeepFactInHistory
+           -> return $ KeepFactInHistory
 
 foldStmt
         :: (Applicative m, Functor m, Monad m)
@@ -183,6 +188,8 @@ foldStmt down up rjoin env res statements
            -> up e' res s
           Return{}
            -> up e' res s
+          KeepFactInHistory
+           -> up e' res s
 
 
 
@@ -215,6 +222,10 @@ instance TransformX Statement where
 
      Return x
       -> Return <$> exps x
+
+     KeepFactInHistory
+      -> return KeepFactInHistory
+
 
   where
    go  = transformX names exps
@@ -274,6 +285,9 @@ instance (Pretty n, Pretty p) => Pretty (Statement n p) where
 
      Return x
       -> text "return" <+> pretty x
+
+     KeepFactInHistory
+      -> text "keep_fact_in_history"
 
   where
    semis stmt

@@ -6,6 +6,7 @@ module Icicle.Common.Exp.Prim.Minimal (
     , PrimLogical(..)
     , PrimConst(..)
     , PrimDateTime (..)
+    , PrimPair(..)
     , typeOfPrim
     ) where
 
@@ -25,6 +26,7 @@ data Prim
  | PrimConst    PrimConst
  -- | Date primitives
  | PrimDateTime PrimDateTime
+ | PrimPair     PrimPair
  deriving (Eq, Ord, Show)
 
 -- | Arithmetic primitives
@@ -53,7 +55,7 @@ data PrimLogical
  | PrimLogicalOr
  deriving (Eq, Ord, Show)
 
--- | Constant primitives and constructors
+-- | Constructors
 data PrimConst
  = PrimConstPair ValType ValType
  | PrimConstSome ValType
@@ -62,6 +64,12 @@ data PrimConst
 -- | DateTime primitives
 data PrimDateTime
  = PrimDateTimeDaysDifference
+ deriving (Eq, Ord, Show)
+
+-- | DateTime primitives
+data PrimPair
+ = PrimPairFst ValType ValType
+ | PrimPairSnd ValType ValType
  deriving (Eq, Ord, Show)
 
 
@@ -98,6 +106,11 @@ typeOfPrim p
 
     PrimDateTime PrimDateTimeDaysDifference
      -> FunT [funOfVal DateTimeT, funOfVal DateTimeT] IntT
+
+    PrimPair (PrimPairFst a b)
+     -> FunT [funOfVal (PairT a b)] a
+    PrimPair (PrimPairSnd a b)
+     -> FunT [funOfVal (PairT a b)] b
  where
   intT = FunT [] IntT
 
@@ -133,5 +146,7 @@ instance Pretty Prim where
  pretty (PrimDateTime PrimDateTimeDaysDifference)
   = text "DateTime_daysDifference#"
 
+ pretty (PrimPair (PrimPairFst a b)) = text "fst#" <+> brackets (pretty a) <+> brackets (pretty b)
+ pretty (PrimPair (PrimPairSnd a b)) = text "snd#" <+> brackets (pretty a) <+> brackets (pretty b)
 
 

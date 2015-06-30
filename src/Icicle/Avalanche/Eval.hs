@@ -1,5 +1,6 @@
 -- | Evaluate Avalanche programs
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE PatternGuards #-}
 module Icicle.Avalanche.Eval (
     evalProgram
   ) where
@@ -24,8 +25,11 @@ import qualified    Data.Map    as Map
 
 
 -- | Store history information about the accumulators
-type AccumulatorHeap n
- = Map.Map (Name n) ([BubbleGumFact], AccumulatorValue)
+data AccumulatorHeap n
+ = AccumulatorHeap
+ { accumulatorHeapMap       :: Map.Map (Name n) ([BubbleGumFact], AccumulatorValue)
+ , accumulatorHeapMarked    :: [BubbleGumFact]
+ }
 
 -- | The value of an accumulator
 data AccumulatorValue
@@ -50,6 +54,7 @@ data RuntimeError n p
  | RuntimeErrorForeachNotInt BaseValue BaseValue
  | RuntimeErrorNotBaseValue  (Value n p)
  | RuntimeErrorNoReturn
+ | RuntimeErrorKeepFactNotInFactLoop
  | RuntimeErrorAccumulatorLatestNotInt  BaseValue
  deriving (Eq, Show)
 
@@ -70,22 +75,27 @@ updateOrPush
         -> Either (RuntimeError n p) (AccumulatorHeap n)
 
 updateOrPush heap n bg v
- = do   v' <- maybeToRight (RuntimeErrorNoAccumulator n)
-                           (Map.lookup n heap)
+ = do   let map          = accumulatorHeapMap heap
+
+        let replace map' = return
+                         $ heap { accumulatorHeapMap = map' }
+
+        v' <- maybeToRight (RuntimeErrorNoAccumulator n)
+                           (Map.lookup n map)
         case v' of
          (bgs, AVFold windowed _)
-          -> return
+          -> replace
            $ Map.insert n
            (insbgs bgs
-           , AVFold windowed v) heap
+           , AVFold windowed v) map
          (bgs, AVLatest num vs)
-          -> return 
+          -> replace
            $ Map.insert n
            ( take num (insbgs bgs)
-           , AVLatest num (take num (v : vs)) ) heap
+           , AVLatest num (take num (v : vs)) ) map
          (_, AVMutable _)
-          -> return
-           $ Map.insert n ([], AVMutable v) heap
+          -> replace
+           $ Map.insert n ([], AVMutable v) map
  where
   insbgs bgs
    = case bg of
@@ -100,8 +110,8 @@ bubbleGumOutputOfAccumulatorHeap
         -> [BubbleGumOutput n (BaseValue)]
 
 bubbleGumOutputOfAccumulatorHeap acc
- = concatMap  mk
- $ Map.toList acc
+ = BubbleGumFacts (fmap flav  $ accumulatorHeapMarked acc)
+ : concatMap  mk  (Map.toList $ accumulatorHeapMap    acc)
  where
   mk (n, (_, AVFold False v))
    = [BubbleGumReduction n v]
@@ -132,11 +142,11 @@ evalProgram evalPrim now values p
         -- with accumulator and scalar heaps threaded through
         let stmts = statements p
         let xh    = Map.singleton (binddate p) $ VBase $ VDateTime $ now
-        let ah    = Map.empty
+        let ah    = AccumulatorHeap Map.empty []
         (accs',ret) <- evalStmt evalPrim now xh values Nothing ah stmts
 
         -- Grab the history out of the accumulator heap while we're at it
-        let bgs = bubbleGumOutputOfAccumulatorHeap accs'
+        let bgs = bubbleGumNubOutputs $ bubbleGumOutputOfAccumulatorHeap accs'
 
         case ret of 
          Nothing -> Left RuntimeErrorNoReturn
@@ -239,12 +249,13 @@ evalStmt evalPrim now xh values bubblegum ah stmt
 
     InitAccumulator acc stmts
      -> do (n,av)  <- initAcc evalPrim xh acc
-           go xh (Map.insert n av ah) stmts
+           let map' = Map.insert n av $ accumulatorHeapMap ah
+           go xh (ah { accumulatorHeapMap = map' }) stmts
 
     -- Read from an accumulator
     Read n acc stmts
      -> do  -- Get the current value and apply the function
-            v   <- case Map.lookup acc ah of
+            v   <- case Map.lookup acc $ accumulatorHeapMap ah of
                     Just (_, AVFold _ vacc)
                      -> return $ VBase vacc
                     Just (_, AVMutable vacc)
@@ -270,6 +281,14 @@ evalStmt evalPrim now xh values bubblegum ah stmt
     Return x
      -> do  v  <- eval x >>= baseValue
             return (ah, Just v)
+
+    -- Keep this fact in history
+    KeepFactInHistory
+     | Just bg <- bubblegum
+     -> return (ah { accumulatorHeapMarked = bg : accumulatorHeapMarked ah }, Nothing)
+     | otherwise
+     -> Left $ RuntimeErrorKeepFactNotInFactLoop
+
 
  where
   -- Go through all the substatements

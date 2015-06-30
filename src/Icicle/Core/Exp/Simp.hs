@@ -81,7 +81,7 @@ simpMP = go
       M.PrimArith M.PrimArithMinus
         -> arith2 pp args (-)
       M.PrimArith M.PrimArithDiv
-        -> arith2 pp args div
+        -> Nothing -- arith2 pp args div
       M.PrimArith M.PrimArithMul
         -> arith2 pp args (*)
       M.PrimArith M.PrimArithNegate
@@ -143,6 +143,19 @@ simpMP = go
 
       -- * leaves datetime alone
       M.PrimDateTime _ -> Nothing
+
+      M.PrimPair    (M.PrimPairFst ta _)
+       | [(_, VPair va _)] <- args
+       -> return $ XValue ta va
+       | otherwise
+       -> Nothing
+
+      M.PrimPair    (M.PrimPairSnd _ tb)
+       | [(_, VPair _ vb)] <- args
+       -> return $ XValue tb vb
+       | otherwise
+       -> Nothing
+
 
     bool1 args f
       | [(_, VBool x)] <- args

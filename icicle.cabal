@@ -138,6 +138,7 @@ library
                        Icicle.Source.Checker.Error
 
                        Icicle.Source.ToCore.Base
+                       Icicle.Source.ToCore.Context
                        Icicle.Source.ToCore.ToCore
                        Icicle.Source.ToCore.Prim
 

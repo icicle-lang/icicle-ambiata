@@ -145,6 +145,10 @@ checkStatement frag xh ah stmt
         
            return (Just t)
 
+    KeepFactInHistory
+     -> do return Nothing
+
+
 
 
 

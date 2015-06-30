@@ -11,6 +11,7 @@ import              Icicle.Avalanche.Statement.Statement
 import qualified    Icicle.Avalanche.Prim.Flat     as Flat
 
 import qualified    Icicle.Core.Exp.Prim           as Core
+import qualified    Icicle.Common.Exp.Prim.Minimal as Min
 
 import              Icicle.Common.Base
 import              Icicle.Common.Type
@@ -89,6 +90,10 @@ flatten s
      -> flatX x
      $ \x'
      -> return $ Return x'
+
+    KeepFactInHistory
+     -> return $ KeepFactInHistory
+
 
 
 -- | Flatten an expression, wrapping the statement with any lets or loops or other bindings
@@ -265,14 +270,6 @@ flatX xx stm
         <$> flatX then_ stm
         <*> flatX else_ stm
 
-  -- Turn unpair# into fst and snd projections
-  flatFold (Core.PrimFoldPair ta tb) _ [fun, pr]
-   = flatX pr
-   $ \pr'
-   -> slet (proj False ta tb pr') $ \p1
-   -> slet (proj True  ta tb pr') $ \p2
-   -> flatX (fun `makeApps` [p1, p2]) stm
-
   -- Array fold becomes a loop
   flatFold (Core.PrimFoldArray telem) tacc [k, z, arr]
    = do accN <- fresh
@@ -339,8 +336,9 @@ flatX xx stm
 
   -- Create a fst# or snd#
   proj t ta tb e
-   = (XPrim
-    $ Flat.PrimProject
-    $ Flat.PrimProjectPair t ta tb)
-    `XApp` e
+   = let pm | not t
+            = Min.PrimPairFst ta tb
+            | otherwise
+            = Min.PrimPairSnd ta tb
+     in (XPrim $ Flat.PrimMinimal $ Min.PrimPair $ pm) `XApp` e
 

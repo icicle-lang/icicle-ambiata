@@ -74,6 +74,7 @@ post n x = mempty { postcomps = [(n,x)] }
 
 data ConvertError a n
  = ConvertErrorTODO a String
+ | ConvertErrorNoSuchFeature n
  | ConvertErrorPrimAggregateNotAllowedHere a Agg
  | ConvertErrorPrimNoArguments a Int Prim
  | ConvertErrorGroupByHasNonGroupResult a UniverseType
@@ -175,6 +176,9 @@ instance (Pretty a, Pretty n) => Pretty (ConvertError a n) where
   = case e of
      ConvertErrorTODO a s
       -> pretty a <> ": TODO: " <> text s
+
+     ConvertErrorNoSuchFeature n
+      -> "No such feature: " <> pretty n
 
      ConvertErrorPrimAggregateNotAllowedHere a agg
       -> pretty a <> ": aggregate " <> pretty agg <> " not allowed in expression"

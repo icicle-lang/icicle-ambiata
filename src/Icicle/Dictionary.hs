@@ -211,7 +211,7 @@ program_windowed_sum days
  , P.precomps   = []
  , P.streams    = [(N.Name "inp", S.Source)
                   ,(N.Name "inp2", map_fst T.IntT (N.Name "inp"))
-                  ,(N.Name "inp3", S.STrans (S.SWindow T.IntT) (constI days) (N.Name "inp2"))]
+                  ,(N.Name "inp3", S.SWindow T.IntT (constI days) Nothing (N.Name "inp2"))]
  , P.reduces    = [(N.Name "sum",   fold_sum (N.Name "inp3"))]
  , P.postdate   = Nothing
  , P.postcomps  = []
@@ -267,8 +267,7 @@ program_days_since_latest
                   -- extract snd of pair
                   ,(N.Name "dates", S.STrans (S.SMap (T.PairT T.IntT T.DateTimeT) T.DateTimeT)
                                         (lam (T.PairT T.IntT T.DateTimeT) $ \p ->
-                                           X.XPrim (P.PrimFold (P.PrimFoldPair T.IntT T.DateTimeT) T.DateTimeT)
-                                        @~ (lam T.IntT $ \_ -> lam T.DateTimeT $ \b -> b )
+                                           X.XPrim (P.PrimMinimal $ PM.PrimPair $ PM.PrimPairSnd T.IntT T.DateTimeT)
                                         @~ p)
                                         (N.Name "inp")) ]
 

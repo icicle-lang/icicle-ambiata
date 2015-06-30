@@ -63,6 +63,7 @@ data Keyword
  | Feature
  | Filter
  | Fold
+ | Fold1
  | Group
  | Latest
  | Let

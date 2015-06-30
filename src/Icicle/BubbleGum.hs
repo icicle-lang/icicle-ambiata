@@ -8,12 +8,16 @@ module Icicle.BubbleGum (
       Flavour (..)
     , BubbleGumFact (..)
     , BubbleGumOutput (..)
+    , bubbleGumOutputOfFacts
+    , bubbleGumNubOutputs
     , mapValue
     ) where
 
 import           Icicle.Common.Base
 import           Icicle.Data
 import           P
+
+import           Data.List (nub, sort)
 
 
 -- | Each flavour has a unique id, and a date.
@@ -47,6 +51,31 @@ data BubbleGumOutput n v
  -- | List of facts used for windowed reduction or latest
  | BubbleGumFacts       [Flavour]
  deriving (Show, Eq, Ord)
+
+
+bubbleGumOutputOfFacts :: [BubbleGumFact] -> BubbleGumOutput n v
+bubbleGumOutputOfFacts fs
+ = BubbleGumFacts
+ $ fmap flav fs
+ where
+  flav (BubbleGumFact f) = f
+
+
+bubbleGumNubOutputs :: (Ord n, Ord v) => [BubbleGumOutput n v] -> [BubbleGumOutput n v]
+bubbleGumNubOutputs os
+ = let rs = concatMap reds  os
+       fs = concatMap facts os
+   in  BubbleGumFacts (nub $ sort fs) : sort rs
+ where
+  reds b@(BubbleGumReduction{})
+   = [b]
+  reds _
+   = []
+
+  facts (BubbleGumFacts fs)
+   = fs
+  facts _
+   = []
 
 
 mapValue :: Applicative m => (v -> m v') -> BubbleGumOutput n v -> m (BubbleGumOutput n v')

@@ -41,7 +41,7 @@ data Fold q a n
 
 data FoldType
  = FoldTypeFoldl1
- -- | FoldTypeFoldl
+ | FoldTypeFoldl
  deriving (Show, Eq, Ord)
 
 
@@ -63,7 +63,8 @@ instance (Pretty n, Pretty q) => Pretty (Context' q a n) where
      Filter   _ x
       -> "filter"   <+> pretty x
      LetFold  _ f
-      ->  "let fold"
+      ->  "let"
+      <+> pretty (foldType f)
       <+> pretty (foldBind f)
       <+> "="
       <+> pretty (foldInit f)
@@ -76,7 +77,13 @@ instance (Pretty n, Pretty q) => Pretty (Context' q a n) where
       <+> "="
       <+> pretty x
 
-     
+
+instance Pretty FoldType where
+ pretty FoldTypeFoldl1
+  = "fold1"
+ pretty FoldTypeFoldl
+  = "fold"
+
 instance Pretty WindowUnit where
  pretty wu
   = case wu of

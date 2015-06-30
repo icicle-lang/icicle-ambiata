@@ -75,6 +75,13 @@ streamEquivalent s s'
  , Source                <- s'
  = True
 
+ | SWindow t  newer  older  inp  <- s
+ , SWindow t' newer' older' inp' <- s'
+ =  t   == t'
+ && newer `alphaEquality` newer'
+ && older `alphaEqualityMaybe` older'
+ && inp == inp'
+
  | STrans st  x  inp     <- s
  , STrans st' x' inp'    <- s'
  =  st  == st'
@@ -84,6 +91,14 @@ streamEquivalent s s'
  -- Must be different constructors
  | otherwise
  = False
+
+ where
+  alphaEqualityMaybe (Just a) (Just b)
+   = alphaEquality a b
+  alphaEqualityMaybe Nothing Nothing
+   = True
+  alphaEqualityMaybe _ _
+   = False
 
 
 -- | Rename all uses of stream to another name
@@ -100,6 +115,9 @@ substStreamName from to ss rs
       STrans st x inp
        | inp == from
        -> STrans st x to
+      SWindow t x mx inp
+       | inp == from
+       -> SWindow t x mx to
       _
        -> s
 

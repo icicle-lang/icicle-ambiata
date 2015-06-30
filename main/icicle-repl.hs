@@ -198,7 +198,7 @@ handleLine state line = case readCommand line of
 
       prettyOut hasType "- Type:" typ
 
-      core      <- hoist $ SR.sourceConvert annot
+      core      <- hoist $ SR.sourceConvert dict annot
       let core'  = renameP unVar core
 
       prettyOut hasCore "- Core:" core'
