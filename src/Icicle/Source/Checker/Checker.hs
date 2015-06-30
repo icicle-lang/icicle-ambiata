@@ -104,10 +104,10 @@ checkQ ctx q
 
                     (init',ti) <- checkX ctxRemove  $ foldInit f
                     expIsElem ann c ti
-                    let ctx' = Map.insert (foldBind f) ti ctx
+                    let ctx' = Map.insert (foldBind f) (UniverseType (Universe Pure Definitely) $ baseType ti) ctx
                     (work',tw) <- checkX ctx' $ foldWork f
 
-                    when (ti /= tw)
+                    when (baseType ti /= baseType tw)
                       $ Left $ ErrorFoldTypeMismatch ann ti tw
 
                     expIsElem ann c tw

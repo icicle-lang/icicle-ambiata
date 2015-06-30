@@ -354,36 +354,223 @@ convertQuery fs n nt q
                 (bs',n'')    <- convertQuery     fs n nt q'
                 return (bs <> post (Name b) (CE.XVar n') <> bs', n'')
 
+    -- Converting fold1s.
+    --
+    -- Converting fold1s is complicated by the fact that the worker functions
+    -- can return "possiblies" as well.
+    -- For example, a division in the worker function:
+    --
+    -- > let fold1 rolling ~> value : rolling / value ~> ...
+    --
+    -- if "value" is zero at any point, the result should be "None"
+    -- because of the division by zero.
+    --
+    -- Because fold1 already has an inherent possibly, we need to deal with
+    -- three different cases.
+    -- The obvious way to write this is:
+    --
+    -- > let fold1 test = zero value : kons value test
+    -- >
+    -- > ====>
+    -- >
+    -- > data Result
+    -- > = WorkerError
+    -- > | NoData
+    -- > | Ok Value
+    -- >
+    -- > Stream.fold
+    -- >  (\a : Result. i : Value.
+    -- >      case a of
+    -- >       WorkerError
+    -- >        -> WorkerError
+    -- >       NoData
+    -- >        -> zero i
+    -- >       Ok v
+    -- >        -> kons i v)
+    -- >  NoData
+    -- >  stream
+    --
+    -- However the "zero" and "kons" return a "Option Value" instead of "Result",
+    -- so we need to add case statements there.
+    --
+    -- > Stream.fold
+    -- >  (\a : Result. i : Value.
+    -- >      case a of
+    -- >       WorkerError
+    -- >        -> WorkerError
+    -- >       NoData
+    -- >        -> case zero i of
+    -- >            None   -> WorkerError
+    -- >            Some z -> Ok z
+    -- >       Ok v
+    -- >        -> case kons i v of
+    -- >            None   -> WorkerError
+    -- >            Some k -> Ok k)
+    -- >  NoData
+    -- >  stream
+    --
+    -- The next thing is that Core does not have arbitrary data types.
+    -- But we have Options, so we can use an isomorphic type:
+    --
+    -- > type Result' = Option (Option Value)
+    -- > WorkerError = None
+    -- > NoData      = Some None
+    -- > Ok v        = Some (Some v)
+    -- >
+    -- > Stream.fold
+    -- >  (\a : Result'. i : Value.
+    -- >      case a of
+    -- >       None
+    -- >        -> None
+    -- >       Some a'
+    -- >        -> case a' of
+    -- >            None
+    -- >             -> case zero i of
+    -- >                 None   -> None
+    -- >                 Some z -> Some (Some z)
+    -- >            Some a''
+    -- >             -> case kons i a'' of
+    -- >                 None   -> None
+    -- >                 Some k -> Some (Some k))
+    -- >  (Some None)
+    -- >  stream
+    --
+    -- Folds in Core have the "Some" case before the "None" case,
+    -- so just reorder the cases.
+    -- Trivial, but simplifies the derivation.
+    --
+    -- > Stream.fold
+    -- >  (\a : Result'. i : Value.
+    -- >      case a of
+    -- >       Some a'
+    -- >        -> case a' of
+    -- >            Some a''
+    -- >             -> case kons i a'' of
+    -- >                 Some k -> Some (Some k)
+    -- >                 None   -> None
+    -- >            None
+    -- >             -> case zero i of
+    -- >                 Some z -> Some (Some z)
+    -- >                 None   -> None
+    -- >       None
+    -- >        -> None)
+    -- >  (Some None)
+    -- >  stream
+    --
+    -- Finally, Core doesn't have case expressions, but does have
+    -- folds over Options.
+    -- We can rewrite it using folds:
+    --
+    -- > Stream.fold
+    -- >  (\a : Result'. i : Value.
+    -- >      Option.fold (\a' : Option Int.
+    -- >         Option.fold (\a'' : Int.
+    -- >            Option.fold (\k : Int. Some (Some k))
+    -- >              None
+    -- >              (kons i a''))
+    -- >           (Option.fold (\z : Int. Some (Some k))
+    -- >              None
+    -- >              (zero i))
+    -- >            a')
+    -- >       None
+    -- >       a)
+    -- >  (Some None)
+    -- >  stream
+    --
+    -- If one of @zero@ or @kons@ do not return possiblies, we
+    -- can just replace the folds over them with "Some (Some (zero i))" etc.
+    --
     (LetFold (_,retty) f@Fold{ foldType = FoldTypeFoldl1 } : _)
-     -> do  let t' = T.OptionT $ baseType retty
+     -> do  -- Type helpers
             let tU = baseType retty
-            -- Remove bindings, just in case the same name has been used
+            let tO = T.OptionT tU
+            let tOO= T.OptionT tO
+
+            -- Generate fresh names
+            -- Element of the stream
+            -- :                nt
+            n'elem <- fresh
+            -- Current accumulator
+            -- : Option (Option tU)
+            n'a     <- fresh
+            -- Unwrap accumulator by 1
+            -- :         Option tU
+            n'a'    <- fresh
+            -- Fully unwrapped accumulator
+            -- :                tU
+            let n'a'' = Name (foldBind f)
+
+            -- result of a worker after unwrapping
+            -- :                tU
+            n'worker <- fresh
+
+
+            -- Remove binding before converting init and work expressions,
+            -- just in case the same name has been used elsewhere
             let fs' = Map.delete (foldBind f) fs
-            n'e <- fresh
+            z   <- convertExp fs' n'elem nt (foldInit f)
+            k   <- convertExp fs' n'elem nt (foldWork f)
 
-            z   <- convertExp fs' n'e nt (foldInit f)
-            k   <- convertExp fs' n'e nt (foldWork f)
+            -- Some helpers for generating Option expressions
+            -- Note that the "t"s here are the types without the outermost
+            -- layer of Option wrapping
+            let opt t tret som non scrutinee
+                    = CE.XPrim (C.PrimFold (C.PrimFoldOption t) tret)
+                    CE.@~ som CE.@~ non CE.@~ scrutinee
+            let none t = CE.XValue (T.OptionT t) VNone
+            let som t = CE.some t
 
-            n'f <- fresh
+            -- (Some.Some)
+            let somedotsome
+                 = CE.XLam n'worker tU
+                 $ som tO
+                 $ som tU
+                 $ CE.XVar n'worker
 
-            let go  = CE.XLam n'f t'
-                    $ CE.XLam n'e nt
-                    ( CE.XPrim (C.PrimFold (C.PrimFoldOption tU) t')
-                        CE.@~ (CE.XLam (Name $ foldBind f) tU
-                              $ CE.some tU k)
-                        CE.@~ CE.some tU z
-                        CE.@~ (CE.XVar n'f))
+            -- Rewrap zero and kons if it's possibly,
+            -- if not wrap in two Somes
+            let z' | Possibly <- universePossibility $ universe $ snd $ annotOfExp $ foldInit f
+                   = opt tU tOO somedotsome (none tO) z
+                   | otherwise
+                   = som tO $ som tU $ z
 
-            let none = CE.XValue t' VNone
-            let bs = red (Name $ foldBind f) (C.RFold nt t' go none n)
+            let k' | Possibly <- universePossibility $ universe $ snd $ annotOfExp $ foldWork f
+                   = opt tU tOO somedotsome (none tO) k
+                   | otherwise
+                   = som tO $ som tU $ k
+
+
+            -- Worker function of the fold
+            let go  = CE.XLam n'a tOO
+                    ( CE.XLam n'elem nt
+                    $ opt tO tOO
+                        (CE.XLam n'a' tO
+                        $ opt tU tOO
+                            ( CE.XLam n'a'' tU k')
+                              z'
+                          (CE.XVar n'a'))
+                      (none tO)
+                      (CE.XVar n'a))
+
+
+            -- Bind the fold to a fresh name
+            n' <- fresh
+            let bs = red n'
+                        (C.RFold nt tOO go (som tO $ none tU) n)
+                     -- Then unwrap the actual result and bind it
+                  <> post (Name $ foldBind f)
+                        (opt tO tO
+                            -- If the outer layer is a "Some",
+                            -- just return inner layer as-is
+                            (CE.XLam n'a' tO $ CE.XVar n'a')
+                            -- Outer layer is a "None", so return "None".
+                            (none tU)
+                            (CE.XVar n'))
 
             
             (bs', n'')      <- convertQuery fs' n nt q'
 
             return (bs <> bs', n'')
-
-
-            
 
 
  where
