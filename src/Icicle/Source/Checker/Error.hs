@@ -19,6 +19,7 @@ data CheckError a n
  | ErrorContextExpNotEnum  a (Context a n)   UniverseType
  | ErrorContextExpNotElem  a (Context a n)   UniverseType
  | ErrorFoldTypeMismatch       a UniverseType UniverseType
+ | ErrorUniverseMismatch       a UniverseType Universe
  | ErrorApplicationOfNonPrim a (Exp a n)
  | ErrorPrimBadArgs          a (Exp a n) [UniverseType]
  deriving (Show, Eq, Ord)
@@ -56,6 +57,11 @@ instance (Pretty a, Pretty n) => Pretty (CheckError a n) where
       -> "Type mismatch in fold at " <+> pretty a <> line
       <> "Initial: " <> inp init    <> line
       <> "Worker:  " <> inp work
+
+     ErrorUniverseMismatch a ty expected
+      -> "Universe mismatch at " <+> pretty a <> line
+      <> "Type:     " <> inp ty      <> line
+      <> "Expected: " <> text (show expected)
 
      ErrorApplicationOfNonPrim a x
       -> "Application of non-function at " <+> pretty a <> line

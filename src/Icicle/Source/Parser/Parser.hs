@@ -72,14 +72,18 @@ context
         return $ Q.Let p n x
 
   cletfold
-   = do pKeyword T.Fold                                     <?> "let fold"
+   = do ft <- foldtype                                      <?> "let fold"
         p <- getPosition
         n <- pVariable
         pEq T.TEqual
         z <- exp                                            <?> "initial value"
         pEq T.TFollowedBy                                   <?> "colon (:)"
         k <- exp                                            <?> "fold expression"
-        return $ Q.LetFold p (Q.Fold n z k Q.FoldTypeFoldl1)
+        return $ Q.LetFold p (Q.Fold n z k ft)
+
+  foldtype
+    =   pKeyword T.Fold1 *> return Q.FoldTypeFoldl1
+    <|> pKeyword T.Fold  *> return Q.FoldTypeFoldl
 
 exp :: Parser (Q.Exp T.SourcePos Var)
 exp

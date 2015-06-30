@@ -103,6 +103,11 @@ checkQ ctx q
                     let ctxRemove = Map.delete (foldBind f) ctx
 
                     (init',ti) <- checkX ctxRemove  $ foldInit f
+
+                    when (foldType f == FoldTypeFoldl && universeTemporality (universe ti) /= Pure)
+                     $ Left $ ErrorUniverseMismatch ann ti
+                            $ (universe ti) { universeTemporality = Pure }
+
                     expIsElem ann c ti
                     let ctx' = Map.insert (foldBind f) (UniverseType (Universe Pure Definitely) $ baseType ti) ctx
                     (work',tw) <- checkX ctx' $ foldWork f
@@ -112,8 +117,18 @@ checkQ ctx q
 
                     expIsElem ann c tw
 
+                    let possibility
+                              | FoldTypeFoldl1 <- foldType f
+                              = Possibly
+                              | Possibly <- universePossibility $ universe ti
+                              = Possibly
+                              | Possibly <- universePossibility $ universe tw
+                              = Possibly
+                              | otherwise
+                              = Definitely
+
                     let ctx'' = Map.insert (foldBind f)
-                             (UniverseType (Universe AggU Possibly) $ baseType ti) ctx
+                             (UniverseType (Universe AggU possibility) $ baseType ti) ctx
                     (q'',t') <- checkQ ctx'' q'
 
                     let c'  = LetFold (ann,t') (f { foldInit = init', foldWork = work' })

@@ -81,7 +81,7 @@ simpMP = go
       M.PrimArith M.PrimArithMinus
         -> arith2 pp args (-)
       M.PrimArith M.PrimArithDiv
-        -> arith2 pp args div
+        -> Nothing -- arith2 pp args div
       M.PrimArith M.PrimArithMul
         -> arith2 pp args (*)
       M.PrimArith M.PrimArithNegate

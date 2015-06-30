@@ -511,15 +511,6 @@ convertQuery fs n nt q
             z   <- convertExp fs' n'elem nt (foldInit f)
             k   <- convertExp fs' n'elem nt (foldWork f)
 
-            -- Some helpers for generating Option expressions
-            -- Note that the "t"s here are the types without the outermost
-            -- layer of Option wrapping
-            let opt t tret som non scrutinee
-                    = CE.XPrim (C.PrimFold (C.PrimFoldOption t) tret)
-                    CE.@~ som CE.@~ non CE.@~ scrutinee
-            let none t = CE.XValue (T.OptionT t) VNone
-            let som t = CE.some t
-
             -- (Some.Some)
             let somedotsome
                  = CE.XLam n'worker tU
@@ -573,6 +564,118 @@ convertQuery fs n nt q
             return (bs <> bs', n'')
 
 
+    -- In comparison, normal folds are quite easy.
+    -- If the worker functions are not "possiblies":
+    --
+    -- > let fold summ ~> 0 : summ + value ~> ...
+    -- >
+    -- > =====>
+    -- >
+    -- > Stream.fold
+    -- > (\a : Int. \v : Value. a + v)
+    -- > 0
+    -- > stream
+    --
+    (LetFold (_,retty) f@Fold{ foldType = FoldTypeFoldl } : _)
+     | Definitely <- universePossibility $ universe retty
+     -> do  -- Type helpers
+            let tU = baseType retty
+
+            -- Generate fresh names
+            -- Element of the stream
+            -- :                nt
+            n'elem <- fresh
+            -- Accumulator
+            -- :                tU
+            let n'a = Name (foldBind f)
+
+            -- Remove binding before converting init and work expressions,
+            -- just in case the same name has been used elsewhere
+            let fs' = Map.delete (foldBind f) fs
+            z   <- convertExp fs' n'elem nt (foldInit f)
+            k   <- convertExp fs' n'elem nt (foldWork f)
+
+            -- Worker function of the fold
+            let go  = CE.XLam n'a tU
+                    $ CE.XLam n'elem nt k
+
+            -- Bind the fold to the original name
+            let bs = red (Name $ foldBind f) (C.RFold nt tU go z n)
+            
+            (bs', n'')      <- convertQuery fs' n nt q'
+
+            return (bs <> bs', n'')
+
+
+    -- If either of the worker functions *are* "possiblies":
+    --
+    -- > let fold summ ~> 0 : summ + value / 2 ~> ...
+    -- >
+    -- > =====>
+    -- >
+    -- > Stream.fold
+    -- > (\a : Option Int. \v : Value.
+    -- >   Option.fold a
+    -- >    (\a' : Int. (a' + v) / 2)
+    -- >    None)
+    -- > (Some 0)
+    -- > stream
+    --
+    --(LetFold (_,retty) f@Fold{ foldType = FoldTypeFoldl } : _)
+    -- | Possibly <- universePossibility $ universe retty
+     | otherwise
+     -> do  -- Type helpers
+            let tU = baseType retty
+            let tO = T.OptionT tU
+
+            -- Generate fresh names
+            -- Element of the stream
+            -- :                nt
+            n'elem <- fresh
+            -- Current accumulator
+            -- :         Option tU
+            n'a     <- fresh
+            -- Fully unwrapped accumulator
+            -- :                tU
+            let n'a' = Name (foldBind f)
+
+            -- Remove binding before converting init and work expressions,
+            -- just in case the same name has been used elsewhere
+            let fs' = Map.delete (foldBind f) fs
+            z   <- convertExp fs' n'elem nt (foldInit f)
+            k   <- convertExp fs' n'elem nt (foldWork f)
+
+            -- If zero and cons are possiblies, leave them alone.
+            -- If not wrap in just one Some
+            let z' | Possibly <- universePossibility $ universe $ snd $ annotOfExp $ foldInit f
+                   = z
+                   | otherwise
+                   = som tU $ z
+
+            let k' | Possibly <- universePossibility $ universe $ snd $ annotOfExp $ foldWork f
+                   = k
+                   | otherwise
+                   = som tU $ k
+
+
+            -- Worker function of the fold
+            let go  = CE.XLam n'a tO
+                    ( CE.XLam n'elem nt
+                    $ opt tU tO
+                        (CE.XLam n'a' tU k')
+                        (none tU)
+                        (CE.XVar n'a))
+
+
+            -- Bind the fold to the original name
+            let bs = red (Name $ foldBind f) (C.RFold nt tO go z' n)
+            
+            (bs', n'')      <- convertQuery fs' n nt q'
+
+            return (bs <> bs', n'')
+
+
+
  where
   -- The remaining query after the current context is removed
   q' = q { contexts = drop 1 $ contexts q }
@@ -590,6 +693,17 @@ convertQuery fs n nt q
   -- Perform beta reduction, just to simplify the output a tiny bit.
   beta = Beta.betaToLets
        . Beta.beta Beta.isSimpleValue
+
+  -- Some helpers for generating Option expressions
+  -- Note that the "t"s here are the types without the outermost
+  -- layer of Option wrapping
+  opt t tret ss nn scrutinee
+   = CE.XPrim (C.PrimFold (C.PrimFoldOption t) tret)
+     CE.@~ ss CE.@~ nn CE.@~ scrutinee
+  none t
+   = CE.XValue (T.OptionT t) VNone
+  som t
+   = CE.some t
 
 
 -- | Convert an Aggregate computation at the end of a query.

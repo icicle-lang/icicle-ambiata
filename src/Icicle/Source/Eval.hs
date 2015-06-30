@@ -77,12 +77,21 @@ evalQ q vs env
                         evalQ q' vs' env
 
                 LetFold _ f
-                 | (z:vs') <- vs
+                 | FoldTypeFoldl1 <- foldType f
+                 , (z:vs') <- vs
                  -> do  z' <- evalX (foldInit f) [] z
                         let ins = Map.insert (foldBind f)
                         v' <- foldM (\a v -> evalX (foldWork f) [] (ins a v)) z' vs'
 
                         evalQ q' vs (ins v' env)
+
+                 | FoldTypeFoldl  <- foldType f
+                 -> do  z' <- evalX (foldInit f) [] env
+                        let ins = Map.insert (foldBind f)
+                        v' <- foldM (\a v -> evalX (foldWork f) [] (ins a v)) z' vs
+
+                        evalQ q' vs (ins v' env)
+
                  | otherwise
                  -> return VNone
 
