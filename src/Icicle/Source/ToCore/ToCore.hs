@@ -340,8 +340,9 @@ convertQuery fs n nt q
 
          Pure
           -> do e'      <- convertExp       fs n nt def
+                let fs'  = Map.delete b fs
                 let bs   = pre (Name b) e'
-                (bs', n') <- convertQuery fs n nt q'
+                (bs', n') <- convertQuery fs' n nt q'
                 return (bs <> bs', n')
 
          AggU
@@ -577,7 +578,8 @@ convertQuery fs n nt q
     -- > stream
     --
     (LetFold (_,retty) f@Fold{ foldType = FoldTypeFoldl } : _)
-     | Definitely <- universePossibility $ universe retty
+     | Definitely <- universePossibility $ universe $ snd $ annotOfExp $ foldInit f
+     , Definitely <- universePossibility $ universe $ snd $ annotOfExp $ foldWork f
      -> do  -- Type helpers
             let tU = baseType retty
 
