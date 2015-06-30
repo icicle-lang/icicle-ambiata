@@ -12,6 +12,14 @@ import           Icicle.Source.ToCore.ToCore
 import           Icicle.Source.Type
 import qualified Icicle.Source.Lexer.Token as T
 
+import qualified Icicle.Common.Exp.Prim.Minimal as Min
+import qualified Icicle.Common.Exp           as CE
+import qualified Icicle.Core.Exp             as CE
+import qualified Icicle.Common.Type          as CT
+
+import qualified Icicle.Core.Program.Error   as CCheck
+import qualified Icicle.Core.Program.Check   as CCheck
+
 import           Icicle.Test.Source.Arbitrary
 import           Icicle.Test.Core.Arbitrary ()
 
@@ -24,14 +32,8 @@ import           Test.QuickCheck
 import qualified Data.Map as Map
 
 
-mkElems :: Map.Map T.Variable BaseType -> Map.Map T.Variable UniverseType
-mkElems = Map.map (UniverseType (Universe Elem Definitely))
-
-mkFeatures :: Map.Map T.Variable BaseType -> Map.Map T.Variable (BaseType, a -> a)
-mkFeatures = Map.map (\t -> (t, id))
-
-prop_convert_well_typed :: BaseType -> T.Variable -> Map.Map T.Variable BaseType -> Query () T.Variable -> Property
-prop_convert_well_typed tt fn f q
+prop_convert_ok :: BaseType -> T.Variable -> Query () T.Variable -> Property
+prop_convert_ok tt fn q
  = counterexample pp
  $ case typ of
     Right (qt', _)
@@ -43,10 +45,47 @@ prop_convert_well_typed tt fn f q
      -> property Discard
  where
   qt  = QueryTop fn q
-  fets = Map.singleton fn (tt, mkFeatures f)
+  fets = Map.singleton fn
+       (tt, Map.singleton fn (tt, xfst tt))
 
   typ = checkQT fets qt
   pp = show $ pretty q
+
+
+prop_convert_is_well_typed :: T.Variable -> Query () T.Variable -> Property
+prop_convert_is_well_typed fn q
+ = counterexample pp
+ $ case typ of
+    Right (qt', _)
+     | restrict q
+     , Right c' <- freshtest $ convertQueryTop fets qt'
+     , check    <- CCheck.checkProgram c'
+     -> counterexample (show $ pretty c')
+      $ counterexample (show check)
+      $ isErrorOk check
+    _
+     -> property Discard
+ where
+  qt  = QueryTop fn q
+  fets = Map.singleton fn
+       (tt, Map.singleton fn (tt, xfst tt))
+
+  tt = CT.IntT
+
+  typ = checkQT fets qt
+  pp = show $ pretty q
+
+
+  isErrorOk (Right _) = True
+  -- For now I'm ignoring this error.
+  -- I need to consider whether to require unique names in Source,
+  -- or thread an environment of "let names -> unique names"
+  -- through the conversion.
+  -- Because the scoping changes, allowing overlapping names could cause
+  -- subtle bugs in the Core program.
+  isErrorOk (Left (CCheck.ProgramErrorNameNotUnique _)) = True
+  isErrorOk _ = False
+
 
 
 -- For now we can't say anything about *all* programs,
@@ -77,6 +116,10 @@ restrict
   goX (App _ a b)
    = goX a && goX b
   
+xfst tt
+ = CE.XApp
+ $ CE.XPrim $ CE.PrimMinimal $ Min.PrimPair $ Min.PrimPairFst tt CT.DateTimeT
+
 
 
 return []
