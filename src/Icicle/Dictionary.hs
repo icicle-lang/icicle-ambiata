@@ -66,9 +66,11 @@ demographics =
  , (Attribute "age",                ConcreteDefinition IntEncoding)
  , (Attribute "state_of_residence", ConcreteDefinition StringEncoding)
  , (Attribute "salary",             ConcreteDefinition IntEncoding)
- 
+ , (Attribute "injury",             ConcreteDefinition $ StructEncoding
+                        [StructField Mandatory (Attribute "location") StringEncoding
+                        ,StructField Mandatory (Attribute "severity") IntEncoding])
   -- Useless virtual features
- , (Attribute "sum",      
+ , (Attribute "sum",
                                     VirtualDefinition
                                   $ Virtual (Attribute "salary") program_sum)
 

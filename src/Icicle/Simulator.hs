@@ -125,9 +125,11 @@ valueToCore v
 
     MapValue  kvs  -> V.VMap . Map.fromList
                             <$> mapM (\(a,b) -> (,) <$> valueToCore a <*> valueToCore b) kvs
-
-    _              -> Left   $ SimulateErrorCannotConvertToCore v
-
+    StringValue t  -> return $ V.VString t
+    StructValue (Struct vs) -> V.VStruct <$> mapM (\(a,b) -> (,) <$> pure (getAttribute a) <*> valueToCore b) vs
+    DoubleValue _  -> Left   $ SimulateErrorCannotConvertToCore v
+    DateValue _    -> Left   $ SimulateErrorCannotConvertToCore v
+    Tombstone      -> Left   $ SimulateErrorCannotConvertToCore v
 
 valueFromCore :: V.BaseValue -> Either SimulateError Value
 valueFromCore v
@@ -136,6 +138,7 @@ valueFromCore v
     V.VUnit       -> return $ IntValue 13013
     V.VBool b     -> return $ BooleanValue b
     V.VDateTime d -> return $ DateValue $ Date $ renderDate d
+    V.VString t   -> return $ StringValue t
     V.VArray vs   -> ListValue . List
                   <$> mapM valueFromCore vs
     V.VPair a b   -> PairValue <$> valueFromCore a <*> valueFromCore b
@@ -143,5 +146,4 @@ valueFromCore v
     V.VNone       -> return Tombstone
     V.VMap vs     -> MapValue
                   <$> mapM (\(a,b) -> (,) <$> valueFromCore a <*> valueFromCore b) (Map.toList vs)
-
-
+    V.VStruct vs  -> StructValue . Struct <$> mapM (\(a,b) -> (,) <$> pure (Attribute a) <*> valueFromCore b) vs
