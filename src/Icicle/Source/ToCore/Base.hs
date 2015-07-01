@@ -14,6 +14,8 @@ module Icicle.Source.ToCore.Base (
   , convertError
   , convertFeatures
   , convertModifyFeatures
+  , convertFreshenAdd
+  , convertFreshenLookup
 
   , pre, strm, red, post
   , programOfBinds
@@ -42,6 +44,8 @@ import                  P
 
 import                  Control.Monad.Trans.State.Lazy
 import                  Control.Monad.Trans.Class
+
+import qualified        Data.Map as Map
 
 
 data CoreBinds n
@@ -110,6 +114,7 @@ data ConvertState n
  { csInputName  :: Name n
  , csInputType  :: ValType
  , csFeatures   :: FeatureContext n
+ , csFreshen    :: Map.Map n (Name n)
  }
 
 convertInput :: ConvertM a n (Name n, ValType)
@@ -148,6 +153,22 @@ convertModifyFeatures
 convertModifyFeatures f
  = do   o <- get
         put (o { csFeatures = f $ csFeatures o })
+
+convertFreshenAdd :: Ord n => n -> ConvertM a n (Name n)
+convertFreshenAdd prefix
+ = do   n <- lift $ freshPrefix prefix
+        o <- get
+        put $ o { csFreshen = Map.insert prefix n $ csFreshen o }
+        return n
+
+convertFreshenLookup :: Ord n => a -> n -> ConvertM a n (Name n)
+convertFreshenLookup ann n
+ = do   o <- get
+        case Map.lookup n $ csFreshen o of
+         Nothing
+          -> convertError $ ConvertErrorExpNoSuchVariable ann n
+         Just n'
+          -> return n'
 
 
 convertError :: ConvertError a n -> ConvertM a n r

@@ -17,8 +17,6 @@ import                  Icicle.Source.Type
 
 import qualified        Icicle.Core as C
 import qualified        Icicle.Common.Exp           as CE
-import                  Icicle.Common.Base
-
 
 import                  P
 
@@ -36,14 +34,14 @@ convertExp
         -> ConvertM a n (C.Exp n)
 convertExp x
  = case x of
-    -- Variable must be bound as a precomputation
-    Var _ n
+    Var (ann,_) n
      -> do  fs <- convertFeatures
             case Map.lookup n fs of
              Just (_, x')
               -> (x' . CE.XVar) <$> convertInputName
+             -- Variable must be bound as a precomputation
              Nothing
-              -> return $ CE.XVar $ Name n
+              -> CE.XVar <$> convertFreshenLookup ann n
 
 
     Nested (ann,_) q

@@ -17,7 +17,6 @@ import qualified Icicle.Common.Exp           as CE
 import qualified Icicle.Core.Exp             as CE
 import qualified Icicle.Common.Type          as CT
 
-import qualified Icicle.Core.Program.Error   as CCheck
 import qualified Icicle.Core.Program.Check   as CCheck
 
 import           Icicle.Test.Source.Arbitrary
@@ -62,7 +61,7 @@ prop_convert_is_well_typed fn q
      , check    <- CCheck.checkProgram c'
      -> counterexample (show $ pretty c')
       $ counterexample (show check)
-      $ isErrorOk check
+      $ isRight check
     _
      -> property Discard
  where
@@ -75,16 +74,6 @@ prop_convert_is_well_typed fn q
   typ = checkQT fets qt
   pp = show $ pretty q
 
-
-  isErrorOk (Right _) = True
-  -- For now I'm ignoring this error.
-  -- I need to consider whether to require unique names in Source,
-  -- or thread an environment of "let names -> unique names"
-  -- through the conversion.
-  -- Because the scoping changes, allowing overlapping names could cause
-  -- subtle bugs in the Core program.
-  isErrorOk (Left (CCheck.ProgramErrorNameNotUnique _)) = True
-  isErrorOk _ = False
 
 
 

@@ -135,14 +135,15 @@ convertFold q
      -- The actual folding doesn't matter,
      -- we can just return const unit for the fold part,
      -- and at extract return the variable's value
-     | Var _ v <- final q
+     | Var (ann,_) v <- final q
       -> do n'x <- lift fresh
+            v'  <- convertFreshenLookup ann v
             let ut    = T.UnitT
             let unit = CE.XValue ut VUnit
             
             let k    = CE.XLam n'x ut $ unit
             let z    = unit
-            let x    = CE.XLam n'x ut $ CE.XVar $ Name $ v
+            let x    = CE.XLam n'x ut $ CE.XVar $ v'
             
             return (k, z, x, (snd $ annotOfExp $ final q) { baseType = ut })
 

@@ -78,7 +78,7 @@ convertQueryTop feats qt
         let inpTy       = ty
         let inpTy'dated = T.PairT inpTy T.DateTimeT
 
-        (bs,ret) <- evalStateT (convertQuery $ query qt) (ConvertState inp inpTy'dated fs)
+        (bs,ret) <- evalStateT (convertQuery $ query qt) (ConvertState inp inpTy'dated fs Map.empty)
         let bs'   = strm inp C.Source <> bs
         return (programOfBinds inpTy bs' ret)
 
@@ -351,19 +351,22 @@ convertQuery q
          Pure
           -> do e'      <- convertExp def
                 convertModifyFeatures (Map.delete b)
-                let bs   = pre (Name b) e'
+                b'      <- convertFreshenAdd b
+                let bs   = pre b' e'
                 (bs', n') <- convertQuery q'
                 return (bs <> bs', n')
 
          AggU
           -> do (bs,n')      <- convertReduce    def
+                b'      <- convertFreshenAdd b
                 (bs',n'')    <- convertQuery     q'
-                return (bs <> post (Name b) (CE.XVar n') <> bs', n'')
+                return (bs <> post b' (CE.XVar n') <> bs', n'')
 
          Group _
           -> do (bs,n')      <- convertReduce    def
+                b'      <- convertFreshenAdd b
                 (bs',n'')    <- convertQuery     q'
-                return (bs <> post (Name b) (CE.XVar n') <> bs', n'')
+                return (bs <> post b' (CE.XVar n') <> bs', n'')
 
     -- Converting fold1s.
     --
@@ -509,7 +512,7 @@ convertQuery q
             n'a'    <- lift fresh
             -- Fully unwrapped accumulator
             -- :                tU
-            let n'a'' = Name (foldBind f)
+            n'a'' <- convertFreshenAdd $ foldBind f
 
             -- result of a worker after unwrapping
             -- :                tU
@@ -562,7 +565,7 @@ convertQuery q
             let bs = red n'
                         (C.RFold inpty tOO go (som tO $ none tU) inpstream)
                      -- Then unwrap the actual result and bind it
-                  <> post (Name $ foldBind f)
+                  <> post n'a''
                         (opt tO tO
                             -- If the outer layer is a "Some",
                             -- just return inner layer as-is
@@ -601,7 +604,7 @@ convertQuery q
             n'elem <- lift fresh
             -- Accumulator
             -- :                tU
-            let n'a = Name (foldBind f)
+            n'a <- convertFreshenAdd $ foldBind f
 
             -- Remove binding before converting init and work expressions,
             -- just in case the same name has been used elsewhere
@@ -615,7 +618,7 @@ convertQuery q
                     $ CE.XLam n'elem inpty k
 
             -- Bind the fold to the original name
-            let bs = red (Name $ foldBind f) (C.RFold inpty tU go z inpstream)
+            let bs = red n'a (C.RFold inpty tU go z inpstream)
             
             (bs', n'')      <- convertQuery q'
 
@@ -652,7 +655,7 @@ convertQuery q
             n'a     <- lift fresh
             -- Fully unwrapped accumulator
             -- :                tU
-            let n'a' = Name (foldBind f)
+            n'a' <- convertFreshenAdd $ foldBind f
 
             -- Remove binding before converting init and work expressions,
             -- just in case the same name has been used elsewhere
@@ -684,7 +687,7 @@ convertQuery q
 
 
             -- Bind the fold to the original name
-            let bs = red (Name $ foldBind f) (C.RFold inpty tO go z' inpstream)
+            let bs = red n'a' (C.RFold inpty tO go z' inpstream)
             
             (bs', n'')      <- convertQuery q'
 
@@ -873,8 +876,8 @@ convertReduce xx
  | Nested _ q   <- xx
  = convertQuery q
  -- Any variable must be a let-bound aggregate, so we can safely assume it has a binding.
- | Var _ v      <- xx
- = return (mempty, Name v)
+ | Var (ann,_) v      <- xx
+ = (,) mempty <$> convertFreshenLookup ann v
 
  -- It's not a variable or a nested query,
  -- so it must be an application of a non-primitive
