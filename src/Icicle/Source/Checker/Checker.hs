@@ -194,6 +194,9 @@ checkQ ctx_top q
 
 
                  Let ann n e
+                  -- XXX TODO: temporarily disallow contexts in let bindings.
+                  -- This should be fixed later,
+                  -- when ToCore conversion can handle these
                   -> do (e',te) <- checkX (ctx { allowContexts = False }) e
                         let ctx' = ctx { env = Map.insert n te $ env ctx }
                         (q'',t') <- checkQ ctx' q'
