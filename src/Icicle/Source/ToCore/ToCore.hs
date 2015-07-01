@@ -44,6 +44,7 @@ import                  Icicle.Common.Base
 
 import                  P
 
+import                  Control.Monad.Trans.State.Lazy
 import                  Control.Monad.Trans.Class
 import                  Data.List (zip, unzip)
 
@@ -67,7 +68,7 @@ convertQueryTop
         :: Ord n
         => Features n
         -> QueryTop (a,UniverseType) n
-        -> ConvertM a n (C.Program n)
+        -> FreshT n (Either (ConvertError a n)) (C.Program n)
 convertQueryTop feats qt
  = do   inp <- fresh
         (ty,fs) <- lift
@@ -77,7 +78,7 @@ convertQueryTop feats qt
         let inpTy       = ty
         let inpTy'dated = T.PairT inpTy T.DateTimeT
 
-        (bs,ret) <- convertQuery fs inp inpTy'dated (query qt)
+        (bs,ret) <- evalStateT (convertQuery fs $ query qt) (ConvertState inp inpTy'dated)
         let bs'   = strm inp C.Source <> bs
         return (programOfBinds inpTy bs' ret)
 
@@ -90,14 +91,13 @@ convertQueryTop feats qt
 convertQuery
         :: Ord n
         => FeatureContext n
-        -> Name n -> T.ValType
         -> Query (a,UniverseType) n
         -> ConvertM a n (CoreBinds n, Name n)
-convertQuery fs n nt q
+convertQuery fs q
  = case contexts q of
     -- There are no queries left, so deal with simple aggregates and nested queries.
     []
-     -> convertReduce fs n nt (final q)
+     -> convertReduce fs (final q)
 
     -- Converting filters is probably the simplest conversion.
     --
@@ -109,12 +109,14 @@ convertQuery fs n nt q
     -- We convert the rest of the query and pass through the fresh filter binding's name,
     -- as that is what the data is operating on.
     (Filter _ e : _)
-     -> do  n'      <- fresh
-            nv      <- fresh
-            e'      <- convertExp   fs nv nt e
+     -> do  n'      <- lift fresh
+            nv      <- lift fresh
+            e'      <- convertWithInputName nv $ convertExp fs e
 
-            (bs, b) <- convertQuery fs n' nt q'
-            let bs'  = strm n' (C.STrans (C.SFilter nt) (CE.XLam nv nt e') n) <> bs
+            (bs, b) <- convertWithInputName n' $ convertQuery fs q'
+            (inpstream, inpty) <- convertInput
+
+            let bs'  = strm n' (C.STrans (C.SFilter inpty) (CE.XLam nv inpty e') inpstream) <> bs
 
             return (bs', b)
 
@@ -132,13 +134,14 @@ convertQuery fs n nt q
     -- storing all corresponding newer thans in the snapshot, so if this ends up being an issue
     -- we can address it.
     (Windowed _ newerThan olderThan : _)
-     -> do  n'      <- fresh
-            (bs, b) <- convertQuery fs n' nt q'
+     -> do  n'      <- lift fresh
+            (bs, b) <- convertWithInputName n' $ convertQuery fs q'
 
             let newerThan' =      convertWindowUnits newerThan
             let olderThan' = fmap convertWindowUnits olderThan
 
-            let bs'  = strm n' (C.SWindow nt newerThan' olderThan' n) <> bs
+            (inpstream, inpty) <- convertInput
+            let bs'  = strm n' (C.SWindow inpty newerThan' olderThan' inpstream) <> bs
             return (bs', b)
 
 
@@ -153,25 +156,27 @@ convertQuery fs n nt q
     -- However, at the moment we only support folds with single pass,
     -- and not returning the whole array.
     (Latest (_,_retty) i : _)
-     -> do  n'arr   <- fresh
-            n'fold  <- fresh
-            n'xtra  <- fresh
+     -> do  n'arr   <- lift fresh
+            n'fold  <- lift fresh
+            n'xtra  <- lift fresh
 
-            n'a     <- fresh
-            n'v     <- fresh
+            n'a     <- lift fresh
+            n'v     <- lift fresh
 
             -- Destruct the aggregate into a fold expression:
             -- x (fold k z inps)
             -- where x :: tV -> retty
             (k,z,x,tV)
-                    <- convertFold fs     n'v nt q'
+                    <- convertWithInputName n'v $ convertFold fs q'
 
             let tV'  = baseType tV
+
+            (inpstream, inpty) <- convertInput
 
             -- Because Map_insertOrUpdate and Array_fold take their "k" in a different order,
             -- we need to flip the k here.
             let k'    = CE.XLam n'a tV'
-                      $ CE.XLam n'v nt
+                      $ CE.XLam n'v inpty
                       $ beta
                       ( k CE.@~ CE.XVar n'a)
 
@@ -179,8 +184,8 @@ convertQuery fs n nt q
             -- the fold over the resulting array,
             -- and the extraction of the actual result of the array.
             -- (See convertFold)
-            let barr  = red  n'arr   (C.RLatest nt (CE.constI i) n)
-            let bfold = post n'fold  (CE.XPrim (C.PrimFold (C.PrimFoldArray nt) tV')
+            let barr  = red  n'arr   (C.RLatest inpty (CE.constI i) inpstream)
+            let bfold = post n'fold  (CE.XPrim (C.PrimFold (C.PrimFoldArray inpty) tV')
                                       CE.@~ k' CE.@~ beta z CE.@~ CE.XVar n'arr)
             let bxtra = post n'xtra (beta (x CE.@~ CE.XVar n'fold))
 
@@ -196,26 +201,27 @@ convertQuery fs n nt q
     --
     (GroupBy (ann,retty) e : _)
      -> do  (t1,t2) <- getGroupByMapType ann retty
-            n'      <- fresh
-            n''     <- fresh
-            nmap    <- fresh
-            nval    <- fresh
+            n'      <- lift fresh
+            n''     <- lift fresh
+            nmap    <- lift fresh
+            nval    <- lift fresh
 
             -- Convert the rest of the query into a fold.
             -- We have the "k"onstructor, the "z"ero, and the e"x"tract,
             -- as well as the intermediate result type before extraction.
             -- See convertFold.
             (k,z,x,tV)
-                    <- convertFold  fs  nval nt q'
+                    <- convertWithInputName nval $ convertFold fs q'
 
             let tV'  = baseType tV
 
             -- Convert the "by" to a simple expression.
             -- This becomes the map insertion key.
-            e'      <- convertExp      fs  nval nt e
+            e'      <- convertWithInputName nval $ convertExp fs e
 
             let mapt = T.MapT t1 tV'
 
+            (inpstream, inpty) <- convertInput
             -- For each input element, we use the group by as the key, and insert into a map.
             --
             -- If the map already has the key, we perform the "k" on the current element
@@ -227,7 +233,7 @@ convertQuery fs n nt q
             let insertOrUpdate
                   = beta
                   $ CE.XLam nmap mapt
-                  $ CE.XLam nval nt
+                  $ CE.XLam nval inpty
                   ( CE.XPrim (C.PrimMap $ C.PrimMapInsertOrUpdate t1 tV')
                     CE.@~  k
                     CE.@~ (k CE.@~ z)
@@ -236,9 +242,9 @@ convertQuery fs n nt q
 
             -- Perform the map fold
             let r = red n' 
-                  $ C.RFold nt mapt insertOrUpdate 
+                  $ C.RFold inpty mapt insertOrUpdate 
                   ( CE.emptyMap t1 tV')
-                    n
+                    inpstream
 
             -- After all the elements have been seen, we go through the map and perform
             -- the "extract" on each value.
@@ -256,26 +262,27 @@ convertQuery fs n nt q
     -- for each group.
     (Distinct (_,_) e : _)
      -> do  let tkey = baseType $ snd $ annotOfExp e
-            let tval = nt
+            (inpstream, inpty) <- convertInput
+            let tval = inpty
 
-            n'      <- fresh
-            n''     <- fresh
-            nmap    <- fresh
-            nacc    <- fresh
-            nval    <- fresh
-            n'ignore<- fresh
+            n'      <- lift fresh
+            n''     <- lift fresh
+            nmap    <- lift fresh
+            nacc    <- lift fresh
+            nval    <- lift fresh
+            n'ignore<- lift fresh
 
             -- Convert the rest of the query into a fold.
             -- This is executed as a Map fold at the end, rather than
             -- as a stream fold.
             (k,z,x,tV)
-                    <- convertFold   fs nval nt q'
+                    <- convertWithInputName nval $ convertFold fs q'
 
             let tV'  = baseType tV
 
             -- Convert the "by" to a simple expression.
             -- This becomes the map insertion key.
-            e'      <- convertExp       fs nval nt e
+            e'      <- convertWithInputName nval $ convertExp fs e
 
             let mapt = T.MapT tkey tval
 
@@ -285,18 +292,18 @@ convertQuery fs n nt q
             let insertOrUpdate
                   = beta
                   $ CE.XLam nmap mapt
-                  $ CE.XLam nval nt
+                  $ CE.XLam nval inpty
                   ( CE.XPrim (C.PrimMap $ C.PrimMapInsertOrUpdate tkey tval)
-                    CE.@~ (CE.XLam n'ignore nt $ CE.XVar nval)
+                    CE.@~ (CE.XLam n'ignore inpty $ CE.XVar nval)
                     CE.@~ (CE.XVar nval)
                     CE.@~  e'
                     CE.@~ CE.XVar nmap )
 
             -- Perform the map fold
             let r = red n' 
-                  $ C.RFold nt mapt insertOrUpdate 
+                  $ C.RFold inpty mapt insertOrUpdate 
                   ( CE.emptyMap tkey tval)
-                    n
+                    inpstream
 
             -- Perform a fold over that map
             let p = post n''
@@ -317,44 +324,47 @@ convertQuery fs n nt q
      -> case universeTemporality $ universe $ snd $ annotOfExp def of
          Elem
           -> do let t'  = baseTypeOrOption $ snd $ annotOfExp def
-                let nt' = T.PairT t' nt
+                (inpstream, inpty) <- convertInput
+                let inpty' = T.PairT t' inpty
 
-                n'e     <- fresh
+                n'e     <- lift fresh
                 
-                e'      <- convertExp       fs n'e nt def
+                e'      <- convertWithInputName n'e $ convertExp fs def
 
                 let xfst = CE.XApp
-                         $ CE.XPrim $ C.PrimMinimal $ Min.PrimPair $ Min.PrimPairFst t' nt
+                         $ CE.XPrim $ C.PrimMinimal $ Min.PrimPair $ Min.PrimPairFst t' inpty
                 let xsnd = CE.XApp
-                         $ CE.XPrim $ C.PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd t' nt
+                         $ CE.XPrim $ C.PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd t' inpty
 
                 let fs'  = Map.insert b (t', xfst)
                          $ Map.map (\(t,f) -> (t, f . xsnd)) fs
 
-                let pair = (CE.XPrim $ C.PrimMinimal $ Min.PrimConst $ Min.PrimConstPair t' nt)
+                let pair = (CE.XPrim $ C.PrimMinimal $ Min.PrimConst $ Min.PrimConstPair t' inpty)
                          CE.@~ e' CE.@~ CE.XVar n'e
 
 
-                n'r     <- fresh
-                let bs   = strm n'r (C.STrans (C.SMap nt nt') (CE.XLam n'e nt pair) n)
-                (bs', n'') <- convertQuery fs' n'r nt' q'
+                n'r     <- lift fresh
+                let bs   = strm n'r
+                         $ C.STrans (C.SMap inpty inpty') (CE.XLam n'e inpty pair) inpstream
+                (bs', n'') <- convertWithInput n'r inpty' $ convertQuery fs' q'
+
                 return (bs <> bs', n'')
 
          Pure
-          -> do e'      <- convertExp       fs n nt def
+          -> do e'      <- convertExp fs def
                 let fs'  = Map.delete b fs
                 let bs   = pre (Name b) e'
-                (bs', n') <- convertQuery fs' n nt q'
+                (bs', n') <- convertQuery fs' q'
                 return (bs <> bs', n')
 
          AggU
-          -> do (bs,n')      <- convertReduce    fs n nt def
-                (bs',n'')    <- convertQuery     fs n nt q'
+          -> do (bs,n')      <- convertReduce    fs def
+                (bs',n'')    <- convertQuery     fs q'
                 return (bs <> post (Name b) (CE.XVar n') <> bs', n'')
 
          Group _
-          -> do (bs,n')      <- convertReduce    fs n nt def
-                (bs',n'')    <- convertQuery     fs n nt q'
+          -> do (bs,n')      <- convertReduce    fs def
+                (bs',n'')    <- convertQuery     fs q'
                 return (bs <> post (Name b) (CE.XVar n') <> bs', n'')
 
     -- Converting fold1s.
@@ -491,28 +501,28 @@ convertQuery fs n nt q
 
             -- Generate fresh names
             -- Element of the stream
-            -- :                nt
-            n'elem <- fresh
+            -- :                input type
+            n'elem <- lift fresh
             -- Current accumulator
             -- : Option (Option tU)
-            n'a     <- fresh
+            n'a     <- lift fresh
             -- Unwrap accumulator by 1
             -- :         Option tU
-            n'a'    <- fresh
+            n'a'    <- lift fresh
             -- Fully unwrapped accumulator
             -- :                tU
             let n'a'' = Name (foldBind f)
 
             -- result of a worker after unwrapping
             -- :                tU
-            n'worker <- fresh
+            n'worker <- lift fresh
 
 
             -- Remove binding before converting init and work expressions,
             -- just in case the same name has been used elsewhere
             let fs' = Map.delete (foldBind f) fs
-            z   <- convertExp fs' n'elem nt (foldInit f)
-            k   <- convertExp fs' n'elem nt (foldWork f)
+            z   <- convertWithInputName n'elem $ convertExp fs' (foldInit f)
+            k   <- convertWithInputName n'elem $ convertExp fs' (foldWork f)
 
             -- (Some.Some)
             let somedotsome
@@ -534,9 +544,11 @@ convertQuery fs n nt q
                    = som tO $ som tU $ k
 
 
+            (inpstream, inpty) <- convertInput
+
             -- Worker function of the fold
             let go  = CE.XLam n'a tOO
-                    ( CE.XLam n'elem nt
+                    ( CE.XLam n'elem inpty
                     $ opt tO tOO
                         (CE.XLam n'a' tO
                         $ opt tU tOO
@@ -548,9 +560,9 @@ convertQuery fs n nt q
 
 
             -- Bind the fold to a fresh name
-            n' <- fresh
+            n' <- lift fresh
             let bs = red n'
-                        (C.RFold nt tOO go (som tO $ none tU) n)
+                        (C.RFold inpty tOO go (som tO $ none tU) inpstream)
                      -- Then unwrap the actual result and bind it
                   <> post (Name $ foldBind f)
                         (opt tO tO
@@ -562,7 +574,7 @@ convertQuery fs n nt q
                             (CE.XVar n'))
 
             
-            (bs', n'')      <- convertQuery fs' n nt q'
+            (bs', n'')      <- convertQuery fs' q'
 
             return (bs <> bs', n'')
 
@@ -587,8 +599,8 @@ convertQuery fs n nt q
 
             -- Generate fresh names
             -- Element of the stream
-            -- :                nt
-            n'elem <- fresh
+            -- :                input type
+            n'elem <- lift fresh
             -- Accumulator
             -- :                tU
             let n'a = Name (foldBind f)
@@ -596,17 +608,18 @@ convertQuery fs n nt q
             -- Remove binding before converting init and work expressions,
             -- just in case the same name has been used elsewhere
             let fs' = Map.delete (foldBind f) fs
-            z   <- convertExp fs' n'elem nt (foldInit f)
-            k   <- convertExp fs' n'elem nt (foldWork f)
+            z   <- convertWithInputName n'elem $ convertExp fs' (foldInit f)
+            k   <- convertWithInputName n'elem $ convertExp fs' (foldWork f)
 
+            (inpstream, inpty) <- convertInput
             -- Worker function of the fold
             let go  = CE.XLam n'a tU
-                    $ CE.XLam n'elem nt k
+                    $ CE.XLam n'elem inpty k
 
             -- Bind the fold to the original name
-            let bs = red (Name $ foldBind f) (C.RFold nt tU go z n)
+            let bs = red (Name $ foldBind f) (C.RFold inpty tU go z inpstream)
             
-            (bs', n'')      <- convertQuery fs' n nt q'
+            (bs', n'')      <- convertQuery fs' q'
 
             return (bs <> bs', n'')
 
@@ -634,11 +647,11 @@ convertQuery fs n nt q
 
             -- Generate fresh names
             -- Element of the stream
-            -- :                nt
-            n'elem <- fresh
+            -- :                input type
+            n'elem <- lift fresh
             -- Current accumulator
             -- :         Option tU
-            n'a     <- fresh
+            n'a     <- lift fresh
             -- Fully unwrapped accumulator
             -- :                tU
             let n'a' = Name (foldBind f)
@@ -646,8 +659,8 @@ convertQuery fs n nt q
             -- Remove binding before converting init and work expressions,
             -- just in case the same name has been used elsewhere
             let fs' = Map.delete (foldBind f) fs
-            z   <- convertExp fs' n'elem nt (foldInit f)
-            k   <- convertExp fs' n'elem nt (foldWork f)
+            z   <- convertWithInputName n'elem $ convertExp fs' (foldInit f)
+            k   <- convertWithInputName n'elem $ convertExp fs' (foldWork f)
 
             -- If zero and cons are possiblies, leave them alone.
             -- If not wrap in just one Some
@@ -662,9 +675,10 @@ convertQuery fs n nt q
                    = som tU $ k
 
 
+            (inpstream, inpty) <- convertInput
             -- Worker function of the fold
             let go  = CE.XLam n'a tO
-                    ( CE.XLam n'elem nt
+                    ( CE.XLam n'elem inpty
                     $ opt tU tO
                         (CE.XLam n'a' tU k')
                         (none tU)
@@ -672,9 +686,9 @@ convertQuery fs n nt q
 
 
             -- Bind the fold to the original name
-            let bs = red (Name $ foldBind f) (C.RFold nt tO go z' n)
+            let bs = red (Name $ foldBind f) (C.RFold inpty tO go z' inpstream)
             
-            (bs', n'')      <- convertQuery fs' n nt q'
+            (bs', n'')      <- convertQuery fs' q'
 
             return (bs <> bs', n'')
 
@@ -692,7 +706,7 @@ convertQuery fs n nt q
    | UniverseType (Universe AggU _) (T.MapT t1 t2)   <- ty
    = return (t1, t2)
    | otherwise
-   = lift $ Left $ ConvertErrorGroupByHasNonGroupResult ann ty
+   = convertError $ ConvertErrorGroupByHasNonGroupResult ann ty
 
   -- Perform beta reduction, just to simplify the output a tiny bit.
   beta = Beta.betaToLets
@@ -716,17 +730,16 @@ convertQuery fs n nt q
 convertReduce
         :: Ord n
         => FeatureContext n
-        -> Name n   -> T.ValType
         -> Exp (a,UniverseType) n
         -> ConvertM a n (CoreBinds n, Name n)
-convertReduce fs n t xx
+convertReduce fs xx
  | Just (p, (_,ty), args) <- takePrimApps xx
  = case p of
     Agg Count
      | [] <- args
      -- Count: just add 1, ignoring the value
-     -> do  na <- fresh
-            nv <- fresh
+     -> do  na <- lift fresh
+            nv <- lift fresh
             mkFold T.IntT (CE.XVar na CE.+~ CE.constI 1) (CE.constI 0) na nv
      | otherwise
      -> errAggBadArgs
@@ -734,21 +747,21 @@ convertReduce fs n t xx
     Agg SumA
      | [x] <- args
      , Definitely <- universePossibility $ universe ty
-     -> do  na <- fresh
-            nv <- fresh
+     -> do  na <- lift fresh
+            nv <- lift fresh
             -- Convert the element expression and sum over it
-            x' <- convertExp fs nv t x
+            x' <- convertWithInputName nv $ convertExp fs x
             mkFold T.IntT (CE.XVar na CE.+~ x') (CE.constI 0) na nv
      | [x] <- args
      , Possibly <- universePossibility $ universe ty
-     -> do  nv <- fresh
+     -> do  nv <- lift fresh
             -- Convert the element expression and sum over it
-            x' <- convertExp fs nv t x
+            x' <- convertWithInputName nv $ convertExp fs x
 
             let plusX = CE.XPrim (C.PrimMinimal $ Min.PrimArith Min.PrimArithPlus)
             let plusT = UniverseType (definitely $ universe ty) T.IntT
             let argT  = UniverseType (possibly $ universe ty) T.IntT
-            na  <- fresh
+            na  <- lift fresh
             fun <- applyPossibles plusX plusT
                             [(CE.XVar na, argT), (x', argT)]
 
@@ -762,10 +775,10 @@ convertReduce fs n t xx
     -- This just means the "last seen" one.
     Agg Newest
      | [x] <- args
-     -> do  na <- fresh
-            nv <- fresh
+     -> do  na <- lift fresh
+            nv <- lift fresh
             -- Convert the element expression
-            x' <- convertExp fs nv t x
+            x' <- convertWithInputName nv $ convertExp fs x
 
             let argT = snd $ annotOfExp x
             let retty= T.OptionT $ baseType argT
@@ -791,10 +804,10 @@ convertReduce fs n t xx
     -- Find the oldest, or first seen value.
     Agg Oldest
      | [x] <- args
-     -> do  na <- fresh
-            nv <- fresh
+     -> do  na <- lift fresh
+            nv <- lift fresh
             -- Convert the element expression
-            x' <- convertExp fs nv t x
+            x' <- convertWithInputName nv $ convertExp fs x
 
             let argT = snd $ annotOfExp x
 
@@ -807,7 +820,7 @@ convertReduce fs n t xx
             let seed = CE.XValue retty VNone
             let opt  = C.PrimFold (C.PrimFoldOption valty) retty
 
-            na' <- fresh
+            na' <- lift fresh
             let return_acc
                      = CE.XLam na' valty (CE.XVar na)
             let some_arg
@@ -820,7 +833,7 @@ convertReduce fs n t xx
 
             (bs, n') <- mkFold retty fun seed na nv
 
-            n'' <- fresh
+            n'' <- lift fresh
             let flat
                      | Possibly <- universePossibility $ universe argT
                      = CE.XPrim (C.PrimFold (C.PrimFoldOption valty) valty)
@@ -843,12 +856,12 @@ convertReduce fs n t xx
     -- If the binding is Pure however, it must not rely on any aggregates,
     -- so it might as well be a precomputation.
     _
-     -> do  (bs,nms) <- unzip <$> mapM (convertReduce fs n t) args
+     -> do  (bs,nms) <- unzip <$> mapM (convertReduce fs) args
             let tys  = fmap (snd . annotOfExp) args
             let xs   = fmap  CE.XVar           nms
             x' <- convertPrim p (fst $ annotOfExp xx) ty (xs `zip` tys)
 
-            nm  <- fresh
+            nm  <- lift fresh
 
             let bs'  = mconcat bs
             let b''  | Pure <- universeTemporality $ universe ty
@@ -861,7 +874,7 @@ convertReduce fs n t xx
 
  -- Convert a nested query
  | Nested _ q   <- xx
- = convertQuery fs n t q
+ = convertQuery fs q
  -- Any variable must be a let-bound aggregate, so we can safely assume it has a binding.
  | Var _ v      <- xx
  = return (mempty, Name v)
@@ -869,20 +882,20 @@ convertReduce fs n t xx
  -- It's not a variable or a nested query,
  -- so it must be an application of a non-primitive
  | otherwise
- = lift $ Left $ ConvertErrorExpApplicationOfNonPrimitive (fst $ annotOfExp xx) xx
+ = convertError $ ConvertErrorExpApplicationOfNonPrimitive (fst $ annotOfExp xx) xx
 
  where
   -- Helper for creating a stream fold binding
   mkFold ta k z na nv
-   = do n' <- fresh
+   = do n' <- lift fresh
+        (inpstream, inpty) <- convertInput
         let k' = CE.XLam na ta
-               $ CE.XLam nv t
+               $ CE.XLam nv inpty
                $ k
-        return (red n' $ C.RFold t ta k' z n, n')
+        return (red n' $ C.RFold inpty ta k' z inpstream, n')
 
   -- Bad arguments to an aggregate
   errAggBadArgs
-   = lift
-   $ Left
+   = convertError
    $ ConvertErrorReduceAggregateBadArguments (fst $ annotOfExp xx) xx
 

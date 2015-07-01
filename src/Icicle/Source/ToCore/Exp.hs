@@ -18,13 +18,11 @@ import                  Icicle.Source.Type
 
 import qualified        Icicle.Core as C
 import qualified        Icicle.Common.Exp           as CE
-import qualified        Icicle.Common.Type as T
 import                  Icicle.Common.Base
 
 
 import                  P
 
-import                  Control.Monad.Trans.Class
 import                  Data.List (zip)
 
 import qualified        Data.Map as Map
@@ -36,24 +34,23 @@ import qualified        Data.Map as Map
 convertExp
         :: Ord n
         => FeatureContext n
-        -> Name n   -> T.ValType
         -> Exp (a,UniverseType) n
         -> ConvertM a n (C.Exp n)
-convertExp fs nElem t x
+convertExp fs x
  | Var _ v <- x
  , Just (_, x') <- Map.lookup v fs
- = return $ x' $ CE.XVar nElem
+ = (x' . CE.XVar) <$> convertInputName
 
  -- Primitive application: convert arguments, then convert primitive
  | Just (p, (ann,retty), args) <- takePrimApps x
- = do   args'   <- mapM (convertExp fs nElem t) args
+ = do   args'   <- mapM (convertExp fs) args
         let tys  = fmap (snd . annotOfExp) args
         convertPrim p ann retty (args' `zip` tys)
 
  -- A real nested query should not appear here.
  -- However, if it has no contexts, it's really just a nested expression.
  | Nested _ (Query [] x') <- x
- = convertExp fs nElem t x'
+ = convertExp fs x'
 
  | otherwise
  = case x of
@@ -61,12 +58,10 @@ convertExp fs nElem t x
     Var _ n
      -> return $ CE.XVar $ Name n
     Nested (ann,_) q
-     -> lift
-      $ Left
+     -> convertError
       $ ConvertErrorExpNestedQueryNotAllowedHere ann q
     App (ann,_) _ _
-     -> lift
-      $ Left
+     -> convertError
       $ ConvertErrorExpApplicationOfNonPrimitive ann x
     Prim (ann,retty) p
      -> convertPrim p ann retty []

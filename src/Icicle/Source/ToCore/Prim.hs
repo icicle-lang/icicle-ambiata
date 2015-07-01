@@ -17,8 +17,6 @@ import qualified        Icicle.Common.Exp.Prim.Minimal as Min
 
 import                  P
 
-import                  Control.Monad.Trans.Class
-
 
 -- | Convert a primitive application.
 -- All the arguments are already converted, so we just need to
@@ -52,8 +50,7 @@ convertPrim p ann returns xts
   go (Lit (LitInt i))
    = return $ CE.constI i
   go (Agg agg)
-   = lift
-   $ Left
+   = convertError
    $ ConvertErrorPrimAggregateNotAllowedHere ann agg
 
   goop Add
@@ -84,8 +81,7 @@ convertPrim p ann returns xts
    = case xts of
       ((_,tt):_) -> return
                   $ baseType tt
-      []         -> lift 
-                  $ Left
+      []         -> convertError
                   $ ConvertErrorPrimNoArguments ann num_args p
 
 

@@ -59,16 +59,15 @@ import                  Data.List (zip, unzip4)
 convertFold
         :: Ord n
         => FeatureContext n
-        -> Name n -> T.ValType
         -> Query (a,UniverseType) n
         -> ConvertM a n (C.Exp n, C.Exp n, C.Exp n, UniverseType)
-convertFold fs nElem t q
+convertFold fs q
  = case contexts q of
     -- No contexts, just an expression
     []
      -- Nested query; recurse
      | Nested _ qq <- final q
-     -> convertFold fs nElem t qq
+     -> convertFold fs qq
 
      -- Primitive application
      | Just (p, (ann,retty), args) <- takePrimApps $ final q
@@ -77,9 +76,9 @@ convertFold fs nElem t q
          Agg SumA
           | [e] <- args
           -> do let retty' = baseType retty
-                e' <- convertExp fs nElem t e
+                e' <- convertExp fs e
 
-                n  <- fresh
+                n  <- lift fresh
                 let k = CE.XLam n retty'
                       ( CE.XVar n CE.+~ e' )
                 let z = CE.constI 0
@@ -93,7 +92,7 @@ convertFold fs nElem t q
           | [] <- args
           -> do let retty' = baseType retty
 
-                n  <- fresh
+                n  <- lift fresh
                 let k = CE.XLam n retty'
                       ( CE.XVar n CE.+~ CE.constI 1 )
                 let z = CE.constI 0
@@ -112,7 +111,7 @@ convertFold fs nElem t q
           -> do -- Convert all arguments
                 -- (create a query out of the expression,
                 --  just because there is no separate convertFoldX function)
-                (ks, zs, xs, ts) <- unzip4 <$> mapM (convertFold fs nElem t . Query []) args
+                (ks, zs, xs, ts) <- unzip4 <$> mapM (convertFold fs . Query []) args
 
                 let ts' = fmap baseType ts
                 -- Create pairs for zeros
@@ -139,7 +138,7 @@ convertFold fs nElem t q
      -- we can just return const unit for the fold part,
      -- and at extract return the variable's value
      | Var _ v <- final q
-      -> do n'x <- fresh
+      -> do n'x <- lift fresh
             let ut    = T.UnitT
             let unit = CE.XValue ut VUnit
             
@@ -151,16 +150,16 @@ convertFold fs nElem t q
 
      -- It must be a non-primitive application
      | otherwise
-      -> lift $ Left $ ConvertErrorExpApplicationOfNonPrimitive (fst $ annotOfExp $ final q) (final q)
+      -> convertError $ ConvertErrorExpApplicationOfNonPrimitive (fst $ annotOfExp $ final q) (final q)
 
     -- For filter, you convert the subquery as normal,
     -- then only apply the subquery's "k" when the filter predicate is true.
     --
     -- Note that this has different "history semantics" to the normal filter.
     (Filter _ e : _)
-     -> do  (k,z,x,tt) <- convertFold fs nElem t q'
-            e'         <- convertExp     fs nElem t e
-            prev       <- fresh
+     -> do  (k,z,x,tt) <- convertFold fs q'
+            e'         <- convertExp  fs e
+            prev       <- lift fresh
             let tt'     = baseType tt
             let prev'   = CE.XVar prev
             let k' = CE.XLam prev tt'
@@ -187,16 +186,15 @@ convertFold fs nElem t q
   q' = q { contexts = drop 1 $ contexts q }
 
   errNotAllowed ann
-   = lift $ Left $ ConvertErrorContextNotAllowedInGroupBy ann q
+   = convertError $ ConvertErrorContextNotAllowedInGroupBy ann q
 
   errAggBadArgs
-   = lift
-   $ Left
+   = convertError
    $ ConvertErrorReduceAggregateBadArguments (fst $ annotOfExp $ final q) (final q)
 
 
   -- Construct an identity function
-  idFun tt = fresh >>= \n -> return (CE.XLam n tt (CE.XVar n))
+  idFun tt = lift fresh >>= \n -> return (CE.XLam n tt (CE.XVar n))
 
   -- Create nested pair type for storing the result of subexpressions
   pairTypes ts
@@ -217,13 +215,13 @@ convertFold fs nElem t q
   -- Destruct nested pairs.
   -- Call "f" with expression for each element of the pair.
   pairDestruct f [] _ret
-   = do nl <- fresh
+   = do nl <- lift fresh
         f' <- f []
         return $ CE.XLam nl T.UnitT $ f'
 
   pairDestruct f (t1:ts) ret
-   = do nl <- fresh
-        n1 <- fresh
+   = do nl <- lift fresh
+        n1 <- lift fresh
 
         let f' xs = f (CE.XVar n1 : xs)
         let tr    = pairTypes ts

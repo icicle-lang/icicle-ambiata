@@ -5,12 +5,20 @@ module Icicle.Source.ToCore.Base (
     CoreBinds    (..)
   , ConvertError (..)
   , ConvertM
+  , ConvertState (..)
+  , convertInput
+  , convertInputName
+  , convertInputType
+  , convertWithInput
+  , convertWithInputName
+
   , pre, strm, red, post
   , programOfBinds
   , freshly
   , convertWindowUnits
   , baseTypeOrOption
   , applyPossibles
+  , convertError
   ) where
 
 import qualified        Icicle.Core             as C
@@ -28,6 +36,9 @@ import                  Icicle.Source.Type
 import                  Icicle.Internal.Pretty
 
 import                  P
+
+import                  Control.Monad.Trans.State.Lazy
+import                  Control.Monad.Trans.Class
 
 
 data CoreBinds n
@@ -88,11 +99,49 @@ data ConvertError a n
 
 
 type ConvertM a n r
- = FreshT n (Either (ConvertError a n)) r
+ = StateT (ConvertState n)
+ (FreshT n (Either (ConvertError a n))) r
+
+data ConvertState n
+ = ConvertState
+ { csInputName :: Name n
+ , csInputType :: ValType
+ } deriving (Show)
+
+convertInput :: ConvertM a n (Name n, ValType)
+convertInput
+ = (,) <$> (csInputName <$> get) <*> (csInputType <$> get)
+
+convertInputName :: ConvertM a n (Name n)
+convertInputName
+ = csInputName <$> get
+
+convertInputType :: ConvertM a n ValType
+convertInputType
+ = csInputType <$> get
+
+
+convertWithInputName :: Name n -> ConvertM a n r -> ConvertM a n r
+convertWithInputName n c
+ = do   t <- convertInputType
+        convertWithInput n t c
+
+convertWithInput :: Name n -> ValType -> ConvertM a n r -> ConvertM a n r
+convertWithInput n t c
+ = do   o <- get
+        put (o { csInputName = n, csInputType = t })
+        r <- c
+        put o
+        return r
+
+
+convertError :: ConvertError a n -> ConvertM a n r
+convertError = lift . lift . Left
+
 
 freshly :: (Name n -> r) -> ConvertM a n (r, Name n)
 freshly f
- = do   n' <- fresh
+ = do   n' <- lift fresh
         return (f n', n')
 
 
@@ -156,7 +205,7 @@ applyPossibles f returns xts
    | Possibly <- universePossibility $ universe u
    = do -- Generate a fresh name, and apply the function using that name.
         -- Note that we have seen a possible and may need a "Some" wrapper.
-        n' <- fresh
+        n' <- lift fresh
         f' <- go xts' (args <> [X.XVar n']) True
 
         -- Use "FoldOption", equivalent to "maybe", to unwrap.
