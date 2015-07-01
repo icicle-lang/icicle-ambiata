@@ -32,7 +32,14 @@ checkQT features qt
      -> do  (q,t) <- checkQ (envOfFeatureContext f) (query qt)
             return (qt { query = q }, t)
     Nothing
-     -> Left $ ErrorNoSuchFeature (feature qt)
+     -> errorSuggestions (ErrorNoSuchFeature (feature qt))
+                         [suggestionForFeatures]
+
+ where
+  suggestionForFeatures
+   = AvailableFeatures
+   $ fmap (\(k,(t,_)) -> (k, t))
+   $ Map.toList features
 
 
 checkQ  :: Ord      n
@@ -70,10 +77,17 @@ checkQ ctx q
                     expIsElem ann c te
 
                     (q'',t') <- tq
-                    -- The group contents must be an aggregate.
+                    -- The group contents must be an aggregate or pure.
                     -- No nested groups
-                    when (not $ isAgg $ universe t')
-                     $ Left $ ErrorReturnNotAggregate ann q t'
+                    let groupError x
+                         = errorSuggestions (ErrorReturnNotAggregate ann q t')
+                                            [Suggest "Group must return an aggregate", Suggest x]
+
+                    case universeTemporality $ universe t' of
+                     AggU -> return ()
+                     Pure -> return ()
+                     Elem    -> groupError "Elements are not allowed as this could create very structures"
+                     Group _ -> groupError "Nested groups are not supported"
 
                     let t'' = t' { universe = (Universe (Group $ baseType te) Definitely) }
                     let c' = GroupBy (ann, t'') e'
@@ -89,7 +103,7 @@ checkQ ctx q
 
              Filter   ann e
               -> do (e', te) <- checkX ctx e
-                    expIsBool ann c te
+                    expFilterIsBool ann c te
                     expIsElem ann c te
                     (q'', t') <- tq
                     let t'' = t' { universe = castPossibilityWith (universe t') (universe te) }
@@ -104,16 +118,25 @@ checkQ ctx q
 
                     (init',ti) <- checkX ctxRemove  $ foldInit f
 
-                    when (foldType f == FoldTypeFoldl && universeTemporality (universe ti) /= Pure)
-                     $ Left $ ErrorUniverseMismatch ann ti
-                            $ (universe ti) { universeTemporality = Pure }
+                    let foldError x
+                         | FoldTypeFoldl  <- foldType f
+                         = errorSuggestions (ErrorUniverseMismatch ann ti $ (universe ti) { universeTemporality = Pure })
+                                            [Suggest "Fold initialisers must be pure", Suggest x]
+                         | otherwise
+                         = errorSuggestions (ErrorUniverseMismatch ann ti $ (universe ti) { universeTemporality = Elem })
+                                            [Suggest "Fold initialisers must be pure or element", Suggest x]
 
-                    expIsElem ann c ti
+                    case (foldType f, universeTemporality $ universe ti) of
+                     (_, Pure)              -> return ()
+                     (FoldTypeFoldl1, Elem) -> return ()
+                     (FoldTypeFoldl, Elem)  -> foldError "You cannot refer to an element; perhaps you meant to use fold1"
+                     (_, _)                 -> foldError "The initialiser cannot refer to an aggregate or group, as this would require multiple passes"
+
                     let ctx' = Map.insert (foldBind f) (UniverseType (Universe Pure Definitely) $ baseType ti) ctx
                     (work',tw) <- checkX ctx' $ foldWork f
 
                     when (baseType ti /= baseType tw)
-                      $ Left $ ErrorFoldTypeMismatch ann ti tw
+                      $ errorNoSuggestions $ ErrorFoldTypeMismatch ann ti tw
 
                     expIsElem ann c tw
 
@@ -143,23 +166,27 @@ checkQ ctx q
                     return (wrap c' q'', t')
 
  where
-  expIsBool ann c te
+  expFilterIsBool ann c te
    | T.BoolT <- baseType te
    = return ()
    | otherwise
-   = Left $ ErrorContextExpNotBool ann c te
+   = errorSuggestions (ErrorContextExpNotBool ann c te)
+                      [Suggest "The predicate for a filter must be a boolean"]
 
   expIsEnum ann c te
    = when (not $ isEnum $ baseType te)
-         $ Left $ ErrorContextExpNotEnum ann c te
+         $ errorSuggestions (ErrorContextExpNotEnum ann c te)
+                            [Suggest "Group-by and distinct-by must be bounded; otherwise we'd run out of memory"]
 
   expIsElem ann c te
    = when (not $ isPureOrElem $ universe te)
-         $ Left $ ErrorContextExpNotElem ann c te
+         $ errorSuggestions (ErrorContextExpNotElem ann c te)
+                            [Suggest "This expression cannot refer to aggregates or groups as it would require multiple passes"]
 
   requireAggOrGroup ann t
    = when (isPureOrElem $ universe t)
-         $ Left $ ErrorReturnNotAggregate ann q t
+         $ errorSuggestions (ErrorReturnNotAggregate ann q t)
+                            [Suggest "The return must be an aggregate, otherwise the result could be quite large"]
 
   wrapAsAgg t
    | isPureOrElem $ universe t
@@ -190,7 +217,9 @@ checkX ctx x
  | otherwise
  = case x of
     Var ann n
-     -> maybe (Left $ ErrorNoSuchVariable ann n) (\t -> return (Var (ann,t) n, t))
+     -> maybe (errorSuggestions (ErrorNoSuchVariable ann n)
+                                [AvailableBindings $ Map.toList ctx])
+              (\t -> return (Var (ann,t) n, t))
               (Map.lookup n ctx)
     Nested ann q
      -> do (q',t') <- checkQ ctx q
@@ -200,8 +229,11 @@ checkX ctx x
      -> do (_,t') <- checkP x p []
            return (Prim (ann,t') p, t')
 
-    App a _ _
-     -> Left $ ErrorApplicationOfNonPrim a x
+    -- We can give slightly better error messages if we descend first
+    App a p q
+     -> do  _ <- checkX ctx p
+            _ <- checkX ctx q
+            errorNoSuggestions $ ErrorApplicationOfNonPrim a x
 
 
 checkP  :: Ord      n
@@ -246,7 +278,7 @@ checkP x p args
      | otherwise
      -> err
  where
-  err = Left $ ErrorPrimBadArgs (annotOfExp x) x args
+  err = errorNoSuggestions $ ErrorPrimBadArgs (annotOfExp x) x args
 
   aggu u = u { universeTemporality = AggU }
 
