@@ -9,7 +9,6 @@ module Icicle.Test.Source.Arbitrary where
 
 import           Icicle.Source.Query
 import qualified Icicle.Source.Lexer.Token as T
-import           Icicle.Common.Base
 import           Icicle.Common.Fresh
 
 import           Icicle.Test.Arbitrary.Base
@@ -23,7 +22,7 @@ import           P
 import qualified Data.Text as Text
 
 freshtest p
- = snd <$> runFreshT p (counterNameState (\i -> Name $ T.Variable ("v" <> Text.pack (show i))) 0)
+ = snd <$> runFreshT p (counterPrefixNameState (T.Variable . Text.pack . show) (T.Variable "v"))
 
 instance Arbitrary T.Variable where
  arbitrary
