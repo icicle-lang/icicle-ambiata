@@ -139,6 +139,8 @@ library
 
                        Icicle.Source.ToCore.Base
                        Icicle.Source.ToCore.Context
+                       Icicle.Source.ToCore.Exp
+                       Icicle.Source.ToCore.Fold
                        Icicle.Source.ToCore.ToCore
                        Icicle.Source.ToCore.Prim
 

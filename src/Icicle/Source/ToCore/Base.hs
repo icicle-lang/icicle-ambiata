@@ -8,6 +8,8 @@ module Icicle.Source.ToCore.Base (
   , pre, strm, red, post
   , programOfBinds
   , freshly
+  , convertWindowUnits
+  , baseTypeOrOption
   , applyPossibles
   ) where
 
@@ -18,6 +20,7 @@ import                  Icicle.Common.Type
 import qualified        Icicle.Common.Exp       as X
 import qualified        Icicle.Common.Exp.Prim.Minimal as Min
 import qualified        Icicle.Common.Type      as T
+import qualified        Icicle.Core.Exp.Combinators as CE
 
 import                  Icicle.Source.Query
 import                  Icicle.Source.Type
@@ -26,7 +29,6 @@ import                  Icicle.Internal.Pretty
 
 import                  P
 
-import                  Data.String (String)
 
 data CoreBinds n
  = CoreBinds
@@ -73,8 +75,7 @@ post n x = mempty { postcomps = [(n,x)] }
 
 
 data ConvertError a n
- = ConvertErrorTODO a String
- | ConvertErrorNoSuchFeature n
+ = ConvertErrorNoSuchFeature n
  | ConvertErrorPrimAggregateNotAllowedHere a Agg
  | ConvertErrorPrimNoArguments a Int Prim
  | ConvertErrorGroupByHasNonGroupResult a UniverseType
@@ -93,6 +94,23 @@ freshly :: (Name n -> r) -> ConvertM a n (r, Name n)
 freshly f
  = do   n' <- fresh
         return (f n', n')
+
+
+convertWindowUnits :: WindowUnit -> C.Exp n
+convertWindowUnits wu
+ = CE.constI
+ $ case wu of
+    Days d -> d
+    -- TODO: month should be... better
+    Months m -> m * 30
+    Weeks w -> w * 7
+
+baseTypeOrOption :: UniverseType -> BaseType
+baseTypeOrOption u
+ | Possibly <- universePossibility $ universe u
+ = T.OptionT $ baseType u
+ | otherwise
+ = baseType u
 
 
 -- | Apply a function to some arguments, depending on the arguments' "possibility".
@@ -174,9 +192,6 @@ applyPossibles f returns xts
 instance (Pretty a, Pretty n) => Pretty (ConvertError a n) where
  pretty e
   = case e of
-     ConvertErrorTODO a s
-      -> pretty a <> ": TODO: " <> text s
-
      ConvertErrorNoSuchFeature n
       -> "No such feature: " <> pretty n
 
