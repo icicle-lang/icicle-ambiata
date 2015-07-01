@@ -16,6 +16,7 @@ module Icicle.Source.Query.Query (
   , reannotQ
   , reannotC
   , reannotX
+  , annotOfQuery
   ) where
 
 import                  Icicle.Source.Query.Context
@@ -126,4 +127,17 @@ reannotQT :: (a -> a') -> QueryTop a n -> QueryTop a' n
 reannotQT f qt
  = qt
  { query = reannotQ f (query qt) }
+
+
+annotOfQuery :: Query a n -> a
+annotOfQuery q
+ = case contexts q of
+    [] -> annotOfExp $ final q
+    (Windowed a _ _:_) -> a
+    (Latest   a _  :_) -> a
+    (GroupBy  a _  :_) -> a
+    (Distinct a _  :_) -> a
+    (Filter   a _  :_) -> a
+    (LetFold  a _  :_) -> a
+    (Let      a _ _:_) -> a
 

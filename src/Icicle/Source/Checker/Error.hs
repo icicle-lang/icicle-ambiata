@@ -28,6 +28,7 @@ data ErrorInfo a n
  | ErrorContextExpNotBool  a (Context a n)   UniverseType
  | ErrorContextExpNotEnum  a (Context a n)   UniverseType
  | ErrorContextExpNotElem  a (Context a n)   UniverseType
+ | ErrorContextNotAllowedInGroupBy  a (Context a n)
  | ErrorFoldTypeMismatch       a UniverseType UniverseType
  | ErrorUniverseMismatch       a UniverseType Universe
  | ErrorApplicationOfNonPrim a (Exp a n)
@@ -88,6 +89,10 @@ instance (Pretty a, Pretty n) => Pretty (ErrorInfo a n) where
       -> "Context expression is not an element expression (cannot be aggregate) at" <+> pretty a <> line
       <> "Context: " <> inp c       <> line
       <> "Type:    " <> inp ut
+
+     ErrorContextNotAllowedInGroupBy  a c
+      -> "Context is not allowed inside group at" <+> pretty a <> line
+      <> "Context: " <> inp c
 
      ErrorFoldTypeMismatch a init work
       -> "Type mismatch in fold at " <+> pretty a <> line
