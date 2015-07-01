@@ -11,6 +11,9 @@ module Icicle.Source.ToCore.Base (
   , convertInputType
   , convertWithInput
   , convertWithInputName
+  , convertError
+  , convertFeatures
+  , convertModifyFeatures
 
   , pre, strm, red, post
   , programOfBinds
@@ -18,7 +21,6 @@ module Icicle.Source.ToCore.Base (
   , convertWindowUnits
   , baseTypeOrOption
   , applyPossibles
-  , convertError
   ) where
 
 import qualified        Icicle.Core             as C
@@ -32,6 +34,7 @@ import qualified        Icicle.Core.Exp.Combinators as CE
 
 import                  Icicle.Source.Query
 import                  Icicle.Source.Type
+import                  Icicle.Source.ToCore.Context
 
 import                  Icicle.Internal.Pretty
 
@@ -104,9 +107,10 @@ type ConvertM a n r
 
 data ConvertState n
  = ConvertState
- { csInputName :: Name n
- , csInputType :: ValType
- } deriving (Show)
+ { csInputName  :: Name n
+ , csInputType  :: ValType
+ , csFeatures   :: FeatureContext n
+ }
 
 convertInput :: ConvertM a n (Name n, ValType)
 convertInput
@@ -119,6 +123,10 @@ convertInputName
 convertInputType :: ConvertM a n ValType
 convertInputType
  = csInputType <$> get
+
+convertFeatures :: ConvertM a n (FeatureContext n)
+convertFeatures
+ = csFeatures <$> get
 
 
 convertWithInputName :: Name n -> ConvertM a n r -> ConvertM a n r
@@ -133,6 +141,13 @@ convertWithInput n t c
         r <- c
         put o
         return r
+
+convertModifyFeatures
+        :: (FeatureContext n -> FeatureContext n)
+        -> ConvertM a n ()
+convertModifyFeatures f
+ = do   o <- get
+        put (o { csFeatures = f $ csFeatures o })
 
 
 convertError :: ConvertError a n -> ConvertM a n r

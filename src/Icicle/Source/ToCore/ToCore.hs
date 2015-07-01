@@ -78,7 +78,7 @@ convertQueryTop feats qt
         let inpTy       = ty
         let inpTy'dated = T.PairT inpTy T.DateTimeT
 
-        (bs,ret) <- evalStateT (convertQuery fs $ query qt) (ConvertState inp inpTy'dated)
+        (bs,ret) <- evalStateT (convertQuery $ query qt) (ConvertState inp inpTy'dated fs)
         let bs'   = strm inp C.Source <> bs
         return (programOfBinds inpTy bs' ret)
 
@@ -90,14 +90,13 @@ convertQueryTop feats qt
 -- that is being "returned" in the program - essentially the last added binding.
 convertQuery
         :: Ord n
-        => FeatureContext n
-        -> Query (a,UniverseType) n
+        => Query (a,UniverseType) n
         -> ConvertM a n (CoreBinds n, Name n)
-convertQuery fs q
+convertQuery q
  = case contexts q of
     -- There are no queries left, so deal with simple aggregates and nested queries.
     []
-     -> convertReduce fs (final q)
+     -> convertReduce (final q)
 
     -- Converting filters is probably the simplest conversion.
     --
@@ -111,9 +110,9 @@ convertQuery fs q
     (Filter _ e : _)
      -> do  n'      <- lift fresh
             nv      <- lift fresh
-            e'      <- convertWithInputName nv $ convertExp fs e
+            e'      <- convertWithInputName nv $ convertExp e
 
-            (bs, b) <- convertWithInputName n' $ convertQuery fs q'
+            (bs, b) <- convertWithInputName n' $ convertQuery q'
             (inpstream, inpty) <- convertInput
 
             let bs'  = strm n' (C.STrans (C.SFilter inpty) (CE.XLam nv inpty e') inpstream) <> bs
@@ -135,7 +134,7 @@ convertQuery fs q
     -- we can address it.
     (Windowed _ newerThan olderThan : _)
      -> do  n'      <- lift fresh
-            (bs, b) <- convertWithInputName n' $ convertQuery fs q'
+            (bs, b) <- convertWithInputName n' $ convertQuery q'
 
             let newerThan' =      convertWindowUnits newerThan
             let olderThan' = fmap convertWindowUnits olderThan
@@ -167,7 +166,7 @@ convertQuery fs q
             -- x (fold k z inps)
             -- where x :: tV -> retty
             (k,z,x,tV)
-                    <- convertWithInputName n'v $ convertFold fs q'
+                    <- convertWithInputName n'v $ convertFold q'
 
             let tV'  = baseType tV
 
@@ -211,13 +210,13 @@ convertQuery fs q
             -- as well as the intermediate result type before extraction.
             -- See convertFold.
             (k,z,x,tV)
-                    <- convertWithInputName nval $ convertFold fs q'
+                    <- convertWithInputName nval $ convertFold q'
 
             let tV'  = baseType tV
 
             -- Convert the "by" to a simple expression.
             -- This becomes the map insertion key.
-            e'      <- convertWithInputName nval $ convertExp fs e
+            e'      <- convertWithInputName nval $ convertExp e
 
             let mapt = T.MapT t1 tV'
 
@@ -276,13 +275,13 @@ convertQuery fs q
             -- This is executed as a Map fold at the end, rather than
             -- as a stream fold.
             (k,z,x,tV)
-                    <- convertWithInputName nval $ convertFold fs q'
+                    <- convertWithInputName nval $ convertFold q'
 
             let tV'  = baseType tV
 
             -- Convert the "by" to a simple expression.
             -- This becomes the map insertion key.
-            e'      <- convertWithInputName nval $ convertExp fs e
+            e'      <- convertWithInputName nval $ convertExp e
 
             let mapt = T.MapT tkey tval
 
@@ -329,15 +328,14 @@ convertQuery fs q
 
                 n'e     <- lift fresh
                 
-                e'      <- convertWithInputName n'e $ convertExp fs def
+                e'      <- convertWithInputName n'e $ convertExp def
 
                 let xfst = CE.XApp
                          $ CE.XPrim $ C.PrimMinimal $ Min.PrimPair $ Min.PrimPairFst t' inpty
                 let xsnd = CE.XApp
                          $ CE.XPrim $ C.PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd t' inpty
 
-                let fs'  = Map.insert b (t', xfst)
-                         $ Map.map (\(t,f) -> (t, f . xsnd)) fs
+                convertModifyFeatures (Map.insert b (t', xfst) . Map.map (\(t,f) -> (t, f . xsnd)))
 
                 let pair = (CE.XPrim $ C.PrimMinimal $ Min.PrimConst $ Min.PrimConstPair t' inpty)
                          CE.@~ e' CE.@~ CE.XVar n'e
@@ -346,25 +344,25 @@ convertQuery fs q
                 n'r     <- lift fresh
                 let bs   = strm n'r
                          $ C.STrans (C.SMap inpty inpty') (CE.XLam n'e inpty pair) inpstream
-                (bs', n'') <- convertWithInput n'r inpty' $ convertQuery fs' q'
+                (bs', n'') <- convertWithInput n'r inpty' $ convertQuery q'
 
                 return (bs <> bs', n'')
 
          Pure
-          -> do e'      <- convertExp fs def
-                let fs'  = Map.delete b fs
+          -> do e'      <- convertExp def
+                convertModifyFeatures (Map.delete b)
                 let bs   = pre (Name b) e'
-                (bs', n') <- convertQuery fs' q'
+                (bs', n') <- convertQuery q'
                 return (bs <> bs', n')
 
          AggU
-          -> do (bs,n')      <- convertReduce    fs def
-                (bs',n'')    <- convertQuery     fs q'
+          -> do (bs,n')      <- convertReduce    def
+                (bs',n'')    <- convertQuery     q'
                 return (bs <> post (Name b) (CE.XVar n') <> bs', n'')
 
          Group _
-          -> do (bs,n')      <- convertReduce    fs def
-                (bs',n'')    <- convertQuery     fs q'
+          -> do (bs,n')      <- convertReduce    def
+                (bs',n'')    <- convertQuery     q'
                 return (bs <> post (Name b) (CE.XVar n') <> bs', n'')
 
     -- Converting fold1s.
@@ -520,9 +518,9 @@ convertQuery fs q
 
             -- Remove binding before converting init and work expressions,
             -- just in case the same name has been used elsewhere
-            let fs' = Map.delete (foldBind f) fs
-            z   <- convertWithInputName n'elem $ convertExp fs' (foldInit f)
-            k   <- convertWithInputName n'elem $ convertExp fs' (foldWork f)
+            convertModifyFeatures (Map.delete (foldBind f))
+            z   <- convertWithInputName n'elem $ convertExp (foldInit f)
+            k   <- convertWithInputName n'elem $ convertExp (foldWork f)
 
             -- (Some.Some)
             let somedotsome
@@ -574,7 +572,7 @@ convertQuery fs q
                             (CE.XVar n'))
 
             
-            (bs', n'')      <- convertQuery fs' q'
+            (bs', n'')      <- convertQuery q'
 
             return (bs <> bs', n'')
 
@@ -607,9 +605,9 @@ convertQuery fs q
 
             -- Remove binding before converting init and work expressions,
             -- just in case the same name has been used elsewhere
-            let fs' = Map.delete (foldBind f) fs
-            z   <- convertWithInputName n'elem $ convertExp fs' (foldInit f)
-            k   <- convertWithInputName n'elem $ convertExp fs' (foldWork f)
+            convertModifyFeatures (Map.delete (foldBind f))
+            z   <- convertWithInputName n'elem $ convertExp (foldInit f)
+            k   <- convertWithInputName n'elem $ convertExp (foldWork f)
 
             (inpstream, inpty) <- convertInput
             -- Worker function of the fold
@@ -619,7 +617,7 @@ convertQuery fs q
             -- Bind the fold to the original name
             let bs = red (Name $ foldBind f) (C.RFold inpty tU go z inpstream)
             
-            (bs', n'')      <- convertQuery fs' q'
+            (bs', n'')      <- convertQuery q'
 
             return (bs <> bs', n'')
 
@@ -658,9 +656,9 @@ convertQuery fs q
 
             -- Remove binding before converting init and work expressions,
             -- just in case the same name has been used elsewhere
-            let fs' = Map.delete (foldBind f) fs
-            z   <- convertWithInputName n'elem $ convertExp fs' (foldInit f)
-            k   <- convertWithInputName n'elem $ convertExp fs' (foldWork f)
+            convertModifyFeatures (Map.delete (foldBind f))
+            z   <- convertWithInputName n'elem $ convertExp (foldInit f)
+            k   <- convertWithInputName n'elem $ convertExp (foldWork f)
 
             -- If zero and cons are possiblies, leave them alone.
             -- If not wrap in just one Some
@@ -688,7 +686,7 @@ convertQuery fs q
             -- Bind the fold to the original name
             let bs = red (Name $ foldBind f) (C.RFold inpty tO go z' inpstream)
             
-            (bs', n'')      <- convertQuery fs' q'
+            (bs', n'')      <- convertQuery q'
 
             return (bs <> bs', n'')
 
@@ -729,10 +727,9 @@ convertQuery fs q
 -- or a nested query.
 convertReduce
         :: Ord n
-        => FeatureContext n
-        -> Exp (a,UniverseType) n
+        => Exp (a,UniverseType) n
         -> ConvertM a n (CoreBinds n, Name n)
-convertReduce fs xx
+convertReduce xx
  | Just (p, (_,ty), args) <- takePrimApps xx
  = case p of
     Agg Count
@@ -750,13 +747,13 @@ convertReduce fs xx
      -> do  na <- lift fresh
             nv <- lift fresh
             -- Convert the element expression and sum over it
-            x' <- convertWithInputName nv $ convertExp fs x
+            x' <- convertWithInputName nv $ convertExp x
             mkFold T.IntT (CE.XVar na CE.+~ x') (CE.constI 0) na nv
      | [x] <- args
      , Possibly <- universePossibility $ universe ty
      -> do  nv <- lift fresh
             -- Convert the element expression and sum over it
-            x' <- convertWithInputName nv $ convertExp fs x
+            x' <- convertWithInputName nv $ convertExp x
 
             let plusX = CE.XPrim (C.PrimMinimal $ Min.PrimArith Min.PrimArithPlus)
             let plusT = UniverseType (definitely $ universe ty) T.IntT
@@ -778,7 +775,7 @@ convertReduce fs xx
      -> do  na <- lift fresh
             nv <- lift fresh
             -- Convert the element expression
-            x' <- convertWithInputName nv $ convertExp fs x
+            x' <- convertWithInputName nv $ convertExp x
 
             let argT = snd $ annotOfExp x
             let retty= T.OptionT $ baseType argT
@@ -807,7 +804,7 @@ convertReduce fs xx
      -> do  na <- lift fresh
             nv <- lift fresh
             -- Convert the element expression
-            x' <- convertWithInputName nv $ convertExp fs x
+            x' <- convertWithInputName nv $ convertExp x
 
             let argT = snd $ annotOfExp x
 
@@ -856,7 +853,7 @@ convertReduce fs xx
     -- If the binding is Pure however, it must not rely on any aggregates,
     -- so it might as well be a precomputation.
     _
-     -> do  (bs,nms) <- unzip <$> mapM (convertReduce fs) args
+     -> do  (bs,nms) <- unzip <$> mapM convertReduce args
             let tys  = fmap (snd . annotOfExp) args
             let xs   = fmap  CE.XVar           nms
             x' <- convertPrim p (fst $ annotOfExp xx) ty (xs `zip` tys)
@@ -874,7 +871,7 @@ convertReduce fs xx
 
  -- Convert a nested query
  | Nested _ q   <- xx
- = convertQuery fs q
+ = convertQuery q
  -- Any variable must be a let-bound aggregate, so we can safely assume it has a binding.
  | Var _ v      <- xx
  = return (mempty, Name v)

@@ -10,7 +10,6 @@ module Icicle.Source.ToCore.Fold (
 
 import                  Icicle.Source.Query
 import                  Icicle.Source.ToCore.Base
-import                  Icicle.Source.ToCore.Context
 import                  Icicle.Source.ToCore.Exp
 import                  Icicle.Source.ToCore.Prim
 import                  Icicle.Source.Type
@@ -58,16 +57,15 @@ import                  Data.List (zip, unzip4)
 --
 convertFold
         :: Ord n
-        => FeatureContext n
-        -> Query (a,UniverseType) n
+        => Query (a,UniverseType) n
         -> ConvertM a n (C.Exp n, C.Exp n, C.Exp n, UniverseType)
-convertFold fs q
+convertFold q
  = case contexts q of
     -- No contexts, just an expression
     []
      -- Nested query; recurse
      | Nested _ qq <- final q
-     -> convertFold fs qq
+     -> convertFold qq
 
      -- Primitive application
      | Just (p, (ann,retty), args) <- takePrimApps $ final q
@@ -76,7 +74,7 @@ convertFold fs q
          Agg SumA
           | [e] <- args
           -> do let retty' = baseType retty
-                e' <- convertExp fs e
+                e' <- convertExp e
 
                 n  <- lift fresh
                 let k = CE.XLam n retty'
@@ -111,7 +109,7 @@ convertFold fs q
           -> do -- Convert all arguments
                 -- (create a query out of the expression,
                 --  just because there is no separate convertFoldX function)
-                (ks, zs, xs, ts) <- unzip4 <$> mapM (convertFold fs . Query []) args
+                (ks, zs, xs, ts) <- unzip4 <$> mapM (convertFold . Query []) args
 
                 let ts' = fmap baseType ts
                 -- Create pairs for zeros
@@ -157,8 +155,8 @@ convertFold fs q
     --
     -- Note that this has different "history semantics" to the normal filter.
     (Filter _ e : _)
-     -> do  (k,z,x,tt) <- convertFold fs q'
-            e'         <- convertExp  fs e
+     -> do  (k,z,x,tt) <- convertFold q'
+            e'         <- convertExp  e
             prev       <- lift fresh
             let tt'     = baseType tt
             let prev'   = CE.XVar prev
