@@ -49,7 +49,11 @@ evalQ q vs env
 
                 Latest _ i
                  -> let vs' = reverse $ take i $ reverse vs
-                    in  evalQ q' vs' env
+                    in  case evalQ q' vs' env of
+                         Left _
+                          -> VArray <$> mapM (evalQ q' []) vs'
+                         Right v
+                          -> return v
 
                 GroupBy _ g
                  -> do  gs <- mapM (evalX g []) vs
