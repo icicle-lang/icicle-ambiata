@@ -25,11 +25,12 @@ data CheckEnv n
  { env        :: Map.Map n UniverseType
  , isTopLevel :: Bool
  , isInGroup  :: Bool
+ , allowContexts :: Bool
  }
 
 emptyEnv :: CheckEnv n
 emptyEnv
- = CheckEnv Map.empty True False
+ = CheckEnv Map.empty True False True
 
 type Result r a n = Either (CheckError a n) (r, UniverseType)
 
@@ -72,6 +73,10 @@ checkQ ctx_top q
          -> do  (x,t) <- checkX ctx (final q)
                 return (Query [] x, t)
         (c:cs)
+         | allowContexts ctx == False
+         -> errorSuggestions (ErrorContextNotAllowedHere (annotOfQuery q) c)
+                             [Suggest "Contexts are not allowed inside worker functions of sums etc"]
+         | otherwise
          -> let q' = q { contexts = cs }
                 tq = checkQ ctx q'
 
@@ -92,7 +97,7 @@ checkQ ctx_top q
                         return (wrap c' q'', tA)
 
                  GroupBy ann e
-                  -> do (e',te) <- checkX ctx e
+                  -> do (e',te) <- checkX (ctx { allowContexts = False}) e
                         notAllowedInGroupBy ann c
                         -- Check that the thing we're grouping by is enum-ish
                         expIsEnum ann c te
@@ -117,7 +122,7 @@ checkQ ctx_top q
                         return (wrap c' q'', t'')
 
                  Distinct ann e
-                  -> do (e',te) <- checkX ctx e
+                  -> do (e',te) <- checkX (ctx { allowContexts = False}) e
                         notAllowedInGroupBy ann c
                         expIsEnum ann c te
                         expIsElem ann c te
@@ -127,7 +132,7 @@ checkQ ctx_top q
                         return (wrap c' q'', t')
 
                  Filter   ann e
-                  -> do (e', te) <- checkX ctx e
+                  -> do (e', te) <- checkX (ctx { allowContexts = False}) e
                         expFilterIsBool ann c te
                         expIsElem ann c te
                         (q'', t') <- tq
@@ -142,7 +147,7 @@ checkQ ctx_top q
                         -- already defined with the same name
                         let envRemove = Map.delete (foldBind f) $ env ctx
 
-                        (init',ti) <- checkX (ctx { env = envRemove }) $ foldInit f
+                        (init',ti) <- checkX (ctx { allowContexts = False, env = envRemove }) $ foldInit f
 
                         let foldError x
                              | FoldTypeFoldl  <- foldType f
@@ -161,7 +166,7 @@ checkQ ctx_top q
                         let env' = Map.insert (foldBind f)
                                  (UniverseType (Universe Pure Definitely) $ baseType ti)
                                  $ env ctx
-                        (work',tw) <- checkX (ctx { env = env' }) $ foldWork f
+                        (work',tw) <- checkX (ctx { env = env', allowContexts = False }) $ foldWork f
 
                         when (baseType ti /= baseType tw)
                           $ errorNoSuggestions $ ErrorFoldTypeMismatch ann ti tw
@@ -189,9 +194,10 @@ checkQ ctx_top q
 
 
                  Let ann n e
-                  -> do (e',te) <- checkX ctx e
+                  -> do (e',te) <- checkX (ctx { allowContexts = False }) e
                         let ctx' = ctx { env = Map.insert n te $ env ctx }
                         (q'',t') <- checkQ ctx' q'
+
                         let c'   = Let (ann,t') n e'
                         return (wrap c' q'', t')
 
@@ -219,7 +225,7 @@ checkQ ctx_top q
 
   notAllowedInGroupBy ann c
    = when (isInGroup ctx)
-         $ errorSuggestions (ErrorContextNotAllowedInGroupBy ann c)
+         $ errorSuggestions (ErrorContextNotAllowedHere ann c)
                             [Suggest "Windows, latests, distincts and groups are not allowed inside groups"]
 
   wrapAsAgg t
@@ -239,7 +245,11 @@ checkX  :: Ord      n
         -> Result (Exp (a,UniverseType) n) a n
 checkX ctx x
  | Just (prim, ann, args) <- takePrimApps x
- = do xts <- mapM (checkX ctx) args
+ = do let ctx' | Agg _ <- prim
+               = ctx { allowContexts = False }
+               | otherwise
+               = ctx
+      xts <- mapM (checkX ctx') args
       let xs = fmap fst xts
       let ts = fmap snd xts
       (_,t') <- checkP x prim ts
