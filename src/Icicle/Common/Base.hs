@@ -34,11 +34,13 @@ data BaseValue
  | VUnit
  | VBool  Bool
  | VDateTime        DateTime
+ | VString T.Text
  | VArray [BaseValue]
  | VPair  BaseValue BaseValue
  | VSome  BaseValue
  | VNone
  | VMap   (Map.Map BaseValue BaseValue)
+ | VStruct [(T.Text,BaseValue)]
  deriving (Show, Ord, Eq)
 
 
@@ -60,6 +62,8 @@ instance Pretty BaseValue where
       -> pretty b
      VDateTime dt
       -> text $ T.unpack $ renderDate dt
+     VString t
+      -> text $ T.unpack t
      VArray vs
       -> pretty vs
      VPair a b
@@ -70,4 +74,6 @@ instance Pretty BaseValue where
       -> text "None"
      VMap mv
       -> text "Map" <+> pretty (Map.toList mv)
+     VStruct mv
+      -> text "Struct" <+> pretty (mv)
 
