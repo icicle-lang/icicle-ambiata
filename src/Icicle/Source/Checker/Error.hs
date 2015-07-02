@@ -4,6 +4,7 @@ module Icicle.Source.Checker.Error (
     CheckError(..)
   , ErrorInfo(..)
   , ErrorSuggestion(..)
+  , annotOfError
   , errorNoSuggestions
   , errorSuggestions
   ) where
@@ -35,6 +36,32 @@ data ErrorInfo a n
  | ErrorPrimBadArgs          a (Exp a n) [UniverseType]
  deriving (Show, Eq, Ord)
 
+annotOfError :: CheckError a n -> Maybe a
+annotOfError (CheckError e _)
+ = case e of
+    ErrorNoSuchVariable a _
+     -> Just a
+    ErrorNoSuchFeature _
+     -> Nothing
+    ErrorReturnNotAggregate a _ _
+     -> Just a
+    ErrorContextExpNotBool  a _ _
+     -> Just a
+    ErrorContextExpNotEnum  a _ _
+     -> Just a
+    ErrorContextExpNotElem  a _ _
+     -> Just a
+    ErrorContextNotAllowedHere  a _
+     -> Just a
+    ErrorFoldTypeMismatch       a _ _
+     -> Just a
+    ErrorUniverseMismatch       a _ _
+     -> Just a
+    ErrorApplicationOfNonPrim a _
+     -> Just a
+    ErrorPrimBadArgs          a _ _
+     -> Just a
+    
 
 data ErrorSuggestion a n
  = AvailableFeatures [(n, BaseType)]

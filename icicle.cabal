@@ -173,6 +173,7 @@ executable             icicle-repl
                      , transformers
                      , wl-pprint
                      , x-optparse
+                     , parsec
 
 test-suite test
   type:                exitcode-stdio-1.0

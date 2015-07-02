@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Icicle.Repl (
     ReplError (..)
+  , annotOfError
   , sourceParse
   , sourceCheck
   , sourceConvert
@@ -39,15 +40,33 @@ import           Data.Text                          (Text)
 import qualified Data.Text                          as T
 import qualified Data.Traversable                   as TR
 
+import qualified Text.ParserCombinators.Parsec      as Parsec
 
 data ReplError
- = ReplErrorParse   SP.ParseError
- | ReplErrorCheck   (SC.CheckError SP.SourcePos Var)
- | ReplErrorConvert (STC.ConvertError SP.SourcePos Var)
+ = ReplErrorParse   Parsec.ParseError
+ | ReplErrorCheck   (SC.CheckError Parsec.SourcePos Var)
+ | ReplErrorConvert (STC.ConvertError Parsec.SourcePos Var)
  | ReplErrorDecode  S.ParseError
  | ReplErrorRuntime S.SimulateError
  | ReplErrorFlatten (AS.FlattenError Text)
  deriving (Show)
+
+annotOfError :: ReplError -> Maybe Parsec.SourcePos
+annotOfError e
+ = case e of
+    ReplErrorParse sp
+     -> Just
+      $ Parsec.errorPos sp
+    ReplErrorCheck       e'
+     -> SC.annotOfError  e'
+    ReplErrorConvert     e'
+     -> STC.annotOfError e'
+    ReplErrorDecode  _
+     -> Nothing
+    ReplErrorRuntime _
+     -> Nothing
+    ReplErrorFlatten _
+     -> Nothing
 
 instance Pretty ReplError where
  pretty e
@@ -72,8 +91,8 @@ instance Pretty ReplError where
       <> indent 2 (text $ show d)
 
 type Var        = SP.Variable
-type QueryTop'  = SQ.QueryTop SP.SourcePos Var
-type QueryTop'T = SQ.QueryTop (SP.SourcePos, ST.UniverseType) Var
+type QueryTop'  = SQ.QueryTop Parsec.SourcePos Var
+type QueryTop'T = SQ.QueryTop (Parsec.SourcePos, ST.UniverseType) Var
 type Program'   = Core.Program Var
 
 --------------------------------------------------------------------------------

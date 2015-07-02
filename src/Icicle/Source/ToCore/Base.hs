@@ -4,6 +4,7 @@
 module Icicle.Source.ToCore.Base (
     CoreBinds    (..)
   , ConvertError (..)
+  , annotOfError
   , ConvertM
   , ConvertState (..)
   , convertInput
@@ -103,6 +104,28 @@ data ConvertError a n
  | ConvertErrorExpApplicationOfNonPrimitive a (Exp (a,UniverseType) n)
  | ConvertErrorReduceAggregateBadArguments a (Exp (a,UniverseType) n)
  deriving (Show, Eq, Ord)
+
+annotOfError :: ConvertError a n -> Maybe a
+annotOfError e
+ = case e of
+    ConvertErrorNoSuchFeature _
+     -> Nothing
+    ConvertErrorPrimAggregateNotAllowedHere a _
+     -> Just a
+    ConvertErrorPrimNoArguments a _ _
+     -> Just a
+    ConvertErrorGroupByHasNonGroupResult a _
+     -> Just a
+    ConvertErrorContextNotAllowedInGroupBy a _
+     -> Just a
+    ConvertErrorExpNoSuchVariable a _
+     -> Just a
+    ConvertErrorExpNestedQueryNotAllowedHere a _
+     -> Just a
+    ConvertErrorExpApplicationOfNonPrimitive a _
+     -> Just a
+    ConvertErrorReduceAggregateBadArguments a _
+     -> Just a
 
 
 type ConvertM a n r

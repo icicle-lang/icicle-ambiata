@@ -1,8 +1,9 @@
-{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PatternGuards #-}
 {-# LANGUAGE TupleSections     #-}
 {-# LANGUAGE ViewPatterns      #-}
-{-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 import           Control.Monad.Trans.Class
@@ -10,7 +11,7 @@ import           Control.Monad.Trans.Either
 import           Control.Monad.IO.Class
 import           Data.Either.Combinators
 import           Data.Monoid
-import           Data.List                            (words)
+import           Data.List                            (words, replicate)
 import           Data.String                          (String)
 import           Data.Text                            (Text)
 import qualified Data.Text                            as T
@@ -21,6 +22,7 @@ import qualified System.Console.Terminal.Size         as TS
 import           System.Directory
 import           System.IO
 import qualified Text.PrettyPrint.Leijen              as PP
+import qualified Text.ParserCombinators.Parsec        as Parsec
 
 import qualified Icicle.Avalanche.FromCore            as AC
 import qualified Icicle.Avalanche.Prim.Flat           as APF
@@ -298,7 +300,14 @@ nl :: HL.InputT IO ()
 nl = HL.outputStrLn ""
 
 prettyE :: SR.ReplError -> HL.InputT IO ()
-prettyE e = HL.outputStrLn "REPL Error:" >> prettyHL e >> nl
+prettyE e
+ = ppos >> HL.outputStrLn "REPL Error:" >> prettyHL e >> nl
+ where
+  ppos
+   | Just sp <- SR.annotOfError e
+   = HL.outputStrLn (replicate (Parsec.sourceColumn sp + 3) ' ' <> "\ESC[34mλλλλ\ESC[0m")
+   | otherwise
+   = return ()
 
 prettyHL :: PP.Pretty a => a -> HL.InputT IO ()
 prettyHL x
