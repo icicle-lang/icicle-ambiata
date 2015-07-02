@@ -42,31 +42,31 @@ context
  where
   context1
    =   pKeyword T.Windowed *> cwindowed
-   <|> pKeyword T.Group    *> (Q.GroupBy  <$> getPosition <*> exp)
-   <|> pKeyword T.Distinct *> (Q.Distinct <$> getPosition <*> exp)
-   <|> pKeyword T.Filter   *> (Q.Filter   <$> getPosition <*> exp)
-   <|> pKeyword T.Latest   *> (Q.Latest   <$> getPosition <*> pLitInt)
+   <|> pKeyword T.Group    *> (flip Q.GroupBy  <$> exp      <*> getPosition)
+   <|> pKeyword T.Distinct *> (flip Q.Distinct <$> exp      <*> getPosition)
+   <|> pKeyword T.Filter   *> (flip Q.Filter   <$> exp      <*> getPosition)
+   <|> pKeyword T.Latest   *> (flip Q.Latest   <$> pLitInt  <*> getPosition)
    <|> pKeyword T.Let      *> (cletfold <|> clet)
 
   cwindowed
    = cwindowed2 <|> cwindowed1
 
   cwindowed1
-   = do p  <- getPosition
-        t1 <- windowUnit
+   = do t1 <- windowUnit
+        p  <- getPosition
         return $ Q.Windowed p t1 Nothing
 
   cwindowed2
-   = do p <- getPosition
-        pKeyword T.Between 
+   = do pKeyword T.Between
+        p <- getPosition
         t1 <- windowUnit
         pKeyword T.And
         t2 <- windowUnit
         return $ Q.Windowed p t2 $ Just t1
 
   clet
-   = do p <- getPosition
-        n <- pVariable                                      <?> "binding name"
+   = do n <- pVariable                                      <?> "binding name"
+        p <- getPosition
         pEq T.TEqual
         x <- exp                                            <?> "let definition expression"
         return $ Q.Let p n x
@@ -92,15 +92,15 @@ exp
                (defix xs)
  where
   -- Get the position before reading the operator
-  op = do p <- getPosition
-          o <- pOperator
+  op = do o <- pOperator
+          p <- getPosition
           return (Right (o,p))
 
 exp1 :: Parser (Q.Exp T.SourcePos Var)
 exp1
- =   (Q.Var     <$> getPosition <*> var)
- <|> (Q.Prim    <$> getPosition <*> prims)
- <|> (simpNested<$> getPosition <*> parens)
+ =   (flip Q.Var     <$> var    <*> getPosition)
+ <|> (flip Q.Prim    <$> prims  <*> getPosition)
+ <|> (flip simpNested<$> parens <*> getPosition)
  <?> "expression"
  where
   var

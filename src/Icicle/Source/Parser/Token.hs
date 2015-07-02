@@ -30,7 +30,6 @@ pTok :: (T.Token -> Maybe a) -> Parser a
 pTok p
  = tokenPrim show pos (p.fst)
  where
-  -- TODO: source positions
   pos _ (_,sp) _ = sp
 
 

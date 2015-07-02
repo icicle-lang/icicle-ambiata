@@ -23,7 +23,7 @@ lexer file inp
 
 lexerString :: Pos.SourceName -> [Char] -> [TOK]
 lexerString file inp
- = let pos  = drop 1 $ L.scanl Pos.updatePosChar (Pos.initialPos file) inp
+ = let pos  = L.scanl Pos.updatePosChar (Pos.initialPos file) inp
        both = inp `L.zip` pos
    in  lexerPositions both
 

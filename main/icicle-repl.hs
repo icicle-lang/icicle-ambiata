@@ -305,7 +305,7 @@ prettyE e
  where
   ppos
    | Just sp <- SR.annotOfError e
-   = HL.outputStrLn (replicate (Parsec.sourceColumn sp + 3) ' ' <> "\ESC[34mλλλλ\ESC[0m")
+   = HL.outputStrLn (replicate (Parsec.sourceColumn sp + 1) ' ' <> "\ESC[34mλλλλ\ESC[0m")
    | otherwise
    = return ()
 
