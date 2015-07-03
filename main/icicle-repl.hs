@@ -74,6 +74,7 @@ runRepl
 data ReplState
    = ReplState
    { facts        :: [AsAt Fact]
+   , currentDate  :: DateTime
    , hasType      :: Bool
    , hasCore      :: Bool
    , hasCoreType  :: Bool
@@ -89,6 +90,7 @@ data Set
    | ShowEval Bool
    | ShowAvalanche Bool
    | ShowFlatten Bool
+   | CurrentDate DateTime
 
 -- | REPL commands
 data Command
@@ -104,7 +106,7 @@ data Command
 
 defaultState :: ReplState
 defaultState
-  = ReplState [] False False False False False True
+  = ReplState [] (dateOfYMD 1970 1 1) False False False False False True
 
 readCommand :: String -> Maybe Command
 readCommand ss = case words ss of
@@ -123,6 +125,13 @@ readCommand ss = case words ss of
   [":set", "-avalanche"]-> Just $ CommandSet $ ShowAvalanche False
   [":set", "+flatten"]  -> Just $ CommandSet $ ShowFlatten True
   [":set", "-flatten"]  -> Just $ CommandSet $ ShowFlatten False
+
+  [":set", "date", y,m,d]
+   | Just y' <- readMaybe y
+   , Just m' <- readMaybe m
+   , Just d' <- readMaybe d
+   -> Just $ CommandSet $ CurrentDate $ dateOfYMD y' m' d'
+
   [":set"]              -> Just $ CommandSetShow
   [":load", f]          -> Just $ CommandLoad f
   ('-':'-':_):_         -> Just $ CommandComment $ ss
@@ -168,6 +177,10 @@ handleLine state line = case readCommand line of
   Just (CommandSet (ShowEval b)) -> do
     HL.outputStrLn $ "ok, eval is now " <> showFlag b
     return $ state { hasEval = b }
+
+  Just (CommandSet (CurrentDate d)) -> do
+    HL.outputStrLn $ "ok, date set to " <> T.unpack (renderDate d)
+    return $ state { currentDate = d }
 
   Just (CommandLoad fp)      -> do
     s  <- liftIO $ T.readFile fp
@@ -215,7 +228,7 @@ handleLine state line = case readCommand line of
        Left  e -> prettyOut hasFlatten "- Flatten error:" e
        Right f -> prettyOut hasFlatten "- Flattened:" f
 
-      case coreEval allTime (facts state) annot core' of
+      case coreEval (currentDate state) (facts state) annot core' of
        Left  e -> prettyOut hasEval "- Result error:" e
        Right r -> prettyOut hasEval "- Result:" r
 
@@ -230,8 +243,6 @@ handleLine state line = case readCommand line of
   where
     -- todo load dictionary
     dict = demographics
-    -- todo let user specify window
-    allTime = dateOfYMD 1970 1 1
 
 --------------------------------------------------------------------------------
 
@@ -328,7 +339,9 @@ showFlag False = "off"
 showState :: ReplState -> HL.InputT IO ()
 showState state
  = mapM_ HL.outputStrLn
-    [ flag "type:      " hasType
+    [      "now:       " <> T.unpack (renderDate $ currentDate state)
+    ,      "data:      " <> show (length $ facts state)
+    , flag "type:      " hasType
     , flag "core:      " hasCore
     , flag "core-type: " hasCoreType
     , flag "eval:      " hasEval
