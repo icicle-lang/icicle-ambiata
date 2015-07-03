@@ -53,6 +53,12 @@ evalPrim p vs
       | otherwise
       -> primError
 
+     PrimArray (PrimArrayMap _ _)
+      | [upd, VBase (VArray as)] <- vs
+      -> (VBase . VArray) <$> mapM (applyBase upd) as
+      | otherwise
+      -> primError
+
      PrimMap (PrimMapInsertOrUpdate _ _)
       | [upd, VBase ins, VBase key, VBase (VMap mm)] <- vs
       -> case Map.lookup key mm of

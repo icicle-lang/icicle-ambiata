@@ -234,6 +234,38 @@ flatX xx stm
        -> lift $ Left $ FlattenErrorPrimBadArgs p xs
 
 
+      -- Map over array: create new empty array, for each element, etc
+      Core.PrimArray (Core.PrimArrayMap ta tb)
+       | [upd, arr]   <- xs
+       -> flatX arr
+       $ \arr'
+       -> do    accN <- fresh
+                let fpArrLen   = XPrim (Flat.PrimProject $ Flat.PrimProjectArrayLength ta)
+                let fpArrIx    = XPrim (Flat.PrimUnsafe  $ Flat.PrimUnsafeArrayIndex   ta)
+                let fpArrNew   = XPrim (Flat.PrimUnsafe  $ Flat.PrimUnsafeArrayCreate  tb)
+                let fpUpdate   = XPrim (Flat.PrimUpdate  $ Flat.PrimUpdateArrayPut     tb)
+
+                stm' <- stm (XVar accN)
+
+                loop <- forI (fpArrLen `XApp` arr')                 $ \iter
+                     -> fmap    (Read accN accN)                    $
+                        slet    (fpArrIx `makeApps` [arr', iter])   $ \elm
+                     -> flatX   (upd `XApp` elm)                    $ \elm'
+                     -> slet    (fpUpdate `makeApps` [XVar accN, elm']) $ \arr''
+                     -> return  (Write accN arr'')
+
+
+                let arrT = ArrayT tb
+                return $ InitAccumulator
+                            (Accumulator accN Mutable arrT (fpArrNew `XApp` (fpArrLen `XApp` arr')))
+                            (loop <> Read accN accN stm')
+
+
+       -- Map with wrong arguments
+       | otherwise
+       -> lift $ Left $ FlattenErrorPrimBadArgs p xs
+
+
   -- Convert arguments to a simple primitive.
   -- conv is what we've already converted
   primApps p [] conv

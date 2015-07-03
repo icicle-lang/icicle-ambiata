@@ -3,6 +3,7 @@
 module Icicle.Core.Exp.Prim (
       Prim   (..)
     , PrimFold (..)
+    , PrimArray(..)
     , PrimMap  (..)
     , typeOfPrim
     ) where
@@ -21,6 +22,8 @@ data Prim
  = PrimMinimal    Min.Prim
  -- | Fold and return type
  | PrimFold     PrimFold ValType
+ -- | Array primitives
+ | PrimArray    PrimArray
  -- | Map primitives
  | PrimMap      PrimMap
  deriving (Eq, Ord, Show)
@@ -32,6 +35,12 @@ data PrimFold
  | PrimFoldOption ValType
  | PrimFoldMap    ValType ValType
  deriving (Eq, Ord, Show)
+
+-- | Array primitives
+data PrimArray
+ = PrimArrayMap ValType ValType
+ deriving (Eq, Ord, Show)
+
 
 -- | Map primitives
 data PrimMap
@@ -59,6 +68,11 @@ typeOfPrim p
     PrimFold (PrimFoldMap k v) ret
      -> FunT [FunT [funOfVal ret, funOfVal k, funOfVal v] ret, funOfVal ret, funOfVal (MapT k v)] ret
 
+    -- Array primitives
+    PrimArray (PrimArrayMap a b)
+     -> FunT [FunT [funOfVal a] b, funOfVal (ArrayT a)] (ArrayT b)
+
+    -- Map primitives
     PrimMap (PrimMapInsertOrUpdate k v)
      -> FunT [FunT [funOfVal v] v, funOfVal v, funOfVal k, funOfVal (MapT k v)] (MapT k v)
 
@@ -83,6 +97,9 @@ instance Pretty Prim where
               PrimFoldMap k v
                -> text "Map_fold#" <+> brackets (pretty k) <+> brackets (pretty v)
     in f' <+> brackets (pretty ret)
+
+ pretty (PrimArray (PrimArrayMap a b))
+  = text "Array_map#" <+> brackets (pretty a) <+> brackets (pretty b)
 
  pretty (PrimMap (PrimMapInsertOrUpdate k v))
   = text "Map_insertOrUpdate#" <+> brackets (pretty k) <+> brackets (pretty v)
