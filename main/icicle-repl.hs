@@ -80,7 +80,8 @@ data ReplState
    , hasCoreType  :: Bool
    , hasAvalanche :: Bool
    , hasFlatten   :: Bool
-   , hasEval      :: Bool }
+   , hasEval      :: Bool
+   , doCoreSimp   :: Bool }
 
 -- | Settable REPL states
 data Set
@@ -91,6 +92,7 @@ data Set
    | ShowAvalanche Bool
    | ShowFlatten Bool
    | CurrentDate DateTime
+   | PerformCoreSimp Bool
 
 -- | REPL commands
 data Command
@@ -106,7 +108,7 @@ data Command
 
 defaultState :: ReplState
 defaultState
-  = ReplState [] (dateOfYMD 1970 1 1) False False False False False True
+  = ReplState [] (dateOfYMD 1970 1 1) False False False False False True False
 
 readCommand :: String -> Maybe Command
 readCommand ss = case words ss of
@@ -119,6 +121,8 @@ readCommand ss = case words ss of
   [":set", "-core"]     -> Just $ CommandSet $ ShowCore False
   [":set", "+core-type"]-> Just $ CommandSet $ ShowCoreType True
   [":set", "-core-type"]-> Just $ CommandSet $ ShowCoreType False
+  [":set", "+core-simp"]-> Just $ CommandSet $ PerformCoreSimp True
+  [":set", "-core-simp"]-> Just $ CommandSet $ PerformCoreSimp False
   [":set", "+eval"]     -> Just $ CommandSet $ ShowEval True
   [":set", "-eval"]     -> Just $ CommandSet $ ShowEval False
   [":set", "+avalanche"]-> Just $ CommandSet $ ShowAvalanche True
@@ -182,6 +186,11 @@ handleLine state line = case readCommand line of
     HL.outputStrLn $ "ok, date set to " <> T.unpack (renderDate d)
     return $ state { currentDate = d }
 
+  Just (CommandSet (PerformCoreSimp b)) -> do
+    HL.outputStrLn $ "ok, core-simp is now " <> showFlag b
+    return $ state { doCoreSimp = b }
+
+
   Just (CommandLoad fp)      -> do
     s  <- liftIO $ T.readFile fp
     case SR.readFacts dict s of
@@ -214,7 +223,10 @@ handleLine state line = case readCommand line of
       prettyOut hasType "- Type:" typ
 
       core      <- hoist $ SR.sourceConvert dict annot
-      let core'  = renameP unVar core
+      let core'  | doCoreSimp state
+                 = renameP unVar $ SR.coreSimp core
+                 | otherwise
+                 = renameP unVar core
 
       prettyOut hasCore "- Core:" core'
 
@@ -344,6 +356,7 @@ showState state
     , flag "type:      " hasType
     , flag "core:      " hasCore
     , flag "core-type: " hasCoreType
+    , flag "core-simp: " doCoreSimp
     , flag "eval:      " hasEval
     , flag "avalanche: " hasAvalanche
     , flag "flatten:   " hasFlatten
@@ -363,6 +376,7 @@ usage
       , ":set  +/-type      -- whether to show the checked expression type"
       , ":set  +/-core      -- whether to show the Core conversion"
       , ":set  +/-core-type -- whether to show the Core conversion's type"
+      , ":set  +/-core-simp -- whether to simplify the result of Core conversion"
       , ":set  +/-eval      -- whether to show the result"
       , ":set  +/-avalanche -- whether to show the Avalanche conversion"
       , ":set  +/-flatten   -- whether to show flattened Avalanche conversion" ]

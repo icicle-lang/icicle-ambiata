@@ -8,6 +8,7 @@ module Icicle.Repl (
   , sourceCheck
   , sourceConvert
   , sourceParseConvert
+  , coreSimp
   , readFacts
   ) where
 
@@ -116,17 +117,11 @@ sourceCheck d q
 
 sourceConvert :: D.Dictionary -> QueryTop'T -> Either ReplError Program'
 sourceConvert d q
- = mapRight (simp.snd)
+ = mapRight snd
  $ mapLeft ReplErrorConvert
- $ Fresh.runFreshT (STC.convertQueryTop d' q) (namer "conv")
+ $ Fresh.runFreshT (STC.convertQueryTop d' q) (freshNamer "conv")
  where
   d' = featureMapOfDictionary d
-
-  namer prefix = Fresh.counterPrefixNameState (SP.Variable . T.pack . show) (SP.Variable prefix)
-
-  simp p
-   = snd
-   $ Fresh.runFresh (Core.simpProgram p) (namer "simp")
 
 
 sourceParseConvert :: T.Text -> Either ReplError Program'
@@ -134,6 +129,17 @@ sourceParseConvert t
  = do   q <- sourceParse t
         (q',_) <- sourceCheck D.demographics q
         sourceConvert D.demographics q'
+
+
+
+coreSimp :: Program' -> Program'
+coreSimp p
+ = snd
+ $ Fresh.runFresh (Core.simpProgram p) (freshNamer "simp")
+
+
+freshNamer :: Text -> Fresh.NameState SP.Variable
+freshNamer prefix = Fresh.counterPrefixNameState (SP.Variable . T.pack . show) (SP.Variable prefix)
 
 
 featureMapOfDictionary :: D.Dictionary -> STC.Features Var
