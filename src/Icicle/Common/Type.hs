@@ -12,6 +12,7 @@
 module Icicle.Common.Type (
       ValType (..)
     , FunType (..)
+    , StructType (..)
     , Type
     , funOfVal
     , arrow
@@ -50,9 +51,16 @@ data ValType =
  | MapT   ValType ValType
  | OptionT        ValType
  | PairT  ValType ValType
+ | StructT StructType
+ | StringT
  -- I don't think it will be too much of a stretch to add more types later.
- -- | Struct | String | Double | ...
+ -- | Double | ...
  deriving (Eq,Ord,Show)
+
+
+data StructType
+ = StructType (Map.Map StructField ValType)
+ deriving (Eq, Ord, Show)
 
 
 -- | Function types.
@@ -157,48 +165,60 @@ requireSame err p q
 
 valueMatchesType :: BaseValue -> ValType -> Bool
 valueMatchesType v t
+ = case (t,v) of
+    (IntT, VInt{})
+     -> True
+    (IntT, _)
+     -> False
 
- | VInt _       <- v
- , IntT         <- t
- = True
+    (UnitT, VUnit{})
+     -> True
+    (UnitT, _)
+     -> False
 
- | VUnit        <- v
- , UnitT        <- t
- = True
+    (BoolT, VBool{})
+     -> True
+    (BoolT, _)
+     -> False
 
- | VBool _      <- v
- , BoolT        <- t
- = True
+    (DateTimeT, VDateTime{})
+     -> True
+    (DateTimeT, _)
+     -> False
 
- | VDateTime _  <- v
- , DateTimeT    <- t
- = True
+    (StringT, VString _)
+     -> True
+    (StringT, _)
+     -> False
 
- | VArray vs    <- v
- , ArrayT t'    <- t
- = all (flip valueMatchesType t') vs
+    (ArrayT t', VArray vs')
+     -> all (flip valueMatchesType t') vs'
+    (ArrayT _, _)
+     -> False
 
- | VPair a b    <- v
- , PairT p q    <- t
- =  valueMatchesType a p
- && valueMatchesType b q
+    (PairT p q, VPair a b)
+     -> valueMatchesType a p && valueMatchesType b q
+    (PairT _ _, _)
+     -> False
 
- | VSome a      <- v
- , OptionT p    <- t
- =  valueMatchesType a p
+    (OptionT p, VSome a)
+     -> valueMatchesType a p
+    (OptionT _, VNone)
+     -> True
+    (OptionT _, _)
+     -> False
 
- | VNone        <- v
- , OptionT _    <- t
- = True
+    (MapT p q, VMap mv)
+     -> all (flip valueMatchesType p) (Map.keys  mv)
+     && all (flip valueMatchesType q) (Map.elems mv)
+    (MapT _ _, _)
+     -> False
 
- | VMap mv      <- v
- , MapT p q     <- t
- =  all (flip valueMatchesType p) (Map.keys  mv)
- && all (flip valueMatchesType q) (Map.elems mv)
-
- | otherwise
- = False
-
+    (StructT (StructType ts), VStruct vs)
+     -> all (\(f,t') -> maybe False (flip valueMatchesType t') $ Map.lookup f vs) (Map.toList ts)
+     && all (\(f,v') -> maybe False (     valueMatchesType v') $ Map.lookup f ts) (Map.toList vs)
+    (StructT _, _)
+     -> False
 
 
 -- Pretty printing ---------------
@@ -208,10 +228,13 @@ instance Pretty ValType where
  pretty UnitT           = text "Unit"
  pretty BoolT           = text "Bool"
  pretty DateTimeT       = text "DateTime"
+ pretty StringT         = text "String"
  pretty (ArrayT t)      = text "Array " <> pretty t
  pretty (MapT k v)      = text "Map" <+> pretty k <+> pretty v
  pretty (OptionT a)     = text "Option" <+> pretty a
  pretty (PairT a b)     = text "(" <> pretty a <> text ", " <> pretty b <> text ")"
+ pretty (StructT (StructType fs))
+                        = text "Struct" <+> pretty (Map.toList fs)
 
 
 instance Pretty FunType where

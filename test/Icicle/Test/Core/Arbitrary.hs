@@ -114,12 +114,22 @@ instance Arbitrary ValType where
          [ IntT
          , UnitT
          , BoolT
-         , DateTimeT ]
+         , DateTimeT
+         , StringT ]
          [ ArrayT <$> arbitrary
          , PairT  <$> arbitrary <*> arbitrary
          , MapT  <$> arbitrary <*> arbitrary
          , OptionT <$> arbitrary
+         , StructT <$> arbitrary
          ]
+
+instance Arbitrary StructType where
+  arbitrary =
+   StructType <$> arbitrary
+
+instance Arbitrary StructField where
+  arbitrary =
+   StructField <$> elements colours
 
 instance Arbitrary FunType where
   arbitrary =
@@ -410,6 +420,12 @@ baseValueForType t
      -> smaller
        (VMap . Map.fromList
      <$> listOf ((,) <$> baseValueForType k <*> baseValueForType v))
+
+    StringT
+     -> VString <$> arbitrary
+    StructT (StructType fs)
+     -> smaller
+      (VStruct <$> traverse baseValueForType fs)
 
 
 inputsForType :: ValType -> Gen ([AsAt (BubbleGumFact, BaseValue)], DateTime)
