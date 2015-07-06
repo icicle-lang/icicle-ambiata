@@ -251,7 +251,7 @@ flatX xx stm
                      -> fmap    (Read accN accN)                    $
                         slet    (fpArrIx `makeApps` [arr', iter])   $ \elm
                      -> flatX   (upd `XApp` elm)                    $ \elm'
-                     -> slet    (fpUpdate `makeApps` [XVar accN, elm']) $ \arr''
+                     -> slet    (fpUpdate `makeApps` [XVar accN, iter, elm']) $ \arr''
                      -> return  (Write accN arr'')
 
 
