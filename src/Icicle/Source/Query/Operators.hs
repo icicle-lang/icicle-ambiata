@@ -33,6 +33,8 @@ data Op
  | Ge
  | Eq
  | Ne
+
+ | TupleComma
  deriving (Show, Eq, Ord)
 
 data Fixity
@@ -66,6 +68,9 @@ fixity o
     Eq  -> FInfix $ Infix AssocLeft 4
     Ne  -> FInfix $ Infix AssocLeft 4
 
+    TupleComma
+        -> FInfix $ Infix AssocLeft 0
+
 
 data OpsOfSymbol
  = OpsOfSymbol
@@ -88,6 +93,9 @@ symbol s
     "<="-> inf Le
     "=="-> inf Eq
     "/="-> inf Ne
+
+
+    "," -> inf TupleComma
 
     _   -> OpsOfSymbol  Nothing    Nothing
  where
@@ -124,4 +132,6 @@ instance Pretty Op where
  pretty Ge  = ">="
  pretty Eq  = "=="
  pretty Ne  = "/="
+
+ pretty TupleComma  = ","
 

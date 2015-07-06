@@ -296,6 +296,8 @@ checkP x p args
      -> unary
      | Div <- o
      -> binary Possibly o
+     | TupleComma <- o
+     -> tuple
      | otherwise
      -> binary Definitely o
 
@@ -346,6 +348,13 @@ checkP x p args
    , poss'  <- maxOfPossibility (universePossibility u) poss
    , not $ isGroup u
    = return ((), UniverseType (u { universePossibility = poss'}) $ returnType o)
+   | otherwise
+   = err
+
+  tuple
+   | [a,b] <- args
+   , Just u <- maxOf (universe a) (universe b)
+   = return ((), UniverseType u $ T.PairT (baseType a) (baseType b))
    | otherwise
    = err
 
