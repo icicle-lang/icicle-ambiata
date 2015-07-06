@@ -212,7 +212,8 @@ checkQ ctx_top q
                       [Suggest "The predicate for a filter must be a boolean"]
 
   expIsEnum ann c te
-   = when (not $ isEnum $ baseType te)
+  -- TODO: disabled; strings should be allowed
+   = when (False && (not $ isEnum $ baseType te))
          $ errorSuggestions (ErrorContextExpNotEnum ann c te)
                             [Suggest "Group-by and distinct-by must be bounded; otherwise we'd run out of memory"]
 
