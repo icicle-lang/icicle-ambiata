@@ -90,6 +90,7 @@ instance Arbitrary PM.Prim where
           , PM.PrimConst . PM.PrimConstSome <$> arbitrary
           , PM.PrimPair <$> (PM.PrimPairFst <$> arbitrary <*> arbitrary)
           , PM.PrimPair <$> (PM.PrimPairSnd <$> arbitrary <*> arbitrary)
+          , PM.PrimStruct <$> (PM.PrimStructGet <$> arbitrary <*> arbitrary <*> arbitrary)
           ]
 
 instance Arbitrary Prim where
@@ -104,6 +105,7 @@ instance Arbitrary Prim where
 
           , PrimMap <$> (PrimMapInsertOrUpdate <$> arbitrary <*> arbitrary)
           , PrimMap <$> (PrimMapMapValues      <$> arbitrary <*> arbitrary <*> arbitrary)
+          , PrimArray <$> (PrimArrayMap      <$> arbitrary <*> arbitrary)
           ]
           
 instance Arbitrary ValType where

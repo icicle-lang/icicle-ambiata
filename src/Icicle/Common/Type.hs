@@ -13,6 +13,7 @@ module Icicle.Common.Type (
       ValType (..)
     , FunType (..)
     , StructType (..)
+    , StructField (..)
     , Type
     , funOfVal
     , arrow
@@ -233,9 +234,10 @@ instance Pretty ValType where
  pretty (MapT k v)      = text "Map" <+> pretty k <+> pretty v
  pretty (OptionT a)     = text "Option" <+> pretty a
  pretty (PairT a b)     = text "(" <> pretty a <> text ", " <> pretty b <> text ")"
- pretty (StructT (StructType fs))
-                        = text "Struct" <+> pretty (Map.toList fs)
+ pretty (StructT fs)    = pretty fs
 
+instance Pretty StructType where
+ pretty (StructType fs) = text "Struct" <+> pretty (Map.toList fs)
 
 instance Pretty FunType where
  pretty (FunT [] t)     = pretty t
