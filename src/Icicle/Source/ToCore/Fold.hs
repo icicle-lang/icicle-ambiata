@@ -140,11 +140,11 @@ convertFold q
             v'  <- convertFreshenLookup ann v
             let ut    = T.UnitT
             let unit = CE.XValue ut VUnit
-            
+
             let k    = CE.XLam n'x ut $ unit
             let z    = unit
             let x    = CE.XLam n'x ut $ CE.XVar $ v'
-            
+
             return (k, z, x, (snd $ annotOfExp $ final q) { baseType = ut })
 
      -- It must be a non-primitive application
@@ -175,8 +175,37 @@ convertFold q
     (Distinct (ann,_) _ : _)
      -> errNotAllowed ann
     -- TODO: let and letfold should probably be allowed
-    (Let (ann,_) _ _ : _)
-     -> errNotAllowed ann
+    (Let _ b def : _)
+     -> do  (kb, zb, xb, tb) <- convertFold (Query [] def)
+            b' <- convertFreshenAdd b
+            (kq, zq, xq, tq) <- convertFold q'
+            let t' = tq { baseType = T.PairT (baseType tb) (baseType tq) }
+
+            let mkPair x y
+                   = CE.XPrim
+                   (C.PrimMinimal $ Min.PrimConst $ Min.PrimConstPair (baseType tb) (baseType tq))
+                     CE.@~ x CE.@~ y
+            let xproj which x
+                   = CE.XPrim
+                   (C.PrimMinimal $ Min.PrimPair $ which (baseType tb) (baseType tq))
+                     CE.@~ x
+            let xfst = xproj Min.PrimPairFst
+            let xsnd = xproj Min.PrimPairSnd
+
+            n' <- lift fresh
+
+            let k' = CE.XLam n' (baseType t')
+                   $ CE.XLet b' (kb CE.@~ xfst (CE.XVar n'))
+                   $ mkPair (CE.XVar b') (kq CE.@~ xsnd (CE.XVar n'))
+
+            let z' = CE.XLet b' zb (mkPair (CE.XVar b') zq)
+
+            let x' = CE.XLam n' (baseType t')
+                   $ CE.XLet b' (xb CE.@~ xfst (CE.XVar n'))
+                                (xq CE.@~ xsnd (CE.XVar n'))
+
+            return (k', z', x', t')
+
     (LetFold (ann,_) _ : _)
      -> errNotAllowed ann
 
