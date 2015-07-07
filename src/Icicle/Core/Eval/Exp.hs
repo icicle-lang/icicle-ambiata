@@ -71,6 +71,21 @@ evalPrim p vs
       | otherwise
       -> primError
 
+     PrimMap (PrimMapInsertOrUpdateOption _ _)
+      | [upd, VBase ins, VBase key, VBase (VMap mm)] <- vs
+      -> case Map.lookup key mm of
+          Nothing
+           -> return $ VBase $ VMap $ Map.insert key ins mm
+          Just v
+           -> do    v' <- applyBase upd v
+                    case v' of
+                     VNone      -> return $ VBase $ VNone
+                     VSome v''  -> return $ VBase $ VSome $ VMap $ Map.insert key v'' mm
+                     _          -> primError
+
+      | otherwise
+      -> primError
+
      PrimMap (PrimMapMapValues _ _ _)
       | [upd, VBase (VMap mm)] <- vs
       -> (VBase . VMap) <$> mapM (applyBase upd) mm

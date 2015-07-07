@@ -244,7 +244,7 @@ convertQuery q
             insertOrUpdate
                <- applyPossibles (CE.XPrim $ C.PrimMap $ C.PrimMapInsertOrUpdate t1 tV')
                      (definitelyUT maput)
-                     [ (k, tV)
+                     [ (k, definitelyUT tV)
                      , (z1, tV)
                      , (e', snd $ annotOfExp e)
                      , (CE.XVar nmap, maput) ]

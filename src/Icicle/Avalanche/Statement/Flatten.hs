@@ -201,6 +201,46 @@ flatX xx stm
        | otherwise
        -> lift $ Left $ FlattenErrorPrimBadArgs p xs
 
+      -- Option Map: insert value into map, or if key already exists,
+      -- apply update function to existing value.
+      -- if update function returns None, return None.
+      Core.PrimMap (Core.PrimMapInsertOrUpdateOption tk tv)
+       | [upd, ins, key, map]   <- xs
+       -> flatX key
+       $ \key'
+       -> flatX map
+       $ \map'
+       -> let fpLookup    = XPrim (Flat.PrimProject (Flat.PrimProjectMapLookup tk tv))
+              fpIsSome    = XPrim (Flat.PrimProject (Flat.PrimProjectOptionIsSome tv))
+              fpOptionGet = XPrim (Flat.PrimUnsafe (Flat.PrimUnsafeOptionGet tv))
+              fpUpdate    = XPrim (Flat.PrimUpdate (Flat.PrimUpdateMapPut tk tv))
+
+              fpNoneMap   = XValue (OptionT $ MapT tk tv) VNone
+              fpSomeMap   = XPrim (Flat.PrimMinimal $ Min.PrimConst $ Min.PrimConstSome $ MapT tk tv)
+
+              update val
+                     =  slet    (fpOptionGet `XApp` val)                $ \val'
+                     -> flatX   (upd `XApp` val')                       $ \upd'
+                     -> slet    (upd')                                  $ \upd''
+                     -> If      (fpIsSome `XApp` upd'')
+                         <$> (slet    (makeApps fpUpdate [map', key', fpOptionGet `XApp` upd''])  $ \map''
+                              -> stm (fpSomeMap `XApp` map''))
+                         <*> stm fpNoneMap
+
+              insert
+                     =  flatX   ins                                     $ \ins'
+                     -> slet    (makeApps fpUpdate [map', key', ins'])  $ \map''
+                     -> stm (fpSomeMap `XApp` map'')
+
+         in slet (makeApps fpLookup [map', key'])                       $ \val
+         ->  If (fpIsSome `XApp` val)
+                <$> update val
+                <*> insert
+
+       -- Map with wrong arguments
+       | otherwise
+       -> lift $ Left $ FlattenErrorPrimBadArgs p xs
+
       -- Map: create new empty map, for each element, etc
       Core.PrimMap (Core.PrimMapMapValues tk tv tv')
        | [upd, map]   <- xs
