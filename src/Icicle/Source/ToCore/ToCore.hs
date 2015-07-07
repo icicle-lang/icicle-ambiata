@@ -241,11 +241,22 @@ convertQuery q
             z1 <- applyPossibles k
                     (definitelyUT tV)
                      [(z, tV)]
+
+            let priminsert
+                    | Possibly <- universePossibility $ universe $ snd $ annotOfQuery q'
+                    = C.PrimMapInsertOrUpdateOption t1 tV'
+                    | otherwise
+                    = C.PrimMapInsertOrUpdate t1 tV'
+            let maput'
+                    | Possibly <- universePossibility $ universe $ snd $ annotOfQuery q'
+                    = maput
+                    | otherwise
+                    = definitelyUT maput
+
             insertOrUpdate
-               <- applyPossibles (CE.XPrim $ C.PrimMap $ C.PrimMapInsertOrUpdate t1 tV')
-                     (definitelyUT maput)
-                     [ (k, definitelyUT tV)
-                     , (z1, tV)
+               <- applyPossibles ((CE.XPrim $ C.PrimMap $ priminsert) CE.@~ k)
+                     maput'
+                     [ (z1, tV)
                      , (e', snd $ annotOfExp e)
                      , (CE.XVar nmap, maput) ]
 
