@@ -41,7 +41,8 @@ instance (Pretty n, Pretty p) => Pretty (ExpError n p) where
      -> text "Variable not bound: " <> pretty n
     ExpErrorApp fun arg funt argt
      ->  text "Application error:"
-     <+> indent 0 ( text "Fun: " <> pretty fun              <> line
+     <> line
+     <>  indent 2 ( text "Fun: " <> pretty fun              <> line
                  <> text "With type: " <> pretty funt       <> line
                  <> text "Arg: " <> pretty arg              <> line
                  <> text "With type: " <> pretty argt       <> line)

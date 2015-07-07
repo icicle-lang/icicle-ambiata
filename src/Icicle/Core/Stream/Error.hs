@@ -27,11 +27,13 @@ instance (Pretty n) => Pretty (StreamError n) where
 
     StreamErrorExp err
      ->  text "Worker function type error: "
-     <+> indent 4 (pretty err)
+     <> line
+     <> indent 4 (pretty err)
 
     StreamErrorTypeError x t y
      ->  text "Worker function type mismatch:"
-     <+> indent 4 (text "Exp:      " <> pretty x <> line
+     <> line
+     <>  indent 4 (text "Exp:      " <> pretty x <> line
                 <> text "Expected: " <> pretty t <> line
                 <> text "Actual:   " <> pretty y)
 
