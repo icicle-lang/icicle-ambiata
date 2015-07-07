@@ -231,7 +231,7 @@ handleLine state line = case readCommand line of
       prettyOut hasCore "- Core:" core'
 
       case CP.checkProgram core' of
-       Left  e -> prettyOut hasCoreType "- Core type error:" e
+       Left  e -> prettyOut (const True) "- Core type error:" e
        Right t -> prettyOut hasCoreType "- Core type:" t
 
       prettyOut hasAvalanche "- Avalanche:" (coreAvalanche core')
