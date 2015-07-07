@@ -220,7 +220,16 @@ convertQuery q
 
             let mapt = T.MapT t1 tV'
 
+            let mapt'opt
+                     | Possibly <- universePossibility $ universe $ retty
+                     = T.OptionT $ mapt
+                     | otherwise
+                     = mapt
+
+            let maput = retty { baseType = mapt }
+
             (inpstream, inpty) <- convertInput
+
             -- For each input element, we use the group by as the key, and insert into a map.
             --
             -- If the map already has the key, we perform the "k" on the current element
@@ -229,29 +238,44 @@ convertQuery q
             -- If the map doesn't have the key, we insert the "k" of the current element
             -- with the zero accumulator.
             -- This is because the map doesn't start with "zero"s in it, unlike a normal fold.
-            let insertOrUpdate
-                  = beta
-                  $ CE.XLam nmap mapt
-                  $ CE.XLam nval inpty
-                  ( CE.XPrim (C.PrimMap $ C.PrimMapInsertOrUpdate t1 tV')
-                    CE.@~  k
-                    CE.@~ (k CE.@~ z)
-                    CE.@~  e'
-                    CE.@~ CE.XVar nmap )
+            z1 <- applyPossibles k
+                    (definitelyUT tV)
+                     [(z, tV)]
+            insertOrUpdate
+               <- applyPossibles (CE.XPrim $ C.PrimMap $ C.PrimMapInsertOrUpdate t1 tV')
+                     (definitelyUT maput)
+                     [ (k, tV)
+                     , (z1, tV)
+                     , (e', snd $ annotOfExp e)
+                     , (CE.XVar nmap, maput) ]
+
+            let insertOrUpdate'
+                    = beta
+                    $ CE.XLam nmap mapt'opt
+                    $ CE.XLam nval inpty
+                    $ insertOrUpdate
+
+            let emptyMap
+                    | Possibly <- universePossibility $ universe $ retty
+                    = CE.some mapt $ CE.emptyMap t1 tV'
+                    | otherwise
+                    = CE.emptyMap t1 tV'
 
             -- Perform the map fold
             let r = red n' 
-                  $ C.RFold inpty mapt insertOrUpdate 
-                  ( CE.emptyMap t1 tV')
-                    inpstream
+                  $ C.RFold inpty mapt'opt insertOrUpdate' emptyMap inpstream
 
             -- After all the elements have been seen, we go through the map and perform
             -- the "extract" on each value.
             -- This performs any fixups that couldn't be performed during the fold.
+            mapResult
+               <- applyPossibles
+                    (CE.XPrim (C.PrimMap $ C.PrimMapMapValues t1 tV' t2) CE.@~ beta x)
+                    (definitelyUT maput)
+                    [ (CE.XVar n', maput) ]
+
             let p = post n''
-                  ( CE.XPrim
-                        (C.PrimMap $ C.PrimMapMapValues t1 tV' t2)
-                    CE.@~ beta x CE.@~ CE.XVar n' )
+                  mapResult
 
             return (r <> p, n'')
 

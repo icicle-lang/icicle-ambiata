@@ -24,6 +24,7 @@ module Icicle.Source.ToCore.Base (
   , convertWindowUnits
   , baseTypeOrOption
   , applyPossibles
+  , mapOptionLam
   ) where
 
 import qualified        Icicle.Core             as C
@@ -281,7 +282,7 @@ applyPossibles f returns xts
                  [ fun, none, x ]
 
         return wrap
-   
+
    -- Simple case, it isn't a possible so we just apply the function
    | otherwise
    = go xts' (args <> [x]) anyPossibles
@@ -290,7 +291,28 @@ applyPossibles f returns xts
   mkSome x
    = X.XPrim (C.PrimMinimal $ Min.PrimConst $ Min.PrimConstSome $ baseType returns)
     `X.XApp`  x
-        
+
+-- | Possible
+--
+mapOptionLam
+ :: ValType -> ValType -> (C.Exp n -> C.Exp n)
+ -> ConvertM a n (C.Exp n)
+
+mapOptionLam (T.OptionT t) ret x
+ = do   n   <- lift fresh
+        n's <- lift fresh
+        return (X.XLam n (T.OptionT t)
+               $ X.makeApps
+                    (X.XPrim $ C.PrimFold (C.PrimFoldOption t) ret)
+                    [ X.XLam n's t $ x $ X.XVar n's
+                    , X.XValue (T.OptionT t) VNone
+                    , X.XVar n ]
+               )
+
+mapOptionLam t _ x
+ = do   n <- lift fresh
+        return (X.XLam n t $ x $ X.XVar n)
+
 
 -- | These errors should only occur if
 --   - there is a bug in the conversion (there is)

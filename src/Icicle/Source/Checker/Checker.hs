@@ -114,10 +114,13 @@ checkQ ctx_top q
                         case universeTemporality $ universe t' of
                          AggU -> return ()
                          Pure -> return ()
-                         Elem    -> groupError "Elements are not allowed as this could create very structures"
+                         Elem    -> groupError "Elements are not allowed as this could create very large structures"
                          Group _ -> groupError "Nested groups are not supported"
 
-                        let t'' = t' { universe = (Universe (Group $ baseType te) Definitely) }
+                        let poss = maxOfPossibility
+                                    (universePossibility $ universe te)
+                                    (universePossibility $ universe t')
+                        let t'' = t' { universe = (Universe (Group $ baseType te) poss) }
                         let c' = GroupBy (ann, t'') e'
                         return (wrap c' q'', t'')
 
