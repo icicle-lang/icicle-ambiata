@@ -212,21 +212,16 @@ convertQuery q
             (k,z,x,tV)
                     <- convertWithInputName nval $ convertFold q'
 
-            let tV'  = baseType tV
+            let tV'  = baseTypeOrOption tV
+            let t1'  = baseTypeOrOption ((snd $ annotOfExp e) { baseType = t1 })
+            let t2'  = baseTypeOrOption (tV                   { baseType = t2 })
 
             -- Convert the "by" to a simple expression.
             -- This becomes the map insertion key.
             e'      <- convertWithInputName nval $ convertExp e
 
-            let mapt = T.MapT t1 tV'
+            let mapt = T.MapT t1' tV'
 
-            let mapt'opt
-                     | Possibly <- universePossibility $ universe $ retty
-                     = T.OptionT $ mapt
-                     | otherwise
-                     = mapt
-
-            let maput = retty { baseType = mapt }
 
             (inpstream, inpty) <- convertInput
 
@@ -243,50 +238,44 @@ convertQuery q
                      [(z, tV)]
 
             let priminsert
-                    | Possibly <- universePossibility $ universe $ snd $ annotOfQuery q'
-                    = C.PrimMapInsertOrUpdateOption t1 tV'
-                    | otherwise
-                    = C.PrimMapInsertOrUpdate t1 tV'
-            let maput'
-                    | Possibly <- universePossibility $ universe $ snd $ annotOfQuery q'
-                    = maput
-                    | otherwise
-                    = definitelyUT maput
+                    = C.PrimMapInsertOrUpdate t1' tV'
 
-            insertOrUpdate
-               <- applyPossibles ((CE.XPrim $ C.PrimMap $ priminsert) CE.@~ k)
-                     maput'
-                     [ (z1, tV)
-                     , (e', snd $ annotOfExp e)
-                     , (CE.XVar nmap, maput) ]
+            let insertOrUpdate
+                    = CE.makeApps (CE.XPrim $ C.PrimMap $ priminsert)
+                    [ k
+                    , z1
+                    , e'
+                    , CE.XVar nmap]
 
             let insertOrUpdate'
                     = beta
-                    $ CE.XLam nmap mapt'opt
+                    $ CE.XLam nmap mapt
                     $ CE.XLam nval inpty
                     $ insertOrUpdate
 
             let emptyMap
-                    | Possibly <- universePossibility $ universe $ retty
-                    = CE.some mapt $ CE.emptyMap t1 tV'
-                    | otherwise
-                    = CE.emptyMap t1 tV'
+                    = CE.emptyMap t1' tV'
 
             -- Perform the map fold
             let r = red n' 
-                  $ C.RFold inpty mapt'opt insertOrUpdate' emptyMap inpstream
+                  $ C.RFold inpty mapt insertOrUpdate' emptyMap inpstream
 
             -- After all the elements have been seen, we go through the map and perform
             -- the "extract" on each value.
             -- This performs any fixups that couldn't be performed during the fold.
-            mapResult
-               <- applyPossibles
-                    (CE.XPrim (C.PrimMap $ C.PrimMapMapValues t1 tV' t2) CE.@~ beta x)
-                    (definitelyUT maput)
-                    [ (CE.XVar n', maput) ]
 
-            let p = post n''
-                  mapResult
+            let mapResult
+                    = CE.XPrim (C.PrimMap $ C.PrimMapMapValues t1' tV' t2)
+                    CE.@~ beta x
+                    CE.@~ CE.XVar n'
+
+            let traversed
+                    | Possibly <- universePossibility $ universe retty
+                    = CE.XPrim (C.PrimTraverse $ C.PrimTraverseByType $ T.MapT t1' t2') CE.@~ mapResult
+                    | otherwise
+                    = mapResult
+
+            let p   = post n'' traversed
 
             return (r <> p, n'')
 

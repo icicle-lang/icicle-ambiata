@@ -32,6 +32,7 @@ data FlattenError n
  = FlattenErrorApplicationNonPrimitive (Exp n Core.Prim)
  | FlattenErrorBareLambda (Exp n Core.Prim)
  | FlattenErrorPrimBadArgs Core.Prim [Exp n Core.Prim]
+ | FlattenErrorSorryTraverseTODO
  deriving (Eq, Ord, Show)
 
 type FlatM n
@@ -305,6 +306,9 @@ flatX xx stm
        | otherwise
        -> lift $ Left $ FlattenErrorPrimBadArgs p xs
 
+      -- Traverse is TODO
+      Core.PrimTraverse (Core.PrimTraverseByType _)
+       -> lift $ Left $ FlattenErrorSorryTraverseTODO
 
   -- Convert arguments to a simple primitive.
   -- conv is what we've already converted

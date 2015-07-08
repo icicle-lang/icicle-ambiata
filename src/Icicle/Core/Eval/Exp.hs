@@ -92,6 +92,14 @@ evalPrim p vs
       | otherwise
       -> primError
 
+
+     PrimTraverse (PrimTraverseByType _)
+      | [VBase v] <- vs
+      -> return $ VBase $ maybe VNone VSome $ primTraverse v
+      | otherwise
+      -> primError
+
+
  where
   applies' = applies evalPrim
 
@@ -103,4 +111,25 @@ evalPrim p vs
 
   primError
    = Left $ RuntimeErrorPrimBadArgs p vs
+
+  primTraverse vv
+   = case vv of
+      VNone -> Nothing
+      VSome v -> primTraverse v
+      VArray ms -> VArray <$> mapM primTraverse ms
+      VPair a b -> VPair <$> primTraverse a <*> primTraverse b
+
+      VMap ms   -> VMap . Map.fromList
+                <$> mapM (\(k,v) -> (,) <$> primTraverse k <*> primTraverse v)
+                  (Map.toList ms)
+
+      VStruct ms-> VStruct . Map.fromList
+                <$> mapM (\(k,v) -> (,) k <$> primTraverse v)
+                  (Map.toList ms)
+
+      VInt{}        -> Just vv
+      VUnit         -> Just vv
+      VBool{}       -> Just vv
+      VDateTime{}   -> Just vv
+      VString{}     -> Just vv
 

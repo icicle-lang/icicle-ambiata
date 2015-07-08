@@ -1,10 +1,11 @@
 -- | Primitive functions, constant values and so on
 {-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Core.Exp.Prim (
-      Prim   (..)
-    , PrimFold (..)
-    , PrimArray(..)
-    , PrimMap  (..)
+      Prim          (..)
+    , PrimFold      (..)
+    , PrimArray     (..)
+    , PrimMap       (..)
+    , PrimTraverse  (..)
     , typeOfPrim
     ) where
 
@@ -26,7 +27,10 @@ data Prim
  | PrimArray    PrimArray
  -- | Map primitives
  | PrimMap      PrimMap
+ -- | Converting nested Options to outer Options
+ | PrimTraverse PrimTraverse
  deriving (Eq, Ord, Show)
+
 
 -- | Folds and destructing things
 data PrimFold
@@ -35,6 +39,7 @@ data PrimFold
  | PrimFoldOption ValType
  | PrimFoldMap    ValType ValType
  deriving (Eq, Ord, Show)
+
 
 -- | Array primitives
 data PrimArray
@@ -49,6 +54,48 @@ data PrimMap
  | PrimMapMapValues ValType ValType ValType
  deriving (Eq, Ord, Show)
 
+
+-- | Converting nested Options to outer Options
+data PrimTraverse
+ = PrimTraverseByType ValType
+ deriving (Eq, Ord, Show)
+
+-- | Pull out all Options from a type.
+-- If there are no Options, return Nothing.
+-- If there are Options, return the type with options filtered out.
+-- TODO: we should probably have a separate "Error" type than Option.
+extractOption :: ValType -> Maybe ValType
+extractOption t
+ = case t of
+    IntT        -> Nothing
+    UnitT       -> Nothing
+    BoolT       -> Nothing
+    DateTimeT   -> Nothing
+    StringT     -> Nothing
+    -- TODO: this may be necessary after adding updates
+    StructT _   -> Nothing
+
+    ArrayT s
+     -> ArrayT <$> extractOption s
+
+    OptionT s
+     -> case extractOption s of
+         Nothing -> Just s
+         Just s' -> Just s'
+
+    MapT k v
+     -> case (extractOption k, extractOption v) of
+         (Just k', Just v') -> Just (MapT k' v')
+         (Just k', Nothing) -> Just (MapT k' v )
+         (Nothing, Just v') -> Just (MapT k  v')
+         (Nothing, Nothing) -> Nothing
+
+    PairT k v
+     -> case (extractOption k, extractOption v) of
+         (Just k', Just v') -> Just (PairT k' v')
+         (Just k', Nothing) -> Just (PairT k' v )
+         (Nothing, Just v') -> Just (PairT k  v')
+         (Nothing, Nothing) -> Nothing
 
 
 -- | A primitive always has a well-defined type
@@ -83,6 +130,9 @@ typeOfPrim p
     PrimMap (PrimMapMapValues k v v')
      -> FunT [FunT [funOfVal v] v', funOfVal (MapT k v)] (MapT k v')
 
+    PrimTraverse (PrimTraverseByType t)
+     -> FunT [funOfVal t] $ OptionT $ maybe t id $ extractOption t
+
 
 
 -- Pretty -------------
@@ -113,4 +163,7 @@ instance Pretty Prim where
 
  pretty (PrimMap (PrimMapMapValues k v v'))
   = text "Map_mapValues#" <+> brackets (pretty k) <+> brackets (pretty v) <+> brackets (pretty v')
+
+ pretty (PrimTraverse (PrimTraverseByType t))
+  = text "traverse#" <+> brackets (pretty t)
 
