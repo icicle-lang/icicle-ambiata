@@ -19,6 +19,7 @@ import qualified Icicle.Core.Eval.Exp           as CE
 import           P
 
 import qualified Data.Map                       as Map
+import qualified Data.Set                       as Set
 
 
 -- | Core Simplifier:
@@ -51,6 +52,9 @@ simpX isValue = go
         -> XLam n t (go x1)
 
       XLet n x1 x2
+        | not $ n `Set.member` freevars x2
+        -> go x2
+        | otherwise
         -> XLet n (go x1) (go x2)
 
       b@(XVar{})   -> b
