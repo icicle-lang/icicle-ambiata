@@ -98,7 +98,7 @@ data Set
 data Command
    = CommandBlank
    | CommandHelp
-   | CommandSet  Set
+   | CommandSet  [Set]
    | CommandLoad FilePath
    -- It's rather odd to have comments in a REPL.
    -- However, I want these printed out in the test output
@@ -115,32 +115,47 @@ readCommand ss = case words ss of
   []                    -> Just CommandBlank
   ":h":_                -> Just CommandHelp
   ":help":_             -> Just CommandHelp
-  [":set", "+type"]     -> Just $ CommandSet $ ShowType True
-  [":set", "-type"]     -> Just $ CommandSet $ ShowType False
-  [":set", "+core"]     -> Just $ CommandSet $ ShowCore True
-  [":set", "-core"]     -> Just $ CommandSet $ ShowCore False
-  [":set", "+core-type"]-> Just $ CommandSet $ ShowCoreType True
-  [":set", "-core-type"]-> Just $ CommandSet $ ShowCoreType False
-  [":set", "+core-simp"]-> Just $ CommandSet $ PerformCoreSimp True
-  [":set", "-core-simp"]-> Just $ CommandSet $ PerformCoreSimp False
-  [":set", "+eval"]     -> Just $ CommandSet $ ShowEval True
-  [":set", "-eval"]     -> Just $ CommandSet $ ShowEval False
-  [":set", "+avalanche"]-> Just $ CommandSet $ ShowAvalanche True
-  [":set", "-avalanche"]-> Just $ CommandSet $ ShowAvalanche False
-  [":set", "+flatten"]  -> Just $ CommandSet $ ShowFlatten True
-  [":set", "-flatten"]  -> Just $ CommandSet $ ShowFlatten False
-
-  [":set", "date", y,m,d]
-   | Just y' <- readMaybe y
-   , Just m' <- readMaybe m
-   , Just d' <- readMaybe d
-   -> Just $ CommandSet $ CurrentDate $ dateOfYMD y' m' d'
 
   [":set"]              -> Just $ CommandSetShow
+  (":set":rest)         -> CommandSet <$> readSetCommands rest
   [":load", f]          -> Just $ CommandLoad f
   ('-':'-':_):_         -> Just $ CommandComment $ ss
   (':':_):_             -> Just $ CommandUnknown $ ss
   _                     -> Nothing
+
+readSetCommands :: [String] -> Maybe [Set]
+readSetCommands ss
+ = case ss of
+    ("+type":rest)      -> (:) (ShowType True)        <$> readSetCommands rest
+    ("-type":rest)      -> (:) (ShowType False)       <$> readSetCommands rest
+
+    ("+core":rest)      -> (:) (ShowCore True)        <$> readSetCommands rest
+    ("-core":rest)      -> (:) (ShowCore False)       <$> readSetCommands rest
+
+    ("+core-type":rest) -> (:) (ShowCoreType True)    <$> readSetCommands rest
+    ("-core-type":rest) -> (:) (ShowCoreType False)   <$> readSetCommands rest
+
+    ("+core-simp":rest) -> (:) (PerformCoreSimp True) <$> readSetCommands rest
+    ("-core-simp":rest) -> (:) (PerformCoreSimp False)<$> readSetCommands rest
+
+    ("+eval":rest)      -> (:) (ShowEval True)        <$> readSetCommands rest
+    ("-eval":rest)      -> (:) (ShowEval False)       <$> readSetCommands rest
+
+    ("+avalanche":rest) -> (:) (ShowAvalanche True)   <$> readSetCommands rest
+    ("-avalanche":rest) -> (:) (ShowAvalanche False)  <$> readSetCommands rest
+
+    ("+flatten":rest)   -> (:) (ShowFlatten   True)   <$> readSetCommands rest
+    ("-flatten":rest)   -> (:) (ShowFlatten   False)  <$> readSetCommands rest
+
+    ("date" : y : m : d : rest)
+       | Just y' <- readMaybe y
+       , Just m' <- readMaybe m
+       , Just d' <- readMaybe d
+       -> (:) (CurrentDate $ dateOfYMD y' m' d')      <$> readSetCommands rest
+
+    []                  -> Just []
+    _                   -> Nothing
+
 
 handleLine :: ReplState -> String -> HL.InputT IO ReplState
 handleLine state line = case readCommand line of
@@ -158,38 +173,7 @@ handleLine state line = case readCommand line of
     showState state
     return state
 
-  Just (CommandSet (ShowType b)) -> do
-    HL.outputStrLn $ "ok, type is now " <> showFlag b
-    return $ state { hasType = b }
-
-  Just (CommandSet (ShowCore b)) -> do
-    HL.outputStrLn $ "ok, core is now " <> showFlag b
-    return $ state { hasCore = b }
-
-  Just (CommandSet (ShowCoreType b)) -> do
-    HL.outputStrLn $ "ok, core-type is now " <> showFlag b
-    return $ state { hasCoreType = b }
-
-  Just (CommandSet (ShowAvalanche b)) -> do
-    HL.outputStrLn $ "ok, avalanche is now " <> showFlag b
-    return $ state { hasAvalanche = b }
-
-  Just (CommandSet (ShowFlatten b)) -> do
-    HL.outputStrLn $ "ok, flatten is now " <> showFlag b
-    return $ state { hasFlatten = b }
-
-  Just (CommandSet (ShowEval b)) -> do
-    HL.outputStrLn $ "ok, eval is now " <> showFlag b
-    return $ state { hasEval = b }
-
-  Just (CommandSet (CurrentDate d)) -> do
-    HL.outputStrLn $ "ok, date set to " <> T.unpack (renderDate d)
-    return $ state { currentDate = d }
-
-  Just (CommandSet (PerformCoreSimp b)) -> do
-    HL.outputStrLn $ "ok, core-simp is now " <> showFlag b
-    return $ state { doCoreSimp = b }
-
+  Just (CommandSet sets)    -> foldM handleSetCommand state sets
 
   Just (CommandLoad fp)      -> do
     s  <- liftIO $ T.readFile fp
@@ -255,6 +239,42 @@ handleLine state line = case readCommand line of
   where
     -- todo load dictionary
     dict = demographics
+
+
+handleSetCommand :: ReplState -> Set -> HL.InputT IO ReplState
+handleSetCommand state set
+ = case set of
+    ShowType b -> do
+        HL.outputStrLn $ "ok, type is now " <> showFlag b
+        return $ state { hasType = b }
+
+    ShowCore b -> do
+        HL.outputStrLn $ "ok, core is now " <> showFlag b
+        return $ state { hasCore = b }
+
+    ShowCoreType b -> do
+        HL.outputStrLn $ "ok, core-type is now " <> showFlag b
+        return $ state { hasCoreType = b }
+
+    ShowAvalanche b -> do
+        HL.outputStrLn $ "ok, avalanche is now " <> showFlag b
+        return $ state { hasAvalanche = b }
+
+    ShowFlatten b -> do
+        HL.outputStrLn $ "ok, flatten is now " <> showFlag b
+        return $ state { hasFlatten = b }
+
+    ShowEval b -> do
+        HL.outputStrLn $ "ok, eval is now " <> showFlag b
+        return $ state { hasEval = b }
+
+    CurrentDate d -> do
+        HL.outputStrLn $ "ok, date set to " <> T.unpack (renderDate d)
+        return $ state { currentDate = d }
+
+    PerformCoreSimp b -> do
+        HL.outputStrLn $ "ok, core-simp is now " <> showFlag b
+        return $ state { doCoreSimp = b }
 
 --------------------------------------------------------------------------------
 
