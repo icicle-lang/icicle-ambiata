@@ -20,6 +20,7 @@ import qualified Data.Traversable                     as TR
 import           System.Console.Haskeline             as HL
 import qualified System.Console.Terminal.Size         as TS
 import           System.Directory
+import           System.Environment                   (getArgs)
 import           System.IO
 import qualified Text.PrettyPrint.Leijen              as PP
 import qualified Text.ParserCombinators.Parsec        as Parsec
@@ -48,13 +49,17 @@ import           P
 
 
 main :: IO ()
-main = runRepl
+main
+ = do   as <- getArgs
+        runRepl as
 
-runRepl :: IO ()
-runRepl
+runRepl :: [String] -> IO ()
+runRepl inits
   = do putStrLn "welcome to iREPL"
        s <- settings
-       HL.runInputT s $ loop defaultState
+       HL.runInputT s
+        $ do    state' <- foldM handleLine defaultState inits
+                loop state'
   where
     settings
       = do home <- getHomeDirectory
