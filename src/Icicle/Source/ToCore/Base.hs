@@ -25,6 +25,9 @@ module Icicle.Source.ToCore.Base (
   , baseTypeOrOption
   , applyPossibles
   , mapOptionLam
+  , traverseIfPossible
+  , someIfPossible
+  , compose, traverseCompose
   ) where
 
 import qualified        Icicle.Core             as C
@@ -292,6 +295,7 @@ applyPossibles f returns xts
    = X.XPrim (C.PrimMinimal $ Min.PrimConst $ Min.PrimConstSome $ baseType returns)
     `X.XApp`  x
 
+
 -- | Possible
 --
 mapOptionLam
@@ -312,6 +316,43 @@ mapOptionLam (T.OptionT t) ret x
 mapOptionLam t _ x
  = do   n <- lift fresh
         return (X.XLam n t $ x $ X.XVar n)
+
+
+traverseIfPossible
+    :: UniverseType
+    -> C.Exp n
+    -> C.Exp n
+traverseIfPossible u x
+ | Possibly <- universePossibility $ universe u
+ = X.XPrim (C.PrimTraverse $ C.PrimTraverseByType $ baseType u) `X.XApp` x
+ | otherwise
+ = x
+
+someIfPossible
+    :: UniverseType
+    -> C.Exp n
+    -> C.Exp n
+someIfPossible u x
+ | Possibly <- universePossibility $ universe u
+ = X.XPrim (C.PrimMinimal $ Min.PrimConst $ Min.PrimConstSome $ baseType u) `X.XApp` x
+ | otherwise
+ = x
+
+compose :: ValType -> C.Exp n -> C.Exp n
+        -> ConvertM a n (C.Exp n)
+compose t f g
+ = do n <- lift fresh
+      return (X.XLam n t (f `X.XApp` (g `X.XApp` X.XVar n)))
+
+traverseCompose
+        :: UniverseType
+        -> C.Exp n
+        -> ConvertM a n (C.Exp n)
+traverseCompose t f
+ = do n <- lift fresh
+      let x = traverseIfPossible t (f `X.XApp` X.XVar n)
+      return (X.XLam n (baseType t) x)
+
 
 
 -- | These errors should only occur if

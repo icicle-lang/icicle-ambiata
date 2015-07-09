@@ -165,10 +165,10 @@ convertQuery q
             -- Destruct the aggregate into a fold expression:
             -- x (fold k z inps)
             -- where x :: tV -> retty
-            (k,z,x,tV)
+            res
                     <- convertWithInputName n'v $ convertFold q'
 
-            let tV'  = baseType tV
+            let tV'  = baseType $ typeFold res
 
             (inpstream, inpty) <- convertInput
 
@@ -177,7 +177,7 @@ convertQuery q
             let k'    = CE.XLam n'a tV'
                       $ CE.XLam n'v inpty
                       $ beta
-                      ( k CE.@~ CE.XVar n'a)
+                      ( foldKons res CE.@~ CE.XVar n'a)
 
             -- Construct the "latest" reduction,
             -- the fold over the resulting array,
@@ -185,8 +185,8 @@ convertQuery q
             -- (See convertFold)
             let barr  = red  n'arr   (C.RLatest inpty (CE.constI i) inpstream)
             let bfold = post n'fold  (CE.XPrim (C.PrimFold (C.PrimFoldArray inpty) tV')
-                                      CE.@~ k' CE.@~ beta z CE.@~ CE.XVar n'arr)
-            let bxtra = post n'xtra (beta (x CE.@~ CE.XVar n'fold))
+                                      CE.@~ k' CE.@~ beta (foldZero res) CE.@~ CE.XVar n'arr)
+            let bxtra = post n'xtra (beta (mapExtract res CE.@~ CE.XVar n'fold))
 
             return (barr <> bfold <> bxtra, n'xtra)
 
@@ -199,7 +199,7 @@ convertQuery q
     -- as long as the "by" is something like an enum, and the "value" has bounded memory.
     --
     (GroupBy (ann,retty) e : _)
-     -> do  (t1,t2) <- getGroupByMapType ann retty
+     -> do  (t1,_) <- getGroupByMapType ann retty
             n'      <- lift fresh
             n''     <- lift fresh
             nmap    <- lift fresh
@@ -209,12 +209,12 @@ convertQuery q
             -- We have the "k"onstructor, the "z"ero, and the e"x"tract,
             -- as well as the intermediate result type before extraction.
             -- See convertFold.
-            (k,z,x,tV)
+            res
                     <- convertWithInputName nval $ convertFold q'
 
-            let tV'  = baseTypeOrOption tV
+            let tV'  = baseTypeOrOption $ typeFold res
             let t1'  = baseTypeOrOption ((snd $ annotOfExp e) { baseType = t1 })
-            let t2'  = baseTypeOrOption (tV                   { baseType = t2 })
+            let t2'  = baseTypeOrOption $ typeExtract res
 
             -- Convert the "by" to a simple expression.
             -- This becomes the map insertion key.
@@ -233,17 +233,13 @@ convertQuery q
             -- If the map doesn't have the key, we insert the "k" of the current element
             -- with the zero accumulator.
             -- This is because the map doesn't start with "zero"s in it, unlike a normal fold.
-            z1 <- applyPossibles k
-                    (definitelyUT tV)
-                     [(z, tV)]
-
             let priminsert
                     = C.PrimMapInsertOrUpdate t1' tV'
 
             let insertOrUpdate
                     = CE.makeApps (CE.XPrim $ C.PrimMap $ priminsert)
-                    [ k
-                    , z1
+                    [ foldKons res
+                    , foldKons res `CE.XApp` foldZero res
                     , e'
                     , CE.XVar nmap]
 
@@ -265,8 +261,8 @@ convertQuery q
             -- This performs any fixups that couldn't be performed during the fold.
 
             let mapResult
-                    = CE.XPrim (C.PrimMap $ C.PrimMapMapValues t1' tV' t2)
-                    CE.@~ beta x
+                    = CE.XPrim (C.PrimMap $ C.PrimMapMapValues t1' tV' t2')
+                    CE.@~ beta (mapExtract res)
                     CE.@~ CE.XVar n'
 
             let traversed
@@ -284,7 +280,7 @@ convertQuery q
     -- we insert/update the element in the map, then fold over essentially the last-seen
     -- for each group.
     (Distinct (_,_) e : _)
-     -> do  let tkey = baseType $ snd $ annotOfExp e
+     -> do  let tkey = baseTypeOrOption $ snd $ annotOfExp e
             (inpstream, inpty) <- convertInput
             let tval = inpty
 
@@ -298,10 +294,9 @@ convertQuery q
             -- Convert the rest of the query into a fold.
             -- This is executed as a Map fold at the end, rather than
             -- as a stream fold.
-            (k,z,x,tV)
-                    <- convertWithInputName nval $ convertFold q'
+            res     <- convertWithInputName nval $ convertFold q'
 
-            let tV'  = baseType tV
+            let tV'  = baseTypeOrOption $ typeFold res
 
             -- Convert the "by" to a simple expression.
             -- This becomes the map insertion key.
@@ -331,14 +326,14 @@ convertQuery q
             -- Perform a fold over that map
             let p = post n''
                   $ beta
-                  ( x CE.@~ 
+                  ( mapExtract res CE.@~ 
                   ( CE.XPrim
                         (C.PrimFold (C.PrimFoldMap tkey tval) tV')
                     CE.@~ (CE.XLam nacc     tV'
                          $ CE.XLam n'ignore tkey
                          $ CE.XLam nval     tval
-                         ( k CE.@~ CE.XVar nacc ))
-                    CE.@~ z
+                         ( foldKons res CE.@~ CE.XVar nacc ))
+                    CE.@~ foldZero res
                     CE.@~ CE.XVar n'))
 
             return (r <> p, n'')

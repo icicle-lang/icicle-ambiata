@@ -7,6 +7,7 @@ module Icicle.Core.Exp.Prim (
     , PrimMap       (..)
     , PrimTraverse  (..)
     , typeOfPrim
+    , extractOption
     ) where
 
 import              Icicle.Internal.Pretty

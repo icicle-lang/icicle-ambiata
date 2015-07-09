@@ -6,6 +6,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Source.ToCore.Fold (
     convertFold
+  , ConvertFoldResult(..)
   ) where
 
 import                  Icicle.Source.Query
@@ -26,8 +27,17 @@ import                  Icicle.Common.Base
 import                  P
 
 import                  Control.Monad.Trans.Class
-import                  Data.List (zip, unzip4)
+import                  Data.List (zip)
 
+
+data ConvertFoldResult n
+ = ConvertFoldResult
+ { foldKons     :: C.Exp n
+ , foldZero     :: C.Exp n
+ , mapExtract   :: C.Exp n
+ , typeFold     :: UniverseType
+ , typeExtract  :: UniverseType
+ } deriving (Eq, Ord, Show)
 
 
 -- | Convert the body of a group by (or other query) into a fold:
@@ -58,7 +68,7 @@ import                  Data.List (zip, unzip4)
 convertFold
         :: Ord n
         => Query (a,UniverseType) n
-        -> ConvertM a n (C.Exp n, C.Exp n, C.Exp n, UniverseType)
+        -> ConvertM a n (ConvertFoldResult n)
 convertFold q
  = case contexts q of
     -- No contexts, just an expression
@@ -73,16 +83,18 @@ convertFold q
          -- Aggregates are relatively simple
          Agg SumA
           | [e] <- args
-          -> do let retty' = baseType retty
+          -> do let retty' = baseTypeOrOption retty
                 e' <- convertExp e
 
                 n  <- lift fresh
-                let k = CE.XLam n retty'
-                      ( CE.XVar n CE.+~ e' )
-                let z = CE.constI 0
+                add <- convertPrim (Op Add) ann retty
+                        [(CE.XVar n, retty)
+                        ,(e', retty)]
+                let k = CE.XLam n retty' add
+                let z = someIfPossible retty $ CE.constI 0
                 x    <- idFun retty'
 
-                return (k, z, x, retty)
+                return $ ConvertFoldResult k z x retty retty
           | otherwise
           -> errAggBadArgs
 
@@ -96,7 +108,7 @@ convertFold q
                 let z = CE.constI 0
                 x    <- idFun retty'
 
-                return (k, z, x, retty)
+                return $ ConvertFoldResult k z x retty retty
           | otherwise
           -> errAggBadArgs
 
@@ -109,11 +121,12 @@ convertFold q
           -> do -- Convert all arguments
                 -- (create a query out of the expression,
                 --  just because there is no separate convertFoldX function)
-                (ks, zs, xs, ts) <- unzip4 <$> mapM (convertFold . Query []) args
+                res <- mapM (convertFold . Query []) args
 
-                let ts' = fmap baseType ts
+                let ts  = fmap typeFold         res
+                let ts' = fmap baseTypeOrOption ts
                 -- Create pairs for zeros
-                (zz, tt) <- pairConstruct zs ts'
+                (zz, tt) <- pairConstruct (fmap foldZero res) ts'
 
                 -- For extraction:
                 --  destruct the pairs,
@@ -121,21 +134,42 @@ convertFold q
                 --  apply the primitive
                 let cp ns
                         = convertPrim p ann retty
-                            ((fmap (uncurry CE.XApp) (xs `zip` ns)) `zip` ts)
-                xx       <- pairDestruct cp ts' (baseType retty)
+                            ((fmap (uncurry CE.XApp) (fmap mapExtract res `zip` ns)) `zip` ts)
+                xx       <- pairDestruct cp ts' (baseTypeOrOption retty)
 
                 -- For konstrukt, we need to destruct the pairs, apply the sub-ks,
                 -- then box it up again in pairs.
-                let applyKs ns = fst <$> pairConstruct (fmap (uncurry CE.XApp) (ks `zip` ns)) ts'
+                let applyKs ns = fst <$> pairConstruct (fmap (uncurry CE.XApp) (fmap foldKons res `zip` ns)) ts'
                 kk       <- pairDestruct applyKs ts' tt
 
-                return (kk, zz, xx, retty { baseType = tt })
+                let tt' = retty { baseType = tt }
+                let needTraverse
+                        | Just _ <- C.extractOption tt
+                        = True
+                        | otherwise
+                        = False
+
+                let tt''| Just t' <- C.extractOption tt
+                        = possiblyUT $ retty { baseType = t' }
+                        | otherwise
+                        = definitelyUT $ retty { baseType = tt }
+
+                kk'    <- if needTraverse
+                          then traverseCompose tt' kk
+                          else return kk
+                let zz' = if needTraverse
+                          then traverseIfPossible tt' zz
+                          else zz
+                let xx' = xx
+
+                return
+                 $ ConvertFoldResult kk' zz' xx' tt'' retty
 
      -- Variable lookup.
      -- The actual folding doesn't matter,
      -- we can just return const unit for the fold part,
      -- and at extract return the variable's value
-     | Var (ann,_) v <- final q
+     | Var (ann,retty) v <- final q
       -> do n'x <- lift fresh
             v'  <- convertFreshenLookup ann v
             let ut    = T.UnitT
@@ -145,7 +179,7 @@ convertFold q
             let z    = unit
             let x    = CE.XLam n'x ut $ CE.XVar $ v'
 
-            return (k, z, x, (snd $ annotOfExp $ final q) { baseType = ut })
+            return $ ConvertFoldResult k z x (definitelyUT $ snd $ annotOfExp $ final q) { baseType = ut } retty
 
      -- It must be a non-primitive application
      | otherwise
@@ -156,15 +190,15 @@ convertFold q
     --
     -- Note that this has different "history semantics" to the normal filter.
     (Filter _ e : _)
-     -> do  (k,z,x,tt) <- convertFold q'
+     -> do  res <- convertFold q'
             e'         <- convertExp  e
             prev       <- lift fresh
-            let tt'     = baseType tt
+            let tt'     = baseType $ typeFold res
             let prev'   = CE.XVar prev
             let k' = CE.XLam prev tt'
                    ( CE.XPrim (C.PrimFold C.PrimFoldBool tt')
-                     CE.@~ (k CE.@~ prev') CE.@~ prev' CE.@~ e' )
-            return (k', z, x, tt)
+                     CE.@~ (foldKons res CE.@~ prev') CE.@~ prev' CE.@~ e' )
+            return (res { foldKons = k' })
 
     (Windowed (ann,_) _ _ : _)
      -> errNotAllowed ann
@@ -175,6 +209,9 @@ convertFold q
     (Distinct (ann,_) _ : _)
      -> errNotAllowed ann
     -- TODO: let and letfold should probably be allowed
+    (Let (ann,_) _ _ : _)
+     -> errNotAllowed ann
+ {-
     (Let _ b def : _)
      -> do  (kb, zb, xb, tb) <- convertFold (Query [] def)
             b' <- convertFreshenAdd b
@@ -205,7 +242,7 @@ convertFold q
                                 (xq CE.@~ xsnd (CE.XVar n'))
 
             return (k', z', x', t')
-
+-}
     (LetFold (ann,_) _ : _)
      -> errNotAllowed ann
 
