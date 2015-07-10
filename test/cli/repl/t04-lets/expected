@@ -1,0 +1,46 @@
+welcome to iREPL
+ok, loaded test/cli/repl/data.psv, 8 rows
+> -- Elem/Scalar lets
+> - Result:
+[homer, 3000,marge, 60]
+
+> > -- Pure let, can use it everywhere
+> - Result:
+[homer, 1500,marge, 30]
+
+> > -- Aggregate let
+> - Result:
+[homer, 3000,marge, 60]
+
+> > -- Aggregate let outside filter
+> - Result:
+[homer, (1500,1400)
+,marge, (30,0)]
+
+> > -- Scalar let before group
+> - Result:
+[homer, [(100,100)
+        ,(200,200)
+        ,(300,300)
+        ,(400,400)
+        ,(500,500)]
+,marge, [(0,0),(10,10),(20,20)]]
+
+> > -- Agg let before group
+> - Result:
+[homer, [(100,1500)
+        ,(200,1500)
+        ,(300,1500)
+        ,(400,1500)
+        ,(500,1500)]
+,marge, [(0,30)
+        ,(10,30)
+        ,(20,30)]]
+
+> > -- Agg let before and after group
+> -- TODO:
+> -- feature salary ~> let x = sum value ~> group value ~> let y = sum value ~> (x, y)
+> > -- Scalar let after group
+> -- TODO:
+> -- feature salary ~> group value ~> let x = value ~> sum x
+> > 

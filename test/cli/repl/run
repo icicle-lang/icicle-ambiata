@@ -1,3 +1,34 @@
-#!/bin/sh -eu
-dist/build/icicle-repl/icicle-repl < test/cli/repl/script | diff test/cli/repl/expected -
+#!/bin/sh
+[ "$1" = "UPDATE" ]; update_expected=$?
+failures=0
+tests=0
+for dir in test/cli/repl/t*
+do
+    echo " --- Test: $dir"
+    if [ $update_expected -eq 1 ]
+    then
+        dist/build/icicle-repl/icicle-repl ":load test/cli/repl/data.psv" < $dir/script | diff $dir/expected -
+    else
+        echo " --- Updating expected "
+        dist/build/icicle-repl/icicle-repl ":load test/cli/repl/data.psv" < $dir/script | tee $dir/expected
+    fi
+    if [ $? -ne 0 ]
+    then
+        failures=$(expr $failures + 1)
+        echo
+        echo " --- FAILED: $dir"
+        echo
+    fi
+    tests=$(expr $tests + 1)
+done
+
+if [ $failures -ne 0 ]
+then
+    echo
+    echo " --- Some failures: $failures"
+    exit $failures
+else
+    echo
+    echo " --- Passed $tests tests!"
+fi
 

@@ -1,0 +1,11 @@
+welcome to iREPL
+ok, loaded test/cli/repl/data.psv, 8 rows
+> -- The ratio of > 300 to all?
+> - Result:
+[homer, (2,5),marge, (0,3)]
+
+> > -- Number of values above, as well as number of distinct by date
+> - Result:
+[homer, (2,5),marge, (0,1)]
+
+> > 
