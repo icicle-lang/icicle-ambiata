@@ -9,6 +9,7 @@ ok, loaded test/cli/repl/data.psv, 8 rows
 [homer, 1500,marge, 30]
 
 > > -- Newest and oldest
-> -- TODO:
-> -- feature salary ~> let fold1 xnew = value : value ~> let fold1 xold = value : xold ~> (xnew, xold)
+> - Result:
+[homer, (500,100),marge, (20,0)]
+
 > > 
