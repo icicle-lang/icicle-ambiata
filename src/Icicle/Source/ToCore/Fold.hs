@@ -28,6 +28,7 @@ import                  P
 
 import                  Control.Monad.Trans.Class
 import                  Data.List (zip)
+import qualified        Data.Map    as Map
 
 
 data ConvertFoldResult n
@@ -134,7 +135,7 @@ convertFold q
                 --  apply the primitive
                 let cp ns
                         = convertPrim p ann retty
-                            ((fmap (uncurry CE.XApp) (fmap mapExtract res `zip` ns)) `zip` ts)
+                            ((fmap (uncurry CE.XApp) (fmap mapExtract res `zip` ns)) `zip` fmap typeExtract res)
                 xx       <- pairDestruct cp ts' (baseTypeOrOption retty)
 
                 -- For konstrukt, we need to destruct the pairs, apply the sub-ks,
@@ -170,16 +171,29 @@ convertFold q
      -- we can just return const unit for the fold part,
      -- and at extract return the variable's value
      | Var (ann,retty) v <- final q
-      -> do n'x <- lift fresh
-            v'  <- convertFreshenLookup ann v
-            let ut    = T.UnitT
-            let unit = CE.XValue ut VUnit
+      -> do fs <- convertFeatures
+            case Map.lookup v fs of
+             Just (_, var')
+              -> do i <- idFun (baseTypeOrOption retty)
+                    n'v <- lift fresh
+                    inp <- convertInputName
+                    let k = CE.XLam n'v (baseTypeOrOption retty) $ var' $ CE.XVar inp
+                    -- TODO argh why an int.
+                    -- maybe this shouldn't be here,
+                    -- and let of elem should actually be different.
+                    -- yes - instead of this, Let where def is Elem should call convertExp instead of convertFold
+                    return $ ConvertFoldResult k (CE.XValue (baseTypeOrOption retty) (VInt 13013)) i retty retty
+             _
+              -> do n'x <- lift fresh
+                    v'  <- convertFreshenLookup ann v
+                    let ut    = T.UnitT
+                    let unit = CE.XValue ut VUnit
 
-            let k    = CE.XLam n'x ut $ unit
-            let z    = unit
-            let x    = CE.XLam n'x ut $ CE.XVar $ v'
+                    let k    = CE.XLam n'x ut $ unit
+                    let z    = unit
+                    let x    = CE.XLam n'x ut $ CE.XVar $ v'
 
-            return $ ConvertFoldResult k z x (definitelyUT $ snd $ annotOfExp $ final q) { baseType = ut } retty
+                    return $ ConvertFoldResult k z x (definitelyUT $ snd $ annotOfExp $ final q) { baseType = ut } retty
 
      -- It must be a non-primitive application
      | otherwise
@@ -208,41 +222,50 @@ convertFold q
      -> errNotAllowed ann
     (Distinct (ann,_) _ : _)
      -> errNotAllowed ann
-    -- TODO: let and letfold should probably be allowed
-    (Let (ann,_) _ _ : _)
-     -> errNotAllowed ann
- {-
+
+
     (Let _ b def : _)
-     -> do  (kb, zb, xb, tb) <- convertFold (Query [] def)
+     -> do  resb <- convertFold (Query [] def)
             b' <- convertFreshenAdd b
-            (kq, zq, xq, tq) <- convertFold q'
-            let t' = tq { baseType = T.PairT (baseType tb) (baseType tq) }
+            resq <- convertFold q'
+            let tb'ret = baseType $ typeFold resb
+            let tq'ret = baseType $ typeFold resq
+            let u' = Universe { universeTemporality = universeTemporality $ universe $ typeFold resq
+                              , universePossibility = maxOfPossibility (universePossibility $ universe $ typeFold resb) (universePossibility $ universe $ typeFold resq) }
+            let t'     = UniverseType { universe = u', baseType = T.PairT tb'ret tq'ret}
+            let pairOuter = baseTypeOrOption t'
+
+            let tb' = baseTypeOrOption $ typeFold resb
+            let tq' = baseTypeOrOption $ typeFold resq
+            let pairNested = T.PairT tb' tq'
+            let t'Nested = t' { baseType = pairNested }
 
             let mkPair x y
                    = CE.XPrim
-                   (C.PrimMinimal $ Min.PrimConst $ Min.PrimConstPair (baseType tb) (baseType tq))
+                   (C.PrimMinimal $ Min.PrimConst $ Min.PrimConstPair tb' tq')
                      CE.@~ x CE.@~ y
             let xproj which x
                    = CE.XPrim
-                   (C.PrimMinimal $ Min.PrimPair $ which (baseType tb) (baseType tq))
+                   (C.PrimMinimal $ Min.PrimPair $ which tb' tq')
                      CE.@~ x
             let xfst = xproj Min.PrimPairFst
             let xsnd = xproj Min.PrimPairSnd
 
-            n' <- lift fresh
+            k' <- mapOptionLam pairOuter pairOuter
+                $ \n' -> CE.XLet b' (foldKons resb CE.@~ someIfPossible (typeFold resb) (xfst n'))
+                       $ traverseIfPossible t'Nested
+                       $ mkPair (CE.XVar b') (foldKons resq CE.@~ (someIfPossible (typeFold resq) $ xsnd n'))
 
-            let k' = CE.XLam n' (baseType t')
-                   $ CE.XLet b' (kb CE.@~ xfst (CE.XVar n'))
-                   $ mkPair (CE.XVar b') (kq CE.@~ xsnd (CE.XVar n'))
+            let z' = CE.XLet b' (foldZero resb)
+                   $ traverseIfPossible t'Nested
+                   $ mkPair (CE.XVar b') (foldZero resq)
 
-            let z' = CE.XLet b' zb (mkPair (CE.XVar b') zq)
+            x' <- mapOptionLam pairOuter (baseTypeOrOption $ typeExtract $ resq)
+                $ \n' -> CE.XLet b' (mapExtract resb CE.@~ (someIfPossible (typeFold resb) $ xfst n'))
+                                    (mapExtract resq CE.@~ (someIfPossible (typeFold resq) $ xsnd n'))
 
-            let x' = CE.XLam n' (baseType t')
-                   $ CE.XLet b' (xb CE.@~ xfst (CE.XVar n'))
-                                (xq CE.@~ xsnd (CE.XVar n'))
+            return $ ConvertFoldResult k' z' x' t' (typeExtract resq)
 
-            return (k', z', x', t')
--}
     (LetFold (ann,_) _ : _)
      -> errNotAllowed ann
 

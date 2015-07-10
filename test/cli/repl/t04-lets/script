@@ -17,10 +17,8 @@ feature salary ~> let x = value ~> group x ~> sum x
 feature salary ~> let x = sum value ~> group value ~> x
 
 -- Agg let before and after group
--- TODO:
--- feature salary ~> let x = sum value ~> group value ~> let y = sum value ~> (x, y)
+feature salary ~> let x = sum value ~> group value ~> let y = sum value ~> (x, y)
 
 -- Scalar let after group
--- TODO:
--- feature salary ~> group value ~> let x = value ~> sum x
+feature salary ~> group value ~> let x = value ~> sum x
 

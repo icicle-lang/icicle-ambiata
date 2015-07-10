@@ -38,9 +38,23 @@ ok, loaded test/cli/repl/data.psv, 8 rows
         ,(20,30)]]
 
 > > -- Agg let before and after group
-> -- TODO:
-> -- feature salary ~> let x = sum value ~> group value ~> let y = sum value ~> (x, y)
+> - Result:
+[homer, [(100,(1500,100))
+        ,(200,(1500,200))
+        ,(300,(1500,300))
+        ,(400,(1500,400))
+        ,(500,(1500,500))]
+,marge, [(0,(30,0))
+        ,(10,(30,10))
+        ,(20,(30,20))]]
+
 > > -- Scalar let after group
-> -- TODO:
-> -- feature salary ~> group value ~> let x = value ~> sum x
+> - Result:
+[homer, [(100,100)
+        ,(200,200)
+        ,(300,300)
+        ,(400,400)
+        ,(500,500)]
+,marge, [(0,0),(10,10),(20,20)]]
+
 > > 

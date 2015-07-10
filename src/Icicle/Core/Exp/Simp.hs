@@ -52,7 +52,7 @@ simpX isValue = go
         -> XLam n t (go x1)
 
       XLet n x1 x2
-        | not $ n `Set.member` freevars x2
+        | not $ n `Set.member` freevars (go x2)
         -> go x2
         | otherwise
         -> XLet n (go x1) (go x2)
