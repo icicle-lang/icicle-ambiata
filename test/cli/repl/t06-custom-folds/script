@@ -5,6 +5,5 @@ feature salary ~> let fold1 roll = value : (roll / 2) + (value / 2) ~> roll
 feature salary ~> let fold xsum = 0 : xsum + value ~> xsum
 
 -- Newest and oldest
--- TODO:
--- feature salary ~> let fold1 xnew = value : value ~> let fold1 xold = value : xold ~> (xnew, xold)
+feature salary ~> let fold1 xnew = value : value ~> let fold1 xold = value : xold ~> (xnew, xold)
 

@@ -513,9 +513,9 @@ convertQuery q
     -- If one of @zero@ or @kons@ do not return possiblies, we
     -- can just replace the folds over them with "Some (Some (zero i))" etc.
     --
-    (LetFold (_,retty) f@Fold{ foldType = FoldTypeFoldl1 } : _)
+    (LetFold (_,_) f@Fold{ foldType = FoldTypeFoldl1 } : _)
      -> do  -- Type helpers
-            let tU = baseType retty
+            let tU = baseType $ snd $ annotOfExp $ foldWork f
             let tO = T.OptionT tU
             let tOO= T.OptionT tO
 
