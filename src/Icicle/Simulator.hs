@@ -126,7 +126,9 @@ valueToCore v
     MapValue  kvs  -> V.VMap . Map.fromList
                             <$> mapM (\(a,b) -> (,) <$> valueToCore a <*> valueToCore b) kvs
     StringValue t  -> return $ V.VString t
-    StructValue (Struct vs) -> V.VStruct <$> mapM (\(a,b) -> (,) <$> pure (getAttribute a) <*> valueToCore b) vs
+    StructValue (Struct vs)
+                   -> V.VStruct . Map.fromList
+                  <$> mapM (\(a,b) -> (,) <$> pure (V.StructField $ getAttribute a) <*> valueToCore b) vs
     DoubleValue _  -> Left   $ SimulateErrorCannotConvertToCore v
     DateValue _    -> Left   $ SimulateErrorCannotConvertToCore v
     Tombstone      -> Left   $ SimulateErrorCannotConvertToCore v
@@ -146,4 +148,4 @@ valueFromCore v
     V.VNone       -> return Tombstone
     V.VMap vs     -> MapValue
                   <$> mapM (\(a,b) -> (,) <$> valueFromCore a <*> valueFromCore b) (Map.toList vs)
-    V.VStruct vs  -> StructValue . Struct <$> mapM (\(a,b) -> (,) <$> pure (Attribute a) <*> valueFromCore b) vs
+    V.VStruct vs  -> StructValue . Struct <$> mapM (\(a,b) -> (,) <$> pure (Attribute $ V.nameOfStructField a) <*> valueFromCore b) (Map.toList vs)

@@ -20,6 +20,7 @@ import qualified Data.Traversable                     as TR
 import           System.Console.Haskeline             as HL
 import qualified System.Console.Terminal.Size         as TS
 import           System.Directory
+import           System.Environment                   (getArgs)
 import           System.IO
 import qualified Text.PrettyPrint.Leijen              as PP
 import qualified Text.ParserCombinators.Parsec        as Parsec
@@ -48,13 +49,17 @@ import           P
 
 
 main :: IO ()
-main = runRepl
+main
+ = do   as <- getArgs
+        runRepl as
 
-runRepl :: IO ()
-runRepl
+runRepl :: [String] -> IO ()
+runRepl inits
   = do putStrLn "welcome to iREPL"
        s <- settings
-       HL.runInputT s $ loop defaultState
+       HL.runInputT s
+        $ do    state' <- foldM handleLine defaultState inits
+                loop state'
   where
     settings
       = do home <- getHomeDirectory
@@ -74,12 +79,14 @@ runRepl
 data ReplState
    = ReplState
    { facts        :: [AsAt Fact]
+   , currentDate  :: DateTime
    , hasType      :: Bool
    , hasCore      :: Bool
    , hasCoreType  :: Bool
    , hasAvalanche :: Bool
    , hasFlatten   :: Bool
-   , hasEval      :: Bool }
+   , hasEval      :: Bool
+   , doCoreSimp   :: Bool }
 
 -- | Settable REPL states
 data Set
@@ -89,12 +96,14 @@ data Set
    | ShowEval Bool
    | ShowAvalanche Bool
    | ShowFlatten Bool
+   | CurrentDate DateTime
+   | PerformCoreSimp Bool
 
 -- | REPL commands
 data Command
    = CommandBlank
    | CommandHelp
-   | CommandSet  Set
+   | CommandSet  [Set]
    | CommandLoad FilePath
    -- It's rather odd to have comments in a REPL.
    -- However, I want these printed out in the test output
@@ -104,30 +113,54 @@ data Command
 
 defaultState :: ReplState
 defaultState
-  = ReplState [] False False False False False True
+  = ReplState [] (dateOfYMD 1970 1 1) False False False False False True False
 
 readCommand :: String -> Maybe Command
 readCommand ss = case words ss of
   []                    -> Just CommandBlank
   ":h":_                -> Just CommandHelp
   ":help":_             -> Just CommandHelp
-  [":set", "+type"]     -> Just $ CommandSet $ ShowType True
-  [":set", "-type"]     -> Just $ CommandSet $ ShowType False
-  [":set", "+core"]     -> Just $ CommandSet $ ShowCore True
-  [":set", "-core"]     -> Just $ CommandSet $ ShowCore False
-  [":set", "+core-type"]-> Just $ CommandSet $ ShowCoreType True
-  [":set", "-core-type"]-> Just $ CommandSet $ ShowCoreType False
-  [":set", "+eval"]     -> Just $ CommandSet $ ShowEval True
-  [":set", "-eval"]     -> Just $ CommandSet $ ShowEval False
-  [":set", "+avalanche"]-> Just $ CommandSet $ ShowAvalanche True
-  [":set", "-avalanche"]-> Just $ CommandSet $ ShowAvalanche False
-  [":set", "+flatten"]  -> Just $ CommandSet $ ShowFlatten True
-  [":set", "-flatten"]  -> Just $ CommandSet $ ShowFlatten False
+
   [":set"]              -> Just $ CommandSetShow
+  (":set":rest)         -> CommandSet <$> readSetCommands rest
   [":load", f]          -> Just $ CommandLoad f
   ('-':'-':_):_         -> Just $ CommandComment $ ss
   (':':_):_             -> Just $ CommandUnknown $ ss
   _                     -> Nothing
+
+readSetCommands :: [String] -> Maybe [Set]
+readSetCommands ss
+ = case ss of
+    ("+type":rest)      -> (:) (ShowType True)        <$> readSetCommands rest
+    ("-type":rest)      -> (:) (ShowType False)       <$> readSetCommands rest
+
+    ("+core":rest)      -> (:) (ShowCore True)        <$> readSetCommands rest
+    ("-core":rest)      -> (:) (ShowCore False)       <$> readSetCommands rest
+
+    ("+core-type":rest) -> (:) (ShowCoreType True)    <$> readSetCommands rest
+    ("-core-type":rest) -> (:) (ShowCoreType False)   <$> readSetCommands rest
+
+    ("+core-simp":rest) -> (:) (PerformCoreSimp True) <$> readSetCommands rest
+    ("-core-simp":rest) -> (:) (PerformCoreSimp False)<$> readSetCommands rest
+
+    ("+eval":rest)      -> (:) (ShowEval True)        <$> readSetCommands rest
+    ("-eval":rest)      -> (:) (ShowEval False)       <$> readSetCommands rest
+
+    ("+avalanche":rest) -> (:) (ShowAvalanche True)   <$> readSetCommands rest
+    ("-avalanche":rest) -> (:) (ShowAvalanche False)  <$> readSetCommands rest
+
+    ("+flatten":rest)   -> (:) (ShowFlatten   True)   <$> readSetCommands rest
+    ("-flatten":rest)   -> (:) (ShowFlatten   False)  <$> readSetCommands rest
+
+    ("date" : y : m : d : rest)
+       | Just y' <- readMaybe y
+       , Just m' <- readMaybe m
+       , Just d' <- readMaybe d
+       -> (:) (CurrentDate $ dateOfYMD y' m' d')      <$> readSetCommands rest
+
+    []                  -> Just []
+    _                   -> Nothing
+
 
 handleLine :: ReplState -> String -> HL.InputT IO ReplState
 handleLine state line = case readCommand line of
@@ -145,29 +178,7 @@ handleLine state line = case readCommand line of
     showState state
     return state
 
-  Just (CommandSet (ShowType b)) -> do
-    HL.outputStrLn $ "ok, type is now " <> showFlag b
-    return $ state { hasType = b }
-
-  Just (CommandSet (ShowCore b)) -> do
-    HL.outputStrLn $ "ok, core is now " <> showFlag b
-    return $ state { hasCore = b }
-
-  Just (CommandSet (ShowCoreType b)) -> do
-    HL.outputStrLn $ "ok, core-type is now " <> showFlag b
-    return $ state { hasCoreType = b }
-
-  Just (CommandSet (ShowAvalanche b)) -> do
-    HL.outputStrLn $ "ok, avalanche is now " <> showFlag b
-    return $ state { hasAvalanche = b }
-
-  Just (CommandSet (ShowFlatten b)) -> do
-    HL.outputStrLn $ "ok, flatten is now " <> showFlag b
-    return $ state { hasFlatten = b }
-
-  Just (CommandSet (ShowEval b)) -> do
-    HL.outputStrLn $ "ok, eval is now " <> showFlag b
-    return $ state { hasEval = b }
+  Just (CommandSet sets)    -> foldM handleSetCommand state sets
 
   Just (CommandLoad fp)      -> do
     s  <- liftIO $ T.readFile fp
@@ -201,12 +212,15 @@ handleLine state line = case readCommand line of
       prettyOut hasType "- Type:" typ
 
       core      <- hoist $ SR.sourceConvert dict annot
-      let core'  = renameP unVar core
+      let core'  | doCoreSimp state
+                 = renameP unVar $ SR.coreSimp core
+                 | otherwise
+                 = renameP unVar core
 
       prettyOut hasCore "- Core:" core'
 
       case CP.checkProgram core' of
-       Left  e -> prettyOut hasCoreType "- Core type error:" e
+       Left  e -> prettyOut (const True) "- Core type error:" e
        Right t -> prettyOut hasCoreType "- Core type:" t
 
       prettyOut hasAvalanche "- Avalanche:" (coreAvalanche core')
@@ -215,7 +229,7 @@ handleLine state line = case readCommand line of
        Left  e -> prettyOut hasFlatten "- Flatten error:" e
        Right f -> prettyOut hasFlatten "- Flattened:" f
 
-      case coreEval allTime (facts state) annot core' of
+      case coreEval (currentDate state) (facts state) annot core' of
        Left  e -> prettyOut hasEval "- Result error:" e
        Right r -> prettyOut hasEval "- Result:" r
 
@@ -230,8 +244,42 @@ handleLine state line = case readCommand line of
   where
     -- todo load dictionary
     dict = demographics
-    -- todo let user specify window
-    allTime = dateOfYMD 1970 1 1
+
+
+handleSetCommand :: ReplState -> Set -> HL.InputT IO ReplState
+handleSetCommand state set
+ = case set of
+    ShowType b -> do
+        HL.outputStrLn $ "ok, type is now " <> showFlag b
+        return $ state { hasType = b }
+
+    ShowCore b -> do
+        HL.outputStrLn $ "ok, core is now " <> showFlag b
+        return $ state { hasCore = b }
+
+    ShowCoreType b -> do
+        HL.outputStrLn $ "ok, core-type is now " <> showFlag b
+        return $ state { hasCoreType = b }
+
+    ShowAvalanche b -> do
+        HL.outputStrLn $ "ok, avalanche is now " <> showFlag b
+        return $ state { hasAvalanche = b }
+
+    ShowFlatten b -> do
+        HL.outputStrLn $ "ok, flatten is now " <> showFlag b
+        return $ state { hasFlatten = b }
+
+    ShowEval b -> do
+        HL.outputStrLn $ "ok, eval is now " <> showFlag b
+        return $ state { hasEval = b }
+
+    CurrentDate d -> do
+        HL.outputStrLn $ "ok, date set to " <> T.unpack (renderDate d)
+        return $ state { currentDate = d }
+
+    PerformCoreSimp b -> do
+        HL.outputStrLn $ "ok, core-simp is now " <> showFlag b
+        return $ state { doCoreSimp = b }
 
 --------------------------------------------------------------------------------
 
@@ -328,9 +376,12 @@ showFlag False = "off"
 showState :: ReplState -> HL.InputT IO ()
 showState state
  = mapM_ HL.outputStrLn
-    [ flag "type:      " hasType
+    [      "now:       " <> T.unpack (renderDate $ currentDate state)
+    ,      "data:      " <> show (length $ facts state)
+    , flag "type:      " hasType
     , flag "core:      " hasCore
     , flag "core-type: " hasCoreType
+    , flag "core-simp: " doCoreSimp
     , flag "eval:      " hasEval
     , flag "avalanche: " hasAvalanche
     , flag "flatten:   " hasFlatten
@@ -350,6 +401,7 @@ usage
       , ":set  +/-type      -- whether to show the checked expression type"
       , ":set  +/-core      -- whether to show the Core conversion"
       , ":set  +/-core-type -- whether to show the Core conversion's type"
+      , ":set  +/-core-simp -- whether to simplify the result of Core conversion"
       , ":set  +/-eval      -- whether to show the result"
       , ":set  +/-avalanche -- whether to show the Avalanche conversion"
       , ":set  +/-flatten   -- whether to show flattened Avalanche conversion" ]

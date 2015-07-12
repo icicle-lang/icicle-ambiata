@@ -1,0 +1,15 @@
+welcome to iREPL
+ok, loaded test/cli/repl/data.psv, 8 rows
+> -- Rolling average
+> - Result:
+[homer, 406,marge, 12]
+
+> > -- Sum
+> - Result:
+[homer, 1500,marge, 30]
+
+> > -- Newest and oldest
+> - Result:
+[homer, (500,100),marge, (20,0)]
+
+> > 

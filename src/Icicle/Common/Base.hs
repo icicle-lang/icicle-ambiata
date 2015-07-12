@@ -5,6 +5,7 @@
 module Icicle.Common.Base (
       Name   (..)
     , BaseValue (..)
+    , StructField (..)
     ) where
 
 import              Icicle.Internal.Pretty
@@ -39,10 +40,16 @@ data BaseValue
  | VPair  BaseValue BaseValue
  | VSome  BaseValue
  | VNone
- | VMap   (Map.Map BaseValue BaseValue)
- | VStruct [(T.Text,BaseValue)]
+ | VMap    (Map.Map BaseValue    BaseValue)
+ | VStruct (Map.Map StructField  BaseValue)
  deriving (Show, Ord, Eq)
 
+
+data StructField
+ = StructField
+ { nameOfStructField :: T.Text
+ }
+ deriving (Show, Ord, Eq)
 
 
 -- Pretty printing ---------------
@@ -75,5 +82,8 @@ instance Pretty BaseValue where
      VMap mv
       -> text "Map" <+> pretty (Map.toList mv)
      VStruct mv
-      -> text "Struct" <+> pretty (mv)
+      -> text "Struct" <+> pretty (Map.toList mv)
+
+instance Pretty StructField where
+ pretty = text . T.unpack . nameOfStructField
 

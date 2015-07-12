@@ -17,7 +17,7 @@ module Icicle.Source.Type (
   , maxOf
   , maxOfPossibility
   , castPossibilityWith
-  , possibly, definitely
+  , possibly, definitely, definitelyUT, possiblyUT
   , canCastTemporality
   , canCastPossibility
   , UniverseType(..)
@@ -115,6 +115,14 @@ definitely u
 possibly   :: Universe -> Universe
 possibly u
  = u { universePossibility = Possibly }
+
+definitelyUT :: UniverseType -> UniverseType
+definitelyUT u
+ = u { universe = definitely $ universe u }
+
+possiblyUT :: UniverseType -> UniverseType
+possiblyUT u
+ = u { universe = possibly $ universe u }
 
 
 canCastTemporality :: Temporality -> Temporality -> Bool

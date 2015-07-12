@@ -75,6 +75,12 @@ convertPrim p ann returns xts
    = Min.PrimRelation Min.PrimRelationEq <$> t1 2
   goop Ne
    = Min.PrimRelation Min.PrimRelationNe <$> t1 2
+  goop TupleComma
+   | [(_,a),(_,b)] <- xts
+   = return $ Min.PrimConst $ Min.PrimConstPair (baseType a) (baseType b)
+   | otherwise
+   = convertError
+   $ ConvertErrorPrimNoArguments ann 2 p
 
 
   t1 num_args

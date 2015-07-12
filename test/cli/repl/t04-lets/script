@@ -1,0 +1,24 @@
+-- Elem/Scalar lets
+feature salary ~> let x = value * 2 ~> sum x
+
+-- Pure let, can use it everywhere
+feature salary ~> let sx = 13013 ~> sum (value + sx) - (sx * count)
+
+-- Aggregate let
+feature salary ~> let sx = sum value ~> sx * 2
+
+-- Aggregate let outside filter
+feature salary ~> let sx = sum value ~> filter value > 100 ~> (sx, sum value)
+
+-- Scalar let before group
+feature salary ~> let x = value ~> group x ~> sum x
+
+-- Agg let before group
+feature salary ~> let x = sum value ~> group value ~> x
+
+-- Agg let before and after group
+feature salary ~> let x = sum value ~> group value ~> let y = sum value ~> (x, y)
+
+-- Scalar let after group
+feature salary ~> group value ~> let x = value ~> sum x
+

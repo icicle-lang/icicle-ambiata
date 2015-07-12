@@ -4,20 +4,22 @@ module Icicle.Core.Exp.Simp
      ( simp
      , simpX
      , simpP
-     , simpMP
      ) where
 
-import           Icicle.Common.Base
+import           Icicle.Common.Value
 import           Icicle.Common.Exp              hiding (simp)
-import qualified Icicle.Common.Exp.Prim.Minimal as M
 import           Icicle.Common.Exp.Simp.ANormal
 import qualified Icicle.Common.Exp.Simp.Beta    as B
 import           Icicle.Common.Fresh
 import           Icicle.Common.Type
 import qualified Icicle.Core.Exp                as C
 import           Icicle.Core.Exp.Prim
+import qualified Icicle.Core.Eval.Exp           as CE
 
 import           P
+
+import qualified Data.Map                       as Map
+import qualified Data.Set                       as Set
 
 
 -- | Core Simplifier:
@@ -36,15 +38,12 @@ simpX isValue = go
     beta  = B.beta isValue
     go xx = case beta xx of
       -- * constant folding for some primitives
-      XApp{}
-        | Just (p, as) <- takePrimApps xx
-        , Just args    <- sequenceA (fmap (takeValue . go) as)
-        -> fromMaybe xx (simpP p args)
-
-      -- * beta reduce primitive arguments
-      XApp{}
-        | Just (p, as) <- takePrimApps xx
-        -> makeApps (XPrim p) (fmap go as)
+      XApp p q
+        | p' <- go p
+        , q' <- go q
+        , Just (prim, as) <- takePrimApps (XApp p' q')
+        , Just args    <- mapM (takeValue . go) as
+        -> fromMaybe (XApp p' q') (simpP prim args)
 
       XApp p q
         -> XApp (go p) (go q)
@@ -53,6 +52,9 @@ simpX isValue = go
         -> XLam n t (go x1)
 
       XLet n x1 x2
+        | not $ n `Set.member` freevars (go x2)
+        -> go x2
+        | otherwise
         -> XLet n (go x1) (go x2)
 
       b@(XVar{})   -> b
@@ -62,125 +64,27 @@ simpX isValue = go
 
 -- | Primitive Simplifier
 --
-simpP :: Prim -> [(ValType, BaseValue)] -> Maybe (C.Exp n)
-simpP = go
-  where
-    go pp args = case pp of
-      PrimMinimal mp  -> simpMP mp args
-      -- * leaves fold and map alone for now..?
-      PrimFold    _ _ -> Nothing
-      PrimMap     _   -> Nothing
-
-simpMP :: M.Prim -> [(ValType, BaseValue)] -> Maybe (C.Exp n)
-simpMP = go
-  where
-    go pp args = case pp of
-      -- * arithmetic on constant integers
-      M.PrimArith M.PrimArithPlus
-        -> arith2 pp args (+)
-      M.PrimArith M.PrimArithMinus
-        -> arith2 pp args (-)
-      M.PrimArith M.PrimArithDiv
-        -> Nothing -- arith2 pp args div
-      M.PrimArith M.PrimArithMul
-        -> arith2 pp args (*)
-      M.PrimArith M.PrimArithNegate
-        | [(_, VInt x)] <- args
-        -> let t = functionReturns (M.typeOfPrim pp)
-           in  return $ XValue t (VInt (-x))
-        | otherwise -> Nothing
-
-      -- * predicates on integers
-      M.PrimRelation M.PrimRelationGt IntT
-        -> int2 args (>)
-      M.PrimRelation M.PrimRelationGe IntT
-        -> int2 args (>=)
-      M.PrimRelation M.PrimRelationLt IntT
-        -> int2 args (<)
-      M.PrimRelation M.PrimRelationLe IntT
-        -> int2 args (<)
-      M.PrimRelation M.PrimRelationEq IntT
-        -> int2 args (==)
-      M.PrimRelation M.PrimRelationNe IntT
-        -> int2 args (/=)
-
-      -- * predicates on bools
-      M.PrimRelation M.PrimRelationGt BoolT
-        -> bool2 args (>)
-      M.PrimRelation M.PrimRelationGe BoolT
-        -> bool2 args (>=)
-      M.PrimRelation M.PrimRelationLt BoolT
-        -> bool2 args (<)
-      M.PrimRelation M.PrimRelationLe BoolT
-        -> bool2 args (<)
-      M.PrimRelation M.PrimRelationEq BoolT
-        -> bool2 args (==)
-      M.PrimRelation M.PrimRelationNe BoolT
-        -> bool2 args (/=)
-
-      M.PrimRelation _ _ -> Nothing
-
-      -- * logical
-      M.PrimLogical M.PrimLogicalAnd
-        -> bool2 args (&&)
-      M.PrimLogical M.PrimLogicalOr
-        -> bool2 args (||)
-      M.PrimLogical M.PrimLogicalNot
-        -> bool1 args not
-
-      -- * constructors
-      M.PrimConst    (M.PrimConstPair _ _)
-       | [(ta,va),(tb,vb)] <- args
-       -> return $ XValue (PairT ta tb) (VPair va vb)
-       | otherwise
-       -> Nothing
-
-      M.PrimConst    (M.PrimConstSome _)
-       | [(ta,va)] <- args
-       -> return $ XValue (OptionT ta) (VSome va)
-       | otherwise
-       -> Nothing
-
-      -- * leaves datetime alone
-      M.PrimDateTime _ -> Nothing
-
-      M.PrimPair    (M.PrimPairFst ta _)
-       | [(_, VPair va _)] <- args
-       -> return $ XValue ta va
-       | otherwise
-       -> Nothing
-
-      M.PrimPair    (M.PrimPairSnd _ tb)
-       | [(_, VPair _ vb)] <- args
-       -> return $ XValue tb vb
-       | otherwise
-       -> Nothing
+simpP :: Ord n => Prim -> [Value n Prim] -> Maybe (C.Exp n)
+simpP p vs
+ = case CE.evalPrim p vs of
+    Right (VBase b)
+     -> Just
+      $ XValue (functionReturns $ C.typeOfPrim p) b
+    -- TODO: we could actually pull the
+    -- heap out as let bindings, and so on..
+    Right VFun{}
+     -> Nothing
+    Left _
+     -> Nothing
 
 
-    bool1 args f
-      | [(_, VBool x)] <- args
-      = return $ XValue BoolT (VBool (f x))
-      | otherwise = Nothing
-
-    bool2 args f
-      | [(_, VBool x), (_, VBool y)] <- args
-      = return $ XValue BoolT (VBool (f x y))
-      | otherwise = Nothing
-
-    int2 args f
-      | [(_, VInt x), (_, VInt y)] <- args
-      = return $ XValue BoolT (VBool (f x y))
-      | otherwise = Nothing
-
-    arith2 pp args f
-      | [(_, VInt x), (_, VInt y)] <- args
-      = let t = functionReturns (M.typeOfPrim pp)
-            v = f x y
-        in  return $ XValue t (VInt v)
-      | otherwise = Nothing
-
-
-takeValue :: Exp n p -> Maybe (ValType, BaseValue)
-takeValue (XValue a b) = Just (a, b)
-takeValue _            = Nothing
+takeValue :: Exp n p -> Maybe (Value n p)
+takeValue (XValue _ b) = Just (VBase b)
+-- We're pulling out a lambda as a closure.
+-- However, we're ignoring the closure's heap.
+-- This is fine - if the lambda references anything outside,
+-- it will not evaluate and so won't be simplified.
+takeValue (XLam n _ x) = Just (VFun Map.empty n x)
+-- I promise this is exhaustive.
+takeValue  _           = Nothing
 

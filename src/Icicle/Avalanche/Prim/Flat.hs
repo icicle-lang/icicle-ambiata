@@ -41,12 +41,19 @@ data PrimProject
 
 data PrimUnsafe
  = PrimUnsafeArrayIndex ValType
+ -- | Create a new, uninitialised array.
+ -- This is unsafe because it's uninitialised:
+ -- you need to promise me that you'll initialise it before reading from it.
+ | PrimUnsafeArrayCreate        ValType
  | PrimUnsafeMapIndex   ValType ValType
  | PrimUnsafeOptionGet  ValType
  deriving (Eq, Ord, Show)
 
+
 data PrimUpdate
  = PrimUpdateMapPut  ValType ValType
+ -- | Should this be unsafe too? It's really both.
+ | PrimUpdateArrayPut        ValType
  deriving (Eq, Ord, Show)
 
 
@@ -77,6 +84,9 @@ typeOfPrim p
     PrimUnsafe  (PrimUnsafeArrayIndex a)
      -> FunT [funOfVal (ArrayT a), funOfVal IntT] a
 
+    PrimUnsafe  (PrimUnsafeArrayCreate a)
+     -> FunT [funOfVal IntT] (ArrayT a)
+
     PrimUnsafe  (PrimUnsafeMapIndex a b)
      -> FunT [funOfVal (MapT a b), funOfVal IntT] (PairT a b)
 
@@ -85,6 +95,9 @@ typeOfPrim p
 
     PrimUpdate  (PrimUpdateMapPut a b)
      -> FunT [funOfVal (MapT a b), funOfVal a, funOfVal b] (MapT a b)
+
+    PrimUpdate  (PrimUpdateArrayPut a)
+     -> FunT [funOfVal (ArrayT a), funOfVal IntT, funOfVal a] (ArrayT a)
 
 
 -- Pretty -------------
@@ -105,12 +118,19 @@ instance Pretty Prim where
  pretty (PrimUnsafe (PrimUnsafeArrayIndex a))
   = text "unsafe_Array_index#" <+> brackets (pretty a)
 
+ pretty (PrimUnsafe (PrimUnsafeArrayCreate a))
+  = text "unsafe_Array_create#" <+> brackets (pretty a)
+
  pretty (PrimUnsafe (PrimUnsafeMapIndex a b))
   = text "unsafe_Map_index#" <+> brackets (pretty a) <+> brackets (pretty b)
 
  pretty (PrimUnsafe (PrimUnsafeOptionGet a))
   = text "unsafe_Option_get#" <+> brackets (pretty a)
 
+
  pretty (PrimUpdate (PrimUpdateMapPut a b))
   = text "Map_put#" <+> brackets (pretty a) <+> brackets (pretty b)
+
+ pretty (PrimUpdate (PrimUpdateArrayPut a))
+  = text "Array_put#" <+> brackets (pretty a)
 

@@ -1,0 +1,23 @@
+welcome to iREPL
+ok, loaded test/cli/repl/data.psv, 8 rows
+> -- Try a simple sum. Expect 1500 and 30.
+> - Result:
+[homer, 1500,marge, 30]
+
+> > -- Tuples
+> - Result:
+[homer, (1500,5),marge, (30,3)]
+
+> > -- Now let's try average. Expect 300 and 10.
+> - Result:
+[homer, 300,marge, 10]
+
+> > -- Filtering
+> - Result:
+[homer, 5,marge, 1]
+
+> > -- Average of latest 3 entries
+> - Result:
+[homer, 400,marge, 10]
+
+> > 

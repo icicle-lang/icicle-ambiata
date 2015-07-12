@@ -7,6 +7,7 @@ module Icicle.Common.Exp.Prim.Minimal (
     , PrimConst(..)
     , PrimDateTime (..)
     , PrimPair(..)
+    , PrimStruct(..)
     , typeOfPrim
     ) where
 
@@ -14,6 +15,8 @@ import              Icicle.Internal.Pretty
 import              Icicle.Common.Type
 
 import              P
+
+import qualified    Data.Map as Map
 
 
 -- | Top-level primitive
@@ -27,6 +30,7 @@ data Prim
  -- | Date primitives
  | PrimDateTime PrimDateTime
  | PrimPair     PrimPair
+ | PrimStruct   PrimStruct
  deriving (Eq, Ord, Show)
 
 -- | Arithmetic primitives
@@ -66,10 +70,14 @@ data PrimDateTime
  = PrimDateTimeDaysDifference
  deriving (Eq, Ord, Show)
 
--- | DateTime primitives
+-- | Pair primitives
 data PrimPair
  = PrimPairFst ValType ValType
  | PrimPairSnd ValType ValType
+ deriving (Eq, Ord, Show)
+
+data PrimStruct
+ = PrimStructGet StructField ValType StructType
  deriving (Eq, Ord, Show)
 
 
@@ -111,6 +119,9 @@ typeOfPrim p
      -> FunT [funOfVal (PairT a b)] a
     PrimPair (PrimPairSnd a b)
      -> FunT [funOfVal (PairT a b)] b
+
+    PrimStruct (PrimStructGet f t (StructType fs))
+     -> FunT [funOfVal (StructT $ StructType $ Map.insert f t fs)] t
  where
   intT = FunT [] IntT
 
@@ -149,4 +160,5 @@ instance Pretty Prim where
  pretty (PrimPair (PrimPairFst a b)) = text "fst#" <+> brackets (pretty a) <+> brackets (pretty b)
  pretty (PrimPair (PrimPairSnd a b)) = text "snd#" <+> brackets (pretty a) <+> brackets (pretty b)
 
+ pretty (PrimStruct (PrimStructGet f t fs)) = text "get#" <+> brackets (pretty f) <+> brackets (pretty t) <+> brackets (pretty fs)
 

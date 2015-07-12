@@ -24,6 +24,10 @@ module Icicle.Source.ToCore.Base (
   , convertWindowUnits
   , baseTypeOrOption
   , applyPossibles
+  , mapOptionLam
+  , traverseIfPossible
+  , someIfPossible
+  , compose, traverseCompose
   ) where
 
 import qualified        Icicle.Core             as C
@@ -281,7 +285,7 @@ applyPossibles f returns xts
                  [ fun, none, x ]
 
         return wrap
-   
+
    -- Simple case, it isn't a possible so we just apply the function
    | otherwise
    = go xts' (args <> [x]) anyPossibles
@@ -290,7 +294,66 @@ applyPossibles f returns xts
   mkSome x
    = X.XPrim (C.PrimMinimal $ Min.PrimConst $ Min.PrimConstSome $ baseType returns)
     `X.XApp`  x
-        
+
+
+-- | Possible
+--
+mapOptionLam
+ :: ValType -> ValType -> (C.Exp n -> C.Exp n)
+ -> ConvertM a n (C.Exp n)
+
+mapOptionLam (T.OptionT t) ret x
+ = do   n   <- lift fresh
+        n's <- lift fresh
+        return (X.XLam n (T.OptionT t)
+               $ X.makeApps
+                    (X.XPrim $ C.PrimFold (C.PrimFoldOption t) ret)
+                    [ X.XLam n's t $ x $ X.XVar n's
+                    , X.XValue (T.OptionT t) VNone
+                    , X.XVar n ]
+               )
+
+mapOptionLam t _ x
+ = do   n <- lift fresh
+        return (X.XLam n t $ x $ X.XVar n)
+
+
+traverseIfPossible
+    :: UniverseType
+    -> C.Exp n
+    -> C.Exp n
+traverseIfPossible u x
+ | Possibly <- universePossibility $ universe u
+ = X.XPrim (C.PrimTraverse $ C.PrimTraverseByType $ baseType u) `X.XApp` x
+ | otherwise
+ = x
+
+someIfPossible
+    :: UniverseType
+    -> C.Exp n
+    -> C.Exp n
+someIfPossible u x
+ | Possibly <- universePossibility $ universe u
+ = X.XPrim (C.PrimMinimal $ Min.PrimConst $ Min.PrimConstSome $ baseType u) `X.XApp` x
+ | otherwise
+ = x
+
+compose :: ValType -> C.Exp n -> C.Exp n
+        -> ConvertM a n (C.Exp n)
+compose t f g
+ = do n <- lift fresh
+      return (X.XLam n t (f `X.XApp` (g `X.XApp` X.XVar n)))
+
+traverseCompose
+        :: UniverseType
+        -> C.Exp n
+        -> ConvertM a n (C.Exp n)
+traverseCompose t f
+ = do n <- lift fresh
+      let x = traverseIfPossible t (f `X.XApp` X.XVar n)
+      return (X.XLam n (baseType t) x)
+
+
 
 -- | These errors should only occur if
 --   - there is a bug in the conversion (there is)

@@ -1,0 +1,57 @@
+welcome to iREPL
+ok, loaded test/cli/repl/data.psv, 8 rows
+> -- Simplest group-by there is
+> - Result:
+[homer, [(100,1)
+        ,(200,1)
+        ,(300,1)
+        ,(400,1)
+        ,(500,1)]
+,marge, [(0,1),(10,1),(20,1)]]
+
+> > -- Grouping by the date
+> - Result:
+[homer, [(1989-12-17,1)
+        ,(1990-1-1,1)
+        ,(1994-1-1,1)
+        ,(1999-1-1,1)
+        ,(2010-1-1,1)]
+,marge, [(1989-12-17,3)]]
+
+> > -- Filter before group
+> - Result:
+[homer, [(1990-1-1,1)
+        ,(1994-1-1,1)
+        ,(1999-1-1,1)
+        ,(2010-1-1,1)]
+,marge, []]
+
+> > -- Filter after group.
+> -- Note that this gives us counts of zero
+> - Result:
+[homer, [(1989-12-17,0)
+        ,(1990-1-1,1)
+        ,(1994-1-1,1)
+        ,(1999-1-1,1)
+        ,(2010-1-1,1)]
+,marge, [(1989-12-17,0)]]
+
+> > -- Group with average
+> - Result:
+[homer, [(1989-12-17,100)
+        ,(1990-1-1,200)
+        ,(1994-1-1,300)
+        ,(1999-1-1,400)
+        ,(2010-1-1,500)]
+,marge, [(1989-12-17,10)]]
+
+> > -- Throw some constants in for good measure
+> - Result:
+[homer, [(1989-12-17,515)
+        ,(1990-1-1,1015)
+        ,(1994-1-1,1515)
+        ,(1999-1-1,2015)
+        ,(2010-1-1,2515)]
+,marge, [(1989-12-17,195)]]
+
+> > 

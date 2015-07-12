@@ -1,0 +1,19 @@
+-- Simplest group-by there is
+feature salary ~> group value ~> count
+
+-- Grouping by the date
+feature salary ~> group date ~> count
+
+-- Filter before group
+feature salary ~> filter value > 100 ~> group date ~> count
+
+-- Filter after group.
+-- Note that this gives us counts of zero
+feature salary ~> group date ~> filter value > 100 ~> count
+
+-- Group with average
+feature salary ~> group date ~> sum value / count
+
+-- Throw some constants in for good measure
+feature salary ~> group date ~> sum (value + 3) * 5
+

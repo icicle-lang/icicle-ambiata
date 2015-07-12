@@ -1,0 +1,15 @@
+welcome to iREPL
+ok, loaded test/cli/repl/data.psv, 8 rows
+> -- Distinct by value. Expect 5 and 3
+> - Result:
+[homer, 5,marge, 3]
+
+> > -- Distinct by date. Expect 5 and 1
+> - Result:
+[homer, 5,marge, 1]
+
+> > -- Average of distincts. That is, find the *last* for each date, and average all lasts
+> - Result:
+[homer, 300,marge, 20]
+
+> 

@@ -1,5 +1,6 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PatternGuards #-}
 module Icicle.Repl (
     ReplError (..)
   , annotOfError
@@ -7,6 +8,7 @@ module Icicle.Repl (
   , sourceCheck
   , sourceConvert
   , sourceParseConvert
+  , coreSimp
   , readFacts
   ) where
 
@@ -20,6 +22,7 @@ import qualified Icicle.Core.Program.Program        as Core
 import qualified Icicle.Core.Program.Simp           as Core
 import           Icicle.Data
 import qualified Icicle.Dictionary                  as D
+import qualified Icicle.Encoding                    as E
 import           Icicle.Internal.Pretty
 import qualified Icicle.Serial                      as S
 import qualified Icicle.Simulator                   as S
@@ -114,17 +117,11 @@ sourceCheck d q
 
 sourceConvert :: D.Dictionary -> QueryTop'T -> Either ReplError Program'
 sourceConvert d q
- = mapRight (simp.snd)
+ = mapRight snd
  $ mapLeft ReplErrorConvert
- $ Fresh.runFreshT (STC.convertQueryTop d' q) (namer "conv")
+ $ Fresh.runFreshT (STC.convertQueryTop d' q) (freshNamer "conv")
  where
   d' = featureMapOfDictionary d
-
-  namer prefix = Fresh.counterPrefixNameState (SP.Variable . T.pack . show) (SP.Variable prefix)
-
-  simp p
-   = snd
-   $ Fresh.runFresh (Core.simpProgram p) (namer "simp")
 
 
 sourceParseConvert :: T.Text -> Either ReplError Program'
@@ -134,22 +131,41 @@ sourceParseConvert t
         sourceConvert D.demographics q'
 
 
+
+coreSimp :: Program' -> Program'
+coreSimp p
+ = snd
+ $ Fresh.runFresh (Core.simpProgram p) (freshNamer "simp")
+
+
+freshNamer :: Text -> Fresh.NameState SP.Variable
+freshNamer prefix = Fresh.counterPrefixNameState (SP.Variable . T.pack . show) (SP.Variable prefix)
+
+
 featureMapOfDictionary :: D.Dictionary -> STC.Features Var
 featureMapOfDictionary (D.Dictionary ds)
  = Map.fromList
  $ concatMap go
    ds
  where
-  go (Attribute attr, D.ConcreteDefinition _enc)
-   -- TODO: convert Encoding to feature map
-   = [ ( SP.Variable attr
-       , ( IntT
-         , Map.fromList   [ (SP.Variable "value"
-                            , ( IntT
-                              , X.XApp (xfst IntT DateTimeT)))
-                          , (SP.Variable "date"
-                            , ( DateTimeT
-                              , X.XApp (xsnd IntT DateTimeT)))]))]
+  go (Attribute attr, D.ConcreteDefinition enc)
+   | StructT st@(StructType fs) <- E.sourceTypeOfEncoding enc
+   = let e' = StructT st
+     in [ ( SP.Variable attr
+        , ( e'
+        , Map.fromList
+        $ exps "fields" e'
+        <> (fmap (\(k,t)
+        -> ( SP.Variable $ nameOfStructField k
+           , (t, X.XApp (xget k t st) . X.XApp (xfst e' DateTimeT)))
+        )
+        $ Map.toList fs)))]
+
+   | otherwise
+   = let e' = E.sourceTypeOfEncoding enc
+     in [ ( SP.Variable attr
+        , ( e'
+        , Map.fromList $ exps "value" e'))]
   go _
    = []
 
@@ -157,6 +173,14 @@ featureMapOfDictionary (D.Dictionary ds)
    = X.XPrim (X.PrimMinimal $ X.PrimPair $ X.PrimPairFst t1 t2)
   xsnd t1 t2
    = X.XPrim (X.PrimMinimal $ X.PrimPair $ X.PrimPairSnd t1 t2)
+  xget f t fs
+   = X.XPrim (X.PrimMinimal $ X.PrimStruct $ X.PrimStructGet f t fs)
+
+  exps str e'
+   = [ (SP.Variable str, ( e', X.XApp (xfst e' DateTimeT)))
+     , date_as_snd e']
+  date_as_snd e'
+   = (SP.Variable "date" , ( DateTimeT, X.XApp (xsnd e' DateTimeT)))
 
 readFacts :: D.Dictionary -> Text -> Either ReplError [AsAt Fact]
 readFacts dict raw

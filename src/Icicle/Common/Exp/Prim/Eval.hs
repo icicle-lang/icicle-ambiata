@@ -8,9 +8,11 @@ import              Icicle.Common.Base
 import              Icicle.Common.Value
 import              Icicle.Common.Exp.Eval
 import              Icicle.Common.Exp.Prim.Minimal
-import qualified    Icicle.Data.DateTime as DT
+import qualified    Icicle.Data.DateTime            as DT
 
 import              P
+
+import qualified    Data.Map                        as Map
 
 
 -- | Evaluate a primitive, given list of argument values
@@ -128,6 +130,13 @@ evalPrim p originalP vs
      PrimPair (PrimPairSnd _ _)
       | [VBase (VPair _ y)] <- vs
       -> return $ VBase $ y
+      | otherwise
+      -> primError
+
+     PrimStruct (PrimStructGet f _ _)
+      | [VBase (VStruct fs)] <- vs
+      , Just v' <- Map.lookup f fs
+      -> return $ VBase v'
       | otherwise
       -> primError
 

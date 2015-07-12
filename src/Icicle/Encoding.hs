@@ -13,6 +13,7 @@ module Icicle.Encoding (
   , valueOfJSON
   , jsonOfValue
   , parseFact
+  , sourceTypeOfEncoding
   ) where
 
 import           Data.Attoparsec.ByteString
@@ -23,14 +24,17 @@ import           Data.Text.Encoding     as T
 import qualified Data.Aeson             as A
 import qualified Data.Scientific        as S
 
-import qualified Data.HashMap.Strict    as HM
-import qualified Data.Vector            as V
 import qualified Data.ByteString.Lazy   as BS
+import qualified Data.HashMap.Strict    as HM
+import qualified Data.Map               as Map
+import qualified Data.Vector            as V
 
 import           Icicle.Data
 import           Icicle.Dictionary
+import qualified Icicle.Common.Type     as IT
 
 import           P
+
 
 
 data DecodeError =
@@ -340,3 +344,35 @@ parseFact (Dictionary dict) fact'
     , value     = v
     }
 
+
+sourceTypeOfEncoding :: Encoding -> IT.ValType
+sourceTypeOfEncoding e
+ = case e of
+    StringEncoding
+     -> IT.StringT
+    IntEncoding
+     -> IT.IntT
+    DoubleEncoding
+     -> IT.IntT -- TODO double
+    BooleanEncoding
+     -> IT.BoolT
+    DateEncoding
+     -> IT.DateTimeT
+    StructEncoding fs
+     -> IT.StructT
+      $ IT.StructType
+      $ Map.fromList
+      $ fmap goStructField fs
+    ListEncoding e'
+     -> IT.ArrayT
+      $ sourceTypeOfEncoding e'
+
+ where
+
+  goStructField (StructField Mandatory attr enc)
+    = ( IT.StructField $ getAttribute attr
+      , sourceTypeOfEncoding enc)
+
+  goStructField (StructField Optional attr enc)
+    = ( IT.StructField $ getAttribute attr
+      , IT.OptionT $ sourceTypeOfEncoding enc)

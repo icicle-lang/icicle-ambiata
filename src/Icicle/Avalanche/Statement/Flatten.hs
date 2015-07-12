@@ -32,6 +32,7 @@ data FlattenError n
  = FlattenErrorApplicationNonPrimitive (Exp n Core.Prim)
  | FlattenErrorBareLambda (Exp n Core.Prim)
  | FlattenErrorPrimBadArgs Core.Prim [Exp n Core.Prim]
+ | FlattenErrorSorryTraverseTODO
  deriving (Eq, Ord, Show)
 
 type FlatM n
@@ -201,6 +202,46 @@ flatX xx stm
        | otherwise
        -> lift $ Left $ FlattenErrorPrimBadArgs p xs
 
+      -- Option Map: insert value into map, or if key already exists,
+      -- apply update function to existing value.
+      -- if update function returns None, return None.
+      Core.PrimMap (Core.PrimMapInsertOrUpdateOption tk tv)
+       | [upd, ins, key, map]   <- xs
+       -> flatX key
+       $ \key'
+       -> flatX map
+       $ \map'
+       -> let fpLookup    = XPrim (Flat.PrimProject (Flat.PrimProjectMapLookup tk tv))
+              fpIsSome    = XPrim (Flat.PrimProject (Flat.PrimProjectOptionIsSome tv))
+              fpOptionGet = XPrim (Flat.PrimUnsafe (Flat.PrimUnsafeOptionGet tv))
+              fpUpdate    = XPrim (Flat.PrimUpdate (Flat.PrimUpdateMapPut tk tv))
+
+              fpNoneMap   = XValue (OptionT $ MapT tk tv) VNone
+              fpSomeMap   = XPrim (Flat.PrimMinimal $ Min.PrimConst $ Min.PrimConstSome $ MapT tk tv)
+
+              update val
+                     =  slet    (fpOptionGet `XApp` val)                $ \val'
+                     -> flatX   (upd `XApp` val')                       $ \upd'
+                     -> slet    (upd')                                  $ \upd''
+                     -> If      (fpIsSome `XApp` upd'')
+                         <$> (slet    (makeApps fpUpdate [map', key', fpOptionGet `XApp` upd''])  $ \map''
+                              -> stm (fpSomeMap `XApp` map''))
+                         <*> stm fpNoneMap
+
+              insert
+                     =  flatX   ins                                     $ \ins'
+                     -> slet    (makeApps fpUpdate [map', key', ins'])  $ \map''
+                     -> stm (fpSomeMap `XApp` map'')
+
+         in slet (makeApps fpLookup [map', key'])                       $ \val
+         ->  If (fpIsSome `XApp` val)
+                <$> update val
+                <*> insert
+
+       -- Map with wrong arguments
+       | otherwise
+       -> lift $ Left $ FlattenErrorPrimBadArgs p xs
+
       -- Map: create new empty map, for each element, etc
       Core.PrimMap (Core.PrimMapMapValues tk tv tv')
        | [upd, map]   <- xs
@@ -233,6 +274,41 @@ flatX xx stm
        | otherwise
        -> lift $ Left $ FlattenErrorPrimBadArgs p xs
 
+
+      -- Map over array: create new empty array, for each element, etc
+      Core.PrimArray (Core.PrimArrayMap ta tb)
+       | [upd, arr]   <- xs
+       -> flatX arr
+       $ \arr'
+       -> do    accN <- fresh
+                let fpArrLen   = XPrim (Flat.PrimProject $ Flat.PrimProjectArrayLength ta)
+                let fpArrIx    = XPrim (Flat.PrimUnsafe  $ Flat.PrimUnsafeArrayIndex   ta)
+                let fpArrNew   = XPrim (Flat.PrimUnsafe  $ Flat.PrimUnsafeArrayCreate  tb)
+                let fpUpdate   = XPrim (Flat.PrimUpdate  $ Flat.PrimUpdateArrayPut     tb)
+
+                stm' <- stm (XVar accN)
+
+                loop <- forI (fpArrLen `XApp` arr')                 $ \iter
+                     -> fmap    (Read accN accN)                    $
+                        slet    (fpArrIx `makeApps` [arr', iter])   $ \elm
+                     -> flatX   (upd `XApp` elm)                    $ \elm'
+                     -> slet    (fpUpdate `makeApps` [XVar accN, iter, elm']) $ \arr''
+                     -> return  (Write accN arr'')
+
+
+                let arrT = ArrayT tb
+                return $ InitAccumulator
+                            (Accumulator accN Mutable arrT (fpArrNew `XApp` (fpArrLen `XApp` arr')))
+                            (loop <> Read accN accN stm')
+
+
+       -- Map with wrong arguments
+       | otherwise
+       -> lift $ Left $ FlattenErrorPrimBadArgs p xs
+
+      -- Traverse is TODO
+      Core.PrimTraverse (Core.PrimTraverseByType _)
+       -> lift $ Left $ FlattenErrorSorryTraverseTODO
 
   -- Convert arguments to a simple primitive.
   -- conv is what we've already converted

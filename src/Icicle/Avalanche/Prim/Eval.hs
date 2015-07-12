@@ -61,6 +61,15 @@ evalPrim p vs
       | otherwise
       -> primError
 
+     -- Create an uninitialised array.
+     -- We have nothing to put in there, so we might as well just
+     -- fill it up with units.
+     PrimUnsafe (PrimUnsafeArrayCreate _)
+      | [VBase (VInt sz)]  <- vs
+      -> return $ VBase $ VArray $ [VUnit | _ <- [1..sz]]
+      | otherwise
+      -> primError
+
      PrimUnsafe (PrimUnsafeMapIndex _ _)
       | [VBase (VMap var), VBase (VInt ix)]  <- vs
       , Just (k,v) <- lookup ix (zip [0..] $ Map.toList var)
@@ -77,6 +86,14 @@ evalPrim p vs
      PrimUpdate (PrimUpdateMapPut _ _)
       | [VBase (VMap vmap), VBase k, VBase v]  <- vs
       -> return $ VBase $ VMap $ Map.insert k v vmap
+      | otherwise
+      -> primError
+
+     PrimUpdate (PrimUpdateArrayPut _)
+      | [VBase (VArray varr), VBase (VInt ix), VBase v]  <- vs
+      -> return $ VBase
+       $ VArray [ if i == ix then v else u
+                | (i,u) <- zip [0..] varr ]
       | otherwise
       -> primError
 

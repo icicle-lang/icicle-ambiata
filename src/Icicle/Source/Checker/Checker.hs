@@ -114,10 +114,13 @@ checkQ ctx_top q
                         case universeTemporality $ universe t' of
                          AggU -> return ()
                          Pure -> return ()
-                         Elem    -> groupError "Elements are not allowed as this could create very structures"
+                         Elem    -> groupError "Elements are not allowed as this could create very large structures"
                          Group _ -> groupError "Nested groups are not supported"
 
-                        let t'' = t' { universe = (Universe (Group $ baseType te) Definitely) }
+                        let poss = maxOfPossibility
+                                    (universePossibility $ universe te)
+                                    (universePossibility $ universe t')
+                        let t'' = t' { universe = (Universe (Group $ baseType te) poss) }
                         let c' = GroupBy (ann, t'') e'
                         return (wrap c' q'', t'')
 
@@ -212,7 +215,8 @@ checkQ ctx_top q
                       [Suggest "The predicate for a filter must be a boolean"]
 
   expIsEnum ann c te
-   = when (not $ isEnum $ baseType te)
+  -- TODO: disabled; strings should be allowed
+   = when (False && (not $ isEnum $ baseType te))
          $ errorSuggestions (ErrorContextExpNotEnum ann c te)
                             [Suggest "Group-by and distinct-by must be bounded; otherwise we'd run out of memory"]
 
@@ -295,6 +299,8 @@ checkP x p args
      -> unary
      | Div <- o
      -> binary Possibly o
+     | TupleComma <- o
+     -> tuple
      | otherwise
      -> binary Definitely o
 
@@ -345,6 +351,13 @@ checkP x p args
    , poss'  <- maxOfPossibility (universePossibility u) poss
    , not $ isGroup u
    = return ((), UniverseType (u { universePossibility = poss'}) $ returnType o)
+   | otherwise
+   = err
+
+  tuple
+   | [a,b] <- args
+   , Just u <- maxOf (universe a) (universe b)
+   = return ((), UniverseType u $ T.PairT (baseType a) (baseType b))
    | otherwise
    = err
 

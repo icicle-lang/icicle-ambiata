@@ -53,6 +53,12 @@ evalPrim p vs
       | otherwise
       -> primError
 
+     PrimArray (PrimArrayMap _ _)
+      | [upd, VBase (VArray as)] <- vs
+      -> (VBase . VArray) <$> mapM (applyBase upd) as
+      | otherwise
+      -> primError
+
      PrimMap (PrimMapInsertOrUpdate _ _)
       | [upd, VBase ins, VBase key, VBase (VMap mm)] <- vs
       -> case Map.lookup key mm of
@@ -65,11 +71,34 @@ evalPrim p vs
       | otherwise
       -> primError
 
+     PrimMap (PrimMapInsertOrUpdateOption _ _)
+      | [upd, VBase ins, VBase key, VBase (VMap mm)] <- vs
+      -> case Map.lookup key mm of
+          Nothing
+           -> return $ VBase $ VMap $ Map.insert key ins mm
+          Just v
+           -> do    v' <- applyBase upd v
+                    case v' of
+                     VNone      -> return $ VBase $ VNone
+                     VSome v''  -> return $ VBase $ VSome $ VMap $ Map.insert key v'' mm
+                     _          -> primError
+
+      | otherwise
+      -> primError
+
      PrimMap (PrimMapMapValues _ _ _)
       | [upd, VBase (VMap mm)] <- vs
       -> (VBase . VMap) <$> mapM (applyBase upd) mm
       | otherwise
       -> primError
+
+
+     PrimTraverse (PrimTraverseByType _)
+      | [VBase v] <- vs
+      -> return $ VBase $ maybe VNone VSome $ primTraverse v
+      | otherwise
+      -> primError
+
 
  where
   applies' = applies evalPrim
@@ -82,4 +111,25 @@ evalPrim p vs
 
   primError
    = Left $ RuntimeErrorPrimBadArgs p vs
+
+  primTraverse vv
+   = case vv of
+      VNone -> Nothing
+      VSome v -> primTraverse v
+      VArray ms -> VArray <$> mapM primTraverse ms
+      VPair a b -> VPair <$> primTraverse a <*> primTraverse b
+
+      VMap ms   -> VMap . Map.fromList
+                <$> mapM (\(k,v) -> (,) <$> primTraverse k <*> primTraverse v)
+                  (Map.toList ms)
+
+      VStruct ms-> VStruct . Map.fromList
+                <$> mapM (\(k,v) -> (,) k <$> primTraverse v)
+                  (Map.toList ms)
+
+      VInt{}        -> Just vv
+      VUnit         -> Just vv
+      VBool{}       -> Just vv
+      VDateTime{}   -> Just vv
+      VString{}     -> Just vv
 

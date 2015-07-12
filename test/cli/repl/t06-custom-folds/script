@@ -1,0 +1,9 @@
+-- Rolling average
+feature salary ~> let fold1 roll = value : (roll / 2) + (value / 2) ~> roll
+
+-- Sum
+feature salary ~> let fold xsum = 0 : xsum + value ~> xsum
+
+-- Newest and oldest
+feature salary ~> let fold1 xnew = value : value ~> let fold1 xold = value : xold ~> (xnew, xold)
+
