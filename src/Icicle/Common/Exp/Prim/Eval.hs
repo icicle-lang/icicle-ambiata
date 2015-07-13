@@ -44,9 +44,9 @@ evalPrim p originalP vs
 
      PrimArith PrimArithDiv
       | [_             , VBase (VInt 0)] <- vs
-      -> return $ VBase $ VNone
+      -> return $ VBase $ VException ExceptDivZero
       | [VBase (VInt i), VBase (VInt j)] <- vs
-      -> return $ VBase $ VSome $ VInt $ i `div` j
+      -> return $ VBase $ VInt $ i `div` j
       | otherwise
       -> primError
 

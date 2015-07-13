@@ -84,15 +84,15 @@ convertFold q
          -- Aggregates are relatively simple
          Agg SumA
           | [e] <- args
-          -> do let retty' = baseTypeOrOption retty
+          -> do let retty' = baseType retty
                 e' <- convertExp e
 
                 n  <- lift fresh
-                add <- convertPrim (Op Add) ann retty
+                add <- convertPrim (Op Add) ann
                         [(CE.XVar n, retty)
                         ,(e', retty)]
                 let k = CE.XLam n retty' add
-                let z = someIfPossible retty $ CE.constI 0
+                let z = CE.constI 0
                 x    <- idFun retty'
 
                 return $ ConvertFoldResult k z x retty retty
@@ -125,7 +125,7 @@ convertFold q
                 res <- mapM (convertFold . Query []) args
 
                 let ts  = fmap typeFold         res
-                let ts' = fmap baseTypeOrOption ts
+                let ts' = fmap baseType ts
                 -- Create pairs for zeros
                 (zz, tt) <- pairConstruct (fmap foldZero res) ts'
 
@@ -134,9 +134,9 @@ convertFold q
                 --  recursively extract the arguments,
                 --  apply the primitive
                 let cp ns
-                        = convertPrim p ann retty
+                        = convertPrim p ann
                             ((fmap (uncurry CE.XApp) (fmap mapExtract res `zip` ns)) `zip` fmap typeExtract res)
-                xx       <- pairDestruct cp ts' (baseTypeOrOption retty)
+                xx       <- pairDestruct cp ts' (baseType retty)
 
                 -- For konstrukt, we need to destruct the pairs, apply the sub-ks,
                 -- then box it up again in pairs.
@@ -144,27 +144,7 @@ convertFold q
                 kk       <- pairDestruct applyKs ts' tt
 
                 let tt' = retty { baseType = tt }
-                let needTraverse
-                        | Just _ <- C.extractOption tt
-                        = True
-                        | otherwise
-                        = False
-
-                let tt''| Just t' <- C.extractOption tt
-                        = possiblyUT $ retty { baseType = t' }
-                        | otherwise
-                        = definitelyUT $ retty { baseType = tt }
-
-                kk'    <- if needTraverse
-                          then traverseCompose tt' kk
-                          else return kk
-                let zz' = if needTraverse
-                          then traverseIfPossible tt' zz
-                          else zz
-                let xx' = xx
-
-                return
-                 $ ConvertFoldResult kk' zz' xx' tt'' retty
+                return $ ConvertFoldResult kk zz xx tt' retty
 
      -- Variable lookup.
      -- The actual folding doesn't matter,
@@ -174,15 +154,15 @@ convertFold q
       -> do fs <- convertFeatures
             case Map.lookup v fs of
              Just (_, var')
-              -> do i <- idFun (baseTypeOrOption retty)
+              -> do i <- idFun (baseType retty)
                     n'v <- lift fresh
                     inp <- convertInputName
-                    let k = CE.XLam n'v (baseTypeOrOption retty) $ var' $ CE.XVar inp
+                    let k = CE.XLam n'v (baseType retty) $ var' $ CE.XVar inp
                     -- TODO argh why an int.
                     -- maybe this shouldn't be here,
                     -- and let of elem should actually be different.
                     -- yes - instead of this, Let where def is Elem should call convertExp instead of convertFold
-                    return $ ConvertFoldResult k (CE.XValue (baseTypeOrOption retty) (VInt 13013)) i retty retty
+                    return $ ConvertFoldResult k (CE.XValue (baseType retty) (VInt 13013)) i retty retty
              _
               -> do n'x <- lift fresh
                     v'  <- convertFreshenLookup ann v
@@ -233,12 +213,10 @@ convertFold q
             let u' = Universe { universeTemporality = universeTemporality $ universe $ typeFold resq
                               , universePossibility = maxOfPossibility (universePossibility $ universe $ typeFold resb) (universePossibility $ universe $ typeFold resq) }
             let t'     = UniverseType { universe = u', baseType = T.PairT tb'ret tq'ret}
-            let pairOuter = baseTypeOrOption t'
+            let pairOuter = baseType t'
 
-            let tb' = baseTypeOrOption $ typeFold resb
-            let tq' = baseTypeOrOption $ typeFold resq
-            let pairNested = T.PairT tb' tq'
-            let t'Nested = t' { baseType = pairNested }
+            let tb' = baseType $ typeFold resb
+            let tq' = baseType $ typeFold resq
 
             let mkPair x y
                    = CE.XPrim
@@ -251,18 +229,17 @@ convertFold q
             let xfst = xproj Min.PrimPairFst
             let xsnd = xproj Min.PrimPairSnd
 
-            k' <- mapOptionLam pairOuter pairOuter
-                $ \n' -> CE.XLet b' (foldKons resb CE.@~ someIfPossible (typeFold resb) (xfst n'))
-                       $ traverseIfPossible t'Nested
-                       $ mkPair (CE.XVar b') (foldKons resq CE.@~ (someIfPossible (typeFold resq) $ xsnd n'))
+            n' <- lift fresh
+            let k'  = CE.XLam n' pairOuter
+                    $ CE.XLet b' (foldKons resb CE.@~ xfst (CE.XVar n'))
+                    $ mkPair (CE.XVar b') (foldKons resq CE.@~ xsnd (CE.XVar n'))
 
             let z' = CE.XLet b' (foldZero resb)
-                   $ traverseIfPossible t'Nested
                    $ mkPair (CE.XVar b') (foldZero resq)
 
-            x' <- mapOptionLam pairOuter (baseTypeOrOption $ typeExtract $ resq)
-                $ \n' -> CE.XLet b' (mapExtract resb CE.@~ (someIfPossible (typeFold resb) $ xfst n'))
-                                    (mapExtract resq CE.@~ (someIfPossible (typeFold resq) $ xsnd n'))
+            let x' = CE.XLam n' pairOuter
+                    $ CE.XLet b' (mapExtract resb CE.@~ xfst (CE.XVar n'))
+                                 (mapExtract resq CE.@~ xsnd (CE.XVar n'))
 
             return $ ConvertFoldResult k' z' x' t' (typeExtract resq)
 

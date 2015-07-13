@@ -31,19 +31,13 @@ import                  P
 --
 -- is ill typed.
 convertPrim
-        :: Prim -> a -> UniverseType
+        :: Prim -> a
         -> [(C.Exp n, UniverseType)]
         -> ConvertM a n (C.Exp n)
-convertPrim p ann returns xts
+convertPrim p ann xts
  = do   p' <- go p
-        applyPossibles p' rawReturnType xts
+        return $ CE.makeApps p' $ fmap fst xts
  where
-
-  rawReturnType
-   | Op Div <- p
-   = returns { universe = possibly (universe returns) }
-   | otherwise
-   = returns { universe = definitely (universe returns) }
 
   go (Op o)
    = (CE.XPrim . C.PrimMinimal) <$> goop o

@@ -89,8 +89,6 @@ typeOfPrim p
     -- All arithmetics are working on ints for now
     PrimArith PrimArithNegate
      -> FunT [intT] IntT
-    PrimArith PrimArithDiv
-     -> FunT [intT, intT] (OptionT IntT)
     PrimArith _
      -> FunT [intT, intT] IntT
 

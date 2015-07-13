@@ -55,19 +55,19 @@ convertExp x
       $ ConvertErrorExpNestedQueryNotAllowedHere ann q
 
 
-    App (ann,retty) _ _
+    App (ann,_) _ _
      -- Primitive application: convert arguments, then convert primitive
      | Just (p, _, args) <- takePrimApps x
      -> do  args'   <- mapM convertExp args
             let tys  = fmap (snd . annotOfExp) args
-            convertPrim p ann retty (args' `zip` tys)
+            convertPrim p ann (args' `zip` tys)
 
      | otherwise
      -> convertError
       $ ConvertErrorExpApplicationOfNonPrimitive ann x
 
 
-    Prim (ann,retty) p
-     -> convertPrim p ann retty []
+    Prim (ann,_) p
+     -> convertPrim p ann []
 
 

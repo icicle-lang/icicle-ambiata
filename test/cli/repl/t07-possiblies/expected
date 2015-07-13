@@ -2,18 +2,22 @@ welcome to iREPL
 ok, loaded test/cli/repl/data.psv, 8 rows
 > -- Divisions return Possibles.
 > -- Try with group:
-> -- TODO
-> -- feature salary ~> group (value / 200) ~> sum (value / 5) / 5
+> - Result:
+[homer, [(0,4),(1,20),(2,36)]
+,marge, [(0,1)]]
+
 > > -- Distincts
-> -- TODO
-> -- feature salary ~> distinct (value / 5) ~> sum (value / 5) / 5
+> - Result:
+[homer, 60,marge, 1]
+
 > > -- Maybe some lets
 > - Result:
 [homer, 3000,marge, 60]
 
 > > -- Add a filter
-> -- TODO
-> -- feature salary ~> let x = 2 / 1 ~> filter (value > x) ~> count
+> - Result:
+[homer, 5,marge, 2]
+
 > > -- newest or something
 > - Result:
 [homer, ((100,20),1500)
