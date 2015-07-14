@@ -1,0 +1,22 @@
+welcome to iREPL
+ok, loaded test/cli/repl/data.psv, 8 rows
+> -- These two were failing before, but should pass now.
+> -- Not that they are particularly interesting.
+> - Result:
+[homer, 4,marge, 3]
+
+> - Result:
+[homer, 0,marge, 0]
+
+> > > -- This is a type error because "kermit" is not used!!!
+> -- Expect error.
+>                                     [34mλλλλ[0m
+REPL Error:
+Check error:
+  Type mismatch in let at  (line 1, column 35)
+  Type:     Agg  Int
+  Expected: Elem  Int
+  Extra information:
+    The type for this let implies that the definition cannot be used!
+
+> > 

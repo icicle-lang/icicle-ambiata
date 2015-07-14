@@ -1,0 +1,10 @@
+-- These two were failing before, but should pass now.
+-- Not that they are particularly interesting.
+feature salary ~> latest 4 ~> let waldorf = 2 ~> let fold1 kermit = 2 : -waldorf ~> count
+feature salary ~> latest 2 ~> let chef = 2 ~> 1 / chef
+
+
+-- This is a type error because "kermit" is not used!!!
+-- Expect error.
+feature salary ~> latest 4 ~> let kermit = -count ~> value
+
