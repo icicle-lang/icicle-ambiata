@@ -68,8 +68,7 @@ instance Arbitrary Prim where
         , Lit $ LitInt 1
         , Lit $ LitInt 2
         , Agg   Count
-        , Agg   Newest
-        , Agg   Oldest ]
+        ]
 
 instance Arbitrary n => Arbitrary (Context () n) where
  arbitrary

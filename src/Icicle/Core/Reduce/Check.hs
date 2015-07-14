@@ -46,7 +46,7 @@ checkReduce se r
                         (funOfVal IntT)                   nty
 
             return (ArrayT t)
-            
+
  where
   checkX
    = mapLeft ReduceErrorExp . checkExp coreFragmentWorkerFun (scalars se)

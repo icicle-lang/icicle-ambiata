@@ -154,7 +154,36 @@ convertQuery q
     --
     -- However, at the moment we only support folds with single pass,
     -- and not returning the whole array.
-    (Latest (_,_retty) i : _)
+    (Latest _ i : _)
+
+     -- Special case: just a value.
+     -- We still need to support eg
+     --
+     -- "latest 5 ~> filter P ~> Elem"
+     -- and also
+     -- "latest 5 ~> let V = Elem ~> Elem"
+     --
+     | Query [] x <- q'
+     , Elem <- universeTemporality $ universe $ snd $ annotOfExp x
+     -> do  n'arr   <- lift fresh
+            n'map   <- lift fresh
+
+            n'v     <- lift fresh
+
+            x' <- convertWithInputName n'v $ convertExp x
+            let t'  = baseType $ snd $ annotOfExp x
+
+            (inpstream, inpty) <- convertInput
+
+            -- Do the map before the latest.
+            -- Same result, just requires a smaller buffer
+            let bmap  = strm  n'map
+                      $ C.STrans (C.SMap inpty t') (CE.XLam n'v inpty x') inpstream
+            let barr  = red  n'arr
+                      $ C.RLatest t' (CE.constI i) n'map
+            return (bmap <> barr, n'arr)
+
+     | otherwise
      -> do  n'arr   <- lift fresh
             n'fold  <- lift fresh
             n'xtra  <- lift fresh
@@ -340,7 +369,7 @@ convertQuery q
                 let inpty' = T.PairT t' inpty
 
                 n'e     <- lift fresh
-                
+
                 e'      <- convertWithInputName n'e $ convertExp def
 
                 let xfst = CE.XApp
@@ -383,7 +412,7 @@ convertQuery q
 
 
     -- Converting fold1s.
-    (LetFold (_,_) f@Fold{ foldType = FoldTypeFoldl1 } : _)
+    (LetFold _ f@Fold{ foldType = FoldTypeFoldl1 } : _)
      -> do  -- Type helpers
             let tU = baseType $ snd $ annotOfExp $ foldWork f
             let tO = T.OptionT tU
@@ -436,7 +465,7 @@ convertQuery q
                             (CE.XValue tU $ VException ExceptFold1NoValue)
                             (CE.XVar n'))
 
-            
+
             (bs', n'')      <- convertQuery q'
 
             return (bs <> bs', n'')
@@ -453,9 +482,9 @@ convertQuery q
     -- > 0
     -- > stream
     --
-    (LetFold (_,retty) f@Fold{ foldType = FoldTypeFoldl } : _)
+    (LetFold _ f@Fold{ foldType = FoldTypeFoldl } : _)
      -> do  -- Type helpers
-            let tU = baseType retty
+            let tU = baseType $ snd $ annotOfExp $ foldWork f
 
             -- Generate fresh names
             -- Element of the stream
@@ -478,7 +507,7 @@ convertQuery q
 
             -- Bind the fold to the original name
             let bs = red n'a (C.RFold inpty tU go z inpstream)
-            
+
             (bs', n'')      <- convertQuery q'
 
             return (bs <> bs', n'')

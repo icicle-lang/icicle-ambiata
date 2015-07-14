@@ -90,9 +90,12 @@ checkQ ctx_top q
                         return (wrap c' q'', t)
 
                  Latest ann num
-                  -> do (q'',t) <- tq
+                        -- TODO: XXX:
+                  -- XXX TODO: temporarily disallow contexts here;
+                  -- let bindings etc inside latests don't work right now
+                  -> do (q'',t') <- checkQ (ctx { isInGroup = True, allowContexts = False }) q'
                         notAllowedInGroupBy ann c
-                        let tA = wrapAsAgg t
+                        let tA = wrapAsAgg t'
                         let c' = Latest (ann, tA) num
                         return (wrap c' q'', tA)
 
@@ -129,7 +132,7 @@ checkQ ctx_top q
                         notAllowedInGroupBy ann c
                         expIsEnum ann c te
                         expIsElem ann c te
-                        (q'', t') <- tq
+                        (q'',t') <- checkQ (ctx { isInGroup = True }) q'
                         requireAggOrGroup ann t'
                         let c' = Distinct (ann, t') e'
                         return (wrap c' q'', t')
