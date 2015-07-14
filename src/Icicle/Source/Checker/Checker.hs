@@ -78,12 +78,11 @@ checkQ ctx_top q
                              [Suggest "Contexts are not allowed inside worker functions of sums etc"]
          | otherwise
          -> let q' = q { contexts = cs }
-                tq = checkQ ctx q'
 
             in  case c of
                  Windowed ann lo hi
                   -- TODO: check that range is valid
-                  -> do (q'',t) <- tq
+                  -> do (q'',t) <- checkQ ctx q'
                         notAllowedInGroupBy ann c
                         requireAggOrGroup ann t
                         let c' = Windowed (ann, t) lo hi
@@ -141,7 +140,7 @@ checkQ ctx_top q
                   -> do (e', te) <- checkX (ctx { allowContexts = False}) e
                         expFilterIsBool ann c te
                         expIsElem ann c te
-                        (q'', t') <- tq
+                        (q'', t') <- checkQ ctx q'
                         requireAggOrGroup ann t'
                         let t'' = t' { universe = castPossibilityWith (universe t') (universe te) }
                         let c' = Filter (ann, t'') e'
@@ -200,10 +199,7 @@ checkQ ctx_top q
 
 
                  Let ann n e
-                  -- XXX TODO: temporarily disallow contexts in let bindings.
-                  -- This should be fixed later,
-                  -- when ToCore conversion can handle these
-                  -> do (e',te) <- checkX (ctx { allowContexts = False }) e
+                  -> do (e',te) <- checkX ctx e
                         let ctx' = ctx { env = Map.insert n te $ env ctx }
                         (q'',t') <- checkQ ctx' q'
 
