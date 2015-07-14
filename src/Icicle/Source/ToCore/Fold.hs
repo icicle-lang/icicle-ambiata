@@ -216,45 +216,70 @@ convertFold q
 
     (Let _ b def : _)
      -> do  resb <- convertFold (Query [] def)
-            b' <- convertFreshenAdd b
-            resq <- convertFold q'
-            let tb'ret = baseType $ typeFold resb
-            let tq'ret = baseType $ typeFold resq
-            let u' = Universe { universeTemporality = universeTemporality $ universe $ typeFold resq
-                              , universePossibility = maxOfPossibility (universePossibility $ universe $ typeFold resb) (universePossibility $ universe $ typeFold resq) }
-            let t'     = UniverseType { universe = u', baseType = T.PairT tb'ret tq'ret}
-            let pairOuter = baseType t'
+            convertAsLet b resb
 
-            let tb' = baseType $ typeFold resb
-            let tq' = baseType $ typeFold resq
+    (LetFold _ f@Fold{ foldType = FoldTypeFoldl1 } : _)
+     -> do  -- Type helpers
+            let tU = baseType $ snd $ annotOfExp $ foldWork f
+            let tO = T.OptionT tU
 
-            let mkPair x y
-                   = CE.XPrim
-                   (C.PrimMinimal $ Min.PrimConst $ Min.PrimConstPair tb' tq')
-                     CE.@~ x CE.@~ y
-            let xproj which x
-                   = CE.XPrim
-                   (C.PrimMinimal $ Min.PrimPair $ which tb' tq')
-                     CE.@~ x
-            let xfst = xproj Min.PrimPairFst
-            let xsnd = xproj Min.PrimPairSnd
+            -- Generate fresh names
+            -- Current accumulator
+            -- : Option tU
+            n'a     <- lift fresh
+            -- Fully unwrapped accumulator
+            -- :        tU
+            n'a' <- convertFreshenAdd $ foldBind f
 
-            n' <- lift fresh
-            let k'  = CE.XLam n' pairOuter
-                    $ CE.XLet b' (foldKons resb CE.@~ xfst (CE.XVar n'))
-                    $ mkPair (CE.XVar b') (foldKons resq CE.@~ xsnd (CE.XVar n'))
 
-            let z' = CE.XLet b' (foldZero resb)
-                   $ mkPair (CE.XVar b') (foldZero resq)
+            -- Remove binding before converting init and work expressions,
+            -- just in case the same name has been used elsewhere
+            convertModifyFeatures (Map.delete (foldBind f))
+            z   <- convertExp (foldInit f)
+            k   <- convertExp (foldWork f)
 
-            let x' = CE.XLam n' pairOuter
-                    $ CE.XLet b' (mapExtract resb CE.@~ xfst (CE.XVar n'))
-                                 (mapExtract resq CE.@~ xsnd (CE.XVar n'))
+            let opt r = CE.XPrim $ C.PrimFold (C.PrimFoldOption tU) r
+            -- Wrap zero and kons up in Some
+            let k' = CE.XLam n'a tO
+                   ( opt tO
+                     CE.@~ CE.XLam n'a' tU (CE.some tU $ k)
+                     CE.@~ CE.some tU z
+                     CE.@~ CE.XVar n'a)
 
-            return $ ConvertFoldResult k' z' x' t' (typeExtract resq)
+            let x' = CE.XLam n'a tO
+                   ( opt tU
+                     CE.@~ CE.XLam n'a' tU (CE.XVar n'a')
+                     CE.@~ CE.XValue tU (VException ExceptFold1NoValue)
+                     CE.@~ CE.XVar n'a )
 
-    (LetFold (ann,_) _ : _)
-     -> errNotAllowed ann
+            let t' = snd $ annotOfExp $ foldWork f
+
+            let res = ConvertFoldResult k' (CE.XValue tO VNone) x' (t' { baseType = tO } ) t'
+            convertAsLet (foldBind f) res
+
+
+    (LetFold _ f@Fold{ foldType = FoldTypeFoldl } : _)
+     -> do  -- Type helpers
+            let tU = baseType $ snd $ annotOfExp $ foldWork f
+
+            -- Generate fresh names
+            -- Current accumulator
+            n'a <- convertFreshenAdd $ foldBind f
+
+            -- Remove binding before converting init and work expressions,
+            -- just in case the same name has been used elsewhere
+            convertModifyFeatures (Map.delete (foldBind f))
+            z   <- convertExp (foldInit f)
+            k   <- convertExp (foldWork f)
+
+            let k' = CE.XLam n'a tU k
+
+            x' <- idFun tU
+
+            let t' = snd $ annotOfExp $ foldWork f
+            let res = ConvertFoldResult k' z x' t' t'
+            convertAsLet (foldBind f) res
+
 
 
  where
@@ -311,5 +336,44 @@ convertFold q
                ( rest CE.@~ xsnd )
 
         return xx
+
+
+  convertAsLet b resb
+   =    do  b' <- convertFreshenAdd b
+            resq <- convertFold q'
+            let tb'ret = baseType $ typeFold resb
+            let tq'ret = baseType $ typeFold resq
+            let u' = Universe { universeTemporality = universeTemporality $ universe $ typeFold resq
+                              , universePossibility = maxOfPossibility (universePossibility $ universe $ typeFold resb) (universePossibility $ universe $ typeFold resq) }
+            let t'     = UniverseType { universe = u', baseType = T.PairT tb'ret tq'ret}
+            let pairOuter = baseType t'
+
+            let tb' = baseType $ typeFold resb
+            let tq' = baseType $ typeFold resq
+
+            let mkPair x y
+                   = CE.XPrim
+                   (C.PrimMinimal $ Min.PrimConst $ Min.PrimConstPair tb' tq')
+                     CE.@~ x CE.@~ y
+            let xproj which x
+                   = CE.XPrim
+                   (C.PrimMinimal $ Min.PrimPair $ which tb' tq')
+                     CE.@~ x
+            let xfst = xproj Min.PrimPairFst
+            let xsnd = xproj Min.PrimPairSnd
+
+            n' <- lift fresh
+            let k'  = CE.XLam n' pairOuter
+                    $ CE.XLet b' (foldKons resb CE.@~ xfst (CE.XVar n'))
+                    $ mkPair (CE.XVar b') (foldKons resq CE.@~ xsnd (CE.XVar n'))
+
+            let z' = CE.XLet b' (foldZero resb)
+                   $ mkPair (CE.XVar b') (foldZero resq)
+
+            let x' = CE.XLam n' pairOuter
+                    $ CE.XLet b' (mapExtract resb CE.@~ xfst (CE.XVar n'))
+                                 (mapExtract resq CE.@~ xsnd (CE.XVar n'))
+
+            return $ ConvertFoldResult k' z' x' t' (typeExtract resq)
 
 
