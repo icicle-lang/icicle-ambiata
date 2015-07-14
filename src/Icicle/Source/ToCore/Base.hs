@@ -20,9 +20,7 @@ module Icicle.Source.ToCore.Base (
 
   , pre, strm, red, post
   , programOfBinds
-  , freshly
   , convertWindowUnits
-  , compose
   ) where
 
 import qualified        Icicle.Core             as C
@@ -195,12 +193,6 @@ convertError :: ConvertError a n -> ConvertM a n r
 convertError = lift . lift . Left
 
 
-freshly :: (Name n -> r) -> ConvertM a n (r, Name n)
-freshly f
- = do   n' <- lift fresh
-        return (f n', n')
-
-
 convertWindowUnits :: WindowUnit -> C.Exp n
 convertWindowUnits wu
  = CE.constI
@@ -210,13 +202,6 @@ convertWindowUnits wu
     Months m -> m * 30
     Weeks w -> w * 7
 
-
-
-compose :: ValType -> C.Exp n -> C.Exp n
-        -> ConvertM a n (C.Exp n)
-compose t f g
- = do n <- lift fresh
-      return (X.XLam n t (f `X.XApp` (g `X.XApp` X.XVar n)))
 
 
 
@@ -233,13 +218,13 @@ instance (Pretty a, Pretty n) => Pretty (ConvertError a n) where
 
      ConvertErrorPrimAggregateNotAllowedHere a agg
       -> pretty a <> ": aggregate " <> pretty agg <> " not allowed in expression"
-    
+
      ConvertErrorPrimNoArguments a num_args p
       -> pretty a <> ": primitive " <> pretty p <> " expects " <> pretty num_args <> " arguments but got none"
 
      ConvertErrorGroupByHasNonGroupResult a ut
       -> pretty a <> ": group by has wrong return type; should be a group but got " <> pretty ut
-     
+
      ConvertErrorContextNotAllowedInGroupBy a q
       -> pretty a <> ": only filters and aggregates are allowed in group by (the rest are TODO): " <> pretty q
 
