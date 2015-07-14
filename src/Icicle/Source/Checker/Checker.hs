@@ -89,10 +89,7 @@ checkQ ctx_top q
                         return (wrap c' q'', t)
 
                  Latest ann num
-                        -- TODO: XXX:
-                  -- XXX TODO: temporarily disallow contexts here;
-                  -- let bindings etc inside latests don't work right now
-                  -> do (q'',t') <- checkQ (ctx { isInGroup = True, allowContexts = False }) q'
+                  -> do (q'',t') <- checkQ (ctx { isInGroup = True }) q'
                         notAllowedInGroupBy ann c
                         let tA = wrapAsAgg t'
                         let c' = Latest (ann, tA) num
@@ -204,6 +201,10 @@ checkQ ctx_top q
                         (q'',t') <- checkQ ctx' q'
 
                         let c'   = Let (ann,t') n e'
+                        when (not $ letAllowedUniverses (universeTemporality $ universe te) (universeTemporality $ universe t'))
+                         $ errorSuggestions (ErrorLetTypeMismatch ann te (te {universe = universe t'}))
+                                            [Suggest "The type for this let implies that the definition cannot be used!"]
+
                         return (wrap c' q'', t')
 
   expFilterIsBool ann c te
@@ -243,6 +244,18 @@ checkQ ctx_top q
 
   wrap cc qq
    = qq { contexts = cc : contexts qq }
+
+  letAllowedUniverses l1 l2
+   = case (l1,l2) of
+      (Pure,    _)      -> True
+      (Elem,    Pure)   -> False
+      (Elem,    _)      -> True
+      (AggU,    Pure)   -> False
+      (AggU,    Elem)   -> False
+      (AggU,    _)      -> True
+      (Group _, Pure)   -> False
+      (Group _, Elem)   -> False
+      (Group _, _)      -> True
 
 
 checkX  :: Ord      n

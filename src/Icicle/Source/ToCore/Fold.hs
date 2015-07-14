@@ -170,10 +170,25 @@ convertFold q
                     let err = CE.XValue (baseType retty) $ VException ExceptScalarVariableNotAvailable
                     return $ ConvertFoldResult k err i retty retty
 
+             _
+              | Pure <- universeTemporality $ universe retty
+              -> do v'  <- convertFreshenLookup ann v
+                    n'ignore <- lift fresh
+                    let k = CE.XLam n'ignore (baseType retty) $ CE.XVar v'
+                    return $ ConvertFoldResult k (CE.XVar v') k retty retty
+
+              | Elem <- universeTemporality $ universe retty
+              -> do v'  <- convertFreshenLookup ann v
+                    i <- idFun (baseType retty)
+                    n'v <- lift fresh
+                    let k = CE.XLam n'v (baseType retty) $ CE.XVar v'
+                    let err = CE.XValue (baseType retty) $ VException ExceptScalarVariableNotAvailable
+                    return $ ConvertFoldResult k err i retty retty
+
              -- For aggregate variables, the actual folding doesn't matter:
              -- we can just return const unit for the fold part,
              -- and at extract return the variable's value
-             _
+              | otherwise
               -> do n'x <- lift fresh
                     v'  <- convertFreshenLookup ann v
                     let ut    = T.UnitT
@@ -215,6 +230,15 @@ convertFold q
 
 
     (Let _ b def : _)
+     | Pure <- universeTemporality $ universe $ snd $ annotOfExp def
+     -> do  def' <- convertExp def
+            n'   <- lift fresh
+            let t  = snd $ annotOfExp def
+            let t' = baseType t
+            let res = ConvertFoldResult (CE.XLam n' t' def') def' (CE.XLam n' t' def') t t
+            convertAsLet b res
+
+     | otherwise
      -> do  resb <- convertFold (Query [] def)
             convertAsLet b resb
 

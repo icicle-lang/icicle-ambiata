@@ -8,6 +8,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Source.ToCore.Exp (
     convertExp
+  , convertExpQ
   ) where
 
 import                  Icicle.Source.Query
@@ -74,8 +75,9 @@ convertExpQ q
     []
      -> convertExp $ final q
     (Let _ b d:cs)
-     -> do  b' <- convertFreshenAdd b
-            d' <- convertExp d
+     -> do  d' <- convertExp d
+            -- NB: because it's non-recursive let, the freshen must be done after the definition
+            b' <- convertFreshenAdd b
             x' <- convertExpQ $ Query cs $ final q
             return $ CE.XLet b' d' x'
     _

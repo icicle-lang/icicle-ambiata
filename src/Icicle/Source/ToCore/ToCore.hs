@@ -163,15 +163,14 @@ convertQuery q
      -- and also
      -- "latest 5 ~> let V = Elem ~> Elem"
      --
-     | Query [] x <- q'
-     , Elem <- universeTemporality $ universe $ snd $ annotOfExp x
+     | Elem <- universeTemporality $ universe $ snd $ annotOfQuery q'
      -> do  n'arr   <- lift fresh
             n'map   <- lift fresh
 
             n'v     <- lift fresh
 
-            x' <- convertWithInputName n'v $ convertExp x
-            let t'  = baseType $ snd $ annotOfExp x
+            x' <- convertWithInputName n'v $ convertExpQ q'
+            let t'  = baseType $ snd $ annotOfQuery q'
 
             (inpstream, inpty) <- convertInput
 
