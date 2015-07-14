@@ -50,6 +50,7 @@ data BaseValue
 data ExceptionInfo
  = ExceptDivZero
  | ExceptFold1NoValue
+ | ExceptScalarVariableNotAvailable
  deriving (Show, Ord, Eq)
 
 
@@ -102,4 +103,6 @@ instance Pretty ExceptionInfo where
         = text "Division by zero"
  pretty ExceptFold1NoValue
         = text "Fold1, but there is no value"
+ pretty ExceptScalarVariableNotAvailable
+        = text "Scalar variable not available here"
 

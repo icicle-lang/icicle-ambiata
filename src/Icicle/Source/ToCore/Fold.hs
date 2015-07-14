@@ -147,22 +147,32 @@ convertFold q
                 return $ ConvertFoldResult kk zz xx tt' retty
 
      -- Variable lookup.
-     -- The actual folding doesn't matter,
-     -- we can just return const unit for the fold part,
-     -- and at extract return the variable's value
      | Var (ann,retty) v <- final q
       -> do fs <- convertFeatures
+            -- Check if it is a scalar variable or postcomputation
             case Map.lookup v fs of
              Just (_, var')
-              -> do i <- idFun (baseType retty)
+              -> do -- Creating a fold from a scalar variable is strange, since
+                    -- the scalar variable is only available inside each iteration.
+                    -- For the konstrukt, we just return the current value.
+                    -- For zero, we have no value yet - we must throw an exception.
+                    -- This is bad, but is not a problem in practice since scalar variables
+                    -- can only be used inside each iteration.
+                    -- The exception value won't end up being used.
+                    --
+                    -- Extract, after the fold is finished, is just identity.
+                    -- Const Unit would work too, since the extracted value should
+                    -- never be used for the same reason the zero is not used.
+                    i <- idFun (baseType retty)
                     n'v <- lift fresh
                     inp <- convertInputName
                     let k = CE.XLam n'v (baseType retty) $ var' $ CE.XVar inp
-                    -- TODO argh why an int.
-                    -- maybe this shouldn't be here,
-                    -- and let of elem should actually be different.
-                    -- yes - instead of this, Let where def is Elem should call convertExp instead of convertFold
-                    return $ ConvertFoldResult k (CE.XValue (baseType retty) (VInt 13013)) i retty retty
+                    let err = CE.XValue (baseType retty) $ VException ExceptScalarVariableNotAvailable
+                    return $ ConvertFoldResult k err i retty retty
+
+             -- For aggregate variables, the actual folding doesn't matter:
+             -- we can just return const unit for the fold part,
+             -- and at extract return the variable's value
              _
               -> do n'x <- lift fresh
                     v'  <- convertFreshenLookup ann v
