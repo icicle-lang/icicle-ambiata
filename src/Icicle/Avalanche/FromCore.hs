@@ -60,26 +60,28 @@ programFromCore namer p
     = namerDate namer
  , A.statements
     = lets (C.precomps p)
-    $ accums
+    $ accums (filter (readFromHistory.snd) $ C.reduces p)
     ( factLoopHistory    <>
-      factLoopNew        <>
+    ( accums (filter (not.readFromHistory.snd) $ C.reduces p)
+    ( factLoopNew        <>
       readaccums
-    ( lets (makepostdate <> C.postcomps p) returnStmt) )
+    ( lets (makepostdate <> C.postcomps p) returnStmt) )))
  }
  where
   lets stmts inner
    = foldr (\(n,x) a -> Let n x a) inner stmts
 
-  accums inner
+  accums reds inner
    = foldr (\ac s -> InitAccumulator (accum ac) s)
             inner
-           (C.reduces p)
+           reds
 
   factLoopHistory
    = ForeachFacts (namerFact namer) (C.input p) FactLoopHistory
    $ Block
    $ makeStatements namer (C.input p)
-                                       (C.streams p) (filter (readFromHistory.snd) $ C.reduces p)
+                          (C.streams p)
+                          (filter (readFromHistory.snd) $ C.reduces p)
 
   readFromHistory r
    = case r of
