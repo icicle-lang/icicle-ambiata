@@ -31,6 +31,7 @@ data ErrorInfo a n
  | ErrorContextExpNotElem  a (Context a n)   UniverseType
  | ErrorContextNotAllowedHere  a (Context a n)
  | ErrorFoldTypeMismatch       a UniverseType UniverseType
+ | ErrorLetTypeMismatch        a UniverseType UniverseType
  | ErrorUniverseMismatch       a UniverseType Universe
  | ErrorApplicationOfNonPrim a (Exp a n)
  | ErrorPrimBadArgs          a (Exp a n) [UniverseType]
@@ -54,6 +55,8 @@ annotOfError (CheckError e _)
     ErrorContextNotAllowedHere  a _
      -> Just a
     ErrorFoldTypeMismatch       a _ _
+     -> Just a
+    ErrorLetTypeMismatch        a _ _
      -> Just a
     ErrorUniverseMismatch       a _ _
      -> Just a
@@ -125,6 +128,11 @@ instance (Pretty a, Pretty n) => Pretty (ErrorInfo a n) where
       -> "Type mismatch in fold at " <+> pretty a <> line
       <> "Initial: " <> inp init    <> line
       <> "Worker:  " <> inp work
+
+     ErrorLetTypeMismatch  a ty expected
+      -> "Type mismatch in let at " <+> pretty a <> line
+      <> "Type:     " <> inp ty    <> line
+      <> "Expected: " <> inp expected
 
      ErrorUniverseMismatch a ty expected
       -> "Universe mismatch at " <+> pretty a <> line

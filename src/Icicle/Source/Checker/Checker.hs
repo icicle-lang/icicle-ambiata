@@ -78,21 +78,20 @@ checkQ ctx_top q
                              [Suggest "Contexts are not allowed inside worker functions of sums etc"]
          | otherwise
          -> let q' = q { contexts = cs }
-                tq = checkQ ctx q'
 
             in  case c of
                  Windowed ann lo hi
                   -- TODO: check that range is valid
-                  -> do (q'',t) <- tq
+                  -> do (q'',t) <- checkQ ctx q'
                         notAllowedInGroupBy ann c
                         requireAggOrGroup ann t
                         let c' = Windowed (ann, t) lo hi
                         return (wrap c' q'', t)
 
                  Latest ann num
-                  -> do (q'',t) <- tq
+                  -> do (q'',t') <- checkQ (ctx { isInGroup = True }) q'
                         notAllowedInGroupBy ann c
-                        let tA = wrapAsAgg t
+                        let tA = wrapAsAgg t'
                         let c' = Latest (ann, tA) num
                         return (wrap c' q'', tA)
 
@@ -129,7 +128,7 @@ checkQ ctx_top q
                         notAllowedInGroupBy ann c
                         expIsEnum ann c te
                         expIsElem ann c te
-                        (q'', t') <- tq
+                        (q'',t') <- checkQ (ctx { isInGroup = True }) q'
                         requireAggOrGroup ann t'
                         let c' = Distinct (ann, t') e'
                         return (wrap c' q'', t')
@@ -138,7 +137,7 @@ checkQ ctx_top q
                   -> do (e', te) <- checkX (ctx { allowContexts = False}) e
                         expFilterIsBool ann c te
                         expIsElem ann c te
-                        (q'', t') <- tq
+                        (q'', t') <- checkQ ctx q'
                         requireAggOrGroup ann t'
                         let t'' = t' { universe = castPossibilityWith (universe t') (universe te) }
                         let c' = Filter (ann, t'') e'
@@ -197,14 +196,15 @@ checkQ ctx_top q
 
 
                  Let ann n e
-                  -- XXX TODO: temporarily disallow contexts in let bindings.
-                  -- This should be fixed later,
-                  -- when ToCore conversion can handle these
-                  -> do (e',te) <- checkX (ctx { allowContexts = False }) e
+                  -> do (e',te) <- checkX ctx e
                         let ctx' = ctx { env = Map.insert n te $ env ctx }
                         (q'',t') <- checkQ ctx' q'
 
                         let c'   = Let (ann,t') n e'
+                        when (not $ letAllowedUniverses (universeTemporality $ universe te) (universeTemporality $ universe t'))
+                         $ errorSuggestions (ErrorLetTypeMismatch ann te (te {universe = universe t'}))
+                                            [Suggest "The type for this let implies that the definition cannot be used!"]
+
                         return (wrap c' q'', t')
 
   expFilterIsBool ann c te
@@ -244,6 +244,18 @@ checkQ ctx_top q
 
   wrap cc qq
    = qq { contexts = cc : contexts qq }
+
+  letAllowedUniverses l1 l2
+   = case (l1,l2) of
+      (Pure,    _)      -> True
+      (Elem,    Pure)   -> False
+      (Elem,    _)      -> True
+      (AggU,    Pure)   -> False
+      (AggU,    Elem)   -> False
+      (AggU,    _)      -> True
+      (Group _, Pure)   -> False
+      (Group _, Elem)   -> False
+      (Group _, _)      -> True
 
 
 checkX  :: Ord      n

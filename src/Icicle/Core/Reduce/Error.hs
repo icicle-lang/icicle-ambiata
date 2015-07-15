@@ -30,7 +30,7 @@ instance (Pretty n) => Pretty (ReduceError n) where
      <> line
      <> indent 4 (pretty err)
 
-    ReduceErrorTypeError x t y
+    ReduceErrorTypeError x y t
      ->  text "Worker function type mismatch:"
      <> line
      <> indent 4 (text "Exp:      " <> pretty x <> line

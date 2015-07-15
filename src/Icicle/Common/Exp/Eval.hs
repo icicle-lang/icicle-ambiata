@@ -73,18 +73,18 @@ eval evalPrim h xx
     XApp{}
      | Just (p, args) <- takePrimApps xx
      -> do  vs <- mapM (go h) args
-            evalPrim p vs
+            evalPrim' p vs
 
     -- If the left-hand side isn't a primitive, it must evaluate to a function.
     XApp p q
      -> do  p' <- go h p
             q' <- go h q
             -- Perform application
-            applyValues evalPrim p' q'
+            wrapException [p', q'] (applyValues evalPrim p' q')
 
     -- Primitive with no arguments - probably a constant.
     XPrim p
-     -> evalPrim p []
+     -> evalPrim' p []
 
     -- Lambdas cannot be evaluated any further;
     -- throw away the type and keep the current heap
@@ -99,6 +99,21 @@ eval evalPrim h xx
  where
   go = eval evalPrim
 
+  evalPrim' p vs
+   = wrapException vs $ evalPrim p vs
+
+  wrapException vs ret
+   = case ret of
+      Left err
+       | ev : _ <- filter isException vs
+       -> return ev
+       | otherwise
+       -> Left err
+      Right v
+       -> return v
+
+  isException (VBase (VException _)) = True
+  isException _                      = False
 
 
 

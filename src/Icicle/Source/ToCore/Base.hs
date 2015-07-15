@@ -20,14 +20,7 @@ module Icicle.Source.ToCore.Base (
 
   , pre, strm, red, post
   , programOfBinds
-  , freshly
   , convertWindowUnits
-  , baseTypeOrOption
-  , applyPossibles
-  , mapOptionLam
-  , traverseIfPossible
-  , someIfPossible
-  , compose, traverseCompose
   ) where
 
 import qualified        Icicle.Core             as C
@@ -35,8 +28,6 @@ import                  Icicle.Common.Fresh
 import                  Icicle.Common.Base
 import                  Icicle.Common.Type
 import qualified        Icicle.Common.Exp       as X
-import qualified        Icicle.Common.Exp.Prim.Minimal as Min
-import qualified        Icicle.Common.Type      as T
 import qualified        Icicle.Core.Exp.Combinators as CE
 
 import                  Icicle.Source.Query
@@ -202,12 +193,6 @@ convertError :: ConvertError a n -> ConvertM a n r
 convertError = lift . lift . Left
 
 
-freshly :: (Name n -> r) -> ConvertM a n (r, Name n)
-freshly f
- = do   n' <- lift fresh
-        return (f n', n')
-
-
 convertWindowUnits :: WindowUnit -> C.Exp n
 convertWindowUnits wu
  = CE.constI
@@ -217,141 +202,6 @@ convertWindowUnits wu
     Months m -> m * 30
     Weeks w -> w * 7
 
-baseTypeOrOption :: UniverseType -> BaseType
-baseTypeOrOption u
- | Possibly <- universePossibility $ universe u
- = T.OptionT $ baseType u
- | otherwise
- = baseType u
-
-
--- | Apply a function to some arguments, depending on the arguments' "possibility".
--- If any of the arguments are "possibly", unwrap their possibilities and
--- rewrap the entire expression in a possibility.
---
--- The function type here is the "raw" return type of the function.
--- That is, its modality/possibility is unaffected by those of
--- its arguments.
---
--- This means for division, the modality should be "Possible",
--- but for addition the modality should be "Definitely"
--- even if the addition is applied to Possible arguments,
--- and the actual application's return type would be Possible.
---
-applyPossibles  :: C.Exp n
-                -> UniverseType
-                -> [(C.Exp n, UniverseType)]
-                -> ConvertM a n (C.Exp n)
-applyPossibles f returns xts
- -- Go through xts, building up the list of actual expressions
- -- to apply as arguments, and keep track of whether we've
- -- seen any possibles so far.
- = go xts [] False
-
- where
-  -- At the end of xts, apply the function to the arguments
-  go [] args anyPossibles
-   -- If we've seen any possibles, and the raw function itself
-   -- returns a definitely, we need to wrap the result
-   -- in a "Some" constructor.
-   | anyPossibles
-   , Definitely <- universePossibility $ universe returns
-   = return $ mkSome $ X.makeApps f args
-   -- Otherwise, we have seen no possibles or the raw function
-   -- itself returns possibles, so we can leave the return as-is.
-   | otherwise
-   = return $          X.makeApps f args
-
-  -- For each entry of xts..
-  go ((x,u):xts') args anyPossibles
-   -- This argument is a possible, so we need to unwrap it.
-   | Possibly <- universePossibility $ universe u
-   = do -- Generate a fresh name, and apply the function using that name.
-        -- Note that we have seen a possible and may need a "Some" wrapper.
-        n' <- lift fresh
-        f' <- go xts' (args <> [X.XVar n']) True
-
-        -- Use "FoldOption", equivalent to "maybe", to unwrap.
-        let nt   = baseType u
-        let retty= T.OptionT $ baseType returns
-        let opt  = C.PrimFold (C.PrimFoldOption nt) retty
-
-        -- Bind the fresh name in the function to fold
-        let fun  = X.XLam n' nt f'
-        let none = X.XValue retty VNone
-
-        -- Perform the option fold on the original expression
-        let wrap = X.makeApps (X.XPrim opt)
-                 [ fun, none, x ]
-
-        return wrap
-
-   -- Simple case, it isn't a possible so we just apply the function
-   | otherwise
-   = go xts' (args <> [x]) anyPossibles
-
-  -- Primitive for Some (Just) constructor.
-  mkSome x
-   = X.XPrim (C.PrimMinimal $ Min.PrimConst $ Min.PrimConstSome $ baseType returns)
-    `X.XApp`  x
-
-
--- | Possible
---
-mapOptionLam
- :: ValType -> ValType -> (C.Exp n -> C.Exp n)
- -> ConvertM a n (C.Exp n)
-
-mapOptionLam (T.OptionT t) ret x
- = do   n   <- lift fresh
-        n's <- lift fresh
-        return (X.XLam n (T.OptionT t)
-               $ X.makeApps
-                    (X.XPrim $ C.PrimFold (C.PrimFoldOption t) ret)
-                    [ X.XLam n's t $ x $ X.XVar n's
-                    , X.XValue (T.OptionT t) VNone
-                    , X.XVar n ]
-               )
-
-mapOptionLam t _ x
- = do   n <- lift fresh
-        return (X.XLam n t $ x $ X.XVar n)
-
-
-traverseIfPossible
-    :: UniverseType
-    -> C.Exp n
-    -> C.Exp n
-traverseIfPossible u x
- | Possibly <- universePossibility $ universe u
- = X.XPrim (C.PrimTraverse $ C.PrimTraverseByType $ baseType u) `X.XApp` x
- | otherwise
- = x
-
-someIfPossible
-    :: UniverseType
-    -> C.Exp n
-    -> C.Exp n
-someIfPossible u x
- | Possibly <- universePossibility $ universe u
- = X.XPrim (C.PrimMinimal $ Min.PrimConst $ Min.PrimConstSome $ baseType u) `X.XApp` x
- | otherwise
- = x
-
-compose :: ValType -> C.Exp n -> C.Exp n
-        -> ConvertM a n (C.Exp n)
-compose t f g
- = do n <- lift fresh
-      return (X.XLam n t (f `X.XApp` (g `X.XApp` X.XVar n)))
-
-traverseCompose
-        :: UniverseType
-        -> C.Exp n
-        -> ConvertM a n (C.Exp n)
-traverseCompose t f
- = do n <- lift fresh
-      let x = traverseIfPossible t (f `X.XApp` X.XVar n)
-      return (X.XLam n (baseType t) x)
 
 
 
@@ -368,13 +218,13 @@ instance (Pretty a, Pretty n) => Pretty (ConvertError a n) where
 
      ConvertErrorPrimAggregateNotAllowedHere a agg
       -> pretty a <> ": aggregate " <> pretty agg <> " not allowed in expression"
-    
+
      ConvertErrorPrimNoArguments a num_args p
       -> pretty a <> ": primitive " <> pretty p <> " expects " <> pretty num_args <> " arguments but got none"
 
      ConvertErrorGroupByHasNonGroupResult a ut
       -> pretty a <> ": group by has wrong return type; should be a group but got " <> pretty ut
-     
+
      ConvertErrorContextNotAllowedInGroupBy a q
       -> pretty a <> ": only filters and aggregates are allowed in group by (the rest are TODO): " <> pretty q
 

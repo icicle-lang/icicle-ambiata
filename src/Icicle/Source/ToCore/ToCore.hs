@@ -154,7 +154,35 @@ convertQuery q
     --
     -- However, at the moment we only support folds with single pass,
     -- and not returning the whole array.
-    (Latest (_,_retty) i : _)
+    (Latest _ i : _)
+
+     -- Special case: just a value.
+     -- We still need to support eg
+     --
+     -- "latest 5 ~> filter P ~> Elem"
+     -- and also
+     -- "latest 5 ~> let V = Elem ~> Elem"
+     --
+     | Elem <- universeTemporality $ universe $ snd $ annotOfQuery q'
+     -> do  n'arr   <- lift fresh
+            n'map   <- lift fresh
+
+            n'v     <- lift fresh
+
+            x' <- convertWithInputName n'v $ convertExpQ q'
+            let t'  = baseType $ snd $ annotOfQuery q'
+
+            (inpstream, inpty) <- convertInput
+
+            -- Do the map before the latest.
+            -- Same result, just requires a smaller buffer
+            let bmap  = strm  n'map
+                      $ C.STrans (C.SMap inpty t') (CE.XLam n'v inpty x') inpstream
+            let barr  = red  n'arr
+                      $ C.RLatest t' (CE.constI i) n'map
+            return (bmap <> barr, n'arr)
+
+     | otherwise
      -> do  n'arr   <- lift fresh
             n'fold  <- lift fresh
             n'xtra  <- lift fresh
@@ -212,9 +240,9 @@ convertQuery q
             res
                     <- convertWithInputName nval $ convertFold q'
 
-            let tV'  = baseTypeOrOption $ typeFold res
-            let t1'  = baseTypeOrOption ((snd $ annotOfExp e) { baseType = t1 })
-            let t2'  = baseTypeOrOption $ typeExtract res
+            let tV'  = baseType $ typeFold res
+            let t1'  = baseType ((snd $ annotOfExp e) { baseType = t1 })
+            let t2'  = baseType $ typeExtract res
 
             -- Convert the "by" to a simple expression.
             -- This becomes the map insertion key.
@@ -265,13 +293,7 @@ convertQuery q
                     CE.@~ beta (mapExtract res)
                     CE.@~ CE.XVar n'
 
-            let traversed
-                    | Possibly <- universePossibility $ universe retty
-                    = CE.XPrim (C.PrimTraverse $ C.PrimTraverseByType $ T.MapT t1' t2') CE.@~ mapResult
-                    | otherwise
-                    = mapResult
-
-            let p   = post n'' traversed
+            let p   = post n'' mapResult
 
             return (r <> p, n'')
 
@@ -280,7 +302,7 @@ convertQuery q
     -- we insert/update the element in the map, then fold over essentially the last-seen
     -- for each group.
     (Distinct (_,_) e : _)
-     -> do  let tkey = baseTypeOrOption $ snd $ annotOfExp e
+     -> do  let tkey = baseType $ snd $ annotOfExp e
             (inpstream, inpty) <- convertInput
             let tval = inpty
 
@@ -296,7 +318,7 @@ convertQuery q
             -- as a stream fold.
             res     <- convertWithInputName nval $ convertFold q'
 
-            let tV'  = baseTypeOrOption $ typeFold res
+            let tV'  = baseType $ typeFold res
 
             -- Convert the "by" to a simple expression.
             -- This becomes the map insertion key.
@@ -341,12 +363,12 @@ convertQuery q
     (Let _ b def : _)
      -> case universeTemporality $ universe $ snd $ annotOfExp def of
          Elem
-          -> do let t'  = baseTypeOrOption $ snd $ annotOfExp def
+          -> do let t'  = baseType $ snd $ annotOfExp def
                 (inpstream, inpty) <- convertInput
                 let inpty' = T.PairT t' inpty
 
                 n'e     <- lift fresh
-                
+
                 e'      <- convertWithInputName n'e $ convertExp def
 
                 let xfst = CE.XApp
@@ -387,155 +409,23 @@ convertQuery q
                 (bs',n'')    <- convertQuery     q'
                 return (bs <> post b' (CE.XVar n') <> bs', n'')
 
+
     -- Converting fold1s.
-    --
-    -- Converting fold1s is complicated by the fact that the worker functions
-    -- can return "possiblies" as well.
-    -- For example, a division in the worker function:
-    --
-    -- > let fold1 rolling ~> value : rolling / value ~> ...
-    --
-    -- if "value" is zero at any point, the result should be "None"
-    -- because of the division by zero.
-    --
-    -- Because fold1 already has an inherent possibly, we need to deal with
-    -- three different cases.
-    -- The obvious way to write this is:
-    --
-    -- > let fold1 test = zero value : kons value test
-    -- >
-    -- > ====>
-    -- >
-    -- > data Result
-    -- > = WorkerError
-    -- > | NoData
-    -- > | Ok Value
-    -- >
-    -- > Stream.fold
-    -- >  (\a : Result. i : Value.
-    -- >      case a of
-    -- >       WorkerError
-    -- >        -> WorkerError
-    -- >       NoData
-    -- >        -> zero i
-    -- >       Ok v
-    -- >        -> kons i v)
-    -- >  NoData
-    -- >  stream
-    --
-    -- However the "zero" and "kons" return a "Option Value" instead of "Result",
-    -- so we need to add case statements there.
-    --
-    -- > Stream.fold
-    -- >  (\a : Result. i : Value.
-    -- >      case a of
-    -- >       WorkerError
-    -- >        -> WorkerError
-    -- >       NoData
-    -- >        -> case zero i of
-    -- >            None   -> WorkerError
-    -- >            Some z -> Ok z
-    -- >       Ok v
-    -- >        -> case kons i v of
-    -- >            None   -> WorkerError
-    -- >            Some k -> Ok k)
-    -- >  NoData
-    -- >  stream
-    --
-    -- The next thing is that Core does not have arbitrary data types.
-    -- But we have Options, so we can use an isomorphic type:
-    --
-    -- > type Result' = Option (Option Value)
-    -- > WorkerError = None
-    -- > NoData      = Some None
-    -- > Ok v        = Some (Some v)
-    -- >
-    -- > Stream.fold
-    -- >  (\a : Result'. i : Value.
-    -- >      case a of
-    -- >       None
-    -- >        -> None
-    -- >       Some a'
-    -- >        -> case a' of
-    -- >            None
-    -- >             -> case zero i of
-    -- >                 None   -> None
-    -- >                 Some z -> Some (Some z)
-    -- >            Some a''
-    -- >             -> case kons i a'' of
-    -- >                 None   -> None
-    -- >                 Some k -> Some (Some k))
-    -- >  (Some None)
-    -- >  stream
-    --
-    -- Folds in Core have the "Some" case before the "None" case,
-    -- so just reorder the cases.
-    -- Trivial, but simplifies the derivation.
-    --
-    -- > Stream.fold
-    -- >  (\a : Result'. i : Value.
-    -- >      case a of
-    -- >       Some a'
-    -- >        -> case a' of
-    -- >            Some a''
-    -- >             -> case kons i a'' of
-    -- >                 Some k -> Some (Some k)
-    -- >                 None   -> None
-    -- >            None
-    -- >             -> case zero i of
-    -- >                 Some z -> Some (Some z)
-    -- >                 None   -> None
-    -- >       None
-    -- >        -> None)
-    -- >  (Some None)
-    -- >  stream
-    --
-    -- Finally, Core doesn't have case expressions, but does have
-    -- folds over Options.
-    -- We can rewrite it using folds:
-    --
-    -- > Stream.fold
-    -- >  (\a : Result'. i : Value.
-    -- >      Option.fold (\a' : Option Int.
-    -- >         Option.fold (\a'' : Int.
-    -- >            Option.fold (\k : Int. Some (Some k))
-    -- >              None
-    -- >              (kons i a''))
-    -- >           (Option.fold (\z : Int. Some (Some k))
-    -- >              None
-    -- >              (zero i))
-    -- >            a')
-    -- >       None
-    -- >       a)
-    -- >  (Some None)
-    -- >  stream
-    --
-    -- If one of @zero@ or @kons@ do not return possiblies, we
-    -- can just replace the folds over them with "Some (Some (zero i))" etc.
-    --
-    (LetFold (_,_) f@Fold{ foldType = FoldTypeFoldl1 } : _)
+    (LetFold _ f@Fold{ foldType = FoldTypeFoldl1 } : _)
      -> do  -- Type helpers
             let tU = baseType $ snd $ annotOfExp $ foldWork f
             let tO = T.OptionT tU
-            let tOO= T.OptionT tO
 
             -- Generate fresh names
             -- Element of the stream
             -- :                input type
             n'elem <- lift fresh
             -- Current accumulator
-            -- : Option (Option tU)
+            -- : Option tU
             n'a     <- lift fresh
-            -- Unwrap accumulator by 1
-            -- :         Option tU
-            n'a'    <- lift fresh
             -- Fully unwrapped accumulator
-            -- :                tU
+            -- :        tU
             n'a'' <- convertFreshenAdd $ foldBind f
-
-            -- result of a worker after unwrapping
-            -- :                tU
-            n'worker <- lift fresh
 
 
             -- Remove binding before converting init and work expressions,
@@ -544,63 +434,43 @@ convertQuery q
             z   <- convertWithInputName n'elem $ convertExp (foldInit f)
             k   <- convertWithInputName n'elem $ convertExp (foldWork f)
 
-            -- (Some.Some)
-            let somedotsome
-                 = CE.XLam n'worker tU
-                 $ som tO
-                 $ som tU
-                 $ CE.XVar n'worker
-
-            -- Rewrap zero and kons if it's possibly,
-            -- if not wrap in two Somes
-            let z' | Possibly <- universePossibility $ universe $ snd $ annotOfExp $ foldInit f
-                   = opt tU tOO somedotsome (none tO) z
-                   | otherwise
-                   = som tO $ som tU $ z
-
-            let k' | Possibly <- universePossibility $ universe $ snd $ annotOfExp $ foldWork f
-                   = opt tU tOO somedotsome (none tO) k
-                   | otherwise
-                   = som tO $ som tU $ k
+            -- Wrap zero and kons up in Some
+            let z' = som tU $ z
+            let k' = som tU $ k
 
 
             (inpstream, inpty) <- convertInput
 
             -- Worker function of the fold
-            let go  = CE.XLam n'a tOO
+            let go  = CE.XLam n'a tO
                     ( CE.XLam n'elem inpty
-                    $ opt tO tOO
-                        (CE.XLam n'a' tO
-                        $ opt tU tOO
-                            ( CE.XLam n'a'' tU k')
-                              z'
-                          (CE.XVar n'a'))
-                      (none tO)
+                    $ opt tU tO
+                    ( CE.XLam n'a'' tU k')
+                      z'
                       (CE.XVar n'a))
 
 
             -- Bind the fold to a fresh name
             n' <- lift fresh
             let bs = red n'
-                        (C.RFold inpty tOO go (som tO $ none tU) inpstream)
+                        (C.RFold inpty tO go (none tU) inpstream)
                      -- Then unwrap the actual result and bind it
                   <> post n'a''
-                        (opt tO tO
+                        (opt tU tU
                             -- If the outer layer is a "Some",
                             -- just return inner layer as-is
-                            (CE.XLam n'a' tO $ CE.XVar n'a')
-                            -- Outer layer is a "None", so return "None".
-                            (none tU)
+                            (CE.XLam n'a'' tU $ CE.XVar n'a'')
+                            -- Outer layer is a "None", so throw an exception
+                            (CE.XValue tU $ VException ExceptFold1NoValue)
                             (CE.XVar n'))
 
-            
+
             (bs', n'')      <- convertQuery q'
 
             return (bs <> bs', n'')
 
 
     -- In comparison, normal folds are quite easy.
-    -- If the worker functions are not "possiblies":
     --
     -- > let fold summ ~> 0 : summ + value ~> ...
     -- >
@@ -611,11 +481,9 @@ convertQuery q
     -- > 0
     -- > stream
     --
-    (LetFold (_,retty) f@Fold{ foldType = FoldTypeFoldl } : _)
-     | Definitely <- universePossibility $ universe $ snd $ annotOfExp $ foldInit f
-     , Definitely <- universePossibility $ universe $ snd $ annotOfExp $ foldWork f
+    (LetFold _ f@Fold{ foldType = FoldTypeFoldl } : _)
      -> do  -- Type helpers
-            let tU = baseType retty
+            let tU = baseType $ snd $ annotOfExp $ foldWork f
 
             -- Generate fresh names
             -- Element of the stream
@@ -638,81 +506,10 @@ convertQuery q
 
             -- Bind the fold to the original name
             let bs = red n'a (C.RFold inpty tU go z inpstream)
-            
+
             (bs', n'')      <- convertQuery q'
 
             return (bs <> bs', n'')
-
-
-    -- If either of the worker functions *are* "possiblies":
-    --
-    -- > let fold summ ~> 0 : summ + value / 2 ~> ...
-    -- >
-    -- > =====>
-    -- >
-    -- > Stream.fold
-    -- > (\a : Option Int. \v : Value.
-    -- >   Option.fold a
-    -- >    (\a' : Int. (a' + v) / 2)
-    -- >    None)
-    -- > (Some 0)
-    -- > stream
-    --
-    --(LetFold (_,retty) f@Fold{ foldType = FoldTypeFoldl } : _)
-    -- | Possibly <- universePossibility $ universe retty
-     | otherwise
-     -> do  -- Type helpers
-            let tU = baseType retty
-            let tO = T.OptionT tU
-
-            -- Generate fresh names
-            -- Element of the stream
-            -- :                input type
-            n'elem <- lift fresh
-            -- Current accumulator
-            -- :         Option tU
-            n'a     <- lift fresh
-            -- Fully unwrapped accumulator
-            -- :                tU
-            n'a' <- convertFreshenAdd $ foldBind f
-
-            -- Remove binding before converting init and work expressions,
-            -- just in case the same name has been used elsewhere
-            convertModifyFeatures (Map.delete (foldBind f))
-            z   <- convertWithInputName n'elem $ convertExp (foldInit f)
-            k   <- convertWithInputName n'elem $ convertExp (foldWork f)
-
-            -- If zero and cons are possiblies, leave them alone.
-            -- If not wrap in just one Some
-            let z' | Possibly <- universePossibility $ universe $ snd $ annotOfExp $ foldInit f
-                   = z
-                   | otherwise
-                   = som tU $ z
-
-            let k' | Possibly <- universePossibility $ universe $ snd $ annotOfExp $ foldWork f
-                   = k
-                   | otherwise
-                   = som tU $ k
-
-
-            (inpstream, inpty) <- convertInput
-            -- Worker function of the fold
-            let go  = CE.XLam n'a tO
-                    ( CE.XLam n'elem inpty
-                    $ opt tU tO
-                        (CE.XLam n'a' tU k')
-                        (none tU)
-                        (CE.XVar n'a))
-
-
-            -- Bind the fold to the original name
-            let bs = red n'a' (C.RFold inpty tO go z' inpstream)
-            
-            (bs', n'')      <- convertQuery q'
-
-            return (bs <> bs', n'')
-
-
 
  where
   -- The remaining query after the current context is removed
@@ -759,33 +556,17 @@ convertReduce xx
      -- Count: just add 1, ignoring the value
      -> do  na <- lift fresh
             nv <- lift fresh
-            mkFold T.IntT (CE.XVar na CE.+~ CE.constI 1) (CE.constI 0) na nv
+            mkFold T.IntT (CE.XVar na CE.+~ CE.constI 1) (CE.constI 0) id na nv
      | otherwise
      -> errAggBadArgs
 
     Agg SumA
      | [x] <- args
-     , Definitely <- universePossibility $ universe ty
      -> do  na <- lift fresh
             nv <- lift fresh
             -- Convert the element expression and sum over it
             x' <- convertWithInputName nv $ convertExp x
-            mkFold T.IntT (CE.XVar na CE.+~ x') (CE.constI 0) na nv
-     | [x] <- args
-     , Possibly <- universePossibility $ universe ty
-     -> do  nv <- lift fresh
-            -- Convert the element expression and sum over it
-            x' <- convertWithInputName nv $ convertExp x
-
-            let plusX = CE.XPrim (C.PrimMinimal $ Min.PrimArith Min.PrimArithPlus)
-            let plusT = UniverseType (definitely $ universe ty) T.IntT
-            let argT  = UniverseType (possibly $ universe ty) T.IntT
-            na  <- lift fresh
-            fun <- applyPossibles plusX plusT
-                            [(CE.XVar na, argT), (x', argT)]
-
-            mkFold (T.OptionT T.IntT) fun
-                   (CE.some T.IntT $ CE.constI 0) na nv
+            mkFold T.IntT (CE.XVar na CE.+~ x') (CE.constI 0) id na nv
 
      | otherwise
      -> errAggBadArgs
@@ -796,6 +577,8 @@ convertReduce xx
      | [x] <- args
      -> do  na <- lift fresh
             nv <- lift fresh
+            n'id <- lift fresh
+
             -- Convert the element expression
             x' <- convertWithInputName nv $ convertExp x
 
@@ -805,17 +588,15 @@ convertReduce xx
             -- Start with Nothing
             let seed = CE.XValue retty VNone
 
-            -- If the expression is already a "possibly",
-            -- then its conversion already has type Option.
-            -- So we can just return it unchanged.
-            let fun
-                 | Possibly <- universePossibility $ universe argT
-                 = x'
-                 | otherwise
-                 -- Otherwise, wrap in a Some constructor
-                 = CE.some (baseType argT) x'
+            let fun  = CE.some (baseType argT) x'
 
-            mkFold retty fun seed na nv
+            let opt  = C.PrimFold (C.PrimFoldOption $ baseType argT) (baseType argT)
+            let xtrac n'= CE.XPrim opt
+                       CE.@~ CE.XLam n'id (baseType argT) (CE.XVar n'id)
+                       CE.@~ CE.XValue (baseType argT) (VException ExceptFold1NoValue)
+                       CE.@~ n'
+
+            mkFold retty fun seed xtrac na nv
 
      | otherwise
      -> errAggBadArgs
@@ -830,18 +611,16 @@ convertReduce xx
 
             let argT = snd $ annotOfExp x
 
-            -- If x' is a possibly, we actually want to carry around two levels
-            -- of options: that way we won't overwrite the Some Nothing, meaning
-            -- the first element has been seen but was Nothing.
-            let valty= baseTypeOrOption argT
+            let valty= baseType argT
             let retty= T.OptionT $ valty
 
             let seed = CE.XValue retty VNone
             let opt  = C.PrimFold (C.PrimFoldOption valty) retty
+            let opt' = C.PrimFold (C.PrimFoldOption valty) valty
 
             na' <- lift fresh
             let return_acc
-                     = CE.XLam na' valty (CE.XVar na)
+                     = CE.XLam na' valty $ CE.some valty $ CE.XVar na'
             let some_arg
                      = CE.some valty x'
 
@@ -850,19 +629,12 @@ convertReduce xx
                        CE.@~ some_arg
                        CE.@~ CE.XVar na
 
-            (bs, n') <- mkFold retty fun seed na nv
+            let xtrac n'= CE.XPrim opt'
+                       CE.@~ (CE.XLam na' valty $ CE.XVar na')
+                       CE.@~ CE.XValue (baseType argT) (VException ExceptFold1NoValue)
+                       CE.@~ n'
 
-            n'' <- lift fresh
-            let flat
-                     | Possibly <- universePossibility $ universe argT
-                     = CE.XPrim (C.PrimFold (C.PrimFoldOption valty) valty)
-                       CE.@~ (CE.XLam na' valty (CE.XVar na'))
-                       CE.@~ (CE.XValue valty VNone)
-                       CE.@~ (CE.XVar n')
-                     | otherwise
-                     = CE.XVar n'
-
-            return (bs <> post n'' flat, n'')
+            mkFold retty fun seed xtrac na nv
 
 
      | otherwise
@@ -878,7 +650,7 @@ convertReduce xx
      -> do  (bs,nms) <- unzip <$> mapM convertReduce args
             let tys  = fmap (snd . annotOfExp) args
             let xs   = fmap  CE.XVar           nms
-            x' <- convertPrim p (fst $ annotOfExp xx) ty (xs `zip` tys)
+            x' <- convertPrim p (fst $ annotOfExp xx) (xs `zip` tys)
 
             nm  <- lift fresh
 
@@ -905,13 +677,16 @@ convertReduce xx
 
  where
   -- Helper for creating a stream fold binding
-  mkFold ta k z na nv
+  mkFold ta k z x na nv
    = do n' <- lift fresh
+        n'' <- lift fresh
         (inpstream, inpty) <- convertInput
         let k' = CE.XLam na ta
                $ CE.XLam nv inpty
                $ k
-        return (red n' $ C.RFold inpty ta k' z inpstream, n')
+        let ffold = red n' $ C.RFold inpty ta k' z inpstream 
+        let xtrac = post n'' $ x $ CE.XVar n'
+        return (ffold <> xtrac, n'')
 
   -- Bad arguments to an aggregate
   errAggBadArgs

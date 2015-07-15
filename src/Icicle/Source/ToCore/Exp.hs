@@ -8,6 +8,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Source.ToCore.Exp (
     convertExp
+  , convertExpQ
   ) where
 
 import                  Icicle.Source.Query
@@ -44,30 +45,42 @@ convertExp x
               -> CE.XVar <$> convertFreshenLookup ann n
 
 
-    Nested (ann,_) q
-     -- A real nested query should not appear here.
-     -- However, if it has no contexts, it's really just a nested expression.
-     | (Query [] x') <- q
-     -> convertExp x'
-
-     | otherwise
-     -> convertError
-      $ ConvertErrorExpNestedQueryNotAllowedHere ann q
+    Nested _ q
+     -> convertExpQ q
 
 
-    App (ann,retty) _ _
+    App (ann,_) _ _
      -- Primitive application: convert arguments, then convert primitive
      | Just (p, _, args) <- takePrimApps x
      -> do  args'   <- mapM convertExp args
             let tys  = fmap (snd . annotOfExp) args
-            convertPrim p ann retty (args' `zip` tys)
+            convertPrim p ann (args' `zip` tys)
 
      | otherwise
      -> convertError
       $ ConvertErrorExpApplicationOfNonPrimitive ann x
 
 
-    Prim (ann,retty) p
-     -> convertPrim p ann retty []
+    Prim (ann,_) p
+     -> convertPrim p ann []
 
+
+
+convertExpQ
+        :: Ord n
+        => Query (a,UniverseType) n
+        -> ConvertM a n (C.Exp n)
+convertExpQ q
+ = case contexts q of
+    []
+     -> convertExp $ final q
+    (Let _ b d:cs)
+     -> do  d' <- convertExp d
+            -- NB: because it's non-recursive let, the freshen must be done after the definition
+            b' <- convertFreshenAdd b
+            x' <- convertExpQ $ Query cs $ final q
+            return $ CE.XLet b' d' x'
+    _
+     -> convertError
+      $ ConvertErrorExpNestedQueryNotAllowedHere (fst $ annotOfQuery q) q
 

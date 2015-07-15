@@ -149,3 +149,6 @@ valueFromCore v
     V.VMap vs     -> MapValue
                   <$> mapM (\(a,b) -> (,) <$> valueFromCore a <*> valueFromCore b) (Map.toList vs)
     V.VStruct vs  -> StructValue . Struct <$> mapM (\(a,b) -> (,) <$> pure (Attribute $ V.nameOfStructField a) <*> valueFromCore b) (Map.toList vs)
+
+    V.VException _-> Left $ SimulateErrorCannotConvertFromCore v
+

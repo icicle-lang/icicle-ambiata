@@ -6,6 +6,7 @@ module Icicle.Common.Base (
       Name   (..)
     , BaseValue (..)
     , StructField (..)
+    , ExceptionInfo (..)
     ) where
 
 import              Icicle.Internal.Pretty
@@ -42,6 +43,14 @@ data BaseValue
  | VNone
  | VMap    (Map.Map BaseValue    BaseValue)
  | VStruct (Map.Map StructField  BaseValue)
+
+ | VException ExceptionInfo
+ deriving (Show, Ord, Eq)
+
+data ExceptionInfo
+ = ExceptDivZero
+ | ExceptFold1NoValue
+ | ExceptScalarVariableNotAvailable
  deriving (Show, Ord, Eq)
 
 
@@ -83,7 +92,17 @@ instance Pretty BaseValue where
       -> text "Map" <+> pretty (Map.toList mv)
      VStruct mv
       -> text "Struct" <+> pretty (Map.toList mv)
+     VException e
+      -> text "Exception:" <+> pretty e
 
 instance Pretty StructField where
  pretty = text . T.unpack . nameOfStructField
+
+instance Pretty ExceptionInfo where
+ pretty ExceptDivZero
+        = text "Division by zero"
+ pretty ExceptFold1NoValue
+        = text "Fold1, but there is no value"
+ pretty ExceptScalarVariableNotAvailable
+        = text "Scalar variable not available here"
 

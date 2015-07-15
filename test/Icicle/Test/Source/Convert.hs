@@ -80,8 +80,9 @@ prop_convert_is_well_typed fn q
 -- For now we can't say anything about *all* programs,
 -- but we can say that a restricted subset should convert OK.
 restrict
- = goQ
+ = const True
  where
+ {-
   goQ (Query cs x)
    = all goC cs && goX x
 
@@ -104,6 +105,7 @@ restrict
    = goQ q
   goX (App _ a b)
    = goX a && goX b
+   -}
   
 xfst tt
  = CE.XApp

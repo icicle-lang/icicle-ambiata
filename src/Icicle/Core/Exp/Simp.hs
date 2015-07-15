@@ -29,7 +29,10 @@ import qualified Data.Set                       as Set
 --   * ...something exciting???
 --
 simp :: Ord n => (C.Exp n -> Bool) -> C.Exp n -> Fresh n (C.Exp n)
-simp isValue = anormal . simpX isValue
+simp isValue = anormal . fixp (50 :: Int) (simpX isValue)
+ where
+  fixp 0 f = f
+  fixp n f = f . fixp (n-1) f
 
 
 simpX :: Ord n => (C.Exp n -> Bool) -> C.Exp n -> C.Exp n

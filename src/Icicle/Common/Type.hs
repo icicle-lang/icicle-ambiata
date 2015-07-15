@@ -167,6 +167,10 @@ requireSame err p q
 valueMatchesType :: BaseValue -> ValType -> Bool
 valueMatchesType v t
  = case (t,v) of
+    -- XXX TODO exception types
+    (_, VException _)
+     -> True
+
     (IntT, VInt{})
      -> True
     (IntT, _)
