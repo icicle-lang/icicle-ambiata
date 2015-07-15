@@ -60,16 +60,21 @@ gen$date = DATE
 {
   init acc$conv$5 = 0 : Int (Resumable);
   init acc$conv$7 = 3 : Int (Latest);
-  for_facts (gen$fact : Int) {
-    let anf$0 = fst# [Int] [DateTime]
+  for_facts (gen$fact : Int) in history {
+    let elem$conv$8 = fst# [Int] [DateTime]
+                      gen$fact;
+    push acc$conv$7(elem$conv$8);
+  }
+  for_facts (gen$fact : Int) in new {
+    let anf$1 = fst# [Int] [DateTime]
                 gen$fact;
-    if (gt# [Int] anf$0
+    if (gt# [Int] anf$1
         (10 : Int)) {
       read acc$conv$5 = acc$conv$5;
       write acc$conv$5 = add#
                          acc$conv$5 (1 : Int);
     }
-    let elem$conv$8 = anf$0;
+    let elem$conv$8 = anf$1;
     push acc$conv$7(elem$conv$8);
   }
   read conv$5 = acc$conv$5;
@@ -84,16 +89,21 @@ gen$date = DATE
 {
   init acc$conv$5 = 0 : Int (Resumable);
   init acc$conv$7 = 3 : Int (Latest);
-  for_facts (gen$fact : Int) {
-    let anf$0 = fst# [Int] [DateTime]
+  for_facts (gen$fact : Int) in history {
+    let elem$conv$8 = fst# [Int] [DateTime]
+                      gen$fact;
+    push acc$conv$7(elem$conv$8);
+  }
+  for_facts (gen$fact : Int) in new {
+    let anf$1 = fst# [Int] [DateTime]
                 gen$fact;
-    if (gt# [Int] anf$0
+    if (gt# [Int] anf$1
         (10 : Int)) {
       read acc$conv$5 = acc$conv$5;
       write acc$conv$5 = add#
                          acc$conv$5 (1 : Int);
     }
-    push acc$conv$7(anf$0);
+    push acc$conv$7(anf$1);
   }
   read conv$5 = acc$conv$5;
   read conv$7 = acc$conv$7;

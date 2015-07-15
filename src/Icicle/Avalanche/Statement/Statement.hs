@@ -4,6 +4,7 @@ module Icicle.Avalanche.Statement.Statement (
     Statement       (..)
   , Accumulator     (..)
   , AccumulatorType (..)
+  , FactLoopType    (..)
   , transformUDStmt
   , foldStmt
   ) where
@@ -30,7 +31,7 @@ data Statement n p
 
  -- | A loop over all the facts.
  -- This should only occur once in the program, and not inside a loop.
- | ForeachFacts (Name n) ValType (Statement n p)
+ | ForeachFacts (Name n) ValType FactLoopType (Statement n p)
 
  -- | Execute several statements in a block.
  | Block                        [Statement n p]
@@ -108,6 +109,31 @@ data AccumulatorType
  deriving (Eq, Ord, Show)
 
 
+-- | When executing the feature, we also keep track of what data
+-- will be required to compute the next snapshot.
+-- This consists of the list of individual facts that contribute
+-- to "windowed" and "latest" features,
+-- as well as the last values of any resumable features like reductions.
+--
+-- It is important that since the resumable features have already seen the
+-- historical data, they cannot see it again.
+-- This is why we have two separate loops, so the first loop over historical data
+-- does not compute the resumable features:
+--
+-- 1. Initialise variables for latest and windowed features
+-- 2. Loop through historical data, computing latest and windowed features
+-- 3. Read last values of resumable variables
+-- 4. Loop through new data, computing all features
+-- 5. Store last values of resumable variables
+-- 6. Return
+--
+data FactLoopType
+ -- | Loop over the facts that contributed to the last snapshot's windowed and latest features
+ = FactLoopHistory
+ -- | Loop over newly added facts since the last snapshot
+ | FactLoopNew
+ deriving (Eq, Ord, Show)
+
 
 -- Transforming -------------
 
@@ -129,8 +155,8 @@ transformUDStmt fun env statements
            -> Let n x <$> go e' ss
           ForeachInts n from to ss
            -> ForeachInts n from to <$> go e' ss
-          ForeachFacts n ty ss
-           -> ForeachFacts n ty <$> go e' ss
+          ForeachFacts n ty lo ss
+           -> ForeachFacts n ty lo <$> go e' ss
           Block ss
            -> Block <$> mapM (go e') ss
           InitAccumulator acc ss
@@ -172,7 +198,7 @@ foldStmt down up rjoin env res statements
            -> sub1 ss
           ForeachInts _ _ _ ss
            -> sub1 ss
-          ForeachFacts _ _ ss
+          ForeachFacts _ _ _ ss
            -> sub1 ss
           Block ss
            -> do    rs <- mapM (go e') ss
@@ -204,8 +230,8 @@ instance TransformX Statement where
      ForeachInts n from to ss
       -> ForeachInts <$> names n <*> exps from <*> exps to <*> go ss
 
-     ForeachFacts n v ss
-      -> ForeachFacts <$> names n <*> return v <*> go ss
+     ForeachFacts n v lo ss
+      -> ForeachFacts <$> names n <*> return v <*> return lo <*> go ss
 
      Block ss
       -> Block <$> gos ss
@@ -264,8 +290,8 @@ instance (Pretty n, Pretty p) => Pretty (Statement n p) where
       -> text "for" <+> pretty n <+> text "in" <+> pretty from <+> text ".." <+> pretty to <> line
       <> semis stmts
 
-     ForeachFacts n t stmts
-      -> text "for facts as" <+> pretty n <+> text ":" <+> pretty t <> line
+     ForeachFacts n t lo stmts
+      -> text "for facts as" <+> pretty n <+> text ":" <+> pretty t <+> text "in" <+> pretty lo <> line
       <> semis stmts
 
      Block stmts
@@ -310,4 +336,8 @@ instance (Pretty n, Pretty p) => Pretty (Accumulator n p) where
        Windowed  -> text "(Windowed)"
        Latest    -> text "(Latest)"
        Mutable   -> text "(Mutable)")
+
+instance Pretty FactLoopType where
+ pretty FactLoopHistory = text "history"
+ pretty FactLoopNew     = text "new"
 

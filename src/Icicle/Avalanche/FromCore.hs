@@ -61,7 +61,8 @@ programFromCore namer p
  , A.statements
     = lets (C.precomps p)
     $ accums
-    ( factLoop <>
+    ( factLoopHistory    <>
+      factLoopNew        <>
       readaccums
     ( lets (makepostdate <> C.postcomps p) returnStmt) )
  }
@@ -74,9 +75,20 @@ programFromCore namer p
             inner
            (C.reduces p)
 
+  factLoopHistory
+   = ForeachFacts (namerFact namer) (C.input p) FactLoopHistory
+   $ Block
+   $ makeStatements namer (C.input p)
+                                       (C.streams p) (filter (readFromHistory.snd) $ C.reduces p)
+
+  readFromHistory r
+   = case r of
+      CR.RLatest{} -> True
+      CR.RFold _ _ _ _ inp -> CS.isStreamWindowed (C.streams p) inp
+
   -- Nest the streams into a single loop
-  factLoop
-   = ForeachFacts (namerFact namer) (C.input p)
+  factLoopNew
+   = ForeachFacts (namerFact namer) (C.input p) FactLoopNew
    $ Block
    $ makeStatements namer (C.input p)
                                        (C.streams p) (C.reduces p)
@@ -87,7 +99,7 @@ programFromCore namer p
   -- Create a latest accumulator
   accum (n, CR.RLatest ty x _)
    = A.Accumulator (namerAccPrefix namer n) A.Latest ty x
-  
+
   -- Fold accumulator
   accum (n, CR.RFold _ ty _ x inp)
    -- If it's windowed, create windowed accumulator

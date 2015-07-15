@@ -152,11 +152,11 @@ thresher statements
       -- Normal let: remember the name and expression for later
        | otherwise
        -> return ((n,x) : clear n env, s)
-      
+
       -- New variables are bound, so clear the environment
       ForeachInts n _ _ _
        -> return (clear n env, s)
-      ForeachFacts n _ _
+      ForeachFacts n _ _ _
        -> return (clear n env, s)
 
       -- Read that's never used

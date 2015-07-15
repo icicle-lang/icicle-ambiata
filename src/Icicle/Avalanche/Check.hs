@@ -83,10 +83,10 @@ checkStatement frag xh ah stmt
 
            requireSame (ProgramErrorWrongType from) tf (FunT [] IntT)
            requireSame (ProgramErrorWrongType to)   tt (FunT [] IntT)
-           
+
            go (Map.insert n (FunT [] IntT) xh) stmts
 
-    ForeachFacts n ty stmts 
+    ForeachFacts n ty _ stmts
      -> go (Map.insert n (FunT [] (PairT ty DateTimeT)) xh) stmts
 
 
