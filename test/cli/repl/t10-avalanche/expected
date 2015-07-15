@@ -1,0 +1,109 @@
+welcome to iREPL
+ok, loaded test/cli/repl/data.psv, 8 rows
+> -- Show everything
+> ok, type is now on
+ok, core is now on
+ok, core-simp is now on
+ok, core-type is now on
+ok, avalanche is now on
+ok, flatten is now on
+> > -- A rather complicated feature to convert to Avalanche
+> - Type:
+Agg  (Int, Array Int)
+
+- Core:
+Program (source : Stream Int)
+Precomputations:
+
+Stream transformers:
+conv$0 =
+    source
+conv$1 =
+    sfilter [(Int, DateTime)] (
+    \conv$2 : (Int, DateTime).  
+    let simp$1 = fst# [Int] [DateTime]
+                 conv$2
+     in gt# [Int] simp$1 (10 : Int))
+    conv$0
+conv$8 =
+    smap    [(Int, DateTime)] [Int]
+    (
+    \conv$9 : (Int, DateTime). 
+    fst# [Int] [DateTime] conv$9)
+    conv$0
+Reductions:
+conv$5 =
+    rfold   [(Int, DateTime)]
+    [Int] (
+    \conv$3 : Int.  
+    \conv$4 : (Int, DateTime).  add#
+                                conv$3 (1 : Int)) (0 : Int)
+    conv$1
+conv$7 =
+    rlatest [Int] (3 : Int)
+    conv$8
+Postcomputations:
+conv$6 =
+    conv$5
+conv$10 =
+    pair# [Int] [Array Int]
+    conv$6 conv$7
+Returning:
+    conv$10
+
+
+- Core type:
+(Int, Array Int)
+
+- Avalanche:
+gen$date = DATE
+{
+  init acc$conv$5 = 0 : Int (Resumable);
+  init acc$conv$7 = 3 : Int (Latest);
+  for_facts (gen$fact : Int) {
+    let anf$0 = fst# [Int] [DateTime]
+                gen$fact;
+    if (gt# [Int] anf$0
+        (10 : Int)) {
+      read acc$conv$5 = acc$conv$5;
+      write acc$conv$5 = add#
+                         acc$conv$5 (1 : Int);
+    }
+    let elem$conv$8 = anf$0;
+    push acc$conv$7(elem$conv$8);
+  }
+  read conv$5 = acc$conv$5;
+  read conv$7 = acc$conv$7;
+  let conv$10 = pair# [Int] [Array Int]
+                conv$5 conv$7;
+  return conv$10;
+}
+
+- Flattened:
+gen$date = DATE
+{
+  init acc$conv$5 = 0 : Int (Resumable);
+  init acc$conv$7 = 3 : Int (Latest);
+  for_facts (gen$fact : Int) {
+    let anf$0 = fst# [Int] [DateTime]
+                gen$fact;
+    if (gt# [Int] anf$0
+        (10 : Int)) {
+      read acc$conv$5 = acc$conv$5;
+      write acc$conv$5 = add#
+                         acc$conv$5 (1 : Int);
+    }
+    push acc$conv$7(anf$0);
+  }
+  read conv$5 = acc$conv$5;
+  read conv$7 = acc$conv$7;
+  let conv$10 = pair# [Int] [Array Int]
+                conv$5 conv$7;
+  return conv$10;
+}
+
+- Result:
+[homer, (5,[300,400,500])
+,marge, (1,[0,10,20])]
+
+> > 
