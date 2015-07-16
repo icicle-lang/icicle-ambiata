@@ -327,6 +327,7 @@ gen$date = DATE
     let anf$18 = le# [Int] anf$17 (14 : Int);
     let anf$20 = ge# [Int] anf$17 (7 : Int);
     if (and# anf$18 anf$20) {
+      keep_fact_in_history;
       read acc$conv$4 = acc$conv$4;
       write acc$conv$4 = add# acc$conv$4 (1 : Int);
     } else {
@@ -367,6 +368,7 @@ void compute(IcicleState<Integer> icicle)
 
         // if (and# anf$6 anf$8)
         if (anf_6 && anf_8) {
+            icicle.keepFactInHistory();
             // read acc$conv$4 = acc$conv$4;
             int acc_conv_4_read = acc_conv_4;
             // write acc$conv$4 = add# acc$conv$4 (1 : Int);
@@ -395,6 +397,7 @@ void compute(IcicleState<Integer> icicle)
 
         // if (and# anf$18 anf$20)
         if (anf_18 && anf_20) {
+            icicle.keepFactInHistory();
             // read acc$conv$4 = acc$conv$4;
             int acc_conv_4_read = acc_conv_4;
             // write acc$conv$4 = add# acc$conv$4 (1 : Int);
