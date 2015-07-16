@@ -104,9 +104,9 @@ programFromCore namer p
 
   -- Fold accumulator
   accum (n, CR.RFold _ ty _ x inp)
-   -- If it's windowed, create windowed accumulator
+   -- If it's windowed, create just an ordinary mutable accumulator
    | CS.isStreamWindowed (C.streams p) inp
-   = A.Accumulator (namerAccPrefix namer n) A.Windowed ty x
+   = A.Accumulator (namerAccPrefix namer n) A.Mutable ty x
    -- Not windowed, so resumable fold
    | otherwise
    = A.Accumulator (namerAccPrefix namer n) A.Resumable ty x
@@ -149,7 +149,7 @@ insertStream
 insertStream namer inputType strs reds (n, strm)
        -- Get the reduces and their updates
  = let reds' = filter ((==n) . CR.inputOfReduce . snd) reds
-       upds  = fmap (statementOfReduce namer) reds'
+       upds  = fmap (statementOfReduce namer strs) reds'
 
        -- Get all streams that use this directly as input
        strs' = filter ((==Just n) . CS.inputOfStream . snd) strs
@@ -209,17 +209,26 @@ insertStream namer inputType strs reds (n, strm)
 
 -- | Get update statement for given reduce
 statementOfReduce
-        :: Namer n
+        :: Ord n
+        => Namer n
+        -> [(Name n, CS.Stream n)]
         -> (Name n, CR.Reduce n)
         -> Statement n Prim
-statementOfReduce namer (n,r)
+statementOfReduce namer strs (n,r)
  = case r of
     -- Apply fold's konstrukt to current accumulator value and input value
     CR.RFold _ _  k _ inp
-     -- Darn - arguments wrong way around!
      -> let n' = namerAccPrefix namer n
+
+            -- If it's windowed, note that we will need this fact in the next snapshot
+            k' | CS.isStreamWindowed strs inp
+               = KeepFactInHistory
+               | otherwise
+               = mempty
+
         in  Read n' n'
-          $ Write n' (Beta.betaToLets (k `XApp` (XVar n') `XApp` (XVar $ namerElemPrefix namer inp)))
+          ( Write n' (Beta.betaToLets (k `XApp` (XVar n') `XApp` (XVar $ namerElemPrefix namer inp)))
+          <> k' )
     -- Push most recent inp
     CR.RLatest _ _ inp
      -> Push (namerAccPrefix namer n) (XVar $ namerElemPrefix namer inp)

@@ -159,8 +159,6 @@ checkStatement frag xh ah stmt
    = case at of
       Resumable
        -> checkUpdate n x ty
-      Windowed
-       -> checkUpdate n x ty
       Latest
        -> do    t <- mapLeft ProgramErrorExp
                    $ checkExp frag xh x

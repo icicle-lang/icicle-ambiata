@@ -33,8 +33,8 @@ data AccumulatorHeap n
 
 -- | The value of an accumulator
 data AccumulatorValue
- -- | Whether this fold is windowed or not
- = AVFold Bool BaseValue
+ -- | A resumable accumulator
+ = AVResumable BaseValue
  -- | Accumulator storing latest N values
  -- Stored in reverse so we can just cons or take it
  | AVLatest Int [BaseValue]
@@ -83,11 +83,11 @@ updateOrPush heap n bg v
         v' <- maybeToRight (RuntimeErrorNoAccumulator n)
                            (Map.lookup n map)
         case v' of
-         (bgs, AVFold windowed _)
+         (bgs, AVResumable _)
           -> replace
            $ Map.insert n
            (insbgs bgs
-           , AVFold windowed v) map
+           , AVResumable v) map
          (bgs, AVLatest num vs)
           -> replace
            $ Map.insert n
@@ -113,10 +113,8 @@ bubbleGumOutputOfAccumulatorHeap acc
  = BubbleGumFacts (fmap flav  $ accumulatorHeapMarked acc)
  : concatMap  mk  (Map.toList $ accumulatorHeapMap    acc)
  where
-  mk (n, (_, AVFold False v))
+  mk (n, (_, AVResumable v))
    = [BubbleGumReduction n v]
-  mk (_, (bgs, AVFold True _))
-   = [BubbleGumFacts $ sort $ fmap flav bgs]
   mk (_, (bgs, AVLatest _ _))
    = [BubbleGumFacts $ sort $ fmap flav bgs]
   mk (_, (_, AVMutable _))
@@ -175,9 +173,7 @@ initAcc evalPrim env (Accumulator n at _ x)
      -- Start with initial value.
      -- TODO: take list of previously saved resumes, and lookup here
      Resumable
-      -> AVFold False <$> ev
-     Windowed
-      -> AVFold True <$> ev
+      -> AVResumable <$> ev
      Mutable
       -> AVMutable <$> ev
      Latest
@@ -261,7 +257,7 @@ evalStmt evalPrim now xh values bubblegum ah stmt
     Read n acc stmts
      -> do  -- Get the current value and apply the function
             v   <- case Map.lookup acc $ accumulatorHeapMap ah of
-                    Just (_, AVFold _ vacc)
+                    Just (_, AVResumable vacc)
                      -> return $ VBase vacc
                     Just (_, AVMutable vacc)
                      -> return $ VBase vacc

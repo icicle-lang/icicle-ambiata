@@ -92,11 +92,6 @@ data AccumulatorType
  --
  -- Exp is initial value - only if no history.
  = Resumable
- -- | Windowed but not latest folds, where for each update we mark
- -- the current fact as necessary for next time
- --
- -- Exp is initial value.
- | Windowed
  -- | Latest N, where the value is not so much updated as a
  -- fact is pushed on
  --
@@ -333,7 +328,6 @@ instance (Pretty n, Pretty p) => Pretty (Accumulator n p) where
   =   pretty n <+> text "=" <+> pretty x
   <+> (case acc of
        Resumable -> text "(Resumable)"
-       Windowed  -> text "(Windowed)"
        Latest    -> text "(Latest)"
        Mutable   -> text "(Mutable)")
 
