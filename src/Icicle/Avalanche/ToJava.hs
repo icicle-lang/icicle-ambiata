@@ -82,9 +82,14 @@ statementsToJava ss
 bindingToJava :: Pretty n => Binding n Prim -> Doc
 bindingToJava bb
  = case bb of
-    InitAccumulator acc
-     -- TODO: resumables also need to load and save
-     -- latests need to call icicle.makeLatest
+    InitAccumulator acc@(S.Accumulator { S.accKind = S.Latest })
+     -> "Latest" <> angled (boxedType $ S.accValType acc)
+     <+> (acc_name $ S.accName acc)
+     <> " = icicle.makeLatest"
+     <> angled (boxedType $ S.accValType acc)
+     <> "(" <> expToJava (S.accInit acc) <> ");"
+
+    InitAccumulator acc@(S.Accumulator { S.accKind = S.Mutable })
      -> unboxedType (S.accValType acc) <+> (acc_name $ S.accName acc)
      <> " = " <> expToJava (S.accInit acc) <> ";"
 
