@@ -38,9 +38,11 @@ statementsToJava ss
  = case ss of
     If x t e
      -> "if (" <> expToJava x <> ")"
-     <> go t
-     <> "else"
-     <> go e
+     <> block [go t]
+     <> (case e of
+          Block [] -> ""
+          If{}     -> line <> "else " <>        go e
+          _        -> line <> "else"  <> block [go e])
 
     -- NB. it looks like we are recomputing "to" on every iteration,
     -- however if input program is in a-normal form, it will already
@@ -48,7 +50,7 @@ statementsToJava ss
     ForeachInts n from to s
      -> "for (" <> local IntT n <> " = " <> expToJava from <> "; "
                 <> name n <> " < " <> expToJava to <> "; "
-                <> name n <> "++)" <> go s
+                <> name n <> "++)" <> block [go s]
 
     ForeachFacts n t f s
      -> (case f of
@@ -58,7 +60,7 @@ statementsToJava ss
         <> "while (icicle.nextRow())"
         <> block [local (PairT t DateTimeT) n <> " = icicle.currentRow();", go s]
     Block bs
-     -> block $ fmap (either bindingToJava go) bs
+     -> vcat $ fmap (either bindingToJava go) bs
     Write n x
      -> acc_name n <> " = " <> expToJava x <> ";"
     Push n x
@@ -74,10 +76,6 @@ statementsToJava ss
 
  where
   go  = statementsToJava
-
-  -- double show to add quotes and escape slashes and quotes.
-  -- not that there should be any slashes or quotes
-  stringy = text . show . show . pretty
 
 bindingToJava :: Pretty n => Binding n Prim -> Doc
 bindingToJava bb
@@ -129,6 +127,8 @@ expToJava xx
      -> "$#@!LET NOT ALLOWED"
 
  where
+  -- Monomorphise THIS!
+  -- so it works with [] as well
   primApp
    = \p args
    -> prettyPrimType (primTypeOfPrim p)
@@ -139,29 +139,42 @@ data PrimType
  | Prefix Doc
  | Method Doc
  | Function Doc
+ | Special1 (Doc -> Doc)
 
 prettyPrimType :: PrimType -> [Doc] -> Doc
 prettyPrimType pt args
  = case pt of
+    -- We don't need parens around operators, or to worry about precedence.
+    -- Since the input is in a-normal form the only arguments can be variables.
     Infix o
-     -> "(" <> hcat (punctuate (" "<>o<>" ") args) <> ")"
+     -> hcat (punctuate (" "<>o<>" ") args)
     Prefix o
-     -> "(" <> o <> hcat args <> ")"
+     -> o <> hcat args
     Method m
      | (a:as) <- args
-     -> a <> "." <> m <> tupled as
+     -> a <> "." <> m <> "(" <> hcat (punctuate ", " as) <> ")"
      | otherwise
      -> "$#!@ METHOD NO ARGUMENTS"
     Function f
-     -> f <> tupled args
+     -> f <> "(" <> hcat (punctuate ", " args) <> ")"
+    Special1 f
+     | (a:_)  <- args
+     -> f a
+     | otherwise
+     -> "$#!@ SPECIAL NO ARGUMENTS"
 
 primTypeOfPrim :: Prim -> PrimType
 primTypeOfPrim p
  = case p of
     PrimMinimal pm
      -> min' pm
-    _
-     -> todo
+    PrimProject pp
+     -> proj pp
+    PrimUnsafe pu
+     -> unsa pu
+    PrimUpdate pu
+     -> upda pu
+
  where
   min' (M.PrimArith ar) = ari ar
   min' (M.PrimRelation re _) = rel re
@@ -180,7 +193,7 @@ primTypeOfPrim p
    = Method "snd"
 
   min' (M.PrimStruct (M.PrimStructGet f t _))
-   = Method ("$#@! getField" <> angled (boxedType t) <> pretty f)
+   = Special1 $ \a -> a <> ".getField" <> angled (boxedType t) <> "(" <> stringy f <> ")"
 
   ari   M.PrimArithPlus   = Infix     "+"
   ari   M.PrimArithMinus  = Infix     "-"
@@ -199,7 +212,18 @@ primTypeOfPrim p
   log'   M.PrimLogicalAnd  = Infix     "&&"
   log'   M.PrimLogicalOr   = Infix     "||"
 
-  todo = Method ("$#@! TODO OPERATOR " <> pretty p)
+  proj (PrimProjectArrayLength _) = Method "size"
+  proj (PrimProjectMapLength _ _) = Method "size"
+  proj (PrimProjectMapLookup _ _) = Method "get"
+  proj (PrimProjectOptionIsSome _)= Special1 $ \a -> a <> " != null"
+
+  unsa (PrimUnsafeArrayIndex _)    = Method "get"
+  unsa (PrimUnsafeArrayCreate t)   = Function ("new ArrayList" <> angled (boxedType t))
+  unsa (PrimUnsafeMapIndex _ _)    = Function "Map.getByIndex"
+  unsa (PrimUnsafeOptionGet _)      = Special1 $ \a -> a
+
+  upda (PrimUpdateMapPut _ _)      = Function "Map.put"
+  upda (PrimUpdateArrayPut _)      = Function "Array.put"
 
 
 local :: Pretty n => ValType -> Name n -> Doc
@@ -242,9 +266,12 @@ unboxedType t
 
 block :: [Doc] -> Doc
 block ds
- = " {" <> line
- <> indent 2 (vcat ds)
- <> line <> "}" <> line
+ = vcat
+ [ ""
+ , "{"
+ , indent 2 (vcat ds)
+ , "}"
+ ]
 
 angled :: Doc -> Doc
 angled = enclose "<" ">"
@@ -252,3 +279,8 @@ angled = enclose "<" ">"
 commas :: [Doc] -> Doc
 commas = hcat . punctuate ", "
 
+
+-- double show to add quotes and escape slashes and quotes.
+-- not that there should be any slashes or quotes
+stringy :: Pretty n => n -> Doc
+stringy = text . show . show . pretty
