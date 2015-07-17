@@ -1,19 +1,18 @@
 import java.util.*;
-import java.time.LocalDate;
 
 class MemoryState<T> implements IcicleState<T>
 {
-    private LocalDate _snapshotDate     = LocalDate.now();
-    private ArrayList<T> _facts_history = new ArrayList<>();
-    private ArrayList<T> _facts_new     = new ArrayList<>();
+    private Day _snapshotDate     = Day.now();
+    private ArrayList<Pair<T,Day>> _facts_history = new ArrayList<>();
+    private ArrayList<Pair<T,Day>> _facts_new     = new ArrayList<>();
 
-    private HashMap<Map.Entry<String,String>, Object>
+    private HashMap<Pair<String,String>, Object>
                         _resumables     = new HashMap<>();
 
     private HashMap<String, Object>
                         _outputs        = new HashMap<>();
 
-    private IdentityHashMap<Object, ArrayList<Map.Entry<Integer, Object>>>
+    private IdentityHashMap<Object, ArrayList<Pair<Integer, Object>>>
                         _latests        = new IdentityHashMap<>();
 
     private HashSet<Integer>
@@ -26,20 +25,20 @@ class MemoryState<T> implements IcicleState<T>
     private int _history_ix = -1;
     private int _new_ix     = -1;
 
-    public void setDate(LocalDate d)
+    public void setDate(Day d)
     {
         _snapshotDate = d;
     }
 
-    public void ingest(ArrayList<T> newest)
+    public void ingest(ArrayList<Pair<T,Day>> newest)
     {
         _facts_history.addAll(_facts_new);
         _facts_new.clear();
         _facts_new.addAll(newest);
 
-        for (ArrayList<Map.Entry<Integer,Object>> ixs : _latests.values()) {
-            for (Map.Entry<Integer,Object> kv : ixs) {
-                _kept_in_history.add(kv.getKey());
+        for (ArrayList<Pair<Integer,Object>> ixs : _latests.values()) {
+            for (Pair<Integer,Object> kv : ixs) {
+                _kept_in_history.add(kv.fst());
             }
         }
 
@@ -55,19 +54,19 @@ class MemoryState<T> implements IcicleState<T>
         return (HashMap<String,Object>)_outputs.clone();
     }
 
-    public LocalDate snapshotDate()
+    public Day snapshotDate()
     {
         return _snapshotDate;
     }
 
     public <U> U loadResumable(String virtualFeature, String accumulatorName)
     {
-        return (U)_resumables.get(new AbstractMap.SimpleEntry<>(virtualFeature, accumulatorName));
+        return (U)_resumables.get(Pair.create(virtualFeature, accumulatorName));
     }
 
     public <U> void    saveResumable(String virtualFeature, String accumulatorName, U value)
     {
-        _resumables.put(new AbstractMap.SimpleEntry<>(virtualFeature, accumulatorName), value);
+        _resumables.put(Pair.create(virtualFeature, accumulatorName), value);
     }
 
     public <U> void    output(String virtualFeature, U value)
@@ -136,19 +135,13 @@ class MemoryState<T> implements IcicleState<T>
         _kept_in_history.add(currentId());
     }
 
-    public T currentRow()
+    public Pair<T,Day> currentRow()
     {
         if (_in_history) {
             return _facts_history.get(_history_ix);
         } else {
             return _facts_new.get(_new_ix);
         }
-    }
-
-    public LocalDate currentRowDate()
-    {
-        // todo
-        return LocalDate.now();
     }
 
 
@@ -164,8 +157,8 @@ class MemoryState<T> implements IcicleState<T>
 
     public <U> void pushLatest(Latest<U> latest, U value)
     {
-        ArrayList<Map.Entry<Integer,Object>> objs = _latests.get(latest);
-        objs.add(new AbstractMap.SimpleEntry<>(Integer.valueOf(currentId()), value));
+        ArrayList<Pair<Integer,Object>> objs = _latests.get(latest);
+        objs.add(Pair.create(Integer.valueOf(currentId()), value));
 
         if (objs.size() > latest.numberOfThings) {
             objs.remove(0);
@@ -175,9 +168,9 @@ class MemoryState<T> implements IcicleState<T>
     public <U> ArrayList<U> getLatest(Latest<U> latest)
     {
         ArrayList<U> out = new ArrayList<U>();
-        ArrayList<Map.Entry<Integer,Object>> objs = _latests.get(latest);
+        ArrayList<Pair<Integer,Object>> objs = _latests.get(latest);
         for (int i = 0; i != objs.size(); ++i) {
-            out.add((U)objs.get(i).getValue());
+            out.add((U)objs.get(i).snd());
         }
 
         return out;

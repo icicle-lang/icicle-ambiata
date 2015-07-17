@@ -30,6 +30,7 @@ import qualified Icicle.Avalanche.Prim.Flat           as APF
 import qualified Icicle.Avalanche.Program             as AP
 import qualified Icicle.Avalanche.Simp                as AS
 import qualified Icicle.Avalanche.Statement.Flatten   as AF
+import qualified Icicle.Avalanche.ToJava              as AJ
 import qualified Icicle.Common.Fresh                  as F
 import qualified Icicle.Core.Program.Check            as CP
 import qualified Icicle.Core.Program.Program          as CP
@@ -85,19 +86,21 @@ data ReplState
    , hasCoreType  :: Bool
    , hasAvalanche :: Bool
    , hasFlatten   :: Bool
+   , hasJava      :: Bool
    , hasEval      :: Bool
    , doCoreSimp   :: Bool }
 
 -- | Settable REPL states
 data Set
-   = ShowType Bool
-   | ShowCore Bool
-   | ShowCoreType Bool
-   | ShowEval Bool
-   | ShowAvalanche Bool
-   | ShowFlatten Bool
-   | CurrentDate DateTime
-   | PerformCoreSimp Bool
+   = ShowType           Bool
+   | ShowCore           Bool
+   | ShowCoreType       Bool
+   | ShowEval           Bool
+   | ShowAvalanche      Bool
+   | ShowFlatten        Bool
+   | ShowJava           Bool
+   | CurrentDate        DateTime
+   | PerformCoreSimp    Bool
 
 -- | REPL commands
 data Command
@@ -113,7 +116,8 @@ data Command
 
 defaultState :: ReplState
 defaultState
-  = ReplState [] (dateOfYMD 1970 1 1) False False False False False True False
+  = (ReplState [] (dateOfYMD 1970 1 1) False False False False False False False False)
+    { hasEval = True }
 
 readCommand :: String -> Maybe Command
 readCommand ss = case words ss of
@@ -151,6 +155,9 @@ readSetCommands ss
 
     ("+flatten":rest)   -> (:) (ShowFlatten   True)   <$> readSetCommands rest
     ("-flatten":rest)   -> (:) (ShowFlatten   False)  <$> readSetCommands rest
+
+    ("+java":rest)      -> (:) (ShowJava      True)   <$> readSetCommands rest
+    ("-java":rest)      -> (:) (ShowJava      False)  <$> readSetCommands rest
 
     ("date" : y : m : d : rest)
        | Just y' <- readMaybe y
@@ -225,9 +232,13 @@ handleLine state line = case readCommand line of
 
       prettyOut hasAvalanche "- Avalanche:" (coreAvalanche core')
 
-      case coreFlatten core' of
-       Left  e -> prettyOut hasFlatten "- Flatten error:" e
-       Right f -> prettyOut hasFlatten "- Flattened:" f
+      let flat = coreFlatten core'
+      case flat of
+       Left  e -> prettyOut (const True) "- Flatten error:" e
+       Right f
+        -> do   prettyOut hasFlatten "- Flattened:" f
+                prettyOut hasJava    "- Java:" (AJ.programToJava f)
+
 
       case coreEval (currentDate state) (facts state) annot core' of
        Left  e -> prettyOut hasEval "- Result error:" e
@@ -268,6 +279,10 @@ handleSetCommand state set
     ShowFlatten b -> do
         HL.outputStrLn $ "ok, flatten is now " <> showFlag b
         return $ state { hasFlatten = b }
+
+    ShowJava b -> do
+        HL.outputStrLn $ "ok, java is now " <> showFlag b
+        return $ state { hasJava = b }
 
     ShowEval b -> do
         HL.outputStrLn $ "ok, eval is now " <> showFlag b
@@ -385,6 +400,7 @@ showState state
     , flag "eval:      " hasEval
     , flag "avalanche: " hasAvalanche
     , flag "flatten:   " hasFlatten
+    , flag "java:      " hasJava
     ]
  where
   flag nm setting
@@ -404,5 +420,6 @@ usage
       , ":set  +/-core-simp -- whether to simplify the result of Core conversion"
       , ":set  +/-eval      -- whether to show the result"
       , ":set  +/-avalanche -- whether to show the Avalanche conversion"
-      , ":set  +/-flatten   -- whether to show flattened Avalanche conversion" ]
+      , ":set  +/-flatten   -- whether to show flattened Avalanche conversion"
+      , ":set  +/-java      -- whether to show the Java result" ]
 

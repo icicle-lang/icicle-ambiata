@@ -1,9 +1,8 @@
 import java.util.*;
-import java.time.LocalDate;
 
 interface IcicleState<T>
 {
-    LocalDate snapshotDate();
+    Day snapshotDate();
 
     <U>
     U       loadResumable(String virtualFeature, String accumulatorName);
@@ -21,8 +20,7 @@ interface IcicleState<T>
 
     void    keepFactInHistory();
 
-    T       currentRow();
-    LocalDate currentRowDate();
+    Pair<T,Day> currentRow();
 
     <U>
     Latest<U> makeLatest(int size);

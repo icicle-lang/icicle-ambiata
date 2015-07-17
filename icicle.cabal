@@ -62,6 +62,7 @@ library
                        Icicle.Avalanche.Statement.Flatten
                        Icicle.Avalanche.Prim.Flat
                        Icicle.Avalanche.Prim.Eval
+                       Icicle.Avalanche.ToJava
 
                        Icicle.BubbleGum
 
