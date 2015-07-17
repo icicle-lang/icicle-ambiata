@@ -94,6 +94,11 @@ flatten s
     KeepFactInHistory
      -> return $ KeepFactInHistory
 
+    LoadResumable n
+     -> return $ LoadResumable n
+    SaveResumable n
+     -> return $ SaveResumable n
+
 
 
 -- | Flatten an expression, wrapping the statement with any lets or loops or other bindings

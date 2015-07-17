@@ -59,6 +59,12 @@ data Statement n p
 
  -- | Mark the current fact as being historically relevant
  | KeepFactInHistory
+
+ -- | Load an accumulator from history. Must be before any fact loops.
+ | LoadResumable (Name n)
+
+ -- | Save an accumulator to history. Must be after all fact loops.
+ | SaveResumable (Name n)
  deriving (Eq, Ord, Show)
 
 instance Monoid (Statement n p) where
@@ -88,15 +94,11 @@ data Accumulator n p
 -- each a different kind of accumulator.
 -- Additionally, we have non-core accumulators that don't affect history.
 data AccumulatorType
- -- | Resumable folds, where we store the value for next time
- --
- -- Exp is initial value - only if no history.
- = Resumable
  -- | Latest N, where the value is not so much updated as a
  -- fact is pushed on
  --
  -- Exp is size/count.
- | Latest
+ = Latest
 
  -- | Another kind of accumulator.
  -- Just a mutable variable with no history.
@@ -166,6 +168,10 @@ transformUDStmt fun env statements
            -> return $ Return x
           KeepFactInHistory
            -> return $ KeepFactInHistory
+          LoadResumable n
+           -> return $ LoadResumable n
+          SaveResumable n
+           -> return $ SaveResumable n
 
 foldStmt
         :: (Applicative m, Functor m, Monad m)
@@ -211,6 +217,10 @@ foldStmt down up rjoin env res statements
            -> up e' res s
           KeepFactInHistory
            -> up e' res s
+          LoadResumable{}
+           -> up e' res s
+          SaveResumable{}
+           -> up e' res s
 
 
 
@@ -247,6 +257,10 @@ instance TransformX Statement where
      KeepFactInHistory
       -> return KeepFactInHistory
 
+     LoadResumable n
+      -> LoadResumable <$> names n
+     SaveResumable n
+      -> SaveResumable <$> names n
 
   where
    go  = transformX names exps
@@ -310,6 +324,12 @@ instance (Pretty n, Pretty p) => Pretty (Statement n p) where
      KeepFactInHistory
       -> text "keep_fact_in_history"
 
+     LoadResumable n
+      -> text "load_resumable" <+> pretty n
+     SaveResumable n
+      -> text "save_resumable" <+> pretty n
+
+
   where
    semis stmt
     = indent 2 $ pretty stmt
@@ -327,7 +347,6 @@ instance (Pretty n, Pretty p) => Pretty (Accumulator n p) where
  pretty (Accumulator n acc _ x)
   =   pretty n <+> text "=" <+> pretty x
   <+> (case acc of
-       Resumable -> text "(Resumable)"
        Latest    -> text "(Latest)"
        Mutable   -> text "(Mutable)")
 

@@ -67,9 +67,17 @@ statementsToJava ss
      -> "return " <> expToJava x
     KeepFactInHistory
      -> "icicle.KeepFactInHistory();"
+    LoadResumable n
+     -> acc_name n <> " = icicle.loadResumable(" <> stringy n <> ");"
+    SaveResumable n
+     -> "icicle.saveResumable(" <> stringy n <> ", " <> acc_name n <> ");"
 
  where
   go  = statementsToJava
+
+  -- double show to add quotes and escape slashes and quotes.
+  -- not that there should be any slashes or quotes
+  stringy = text . show . show . pretty
 
 bindingToJava :: Pretty n => Binding n Prim -> Doc
 bindingToJava bb
@@ -166,7 +174,8 @@ primTypeOfPrim p
   min' (M.PrimPair (M.PrimPairSnd _ _))
    = Method "snd"
 
-  min' _ = todo
+  min' (M.PrimStruct (M.PrimStructGet f t _))
+   = Method ("$#@! getField" <> angled (boxedType t) <> pretty f)
 
   ari   M.PrimArithPlus   = Infix     "+"
   ari   M.PrimArithMinus  = Infix     "-"

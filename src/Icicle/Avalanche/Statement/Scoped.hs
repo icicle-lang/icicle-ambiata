@@ -37,6 +37,8 @@ data Scoped n p
  | Push  (Name n) (Exp n p)
  | Return         (Exp n p)
  | KeepFactInHistory
+ | LoadResumable (Name n)
+ | SaveResumable (Name n)
 
 data Binding n p
  = InitAccumulator (S.Accumulator n p)
@@ -69,6 +71,10 @@ bindsOfStatement s
      -> [Right $ Return x]
     S.KeepFactInHistory
      -> [Right $ KeepFactInHistory]
+    S.LoadResumable n
+     -> [Right $ LoadResumable n]
+    S.SaveResumable n
+     -> [Right $ SaveResumable n]
     S.InitAccumulator acc ss
      -> let bs = bindsOfStatement ss
         in  Left (InitAccumulator acc) : bs
@@ -119,6 +125,10 @@ statementOfScoped s
      -> S.Return x
     KeepFactInHistory
      -> S.KeepFactInHistory
+    LoadResumable n
+     -> S.LoadResumable n
+    SaveResumable n
+     -> S.SaveResumable n
 
 
 spanMaybe :: (a -> Maybe b) -> [a] -> ([b],[a])
@@ -178,6 +188,12 @@ instance (Pretty n, Pretty p) => Pretty (Scoped n p) where
       <> text ";"
      KeepFactInHistory
       -> text "keep_fact_in_history"
+      <> text ";"
+     LoadResumable n
+      -> text "load_resumable" <+> pretty n
+      <> text ";"
+     SaveResumable n
+      -> text "save_resumable" <+> pretty n
       <> text ";"
 
 

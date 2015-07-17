@@ -28,16 +28,14 @@ import qualified    Data.Map    as Map
 data AccumulatorHeap n
  = AccumulatorHeap
  { accumulatorHeapMap       :: Map.Map (Name n) ([BubbleGumFact], AccumulatorValue)
- , accumulatorHeapMarked    :: [BubbleGumFact]
+ , accumulatorHeapMarked    :: [BubbleGumOutput n BaseValue]
  }
 
 -- | The value of an accumulator
 data AccumulatorValue
- -- | A resumable accumulator
- = AVResumable BaseValue
  -- | Accumulator storing latest N values
  -- Stored in reverse so we can just cons or take it
- | AVLatest Int [BaseValue]
+ = AVLatest Int [BaseValue]
 
  -- | A mutable value with no history attached
  | AVMutable BaseValue
@@ -83,11 +81,6 @@ updateOrPush heap n bg v
         v' <- maybeToRight (RuntimeErrorNoAccumulator n)
                            (Map.lookup n map)
         case v' of
-         (bgs, AVResumable _)
-          -> replace
-           $ Map.insert n
-           (insbgs bgs
-           , AVResumable v) map
          (bgs, AVLatest num vs)
           -> replace
            $ Map.insert n
@@ -110,16 +103,14 @@ bubbleGumOutputOfAccumulatorHeap
         -> [BubbleGumOutput n (BaseValue)]
 
 bubbleGumOutputOfAccumulatorHeap acc
- = BubbleGumFacts (fmap flav  $ accumulatorHeapMarked acc)
- : concatMap  mk  (Map.toList $ accumulatorHeapMap    acc)
+ = bubbleGumNubOutputs
+ (accumulatorHeapMarked acc <> concatMap mk (Map.toList $ accumulatorHeapMap acc))
  where
-  mk (n, (_, AVResumable v))
-   = [BubbleGumReduction n v]
   mk (_, (bgs, AVLatest _ _))
    = [BubbleGumFacts $ sort $ fmap flav bgs]
   mk (_, (_, AVMutable _))
    = []
-  
+
   flav (BubbleGumFact f) = f
 
 
@@ -171,9 +162,6 @@ initAcc evalPrim env (Accumulator n at _ x)
   getValue
    = case at of
      -- Start with initial value.
-     -- TODO: take list of previously saved resumes, and lookup here
-     Resumable
-      -> AVResumable <$> ev
      Mutable
       -> AVMutable <$> ev
      Latest
@@ -257,8 +245,6 @@ evalStmt evalPrim now xh values bubblegum ah stmt
     Read n acc stmts
      -> do  -- Get the current value and apply the function
             v   <- case Map.lookup acc $ accumulatorHeapMap ah of
-                    Just (_, AVResumable vacc)
-                     -> return $ VBase vacc
                     Just (_, AVMutable vacc)
                      -> return $ VBase vacc
                     Just (_, AVLatest _ vals)
@@ -285,11 +271,23 @@ evalStmt evalPrim now xh values bubblegum ah stmt
 
     -- Keep this fact in history
     KeepFactInHistory
-     | Just bg <- bubblegum
-     -> return (ah { accumulatorHeapMarked = bg : accumulatorHeapMarked ah }, Nothing)
+     | Just (BubbleGumFact bg) <- bubblegum
+     -> return (ah { accumulatorHeapMarked = BubbleGumFacts [bg] : accumulatorHeapMarked ah }, Nothing)
      | otherwise
      -> Left $ RuntimeErrorKeepFactNotInFactLoop
 
+    LoadResumable _
+     -> return (ah, Nothing)
+
+    SaveResumable acc
+     -> do  v   <- case Map.lookup acc $ accumulatorHeapMap ah of
+                    Just (_, AVMutable vacc)
+                     -> return $ vacc
+                    Just (_, AVLatest _ vals)
+                     -> return $ VArray $ reverse vals
+                    _
+                     -> Left (RuntimeErrorLoopAccumulatorBad acc)
+            return (ah { accumulatorHeapMarked = BubbleGumReduction acc v : accumulatorHeapMarked ah }, Nothing)
 
  where
   -- Go through all the substatements

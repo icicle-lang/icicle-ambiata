@@ -64,7 +64,8 @@ gen$date = DATE
                       gen$fact;
     push acc$conv$7(elem$conv$8);
   }
-  init acc$conv$5 = 0 : Int (Resumable);
+  init acc$conv$5 = 0 : Int (Mutable);
+  load_resumable acc$conv$5;
   for_facts (gen$fact : Int) in new {
     let anf$1 = fst# [Int] [DateTime]
                 gen$fact;
@@ -77,6 +78,7 @@ gen$date = DATE
     let elem$conv$8 = anf$1;
     push acc$conv$7(elem$conv$8);
   }
+  save_resumable acc$conv$5;
   read conv$5 = acc$conv$5;
   read conv$7 = acc$conv$7;
   let conv$10 = pair# [Int] [Array Int]
@@ -93,7 +95,8 @@ gen$date = DATE
                       gen$fact;
     push acc$conv$7(elem$conv$8);
   }
-  init acc$conv$5 = 0 : Int (Resumable);
+  init acc$conv$5 = 0 : Int (Mutable);
+  load_resumable acc$conv$5;
   for_facts (gen$fact : Int) in new {
     let anf$1 = fst# [Int] [DateTime]
                 gen$fact;
@@ -105,6 +108,7 @@ gen$date = DATE
     }
     push acc$conv$7(anf$1);
   }
+  save_resumable acc$conv$5;
   read conv$5 = acc$conv$5;
   read conv$7 = acc$conv$7;
   let conv$10 = pair# [Int] [Array Int]

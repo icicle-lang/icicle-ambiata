@@ -65,7 +65,7 @@ checkStatement frag xh ah stmt
            requireSame (ProgramErrorWrongType x) t (FunT [] BoolT)
            thenty <- go xh stmts
            elsety <- go xh elses
-           
+
            case thenty == elsety of
             True  -> return thenty
             False -> Left (ProgramErrorConflictingReturnTypes [thenty, elsety])
@@ -124,7 +124,7 @@ checkStatement frag xh ah stmt
                    return Nothing
             _
              -> Left (ProgramErrorWrongAccumulatorType n)
- 
+
     Push n x
      -> do t <- mapLeft ProgramErrorExp
               $ checkExp frag xh x
@@ -142,12 +142,21 @@ checkStatement frag xh ah stmt
     Return x
      -> do t <- mapLeft ProgramErrorExp
               $ checkExp frag xh x
-        
+
            return (Just t)
 
     KeepFactInHistory
      -> do return Nothing
 
+    LoadResumable n
+     -> do _ <- maybeToRight (ProgramErrorNoSuchAccumulator n)
+              $ Map.lookup n ah
+           return Nothing
+
+    SaveResumable n
+     -> do _ <- maybeToRight (ProgramErrorNoSuchAccumulator n)
+              $ Map.lookup n ah
+           return Nothing
 
 
 
@@ -157,8 +166,6 @@ checkStatement frag xh ah stmt
 
   checkAcc (Accumulator n at ty x)
    = case at of
-      Resumable
-       -> checkUpdate n x ty
       Latest
        -> do    t <- mapLeft ProgramErrorExp
                    $ checkExp frag xh x
@@ -173,4 +180,3 @@ checkStatement frag xh ah stmt
         requireSame (ProgramErrorWrongType x) t (FunT [] ty)
         return (n, ATUpdate ty)
 
-  

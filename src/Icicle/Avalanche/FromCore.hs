@@ -62,12 +62,16 @@ programFromCore namer p
     = lets (C.precomps p)
     $ accums (filter (readFromHistory.snd) $ C.reduces p)
     ( factLoopHistory    <>
-    ( accums (filter (not.readFromHistory.snd) $ C.reduces p)
-    ( factLoopNew        <>
+    ( accums resumables
+    ( mconcat (fmap loadResumables resumables) <>
+      factLoopNew               <>
+      mconcat (fmap saveResumables resumables) <>
       readaccums
     ( lets (makepostdate <> C.postcomps p) returnStmt) )))
  }
  where
+  resumables = filter (not.readFromHistory.snd) $ C.reduces p
+
   lets stmts inner
    = foldr (\(n,x) a -> Let n x a) inner stmts
 
@@ -103,13 +107,18 @@ programFromCore namer p
    = A.Accumulator (namerAccPrefix namer n) A.Latest ty x
 
   -- Fold accumulator
-  accum (n, CR.RFold _ ty _ x inp)
-   -- If it's windowed, create just an ordinary mutable accumulator
-   | CS.isStreamWindowed (C.streams p) inp
+  accum (n, CR.RFold _ ty _ x _)
    = A.Accumulator (namerAccPrefix namer n) A.Mutable ty x
-   -- Not windowed, so resumable fold
-   | otherwise
-   = A.Accumulator (namerAccPrefix namer n) A.Resumable ty x
+
+  loadResumables (n, CR.RFold{})
+   = LoadResumable $ namerAccPrefix namer n
+  loadResumables _
+   = mempty
+
+  saveResumables (n, CR.RFold{})
+   = SaveResumable $ namerAccPrefix namer n
+  saveResumables _
+   = mempty
 
   readaccums inner 
    = foldr (\ac s -> Read (fst ac) (namerAccPrefix namer $ fst ac) s)

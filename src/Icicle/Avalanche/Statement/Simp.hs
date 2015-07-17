@@ -227,6 +227,11 @@ hasEffect statements
    | KeepFactInHistory  <- s
    = return True
 
+   | LoadResumable _    <- s
+   = return True
+   | SaveResumable _    <- s
+   = return True
+
 
    -- If any substatements have an effect, the superstatement does.
    | otherwise
