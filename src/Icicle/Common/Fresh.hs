@@ -11,6 +11,7 @@ module Icicle.Common.Fresh (
     , counterPrefixNameState
     , fresh
     , freshPrefix
+    , freshPrefix'
     ) where
 
 import              Icicle.Common.Base
@@ -57,8 +58,18 @@ fresh
 
 freshPrefix :: Monad m => n -> FreshT n m (Name n)
 freshPrefix pre
+ = freshPrefix' (Name pre)
+
+freshPrefix' :: Monad m => Name n -> FreshT n m (Name n)
+freshPrefix' pre
  = do   n <- fresh
-        return (NameMod pre n)
+        return $ go pre n
+ where
+  go (Name a) b
+   = NameMod a b
+  go (NameMod a b) c
+   = NameMod a (go b c)
+
 
 
 instance Monad m => Monad (FreshT n m) where
