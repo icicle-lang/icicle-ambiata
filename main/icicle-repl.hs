@@ -339,7 +339,7 @@ coreFlatten :: ProgramT -> Either SR.ReplError (AP.Program Text APF.Prim)
 coreFlatten prog
  = let av = coreAvalanche prog
    in   mapLeft  SR.ReplErrorFlatten
-      . mapRight (simpAvalanche "simp")
+      . mapRight simpFlattened
       . mapRight (\(_,s') -> av { AP.statements = s' })
       $ F.runFreshT
       ( AF.flatten
@@ -348,13 +348,19 @@ coreFlatten prog
 
 coreAvalanche :: ProgramT -> AP.Program Text CP.Prim
 coreAvalanche prog
- = simpAvalanche "anf"
+ = simpAvalanche
  $ AC.programFromCore (AC.namerText id) prog
 
-simpAvalanche :: (Eq p, Show p) => Text -> AP.Program Text p -> AP.Program Text p
-simpAvalanche prefix av
+simpAvalanche :: (Eq p, Show p) => AP.Program Text p -> AP.Program Text p
+simpAvalanche av
  = let simp = AS.simpAvalanche av
-       name = F.counterPrefixNameState (T.pack . show) prefix
+       name = F.counterPrefixNameState (T.pack . show) "anf"
+   in  snd $ F.runFresh simp name
+
+simpFlattened :: AP.Program Text APF.Prim -> AP.Program Text APF.Prim
+simpFlattened av
+ = let simp = AS.simpFlattened av
+       name = F.counterPrefixNameState (T.pack . show) "simp"
    in  snd $ F.runFresh simp name
 
 --------------------------------------------------------------------------------

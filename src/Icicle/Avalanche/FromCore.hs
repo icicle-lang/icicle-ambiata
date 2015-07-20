@@ -81,11 +81,7 @@ programFromCore namer p
            reds
 
   factLoopHistory
-   = ForeachFacts (namerFact namer) (C.input p) FactLoopHistory
-   $ Block
-   $ makeStatements namer (C.input p)
-                          (C.streams p)
-                          (filter (readFromHistory.snd) $ C.reduces p)
+   = factLoop FactLoopHistory (filter (readFromHistory.snd) $ C.reduces p)
 
   readFromHistory r
    = case r of
@@ -94,10 +90,16 @@ programFromCore namer p
 
   -- Nest the streams into a single loop
   factLoopNew
-   = ForeachFacts (namerFact namer) (C.input p) FactLoopNew
+   = factLoop FactLoopNew (C.reduces p)
+
+  factLoop loopType reduces
+   = ForeachFacts (namerElemPrefix namer $ namerFact namer) (namerElemPrefix namer $ namerDate namer) (C.input p) loopType
+   $ Let (namerFact namer)
+        (XPrim (PrimMinimal $ Min.PrimConst $ Min.PrimConstPair (C.input p) DateTimeT)
+        `XApp` (XVar $ namerElemPrefix namer $ namerFact namer)
+        `XApp` (XVar $ namerElemPrefix namer $ namerDate namer))
    $ Block
-   $ makeStatements namer (C.input p)
-                                       (C.streams p) (C.reduces p)
+   $ makeStatements namer (C.input p) (C.streams p) reduces
 
   returnStmt
    = A.Return (C.returns p)
@@ -166,7 +168,7 @@ insertStream namer inputType strs reds (n, strm)
 
        -- All statements together
        alls     = Block (upds <> subs)
-       
+
        -- Bind some element
        allLet x = Let (namerElemPrefix namer n) x     alls
 
@@ -189,20 +191,15 @@ insertStream namer inputType strs reds (n, strm)
                       | otherwise
                       = (diff @~ XVar factDate @~ XVar nowDate) <=~ newerThan
 
-               window c = XLet factDate
-                            (XPrim (PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd inputType DateTimeT)
-                             @~ XVar (namerFact namer))
-                          c
-
                else_  | Just o' <- olderThan
-                      = If (window ((diff @~ XVar factDate @~ XVar nowDate) <~ o' ))
+                      = If ((diff @~ XVar factDate @~ XVar nowDate) <~ o' )
                            KeepFactInHistory
                            mempty
 
                       | otherwise
                       = mempty
-               
-           in If (window check) (allLet $ XVar $ namerElemPrefix namer inp)
+
+           in If check (allLet $ XVar $ namerElemPrefix namer inp)
                          else_
 
        -- Filters become ifs

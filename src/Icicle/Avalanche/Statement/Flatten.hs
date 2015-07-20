@@ -62,8 +62,8 @@ flatten s
      $ \to'
      -> ForeachInts n from' to' <$> flatten ss
 
-    ForeachFacts n vt lo ss
-     -> ForeachFacts n vt lo <$> flatten ss
+    ForeachFacts n n' vt lo ss
+     -> ForeachFacts n n' vt lo <$> flatten ss
 
     Block ss
      -> Block <$> mapM flatten ss

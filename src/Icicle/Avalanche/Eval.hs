@@ -220,11 +220,11 @@ evalStmt evalPrim now xh values bubblegum ah stmt
 
     -- TODO: evaluation ignores history/bubblegum.
     -- All inputs are new, so history loop does nothing.
-    ForeachFacts _ _ FactLoopHistory _
+    ForeachFacts _ _ _ FactLoopHistory _
      -> return (ah, Nothing)
 
-    ForeachFacts n _ FactLoopNew  stmts
-     -> do  let with input = Map.insert n (VBase $ VPair (snd $ fact input) (VDateTime $ time input)) xh
+    ForeachFacts n n' _ FactLoopNew  stmts
+     -> do  let with input = Map.insert n (VBase $ snd $ fact input) $ Map.insert n' (VBase $ VDateTime $ time input) xh
             ahs <- foldM (\ah' input -> fst <$> evalStmt evalPrim now (with input) [] (Just $ fst $ fact input) ah' stmts) ah values
             return (ahs, Nothing)
 

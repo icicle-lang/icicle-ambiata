@@ -59,14 +59,18 @@ Returning:
 gen$date = DATE
 {
   init acc$conv$7 = 3 : Int (Latest);
-  for_facts (gen$fact : Int) in history {
+  for_facts (elem$gen$fact : Int, elem$gen$date : Date) in history {
+    let gen$fact = pair# [Int] [DateTime]
+                   elem$gen$fact elem$gen$date;
     let elem$conv$8 = fst# [Int] [DateTime]
                       gen$fact;
     push acc$conv$7(elem$conv$8);
   }
   init acc$conv$5 = 0 : Int (Mutable);
   load_resumable acc$conv$5;
-  for_facts (gen$fact : Int) in new {
+  for_facts (elem$gen$fact : Int, elem$gen$date : Date) in new {
+    let gen$fact = pair# [Int] [DateTime]
+                   elem$gen$fact elem$gen$date;
     let anf$1 = fst# [Int] [DateTime]
                 gen$fact;
     if (gt# [Int] anf$1
@@ -90,23 +94,20 @@ gen$date = DATE
 gen$date = DATE
 {
   init acc$conv$7 = 3 : Int (Latest);
-  for_facts (gen$fact : Int) in history {
-    let elem$conv$8 = fst# [Int] [DateTime]
-                      gen$fact;
-    push acc$conv$7(elem$conv$8);
-  }
+  for_facts (elem$gen$fact : Int, elem$gen$date : Date) in history {
+    push acc$conv$7(elem$gen$fact);
+  } 
+  
   init acc$conv$5 = 0 : Int (Mutable);
   load_resumable acc$conv$5;
-  for_facts (gen$fact : Int) in new {
-    let anf$1 = fst# [Int] [DateTime]
-                gen$fact;
-    if (gt# [Int] anf$1
+  for_facts (elem$gen$fact : Int, elem$gen$date : Date) in new {
+    if (gt# [Int] elem$gen$fact
         (10 : Int)) {
       read acc$conv$5 = acc$conv$5;
       write acc$conv$5 = add#
                          acc$conv$5 (1 : Int);
     }
-    push acc$conv$7(anf$1);
+    push acc$conv$7(elem$gen$fact);
   }
   save_resumable acc$conv$5;
   read conv$5 = acc$conv$5;

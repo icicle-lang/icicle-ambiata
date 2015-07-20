@@ -86,8 +86,8 @@ checkStatement frag xh ah stmt
 
            go (Map.insert n (FunT [] IntT) xh) stmts
 
-    ForeachFacts n ty _ stmts
-     -> go (Map.insert n (FunT [] (PairT ty DateTimeT)) xh) stmts
+    ForeachFacts n n' ty _ stmts
+     -> go (Map.insert n (FunT [] ty) $ Map.insert n' (FunT [] DateTimeT) xh) stmts
 
 
     Block []

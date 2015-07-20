@@ -1,4 +1,3 @@
--- | Statements and mutable accumulators (variables) for Avalanche
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards #-}
@@ -52,13 +51,15 @@ statementsToJava ss
                 <> name n <> " < " <> expToJava to <> "; "
                 <> name n <> "++)" <> block [go s]
 
-    ForeachFacts n t f s
+    ForeachFacts n n' t f s
      -> (case f of
           S.FactLoopHistory -> "icicle.startHistory();"
           S.FactLoopNew     -> "icicle.startNew();")
         <> line
         <> "while (icicle.nextRow())"
-        <> block [local (PairT t DateTimeT) n <> " = icicle.currentRow();", go s]
+        <> block [ local t n <> " = icicle.currentRow();"
+                 , local DateTimeT n' <> " = icicle.currentRowDate();"
+                 , go s]
     Block bs
      -> vcat $ fmap (either bindingToJava go) bs
     Write n x

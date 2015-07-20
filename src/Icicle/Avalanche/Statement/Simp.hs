@@ -10,6 +10,7 @@ module Icicle.Avalanche.Statement.Simp (
   ) where
 
 import              Icicle.Avalanche.Statement.Statement
+import              Icicle.Avalanche.Statement.Simp.ExpEnv
 
 import              Icicle.Common.Base
 import              Icicle.Common.Exp
@@ -77,7 +78,7 @@ forwardStmts statements
        | isSimpleValue x
        -> do    s' <- substXinS n x ss
                 return ((), s')
-      
+
       _ -> return ((), s)
 
 
@@ -130,7 +131,7 @@ substXinS name payload statements
 --
 thresher :: (Ord n, Eq p) => Statement n p -> Fresh n (Statement n p)
 thresher statements
- = transformUDStmt trans [] statements
+ = transformUDStmt trans emptyExpEnv statements
  where
   trans env s
    -- Check if it actually does anything:
@@ -149,46 +150,14 @@ thresher statements
        | ((n',_):_) <- filter (\(_,x') -> x `alphaEquality` x') env
        -> return (env, Let n (XVar n') ss)
 
-      -- Normal let: remember the name and expression for later
-       | otherwise
-       -> return ((n,x) : clear n env, s)
-
-      -- New variables are bound, so clear the environment
-      ForeachInts n _ _ _
-       -> return (clear n env, s)
-      ForeachFacts n _ _ _
-       -> return (clear n env, s)
-
       -- Read that's never used
-      Read n _ ss 
+      Read n _ ss
        | not $ Set.member n $ stmtFreeX ss
        -> return (env, ss)
-      -- Read is used, but we still need to clear the environment
-       | otherwise
-       -> return (clear n env, s)
 
-      -- Anything else, we just recurse
+      -- Anything else, we just update environment and recurse
       _
-       -> return (env, s)
-
-  -- The environment stores previously bound expressions.
-  -- These expressions can refer to names that are bound upwards.
-  -- This would be fine if there were no shadowing, but with shadowing we may end up
-  -- rebinding a name that is mentioned in another expression:
-  --
-  -- let a = 10
-  -- let b = a + 1
-  -- let a = 8
-  -- let s = a + 1
-  -- in  s
-  --
-  -- Here, s and b are locally alpha equivalent, but not really equivalent because they
-  -- refer to different "a"s.
-  -- When we see the second "a" binding, then, we must remove "b" from the environment of
-  -- previously bound expressions.
-  --
-  clear n env
-   = filter (\(n',x') -> n' /= n && not (Set.member n $ freevars x')) env
+       -> return (updateExpEnv s env, s)
 
 
 -- | Check whether a statement writes to any accumulators or returns a value.

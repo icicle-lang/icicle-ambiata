@@ -31,7 +31,7 @@ data Statement n p
 
  -- | A loop over all the facts.
  -- This should only occur once in the program, and not inside a loop.
- | ForeachFacts (Name n) ValType FactLoopType (Statement n p)
+ | ForeachFacts (Name n) (Name n) ValType FactLoopType (Statement n p)
 
  -- | Execute several statements in a block.
  | Block                        [Statement n p]
@@ -152,8 +152,8 @@ transformUDStmt fun env statements
            -> Let n x <$> go e' ss
           ForeachInts n from to ss
            -> ForeachInts n from to <$> go e' ss
-          ForeachFacts n ty lo ss
-           -> ForeachFacts n ty lo <$> go e' ss
+          ForeachFacts n n' ty lo ss
+           -> ForeachFacts n n' ty lo <$> go e' ss
           Block ss
            -> Block <$> mapM (go e') ss
           InitAccumulator acc ss
@@ -199,7 +199,7 @@ foldStmt down up rjoin env res statements
            -> sub1 ss
           ForeachInts _ _ _ ss
            -> sub1 ss
-          ForeachFacts _ _ _ ss
+          ForeachFacts _ _ _ _ ss
            -> sub1 ss
           Block ss
            -> do    rs <- mapM (go e') ss
@@ -235,8 +235,8 @@ instance TransformX Statement where
      ForeachInts n from to ss
       -> ForeachInts <$> names n <*> exps from <*> exps to <*> go ss
 
-     ForeachFacts n v lo ss
-      -> ForeachFacts <$> names n <*> return v <*> return lo <*> go ss
+     ForeachFacts n1 n2 v lo ss
+      -> ForeachFacts <$> names n1 <*> names n2 <*> return v <*> return lo <*> go ss
 
      Block ss
       -> Block <$> gos ss
@@ -299,8 +299,8 @@ instance (Pretty n, Pretty p) => Pretty (Statement n p) where
       -> text "for" <+> pretty n <+> text "in" <+> pretty from <+> text ".." <+> pretty to <> line
       <> semis stmts
 
-     ForeachFacts n t lo stmts
-      -> text "for facts as" <+> pretty n <+> text ":" <+> pretty t <+> text "in" <+> pretty lo <> line
+     ForeachFacts n n' t lo stmts
+      -> text "for facts as (" <> pretty n <+> text ":" <+> pretty t <> text ", " <> pretty n' <+> text ": Date) in" <+> pretty lo <> line
       <> semis stmts
 
      Block stmts
