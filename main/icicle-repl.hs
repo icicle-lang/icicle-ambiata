@@ -361,7 +361,7 @@ simpFlattened :: AP.Program Text APF.Prim -> AP.Program Text APF.Prim
 simpFlattened av
  = let simp = AS.simpFlattened av
        name = F.counterPrefixNameState (T.pack . show) "simp"
-   in  snd $ F.runFresh simp name
+   in  snd $ F.runFresh (simp >>= AS.simpFlattened) name
 
 --------------------------------------------------------------------------------
 

@@ -43,7 +43,7 @@ prop_simp_commutes_value t =
          eval = AE.evalProgram XV.evalPrim d vs
      in counterexample (show $ pretty p')
       $ counterexample (show $ pretty simp)
-       (eval p' === eval simp)
+       ((snd <$> eval p') === (snd <$> eval simp))
 
 
 return []

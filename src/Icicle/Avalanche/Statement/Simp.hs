@@ -84,7 +84,6 @@ forwardStmts statements
 
 substXinS :: Ord n => Name n -> Exp n p -> Statement n p -> Fresh n (Statement n p)
 substXinS name payload statements
- -- TODO name avoiding grr
  = transformUDStmt trans () statements
  where
   trans _ s
@@ -154,6 +153,12 @@ thresher statements
       Read n _ ss
        | not $ Set.member n $ stmtFreeX ss
        -> return (env, ss)
+
+      InitAccumulator (Accumulator n _ _ x) ss
+       |  not (accRead $ accumulatorUsed n ss) || not (accWritten $ accumulatorUsed n ss)
+       -> do    n' <- fresh
+                let ss' = Let n' x (killAccumulator n (XVar n') ss)
+                return (env, ss')
 
       -- Anything else, we just update environment and recurse
       _
@@ -323,3 +328,60 @@ nestBlocks statements
    =    return (n, inner)
 
 
+
+data AccumulatorUsage
+ = AccumulatorUsage
+ { accRead    :: Bool
+ , accWritten :: Bool }
+
+-- | Check whether statement uses this accumulator
+accumulatorUsed :: Ord n => Name n -> Statement n p -> AccumulatorUsage
+accumulatorUsed acc statements
+ = runIdentity
+ $ foldStmt down up ors () (AccumulatorUsage False False) statements
+ where
+  ors (AccumulatorUsage a b) (AccumulatorUsage c d) = AccumulatorUsage (a || c) (b || d)
+
+  down _ _ = return ()
+
+  up _ r s
+   -- Writing or pushing is an effect,
+   -- unless we're explicitly ignoring this accumulator
+   | Write n _ <- s
+   , n == acc
+   = return (AccumulatorUsage True False)
+   | Push  n _ <- s
+   , n == acc
+   = return (AccumulatorUsage True False)
+
+   | Read _ n _ <- s
+   , n == acc
+   = return (ors r (AccumulatorUsage False True))
+
+   | otherwise
+   = return r
+
+killAccumulator :: (Ord n, Eq p) => Name n -> Exp n p -> Statement n p -> Statement n p
+killAccumulator acc xx statements
+ = runIdentity
+ $ transformUDStmt trans () statements
+ where
+  trans _ s
+   | Read n acc' ss <- s
+   , acc == acc'
+   = return ((), Let n xx ss)
+   | Write acc' _ <- s
+   , acc == acc'
+   = return ((), mempty)
+   | Push acc' _ <- s
+   , acc == acc'
+   = return ((), mempty)
+   | LoadResumable acc' <- s
+   , acc == acc'
+   = return ((), mempty)
+   | SaveResumable acc' <- s
+   , acc == acc'
+   = return ((), mempty)
+
+   | otherwise
+   = return ((), s)
