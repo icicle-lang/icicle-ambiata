@@ -117,6 +117,10 @@ library
                        Icicle.Data.DateTime
 
                        Icicle.Dictionary
+                       Icicle.Dictionary.Data
+                       Icicle.Dictionary.Parse
+                       Icicle.Dictionary.Demographics
+
                        Icicle.Encoding
                        Icicle.Internal.Pretty
                        Icicle.Internal.Rename

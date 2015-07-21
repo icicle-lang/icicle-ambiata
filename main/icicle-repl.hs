@@ -80,6 +80,7 @@ runRepl inits
 data ReplState
    = ReplState
    { facts        :: [AsAt Fact]
+   , dictionary   :: Dictionary
    , currentDate  :: DateTime
    , hasType      :: Bool
    , hasCore      :: Bool
@@ -108,6 +109,7 @@ data Command
    | CommandHelp
    | CommandSet  [Set]
    | CommandLoad FilePath
+   | CommandLoadDictionary FilePath
    -- It's rather odd to have comments in a REPL.
    -- However, I want these printed out in the test output
    | CommandComment String
@@ -116,7 +118,7 @@ data Command
 
 defaultState :: ReplState
 defaultState
-  = (ReplState [] (dateOfYMD 1970 1 1) False False False False False False False False)
+  = (ReplState [] demographics (dateOfYMD 1970 1 1) False False False False False False False False)
     { hasEval = True }
 
 readCommand :: String -> Maybe Command
@@ -128,6 +130,7 @@ readCommand ss = case words ss of
   [":set"]              -> Just $ CommandSetShow
   (":set":rest)         -> CommandSet <$> readSetCommands rest
   [":load", f]          -> Just $ CommandLoad f
+  [":dictionary", f]    -> Just $ CommandLoadDictionary f
   ('-':'-':_):_         -> Just $ CommandComment $ ss
   (':':_):_             -> Just $ CommandUnknown $ ss
   _                     -> Nothing
@@ -189,11 +192,19 @@ handleLine state line = case readCommand line of
 
   Just (CommandLoad fp)      -> do
     s  <- liftIO $ T.readFile fp
-    case SR.readFacts dict s of
+    case SR.readFacts (dictionary state) s of
       Left e   -> prettyHL e >> return state
       Right fs -> do
         HL.outputStrLn $ "ok, loaded " <> fp <> ", " <> show (length fs) <> " rows"
         return $ state { facts = fs }
+
+  Just (CommandLoadDictionary fp) -> do
+    s  <- liftIO $ T.readFile fp
+    case SR.readDictionary s of
+      Left e   -> prettyHL e >> return state
+      Right ds -> do
+        HL.outputStrLn $ "ok, loaded " <> fp
+        return $ state { dictionary = ds }
 
   Just (CommandComment comment) -> do
     HL.outputStrLn comment
@@ -214,11 +225,11 @@ handleLine state line = case readCommand line of
     checked <- runEitherT $ do
       parsed    <- hoist $ SR.sourceParse (T.pack line)
       (annot, typ)
-                <- hoist $ SR.sourceCheck dict parsed
+                <- hoist $ SR.sourceCheck (dictionary state) parsed
 
       prettyOut hasType "- Type:" typ
 
-      core      <- hoist $ SR.sourceConvert dict annot
+      core      <- hoist $ SR.sourceConvert (dictionary state) annot
       let core'  | doCoreSimp state
                  = renameP unVar $ SR.coreSimp core
                  | otherwise
@@ -251,11 +262,6 @@ handleLine state line = case readCommand line of
       Right _ -> return ()
 
     return state
-
-  where
-    -- todo load dictionary
-    dict = demographics
-
 
 handleSetCommand :: ReplState -> Set -> HL.InputT IO ReplState
 handleSetCommand state set
