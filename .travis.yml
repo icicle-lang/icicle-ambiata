@@ -20,9 +20,7 @@ before_install:
   - $CABAL update
 
 install:
-  - $CABAL install --dependencies-only
+  - $CABAL build
 
 script:
-  - $CABAL configure --enable-tests
-  - $CABAL build
-  - $CABAL test --show-details=always
+  - $CABAL test
