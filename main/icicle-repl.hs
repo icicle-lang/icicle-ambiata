@@ -202,9 +202,9 @@ handleLine state line = case readCommand line of
     s  <- liftIO $ T.readFile fp
     case SR.readDictionary s of
       Left e   -> prettyHL e >> return state
-      Right ds -> do
-        HL.outputStrLn $ "ok, loaded " <> fp
-        return $ state { dictionary = ds }
+      Right d@(Dictionary ds) -> do
+        HL.outputStrLn $ "ok, loaded dictionary " <> fp <> ", with " <> show (length ds) <> " features"
+        return $ state { dictionary = d }
 
   Just (CommandComment comment) -> do
     HL.outputStrLn comment
@@ -403,16 +403,17 @@ showFlag False = "off"
 showState :: ReplState -> HL.InputT IO ()
 showState state
  = mapM_ HL.outputStrLn
-    [      "now:       " <> T.unpack (renderDate $ currentDate state)
-    ,      "data:      " <> show (length $ facts state)
-    , flag "type:      " hasType
-    , flag "core:      " hasCore
-    , flag "core-type: " hasCoreType
-    , flag "core-simp: " doCoreSimp
-    , flag "eval:      " hasEval
-    , flag "avalanche: " hasAvalanche
-    , flag "flatten:   " hasFlatten
-    , flag "java:      " hasJava
+    [      "now:        " <> T.unpack (renderDate $ currentDate state)
+    ,      "data:       " <> show (length $ facts state)
+    ,      "dictionary: " <> show (dictionary state)
+    , flag "type:       " hasType
+    , flag "core:       " hasCore
+    , flag "core-type:  " hasCoreType
+    , flag "core-simp:  " doCoreSimp
+    , flag "eval:       " hasEval
+    , flag "avalanche:  " hasAvalanche
+    , flag "flatten:    " hasFlatten
+    , flag "java:       " hasJava
     ]
  where
   flag nm setting
