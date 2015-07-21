@@ -92,6 +92,9 @@ melt statements
 
   updateEnv env s
    | InitAccumulator (Accumulator n at vt@(PairT _ _) _) _ <- s
+   -- TODO: XXX: temporarily disable splitting out Latests.
+   -- We need a "zip" here, really
+   , Mutable <- at
    = do v1 <- freshPrefix' n
         v2 <- freshPrefix' n
         return $ Map.insert n (at,vt,[v1,v2]) env
