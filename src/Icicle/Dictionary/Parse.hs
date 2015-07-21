@@ -1,13 +1,15 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE LambdaCase       #-}
 module Icicle.Dictionary.Parse (
     parseDictionaryLineV1
+  , writeDictionaryLineV1
   ) where
 
 import           Icicle.Data
 import           Icicle.Dictionary.Data
 import           Icicle.Serial (ParseError (..))
-import           P hiding (concat)
+import           P hiding (concat, intercalate)
 
 import           Data.Attoparsec.Text
 
@@ -50,3 +52,23 @@ parseIcicleDictionaryV1 = do
 parseDictionaryLineV1 :: Text -> Either ParseError DictionaryEntry
 parseDictionaryLineV1 s =
   mapLeft (ParseError . pack) $ parseOnly parseIcicleDictionaryV1 s
+
+writeDictionaryLineV1 :: DictionaryEntry -> Text
+writeDictionaryLineV1 (DictionaryEntry (Attribute a) (ConcreteDefinition e)) =
+  a <> "|" <> prettyConcrete e
+
+writeDictionaryLineV1 (DictionaryEntry _ (VirtualDefinition _)) = "Virtual features not supported in V1"
+
+prettyConcrete :: Encoding -> Text
+prettyConcrete = \case
+  StringEncoding   -> "string"
+  IntEncoding      -> "int"
+  DoubleEncoding   -> "double"
+  DateEncoding     -> "date"
+  BooleanEncoding  -> "boolean"
+  ListEncoding le  -> "[" <> prettyConcrete le <> "]"
+  StructEncoding s -> "(" <> intercalate "," (prettyStructField <$> s) <> ")"
+
+prettyStructField :: StructField -> Text
+prettyStructField (StructField Mandatory (Attribute n) e) = n <> ":" <> prettyConcrete e
+prettyStructField (StructField Optional (Attribute n) e) = n <> ":" <> prettyConcrete e <> "*"
