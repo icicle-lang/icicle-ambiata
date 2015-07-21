@@ -1,6 +1,8 @@
 icicle
 ======
 
+[![Build Status](https://travis-ci.org/ambiata/icicle.svg)](https://travis-ci.org/ambiata/icicle)
+
 A streaming query language.
 
 purpose

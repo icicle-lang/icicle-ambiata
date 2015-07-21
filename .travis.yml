@@ -23,11 +23,6 @@ before_install:
 
 install:
   - $CABALPRIME build
-  - $CABAL configure --enable-tests --enable-coverage
 
 script:
   - $CABALPRIME test
-
-after_script:
-  - $CABAL install hpc-coveralls
-  - hpc-coveralls test test-cli
