@@ -81,7 +81,7 @@ evaluateVirtuals :: Dictionary -> DateTime -> [Partition] -> [(Attribute, [(Enti
 evaluateVirtuals (Dictionary fields) date facts
  = P.concatMap go fields
  where
-  go (attr, VirtualDefinition virt)
+  go (DictionaryEntry attr (VirtualDefinition virt))
    = [(attr, evaluateVirtual virt date facts)]
   go _
    = []

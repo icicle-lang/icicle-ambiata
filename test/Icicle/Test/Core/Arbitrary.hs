@@ -107,7 +107,7 @@ instance Arbitrary Prim where
           , PrimMap <$> (PrimMapMapValues      <$> arbitrary <*> arbitrary <*> arbitrary)
           , PrimArray <$> (PrimArrayMap      <$> arbitrary <*> arbitrary)
           ]
-          
+
 instance Arbitrary ValType where
   arbitrary =
    -- Need to be careful about making smaller things.
@@ -232,7 +232,7 @@ tryExpForType ty env
           -> return $ XVar k'
    | otherwise
    = primitive r
-        
+
   letty r
    = do t  <- arbitrary
         n  <- freshInEnv env
@@ -249,7 +249,7 @@ withTypedExp prop
  = forAll arbitrary $ \t ->
    forAll (tryExpForType (FunT [] t) Map.empty) $ \x ->
      checkExp0 X.coreFragment x == Right (FunT [] t) ==> prop x t
-            
+
 
 -- | Attempt to generate well typed expressions
 -- Again, no promises.
@@ -275,7 +275,7 @@ programForStreamType streamType
         let rE' = case dat of
                   Nothing -> rE
                   Just nm -> Map.insert nm (FunT [] DateTimeT) rE
-                   
+
 
         -- Postcomputations with access to the reduction values
         nposts      <- choose (0,2) :: Gen Int
@@ -324,7 +324,7 @@ programForStreamType streamType
         nm      <- freshInEnv (sE :: Env Var ValType) :: Gen (Name Var)
         (env', ss) <- gen_streams (Map.insert nm t sE) pE (n-1)
         return (env', (nm, str) : ss)
-    
+
 
   -- Generate a single stream.
   -- If the stream environment is empty, we need to take from the source.
@@ -389,7 +389,7 @@ programForStreamType streamType
                      zx <- gen_exp (FunT [] at) pE
                      return (at, RFold t at kx zx i)
                 ]
-    
+
 
 
 -- | Generate a new name that isn't in the environment.
