@@ -31,7 +31,7 @@ data DateTime =
 renderDate  :: DateTime -> Text
 renderDate (DateTime ymd)
   = T.pack
-  $ H.formatTime L.defaultTimeLocale "%Y-%-m-%-d" ymd
+  $ H.formatTime L.defaultTimeLocale "%Y-%m-%d" ymd
 
 dateOfYMD :: Int -> Int -> Int -> DateTime
 dateOfYMD y m d
