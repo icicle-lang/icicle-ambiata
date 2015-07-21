@@ -8,22 +8,21 @@ before_install:
     if [ $GHCVER = `ghc --numeric-version` ]; then
       # Try installing some of the build-deps with apt-get for speed.
       travis/cabal-apt-install --enable-tests
-      export CABAL=cabal
     else
       # Install the GHC we want from hvr's PPA
       travis_retry sudo add-apt-repository -y ppa:hvr/ghc
       travis_retry sudo apt-get update
       travis_retry sudo apt-get install cabal-install-1.18 ghc-$GHCVER happy
-      export CABAL=cabal-1.18
       export PATH=/opt/ghc/$GHCVER/bin:$PATH
     fi
 
+  - export CABAL=./cabal
   - $CABAL update
 
 install:
-  - $CABAL configure -flib-Werror --enable-tests
   - $CABAL install --dependencies-only
 
 script:
+  - $CABAL configure --enable-tests
   - $CABAL build
   - $CABAL test --show-details=always
