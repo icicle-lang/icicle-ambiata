@@ -16,7 +16,7 @@ import              Test.QuickCheck
 
 check_virtual prog
  = case checkProgram prog of
-    Left err 
+    Left err
      -> counterexample ("With program:" <> show (PP.pretty prog))
       $ counterexample ("Got typechecking error:" <> show (PP.pretty err))
       $ False
@@ -27,9 +27,9 @@ check_attributes (Dictionary attrs)
  = conjoin
  $ fmap check attrs
  where
-  check (_, ConcreteDefinition _)
+  check (DictionaryEntry _ (ConcreteDefinition _))
    = property True
-  check (_, VirtualDefinition virtual)
+  check (DictionaryEntry _ (VirtualDefinition virtual))
    = check_virtual (program virtual)
 
 

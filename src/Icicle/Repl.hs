@@ -10,6 +10,7 @@ module Icicle.Repl (
   , sourceParseConvert
   , coreSimp
   , readFacts
+  , readDictionary
   ) where
 
 import qualified Icicle.Avalanche.Statement.Flatten as AS
@@ -22,6 +23,7 @@ import qualified Icicle.Core.Program.Program        as Core
 import qualified Icicle.Core.Program.Simp           as Core
 import           Icicle.Data
 import qualified Icicle.Dictionary                  as D
+import qualified Icicle.Dictionary.Parse            as DP
 import qualified Icicle.Encoding                    as E
 import           Icicle.Internal.Pretty
 import qualified Icicle.Serial                      as S
@@ -148,7 +150,7 @@ featureMapOfDictionary (D.Dictionary ds)
  $ concatMap go
    ds
  where
-  go (Attribute attr, D.ConcreteDefinition enc)
+  go (D.DictionaryEntry (Attribute attr) (D.ConcreteDefinition enc))
    | StructT st@(StructType fs) <- E.sourceTypeOfEncoding enc
    = let e' = StructT st
      in [ ( SP.Variable attr
@@ -186,3 +188,8 @@ readFacts :: D.Dictionary -> Text -> Either ReplError [AsAt Fact]
 readFacts dict raw
   = mapLeft ReplErrorDecode
   $ TR.traverse (S.decodeEavt dict) $ T.lines raw
+
+readDictionary :: Text -> Either ReplError D.Dictionary
+readDictionary raw
+  = fmap D.Dictionary $ mapLeft ReplErrorDecode
+  $ TR.traverse DP.parseDictionaryLineV1 $ T.lines raw
