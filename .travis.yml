@@ -28,6 +28,6 @@ install:
 script:
   - $CABALPRIME test
 
- after_script:
-   - $CABAL install hpc-coveralls
-   - hpc-coveralls test test-cli
+after_script:
+  - $CABAL install hpc-coveralls
+  - hpc-coveralls test test-cli
