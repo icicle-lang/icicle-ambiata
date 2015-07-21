@@ -11,6 +11,7 @@ import           P hiding (concat)
 
 import           Data.Attoparsec.Text
 
+import           Data.Either.Combinators
 import           Data.Text hiding (takeWhile)
 
 field :: Parser Text
@@ -48,9 +49,4 @@ parseIcicleDictionaryV1 = do
 
 parseDictionaryLineV1 :: Text -> Either ParseError DictionaryEntry
 parseDictionaryLineV1 s =
-  eitherify $ parse parseIcicleDictionaryV1 s
-
-eitherify :: Result a -> Either ParseError a
-eitherify (Done _ v)   = Right v
-eitherify (Fail _ _ e) = (Left . ParseError . pack) e
-eitherify (Partial f)  = eitherify $ f ""
+  mapLeft (ParseError . pack) $ parseOnly parseIcicleDictionaryV1 s
