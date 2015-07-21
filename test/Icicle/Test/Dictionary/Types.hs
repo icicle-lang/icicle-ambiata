@@ -4,9 +4,12 @@
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 module Icicle.Test.Dictionary.Types where
 
-import Icicle.Dictionary
+import              Icicle.Dictionary
+import              Icicle.Dictionary.Parse
 
-import Icicle.Core.Program.Check
+import              Icicle.Core.Program.Check
+
+import              Icicle.Test.Arbitrary ()
 
 import qualified    Icicle.Internal.Pretty as PP
 
@@ -35,6 +38,11 @@ check_attributes (Dictionary attrs)
 
 prop_virtuals_typecheck
  = once (check_attributes demographics)
+
+prop_dictionary_symmetry attr encoding =
+  let original  = DictionaryEntry attr (ConcreteDefinition encoding)
+      recreated = parseDictionaryLineV1 (writeDictionaryLineV1 original)
+  in (Right original) === recreated
 
 return []
 tests :: IO Bool
