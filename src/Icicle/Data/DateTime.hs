@@ -15,7 +15,7 @@ import           Control.Lens  (view)
 import           Data.Maybe
 import           Data.Text     as T
 import qualified Data.Thyme    as H
-import           System.Locale
+import qualified System.Locale as L
 
 import           P
 
@@ -31,7 +31,7 @@ data DateTime =
 renderDate  :: DateTime -> Text
 renderDate (DateTime ymd)
   = T.pack
-  $ H.formatTime defaultTimeLocale "%Y-%m-%d" ymd
+  $ H.formatTime L.defaultTimeLocale "%Y-%-m-%-d" ymd
 
 dateOfYMD :: Int -> Int -> Int -> DateTime
 dateOfYMD y m d
