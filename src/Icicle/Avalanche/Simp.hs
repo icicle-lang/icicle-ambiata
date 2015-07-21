@@ -33,12 +33,18 @@ simpFlattened p
  = do p' <- transformX return simp p
       s' <- (forwardStmts $ pullLets $ statements p')
          >>= melt
-         >>= constructor
-         >>= thresher
-         >>= forwardStmts
-         >>= nestBlocks
-         >>= thresher
+         >>= crunch
+         >>= crunch
+         >>= crunch
+         >>= crunch
+         >>= crunch
 
       return $ p { statements = s' }
+ where
+  crunch ss
+   =   constructor (pullLets ss)
+   >>= forwardStmts
+   >>= nestBlocks
+   >>= thresher
 
 
