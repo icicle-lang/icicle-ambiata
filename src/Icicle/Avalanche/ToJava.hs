@@ -5,8 +5,9 @@ module Icicle.Avalanche.ToJava (
     programToJava
   ) where
 
-import              Icicle.Avalanche.Program
+import              Icicle.Avalanche.Check
 import              Icicle.Avalanche.Prim.Flat
+import              Icicle.Avalanche.Program
 import qualified    Icicle.Avalanche.Statement.Statement as S
 import              Icicle.Avalanche.Statement.Scoped
 
@@ -22,7 +23,7 @@ import              P
 import              Data.Functor.Identity
 
 
-programToJava :: Pretty n => Program n Prim -> Doc
+programToJava :: (Pretty n, Ord n) => Program n Prim -> Doc
 programToJava p
  = "class Feature"
  <> block
@@ -31,7 +32,7 @@ programToJava p
  <> block
     [ local DateTimeT (binddate p) <> " = icicle.now();"
     , ""
-    , statementsToJava (scopedOfStatement $ statements p)
+    , statementsToJava (initialContext p) (scopedOfStatement $ statements p)
     ]
  ]
 
@@ -51,8 +52,8 @@ concreteFeatureType ss
   orl _ r = r
 
 
-statementsToJava :: Pretty n => Scoped n Prim -> Doc
-statementsToJava ss
+statementsToJava :: (Pretty n, Ord n) => Context n -> Scoped n Prim -> Doc
+statementsToJava ctx ss
  = case ss of
     If x t e
      -> "if (" <> expToJava x <> ")"
@@ -80,7 +81,7 @@ statementsToJava ss
                  , local DateTimeT n' <> " = icicle.currentRowDate();"
                  , go s]
     Block bs
-     -> vcat $ fmap (either bindingToJava go) bs
+     -> vcat $ fmap (either goB go) bs
     Write n x
      -> acc_name n <> " = " <> expToJava x <> ";"
     Push n x
@@ -95,10 +96,16 @@ statementsToJava ss
      -> "icicle.saveResumable(" <> stringy n <> ", " <> acc_name n <> ");"
 
  where
-  go  = statementsToJava
+  go  = statementsToJava $ tc $ statementOfScoped ss
+  goB b = bindingToJava   (tc $ statementOfScoped $ Block [Left b]) b
 
-bindingToJava :: Pretty n => Binding n Prim -> Doc
-bindingToJava bb
+  tc s'
+   = case statementContext flatFragment ctx s' of
+      Left _ -> ctx
+      Right c' -> c'
+
+bindingToJava :: Pretty n => Context n -> Binding n Prim -> Doc
+bindingToJava _ctx bb
  = case bb of
     InitAccumulator acc@(S.Accumulator { S.accKind = S.Latest })
      -> "Latest" <> angled (boxedType $ S.accValType acc)

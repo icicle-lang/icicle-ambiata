@@ -4,6 +4,7 @@ module Icicle.Avalanche.Check (
     checkProgram
   , checkStatement
   , statementContext
+  , initialContext
   , Context(..)
   ) where
 
