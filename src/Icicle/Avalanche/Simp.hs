@@ -38,6 +38,10 @@ simpFlattened p
          >>= crunch
          >>= crunch
          >>= crunch
+         >>= crunch
+         >>= crunch
+         >>= crunch
+         >>= crunch
 
       return $ p { statements = s' }
  where
