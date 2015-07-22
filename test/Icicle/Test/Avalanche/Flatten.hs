@@ -13,6 +13,7 @@ import qualified Icicle.Avalanche.FromCore  as AC
 import qualified Icicle.Avalanche.Eval      as AE
 import qualified Icicle.Avalanche.Statement.Flatten   as AF
 import qualified Icicle.Avalanche.Prim.Eval as AE
+import qualified Icicle.Avalanche.Simp      as AS
 
 import           Icicle.Common.Base
 import qualified Icicle.Common.Fresh                as Fresh
@@ -31,7 +32,7 @@ namer = AC.namerText (flip Var 0)
 
 
 -- Flattening - removing all folds keeps value same
-prop_flatten_commutes_value t =
+zprop_flatten_commutes_value t =
  forAll (programForStreamType t)
  $ \p ->
  forAll (inputsForType t)
@@ -54,25 +55,34 @@ prop_flatten_commutes_value t =
            $ counterexample (show $ pretty s')
              (mapLeft show (eval XV.evalPrim p') === mapLeft show (eval AE.evalPrim p' { AP.statements = s'}))
 
-{-
--- A well typed core program is well typed under Avalanche
-zprop_flatten_commutes_check t =
+
+-- Flatten simplifier preserves value too
+prop_flatten_simp_commutes_value t =
  forAll (programForStreamType t)
  $ \p ->
-    isRight     (checkProgram p) ==>
-     let conv = AC.programFromCore namer p in
-     case AC.checkProgram coreFragment conv of
-      Right _
-       -> property True
-      Left err
-       -> counterexample (show err)
-        $ counterexample (show $ pretty p)
-        $ counterexample (show $ pretty conv) False
-     
--}
+ forAll (inputsForType t)
+ $ \(vs,d) ->
+    P.isRight     (checkProgram p) ==>
+     let p' = AC.programFromCore namer p
+
+         eval xp = AE.evalProgram xp d vs
+
+         counter = (Fresh.counterNameState (Name . Var "anf") 0)
+         conv = Fresh.runFreshT (AF.flatten $ AP.statements p') counter
+         simp (c,s') =( s', Fresh.runFresh (AS.simpFlattened (p'{AP.statements = s'})) c )
+     in case simp <$> conv of
+         Left e
+          -> counterexample (show e)
+           $ counterexample (show $ pretty p')
+             False
+         Right (s', (_, p''))
+          -> counterexample (show $ pretty (p' { AP.statements = s' }))
+           $ counterexample (show $ pretty p'')
+             (mapRight snd (mapLeft show (eval XV.evalPrim p')) === mapRight snd (mapLeft show (eval AE.evalPrim p'')))
+
 
 return []
 tests :: IO Bool
 tests = $quickCheckAll
--- tests = $forAllProperties $ quickCheckWithResult (stdArgs {maxSuccess = 10000})
+-- tests = $forAllProperties $ quickCheckWithResult (stdArgs {maxSuccess = 10000, maxSize = 10})
 
