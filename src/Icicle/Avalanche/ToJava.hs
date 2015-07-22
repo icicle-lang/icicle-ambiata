@@ -19,18 +19,37 @@ import              Icicle.Internal.Pretty
 
 import              P
 
+import              Data.Functor.Identity
+
+
 programToJava :: Pretty n => Program n Prim -> Doc
 programToJava p
  = "class Feature"
  <> block
  -- TODO: need the concrete feature type here
- [ "public void compute(IcicleState" <> angled (boxedType IntT) <> " icicle)"
+ [ "public void compute(IcicleState" <> angled (maybe "$#@! NO FEATURE LOOP" boxedType $ concreteFeatureType $ statements p) <> " icicle)"
  <> block
     [ local DateTimeT (binddate p) <> " = icicle.now();"
     , ""
     , statementsToJava (scopedOfStatement $ statements p)
     ]
  ]
+
+concreteFeatureType :: S.Statement n p -> Maybe ValType
+concreteFeatureType ss
+ = runIdentity
+ $ S.foldStmt (\_ _ -> return ()) up orl () Nothing ss
+ where
+  up _ r s
+   = case s of
+      S.ForeachFacts _ _ ty _ _
+       -> return (Just ty)
+      _
+       -> return r
+
+  orl (Just l) _ = Just l
+  orl _ r = r
+
 
 statementsToJava :: Pretty n => Scoped n Prim -> Doc
 statementsToJava ss
