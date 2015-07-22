@@ -79,7 +79,7 @@ instance Pretty BaseValue where
      VDateTime dt
       -> text $ T.unpack $ renderDate dt
      VString t
-      -> text $ T.unpack t
+      -> text $ show t
      VArray vs
       -> pretty vs
      VPair a b

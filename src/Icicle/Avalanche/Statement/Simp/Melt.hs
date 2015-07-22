@@ -8,6 +8,7 @@ module Icicle.Avalanche.Statement.Simp.Melt (
 import              Icicle.Avalanche.Prim.Flat
 import qualified    Icicle.Common.Exp.Prim.Minimal as Min
 import              Icicle.Avalanche.Statement.Statement
+import              Icicle.Avalanche.Statement.Simp
 
 import              Icicle.Common.Base
 import              Icicle.Common.Exp
@@ -18,8 +19,8 @@ import              P
 
 import qualified    Data.Map            as Map
 
--- TODO
-melt :: Ord n
+
+melt :: (Show n, Ord n)
      => Statement n Prim
      -> Fresh n (Statement n Prim)
 melt statements
@@ -27,22 +28,22 @@ melt statements
  where
   goS env s
    = do env' <- updateEnv env s
-        s'<-case s of
+        let go ss = goS env' ss
+        case s of
              InitAccumulator (Accumulator n at _ x) ss
               | Just (Latest,PairT a b,[na,nb]) <- Map.lookup n env'
-              -> return
+              -> go
                $ InitAccumulator (Accumulator na at a x)
                $ InitAccumulator (Accumulator nb at b x)
-               $ ss
+                 ss
 
               | Just (Mutable,PairT a b,[na,nb]) <- Map.lookup n env'
-              -> return
+              -> go
                $ InitAccumulator (Accumulator na at a (XPrim (PrimMinimal $ Min.PrimPair $ Min.PrimPairFst a b) `XApp` x))
-               $ InitAccumulator (Accumulator nb at b (XPrim (PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd a b) `XApp` x))
-               $ ss
+               $ InitAccumulator (Accumulator nb at b (XPrim (PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd a b) `XApp` x)) ss
 
               | Just (Mutable,UnitT,[]) <- Map.lookup n env'
-              -> return $ ss
+              -> go ss
 
 
              Read n acc ss
@@ -50,9 +51,7 @@ melt statements
               -> do n1 <- freshPrefix' n
                     n2 <- freshPrefix' n
                     ss'<- transformX return (return . arrayOfPairs n n1 n2) ss
-                    return $ Read n1 na
-                           $ Read n2 nb
-                             ss'
+                    go $ Read n1 na $ Read n2 nb $ ss'
 
               | Just (Mutable, PairT ta tb, [na,nb]) <- Map.lookup acc env'
               -> do n1 <- freshPrefix' n
@@ -60,35 +59,44 @@ melt statements
                     let pair    = XPrim (PrimMinimal $ Min.PrimConst $ Min.PrimConstPair ta tb)
                                 `XApp` (XVar n1)
                                 `XApp` (XVar n2)
-                    ss'<- transformX return (subst n pair) ss
-                    return $ Read n1 na
-                           $ Read n2 nb
-                             ss'
+                    ss'<- substXinS n pair ss
+                    go $ Read n1 na $ Read n2 nb $ ss'
 
               | Just (Mutable, UnitT, []) <- Map.lookup acc env'
-              -> do transformX return (subst n (XValue UnitT VUnit)) ss
+              -> do ss' <- substXinS n (XValue UnitT VUnit) ss
+                    go ss'
 
 
              Push n x
               | Just (Latest, PairT a b, [na,nb]) <- Map.lookup n env'
-              -> return
+              -> go
                $ Block
                [ Push na (XPrim (PrimMinimal $ Min.PrimPair $ Min.PrimPairFst a b) `XApp` x)
                , Push nb (XPrim (PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd a b) `XApp` x) ]
 
+
              Write n x
               | Just (Mutable, PairT a b, [na,nb]) <- Map.lookup n env'
-              -> return
+              -> go
                $ Block
                [ Write na (XPrim (PrimMinimal $ Min.PrimPair $ Min.PrimPairFst a b) `XApp` x)
                , Write nb (XPrim (PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd a b) `XApp` x) ]
 
-              | Just (Mutable, UnitT, []) <- Map.lookup n env'
-              -> return mempty
+              | Just (_, UnitT, _) <- Map.lookup n env'
+              -> return (env', mempty)
 
-             _ -> return s
 
-        return (env', s')
+             LoadResumable n
+              | Just (_, _, ns) <- Map.lookup n env'
+              -> go $ Block (fmap LoadResumable ns)
+
+
+             SaveResumable n
+              | Just (_, _, ns) <- Map.lookup n env'
+              -> go $ Block (fmap SaveResumable ns)
+
+
+             _ -> return (env, s)
 
   updateEnv env s
    | InitAccumulator (Accumulator n at vt@(PairT _ _) _) _ <- s
