@@ -6,14 +6,24 @@ module Icicle.Avalanche.Prim.Flat (
     , PrimUnsafe    (..)
     , PrimUpdate    (..)
     , typeOfPrim
+    , flatFragment
   ) where
 
 import              Icicle.Internal.Pretty
 import              Icicle.Common.Type
 import qualified    Icicle.Common.Exp.Prim.Minimal as Min
 
+import qualified    Icicle.Common.Fragment         as Frag
+
 import              P
 
+flatFragment :: Frag.Fragment Prim
+flatFragment
+ = Frag.Fragment
+ { Frag.typeOfPrim           = typeOfPrim
+ , Frag.primsFullyApplied    = True
+ , Frag.allowLambdas         = Frag.AllowLambdasAsPrimArgs
+ }
 
 -- | Primitives for flattened avalanche programs
 -- Folds are converted to imperative accessors, loops and so on.
