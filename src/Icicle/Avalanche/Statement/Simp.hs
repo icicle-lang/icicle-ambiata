@@ -82,21 +82,58 @@ forwardStmts statements
       _ -> return ((), s)
 
 
+-- Substitute an expression into a statement.
+--
+-- It is important not to substitute shadowed variables:
+-- > subst monkey := banana
+-- > in (monkey + let monkey = not_banana in monkey)
+-- here the inner "let monkey" is a different variable and must not be substituted.
+--
+-- This is incomplete, does not perform renaming.
+-- > subst monkey := banana
+-- > in (let banana = 5 in monkey)
+-- here, simply substituting would change the meaning.
+--
+-- Instead we need to rename the local let
+-- 
+-- > let banana' = 5
+-- > in subst monkey := banana
+-- > in (subst banana := banana' in monkey)
+--
+-- or we could also rename the variables in the payload
+-- > let banana' = banana
+-- > in subst monkey := (subst banana := banana' in banana)
+-- > in (let banana = 5 in monkey)
+--
+-- This should be fixed, but in the mean time the payload must only mention fresh variables.
+--
+-- TODO: introduce renaming to avoid capturing payload variables
+--
 substXinS :: Ord n => Name n -> Exp n p -> Statement n p -> Fresh n (Statement n p)
 substXinS name payload statements
- = transformUDStmt trans () statements
+ = transformUDStmt trans True statements
  where
-  trans _ s
+  -- Do nothing; the variable has been shadowed
+  trans False s
+   = return (False, s)
+  trans True s
    = case s of
       If x ss es
        -> sub1 x $ \x' -> If x' ss es
+
       Let n x ss
+       | n == name
+       -> finished s
+       | otherwise
        -> sub1 x $ \x' -> Let n x' ss
 
       ForeachInts n from to ss
+       | n == name
+       -> finished s
+       | otherwise
        -> do    from' <- sub from
                 to'   <- sub to
-                return ((), ForeachInts n from' to' ss)
+                return (True, ForeachInts n from' to' ss)
 
       InitAccumulator (Accumulator n at vt x) ss
        -> sub1 x $ \x' -> InitAccumulator (Accumulator n at vt x') ss
@@ -109,13 +146,24 @@ substXinS name payload statements
       Return  x
        -> sub1 x $ Return
 
+      Read n _ _
+       | n == name
+       -> finished s
+
+      ForeachFacts n1 n2 _ _ _
+       | n1 == name || n2 == name
+       -> finished s
+
       _
-       -> return ((), s)
+       -> return (True, s)
 
   sub = subst     name payload
   sub1 x f
    = do x' <- sub x
-        return ((), f x')
+        return (True, f x')
+
+  finished s
+   = return (False, s)
 
 
 -- | Thresher transform - throw out the chaff.
