@@ -2,6 +2,9 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Avalanche.Check (
     checkProgram
+  , checkStatement
+  , statementContext
+  , Context(..)
   ) where
 
 import              Icicle.Avalanche.Statement.Statement
@@ -32,6 +35,16 @@ data AccType
  | ATPush   ValType
  deriving (Show, Eq, Ord)
 
+data Context n
+ = Context
+ { ctxExp :: Env n Type
+ , ctxAcc :: Env n AccType }
+
+initialContext :: Ord n => Program n p -> Context n
+initialContext p
+ = Context
+ { ctxExp = Map.singleton (binddate p) (FunT [] DateTimeT)
+ , ctxAcc = Map.empty }
 
 -- TODO:
 --  - check that there is only one fact loop, and it is not inside another loop
@@ -42,9 +55,8 @@ checkProgram
         -> Program n p
         -> Either (ProgramError n p) Type
 checkProgram frag p
- = do   let xh = Map.singleton (binddate p) (FunT [] DateTimeT)
-        let ah = Map.empty
-        ret <- checkStatement frag xh ah (statements p)
+ = do   let ctx = initialContext p
+        ret <- checkStatement frag ctx (statements p)
         case ret of
          Just r    -> return r
          Nothing   -> Left ProgramErrorNoReturn
@@ -53,122 +65,169 @@ checkProgram frag p
 checkStatement
         :: Ord n
         => Fragment p
-        -> Env  n Type
-        -> Env  n AccType
+        -> Context n
         -> Statement n p
         -> Either (ProgramError n p) (Maybe Type)
-checkStatement frag xh ah stmt
+checkStatement frag ctx stmt
+ = do ctx' <- statementContext frag ctx stmt
+      let go = checkStatement frag ctx'
+      case stmt of
+        If x stmts elses
+         -> do t <- mapLeft ProgramErrorExp
+                  $ checkExp frag (ctxExp ctx) x
+               requireSame (ProgramErrorWrongType x) t (FunT [] BoolT)
+               thenty <- go stmts
+               elsety <- go elses
+
+               case thenty == elsety of
+                True  -> return thenty
+                False -> Left (ProgramErrorConflictingReturnTypes [thenty, elsety])
+
+        Let _ _ stmts
+         -> do go stmts
+
+        ForeachInts _ from to stmts
+         -> do tf <- mapLeft ProgramErrorExp
+                   $ checkExp frag (ctxExp ctx) from
+               tt <- mapLeft ProgramErrorExp
+                   $ checkExp frag (ctxExp ctx) to
+
+               requireSame (ProgramErrorWrongType from) tf (FunT [] IntT)
+               requireSame (ProgramErrorWrongType to)   tt (FunT [] IntT)
+
+               go stmts
+
+        ForeachFacts _ _ _ _ stmts
+         -> go stmts
+
+
+        Block []
+         -> return Nothing
+        Block [stmts]
+         -> go stmts
+        Block (s:ss)
+         -> go s >> go (Block ss)
+
+        InitAccumulator _ stmts
+         -> go stmts
+
+        Read _ _ stmts
+         -> go stmts
+
+        Write n x
+         -> do t <- mapLeft ProgramErrorExp
+                  $ checkExp frag (ctxExp ctx) x
+
+               a <- maybeToRight (ProgramErrorNoSuchAccumulator n)
+                  $ Map.lookup n $ ctxAcc ctx
+
+               case a of
+                ATUpdate accTy
+                 -> do requireSame (ProgramErrorWrongType x) t (FunT [] accTy)
+                       return Nothing
+                _
+                 -> Left (ProgramErrorWrongAccumulatorType n)
+
+        Push n x
+         -> do t <- mapLeft ProgramErrorExp
+                  $ checkExp frag (ctxExp ctx) x
+
+               a <- maybeToRight (ProgramErrorNoSuchAccumulator n)
+                  $ Map.lookup n $ ctxAcc ctx
+
+               case a of
+                ATPush elemTy
+                 -> do requireSame (ProgramErrorWrongType x) t (FunT [] elemTy)
+                       return Nothing
+                _
+                 -> Left (ProgramErrorWrongAccumulatorType n)
+
+        Return x
+         -> do t <- mapLeft ProgramErrorExp
+                  $ checkExp frag (ctxExp ctx) x
+
+               return (Just t)
+
+        KeepFactInHistory
+         -> do return Nothing
+
+        LoadResumable n
+         -> do _ <- maybeToRight (ProgramErrorNoSuchAccumulator n)
+                  $ Map.lookup n $ ctxAcc ctx
+               return Nothing
+
+        SaveResumable n
+         -> do _ <- maybeToRight (ProgramErrorNoSuchAccumulator n)
+                  $ Map.lookup n $ ctxAcc ctx
+               return Nothing
+
+
+
+
+
+statementContext
+        :: Ord n
+        => Fragment p
+        -> Context n
+        -> Statement n p
+        -> Either (ProgramError n p) (Context n)
+statementContext frag ctx stmt
  = case stmt of
-    If x stmts elses
+    If _ _ _
+     -> return ctx
+
+    Let n x _
      -> do t <- mapLeft ProgramErrorExp
-              $ checkExp frag xh x
-           requireSame (ProgramErrorWrongType x) t (FunT [] BoolT)
-           thenty <- go xh stmts
-           elsety <- go xh elses
+              $ checkExp frag (ctxExp ctx) x
+           return (ctx { ctxExp = Map.insert n t $ ctxExp ctx })
 
-           case thenty == elsety of
-            True  -> return thenty
-            False -> Left (ProgramErrorConflictingReturnTypes [thenty, elsety])
+    ForeachInts n _ _ _
+     -> return (ctx { ctxExp = Map.insert n (FunT [] IntT) (ctxExp ctx) })
 
-    Let n x stmts
-     -> do t <- mapLeft ProgramErrorExp
-              $ checkExp frag xh x
-           go (Map.insert n t xh) stmts
+    ForeachFacts n n' ty _ _
+     -> return (ctx { ctxExp = Map.insert n (FunT [] ty) $ Map.insert n' (FunT [] DateTimeT) (ctxExp ctx)})
 
-    ForeachInts n from to stmts 
-     -> do tf <- mapLeft ProgramErrorExp
-               $ checkExp frag xh from
-           tt <- mapLeft ProgramErrorExp
-               $ checkExp frag xh to
+    Block _
+     -> return ctx
 
-           requireSame (ProgramErrorWrongType from) tf (FunT [] IntT)
-           requireSame (ProgramErrorWrongType to)   tt (FunT [] IntT)
-
-           go (Map.insert n (FunT [] IntT) xh) stmts
-
-    ForeachFacts n n' ty _ stmts
-     -> go (Map.insert n (FunT [] ty) $ Map.insert n' (FunT [] DateTimeT) xh) stmts
-
-
-    Block []
-     -> return Nothing
-    Block [stmts]
-     -> go xh stmts
-    Block (s:ss)
-     -> go xh s >> go xh (Block ss)
-
-    InitAccumulator acc stmts
+    InitAccumulator acc _
      -> do (n, at) <- checkAcc acc
-           checkStatement frag xh (Map.insert n at ah) stmts
+           return (ctx { ctxAcc = Map.insert n at $ ctxAcc ctx })
 
-    Read n acc stmts
+    Read n acc _
      -> do a <- maybeToRight (ProgramErrorNoSuchAccumulator acc)
-              $ Map.lookup acc ah
+              $ Map.lookup acc $ ctxAcc ctx
 
            case a of
             ATUpdate accTy
-             -> go (Map.insert n (FunT [] accTy) xh) stmts
+             -> return (ctx { ctxExp = Map.insert n (FunT [] accTy) $ ctxExp ctx })
             ATPush accTy
-             -> go (Map.insert n (FunT [] (ArrayT accTy)) xh) stmts
+             -> return (ctx { ctxExp = Map.insert n (FunT [] (ArrayT accTy)) $ ctxExp ctx })
 
-    Write n x
-     -> do t <- mapLeft ProgramErrorExp
-              $ checkExp frag xh x
+    Write _ _
+     -> return ctx
 
-           a <- maybeToRight (ProgramErrorNoSuchAccumulator n)
-              $ Map.lookup n ah
+    Push _ _
+     -> return ctx
 
-           case a of
-            ATUpdate accTy
-             -> do requireSame (ProgramErrorWrongType x) t (FunT [] accTy)
-                   return Nothing
-            _
-             -> Left (ProgramErrorWrongAccumulatorType n)
-
-    Push n x
-     -> do t <- mapLeft ProgramErrorExp
-              $ checkExp frag xh x
-
-           a <- maybeToRight (ProgramErrorNoSuchAccumulator n)
-              $ Map.lookup n ah
-
-           case a of
-            ATPush elemTy
-             -> do requireSame (ProgramErrorWrongType x) t (FunT [] elemTy)
-                   return Nothing
-            _
-             -> Left (ProgramErrorWrongAccumulatorType n)
-
-    Return x
-     -> do t <- mapLeft ProgramErrorExp
-              $ checkExp frag xh x
-
-           return (Just t)
+    Return _
+     -> return ctx
 
     KeepFactInHistory
-     -> do return Nothing
+     -> return ctx
 
-    LoadResumable n
-     -> do _ <- maybeToRight (ProgramErrorNoSuchAccumulator n)
-              $ Map.lookup n ah
-           return Nothing
+    LoadResumable _
+     -> return ctx
 
-    SaveResumable n
-     -> do _ <- maybeToRight (ProgramErrorNoSuchAccumulator n)
-              $ Map.lookup n ah
-           return Nothing
-
-
-
+    SaveResumable _
+     -> return ctx
 
  where
-  go xh' = checkStatement frag xh' ah
-
   checkAcc (Accumulator n at ty x)
    = case at of
       Latest
        -> do    t <- mapLeft ProgramErrorExp
-                   $ checkExp frag xh x
+                   $ checkExp frag (ctxExp ctx) x
                 requireSame (ProgramErrorWrongType x) t (FunT [] IntT)
                 return (n, ATPush ty)
       Mutable
@@ -176,7 +235,7 @@ checkStatement frag xh ah stmt
 
   checkUpdate n x ty
    = do t <- mapLeft ProgramErrorExp
-           $ checkExp frag xh x
+           $ checkExp frag (ctxExp ctx) x
         requireSame (ProgramErrorWrongType x) t (FunT [] ty)
         return (n, ATUpdate ty)
 
