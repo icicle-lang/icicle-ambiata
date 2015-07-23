@@ -22,17 +22,20 @@ import              P
 
 import              Data.Functor.Identity
 
+import qualified    Data.Map    as Map
 
-programToJava :: (Pretty n, Ord n) => Program n Prim -> Doc
+
+programToJava :: (Pretty n, Ord n, Show n) => Program n Prim -> Doc
 programToJava p
  = "class Feature"
  <> block
- -- TODO: need the concrete feature type here
  [ "public void compute(IcicleState" <> angled (maybe "$#@! NO FEATURE LOOP" boxedType $ concreteFeatureType $ statements p) <> " icicle)"
  <> block
     [ local DateTimeT (binddate p) <> " = icicle.now();"
     , ""
-    , statementsToJava (initialContext p) (scopedOfStatement $ statements p)
+    , case statementContext flatFragment (initialContext p) (statements p) of
+       Left err -> "$#@! " <> text (show err)
+       Right ctx -> statementsToJava ctx (scopedOfStatement $ statements p)
     ]
  ]
 
@@ -52,7 +55,7 @@ concreteFeatureType ss
   orl _ r = r
 
 
-statementsToJava :: (Pretty n, Ord n) => Context n -> Scoped n Prim -> Doc
+statementsToJava :: (Pretty n, Ord n, Show n) => Context n -> Scoped n Prim -> Doc
 statementsToJava ctx ss
  = case ss of
     If x t e
@@ -80,8 +83,14 @@ statementsToJava ctx ss
         <> block [ local t n <> " = icicle.currentRow();"
                  , local DateTimeT n' <> " = icicle.currentRowDate();"
                  , go s]
-    Block bs
-     -> vcat $ fmap (either goB go) bs
+    Block blocks
+     -> let iter _ []     = []
+            iter c (b:bs)
+              = case either (tcB c) (tcS c) b of
+                 Left e   -> ["$#@! " <> text (show e)]
+                 Right c' -> either (goB c') (goS c') b
+                           : iter c' bs
+        in vcat $ iter ctx blocks
     Write n x
      -> acc_name n <> " = " <> expToJava x <> ";"
     Push n x
@@ -96,16 +105,23 @@ statementsToJava ctx ss
      -> "icicle.saveResumable(" <> stringy n <> ", " <> acc_name n <> ");"
 
  where
-  go  = statementsToJava $ tc $ statementOfScoped ss
-  goB b = bindingToJava   (tc $ statementOfScoped $ Block [Left b]) b
+  go = goS ctx
 
-  tc s'
-   = case statementContext flatFragment ctx s' of
-      Left _ -> ctx
-      Right c' -> c'
+  goS c s
+   = either (text.show) id
+   ( flip statementsToJava s <$> tcS c s )
 
-bindingToJava :: Pretty n => Context n -> Binding n Prim -> Doc
-bindingToJava _ctx bb
+  goB c b
+   = either (text.show) id
+   ( flip bindingToJava  b <$> tcB c b )
+
+  tcB c b = tc c (statementOfScoped $ Block [Left b])
+  tcS c s = tc c (statementOfScoped s)
+
+  tc c s = statementContext flatFragment c s
+
+bindingToJava :: (Pretty n, Ord n, Show n) => Context n -> Binding n Prim -> Doc
+bindingToJava ctx bb
  = case bb of
     InitAccumulator acc@(S.Accumulator { S.accKind = S.Latest })
      -> "Latest" <> angled (boxedType $ S.accValType acc)
@@ -119,12 +135,18 @@ bindingToJava _ctx bb
      <> " = " <> expToJava (S.accInit acc) <> ";"
 
     Let n x
-     -- TODO: need the type here
-     -> local IntT n <> " = " <> expToJava x <> ";"
+     | Just (FunT [] t) <- Map.lookup n (ctxExp ctx)
+     -> local t n <> " = " <> expToJava x <> ";"
+     | otherwise
+     -> "$#@! no variable " <> name n
 
     Read n acc
-     -- TODO: need the type here
-     -> local IntT n <> " = " <> acc_name acc <> ";"
+     | Just (ATPush t) <- Map.lookup acc (ctxAcc ctx)
+     -> local (ArrayT t) n <> " = icicle.readLatest(" <> acc_name acc <> ");"
+     | Just (ATUpdate t) <- Map.lookup acc (ctxAcc ctx)
+     -> local t n <> " = " <> acc_name acc <> ";"
+     | otherwise
+     -> "$#@! no accumulator " <> acc_name acc <> line <> text( show ctx )
 
 expToJava :: Pretty n => Exp n Prim -> Doc
 expToJava xx
