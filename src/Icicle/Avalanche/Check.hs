@@ -6,6 +6,8 @@ module Icicle.Avalanche.Check (
   , statementContext
   , initialContext
   , Context(..)
+  , AccType(..)
+  , ProgramError(..)
   ) where
 
 import              Icicle.Avalanche.Statement.Statement
@@ -40,6 +42,7 @@ data Context n
  = Context
  { ctxExp :: Env n Type
  , ctxAcc :: Env n AccType }
+ deriving (Show, Eq, Ord)
 
 initialContext :: Ord n => Program n p -> Context n
 initialContext p
