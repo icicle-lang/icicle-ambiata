@@ -43,15 +43,45 @@ constructor statements
 
   goX env x
    | Just (PrimMinimal (Min.PrimPair (Min.PrimPairFst _ _)), [XVar n]) <- takePrimApps x
-   , (_,x'):_ <- filter ((==n).fst) env
-   , Just (PrimMinimal (Min.PrimConst (Min.PrimConstPair _ _)), [a,_]) <- takePrimApps x'
+   , Just x' <- get env n
+   , Just (_,_,a,_) <- pair x'
    = a
 
    | Just (PrimMinimal (Min.PrimPair (Min.PrimPairSnd _ _)), [XVar n]) <- takePrimApps x
-   , (_,x'):_ <- filter ((==n).fst) env
-   , Just (PrimMinimal (Min.PrimConst (Min.PrimConstPair _ _)), [_,b]) <- takePrimApps x'
+   , Just x' <- get env n
+   , Just (_,_,_,b) <- pair x'
    = b
+
+   | Just (PrimUnsafe (PrimUnsafeArrayIndex _), [XVar n, ix]) <- takePrimApps x
+   , Just x' <- get env n
+   , Just (ta, tb, a, b) <- zippedArray x'
+   = XPrim (PrimMinimal $ Min.PrimConst $ Min.PrimConstPair ta tb)
+    `XApp` (XPrim (PrimUnsafe (PrimUnsafeArrayIndex ta)) `XApp` a `XApp` ix)
+    `XApp` (XPrim (PrimUnsafe (PrimUnsafeArrayIndex tb)) `XApp` b `XApp` ix)
+
+   | Just (PrimProject (PrimProjectArrayLength _), [XVar n]) <- takePrimApps x
+   , Just x' <- get env n
+   , Just (ta, _, a, _) <- zippedArray x'
+   = XPrim (PrimProject $ PrimProjectArrayLength ta)
+    `XApp` a
 
    | otherwise
    = x
 
+  zippedArray x
+   | Just (PrimArray (PrimArrayZip ta tb), [a, b]) <- takePrimApps x
+   = Just (ta, tb, a, b)
+   | otherwise
+   = Nothing
+
+  pair x
+   | Just (PrimMinimal (Min.PrimConst (Min.PrimConstPair ta tb)), [a,b]) <- takePrimApps x
+   = Just (ta,tb,a,b)
+   | otherwise
+   = Nothing
+
+  get env n
+   | (_,x'):_ <- filter ((==n).fst) env
+   = Just x'
+   | otherwise
+   = Nothing

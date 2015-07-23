@@ -47,10 +47,13 @@ melt statements
 
 
              Read n acc ss
-              | Just (Latest, PairT _ _, [na,nb]) <- Map.lookup acc env'
+              | Just (Latest, PairT ta tb, [na,nb]) <- Map.lookup acc env'
               -> do n1 <- freshPrefix' n
                     n2 <- freshPrefix' n
-                    ss'<- transformX return (return . arrayOfPairs n n1 n2) ss
+                    let zips = XPrim (PrimArray $ PrimArrayZip ta tb)
+                              `XApp` XVar n1
+                              `XApp` XVar n2
+                    ss'<- substXinS n zips ss
                     go $ Read n1 na $ Read n2 nb $ ss'
 
               | Just (Mutable, PairT ta tb, [na,nb]) <- Map.lookup acc env'
@@ -102,7 +105,6 @@ melt statements
    | InitAccumulator (Accumulator n at vt@(PairT _ _) _) _ <- s
    -- TODO: XXX: temporarily disable splitting out Latests.
    -- We need a "zip" here, really
-   , Mutable <- at
    = do v1 <- freshPrefix' n
         v2 <- freshPrefix' n
         return $ Map.insert n (at,vt,[v1,v2]) env
@@ -113,17 +115,4 @@ melt statements
    | otherwise
    = return env
 
-  arrayOfPairs n n1 n2 x
-   | Just (PrimUnsafe (PrimUnsafeArrayIndex (PairT ta tb)), [XVar n', ix]) <- takePrimApps x
-   , n == n'
-   = XPrim (PrimMinimal $ Min.PrimConst $ Min.PrimConstPair ta tb)
-    `XApp` (XPrim (PrimUnsafe (PrimUnsafeArrayIndex ta)) `XApp` XVar n1 `XApp` ix)
-    `XApp` (XPrim (PrimUnsafe (PrimUnsafeArrayIndex tb)) `XApp` XVar n2 `XApp` ix)
-
-   | Just (PrimProject (PrimProjectArrayLength (PairT ta _)), [XVar n']) <- takePrimApps x
-   , n == n'
-   = XPrim (PrimProject (PrimProjectArrayLength ta)) `XApp` XVar n1
-
-   | otherwise
-   = x
 

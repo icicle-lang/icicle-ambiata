@@ -228,6 +228,8 @@ primTypeOfPrim p
      -> unsa pu
     PrimUpdate pu
      -> upda pu
+    PrimArray (PrimArrayZip _ _)
+     -> Function "Array.zip"
 
  where
   min' (M.PrimArith ar) = ari ar
