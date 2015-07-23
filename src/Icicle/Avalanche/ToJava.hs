@@ -127,7 +127,6 @@ bindingToJava ctx bb
      -> "Latest" <> angled (boxedType $ S.accValType acc)
      <+> (acc_name $ S.accName acc)
      <> " = icicle."
-     <> angled (boxedType $ S.accValType acc)
      <> "makeLatest"
      <> "(" <> expToJava ctx Unboxed (S.accInit acc) <> ");"
 
