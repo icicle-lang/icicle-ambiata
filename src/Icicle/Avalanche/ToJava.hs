@@ -31,7 +31,7 @@ programToJava p
  <> block
  [ "public void compute(IcicleState" <> angled (maybe "$#@! NO FEATURE LOOP" boxedType $ concreteFeatureType $ statements p) <> " icicle)"
  <> block
-    [ local DateTimeT (binddate p) <> " = icicle.now();"
+    [ local DateTimeT (binddate p) <> " = icicle.snapshotDate();"
     , ""
     , case statementContext flatFragment (initialContext p) (statements p) of
        Left err -> "$#@! " <> text (show err)
@@ -59,7 +59,7 @@ statementsToJava :: (Pretty n, Ord n, Show n) => Context n -> Scoped n Prim -> D
 statementsToJava ctx ss
  = case ss of
     If x t e
-     -> "if (" <> expToJava x <> ")"
+     -> "if (" <> expToJava ctx Unboxed x <> ")"
      <> block [go t]
      <> (case e of
           Block [] -> ""
@@ -70,8 +70,8 @@ statementsToJava ctx ss
     -- however if input program is in a-normal form, it will already
     -- be pulled out to a variable binding.
     ForeachInts n from to s
-     -> "for (" <> local IntT n <> " = " <> expToJava from <> "; "
-                <> name n <> " < " <> expToJava to <> "; "
+     -> "for (" <> local IntT n <> " = " <> expToJava ctx Unboxed from <> "; "
+                <> name n <> " < " <> expToJava ctx Unboxed to <> "; "
                 <> name n <> "++)" <> block [go s]
 
     ForeachFacts n n' t f s
@@ -80,7 +80,7 @@ statementsToJava ctx ss
           S.FactLoopNew     -> "icicle.startNew();")
         <> line
         <> "while (icicle.nextRow())"
-        <> block [ local t n <> " = icicle.currentRow();"
+        <> block [ local t n <> " = " <> unbox t "icicle.currentRow()" <> ";"
                  , local DateTimeT n' <> " = icicle.currentRowDate();"
                  , go s]
     Block blocks
@@ -92,11 +92,11 @@ statementsToJava ctx ss
                            : iter c' bs
         in vcat $ iter ctx blocks
     Write n x
-     -> acc_name n <> " = " <> expToJava x <> ";"
+     -> acc_name n <> " = " <> expToJava ctx Unboxed x <> ";"
     Push n x
-     -> "icicle.pushLatest(" <> acc_name n <> ", " <> expToJava x <> ");"
+     -> "icicle.pushLatest(" <> acc_name n <> ", " <> expToJava ctx Boxed x <> ");"
     Return x
-     -> "return " <> expToJava x
+     -> "return " <> expToJava ctx Unboxed x
     KeepFactInHistory
      -> "icicle.KeepFactInHistory();"
     LoadResumable n
@@ -126,17 +126,18 @@ bindingToJava ctx bb
     InitAccumulator acc@(S.Accumulator { S.accKind = S.Latest })
      -> "Latest" <> angled (boxedType $ S.accValType acc)
      <+> (acc_name $ S.accName acc)
-     <> " = icicle.makeLatest"
+     <> " = icicle."
      <> angled (boxedType $ S.accValType acc)
-     <> "(" <> expToJava (S.accInit acc) <> ");"
+     <> "makeLatest"
+     <> "(" <> expToJava ctx Unboxed (S.accInit acc) <> ");"
 
     InitAccumulator acc@(S.Accumulator { S.accKind = S.Mutable })
      -> unboxedType (S.accValType acc) <+> (acc_name $ S.accName acc)
-     <> " = " <> expToJava (S.accInit acc) <> ";"
+     <> " = " <> expToJava ctx Unboxed (S.accInit acc) <> ";"
 
     Let n x
      | Just (FunT [] t) <- Map.lookup n (ctxExp ctx)
-     -> local t n <> " = " <> expToJava x <> ";"
+     -> local t n <> " = " <> expToJava ctx Unboxed x <> ";"
      | otherwise
      -> "$#@! no variable " <> name n
 
@@ -146,42 +147,47 @@ bindingToJava ctx bb
      | Just (ATUpdate t) <- Map.lookup acc (ctxAcc ctx)
      -> local t n <> " = " <> acc_name acc <> ";"
      | otherwise
-     -> "$#@! no accumulator " <> acc_name acc <> line <> text( show ctx )
+     -> "$#@! no accumulator " <> acc_name acc <> line <> text (show ctx)
 
-expToJava :: Pretty n => Exp n Prim -> Doc
-expToJava xx
- = case xx of
-    XVar n
-     -> name n
-    XValue _ v
-     -> case v of
-         VInt i -> pretty i
-         _      -> "$#@! TODO VALUE " <> pretty v
-    XPrim p
-     -> primApp p []
-    XApp{}
-     | Just (p, xs) <- takePrimApps xx
-     -> primApp p xs
+expToJava :: (Pretty n, Show n, Ord n) => Context n -> Boxy -> Exp n Prim -> Doc
+expToJava ctx b xx
+ = case checkExp flatFragment (ctxExp ctx) xx of
+    Left err -> "$#!@ type error " <> text (show err)
+    Right (FunT _ t)
+     -> case xx of
+            XVar n
+             -> boxy b Unboxed t
+              $ name n
+            XValue _ v
+             -> case v of
+                 VInt i -> boxy b Unboxed t $ pretty i
+                 _      -> "$#@! TODO VALUE " <> pretty v
+            XPrim p
+             -> primApp t p []
+            XApp{}
+             | Just (p, xs) <- takePrimApps xx
+             -> primApp t p xs
 
-     -- TODO: better error handling.
-     -- These should not appear here.
-     -- Applications should only be to prims
-     | otherwise
-     -> "$#@!BAD APPLICATION"
-    -- We should not have any lambdas after flattening
-    XLam{}
-     -> "$#@!LAMBDA NOT ALLOWED"
-    -- A-normalisation should have lifted these to statements
-    XLet{}
-     -> "$#@!LET NOT ALLOWED"
+             -- TODO: better error handling.
+             -- These should not appear here.
+             -- Applications should only be to prims
+             | otherwise
+             -> "$#@!BAD APPLICATION"
+            -- We should not have any lambdas after flattening
+            XLam{}
+             -> "$#@!LAMBDA NOT ALLOWED"
+            -- A-normalisation should have lifted these to statements
+            XLet{}
+             -> "$#@!LET NOT ALLOWED"
 
  where
   -- Monomorphise THIS!
   -- so it works with [] as well
   primApp
-   = \p args
-   -> prettyPrimType (primTypeOfPrim p)
-                     (fmap expToJava args)
+   = \t p args
+   -> boxy b (boxyOfPrimReturn p) t
+    $ prettyPrimType (primTypeOfPrim p)
+                     (fmap (expToJava ctx $ boxyOfPrimArgs p) args)
 
 data PrimType
  = Infix Doc
@@ -275,6 +281,58 @@ primTypeOfPrim p
   upda (PrimUpdateArrayPut _)      = Function "Array.put"
 
 
+data Boxy = Boxed | Unboxed
+
+boxy :: Boxy -> Boxy -> ValType -> Doc -> Doc
+boxy Boxed Unboxed t d = box t d
+boxy Unboxed Boxed t d = unbox t d
+boxy _ _ _ d = d
+
+
+unbox :: ValType -> Doc -> Doc
+unbox t x
+ = case t of
+    IntT -> "(" <> x <> ").intValue()"
+    DateTimeT -> unbox IntT x
+    _    -> x
+
+box :: ValType -> Doc -> Doc
+box t x
+ = case t of
+    IntT -> "Integer.valueOf(" <> x <> ")"
+    DateTimeT -> box IntT x
+    _    -> x
+
+boxyOfPrimReturn :: Prim -> Boxy
+boxyOfPrimReturn p
+ | PrimMinimal (M.PrimStruct _) <- p
+ = Boxed
+ | PrimMinimal (M.PrimPair _) <- p
+ = Boxed
+ | PrimProject (PrimProjectMapLookup _ _) <- p
+ = Boxed
+ | PrimUnsafe (PrimUnsafeArrayIndex _) <- p
+ = Boxed
+ | PrimUnsafe (PrimUnsafeMapIndex _ _) <- p
+ = Boxed
+ | otherwise
+ = Unboxed
+
+boxyOfPrimArgs :: Prim -> Boxy
+boxyOfPrimArgs p
+ | PrimMinimal (M.PrimConst _) <- p
+ = Boxed
+ | PrimProject (PrimProjectMapLookup _ _) <- p
+ = Boxed
+ | PrimMinimal (M.PrimStruct _) <- p
+ = Boxed
+ | PrimUnsafe (PrimUnsafeMapIndex _ _) <- p
+ = Boxed
+ | PrimUpdate _ <- p
+ = Boxed
+ | otherwise
+ = Unboxed
+
 local :: Pretty n => ValType -> Name n -> Doc
 local t n
  = unboxedType t <+> name n
@@ -293,7 +351,7 @@ boxedType t
      IntT       -> "Integer"
      UnitT      -> "Integer"
      BoolT      -> "Boolean"
-     DateTimeT  -> "Day"
+     DateTimeT  -> "Integer"
      ArrayT a   -> "ArrayList" <> angled (boxedType a)
      MapT a b   -> "HashMap" <> angled (commas [boxedType a, boxedType b])
      OptionT a  -> boxedType a

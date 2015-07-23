@@ -2,7 +2,7 @@ import java.util.*;
 
 interface IcicleState<T>
 {
-    Day snapshotDate();
+    int snapshotDate();
 
     <U>
     U       loadResumable(String virtualFeature, String accumulatorName);
@@ -20,7 +20,8 @@ interface IcicleState<T>
 
     void    keepFactInHistory();
 
-    Pair<T,Day> currentRow();
+    T currentRow();
+    int currentRowDate();
 
     <U>
     Latest<U> makeLatest(int size);
@@ -29,6 +30,6 @@ interface IcicleState<T>
     void      pushLatest(Latest<U> latest, U value);
 
     <U>
-    ArrayList<U>       getLatest(Latest<U> latest);
+    ArrayList<U>       readLatest(Latest<U> latest);
 
 }
