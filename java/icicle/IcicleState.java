@@ -3,6 +3,7 @@ import java.util.*;
 interface IcicleState<T>
 {
     int snapshotDate();
+    int daysDifference(int from, int to);
 
     <U>
     U       loadResumable(String virtualFeature, String accumulatorName);
@@ -11,7 +12,7 @@ interface IcicleState<T>
     void    saveResumable(String virtualFeature, String accumulatorName, U value);
 
     <U>
-    void    output(String virtualFeature, U value);
+    void    output(U value);
 
     void    startHistory();
     void    startNew();
