@@ -27,7 +27,9 @@ import qualified    Data.Map    as Map
 
 programToJava :: (Pretty n, Ord n, Show n) => Program n Prim -> Doc
 programToJava p
- = "class Feature"
+ = "import java.util.*;"
+ <> line
+ <> "class Feature"
  <> block
  [ "public void compute(IcicleState" <> angled (maybe "$#@! NO FEATURE LOOP" boxedType $ concreteFeatureType $ statements p) <> " icicle)"
  <> block
@@ -96,13 +98,19 @@ statementsToJava ctx ss
     Push n x
      -> "icicle.pushLatest(" <> acc_name n <> ", " <> expToJava ctx Boxed x <> ");"
     Return x
-     -> "return " <> expToJava ctx Unboxed x
+     -> "icicle.output(" <> expToJava ctx Unboxed x <> ");"
     KeepFactInHistory
-     -> "icicle.KeepFactInHistory();"
+     -> "icicle.keepFactInHistory();"
     LoadResumable n
-     -> acc_name n <> " = icicle.loadResumable(" <> stringy n <> ");"
+     | Just (ATUpdate t) <- Map.lookup n (ctxAcc ctx)
+     -> acc_name n <> " = " <> unbox t ("icicle." <> angled (boxedType t) <> "loadResumable(\"feature\", " <> stringy n <> ")") <> ";"
+     | otherwise
+     -> "$#!@ no such accumulator " <> acc_name n
     SaveResumable n
-     -> "icicle.saveResumable(" <> stringy n <> ", " <> acc_name n <> ");"
+     | Just (ATUpdate t) <- Map.lookup n (ctxAcc ctx)
+     -> "icicle.saveResumable(\"feature\", " <> stringy n <> ", " <> box t (acc_name n) <> ");"
+     | otherwise
+     -> "$#!@ no such accumulator " <> acc_name n
 
  where
   go = goS ctx
@@ -160,6 +168,15 @@ expToJava ctx b xx
             XValue _ v
              -> case v of
                  VInt i -> boxy b Unboxed t $ pretty i
+                 VUnit  -> boxy b Unboxed t $ "13013"
+                 VMap m
+                  | Map.null m
+                  -> "IcicleMap.empty()"
+                 VArray[]-> "Array.empty()"
+                 VNone   -> "null"
+                 VSome v'
+                  | OptionT t' <- t
+                  -> expToJava ctx Boxed (XValue t' v')
                  _      -> "$#@! TODO VALUE " <> pretty v
             XPrim p
              -> primApp t p []
@@ -249,7 +266,7 @@ primTypeOfPrim p
    = Method "snd"
 
   min' (M.PrimStruct (M.PrimStructGet f t _))
-   = Special1 $ \a -> a <> ".getField" <> angled (boxedType t) <> "(" <> stringy f <> ")"
+   = Special1 $ \a -> a <> "." <> angled (boxedType t) <> "getField" <> "(" <> stringy f <> ")"
 
   ari   M.PrimArithPlus   = Infix     "+"
   ari   M.PrimArithMinus  = Infix     "-"
@@ -275,10 +292,10 @@ primTypeOfPrim p
 
   unsa (PrimUnsafeArrayIndex _)    = Method "get"
   unsa (PrimUnsafeArrayCreate t)   = Function ("new ArrayList" <> angled (boxedType t))
-  unsa (PrimUnsafeMapIndex _ _)    = Function "Map.getByIndex"
+  unsa (PrimUnsafeMapIndex _ _)    = Function "IcicleMap.getByIndex"
   unsa (PrimUnsafeOptionGet _)      = Special1 $ \a -> a
 
-  upda (PrimUpdateMapPut _ _)      = Function "Map.put"
+  upda (PrimUpdateMapPut _ _)      = Function "IcicleMap.put"
   upda (PrimUpdateArrayPut _)      = Function "Array.put"
 
 
@@ -316,6 +333,10 @@ boxyOfPrimReturn p
  = Boxed
  | PrimUnsafe (PrimUnsafeMapIndex _ _) <- p
  = Boxed
+ | PrimMinimal (M.PrimConst (M.PrimConstSome _)) <- p
+ = Boxed
+ | PrimUnsafe (PrimUnsafeOptionGet _) <- p
+ = Boxed
  | otherwise
  = Unboxed
 
@@ -326,8 +347,6 @@ boxyOfPrimArgs p
  | PrimProject (PrimProjectMapLookup _ _) <- p
  = Boxed
  | PrimMinimal (M.PrimStruct _) <- p
- = Boxed
- | PrimUnsafe (PrimUnsafeMapIndex _ _) <- p
  = Boxed
  | PrimUpdate _ <- p
  = Boxed
@@ -358,7 +377,7 @@ boxedType t
      OptionT a  -> boxedType a
      PairT a b  -> "Pair" <> angled (commas [boxedType a, boxedType b])
      -- ???
-     StructT _  -> "HashMap" <> angled (commas ["String", "Object"])
+     StructT _  -> "IcicleStruct"
      StringT    -> "String"
 
 unboxedType :: ValType -> Doc
