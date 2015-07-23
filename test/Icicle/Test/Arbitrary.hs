@@ -53,13 +53,12 @@ instance Arbitrary Encoding where
           , IntEncoding
           , DoubleEncoding
           , BooleanEncoding
-          , DateEncoding ] 
-          [ StructEncoding . nubEq <$> arbitrary
+          , DateEncoding ]
+          [ StructEncoding . nubEq <$> listOf1 arbitrary
           , ListEncoding           <$> arbitrary ]
    where
     nubEq
      = nubBy ((==) `on` attributeOfStructField)
-    
 
 instance Arbitrary StructField where
   arbitrary =

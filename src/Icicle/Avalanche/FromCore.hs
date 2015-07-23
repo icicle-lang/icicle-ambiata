@@ -60,26 +60,46 @@ programFromCore namer p
     = namerDate namer
  , A.statements
     = lets (C.precomps p)
-    $ accums
-    ( factLoop <>
+    $ accums (filter (readFromHistory.snd) $ C.reduces p)
+    ( factLoopHistory    <>
+    ( accums resumables
+    ( mconcat (fmap loadResumables resumables) <>
+      factLoopNew               <>
+      mconcat (fmap saveResumables resumables) <>
       readaccums
-    ( lets (makepostdate <> C.postcomps p) returnStmt) )
+    ( lets (makepostdate <> C.postcomps p) returnStmt) )))
  }
  where
+  resumables = filter (not.readFromHistory.snd) $ C.reduces p
+
   lets stmts inner
    = foldr (\(n,x) a -> Let n x a) inner stmts
 
-  accums inner
+  accums reds inner
    = foldr (\ac s -> InitAccumulator (accum ac) s)
             inner
-           (C.reduces p)
+           reds
+
+  factLoopHistory
+   = factLoop FactLoopHistory (filter (readFromHistory.snd) $ C.reduces p)
+
+  readFromHistory r
+   = case r of
+      CR.RLatest{} -> True
+      CR.RFold _ _ _ _ inp -> CS.isStreamWindowed (C.streams p) inp
 
   -- Nest the streams into a single loop
-  factLoop
-   = ForeachFacts (namerFact namer) (C.input p)
+  factLoopNew
+   = factLoop FactLoopNew (C.reduces p)
+
+  factLoop loopType reduces
+   = ForeachFacts (namerElemPrefix namer $ namerFact namer) (namerElemPrefix namer $ namerDate namer) (C.input p) loopType
+   $ Let (namerFact namer)
+        (XPrim (PrimMinimal $ Min.PrimConst $ Min.PrimConstPair (C.input p) DateTimeT)
+        `XApp` (XVar $ namerElemPrefix namer $ namerFact namer)
+        `XApp` (XVar $ namerElemPrefix namer $ namerDate namer))
    $ Block
-   $ makeStatements namer (C.input p)
-                                       (C.streams p) (C.reduces p)
+   $ makeStatements namer (C.input p) (C.streams p) reduces
 
   returnStmt
    = A.Return (C.returns p)
@@ -87,15 +107,20 @@ programFromCore namer p
   -- Create a latest accumulator
   accum (n, CR.RLatest ty x _)
    = A.Accumulator (namerAccPrefix namer n) A.Latest ty x
-  
+
   -- Fold accumulator
-  accum (n, CR.RFold _ ty _ x inp)
-   -- If it's windowed, create windowed accumulator
-   | CS.isStreamWindowed (C.streams p) inp
-   = A.Accumulator (namerAccPrefix namer n) A.Windowed ty x
-   -- Not windowed, so resumable fold
-   | otherwise
-   = A.Accumulator (namerAccPrefix namer n) A.Resumable ty x
+  accum (n, CR.RFold _ ty _ x _)
+   = A.Accumulator (namerAccPrefix namer n) A.Mutable ty x
+
+  loadResumables (n, CR.RFold{})
+   = LoadResumable $ namerAccPrefix namer n
+  loadResumables _
+   = mempty
+
+  saveResumables (n, CR.RFold{})
+   = SaveResumable $ namerAccPrefix namer n
+  saveResumables _
+   = mempty
 
   readaccums inner 
    = foldr (\ac s -> Read (fst ac) (namerAccPrefix namer $ fst ac) s)
@@ -135,7 +160,7 @@ insertStream
 insertStream namer inputType strs reds (n, strm)
        -- Get the reduces and their updates
  = let reds' = filter ((==n) . CR.inputOfReduce . snd) reds
-       upds  = fmap (statementOfReduce namer) reds'
+       upds  = fmap (statementOfReduce namer strs) reds'
 
        -- Get all streams that use this directly as input
        strs' = filter ((==Just n) . CS.inputOfStream . snd) strs
@@ -143,7 +168,7 @@ insertStream namer inputType strs reds (n, strm)
 
        -- All statements together
        alls     = Block (upds <> subs)
-       
+
        -- Bind some element
        allLet x = Let (namerElemPrefix namer n) x     alls
 
@@ -166,20 +191,15 @@ insertStream namer inputType strs reds (n, strm)
                       | otherwise
                       = (diff @~ XVar factDate @~ XVar nowDate) <=~ newerThan
 
-               window c = XLet factDate
-                            (XPrim (PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd inputType DateTimeT)
-                             @~ XVar (namerFact namer))
-                          c
-
                else_  | Just o' <- olderThan
-                      = If (window ((diff @~ XVar factDate @~ XVar nowDate) <~ o' ))
+                      = If ((diff @~ XVar factDate @~ XVar nowDate) <~ o' )
                            KeepFactInHistory
                            mempty
 
                       | otherwise
                       = mempty
-               
-           in If (window check) (allLet $ XVar $ namerElemPrefix namer inp)
+
+           in If check (allLet $ XVar $ namerElemPrefix namer inp)
                          else_
 
        -- Filters become ifs
@@ -195,17 +215,26 @@ insertStream namer inputType strs reds (n, strm)
 
 -- | Get update statement for given reduce
 statementOfReduce
-        :: Namer n
+        :: Ord n
+        => Namer n
+        -> [(Name n, CS.Stream n)]
         -> (Name n, CR.Reduce n)
         -> Statement n Prim
-statementOfReduce namer (n,r)
+statementOfReduce namer strs (n,r)
  = case r of
     -- Apply fold's konstrukt to current accumulator value and input value
     CR.RFold _ _  k _ inp
-     -- Darn - arguments wrong way around!
      -> let n' = namerAccPrefix namer n
+
+            -- If it's windowed, note that we will need this fact in the next snapshot
+            k' | CS.isStreamWindowed strs inp
+               = KeepFactInHistory
+               | otherwise
+               = mempty
+
         in  Read n' n'
-          $ Write n' (Beta.betaToLets (k `XApp` (XVar n') `XApp` (XVar $ namerElemPrefix namer inp)))
+          ( Write n' (Beta.betaToLets (k `XApp` (XVar n') `XApp` (XVar $ namerElemPrefix namer inp)))
+          <> k' )
     -- Push most recent inp
     CR.RLatest _ _ inp
      -> Push (namerAccPrefix namer n) (XVar $ namerElemPrefix namer inp)

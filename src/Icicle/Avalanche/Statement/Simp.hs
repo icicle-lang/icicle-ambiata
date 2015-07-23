@@ -10,6 +10,7 @@ module Icicle.Avalanche.Statement.Simp (
   ) where
 
 import              Icicle.Avalanche.Statement.Statement
+import              Icicle.Avalanche.Statement.Simp.ExpEnv
 
 import              Icicle.Common.Base
 import              Icicle.Common.Exp
@@ -77,26 +78,62 @@ forwardStmts statements
        | isSimpleValue x
        -> do    s' <- substXinS n x ss
                 return ((), s')
-      
+
       _ -> return ((), s)
 
 
+-- Substitute an expression into a statement.
+--
+-- It is important not to substitute shadowed variables:
+-- > subst monkey := banana
+-- > in (monkey + let monkey = not_banana in monkey)
+-- here the inner "let monkey" is a different variable and must not be substituted.
+--
+-- This is incomplete, does not perform renaming.
+-- > subst monkey := banana
+-- > in (let banana = 5 in monkey)
+-- here, simply substituting would change the meaning.
+--
+-- Instead we need to rename the local let
+-- 
+-- > let banana' = 5
+-- > in subst monkey := banana
+-- > in (subst banana := banana' in monkey)
+--
+-- or we could also rename the variables in the payload
+-- > let banana' = banana
+-- > in subst monkey := (subst banana := banana' in banana)
+-- > in (let banana = 5 in monkey)
+--
+-- This should be fixed, but in the mean time the payload must only mention fresh variables.
+--
+-- TODO: introduce renaming to avoid capturing payload variables
+--
 substXinS :: Ord n => Name n -> Exp n p -> Statement n p -> Fresh n (Statement n p)
 substXinS name payload statements
- -- TODO name avoiding grr
- = transformUDStmt trans () statements
+ = transformUDStmt trans True statements
  where
-  trans _ s
+  -- Do nothing; the variable has been shadowed
+  trans False s
+   = return (False, s)
+  trans True s
    = case s of
       If x ss es
        -> sub1 x $ \x' -> If x' ss es
+
       Let n x ss
+       | n == name
+       -> finished s
+       | otherwise
        -> sub1 x $ \x' -> Let n x' ss
 
       ForeachInts n from to ss
+       | n == name
+       -> finished s
+       | otherwise
        -> do    from' <- sub from
                 to'   <- sub to
-                return ((), ForeachInts n from' to' ss)
+                return (True, ForeachInts n from' to' ss)
 
       InitAccumulator (Accumulator n at vt x) ss
        -> sub1 x $ \x' -> InitAccumulator (Accumulator n at vt x') ss
@@ -109,13 +146,24 @@ substXinS name payload statements
       Return  x
        -> sub1 x $ Return
 
+      Read n _ _
+       | n == name
+       -> finished s
+
+      ForeachFacts n1 n2 _ _ _
+       | n1 == name || n2 == name
+       -> finished s
+
       _
-       -> return ((), s)
+       -> return (True, s)
 
   sub = subst     name payload
   sub1 x f
    = do x' <- sub x
-        return ((), f x')
+        return (True, f x')
+
+  finished s
+   = return (False, s)
 
 
 -- | Thresher transform - throw out the chaff.
@@ -130,7 +178,7 @@ substXinS name payload statements
 --
 thresher :: (Ord n, Eq p) => Statement n p -> Fresh n (Statement n p)
 thresher statements
- = transformUDStmt trans [] statements
+ = transformUDStmt trans emptyExpEnv statements
  where
   trans env s
    -- Check if it actually does anything:
@@ -149,46 +197,20 @@ thresher statements
        | ((n',_):_) <- filter (\(_,x') -> x `alphaEquality` x') env
        -> return (env, Let n (XVar n') ss)
 
-      -- Normal let: remember the name and expression for later
-       | otherwise
-       -> return ((n,x) : clear n env, s)
-      
-      -- New variables are bound, so clear the environment
-      ForeachInts n _ _ _
-       -> return (clear n env, s)
-      ForeachFacts n _ _
-       -> return (clear n env, s)
-
       -- Read that's never used
-      Read n _ ss 
+      Read n _ ss
        | not $ Set.member n $ stmtFreeX ss
        -> return (env, ss)
-      -- Read is used, but we still need to clear the environment
-       | otherwise
-       -> return (clear n env, s)
 
-      -- Anything else, we just recurse
+      InitAccumulator (Accumulator n _ _ x) ss
+       |  not (accRead $ accumulatorUsed n ss) || not (accWritten $ accumulatorUsed n ss)
+       -> do    n' <- fresh
+                let ss' = Let n' x (killAccumulator n (XVar n') ss)
+                return (env, ss')
+
+      -- Anything else, we just update environment and recurse
       _
-       -> return (env, s)
-
-  -- The environment stores previously bound expressions.
-  -- These expressions can refer to names that are bound upwards.
-  -- This would be fine if there were no shadowing, but with shadowing we may end up
-  -- rebinding a name that is mentioned in another expression:
-  --
-  -- let a = 10
-  -- let b = a + 1
-  -- let a = 8
-  -- let s = a + 1
-  -- in  s
-  --
-  -- Here, s and b are locally alpha equivalent, but not really equivalent because they
-  -- refer to different "a"s.
-  -- When we see the second "a" binding, then, we must remove "b" from the environment of
-  -- previously bound expressions.
-  --
-  clear n env
-   = filter (\(n',x') -> n' /= n && not (Set.member n $ freevars x')) env
+       -> return (updateExpEnv s env, s)
 
 
 -- | Check whether a statement writes to any accumulators or returns a value.
@@ -225,6 +247,11 @@ hasEffect statements
 
     -- Marking a fact as used is an effect.
    | KeepFactInHistory  <- s
+   = return True
+
+   | LoadResumable _    <- s
+   = return True
+   | SaveResumable _    <- s
    = return True
 
 
@@ -349,3 +376,60 @@ nestBlocks statements
    =    return (n, inner)
 
 
+
+data AccumulatorUsage
+ = AccumulatorUsage
+ { accRead    :: Bool
+ , accWritten :: Bool }
+
+-- | Check whether statement uses this accumulator
+accumulatorUsed :: Ord n => Name n -> Statement n p -> AccumulatorUsage
+accumulatorUsed acc statements
+ = runIdentity
+ $ foldStmt down up ors () (AccumulatorUsage False False) statements
+ where
+  ors (AccumulatorUsage a b) (AccumulatorUsage c d) = AccumulatorUsage (a || c) (b || d)
+
+  down _ _ = return ()
+
+  up _ r s
+   -- Writing or pushing is an effect,
+   -- unless we're explicitly ignoring this accumulator
+   | Write n _ <- s
+   , n == acc
+   = return (AccumulatorUsage True False)
+   | Push  n _ <- s
+   , n == acc
+   = return (AccumulatorUsage True False)
+
+   | Read _ n _ <- s
+   , n == acc
+   = return (ors r (AccumulatorUsage False True))
+
+   | otherwise
+   = return r
+
+killAccumulator :: (Ord n, Eq p) => Name n -> Exp n p -> Statement n p -> Statement n p
+killAccumulator acc xx statements
+ = runIdentity
+ $ transformUDStmt trans () statements
+ where
+  trans _ s
+   | Read n acc' ss <- s
+   , acc == acc'
+   = return ((), Let n xx ss)
+   | Write acc' _ <- s
+   , acc == acc'
+   = return ((), mempty)
+   | Push acc' _ <- s
+   , acc == acc'
+   = return ((), mempty)
+   | LoadResumable acc' <- s
+   , acc == acc'
+   = return ((), mempty)
+   | SaveResumable acc' <- s
+   , acc == acc'
+   = return ((), mempty)
+
+   | otherwise
+   = return ((), s)

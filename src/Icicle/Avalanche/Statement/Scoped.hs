@@ -31,12 +31,14 @@ import              P
 data Scoped n p
  = If   (Exp n p)   (Scoped n p)    (Scoped n p)
  | ForeachInts  (Name n) (Exp n p)  (Exp n p) (Scoped n p)
- | ForeachFacts (Name n) ValType    (Scoped n p)
+ | ForeachFacts (Name n) (Name n) ValType    S.FactLoopType (Scoped n p)
  | Block                        [Either (Binding n p) (Scoped n p)]
  | Write (Name n) (Exp n p)
  | Push  (Name n) (Exp n p)
  | Return         (Exp n p)
  | KeepFactInHistory
+ | LoadResumable (Name n)
+ | SaveResumable (Name n)
 
 data Binding n p
  = InitAccumulator (S.Accumulator n p)
@@ -56,8 +58,8 @@ bindsOfStatement s
      -> [Right $ If x (scopedOfStatement ss) (scopedOfStatement es)]
     S.ForeachInts n from to ss
      -> [Right $ ForeachInts n from to (scopedOfStatement ss)]
-    S.ForeachFacts n vt ss
-     -> [Right $ ForeachFacts n vt (scopedOfStatement ss)]
+    S.ForeachFacts n n' vt lo ss
+     -> [Right $ ForeachFacts n n' vt lo (scopedOfStatement ss)]
     S.Block ss
      -- -> fmap (Right . scopedOfStatement) ss
      -> concatMap bindsOfStatement ss
@@ -69,6 +71,10 @@ bindsOfStatement s
      -> [Right $ Return x]
     S.KeepFactInHistory
      -> [Right $ KeepFactInHistory]
+    S.LoadResumable n
+     -> [Right $ LoadResumable n]
+    S.SaveResumable n
+     -> [Right $ SaveResumable n]
     S.InitAccumulator acc ss
      -> let bs = bindsOfStatement ss
         in  Left (InitAccumulator acc) : bs
@@ -87,8 +93,8 @@ statementOfScoped s
      -> S.If x (statementOfScoped ss) (statementOfScoped es)
     ForeachInts n from to ss
      -> S.ForeachInts n from to (statementOfScoped ss)
-    ForeachFacts n vt ss
-     -> S.ForeachFacts n vt (statementOfScoped ss)
+    ForeachFacts n n' vt lo ss
+     -> S.ForeachFacts n n' vt lo (statementOfScoped ss)
     Block []
      -> S.Block []
     Block bs@(Right _ : _)
@@ -119,6 +125,10 @@ statementOfScoped s
      -> S.Return x
     KeepFactInHistory
      -> S.KeepFactInHistory
+    LoadResumable n
+     -> S.LoadResumable n
+    SaveResumable n
+     -> S.SaveResumable n
 
 
 spanMaybe :: (a -> Maybe b) -> [a] -> ([b],[a])
@@ -153,10 +163,13 @@ instance (Pretty n, Pretty p) => Pretty (Scoped n p) where
       <> text ") "
       <> inner ss
 
-     ForeachFacts n vt ss
+     ForeachFacts n n' vt lo ss
       -> text "for_facts ("
       <> pretty n <> text " : " <> pretty vt
-      <> text ") "
+      <> text ", "
+      <> pretty n' <> text " : Date) in "
+      <> pretty lo
+      <> text " "
       <> inner ss
 
      Block bs
@@ -176,6 +189,12 @@ instance (Pretty n, Pretty p) => Pretty (Scoped n p) where
       <> text ";"
      KeepFactInHistory
       -> text "keep_fact_in_history"
+      <> text ";"
+     LoadResumable n
+      -> text "load_resumable" <+> pretty n
+      <> text ";"
+     SaveResumable n
+      -> text "save_resumable" <+> pretty n
       <> text ";"
 
 

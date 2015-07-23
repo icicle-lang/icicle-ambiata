@@ -11,7 +11,7 @@ import Icicle.Common.Exp.Eval
 import Icicle.Avalanche.Prim.Flat
 
 import              P
-import              Data.List (lookup, zip)
+import              Data.List (lookup, zip, zipWith)
 
 import qualified    Data.Map as Map
 import qualified    Icicle.Common.Exp.Prim.Eval as Min
@@ -98,8 +98,10 @@ evalPrim p vs
       -> primError
 
 
-
-
-
-
+     PrimArray (PrimArrayZip _ _)
+      | [VBase (VArray arr1), VBase (VArray arr2)]  <- vs
+      -> return $ VBase
+       $ VArray (zipWith VPair arr1 arr2)
+      | otherwise
+      -> primError
 

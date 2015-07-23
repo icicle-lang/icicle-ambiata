@@ -59,9 +59,13 @@ library
                        Icicle.Avalanche.Statement.Statement
                        Icicle.Avalanche.Statement.Scoped
                        Icicle.Avalanche.Statement.Simp
+                       Icicle.Avalanche.Statement.Simp.ExpEnv
+                       Icicle.Avalanche.Statement.Simp.Constructor
+                       Icicle.Avalanche.Statement.Simp.Melt
                        Icicle.Avalanche.Statement.Flatten
                        Icicle.Avalanche.Prim.Flat
                        Icicle.Avalanche.Prim.Eval
+                       Icicle.Avalanche.ToJava
 
                        Icicle.BubbleGum
 
@@ -113,6 +117,10 @@ library
                        Icicle.Data.DateTime
 
                        Icicle.Dictionary
+                       Icicle.Dictionary.Data
+                       Icicle.Dictionary.Parse
+                       Icicle.Dictionary.Demographics
+
                        Icicle.Encoding
                        Icicle.Internal.Pretty
                        Icicle.Internal.Rename

@@ -62,8 +62,8 @@ flatten s
      $ \to'
      -> ForeachInts n from' to' <$> flatten ss
 
-    ForeachFacts n vt ss
-     -> ForeachFacts n vt <$> flatten ss
+    ForeachFacts n n' vt lo ss
+     -> ForeachFacts n n' vt lo <$> flatten ss
 
     Block ss
      -> Block <$> mapM flatten ss
@@ -93,6 +93,11 @@ flatten s
 
     KeepFactInHistory
      -> return $ KeepFactInHistory
+
+    LoadResumable n
+     -> return $ LoadResumable n
+    SaveResumable n
+     -> return $ SaveResumable n
 
 
 

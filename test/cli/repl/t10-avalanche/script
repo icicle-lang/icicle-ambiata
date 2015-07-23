@@ -1,0 +1,6 @@
+-- Show everything
+:set +type +core +core-simp +core-type +avalanche +flatten
+
+-- A rather complicated feature to convert to Avalanche
+feature salary ~> (filter value > 10 ~> count), (latest 3 ~> value)
+

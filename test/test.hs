@@ -27,7 +27,7 @@ import           Orphanarium.Core.Main
 
 main :: IO ()
 main
- = orphanariumMain 
+ = orphanariumMain
         [ Icicle.Test.Encoding.tests
         , Icicle.Test.Serial.tests
 

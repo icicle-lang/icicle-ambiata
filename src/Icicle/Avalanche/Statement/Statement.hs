@@ -4,6 +4,7 @@ module Icicle.Avalanche.Statement.Statement (
     Statement       (..)
   , Accumulator     (..)
   , AccumulatorType (..)
+  , FactLoopType    (..)
   , transformUDStmt
   , foldStmt
   ) where
@@ -30,7 +31,7 @@ data Statement n p
 
  -- | A loop over all the facts.
  -- This should only occur once in the program, and not inside a loop.
- | ForeachFacts (Name n) ValType (Statement n p)
+ | ForeachFacts (Name n) (Name n) ValType FactLoopType (Statement n p)
 
  -- | Execute several statements in a block.
  | Block                        [Statement n p]
@@ -58,6 +59,12 @@ data Statement n p
 
  -- | Mark the current fact as being historically relevant
  | KeepFactInHistory
+
+ -- | Load an accumulator from history. Must be before any fact loops.
+ | LoadResumable (Name n)
+
+ -- | Save an accumulator to history. Must be after all fact loops.
+ | SaveResumable (Name n)
  deriving (Eq, Ord, Show)
 
 instance Monoid (Statement n p) where
@@ -87,26 +94,42 @@ data Accumulator n p
 -- each a different kind of accumulator.
 -- Additionally, we have non-core accumulators that don't affect history.
 data AccumulatorType
- -- | Resumable folds, where we store the value for next time
- --
- -- Exp is initial value - only if no history.
- = Resumable
- -- | Windowed but not latest folds, where for each update we mark
- -- the current fact as necessary for next time
- --
- -- Exp is initial value.
- | Windowed
  -- | Latest N, where the value is not so much updated as a
  -- fact is pushed on
  --
  -- Exp is size/count.
- | Latest
+ = Latest
 
  -- | Another kind of accumulator.
  -- Just a mutable variable with no history.
  | Mutable
  deriving (Eq, Ord, Show)
 
+
+-- | When executing the feature, we also keep track of what data
+-- will be required to compute the next snapshot.
+-- This consists of the list of individual facts that contribute
+-- to "windowed" and "latest" features,
+-- as well as the last values of any resumable features like reductions.
+--
+-- It is important that since the resumable features have already seen the
+-- historical data, they cannot see it again.
+-- This is why we have two separate loops, so the first loop over historical data
+-- does not compute the resumable features:
+--
+-- 1. Initialise variables for latest and windowed features
+-- 2. Loop through historical data, computing latest and windowed features
+-- 3. Read last values of resumable variables
+-- 4. Loop through new data, computing all features
+-- 5. Store last values of resumable variables
+-- 6. Return
+--
+data FactLoopType
+ -- | Loop over the facts that contributed to the last snapshot's windowed and latest features
+ = FactLoopHistory
+ -- | Loop over newly added facts since the last snapshot
+ | FactLoopNew
+ deriving (Eq, Ord, Show)
 
 
 -- Transforming -------------
@@ -129,8 +152,8 @@ transformUDStmt fun env statements
            -> Let n x <$> go e' ss
           ForeachInts n from to ss
            -> ForeachInts n from to <$> go e' ss
-          ForeachFacts n ty ss
-           -> ForeachFacts n ty <$> go e' ss
+          ForeachFacts n n' ty lo ss
+           -> ForeachFacts n n' ty lo <$> go e' ss
           Block ss
            -> Block <$> mapM (go e') ss
           InitAccumulator acc ss
@@ -145,6 +168,10 @@ transformUDStmt fun env statements
            -> return $ Return x
           KeepFactInHistory
            -> return $ KeepFactInHistory
+          LoadResumable n
+           -> return $ LoadResumable n
+          SaveResumable n
+           -> return $ SaveResumable n
 
 foldStmt
         :: (Applicative m, Functor m, Monad m)
@@ -172,7 +199,7 @@ foldStmt down up rjoin env res statements
            -> sub1 ss
           ForeachInts _ _ _ ss
            -> sub1 ss
-          ForeachFacts _ _ ss
+          ForeachFacts _ _ _ _ ss
            -> sub1 ss
           Block ss
            -> do    rs <- mapM (go e') ss
@@ -190,6 +217,10 @@ foldStmt down up rjoin env res statements
            -> up e' res s
           KeepFactInHistory
            -> up e' res s
+          LoadResumable{}
+           -> up e' res s
+          SaveResumable{}
+           -> up e' res s
 
 
 
@@ -204,8 +235,8 @@ instance TransformX Statement where
      ForeachInts n from to ss
       -> ForeachInts <$> names n <*> exps from <*> exps to <*> go ss
 
-     ForeachFacts n v ss
-      -> ForeachFacts <$> names n <*> return v <*> go ss
+     ForeachFacts n1 n2 v lo ss
+      -> ForeachFacts <$> names n1 <*> names n2 <*> return v <*> return lo <*> go ss
 
      Block ss
       -> Block <$> gos ss
@@ -226,6 +257,10 @@ instance TransformX Statement where
      KeepFactInHistory
       -> return KeepFactInHistory
 
+     LoadResumable n
+      -> LoadResumable <$> names n
+     SaveResumable n
+      -> SaveResumable <$> names n
 
   where
    go  = transformX names exps
@@ -264,8 +299,8 @@ instance (Pretty n, Pretty p) => Pretty (Statement n p) where
       -> text "for" <+> pretty n <+> text "in" <+> pretty from <+> text ".." <+> pretty to <> line
       <> semis stmts
 
-     ForeachFacts n t stmts
-      -> text "for facts as" <+> pretty n <+> text ":" <+> pretty t <> line
+     ForeachFacts n n' t lo stmts
+      -> text "for facts as (" <> pretty n <+> text ":" <+> pretty t <> text ", " <> pretty n' <+> text ": Date) in" <+> pretty lo <> line
       <> semis stmts
 
      Block stmts
@@ -289,6 +324,12 @@ instance (Pretty n, Pretty p) => Pretty (Statement n p) where
      KeepFactInHistory
       -> text "keep_fact_in_history"
 
+     LoadResumable n
+      -> text "load_resumable" <+> pretty n
+     SaveResumable n
+      -> text "save_resumable" <+> pretty n
+
+
   where
    semis stmt
     = indent 2 $ pretty stmt
@@ -306,8 +347,10 @@ instance (Pretty n, Pretty p) => Pretty (Accumulator n p) where
  pretty (Accumulator n acc _ x)
   =   pretty n <+> text "=" <+> pretty x
   <+> (case acc of
-       Resumable -> text "(Resumable)"
-       Windowed  -> text "(Windowed)"
        Latest    -> text "(Latest)"
        Mutable   -> text "(Mutable)")
+
+instance Pretty FactLoopType where
+ pretty FactLoopHistory = text "history"
+ pretty FactLoopNew     = text "new"
 

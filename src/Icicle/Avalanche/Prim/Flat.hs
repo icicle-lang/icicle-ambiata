@@ -5,15 +5,26 @@ module Icicle.Avalanche.Prim.Flat (
     , PrimProject (..)
     , PrimUnsafe    (..)
     , PrimUpdate    (..)
+    , PrimArray     (..)
     , typeOfPrim
+    , flatFragment
   ) where
 
 import              Icicle.Internal.Pretty
 import              Icicle.Common.Type
 import qualified    Icicle.Common.Exp.Prim.Minimal as Min
 
+import qualified    Icicle.Common.Fragment         as Frag
+
 import              P
 
+flatFragment :: Frag.Fragment Prim
+flatFragment
+ = Frag.Fragment
+ { Frag.typeOfPrim           = typeOfPrim
+ , Frag.primsFullyApplied    = True
+ , Frag.allowLambdas         = Frag.AllowLambdasAsPrimArgs
+ }
 
 -- | Primitives for flattened avalanche programs
 -- Folds are converted to imperative accessors, loops and so on.
@@ -28,6 +39,9 @@ data Prim
 
  -- | Safe updates
  | PrimUpdate          PrimUpdate
+
+ -- | Safe updates
+ | PrimArray           PrimArray
  deriving (Eq, Ord, Show)
 
 
@@ -54,6 +68,10 @@ data PrimUpdate
  = PrimUpdateMapPut  ValType ValType
  -- | Should this be unsafe too? It's really both.
  | PrimUpdateArrayPut        ValType
+ deriving (Eq, Ord, Show)
+
+data PrimArray
+ = PrimArrayZip  ValType ValType
  deriving (Eq, Ord, Show)
 
 
@@ -99,6 +117,9 @@ typeOfPrim p
     PrimUpdate  (PrimUpdateArrayPut a)
      -> FunT [funOfVal (ArrayT a), funOfVal IntT, funOfVal a] (ArrayT a)
 
+    PrimArray  (PrimArrayZip a b)
+     -> FunT [funOfVal (ArrayT a), funOfVal (ArrayT b)] (ArrayT (PairT a b))
+
 
 -- Pretty -------------
 
@@ -133,4 +154,8 @@ instance Pretty Prim where
 
  pretty (PrimUpdate (PrimUpdateArrayPut a))
   = text "Array_put#" <+> brackets (pretty a)
+
+
+ pretty (PrimArray (PrimArrayZip a b))
+  = text "Array_zip#" <+> brackets (pretty a) <+> brackets (pretty b)
 

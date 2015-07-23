@@ -327,11 +327,11 @@ readAll r t
 parseFact :: Dictionary -> Fact' -> Either DecodeError Fact
 parseFact (Dictionary dict) fact'
  = do   def <- maybeToRight (DecodeErrorNotInDictionary attr)
-                            (P.find ((==attr).fst) dict)
-        case snd def of
-         ConcreteDefinition enc
+                            (P.find (\(DictionaryEntry attr' _) -> (==) attr attr') dict)
+        case def of
+         DictionaryEntry _ (ConcreteDefinition enc)
           -> factOf <$> parseValue enc (value' fact')
-         VirtualDefinition _
+         DictionaryEntry _ (VirtualDefinition _)
           -> Left (DecodeErrorValueForVirtual attr)
 
  where

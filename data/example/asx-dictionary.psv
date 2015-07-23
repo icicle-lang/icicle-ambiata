@@ -1,0 +1,1 @@
+stuff|(open:int,high:int,low:int,close:int,volume:int,adjclose:int)
