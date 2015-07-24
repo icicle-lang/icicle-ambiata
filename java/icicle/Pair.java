@@ -17,4 +17,9 @@ public class Pair<A,B>
     {
         return new Pair<A,B>(a, b);
     }
+
+    public String toString()
+    {
+        return "(" + _fst.toString() + ", " + _snd.toString() + ")";
+    }
 }
