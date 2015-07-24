@@ -28,5 +28,9 @@ class Main
         l.compute(ms);
 
         System.out.println(ms.getOutputs().toString());
+        ms.ingest(arr);
+        l.compute(ms);
+
+        System.out.println(ms.getOutputs().toString());
     }
 }
