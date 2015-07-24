@@ -3,7 +3,7 @@ package examples;
 
 import icicle.*;
 import java.util.*;
-public class LatestAverage
+public class LatestAverage implements IcicleComputer<Integer>
 {
   public void compute(IcicleState<Integer> icicle)
   {

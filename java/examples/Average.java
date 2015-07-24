@@ -4,7 +4,7 @@ package examples;
 import icicle.*;
 import java.util.*;
 
-public class Average
+public class Average implements IcicleComputer<Integer>
 {
   public void compute(IcicleState<Integer> icicle)
   {

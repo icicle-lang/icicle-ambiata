@@ -23,6 +23,7 @@ public class Pair<A,B>
         return "(" + _fst.toString() + ", " + _snd.toString() + ")";
     }
 
+    @SuppressWarnings("unchecked")
     public boolean equals(Object o)
     {
         if (o instanceof Pair) // <A,B> ???

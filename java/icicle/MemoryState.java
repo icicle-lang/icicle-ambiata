@@ -75,7 +75,7 @@ public class MemoryState<T> implements IcicleState<T>
 
     public <U> void    output(U value)
     {
-        _outputs.put("todo", value);
+        _outputs.put("output", value);
     }
 
     public void    startHistory()
