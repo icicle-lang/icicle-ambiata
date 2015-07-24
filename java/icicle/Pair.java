@@ -1,4 +1,6 @@
-class Pair<A,B>
+package icicle;
+
+public class Pair<A,B>
 {
     private A _fst;
     private B _snd;

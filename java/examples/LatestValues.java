@@ -1,13 +1,16 @@
-// feature salary ~> latest 10 ~> value
+// feature salary ~> latest 3 ~> value
+package examples;
 
+import icicle.*;
 import java.util.*;
-class LatestValues
+
+public class LatestValues
 {
   public void compute(IcicleState<Integer> icicle)
   {
     int gen$date = icicle.snapshotDate();
 
-    Latest<Integer> ACCUMULATOR$acc$conv$1 = icicle.makeLatest(10);
+    Latest<Integer> ACCUMULATOR$acc$conv$1 = icicle.makeLatest(3);
     icicle.startHistory();
     while (icicle.nextRow())
     {

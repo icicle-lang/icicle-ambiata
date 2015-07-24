@@ -103,7 +103,11 @@ statementsToJava ctx ss
      -> "icicle.keepFactInHistory();"
     LoadResumable n
      | Just (ATUpdate t) <- Map.lookup n (ctxAcc ctx)
-     -> acc_name n <> " = " <> unbox t ("icicle." <> angled (boxedType t) <> "loadResumable(\"feature\", " <> stringy n <> ")") <> ";"
+     -> let nm = "LOAD$" <> name n
+        in   boxedType t <> " " <> nm <> " = " <> "icicle." <> angled (boxedType t) <> "loadResumable(\"feature\", " <> stringy n <> ");"
+          <> line
+          <> "if (" <> nm <> " != null)"
+          <> block [ acc_name n <> " = " <> unbox t nm <> ";" ]
      | otherwise
      -> "$#!@ no such accumulator " <> acc_name n
     SaveResumable n
