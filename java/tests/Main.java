@@ -24,7 +24,7 @@ class Main
         arr.add(Pair.create(Integer.valueOf(40), Integer.valueOf(43)));
         ms.ingest(arr);
 
-        Average l = new Average();
+        GroupDate l = new GroupDate();
         l.compute(ms);
 
         System.out.println(ms.getOutputs().toString());

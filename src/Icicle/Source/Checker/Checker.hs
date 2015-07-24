@@ -368,8 +368,10 @@ checkP x p args
 
   tuple
    | [a,b] <- args
-   , Just u <- maxOf (universe a) (universe b)
-   = return ((), UniverseType u $ T.PairT (baseType a) (baseType b))
+   , a' <- unwrapGroup a
+   , b' <- unwrapGroup b
+   , Just u <- maxOf (universe a') (universe b')
+   = return ((), UniverseType u $ T.PairT (baseType a') (baseType b'))
    | otherwise
    = err
 

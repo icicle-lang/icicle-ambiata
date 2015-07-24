@@ -14,6 +14,7 @@ module Icicle.Source.Type (
   , isPureOrElem
   , isAgg
   , isGroup
+  , unwrapGroup
   , maxOf
   , maxOfPossibility
   , castPossibilityWith
@@ -151,6 +152,12 @@ isGroup (Universe u _)
  | otherwise
  = False
 
+unwrapGroup :: UniverseType -> UniverseType
+unwrapGroup g
+ | Group tk <- universeTemporality $ universe g
+ = UniverseType (Universe AggU (universePossibility $ universe g)) (MapT tk $ baseType g)
+ | otherwise
+ = g
 
 
 data UniverseType
