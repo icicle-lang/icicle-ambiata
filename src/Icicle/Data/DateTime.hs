@@ -11,49 +11,49 @@ module Icicle.Data.DateTime (
   , daysDifference
   ) where
 
-import qualified Data.Dates         as D
-import qualified Data.Time.Calendar as C
-
-import           Data.Text  as T
+import           Control.Lens  (view)
+import           Data.Maybe
+import           Data.Text     as T
+import qualified Data.Thyme    as H
+import qualified System.Locale as L
 
 import           P
 
 
+-- | Gregorian calendar date
+--
 data DateTime =
   DateTime {
-      getDateTime :: D.DateTime
+      getDateTime :: H.YearMonthDay
     } deriving (Eq, Ord, Show)
 
 
 renderDate  :: DateTime -> Text
-renderDate d
- = -- if   D.hour d + D.minute d + D.second d == 0
-   -- then T.pack (show (D.year d) <> "-" <>
-   T.pack dateStr
- where
-  d' = getDateTime d
-  dateStr
-   = show (D.year d') <> "-" <> show (D.month d') <> "-" <> show (D.day d')
-
+renderDate (DateTime ymd)
+  = T.pack
+  $ H.formatTime L.defaultTimeLocale "%Y-%m-%d" ymd
 
 dateOfYMD :: Int -> Int -> Int -> DateTime
 dateOfYMD y m d
- = DateTime
- $ D.DateTime y m d 0 0 0
+ = DateTime $ H.YearMonthDay y m d
 
+-- | Convert Julian days to our Gregorian calendar date
 dateOfDays :: Int -> DateTime
-dateOfDays d
+dateOfDays
  = DateTime
- $ D.dayToDateTime
- $ C.ModifiedJulianDay
- $ toInteger d
+ . view H.gregorian
+ . H.ModifiedJulianDay
 
+-- | Convert our Gregorian date to Julian days,
+--   assuming it's within Julian range.
 daysOfDate :: DateTime -> Int
-daysOfDate d
- = fromInteger
- $ C.toModifiedJulianDay
- $ D.dateTimeToDay
- $ getDateTime d
+daysOfDate = fromJust . daysOfDate_
+
+daysOfDate_ :: DateTime -> Maybe Int
+daysOfDate_
+ = fmap (view H.modifiedJulianDay)
+ . H.gregorianValid
+ . getDateTime
 
 -- | Check whether two given dates are within a days window
 withinWindow :: DateTime -> DateTime -> Int -> Bool
