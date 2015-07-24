@@ -1,16 +1,19 @@
+package icicle;
+
 import java.util.*;
 
-class MemoryState<T> implements IcicleState<T>
+@SuppressWarnings("unchecked")
+public class MemoryState<T> implements IcicleState<T>
 {
-    private Day _snapshotDate     = Day.now();
-    private ArrayList<Pair<T,Day>> _facts_history = new ArrayList<>();
-    private ArrayList<Pair<T,Day>> _facts_new     = new ArrayList<>();
+    private int _snapshotDate;
+    private ArrayList<Pair<T,Integer>> _facts_history = new ArrayList<>();
+    private ArrayList<Pair<T,Integer>> _facts_new     = new ArrayList<>();
 
     private HashMap<Pair<String,String>, Object>
-                        _resumables     = new HashMap<>();
+                        _resumables     = IcicleMap.empty();
 
     private HashMap<String, Object>
-                        _outputs        = new HashMap<>();
+                        _outputs        = IcicleMap.empty();
 
     private IdentityHashMap<Object, ArrayList<Pair<Integer, Object>>>
                         _latests        = new IdentityHashMap<>();
@@ -25,12 +28,12 @@ class MemoryState<T> implements IcicleState<T>
     private int _history_ix = -1;
     private int _new_ix     = -1;
 
-    public void setDate(Day d)
+    public void setDate(int d)
     {
         _snapshotDate = d;
     }
 
-    public void ingest(ArrayList<Pair<T,Day>> newest)
+    public void ingest(ArrayList<Pair<T,Integer>> newest)
     {
         _facts_history.addAll(_facts_new);
         _facts_new.clear();
@@ -45,7 +48,7 @@ class MemoryState<T> implements IcicleState<T>
         _latests.clear();
         _outputs.clear();
 
-        _read_from_history = (HashSet<Integer>)_kept_in_history.clone();
+        _read_from_history = new HashSet<Integer>(_kept_in_history);
         _kept_in_history.clear();
     }
 
@@ -54,7 +57,7 @@ class MemoryState<T> implements IcicleState<T>
         return (HashMap<String,Object>)_outputs.clone();
     }
 
-    public Day snapshotDate()
+    public int snapshotDate()
     {
         return _snapshotDate;
     }
@@ -69,9 +72,9 @@ class MemoryState<T> implements IcicleState<T>
         _resumables.put(Pair.create(virtualFeature, accumulatorName), value);
     }
 
-    public <U> void    output(String virtualFeature, U value)
+    public <U> void    output(U value)
     {
-        _outputs.put(virtualFeature, value);
+        _outputs.put("todo", value);
     }
 
     public void    startHistory()
@@ -100,15 +103,8 @@ class MemoryState<T> implements IcicleState<T>
                 }
             }
         } else {
-            while (true) {
-                _new_ix++;
-                if (_new_ix >= _facts_new.size()) {
-                    return false;
-                }
-                if (readThisIx(idOfNewIx(_new_ix))) {
-                    return true;
-                }
-            }
+            _new_ix++;
+            return (_new_ix < _facts_new.size());
         }
     }
 
@@ -135,12 +131,21 @@ class MemoryState<T> implements IcicleState<T>
         _kept_in_history.add(currentId());
     }
 
-    public Pair<T,Day> currentRow()
+    public T currentRow()
     {
         if (_in_history) {
-            return _facts_history.get(_history_ix);
+            return _facts_history.get(_history_ix).fst();
         } else {
-            return _facts_new.get(_new_ix);
+            return _facts_new.get(_new_ix).fst();
+        }
+    }
+
+    public int currentRowDate()
+    {
+        if (_in_history) {
+            return _facts_history.get(_history_ix).snd();
+        } else {
+            return _facts_new.get(_new_ix).snd();
         }
     }
 
@@ -150,7 +155,7 @@ class MemoryState<T> implements IcicleState<T>
         Latest<U> l = new Latest<U>();
         l.numberOfThings = size;
 
-        _latests.put(l, new ArrayList<>());
+        _latests.put(l, new ArrayList<Pair<Integer,Object>>());
 
         return l;
     }
@@ -165,7 +170,7 @@ class MemoryState<T> implements IcicleState<T>
         }
     }
 
-    public <U> ArrayList<U> getLatest(Latest<U> latest)
+    public <U> ArrayList<U> readLatest(Latest<U> latest)
     {
         ArrayList<U> out = new ArrayList<U>();
         ArrayList<Pair<Integer,Object>> objs = _latests.get(latest);
@@ -174,6 +179,11 @@ class MemoryState<T> implements IcicleState<T>
         }
 
         return out;
+    }
+
+    public int daysDifference(int from, int to)
+    {
+        return Math.abs(from - to);
     }
 
 }

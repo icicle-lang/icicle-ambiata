@@ -1,14 +1,20 @@
 // feature salary ~> group date ~> count
+package examples;
 
+import icicle.*;
 import java.util.*;
-class GroupDate
+public class GroupDate
 {
   public void compute(IcicleState<Integer> icicle)
   {
     int gen$date = icicle.snapshotDate();
 
     HashMap<Integer, Integer> ACCUMULATOR$acc$conv$1 = IcicleMap.empty();
-    ACCUMULATOR$acc$conv$1 = icicle.<HashMap<Integer, Integer>>loadResumable("feature", "acc$conv$1");
+    HashMap<Integer, Integer> LOAD$acc$conv$1 = icicle.<HashMap<Integer, Integer>>loadResumable("feature", "acc$conv$1");
+    if (LOAD$acc$conv$1 != null)
+    {
+      ACCUMULATOR$acc$conv$1 = LOAD$acc$conv$1;
+    }
     icicle.startNew();
     while (icicle.nextRow())
     {

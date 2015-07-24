@@ -1,8 +1,10 @@
 // feature salary ~> sum value / count
+package examples;
 
+import icicle.*;
 import java.util.*;
 
-class Average
+public class Average
 {
   public void compute(IcicleState<Integer> icicle)
   {
@@ -10,8 +12,16 @@ class Average
 
     int ACCUMULATOR$acc$conv$3 = 0;
     int ACCUMULATOR$acc$conv$7 = 0;
-    ACCUMULATOR$acc$conv$3 = (icicle.<Integer>loadResumable("feature", "acc$conv$3")).intValue();
-    ACCUMULATOR$acc$conv$7 = (icicle.<Integer>loadResumable("feature", "acc$conv$7")).intValue();
+    Integer LOAD$acc$conv$3 = icicle.<Integer>loadResumable("feature", "acc$conv$3");
+    if (LOAD$acc$conv$3 != null)
+    {
+      ACCUMULATOR$acc$conv$3 = (LOAD$acc$conv$3).intValue();
+    }
+    Integer LOAD$acc$conv$7 = icicle.<Integer>loadResumable("feature", "acc$conv$7");
+    if (LOAD$acc$conv$7 != null)
+    {
+      ACCUMULATOR$acc$conv$7 = (LOAD$acc$conv$7).intValue();
+    }
     icicle.startNew();
     while (icicle.nextRow())
     {
@@ -30,4 +40,3 @@ class Average
     icicle.output(conv$9);
   }
 }
-
