@@ -3,7 +3,7 @@ package examples;
 
 import icicle.*;
 import java.util.*;
-public class GroupDate
+public class GroupDate implements IcicleComputer<Integer>
 {
   public void compute(IcicleState<Integer> icicle)
   {
