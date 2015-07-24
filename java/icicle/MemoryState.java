@@ -64,7 +64,8 @@ public class MemoryState<T> implements IcicleState<T>
 
     public <U> U loadResumable(String virtualFeature, String accumulatorName)
     {
-        return (U)_resumables.get(Pair.create(virtualFeature, accumulatorName));
+        U u = (U)_resumables.get(Pair.create(virtualFeature, accumulatorName));
+        return u;
     }
 
     public <U> void    saveResumable(String virtualFeature, String accumulatorName, U value)

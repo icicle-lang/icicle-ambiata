@@ -22,4 +22,22 @@ public class Pair<A,B>
     {
         return "(" + _fst.toString() + ", " + _snd.toString() + ")";
     }
+
+    public boolean equals(Object o)
+    {
+        if (o instanceof Pair) // <A,B> ???
+            return this.equals((Pair<A,B>)o);
+        else
+            return false;
+    }
+    public boolean equals(Pair<A,B> o)
+    {
+        return this._fst.equals(o._fst)
+            && this._snd.equals(o._snd);
+    }
+
+    public int hashCode()
+    {
+        return this._fst.hashCode() * this._snd.hashCode();
+    }
 }
