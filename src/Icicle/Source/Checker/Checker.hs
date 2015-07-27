@@ -19,6 +19,8 @@ import                  P
 
 import qualified        Data.Map as Map
 
+import                  Data.List (zip, repeat)
+
 
 data CheckEnv n
  = CheckEnv
@@ -271,10 +273,12 @@ checkX ctx x
       xts <- mapM (checkX ctx') args
       let xs = fmap fst xts
       let ts = fmap snd xts
-      (_,t') <- checkP x prim ts
+      (cs,t') <- checkP x prim ts
       -- Here we are annotating the primitive with its result type
       -- instead of the actual function type.
-      let x' = foldl mkApp (Prim (ann,t') prim) xs
+      let mkCastApp f (xx,False) = mkApp f xx
+          mkCastApp f (xx,True)  = mkApp f (Prim (ann,(snd $ annotOfExp xx) { baseType = T.DoubleT }) (Fun ToDouble) `mkApp` xx)
+      let x' = foldl mkCastApp (Prim (ann,t') prim) (xs `zip` (cs <> repeat False))
       return (x', t')
 
  | otherwise
@@ -303,84 +307,137 @@ checkP  :: Ord      n
         => Exp    a n
         -> Prim
         -> [UniverseType]
-        -> Result () a n
+        -> Result [Bool] a n
 checkP x p args
  = case p of
     Op o
-     | Negate <- o
-     -> unary
-     | Div <- o
-     -> binary Possibly o
-     | TupleComma <- o
-     -> tuple
-     | otherwise
-     -> binary Definitely o
+     -> typeOp o
 
     Agg a
      | Count <- a
      , [] <- args
-     -> return ((), UniverseType (Universe AggU Definitely) T.IntT)
+     -> return ([], UniverseType (Universe AggU Definitely) T.IntT)
      | SumA <- a
      , [t] <- args
      , isPureOrElem $ universe t
-     , baseType t == T.IntT
-     -> return ((), UniverseType (aggu $ universe t) T.IntT)
+     , baseType t == T.IntT || baseType t == T.DoubleT
+     -> return ([], UniverseType (aggu $ universe t) (baseType t))
      | Newest <- a
      , [t] <- args
      , isPureOrElem $ universe t
-     -> return ((), UniverseType (Universe AggU Possibly) (baseType t))
+     -> return ([], UniverseType (Universe AggU Possibly) (baseType t))
      | Oldest <- a
      , [t] <- args
      , isPureOrElem $ universe t
-     -> return ((), UniverseType (Universe AggU Possibly) (baseType t))
+     -> return ([], UniverseType (Universe AggU Possibly) (baseType t))
 
      | otherwise
      -> err
 
     Lit (LitInt _)
      | [] <- args
-     -> return ((), UniverseType (Universe Pure Definitely) T.IntT)
+     -> return ([], UniverseType (Universe Pure Definitely) T.IntT)
      | otherwise
      -> err
+
+    Fun Log
+     | [t] <- args
+     -> do  (_,ds) <- castToDoublesForce [t]
+            return (ds, t { baseType = T.DoubleT } )
+     | otherwise -> err
+
+    Fun Exp
+     | [t] <- args
+     -> do  (_,ds) <- castToDoublesForce [t]
+            return (ds, t { baseType = T.DoubleT } )
+     | otherwise -> err
+
+    Fun ToDouble
+     | [t] <- args
+     , baseType t == T.IntT
+     -> return ([], t { baseType = T.DoubleT } )
+     | otherwise -> err
+
+    Fun ToInt
+     | [t] <- args
+     , baseType t == T.DoubleT
+     -> return ([], t { baseType = T.IntT } )
+     | otherwise -> err
+
  where
   err = errorNoSuggestions $ ErrorPrimBadArgs (annotOfExp x) x args
 
+  castToDoublesForce
+   = castToDoubles True
+  castToDoubles force ts
+   | not force && all (\t -> baseType t == T.IntT) ts
+   = return (T.IntT, [])
+   | all (\t -> baseType t == T.IntT || baseType t == T.DoubleT) ts
+   = return (T.DoubleT, fmap ((==T.IntT) . baseType) ts)
+   | otherwise
+   = notnumber
+
   aggu u = u { universeTemporality = AggU }
 
-  unary
-   | [t] <- args
-   , baseType t == T.IntT
-   , not $ isGroup $ universe t
-   = return ((), t)
-   | otherwise
-   = err
+  notnumber
+   = errorNoSuggestions $ ErrorPrimNotANumber (annotOfExp x) x args
 
-  binary poss o
-   | [a, b] <- args
-   , baseType a == T.IntT
-   , baseType b == T.IntT
-   , Just u <- maxOf (universe a) (universe b)
-   , poss'  <- maxOfPossibility (universePossibility u) poss
-   , not $ isGroup u
-   = return ((), UniverseType (u { universePossibility = poss'}) $ returnType o)
+  checknumber t
+   | Just _ <- T.arithTypeOfValType t
+   = return ()
    | otherwise
-   = err
+   = notnumber
 
-  tuple
-   | [a,b] <- args
-   , a' <- unwrapGroup a
-   , b' <- unwrapGroup b
-   , Just u <- maxOf (universe a') (universe b')
-   = return ((), UniverseType u $ T.PairT (baseType a') (baseType b'))
-   | otherwise
-   = err
-
-  returnType o
+  typeOp o
    = case o of
-     Gt -> T.BoolT
-     Ge -> T.BoolT
-     Lt -> T.BoolT
-     Le -> T.BoolT
-     Eq -> T.BoolT
-     Ne -> T.BoolT
-     _  -> T.IntT
+      ArithUnary _
+       | [t] <- args
+       , not $ isGroup $ universe t
+       -> do    checknumber $ baseType t
+                return ([], t)
+       | otherwise
+       -> err
+
+      ArithBinary _
+       | [a, b] <- args
+       , Just u <- maxOf (universe a) (universe b)
+       , not $ isGroup u
+       -> do    (t, cs) <- castToDoubles False [a,b]
+                return (cs, UniverseType u t)
+       | otherwise
+       -> err
+
+      ArithDouble Div
+       | [a,b] <- args
+       , Just u <- maxOf (universe a) (universe b)
+       , not $ isGroup u
+       -> do    (_, cs) <- castToDoublesForce [a,b]
+                return (cs, UniverseType u { universePossibility = Possibly } T.DoubleT)
+       | otherwise
+       -> err
+
+      Relation _
+       | [a,b] <- args
+       , baseType a == baseType b
+       , Just u <- maxOf (universe a) (universe b)
+       , not $ isGroup u
+       -> return ([], UniverseType u T.BoolT)
+
+       | [a,b] <- args
+       , Just u <- maxOf (universe a) (universe b)
+       , not $ isGroup u
+       -> do    (_, cs) <- castToDoubles False [a,b]
+                return (cs, UniverseType u T.BoolT)
+
+       | otherwise
+       -> err
+
+      TupleComma
+       | [a,b] <- args
+       , a' <- unwrapGroup a
+       , b' <- unwrapGroup b
+       , Just u <- maxOf (universe a') (universe b')
+       -> return ([], UniverseType u $ T.PairT (baseType a') (baseType b'))
+       | otherwise
+       -> err
+

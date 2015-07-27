@@ -2,6 +2,10 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Icicle.Source.Query.Operators (
     Op          (..)
+  , ArithUnary  (..)
+  , ArithBinary (..)
+  , ArithDouble (..)
+  , Relation    (..)
   , Fixity      (..)
   , Infixity    (..)
   , Assoc       (..)
@@ -21,20 +25,37 @@ import                  P
 import                  Data.Text
 
 data Op
- = Div
- | Mul
+ = ArithUnary  ArithUnary
+ | ArithBinary ArithBinary
+ | ArithDouble ArithDouble
+ | Relation Relation
+
+ | TupleComma
+ deriving (Show, Eq, Ord)
+
+data ArithUnary
+ = Negate
+ deriving (Show, Eq, Ord)
+
+data ArithBinary
+ = Mul
  | Add
  | Sub
- | Negate
+ | Pow
+ deriving (Show, Eq, Ord)
 
- | Lt
+data ArithDouble
+ = Div
+ deriving (Show, Eq, Ord)
+
+
+data Relation
+ = Lt
  | Le
  | Gt
  | Ge
  | Eq
  | Ne
-
- | TupleComma
  deriving (Show, Eq, Ord)
 
 data Fixity
@@ -54,19 +75,23 @@ data Assoc
 fixity :: Op -> Fixity
 fixity o
  = case o of
-    Div -> FInfix $ Infix AssocLeft 7
-    Mul -> FInfix $ Infix AssocLeft 7
-    Add -> FInfix $ Infix AssocLeft 6
-    Sub -> FInfix $ Infix AssocLeft 6
-    Negate
-        -> FPrefix
+    ArithUnary _
+     -> FPrefix
 
-    Lt  -> FInfix $ Infix AssocLeft 4
-    Le  -> FInfix $ Infix AssocLeft 4
-    Gt  -> FInfix $ Infix AssocLeft 4
-    Ge  -> FInfix $ Infix AssocLeft 4
-    Eq  -> FInfix $ Infix AssocLeft 4
-    Ne  -> FInfix $ Infix AssocLeft 4
+    ArithBinary Mul
+     -> FInfix $ Infix AssocLeft 7
+    ArithBinary Add
+     -> FInfix $ Infix AssocLeft 6
+    ArithBinary Sub
+     -> FInfix $ Infix AssocLeft 6
+    ArithBinary Pow
+     -> FInfix $ Infix AssocRight 8
+
+    ArithDouble Div
+     -> FInfix $ Infix AssocLeft 7
+
+    Relation _
+     -> FInfix $ Infix AssocLeft 4
 
     TupleComma
         -> FInfix $ Infix AssocLeft 0
@@ -82,17 +107,18 @@ data OpsOfSymbol
 symbol :: Text -> OpsOfSymbol
 symbol s
  = case s of
-    "/" -> inf Div
-    "*" -> inf Mul
-    "+" -> inf Add
-    "-" -> OpsOfSymbol (Just Sub) (Just Negate)
+    "/" -> inf (ArithDouble Div)
+    "*" -> inf (ArithBinary Mul)
+    "+" -> inf (ArithBinary Add)
+    "^" -> inf (ArithBinary Pow)
+    "-" -> OpsOfSymbol (Just $ ArithBinary Sub) (Just $ ArithUnary Negate)
 
-    ">" -> inf Gt
-    ">="-> inf Ge
-    "<" -> inf Lt
-    "<="-> inf Le
-    "=="-> inf Eq
-    "/="-> inf Ne
+    ">" -> inf $ Relation Gt
+    ">="-> inf $ Relation Ge
+    "<" -> inf $ Relation Lt
+    "<="-> inf $ Relation Le
+    "=="-> inf $ Relation Eq
+    "/="-> inf $ Relation Ne
 
 
     "," -> inf TupleComma
@@ -120,18 +146,19 @@ precedenceNeverParens = (11, AssocLeft)
 
 
 instance Pretty Op where
- pretty Div = "/"
- pretty Mul = "*"
- pretty Add = "+"
- pretty Sub = "-"
- pretty Negate = "-"
+ pretty (ArithUnary Negate)     = "-"
+ pretty (ArithBinary Mul)       = "*"
+ pretty (ArithBinary Add)       = "+"
+ pretty (ArithBinary Sub)       = "-"
+ pretty (ArithBinary Pow)       = "^"
+ pretty (ArithDouble Div)       = "/"
 
- pretty Lt  = "<"
- pretty Le  = "<="
- pretty Gt  = ">"
- pretty Ge  = ">="
- pretty Eq  = "=="
- pretty Ne  = "/="
+ pretty (Relation Lt)           = "<"
+ pretty (Relation Le)           = "<="
+ pretty (Relation Gt)           = ">"
+ pretty (Relation Ge)           = ">="
+ pretty (Relation Eq)           = "=="
+ pretty (Relation Ne)           = "/="
 
- pretty TupleComma  = ","
+ pretty TupleComma              = ","
 

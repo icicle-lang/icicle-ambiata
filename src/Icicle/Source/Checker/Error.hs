@@ -35,6 +35,7 @@ data ErrorInfo a n
  | ErrorUniverseMismatch       a UniverseType Universe
  | ErrorApplicationOfNonPrim a (Exp a n)
  | ErrorPrimBadArgs          a (Exp a n) [UniverseType]
+ | ErrorPrimNotANumber       a (Exp a n) [UniverseType]
  deriving (Show, Eq, Ord)
 
 annotOfError :: CheckError a n -> Maybe a
@@ -64,7 +65,9 @@ annotOfError (CheckError e _)
      -> Just a
     ErrorPrimBadArgs          a _ _
      -> Just a
-    
+    ErrorPrimNotANumber       a _ _
+     -> Just a
+
 
 data ErrorSuggestion a n
  = AvailableFeatures [(n, BaseType)]
@@ -145,6 +148,11 @@ instance (Pretty a, Pretty n) => Pretty (ErrorInfo a n) where
 
      ErrorPrimBadArgs a x tys
       -> "Primitive applied to bad arguments at " <+> pretty a <> line
+      <> "Exp:  " <> inp x <> line
+      <> "Args: " <> cat (fmap ((<+>" ").pretty) tys)
+
+     ErrorPrimNotANumber a x tys
+      -> "This operater requires a number type at " <+> pretty a <> line
       <> "Exp:  " <> inp x <> line
       <> "Args: " <> cat (fmap ((<+>" ").pretty) tys)
 

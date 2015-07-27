@@ -35,9 +35,6 @@ convertPrim
         :: Prim -> a
         -> [(C.Exp n, UniverseType)]
         -> ConvertM a n (C.Exp n)
--- XXX: for now treat division as int division
-convertPrim (Op Div) _ [(a,_), (b,_)]
- = return $ CE.intOfDouble (CE.doubleOfInt a CE./~ CE.doubleOfInt b)
 convertPrim p ann xts
  = do   p' <- go p
         return $ CE.makeApps p' $ fmap fst xts
@@ -51,28 +48,37 @@ convertPrim p ann xts
    = convertError
    $ ConvertErrorPrimAggregateNotAllowedHere ann agg
 
-  goop Add
-   = return $ Min.PrimArithBinary Min.PrimArithPlus T.ArithIntT
-  goop Sub
-   = return $ Min.PrimArithBinary Min.PrimArithMinus T.ArithIntT
-  goop Div
+  go (Fun f)
+   = (CE.XPrim . C.PrimMinimal) <$> gofun f
+
+  goop (ArithUnary Negate)
+   = Min.PrimArithUnary Min.PrimArithNegate <$> tArithArg 1
+
+  goop (ArithBinary Add)
+   = Min.PrimArithBinary Min.PrimArithPlus <$> tArithArg 2
+  goop (ArithBinary Sub)
+   = Min.PrimArithBinary Min.PrimArithMinus <$> tArithArg 2
+  goop (ArithBinary Mul)
+   = Min.PrimArithBinary Min.PrimArithMul <$> tArithArg 2
+  goop (ArithBinary Pow)
+   = Min.PrimArithBinary Min.PrimArithPow <$> tArithArg 2
+
+  goop (ArithDouble Div)
    = return $ Min.PrimDouble Min.PrimDoubleDiv
-  goop Mul
-   = return $ Min.PrimArithBinary Min.PrimArithMul T.ArithIntT
-  goop Negate
-   = return $ Min.PrimArithUnary Min.PrimArithNegate T.ArithIntT
-  goop Gt
+
+  goop (Relation Gt)
    = Min.PrimRelation Min.PrimRelationGt <$> t1 2
-  goop Ge
+  goop (Relation Ge)
    = Min.PrimRelation Min.PrimRelationGe <$> t1 2
-  goop Lt
+  goop (Relation Lt)
    = Min.PrimRelation Min.PrimRelationLt <$> t1 2
-  goop Le
+  goop (Relation Le)
    = Min.PrimRelation Min.PrimRelationLe <$> t1 2
-  goop Eq
+  goop (Relation Eq)
    = Min.PrimRelation Min.PrimRelationEq <$> t1 2
-  goop Ne
+  goop (Relation Ne)
    = Min.PrimRelation Min.PrimRelationNe <$> t1 2
+
   goop TupleComma
    | [(_,a),(_,b)] <- xts
    = return $ Min.PrimConst $ Min.PrimConstPair (baseType $ unwrapGroup a) (baseType $ unwrapGroup b)
@@ -80,6 +86,14 @@ convertPrim p ann xts
    = convertError
    $ ConvertErrorPrimNoArguments ann 2 p
 
+  gofun Log
+   = return $ Min.PrimDouble Min.PrimDoubleLog
+  gofun Exp
+   = return $ Min.PrimDouble Min.PrimDoubleExp
+  gofun ToDouble
+   = return $ Min.PrimCast Min.PrimCastDoubleOfInt
+  gofun ToInt
+   = return $ Min.PrimCast Min.PrimCastIntOfDouble
 
   t1 num_args
    = case xts of
@@ -88,4 +102,9 @@ convertPrim p ann xts
       []         -> convertError
                   $ ConvertErrorPrimNoArguments ann num_args p
 
+  tArithArg num_args
+   = do t' <- t1 num_args
+        case T.arithTypeOfValType t' of
+         Nothing -> convertError $ ConvertErrorPrimNoArguments ann num_args p
+         Just a' -> return a'
 

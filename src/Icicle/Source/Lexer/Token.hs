@@ -74,6 +74,10 @@ data Keyword
  | Sum
  | Weeks
  | Windowed
+ | Log
+ | Exp
+ | Double
+ | Int
  deriving (Eq, Ord, Show, Enum, Bounded)
 
 

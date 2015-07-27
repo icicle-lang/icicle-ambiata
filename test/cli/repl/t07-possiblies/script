@@ -1,12 +1,12 @@
 -- Divisions return Possibles.
 -- Try with group:
-feature salary ~> group (value / 200) ~> sum (value / 5) / 5
+feature salary ~> group (int (value / 200)) ~> sum (value / 5) / 5
 
 -- Distincts
 feature salary ~> distinct (value / 5) ~> sum (value / 5) / 5
 
 -- Maybe some lets
-feature salary ~> let x = 2 / 1 ~> sum (value * x)
+feature salary ~> let x = 2 / 1 ~> sum (int (value * x))
 
 -- Add a filter
 feature salary ~> let x = 2 / 1 ~> filter (value > x) ~> count

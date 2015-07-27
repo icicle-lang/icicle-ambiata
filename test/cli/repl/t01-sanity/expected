@@ -10,7 +10,7 @@ ok, loaded test/cli/repl/data.psv, 8 rows
 
 > > -- Now let's try average. Expect 300 and 10.
 > - Result:
-[homer, 300,marge, 10]
+[homer, 300.0,marge, 10.0]
 
 > > -- Filtering
 > - Result:
@@ -18,6 +18,6 @@ ok, loaded test/cli/repl/data.psv, 8 rows
 
 > > -- Average of latest 3 entries
 > - Result:
-[homer, 400,marge, 10]
+[homer, 400.0,marge, 10.0]
 
 > > 

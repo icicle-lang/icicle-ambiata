@@ -88,11 +88,14 @@ convertFold q
                 e' <- convertExp e
 
                 n  <- lift fresh
-                add <- convertPrim (Op Add) ann
+                add <- convertPrim (Op $ ArithBinary Add) ann
                         [(CE.XVar n, retty)
                         ,(e', retty)]
                 let k = CE.XLam n retty' add
-                let z = CE.constI 0
+                let z | retty' == T.IntT
+                      = CE.constI 0
+                      | otherwise
+                      = CE.XValue retty' (VDouble 0)
                 x    <- idFun retty'
 
                 return $ ConvertFoldResult k z x retty retty

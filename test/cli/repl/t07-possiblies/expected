@@ -3,12 +3,14 @@ ok, loaded test/cli/repl/data.psv, 8 rows
 > -- Divisions return Possibles.
 > -- Try with group:
 > - Result:
-[homer, [(0,4),(1,20),(2,36)]
-,marge, [(0,1)]]
+[homer, [(0,4.0)
+        ,(1,20.0)
+        ,(2,36.0)]
+,marge, [(0,1.2)]]
 
 > > -- Distincts
 > - Result:
-[homer, 60,marge, 1]
+[homer, 60.0,marge, 1.2]
 
 > > -- Maybe some lets
 > - Result:
@@ -20,7 +22,7 @@ ok, loaded test/cli/repl/data.psv, 8 rows
 
 > > -- newest or something
 > - Result:
-[homer, ((100,20),1500)
-,marge, ((4,0),30)]
+[homer, ((100.0,20.0),1500)
+,marge, ((4.0,0.0),30)]
 
 > > 
