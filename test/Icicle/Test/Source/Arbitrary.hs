@@ -53,13 +53,16 @@ instance Arbitrary n => Arbitrary (Exp () n) where
 
    operator_bin
     = oneof_vals
-        [ Op    Div
-        , Op    Mul
-        , Op    Add
-        , Op    Sub ]
+        [ Op    (ArithDouble Div)
+        , Op    (ArithBinary Mul)
+        , Op    (ArithBinary Add)
+        , Op    (ArithBinary Sub)
+        , Op    (ArithBinary Pow)
+        , Op    (Relation Gt)
+        , Op    (Relation Eq) ]
 
    operator_pre
-    = return $ Op Negate
+    = return $ Op (ArithUnary Negate)
 
 instance Arbitrary Prim where
  arbitrary
