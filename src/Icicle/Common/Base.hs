@@ -33,6 +33,7 @@ data Name n =
 -- This is in here to resolve circular dependency.
 data BaseValue
  = VInt   Int
+ | VDouble Double
  | VUnit
  | VBool  Bool
  | VDateTime        DateTime
@@ -71,6 +72,8 @@ instance Pretty BaseValue where
  pretty v
   = case v of
      VInt i
+      -> pretty i
+     VDouble i
       -> pretty i
      VUnit
       -> text "()"

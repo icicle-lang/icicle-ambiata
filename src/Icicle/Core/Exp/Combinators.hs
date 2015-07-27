@@ -60,15 +60,15 @@ prim2 :: Prim -> X.Exp n -> X.Exp n -> X.Exp n
 prim2 p x y = XPrim p @~ x @~ y
 
 (+~) :: X.Exp n -> X.Exp n -> X.Exp n
-(+~) = prim2 (PrimMinimal $ Min.PrimArith Min.PrimArithPlus)
+(+~) = prim2 (PrimMinimal $ Min.PrimArithBinary Min.PrimArithPlus ArithIntT)
 infixl 6 +~
 
 (-~) :: X.Exp n -> X.Exp n -> X.Exp n
-(-~) = prim2 (PrimMinimal $ Min.PrimArith Min.PrimArithMinus)
+(-~) = prim2 (PrimMinimal $ Min.PrimArithBinary Min.PrimArithMinus ArithIntT)
 infixl 6 -~
 
 (/~) :: X.Exp n -> X.Exp n -> X.Exp n
-(/~) = prim2 (PrimMinimal $ Min.PrimArith Min.PrimArithDiv)
+(/~) = prim2 (PrimMinimal $ Min.PrimDouble Min.PrimDoubleDiv)
 infixl 7 /~
 
 (>~) :: X.Exp n -> X.Exp n -> X.Exp n
@@ -95,6 +95,13 @@ infix 4 ==~
 (/=~) = prim2 (PrimMinimal $ Min.PrimRelation Min.PrimRelationNe IntT)
 infix 4 /=~
 
+doubleOfInt :: X.Exp n -> X.Exp n
+doubleOfInt x
+ = XPrim (PrimMinimal $ Min.PrimCast Min.PrimCastDoubleOfInt) @~ x
+
+intOfDouble :: X.Exp n -> X.Exp n
+intOfDouble x
+ = XPrim (PrimMinimal $ Min.PrimCast Min.PrimCastIntOfDouble) @~ x
 
 lam :: ValType -> (X.Exp Text -> X.Exp Text) -> X.Exp Text
 lam t f

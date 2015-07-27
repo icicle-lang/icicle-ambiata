@@ -12,6 +12,7 @@ import                  Icicle.Source.Type
 import qualified        Icicle.Core as C
 import qualified        Icicle.Core.Exp.Combinators as CE
 import qualified        Icicle.Common.Exp           as CE
+import qualified        Icicle.Common.Type          as T
 
 import qualified        Icicle.Common.Exp.Prim.Minimal as Min
 
@@ -34,6 +35,9 @@ convertPrim
         :: Prim -> a
         -> [(C.Exp n, UniverseType)]
         -> ConvertM a n (C.Exp n)
+-- XXX: for now treat division as int division
+convertPrim (Op Div) _ [(a,_), (b,_)]
+ = return $ CE.intOfDouble (CE.doubleOfInt a CE./~ CE.doubleOfInt b)
 convertPrim p ann xts
  = do   p' <- go p
         return $ CE.makeApps p' $ fmap fst xts
@@ -48,15 +52,15 @@ convertPrim p ann xts
    $ ConvertErrorPrimAggregateNotAllowedHere ann agg
 
   goop Add
-   = return $ Min.PrimArith Min.PrimArithPlus
+   = return $ Min.PrimArithBinary Min.PrimArithPlus T.ArithIntT
   goop Sub
-   = return $ Min.PrimArith Min.PrimArithMinus
+   = return $ Min.PrimArithBinary Min.PrimArithMinus T.ArithIntT
   goop Div
-   = return $ Min.PrimArith Min.PrimArithDiv
+   = return $ Min.PrimDouble Min.PrimDoubleDiv
   goop Mul
-   = return $ Min.PrimArith Min.PrimArithMul
+   = return $ Min.PrimArithBinary Min.PrimArithMul T.ArithIntT
   goop Negate
-   = return $ Min.PrimArith Min.PrimArithNegate
+   = return $ Min.PrimArithUnary Min.PrimArithNegate T.ArithIntT
   goop Gt
    = Min.PrimRelation Min.PrimRelationGt <$> t1 2
   goop Ge

@@ -1,7 +1,10 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Common.Exp.Prim.Minimal (
       Prim   (..)
-    , PrimArith(..)
+    , PrimArithUnary(..)
+    , PrimArithBinary(..)
+    , PrimDouble(..)
+    , PrimCast(..)
     , PrimRelation(..)
     , PrimLogical(..)
     , PrimConst(..)
@@ -22,7 +25,10 @@ import qualified    Data.Map as Map
 -- | Top-level primitive
 -- Pretty empty for now.
 data Prim
- = PrimArith    PrimArith
+ = PrimArithUnary       PrimArithUnary ArithType
+ | PrimArithBinary      PrimArithBinary ArithType
+ | PrimDouble   PrimDouble
+ | PrimCast     PrimCast
  -- | Relation prims like less than, equal etc work for a bunch of different types
  | PrimRelation PrimRelation ValType
  | PrimLogical  PrimLogical
@@ -33,13 +39,32 @@ data Prim
  | PrimStruct   PrimStruct
  deriving (Eq, Ord, Show)
 
--- | Arithmetic primitives
-data PrimArith
+-- | Arithmetic primitives, common to all number-like things
+data PrimArithUnary
+ = PrimArithNegate
+ deriving (Eq, Ord, Show)
+
+data PrimArithBinary
  = PrimArithPlus
  | PrimArithMinus
- | PrimArithDiv
  | PrimArithMul
- | PrimArithNegate
+ | PrimArithPow
+ deriving (Eq, Ord, Show)
+
+-- | Specific Double things.
+-- Division doesn't really apply to Ints.
+data PrimDouble
+ = PrimDoubleDiv
+ | PrimDoubleLog
+ | PrimDoubleExp
+ deriving (Eq, Ord, Show)
+
+-- | Casts between types
+data PrimCast
+ = PrimCastDoubleOfInt
+ | PrimCastIntOfDouble
+ | PrimCastStringOfInt
+ | PrimCastStringOfDouble
  deriving (Eq, Ord, Show)
 
 -- | Predicates like >=
@@ -87,10 +112,26 @@ typeOfPrim :: Prim -> Type
 typeOfPrim p
  = case p of
     -- All arithmetics are working on ints for now
-    PrimArith PrimArithNegate
-     -> FunT [intT] IntT
-    PrimArith _
-     -> FunT [intT, intT] IntT
+    PrimArithUnary _ t
+     -> FunT [funOfVal (valTypeOfArithType t)] (valTypeOfArithType t)
+    PrimArithBinary _ t
+     -> FunT [funOfVal (valTypeOfArithType t), funOfVal (valTypeOfArithType t)] (valTypeOfArithType t)
+
+    PrimDouble PrimDoubleDiv
+     -> FunT [funOfVal DoubleT, funOfVal DoubleT] DoubleT
+    PrimDouble PrimDoubleLog
+     -> FunT [funOfVal DoubleT] DoubleT
+    PrimDouble PrimDoubleExp
+     -> FunT [funOfVal DoubleT] DoubleT
+
+    PrimCast PrimCastDoubleOfInt
+     -> FunT [funOfVal IntT] DoubleT
+    PrimCast PrimCastIntOfDouble
+     -> FunT [funOfVal DoubleT] IntT
+    PrimCast PrimCastStringOfInt
+     -> FunT [funOfVal IntT] StringT
+    PrimCast PrimCastStringOfDouble
+     -> FunT [funOfVal DoubleT] StringT
 
     -- All relations are binary to bool
     PrimRelation _ val
@@ -120,18 +161,41 @@ typeOfPrim p
 
     PrimStruct (PrimStructGet f t (StructType fs))
      -> FunT [funOfVal (StructT $ StructType $ Map.insert f t fs)] t
- where
-  intT = FunT [] IntT
 
 
 -- Pretty -------------
 
 instance Pretty Prim where
- pretty (PrimArith PrimArithPlus)       = text  "add#"
- pretty (PrimArith PrimArithMinus)      = text  "sub#"
- pretty (PrimArith PrimArithDiv)        = text  "div#"
- pretty (PrimArith PrimArithMul)        = text  "mul#"
- pretty (PrimArith PrimArithNegate)     = text  "negate#"
+ pretty (PrimArithUnary p t)
+  = text p' <+> brackets (pretty $ valTypeOfArithType t)
+  where
+   p'
+    = case p of
+       PrimArithNegate -> "negate#"
+
+ pretty (PrimArithBinary p t)
+  = text p' <+> brackets (pretty $ valTypeOfArithType t)
+  where
+   p'
+    = case p of
+       PrimArithPlus    -> "add#"
+       PrimArithMinus   -> "sub#"
+       PrimArithMul     -> "mul#"
+       PrimArithPow     -> "pow#"
+
+ pretty (PrimDouble p)
+  = case p of
+     PrimDoubleDiv -> text  "div#"
+     PrimDoubleLog -> text  "log#"
+     PrimDoubleExp -> text  "exp#"
+
+ pretty (PrimCast p)
+  = case p of
+     PrimCastDoubleOfInt -> text  "doubleOfInt#"
+     PrimCastIntOfDouble -> text  "intOfDouble#"
+     PrimCastStringOfInt -> text  "stringOfInt#"
+     PrimCastStringOfDouble -> text  "stringOfDouble#"
+
 
  pretty (PrimRelation rel t)
   = text prel <+> brackets (pretty t)
