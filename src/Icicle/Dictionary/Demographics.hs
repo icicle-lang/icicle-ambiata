@@ -133,7 +133,7 @@ program_mean
                   ,(N.Name "sum",   fold_sum (N.Name "inp2"))]
  , P.postdate   = Nothing
  , P.postcomps  = []
- , P.returns    = var "sum" /~ var "count"
+ , P.returns    = doubleOfInt (var "sum") /~ doubleOfInt (var "count")
  }
  where
   const1 = lam (T.PairT T.IntT T.DateTimeT) $ \_ -> constI 1

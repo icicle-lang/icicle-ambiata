@@ -80,8 +80,8 @@ instance Arbitrary n => Arbitrary (Name n) where
 instance Arbitrary PM.Prim where
  arbitrary
   = oneof
-          [ return $ PM.PrimArith PM.PrimArithMinus
-          , return $ PM.PrimArith PM.PrimArithPlus
+          [ return $ PM.PrimArithBinary PM.PrimArithMinus ArithIntT
+          , return $ PM.PrimArithBinary PM.PrimArithPlus  ArithIntT
           , return $ PM.PrimRelation PM.PrimRelationGt IntT
           , return $ PM.PrimRelation PM.PrimRelationGe IntT
           , return $ PM.PrimLogical  PM.PrimLogicalNot
@@ -405,6 +405,8 @@ baseValueForType t
  = case t of
     IntT
      -> VInt <$> arbitrary
+    DoubleT
+     -> VDouble <$> arbitrary
     UnitT
      -> return VUnit
     BoolT

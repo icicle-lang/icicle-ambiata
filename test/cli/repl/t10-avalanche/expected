@@ -36,9 +36,9 @@ conv$5 =
     rfold   [(Int, DateTime)]
     [Int] (
     \conv$3 : Int.  
-    \conv$4 : (Int, DateTime).  add#
-                                conv$3 (1 : Int)) (0 : Int)
-    conv$1
+    \conv$4 : (Int, DateTime). 
+    add# [Int] conv$3 (1 : Int))
+    (0 : Int) conv$1
 conv$7 =
     rlatest [Int] (3 : Int)
     conv$8
@@ -76,7 +76,7 @@ gen$date = DATE
     if (gt# [Int] anf$1
         (10 : Int)) {
       read acc$conv$5 = acc$conv$5;
-      write acc$conv$5 = add#
+      write acc$conv$5 = add# [Int]
                          acc$conv$5 (1 : Int);
     }
     let elem$conv$8 = anf$1;
@@ -104,7 +104,7 @@ gen$date = DATE
     if (gt# [Int] elem$gen$fact
         (10 : Int)) {
       read acc$conv$5 = acc$conv$5;
-      write acc$conv$5 = add#
+      write acc$conv$5 = add# [Int]
                          acc$conv$5 (1 : Int);
     }
     push acc$conv$7(elem$gen$fact);

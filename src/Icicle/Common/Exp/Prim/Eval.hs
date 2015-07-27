@@ -14,6 +14,8 @@ import              P
 
 import qualified    Data.Map                        as Map
 
+import qualified    Data.Text                       as T
+
 
 -- | Evaluate a primitive, given list of argument values
 -- Since this is supposed to be used by another evaluator,
@@ -30,38 +32,84 @@ evalPrim p originalP vs
  = let primError = Left $ RuntimeErrorPrimBadArgs originalP vs
    in case p of
 
-     PrimArith PrimArithPlus
-      | [VBase (VInt i), VBase (VInt j)] <- vs
-      -> return $ VBase $ VInt $ i + j
-      | otherwise
-      -> primError
-
-     PrimArith PrimArithMinus
-      | [VBase (VInt i), VBase (VInt j)] <- vs
-      -> return $ VBase $ VInt $ i - j
-      | otherwise
-      -> primError
-
-     PrimArith PrimArithDiv
-      | [_             , VBase (VInt 0)] <- vs
-      -> return $ VBase $ VException ExceptDivZero
-      | [VBase (VInt i), VBase (VInt j)] <- vs
-      -> return $ VBase $ VInt $ i `div` j
-      | otherwise
-      -> primError
-
-     PrimArith PrimArithMul
-      | [VBase (VInt i), VBase (VInt j)] <- vs
-      -> return $ VBase $ VInt $ i * j
-      | otherwise
-      -> primError
-
-     PrimArith PrimArithNegate
+     PrimArithUnary PrimArithNegate _
+      | [VBase (VDouble i)] <- vs
+      -> return $ VBase $ VDouble $ negate i
       | [VBase (VInt i)] <- vs
       -> return $ VBase $ VInt $ negate i
       | otherwise
       -> primError
 
+
+     PrimArithBinary PrimArithPlus _
+      | [VBase (VDouble i), VBase (VDouble j)] <- vs
+      -> return $ VBase $ VDouble $ i + j
+      | [VBase (VInt i), VBase (VInt j)] <- vs
+      -> return $ VBase $ VInt $ i + j
+      | otherwise
+      -> primError
+
+     PrimArithBinary PrimArithMinus _
+      | [VBase (VDouble i), VBase (VDouble j)] <- vs
+      -> return $ VBase $ VDouble $ i - j
+      | [VBase (VInt i), VBase (VInt j)] <- vs
+      -> return $ VBase $ VInt $ i - j
+      | otherwise
+      -> primError
+
+     PrimArithBinary PrimArithMul _
+      | [VBase (VDouble i), VBase (VDouble j)] <- vs
+      -> return $ VBase $ VDouble $ i * j
+      | [VBase (VInt i), VBase (VInt j)] <- vs
+      -> return $ VBase $ VInt $ i * j
+      | otherwise
+      -> primError
+
+     PrimArithBinary PrimArithPow _
+      | [VBase (VDouble i), VBase (VDouble j)] <- vs
+      -> return $ VBase $ VDouble $ i ** j
+      | [VBase (VInt i), VBase (VInt j)] <- vs
+      -> return $ VBase $ VInt $ i ^ j
+      | otherwise
+      -> primError
+
+
+     PrimDouble PrimDoubleDiv
+      | [VBase (VDouble i), VBase (VDouble j)] <- vs
+      -> return $ VBase $ VDouble $ i / j
+      | otherwise
+      -> primError
+     PrimDouble PrimDoubleLog
+      | [VBase (VDouble i)] <- vs
+      -> return $ VBase $ VDouble $ log i
+      | otherwise
+      -> primError
+     PrimDouble PrimDoubleExp
+      | [VBase (VDouble i)] <- vs
+      -> return $ VBase $ VDouble $ exp i
+      | otherwise
+      -> primError
+
+     PrimCast PrimCastDoubleOfInt
+      | [VBase (VInt i)] <- vs
+      -> return $ VBase $ VDouble $ fromIntegral i
+      | otherwise
+      -> primError
+     PrimCast PrimCastIntOfDouble
+      | [VBase (VDouble i)] <- vs
+      -> return $ VBase $ VInt $ truncate i
+      | otherwise
+      -> primError
+     PrimCast PrimCastStringOfInt
+      | [VBase (VInt i)] <- vs
+      -> return $ VBase $ VString $ T.pack $ show i
+      | otherwise
+      -> primError
+     PrimCast PrimCastStringOfDouble
+      | [VBase (VDouble i)] <- vs
+      -> return $ VBase $ VString $ T.pack $ show i
+      | otherwise
+      -> primError
 
 
      PrimRelation rel _
