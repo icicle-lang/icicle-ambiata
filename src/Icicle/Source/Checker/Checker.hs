@@ -383,11 +383,16 @@ checkP x p args
      | otherwise
      -> err
 
-    Lit (LitInt _)
+    Lit l
      | [] <- args
-     -> return ([], UniverseType (Universe Pure Definitely) T.IntT)
+     -> let t = case l of
+                 LitInt _    -> T.IntT
+                 LitDouble _ -> T.DoubleT
+                 LitString _ -> T.StringT
+        in  return ([], UniverseType (Universe Pure Definitely) t)
      | otherwise
      -> err
+
 
     Fun Log
      | [t] <- args
