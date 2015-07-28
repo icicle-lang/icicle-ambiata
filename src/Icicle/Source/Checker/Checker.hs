@@ -1,3 +1,4 @@
+-- | Typecheck a Query, returning the annotated query and return type
 {-# LANGUAGE PatternGuards #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Source.Checker.Checker (
@@ -22,14 +23,25 @@ import qualified        Data.Map as Map
 import                  Data.List (zip, repeat)
 
 
+-- | Type checking environment.
+-- Keep track of all the things we need to know
 data CheckEnv n
  = CheckEnv
+ -- | Mapping from variable names to whole types
  { env        :: Map.Map n UniverseType
+ -- | The top-level of a query must return an Aggregate, so note whether we're currently at top
  , isTopLevel :: Bool
+ -- | We can't have windows or other group-like things inside groups.
+ -- This is actually treating all of latests, distincts and groups as "group-like"
+ -- because they all require compilation to a single fold.
  , isInGroup  :: Bool
+ -- | Don't allow any sort of contexts: lets, filters, windows, groups, etc
+ -- These are not allowed inside "worker expressions", eg inside a filter's predicate
+ -- or a group's by/key.
  , allowContexts :: Bool
  }
 
+-- | Initial environment at top-level, not inside a group, and allowing contexts
 emptyEnv :: CheckEnv n
 emptyEnv
  = CheckEnv Map.empty True False True
@@ -37,6 +49,7 @@ emptyEnv
 type Result r a n = Either (CheckError a n) (r, UniverseType)
 
 
+-- | Check a top-level Query, returning the query with type annotations and casts inserted.
 checkQT :: Ord n
         => Features n
         -> QueryTop a n
@@ -58,22 +71,28 @@ checkQT features qt
 
 
 
+-- | Check a Query with contexts
 checkQ  :: Ord      n
         => CheckEnv n
         -> Query  a n
         -> Result (Query (a,UniverseType) n) a n
 checkQ ctx_top q
  = do (x, t) <- go
+      -- If it's top-level, make sure it returns aggregate or group
       when (isTopLevel ctx_top)
        $ requireAggOrGroup (annotOfQuery q) t
       return (x, t)
  where
+  -- If we were at top-level, any lower levels are not top
   ctx = ctx_top { isTopLevel = False }
   go
    = case contexts q of
+        -- No contexts, so it's just an expression
         []
          -> do  (x,t) <- checkX ctx (final q)
                 return (Query [] x, t)
+
+        -- Pull the first context off and look at it
         (c:cs)
          | allowContexts ctx == False
          -> errorSuggestions (ErrorContextNotAllowedHere (annotOfQuery q) c)
@@ -93,6 +112,8 @@ checkQ ctx_top q
                  Latest ann num
                   -> do (q'',t') <- checkQ (ctx { isInGroup = True }) q'
                         notAllowedInGroupBy ann c
+                        -- If the rest is an element, wrap it in an array
+                        -- eg (latest 3 ~> value) is an array of 3 ints
                         let tA = wrapAsAgg t'
                         let c' = Latest (ann, tA) num
                         return (wrap c' q'', tA)
@@ -167,13 +188,34 @@ checkQ ctx_top q
                          (FoldTypeFoldl, Elem)  -> foldError "You cannot refer to an element; perhaps you meant to use fold1"
                          (_, _)                 -> foldError "The initialiser cannot refer to an aggregate or group, as this would require multiple passes"
 
-                        let env' = Map.insert (foldBind f)
-                                 (UniverseType (Universe Pure Definitely) $ baseType ti)
+                        let env' ft = Map.insert (foldBind f)
+                                 (UniverseType (Universe Pure Definitely) ft)
                                  $ env ctx
-                        (work',tw) <- checkX (ctx { env = env', allowContexts = False }) $ foldWork f
+                        let checkW ft = checkX (ctx { env = env' ft, allowContexts = False }) $ foldWork f
+                        (work',tw) <- checkW (baseType ti)
 
-                        when (baseType ti /= baseType tw)
-                          $ errorNoSuggestions $ ErrorFoldTypeMismatch ann ti tw
+                        -- Check if we need to cast one of the sides from Int to Double
+                        (init'', work'',tret)
+                          <- case (baseType ti, baseType tw) of
+                              (T.IntT, T.DoubleT)
+                               -- If the zero is an Int and the worker is a Double,
+                               -- we need to convert the zero to a Double.
+                               -- However, the already computed work' will include a cast from
+                               -- the zero to a Double, so we need to compute a new worker
+                               -- without the cast.
+                               -> do    (work'',_) <- checkW T.DoubleT
+                                        return (mkCastDouble init', work'', T.DoubleT)
+
+                              -- If the zero is a double and the worker returns an Int,
+                              -- we need to cast the worker.
+                              -- However, this actually seems unlikely.
+                              (T.DoubleT, T.IntT)
+                               -> return (init', mkCastDouble work', T.DoubleT)
+                              (a, b)
+                               | a == b
+                               -> return (init', work', a)
+                               | otherwise
+                               -> errorNoSuggestions $ ErrorFoldTypeMismatch ann ti tw
 
                         expIsElem ann c tw
 
@@ -188,12 +230,12 @@ checkQ ctx_top q
                                   = Definitely
 
                         let env'' = Map.insert (foldBind f)
-                                  (UniverseType (Universe AggU possibility) $ baseType ti)
+                                  (UniverseType (Universe AggU possibility) $ tret)
                                   $ env ctx
                         (q'',t') <- checkQ (ctx { env = env'' }) q'
                         requireAggOrGroup ann t'
 
-                        let c'  = LetFold (ann,t') (f { foldInit = init', foldWork = work' })
+                        let c'  = LetFold (ann,t') (f { foldInit = init'', foldWork = work'' })
                         return (wrap c' q'', t')
 
 
@@ -217,7 +259,7 @@ checkQ ctx_top q
                       [Suggest "The predicate for a filter must be a boolean"]
 
   expIsEnum ann c te
-  -- TODO: disabled; strings should be allowed
+  -- TODO: this check is disabled as strings should be allowed
    = when (False && (not $ isEnum $ baseType te))
          $ errorSuggestions (ErrorContextExpNotEnum ann c te)
                             [Suggest "Group-by and distinct-by must be bounded; otherwise we'd run out of memory"]
@@ -276,8 +318,10 @@ checkX ctx x
       (cs,t') <- checkP x prim ts
       -- Here we are annotating the primitive with its result type
       -- instead of the actual function type.
+      --
+      -- Perform any casts necessary
       let mkCastApp f (xx,False) = mkApp f xx
-          mkCastApp f (xx,True)  = mkApp f (Prim (ann,(snd $ annotOfExp xx) { baseType = T.DoubleT }) (Fun ToDouble) `mkApp` xx)
+          mkCastApp f (xx,True)  = mkApp f (mkCastDouble xx)
       let x' = foldl mkCastApp (Prim (ann,t') prim) (xs `zip` (cs <> repeat False))
       return (x', t')
 
@@ -303,6 +347,11 @@ checkX ctx x
             errorNoSuggestions $ ErrorApplicationOfNonPrim a x
 
 
+-- | Check a primitive against the types of its arguments.
+-- The expression is just for error reporting.
+--
+-- This returns the result type as well as a list of which arguments need casting to Double.
+-- If the list of casts is empty, assume that no arguments require casts.
 checkP  :: Ord      n
         => Exp    a n
         -> Prim
@@ -440,4 +489,10 @@ checkP x p args
        -> return ([], UniverseType u $ T.PairT (baseType a') (baseType b'))
        | otherwise
        -> err
+
+mkCastDouble :: Exp (a, UniverseType) n -> Exp (a, UniverseType) n
+mkCastDouble xx
+ = let (a,t) = annotOfExp xx
+       t'    = t { baseType = T.DoubleT }
+   in  Prim (a,t') (Fun ToDouble) `mkApp` xx
 
