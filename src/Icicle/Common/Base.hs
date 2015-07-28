@@ -49,8 +49,7 @@ data BaseValue
  deriving (Show, Ord, Eq)
 
 data ExceptionInfo
- = ExceptDivZero
- | ExceptFold1NoValue
+ = ExceptFold1NoValue
  | ExceptScalarVariableNotAvailable
  deriving (Show, Ord, Eq)
 
@@ -102,8 +101,6 @@ instance Pretty StructField where
  pretty = text . T.unpack . nameOfStructField
 
 instance Pretty ExceptionInfo where
- pretty ExceptDivZero
-        = text "Division by zero"
  pretty ExceptFold1NoValue
         = text "Fold1, but there is no value"
  pretty ExceptScalarVariableNotAvailable

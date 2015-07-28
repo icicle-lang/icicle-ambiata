@@ -461,7 +461,7 @@ checkP x p args
        , Just u <- maxOf (universe a) (universe b)
        , not $ isGroup u
        -> do    (_, cs) <- castToDoublesForce [a,b]
-                return (cs, UniverseType u { universePossibility = Possibly } T.DoubleT)
+                return (cs, UniverseType u T.DoubleT)
        | otherwise
        -> err
 
