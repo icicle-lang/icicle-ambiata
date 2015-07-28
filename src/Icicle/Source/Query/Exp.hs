@@ -25,6 +25,8 @@ import                  Icicle.Internal.Pretty
 
 import                  P
 
+import                  Data.Text (Text)
+
 
 data Exp' q a n
  = Var a n
@@ -81,6 +83,8 @@ data Agg
 
 data Lit
  = LitInt Int
+ | LitDouble Double
+ | LitString Text
  deriving (Show, Eq, Ord)
 
 data Fun
@@ -205,6 +209,8 @@ instance Pretty Agg where
 
 instance Pretty Lit where
  pretty (LitInt i) = text $ show i
+ pretty (LitDouble i) = text $ show i
+ pretty (LitString i) = text $ show i
 
 instance Pretty Fun where
  pretty Log         = "log"

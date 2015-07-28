@@ -155,6 +155,12 @@ evalP ann p xs vs env
     Lit (LitInt i)
      -> return (VInt i)
 
+    Lit (LitDouble i)
+     -> return (VDouble i)
+
+    Lit (LitString i)
+     -> return (VString i)
+
     Fun f
      -> do  args <- mapM (\x' -> evalX x' vs env) xs
             let err = Left $ EvalErrorFunBadArgs ann f args

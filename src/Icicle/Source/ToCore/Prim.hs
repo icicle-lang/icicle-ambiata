@@ -11,6 +11,7 @@ import                  Icicle.Source.Type
 
 import qualified        Icicle.Core as C
 import qualified        Icicle.Core.Exp.Combinators as CE
+import qualified        Icicle.Common.Base          as V
 import qualified        Icicle.Common.Exp           as CE
 import qualified        Icicle.Common.Type          as T
 
@@ -44,6 +45,10 @@ convertPrim p ann xts
    = (CE.XPrim . C.PrimMinimal) <$> goop o
   go (Lit (LitInt i))
    = return $ CE.constI i
+  go (Lit (LitDouble i))
+   = return $ CE.XValue T.DoubleT (V.VDouble i)
+  go (Lit (LitString i))
+   = return $ CE.XValue T.StringT (V.VString i)
   go (Agg agg)
    = convertError
    $ ConvertErrorPrimAggregateNotAllowedHere ann agg

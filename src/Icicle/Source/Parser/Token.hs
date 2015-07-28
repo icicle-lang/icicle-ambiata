@@ -10,6 +10,8 @@ module Icicle.Source.Parser.Token (
   , pVariable
   , pOperator
   , pLitInt
+  , pLitDouble
+  , pLitString
   , pParenL
   , pParenR
   , pFlowsInto
@@ -20,6 +22,7 @@ import qualified        Icicle.Source.Lexer.Token as T
 import                  P
 
 import                  Text.Parsec
+import                  Data.Text (Text)
 
 type Parser a
  = Parsec [T.TOK] () a
@@ -71,6 +74,25 @@ pLitInt
    = Just i
   get _
    = Nothing
+
+pLitDouble :: Parser Double
+pLitDouble
+ = pTok get <?> "double literal"
+ where
+  get (T.TLiteral (T.LitDouble i))
+   = Just i
+  get _
+   = Nothing
+
+pLitString :: Parser Text
+pLitString
+ = pTok get <?> "string literal"
+ where
+  get (T.TLiteral (T.LitString i))
+   = Just i
+  get _
+   = Nothing
+
 
 pParenL :: Parser ()
 pParenL = pEq T.TParenL <?> "left parenthesis"
