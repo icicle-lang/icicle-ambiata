@@ -79,7 +79,7 @@ data Value =
 
 instance PP.Pretty Value where
   pretty v = case v of
-    StringValue  t  -> PP.text (unpack t)
+    StringValue  t  -> PP.text $ show t
     IntValue     i  -> PP.int i
     DoubleValue  d  -> PP.double d
     BooleanValue b  -> PP.pretty b
