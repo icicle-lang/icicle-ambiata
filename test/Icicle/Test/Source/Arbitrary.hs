@@ -70,7 +70,6 @@ instance Arbitrary Prim where
         [ Lit $ LitInt 0
         , Lit $ LitInt 1
         , Lit $ LitInt 2
-        , Agg   Count
         ]
 
 instance Arbitrary n => Arbitrary (Context () n) where

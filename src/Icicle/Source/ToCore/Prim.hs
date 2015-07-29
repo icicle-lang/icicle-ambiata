@@ -49,9 +49,6 @@ convertPrim p ann xts
    = return $ CE.XValue T.DoubleT (V.VDouble i)
   go (Lit (LitString i))
    = return $ CE.XValue T.StringT (V.VString i)
-  go (Agg agg)
-   = convertError
-   $ ConvertErrorPrimAggregateNotAllowedHere ann agg
 
   go (Fun f)
    = (CE.XPrim . C.PrimMinimal) <$> gofun f

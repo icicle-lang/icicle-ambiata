@@ -23,6 +23,7 @@ module Icicle.Source.Type (
   , canCastPossibility
   , UniverseType(..)
   , FunctionType(..)
+  , function0
   ) where
 
 import                  Icicle.Common.Type
@@ -170,6 +171,9 @@ data UniverseType
 data FunctionType
  = FunctionType [UniverseType] UniverseType
  deriving (Eq, Ord, Show)
+function0 :: UniverseType -> FunctionType
+function0 u
+ = FunctionType [] u
 
 
 instance Pretty Universe where

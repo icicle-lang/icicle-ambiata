@@ -4,7 +4,6 @@ module Icicle.Source.Eval (
     EvalError   (..)
   , evalQ
   , evalX
-  , evalA
   ) where
 
 import                  Icicle.Common.Base
@@ -19,7 +18,6 @@ data EvalError a n
  | EvalErrorNoSuchVariable   a n
  | EvalErrorOpBadArgs        a Op  [BaseValue]
  | EvalErrorFunBadArgs       a Fun [BaseValue]
- | EvalErrorAggBadArgs       a Agg [Exp a n]
 
  | EvalErrorExpNeitherSort   a (Exp a n)
 
@@ -149,9 +147,6 @@ evalP   :: Ord n
         -> Either (EvalError a n) BaseValue
 evalP ann p xs vs env
  = case p of
-    Agg ag
-     -> evalA ann ag xs vs env
-
     Lit (LitInt i)
      -> return (VInt i)
 
@@ -283,62 +278,4 @@ evalP ann p xs vs env
               | otherwise
               -> err
 
-
-
-
-evalA   :: Ord n
-        => a
-        -> Agg
-        -> [Exp a n]
-        -> [Record n]
-        -> Record n
-        -> Either (EvalError a n) BaseValue
-evalA ann ag xs vs _env
- = case ag of
-    Count
-     | [] <- xs
-     -> return $ VInt $ length vs
-     | otherwise
-     -> err
-
-    SumA
-     | [x] <- xs
-     -> do  v <- foldM (\a v -> do v' <- evalX x [] v
-                                   case v' of
-                                    VInt i
-                                     | Just a' <- a
-                                     -> return $ Just $ a' + i
-                                     | Nothing <- a
-                                     -> return Nothing
-                                    VNone
-                                     -> return Nothing
-                                    _      -> err) Nothing vs
-            return $ case v of
-             Nothing -> VNone
-             Just i  -> VInt i
-
-     | otherwise
-     -> err
-
-    -- TODO: what happens if the "newest" is possibly VNone?
-    Newest
-     | [x] <- xs
-     , Just v <- foldl (\_ v -> Just v) Nothing vs
-     -> evalX x [] v
-     | [_] <- xs
-     -> return $ VNone
-     | otherwise
-     -> err
-
-    Oldest
-     | [x] <- xs
-     , (v:_) <- vs
-     -> evalX x [] v
-     | [_] <- xs
-     -> return $ VNone
-     | otherwise
-     -> err
-
- where
-  err = Left $ EvalErrorAggBadArgs ann ag xs
 

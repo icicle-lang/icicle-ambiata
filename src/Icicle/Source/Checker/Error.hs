@@ -31,9 +31,10 @@ data ErrorInfo a n
  | ErrorContextExpNotElem  a (Context a n)   UniverseType
  | ErrorContextNotAllowedHere  a (Context a n)
  | ErrorFoldTypeMismatch       a UniverseType UniverseType
- | ErrorLetTypeMismatch        a UniverseType UniverseType
+ | ErrorTypeMismatch           a (Exp a n) UniverseType UniverseType
  | ErrorUniverseMismatch       a UniverseType Universe
- | ErrorApplicationOfNonPrim a (Exp a n)
+ | ErrorUnappliedFunction      a (Exp a n) FunctionType
+ | ErrorApplicationNotFunction a (Exp a n)
  | ErrorPrimBadArgs          a (Exp a n) [UniverseType]
  | ErrorPrimNotANumber       a (Exp a n) [UniverseType]
  deriving (Show, Eq, Ord)
@@ -57,11 +58,13 @@ annotOfError (CheckError e _)
      -> Just a
     ErrorFoldTypeMismatch       a _ _
      -> Just a
-    ErrorLetTypeMismatch        a _ _
+    ErrorTypeMismatch           a _ _ _
      -> Just a
     ErrorUniverseMismatch       a _ _
      -> Just a
-    ErrorApplicationOfNonPrim a _
+    ErrorUnappliedFunction      a _ _
+     -> Just a
+    ErrorApplicationNotFunction a _
      -> Just a
     ErrorPrimBadArgs          a _ _
      -> Just a
@@ -71,7 +74,7 @@ annotOfError (CheckError e _)
 
 data ErrorSuggestion a n
  = AvailableFeatures [(n, BaseType)]
- | AvailableBindings [(n, UniverseType)]
+ | AvailableBindings [(n, FunctionType)]
  | Suggest String
  deriving (Show, Eq, Ord)
 
@@ -132,8 +135,9 @@ instance (Pretty a, Pretty n) => Pretty (ErrorInfo a n) where
       <> "Initial: " <> inp init    <> line
       <> "Worker:  " <> inp work
 
-     ErrorLetTypeMismatch  a ty expected
-      -> "Type mismatch in let at " <+> pretty a <> line
+     ErrorTypeMismatch  a x ty expected
+      -> "Type mismatch at " <+> pretty a <> line
+      <> "Exp:      " <> inp x    <> line
       <> "Type:     " <> inp ty    <> line
       <> "Expected: " <> inp expected
 
@@ -142,7 +146,12 @@ instance (Pretty a, Pretty n) => Pretty (ErrorInfo a n) where
       <> "Type:     " <> inp ty      <> line
       <> "Expected: " <> text (show expected)
 
-     ErrorApplicationOfNonPrim a x
+     ErrorUnappliedFunction a x f
+      -> "Function not applied to arguments at " <+> pretty a <> line
+      <> "Exp:  " <> inp x
+      <> "Type: " <> inp f
+
+     ErrorApplicationNotFunction a x
       -> "Application of non-function at " <+> pretty a <> line
       <> "Exp: " <> inp x
 

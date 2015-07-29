@@ -90,7 +90,6 @@ post n x = mempty { postcomps = [(n,x)] }
 
 data ConvertError a n
  = ConvertErrorNoSuchFeature n
- | ConvertErrorPrimAggregateNotAllowedHere a Agg
  | ConvertErrorPrimNoArguments a Int Prim
  | ConvertErrorGroupByHasNonGroupResult a UniverseType
  | ConvertErrorContextNotAllowedInGroupBy a (Query (a,UniverseType) n)
@@ -105,8 +104,6 @@ annotOfError e
  = case e of
     ConvertErrorNoSuchFeature _
      -> Nothing
-    ConvertErrorPrimAggregateNotAllowedHere a _
-     -> Just a
     ConvertErrorPrimNoArguments a _ _
      -> Just a
     ConvertErrorGroupByHasNonGroupResult a _
@@ -215,9 +212,6 @@ instance (Pretty a, Pretty n) => Pretty (ConvertError a n) where
   = case e of
      ConvertErrorNoSuchFeature n
       -> "No such feature: " <> pretty n
-
-     ConvertErrorPrimAggregateNotAllowedHere a agg
-      -> pretty a <> ": aggregate " <> pretty agg <> " not allowed in expression"
 
      ConvertErrorPrimNoArguments a num_args p
       -> pretty a <> ": primitive " <> pretty p <> " expects " <> pretty num_args <> " arguments but got none"

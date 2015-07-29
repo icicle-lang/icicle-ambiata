@@ -550,117 +550,26 @@ convertReduce
         -> ConvertM a n (CoreBinds n, Name n)
 convertReduce xx
  | Just (p, (_,ty), args) <- takePrimApps xx
- = case p of
-    Agg Count
-     | [] <- args
-     -- Count: just add 1, ignoring the value
-     -> do  na <- lift fresh
-            nv <- lift fresh
-            mkFold T.IntT (CE.XVar na CE.+~ CE.constI 1) (CE.constI 0) id na nv
-     | otherwise
-     -> errAggBadArgs
+ -- For any primitives:
+ --   recurse into its arguments and get bindings for them
+ --   apply those bindings to the primitive, as a postcomputation
+ --
+ -- If the binding is Pure however, it must not rely on any aggregates,
+ -- so it might as well be a precomputation.
+ = do   (bs,nms) <- unzip <$> mapM convertReduce args
+        let tys  = fmap (snd . annotOfExp) args
+        let xs   = fmap  CE.XVar           nms
+        x' <- convertPrim p (fst $ annotOfExp xx) (xs `zip` tys)
 
-    Agg SumA
-     | [x] <- args
-     -> do  na <- lift fresh
-            nv <- lift fresh
-            -- Convert the element expression and sum over it
-            x' <- convertWithInputName nv $ convertExp x
-            mkFold T.IntT (CE.XVar na CE.+~ x') (CE.constI 0) id na nv
+        nm  <- lift fresh
 
-     | otherwise
-     -> errAggBadArgs
+        let bs'  = mconcat bs
+        let b''  | Pure <- universeTemporality $ universe ty
+                 = pre nm x'
+                 | otherwise
+                 = post nm x'
 
-    -- Find the newest / most recent.
-    -- This just means the "last seen" one.
-    Agg Newest
-     | [x] <- args
-     -> do  na <- lift fresh
-            nv <- lift fresh
-            n'id <- lift fresh
-
-            -- Convert the element expression
-            x' <- convertWithInputName nv $ convertExp x
-
-            let argT = snd $ annotOfExp x
-            let retty= T.OptionT $ baseType argT
-
-            -- Start with Nothing
-            let seed = CE.XValue retty VNone
-
-            let fun  = CE.some (baseType argT) x'
-
-            let opt  = C.PrimFold (C.PrimFoldOption $ baseType argT) (baseType argT)
-            let xtrac n'= CE.XPrim opt
-                       CE.@~ CE.XLam n'id (baseType argT) (CE.XVar n'id)
-                       CE.@~ CE.XValue (baseType argT) (VException ExceptFold1NoValue)
-                       CE.@~ n'
-
-            mkFold retty fun seed xtrac na nv
-
-     | otherwise
-     -> errAggBadArgs
-
-    -- Find the oldest, or first seen value.
-    Agg Oldest
-     | [x] <- args
-     -> do  na <- lift fresh
-            nv <- lift fresh
-            -- Convert the element expression
-            x' <- convertWithInputName nv $ convertExp x
-
-            let argT = snd $ annotOfExp x
-
-            let valty= baseType argT
-            let retty= T.OptionT $ valty
-
-            let seed = CE.XValue retty VNone
-            let opt  = C.PrimFold (C.PrimFoldOption valty) retty
-            let opt' = C.PrimFold (C.PrimFoldOption valty) valty
-
-            na' <- lift fresh
-            let return_acc
-                     = CE.XLam na' valty $ CE.some valty $ CE.XVar na'
-            let some_arg
-                     = CE.some valty x'
-
-            let fun  = CE.XPrim opt
-                       CE.@~ return_acc
-                       CE.@~ some_arg
-                       CE.@~ CE.XVar na
-
-            let xtrac n'= CE.XPrim opt'
-                       CE.@~ (CE.XLam na' valty $ CE.XVar na')
-                       CE.@~ CE.XValue (baseType argT) (VException ExceptFold1NoValue)
-                       CE.@~ n'
-
-            mkFold retty fun seed xtrac na nv
-
-
-     | otherwise
-     -> errAggBadArgs
-
-    -- For any other primitives:
-    --   recurse into its arguments and get bindings for them
-    --   apply those bindings to the primitive, as a postcomputation
-    --
-    -- If the binding is Pure however, it must not rely on any aggregates,
-    -- so it might as well be a precomputation.
-    _
-     -> do  (bs,nms) <- unzip <$> mapM convertReduce args
-            let tys  = fmap (snd . annotOfExp) args
-            let xs   = fmap  CE.XVar           nms
-            x' <- convertPrim p (fst $ annotOfExp xx) (xs `zip` tys)
-
-            nm  <- lift fresh
-
-            let bs'  = mconcat bs
-            let b''  | Pure <- universeTemporality $ universe ty
-                     = pre nm x'
-                     | otherwise
-                     = post nm x'
-
-            return (bs' <> b'', nm)
+        return (bs' <> b'', nm)
 
 
  -- Convert a nested query
@@ -674,22 +583,4 @@ convertReduce xx
  -- so it must be an application of a non-primitive
  | otherwise
  = convertError $ ConvertErrorExpApplicationOfNonPrimitive (fst $ annotOfExp xx) xx
-
- where
-  -- Helper for creating a stream fold binding
-  mkFold ta k z x na nv
-   = do n' <- lift fresh
-        n'' <- lift fresh
-        (inpstream, inpty) <- convertInput
-        let k' = CE.XLam na ta
-               $ CE.XLam nv inpty
-               $ k
-        let ffold = red n' $ C.RFold inpty ta k' z inpstream 
-        let xtrac = post n'' $ x $ CE.XVar n'
-        return (ffold <> xtrac, n'')
-
-  -- Bad arguments to an aggregate
-  errAggBadArgs
-   = convertError
-   $ ConvertErrorReduceAggregateBadArguments (fst $ annotOfExp xx) xx
 

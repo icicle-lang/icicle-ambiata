@@ -25,7 +25,7 @@ import qualified Data.Map as Map
 
 
 mkElems :: Map.Map T.Variable BaseType -> CheckEnv T.Variable
-mkElems m = emptyEnv { env = Map.map (UniverseType (Universe Elem Definitely)) m }
+mkElems m = emptyEnv { env = Map.map (function0 . UniverseType (Universe Elem Definitely)) m }
 
 prop_progress_no_values :: Map.Map T.Variable BaseType -> Query () T.Variable -> Property
 prop_progress_no_values f q

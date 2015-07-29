@@ -81,42 +81,6 @@ convertFold q
      -- Primitive application
      | Just (p, (ann,retty), args) <- takePrimApps $ final q
      -> case p of
-         -- Aggregates are relatively simple
-         Agg SumA
-          | [e] <- args
-          -> do let retty' = baseType retty
-                e' <- convertExp e
-
-                n  <- lift fresh
-                add <- convertPrim (Op $ ArithBinary Add) ann
-                        [(CE.XVar n, retty)
-                        ,(e', retty)]
-                let k = CE.XLam n retty' add
-                let z | retty' == T.IntT
-                      = CE.constI 0
-                      | otherwise
-                      = CE.XValue retty' (VDouble 0)
-                x    <- idFun retty'
-
-                return $ ConvertFoldResult k z x retty retty
-          | otherwise
-          -> errAggBadArgs
-
-         Agg Count
-          | [] <- args
-          -> do let retty' = baseType retty
-
-                n  <- lift fresh
-                let k = CE.XLam n retty'
-                      ( CE.XVar n CE.+~ CE.constI 1 )
-                let z = CE.constI 0
-                x    <- idFun retty'
-
-                return $ ConvertFoldResult k z x retty retty
-          | otherwise
-          -> errAggBadArgs
-
-
          -- Non-aggregate primitive operations such as (+) or (/) are a bit more involved:
          -- we convert the arguments to folds,
          -- then store the accumulator as nested pairs of arguments
@@ -314,11 +278,6 @@ convertFold q
 
   errNotAllowed ann
    = convertError $ ConvertErrorContextNotAllowedInGroupBy ann q
-
-  errAggBadArgs
-   = convertError
-   $ ConvertErrorReduceAggregateBadArguments (fst $ annotOfExp $ final q) (final q)
-
 
   -- Construct an identity function
   idFun tt = lift fresh >>= \n -> return (CE.XLam n tt (CE.XVar n))

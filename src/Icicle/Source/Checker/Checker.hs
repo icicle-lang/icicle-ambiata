@@ -28,7 +28,7 @@ import                  Data.List (zip, repeat)
 data CheckEnv n
  = CheckEnv
  -- | Mapping from variable names to whole types
- { env        :: Map.Map n UniverseType
+ { env        :: Map.Map n FunctionType
  -- | The top-level of a query must return an Aggregate, so note whether we're currently at top
  , isTopLevel :: Bool
  -- | We can't have windows or other group-like things inside groups.
@@ -57,7 +57,7 @@ checkQT :: Ord n
 checkQT features qt
  = case Map.lookup (feature qt) features of
     Just (_,f)
-     -> do  (q,t) <- checkQ (emptyEnv { env = envOfFeatureContext f }) (query qt)
+     -> do  (q,t) <- checkQ (emptyEnv { env = fmap function0 $ envOfFeatureContext f }) (query qt)
             return (qt { query = q }, t)
     Nothing
      -> errorSuggestions (ErrorNoSuchFeature (feature qt))
@@ -189,7 +189,7 @@ checkQ ctx_top q
                          (_, _)                 -> foldError "The initialiser cannot refer to an aggregate or group, as this would require multiple passes"
 
                         let env' ft = Map.insert (foldBind f)
-                                 (UniverseType (Universe Pure Definitely) ft)
+                                 (function0 $ UniverseType (Universe Pure Definitely) ft)
                                  $ env ctx
                         let checkW ft = checkX (ctx { env = env' ft, allowContexts = False }) $ foldWork f
                         (work',tw) <- checkW (baseType ti)
@@ -230,7 +230,7 @@ checkQ ctx_top q
                                   = Definitely
 
                         let env'' = Map.insert (foldBind f)
-                                  (UniverseType (Universe AggU possibility) $ tret)
+                                  (function0 $ UniverseType (Universe AggU possibility) $ tret)
                                   $ env ctx
                         (q'',t') <- checkQ (ctx { env = env'' }) q'
                         requireAggOrGroup ann t'
@@ -241,12 +241,12 @@ checkQ ctx_top q
 
                  Let ann n e
                   -> do (e',te) <- checkX ctx e
-                        let ctx' = ctx { env = Map.insert n te $ env ctx }
+                        let ctx' = ctx { env = Map.insert n (function0 te) $ env ctx }
                         (q'',t') <- checkQ ctx' q'
 
                         let c'   = Let (ann,t') n e'
                         when (not $ letAllowedUniverses (universeTemporality $ universe te) (universeTemporality $ universe t'))
-                         $ errorSuggestions (ErrorLetTypeMismatch ann te (te {universe = universe t'}))
+                         $ errorSuggestions (ErrorTypeMismatch ann e te (te {universe = universe t'}))
                                             [Suggest "The type for this let implies that the definition cannot be used!"]
 
                         return (wrap c' q'', t')
@@ -308,11 +308,7 @@ checkX  :: Ord      n
         -> Result (Exp (a,UniverseType) n) a n
 checkX ctx x
  | Just (prim, ann, args) <- takePrimApps x
- = do let ctx' | Agg _ <- prim
-               = ctx { allowContexts = False }
-               | otherwise
-               = ctx
-      xts <- mapM (checkX ctx') args
+ = do xts <- mapM (checkX ctx) args
       let xs = fmap fst xts
       let ts = fmap snd xts
       (cs,t') <- checkP x prim ts
@@ -328,10 +324,15 @@ checkX ctx x
  | otherwise
  = case x of
     Var ann n
-     -> maybe (errorSuggestions (ErrorNoSuchVariable ann n)
-                                [AvailableBindings $ Map.toList $ env ctx])
-              (\t -> return (Var (ann,t) n, t))
-              (Map.lookup n $ env ctx)
+     -> do  let err = errorSuggestions  (ErrorNoSuchVariable ann n)
+                                        [AvailableBindings $ Map.toList $ env ctx]
+            t <- maybe err Right $ Map.lookup n $ env ctx
+
+            case t of
+             FunctionType [] t'
+              -> return (Var (ann, t') n, t')
+             _
+              -> errorNoSuggestions $ ErrorUnappliedFunction ann x t
     Nested ann q
      -> do (q',t') <- checkQ ctx q
            return (Nested (ann,t') q', t')
@@ -340,11 +341,34 @@ checkX ctx x
      -> do (_,t') <- checkP x p []
            return (Prim (ann,t') p, t')
 
-    -- We can give slightly better error messages if we descend first
     App a p q
+     | (Var a' n,xs) <- takeApps x
+     , Just t@(FunctionType tes ret) <- Map.lookup n $ env ctx
+     -> do when (length tes > length xs)
+            $ errorSuggestions (ErrorUnappliedFunction a' x t)
+                               [Suggest "Missing arguments"]
+
+           tas <- mapM (checkX ctx) xs
+
+           let chk (te, (xx, ta))
+                 | te == ta
+                 = return $ xx
+                 | baseType te == T.DoubleT
+                 , baseType ta == T.IntT
+                 = return $ mkCastDouble xx
+                 | otherwise
+                 = errorSuggestions (ErrorTypeMismatch (fst $ annotOfExp xx) x ta te)
+                                    [Suggest "Argument has wrong type"]
+
+           xs'   <- mapM chk (zip tes tas)
+           let ann = (a', ret)
+           return (foldl mkApp (Var ann n) xs', ret)
+
+     -- We can give slightly better error messages if we descend first
+     | otherwise
      -> do  _ <- checkX ctx p
             _ <- checkX ctx q
-            errorNoSuggestions $ ErrorApplicationOfNonPrim a x
+            errorNoSuggestions $ ErrorApplicationNotFunction a x
 
 
 -- | Check a primitive against the types of its arguments.
@@ -361,27 +385,6 @@ checkP x p args
  = case p of
     Op o
      -> typeOp o
-
-    Agg a
-     | Count <- a
-     , [] <- args
-     -> return ([], UniverseType (Universe AggU Definitely) T.IntT)
-     | SumA <- a
-     , [t] <- args
-     , isPureOrElem $ universe t
-     , baseType t == T.IntT || baseType t == T.DoubleT
-     -> return ([], UniverseType (aggu $ universe t) (baseType t))
-     | Newest <- a
-     , [t] <- args
-     , isPureOrElem $ universe t
-     -> return ([], UniverseType (Universe AggU Possibly) (baseType t))
-     | Oldest <- a
-     , [t] <- args
-     , isPureOrElem $ universe t
-     -> return ([], UniverseType (Universe AggU Possibly) (baseType t))
-
-     | otherwise
-     -> err
 
     Lit l
      | [] <- args
@@ -430,8 +433,6 @@ checkP x p args
    = return (T.DoubleT, fmap ((==T.IntT) . baseType) ts)
    | otherwise
    = notnumber
-
-  aggu u = u { universeTemporality = AggU }
 
   notnumber
    = errorNoSuggestions $ ErrorPrimNotANumber (annotOfExp x) x args
