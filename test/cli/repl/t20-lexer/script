@@ -1,0 +1,12 @@
+-- Numbers
+feature salary ~> count, 1, 2.21, 3e3, 4.44e-4, 0.555
+
+-- Strings
+feature salary ~> count, "", " ", "ok", "\"hello\"", "\tok\t"
+
+-- Expect a "no such variable" error rather than invalid token or parse error
+feature salary ~> 5ea1
+
+-- Expect a parse error on unterminated string
+feature salary ~> "no end
+

@@ -1,0 +1,38 @@
+welcome to iREPL
+ok, loaded test/cli/repl/data.psv, 8 rows
+> -- Numbers
+> - Result:
+[homer, (((((5,1),2.21),3000.0)
+         ,4.44e-4)
+        ,0.555)
+,marge, (((((3,1),2.21),3000.0)
+         ,4.44e-4)
+        ,0.555)]
+
+> > -- Strings
+> - Result:
+[homer, (((((5,"")," "),"ok")
+         ,"\"hello\"")
+        ,"\tok\t")
+,marge, (((((3,"")," "),"ok")
+         ,"\"hello\"")
+        ,"\tok\t")]
+
+> > -- Expect a "no such variable" error rather than invalid token or parse error
+>                      [34mλλλλ[0m
+REPL Error:
+Check error:
+  Unknown variable ea1 at (line 1, column 20)
+  Extra information:
+    The available bindings are:  date : Elem  DateTime
+                                 value : Elem  Int
+
+> > -- Expect a parse error on unterminated string
+>                  [34mλλλλ[0m
+REPL Error:
+Parse error:
+  (line 1, column 16):
+unexpected (TUnexpected "\"no end",(line 1, column 19))
+expecting query
+
+> > 
