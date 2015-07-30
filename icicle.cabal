@@ -142,6 +142,8 @@ library
                        Icicle.Source.Parser.Parser
 
                        Icicle.Source.Type
+                       Icicle.Source.Type.Base
+                       Icicle.Source.Type.Constraints
                        Icicle.Source.Checker.Checker
                        Icicle.Source.Checker.Error
 

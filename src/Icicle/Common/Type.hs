@@ -11,6 +11,7 @@
 {-# LANGUAGE PatternGuards #-}
 module Icicle.Common.Type (
       ValType (..)
+    , TypeVarIndex (..)
     , FunType (..)
     , StructType (..)
     , StructField (..)
@@ -59,8 +60,14 @@ data ValType =
  | PairT  ValType ValType
  | StructT StructType
  | StringT
- -- I don't think it will be too much of a stretch to add more types later.
- -- | Double | ...
+ -- | Type variables are identified by de bruijn indices.
+ -- These do not appear in Core and Avalanche, only in Source.
+ | TypeVar TypeVarIndex
+ deriving (Eq,Ord,Show)
+
+data TypeVarIndex
+ = TypeVarIndex
+ { getTypeVarIndex :: Int }
  deriving (Eq,Ord,Show)
 
 data ArithType
@@ -79,7 +86,8 @@ arithTypeOfValType _            = Nothing
 
 
 data StructType
- = StructType (Map.Map StructField ValType)
+ = StructType 
+ { getStructType :: Map.Map StructField ValType }
  deriving (Eq, Ord, Show)
 
 
@@ -249,6 +257,10 @@ valueMatchesType v t
     (StructT _, _)
      -> False
 
+    -- No value matches an uninstantiated type variable
+    (TypeVar _, _)
+     -> False
+
 
 -- Pretty printing ---------------
 
@@ -264,6 +276,10 @@ instance Pretty ValType where
  pretty (OptionT a)     = parens (text "Option" <+> pretty a)
  pretty (PairT a b)     = text "(" <> pretty a <> text ", " <> pretty b <> text ")"
  pretty (StructT fs)    = parens (pretty fs)
+ pretty (TypeVar i)  = pretty i
+
+instance Pretty TypeVarIndex where
+ pretty (TypeVarIndex i)  = text "^" <> pretty i
 
 instance Pretty StructType where
  pretty (StructType fs) = text "Struct" <+> pretty (Map.toList fs)

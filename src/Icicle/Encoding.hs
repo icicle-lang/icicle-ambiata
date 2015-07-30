@@ -353,7 +353,7 @@ sourceTypeOfEncoding e
     IntEncoding
      -> IT.IntT
     DoubleEncoding
-     -> IT.IntT -- TODO double
+     -> IT.DoubleT
     BooleanEncoding
      -> IT.BoolT
     DateEncoding

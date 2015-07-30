@@ -431,6 +431,9 @@ baseValueForType t
      -> smaller
       (VStruct <$> traverse baseValueForType fs)
 
+    TypeVar _
+     -> fail "Unexpected type variable"
+
 
 inputsForType :: ValType -> Gen ([AsAt (BubbleGumFact, BaseValue)], DateTime)
 inputsForType t

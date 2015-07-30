@@ -399,6 +399,7 @@ boxedType t
      -- ???
      StructT _  -> "IcicleStruct"
      StringT    -> "String"
+     TypeVar _  -> "$#@! unexpected type variable: " <> pretty t
 
 unboxedType :: ValType -> Doc
 unboxedType t
