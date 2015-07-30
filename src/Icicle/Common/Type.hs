@@ -259,11 +259,11 @@ instance Pretty ValType where
  pretty BoolT           = text "Bool"
  pretty DateTimeT       = text "DateTime"
  pretty StringT         = text "String"
- pretty (ArrayT t)      = text "Array " <> pretty t
- pretty (MapT k v)      = text "Map" <+> pretty k <+> pretty v
- pretty (OptionT a)     = text "Option" <+> pretty a
+ pretty (ArrayT t)      = parens (text "Array " <> pretty t)
+ pretty (MapT k v)      = parens (text "Map" <+> pretty k <+> pretty v)
+ pretty (OptionT a)     = parens (text "Option" <+> pretty a)
  pretty (PairT a b)     = text "(" <> pretty a <> text ", " <> pretty b <> text ")"
- pretty (StructT fs)    = pretty fs
+ pretty (StructT fs)    = parens (pretty fs)
 
 instance Pretty StructType where
  pretty (StructType fs) = text "Struct" <+> pretty (Map.toList fs)
