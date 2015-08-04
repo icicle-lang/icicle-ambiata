@@ -1,14 +1,8 @@
-<<<<<<< HEAD
-import java.util.*;
-
-class IcicleMap
-=======
 package icicle;
 
 import java.util.*;
 
 public class IcicleMap
->>>>>>> without-changes
 {
     public static <K,V>
     HashMap<K,V> empty()
@@ -20,10 +14,7 @@ public class IcicleMap
     HashMap<K,V> put(HashMap<K,V> m, K k, V v)
     {
         // Gosh!
-<<<<<<< HEAD
-=======
         // Mutation!
->>>>>>> without-changes
         m.put(k,v);
         return m;
     }
@@ -31,9 +22,6 @@ public class IcicleMap
     public static <K,V>
     Pair<K,V> getByIndex(HashMap<K,V> m, int ix)
     {
-<<<<<<< HEAD
-        // !
-=======
         int num = 0;
         // This is quite bad.
         // TODO
@@ -43,7 +31,6 @@ public class IcicleMap
             }
             num++;
         }
->>>>>>> without-changes
         return null;
     }
 }
