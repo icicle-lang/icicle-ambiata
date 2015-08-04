@@ -34,7 +34,7 @@ import                  P
 -- is ill typed.
 convertPrim
         :: Prim -> a
-        -> [(C.Exp n, UniverseType)]
+        -> [(C.Exp n, UniverseType n)]
         -> ConvertM a n (C.Exp n)
 convertPrim p ann xts
  = do   p' <- go p
@@ -46,9 +46,9 @@ convertPrim p ann xts
   go (Lit (LitInt i))
    = return $ CE.constI i
   go (Lit (LitDouble i))
-   = return $ CE.XValue T.DoubleT (V.VDouble i)
+   = return $ CE.XValue (T.ValType T.DoubleT) (V.VDouble i)
   go (Lit (LitString i))
-   = return $ CE.XValue T.StringT (V.VString i)
+   = return $ CE.XValue (T.ValType T.StringT) (V.VString i)
 
   go (Fun f)
    = (CE.XPrim . C.PrimMinimal) <$> gofun f
@@ -83,7 +83,9 @@ convertPrim p ann xts
 
   goop TupleComma
    | [(_,a),(_,b)] <- xts
-   = return $ Min.PrimConst $ Min.PrimConstPair (baseType $ unwrapGroup a) (baseType $ unwrapGroup b)
+   , Just a' <- valTypeOfBaseType $ baseType $ unwrapGroup a
+   , Just b' <- valTypeOfBaseType $ baseType $ unwrapGroup b
+   = return $ Min.PrimConst $ Min.PrimConstPair a' b'
    | otherwise
    = convertError
    $ ConvertErrorPrimNoArguments ann 2 p
@@ -99,10 +101,12 @@ convertPrim p ann xts
 
   t1 num_args
    = case xts of
-      ((_,tt):_) -> return
-                  $ baseType tt
-      []         -> convertError
-                  $ ConvertErrorPrimNoArguments ann num_args p
+      ((_,tt):_)
+       | Just t' <- valTypeOfBaseType $ baseType tt
+       -> return t'
+      _
+       -> convertError
+        $ ConvertErrorPrimNoArguments ann num_args p
 
   tArithArg num_args
    = do t' <- t1 num_args

@@ -37,7 +37,7 @@ checkProgram p
         -- Insert date if necessary
         let reds' = case P.postdate p of
                     Nothing -> reds
-                    Just nm -> Map.insert nm (FunT [] DateTimeT) reds
+                    Just nm -> Map.insert nm (funOfVal' DateTimeT) reds
         -- Check postcomputations with precomputations and reduces
         post    <- checkExps ProgramErrorPost reds'       (P.postcomps    p)
 

@@ -67,7 +67,7 @@ import qualified        Data.Map as Map
 convertQueryTop
         :: Ord n
         => Features n
-        -> QueryTop (a,UniverseType) n
+        -> QueryTop (a,UniverseType n) n
         -> FreshT n (Either (ConvertError a n)) (C.Program n)
 convertQueryTop feats qt
  = do   inp <- fresh
@@ -75,8 +75,10 @@ convertQueryTop feats qt
                  $ maybeToRight (ConvertErrorNoSuchFeature (feature qt))
                  $ Map.lookup (feature qt) feats
 
-        let inpTy       = ty
-        let inpTy'dated = T.PairT inpTy T.DateTimeT
+        inpTy <- case valTypeOfBaseType ty of
+                  Nothing -> lift $ Left $ ConvertErrorCannotConvertBaseType (fst $ annotOfQuery $ query qt) ty
+                  Just t' -> return t'
+        let inpTy'dated = T.ValType $ T.PairT inpTy $ T.ValType T.DateTimeT
 
         (bs,ret) <- evalStateT (convertQuery $ query qt) (ConvertState inp inpTy'dated fs Map.empty)
         let bs'   = strm inp C.Source <> bs
@@ -90,7 +92,7 @@ convertQueryTop feats qt
 -- that is being "returned" in the program - essentially the last added binding.
 convertQuery
         :: Ord n
-        => Query (a,UniverseType) n
+        => Query (a,UniverseType n) n
         -> ConvertM a n (CoreBinds n, Name n)
 convertQuery q
  = case contexts q of
@@ -170,7 +172,7 @@ convertQuery q
             n'v     <- lift fresh
 
             x' <- convertWithInputName n'v $ convertExpQ q'
-            let t'  = baseType $ snd $ annotOfQuery q'
+            t' <- convertValType' $ baseType $ snd $ annotOfQuery q'
 
             (inpstream, inpty) <- convertInput
 
@@ -196,7 +198,7 @@ convertQuery q
             res
                     <- convertWithInputName n'v $ convertFold q'
 
-            let tV'  = baseType $ typeFold res
+            tV'  <- convertValType' $ baseType $ typeFold res
 
             (inpstream, inpty) <- convertInput
 
@@ -227,7 +229,7 @@ convertQuery q
     -- as long as the "by" is something like an enum, and the "value" has bounded memory.
     --
     (GroupBy (ann,retty) e : _)
-     -> do  (t1,_) <- getGroupByMapType ann retty
+     -> do  t1      <- getGroupByMapType ann retty
             n'      <- lift fresh
             n''     <- lift fresh
             nmap    <- lift fresh
@@ -240,15 +242,15 @@ convertQuery q
             res
                     <- convertWithInputName nval $ convertFold q'
 
-            let tV'  = baseType $ typeFold res
-            let t1'  = baseType ((snd $ annotOfExp e) { baseType = t1 })
-            let t2'  = baseType $ typeExtract res
+            tV'  <- convertValType' $ baseType $ typeFold res
+            t1'  <- convertValType' $ baseType ((snd $ annotOfExp e) { baseType = t1 })
+            t2'  <- convertValType' $ baseType $ typeExtract res
 
             -- Convert the "by" to a simple expression.
             -- This becomes the map insertion key.
             e'      <- convertWithInputName nval $ convertExp e
 
-            let mapt = T.MapT t1' tV'
+            let mapt = T.ValType $ T.MapT t1' tV'
 
 
             (inpstream, inpty) <- convertInput
@@ -302,7 +304,7 @@ convertQuery q
     -- we insert/update the element in the map, then fold over essentially the last-seen
     -- for each group.
     (Distinct (_,_) e : _)
-     -> do  let tkey = baseType $ snd $ annotOfExp e
+     -> do  tkey <- convertValType' $ baseType $ snd $ annotOfExp e
             (inpstream, inpty) <- convertInput
             let tval = inpty
 
@@ -318,13 +320,13 @@ convertQuery q
             -- as a stream fold.
             res     <- convertWithInputName nval $ convertFold q'
 
-            let tV'  = baseType $ typeFold res
+            tV'  <- convertValType' $ baseType $ typeFold res
 
             -- Convert the "by" to a simple expression.
             -- This becomes the map insertion key.
             e'      <- convertWithInputName nval $ convertExp e
 
-            let mapt = T.MapT tkey tval
+            let mapt = T.ValType $ T.MapT tkey tval
 
             -- This is a little bit silly - 
             -- this "insertOrUpdate" should really just be an insert.
@@ -363,9 +365,10 @@ convertQuery q
     (Let _ b def : _)
      -> case universeTemporality $ universe $ snd $ annotOfExp def of
          Elem
-          -> do let t'  = baseType $ snd $ annotOfExp def
+          -> do let tB = baseType $ snd $ annotOfExp def
+                t'  <- convertValType' tB
                 (inpstream, inpty) <- convertInput
-                let inpty' = T.PairT t' inpty
+                let inpty' = T.ValType $ T.PairT t' inpty
 
                 n'e     <- lift fresh
 
@@ -376,7 +379,7 @@ convertQuery q
                 let xsnd = CE.XApp
                          $ CE.XPrim $ C.PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd t' inpty
 
-                convertModifyFeatures (Map.insert b (t', xfst) . Map.map (\(t,f) -> (t, f . xsnd)))
+                convertModifyFeatures (Map.insert b (tB, xfst) . Map.map (\(t,f) -> (t, f . xsnd)))
 
                 let pair = (CE.XPrim $ C.PrimMinimal $ Min.PrimConst $ Min.PrimConstPair t' inpty)
                          CE.@~ e' CE.@~ CE.XVar n'e
@@ -413,8 +416,8 @@ convertQuery q
     -- Converting fold1s.
     (LetFold _ f@Fold{ foldType = FoldTypeFoldl1 } : _)
      -> do  -- Type helpers
-            let tU = baseType $ snd $ annotOfExp $ foldWork f
-            let tO = T.OptionT tU
+            tU <- convertValType' $ baseType $ snd $ annotOfExp $ foldWork f
+            let tO = T.ValType $ T.OptionT tU
 
             -- Generate fresh names
             -- Element of the stream
@@ -483,7 +486,7 @@ convertQuery q
     --
     (LetFold _ f@Fold{ foldType = FoldTypeFoldl } : _)
      -> do  -- Type helpers
-            let tU = baseType $ snd $ annotOfExp $ foldWork f
+            tU <- convertValType' $ baseType $ snd $ annotOfExp $ foldWork f
 
             -- Generate fresh names
             -- Element of the stream
@@ -518,10 +521,10 @@ convertQuery q
   -- Group bys can live in either Aggregate or Group universe.
   -- Because Core is explicitly typed, we need to pull out the key type and value type.
   getGroupByMapType ann ty
-   | UniverseType (Universe (Group t1) _) t2         <- ty
-   = return (t1, t2)
-   | UniverseType (Universe AggU _) (T.MapT t1 t2)   <- ty
-   = return (t1, t2)
+   | UniverseType (Universe (Group t1) _) _          <- ty
+   = return t1
+   | UniverseType (Universe AggU _) (BaseType (T.MapT t1 _))    <- ty
+   = return t1
    | otherwise
    = convertError $ ConvertErrorGroupByHasNonGroupResult ann ty
 
@@ -536,9 +539,11 @@ convertQuery q
    = CE.XPrim (C.PrimFold (C.PrimFoldOption t) tret)
      CE.@~ ss CE.@~ nn CE.@~ scrutinee
   none t
-   = CE.XValue (T.OptionT t) VNone
+   = CE.XValue (T.ValType $ T.OptionT t) VNone
   som t
    = CE.some t
+
+  convertValType' = convertValType $ fst $ annotOfQuery q
 
 
 -- | Convert an Aggregate computation at the end of a query.
@@ -546,7 +551,7 @@ convertQuery q
 -- or a nested query.
 convertReduce
         :: Ord n
-        => Exp (a,UniverseType) n
+        => Exp (a,UniverseType n) n
         -> ConvertM a n (CoreBinds n, Name n)
 convertReduce xx
  | Just (p, (_,ty), args) <- takePrimApps xx

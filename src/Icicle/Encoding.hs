@@ -347,7 +347,8 @@ parseFact (Dictionary dict) fact'
 
 sourceTypeOfEncoding :: Encoding -> IT.ValType
 sourceTypeOfEncoding e
- = case e of
+ = IT.ValType
+ $ case e of
     StringEncoding
      -> IT.StringT
     IntEncoding
@@ -375,4 +376,4 @@ sourceTypeOfEncoding e
 
   goStructField (StructField Optional attr enc)
     = ( IT.StructField $ getAttribute attr
-      , IT.OptionT $ sourceTypeOfEncoding enc)
+      , IT.ValType $ IT.OptionT $ sourceTypeOfEncoding enc)

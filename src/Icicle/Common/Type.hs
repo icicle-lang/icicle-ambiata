@@ -11,12 +11,13 @@
 {-# LANGUAGE PatternGuards #-}
 module Icicle.Common.Type (
       ValType (..)
-    , TypeVarIndex (..)
+    , ValType' (..)
     , FunType (..)
     , StructType (..)
     , StructField (..)
     , Type
     , funOfVal
+    , funOfVal'
     , arrow
 
     , ArithType (..)
@@ -44,30 +45,26 @@ import              P
 import qualified    Data.Map as Map
 
 
--- | Real values.
+-- | Types of real values.
 -- No functions here, because we don't want higher order functions in the generated code.
 -- This restriction should simplify code generation, because we won't need to
 -- deal with lambda lifting arbitrary functions.
-data ValType =
+data ValType' t =
    IntT
  | DoubleT
  | UnitT
  | BoolT
  | DateTimeT
- | ArrayT ValType
- | MapT   ValType ValType
- | OptionT        ValType
- | PairT  ValType ValType
- | StructT StructType
+ | ArrayT t
+ | MapT   t t
+ | OptionT  t
+ | PairT  t t
+ | StructT (StructType t)
  | StringT
- -- | Type variables are identified by de bruijn indices.
- -- These do not appear in Core and Avalanche, only in Source.
- | TypeVar TypeVarIndex
  deriving (Eq,Ord,Show)
 
-data TypeVarIndex
- = TypeVarIndex
- { getTypeVarIndex :: Int }
+newtype ValType
+ = ValType { getValType :: ValType' ValType }
  deriving (Eq,Ord,Show)
 
 data ArithType
@@ -76,18 +73,18 @@ data ArithType
  deriving (Eq, Ord, Show)
 
 valTypeOfArithType :: ArithType -> ValType
-valTypeOfArithType ArithIntT    = IntT
-valTypeOfArithType ArithDoubleT = DoubleT
+valTypeOfArithType ArithIntT    = ValType IntT
+valTypeOfArithType ArithDoubleT = ValType DoubleT
 
 arithTypeOfValType :: ValType -> Maybe ArithType
-arithTypeOfValType IntT         = Just ArithIntT
-arithTypeOfValType DoubleT      = Just ArithDoubleT
-arithTypeOfValType _            = Nothing
+arithTypeOfValType (ValType IntT)       = Just ArithIntT
+arithTypeOfValType (ValType DoubleT)    = Just ArithDoubleT
+arithTypeOfValType _                    = Nothing
 
 
-data StructType
+data StructType t
  = StructType 
- { getStructType :: Map.Map StructField ValType }
+ { getStructType :: Map.Map StructField t }
  deriving (Eq, Ord, Show)
 
 
@@ -117,6 +114,9 @@ type Type = FunType
 
 
 -- | Promote a value type to a zero-argument function type.
+funOfVal' :: ValType' ValType -> FunType
+funOfVal' = FunT [] . ValType
+
 funOfVal :: ValType -> FunType
 funOfVal = FunT []
 
@@ -193,7 +193,7 @@ requireSame err p q
 
 valueMatchesType :: BaseValue -> ValType -> Bool
 valueMatchesType v t
- = case (t,v) of
+ = case (getValType t,v) of
     -- XXX TODO exception types
     (_, VException _)
      -> True
@@ -257,14 +257,10 @@ valueMatchesType v t
     (StructT _, _)
      -> False
 
-    -- No value matches an uninstantiated type variable
-    (TypeVar _, _)
-     -> False
-
 
 -- Pretty printing ---------------
 
-instance Pretty ValType where
+instance Pretty t => Pretty (ValType' t) where
  pretty IntT            = text "Int"
  pretty DoubleT         = text "Double"
  pretty UnitT           = text "Unit"
@@ -276,12 +272,11 @@ instance Pretty ValType where
  pretty (OptionT a)     = parens (text "Option" <+> pretty a)
  pretty (PairT a b)     = text "(" <> pretty a <> text ", " <> pretty b <> text ")"
  pretty (StructT fs)    = parens (pretty fs)
- pretty (TypeVar i)  = pretty i
 
-instance Pretty TypeVarIndex where
- pretty (TypeVarIndex i)  = text "^" <> pretty i
+instance Pretty ValType where
+ pretty                 = pretty . getValType
 
-instance Pretty StructType where
+instance Pretty t => Pretty (StructType t) where
  pretty (StructType fs) = text "Struct" <+> pretty (Map.toList fs)
 
 instance Pretty FunType where

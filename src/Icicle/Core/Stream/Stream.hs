@@ -36,7 +36,7 @@ data StreamTransform
 typeOfStreamTransform :: StreamTransform -> Type
 typeOfStreamTransform st
  = case st of
-    SFilter t -> FunT [funOfVal t] BoolT
+    SFilter t -> FunT [funOfVal t] $ ValType BoolT
     SMap  p q -> FunT [funOfVal p] q
 
 inputOfStreamTransform :: StreamTransform -> ValType

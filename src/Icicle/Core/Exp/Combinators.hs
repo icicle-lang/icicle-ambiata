@@ -36,7 +36,7 @@ var = XVar . Name
 
 
 constI :: Int -> X.Exp n
-constI = XValue IntT  . VInt
+constI = XValue (ValType IntT) . VInt
 
 some :: ValType -> X.Exp n -> X.Exp n
 some t x
@@ -45,14 +45,14 @@ some t x
 
 
 constB :: Bool -> X.Exp n
-constB = XValue BoolT . VBool
+constB = XValue (ValType BoolT) . VBool
 
 emptyMap :: ValType -> ValType -> X.Exp n
-emptyMap tk tv = XValue (MapT tk tv) (VMap Map.empty)
+emptyMap tk tv = XValue (ValType $ MapT tk tv) (VMap Map.empty)
 
 fstOfSource :: ValType -> X.Exp Text -> X.Exp Text
 fstOfSource ty p
- = XPrim (PrimMinimal $ Min.PrimPair $ Min.PrimPairFst ty DateTimeT)
+ = XPrim (PrimMinimal $ Min.PrimPair $ Min.PrimPairFst ty $ ValType DateTimeT)
     @~ p
 
 
@@ -72,27 +72,27 @@ infixl 6 -~
 infixl 7 /~
 
 (>~) :: X.Exp n -> X.Exp n -> X.Exp n
-(>~) = prim2 (PrimMinimal $ Min.PrimRelation Min.PrimRelationGt IntT)
+(>~) = prim2 (PrimMinimal $ Min.PrimRelation Min.PrimRelationGt $ ValType IntT)
 infix 4 >~
 
 (>=~) :: X.Exp n -> X.Exp n -> X.Exp n
-(>=~) = prim2 (PrimMinimal $ Min.PrimRelation Min.PrimRelationGe IntT)
+(>=~) = prim2 (PrimMinimal $ Min.PrimRelation Min.PrimRelationGe $ ValType IntT)
 infix 4 >=~
 
 (<~) :: X.Exp n -> X.Exp n -> X.Exp n
-(<~) = prim2 (PrimMinimal $ Min.PrimRelation Min.PrimRelationLt IntT)
+(<~) = prim2 (PrimMinimal $ Min.PrimRelation Min.PrimRelationLt $ ValType IntT)
 infix 4 <~
 
 (<=~) :: X.Exp n -> X.Exp n -> X.Exp n
-(<=~) = prim2 (PrimMinimal $ Min.PrimRelation Min.PrimRelationLe IntT)
+(<=~) = prim2 (PrimMinimal $ Min.PrimRelation Min.PrimRelationLe $ ValType IntT)
 infix 4 <=~
 
 (==~) :: X.Exp n -> X.Exp n -> X.Exp n
-(==~) = prim2 (PrimMinimal $ Min.PrimRelation Min.PrimRelationEq IntT)
+(==~) = prim2 (PrimMinimal $ Min.PrimRelation Min.PrimRelationEq $ ValType IntT)
 infix 4 ==~
 
 (/=~) :: X.Exp n -> X.Exp n -> X.Exp n
-(/=~) = prim2 (PrimMinimal $ Min.PrimRelation Min.PrimRelationNe IntT)
+(/=~) = prim2 (PrimMinimal $ Min.PrimRelation Min.PrimRelationNe $ ValType IntT)
 infix 4 /=~
 
 doubleOfInt :: X.Exp n -> X.Exp n

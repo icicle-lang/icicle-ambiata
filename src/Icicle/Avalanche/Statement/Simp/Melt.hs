@@ -31,23 +31,23 @@ melt statements
         let go ss = goS env' ss
         case s of
              InitAccumulator (Accumulator n at _ x) ss
-              | Just (Latest,PairT a b,[na,nb]) <- Map.lookup n env'
+              | Just (Latest,ValType (PairT a b),[na,nb]) <- Map.lookup n env'
               -> go
                $ InitAccumulator (Accumulator na at a x)
                $ InitAccumulator (Accumulator nb at b x)
                  ss
 
-              | Just (Mutable,PairT a b,[na,nb]) <- Map.lookup n env'
+              | Just (Mutable,ValType (PairT a b),[na,nb]) <- Map.lookup n env'
               -> go
                $ InitAccumulator (Accumulator na at a (XPrim (PrimMinimal $ Min.PrimPair $ Min.PrimPairFst a b) `XApp` x))
                $ InitAccumulator (Accumulator nb at b (XPrim (PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd a b) `XApp` x)) ss
 
-              | Just (Mutable,UnitT,[]) <- Map.lookup n env'
+              | Just (Mutable,ValType UnitT,[]) <- Map.lookup n env'
               -> go ss
 
 
              Read n acc ss
-              | Just (Latest, PairT ta tb, [na,nb]) <- Map.lookup acc env'
+              | Just (Latest, ValType (PairT ta tb), [na,nb]) <- Map.lookup acc env'
               -> do n1 <- freshPrefix' n
                     n2 <- freshPrefix' n
                     let zips = XPrim (PrimArray $ PrimArrayZip ta tb)
@@ -56,7 +56,7 @@ melt statements
                     ss'<- substXinS n zips ss
                     go $ Read n1 na $ Read n2 nb $ ss'
 
-              | Just (Mutable, PairT ta tb, [na,nb]) <- Map.lookup acc env'
+              | Just (Mutable, ValType (PairT ta tb), [na,nb]) <- Map.lookup acc env'
               -> do n1 <- freshPrefix' n
                     n2 <- freshPrefix' n
                     let pair    = XPrim (PrimMinimal $ Min.PrimConst $ Min.PrimConstPair ta tb)
@@ -65,13 +65,13 @@ melt statements
                     ss'<- substXinS n pair ss
                     go $ Read n1 na $ Read n2 nb $ ss'
 
-              | Just (Mutable, UnitT, []) <- Map.lookup acc env'
-              -> do ss' <- substXinS n (XValue UnitT VUnit) ss
+              | Just (Mutable, ValType UnitT, []) <- Map.lookup acc env'
+              -> do ss' <- substXinS n (XValue (ValType UnitT) VUnit) ss
                     go ss'
 
 
              Push n x
-              | Just (Latest, PairT a b, [na,nb]) <- Map.lookup n env'
+              | Just (Latest, ValType (PairT a b), [na,nb]) <- Map.lookup n env'
               -> go
                $ Block
                [ Push na (XPrim (PrimMinimal $ Min.PrimPair $ Min.PrimPairFst a b) `XApp` x)
@@ -79,13 +79,13 @@ melt statements
 
 
              Write n x
-              | Just (Mutable, PairT a b, [na,nb]) <- Map.lookup n env'
+              | Just (Mutable, ValType (PairT a b), [na,nb]) <- Map.lookup n env'
               -> go
                $ Block
                [ Write na (XPrim (PrimMinimal $ Min.PrimPair $ Min.PrimPairFst a b) `XApp` x)
                , Write nb (XPrim (PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd a b) `XApp` x) ]
 
-              | Just (_, UnitT, _) <- Map.lookup n env'
+              | Just (_, ValType UnitT, _) <- Map.lookup n env'
               -> return (env', mempty)
 
 
@@ -102,15 +102,14 @@ melt statements
              _ -> return (env, s)
 
   updateEnv env s
-   | InitAccumulator (Accumulator n at vt@(PairT _ _) _) _ <- s
-   -- TODO: XXX: temporarily disable splitting out Latests.
-   -- We need a "zip" here, really
+   | InitAccumulator (Accumulator n at vt _) _ <- s
+   , ValType (PairT _ _) <- vt
    = do v1 <- freshPrefix' n
         v2 <- freshPrefix' n
         return $ Map.insert n (at,vt,[v1,v2]) env
 
-   | InitAccumulator (Accumulator n Mutable UnitT _) _ <- s
-   = do return $ Map.insert n (Mutable,UnitT,[]) env
+   | InitAccumulator (Accumulator n Mutable (ValType UnitT) _) _ <- s
+   = do return $ Map.insert n (Mutable,ValType UnitT,[]) env
 
    | otherwise
    = return env

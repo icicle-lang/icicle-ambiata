@@ -37,7 +37,7 @@ checkStream
 checkStream se s
  = case s of
     Source
-     -> return $ PairT (concrete se) DateTimeT
+     -> return $ ValType $ PairT (concrete se) $ ValType DateTimeT
     SWindow t x mx n
      -> do  inp <- lookupOrDie StreamErrorVarNotInEnv (streams se) n
             xt  <- mapLeft     StreamErrorExp $ checkExp coreFragmentWorkerFun (scalars se) x
@@ -45,7 +45,7 @@ checkStream se s
             requireSame (StreamErrorTypeError x)
                         (funOfVal t)    (funOfVal inp)
             requireSame (StreamErrorTypeError x)
-                        (funOfVal IntT)           xt
+                        (funOfVal' IntT)           xt
 
             case mx of
              Nothing
@@ -53,7 +53,7 @@ checkStream se s
              Just mx'
               -> do mxt <- mapLeft     StreamErrorExp $ checkExp coreFragmentWorkerFun (scalars se) mx'
                     requireSame (StreamErrorTypeError mx')
-                                (funOfVal $ IntT) mxt
+                                (funOfVal' IntT) mxt
 
             return t
 

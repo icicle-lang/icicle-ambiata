@@ -97,7 +97,7 @@ instance Pretty ReplError where
 
 type Var        = SP.Variable
 type QueryTop'  = SQ.QueryTop Parsec.SourcePos Var
-type QueryTop'T = SQ.QueryTop (Parsec.SourcePos, ST.UniverseType) Var
+type QueryTop'T = SQ.QueryTop (Parsec.SourcePos, ST.UniverseType Var) Var
 type Program'   = Core.Program Var
 
 --------------------------------------------------------------------------------
@@ -110,7 +110,7 @@ sourceParse t
  $ SP.parseQueryTop t
 
 
-sourceCheck :: D.Dictionary -> QueryTop' -> Either ReplError (QueryTop'T, ST.UniverseType)
+sourceCheck :: D.Dictionary -> QueryTop' -> Either ReplError (QueryTop'T, ST.UniverseType Var)
 sourceCheck d q
  = let d' = featureMapOfDictionary d
    in  mapLeft ReplErrorCheck
@@ -151,7 +151,7 @@ featureMapOfDictionary (D.Dictionary ds)
    ds
  where
   go (D.DictionaryEntry (Attribute attr) (D.ConcreteDefinition enc))
-   | StructT st@(StructType fs) <- E.sourceTypeOfEncoding enc
+   | ValType (StructT st@(StructType fs)) <- E.sourceTypeOfEncoding enc
    = let e' = StructT st
      in [ ( SP.Variable attr
         , ( e'
@@ -159,7 +159,7 @@ featureMapOfDictionary (D.Dictionary ds)
         $ exps "fields" e'
         <> (fmap (\(k,t)
         -> ( SP.Variable $ nameOfStructField k
-           , (t, X.XApp (xget k t st) . X.XApp (xfst e' DateTimeT)))
+           , (t, X.XApp (xget k t st) . X.XApp (xfst e' $ ValType DateTimeT)))
         )
         $ Map.toList fs)))]
 
@@ -179,10 +179,10 @@ featureMapOfDictionary (D.Dictionary ds)
    = X.XPrim (X.PrimMinimal $ X.PrimStruct $ X.PrimStructGet f t fs)
 
   exps str e'
-   = [ (SP.Variable str, ( e', X.XApp (xfst e' DateTimeT)))
+   = [ (SP.Variable str, ( e', X.XApp (xfst e' $ ValType DateTimeT)))
      , date_as_snd e']
   date_as_snd e'
-   = (SP.Variable "date" , ( DateTimeT, X.XApp (xsnd e' DateTimeT)))
+   = (SP.Variable "date" , ( ValType DateTimeT, X.XApp (xsnd e' $ ValType DateTimeT)))
 
 readFacts :: D.Dictionary -> Text -> Either ReplError [AsAt Fact]
 readFacts dict raw
