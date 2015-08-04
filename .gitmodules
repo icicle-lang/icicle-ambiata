@@ -1,9 +1,9 @@
 [submodule "lib/x"]
 	path = lib/x
-	url = git@github.com:ambiata/x
+	url = https://github.com/ambiata/x
 [submodule "lib/p"]
 	path = lib/p
-	url = git@github.com:ambiata/p
+	url = https://github.com/ambiata/p
 [submodule "lib/orphanarium"]
 	path = lib/orphanarium
-	url = git@github.com:ambiata/orphanarium
+	url = https://github.com/ambiata/orphanarium
