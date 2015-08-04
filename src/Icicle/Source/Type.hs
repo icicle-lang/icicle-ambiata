@@ -14,6 +14,7 @@ module Icicle.Source.Type (
   , isPureOrElem
   , isAgg
   , isGroup
+  , unwrapGroup
   , maxOf
   , maxOfPossibility
   , castPossibilityWith
@@ -151,6 +152,12 @@ isGroup (Universe u _)
  | otherwise
  = False
 
+unwrapGroup :: UniverseType -> UniverseType
+unwrapGroup g
+ | Group tk <- universeTemporality $ universe g
+ = UniverseType (Universe AggU (universePossibility $ universe g)) (MapT tk $ baseType g)
+ | otherwise
+ = g
 
 
 data UniverseType
@@ -166,12 +173,12 @@ data FunctionType
 
 
 instance Pretty Universe where
- pretty (Universe t p) = pretty t <+> pretty p
+ pretty (Universe t p) = pretty t <+?> pretty p
 
 instance Pretty Temporality where
  pretty Pure        = ""
  pretty Elem        = "Elem"
- pretty (Group t)   = "Group" <+> pretty t
+ pretty (Group t)   = "Group" <+?> pretty t
  pretty AggU        = "Agg"
 
 instance Pretty Possibility where
@@ -179,7 +186,7 @@ instance Pretty Possibility where
  pretty Definitely  = ""
 
 instance Pretty UniverseType where
- pretty (UniverseType u    t) = pretty u <+> pretty t
+ pretty (UniverseType u    t) = pretty u <+?> pretty t
 
 instance Pretty FunctionType where
  pretty (FunctionType [] t) = pretty t

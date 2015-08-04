@@ -12,6 +12,7 @@ module Icicle.Source.Query.Exp (
   , Agg       (..)
   , Lit       (..)
   , Op        (..)
+  , Fun       (..)
 
   , takeApps
   , takePrimApps
@@ -23,6 +24,8 @@ import                  Icicle.Source.Query.Operators
 import                  Icicle.Internal.Pretty
 
 import                  P
+
+import                  Data.Text (Text)
 
 
 data Exp' q a n
@@ -66,6 +69,7 @@ data Prim
  = Op Op
  | Agg Agg
  | Lit Lit
+ | Fun Fun
  deriving (Show, Eq, Ord)
 
 data Agg
@@ -79,8 +83,16 @@ data Agg
 
 data Lit
  = LitInt Int
+ | LitDouble Double
+ | LitString Text
  deriving (Show, Eq, Ord)
 
+data Fun
+ = Log
+ | Exp
+ | ToDouble
+ | ToInt
+ deriving (Show, Eq, Ord)
 
 
 instance (Pretty n, Pretty q) => Pretty (Exp' q a n) where
@@ -187,6 +199,7 @@ instance Pretty Prim where
  pretty (Op o)  = pretty o
  pretty (Agg a) = pretty a
  pretty (Lit l) = pretty l
+ pretty (Fun f) = pretty f
 
 instance Pretty Agg where
  pretty Count   = "count"
@@ -196,4 +209,12 @@ instance Pretty Agg where
 
 instance Pretty Lit where
  pretty (LitInt i) = text $ show i
+ pretty (LitDouble i) = text $ show i
+ pretty (LitString i) = text $ show i
+
+instance Pretty Fun where
+ pretty Log         = "log"
+ pretty Exp         = "exp"
+ pretty ToDouble    = "double"
+ pretty ToInt       = "int"
 

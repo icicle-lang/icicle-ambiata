@@ -18,6 +18,7 @@ data EvalError a n
  = EvalErrorWindowWithNoDate a BaseValue
  | EvalErrorNoSuchVariable   a n
  | EvalErrorOpBadArgs        a Op  [BaseValue]
+ | EvalErrorFunBadArgs       a Fun [BaseValue]
  | EvalErrorAggBadArgs       a Agg [Exp a n]
 
  | EvalErrorExpNeitherSort   a (Exp a n)
@@ -154,77 +155,124 @@ evalP ann p xs vs env
     Lit (LitInt i)
      -> return (VInt i)
 
+    Lit (LitDouble i)
+     -> return (VDouble i)
+
+    Lit (LitString i)
+     -> return (VString i)
+
+    Fun f
+     -> do  args <- mapM (\x' -> evalX x' vs env) xs
+            let err = Left $ EvalErrorFunBadArgs ann f args
+            case f of
+             Log
+              | [VDouble i] <- args
+              -> return $ VDouble $ log i
+              | otherwise -> err
+             Exp
+              | [VDouble i] <- args
+              -> return $ VDouble $ exp i
+              | otherwise -> err
+             ToDouble
+              | [VInt i] <- args
+              -> return $ VDouble $ fromIntegral i
+              | otherwise -> err
+             ToInt
+              | [VDouble i] <- args
+              -> return $ VInt $ truncate i
+              | otherwise -> err
+
     Op o
      -> do  args <- mapM (\x' -> evalX x' vs env) xs
             let err = Left $ EvalErrorOpBadArgs ann o args
             case o of
              _
+              -- Propagation of errors.
+              -- TODO: this should be checking for VException instead of VNone;
+              -- likewise, foldl1 should return exception if there are no values
               | any (==VNone) args
               -> return $ VNone
-             Div
-              | [_,      VInt 0] <- args
-              -> return   VNone
-              | [VInt i, VInt j] <- args
-              -> return $ VInt (i `div` j)
+
+             ArithDouble Div
+              | [VDouble i, VDouble j] <- args
+              -> return $ VDouble (i / j)
               | otherwise
               -> err
 
-             Mul
-              | [VInt i, VInt j] <- args
-              -> return $ VInt (i * j)
-              | otherwise
-              -> err
-
-             Add
-              | [VInt i, VInt j] <- args
-              -> return $ VInt (i + j)
-              | otherwise
-              -> err
-
-             Sub
-              | [VInt i, VInt j] <- args
-              -> return $ VInt (i - j)
-              | otherwise
-              -> err
-
-             Negate
+             ArithUnary Negate
+              | [VDouble i] <- args
+              -> return $ VDouble $ negate i
               | [VInt i] <- args
               -> return $ VInt $ negate i
               | otherwise
               -> err
 
-             Lt
+             ArithBinary Mul
+              | [VDouble i, VDouble j] <- args
+              -> return $ VDouble (i * j)
               | [VInt i, VInt j] <- args
+              -> return $ VInt (i * j)
+              | otherwise
+              -> err
+
+             ArithBinary Add
+              | [VDouble i, VDouble j] <- args
+              -> return $ VDouble (i + j)
+              | [VInt i, VInt j] <- args
+              -> return $ VInt (i + j)
+              | otherwise
+              -> err
+
+
+             ArithBinary Sub
+              | [VDouble i, VDouble j] <- args
+              -> return $ VDouble (i - j)
+              | [VInt i, VInt j] <- args
+              -> return $ VInt (i - j)
+              | otherwise
+              -> err
+
+             ArithBinary Pow
+              | [VDouble i, VDouble j] <- args
+              -> return $ VDouble (i ** j)
+              | [VInt i, VInt j] <- args
+              -> return $ VInt (i ^ j)
+              | otherwise
+              -> err
+
+
+             Relation Lt
+              | [i, j] <- args
               -> return $ VBool $ i < j
               | otherwise
               -> err
 
-             Le
-              | [VInt i, VInt j] <- args
+             Relation Le
+              | [i, j] <- args
               -> return $ VBool $ i <= j
               | otherwise
               -> err
 
-             Gt
-              | [VInt i, VInt j] <- args
+             Relation Gt
+              | [i, j] <- args
               -> return $ VBool $ i > j
               | otherwise
               -> err
 
-             Ge
-              | [VInt i, VInt j] <- args
+             Relation Ge
+              | [i, j] <- args
               -> return $ VBool $ i >= j
               | otherwise
               -> err
 
-             Eq
-              | [VInt i, VInt j] <- args
+             Relation Eq
+              | [i, j] <- args
               -> return $ VBool $ i == j
               | otherwise
               -> err
 
-             Ne
-              | [VInt i, VInt j] <- args
+             Relation Ne
+              | [i, j] <- args
               -> return $ VBool $ i /= j
               | otherwise
               -> err

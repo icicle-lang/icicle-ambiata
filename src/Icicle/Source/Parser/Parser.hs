@@ -110,6 +110,8 @@ exp1
   prims
    =  asum (fmap (\(k,q) -> pKeyword k *> return q) primitives)
    <|> ((Q.Lit . Q.LitInt) <$> pLitInt)
+   <|> ((Q.Lit . Q.LitDouble) <$> pLitDouble)
+   <|> ((Q.Lit . Q.LitString) <$> pLitString)
    <?> "primitive"
 
   simpNested _ (Q.Query [] x)
@@ -136,5 +138,10 @@ primitives
    ,(T.Count,  Q.Agg Q.Count)
    ,(T.Oldest, Q.Agg Q.Oldest)
    ,(T.Sum,    Q.Agg Q.SumA)
+
+   ,(T.Log,     Q.Fun Q.Log)
+   ,(T.Exp,     Q.Fun Q.Exp)
+   ,(T.Double,  Q.Fun Q.ToDouble)
+   ,(T.Int,     Q.Fun Q.ToInt)
    ]
 

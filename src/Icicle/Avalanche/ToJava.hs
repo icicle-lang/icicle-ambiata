@@ -103,7 +103,11 @@ statementsToJava ctx ss
      -> "icicle.keepFactInHistory();"
     LoadResumable n
      | Just (ATUpdate t) <- Map.lookup n (ctxAcc ctx)
-     -> acc_name n <> " = " <> unbox t ("icicle." <> angled (boxedType t) <> "loadResumable(\"feature\", " <> stringy n <> ")") <> ";"
+     -> let nm = "LOAD$" <> name n
+        in   boxedType t <> " " <> nm <> " = " <> "icicle." <> angled (boxedType t) <> "loadResumable(\"feature\", " <> stringy n <> ");"
+          <> line
+          <> "if (" <> nm <> " != null)"
+          <> block [ acc_name n <> " = " <> unbox t nm <> ";" ]
      | otherwise
      -> "$#!@ no such accumulator " <> acc_name n
     SaveResumable n
@@ -249,9 +253,12 @@ primTypeOfPrim p
      -> Function "Array.zip"
 
  where
-  min' (M.PrimArith ar) = ari ar
+  min' (M.PrimArithUnary ar _) = unary ar
+  min' (M.PrimArithBinary ar _) = binary ar
+  min' (M.PrimDouble ar) = dble   ar
+  min' (M.PrimCast ar) = cast ar
   min' (M.PrimRelation re _) = rel re
-  min' (M.PrimLogical lo) = log' lo
+  min' (M.PrimLogical lo) = logic lo
 
   min' (M.PrimConst (M.PrimConstPair _ _))
    = Function "Pair.create"
@@ -268,11 +275,21 @@ primTypeOfPrim p
   min' (M.PrimStruct (M.PrimStructGet f t _))
    = Special1 $ \a -> a <> "." <> angled (boxedType t) <> "getField" <> "(" <> stringy f <> ")"
 
-  ari   M.PrimArithPlus   = Infix     "+"
-  ari   M.PrimArithMinus  = Infix     "-"
-  ari   M.PrimArithDiv    = Infix     "/"
-  ari   M.PrimArithMul    = Infix     "*"
-  ari   M.PrimArithNegate = Prefix    "-"
+  unary   M.PrimArithNegate = Prefix    "-"
+
+  binary   M.PrimArithPlus   = Infix     "+"
+  binary   M.PrimArithMinus  = Infix     "-"
+  binary   M.PrimArithPow    = Function     "Math.pow"
+  binary   M.PrimArithMul    = Infix     "*"
+
+  dble     M.PrimDoubleDiv  = Infix "/"
+  dble     M.PrimDoubleLog  = Function "Math.log"
+  dble     M.PrimDoubleExp  = Function "Math.exp"
+
+  cast      M.PrimCastIntOfDouble = Function "(int)"
+  cast      M.PrimCastDoubleOfInt = Function "(double)"
+  cast      M.PrimCastStringOfInt = Function "Integer.toString"
+  cast      M.PrimCastStringOfDouble = Function "Double.toString"
 
   rel   M.PrimRelationGt  = Infix     ">"
   rel   M.PrimRelationGe  = Infix     ">="
@@ -281,9 +298,9 @@ primTypeOfPrim p
   rel   M.PrimRelationEq  = Infix     "=="
   rel   M.PrimRelationNe  = Infix     "!="
 
-  log'   M.PrimLogicalNot  = Prefix    "!"
-  log'   M.PrimLogicalAnd  = Infix     "&&"
-  log'   M.PrimLogicalOr   = Infix     "||"
+  logic   M.PrimLogicalNot  = Prefix    "!"
+  logic   M.PrimLogicalAnd  = Infix     "&&"
+  logic   M.PrimLogicalOr   = Infix     "||"
 
   proj (PrimProjectArrayLength _) = Method "size"
   proj (PrimProjectMapLength _ _) = Method "size"
@@ -311,6 +328,7 @@ unbox :: ValType -> Doc -> Doc
 unbox t x
  = case t of
     IntT -> "(" <> x <> ").intValue()"
+    DoubleT -> "(" <> x <> ").doubleValue()"
     DateTimeT -> unbox IntT x
     _    -> x
 
@@ -318,6 +336,7 @@ box :: ValType -> Doc -> Doc
 box t x
  = case t of
     IntT -> "Integer.valueOf(" <> x <> ")"
+    DoubleT -> "Double.valueOf(" <> x <> ")"
     DateTimeT -> box IntT x
     _    -> x
 
@@ -369,6 +388,7 @@ boxedType :: ValType -> Doc
 boxedType t
  = case t of
      IntT       -> "Integer"
+     DoubleT    -> "Double"
      UnitT      -> "Integer"
      BoolT      -> "Boolean"
      DateTimeT  -> "Integer"
@@ -384,6 +404,7 @@ unboxedType :: ValType -> Doc
 unboxedType t
  = case t of
      IntT       -> "int"
+     DoubleT    -> "double"
      UnitT      -> "int"
      BoolT      -> "boolean"
      DateTimeT  -> "int"

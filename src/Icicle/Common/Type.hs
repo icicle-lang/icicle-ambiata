@@ -18,6 +18,10 @@ module Icicle.Common.Type (
     , funOfVal
     , arrow
 
+    , ArithType (..)
+    , valTypeOfArithType
+    , arithTypeOfValType
+
     , Env
     , lookupOrDie
     , insertOrDie
@@ -45,6 +49,7 @@ import qualified    Data.Map as Map
 -- deal with lambda lifting arbitrary functions.
 data ValType =
    IntT
+ | DoubleT
  | UnitT
  | BoolT
  | DateTimeT
@@ -57,6 +62,20 @@ data ValType =
  -- I don't think it will be too much of a stretch to add more types later.
  -- | Double | ...
  deriving (Eq,Ord,Show)
+
+data ArithType
+ = ArithIntT
+ | ArithDoubleT
+ deriving (Eq, Ord, Show)
+
+valTypeOfArithType :: ArithType -> ValType
+valTypeOfArithType ArithIntT    = IntT
+valTypeOfArithType ArithDoubleT = DoubleT
+
+arithTypeOfValType :: ValType -> Maybe ArithType
+arithTypeOfValType IntT         = Just ArithIntT
+arithTypeOfValType DoubleT      = Just ArithDoubleT
+arithTypeOfValType _            = Nothing
 
 
 data StructType
@@ -176,6 +195,11 @@ valueMatchesType v t
     (IntT, _)
      -> False
 
+    (DoubleT, VDouble{})
+     -> True
+    (DoubleT, _)
+     -> False
+
     (UnitT, VUnit{})
      -> True
     (UnitT, _)
@@ -230,15 +254,16 @@ valueMatchesType v t
 
 instance Pretty ValType where
  pretty IntT            = text "Int"
+ pretty DoubleT         = text "Double"
  pretty UnitT           = text "Unit"
  pretty BoolT           = text "Bool"
  pretty DateTimeT       = text "DateTime"
  pretty StringT         = text "String"
- pretty (ArrayT t)      = text "Array " <> pretty t
- pretty (MapT k v)      = text "Map" <+> pretty k <+> pretty v
- pretty (OptionT a)     = text "Option" <+> pretty a
+ pretty (ArrayT t)      = parens (text "Array " <> pretty t)
+ pretty (MapT k v)      = parens (text "Map" <+> pretty k <+> pretty v)
+ pretty (OptionT a)     = parens (text "Option" <+> pretty a)
  pretty (PairT a b)     = text "(" <> pretty a <> text ", " <> pretty b <> text ")"
- pretty (StructT fs)    = pretty fs
+ pretty (StructT fs)    = parens (pretty fs)
 
 instance Pretty StructType where
  pretty (StructType fs) = text "Struct" <+> pretty (Map.toList fs)

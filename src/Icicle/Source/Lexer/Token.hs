@@ -51,6 +51,9 @@ data Token
 
  -- | '~>' for composition
  | TDataFlow
+
+ -- | An error
+ | TUnexpected Text
  deriving (Eq, Ord, Show)
 
 data Keyword
@@ -74,6 +77,10 @@ data Keyword
  | Sum
  | Weeks
  | Windowed
+ | Log
+ | Exp
+ | Double
+ | Int
  deriving (Eq, Ord, Show, Enum, Bounded)
 
 
@@ -81,6 +88,8 @@ data Keyword
 -- TODO: Strings, floats
 data Literal
  = LitInt Int
+ | LitDouble Double
+ | LitString Text
  deriving (Eq, Ord, Show)
 
 data Operator

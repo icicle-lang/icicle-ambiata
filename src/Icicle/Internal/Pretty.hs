@@ -11,6 +11,7 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Icicle.Internal.Pretty (
     module PP
+    , (<+?>)
     ) where
 
 -- The one we want to export without <> or <$>
@@ -34,4 +35,15 @@ instance Pretty Text where
 -- String literals are nice to have.
 instance IsString Doc where
  fromString = text
+
+-- | Concatenate two possibly-empty documents, separated by spaces.
+-- This probably shouldn't be used for large documents.
+(<+?>) :: Doc -> Doc -> Doc
+a <+?> b
+ | P.null $ show a
+ = b
+ | P.null $ show b
+ = a
+ | otherwise
+ = a <+> b
 

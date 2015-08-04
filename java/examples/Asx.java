@@ -1,10 +1,11 @@
 // :dictionary data/example/asx-dictionary.psv
 // feature stuff ~> windowed 60 days ~> filter (high - low > 100) ~> group date ~> sum (open - close)
 //
+package examples;
+
 import java.util.*;
 
-
-class Asx
+public class Asx
 {
   public void compute(IcicleState<IcicleStruct> icicle)
   {

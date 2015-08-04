@@ -6,7 +6,7 @@ ok, loaded test/cli/repl/data.psv, 8 rows
 [homer, 4,marge, 3]
 
 > - Result:
-[homer, 0,marge, 0]
+[homer, 0.5,marge, 0.5]
 
 > > > -- This is a type error because "kermit" is not used!!!
 > -- Expect error.

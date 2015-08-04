@@ -10,6 +10,6 @@ ok, loaded test/cli/repl/data.psv, 8 rows
 
 > > -- Average of distincts. That is, find the *last* for each date, and average all lasts
 > - Result:
-[homer, 300,marge, 20]
+[homer, 300.0,marge, 20.0]
 
 > 

@@ -116,6 +116,7 @@ valueToCore :: Value -> Either SimulateError V.BaseValue
 valueToCore v
  = case v of
     IntValue i     -> return $ V.VInt i
+    DoubleValue d  -> return $ V.VDouble d
     BooleanValue b -> return $ V.VBool b
     ListValue (List ls)
                    -> V.VArray
@@ -129,7 +130,6 @@ valueToCore v
     StructValue (Struct vs)
                    -> V.VStruct . Map.fromList
                   <$> mapM (\(a,b) -> (,) <$> pure (V.StructField $ getAttribute a) <*> valueToCore b) vs
-    DoubleValue _  -> Left   $ SimulateErrorCannotConvertToCore v
     DateValue _    -> Left   $ SimulateErrorCannotConvertToCore v
     Tombstone      -> Left   $ SimulateErrorCannotConvertToCore v
 
@@ -137,6 +137,7 @@ valueFromCore :: V.BaseValue -> Either SimulateError Value
 valueFromCore v
  = case v of
     V.VInt i      -> return $ IntValue i
+    V.VDouble d   -> return $ DoubleValue d
     V.VUnit       -> return $ IntValue 13013
     V.VBool b     -> return $ BooleanValue b
     V.VDateTime d -> return $ DateValue $ Date $ renderDate d

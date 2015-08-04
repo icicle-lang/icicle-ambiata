@@ -1,6 +1,8 @@
+package icicle;
+
 import java.util.*;
 
-interface IcicleState<T>
+public interface IcicleState<T>
 {
     int snapshotDate();
     int daysDifference(int from, int to);

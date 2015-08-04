@@ -33,6 +33,7 @@ data Name n =
 -- This is in here to resolve circular dependency.
 data BaseValue
  = VInt   Int
+ | VDouble Double
  | VUnit
  | VBool  Bool
  | VDateTime        DateTime
@@ -48,8 +49,7 @@ data BaseValue
  deriving (Show, Ord, Eq)
 
 data ExceptionInfo
- = ExceptDivZero
- | ExceptFold1NoValue
+ = ExceptFold1NoValue
  | ExceptScalarVariableNotAvailable
  deriving (Show, Ord, Eq)
 
@@ -71,6 +71,8 @@ instance Pretty BaseValue where
  pretty v
   = case v of
      VInt i
+      -> pretty i
+     VDouble i
       -> pretty i
      VUnit
       -> text "()"
@@ -99,8 +101,6 @@ instance Pretty StructField where
  pretty = text . T.unpack . nameOfStructField
 
 instance Pretty ExceptionInfo where
- pretty ExceptDivZero
-        = text "Division by zero"
  pretty ExceptFold1NoValue
         = text "Fold1, but there is no value"
  pretty ExceptScalarVariableNotAvailable

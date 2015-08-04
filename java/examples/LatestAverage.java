@@ -1,13 +1,15 @@
-// feature salary ~> latest 10 ~> sum value / count
+// feature salary ~> latest 3 ~> sum value / count
+package examples;
 
+import icicle.*;
 import java.util.*;
-class LatestAverage
+public class LatestAverage implements IcicleComputer<Integer>
 {
   public void compute(IcicleState<Integer> icicle)
   {
     int gen$date = icicle.snapshotDate();
 
-    Latest<Integer> ACCUMULATOR$acc$conv$1$simp$8 = icicle.makeLatest(10);
+    Latest<Integer> ACCUMULATOR$acc$conv$1$simp$8 = icicle.makeLatest(3);
     icicle.startHistory();
     while (icicle.nextRow())
     {

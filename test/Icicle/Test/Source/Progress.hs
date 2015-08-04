@@ -31,11 +31,15 @@ prop_progress_no_values :: Map.Map T.Variable BaseType -> Query () T.Variable ->
 prop_progress_no_values f q
  = counterexample pp
  $ counterexample (show typ)
- $ counterexample (show val)
- $ isRight typ ==> isRight val
+ $ case typ of
+    Right (q',_)
+     | val <- evalQ q' [] Map.empty
+     -> counterexample (show val)
+      $ isRight val
+    Left _
+     -> discard
  where
   typ = checkQ (mkElems f) q
-  val = evalQ q [] Map.empty
   pp = show $ pretty q
 
 
