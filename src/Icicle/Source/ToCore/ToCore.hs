@@ -410,6 +410,9 @@ convertQuery q
                 (bs',n'')    <- convertQuery     q'
                 return (bs <> post b' (CE.XVar n') <> bs', n'')
 
+         TemporalityTypeVar _
+          -> convertError $ ConvertErrorGroupByHasNonGroupResult (fst $ annotOfExp def) (snd $ annotOfExp def)
+
 
     -- Converting fold1s.
     (LetFold _ f@Fold{ foldType = FoldTypeFoldl1 } : _)

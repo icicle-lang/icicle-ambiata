@@ -6,25 +6,16 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards #-}
 module Icicle.Source.Type.Base (
-    BaseType (..)
+    BaseType    (..)
+  , TypeVar     (..)
   , valTypeOfBaseType
   , baseTypeOfValType
-  , isArith
-  , isEnum
-  , Universe(..)
-  , Temporality(..)
-  , Possibility(..)
-  , isPureOrElem
-  , isAgg
-  , isGroup
-  , unwrapGroup
-  , maxOf
-  , maxOfPossibility
-  , castPossibilityWith
-  , possibly, definitely, definitelyUT, possiblyUT
-  , canCastTemporality
-  , canCastPossibility
+  , Universe    (..)
+  , Temporality (..)
+  , Possibility (..)
   , UniverseType(..)
+  , unwrapGroup
+  , Constraint  (..)
   , FunctionType(..)
   , function0
   ) where
@@ -36,6 +27,12 @@ import                  Icicle.Internal.Pretty
 import                  P
 
 import qualified        Data.Map as Map
+
+data TypeVar n
+ = TypeVarForall n
+ | TypeVarExists n
+ deriving (Eq, Ord, Show)
+
 
 data BaseType n
  = BoolT
@@ -49,8 +46,7 @@ data BaseType n
  | OptionT             (BaseType n)
  | PairT  (BaseType n) (BaseType n)
  | StructT (Map.Map CT.StructField (BaseType n))
- | TypeVar n
- | TypeVarExistential n
+ | TypeVar (TypeVar n)
  deriving (Eq,Ord,Show)
 
 baseTypeOfValType :: CT.ValType -> BaseType n
@@ -85,36 +81,15 @@ valTypeOfBaseType bt
     PairT a b    -> CT.PairT   <$> go a <*> go b
     StructT st   -> (CT.StructT . CT.StructType)
                 <$> traverse go st
-
     TypeVar _    -> Nothing
-    TypeVarExistential _
-                 -> Nothing
  where
   go = valTypeOfBaseType
-
--- | Can this type be used as a grouping?
--- Very conservative for now.
-isEnum :: BaseType n -> Bool
-isEnum t
- = case t of
-    IntT        -> True
-    BoolT       -> True
-    DateTimeT   -> True
-    _           -> False
-
--- | Is this type a number?
-isArith :: BaseType n -> Bool
-isArith t
- = case t of
-    IntT        -> True
-    DoubleT     -> True
-    _           -> False
 
 
 data Universe n
  = Universe
  { universeTemporality :: Temporality n
- , universePossibility :: Possibility }
+ , universePossibility :: Possibility n }
  deriving (Eq, Ord, Show)
 
 data Temporality n
@@ -122,110 +97,15 @@ data Temporality n
  | Elem
  | Group (BaseType n)
  | AggU
+ | TemporalityTypeVar (TypeVar n)
  deriving (Eq, Ord, Show)
 
 
-data Possibility
+data Possibility n
  = Possibly
  | Definitely
+ | PossibilityTypeVar (TypeVar n)
  deriving (Eq, Ord, Show)
-
-isPureOrElem :: Universe n -> Bool
-isPureOrElem (Universe u _)
- = case u of
-    Pure -> True
-    Elem -> True
-    _    -> False
-
-isAgg :: Universe n -> Bool
-isAgg (Universe u _)
- = case u of
-    AggU -> True
-    _    -> False
-
-
-maxOf :: Eq n => Universe n -> Universe n -> Maybe (Universe n)
-maxOf a b
- = let ut u = universeTemporality u
-       up u = universePossibility u
-
-       t | canCastTemporality (ut a) (ut b)
-         = Just (ut b)
-         | canCastTemporality (ut b) (ut a)
-         = Just (ut a)
-         | otherwise
-         = Nothing
-
-       p = maxOfPossibility (up a) (up b)
-
-  in Universe <$> t <*> Just p
-
-
-maxOfPossibility :: Possibility -> Possibility -> Possibility
-maxOfPossibility a b
- = let p | canCastPossibility a b
-         = b
-         | canCastPossibility b a
-         = a
-         | otherwise
-         = Possibly
-  in p
-
-castPossibilityWith :: Universe n -> Universe n -> Universe n
-castPossibilityWith u1 u2
- = u1
- { universePossibility = maxOfPossibility (universePossibility u1) (universePossibility u2) }
-
-definitely :: Universe n -> Universe n
-definitely u
- = u { universePossibility = Definitely }
-
-possibly   :: Universe n -> Universe n
-possibly u
- = u { universePossibility = Possibly }
-
-definitelyUT :: UniverseType n -> UniverseType n
-definitelyUT u
- = u { universe = definitely $ universe u }
-
-possiblyUT :: UniverseType n -> UniverseType n
-possiblyUT u
- = u { universe = possibly $ universe u }
-
-
-canCastTemporality :: Eq n => Temporality n -> Temporality n -> Bool
-canCastTemporality a b
- | a == Pure
- = True
- | a == b
- = True
- | otherwise
- = False
-
-canCastPossibility :: Possibility -> Possibility -> Bool
-canCastPossibility a b
- | a == Definitely
- = True
- | a == b
- = True
- | otherwise
- = False
-
-
-isGroup :: Universe n -> Bool
-isGroup (Universe u _)
- | Group _ <- u
- = True
- | otherwise
- = False
-
-unwrapGroup :: UniverseType n -> UniverseType n
-unwrapGroup g
- | Group tk <- universeTemporality $ universe g
- = UniverseType (Universe AggU (universePossibility $ universe g)) (MapT tk $ baseType g)
- | otherwise
- = g
-
 
 data UniverseType n
  = UniverseType
@@ -234,12 +114,30 @@ data UniverseType n
  deriving (Eq, Ord, Show)
 
 
-data FunctionType n
- = FunctionType [UniverseType n] (UniverseType n)
+unwrapGroup :: UniverseType n -> UniverseType n
+unwrapGroup g
+ | Universe (Group tk) poss <- universe g
+ = UniverseType (Universe AggU poss) (MapT tk $ baseType g)
+ | otherwise
+ = g
+
+
+data Constraint n
+ = ConstraintSubtype (UniverseType n) (UniverseType n)
  deriving (Eq, Ord, Show)
+
+data FunctionType n
+ = FunctionType
+ { functionForalls      :: [n]
+ , functionConstraints  :: [Constraint n]
+ , functionArguments    :: [UniverseType n]
+ , functionReturn       :: UniverseType n
+ }
+ deriving (Eq, Ord, Show)
+
 function0 :: UniverseType n -> FunctionType n
 function0 u
- = FunctionType [] u
+ = FunctionType [] [] [] u
 
 
 instance Pretty n => Pretty (BaseType n) where
@@ -254,9 +152,11 @@ instance Pretty n => Pretty (BaseType n) where
  pretty (OptionT a)     = parens (text "Option" <+> pretty a)
  pretty (PairT a b)     = text "(" <> pretty a <> text ", " <> pretty b <> text ")"
  pretty (StructT fs)    = parens (text "Struct" <+> pretty (Map.toList fs))
- pretty (TypeVar n)     = pretty n
- pretty (TypeVarExistential n)
-                        = text "?" <> pretty n
+ pretty (TypeVar v)     = pretty v
+
+instance Pretty n => Pretty (TypeVar n) where
+ pretty (TypeVarForall n)   = pretty n
+ pretty (TypeVarExists n)   = text "?" <> pretty n
 
 instance Pretty n => Pretty (Universe n) where
  pretty (Universe t p) = pretty t <+?> pretty p
@@ -266,17 +166,38 @@ instance Pretty n => Pretty (Temporality n) where
  pretty Elem        = "Elem"
  pretty (Group t)   = "Group" <+?> pretty t
  pretty AggU        = "Agg"
+ pretty (TemporalityTypeVar v) = pretty v
 
-instance Pretty Possibility where
+instance Pretty n => Pretty (Possibility n) where
  pretty Possibly    = "Possibly"
  pretty Definitely  = ""
+ pretty (PossibilityTypeVar v) = pretty v
 
 instance Pretty n => Pretty (UniverseType n) where
  pretty (UniverseType u    t) = pretty u <+?> pretty t
 
+instance Pretty n => Pretty (Constraint n) where
+ pretty (ConstraintSubtype p q)
+  = pretty p <+> "<:" <+> pretty q
+
 instance Pretty n => Pretty (FunctionType n) where
- pretty (FunctionType [] t) = pretty t
- pretty (FunctionType (x:xs) t)
-  = pretty x <+> "->" <+> pretty (FunctionType xs t)
+ pretty fun
+  =  foralls (functionForalls       fun)
+  <> constrs (functionConstraints   fun)
+  <> args    (functionArguments     fun)
+  <> pretty  (functionReturn        fun)
+  where
+   foralls []
+    = ""
+   foralls xs
+    = "forall" <+> hsep (fmap pretty xs) <> ". "
+
+   constrs []
+    = ""
+   constrs xs
+    = tupled (fmap pretty xs) <> " => "
+
+   args xs
+    = hsep (fmap (\x -> pretty x <+> "->") xs)
 
 

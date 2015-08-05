@@ -4,9 +4,18 @@ module Icicle.Source.Type.Subtypes (
     isSubtype
   , isBottom
   , isTop
+  , isEnum
+  , isArith
+  , isPureOrElem
+  , isAgg
+  , isGroup
+  , maxOf
+  , maxOfPossibility
+  , castPossibilityWith
+  , canCastTemporality
+  , canCastPossibility
   ) where
 
-import Icicle.Common.Type
 import Icicle.Source.Type.Base
 
 import qualified    Data.Map as Map
@@ -31,12 +40,12 @@ isSubtype p q
  | p == q
  = True
  -- (Double)
- | p == BaseType IntT
- , q == BaseType DoubleT
+ | p == IntT
+ , q == DoubleT
  = True
  -- (Struct)
- | BaseType (StructT (StructType ps)) <- p
- , BaseType (StructT (StructType qs)) <- q
+ | StructT ps <- p
+ , StructT qs <- q
  = Map.fold (&&) True
  $ Map.mapWithKey (\k t -> Map.lookup k qs == Just t)
    ps
@@ -52,10 +61,10 @@ isSubtype p q
 isBottom :: BaseType n -> Bool
 isBottom p
  -- Int <: Double
- | BaseType DoubleT <- p
+ | DoubleT <- p
  = False
  -- {} <: {n : t}
- | BaseType (StructT (StructType ps)) <- p
+ | StructT ps <- p
  , not $ Map.null ps
  = False
 
@@ -71,11 +80,103 @@ isBottom p
 isTop :: BaseType n -> Bool
 isTop p
  -- Int <: Double
- | BaseType IntT <- p
+ | IntT <- p
  = False
  -- {...} <: {..., n : t}
- | BaseType (StructT _) <- p
+ | StructT _ <- p
  = False
  | otherwise
  = True
+
+
+-- | Can this type be used as a grouping?
+-- Very conservative for now.
+isEnum :: BaseType n -> Bool
+isEnum t
+ = case t of
+    IntT        -> True
+    BoolT       -> True
+    DateTimeT   -> True
+    _           -> False
+
+-- | Is this type a number?
+isArith :: BaseType n -> Bool
+isArith t
+ = case t of
+    IntT        -> True
+    DoubleT     -> True
+    _           -> False
+
+isPureOrElem :: Universe n -> Bool
+isPureOrElem (Universe u _)
+ = case u of
+    Pure -> True
+    Elem -> True
+    _    -> False
+
+isAgg :: Universe n -> Bool
+isAgg (Universe u _)
+ = case u of
+    AggU -> True
+    _    -> False
+
+
+maxOf :: Eq n => Universe n -> Universe n -> Maybe (Universe n)
+maxOf a b
+ = let ut u = universeTemporality u
+       up u = universePossibility u
+
+       t | canCastTemporality (ut a) (ut b)
+         = Just (ut b)
+         | canCastTemporality (ut b) (ut a)
+         = Just (ut a)
+         | otherwise
+         = Nothing
+
+       p = maxOfPossibility (up a) (up b)
+
+  in Universe <$> t <*> Just p
+
+
+maxOfPossibility :: Eq n => Possibility n -> Possibility n -> Possibility n
+maxOfPossibility a b
+ = let p | canCastPossibility a b
+         = b
+         | canCastPossibility b a
+         = a
+         | otherwise
+         = Possibly
+  in p
+
+castPossibilityWith :: Eq n => Universe n -> Universe n -> Universe n
+castPossibilityWith u1 u2
+ = u1
+ { universePossibility = maxOfPossibility (universePossibility u1) (universePossibility u2) }
+
+
+canCastTemporality :: Eq n => Temporality n -> Temporality n -> Bool
+canCastTemporality a b
+ | a == Pure
+ = True
+ | a == b
+ = True
+ | otherwise
+ = False
+
+canCastPossibility :: Eq n => Possibility n -> Possibility n -> Bool
+canCastPossibility a b
+ | a == Definitely
+ = True
+ | a == b
+ = True
+ | otherwise
+ = False
+
+
+isGroup :: Universe n -> Bool
+isGroup u
+ | Universe (Group _) _ <- u
+ = True
+ | otherwise
+ = False
 

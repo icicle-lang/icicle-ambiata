@@ -136,6 +136,7 @@ checkQ ctx_top q
                          Pure -> return ()
                          Elem    -> groupError "Elements are not allowed as this could create very large structures"
                          Group _ -> groupError "Nested groups are not supported"
+                         TemporalityTypeVar _ -> groupError "Type variables should not be here"
 
                         let poss = maxOfPossibility
                                     (universePossibility $ universe te)
@@ -298,6 +299,9 @@ checkQ ctx_top q
       (Group _, Pure)   -> False
       (Group _, Elem)   -> False
       (Group _, _)      -> True
+      -- XXX TemporalityTypeVar
+      -- Got pattern match overlap error when matching on left or right
+      (_, _) -> False
 
 
 checkX  :: Ord      n
@@ -327,9 +331,11 @@ checkX ctx x
             t <- maybe err Right $ Map.lookup n $ env ctx
 
             case t of
-             FunctionType [] t'
-              -> return (Var (ann, t') n, t')
              _
+              | [] <- functionArguments t
+              , t' <- functionReturn    t
+              -> return (Var (ann, t') n, t')
+              | otherwise
               -> errorNoSuggestions $ ErrorUnappliedFunction ann x t
     Nested ann q
      -> do (q',t') <- checkQ ctx q
@@ -341,7 +347,9 @@ checkX ctx x
 
     App a p q
      | (Var a' n,xs) <- takeApps x
-     , Just t@(FunctionType tes ret) <- Map.lookup n $ env ctx
+     , Just t <- Map.lookup n $ env ctx
+     , tes    <- functionArguments t
+     , ret    <- functionReturn    t
      -> do when (length tes > length xs)
             $ errorSuggestions (ErrorUnappliedFunction a' x t)
                                [Suggest "Missing arguments"]
