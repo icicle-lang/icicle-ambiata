@@ -7,70 +7,60 @@ module Icicle.Source.Type.Constraints (
   , Subst(..)
   , unifyData
   , substData
+  , ModeConstraint (..)
   ) where
 
 import                  Icicle.Common.Type
 import                  Icicle.Source.Type.Base
--- import                  Icicle.Source.Type.Subtypes
 
 import qualified        Data.Map as Map
 
 import P
 
 
-data DataConstraint n
- = Subtype (BaseType n) (BaseType n)
+data DataConstraint
+ = Subtype BaseType BaseType
  deriving (Eq, Ord, Show)
 
 data DataConstraintError
  = DataConstraintErrorTodo
  deriving (Eq, Ord, Show)
 
-data Subst n
- = Subst (Map.Map n (BaseType n))
+data Subst
+ = Subst (Map.Map TypeVarIndex BaseType)
 
-unifyData   :: [DataConstraint n]
-            -> Either DataConstraintError (Subst n)
-unifyData _cs
+unifyData   :: [DataConstraint]
+            -> Either DataConstraintError Subst
+unifyData _
+ -- TODO
  = return $ Subst Map.empty
-{-
- = foldl merge
- $ fmap gen cs
- where
-  gen (DCSubtype lo hi)
-   = gen' lo hi
 
-  gen' lo hi
-   | lo == hi
-   = []
-   | otherwise
-   = case (lo, hi) of
-      (
--}
-
-substData :: Ord n => Subst n -> BaseType n -> BaseType n
+substData :: Subst -> BaseType -> BaseType
 substData (Subst s) tt
  = go tt
  where
   go t
    = case t of
-      BaseType IntT      -> t
-      BaseType DoubleT   -> t
-      BaseType UnitT     -> t
-      BaseType BoolT     -> t
-      BaseType DateTimeT -> t
-      BaseType (ArrayT a) -> BaseType $ ArrayT  (go a)
-      BaseType (MapT a b)  -> BaseType $ MapT    (go a) (go b)
-      BaseType (OptionT a) -> BaseType $ OptionT (go a)
-      BaseType (PairT a b) -> BaseType $ PairT   (go a) (go b)
-      BaseType (StructT st) -> BaseType $ StructT (StructType $ Map.map go $ getStructType st)
-      BaseType StringT   -> t
-      BaseTypeVar v
+      IntT      -> t
+      DoubleT   -> t
+      UnitT     -> t
+      BoolT     -> t
+      DateTimeT -> t
+      ArrayT a  -> ArrayT  (go a)
+      MapT a b  -> MapT    (go a) (go b)
+      OptionT a -> OptionT (go a)
+      PairT a b -> PairT   (go a) (go b)
+      StructT st-> StructT (StructType $ Map.map go $ getStructType st)
+      StringT   -> t
+      TypeVar v
        | Just t' <- Map.lookup v s
        -> t'
        | otherwise
        -> t
-      BaseTypeExistential _
-       -> t
 
+
+data ModeConstraint
+ = Applies UniverseType
+ | Submode UniverseType UniverseType
+ deriving (Eq, Ord, Show)
 

@@ -102,7 +102,7 @@ data PrimPair
  deriving (Eq, Ord, Show)
 
 data PrimStruct
- = PrimStructGet StructField ValType (StructType ValType)
+ = PrimStructGet StructField ValType StructType
  deriving (Eq, Ord, Show)
 
 
@@ -118,49 +118,49 @@ typeOfPrim p
      -> FunT [funOfVal (valTypeOfArithType t), funOfVal (valTypeOfArithType t)] (valTypeOfArithType t)
 
     PrimDouble PrimDoubleDiv
-     -> FunT [funOfVal' DoubleT, funOfVal' DoubleT] $ ValType DoubleT
+     -> FunT [funOfVal DoubleT, funOfVal DoubleT] DoubleT
     PrimDouble PrimDoubleLog
-     -> FunT [funOfVal' DoubleT] $ ValType DoubleT
+     -> FunT [funOfVal DoubleT] DoubleT
     PrimDouble PrimDoubleExp
-     -> FunT [funOfVal' DoubleT] $ ValType DoubleT
+     -> FunT [funOfVal DoubleT] DoubleT
 
     PrimCast PrimCastDoubleOfInt
-     -> FunT [funOfVal' IntT] $ ValType DoubleT
+     -> FunT [funOfVal IntT] DoubleT
     PrimCast PrimCastIntOfDouble
-     -> FunT [funOfVal' DoubleT] $ ValType IntT
+     -> FunT [funOfVal DoubleT] IntT
     PrimCast PrimCastStringOfInt
-     -> FunT [funOfVal' IntT] $ ValType StringT
+     -> FunT [funOfVal IntT] StringT
     PrimCast PrimCastStringOfDouble
-     -> FunT [funOfVal' DoubleT] $ ValType StringT
+     -> FunT [funOfVal DoubleT] StringT
 
     -- All relations are binary to bool
     PrimRelation _ val
-     -> FunT [funOfVal val, funOfVal val] $ ValType BoolT
+     -> FunT [funOfVal val, funOfVal val] BoolT
 
     -- Logical relations
     PrimLogical PrimLogicalNot
-     -> FunT [funOfVal' BoolT] $ ValType BoolT
+     -> FunT [funOfVal BoolT] BoolT
     PrimLogical PrimLogicalAnd
-     -> FunT [funOfVal' BoolT, funOfVal' BoolT] $ ValType BoolT
+     -> FunT [funOfVal BoolT, funOfVal BoolT] BoolT
     PrimLogical PrimLogicalOr
-     -> FunT [funOfVal' BoolT, funOfVal' BoolT] $ ValType BoolT
+     -> FunT [funOfVal BoolT, funOfVal BoolT] BoolT
 
     -- Constants
     PrimConst (PrimConstPair a b)
-     -> FunT [funOfVal a, funOfVal b] $ ValType $ PairT a b
+     -> FunT [funOfVal a, funOfVal b] (PairT a b)
     PrimConst (PrimConstSome a)
-     -> FunT [funOfVal a] $ ValType $ OptionT a
+     -> FunT [funOfVal a] (OptionT a)
 
     PrimDateTime PrimDateTimeDaysDifference
-     -> FunT [funOfVal' DateTimeT, funOfVal' DateTimeT] $ ValType IntT
+     -> FunT [funOfVal DateTimeT, funOfVal DateTimeT] IntT
 
     PrimPair (PrimPairFst a b)
-     -> FunT [funOfVal' (PairT a b)] a
+     -> FunT [funOfVal (PairT a b)] a
     PrimPair (PrimPairSnd a b)
-     -> FunT [funOfVal' (PairT a b)] b
+     -> FunT [funOfVal (PairT a b)] b
 
     PrimStruct (PrimStructGet f t (StructType fs))
-     -> FunT [funOfVal' (StructT $ StructType $ Map.insert f t fs)] t
+     -> FunT [funOfVal (StructT $ StructType $ Map.insert f t fs)] t
 
 
 -- Pretty -------------

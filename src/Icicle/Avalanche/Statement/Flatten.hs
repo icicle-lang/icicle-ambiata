@@ -228,7 +228,7 @@ flatX xx stm
                      -> return  (Write accN map'')
 
 
-                let mapT = ValType $ MapT tk tv'
+                let mapT = MapT tk tv'
                 return $ InitAccumulator
                             (Accumulator accN Mutable mapT $ XValue mapT $ VMap Map.empty)
                             (loop <> Read accN accN stm')
@@ -260,7 +260,7 @@ flatX xx stm
                      -> return  (Write accN arr'')
 
 
-                let arrT = ValType $ ArrayT tb
+                let arrT = ArrayT tb
                 return $ InitAccumulator
                             (Accumulator accN Mutable arrT (fpArrNew `XApp` (fpArrLen `XApp` arr')))
                             (loop <> Read accN accN stm')
@@ -291,7 +291,7 @@ flatX xx stm
   -- For loop with fresh name for iterator
   forI to ss
    = do n  <- fresh
-        ForeachInts n (XValue (ValType IntT) (VInt 0)) to <$> ss (XVar n)
+        ForeachInts n (XValue IntT (VInt 0)) to <$> ss (XVar n)
 
   -- Handle primitive folds
   --

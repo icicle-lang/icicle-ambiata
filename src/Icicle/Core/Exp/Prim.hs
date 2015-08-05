@@ -61,24 +61,24 @@ typeOfPrim p
 
     -- Folds
     PrimFold PrimFoldBool ret
-     -> FunT [funOfVal ret, funOfVal ret, funOfVal' BoolT] ret
+     -> FunT [funOfVal ret, funOfVal ret, funOfVal BoolT] ret
     PrimFold (PrimFoldArray a) ret
-     -> FunT [FunT [funOfVal ret, funOfVal a] ret, funOfVal ret, funOfVal' (ArrayT a)] ret
+     -> FunT [FunT [funOfVal ret, funOfVal a] ret, funOfVal ret, funOfVal (ArrayT a)] ret
     PrimFold (PrimFoldOption a) ret
-     -> FunT [FunT [funOfVal a] ret, funOfVal ret, funOfVal' (OptionT a)] ret
+     -> FunT [FunT [funOfVal a] ret, funOfVal ret, funOfVal (OptionT a)] ret
     PrimFold (PrimFoldMap k v) ret
-     -> FunT [FunT [funOfVal ret, funOfVal k, funOfVal v] ret, funOfVal ret, funOfVal' (MapT k v)] ret
+     -> FunT [FunT [funOfVal ret, funOfVal k, funOfVal v] ret, funOfVal ret, funOfVal (MapT k v)] ret
 
     -- Array primitives
     PrimArray (PrimArrayMap a b)
-     -> FunT [FunT [funOfVal a] b, funOfVal' $ ArrayT a] $ ValType $ ArrayT b
+     -> FunT [FunT [funOfVal a] b, funOfVal (ArrayT a)] (ArrayT b)
 
     -- Map primitives
     PrimMap (PrimMapInsertOrUpdate k v)
-     -> FunT [FunT [funOfVal v] v, funOfVal v, funOfVal k, funOfVal' (MapT k v)] $ ValType $ MapT k v
+     -> FunT [FunT [funOfVal v] v, funOfVal v, funOfVal k, funOfVal (MapT k v)] (MapT k v)
 
     PrimMap (PrimMapMapValues k v v')
-     -> FunT [FunT [funOfVal v] v', funOfVal' (MapT k v)] $ ValType $ MapT k v'
+     -> FunT [FunT [funOfVal v] v', funOfVal (MapT k v)] (MapT k v')
 
 
 

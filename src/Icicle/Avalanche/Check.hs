@@ -47,7 +47,7 @@ data Context n
 initialContext :: Ord n => Program n p -> Context n
 initialContext p
  = Context
- { ctxExp = Map.singleton (binddate p) (FunT [] $ ValType DateTimeT)
+ { ctxExp = Map.singleton (binddate p) (FunT [] DateTimeT)
  , ctxAcc = Map.empty }
 
 -- TODO:
@@ -79,7 +79,7 @@ checkStatement frag ctx stmt
         If x stmts elses
          -> do t <- mapLeft ProgramErrorExp
                   $ checkExp frag (ctxExp ctx) x
-               requireSame (ProgramErrorWrongType x) t (funOfVal' BoolT)
+               requireSame (ProgramErrorWrongType x) t (FunT [] BoolT)
                thenty <- go stmts
                elsety <- go elses
 
@@ -96,8 +96,8 @@ checkStatement frag ctx stmt
                tt <- mapLeft ProgramErrorExp
                    $ checkExp frag (ctxExp ctx) to
 
-               requireSame (ProgramErrorWrongType from) tf (FunT [] $ ValType IntT)
-               requireSame (ProgramErrorWrongType to)   tt (FunT [] $ ValType IntT)
+               requireSame (ProgramErrorWrongType from) tf (FunT [] IntT)
+               requireSame (ProgramErrorWrongType to)   tt (FunT [] IntT)
 
                go stmts
 
@@ -186,10 +186,10 @@ statementContext frag ctx stmt
            return (ctx { ctxExp = Map.insert n t $ ctxExp ctx })
 
     ForeachInts n _ _ _
-     -> return (ctx { ctxExp = Map.insert n (FunT [] $ ValType IntT) (ctxExp ctx) })
+     -> return (ctx { ctxExp = Map.insert n (FunT [] IntT) (ctxExp ctx) })
 
     ForeachFacts n n' ty _ _
-     -> return (ctx { ctxExp = Map.insert n (FunT [] ty) $ Map.insert n' (FunT [] $ ValType DateTimeT) (ctxExp ctx)})
+     -> return (ctx { ctxExp = Map.insert n (FunT [] ty) $ Map.insert n' (FunT [] DateTimeT) (ctxExp ctx)})
 
     Block _
      -> return ctx
@@ -206,7 +206,7 @@ statementContext frag ctx stmt
             ATUpdate accTy
              -> return (ctx { ctxExp = Map.insert n (FunT [] accTy) $ ctxExp ctx })
             ATPush accTy
-             -> return (ctx { ctxExp = Map.insert n (FunT [] $ ValType $ ArrayT accTy) $ ctxExp ctx })
+             -> return (ctx { ctxExp = Map.insert n (FunT [] (ArrayT accTy)) $ ctxExp ctx })
 
     Write _ _
      -> return ctx
@@ -232,7 +232,7 @@ statementContext frag ctx stmt
       Latest
        -> do    t <- mapLeft ProgramErrorExp
                    $ checkExp frag (ctxExp ctx) x
-                requireSame (ProgramErrorWrongType x) t (FunT [] $ ValType IntT)
+                requireSame (ProgramErrorWrongType x) t (FunT [] IntT)
                 return (n, ATPush ty)
       Mutable
        -> checkUpdate n x ty

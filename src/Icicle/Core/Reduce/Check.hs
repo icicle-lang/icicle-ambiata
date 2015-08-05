@@ -43,9 +43,9 @@ checkReduce se r
             requireSame (ReduceErrorTypeError num)
                         (funOfVal t)                     (funOfVal inp)
             requireSame (ReduceErrorTypeError num)
-                        (funOfVal' IntT)                   nty
+                        (funOfVal IntT)                   nty
 
-            return $ ValType $ ArrayT t
+            return (ArrayT t)
 
  where
   checkX

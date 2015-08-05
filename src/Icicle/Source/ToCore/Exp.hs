@@ -31,7 +31,7 @@ import qualified        Data.Map as Map
 -- These are worker functions for folds, filters and so on.
 convertExp
         :: Ord n
-        => Exp (a,UniverseType n) n
+        => Exp (a,UniverseType) n
         -> ConvertM a n (C.Exp n)
 convertExp x
  = case x of
@@ -68,7 +68,7 @@ convertExp x
 
 convertExpQ
         :: Ord n
-        => Query (a,UniverseType n) n
+        => Query (a,UniverseType) n
         -> ConvertM a n (C.Exp n)
 convertExpQ q
  = case contexts q of

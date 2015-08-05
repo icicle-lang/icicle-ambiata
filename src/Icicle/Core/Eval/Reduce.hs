@@ -90,7 +90,7 @@ eval reduction_name xh sh r
                             , VArray $ fmap (snd.fact) sv' )
 
              _
-              -> Left (SV.RuntimeErrorExpNotOfType num' $ ValType IntT)
+              -> Left (SV.RuntimeErrorExpNotOfType num' IntT)
 
  where
   -- Evaluate expression with environment,

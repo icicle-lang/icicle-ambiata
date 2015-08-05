@@ -167,9 +167,9 @@ eval window_check xh concreteValues sh s
              (VBase (VInt newer'), Just (VBase (VInt older')))
               -> windowBy (\d -> d <= newer' && d >= older') (< older') newer'
              (VBase (VInt _), Just older')
-              -> Left $ RuntimeErrorExpNotOfType older' $ ValType IntT
+              -> Left $ RuntimeErrorExpNotOfType older' IntT
              _
-              -> Left $ RuntimeErrorExpNotOfType newer $ ValType IntT
+              -> Left $ RuntimeErrorExpNotOfType newer IntT
 
     -- Transformers are slightly more involved
     -- Evaluate transform over given values.
@@ -211,7 +211,7 @@ eval window_check xh concreteValues sh s
          V.VBase (VBool b)
           -> return b
          _
-          -> Left (RuntimeErrorExpNotOfType v $ ValType BoolT)
+          -> Left (RuntimeErrorExpNotOfType v BoolT)
 
   -- Evaluate expression with environment,
   -- raise to a stream error if it fails

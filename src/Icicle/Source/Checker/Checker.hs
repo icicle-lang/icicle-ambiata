@@ -28,7 +28,7 @@ import                  Data.List (zip, repeat)
 data CheckEnv n
  = CheckEnv
  -- | Mapping from variable names to whole types
- { env        :: Map.Map n (FunctionType n)
+ { env        :: Map.Map n FunctionType
  -- | The top-level of a query must return an Aggregate, so note whether we're currently at top
  , isTopLevel :: Bool
  -- | We can't have windows or other group-like things inside groups.
@@ -46,14 +46,14 @@ emptyEnv :: CheckEnv n
 emptyEnv
  = CheckEnv Map.empty True False True
 
-type Result r a n = Either (CheckError a n) (r, UniverseType n)
+type Result r a n = Either (CheckError a n) (r, UniverseType)
 
 
 -- | Check a top-level Query, returning the query with type annotations and casts inserted.
 checkQT :: Ord n
         => Features n
         -> QueryTop a n
-        -> Result (QueryTop (a,UniverseType n) n) a n
+        -> Result (QueryTop (a,UniverseType) n) a n
 checkQT features qt
  = case Map.lookup (feature qt) features of
     Just (_,f)
@@ -75,7 +75,7 @@ checkQT features qt
 checkQ  :: Ord      n
         => CheckEnv n
         -> Query  a n
-        -> Result (Query (a,UniverseType n) n) a n
+        -> Result (Query (a,UniverseType) n) a n
 checkQ ctx_top q
  = do (x, t) <- go
       -- If it's top-level, make sure it returns aggregate or group
@@ -197,20 +197,20 @@ checkQ ctx_top q
                         -- Check if we need to cast one of the sides from Int to Double
                         (init'', work'',tret)
                           <- case (baseType ti, baseType tw) of
-                              (BaseType T.IntT, BaseType T.DoubleT)
+                              (T.IntT, T.DoubleT)
                                -- If the zero is an Int and the worker is a Double,
                                -- we need to convert the zero to a Double.
                                -- However, the already computed work' will include a cast from
                                -- the zero to a Double, so we need to compute a new worker
                                -- without the cast.
-                               -> do    (work'',_) <- checkW $ BaseType T.DoubleT
-                                        return (mkCastDouble init', work'', BaseType T.DoubleT)
+                               -> do    (work'',_) <- checkW T.DoubleT
+                                        return (mkCastDouble init', work'', T.DoubleT)
 
                               -- If the zero is a double and the worker returns an Int,
                               -- we need to cast the worker.
                               -- However, this actually seems unlikely.
-                              (BaseType T.DoubleT, BaseType T.IntT)
-                               -> return (init', mkCastDouble work', BaseType T.DoubleT)
+                              (T.DoubleT, T.IntT)
+                               -> return (init', mkCastDouble work', T.DoubleT)
                               (a, b)
                                | a == b
                                -> return (init', work', a)
@@ -252,7 +252,7 @@ checkQ ctx_top q
                         return (wrap c' q'', t')
 
   expFilterIsBool ann c te
-   | BaseType T.BoolT <- baseType te
+   | T.BoolT <- baseType te
    = return ()
    | otherwise
    = errorSuggestions (ErrorContextExpNotBool ann c te)
@@ -282,7 +282,7 @@ checkQ ctx_top q
   wrapAsAgg t
    | isPureOrElem $ universe t
    = UniverseType (universe t) { universeTemporality = AggU }
-   $ BaseType $ T.ArrayT $ baseType t
+   $ T.ArrayT $ baseType t
    | otherwise
    = t
 
@@ -305,7 +305,7 @@ checkQ ctx_top q
 checkX  :: Ord      n
         => CheckEnv      n
         -> Exp    a n
-        -> Result (Exp (a,UniverseType n) n) a n
+        -> Result (Exp (a,UniverseType) n) a n
 checkX ctx x
  | Just (prim, ann, args) <- takePrimApps x
  = do xts <- mapM (checkX ctx) args
@@ -353,8 +353,8 @@ checkX ctx x
            let chk (te, (xx, ta))
                  | te == ta
                  = return $ xx
-                 | baseType te == BaseType T.DoubleT
-                 , baseType ta == BaseType T.IntT
+                 | baseType te == T.DoubleT
+                 , baseType ta == T.IntT
                  = return $ mkCastDouble xx
                  | otherwise
                  = errorSuggestions (ErrorTypeMismatch (fst $ annotOfExp xx) x ta te)
@@ -379,7 +379,7 @@ checkX ctx x
 checkP  :: Ord      n
         => Exp    a n
         -> Prim
-        -> [UniverseType n]
+        -> [UniverseType]
         -> Result [Bool] a n
 checkP x p args
  = case p of
@@ -389,9 +389,9 @@ checkP x p args
     Lit l
      | [] <- args
      -> let t = case l of
-                 LitInt _    -> BaseType T.IntT
-                 LitDouble _ -> BaseType T.DoubleT
-                 LitString _ -> BaseType T.StringT
+                 LitInt _    -> T.IntT
+                 LitDouble _ -> T.DoubleT
+                 LitString _ -> T.StringT
         in  return ([], UniverseType (Universe Pure Definitely) t)
      | otherwise
      -> err
@@ -400,25 +400,25 @@ checkP x p args
     Fun Log
      | [t] <- args
      -> do  (_,ds) <- castToDoublesForce [t]
-            return (ds, t { baseType = BaseType T.DoubleT } )
+            return (ds, t { baseType = T.DoubleT } )
      | otherwise -> err
 
     Fun Exp
      | [t] <- args
      -> do  (_,ds) <- castToDoublesForce [t]
-            return (ds, t { baseType = BaseType T.DoubleT } )
+            return (ds, t { baseType = T.DoubleT } )
      | otherwise -> err
 
     Fun ToDouble
      | [t] <- args
-     , baseType t == BaseType T.IntT
-     -> return ([], t { baseType = BaseType T.DoubleT } )
+     , baseType t == T.IntT
+     -> return ([], t { baseType = T.DoubleT } )
      | otherwise -> err
 
     Fun ToInt
      | [t] <- args
-     , baseType t == BaseType T.DoubleT
-     -> return ([], t { baseType = BaseType T.IntT } )
+     , baseType t == T.DoubleT
+     -> return ([], t { baseType = T.IntT } )
      | otherwise -> err
 
  where
@@ -427,10 +427,10 @@ checkP x p args
   castToDoublesForce
    = castToDoubles True
   castToDoubles force ts
-   | not force && all (\t -> baseType t == BaseType T.IntT) ts
-   = return (BaseType T.IntT, [])
-   | all (\t -> baseType t == BaseType T.IntT || baseType t == BaseType T.DoubleT) ts
-   = return (BaseType T.DoubleT, fmap ((==BaseType T.IntT) . baseType) ts)
+   | not force && all (\t -> baseType t == T.IntT) ts
+   = return (T.IntT, [])
+   | all (\t -> baseType t == T.IntT || baseType t == T.DoubleT) ts
+   = return (T.DoubleT, fmap ((==T.IntT) . baseType) ts)
    | otherwise
    = notnumber
 
@@ -438,8 +438,7 @@ checkP x p args
    = errorNoSuggestions $ ErrorPrimNotANumber (annotOfExp x) x args
 
   checknumber t
-   | Just t' <- valTypeOfBaseType t
-   , Just _ <- T.arithTypeOfValType t'
+   | Just _ <- T.arithTypeOfValType t
    = return ()
    | otherwise
    = notnumber
@@ -468,7 +467,7 @@ checkP x p args
        , Just u <- maxOf (universe a) (universe b)
        , not $ isGroup u
        -> do    (_, cs) <- castToDoublesForce [a,b]
-                return (cs, UniverseType u $ BaseType T.DoubleT)
+                return (cs, UniverseType u T.DoubleT)
        | otherwise
        -> err
 
@@ -477,13 +476,13 @@ checkP x p args
        , baseType a == baseType b
        , Just u <- maxOf (universe a) (universe b)
        , not $ isGroup u
-       -> return ([], UniverseType u $ BaseType T.BoolT)
+       -> return ([], UniverseType u T.BoolT)
 
        | [a,b] <- args
        , Just u <- maxOf (universe a) (universe b)
        , not $ isGroup u
        -> do    (_, cs) <- castToDoubles False [a,b]
-                return (cs, UniverseType u $ BaseType T.BoolT)
+                return (cs, UniverseType u T.BoolT)
 
        | otherwise
        -> err
@@ -493,13 +492,13 @@ checkP x p args
        , a' <- unwrapGroup a
        , b' <- unwrapGroup b
        , Just u <- maxOf (universe a') (universe b')
-       -> return ([], UniverseType u $ BaseType $ T.PairT (baseType a') (baseType b'))
+       -> return ([], UniverseType u $ T.PairT (baseType a') (baseType b'))
        | otherwise
        -> err
 
-mkCastDouble :: Exp (a, UniverseType n) n -> Exp (a, UniverseType n) n
+mkCastDouble :: Exp (a, UniverseType) n -> Exp (a, UniverseType) n
 mkCastDouble xx
  = let (a,t) = annotOfExp xx
-       t'    = t { baseType = BaseType $ T.DoubleT }
+       t'    = t { baseType = T.DoubleT }
    in  Prim (a,t') (Fun ToDouble) `mkApp` xx
 

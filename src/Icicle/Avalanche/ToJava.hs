@@ -33,7 +33,7 @@ programToJava p
  <> block
  [ "public void compute(IcicleState" <> angled (maybe "$#@! NO FEATURE LOOP" boxedType $ concreteFeatureType $ statements p) <> " icicle)"
  <> block
-    [ local (ValType DateTimeT) (binddate p) <> " = icicle.snapshotDate();"
+    [ local DateTimeT (binddate p) <> " = icicle.snapshotDate();"
     , ""
     , case statementContext flatFragment (initialContext p) (statements p) of
        Left err -> "$#@! " <> text (show err)
@@ -72,7 +72,7 @@ statementsToJava ctx ss
     -- however if input program is in a-normal form, it will already
     -- be pulled out to a variable binding.
     ForeachInts n from to s
-     -> "for (" <> local (ValType IntT) n <> " = " <> expToJava ctx Unboxed from <> "; "
+     -> "for (" <> local IntT n <> " = " <> expToJava ctx Unboxed from <> "; "
                 <> name n <> " < " <> expToJava ctx Unboxed to <> "; "
                 <> name n <> "++)" <> block [go s]
 
@@ -83,7 +83,7 @@ statementsToJava ctx ss
         <> line
         <> "while (icicle.nextRow())"
         <> block [ local t n <> " = " <> unbox t "icicle.currentRow()" <> ";"
-                 , local (ValType DateTimeT) n' <> " = icicle.currentRowDate();"
+                 , local DateTimeT n' <> " = icicle.currentRowDate();"
                  , go s]
     Block blocks
      -> let iter _ []     = []
@@ -154,7 +154,7 @@ bindingToJava ctx bb
 
     Read n acc
      | Just (ATPush t) <- Map.lookup acc (ctxAcc ctx)
-     -> local (ValType $ ArrayT t) n <> " = icicle.readLatest(" <> acc_name acc <> ");"
+     -> local (ArrayT t) n <> " = icicle.readLatest(" <> acc_name acc <> ");"
      | Just (ATUpdate t) <- Map.lookup acc (ctxAcc ctx)
      -> local t n <> " = " <> acc_name acc <> ";"
      | otherwise
@@ -179,7 +179,7 @@ expToJava ctx b xx
                  VArray[]-> "Array.empty()"
                  VNone   -> "null"
                  VSome v'
-                  | OptionT t' <- getValType t
+                  | OptionT t' <- t
                   -> expToJava ctx Boxed (XValue t' v')
                  _      -> "$#@! TODO VALUE " <> pretty v
             XPrim p
@@ -326,18 +326,18 @@ boxy _ _ _ d = d
 
 unbox :: ValType -> Doc -> Doc
 unbox t x
- = case getValType t of
+ = case t of
     IntT -> "(" <> x <> ").intValue()"
     DoubleT -> "(" <> x <> ").doubleValue()"
-    DateTimeT -> unbox (ValType IntT) x
+    DateTimeT -> unbox IntT x
     _    -> x
 
 box :: ValType -> Doc -> Doc
 box t x
- = case getValType t of
+ = case t of
     IntT -> "Integer.valueOf(" <> x <> ")"
     DoubleT -> "Double.valueOf(" <> x <> ")"
-    DateTimeT -> box (ValType IntT) x
+    DateTimeT -> box IntT x
     _    -> x
 
 boxyOfPrimReturn :: Prim -> Boxy
@@ -386,7 +386,7 @@ acc_name n
 
 boxedType :: ValType -> Doc
 boxedType t
- = case getValType t of
+ = case t of
      IntT       -> "Integer"
      DoubleT    -> "Double"
      UnitT      -> "Integer"
@@ -396,12 +396,14 @@ boxedType t
      MapT a b   -> "HashMap" <> angled (commas [boxedType a, boxedType b])
      OptionT a  -> boxedType a
      PairT a b  -> "Pair" <> angled (commas [boxedType a, boxedType b])
+     -- ???
      StructT _  -> "IcicleStruct"
      StringT    -> "String"
+     TypeVar _  -> "$#@! unexpected type variable: " <> pretty t
 
 unboxedType :: ValType -> Doc
 unboxedType t
- = case getValType t of
+ = case t of
      IntT       -> "int"
      DoubleT    -> "double"
      UnitT      -> "int"

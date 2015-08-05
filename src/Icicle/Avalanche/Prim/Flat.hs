@@ -86,39 +86,39 @@ typeOfPrim p
      -> Min.typeOfPrim m
 
     PrimProject (PrimProjectArrayLength a)
-     -> FunT [funOfVal' (ArrayT a)] $ ValType IntT
+     -> FunT [funOfVal (ArrayT a)] IntT
 
     PrimProject (PrimProjectMapLength a b)
-     -> FunT [funOfVal' (MapT a b)] $ ValType IntT
+     -> FunT [funOfVal (MapT a b)] IntT
 
     PrimProject (PrimProjectMapLookup a b)
-     -> FunT [funOfVal' (MapT a b), funOfVal a] $ ValType $ OptionT b
+     -> FunT [funOfVal (MapT a b), funOfVal a] (OptionT b)
 
 
     PrimProject (PrimProjectOptionIsSome a)
-     -> FunT [funOfVal' (OptionT a)] $ ValType BoolT
+     -> FunT [funOfVal (OptionT a)] BoolT
 
 
     PrimUnsafe  (PrimUnsafeArrayIndex a)
-     -> FunT [funOfVal' (ArrayT a), funOfVal' IntT] a
+     -> FunT [funOfVal (ArrayT a), funOfVal IntT] a
 
     PrimUnsafe  (PrimUnsafeArrayCreate a)
-     -> FunT [funOfVal' IntT] $ ValType $ ArrayT a
+     -> FunT [funOfVal IntT] (ArrayT a)
 
     PrimUnsafe  (PrimUnsafeMapIndex a b)
-     -> FunT [funOfVal' (MapT a b), funOfVal' IntT] $ ValType $ PairT a b
+     -> FunT [funOfVal (MapT a b), funOfVal IntT] (PairT a b)
 
     PrimUnsafe  (PrimUnsafeOptionGet a)
-     -> FunT [funOfVal' (OptionT a)] a
+     -> FunT [funOfVal (OptionT a)] a
 
     PrimUpdate  (PrimUpdateMapPut a b)
-     -> FunT [funOfVal' (MapT a b), funOfVal a, funOfVal b] $ ValType $ MapT a b
+     -> FunT [funOfVal (MapT a b), funOfVal a, funOfVal b] (MapT a b)
 
     PrimUpdate  (PrimUpdateArrayPut a)
-     -> FunT [funOfVal' (ArrayT a), funOfVal' IntT, funOfVal a] $ ValType $ ArrayT a
+     -> FunT [funOfVal (ArrayT a), funOfVal IntT, funOfVal a] (ArrayT a)
 
     PrimArray  (PrimArrayZip a b)
-     -> FunT [funOfVal' (ArrayT a), funOfVal' (ArrayT b)] $ ValType $ ArrayT $ ValType $ PairT a b
+     -> FunT [funOfVal (ArrayT a), funOfVal (ArrayT b)] (ArrayT (PairT a b))
 
 
 -- Pretty -------------
