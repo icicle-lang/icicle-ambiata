@@ -11,7 +11,6 @@
 {-# LANGUAGE PatternGuards #-}
 module Icicle.Common.Type (
       ValType (..)
-    , TypeVarIndex (..)
     , FunType (..)
     , StructType (..)
     , StructField (..)
@@ -48,26 +47,18 @@ import qualified    Data.Map as Map
 -- No functions here, because we don't want higher order functions in the generated code.
 -- This restriction should simplify code generation, because we won't need to
 -- deal with lambda lifting arbitrary functions.
-data ValType =
-   IntT
- | DoubleT
- | UnitT
- | BoolT
+data ValType
+ = BoolT
  | DateTimeT
+ | DoubleT
+ | IntT
+ | StringT
+ | UnitT
  | ArrayT ValType
  | MapT   ValType ValType
  | OptionT        ValType
  | PairT  ValType ValType
  | StructT StructType
- | StringT
- -- | Type variables are identified by de bruijn indices.
- -- These do not appear in Core and Avalanche, only in Source.
- | TypeVar TypeVarIndex
- deriving (Eq,Ord,Show)
-
-data TypeVarIndex
- = TypeVarIndex
- { getTypeVarIndex :: Int }
  deriving (Eq,Ord,Show)
 
 data ArithType
@@ -257,10 +248,6 @@ valueMatchesType v t
     (StructT _, _)
      -> False
 
-    -- No value matches an uninstantiated type variable
-    (TypeVar _, _)
-     -> False
-
 
 -- Pretty printing ---------------
 
@@ -276,10 +263,6 @@ instance Pretty ValType where
  pretty (OptionT a)     = parens (text "Option" <+> pretty a)
  pretty (PairT a b)     = text "(" <> pretty a <> text ", " <> pretty b <> text ")"
  pretty (StructT fs)    = parens (pretty fs)
- pretty (TypeVar i)  = pretty i
-
-instance Pretty TypeVarIndex where
- pretty (TypeVarIndex i)  = text "^" <> pretty i
 
 instance Pretty StructType where
  pretty (StructType fs) = text "Struct" <+> pretty (Map.toList fs)

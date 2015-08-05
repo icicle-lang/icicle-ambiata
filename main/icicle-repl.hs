@@ -304,7 +304,7 @@ handleSetCommand state set
 
 --------------------------------------------------------------------------------
 
-type QueryTopPUV = SQ.QueryTop (SP.SourcePos, ST.UniverseType) SP.Variable
+type QueryTopPUV = SQ.QueryTop (SP.SourcePos, ST.UniverseType SP.Variable) SP.Variable
 type ProgramT    = CP.Program Text
 newtype Result   = Result (Entity, Value)
 

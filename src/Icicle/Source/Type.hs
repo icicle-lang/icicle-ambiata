@@ -7,4 +7,4 @@ module Icicle.Source.Type (
   ) where
 
 import Icicle.Source.Type.Base as X
-import Icicle.Source.Type.Constraints as X
+-- import Icicle.Source.Type.Constraints as X

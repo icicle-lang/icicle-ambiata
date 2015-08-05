@@ -2,15 +2,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards #-}
 module Icicle.Source.Type.Constraints (
-    DataConstraint (..)
-  , DataConstraintError (..)
-  , Subst(..)
-  , unifyData
-  , substData
-  , ModeConstraint (..)
   ) where
 
-import                  Icicle.Common.Type
+{-
 import                  Icicle.Source.Type.Base
 
 import qualified        Data.Map as Map
@@ -50,13 +44,8 @@ substData (Subst s) tt
       MapT a b  -> MapT    (go a) (go b)
       OptionT a -> OptionT (go a)
       PairT a b -> PairT   (go a) (go b)
-      StructT st-> StructT (StructType $ Map.map go $ getStructType st)
+      StructT st-> StructT $ Map.map go st)
       StringT   -> t
-      TypeVar v
-       | Just t' <- Map.lookup v s
-       -> t'
-       | otherwise
-       -> t
 
 
 data ModeConstraint
@@ -64,3 +53,4 @@ data ModeConstraint
  | Submode UniverseType UniverseType
  deriving (Eq, Ord, Show)
 
+-}

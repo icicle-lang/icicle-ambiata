@@ -25,18 +25,18 @@ data CheckError a n
 data ErrorInfo a n
  = ErrorNoSuchVariable a n
  | ErrorNoSuchFeature n
- | ErrorReturnNotAggregate a (Query a n) UniverseType
- | ErrorContextExpNotBool  a (Context a n)   UniverseType
- | ErrorContextExpNotEnum  a (Context a n)   UniverseType
- | ErrorContextExpNotElem  a (Context a n)   UniverseType
+ | ErrorReturnNotAggregate a (Query a n)     (UniverseType n)
+ | ErrorContextExpNotBool  a (Context a n)   (UniverseType n)
+ | ErrorContextExpNotEnum  a (Context a n)   (UniverseType n)
+ | ErrorContextExpNotElem  a (Context a n)   (UniverseType n)
  | ErrorContextNotAllowedHere  a (Context a n)
- | ErrorFoldTypeMismatch       a UniverseType UniverseType
- | ErrorTypeMismatch           a (Exp a n) UniverseType UniverseType
- | ErrorUniverseMismatch       a UniverseType Universe
- | ErrorUnappliedFunction      a (Exp a n) FunctionType
+ | ErrorFoldTypeMismatch       a (UniverseType n) (UniverseType n)
+ | ErrorTypeMismatch           a (Exp a n) (UniverseType n) (UniverseType n)
+ | ErrorUniverseMismatch       a (UniverseType n) (Universe n)
+ | ErrorUnappliedFunction      a (Exp a n) (FunctionType n)
  | ErrorApplicationNotFunction a (Exp a n)
- | ErrorPrimBadArgs          a (Exp a n) [UniverseType]
- | ErrorPrimNotANumber       a (Exp a n) [UniverseType]
+ | ErrorPrimBadArgs          a (Exp a n) [UniverseType n]
+ | ErrorPrimNotANumber       a (Exp a n) [UniverseType n]
  deriving (Show, Eq, Ord)
 
 annotOfError :: CheckError a n -> Maybe a
@@ -73,8 +73,8 @@ annotOfError (CheckError e _)
 
 
 data ErrorSuggestion a n
- = AvailableFeatures [(n, BaseType)]
- | AvailableBindings [(n, FunctionType)]
+ = AvailableFeatures [(n, BaseType n)]
+ | AvailableBindings [(n, FunctionType n)]
  | Suggest String
  deriving (Show, Eq, Ord)
 
@@ -144,7 +144,7 @@ instance (Pretty a, Pretty n) => Pretty (ErrorInfo a n) where
      ErrorUniverseMismatch a ty expected
       -> "Universe mismatch at " <+> pretty a <> line
       <> "Type:     " <> inp ty      <> line
-      <> "Expected: " <> text (show expected)
+      <> "Expected: " <> inp expected
 
      ErrorUnappliedFunction a x f
       -> "Function not applied to arguments at " <+> pretty a <> line
