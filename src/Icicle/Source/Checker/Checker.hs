@@ -136,7 +136,7 @@ checkQ ctx_top q
                          Pure -> return ()
                          Elem    -> groupError "Elements are not allowed as this could create very large structures"
                          Group _ -> groupError "Nested groups are not supported"
-                         TemporalityTypeVar _ -> groupError "Type variables should not be here"
+                         TemporalityVar _ -> groupError "Type variables should not be here"
 
                         let poss = maxOfPossibility
                                     (universePossibility $ universe te)
@@ -257,11 +257,9 @@ checkQ ctx_top q
    = errorSuggestions (ErrorContextExpNotBool ann c te)
                       [Suggest "The predicate for a filter must be a boolean"]
 
-  expIsEnum ann c te
+  expIsEnum _ _ _
   -- TODO: this check is disabled as strings should be allowed
-   = when (False && (not $ isEnum $ baseType te))
-         $ errorSuggestions (ErrorContextExpNotEnum ann c te)
-                            [Suggest "Group-by and distinct-by must be bounded; otherwise we'd run out of memory"]
+   = return ()
 
   expIsElem ann c te
    = when (not $ isPureOrElem $ universe te)
@@ -299,7 +297,7 @@ checkQ ctx_top q
       (Group _, Pure)   -> False
       (Group _, Elem)   -> False
       (Group _, _)      -> True
-      -- XXX TemporalityTypeVar
+      -- XXX TemporalityVar
       -- Got pattern match overlap error when matching on left or right
       (_, _) -> False
 

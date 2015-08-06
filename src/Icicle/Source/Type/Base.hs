@@ -7,7 +7,6 @@
 {-# LANGUAGE PatternGuards #-}
 module Icicle.Source.Type.Base (
     BaseType    (..)
-  , TypeVar     (..)
   , valTypeOfBaseType
   , baseTypeOfValType
   , Universe    (..)
@@ -20,6 +19,7 @@ module Icicle.Source.Type.Base (
   , function0
   ) where
 
+import                  Icicle.Common.Base
 import qualified        Icicle.Common.Type as CT
 
 import                  Icicle.Internal.Pretty
@@ -27,11 +27,6 @@ import                  Icicle.Internal.Pretty
 import                  P
 
 import qualified        Data.Map as Map
-
-data TypeVar n
- = TypeVarForall n
- | TypeVarExists n
- deriving (Eq, Ord, Show)
 
 
 data BaseType n
@@ -46,7 +41,7 @@ data BaseType n
  | OptionT             (BaseType n)
  | PairT  (BaseType n) (BaseType n)
  | StructT (Map.Map CT.StructField (BaseType n))
- | TypeVar (TypeVar n)
+ | BaseTypeVar (Name n)
  deriving (Eq,Ord,Show)
 
 baseTypeOfValType :: CT.ValType -> BaseType n
@@ -81,7 +76,7 @@ valTypeOfBaseType bt
     PairT a b    -> CT.PairT   <$> go a <*> go b
     StructT st   -> (CT.StructT . CT.StructType)
                 <$> traverse go st
-    TypeVar _    -> Nothing
+    BaseTypeVar _-> Nothing
  where
   go = valTypeOfBaseType
 
@@ -97,14 +92,14 @@ data Temporality n
  | Elem
  | Group (BaseType n)
  | AggU
- | TemporalityTypeVar (TypeVar n)
+ | TemporalityVar (Name n)
  deriving (Eq, Ord, Show)
 
 
 data Possibility n
  = Possibly
  | Definitely
- | PossibilityTypeVar (TypeVar n)
+ | PossibilityVar (Name n)
  deriving (Eq, Ord, Show)
 
 data UniverseType n
@@ -123,12 +118,21 @@ unwrapGroup g
 
 
 data Constraint n
- = ConstraintSubtype (UniverseType n) (UniverseType n)
+ = ConstraintBaseType (BaseType n) ConstraintType (BaseType n)
+ | ConstraintTemporality (Temporality n) ConstraintType (Temporality n)
+ | ConstraintPossibility (Possibility n) ConstraintType (Possibility n)
+ | ConstraintUniverseType (UniverseType n) ConstraintType (UniverseType n)
  deriving (Eq, Ord, Show)
+
+data ConstraintType
+ = ConstraintSub
+ | ConstraintEq
+ deriving (Eq, Ord, Show)
+
 
 data FunctionType n
  = FunctionType
- { functionForalls      :: [n]
+ { functionForalls      :: [Name n]
  , functionConstraints  :: [Constraint n]
  , functionArguments    :: [UniverseType n]
  , functionReturn       :: UniverseType n
@@ -152,11 +156,7 @@ instance Pretty n => Pretty (BaseType n) where
  pretty (OptionT a)     = parens (text "Option" <+> pretty a)
  pretty (PairT a b)     = text "(" <> pretty a <> text ", " <> pretty b <> text ")"
  pretty (StructT fs)    = parens (text "Struct" <+> pretty (Map.toList fs))
- pretty (TypeVar v)     = pretty v
-
-instance Pretty n => Pretty (TypeVar n) where
- pretty (TypeVarForall n)   = pretty n
- pretty (TypeVarExists n)   = text "?" <> pretty n
+ pretty (BaseTypeVar v) = pretty v
 
 instance Pretty n => Pretty (Universe n) where
  pretty (Universe t p) = pretty t <+?> pretty p
@@ -166,19 +166,29 @@ instance Pretty n => Pretty (Temporality n) where
  pretty Elem        = "Elem"
  pretty (Group t)   = "Group" <+?> pretty t
  pretty AggU        = "Agg"
- pretty (TemporalityTypeVar v) = pretty v
+ pretty (TemporalityVar v) = pretty v
 
 instance Pretty n => Pretty (Possibility n) where
  pretty Possibly    = "Possibly"
  pretty Definitely  = ""
- pretty (PossibilityTypeVar v) = pretty v
+ pretty (PossibilityVar v) = pretty v
 
 instance Pretty n => Pretty (UniverseType n) where
  pretty (UniverseType u    t) = pretty u <+?> pretty t
 
 instance Pretty n => Pretty (Constraint n) where
- pretty (ConstraintSubtype p q)
-  = pretty p <+> "<:" <+> pretty q
+ pretty (ConstraintBaseType p c q)
+  = pretty p <+> pretty c <+> pretty q
+ pretty (ConstraintTemporality p c q)
+  = pretty p <+> pretty c <+> pretty q
+ pretty (ConstraintPossibility p c q)
+  = pretty p <+> pretty c <+> pretty q
+ pretty (ConstraintUniverseType p c q)
+  = pretty p <+> pretty c <+> pretty q
+
+instance Pretty ConstraintType where
+ pretty ConstraintSub = "<:"
+ pretty ConstraintEq  = "=:"
 
 instance Pretty n => Pretty (FunctionType n) where
  pretty fun

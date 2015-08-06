@@ -34,7 +34,7 @@ data QueryTop a n
 
 data Query a n
  = Query
- { contexts :: [Context a n] 
+ { contexts :: [Context a n]
  , final    :: Exp a n }
  deriving (Show, Eq, Ord)
 
@@ -132,12 +132,6 @@ reannotQT f qt
 annotOfQuery :: Query a n -> a
 annotOfQuery q
  = case contexts q of
-    [] -> annotOfExp $ final q
-    (Windowed a _ _:_) -> a
-    (Latest   a _  :_) -> a
-    (GroupBy  a _  :_) -> a
-    (Distinct a _  :_) -> a
-    (Filter   a _  :_) -> a
-    (LetFold  a _  :_) -> a
-    (Let      a _ _:_) -> a
+    []    -> annotOfExp $ final q
+    (c:_) -> annotOfContext c
 

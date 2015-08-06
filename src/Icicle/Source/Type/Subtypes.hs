@@ -4,7 +4,6 @@ module Icicle.Source.Type.Subtypes (
     isSubtype
   , isBottom
   , isTop
-  , isEnum
   , isArith
   , isPureOrElem
   , isAgg
@@ -88,16 +87,6 @@ isTop p
  | otherwise
  = True
 
-
--- | Can this type be used as a grouping?
--- Very conservative for now.
-isEnum :: BaseType n -> Bool
-isEnum t
- = case t of
-    IntT        -> True
-    BoolT       -> True
-    DateTimeT   -> True
-    _           -> False
 
 -- | Is this type a number?
 isArith :: BaseType n -> Bool

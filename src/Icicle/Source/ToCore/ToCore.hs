@@ -410,7 +410,7 @@ convertQuery q
                 (bs',n'')    <- convertQuery     q'
                 return (bs <> post b' (CE.XVar n') <> bs', n'')
 
-         TemporalityTypeVar _
+         TemporalityVar _
           -> convertError $ ConvertErrorGroupByHasNonGroupResult (fst $ annotOfExp def) (snd $ annotOfExp def)
 
 
