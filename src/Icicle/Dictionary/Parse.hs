@@ -4,6 +4,9 @@
 module Icicle.Dictionary.Parse (
     parseDictionaryLineV1
   , writeDictionaryLineV1
+  , parsePrimitiveEncoding
+  , parseEncoding
+  , prettyConcrete
   ) where
 
 import           Icicle.Data
@@ -20,34 +23,40 @@ field :: Parser Text
 field = append <$> takeWhile (not . isDelimOrEscape) <*> (concat <$> many (cons <$> escaped <*> field)) <?> "field"
   where
     escaped :: Parser Char
-    escaped = repEscape <$> (char '\\' >> satisfy (inClass "|rn\\")) <?> "Escaped char"
+    escaped = repEscape =<< (char '\\' >> satisfy (inClass "|rn\\")) <?> "Escaped char"
     isDelimOrEscape c = c == '\\' || c == '|'
-    repEscape '|' = '|'
-    repEscape 'n' = '\n'
-    repEscape 'r' = '\r'
-    repEscape '\\' = '\\'
-    repEscape a = repEscape a -- _|_
+    repEscape '|'  = pure '|'
+    repEscape 'n'  = pure '\n'
+    repEscape 'r'  = pure '\r'
+    repEscape '\\' = pure '\\'
+    repEscape _    = mempty -- Unreachable
 
 parseIcicleDictionaryV1 :: Parser DictionaryEntry
 parseIcicleDictionaryV1 = do
-  DictionaryEntry <$> (Attribute <$> field) <* p <*> (ConcreteDefinition <$> encoding)
+  DictionaryEntry <$> (Attribute <$> field) <* p <*> (ConcreteDefinition <$> parseEncoding)
     where
       p = char '|'
-      encoding :: Parser Encoding
-      encoding = StringEncoding  <$ string "string"
-             <|> IntEncoding     <$ string "int"
-             <|> IntEncoding     <$ string "long" -- Todo, change this once Longs are a thing
-             <|> DoubleEncoding  <$ string "double"
-             <|> DateEncoding    <$ string "date"
-             <|> BooleanEncoding <$ string "boolean"
-             <|> ListEncoding    <$ char '[' <*> encoding <* char ']'
-             <|> StructEncoding  <$ char '(' <*> (structField `sepBy` char ',') <* char ')'
-      structField = do
-        n <- takeWhile (/= ':')
-        _ <- char ':'
-        e <- encoding
-        o <- Optional <$ char '*' <|> pure Mandatory
-        pure $ StructField o (Attribute n) e
+
+parsePrimitiveEncoding :: Parser Encoding
+parsePrimitiveEncoding =
+           StringEncoding  <$ string "string"
+       <|> IntEncoding     <$ string "int"
+       <|> IntEncoding     <$ string "long" -- Todo, change this once Longs are a thing
+       <|> DoubleEncoding  <$ string "double"
+       <|> DateEncoding    <$ string "date"
+       <|> BooleanEncoding <$ string "boolean"
+
+parseEncoding :: Parser Encoding
+parseEncoding = parsePrimitiveEncoding
+       <|> ListEncoding    <$ char '[' <*> parseEncoding <* char ']'
+       <|> StructEncoding  <$ char '(' <*> (structField `sepBy` char ',') <* char ')'
+  where
+    structField = do
+      n <- takeWhile (/= ':')
+      _ <- char ':'
+      e <- parsePrimitiveEncoding
+      o <- Optional <$ char '*' <|> pure Mandatory
+      pure $ StructField o (Attribute n) e
 
 parseDictionaryLineV1 :: Text -> Either ParseError DictionaryEntry
 parseDictionaryLineV1 s =

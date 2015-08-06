@@ -10,8 +10,8 @@ module Icicle.Dictionary.Data (
 
 import           Icicle.Data
 
-import qualified Icicle.Core.Program.Program as P
 
+import qualified Icicle.Core.Program.Program as P
 import           P
 
 import           Data.Text

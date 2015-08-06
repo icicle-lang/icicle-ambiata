@@ -1,0 +1,61 @@
+title = "Demonstration dictionary"
+
+version = 1
+
+# The default namespace for this dictionary.
+namespace="demographics"
+
+# imports an array of icicle libs, search path of libs dir, then std libs dir.
+import = [
+  "prelude.icicle", # not sure about the extension yet.
+  "super-customer.icicle",
+]
+
+# Optionally, import addition dictionary files, specifying sub dictionaries.
+# Should help namespace separation. A Master dictionary could contain just this, title, and version.
+chapter = [ ]
+
+# Set the default tombstone and missing value indicator.
+tombstone = "NA"
+
+# definition is a fact
+# namespace is demographics
+# feature is age
+
+[fact.age]
+  encoding="int"
+  # Override the tombstone value for this fact
+  tombstone="-"
+
+[fact.salary]
+  encoding="int"
+  mode="set"
+
+# When TOML v4 is supported, in-line tables will also be possible. e.g.,
+# fact.salary = { namespace="demographics", encoding="int", mode="set" }
+
+[fact.gender]
+  encoding="string"
+
+[fact.injury]
+  # Override the namespace for this feature
+  namespace="injuries"
+  #encoding="(location:string,severity:int,refnum:int,action:string*)"
+  [fact.injury.encoding]
+    location="string"
+    severity="int"
+    action="string*"
+
+[feature.mean_salary]
+  expression="""
+    feature salary ~> sum value / count
+  """
+
+[feature.salary_standard_deviation]
+  expression="""
+    feature salary ~> let ss = (sum value) ~> (((sum (value * value) * count) - (ss * ss)) / (count * (count - 1)))
+  """
+
+[deprecated.mean_salary]
+  source="salary"
+  expression="mean"
