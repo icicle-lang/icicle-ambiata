@@ -25,18 +25,18 @@ data CheckError a n
 data ErrorInfo a n
  = ErrorNoSuchVariable a n
  | ErrorNoSuchFeature n
- | ErrorReturnNotAggregate a (Query a n)     (UniverseType n)
- | ErrorContextExpNotBool  a (Context a n)   (UniverseType n)
- | ErrorContextExpNotEnum  a (Context a n)   (UniverseType n)
- | ErrorContextExpNotElem  a (Context a n)   (UniverseType n)
+ | ErrorReturnNotAggregate a (Query a n)     (Type n)
+ | ErrorContextExpNotBool  a (Context a n)   (Type n)
+ | ErrorContextExpNotEnum  a (Context a n)   (Type n)
+ | ErrorContextExpNotElem  a (Context a n)   (Type n)
  | ErrorContextNotAllowedHere  a (Context a n)
- | ErrorFoldTypeMismatch       a (UniverseType n) (UniverseType n)
- | ErrorTypeMismatch           a (Exp a n) (UniverseType n) (UniverseType n)
- | ErrorUniverseMismatch       a (UniverseType n) (Universe n)
+ | ErrorFoldTypeMismatch       a (Type n) (Type n)
+ | ErrorTypeMismatch           a (Exp a n) (Type n) (Type n)
+ | ErrorUniverseMismatch       a (Type n) (Type n)
  | ErrorUnappliedFunction      a (Exp a n) (FunctionType n)
  | ErrorApplicationNotFunction a (Exp a n)
- | ErrorPrimBadArgs          a (Exp a n) [UniverseType n]
- | ErrorPrimNotANumber       a (Exp a n) [UniverseType n]
+ | ErrorPrimBadArgs          a (Exp a n) [Type n]
+ | ErrorPrimNotANumber       a (Exp a n) [Type n]
  deriving (Show, Eq, Ord)
 
 annotOfError :: CheckError a n -> Maybe a
@@ -73,7 +73,7 @@ annotOfError (CheckError e _)
 
 
 data ErrorSuggestion a n
- = AvailableFeatures [(n, BaseType n)]
+ = AvailableFeatures [(n, Type n)]
  | AvailableBindings [(n, FunctionType n)]
  | Suggest String
  deriving (Show, Eq, Ord)
