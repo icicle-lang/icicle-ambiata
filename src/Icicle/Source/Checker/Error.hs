@@ -33,7 +33,7 @@ data ErrorInfo a n
  | ErrorFoldTypeMismatch       a (Type n) (Type n)
  | ErrorTypeMismatch           a (Exp a n) (Type n) (Type n)
  | ErrorUniverseMismatch       a (Type n) (Type n)
- | ErrorUnappliedFunction      a (Exp a n) (FunctionType n)
+ | ErrorFunctionWrongArgs      a (Exp a n) (FunctionType n) [Type n]
  | ErrorApplicationNotFunction a (Exp a n)
  | ErrorPrimBadArgs          a (Exp a n) [Type n]
  | ErrorPrimNotANumber       a (Exp a n) [Type n]
@@ -62,7 +62,7 @@ annotOfError (CheckError e _)
      -> Just a
     ErrorUniverseMismatch       a _ _
      -> Just a
-    ErrorUnappliedFunction      a _ _
+    ErrorFunctionWrongArgs      a _ _ _
      -> Just a
     ErrorApplicationNotFunction a _
      -> Just a
@@ -146,10 +146,11 @@ instance (Pretty a, Pretty n) => Pretty (ErrorInfo a n) where
       <> "Type:     " <> inp ty      <> line
       <> "Expected: " <> inp expected
 
-     ErrorUnappliedFunction a x f
-      -> "Function not applied to arguments at " <+> pretty a <> line
-      <> "Exp:  " <> inp x
-      <> "Type: " <> inp f
+     ErrorFunctionWrongArgs a x f tys
+      -> "Function applied to wrong number of arguments at " <+> pretty a <> line
+      <> "Expression:     " <> inp x
+      <> "Function type:  " <> inp f
+      <> "Argument types: " <> inp f
 
      ErrorApplicationNotFunction a x
       -> "Application of non-function at " <+> pretty a <> line

@@ -8,7 +8,11 @@ module Icicle.Source.Type.Subst (
     SubstT
   , substT
   , substC
+  , compose
+  , unifyT
   , canonT
+  , decomposeT
+  , recomposeT
   , getTemporality
   , getPossibility
   ) where
@@ -70,20 +74,140 @@ substC ss cc
      -> CIsNum (substT ss p)
 
 
-canonT :: Type n -> Type n
-canonT tt
- = temper
- $ posten tt
- where
-  temper t
-   = case getTemporality t of
-      Just (a,b) -> Temporality a b
-      Nothing    -> Temporality TemporalityPure t
+-- | Compose two substitutions together, in order.
+-- `compose s1 s2` performs s1 then s2.
+--
+-- If the same name is mentioned in both, s1 takes priority since it happens first:
+--
+-- > compose {a := T} {a := U}
+-- > = {a := T}
+--
+-- Although if the name is mentioned in the result, s2 must apply to the results
+--
+-- > compose {a := T a b} {a := U}
+-- > = {a := T U b}
+--
+-- TODO: a quickcheck property would be ideal for this
+--
+-- > forall (t : Type n) (s1 s2 : Subst n),
+-- > substT s2 (substT s1 t) = substT (compose s1 s2) t
+--
+-- If the substitutions don't mention the same variables at all,
+-- the ordering should not matter.
+--
+-- > fv s1  \cap fv s1 == {}
+-- > ==> compose s1 s2 == compose s2 s1
+--
+compose :: Ord n => SubstT n -> SubstT n -> SubstT n
+compose s1 s2
+ = Map.map (substT s2) s1
+  `Map.union` s2
 
-  posten t
-   = case getPossibility t of
-      Just (a,b) -> Possibility a b
-      Nothing    -> Possibility PossibilityDefinitely t
+
+-- | Attempt to find a substitution that makes the two types equal.
+--
+-- >     unifyT t1 t2 == Just   s
+-- > ==> substT s  t1 == substT s  t2
+--
+-- >     unifyT t1 t2 == Nothing
+-- > ==>           t1 /= t2
+--
+unifyT :: Ord n => Type n -> Type n -> Maybe (SubstT n)
+unifyT t1 t2
+ = case t1 of
+    TypeVar a
+     -> return $ Map.singleton a t2
+    _
+     | TypeVar b <- t2
+     -> return $ Map.singleton b t1
+
+    BoolT       -> eq
+    DateTimeT   -> eq
+    DoubleT     -> eq
+    IntT        -> eq
+    StringT     -> eq
+    UnitT       -> eq
+
+    ArrayT a
+     | ArrayT b <- t2
+     -> unifyT a b
+     | otherwise
+     -> Nothing
+
+    GroupT ak av
+     | GroupT bk bv <- t2
+     -> compose <$> unifyT ak bk <*> unifyT av bv
+     | otherwise
+     -> Nothing
+
+    OptionT a
+     | OptionT b <- t2
+     -> unifyT a b
+     | otherwise
+     -> Nothing
+
+    PairT a1 a2
+     | PairT b1 b2 <- t2
+     -> compose <$> unifyT a1 b1 <*> unifyT a2 b2
+     | otherwise
+     -> Nothing
+
+    StructT as
+     | StructT bs <- t2
+     , Map.keysSet as == Map.keysSet bs
+     , m' <- Map.intersectionWith (,) as bs
+     ->  foldl compose Map.empty
+     <$> mapM (uncurry unifyT) m'
+     | otherwise
+     -> Nothing
+
+    Temporality at ar
+     | Temporality bt br <- t2
+     -> compose <$> unifyT at bt <*> unifyT ar br
+     | otherwise
+     -> Nothing
+
+    TemporalityPure         -> eq
+    TemporalityElement      -> eq
+    TemporalityAggregate    -> eq
+
+    Possibility at ar
+     | Possibility bt br <- t2
+     -> compose <$> unifyT at bt <*> unifyT ar br
+     | otherwise
+     -> Nothing
+
+    PossibilityPossibly     -> eq
+    PossibilityDefinitely   -> eq
+
+ where
+  eq
+   | t1 == t2
+   = Just Map.empty
+   | otherwise
+   = Nothing
+
+
+
+canonT :: Type n -> Type n
+canonT
+ = recomposeT . decomposeT
+
+
+decomposeT :: Type n -> (Maybe (Type n), Maybe (Type n), Type n)
+decomposeT t
+ = let can  = canonT t
+       tmp  = getTemporality can
+       tmpR = maybe can snd tmp
+       pos  = getPossibility tmpR
+       posR = maybe tmpR snd pos
+   in (fst <$> tmp, fst <$> pos, posR)
+
+recomposeT :: (Maybe (Type n), Maybe (Type n), Type n) -> Type n
+recomposeT (tmp,pos,dat)
+ = maybe id Temporality tmp
+ $ maybe id Possibility pos
+ $ dat
 
 
 getTemporality :: Type n -> Maybe (Type n, Type n)

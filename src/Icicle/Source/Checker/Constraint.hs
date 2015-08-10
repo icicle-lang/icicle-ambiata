@@ -19,6 +19,7 @@ import                  Control.Monad.Trans.Class
 import                  Control.Monad.Trans.Either
 import qualified        Control.Monad.Trans.RWS as RWS
 
+import                  Data.List (zip)
 import qualified        Data.Map                as Map
 
 
@@ -30,9 +31,6 @@ type Gen a n t = EitherT
                     (RWS.RWS () [(a, Constraint n)] (Env n)))
                     t
 
-type Gen' a n q = q a n -> Gen a n (q (a, Type n) n)
-
-
 require :: a -> Constraint n -> Gen a n ()
 require a c
  = lift $ lift $ RWS.tell [(a,c)]
@@ -42,7 +40,7 @@ fresh
  = lift $ Fresh.fresh
 
 
-freshenFunction :: a -> FunctionType n -> Gen a n ([Type n], Type n, FunctionType n)
+freshenFunction :: Ord n => a -> FunctionType n -> Gen a n ([Type n], Type n, FunctionType n)
 freshenFunction ann f
  = do   freshen <- Map.fromList <$> mapM mkSubst (functionForalls f)
 
@@ -58,35 +56,35 @@ freshenFunction ann f
    = ((,) n . TypeVar) <$> fresh
 
 
-lookup :: a -> Name n -> Gen a n ([Type n], Type n, FunctionType n)
+lookup :: Ord n => a -> n -> Gen a n ([Type n], Type n, FunctionType n)
 lookup ann n
- = do   env <- RWS.get
+ = do   env <- lift $ lift $ RWS.get
         case Map.lookup n env of
          Just t
           -> freshenFunction ann t
          Nothing
-          -> left
+          -> hoistEither
            $ errorSuggestions (ErrorNoSuchVariable ann n)
                               [AvailableBindings $ Map.toList env]
 
-bind :: Name n -> Type n -> Gen a n ()
+bind :: Ord n => n -> Type n -> Gen a n ()
 bind n t
- = do   env <- RWS.get
-        put $ Map.insert n $ function0 t
+ = do   env <- lift $ lift $ RWS.get
+        lift $ lift $ RWS.put $ Map.insert n (function0 t) env
 
 
-generateQ :: Gen' a n Query
+generateQ :: Ord n => Query a n -> Gen a n (Query (a, Type n) n)
 generateQ (Query [] x)
  = Query [] <$> generateX x
 
 generateQ (Query (c:cs) x)
  = do q' <- generateQ (Query cs x)
-      let t = snd $ annotOfExp q'
+      let t = snd $ annotOfQuery q'
       c' <- generateC t c
       return $ Query (c' : contexts q') (final q')
 
 
-generateC :: Type n -> Gen' a n Context
+generateC :: Ord n => Type n -> Context a n -> Gen a n (Context (a, Type n) n)
 generateC t c
  = case c of
     Windowed _ from to
@@ -99,7 +97,7 @@ generateC t c
      -> do  x' <- generateX x
             requireAgg
             let tkey = snd $ annotOfExp x'
-            let t'  = canonT $ Temporality TemporalityAggregate $ Group tkey t
+            let t'  = canonT $ Temporality TemporalityAggregate $ GroupT tkey t
             return $ GroupBy (a,t') x'
 
     Distinct _ x
@@ -117,7 +115,6 @@ generateC t c
      -> do  i <- generateX $ foldInit f
             bind (foldBind f) (snd $ annotOfExp i)
             w <- generateX $ foldWork f
-            n <- fresh
             case foldType f of
              FoldTypeFoldl1
               -> requireTemporality (snd $ annotOfExp i) TemporalityElement
@@ -145,27 +142,137 @@ generateC t c
   requireAgg
    = requireTemporality t TemporalityAggregate
 
-generateX :: Gen' a n Exp
+
+generateX :: Ord n => Exp a n -> Gen a n (Exp (a, Type n) n)
 generateX x
  = case x of
     Var a n
-     -> do (args, res, fErr) <- lookup a n
-           when (args /= [])
-             $ left $ errorNoSuggestions (ErrorUnappliedFunction a x f)
-           return (Var (a,res) n)
+     -> do (argsT, resT, fErr) <- lookup a n
+           when (not $ null argsT)
+             $ hoistEither $ errorNoSuggestions (ErrorFunctionWrongArgs a x fErr [])
+           return (Var (a,resT) n)
 
     Nested a q
      -> do q' <- generateQ q
-           return $ Nested (a, snd $ annotOfExp q') q
+           return $ Nested (a, snd $ annotOfQuery q') q'
 
     App a _ _
-     | Just (p, args) <- takePrimApps x
-     -> do stuff
-     | (Var a' n, args) <- takeApps x
-     -> do (args,res, fErr) <- lookup a' n
-           bob dobbs
-           dob bodds
+     -> let (f, args)   = takeApps x
+            look        | Prim _ p <- f
+                        = primLookup a p
+                        | Var _ n  <- f
+                        = lookup a n
+                        | otherwise
+                        = hoistEither $ errorNoSuggestions (ErrorApplicationNotFunction a x)
+        in do   (argsT, resT, fErr) <- look
+
+                args'   <- mapM generateX args
+                let argsT' = fmap (snd.annotOfExp) args'
+
+                when (length argsT /= length args)
+                 $ hoistEither $ errorNoSuggestions (ErrorFunctionWrongArgs a x fErr argsT')
+
+                resT'   <- foldM (appType a) resT (argsT `zip` argsT')
+
+                let f' = reannotX (\anno -> (anno,resT')) f
+                return $ foldl mkApp f' args'
 
     Prim a p
-     -> do  unapplied prim
+     -> do (argsT, resT, fErr) <- primLookup a p
+           when (not $ null argsT)
+             $ hoistEither $ errorNoSuggestions (ErrorFunctionWrongArgs a x fErr [])
+           return (Prim (a,resT) p)
 
+
+appType :: a -> Type n -> (Type n, Type n) -> Gen a n (Type n)
+appType ann resT (expT,actT)
+ = do let (tmpE,posE,datE) = decomposeT expT
+      let (tmpA,posA,datA) = decomposeT actT
+      let (tmpR,posR,datR) = decomposeT resT
+
+      require ann (CEquals datE datA)
+
+      tmpR' <- checkTemp (purely tmpE) (purely tmpA) (purely tmpR)
+      posR' <- checkPoss (definitely posE) (definitely posA) (definitely posR)
+
+      return $ recomposeT (tmpR', posR', datR)
+ where
+  checkTemp = check' TemporalityPure
+  checkPoss = check' PossibilityDefinitely
+
+  check' pureMode modE modA modR
+   | Nothing <- modA
+   = return modR
+   | Just _  <- modA
+   , Nothing <- modE
+   , Nothing <- modR
+   = return modA
+   | Just a' <- modA
+   , Nothing <- modE
+   , Just r' <- modR
+   = do require ann $ CEquals a' r'
+        return modR
+   | otherwise
+   = do require ann $ CEquals (maybe pureMode id modE) (maybe pureMode id modA)
+        return modR
+
+
+  purely (Just TemporalityPure) = Nothing
+  purely tmp = tmp
+
+  definitely (Just PossibilityDefinitely) = Nothing
+  definitely pos = pos
+
+
+primLookup :: Ord n => a -> Prim -> Gen a n ([Type n], Type n, FunctionType n)
+primLookup ann p
+ = do ft <- primLookup' p
+      freshenFunction ann ft
+
+primLookup' :: Prim -> Gen a n (FunctionType n)
+primLookup' p
+ = case p of
+    Op (ArithUnary _)
+     -> fNum $ \at -> ([at], at)
+    Op (ArithBinary _)
+     -> fNum $ \at -> ([at, at], at)
+    Op (ArithDouble Div)
+     -> f0 [DoubleT, DoubleT] DoubleT
+
+    Op (Relation _)
+     -> f1 $ \a at -> FunctionType [a] [] [at, at] BoolT
+
+    Op  TupleComma
+     -> do a <- fresh
+           b <- fresh
+           let at = TypeVar a
+           let bt = TypeVar b
+           return $ FunctionType [a,b] [] [at, bt] (PairT at bt)
+
+    Lit (LitInt _)
+     -> fNum $ \at -> ([], at)
+    Lit (LitDouble _)
+     -> f0 [] DoubleT
+    Lit (LitString _)
+     -> f0 [] StringT
+
+    Fun Log
+     -> f0 [DoubleT] DoubleT
+    Fun Exp
+     -> f0 [DoubleT] DoubleT
+    Fun ToDouble
+     -> fNum $ \at -> ([at], DoubleT)
+    Fun ToInt
+     -> fNum $ \at -> ([at], IntT)
+
+ where
+
+  f0 argsT resT
+   = return $ FunctionType [] [] argsT resT
+
+  fNum f
+   = f1 (\a at -> uncurry (FunctionType [a] [CIsNum at]) (f at))
+
+  f1 f
+   = do n <- fresh
+        return $ f n (TypeVar n)
