@@ -8,6 +8,7 @@ module Icicle.Source.Type.Subst (
     SubstT
   , substT
   , substC
+  , substFT
   , compose
   , unifyT
   , canonT
@@ -72,6 +73,23 @@ substC ss cc
      -> CEquals (substT ss p) (substT ss q)
     CIsNum p
      -> CIsNum (substT ss p)
+
+
+-- | Substitute into a function type.
+-- It is very important that any binders (foralls) in here are unique.
+-- If the binders mention any names in the substitution, things WILL go awry.
+-- This is not a problem for type checking since all names are fresh.
+--
+-- Because the function constraints will only mention newly bound type variables,
+-- it is not necessary to substitute into the constraints.
+--
+-- Perhaps this should actually be called "unsafeSubstFT" because none of these
+-- invariants are checked.
+substFT :: Ord n => SubstT n -> FunctionType n -> FunctionType n
+substFT ss ff
+ = ff
+ { functionArguments = fmap (substT ss) (functionArguments ff)
+ , functionReturn    =       substT ss  (functionReturn    ff) }
 
 
 -- | Compose two substitutions together, in order.
