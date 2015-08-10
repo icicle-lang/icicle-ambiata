@@ -73,43 +73,43 @@ bind n t
         lift $ lift $ RWS.put $ Map.insert n (function0 t) env
 
 
+-- TODO: discharge constraints at every step.
+-- TODO: generalise.
 generateQ :: Ord n => Query a n -> Gen a n (Query (a, Type n) n)
 generateQ (Query [] x)
  = Query [] <$> generateX x
 
-generateQ (Query (c:cs) x)
- = do q' <- generateQ (Query cs x)
-      let t = snd $ annotOfQuery q'
-      c' <- generateC t c
-      return $ Query (c' : contexts q') (final q')
-
-
-generateC :: Ord n => Type n -> Context a n -> Gen a n (Context (a, Type n) n)
-generateC t c
+generateQ qq@(Query (c:_) _)
  = case c of
     Windowed _ from to
-     -> do  requireAgg
-            return $ Windowed a' from to
+     -> do  (q',t') <- rest
+            requireAgg t'
+            with q' $ Windowed (a,t') from to
     Latest _ i
-     -> do  requireAgg
-            return $ Latest a' i
+     -> do  (q',t') <- rest
+            requireAgg t'
+            with q' $ Latest (a,t') i
     GroupBy _ x
      -> do  x' <- generateX x
-            requireAgg
+            (q',tval) <- rest
+            requireAgg tval
             let tkey = snd $ annotOfExp x'
-            let t'  = canonT $ Temporality TemporalityAggregate $ GroupT tkey t
-            return $ GroupBy (a,t') x'
+            let t'  = canonT $ Temporality TemporalityAggregate $ GroupT tkey tval
+            with q' $ GroupBy (a,t') x'
 
     Distinct _ x
      -> do  x' <- generateX x
-            requireAgg
-            return $ Distinct a' x'
+            (q',t') <- rest
+            requireAgg t'
+            with q' $ Distinct (a,t') x'
 
     Filter _ x
      -> do  x' <- generateX x
-            requireAgg
-            require a $ CEquals (snd $ annotOfExp x') BoolT
-            return $ Filter a' x'
+            (q',t') <- rest
+            requireAgg t'
+            -- TODO allow pure, allow possibly
+            require a $ CEquals (snd $ annotOfExp x') (Temporality TemporalityElement BoolT)
+            with q' $ Filter (a,t') x'
 
     LetFold _ f
      -> do  i <- generateX $ foldInit f
@@ -121,26 +121,34 @@ generateC t c
              FoldTypeFoldl
               -> requireTemporality (snd $ annotOfExp i) TemporalityPure
 
+            -- TODO: this should allow pure and possibly too
             requireTemporality (snd $ annotOfExp w) TemporalityElement
 
-            -- XXX: insert these before checking the rest
             bind (foldBind f) (canonT $ Temporality TemporalityAggregate $ snd $ annotOfExp w)
-            return $ LetFold a' (f { foldInit = i, foldWork = w })
+            (q',t') <- rest
+            with q' $ LetFold (a,t') (f { foldInit = i, foldWork = w })
 
     Let _ n x
      -> do  x' <- generateX x
             bind n (snd $ annotOfExp x')
-            return $ Let a' n x'
+            (q',t') <- rest
+            with q' $ Let (a,t') n x'
 
  where
   a  = annotOfContext c
-  a' = (a, t)
+
+  rest
+   = do q' <- generateQ (qq { contexts = drop 1 $ contexts qq })
+        return (q', snd $ annotOfQuery q')
+  with q' c'
+   = return q' { contexts = c' : contexts q' }
 
   requireTemporality ty tmp
    = do n <- fresh
         require a $ CEquals ty (Temporality tmp $ TypeVar n)
-  requireAgg
+  requireAgg t
    = requireTemporality t TemporalityAggregate
+
 
 
 generateX :: Ord n => Exp a n -> Gen a n (Exp (a, Type n) n)

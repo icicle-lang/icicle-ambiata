@@ -150,7 +150,7 @@ instance (Pretty a, Pretty n) => Pretty (ErrorInfo a n) where
       -> "Function applied to wrong number of arguments at " <+> pretty a <> line
       <> "Expression:     " <> inp x
       <> "Function type:  " <> inp f
-      <> "Argument types: " <> inp f
+      <> "Argument types: " <> inp tys
 
      ErrorApplicationNotFunction a x
       -> "Application of non-function at " <+> pretty a <> line
@@ -162,7 +162,7 @@ instance (Pretty a, Pretty n) => Pretty (ErrorInfo a n) where
       <> "Args: " <> cat (fmap ((<+>" ").pretty) tys)
 
      ErrorPrimNotANumber a x tys
-      -> "This operater requires a number type at " <+> pretty a <> line
+      -> "This operator requires a number type at " <+> pretty a <> line
       <> "Exp:  " <> inp x <> line
       <> "Args: " <> cat (fmap ((<+>" ").pretty) tys)
 
