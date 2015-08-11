@@ -29,8 +29,8 @@ import qualified Icicle.Common.Base       as V
 import qualified Icicle.Core.Eval.Program as PV
 import qualified Icicle.Core.Program.Program as P
 
-import           Icicle.Source.Lexer.Token
 import           Icicle.Source.Query
+import           Icicle.Source.Lexer.Token
 
 data Partition =
   Partition
@@ -88,11 +88,12 @@ evaluateVirtuals (Dictionary fields) date facts
    = []
 
 evaluateVirtual  :: Virtual -> DateTime -> [Partition] -> [(Entity, Result)]
-evaluateVirtual virt date facts
+evaluateVirtual virt _ facts
  = P.concatMap go facts
  where
-  go (Partition ent attr values)
-   -- | attr == (feature . unVirtual) virt
+  go (Partition _ attr _)
+   | (Variable . getAttribute) attr == (feature . unVirtual) virt
+   = []
    -- = [(ent, evaluateVirtualValue (program virt) date values)]
    | otherwise
    = []

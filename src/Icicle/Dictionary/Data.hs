@@ -50,7 +50,7 @@ data Definition =
 
 -- A parsed and typechecked source program.
 newtype Virtual = Virtual {
-    unVirtual :: QueryTop (SourcePos, ST.UniverseType Variable) Variable
+    unVirtual :: QueryTop (SourcePos, ST.Type Variable) Variable
   } deriving (Eq, Show)
 
 -- Intermediate states so that parsing can be pure.
@@ -126,7 +126,7 @@ featureMapOfDictionary (Dictionary ds)
   go _
    = []
 
-  baseType = typeOfValType
+  baseType = ST.typeOfValType
 
   xfst t1 t2
    = X.XPrim (X.PrimMinimal $ X.PrimPair $ X.PrimPairFst t1 t2)

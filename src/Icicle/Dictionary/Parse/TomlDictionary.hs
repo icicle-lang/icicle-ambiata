@@ -58,34 +58,37 @@ data DictionaryConfig =
   } deriving (Eq, Show)
 
 instance Monoid DictionaryConfig where
-  mempty  = DictionaryConfig Nothing Nothing Nothing Nothing {-(Just "state")-} [] []
+  mempty  = DictionaryConfig Nothing Nothing Nothing Nothing [] []
   mappend
-    (DictionaryConfig a1 a2 a3 a4 {-a5-} a6 a7)
-    (DictionaryConfig b1 b2 b3 b4 {-b5-} b6 b7) =
-      (DictionaryConfig (b1 CA.<|> a1) (b2 CA.<|> a2) (b3 CA.<|> a3) (b4 CA.<|> a4) {-(a5 CA.<|> b5)-} (a6 <> b6) (a7 <> b7))
+    (DictionaryConfig a1 a2 a3 a4 a6 a7)
+    (DictionaryConfig b1 b2 b3 b4 b6 b7) =
+      (DictionaryConfig (b1 CA.<|> a1) (b2 CA.<|> a2) (b3 CA.<|> a3) (b4 CA.<|> a4) (a6 <> b6) (a7 <> b7))
 
 tomlDict :: DictionaryConfig -> Table -> AccValidation [DictionaryValidationError] (DictionaryConfig, [DictionaryEntry'])
-tomlDict parentConf x = either AccFailure AccSuccess $ do
+tomlDict parentConf x = fromEither $ do
   -- Potentially acquire the dictionary configuration items
   let title'     = textFocus "title" x
   let version'   = intFocus  "version" x
   let namespace' = textFocus "namespace" x
   let tombstone' = textFocus "tombstone" x
-  -- let mode'      = textFocus "mode" x
   -- If either of these are missing that's fine, there's just no imports/chapters
-  let imports'   = (maybe [] id) <$> (traverse (validateTextArray "import") $ x ^? key "import")
-  let chapters'  = (maybe [] id) <$> (traverse (validateTextArray "chapter") $ x ^? key"chapter")
+  let imports'   = textArrayFocus "import" x
+  let chapters'  = textArrayFocus "chapter" x
   -- Config will contain all errors built up.
-  let config     = DictionaryConfig <$> title' <*> version' <*> namespace' <*> tombstone' {- <*> mode' -} <*> imports' <*> chapters'
-  -- We need to treat it as a monad as facts requires the config to know the default namespace.
-  config' <- accValidation Left Right config
+  let config     = DictionaryConfig <$> title' <*> version' <*> namespace' <*> tombstone' <*> imports' <*> chapters'
+  -- We need to treat it as a monad as facts require the config to know the default namespace.
+  config' <- toEither config
   -- Join the config with its parent, so we are scoped correctly
   let config'' = config' <> parentConf
   -- Parse the facts, again, getting the Monad version at the ends.
-  facts    <- accValidation Left Right $ (maybe [] id) <$> (traverse (validateTableWith validateFact "fact" config'') $ x ^? key "fact")
-  features <- accValidation Left Right $ (maybe [] id) <$> (traverse (validateTableWith validateFeature "feature" config'') $ x ^? key "feature")
+  facts    <- toEither $ (maybe [] id) <$> (traverse (validateTableWith validateFact "fact" config'') $ x ^? key "fact")
+  -- Superficially parse the features, we haven't imported our functions yet, so can't type check them at the moment.
+  features <- toEither $ (maybe [] id) <$> (traverse (validateTableWith validateFeature "feature" config'') $ x ^? key "feature")
+  -- Todo: ensure that there's no extra data lying around. All valid TOML should be used.
   pure (config'', facts <> features)
     where
+      textArrayFocus :: Text -> Table -> AccValidation [DictionaryValidationError] [Text]
+      textArrayFocus label x' = (maybe [] id) <$> (traverse (validateTextArray label) $ x' ^? key label)
       textFocus :: Text -> Table -> AccValidation [DictionaryValidationError] (Maybe Text)
       textFocus label x' = (validateText label) `traverse` (x' ^? key label)
       intFocus :: Text -> Table -> AccValidation [DictionaryValidationError] (Maybe Int64)
@@ -95,23 +98,26 @@ validateTableWith :: (DictionaryConfig -> Text -> Table -> AccValidation [Dictio
                   -> Text -> DictionaryConfig -> (Node, Pos.SourcePos) -> AccValidation [DictionaryValidationError] [a]
 validateTableWith f _ conf (NTable t, _) =
   -- We will get an error for every failed item listed.
-  toList <$> M.traverseWithKey ( \name (fact', pos') -> either AccFailure AccSuccess $ do
+  toList <$> M.traverseWithKey ( \name (fact', pos') -> fromEither $ do
     -- Using a monad instance here, as the fact should be a table, and it should then also parse correctly.
     t'' <- maybe (Left $ [BadType name "table" pos']) Right $ fact' ^? _NTable
     -- Validate the table with the given config and function.
-    accValidation Left Right $ (f conf) name t''
+    toEither $ (f conf) name t''
   ) t
 validateTableWith _ n _ (_, pos) = AccFailure $ [BadType n "table" pos]
 
 validateFact :: DictionaryConfig -> Text -> Table -> AccValidation [DictionaryValidationError] DictionaryEntry'
-validateFact conf name x =
-  let -- A parameter which is required, and if given must be validated. If it's not given however, a parent value can be used.
-      valFeatureOrParent fname = (maybe (maybe (AccFailure [MissingRequired ("fact." <> name) fname]) AccSuccess (namespace conf)) (validateText fname) $ x ^? key fname)
-      -- Every fact needs an encoding, which can't be inherited from it's parent.
+validateFact _ name x =
+  let -- Every fact needs an encoding, which can't be inherited from it's parent.
       encoding   = maybe (AccFailure [MissingRequired ("fact." <> name) "encoding"]) validateEncoding' $ M.lookup "encoding" x
-      namespace' = valFeatureOrParent "namespace"
-      tombstone' = valFeatureOrParent "tombstone"
-      -- mode'      = valFeatureOrParent "mode"
+      {-
+         This section is commented out until concrete features can specify their tombstones and namespaces are first class.
+         -- A parameter which is required, and if given must be validated. If it's not given however, a parent value can be used.
+         valFeatureOrParent fname = (maybe (maybe (AccFailure [MissingRequired ("fact." <> name) fname]) AccSuccess (namespace conf)) (validateText fname) $ x ^? key fname)
+         namespace' = valFeatureOrParent "namespace"
+         tombstone' = valFeatureOrParent "tombstone"
+      -}
+      -- Todo: ensure that there's no extra data lying around. All valid TOML should be used.
   in DictionaryEntry' (Attribute name) <$> (ConcreteDefinition' <$> encoding)
 
 validateEncoding' :: (Node, Pos.SourcePos) -> AccValidation [DictionaryValidationError] Encoding
@@ -148,12 +154,19 @@ validateTextArray ttt (NTValue (VArray xs), pos) =
 validateTextArray ttt (_, pos) = AccFailure $ [BadType ttt "array" pos]
 
 validateFeature :: DictionaryConfig -> Text -> Table -> AccValidation [DictionaryValidationError] DictionaryEntry'
-validateFeature _ name x = either AccFailure AccSuccess $ do
+validateFeature _ name x = fromEither $ do
   expression  <- maybe (Left [MissingRequired ("feature." <> name) "expression"]) Right $ x ^? key "expression"
   expression' <- maybe (Left [BadType ("feature." <> name <> ".expression") "string" (expression ^. _2)]) Right $ expression ^? _1 . _NTValue . _VString
   let toks = lexerPositions expression'
   q      <-  mapLeft (pure . ParseError) $ runParser top () "" toks
+  -- Todo: ensure that there's no extra data lying around. All valid TOML should be used.
   pure $ DictionaryEntry' (Attribute name) (VirtualDefinition' (Virtual' q))
+
+toEither :: AccValidation a b -> Either a b
+toEither = accValidation Left Right
+
+fromEither :: Either a b -> AccValidation a b
+fromEither = either AccFailure AccSuccess
 
 accValidation :: (a -> c) -> (b -> c) -> AccValidation a b -> c
 accValidation f _ (AccFailure a) = f a
