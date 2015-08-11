@@ -3,7 +3,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Source.Checker.Checker (
     checkQT
-  -- , checkQ
+  , checkQ
   -- , checkX
   , CheckEnv(..)
   , emptyEnv

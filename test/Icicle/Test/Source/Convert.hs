@@ -45,9 +45,9 @@ prop_convert_ok tt fn q
  where
   qt  = QueryTop fn q
   fets = Map.singleton fn
-       (baseTypeOfValType tt, Map.singleton fn (baseTypeOfValType tt, xfst tt))
+       (typeOfValType tt, Map.singleton fn (typeOfValType tt, xfst tt))
 
-  typ = checkQT fets qt
+  typ = freshcheck $ checkQT fets qt
   pp = show $ pretty q
 
 
@@ -67,11 +67,11 @@ prop_convert_is_well_typed fn q
  where
   qt  = QueryTop fn q
   fets = Map.singleton fn
-       (baseTypeOfValType tt, Map.singleton fn (baseTypeOfValType tt, xfst tt))
+       (typeOfValType tt, Map.singleton fn (typeOfValType tt, xfst tt))
 
   tt = CT.IntT
 
-  typ = checkQT fets qt
+  typ = freshcheck $ checkQT fets qt
   pp = show $ pretty q
 
 

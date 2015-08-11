@@ -27,7 +27,7 @@ module Icicle.Source.ToCore.Base (
 import qualified        Icicle.Core             as C
 import                  Icicle.Common.Fresh
 import                  Icicle.Common.Base
-import                  Icicle.Common.Type
+import                  Icicle.Common.Type  hiding (Type)
 import qualified        Icicle.Common.Exp       as X
 import qualified        Icicle.Core.Exp.Combinators as CE
 
@@ -92,13 +92,13 @@ post n x = mempty { postcomps = [(n,x)] }
 data ConvertError a n
  = ConvertErrorNoSuchFeature n
  | ConvertErrorPrimNoArguments a Int Prim
- | ConvertErrorGroupByHasNonGroupResult a (UniverseType n)
- | ConvertErrorContextNotAllowedInGroupBy a (Query (a,UniverseType n) n)
+ | ConvertErrorGroupByHasNonGroupResult a (Type n)
+ | ConvertErrorContextNotAllowedInGroupBy a (Query (a,Type n) n)
  | ConvertErrorExpNoSuchVariable a n
- | ConvertErrorExpNestedQueryNotAllowedHere a (Query (a,UniverseType n) n)
- | ConvertErrorExpApplicationOfNonPrimitive a (Exp (a,UniverseType n) n)
- | ConvertErrorReduceAggregateBadArguments a (Exp (a,UniverseType n) n)
- | ConvertErrorCannotConvertBaseType a (BaseType n)
+ | ConvertErrorExpNestedQueryNotAllowedHere a (Query (a,Type n) n)
+ | ConvertErrorExpApplicationOfNonPrimitive a (Exp (a,Type n) n)
+ | ConvertErrorReduceAggregateBadArguments a (Exp (a,Type n) n)
+ | ConvertErrorCannotConvertType a (Type n)
  deriving (Show, Eq, Ord)
 
 annotOfError :: ConvertError a n -> Maybe a
@@ -120,7 +120,7 @@ annotOfError e
      -> Just a
     ConvertErrorReduceAggregateBadArguments a _
      -> Just a
-    ConvertErrorCannotConvertBaseType a _
+    ConvertErrorCannotConvertType a _
      -> Just a
 
 
@@ -190,11 +190,11 @@ convertFreshenLookup ann n
           -> return n'
 
 
-convertValType :: a -> BaseType n -> ConvertM a n ValType
+convertValType :: a -> Type n -> ConvertM a n ValType
 convertValType ann ty
- = case valTypeOfBaseType ty of
+ = case valTypeOfType ty of
     Nothing
-     -> convertError $ ConvertErrorCannotConvertBaseType ann ty
+     -> convertError $ ConvertErrorCannotConvertType ann ty
     Just t'
      -> return t'
 
@@ -247,6 +247,6 @@ instance (Pretty a, Pretty n) => Pretty (ConvertError a n) where
      ConvertErrorReduceAggregateBadArguments a x
       -> pretty a <> ": bad arguments to aggregate: " <> pretty x
 
-     ConvertErrorCannotConvertBaseType a t
+     ConvertErrorCannotConvertType a t
       -> pretty a <> ": cannot convert base type: " <> pretty t
 

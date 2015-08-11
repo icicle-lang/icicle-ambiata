@@ -16,6 +16,7 @@ module Icicle.Source.Type.Subst (
   , recomposeT
   , getTemporality
   , getPossibility
+  , getTemporalityOrPure
   ) where
 
 
@@ -264,6 +265,12 @@ getTemporality tt
 
  where
   go = getTemporality
+
+getTemporalityOrPure :: Type n -> Type n
+getTemporalityOrPure t
+ = case getTemporality t of
+    Just (a,_) -> a
+    Nothing -> TemporalityPure
 
 
 getPossibility :: Type n -> Maybe (Type n, Type n)

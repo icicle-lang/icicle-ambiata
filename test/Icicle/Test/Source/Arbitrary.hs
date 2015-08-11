@@ -19,10 +19,17 @@ import           Test.QuickCheck.Instances ()
 
 import           P
 
+import                  Control.Monad.Trans.Either
 import qualified Data.Text as Text
 
+freshnamer = (counterPrefixNameState (T.Variable . Text.pack . show) (T.Variable "v"))
 freshtest p
- = snd <$> runFreshT p (counterPrefixNameState (T.Variable . Text.pack . show) (T.Variable "v"))
+ = snd <$> runFreshT p freshnamer
+
+freshcheck
+ = snd
+ . flip runFresh freshnamer
+ . runEitherT
 
 instance Arbitrary T.Variable where
  arbitrary

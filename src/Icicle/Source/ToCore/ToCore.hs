@@ -67,7 +67,7 @@ import qualified        Data.Map as Map
 convertQueryTop
         :: Ord n
         => Features n
-        -> QueryTop (a,UniverseType n) n
+        -> QueryTop (a,Type n) n
         -> FreshT n (Either (ConvertError a n)) (C.Program n)
 convertQueryTop feats qt
  = do   inp <- fresh
@@ -75,8 +75,8 @@ convertQueryTop feats qt
                  $ maybeToRight (ConvertErrorNoSuchFeature (feature qt))
                  $ Map.lookup (feature qt) feats
 
-        inpTy <- case valTypeOfBaseType ty of
-                  Nothing -> lift $ Left $ ConvertErrorCannotConvertBaseType (fst $ annotOfQuery $ query qt) ty
+        inpTy <- case valTypeOfType ty of
+                  Nothing -> lift $ Left $ ConvertErrorCannotConvertType (fst $ annotOfQuery $ query qt) ty
                   Just t' -> return t'
         let inpTy'dated = T.PairT inpTy T.DateTimeT
 
@@ -92,7 +92,7 @@ convertQueryTop feats qt
 -- that is being "returned" in the program - essentially the last added binding.
 convertQuery
         :: Ord n
-        => Query (a,UniverseType n) n
+        => Query (a,Type n) n
         -> ConvertM a n (CoreBinds n, Name n)
 convertQuery q
  = case contexts q of
@@ -165,14 +165,14 @@ convertQuery q
      -- and also
      -- "latest 5 ~> let V = Elem ~> Elem"
      --
-     | Elem <- universeTemporality $ universe $ snd $ annotOfQuery q'
+     | TemporalityElement <- getTemporalityOrPure $ snd $ annotOfQuery q'
      -> do  n'arr   <- lift fresh
             n'map   <- lift fresh
 
             n'v     <- lift fresh
 
             x' <- convertWithInputName n'v $ convertExpQ q'
-            t' <- convertValType' $ baseType $ snd $ annotOfQuery q'
+            t' <- convertValType' $ snd $ annotOfQuery q'
 
             (inpstream, inpty) <- convertInput
 
@@ -303,7 +303,7 @@ convertQuery q
     -- we insert/update the element in the map, then fold over essentially the last-seen
     -- for each group.
     (Distinct (_,_) e : _)
-     -> do  tkey <- convertValType' $ baseType $ snd $ annotOfExp e
+     -> do  tkey <- convertValType' $ snd $ annotOfExp e
             (inpstream, inpty) <- convertInput
             let tval = inpty
 
@@ -362,9 +362,9 @@ convertQuery q
             return (r <> p, n'')
 
     (Let _ b def : _)
-     -> case universeTemporality $ universe $ snd $ annotOfExp def of
-         Elem
-          -> do t' <- convertValType' $ baseType $ snd $ annotOfExp def
+     -> case getTemporalityOrPure $ snd $ annotOfExp def of
+         TemporalityElement
+          -> do t' <- convertValType' $ snd $ annotOfExp def
                 (inpstream, inpty) <- convertInput
                 let inpty' = T.PairT t' inpty
 
@@ -377,7 +377,7 @@ convertQuery q
                 let xsnd = CE.XApp
                          $ CE.XPrim $ C.PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd t' inpty
 
-                convertModifyFeatures (Map.insert b (baseType $ snd $ annotOfExp def, xfst) . Map.map (\(t,f) -> (t, f . xsnd)))
+                convertModifyFeatures (Map.insert b (snd $ annotOfExp def, xfst) . Map.map (\(t,f) -> (t, f . xsnd)))
 
                 let pair = (CE.XPrim $ C.PrimMinimal $ Min.PrimConst $ Min.PrimConstPair t' inpty)
                          CE.@~ e' CE.@~ CE.XVar n'e
@@ -390,7 +390,7 @@ convertQuery q
 
                 return (bs <> bs', n'')
 
-         Pure
+         TemporalityPure
           -> do e'      <- convertExp def
                 convertModifyFeatures (Map.delete b)
                 b'      <- convertFreshenAdd b
@@ -398,26 +398,20 @@ convertQuery q
                 (bs', n') <- convertQuery q'
                 return (bs <> bs', n')
 
-         AggU
+         TemporalityAggregate
           -> do (bs,n')      <- convertReduce    def
                 b'      <- convertFreshenAdd b
                 (bs',n'')    <- convertQuery     q'
                 return (bs <> post b' (CE.XVar n') <> bs', n'')
 
-         Group _
-          -> do (bs,n')      <- convertReduce    def
-                b'      <- convertFreshenAdd b
-                (bs',n'')    <- convertQuery     q'
-                return (bs <> post b' (CE.XVar n') <> bs', n'')
-
-         TemporalityVar _
+         _
           -> convertError $ ConvertErrorGroupByHasNonGroupResult (fst $ annotOfExp def) (snd $ annotOfExp def)
 
 
     -- Converting fold1s.
     (LetFold _ f@Fold{ foldType = FoldTypeFoldl1 } : _)
      -> do  -- Type helpers
-            tU <- convertValType' $ baseType $ snd $ annotOfExp $ foldWork f
+            tU <- convertValType' $ snd $ annotOfExp $ foldWork f
             let tO = T.OptionT tU
 
             -- Generate fresh names
@@ -487,7 +481,7 @@ convertQuery q
     --
     (LetFold _ f@Fold{ foldType = FoldTypeFoldl } : _)
      -> do  -- Type helpers
-            tU <- convertValType' $ baseType $ snd $ annotOfExp $ foldWork f
+            tU <- convertValType' $ snd $ annotOfExp $ foldWork f
 
             -- Generate fresh names
             -- Element of the stream
@@ -522,10 +516,9 @@ convertQuery q
   -- Group bys can live in either Aggregate or Group universe.
   -- Because Core is explicitly typed, we need to pull out the key type and value type.
   getGroupByMapType ann ty
-   | UniverseType (Universe (Group t1) _) _          <- ty
-   = convertValType' t1
-   | UniverseType (Universe AggU _) (MapT t1 _)    <- ty
-   = convertValType' t1
+   | (_,_,t') <- decomposeT ty
+   , (GroupT tk _tv) <- t'
+   = convertValType' tk
    | otherwise
    = convertError $ ConvertErrorGroupByHasNonGroupResult ann ty
 
@@ -552,7 +545,7 @@ convertQuery q
 -- or a nested query.
 convertReduce
         :: Ord n
-        => Exp (a,UniverseType n) n
+        => Exp (a,Type n) n
         -> ConvertM a n (CoreBinds n, Name n)
 convertReduce xx
  | Just (p, (_,ty), args) <- takePrimApps xx
@@ -570,7 +563,7 @@ convertReduce xx
         nm  <- lift fresh
 
         let bs'  = mconcat bs
-        let b''  | Pure <- universeTemporality $ universe ty
+        let b''  | TemporalityPure <- getTemporalityOrPure ty
                  = pre nm x'
                  | otherwise
                  = post nm x'

@@ -68,7 +68,7 @@ data ConvertFoldResult n
 --
 convertFold
         :: Ord n
-        => Query (a,UniverseType n) n
+        => Query (a,Type n) n
         -> ConvertM a n (ConvertFoldResult n)
 convertFold q
  = case contexts q of
@@ -90,7 +90,7 @@ convertFold q
                 -- (create a query out of the expression,
                 --  just because there is no separate convertFoldX function)
                 res <- mapM (convertFold . Query []) args
-                retty' <- convertValType' $ baseType retty
+                retty' <- convertValType' retty
 
                 let ts  = fmap typeFold         res
                 -- Create pairs for zeros
@@ -103,7 +103,7 @@ convertFold q
                 let cp ns
                         = convertPrim p ann
                             ((fmap (uncurry CE.XApp) (fmap mapExtract res `zip` ns)) `zip` fmap (snd . annotOfExp) args)
-                xx       <- pairDestruct cp ts (baseType retty)
+                xx       <- pairDestruct cp ts retty
 
                 -- For konstrukt, we need to destruct the pairs, apply the sub-ks,
                 -- then box it up again in pairs.
@@ -129,7 +129,7 @@ convertFold q
                     -- Extract, after the fold is finished, is just identity.
                     -- Const Unit would work too, since the extracted value should
                     -- never be used for the same reason the zero is not used.
-                    retty' <- convertValType' $ baseType retty
+                    retty' <- convertValType' retty
                     i <- idFun retty'
                     n'v <- lift fresh
                     inp <- convertInputName
@@ -138,16 +138,16 @@ convertFold q
                     return $ ConvertFoldResult k err i retty' retty'
 
              _
-              | Pure <- universeTemporality $ universe retty
+              | TemporalityPure  <- getTemporalityOrPure retty
               -> do v'  <- convertFreshenLookup ann v
                     n'ignore <- lift fresh
-                    retty' <- convertValType' $ baseType retty
+                    retty' <- convertValType' retty
                     let k = CE.XLam n'ignore retty' $ CE.XVar v'
                     return $ ConvertFoldResult k (CE.XVar v') k retty' retty'
 
-              | Elem <- universeTemporality $ universe retty
+              | TemporalityElement <- getTemporalityOrPure retty
               -> do v'  <- convertFreshenLookup ann v
-                    retty' <- convertValType' $ baseType retty
+                    retty' <- convertValType' retty
                     i <- idFun retty'
                     n'v <- lift fresh
                     let k = CE.XLam n'v retty' $ CE.XVar v'
@@ -160,7 +160,7 @@ convertFold q
               | otherwise
               -> do n'x <- lift fresh
                     v'  <- convertFreshenLookup ann v
-                    retty' <- convertValType' $ baseType retty
+                    retty' <- convertValType' retty
                     let ut    = T.UnitT
                     let unit = CE.XValue ut VUnit
 
@@ -200,10 +200,10 @@ convertFold q
 
 
     (Let _ b def : _)
-     | Pure <- universeTemporality $ universe $ snd $ annotOfExp def
+     | TemporalityPure  <- getTemporalityOrPure $ snd $ annotOfExp def
      -> do  def' <- convertExp def
             n'   <- lift fresh
-            t' <- convertValType' $ baseType $ snd $ annotOfExp def
+            t' <- convertValType' $ snd $ annotOfExp def
             let res = ConvertFoldResult (CE.XLam n' t' def') def' (CE.XLam n' t' def') t' t'
             convertAsLet b res
 
@@ -213,7 +213,7 @@ convertFold q
 
     (LetFold _ f@Fold{ foldType = FoldTypeFoldl1 } : _)
      -> do  -- Type helpers
-            tU <- convertValType' $ baseType $ snd $ annotOfExp $ foldWork f
+            tU <- convertValType' $ snd $ annotOfExp $ foldWork f
             let tO = T.OptionT tU
 
             -- Generate fresh names
@@ -251,7 +251,7 @@ convertFold q
 
     (LetFold _ f@Fold{ foldType = FoldTypeFoldl } : _)
      -> do  -- Type helpers
-            tU <- convertValType' $ baseType $ snd $ annotOfExp $ foldWork f
+            tU <- convertValType' $ snd $ annotOfExp $ foldWork f
 
             -- Generate fresh names
             -- Current accumulator

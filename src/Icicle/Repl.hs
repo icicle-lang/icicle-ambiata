@@ -39,6 +39,8 @@ import qualified Icicle.Source.Type                 as ST
 
 import           P
 
+import           Control.Monad.Trans.Either
+
 import           Data.Either.Combinators
 import qualified Data.Map                           as Map
 import           Data.Text                          (Text)
@@ -97,7 +99,7 @@ instance Pretty ReplError where
 
 type Var        = SP.Variable
 type QueryTop'  = SQ.QueryTop Parsec.SourcePos Var
-type QueryTop'T = SQ.QueryTop (Parsec.SourcePos, ST.UniverseType Var) Var
+type QueryTop'T = SQ.QueryTop (Parsec.SourcePos, ST.Type Var) Var
 type Program'   = Core.Program Var
 
 --------------------------------------------------------------------------------
@@ -110,10 +112,13 @@ sourceParse t
  $ SP.parseQueryTop t
 
 
-sourceCheck :: D.Dictionary -> QueryTop' -> Either ReplError (QueryTop'T, ST.UniverseType Var)
+sourceCheck :: D.Dictionary -> QueryTop' -> Either ReplError (QueryTop'T, ST.Type Var)
 sourceCheck d q
  = let d' = featureMapOfDictionary d
    in  mapLeft ReplErrorCheck
+     $ snd
+     $ flip Fresh.runFresh (freshNamer "t")
+     $ runEitherT
      $ SC.checkQT d' q
 
 
@@ -171,7 +176,7 @@ featureMapOfDictionary (D.Dictionary ds)
   go _
    = []
 
-  baseType = ST.baseTypeOfValType
+  baseType = ST.typeOfValType
 
   xfst t1 t2
    = X.XPrim (X.PrimMinimal $ X.PrimPair $ X.PrimPairFst t1 t2)
