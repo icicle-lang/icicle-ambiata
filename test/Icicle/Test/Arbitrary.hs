@@ -62,7 +62,7 @@ instance Arbitrary Encoding where
 
 instance Arbitrary StructField where
   arbitrary =
-    StructField <$> arbitrary <*> arbitrary <*> arbitrary
+    StructField <$> arbitrary <*> arbitrary <*> oneof_vals [ StringEncoding, IntEncoding, DoubleEncoding, BooleanEncoding, DateEncoding ]
 
 instance Arbitrary StructFieldType where
   arbitrary =

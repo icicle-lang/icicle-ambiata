@@ -34,7 +34,7 @@ import                  P
 -- is ill typed.
 convertPrim
         :: Prim -> a
-        -> [(C.Exp n, UniverseType)]
+        -> [(C.Exp n, Type n)]
         -> ConvertM a n (C.Exp n)
 convertPrim p ann xts
  = do   p' <- go p
@@ -49,9 +49,6 @@ convertPrim p ann xts
    = return $ CE.XValue T.DoubleT (V.VDouble i)
   go (Lit (LitString i))
    = return $ CE.XValue T.StringT (V.VString i)
-  go (Agg agg)
-   = convertError
-   $ ConvertErrorPrimAggregateNotAllowedHere ann agg
 
   go (Fun f)
    = (CE.XPrim . C.PrimMinimal) <$> gofun f
@@ -86,7 +83,10 @@ convertPrim p ann xts
 
   goop TupleComma
    | [(_,a),(_,b)] <- xts
-   = return $ Min.PrimConst $ Min.PrimConstPair (baseType $ unwrapGroup a) (baseType $ unwrapGroup b)
+   = do a' <- convertValType ann a
+        b' <- convertValType ann b
+        return $ Min.PrimConst $ Min.PrimConstPair a' b'
+
    | otherwise
    = convertError
    $ ConvertErrorPrimNoArguments ann 2 p
@@ -102,8 +102,7 @@ convertPrim p ann xts
 
   t1 num_args
    = case xts of
-      ((_,tt):_) -> return
-                  $ baseType tt
+      ((_,tt):_) -> convertValType ann tt
       []         -> convertError
                   $ ConvertErrorPrimNoArguments ann num_args p
 

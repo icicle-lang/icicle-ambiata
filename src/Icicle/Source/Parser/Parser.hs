@@ -6,6 +6,7 @@ module Icicle.Source.Parser.Parser (
   , context
   , exp
   , windowUnit
+  , function
   ) where
 
 import qualified        Icicle.Source.Lexer.Token  as T
@@ -26,6 +27,12 @@ top
         eof
         return $ Q.QueryTop v q
 
+function :: Parser (Q.Function T.SourcePos Var)
+function
+ = do   v <- many ((,) <$> getPosition <*> pVariable)       <?> "function variables"
+        pEq T.TEqual                                        <?> "equals"
+        q <- query
+        return $ Q.Function v q
 
 query :: Parser (Q.Query T.SourcePos Var)
 query
@@ -134,12 +141,7 @@ windowUnit
 
 primitives :: [(T.Keyword, Q.Prim)]
 primitives
- = [(T.Newest, Q.Agg Q.Newest)
-   ,(T.Count,  Q.Agg Q.Count)
-   ,(T.Oldest, Q.Agg Q.Oldest)
-   ,(T.Sum,    Q.Agg Q.SumA)
-
-   ,(T.Log,     Q.Fun Q.Log)
+ = [(T.Log,     Q.Fun Q.Log)
    ,(T.Exp,     Q.Fun Q.Exp)
    ,(T.Double,  Q.Fun Q.ToDouble)
    ,(T.Int,     Q.Fun Q.ToInt)

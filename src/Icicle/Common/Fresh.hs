@@ -24,7 +24,7 @@ newtype FreshT n m a
  = FreshT
  { runFreshT :: NameState n -> m (NameState n, a) }
 
-type Fresh n a = FreshT n Identity a
+type Fresh n = FreshT n Identity
 
 runFresh :: Fresh n a -> NameState n -> (NameState n, a)
 runFresh f ns

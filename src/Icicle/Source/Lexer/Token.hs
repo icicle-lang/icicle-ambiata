@@ -60,7 +60,6 @@ data Keyword
  = And
  | Average
  | Between
- | Count
  | Days
  | Distinct
  | Feature
@@ -72,9 +71,6 @@ data Keyword
  | Let
  | Max
  | Months
- | Newest
- | Oldest
- | Sum
  | Weeks
  | Windowed
  | Log

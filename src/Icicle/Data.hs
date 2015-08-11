@@ -1,6 +1,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Data (
     Entity (..)
+  , Namespace (..)
   , Attribute (..)
   , Fact (..)
   , Fact' (..)
@@ -31,6 +32,11 @@ newtype Entity =
 
 instance PP.Pretty Entity where
   pretty (Entity t) = PP.text (unpack t)
+
+newtype Namespace =
+  Namespace {
+      getNamespace  :: Text
+    } deriving (Eq, Ord, Show)
 
 newtype Attribute =
   Attribute {

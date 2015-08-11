@@ -17,6 +17,7 @@ module Icicle.Source.ToCore.Base (
   , convertModifyFeatures
   , convertFreshenAdd
   , convertFreshenLookup
+  , convertValType
 
   , pre, strm, red, post
   , programOfBinds
@@ -26,7 +27,7 @@ module Icicle.Source.ToCore.Base (
 import qualified        Icicle.Core             as C
 import                  Icicle.Common.Fresh
 import                  Icicle.Common.Base
-import                  Icicle.Common.Type
+import                  Icicle.Common.Type  hiding (Type)
 import qualified        Icicle.Common.Exp       as X
 import qualified        Icicle.Core.Exp.Combinators as CE
 
@@ -90,14 +91,14 @@ post n x = mempty { postcomps = [(n,x)] }
 
 data ConvertError a n
  = ConvertErrorNoSuchFeature n
- | ConvertErrorPrimAggregateNotAllowedHere a Agg
  | ConvertErrorPrimNoArguments a Int Prim
- | ConvertErrorGroupByHasNonGroupResult a UniverseType
- | ConvertErrorContextNotAllowedInGroupBy a (Query (a,UniverseType) n)
+ | ConvertErrorGroupByHasNonGroupResult a (Type n)
+ | ConvertErrorContextNotAllowedInGroupBy a (Query (a,Type n) n)
  | ConvertErrorExpNoSuchVariable a n
- | ConvertErrorExpNestedQueryNotAllowedHere a (Query (a,UniverseType) n)
- | ConvertErrorExpApplicationOfNonPrimitive a (Exp (a,UniverseType) n)
- | ConvertErrorReduceAggregateBadArguments a (Exp (a,UniverseType) n)
+ | ConvertErrorExpNestedQueryNotAllowedHere a (Query (a,Type n) n)
+ | ConvertErrorExpApplicationOfNonPrimitive a (Exp (a,Type n) n)
+ | ConvertErrorReduceAggregateBadArguments a (Exp (a,Type n) n)
+ | ConvertErrorCannotConvertType a (Type n)
  deriving (Show, Eq, Ord)
 
 annotOfError :: ConvertError a n -> Maybe a
@@ -105,8 +106,6 @@ annotOfError e
  = case e of
     ConvertErrorNoSuchFeature _
      -> Nothing
-    ConvertErrorPrimAggregateNotAllowedHere a _
-     -> Just a
     ConvertErrorPrimNoArguments a _ _
      -> Just a
     ConvertErrorGroupByHasNonGroupResult a _
@@ -120,6 +119,8 @@ annotOfError e
     ConvertErrorExpApplicationOfNonPrimitive a _
      -> Just a
     ConvertErrorReduceAggregateBadArguments a _
+     -> Just a
+    ConvertErrorCannotConvertType a _
      -> Just a
 
 
@@ -189,6 +190,15 @@ convertFreshenLookup ann n
           -> return n'
 
 
+convertValType :: a -> Type n -> ConvertM a n ValType
+convertValType ann ty
+ = case valTypeOfType ty of
+    Nothing
+     -> convertError $ ConvertErrorCannotConvertType ann ty
+    Just t'
+     -> return t'
+
+
 convertError :: ConvertError a n -> ConvertM a n r
 convertError = lift . lift . Left
 
@@ -216,9 +226,6 @@ instance (Pretty a, Pretty n) => Pretty (ConvertError a n) where
      ConvertErrorNoSuchFeature n
       -> "No such feature: " <> pretty n
 
-     ConvertErrorPrimAggregateNotAllowedHere a agg
-      -> pretty a <> ": aggregate " <> pretty agg <> " not allowed in expression"
-
      ConvertErrorPrimNoArguments a num_args p
       -> pretty a <> ": primitive " <> pretty p <> " expects " <> pretty num_args <> " arguments but got none"
 
@@ -239,4 +246,7 @@ instance (Pretty a, Pretty n) => Pretty (ConvertError a n) where
 
      ConvertErrorReduceAggregateBadArguments a x
       -> pretty a <> ": bad arguments to aggregate: " <> pretty x
+
+     ConvertErrorCannotConvertType a t
+      -> pretty a <> ": cannot convert base type: " <> pretty t
 

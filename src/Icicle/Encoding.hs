@@ -12,7 +12,6 @@ module Icicle.Encoding (
   , primitiveEncoding
   , valueOfJSON
   , jsonOfValue
-  , parseFact
   , sourceTypeOfEncoding
   ) where
 
@@ -30,7 +29,6 @@ import qualified Data.Map               as Map
 import qualified Data.Vector            as V
 
 import           Icicle.Data
-import           Icicle.Dictionary
 import qualified Icicle.Common.Type     as IT
 
 import           P
@@ -322,29 +320,6 @@ readAll r t
  | otherwise
  = Nothing
 
-
-
-parseFact :: Dictionary -> Fact' -> Either DecodeError Fact
-parseFact (Dictionary dict) fact'
- = do   def <- maybeToRight (DecodeErrorNotInDictionary attr)
-                            (P.find (\(DictionaryEntry attr' _) -> (==) attr attr') dict)
-        case def of
-         DictionaryEntry _ (ConcreteDefinition enc)
-          -> factOf <$> parseValue enc (value' fact')
-         DictionaryEntry _ (VirtualDefinition _)
-          -> Left (DecodeErrorValueForVirtual attr)
-
- where
-  attr = attribute' fact'
-
-  factOf v
-   = Fact
-    { entity    = entity'    fact'
-    , attribute = attribute' fact'
-    , value     = v
-    }
-
-
 sourceTypeOfEncoding :: Encoding -> IT.ValType
 sourceTypeOfEncoding e
  = case e of
@@ -353,7 +328,7 @@ sourceTypeOfEncoding e
     IntEncoding
      -> IT.IntT
     DoubleEncoding
-     -> IT.IntT -- TODO double
+     -> IT.DoubleT
     BooleanEncoding
      -> IT.BoolT
     DateEncoding
