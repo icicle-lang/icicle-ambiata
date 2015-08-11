@@ -5,6 +5,12 @@ module Icicle.Source.Checker.Constraint (
     CheckState (..)
   , checkQ
   , generateQ
+
+  , Annot(..)
+  , annotDiscardConstraints
+  , Query'C
+  , Exp'C
+  , defaults
   ) where
 
 import                  Icicle.Source.Checker.Error
@@ -39,10 +45,45 @@ type Gen a n t = EitherT
                     (State.State (CheckState a n)))
                     t
 
+data Annot a n
+ = Annot
+ { annAnnot         :: a
+ , annResult        :: Type n
+ , annConstraints   :: [(a, Constraint n)]
+ }
+
+annotDiscardConstraints :: Annot a n -> (a, Type n)
+annotDiscardConstraints ann
+ = (annAnnot ann, annResult ann)
+
+type Query'C a n = Query (Annot a n) n
+type Exp'C   a n = Exp   (Annot a n) n
+
+
+defaults :: Ord n
+         => Query'C a n
+         -> Query'C a n
+defaults q
+ = let cm = Map.fromList
+          $ concatMap (defaultOfConstraint . snd)
+          $ annConstraints
+          $ annotOfQuery q
+   in substTQ cm q
+ where
+  defaultOfConstraint (CIsNum t)
+   | TypeVar n <- t
+   = [(n, IntT)]
+   | otherwise
+   = []
+  defaultOfConstraint (CEquals _ _)
+   = []
+
+
+
 checkQ  :: Ord n
         => Map.Map n (FunctionType n)
         -> Query a n
-        -> EitherT (CheckError a n) (Fresh.Fresh n) (Query (a, Type n) n)
+        -> EitherT (CheckError a n) (Fresh.Fresh n) (Query'C a n)
 checkQ env q
  = EitherT
  $ Fresh.FreshT
@@ -113,76 +154,82 @@ bind n t
         State.put (e { environment = Map.insert n (function0 t) (environment e) })
 
 -- TODO: generalise.
-generateQ :: Ord n => Query a n -> Gen a n (Query (a, Type n) n)
+generateQ :: Ord n => Query a n -> Gen a n (Query'C a n)
 generateQ (Query [] x)
  = Query [] <$> generateX x
 
 generateQ qq@(Query (c:_) _)
- = discharge (fst.annotOfQuery) substTQ
+ = discharge (annAnnot.annotOfQuery) substTQ
  $ case c of
     Windowed _ from to
      -> do  (q',t') <- rest
             requireAgg t'
-            with q' $ Windowed (a,t') from to
+            with q' t' $ \a' -> Windowed a' from to
     Latest _ i
      -> do  (q',t') <- rest
-            requireAgg t'
-            with q' $ Latest (a,t') i
+            -- requireAgg t'
+            with q' t' $ \a' -> Latest a' i
     GroupBy _ x
      -> do  x' <- generateX x
             (q',tval) <- rest
             requireAgg tval
-            let tkey = snd $ annotOfExp x'
+            let tkey = annResult $ annotOfExp x'
             let t'  = canonT $ Temporality TemporalityAggregate $ GroupT tkey tval
-            with q' $ GroupBy (a,t') x'
+            with q' t' $ \a' -> GroupBy a' x'
 
     Distinct _ x
      -> do  x' <- generateX x
             (q',t') <- rest
             requireAgg t'
-            with q' $ Distinct (a,t') x'
+            with q' t' $ \a' -> Distinct a' x'
 
     Filter _ x
      -> do  x' <- generateX x
             (q',t') <- rest
             requireAgg t'
             -- TODO allow pure, allow possibly
-            require a $ CEquals (snd $ annotOfExp x') (Temporality TemporalityElement BoolT)
-            with q' $ Filter (a,t') x'
+            require a $ CEquals (annResult $ annotOfExp x') (Temporality TemporalityElement BoolT)
+            with q' t' $ \a' -> Filter a' x'
 
     LetFold _ f
      -> do  i <- generateX $ foldInit f
-            bind (foldBind f) (snd $ annotOfExp i)
+            bind (foldBind f) (annResult $ annotOfExp i)
             w <- generateX $ foldWork f
             case foldType f of
              FoldTypeFoldl1
-              -> requireTemporality (snd $ annotOfExp i) TemporalityElement
+              -> requireTemporality (annResult $ annotOfExp i) TemporalityElement
              FoldTypeFoldl
-              -> requireTemporality (snd $ annotOfExp i) TemporalityPure
+              -> requireTemporality (annResult $ annotOfExp i) TemporalityPure
 
-            -- TODO: this should allow pure and possibly too
-            requireTemporality (snd $ annotOfExp w) TemporalityElement
+            -- TODO: this should allow possibly too
+            requireTemporality (annResult $ annotOfExp w) TemporalityElement
 
-            bind (foldBind f) (canonT $ Temporality TemporalityAggregate $ snd $ annotOfExp w)
+            bind (foldBind f) (canonT $ Temporality TemporalityAggregate $ annResult $ annotOfExp w)
             (q',t') <- rest
-            with q' $ LetFold (a,t') (f { foldInit = i, foldWork = w })
+            with q' t' $ \a' -> LetFold a' (f { foldInit = i, foldWork = w })
 
     Let _ n x
      -> do  x' <- generateX x
-            bind n (snd $ annotOfExp x')
+            bind n (annResult $ annotOfExp x')
             (q',t') <- rest
-            with q' $ Let (a,t') n x'
+            with q' t' $ \a' -> Let a' n x'
 
  where
   a  = annotOfContext c
 
   rest
    = do q' <- generateQ (qq { contexts = drop 1 $ contexts qq })
-        return (q', snd $ annotOfQuery q')
-  with q' c'
-   = return q' { contexts = c' : contexts q' }
+        return (q', annResult $ annotOfQuery q')
+
+  with q' t' c'
+   = do cs <- constraints <$> (lift $ lift State.get)
+        let a' = Annot a t' cs
+        return q' { contexts = c' a' : contexts q' }
 
   requireTemporality ty tmp
+   | TemporalityPure <- getTemporalityOrPure ty
+   = return ()
+   | otherwise
    = do n <- fresh
         require a $ CEquals ty (Temporality tmp $ TypeVar n)
   requireAgg t
@@ -190,19 +237,19 @@ generateQ qq@(Query (c:_) _)
 
 
 
-generateX :: Ord n => Exp a n -> Gen a n (Exp (a, Type n) n)
+generateX :: Ord n => Exp a n -> Gen a n (Exp'C a n)
 generateX x
- = discharge (fst.annotOfExp) substTX
+ = discharge (annAnnot.annotOfExp) substTX
  $ case x of
     Var a n
      -> do (argsT, resT, fErr) <- lookup a n
            when (not $ null argsT)
              $ hoistEither $ errorNoSuggestions (ErrorFunctionWrongArgs a x fErr [])
-           return (Var (a,resT) n)
+           annotate resT $ \a' -> Var a' n
 
-    Nested a q
+    Nested _ q
      -> do q' <- generateQ q
-           return $ Nested (a, snd $ annotOfQuery q') q'
+           annotate (annResult $ annotOfQuery q') $ \a' -> Nested a' q'
 
     App a _ _
      -> let (f, args)   = takeApps x
@@ -215,28 +262,35 @@ generateX x
         in do   (argsT, resT, fErr) <- look
 
                 args'   <- mapM generateX args
-                let argsT' = fmap (snd.annotOfExp) args'
+                let argsT' = fmap (annResult.annotOfExp) args'
 
                 when (length argsT /= length args)
                  $ hoistEither $ errorNoSuggestions (ErrorFunctionWrongArgs a x fErr argsT')
 
                 resT'   <- foldM (appType a) resT (argsT `zip` argsT')
 
-                let f' = reannotX (\anno -> (anno,resT')) f
+                f' <- annotate resT' $ \a' -> reannotX (const a') f
                 return $ foldl mkApp f' args'
 
     Prim a p
      -> do (argsT, resT, fErr) <- primLookup a p
            when (not $ null argsT)
              $ hoistEither $ errorNoSuggestions (ErrorFunctionWrongArgs a x fErr [])
-           return (Prim (a,resT) p)
+           annotate resT $ \a' -> Prim a' p
+
+ where
+  annotate t' f
+   = do cs <- constraints <$> (lift $ lift State.get)
+        let a' = Annot (annotOfExp x) t' cs
+        return (f a')
+
 
 
 appType :: a -> Type n -> (Type n, Type n) -> Gen a n (Type n)
 appType ann resT (expT,actT)
- = do let (tmpE,posE,datE) = decomposeT expT
-      let (tmpA,posA,datA) = decomposeT actT
-      let (tmpR,posR,datR) = decomposeT resT
+ = do let (tmpE,posE,datE) = decomposeT $ canonT expT
+      let (tmpA,posA,datA) = decomposeT $ canonT actT
+      let (tmpR,posR,datR) = decomposeT $ canonT resT
 
       require ann (CEquals datE datA)
 
@@ -326,11 +380,18 @@ primLookup' p
         return $ f n (TypeVar n)
 
 
-substTQ :: Ord n => SubstT n -> Query (a,Type n) n -> Query (a,Type n) n
-substTQ s q
- = reannotQ (\(a,t) -> (a, substT s t)) q
+substTQ :: Ord n => SubstT n -> Query'C a n -> Query'C a n
+substTQ s
+ = reannotQ (substAnnot s)
 
-substTX :: Ord n => SubstT n -> Exp (a,Type n) n -> Exp (a,Type n) n
-substTX s x
- = reannotX (\(a,t) -> (a, substT s t)) x
+substTX :: Ord n => SubstT n -> Exp'C a n -> Exp'C a n
+substTX s
+ = reannotX (substAnnot s)
+
+substAnnot :: Ord n => SubstT n -> Annot a n -> Annot a n
+substAnnot s ann
+ = ann
+ { annResult = substT s $ annResult ann
+ , annConstraints = fmap (\(a,c) -> (a, substC s c)) $ annConstraints ann
+ }
 

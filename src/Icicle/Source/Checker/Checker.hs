@@ -81,8 +81,10 @@ checkQ  :: Ord      n
         -> Query  a n
         -> Result (Query (a, Type n) n) a n
 checkQ ctx q
- = do q' <- Constr.checkQ (env ctx) q
-      return (q', snd $ annotOfQuery q')
+ = do q'  <- Constr.checkQ (env ctx) q
+      let q'a = reannotQ Constr.annotDiscardConstraints
+              $ Constr.defaults q'
+      return (q'a, snd $ annotOfQuery q'a)
 
 -- Temporarily disable the other checks.
 {-
