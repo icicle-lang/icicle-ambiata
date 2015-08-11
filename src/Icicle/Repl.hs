@@ -15,16 +15,11 @@ module Icicle.Repl (
 
 import qualified Icicle.Avalanche.Statement.Flatten as AS
 import qualified Icicle.Common.Fresh                as Fresh
-import           Icicle.Common.Type
-import qualified Icicle.Common.Exp.Prim.Minimal     as X
-import qualified Icicle.Common.Exp                  as X
-import qualified Icicle.Core                        as X
 import qualified Icicle.Core.Program.Program        as Core
 import qualified Icicle.Core.Program.Simp           as Core
 import           Icicle.Data
 import qualified Icicle.Dictionary                  as D
 import qualified Icicle.Dictionary.Parse            as DP
-import qualified Icicle.Encoding                    as E
 import           Icicle.Internal.Pretty
 import qualified Icicle.Serial                      as S
 import qualified Icicle.Simulator                   as S
@@ -33,7 +28,6 @@ import qualified Icicle.Source.Checker.Error        as SC
 import qualified Icicle.Source.Parser               as SP
 import qualified Icicle.Source.Query                as SQ
 import qualified Icicle.Source.ToCore.Base          as STC
-import qualified Icicle.Source.ToCore.Context       as STC
 import qualified Icicle.Source.ToCore.ToCore        as STC
 import qualified Icicle.Source.Type                 as ST
 
@@ -42,7 +36,6 @@ import           P
 import           Control.Monad.Trans.Either
 
 import           Data.Either.Combinators
-import qualified Data.Map                           as Map
 import           Data.Text                          (Text)
 import qualified Data.Text                          as T
 import qualified Data.Traversable                   as TR
@@ -114,7 +107,7 @@ sourceParse t
 
 sourceCheck :: D.Dictionary -> QueryTop' -> Either ReplError (QueryTop'T, ST.Type Var)
 sourceCheck d q
- = let d' = featureMapOfDictionary d
+ = let d' = D.featureMapOfDictionary d
    in  mapLeft ReplErrorCheck
      $ snd
      $ flip Fresh.runFresh (freshNamer "t")
@@ -128,7 +121,7 @@ sourceConvert d q
  $ mapLeft ReplErrorConvert
  $ Fresh.runFreshT (STC.convertQueryTop d' q) (freshNamer "conv")
  where
-  d' = featureMapOfDictionary d
+  d' = D.featureMapOfDictionary d
 
 
 sourceParseConvert :: T.Text -> Either ReplError Program'
@@ -136,7 +129,6 @@ sourceParseConvert t
  = do   q <- sourceParse t
         (q',_) <- sourceCheck D.demographics q
         sourceConvert D.demographics q'
-
 
 
 coreSimp :: Program' -> Program'
@@ -147,49 +139,6 @@ coreSimp p
 
 freshNamer :: Text -> Fresh.NameState SP.Variable
 freshNamer prefix = Fresh.counterPrefixNameState (SP.Variable . T.pack . show) (SP.Variable prefix)
-
-
-featureMapOfDictionary :: D.Dictionary -> STC.Features Var
-featureMapOfDictionary (D.Dictionary ds)
- = Map.fromList
- $ concatMap go
-   ds
- where
-  go (D.DictionaryEntry (Attribute attr) (D.ConcreteDefinition enc))
-   | StructT st@(StructType fs) <- E.sourceTypeOfEncoding enc
-   = let e' = StructT st
-     in [ ( SP.Variable attr
-        , ( baseType e'
-        , Map.fromList
-        $ exps "fields" e'
-        <> (fmap (\(k,t)
-        -> ( SP.Variable $ nameOfStructField k
-           , (baseType t, X.XApp (xget k t st) . X.XApp (xfst e' DateTimeT)))
-        )
-        $ Map.toList fs)))]
-
-   | otherwise
-   = let e' = E.sourceTypeOfEncoding enc
-     in [ ( SP.Variable attr
-        , ( baseType e'
-        , Map.fromList $ exps "value" e'))]
-  go _
-   = []
-
-  baseType = ST.typeOfValType
-
-  xfst t1 t2
-   = X.XPrim (X.PrimMinimal $ X.PrimPair $ X.PrimPairFst t1 t2)
-  xsnd t1 t2
-   = X.XPrim (X.PrimMinimal $ X.PrimPair $ X.PrimPairSnd t1 t2)
-  xget f t fs
-   = X.XPrim (X.PrimMinimal $ X.PrimStruct $ X.PrimStructGet f t fs)
-
-  exps str e'
-   = [ (SP.Variable str, ( baseType e', X.XApp (xfst e' DateTimeT)))
-     , date_as_snd e']
-  date_as_snd e'
-   = (SP.Variable "date" , ( baseType DateTimeT, X.XApp (xsnd e' DateTimeT)))
 
 readFacts :: D.Dictionary -> Text -> Either ReplError [AsAt Fact]
 readFacts dict raw

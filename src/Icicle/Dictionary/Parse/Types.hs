@@ -1,10 +1,12 @@
+{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Icicle.Dictionary.Parse.Types where
 
+import           P
+
 import qualified Data.HashMap.Strict as M
-import           Data.Int            (Int64)
 import           Data.List           (intersect)
 import           Data.Text           (Text)
 import qualified Data.Text           as T
@@ -45,8 +47,8 @@ emptyNTable = NTable M.empty
 -- It may result in an error ('Text') on the 'Left' or a modified table
 -- on the 'Right'.
 insert :: ([Text], (Node, Pos.SourcePos)) -> Table -> Either Text Table
-insert ([], _)           _    = error "FATAL: Cannot call 'insert' without a name."
-insert (_ , (NTValue _, _)) _ = error "FATAL: Cannot call 'insert' with a TValue."
+insert ([], _)           _    = Left "FATAL: Cannot call 'insert' without a name."
+insert (_ , (NTValue _, _)) _ = Left "FATAL: Cannot call 'insert' with a TValue."
 insert ([name], node) ttbl =
     -- In case 'name' is final
     case M.lookup name ttbl of

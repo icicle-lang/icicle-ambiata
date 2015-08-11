@@ -1,3 +1,4 @@
+{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Icicle.Dictionary.Parse.TomlDictionary
@@ -5,7 +6,6 @@ module Icicle.Dictionary.Parse.TomlDictionary
     tomlDict
   , DictionaryConfig (..)
   , DictionaryValidationError (..)
-  , DictionaryEntry' (..)
   ) where
 
 import           P
@@ -20,10 +20,13 @@ import qualified Data.HashMap.Strict as M
 
 import           Data.Attoparsec.Text
 import qualified Text.Parsec.Pos as Pos
+import           Text.Parsec (runParser)
+import           Text.Parsec.Error
+
 
 import           Icicle.Data
-import           Icicle.Source.Lexer.Token
 import           Icicle.Source.Lexer.Lexer
+import           Icicle.Source.Parser.Parser
 
 import           Icicle.Dictionary.Data
 import           Icicle.Dictionary.Parse
@@ -40,13 +43,9 @@ data DictionaryValidationError =
   UnknownElement Text Pos.SourcePos
   | BadType Text Text Pos.SourcePos
   | MissingRequired Text Text
-  | ParseError Pos.SourcePos Text
+  | EncodingError Text Pos.SourcePos
+  | ParseError ParseError
   deriving (Eq, Show)
-
-data DictionaryEntry' =
-  DictionaryEntryConcrete' Attribute Definition Text Text {- Text -}
-  | DictionaryEntryVirtual' Attribute [TOK]
-   deriving (Eq, Show)
 
 data DictionaryConfig =
   DictionaryConfig {
@@ -54,7 +53,6 @@ data DictionaryConfig =
   , version   :: Maybe Int64
   , namespace :: Maybe Text
   , tombstone :: Maybe Text
-  -- , mode      :: Maybe Text
   , imports   :: [Text]
   , chapter   :: [Text]
   } deriving (Eq, Show)
@@ -114,13 +112,13 @@ validateFact conf name x =
       namespace' = valFeatureOrParent "namespace"
       tombstone' = valFeatureOrParent "tombstone"
       -- mode'      = valFeatureOrParent "mode"
-  in DictionaryEntryConcrete' (Attribute name) <$> (ConcreteDefinition <$> encoding) <*> namespace' <*> tombstone' {-<*> mode'-}
+  in DictionaryEntry' (Attribute name) <$> (ConcreteDefinition' <$> encoding)
 
 validateEncoding' :: (Node, Pos.SourcePos) -> AccValidation [DictionaryValidationError] Encoding
 -- We can accept an encoding as a string in the old form.
 validateEncoding' (NTValue (VString encs), pos) =
   let encodingString = pack $ fst <$> encs
-  in either (AccFailure . pure . ParseError pos . pack) AccSuccess $ parseOnly parseEncoding encodingString
+  in either (AccFailure . const [EncodingError encodingString pos]) AccSuccess $ parseOnly parseEncoding encodingString
 -- Or as a table with string fields.
 validateEncoding' (NTable t, _) =
   -- We should get an error for every failed encoding listed.
@@ -128,7 +126,7 @@ validateEncoding' (NTable t, _) =
     -- Using a monad instance here, as the encoding should be a string, and then it should parse correctly.
     enc' <- maybe (Left $ [BadType name "string" pos']) (Right . fmap fst) $ enc ^? _NTValue . _VString
     -- Now that we have a string, parse it with attoparsec
-    (enc'', fieldType) <- mapLeft (pure . ParseError pos' . pack) $ parseOnly ((,) <$> parsePrimitiveEncoding <*> (Optional <$ char '*' <|> pure Mandatory) <* endOfInput) (pack enc')
+    (enc'', fieldType) <- mapLeft (const [EncodingError (pack enc') pos']) $ parseOnly ((,) <$> parsePrimitiveEncoding <*> (Optional <$ char '*' <|> pure Mandatory) <* endOfInput) (pack enc')
     pure $ StructField fieldType (Attribute name) enc''
   ) t
 -- But all other values should be failures.
@@ -153,8 +151,9 @@ validateFeature :: DictionaryConfig -> Text -> Table -> AccValidation [Dictionar
 validateFeature _ name x = either AccFailure AccSuccess $ do
   expression  <- maybe (Left [MissingRequired ("feature." <> name) "expression"]) Right $ x ^? key "expression"
   expression' <- maybe (Left [BadType ("feature." <> name <> ".expression") "string" (expression ^. _2)]) Right $ expression ^? _1 . _NTValue . _VString
-  let lexed = lexerPositions expression'
-  pure $ DictionaryEntryVirtual' (Attribute name) lexed
+  let toks = lexerPositions expression'
+  q      <-  mapLeft (pure . ParseError) $ runParser top () "" toks
+  pure $ DictionaryEntry' (Attribute name) (VirtualDefinition' (Virtual' q))
 
 accValidation :: (a -> c) -> (b -> c) -> AccValidation a b -> c
 accValidation f _ (AccFailure a) = f a

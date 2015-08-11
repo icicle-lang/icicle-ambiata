@@ -29,7 +29,8 @@ import qualified Icicle.Common.Base       as V
 import qualified Icicle.Core.Eval.Program as PV
 import qualified Icicle.Core.Program.Program as P
 
-
+import           Icicle.Source.Lexer.Token
+import           Icicle.Source.Query
 
 data Partition =
   Partition
@@ -91,8 +92,8 @@ evaluateVirtual virt date facts
  = P.concatMap go facts
  where
   go (Partition ent attr values)
-   | attr == concrete virt
-   = [(ent, evaluateVirtualValue (program virt) date values)]
+   -- | attr == (feature . unVirtual) virt
+   -- = [(ent, evaluateVirtualValue (program virt) date values)]
    | otherwise
    = []
 

@@ -29,13 +29,15 @@ tombstone = "NA"
 
 [fact.salary]
   encoding="int"
-  mode="set"
 
 # When TOML v4 is supported, in-line tables will also be possible. e.g.,
 # fact.salary = { namespace="demographics", encoding="int", mode="set" }
 
 [fact.gender]
   encoding="string"
+
+[feature.gender]
+  expression = "feature gender ~> newest"
 
 [fact.injury]
   # Override the namespace for this feature

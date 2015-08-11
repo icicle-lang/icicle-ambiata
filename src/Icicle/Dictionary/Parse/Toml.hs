@@ -1,14 +1,15 @@
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 
 module Icicle.Dictionary.Parse.Toml
   ( module Icicle.Dictionary.Parse.Toml
   , module Icicle.Dictionary.Parse.Types
   ) where
 
-import           Prelude             hiding (concat, takeWhile)
+import           P                   hiding (concat, (<|>), many, optional, join)
+import           Prelude             (read, {- eww -} head, fromEnum, toEnum, maxBound)
 
-import           Control.Applicative hiding (many, optional, (<|>))
 import qualified Data.HashMap.Strict as M
 import qualified Data.List           as L
 import qualified Data.Set            as S
@@ -41,7 +42,7 @@ tomlDoc = do
     topTable <- table
     namedSections <- many namedSection
     eof  -- ensures input is completely consumed
-    case join topTable (reverse namedSections) of
+    case join topTable (L.reverse namedSections) of
       Left msg -> fail (unpack msg)  -- TODO: allow Text in Parse Errors
       Right r  -> return $ r
   where
@@ -53,9 +54,9 @@ tomlDoc = do
 table :: Parser Table
 table = do
     pairs <- try (many (assignment <* skipBlanks)) <|> (try skipBlanks >> return [])
-    case hasDup (map sndOf3 pairs) of
-      Just k  -> fail $ "Cannot redefine key " ++ (unpack k)
-      Nothing -> return $ M.fromList (map (\(p, k, v) -> (k, (NTValue v, p))) pairs)
+    case hasDup (sndOf3 <$> pairs) of
+      Just k  -> fail $ "Cannot redefine key " <> (unpack k)
+      Nothing -> return $ M.fromList (fmap (\(p, k, v) -> (k, (NTValue v, p))) pairs)
   where
     sndOf3 (_, a, _) = a
     hasDup        :: Ord a => [a] -> Maybe a

@@ -140,6 +140,7 @@ library
                        Icicle.Source.Query.Query
                        Icicle.Source.Query.Context
                        Icicle.Source.Query.Exp
+                       Icicle.Source.Query.Function
                        Icicle.Source.Query.Operators
                        Icicle.Source.Lexer.Token
                        Icicle.Source.Lexer.Lexer
