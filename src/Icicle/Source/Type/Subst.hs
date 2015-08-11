@@ -215,9 +215,8 @@ canonT
 
 decomposeT :: Type n -> (Maybe (Type n), Maybe (Type n), Type n)
 decomposeT t
- = let can  = canonT t
-       tmp  = getTemporality can
-       tmpR = maybe can snd tmp
+ = let tmp  = getTemporality t
+       tmpR = maybe t snd tmp
        pos  = getPossibility tmpR
        posR = maybe tmpR snd pos
    in (fst <$> tmp, fst <$> pos, posR)
