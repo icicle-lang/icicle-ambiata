@@ -25,18 +25,10 @@ data CheckError a n
 data ErrorInfo a n
  = ErrorNoSuchVariable a n
  | ErrorNoSuchFeature n
- | ErrorReturnNotAggregate a (Query a n)     (Type n)
- | ErrorContextExpNotBool  a (Context a n)   (Type n)
- | ErrorContextExpNotEnum  a (Context a n)   (Type n)
- | ErrorContextExpNotElem  a (Context a n)   (Type n)
  | ErrorContextNotAllowedHere  a (Context a n)
- | ErrorFoldTypeMismatch       a (Type n) (Type n)
- | ErrorTypeMismatch           a (Exp a n) (Type n) (Type n)
- | ErrorUniverseMismatch       a (Type n) (Type n)
  | ErrorFunctionWrongArgs      a (Exp a n) (FunctionType n) [Type n]
  | ErrorApplicationNotFunction a (Exp a n)
- | ErrorPrimBadArgs          a (Exp a n) [Type n]
- | ErrorPrimNotANumber       a (Exp a n) [Type n]
+ | ErrorConstraintsNotSatisfied a [(a, DischargeError n)]
  deriving (Show, Eq, Ord)
 
 annotOfError :: CheckError a n -> Maybe a
@@ -46,29 +38,13 @@ annotOfError (CheckError e _)
      -> Just a
     ErrorNoSuchFeature _
      -> Nothing
-    ErrorReturnNotAggregate a _ _
-     -> Just a
-    ErrorContextExpNotBool  a _ _
-     -> Just a
-    ErrorContextExpNotEnum  a _ _
-     -> Just a
-    ErrorContextExpNotElem  a _ _
-     -> Just a
     ErrorContextNotAllowedHere  a _
-     -> Just a
-    ErrorFoldTypeMismatch       a _ _
-     -> Just a
-    ErrorTypeMismatch           a _ _ _
-     -> Just a
-    ErrorUniverseMismatch       a _ _
      -> Just a
     ErrorFunctionWrongArgs      a _ _ _
      -> Just a
     ErrorApplicationNotFunction a _
      -> Just a
-    ErrorPrimBadArgs          a _ _
-     -> Just a
-    ErrorPrimNotANumber       a _ _
+    ErrorConstraintsNotSatisfied          a _
      -> Just a
 
 
@@ -106,45 +82,9 @@ instance (Pretty a, Pretty n) => Pretty (ErrorInfo a n) where
      ErrorNoSuchFeature n
       -> "The dictionary has no feature called" <+> pretty n
 
-     ErrorReturnNotAggregate a q ut
-      -> "The return of the query is not an aggregate at" <+> pretty a <> line
-      <> "Query: " <> inp q <> line
-      <> "Type:  " <> inp ut
-
-     ErrorContextExpNotBool a c ut
-      -> "Context expression is not a bool at" <+> pretty a <> line
-      <> "Context: " <> inp c       <> line
-      <> "Type:    " <> inp ut
-
-     ErrorContextExpNotEnum a c ut
-      -> "Context expression is not enum (int, date,..) at" <+> pretty a <> line
-      <> "Context: " <> inp c       <> line
-      <> "Type:    " <> inp ut
-
-     ErrorContextExpNotElem a c ut
-      -> "Context expression is not an element expression (cannot be aggregate) at" <+> pretty a <> line
-      <> "Context: " <> inp c       <> line
-      <> "Type:    " <> inp ut
-
      ErrorContextNotAllowedHere  a c
       -> "Context is not allowed at" <+> pretty a <> line
       <> "Context: " <> inp c
-
-     ErrorFoldTypeMismatch a init work
-      -> "Type mismatch in fold at " <+> pretty a <> line
-      <> "Initial: " <> inp init    <> line
-      <> "Worker:  " <> inp work
-
-     ErrorTypeMismatch  a x ty expected
-      -> "Type mismatch at " <+> pretty a <> line
-      <> "Exp:      " <> inp x    <> line
-      <> "Type:     " <> inp ty    <> line
-      <> "Expected: " <> inp expected
-
-     ErrorUniverseMismatch a ty expected
-      -> "Universe mismatch at " <+> pretty a <> line
-      <> "Type:     " <> inp ty      <> line
-      <> "Expected: " <> inp expected
 
      ErrorFunctionWrongArgs a x f tys
       -> "Function applied to wrong number of arguments at " <+> pretty a <> line
@@ -156,15 +96,9 @@ instance (Pretty a, Pretty n) => Pretty (ErrorInfo a n) where
       -> "Application of non-function at " <+> pretty a <> line
       <> "Exp: " <> inp x
 
-     ErrorPrimBadArgs a x tys
-      -> "Primitive applied to bad arguments at " <+> pretty a <> line
-      <> "Exp:  " <> inp x <> line
-      <> "Args: " <> cat (fmap ((<+>" ").pretty) tys)
-
-     ErrorPrimNotANumber a x tys
-      -> "This operator requires a number type at " <+> pretty a <> line
-      <> "Exp:  " <> inp x <> line
-      <> "Args: " <> cat (fmap ((<+>" ").pretty) tys)
+     ErrorConstraintsNotSatisfied a ds
+      -> "Cannot discharge constraints at " <+> pretty a <> line
+      <> "Constraints: " <> cat (fmap ((<+>" ").pretty) ds)
 
 
    where

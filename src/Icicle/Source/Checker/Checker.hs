@@ -3,22 +3,29 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Source.Checker.Checker (
     checkQT
-  , checkQ
-  , checkX
+  -- , checkQ
+  -- , checkX
   , CheckEnv(..)
   , emptyEnv
   ) where
 
 import                  Icicle.Source.Checker.Error
+import qualified        Icicle.Source.Checker.Constraint as Constr
 import                  Icicle.Source.ToCore.Context
 import                  Icicle.Source.Query
 import                  Icicle.Source.Type
 
+import qualified        Icicle.Common.Fresh     as Fresh
+
 import                  P
+
+-- import                  Control.Monad.Trans.Class
+import                  Control.Monad.Trans.Either
+
 
 import qualified        Data.Map as Map
 
-import                  Data.List (zip, repeat)
+-- import                  Data.List (zip, repeat)
 
 
 -- | Type checking environment.
@@ -44,21 +51,22 @@ emptyEnv :: CheckEnv n
 emptyEnv
  = CheckEnv Map.empty True False True
 
-type Result r a n = Either (CheckError a n) (r, UniverseType n)
+type Result r a n = EitherT (CheckError a n) (Fresh.Fresh n) (r, Type n)
 
 
 -- | Check a top-level Query, returning the query with type annotations and casts inserted.
 checkQT :: Ord n
         => Features n
         -> QueryTop a n
-        -> Result (QueryTop (a, UniverseType n) n) a n
+        -> Result (QueryTop (a, Type n) n) a n
 checkQT features qt
  = case Map.lookup (feature qt) features of
     Just (_,f)
      -> do  (q,t) <- checkQ (emptyEnv { env = fmap function0 $ envOfFeatureContext f }) (query qt)
             return (qt { query = q }, t)
     Nothing
-     -> errorSuggestions (ErrorNoSuchFeature (feature qt))
+     -> hoistEither
+      $ errorSuggestions (ErrorNoSuchFeature (feature qt))
                          [suggestionForFeatures]
 
  where
@@ -68,7 +76,16 @@ checkQT features qt
    $ Map.toList features
 
 
+checkQ  :: Ord      n
+        => CheckEnv n
+        -> Query  a n
+        -> Result (Query (a, Type n) n) a n
+checkQ ctx q
+ = do q' <- Constr.checkQ (env ctx) q
+      return (q', snd $ annotOfQuery q')
 
+-- Temporarily disable the other checks.
+{-
 -- | Check a Query with contexts
 checkQ  :: Ord      n
         => CheckEnv n
@@ -506,3 +523,4 @@ mkCastDouble xx
        t'    = t { baseType = DoubleT }
    in  Prim (a,t') (Fun ToDouble) `mkApp` xx
 
+-}

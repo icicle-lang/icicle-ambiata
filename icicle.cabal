@@ -144,6 +144,7 @@ library
                        Icicle.Source.Type
                        Icicle.Source.Type.Base
                        Icicle.Source.Type.Subst
+                       Icicle.Source.Type.Constraints
                        Icicle.Source.Checker.Checker
                        Icicle.Source.Checker.Constraint
                        Icicle.Source.Checker.Error

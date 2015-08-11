@@ -2,7 +2,9 @@
 {-# LANGUAGE PatternGuards #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Source.Checker.Constraint (
-    generateQ
+    CheckState (..)
+  , checkQ
+  , generateQ
   ) where
 
 import                  Icicle.Source.Checker.Error
@@ -17,27 +19,62 @@ import                  P
 
 import                  Control.Monad.Trans.Class
 import                  Control.Monad.Trans.Either
-import qualified        Control.Monad.Trans.RWS as RWS
+import qualified        Control.Monad.Trans.State as State
+import                  Data.Functor.Identity
 
 import                  Data.List (zip)
 import qualified        Data.Map                as Map
 
 
-type Env n = Map.Map n (FunctionType n)
+
+data CheckState a n
+ = CheckState
+ { environment :: Map.Map n (FunctionType n)
+ , constraints :: [(a, Constraint n)]
+ }
 
 type Gen a n t = EitherT
                     (CheckError a n)
                     (Fresh.FreshT n
-                    (RWS.RWS () [(a, Constraint n)] (Env n)))
+                    (State.State (CheckState a n)))
                     t
+
+checkQ  :: Ord n
+        => Map.Map n (FunctionType n)
+        -> Query a n
+        -> EitherT (CheckError a n) (Fresh.Fresh n) (Query (a, Type n) n)
+checkQ env q
+ = EitherT
+ $ Fresh.FreshT
+ $ \ns -> Identity
+ $ flip State.evalState (CheckState env [])
+ $ flip Fresh.runFreshT ns
+ $ runEitherT
+ $ generateQ q
 
 require :: a -> Constraint n -> Gen a n ()
 require a c
- = lift $ lift $ RWS.tell [(a,c)]
+ = lift
+ $ lift
+ $ do   e <- State.get
+        State.put (e { constraints = (a,c) : constraints e })
+
+discharge :: Ord n => (q -> a) -> (SubstT n -> q -> q) -> Gen a n q -> Gen a n q
+discharge ann sub g
+ = do q <- g
+      e <- lift $ lift State.get
+      case dischargeCS (constraints e) of
+       Left errs
+        -> hoistEither $ errorNoSuggestions (ErrorConstraintsNotSatisfied (ann q) errs)
+       Right (s, cs')
+        -> do let e' = CheckState (fmap (substFT s) $ environment e) cs'
+              lift $ lift $ State.put e'
+              return $ sub s q
 
 fresh :: Gen a n (Name n)
 fresh
  = lift $ Fresh.fresh
+
 
 
 freshenFunction :: Ord n => a -> FunctionType n -> Gen a n ([Type n], Type n, FunctionType n)
@@ -58,7 +95,8 @@ freshenFunction ann f
 
 lookup :: Ord n => a -> n -> Gen a n ([Type n], Type n, FunctionType n)
 lookup ann n
- = do   env <- lift $ lift $ RWS.get
+ = do   e <- lift $ lift $ State.get
+        let env = environment e
         case Map.lookup n env of
          Just t
           -> freshenFunction ann t
@@ -69,18 +107,19 @@ lookup ann n
 
 bind :: Ord n => n -> Type n -> Gen a n ()
 bind n t
- = do   env <- lift $ lift $ RWS.get
-        lift $ lift $ RWS.put $ Map.insert n (function0 t) env
+ = lift
+ $ lift
+ $ do   e <- State.get
+        State.put (e { environment = Map.insert n (function0 t) (environment e) })
 
-
--- TODO: discharge constraints at every step.
 -- TODO: generalise.
 generateQ :: Ord n => Query a n -> Gen a n (Query (a, Type n) n)
 generateQ (Query [] x)
  = Query [] <$> generateX x
 
 generateQ qq@(Query (c:_) _)
- = case c of
+ = discharge (fst.annotOfQuery) substTQ
+ $ case c of
     Windowed _ from to
      -> do  (q',t') <- rest
             requireAgg t'
@@ -153,7 +192,8 @@ generateQ qq@(Query (c:_) _)
 
 generateX :: Ord n => Exp a n -> Gen a n (Exp (a, Type n) n)
 generateX x
- = case x of
+ = discharge (fst.annotOfExp) substTX
+ $ case x of
     Var a n
      -> do (argsT, resT, fErr) <- lookup a n
            when (not $ null argsT)
@@ -284,3 +324,13 @@ primLookup' p
   f1 f
    = do n <- fresh
         return $ f n (TypeVar n)
+
+
+substTQ :: Ord n => SubstT n -> Query (a,Type n) n -> Query (a,Type n) n
+substTQ s q
+ = reannotQ (\(a,t) -> (a, substT s t)) q
+
+substTX :: Ord n => SubstT n -> Exp (a,Type n) n -> Exp (a,Type n) n
+substTX s x
+ = reannotX (\(a,t) -> (a, substT s t)) x
+
