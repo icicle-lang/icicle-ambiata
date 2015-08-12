@@ -1,6 +1,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Source.Parser (
     parseQueryTop
+  , parseFunctions
   , prettyParse
   , ParseError
   , SourcePos
@@ -21,6 +22,10 @@ import Text.Parsec
 
 import P
 
+parseFunctions :: Text -> Either ParseError [((SourcePos, Variable), (Function SourcePos Variable))]
+parseFunctions inp
+ = let toks = lexer "" inp
+   in  runParser functions () "" toks
 
 parseQueryTop :: Text -> Either ParseError (QueryTop SourcePos Variable)
 parseQueryTop inp

@@ -187,6 +187,7 @@ executable             icicle-repl
     ghc-options:       -Wall -threaded -O2
     main-is:           main/icicle-repl.hs
     build-depends:     base
+                     , containers
                      , either
                      , icicle
                      , directory

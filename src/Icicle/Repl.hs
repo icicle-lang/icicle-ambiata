@@ -11,6 +11,7 @@ module Icicle.Repl (
   , coreSimp
   , readFacts
   , readDictionary
+  , readIcicleLibrary
   ) where
 
 import qualified Icicle.Avalanche.Statement.Flatten as AS
@@ -23,8 +24,10 @@ import qualified Icicle.Dictionary.Parse            as DP
 import           Icicle.Internal.Pretty
 import qualified Icicle.Serial                      as S
 import qualified Icicle.Simulator                   as S
+import qualified Icicle.Source.Checker.Base         as SC
 import qualified Icicle.Source.Checker.Checker      as SC
 import qualified Icicle.Source.Checker.Error        as SC
+import qualified Icicle.Source.Checker.Function     as SC
 import qualified Icicle.Source.Parser               as SP
 import qualified Icicle.Source.Query                as SQ
 import qualified Icicle.Source.ToCore.Base          as STC
@@ -39,6 +42,7 @@ import           Data.Either.Combinators
 import           Data.Text                          (Text)
 import qualified Data.Text                          as T
 import qualified Data.Traversable                   as TR
+import qualified Data.Map                           as M
 
 import qualified Text.ParserCombinators.Parsec      as Parsec
 
@@ -149,3 +153,14 @@ readDictionary :: Text -> Either ReplError D.Dictionary
 readDictionary raw
   = fmap D.Dictionary $ mapLeft ReplErrorDecode
   $ TR.traverse DP.parseDictionaryLineV1 $ T.lines raw
+
+readIcicleLibrary :: Text -> Either ReplError (M.Map Var (ST.FunctionType Var),
+                      [(Var, SQ.Function (SC.Annot Parsec.SourcePos Var) Var)])
+readIcicleLibrary input
+ = do
+  input' <- mapLeft ReplErrorParse $ SP.parseFunctions input
+  mapLeft ReplErrorCheck
+     $ snd
+     $ flip Fresh.runFresh (freshNamer "t")
+     $ runEitherT
+     $ SC.checkFs M.empty input'
