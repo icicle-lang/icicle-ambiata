@@ -2,6 +2,7 @@
 {-# LANGUAGE PatternGuards #-}
 module Icicle.Source.Lexer.Lexer (
     lexer
+  , lexerPositions
   ) where
 
 import Icicle.Source.Lexer.Token
