@@ -34,9 +34,10 @@ import                  P
 -- is ill typed.
 convertPrim
         :: Prim -> a
+        -> Type n
         -> [(C.Exp n, Type n)]
         -> ConvertM a n (C.Exp n)
-convertPrim p ann xts
+convertPrim p ann resT xts
  = do   p' <- go p
         return $ CE.makeApps p' $ fmap fst xts
  where
@@ -44,6 +45,9 @@ convertPrim p ann xts
   go (Op o)
    = (CE.XPrim . C.PrimMinimal) <$> goop o
   go (Lit (LitInt i))
+   | (_, _, DoubleT) <- decomposeT resT
+   = return $ CE.XValue T.DoubleT (V.VDouble $ fromIntegral i)
+   | otherwise
    = return $ CE.constI i
   go (Lit (LitDouble i))
    = return $ CE.XValue T.DoubleT (V.VDouble i)
@@ -96,6 +100,8 @@ convertPrim p ann xts
   gofun Exp
    = return $ Min.PrimDouble Min.PrimDoubleExp
   gofun ToDouble
+   -- TODO: this should return noop if argument is already double
+   -- | (_,_,DoubleT) <- decomposeT t1
    = return $ Min.PrimCast Min.PrimCastDoubleOfInt
   gofun ToInt
    = return $ Min.PrimCast Min.PrimCastIntOfDouble

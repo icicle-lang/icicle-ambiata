@@ -558,7 +558,7 @@ convertReduce xx
  = do   (bs,nms) <- unzip <$> mapM convertReduce args
         let tys  = fmap (snd . annotOfExp) args
         let xs   = fmap  CE.XVar           nms
-        x' <- convertPrim p (fst $ annotOfExp xx) (xs `zip` tys)
+        x' <- convertPrim p (fst $ annotOfExp xx) ty (xs `zip` tys)
 
         nm  <- lift fresh
 

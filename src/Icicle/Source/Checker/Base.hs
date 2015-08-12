@@ -47,6 +47,7 @@ data CheckState a n
  { environment :: Map.Map n (FunctionType n)
  , constraints :: [(a, Constraint n)]
  }
+ deriving (Eq, Ord, Show)
 
 type Gen a n t
  = EitherT
@@ -75,6 +76,7 @@ data Annot a n
  , annResult        :: Type n
  , annConstraints   :: [(a, Constraint n)]
  }
+ deriving (Eq, Ord, Show)
 
 
 annotDiscardConstraints :: Annot a n -> (a, Type n)

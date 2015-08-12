@@ -19,3 +19,4 @@ instance Pretty n => Pretty (Function a n) where
  pretty q =
   let p = (pretty . snd) <$> (arguments q)
   in (sep p) <> line <> "~>" <+> pretty (body q)
+

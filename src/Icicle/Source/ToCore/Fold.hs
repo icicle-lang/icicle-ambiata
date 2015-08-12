@@ -101,7 +101,7 @@ convertFold q
                 --  recursively extract the arguments,
                 --  apply the primitive
                 let cp ns
-                        = convertPrim p ann
+                        = convertPrim p ann retty
                             ((fmap (uncurry CE.XApp) (fmap mapExtract res `zip` ns)) `zip` fmap (snd . annotOfExp) args)
                 xx       <- pairDestruct cp ts retty
 

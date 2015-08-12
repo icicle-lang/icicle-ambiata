@@ -51,18 +51,18 @@ convertExp x
 
     App (ann,_) _ _
      -- Primitive application: convert arguments, then convert primitive
-     | Just (p, _, args) <- takePrimApps x
+     | Just (p, (_,resT), args) <- takePrimApps x
      -> do  args'   <- mapM convertExp args
             let tys  = fmap (snd . annotOfExp) args
-            convertPrim p ann (args' `zip` tys)
+            convertPrim p ann resT (args' `zip` tys)
 
      | otherwise
      -> convertError
       $ ConvertErrorExpApplicationOfNonPrimitive ann x
 
 
-    Prim (ann,_) p
-     -> convertPrim p ann []
+    Prim (ann,resT) p
+     -> convertPrim p ann resT []
 
 
 
