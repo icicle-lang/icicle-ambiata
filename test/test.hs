@@ -16,7 +16,8 @@ import qualified Icicle.Test.Avalanche.SimpCommutes
 import qualified Icicle.Test.Avalanche.Flatten
 import qualified Icicle.Test.Avalanche.Scoped
 
-import qualified Icicle.Test.Dictionary.Types
+-- Superseded
+-- import qualified Icicle.Test.Dictionary.Types
 
 import qualified Icicle.Test.Source.PrettyParse
 import qualified Icicle.Test.Source.Progress
@@ -46,7 +47,7 @@ main
         , Icicle.Test.Avalanche.Flatten.tests
         , Icicle.Test.Avalanche.Scoped.tests
 
-        , Icicle.Test.Dictionary.Types.tests
+        -- , Icicle.Test.Dictionary.Types.tests
 
         , Icicle.Test.Source.PrettyParse.tests
         , Icicle.Test.Source.Progress.tests

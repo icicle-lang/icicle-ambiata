@@ -167,17 +167,17 @@ library
 
                        Icicle.Repl
 
-executable             icicle
-    ghc-options:       -Wall -threaded -O2
-    main-is:           main/icicle.hs
-    build-depends:     base
-                     , either
-                     , icicle
-                     , filepath
-                     , p
-                     , text
-                     , transformers
-                     , x-optparse
+-- executable             icicle
+--     ghc-options:       -Wall -threaded -O2
+--     main-is:           main/icicle.hs
+--     build-depends:     base
+--                      , either
+--                      , icicle
+--                      , filepath
+--                      , p
+--                      , text
+--                      , transformers
+--                      , x-optparse
 
 executable             icicle-repl
     ghc-options:       -Wall -threaded -O2

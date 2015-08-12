@@ -1,3 +1,3 @@
 #!/bin/sh -eu
-dist/build/icicle/icicle data/example/demographics.psv
+# dist/build/icicle/icicle data/example/demographics.psv
 
