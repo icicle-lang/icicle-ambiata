@@ -9,6 +9,7 @@ module Icicle.Source.Checker.Checker (
   , emptyEnv
   ) where
 
+import                  Icicle.Source.Checker.Base
 import                  Icicle.Source.Checker.Error
 import qualified        Icicle.Source.Checker.Constraint as Constr
 import                  Icicle.Source.ToCore.Context
@@ -82,7 +83,7 @@ checkQ  :: Ord      n
         -> Result (Query (a, Type n) n) a n
 checkQ ctx q
  = do q'  <- Constr.checkQ (env ctx) q
-      let q'a = reannotQ Constr.annotDiscardConstraints
+      let q'a = reannotQ annotDiscardConstraints
               $ Constr.defaults q'
       return (q'a, snd $ annotOfQuery q'a)
 

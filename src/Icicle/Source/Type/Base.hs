@@ -11,7 +11,6 @@ module Icicle.Source.Type.Base (
   , typeOfValType
   , Constraint  (..)
   , FunctionType(..)
-  , function0
   ) where
 
 import                  Icicle.Common.Base
@@ -112,10 +111,6 @@ data FunctionType n
  , functionReturn       :: Type n
  }
  deriving (Eq, Ord, Show)
-
-function0 :: Type n -> FunctionType n
-function0 u
- = FunctionType [] [] [] u
 
 
 instance Pretty n => Pretty (Type n) where
