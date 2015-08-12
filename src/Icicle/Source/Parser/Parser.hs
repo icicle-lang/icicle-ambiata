@@ -6,6 +6,7 @@ module Icicle.Source.Parser.Parser (
   , context
   , exp
   , windowUnit
+  , functions
   , function
   ) where
 
@@ -16,7 +17,7 @@ import qualified        Icicle.Source.Query        as Q
 
 import                  P hiding (exp)
 
-import                  Text.Parsec (many1, parserFail, getPosition, eof, (<?>))
+import                  Text.Parsec (many1, parserFail, getPosition, eof, (<?>), sepEndBy)
 
 top :: Parser (Q.QueryTop T.SourcePos Var)
 top
@@ -26,6 +27,10 @@ top
         q <- query                                          <?> "query"
         eof
         return $ Q.QueryTop v q
+
+functions :: Parser [((T.SourcePos, Var), (Q.Function T.SourcePos Var))]
+functions
+ = ((,) <$> ((,) <$> getPosition <*> pVariable) <*> function) `sepEndBy` (pEq T.TStatementEnd)
 
 function :: Parser (Q.Function T.SourcePos Var)
 function

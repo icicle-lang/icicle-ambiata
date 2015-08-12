@@ -3,6 +3,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Source.Checker.Function (
     checkF
+  , checkFs
   ) where
 
 import                  Icicle.Source.Checker.Base
@@ -22,6 +23,19 @@ import qualified        Control.Monad.Trans.State as State
 
 import qualified        Data.Map                as Map
 import qualified        Data.Set                as Set
+
+checkFs :: Ord n
+        => Map.Map n (FunctionType n)
+        -> [((a, n), Function a n)]
+        -> EitherT (CheckError a n) (Fresh.Fresh n)
+                   (Map.Map n (FunctionType n), [(n, Function (Annot a n) n)])
+
+checkFs env functions
+ = foldlM (\(env', annotfuns) -> \(name,fun) ->
+            (\(annotfun, funtype) ->
+              (Map.insert (snd name) funtype env', ((snd name), annotfun) : annotfuns))
+            <$> checkF env' fun)
+          (env, []) functions
 
 checkF  :: Ord n
         => Map.Map n (FunctionType n)
