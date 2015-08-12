@@ -35,8 +35,6 @@ data CheckEnv n
  = CheckEnv
  -- | Mapping from variable names to whole types
  { env        :: Map.Map n (FunctionType n)
- -- | The top-level of a query must return an Aggregate, so note whether we're currently at top
- , isTopLevel :: Bool
  -- | We can't have windows or other group-like things inside groups.
  -- This is actually treating all of latests, distincts and groups as "group-like"
  -- because they all require compilation to a single fold.
@@ -50,7 +48,7 @@ data CheckEnv n
 -- | Initial environment at top-level, not inside a group, and allowing contexts
 emptyEnv :: CheckEnv n
 emptyEnv
- = CheckEnv Map.empty True False True
+ = CheckEnv Map.empty False True
 
 type Result r a n = EitherT (CheckError a n) (Fresh.Fresh n) (r, Type n)
 
@@ -65,6 +63,7 @@ checkQT features qt
     Just (_,f)
      -> do  (q,t) <- checkQ (emptyEnv { env = fmap function0 $ envOfFeatureContext f }) (query qt)
             return (qt { query = q }, t)
+
     Nothing
      -> hoistEither
       $ errorSuggestions (ErrorNoSuchFeature (feature qt))
@@ -85,6 +84,13 @@ checkQ ctx q
  = do q'  <- Constr.checkQ (env ctx) q
       let q'a = reannotQ annotDiscardConstraints
               $ Constr.defaults q'
+
+      let t = snd $ annotOfQuery q'a
+      case getTemporalityOrPure t of
+       TemporalityAggregate -> return ()
+       _ -> hoistEither
+          $ errorSuggestions (ErrorReturnNotAggregate (annotOfQuery $ q) t)
+                             [Suggest "The return must be an aggregate, otherwise the result could be quite large"]
       return (q'a, snd $ annotOfQuery q'a)
 
 -- Temporarily disable the other checks.
@@ -94,15 +100,10 @@ checkQ  :: Ord      n
         => CheckEnv n
         -> Query  a n
         -> Result (Query (a, UniverseType n) n) a n
-checkQ ctx_top q
+checkQ ctx q
  = do (x, t) <- go
-      -- If it's top-level, make sure it returns aggregate or group
-      when (isTopLevel ctx_top)
-       $ requireAggOrGroup (annotOfQuery q) t
       return (x, t)
  where
-  -- If we were at top-level, any lower levels are not top
-  ctx = ctx_top { isTopLevel = False }
   go
    = case contexts q of
         -- No contexts, so it's just an expression

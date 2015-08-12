@@ -29,6 +29,7 @@ data ErrorInfo a n
  | ErrorFunctionWrongArgs      a (Exp a n) (FunctionType n) [Type n]
  | ErrorApplicationNotFunction a (Exp a n)
  | ErrorConstraintsNotSatisfied a [(a, DischargeError n)]
+ | ErrorReturnNotAggregate a (Type n)
  deriving (Show, Eq, Ord)
 
 annotOfError :: CheckError a n -> Maybe a
@@ -45,6 +46,8 @@ annotOfError (CheckError e _)
     ErrorApplicationNotFunction a _
      -> Just a
     ErrorConstraintsNotSatisfied          a _
+     -> Just a
+    ErrorReturnNotAggregate          a _
      -> Just a
 
 
@@ -99,6 +102,10 @@ instance (Pretty a, Pretty n) => Pretty (ErrorInfo a n) where
      ErrorConstraintsNotSatisfied a ds
       -> "Cannot discharge constraints at " <+> pretty a <> line
       <> "Constraints: " <> cat (fmap ((<+>" ").pretty) ds)
+
+     ErrorReturnNotAggregate a t
+      -> "Return type is not an aggregate at " <+> pretty a <> line
+      <> "Type: " <> inp t
 
 
    where

@@ -106,6 +106,10 @@ generateQ qq@(Query (c:_) _)
             -- TODO: this should allow possibly too
             requireTemporality (annResult $ annotOfExp w) TemporalityElement
 
+            let (_,_,it) = decomposeT $ annResult $ annotOfExp i
+            let (_,_,wt) = decomposeT $ annResult $ annotOfExp w
+            require a $ CEquals it wt
+
             bind (foldBind f) (canonT $ Temporality TemporalityAggregate $ annResult $ annotOfExp w)
             (q',t') <- rest
             with q' t' $ \a' -> LetFold a' (f { foldInit = i, foldWork = w })
