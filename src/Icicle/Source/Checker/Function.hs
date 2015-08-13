@@ -41,7 +41,9 @@ checkF' fun
       q'  <- generateQ    $ body      fun
 
       ctx <- lift $ lift State.get
-      let constrs = fmap snd $ constraints ctx
+      let constrs = ordNub
+                  $ fmap snd
+                  $ stateConstraints ctx
 
       args <- mapM lookupArg $ arguments fun
 

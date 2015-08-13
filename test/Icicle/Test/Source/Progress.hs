@@ -6,6 +6,7 @@
 module Icicle.Test.Source.Progress where
 
 import           Icicle.Internal.Pretty
+import           Icicle.Source.Checker.Base
 import           Icicle.Source.Checker.Checker
 import           Icicle.Source.Query
 import           Icicle.Source.Eval
@@ -25,8 +26,8 @@ import           Test.QuickCheck
 import qualified Data.Map as Map
 
 
-mkElems :: Map.Map T.Variable CT.ValType -> CheckEnv T.Variable
-mkElems m = emptyEnv { env = Map.map (function0 . Temporality TemporalityElement . Possibility PossibilityDefinitely . typeOfValType) m }
+mkElems :: Map.Map T.Variable CT.ValType -> CheckEnv () T.Variable
+mkElems m = emptyCheckEnv { checkEnvironment = Map.map (function0 . Temporality TemporalityElement . Possibility PossibilityDefinitely . typeOfValType) m }
 
 prop_progress_no_values :: Map.Map T.Variable CT.ValType -> Query () T.Variable -> Property
 prop_progress_no_values f q

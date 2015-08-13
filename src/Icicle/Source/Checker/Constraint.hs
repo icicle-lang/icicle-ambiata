@@ -95,8 +95,8 @@ generateQ qq@(Query (c:_) _)
 
     LetFold _ f
      -> do  i <- generateX $ foldInit f
-            bind (foldBind f) (annResult $ annotOfExp i)
-            w <- generateX $ foldWork f
+            w <- withBind (foldBind f) (annResult $ annotOfExp i)
+                  $ generateX $ foldWork f
             case foldType f of
              FoldTypeFoldl1
               -> requireTemporality (annResult $ annotOfExp i) TemporalityElement
@@ -110,14 +110,13 @@ generateQ qq@(Query (c:_) _)
             let (_,_,wt) = decomposeT $ annResult $ annotOfExp w
             require a $ CEquals it wt
 
-            bind (foldBind f) (canonT $ Temporality TemporalityAggregate $ annResult $ annotOfExp w)
-            (q',t') <- rest
+            (q',t') <- withBind (foldBind f) (canonT $ Temporality TemporalityAggregate $ annResult $ annotOfExp w) rest
+
             with q' t' $ \a' -> LetFold a' (f { foldInit = i, foldWork = w })
 
     Let _ n x
      -> do  x' <- generateX x
-            bind n (annResult $ annotOfExp x')
-            (q',t') <- rest
+            (q',t') <- withBind n (annResult $ annotOfExp x') rest
             with q' t' $ \a' -> Let a' n x'
 
  where
@@ -128,7 +127,7 @@ generateQ qq@(Query (c:_) _)
         return (q', annResult $ annotOfQuery q')
 
   with q' t' c'
-   = do cs <- constraints <$> (lift $ lift State.get)
+   = do cs <- stateConstraints <$> (lift $ lift State.get)
         let a' = Annot a t' cs
         return q' { contexts = c' a' : contexts q' }
 
@@ -186,7 +185,7 @@ generateX x
 
  where
   annotate t' f
-   = do cs <- constraints <$> (lift $ lift State.get)
+   = do cs <- stateConstraints <$> (lift $ lift State.get)
         let a' = Annot (annotOfExp x) t' cs
         return (f a')
 

@@ -160,6 +160,7 @@ library
                        Icicle.Source.Checker.Constraint
                        Icicle.Source.Checker.Error
                        Icicle.Source.Checker.Function
+                       Icicle.Source.Checker.Invariants
                        Icicle.Source.Checker.Prim
 
                        Icicle.Source.ToCore.Base

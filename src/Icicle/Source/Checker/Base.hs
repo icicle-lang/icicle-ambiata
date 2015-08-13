@@ -2,7 +2,12 @@
 {-# LANGUAGE PatternGuards #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Source.Checker.Base (
-    CheckState (..)
+    CheckEnv (..)
+  , Invariants (..)
+  , emptyCheckEnv
+  , emptyInvariants
+
+  , CheckState (..)
   , Annot(..)
   , annotDiscardConstraints
   , Gen
@@ -16,6 +21,7 @@ module Icicle.Source.Checker.Base (
   , freshenFunction
   , lookup
   , bind
+  , withBind
 
   , substTQ
   , substTX
@@ -41,11 +47,39 @@ import                  Data.Functor.Identity
 import qualified        Data.Map                as Map
 
 
+-- | Type checking environment.
+-- Keep track of all the things we need to know
+data CheckEnv a n
+ = CheckEnv
+ -- | Mapping from variable names to whole types
+ { checkEnvironment :: Map.Map n (FunctionType n)
+ -- | Function bodies
+ , checkBodies      :: Map.Map n (Function a n)
+ , checkInvariants  :: Invariants
+ }
 
+-- | Typechecking invariants that aren't checked by the type system.
+data Invariants
+ = Invariants
+ -- | We can't have windows or other group-like things inside groups.
+ -- This is actually treating all of latests, distincts and groups as "group-like"
+ -- because they all require compilation to a single fold.
+ { allowWindowsOrGroups :: Bool
+ }
+
+-- | Initial environment at top-level, not inside a group, and allowing contexts
+emptyCheckEnv :: CheckEnv a n
+emptyCheckEnv
+ = CheckEnv Map.empty Map.empty emptyInvariants
+
+emptyInvariants :: Invariants
+emptyInvariants = Invariants True
+
+-- | State needed when doing constraint generation checking
 data CheckState a n
  = CheckState
- { environment :: Map.Map n (FunctionType n)
- , constraints :: [(a, Constraint n)]
+ { stateEnvironment :: Map.Map n (FunctionType n)
+ , stateConstraints :: [(a, Constraint n)]
  }
  deriving (Eq, Ord, Show)
 
@@ -92,17 +126,17 @@ require a c
  = lift
  $ lift
  $ do   e <- State.get
-        State.put (e { constraints = (a,c) : constraints e })
+        State.put (e { stateConstraints = (a,c) : stateConstraints e })
 
 discharge :: Ord n => (q -> a) -> (SubstT n -> q -> q) -> Gen a n q -> Gen a n q
 discharge ann sub g
  = do q <- g
       e <- lift $ lift State.get
-      case dischargeCS (constraints e) of
+      case dischargeCS (stateConstraints e) of
        Left errs
         -> hoistEither $ errorNoSuggestions (ErrorConstraintsNotSatisfied (ann q) errs)
        Right (s, cs')
-        -> do let e' = CheckState (fmap (substFT s) $ environment e) cs'
+        -> do let e' = CheckState (fmap (substFT s) $ stateEnvironment e) cs'
               lift $ lift $ State.put e'
               return $ sub s q
 
@@ -131,7 +165,7 @@ freshenFunction ann f
 lookup :: Ord n => a -> n -> Gen a n ([Type n], Type n, FunctionType n)
 lookup ann n
  = do   e <- lift $ lift $ State.get
-        let env = environment e
+        let env = stateEnvironment e
         case Map.lookup n env of
          Just t
           -> freshenFunction ann t
@@ -145,7 +179,23 @@ bind n t
  = lift
  $ lift
  $ do   e <- State.get
-        State.put (e { environment = Map.insert n (function0 t) (environment e) })
+        State.put (e { stateEnvironment = Map.insert n (function0 t) (stateEnvironment e) })
+
+withBind :: Ord n => n -> Type n -> Gen a n r -> Gen a n r
+withBind n t gen
+ = do   old <- lift $ lift $ State.get
+        bind n t
+        r   <- gen
+
+        new <- lift $ lift $ State.get
+        let env'
+             | Just o' <- Map.lookup n (stateEnvironment old)
+             = Map.insert n o' $ stateEnvironment new
+             | otherwise
+             = Map.delete n    $ stateEnvironment new
+        lift $ lift $ State.put $ new { stateEnvironment = env' }
+
+        return r
 
 
 substTQ :: Ord n => SubstT n -> Query'C a n -> Query'C a n
