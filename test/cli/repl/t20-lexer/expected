@@ -24,8 +24,8 @@ REPL Error:
 Check error:
   Unknown variable ea1 at (line 1, column 20)
   Extra information:
-    The available bindings are:  date : Elem  DateTime
-                                 value : Elem  Int
+    The available bindings are:  date : Elem DateTime
+                                 value : Elem Int
 
 > > -- Expect a parse error on unterminated string
 >                  [34mλλλλ[0m

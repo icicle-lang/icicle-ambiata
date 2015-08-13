@@ -9,7 +9,7 @@ ok, avalanche is now on
 ok, flatten is now on
 > > -- A rather complicated feature to convert to Avalanche
 > - Type:
-Agg  (Int, Array Int)
+Agg (Int, (Array Int))
 
 - Core:
 Program (source : Stream Int)
@@ -46,14 +46,14 @@ Postcomputations:
 conv$6 =
     conv$5
 conv$10 =
-    pair# [Int] [Array Int]
+    pair# [Int] [(Array Int)]
     conv$6 conv$7
 Returning:
     conv$10
 
 
 - Core type:
-(Int, Array Int)
+(Int, (Array Int))
 
 - Avalanche:
 gen$date = DATE
@@ -85,7 +85,7 @@ gen$date = DATE
   save_resumable acc$conv$5;
   read conv$5 = acc$conv$5;
   read conv$7 = acc$conv$7;
-  let conv$10 = pair# [Int] [Array Int]
+  let conv$10 = pair# [Int] [(Array Int)]
                 conv$5 conv$7;
   return conv$10;
 }
@@ -112,7 +112,7 @@ gen$date = DATE
   save_resumable acc$conv$5;
   read conv$5 = acc$conv$5;
   read conv$7 = acc$conv$7;
-  let conv$10 = pair# [Int] [Array Int]
+  let conv$10 = pair# [Int] [(Array Int)]
                 conv$5 conv$7;
   return conv$10;
 }

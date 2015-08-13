@@ -14,8 +14,8 @@ ok, loaded test/cli/repl/data.psv, 8 rows
 REPL Error:
 Check error:
   Type mismatch in let at  (line 1, column 35)
-  Type:     Agg  Int
-  Expected: Elem  Int
+  Type:     Agg Int
+  Expected: Elem Int
   Extra information:
     The type for this let implies that the definition cannot be used!
 
