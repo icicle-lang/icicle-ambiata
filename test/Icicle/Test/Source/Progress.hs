@@ -49,4 +49,4 @@ prop_progress_no_values f q
 return []
 tests :: IO Bool
 -- tests = $quickCheckAll
-tests = $forAllProperties $ quickCheckWithResult (stdArgs { {- maxSuccess = 5000, maxSize = 10, -} maxDiscardRatio = 10000})
+tests = $forAllProperties $ quickCheckWithResult (stdArgs { maxSuccess = 5000, maxSize = 10,  maxDiscardRatio = 10000})

@@ -73,14 +73,19 @@ generateQ qq@(Query (c:_) _)
     Windowed _ from to
      -> do  (q',t') <- rest
             requireAgg t'
-            with q' t' $ \a' -> Windowed a' from to
+            let t'' = canonT $ Temporality TemporalityAggregate t'
+            with q' t'' $ \a' -> Windowed a' from to
     Latest _ i
      -> do  (q',t') <- rest
-            -- requireAgg t'
-            with q' t' $ \a' -> Latest a' i
+            let tt = case getTemporalityOrPure t' of
+                      TemporalityAggregate -> t'
+                      _                    -> ArrayT t'
+            let t'' = canonT $ Temporality TemporalityAggregate tt
+            with q' t'' $ \a' -> Latest a' i
     GroupBy _ x
      -> do  x' <- generateX x
             (q',tval) <- rest
+            requireTemporality (annResult $ annotOfExp x') TemporalityElement
             requireAgg tval
             let tkey = annResult $ annotOfExp x'
             let t'  = canonT $ Temporality TemporalityAggregate $ GroupT tkey tval
@@ -89,16 +94,21 @@ generateQ qq@(Query (c:_) _)
     Distinct _ x
      -> do  x' <- generateX x
             (q',t') <- rest
+            requireTemporality (annResult $ annotOfExp x') TemporalityElement
             requireAgg t'
-            with q' t' $ \a' -> Distinct a' x'
+            let t'' = canonT $ Temporality TemporalityAggregate t'
+            with q' t'' $ \a' -> Distinct a' x'
 
     Filter _ x
      -> do  x' <- generateX x
             (q',t') <- rest
+            -- TODO allow possibly
+            requireTemporality (annResult $ annotOfExp x') TemporalityElement
+            requireData        (annResult $ annotOfExp x') BoolT
+
             requireAgg t'
-            -- TODO allow pure, allow possibly
-            require a $ CEquals (annResult $ annotOfExp x') (Temporality TemporalityElement BoolT)
-            with q' t' $ \a' -> Filter a' x'
+            let t'' = canonT $ Temporality TemporalityAggregate t'
+            with q' t'' $ \a' -> Filter a' x'
 
     LetFold _ f
      -> do  i <- generateX $ foldInit f
@@ -113,6 +123,7 @@ generateQ qq@(Query (c:_) _)
              FoldTypeFoldl
               -> requireTemporality (annResult $ annotOfExp i) TemporalityPure
 
+            requireAgg t'
             -- TODO: this should allow possibly too
             requireTemporality (annResult $ annotOfExp w) TemporalityElement
 
@@ -120,7 +131,8 @@ generateQ qq@(Query (c:_) _)
             let (_,_,wt) = decomposeT $ annResult $ annotOfExp w
 
             require a $ CEquals it wt
-            with q' t' $ \a' -> LetFold a' (f { foldInit = i, foldWork = w })
+            let t'' = canonT $ Temporality TemporalityAggregate t'
+            with q' t'' $ \a' -> LetFold a' (f { foldInit = i, foldWork = w })
 
     Let _ n x
      -> do  x' <- generateX x
@@ -148,6 +160,10 @@ generateQ qq@(Query (c:_) _)
   requireAgg t
    = requireTemporality t TemporalityAggregate
 
+  requireData t1 t2
+   = let (_,_,d1) = decomposeT t1
+         (_,_,d2) = decomposeT t2
+     in  require a $ CEquals d1 d2
 
 
 generateX :: Ord n => Exp a n -> Gen a n (Exp'C a n)
