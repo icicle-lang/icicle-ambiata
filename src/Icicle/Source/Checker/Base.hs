@@ -113,17 +113,23 @@ require a c
  $ do   e <- State.get
         State.put (e { stateConstraints = (a,c) : stateConstraints e })
 
-discharge :: Ord n => (q -> a) -> (SubstT n -> q -> q) -> Gen a n q -> Gen a n q
+discharge :: Ord n => (q -> a) -> (SubstT n -> q -> q) -> Gen a n (q, SubstT n) -> Gen a n (q, SubstT n)
 discharge ann sub g
- = do q <- g
+ = do (q,s) <- g
+      let _q' = sub s q
       e <- lift $ lift State.get
       case dischargeCS (stateConstraints e) of
        Left errs
         -> hoistEither $ errorNoSuggestions (ErrorConstraintsNotSatisfied (ann q) errs)
-       Right (s, cs')
-        -> do let e' = CheckState (fmap (substFT s) $ stateEnvironment e) cs'
-              lift $ lift $ State.put e'
-              return $ sub s q
+       Right (s', _cs')
+        -> do let s'' = compose s s'
+              -- TODO: why does setting constraints not work?
+              -- Was producing error with
+              -- > feature salary ~> let fold fozzy = 0 == 1 : - 0 ~> 0 + fozzy
+              --
+              -- let e' = CheckState (fmap (substFT s'') $ stateEnvironment e) cs'
+              -- lift $ lift $ State.put e'
+              return (sub s'' q, s'')
 
 fresh :: Gen a n (Name n)
 fresh

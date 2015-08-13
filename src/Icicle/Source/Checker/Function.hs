@@ -38,7 +38,7 @@ checkF' :: Ord n
 
 checkF' fun
  = do mapM_ bindArg $ arguments fun
-      q'  <- generateQ    $ body      fun
+      (q',_)  <- generateQ    $ body      fun
 
       ctx <- lift $ lift State.get
       let constrs = ordNub

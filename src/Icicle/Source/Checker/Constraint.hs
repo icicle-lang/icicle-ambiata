@@ -23,7 +23,7 @@ import                  Control.Monad.Trans.Class
 import                  Control.Monad.Trans.Either
 import qualified        Control.Monad.Trans.State as State
 
-import                  Data.List (zip)
+import                  Data.List (zip,unzip)
 import qualified        Data.Map                as Map
 
 
@@ -53,12 +53,13 @@ checkQ  :: Ord n
         -> Query a n
         -> EitherT (CheckError a n) (Fresh.Fresh n) (Query'C a n)
 checkQ env q
- = evalGen (generateQ q) (CheckState env [])
+ = evalGen (fst <$> generateQ q) (CheckState env [])
 
 
-generateQ :: Ord n => Query a n -> Gen a n (Query'C a n)
+generateQ :: Ord n => Query a n -> Gen a n (Query'C a n, SubstT n)
 generateQ (Query [] x)
- = Query [] <$> generateX x
+ = do   (x',s) <- generateX x
+        return (Query [] x', s)
 
 -- | Note:
 -- something is very wrong with using State for constraints.
@@ -71,51 +72,51 @@ generateQ qq@(Query (c:_) _)
  = discharge (annAnnot.annotOfQuery) substTQ
  $ case c of
     Windowed _ from to
-     -> do  (q',t') <- rest
+     -> do  (q',sq,t') <- rest
             requireAgg t'
             let t'' = canonT $ Temporality TemporalityAggregate t'
-            with q' t'' $ \a' -> Windowed a' from to
+            with q' sq t'' $ \a' -> Windowed a' from to
     Latest _ i
-     -> do  (q',t') <- rest
+     -> do  (q',sq,t') <- rest
             let tt = case getTemporalityOrPure t' of
                       TemporalityAggregate -> t'
                       _                    -> ArrayT t'
             let t'' = canonT $ Temporality TemporalityAggregate tt
-            with q' t'' $ \a' -> Latest a' i
+            with q' sq t'' $ \a' -> Latest a' i
     GroupBy _ x
-     -> do  x' <- generateX x
-            (q',tval) <- rest
+     -> do  (x',sx) <- generateX x
+            (q',sq,tval) <- rest
             requireTemporality (annResult $ annotOfExp x') TemporalityElement
             requireAgg tval
             let tkey = annResult $ annotOfExp x'
             let t'  = canonT $ Temporality TemporalityAggregate $ GroupT tkey tval
-            with q' t' $ \a' -> GroupBy a' x'
+            with q' (compose sx sq) t' $ \a' -> GroupBy a' x'
 
     Distinct _ x
-     -> do  x' <- generateX x
-            (q',t') <- rest
+     -> do  (x',sx) <- generateX x
+            (q',sq,t') <- rest
             requireTemporality (annResult $ annotOfExp x') TemporalityElement
             requireAgg t'
             let t'' = canonT $ Temporality TemporalityAggregate t'
-            with q' t'' $ \a' -> Distinct a' x'
+            with q' (compose sx sq) t'' $ \a' -> Distinct a' x'
 
     Filter _ x
-     -> do  x' <- generateX x
-            (q',t') <- rest
+     -> do  (x',sx) <- generateX x
+            (q',sq,t') <- rest
             -- TODO allow possibly
             requireTemporality (annResult $ annotOfExp x') TemporalityElement
             requireData        (annResult $ annotOfExp x') BoolT
 
             requireAgg t'
             let t'' = canonT $ Temporality TemporalityAggregate t'
-            with q' t'' $ \a' -> Filter a' x'
+            with q' (compose sx sq) t'' $ \a' -> Filter a' x'
 
     LetFold _ f
-     -> do  i <- generateX $ foldInit f
-            w <- withBind (foldBind f) (annResult $ annotOfExp i)
-                  $ generateX $ foldWork f
+     -> do  (i,si) <- generateX $ foldInit f
+            (w,sw) <- withBind (foldBind f) (annResult $ annotOfExp i)
+                    $ generateX $ foldWork f
 
-            (q',t') <- withBind (foldBind f) (canonT $ Temporality TemporalityAggregate $ annResult $ annotOfExp w) rest
+            (q',sq,t') <- withBind (foldBind f) (canonT $ Temporality TemporalityAggregate $ annResult $ annotOfExp w) rest
 
             case foldType f of
              FoldTypeFoldl1
@@ -132,24 +133,25 @@ generateQ qq@(Query (c:_) _)
 
             require a $ CEquals it wt
             let t'' = canonT $ Temporality TemporalityAggregate t'
-            with q' t'' $ \a' -> LetFold a' (f { foldInit = i, foldWork = w })
+            let s'  = si `compose` sw `compose` sq
+            with q' s' t'' $ \a' -> LetFold a' (f { foldInit = i, foldWork = w })
 
     Let _ n x
-     -> do  x' <- generateX x
-            (q',t') <- withBind n (annResult $ annotOfExp x') rest
-            with q' t' $ \a' -> Let a' n x'
+     -> do  (x',sx) <- generateX x
+            (q',sq,t') <- withBind n (annResult $ annotOfExp x') rest
+            with q' (compose sx sq) t' $ \a' -> Let a' n x'
 
  where
   a  = annotOfContext c
 
   rest
-   = do q' <- generateQ (qq { contexts = drop 1 $ contexts qq })
-        return (q', annResult $ annotOfQuery q')
+   = do (q',s') <- generateQ (qq { contexts = drop 1 $ contexts qq })
+        return (q', s', annResult $ annotOfQuery q')
 
-  with q' t' c'
+  with q' s' t' c'
    = do cs <- stateConstraints <$> (lift $ lift State.get)
         let a' = Annot a t' cs
-        return q' { contexts = c' a' : contexts q' }
+        return (q' { contexts = c' a' : contexts q' }, s')
 
   requireTemporality ty tmp
    | TemporalityPure <- getTemporalityOrPure ty
@@ -166,7 +168,7 @@ generateQ qq@(Query (c:_) _)
      in  require a $ CEquals d1 d2
 
 
-generateX :: Ord n => Exp a n -> Gen a n (Exp'C a n)
+generateX :: Ord n => Exp a n -> Gen a n (Exp'C a n, SubstT n)
 generateX x
  = discharge (annAnnot.annotOfExp) substTX
  $ case x of
@@ -174,11 +176,11 @@ generateX x
      -> do (argsT, resT, fErr) <- lookup a n
            when (not $ null argsT)
              $ hoistEither $ errorNoSuggestions (ErrorFunctionWrongArgs a x fErr [])
-           annotate resT $ \a' -> Var a' n
+           annotate Map.empty resT $ \a' -> Var a' n
 
     Nested _ q
-     -> do q' <- generateQ q
-           annotate (annResult $ annotOfQuery q') $ \a' -> Nested a' q'
+     -> do (q',sq) <- generateQ q
+           annotate sq (annResult $ annotOfQuery q') $ \a' -> Nested a' q'
 
     App a _ _
      -> let (f, args)   = takeApps x
@@ -190,7 +192,7 @@ generateX x
                         = hoistEither $ errorNoSuggestions (ErrorApplicationNotFunction a x)
         in do   (argsT, resT, fErr) <- look
 
-                args'   <- mapM generateX args
+                (args',subs') <- unzip <$> mapM generateX args
                 let argsT' = fmap (annResult.annotOfExp) args'
 
                 when (length argsT /= length args)
@@ -198,20 +200,21 @@ generateX x
 
                 resT'   <- foldM (appType a) resT (argsT `zip` argsT')
 
-                f' <- annotate resT' $ \a' -> reannotX (const a') f
-                return $ foldl mkApp f' args'
+                let s' = foldl compose Map.empty subs'
+                (f',_) <- annotate s' resT' $ \a' -> reannotX (const a') f
+                return (foldl mkApp f' args', s')
 
     Prim a p
      -> do (argsT, resT, fErr) <- primLookup a p
            when (not $ null argsT)
              $ hoistEither $ errorNoSuggestions (ErrorFunctionWrongArgs a x fErr [])
-           annotate resT $ \a' -> Prim a' p
+           annotate Map.empty resT $ \a' -> Prim a' p
 
  where
-  annotate t' f
+  annotate s' t' f
    = do cs <- stateConstraints <$> (lift $ lift State.get)
         let a' = Annot (annotOfExp x) t' cs
-        return (f a')
+        return (f a', s')
 
 
 
