@@ -6,6 +6,7 @@ module Icicle.Dictionary.Parse.TomlDictionary
     tomlDict
   , DictionaryConfig (..)
   , DictionaryValidationError (..)
+  , toEither
   ) where
 
 import           P

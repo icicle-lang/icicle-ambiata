@@ -7,8 +7,7 @@ namespace="demographics"
 
 # imports an array of icicle libs, search path of libs dir, then std libs dir.
 import = [
-  "prelude.icicle", # not sure about the extension yet.
-  "super-customer.icicle",
+  "data/libs/prelude.icicle", # not sure about the extension yet.
 ]
 
 # Optionally, import addition dictionary files, specifying sub dictionaries.
@@ -31,7 +30,7 @@ tombstone = "NA"
   encoding="int"
 
 # When TOML v4 is supported, in-line tables will also be possible. e.g.,
-# fact.salary = { namespace="demographics", encoding="int", mode="set" }
+# salary = { namespace="demographics", encoding="int", mode="set" }
 
 [fact.gender]
   encoding="string"

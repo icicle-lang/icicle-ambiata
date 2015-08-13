@@ -36,7 +36,7 @@ import qualified Data.Map                           as Map
 import           P
 
 data Dictionary =
-  Dictionary [DictionaryEntry]
+  Dictionary { unDictionary :: [DictionaryEntry] }
   deriving (Eq, Show)
 
 data DictionaryEntry =

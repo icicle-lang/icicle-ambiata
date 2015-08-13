@@ -122,6 +122,7 @@ library
 
                        Icicle.Dictionary
                        Icicle.Dictionary.Data
+                       Icicle.Dictionary.Import
                        Icicle.Dictionary.Parse
                        Icicle.Dictionary.Parse.Types
                        Icicle.Dictionary.Parse.Toml
