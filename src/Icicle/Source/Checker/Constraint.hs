@@ -139,7 +139,11 @@ generateQ qq@(Query (c:_) _)
     Let _ n x
      -> do  (x',sx) <- generateX x
             (q',sq,t') <- withBind n (annResult $ annotOfExp x') rest
-            with q' (compose sx sq) t' $ \a' -> Let a' n x'
+
+            let tmp = getTemporalityOrPure $ annResult $ annotOfExp x'
+            let t'' = canonT $ Temporality tmp t'
+
+            with q' (compose sx sq) t'' $ \a' -> Let a' n x'
 
  where
   a  = annotOfContext c

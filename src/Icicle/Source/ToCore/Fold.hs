@@ -114,40 +114,19 @@ convertFold q
 
      -- Variable lookup.
      | Var (Annot { annAnnot = ann, annResult = retty }) v <- final q
-      -> do fs <- convertFeatures
+      -> do bound <- convertFreshenLookupMaybe v
+            fs <- convertFeatures
             -- Check if it is a scalar variable or postcomputation
-            case Map.lookup v fs of
-             Just (_, var')
-              -> do -- Creating a fold from a scalar variable is strange, since
-                    -- the scalar variable is only available inside each iteration.
-                    -- For the konstrukt, we just return the current value.
-                    -- For zero, we have no value yet - we must throw an exception.
-                    -- This is bad, but is not a problem in practice since scalar variables
-                    -- can only be used inside each iteration.
-                    -- The exception value won't end up being used.
-                    --
-                    -- Extract, after the fold is finished, is just identity.
-                    -- Const Unit would work too, since the extracted value should
-                    -- never be used for the same reason the zero is not used.
-                    retty' <- convertValType' retty
-                    i <- idFun retty'
-                    n'v <- lift fresh
-                    inp <- convertInputName
-                    let k = CE.XLam n'v retty' $ var' $ CE.XVar inp
-                    let err = CE.XValue retty' $ VException ExceptScalarVariableNotAvailable
-                    return $ ConvertFoldResult k err i retty' retty'
-
-             _
+            case bound of
+             Just v'
               | TemporalityPure  <- getTemporalityOrPure retty
-              -> do v'  <- convertFreshenLookup ann v
-                    n'ignore <- lift fresh
+              -> do n'ignore <- lift fresh
                     retty' <- convertValType' retty
                     let k = CE.XLam n'ignore retty' $ CE.XVar v'
                     return $ ConvertFoldResult k (CE.XVar v') k retty' retty'
 
               | TemporalityElement <- getTemporalityOrPure retty
-              -> do v'  <- convertFreshenLookup ann v
-                    retty' <- convertValType' retty
+              -> do retty' <- convertValType' retty
                     i <- idFun retty'
                     n'v <- lift fresh
                     let k = CE.XLam n'v retty' $ CE.XVar v'
@@ -159,7 +138,6 @@ convertFold q
              -- and at extract return the variable's value
               | otherwise
               -> do n'x <- lift fresh
-                    v'  <- convertFreshenLookup ann v
                     retty' <- convertValType' retty
                     let ut    = T.UnitT
                     let unit = CE.XValue ut VUnit
@@ -169,6 +147,33 @@ convertFold q
                     let x    = CE.XLam n'x ut $ CE.XVar $ v'
 
                     return $ ConvertFoldResult k z x ut retty'
+
+
+             -- Otherwise it must be a feature
+             _
+              | Just (_, var') <- Map.lookup v fs
+              -> do -- Creating a fold from a scalar variable is strange, since
+                    -- the scalar variable is only available inside each iteration.
+                    -- For the konstrukt, we just return the current value.
+                    -- For zero, we have no value yet - we must throw an exception.
+                    -- This is bad, but is not a problem in practice since scalar variables
+                    -- can only be used inside each iteration.
+                    -- The exception value won't end up being used.
+                    --
+                    -- Extract, after the fold is finished, is just identity.
+                    -- Const Unit would work too, since the extracted value should
+                    -- never be used for the same reason the zero is not used.
+
+                    retty' <- convertValType' retty
+                    i <- idFun retty'
+                    n'v <- lift fresh
+                    inp <- convertInputName
+                    let k = CE.XLam n'v retty' $ var' $ CE.XVar inp
+                    let err = CE.XValue retty' $ VException ExceptScalarVariableNotAvailable
+                    return $ ConvertFoldResult k err i retty' retty'
+
+              | otherwise
+              -> convertError $ ConvertErrorExpNoSuchVariable ann v
 
      -- It must be a non-primitive application
      | otherwise
@@ -220,15 +225,10 @@ convertFold q
             -- Current accumulator
             -- : Option tU
             n'a     <- lift fresh
-            -- Fully unwrapped accumulator
-            -- :        tU
-            n'a' <- convertFreshenAdd $ foldBind f
 
-
-            -- Remove binding before converting init and work expressions,
-            -- just in case the same name has been used elsewhere
-            convertModifyFeatures (Map.delete (foldBind f))
             z   <- convertExp (foldInit f)
+            -- Current accumulator is only available in worker
+            n'a' <- convertFreshenAdd $ foldBind f
             k   <- convertExp (foldWork f)
 
             let opt r = CE.XPrim $ C.PrimFold (C.PrimFoldOption tU) r
@@ -253,14 +253,10 @@ convertFold q
      -> do  -- Type helpers
             tU <- convertValType' $ annResult $ annotOfExp $ foldWork f
 
-            -- Generate fresh names
-            -- Current accumulator
-            n'a <- convertFreshenAdd $ foldBind f
 
-            -- Remove binding before converting init and work expressions,
-            -- just in case the same name has been used elsewhere
-            convertModifyFeatures (Map.delete (foldBind f))
             z   <- convertExp (foldInit f)
+            -- Current accumulator is only available in worker
+            n'a <- convertFreshenAdd $ foldBind f
             k   <- convertExp (foldWork f)
 
             let k' = CE.XLam n'a tU k

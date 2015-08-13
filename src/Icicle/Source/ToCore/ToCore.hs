@@ -165,7 +165,10 @@ convertQuery q
      -- and also
      -- "latest 5 ~> let V = Elem ~> Elem"
      --
-     | TemporalityElement <- getTemporalityOrPure $ annResult $ annotOfQuery q'
+     | case getTemporalityOrPure $ annResult $ annotOfQuery q' of
+        TemporalityElement  -> True
+        TemporalityPure     -> True
+        _                   -> False
      -> do  n'arr   <- lift fresh
             n'map   <- lift fresh
 
@@ -421,15 +424,14 @@ convertQuery q
             -- Current accumulator
             -- : Option tU
             n'a     <- lift fresh
-            -- Fully unwrapped accumulator
-            -- :        tU
-            n'a'' <- convertFreshenAdd $ foldBind f
 
 
+            z   <- convertWithInputName n'elem $ convertExp (foldInit f)
+            -- Current accumulator is only available in worker
             -- Remove binding before converting init and work expressions,
             -- just in case the same name has been used elsewhere
             convertModifyFeatures (Map.delete (foldBind f))
-            z   <- convertWithInputName n'elem $ convertExp (foldInit f)
+            n'a'' <- convertFreshenAdd $ foldBind f
             k   <- convertWithInputName n'elem $ convertExp (foldWork f)
 
             -- Wrap zero and kons up in Some
@@ -487,14 +489,13 @@ convertQuery q
             -- Element of the stream
             -- :                input type
             n'elem <- lift fresh
-            -- Accumulator
-            -- :                tU
-            n'a <- convertFreshenAdd $ foldBind f
 
+            z   <- convertWithInputName n'elem $ convertExp (foldInit f)
+            -- Current accumulator is only available in worker
             -- Remove binding before converting init and work expressions,
             -- just in case the same name has been used elsewhere
             convertModifyFeatures (Map.delete (foldBind f))
-            z   <- convertWithInputName n'elem $ convertExp (foldInit f)
+            n'a <- convertFreshenAdd $ foldBind f
             k   <- convertWithInputName n'elem $ convertExp (foldWork f)
 
             (inpstream, inpty) <- convertInput

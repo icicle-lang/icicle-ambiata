@@ -17,6 +17,7 @@ module Icicle.Source.ToCore.Base (
   , convertModifyFeatures
   , convertFreshenAdd
   , convertFreshenLookup
+  , convertFreshenLookupMaybe
   , convertValType
 
   , pre, strm, red, post
@@ -188,6 +189,11 @@ convertFreshenLookup ann n
           -> convertError $ ConvertErrorExpNoSuchVariable ann n
          Just n'
           -> return n'
+
+convertFreshenLookupMaybe :: Ord n => n -> ConvertM a n (Maybe (Name n))
+convertFreshenLookupMaybe n
+ = do   o <- get
+        return $ Map.lookup n $ csFreshen o
 
 
 convertValType :: a -> Type n -> ConvertM a n ValType
