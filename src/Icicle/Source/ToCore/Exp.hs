@@ -31,44 +31,44 @@ import qualified        Data.Map as Map
 -- These are worker functions for folds, filters and so on.
 convertExp
         :: Ord n
-        => Exp (a,Type n) n
+        => Exp (Annot a n) n
         -> ConvertM a n (C.Exp n)
 convertExp x
  = case x of
-    Var (ann,_) n
+    Var ann n
      -> do  fs <- convertFeatures
             case Map.lookup n fs of
              Just (_, x')
               -> (x' . CE.XVar) <$> convertInputName
              -- Variable must be bound as a precomputation
              Nothing
-              -> CE.XVar <$> convertFreshenLookup ann n
+              -> CE.XVar <$> convertFreshenLookup (annAnnot ann) n
 
 
     Nested _ q
      -> convertExpQ q
 
 
-    App (ann,_) _ _
+    App ann _ _
      -- Primitive application: convert arguments, then convert primitive
-     | Just (p, (_,resT), args) <- takePrimApps x
+     | Just (p, Annot { annResult = resT }, args) <- takePrimApps x
      -> do  args'   <- mapM convertExp args
-            let tys  = fmap (snd . annotOfExp) args
-            convertPrim p ann resT (args' `zip` tys)
+            let tys  = fmap (annResult . annotOfExp) args
+            convertPrim p (annAnnot ann) resT (args' `zip` tys)
 
      | otherwise
      -> convertError
-      $ ConvertErrorExpApplicationOfNonPrimitive ann x
+      $ ConvertErrorExpApplicationOfNonPrimitive (annAnnot ann) x
 
 
-    Prim (ann,resT) p
-     -> convertPrim p ann resT []
+    Prim ann p
+     -> convertPrim p (annAnnot ann) (annResult ann) []
 
 
 
 convertExpQ
         :: Ord n
-        => Query (a, Type n) n
+        => Query (Annot a n) n
         -> ConvertM a n (C.Exp n)
 convertExpQ q
  = case contexts q of
@@ -82,5 +82,5 @@ convertExpQ q
             return $ CE.XLet b' d' x'
     _
      -> convertError
-      $ ConvertErrorExpNestedQueryNotAllowedHere (fst $ annotOfQuery q) q
+      $ ConvertErrorExpNestedQueryNotAllowedHere (annAnnot $ annotOfQuery q) q
 

@@ -32,7 +32,7 @@ type Result r a n = EitherT (CheckError a n) (Fresh.Fresh n) (r, Type n)
 checkQT :: Ord n
         => Features n
         -> QueryTop a n
-        -> Result (QueryTop (a, Type n) n) a n
+        -> Result (QueryTop (Annot a n) n) a n
 checkQT features qt
  = case Map.lookup (feature qt) features of
     Just (_,f)
@@ -54,13 +54,11 @@ checkQT features qt
 checkQ  :: Ord        n
         => CheckEnv a n
         -> Query    a n
-        -> Result (Query (a, Type n) n) a n
+        -> Result (Query (Annot a n) n) a n
 checkQ ctx q
- = do q'  <- Constr.checkQ (checkEnvironment ctx) q
-      let q'a = reannotQ annotDiscardConstraints
-              $ Constr.defaults q'
+ = do q'  <- Constr.defaults <$> Constr.checkQ (checkEnvironment ctx) q
 
-      let t = snd $ annotOfQuery q'a
+      let t = annResult $ annotOfQuery q'
       case getTemporalityOrPure t of
        TemporalityAggregate -> return ()
        _ -> hoistEither
@@ -69,5 +67,5 @@ checkQ ctx q
 
       hoistEither $ invariantQ ctx q
 
-      return (q'a, snd $ annotOfQuery q'a)
+      return (q', t)
 

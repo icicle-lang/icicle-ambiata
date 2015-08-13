@@ -68,7 +68,7 @@ data ConvertFoldResult n
 --
 convertFold
         :: Ord n
-        => Query (a,Type n) n
+        => Query (Annot a n) n
         -> ConvertM a n (ConvertFoldResult n)
 convertFold q
  = case contexts q of
@@ -79,7 +79,7 @@ convertFold q
      -> convertFold qq
 
      -- Primitive application
-     | Just (p, (ann,retty), args) <- takePrimApps $ final q
+     | Just (p, Annot { annAnnot = ann, annResult = retty }, args) <- takePrimApps $ final q
      -> case p of
          -- Non-aggregate primitive operations such as (+) or (/) are a bit more involved:
          -- we convert the arguments to folds,
@@ -102,7 +102,7 @@ convertFold q
                 --  apply the primitive
                 let cp ns
                         = convertPrim p ann retty
-                            ((fmap (uncurry CE.XApp) (fmap mapExtract res `zip` ns)) `zip` fmap (snd . annotOfExp) args)
+                            ((fmap (uncurry CE.XApp) (fmap mapExtract res `zip` ns)) `zip` fmap (annResult . annotOfExp) args)
                 xx       <- pairDestruct cp ts retty
 
                 -- For konstrukt, we need to destruct the pairs, apply the sub-ks,
@@ -113,7 +113,7 @@ convertFold q
                 return $ ConvertFoldResult kk zz xx tt retty'
 
      -- Variable lookup.
-     | Var (ann,retty) v <- final q
+     | Var (Annot { annAnnot = ann, annResult = retty }) v <- final q
       -> do fs <- convertFeatures
             -- Check if it is a scalar variable or postcomputation
             case Map.lookup v fs of
@@ -172,7 +172,7 @@ convertFold q
 
      -- It must be a non-primitive application
      | otherwise
-      -> convertError $ ConvertErrorExpApplicationOfNonPrimitive (fst $ annotOfExp $ final q) (final q)
+      -> convertError $ ConvertErrorExpApplicationOfNonPrimitive (annAnnot $ annotOfExp $ final q) (final q)
 
     -- For filter, you convert the subquery as normal,
     -- then only apply the subquery's "k" when the filter predicate is true.
@@ -189,21 +189,21 @@ convertFold q
                      CE.@~ (foldKons res CE.@~ prev') CE.@~ prev' CE.@~ e' )
             return (res { foldKons = k' })
 
-    (Windowed (ann,_) _ _ : _)
+    (Windowed (Annot { annAnnot = ann }) _ _ : _)
      -> errNotAllowed ann
-    (Latest (ann,_) _ : _)
+    (Latest (Annot { annAnnot = ann }) _ : _)
      -> errNotAllowed ann
-    (GroupBy (ann,_) _ : _)
+    (GroupBy (Annot { annAnnot = ann }) _ : _)
      -> errNotAllowed ann
-    (Distinct (ann,_) _ : _)
+    (Distinct (Annot { annAnnot = ann }) _ : _)
      -> errNotAllowed ann
 
 
     (Let _ b def : _)
-     | TemporalityPure  <- getTemporalityOrPure $ snd $ annotOfExp def
+     | TemporalityPure  <- getTemporalityOrPure $ annResult $ annotOfExp def
      -> do  def' <- convertExp def
             n'   <- lift fresh
-            t' <- convertValType' $ snd $ annotOfExp def
+            t' <- convertValType' $ annResult $ annotOfExp def
             let res = ConvertFoldResult (CE.XLam n' t' def') def' (CE.XLam n' t' def') t' t'
             convertAsLet b res
 
@@ -213,7 +213,7 @@ convertFold q
 
     (LetFold _ f@Fold{ foldType = FoldTypeFoldl1 } : _)
      -> do  -- Type helpers
-            tU <- convertValType' $ snd $ annotOfExp $ foldWork f
+            tU <- convertValType' $ annResult $ annotOfExp $ foldWork f
             let tO = T.OptionT tU
 
             -- Generate fresh names
@@ -251,7 +251,7 @@ convertFold q
 
     (LetFold _ f@Fold{ foldType = FoldTypeFoldl } : _)
      -> do  -- Type helpers
-            tU <- convertValType' $ snd $ annotOfExp $ foldWork f
+            tU <- convertValType' $ annResult $ annotOfExp $ foldWork f
 
             -- Generate fresh names
             -- Current accumulator
@@ -355,5 +355,5 @@ convertFold q
 
             return $ ConvertFoldResult k' z' x' tpair (typeExtract resq)
 
-  convertValType' = convertValType (fst $ annotOfQuery q)
+  convertValType' = convertValType (annAnnot $ annotOfQuery q)
 

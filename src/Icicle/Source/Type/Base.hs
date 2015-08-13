@@ -11,6 +11,8 @@ module Icicle.Source.Type.Base (
   , typeOfValType
   , Constraint  (..)
   , FunctionType(..)
+  , Annot (..)
+  , annotDiscardConstraints
   ) where
 
 import                  Icicle.Common.Base
@@ -21,7 +23,6 @@ import                  Icicle.Internal.Pretty
 import                  P
 
 import qualified        Data.Map as Map
-
 
 data Type n
  = BoolT
@@ -113,6 +114,21 @@ data FunctionType n
  deriving (Eq, Ord, Show)
 
 
+data Annot a n
+ = Annot
+ { annAnnot         :: a
+ , annResult        :: Type n
+ , annConstraints   :: [(a, Constraint n)]
+ }
+ deriving (Eq, Ord, Show)
+
+
+annotDiscardConstraints :: Annot a n -> (a, Type n)
+annotDiscardConstraints ann
+ = (annAnnot ann, annResult ann)
+
+
+
 instance Pretty n => Pretty (Type n) where
  pretty IntT            = text "Int"
  pretty DoubleT         = text "Double"
@@ -163,4 +179,9 @@ instance Pretty n => Pretty (FunctionType n) where
    args xs
     = hsep (fmap (\x -> pretty x <+> "->") xs)
 
+
+instance (Pretty n) => Pretty (Annot a n) where
+ pretty ann
+  = tupled (fmap (pretty.snd) $ annConstraints ann)
+  <> " => " <> pretty (annResult ann)
 

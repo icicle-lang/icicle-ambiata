@@ -8,6 +8,7 @@ module Icicle.Source.Type.Constraints (
   , DischargeError (..)
   , dischargeC
   , dischargeCS
+  , nubConstraints
   ) where
 
 
@@ -18,7 +19,9 @@ import                  Icicle.Internal.Pretty
 
 import                  P
 
+import                  Data.List (nubBy)
 import qualified        Data.Map as Map
+
 
 -- | Result of discharging a single constraint
 data DischargeResult n
@@ -72,7 +75,7 @@ dischargeCS
  where
   -- Reached the end with no errors
   go s cs [] []
-   = return (s, cs)
+   = return (s, nubConstraints cs)
   -- Reached the end, but errors is not empty
   go _ _ errs []
    = Left errs
@@ -105,3 +108,10 @@ dischargeCS
   substOver s (a,c)
    = (a, substC s c)
 
+
+nubConstraints
+    :: Eq n
+    => [(a, Constraint n)]
+    -> [(a, Constraint n)]
+nubConstraints cs
+ = nubBy ((==) `on` snd) cs

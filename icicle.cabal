@@ -169,6 +169,7 @@ library
                        Icicle.Source.ToCore.Fold
                        Icicle.Source.ToCore.ToCore
                        Icicle.Source.ToCore.Prim
+                       Icicle.Source.PrettyAnnot
 
                        Icicle.Repl
 

@@ -60,6 +60,13 @@ generateQ :: Ord n => Query a n -> Gen a n (Query'C a n)
 generateQ (Query [] x)
  = Query [] <$> generateX x
 
+-- | Note:
+-- something is very wrong with using State for constraints.
+-- The problem is that you can build up constraints at a higher level, then
+-- they will be discharged and thrown away deeper in the recursion.
+-- However, the substitution from discharging them does not apply on the higher level!
+--
+-- So for now any constraints must only be added *after* all recursions are done.
 generateQ qq@(Query (c:_) _)
  = discharge (annAnnot.annotOfQuery) substTQ
  $ case c of
@@ -97,6 +104,9 @@ generateQ qq@(Query (c:_) _)
      -> do  i <- generateX $ foldInit f
             w <- withBind (foldBind f) (annResult $ annotOfExp i)
                   $ generateX $ foldWork f
+
+            (q',t') <- withBind (foldBind f) (canonT $ Temporality TemporalityAggregate $ annResult $ annotOfExp w) rest
+
             case foldType f of
              FoldTypeFoldl1
               -> requireTemporality (annResult $ annotOfExp i) TemporalityElement
@@ -108,10 +118,8 @@ generateQ qq@(Query (c:_) _)
 
             let (_,_,it) = decomposeT $ annResult $ annotOfExp i
             let (_,_,wt) = decomposeT $ annResult $ annotOfExp w
+
             require a $ CEquals it wt
-
-            (q',t') <- withBind (foldBind f) (canonT $ Temporality TemporalityAggregate $ annResult $ annotOfExp w) rest
-
             with q' t' $ \a' -> LetFold a' (f { foldInit = i, foldWork = w })
 
     Let _ n x

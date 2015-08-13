@@ -93,11 +93,11 @@ data ConvertError a n
  = ConvertErrorNoSuchFeature n
  | ConvertErrorPrimNoArguments a Int Prim
  | ConvertErrorGroupByHasNonGroupResult a (Type n)
- | ConvertErrorContextNotAllowedInGroupBy a (Query (a,Type n) n)
+ | ConvertErrorContextNotAllowedInGroupBy a (Query (Annot a n) n)
  | ConvertErrorExpNoSuchVariable a n
- | ConvertErrorExpNestedQueryNotAllowedHere a (Query (a,Type n) n)
- | ConvertErrorExpApplicationOfNonPrimitive a (Exp (a,Type n) n)
- | ConvertErrorReduceAggregateBadArguments a (Exp (a,Type n) n)
+ | ConvertErrorExpNestedQueryNotAllowedHere a (Query (Annot a n) n)
+ | ConvertErrorExpApplicationOfNonPrimitive a (Exp (Annot a n) n)
+ | ConvertErrorReduceAggregateBadArguments a (Exp (Annot a n) n)
  | ConvertErrorCannotConvertType a (Type n)
  deriving (Show, Eq, Ord)
 

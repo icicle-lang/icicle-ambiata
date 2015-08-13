@@ -8,8 +8,6 @@ module Icicle.Source.Checker.Base (
   , emptyInvariants
 
   , CheckState (..)
-  , Annot(..)
-  , annotDiscardConstraints
   , Gen
   , Query'C
   , Exp'C
@@ -103,19 +101,6 @@ evalGen gen env
  $ runEitherT
  $ gen
 
-
-data Annot a n
- = Annot
- { annAnnot         :: a
- , annResult        :: Type n
- , annConstraints   :: [(a, Constraint n)]
- }
- deriving (Eq, Ord, Show)
-
-
-annotDiscardConstraints :: Annot a n -> (a, Type n)
-annotDiscardConstraints ann
- = (annAnnot ann, annResult ann)
 
 type Query'C a n = Query (Annot a n) n
 type Exp'C   a n = Exp   (Annot a n) n
@@ -212,7 +197,7 @@ substAnnot :: Ord n => SubstT n -> Annot a n -> Annot a n
 substAnnot s ann
  = ann
  { annResult = substT s $ annResult ann
- , annConstraints = fmap (\(a,c) -> (a, substC s c)) $ annConstraints ann
+ , annConstraints = nubConstraints $ fmap (\(a,c) -> (a, substC s c)) $ annConstraints ann
  }
 
 

@@ -67,7 +67,7 @@ import qualified        Data.Map as Map
 convertQueryTop
         :: Ord n
         => Features n
-        -> QueryTop (a,Type n) n
+        -> QueryTop (Annot a n) n
         -> FreshT n (Either (ConvertError a n)) (C.Program n)
 convertQueryTop feats qt
  = do   inp <- fresh
@@ -76,7 +76,7 @@ convertQueryTop feats qt
                  $ Map.lookup (feature qt) feats
 
         inpTy <- case valTypeOfType ty of
-                  Nothing -> lift $ Left $ ConvertErrorCannotConvertType (fst $ annotOfQuery $ query qt) ty
+                  Nothing -> lift $ Left $ ConvertErrorCannotConvertType (annAnnot $ annotOfQuery $ query qt) ty
                   Just t' -> return t'
         let inpTy'dated = T.PairT inpTy T.DateTimeT
 
@@ -92,7 +92,7 @@ convertQueryTop feats qt
 -- that is being "returned" in the program - essentially the last added binding.
 convertQuery
         :: Ord n
-        => Query (a,Type n) n
+        => Query (Annot a n) n
         -> ConvertM a n (CoreBinds n, Name n)
 convertQuery q
  = case contexts q of
@@ -165,14 +165,14 @@ convertQuery q
      -- and also
      -- "latest 5 ~> let V = Elem ~> Elem"
      --
-     | TemporalityElement <- getTemporalityOrPure $ snd $ annotOfQuery q'
+     | TemporalityElement <- getTemporalityOrPure $ annResult $ annotOfQuery q'
      -> do  n'arr   <- lift fresh
             n'map   <- lift fresh
 
             n'v     <- lift fresh
 
             x' <- convertWithInputName n'v $ convertExpQ q'
-            t' <- convertValType' $ snd $ annotOfQuery q'
+            t' <- convertValType' $ annResult $ annotOfQuery q'
 
             (inpstream, inpty) <- convertInput
 
@@ -228,7 +228,7 @@ convertQuery q
     -- relatively good idea of an upper bound on memory here,
     -- as long as the "by" is something like an enum, and the "value" has bounded memory.
     --
-    (GroupBy (ann,retty) e : _)
+    (GroupBy (Annot { annAnnot = ann, annResult = retty }) e : _)
      -> do  t1 <- getGroupByMapType ann retty
             n'      <- lift fresh
             n''     <- lift fresh
@@ -302,8 +302,8 @@ convertQuery q
     -- as the elements are seen into the map,
     -- we insert/update the element in the map, then fold over essentially the last-seen
     -- for each group.
-    (Distinct (_,_) e : _)
-     -> do  tkey <- convertValType' $ snd $ annotOfExp e
+    (Distinct _ e : _)
+     -> do  tkey <- convertValType' $ annResult $ annotOfExp e
             (inpstream, inpty) <- convertInput
             let tval = inpty
 
@@ -362,9 +362,9 @@ convertQuery q
             return (r <> p, n'')
 
     (Let _ b def : _)
-     -> case getTemporalityOrPure $ snd $ annotOfExp def of
+     -> case getTemporalityOrPure $ annResult $ annotOfExp def of
          TemporalityElement
-          -> do t' <- convertValType' $ snd $ annotOfExp def
+          -> do t' <- convertValType' $ annResult $ annotOfExp def
                 (inpstream, inpty) <- convertInput
                 let inpty' = T.PairT t' inpty
 
@@ -377,7 +377,7 @@ convertQuery q
                 let xsnd = CE.XApp
                          $ CE.XPrim $ C.PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd t' inpty
 
-                convertModifyFeatures (Map.insert b (snd $ annotOfExp def, xfst) . Map.map (\(t,f) -> (t, f . xsnd)))
+                convertModifyFeatures (Map.insert b (annResult $ annotOfExp def, xfst) . Map.map (\(t,f) -> (t, f . xsnd)))
 
                 let pair = (CE.XPrim $ C.PrimMinimal $ Min.PrimConst $ Min.PrimConstPair t' inpty)
                          CE.@~ e' CE.@~ CE.XVar n'e
@@ -405,13 +405,13 @@ convertQuery q
                 return (bs <> post b' (CE.XVar n') <> bs', n'')
 
          _
-          -> convertError $ ConvertErrorGroupByHasNonGroupResult (fst $ annotOfExp def) (snd $ annotOfExp def)
+          -> convertError $ ConvertErrorGroupByHasNonGroupResult (annAnnot $ annotOfExp def) (annResult $ annotOfExp def)
 
 
     -- Converting fold1s.
     (LetFold _ f@Fold{ foldType = FoldTypeFoldl1 } : _)
      -> do  -- Type helpers
-            tU <- convertValType' $ snd $ annotOfExp $ foldWork f
+            tU <- convertValType' $ annResult $ annotOfExp $ foldWork f
             let tO = T.OptionT tU
 
             -- Generate fresh names
@@ -481,7 +481,7 @@ convertQuery q
     --
     (LetFold _ f@Fold{ foldType = FoldTypeFoldl } : _)
      -> do  -- Type helpers
-            tU <- convertValType' $ snd $ annotOfExp $ foldWork f
+            tU <- convertValType' $ annResult $ annotOfExp $ foldWork f
 
             -- Generate fresh names
             -- Element of the stream
@@ -537,7 +537,7 @@ convertQuery q
   som t
    = CE.some t
 
-  convertValType' = convertValType (fst $ annotOfQuery q)
+  convertValType' = convertValType (annAnnot $ annotOfQuery q)
 
 
 -- | Convert an Aggregate computation at the end of a query.
@@ -545,10 +545,10 @@ convertQuery q
 -- or a nested query.
 convertReduce
         :: Ord n
-        => Exp (a,Type n) n
+        => Exp (Annot a n) n
         -> ConvertM a n (CoreBinds n, Name n)
 convertReduce xx
- | Just (p, (_,ty), args) <- takePrimApps xx
+ | Just (p, Annot { annResult = ty }, args) <- takePrimApps xx
  -- For any primitives:
  --   recurse into its arguments and get bindings for them
  --   apply those bindings to the primitive, as a postcomputation
@@ -556,9 +556,9 @@ convertReduce xx
  -- If the binding is Pure however, it must not rely on any aggregates,
  -- so it might as well be a precomputation.
  = do   (bs,nms) <- unzip <$> mapM convertReduce args
-        let tys  = fmap (snd . annotOfExp) args
+        let tys  = fmap (annResult . annotOfExp) args
         let xs   = fmap  CE.XVar           nms
-        x' <- convertPrim p (fst $ annotOfExp xx) ty (xs `zip` tys)
+        x' <- convertPrim p (annAnnot $ annotOfExp xx) ty (xs `zip` tys)
 
         nm  <- lift fresh
 
@@ -575,11 +575,11 @@ convertReduce xx
  | Nested _ q   <- xx
  = convertQuery q
  -- Any variable must be a let-bound aggregate, so we can safely assume it has a binding.
- | Var (ann,_) v      <- xx
+ | Var (Annot { annAnnot = ann }) v      <- xx
  = (,) mempty <$> convertFreshenLookup ann v
 
  -- It's not a variable or a nested query,
  -- so it must be an application of a non-primitive
  | otherwise
- = convertError $ ConvertErrorExpApplicationOfNonPrimitive (fst $ annotOfExp xx) xx
+ = convertError $ ConvertErrorExpApplicationOfNonPrimitive (annAnnot $ annotOfExp xx) xx
 

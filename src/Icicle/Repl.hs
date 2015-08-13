@@ -92,7 +92,7 @@ instance Pretty ReplError where
 
 type Var        = SP.Variable
 type QueryTop'  = SQ.QueryTop Parsec.SourcePos Var
-type QueryTop'T = SQ.QueryTop (Parsec.SourcePos, ST.Type Var) Var
+type QueryTop'T = SQ.QueryTop (ST.Annot Parsec.SourcePos Var) Var
 type Program'   = Core.Program Var
 
 --------------------------------------------------------------------------------

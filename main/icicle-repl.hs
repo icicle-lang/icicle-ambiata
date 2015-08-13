@@ -42,6 +42,7 @@ import           Icicle.Internal.Rename
 import qualified Icicle.Repl                          as SR
 import qualified Icicle.Simulator                     as S
 import qualified Icicle.Source.Parser                 as SP
+import qualified Icicle.Source.PrettyAnnot            as SPretty
 import qualified Icicle.Source.Query                  as SQ
 import qualified Icicle.Source.Type                   as ST
 
@@ -83,6 +84,7 @@ data ReplState
    , dictionary   :: Dictionary
    , currentDate  :: DateTime
    , hasType      :: Bool
+   , hasAnnotated :: Bool
    , hasCore      :: Bool
    , hasCoreType  :: Bool
    , hasAvalanche :: Bool
@@ -94,6 +96,7 @@ data ReplState
 -- | Settable REPL states
 data Set
    = ShowType           Bool
+   | ShowAnnotated      Bool
    | ShowCore           Bool
    | ShowCoreType       Bool
    | ShowEval           Bool
@@ -118,7 +121,7 @@ data Command
 
 defaultState :: ReplState
 defaultState
-  = (ReplState [] demographics (dateOfYMD 1970 1 1) False False False False False False False False)
+  = (ReplState [] demographics (dateOfYMD 1970 1 1) False False False False False False False False False)
     { hasEval = True }
 
 readCommand :: String -> Maybe Command
@@ -140,6 +143,9 @@ readSetCommands ss
  = case ss of
     ("+type":rest)      -> (:) (ShowType True)        <$> readSetCommands rest
     ("-type":rest)      -> (:) (ShowType False)       <$> readSetCommands rest
+
+    ("+annotated":rest) -> (:) (ShowAnnotated True)   <$> readSetCommands rest
+    ("-annotated":rest) -> (:) (ShowAnnotated False)  <$> readSetCommands rest
 
     ("+core":rest)      -> (:) (ShowCore True)        <$> readSetCommands rest
     ("-core":rest)      -> (:) (ShowCore False)       <$> readSetCommands rest
@@ -229,6 +235,8 @@ handleLine state line = case readCommand line of
 
       prettyOut hasType "- Type:" typ
 
+      prettyOut hasAnnotated "- Annotated:" (SPretty.PrettyAnnot annot)
+
       core      <- hoist $ SR.sourceConvert (dictionary state) annot
       let core'  | doCoreSimp state
                  = renameP unVar $ SR.coreSimp core
@@ -270,6 +278,10 @@ handleSetCommand state set
         HL.outputStrLn $ "ok, type is now " <> showFlag b
         return $ state { hasType = b }
 
+    ShowAnnotated b -> do
+        HL.outputStrLn $ "ok, annotated is now " <> showFlag b
+        return $ state { hasAnnotated = b }
+
     ShowCore b -> do
         HL.outputStrLn $ "ok, core is now " <> showFlag b
         return $ state { hasCore = b }
@@ -304,7 +316,7 @@ handleSetCommand state set
 
 --------------------------------------------------------------------------------
 
-type QueryTopPUV = SQ.QueryTop (SP.SourcePos, ST.Type SP.Variable) SP.Variable
+type QueryTopPUV = SQ.QueryTop (ST.Annot SP.SourcePos SP.Variable) SP.Variable
 type ProgramT    = CP.Program Text
 newtype Result   = Result (Entity, Value)
 
@@ -407,6 +419,7 @@ showState state
     ,      "data:       " <> show (length $ facts state)
     ,      "dictionary: " <> show (dictionary state)
     , flag "type:       " hasType
+    , flag "annotated:  " hasAnnotated
     , flag "core:       " hasCore
     , flag "core-type:  " hasCoreType
     , flag "core-simp:  " doCoreSimp
