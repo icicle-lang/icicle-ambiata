@@ -2,7 +2,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Icicle.Dictionary.Parse.Types where
+module Icicle.Storage.Dictionary.Toml.Types where
 
 import           P
 

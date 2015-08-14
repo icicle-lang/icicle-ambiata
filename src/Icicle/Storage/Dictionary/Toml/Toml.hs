@@ -2,10 +2,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module Icicle.Dictionary.Parse.Toml
-  ( module Icicle.Dictionary.Parse.Toml
-  , module Icicle.Dictionary.Parse.Types
-  ) where
+module Icicle.Storage.Dictionary.Toml.Toml
+  ( tomlDoc ) where
 
 import           P                   hiding (concat, (<|>), many, optional, join)
 import           Prelude             (read, {- eww -} head, fromEnum, toEnum, maxBound)
@@ -22,7 +20,7 @@ import           Numeric             (readHex)
 import           Text.Parsec
 import           Text.Parsec.String
 
-import           Icicle.Dictionary.Parse.Types
+import           Icicle.Storage.Dictionary.Toml.Types
 
 {-
 
@@ -81,14 +79,6 @@ namedSection = do
 -- | Parses a table header.
 tableHeader :: Parser [Text]
 tableHeader = between (char '[') (char ']') headerValue
-
-
--- | Parses a table array header.
-tableArrayHeader :: Parser [Text]
-tableArrayHeader = between (twoChar '[') (twoChar ']') headerValue
-  where
-    twoChar c = count 2 (char c)
-
 
 -- | Parses the value of any header (names separated by dots), into a list of 'Text'.
 headerValue :: Parser [Text]

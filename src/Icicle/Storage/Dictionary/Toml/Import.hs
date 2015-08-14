@@ -1,13 +1,13 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TupleSections     #-}
-module Icicle.Dictionary.Import (
+module Icicle.Storage.Dictionary.Toml.Import (
     loadDictionary
   ) where
 
 import           Icicle.Dictionary.Data
-import           Icicle.Dictionary.Parse.Toml
-import           Icicle.Dictionary.Parse.TomlDictionary
+import           Icicle.Storage.Dictionary.Toml.Toml
+import           Icicle.Storage.Dictionary.Toml.TomlDictionary
 
 import qualified Icicle.Common.Fresh                as Fresh
 

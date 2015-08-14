@@ -20,7 +20,7 @@ import qualified Icicle.Core.Program.Program        as Core
 import qualified Icicle.Core.Program.Simp           as Core
 import           Icicle.Data
 import qualified Icicle.Dictionary                  as D
-import qualified Icicle.Dictionary.Parse            as DP
+import qualified Icicle.Storage.Dictionary.TextV1   as DP
 import           Icicle.Internal.Pretty
 import qualified Icicle.Serial                      as S
 import qualified Icicle.Simulator                   as S
