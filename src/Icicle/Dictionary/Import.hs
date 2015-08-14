@@ -5,19 +5,14 @@ module Icicle.Dictionary.Import (
     loadDictionary
   ) where
 
-import           Icicle.Data
 import           Icicle.Dictionary.Data
 import           Icicle.Dictionary.Parse.Toml
 import           Icicle.Dictionary.Parse.TomlDictionary
 
-import           Icicle.Common.Type
 import qualified Icicle.Common.Fresh                as Fresh
 
 import           Icicle.Source.Query
-import           Icicle.Source.Lexer.Token
 import qualified Icicle.Source.Type                 as ST
-
-import qualified Icicle.Source.ToCore.Context       as STC
 
 import qualified Icicle.Source.Checker.Base         as SC
 import qualified Icicle.Source.Checker.Checker      as SC
@@ -27,10 +22,8 @@ import qualified Icicle.Source.Checker.Function     as SC
 import qualified Icicle.Source.Parser               as SP
 
 import           P
-import           Prelude (error)
 
 import qualified Control.Arrow                      as A
-import           Control.Monad.Trans.Class
 import           Control.Monad.Trans.Either
 import qualified Control.Exception                  as E
 
@@ -39,7 +32,6 @@ import           System.IO
 import qualified Data.Text                          as T
 import qualified Data.Text.IO                       as T
 
-import           Data.Monoid (mempty)
 import qualified Data.Map                           as M
 
 import qualified Text.Parsec                        as Parsec
@@ -93,7 +85,7 @@ loadDictionary' parentFuncs parentConf parentConcrete fp
   importedFunctions
     <- hoistEither $ (A.left DictionaryErrorCheck)
      $ foldlM
-     ( \(env, annotfuns) -> \parsedImport ->
+     ( \(env, _) -> \parsedImport ->
        snd
        $ flip Fresh.runFresh (freshNamer "f")
        $ runEitherT
@@ -103,7 +95,7 @@ loadDictionary' parentFuncs parentConf parentConcrete fp
   let concreteDefinitions = foldr remakeConcrete [] definitions'
   let virtualDefinitions' = foldr remakeVirtuals [] definitions'
 
-  let d' = featureMapOfDictionary $ Dictionary concreteDefinitions
+  let d' = featureMapOfDictionary $ Dictionary $ concreteDefinitions <> parentConcrete
 
   virtualDefinitions
     <- flip traverse virtualDefinitions'
@@ -136,5 +128,6 @@ loadDictionary' parentFuncs parentConf parentConcrete fp
 
   -- children <- foldlM (loadDictionary' conf) $ T.unpack <$> chapter'
 
+-- TODO, move this somewhere sensible.
 freshNamer :: T.Text -> Fresh.NameState SP.Variable
 freshNamer prefix = Fresh.counterPrefixNameState (SP.Variable . T.pack . show) (SP.Variable prefix)
