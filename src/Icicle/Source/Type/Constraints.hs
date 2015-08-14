@@ -39,13 +39,18 @@ data DischargeError n
  = CannotUnify (Type n) (Type n)
  -- | IsNum String
  | NotANumber  (Type n)
+ -- | IsNum String
+ | ConflictingLetTemporalities (Type n) (Type n) (Type n)
  deriving (Eq, Ord, Show)
 
 instance Pretty n => Pretty (DischargeError n) where
  pretty (CannotUnify p q)
-  = text "Cannot unify " <> pretty p <> " = " <> pretty q
+  = "Cannot unify " <> pretty p <> " = " <> pretty q
  pretty (NotANumber t)
-  = text "Not a number: " <> pretty t
+  = "Not a number: " <> pretty t
+ pretty (ConflictingLetTemporalities ret def body)
+  =  "Conflicting let temporalities." <> line
+  <> "An Aggregate let statement with an Element body is not allowed: " <> pretty ret <+> pretty def <+> pretty body
 
 -- | Discharge a single constraint
 dischargeC :: Ord n => Constraint n -> Either (DischargeError n) (DischargeResult n)
@@ -65,6 +70,64 @@ dischargeC c
          Nothing -> Left $ CannotUnify a b
          Just s  -> return $ DischargeSubst s
 
+    -- Still variables, so can't discharge
+    CReturnOfLetTemporalities _ (TypeVar _) _
+     -> return $ DischargeLeftover c
+    CReturnOfLetTemporalities _ _ (TypeVar _)
+     -> return $ DischargeLeftover c
+    CReturnOfLetTemporalities ret def body
+     -> case returnOfLet def body of
+         Just tmp
+          -> dischargeC (CEquals ret tmp)
+         Nothing
+          -> Left $ ConflictingLetTemporalities ret def body
+
+    CReturnOfLatest ret tmp dat
+     -> case returnOfLatest tmp dat of
+         Just ret'
+          -> dischargeC (CEquals ret ret')
+         _
+          -> return $ DischargeLeftover c
+
+ where
+  returnOfLet def body
+   = case (def,body) of
+      (TemporalityPure, TemporalityPure)
+       -> Just TemporalityPure
+      (TemporalityPure, TemporalityElement)
+       -> Just TemporalityElement
+      (TemporalityPure, TemporalityAggregate)
+       -> Just TemporalityAggregate
+      (TemporalityElement, TemporalityPure)
+       -> Just TemporalityElement
+      (TemporalityElement, TemporalityElement)
+       -> Just TemporalityElement
+      (TemporalityElement, TemporalityAggregate)
+       -> Just TemporalityAggregate
+      (TemporalityAggregate, TemporalityPure)
+       -> Just TemporalityAggregate
+
+      -- This implies that the let is not actually used.
+      -- I'm not sure whether this should be allowed or not.
+      -- At the moment this cannot be compiled to core, so it is outlawed.
+      (TemporalityAggregate, TemporalityElement)
+       -> Nothing
+
+      (TemporalityAggregate, TemporalityAggregate)
+       -> Just TemporalityAggregate
+
+      (_, _)
+       -> Nothing
+
+  returnOfLatest TemporalityPure d
+   = Just $ ArrayT d
+  returnOfLatest TemporalityElement d
+   = Just $ ArrayT d
+  returnOfLatest TemporalityAggregate d
+   = Just d
+  -- Probably a variable
+  returnOfLatest _ _
+   = Nothing
 
 -- | Attempt to discharge a set of constraints
 -- Return a list of errors, or the substitution and any leftover constraints

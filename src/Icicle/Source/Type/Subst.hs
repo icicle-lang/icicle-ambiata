@@ -68,6 +68,10 @@ substC ss cc
      -> CEquals (substT ss p) (substT ss q)
     CIsNum p
      -> CIsNum (substT ss p)
+    CReturnOfLetTemporalities ret def body
+     -> CReturnOfLetTemporalities (substT ss ret) (substT ss def) (substT ss body)
+    CReturnOfLatest ret tmp dat
+     -> CReturnOfLatest (substT ss ret) (substT ss tmp) (substT ss dat)
 
 
 -- | Substitute into a function type.

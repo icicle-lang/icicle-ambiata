@@ -45,6 +45,10 @@ defaults q
    = []
   defaultOfConstraint (CEquals _ _)
    = []
+  defaultOfConstraint (CReturnOfLetTemporalities _ _ _)
+   = []
+  defaultOfConstraint (CReturnOfLatest _ _ _)
+   = []
 
 
 
@@ -77,12 +81,12 @@ generateQ qq@(Query (c:_) _)
             let t'' = canonT $ Temporality TemporalityAggregate t'
             with q' sq t'' $ \a' -> Windowed a' from to
     Latest _ i
-     -> do  (q',sq,t') <- rest
-            let tt = case getTemporalityOrPure t' of
-                      TemporalityAggregate -> t'
-                      _                    -> ArrayT t'
-            let t'' = canonT $ Temporality TemporalityAggregate tt
-            with q' sq t'' $ \a' -> Latest a' i
+     -> do  (q',sq,tq) <- rest
+            retDat <- TypeVar <$> fresh
+            let (tmpq,_,datq) = decomposeT tq
+            require a $ CReturnOfLatest retDat (fromMaybe TemporalityPure tmpq) datq
+            let t' = canonT $ Temporality TemporalityAggregate retDat
+            with q' sq t' $ \a' -> Latest a' i
     GroupBy _ x
      -> do  (x',sx) <- generateX x
             (q',sq,tval) <- rest
@@ -138,12 +142,15 @@ generateQ qq@(Query (c:_) _)
 
     Let _ n x
      -> do  (x',sx) <- generateX x
-            (q',sq,t') <- withBind n (annResult $ annotOfExp x') rest
+            (q',sq,tq) <- withBind n (annResult $ annotOfExp x') rest
 
-            let tmp = getTemporalityOrPure $ annResult $ annotOfExp x'
-            let t'' = canonT $ Temporality tmp t'
+            retTmp <- TypeVar <$> fresh
+            let tmpx = getTemporalityOrPure $ annResult $ annotOfExp x'
+            let tmpq = getTemporalityOrPure $ tq
+            require a $ CReturnOfLetTemporalities retTmp tmpx tmpq
+            let t' = canonT $ Temporality retTmp tq
 
-            with q' (compose sx sq) t'' $ \a' -> Let a' n x'
+            with q' (compose sx sq) t' $ \a' -> Let a' n x'
 
  where
   a  = annotOfContext c
