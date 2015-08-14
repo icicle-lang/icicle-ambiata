@@ -8,7 +8,7 @@ module Icicle.Source.Checker.Checker (
 
 import                  Icicle.Source.Checker.Base
 import                  Icicle.Source.Checker.Error
-import qualified        Icicle.Source.Checker.Constraint as Constr
+import                  Icicle.Source.Checker.Constraint
 import                  Icicle.Source.Checker.Invariants
 import                  Icicle.Source.ToCore.Context
 import                  Icicle.Source.Query
@@ -56,7 +56,7 @@ checkQ  :: Ord        n
         -> Query    a n
         -> Result (Query (Annot a n) n) a n
 checkQ ctx q
- = do q'  <- Constr.defaults <$> Constr.checkQ (checkEnvironment ctx) q
+ = do q'  <- defaults <$> constraintsQ (checkEnvironment ctx) q
 
       let t = annResult $ annotOfQuery q'
       case getTemporalityOrPure t of

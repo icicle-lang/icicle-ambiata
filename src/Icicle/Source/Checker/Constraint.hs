@@ -2,7 +2,7 @@
 {-# LANGUAGE PatternGuards #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Source.Checker.Constraint (
-    checkQ
+    constraintsQ
   , generateQ
   , generateX
   , defaults
@@ -52,11 +52,12 @@ defaults q
 
 
 
-checkQ  :: Ord n
+constraintsQ
+        :: Ord n
         => Map.Map n (FunctionType n)
         -> Query a n
         -> EitherT (CheckError a n) (Fresh.Fresh n) (Query'C a n)
-checkQ env q
+constraintsQ env q
  = evalGen (fst <$> generateQ q) (CheckState env [])
 
 

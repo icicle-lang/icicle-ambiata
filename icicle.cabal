@@ -155,6 +155,7 @@ library
                        Icicle.Source.Type.Compounds
                        Icicle.Source.Type.Constraints
                        Icicle.Source.Type.Subst
+                       Icicle.Source.Checker
                        Icicle.Source.Checker.Base
                        Icicle.Source.Checker.Checker
                        Icicle.Source.Checker.Constraint
@@ -169,6 +170,11 @@ library
                        Icicle.Source.ToCore.Fold
                        Icicle.Source.ToCore.ToCore
                        Icicle.Source.ToCore.Prim
+
+                       Icicle.Source.Transform.Base
+                       Icicle.Source.Transform.SubstX
+                       Icicle.Source.Transform.Inline
+
                        Icicle.Source.PrettyAnnot
 
                        Icicle.Repl
