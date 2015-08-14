@@ -165,7 +165,7 @@ library
                        Icicle.Source.ToCore.Prim
 
                        Icicle.Storage.Dictionary.TextV1
-                       Icicle.Storage.Dictionary.Toml.Import
+                       Icicle.Storage.Dictionary.Toml
                        Icicle.Storage.Dictionary.Toml.Types
                        Icicle.Storage.Dictionary.Toml.Toml
                        Icicle.Storage.Dictionary.Toml.Prisms

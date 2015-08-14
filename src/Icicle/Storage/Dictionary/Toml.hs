@@ -1,7 +1,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TupleSections     #-}
-module Icicle.Storage.Dictionary.Toml.Import (
+module Icicle.Storage.Dictionary.Toml (
     loadDictionary
   ) where
 
