@@ -44,6 +44,9 @@ lexerPositions ts
    = []
   -- Look at the first character and decide what to do
   go ((c,pos) : t')
+   -- A comment is starting, drop till the end of the line.
+   | c == '#'
+   = lexerPositions $ L.dropWhile ((/=) '\n' . fst) t'
 
    -- Variables
    | isVarStart c
