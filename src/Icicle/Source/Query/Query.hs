@@ -22,13 +22,14 @@ module Icicle.Source.Query.Query (
 import                  Icicle.Source.Query.Context
 import                  Icicle.Source.Query.Exp
 import                  Icicle.Internal.Pretty
+import                  Icicle.Common.Base
 
 import                  P
 
 
 data QueryTop a n
  = QueryTop
- { feature  :: n
+ { feature  :: Name n
  , query    :: Query a n }
  deriving (Show, Eq, Ord)
 

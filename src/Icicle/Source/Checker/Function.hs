@@ -12,6 +12,7 @@ import                  Icicle.Source.Checker.Constraint
 import                  Icicle.Source.Query
 import                  Icicle.Source.Type
 
+import                  Icicle.Common.Base
 import qualified        Icicle.Common.Fresh     as Fresh
 
 import                  P
@@ -24,7 +25,7 @@ import qualified        Data.Map                as Map
 import qualified        Data.Set                as Set
 
 checkF  :: Ord n
-        => Map.Map n (FunctionType n)
+        => Map.Map (Name n) (FunctionType n)
         -> Function a n
         -> EitherT (CheckError a n) (Fresh.Fresh n)
                    (Function (Annot a n) n, FunctionType n)

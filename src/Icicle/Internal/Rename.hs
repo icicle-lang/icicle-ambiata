@@ -13,7 +13,7 @@ import qualified Icicle.Source.Query.Exp     as SE
 
 renameQT :: (n -> m) -> SQ.QueryTop a n -> SQ.QueryTop a m
 renameQT f (SQ.QueryTop x q)
-  = SQ.QueryTop (f x) (renameQ f q)
+  = SQ.QueryTop (renameN f x) (renameQ f q)
 
 renameQ :: (n -> m) -> SQ.Query a n -> SQ.Query a m
 renameQ f (SQ.Query cs x)
@@ -27,19 +27,19 @@ renameC f cc = case cc of
   SQ.Distinct a e   -> SQ.Distinct a (renameX f e)
   SQ.Filter   a e   -> SQ.Filter   a (renameX f e)
   SQ.LetFold  a x   -> SQ.LetFold  a (renameF f x)
-  SQ.Let      a n e -> SQ.Let      a (f n) (renameX f e)
+  SQ.Let      a n e -> SQ.Let      a (renameN f n) (renameX f e)
 
 renameF :: (n -> m) -> SQ.Fold (SQ.Query a n) a n -> SQ.Fold (SQ.Query a m) a m
 renameF f d
   = SQ.Fold
-    (f         $ SQ.foldBind d)
+    (renameN f $ SQ.foldBind d)
     (renameX f $ SQ.foldInit d)
     (renameX f $ SQ.foldWork d)
     (SQ.foldType d)
 
 renameX :: (n -> m) -> SQ.Exp a n -> SQ.Exp a m
 renameX f e = case e of
-  SE.Var a n     -> SE.Var a (f n)
+  SE.Var a n     -> SE.Var a (renameN f n)
   SE.Nested a q  -> SE.Nested a (renameQ f q)
   SE.App a e1 e2 -> SE.App a (renameX f e1) (renameX f e2)
   SE.Prim a p    -> SE.Prim a p

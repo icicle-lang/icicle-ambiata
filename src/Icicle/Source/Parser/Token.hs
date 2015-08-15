@@ -18,6 +18,7 @@ module Icicle.Source.Parser.Token (
   ) where
 
 import qualified        Icicle.Source.Lexer.Token as T
+import                  Icicle.Common.Base
 
 import                  P
 
@@ -57,11 +58,11 @@ pOperator
   get  _               = Nothing
 
 
-pVariable :: Parser Var
+pVariable :: Parser (Name Var)
 pVariable 
  = pTok get <?> "variable"
  where
-  get (T.TVariable v) = Just v
+  get (T.TVariable v) = Just (Name v)
   get  _              = Nothing
 
 

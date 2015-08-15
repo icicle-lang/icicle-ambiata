@@ -17,6 +17,7 @@ import qualified Data.Map           as Map
 import           Data.Text (Text)
 
 import qualified Icicle.BubbleGum   as B
+import           Icicle.Common.Base
 import           Icicle.Data
 import           Icicle.Data.DateTime
 import           Icicle.Dictionary
@@ -92,7 +93,7 @@ evaluateVirtual virt _ facts
  = P.concatMap go facts
  where
   go (Partition _ attr _)
-   | (Variable . getAttribute) attr == (feature . unVirtual) virt
+   | (Name . Variable . getAttribute) attr == (feature . unVirtual) virt
    = []
    -- = [(ent, evaluateVirtualValue (program virt) date values)]
    | otherwise

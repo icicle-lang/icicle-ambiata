@@ -12,6 +12,7 @@ module Icicle.Source.Checker.Error (
 import                  Icicle.Source.Query
 import                  Icicle.Source.Type
 
+import                  Icicle.Common.Base
 import                  Icicle.Internal.Pretty
 
 import                  P
@@ -23,8 +24,8 @@ data CheckError a n
  deriving (Show, Eq, Ord)
 
 data ErrorInfo a n
- = ErrorNoSuchVariable a n
- | ErrorNoSuchFeature n
+ = ErrorNoSuchVariable a (Name n)
+ | ErrorNoSuchFeature (Name n)
  | ErrorContextNotAllowedHere  a (Context a n)
  | ErrorFunctionWrongArgs      a (Exp a n) (FunctionType n) [Type n]
  | ErrorApplicationNotFunction a (Exp a n)
@@ -52,8 +53,8 @@ annotOfError (CheckError e _)
 
 
 data ErrorSuggestion a n
- = AvailableFeatures [(n, Type n)]
- | AvailableBindings [(n, FunctionType n)]
+ = AvailableFeatures [(Name n, Type n)]
+ | AvailableBindings [(Name n, FunctionType n)]
  | Suggest String
  deriving (Show, Eq, Ord)
 

@@ -6,12 +6,13 @@ module Icicle.Source.Query.Function (
 
 import                  Icicle.Internal.Pretty
 import                  Icicle.Source.Query.Query
+import                  Icicle.Common.Base
 
 import                  P
 
 data Function a n
   = Function
-  { arguments :: [(a,n)]
+  { arguments :: [(a,Name n)]
   , body      :: Query a n }
   deriving (Show, Eq)
 

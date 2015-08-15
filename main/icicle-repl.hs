@@ -31,6 +31,7 @@ import qualified Icicle.Avalanche.Program             as AP
 import qualified Icicle.Avalanche.Simp                as AS
 import qualified Icicle.Avalanche.Statement.Flatten   as AF
 import qualified Icicle.Avalanche.ToJava              as AJ
+import qualified Icicle.Common.Base                   as CommonBase
 import qualified Icicle.Common.Fresh                  as F
 import qualified Icicle.Core.Program.Check            as CP
 import qualified Icicle.Core.Program.Program          as CP
@@ -345,7 +346,8 @@ coreEval d fs (renameQT unVar -> query) prog
     justVal (e, result) = fmap (e,) result
 
     evalP feat (S.Partition ent attr values)
-      | attr == Attribute feat = [(ent, evalV values)]
+      | CommonBase.Name feat' <- feat
+      , attr == Attribute feat'= [(ent, evalV values)]
       | otherwise              = []
 
     evalV

@@ -15,6 +15,7 @@ import                  Icicle.Source.Checker.Prim
 import                  Icicle.Source.Query
 import                  Icicle.Source.Type
 
+import                  Icicle.Common.Base
 import qualified        Icicle.Common.Fresh     as Fresh
 
 import                  P
@@ -54,7 +55,7 @@ defaults q
 
 constraintsQ
         :: Ord n
-        => Map.Map n (FunctionType n)
+        => Map.Map (Name n) (FunctionType n)
         -> Query a n
         -> EitherT (CheckError a n) (Fresh.Fresh n) (Query'C a n)
 constraintsQ env q

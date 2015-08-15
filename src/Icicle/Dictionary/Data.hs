@@ -19,6 +19,7 @@ import           Icicle.Data
 import qualified Icicle.Common.Exp.Prim.Minimal     as X
 import qualified Icicle.Common.Exp                  as X
 import qualified Icicle.Core                        as X
+import           Icicle.Common.Base
 import           Icicle.Common.Type
 
 import           Icicle.Source.Query
@@ -108,19 +109,19 @@ featureMapOfDictionary (Dictionary ds)
   go (DictionaryEntry (Attribute attr) (ConcreteDefinition enc))
    | StructT st@(StructType fs) <- sourceTypeOfEncoding enc
    = let e' = StructT st
-     in [ ( Variable attr
+     in [ ( var attr
         , ( baseType e'
         , Map.fromList
         $ exps "fields" e'
         <> (fmap (\(k,t)
-        -> ( Variable $ nameOfStructField k
+        -> ( var $ nameOfStructField k
            , (baseType t, X.XApp (xget k t st) . X.XApp (xfst e' DateTimeT)))
         )
         $ Map.toList fs)))]
 
    | otherwise
    = let e' = sourceTypeOfEncoding enc
-     in [ ( Variable attr
+     in [ ( var attr
         , ( baseType e'
         , Map.fromList $ exps "value" e'))]
   go _
@@ -136,7 +137,9 @@ featureMapOfDictionary (Dictionary ds)
    = X.XPrim (X.PrimMinimal $ X.PrimStruct $ X.PrimStructGet f t fs)
 
   exps str e'
-   = [ (Variable str, ( baseType e', X.XApp (xfst e' DateTimeT)))
+   = [ (var str, ( baseType e', X.XApp (xfst e' DateTimeT)))
      , date_as_snd e']
   date_as_snd e'
-   = (Variable "date" , ( baseType DateTimeT, X.XApp (xsnd e' DateTimeT)))
+   = (var "date" , ( baseType DateTimeT, X.XApp (xsnd e' DateTimeT)))
+
+  var = Name . Variable

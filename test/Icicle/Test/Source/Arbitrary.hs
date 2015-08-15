@@ -12,6 +12,7 @@ import qualified Icicle.Source.Lexer.Token as T
 import           Icicle.Common.Fresh
 
 import           Icicle.Test.Arbitrary.Base
+import           Icicle.Test.Core.Arbitrary ()
 import           Orphanarium.Corpus
 
 import           Test.QuickCheck

@@ -50,9 +50,9 @@ import qualified        Data.Map                as Map
 data CheckEnv a n
  = CheckEnv
  -- | Mapping from variable names to whole types
- { checkEnvironment :: Map.Map n (FunctionType n)
+ { checkEnvironment :: Map.Map (Name n) (FunctionType n)
  -- | Function bodies
- , checkBodies      :: Map.Map n (Function a n)
+ , checkBodies      :: Map.Map (Name n) (Function a n)
  , checkInvariants  :: Invariants
  }
 
@@ -76,7 +76,7 @@ emptyInvariants = Invariants True
 -- | State needed when doing constraint generation checking
 data CheckState a n
  = CheckState
- { stateEnvironment :: Map.Map n (FunctionType n)
+ { stateEnvironment :: Map.Map (Name n) (FunctionType n)
  , stateConstraints :: [(a, Constraint n)]
  }
  deriving (Eq, Ord, Show)
@@ -153,7 +153,7 @@ freshenFunction ann f
    = ((,) n . TypeVar) <$> fresh
 
 
-lookup :: Ord n => a -> n -> Gen a n ([Type n], Type n, FunctionType n)
+lookup :: Ord n => a -> Name n -> Gen a n ([Type n], Type n, FunctionType n)
 lookup ann n
  = do   e <- lift $ lift $ State.get
         let env = stateEnvironment e
@@ -165,14 +165,14 @@ lookup ann n
            $ errorSuggestions (ErrorNoSuchVariable ann n)
                               [AvailableBindings $ Map.toList env]
 
-bind :: Ord n => n -> Type n -> Gen a n ()
+bind :: Ord n => Name n -> Type n -> Gen a n ()
 bind n t
  = lift
  $ lift
  $ do   e <- State.get
         State.put (e { stateEnvironment = Map.insert n (function0 t) (stateEnvironment e) })
 
-withBind :: Ord n => n -> Type n -> Gen a n r -> Gen a n r
+withBind :: Ord n => Name n -> Type n -> Gen a n r -> Gen a n r
 withBind n t gen
  = do   old <- lift $ lift $ State.get
         bind n t

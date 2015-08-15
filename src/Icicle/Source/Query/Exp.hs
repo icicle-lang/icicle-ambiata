@@ -21,6 +21,7 @@ module Icicle.Source.Query.Exp (
 
 import                  Icicle.Source.Query.Operators
 import                  Icicle.Internal.Pretty
+import                  Icicle.Common.Base
 
 import                  P
 
@@ -28,7 +29,7 @@ import                  Data.Text (Text)
 
 
 data Exp' q a n
- = Var a n
+ = Var a (Name n)
  | Nested a q
  | App  a (Exp' q a n) (Exp' q a n)
  | Prim a Prim

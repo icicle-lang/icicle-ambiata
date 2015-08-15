@@ -30,7 +30,7 @@ import qualified        Data.Map as Map
 
 data EvalError a n
  = EvalErrorWindowWithNoDate a BaseValue
- | EvalErrorNoSuchVariable   a n
+ | EvalErrorNoSuchVariable   a (Name n)
  | EvalErrorOpBadArgs        a Op  [BaseValue]
  | EvalErrorFunBadArgs       a Fun [BaseValue]
 
@@ -40,7 +40,7 @@ data EvalError a n
  deriving (Show, Eq, Ord)
 
 type Record n
- = Map.Map n BaseValue
+ = Map.Map (Name n) BaseValue
 
 
 evalQ   :: Ord n
