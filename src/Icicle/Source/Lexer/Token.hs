@@ -48,6 +48,8 @@ data Token
  | TEqual
  -- | ':' as in cons or "followed by" for folds
  | TFollowedBy
+ -- | '.' for separating function definitions.
+ | TStatementEnd
 
  -- | '~>' for composition
  | TDataFlow
@@ -116,6 +118,8 @@ operator t
  = TEqual
  | t == ":"
  = TFollowedBy
+ | t == "."
+ = TStatementEnd
  | t == "~>"
  = TDataFlow
  | otherwise

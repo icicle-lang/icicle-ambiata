@@ -122,11 +122,6 @@ library
 
                        Icicle.Dictionary
                        Icicle.Dictionary.Data
-                       Icicle.Dictionary.Parse
-                       Icicle.Dictionary.Parse.Types
-                       Icicle.Dictionary.Parse.Toml
-                       Icicle.Dictionary.Parse.Prisms
-                       Icicle.Dictionary.Parse.TomlDictionary
                        Icicle.Dictionary.Demographics
 
                        Icicle.Encoding
@@ -174,8 +169,16 @@ library
                        Icicle.Source.Transform.Base
                        Icicle.Source.Transform.SubstX
                        Icicle.Source.Transform.Inline
-
                        Icicle.Source.PrettyAnnot
+
+                       Icicle.Storage.Dictionary.TextV1
+                       Icicle.Storage.Dictionary.Toml
+                       Icicle.Storage.Dictionary.Toml.Types
+                       Icicle.Storage.Dictionary.Toml.Toml
+                       Icicle.Storage.Dictionary.Toml.Prisms
+                       Icicle.Storage.Dictionary.Toml.TomlDictionary
+
+                       Icicle.Storage.Encoding
 
                        Icicle.Repl
 
@@ -195,6 +198,7 @@ executable             icicle-repl
     ghc-options:       -Wall -threaded -O2
     main-is:           main/icicle-repl.hs
     build-depends:     base
+                     , containers
                      , either
                      , icicle
                      , directory

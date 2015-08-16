@@ -1,6 +1,6 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE RankNTypes #-}
-module Icicle.Dictionary.Parse.Prisms (
+module Icicle.Storage.Dictionary.Toml.Prisms (
     _NTValue
   , _NTable
   , _VString
@@ -27,7 +27,7 @@ import qualified Text.Parsec.Pos as Pos
 
 import           GHC.Float
 
-import           Icicle.Dictionary.Parse.Types
+import           Icicle.Storage.Dictionary.Toml.Types
 
 
 _NTValue :: Prism' Node TValue

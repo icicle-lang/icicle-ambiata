@@ -114,6 +114,7 @@ data Command
    | CommandSet  [Set]
    | CommandLoad FilePath
    | CommandLoadDictionary FilePath
+   | CommandImportLibrary FilePath
    -- It's rather odd to have comments in a REPL.
    -- However, I want these printed out in the test output
    | CommandComment String
@@ -135,6 +136,7 @@ readCommand ss = case words ss of
   (":set":rest)         -> CommandSet <$> readSetCommands rest
   [":load", f]          -> Just $ CommandLoad f
   [":dictionary", f]    -> Just $ CommandLoadDictionary f
+  [":import", f]        -> Just $ CommandImportLibrary f
   ('-':'-':_):_         -> Just $ CommandComment $ ss
   (':':_):_             -> Just $ CommandUnknown $ ss
   _                     -> Nothing
@@ -212,6 +214,15 @@ handleLine state line = case readCommand line of
       Right d@(Dictionary ds) -> do
         HL.outputStrLn $ "ok, loaded dictionary " <> fp <> ", with " <> show (length ds) <> " features"
         return $ state { dictionary = d }
+
+  Just (CommandImportLibrary fp) -> do
+    s  <- liftIO $ T.readFile fp
+    case SR.readIcicleLibrary s of
+      Left e   -> prettyHL e >> return state
+      Right is -> do
+        HL.outputStrLn $ "ok, loaded " <> show (length $ snd is) <> " functions from " <> fp
+        return $ state
+        -- TODO, add a state which holds what we just loaded.
 
   Just (CommandComment comment) -> do
     HL.outputStrLn comment
@@ -442,6 +453,8 @@ usage
       , ":help or :h        -- shows this message"
       , ":quit or :q        -- quits the REPL"
       , ":load <filepath>   -- loads a data set"
+      , ":dictionary <path> -- loads a dictionary"
+      , ":import <filepath> -- imports functions from a file"
       , ":set  +/-type      -- whether to show the checked expression type"
       , ":set  +/-core      -- whether to show the Core conversion"
       , ":set  +/-core-type -- whether to show the Core conversion's type"

@@ -4,11 +4,8 @@
 module Icicle.Dictionary.Data (
     Dictionary (..)
   , DictionaryEntry (..)
-  , DictionaryEntry' (..)
   , Definition (..)
-  , Definition' (..)
   , Virtual (..)
-  , Virtual' (..)
   , getVirtualFeatures
   , featureMapOfDictionary
   , parseFact
@@ -37,7 +34,7 @@ import qualified Data.Map                           as Map
 import           P
 
 data Dictionary =
-  Dictionary [DictionaryEntry]
+  Dictionary { unDictionary :: [DictionaryEntry] }
   deriving (Eq, Show)
 
 data DictionaryEntry =
@@ -51,23 +48,7 @@ data Definition =
 
 -- A parsed and typechecked source program.
 newtype Virtual = Virtual {
-    unVirtual :: QueryTop (SourcePos, ST.Type Variable) Variable
-  } deriving (Eq, Show)
-
--- Intermediate states so that parsing can be pure.
--- Will need to typecheck once flow through and imports are done.
-data DictionaryEntry' =
-  DictionaryEntry' Attribute Definition'
-  deriving (Eq, Show)
-
-data Definition' =
-    ConcreteDefinition' Encoding
-  | VirtualDefinition'  Virtual'
-  deriving (Eq, Show)
-
--- A parsed, but still to be typechecked source program.
-newtype Virtual' = Virtual' {
-    unVirtual' :: QueryTop SourcePos Variable
+    unVirtual :: QueryTop (ST.Annot SourcePos Variable) Variable
   } deriving (Eq, Show)
 
 -- | Get all virtual features from dictionary

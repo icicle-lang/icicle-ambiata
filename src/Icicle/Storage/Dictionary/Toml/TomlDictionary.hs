@@ -1,11 +1,15 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Icicle.Dictionary.Parse.TomlDictionary
+module Icicle.Storage.Dictionary.Toml.TomlDictionary
   (
     tomlDict
   , DictionaryConfig (..)
+  , DictionaryEntry' (..)
+  , Definition' (..)
+  , Virtual' (..)
   , DictionaryValidationError (..)
+  , toEither
   ) where
 
 import           P
@@ -23,21 +27,40 @@ import qualified Text.Parsec.Pos as Pos
 import           Text.Parsec (runParser)
 import           Text.Parsec.Error
 
-
 import           Icicle.Data
+import           Icicle.Source.Lexer.Token
 import           Icicle.Source.Lexer.Lexer
 import           Icicle.Source.Parser.Parser
+import           Icicle.Source.Query
 
-import           Icicle.Dictionary.Data
-import           Icicle.Dictionary.Parse
-import           Icicle.Dictionary.Parse.Prisms
-import           Icicle.Dictionary.Parse.Toml
+import           Icicle.Storage.Encoding
+
+import           Icicle.Storage.Dictionary.Toml.Prisms
+import           Icicle.Storage.Dictionary.Toml.Types
 
 {-
 Dictionary config can be inherited from higher level dictionaries, items such as
 Namespace and tombstone can be scoped based on where they are defined, and overridden
 inside a specific fact or feature.
 -}
+
+
+-- Intermediate states so that parsing can be pure.
+-- Will need to typecheck once flow through and imports are done.
+data DictionaryEntry' =
+  DictionaryEntry' Attribute Definition'
+  deriving (Eq, Show)
+
+data Definition' =
+    ConcreteDefinition' Encoding
+  | VirtualDefinition'  Virtual'
+  deriving (Eq, Show)
+
+-- A parsed, but still to be typechecked source program.
+newtype Virtual' = Virtual' {
+    unVirtual' :: QueryTop Pos.SourcePos Variable
+  } deriving (Eq, Show)
+
 
 data DictionaryValidationError =
   UnknownElement Text Pos.SourcePos
