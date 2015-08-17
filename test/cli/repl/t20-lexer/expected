@@ -1,4 +1,5 @@
 welcome to iREPL
+ok, loaded 6 functions from data/libs/prelude.icicle
 ok, loaded test/cli/repl/data.psv, 8 rows
 > -- Numbers
 > - Result:
@@ -24,8 +25,14 @@ REPL Error:
 Check error:
   Unknown variable ea1 at (line 1, column 20)
   Extra information:
-    The available bindings are:  date : Elem  DateTime
-                                 value : Elem  Int
+    The available bindings are:  count : forall t$15. (Num t$15) => Aggregate t$15
+                                 date : Element Definitely DateTime
+                                 mean : forall t$17 t$18. (Num t$18) => Element t$17 t$18 -> Aggregate t$17 Double
+                                 newest : forall t$52 t$53. Element t$52 t$53 -> Aggregate t$52 t$53
+                                 oldest : forall t$58 t$59. Element t$58 t$59 -> Aggregate t$58 t$59
+                                 sd : forall t$25. Element t$25 Double -> Aggregate t$25 Double
+                                 sum : forall t$1 t$2. (Num t$2) => Element t$1 t$2 -> Aggregate t$1 t$2
+                                 value : Element Definitely Int
 
 > > -- Expect a parse error on unterminated string
 >                  [34mλλλλ[0m

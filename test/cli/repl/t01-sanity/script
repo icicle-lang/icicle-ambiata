@@ -11,5 +11,5 @@ feature salary ~> double (sum value) / count
 feature salary ~> filter value > 10 ~> count
 
 -- Average of latest 3 entries
-feature salary ~> latest 3 ~> sum (double value) / double count
+feature salary ~> latest 3 ~> sum (double value) / count
 
