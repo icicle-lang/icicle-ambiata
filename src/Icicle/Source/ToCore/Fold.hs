@@ -212,6 +212,14 @@ convertFold q
             let res = ConvertFoldResult (CE.XLam n' t' def') def' (CE.XLam n' t' def') t' t'
             convertAsLet b res
 
+     | TemporalityElement  <- getTemporalityOrPure $ annResult $ annotOfExp def
+     -> do  def' <- convertExp def
+            n'   <- lift fresh
+            t' <- convertValType' $ annResult $ annotOfExp def
+            let err = CE.XValue t' $ VException ExceptScalarVariableNotAvailable
+            let res = ConvertFoldResult (CE.XLam n' t' def') err (CE.XLam n' t' $ CE.XVar n') t' t'
+            convertAsLet b res
+
      | otherwise
      -> do  resb <- convertFold (Query [] def)
             convertAsLet b resb
