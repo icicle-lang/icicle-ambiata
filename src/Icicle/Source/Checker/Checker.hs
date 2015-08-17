@@ -34,9 +34,11 @@ checkQT :: Ord n
         -> QueryTop a n
         -> Result (QueryTop (Annot a n) n) a n
 checkQT features qt
- = case Map.lookup (feature qt) features of
+ = case Map.lookup (feature qt) (featuresConcretes features) of
     Just (_,f)
-     -> do  (q,t) <- checkQ (emptyCheckEnv { checkEnvironment = fmap function0 $ envOfFeatureContext f }) (query qt)
+     -> do  let env = fmap function0 $ envOfFeatureContext f
+            let env' = env `Map.union` featuresFunctions features
+            (q,t) <- checkQ (emptyCheckEnv { checkEnvironment = env' }) (query qt)
             return (qt { query = q }, t)
 
     Nothing
@@ -48,7 +50,8 @@ checkQT features qt
   suggestionForFeatures
    = AvailableFeatures
    $ fmap (\(k,(t,_)) -> (k, t))
-   $ Map.toList features
+   $ Map.toList
+   $ featuresConcretes features
 
 
 checkQ  :: Ord        n

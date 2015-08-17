@@ -73,7 +73,7 @@ convertQueryTop feats qt
  = do   inp <- fresh
         (ty,fs) <- lift
                  $ maybeToRight (ConvertErrorNoSuchFeature (feature qt))
-                 $ Map.lookup (feature qt) feats
+                 $ Map.lookup (feature qt) (featuresConcretes feats)
 
         inpTy <- case valTypeOfType ty of
                   Nothing -> lift $ Left $ ConvertErrorCannotConvertType (annAnnot $ annotOfQuery $ query qt) ty

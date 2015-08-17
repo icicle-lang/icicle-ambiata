@@ -10,8 +10,10 @@ module Icicle.Repl (
   , sourceParseConvert
   , coreSimp
   , readFacts
-  , readDictionary
   , readIcicleLibrary
+
+  , DictionaryLoadType(..)
+  , loadDictionary
   ) where
 
 import qualified Icicle.Avalanche.Statement.Flatten as AS
@@ -21,7 +23,8 @@ import qualified Icicle.Core.Program.Program        as Core
 import qualified Icicle.Core.Program.Simp           as Core
 import           Icicle.Data
 import qualified Icicle.Dictionary                  as D
-import qualified Icicle.Storage.Dictionary.TextV1   as DP
+import qualified Icicle.Storage.Dictionary.TextV1   as DictionaryText
+import qualified Icicle.Storage.Dictionary.Toml     as DictionaryToml
 import           Icicle.Internal.Pretty
 import qualified Icicle.Serial                      as S
 import qualified Icicle.Simulator                   as S
@@ -34,13 +37,18 @@ import qualified Icicle.Source.Type                 as ST
 
 import           P
 
+import           Control.Monad.Trans.Class
 import           Control.Monad.Trans.Either
+import         X.Control.Monad.Trans.Either
 
 import           Data.Either.Combinators
 import           Data.Text                          (Text)
 import qualified Data.Text                          as T
+import qualified Data.Text.IO                         as T
 import qualified Data.Traversable                   as TR
 import qualified Data.Map                           as M
+
+import           System.IO
 
 import qualified Text.ParserCombinators.Parsec      as Parsec
 
@@ -51,6 +59,7 @@ data ReplError
  | ReplErrorDecode  S.ParseError
  | ReplErrorRuntime S.SimulateError
  | ReplErrorFlatten (AS.FlattenError Text)
+ | ReplErrorDictionaryLoad DictionaryToml.DictionaryImportError
  deriving (Show)
 
 annotOfError :: ReplError -> Maybe Parsec.SourcePos
@@ -68,6 +77,8 @@ annotOfError e
     ReplErrorRuntime _
      -> Nothing
     ReplErrorFlatten _
+     -> Nothing
+    ReplErrorDictionaryLoad _
      -> Nothing
 
 instance Pretty ReplError where
@@ -91,11 +102,19 @@ instance Pretty ReplError where
      ReplErrorFlatten d
       -> "Flatten error:" <> line
       <> indent 2 (text $ show d)
+     ReplErrorDictionaryLoad d
+      -> "Dictionary load error:" <> line
+      <> indent 2 (pretty d)
 
 type Var        = SP.Variable
 type QueryTop'  = SQ.QueryTop Parsec.SourcePos Var
 type QueryTop'T = SQ.QueryTop (ST.Annot Parsec.SourcePos Var) Var
 type Program'   = Core.Program Var
+
+data DictionaryLoadType
+ = DictionaryLoadTextV1 FilePath
+ | DictionaryLoadToml   FilePath
+ deriving (Eq, Ord, Show)
 
 --------------------------------------------------------------------------------
 
@@ -147,10 +166,20 @@ readFacts dict raw
   = mapLeft ReplErrorDecode
   $ TR.traverse (S.decodeEavt dict) $ T.lines raw
 
-readDictionary :: Text -> Either ReplError D.Dictionary
-readDictionary raw
-  = fmap D.Dictionary $ mapLeft ReplErrorDecode
-  $ TR.traverse DP.parseDictionaryLineV1 $ T.lines raw
+loadDictionary :: DictionaryLoadType -> EitherT ReplError IO D.Dictionary
+loadDictionary load
+ = case load of
+    DictionaryLoadTextV1 fp
+     -> do  raw <- lift $ T.readFile fp
+            ds  <- firstEitherT ReplErrorDecode
+                 $ hoistEither
+                 $ TR.traverse DictionaryText.parseDictionaryLineV1
+                 $ T.lines raw
+
+            return $ D.Dictionary ds M.empty
+
+    DictionaryLoadToml fp
+     -> do  firstEitherT ReplErrorDictionaryLoad $ DictionaryToml.loadDictionary fp
 
 readIcicleLibrary
     :: Text

@@ -34,7 +34,12 @@ import qualified Data.Map                           as Map
 import           P
 
 data Dictionary =
-  Dictionary { unDictionary :: [DictionaryEntry] }
+  Dictionary
+  { dictionaryEntries   :: [DictionaryEntry]
+  , dictionaryFunctions :: Map.Map
+                            (Name Variable)
+                            ( ST.FunctionType Variable
+                            , Function (ST.Annot SourcePos Variable) Variable)}
   deriving (Eq, Show)
 
 data DictionaryEntry =
@@ -53,7 +58,7 @@ newtype Virtual = Virtual {
 
 -- | Get all virtual features from dictionary
 getVirtualFeatures :: Dictionary -> [(Attribute, Virtual)]
-getVirtualFeatures (Dictionary fs)
+getVirtualFeatures (Dictionary { dictionaryEntries = fs })
  = P.concatMap getV fs
  where
   getV (DictionaryEntry a (VirtualDefinition v))
@@ -62,7 +67,7 @@ getVirtualFeatures (Dictionary fs)
    = []
 
 parseFact :: Dictionary -> Fact' -> Either DecodeError Fact
-parseFact (Dictionary dict) fact'
+parseFact (Dictionary { dictionaryEntries = dict }) fact'
  = do   def <- maybeToRight (DecodeErrorNotInDictionary attr)
                             (P.find (\(DictionaryEntry attr' _) -> (==) attr attr') dict)
         case def of
@@ -82,10 +87,10 @@ parseFact (Dictionary dict) fact'
     }
 
 featureMapOfDictionary :: Dictionary -> STC.Features Variable
-featureMapOfDictionary (Dictionary ds)
- = Map.fromList
- $ concatMap go
-   ds
+featureMapOfDictionary (Dictionary { dictionaryEntries = ds, dictionaryFunctions = functions })
+ = STC.Features
+ (Map.fromList $ concatMap go ds)
+ (Map.map fst functions)
  where
   go (DictionaryEntry (Attribute attr) (ConcreteDefinition enc))
    | StructT st@(StructType fs) <- sourceTypeOfEncoding enc

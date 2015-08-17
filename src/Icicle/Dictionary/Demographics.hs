@@ -10,6 +10,8 @@ import           P
 
 import           Icicle.Dictionary.Data
 
+import qualified Data.Map                           as Map
+
 -- | Example demographics dictionary
 -- Hard-coded for now
 demographics :: Dictionary
@@ -23,3 +25,4 @@ demographics =
                         [StructField Mandatory (Attribute "location") StringEncoding
                         ,StructField Mandatory (Attribute "severity") IntEncoding])
  ]
+ Map.empty

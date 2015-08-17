@@ -12,6 +12,7 @@ import           Control.Monad.IO.Class
 import           Data.Either.Combinators
 import           Data.Monoid
 import           Data.List                            (words, replicate)
+import qualified Data.Map                             as Map
 import           Data.String                          (String)
 import           Data.Text                            (Text)
 import qualified Data.Text                            as T
@@ -113,7 +114,7 @@ data Command
    | CommandHelp
    | CommandSet  [Set]
    | CommandLoad FilePath
-   | CommandLoadDictionary FilePath
+   | CommandLoadDictionary SR.DictionaryLoadType
    | CommandImportLibrary FilePath
    -- It's rather odd to have comments in a REPL.
    -- However, I want these printed out in the test output
@@ -135,7 +136,8 @@ readCommand ss = case words ss of
   [":set"]              -> Just $ CommandSetShow
   (":set":rest)         -> CommandSet <$> readSetCommands rest
   [":load", f]          -> Just $ CommandLoad f
-  [":dictionary", f]    -> Just $ CommandLoadDictionary f
+  [":dictionary-deprecated", f]    -> Just $ CommandLoadDictionary $ SR.DictionaryLoadTextV1 f
+  [":dictionary", f]    -> Just $ CommandLoadDictionary $ SR.DictionaryLoadToml f
   [":import", f]        -> Just $ CommandImportLibrary f
   ('-':'-':_):_         -> Just $ CommandComment $ ss
   (':':_):_             -> Just $ CommandUnknown $ ss
@@ -207,12 +209,12 @@ handleLine state line = case readCommand line of
         HL.outputStrLn $ "ok, loaded " <> fp <> ", " <> show (length fs) <> " rows"
         return $ state { facts = fs }
 
-  Just (CommandLoadDictionary fp) -> do
-    s  <- liftIO $ T.readFile fp
-    case SR.readDictionary s of
+  Just (CommandLoadDictionary load) -> do
+    s  <- liftIO $ runEitherT $ SR.loadDictionary load
+    case s of
       Left e   -> prettyHL e >> return state
-      Right d@(Dictionary ds) -> do
-        HL.outputStrLn $ "ok, loaded dictionary " <> fp <> ", with " <> show (length ds) <> " features"
+      Right d -> do
+        HL.outputStrLn $ "ok, loaded dictionary with " <> show (length $ dictionaryEntries d) <> " features and " <> show (Map.size $ dictionaryFunctions d) <> " functions"
         return $ state { dictionary = d }
 
   Just (CommandImportLibrary fp) -> do

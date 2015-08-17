@@ -1,6 +1,6 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Source.ToCore.Context (
-    Features
+    Features (..)
   , FeatureContext
 
   , envOfFeatureContext
@@ -14,8 +14,11 @@ import                  P
 import qualified        Data.Map as Map
 
 
-type Features n
- = Map.Map (Name n) (Type n, FeatureContext n)
+data Features n
+ = Features
+ { featuresConcretes :: Map.Map (Name n) (Type n, FeatureContext n)
+ , featuresFunctions :: Map.Map (Name n) (FunctionType n)
+ }
 
 type FeatureContext n
  = Map.Map (Name n) (Type n, C.Exp n -> C.Exp n)

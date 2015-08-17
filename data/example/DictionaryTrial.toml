@@ -36,7 +36,7 @@ tombstone = "NA"
   encoding="string"
 
 [feature.gender]
-  expression = "feature gender ~> newest"
+  expression = "feature gender ~> newest value"
 
 [fact.injury]
   # Override the namespace for this feature
@@ -49,12 +49,12 @@ tombstone = "NA"
 
 [feature.mean_salary]
   expression="""
-    feature salary ~> sum value / count
+    feature salary ~> double (sum value) / count
   """
 
 [feature.salary_standard_deviation]
   expression="""
-    feature salary ~> let ss = (sum value) ~> (((sum (value * value) * count) - (ss * ss)) / (count * (count - 1)))
+    feature salary ~> let ss = (sum value) ~> (double ((sum (value * value) * count) - (ss * ss)) / double (count * (count - 1)))
   """
 
 [deprecated.mean_salary]

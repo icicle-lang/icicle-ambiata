@@ -2,7 +2,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TupleSections     #-}
 module Icicle.Storage.Dictionary.Toml (
-    loadDictionary
+    DictionaryImportError (..)
+  , loadDictionary
   ) where
 
 import           Icicle.Dictionary.Data
@@ -12,7 +13,6 @@ import           Icicle.Storage.Dictionary.Toml.TomlDictionary
 import           Icicle.Common.Base
 import qualified Icicle.Common.Fresh                as Fresh
 
-import           Icicle.Source.Query
 import qualified Icicle.Source.Type                 as ST
 
 import qualified Icicle.Source.Checker.Checker      as SC
@@ -20,6 +20,8 @@ import qualified Icicle.Source.Checker.Error        as SC
 import qualified Icicle.Source.Checker.Function     as SC
 
 import qualified Icicle.Source.Parser               as SP
+
+import           Icicle.Internal.Pretty
 
 import           P
 
@@ -47,16 +49,16 @@ data DictionaryImportError
 
 -- Top level IO function which loads all dictionaries and imports
 loadDictionary :: FilePath
-  -> EitherT DictionaryImportError IO (Dictionary, M.Map (Name SP.Variable) (Function (ST.Annot Parsec.SourcePos SP.Variable) SP.Variable))
+  -> EitherT DictionaryImportError IO Dictionary
 loadDictionary dictionary
  = loadDictionary' M.empty mempty [] dictionary
 
-loadDictionary' ::
-  M.Map (Name SP.Variable) (ST.FunctionType SP.Variable)
+loadDictionary'
+  :: M.Map (Name SP.Variable) (ST.FunctionType SP.Variable)
   -> DictionaryConfig
   -> [DictionaryEntry]
   -> FilePath
-  -> EitherT DictionaryImportError IO (Dictionary, M.Map (Name SP.Variable) (Function (ST.Annot Parsec.SourcePos SP.Variable) SP.Variable))
+  -> EitherT DictionaryImportError IO Dictionary
 loadDictionary' parentFuncs parentConf parentConcrete fp
  = do
   inputText
@@ -91,11 +93,15 @@ loadDictionary' parentFuncs parentConf parentConcrete fp
        $ runEitherT
        $ SC.checkFs env parsedImport
      ) (parentFuncs, []) parsedImports
+  let importedFunctions'
+        = M.intersectionWith (,)
+                       (fst $ importedFunctions)
+          (M.fromList $ snd $ importedFunctions)
 
   let concreteDefinitions = foldr remakeConcrete [] definitions'
   let virtualDefinitions' = foldr remakeVirtuals [] definitions'
 
-  let d' = featureMapOfDictionary $ Dictionary $ concreteDefinitions <> parentConcrete
+  let d' = featureMapOfDictionary $ Dictionary (concreteDefinitions <> parentConcrete) importedFunctions'
 
   virtualDefinitions
     <- flip traverse virtualDefinitions'
@@ -115,10 +121,10 @@ loadDictionary' parentFuncs parentConf parentConcrete fp
         loadDictionary' (fst importedFunctions) conf concreteDefinitions (T.unpack fp')
        ) `traverse` (chapter conf)
 
-  let functions = M.unions $ (M.fromList (snd importedFunctions)) : (snd <$> loadedChapters)
-  let totaldefinitions = concreteDefinitions <> virtualDefinitions <> (join $ (unDictionary . fst) <$> loadedChapters)
+  let functions = M.unions $ importedFunctions' : (dictionaryFunctions <$> loadedChapters)
+  let totaldefinitions = concreteDefinitions <> virtualDefinitions <> (join $ dictionaryEntries <$> loadedChapters)
 
-  pure $ (Dictionary totaldefinitions, functions)
+  pure $ Dictionary totaldefinitions functions
     where
       remakeConcrete (DictionaryEntry' a (ConcreteDefinition' e)) cds = (DictionaryEntry a (ConcreteDefinition e)) : cds
       remakeConcrete _ cds = cds
@@ -126,8 +132,21 @@ loadDictionary' parentFuncs parentConf parentConcrete fp
       remakeVirtuals (DictionaryEntry' a (VirtualDefinition' (Virtual' v))) vds = (a, v) : vds
       remakeVirtuals _ vds = vds
 
-  -- children <- foldlM (loadDictionary' conf) $ T.unpack <$> chapter'
 
 -- TODO, move this somewhere sensible.
 freshNamer :: T.Text -> Fresh.NameState SP.Variable
 freshNamer prefix = Fresh.counterPrefixNameState (SP.Variable . T.pack . show) (SP.Variable prefix)
+
+
+instance Pretty DictionaryImportError where
+  pretty (DictionaryErrorIO s)
+   = "IO Exception: " <> text (show s)
+  pretty (DictionaryErrorParsecTOML e)
+   = "TOML parse error: " <> text (show e)
+  pretty (DictionaryErrorParsecFunc e)
+   = "Function parse error: " <> text (show e)
+  pretty (DictionaryErrorParse es)
+   = "Function parse error: " <> text (show es)
+  pretty (DictionaryErrorCheck e)
+   = "Typechecking error: " <> pretty e
+

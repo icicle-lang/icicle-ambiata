@@ -8,6 +8,7 @@ module Icicle.Test.Source.Convert where
 import           Icicle.Internal.Pretty
 import           Icicle.Source.Checker.Checker
 import           Icicle.Source.Query
+import           Icicle.Source.ToCore.Context
 import           Icicle.Source.ToCore.ToCore
 import           Icicle.Source.Type
 import qualified Icicle.Source.Lexer.Token as T
@@ -45,8 +46,9 @@ prop_convert_ok tt fn q
      -> property Discard
  where
   qt  = QueryTop fn q
-  fets = Map.singleton fn
-       (typeOfValType tt, Map.singleton fn (typeOfValType tt, xfst tt))
+  fets = Features
+        (Map.singleton fn (typeOfValType tt, Map.singleton fn (typeOfValType tt, xfst tt)))
+         Map.empty
 
   typ = freshcheck $ checkQT fets qt
   pp = show $ pretty q
@@ -67,8 +69,9 @@ prop_convert_is_well_typed fn q
      -> property Discard
  where
   qt  = QueryTop fn q
-  fets = Map.singleton fn
-       (typeOfValType tt, Map.singleton fn (typeOfValType tt, xfst tt))
+  fets = Features
+       (Map.singleton fn (typeOfValType tt, Map.singleton fn (typeOfValType tt, xfst tt)))
+        Map.empty
 
   tt = CT.IntT
 

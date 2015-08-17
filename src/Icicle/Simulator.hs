@@ -80,7 +80,7 @@ makePartition fs@(f:_)
 
 
 evaluateVirtuals :: Dictionary -> DateTime -> [Partition] -> [(Attribute, [(Entity, Result)])]
-evaluateVirtuals (Dictionary fields) date facts
+evaluateVirtuals (Dictionary { dictionaryEntries = fields }) date facts
  = P.concatMap go fields
  where
   go (DictionaryEntry attr (VirtualDefinition virt))
