@@ -173,8 +173,16 @@ dischargeCS
 
 
 nubConstraints
-    :: Eq n
+    :: Ord n
     => [(a, Constraint n)]
     -> [(a, Constraint n)]
 nubConstraints cs
- = nubBy ((==) `on` snd) cs
+ = concatMap removeEmpties
+ $ nubBy ((==) `on` snd) cs
+ where
+  removeEmpties (a,c)
+   | Right (DischargeSubst sub) <- dischargeC c
+   , Map.null sub
+   = []
+   | otherwise
+   = [(a,c)]

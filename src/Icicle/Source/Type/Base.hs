@@ -22,6 +22,7 @@ import                  Icicle.Internal.Pretty
 
 import                  P
 
+import                  Data.List (intersperse)
 import qualified        Data.Map as Map
 
 data Type n
@@ -183,11 +184,14 @@ instance Pretty n => Pretty (FunctionType n) where
     = tupled (fmap pretty xs) <> " => "
 
    args xs
-    = hsep (fmap (\x -> pretty x <+> "->") xs)
+    = hsep (fmap (\x -> pretty x <+> "-> ") xs)
 
 
 instance (Pretty n) => Pretty (Annot a n) where
  pretty ann
-  = tupled (fmap (pretty.snd) $ annConstraints ann)
-  <> " => " <> pretty (annResult ann)
+  | [] <- annConstraints ann
+  = pretty (annResult ann)
+  | otherwise
+  = "(" <> hsep (intersperse ", " $ fmap (pretty.snd) $ annConstraints ann)
+  <> ") => " <> pretty (annResult ann)
 

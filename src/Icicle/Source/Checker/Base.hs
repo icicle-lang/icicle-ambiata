@@ -116,19 +116,19 @@ require a c
 discharge :: Ord n => (q -> a) -> (SubstT n -> q -> q) -> Gen a n (q, SubstT n) -> Gen a n (q, SubstT n)
 discharge ann sub g
  = do (q,s) <- g
-      let _q' = sub s q
       e <- lift $ lift State.get
-      case dischargeCS (stateConstraints e) of
+      let cs = nubConstraints $ fmap (\(a,c) -> (a, substC s c)) $ stateConstraints e
+      case dischargeCS cs of
        Left errs
         -> hoistEither $ errorNoSuggestions (ErrorConstraintsNotSatisfied (ann q) errs)
-       Right (s', _cs')
+       Right (s', cs')
         -> do let s'' = compose s s'
               -- TODO: why does setting constraints not work?
               -- Was producing error with
               -- > feature salary ~> let fold fozzy = 0 == 1 : - 0 ~> 0 + fozzy
               --
-              -- let e' = CheckState (fmap (substFT s'') $ stateEnvironment e) cs'
-              -- lift $ lift $ State.put e'
+              let e' = CheckState (fmap (substFT s'') $ stateEnvironment e) cs'
+              lift $ lift $ State.put e'
               return (sub s'' q, s'')
 
 fresh :: Gen a n (Name n)

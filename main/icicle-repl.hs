@@ -261,6 +261,7 @@ handleLine state line = case readCommand line of
       let inlined= SR.sourceInline (dictionary state) annot
       (annot',_) <- hoist $ SR.sourceCheck (dictionary state) inlined
       prettyOut hasInlined "- Inlined:" inlined
+      prettyOut hasInlined "- Inlined:" (SPretty.PrettyAnnot annot')
 
       core      <- hoist $ SR.sourceConvert (dictionary state) annot'
       let core'  | doCoreSimp state

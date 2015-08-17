@@ -68,8 +68,8 @@ inlineQT :: Ord n
         => Map.Map (Name n) (Function a n)
         -> QueryTop a n
         -> Fresh n (QueryTop a n)
-inlineQT funs
- = transformQT (inlineTransform funs)
+inlineQT funs qt
+ = simplifyNestedQT <$> transformQT (inlineTransform funs) qt
 
 
 inlineQ :: Ord n

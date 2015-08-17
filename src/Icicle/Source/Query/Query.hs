@@ -1,6 +1,7 @@
 -- | Top-level queries
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PatternGuards #-}
 module Icicle.Source.Query.Query (
     QueryTop  (..)
   , Query     (..)
@@ -63,8 +64,15 @@ simplifyNestedQT q
 
 simplifyNestedQ :: Query a n -> Query a n
 simplifyNestedQ q
- = Query (fmap simplifyNestedC $ contexts q)
+ = simp
+ $ Query (fmap simplifyNestedC $ contexts q)
          (     simplifyNestedX $ final    q)
+ where
+  simp q'
+   | Query cs (Nested _ (Query cs' x')) <- q'
+   = Query (cs <> cs') x'
+   | otherwise
+   = q'
 
 simplifyNestedC :: Context a n -> Context a n
 simplifyNestedC c

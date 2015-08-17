@@ -2,7 +2,7 @@
 # Basic statistics
 sum v = let fold s = 0 : v + s ~> s.
 count = let fold c = 0 : c + 1 ~> c.
-mean v = sum v / count.
+mean v = sum (double v) / count.
 sd v = let sv = (sum v) ~> (((sum (v*v) * count) - (sv * sv)) / (count * (count - 1)))^(0.5).
 
 # Time statements
