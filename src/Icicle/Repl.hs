@@ -8,6 +8,7 @@ module Icicle.Repl (
   , sourceCheck
   , sourceConvert
   , sourceParseConvert
+  , sourceInline
   , coreSimp
   , readFacts
   , readIcicleLibrary
@@ -34,6 +35,7 @@ import qualified Icicle.Source.Query                as SQ
 import qualified Icicle.Source.ToCore.Base          as STC
 import qualified Icicle.Source.ToCore.ToCore        as STC
 import qualified Icicle.Source.Type                 as ST
+import qualified Icicle.Source.Transform.Inline     as STI
 
 import           P
 
@@ -140,9 +142,25 @@ sourceConvert :: D.Dictionary -> QueryTop'T -> Either ReplError Program'
 sourceConvert d q
  = mapRight snd
  $ mapLeft ReplErrorConvert
- $ Fresh.runFreshT (STC.convertQueryTop d' q) (freshNamer "conv")
+ $ conv
  where
-  d' = D.featureMapOfDictionary d
+  d'        = D.featureMapOfDictionary d
+  conv      = Fresh.runFreshT
+                (STC.convertQueryTop d' q)
+                (freshNamer "conv")
+
+
+sourceInline :: D.Dictionary -> QueryTop'T -> QueryTop'
+sourceInline d q
+ = SQ.reannotQT ST.annAnnot
+ $ inline q
+ where
+  funs      = M.map snd
+            $ D.dictionaryFunctions d
+  inline q' = snd
+            $ Fresh.runFresh
+                (STI.inlineQT funs q')
+                (freshNamer "inline")
 
 
 sourceParseConvert :: T.Text -> Either ReplError Program'
@@ -184,13 +202,16 @@ loadDictionary load
 readIcicleLibrary
     :: Text
     -> Either ReplError
-        ( M.Map (CommonBase.Name Var) (ST.FunctionType Var)
-        , [(CommonBase.Name Var, SQ.Function (ST.Annot Parsec.SourcePos Var) Var)])
+      (M.Map (CommonBase.Name Var)
+             ( ST.FunctionType Var
+             , SQ.Function (ST.Annot Parsec.SourcePos Var) Var))
 readIcicleLibrary input
  = do
   input' <- mapLeft ReplErrorParse $ SP.parseFunctions input
-  mapLeft ReplErrorCheck
-     $ snd
-     $ flip Fresh.runFresh (freshNamer "t")
-     $ runEitherT
-     $ SC.checkFs M.empty input'
+  (tys,bodies)
+        <- mapLeft ReplErrorCheck
+         $ snd
+         $ flip Fresh.runFresh (freshNamer "t")
+         $ runEitherT
+         $ SC.checkFs M.empty input'
+  return (M.intersectionWith (,) tys $ M.fromList bodies)

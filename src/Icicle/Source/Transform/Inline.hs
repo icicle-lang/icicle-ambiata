@@ -2,6 +2,7 @@
 {-# LANGUAGE PatternGuards #-}
 module Icicle.Source.Transform.Inline (
     inlineTransform
+  , inlineQT
   , inlineQ
   ) where
 
@@ -61,6 +62,14 @@ inlineTransform funs
 
   prefixContexts cs (Query cs' xx)
    = Query (cs <> cs') xx
+
+
+inlineQT :: Ord n
+        => Map.Map (Name n) (Function a n)
+        -> QueryTop a n
+        -> Fresh n (QueryTop a n)
+inlineQT funs
+ = transformQT (inlineTransform funs)
 
 
 inlineQ :: Ord n

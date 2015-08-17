@@ -2,6 +2,7 @@
 module Icicle.Source.Transform.Base (
     Transform(..)
   , idTransform
+  , transformQT
   , transformQ
   , transformC
   , transformX
@@ -28,6 +29,15 @@ idTransform
  where
   ret s x = return (s,x)
 
+
+transformQT
+    :: (Monad m)
+    => Transform m c a n
+    -> QueryTop a n
+    -> m (QueryTop a n)
+transformQT t (QueryTop f q)
+ = do   q' <- transformQ t q
+        return $ QueryTop f q'
 
 transformQ
     :: (Monad m)

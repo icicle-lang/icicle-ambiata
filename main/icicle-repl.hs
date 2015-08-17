@@ -87,6 +87,7 @@ data ReplState
    , currentDate  :: DateTime
    , hasType      :: Bool
    , hasAnnotated :: Bool
+   , hasInlined   :: Bool
    , hasCore      :: Bool
    , hasCoreType  :: Bool
    , hasAvalanche :: Bool
@@ -99,6 +100,7 @@ data ReplState
 data Set
    = ShowType           Bool
    | ShowAnnotated      Bool
+   | ShowInlined        Bool
    | ShowCore           Bool
    | ShowCoreType       Bool
    | ShowEval           Bool
@@ -124,7 +126,7 @@ data Command
 
 defaultState :: ReplState
 defaultState
-  = (ReplState [] demographics (dateOfYMD 1970 1 1) False False False False False False False False False)
+  = (ReplState [] demographics (dateOfYMD 1970 1 1) False False False False False False False False False False)
     { hasEval = True }
 
 readCommand :: String -> Maybe Command
@@ -151,6 +153,9 @@ readSetCommands ss
 
     ("+annotated":rest) -> (:) (ShowAnnotated True)   <$> readSetCommands rest
     ("-annotated":rest) -> (:) (ShowAnnotated False)  <$> readSetCommands rest
+
+    ("+inlined":rest)   -> (:) (ShowInlined   True)   <$> readSetCommands rest
+    ("-inlined":rest)   -> (:) (ShowInlined   False)  <$> readSetCommands rest
 
     ("+core":rest)      -> (:) (ShowCore True)        <$> readSetCommands rest
     ("-core":rest)      -> (:) (ShowCore False)       <$> readSetCommands rest
@@ -222,8 +227,10 @@ handleLine state line = case readCommand line of
     case SR.readIcicleLibrary s of
       Left e   -> prettyHL e >> return state
       Right is -> do
-        HL.outputStrLn $ "ok, loaded " <> show (length $ snd is) <> " functions from " <> fp
-        return $ state
+        HL.outputStrLn $ "ok, loaded " <> show (Map.size is) <> " functions from " <> fp
+        let d = dictionary state
+        let f = Map.union (dictionaryFunctions d) is
+        return $ state { dictionary = d { dictionaryFunctions = f } }
         -- TODO, add a state which holds what we just loaded.
 
   Just (CommandComment comment) -> do
@@ -251,7 +258,11 @@ handleLine state line = case readCommand line of
 
       prettyOut hasAnnotated "- Annotated:" (SPretty.PrettyAnnot annot)
 
-      core      <- hoist $ SR.sourceConvert (dictionary state) annot
+      let inlined= SR.sourceInline (dictionary state) annot
+      (annot',_) <- hoist $ SR.sourceCheck (dictionary state) inlined
+      prettyOut hasInlined "- Inlined:" inlined
+
+      core      <- hoist $ SR.sourceConvert (dictionary state) annot'
       let core'  | doCoreSimp state
                  = renameP unVar $ SR.coreSimp core
                  | otherwise
@@ -273,7 +284,7 @@ handleLine state line = case readCommand line of
                 prettyOut hasJava    "- Java:" (AJ.programToJava f)
 
 
-      case coreEval (currentDate state) (facts state) annot core' of
+      case coreEval (currentDate state) (facts state) annot' core' of
        Left  e -> prettyOut hasEval "- Result error:" e
        Right r -> prettyOut hasEval "- Result:" r
 
@@ -295,6 +306,10 @@ handleSetCommand state set
     ShowAnnotated b -> do
         HL.outputStrLn $ "ok, annotated is now " <> showFlag b
         return $ state { hasAnnotated = b }
+
+    ShowInlined b -> do
+        HL.outputStrLn $ "ok, inlined is now " <> showFlag b
+        return $ state { hasInlined = b }
 
     ShowCore b -> do
         HL.outputStrLn $ "ok, core is now " <> showFlag b
@@ -435,6 +450,7 @@ showState state
     ,      "dictionary: " <> show (dictionary state)
     , flag "type:       " hasType
     , flag "annotated:  " hasAnnotated
+    , flag "inlined:    " hasInlined
     , flag "core:       " hasCore
     , flag "core-type:  " hasCoreType
     , flag "core-simp:  " doCoreSimp
