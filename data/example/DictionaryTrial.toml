@@ -7,7 +7,7 @@ namespace="demographics"
 
 # imports an array of icicle libs, search path of libs dir, then std libs dir.
 import = [
-  "data/libs/prelude.icicle", # not sure about the extension yet.
+  "../libs/prelude.icicle", # not sure about the extension yet.
 ]
 
 # Optionally, import addition dictionary files, specifying sub dictionaries.
