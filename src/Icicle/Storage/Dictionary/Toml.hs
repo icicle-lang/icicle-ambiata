@@ -21,7 +21,7 @@ import qualified Icicle.Source.Checker.Function     as SC
 
 import qualified Icicle.Source.Parser               as SP
 
-import           Icicle.Internal.Pretty
+import           Icicle.Internal.Pretty hiding ((</>))
 
 import           P
 
@@ -30,6 +30,7 @@ import           Control.Monad.Trans.Either
 import qualified Control.Exception                  as E
 
 import           System.IO
+import           System.FilePath
 
 import qualified Data.Text                          as T
 import qualified Data.Text.IO                       as T
@@ -81,7 +82,7 @@ loadDictionary' parentFuncs parentConf parentConcrete fp
     <- (\fp' ->
          EitherT
          $ ((A.left DictionaryErrorParsecFunc) . SP.parseFunctions)
-        <$> T.readFile (T.unpack fp')
+        <$> T.readFile (rp </> (T.unpack fp'))
        ) `traverse` (imports conf)
 
   importedFunctions
@@ -118,7 +119,7 @@ loadDictionary' parentFuncs parentConf parentConcrete fp
 
   loadedChapters
     <- (\fp' ->
-        loadDictionary' (fst importedFunctions) conf concreteDefinitions (T.unpack fp')
+         loadDictionary' (fst importedFunctions) conf concreteDefinitions (rp </> (T.unpack fp'))
        ) `traverse` (chapter conf)
 
   let functions = M.unions $ importedFunctions' : (dictionaryFunctions <$> loadedChapters)
@@ -126,6 +127,8 @@ loadDictionary' parentFuncs parentConf parentConcrete fp
 
   pure $ Dictionary totaldefinitions functions
     where
+      rp = (takeDirectory fp)
+
       remakeConcrete (DictionaryEntry' a (ConcreteDefinition' e)) cds = (DictionaryEntry a (ConcreteDefinition e)) : cds
       remakeConcrete _ cds = cds
 
