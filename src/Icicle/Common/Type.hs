@@ -47,20 +47,18 @@ import qualified    Data.Map as Map
 -- No functions here, because we don't want higher order functions in the generated code.
 -- This restriction should simplify code generation, because we won't need to
 -- deal with lambda lifting arbitrary functions.
-data ValType =
-   IntT
- | DoubleT
- | UnitT
- | BoolT
+data ValType
+ = BoolT
  | DateTimeT
+ | DoubleT
+ | IntT
+ | StringT
+ | UnitT
  | ArrayT ValType
  | MapT   ValType ValType
  | OptionT        ValType
  | PairT  ValType ValType
  | StructT StructType
- | StringT
- -- I don't think it will be too much of a stretch to add more types later.
- -- | Double | ...
  deriving (Eq,Ord,Show)
 
 data ArithType
@@ -79,7 +77,8 @@ arithTypeOfValType _            = Nothing
 
 
 data StructType
- = StructType (Map.Map StructField ValType)
+ = StructType 
+ { getStructType :: Map.Map StructField ValType }
  deriving (Eq, Ord, Show)
 
 

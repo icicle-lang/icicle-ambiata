@@ -9,7 +9,6 @@
 module Icicle.Source.Query.Exp (
     Exp'      (..)
   , Prim      (..)
-  , Agg       (..)
   , Lit       (..)
   , Op        (..)
   , Fun       (..)
@@ -22,6 +21,7 @@ module Icicle.Source.Query.Exp (
 
 import                  Icicle.Source.Query.Operators
 import                  Icicle.Internal.Pretty
+import                  Icicle.Common.Base
 
 import                  P
 
@@ -29,7 +29,7 @@ import                  Data.Text (Text)
 
 
 data Exp' q a n
- = Var a n
+ = Var a (Name n)
  | Nested a q
  | App  a (Exp' q a n) (Exp' q a n)
  | Prim a Prim
@@ -67,18 +67,8 @@ mkApp x y
 
 data Prim
  = Op Op
- | Agg Agg
  | Lit Lit
  | Fun Fun
- deriving (Show, Eq, Ord)
-
-data Agg
- = Count
- -- | Max
- -- | Average
- | SumA
- | Newest
- | Oldest
  deriving (Show, Eq, Ord)
 
 data Lit
@@ -197,15 +187,8 @@ precedenceOfX xx
 
 instance Pretty Prim where
  pretty (Op o)  = pretty o
- pretty (Agg a) = pretty a
  pretty (Lit l) = pretty l
  pretty (Fun f) = pretty f
-
-instance Pretty Agg where
- pretty Count   = "count"
- pretty Newest  = "newest"
- pretty Oldest  = "oldest"
- pretty SumA    = "sum"
 
 instance Pretty Lit where
  pretty (LitInt i) = text $ show i

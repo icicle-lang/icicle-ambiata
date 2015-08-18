@@ -12,6 +12,7 @@ import           Control.Monad.IO.Class
 import           Data.Either.Combinators
 import           Data.Monoid
 import           Data.List                            (words, replicate)
+import qualified Data.Map                             as Map
 import           Data.String                          (String)
 import           Data.Text                            (Text)
 import qualified Data.Text                            as T
@@ -31,6 +32,7 @@ import qualified Icicle.Avalanche.Program             as AP
 import qualified Icicle.Avalanche.Simp                as AS
 import qualified Icicle.Avalanche.Statement.Flatten   as AF
 import qualified Icicle.Avalanche.ToJava              as AJ
+import qualified Icicle.Common.Base                   as CommonBase
 import qualified Icicle.Common.Fresh                  as F
 import qualified Icicle.Core.Program.Check            as CP
 import qualified Icicle.Core.Program.Program          as CP
@@ -42,6 +44,7 @@ import           Icicle.Internal.Rename
 import qualified Icicle.Repl                          as SR
 import qualified Icicle.Simulator                     as S
 import qualified Icicle.Source.Parser                 as SP
+import qualified Icicle.Source.PrettyAnnot            as SPretty
 import qualified Icicle.Source.Query                  as SQ
 import qualified Icicle.Source.Type                   as ST
 
@@ -83,6 +86,8 @@ data ReplState
    , dictionary   :: Dictionary
    , currentDate  :: DateTime
    , hasType      :: Bool
+   , hasAnnotated :: Bool
+   , hasInlined   :: Bool
    , hasCore      :: Bool
    , hasCoreType  :: Bool
    , hasAvalanche :: Bool
@@ -94,6 +99,8 @@ data ReplState
 -- | Settable REPL states
 data Set
    = ShowType           Bool
+   | ShowAnnotated      Bool
+   | ShowInlined        Bool
    | ShowCore           Bool
    | ShowCoreType       Bool
    | ShowEval           Bool
@@ -109,7 +116,8 @@ data Command
    | CommandHelp
    | CommandSet  [Set]
    | CommandLoad FilePath
-   | CommandLoadDictionary FilePath
+   | CommandLoadDictionary SR.DictionaryLoadType
+   | CommandImportLibrary FilePath
    -- It's rather odd to have comments in a REPL.
    -- However, I want these printed out in the test output
    | CommandComment String
@@ -118,7 +126,7 @@ data Command
 
 defaultState :: ReplState
 defaultState
-  = (ReplState [] demographics (dateOfYMD 1970 1 1) False False False False False False False False)
+  = (ReplState [] demographics (dateOfYMD 1970 1 1) False False False False False False False False False False)
     { hasEval = True }
 
 readCommand :: String -> Maybe Command
@@ -130,7 +138,9 @@ readCommand ss = case words ss of
   [":set"]              -> Just $ CommandSetShow
   (":set":rest)         -> CommandSet <$> readSetCommands rest
   [":load", f]          -> Just $ CommandLoad f
-  [":dictionary", f]    -> Just $ CommandLoadDictionary f
+  [":dictionary-deprecated", f]    -> Just $ CommandLoadDictionary $ SR.DictionaryLoadTextV1 f
+  [":dictionary", f]    -> Just $ CommandLoadDictionary $ SR.DictionaryLoadToml f
+  [":import", f]        -> Just $ CommandImportLibrary f
   ('-':'-':_):_         -> Just $ CommandComment $ ss
   (':':_):_             -> Just $ CommandUnknown $ ss
   _                     -> Nothing
@@ -140,6 +150,12 @@ readSetCommands ss
  = case ss of
     ("+type":rest)      -> (:) (ShowType True)        <$> readSetCommands rest
     ("-type":rest)      -> (:) (ShowType False)       <$> readSetCommands rest
+
+    ("+annotated":rest) -> (:) (ShowAnnotated True)   <$> readSetCommands rest
+    ("-annotated":rest) -> (:) (ShowAnnotated False)  <$> readSetCommands rest
+
+    ("+inlined":rest)   -> (:) (ShowInlined   True)   <$> readSetCommands rest
+    ("-inlined":rest)   -> (:) (ShowInlined   False)  <$> readSetCommands rest
 
     ("+core":rest)      -> (:) (ShowCore True)        <$> readSetCommands rest
     ("-core":rest)      -> (:) (ShowCore False)       <$> readSetCommands rest
@@ -198,13 +214,24 @@ handleLine state line = case readCommand line of
         HL.outputStrLn $ "ok, loaded " <> fp <> ", " <> show (length fs) <> " rows"
         return $ state { facts = fs }
 
-  Just (CommandLoadDictionary fp) -> do
-    s  <- liftIO $ T.readFile fp
-    case SR.readDictionary s of
+  Just (CommandLoadDictionary load) -> do
+    s  <- liftIO $ runEitherT $ SR.loadDictionary load
+    case s of
       Left e   -> prettyHL e >> return state
-      Right d@(Dictionary ds) -> do
-        HL.outputStrLn $ "ok, loaded dictionary " <> fp <> ", with " <> show (length ds) <> " features"
+      Right d -> do
+        HL.outputStrLn $ "ok, loaded dictionary with " <> show (length $ dictionaryEntries d) <> " features and " <> show (Map.size $ dictionaryFunctions d) <> " functions"
         return $ state { dictionary = d }
+
+  Just (CommandImportLibrary fp) -> do
+    s  <- liftIO $ T.readFile fp
+    case SR.readIcicleLibrary s of
+      Left e   -> prettyHL e >> return state
+      Right is -> do
+        HL.outputStrLn $ "ok, loaded " <> show (Map.size is) <> " functions from " <> fp
+        let d = dictionary state
+        let f = Map.union (dictionaryFunctions d) is
+        return $ state { dictionary = d { dictionaryFunctions = f } }
+        -- TODO, add a state which holds what we just loaded.
 
   Just (CommandComment comment) -> do
     HL.outputStrLn comment
@@ -229,7 +256,14 @@ handleLine state line = case readCommand line of
 
       prettyOut hasType "- Type:" typ
 
-      core      <- hoist $ SR.sourceConvert (dictionary state) annot
+      prettyOut hasAnnotated "- Annotated:" (SPretty.PrettyAnnot annot)
+
+      let inlined= SR.sourceInline (dictionary state) annot
+      (annot',_) <- hoist $ SR.sourceCheck (dictionary state) inlined
+      prettyOut hasInlined "- Inlined:" inlined
+      prettyOut hasInlined "- Inlined:" (SPretty.PrettyAnnot annot')
+
+      core      <- hoist $ SR.sourceConvert (dictionary state) annot'
       let core'  | doCoreSimp state
                  = renameP unVar $ SR.coreSimp core
                  | otherwise
@@ -251,7 +285,7 @@ handleLine state line = case readCommand line of
                 prettyOut hasJava    "- Java:" (AJ.programToJava f)
 
 
-      case coreEval (currentDate state) (facts state) annot core' of
+      case coreEval (currentDate state) (facts state) annot' core' of
        Left  e -> prettyOut hasEval "- Result error:" e
        Right r -> prettyOut hasEval "- Result:" r
 
@@ -269,6 +303,14 @@ handleSetCommand state set
     ShowType b -> do
         HL.outputStrLn $ "ok, type is now " <> showFlag b
         return $ state { hasType = b }
+
+    ShowAnnotated b -> do
+        HL.outputStrLn $ "ok, annotated is now " <> showFlag b
+        return $ state { hasAnnotated = b }
+
+    ShowInlined b -> do
+        HL.outputStrLn $ "ok, inlined is now " <> showFlag b
+        return $ state { hasInlined = b }
 
     ShowCore b -> do
         HL.outputStrLn $ "ok, core is now " <> showFlag b
@@ -304,7 +346,7 @@ handleSetCommand state set
 
 --------------------------------------------------------------------------------
 
-type QueryTopPUV = SQ.QueryTop (SP.SourcePos, ST.UniverseType) SP.Variable
+type QueryTopPUV = SQ.QueryTop (ST.Annot SP.SourcePos SP.Variable) SP.Variable
 type ProgramT    = CP.Program Text
 newtype Result   = Result (Entity, Value)
 
@@ -333,7 +375,8 @@ coreEval d fs (renameQT unVar -> query) prog
     justVal (e, result) = fmap (e,) result
 
     evalP feat (S.Partition ent attr values)
-      | attr == Attribute feat = [(ent, evalV values)]
+      | CommonBase.Name feat' <- feat
+      , attr == Attribute feat'= [(ent, evalV values)]
       | otherwise              = []
 
     evalV
@@ -407,6 +450,8 @@ showState state
     ,      "data:       " <> show (length $ facts state)
     ,      "dictionary: " <> show (dictionary state)
     , flag "type:       " hasType
+    , flag "annotated:  " hasAnnotated
+    , flag "inlined:    " hasInlined
     , flag "core:       " hasCore
     , flag "core-type:  " hasCoreType
     , flag "core-simp:  " doCoreSimp
@@ -427,6 +472,8 @@ usage
       , ":help or :h        -- shows this message"
       , ":quit or :q        -- quits the REPL"
       , ":load <filepath>   -- loads a data set"
+      , ":dictionary <path> -- loads a dictionary"
+      , ":import <filepath> -- imports functions from a file"
       , ":set  +/-type      -- whether to show the checked expression type"
       , ":set  +/-core      -- whether to show the Core conversion"
       , ":set  +/-core-type -- whether to show the Core conversion's type"

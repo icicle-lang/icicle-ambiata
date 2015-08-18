@@ -8,6 +8,7 @@ module Icicle.Test.Source.Convert where
 import           Icicle.Internal.Pretty
 import           Icicle.Source.Checker.Checker
 import           Icicle.Source.Query
+import           Icicle.Source.ToCore.Context
 import           Icicle.Source.ToCore.ToCore
 import           Icicle.Source.Type
 import qualified Icicle.Source.Lexer.Token as T
@@ -15,6 +16,7 @@ import qualified Icicle.Source.Lexer.Token as T
 import qualified Icicle.Common.Exp.Prim.Minimal as Min
 import qualified Icicle.Common.Exp           as CE
 import qualified Icicle.Core.Exp             as CE
+import qualified Icicle.Common.Base          as CB
 import qualified Icicle.Common.Type          as CT
 
 import qualified Icicle.Core.Program.Check   as CCheck
@@ -31,7 +33,7 @@ import           Test.QuickCheck
 import qualified Data.Map as Map
 
 
-prop_convert_ok :: BaseType -> T.Variable -> Query () T.Variable -> Property
+prop_convert_ok :: CT.ValType -> CB.Name T.Variable -> Query () T.Variable -> Property
 prop_convert_ok tt fn q
  = counterexample pp
  $ case typ of
@@ -44,14 +46,15 @@ prop_convert_ok tt fn q
      -> property Discard
  where
   qt  = QueryTop fn q
-  fets = Map.singleton fn
-       (tt, Map.singleton fn (tt, xfst tt))
+  fets = Features
+        (Map.singleton fn (typeOfValType tt, Map.singleton fn (typeOfValType tt, xfst tt)))
+         Map.empty
 
-  typ = checkQT fets qt
+  typ = freshcheck $ checkQT fets qt
   pp = show $ pretty q
 
 
-prop_convert_is_well_typed :: T.Variable -> Query () T.Variable -> Property
+prop_convert_is_well_typed :: CB.Name T.Variable -> Query () T.Variable -> Property
 prop_convert_is_well_typed fn q
  = counterexample pp
  $ case typ of
@@ -66,12 +69,13 @@ prop_convert_is_well_typed fn q
      -> property Discard
  where
   qt  = QueryTop fn q
-  fets = Map.singleton fn
-       (tt, Map.singleton fn (tt, xfst tt))
+  fets = Features
+       (Map.singleton fn (typeOfValType tt, Map.singleton fn (typeOfValType tt, xfst tt)))
+        Map.empty
 
   tt = CT.IntT
 
-  typ = checkQT fets qt
+  typ = freshcheck $ checkQT fets qt
   pp = show $ pretty q
 
 
@@ -116,4 +120,4 @@ xfst tt
 return []
 tests :: IO Bool
 -- tests = $quickCheckAll
-tests = $forAllProperties $ quickCheckWithResult (stdArgs { {- maxSuccess = 5000, maxSize = 10, -} maxDiscardRatio = 10000})
+tests = $forAllProperties $ quickCheckWithResult (stdArgs { {- maxSuccess = 5000, -} maxSize = 10, maxDiscardRatio = 10000})

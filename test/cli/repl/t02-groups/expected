@@ -1,4 +1,5 @@
 welcome to iREPL
+ok, loaded 6 functions from data/libs/prelude.icicle
 ok, loaded test/cli/repl/data.psv, 8 rows
 > -- Simplest group-by there is
 > - Result:

@@ -34,9 +34,10 @@ import                  P
 -- is ill typed.
 convertPrim
         :: Prim -> a
-        -> [(C.Exp n, UniverseType)]
+        -> Type n
+        -> [(C.Exp n, Type n)]
         -> ConvertM a n (C.Exp n)
-convertPrim p ann xts
+convertPrim p ann resT xts
  = do   p' <- go p
         return $ CE.makeApps p' $ fmap fst xts
  where
@@ -44,14 +45,14 @@ convertPrim p ann xts
   go (Op o)
    = (CE.XPrim . C.PrimMinimal) <$> goop o
   go (Lit (LitInt i))
+   | (_, _, DoubleT) <- decomposeT resT
+   = return $ CE.XValue T.DoubleT (V.VDouble $ fromIntegral i)
+   | otherwise
    = return $ CE.constI i
   go (Lit (LitDouble i))
    = return $ CE.XValue T.DoubleT (V.VDouble i)
   go (Lit (LitString i))
    = return $ CE.XValue T.StringT (V.VString i)
-  go (Agg agg)
-   = convertError
-   $ ConvertErrorPrimAggregateNotAllowedHere ann agg
 
   go (Fun f)
    = (CE.XPrim . C.PrimMinimal) <$> gofun f
@@ -86,7 +87,10 @@ convertPrim p ann xts
 
   goop TupleComma
    | [(_,a),(_,b)] <- xts
-   = return $ Min.PrimConst $ Min.PrimConstPair (baseType $ unwrapGroup a) (baseType $ unwrapGroup b)
+   = do a' <- convertValType ann a
+        b' <- convertValType ann b
+        return $ Min.PrimConst $ Min.PrimConstPair a' b'
+
    | otherwise
    = convertError
    $ ConvertErrorPrimNoArguments ann 2 p
@@ -96,14 +100,15 @@ convertPrim p ann xts
   gofun Exp
    = return $ Min.PrimDouble Min.PrimDoubleExp
   gofun ToDouble
+   -- TODO: this should return noop if argument is already double
+   -- | (_,_,DoubleT) <- decomposeT t1
    = return $ Min.PrimCast Min.PrimCastDoubleOfInt
   gofun ToInt
    = return $ Min.PrimCast Min.PrimCastIntOfDouble
 
   t1 num_args
    = case xts of
-      ((_,tt):_) -> return
-                  $ baseType tt
+      ((_,tt):_) -> convertValType ann tt
       []         -> convertError
                   $ ConvertErrorPrimNoArguments ann num_args p
 

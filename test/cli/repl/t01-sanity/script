@@ -5,11 +5,11 @@ feature salary ~> sum value
 feature salary ~> (sum value, count)
 
 -- Now let's try average. Expect 300 and 10.
-feature salary ~> sum value / count
+feature salary ~> double (sum value) / count
 
 -- Filtering
 feature salary ~> filter value > 10 ~> count
 
 -- Average of latest 3 entries
-feature salary ~> latest 3 ~> sum value / count
+feature salary ~> latest 3 ~> sum (double value) / count
 

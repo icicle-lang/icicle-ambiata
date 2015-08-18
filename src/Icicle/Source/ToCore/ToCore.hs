@@ -67,15 +67,17 @@ import qualified        Data.Map as Map
 convertQueryTop
         :: Ord n
         => Features n
-        -> QueryTop (a,UniverseType) n
+        -> QueryTop (Annot a n) n
         -> FreshT n (Either (ConvertError a n)) (C.Program n)
 convertQueryTop feats qt
  = do   inp <- fresh
         (ty,fs) <- lift
                  $ maybeToRight (ConvertErrorNoSuchFeature (feature qt))
-                 $ Map.lookup (feature qt) feats
+                 $ Map.lookup (feature qt) (featuresConcretes feats)
 
-        let inpTy       = ty
+        inpTy <- case valTypeOfType ty of
+                  Nothing -> lift $ Left $ ConvertErrorCannotConvertType (annAnnot $ annotOfQuery $ query qt) ty
+                  Just t' -> return t'
         let inpTy'dated = T.PairT inpTy T.DateTimeT
 
         (bs,ret) <- evalStateT (convertQuery $ query qt) (ConvertState inp inpTy'dated fs Map.empty)
@@ -90,7 +92,7 @@ convertQueryTop feats qt
 -- that is being "returned" in the program - essentially the last added binding.
 convertQuery
         :: Ord n
-        => Query (a,UniverseType) n
+        => Query (Annot a n) n
         -> ConvertM a n (CoreBinds n, Name n)
 convertQuery q
  = case contexts q of
@@ -163,14 +165,17 @@ convertQuery q
      -- and also
      -- "latest 5 ~> let V = Elem ~> Elem"
      --
-     | Elem <- universeTemporality $ universe $ snd $ annotOfQuery q'
+     | case getTemporalityOrPure $ annResult $ annotOfQuery q' of
+        TemporalityElement  -> True
+        TemporalityPure     -> True
+        _                   -> False
      -> do  n'arr   <- lift fresh
             n'map   <- lift fresh
 
             n'v     <- lift fresh
 
             x' <- convertWithInputName n'v $ convertExpQ q'
-            let t'  = baseType $ snd $ annotOfQuery q'
+            t' <- convertValType' $ annResult $ annotOfQuery q'
 
             (inpstream, inpty) <- convertInput
 
@@ -196,7 +201,7 @@ convertQuery q
             res
                     <- convertWithInputName n'v $ convertFold q'
 
-            let tV'  = baseType $ typeFold res
+            let tV'  = typeFold res
 
             (inpstream, inpty) <- convertInput
 
@@ -226,8 +231,8 @@ convertQuery q
     -- relatively good idea of an upper bound on memory here,
     -- as long as the "by" is something like an enum, and the "value" has bounded memory.
     --
-    (GroupBy (ann,retty) e : _)
-     -> do  (t1,_) <- getGroupByMapType ann retty
+    (GroupBy (Annot { annAnnot = ann, annResult = retty }) e : _)
+     -> do  t1 <- getGroupByMapType ann retty
             n'      <- lift fresh
             n''     <- lift fresh
             nmap    <- lift fresh
@@ -237,12 +242,11 @@ convertQuery q
             -- We have the "k"onstructor, the "z"ero, and the e"x"tract,
             -- as well as the intermediate result type before extraction.
             -- See convertFold.
-            res
-                    <- convertWithInputName nval $ convertFold q'
+            res     <- convertWithInputName nval $ convertFold q'
 
-            let tV'  = baseType $ typeFold res
-            let t1'  = baseType ((snd $ annotOfExp e) { baseType = t1 })
-            let t2'  = baseType $ typeExtract res
+            let tV'  = typeFold res
+            let t1'  = t1
+            let t2'  = typeExtract res
 
             -- Convert the "by" to a simple expression.
             -- This becomes the map insertion key.
@@ -301,8 +305,8 @@ convertQuery q
     -- as the elements are seen into the map,
     -- we insert/update the element in the map, then fold over essentially the last-seen
     -- for each group.
-    (Distinct (_,_) e : _)
-     -> do  let tkey = baseType $ snd $ annotOfExp e
+    (Distinct _ e : _)
+     -> do  tkey <- convertValType' $ annResult $ annotOfExp e
             (inpstream, inpty) <- convertInput
             let tval = inpty
 
@@ -318,7 +322,7 @@ convertQuery q
             -- as a stream fold.
             res     <- convertWithInputName nval $ convertFold q'
 
-            let tV'  = baseType $ typeFold res
+            let tV'  = typeFold res
 
             -- Convert the "by" to a simple expression.
             -- This becomes the map insertion key.
@@ -326,7 +330,7 @@ convertQuery q
 
             let mapt = T.MapT tkey tval
 
-            -- This is a little bit silly - 
+            -- This is a little bit silly -
             -- this "insertOrUpdate" should really just be an insert.
             -- Just put each element in the map, potentially overwriting the last one.
             let insertOrUpdate
@@ -340,7 +344,7 @@ convertQuery q
                     CE.@~ CE.XVar nmap )
 
             -- Perform the map fold
-            let r = red n' 
+            let r = red n'
                   $ C.RFold inpty mapt insertOrUpdate 
                   ( CE.emptyMap tkey tval)
                     inpstream
@@ -361,9 +365,9 @@ convertQuery q
             return (r <> p, n'')
 
     (Let _ b def : _)
-     -> case universeTemporality $ universe $ snd $ annotOfExp def of
-         Elem
-          -> do let t'  = baseType $ snd $ annotOfExp def
+     -> case getTemporalityOrPure $ annResult $ annotOfExp def of
+         TemporalityElement
+          -> do t' <- convertValType' $ annResult $ annotOfExp def
                 (inpstream, inpty) <- convertInput
                 let inpty' = T.PairT t' inpty
 
@@ -376,7 +380,7 @@ convertQuery q
                 let xsnd = CE.XApp
                          $ CE.XPrim $ C.PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd t' inpty
 
-                convertModifyFeatures (Map.insert b (t', xfst) . Map.map (\(t,f) -> (t, f . xsnd)))
+                convertModifyFeatures (Map.insert b (annResult $ annotOfExp def, xfst) . Map.map (\(t,f) -> (t, f . xsnd)))
 
                 let pair = (CE.XPrim $ C.PrimMinimal $ Min.PrimConst $ Min.PrimConstPair t' inpty)
                          CE.@~ e' CE.@~ CE.XVar n'e
@@ -389,7 +393,7 @@ convertQuery q
 
                 return (bs <> bs', n'')
 
-         Pure
+         TemporalityPure
           -> do e'      <- convertExp def
                 convertModifyFeatures (Map.delete b)
                 b'      <- convertFreshenAdd b
@@ -397,23 +401,21 @@ convertQuery q
                 (bs', n') <- convertQuery q'
                 return (bs <> bs', n')
 
-         AggU
+         TemporalityAggregate
           -> do (bs,n')      <- convertReduce    def
+                convertModifyFeatures (Map.delete b)
                 b'      <- convertFreshenAdd b
                 (bs',n'')    <- convertQuery     q'
                 return (bs <> post b' (CE.XVar n') <> bs', n'')
 
-         Group _
-          -> do (bs,n')      <- convertReduce    def
-                b'      <- convertFreshenAdd b
-                (bs',n'')    <- convertQuery     q'
-                return (bs <> post b' (CE.XVar n') <> bs', n'')
+         _
+          -> convertError $ ConvertErrorGroupByHasNonGroupResult (annAnnot $ annotOfExp def) (annResult $ annotOfExp def)
 
 
     -- Converting fold1s.
     (LetFold _ f@Fold{ foldType = FoldTypeFoldl1 } : _)
      -> do  -- Type helpers
-            let tU = baseType $ snd $ annotOfExp $ foldWork f
+            tU <- convertValType' $ annResult $ annotOfExp $ foldWork f
             let tO = T.OptionT tU
 
             -- Generate fresh names
@@ -423,15 +425,14 @@ convertQuery q
             -- Current accumulator
             -- : Option tU
             n'a     <- lift fresh
-            -- Fully unwrapped accumulator
-            -- :        tU
-            n'a'' <- convertFreshenAdd $ foldBind f
 
 
+            z   <- convertWithInputName n'elem $ convertExp (foldInit f)
+            -- Current accumulator is only available in worker
             -- Remove binding before converting init and work expressions,
             -- just in case the same name has been used elsewhere
             convertModifyFeatures (Map.delete (foldBind f))
-            z   <- convertWithInputName n'elem $ convertExp (foldInit f)
+            n'a'' <- convertFreshenAdd $ foldBind f
             k   <- convertWithInputName n'elem $ convertExp (foldWork f)
 
             -- Wrap zero and kons up in Some
@@ -483,20 +484,19 @@ convertQuery q
     --
     (LetFold _ f@Fold{ foldType = FoldTypeFoldl } : _)
      -> do  -- Type helpers
-            let tU = baseType $ snd $ annotOfExp $ foldWork f
+            tU <- convertValType' $ annResult $ annotOfExp $ foldWork f
 
             -- Generate fresh names
             -- Element of the stream
             -- :                input type
             n'elem <- lift fresh
-            -- Accumulator
-            -- :                tU
-            n'a <- convertFreshenAdd $ foldBind f
 
+            z   <- convertWithInputName n'elem $ convertExp (foldInit f)
+            -- Current accumulator is only available in worker
             -- Remove binding before converting init and work expressions,
             -- just in case the same name has been used elsewhere
             convertModifyFeatures (Map.delete (foldBind f))
-            z   <- convertWithInputName n'elem $ convertExp (foldInit f)
+            n'a <- convertFreshenAdd $ foldBind f
             k   <- convertWithInputName n'elem $ convertExp (foldWork f)
 
             (inpstream, inpty) <- convertInput
@@ -518,10 +518,9 @@ convertQuery q
   -- Group bys can live in either Aggregate or Group universe.
   -- Because Core is explicitly typed, we need to pull out the key type and value type.
   getGroupByMapType ann ty
-   | UniverseType (Universe (Group t1) _) t2         <- ty
-   = return (t1, t2)
-   | UniverseType (Universe AggU _) (T.MapT t1 t2)   <- ty
-   = return (t1, t2)
+   | (_,_,t') <- decomposeT ty
+   , (GroupT tk _tv) <- t'
+   = convertValType' tk
    | otherwise
    = convertError $ ConvertErrorGroupByHasNonGroupResult ann ty
 
@@ -540,156 +539,55 @@ convertQuery q
   som t
    = CE.some t
 
+  convertValType' = convertValType (annAnnot $ annotOfQuery q)
+
 
 -- | Convert an Aggregate computation at the end of a query.
 -- This must be an aggregate, some primitive applied to at least one aggregate expression,
 -- or a nested query.
 convertReduce
         :: Ord n
-        => Exp (a,UniverseType) n
+        => Exp (Annot a n) n
         -> ConvertM a n (CoreBinds n, Name n)
 convertReduce xx
- | Just (p, (_,ty), args) <- takePrimApps xx
- = case p of
-    Agg Count
-     | [] <- args
-     -- Count: just add 1, ignoring the value
-     -> do  na <- lift fresh
-            nv <- lift fresh
-            mkFold T.IntT (CE.XVar na CE.+~ CE.constI 1) (CE.constI 0) id na nv
-     | otherwise
-     -> errAggBadArgs
+ | Just (p, Annot { annResult = ty }, args) <- takePrimApps xx
+ -- For any primitives:
+ --   recurse into its arguments and get bindings for them
+ --   apply those bindings to the primitive, as a postcomputation
+ --
+ -- If the binding is Pure however, it must not rely on any aggregates,
+ -- so it might as well be a precomputation.
+ = do   (bs,nms) <- unzip <$> mapM convertReduce args
+        let tys  = fmap (annResult . annotOfExp) args
+        let xs   = fmap  CE.XVar           nms
+        x' <- convertPrim p (annAnnot $ annotOfExp xx) ty (xs `zip` tys)
 
-    Agg SumA
-     | [x] <- args
-     -> do  na <- lift fresh
-            nv <- lift fresh
-            -- Convert the element expression and sum over it
-            x' <- convertWithInputName nv $ convertExp x
-            mkFold T.IntT (CE.XVar na CE.+~ x') (CE.constI 0) id na nv
+        nm  <- lift fresh
 
-     | otherwise
-     -> errAggBadArgs
+        let bs'  = mconcat bs
+        let b''  | TemporalityPure <- getTemporalityOrPure ty
+                 = pre nm x'
+                 | otherwise
+                 = post nm x'
 
-    -- Find the newest / most recent.
-    -- This just means the "last seen" one.
-    Agg Newest
-     | [x] <- args
-     -> do  na <- lift fresh
-            nv <- lift fresh
-            n'id <- lift fresh
-
-            -- Convert the element expression
-            x' <- convertWithInputName nv $ convertExp x
-
-            let argT = snd $ annotOfExp x
-            let retty= T.OptionT $ baseType argT
-
-            -- Start with Nothing
-            let seed = CE.XValue retty VNone
-
-            let fun  = CE.some (baseType argT) x'
-
-            let opt  = C.PrimFold (C.PrimFoldOption $ baseType argT) (baseType argT)
-            let xtrac n'= CE.XPrim opt
-                       CE.@~ CE.XLam n'id (baseType argT) (CE.XVar n'id)
-                       CE.@~ CE.XValue (baseType argT) (VException ExceptFold1NoValue)
-                       CE.@~ n'
-
-            mkFold retty fun seed xtrac na nv
-
-     | otherwise
-     -> errAggBadArgs
-
-    -- Find the oldest, or first seen value.
-    Agg Oldest
-     | [x] <- args
-     -> do  na <- lift fresh
-            nv <- lift fresh
-            -- Convert the element expression
-            x' <- convertWithInputName nv $ convertExp x
-
-            let argT = snd $ annotOfExp x
-
-            let valty= baseType argT
-            let retty= T.OptionT $ valty
-
-            let seed = CE.XValue retty VNone
-            let opt  = C.PrimFold (C.PrimFoldOption valty) retty
-            let opt' = C.PrimFold (C.PrimFoldOption valty) valty
-
-            na' <- lift fresh
-            let return_acc
-                     = CE.XLam na' valty $ CE.some valty $ CE.XVar na'
-            let some_arg
-                     = CE.some valty x'
-
-            let fun  = CE.XPrim opt
-                       CE.@~ return_acc
-                       CE.@~ some_arg
-                       CE.@~ CE.XVar na
-
-            let xtrac n'= CE.XPrim opt'
-                       CE.@~ (CE.XLam na' valty $ CE.XVar na')
-                       CE.@~ CE.XValue (baseType argT) (VException ExceptFold1NoValue)
-                       CE.@~ n'
-
-            mkFold retty fun seed xtrac na nv
-
-
-     | otherwise
-     -> errAggBadArgs
-
-    -- For any other primitives:
-    --   recurse into its arguments and get bindings for them
-    --   apply those bindings to the primitive, as a postcomputation
-    --
-    -- If the binding is Pure however, it must not rely on any aggregates,
-    -- so it might as well be a precomputation.
-    _
-     -> do  (bs,nms) <- unzip <$> mapM convertReduce args
-            let tys  = fmap (snd . annotOfExp) args
-            let xs   = fmap  CE.XVar           nms
-            x' <- convertPrim p (fst $ annotOfExp xx) (xs `zip` tys)
-
-            nm  <- lift fresh
-
-            let bs'  = mconcat bs
-            let b''  | Pure <- universeTemporality $ universe ty
-                     = pre nm x'
-                     | otherwise
-                     = post nm x'
-
-            return (bs' <> b'', nm)
+        return (bs' <> b'', nm)
 
 
  -- Convert a nested query
+ -- Any lets, folds etc bound in here will go out of scope at the end.
+ -- So we revert the state at the end, clearing any bindings,
+ -- rolling back to the old input type, etc.
  | Nested _ q   <- xx
- = convertQuery q
+ = do   o <- get
+        r <- convertQuery q
+        put o
+        return r
  -- Any variable must be a let-bound aggregate, so we can safely assume it has a binding.
- | Var (ann,_) v      <- xx
+ | Var (Annot { annAnnot = ann }) v      <- xx
  = (,) mempty <$> convertFreshenLookup ann v
 
  -- It's not a variable or a nested query,
  -- so it must be an application of a non-primitive
  | otherwise
- = convertError $ ConvertErrorExpApplicationOfNonPrimitive (fst $ annotOfExp xx) xx
-
- where
-  -- Helper for creating a stream fold binding
-  mkFold ta k z x na nv
-   = do n' <- lift fresh
-        n'' <- lift fresh
-        (inpstream, inpty) <- convertInput
-        let k' = CE.XLam na ta
-               $ CE.XLam nv inpty
-               $ k
-        let ffold = red n' $ C.RFold inpty ta k' z inpstream 
-        let xtrac = post n'' $ x $ CE.XVar n'
-        return (ffold <> xtrac, n'')
-
-  -- Bad arguments to an aggregate
-  errAggBadArgs
-   = convertError
-   $ ConvertErrorReduceAggregateBadArguments (fst $ annotOfExp xx) xx
+ = convertError $ ConvertErrorExpApplicationOfNonPrimitive (annAnnot $ annotOfExp xx) xx
 

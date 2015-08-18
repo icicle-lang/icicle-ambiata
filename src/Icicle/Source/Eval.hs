@@ -1,10 +1,24 @@
+-- | Evaluation of Source programs.
+--
+--
+-- Note: Numbers
+-- ~~~~~~~~~~~~~
+-- Perhaps surprisingly, the LitInt primitive does not necessarily return an Int.
+-- Its type is "forall a. Num a => a", because it can be used as either an Int or a Double.
+-- This means that when simply looking at a "LitInt n", it is not known whether
+-- it should evaluate to "VInt n" or "VDouble n".
+--
+-- Operators like (+), (*) etc are polymorphic and can operate on Ints or Doubles.
+-- However because of the above, we would have to also handle all combinations of Ints and Doubles.
+--
+-- As a workaround, just to simplify the evaluator, ALL numbers are treated as VDouble.
+--
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE PatternGuards #-}
 module Icicle.Source.Eval (
     EvalError   (..)
   , evalQ
   , evalX
-  , evalA
   ) where
 
 import                  Icicle.Common.Base
@@ -16,10 +30,9 @@ import qualified        Data.Map as Map
 
 data EvalError a n
  = EvalErrorWindowWithNoDate a BaseValue
- | EvalErrorNoSuchVariable   a n
+ | EvalErrorNoSuchVariable   a (Name n)
  | EvalErrorOpBadArgs        a Op  [BaseValue]
  | EvalErrorFunBadArgs       a Fun [BaseValue]
- | EvalErrorAggBadArgs       a Agg [Exp a n]
 
  | EvalErrorExpNeitherSort   a (Exp a n)
 
@@ -27,7 +40,7 @@ data EvalError a n
  deriving (Show, Eq, Ord)
 
 type Record n
- = Map.Map n BaseValue
+ = Map.Map (Name n) BaseValue
 
 
 evalQ   :: Ord n
@@ -98,7 +111,7 @@ evalQ q vs env
                         evalQ q' vs (ins v' env)
 
                  | otherwise
-                 -> return VNone
+                 -> return $ VException ExceptFold1NoValue
 
                 Let a n x
                  -> let str = mapM (\v -> Map.insert n <$> evalX x [] v <*> return v) vs
@@ -149,11 +162,8 @@ evalP   :: Ord n
         -> Either (EvalError a n) BaseValue
 evalP ann p xs vs env
  = case p of
-    Agg ag
-     -> evalA ann ag xs vs env
-
     Lit (LitInt i)
-     -> return (VInt i)
+     -> return (VDouble $ fromIntegral i)
 
     Lit (LitDouble i)
      -> return (VDouble i)
@@ -173,25 +183,30 @@ evalP ann p xs vs env
               | [VDouble i] <- args
               -> return $ VDouble $ exp i
               | otherwise -> err
+             -- Use Doubles as only number representation.
+             -- See Note: Numbers
              ToDouble
-              | [VInt i] <- args
-              -> return $ VDouble $ fromIntegral i
+              | [VDouble i] <- args
+              -> return $ VDouble i
               | otherwise -> err
              ToInt
               | [VDouble i] <- args
-              -> return $ VInt $ truncate i
+              -> return $ VDouble $ fromIntegral (truncate i :: Int)
               | otherwise -> err
 
     Op o
      -> do  args <- mapM (\x' -> evalX x' vs env) xs
             let err = Left $ EvalErrorOpBadArgs ann o args
+            let isExcept v
+                    | VException _ <- v
+                    = True
+                    | otherwise
+                    = False
             case o of
              _
               -- Propagation of errors.
-              -- TODO: this should be checking for VException instead of VNone;
-              -- likewise, foldl1 should return exception if there are no values
-              | any (==VNone) args
-              -> return $ VNone
+              | (xcept:_) <- filter isExcept args
+              -> return xcept
 
              ArithDouble Div
               | [VDouble i, VDouble j] <- args
@@ -202,24 +217,18 @@ evalP ann p xs vs env
              ArithUnary Negate
               | [VDouble i] <- args
               -> return $ VDouble $ negate i
-              | [VInt i] <- args
-              -> return $ VInt $ negate i
               | otherwise
               -> err
 
              ArithBinary Mul
               | [VDouble i, VDouble j] <- args
               -> return $ VDouble (i * j)
-              | [VInt i, VInt j] <- args
-              -> return $ VInt (i * j)
               | otherwise
               -> err
 
              ArithBinary Add
               | [VDouble i, VDouble j] <- args
               -> return $ VDouble (i + j)
-              | [VInt i, VInt j] <- args
-              -> return $ VInt (i + j)
               | otherwise
               -> err
 
@@ -227,16 +236,12 @@ evalP ann p xs vs env
              ArithBinary Sub
               | [VDouble i, VDouble j] <- args
               -> return $ VDouble (i - j)
-              | [VInt i, VInt j] <- args
-              -> return $ VInt (i - j)
               | otherwise
               -> err
 
              ArithBinary Pow
               | [VDouble i, VDouble j] <- args
               -> return $ VDouble (i ** j)
-              | [VInt i, VInt j] <- args
-              -> return $ VInt (i ^ j)
               | otherwise
               -> err
 
@@ -283,62 +288,4 @@ evalP ann p xs vs env
               | otherwise
               -> err
 
-
-
-
-evalA   :: Ord n
-        => a
-        -> Agg
-        -> [Exp a n]
-        -> [Record n]
-        -> Record n
-        -> Either (EvalError a n) BaseValue
-evalA ann ag xs vs _env
- = case ag of
-    Count
-     | [] <- xs
-     -> return $ VInt $ length vs
-     | otherwise
-     -> err
-
-    SumA
-     | [x] <- xs
-     -> do  v <- foldM (\a v -> do v' <- evalX x [] v
-                                   case v' of
-                                    VInt i
-                                     | Just a' <- a
-                                     -> return $ Just $ a' + i
-                                     | Nothing <- a
-                                     -> return Nothing
-                                    VNone
-                                     -> return Nothing
-                                    _      -> err) Nothing vs
-            return $ case v of
-             Nothing -> VNone
-             Just i  -> VInt i
-
-     | otherwise
-     -> err
-
-    -- TODO: what happens if the "newest" is possibly VNone?
-    Newest
-     | [x] <- xs
-     , Just v <- foldl (\_ v -> Just v) Nothing vs
-     -> evalX x [] v
-     | [_] <- xs
-     -> return $ VNone
-     | otherwise
-     -> err
-
-    Oldest
-     | [x] <- xs
-     , (v:_) <- vs
-     -> evalX x [] v
-     | [_] <- xs
-     -> return $ VNone
-     | otherwise
-     -> err
-
- where
-  err = Left $ EvalErrorAggBadArgs ann ag xs
 

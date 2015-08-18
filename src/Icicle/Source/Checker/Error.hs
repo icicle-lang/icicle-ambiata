@@ -12,6 +12,7 @@ module Icicle.Source.Checker.Error (
 import                  Icicle.Source.Query
 import                  Icicle.Source.Type
 
+import                  Icicle.Common.Base
 import                  Icicle.Internal.Pretty
 
 import                  P
@@ -23,19 +24,13 @@ data CheckError a n
  deriving (Show, Eq, Ord)
 
 data ErrorInfo a n
- = ErrorNoSuchVariable a n
- | ErrorNoSuchFeature n
- | ErrorReturnNotAggregate a (Query a n) UniverseType
- | ErrorContextExpNotBool  a (Context a n)   UniverseType
- | ErrorContextExpNotEnum  a (Context a n)   UniverseType
- | ErrorContextExpNotElem  a (Context a n)   UniverseType
+ = ErrorNoSuchVariable a (Name n)
+ | ErrorNoSuchFeature (Name n)
  | ErrorContextNotAllowedHere  a (Context a n)
- | ErrorFoldTypeMismatch       a UniverseType UniverseType
- | ErrorLetTypeMismatch        a UniverseType UniverseType
- | ErrorUniverseMismatch       a UniverseType Universe
- | ErrorApplicationOfNonPrim a (Exp a n)
- | ErrorPrimBadArgs          a (Exp a n) [UniverseType]
- | ErrorPrimNotANumber       a (Exp a n) [UniverseType]
+ | ErrorFunctionWrongArgs      a (Exp a n) (FunctionType n) [Type n]
+ | ErrorApplicationNotFunction a (Exp a n)
+ | ErrorConstraintsNotSatisfied a [(a, DischargeError n)]
+ | ErrorReturnNotAggregate a (Type n)
  deriving (Show, Eq, Ord)
 
 annotOfError :: CheckError a n -> Maybe a
@@ -45,33 +40,21 @@ annotOfError (CheckError e _)
      -> Just a
     ErrorNoSuchFeature _
      -> Nothing
-    ErrorReturnNotAggregate a _ _
-     -> Just a
-    ErrorContextExpNotBool  a _ _
-     -> Just a
-    ErrorContextExpNotEnum  a _ _
-     -> Just a
-    ErrorContextExpNotElem  a _ _
-     -> Just a
     ErrorContextNotAllowedHere  a _
      -> Just a
-    ErrorFoldTypeMismatch       a _ _
+    ErrorFunctionWrongArgs      a _ _ _
      -> Just a
-    ErrorLetTypeMismatch        a _ _
+    ErrorApplicationNotFunction a _
      -> Just a
-    ErrorUniverseMismatch       a _ _
+    ErrorConstraintsNotSatisfied          a _
      -> Just a
-    ErrorApplicationOfNonPrim a _
-     -> Just a
-    ErrorPrimBadArgs          a _ _
-     -> Just a
-    ErrorPrimNotANumber       a _ _
+    ErrorReturnNotAggregate          a _
      -> Just a
 
 
 data ErrorSuggestion a n
- = AvailableFeatures [(n, BaseType)]
- | AvailableBindings [(n, UniverseType)]
+ = AvailableFeatures [(Name n, Type n)]
+ | AvailableBindings [(Name n, FunctionType n)]
  | Suggest String
  deriving (Show, Eq, Ord)
 
@@ -103,58 +86,27 @@ instance (Pretty a, Pretty n) => Pretty (ErrorInfo a n) where
      ErrorNoSuchFeature n
       -> "The dictionary has no feature called" <+> pretty n
 
-     ErrorReturnNotAggregate a q ut
-      -> "The return of the query is not an aggregate at" <+> pretty a <> line
-      <> "Query: " <> inp q <> line
-      <> "Type:  " <> inp ut
-
-     ErrorContextExpNotBool a c ut
-      -> "Context expression is not a bool at" <+> pretty a <> line
-      <> "Context: " <> inp c       <> line
-      <> "Type:    " <> inp ut
-
-     ErrorContextExpNotEnum a c ut
-      -> "Context expression is not enum (int, date,..) at" <+> pretty a <> line
-      <> "Context: " <> inp c       <> line
-      <> "Type:    " <> inp ut
-
-     ErrorContextExpNotElem a c ut
-      -> "Context expression is not an element expression (cannot be aggregate) at" <+> pretty a <> line
-      <> "Context: " <> inp c       <> line
-      <> "Type:    " <> inp ut
-
      ErrorContextNotAllowedHere  a c
       -> "Context is not allowed at" <+> pretty a <> line
       <> "Context: " <> inp c
 
-     ErrorFoldTypeMismatch a init work
-      -> "Type mismatch in fold at " <+> pretty a <> line
-      <> "Initial: " <> inp init    <> line
-      <> "Worker:  " <> inp work
+     ErrorFunctionWrongArgs a x f tys
+      -> "Function applied to wrong number of arguments at " <+> pretty a <> line
+      <> "Expression:     " <> inp x
+      <> "Function type:  " <> inp f
+      <> "Argument types: " <> inp tys
 
-     ErrorLetTypeMismatch  a ty expected
-      -> "Type mismatch in let at " <+> pretty a <> line
-      <> "Type:     " <> inp ty    <> line
-      <> "Expected: " <> inp expected
-
-     ErrorUniverseMismatch a ty expected
-      -> "Universe mismatch at " <+> pretty a <> line
-      <> "Type:     " <> inp ty      <> line
-      <> "Expected: " <> text (show expected)
-
-     ErrorApplicationOfNonPrim a x
+     ErrorApplicationNotFunction a x
       -> "Application of non-function at " <+> pretty a <> line
       <> "Exp: " <> inp x
 
-     ErrorPrimBadArgs a x tys
-      -> "Primitive applied to bad arguments at " <+> pretty a <> line
-      <> "Exp:  " <> inp x <> line
-      <> "Args: " <> cat (fmap ((<+>" ").pretty) tys)
+     ErrorConstraintsNotSatisfied a ds
+      -> "Cannot discharge constraints at " <+> pretty a <> line
+      <> "Constraints: " <> cat (fmap ((<+>" ").pretty) ds)
 
-     ErrorPrimNotANumber a x tys
-      -> "This operater requires a number type at " <+> pretty a <> line
-      <> "Exp:  " <> inp x <> line
-      <> "Args: " <> cat (fmap ((<+>" ").pretty) tys)
+     ErrorReturnNotAggregate a t
+      -> "Return type is not an aggregate at " <+> pretty a <> line
+      <> "Type: " <> inp t
 
 
    where

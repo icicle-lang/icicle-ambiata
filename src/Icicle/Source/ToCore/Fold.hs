@@ -36,8 +36,8 @@ data ConvertFoldResult n
  { foldKons     :: C.Exp n
  , foldZero     :: C.Exp n
  , mapExtract   :: C.Exp n
- , typeFold     :: UniverseType
- , typeExtract  :: UniverseType
+ , typeFold     :: T.ValType
+ , typeExtract  :: T.ValType
  } deriving (Eq, Ord, Show)
 
 
@@ -68,7 +68,7 @@ data ConvertFoldResult n
 --
 convertFold
         :: Ord n
-        => Query (a,UniverseType) n
+        => Query (Annot a n) n
         -> ConvertM a n (ConvertFoldResult n)
 convertFold q
  = case contexts q of
@@ -79,44 +79,8 @@ convertFold q
      -> convertFold qq
 
      -- Primitive application
-     | Just (p, (ann,retty), args) <- takePrimApps $ final q
+     | Just (p, Annot { annAnnot = ann, annResult = retty }, args) <- takePrimApps $ final q
      -> case p of
-         -- Aggregates are relatively simple
-         Agg SumA
-          | [e] <- args
-          -> do let retty' = baseType retty
-                e' <- convertExp e
-
-                n  <- lift fresh
-                add <- convertPrim (Op $ ArithBinary Add) ann
-                        [(CE.XVar n, retty)
-                        ,(e', retty)]
-                let k = CE.XLam n retty' add
-                let z | retty' == T.IntT
-                      = CE.constI 0
-                      | otherwise
-                      = CE.XValue retty' (VDouble 0)
-                x    <- idFun retty'
-
-                return $ ConvertFoldResult k z x retty retty
-          | otherwise
-          -> errAggBadArgs
-
-         Agg Count
-          | [] <- args
-          -> do let retty' = baseType retty
-
-                n  <- lift fresh
-                let k = CE.XLam n retty'
-                      ( CE.XVar n CE.+~ CE.constI 1 )
-                let z = CE.constI 0
-                x    <- idFun retty'
-
-                return $ ConvertFoldResult k z x retty retty
-          | otherwise
-          -> errAggBadArgs
-
-
          -- Non-aggregate primitive operations such as (+) or (/) are a bit more involved:
          -- we convert the arguments to folds,
          -- then store the accumulator as nested pairs of arguments
@@ -126,35 +90,68 @@ convertFold q
                 -- (create a query out of the expression,
                 --  just because there is no separate convertFoldX function)
                 res <- mapM (convertFold . Query []) args
+                retty' <- convertValType' retty
 
                 let ts  = fmap typeFold         res
-                let ts' = fmap baseType ts
                 -- Create pairs for zeros
-                (zz, tt) <- pairConstruct (fmap foldZero res) ts'
+                (zz, tt) <- pairConstruct (fmap foldZero res) ts
 
                 -- For extraction:
                 --  destruct the pairs,
                 --  recursively extract the arguments,
                 --  apply the primitive
                 let cp ns
-                        = convertPrim p ann
-                            ((fmap (uncurry CE.XApp) (fmap mapExtract res `zip` ns)) `zip` fmap typeExtract res)
-                xx       <- pairDestruct cp ts' (baseType retty)
+                        = convertPrim p ann retty
+                            ((fmap (uncurry CE.XApp) (fmap mapExtract res `zip` ns)) `zip` fmap (annResult . annotOfExp) args)
+                xx       <- pairDestruct cp ts retty
 
                 -- For konstrukt, we need to destruct the pairs, apply the sub-ks,
                 -- then box it up again in pairs.
-                let applyKs ns = fst <$> pairConstruct (fmap (uncurry CE.XApp) (fmap foldKons res `zip` ns)) ts'
-                kk       <- pairDestruct applyKs ts' tt
+                let applyKs ns = fst <$> pairConstruct (fmap (uncurry CE.XApp) (fmap foldKons res `zip` ns)) ts
+                kk       <- pairDestruct applyKs ts tt
 
-                let tt' = retty { baseType = tt }
-                return $ ConvertFoldResult kk zz xx tt' retty
+                return $ ConvertFoldResult kk zz xx tt retty'
 
      -- Variable lookup.
-     | Var (ann,retty) v <- final q
-      -> do fs <- convertFeatures
+     | Var (Annot { annAnnot = ann, annResult = retty }) v <- final q
+      -> do bound <- convertFreshenLookupMaybe v
+            fs <- convertFeatures
             -- Check if it is a scalar variable or postcomputation
-            case Map.lookup v fs of
-             Just (_, var')
+            case bound of
+             Just v'
+              | TemporalityPure  <- getTemporalityOrPure retty
+              -> do n'ignore <- lift fresh
+                    retty' <- convertValType' retty
+                    let k = CE.XLam n'ignore retty' $ CE.XVar v'
+                    return $ ConvertFoldResult k (CE.XVar v') k retty' retty'
+
+              | TemporalityElement <- getTemporalityOrPure retty
+              -> do retty' <- convertValType' retty
+                    i <- idFun retty'
+                    n'v <- lift fresh
+                    let k = CE.XLam n'v retty' $ CE.XVar v'
+                    let err = CE.XValue retty' $ VException ExceptScalarVariableNotAvailable
+                    return $ ConvertFoldResult k err i retty' retty'
+
+             -- For aggregate variables, the actual folding doesn't matter:
+             -- we can just return const unit for the fold part,
+             -- and at extract return the variable's value
+              | otherwise
+              -> do n'x <- lift fresh
+                    retty' <- convertValType' retty
+                    let ut    = T.UnitT
+                    let unit = CE.XValue ut VUnit
+
+                    let k    = CE.XLam n'x ut $ unit
+                    let z    = unit
+                    let x    = CE.XLam n'x ut $ CE.XVar $ v'
+
+                    return $ ConvertFoldResult k z x ut retty'
+
+
+             -- Otherwise it must be a feature
+             _
+              | Just (_, var') <- Map.lookup v fs
               -> do -- Creating a fold from a scalar variable is strange, since
                     -- the scalar variable is only available inside each iteration.
                     -- For the konstrukt, we just return the current value.
@@ -166,46 +163,21 @@ convertFold q
                     -- Extract, after the fold is finished, is just identity.
                     -- Const Unit would work too, since the extracted value should
                     -- never be used for the same reason the zero is not used.
-                    i <- idFun (baseType retty)
+
+                    retty' <- convertValType' retty
+                    i <- idFun retty'
                     n'v <- lift fresh
                     inp <- convertInputName
-                    let k = CE.XLam n'v (baseType retty) $ var' $ CE.XVar inp
-                    let err = CE.XValue (baseType retty) $ VException ExceptScalarVariableNotAvailable
-                    return $ ConvertFoldResult k err i retty retty
+                    let k = CE.XLam n'v retty' $ var' $ CE.XVar inp
+                    let err = CE.XValue retty' $ VException ExceptScalarVariableNotAvailable
+                    return $ ConvertFoldResult k err i retty' retty'
 
-             _
-              | Pure <- universeTemporality $ universe retty
-              -> do v'  <- convertFreshenLookup ann v
-                    n'ignore <- lift fresh
-                    let k = CE.XLam n'ignore (baseType retty) $ CE.XVar v'
-                    return $ ConvertFoldResult k (CE.XVar v') k retty retty
-
-              | Elem <- universeTemporality $ universe retty
-              -> do v'  <- convertFreshenLookup ann v
-                    i <- idFun (baseType retty)
-                    n'v <- lift fresh
-                    let k = CE.XLam n'v (baseType retty) $ CE.XVar v'
-                    let err = CE.XValue (baseType retty) $ VException ExceptScalarVariableNotAvailable
-                    return $ ConvertFoldResult k err i retty retty
-
-             -- For aggregate variables, the actual folding doesn't matter:
-             -- we can just return const unit for the fold part,
-             -- and at extract return the variable's value
               | otherwise
-              -> do n'x <- lift fresh
-                    v'  <- convertFreshenLookup ann v
-                    let ut    = T.UnitT
-                    let unit = CE.XValue ut VUnit
-
-                    let k    = CE.XLam n'x ut $ unit
-                    let z    = unit
-                    let x    = CE.XLam n'x ut $ CE.XVar $ v'
-
-                    return $ ConvertFoldResult k z x (definitelyUT $ snd $ annotOfExp $ final q) { baseType = ut } retty
+              -> convertError $ ConvertErrorExpNoSuchVariable ann v
 
      -- It must be a non-primitive application
      | otherwise
-      -> convertError $ ConvertErrorExpApplicationOfNonPrimitive (fst $ annotOfExp $ final q) (final q)
+      -> convertError $ ConvertErrorExpApplicationOfNonPrimitive (annAnnot $ annotOfExp $ final q) (final q)
 
     -- For filter, you convert the subquery as normal,
     -- then only apply the subquery's "k" when the filter predicate is true.
@@ -215,30 +187,37 @@ convertFold q
      -> do  res <- convertFold q'
             e'         <- convertExp  e
             prev       <- lift fresh
-            let tt'     = baseType $ typeFold res
+            let tt'    = typeFold res
             let prev'   = CE.XVar prev
             let k' = CE.XLam prev tt'
                    ( CE.XPrim (C.PrimFold C.PrimFoldBool tt')
                      CE.@~ (foldKons res CE.@~ prev') CE.@~ prev' CE.@~ e' )
             return (res { foldKons = k' })
 
-    (Windowed (ann,_) _ _ : _)
+    (Windowed (Annot { annAnnot = ann }) _ _ : _)
      -> errNotAllowed ann
-    (Latest (ann,_) _ : _)
+    (Latest (Annot { annAnnot = ann }) _ : _)
      -> errNotAllowed ann
-    (GroupBy (ann,_) _ : _)
+    (GroupBy (Annot { annAnnot = ann }) _ : _)
      -> errNotAllowed ann
-    (Distinct (ann,_) _ : _)
+    (Distinct (Annot { annAnnot = ann }) _ : _)
      -> errNotAllowed ann
 
 
     (Let _ b def : _)
-     | Pure <- universeTemporality $ universe $ snd $ annotOfExp def
+     | TemporalityPure  <- getTemporalityOrPure $ annResult $ annotOfExp def
      -> do  def' <- convertExp def
             n'   <- lift fresh
-            let t  = snd $ annotOfExp def
-            let t' = baseType t
-            let res = ConvertFoldResult (CE.XLam n' t' def') def' (CE.XLam n' t' def') t t
+            t' <- convertValType' $ annResult $ annotOfExp def
+            let res = ConvertFoldResult (CE.XLam n' t' def') def' (CE.XLam n' t' def') t' t'
+            convertAsLet b res
+
+     | TemporalityElement  <- getTemporalityOrPure $ annResult $ annotOfExp def
+     -> do  def' <- convertExp def
+            n'   <- lift fresh
+            t' <- convertValType' $ annResult $ annotOfExp def
+            let err = CE.XValue t' $ VException ExceptScalarVariableNotAvailable
+            let res = ConvertFoldResult (CE.XLam n' t' def') err (CE.XLam n' t' $ CE.XVar n') t' t'
             convertAsLet b res
 
      | otherwise
@@ -247,22 +226,17 @@ convertFold q
 
     (LetFold _ f@Fold{ foldType = FoldTypeFoldl1 } : _)
      -> do  -- Type helpers
-            let tU = baseType $ snd $ annotOfExp $ foldWork f
+            tU <- convertValType' $ annResult $ annotOfExp $ foldWork f
             let tO = T.OptionT tU
 
             -- Generate fresh names
             -- Current accumulator
             -- : Option tU
             n'a     <- lift fresh
-            -- Fully unwrapped accumulator
-            -- :        tU
-            n'a' <- convertFreshenAdd $ foldBind f
 
-
-            -- Remove binding before converting init and work expressions,
-            -- just in case the same name has been used elsewhere
-            convertModifyFeatures (Map.delete (foldBind f))
             z   <- convertExp (foldInit f)
+            -- Current accumulator is only available in worker
+            n'a' <- convertFreshenAdd $ foldBind f
             k   <- convertExp (foldWork f)
 
             let opt r = CE.XPrim $ C.PrimFold (C.PrimFoldOption tU) r
@@ -279,32 +253,25 @@ convertFold q
                      CE.@~ CE.XValue tU (VException ExceptFold1NoValue)
                      CE.@~ CE.XVar n'a )
 
-            let t' = snd $ annotOfExp $ foldWork f
-
-            let res = ConvertFoldResult k' (CE.XValue tO VNone) x' (t' { baseType = tO } ) t'
+            let res = ConvertFoldResult k' (CE.XValue tO VNone) x' tO tU
             convertAsLet (foldBind f) res
 
 
     (LetFold _ f@Fold{ foldType = FoldTypeFoldl } : _)
      -> do  -- Type helpers
-            let tU = baseType $ snd $ annotOfExp $ foldWork f
+            tU <- convertValType' $ annResult $ annotOfExp $ foldWork f
 
-            -- Generate fresh names
-            -- Current accumulator
-            n'a <- convertFreshenAdd $ foldBind f
 
-            -- Remove binding before converting init and work expressions,
-            -- just in case the same name has been used elsewhere
-            convertModifyFeatures (Map.delete (foldBind f))
             z   <- convertExp (foldInit f)
+            -- Current accumulator is only available in worker
+            n'a <- convertFreshenAdd $ foldBind f
             k   <- convertExp (foldWork f)
 
             let k' = CE.XLam n'a tU k
 
             x' <- idFun tU
 
-            let t' = snd $ annotOfExp $ foldWork f
-            let res = ConvertFoldResult k' z x' t' t'
+            let res = ConvertFoldResult k' z x' tU tU
             convertAsLet (foldBind f) res
 
 
@@ -314,11 +281,6 @@ convertFold q
 
   errNotAllowed ann
    = convertError $ ConvertErrorContextNotAllowedInGroupBy ann q
-
-  errAggBadArgs
-   = convertError
-   $ ConvertErrorReduceAggregateBadArguments (fst $ annotOfExp $ final q) (final q)
-
 
   -- Construct an identity function
   idFun tt = lift fresh >>= \n -> return (CE.XLam n tt (CE.XVar n))
@@ -366,17 +328,11 @@ convertFold q
 
 
   convertAsLet b resb
-   =    do  b' <- convertFreshenAdd b
-            resq <- convertFold q'
-            let tb'ret = baseType $ typeFold resb
-            let tq'ret = baseType $ typeFold resq
-            let u' = Universe { universeTemporality = universeTemporality $ universe $ typeFold resq
-                              , universePossibility = maxOfPossibility (universePossibility $ universe $ typeFold resb) (universePossibility $ universe $ typeFold resq) }
-            let t'     = UniverseType { universe = u', baseType = T.PairT tb'ret tq'ret}
-            let pairOuter = baseType t'
-
-            let tb' = baseType $ typeFold resb
-            let tq' = baseType $ typeFold resq
+   =    do  b'     <- convertFreshenAdd b
+            resq   <- convertFold q'
+            let tb' = typeFold resb
+            let tq' = typeFold resq
+            let tpair = T.PairT tb' tq'
 
             let mkPair x y
                    = CE.XPrim
@@ -390,17 +346,18 @@ convertFold q
             let xsnd = xproj Min.PrimPairSnd
 
             n' <- lift fresh
-            let k'  = CE.XLam n' pairOuter
+            let k'  = CE.XLam n' tpair
                     $ CE.XLet b' (foldKons resb CE.@~ xfst (CE.XVar n'))
                     $ mkPair (CE.XVar b') (foldKons resq CE.@~ xsnd (CE.XVar n'))
 
-            let z' = CE.XLet b' (foldZero resb)
-                   $ mkPair (CE.XVar b') (foldZero resq)
+            let z'  = CE.XLet b' (foldZero resb)
+                    $ mkPair (CE.XVar b') (foldZero resq)
 
-            let x' = CE.XLam n' pairOuter
+            let x'  = CE.XLam n' tpair
                     $ CE.XLet b' (mapExtract resb CE.@~ xfst (CE.XVar n'))
                                  (mapExtract resq CE.@~ xsnd (CE.XVar n'))
 
-            return $ ConvertFoldResult k' z' x' t' (typeExtract resq)
+            return $ ConvertFoldResult k' z' x' tpair (typeExtract resq)
 
+  convertValType' = convertValType (annAnnot $ annotOfQuery q)
 

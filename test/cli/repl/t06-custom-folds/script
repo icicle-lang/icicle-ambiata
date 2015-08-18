@@ -1,5 +1,5 @@
 -- Rolling average
-feature salary ~> let fold1 roll = value : roll * 0.5 + value * 0.5 ~> roll
+feature salary ~> let v = double value ~> let fold1 roll = v : roll * 0.5 + v * 0.5 ~> roll
 
 -- Sum
 feature salary ~> let fold xsum = 0 : xsum + value ~> xsum

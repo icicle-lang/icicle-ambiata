@@ -1,6 +1,7 @@
 -- | Top-level queries
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PatternGuards #-}
 module Icicle.Source.Query.Query (
     QueryTop  (..)
   , Query     (..)
@@ -22,19 +23,20 @@ module Icicle.Source.Query.Query (
 import                  Icicle.Source.Query.Context
 import                  Icicle.Source.Query.Exp
 import                  Icicle.Internal.Pretty
+import                  Icicle.Common.Base
 
 import                  P
 
 
 data QueryTop a n
  = QueryTop
- { feature  :: n
+ { feature  :: Name n
  , query    :: Query a n }
  deriving (Show, Eq, Ord)
 
 data Query a n
  = Query
- { contexts :: [Context a n] 
+ { contexts :: [Context a n]
  , final    :: Exp a n }
  deriving (Show, Eq, Ord)
 
@@ -62,8 +64,15 @@ simplifyNestedQT q
 
 simplifyNestedQ :: Query a n -> Query a n
 simplifyNestedQ q
- = Query (fmap simplifyNestedC $ contexts q)
+ = simp
+ $ Query (fmap simplifyNestedC $ contexts q)
          (     simplifyNestedX $ final    q)
+ where
+  simp q'
+   | Query cs (Nested _ (Query cs' x')) <- q'
+   = Query (cs <> cs') x'
+   | otherwise
+   = q'
 
 simplifyNestedC :: Context a n -> Context a n
 simplifyNestedC c
@@ -132,12 +141,6 @@ reannotQT f qt
 annotOfQuery :: Query a n -> a
 annotOfQuery q
  = case contexts q of
-    [] -> annotOfExp $ final q
-    (Windowed a _ _:_) -> a
-    (Latest   a _  :_) -> a
-    (GroupBy  a _  :_) -> a
-    (Distinct a _  :_) -> a
-    (Filter   a _  :_) -> a
-    (LetFold  a _  :_) -> a
-    (Let      a _ _:_) -> a
+    []    -> annotOfExp $ final q
+    (c:_) -> annotOfContext c
 

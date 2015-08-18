@@ -7,10 +7,12 @@ module Icicle.Source.Query.Context (
   , WindowUnit(..)
   , Fold      (..)
   , FoldType  (..)
+  , annotOfContext
   ) where
 
 import                  Icicle.Source.Query.Exp
 import                  Icicle.Internal.Pretty
+import                  Icicle.Common.Base
 
 import                  P
 
@@ -22,7 +24,7 @@ data Context' q a n
  | Distinct  a          (Exp' q a n)
  | Filter    a          (Exp' q a n)
  | LetFold   a          (Fold q a n)
- | Let       a      n   (Exp' q a n)
+ | Let       a (Name n) (Exp' q a n)
  deriving (Show, Eq, Ord)
 
 data WindowUnit
@@ -33,7 +35,7 @@ data WindowUnit
 
 data Fold q a n
  = Fold
- { foldBind :: n
+ { foldBind :: Name n
  , foldInit :: Exp' q a n
  , foldWork :: Exp' q a n
  , foldType :: FoldType }
@@ -43,6 +45,18 @@ data FoldType
  = FoldTypeFoldl1
  | FoldTypeFoldl
  deriving (Show, Eq, Ord)
+
+
+annotOfContext :: Context' q a n -> a
+annotOfContext c
+ = case c of
+    Windowed a _ _ -> a
+    Latest   a _   -> a
+    GroupBy  a _   -> a
+    Distinct a _   -> a
+    Filter   a _   -> a
+    LetFold  a _   -> a
+    Let      a _ _ -> a
 
 
 instance (Pretty n, Pretty q) => Pretty (Context' q a n) where

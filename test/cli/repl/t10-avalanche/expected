@@ -1,4 +1,5 @@
 welcome to iREPL
+ok, loaded 6 functions from data/libs/prelude.icicle
 ok, loaded test/cli/repl/data.psv, 8 rows
 > -- Show everything
 > ok, type is now on
@@ -9,7 +10,7 @@ ok, avalanche is now on
 ok, flatten is now on
 > > -- A rather complicated feature to convert to Avalanche
 > - Type:
-Agg (Int, (Array Int))
+Aggregate (Int, (Array Int))
 
 - Core:
 Program (source : Stream Int)
@@ -25,31 +26,29 @@ conv$1 =
                  conv$2
      in gt# [Int] simp$1 (10 : Int))
     conv$0
-conv$8 =
+conv$6 =
     smap    [(Int, DateTime)] [Int]
     (
-    \conv$9 : (Int, DateTime). 
-    fst# [Int] [DateTime] conv$9)
+    \conv$7 : (Int, DateTime). 
+    fst# [Int] [DateTime] conv$7)
     conv$0
 Reductions:
-conv$5 =
+c$conv$4 =
     rfold   [(Int, DateTime)]
     [Int] (
-    \conv$3 : Int.  
-    \conv$4 : (Int, DateTime). 
-    add# [Int] conv$3 (1 : Int))
+    \c$conv$4 : Int.  
+    \conv$3 : (Int, DateTime). 
+    add# [Int] c$conv$4 (1 : Int))
     (0 : Int) conv$1
-conv$7 =
+conv$5 =
     rlatest [Int] (3 : Int)
-    conv$8
+    conv$6
 Postcomputations:
-conv$6 =
-    conv$5
-conv$10 =
+conv$8 =
     pair# [Int] [(Array Int)]
-    conv$6 conv$7
+    c$conv$4 conv$5
 Returning:
-    conv$10
+    conv$8
 
 
 - Core type:
@@ -58,16 +57,16 @@ Returning:
 - Avalanche:
 gen$date = DATE
 {
-  init acc$conv$7 = 3 : Int (Latest);
+  init acc$conv$5 = 3 : Int (Latest);
   for_facts (elem$gen$fact : Int, elem$gen$date : Date) in history {
     let gen$fact = pair# [Int] [DateTime]
                    elem$gen$fact elem$gen$date;
-    let elem$conv$8 = fst# [Int] [DateTime]
+    let elem$conv$6 = fst# [Int] [DateTime]
                       gen$fact;
-    push acc$conv$7(elem$conv$8);
+    push acc$conv$5(elem$conv$6);
   }
-  init acc$conv$5 = 0 : Int (Mutable);
-  load_resumable acc$conv$5;
+  init acc$c$conv$4 = 0 : Int (Mutable);
+  load_resumable acc$c$conv$4;
   for_facts (elem$gen$fact : Int, elem$gen$date : Date) in new {
     let gen$fact = pair# [Int] [DateTime]
                    elem$gen$fact elem$gen$date;
@@ -75,46 +74,46 @@ gen$date = DATE
                 gen$fact;
     if (gt# [Int] anf$1
         (10 : Int)) {
-      read acc$conv$5 = acc$conv$5;
-      write acc$conv$5 = add# [Int]
-                         acc$conv$5 (1 : Int);
+      read acc$c$conv$4 = acc$c$conv$4;
+      write acc$c$conv$4 = add# [Int]
+                           acc$c$conv$4 (1 : Int);
     }
-    let elem$conv$8 = anf$1;
-    push acc$conv$7(elem$conv$8);
+    let elem$conv$6 = anf$1;
+    push acc$conv$5(elem$conv$6);
   }
-  save_resumable acc$conv$5;
+  save_resumable acc$c$conv$4;
+  read c$conv$4 = acc$c$conv$4;
   read conv$5 = acc$conv$5;
-  read conv$7 = acc$conv$7;
-  let conv$10 = pair# [Int] [(Array Int)]
-                conv$5 conv$7;
-  return conv$10;
+  let conv$8 = pair# [Int] [(Array Int)]
+               c$conv$4 conv$5;
+  return conv$8;
 }
 
 - Flattened:
 gen$date = DATE
 {
-  init acc$conv$7 = 3 : Int (Latest);
+  init acc$conv$5 = 3 : Int (Latest);
   for_facts (elem$gen$fact : Int, elem$gen$date : Date) in history {
-    push acc$conv$7(elem$gen$fact);
+    push acc$conv$5(elem$gen$fact);
   } 
   
-  init acc$conv$5 = 0 : Int (Mutable);
-  load_resumable acc$conv$5;
+  init acc$c$conv$4 = 0 : Int (Mutable);
+  load_resumable acc$c$conv$4;
   for_facts (elem$gen$fact : Int, elem$gen$date : Date) in new {
     if (gt# [Int] elem$gen$fact
         (10 : Int)) {
-      read acc$conv$5 = acc$conv$5;
-      write acc$conv$5 = add# [Int]
-                         acc$conv$5 (1 : Int);
+      read acc$c$conv$4 = acc$c$conv$4;
+      write acc$c$conv$4 = add# [Int]
+                           acc$c$conv$4 (1 : Int);
     }
-    push acc$conv$7(elem$gen$fact);
+    push acc$conv$5(elem$gen$fact);
   }
-  save_resumable acc$conv$5;
+  save_resumable acc$c$conv$4;
+  read c$conv$4 = acc$c$conv$4;
   read conv$5 = acc$conv$5;
-  read conv$7 = acc$conv$7;
-  let conv$10 = pair# [Int] [(Array Int)]
-                conv$5 conv$7;
-  return conv$10;
+  let conv$8 = pair# [Int] [(Array Int)]
+               c$conv$4 conv$5;
+  return conv$8;
 }
 
 - Result:

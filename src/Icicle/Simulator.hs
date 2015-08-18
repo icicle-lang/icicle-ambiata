@@ -17,6 +17,7 @@ import qualified Data.Map           as Map
 import           Data.Text (Text)
 
 import qualified Icicle.BubbleGum   as B
+import           Icicle.Common.Base
 import           Icicle.Data
 import           Icicle.Data.DateTime
 import           Icicle.Dictionary
@@ -29,7 +30,8 @@ import qualified Icicle.Common.Base       as V
 import qualified Icicle.Core.Eval.Program as PV
 import qualified Icicle.Core.Program.Program as P
 
-
+import           Icicle.Source.Query
+import           Icicle.Source.Lexer.Token
 
 data Partition =
   Partition
@@ -78,7 +80,7 @@ makePartition fs@(f:_)
 
 
 evaluateVirtuals :: Dictionary -> DateTime -> [Partition] -> [(Attribute, [(Entity, Result)])]
-evaluateVirtuals (Dictionary fields) date facts
+evaluateVirtuals (Dictionary { dictionaryEntries = fields }) date facts
  = P.concatMap go fields
  where
   go (DictionaryEntry attr (VirtualDefinition virt))
@@ -87,12 +89,13 @@ evaluateVirtuals (Dictionary fields) date facts
    = []
 
 evaluateVirtual  :: Virtual -> DateTime -> [Partition] -> [(Entity, Result)]
-evaluateVirtual virt date facts
+evaluateVirtual virt _ facts
  = P.concatMap go facts
  where
-  go (Partition ent attr values)
-   | attr == concrete virt
-   = [(ent, evaluateVirtualValue (program virt) date values)]
+  go (Partition _ attr _)
+   | (Name . Variable . getAttribute) attr == (feature . unVirtual) virt
+   = []
+   -- = [(ent, evaluateVirtualValue (program virt) date values)]
    | otherwise
    = []
 

@@ -1,2 +1,2 @@
 #!/bin/sh -eu
-dist/build/icicle/icicle --dictionary
+# dist/build/icicle/icicle --dictionary

@@ -48,6 +48,8 @@ data Token
  | TEqual
  -- | ':' as in cons or "followed by" for folds
  | TFollowedBy
+ -- | '.' for separating function definitions.
+ | TStatementEnd
 
  -- | '~>' for composition
  | TDataFlow
@@ -60,7 +62,6 @@ data Keyword
  = And
  | Average
  | Between
- | Count
  | Days
  | Distinct
  | Feature
@@ -72,9 +73,6 @@ data Keyword
  | Let
  | Max
  | Months
- | Newest
- | Oldest
- | Sum
  | Weeks
  | Windowed
  | Log
@@ -120,6 +118,8 @@ operator t
  = TEqual
  | t == ":"
  = TFollowedBy
+ | t == "."
+ = TStatementEnd
  | t == "~>"
  = TDataFlow
  | otherwise

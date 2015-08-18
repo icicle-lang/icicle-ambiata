@@ -6,6 +6,8 @@ module Icicle.Source.Parser.Parser (
   , context
   , exp
   , windowUnit
+  , functions
+  , function
   ) where
 
 import qualified        Icicle.Source.Lexer.Token  as T
@@ -13,9 +15,11 @@ import                  Icicle.Source.Parser.Token
 import                  Icicle.Source.Parser.Operators
 import qualified        Icicle.Source.Query        as Q
 
+import                  Icicle.Common.Base
+
 import                  P hiding (exp)
 
-import                  Text.Parsec (many1, parserFail, getPosition, eof, (<?>))
+import                  Text.Parsec (many1, parserFail, getPosition, eof, (<?>), sepEndBy)
 
 top :: Parser (Q.QueryTop T.SourcePos Var)
 top
@@ -26,6 +30,16 @@ top
         eof
         return $ Q.QueryTop v q
 
+functions :: Parser [((T.SourcePos, Name Var), (Q.Function T.SourcePos Var))]
+functions
+ = ((,) <$> ((,) <$> getPosition <*> pVariable) <*> function) `sepEndBy` (pEq T.TStatementEnd)
+
+function :: Parser (Q.Function T.SourcePos Var)
+function
+ = do   v <- many ((,) <$> getPosition <*> pVariable)       <?> "function variables"
+        pEq T.TEqual                                        <?> "equals"
+        q <- query
+        return $ Q.Function v q
 
 query :: Parser (Q.Query T.SourcePos Var)
 query
@@ -134,12 +148,7 @@ windowUnit
 
 primitives :: [(T.Keyword, Q.Prim)]
 primitives
- = [(T.Newest, Q.Agg Q.Newest)
-   ,(T.Count,  Q.Agg Q.Count)
-   ,(T.Oldest, Q.Agg Q.Oldest)
-   ,(T.Sum,    Q.Agg Q.SumA)
-
-   ,(T.Log,     Q.Fun Q.Log)
+ = [(T.Log,     Q.Fun Q.Log)
    ,(T.Exp,     Q.Fun Q.Exp)
    ,(T.Double,  Q.Fun Q.ToDouble)
    ,(T.Int,     Q.Fun Q.ToInt)

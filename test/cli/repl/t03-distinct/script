@@ -5,4 +5,4 @@ feature salary ~> distinct value ~> count
 feature salary ~> distinct date ~> count
 
 -- Average of distincts. That is, find the *last* for each date, and average all lasts
-feature salary ~> distinct date ~> sum value / count
+feature salary ~> distinct date ~> mean value
