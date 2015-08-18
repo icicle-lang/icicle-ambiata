@@ -38,6 +38,8 @@ import           Icicle.Storage.Encoding
 import           Icicle.Storage.Dictionary.Toml.Prisms
 import           Icicle.Storage.Dictionary.Toml.Types
 
+import           Icicle.Internal.Pretty hiding (char)
+
 {-
 Dictionary config can be inherited from higher level dictionaries, items such as
 Namespace and tombstone can be scoped based on where they are defined, and overridden
@@ -66,7 +68,7 @@ data DictionaryValidationError =
   UnknownElement Text Pos.SourcePos
   | BadType Text Text Pos.SourcePos
   | MissingRequired Text Text
-  | EncodingError Text Pos.SourcePos
+  | EncodingError Text Text Pos.SourcePos
   | ParseError ParseError
   deriving (Eq, Show)
 
@@ -132,7 +134,7 @@ validateTableWith _ n _ (_, pos) = AccFailure $ [BadType n "table" pos]
 validateFact :: DictionaryConfig -> Text -> Table -> AccValidation [DictionaryValidationError] DictionaryEntry'
 validateFact _ name x =
   let -- Every fact needs an encoding, which can't be inherited from it's parent.
-      encoding   = maybe (AccFailure [MissingRequired ("fact." <> name) "encoding"]) validateEncoding' $ M.lookup "encoding" x
+      encoding   = maybe (AccFailure [MissingRequired ("fact." <> name) "encoding"]) (validateEncoding' ("fact." <> name)) $ M.lookup "encoding" x
       {-
          This section is commented out until concrete features can specify their tombstones and namespaces are first class.
          -- A parameter which is required, and if given must be validated. If it's not given however, a parent value can be used.
@@ -143,23 +145,23 @@ validateFact _ name x =
       -- Todo: ensure that there's no extra data lying around. All valid TOML should be used.
   in DictionaryEntry' (Attribute name) <$> (ConcreteDefinition' <$> encoding)
 
-validateEncoding' :: (Node, Pos.SourcePos) -> AccValidation [DictionaryValidationError] Encoding
+validateEncoding' :: Text -> (Node, Pos.SourcePos) -> AccValidation [DictionaryValidationError] Encoding
 -- We can accept an encoding as a string in the old form.
-validateEncoding' (NTValue (VString encs), pos) =
+validateEncoding' ofFeature (NTValue (VString encs), pos) =
   let encodingString = pack $ fst <$> encs
-  in either (AccFailure . const [EncodingError encodingString pos]) AccSuccess $ parseOnly parseEncoding encodingString
+  in either (AccFailure . const [EncodingError ofFeature encodingString pos]) AccSuccess $ parseOnly parseEncoding encodingString
 -- Or as a table with string fields.
-validateEncoding' (NTable t, _) =
+validateEncoding' ofFeature (NTable t, _) =
   -- We should get an error for every failed encoding listed.
   (StructEncoding . toList) <$> M.traverseWithKey ( \name (enc, pos') -> either AccFailure AccSuccess $ do
     -- Using a monad instance here, as the encoding should be a string, and then it should parse correctly.
     enc' <- maybe (Left $ [BadType name "string" pos']) (Right . fmap fst) $ enc ^? _NTValue . _VString
     -- Now that we have a string, parse it with attoparsec
-    (enc'', fieldType) <- mapLeft (const [EncodingError (pack enc') pos']) $ parseOnly ((,) <$> parsePrimitiveEncoding <*> (Optional <$ char '*' <|> pure Mandatory) <* endOfInput) (pack enc')
+    (enc'', fieldType) <- mapLeft (const [EncodingError ofFeature (pack enc') pos']) $ parseOnly ((,) <$> parsePrimitiveEncoding <*> (Optional <$ char '*' <|> pure Mandatory) <* endOfInput) (pack enc')
     pure $ StructField fieldType (Attribute name) enc''
   ) t
 -- But all other values should be failures.
-validateEncoding' (_, pos) = AccFailure $ [BadType "encoding" "string" pos]
+validateEncoding' ofFeature (_, pos) = AccFailure $ [BadType (ofFeature <> ".encoding") "string" pos]
 
 validateText :: Text -> (Node, Pos.SourcePos) -> AccValidation [DictionaryValidationError] Text
 validateText ttt x = maybe (AccFailure [BadType ttt "string" (x ^. _2)]) (AccSuccess . pack . fmap fst) $ x ^? _1 . _NTValue . _VString
@@ -194,3 +196,18 @@ fromEither = either AccFailure AccSuccess
 accValidation :: (a -> c) -> (b -> c) -> AccValidation a b -> c
 accValidation f _ (AccFailure a) = f a
 accValidation _ f (AccSuccess b) = f b
+
+
+instance Pretty DictionaryValidationError where
+ pretty e
+  = case e of
+     UnknownElement n p
+      -> "Unknown element in dictionary" <+> (dquotes . pretty) n <+> "at" <+> (dquotes . pretty) p
+     BadType n t p
+      -> "Dictionary entry" <+> (dquotes . pretty) n <+> "at" <+> pretty p <+> "has the wrong type, expected" <+> (dquotes . pretty) t
+     MissingRequired n ex
+      -> "Dictionary entry" <+> (dquotes . pretty) n <+> "is missing" <+> (dquotes . pretty) ex
+     EncodingError f n p
+      -> "Fact" <+> (dquotes . pretty) f <+> "has a bad feature encoding" <+> (dquotes . pretty) n <+> "at" <+> pretty p <+> "it could not be parsed"
+     ParseError p
+      -> "Error parsing feature expression, extra info:" <+> (text . show) p
