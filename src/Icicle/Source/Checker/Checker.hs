@@ -43,7 +43,7 @@ checkQT features qt
 
     Nothing
      -> hoistEither
-      $ errorSuggestions (ErrorNoSuchFeature (feature qt))
+      $ errorSuggestions (ErrorNoSuchFeature (annotOfQuery $ query qt) (feature qt))
                          [suggestionForFeatures]
 
  where
