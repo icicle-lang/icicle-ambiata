@@ -163,7 +163,7 @@ lookup ann n
          Nothing
           -> hoistEither
            $ errorSuggestions (ErrorNoSuchVariable ann n)
-                              [AvailableBindings $ Map.toList env]
+                              [AvailableBindings n $ Map.toList env]
 
 bind :: Ord n => Name n -> Type n -> Gen a n ()
 bind n t

@@ -126,6 +126,7 @@ library
                        Icicle.Dictionary.Demographics
 
                        Icicle.Encoding
+                       Icicle.Internal.EditDistance
                        Icicle.Internal.Pretty
                        Icicle.Internal.Rename
                        Icicle.Serial
