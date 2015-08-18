@@ -403,6 +403,7 @@ convertQuery q
 
          TemporalityAggregate
           -> do (bs,n')      <- convertReduce    def
+                convertModifyFeatures (Map.delete b)
                 b'      <- convertFreshenAdd b
                 (bs',n'')    <- convertQuery     q'
                 return (bs <> post b' (CE.XVar n') <> bs', n'')
@@ -573,8 +574,14 @@ convertReduce xx
 
 
  -- Convert a nested query
+ -- Any lets, folds etc bound in here will go out of scope at the end.
+ -- So we revert the state at the end, clearing any bindings,
+ -- rolling back to the old input type, etc.
  | Nested _ q   <- xx
- = convertQuery q
+ = do   o <- get
+        r <- convertQuery q
+        put o
+        return r
  -- Any variable must be a let-bound aggregate, so we can safely assume it has a binding.
  | Var (Annot { annAnnot = ann }) v      <- xx
  = (,) mempty <$> convertFreshenLookup ann v
