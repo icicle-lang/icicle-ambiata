@@ -103,6 +103,10 @@ simplifyNestedX xx
     Prim{}
      -> xx
 
+    Case a scrut pats
+     -> Case a (simplifyNestedX scrut)
+      $ fmap (\(p,x) -> (p, simplifyNestedX x)) pats
+
 
 
 reannotX :: (a -> a') -> Exp a n -> Exp a' n
@@ -112,6 +116,10 @@ reannotX f xx
     Nested a q   -> Nested (f a) (reannotQ f q)
     App    a x y -> App    (f a) (reannotX f x) (reannotX f y)
     Prim   a p   -> Prim   (f a)  p
+    Case a scrut pats
+     -> Case (f a) (reannotX f scrut)
+      $ fmap (\(p,x) -> (p, reannotX f x)) pats
+
 
 reannotC :: (a -> a') -> Context a n -> Context a' n
 reannotC f cc

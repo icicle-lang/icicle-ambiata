@@ -134,6 +134,7 @@ library
                        Icicle.Source.Eval
                        Icicle.Source.Query
                        Icicle.Source.Query.Query
+                       Icicle.Source.Query.Constructor
                        Icicle.Source.Query.Context
                        Icicle.Source.Query.Exp
                        Icicle.Source.Query.Function
