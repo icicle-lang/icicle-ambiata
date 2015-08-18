@@ -171,8 +171,9 @@ expToJava ctx b xx
               $ name n
             XValue _ v
              -> case v of
-                 VInt i -> boxy b Unboxed t $ pretty i
-                 VUnit  -> boxy b Unboxed t $ "13013"
+                 VInt    i -> boxy b Unboxed t $ pretty i
+                 VDouble i -> boxy b Unboxed t $ pretty i
+                 VUnit     -> boxy b Unboxed t $ "13013"
                  VMap m
                   | Map.null m
                   -> "IcicleMap.empty()"
