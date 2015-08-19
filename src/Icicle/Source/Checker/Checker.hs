@@ -48,7 +48,7 @@ checkQT features qt
 
  where
   suggestionForFeatures
-   = AvailableFeatures
+   = AvailableFeatures (feature qt)
    $ fmap (\(k,(t,_)) -> (k, t))
    $ Map.toList
    $ featuresConcretes features
