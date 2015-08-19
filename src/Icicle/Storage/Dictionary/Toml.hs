@@ -142,14 +142,14 @@ freshNamer prefix = Fresh.counterPrefixNameState (SP.Variable . T.pack . show) (
 
 
 instance Pretty DictionaryImportError where
-  pretty (DictionaryErrorIO s)
-   = "IO Exception: " <> text (show s)
+  pretty (DictionaryErrorIO e)
+   = "IO Exception:" <+> (text . show) e
   pretty (DictionaryErrorParsecTOML e)
-   = "TOML parse error: " <> text (show e)
+   = "TOML parse error:" <+> (text . show) e
   pretty (DictionaryErrorParsecFunc e)
-   = "Function parse error: " <> text (show e)
+   = "Function parse error:" <+> (text . show) e
   pretty (DictionaryErrorParse es)
-   = "Function parse error: " <> text (show es)
+   = vcat $ fmap pretty es
   pretty (DictionaryErrorCheck e)
-   = "Typechecking error: " <> pretty e
+   = pretty e
 

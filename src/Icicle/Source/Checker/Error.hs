@@ -25,7 +25,7 @@ data CheckError a n
 
 data ErrorInfo a n
  = ErrorNoSuchVariable a (Name n)
- | ErrorNoSuchFeature (Name n)
+ | ErrorNoSuchFeature a (Name n)
  | ErrorContextNotAllowedHere  a (Context a n)
  | ErrorFunctionWrongArgs      a (Exp a n) (FunctionType n) [Type n]
  | ErrorApplicationNotFunction a (Exp a n)
@@ -38,8 +38,8 @@ annotOfError (CheckError e _)
  = case e of
     ErrorNoSuchVariable a _
      -> Just a
-    ErrorNoSuchFeature _
-     -> Nothing
+    ErrorNoSuchFeature a _
+     -> Just a
     ErrorContextNotAllowedHere  a _
      -> Just a
     ErrorFunctionWrongArgs      a _ _ _
@@ -83,8 +83,8 @@ instance (Pretty a, Pretty n) => Pretty (ErrorInfo a n) where
   = case e of
      ErrorNoSuchVariable a n
       -> "Unknown variable" <+> pretty n <+> "at" <+> pretty a
-     ErrorNoSuchFeature n
-      -> "The dictionary has no feature called" <+> pretty n
+     ErrorNoSuchFeature a n
+      -> "The dictionary has no feature called" <+> pretty n <+> "at" <+> pretty a
 
      ErrorContextNotAllowedHere  a c
       -> "Context is not allowed at" <+> pretty a <> line
