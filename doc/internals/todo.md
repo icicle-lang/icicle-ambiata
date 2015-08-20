@@ -25,7 +25,7 @@ Groups must end in folds, but there is currently no way to fold over all the val
 Suppose we want to group by days, then find the day with the maximum number of entries:
 ```
 feature feat
-~> group fold (key|value) = (group date ~> count)
+~> group fold (key,value) = (group date ~> count)
 ~> maximum value
 ```
 
@@ -44,4 +44,31 @@ Boolean connective primitives
 Define ``(&&)``, ``(||)`` and so on as operators.
 Define ``not`` as primitive.
 Once we have case expressions we could probably define these in the prelude, however we don't have any way of defining infix operators in the prelude at the moment - and I'm not convinced it's particularly necessary.
+
+
+Set operations
+--------------
+
+I think "CountBySecondary" requires set operations.
+```
+setOf v
+ = let fold
+    set = Set.empty
+        : Set.insert v set
+ ~> set
+```
+
+Array operations
+----------------
+Since the result of ``latest`` can be an array, it would be very useful to have indexing, filters and whatnots.
+Currently filters are allowed, but only if the end result is an aggregate:
+```
+latest 5 ~> filter pred ~> count
+```
+is allowed, whereas this is not, as the result is an element.
+It should return an array of values, filtered.
+```
+latest 5 ~> filter pred ~> value
+```
+
 
