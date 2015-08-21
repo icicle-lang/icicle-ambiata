@@ -43,12 +43,12 @@ checkQT features qt
 
     Nothing
      -> hoistEither
-      $ errorSuggestions (ErrorNoSuchFeature (feature qt))
+      $ errorSuggestions (ErrorNoSuchFeature (annotOfQuery $ query qt) (feature qt))
                          [suggestionForFeatures]
 
  where
   suggestionForFeatures
-   = AvailableFeatures
+   = AvailableFeatures (feature qt)
    $ fmap (\(k,(t,_)) -> (k, t))
    $ Map.toList
    $ featuresConcretes features

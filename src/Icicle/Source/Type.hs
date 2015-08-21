@@ -10,3 +10,4 @@ import Icicle.Source.Type.Base          as X
 import Icicle.Source.Type.Compounds     as X
 import Icicle.Source.Type.Constraints   as X
 import Icicle.Source.Type.Subst         as X
+import Icicle.Source.Type.Pretty        as X

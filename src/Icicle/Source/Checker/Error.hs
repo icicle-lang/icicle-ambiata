@@ -9,15 +9,17 @@ module Icicle.Source.Checker.Error (
   , errorSuggestions
   ) where
 
-import                  Icicle.Source.Query
-import                  Icicle.Source.Type
+import           Icicle.Source.Query
+import           Icicle.Source.Type
 
-import                  Icicle.Common.Base
-import                  Icicle.Internal.Pretty
+import           Icicle.Common.Base
+import           Icicle.Internal.EditDistance
+import           Icicle.Internal.Pretty
 
-import                  P
+import           P
 
-import                  Data.String
+import           Data.List (sortBy, take)
+import           Data.String
 
 data CheckError a n
  = CheckError (ErrorInfo a n) [ErrorSuggestion a n]
@@ -25,7 +27,7 @@ data CheckError a n
 
 data ErrorInfo a n
  = ErrorNoSuchVariable a (Name n)
- | ErrorNoSuchFeature (Name n)
+ | ErrorNoSuchFeature a (Name n)
  | ErrorContextNotAllowedHere  a (Context a n)
  | ErrorFunctionWrongArgs      a (Exp a n) (FunctionType n) [Type n]
  | ErrorApplicationNotFunction a (Exp a n)
@@ -38,8 +40,8 @@ annotOfError (CheckError e _)
  = case e of
     ErrorNoSuchVariable a _
      -> Just a
-    ErrorNoSuchFeature _
-     -> Nothing
+    ErrorNoSuchFeature a _
+     -> Just a
     ErrorContextNotAllowedHere  a _
      -> Just a
     ErrorFunctionWrongArgs      a _ _ _
@@ -53,8 +55,8 @@ annotOfError (CheckError e _)
 
 
 data ErrorSuggestion a n
- = AvailableFeatures [(Name n, Type n)]
- | AvailableBindings [(Name n, FunctionType n)]
+ = AvailableFeatures (Name n) [(Name n, Type n)]
+ | AvailableBindings (Name n) [(Name n, FunctionType n)]
  | Suggest String
  deriving (Show, Eq, Ord)
 
@@ -83,8 +85,8 @@ instance (Pretty a, Pretty n) => Pretty (ErrorInfo a n) where
   = case e of
      ErrorNoSuchVariable a n
       -> "Unknown variable" <+> pretty n <+> "at" <+> pretty a
-     ErrorNoSuchFeature n
-      -> "The dictionary has no feature called" <+> pretty n
+     ErrorNoSuchFeature a n
+      -> "The dictionary has no feature called" <+> pretty n <+> "at" <+> pretty a
 
      ErrorContextNotAllowedHere  a c
       -> "Context is not allowed at" <+> pretty a <> line
@@ -111,23 +113,29 @@ instance (Pretty a, Pretty n) => Pretty (ErrorInfo a n) where
 
    where
     inp x = indent 0 (pretty x)
- 
+
 
 instance (Pretty a, Pretty n) => Pretty (ErrorSuggestion a n) where
  pretty e
   = case e of
-     AvailableFeatures bs
-      -> "The features in this dictionary are:"
-      <> indent 2 (vcat $ fmap pretty_ty bs)
+     AvailableFeatures n' bs
+      -> let bs' = take 5
+                 $ flip sortBy bs
+                 $ on compare
+                 $ (editDistance $ pretty n') . pretty . fst
+         in "Suggested features are:"
+            <> indent 2 (vcat $ fmap pretty_ty bs')
 
-     AvailableBindings bs
-      -> "The available bindings are:"
-      <> indent 2 (vcat $ fmap pretty_ty bs)
-
+     AvailableBindings n' bs
+      -> let bs' = take 5
+                 $ flip sortBy bs
+                 $ on compare
+                 $ (editDistance $ pretty n') . pretty . fst
+         in "Suggested bindings are:"
+            <> indent 2 (vcat $ fmap pretty_ty bs')
 
      Suggest str
       -> text str
 
   where
-   pretty_ty (k,t) = pretty k <+> ":" <+> pretty t
-
+    pretty_ty (k,t) = pretty k <+> ":" <+> pretty t

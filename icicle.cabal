@@ -53,7 +53,6 @@ library
 
   exposed-modules:
                        Paths_icicle
-                       BuildInfo_icicle
                        Icicle
 
                        Icicle.Avalanche.Program
@@ -126,6 +125,7 @@ library
                        Icicle.Dictionary.Demographics
 
                        Icicle.Encoding
+                       Icicle.Internal.EditDistance
                        Icicle.Internal.Pretty
                        Icicle.Internal.Rename
                        Icicle.Serial
@@ -134,7 +134,6 @@ library
                        Icicle.Source.Eval
                        Icicle.Source.Query
                        Icicle.Source.Query.Query
-                       Icicle.Source.Query.Constructor
                        Icicle.Source.Query.Context
                        Icicle.Source.Query.Exp
                        Icicle.Source.Query.Function
@@ -151,7 +150,9 @@ library
                        Icicle.Source.Type.Base
                        Icicle.Source.Type.Compounds
                        Icicle.Source.Type.Constraints
+                       Icicle.Source.Type.Pretty
                        Icicle.Source.Type.Subst
+
                        Icicle.Source.Checker
                        Icicle.Source.Checker.Base
                        Icicle.Source.Checker.Checker

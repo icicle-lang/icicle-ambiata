@@ -19,6 +19,8 @@ import qualified Icicle.Test.Avalanche.Scoped
 -- Superseded
 -- import qualified Icicle.Test.Dictionary.Types
 
+import qualified Icicle.Test.Internal.EditDistance
+
 import qualified Icicle.Test.Source.PrettyParse
 import qualified Icicle.Test.Source.Progress
 import qualified Icicle.Test.Source.Convert
@@ -48,6 +50,8 @@ main
         , Icicle.Test.Avalanche.Scoped.tests
 
         -- , Icicle.Test.Dictionary.Types.tests
+
+        , Icicle.Test.Internal.EditDistance.tests
 
         , Icicle.Test.Source.PrettyParse.tests
         , Icicle.Test.Source.Progress.tests

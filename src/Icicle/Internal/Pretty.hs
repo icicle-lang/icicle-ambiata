@@ -9,9 +9,11 @@
 -- We will just hide that one.
 --
 {-# OPTIONS_GHC -fno-warn-orphans #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Internal.Pretty (
     module PP
     , (<+?>)
+    , padDoc
     ) where
 
 -- The one we want to export without <> or <$>
@@ -21,7 +23,8 @@ import              Text.PrettyPrint.Leijen as PJOIN
 
 import              P
 
-import              Data.Text               as T
+import              Data.List (reverse, replicate, lines)
+import qualified    Data.Text               as T
 import              Data.String (IsString(..))
 
 instance Monoid Doc where
@@ -29,7 +32,7 @@ instance Monoid Doc where
  mappend = (PJOIN.<>)
 
 -- We also need to be able to pretty Data.Text...
-instance Pretty Text where
+instance Pretty T.Text where
  pretty t = text (T.unpack t)
 
 -- String literals are nice to have.
@@ -40,10 +43,26 @@ instance IsString Doc where
 -- This probably shouldn't be used for large documents.
 (<+?>) :: Doc -> Doc -> Doc
 a <+?> b
- | P.null $ show a
+ | null $ show a
  = b
- | P.null $ show b
+ | null $ show b
  = a
  | otherwise
  = a <+> b
+
+
+-- | Pad a document out to some width
+-- left aligned
+padDoc :: Int -> Doc -> Doc
+padDoc wid doc
+ = let d' = lines $ show doc
+       w  = maybe 0 length $ lastMaybe d'
+   in  if w <= wid
+       then doc P.<> mconcat (replicate (wid - w) (text " "))
+       else doc P.<> line P.<> mconcat (replicate wid (text " "))
+ where
+  lastMaybe xs
+   = case reverse xs of
+      []    -> Nothing
+      (x:_) -> Just x
 

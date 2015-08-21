@@ -9,6 +9,7 @@ module Icicle.Dictionary.Data (
   , getVirtualFeatures
   , featureMapOfDictionary
   , parseFact
+  , prettyDictionarySummary
   ) where
 
 import           Icicle.Data
@@ -28,6 +29,8 @@ import qualified Icicle.Source.ToCore.Context       as STC
 import           Text.Parsec.Pos ()
 
 import           Icicle.Encoding
+
+import           Icicle.Internal.Pretty
 
 import qualified Data.Map                           as Map
 
@@ -129,3 +132,26 @@ featureMapOfDictionary (Dictionary { dictionaryEntries = ds, dictionaryFunctions
    = (var "date" , ( baseType DateTimeT, X.XApp (xsnd e' DateTimeT)))
 
   var = Name . Variable
+
+
+prettyDictionarySummary :: Dictionary -> Doc
+prettyDictionarySummary dict
+ = "Dictionary" <> line
+ <> indent 2
+ (  "Functions" <> line
+ <> indent 2 (vcat $ fmap pprFun $ Map.toList $ dictionaryFunctions dict)
+ <> line
+ <> "Features" <> line
+ <> indent 2 (vcat $ fmap pprEntry $ dictionaryEntries dict))
+ where
+  pprEntry (DictionaryEntry attr (ConcreteDefinition enc))
+   = padDoc 20 (pretty attr) <> " : " <> pretty enc
+  pprEntry (DictionaryEntry attr (VirtualDefinition virt))
+   = padDoc 20 (pretty attr) <> " = " <> indent 0 (pretty virt)
+
+  pprFun (f,(t,_))
+   = padDoc 20 (pretty f) <> " : " <> ST.prettyFunWithLetters t
+
+instance Pretty Virtual where
+ pretty = pretty . unVirtual
+

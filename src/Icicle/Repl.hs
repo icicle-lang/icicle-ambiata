@@ -21,7 +21,6 @@ import qualified Icicle.Avalanche.Statement.Flatten as AS
 import qualified Icicle.Common.Base                 as CommonBase
 import qualified Icicle.Common.Fresh                as Fresh
 import qualified Icicle.Core.Program.Program        as Core
-import qualified Icicle.Core.Program.Condense       as Core
 import qualified Icicle.Core.Program.Simp           as Core
 import           Icicle.Data
 import qualified Icicle.Dictionary                  as D
@@ -173,8 +172,7 @@ sourceParseConvert t
 
 coreSimp :: Program' -> Program'
 coreSimp p
- = Core.condenseProgram
- $ snd
+ = snd
  $ Fresh.runFresh (Core.simpProgram p) (freshNamer "simp")
 
 
