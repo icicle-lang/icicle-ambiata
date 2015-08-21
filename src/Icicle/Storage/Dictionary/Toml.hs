@@ -18,8 +18,11 @@ import qualified Icicle.Source.Type                 as ST
 import qualified Icicle.Source.Checker.Checker      as SC
 import qualified Icicle.Source.Checker.Error        as SC
 import qualified Icicle.Source.Checker.Function     as SC
+import qualified Icicle.Source.ToCore.Context       as SC
 
+import qualified Icicle.Source.Query                as SQ
 import qualified Icicle.Source.Parser               as SP
+import qualified Icicle.Source.Transform.Inline     as STI
 
 import           Icicle.Internal.Pretty hiding ((</>))
 
@@ -102,20 +105,16 @@ loadDictionary' parentFuncs parentConf parentConcrete fp
   let concreteDefinitions = foldr remakeConcrete [] definitions'
   let virtualDefinitions' = foldr remakeVirtuals [] definitions'
 
-  let d' = featureMapOfDictionary $ Dictionary (concreteDefinitions <> parentConcrete) importedFunctions'
+  let d' = Dictionary (concreteDefinitions <> parentConcrete) importedFunctions'
+  let d'' = featureMapOfDictionary $ d'
 
   virtualDefinitions
-    <- flip traverse virtualDefinitions'
-     $ \(a, q) ->
-       (\(q', _) -> DictionaryEntry a (VirtualDefinition (Virtual q')))
-      <$>
-       ( hoistEither
-       $ (A.left DictionaryErrorCheck)
-       $ snd
-       $ flip Fresh.runFresh (freshNamer "t")
-       $ runEitherT
-       $ SC.checkQT d' q
-       )
+    <- (\(a, q) -> do
+         (checked, _)  <- sourceCheck d'' q
+         let inlined    = sourceInline d' checked
+         (checked', _) <- sourceCheck d'' inlined
+         pure $ DictionaryEntry a (VirtualDefinition (Virtual checked'))
+       ) `traverse` virtualDefinitions'
 
   loadedChapters
     <- (\fp' ->
@@ -134,6 +133,32 @@ loadDictionary' parentFuncs parentConf parentConcrete fp
 
       remakeVirtuals (DictionaryEntry' a (VirtualDefinition' (Virtual' v))) vds = (a, v) : vds
       remakeVirtuals _ vds = vds
+
+sourceCheck :: Monad m
+            => SC.Features SP.Variable
+            -> SQ.QueryTop Parsec.SourcePos SP.Variable
+            -> EitherT DictionaryImportError m (SQ.QueryTop (ST.Annot Parsec.SourcePos SP.Variable) SP.Variable, ST.Type SP.Variable)
+sourceCheck d q =
+  hoistEither
+       $ (A.left DictionaryErrorCheck)
+       $ snd
+       $ flip Fresh.runFresh (freshNamer "t")
+       $ runEitherT
+       $ SC.checkQT d q
+
+sourceInline :: Dictionary
+             -> SQ.QueryTop (ST.Annot Parsec.SourcePos SP.Variable) SP.Variable
+             -> SQ.QueryTop Parsec.SourcePos SP.Variable
+sourceInline d q
+ = SQ.reannotQT ST.annAnnot
+ $ inline q
+ where
+  funs      = M.map snd
+            $ dictionaryFunctions d
+  inline q' = snd
+            $ Fresh.runFresh
+                (STI.inlineQT funs q')
+                (freshNamer "inline")
 
 
 -- TODO, move this somewhere sensible.
