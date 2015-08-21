@@ -131,6 +131,13 @@ We can join the result of two aggregates with a comma.
 [homer, ("torso",2)]
 ```
 
+If we wanted the newest of both location and severity, we could use parentheses to nest the comma inside the argument to ``newest`` like so:
+```
+> feature injury ~> newest (location, severity)
+- Result:
+[homer, ("torso",1)]
+```
+
 
 Filters and contexts
 --------------------
@@ -211,37 +218,114 @@ In order to compare the two, they must be explicitly cast to the same type.
 It would also be fine to convert the other argument to an Int, as in ``filter value > int (mean value)``.
 
 
-The rest is TODO
-================
+Windows and dates
+-----------------
 
-
-CountBy
---------------
-
+It is often useful to look at just the last few months of data - this is called windowing.
+Before looking at windowing proper, we should look at the dates in the sample data.
+Each fact, along with its ``value`` or struct fields, has a ``date`` attached to it.
+We can view the first and last dates quite easily:
 ```
-> feature injury ~> group location ~> mean severity
+> feature salary ~> oldest date, newest date
 - Result:
-[homer, [("arm",4.0),("head",1.5),("torso",2.0)]]
+[homer, (1989-12-17,2010-1-1),marge, (1989-12-17,1989-12-17)]
 ```
 
-
-
-CountDays
----------
-
+Now that we know the most recent entry was 2010, we can set the current snapshot date.
 ```
-> feature salary ~> distinct date ~> count
+> :set date 2010 1 1
+ok, date set to 2010-1-1
+```
+
+If we wish to see the number of salary changes between late 2009 and 2010, we could do this:
+```
+> feature salary ~> windowed 30 days ~> count, sum value
 - Result:
-[homer, 5,marge, 1]
+[homer, (1,90100),marge, (0,0)]
 ```
 
-
-CountUnique
------------
-
+We can also look at changes over the last year, but ignoring any made within the current month:
 ```
-> feature injury ~> distinct location ~> count
+> feature salary ~> windowed between 1 months and 12 months ~> count, sum value
 - Result:
-[homer, 3]
+[homer, (0,0),marge, (0,0)]
 ```
+
+It is not possible, however, to look at the changes strictly older than some time: we cannot say "windowed before 3 months".
+This omission is not entirely fundamental, but would require significant work to implement efficiently.
+It may be added in later versions of Icicle if it is deemed useful or necessary.
+
+
+Groups and distinction
+----------------------
+
+A common task is to bucket facts into different categories.
+Suppose we wanted to look at where the majority of injuries occur, and which tend to be the most severe.
+We would group by the ``location`` of the injury, then for each ``location`` find the ``count`` and mean with ``mean severity``.
+
+```
+> feature injury ~> group location ~> mean severity, count
+- Result:
+[homer, [("arm",(4.0,1)),("head",(1.5,2)),("torso",(2.0,2))]]
+```
+We see that perhaps arms are the most painful injuries, but since there is only one arm injury it is quite possible that it is an outlier.
+
+A similar concept is ``distinct``.
+It is interesting to compare how many entries there are, versus how many different locations, as well as only those locations with particularly severe injuries.
+
+```
+> feature injury
+  ~> count
+   , (distinct location ~> count)
+   , (filter severity > 3 ~> distinct location ~> count)
+
+- Result:
+[homer, ((5,3),2)]
+```
+
+
+Custom folds
+------------
+
+Sums, counts and means are timeless reductions, but they fall short of particularly interesting analyses.
+It is possible to create custom traversals or folds over the stream, which is indeed how sum and count themselves are implemented.
+
+As a simple example, let us reimplement sum as a fold.
+(Again, to input this into the repl, you will need to condense it onto one line)
+
+```
+> feature salary
+  ~> let fold
+       my_sum = 0
+              : my_sum + value
+  ~> my_sum
+
+- Result:
+[homer, 372100,marge, 1]
+```
+
+Here we use the ``let`` syntax as before to give a definition a name, but instead of a simple definition, this is a fold definition.
+The name of the fold is ``my_sum`` and its initial value is ``0`` - this is what the sum of an empty stream would produce.
+Then we have a colon, ``:``, pronounced "followed by".
+After the initial value, each fact in the stream computes a new ``my_sum``, based on the previous ``my_sum`` plus the current fact's ``value``.
+
+The initial value of the fold cannot refer to any element, as it is used even if the stream is empty.
+There is another type of fold that only works if the stream is not empty, though, called ``fold1`` - fold on at least one element.
+With this, we can implement an exponentially rolling average:
+
+```
+> feature salary
+  ~> let fold1
+       roll = double value
+            : double value * 0.25 + roll * 0.75
+  ~> roll
+
+- Result:
+[homer, 75083.59375,marge, 0.0]
+```
+
+Here, the initial value of the fold is the value of the first element of the stream.
+For any subsequent facts in the stream, a quarter of the value is mixed with three quarters of the previous fold value.
+
+Garnish with a lime twist.
 
