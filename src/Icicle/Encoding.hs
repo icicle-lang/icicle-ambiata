@@ -119,7 +119,6 @@ valueSatisfiesEncoding val enc
   fieldHasValue _    (StructField Optional _ _)
    = True
 
-   
 
 
 
@@ -155,7 +154,7 @@ renderValue tombstone val
    $ BS.toStrict
    $ A.encode
    $ jsonOfValue (A.String tombstone) val
-   
+
 
 -- | Attempt to decode value with given encoding.
 -- Some values may fit multiple encodings.
@@ -177,7 +176,7 @@ parseValue e t
      -> return $ BooleanValue False
      | otherwise
      -> Left err
-       
+
     DateEncoding
      -- TODO parse date
      -> return $ DateValue $ Date t
@@ -235,7 +234,7 @@ valueOfJSON e v
      -> return $ BooleanValue b
      | otherwise
      -> Left err
-       
+
     DateEncoding
      -- TODO parse date
      | A.String t <- v
@@ -279,7 +278,7 @@ valueOfJSON e v
 
   getField obj attr
    = HM.lookup (getAttribute attr) obj
-      
+
 
 jsonOfValue :: A.Value -> Value -> A.Value
 jsonOfValue tombstone val

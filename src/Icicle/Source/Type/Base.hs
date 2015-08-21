@@ -166,6 +166,7 @@ instance Pretty n => Pretty (Constraint n) where
  pretty (CReturnOfLatest t tmp dat)
   = pretty t <+> "=: ReturnOfLatest" <+> pretty tmp <+> pretty dat
 
+
 instance Pretty n => Pretty (FunctionType n) where
  pretty fun
   =  foralls (functionForalls       fun)

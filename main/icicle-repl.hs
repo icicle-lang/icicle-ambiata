@@ -446,10 +446,7 @@ showFlag False = "off"
 showState :: ReplState -> HL.InputT IO ()
 showState state
  = mapM_ HL.outputStrLn
-    [      "now:        " <> T.unpack (renderDate $ currentDate state)
-    ,      "data:       " <> show (length $ facts state)
-    ,      "dictionary: " <> show (dictionary state)
-    , flag "type:       " hasType
+    [ flag "type:       " hasType
     , flag "annotated:  " hasAnnotated
     , flag "inlined:    " hasInlined
     , flag "core:       " hasCore
@@ -459,6 +456,9 @@ showState state
     , flag "avalanche:  " hasAvalanche
     , flag "flatten:    " hasFlatten
     , flag "java:       " hasJava
+    ,      "now:        " <> T.unpack (renderDate $ currentDate state)
+    ,      "data:       " <> show (length $ facts state) <> " rows"
+    ,      "dictionary: " <> show (prettyDictionarySummary (dictionary state))
     ]
  where
   flag nm setting

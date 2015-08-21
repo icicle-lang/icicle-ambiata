@@ -1,4 +1,5 @@
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
 module Icicle.Data (
     Entity (..)
   , Namespace (..)
@@ -18,7 +19,7 @@ module Icicle.Data (
   ) where
 
 import           Data.Text
-import qualified Text.PrettyPrint.Leijen as PP
+import           Icicle.Internal.Pretty
 
 import           Icicle.Data.DateTime
 
@@ -30,8 +31,8 @@ newtype Entity =
       getEntity     :: Text
     } deriving (Eq, Ord, Show)
 
-instance PP.Pretty Entity where
-  pretty (Entity t) = PP.text (unpack t)
+instance Pretty Entity where
+  pretty (Entity t) = text (unpack t)
 
 newtype Namespace =
   Namespace {
@@ -43,8 +44,8 @@ newtype Attribute =
       getAttribute  :: Text
     } deriving (Eq, Ord, Show)
 
-instance PP.Pretty Attribute where
-  pretty (Attribute t) = PP.text (unpack t)
+instance Pretty Attribute where
+  pretty (Attribute t) = text (unpack t)
 
 data Fact =
   Fact {
@@ -83,19 +84,19 @@ data Value =
   | Tombstone
   deriving (Eq, Show)
 
-instance PP.Pretty Value where
+instance Pretty Value where
   pretty v = case v of
-    StringValue  t  -> PP.text $ show t
-    IntValue     i  -> PP.int i
-    DoubleValue  d  -> PP.double d
-    BooleanValue b  -> PP.pretty b
-    DateValue    d  -> PP.pretty d
-    StructValue  s  -> PP.pretty s
-    ListValue    l  -> PP.pretty l
-    PairValue v1 v2 -> PP.encloseSep PP.lparen PP.rparen PP.comma
-                                     [PP.pretty v1, PP.pretty v2]
-    MapValue vs     -> PP.pretty vs
-    Tombstone       -> PP.text "tombstone"
+    StringValue  t  -> text $ show t
+    IntValue     i  -> int i
+    DoubleValue  d  -> double d
+    BooleanValue b  -> pretty b
+    DateValue    d  -> pretty d
+    StructValue  s  -> pretty s
+    ListValue    l  -> pretty l
+    PairValue v1 v2 -> encloseSep lparen rparen comma
+                                     [pretty v1, pretty v2]
+    MapValue vs     -> pretty vs
+    Tombstone       -> text "tombstone"
 
 --------------------------------------------------------------------------------
 
@@ -103,8 +104,8 @@ data Struct =
   Struct    [(Attribute, Value)]
   deriving (Eq, Show)
 
-instance PP.Pretty Struct where
-  pretty (Struct avs) = PP.pretty avs
+instance Pretty Struct where
+  pretty (Struct avs) = pretty avs
 
 --------------------------------------------------------------------------------
 
@@ -112,8 +113,8 @@ data List =
   List      [Value]
   deriving (Eq, Show)
 
-instance PP.Pretty List where
-  pretty (List vs) = PP.pretty vs
+instance Pretty List where
+  pretty (List vs) = pretty vs
 
 --------------------------------------------------------------------------------
 
@@ -122,8 +123,8 @@ data Date =
       getDate       :: Text -- FIX complete, make these real...
     } deriving (Eq, Show)
 
-instance PP.Pretty Date where
-  pretty (Date t) = PP.text (unpack t)
+instance Pretty Date where
+  pretty (Date t) = text (unpack t)
 
 --------------------------------------------------------------------------------
 
@@ -137,10 +138,27 @@ data Encoding =
   | ListEncoding    Encoding
   deriving (Eq, Show)
 
+instance Pretty Encoding where
+  pretty e
+   = case e of
+      StringEncoding    -> "String"
+      IntEncoding       -> "Int"
+      DoubleEncoding    -> "Double"
+      BooleanEncoding   -> "Bool"
+      DateEncoding      -> "Date"
+      StructEncoding ss -> "Struct" <+> pretty ss
+      ListEncoding l    -> "[" <> pretty l <> "]"
+
 
 data StructField =
     StructField StructFieldType Attribute Encoding
   deriving (Eq, Show)
+
+instance Pretty StructField where
+ pretty (StructField Mandatory attr enc)
+  = pretty attr <+> ":" <+> pretty enc
+ pretty (StructField Optional attr enc)
+  = "optional" <+> pretty attr <+> ":" <+> pretty enc
 
 attributeOfStructField :: StructField -> Attribute
 attributeOfStructField (StructField _ attr _)

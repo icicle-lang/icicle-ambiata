@@ -49,12 +49,12 @@ tombstone = "NA"
 
 [feature.mean_salary]
   expression="""
-    feature salary ~> double (sum value) / count
+    feature salary ~> mean value
   """
 
 [feature.salary_standard_deviation]
   expression="""
-    feature salary ~> let ss = (sum value) ~> (double ((sum (value * value) * count) - (ss * ss)) / double (count * (count - 1)))
+    feature salary ~> sd value
   """
 
 [deprecated.mean_salary]
