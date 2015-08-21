@@ -86,10 +86,10 @@ flatten s
      $ \x'
      -> return $ Push n x'
 
-    Return x
+    Output n x
      -> flatX x
      $ \x'
-     -> return $ Return x'
+     -> return $ Output n x'
 
     KeepFactInHistory
      -> return $ KeepFactInHistory

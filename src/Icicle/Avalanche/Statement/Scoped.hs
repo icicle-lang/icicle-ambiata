@@ -35,7 +35,7 @@ data Scoped n p
  | Block                        [Either (Binding n p) (Scoped n p)]
  | Write (Name n) (Exp n p)
  | Push  (Name n) (Exp n p)
- | Return         (Exp n p)
+ | Output OutputName (Exp n p)
  | KeepFactInHistory
  | LoadResumable (Name n)
  | SaveResumable (Name n)
@@ -67,8 +67,8 @@ bindsOfStatement s
      -> [Right $ Write n x]
     S.Push n x
      -> [Right $ Push n x]
-    S.Return x
-     -> [Right $ Return x]
+    S.Output n x
+     -> [Right $ Output n x]
     S.KeepFactInHistory
      -> [Right $ KeepFactInHistory]
     S.LoadResumable n
@@ -121,8 +121,8 @@ statementOfScoped s
      -> S.Write n x
     Push n x
      -> S.Push n x
-    Return x
-     -> S.Return x
+    Output n x
+     -> S.Output n x
     KeepFactInHistory
      -> S.KeepFactInHistory
     LoadResumable n
@@ -184,8 +184,8 @@ instance (Pretty n, Pretty p) => Pretty (Scoped n p) where
       -> text "push" <+> pretty n <> text "(" <> pretty x <> text ")"
       <> text ";"
 
-     Return x
-      -> text "return" <+> pretty x
+     Output n x
+      -> text "output" <+> pretty n <+> pretty x
       <> text ";"
      KeepFactInHistory
       -> text "keep_fact_in_history"

@@ -9,18 +9,12 @@ module Icicle.Core.Program.Fusion (
 import Icicle.Common.Base
 import Icicle.Common.Type
 import Icicle.Core.Program.Program
-import Icicle.Core.Program.Check
-import Icicle.Core.Program.Error
-import Icicle.Core.Exp.Combinators
-import Icicle.Core.Exp.Prim
 import qualified Icicle.Common.Exp.Exp as X
-import qualified Icicle.Common.Exp.Prim.Minimal as Min
 
 import              P
 
 data FusionError n
  = FusionErrorNotSameType ValType ValType
- | FusionErrorTypeError (Maybe (ProgramError n)) (Maybe (ProgramError n))
  | FusionErrorNothingToFuse
  deriving (Show)
 
@@ -42,22 +36,16 @@ fuseProgramsDistinctNames lp rp
  = Left
  $ FusionErrorNotSameType (input lp) (input rp)
  | otherwise
- = case (checkProgram lp, checkProgram rp) of
-    (Right (FunT [] lt), Right (FunT [] rt))
-     -> return
-      $ Program
-        { input     = input lp
-        , precomps  = precomps  lp <> precomps  rp
-        , streams   = streams   lp <> streams   rp
-        , reduces   = reduces   lp <> reduces   rp
-        , postdate  = postdate'
-        , postcomps = postdate'bind <> postcomps lp <> postcomps rp
-        , returns   = X.XPrim (PrimMinimal $ Min.PrimConst (Min.PrimConstPair lt rt)) @~ returns lp @~ returns rp
-        }
-    (le, re)
-     -> Left
-      $ FusionErrorTypeError (leftToMaybe le) (leftToMaybe re)
-
+ = return
+ $ Program
+ { input     = input lp
+ , precomps  = precomps  lp <> precomps  rp
+ , streams   = streams   lp <> streams   rp
+ , reduces   = reduces   lp <> reduces   rp
+ , postdate  = postdate'
+ , postcomps = postdate'bind <> postcomps lp <> postcomps rp
+ , returns   = returns   lp <> returns   rp
+ }
  where
   -- Get new date binding for use in postcomputation.
   (postdate', postdate'bind)

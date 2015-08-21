@@ -97,8 +97,8 @@ statementsToJava ctx ss
      -> acc_name n <> " = " <> expToJava ctx Unboxed x <> ";"
     Push n x
      -> "icicle.pushLatest(" <> acc_name n <> ", " <> expToJava ctx Boxed x <> ");"
-    Return x
-     -> "icicle.output(" <> expToJava ctx Unboxed x <> ");"
+    Output n x
+     -> "icicle.output(" <> stringy n <> ", " <> expToJava ctx Boxed x <> ");"
     KeepFactInHistory
      -> "icicle.keepFactInHistory();"
     LoadResumable n

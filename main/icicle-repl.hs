@@ -17,7 +17,6 @@ import           Data.String                          (String)
 import           Data.Text                            (Text)
 import qualified Data.Text                            as T
 import qualified Data.Text.IO                         as T
-import qualified Data.Traversable                     as TR
 import           System.Console.Haskeline             as HL
 import qualified System.Console.Terminal.Size         as TS
 import           System.Directory
@@ -360,27 +359,28 @@ unVar (SP.Variable t)  = t
 coreEval :: DateTime -> [AsAt Fact] -> QueryTopPUV -> ProgramT
          -> Either SR.ReplError [Result]
 coreEval d fs (renameQT unVar -> query) prog
-  = let partitions = S.streams fs
-        feat       = SQ.feature query
-        result     = fmap (evalP feat) partitions
-    in  mapLeft SR.ReplErrorRuntime
-        . mapRight (fmap Result)
-        . TR.sequenceA
-        . fmap (justVal . fmap (fmap fst))
-        . concat
-        . filter (not . null)
-        $ result
+ = do let partitions = S.streams fs
+      let feat       = SQ.feature query
+      let results    = fmap (evalP feat) partitions
+
+      res' <- mapLeft SR.ReplErrorRuntime
+            $ sequence results
+
+      return $ concat res'
 
   where
-    justVal (e, result) = fmap (e,) result
-
     evalP feat (S.Partition ent attr values)
       | CommonBase.Name feat' <- feat
-      , attr == Attribute feat'= [(ent, evalV values)]
-      | otherwise              = []
+      , attr == Attribute feat'
+      = do  (vs',_) <- evalV values
+            return $ fmap (\v -> Result (ent, snd v)) vs'
+
+      | otherwise
+      = return []
 
     evalV
       = S.evaluateVirtualValue prog d
+
 
 -- | Converts Core to Avalanche then flattens the result.
 --

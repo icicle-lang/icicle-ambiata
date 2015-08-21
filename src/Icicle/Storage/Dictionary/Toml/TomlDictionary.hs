@@ -27,6 +27,7 @@ import qualified Text.Parsec.Pos as Pos
 import           Text.Parsec (runParser)
 import           Text.Parsec.Error
 
+import           Icicle.Common.Base (OutputName(..))
 import           Icicle.Data
 import           Icicle.Source.Lexer.Token
 import           Icicle.Source.Lexer.Lexer
@@ -183,7 +184,7 @@ validateFeature _ name x = fromEither $ do
   expression  <- maybe (Left [MissingRequired ("feature." <> name) "expression"]) Right $ x ^? key "expression"
   expression' <- maybe (Left [BadType ("feature." <> name <> ".expression") "string" (expression ^. _2)]) Right $ expression ^? _1 . _NTValue . _VString
   let toks = lexerPositions expression'
-  q      <-  mapLeft (pure . ParseError) $ runParser top () "" toks
+  q      <-  mapLeft (pure . ParseError) $ runParser (top $ OutputName name) () "" toks
   -- Todo: ensure that there's no extra data lying around. All valid TOML should be used.
   pure $ DictionaryEntry' (Attribute name) (VirtualDefinition' (Virtual' q))
 

@@ -35,9 +35,9 @@ transformQT
     => Transform m c a n
     -> QueryTop a n
     -> m (QueryTop a n)
-transformQT t (QueryTop f q)
+transformQT t (QueryTop f qn q)
  = do   q' <- transformQ t q
-        return $ QueryTop f q'
+        return $ QueryTop f qn q'
 
 transformQ
     :: (Monad m)

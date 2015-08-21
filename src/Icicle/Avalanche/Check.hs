@@ -29,8 +29,6 @@ data ProgramError n p
  | ProgramErrorNoSuchAccumulator (Name n)
  | ProgramErrorWrongAccumulatorType (Name n)
  | ProgramErrorMultipleFactLops
- | ProgramErrorNoReturn
- | ProgramErrorConflictingReturnTypes [Maybe Type]
  deriving (Show, Eq, Ord)
 
 data AccType
@@ -57,13 +55,10 @@ checkProgram
         :: Ord n
         => Fragment p
         -> Program n p
-        -> Either (ProgramError n p) Type
+        -> Either (ProgramError n p) ()
 checkProgram frag p
  = do   let ctx = initialContext p
-        ret <- checkStatement frag ctx (statements p)
-        case ret of
-         Just r    -> return r
-         Nothing   -> Left ProgramErrorNoReturn
+        checkStatement frag ctx (statements p)
 
 
 checkStatement
@@ -71,7 +66,7 @@ checkStatement
         => Fragment p
         -> Context n
         -> Statement n p
-        -> Either (ProgramError n p) (Maybe Type)
+        -> Either (ProgramError n p) ()
 checkStatement frag ctx stmt
  = do ctx' <- statementContext frag ctx stmt
       let go = checkStatement frag ctx'
@@ -80,12 +75,8 @@ checkStatement frag ctx stmt
          -> do t <- mapLeft ProgramErrorExp
                   $ checkExp frag (ctxExp ctx) x
                requireSame (ProgramErrorWrongType x) t (FunT [] BoolT)
-               thenty <- go stmts
-               elsety <- go elses
-
-               case thenty == elsety of
-                True  -> return thenty
-                False -> Left (ProgramErrorConflictingReturnTypes [thenty, elsety])
+               go stmts
+               go elses
 
         Let _ _ stmts
          -> do go stmts
@@ -105,12 +96,8 @@ checkStatement frag ctx stmt
          -> go stmts
 
 
-        Block []
-         -> return Nothing
-        Block [stmts]
-         -> go stmts
-        Block (s:ss)
-         -> go s >> go (Block ss)
+        Block stmts
+         -> mapM_ go stmts
 
         InitAccumulator _ stmts
          -> go stmts
@@ -128,7 +115,7 @@ checkStatement frag ctx stmt
                case a of
                 ATUpdate accTy
                  -> do requireSame (ProgramErrorWrongType x) t (FunT [] accTy)
-                       return Nothing
+                       return ()
                 _
                  -> Left (ProgramErrorWrongAccumulatorType n)
 
@@ -142,28 +129,27 @@ checkStatement frag ctx stmt
                case a of
                 ATPush elemTy
                  -> do requireSame (ProgramErrorWrongType x) t (FunT [] elemTy)
-                       return Nothing
+                       return ()
                 _
                  -> Left (ProgramErrorWrongAccumulatorType n)
 
-        Return x
-         -> do t <- mapLeft ProgramErrorExp
+        Output _ x
+         -> do _ <- mapLeft ProgramErrorExp
                   $ checkExp frag (ctxExp ctx) x
-
-               return (Just t)
+               return ()
 
         KeepFactInHistory
-         -> do return Nothing
+         -> do return ()
 
         LoadResumable n
          -> do _ <- maybeToRight (ProgramErrorNoSuchAccumulator n)
                   $ Map.lookup n $ ctxAcc ctx
-               return Nothing
+               return ()
 
         SaveResumable n
          -> do _ <- maybeToRight (ProgramErrorNoSuchAccumulator n)
                   $ Map.lookup n $ ctxAcc ctx
-               return Nothing
+               return ()
 
 
 
@@ -214,7 +200,7 @@ statementContext frag ctx stmt
     Push _ _
      -> return ctx
 
-    Return _
+    Output _ _
      -> return ctx
 
     KeepFactInHistory
