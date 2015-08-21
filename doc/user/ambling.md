@@ -34,14 +34,12 @@ now:        1970-1-1
 data:       18 rows
 dictionary: Dictionary
   Functions
-    count                = let fold c = 0 : c + 1 ~> c
-    mean v               = sum (double v) / count
-    newest v             = let fold1 s = v : v ~> s
-    oldest v             = let fold1 s = v : s ~> s
-    sd v                 = let v_ = double v
-                           ~> let sv = sum v_
-                           ~> ((sum (v_ * v_) * count - sv * sv) / (count * (count - 1))) ^ 0.5
-    sum v                = let fold s = 0 : v + s ~> s
+    count                : (Num a) => Aggregate a
+    mean                 : (Num b) => Element a b -> Aggregate a Double
+    newest               : Element a b -> Aggregate a b
+    oldest               : Element a b -> Aggregate a b
+    sd                   : (Num b) => Element a b -> Aggregate a Double
+    sum                  : (Num b) => Element a b -> Aggregate a b
   Features
     salary               : Int
     injury               : Struct [location : String

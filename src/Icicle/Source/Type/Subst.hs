@@ -87,8 +87,9 @@ substC ss cc
 substFT :: Ord n => SubstT n -> FunctionType n -> FunctionType n
 substFT ss ff
  = ff
- { functionArguments = fmap (substT ss) (functionArguments ff)
- , functionReturn    =       substT ss  (functionReturn    ff) }
+ { functionConstraints  = fmap (substC ss) (functionConstraints ff)
+ , functionArguments    = fmap (substT ss) (functionArguments   ff)
+ , functionReturn       =       substT ss  (functionReturn      ff) }
 
 
 -- | Compose two substitutions together, in order.
@@ -203,5 +204,4 @@ unifyT t1 t2
    = Just Map.empty
    | otherwise
    = Nothing
-
 

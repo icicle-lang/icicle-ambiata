@@ -149,11 +149,8 @@ prettyDictionarySummary dict
   pprEntry (DictionaryEntry attr (VirtualDefinition virt))
    = padDoc 20 (pretty attr) <> " = " <> indent 0 (pretty virt)
 
-  pprFun (f,(_,b))
-   = padDoc 20 (pretty f <+> pprArgs (arguments b)) <> " = " <> indent 0 (pretty $ body b)
-
-  pprArgs args
-   = sep $ fmap (pretty.snd) args
+  pprFun (f,(t,_))
+   = padDoc 20 (pretty f) <> " : " <> ST.prettyFunWithLetters t
 
 instance Pretty Virtual where
  pretty = pretty . unVirtual
