@@ -72,7 +72,7 @@ errorSuggestions info sugs
 
 -- Pretties ----------
 
-instance (Pretty a, Pretty n) => Pretty (CheckError a n) where
+instance (IsString n, Ord n, Pretty a, Pretty n) => Pretty (CheckError a n) where
  pretty (CheckError info [])
   = pretty info
  pretty (CheckError info sugs)
@@ -115,7 +115,7 @@ instance (Pretty a, Pretty n) => Pretty (ErrorInfo a n) where
     inp x = indent 0 (pretty x)
 
 
-instance (Pretty a, Pretty n) => Pretty (ErrorSuggestion a n) where
+instance (IsString n, Ord n, Pretty a, Pretty n) => Pretty (ErrorSuggestion a n) where
  pretty e
   = case e of
      AvailableFeatures n' bs
@@ -124,6 +124,7 @@ instance (Pretty a, Pretty n) => Pretty (ErrorSuggestion a n) where
                  $ on compare
                  $ (editDistance $ pretty n') . pretty . fst
          in "Suggested features are:"
+            <> line
             <> indent 2 (vcat $ fmap pretty_ty bs')
 
      AvailableBindings n' bs
@@ -132,10 +133,12 @@ instance (Pretty a, Pretty n) => Pretty (ErrorSuggestion a n) where
                  $ on compare
                  $ (editDistance $ pretty n') . pretty . fst
          in "Suggested bindings are:"
-            <> indent 2 (vcat $ fmap pretty_ty bs')
+            <> line
+            <> indent 2 (vcat $ fmap pretty_fun_ty bs')
 
      Suggest str
       -> text str
 
   where
-    pretty_ty (k,t) = pretty k <+> ":" <+> pretty t
+    pretty_ty     (k,t) = padDoc 20 (pretty k) <+> ":" <+> pretty t
+    pretty_fun_ty (k,t) = padDoc 20 (pretty k) <+> ":" <+> prettyFunFromStrings t

@@ -18,6 +18,7 @@ import Icicle.Internal.Pretty
 
 import                  P
 
+import                  Data.String
 import qualified        Data.Text as T
 import                  Data.Text (Text)
 import                  Data.List (lookup)
@@ -128,6 +129,9 @@ operator t
 
 instance Pretty Variable where
  pretty (Variable v) = text $ T.unpack v
+
+instance IsString Variable where
+ fromString s = Variable $ T.pack s
 
 instance Pretty SourcePos where
  pretty sp = text $ show sp
