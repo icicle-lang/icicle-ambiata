@@ -8,6 +8,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Icicle.Source.Query.Exp (
     Exp'      (..)
+  , Pattern   (..)
   , Prim      (..)
   , Lit       (..)
   , Op        (..)
@@ -19,6 +20,7 @@ module Icicle.Source.Query.Exp (
   , mkApp
   ) where
 
+import                  Icicle.Source.Query.Constructor
 import                  Icicle.Source.Query.Operators
 import                  Icicle.Internal.Pretty
 import                  Icicle.Common.Base
@@ -33,6 +35,13 @@ data Exp' q a n
  | Nested a q
  | App  a (Exp' q a n) (Exp' q a n)
  | Prim a Prim
+ | Case a (Exp' q a n) [(Pattern n, Exp' q a n)]
+ deriving (Show, Eq, Ord)
+
+data Pattern n
+ = PatCon Constructor [Pattern n]
+ | PatDefault
+ | PatVariable (Name n)
  deriving (Show, Eq, Ord)
 
 
@@ -59,6 +68,7 @@ annotOfExp x
    Nested a _   -> a
    App    a _ _ -> a
    Prim   a _   -> a
+   Case   a _ _ -> a
 
 mkApp :: Exp' q a n -> Exp' q a n -> Exp' q a n
 mkApp x y
@@ -69,6 +79,7 @@ data Prim
  = Op Op
  | Lit Lit
  | Fun Fun
+ | PrimCon Constructor
  deriving (Show, Eq, Ord)
 
 data Lit
@@ -116,6 +127,10 @@ prettyX outer_prec xx
 
     Nested _ q
      -> pretty q
+
+    Case _ scrut pats
+     -> "case" <+> pretty scrut <+> "of" <> line
+     <> indent 2 (vcat $ fmap (\(p,x) -> " | " <> pretty p <> " -> " <> pretty x) pats)
 
  where
   (inner_prec, assoc) = precedenceOfX xx
@@ -183,12 +198,28 @@ precedenceOfX xx
      -> precedenceAlwaysParens
     Prim{}
      -> precedenceNeverParens
+    Case{}
+     -> precedenceApplication
+
+
+instance Pretty n => Pretty (Pattern n) where
+ pretty (PatCon ConTuple [a,b])
+  = "(" <> pretty a <> ", " <> pretty b <> ")"
+ pretty (PatCon c [])
+  = pretty c
+ pretty (PatCon c vs)
+  = "(" <> pretty c <> hsep (fmap pretty vs) <> ")"
+ pretty PatDefault
+  = "_"
+ pretty (PatVariable n)
+  = pretty n
 
 
 instance Pretty Prim where
  pretty (Op o)  = pretty o
  pretty (Lit l) = pretty l
  pretty (Fun f) = pretty f
+ pretty (PrimCon c) = pretty c
 
 instance Pretty Lit where
  pretty (LitInt i) = text $ show i

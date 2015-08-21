@@ -43,6 +43,15 @@ renameX f e = case e of
   SE.Nested a q  -> SE.Nested a (renameQ f q)
   SE.App a e1 e2 -> SE.App a (renameX f e1) (renameX f e2)
   SE.Prim a p    -> SE.Prim a p
+  SE.Case a scrut pats
+   -> SE.Case a (renameX f scrut)
+    $ fmap (\(p,x) -> (renamePat f p, renameX f x)) pats
+
+renamePat :: (n -> m) -> SQ.Pattern n -> SQ.Pattern m
+renamePat f (PatCon c ps)   = PatCon c $ fmap (renamePat f) ps
+renamePat f  PatDefault     = PatDefault
+renamePat f (PatVariable n) = PatVariable $ renameN f n
+
 
 renameN :: (n -> m) -> Name n -> Name m
 renameN f (Name v)        = Name    (f v)
