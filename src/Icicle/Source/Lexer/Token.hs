@@ -18,6 +18,7 @@ import Icicle.Internal.Pretty
 
 import                  P
 
+import qualified        Data.Char as C
 import                  Data.String
 import qualified        Data.Text as T
 import                  Data.Text (Text)
@@ -40,6 +41,7 @@ data Token
  | TOperator Operator
  -- | Names. I dunno
  | TVariable Variable
+ | TConstructor Variable
 
  -- | '('
  | TParenL
@@ -72,7 +74,6 @@ data Keyword
  | Group
  | Latest
  | Let
- | Max
  | Months
  | Weeks
  | Windowed
@@ -110,6 +111,9 @@ keywordOrVar :: Text -> Token
 keywordOrVar t
  | Just k <- lookup t keywords
  = TKeyword    k
+ | Just (c,_) <- T.uncons t
+ , C.isUpper c
+ = TConstructor $ Variable t
  | otherwise
  = TVariable $ Variable t
 

@@ -7,6 +7,7 @@ module Icicle.Source.Parser.Token (
   , pSatisfy
   , pEq
   , pKeyword
+  , pConstructor
   , pVariable
   , pOperator
   , pLitInt
@@ -51,7 +52,7 @@ pKeyword kw
  = pEq (T.TKeyword kw) <?> ("keyword " <> show kw)
 
 pOperator :: Parser T.Operator
-pOperator 
+pOperator
  = pTok get <?> "operator"
  where
   get (T.TOperator op) = Just op
@@ -59,11 +60,18 @@ pOperator
 
 
 pVariable :: Parser (Name Var)
-pVariable 
+pVariable
  = pTok get <?> "variable"
  where
   get (T.TVariable v) = Just (Name v)
   get  _              = Nothing
+
+pConstructor :: Parser (Name Var)
+pConstructor
+ = pTok get <?> "constructor"
+ where
+  get (T.TConstructor v) = Just (Name v)
+  get  _                 = Nothing
 
 
 
