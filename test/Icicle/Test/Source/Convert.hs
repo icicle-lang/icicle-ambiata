@@ -33,8 +33,8 @@ import           Test.QuickCheck
 import qualified Data.Map as Map
 
 
-prop_convert_ok :: CT.ValType -> CB.Name T.Variable -> Query () T.Variable -> Property
-prop_convert_ok tt fn q
+prop_convert_ok :: CB.OutputName -> CT.ValType -> CB.Name T.Variable -> Query () T.Variable -> Property
+prop_convert_ok nm tt fn q
  = counterexample pp
  $ case typ of
     Right (qt', _)
@@ -45,7 +45,7 @@ prop_convert_ok tt fn q
     _
      -> property Discard
  where
-  qt  = QueryTop fn q
+  qt  = QueryTop fn nm q
   fets = Features
         (Map.singleton fn (typeOfValType tt, Map.singleton fn (typeOfValType tt, xfst tt)))
          Map.empty
@@ -54,8 +54,8 @@ prop_convert_ok tt fn q
   pp = show $ pretty q
 
 
-prop_convert_is_well_typed :: CB.Name T.Variable -> Query () T.Variable -> Property
-prop_convert_is_well_typed fn q
+prop_convert_is_well_typed :: CB.OutputName -> CB.Name T.Variable -> Query () T.Variable -> Property
+prop_convert_is_well_typed nm fn q
  = counterexample pp
  $ case typ of
     Right (qt', _)
@@ -68,7 +68,7 @@ prop_convert_is_well_typed fn q
     _
      -> property Discard
  where
-  qt  = QueryTop fn q
+  qt  = QueryTop fn nm q
   fets = Features
        (Map.singleton fn (typeOfValType tt, Map.singleton fn (typeOfValType tt, xfst tt)))
         Map.empty

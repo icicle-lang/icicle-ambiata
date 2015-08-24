@@ -32,7 +32,7 @@ prop_parse_pretty_same q
   pp = show $ pretty q
   t  = T.pack pp
 
-  parsed = parseQueryTop t
+  parsed = parseQueryTop (queryName q) t
   parsed' = mapRight (reannotQT (const ())) parsed
 
   pp'  = case parsed of

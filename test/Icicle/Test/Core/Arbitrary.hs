@@ -73,6 +73,9 @@ instance Arbitrary Var where
    sized $ \size ->
     Var <$> elements viruses <*> choose (0, size)
 
+instance Arbitrary OutputName where
+  arbitrary = OutputName <$> arbitrary
+
 instance Arbitrary n => Arbitrary (Name n) where
   arbitrary =
     Name <$> arbitrary
@@ -282,6 +285,7 @@ programForStreamType streamType
         (eE, posts) <- gen_exps rE' nposts
 
         -- Finally, everything is wrapped up into one return value
+        retName     <- arbitrary
         retT        <- arbitrary
         ret         <- gen_exp (FunT [] retT) eE
 
@@ -292,7 +296,7 @@ programForStreamType streamType
                , P.reduces      = reds
                , P.postdate     = dat
                , P.postcomps    = posts
-               , P.returns      = ret
+               , P.returns      = [(retName, ret)]
                }
 
  where

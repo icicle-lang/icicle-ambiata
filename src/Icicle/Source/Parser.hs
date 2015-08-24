@@ -29,14 +29,14 @@ parseFunctions inp
  = let toks = lexer "" inp
    in  runParser functions () "" toks
 
-parseQueryTop :: Text -> Either ParseError (QueryTop SourcePos Variable)
-parseQueryTop inp
+parseQueryTop :: OutputName -> Text -> Either ParseError (QueryTop SourcePos Variable)
+parseQueryTop name inp
  = let toks = lexer "" inp
-   in  runParser top () "" toks
+   in  runParser (top name) () "" toks
 
-prettyParse :: Text -> [Char]
-prettyParse inp
- = case parseQueryTop inp of
+prettyParse :: OutputName -> Text -> [Char]
+prettyParse name inp
+ = case parseQueryTop name inp of
     Left e -> "Error: " <> show e
     Right r -> show (pretty r)
 

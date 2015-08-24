@@ -7,6 +7,7 @@ module Icicle.Common.Base (
     , BaseValue (..)
     , StructField (..)
     , ExceptionInfo (..)
+    , OutputName (..)
     ) where
 
 import              Icicle.Internal.Pretty
@@ -61,6 +62,12 @@ data StructField
  deriving (Show, Ord, Eq)
 
 
+newtype OutputName
+ = OutputName
+ { unOutputName :: T.Text }
+ deriving (Eq, Ord, Show)
+
+
 -- Pretty printing ---------------
 
 instance Pretty n => Pretty (Name n) where
@@ -105,4 +112,7 @@ instance Pretty ExceptionInfo where
         = text "Fold1, but there is no value"
  pretty ExceptScalarVariableNotAvailable
         = text "Scalar variable not available here"
+
+instance Pretty OutputName where
+ pretty = pretty . unOutputName
 

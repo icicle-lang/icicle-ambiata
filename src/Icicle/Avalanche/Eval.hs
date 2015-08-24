@@ -51,7 +51,6 @@ data RuntimeError n p
  | RuntimeErrorIfNotBool     BaseValue
  | RuntimeErrorForeachNotInt BaseValue BaseValue
  | RuntimeErrorNotBaseValue  (Value n p)
- | RuntimeErrorNoReturn
  | RuntimeErrorKeepFactNotInFactLoop
  | RuntimeErrorAccumulatorLatestNotInt  BaseValue
  deriving (Eq, Show)
@@ -122,7 +121,7 @@ evalProgram
         -> DateTime
         -> [AsAt (BubbleGumFact, BaseValue)]
         -> Program n p
-        -> Either (RuntimeError n p) ([BubbleGumOutput n BaseValue], BaseValue)
+        -> Either (RuntimeError n p) ([BubbleGumOutput n BaseValue], [(OutputName,BaseValue)])
 
 evalProgram evalPrim now values p
  = do   -- Precomputations are just expressions
@@ -137,9 +136,7 @@ evalProgram evalPrim now values p
         -- Grab the history out of the accumulator heap while we're at it
         let bgs = bubbleGumNubOutputs $ bubbleGumOutputOfAccumulatorHeap accs'
 
-        case ret of 
-         Nothing -> Left RuntimeErrorNoReturn
-         Just r  -> return (bgs, r)
+        return (bgs, ret)
 
 
 -- | Initialise an accumulator
@@ -185,7 +182,7 @@ evalStmt
         -> Maybe BubbleGumFact
         -> AccumulatorHeap n
         -> Statement n p
-        -> Either (RuntimeError n p) (AccumulatorHeap n, Maybe BaseValue)
+        -> Either (RuntimeError n p) (AccumulatorHeap n, [(OutputName, BaseValue)])
 
 evalStmt evalPrim now xh values bubblegum ah stmt
  = case stmt of
@@ -214,27 +211,29 @@ evalStmt evalPrim now xh values bubblegum ah stmt
                  do ahs <- foldM (\ah' index -> fst <$> go (Map.insert n (VBase $ VInt index) xh) ah' stmts)
                          ah
                          [fromi .. toi-1]
-                    return (ahs, Nothing)
+                    return (ahs, [])
              _
               -> Left $ RuntimeErrorForeachNotInt fromv tov
 
     -- TODO: evaluation ignores history/bubblegum.
     -- All inputs are new, so history loop does nothing.
     ForeachFacts _ _ _ FactLoopHistory _
-     -> return (ah, Nothing)
+     -> return (ah, [])
 
+    -- TODO: ignoring outputs inside loops.
     ForeachFacts n n' _ FactLoopNew  stmts
      -> do  let with input = Map.insert n (VBase $ snd $ fact input) $ Map.insert n' (VBase $ VDateTime $ time input) xh
             ahs <- foldM (\ah' input -> fst <$> evalStmt evalPrim now (with input) [] (Just $ fst $ fact input) ah' stmts) ah values
-            return (ahs, Nothing)
+            return (ahs, [])
 
     Block []
-     -> return (ah, Nothing)
+     -> return (ah, [])
     Block [s]
      -> go' s
     Block (s:ss)
-     -> do (ah',_) <- go xh ah s
-           go xh ah' (Block ss)
+     -> do (ah',vs) <- go xh ah s
+           (ah'', vs') <- go xh ah' (Block ss)
+           return (ah'', vs <> vs')
 
     InitAccumulator acc stmts
      -> do (n,av)  <- initAcc evalPrim xh acc
@@ -257,27 +256,27 @@ evalStmt evalPrim now xh values bubblegum ah stmt
     Write n x
      -> do  v   <- eval x >>= baseValue
             ah' <- updateOrPush ah n bubblegum v
-            return (ah', Nothing)
+            return (ah', [])
 
     -- Push a value to a latest accumulator.
     Push n x
      -> do  v   <- eval x >>= baseValue
             ah' <- updateOrPush ah n bubblegum v
-            return (ah', Nothing)
+            return (ah', [])
 
-    Return x
+    Output n x
      -> do  v  <- eval x >>= baseValue
-            return (ah, Just v)
+            return (ah, [(n, v)])
 
     -- Keep this fact in history
     KeepFactInHistory
      | Just (BubbleGumFact bg) <- bubblegum
-     -> return (ah { accumulatorHeapMarked = BubbleGumFacts [bg] : accumulatorHeapMarked ah }, Nothing)
+     -> return (ah { accumulatorHeapMarked = BubbleGumFacts [bg] : accumulatorHeapMarked ah }, [])
      | otherwise
      -> Left $ RuntimeErrorKeepFactNotInFactLoop
 
     LoadResumable _
-     -> return (ah, Nothing)
+     -> return (ah, [])
 
     SaveResumable acc
      -> do  v   <- case Map.lookup acc $ accumulatorHeapMap ah of
@@ -287,7 +286,7 @@ evalStmt evalPrim now xh values bubblegum ah stmt
                      -> return $ VArray $ reverse vals
                     _
                      -> Left (RuntimeErrorLoopAccumulatorBad acc)
-            return (ah { accumulatorHeapMarked = BubbleGumReduction acc v : accumulatorHeapMarked ah }, Nothing)
+            return (ah { accumulatorHeapMarked = BubbleGumReduction acc v : accumulatorHeapMarked ah }, [])
 
  where
   -- Go through all the substatements

@@ -48,11 +48,12 @@ conv$8 =
     pair# [Int] [(Array Int)]
     c$conv$4 conv$5
 Returning:
+repl =
     conv$8
 
 
 - Core type:
-(Int, (Array Int))
+[(repl,(Int, (Array Int)))]
 
 - Avalanche:
 gen$date = DATE
@@ -86,7 +87,7 @@ gen$date = DATE
   read conv$5 = acc$conv$5;
   let conv$8 = pair# [Int] [(Array Int)]
                c$conv$4 conv$5;
-  return conv$8;
+  output repl conv$8;
 }
 
 - Flattened:
@@ -113,7 +114,7 @@ gen$date = DATE
   read conv$5 = acc$conv$5;
   let conv$8 = pair# [Int] [(Array Int)]
                c$conv$4 conv$5;
-  return conv$8;
+  output repl conv$8;
 }
 
 - Result:

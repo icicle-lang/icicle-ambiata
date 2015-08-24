@@ -42,7 +42,7 @@ data Program n =
  , postcomps    :: [(Name n, Exp n)]
 
  -- | The single return value
- , returns      :: Exp n
+ , returns      :: [(OutputName, Exp n)]
  }
  deriving (Show, Eq, Ord)
 
@@ -55,27 +55,28 @@ renameProgram f p
   , reduces     = binds  renameReduce   (reduces    p)
   , postdate    =        fmap f         (postdate   p)
   , postcomps   = binds  renameExp      (postcomps  p)
-  , returns     =        renameExp f    (returns    p)
+  -- Now, we actually do not want to modify the names of the outputs.
+  -- They should stay the same over the entire life of the program.
+  , returns     = fmap (\(a,b) -> (a, renameExp f b)) (returns    p)
   }
   where
    binds r = fmap (\(a,b) -> (f a, r f b))
-
 
 -- Pretty printing -------------
 
 instance Pretty n => Pretty (Program n) where
  pretty p
   =     text "Program (source : Stream " <> pretty (input p) <> text ")" <> line
-  <>    text "Precomputations:"                        <> line    
+  <>    text "Precomputations:"                        <> line
   <>    ppbinds (precomps p)                           <> line
-  <>    text "Stream transformers:"                    <> line    
+  <>    text "Stream transformers:"                    <> line
   <>    ppbinds (streams p)                            <> line
-  <>    text "Reductions:"                             <> line    
+  <>    text "Reductions:"                             <> line
   <>    ppbinds (reduces p)                            <> line
-  <>    text "Postcomputations" <> ppdate              <> line    
+  <>    text "Postcomputations" <> ppdate              <> line
   <>    ppbinds (postcomps p)                          <> line
-  <>    text "Returning:"                              <> line    
-  <>    indent 4 (pretty  $ returns   p)               <> line
+  <>    text "Returning:"                              <> line
+  <>    ppbinds (returns   p)                          <> line
 
   where
    ppbinds :: (Pretty a, Pretty b) => [(a,b)] -> Doc

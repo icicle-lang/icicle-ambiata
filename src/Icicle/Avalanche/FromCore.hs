@@ -67,7 +67,7 @@ programFromCore namer p
       factLoopNew               <>
       mconcat (fmap saveResumables resumables) <>
       readaccums
-    ( lets (makepostdate <> C.postcomps p) returnStmt) )))
+    ( lets (makepostdate <> C.postcomps p) outputs) )))
  }
  where
   resumables = filter (not.readFromHistory.snd) $ C.reduces p
@@ -101,8 +101,9 @@ programFromCore namer p
    $ Block
    $ makeStatements namer (C.input p) (C.streams p) reduces
 
-  returnStmt
-   = A.Return (C.returns p)
+  outputs
+   = Block
+   $ fmap (uncurry A.Output) (C.returns p)
 
   -- Create a latest accumulator
   accum (n, CR.RLatest ty x _)

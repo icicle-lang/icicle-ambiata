@@ -1,5 +1,6 @@
 -- | Renaming all the different ASTs in Icicle.
 --
+{-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Internal.Rename where
 
 import           Icicle.Common.Base
@@ -11,13 +12,15 @@ import qualified Icicle.Core.Stream          as CS
 import qualified Icicle.Source.Query         as SQ
 import qualified Icicle.Source.Query.Exp     as SE
 
+import           P
+
 renameQT :: (n -> m) -> SQ.QueryTop a n -> SQ.QueryTop a m
-renameQT f (SQ.QueryTop x q)
-  = SQ.QueryTop (renameN f x) (renameQ f q)
+renameQT f (SQ.QueryTop x queryName q)
+  = SQ.QueryTop (renameN f x) queryName (renameQ f q)
 
 renameQ :: (n -> m) -> SQ.Query a n -> SQ.Query a m
 renameQ f (SQ.Query cs x)
-  = SQ.Query (map (renameC f) cs) (renameX f x)
+  = SQ.Query (fmap (renameC f) cs) (renameX f x)
 
 renameC :: (n -> m) -> SQ.Context a n -> SQ.Context a m
 renameC f cc = case cc of
@@ -52,12 +55,12 @@ renameP :: (n -> m) -> CP.Program n -> CP.Program m
 renameP f prog
   = CP.Program
     { CP.input     = CP.input prog
-    , CP.precomps  = map (renameNX f) (CP.precomps prog)
-    , CP.streams   = map (renameNS f) (CP.streams prog)
-    , CP.reduces   = map (renameNR f) (CP.reduces prog)
-    , CP.postdate  = fmap (renameN f) (CP.postdate prog)
-    , CP.postcomps = map (renameNX f) (CP.postcomps prog)
-    , CP.returns   = renameCX f (CP.returns prog) }
+    , CP.precomps  = fmap (renameNX f)  (CP.precomps    prog)
+    , CP.streams   = fmap (renameNS f)  (CP.streams     prog)
+    , CP.reduces   = fmap (renameNR f)  (CP.reduces     prog)
+    , CP.postdate  = fmap (renameN f)   (CP.postdate    prog)
+    , CP.postcomps = fmap (renameNX f)  (CP.postcomps   prog)
+    , CP.returns   = fmap (\(a,b) -> (a, renameCX f b))  (CP.returns     prog) }
 
 renameNS :: (n -> m) -> (Name n, CS.Stream n) -> (Name m, CS.Stream m)
 renameNS f (n, s) = (renameN f n, renameS f s)

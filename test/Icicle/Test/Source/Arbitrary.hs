@@ -118,4 +118,4 @@ instance Arbitrary n => Arbitrary (Query () n) where
 
 instance Arbitrary n => Arbitrary (QueryTop () n) where
  arbitrary
-  = QueryTop <$> arbitrary <*> arbitrary
+  = QueryTop <$> arbitrary <*> arbitrary <*> arbitrary

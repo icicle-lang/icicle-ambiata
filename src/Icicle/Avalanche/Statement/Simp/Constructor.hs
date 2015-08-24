@@ -36,8 +36,8 @@ constructor statements
            -> ret $ Write n (go x)
           Push n x
            -> ret $ Push n (go x)
-          Return x
-           -> ret $ Return (go x)
+          Output n x
+           -> ret $ Output n (go x)
           _
            -> ret s
 

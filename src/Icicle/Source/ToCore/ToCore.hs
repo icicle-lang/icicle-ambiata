@@ -82,7 +82,7 @@ convertQueryTop feats qt
 
         (bs,ret) <- evalStateT (convertQuery $ query qt) (ConvertState inp inpTy'dated fs Map.empty)
         let bs'   = strm inp C.Source <> bs
-        return (programOfBinds inpTy bs' ret)
+        return (programOfBinds (queryName qt) inpTy bs' ret)
 
 
 -- | Convert a Query to Core

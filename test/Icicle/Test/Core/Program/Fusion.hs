@@ -9,7 +9,6 @@ import           Icicle.Test.Core.Arbitrary
 import           Icicle.Core.Program.Check
 import           Icicle.Core.Program.Fusion
 import qualified Icicle.Core.Eval.Program   as PV
-import qualified Icicle.Common.Base         as V
 
 import           Icicle.Data.DateTime
 
@@ -49,7 +48,7 @@ prop_fuseself_eval t =
          -> property False
         -- Evaluation succeeded so the values must match
         Right vv
-         -> property (PV.value vv == V.VPair (PV.value v) (PV.value v))
+         -> property (PV.value vv === (PV.value v) <> (PV.value v))
     _ -> property Discard
 
 
@@ -78,7 +77,7 @@ prop_fuseeval2 t =
        -- It should not be an error
        Left  _  -> property False
        -- It evaluated fine, so the values should match
-       Right v' -> property (PV.value v' == V.VPair (PV.value v1) (PV.value v2))
+       Right v' -> property (PV.value v' === (PV.value v1) <> (PV.value v2))
 
   -- The input programs must be bad, so throw it away
   _ -> property Discard
@@ -100,7 +99,7 @@ prop_fuseeval2_values t =
        -- It should not be an error
        Left  _  -> property False
        -- It evaluated fine, so the values should match
-       Right v' -> property (PV.value v' == V.VPair (PV.value v1) (PV.value v2))
+       Right v' -> property (PV.value v' === (PV.value v1) <> (PV.value v2))
 
   -- The input programs must be bad, so throw it away
   _ -> property Discard

@@ -29,14 +29,16 @@ simp = S.simp B.isSimpleValue
 --
 simpProgram :: Ord n => Program n -> Fresh n (Program n)
 simpProgram p
-  = do pres <- forall simp (precomps p)
-       poss <- forall simp (postcomps p)
-       ss   <- forall simpStream (streams p)
-       rs   <- forall simpReduce (reduces p)
+  = do pres <- forall simp       (precomps  p)
+       poss <- forall simp       (postcomps p)
+       ss   <- forall simpStream (streams   p)
+       rs   <- forall simpReduce (reduces   p)
+       rets <- forall simp       (returns   p)
        return p { precomps  = pres
                 , streams   = ss
                 , reduces   = rs
-                , postcomps = poss}
+                , postcomps = poss
+                , returns   = rets }
   where forall f = sequenceA . fmap (sequenceA . fmap f)
 
 

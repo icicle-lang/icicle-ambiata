@@ -55,11 +55,12 @@ data CoreBinds n
  }
 
 programOfBinds
-    :: ValType
+    :: OutputName
+    -> ValType
     -> CoreBinds n
     -> Name n
     -> C.Program n
-programOfBinds inpType binds ret
+programOfBinds outputName inpType binds ret
  = C.Program
  { C.input      = inpType
  , C.precomps   = precomps  binds
@@ -67,7 +68,7 @@ programOfBinds inpType binds ret
  , C.reduces    = reduces   binds
  , C.postcomps  = postcomps binds
  , C.postdate   = Nothing
- , C.returns    = X.XVar ret
+ , C.returns    = [(outputName, X.XVar ret)]
  }
 
 instance Monoid (CoreBinds n) where

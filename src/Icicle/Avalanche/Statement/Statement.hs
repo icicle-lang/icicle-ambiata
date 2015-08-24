@@ -54,8 +54,8 @@ data Statement n p
  -- with Exp : elem
  | Push   (Name n) (Exp n p)
 
- -- | Return a final value
- | Return (Exp n p)
+ -- | Emit a value to output
+ | Output OutputName (Exp n p)
 
  -- | Mark the current fact as being historically relevant
  | KeepFactInHistory
@@ -164,8 +164,8 @@ transformUDStmt fun env statements
            -> return $ Write n x
           Push n x
            -> return $ Push n x
-          Return x
-           -> return $ Return x
+          Output n x
+           -> return $ Output n x
           KeepFactInHistory
            -> return $ KeepFactInHistory
           LoadResumable n
@@ -213,7 +213,7 @@ foldStmt down up rjoin env res statements
            -> up e' res s
           Push{}
            -> up e' res s
-          Return{}
+          Output{}
            -> up e' res s
           KeepFactInHistory
            -> up e' res s
@@ -251,8 +251,8 @@ instance TransformX Statement where
      Push n x
       -> Push <$> names n <*> exps x
 
-     Return x
-      -> Return <$> exps x
+     Output n x
+      -> Output n <$> exps x
 
      KeepFactInHistory
       -> return KeepFactInHistory
@@ -318,8 +318,8 @@ instance (Pretty n, Pretty p) => Pretty (Statement n p) where
      Push n x
       -> text "push" <+> pretty n <+> text "=" <+> pretty x
 
-     Return x
-      -> text "return" <+> pretty x
+     Output n x
+      -> text "output" <+> pretty n <+> pretty x
 
      KeepFactInHistory
       -> text "keep_fact_in_history"

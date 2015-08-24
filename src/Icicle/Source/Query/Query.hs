@@ -30,8 +30,9 @@ import                  P
 
 data QueryTop a n
  = QueryTop
- { feature  :: Name n
- , query    :: Query a n }
+ { feature   :: Name n
+ , queryName :: OutputName
+ , query     :: Query a n }
  deriving (Show, Eq, Ord)
 
 data Query a n

@@ -40,7 +40,7 @@ data Partition =
     [AsAt Value]
   deriving (Eq,Show)
 
-type Result = Either SimulateError (Value, [B.BubbleGumOutput Text Value])
+type Result = Either SimulateError ([(OutputName, Value)], [B.BubbleGumOutput Text Value])
 
 data SimulateError
  = SimulateErrorRuntime (PV.RuntimeError Text)
@@ -106,7 +106,7 @@ evaluateVirtualValue p date vs
         xv  <- mapLeft SimulateErrorRuntime
              $ PV.eval date vs' p
 
-        v'  <- valueFromCore $ PV.value xv
+        v'  <- mapM (\(n,v) -> (,) n <$> valueFromCore v) $ PV.value xv
         bg' <- mapM (B.mapValue valueFromCore) (PV.history xv)
         return (v', bg')
  where
@@ -154,5 +154,5 @@ valueFromCore v
                   <$> mapM (\(a,b) -> (,) <$> valueFromCore a <*> valueFromCore b) (Map.toList vs)
     V.VStruct vs  -> StructValue . Struct <$> mapM (\(a,b) -> (,) <$> pure (Attribute $ V.nameOfStructField a) <*> valueFromCore b) (Map.toList vs)
 
-    V.VException _-> Left $ SimulateErrorCannotConvertFromCore v
+    V.VException _-> return Tombstone
 

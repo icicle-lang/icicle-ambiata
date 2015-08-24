@@ -23,7 +23,7 @@ import qualified    Data.Map as Map
 checkProgram
         :: Ord n
         => Program n
-        -> Either (ProgramError n) Type
+        -> Either (ProgramError n) [(OutputName, Type)]
 checkProgram p
  = do   -- Check precomputations, starting with an empty environment
         pres    <- checkExps ProgramErrorPre Map.empty    (P.precomps     p)
@@ -41,15 +41,17 @@ checkProgram p
         -- Check postcomputations with precomputations and reduces
         post    <- checkExps ProgramErrorPost reds'       (P.postcomps    p)
 
-        -- Finally, check the return against the postcomputation environment
-        rt <- mapLeft ProgramErrorReturn $ checkExp coreFragment post (P.returns      p)
+        -- Finally, check the returns against the postcomputation environment
+        let checkRet (n,x)
+                = do t' <- mapLeft ProgramErrorReturn
+                         $ checkExp coreFragment post x
+                     case t' of
+                      FunT [] _
+                       -> return (n, t')
+                      FunT (_:_) _
+                       -> Left (ProgramErrorReturnNotValueType t')
 
-        -- Check if top-level is a value type
-        case rt of
-         FunT [] _
-          -> return rt
-         FunT (_:_) _
-          -> Left (ProgramErrorReturnNotValueType rt)
+        mapM checkRet (P.returns p)
 
 
 

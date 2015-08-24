@@ -125,7 +125,7 @@ data DictionaryLoadType
 sourceParse :: T.Text -> Either ReplError QueryTop'
 sourceParse t
  = mapLeft ReplErrorParse
- $ SP.parseQueryTop t
+ $ SP.parseQueryTop (CommonBase.OutputName "repl") t
 
 
 sourceCheck :: D.Dictionary -> QueryTop' -> Either ReplError (QueryTop'T, ST.Type Var)

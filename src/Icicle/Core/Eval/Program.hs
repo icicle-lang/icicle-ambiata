@@ -71,7 +71,7 @@ instance (Pretty n) => Pretty (RuntimeError n) where
 -- some value, and the minimum facts needed to compute next value.
 data ProgramValue n =
  ProgramValue {
-    value   :: BaseValue
+    value   :: [(OutputName, BaseValue)]
  ,  history :: [BubbleGumOutput n BaseValue]
  }
  deriving (Show, Eq)
@@ -101,12 +101,15 @@ eval d sv p
         post    <- mapLeft RuntimeErrorPost
                  $ XV.evalExps XV.evalPrim  reds'       (P.postcomps    p)
 
-        ret     <- mapLeft RuntimeErrorReturn
-                 $ XV.eval XV.evalPrim post
-                 $ P.returns p
-        ret'    <- V.getBaseValue (RuntimeErrorReturnNotBaseType ret) ret
+        let evalReturn (n,x)
+                 = do ret   <- mapLeft RuntimeErrorReturn
+                             $ XV.eval XV.evalPrim post x
+                      ret'  <- V.getBaseValue (RuntimeErrorReturnNotBaseType ret) ret
+                      return (n, ret')
 
-        return $ ProgramValue ret' $ bubbleGumNubOutputs (bgs <> bgleftovers)
+        rets <- mapM evalReturn (P.returns p)
+
+        return $ ProgramValue rets $ bubbleGumNubOutputs (bgs <> bgleftovers)
 
 
 -- | Evaluate all stream bindings, collecting up stream heap as we go

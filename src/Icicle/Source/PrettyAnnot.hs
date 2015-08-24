@@ -61,6 +61,6 @@ instance (Pretty a, Pretty n) => Pretty (PrettyAnnot (Query a n)) where
 instance (Pretty a, Pretty n) => Pretty (PrettyAnnot (QueryTop a n)) where
  pretty qq
   = case getPrettyAnnot qq of
-     QueryTop f q -> "feature " <> pretty f <> line <> " ~> " <> pretty (PrettyAnnot q)
+     QueryTop f _ q -> "feature " <> pretty f <> line <> " ~> " <> pretty (PrettyAnnot q)
 
 

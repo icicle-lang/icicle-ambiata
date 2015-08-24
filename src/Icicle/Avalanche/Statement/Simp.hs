@@ -48,8 +48,8 @@ pullLets statements
       Push n x
        -> pres x $ Push n
 
-      Return x
-       -> pres x $ Return
+      Output n x
+       -> pres x $ Output n
 
       _
        -> return ((), s)
@@ -143,8 +143,8 @@ substXinS name payload statements
       Push  n x
        -> sub1 x $ Push n
 
-      Return  x
-       -> sub1 x $ Return
+      Output n  x
+       -> sub1 x $ Output n
 
       Read n _ _
        | n == name
@@ -239,10 +239,8 @@ hasEffect statements
    | Push  n _ <- s
    = return $ not $ Set.member n ignore
 
-    -- A return is kind of an effect.
-    -- Well, it means the returned value is visible from outside
-    -- so maybe "potentially useful" is better than "effect"
-   | Return _  <- s
+    -- Outputting is an effect
+   | Output _ _  <- s
    = return True
 
     -- Marking a fact as used is an effect.
@@ -302,7 +300,7 @@ stmtFreeX statements
            -> ret x
           Push  _ x
            -> ret x
-          Return x
+          Output _ x
            -> ret x
 
           -- Leftovers: just the union of the under bits

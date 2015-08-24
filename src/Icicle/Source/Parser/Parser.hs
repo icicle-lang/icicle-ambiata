@@ -21,14 +21,14 @@ import                  P hiding (exp)
 
 import                  Text.Parsec (many1, parserFail, getPosition, eof, (<?>), sepEndBy)
 
-top :: Parser (Q.QueryTop T.SourcePos Var)
-top
+top :: OutputName -> Parser (Q.QueryTop T.SourcePos Var)
+top name
  = do   pKeyword T.Feature                                  <?> "feature start"
         v <- pVariable                                      <?> "concrete feature name"
         pFlowsInto
         q <- query                                          <?> "query"
         eof
-        return $ Q.QueryTop v q
+        return $ Q.QueryTop v name q
 
 functions :: Parser [((T.SourcePos, Name Var), (Q.Function T.SourcePos Var))]
 functions
