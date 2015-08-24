@@ -58,7 +58,7 @@ loadDictionary dictionary
  = loadDictionary' M.empty mempty [] dictionary
 
 loadDictionary'
-  :: M.Map (Name SP.Variable) (ST.FunctionType SP.Variable)
+  :: M.Map (Name SP.Variable) (ST.FunctionType SP.Variable, SQ.Function (ST.Annot Parsec.SourcePos SP.Variable) SP.Variable)
   -> DictionaryConfig
   -> [DictionaryEntry]
   -> FilePath
@@ -91,21 +91,17 @@ loadDictionary' parentFuncs parentConf parentConcrete fp
   importedFunctions
     <- hoistEither $ (A.left DictionaryErrorCheck)
      $ foldlM
-     ( \(env, _) -> \parsedImport ->
+     ( \env -> \parsedImport ->
        snd
        $ flip Fresh.runFresh (freshNamer "f")
        $ runEitherT
        $ SC.checkFs env parsedImport
-     ) (parentFuncs, []) parsedImports
-  let importedFunctions'
-        = M.intersectionWith (,)
-                       (fst $ importedFunctions)
-          (M.fromList $ snd $ importedFunctions)
+     ) parentFuncs parsedImports
 
   let concreteDefinitions = foldr remakeConcrete [] definitions'
   let virtualDefinitions' = foldr remakeVirtuals [] definitions'
 
-  let d' = Dictionary (concreteDefinitions <> parentConcrete) importedFunctions'
+  let d' = Dictionary (concreteDefinitions <> parentConcrete) importedFunctions
   let d'' = featureMapOfDictionary $ d'
 
   virtualDefinitions
@@ -118,10 +114,10 @@ loadDictionary' parentFuncs parentConf parentConcrete fp
 
   loadedChapters
     <- (\fp' ->
-         loadDictionary' (fst importedFunctions) conf concreteDefinitions (rp </> (T.unpack fp'))
+         loadDictionary' importedFunctions conf concreteDefinitions (rp </> (T.unpack fp'))
        ) `traverse` (chapter conf)
 
-  let functions = M.unions $ importedFunctions' : (dictionaryFunctions <$> loadedChapters)
+  let functions = M.unions $ importedFunctions : (dictionaryFunctions <$> loadedChapters)
   let totaldefinitions = concreteDefinitions <> virtualDefinitions <> (join $ dictionaryEntries <$> loadedChapters)
 
   pure $ Dictionary totaldefinitions functions

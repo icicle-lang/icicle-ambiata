@@ -26,17 +26,19 @@ import qualified        Data.Map                as Map
 import qualified        Data.Set                as Set
 
 checkFs :: Ord n
-        => Map.Map (Name n) (FunctionType n)
+        => Map.Map (Name n) (FunctionType n, Function (Annot a n) n)
         -> [((a, Name n), Function a n)]
         -> EitherT (CheckError a n) (Fresh.Fresh n)
-                   (Map.Map (Name n) (FunctionType n), [(Name n, Function (Annot a n) n)])
+                   (Map.Map (Name n) (FunctionType n, Function (Annot a n) n))
 
 checkFs env functions
- = foldlM (\(env', annotfuns) -> \(name,fun) ->
-            (\(annotfun, funtype) ->
-              (Map.insert (snd name) funtype env', ((snd name), annotfun) : annotfuns))
-            <$> checkF env' fun)
-          (env, []) functions
+ = foldlM (\env' -> \(name,fun) -> do
+            (annotfun, funtype) <- checkF (fst <$> env') fun
+            if (Map.member (snd name) env')
+              then hoistEither $ Left $ CheckError (ErrorDuplicateFunctionNames (fst name) (snd name)) []
+                else
+                  pure (Map.insert (snd name) (funtype, annotfun) env'))
+          env functions
 
 checkF  :: Ord n
         => Map.Map (Name n) (FunctionType n)

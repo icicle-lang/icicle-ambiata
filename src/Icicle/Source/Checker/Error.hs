@@ -33,6 +33,7 @@ data ErrorInfo a n
  | ErrorApplicationNotFunction a (Exp a n)
  | ErrorConstraintsNotSatisfied a [(a, DischargeError n)]
  | ErrorReturnNotAggregate a (Type n)
+ | ErrorDuplicateFunctionNames a (Name n)
  deriving (Show, Eq, Ord)
 
 annotOfError :: CheckError a n -> Maybe a
@@ -52,7 +53,8 @@ annotOfError (CheckError e _)
      -> Just a
     ErrorReturnNotAggregate          a _
      -> Just a
-
+    ErrorDuplicateFunctionNames      a _
+     -> Just a
 
 data ErrorSuggestion a n
  = AvailableFeatures (Name n) [(Name n, Type n)]
@@ -110,6 +112,8 @@ instance (Pretty a, Pretty n) => Pretty (ErrorInfo a n) where
       -> "Return type is not an aggregate at " <+> pretty a <> line
       <> "Type: " <> inp t
 
+     ErrorDuplicateFunctionNames a n
+      -> "Function" <+> pretty n <+> "at" <+> pretty a <+> "is already defined"
 
    where
     inp x = indent 0 (pretty x)

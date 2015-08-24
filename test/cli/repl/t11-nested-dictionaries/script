@@ -1,0 +1,2 @@
+-- Load dictionary
+:dictionary data/example/DictionaryTrial.toml

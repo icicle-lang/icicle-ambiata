@@ -1,0 +1,11 @@
+title = "Demonstration dictionary nested"
+
+[feature.mean_salary]
+  expression="""
+    feature salary ~> mean (double value)
+  """
+
+[feature.salary_standard_deviation]
+  expression="""
+    feature salary ~> sd (double value)
+  """

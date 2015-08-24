@@ -85,10 +85,13 @@ data DictionaryConfig =
 
 instance Monoid DictionaryConfig where
   mempty  = DictionaryConfig Nothing Nothing Nothing Nothing [] []
+  -- Left preferenced Monoid instance.
+  -- Use properties specified in this file, or, if they don't exist, try the parent.
+  -- Don't bring in the imports or chapters, as that will cause an infinite loop.
   mappend
     (DictionaryConfig a1 a2 a3 a4 a6 a7)
-    (DictionaryConfig b1 b2 b3 b4 b6 b7) =
-      (DictionaryConfig (b1 CA.<|> a1) (b2 CA.<|> a2) (b3 CA.<|> a3) (b4 CA.<|> a4) (a6 <> b6) (a7 <> b7))
+    (DictionaryConfig b1 b2 b3 b4 _  _ ) =
+      (DictionaryConfig (a1 CA.<|> b1) (a2 CA.<|> b2) (a3 CA.<|> b3) (a4 CA.<|> b4) a6 a7)
 
 tomlDict :: DictionaryConfig -> Table -> AccValidation [DictionaryValidationError] (DictionaryConfig, [DictionaryEntry'])
 tomlDict parentConf x = fromEither $ do

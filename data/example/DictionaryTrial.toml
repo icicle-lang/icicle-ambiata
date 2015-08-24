@@ -12,7 +12,7 @@ import = [
 
 # Optionally, import addition dictionary files, specifying sub dictionaries.
 # Should help namespace separation. A Master dictionary could contain just this, title, and version.
-chapter = [ ]
+chapter = [ "DemographicsChapter.toml" ]
 
 # Set the default tombstone and missing value indicator.
 tombstone = "NA"
@@ -46,16 +46,6 @@ tombstone = "NA"
     location="string"
     severity="int"
     action="string*"
-
-[feature.mean_salary]
-  expression="""
-    feature salary ~> mean value
-  """
-
-[feature.salary_standard_deviation]
-  expression="""
-    feature salary ~> sd value
-  """
 
 [deprecated.mean_salary]
   source="salary"
