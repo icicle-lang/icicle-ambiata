@@ -1,7 +1,7 @@
 icicle
 ======
 
-[![Build Status](https://travis-ci.org/ambiata/icicle.svg)](https://travis-ci.org/ambiata/icicle)
+[![Build Status](https://api.travis-ci.org/ambiata/icicle.svg?branch=master)](https://travis-ci.org/ambiata/icicle)
 
 A streaming query language.
 
