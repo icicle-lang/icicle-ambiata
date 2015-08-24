@@ -33,6 +33,8 @@ data ErrorInfo a n
  | ErrorApplicationNotFunction a (Exp a n)
  | ErrorConstraintsNotSatisfied a [(a, DischargeError n)]
  | ErrorReturnNotAggregate a (Type n)
+ | ErrorEmptyCase a (Exp a n)
+ | ErrorCaseBadPattern a (Pattern n)
  deriving (Show, Eq, Ord)
 
 annotOfError :: CheckError a n -> Maybe a
@@ -51,6 +53,10 @@ annotOfError (CheckError e _)
     ErrorConstraintsNotSatisfied          a _
      -> Just a
     ErrorReturnNotAggregate          a _
+     -> Just a
+    ErrorEmptyCase          a _
+     -> Just a
+    ErrorCaseBadPattern          a _
      -> Just a
 
 
@@ -109,6 +115,14 @@ instance (Pretty a, Pretty n) => Pretty (ErrorInfo a n) where
      ErrorReturnNotAggregate a t
       -> "Return type is not an aggregate at " <+> pretty a <> line
       <> "Type: " <> inp t
+
+     ErrorEmptyCase a x
+      -> "Case expression has no clauses at " <+> pretty a <> line
+      <> "Exp: " <> inp x
+
+     ErrorCaseBadPattern a p
+      -> "Case expression has ill-formed pattern at " <+> pretty a <> line
+      <> "Pattern: " <> inp p
 
 
    where

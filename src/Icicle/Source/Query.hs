@@ -4,6 +4,7 @@ module Icicle.Source.Query (
   ) where
 
 import                  Icicle.Source.Query.Query     as Q
+import                  Icicle.Source.Query.Constructor as Q
 import                  Icicle.Source.Query.Context   as Q
 import                  Icicle.Source.Query.Exp       as Q
 import                  Icicle.Source.Query.Operators as Q

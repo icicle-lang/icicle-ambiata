@@ -8,7 +8,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Icicle.Source.Query.Exp (
     Exp'      (..)
-  , Pattern   (..)
   , Prim      (..)
   , Lit       (..)
   , Op        (..)
@@ -36,12 +35,6 @@ data Exp' q a n
  | App  a (Exp' q a n) (Exp' q a n)
  | Prim a Prim
  | Case a (Exp' q a n) [(Pattern n, Exp' q a n)]
- deriving (Show, Eq, Ord)
-
-data Pattern n
- = PatCon Constructor [Pattern n]
- | PatDefault
- | PatVariable (Name n)
  deriving (Show, Eq, Ord)
 
 
@@ -200,19 +193,6 @@ precedenceOfX xx
      -> precedenceNeverParens
     Case{}
      -> precedenceApplication
-
-
-instance Pretty n => Pretty (Pattern n) where
- pretty (PatCon ConTuple [a,b])
-  = "(" <> pretty a <> ", " <> pretty b <> ")"
- pretty (PatCon c [])
-  = pretty c
- pretty (PatCon c vs)
-  = "(" <> pretty c <> hsep (fmap pretty vs) <> ")"
- pretty PatDefault
-  = "_"
- pretty (PatVariable n)
-  = pretty n
 
 
 instance Pretty Prim where

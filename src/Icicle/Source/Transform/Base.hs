@@ -17,6 +17,9 @@ data Transform m c a n
  { transformExp     :: c
                     -> Exp a n
                     -> m (c, Exp a n)
+ , transformPat     :: c
+                    -> Pattern n
+                    -> m (c, Pattern n)
  , transformContext :: c
                     -> Context a n
                     -> m (c, Context a n)
@@ -25,7 +28,7 @@ data Transform m c a n
 
 idTransform :: Monad m => Transform m () a n
 idTransform
- = Transform ret ret ()
+ = Transform ret ret ret ()
  where
   ret s x = return (s,x)
 
@@ -95,6 +98,10 @@ transformX t xx
       let t' = t { transformState = s' }
       let goQ = transformQ t'
       let goX = transformX t'
+      let goP (p,alt)
+              = do  (sp,p') <- transformPat t s' p
+                    alt'    <- transformX (t { transformState = sp }) alt
+                    return (p', alt')
 
       case xx' of
        Var{} -> return xx'
@@ -107,5 +114,8 @@ transformX t xx
               return $ App a p' q'
        Prim{}
         -> return xx'
-
+       Case a scr pats
+        -> do scr'  <- goX scr
+              pats' <- mapM goP pats
+              return $ Case a scr' pats'
 

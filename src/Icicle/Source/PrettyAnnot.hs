@@ -29,6 +29,11 @@ instance (Pretty a, Pretty n) => Pretty (PrettyAnnot (Exp a n)) where
       -> "(" <> pretty o <> ")@{" <> pretty a <> "}"
      Prim a p
       -> pretty p <> "@{" <> pretty a <> "}"
+     Case a scrut pats
+      -> "case@{" <> pretty a <> "}" <> line
+      <> indent 2 (pretty (PrettyAnnot scrut) <+> "of") <> line
+      <> indent 2 (vcat $ fmap (\(p,x) -> " | " <> pretty p <> " -> " <> pretty (PrettyAnnot x)) pats)
+
 
 instance (Pretty a, Pretty n) => Pretty (PrettyAnnot (Context a n)) where
  pretty cc

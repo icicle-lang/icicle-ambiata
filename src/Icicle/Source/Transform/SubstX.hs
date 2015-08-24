@@ -28,6 +28,7 @@ unsafeSubstTransform
 unsafeSubstTransform
  = Transform
  { transformExp     = tranx
+ , transformPat     = tranp
  , transformContext = tranc
  , transformState   = Map.empty
  }
@@ -39,6 +40,18 @@ unsafeSubstTransform
        -> return (s, x')
       _
        -> return (s, x)
+
+  tranp s p
+   = return (rempatbinds s p, p)
+
+  rempatbinds s p
+   = case p of
+      PatCon _ ps
+       -> foldl rempatbinds s ps
+      PatDefault
+       -> s
+      PatVariable n
+       -> Map.delete n s
 
   tranc s c
    = case c of

@@ -100,6 +100,8 @@ data ConvertError a n
  | ConvertErrorExpApplicationOfNonPrimitive a (Exp (Annot a n) n)
  | ConvertErrorReduceAggregateBadArguments a (Exp (Annot a n) n)
  | ConvertErrorCannotConvertType a (Type n)
+ | ConvertErrorBadCaseNoDefault a (Exp (Annot a n) n)
+ | ConvertErrorBadCaseNestedConstructors a (Exp (Annot a n) n)
  deriving (Show, Eq, Ord)
 
 annotOfError :: ConvertError a n -> Maybe a
@@ -122,6 +124,10 @@ annotOfError e
     ConvertErrorReduceAggregateBadArguments a _
      -> Just a
     ConvertErrorCannotConvertType a _
+     -> Just a
+    ConvertErrorBadCaseNoDefault a _
+     -> Just a
+    ConvertErrorBadCaseNestedConstructors a _
      -> Just a
 
 
@@ -255,4 +261,10 @@ instance (Pretty a, Pretty n) => Pretty (ConvertError a n) where
 
      ConvertErrorCannotConvertType a t
       -> pretty a <> ": cannot convert base type: " <> pretty t
+
+     ConvertErrorBadCaseNoDefault a x
+      -> pretty a <> ": case has no default alternative: " <> pretty x
+     ConvertErrorBadCaseNestedConstructors a x
+      -> pretty a <> ": case has nested constructors in pattern; these should be removed by an earlier pass: " <> pretty x
+
 
