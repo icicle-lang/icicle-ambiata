@@ -57,6 +57,11 @@ data Token
  -- | '~>' for composition
  | TDataFlow
 
+ -- | '->' for case patterns and their expressions
+ | TFunctionArrow
+ -- | '|' for separating case alternatives
+ | TAlternative
+
  -- | An error
  | TUnexpected Text
  deriving (Eq, Ord, Show)
@@ -65,8 +70,10 @@ data Keyword
  = And
  | Average
  | Between
+ | Case
  | Days
  | Distinct
+ | End
  | Feature
  | Filter
  | Fold
@@ -127,6 +134,10 @@ operator t
  = TStatementEnd
  | t == "~>"
  = TDataFlow
+ | t == "->"
+ = TFunctionArrow
+ | t == "|"
+ = TAlternative
  | otherwise
  = TOperator $ Operator t
 

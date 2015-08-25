@@ -143,6 +143,7 @@ library
                        Icicle.Source.Lexer.Lexer
 
                        Icicle.Source.Parser
+                       Icicle.Source.Parser.Constructor
                        Icicle.Source.Parser.Token
                        Icicle.Source.Parser.Operators
                        Icicle.Source.Parser.Parser

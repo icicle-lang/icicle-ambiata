@@ -66,11 +66,11 @@ pVariable
   get (T.TVariable v) = Just (Name v)
   get  _              = Nothing
 
-pConstructor :: Parser (Name Var)
+pConstructor :: Parser Var
 pConstructor
  = pTok get <?> "constructor"
  where
-  get (T.TConstructor v) = Just (Name v)
+  get (T.TConstructor v) = Just v
   get  _                 = Nothing
 
 

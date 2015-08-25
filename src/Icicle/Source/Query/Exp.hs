@@ -122,8 +122,10 @@ prettyX outer_prec xx
      -> pretty q
 
     Case _ scrut pats
-     -> "case" <+> pretty scrut <+> "of" <> line
-     <> indent 2 (vcat $ fmap (\(p,x) -> " | " <> pretty p <> " -> " <> pretty x) pats)
+     -> indent 0
+     (  "case" <+> pretty scrut <> line
+     <> indent 2 (vcat $ fmap (\(p,x) -> "| " <> pretty p <> " -> " <> pretty x) pats) <> line
+     <> "end")
 
  where
   (inner_prec, assoc) = precedenceOfX xx
