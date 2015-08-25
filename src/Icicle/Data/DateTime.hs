@@ -26,14 +26,10 @@ data DateTime =
 
 
 renderDate  :: DateTime -> Text
-renderDate d
+renderDate
  = -- if   D.hour d + D.minute d + D.second d == 0
    -- then T.pack (show (D.year d) <> "-" <>
-   T.pack dateStr
- where
-  d' = getDateTime d
-  dateStr
-   = show (D.year d') <> "-" <> show (D.month d') <> "-" <> show (D.day d')
+   T.pack . C.showGregorian . D.dateTimeToDay . getDateTime
 
 
 dateOfYMD :: Int -> Int -> Int -> DateTime
