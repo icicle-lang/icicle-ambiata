@@ -21,11 +21,17 @@ import qualified    Data.Map            as Map
 
 
 melt :: (Show n, Ord n)
-     => Statement n Prim
-     -> Fresh n (Statement n Prim)
-melt statements
+     => a
+     -> Statement a n Prim
+     -> Fresh n (Statement a n Prim)
+melt a_fresh statements
  = transformUDStmt goS Map.empty statements
  where
+  xVar   = XVar   a_fresh
+  xPrim  = XPrim  a_fresh
+  xValue = XValue a_fresh
+  xApp   = XApp   a_fresh
+
   goS env s
    = do env' <- updateEnv env s
         let go ss = goS env' ss
@@ -39,8 +45,8 @@ melt statements
 
               | Just (Mutable,PairT a b,[na,nb]) <- Map.lookup n env'
               -> go
-               $ InitAccumulator (Accumulator na at a (XPrim (PrimMinimal $ Min.PrimPair $ Min.PrimPairFst a b) `XApp` x))
-               $ InitAccumulator (Accumulator nb at b (XPrim (PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd a b) `XApp` x)) ss
+               $ InitAccumulator (Accumulator na at a (xPrim (PrimMinimal $ Min.PrimPair $ Min.PrimPairFst a b) `xApp` x))
+               $ InitAccumulator (Accumulator nb at b (xPrim (PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd a b) `xApp` x)) ss
 
               | Just (Mutable,UnitT,[]) <- Map.lookup n env'
               -> go ss
@@ -50,23 +56,23 @@ melt statements
               | Just (Latest, PairT ta tb, [na,nb]) <- Map.lookup acc env'
               -> do n1 <- freshPrefix' n
                     n2 <- freshPrefix' n
-                    let zips = XPrim (PrimArray $ PrimArrayZip ta tb)
-                              `XApp` XVar n1
-                              `XApp` XVar n2
-                    ss'<- substXinS n zips ss
+                    let zips = xPrim (PrimArray $ PrimArrayZip ta tb)
+                              `xApp` xVar n1
+                              `xApp` xVar n2
+                    ss'<- substXinS a_fresh n zips ss
                     go $ Read n1 na $ Read n2 nb $ ss'
 
               | Just (Mutable, PairT ta tb, [na,nb]) <- Map.lookup acc env'
               -> do n1 <- freshPrefix' n
                     n2 <- freshPrefix' n
-                    let pair    = XPrim (PrimMinimal $ Min.PrimConst $ Min.PrimConstPair ta tb)
-                                `XApp` (XVar n1)
-                                `XApp` (XVar n2)
-                    ss'<- substXinS n pair ss
+                    let pair    = xPrim (PrimMinimal $ Min.PrimConst $ Min.PrimConstPair ta tb)
+                                `xApp` (xVar n1)
+                                `xApp` (xVar n2)
+                    ss'<- substXinS a_fresh n pair ss
                     go $ Read n1 na $ Read n2 nb $ ss'
 
               | Just (Mutable, UnitT, []) <- Map.lookup acc env'
-              -> do ss' <- substXinS n (XValue UnitT VUnit) ss
+              -> do ss' <- substXinS a_fresh n (xValue UnitT VUnit) ss
                     go ss'
 
 
@@ -74,16 +80,16 @@ melt statements
               | Just (Latest, PairT a b, [na,nb]) <- Map.lookup n env'
               -> go
                $ Block
-               [ Push na (XPrim (PrimMinimal $ Min.PrimPair $ Min.PrimPairFst a b) `XApp` x)
-               , Push nb (XPrim (PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd a b) `XApp` x) ]
+               [ Push na (xPrim (PrimMinimal $ Min.PrimPair $ Min.PrimPairFst a b) `xApp` x)
+               , Push nb (xPrim (PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd a b) `xApp` x) ]
 
 
              Write n x
               | Just (Mutable, PairT a b, [na,nb]) <- Map.lookup n env'
               -> go
                $ Block
-               [ Write na (XPrim (PrimMinimal $ Min.PrimPair $ Min.PrimPairFst a b) `XApp` x)
-               , Write nb (XPrim (PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd a b) `XApp` x) ]
+               [ Write na (xPrim (PrimMinimal $ Min.PrimPair $ Min.PrimPairFst a b) `xApp` x)
+               , Write nb (xPrim (PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd a b) `xApp` x) ]
 
               | Just (_, UnitT, _) <- Map.lookup n env'
               -> return (env', mempty)

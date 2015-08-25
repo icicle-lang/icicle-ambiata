@@ -14,49 +14,52 @@ import              P
 
 
 -- | Incredibly simple expressions;
-data Exp n p
+data Exp a n p
  -- | Read a variable from heap
- = XVar (Name n)
+ = XVar a (Name n)
 
  -- | A predefined primitive
- | XPrim p
+ | XPrim a p
 
  -- | A constant simple value
  -- We need the type here because if this is, say, an empty array,
  -- we would not be able to guess the element type.
- | XValue ValType BaseValue
+ | XValue a ValType BaseValue
 
  -- | Apply something
- | XApp (Exp n p) (Exp n p)
+ | XApp a (Exp a n p) (Exp a n p)
 
  -- | Lambda abstraction:
  -- This is only really used for arguments passed to primitives such as fold.
- | XLam (Name n) ValType (Exp n p)
+ | XLam a (Name n) ValType (Exp a n p)
 
  -- | Let binding
- | XLet (Name n) (Exp n p) (Exp n p)
+ | XLet a (Name n) (Exp a n p) (Exp a n p)
  deriving (Eq,Ord,Show)
 
 
-renameExp :: (Name n -> Name n') -> Exp n p -> Exp n' p
-renameExp f (XVar n)     = XVar (f n)
-renameExp _ (XPrim p)    = XPrim p
-renameExp _ (XValue t v) = XValue t v
-renameExp f (XApp p q)   = XApp (renameExp f p) (renameExp f q)
-renameExp f (XLam n t b) = XLam (f n) t (renameExp f b)
-renameExp f (XLet n p q) = XLet (f n) (renameExp f p) (renameExp f q)
+renameExp :: (Name n -> Name n') -> Exp a n p -> Exp a n' p
+renameExp f (XVar a n)     = XVar a (f n)
+renameExp _ (XPrim a p)    = XPrim a p
+renameExp _ (XValue a t v) = XValue a t v
+renameExp f (XApp a p q)   = XApp a (renameExp f p) (renameExp f q)
+renameExp f (XLam a n t b) = XLam a (f n) t (renameExp f b)
+renameExp f (XLet a n p q) = XLet a (f n) (renameExp f p) (renameExp f q)
 
 class TransformX x where
- transformX :: (Applicative m, Monad m) => (Name n -> m (Name n')) -> (Exp n p -> m (Exp n' p')) -> x n p -> m (x n' p')
+ transformX :: (Applicative m, Monad m)
+            => (Name  n   -> m (Name   n'))
+            -> (Exp a n p -> m (Exp a' n' p'))
+            ->    x a n p -> m (x   a' n' p')
 
 -- Pretty printing ---------------
 
-instance (Pretty n, Pretty p) => Pretty (Exp n p) where
- pretty (XVar n)    = pretty n
- pretty (XPrim p)   = pretty p
- pretty (XValue t v)= pretty v <+> text ":" <+> pretty t
+instance (Pretty n, Pretty p) => Pretty (Exp a n p) where
+ pretty (XVar _ n)    = pretty n
+ pretty (XPrim _ p)   = pretty p
+ pretty (XValue _ t v)= pretty v <+> text ":" <+> pretty t
 
- pretty (XApp p q)  = align (inner' p </> inner q)
+ pretty (XApp _ p q)  = align (inner' p </> inner q)
   where
    inner i
     = case i of
@@ -71,13 +74,13 @@ instance (Pretty n, Pretty p) => Pretty (Exp n p) where
        XLet{} -> parens $ pretty i
        _      ->          pretty i
 
- pretty (XLam b t x) = line <> text "\\" <> pretty b <> text " : " <> pretty t <> text ". " </> pretty x
+ pretty (XLam _ b t x) = line <> text "\\" <> pretty b <> text " : " <> pretty t <> text ". " </> pretty x
 
- pretty (XLet b x i) = line
-                    <> text "let " <> pretty b
-                    <> text " = "  <> align (pretty x)
-                    <> line
-                    <> text " in " <> pretty i
+ pretty (XLet _ b x i) = line
+                      <> text "let " <> pretty b
+                      <> text " = "  <> align (pretty x)
+                      <> line
+                      <> text " in " <> pretty i
 
 
 

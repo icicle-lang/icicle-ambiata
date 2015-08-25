@@ -10,16 +10,16 @@ import              Icicle.Core.Exp
 
 import              P
 
-data StreamError n
+data StreamError a n
  -- No such stream variable
  = StreamErrorVarNotInEnv   (Name n)
  -- Worker function doesn't type check
- | StreamErrorExp           (ExpError n Prim)
+ | StreamErrorExp           (ExpError a n Prim)
  -- can't do something with worker function
- | StreamErrorTypeError     (Exp n) Type Type
+ | StreamErrorTypeError     (Exp a n) Type Type
  deriving Show
 
-instance (Pretty n) => Pretty (StreamError n) where
+instance (Pretty n) => Pretty (StreamError a n) where
  pretty e
   = case e of
     StreamErrorVarNotInEnv n

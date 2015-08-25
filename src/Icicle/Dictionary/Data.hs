@@ -89,7 +89,7 @@ parseFact (Dictionary { dictionaryEntries = dict }) fact'
     , value     = v
     }
 
-featureMapOfDictionary :: Dictionary -> STC.Features Variable
+featureMapOfDictionary :: Dictionary -> STC.Features () Variable
 featureMapOfDictionary (Dictionary { dictionaryEntries = ds, dictionaryFunctions = functions })
  = STC.Features
  (Map.fromList $ concatMap go ds)
@@ -104,7 +104,7 @@ featureMapOfDictionary (Dictionary { dictionaryEntries = ds, dictionaryFunctions
         $ exps "fields" e'
         <> (fmap (\(k,t)
         -> ( var $ nameOfStructField k
-           , (baseType t, X.XApp (xget k t st) . X.XApp (xfst e' DateTimeT)))
+           , (baseType t, X.XApp () (xget k t st) . X.XApp () (xfst e' DateTimeT)))
         )
         $ Map.toList fs)))]
 
@@ -119,17 +119,17 @@ featureMapOfDictionary (Dictionary { dictionaryEntries = ds, dictionaryFunctions
   baseType = ST.typeOfValType
 
   xfst t1 t2
-   = X.XPrim (X.PrimMinimal $ X.PrimPair $ X.PrimPairFst t1 t2)
+   = X.XPrim () (X.PrimMinimal $ X.PrimPair $ X.PrimPairFst t1 t2)
   xsnd t1 t2
-   = X.XPrim (X.PrimMinimal $ X.PrimPair $ X.PrimPairSnd t1 t2)
+   = X.XPrim () (X.PrimMinimal $ X.PrimPair $ X.PrimPairSnd t1 t2)
   xget f t fs
-   = X.XPrim (X.PrimMinimal $ X.PrimStruct $ X.PrimStructGet f t fs)
+   = X.XPrim () (X.PrimMinimal $ X.PrimStruct $ X.PrimStructGet f t fs)
 
   exps str e'
-   = [ (var str, ( baseType e', X.XApp (xfst e' DateTimeT)))
+   = [ (var str, ( baseType e', X.XApp () (xfst e' DateTimeT)))
      , date_as_snd e']
   date_as_snd e'
-   = (var "date" , ( baseType DateTimeT, X.XApp (xsnd e' DateTimeT)))
+   = (var "date" , ( baseType DateTimeT, X.XApp () (xsnd e' DateTimeT)))
 
   var = Name . Variable
 

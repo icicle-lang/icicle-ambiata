@@ -11,22 +11,22 @@ import              Icicle.Common.Exp.Exp
 
 import              P
 
-data ExpError n p
+data ExpError a n p
  -- No such variable
  = ExpErrorVarNotInEnv (Name n)
 
  -- Application of x1 to x2, types don't match
- | ExpErrorApp (Exp n p) (Exp n p) Type Type
+ | ExpErrorApp (Exp a n p) (Exp a n p) Type Type
 
  -- For simplicity, require all names to be unique.
  -- This removes shadowing complications
  | ExpErrorNameNotUnique (Name n)
 
  -- Primitives cannot be partially applied
- | ExpErrorPrimitiveNotFullyApplied p (Exp n p)
+ | ExpErrorPrimitiveNotFullyApplied p (Exp a n p)
 
  -- Primitives cannot be partially applied
- | ExpErrorLambdaNotAllowedHere (Exp n p)
+ | ExpErrorLambdaNotAllowedHere (Exp a n p)
 
 
  -- Value not of type
@@ -34,7 +34,7 @@ data ExpError n p
  deriving (Show, Eq, Ord)
 
 
-instance (Pretty n, Pretty p) => Pretty (ExpError n p) where
+instance (Pretty n, Pretty p) => Pretty (ExpError a n p) where
  pretty e
   = case e of
     ExpErrorVarNotInEnv n

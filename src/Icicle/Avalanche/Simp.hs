@@ -17,22 +17,22 @@ import              Icicle.Avalanche.Program
 
 import              P
 
-simpAvalanche :: (Show n, Show p, Ord n, Eq p) => Program n p -> Fresh n (Program n p)
-simpAvalanche p
- = do p' <- transformX return simp p
-      s' <- (forwardStmts $ pullLets $ statements p')
-         >>= thresher
-         >>= forwardStmts
-         >>= nestBlocks
-         >>= thresher
+simpAvalanche :: (Show n, Show p, Ord n, Eq p) => a -> Program a n p -> Fresh n (Program a n p)
+simpAvalanche a_fresh p
+ = do p' <- transformX return (simp a_fresh) p
+      s' <- (forwardStmts a_fresh $ pullLets $ statements p')
+         >>= thresher     a_fresh
+         >>= forwardStmts a_fresh
+         >>= nestBlocks   a_fresh
+         >>= thresher     a_fresh
 
       return $ p { statements = s' }
 
-simpFlattened :: (Show n, Ord n) => Program n Prim -> Fresh n (Program n Prim)
-simpFlattened p
- = do p' <- transformX return simp p
-      s' <- (forwardStmts $ pullLets $ statements p')
-         >>= melt
+simpFlattened :: (Show n, Ord n) => a -> Program a n Prim -> Fresh n (Program a n Prim)
+simpFlattened a_fresh p
+ = do p' <- transformX return (simp a_fresh) p
+      s' <- (forwardStmts a_fresh $ pullLets $ statements p')
+         >>= melt   a_fresh
          >>= crunch
          >>= crunch
          >>= crunch
@@ -46,9 +46,9 @@ simpFlattened p
       return $ p { statements = s' }
  where
   crunch ss
-   =   constructor (pullLets ss)
-   >>= forwardStmts
-   >>= nestBlocks
-   >>= thresher
+   =   constructor  a_fresh (pullLets ss)
+   >>= forwardStmts a_fresh
+   >>= nestBlocks   a_fresh
+   >>= thresher     a_fresh
 
 

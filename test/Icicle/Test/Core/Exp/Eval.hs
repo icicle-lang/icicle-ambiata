@@ -39,18 +39,18 @@ prop_progress_inverse x =
 -- =====================
 
 prop_prefixlet =
- withTypedExp $ \x _ -> eval0 evalPrim x `equalExceptFunctionsE` eval0 evalPrim (XLet (fresh 0) x x)
+ withTypedExp $ \x _ -> eval0 evalPrim x `equalExceptFunctionsE` eval0 evalPrim (xLet (fresh 0) x x)
 
 
 -- Constant evaluates to constant. How quaint.
 -- =====================
 prop_const i =
- eval0 evalPrim (constI i :: X.Exp Var) == Right (VBase $ VInt i)
+ eval0 evalPrim (constI i :: X.Exp () Var) == Right (VBase $ VInt i)
 
 -- And likewise, putting anything that typechecks before the constant still evalutes fine
 -- =====================
 prop_constprefix i =
- withTypedExp $ \x _ -> eval0 evalPrim (XLet (fresh 0) x (constI i)) == Right (VBase $ VInt i)
+ withTypedExp $ \x _ -> eval0 evalPrim (xLet (fresh 0) x (constI i)) == Right (VBase $ VInt i)
 
 
 return []

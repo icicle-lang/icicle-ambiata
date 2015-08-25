@@ -14,12 +14,12 @@ import           Icicle.Source.Type
 import qualified Icicle.Source.Lexer.Token as T
 
 import qualified Icicle.Common.Exp.Prim.Minimal as Min
-import qualified Icicle.Common.Exp           as CE
-import qualified Icicle.Core.Exp             as CE
-import qualified Icicle.Common.Base          as CB
-import qualified Icicle.Common.Type          as CT
+import qualified Icicle.Core.Exp.Combinators    as CE
+import qualified Icicle.Core.Exp                as CE
+import qualified Icicle.Common.Base             as CB
+import qualified Icicle.Common.Type             as CT
 
-import qualified Icicle.Core.Program.Check   as CCheck
+import qualified Icicle.Core.Program.Check      as CCheck
 
 import           Icicle.Test.Source.Arbitrary
 import           Icicle.Test.Core.Arbitrary ()
@@ -69,6 +69,8 @@ prop_convert_is_well_typed nm fn q
      -> property Discard
  where
   qt  = QueryTop fn nm q
+
+  fets :: Features () T.Variable
   fets = Features
        (Map.singleton fn (typeOfValType tt, Map.singleton fn (typeOfValType tt, xfst tt)))
         Map.empty
@@ -112,8 +114,8 @@ restrict
    -}
   
 xfst tt
- = CE.XApp
- $ CE.XPrim $ CE.PrimMinimal $ Min.PrimPair $ Min.PrimPairFst tt CT.DateTimeT
+ = CE.xApp
+ $ CE.xPrim $ CE.PrimMinimal $ Min.PrimPair $ Min.PrimPairFst tt CT.DateTimeT
 
 
 

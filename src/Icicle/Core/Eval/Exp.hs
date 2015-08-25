@@ -17,7 +17,7 @@ import qualified    Icicle.Common.Exp.Prim.Eval as Min
 
 
 -- | Evaluate a primitive, given list of argument values
-evalPrim :: Ord n => EvalPrim n Prim
+evalPrim :: Ord n => EvalPrim a n Prim
 evalPrim p vs
  = case p of
      PrimMinimal m

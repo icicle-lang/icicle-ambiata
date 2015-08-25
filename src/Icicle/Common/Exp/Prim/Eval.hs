@@ -27,7 +27,7 @@ import qualified    Data.Text                       as T
 -- the primitive type.
 evalPrim    :: Ord n
             => Prim
-            -> EvalPrim n p
+            -> EvalPrim a n p
 evalPrim p originalP vs
  = let primError = Left $ RuntimeErrorPrimBadArgs originalP vs
    in case p of

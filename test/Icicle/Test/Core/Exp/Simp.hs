@@ -54,7 +54,7 @@ prop_beta_always_evaluation
 prop_betaToLets_evaluation
  = withTypedExp
  $ \x _
- -> let x' = Beta.betaToLets x
+ -> let x' = Beta.betaToLets () x
     in  counterexample (show $ pretty x)
       $ counterexample (show $ pretty x')
        (eval0 evalPrim x === eval0 evalPrim x')
@@ -64,7 +64,7 @@ prop_betaToLets_type
  = withTypedExp
  $ \x _
  -> checkExp0 coreFragment x == checkExp0 coreFragment
-   ( Beta.betaToLets x)
+   ( Beta.betaToLets () x)
 
 
 
@@ -76,7 +76,7 @@ prop_anormal_form_evaluation
  $ \x _
  -> eval0 evalPrim x === eval0 evalPrim
    ( snd
-   $ Fresh.runFresh (ANormal.anormal x)
+   $ Fresh.runFresh (ANormal.anormal () x)
                     (Fresh.counterNameState (Name . Var "anf") 0))
 
 
@@ -85,7 +85,7 @@ prop_anormal_form_type
  = withTypedExp
  $ \x _
  -> let x' = snd
-           $ Fresh.runFresh (ANormal.anormal x)
+           $ Fresh.runFresh (ANormal.anormal () x)
                             (Fresh.counterNameState (Name . Var "anf") 0)
     in  counterexample (show $ pretty x)
       $ counterexample (show $ pretty x')
@@ -96,7 +96,7 @@ prop_core_simp_type
   = withTypedExp
   $ \x _
   -> let simple = snd
-                $ Fresh.runFresh (CoreSimp.simp Beta.isSimpleValue x)
+                $ Fresh.runFresh (CoreSimp.simp () Beta.isSimpleValue x)
                                  (Fresh.counterNameState (Name . Var "anf") 0)
      in  counterexample (show . pretty $ x)
        $ counterexample (show . pretty $ simple)
@@ -108,7 +108,7 @@ prop_core_simp_eval
  $ \x _
  -> eval0 evalPrim x === eval0 evalPrim
    ( snd
-   $ Fresh.runFresh (CoreSimp.simp Beta.isSimpleValue x)
+   $ Fresh.runFresh (CoreSimp.simp () Beta.isSimpleValue x)
                     (Fresh.counterNameState (Name . Var "anf") 0))
 
 

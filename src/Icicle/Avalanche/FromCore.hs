@@ -9,7 +9,6 @@ module Icicle.Avalanche.FromCore (
   ) where
 
 import              Icicle.Common.Base
-import              Icicle.Common.Exp
 import              Icicle.Common.Type
 import qualified    Icicle.Common.Exp.Simp.Beta as Beta
 
@@ -52,8 +51,8 @@ namerText f
 -- | Convert an entire program to Avalanche
 programFromCore :: Ord n
                 => Namer n
-                -> C.Program n
-                -> A.Program n Prim
+                -> C.Program () n
+                -> A.Program () n Prim
 programFromCore namer p
  = A.Program
  { A.binddate
@@ -95,9 +94,9 @@ programFromCore namer p
   factLoop loopType reduces
    = ForeachFacts (namerElemPrefix namer $ namerFact namer) (namerElemPrefix namer $ namerDate namer) (C.input p) loopType
    $ Let (namerFact namer)
-        (XPrim (PrimMinimal $ Min.PrimConst $ Min.PrimConstPair (C.input p) DateTimeT)
-        `XApp` (XVar $ namerElemPrefix namer $ namerFact namer)
-        `XApp` (XVar $ namerElemPrefix namer $ namerDate namer))
+        (xPrim (PrimMinimal $ Min.PrimConst $ Min.PrimConstPair (C.input p) DateTimeT)
+        `xApp` (xVar $ namerElemPrefix namer $ namerFact namer)
+        `xApp` (xVar $ namerElemPrefix namer $ namerDate namer))
    $ Block
    $ makeStatements namer (C.input p) (C.streams p) reduces
 
@@ -123,7 +122,7 @@ programFromCore namer p
   saveResumables _
    = mempty
 
-  readaccums inner 
+  readaccums inner
    = foldr (\ac s -> Read (fst ac) (namerAccPrefix namer $ fst ac) s)
             inner
            (C.reduces p)
@@ -132,7 +131,7 @@ programFromCore namer p
   makepostdate
    = case C.postdate p of
       Nothing -> []
-      Just nm -> [(nm, XVar $ namerDate namer)]
+      Just nm -> [(nm, xVar $ namerDate namer)]
 
 
 -- | Starting from an empty list of statements,
@@ -141,9 +140,9 @@ makeStatements
         :: Ord n
         => Namer n
         -> ValType
-        -> [(Name n, CS.Stream n)]
-        -> [(Name n, CR.Reduce n)]
-        -> [Statement n Prim]
+        -> [(Name n, CS.Stream () n)]
+        -> [(Name n, CR.Reduce () n)]
+        -> [Statement () n Prim]
 makeStatements namer inputType strs reds
  = let sources = filter ((==Nothing) . CS.inputOfStream . snd) strs
    in  fmap (insertStream namer inputType strs reds) sources
@@ -154,10 +153,10 @@ insertStream
         :: Ord n
         => Namer n
         -> ValType
-        -> [(Name n, CS.Stream n)]
-        -> [(Name n, CR.Reduce n)]
-        ->  (Name n, CS.Stream n)
-        -> Statement n Prim
+        -> [(Name n, CS.Stream () n)]
+        -> [(Name n, CR.Reduce () n)]
+        ->  (Name n, CS.Stream () n)
+        -> Statement () n Prim
 insertStream namer inputType strs reds (n, strm)
        -- Get the reduces and their updates
  = let reds' = filter ((==n) . CR.inputOfReduce . snd) reds
@@ -176,51 +175,51 @@ insertStream namer inputType strs reds (n, strm)
    in case strm of
        -- Sources just bind the input and do their children
        CS.Source
-        -> allLet $ XVar $ namerFact namer
+        -> allLet $ xVar $ namerFact namer
 
        -- If within i days
        CS.SWindow _ newerThan olderThan inp
         -> let factDate  = namerElemPrefix namer (namerDate namer)
                nowDate   = namerDate namer
-               diff      = XPrim (PrimMinimal $ Min.PrimDateTime Min.PrimDateTimeDaysDifference)
+               diff      = xPrim (PrimMinimal $ Min.PrimDateTime Min.PrimDateTimeDaysDifference)
 
                check  | Just o' <- olderThan
-                      = XPrim (PrimMinimal $ Min.PrimLogical Min.PrimLogicalAnd)
-                        @~ (diff @~ XVar factDate @~ XVar nowDate) <=~ newerThan
-                        @~ (diff @~ XVar factDate @~ XVar nowDate) >=~ o'
+                      = xPrim (PrimMinimal $ Min.PrimLogical Min.PrimLogicalAnd)
+                        @~ (diff @~ xVar factDate @~ xVar nowDate) <=~ newerThan
+                        @~ (diff @~ xVar factDate @~ xVar nowDate) >=~ o'
 
                       | otherwise
-                      = (diff @~ XVar factDate @~ XVar nowDate) <=~ newerThan
+                      = (diff @~ xVar factDate @~ xVar nowDate) <=~ newerThan
 
                else_  | Just o' <- olderThan
-                      = If ((diff @~ XVar factDate @~ XVar nowDate) <~ o' )
+                      = If ((diff @~ xVar factDate @~ xVar nowDate) <~ o' )
                            KeepFactInHistory
                            mempty
 
                       | otherwise
                       = mempty
 
-           in If check (allLet $ XVar $ namerElemPrefix namer inp)
+           in If check (allLet $ xVar $ namerElemPrefix namer inp)
                          else_
 
        -- Filters become ifs
        CS.STrans (CS.SFilter _) x inp
-        -> If (Beta.betaToLets (x `XApp` XVar (namerElemPrefix namer inp)))
-              (allLet $ XVar $ namerElemPrefix namer inp)
+        -> If (Beta.betaToLets () (x `xApp` xVar (namerElemPrefix namer inp)))
+              (allLet $ xVar $ namerElemPrefix namer inp)
                mempty
 
        -- Maps apply given function and then do their children
        CS.STrans (CS.SMap _ _) x inp
-        -> allLet $ Beta.betaToLets $ XApp x $ XVar $ namerElemPrefix namer inp
+        -> allLet $ Beta.betaToLets () $ xApp x $ xVar $ namerElemPrefix namer inp
 
 
 -- | Get update statement for given reduce
 statementOfReduce
         :: Ord n
         => Namer n
-        -> [(Name n, CS.Stream n)]
-        -> (Name n, CR.Reduce n)
-        -> Statement n Prim
+        -> [(Name n, CS.Stream () n)]
+        ->  (Name n, CR.Reduce () n)
+        -> Statement () n Prim
 statementOfReduce namer strs (n,r)
  = case r of
     -- Apply fold's konstrukt to current accumulator value and input value
@@ -234,9 +233,9 @@ statementOfReduce namer strs (n,r)
                = mempty
 
         in  Read n' n'
-          ( Write n' (Beta.betaToLets (k `XApp` (XVar n') `XApp` (XVar $ namerElemPrefix namer inp)))
+          ( Write n' (Beta.betaToLets () (k `xApp` (xVar n') `xApp` (xVar $ namerElemPrefix namer inp)))
           <> k' )
     -- Push most recent inp
     CR.RLatest _ _ inp
-     -> Push (namerAccPrefix namer n) (XVar $ namerElemPrefix namer inp)
+     -> Push (namerAccPrefix namer n) (xVar $ namerElemPrefix namer inp)
 

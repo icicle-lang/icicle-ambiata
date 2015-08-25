@@ -51,7 +51,7 @@ renameN :: (n -> m) -> Name n -> Name m
 renameN f (Name v)        = Name    (f v)
 renameN f (NameMod n1 n2) = NameMod (f n1) (renameN f n2)
 
-renameP :: (n -> m) -> CP.Program n -> CP.Program m
+renameP :: (n -> m) -> CP.Program a n -> CP.Program a m
 renameP f prog
   = CP.Program
     { CP.input     = CP.input prog
@@ -62,29 +62,29 @@ renameP f prog
     , CP.postcomps = fmap (renameNX f)  (CP.postcomps   prog)
     , CP.returns   = fmap (\(a,b) -> (a, renameCX f b))  (CP.returns     prog) }
 
-renameNS :: (n -> m) -> (Name n, CS.Stream n) -> (Name m, CS.Stream m)
+renameNS :: (n -> m) -> (Name n, CS.Stream a n) -> (Name m, CS.Stream a m)
 renameNS f (n, s) = (renameN f n, renameS f s)
 
-renameS :: (n -> m) -> CS.Stream n -> CS.Stream m
+renameS :: (n -> m) -> CS.Stream a n -> CS.Stream a m
 renameS _ CS.Source                 = CS.Source
 renameS f (CS.SWindow t x mx n)     = CS.SWindow t (renameCX f x) (fmap (renameCX f) mx) (renameN f n)
 renameS f (CS.STrans i e n)         = CS.STrans i (renameCX f e) (renameN f n)
 
-renameNR :: (n -> m) -> (Name n, CR.Reduce n) -> (Name m, CR.Reduce m)
+renameNR :: (n -> m) -> (Name n, CR.Reduce a n) -> (Name m, CR.Reduce a m)
 renameNR f (n, r) = (renameN f n, renameR f r)
 
-renameR :: (n -> m) -> CR.Reduce n -> CR.Reduce m
+renameR :: (n -> m) -> CR.Reduce a n -> CR.Reduce a m
 renameR f = CR.renameReduce (fmap f)
 
-renameNX :: (n -> m) -> (Name n, CE.Exp n) -> (Name m, CE.Exp m)
+renameNX :: (n -> m) -> (Name n, CE.Exp a n) -> (Name m, CE.Exp a m)
 renameNX f (n, e) = (renameN f n, renameCX f e)
 
-renameCX :: (n -> m) -> CE.Exp n -> CE.Exp m
+renameCX :: (n -> m) -> CE.Exp a n -> CE.Exp a m
 renameCX f e = case e of
-  XVar n       -> XVar (renameN f n)
-  XApp e1 e2   -> XApp (renameCX f e1) (renameCX f e2)
-  XLam n t  e1 -> XLam (renameN f n) t (renameCX f e1)
-  XLet n e1 e2 -> XLet (renameN f n) (renameCX f e1) (renameCX f e2)
-  XPrim p      -> XPrim p
-  XValue x y   -> XValue x y
+  XVar   a n       -> XVar   a (renameN f n)
+  XApp   a e1 e2   -> XApp   a (renameCX f e1) (renameCX f e2)
+  XLam   a n t  e1 -> XLam   a (renameN f n) t (renameCX f e1)
+  XLet   a n e1 e2 -> XLet   a (renameN f n) (renameCX f e1) (renameCX f e2)
+  XPrim  a p       -> XPrim  a p
+  XValue a x y     -> XValue a x y
 

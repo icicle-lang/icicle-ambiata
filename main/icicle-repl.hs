@@ -346,7 +346,7 @@ handleSetCommand state set
 --------------------------------------------------------------------------------
 
 type QueryTopPUV = SQ.QueryTop (ST.Annot SP.SourcePos SP.Variable) SP.Variable
-type ProgramT    = CP.Program Text
+type ProgramT    = CP.Program () Text
 newtype Result   = Result (Entity, Value)
 
 instance PP.Pretty Result where
@@ -384,33 +384,33 @@ coreEval d fs (renameQT unVar -> query) prog
 
 -- | Converts Core to Avalanche then flattens the result.
 --
-coreFlatten :: ProgramT -> Either SR.ReplError (AP.Program Text APF.Prim)
+coreFlatten :: ProgramT -> Either SR.ReplError (AP.Program () Text APF.Prim)
 coreFlatten prog
  = let av = coreAvalanche prog
    in   mapLeft  SR.ReplErrorFlatten
       . mapRight simpFlattened
       . mapRight (\(_,s') -> av { AP.statements = s' })
       $ F.runFreshT
-      ( AF.flatten
+      ( AF.flatten ()
       $ AP.statements av)
       (F.counterPrefixNameState (T.pack . show) "flat")
 
-coreAvalanche :: ProgramT -> AP.Program Text CP.Prim
+coreAvalanche :: ProgramT -> AP.Program () Text CP.Prim
 coreAvalanche prog
  = simpAvalanche
  $ AC.programFromCore (AC.namerText id) prog
 
-simpAvalanche :: (Eq p, Show p) => AP.Program Text p -> AP.Program Text p
+simpAvalanche :: (Eq p, Show p) => AP.Program () Text p -> AP.Program () Text p
 simpAvalanche av
- = let simp = AS.simpAvalanche av
+ = let simp = AS.simpAvalanche () av
        name = F.counterPrefixNameState (T.pack . show) "anf"
    in  snd $ F.runFresh simp name
 
-simpFlattened :: AP.Program Text APF.Prim -> AP.Program Text APF.Prim
+simpFlattened :: AP.Program () Text APF.Prim -> AP.Program () Text APF.Prim
 simpFlattened av
- = let simp = AS.simpFlattened av
+ = let simp = AS.simpFlattened () av
        name = F.counterPrefixNameState (T.pack . show) "simp"
-   in  snd $ F.runFresh (simp >>= AS.simpFlattened) name
+   in  snd $ F.runFresh (simp >>= AS.simpFlattened ()) name
 
 --------------------------------------------------------------------------------
 

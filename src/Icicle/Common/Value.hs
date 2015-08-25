@@ -15,24 +15,24 @@ import              P
 import qualified    Data.Map as Map
 
 -- | A heap is just a mapping from names to values.
-type Heap n p
- = Map.Map (Name n) (Value n p)
+type Heap a n p
+ = Map.Map (Name n) (Value a n p)
 
 
 -- | A top-level value can be a function/closure or a base value
-data Value n p
+data Value a n p
  = VBase  BaseValue
  -- | A function carries its own heap, the name of its argument, and the expression to apply.
  -- Actually - we might want the type of the argument here too, for typeOfValue
- | VFun   (Heap n p)  (Name n)  (Exp n p)
+ | VFun   (Heap a n p)  (Name n)  (Exp a n p)
  deriving (Show, Ord, Eq)
 
 
-getBaseValue :: e -> Value n p -> Either e BaseValue
+getBaseValue :: e -> Value a n p -> Either e BaseValue
 getBaseValue e VFun{}    = Left e
 getBaseValue _ (VBase v) = Right v
 
 
-instance (Pretty n, Pretty p) => Pretty (Value n p) where
+instance (Pretty n, Pretty p) => Pretty (Value a n p) where
  pretty (VBase b) = pretty b
  pretty (VFun h n x) = text "closure#" <+> pretty (Map.toList h) <+> text "\\" <> pretty n <> text ". " <> pretty x

@@ -59,8 +59,8 @@ data ReplError
  | ReplErrorCheck   (SC.CheckError Parsec.SourcePos Var)
  | ReplErrorConvert (STC.ConvertError Parsec.SourcePos Var)
  | ReplErrorDecode  S.ParseError
- | ReplErrorRuntime S.SimulateError
- | ReplErrorFlatten (AS.FlattenError Text)
+ | ReplErrorRuntime (S.SimulateError ())
+ | ReplErrorFlatten (AS.FlattenError () Text)
  | ReplErrorDictionaryLoad DictionaryToml.DictionaryImportError
  deriving (Show)
 
@@ -111,7 +111,7 @@ instance Pretty ReplError where
 type Var        = SP.Variable
 type QueryTop'  = SQ.QueryTop Parsec.SourcePos Var
 type QueryTop'T = SQ.QueryTop (ST.Annot Parsec.SourcePos Var) Var
-type Program'   = Core.Program Var
+type Program'   = Core.Program () Var
 
 data DictionaryLoadType
  = DictionaryLoadTextV1 FilePath
@@ -173,7 +173,7 @@ sourceParseConvert t
 coreSimp :: Program' -> Program'
 coreSimp p
  = snd
- $ Fresh.runFresh (Core.simpProgram p) (freshNamer "simp")
+ $ Fresh.runFresh (Core.simpProgram () p) (freshNamer "simp")
 
 
 freshNamer :: Text -> Fresh.NameState SP.Variable

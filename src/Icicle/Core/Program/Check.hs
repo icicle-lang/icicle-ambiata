@@ -19,11 +19,11 @@ import              Data.Either.Combinators
 import qualified    Data.Map as Map
 
 
--- | Check the entire program 
+-- | Check the entire program
 checkProgram
         :: Ord n
-        => Program n
-        -> Either (ProgramError n) [(OutputName, Type)]
+        => Program a n
+        -> Either (ProgramError a n) [(OutputName, Type)]
 checkProgram p
  = do   -- Check precomputations, starting with an empty environment
         pres    <- checkExps ProgramErrorPre Map.empty    (P.precomps     p)
@@ -58,10 +58,10 @@ checkProgram p
 -- | Check all expression bindings, collecting up environment as we go
 checkExps
         :: Ord n
-        => (ExpError n Prim -> ProgramError n)
+        => (ExpError a n Prim -> ProgramError a n)
         -> Env n Type
-        -> [(Name n, Exp n)]
-        -> Either (ProgramError n) (Env n Type)
+        -> [(Name n, Exp a n)]
+        -> Either (ProgramError a n) (Env n Type)
 
 checkExps _ env []
  = return env
@@ -77,8 +77,8 @@ checkExps err env ((n,x):bs)
 checkStreams
         :: Ord n
         => StreamEnv n
-        -> [(Name n, Stream n)]
-        -> Either (ProgramError n) (StreamEnv n)
+        -> [(Name n, Stream a n)]
+        -> Either (ProgramError a n) (StreamEnv n)
 checkStreams env []
  = return env
 
@@ -97,8 +97,8 @@ checkStreams env ((n,s):bs)
 checkReduces
         :: Ord n
         => StreamEnv n
-        -> [(Name n, Reduce n)]
-        -> Either (ProgramError n) (Env n Type)
+        -> [(Name n, Reduce a n)]
+        -> Either (ProgramError a n) (Env n Type)
 
 checkReduces env []
  = return (scalars env)

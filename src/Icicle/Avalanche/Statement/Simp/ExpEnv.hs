@@ -17,15 +17,15 @@ import              P
 import qualified    Data.Set            as Set
 
 
-type ExpEnv n p = [(Name n, Exp n p)]
+type ExpEnv a n p = [(Name n, Exp a n p)]
 
-emptyExpEnv :: ExpEnv n p
+emptyExpEnv :: ExpEnv a n p
 emptyExpEnv = []
 
 updateExpEnv :: Ord n
-             => Statement n p
-             -> ExpEnv n p
-             -> ExpEnv n p
+             => Statement a n p
+             -> ExpEnv a n p
+             -> ExpEnv a n p
 updateExpEnv s env
    = case s of
       Let n x _
@@ -63,7 +63,7 @@ updateExpEnv s env
 -- When we see the second "a" binding, then, we must remove "b" from the environment of
 -- previously bound expressions.
 --
-clearFromExpEnv :: Ord n => Name n -> ExpEnv n p -> ExpEnv n p
+clearFromExpEnv :: Ord n => Name n -> ExpEnv a n p -> ExpEnv a n p
 clearFromExpEnv n env
  = filter (\(n',x') -> n' /= n && not (Set.member n $ freevars x')) env
 

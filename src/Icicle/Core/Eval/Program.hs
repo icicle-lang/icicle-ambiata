@@ -33,17 +33,17 @@ import qualified    Data.Map as Map
 
 
 -- | Things that can go wrong for program evaluation
-data RuntimeError n
- = RuntimeErrorPre      (XV.RuntimeError n Prim)
- | RuntimeErrorStream   (SV.RuntimeError n)
- | RuntimeErrorReduce   (RV.RuntimeError n)
- | RuntimeErrorPost     (XV.RuntimeError n Prim)
- | RuntimeErrorReturn   (XV.RuntimeError n Prim)
+data RuntimeError a n
+ = RuntimeErrorPre      (XV.RuntimeError a n Prim)
+ | RuntimeErrorStream   (SV.RuntimeError a n)
+ | RuntimeErrorReduce   (RV.RuntimeError a n)
+ | RuntimeErrorPost     (XV.RuntimeError a n Prim)
+ | RuntimeErrorReturn   (XV.RuntimeError a n Prim)
  | RuntimeErrorVarNotUnique (Name n)
- | RuntimeErrorReturnNotBaseType (V.Value n Prim)
+ | RuntimeErrorReturnNotBaseType (V.Value a n Prim)
  deriving (Show, Eq)
 
-instance (Pretty n) => Pretty (RuntimeError n) where
+instance (Pretty n) => Pretty (RuntimeError a n) where
  pretty (RuntimeErrorPre p)
   = "Precomputation error:" <> line
   <> indent 2 (pretty p)
@@ -81,8 +81,8 @@ data ProgramValue n =
 eval    :: Ord n
         => DateTime
         -> SV.InitialStreamValue
-        -> P.Program n
-        -> Either (RuntimeError n) (ProgramValue n)
+        -> P.Program a n
+        -> Either (RuntimeError a n) (ProgramValue n)
 eval d sv p
  = do   pres    <- mapLeft RuntimeErrorPre
                  $ XV.evalExps XV.evalPrim  Map.empty   (P.precomps     p)
@@ -115,12 +115,12 @@ eval d sv p
 -- | Evaluate all stream bindings, collecting up stream heap as we go
 evalStms
         :: Ord n
-        => V.Heap n Prim
+        => V.Heap a n Prim
         -> DateTime
         -> SV.InitialStreamValue
         -> SV.StreamHeap  n
-        -> [(Name n, Stream n)]
-        -> Either (RuntimeError n) (SV.StreamHeap n, [BubbleGumOutput n BaseValue])
+        -> [(Name n, Stream a n)]
+        -> Either (RuntimeError a n) (SV.StreamHeap n, [BubbleGumOutput n BaseValue])
 
 evalStms _ _ _ sh []
  = return (sh, [])
@@ -135,16 +135,16 @@ evalStms xh d svs sh ((n,strm):bs)
 
         (sh'', outs) <- evalStms xh d svs sh' bs
         return (sh'', out : outs)
-        
+
 
 -- | Evaluate all reduction bindings, inserting to expression heap as we go
 -- return expression heap at the end, throwing away streams
 evalReds
         :: Ord n
-        => V.Heap n Prim
+        => V.Heap a n Prim
         -> SV.StreamHeap  n
-        -> [(Name n, Reduce n)]
-        -> Either (RuntimeError n) ([BubbleGumOutput n BaseValue], V.Heap n Prim)
+        -> [(Name n, Reduce a n)]
+        -> Either (RuntimeError a n) ([BubbleGumOutput n BaseValue], V.Heap a n Prim)
 
 evalReds xh _ []
  = return ([], xh)
@@ -168,8 +168,8 @@ insertUnique
         => Map.Map (Name n) v
         -> Name n
         -> v
-        -> Either (RuntimeError n) (Map.Map (Name n) v)
+        -> Either (RuntimeError a n) (Map.Map (Name n) v)
 
-insertUnique 
+insertUnique
  = insertOrDie RuntimeErrorVarNotUnique
 

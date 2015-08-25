@@ -23,7 +23,7 @@ import           Test.QuickCheck
 prop_condense_type t =
  forAll (programForStreamType t)
  $ \p ->
- isRight (checkProgram p) == isRight (checkProgram $ condenseProgram p)
+ isRight (checkProgram p) == isRight (checkProgram $ condenseProgram () p)
 
 -- Condensing doesn't affect evaluation value.
 -- It does affect the history, but not the value
@@ -33,7 +33,7 @@ prop_condense_eval t =
  $ \p1 ->
  forAll (inputsForType t)
  $ \(vs,d) ->
- case (PV.eval d vs p1, PV.eval d vs (condenseProgram p1)) of
+ case (PV.eval d vs p1, PV.eval d vs (condenseProgram () p1)) of
   (Left e1, Left e2)   -> e1 === e2
   (Right v1, Right v2) -> PV.value v1 === PV.value v2
   (_,_)                -> property False

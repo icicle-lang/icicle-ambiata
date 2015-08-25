@@ -5,7 +5,7 @@
 module Icicle.Core.Eval.Stream (
       StreamValue
     , InitialStreamValue
-    , StreamHeap 
+    , StreamHeap
     , StreamWindow (..)
     , RuntimeError (..)
     , EvalResult   (..)
@@ -63,15 +63,15 @@ type StreamHeap n
 
 
 -- | Things that can go wrong for stream evaluation
-data RuntimeError n
- = RuntimeErrorExp          (XV.RuntimeError n Prim)
- | RuntimeErrorNoSuchStream (Name n)
- | RuntimeErrorExpNotOfType (V.Value n Prim) ValType
- | RuntimeErrorExpNotBaseType (V.Value n Prim)
+data RuntimeError a n
+ = RuntimeErrorExp            (XV.RuntimeError a n Prim)
+ | RuntimeErrorNoSuchStream   (Name n)
+ | RuntimeErrorExpNotOfType   (V.Value a n Prim) ValType
+ | RuntimeErrorExpNotBaseType (V.Value a n Prim)
  deriving (Show, Eq)
 
 
-instance (Pretty n) => Pretty (RuntimeError n) where
+instance (Pretty n) => Pretty (RuntimeError a n) where
  pretty (RuntimeErrorExp x)
   = "Expression error:" <> line
   <> indent 2 (pretty x)
@@ -111,11 +111,11 @@ data EvalResult
 -- and the heap with all preceding streams stored.
 eval    :: Ord n
         => DateTime             -- ^ Snapshot date for checking against windows
-        -> V.Heap      n Prim   -- ^ The expression heap with precomputations
+        -> V.Heap    a n Prim   -- ^ The expression heap with precomputations
         -> InitialStreamValue   -- ^ Concrete inputs start with dates attached
         -> StreamHeap       n   -- ^ Any streams that have already been evaluated
-        -> Stream           n   -- ^ Stream to evaluate
-        -> Either (RuntimeError n) EvalResult
+        -> Stream         a n   -- ^ Stream to evaluate
+        -> Either (RuntimeError a n) EvalResult
 eval window_check xh concreteValues sh s
  = case s of
     -- Raw input is easy

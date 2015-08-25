@@ -46,21 +46,22 @@ import                  Control.Monad.Trans.Class
 import qualified        Data.Map as Map
 
 
-data CoreBinds n
+data CoreBinds a n
  = CoreBinds
- { precomps     :: [(Name n, C.Exp n)]
- , streams      :: [(Name n, C.Stream n)]
- , reduces      :: [(Name n, C.Reduce n)]
- , postcomps    :: [(Name n, C.Exp n)]
+ { precomps     :: [(Name n, C.Exp    a n)]
+ , streams      :: [(Name n, C.Stream a n)]
+ , reduces      :: [(Name n, C.Reduce a n)]
+ , postcomps    :: [(Name n, C.Exp    a n)]
  }
 
 programOfBinds
     :: OutputName
     -> ValType
-    -> CoreBinds n
+    -> CoreBinds a n
+    -> a
     -> Name n
-    -> C.Program n
-programOfBinds outputName inpType binds ret
+    -> C.Program a n
+programOfBinds outputName inpType binds a_ret ret
  = C.Program
  { C.input      = inpType
  , C.precomps   = precomps  binds
@@ -68,25 +69,25 @@ programOfBinds outputName inpType binds ret
  , C.reduces    = reduces   binds
  , C.postcomps  = postcomps binds
  , C.postdate   = Nothing
- , C.returns    = [(outputName, X.XVar ret)]
+ , C.returns    = [(outputName, X.XVar a_ret ret)]
  }
 
-instance Monoid (CoreBinds n) where
+instance Monoid (CoreBinds a n) where
  mempty = CoreBinds [] [] [] []
  mappend (CoreBinds a b c d) (CoreBinds e f g h)
   = CoreBinds (a<>e) (b<>f) (c<>g) (d<>h)
 
 
-pre :: Name n -> C.Exp n -> CoreBinds n
+pre :: Name n -> C.Exp a n -> CoreBinds a n
 pre n x = mempty { precomps = [(n,x)] }
 
-strm :: Name n -> C.Stream n -> CoreBinds n
+strm :: Name n -> C.Stream a n -> CoreBinds a n
 strm n x = mempty { streams = [(n,x)] }
 
-red :: Name n -> C.Reduce n -> CoreBinds n
+red :: Name n -> C.Reduce a n -> CoreBinds a n
 red n x = mempty { reduces = [(n,x)] }
 
-post :: Name n -> C.Exp n -> CoreBinds n
+post :: Name n -> C.Exp a n -> CoreBinds a n
 post n x = mempty { postcomps = [(n,x)] }
 
 
@@ -134,7 +135,7 @@ data ConvertState n
  = ConvertState
  { csInputName  :: Name n
  , csInputType  :: ValType
- , csFeatures   :: FeatureContext n
+ , csFeatures   :: FeatureContext () n
  , csFreshen    :: Map.Map (Name n) (Name n)
  }
 
@@ -150,7 +151,7 @@ convertInputType :: ConvertM a n ValType
 convertInputType
  = csInputType <$> get
 
-convertFeatures :: ConvertM a n (FeatureContext n)
+convertFeatures :: ConvertM a n (FeatureContext () n)
 convertFeatures
  = csFeatures <$> get
 
@@ -169,7 +170,7 @@ convertWithInput n t c
         return r
 
 convertModifyFeatures
-        :: (FeatureContext n -> FeatureContext n)
+        :: (FeatureContext () n -> FeatureContext () n)
         -> ConvertM a n ()
 convertModifyFeatures f
  = do   o <- get
@@ -210,7 +211,7 @@ convertError :: ConvertError a n -> ConvertM a n r
 convertError = lift . lift . Left
 
 
-convertWindowUnits :: WindowUnit -> C.Exp n
+convertWindowUnits :: WindowUnit -> C.Exp () n
 convertWindowUnits wu
  = CE.constI
  $ case wu of

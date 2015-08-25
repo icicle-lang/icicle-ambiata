@@ -10,16 +10,16 @@ import              Icicle.Core.Exp
 
 import              P
 
-data ReduceError n
+data ReduceError a n
  -- No such stream variable
  = ReduceErrorNoSuchStream  (Name n)
  -- Worker function doesn't type check
- | ReduceErrorExp           (ExpError n Prim)
+ | ReduceErrorExp           (ExpError a n Prim)
  -- can't do something with worker function
- | ReduceErrorTypeError     (Exp n) Type Type
+ | ReduceErrorTypeError     (Exp a n) Type Type
  deriving Show
 
-instance (Pretty n) => Pretty (ReduceError n) where
+instance (Pretty n) => Pretty (ReduceError a n) where
  pretty e
   = case e of
     ReduceErrorNoSuchStream n
