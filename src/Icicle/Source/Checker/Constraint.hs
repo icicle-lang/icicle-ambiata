@@ -236,7 +236,12 @@ generateX x
 
            mapM_ (\(_,alt) -> require a $ CEquals resT $ annResult $ annotOfExp alt) pats'
 
-           annotate (Map.unions (sub : subs)) resT $ \a' -> Case a' scrut' pats'
+           let tmpx = getTemporalityOrPure $ annResult $ annotOfExp scrut'
+           let tmpq = getTemporalityOrPure $ resT
+           require a $ CEquals tmpx tmpq
+           let t' = resT -- canonT $ Temporality retTmp resT
+
+           annotate (Map.unions (sub : subs)) t' $ \a' -> Case a' scrut' pats'
 
  where
   annotate s' t' f
@@ -258,7 +263,8 @@ generateP scrutTy (pat, alt)
 
         (alt',sub) <- generateX alt
 
-        lift $ lift $ State.put e
+        e' <- lift $ lift State.get
+        lift $ lift $ State.put (e' { stateEnvironment = stateEnvironment e })
 
         return ((pat,alt'), sub)
  where

@@ -586,6 +586,16 @@ convertReduce xx
  | Var (Annot { annAnnot = ann }) v      <- xx
  = (,) mempty <$> convertFreshenLookup ann v
 
+ {-
+ | Case (Annot { annAnnot = ann, annResult = retty }) scrut pats <- final q
+ =   do pats'  <- mapM (\(p,alt) -> (,) p <$> convertExp alt) pats
+        scrut' <- convertExp scrut
+        scrutT <- convertValType (annAnnot ann) $ annResult $ annotOfExp scrut
+        resT   <- convertValType (annAnnot ann) $ annResult ann
+        x' <- convertCase x scrut' pats' scrutT resT
+ -}
+
+
  -- It's not a variable or a nested query,
  -- so it must be an application of a non-primitive
  | otherwise
