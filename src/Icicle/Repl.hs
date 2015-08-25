@@ -208,10 +208,8 @@ readIcicleLibrary
 readIcicleLibrary input
  = do
   input' <- mapLeft ReplErrorParse $ SP.parseFunctions input
-  (tys,bodies)
-        <- mapLeft ReplErrorCheck
+  mapLeft ReplErrorCheck
          $ snd
          $ flip Fresh.runFresh (freshNamer "t")
          $ runEitherT
          $ SC.checkFs M.empty input'
-  return (M.intersectionWith (,) tys $ M.fromList bodies)
