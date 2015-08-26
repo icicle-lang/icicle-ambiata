@@ -34,6 +34,8 @@ data ErrorInfo a n
  | ErrorConstraintsNotSatisfied a [(a, DischargeError n)]
  | ErrorReturnNotAggregate a (Type n)
  | ErrorDuplicateFunctionNames a (Name n)
+ | ErrorEmptyCase a (Exp a n)
+ | ErrorCaseBadPattern a (Pattern n)
  deriving (Show, Eq, Ord)
 
 annotOfError :: CheckError a n -> Maybe a
@@ -55,6 +57,11 @@ annotOfError (CheckError e _)
      -> Just a
     ErrorDuplicateFunctionNames      a _
      -> Just a
+    ErrorEmptyCase          a _
+     -> Just a
+    ErrorCaseBadPattern          a _
+     -> Just a
+
 
 data ErrorSuggestion a n
  = AvailableFeatures (Name n) [(Name n, Type n)]
@@ -74,7 +81,7 @@ errorSuggestions info sugs
 
 -- Pretties ----------
 
-instance (Pretty a, Pretty n) => Pretty (CheckError a n) where
+instance (IsString n, Ord n, Pretty a, Pretty n) => Pretty (CheckError a n) where
  pretty (CheckError info [])
   = pretty info
  pretty (CheckError info sugs)
@@ -115,11 +122,20 @@ instance (Pretty a, Pretty n) => Pretty (ErrorInfo a n) where
      ErrorDuplicateFunctionNames a n
       -> "Function" <+> pretty n <+> "at" <+> pretty a <+> "is already defined"
 
+     ErrorEmptyCase a x
+      -> "Case expression has no clauses at " <+> pretty a <> line
+      <> "Exp: " <> inp x
+
+     ErrorCaseBadPattern a p
+      -> "Case expression has ill-formed pattern at " <+> pretty a <> line
+      <> "Pattern: " <> inp p
+
+
    where
     inp x = indent 0 (pretty x)
 
 
-instance (Pretty a, Pretty n) => Pretty (ErrorSuggestion a n) where
+instance (IsString n, Ord n, Pretty a, Pretty n) => Pretty (ErrorSuggestion a n) where
  pretty e
   = case e of
      AvailableFeatures n' bs
@@ -128,6 +144,7 @@ instance (Pretty a, Pretty n) => Pretty (ErrorSuggestion a n) where
                  $ on compare
                  $ (editDistance $ pretty n') . pretty . fst
          in "Suggested features are:"
+            <> line
             <> indent 2 (vcat $ fmap pretty_ty bs')
 
      AvailableBindings n' bs
@@ -136,10 +153,12 @@ instance (Pretty a, Pretty n) => Pretty (ErrorSuggestion a n) where
                  $ on compare
                  $ (editDistance $ pretty n') . pretty . fst
          in "Suggested bindings are:"
-            <> indent 2 (vcat $ fmap pretty_ty bs')
+            <> line
+            <> indent 2 (vcat $ fmap pretty_fun_ty bs')
 
      Suggest str
       -> text str
 
   where
-    pretty_ty (k,t) = pretty k <+> ":" <+> pretty t
+    pretty_ty     (k,t) = padDoc 20 (pretty k) <+> ":" <+> pretty t
+    pretty_fun_ty (k,t) = padDoc 20 (pretty k) <+> ":" <+> prettyFunFromStrings t

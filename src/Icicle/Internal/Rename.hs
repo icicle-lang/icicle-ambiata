@@ -10,7 +10,6 @@ import qualified Icicle.Core.Program.Program as CP
 import qualified Icicle.Core.Reduce          as CR
 import qualified Icicle.Core.Stream          as CS
 import qualified Icicle.Source.Query         as SQ
-import qualified Icicle.Source.Query.Exp     as SE
 
 import           P
 
@@ -42,10 +41,19 @@ renameF f d
 
 renameX :: (n -> m) -> SQ.Exp a n -> SQ.Exp a m
 renameX f e = case e of
-  SE.Var a n     -> SE.Var a (renameN f n)
-  SE.Nested a q  -> SE.Nested a (renameQ f q)
-  SE.App a e1 e2 -> SE.App a (renameX f e1) (renameX f e2)
-  SE.Prim a p    -> SE.Prim a p
+  SQ.Var a n     -> SQ.Var a (renameN f n)
+  SQ.Nested a q  -> SQ.Nested a (renameQ f q)
+  SQ.App a e1 e2 -> SQ.App a (renameX f e1) (renameX f e2)
+  SQ.Prim a p    -> SQ.Prim a p
+  SQ.Case a scrut pats
+   -> SQ.Case a (renameX f scrut)
+    $ fmap (\(p,x) -> (renamePat f p, renameX f x)) pats
+
+renamePat :: (n -> m) -> SQ.Pattern n -> SQ.Pattern m
+renamePat f (SQ.PatCon c ps)   = SQ.PatCon c $ fmap (renamePat f) ps
+renamePat _  SQ.PatDefault     = SQ.PatDefault
+renamePat f (SQ.PatVariable n) = SQ.PatVariable $ renameN f n
+
 
 renameN :: (n -> m) -> Name n -> Name m
 renameN f (Name v)        = Name    (f v)

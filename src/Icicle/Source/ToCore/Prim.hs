@@ -38,12 +38,14 @@ convertPrim
         -> [(C.Exp () n, Type n)]
         -> ConvertM a n (C.Exp () n)
 convertPrim p ann resT xts
- = do   p' <- go p
-        return $ CE.makeApps () p' $ fmap fst xts
+ = go p
  where
 
-  go (Op o)
-   = (CE.XPrim () . C.PrimMinimal) <$> goop o
+  args = fmap fst xts
+  applies p' = CE.makeApps () p' args
+
+  primmin p' = applies $ CE.XPrim () $ C.PrimMinimal p'
+
   go (Lit (LitInt i))
    | (_, _, DoubleT) <- decomposeT resT
    = return $ CE.XValue () T.DoubleT (V.VDouble $ fromIntegral i)
@@ -54,57 +56,78 @@ convertPrim p ann resT xts
   go (Lit (LitString i))
    = return $ CE.XValue () T.StringT (V.VString i)
 
+  go (PrimCon ConSome)
+   = primmin <$> (Min.PrimConst <$> (Min.PrimConstSome <$> t1 1))
+  go (PrimCon ConNone)
+   = flip (CE.XValue ()) V.VNone <$> convertValType ann resT
+  go (PrimCon ConTuple)
+   = go $ Op TupleComma
+  go (PrimCon ConTrue)
+   = return $ CE.XValue () T.BoolT $ V.VBool True
+  go (PrimCon ConFalse)
+   = return $ CE.XValue () T.BoolT $ V.VBool False
+
   go (Fun f)
-   = (CE.XPrim () . C.PrimMinimal) <$> gofun f
+   = gofun f
+  go (Op o)
+   = goop o
 
   goop (ArithUnary Negate)
-   = Min.PrimArithUnary Min.PrimArithNegate <$> tArithArg 1
+   = primmin <$> (Min.PrimArithUnary Min.PrimArithNegate <$> tArithArg 1)
 
   goop (ArithBinary Add)
-   = Min.PrimArithBinary Min.PrimArithPlus <$> tArithArg 2
+   = primmin <$> (Min.PrimArithBinary Min.PrimArithPlus <$> tArithArg 2)
   goop (ArithBinary Sub)
-   = Min.PrimArithBinary Min.PrimArithMinus <$> tArithArg 2
+   = primmin <$> (Min.PrimArithBinary Min.PrimArithMinus <$> tArithArg 2)
   goop (ArithBinary Mul)
-   = Min.PrimArithBinary Min.PrimArithMul <$> tArithArg 2
+   = primmin <$> (Min.PrimArithBinary Min.PrimArithMul <$> tArithArg 2)
   goop (ArithBinary Pow)
-   = Min.PrimArithBinary Min.PrimArithPow <$> tArithArg 2
+   = primmin <$> (Min.PrimArithBinary Min.PrimArithPow <$> tArithArg 2)
 
   goop (ArithDouble Div)
-   = return $ Min.PrimDouble Min.PrimDoubleDiv
+   = return $ primmin $ Min.PrimDouble Min.PrimDoubleDiv
 
   goop (Relation Gt)
-   = Min.PrimRelation Min.PrimRelationGt <$> t1 2
+   = primmin <$> (Min.PrimRelation Min.PrimRelationGt <$> t1 2)
   goop (Relation Ge)
-   = Min.PrimRelation Min.PrimRelationGe <$> t1 2
+   = primmin <$> (Min.PrimRelation Min.PrimRelationGe <$> t1 2)
   goop (Relation Lt)
-   = Min.PrimRelation Min.PrimRelationLt <$> t1 2
+   = primmin <$> (Min.PrimRelation Min.PrimRelationLt <$> t1 2)
   goop (Relation Le)
-   = Min.PrimRelation Min.PrimRelationLe <$> t1 2
+   = primmin <$> (Min.PrimRelation Min.PrimRelationLe <$> t1 2)
   goop (Relation Eq)
-   = Min.PrimRelation Min.PrimRelationEq <$> t1 2
+   = primmin <$> (Min.PrimRelation Min.PrimRelationEq <$> t1 2)
   goop (Relation Ne)
-   = Min.PrimRelation Min.PrimRelationNe <$> t1 2
+   = primmin <$> (Min.PrimRelation Min.PrimRelationNe <$> t1 2)
 
   goop TupleComma
    | [(_,a),(_,b)] <- xts
    = do a' <- convertValType ann a
         b' <- convertValType ann b
-        return $ Min.PrimConst $ Min.PrimConstPair a' b'
+        return $ primmin $ Min.PrimConst $ Min.PrimConstPair a' b'
 
    | otherwise
    = convertError
    $ ConvertErrorPrimNoArguments ann 2 p
 
   gofun Log
-   = return $ Min.PrimDouble Min.PrimDoubleLog
+   = return $ primmin $ Min.PrimDouble Min.PrimDoubleLog
   gofun Exp
-   = return $ Min.PrimDouble Min.PrimDoubleExp
+   = return $ primmin $ Min.PrimDouble Min.PrimDoubleExp
   gofun ToDouble
-   -- TODO: this should return noop if argument is already double
-   -- | (_,_,DoubleT) <- decomposeT t1
-   = return $ Min.PrimCast Min.PrimCastDoubleOfInt
+   = case xts of
+      ((xx,tt):_)
+       | (_, _, DoubleT) <- decomposeT tt
+       -> return xx
+      _
+       -> return $ primmin $ Min.PrimCast Min.PrimCastDoubleOfInt
   gofun ToInt
-   = return $ Min.PrimCast Min.PrimCastIntOfDouble
+   = case xts of
+      ((xx,tt):_)
+       | (_, _, IntT) <- decomposeT tt
+       -> return xx
+      _
+       -> return $ primmin $ Min.PrimCast Min.PrimCastIntOfDouble
 
   t1 num_args
    = case xts of

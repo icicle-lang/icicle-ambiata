@@ -25,11 +25,12 @@ REPL Error:
 Check error:
   Unknown variable ea1 at (line 1, column 20)
   Extra information:
-    Suggested bindings are:  mean : forall t$17 t$18. (Num t$18) => Element t$17 t$18 -> Aggregate t$17 Double
-                             date : Element Definitely DateTime
-                             sd : forall t$25 t$26. (Num t$26) => Element t$25 t$26 -> Aggregate t$25 Double
-                             sum : forall t$1 t$2. (Num t$2) => Element t$1 t$2 -> Aggregate t$1 t$2
-                             value : Element Definitely Int
+    Suggested bindings are:
+      mean                 : (Num b) => Element a b -> Aggregate a Double
+      date                 : Element Definitely DateTime
+      sd                   : (Num b) => Element a b -> Aggregate a Double
+      sum                  : (Num b) => Element a b -> Aggregate a b
+      value                : Element Definitely Int
 
 > > -- Expect a parse error on unterminated string
 >                  [34mλλλλ[0m

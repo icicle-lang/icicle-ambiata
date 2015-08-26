@@ -134,6 +134,7 @@ library
                        Icicle.Source.Eval
                        Icicle.Source.Query
                        Icicle.Source.Query.Query
+                       Icicle.Source.Query.Constructor
                        Icicle.Source.Query.Context
                        Icicle.Source.Query.Exp
                        Icicle.Source.Query.Function
@@ -142,6 +143,7 @@ library
                        Icicle.Source.Lexer.Lexer
 
                        Icicle.Source.Parser
+                       Icicle.Source.Parser.Constructor
                        Icicle.Source.Parser.Token
                        Icicle.Source.Parser.Operators
                        Icicle.Source.Parser.Parser

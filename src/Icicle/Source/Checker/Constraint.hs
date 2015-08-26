@@ -223,12 +223,89 @@ generateX x
              $ hoistEither $ errorNoSuggestions (ErrorFunctionWrongArgs a x fErr [])
            annotate Map.empty resT $ \a' -> Prim a' p
 
+    Case a scrut pats
+     -> do (scrut', sub) <- generateX scrut
+           (pats', subs) <- unzip <$> mapM (generateP $ annResult $ annotOfExp scrut') pats
+
+           resT <- case pats' of
+                    [] -> hoistEither
+                        $ errorNoSuggestions
+                        $ ErrorEmptyCase a x
+                    ((_,alt):_)
+                       -> return $ annResult $ annotOfExp alt
+
+           mapM_ (\(_,alt) -> require a $ CEquals resT $ annResult $ annotOfExp alt) pats'
+
+           let tmpx = getTemporalityOrPure $ annResult $ annotOfExp scrut'
+           let tmpq = getTemporalityOrPure $ resT
+           require a $ CEquals tmpx tmpq
+           let t' = resT -- canonT $ Temporality retTmp resT
+
+           annotate (Map.unions (sub : subs)) t' $ \a' -> Case a' scrut' pats'
+
  where
   annotate s' t' f
    = do cs <- stateConstraints <$> (lift $ lift State.get)
         let a' = Annot (annotOfExp x) t' cs
         return (f a', s')
 
+
+generateP   :: Ord n
+            => Type n
+            -> (Pattern n, Exp a n)
+            -> Gen a n ((Pattern n, Exp'C a n), SubstT n)
+generateP scrutTy (pat, alt)
+ = do   e <- lift $ lift State.get
+        t <- goPat pat
+
+        let (_,_,datS) = decomposeT $ canonT scrutTy
+        require (annotOfExp alt) $ CEquals datS t
+
+        (alt',sub) <- generateX alt
+
+        e' <- lift $ lift State.get
+        lift $ lift $ State.put (e' { stateEnvironment = stateEnvironment e })
+
+        return ((pat,alt'), sub)
+ where
+  goPat PatDefault
+   = TypeVar <$> fresh
+  goPat (PatVariable n)
+   = do let (tmpS,posS,_) = decomposeT $ canonT scrutTy
+        datV <- TypeVar <$> fresh
+        bind n $ recomposeT (tmpS, posS, datV)
+        return datV
+
+  goPat (PatCon c pats)
+   = case c of
+      ConSome
+       | [p] <- pats
+       -> OptionT <$> goPat p
+       | otherwise
+       -> err
+      ConNone
+       | [] <- pats
+       -> OptionT <$> (TypeVar <$> fresh)
+       | otherwise
+       -> err
+      ConTuple
+       | [a,b] <- pats
+       -> PairT <$> goPat a <*> goPat b
+       | otherwise
+       -> err
+      ConTrue
+       | [] <- pats
+       -> return BoolT
+       | otherwise
+       -> err
+      ConFalse
+       | [] <- pats
+       -> return BoolT
+       | otherwise
+       -> err
+
+
+  err = hoistEither $ errorNoSuggestions (ErrorCaseBadPattern (annotOfExp alt) pat)
 
 
 appType :: a -> Type n -> (Type n, Type n) -> Gen a n (Type n)

@@ -59,6 +59,20 @@ primLookup' p
     Fun ToInt
      -> fNum $ \at -> ([at], IntT)
 
+    PrimCon ConSome
+     -> f1 $ \a at -> FunctionType [a] [] [at] (OptionT at)
+
+    PrimCon ConNone
+     -> f1 $ \a at -> FunctionType [a] [] [] (OptionT at)
+
+    PrimCon ConTuple
+     -> f2 $ \a at b bt -> FunctionType [a, b] [] [at, bt] (PairT at bt)
+
+    PrimCon ConTrue
+     -> f0 [] BoolT
+    PrimCon ConFalse
+     -> f0 [] BoolT
+
  where
 
   f0 argsT resT
@@ -70,4 +84,10 @@ primLookup' p
   f1 f
    = do n <- fresh
         return $ f n (TypeVar n)
+
+  f2 f
+   = do n1 <- fresh
+        n2 <- fresh
+        return $ f n1 (TypeVar n1) n2 (TypeVar n2)
+
 

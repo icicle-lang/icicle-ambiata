@@ -79,37 +79,35 @@ convertFold q
 
      -- Primitive application
      | Just (p, Annot { annAnnot = ann, annResult = retty }, args) <- takePrimApps $ final q
-     -> case p of
-         -- Non-aggregate primitive operations such as (+) or (/) are a bit more involved:
-         -- we convert the arguments to folds,
-         -- then store the accumulator as nested pairs of arguments
-         -- then, for the extract we destruct the pairs and apply the operator normally.
-         _
-          -> do -- Convert all arguments
-                -- (create a query out of the expression,
-                --  just because there is no separate convertFoldX function)
-                res <- mapM (convertFold . Query []) args
-                retty' <- convertValType' retty
+     -- Non-aggregate primitive operations such as (+) or (/) are a bit more involved:
+     -- we convert the arguments to folds,
+     -- then store the accumulator as nested pairs of arguments
+     -- then, for the extract we destruct the pairs and apply the operator normally.
+      -> do -- Convert all arguments
+            -- (create a query out of the expression,
+            --  just because there is no separate convertFoldX function)
+            res <- mapM (convertFold . Query []) args
+            retty' <- convertValType' retty
 
-                let ts  = fmap typeFold         res
-                -- Create pairs for zeros
-                (zz, tt) <- pairConstruct (fmap foldZero res) ts
+            let ts  = fmap typeFold         res
+            -- Create pairs for zeros
+            (zz, tt) <- pairConstruct (fmap foldZero res) ts
 
-                -- For extraction:
-                --  destruct the pairs,
-                --  recursively extract the arguments,
-                --  apply the primitive
-                let cp ns
-                        = convertPrim p ann retty
-                            ((fmap (uncurry CE.xApp) (fmap mapExtract res `zip` ns)) `zip` fmap (annResult . annotOfExp) args)
-                xx       <- pairDestruct cp ts retty
+            -- For extraction:
+            --  destruct the pairs,
+            --  recursively extract the arguments,
+            --  apply the primitive
+            let cp ns
+                    = convertPrim p ann retty
+                        ((fmap (uncurry CE.xApp) (fmap mapExtract res `zip` ns)) `zip` fmap (annResult . annotOfExp) args)
+            xx       <- pairDestruct cp ts retty
 
-                -- For konstrukt, we need to destruct the pairs, apply the sub-ks,
-                -- then box it up again in pairs.
-                let applyKs ns = fst <$> pairConstruct (fmap (uncurry CE.xApp) (fmap foldKons res `zip` ns)) ts
-                kk       <- pairDestruct applyKs ts tt
+            -- For konstrukt, we need to destruct the pairs, apply the sub-ks,
+            -- then box it up again in pairs.
+            let applyKs ns = fst <$> pairConstruct (fmap (uncurry CE.xApp) (fmap foldKons res `zip` ns)) ts
+            kk       <- pairDestruct applyKs ts tt
 
-                return $ ConvertFoldResult kk zz xx tt retty'
+            return $ ConvertFoldResult kk zz xx tt retty'
 
      -- Variable lookup.
      | Var (Annot { annAnnot = ann, annResult = retty }) v <- final q
@@ -173,6 +171,38 @@ convertFold q
 
               | otherwise
               -> convertError $ ConvertErrorExpNoSuchVariable ann v
+
+     | Case (Annot { annAnnot = ann, annResult = retty }) scrut pats <- final q
+      -> do -- Case expressions are very similar to primops.
+            -- We know that the scrutinee and the patterns are all aggregates.
+            -- Elements are handled elsewhere.
+            let args = scrut : fmap snd pats
+            res <- mapM (convertFold . Query []) args
+            retty' <- convertValType' retty
+            scrutT <- convertValType' $ annResult $ annotOfExp scrut
+
+            let ts  = fmap (typeFold) res
+            -- Create pairs for zeros
+            (zz, tt) <- pairConstruct (fmap foldZero res) ts
+
+            -- For extraction:
+            --  reconstruct the case
+            --  and use convertExp
+            let cp ns
+                    = case fmap (uncurry CE.xApp) (fmap mapExtract res `zip` ns) of
+                        (s:alts)
+                         -> convertCase (final q) s (fmap fst pats `zip` alts) scrutT retty'
+                        _
+                         -> convertError $ ConvertErrorBadCaseNoDefault ann (final q)
+            xx       <- pairDestruct cp ts retty
+
+            -- For konstrukt, we need to destruct the pairs, apply the sub-ks,
+            -- then box it up again in pairs.
+            let applyKs ns = fst <$> pairConstruct (fmap (uncurry CE.xApp) (fmap foldKons res `zip` ns)) ts
+            kk       <- pairDestruct applyKs ts tt
+
+            return $ ConvertFoldResult kk zz xx tt retty'
+
 
      -- It must be a non-primitive application
      | otherwise

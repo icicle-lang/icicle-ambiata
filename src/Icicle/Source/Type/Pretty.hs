@@ -6,6 +6,7 @@
 module Icicle.Source.Type.Pretty (
     prettyFunWithNames
   , prettyFunWithLetters
+  , prettyFunFromStrings
   , letterNames
   ) where
 
@@ -19,7 +20,7 @@ import                  Icicle.Internal.Pretty
 
 import                  P
 
-import                  Data.String (String)
+import                  Data.String
 import                  Data.List (zip)
 import qualified        Data.Map as Map
 import qualified        Data.Text as T
@@ -49,6 +50,11 @@ prettyFunWithNames names fun
 
    args xs
     = hsep (fmap (\x -> pretty x <+> "-> ") xs)
+
+prettyFunFromStrings :: (IsString n, Pretty n, Ord n) => FunctionType n -> Doc
+prettyFunFromStrings
+ = prettyFunWithNames
+ $ fmap (Name . fromString) letterNames
 
 prettyFunWithLetters :: FunctionType Variable -> Doc
 prettyFunWithLetters

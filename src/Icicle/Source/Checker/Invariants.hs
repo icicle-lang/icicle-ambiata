@@ -96,6 +96,8 @@ invariantX ctx x
      -> invariantX ctx p >> invariantX ctx q
     Prim{}
      -> return ()
+    Case _ s ps
+     -> invariantX ctx s >> mapM_ (invariantX ctx . snd) ps
 
  where
   goFun n args

@@ -13,6 +13,7 @@ module Icicle.Source.Parser.Parser (
 import qualified        Icicle.Source.Lexer.Token  as T
 import                  Icicle.Source.Parser.Token
 import                  Icicle.Source.Parser.Operators
+import                  Icicle.Source.Parser.Constructor
 import qualified        Icicle.Source.Query        as Q
 
 import                  Icicle.Common.Base
@@ -115,6 +116,7 @@ exp1
  =   (flip Q.Var     <$> var    <*> getPosition)
  <|> (flip Q.Prim    <$> prims  <*> getPosition)
  <|> (flip simpNested<$> parens <*> getPosition)
+ <|> parseCase
  <?> "expression"
  where
   var
@@ -126,6 +128,7 @@ exp1
    <|> ((Q.Lit . Q.LitInt) <$> pLitInt)
    <|> ((Q.Lit . Q.LitDouble) <$> pLitDouble)
    <|> ((Q.Lit . Q.LitString) <$> pLitString)
+   <|> (Q.PrimCon             <$> constructor)
    <?> "primitive"
 
   simpNested _ (Q.Query [] x)
@@ -135,6 +138,21 @@ exp1
 
   parens
    =   pParenL *> query <* pParenR                          <?> "sub-expression or nested query"
+
+  parseCase
+   = do pEq $ T.TKeyword T.Case
+        pos <- getPosition
+        scrut <- exp
+        alts  <- many1 parseAlt
+        pEq $ T.TKeyword T.End
+        return $ Q.Case pos scrut alts
+
+  parseAlt
+   = do pEq $ T.TAlternative
+        pat <- pattern
+        pEq $ T.TFunctionArrow
+        xx  <- exp
+        return (pat, xx)
 
 
 windowUnit :: Parser Q.WindowUnit

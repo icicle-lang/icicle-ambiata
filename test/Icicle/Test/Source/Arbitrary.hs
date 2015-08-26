@@ -43,6 +43,7 @@ instance Arbitrary n => Arbitrary (Exp () n) where
         , Prim   () <$> arbitrary ]
         [ (simplifyNestedX . Nested ()) <$> arbitrary
         , App    () <$> arbitrary <*> arbitrary
+        , Case   () <$> arbitrary <*> ((\a b -> [(PatCon ConTrue [], a), (PatCon ConFalse [], b)]) <$> arbitrary <*> arbitrary)
         , preop
         , inop ]
 
@@ -79,6 +80,16 @@ instance Arbitrary Prim where
         , Lit $ LitInt 1
         , Lit $ LitInt 2
         ]
+
+instance Arbitrary Constructor where
+ arbitrary
+  = oneof_vals [ ConSome, ConNone, ConTuple, ConTrue, ConFalse ]
+
+instance Arbitrary n => Arbitrary (Pattern n) where
+ arbitrary
+  = oneof_sized [ return PatDefault, PatVariable <$> arbitrary ]
+                [ PatCon <$> arbitrary <*> arbitrary ]
+
 
 instance Arbitrary n => Arbitrary (Context () n) where
  arbitrary

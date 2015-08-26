@@ -28,6 +28,7 @@ inlineTransform
 inlineTransform funs
  = Transform
  { transformExp     = tranx
+ , transformPat     = tranp
  , transformContext = tranc
  , transformState   = ()
  }
@@ -54,6 +55,9 @@ inlineTransform funs
 
    | otherwise
    = return ((), x)
+
+  tranp _ p
+   = return ((), p)
 
   tranc _ c
    = return ((), c)

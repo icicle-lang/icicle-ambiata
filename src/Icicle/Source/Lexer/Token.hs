@@ -18,6 +18,8 @@ import Icicle.Internal.Pretty
 
 import                  P
 
+import qualified        Data.Char as C
+import                  Data.String
 import qualified        Data.Text as T
 import                  Data.Text (Text)
 import                  Data.List (lookup)
@@ -39,6 +41,7 @@ data Token
  | TOperator Operator
  -- | Names. I dunno
  | TVariable Variable
+ | TConstructor Variable
 
  -- | '('
  | TParenL
@@ -54,6 +57,11 @@ data Token
  -- | '~>' for composition
  | TDataFlow
 
+ -- | '->' for case patterns and their expressions
+ | TFunctionArrow
+ -- | '|' for separating case alternatives
+ | TAlternative
+
  -- | An error
  | TUnexpected Text
  deriving (Eq, Ord, Show)
@@ -62,8 +70,10 @@ data Keyword
  = And
  | Average
  | Between
+ | Case
  | Days
  | Distinct
+ | End
  | Feature
  | Filter
  | Fold
@@ -71,7 +81,6 @@ data Keyword
  | Group
  | Latest
  | Let
- | Max
  | Months
  | Weeks
  | Windowed
@@ -109,6 +118,9 @@ keywordOrVar :: Text -> Token
 keywordOrVar t
  | Just k <- lookup t keywords
  = TKeyword    k
+ | Just (c,_) <- T.uncons t
+ , C.isUpper c
+ = TConstructor $ Variable t
  | otherwise
  = TVariable $ Variable t
 
@@ -122,12 +134,19 @@ operator t
  = TStatementEnd
  | t == "~>"
  = TDataFlow
+ | t == "->"
+ = TFunctionArrow
+ | t == "|"
+ = TAlternative
  | otherwise
  = TOperator $ Operator t
 
 
 instance Pretty Variable where
  pretty (Variable v) = text $ T.unpack v
+
+instance IsString Variable where
+ fromString s = Variable $ T.pack s
 
 instance Pretty SourcePos where
  pretty sp = text $ show sp

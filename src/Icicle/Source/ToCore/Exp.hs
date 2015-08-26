@@ -9,6 +9,7 @@
 module Icicle.Source.ToCore.Exp (
     convertExp
   , convertExpQ
+  , convertCase
   ) where
 
 import                  Icicle.Source.Query
@@ -17,9 +18,15 @@ import                  Icicle.Source.ToCore.Prim
 import                  Icicle.Source.Type
 
 import qualified        Icicle.Core as C
+import qualified        Icicle.Core.Exp.Combinators as CE
 import qualified        Icicle.Common.Exp           as CE
+import qualified        Icicle.Common.Exp.Prim.Minimal as Min
+import qualified        Icicle.Common.Type          as T
+import                  Icicle.Common.Fresh
 
 import                  P
+
+import                  Control.Monad.Trans.Class
 
 import                  Data.List (zip)
 
@@ -64,6 +71,15 @@ convertExp x
     Prim ann p
      -> convertPrim p (annAnnot ann) (annResult ann) []
 
+    -- Only deal with flattened, single layer cases.
+    -- We need a pass beforehand to simplify them.
+    Case ann scrut pats
+     -> do  pats'  <- mapM (\(p,alt) -> (,) p <$> convertExp alt) pats
+            scrut' <- convertExp scrut
+            scrutT <- convertValType (annAnnot ann) $ annResult $ annotOfExp scrut
+            resT   <- convertValType (annAnnot ann) $ annResult ann
+            convertCase x scrut' pats' scrutT resT
+
 
 
 convertExpQ
@@ -83,4 +99,61 @@ convertExpQ q
     _
      -> convertError
       $ ConvertErrorExpNestedQueryNotAllowedHere (annAnnot $ annotOfQuery q) q
+
+
+
+convertCase
+        :: Ord n
+        => Exp (Annot a n) n
+        -> C.Exp () n
+        -> [(Pattern n, C.Exp () n)]
+        -> T.ValType
+        -> T.ValType
+        -> ConvertM a n (C.Exp () n)
+convertCase x scrut pats scrutT resT
+ = do   sn <- lift fresh
+        m <- convertConstructorMap
+        case scrutT of
+         T.OptionT ta
+          | Just ([n],som) <- Map.lookup ConSome    m
+          , Just ([],non)  <- Map.lookup ConNone    m
+
+          -> return ((CE.xPrim $ C.PrimFold (C.PrimFoldOption ta) resT)
+                     CE.@~ (CE.xLam n ta som) CE.@~ non
+                     CE.@~ scrut)
+
+         T.BoolT
+          | Just ([],tru) <- Map.lookup ConTrue     m
+          , Just ([],fal) <- Map.lookup ConFalse    m
+          -> return ((CE.xPrim $ C.PrimFold C.PrimFoldBool resT)
+                     CE.@~ tru CE.@~ fal
+                     CE.@~ scrut)
+
+         T.PairT ta tb
+          | Just ([na,nb],tup) <- Map.lookup ConTuple   m
+          , xfst <- CE.xPrim (C.PrimMinimal $ Min.PrimPair $ Min.PrimPairFst ta tb) CE.@~ CE.xVar sn
+          , xsnd <- CE.xPrim (C.PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd ta tb) CE.@~ CE.xVar sn
+          -> return ( CE.XLet () sn scrut
+                    $ CE.XLet () na xfst
+                    $ CE.XLet () nb xsnd
+                    $ tup)
+
+         _
+          -> convertError $ ConvertErrorBadCaseNoDefault (annAnnot $ annotOfExp x) x
+ where
+  convertConstructorMap
+   = Map.fromList <$> mapM mkPatMap pats
+
+  mkPatMap (PatCon c ps, alt)
+   = do ps'  <- mapM mkVars ps
+        return (c, (ps', alt))
+  mkPatMap _
+   = convertError $ ConvertErrorBadCaseNoDefault (annAnnot $ annotOfExp x) x
+
+  mkVars PatDefault
+   = lift fresh
+  mkVars (PatVariable n)
+   = convertFreshenAdd n
+  mkVars (PatCon _ _)
+   = convertError $ ConvertErrorBadCaseNestedConstructors (annAnnot $ annotOfExp x) x
 

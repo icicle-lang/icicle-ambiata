@@ -29,14 +29,14 @@ import                  Data.List (zip, nubBy, groupBy, reverse, take)
 import qualified        Data.Map as Map
 
 data EvalError a n
- = EvalErrorWindowWithNoDate a BaseValue
- | EvalErrorNoSuchVariable   a (Name n)
- | EvalErrorOpBadArgs        a Op  [BaseValue]
- | EvalErrorFunBadArgs       a Fun [BaseValue]
+ = EvalErrorNoSuchVariable   a (Name n)
+ | EvalErrorPrimBadArgs      a Prim [BaseValue]
 
  | EvalErrorExpNeitherSort   a (Exp a n)
 
  | EvalErrorApplicationOfNonPrimitive a (Exp a n)
+
+ | EvalErrorCaseExpressionNoMatch a (Exp a n) BaseValue
  deriving (Show, Eq, Ord)
 
 type Record n
@@ -152,6 +152,20 @@ evalX x vs env
     Prim a p
      -> evalP a p [] vs env
 
+    Case _ scrut pats
+     -> do scrut' <- evalX scrut vs env
+           goPats scrut' pats
+
+ where
+  goPats v []
+   = Left
+   $ EvalErrorCaseExpressionNoMatch (annotOfExp x) x v
+  goPats v ((p,xx):rest)
+   | Just subst <- substOfPattern p v
+   = evalX xx vs (Map.union subst env)
+   | otherwise
+   = goPats v rest
+
 
 evalP   :: Ord n
         => a
@@ -171,9 +185,30 @@ evalP ann p xs vs env
     Lit (LitString i)
      -> return (VString i)
 
+    PrimCon con
+     -> do  args <- mapM (\x' -> evalX x' vs env) xs
+            let err = Left $ EvalErrorPrimBadArgs ann p args
+            case con of
+             ConNone
+              -> return VNone
+             ConSome
+              | [va] <- args
+              -> return $ VSome va
+              | otherwise
+              -> err
+             ConTuple
+              | [va,vb] <- args
+              -> return $ VPair va vb
+              | otherwise
+              -> err
+             ConTrue
+              -> return $ VBool True
+             ConFalse
+              -> return $ VBool False
+
     Fun f
      -> do  args <- mapM (\x' -> evalX x' vs env) xs
-            let err = Left $ EvalErrorFunBadArgs ann f args
+            let err = Left $ EvalErrorPrimBadArgs ann p args
             case f of
              Log
               | [VDouble i] <- args
@@ -196,7 +231,7 @@ evalP ann p xs vs env
 
     Op o
      -> do  args <- mapM (\x' -> evalX x' vs env) xs
-            let err = Left $ EvalErrorOpBadArgs ann o args
+            let err = Left $ EvalErrorPrimBadArgs ann p args
             let isExcept v
                     | VException _ <- v
                     = True
