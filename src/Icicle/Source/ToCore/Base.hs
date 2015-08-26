@@ -184,7 +184,8 @@ convertFreshenAdd :: Ord n => Name n -> ConvertM a n (Name n)
 convertFreshenAdd prefix
  = do   n <- lift $ freshPrefix' prefix
         o <- get
-        put $ o { csFreshen = Map.insert prefix n $ csFreshen o }
+        put $ o { csFreshen  = Map.insert prefix n $ csFreshen  o
+                , csFeatures = Map.delete prefix   $ csFeatures o }
         return n
 
 convertFreshenLookup :: Ord n => a -> Name n -> ConvertM a n (Name n)

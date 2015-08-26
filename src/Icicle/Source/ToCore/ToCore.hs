@@ -586,14 +586,30 @@ convertReduce xx
  | Var (Annot { annAnnot = ann }) v      <- xx
  = (,) mempty <$> convertFreshenLookup ann v
 
- {-
- | Case (Annot { annAnnot = ann, annResult = retty }) scrut pats <- final q
- =   do pats'  <- mapM (\(p,alt) -> (,) p <$> convertExp alt) pats
-        scrut' <- convertExp scrut
-        scrutT <- convertValType (annAnnot ann) $ annResult $ annotOfExp scrut
-        resT   <- convertValType (annAnnot ann) $ annResult ann
-        x' <- convertCase x scrut' pats' scrutT resT
- -}
+
+ | Case (Annot { annAnnot = ann, annResult = retty }) scrut patalts <- xx
+ = do   scrut' <- convertReduce scrut
+        let (pats,alts) = unzip patalts
+        alts'  <- mapM convertReduce alts
+
+        let bs' = fst scrut' <> mconcat (fmap fst alts')
+
+        let sX  = CE.XVar $ snd scrut'
+        let aXs = fmap (CE.XVar . snd) alts'
+
+        scrutT <- convertValType ann $ annResult $ annotOfExp scrut
+        resT   <- convertValType ann $ retty
+
+        x'     <- convertCase xx sX (pats `zip` aXs) scrutT resT
+        nm     <- lift fresh
+
+        let b'  | TemporalityPure <- getTemporalityOrPure retty
+                = pre nm x'
+                | otherwise
+                = post nm x'
+
+        return (bs' <> b', nm)
+
 
 
  -- It's not a variable or a nested query,
