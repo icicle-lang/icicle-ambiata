@@ -11,7 +11,7 @@ module Icicle.Data (
   , Struct (..)
   , List (..)
   , Date (..)
-  , DateTime (..)
+  , DateTime
   , Encoding (..)
   , StructField (..)
   , StructFieldType (..)

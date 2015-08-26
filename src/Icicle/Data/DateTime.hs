@@ -2,14 +2,17 @@
 -- TODO support times as well
 {-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Data.DateTime (
-    DateTime (..)
+    DateTime
   , renderDate
   , dateOfYMD
   , dateOfDays
   , daysOfDate
   , withinWindow
   , daysDifference
+  , unsafeDateOfYMD
+  , pDate
   ) where
+import           Data.Attoparsec.Text
 
 import qualified Data.Dates         as D
 import qualified Data.Time.Calendar as C
@@ -17,7 +20,6 @@ import qualified Data.Time.Calendar as C
 import           Data.Text  as T
 
 import           P
-
 
 data DateTime =
   DateTime {
@@ -31,11 +33,24 @@ renderDate
    -- then T.pack (show (D.year d) <> "-" <>
    T.pack . C.showGregorian . D.dateTimeToDay . getDateTime
 
+pDate :: Parser DateTime
+pDate
+ = (maybe (fail "Invalid date") pure) =<< dateOfYMD <$> decimal <* dash <*> decimal <* dash <*> decimal
+   where
+    dash :: Parser ()
+    dash = () <$ char '-'
 
-dateOfYMD :: Int -> Int -> Int -> DateTime
-dateOfYMD y m d
+unsafeDateOfYMD :: Integer -> Int -> Int -> DateTime
+unsafeDateOfYMD y m d
  = DateTime
- $ D.DateTime y m d 0 0 0
+ $ D.dayToDateTime
+ $ C.fromGregorian y m d
+
+dateOfYMD :: Integer -> Int -> Int -> Maybe DateTime
+dateOfYMD y m d
+ =   DateTime
+  .  D.dayToDateTime
+ <$> C.fromGregorianValid y m d
 
 dateOfDays :: Int -> DateTime
 dateOfDays d

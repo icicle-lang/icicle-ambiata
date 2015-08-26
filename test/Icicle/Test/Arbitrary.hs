@@ -26,7 +26,7 @@ instance Arbitrary Attribute where
 
 instance Arbitrary DateTime where
   arbitrary =
-    dateOfYMD <$> oneof_vals [2010..2014] <*> oneof_vals [1..12] <*> oneof_vals [1..28]
+    unsafeDateOfYMD <$> oneof_vals [2010..2014] <*> oneof_vals [1..12] <*> oneof_vals [1..28]
 
 instance Arbitrary Date where
   arbitrary =

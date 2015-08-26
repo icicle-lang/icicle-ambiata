@@ -125,7 +125,7 @@ data Command
 
 defaultState :: ReplState
 defaultState
-  = (ReplState [] demographics (dateOfYMD 1970 1 1) False False False False False False False False False False)
+  = (ReplState [] demographics (unsafeDateOfYMD 1970 1 1) False False False False False False False False False False)
     { hasEval = True }
 
 readCommand :: String -> Maybe Command
@@ -181,7 +181,8 @@ readSetCommands ss
        | Just y' <- readMaybe y
        , Just m' <- readMaybe m
        , Just d' <- readMaybe d
-       -> (:) (CurrentDate $ dateOfYMD y' m' d')      <$> readSetCommands rest
+       , Just x' <- dateOfYMD y' m' d'
+       -> (:) (CurrentDate x')                        <$> readSetCommands rest
 
     []                  -> Just []
     _                   -> Nothing

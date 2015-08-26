@@ -20,7 +20,7 @@ import           Test.QuickCheck
 
 
 -- Just choose some date; it doesn't matter
-someDate = dateOfYMD 2015 1 1
+someDate = unsafeDateOfYMD 2015 1 1
 eval = PV.eval someDate []
 
 left = Var "left" 0

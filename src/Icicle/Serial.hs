@@ -58,14 +58,7 @@ eavtParser =
          <* pipe
          <*> column
          <* pipe)
-   <*> date
-
--- | TODO: implement parsing dates as well
-date :: Parser DateTime
-date
- = dateOfYMD <$> decimal <* dash <*> decimal <* dash <*> decimal
-
-
+   <*> pDate
 
 column :: Parser Text
 column =
@@ -74,11 +67,6 @@ column =
 pipe :: Parser Char
 pipe =
   char '|'
-
-dash :: Parser Char
-dash =
-  char '-'
-
 
 decodeEavt :: Dictionary -> Text -> Either ParseError (AsAt Fact)
 decodeEavt dict t
