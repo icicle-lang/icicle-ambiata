@@ -16,7 +16,7 @@ import              Data.List (lookup, zip, zipWith)
 import qualified    Data.Map as Map
 import qualified    Icicle.Common.Exp.Prim.Eval as Min
 
-evalPrim :: Ord n => EvalPrim n Prim
+evalPrim :: Ord n => EvalPrim a n Prim
 evalPrim p vs
  = let primError = Left $ RuntimeErrorPrimBadArgs p vs
    in case p of

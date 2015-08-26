@@ -35,27 +35,27 @@ import                  P
 convertPrim
         :: Prim -> a
         -> Type n
-        -> [(C.Exp n, Type n)]
-        -> ConvertM a n (C.Exp n)
+        -> [(C.Exp () n, Type n)]
+        -> ConvertM a n (C.Exp () n)
 convertPrim p ann resT xts
  = do   p' <- go p
-        return $ CE.makeApps p' $ fmap fst xts
+        return $ CE.makeApps () p' $ fmap fst xts
  where
 
   go (Op o)
-   = (CE.XPrim . C.PrimMinimal) <$> goop o
+   = (CE.XPrim () . C.PrimMinimal) <$> goop o
   go (Lit (LitInt i))
    | (_, _, DoubleT) <- decomposeT resT
-   = return $ CE.XValue T.DoubleT (V.VDouble $ fromIntegral i)
+   = return $ CE.XValue () T.DoubleT (V.VDouble $ fromIntegral i)
    | otherwise
    = return $ CE.constI i
   go (Lit (LitDouble i))
-   = return $ CE.XValue T.DoubleT (V.VDouble i)
+   = return $ CE.XValue () T.DoubleT (V.VDouble i)
   go (Lit (LitString i))
-   = return $ CE.XValue T.StringT (V.VString i)
+   = return $ CE.XValue () T.StringT (V.VString i)
 
   go (Fun f)
-   = (CE.XPrim . C.PrimMinimal) <$> gofun f
+   = (CE.XPrim () . C.PrimMinimal) <$> gofun f
 
   goop (ArithUnary Negate)
    = Min.PrimArithUnary Min.PrimArithNegate <$> tArithArg 1

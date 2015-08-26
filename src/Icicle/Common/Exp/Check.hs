@@ -23,7 +23,7 @@ import qualified    Data.Map as Map
 
 
 -- | Perform type checking and invariant checking with empty environment
-checkExp0 :: (Ord n) => Fragment p -> Exp n p -> Either (ExpError n p) Type
+checkExp0 :: (Ord n) => Fragment p -> Exp a n p -> Either (ExpError a n p) Type
 checkExp0 frag x = checkExp frag Map.empty x
 
 
@@ -35,7 +35,7 @@ checkExp0 frag x = checkExp frag Map.empty x
 --
 -- If successful, returns type of expression
 --
-checkExp :: (Ord n) => Fragment p -> Env n Type -> Exp n p -> Either (ExpError n p) Type
+checkExp :: (Ord n) => Fragment p -> Env n Type -> Exp a n p -> Either (ExpError a n p) Type
 checkExp frag e x
  = do   -- Perform normal type checking first
         t <- typecheck frag e x
@@ -57,20 +57,20 @@ checkExp frag e x
 
 -- | Typecheck expression, returning type if successful.
 -- Also checks name uniqueness invariant while building up environment.
-typecheck :: (Ord n) => Fragment p -> Env n Type -> Exp n p -> Either (ExpError n p) Type
+typecheck :: (Ord n) => Fragment p -> Env n Type -> Exp a n p -> Either (ExpError a n p) Type
 typecheck frag e xx
  = case xx of
     -- Variable must exist
-    XVar n
+    XVar _ n
      -> lookupOrDie ExpErrorVarNotInEnv e n
 
-    XValue t v
+    XValue _ t v
      -> if   valueMatchesType v t
         then return (FunT [] t)
         else Left (ExpErrorValueNotOfType v t)
 
     -- Application
-    XApp p q
+    XApp _ p q
      -> do  p' <- go p
             q' <- go q
             -- Check if type of p accepts q as an argument
@@ -79,17 +79,17 @@ typecheck frag e xx
              Nothing  -> Left (ExpErrorApp p q p' q')
 
     -- Look up primitive type
-    XPrim p
+    XPrim _ p
      ->     return (typeOfPrim frag p)
 
     -- Abstraction
-    XLam n t x
+    XLam _ n t x
      -> do  e' <- insertOrDie ExpErrorNameNotUnique e n (FunT [] t)
             tt <- typecheck frag e' x
             return (funOfVal t `arrow` tt)
 
     -- Let binding
-    XLet n x i
+    XLet _ n x i
      -> do  x' <- go x
             e' <- insertOrDie ExpErrorNameNotUnique e n x'
             typecheck frag e' i
@@ -102,7 +102,7 @@ typecheck frag e xx
 
 -- | Check if all primitives are fully applied.
 -- Only checks the number of arguments; the types are handled above.
-checkPrimsFullyApplied :: (Ord n) => Fragment p -> Exp n p -> Either (ExpError n p) ()
+checkPrimsFullyApplied :: (Ord n) => Fragment p -> Exp a n p -> Either (ExpError a n p) ()
 checkPrimsFullyApplied frag xx
  = case xx of
     -- Variables are ok
@@ -120,20 +120,20 @@ checkPrimsFullyApplied frag xx
      >> check p (length as)
 
     -- Non-primitive application; recurse
-    XApp p q
+    XApp _ p q
      -> go p
      >> go q
 
     -- Non-applied primitive, so better not take arguments
-    XPrim p
+    XPrim _ p
      -> check p 0
 
     -- Abstraction
-    XLam _ _ x
+    XLam _ _ _ x
      -> go x
 
     -- Let binding
-    XLet _ d i
+    XLet _ _ d i
      -> go d
      >> go i
 
@@ -154,7 +154,7 @@ checkPrimsFullyApplied frag xx
 
 
 -- | Check if lambdas are only in allowed placed
-checkLambdasAllowed :: (Ord n) => Bool -> Exp n p -> Either (ExpError n p) ()
+checkLambdasAllowed :: (Ord n) => Bool -> Exp a n p -> Either (ExpError a n p) ()
 checkLambdasAllowed allowedHere xx
  = case xx of
     -- Variables are ok
@@ -171,23 +171,23 @@ checkLambdasAllowed allowedHere xx
      -> mapM_ (checkLambdasAllowed True) as
 
     -- Non-primitive application; recurse but no lams allowed
-    XApp p q
+    XApp _ p q
      -> go p
      >> go q
 
     -- Non-applied primitive, ok
-    XPrim _
+    XPrim _ _
      -> ok
 
     -- Abstraction
-    XLam _ _ x
+    XLam _ _ _ x
      | allowedHere
      -> checkLambdasAllowed allowedHere x
      | otherwise
      -> err
 
     -- Let binding
-    XLet _ d i
+    XLet _ _ d i
      -> go d
      >> go i
 

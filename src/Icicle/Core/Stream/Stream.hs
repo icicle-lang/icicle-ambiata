@@ -21,10 +21,10 @@ import qualified    Data.List   as List
 
 
 
-data Stream n
+data Stream a n
  = Source
- | SWindow ValType (Exp n) (Maybe (Exp n)) (Name n)
- | STrans StreamTransform (Exp n) (Name n)
+ | SWindow ValType (Exp a n) (Maybe (Exp a n)) (Name n)
+ | STrans StreamTransform (Exp a n) (Name n)
  deriving (Eq,Ord,Show)
 
 -- | Explicitly carrying around the type parameters is annoying, but makes typechecking simpler
@@ -53,14 +53,14 @@ outputOfStreamTransform st
     SMap  _ q -> q
 
 
-renameStream :: (Name n -> Name n') -> Stream n -> Stream n'
+renameStream :: (Name n -> Name n') -> Stream a n -> Stream a n'
 renameStream _ Source                 = Source
 renameStream f (SWindow t x mx n)     = SWindow t (renameExp f x) (fmap (renameExp f) mx) (f n)
 renameStream f (STrans t x n)         = STrans t (renameExp f x) (f n)
 
 
 -- | Check if given stream originates from a windowed or not
-isStreamWindowed :: Eq n => [(Name n, Stream n)] -> Name n -> Bool
+isStreamWindowed :: Eq n => [(Name n, Stream a n)] -> Name n -> Bool
 isStreamWindowed ss nm
  = case List.lookup nm ss of
     Just Source                 -> False
@@ -71,7 +71,7 @@ isStreamWindowed ss nm
 
 
 -- | Get name of input stream, if applicable
-inputOfStream :: Stream n -> Maybe (Name n)
+inputOfStream :: Stream a n -> Maybe (Name n)
 inputOfStream  Source                = Nothing
 inputOfStream (SWindow _ _ _ inp)    = Just inp
 inputOfStream (STrans  _ _   inp)    = Just inp
@@ -80,7 +80,7 @@ inputOfStream (STrans  _ _   inp)    = Just inp
 -- Pretty printing ---------------
 
 
-instance (Pretty n) => Pretty (Stream n) where
+instance (Pretty n) => Pretty (Stream a n) where
  pretty Source         = text "source"
  pretty (SWindow t x mx inp)
                        = text "swindow [" <> pretty t <> text "]"

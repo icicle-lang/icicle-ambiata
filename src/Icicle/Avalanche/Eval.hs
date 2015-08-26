@@ -43,21 +43,21 @@ data AccumulatorValue
 
 
 -- | What can go wrong evaluating an Avalanche
-data RuntimeError n p
+data RuntimeError a n p
  = RuntimeErrorNoAccumulator (Name n)
- | RuntimeErrorAccumulator   (XV.RuntimeError n p)
- | RuntimeErrorLoop          (XV.RuntimeError n p)
+ | RuntimeErrorAccumulator   (XV.RuntimeError a n p)
+ | RuntimeErrorLoop          (XV.RuntimeError a n p)
  | RuntimeErrorLoopAccumulatorBad (Name n)
  | RuntimeErrorIfNotBool     BaseValue
  | RuntimeErrorForeachNotInt BaseValue BaseValue
- | RuntimeErrorNotBaseValue  (Value n p)
+ | RuntimeErrorNotBaseValue  (Value a n p)
  | RuntimeErrorKeepFactNotInFactLoop
  | RuntimeErrorAccumulatorLatestNotInt  BaseValue
  deriving (Eq, Show)
 
 
 -- | Extract base value; return an error if it's a closure
-baseValue :: Value n p -> Either (RuntimeError n p) BaseValue
+baseValue :: Value a n p -> Either (RuntimeError a n p) BaseValue
 baseValue v
  = getBaseValue (RuntimeErrorNotBaseValue v) v
 
@@ -69,7 +69,7 @@ updateOrPush
         -> Name n
         -> Maybe BubbleGumFact
         -> BaseValue
-        -> Either (RuntimeError n p) (AccumulatorHeap n)
+        -> Either (RuntimeError a n p) (AccumulatorHeap n)
 
 updateOrPush heap n bg v
  = do   let map          = accumulatorHeapMap heap
@@ -117,11 +117,11 @@ bubbleGumOutputOfAccumulatorHeap acc
 -- with given primitive evaluator and values
 evalProgram
         :: Ord n
-        => XV.EvalPrim n p
+        => XV.EvalPrim a n p
         -> DateTime
         -> [AsAt (BubbleGumFact, BaseValue)]
-        -> Program n p
-        -> Either (RuntimeError n p) ([BubbleGumOutput n BaseValue], [(OutputName,BaseValue)])
+        -> Program a n p
+        -> Either (RuntimeError a n p) ([BubbleGumOutput n BaseValue], [(OutputName,BaseValue)])
 
 evalProgram evalPrim now values p
  = do   -- Precomputations are just expressions
@@ -141,10 +141,10 @@ evalProgram evalPrim now values p
 
 -- | Initialise an accumulator
 initAcc :: Ord n
-        => XV.EvalPrim n p
-        -> Heap n p
-        -> Accumulator n p
-        -> Either (RuntimeError n p) (Name n, ([BubbleGumFact], AccumulatorValue))
+        => XV.EvalPrim a n p
+        -> Heap a n p
+        -> Accumulator a n p
+        -> Either (RuntimeError a n p) (Name n, ([BubbleGumFact], AccumulatorValue))
 
 initAcc evalPrim env (Accumulator n at _ x)
  = do av <- getValue
@@ -175,14 +175,14 @@ initAcc evalPrim env (Accumulator n at _ x)
 -- | Evaluate a single statement for a single value
 evalStmt
         :: Ord n
-        => XV.EvalPrim n p
+        => XV.EvalPrim a n p
         -> DateTime
-        -> Heap n p
+        -> Heap a n p
         -> [AsAt (BubbleGumFact, BaseValue)]
         -> Maybe BubbleGumFact
         -> AccumulatorHeap n
-        -> Statement n p
-        -> Either (RuntimeError n p) (AccumulatorHeap n, [(OutputName, BaseValue)])
+        -> Statement a n p
+        -> Either (RuntimeError a n p) (AccumulatorHeap n, [(OutputName, BaseValue)])
 
 evalStmt evalPrim now xh values bubblegum ah stmt
  = case stmt of

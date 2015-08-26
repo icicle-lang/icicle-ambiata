@@ -18,8 +18,8 @@ import              Data.Either.Combinators
 checkReduce
         :: Ord n
         => StreamEnv n
-        -> Reduce n
-        -> Either (ReduceError n) ValType
+        -> Reduce a n
+        -> Either (ReduceError a n) ValType
 checkReduce se r
  = case r of
     RFold t a k z n

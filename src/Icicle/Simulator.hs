@@ -40,15 +40,15 @@ data Partition =
     [AsAt Value]
   deriving (Eq,Show)
 
-type Result = Either SimulateError ([(OutputName, Value)], [B.BubbleGumOutput Text Value])
+type Result a = Either (SimulateError a) ([(OutputName, Value)], [B.BubbleGumOutput Text Value])
 
-data SimulateError
- = SimulateErrorRuntime (PV.RuntimeError Text)
+data SimulateError a
+ = SimulateErrorRuntime (PV.RuntimeError a Text)
  | SimulateErrorCannotConvertToCore        Value
  | SimulateErrorCannotConvertFromCore      V.BaseValue
   deriving (Eq,Show)
 
-instance Pretty SimulateError where
+instance Pretty (SimulateError a) where
  pretty (SimulateErrorRuntime e)
   = pretty e
  pretty (SimulateErrorCannotConvertToCore v)
@@ -79,7 +79,7 @@ makePartition fs@(f:_)
                 (fmap (\f' -> AsAt (value $ fact f') (time f')) fs) ]
 
 
-evaluateVirtuals :: Dictionary -> DateTime -> [Partition] -> [(Attribute, [(Entity, Result)])]
+evaluateVirtuals :: Dictionary -> DateTime -> [Partition] -> [(Attribute, [(Entity, Result a)])]
 evaluateVirtuals (Dictionary { dictionaryEntries = fields }) date facts
  = P.concatMap go fields
  where
@@ -88,7 +88,7 @@ evaluateVirtuals (Dictionary { dictionaryEntries = fields }) date facts
   go _
    = []
 
-evaluateVirtual  :: Virtual -> DateTime -> [Partition] -> [(Entity, Result)]
+evaluateVirtual  :: Virtual -> DateTime -> [Partition] -> [(Entity, Result a)]
 evaluateVirtual virt _ facts
  = P.concatMap go facts
  where
@@ -99,7 +99,7 @@ evaluateVirtual virt _ facts
    | otherwise
    = []
 
-evaluateVirtualValue :: P.Program Text -> DateTime -> [AsAt Value] -> Result
+evaluateVirtualValue :: P.Program a Text -> DateTime -> [AsAt Value] -> Result a
 evaluateVirtualValue p date vs
  = do   vs' <- mapM toCore vs
 
@@ -115,7 +115,7 @@ evaluateVirtualValue p date vs
         return a { fact = (B.BubbleGumFact $ B.Flavour 0 $ time a, v') }
 
 
-valueToCore :: Value -> Either SimulateError V.BaseValue
+valueToCore :: Value -> Either (SimulateError a) V.BaseValue
 valueToCore v
  = case v of
     IntValue i     -> return $ V.VInt i
@@ -136,7 +136,7 @@ valueToCore v
     DateValue _    -> Left   $ SimulateErrorCannotConvertToCore v
     Tombstone      -> Left   $ SimulateErrorCannotConvertToCore v
 
-valueFromCore :: V.BaseValue -> Either SimulateError Value
+valueFromCore :: V.BaseValue -> Either (SimulateError a) Value
 valueFromCore v
  = case v of
     V.VInt i      -> return $ IntValue i

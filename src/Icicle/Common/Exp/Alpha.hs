@@ -17,7 +17,7 @@ import qualified    Data.List               as List
 -- but allow locally bound names to differ.
 alphaEquality
         :: (Ord n, Eq p)
-        => Exp n p -> Exp n p
+        => Exp a n p -> Exp a n p
         -> Bool
 alphaEquality = alphaEquality' Map.empty
 
@@ -27,41 +27,41 @@ alphaEquality = alphaEquality' Map.empty
 alphaEquality'
         :: (Ord n, Eq p)
         => Map.Map (Name n) (Name n)
-        -> Exp n p -> Exp n p
+        -> Exp a n p -> Exp a n p
         -> Bool
 alphaEquality' m x1 x2
  -- Variables must match in the bijection, or not in the map at all and equal
- | XVar n1          <- x1
- , XVar n2          <- x2
+ | XVar _ n1          <- x1
+ , XVar _ n2          <- x2
  = lookupBoth m (n1, n2)
 
  -- Simple primitive
- | XPrim p1         <- x1
- , XPrim p2         <- x2
+ | XPrim _ p1         <- x1
+ , XPrim _ p2         <- x2
  = p1 == p2
 
  -- Base values
- | XValue t1 v1     <- x1
- , XValue t2 v2     <- x2
+ | XValue _ t1 v1     <- x1
+ , XValue _ t2 v2     <- x2
  =  t1 == t2
  && v1 == v2
 
  -- Recurse with same map
- | XApp x11 x12     <- x1
- , XApp x21 x22     <- x2
+ | XApp _ x11 x12     <- x1
+ , XApp _ x21 x22     <- x2
  = go x11 x21 && go x12 x22
 
  -- Types must match. Names can be different, so add them to bijection
- | XLam n1 t1 x1'   <- x1
- , XLam n2 t2 x2'   <- x2
+ | XLam _ n1 t1 x1'   <- x1
+ , XLam _ n2 t2 x2'   <- x2
  =  t1 == t2 
  && alphaEquality' (insertBoth m (n1,n2))
        x1' x2'
 
  -- Name isn't available under the binding expression,
  -- so only add it to the bijection for the second
- | XLet n1 x11 x12  <- x1
- , XLet n2 x21 x22  <- x2
+ | XLet _ n1 x11 x12  <- x1
+ , XLet _ n2 x21 x22  <- x2
  =  go x11 x21
  && alphaEquality' (insertBoth m (n1,n2))
        x12 x22

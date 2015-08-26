@@ -32,14 +32,14 @@ prop_fuseself t =
  forAll (programForStreamType t)
  $ \p ->
  isRight (checkProgram p)
- ==> isRight (fusePrograms left p right p)
+ ==> isRight (fusePrograms () left p right p)
 
 -- And if we fuse the program with itself, we get a pair of the two values back
 prop_fuseself_eval t =
  forAll (programForStreamType t)
  $ \p ->
    -- Fuse typechecks its args
-   case (fusePrograms left p right p) of
+   case (fusePrograms () left p right p) of
     Right p'
      | Right v  <- eval p
      -> case eval p' of
@@ -60,7 +60,7 @@ prop_fuse2 t =
  $ \p2 ->
  -- If both type check, fuse must return a new program
  isRight (checkProgram p1) && isRight (checkProgram p2)
- ==> isRight (fusePrograms left p1 right p2)
+ ==> isRight (fusePrograms () left p1 right p2)
 
 
 -- Evaluate two programs with empty input
@@ -70,7 +70,7 @@ prop_fuseeval2 t =
  forAll (programForStreamType t)
  $ \p2 ->
  -- Evaluate both input programs and try to fuse together
- case (eval p1, eval p2, fusePrograms left p1 right p2) of
+ case (eval p1, eval p2, fusePrograms () left p1 right p2) of
   (Right v1, Right v2, Right p')
       -- Evaluate the fused program
    -> case eval p' of
@@ -92,7 +92,7 @@ prop_fuseeval2_values t =
  forAll (inputsForType t)
  $ \(vs,d) ->
  -- Evaluate both input programs and try to fuse together
- case (PV.eval d vs p1, PV.eval d vs p2, fusePrograms left p1 right p2) of
+ case (PV.eval d vs p1, PV.eval d vs p2, fusePrograms () left p1 right p2) of
   (Right v1, Right v2, Right p')
       -- Evaluate the fused program
    -> case PV.eval d vs p' of

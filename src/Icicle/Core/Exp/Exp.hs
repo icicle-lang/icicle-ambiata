@@ -12,7 +12,7 @@ import qualified    Icicle.Core.Exp.Prim    as Prim
 
 import              P
 
-type Exp n = Exp.Exp n Prim.Prim
+type Exp a n = Exp.Exp a n Prim.Prim
 
 coreFragment :: Fragment Prim.Prim
 coreFragment

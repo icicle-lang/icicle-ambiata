@@ -131,7 +131,7 @@ loadDictionary' parentFuncs parentConf parentConcrete fp
       remakeVirtuals _ vds = vds
 
 sourceCheck :: Monad m
-            => SC.Features SP.Variable
+            => SC.Features () SP.Variable
             -> SQ.QueryTop Parsec.SourcePos SP.Variable
             -> EitherT DictionaryImportError m (SQ.QueryTop (ST.Annot Parsec.SourcePos SP.Variable) SP.Variable, ST.Type SP.Variable)
 sourceCheck d q =

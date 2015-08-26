@@ -34,11 +34,11 @@ import qualified    Data.Set    as Set
 
 -- | A-normalise an expression.
 -- We need a fresh name supply.
-anormal :: Ord n => Exp n p -> Fresh n (Exp n p)
-anormal xx
- = do   (bs, x)  <- anormal' xx
+anormal :: Ord n => a -> Exp a n p -> Fresh n (Exp a n p)
+anormal a_fresh xx
+ = do   (bs, x)  <- anormal' a_fresh xx
         (bs',x') <- renames bs [] x
-        return $ makeLets bs' x'
+        return $ makeLets a_fresh bs' x'
  where
 
   -- The sub-expressions of x might already have let bindings, and we're
@@ -56,7 +56,7 @@ anormal xx
 
   renames ((n,b):bs) seen x
    -- Check if n is used anywhere else
-   | n `Set.member` allvars (makeLets bs x)
+   | n `Set.member` allvars (makeLets a_fresh bs x)
    = do n' <- fresh
         -- Lets are non-recursive, so "b" will not change.
 
@@ -65,9 +65,9 @@ anormal xx
         --
         -- Note that mapping subst over (fmap snd bs) wouldn't work - because we'd lose
         -- valuable shadowing information from the names in (fmap fst bs).
-        let lets = makeLets bs x
+        let lets = makeLets a_fresh bs x
         -- Substitute with the new name
-        lets' <- subst n (XVar n') lets
+        lets' <- subst a_fresh n (XVar a_fresh n') lets
 
         -- It's silly, but we need to pull back out to a list of bindings again.
         -- We could save some work by going backwards, but this way seems simpler for now.
@@ -82,8 +82,8 @@ anormal xx
 
 
 -- | Recursively pull out sub-expressions to be bound
-anormal' :: Ord n => Exp n p -> Fresh n ([(Name n, Exp n p)], Exp n p)
-anormal' xx
+anormal' :: Ord n => a -> Exp a n p -> Fresh n ([(Name n, Exp a n p)], Exp a n p)
+anormal' a_fresh xx
  = case xx of
     -- Values and other simple expressions can be left alone.
     XVar{}
@@ -98,23 +98,23 @@ anormal' xx
      -> do  -- Grab the function and its arguments
             let (f,args) = takeApps xx
             -- Recurse over the function and grab its bindings, if any
-            (bf, xf)    <-      extractBinding f
+            (bf, xf)    <- extractBinding a_fresh f
             -- And with the arguments
-            (bs, xs)    <- unzip <$> mapM extractBinding args
+            (bs, xs)    <- unzip <$> mapM (extractBinding a_fresh) args
 
             -- Push all the bindings together, then reconstruct the new application
-            return (concat (bf:bs), makeApps xf xs)
+            return (concat (bf:bs), makeApps a_fresh xf xs)
 
     -- Lambdas are barriers.
     -- We don't want to pull anything out.
-    XLam n v x
-     -> do  x' <- anormal x
-            return ([], XLam n v x')
+    XLam a n v x
+     -> do  x' <- anormal a_fresh x
+            return ([], XLam a n v x')
 
     -- Just recurse over lets
-    XLet n x y
-     -> do  (bx, x')    <- anormal' x
-            (by, y')    <- anormal' y
+    XLet _ n x y
+     -> do  (bx, x')    <- anormal' a_fresh x
+            (by, y')    <- anormal' a_fresh y
 
             return (bx <> [(n, x')] <> by, y')
 
@@ -126,18 +126,18 @@ anormal' xx
 -- | Extract bindings for part of an application expression.
 -- If it's simple, just give it back.
 -- If it's interesting, anormalise it and bind it to a fresh name
-extractBinding :: Ord n => Exp n p -> Fresh n ([(Name n, Exp n p)], Exp n p)
-extractBinding xx
+extractBinding :: Ord n => a -> Exp a n p -> Fresh n ([(Name n, Exp a n p)], Exp a n p)
+extractBinding a_fresh xx
  | isNormal xx
  = return ([], xx)
  | otherwise
- = do   (bs,x') <- anormal' xx
+ = do   (bs,x') <- anormal' a_fresh xx
         n       <- fresh
-        return (bs <> [(n,x')], XVar n)
+        return (bs <> [(n,x')], XVar a_fresh n)
 
 
 -- | Check whether expression is worth extracting
-isNormal :: Exp n p -> Bool
+isNormal :: Exp a n p -> Bool
 isNormal xx
  = case xx of
     XVar{}   -> True

@@ -19,43 +19,43 @@ import              P
 
 
 -- | Part of a loop
-data Statement n p
+data Statement a n p
  -- Branches
  -- | An IF for filters
- = If (Exp n p)                 (Statement n p) (Statement n p)
+ = If           (Exp a n p) (Statement a n p) (Statement a n p)
  -- | Local binding, so the name better be unique
- | Let    (Name n) (Exp n p)    (Statement n p)
+ | Let (Name n) (Exp a n p) (Statement a n p)
 
  -- | A loop over some ints
- | ForeachInts (Name n) (Exp n p) (Exp n p)   (Statement n p)
+ | ForeachInts  (Name n) (Exp a n p) (Exp a n p) (Statement a n p)
 
  -- | A loop over all the facts.
  -- This should only occur once in the program, and not inside a loop.
- | ForeachFacts (Name n) (Name n) ValType FactLoopType (Statement n p)
+ | ForeachFacts (Name n) (Name n) ValType FactLoopType (Statement a n p)
 
  -- | Execute several statements in a block.
- | Block                        [Statement n p]
+ | Block [Statement a n p]
 
  -- Initialise an accumulator
- | InitAccumulator (Accumulator n p) (Statement n p)
+ | InitAccumulator (Accumulator a n p) (Statement a n p)
 
  -- | Read from a non-latest accumulator.
  -- First name is what to call it, second is what accumulator.
  -- As let:
  --      Let  local = accumulator,
  --      Read local = accumulator.
- | Read   (Name n) (Name n)     (Statement n p)
+ | Read   (Name n) (Name n)     (Statement a n p)
 
  -- Leaf nodes
  -- | Update a resumable or windowed fold accumulator,
  -- with Exp : acc
- | Write (Name n) (Exp n p)
+ | Write  (Name n) (Exp a n p)
  -- | Push to a latest accumulator
  -- with Exp : elem
- | Push   (Name n) (Exp n p)
+ | Push   (Name n) (Exp a n p)
 
  -- | Emit a value to output
- | Output OutputName (Exp n p)
+ | Output OutputName (Exp a n p)
 
  -- | Mark the current fact as being historically relevant
  | KeepFactInHistory
@@ -67,7 +67,7 @@ data Statement n p
  | SaveResumable (Name n)
  deriving (Eq, Ord, Show)
 
-instance Monoid (Statement n p) where
+instance Monoid (Statement a n p) where
  mempty = Block []
 
  mappend (Block ps) (Block qs)
@@ -81,12 +81,12 @@ instance Monoid (Statement n p) where
 
 
 -- | Mutable accumulators
-data Accumulator n p
+data Accumulator a n p
  = Accumulator
  { accName      :: Name n
  , accKind      :: AccumulatorType
  , accValType   :: ValType
- , accInit      :: Exp n p
+ , accInit      :: Exp a n p
  }
  deriving (Eq, Ord, Show)
 
@@ -136,10 +136,10 @@ data FactLoopType
 
 transformUDStmt
         :: (Applicative m, Functor m, Monad m)
-        => (env -> Statement n p -> m (env, Statement n p))
+        => (env -> Statement a n p -> m (env, Statement a n p))
         -> env
-        -> Statement n p
-        -> m (Statement n p)
+        -> Statement a n p
+        -> m (Statement a n p)
 transformUDStmt fun env statements
  = go env statements
  where
@@ -175,12 +175,12 @@ transformUDStmt fun env statements
 
 foldStmt
         :: (Applicative m, Functor m, Monad m)
-        => (env ->        Statement n p -> m env)
-        -> (env -> res -> Statement n p -> m res)
+        => (env ->        Statement a n p -> m env)
+        -> (env -> res -> Statement a n p -> m res)
         -> (res -> res -> res)
         -> env
         -> res
-        -> Statement n p
+        -> Statement a n p
         -> m res
 foldStmt down up rjoin env res statements
  = go env statements
@@ -277,7 +277,7 @@ instance TransformX Accumulator where
 -- Pretty printing -------------
 
 
-instance (Pretty n, Pretty p) => Pretty (Statement n p) where
+instance (Pretty n, Pretty p) => Pretty (Statement a n p) where
  pretty s
   = case s of
      If x stmts elses
@@ -343,7 +343,7 @@ instance (Pretty n, Pretty p) => Pretty (Statement n p) where
    inde _       = 0
 
 
-instance (Pretty n, Pretty p) => Pretty (Accumulator n p) where
+instance (Pretty n, Pretty p) => Pretty (Accumulator a n p) where
  pretty (Accumulator n acc _ x)
   =   pretty n <+> text "=" <+> pretty x
   <+> (case acc of

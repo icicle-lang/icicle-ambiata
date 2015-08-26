@@ -25,13 +25,13 @@ import qualified    Data.Map as Map
 
 
 -- | Things that can go wrong (but shouldn't!)
-data RuntimeError n p
- = RuntimeErrorBadApplication (Value n p) (Value n p)
+data RuntimeError a n p
+ = RuntimeErrorBadApplication (Value a n p) (Value a n p)
  | RuntimeErrorVarNotInHeap (Name n)
- | RuntimeErrorPrimBadArgs p [Value n p]
+ | RuntimeErrorPrimBadArgs p [Value a n p]
  deriving (Show, Eq)
 
-instance (Pretty n, Pretty p) => Pretty (RuntimeError n p) where
+instance (Pretty n, Pretty p) => Pretty (RuntimeError a n p) where
  pretty (RuntimeErrorBadApplication x y)
   = "Bad application:" <> line
   <> "  Function: " <> pretty x   <> line
@@ -44,28 +44,28 @@ instance (Pretty n, Pretty p) => Pretty (RuntimeError n p) where
   <> "  Arguments: " <> pretty vs
 
 
-type EvalPrim n p = p -> [Value n p] -> Either (RuntimeError n p) (Value n p)
+type EvalPrim a n p = p -> [Value a n p] -> Either (RuntimeError a n p) (Value a n p)
 
 -- | Big step evaluation of a closed expression
 -- Start with an empty heap.
-eval0 :: Ord n => EvalPrim n p -> Exp n p -> Either (RuntimeError n p) (Value n p)
+eval0 :: Ord n => EvalPrim a n p -> Exp a n p -> Either (RuntimeError a n p) (Value a n p)
 eval0 evalPrim = eval evalPrim Map.empty
 
 -- | Big step evaluation with given heap
 eval :: Ord n
-     => EvalPrim n p
-     -> Heap n p
-     -> Exp n p
-     -> Either (RuntimeError n p) (Value n p)
+     => EvalPrim a n p
+     -> Heap a n p
+     -> Exp a n p
+     -> Either (RuntimeError a n p) (Value a n p)
 
 eval evalPrim h xx
  = case xx of
     -- Try to look up variable in heap
-    XVar n
+    XVar _ n
      -> maybeToRight (RuntimeErrorVarNotInHeap n)
                      (Map.lookup n h)
 
-    XValue _ bv
+    XValue _ _ bv
      -> return $ VBase bv
 
     -- Application of primitive.
@@ -76,23 +76,23 @@ eval evalPrim h xx
             evalPrim' p vs
 
     -- If the left-hand side isn't a primitive, it must evaluate to a function.
-    XApp p q
+    XApp _ p q
      -> do  p' <- go h p
             q' <- go h q
             -- Perform application
             wrapException [p', q'] (applyValues evalPrim p' q')
 
     -- Primitive with no arguments - probably a constant.
-    XPrim p
+    XPrim _ p
      -> evalPrim' p []
 
     -- Lambdas cannot be evaluated any further;
     -- throw away the type and keep the current heap
-    XLam n _ x
+    XLam _ n _ x
      -> return (VFun h n x)
 
     -- Evaluate definition, put it into heap, then evaluate "in" part
-    XLet n d i
+    XLet _ n d i
      -> do  d' <- go h d
             let h' = Map.insert n d' h
             go h' i
@@ -133,10 +133,10 @@ eval evalPrim h xx
 --
 applyValues
         :: Ord n
-        => EvalPrim n p
-        -> Value n p
-        -> Value n p
-        -> Either (RuntimeError n p) (Value n p)
+        => EvalPrim a n p
+        -> Value a n p
+        -> Value a n p
+        -> Either (RuntimeError a n p) (Value a n p)
 applyValues evalPrim f arg
  = case f of
     VFun hh nm x
@@ -149,19 +149,19 @@ applyValues evalPrim f arg
 -- | Apply a value to a bunch of arguments
 applies
         :: Ord n
-        => EvalPrim n p
-        -> Value n p
-        -> [Value n p]
-        -> Either (RuntimeError n p) (Value n p)
+        => EvalPrim a n p
+        -> Value a n p
+        -> [Value a n p]
+        -> Either (RuntimeError a n p) (Value a n p)
 applies evalPrim = foldM (applyValues evalPrim)
 
 -- | Evaluate all expression bindings, collecting up expression heap as we go
 evalExps
         :: Ord n
-        => EvalPrim n p
-        -> Heap     n p
-        -> [(Name n, Exp n p)]
-        -> Either (RuntimeError n p) (Heap n p)
+        => EvalPrim a n p
+        -> Heap     a n p
+        -> [(Name n, Exp a n p)]
+        -> Either (RuntimeError a n p) (Heap a n p)
 
 evalExps _ env []
  = return env

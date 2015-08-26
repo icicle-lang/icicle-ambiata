@@ -17,6 +17,7 @@ import           Icicle.Common.Value
 import qualified Icicle.Common.Exp.Prim.Minimal as PM
 
 import qualified Icicle.Core.Exp                as X
+import           Icicle.Core.Exp.Combinators
 import           Icicle.Core.Exp.Prim
 import           Icicle.Core.Stream
 import           Icicle.Core.Reduce
@@ -46,7 +47,7 @@ fresh = Name . Var "_fresh"
 
 -- | Check if values are equal except for functions/closures
 -- Because closure heaps can differ..
-equalExceptFunctions :: (Eq n, Eq p) => Value n p -> Value n p -> Bool
+equalExceptFunctions :: (Eq a, Eq n, Eq p) => Value a n p -> Value a n p -> Bool
 equalExceptFunctions p q
  | VFun{} <- p
  , VFun{} <- q
@@ -54,7 +55,10 @@ equalExceptFunctions p q
  | otherwise
  = p == q
 
-equalExceptFunctionsE :: (Eq n, Eq p, Eq l) => Either l (Value n p) -> Either l (Value n p) -> Bool
+equalExceptFunctionsE :: (Eq a, Eq n, Eq p, Eq l)
+                      => Either l (Value a n p)
+                      -> Either l (Value a n p)
+                      -> Bool
 equalExceptFunctionsE p q
  | Right p' <- p
  , Right q' <- q
@@ -142,21 +146,22 @@ instance Arbitrary FunType where
 
 -- Totally arbitrary expressions.
 -- These *probably* won't type check, but sometimes you get lucky.
-instance (Arbitrary n, Arbitrary p) => Arbitrary (Exp n p) where
+instance (Arbitrary a, Arbitrary n, Arbitrary p) => Arbitrary (Exp a n p) where
   arbitrary =
     oneof_sized
-          [ XVar  <$> arbitrary
-          , XPrim <$> arbitrary
-          , do  t <- arbitrary
+          [ XVar  <$> arbitrary <*> arbitrary
+          , XPrim <$> arbitrary <*> arbitrary
+          , do  a <- arbitrary
+                t <- arbitrary
                 v <- baseValueForType t
-                return $ XValue t v
+                return $ XValue a t v
           ]
-          [ XApp  <$> arbitrary <*> arbitrary
-          , XLam  <$> arbitrary <*> arbitrary <*> arbitrary
-          , XLet  <$> arbitrary <*> arbitrary <*> arbitrary
+          [ XApp  <$> arbitrary <*> arbitrary <*> arbitrary
+          , XLam  <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+          , XLet  <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
           ]
 
-instance Arbitrary n => Arbitrary (Stream n) where
+instance (Arbitrary a, Arbitrary n) => Arbitrary (Stream a n) where
  arbitrary =
    oneof_sized_vals
          [ Source ]
@@ -165,18 +170,18 @@ instance Arbitrary n => Arbitrary (Stream n) where
    st = oneof [ SFilter <$> arbitrary
               , SMap    <$> arbitrary <*> arbitrary ]
 
-instance Arbitrary n => Arbitrary (Reduce n) where
+instance (Arbitrary a, Arbitrary n) => Arbitrary (Reduce a n) where
  arbitrary =
    oneof [ RFold   <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
          , RLatest <$> arbitrary <*> arbitrary <*> arbitrary ]
 
-instance Arbitrary n => Arbitrary (Program n) where
+instance (Arbitrary a, Arbitrary n) => Arbitrary (Program a n) where
  arbitrary =
    Program <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
 
 
 -- | Make an effort to generate a well typed expression, but no promises
-tryExpForType :: Type -> Env Var Type -> Gen (Exp Var Prim)
+tryExpForType :: Type -> Env Var Type -> Gen (Exp () Var Prim)
 tryExpForType ty env
  = case ty of
     -- If ty is a first-order function, create a lambda
@@ -184,7 +189,7 @@ tryExpForType ty env
      -> do  n <- freshInEnv env
             -- Make sure the new variable is available in the environment
             let env' = Map.insert n (FunT [] t) env
-            XLam n t <$> tryExpForType (FunT ts ret) env'
+            xLam n t <$> tryExpForType (FunT ts ret) env'
 
     -- We can't generate expressions of higher order function types: just give up
     -- This actually highlights something that should be made explicit:
@@ -198,7 +203,7 @@ tryExpForType ty env
     -- If we can't generate a primitive, we're basically out of luck.
     FunT [] ret
      -> oneof_sized
-              [ XValue ret <$> baseValueForType ret
+              [ xValue ret <$> baseValueForType ret
               , context   ret ]
               [ primitive ret
               -- Because context falls back to primitive, it doesn't hurt to double
@@ -214,7 +219,7 @@ tryExpForType ty env
          -- Give up.
          -- Maybe we can generate a constant based on the type
          Nothing
-          -> XValue r <$> baseValueForType r
+          -> xValue r <$> baseValueForType r
 
          Just p'
           -> fillprim p'
@@ -222,7 +227,7 @@ tryExpForType ty env
   -- For each argument of the primitive, generate a new expression
   fillprim p
    = do as <- mapM (flip tryExpForType env) (functionArguments $ typeOfPrim p)
-        return $ P.foldl XApp (XPrim p) as
+        return $ P.foldl xApp (xPrim p) as
 
   context r
    | not $ Map.null env
@@ -232,7 +237,7 @@ tryExpForType ty env
          Nothing
           -> primitive r
          Just k'
-          -> return $ XVar k'
+          -> return $ xVar k'
    | otherwise
    = primitive r
 
@@ -241,13 +246,13 @@ tryExpForType ty env
         n  <- freshInEnv env
         x  <- tryExpForType t env
         let env' = Map.insert n t env
-        XLet n x <$> tryExpForType (FunT [] r) env'
+        xLet n x <$> tryExpForType (FunT [] r) env'
 
 
 -- | Generate a well typed expression.
 -- If we can't generate a well typed expression we want quickcheck to count it as
 -- failing to satisfy a precondition.
-withTypedExp :: Testable prop => (Exp Var Prim -> ValType -> prop) -> Property
+withTypedExp :: Testable prop => (Exp () Var Prim -> ValType -> prop) -> Property
 withTypedExp prop
  = forAll arbitrary $ \t ->
    forAll (tryExpForType (FunT [] t) Map.empty) $ \x ->
@@ -256,7 +261,7 @@ withTypedExp prop
 
 -- | Attempt to generate well typed expressions
 -- Again, no promises.
-programForStreamType :: ValType -> Gen (Program Var)
+programForStreamType :: ValType -> Gen (Program () Var)
 programForStreamType streamType
  = do   -- Generate a few precomputation expressions
         npres       <- choose (0,2) :: Gen Int
@@ -320,7 +325,7 @@ programForStreamType streamType
         return (env'', (nm, x) : xs)
 
   -- Generate some streams
-  gen_streams :: Env Var ValType -> Env Var Type -> Int -> Gen (Env Var ValType, [(Name Var, Stream Var)])
+  gen_streams :: Env Var ValType -> Env Var Type -> Int -> Gen (Env Var ValType, [(Name Var, Stream () Var)])
   gen_streams sE _pE 0
    = return (sE, [])
   gen_streams sE pE n
@@ -333,7 +338,7 @@ programForStreamType streamType
   -- Generate a single stream.
   -- If the stream environment is empty, we need to take from the source.
   -- If there's something in there already, we could do either
-  gen_stream :: Env Var ValType -> Env Var Type -> Gen (ValType, Stream Var)
+  gen_stream :: Env Var ValType -> Env Var Type -> Gen (ValType, Stream () Var)
   gen_stream s_env pre_env
    | Map.null s_env
    = streamSource
@@ -349,7 +354,7 @@ programForStreamType streamType
   sourceType = PairT streamType DateTimeT
 
   -- Transformer: filter or map
-  streamTransformer :: Env Var ValType -> Env Var Type -> Gen (ValType, Stream Var)
+  streamTransformer :: Env Var ValType -> Env Var Type -> Gen (ValType, Stream () Var)
   streamTransformer s_env pre_env
    = do (i,t) <- oneof $ fmap return $ Map.toList s_env
 
@@ -361,7 +366,7 @@ programForStreamType streamType
         (,) ot <$> (STrans <$> return st <*> gen_exp ty pre_env <*> return i)
 
   -- Window
-  streamWindow :: Env Var ValType -> Env Var Type -> Gen (ValType, Stream Var)
+  streamWindow :: Env Var ValType -> Env Var Type -> Gen (ValType, Stream () Var)
   streamWindow s_env pre_env
    = do (i,t) <- oneof $ fmap return $ Map.toList s_env
 
@@ -374,7 +379,7 @@ programForStreamType streamType
         return (t, SWindow t newer older i)
 
   -- Generate some reductions using given stream environment
-  gen_reduces :: Env Var ValType -> Env Var Type -> Int -> Gen (Env Var Type, [(Name Var, Reduce Var)])
+  gen_reduces :: Env Var ValType -> Env Var Type -> Int -> Gen (Env Var Type, [(Name Var, Reduce () Var)])
   gen_reduces _sE pE 0
    = return (pE, [])
   gen_reduces sE pE n

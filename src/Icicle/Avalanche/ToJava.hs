@@ -25,7 +25,7 @@ import              Data.Functor.Identity
 import qualified    Data.Map    as Map
 
 
-programToJava :: (Pretty n, Ord n, Show n) => Program n Prim -> Doc
+programToJava :: (Show a, Show n, Pretty n, Ord n) => Program a n Prim -> Doc
 programToJava p
  = "import java.util.*;"
  <> line
@@ -41,7 +41,7 @@ programToJava p
     ]
  ]
 
-concreteFeatureType :: S.Statement n p -> Maybe ValType
+concreteFeatureType :: S.Statement a n p -> Maybe ValType
 concreteFeatureType ss
  = runIdentity
  $ S.foldStmt (\_ _ -> return ()) up orl () Nothing ss
@@ -57,7 +57,7 @@ concreteFeatureType ss
   orl _ r = r
 
 
-statementsToJava :: (Pretty n, Ord n, Show n) => Context n -> Scoped n Prim -> Doc
+statementsToJava :: (Show a, Show n, Pretty n, Ord n) => Context n -> Scoped a n Prim -> Doc
 statementsToJava ctx ss
  = case ss of
     If x t e
@@ -132,7 +132,7 @@ statementsToJava ctx ss
 
   tc c s = statementContext flatFragment c s
 
-bindingToJava :: (Pretty n, Ord n, Show n) => Context n -> Binding n Prim -> Doc
+bindingToJava :: (Show a, Show n, Pretty n, Ord n) => Context n -> Binding a n Prim -> Doc
 bindingToJava ctx bb
  = case bb of
     InitAccumulator acc@(S.Accumulator { S.accKind = S.Latest })
@@ -160,16 +160,16 @@ bindingToJava ctx bb
      | otherwise
      -> "$#@! no accumulator " <> acc_name acc <> line <> text (show ctx)
 
-expToJava :: (Pretty n, Show n, Ord n) => Context n -> Boxy -> Exp n Prim -> Doc
+expToJava :: (Show a, Show n, Pretty n, Ord n) => Context n -> Boxy -> Exp a n Prim -> Doc
 expToJava ctx b xx
  = case checkExp flatFragment (ctxExp ctx) xx of
     Left err -> "$#!@ type error " <> text (show err)
     Right (FunT _ t)
      -> case xx of
-            XVar n
+            XVar _ n
              -> boxy b Unboxed t
               $ name n
-            XValue _ v
+            XValue a _ v
              -> case v of
                  VInt i -> boxy b Unboxed t $ pretty i
                  VUnit  -> boxy b Unboxed t $ "13013"
@@ -180,9 +180,9 @@ expToJava ctx b xx
                  VNone   -> "null"
                  VSome v'
                   | OptionT t' <- t
-                  -> expToJava ctx Boxed (XValue t' v')
+                  -> expToJava ctx Boxed (XValue a t' v')
                  _      -> "$#@! TODO VALUE " <> pretty v
-            XPrim p
+            XPrim _ p
              -> primApp t p []
             XApp{}
              | Just (p, xs) <- takePrimApps xx

@@ -23,16 +23,16 @@ import           Test.QuickCheck
 -- =====================
 
 prop_prefixlet x =
- checkExp0 coreFragment x == checkExp0 coreFragment (XLet (fresh 0) x x)
+ checkExp0 coreFragment x == checkExp0 coreFragment (xLet (fresh 0) x x)
 
 -- Prefixing a let with a known good expression doesn't affect
 prop_prefixletconst x =
- checkExp0 coreFragment x == checkExp0 coreFragment (XLet (fresh 0) (constI 0) x)
+ checkExp0 coreFragment x == checkExp0 coreFragment (xLet (fresh 0) (constI 0) x)
 
 
 -- Wrapping in a lambda does affect typechecking, but not *whether* type exists
 prop_lamwrap x =
- isRight (checkExp0 coreFragmentWorkerFun x) == isRight (checkExp0 coreFragmentWorkerFun (XLam (fresh 0) IntT x))
+ isRight (checkExp0 coreFragmentWorkerFun x) == isRight (checkExp0 coreFragmentWorkerFun (xLam (fresh 0) IntT x))
 
 
 -- Try to build an expression for type.

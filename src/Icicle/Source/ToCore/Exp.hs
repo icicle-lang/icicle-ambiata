@@ -32,17 +32,17 @@ import qualified        Data.Map as Map
 convertExp
         :: Ord n
         => Exp (Annot a n) n
-        -> ConvertM a n (C.Exp n)
+        -> ConvertM a n (C.Exp () n)
 convertExp x
  = case x of
     Var ann n
      -> do  fs <- convertFeatures
             case Map.lookup n fs of
              Just (_, x')
-              -> (x' . CE.XVar) <$> convertInputName
+              -> (x' . CE.XVar ()) <$> convertInputName
              -- Variable must be bound as a precomputation
              Nothing
-              -> CE.XVar <$> convertFreshenLookup (annAnnot ann) n
+              -> CE.XVar () <$> convertFreshenLookup (annAnnot ann) n
 
 
     Nested _ q
@@ -69,7 +69,7 @@ convertExp x
 convertExpQ
         :: Ord n
         => Query (Annot a n) n
-        -> ConvertM a n (C.Exp n)
+        -> ConvertM a n (C.Exp () n)
 convertExpQ q
  = case contexts q of
     []
@@ -79,7 +79,7 @@ convertExpQ q
             -- NB: because it's non-recursive let, the freshen must be done after the definition
             b' <- convertFreshenAdd b
             x' <- convertExpQ $ Query cs $ final q
-            return $ CE.XLet b' d' x'
+            return $ CE.XLet () b' d' x'
     _
      -> convertError
       $ ConvertErrorExpNestedQueryNotAllowedHere (annAnnot $ annotOfQuery q) q

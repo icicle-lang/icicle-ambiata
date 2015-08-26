@@ -17,37 +17,37 @@ import              P
 
 
 -- | Core program composed of different stages of bindings
-data Program n =
+data Program a n =
  Program
  -- | The type of the input/concrete feature
  { input        :: ValType
 
  -- | All precomputations, made before starting to read from feature source
- , precomps     :: [(Name n, Exp n)]
+ , precomps     :: [(Name n, Exp a n)]
 
  -- | Stream transformers that work on feature source
- , streams      :: [(Name n, Stream n)]
+ , streams      :: [(Name n, Stream a n)]
 
  -- | Reductions over streams.
  -- There can be no dependencies between these:
  -- a fold worker function cannot mention the result of another fold,
  -- as that would require two passes!
- , reduces      :: [(Name n, Reduce n)]
+ , reduces      :: [(Name n, Reduce a n)]
 
  -- | Whether the snapshot date is available in the postcomputations.
  -- If so, the name of variable to use.
  , postdate     :: Maybe (Name n)
 
  -- | Postcomputations with access to precomputations and reduces
- , postcomps    :: [(Name n, Exp n)]
+ , postcomps    :: [(Name n, Exp a n)]
 
  -- | The single return value
- , returns      :: [(OutputName, Exp n)]
+ , returns      :: [(OutputName, Exp a n)]
  }
  deriving (Show, Eq, Ord)
 
 
-renameProgram :: (Name n -> Name n') -> Program n -> Program n'
+renameProgram :: (Name n -> Name n') -> Program a n -> Program a n'
 renameProgram f p
   = p
   { precomps    = binds  renameExp      (precomps   p)
@@ -64,7 +64,7 @@ renameProgram f p
 
 -- Pretty printing -------------
 
-instance Pretty n => Pretty (Program n) where
+instance Pretty n => Pretty (Program a n) where
  pretty p
   =     text "Program (source : Stream " <> pretty (input p) <> text ")" <> line
   <>    text "Precomputations:"                        <> line

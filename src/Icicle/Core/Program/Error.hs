@@ -15,18 +15,18 @@ import              P
 
 
 -- | Possible errors, mainly deferred to component
-data ProgramError n
- = ProgramErrorPre      (ExpError    n Prim)
- | ProgramErrorStream   (StreamError n)
- | ProgramErrorReduce   (ReduceError n)
- | ProgramErrorPost     (ExpError    n Prim)
- | ProgramErrorReturn   (ExpError    n Prim)
+data ProgramError a n
+ = ProgramErrorPre      (ExpError    a n Prim)
+ | ProgramErrorStream   (StreamError a n)
+ | ProgramErrorReduce   (ReduceError a n)
+ | ProgramErrorPost     (ExpError    a n Prim)
+ | ProgramErrorReturn   (ExpError    a n Prim)
  | ProgramErrorNameNotUnique (Name n)
  | ProgramErrorReturnNotValueType Type
  deriving Show
 
 
-instance (Pretty n) => Pretty (ProgramError n) where
+instance (Pretty n) => Pretty (ProgramError a n) where
  pretty e
   = case e of
     ProgramErrorPre    err

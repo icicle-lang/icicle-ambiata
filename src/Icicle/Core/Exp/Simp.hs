@@ -28,37 +28,37 @@ import qualified Data.Set                       as Set
 --   * constant folding for some primitives
 --   * ...something exciting???
 --
-simp :: Ord n => (C.Exp n -> Bool) -> C.Exp n -> Fresh n (C.Exp n)
-simp isValue = anormal . fixp (50 :: Int) (simpX isValue)
+simp :: Ord n => a -> (C.Exp a n -> Bool) -> C.Exp a n -> Fresh n (C.Exp a n)
+simp a_fresh isValue = anormal a_fresh . fixp (50 :: Int) (simpX a_fresh isValue)
  where
   fixp 0 f = f
   fixp n f = f . fixp (n-1) f
 
 
-simpX :: Ord n => (C.Exp n -> Bool) -> C.Exp n -> C.Exp n
-simpX isValue = go
+simpX :: Ord n => a -> (C.Exp a n -> Bool) -> C.Exp a n -> C.Exp a n
+simpX a_fresh isValue = go
   where
     beta  = B.beta isValue
     go xx = case beta xx of
       -- * constant folding for some primitives
-      XApp p q
+      XApp a p q
         | p' <- go p
         , q' <- go q
-        , Just (prim, as) <- takePrimApps (XApp p' q')
-        , Just args    <- mapM (takeValue . go) as
-        -> fromMaybe (XApp p' q') (simpP prim args)
+        , Just (prim, as) <- takePrimApps (XApp a p' q')
+        , Just args       <- mapM (takeValue . go) as
+        -> fromMaybe (XApp a p' q') (simpP a_fresh prim args)
 
-      XApp p q
-        -> XApp (go p) (go q)
+      XApp a p q
+        -> XApp a (go p) (go q)
 
-      XLam n t x1
-        -> XLam n t (go x1)
+      XLam a n t x1
+        -> XLam a n t (go x1)
 
-      XLet n x1 x2
+      XLet a n x1 x2
         | not $ n `Set.member` freevars (go x2)
         -> go x2
         | otherwise
-        -> XLet n (go x1) (go x2)
+        -> XLet a n (go x1) (go x2)
 
       b@(XVar{})   -> b
       b@(XPrim{})  -> b
@@ -67,12 +67,12 @@ simpX isValue = go
 
 -- | Primitive Simplifier
 --
-simpP :: Ord n => Prim -> [Value n Prim] -> Maybe (C.Exp n)
-simpP p vs
+simpP :: Ord n => a -> Prim -> [Value a n Prim] -> Maybe (C.Exp a n)
+simpP a_fresh p vs
  = case CE.evalPrim p vs of
     Right (VBase b)
      -> Just
-      $ XValue (functionReturns $ C.typeOfPrim p) b
+      $ XValue a_fresh (functionReturns $ C.typeOfPrim p) b
     -- TODO: we could actually pull the
     -- heap out as let bindings, and so on..
     Right VFun{}
@@ -81,13 +81,13 @@ simpP p vs
      -> Nothing
 
 
-takeValue :: Exp n p -> Maybe (Value n p)
-takeValue (XValue _ b) = Just (VBase b)
+takeValue :: Exp a n p -> Maybe (Value a n p)
+takeValue (XValue _ _ b) = Just (VBase b)
 -- We're pulling out a lambda as a closure.
 -- However, we're ignoring the closure's heap.
 -- This is fine - if the lambda references anything outside,
 -- it will not evaluate and so won't be simplified.
-takeValue (XLam n _ x) = Just (VFun Map.empty n x)
+takeValue (XLam _ n _ x) = Just (VFun Map.empty n x)
 -- I promise this is exhaustive.
-takeValue  _           = Nothing
+takeValue  _             = Nothing
 

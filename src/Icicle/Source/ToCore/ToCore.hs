@@ -66,9 +66,9 @@ import qualified        Data.Map as Map
 --
 convertQueryTop
         :: Ord n
-        => Features n
+        => Features () n
         -> QueryTop (Annot a n) n
-        -> FreshT n (Either (ConvertError a n)) (C.Program n)
+        -> FreshT n (Either (ConvertError a n)) (C.Program () n)
 convertQueryTop feats qt
  = do   inp <- fresh
         (ty,fs) <- lift
@@ -82,7 +82,7 @@ convertQueryTop feats qt
 
         (bs,ret) <- evalStateT (convertQuery $ query qt) (ConvertState inp inpTy'dated fs Map.empty)
         let bs'   = strm inp C.Source <> bs
-        return (programOfBinds (queryName qt) inpTy bs' ret)
+        return (programOfBinds (queryName qt) inpTy bs' () ret)
 
 
 -- | Convert a Query to Core
@@ -93,7 +93,7 @@ convertQueryTop feats qt
 convertQuery
         :: Ord n
         => Query (Annot a n) n
-        -> ConvertM a n (CoreBinds n, Name n)
+        -> ConvertM a n (CoreBinds () n, Name n)
 convertQuery q
  = case contexts q of
     -- There are no queries left, so deal with simple aggregates and nested queries.
@@ -117,7 +117,7 @@ convertQuery q
             (bs, b) <- convertWithInputName n' $ convertQuery q'
             (inpstream, inpty) <- convertInput
 
-            let bs'  = strm n' (C.STrans (C.SFilter inpty) (CE.XLam nv inpty e') inpstream) <> bs
+            let bs'  = strm n' (C.STrans (C.SFilter inpty) (CE.xLam nv inpty e') inpstream) <> bs
 
             return (bs', b)
 
@@ -182,7 +182,7 @@ convertQuery q
             -- Do the map before the latest.
             -- Same result, just requires a smaller buffer
             let bmap  = strm  n'map
-                      $ C.STrans (C.SMap inpty t') (CE.XLam n'v inpty x') inpstream
+                      $ C.STrans (C.SMap inpty t') (CE.xLam n'v inpty x') inpstream
             let barr  = red  n'arr
                       $ C.RLatest t' (CE.constI i) n'map
             return (bmap <> barr, n'arr)
@@ -207,19 +207,19 @@ convertQuery q
 
             -- Because Map_insertOrUpdate and Array_fold take their "k" in a different order,
             -- we need to flip the k here.
-            let k'    = CE.XLam n'a tV'
-                      $ CE.XLam n'v inpty
+            let k'    = CE.xLam n'a tV'
+                      $ CE.xLam n'v inpty
                       $ beta
-                      ( foldKons res CE.@~ CE.XVar n'a)
+                      ( foldKons res CE.@~ CE.xVar n'a)
 
             -- Construct the "latest" reduction,
             -- the fold over the resulting array,
             -- and the extraction of the actual result of the array.
             -- (See convertFold)
             let barr  = red  n'arr   (C.RLatest inpty (CE.constI i) inpstream)
-            let bfold = post n'fold  (CE.XPrim (C.PrimFold (C.PrimFoldArray inpty) tV')
-                                      CE.@~ k' CE.@~ beta (foldZero res) CE.@~ CE.XVar n'arr)
-            let bxtra = post n'xtra (beta (mapExtract res CE.@~ CE.XVar n'fold))
+            let bfold = post n'fold  (CE.xPrim (C.PrimFold (C.PrimFoldArray inpty) tV')
+                                      CE.@~ k' CE.@~ beta (foldZero res) CE.@~ CE.xVar n'arr)
+            let bxtra = post n'xtra (beta (mapExtract res CE.@~ CE.xVar n'fold))
 
             return (barr <> bfold <> bxtra, n'xtra)
 
@@ -269,16 +269,16 @@ convertQuery q
                     = C.PrimMapInsertOrUpdate t1' tV'
 
             let insertOrUpdate
-                    = CE.makeApps (CE.XPrim $ C.PrimMap $ priminsert)
+                    = CE.makeApps () (CE.xPrim $ C.PrimMap $ priminsert)
                     [ foldKons res
-                    , foldKons res `CE.XApp` foldZero res
+                    , foldKons res `CE.xApp` foldZero res
                     , e'
-                    , CE.XVar nmap]
+                    , CE.xVar nmap]
 
             let insertOrUpdate'
                     = beta
-                    $ CE.XLam nmap mapt
-                    $ CE.XLam nval inpty
+                    $ CE.xLam nmap mapt
+                    $ CE.xLam nval inpty
                     $ insertOrUpdate
 
             let emptyMap
@@ -293,9 +293,9 @@ convertQuery q
             -- This performs any fixups that couldn't be performed during the fold.
 
             let mapResult
-                    = CE.XPrim (C.PrimMap $ C.PrimMapMapValues t1' tV' t2')
+                    = CE.xPrim (C.PrimMap $ C.PrimMapMapValues t1' tV' t2')
                     CE.@~ beta (mapExtract res)
-                    CE.@~ CE.XVar n'
+                    CE.@~ CE.xVar n'
 
             let p   = post n'' mapResult
 
@@ -335,13 +335,13 @@ convertQuery q
             -- Just put each element in the map, potentially overwriting the last one.
             let insertOrUpdate
                   = beta
-                  $ CE.XLam nmap mapt
-                  $ CE.XLam nval inpty
-                  ( CE.XPrim (C.PrimMap $ C.PrimMapInsertOrUpdate tkey tval)
-                    CE.@~ (CE.XLam n'ignore inpty $ CE.XVar nval)
-                    CE.@~ (CE.XVar nval)
+                  $ CE.xLam nmap mapt
+                  $ CE.xLam nval inpty
+                  ( CE.xPrim (C.PrimMap $ C.PrimMapInsertOrUpdate tkey tval)
+                    CE.@~ (CE.xLam n'ignore inpty $ CE.xVar nval)
+                    CE.@~ (CE.xVar nval)
                     CE.@~  e'
-                    CE.@~ CE.XVar nmap )
+                    CE.@~ CE.xVar nmap )
 
             -- Perform the map fold
             let r = red n'
@@ -353,14 +353,14 @@ convertQuery q
             let p = post n''
                   $ beta
                   ( mapExtract res CE.@~ 
-                  ( CE.XPrim
+                  ( CE.xPrim
                         (C.PrimFold (C.PrimFoldMap tkey tval) tV')
-                    CE.@~ (CE.XLam nacc     tV'
-                         $ CE.XLam n'ignore tkey
-                         $ CE.XLam nval     tval
-                         ( foldKons res CE.@~ CE.XVar nacc ))
+                    CE.@~ (CE.xLam nacc     tV'
+                         $ CE.xLam n'ignore tkey
+                         $ CE.xLam nval     tval
+                         ( foldKons res CE.@~ CE.xVar nacc ))
                     CE.@~ foldZero res
-                    CE.@~ CE.XVar n'))
+                    CE.@~ CE.xVar n'))
 
             return (r <> p, n'')
 
@@ -375,20 +375,20 @@ convertQuery q
 
                 e'      <- convertWithInputName n'e $ convertExp def
 
-                let xfst = CE.XApp
-                         $ CE.XPrim $ C.PrimMinimal $ Min.PrimPair $ Min.PrimPairFst t' inpty
-                let xsnd = CE.XApp
-                         $ CE.XPrim $ C.PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd t' inpty
+                let xfst = CE.xApp
+                         $ CE.xPrim $ C.PrimMinimal $ Min.PrimPair $ Min.PrimPairFst t' inpty
+                let xsnd = CE.xApp
+                         $ CE.xPrim $ C.PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd t' inpty
 
                 convertModifyFeatures (Map.insert b (annResult $ annotOfExp def, xfst) . Map.map (\(t,f) -> (t, f . xsnd)))
 
-                let pair = (CE.XPrim $ C.PrimMinimal $ Min.PrimConst $ Min.PrimConstPair t' inpty)
-                         CE.@~ e' CE.@~ CE.XVar n'e
+                let pair = (CE.xPrim $ C.PrimMinimal $ Min.PrimConst $ Min.PrimConstPair t' inpty)
+                         CE.@~ e' CE.@~ CE.xVar n'e
 
 
                 n'r     <- lift fresh
                 let bs   = strm n'r
-                         $ C.STrans (C.SMap inpty inpty') (CE.XLam n'e inpty pair) inpstream
+                         $ C.STrans (C.SMap inpty inpty') (CE.xLam n'e inpty pair) inpstream
                 (bs', n'') <- convertWithInput n'r inpty' $ convertQuery q'
 
                 return (bs <> bs', n'')
@@ -406,7 +406,7 @@ convertQuery q
                 convertModifyFeatures (Map.delete b)
                 b'      <- convertFreshenAdd b
                 (bs',n'')    <- convertQuery     q'
-                return (bs <> post b' (CE.XVar n') <> bs', n'')
+                return (bs <> post b' (CE.xVar n') <> bs', n'')
 
          _
           -> convertError $ ConvertErrorGroupByHasNonGroupResult (annAnnot $ annotOfExp def) (annResult $ annotOfExp def)
@@ -443,12 +443,12 @@ convertQuery q
             (inpstream, inpty) <- convertInput
 
             -- Worker function of the fold
-            let go  = CE.XLam n'a tO
-                    ( CE.XLam n'elem inpty
+            let go  = CE.xLam n'a tO
+                    ( CE.xLam n'elem inpty
                     $ opt tU tO
-                    ( CE.XLam n'a'' tU k')
+                    ( CE.xLam n'a'' tU k')
                       z'
-                      (CE.XVar n'a))
+                      (CE.xVar n'a))
 
 
             -- Bind the fold to a fresh name
@@ -460,10 +460,10 @@ convertQuery q
                         (opt tU tU
                             -- If the outer layer is a "Some",
                             -- just return inner layer as-is
-                            (CE.XLam n'a'' tU $ CE.XVar n'a'')
+                            (CE.xLam n'a'' tU $ CE.xVar n'a'')
                             -- Outer layer is a "None", so throw an exception
-                            (CE.XValue tU $ VException ExceptFold1NoValue)
-                            (CE.XVar n'))
+                            (CE.xValue tU $ VException ExceptFold1NoValue)
+                            (CE.xVar n'))
 
 
             (bs', n'')      <- convertQuery q'
@@ -501,8 +501,8 @@ convertQuery q
 
             (inpstream, inpty) <- convertInput
             -- Worker function of the fold
-            let go  = CE.XLam n'a tU
-                    $ CE.XLam n'elem inpty k
+            let go  = CE.xLam n'a tU
+                    $ CE.xLam n'elem inpty k
 
             -- Bind the fold to the original name
             let bs = red n'a (C.RFold inpty tU go z inpstream)
@@ -525,17 +525,17 @@ convertQuery q
    = convertError $ ConvertErrorGroupByHasNonGroupResult ann ty
 
   -- Perform beta reduction, just to simplify the output a tiny bit.
-  beta = Beta.betaToLets
+  beta = Beta.betaToLets ()
        . Beta.beta Beta.isSimpleValue
 
   -- Some helpers for generating Option expressions
   -- Note that the "t"s here are the types without the outermost
   -- layer of Option wrapping
   opt t tret ss nn scrutinee
-   = CE.XPrim (C.PrimFold (C.PrimFoldOption t) tret)
+   = CE.xPrim (C.PrimFold (C.PrimFoldOption t) tret)
      CE.@~ ss CE.@~ nn CE.@~ scrutinee
   none t
-   = CE.XValue (T.OptionT t) VNone
+   = CE.xValue (T.OptionT t) VNone
   som t
    = CE.some t
 
@@ -548,7 +548,7 @@ convertQuery q
 convertReduce
         :: Ord n
         => Exp (Annot a n) n
-        -> ConvertM a n (CoreBinds n, Name n)
+        -> ConvertM a n (CoreBinds () n, Name n)
 convertReduce xx
  | Just (p, Annot { annResult = ty }, args) <- takePrimApps xx
  -- For any primitives:
@@ -559,7 +559,7 @@ convertReduce xx
  -- so it might as well be a precomputation.
  = do   (bs,nms) <- unzip <$> mapM convertReduce args
         let tys  = fmap (annResult . annotOfExp) args
-        let xs   = fmap  CE.XVar           nms
+        let xs   = fmap  CE.xVar           nms
         x' <- convertPrim p (annAnnot $ annotOfExp xx) ty (xs `zip` tys)
 
         nm  <- lift fresh

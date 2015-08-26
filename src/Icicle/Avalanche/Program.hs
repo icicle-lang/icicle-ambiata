@@ -14,10 +14,10 @@ import              Icicle.Internal.Pretty
 import              P
 
 -- | An entire Avalanche program
-data Program n p =
+data Program a n p =
   Program
   { binddate    :: Name n
-  , statements  :: Statement n p
+  , statements  :: Statement a n p
   }
  deriving (Eq, Ord, Show)
 
@@ -33,7 +33,7 @@ instance TransformX Program where
 
 -- Pretty printing -------------
 
-instance (Pretty n, Pretty p) => Pretty (Program n p) where
+instance (Pretty n, Pretty p) => Pretty (Program a n p) where
  pretty p
   =   pretty (binddate   p) <> text " = DATE" <> line
   <>  pretty (Scoped.scopedOfStatement $ statements p)

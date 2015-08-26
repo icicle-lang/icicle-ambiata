@@ -32,8 +32,8 @@ streamEnv pre conc
 
 checkStream
         :: Ord n
-        => StreamEnv n -> Stream n
-        -> Either (StreamError n) ValType
+        => StreamEnv n -> Stream a n
+        -> Either (StreamError a n) ValType
 checkStream se s
  = case s of
     Source

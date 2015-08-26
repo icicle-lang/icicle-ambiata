@@ -15,10 +15,13 @@ import              Icicle.Common.Fresh
 import              P
 
 
-constructor :: Ord n => Statement n Prim -> Fresh n (Statement n Prim)
-constructor statements
+constructor :: Ord n => a -> Statement a n Prim -> Fresh n (Statement a n Prim)
+constructor a_fresh statements
  = transformUDStmt goS emptyExpEnv statements
  where
+  xPrim = XPrim a_fresh
+  xApp  = XApp  a_fresh
+
   goS env s
    = let env' = updateExpEnv s env
          go   = goX env
@@ -42,28 +45,28 @@ constructor statements
            -> ret s
 
   goX env x
-   | Just (PrimMinimal (Min.PrimPair (Min.PrimPairFst _ _)), [XVar n]) <- takePrimApps x
+   | Just (PrimMinimal (Min.PrimPair (Min.PrimPairFst _ _)), [XVar _ n]) <- takePrimApps x
    , Just x' <- get env n
    , Just (_,_,a,_) <- pair x'
    = a
 
-   | Just (PrimMinimal (Min.PrimPair (Min.PrimPairSnd _ _)), [XVar n]) <- takePrimApps x
+   | Just (PrimMinimal (Min.PrimPair (Min.PrimPairSnd _ _)), [XVar _ n]) <- takePrimApps x
    , Just x' <- get env n
    , Just (_,_,_,b) <- pair x'
    = b
 
-   | Just (PrimUnsafe (PrimUnsafeArrayIndex _), [XVar n, ix]) <- takePrimApps x
+   | Just (PrimUnsafe (PrimUnsafeArrayIndex _), [XVar _ n, ix]) <- takePrimApps x
    , Just x' <- get env n
    , Just (ta, tb, a, b) <- zippedArray x'
-   = XPrim (PrimMinimal $ Min.PrimConst $ Min.PrimConstPair ta tb)
-    `XApp` (XPrim (PrimUnsafe (PrimUnsafeArrayIndex ta)) `XApp` a `XApp` ix)
-    `XApp` (XPrim (PrimUnsafe (PrimUnsafeArrayIndex tb)) `XApp` b `XApp` ix)
+   = xPrim (PrimMinimal $ Min.PrimConst $ Min.PrimConstPair ta tb)
+    `xApp` (xPrim (PrimUnsafe (PrimUnsafeArrayIndex ta)) `xApp` a `xApp` ix)
+    `xApp` (xPrim (PrimUnsafe (PrimUnsafeArrayIndex tb)) `xApp` b `xApp` ix)
 
-   | Just (PrimProject (PrimProjectArrayLength _), [XVar n]) <- takePrimApps x
+   | Just (PrimProject (PrimProjectArrayLength _), [XVar _ n]) <- takePrimApps x
    , Just x' <- get env n
    , Just (ta, _, a, _) <- zippedArray x'
-   = XPrim (PrimProject $ PrimProjectArrayLength ta)
-    `XApp` a
+   = xPrim (PrimProject $ PrimProjectArrayLength ta)
+    `xApp` a
 
    | otherwise
    = x

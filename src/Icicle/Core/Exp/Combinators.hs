@@ -21,93 +21,93 @@ import qualified    Data.Map    as Map
 import              Prelude (error)
 
 -- | Right-associative application
-($~) :: X.Exp n -> X.Exp n -> X.Exp n
-($~) x y = XApp x y
+($~) :: X.Exp () n -> X.Exp () n -> X.Exp () n
+($~) x y = xApp x y
 infixr 0 $~
 
 -- | Left-associative application
-(@~) :: X.Exp n -> X.Exp n -> X.Exp n
-(@~) x y = XApp x y
+(@~) :: X.Exp () n -> X.Exp () n -> X.Exp () n
+(@~) x y = xApp x y
 infixl 0 @~
 
 
-var  :: n -> X.Exp n
-var = XVar . Name
+var  :: n -> X.Exp () n
+var = xVar . Name
 
 
-constI :: Int -> X.Exp n
-constI = XValue IntT  . VInt
+constI :: Int -> X.Exp () n
+constI = xValue IntT  . VInt
 
-some :: ValType -> X.Exp n -> X.Exp n
+some :: ValType -> X.Exp () n -> X.Exp () n
 some t x
- = XPrim (PrimMinimal $ Min.PrimConst $ Min.PrimConstSome t)
+ = xPrim (PrimMinimal $ Min.PrimConst $ Min.PrimConstSome t)
     @~ x
 
 
-constB :: Bool -> X.Exp n
-constB = XValue BoolT . VBool
+constB :: Bool -> X.Exp () n
+constB = xValue BoolT . VBool
 
-emptyMap :: ValType -> ValType -> X.Exp n
-emptyMap tk tv = XValue (MapT tk tv) (VMap Map.empty)
+emptyMap :: ValType -> ValType -> X.Exp () n
+emptyMap tk tv = xValue (MapT tk tv) (VMap Map.empty)
 
-fstOfSource :: ValType -> X.Exp Text -> X.Exp Text
+fstOfSource :: ValType -> X.Exp () Text -> X.Exp () Text
 fstOfSource ty p
- = XPrim (PrimMinimal $ Min.PrimPair $ Min.PrimPairFst ty DateTimeT)
+ = xPrim (PrimMinimal $ Min.PrimPair $ Min.PrimPairFst ty DateTimeT)
     @~ p
 
 
-prim2 :: Prim -> X.Exp n -> X.Exp n -> X.Exp n
-prim2 p x y = XPrim p @~ x @~ y
+prim2 :: Prim -> X.Exp () n -> X.Exp () n -> X.Exp () n
+prim2 p x y = xPrim p @~ x @~ y
 
-(+~) :: X.Exp n -> X.Exp n -> X.Exp n
+(+~) :: X.Exp () n -> X.Exp () n -> X.Exp () n
 (+~) = prim2 (PrimMinimal $ Min.PrimArithBinary Min.PrimArithPlus ArithIntT)
 infixl 6 +~
 
-(-~) :: X.Exp n -> X.Exp n -> X.Exp n
+(-~) :: X.Exp () n -> X.Exp () n -> X.Exp () n
 (-~) = prim2 (PrimMinimal $ Min.PrimArithBinary Min.PrimArithMinus ArithIntT)
 infixl 6 -~
 
-(/~) :: X.Exp n -> X.Exp n -> X.Exp n
+(/~) :: X.Exp () n -> X.Exp () n -> X.Exp () n
 (/~) = prim2 (PrimMinimal $ Min.PrimDouble Min.PrimDoubleDiv)
 infixl 7 /~
 
-(>~) :: X.Exp n -> X.Exp n -> X.Exp n
+(>~) :: X.Exp () n -> X.Exp () n -> X.Exp () n
 (>~) = prim2 (PrimMinimal $ Min.PrimRelation Min.PrimRelationGt IntT)
 infix 4 >~
 
-(>=~) :: X.Exp n -> X.Exp n -> X.Exp n
+(>=~) :: X.Exp () n -> X.Exp () n -> X.Exp () n
 (>=~) = prim2 (PrimMinimal $ Min.PrimRelation Min.PrimRelationGe IntT)
 infix 4 >=~
 
-(<~) :: X.Exp n -> X.Exp n -> X.Exp n
+(<~) :: X.Exp () n -> X.Exp () n -> X.Exp () n
 (<~) = prim2 (PrimMinimal $ Min.PrimRelation Min.PrimRelationLt IntT)
 infix 4 <~
 
-(<=~) :: X.Exp n -> X.Exp n -> X.Exp n
+(<=~) :: X.Exp () n -> X.Exp () n -> X.Exp () n
 (<=~) = prim2 (PrimMinimal $ Min.PrimRelation Min.PrimRelationLe IntT)
 infix 4 <=~
 
-(==~) :: X.Exp n -> X.Exp n -> X.Exp n
+(==~) :: X.Exp () n -> X.Exp () n -> X.Exp () n
 (==~) = prim2 (PrimMinimal $ Min.PrimRelation Min.PrimRelationEq IntT)
 infix 4 ==~
 
-(/=~) :: X.Exp n -> X.Exp n -> X.Exp n
+(/=~) :: X.Exp () n -> X.Exp () n -> X.Exp () n
 (/=~) = prim2 (PrimMinimal $ Min.PrimRelation Min.PrimRelationNe IntT)
 infix 4 /=~
 
-doubleOfInt :: X.Exp n -> X.Exp n
+doubleOfInt :: X.Exp () n -> X.Exp () n
 doubleOfInt x
- = XPrim (PrimMinimal $ Min.PrimCast Min.PrimCastDoubleOfInt) @~ x
+ = xPrim (PrimMinimal $ Min.PrimCast Min.PrimCastDoubleOfInt) @~ x
 
-intOfDouble :: X.Exp n -> X.Exp n
+intOfDouble :: X.Exp () n -> X.Exp () n
 intOfDouble x
- = XPrim (PrimMinimal $ Min.PrimCast Min.PrimCastIntOfDouble) @~ x
+ = xPrim (PrimMinimal $ Min.PrimCast Min.PrimCastIntOfDouble) @~ x
 
-lam :: ValType -> (X.Exp Text -> X.Exp Text) -> X.Exp Text
+lam :: ValType -> (X.Exp () Text -> X.Exp () Text) -> X.Exp () Text
 lam t f
  = let -- Try with a bad name - this won't necessarily be fresh,
        -- but it will allow us to get the variables in the expression
-       init = f (XVar $ Name "$$$")
+       init = f (xVar $ Name "$$$")
        vars = allvars init
 
        -- Look through all the numbers, and find one that isn't already
@@ -120,7 +120,7 @@ lam t f
        -- in the expression and it isn't going to fit in memory.
        -- In that case, we might as well die anyway.
        v    = head_error free
-   in  XLam v t (f $ XVar v)
+   in  xLam v t (f $ xVar v)
 
  where
   head_error (x:_)
@@ -133,3 +133,23 @@ lam t f
   varOfInt i
    = NameMod "_" $ Name $ T.pack $ show i
 
+
+-- Constructors with () annotations ------------------------
+
+xVar :: Name n -> X.Exp () n
+xVar = XVar ()
+
+xPrim :: Prim -> X.Exp () n
+xPrim = XPrim ()
+
+xValue :: ValType -> BaseValue -> X.Exp () n
+xValue = XValue ()
+
+xApp :: X.Exp () n -> X.Exp () n -> X.Exp () n
+xApp = XApp ()
+
+xLam :: Name n -> ValType -> X.Exp () n -> X.Exp () n
+xLam = XLam ()
+
+xLet :: Name n -> X.Exp () n -> X.Exp () n -> X.Exp () n
+xLet = XLet ()

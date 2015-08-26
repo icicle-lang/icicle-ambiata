@@ -43,7 +43,7 @@ zprop_flatten_commutes_value t =
          eval xp = AE.evalProgram xp d vs
 
          simp = Fresh.runFreshT
-                        (AF.flatten $ AP.statements p')
+                        (AF.flatten () $ AP.statements p')
                         (Fresh.counterNameState (Name . Var "anf") 0)
      in case simp of
          Left e
@@ -68,8 +68,8 @@ prop_flatten_simp_commutes_value t =
          eval xp = AE.evalProgram xp d vs
 
          counter = (Fresh.counterNameState (Name . Var "anf") 0)
-         conv = Fresh.runFreshT (AF.flatten $ AP.statements p') counter
-         simp (c,s') =( s', Fresh.runFresh (AS.simpFlattened (p'{AP.statements = s'})) c )
+         conv = Fresh.runFreshT (AF.flatten () $ AP.statements p') counter
+         simp (c,s') =( s', Fresh.runFresh (AS.simpFlattened () (p'{AP.statements = s'})) c )
      in case simp <$> conv of
          Left e
           -> counterexample (show e)

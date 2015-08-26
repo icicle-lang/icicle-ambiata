@@ -41,11 +41,11 @@ type ReduceValue n =
 -- A single value is returned.
 -- The name of this reduction is used to produce the value history, or bubblegum
 eval    :: Ord n
-        => Name           n
-        -> V.Heap         n Prim
-        -> SV.StreamHeap  n
-        -> Reduce n
-        -> Either (RuntimeError n) (ReduceValue n)
+        => Name          n
+        -> V.Heap      a n Prim
+        -> SV.StreamHeap n
+        -> Reduce      a n
+        -> Either (RuntimeError a n) (ReduceValue n)
 eval reduction_name xh sh r
  = case r of
     -- Fold over all stream data

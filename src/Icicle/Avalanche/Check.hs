@@ -23,10 +23,10 @@ import              P
 import              Data.Either.Combinators
 import qualified    Data.Map    as Map
 
-data ProgramError n p
- = ProgramErrorExp (ExpError n p)
- | ProgramErrorWrongType (Exp n p) Type Type
- | ProgramErrorNoSuchAccumulator (Name n)
+data ProgramError a n p
+ = ProgramErrorExp  (ExpError a n p)
+ | ProgramErrorWrongType (Exp a n p) Type Type
+ | ProgramErrorNoSuchAccumulator    (Name n)
  | ProgramErrorWrongAccumulatorType (Name n)
  | ProgramErrorMultipleFactLops
  deriving (Show, Eq, Ord)
@@ -42,7 +42,7 @@ data Context n
  , ctxAcc :: Env n AccType }
  deriving (Show, Eq, Ord)
 
-initialContext :: Ord n => Program n p -> Context n
+initialContext :: Ord n => Program a n p -> Context n
 initialContext p
  = Context
  { ctxExp = Map.singleton (binddate p) (FunT [] DateTimeT)
@@ -54,8 +54,8 @@ initialContext p
 checkProgram
         :: Ord n
         => Fragment p
-        -> Program n p
-        -> Either (ProgramError n p) ()
+        -> Program a n p
+        -> Either (ProgramError a n p) ()
 checkProgram frag p
  = do   let ctx = initialContext p
         checkStatement frag ctx (statements p)
@@ -65,8 +65,8 @@ checkStatement
         :: Ord n
         => Fragment p
         -> Context n
-        -> Statement n p
-        -> Either (ProgramError n p) ()
+        -> Statement a n p
+        -> Either (ProgramError a n p) ()
 checkStatement frag ctx stmt
  = do ctx' <- statementContext frag ctx stmt
       let go = checkStatement frag ctx'
@@ -159,8 +159,8 @@ statementContext
         :: Ord n
         => Fragment p
         -> Context n
-        -> Statement n p
-        -> Either (ProgramError n p) (Context n)
+        -> Statement a n p
+        -> Either (ProgramError a n p) (Context n)
 statementContext frag ctx stmt
  = case stmt of
     If _ _ _

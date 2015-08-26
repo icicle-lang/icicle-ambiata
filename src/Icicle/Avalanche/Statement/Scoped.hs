@@ -28,30 +28,30 @@ import              Icicle.Internal.Pretty
 import              P
 
 
-data Scoped n p
- = If   (Exp n p)   (Scoped n p)    (Scoped n p)
- | ForeachInts  (Name n) (Exp n p)  (Exp n p) (Scoped n p)
- | ForeachFacts (Name n) (Name n) ValType    S.FactLoopType (Scoped n p)
- | Block                        [Either (Binding n p) (Scoped n p)]
- | Write (Name n) (Exp n p)
- | Push  (Name n) (Exp n p)
- | Output OutputName (Exp n p)
+data Scoped a n p
+ = If    (Exp a n p)  (Scoped a n p) (Scoped a n p)
+ | ForeachInts  (Name n) (Exp a n p) (Exp a n p) (Scoped a n p)
+ | ForeachFacts (Name n) (Name n) ValType    S.FactLoopType (Scoped a n p)
+ | Block     [Either (Binding a n p) (Scoped a n p)]
+ | Write (Name n)    (Exp a n p)
+ | Push  (Name n)    (Exp a n p)
+ | Output OutputName (Exp a n p)
  | KeepFactInHistory
  | LoadResumable (Name n)
  | SaveResumable (Name n)
 
-data Binding n p
- = InitAccumulator (S.Accumulator n p)
- | Let             (Name n) (Exp n p)
+data Binding a n p
+ = InitAccumulator (S.Accumulator a n p)
+ | Let             (Name n) (Exp  a n p)
  | Read            (Name n) (Name n)
 
-scopedOfStatement :: S.Statement n p -> Scoped n p
+scopedOfStatement :: S.Statement a n p -> Scoped a n p
 scopedOfStatement s
  = case bindsOfStatement s of
     [Right s'] -> s'
     bs         -> Block bs
 
-bindsOfStatement :: S.Statement n p -> [Either (Binding n p) (Scoped n p)]
+bindsOfStatement :: S.Statement a n p -> [Either (Binding a n p) (Scoped a n p)]
 bindsOfStatement s
  = case s of
     S.If x ss es
@@ -86,7 +86,7 @@ bindsOfStatement s
         in  Left (Read n acc) : bs
 
 
-statementOfScoped :: Scoped n p -> S.Statement n p
+statementOfScoped :: Scoped a n p -> S.Statement a n p
 statementOfScoped s
  = case s of
     If x ss es
@@ -147,7 +147,7 @@ spanMaybe f as
 
 -- Pretty printing -------------
 
-instance (Pretty n, Pretty p) => Pretty (Scoped n p) where
+instance (Pretty n, Pretty p) => Pretty (Scoped a n p) where
  pretty s
   = case s of
      If x stmts elses
@@ -203,7 +203,7 @@ instance (Pretty n, Pretty p) => Pretty (Scoped n p) where
    inner si           = text "{" <> line <> indent 2 (pretty si) <> line <> text "} " <> line
 
 
-instance (Pretty n, Pretty p) => Pretty (Binding n p) where
+instance (Pretty n, Pretty p) => Pretty (Binding a n p) where
  pretty b
   = case b of
      InitAccumulator acc

@@ -25,7 +25,7 @@ import qualified    Data.Set as Set
 
 
 
-pullLets :: Statement n p -> Statement n p
+pullLets :: Statement a n p -> Statement a n p
 pullLets statements
  = runIdentity
  $ transformUDStmt trans () statements
@@ -68,15 +68,15 @@ pullLets statements
 
 
 -- | Let-forwarding on statements
-forwardStmts :: Ord n => Statement n p -> Fresh n (Statement n p)
-forwardStmts statements
+forwardStmts :: Ord n => a -> Statement a n p -> Fresh n (Statement a n p)
+forwardStmts a_fresh statements
  = transformUDStmt trans () statements
  where
   trans _ s
    = case s of
       Let n x ss
        | isSimpleValue x
-       -> do    s' <- substXinS n x ss
+       -> do    s' <- substXinS a_fresh n x ss
                 return ((), s')
 
       _ -> return ((), s)
@@ -109,8 +109,8 @@ forwardStmts statements
 --
 -- TODO: introduce renaming to avoid capturing payload variables
 --
-substXinS :: Ord n => Name n -> Exp n p -> Statement n p -> Fresh n (Statement n p)
-substXinS name payload statements
+substXinS :: Ord n => a -> Name n -> Exp a n p -> Statement a n p -> Fresh n (Statement a n p)
+substXinS a_fresh name payload statements
  = transformUDStmt trans True statements
  where
   -- Do nothing; the variable has been shadowed
@@ -157,7 +157,7 @@ substXinS name payload statements
       _
        -> return (True, s)
 
-  sub = subst     name payload
+  sub = subst a_fresh name payload
   sub1 x f
    = do x' <- sub x
         return (True, f x')
@@ -176,8 +176,8 @@ substXinS name payload statements
 --  * Remove some other useless code:
 --      statements that do not update accumulators or return a value are silly.
 --
-thresher :: (Ord n, Eq p) => Statement n p -> Fresh n (Statement n p)
-thresher statements
+thresher :: (Ord n, Eq p) => a -> Statement a n p -> Fresh n (Statement a n p)
+thresher a_fresh statements
  = transformUDStmt trans emptyExpEnv statements
  where
   trans env s
@@ -195,7 +195,7 @@ thresher statements
        -> return (env, ss)
       -- Duplicate let: change to refer to existing one
        | ((n',_):_) <- filter (\(_,x') -> x `alphaEquality` x') env
-       -> return (env, Let n (XVar n') ss)
+       -> return (env, Let n (XVar a_fresh n') ss)
 
       -- Read that's never used
       Read n _ ss
@@ -205,7 +205,7 @@ thresher statements
       InitAccumulator (Accumulator n _ _ x) ss
        |  not (accRead $ accumulatorUsed n ss) || not (accWritten $ accumulatorUsed n ss)
        -> do    n' <- fresh
-                let ss' = Let n' x (killAccumulator n (XVar n') ss)
+                let ss' = Let n' x (killAccumulator n (XVar a_fresh n') ss)
                 return (env, ss')
 
       -- Anything else, we just update environment and recurse
@@ -217,7 +217,7 @@ thresher statements
 -- If it does not update or return, it is probably dead code.
 --
 -- The first argument is a set of accumulators to ignore.
-hasEffect :: Ord n => Statement n p -> Bool
+hasEffect :: Ord n => Statement a n p -> Bool
 hasEffect statements
  = runIdentity
  $ foldStmt down up (||) Set.empty False statements
@@ -260,7 +260,7 @@ hasEffect statements
 
 -- | Find free *expression* variables in statements.
 -- Note that this ignores accumulators, as they are a different scope.
-stmtFreeX :: Ord n => Statement n p -> Set.Set (Name n)
+stmtFreeX :: Ord n => Statement a n p -> Set.Set (Name n)
 stmtFreeX statements
  = runIdentity
  $ foldStmt down up Set.union () Set.empty statements
@@ -326,8 +326,8 @@ stmtFreeX statements
 --   
 -- Note that the above example is only one step: nesting would then be
 -- recursively performed etc.
-nestBlocks :: Ord n => Statement n p -> Fresh n (Statement n p)
-nestBlocks statements
+nestBlocks :: Ord n => a -> Statement a n p -> Fresh n (Statement a n p)
+nestBlocks a_fresh statements
  = transformUDStmt trans () statements
  where
   trans _ s
@@ -367,7 +367,7 @@ nestBlocks statements
   maybeRename n check inner
    | n `Set.member` stmtFreeX check
    = do n'      <- fresh
-        inner'  <- substXinS n (XVar n') inner
+        inner'  <- substXinS a_fresh n (XVar a_fresh n') inner
         return (n', inner')
 
    | otherwise
@@ -381,7 +381,7 @@ data AccumulatorUsage
  , accWritten :: Bool }
 
 -- | Check whether statement uses this accumulator
-accumulatorUsed :: Ord n => Name n -> Statement n p -> AccumulatorUsage
+accumulatorUsed :: Ord n => Name n -> Statement a n p -> AccumulatorUsage
 accumulatorUsed acc statements
  = runIdentity
  $ foldStmt down up ors () (AccumulatorUsage False False) statements
@@ -407,7 +407,7 @@ accumulatorUsed acc statements
    | otherwise
    = return r
 
-killAccumulator :: (Ord n, Eq p) => Name n -> Exp n p -> Statement n p -> Statement n p
+killAccumulator :: (Ord n, Eq p) => Name n -> Exp a n p -> Statement a n p -> Statement a n p
 killAccumulator acc xx statements
  = runIdentity
  $ transformUDStmt trans () statements

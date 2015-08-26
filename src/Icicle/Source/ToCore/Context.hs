@@ -14,16 +14,16 @@ import                  P
 import qualified        Data.Map as Map
 
 
-data Features n
+data Features a n
  = Features
- { featuresConcretes :: Map.Map (Name n) (Type n, FeatureContext n)
+ { featuresConcretes :: Map.Map (Name n) (Type n, FeatureContext a n)
  , featuresFunctions :: Map.Map (Name n) (FunctionType n)
  }
 
-type FeatureContext n
- = Map.Map (Name n) (Type n, C.Exp n -> C.Exp n)
+type FeatureContext a n
+ = Map.Map (Name n) (Type n, C.Exp a n -> C.Exp a n)
 
-envOfFeatureContext :: FeatureContext n -> Map.Map (Name n) (Type n)
+envOfFeatureContext :: FeatureContext a n -> Map.Map (Name n) (Type n)
 envOfFeatureContext ff
  = Map.map (\(t,_) -> Temporality TemporalityElement $ Possibility PossibilityDefinitely t)
  $ ff

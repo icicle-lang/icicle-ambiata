@@ -30,7 +30,7 @@ type Result r a n = EitherT (CheckError a n) (Fresh.Fresh n) (r, Type n)
 
 -- | Check a top-level Query, returning the query with type annotations and casts inserted.
 checkQT :: Ord n
-        => Features n
+        => Features () n
         -> QueryTop a n
         -> Result (QueryTop (Annot a n) n) a n
 checkQT features qt

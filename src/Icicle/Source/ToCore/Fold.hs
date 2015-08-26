@@ -17,7 +17,6 @@ import                  Icicle.Source.Type
 
 import qualified        Icicle.Core as C
 import qualified        Icicle.Core.Exp.Combinators as CE
-import qualified        Icicle.Common.Exp           as CE
 import qualified        Icicle.Common.Exp.Prim.Minimal as Min
 import qualified        Icicle.Common.Type as T
 import                  Icicle.Common.Fresh
@@ -33,9 +32,9 @@ import qualified        Data.Map    as Map
 
 data ConvertFoldResult n
  = ConvertFoldResult
- { foldKons     :: C.Exp n
- , foldZero     :: C.Exp n
- , mapExtract   :: C.Exp n
+ { foldKons     :: C.Exp () n
+ , foldZero     :: C.Exp () n
+ , mapExtract   :: C.Exp () n
  , typeFold     :: T.ValType
  , typeExtract  :: T.ValType
  } deriving (Eq, Ord, Show)
@@ -102,12 +101,12 @@ convertFold q
                 --  apply the primitive
                 let cp ns
                         = convertPrim p ann retty
-                            ((fmap (uncurry CE.XApp) (fmap mapExtract res `zip` ns)) `zip` fmap (annResult . annotOfExp) args)
+                            ((fmap (uncurry CE.xApp) (fmap mapExtract res `zip` ns)) `zip` fmap (annResult . annotOfExp) args)
                 xx       <- pairDestruct cp ts retty
 
                 -- For konstrukt, we need to destruct the pairs, apply the sub-ks,
                 -- then box it up again in pairs.
-                let applyKs ns = fst <$> pairConstruct (fmap (uncurry CE.XApp) (fmap foldKons res `zip` ns)) ts
+                let applyKs ns = fst <$> pairConstruct (fmap (uncurry CE.xApp) (fmap foldKons res `zip` ns)) ts
                 kk       <- pairDestruct applyKs ts tt
 
                 return $ ConvertFoldResult kk zz xx tt retty'
@@ -122,15 +121,15 @@ convertFold q
               | TemporalityPure  <- getTemporalityOrPure retty
               -> do n'ignore <- lift fresh
                     retty' <- convertValType' retty
-                    let k = CE.XLam n'ignore retty' $ CE.XVar v'
-                    return $ ConvertFoldResult k (CE.XVar v') k retty' retty'
+                    let k = CE.xLam n'ignore retty' $ CE.xVar v'
+                    return $ ConvertFoldResult k (CE.xVar v') k retty' retty'
 
               | TemporalityElement <- getTemporalityOrPure retty
               -> do retty' <- convertValType' retty
                     i <- idFun retty'
                     n'v <- lift fresh
-                    let k = CE.XLam n'v retty' $ CE.XVar v'
-                    let err = CE.XValue retty' $ VException ExceptScalarVariableNotAvailable
+                    let k = CE.xLam n'v retty' $ CE.xVar v'
+                    let err = CE.xValue retty' $ VException ExceptScalarVariableNotAvailable
                     return $ ConvertFoldResult k err i retty' retty'
 
              -- For aggregate variables, the actual folding doesn't matter:
@@ -140,11 +139,11 @@ convertFold q
               -> do n'x <- lift fresh
                     retty' <- convertValType' retty
                     let ut    = T.UnitT
-                    let unit = CE.XValue ut VUnit
+                    let unit = CE.xValue ut VUnit
 
-                    let k    = CE.XLam n'x ut $ unit
+                    let k    = CE.xLam n'x ut $ unit
                     let z    = unit
-                    let x    = CE.XLam n'x ut $ CE.XVar $ v'
+                    let x    = CE.xLam n'x ut $ CE.xVar $ v'
 
                     return $ ConvertFoldResult k z x ut retty'
 
@@ -168,8 +167,8 @@ convertFold q
                     i <- idFun retty'
                     n'v <- lift fresh
                     inp <- convertInputName
-                    let k = CE.XLam n'v retty' $ var' $ CE.XVar inp
-                    let err = CE.XValue retty' $ VException ExceptScalarVariableNotAvailable
+                    let k = CE.xLam n'v retty' $ var' $ CE.xVar inp
+                    let err = CE.xValue retty' $ VException ExceptScalarVariableNotAvailable
                     return $ ConvertFoldResult k err i retty' retty'
 
               | otherwise
@@ -188,9 +187,9 @@ convertFold q
             e'         <- convertExp  e
             prev       <- lift fresh
             let tt'    = typeFold res
-            let prev'   = CE.XVar prev
-            let k' = CE.XLam prev tt'
-                   ( CE.XPrim (C.PrimFold C.PrimFoldBool tt')
+            let prev'  = CE.xVar prev
+            let k' = CE.xLam prev tt'
+                   ( CE.xPrim (C.PrimFold C.PrimFoldBool tt')
                      CE.@~ (foldKons res CE.@~ prev') CE.@~ prev' CE.@~ e' )
             return (res { foldKons = k' })
 
@@ -209,15 +208,15 @@ convertFold q
      -> do  def' <- convertExp def
             n'   <- lift fresh
             t' <- convertValType' $ annResult $ annotOfExp def
-            let res = ConvertFoldResult (CE.XLam n' t' def') def' (CE.XLam n' t' def') t' t'
+            let res = ConvertFoldResult (CE.xLam n' t' def') def' (CE.xLam n' t' def') t' t'
             convertAsLet b res
 
      | TemporalityElement  <- getTemporalityOrPure $ annResult $ annotOfExp def
      -> do  def' <- convertExp def
             n'   <- lift fresh
             t' <- convertValType' $ annResult $ annotOfExp def
-            let err = CE.XValue t' $ VException ExceptScalarVariableNotAvailable
-            let res = ConvertFoldResult (CE.XLam n' t' def') err (CE.XLam n' t' $ CE.XVar n') t' t'
+            let err = CE.xValue t' $ VException ExceptScalarVariableNotAvailable
+            let res = ConvertFoldResult (CE.xLam n' t' def') err (CE.xLam n' t' $ CE.xVar n') t' t'
             convertAsLet b res
 
      | otherwise
@@ -239,21 +238,21 @@ convertFold q
             n'a' <- convertFreshenAdd $ foldBind f
             k   <- convertExp (foldWork f)
 
-            let opt r = CE.XPrim $ C.PrimFold (C.PrimFoldOption tU) r
+            let opt r = CE.xPrim $ C.PrimFold (C.PrimFoldOption tU) r
             -- Wrap zero and kons up in Some
-            let k' = CE.XLam n'a tO
+            let k' = CE.xLam n'a tO
                    ( opt tO
-                     CE.@~ CE.XLam n'a' tU (CE.some tU $ k)
+                     CE.@~ CE.xLam n'a' tU (CE.some tU $ k)
                      CE.@~ CE.some tU z
-                     CE.@~ CE.XVar n'a)
+                     CE.@~ CE.xVar n'a)
 
-            let x' = CE.XLam n'a tO
+            let x' = CE.xLam n'a tO
                    ( opt tU
-                     CE.@~ CE.XLam n'a' tU (CE.XVar n'a')
-                     CE.@~ CE.XValue tU (VException ExceptFold1NoValue)
-                     CE.@~ CE.XVar n'a )
+                     CE.@~ CE.xLam   n'a' tU (CE.xVar n'a')
+                     CE.@~ CE.xValue tU (VException ExceptFold1NoValue)
+                     CE.@~ CE.xVar   n'a )
 
-            let res = ConvertFoldResult k' (CE.XValue tO VNone) x' tO tU
+            let res = ConvertFoldResult k' (CE.xValue tO VNone) x' tO tU
             convertAsLet (foldBind f) res
 
 
@@ -267,7 +266,7 @@ convertFold q
             n'a <- convertFreshenAdd $ foldBind f
             k   <- convertExp (foldWork f)
 
-            let k' = CE.XLam n'a tU k
+            let k' = CE.xLam n'a tU k
 
             x' <- idFun tU
 
@@ -283,7 +282,7 @@ convertFold q
    = convertError $ ConvertErrorContextNotAllowedInGroupBy ann q
 
   -- Construct an identity function
-  idFun tt = lift fresh >>= \n -> return (CE.XLam n tt (CE.XVar n))
+  idFun tt = lift fresh >>= \n -> return (CE.xLam n tt (CE.xVar n))
 
   -- Create nested pair type for storing the result of subexpressions
   pairTypes ts
@@ -294,11 +293,11 @@ convertFold q
    = return
    $ foldr
    (\(xa,ta) (x',t')
-    -> ( CE.XPrim
+    -> ( CE.xPrim
             (C.PrimMinimal $ Min.PrimConst $ Min.PrimConstPair ta t')
             CE.@~ xa CE.@~ x'
        , T.PairT ta t'))
-   ( CE.XValue T.UnitT VUnit, T.UnitT )
+   ( CE.xValue T.UnitT VUnit, T.UnitT )
    ( zip xs ts )
 
   -- Destruct nested pairs.
@@ -306,22 +305,22 @@ convertFold q
   pairDestruct f [] _ret
    = do nl <- lift fresh
         f' <- f []
-        return $ CE.XLam nl T.UnitT $ f'
+        return $ CE.xLam nl T.UnitT $ f'
 
   pairDestruct f (t1:ts) ret
    = do nl <- lift fresh
         n1 <- lift fresh
 
-        let f' xs = f (CE.XVar n1 : xs)
+        let f' xs = f (CE.xVar n1 : xs)
         let tr    = pairTypes ts
 
         rest <- pairDestruct f' ts ret
 
-        let xfst = CE.XPrim (C.PrimMinimal $ Min.PrimPair $ Min.PrimPairFst t1 tr) CE.@~ CE.XVar nl
-        let xsnd = CE.XPrim (C.PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd t1 tr) CE.@~ CE.XVar nl
+        let xfst = CE.xPrim (C.PrimMinimal $ Min.PrimPair $ Min.PrimPairFst t1 tr) CE.@~ CE.xVar nl
+        let xsnd = CE.xPrim (C.PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd t1 tr) CE.@~ CE.xVar nl
 
-        let xx = CE.XLam nl (T.PairT t1 tr)
-               $ CE.XLet n1 xfst
+        let xx = CE.xLam nl (T.PairT t1 tr)
+               $ CE.xLet n1 xfst
                ( rest CE.@~ xsnd )
 
         return xx
@@ -335,27 +334,27 @@ convertFold q
             let tpair = T.PairT tb' tq'
 
             let mkPair x y
-                   = CE.XPrim
+                   = CE.xPrim
                    (C.PrimMinimal $ Min.PrimConst $ Min.PrimConstPair tb' tq')
                      CE.@~ x CE.@~ y
             let xproj which x
-                   = CE.XPrim
+                   = CE.xPrim
                    (C.PrimMinimal $ Min.PrimPair $ which tb' tq')
                      CE.@~ x
             let xfst = xproj Min.PrimPairFst
             let xsnd = xproj Min.PrimPairSnd
 
             n' <- lift fresh
-            let k'  = CE.XLam n' tpair
-                    $ CE.XLet b' (foldKons resb CE.@~ xfst (CE.XVar n'))
-                    $ mkPair (CE.XVar b') (foldKons resq CE.@~ xsnd (CE.XVar n'))
+            let k'  = CE.xLam n' tpair
+                    $ CE.xLet b' (foldKons resb CE.@~ xfst (CE.xVar n'))
+                    $ mkPair (CE.xVar b') (foldKons resq CE.@~ xsnd (CE.xVar n'))
 
-            let z'  = CE.XLet b' (foldZero resb)
-                    $ mkPair (CE.XVar b') (foldZero resq)
+            let z'  = CE.xLet b' (foldZero resb)
+                    $ mkPair (CE.xVar b') (foldZero resq)
 
-            let x'  = CE.XLam n' tpair
-                    $ CE.XLet b' (mapExtract resb CE.@~ xfst (CE.XVar n'))
-                                 (mapExtract resq CE.@~ xsnd (CE.XVar n'))
+            let x'  = CE.xLam n' tpair
+                    $ CE.xLet b' (mapExtract resb CE.@~ xfst (CE.xVar n'))
+                                 (mapExtract resq CE.@~ xsnd (CE.xVar n'))
 
             return $ ConvertFoldResult k' z' x' tpair (typeExtract resq)
 

@@ -14,57 +14,57 @@ import P
 
 
 -- | Beta and let reduction
-beta :: (Ord n) => (Exp n p -> Bool) -> Exp n p -> Exp n p
+beta :: (Ord n) => (Exp a n p -> Bool) -> Exp a n p -> Exp a n p
 beta isValue toplevel
  = go toplevel
  where
   go xx
    = case xx of
-      XApp p q
-       | XLam n _ x <- go p
+      XApp _ p q
+       | XLam _ n _ x <- go p
        , v <- go q
        , isValue v
        , Just x' <- substMaybe n v x
        -> go x'
      
-      XApp p q
-       -> go p `XApp` go q
+      XApp a p q
+       -> XApp a (go p) (go q)
 
-      XLam n t x
-       -> XLam n t $ go x
+      XLam a n t x
+       -> XLam a n t $ go x
 
-      XLet n v x
+      XLet _ n v x
        | isValue v
        , Just x' <- substMaybe n v x
        -> go x'
 
-      XLet n v x
-       -> XLet n (go v) (go x)
+      XLet a n v x
+       -> XLet a n (go v) (go x)
   
       XValue{}        -> xx
       XVar{}          -> xx
       XPrim{}         -> xx
 
 -- | Total beta: always convert (\n. f) x to  (let n = x in f)
-betaToLets :: Exp n p -> Exp n p
-betaToLets toplevel
+betaToLets :: a -> Exp a n p -> Exp a n p
+betaToLets a_let toplevel
  = go toplevel
  where
   go xx
    = case xx of
-      XApp{}
-       | (f, a:as)  <- takeApps xx
-       , XLam n _ b <- f
-       -> XLet n (go a) (go $ makeApps b as)
+      XApp _ _ _
+       | (f, x:xs)    <- takeApps xx
+       , XLam _ n _ b <- f
+       -> XLet a_let n (go x) (go $ makeApps a_let b xs)
      
-      XApp p q
-       -> go p `XApp` go q
+      XApp a p q
+       -> XApp a (go p) (go q)
 
-      XLam n t x
-       -> XLam n t $ go x
+      XLam a n t x
+       -> XLam a n t $ go x
 
-      XLet n v x
-       -> XLet n (go v) (go x)
+      XLet a n v x
+       -> XLet a n (go v) (go x)
   
       XValue{}        -> xx
       XVar{}          -> xx
@@ -73,7 +73,7 @@ betaToLets toplevel
 
 
 -- | Check if expression is just a primitive or a variable.
-isSimpleValue :: Exp n p -> Bool
+isSimpleValue :: Exp a n p -> Bool
 isSimpleValue xx
  = case xx of
     XPrim{} -> True
