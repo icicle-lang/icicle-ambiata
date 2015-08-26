@@ -73,7 +73,7 @@ checkStatement frag ctx stmt
       case stmt of
         If x stmts elses
          -> do t <- mapLeft ProgramErrorExp
-                  $ checkExp frag (ctxExp ctx) x
+                  $ typeExp frag (ctxExp ctx) x
                requireSame (ProgramErrorWrongType x) t (FunT [] BoolT)
                go stmts
                go elses
@@ -83,9 +83,9 @@ checkStatement frag ctx stmt
 
         ForeachInts _ from to stmts
          -> do tf <- mapLeft ProgramErrorExp
-                   $ checkExp frag (ctxExp ctx) from
+                   $ typeExp frag (ctxExp ctx) from
                tt <- mapLeft ProgramErrorExp
-                   $ checkExp frag (ctxExp ctx) to
+                   $ typeExp frag (ctxExp ctx) to
 
                requireSame (ProgramErrorWrongType from) tf (FunT [] IntT)
                requireSame (ProgramErrorWrongType to)   tt (FunT [] IntT)
@@ -107,7 +107,7 @@ checkStatement frag ctx stmt
 
         Write n x
          -> do t <- mapLeft ProgramErrorExp
-                  $ checkExp frag (ctxExp ctx) x
+                  $ typeExp frag (ctxExp ctx) x
 
                a <- maybeToRight (ProgramErrorNoSuchAccumulator n)
                   $ Map.lookup n $ ctxAcc ctx
@@ -121,7 +121,7 @@ checkStatement frag ctx stmt
 
         Push n x
          -> do t <- mapLeft ProgramErrorExp
-                  $ checkExp frag (ctxExp ctx) x
+                  $ typeExp frag (ctxExp ctx) x
 
                a <- maybeToRight (ProgramErrorNoSuchAccumulator n)
                   $ Map.lookup n $ ctxAcc ctx
@@ -135,7 +135,7 @@ checkStatement frag ctx stmt
 
         Output _ x
          -> do _ <- mapLeft ProgramErrorExp
-                  $ checkExp frag (ctxExp ctx) x
+                  $ typeExp frag (ctxExp ctx) x
                return ()
 
         KeepFactInHistory
@@ -168,7 +168,7 @@ statementContext frag ctx stmt
 
     Let n x _
      -> do t <- mapLeft ProgramErrorExp
-              $ checkExp frag (ctxExp ctx) x
+              $ typeExp frag (ctxExp ctx) x
            return (ctx { ctxExp = Map.insert n t $ ctxExp ctx })
 
     ForeachInts n _ _ _
@@ -217,7 +217,7 @@ statementContext frag ctx stmt
    = case at of
       Latest
        -> do    t <- mapLeft ProgramErrorExp
-                   $ checkExp frag (ctxExp ctx) x
+                   $ typeExp frag (ctxExp ctx) x
                 requireSame (ProgramErrorWrongType x) t (FunT [] IntT)
                 return (n, ATPush ty)
       Mutable
@@ -225,7 +225,7 @@ statementContext frag ctx stmt
 
   checkUpdate n x ty
    = do t <- mapLeft ProgramErrorExp
-           $ checkExp frag (ctxExp ctx) x
+           $ typeExp frag (ctxExp ctx) x
         requireSame (ProgramErrorWrongType x) t (FunT [] ty)
         return (n, ATUpdate ty)
 

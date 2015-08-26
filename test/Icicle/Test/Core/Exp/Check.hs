@@ -23,29 +23,29 @@ import           Test.QuickCheck
 -- =====================
 
 prop_prefixlet x =
- checkExp0 coreFragment x == checkExp0 coreFragment (xLet (fresh 0) x x)
+ typeExp0 coreFragment x == typeExp0 coreFragment (xLet (fresh 0) x x)
 
 -- Prefixing a let with a known good expression doesn't affect
 prop_prefixletconst x =
- checkExp0 coreFragment x == checkExp0 coreFragment (xLet (fresh 0) (constI 0) x)
+ typeExp0 coreFragment x == typeExp0 coreFragment (xLet (fresh 0) (constI 0) x)
 
 
 -- Wrapping in a lambda does affect typechecking, but not *whether* type exists
 prop_lamwrap x =
- isRight (checkExp0 coreFragmentWorkerFun x) == isRight (checkExp0 coreFragmentWorkerFun (xLam (fresh 0) IntT x))
+ isRight (typeExp0 coreFragmentWorkerFun x) == isRight (typeExp0 coreFragmentWorkerFun (xLam (fresh 0) IntT x))
 
 
 -- Try to build an expression for type.
 -- This is only testing that the generator succeeds with relatively few missed cases.
 prop_genExpForType t =
  forAll (tryExpForType (FunT [] t) Map.empty)
- $ \x -> checkExp0 coreFragment x == Right (FunT [] t) ==> True
+ $ \x -> typeExp0 coreFragment x == Right (FunT [] t) ==> True
 
 -- Again, try generating two with the same type.
 prop_genExpForType2 t =
  forAll (tryExpForType (FunT [] t) Map.empty) $ \x ->
  forAll (tryExpForType (FunT [] t) Map.empty) $ \y ->
- checkExp0 coreFragment x == Right (FunT [] t) && checkExp0 coreFragment y == Right (FunT [] t) ==> True
+ typeExp0 coreFragment x == Right (FunT [] t) && typeExp0 coreFragment y == Right (FunT [] t) ==> True
 
 
 

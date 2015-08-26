@@ -162,7 +162,7 @@ bindingToJava ctx bb
 
 expToJava :: (Show a, Show n, Pretty n, Ord n) => Context n -> Boxy -> Exp a n Prim -> Doc
 expToJava ctx b xx
- = case checkExp flatFragment (ctxExp ctx) xx of
+ = case typeExp flatFragment (ctxExp ctx) xx of
     Left err -> "$#!@ type error " <> text (show err)
     Right (FunT _ t)
      -> case xx of

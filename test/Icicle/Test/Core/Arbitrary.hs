@@ -256,7 +256,7 @@ withTypedExp :: Testable prop => (Exp () Var Prim -> ValType -> prop) -> Propert
 withTypedExp prop
  = forAll arbitrary $ \t ->
    forAll (tryExpForType (FunT [] t) Map.empty) $ \x ->
-     checkExp0 X.coreFragment x == Right (FunT [] t) ==> prop x t
+     typeExp0 X.coreFragment x == Right (FunT [] t) ==> prop x t
 
 
 -- | Attempt to generate well typed expressions
@@ -308,7 +308,7 @@ programForStreamType streamType
   -- Generate an expression, and try very hard to make sure it's well typed
   -- (but don't try so hard that we loop forever)
   gen_exp t e
-   = do x <- tryExpForType t e `suchThatMaybe` ((== Right t) . checkExp X.coreFragmentWorkerFun e)
+   = do x <- tryExpForType t e `suchThatMaybe` ((== Right t) . typeExp X.coreFragmentWorkerFun e)
         case x of
          Just x' -> return x'
          Nothing -> arbitrary

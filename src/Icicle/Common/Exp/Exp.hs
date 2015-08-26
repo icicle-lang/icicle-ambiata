@@ -3,6 +3,7 @@
 module Icicle.Common.Exp.Exp (
       Exp     (..)
     , renameExp
+    , annotOfExp
     , TransformX (..)
     ) where
 
@@ -45,6 +46,16 @@ renameExp _ (XValue a t v) = XValue a t v
 renameExp f (XApp a p q)   = XApp a (renameExp f p) (renameExp f q)
 renameExp f (XLam a n t b) = XLam a (f n) t (renameExp f b)
 renameExp f (XLet a n p q) = XLet a (f n) (renameExp f p) (renameExp f q)
+
+
+annotOfExp :: Exp a n p -> a
+annotOfExp (XVar   a _)     = a
+annotOfExp (XPrim  a _)     = a
+annotOfExp (XValue a _ _)   = a
+annotOfExp (XApp   a _ _)   = a
+annotOfExp (XLam   a _ _ _) = a
+annotOfExp (XLet   a _ _ _) = a
+
 
 class TransformX x where
  transformX :: (Applicative m, Monad m)

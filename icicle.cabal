@@ -73,6 +73,7 @@ library
 
                        Icicle.BubbleGum
 
+                       Icicle.Common.Annot
                        Icicle.Common.Base
                        Icicle.Common.Fresh
                        Icicle.Common.Exp
