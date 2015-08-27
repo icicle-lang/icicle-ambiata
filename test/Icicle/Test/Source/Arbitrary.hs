@@ -43,6 +43,7 @@ instance Arbitrary n => Arbitrary (Exp () n) where
         , Prim   () <$> arbitrary ]
         [ (simplifyNestedX . Nested ()) <$> arbitrary
         , App    () <$> arbitrary <*> arbitrary
+        -- TODO: generate other patterns for case expressions
         , Case   () <$> arbitrary <*> ((\a b -> [(PatCon ConTrue [], a), (PatCon ConFalse [], b)]) <$> arbitrary <*> arbitrary)
         , preop
         , inop ]
