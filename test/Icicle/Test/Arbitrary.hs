@@ -28,11 +28,6 @@ instance Arbitrary DateTime where
   arbitrary =
     unsafeDateOfYMD <$> oneof_vals [2010..2014] <*> oneof_vals [1..12] <*> oneof_vals [1..28]
 
-instance Arbitrary Date where
-  arbitrary =
-    Date <$> elements muppets -- FIX replace with an actual Date
-
-
 instance Arbitrary Fact' where
   arbitrary =
     Fact'

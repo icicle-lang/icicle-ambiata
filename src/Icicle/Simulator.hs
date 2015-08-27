@@ -19,7 +19,6 @@ import           Data.Text (Text)
 import qualified Icicle.BubbleGum   as B
 import           Icicle.Common.Base
 import           Icicle.Data
-import           Icicle.Data.DateTime
 import           Icicle.Dictionary
 
 import           Icicle.Internal.Pretty
@@ -133,7 +132,7 @@ valueToCore v
     StructValue (Struct vs)
                    -> V.VStruct . Map.fromList
                   <$> mapM (\(a,b) -> (,) <$> pure (V.StructField $ getAttribute a) <*> valueToCore b) vs
-    DateValue _    -> Left   $ SimulateErrorCannotConvertToCore v
+    DateValue d    -> return $ V.VDateTime d
     Tombstone      -> Left   $ SimulateErrorCannotConvertToCore v
 
 valueFromCore :: V.BaseValue -> Either (SimulateError a) Value
@@ -143,7 +142,7 @@ valueFromCore v
     V.VDouble d   -> return $ DoubleValue d
     V.VUnit       -> return $ IntValue 13013
     V.VBool b     -> return $ BooleanValue b
-    V.VDateTime d -> return $ DateValue $ Date $ renderDate d
+    V.VDateTime d -> return $ DateValue d
     V.VString t   -> return $ StringValue t
     V.VArray vs   -> ListValue . List
                   <$> mapM valueFromCore vs

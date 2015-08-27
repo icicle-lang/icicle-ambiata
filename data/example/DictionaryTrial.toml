@@ -46,6 +46,7 @@ tombstone = "NA"
     location="string"
     severity="int"
     action="string*"
+    admitted="date*"
 
 [deprecated.mean_salary]
   source="salary"
