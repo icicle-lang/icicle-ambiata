@@ -173,8 +173,9 @@ insertOrDie err e n t
 
 -- | Require two types to be equal, or return given error if not.
 requireSame 
-    :: (Type -> Type -> err)
-    ->  Type -> Type -> Either err ()
+    :: Eq a
+    => (a -> a -> err)
+    ->  a -> a -> Either err ()
 requireSame err p q
  | p == q
  = return ()

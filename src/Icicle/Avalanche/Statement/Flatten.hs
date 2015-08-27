@@ -74,8 +74,8 @@ flatten a_fresh s
      $ \x'
      -> InitAccumulator (acc { accInit = x' }) <$> flatten a_fresh ss
 
-    Read n m ss
-     -> Read n m <$> flatten a_fresh ss
+    Read n m at vt ss
+     -> Read n m at vt <$> flatten a_fresh ss
 
     Write n x
      -> flatX a_fresh x
@@ -95,10 +95,10 @@ flatten a_fresh s
     KeepFactInHistory
      -> return $ KeepFactInHistory
 
-    LoadResumable n
-     -> return $ LoadResumable n
-    SaveResumable n
-     -> return $ SaveResumable n
+    LoadResumable n t
+     -> return $ LoadResumable n t
+    SaveResumable n t
+     -> return $ SaveResumable n t
 
 
 
@@ -228,8 +228,11 @@ flatX a_fresh xx stm
 
                 stm' <- stm (xVar accN)
 
+                let mapT = MapT tk tv'
+                    accT = Mutable
+
                 loop <- forI (fpMapLen `xApp` map')                 $ \iter
-                     -> fmap    (Read accN accN)                    $
+                     -> fmap    (Read accN accN accT mapT)          $
                         slet    (fpMapIx `makeApps'` [map', iter])  $ \elm
                      -> slet    (proj False tk tv elm)              $ \efst
                      -> slet    (proj True  tk tv elm)              $ \esnd
@@ -238,10 +241,9 @@ flatX a_fresh xx stm
                      -> return  (Write accN map'')
 
 
-                let mapT = MapT tk tv'
                 return $ InitAccumulator
-                            (Accumulator accN Mutable mapT $ xValue mapT $ VMap Map.empty)
-                            (loop <> Read accN accN stm')
+                            (Accumulator accN accT mapT $ xValue mapT $ VMap Map.empty)
+                            (loop <> Read accN accN accT mapT stm')
 
 
        -- Map with wrong arguments
@@ -262,18 +264,19 @@ flatX a_fresh xx stm
 
                 stm' <- stm (xVar accN)
 
+                let arrT = ArrayT tb
+                    accT = Mutable
+
                 loop <- forI (fpArrLen `xApp` arr')                 $ \iter
-                     -> fmap    (Read accN accN)                    $
+                     -> fmap    (Read accN accN accT arrT)          $
                         slet    (fpArrIx `makeApps'` [arr', iter])  $ \elm
                      -> flatX'  (upd `xApp` elm)                    $ \elm'
                      -> slet    (fpUpdate `makeApps'` [xVar accN, iter, elm']) $ \arr''
                      -> return  (Write accN arr'')
 
-
-                let arrT = ArrayT tb
                 return $ InitAccumulator
-                            (Accumulator accN Mutable arrT (fpArrNew `xApp` (fpArrLen `xApp` arr')))
-                            (loop <> Read accN accN stm')
+                            (Accumulator accN accT arrT (fpArrNew `xApp` (fpArrLen `xApp` arr')))
+                            (loop <> Read accN accN accT arrT stm')
 
 
        -- Map with wrong arguments
@@ -318,39 +321,43 @@ flatX a_fresh xx stm
         <*> flatX' else_ stm
 
   -- Array fold becomes a loop
-  flatFold (Core.PrimFoldArray telem) tacc [k, z, arr]
+  flatFold (Core.PrimFoldArray telem) valT [k, z, arr]
    = do accN <- fresh
         stm' <- stm (xVar accN)
 
         let fpArrayLen = xPrim (Flat.PrimProject $ Flat.PrimProjectArrayLength telem)
         let fpArrayIx  = xPrim (Flat.PrimUnsafe  $ Flat.PrimUnsafeArrayIndex   telem)
 
+        let accT = Mutable
+
         -- Loop body updates accumulator with k function
         loop <-  flatX' arr                                  $ \arr'
              ->  forI   (fpArrayLen `xApp` arr')             $ \iter
-             ->  fmap   (Read accN accN)                     $
+             ->  fmap   (Read accN accN accT valT)           $
                  slet   (fpArrayIx `makeApps'` [arr', iter]) $ \elm
              ->  flatX' (makeApps' k [xVar accN, elm])       $ \x
              ->  return (Write accN x)
 
         -- Initialise accumulator with value z, execute loop, read from accumulator
         flatX' z $ \z' ->
-            return (InitAccumulator (Accumulator accN Mutable tacc z')
-                   (loop <> Read accN accN stm'))
+            return (InitAccumulator (Accumulator accN accT valT z')
+                   (loop <> Read accN accN accT valT stm'))
 
 
   -- Fold over map. Very similar to above
-  flatFold (Core.PrimFoldMap tk tv) tacc [k, z, arr]
+  flatFold (Core.PrimFoldMap tk tv) valT [k, z, arr]
    = do accN <- fresh
         stm' <- stm (xVar accN)
 
         let fpMapLen   = xPrim (Flat.PrimProject $ Flat.PrimProjectMapLength tk tv)
         let fpMapIx    = xPrim (Flat.PrimUnsafe  $ Flat.PrimUnsafeMapIndex   tk tv)
 
+        let accT = Mutable
+
         -- Loop is the same as for array, except we're grabbing the keys and values
         loop <- flatX' arr                                    $ \arr'
              -> forI    (fpMapLen `xApp` arr')                $ \iter
-             -> fmap    (Read accN accN)                      $
+             -> fmap    (Read accN accN accT valT)            $
                 slet    (fpMapIx `makeApps'` [arr', iter])    $ \elm
              -> slet    (proj False tk tv elm)                $ \efst
              -> slet    (proj True  tk tv elm)                $ \esnd
@@ -358,8 +365,8 @@ flatX a_fresh xx stm
              -> return  (Write accN x)
 
         flatX' z $ \z' ->
-            return (InitAccumulator (Accumulator accN Mutable tacc z')
-                   (loop <> Read accN accN stm'))
+            return (InitAccumulator (Accumulator accN accT valT z')
+                   (loop <> Read accN accN accT valT stm'))
 
 
   -- Fold over an option is just "maybe" combinator.

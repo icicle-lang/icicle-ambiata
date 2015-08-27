@@ -44,7 +44,7 @@ data Statement a n p
  -- As let:
  --      Let  local = accumulator,
  --      Read local = accumulator.
- | Read   (Name n) (Name n)     (Statement a n p)
+ | Read   (Name n) (Name n) AccumulatorType ValType (Statement a n p)
 
  -- Leaf nodes
  -- | Update a resumable or windowed fold accumulator,
@@ -61,10 +61,10 @@ data Statement a n p
  | KeepFactInHistory
 
  -- | Load an accumulator from history. Must be before any fact loops.
- | LoadResumable (Name n)
+ | LoadResumable (Name n) ValType
 
  -- | Save an accumulator to history. Must be after all fact loops.
- | SaveResumable (Name n)
+ | SaveResumable (Name n) ValType
  deriving (Eq, Ord, Show)
 
 instance Monoid (Statement a n p) where
@@ -158,8 +158,8 @@ transformUDStmt fun env statements
            -> Block <$> mapM (go e') ss
           InitAccumulator acc ss
            -> InitAccumulator acc <$> go e' ss
-          Read n acc ss
-           -> Read n acc <$> go e' ss
+          Read n acc at vt ss
+           -> Read n acc at vt <$> go e' ss
           Write n x
            -> return $ Write n x
           Push n x
@@ -168,10 +168,10 @@ transformUDStmt fun env statements
            -> return $ Output n x
           KeepFactInHistory
            -> return $ KeepFactInHistory
-          LoadResumable n
-           -> return $ LoadResumable n
-          SaveResumable n
-           -> return $ SaveResumable n
+          LoadResumable n t
+           -> return $ LoadResumable n t
+          SaveResumable n t
+           -> return $ SaveResumable n t
 
 foldStmt
         :: (Applicative m, Functor m, Monad m)
@@ -207,7 +207,7 @@ foldStmt down up rjoin env res statements
                     up e' r' s
           InitAccumulator _ ss
            -> sub1 ss
-          Read _ _ ss
+          Read _ _ _ _ ss
            -> sub1 ss
           Write{}
            -> up e' res s
@@ -244,8 +244,8 @@ instance TransformX Statement where
      InitAccumulator acc ss
       -> InitAccumulator <$> transformX names exps acc <*> go ss
 
-     Read n acc ss
-      -> Read <$> names n <*> names acc <*> go ss
+     Read n acc at vt ss
+      -> Read <$> names n <*> names acc <*> pure at <*> pure vt <*> go ss
      Write n x
       -> Write <$> names n <*> exps x
      Push n x
@@ -257,10 +257,10 @@ instance TransformX Statement where
      KeepFactInHistory
       -> return KeepFactInHistory
 
-     LoadResumable n
-      -> LoadResumable <$> names n
-     SaveResumable n
-      -> SaveResumable <$> names n
+     LoadResumable n t
+      -> LoadResumable <$> names n <*> pure t
+     SaveResumable n t
+      -> SaveResumable <$> names n <*> pure t
 
   where
    go  = transformX names exps
@@ -291,8 +291,10 @@ instance (Pretty n, Pretty p) => Pretty (Statement a n p) where
       -> pretty n <+> text "=" <+> pretty x <> line
       <> semisScope stmts
 
-     Read n acc stmts
-      -> text "read" <+> pretty n <+> text "=" <+> pretty acc <> line
+     Read n acc at vt stmts
+      -> text "read" <+> pretty n <+> text "=" <+> pretty acc
+                                               <+> brackets (pretty at)
+                                               <+> brackets (pretty vt) <> line
       <> semisScope stmts
 
      ForeachInts n from to stmts
@@ -309,7 +311,7 @@ instance (Pretty n, Pretty p) => Pretty (Statement a n p) where
       -> vcat $ fmap pretty stmts
 
      InitAccumulator acc stmts
-      -> pretty acc <> line
+      -> text "init" <+> pretty acc <> line
       <> semisScope stmts
 
      Write n x
@@ -324,10 +326,10 @@ instance (Pretty n, Pretty p) => Pretty (Statement a n p) where
      KeepFactInHistory
       -> text "keep_fact_in_history"
 
-     LoadResumable n
-      -> text "load_resumable" <+> pretty n
-     SaveResumable n
-      -> text "save_resumable" <+> pretty n
+     LoadResumable n t
+      -> text "load_resumable" <+> pretty n <+> brackets (pretty t)
+     SaveResumable n t
+      -> text "save_resumable" <+> pretty n <+> brackets (pretty t)
 
 
   where
@@ -344,11 +346,12 @@ instance (Pretty n, Pretty p) => Pretty (Statement a n p) where
 
 
 instance (Pretty n, Pretty p) => Pretty (Accumulator a n p) where
- pretty (Accumulator n acc _ x)
-  =   pretty n <+> text "=" <+> pretty x
-  <+> (case acc of
-       Latest    -> text "(Latest)"
-       Mutable   -> text "(Mutable)")
+ pretty (Accumulator n at vt x)
+  = brackets (pretty at) <+> brackets (pretty vt) <+> pretty n <+> text "=" <+> pretty x
+
+instance Pretty AccumulatorType where
+ pretty Latest  = text "Latest"
+ pretty Mutable = text "Mutable"
 
 instance Pretty FactLoopType where
  pretty FactLoopHistory = text "history"

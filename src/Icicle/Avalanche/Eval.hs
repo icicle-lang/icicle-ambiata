@@ -241,7 +241,7 @@ evalStmt evalPrim now xh values bubblegum ah stmt
            go xh (ah { accumulatorHeapMap = map' }) stmts
 
     -- Read from an accumulator
-    Read n acc stmts
+    Read n acc _ _ stmts
      -> do  -- Get the current value and apply the function
             v   <- case Map.lookup acc $ accumulatorHeapMap ah of
                     Just (_, AVMutable vacc)
@@ -275,10 +275,10 @@ evalStmt evalPrim now xh values bubblegum ah stmt
      | otherwise
      -> Left $ RuntimeErrorKeepFactNotInFactLoop
 
-    LoadResumable _
+    LoadResumable _ _
      -> return (ah, [])
 
-    SaveResumable acc
+    SaveResumable acc _
      -> do  v   <- case Map.lookup acc $ accumulatorHeapMap ah of
                     Just (_, AVMutable vacc)
                      -> return $ vacc

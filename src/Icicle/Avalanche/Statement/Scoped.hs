@@ -8,7 +8,7 @@
 -- It's also nicer for pretty printing to your average imperative
 -- language, since the block structure of an imperative language
 -- don't actually correspond to the scopes.
--- 
+--
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE PatternGuards #-}
 module Icicle.Avalanche.Statement.Scoped (
@@ -37,13 +37,13 @@ data Scoped a n p
  | Push  (Name n)    (Exp a n p)
  | Output OutputName (Exp a n p)
  | KeepFactInHistory
- | LoadResumable (Name n)
- | SaveResumable (Name n)
+ | LoadResumable (Name n) ValType
+ | SaveResumable (Name n) ValType
 
 data Binding a n p
  = InitAccumulator (S.Accumulator a n p)
  | Let             (Name n) (Exp  a n p)
- | Read            (Name n) (Name n)
+ | Read            (Name n) (Name n) S.AccumulatorType ValType
 
 scopedOfStatement :: S.Statement a n p -> Scoped a n p
 scopedOfStatement s
@@ -71,19 +71,19 @@ bindsOfStatement s
      -> [Right $ Output n x]
     S.KeepFactInHistory
      -> [Right $ KeepFactInHistory]
-    S.LoadResumable n
-     -> [Right $ LoadResumable n]
-    S.SaveResumable n
-     -> [Right $ SaveResumable n]
+    S.LoadResumable n t
+     -> [Right $ LoadResumable n t]
+    S.SaveResumable n t
+     -> [Right $ SaveResumable n t]
     S.InitAccumulator acc ss
      -> let bs = bindsOfStatement ss
         in  Left (InitAccumulator acc) : bs
     S.Let n x ss
      -> let bs = bindsOfStatement ss
         in  Left (Let n x) : bs
-    S.Read n acc ss
+    S.Read n acc at vt ss
      -> let bs = bindsOfStatement ss
-        in  Left (Read n acc) : bs
+        in  Left (Read n acc at vt) : bs
 
 
 statementOfScoped :: Scoped a n p -> S.Statement a n p
@@ -114,8 +114,8 @@ statementOfScoped s
               -> S.InitAccumulator acc rest
              Let n x
               -> S.Let n x rest
-             Read n acc
-              -> S.Read n acc rest
+             Read n acc at vt
+              -> S.Read n acc at vt rest
 
     Write n x
      -> S.Write n x
@@ -125,10 +125,10 @@ statementOfScoped s
      -> S.Output n x
     KeepFactInHistory
      -> S.KeepFactInHistory
-    LoadResumable n
-     -> S.LoadResumable n
-    SaveResumable n
-     -> S.SaveResumable n
+    LoadResumable n t
+     -> S.LoadResumable n t
+    SaveResumable n t
+     -> S.SaveResumable n t
 
 
 spanMaybe :: (a -> Maybe b) -> [a] -> ([b],[a])
@@ -190,11 +190,11 @@ instance (Pretty n, Pretty p) => Pretty (Scoped a n p) where
      KeepFactInHistory
       -> text "keep_fact_in_history"
       <> text ";"
-     LoadResumable n
-      -> text "load_resumable" <+> pretty n
+     LoadResumable n t
+      -> text "load_resumable" <+> brackets (pretty t) <+> pretty n
       <> text ";"
-     SaveResumable n
-      -> text "save_resumable" <+> pretty n
+     SaveResumable n t
+      -> text "save_resumable" <+> brackets (pretty t) <+> pretty n
       <> text ";"
 
 
@@ -212,7 +212,10 @@ instance (Pretty n, Pretty p) => Pretty (Binding a n p) where
      Let n x
       -> text "let" <+> pretty n <+> text "=" <+> pretty x
       <> text ";"
-     Read n acc
-      -> text "read" <+> pretty n <+> text "=" <+> pretty acc
+     Read n acc at vt
+      -> text "read" <+> brackets (pretty at)
+                     <+> brackets (pretty vt)
+                     <+> pretty n
+                     <+> text "=" <+> pretty acc
       <> text ";"
 

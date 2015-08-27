@@ -5,12 +5,12 @@ module Icicle.Avalanche.ToJava (
     programToJava
   ) where
 
-import              Icicle.Avalanche.Check
 import              Icicle.Avalanche.Prim.Flat
 import              Icicle.Avalanche.Program
 import qualified    Icicle.Avalanche.Statement.Statement as S
 import              Icicle.Avalanche.Statement.Scoped
 
+import              Icicle.Common.Annot
 import              Icicle.Common.Base
 import              Icicle.Common.Exp
 import qualified    Icicle.Common.Exp.Prim.Minimal as M
@@ -25,7 +25,7 @@ import              Data.Functor.Identity
 import qualified    Data.Map    as Map
 
 
-programToJava :: (Show a, Show n, Pretty n, Ord n) => Program a n Prim -> Doc
+programToJava :: (Show a, Show n, Pretty n, Ord n) => Program (Annot a) n Prim -> Doc
 programToJava p
  = "import java.util.*;"
  <> line
@@ -35,9 +35,7 @@ programToJava p
  <> block
     [ local DateTimeT (binddate p) <> " = icicle.snapshotDate();"
     , ""
-    , case statementContext flatFragment (initialContext p) (statements p) of
-       Left err -> "$#@! " <> text (show err)
-       Right ctx -> statementsToJava ctx (scopedOfStatement $ statements p)
+    , statementsToJava (scopedOfStatement $ statements p)
     ]
  ]
 
@@ -57,24 +55,24 @@ concreteFeatureType ss
   orl _ r = r
 
 
-statementsToJava :: (Show a, Show n, Pretty n, Ord n) => Context n -> Scoped a n Prim -> Doc
-statementsToJava ctx ss
+statementsToJava :: (Show a, Show n, Pretty n, Ord n) => Scoped (Annot a) n Prim -> Doc
+statementsToJava ss
  = case ss of
     If x t e
-     -> "if (" <> expToJava ctx Unboxed x <> ")"
-     <> block [go t]
+     -> "if (" <> expToJava Unboxed x <> ")"
+     <> block [statementsToJava t]
      <> (case e of
           Block [] -> ""
-          If{}     -> line <> "else " <>        go e
-          _        -> line <> "else"  <> block [go e])
+          If{}     -> line <> "else " <>        statementsToJava e
+          _        -> line <> "else"  <> block [statementsToJava e])
 
     -- NB. it looks like we are recomputing "to" on every iteration,
     -- however if input program is in a-normal form, it will already
     -- be pulled out to a variable binding.
     ForeachInts n from to s
-     -> "for (" <> local IntT n <> " = " <> expToJava ctx Unboxed from <> "; "
-                <> name n <> " < " <> expToJava ctx Unboxed to <> "; "
-                <> name n <> "++)" <> block [go s]
+     -> "for (" <> local IntT n <> " = " <> expToJava Unboxed from <> "; "
+                <> name n <> " < " <> expToJava Unboxed to <> "; "
+                <> name n <> "++)" <> block [statementsToJava s]
 
     ForeachFacts n n' t f s
      -> (case f of
@@ -84,91 +82,65 @@ statementsToJava ctx ss
         <> "while (icicle.nextRow())"
         <> block [ local t n <> " = " <> unbox t "icicle.currentRow()" <> ";"
                  , local DateTimeT n' <> " = icicle.currentRowDate();"
-                 , go s]
+                 , statementsToJava s]
     Block blocks
-     -> let iter _ []     = []
-            iter c (b:bs)
-              = case either (tcB c) (tcS c) b of
-                 Left e   -> ["$#@! " <> text (show e)]
-                 Right c' -> either (goB c') (goS c') b
-                           : iter c' bs
-        in vcat $ iter ctx blocks
+     -> vcat (fmap (either bindingToJava statementsToJava) blocks)
+
     Write n x
-     -> acc_name n <> " = " <> expToJava ctx Unboxed x <> ";"
+     -> acc_name n <> " = " <> expToJava Unboxed x <> ";"
+
     Push n x
-     -> "icicle.pushLatest(" <> acc_name n <> ", " <> expToJava ctx Boxed x <> ");"
+     -> "icicle.pushLatest(" <> acc_name n <> ", " <> expToJava Boxed x <> ");"
+
     Output n x
-     -> "icicle.output(" <> stringy n <> ", " <> expToJava ctx Boxed x <> ");"
+     -> "icicle.output(" <> stringy n <> ", " <> expToJava Boxed x <> ");"
+
     KeepFactInHistory
      -> "icicle.keepFactInHistory();"
-    LoadResumable n
-     | Just (ATUpdate t) <- Map.lookup n (ctxAcc ctx)
+
+    LoadResumable n t
      -> let nm = "LOAD$" <> name n
         in   boxedType t <> " " <> nm <> " = " <> "icicle." <> angled (boxedType t) <> "loadResumable(\"feature\", " <> stringy n <> ");"
           <> line
           <> "if (" <> nm <> " != null)"
           <> block [ acc_name n <> " = " <> unbox t nm <> ";" ]
-     | otherwise
-     -> "$#!@ no such accumulator " <> acc_name n
-    SaveResumable n
-     | Just (ATUpdate t) <- Map.lookup n (ctxAcc ctx)
+
+    SaveResumable n t
      -> "icicle.saveResumable(\"feature\", " <> stringy n <> ", " <> box t (acc_name n) <> ");"
-     | otherwise
-     -> "$#!@ no such accumulator " <> acc_name n
 
- where
-  go = goS ctx
 
-  goS c s
-   = either (text.show) id
-   ( flip statementsToJava s <$> tcS c s )
-
-  goB c b
-   = either (text.show) id
-   ( flip bindingToJava  b <$> tcB c b )
-
-  tcB c b = tc c (statementOfScoped $ Block [Left b])
-  tcS c s = tc c (statementOfScoped s)
-
-  tc c s = statementContext flatFragment c s
-
-bindingToJava :: (Show a, Show n, Pretty n, Ord n) => Context n -> Binding a n Prim -> Doc
-bindingToJava ctx bb
+bindingToJava :: (Show a, Show n, Pretty n, Ord n) => Binding (Annot a) n Prim -> Doc
+bindingToJava bb
  = case bb of
     InitAccumulator acc@(S.Accumulator { S.accKind = S.Latest })
      -> "Latest" <> angled (boxedType $ S.accValType acc)
      <+> (acc_name $ S.accName acc)
      <> " = icicle."
      <> "makeLatest"
-     <> "(" <> expToJava ctx Unboxed (S.accInit acc) <> ");"
+     <> "(" <> expToJava Unboxed (S.accInit acc) <> ");"
 
     InitAccumulator acc@(S.Accumulator { S.accKind = S.Mutable })
      -> unboxedType (S.accValType acc) <+> (acc_name $ S.accName acc)
-     <> " = " <> expToJava ctx Unboxed (S.accInit acc) <> ";"
+     <> " = " <> expToJava Unboxed (S.accInit acc) <> ";"
 
     Let n x
-     | Just (FunT [] t) <- Map.lookup n (ctxExp ctx)
-     -> local t n <> " = " <> expToJava ctx Unboxed x <> ";"
-     | otherwise
-     -> "$#@! no variable " <> name n
+     -> local (typeOfExp x) n <> " = " <> expToJava Unboxed x <> ";"
 
-    Read n acc
-     | Just (ATPush t) <- Map.lookup acc (ctxAcc ctx)
+    Read n acc S.Latest t
      -> local (ArrayT t) n <> " = icicle.readLatest(" <> acc_name acc <> ");"
-     | Just (ATUpdate t) <- Map.lookup acc (ctxAcc ctx)
-     -> local t n <> " = " <> acc_name acc <> ";"
-     | otherwise
-     -> "$#@! no accumulator " <> acc_name acc <> line <> text (show ctx)
 
-expToJava :: (Show a, Show n, Pretty n, Ord n) => Context n -> Boxy -> Exp a n Prim -> Doc
-expToJava ctx b xx
- = case typeExp flatFragment (ctxExp ctx) xx of
-    Left err -> "$#!@ type error " <> text (show err)
-    Right (FunT _ t)
-     -> case xx of
+    Read n acc S.Mutable t
+     -> local t n <> " = " <> acc_name acc <> ";"
+
+
+expToJava :: (Show a, Show n, Pretty n, Ord n) => Boxy -> Exp (Annot a) n Prim -> Doc
+expToJava b xx
+ = let FunT _ t = annType (annotOfExp xx)
+   in  case xx of
             XVar _ n
              -> boxy b Unboxed t
               $ name n
+
             XValue a _ v
              -> case v of
                  VInt    i -> boxy b Unboxed t $ pretty i
@@ -181,10 +153,14 @@ expToJava ctx b xx
                  VNone   -> "null"
                  VSome v'
                   | OptionT t' <- t
-                  -> expToJava ctx Boxed (XValue a t' v')
+                  -> let a' = Annot (annType a) ()
+                         xv = XValue a' t' v' :: Exp (Annot ()) () Prim
+                     in  expToJava Boxed xv
                  _      -> "$#@! TODO VALUE " <> pretty v
+
             XPrim _ p
              -> primApp t p []
+
             XApp{}
              | Just (p, xs) <- takePrimApps xx
              -> primApp t p xs
@@ -194,13 +170,14 @@ expToJava ctx b xx
              -- Applications should only be to prims
              | otherwise
              -> "$#@!BAD APPLICATION"
+
             -- We should not have any lambdas after flattening
             XLam{}
              -> "$#@!LAMBDA NOT ALLOWED"
+
             -- A-normalisation should have lifted these to statements
             XLet{}
              -> "$#@!LET NOT ALLOWED"
-
  where
   -- Monomorphise THIS!
   -- so it works with [] as well
@@ -208,7 +185,14 @@ expToJava ctx b xx
    = \t p args
    -> boxy b (boxyOfPrimReturn p) t
     $ prettyPrimType (primTypeOfPrim p)
-                     (fmap (expToJava ctx $ boxyOfPrimArgs p) args)
+                     (fmap (expToJava $ boxyOfPrimArgs p) args)
+
+
+typeOfExp :: Exp (Annot a) n p -> ValType
+typeOfExp x
+ | FunT _ t <- annType (annotOfExp x)
+ = t
+
 
 data PrimType
  = Infix Doc

@@ -32,7 +32,7 @@ import           Test.QuickCheck.Instances ()
 
 import           P
 
-import           Data.Text
+import           Data.Text  as T
 import qualified Data.Map   as Map
 
 
@@ -69,7 +69,7 @@ equalExceptFunctionsE p q
 
 -- Sometimes it's nice to be able to pretty print our generated programs
 instance PP.Pretty Var where
- pretty (Var t i) = PP.text (show t) <> PP.text (show i)
+ pretty (Var t i) = PP.text (T.unpack t) <> PP.text (show i)
 
 -- Generate totally arbitrary, totally random variables
 instance Arbitrary Var where
