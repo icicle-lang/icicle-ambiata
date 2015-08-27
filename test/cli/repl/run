@@ -7,7 +7,7 @@ do
     echo " --- Test: $dir"
     if [ $update_expected -eq 1 ]
     then
-        dist/build/icicle-repl/icicle-repl ":import data/libs/prelude.icicle" ":load test/cli/repl/data.psv" < $dir/script | diff $dir/expected -
+        dist/build/icicle-repl/icicle-repl ":import data/libs/prelude.icicle" ":load test/cli/repl/data.psv" < $dir/script | diff -u $dir/expected -
     else
         echo " --- Updating expected "
         dist/build/icicle-repl/icicle-repl ":import data/libs/prelude.icicle" ":load test/cli/repl/data.psv" < $dir/script | tee $dir/expected
