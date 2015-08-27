@@ -17,6 +17,8 @@ module Icicle.Repl (
   , loadDictionary
   ) where
 
+import qualified Icicle.Avalanche.Check             as AC
+import qualified Icicle.Avalanche.Prim.Flat         as APF
 import qualified Icicle.Avalanche.Statement.Flatten as AS
 import qualified Icicle.Common.Base                 as CommonBase
 import qualified Icicle.Common.Fresh                as Fresh
@@ -62,6 +64,7 @@ data ReplError
  | ReplErrorDecode  S.ParseError
  | ReplErrorRuntime (S.SimulateError ())
  | ReplErrorFlatten (AS.FlattenError () Text)
+ | ReplErrorProgram (AC.ProgramError () Text APF.Prim)
  | ReplErrorDictionaryLoad DictionaryToml.DictionaryImportError
  deriving (Show)
 
@@ -80,6 +83,8 @@ annotOfError e
     ReplErrorRuntime _
      -> Nothing
     ReplErrorFlatten _
+     -> Nothing
+    ReplErrorProgram _
      -> Nothing
     ReplErrorDictionaryLoad _
      -> Nothing
@@ -104,6 +109,9 @@ instance Pretty ReplError where
       <> indent 2 (pretty d)
      ReplErrorFlatten d
       -> "Flatten error:" <> line
+      <> indent 2 (text $ show d)
+     ReplErrorProgram d
+      -> "Program error:" <> line
       <> indent 2 (text $ show d)
      ReplErrorDictionaryLoad d
       -> "Dictionary load error:" <> line

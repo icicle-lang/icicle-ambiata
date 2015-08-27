@@ -52,7 +52,7 @@ melt a_fresh statements
               -> go ss
 
 
-             Read n acc ss
+             Read n acc at _ ss
               | Just (Latest, PairT ta tb, [na,nb]) <- Map.lookup acc env'
               -> do n1 <- freshPrefix' n
                     n2 <- freshPrefix' n
@@ -60,7 +60,9 @@ melt a_fresh statements
                               `xApp` xVar n1
                               `xApp` xVar n2
                     ss'<- substXinS a_fresh n zips ss
-                    go $ Read n1 na $ Read n2 nb $ ss'
+                    go $ Read n1 na at ta
+                       $ Read n2 nb at tb
+                       $ ss'
 
               | Just (Mutable, PairT ta tb, [na,nb]) <- Map.lookup acc env'
               -> do n1 <- freshPrefix' n
@@ -69,7 +71,9 @@ melt a_fresh statements
                                 `xApp` (xVar n1)
                                 `xApp` (xVar n2)
                     ss'<- substXinS a_fresh n pair ss
-                    go $ Read n1 na $ Read n2 nb $ ss'
+                    go $ Read n1 na at ta
+                       $ Read n2 nb at tb
+                       $ ss'
 
               | Just (Mutable, UnitT, []) <- Map.lookup acc env'
               -> do ss' <- substXinS a_fresh n (xValue UnitT VUnit) ss
@@ -95,14 +99,14 @@ melt a_fresh statements
               -> return (env', mempty)
 
 
-             LoadResumable n
+             LoadResumable n t
               | Just (_, _, ns) <- Map.lookup n env'
-              -> go $ Block (fmap LoadResumable ns)
+              -> go $ Block (fmap (flip LoadResumable t) ns)
 
 
-             SaveResumable n
+             SaveResumable n t
               | Just (_, _, ns) <- Map.lookup n env'
-              -> go $ Block (fmap SaveResumable ns)
+              -> go $ Block (fmap (flip SaveResumable t) ns)
 
 
              _ -> return (env, s)

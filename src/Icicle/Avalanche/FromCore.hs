@@ -112,20 +112,24 @@ programFromCore namer p
   accum (n, CR.RFold _ ty _ x _)
    = A.Accumulator (namerAccPrefix namer n) A.Mutable ty x
 
-  loadResumables (n, CR.RFold{})
-   = LoadResumable $ namerAccPrefix namer n
+  loadResumables (n, CR.RFold _ ty _ _ _)
+   = LoadResumable (namerAccPrefix namer n) ty
   loadResumables _
    = mempty
 
-  saveResumables (n, CR.RFold{})
-   = SaveResumable $ namerAccPrefix namer n
+  saveResumables (n, CR.RFold _ ty _ _ _)
+   = SaveResumable (namerAccPrefix namer n) ty
   saveResumables _
    = mempty
 
+  readaccum (n, CR.RLatest ty _ _)
+   = Read n (namerAccPrefix namer n) A.Latest ty
+
+  readaccum (n, CR.RFold _ ty _ _ _)
+   = Read n (namerAccPrefix namer n) A.Mutable ty
+
   readaccums inner
-   = foldr (\ac s -> Read (fst ac) (namerAccPrefix namer $ fst ac) s)
-            inner
-           (C.reduces p)
+   = foldr readaccum inner (C.reduces p)
 
 
   makepostdate
@@ -223,7 +227,7 @@ statementOfReduce
 statementOfReduce namer strs (n,r)
  = case r of
     -- Apply fold's konstrukt to current accumulator value and input value
-    CR.RFold _ _  k _ inp
+    CR.RFold _ ty k _ inp
      -> let n' = namerAccPrefix namer n
 
             -- If it's windowed, note that we will need this fact in the next snapshot
@@ -232,9 +236,10 @@ statementOfReduce namer strs (n,r)
                | otherwise
                = mempty
 
-        in  Read n' n'
-          ( Write n' (Beta.betaToLets () (k `xApp` (xVar n') `xApp` (xVar $ namerElemPrefix namer inp)))
-          <> k' )
+            x  = Beta.betaToLets () (k `xApp` (xVar n')
+                                       `xApp` (xVar $ namerElemPrefix namer inp))
+
+        in  Read n' n' A.Mutable ty (Write n' x <> k')
     -- Push most recent inp
     CR.RLatest _ _ inp
      -> Push (namerAccPrefix namer n) (xVar $ namerElemPrefix namer inp)

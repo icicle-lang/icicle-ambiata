@@ -37,7 +37,7 @@ prop_beta_evaluation
 prop_beta_type
  = withTypedExp
  $ \x _
- -> checkExp0 coreFragment x == checkExp0 coreFragment
+ -> typeExp0 coreFragment x == typeExp0 coreFragment
    ( Beta.beta Beta.isSimpleValue x)
 
 -- Reduce regardless of whether it's a value
@@ -63,7 +63,7 @@ prop_betaToLets_evaluation
 prop_betaToLets_type
  = withTypedExp
  $ \x _
- -> checkExp0 coreFragment x == checkExp0 coreFragment
+ -> typeExp0 coreFragment x == typeExp0 coreFragment
    ( Beta.betaToLets () x)
 
 
@@ -89,7 +89,7 @@ prop_anormal_form_type
                             (Fresh.counterNameState (Name . Var "anf") 0)
     in  counterexample (show $ pretty x)
       $ counterexample (show $ pretty x')
-      ( checkExp0 coreFragment x === checkExp0 coreFragment x')
+      ( typeExp0 coreFragment x === typeExp0 coreFragment x')
 
 -- Core simplification preserves type
 prop_core_simp_type
@@ -100,7 +100,7 @@ prop_core_simp_type
                                  (Fresh.counterNameState (Name . Var "anf") 0)
      in  counterexample (show . pretty $ x)
        $ counterexample (show . pretty $ simple)
-       ( checkExp0 coreFragment x == checkExp0 coreFragment simple)
+       ( typeExp0 coreFragment x == typeExp0 coreFragment simple)
 
 -- Core simplification preserves result
 prop_core_simp_eval

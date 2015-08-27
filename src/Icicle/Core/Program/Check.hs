@@ -44,7 +44,7 @@ checkProgram p
         -- Finally, check the returns against the postcomputation environment
         let checkRet (n,x)
                 = do t' <- mapLeft ProgramErrorReturn
-                         $ checkExp coreFragment post x
+                         $ typeExp coreFragment post x
                      case t' of
                       FunT [] _
                        -> return (n, t')
@@ -68,7 +68,7 @@ checkExps _ env []
 
 checkExps err env ((n,x):bs)
  = do   t    <- mapLeft err
-              $ checkExp coreFragment env x
+              $ typeExp coreFragment env x
         env' <- insertOrDie ProgramErrorNameNotUnique env n t
         checkExps err env' bs
 

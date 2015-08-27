@@ -146,7 +146,7 @@ substXinS a_fresh name payload statements
       Output n  x
        -> sub1 x $ Output n
 
-      Read n _ _
+      Read n _ _ _ _
        | n == name
        -> finished s
 
@@ -198,7 +198,7 @@ thresher a_fresh statements
        -> return (env, Let n (XVar a_fresh n') ss)
 
       -- Read that's never used
-      Read n _ ss
+      Read n _ _ _ ss
        | not $ Set.member n $ stmtFreeX ss
        -> return (env, ss)
 
@@ -247,9 +247,9 @@ hasEffect statements
    | KeepFactInHistory  <- s
    = return True
 
-   | LoadResumable _    <- s
+   | LoadResumable _ _  <- s
    = return True
-   | SaveResumable _    <- s
+   | SaveResumable _ _  <- s
    = return True
 
 
@@ -291,7 +291,7 @@ stmtFreeX statements
           -- We're binding a new expression variable from an accumulator.
           -- The accumulator doesn't matter - but we need to hide n from
           -- the substatement's free variables.
-          Read n _ _
+          Read n _ _ _ _
            -> return (Set.delete n subvars)
 
           -- Leaves that use expressions.
@@ -349,9 +349,9 @@ nestBlocks a_fresh statements
   goBlock (InitAccumulator acc inner : baloney : ls) pres
    = do goBlock (InitAccumulator acc (inner <> baloney) : ls) pres
 
-  goBlock (Read nx nacc inner : baloney : ls) pres
+  goBlock (Read nx nacc at vt inner : baloney : ls) pres
    = do (nx',inner') <- maybeRename nx baloney inner
-        goBlock (Read nx' nacc (inner' <> baloney) : ls) pres
+        goBlock (Read nx' nacc at vt (inner' <> baloney) : ls) pres
 
   goBlock (skip : ls) pres
    = goBlock ls (skip : pres)
@@ -400,7 +400,7 @@ accumulatorUsed acc statements
    , n == acc
    = return (AccumulatorUsage True False)
 
-   | Read _ n _ <- s
+   | Read _ n _ _ _ <- s
    , n == acc
    = return (ors r (AccumulatorUsage False True))
 
@@ -413,7 +413,7 @@ killAccumulator acc xx statements
  $ transformUDStmt trans () statements
  where
   trans _ s
-   | Read n acc' ss <- s
+   | Read n acc' _ _ ss <- s
    , acc == acc'
    = return ((), Let n xx ss)
    | Write acc' _ <- s
@@ -422,10 +422,10 @@ killAccumulator acc xx statements
    | Push acc' _ <- s
    , acc == acc'
    = return ((), mempty)
-   | LoadResumable acc' <- s
+   | LoadResumable acc' _ <- s
    , acc == acc'
    = return ((), mempty)
-   | SaveResumable acc' <- s
+   | SaveResumable acc' _ <- s
    , acc == acc'
    = return ((), mempty)
 

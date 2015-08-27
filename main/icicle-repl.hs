@@ -26,11 +26,13 @@ import qualified Text.PrettyPrint.Leijen              as PP
 import qualified Text.ParserCombinators.Parsec        as Parsec
 
 import qualified Icicle.Avalanche.FromCore            as AC
+import qualified Icicle.Avalanche.Check               as AC
 import qualified Icicle.Avalanche.Prim.Flat           as APF
 import qualified Icicle.Avalanche.Program             as AP
 import qualified Icicle.Avalanche.Simp                as AS
 import qualified Icicle.Avalanche.Statement.Flatten   as AF
 import qualified Icicle.Avalanche.ToJava              as AJ
+import qualified Icicle.Common.Annot                  as C
 import qualified Icicle.Common.Base                   as CommonBase
 import qualified Icicle.Common.Fresh                  as F
 import qualified Icicle.Core.Program.Check            as CP
@@ -280,10 +282,13 @@ handleLine state line = case readCommand line of
       let flat = coreFlatten core'
       case flat of
        Left  e -> prettyOut (const True) "- Flatten error:" e
-       Right f
-        -> do   prettyOut hasFlatten "- Flattened:" f
-                prettyOut hasJava    "- Java:" (AJ.programToJava f)
+       Right f -> do
+        prettyOut hasFlatten "- Flattened:" f
 
+        let flatChecked = checkAvalanche f
+        case flatChecked of
+         Left  e  -> prettyOut (const True) "- Avalanche type error:" e
+         Right f' -> prettyOut hasJava      "- Java:" (AJ.programToJava f')
 
       case coreEval (currentDate state) (facts state) annot' core' of
        Left  e -> prettyOut hasEval "- Result error:" e
@@ -388,13 +393,17 @@ coreEval d fs (renameQT unVar -> query) prog
 coreFlatten :: ProgramT -> Either SR.ReplError (AP.Program () Text APF.Prim)
 coreFlatten prog
  = let av = coreAvalanche prog
+       ns = F.counterPrefixNameState (T.pack . show) "flat"
    in   mapLeft  SR.ReplErrorFlatten
       . mapRight simpFlattened
       . mapRight (\(_,s') -> av { AP.statements = s' })
-      $ F.runFreshT
-      ( AF.flatten ()
-      $ AP.statements av)
-      (F.counterPrefixNameState (T.pack . show) "flat")
+      $ F.runFreshT (AF.flatten () $ AP.statements av) ns
+
+checkAvalanche :: AP.Program () Text APF.Prim
+               -> Either SR.ReplError (AP.Program (C.Annot ()) Text APF.Prim)
+checkAvalanche prog
+ = mapLeft SR.ReplErrorProgram
+ $ AC.checkProgram APF.flatFragment prog
 
 coreAvalanche :: ProgramT -> AP.Program () Text CP.Prim
 coreAvalanche prog

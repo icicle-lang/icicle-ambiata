@@ -49,5 +49,5 @@ checkReduce se r
 
  where
   checkX
-   = mapLeft ReduceErrorExp . checkExp coreFragmentWorkerFun (scalars se)
+   = mapLeft ReduceErrorExp . typeExp coreFragmentWorkerFun (scalars se)
 

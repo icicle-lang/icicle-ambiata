@@ -29,7 +29,7 @@ prop_progress =
 -- Inverse: if a program goes wrong, it can't be well typed
 prop_progress_inverse x =
      isLeft (eval0 evalPrim x)
- ==> isLeft (checkExp0 coreFragment x)
+ ==> isLeft (typeExp0 coreFragment x)
 
 
 -- Prefixing a let with a fresh name doesn't change the semantics,

@@ -32,7 +32,7 @@ import           Test.QuickCheck.Instances ()
 
 import           P
 
-import           Data.Text
+import           Data.Text  as T
 import qualified Data.Map   as Map
 
 
@@ -69,7 +69,7 @@ equalExceptFunctionsE p q
 
 -- Sometimes it's nice to be able to pretty print our generated programs
 instance PP.Pretty Var where
- pretty (Var t i) = PP.text (show t) <> PP.text (show i)
+ pretty (Var t i) = PP.text (T.unpack t) <> PP.text (show i)
 
 -- Generate totally arbitrary, totally random variables
 instance Arbitrary Var where
@@ -256,7 +256,7 @@ withTypedExp :: Testable prop => (Exp () Var Prim -> ValType -> prop) -> Propert
 withTypedExp prop
  = forAll arbitrary $ \t ->
    forAll (tryExpForType (FunT [] t) Map.empty) $ \x ->
-     checkExp0 X.coreFragment x == Right (FunT [] t) ==> prop x t
+     typeExp0 X.coreFragment x == Right (FunT [] t) ==> prop x t
 
 
 -- | Attempt to generate well typed expressions
@@ -308,7 +308,7 @@ programForStreamType streamType
   -- Generate an expression, and try very hard to make sure it's well typed
   -- (but don't try so hard that we loop forever)
   gen_exp t e
-   = do x <- tryExpForType t e `suchThatMaybe` ((== Right t) . checkExp X.coreFragmentWorkerFun e)
+   = do x <- tryExpForType t e `suchThatMaybe` ((== Right t) . typeExp X.coreFragmentWorkerFun e)
         case x of
          Just x' -> return x'
          Nothing -> arbitrary

@@ -173,8 +173,9 @@ insertOrDie err e n t
 
 -- | Require two types to be equal, or return given error if not.
 requireSame 
-    :: (Type -> Type -> err)
-    ->  Type -> Type -> Either err ()
+    :: Eq a
+    => (a -> a -> err)
+    ->  a -> a -> Either err ()
 requireSame err p q
  | p == q
  = return ()
@@ -252,17 +253,7 @@ valueMatchesType v t
 -- Pretty printing ---------------
 
 instance Pretty ValType where
- pretty IntT            = text "Int"
- pretty DoubleT         = text "Double"
- pretty UnitT           = text "Unit"
- pretty BoolT           = text "Bool"
- pretty DateTimeT       = text "DateTime"
- pretty StringT         = text "String"
- pretty (ArrayT t)      = parens (text "Array " <> pretty t)
- pretty (MapT k v)      = parens (text "Map" <+> pretty k <+> pretty v)
- pretty (OptionT a)     = parens (text "Option" <+> pretty a)
- pretty (PairT a b)     = text "(" <> pretty a <> text ", " <> pretty b <> text ")"
- pretty (StructT fs)    = parens (pretty fs)
+ pretty = ppTop
 
 instance Pretty StructType where
  pretty (StructType fs) = text "Struct" <+> pretty (Map.toList fs)
@@ -272,6 +263,29 @@ instance Pretty FunType where
  pretty (FunT (b:bs) t) = inner b <> text " -> " <> pretty (FunT bs t)
   where
    inner i@(FunT [] _) = pretty i
-   inner i             = text "(" <> pretty i <> text ")"
+   inner i             = parens (pretty i)
 
 
+ppTop :: ValType -> Doc
+ppTop = ppValType False
+
+ppSub :: ValType -> Doc
+ppSub = ppValType True
+
+ppValType :: Bool -> ValType -> Doc
+ppValType needParens vt =
+  case vt of
+    IntT       -> text "Int"
+    DoubleT    -> text "Double"
+    UnitT      -> text "Unit"
+    BoolT      -> text "Bool"
+    DateTimeT  -> text "DateTime"
+    StringT    -> text "String"
+    ArrayT t   -> parens' (text "Array " <>  ppSub t)
+    MapT k v   -> parens' (text "Map"    <+> ppSub k <+> ppSub v)
+    OptionT a  -> parens' (text "Option" <+> ppSub a)
+    PairT a b  -> parens  (ppTop a <> text ", " <> ppTop b)
+    StructT fs -> parens' (pretty fs)
+  where
+    parens' | needParens = parens
+            | otherwise  = id
