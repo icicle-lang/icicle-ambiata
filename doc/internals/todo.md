@@ -16,6 +16,8 @@ option d v
 
 Also need completeness checking, however since there are only a few types to pattern match on, this should be simple enough.
 
+This is half-implemented, see [issue #78](https://github.com/ambiata/icicle/issues/78).
+
 
 Folds over groups
 -----------------
@@ -31,6 +33,19 @@ feature feat
 
 We could probably simplify the syntax a bit; there's no point of a "group fold" over something that isn't a group.
 Keeping them separate might be useful for function reuse though.
+
+The type is something like
+```
+group fold (N_key, N_value) = ( |- Q : Aggregate (Group key value))
+~> (N_key : Element key, N_value : Element value |- Aggregate a)
+ : Aggregate a
+```
+that is, the bindings (key,value) become elements bound in the rest.
+
+When converting this to Core, the group itself becomes a fold that constructs a Map.
+The group fold should just to a Map_fold at the end as a postcomputation, with N_key and N_value.
+
+See also the conversion to Core for Distinct and Latest.
 
 
 Get current time (now)
