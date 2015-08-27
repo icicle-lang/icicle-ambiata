@@ -16,6 +16,7 @@ module Icicle.Encoding (
   ) where
 
 import           Data.Attoparsec.ByteString
+import qualified Data.Attoparsec.Text   as AT
 import           Data.Text              as T
 import           Data.Text.Read         as T
 import           Data.Text.Encoding     as T
@@ -30,6 +31,7 @@ import qualified Data.Vector            as V
 
 import           Icicle.Data
 import qualified Icicle.Common.Type     as IT
+import           Icicle.Data.DateTime
 
 import           P
 
@@ -134,8 +136,8 @@ renderValue tombstone val
     -> T.pack $ show v
    BooleanValue v
     -> T.pack $ show v
-   DateValue (Date v)
-    -> v
+   DateValue v
+    -> renderDate v
 
    StructValue _
     -> json
@@ -178,8 +180,10 @@ parseValue e t
      -> Left err
 
     DateEncoding
-     -- TODO parse date
-     -> return $ DateValue $ Date t
+     | Right v <- attoParsed pDate
+     -> return $ DateValue v
+     | otherwise
+     -> Left err
 
     StructEncoding _
      | Right v <- parsed
@@ -203,6 +207,8 @@ parseValue e t
    = parseOnly A.json
    $ T.encodeUtf8 t
 
+  attoParsed x
+   = AT.parseOnly x t
 
 -- | Attempt to decode value from JSON
 valueOfJSON :: Encoding -> A.Value -> Either DecodeError Value
@@ -236,9 +242,9 @@ valueOfJSON e v
      -> Left err
 
     DateEncoding
-     -- TODO parse date
      | A.String t <- v
-     -> return $ DateValue $ Date t
+     , Right d <- AT.parseOnly pDate t
+     -> return $ DateValue d
      | otherwise
      -> Left err
 
@@ -291,9 +297,8 @@ jsonOfValue tombstone val
      -> A.Number $ S.fromFloatDigits v
     BooleanValue v
      -> A.Bool   v
-    DateValue    (Date v)
-     -- TODO dates
-     -> A.String v
+    DateValue    v
+     -> A.String $ renderDate v
     StructValue (Struct sfs)
      -> A.Object $ P.foldl insert HM.empty sfs
     ListValue (List l)

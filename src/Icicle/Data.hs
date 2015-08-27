@@ -10,8 +10,7 @@ module Icicle.Data (
   , Value (..)
   , Struct (..)
   , List (..)
-  , Date (..)
-  , DateTime (..)
+  , DateTime
   , Encoding (..)
   , StructField (..)
   , StructFieldType (..)
@@ -76,7 +75,7 @@ data Value =
   | IntValue        Int
   | DoubleValue     Double
   | BooleanValue    Bool
-  | DateValue       Date
+  | DateValue       DateTime
   | StructValue     Struct
   | ListValue       List
   | PairValue       Value Value
@@ -90,7 +89,7 @@ instance Pretty Value where
     IntValue     i  -> int i
     DoubleValue  d  -> double d
     BooleanValue b  -> pretty b
-    DateValue    d  -> pretty d
+    DateValue    d  -> pretty $ renderDate d
     StructValue  s  -> pretty s
     ListValue    l  -> pretty l
     PairValue v1 v2 -> encloseSep lparen rparen comma
@@ -115,16 +114,6 @@ data List =
 
 instance Pretty List where
   pretty (List vs) = pretty vs
-
---------------------------------------------------------------------------------
-
-data Date =
-  Date {
-      getDate       :: Text -- FIX complete, make these real...
-    } deriving (Eq, Show)
-
-instance Pretty Date where
-  pretty (Date t) = text (unpack t)
 
 --------------------------------------------------------------------------------
 
