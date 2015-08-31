@@ -1,8 +1,10 @@
 -- | Evaluate Avalanche programs
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE PatternGuards #-}
+{-# LANGUAGE OverloadedStrings #-}
 module Icicle.Avalanche.Eval (
     evalProgram
+  , RuntimeError
   ) where
 
 import              Icicle.Avalanche.Statement.Statement
@@ -23,6 +25,7 @@ import              Data.Either.Combinators
 import              Data.List   (take, reverse, sort)
 import qualified    Data.Map    as Map
 
+import              Icicle.Internal.Pretty
 
 -- | Store history information about the accumulators
 data AccumulatorHeap n
@@ -54,6 +57,26 @@ data RuntimeError a n p
  | RuntimeErrorKeepFactNotInFactLoop
  | RuntimeErrorAccumulatorLatestNotInt  BaseValue
  deriving (Eq, Show)
+
+instance (Pretty n, Pretty p) => Pretty (RuntimeError a n p) where
+ pretty (RuntimeErrorNoAccumulator n)
+  = "No accumulator:" <+> pretty n
+ pretty (RuntimeErrorAccumulator p)
+  = pretty p
+ pretty (RuntimeErrorLoop p)
+  = pretty p
+ pretty (RuntimeErrorLoopAccumulatorBad n)
+  = "Bad loop accumulator:" <+> pretty n
+ pretty (RuntimeErrorIfNotBool p)
+  = "Value should be a bool but isn't" <+> (pretty p)
+ pretty (RuntimeErrorForeachNotInt p p')
+  = "Foreach not ints:" <+> pretty p <+> pretty p'
+ pretty (RuntimeErrorNotBaseValue p)
+  = "Value isn't a base value:" <+> (pretty p)
+ pretty (RuntimeErrorKeepFactNotInFactLoop)
+  = "Tried to keep a value in the history which doesn't have bubblegum"
+ pretty (RuntimeErrorAccumulatorLatestNotInt p)
+  = "Accumulator Latest needs an integer, got" <+> pretty p
 
 
 -- | Extract base value; return an error if it's a closure

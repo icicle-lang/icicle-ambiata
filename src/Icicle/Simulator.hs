@@ -7,6 +7,7 @@ module Icicle.Simulator (
   , SimulateError
   , evaluateVirtuals
   , evaluateVirtualValue
+  , evaluateVirtualValue'
   , valueToCore
   , valueFromCore
   ) where
@@ -29,6 +30,11 @@ import qualified Icicle.Common.Base       as V
 import qualified Icicle.Core.Eval.Program as PV
 import qualified Icicle.Core.Program.Program as P
 
+import qualified Icicle.Avalanche.Program as A
+import qualified Icicle.Core.Eval.Exp     as XV
+import qualified Icicle.Core.Exp.Prim     as XP
+import qualified Icicle.Avalanche.Eval    as AE
+
 import           Icicle.Source.Query
 import           Icicle.Source.Lexer.Token
 
@@ -43,12 +49,15 @@ type Result a = Either (SimulateError a) ([(OutputName, Value)], [B.BubbleGumOut
 
 data SimulateError a
  = SimulateErrorRuntime (PV.RuntimeError a Text)
+ | SimulateErrorRuntime' (AE.RuntimeError a Text XP.Prim)
  | SimulateErrorCannotConvertToCore        Value
  | SimulateErrorCannotConvertFromCore      V.BaseValue
   deriving (Eq,Show)
 
 instance Pretty (SimulateError a) where
  pretty (SimulateErrorRuntime e)
+  = pretty e
+ pretty (SimulateErrorRuntime' e)
   = pretty e
  pretty (SimulateErrorCannotConvertToCore v)
   = "Cannot convert value to Core: " <> pretty v
@@ -107,6 +116,21 @@ evaluateVirtualValue p date vs
 
         v'  <- mapM (\(n,v) -> (,) n <$> valueFromCore v) $ PV.value xv
         bg' <- mapM (B.mapValue valueFromCore) (PV.history xv)
+        return (v', bg')
+ where
+  toCore a
+   = do v' <- valueToCore $ fact a
+        return a { fact = (B.BubbleGumFact $ B.Flavour 0 $ time a, v') }
+
+evaluateVirtualValue' :: A.Program a Text XP.Prim -> DateTime -> [AsAt Value] -> Result a
+evaluateVirtualValue' p date vs
+ = do   vs' <- mapM toCore vs
+
+        xv  <- mapLeft SimulateErrorRuntime'
+             $ AE.evalProgram XV.evalPrim date vs' p
+
+        v'  <- mapM (\(n,v) -> (,) n <$> valueFromCore v) $ snd xv
+        bg' <- mapM (B.mapValue valueFromCore) (fst xv)
         return (v', bg')
  where
   toCore a
