@@ -25,6 +25,7 @@ data Context' q a n
  | Filter    a          (Exp' q a n)
  | LetFold   a          (Fold q a n)
  | Let       a (Name n) (Exp' q a n)
+ | GroupFold a (Name n) (Name n) (Exp' q a n)
  deriving (Show, Eq, Ord)
 
 data WindowUnit
@@ -50,14 +51,14 @@ data FoldType
 annotOfContext :: Context' q a n -> a
 annotOfContext c
  = case c of
-    Windowed a _ _ -> a
-    Latest   a _   -> a
-    GroupBy  a _   -> a
-    Distinct a _   -> a
-    Filter   a _   -> a
-    LetFold  a _   -> a
-    Let      a _ _ -> a
-
+    Windowed  a _ _   -> a
+    Latest    a _     -> a
+    GroupBy   a _     -> a
+    GroupFold a _ _ _ -> a
+    Distinct  a _     -> a
+    Filter    a _     -> a
+    LetFold   a _     -> a
+    Let       a _ _   -> a
 
 instance (Pretty n, Pretty q) => Pretty (Context' q a n) where
  pretty cc
@@ -72,6 +73,11 @@ instance (Pretty n, Pretty q) => Pretty (Context' q a n) where
       -> "latest"   <+> pretty i
      GroupBy  _ x
       -> "group"    <+> pretty x
+     GroupFold  _ n1 n2 x
+      ->  "group fold"
+      <+> pretty (n1, n2)
+      <+> "="
+      <+> pretty x
      Distinct _ x
       -> "distinct" <+> pretty x
      Filter   _ x

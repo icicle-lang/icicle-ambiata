@@ -57,7 +57,7 @@ context
  where
   context1
    =   pKeyword T.Windowed *> cwindowed
-   <|> pKeyword T.Group    *> (flip Q.GroupBy  <$> exp      <*> getPosition)
+   <|> pKeyword T.Group    *> (cgroupfold <|> (flip Q.GroupBy <$> exp <*> getPosition))
    <|> pKeyword T.Distinct *> (flip Q.Distinct <$> exp      <*> getPosition)
    <|> pKeyword T.Filter   *> (flip Q.Filter   <$> exp      <*> getPosition)
    <|> pKeyword T.Latest   *> (flip Q.Latest   <$> pLitInt  <*> getPosition)
@@ -79,6 +79,13 @@ context
         t2 <- windowUnit
         return $ Q.Windowed p t2 $ Just t1
 
+  cgroupfold
+   = do pKeyword T.Fold
+        p <- getPosition
+        (k, v) <- keyval
+        pEq T.TEqual
+        e <- exp
+        return $ Q.GroupFold p k v e
   clet
    = do n <- pVariable                                      <?> "binding name"
         p <- getPosition
@@ -95,6 +102,14 @@ context
         pEq T.TFollowedBy                                   <?> "colon (:)"
         k <- exp                                            <?> "fold expression"
         return $ Q.LetFold p (Q.Fold n z k ft)
+
+
+  keyval
+    = do p <- pattern
+         case p of
+           Q.PatCon Q.ConTuple [Q.PatVariable n1, Q.PatVariable n2]
+             -> return (n1, n2)
+           _ -> mzero
 
   foldtype
     =   pKeyword T.Fold1 *> return Q.FoldTypeFoldl1

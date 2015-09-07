@@ -162,6 +162,22 @@ generateQ qq@(Query (c:_) _)
             let t'  = canonT $ Temporality TemporalityAggregate $ GroupT tkey tval
             with q' (compose sx sq) t' $ \a' -> GroupBy a' x'
 
+    -- >   group fold (k, v) = ( |- Q : Aggregate (Group a'k a'v))
+    -- >   ~> (k: Element a'k, v: Element a'v |- Aggregate a)
+    -- >    : Aggregate a
+    GroupFold _ k v x
+     -> do  (x',sx)    <- generateX x
+            retKey     <- Temporality TemporalityElement . TypeVar <$> fresh
+            retVal     <- Temporality TemporalityElement . TypeVar <$> fresh
+            (q',sq,t') <- withBind k retKey
+                        $ withBind v retVal rest
+            let tgroup  = annResult $ annotOfExp x'
+            let t''     = canonT $ Temporality TemporalityAggregate t'
+            requireAgg  t'
+            requireAgg  tgroup
+            requireData tgroup $ GroupT retKey retVal
+            with q' (compose sx sq) t'' $ \a' -> GroupFold a' k v x'
+
     -- >   distinct (Element k'd) ~> Aggregate v'd
     -- > : Aggregate v'd
     Distinct _ x
@@ -268,7 +284,6 @@ generateQ qq@(Query (c:_) _)
    = let (_,_,d1) = decomposeT t1
          (_,_,d2) = decomposeT t2
      in  require a $ CEquals d1 d2
-
 
 -- | Generate constraints for expression
 generateX :: Ord n => Exp a n -> Gen a n (Exp'C a n, SubstT n)

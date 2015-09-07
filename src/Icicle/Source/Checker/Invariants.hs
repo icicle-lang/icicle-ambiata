@@ -52,6 +52,8 @@ invariantQ ctx (Query (c:cs) xfinal)
      | otherwise
      -> errNotAllowed "Nested Distinct are not supported"
 
+    GroupFold _ _ _ x
+     -> goX x >> go
     Filter _ x
      -> goX x >> go
     LetFold _ f

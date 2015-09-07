@@ -301,6 +301,45 @@ convertQuery q
 
             return (r <> p, n'')
 
+    -- Convert a group fold using a Map. Very similar to Group By, with an additional
+    -- postcomputation.
+    --
+    -- The group itself constructs the Map and the group fold perform its aggregate
+    -- on the Map.
+    --
+    (GroupFold (Annot { annAnnot = ann }) k v e : _ )
+     -> do  (tk, tv) <- getGroupFoldType ann e
+
+            n'   <- lift fresh
+            nacc <- lift fresh
+
+            convertModifyFeatures (Map.delete k)
+            k' <- convertFreshenAdd k
+            convertModifyFeatures (Map.delete v)
+            v' <- convertFreshenAdd v
+
+            -- Convert the inner group into a stream fold that produces a map.
+            (bs, nm) <- convertReduce e
+
+            -- Convert the rest of the query into a map fold.
+            res      <- convertFold q'
+            let tacc  = typeFold res
+
+            -- Perform the map fold.
+            let p = post n'
+                  $ beta
+                  ( mapExtract res CE.@~
+                  ( CE.xPrim
+                      (C.PrimFold (C.PrimFoldMap tk tv) tacc)
+                    CE.@~ ( CE.xLam nacc tacc
+                          $ CE.xLam k'   tk
+                          $ CE.xLam v'   tv
+                              (foldKons res CE.@~ CE.xVar nacc))
+                    CE.@~ foldZero res
+                    CE.@~ CE.xVar nm))
+
+            return (bs <> p, n')
+
     -- Distinct is very similar to a group by, except instead of performing the fold
     -- as the elements are seen into the map,
     -- we insert/update the element in the map, then fold over essentially the last-seen
@@ -352,7 +391,7 @@ convertQuery q
             -- Perform a fold over that map
             let p = post n''
                   $ beta
-                  ( mapExtract res CE.@~ 
+                  ( mapExtract res CE.@~
                   ( CE.xPrim
                         (C.PrimFold (C.PrimFoldMap tkey tval) tV')
                     CE.@~ (CE.xLam nacc     tV'
@@ -523,6 +562,16 @@ convertQuery q
    = convertValType' tk
    | otherwise
    = convertError $ ConvertErrorGroupByHasNonGroupResult ann ty
+
+  -- Get the key and value type of a group inside a group-fold.
+  getGroupFoldType a e
+   = case e of
+       Nested (Annot { annResult = ty }) _
+         -> do t <- convertValType' ty
+               case t of
+                 T.MapT tk tv -> return (tk, tv)
+                 _            -> convertError $ ConvertErrorGroupFoldNotOnGroup a e
+       _ -> convertError $ ConvertErrorGroupFoldNotOnGroup a e
 
   -- Perform beta reduction, just to simplify the output a tiny bit.
   beta = Beta.betaToLets ()
