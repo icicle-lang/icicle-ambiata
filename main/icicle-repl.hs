@@ -33,6 +33,7 @@ import qualified Icicle.Avalanche.Program             as AP
 import qualified Icicle.Avalanche.Simp                as AS
 import qualified Icicle.Avalanche.Statement.Flatten   as AF
 import qualified Icicle.Avalanche.ToJava              as AJ
+import qualified Icicle.Avalanche.ToSea               as Sea
 import qualified Icicle.Common.Annot                  as C
 import qualified Icicle.Common.Base                   as CommonBase
 import qualified Icicle.Common.Fresh                  as F
@@ -104,6 +105,7 @@ data ReplState
    , hasAvalanche :: Bool
    , hasFlatten   :: Bool
    , hasJava      :: Bool
+   , hasSea       :: Bool
    , hasEval      :: Bool
    , doCoreSimp   :: Bool }
 
@@ -118,6 +120,7 @@ data Set
    | ShowAvalanche      Bool
    | ShowFlatten        Bool
    | ShowJava           Bool
+   | ShowSea            Bool
    | CurrentDate        DateTime
    | PerformCoreSimp    Bool
 
@@ -137,7 +140,7 @@ data Command
 
 defaultState :: ReplState
 defaultState
-  = (ReplState [] demographics (unsafeDateOfYMD 1970 1 1) False False False False False False False False False False)
+  = (ReplState [] demographics (unsafeDateOfYMD 1970 1 1) False False False False False False False False False False False)
     { hasEval = True }
 
 readCommand :: String -> Maybe Command
@@ -188,6 +191,9 @@ readSetCommands ss
 
     ("+java":rest)      -> (:) (ShowJava      True)   <$> readSetCommands rest
     ("-java":rest)      -> (:) (ShowJava      False)  <$> readSetCommands rest
+
+    ("+c":rest)         -> (:) (ShowSea       True)   <$> readSetCommands rest
+    ("-c":rest)         -> (:) (ShowSea       False)  <$> readSetCommands rest
 
     ("date" : y : m : d : rest)
        | Just y' <- readMaybe y
@@ -298,7 +304,9 @@ handleLine state line = case readCommand line of
         let flatChecked = checkAvalanche f
         case flatChecked of
          Left  e  -> prettyOut (const True) "- Avalanche type error:" e
-         Right f' -> prettyOut hasJava      "- Java:" (AJ.programToJava f')
+         Right f' -> do
+           prettyOut hasJava "- Java:" (AJ.programToJava f')
+           prettyOut hasSea  "- C:"    (Sea.seaOfProgram f')
 
       case coreEval (currentDate state) (facts state) annot' core' of
        Left  e -> prettyOut hasEval "- Result error:" e
@@ -346,6 +354,10 @@ handleSetCommand state set
     ShowJava b -> do
         HL.outputStrLn $ "ok, java is now " <> showFlag b
         return $ state { hasJava = b }
+
+    ShowSea b -> do
+        HL.outputStrLn $ "ok, c is now " <> showFlag b
+        return $ state { hasSea = b }
 
     ShowEval b -> do
         HL.outputStrLn $ "ok, eval is now " <> showFlag b
