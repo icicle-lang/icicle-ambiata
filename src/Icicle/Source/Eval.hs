@@ -78,6 +78,14 @@ evalQ q vs env
 
                         VArray <$> mapM (\vs' -> evalQ q' vs' env) vvs'
 
+                GroupFold _ _ _ g
+                 -> do  gs <- mapM (evalX g []) vs
+
+                        let vgs  = gs `zip` vs
+                        let vgs' = fmap snd vgs
+
+                        evalQ q' vgs' env
+
                 Distinct _ g
                  -> do  gs <- mapM (evalX g []) vs
 

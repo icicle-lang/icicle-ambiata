@@ -73,6 +73,9 @@ transformC t cc
        GroupBy a x
         -> do x' <- goX x
               return (s, GroupBy a x')
+       GroupFold a k v x
+        -> do x' <- goX x
+              return (s, GroupFold a k v x')
        Distinct a x
         -> do x' <- goX x
               return (s, Distinct a x')

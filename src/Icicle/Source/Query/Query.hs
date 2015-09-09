@@ -81,6 +81,7 @@ simplifyNestedC c
     Windowed{}  -> c
     Latest{}     -> c
     GroupBy  a x -> GroupBy  a $ simplifyNestedX x
+    GroupFold a k v x -> GroupFold a k v $ simplifyNestedX x
     Distinct a x -> Distinct a $ simplifyNestedX x
     Filter   a x -> Filter   a $ simplifyNestedX x
     LetFold  a f -> LetFold a f { foldInit = simplifyNestedX $ foldInit f
@@ -125,14 +126,15 @@ reannotX f xx
 reannotC :: (a -> a') -> Context a n -> Context a' n
 reannotC f cc
  = case cc of
-    Windowed a b c -> Windowed (f a) b c
-    Latest   a i   -> Latest   (f a) i
-    GroupBy  a x   -> GroupBy  (f a) (reannotX f x)
-    Distinct a x   -> Distinct (f a) (reannotX f x)
-    Filter   a x   -> Filter   (f a) (reannotX f x)
-    LetFold  a ff  -> LetFold  (f a) (ff { foldInit = reannotX f (foldInit ff)
-                                         , foldWork = reannotX f (foldWork ff) })
-    Let      a n x -> Let      (f a) n (reannotX f x)
+    Windowed  a b c   -> Windowed  (f a) b c
+    Latest    a i     -> Latest    (f a) i
+    GroupBy   a x     -> GroupBy   (f a) (reannotX f x)
+    GroupFold a k v x -> GroupFold (f a) k v (reannotX f x)
+    Distinct  a x     -> Distinct  (f a) (reannotX f x)
+    Filter    a x     -> Filter    (f a) (reannotX f x)
+    LetFold   a ff    -> LetFold   (f a) (ff { foldInit = reannotX f (foldInit ff)
+                                             , foldWork = reannotX f (foldWork ff) })
+    Let      a n x    -> Let       (f a) n (reannotX f x)
 
 reannotQ :: (a -> a') -> Query a n -> Query a' n
 reannotQ f q

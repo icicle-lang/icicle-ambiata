@@ -229,6 +229,8 @@ convertFold q
      -> errNotAllowed ann
     (GroupBy (Annot { annAnnot = ann }) _ : _)
      -> errNotAllowed ann
+    (GroupFold (Annot { annAnnot = ann }) _ _ _ : _)
+     -> errNotAllowed ann
     (Distinct (Annot { annAnnot = ann }) _ : _)
      -> errNotAllowed ann
 

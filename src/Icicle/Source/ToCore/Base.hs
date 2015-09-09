@@ -96,6 +96,7 @@ data ConvertError a n
  = ConvertErrorNoSuchFeature (Name n)
  | ConvertErrorPrimNoArguments a Int Prim
  | ConvertErrorGroupByHasNonGroupResult a (Type n)
+ | ConvertErrorGroupFoldNotOnGroup a (Exp (Annot a n) n)
  | ConvertErrorContextNotAllowedInGroupBy a (Query (Annot a n) n)
  | ConvertErrorExpNoSuchVariable a (Name n)
  | ConvertErrorExpNestedQueryNotAllowedHere a (Query (Annot a n) n)
@@ -114,6 +115,8 @@ annotOfError e
     ConvertErrorPrimNoArguments a _ _
      -> Just a
     ConvertErrorGroupByHasNonGroupResult a _
+     -> Just a
+    ConvertErrorGroupFoldNotOnGroup a _
      -> Just a
     ConvertErrorContextNotAllowedInGroupBy a _
      -> Just a
@@ -246,6 +249,9 @@ instance (Pretty a, Pretty n) => Pretty (ConvertError a n) where
 
      ConvertErrorGroupByHasNonGroupResult a ut
       -> pretty a <> ": group by has wrong return type; should be a group but got " <> pretty ut
+
+     ConvertErrorGroupFoldNotOnGroup a x
+      -> pretty a <> ": group fold is not on a group; expected group but got " <> pretty x
 
      ConvertErrorContextNotAllowedInGroupBy a q
       -> pretty a <> ": only filters and aggregates are allowed in group by (the rest are TODO): " <> pretty q
