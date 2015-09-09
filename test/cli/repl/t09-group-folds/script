@@ -1,0 +1,8 @@
+-- Count unique dates, this is equivalent to `distinct date ~> count`
+feature salary ~> group fold (k, v) = (group date ~> count) ~> count
+
+-- Sum of count of values, this is equivalent to counting the number of salary facts
+feature salary ~> group fold (k, v) = (group date ~> count) ~> sum v
+
+-- Max of count of values
+feature salary ~> group fold (k, v) = (group date ~> count) ~> max v
