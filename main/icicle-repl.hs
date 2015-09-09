@@ -64,19 +64,19 @@ runRepl inits
        h <- getHomeDirectory
        s <- settings h
        HL.runInputT s
-        $ do st <- dotfile h defaultState
-             state' <- foldM handleLine st inits
-             loop state'
+        $ do dot    <- liftIO $ dotfile h
+             state' <- foldM handleLine defaultState (dot <> inits)
+             withInterrupt $ loop state'
   where
     settings home
       = return $ HL.defaultSettings
           { historyFile    = Just $ home <> "/.icicle-repl.history"
           , autoAddHistory = True}
-    dotfile home st
-      = do s <- liftIO $ readFile (home <> "/.icicle")
-           foldM handleLine st (lines s)
+    dotfile home
+      = lines <$> readFile (home <> "/.icicle")
     loop state
-      = do line <- HL.getInputLine "> "
+      = handleInterrupt (loop state)
+      $ do line <- HL.getInputLine "> "
            case line of
              Nothing      -> return ()
              Just ":quit" -> return ()
