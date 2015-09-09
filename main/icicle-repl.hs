@@ -1,9 +1,10 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE PatternGuards #-}
+{-# LANGUAGE PatternGuards     #-}
 {-# LANGUAGE TupleSections     #-}
 {-# LANGUAGE ViewPatterns      #-}
+{-# LANGUAGE DoAndIfThenElse   #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 import           Control.Monad.Trans.Class
@@ -13,7 +14,7 @@ import           Data.Either.Combinators
 import           Data.Monoid
 import           Data.List                            (words, replicate)
 import qualified Data.Map                             as Map
-import           Data.String                          (String)
+import           Data.String                          (String, lines)
 import           Data.Text                            (Text)
 import qualified Data.Text                            as T
 import qualified Data.Text.IO                         as T
@@ -61,18 +62,27 @@ main
 runRepl :: [String] -> IO ()
 runRepl inits
   = do putStrLn "welcome to iREPL"
-       s <- settings
+       h <- getHomeDirectory
+       c <- getCurrentDirectory
+       s <- settings h
        HL.runInputT s
-        $ do    state' <- foldM handleLine defaultState inits
-                loop state'
+        $ do dot1   <- liftIO $ dotfile (h <> "/.icicle")
+             dot2   <- liftIO $ dotfile (c <> "/.icicle")
+             state' <- foldM handleLine defaultState (dot1 <> dot2 <> inits)
+             withInterrupt $ loop state'
   where
-    settings
-      = do home <- getHomeDirectory
-           return $ HL.defaultSettings
-             { historyFile    = Just $ home <> "/.icicle-repl.history"
-             , autoAddHistory = True}
+    settings home
+      = return $ HL.defaultSettings
+          { historyFile    = Just $ home <> "/.icicle-repl.history"
+          , autoAddHistory = True}
+    dotfile fp
+      = do b <- doesFileExist fp
+           if b
+           then lines <$> readFile fp
+           else return []
     loop state
-      = do line <- HL.getInputLine "> "
+      = handleInterrupt (loop state)
+      $ do line <- HL.getInputLine "> "
            case line of
              Nothing      -> return ()
              Just ":quit" -> return ()
