@@ -1,9 +1,10 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE PatternGuards #-}
+{-# LANGUAGE PatternGuards     #-}
 {-# LANGUAGE TupleSections     #-}
 {-# LANGUAGE ViewPatterns      #-}
+{-# LANGUAGE DoAndIfThenElse   #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 import           Control.Monad.Trans.Class
@@ -62,18 +63,23 @@ runRepl :: [String] -> IO ()
 runRepl inits
   = do putStrLn "welcome to iREPL"
        h <- getHomeDirectory
+       c <- getCurrentDirectory
        s <- settings h
        HL.runInputT s
-        $ do dot    <- liftIO $ dotfile h
-             state' <- foldM handleLine defaultState (dot <> inits)
+        $ do dot1   <- liftIO $ dotfile (h <> "/.icicle")
+             dot2   <- liftIO $ dotfile (c <> "/.icicle")
+             state' <- foldM handleLine defaultState (dot1 <> dot2 <> inits)
              withInterrupt $ loop state'
   where
     settings home
       = return $ HL.defaultSettings
           { historyFile    = Just $ home <> "/.icicle-repl.history"
           , autoAddHistory = True}
-    dotfile home
-      = lines <$> readFile (home <> "/.icicle")
+    dotfile fp
+      = do b <- doesFileExist fp
+           if b
+           then lines <$> readFile fp
+           else return []
     loop state
       = handleInterrupt (loop state)
       $ do line <- HL.getInputLine "> "
