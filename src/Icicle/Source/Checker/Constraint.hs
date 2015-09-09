@@ -395,7 +395,7 @@ generateX x
 
            let tmpx = getTemporalityOrPure $ annResult $ annotOfExp scrut'
            let tmpq = getTemporalityOrPure $ resT
-           require a $ CEquals tmpx tmpq
+           -- require a $ CEquals tmpx tmpq
            let t' = resT -- canonT $ Temporality retTmp resT
 
            annotate (Map.unions (sub : subs)) t' $ \a' -> Case a' scrut' pats'

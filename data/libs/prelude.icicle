@@ -3,9 +3,13 @@
 sum v = let fold s = 0 : v + s ~> s.
 count = let fold c = 0 : c + 1 ~> c.
 mean v = sum (double v) / count.
-sd v = let v_ = double v ~> let sv = (sum v_) ~> (((sum (v_*v_) * count) - (sv * sv)) / (count * (count - 1)))^(0.5).
 max v = let fold1 s = v : case v > s | True -> v | False -> s end ~> s.
 min v = let fold1 s = v : case v < s | True -> v | False -> s end ~> s.
+
+sdold v = let v_ = double v ~> let sv = (sum v_) ~> (((sum (v_*v_) * count) - (sv * sv)) / (count * (count - 1)))^(0.5).
+sd v = let fold a = ((0,0.0),0.0)
+     :  case a | ((n,m),m2) -> (let d = v - m ~> ((n + 1, m + d / n), m2 + d * (v - m))) end
+     ~> case a | ((n,m),m2) -> m2 / (n - 1) end.
 
 # Time statements
 newest v = latest 1 ~> let fold1 s = v : v ~> s.

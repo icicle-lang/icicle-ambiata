@@ -639,6 +639,8 @@ convertReduce xx
  | Case (Annot { annAnnot = ann, annResult = retty }) scrut patalts <- xx
  = do   scrut' <- convertReduce scrut
         let (pats,alts) = unzip patalts
+
+        -- convertCaseFreshenPats pats
         alts'  <- mapM convertReduce alts
 
         let bs' = fst scrut' <> mconcat (fmap fst alts')
