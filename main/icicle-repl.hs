@@ -13,7 +13,7 @@ import           Data.Either.Combinators
 import           Data.Monoid
 import           Data.List                            (words, replicate)
 import qualified Data.Map                             as Map
-import           Data.String                          (String)
+import           Data.String                          (String, lines)
 import           Data.Text                            (Text)
 import qualified Data.Text                            as T
 import qualified Data.Text.IO                         as T
@@ -61,16 +61,20 @@ main
 runRepl :: [String] -> IO ()
 runRepl inits
   = do putStrLn "welcome to iREPL"
-       s <- settings
+       h <- getHomeDirectory
+       s <- settings h
        HL.runInputT s
-        $ do    state' <- foldM handleLine defaultState inits
-                loop state'
+        $ do st <- dotfile h defaultState
+             state' <- foldM handleLine st inits
+             loop state'
   where
-    settings
-      = do home <- getHomeDirectory
-           return $ HL.defaultSettings
-             { historyFile    = Just $ home <> "/.icicle-repl.history"
-             , autoAddHistory = True}
+    settings home
+      = return $ HL.defaultSettings
+          { historyFile    = Just $ home <> "/.icicle-repl.history"
+          , autoAddHistory = True}
+    dotfile home st
+      = do s <- liftIO $ readFile (home <> "/.icicle")
+           foldM handleLine st (lines s)
     loop state
       = do line <- HL.getInputLine "> "
            case line of
