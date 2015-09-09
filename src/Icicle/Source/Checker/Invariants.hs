@@ -53,7 +53,11 @@ invariantQ ctx (Query (c:cs) xfinal)
      -> errNotAllowed "Nested Distinct are not supported"
 
     GroupFold _ _ _ x
-     -> goX x >> go
+     | allowWindowsOrGroups inv
+     -> goX x >> goNotAllowed
+     | otherwise
+     -> errNotAllowed "Nested group folds are not supported"
+
     Filter _ x
      -> goX x >> go
     LetFold _ f

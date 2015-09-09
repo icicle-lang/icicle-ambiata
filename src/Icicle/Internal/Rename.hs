@@ -11,6 +11,8 @@ import qualified Icicle.Core.Reduce          as CR
 import qualified Icicle.Core.Stream          as CS
 import qualified Icicle.Source.Query         as SQ
 
+import           Control.Arrow
+
 import           P
 
 renameQT :: (n -> m) -> SQ.QueryTop a n -> SQ.QueryTop a m
@@ -23,13 +25,14 @@ renameQ f (SQ.Query cs x)
 
 renameC :: (n -> m) -> SQ.Context a n -> SQ.Context a m
 renameC f cc = case cc of
-  SQ.Windowed a b c -> SQ.Windowed a b c
-  SQ.Latest   a b   -> SQ.Latest   a b
-  SQ.GroupBy  a e   -> SQ.GroupBy  a (renameX f e)
-  SQ.Distinct a e   -> SQ.Distinct a (renameX f e)
-  SQ.Filter   a e   -> SQ.Filter   a (renameX f e)
-  SQ.LetFold  a x   -> SQ.LetFold  a (renameF f x)
-  SQ.Let      a n e -> SQ.Let      a (renameN f n) (renameX f e)
+  SQ.Windowed  a b c   -> SQ.Windowed  a b c
+  SQ.Latest    a b     -> SQ.Latest    a b
+  SQ.GroupBy   a e     -> SQ.GroupBy   a (renameX f e)
+  SQ.GroupFold a k v e -> SQ.GroupFold a (renameN f k) (renameN f v) (renameX f e)
+  SQ.Distinct  a e     -> SQ.Distinct  a (renameX f e)
+  SQ.Filter    a e     -> SQ.Filter    a (renameX f e)
+  SQ.LetFold   a x     -> SQ.LetFold   a (renameF f x)
+  SQ.Let       a n e   -> SQ.Let       a (renameN f n) (renameX f e)
 
 renameF :: (n -> m) -> SQ.Fold (SQ.Query a n) a n -> SQ.Fold (SQ.Query a m) a m
 renameF f d
@@ -47,7 +50,7 @@ renameX f e = case e of
   SQ.Prim a p    -> SQ.Prim a p
   SQ.Case a scrut pats
    -> SQ.Case a (renameX f scrut)
-    $ fmap (\(p,x) -> (renamePat f p, renameX f x)) pats
+    $ fmap (renamePat f *** renameX f) pats
 
 renamePat :: (n -> m) -> SQ.Pattern n -> SQ.Pattern m
 renamePat f (SQ.PatCon c ps)   = SQ.PatCon c $ fmap (renamePat f) ps
@@ -68,7 +71,7 @@ renameP f prog
     , CP.reduces   = fmap (renameNR f)  (CP.reduces     prog)
     , CP.postdate  = fmap (renameN f)   (CP.postdate    prog)
     , CP.postcomps = fmap (renameNX f)  (CP.postcomps   prog)
-    , CP.returns   = fmap (\(a,b) -> (a, renameCX f b))  (CP.returns     prog) }
+    , CP.returns   = fmap (second (renameCX f))  (CP.returns     prog) }
 
 renameNS :: (n -> m) -> (Name n, CS.Stream a n) -> (Name m, CS.Stream a m)
 renameNS f (n, s) = (renameN f n, renameS f s)

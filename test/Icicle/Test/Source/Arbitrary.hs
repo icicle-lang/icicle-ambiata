@@ -102,7 +102,17 @@ instance Arbitrary n => Arbitrary (Context () n) where
         , Filter   () <$> arbitrary
         , LetFold  () <$> arbitrary
         , Let      () <$> arbitrary <*> arbitrary
+        -- no reason to generate group-folds that are not on groups
+        , GroupFold ()
+            <$> arbitrary
+            <*> arbitrary
+            <*> (Nested () <$> arbitrary `suchThat` hasGroup)
         ]
+  where
+   hasGroup q
+    | (GroupBy _ _ : _) <- contexts q = True
+    | otherwise = False
+
 
 instance Arbitrary WindowUnit where
  arbitrary

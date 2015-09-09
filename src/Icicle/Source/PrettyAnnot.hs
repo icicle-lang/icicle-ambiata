@@ -43,6 +43,7 @@ instance (Pretty a, Pretty n) => Pretty (PrettyAnnot (Context a n)) where
      Windowed a _ _ -> "windowed@{" <> pretty a <> "}"
      Latest a _     -> "latest@{" <> pretty a <> "}" 
      GroupBy a x    -> "group@{" <> pretty a <> "} " <> pretty (PrettyAnnot x)
+     GroupFold a _ _ x -> "groupfold@{" <> pretty a <> "}" <> pretty (PrettyAnnot x)
      Distinct a x    -> "distinct@{" <> pretty a <> "} " <> pretty (PrettyAnnot x)
      Filter   a x    -> "filter@{" <> pretty a <> "} " <> pretty (PrettyAnnot x)
      LetFold  a f
