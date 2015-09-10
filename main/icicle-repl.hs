@@ -451,7 +451,7 @@ prettyHL :: PP.Pretty a => a -> HL.InputT IO ()
 prettyHL x
  = do   width <- terminalWidth
         let width' = maybe 80 id width
-        HL.outputStrLn $ PP.displayS (PP.renderPretty 0.4 width' $ PP.pretty x) ""
+        HL.outputStrLn $ PP.displayS (PP.renderPretty 0.8 width' $ PP.pretty x) ""
 
 terminalWidth :: HL.InputT IO (Maybe Int)
 terminalWidth

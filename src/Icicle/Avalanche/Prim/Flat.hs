@@ -1,11 +1,12 @@
 -- | Flat primitives - after the folds are removed
 {-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Avalanche.Prim.Flat (
-      Prim   (..)
+      Prim        (..)
     , PrimProject (..)
-    , PrimUnsafe    (..)
-    , PrimUpdate    (..)
-    , PrimArray     (..)
+    , PrimUnsafe  (..)
+    , PrimUpdate  (..)
+    , PrimArray   (..)
+    , PrimOption  (..)
     , typeOfPrim
     , flatFragment
   ) where
@@ -40,8 +41,11 @@ data Prim
  -- | Safe updates
  | PrimUpdate          PrimUpdate
 
- -- | Safe updates
+ -- | Array prims
  | PrimArray           PrimArray
+
+ -- | Option prims
+ | PrimOption          PrimOption
  deriving (Eq, Ord, Show)
 
 
@@ -71,7 +75,11 @@ data PrimUpdate
  deriving (Eq, Ord, Show)
 
 data PrimArray
- = PrimArrayZip  ValType ValType
+ = PrimArrayZip ValType ValType
+ deriving (Eq, Ord, Show)
+
+data PrimOption
+ = PrimOptionPack ValType
  deriving (Eq, Ord, Show)
 
 
@@ -117,8 +125,11 @@ typeOfPrim p
     PrimUpdate  (PrimUpdateArrayPut a)
      -> FunT [funOfVal (ArrayT a), funOfVal IntT, funOfVal a] (ArrayT a)
 
-    PrimArray  (PrimArrayZip a b)
+    PrimArray   (PrimArrayZip a b)
      -> FunT [funOfVal (ArrayT a), funOfVal (ArrayT b)] (ArrayT (PairT a b))
+
+    PrimOption  (PrimOptionPack t)
+     -> FunT [funOfVal BoolT, funOfVal t] (OptionT t)
 
 
 -- Pretty -------------
@@ -159,3 +170,6 @@ instance Pretty Prim where
  pretty (PrimArray (PrimArrayZip a b))
   = text "Array_zip#" <+> brackets (pretty a) <+> brackets (pretty b)
 
+
+ pretty (PrimOption (PrimOptionPack t))
+  = text "Option_pack#" <+> brackets (pretty t)

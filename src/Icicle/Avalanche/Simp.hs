@@ -12,7 +12,7 @@ import              Icicle.Common.Fresh
 import              Icicle.Avalanche.Prim.Flat
 import              Icicle.Avalanche.Statement.Simp
 import              Icicle.Avalanche.Statement.Simp.Constructor
-import              Icicle.Avalanche.Statement.Simp.Melt
+import              Icicle.Avalanche.Statement.Simp.Trample
 import              Icicle.Avalanche.Program
 
 import              P
@@ -32,7 +32,7 @@ simpFlattened :: (Show n, Ord n) => a -> Program a n Prim -> Fresh n (Program a 
 simpFlattened a_fresh p
  = do p' <- transformX return (simp a_fresh) p
       s' <- (forwardStmts a_fresh $ pullLets $ statements p')
-         >>= melt   a_fresh
+         >>= trample a_fresh
          >>= crunch
          >>= crunch
          >>= crunch
@@ -50,5 +50,3 @@ simpFlattened a_fresh p
    >>= forwardStmts a_fresh
    >>= nestBlocks   a_fresh
    >>= thresher     a_fresh
-
-
