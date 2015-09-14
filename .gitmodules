@@ -4,6 +4,3 @@
 [submodule "lib/p"]
 	path = lib/p
 	url = https://github.com/ambiata/p
-[submodule "lib/orphanarium"]
-	path = lib/orphanarium
-	url = https://github.com/ambiata/orphanarium

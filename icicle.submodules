@@ -1,6 +1,3 @@
-lib/orphanarium/orphanarium-aeson
-lib/orphanarium/orphanarium-core
-lib/orphanarium/orphanarium-corpus
 lib/p
 lib/x/x-optparse
 lib/x/x-either
