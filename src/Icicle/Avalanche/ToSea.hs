@@ -25,6 +25,7 @@ import           P
 import           Data.Functor.Identity
 import           Data.List (take)
 
+import           Data.Map (Map)
 import qualified Data.Map as Map
 
 
@@ -32,8 +33,8 @@ import qualified Data.Map as Map
 
 seaOfProgram :: (Show a, Show n, Pretty n, Ord n)
              => Program (Annot a) n Prim -> Doc
-seaOfProgram program = vsep [
-    "#include <stdbool.h>"
+seaOfProgram program = vsep
+  [ "#include <stdbool.h>"
   , "#include <stdint.h>"
   , "#include <math.h>"
   , ""
@@ -45,13 +46,7 @@ seaOfProgram program = vsep [
   , ""
   , "typedef const char *ierror_t;"
   , ""
-  , "typedef struct {"
-  , "    idate_t   gen_date;"
-  , "    iint_t    new_count;"
-  , "    iint_t   *new_fact;"
-  , "    idate_t  *new_date;"
-  , "    ierror_t  error;"
-  , "} icicle_state_t;"
+  , stateOfStatement (statements program)
   , ""
   , "static const iunit_t iunit  = 0x1c1c13;"
   , "static const ibool_t ifalse = 0;"
@@ -97,10 +92,58 @@ seaOfProgram program = vsep [
   , ""
   , "void compute(icicle_state_t *s)"
   , "{"
+  , indent 4 . vsep
+             . fmap defOfAccumulator
+             . Map.toList
+             $ accumsOfStatement (statements program) `Map.union`
+               readsOfStatement  (statements program)
+  , ""
   , indent 4 (seaOfStatement (statements program))
   , "}"
   ]
 
+
+------------------------------------------------------------------------
+
+stateOfStatement :: (Show a, Show n, Pretty n, Ord n)
+                 => Statement (Annot a) n Prim -> Doc
+stateOfStatement stmt = vsep
+   [ "typedef struct {"
+   , "    /* inputs */"
+   , "    idate_t    gen_date;"
+   , "    iint_t     new_count;"
+   , "    iint_t    *new_fact;"
+   , "    idate_t   *new_date;"
+   , ""
+   , "    /* resumables */"
+   , indent 4 . vsep
+              . fmap defOfAccumulator
+              . Map.toList
+              . accumsOfStatement
+              $ stmt
+   , ""
+   , "    /* outputs */"
+   , "    ierror_t   error;"
+   , indent 4 . vsep
+              . fmap defOfOutput
+              . Map.toList
+              . outputsOfStatement
+              $ stmt
+   , "} icicle_state_t;"
+   ]
+
+defOfAccumulator :: (Show n, Pretty n, Ord n)
+                  => (Name n, (AccumulatorType, ValType)) -> Doc
+defOfAccumulator (n, (at, vt))
+ = case at of
+     Mutable
+      -> seaOfValType vt <+> seaOfName n <> semi
+     Latest
+      -> seaError "defOfAccumulator" (n, at, vt)
+
+defOfOutput :: (OutputName, ValType) -> Doc
+defOfOutput (n, t)
+ = seaOfValType t <+> seaOfName n <> semi
 
 ------------------------------------------------------------------------
 
@@ -152,7 +195,7 @@ seaOfStatement stmt
               , assign ("const " <> seaOfValType dt
                                  <> " *const new_date")  "s->new_date;"
               , ""
-              , "for (int64_t i = 0; i < new_count; i++) {"
+              , "for (iint_t i = 0; i < new_count; i++) {"
               , indent 4 $ assign (seaOfValType vt <+> seaOfName n_fact) "new_fact[i]" <> semi <> line
                         <> assign (seaOfValType dt <+> seaOfName n_date) "new_date[i]" <> semi <> line
                         <> seaOfStatement stmt'
@@ -161,13 +204,13 @@ seaOfStatement stmt
               ]
 
      InitAccumulator acc stmt'
-      | Accumulator n Mutable vt xx <- acc
-      -> assign (seaOfValType vt <+> seaOfName n) (seaOfExp xx) <> semi <> line
+      | Accumulator n Mutable avt xx <- acc
+      -> assign (seaOfName n) (seaOfExp xx) <> semi <> line
       <> seaOfStatement stmt'
 
      Read n_val n_acc at avt stmt'
       | Mutable <- at
-      -> assign (seaOfValType avt <+> seaOfName n_val) (seaOfName n_acc) <> semi <> line
+      -> assign (seaOfName n_val) (seaOfName n_acc) <> semi <> line
       <> seaOfStatement stmt'
 
      Write n xx
@@ -339,3 +382,81 @@ tuple xs  = "(" <> go xs
     go []     = ")" -- impossible
     go (x:[]) = x <> ")"
     go (x:xs) = x <> ", " <> go xs
+
+
+
+------------------------------------------------------------------------
+-- Analysis
+
+accumsOfStatement :: (Show a, Show n, Pretty n, Ord n)
+                  => Statement (Annot a) n Prim
+                  -> Map (Name n) (AccumulatorType, ValType)
+accumsOfStatement stmt
+ = case stmt of
+     Block []                -> Map.empty
+     Block (s:ss)            -> accumsOfStatement s `Map.union`
+                                accumsOfStatement (Block ss)
+     Let _ _ ss              -> accumsOfStatement ss
+     If _ tt ee              -> accumsOfStatement tt `Map.union`
+                                accumsOfStatement ee
+     ForeachFacts _ _ _ _ ss -> accumsOfStatement ss
+     Read _ _ _ _ ss         -> accumsOfStatement ss
+     Write _ _               -> Map.empty
+     LoadResumable _ _       -> Map.empty
+     SaveResumable _ _       -> Map.empty
+     Output _ _              -> Map.empty
+
+     InitAccumulator (Accumulator n at avt _) ss
+      -> Map.singleton n (at, avt) `Map.union`
+         accumsOfStatement ss
+
+------------------------------------------------------------------------
+
+readsOfStatement :: (Show a, Show n, Pretty n, Ord n)
+                 => Statement (Annot a) n Prim
+                 -> Map (Name n) (AccumulatorType, ValType)
+readsOfStatement stmt
+ = case stmt of
+     Block []                -> Map.empty
+     Block (s:ss)            -> readsOfStatement s `Map.union`
+                                readsOfStatement (Block ss)
+     Let _ _ ss              -> readsOfStatement ss
+     If _ tt ee              -> readsOfStatement tt `Map.union`
+                                readsOfStatement ee
+     ForeachFacts _ _ _ _ ss -> readsOfStatement ss
+     InitAccumulator _ ss    -> readsOfStatement ss
+     Write _ _               -> Map.empty
+     LoadResumable _ _       -> Map.empty
+     SaveResumable _ _       -> Map.empty
+     Output _ _              -> Map.empty
+
+     Read n _ at vt ss
+      -> Map.singleton n (at, vt) `Map.union`
+         readsOfStatement ss
+
+------------------------------------------------------------------------
+
+outputsOfStatement :: (Show a, Show n, Pretty n, Ord n)
+                  => Statement (Annot a) n Prim
+                  -> Map OutputName ValType
+outputsOfStatement stmt
+ = case stmt of
+     Block []                -> Map.empty
+     Block (s:ss)            -> outputsOfStatement s `Map.union`
+                                outputsOfStatement (Block ss)
+     Let _ _ ss              -> outputsOfStatement ss
+     If _ tt ee              -> outputsOfStatement tt `Map.union`
+                                outputsOfStatement ee
+     ForeachFacts _ _ _ _ ss -> outputsOfStatement ss
+     InitAccumulator _ ss    -> outputsOfStatement ss
+     Read _ _ _ _ ss         -> outputsOfStatement ss
+     Write _ _               -> Map.empty
+     LoadResumable _ _       -> Map.empty
+     SaveResumable _ _       -> Map.empty
+
+     Output n xx
+      | Just t <- valTypeOfExp xx
+      -> Map.singleton n t
+
+      | otherwise
+      -> Map.empty
