@@ -35,18 +35,67 @@ seaOfProgram :: (Show a, Show n, Pretty n, Ord n)
 seaOfProgram program = vsep [
     "#include <stdbool.h>"
   , "#include <stdint.h>"
+  , "#include <math.h>"
   , ""
-  , "#define ICICLE_TRUE  (0x1c1cl3)"
-  , "#define ICICLE_FALSE (0x000000)"
+  , "typedef uint64_t iunit_t;"
+  , "typedef uint64_t ibool_t;"
+  , "typedef  int64_t iint_t;"
+  , "typedef   double idouble_t;"
+  , "typedef  int64_t idate_t;"
   , ""
-  , "#define ICICLE_MUL(x,y) ((x)*(y))"
+  , "typedef const char *ierror_t;"
   , ""
-  , "typedef int64_t      unit64_t;"
-  , "typedef int64_t      bool64_t;"
-  , "typedef int64_t      date64_t;"
-  , "typedef const char  *error_t;"
+  , "typedef struct {"
+  , "    idate_t   gen_date;"
+  , "    iint_t    new_count;"
+  , "    iint_t   *new_fact;"
+  , "    idate_t  *new_date;"
+  , "    ierror_t  error;"
+  , "} icicle_state_t;"
   , ""
-  , "void compute(struct icicle_state *s)"
+  , "static const iunit_t iunit  = 0x1c1c13;"
+  , "static const ibool_t ifalse = 0;"
+  , "static const ibool_t itrue  = 1;"
+  , ""
+  , "#define INLINE __attribute__((always_inline))"
+  , ""
+  , "static idouble_t INLINE iint_extend   (iint_t    x)              { return x; }"
+  , "static iint_t    INLINE iint_add      (iint_t    x, iint_t    y) { return x +  y; }"
+  , "static iint_t    INLINE iint_sub      (iint_t    x, iint_t    y) { return x -  y; }"
+  , "static iint_t    INLINE iint_mul      (iint_t    x, iint_t    y) { return x *  y; }"
+  , "static ibool_t   INLINE iint_gt       (iint_t    x, iint_t    y) { return x >  y; }"
+  , "static ibool_t   INLINE iint_ge       (iint_t    x, iint_t    y) { return x >= y; }"
+  , "static ibool_t   INLINE iint_lt       (iint_t    x, iint_t    y) { return x <  y; }"
+  , "static ibool_t   INLINE iint_le       (iint_t    x, iint_t    y) { return x <= y; }"
+  , "static ibool_t   INLINE iint_eq       (iint_t    x, iint_t    y) { return x == y; }"
+  , "static ibool_t   INLINE iint_ne       (iint_t    x, iint_t    y) { return x != y; }"
+  , ""
+  , "static iint_t    INLINE idouble_trunc (idouble_t x)              { return (iint_t)x; }"
+  , "static idouble_t INLINE idouble_add   (idouble_t x, idouble_t y) { return x + y; }"
+  , "static idouble_t INLINE idouble_sub   (idouble_t x, idouble_t y) { return x - y; }"
+  , "static idouble_t INLINE idouble_mul   (idouble_t x, idouble_t y) { return x * y; }"
+  , "static idouble_t INLINE idouble_pow   (idouble_t x, idouble_t y) { return pow(x, y); }"
+  , "static idouble_t INLINE idouble_div   (idouble_t x, idouble_t y) { return x / y; }"
+  , "static idouble_t INLINE idouble_log   (idouble_t x)              { return log(x); }"
+  , "static idouble_t INLINE idouble_exp   (idouble_t x)              { return exp(x); }"
+  , "static ibool_t   INLINE idouble_gt    (idouble_t x, idouble_t y) { return x >  y; }"
+  , "static ibool_t   INLINE idouble_ge    (idouble_t x, idouble_t y) { return x >= y; }"
+  , "static ibool_t   INLINE idouble_lt    (idouble_t x, idouble_t y) { return x <  y; }"
+  , "static ibool_t   INLINE idouble_le    (idouble_t x, idouble_t y) { return x <= y; }"
+  , "static ibool_t   INLINE idouble_eq    (idouble_t x, idouble_t y) { return x == y; }"
+  , "static ibool_t   INLINE idouble_ne    (idouble_t x, idouble_t y) { return x != y; }"
+  , ""
+  , "static iint_t INLINE iint_err (icicle_state_t *s, ierror_t error)  {"
+  , "    s->error = error;"
+  , "    return 0xBAD1c3;"
+  , "}"
+  , ""
+  , "static idouble_t INLINE idouble_err (icicle_state_t *s, ierror_t error)  {"
+  , "    s->error = error;"
+  , "    return 0xBAD1c3;"
+  , "}"
+  , ""
+  , "void compute(icicle_state_t *s)"
   , "{"
   , indent 4 (seaOfStatement (statements program))
   , "}"
@@ -54,14 +103,6 @@ seaOfProgram program = vsep [
 
 
 ------------------------------------------------------------------------
-
--- data Accumulator a n p
---  = Accumulator
---  { accName      :: Name n
---  , accKind      :: AccumulatorType
---  , accValType   :: ValType
---  , accInit      :: Exp a n p
---  }
 
 seaOfStatement :: (Show a, Show n, Pretty n, Ord n)
                => Statement (Annot a) n Prim -> Doc
@@ -82,6 +123,14 @@ seaOfStatement stmt
       -> assign (seaOfValType xt <+> seaOfName n) (seaOfExp xx) <> semi <> line
       <> seaOfStatement stmt'
 
+     If ii tt (Block [])
+      -> vsep [ ""
+              , "if (" <> seaOfExp ii <> ") {"
+              , indent 4 (seaOfStatement tt)
+              , "}"
+              , ""
+              ]
+
      If ii tt ee
       -> vsep [ ""
               , "if (" <> seaOfExp ii <> ") {"
@@ -89,6 +138,7 @@ seaOfStatement stmt
               , "} else {"
               , indent 4 (seaOfStatement ee)
               , "}"
+              , ""
               ]
 
      ForeachFacts n_fact n_date vt lt stmt'
@@ -96,11 +146,11 @@ seaOfStatement stmt
       , dt          <- DateTimeT
       -> vsep [ ""
               , assign ("const " <> seaOfValType IntT
-                                 <> "       new_count") "s->new_count;"
+                                 <> "        new_count") "s->new_count;"
               , assign ("const " <> seaOfValType vt
-                                 <> " *const new_fact") "s->new_fact;"
+                                 <> " *const new_fact")  "s->new_fact;"
               , assign ("const " <> seaOfValType dt
-                                 <> " *const new_date") "s->new_date;"
+                                 <> " *const new_date")  "s->new_date;"
               , ""
               , "for (int64_t i = 0; i < new_count; i++) {"
               , indent 4 $ assign (seaOfValType vt <+> seaOfName n_fact) "new_fact[i]" <> semi <> line
@@ -143,56 +193,119 @@ seaOfExp :: (Show a, Show n, Pretty n, Ord n)
 seaOfExp xx
  = case xx of
      XValue _ _ v
-      -> seaOfBaseValue v
+      | Just t <- valTypeOfExp xx
+      -> seaOfXValue t v
 
      XVar _ n
       -> seaOfName n
 
      XApp{}
       | Just (p, xs) <- takePrimApps xx
-      -> seaOfPrim p <> tupled (fmap seaOfExp xs)
+      , Just t       <- valTypeOfExp xx
+      -> seaOfXPrim p <+> tuple (fmap seaOfExp xs)
 
      _
       -> seaError "seaOfExp" xx
 
 
-seaOfPrim :: Prim -> Doc
-seaOfPrim p
- = case p of
-     PrimMinimal (M.PrimArithBinary M.PrimArithMul _)
-      -> "ICICLE_MUL"
+seaOfXValue :: ValType -> BaseValue -> Doc
+seaOfXValue t v
+ = case v of
+     VBool   True  -> "itrue"
+     VBool   False -> "ifalse"
+     VInt    x     -> int x
+     VDouble x     -> double x
+
+     -- TODO C escapes /= Haskell escapes
+     VString x     -> text (show x)
+
+     VException msg
+      | IntT <- t
+      -> "iint_err (s, \"" <> text (show msg) <> "\")"
+
+      | DoubleT <- t
+      -> "idouble_err (s, \"" <> text (show msg) <> "\")"
      _
-      -> seaError "seaOfPrim" p
+      -> seaError "seaOfXValue" v
+
+seaOfXPrim :: Prim -> Doc
+seaOfXPrim p
+ = case p of
+     PrimMinimal (M.PrimArithBinary op t)
+      -> prefixOfArithType t <> seaOfPrimArithBinary op
+
+     PrimMinimal (M.PrimDouble op)
+      -> prefixOfValType DoubleT <> seaOfPrimDouble op
+
+     PrimMinimal (M.PrimCast op)
+      -> seaOfPrimCast op
+
+     PrimMinimal (M.PrimRelation op t)
+      -> prefixOfValType t <> seaOfPrimRelation op
+
+     _
+      -> seaError "seaOfXPrim" p
+
+seaOfPrimArithBinary :: M.PrimArithBinary -> Doc
+seaOfPrimArithBinary p
+ = case p of
+     M.PrimArithPlus  -> "add"
+     M.PrimArithMinus -> "sub"
+     M.PrimArithMul   -> "mul"
+     M.PrimArithPow   -> "pow"
+
+seaOfPrimDouble :: M.PrimDouble -> Doc
+seaOfPrimDouble p
+ = case p of
+     M.PrimDoubleDiv -> "div"
+     M.PrimDoubleLog -> "log"
+     M.PrimDoubleExp -> "exp"
+
+seaOfPrimCast :: M.PrimCast -> Doc
+seaOfPrimCast p
+ = case p of
+     M.PrimCastDoubleOfInt -> "iint_extend"
+     M.PrimCastIntOfDouble -> "idouble_trunc"
+     _                     -> seaError "seaOfPrimCast" p
+
+seaOfPrimRelation :: M.PrimRelation -> Doc
+seaOfPrimRelation p
+ = case p of
+     M.PrimRelationGt -> "gt"
+     M.PrimRelationGe -> "ge"
+     M.PrimRelationLt -> "lt"
+     M.PrimRelationLe -> "le"
+     M.PrimRelationEq -> "eq"
+     M.PrimRelationNe -> "ne"
+
+prefixOfArithType :: ArithType -> Doc
+prefixOfArithType t
+ = case t of
+     ArithIntT    -> prefixOfValType IntT
+     ArithDoubleT -> prefixOfValType DoubleT
+
+prefixOfValType :: ValType -> Doc
+prefixOfValType t
+ = case t of
+     BoolT     -> "ibool_"
+     IntT      -> "iint_"
+     DoubleT   -> "idouble_"
+     DateTimeT -> "idate_"
+     _         -> seaError "prefixOfValType" t
 
 ------------------------------------------------------------------------
-
-seaOfBaseValue :: BaseValue -> Doc
-seaOfBaseValue v
- = case v of
-     VBool True     -> "ICICLE_TRUE"
-     VBool False    -> "ICICLE_FALSE"
-     VInt  x        -> int x
-     VException msg -> "0xDEADBEEF /*" <+> string (show msg) <+> "*/"
-     _              -> seaError "seaOfBaseValue" v
 
 seaOfValType :: ValType -> Doc
 seaOfValType t
  = case t of
-     UnitT     -> "unit64_t"
-     BoolT     -> "bool64_t"
-     IntT      -> "int64_t "
-     DoubleT   -> "double  "
-     DateTimeT -> "date64_t"
+     UnitT     -> "iunit_t   "
+     BoolT     -> "ibool_t   "
+     IntT      -> "iint_t    "
+     DoubleT   -> "idouble_t "
+     StringT   -> "istring_t "
+     DateTimeT -> "idate_t   "
+     StructT _ -> "istruct_t "
      _         -> seaError "seaOfValType" t
-
-seaOfName :: Pretty n => n -> Doc
-seaOfName = string . fmap mangle . show . pretty
-  where
-    mangle '$' = '_'
-    mangle  c  =  c
-
-
-------------------------------------------------------------------------
 
 valTypeOfExp :: Exp (Annot a) n p -> Maybe ValType
 valTypeOfExp = unFun . annType . annotOfExp
@@ -200,11 +313,29 @@ valTypeOfExp = unFun . annType . annotOfExp
     unFun (FunT [] t) = Just t
     unFun _           = Nothing
 
+------------------------------------------------------------------------
+
+seaOfName :: Pretty n => n -> Doc
+seaOfName = string . fmap mangle . show . pretty
+  where
+    mangle '$' = '_'
+    mangle  c  =  c
+
+------------------------------------------------------------------------
+
 seaError :: Show a => Doc -> a -> Doc
 seaError msg x = line <> "#error Failed during codegen (" <> msg <> ": " <> str <> "..)" <> line
   where
-    str = string (take 30 (show x))
+    str = string (take 40 (show x))
 
 assign :: Doc -> Doc -> Doc
---assign x y = fill 30 x <> text "=" <+> y
 assign x y = x <> column (\k -> indent (40-k) " =") <+> y
+
+tuple :: [Doc] -> Doc
+tuple []  = "()"
+tuple [x] = "(" <> x <> ")"
+tuple xs  = "(" <> go xs
+  where
+    go []     = ")" -- impossible
+    go (x:[]) = x <> ")"
+    go (x:xs) = x <> ", " <> go xs

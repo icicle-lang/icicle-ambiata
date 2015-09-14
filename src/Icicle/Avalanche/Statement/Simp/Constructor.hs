@@ -4,6 +4,8 @@ module Icicle.Avalanche.Statement.Simp.Constructor (
     constructor
   ) where
 
+import qualified    Data.Text as T
+
 import              Icicle.Avalanche.Prim.Flat
 import qualified    Icicle.Common.Exp.Prim.Minimal as Min
 import              Icicle.Avalanche.Statement.Statement
@@ -134,6 +136,8 @@ defaultOfType :: ValType -> BaseValue
 defaultOfType typ
  = case typ of
      IntT      -> VInt 0
+     DoubleT   -> VDouble 0
+     StringT   -> VString T.empty
      PairT a b -> VPair (defaultOfType a)
                         (defaultOfType b)
 
