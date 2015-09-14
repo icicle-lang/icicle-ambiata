@@ -1,0 +1,30 @@
+# feature salary ~> newest salary
+
+gen$date = DATE
+{
+  init [Mutable] [Option Int] acc$conv$6 = None : Option Int;
+  load_resumable [Option Int] acc$conv$6;
+
+  for_facts (elem$gen$fact : Int, elem$gen$date : Date) in new {
+    read [Mutable] [Option Int] acc$conv$6 = acc$conv$6;
+    let anf$7 = some# [Int] elem$gen$fact;
+
+    if (Option_isSome# [Int] acc$conv$6) {
+      let flat$0 = unsafe_Option_get# [Int] acc$conv$6;
+      write acc$conv$6 = some# [Int] flat$0;
+    } else {
+      write acc$conv$6 = anf$7;
+    }
+  }
+
+  save_resumable [Option Int] acc$conv$6;
+  read [Mutable] [Option Int] conv$6 = acc$conv$6;
+
+  if (Option_isSome# [Int] conv$6) {
+    let flat$1 = unsafe_Option_get# [Int] conv$6;
+    output repl flat$1;
+  } else {
+    # errors?
+    output repl (error# "Fold1, but there is no value" : Int);
+  }
+}
