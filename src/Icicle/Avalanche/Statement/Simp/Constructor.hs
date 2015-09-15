@@ -18,7 +18,7 @@ import              Icicle.Common.Type
 
 import              P
 
-import Prelude (error)
+import qualified    Prelude as Hack
 
 
 constructor :: Ord n => a -> Statement a n Prim -> Fresh n (Statement a n Prim)
@@ -141,4 +141,4 @@ defaultOfType typ
      PairT a b -> VPair (defaultOfType a)
                         (defaultOfType b)
 
-     _         -> error ("Constructor.defaultOfType: " <> show typ)
+     _         -> Hack.error ("Constructor.defaultOfType: " <> show typ)

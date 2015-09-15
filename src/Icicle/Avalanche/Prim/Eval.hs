@@ -105,3 +105,11 @@ evalPrim p vs
       | otherwise
       -> primError
 
+     PrimOption (PrimOptionPack _)
+      | [VBase (VBool True), VBase v]  <- vs
+      -> return $ VBase $ VSome v
+      | [VBase (VBool False)]  <- vs
+      -> return $ VBase $ VNone
+      | otherwise
+      -> primError
+

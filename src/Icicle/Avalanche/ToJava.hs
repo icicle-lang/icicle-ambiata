@@ -236,6 +236,8 @@ primTypeOfPrim p
      -> upda pu
     PrimArray (PrimArrayZip _ _)
      -> Function "Array.zip"
+    PrimOption (PrimOptionPack _)
+     -> Function "Option.pack"
 
  where
   min' (M.PrimArithUnary ar _) = unary ar
