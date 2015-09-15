@@ -5,8 +5,8 @@
 module Icicle.Storage.Dictionary.Toml.Toml
   ( tomlDoc ) where
 
-import           P                   hiding (concat, (<|>), many, optional, join)
-import           Prelude             (read, {- eww -} head, fromEnum, toEnum, maxBound)
+import           P                   hiding (concat, (<|>), many, optional, join, count)
+import           Prelude             (read, fromEnum, toEnum, maxBound)
 
 import qualified Data.HashMap.Strict as M
 import qualified Data.List           as L
@@ -230,8 +230,9 @@ escSeq = char '\\' *> escSeqChar
 unicodeHex :: Int -> Parser Char
 unicodeHex n = do
     h <- count n (satisfy isHex)
-    let v = fst . head . readHex $ h
-    return $ if v <= maxChar then toEnum v else '_'
+    case readHex h of
+      []        -> fail   $ "unicodeHex: could not read hex: " <> show h
+      ((v,_):_) -> return $ if v <= maxChar then toEnum v else '_'
   where
     isHex c = (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')
     maxChar = fromEnum (maxBound :: Char)

@@ -12,7 +12,7 @@ import              Icicle.Common.Exp.Exp
 import              Icicle.Common.Exp.Compounds
 import qualified    Icicle.Common.Exp.Prim.Minimal as Min
 
-import              P
+import              P hiding (error)
 import qualified    Data.Text   as T
 import              Data.Text   (Text)
 import qualified    Data.Set    as Set

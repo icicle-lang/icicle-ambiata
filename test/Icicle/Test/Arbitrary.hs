@@ -7,7 +7,7 @@ import           Icicle.Data
 import           Icicle.Data.DateTime
 
 import           Icicle.Test.Arbitrary.Base
-import           Orphanarium.Corpus
+import           Disorder.Corpus
 
 import           Test.QuickCheck
 import           Test.QuickCheck.Instances ()

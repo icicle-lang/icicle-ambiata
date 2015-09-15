@@ -20,7 +20,6 @@ import              Icicle.Common.Fresh
 import              P
 
 import              Data.Functor.Identity
-import              Data.List (reverse)
 import qualified    Data.Set as Set
 
 

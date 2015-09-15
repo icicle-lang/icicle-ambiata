@@ -11,7 +11,7 @@ import qualified Icicle.Core.Reduce          as CR
 import qualified Icicle.Core.Stream          as CS
 import qualified Icicle.Source.Query         as SQ
 
-import           Control.Arrow
+import           Control.Arrow ((***))
 
 import           P
 

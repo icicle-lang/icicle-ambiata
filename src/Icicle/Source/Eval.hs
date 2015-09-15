@@ -25,7 +25,7 @@ import                  Icicle.Common.Base
 import                  Icicle.Source.Query
 
 import                  P
-import                  Data.List (zip, nubBy, groupBy, reverse, take)
+import                  Data.List (zip, nubBy, groupBy, take)
 import qualified        Data.Map as Map
 
 data EvalError a n

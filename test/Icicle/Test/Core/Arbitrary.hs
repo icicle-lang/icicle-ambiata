@@ -25,7 +25,7 @@ import           Icicle.Core.Program.Program    as P
 
 import           Icicle.Test.Arbitrary.Base
 import           Icicle.Test.Arbitrary ()
-import           Orphanarium.Corpus
+import           Disorder.Corpus
 
 import           Test.QuickCheck
 import           Test.QuickCheck.Instances ()

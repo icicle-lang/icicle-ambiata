@@ -22,7 +22,7 @@ import              Icicle.Data         (AsAt(..))
 import              P
 
 import              Data.Either.Combinators
-import              Data.List   (take, reverse, sort)
+import              Data.List   (take, sort)
 import qualified    Data.Map    as Map
 
 import              Icicle.Internal.Pretty
