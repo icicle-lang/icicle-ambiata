@@ -7,3 +7,6 @@
 [submodule "lib/disorder.hs"]
 	path = lib/disorder.hs
 	url = https://github.com/ambiata/disorder.hs
+[submodule "lib/jetski"]
+	path = lib/jetski
+	url = https://github.com/ambiata/jetski
