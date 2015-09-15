@@ -1,5 +1,9 @@
 #!/bin/sh -eu
 
+if [ -z ${CABAL_CONFIG_ARGS+1} ]; then
+    CABAL_CONFIG_ARGS=
+fi
+
 usage () {
     status=${1:-0}
     cat <<EOF
@@ -25,6 +29,11 @@ Commands:
     clean           Remove compiled artifacts.
     depend          Dependency organisation tooling check|deep-check|sync.
     upgrade         Upgrade this cabal extras script.
+
+
+Environment variables:
+    CABAL_CONFIG_ARGS    Extra arguments to pass to 'cabal configure'.
+
 EOF
     exit ${status}
 }
@@ -88,7 +97,7 @@ initialize () {
     # Remove any cabal sources that are no longer available
 
     for source in $(cabal sandbox list-sources | tail -n +4 | sed '$d' | sed '$d'); do
-      source_path=$(echo $source | sed s#$(pwd)/##)
+      source_path=$(echo $source | sed s#${PROJECT_ROOT}/##)
       if ! $(echo "${CABAL_SOURCES}" | grep -q "${source_path}"); then
         echo "${source_path} no longer exists - removing from the sandbox"
         cabal sandbox delete-source "$source" 1> /dev/null
@@ -107,7 +116,7 @@ initialize () {
 
     # all dependencies installed, and configure been run?
     cabal install -j --only-dependencies --force-reinstalls --enable-tests
-    cabal configure --enable-tests
+    cabal configure --enable-tests $CABAL_CONFIG_ARGS
 }
 
 #
@@ -115,7 +124,7 @@ initialize () {
 #
 run_build () {
     initialize
-    cabal build --ghc-option="-Werror"
+    cabal build --ghc-option="-Werror" "$@"
 }
 
 #
@@ -399,4 +408,4 @@ case "$MODE" in
 build|test|testci|repl|quick|tags|lint|update|clean|depend|watch|upgrade) run_$MODE "$@" ;;
 *) fail "Unknown mode: $MODE"
 esac
-# Version: fb83ed7a2f70e6b1b0547118c1dc515021ff024d
+# Version: f0e377563dc8c5ff581d47e5b0f04d7078775f88
