@@ -23,7 +23,7 @@ import              Text.PrettyPrint.Leijen as PJOIN
 
 import              P
 
-import              Data.List (reverse, replicate, lines)
+import              Data.List (replicate, lines)
 import qualified    Data.Text               as T
 import              Data.String (IsString(..))
 
@@ -60,9 +60,3 @@ padDoc wid doc
    in  if w <= wid
        then doc P.<> mconcat (replicate (wid - w) (text " "))
        else doc P.<> line P.<> mconcat (replicate wid (text " "))
- where
-  lastMaybe xs
-   = case reverse xs of
-      []    -> Nothing
-      (x:_) -> Just x
-

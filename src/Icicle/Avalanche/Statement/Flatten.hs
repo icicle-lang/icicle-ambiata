@@ -25,7 +25,6 @@ import              P
 import              Control.Monad.Trans.Class
 
 import qualified    Data.Map                       as Map
-import              Data.List (reverse)
 
 
 data FlattenError a n
