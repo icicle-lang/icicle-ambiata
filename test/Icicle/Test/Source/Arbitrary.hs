@@ -13,7 +13,7 @@ import           Icicle.Common.Fresh
 
 import           Icicle.Test.Arbitrary.Base
 import           Icicle.Test.Core.Arbitrary ()
-import           Orphanarium.Corpus
+import           Disorder.Corpus
 
 import           Test.QuickCheck
 import           Test.QuickCheck.Instances ()

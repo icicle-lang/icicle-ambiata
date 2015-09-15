@@ -25,12 +25,12 @@ import qualified Icicle.Test.Source.PrettyParse
 import qualified Icicle.Test.Source.Progress
 import qualified Icicle.Test.Source.Convert
 
-import           Orphanarium.Core.Main
+import           Disorder.Core.Main
 
 
 main :: IO ()
 main
- = orphanariumMain
+ = disorderMain
         [ Icicle.Test.Encoding.tests
         , Icicle.Test.Serial.tests
 

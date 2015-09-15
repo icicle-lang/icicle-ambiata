@@ -230,10 +230,10 @@ test-suite test
 
   build-depends:
                        base                            >= 3          && < 5
+                     , ambiata-disorder-aeson
+                     , ambiata-disorder-core
+                     , ambiata-disorder-corpus
                      , icicle
-                     , orphanarium-aeson
-                     , orphanarium-core
-                     , orphanarium-corpus
                      , p
                      , text
                      , aeson                           == 0.8.*
@@ -254,4 +254,4 @@ test-suite test-cli
 
   build-depends:
                        base                            >= 3          && < 5
-                     , orphanarium-core
+                     , ambiata-disorder-core

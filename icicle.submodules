@@ -1,3 +1,6 @@
 lib/p
 lib/x/x-optparse
 lib/x/x-either
+lib/disorder.hs/disorder-aeson
+lib/disorder.hs/disorder-core
+lib/disorder.hs/disorder-corpus

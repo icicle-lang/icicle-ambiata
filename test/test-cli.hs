@@ -1,7 +1,7 @@
-import           Orphanarium.Core.Main
+import           Disorder.Core.Main
 
 
 main :: IO ()
 main
- = orphanariumCliMain []
+ = disorderCliMain []
 
