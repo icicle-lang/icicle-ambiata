@@ -488,6 +488,7 @@ showState state
     , flag "avalanche:  " hasAvalanche
     , flag "flatten:    " hasFlatten
     , flag "java:       " hasJava
+    , flag "c:          " hasSea
     ,      "now:        " <> T.unpack (renderDate $ currentDate state)
     ,      "data:       " <> show (length $ facts state) <> " rows"
     ,      "dictionary: " <> show (prettyDictionarySummary (dictionary state))
@@ -513,5 +514,6 @@ usage
       , ":set  +/-eval      -- whether to show the result"
       , ":set  +/-avalanche -- whether to show the Avalanche conversion"
       , ":set  +/-flatten   -- whether to show flattened Avalanche conversion"
-      , ":set  +/-java      -- whether to show the Java result" ]
+      , ":set  +/-java      -- whether to show the Java result"
+      , ":set  +/-c         -- whether to show the C result" ]
 
