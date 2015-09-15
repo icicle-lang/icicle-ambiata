@@ -30,6 +30,7 @@ import qualified Icicle.Avalanche.FromCore            as AC
 import qualified Icicle.Avalanche.Check               as AC
 import qualified Icicle.Avalanche.Prim.Flat           as APF
 import qualified Icicle.Avalanche.Program             as AP
+import qualified Icicle.Avalanche.Segfault            as Segfault
 import qualified Icicle.Avalanche.Simp                as AS
 import qualified Icicle.Avalanche.Statement.Flatten   as AF
 import qualified Icicle.Avalanche.ToJava              as AJ
@@ -102,11 +103,12 @@ data ReplState
    , hasInlined   :: Bool
    , hasCore      :: Bool
    , hasCoreType  :: Bool
+   , hasEval      :: Bool
    , hasAvalanche :: Bool
    , hasFlatten   :: Bool
    , hasJava      :: Bool
    , hasSea       :: Bool
-   , hasEval      :: Bool
+   , hasSegfault  :: Bool
    , doCoreSimp   :: Bool }
 
 -- | Settable REPL states
@@ -121,6 +123,7 @@ data Set
    | ShowFlatten        Bool
    | ShowJava           Bool
    | ShowSea            Bool
+   | ShowSegfault       Bool
    | CurrentDate        DateTime
    | PerformCoreSimp    Bool
 
@@ -140,7 +143,7 @@ data Command
 
 defaultState :: ReplState
 defaultState
-  = (ReplState [] demographics (unsafeDateOfYMD 1970 1 1) False False False False False False False False False False False)
+  = (ReplState [] demographics (unsafeDateOfYMD 1970 1 1) False False False False False False False False False False False False)
     { hasEval = True }
 
 readCommand :: String -> Maybe Command
@@ -194,6 +197,9 @@ readSetCommands ss
 
     ("+c":rest)         -> (:) (ShowSea       True)   <$> readSetCommands rest
     ("-c":rest)         -> (:) (ShowSea       False)  <$> readSetCommands rest
+
+    ("+segfault":rest)  -> (:) (ShowSegfault  True)   <$> readSetCommands rest
+    ("-segfault":rest)  -> (:) (ShowSegfault  False)  <$> readSetCommands rest
 
     ("date" : y : m : d : rest)
        | Just y' <- readMaybe y
@@ -308,6 +314,12 @@ handleLine state line = case readCommand line of
            prettyOut hasJava "- Java:" (AJ.programToJava f')
            prettyOut hasSea  "- C:"    (Sea.seaOfProgram f')
 
+           when (hasSegfault state) $ do
+             result <- liftIO . runEitherT $ Segfault.segfault f' (currentDate state) (facts state)
+             case result of
+               Left  e -> prettyOut (const True) "- Segfault error:" e
+               Right r -> prettyOut (const True) "- Segfault:" r
+
       case coreEval (currentDate state) (facts state) annot' core' of
        Left  e -> prettyOut hasEval "- Result error:" e
        Right r -> prettyOut hasEval "- Result:" r
@@ -343,6 +355,10 @@ handleSetCommand state set
         HL.outputStrLn $ "ok, core-type is now " <> showFlag b
         return $ state { hasCoreType = b }
 
+    ShowEval b -> do
+        HL.outputStrLn $ "ok, eval is now " <> showFlag b
+        return $ state { hasEval = b }
+
     ShowAvalanche b -> do
         HL.outputStrLn $ "ok, avalanche is now " <> showFlag b
         return $ state { hasAvalanche = b }
@@ -359,9 +375,13 @@ handleSetCommand state set
         HL.outputStrLn $ "ok, c is now " <> showFlag b
         return $ state { hasSea = b }
 
-    ShowEval b -> do
-        HL.outputStrLn $ "ok, eval is now " <> showFlag b
-        return $ state { hasEval = b }
+    ShowSegfault True -> do
+        HL.outputStrLn $ "i too like to live dangerously, segfaults enabled"
+        return $ state { hasSegfault = True }
+
+    ShowSegfault False -> do
+        HL.outputStrLn $ "ok, segfaults are now impossible (assuming you trust Simon Marlow)"
+        return $ state { hasSegfault = False }
 
     CurrentDate d -> do
         HL.outputStrLn $ "ok, date set to " <> T.unpack (renderDate d)
@@ -489,6 +509,7 @@ showState state
     , flag "flatten:    " hasFlatten
     , flag "java:       " hasJava
     , flag "c:          " hasSea
+    , flag "segfault:   " hasSegfault
     ,      "now:        " <> T.unpack (renderDate $ currentDate state)
     ,      "data:       " <> show (length $ facts state) <> " rows"
     ,      "dictionary: " <> show (prettyDictionarySummary (dictionary state))
@@ -514,6 +535,7 @@ usage
       , ":set  +/-eval      -- whether to show the result"
       , ":set  +/-avalanche -- whether to show the Avalanche conversion"
       , ":set  +/-flatten   -- whether to show flattened Avalanche conversion"
-      , ":set  +/-java      -- whether to show the Java result"
-      , ":set  +/-c         -- whether to show the C result" ]
+      , ":set  +/-java      -- whether to show the Java conversion"
+      , ":set  +/-c         -- whether to show the C conversion"
+      , ":set  +/-segfault  -- whether to show the result (using C evaluation)" ]
 

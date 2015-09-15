@@ -92,6 +92,7 @@ seaOfProgram program = vsep
   , ""
   , "void compute(icicle_state_t *s)"
   , "{"
+  , "    printf(\"gen_date = %d\", s->gen_date);"
   , indent 4 . vsep
              . fmap defOfAccumulator
              . Map.toList
@@ -112,15 +113,8 @@ stateOfStatement stmt = vsep
    , "    /* inputs */"
    , "    idate_t    gen_date;"
    , "    iint_t     new_count;"
-   , "    iint_t    *new_fact;"
    , "    idate_t   *new_date;"
-   , ""
-   , "    /* resumables */"
-   , indent 4 . vsep
-              . fmap defOfAccumulator
-              . Map.toList
-              . accumsOfStatement
-              $ stmt
+   , "    iint_t    *new_fact;"
    , ""
    , "    /* outputs */"
    , "    ierror_t   error;"
@@ -128,6 +122,13 @@ stateOfStatement stmt = vsep
               . fmap defOfOutput
               . Map.toList
               . outputsOfStatement
+              $ stmt
+   , ""
+   , "    /* resumables */"
+   , indent 4 . vsep
+              . fmap defOfAccumulator
+              . Map.toList
+              . accumsOfStatement
               $ stmt
    , "} icicle_state_t;"
    ]
@@ -190,14 +191,14 @@ seaOfStatement stmt
       -> vsep [ ""
               , assign ("const " <> seaOfValType IntT
                                  <> "        new_count") "s->new_count;"
-              , assign ("const " <> seaOfValType vt
-                                 <> " *const new_fact")  "s->new_fact;"
               , assign ("const " <> seaOfValType dt
                                  <> " *const new_date")  "s->new_date;"
+              , assign ("const " <> seaOfValType vt
+                                 <> " *const new_fact")  "s->new_fact;"
               , ""
               , "for (iint_t i = 0; i < new_count; i++) {"
-              , indent 4 $ assign (seaOfValType vt <+> seaOfName n_fact) "new_fact[i]" <> semi <> line
-                        <> assign (seaOfValType dt <+> seaOfName n_date) "new_date[i]" <> semi <> line
+              , indent 4 $ assign (seaOfValType dt <+> seaOfName n_date) "new_date[i]" <> semi <> line
+                        <> assign (seaOfValType vt <+> seaOfName n_fact) "new_fact[i]" <> semi <> line
                         <> seaOfStatement stmt'
               , "}"
               , ""
