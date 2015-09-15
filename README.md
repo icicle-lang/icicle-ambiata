@@ -3,6 +3,8 @@ icicle
 
 [![Build Status](https://api.travis-ci.org/ambiata/icicle.svg?branch=master)](https://travis-ci.org/ambiata/icicle)
 
+> Icicle == I(vory) SQL.
+
 A streaming query language.
 
 purpose
