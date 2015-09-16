@@ -263,8 +263,9 @@ handleLine state line = case readCommand line of
 
     checked <- runEitherT $ do
       parsed    <- hoist $ SR.sourceParse (T.pack line)
+      blanded   <- hoist $ SR.sourceDesugar parsed
       (annot, typ)
-                <- hoist $ SR.sourceCheck (dictionary state) parsed
+                <- hoist $ SR.sourceCheck (dictionary state) blanded
 
       prettyOut hasType "- Type:" typ
 

@@ -343,9 +343,10 @@ generateX x
              $ hoistEither $ errorNoSuggestions (ErrorFunctionWrongArgs a x fErr [])
            annotate Map.empty resT $ \a' -> Prim a' p
 
-    -- Cases require all their alternatives to have the same type, as well as the scrutinee and the alternatives to have
-    -- the same temporality.
-    -- This may be more restrictive than necessary, since lets allow different temporalities, but hopefully will not be an issue.
+    -- Cases require all their alternatives to have the same type, as well as
+    -- the scrutinee and the alternatives to have the same temporality.
+    -- This may be more restrictive than necessary, since lets allow different
+    -- temporalities, but hopefully will not be an issue.
     --
     -- TODO: cases with nested constructors must be converted to multiple nested cases.
     -- For example:
@@ -391,8 +392,11 @@ generateX x
                     ((_,alt):_)
                        -> return $ annResult $ annotOfExp alt
 
+           -- all alternatives must have the same temporality
+           -- this is too strict too: let fold s = 0 : case s < value | True -> s | False -> value end
            mapM_ (\(_,alt) -> require a $ CEquals resT $ annResult $ annotOfExp alt) pats'
 
+           -- return temporality
            let tmpx = getTemporalityOrPure $ annResult $ annotOfExp scrut'
            let tmpq = getTemporalityOrPure $ resT
            -- require a $ CEquals tmpx tmpq

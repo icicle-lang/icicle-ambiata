@@ -5,6 +5,7 @@ module Icicle.Repl (
     ReplError (..)
   , annotOfError
   , sourceParse
+  , sourceDesugar
   , sourceCheck
   , sourceConvert
   , sourceParseConvert
@@ -39,6 +40,7 @@ import qualified Icicle.Source.ToCore.Base          as STC
 import qualified Icicle.Source.ToCore.ToCore        as STC
 import qualified Icicle.Source.Type                 as ST
 import qualified Icicle.Source.Transform.Inline     as STI
+import qualified Icicle.Source.Transform.Desugar    as STD
 
 import           P
 
@@ -47,6 +49,7 @@ import           Control.Monad.Trans.Either
 import         X.Control.Monad.Trans.Either
 
 import           Data.Either.Combinators
+import           Data.Functor.Identity
 import           Data.Text                          (Text)
 import qualified Data.Text                          as T
 import qualified Data.Text.IO                         as T
@@ -59,6 +62,7 @@ import qualified Text.ParserCombinators.Parsec      as Parsec
 
 data ReplError
  = ReplErrorParse   Parsec.ParseError
+ | ReplErrorDesugar (STD.DesugarError SP.Variable)
  | ReplErrorCheck   (SC.CheckError Parsec.SourcePos Var)
  | ReplErrorConvert (STC.ConvertError Parsec.SourcePos Var)
  | ReplErrorDecode  S.ParseError
@@ -136,6 +140,14 @@ sourceParse t
  = mapLeft ReplErrorParse
  $ SP.parseQueryTop (CommonBase.OutputName "repl") t
 
+sourceDesugar :: QueryTop' -> Either ReplError QueryTop'
+sourceDesugar q
+ = runIdentity
+ $ runEitherT
+ $ bimapEitherT ReplErrorDesugar snd
+ $ Fresh.runFreshT
+     (STD.desugarQT q)
+     (freshNamer "desugar")
 
 sourceCheck :: D.Dictionary -> QueryTop' -> Either ReplError (QueryTop'T, ST.Type Var)
 sourceCheck d q

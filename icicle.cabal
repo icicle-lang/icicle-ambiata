@@ -176,6 +176,7 @@ library
                        Icicle.Source.Transform.Base
                        Icicle.Source.Transform.SubstX
                        Icicle.Source.Transform.Inline
+                       Icicle.Source.Transform.Desugar
                        Icicle.Source.PrettyAnnot
 
                        Icicle.Storage.Dictionary.TextV1
