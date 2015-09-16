@@ -4,6 +4,8 @@
 {-# OPTIONS_GHC -w #-}
 module Icicle.Avalanche.ToSea (
     seaOfProgram
+  , accumsOfProgram
+  , outputsOfProgram
   ) where
 
 import           Icicle.Avalanche.Prim.Flat
@@ -46,7 +48,7 @@ seaOfProgram program = vsep
   , ""
   , "typedef const char *ierror_t;"
   , ""
-  , stateOfStatement (statements program)
+  , stateOfProgram program
   , ""
   , "static const iunit_t iunit  = 0x1c1c13;"
   , "static const ibool_t ifalse = 0;"
@@ -87,17 +89,16 @@ seaOfProgram program = vsep
   , ""
   , "static idouble_t INLINE idouble_err (icicle_state_t *s, ierror_t error)  {"
   , "    s->error = error;"
-  , "    return 0xBAD1c3;"
+  , "    return 0/0;"
   , "}"
   , ""
   , "void compute(icicle_state_t *s)"
   , "{"
-  , "    printf(\"gen_date = %d\", s->gen_date);"
   , indent 4 . vsep
              . fmap defOfAccumulator
              . Map.toList
-             $ accumsOfStatement (statements program) `Map.union`
-               readsOfStatement  (statements program)
+             $ accumsOfProgram program `Map.union`
+               readsOfProgram  program
   , ""
   , indent 4 (seaOfStatement (statements program))
   , "}"
@@ -106,9 +107,9 @@ seaOfProgram program = vsep
 
 ------------------------------------------------------------------------
 
-stateOfStatement :: (Show a, Show n, Pretty n, Ord n)
-                 => Statement (Annot a) n Prim -> Doc
-stateOfStatement stmt = vsep
+stateOfProgram :: (Show a, Show n, Pretty n, Ord n)
+               => Program (Annot a) n Prim -> Doc
+stateOfProgram program = vsep
    [ "typedef struct {"
    , "    /* inputs */"
    , "    idate_t    gen_date;"
@@ -121,15 +122,15 @@ stateOfStatement stmt = vsep
    , indent 4 . vsep
               . fmap defOfOutput
               . Map.toList
-              . outputsOfStatement
-              $ stmt
+              . outputsOfProgram
+              $ program
    , ""
    , "    /* resumables */"
    , indent 4 . vsep
               . fmap defOfAccumulator
               . Map.toList
-              . accumsOfStatement
-              $ stmt
+              . accumsOfProgram
+              $ program
    , "} icicle_state_t;"
    ]
 
@@ -389,9 +390,10 @@ tuple xs  = "(" <> go xs
 ------------------------------------------------------------------------
 -- Analysis
 
-accumsOfStatement :: (Show a, Show n, Pretty n, Ord n)
-                  => Statement (Annot a) n Prim
-                  -> Map (Name n) (AccumulatorType, ValType)
+accumsOfProgram :: Ord n => Program (Annot a) n Prim -> Map (Name n) (AccumulatorType, ValType)
+accumsOfProgram = accumsOfStatement . statements
+
+accumsOfStatement :: Ord n => Statement (Annot a) n Prim -> Map (Name n) (AccumulatorType, ValType)
 accumsOfStatement stmt
  = case stmt of
      Block []                -> Map.empty
@@ -413,9 +415,10 @@ accumsOfStatement stmt
 
 ------------------------------------------------------------------------
 
-readsOfStatement :: (Show a, Show n, Pretty n, Ord n)
-                 => Statement (Annot a) n Prim
-                 -> Map (Name n) (AccumulatorType, ValType)
+readsOfProgram :: Ord n => Program (Annot a) n Prim -> Map (Name n) (AccumulatorType, ValType)
+readsOfProgram = readsOfStatement . statements
+
+readsOfStatement :: Ord n => Statement (Annot a) n Prim -> Map (Name n) (AccumulatorType, ValType)
 readsOfStatement stmt
  = case stmt of
      Block []                -> Map.empty
@@ -437,9 +440,10 @@ readsOfStatement stmt
 
 ------------------------------------------------------------------------
 
-outputsOfStatement :: (Show a, Show n, Pretty n, Ord n)
-                  => Statement (Annot a) n Prim
-                  -> Map OutputName ValType
+outputsOfProgram :: Program (Annot a) n Prim -> Map OutputName ValType
+outputsOfProgram = outputsOfStatement . statements
+
+outputsOfStatement :: Statement (Annot a) n Prim -> Map OutputName ValType
 outputsOfStatement stmt
  = case stmt of
      Block []                -> Map.empty

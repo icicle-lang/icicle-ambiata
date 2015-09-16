@@ -315,7 +315,7 @@ handleLine state line = case readCommand line of
            prettyOut hasSea  "- C:"    (Sea.seaOfProgram f')
 
            when (hasSegfault state) $ do
-             result <- liftIO . runEitherT $ Segfault.segfault f' (currentDate state) (facts state)
+             result <- liftIO . runEitherT $ segfaultEval (currentDate state) (facts state) annot' f'
              case result of
                Left  e -> prettyOut (const True) "- Segfault error:" e
                Right r -> prettyOut (const True) "- Segfault:" r
@@ -429,6 +429,31 @@ coreEval d fs (renameQT unVar -> query) prog
     evalV
       = S.evaluateVirtualValue prog d
 
+segfaultEval :: DateTime
+             -> [AsAt Fact]
+             -> QueryTopPUV
+             -> AP.Program (C.Annot ()) Text APF.Prim
+             -> EitherT Segfault.SegfaultError IO [(Entity, Value)]
+segfaultEval date newFacts (renameQT unVar -> query) program =
+    mconcat <$> sequence results
+  where
+    partitions :: [S.Partition]
+    partitions  = S.streams newFacts
+
+    results :: [EitherT Segfault.SegfaultError IO [(Entity, Value)]]
+    results = fmap (evalP (SQ.feature query)) partitions
+
+    evalP :: CommonBase.Name Text
+          -> S.Partition
+          -> EitherT Segfault.SegfaultError IO [(Entity, Value)]
+    evalP featureName (S.Partition entityName attributeName values)
+      | CommonBase.Name name <- featureName
+      , Attribute name == attributeName
+      = do outputs <- Segfault.segfault program date values
+           return $ fmap (\out -> (entityName, snd out)) outputs
+
+      | otherwise
+      = return []
 
 -- | Converts Core to Avalanche then flattens the result.
 --
