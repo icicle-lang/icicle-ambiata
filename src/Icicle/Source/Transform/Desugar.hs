@@ -13,18 +13,18 @@ import           P
 import           Prelude             (error)
 
 
-desugarQT :: QueryTop a n -> Fresh n (QueryTop a n)
+desugarQT :: (Eq n) => QueryTop a n -> Fresh n (QueryTop a n)
 desugarQT qt
   = do qq' <- desugarQ (query qt)
        return $ qt { query = qq' }
 
-desugarQ :: Query a n -> Fresh n (Query a n)
+desugarQ :: (Eq n) => Query a n -> Fresh n (Query a n)
 desugarQ qq
   = do cs <- mapM desugarC (contexts qq)
        f  <- desugarX (final qq)
        return $ Query cs f
 
-desugarC :: Context a n -> Fresh n (Context a n)
+desugarC :: (Eq n) => Context a n -> Fresh n (Context a n)
 desugarC cc
  = case cc of
     GroupBy  a   x -> GroupBy  a   <$> desugarX x
@@ -34,13 +34,13 @@ desugarC cc
     LetFold  a   f -> LetFold  a   <$> desugarF f
     _              -> return cc
 
-desugarF :: Fold (Query a n) a n -> Fresh n (Fold (Query a n) a n)
+desugarF :: (Eq n) => Fold (Query a n) a n -> Fresh n (Fold (Query a n) a n)
 desugarF ff
   = do fi' <- desugarX (foldInit ff)
        fw' <- desugarX (foldWork ff)
        return $ ff { foldInit = fi', foldWork = fw'}
 
-desugarX :: Exp a n -> Fresh n (Exp a n)
+desugarX :: (Eq n) => Exp a n -> Fresh n (Exp a n)
 desugarX xx
  = case xx of
 
@@ -123,7 +123,7 @@ casesForTy ann scrut ty
 --   a case statement.
 --
 data Tree a n x
- = Done  x                         -- ^ just use pattern/alternative/thing.
+ = Done  x                         -- ^ just use the pattern/alternative/thing.
  | TCase (Exp' (Query a n) a n)    -- ^ do a case statement
          [(Pattern n, Tree a n x)]
  | TLet  (Name n)                  -- ^ insert a let because we cannot generate pattern variables.
@@ -141,12 +141,13 @@ instance Monad (Tree a n) where
 
 
 treeToCase
-  :: a
+  :: (Eq n)
+  => a
   -> [(Pattern n, Exp' (Query a n) a n)]
   -> Tree a n (Pattern n)
   -> Exp' (Query a n) a n
 treeToCase ann patalts
- = caseStmtsFor . fmap (getAltBody patalts)
+ = simpLets . caseStmtsFor . fmap (getAltBody patalts)
   where
    -- Convert tree structure to AST
    caseStmtsFor (Done x)
@@ -190,6 +191,81 @@ treeToCase ann patalts
     = return []
    matcher _ _
     = Nothing
+
+
+-- | Simplify nested bindings from variables to variables, e.g. `let x = y ~>..`
+--   This recurses into nested queries so it's not a traditional beta-reduction.
+--
+simpLets :: (Eq n) => Exp' (Query a n) a n -> Exp' (Query a n) a n
+simpLets xx
+ = case xx of
+    Nested _ q
+     -> go q
+
+    Case a e ps
+     -> Case a e $ fmap (fmap simpLets) ps
+
+    _ -> xx
+
+ where
+  go qq
+   = case qq of
+       Query [] bd
+         -> simpLets bd
+       Query (Let _ x (Var _ y) : cs) bd
+         -> go (Query cs (substX x y bd))
+       _ -> xx
+
+  substX x y bd
+   = case bd of
+      Var a n
+        | n == x
+        -> Var a y
+      Nested a q
+        -> Nested a $ substQ x y q
+      App a e1 e2
+        -> App a (substX x y e1) (substX x y e2)
+      Case a e pats
+        -> Case a (substX x y e) (fmap (substA x y) pats)
+      _ -> bd
+
+  substA x y (pat, e)
+   | x `elem` varsIn pat = (pat, e)
+   | otherwise           = (pat, substX x y e)
+
+  varsIn (PatCon _ as)   = concatMap varsIn as
+  varsIn (PatVariable v) = [ v ]
+  varsIn (PatDefault)    = []
+
+  substC _ _ []
+   = (True, [])
+  substC x y (cc:rest)
+   = let (f, rest') = substC x y rest
+      in case cc of
+        Let a n e
+         | n /= x
+         -> (f, Let a n (substX x y e) : rest')
+         | n == x
+         -> (False, Let a n (substX x y e) : rest)
+        LetFold a (Fold n init work ty)
+         | n /= x
+         -> (f, LetFold a (Fold n (substX x y init) (substX x y work) ty):rest')
+         | n == x
+         -> (False, LetFold a (Fold n (substX x y init) work ty) : rest)
+        GroupBy a e
+         -> (f, GroupBy a (substX x y e) : rest')
+        Distinct a e
+         -> (f, Distinct a (substX x y e) : rest')
+        Filter a e
+         -> (f, Filter a (substX x y e) : rest')
+
+        Windowed {} -> (f, cc : rest')
+        Latest {}   -> (f, cc :rest')
+
+  substQ x y qq
+   = let (f, ctxs) = substC x y (contexts qq)
+      in qq { contexts = ctxs
+            , final    = if f then substX x y (final qq) else final qq }
 
 
 freshes :: Monad m => Int -> FreshT n m [Name n]

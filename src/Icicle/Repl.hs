@@ -49,7 +49,6 @@ import           Control.Monad.Trans.Either
 import         X.Control.Monad.Trans.Either
 
 import           Data.Either.Combinators
-import           Data.Functor.Identity
 import           Data.Text                          (Text)
 import qualified Data.Text                          as T
 import qualified Data.Text.IO                         as T
@@ -62,7 +61,6 @@ import qualified Text.ParserCombinators.Parsec      as Parsec
 
 data ReplError
  = ReplErrorParse   Parsec.ParseError
- | ReplErrorDesugar (STD.DesugarError SP.Variable)
  | ReplErrorCheck   (SC.CheckError Parsec.SourcePos Var)
  | ReplErrorConvert (STC.ConvertError Parsec.SourcePos Var)
  | ReplErrorDecode  S.ParseError
@@ -140,12 +138,10 @@ sourceParse t
  = mapLeft ReplErrorParse
  $ SP.parseQueryTop (CommonBase.OutputName "repl") t
 
-sourceDesugar :: QueryTop' -> Either ReplError QueryTop'
+sourceDesugar :: QueryTop' -> QueryTop'
 sourceDesugar q
- = runIdentity
- $ runEitherT
- $ bimapEitherT ReplErrorDesugar snd
- $ Fresh.runFreshT
+ = snd
+ $ Fresh.runFresh
      (STD.desugarQT q)
      (freshNamer "desugar")
 

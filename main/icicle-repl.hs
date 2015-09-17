@@ -99,6 +99,7 @@ data ReplState
    , hasType      :: Bool
    , hasAnnotated :: Bool
    , hasInlined   :: Bool
+   , hasDesugared :: Bool
    , hasCore      :: Bool
    , hasCoreType  :: Bool
    , hasAvalanche :: Bool
@@ -112,6 +113,7 @@ data Set
    = ShowType           Bool
    | ShowAnnotated      Bool
    | ShowInlined        Bool
+   | ShowDesugared      Bool
    | ShowCore           Bool
    | ShowCoreType       Bool
    | ShowEval           Bool
@@ -137,7 +139,7 @@ data Command
 
 defaultState :: ReplState
 defaultState
-  = (ReplState [] demographics (unsafeDateOfYMD 1970 1 1) False False False False False False False False False False)
+  = (ReplState [] demographics (unsafeDateOfYMD 1970 1 1) False False False False False False False False False False False)
     { hasEval = True }
 
 readCommand :: String -> Maybe Command
@@ -167,6 +169,9 @@ readSetCommands ss
 
     ("+inlined":rest)   -> (:) (ShowInlined   True)   <$> readSetCommands rest
     ("-inlined":rest)   -> (:) (ShowInlined   False)  <$> readSetCommands rest
+
+    ("+desugared":rest)   -> (:) (ShowDesugared   True)   <$> readSetCommands rest
+    ("-desugared":rest)   -> (:) (ShowDesugared   False)  <$> readSetCommands rest
 
     ("+core":rest)      -> (:) (ShowCore True)        <$> readSetCommands rest
     ("-core":rest)      -> (:) (ShowCore False)       <$> readSetCommands rest
@@ -263,16 +268,18 @@ handleLine state line = case readCommand line of
 
     checked <- runEitherT $ do
       parsed    <- hoist $ SR.sourceParse (T.pack line)
-      blanded   <- hoist $ SR.sourceDesugar parsed
       (annot, typ)
-                <- hoist $ SR.sourceCheck (dictionary state) blanded
+                <- hoist $ SR.sourceCheck (dictionary state) parsed
 
       prettyOut hasType "- Type:" typ
 
       prettyOut hasAnnotated "- Annotated:" (SPretty.PrettyAnnot annot)
 
       let inlined= SR.sourceInline (dictionary state) annot
-      (annot',_) <- hoist $ SR.sourceCheck (dictionary state) inlined
+      blanded    <- hoist $ return $ SR.sourceDesugar inlined
+      prettyOut hasDesugared "- Desugared:" blanded
+
+      (annot',_) <- hoist $ SR.sourceCheck (dictionary state) blanded
       prettyOut hasInlined "- Inlined:" inlined
       prettyOut hasInlined "- Inlined:" (SPretty.PrettyAnnot annot')
 
@@ -327,6 +334,10 @@ handleSetCommand state set
     ShowInlined b -> do
         HL.outputStrLn $ "ok, inlined is now " <> showFlag b
         return $ state { hasInlined = b }
+
+    ShowDesugared b -> do
+        HL.outputStrLn $ "ok, desugared is now " <> showFlag b
+        return $ state { hasDesugared = b }
 
     ShowCore b -> do
         HL.outputStrLn $ "ok, core is now " <> showFlag b
@@ -470,6 +481,7 @@ showState state
     [ flag "type:       " hasType
     , flag "annotated:  " hasAnnotated
     , flag "inlined:    " hasInlined
+    , flag "desugared:  " hasDesugared
     , flag "core:       " hasCore
     , flag "core-type:  " hasCoreType
     , flag "core-simp:  " doCoreSimp
