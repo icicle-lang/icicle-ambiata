@@ -14,7 +14,8 @@ import           P hiding (concat, intercalate)
 import           Data.Attoparsec.Text
 
 import           Data.Either.Combinators
-import           Data.Text hiding (takeWhile)
+import           Data.Text hiding (takeWhile, singleton)
+import           Data.Set (singleton)
 
 import           Icicle.Storage.Encoding
 
@@ -32,7 +33,7 @@ field = append <$> takeWhile (not . isDelimOrEscape) <*> (concat <$> many (cons 
 
 parseIcicleDictionaryV1 :: Parser DictionaryEntry
 parseIcicleDictionaryV1 = do
-  DictionaryEntry <$> (Attribute <$> field) <* p <*> (ConcreteDefinition <$> parseEncoding)
+  DictionaryEntry <$> (Attribute <$> field) <* p <*> (ConcreteDefinition <$> parseEncoding <*> pure (singleton "NA"))
     where
       p = char '|'
 
@@ -41,7 +42,7 @@ parseDictionaryLineV1 s =
   mapLeft (ParseError . pack) $ parseOnly parseIcicleDictionaryV1 s
 
 writeDictionaryLineV1 :: DictionaryEntry -> Text
-writeDictionaryLineV1 (DictionaryEntry (Attribute a) (ConcreteDefinition e)) =
+writeDictionaryLineV1 (DictionaryEntry (Attribute a) (ConcreteDefinition e _)) =
   a <> "|" <> prettyConcrete e
 
 writeDictionaryLineV1 (DictionaryEntry _ (VirtualDefinition _)) = "Virtual features not supported in V1"

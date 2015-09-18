@@ -55,7 +55,7 @@ data DictionaryEntry' =
   deriving (Eq, Show)
 
 data Definition' =
-    ConcreteDefinition' Encoding
+    ConcreteDefinition' Namespace Encoding (Maybe Text)
   | VirtualDefinition'  Virtual'
   deriving (Eq, Show)
 
@@ -136,18 +136,19 @@ validateTableWith f _ conf (NTable t, _) =
 validateTableWith _ n _ (_, pos) = AccFailure $ [BadType n "table" pos]
 
 validateFact :: DictionaryConfig -> Text -> Table -> AccValidation [DictionaryValidationError] DictionaryEntry'
-validateFact _ name x =
+validateFact conf name x =
   let -- Every fact needs an encoding, which can't be inherited from it's parent.
       encoding   = maybe (AccFailure [MissingRequired ("fact." <> name) "encoding"]) (validateEncoding' ("fact." <> name)) $ M.lookup "encoding" x
-      {-
-         This section is commented out until concrete features can specify their tombstones and namespaces are first class.
-         -- A parameter which is required, and if given must be validated. If it's not given however, a parent value can be used.
-         valFeatureOrParent fname = (maybe (maybe (AccFailure [MissingRequired ("fact." <> name) fname]) AccSuccess (namespace conf)) (validateText fname) $ x ^? key fname)
-         namespace' = valFeatureOrParent "namespace"
-         tombstone' = valFeatureOrParent "tombstone"
-      -}
+
+      -- A parameter which is required, and if given must be validated. If it's not given however, a parent value can be used.
+      valFeatureOrParent fname = (maybe (maybe (AccFailure [MissingRequired ("fact." <> name) fname]) AccSuccess (namespace conf)) (validateText fname) $ x ^? key fname)
+      namespace' = Namespace <$> (valFeatureOrParent "namespace")
+
+      -- Tombstones are not mandatory, but can be inherited.
+      tombstone' = (<|> tombstone conf) <$> ((validateText "tombstone") `traverse` (x ^? key "tombstone"))
+
       -- Todo: ensure that there's no extra data lying around. All valid TOML should be used.
-  in DictionaryEntry' (Attribute name) <$> (ConcreteDefinition' <$> encoding)
+  in DictionaryEntry' (Attribute name) <$> (ConcreteDefinition' <$> namespace' <*> encoding <*> tombstone')
 
 validateEncoding' :: Text -> (Node, Pos.SourcePos) -> AccValidation [DictionaryValidationError] Encoding
 -- We can accept an encoding as a string in the old form.

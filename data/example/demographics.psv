@@ -12,7 +12,7 @@ bart|age|10|1989-12-17
 bart|gender|m|1989-12-17
 lisa|age|8|1989-12-17
 lisa|gender|f|1989-12-17
-lisa|gender|m|1989-12-18
+lisa|gender|NA|1989-12-18
 lisa|gender|m|1989-12-19
 maggie|age|2|1989-12-17
 maggie|gender|f|1989-12-17

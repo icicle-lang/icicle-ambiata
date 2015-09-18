@@ -39,6 +39,7 @@ import qualified Data.Text                          as T
 import qualified Data.Text.IO                       as T
 
 import qualified Data.Map                           as M
+import qualified Data.Set                           as S
 
 import qualified Text.Parsec                        as Parsec
 
@@ -124,7 +125,7 @@ loadDictionary' parentFuncs parentConf parentConcrete fp
     where
       rp = (takeDirectory fp)
 
-      remakeConcrete (DictionaryEntry' a (ConcreteDefinition' e)) cds = (DictionaryEntry a (ConcreteDefinition e)) : cds
+      remakeConcrete (DictionaryEntry' a (ConcreteDefinition' _ e t)) cds = (DictionaryEntry a (ConcreteDefinition e $ S.fromList $ toList t)) : cds
       remakeConcrete _ cds = cds
 
       remakeVirtuals (DictionaryEntry' a (VirtualDefinition' (Virtual' v))) vds = (a, v) : vds

@@ -7,11 +7,12 @@ module Icicle.Test.Encoding where
 import           Icicle.Test.Arbitrary
 import           Icicle.Encoding
 
-import           P
+import           P hiding (empty)
 
 import           System.IO
 
 import           Test.QuickCheck
+import           Data.Set (empty)
 
 
 -- Sanity checking the randomly generated values
@@ -33,7 +34,7 @@ prop_json_roundtrip e =
 
 prop_text_roundtrip e =
  forAll  (valueOfEncoding e)
- $ \v -> (parseValue e . renderValue "☠") v === Right v
+ $ \v -> (parseValue e empty . renderValue "☠") v === Right v
 
 return []
 tests :: IO Bool

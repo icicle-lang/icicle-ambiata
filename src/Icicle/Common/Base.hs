@@ -45,6 +45,7 @@ data BaseValue
  | VNone
  | VMap    (Map.Map BaseValue    BaseValue)
  | VStruct (Map.Map StructField  BaseValue)
+ | VTombstone
 
  | VException ExceptionInfo
  deriving (Show, Ord, Eq)
@@ -101,6 +102,8 @@ instance Pretty BaseValue where
       -> text "Map" <+> pretty (Map.toList mv)
      VStruct mv
       -> text "Struct" <+> pretty (Map.toList mv)
+     VTombstone
+      -> text "Tombstone"
      VException e
       -> text "Exception:" <+> pretty e
 
