@@ -17,6 +17,7 @@ module Icicle.Common.Type (
     , Type
     , funOfVal
     , arrow
+    , defaultOfType
 
     , ArithType (..)
     , valTypeOfArithType
@@ -37,10 +38,12 @@ module Icicle.Common.Type (
 
 import              Icicle.Internal.Pretty
 import              Icicle.Common.Base
+import              Icicle.Data.DateTime (dateOfDays)
 
 import              P
 
 import qualified    Data.Map as Map
+import qualified    Data.Text as T
 
 
 -- | Real values.
@@ -74,6 +77,23 @@ arithTypeOfValType :: ValType -> Maybe ArithType
 arithTypeOfValType IntT         = Just ArithIntT
 arithTypeOfValType DoubleT      = Just ArithDoubleT
 arithTypeOfValType _            = Nothing
+
+
+defaultOfType :: ValType -> BaseValue
+defaultOfType typ
+ = case typ of
+     BoolT     -> VBool False
+     DateTimeT -> VDateTime (dateOfDays 0)
+     DoubleT   -> VDouble 0
+     IntT      -> VInt 0
+     StringT   -> VString T.empty
+     UnitT     -> VUnit
+     ArrayT  _ -> VArray []
+     MapT  _ _ -> VMap Map.empty
+     OptionT _ -> VNone
+     PairT a b -> VPair (defaultOfType a)
+                        (defaultOfType b)
+     StructT t -> VStruct (Map.map defaultOfType (getStructType t))
 
 
 data StructType

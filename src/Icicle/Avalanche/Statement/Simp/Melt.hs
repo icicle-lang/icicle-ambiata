@@ -1,15 +1,16 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards #-}
+{-# LANGUAGE PatternSynonyms #-}
 module Icicle.Avalanche.Statement.Simp.Melt (
     melt
   ) where
 
 import              Icicle.Avalanche.Prim.Flat
-import qualified    Icicle.Common.Exp.Prim.Minimal as Min
-import              Icicle.Avalanche.Statement.Statement
 import              Icicle.Avalanche.Statement.Simp
+import              Icicle.Avalanche.Statement.Statement
 
+import qualified    Icicle.Common.Exp.Prim.Minimal as Min
 import              Icicle.Common.Base
 import              Icicle.Common.Exp
 import              Icicle.Common.Fresh
@@ -20,109 +21,168 @@ import              P
 import qualified    Data.Map            as Map
 
 
+pattern PrimZip  ta tb = PrimArray   (PrimArrayZip ta tb)
+pattern PrimPair ta tb = PrimMinimal (Min.PrimConst (Min.PrimConstPair ta tb))
+pattern PrimFst  ta tb = PrimMinimal (Min.PrimPair  (Min.PrimPairFst   ta tb))
+pattern PrimSnd  ta tb = PrimMinimal (Min.PrimPair  (Min.PrimPairSnd   ta tb))
+pattern PrimMkOpt   tv = PrimOption  (PrimOptionPack          tv)
+pattern PrimIsSome  tv = PrimProject (PrimProjectOptionIsSome tv)
+pattern PrimGet     tv = PrimUnsafe  (PrimUnsafeOptionGet     tv)
+
+
 melt :: (Show n, Ord n)
      => a
      -> Statement a n Prim
      -> Fresh n (Statement a n Prim)
 melt a_fresh statements
- = transformUDStmt goS Map.empty statements
+ = transformUDStmt goStmt Map.empty statements
  where
   xVar   = XVar   a_fresh
   xPrim  = XPrim  a_fresh
   xValue = XValue a_fresh
   xApp   = XApp   a_fresh
 
-  goS env s
-   = do env' <- updateEnv env s
-        let go ss = goS env' ss
-        case s of
-             InitAccumulator (Accumulator n at _ x) ss
-              | Just (Latest,PairT a b,[na,nb]) <- Map.lookup n env'
-              -> go
-               $ InitAccumulator (Accumulator na at a x)
-               $ InitAccumulator (Accumulator nb at b x)
-                 ss
+  primZip  ta tb x y = xPrim (PrimZip  ta tb) `xApp` xVar x `xApp` xVar y
+  primPair ta tb x y = xPrim (PrimPair ta tb) `xApp` xVar x `xApp` xVar y
+  primFst  ta tb x   = xPrim (PrimFst  ta tb) `xApp` x
+  primSnd  ta tb x   = xPrim (PrimSnd  ta tb) `xApp` x
 
-              | Just (Mutable,PairT a b,[na,nb]) <- Map.lookup n env'
-              -> go
-               $ InitAccumulator (Accumulator na at a (xPrim (PrimMinimal $ Min.PrimPair $ Min.PrimPairFst a b) `xApp` x))
-               $ InitAccumulator (Accumulator nb at b (xPrim (PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd a b) `xApp` x)) ss
+  primMkOpt   tv b v = xPrim (PrimMkOpt   tv) `xApp` xVar b `xApp` xVar v
+  primIsSome  tv v   = xPrim (PrimIsSome  tv) `xApp` v
+  primGet     tv v   = xPrim (PrimGet     tv) `xApp` v
 
-              | Just (Mutable,UnitT,[]) <- Map.lookup n env'
-              -> go ss
+  goStmt env stmt
+   = do env' <- updateEnv stmt env
+        let go = goStmt env'
+        case stmt of
 
+          InitAccumulator (Accumulator n avt _ x) ss
+           | Just (Latest, PairT ta tb, [na, nb])   <- Map.lookup n env'
+           -> go
+            . InitAccumulator (Accumulator na avt ta x)
+            . InitAccumulator (Accumulator nb avt tb x)
+            $ ss
 
-             Read n acc at _ ss
-              | Just (Latest, PairT ta tb, [na,nb]) <- Map.lookup acc env'
-              -> do n1 <- freshPrefix' n
-                    n2 <- freshPrefix' n
-                    let zips = xPrim (PrimArray $ PrimArrayZip ta tb)
-                              `xApp` xVar n1
-                              `xApp` xVar n2
-                    ss'<- substXinS a_fresh n zips ss
-                    go $ Read n1 na at ta
-                       $ Read n2 nb at tb
-                       $ ss'
+           | Just (Mutable, PairT ta tb, [na, nb])  <- Map.lookup n env'
+           -> go
+            . InitAccumulator (Accumulator na avt ta (primFst ta tb x))
+            . InitAccumulator (Accumulator nb avt tb (primSnd ta tb x))
+            $ ss
 
-              | Just (Mutable, PairT ta tb, [na,nb]) <- Map.lookup acc env'
-              -> do n1 <- freshPrefix' n
-                    n2 <- freshPrefix' n
-                    let pair    = xPrim (PrimMinimal $ Min.PrimConst $ Min.PrimConstPair ta tb)
-                                `xApp` (xVar n1)
-                                `xApp` (xVar n2)
-                    ss'<- substXinS a_fresh n pair ss
-                    go $ Read n1 na at ta
-                       $ Read n2 nb at tb
-                       $ ss'
+           | Just (Mutable, OptionT tv, [nb, nv])   <- Map.lookup n env'
+           , tb                                     <- BoolT
+           -> go
+            . InitAccumulator (Accumulator nb avt tb (primIsSome tv x))
+            . InitAccumulator (Accumulator nv avt tv (primGet    tv x))
+            $ ss
 
-              | Just (Mutable, UnitT, []) <- Map.lookup acc env'
-              -> do ss' <- substXinS a_fresh n (xValue UnitT VUnit) ss
-                    go ss'
+           | Just (Mutable, UnitT, [])              <- Map.lookup n env'
+           -> go ss
 
 
-             Push n x
-              | Just (Latest, PairT a b, [na,nb]) <- Map.lookup n env'
-              -> go
-               $ Block
-               [ Push na (xPrim (PrimMinimal $ Min.PrimPair $ Min.PrimPairFst a b) `xApp` x)
-               , Push nb (xPrim (PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd a b) `xApp` x) ]
+          Read n acc avt _ ss
+           | Just (Latest, PairT ta tb, [na, nb])   <- Map.lookup acc env'
+           -> do na' <- freshPrefix' n
+                 nb' <- freshPrefix' n
+                 ss' <- substXinS a_fresh n (primZip ta tb na' nb') ss
+                 go . Read na' na avt ta
+                    . Read nb' nb avt tb
+                    $ ss'
+
+           | Just (Mutable, PairT ta tb, [na, nb])  <- Map.lookup acc env'
+           -> do na' <- freshPrefix' n
+                 nb' <- freshPrefix' n
+                 ss' <- substXinS a_fresh n (primPair ta tb na' nb') ss
+                 go . Read na' na avt ta
+                    . Read nb' nb avt tb
+                    $ ss'
+
+           | Just (Mutable, OptionT tv, [nb, nv])   <- Map.lookup acc env'
+           , tb                                     <- BoolT
+           -> do nb' <- freshPrefix' n
+                 nv' <- freshPrefix' n
+                 ss' <- substXinS a_fresh n (primMkOpt tv nb' nv') ss
+                 go . Read nb' nb avt tb
+                    . Read nv' nv avt tv
+                    $ ss'
+
+           | Just (Mutable, UnitT, [])              <- Map.lookup acc env'
+           -> do ss' <- substXinS a_fresh n (xValue UnitT VUnit) ss
+                 go ss'
 
 
-             Write n x
-              | Just (Mutable, PairT a b, [na,nb]) <- Map.lookup n env'
-              -> go
-               $ Block
-               [ Write na (xPrim (PrimMinimal $ Min.PrimPair $ Min.PrimPairFst a b) `xApp` x)
-               , Write nb (xPrim (PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd a b) `xApp` x) ]
-
-              | Just (_, UnitT, _) <- Map.lookup n env'
-              -> return (env', mempty)
+          Push n x
+           | Just (Latest, PairT ta tb, [na, nb])   <- Map.lookup n env'
+           -> go
+            $ Block [ Push na (primFst ta tb x)
+                    , Push nb (primSnd ta tb x) ]
 
 
-             LoadResumable n t
-              | Just (_, _, ns) <- Map.lookup n env'
-              -> go $ Block (fmap (flip LoadResumable t) ns)
+          Write n x
+           | Just (Mutable, PairT ta tb, [na, nb])  <- Map.lookup n env'
+           -> go
+            $ Block [ Write na (primFst ta tb x)
+                    , Write nb (primSnd ta tb x) ]
+
+           | Just (Mutable, OptionT tv, [nb, nv])   <- Map.lookup n env'
+           -> go
+            $ Block [ Write nb (primIsSome tv x)
+                    , Write nv (primGet    tv x) ]
+
+           | Just (_, UnitT, _)                     <- Map.lookup n env'
+           -> return (env', mempty)
 
 
-             SaveResumable n t
-              | Just (_, _, ns) <- Map.lookup n env'
-              -> go $ Block (fmap (flip SaveResumable t) ns)
+          LoadResumable n _
+           | Just (_, PairT ta tb, [na, nb]) <- Map.lookup n env'
+           -> go
+            $ Block [ LoadResumable na ta
+                    , LoadResumable nb tb ]
+
+           | Just (_, OptionT tv, [nb, nv]) <- Map.lookup n env'
+           , tb                             <- BoolT
+           -> go
+            $ Block [ LoadResumable nb tb
+                    , LoadResumable nv tv ]
+
+           | Just (_, UnitT, [])            <- Map.lookup n env'
+           -> go
+            $ Block []
 
 
-             _ -> return (env, s)
+          SaveResumable n _
+           | Just (_, PairT ta tb, [na, nb]) <- Map.lookup n env'
+           -> go
+            $ Block [ SaveResumable na ta
+                    , SaveResumable nb tb ]
 
-  updateEnv env s
-   | InitAccumulator (Accumulator n at vt@(PairT _ _) _) _ <- s
-   -- TODO: XXX: temporarily disable splitting out Latests.
-   -- We need a "zip" here, really
-   = do v1 <- freshPrefix' n
-        v2 <- freshPrefix' n
-        return $ Map.insert n (at,vt,[v1,v2]) env
+           | Just (_, OptionT tv, [nb, nv]) <- Map.lookup n env'
+           , tb                             <- BoolT
+           -> go
+            $ Block [ SaveResumable nb tb
+                    , SaveResumable nv tv ]
+
+           | Just (_, UnitT, [])            <- Map.lookup n env'
+           -> go
+            $ Block []
+
+          _
+           -> return (env', stmt)
+
+
+  updateEnv s env
+   | InitAccumulator (Accumulator n at avt@(PairT _ _) _) _ <- s
+   = do na <- freshPrefix' n
+        nb <- freshPrefix' n
+        return (Map.insert n (at, avt, [na, nb]) env)
+
+   | InitAccumulator (Accumulator n at avt@(OptionT _) _) _ <- s
+   = do nb <- freshPrefix' n
+        nv <- freshPrefix' n
+        return (Map.insert n (at, avt, [nb, nv]) env)
 
    | InitAccumulator (Accumulator n Mutable UnitT _) _ <- s
-   = do return $ Map.insert n (Mutable,UnitT,[]) env
+   = do return (Map.insert n (Mutable, UnitT, []) env)
 
    | otherwise
    = return env
-
-
