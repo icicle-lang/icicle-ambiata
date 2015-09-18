@@ -8,5 +8,5 @@ max v = let fold1 s = v : case v > s | True -> v | False -> s end ~> s.
 min v = let fold1 s = v : case v < s | True -> v | False -> s end ~> s.
 
 # Time statements
-newest v = let fold1 s = v : v ~> s.
+newest v = latest 1 ~> let fold1 s = v : v ~> s.
 oldest v = let fold1 s = v : s ~> s.
