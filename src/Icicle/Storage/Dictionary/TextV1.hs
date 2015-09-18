@@ -14,8 +14,8 @@ import           P hiding (concat, intercalate)
 import           Data.Attoparsec.Text
 
 import           Data.Either.Combinators
-import           Data.Text hiding (takeWhile, singleton)
-import           Data.Set (singleton)
+import           Data.Text hiding (takeWhile)
+import qualified Data.Set as Set
 
 import           Icicle.Storage.Encoding
 
@@ -33,7 +33,7 @@ field = append <$> takeWhile (not . isDelimOrEscape) <*> (concat <$> many (cons 
 
 parseIcicleDictionaryV1 :: Parser DictionaryEntry
 parseIcicleDictionaryV1 = do
-  DictionaryEntry <$> (Attribute <$> field) <* p <*> (ConcreteDefinition <$> parseEncoding <*> pure (singleton "NA"))
+  DictionaryEntry <$> (Attribute <$> field) <* p <*> (ConcreteDefinition <$> parseEncoding <*> pure (Set.singleton "NA"))
     where
       p = char '|'
 
