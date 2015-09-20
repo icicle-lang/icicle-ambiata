@@ -2,19 +2,19 @@ welcome to iREPL
 ok, loaded 8 functions from data/libs/prelude.icicle
 ok, loaded test/cli/repl/data.psv, 8 rows
 > -- Rolling average
-> - Result:
+> - Core evaluation:
 [homer, 406.25,marge, 12.5]
 
 > > -- Sum
-> - Result:
+> - Core evaluation:
 [homer, 1500,marge, 30]
 
 > > -- Newest and oldest
-> - Result:
+> - Core evaluation:
 [homer, (500,100),marge, (20,0)]
 
 > > -- Inside a group
-> - Result:
+> - Core evaluation:
 [homer, [(1989-12-17,(100,100))
         ,(1990-01-01,(200,200))
         ,(1994-01-01,(300,300))

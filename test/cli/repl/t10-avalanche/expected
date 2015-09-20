@@ -117,7 +117,7 @@ gen$date = DATE
   output repl conv$8;
 }
 
-- Result:
+- Core evaluation:
 [homer, (5,[300,400,500])
 ,marge, (1,[0,10,20])]
 

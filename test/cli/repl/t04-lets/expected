@@ -2,24 +2,24 @@ welcome to iREPL
 ok, loaded 8 functions from data/libs/prelude.icicle
 ok, loaded test/cli/repl/data.psv, 8 rows
 > -- Elem/Scalar lets
-> - Result:
+> - Core evaluation:
 [homer, 3000,marge, 60]
 
 > > -- Pure let, can use it everywhere
-> - Result:
+> - Core evaluation:
 [homer, 1500,marge, 30]
 
 > > -- Aggregate let
-> - Result:
+> - Core evaluation:
 [homer, 3000,marge, 60]
 
 > > -- Aggregate let outside filter
-> - Result:
+> - Core evaluation:
 [homer, (1500,1400)
 ,marge, (30,0)]
 
 > > -- Scalar let before group
-> - Result:
+> - Core evaluation:
 [homer, [(100,100)
         ,(200,200)
         ,(300,300)
@@ -28,7 +28,7 @@ ok, loaded test/cli/repl/data.psv, 8 rows
 ,marge, [(0,0),(10,10),(20,20)]]
 
 > > -- Agg let before group
-> - Result:
+> - Core evaluation:
 [homer, [(100,1500)
         ,(200,1500)
         ,(300,1500)
@@ -39,7 +39,7 @@ ok, loaded test/cli/repl/data.psv, 8 rows
         ,(20,30)]]
 
 > > -- Agg let before and after group
-> - Result:
+> - Core evaluation:
 [homer, [(100,(1500,100))
         ,(200,(1500,200))
         ,(300,(1500,300))
@@ -50,7 +50,7 @@ ok, loaded test/cli/repl/data.psv, 8 rows
         ,(20,(30,20))]]
 
 > > -- Scalar let after group
-> - Result:
+> - Core evaluation:
 [homer, [(100,100)
         ,(200,200)
         ,(300,300)
