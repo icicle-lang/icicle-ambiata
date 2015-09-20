@@ -37,6 +37,7 @@ import qualified        Icicle.Core.Exp.Combinators as CE
 import qualified        Icicle.Common.Exp           as CE
 import qualified        Icicle.Common.Exp.Prim.Minimal as Min
 import qualified        Icicle.Common.Exp.Simp.Beta    as Beta
+import qualified        Icicle.Common.Exp.Simp.ANormal as ANormal
 import qualified        Icicle.Common.Type as T
 import                  Icicle.Common.Fresh
 import                  Icicle.Common.Base
@@ -627,7 +628,7 @@ convertReduce xx
  -- So we revert the state at the end, clearing any bindings,
  -- rolling back to the old input type, etc.
  | Nested _ q   <- xx
- = do   o <- get
+        o <- get
         r <- convertQuery q
         put o
         return r
@@ -637,21 +638,25 @@ convertReduce xx
 
 
  | Case (Annot { annAnnot = ann, annResult = retty }) scrut patalts <- xx
- = do   scrut' <- convertReduce scrut
-        let (pats,alts) = unzip patalts
+ = do   let (pats,alts) = unzip patalts
 
-        -- convertCaseFreshenPats pats
-        alts'  <- mapM convertReduce alts
+        scrut' <- convertReduce scrut
+        pats'  <- convertCaseFreshenPats pats
+        --alts'  <- mapM convertReduce alts
+        alts'  <- mapM convertExp alts
+        alts'' <- hoist runFreshIdentity $ lift $ mapM (ANormal.anormal ()) alts'
 
-        let bs' = fst scrut' <> mconcat (fmap fst alts')
+        --let bs' = fst scrut' <> mconcat (fmap fst alts')
+        let bs' = fst scrut'
 
         let sX  = CE.xVar $ snd scrut'
-        let aXs = fmap (CE.xVar . snd) alts'
+        --let aXs = fmap (CE.xVar . snd) alts'
 
         scrutT <- convertValType ann $ annResult $ annotOfExp scrut
         resT   <- convertValType ann $ retty
 
-        x'     <- convertCase xx sX (pats `zip` aXs) scrutT resT
+        --x'     <- convertCase xx sX (pats' `zip` aXs) scrutT resT
+        x'     <- convertCase xx sX (pats' `zip` alts'') scrutT resT
         nm     <- lift fresh
 
         let b'  | TemporalityPure <- getTemporalityOrPure retty
@@ -659,12 +664,9 @@ convertReduce xx
                 | otherwise
                 = post nm x'
 
-        return (bs' <> b', nm)
-
-
+        return (b' <> bs', nm)
 
  -- It's not a variable or a nested query,
  -- so it must be an application of a non-primitive
  | otherwise
  = convertError $ ConvertErrorExpApplicationOfNonPrimitive (annAnnot $ annotOfExp xx) xx
-

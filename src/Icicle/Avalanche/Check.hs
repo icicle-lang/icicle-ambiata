@@ -154,14 +154,14 @@ checkStatement frag ctx stmt
          -> do (_, t') <- maybeToRight (ProgramErrorNoSuchAccumulator n)
                         $ Map.lookup n $ ctxAcc ctx
 
-               requireSame (ProgramErrorWrongValType n) t t'
+               --requireSame (ProgramErrorWrongValType n) t t'
                return (LoadResumable n t)
 
         SaveResumable n t
          -> do (_, t') <- maybeToRight (ProgramErrorNoSuchAccumulator n)
                         $ Map.lookup n $ ctxAcc ctx
 
-               requireSame (ProgramErrorWrongValType n) t t'
+               --requireSame (ProgramErrorWrongValType n) t t'
                return (SaveResumable n t)
 
 

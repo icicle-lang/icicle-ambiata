@@ -5,6 +5,7 @@ module Icicle.Common.Fresh (
       FreshT   (..)
     , Fresh
     , runFresh
+    , runFreshIdentity
     , NameState
     , mkNameState
     , counterNameState
@@ -30,6 +31,12 @@ runFresh :: Fresh n a -> NameState n -> (NameState n, a)
 runFresh f ns
  = runIdentity
  $ runFreshT f ns
+
+-- argh
+runFreshIdentity :: Monad m => Fresh n x -> FreshT n m x
+runFreshIdentity f
+ = FreshT
+ $ \ns -> return $ runFresh f ns
 
 data NameState n
  = forall s.
