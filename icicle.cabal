@@ -133,6 +133,9 @@ library
                        Icicle.Serial
                        Icicle.Simulator
 
+                       Icicle.Sea.Eval
+                       Icicle.Sea.FromAvalanche
+
                        Icicle.Source.Eval
                        Icicle.Source.Query
                        Icicle.Source.Query.Query
