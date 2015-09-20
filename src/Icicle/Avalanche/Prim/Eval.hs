@@ -6,8 +6,9 @@ module Icicle.Avalanche.Prim.Eval (
     ) where
 
 import Icicle.Common.Base
-import Icicle.Common.Value
 import Icicle.Common.Exp.Eval
+import Icicle.Common.Type
+import Icicle.Common.Value
 import Icicle.Avalanche.Prim.Flat
 
 import              P
@@ -77,9 +78,11 @@ evalPrim p vs
       | otherwise
       -> primError
 
-     PrimUnsafe (PrimUnsafeOptionGet _)
+     PrimUnsafe (PrimUnsafeOptionGet t)
       | [VBase (VSome v)]  <- vs
       -> return $ VBase v
+      | [VBase VNone]      <- vs
+      -> return $ VBase (defaultOfType t)
       | otherwise
       -> primError
 
@@ -102,6 +105,14 @@ evalPrim p vs
       | [VBase (VArray arr1), VBase (VArray arr2)]  <- vs
       -> return $ VBase
        $ VArray (zipWith VPair arr1 arr2)
+      | otherwise
+      -> primError
+
+     PrimOption (PrimOptionPack _)
+      | [VBase (VBool True), VBase v]  <- vs
+      -> return $ VBase $ VSome v
+      | [VBase (VBool False), _]       <- vs
+      -> return $ VBase $ VNone
       | otherwise
       -> primError
 
