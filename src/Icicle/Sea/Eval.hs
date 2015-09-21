@@ -98,7 +98,11 @@ seaEval program date values = do
               ev <- liftIO (peekWordOff' t pState 5)
               return (fmap (\v -> [(n, v)]) ev)
   where
-    options = [ "-O3", "-march=native", "-std=c99", "-fPIC" ]
+    options = [ "-O3"           -- 🔨
+              , "-march=native" -- all optimisations valid for the current CPU (AVX512, etc)
+              , "-std=c99"      -- variable declarations anywhere!
+              , "-fPIC"         -- position independent code, required on Linux
+              ]
     code    = textOfDoc (seaOfProgram program)
 
     squash (Left ee)          = Left (SeaJetskiError ee)
