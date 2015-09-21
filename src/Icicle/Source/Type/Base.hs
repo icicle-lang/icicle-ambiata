@@ -102,6 +102,7 @@ valTypeOfType bt
 data Constraint n
  = CEquals (Type n) (Type n)
  | CIsNum (Type n)
+ | CTemporalityJoin (Type n) (Type n) (Type n)
  | CReturnOfLetTemporalities (Type n) (Type n) (Type n)
  | CReturnOfLatest (Type n) (Type n) (Type n)
  deriving (Eq, Ord, Show)
@@ -161,6 +162,8 @@ instance Pretty n => Pretty (Constraint n) where
   = pretty p <+> "=:" <+> pretty q
  pretty (CIsNum p)
   = "Num" <+> pretty p
+ pretty (CTemporalityJoin a b c)
+  = pretty a <+> "=: TemporalityJoin" <+> pretty b <+> pretty c
  pretty (CReturnOfLetTemporalities t def body)
   = pretty t <+> "=: ReturnOfLet" <+> pretty def <+> pretty body
  pretty (CReturnOfLatest t tmp dat)

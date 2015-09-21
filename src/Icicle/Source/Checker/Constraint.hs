@@ -65,6 +65,8 @@ defaults q
    = []
   defaultOfConstraint (CReturnOfLatest _ _ _)
    = []
+  defaultOfConstraint (CTemporalityJoin _ _ _)
+   = []
 
 
 
@@ -343,69 +345,37 @@ generateX x
              $ hoistEither $ errorNoSuggestions (ErrorFunctionWrongArgs a x fErr [])
            annotate Map.empty resT $ \a' -> Prim a' p
 
-    -- Cases require all their alternatives to have the same type, as well as
-    -- the scrutinee and the alternatives to have the same temporality.
-    -- This may be more restrictive than necessary, since lets allow different
-    -- temporalities, but hopefully will not be an issue.
-    --
-    -- TODO: cases with nested constructors must be converted to multiple nested cases.
-    -- For example:
-    -- > case x
-    -- >  | Some (Some v, None) -> v
-    -- >  | Some (None, Some v) -> v
-    -- >  | _                   -> 0
-    -- > end
-    --
-    -- this should be flattened to
-    -- > case x
-    -- > | Some y
-    -- > -> case y
-    -- >    | (l,r)
-    -- >    -> case l
-    -- >       | Some v
-    -- >       -> case r
-    -- >          | Some _
-    -- >          -> 0
-    -- >          | None
-    -- >          -> v
-    -- >          end
-    -- >       | None
-    -- >       -> case r
-    -- >          | Some v
-    -- >          -> v
-    -- >          | None
-    -- >          -> 0
-    -- >          end
-    -- >       end
-    -- >    end
-    -- > | None
-    -- > -> 0
-    --
+    -- Cases require:
+    --  * Alternatives to have "join-able" types, i.e. no mixing of aggregates and elements.
+    --  * The scrutinee and alternatives to have "join-able" temporalities.
     Case a scrut pats
      -> do (scrut', sub) <- generateX scrut
            (pats', subs) <- unzip <$> mapM (generateP $ annResult $ annotOfExp scrut') pats
 
-           resT <- case pats' of
-                    [] -> hoistEither
-                        $ errorNoSuggestions
-                        $ ErrorEmptyCase a x
-                    ((_,alt):_)
-                       -> return $ annResult $ annotOfExp alt
+           let scrutT  = annResult $ annotOfExp scrut'
+           resT <- TypeVar <$> fresh
 
-           -- all alternatives must have the same temporality
-           -- this is too strict too: let fold s = 0 : case s < value | True -> s | False -> value end
-           mapM_ (\(_,alt) -> require a $ CEquals resT $ annResult $ annotOfExp alt) pats'
+           traceM ("SCRUTTY=" <> show (scrutT))
+           traceM ("REST=" <> show resT)
+           traceM ("PATS=" <> show (fmap (annResult . annotOfExp . snd) pats'))
+
+           -- all alternatives must have compatible temporalities
+           joinAlts a scrutT pats'
 
            -- return temporality
-           let tmpx = getTemporalityOrPure $ annResult $ annotOfExp scrut'
-           let tmpq = getTemporalityOrPure $ resT
-           --require a $ CEquals tmpx tmpq
-           let t' = resT -- canonT $ Temporality retTmp resT
-           --let t' = canonT $ Temporality tmpq resT
+           mapM_ (require a . CTemporalityJoin resT scrutT . annResult . annotOfExp . snd) pats'
 
+           let t' = resT
            annotate (Map.unions (sub : subs)) t' $ \a' -> Case a' scrut' pats'
 
  where
+  joinAlts a t pats
+   = mapM_ (require a . uncurry (CTemporalityJoin t))
+   $ cross $ fmap (annResult . annotOfExp . snd) pats
+
+  cross xs
+   = [ (a,b) | a <- xs, b <- xs, a /= b]
+
   annotate s' t' f
    = do cs <- stateConstraints <$> (lift $ lift State.get)
         let a' = Annot (annotOfExp x) t' cs

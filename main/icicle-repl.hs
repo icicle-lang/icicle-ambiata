@@ -99,7 +99,7 @@ data ReplState
    , hasType      :: Bool
    , hasAnnotated :: Bool
    , hasInlined   :: Bool
-   , hasDesugared :: Bool
+   , hasDesugar   :: Bool
    , hasCore      :: Bool
    , hasCoreType  :: Bool
    , hasAvalanche :: Bool
@@ -113,7 +113,7 @@ data Set
    = ShowType           Bool
    | ShowAnnotated      Bool
    | ShowInlined        Bool
-   | ShowDesugared      Bool
+   | ShowDesugar        Bool
    | ShowCore           Bool
    | ShowCoreType       Bool
    | ShowEval           Bool
@@ -170,8 +170,8 @@ readSetCommands ss
     ("+inlined":rest)   -> (:) (ShowInlined   True)   <$> readSetCommands rest
     ("-inlined":rest)   -> (:) (ShowInlined   False)  <$> readSetCommands rest
 
-    ("+desugared":rest)   -> (:) (ShowDesugared   True)   <$> readSetCommands rest
-    ("-desugared":rest)   -> (:) (ShowDesugared   False)  <$> readSetCommands rest
+    ("+desugar":rest)   -> (:) (ShowDesugar   True)   <$> readSetCommands rest
+    ("-desugar":rest)   -> (:) (ShowDesugar   False)  <$> readSetCommands rest
 
     ("+core":rest)      -> (:) (ShowCore True)        <$> readSetCommands rest
     ("-core":rest)      -> (:) (ShowCore False)       <$> readSetCommands rest
@@ -277,7 +277,7 @@ handleLine state line = case readCommand line of
 
       let inlined= SR.sourceInline (dictionary state) annot
       blanded    <- hoist $ return $ SR.sourceDesugar inlined
-      prettyOut hasDesugared "- Desugared:" blanded
+      prettyOut hasDesugar "- Desugar:" blanded
 
       (annot',_) <- hoist $ SR.sourceCheck (dictionary state) blanded
       prettyOut hasInlined "- Inlined:" inlined
@@ -335,9 +335,9 @@ handleSetCommand state set
         HL.outputStrLn $ "ok, inlined is now " <> showFlag b
         return $ state { hasInlined = b }
 
-    ShowDesugared b -> do
-        HL.outputStrLn $ "ok, desugared is now " <> showFlag b
-        return $ state { hasDesugared = b }
+    ShowDesugar b -> do
+        HL.outputStrLn $ "ok, desugar is now " <> showFlag b
+        return $ state { hasDesugar = b }
 
     ShowCore b -> do
         HL.outputStrLn $ "ok, core is now " <> showFlag b
@@ -481,7 +481,7 @@ showState state
     [ flag "type:       " hasType
     , flag "annotated:  " hasAnnotated
     , flag "inlined:    " hasInlined
-    , flag "desugared:  " hasDesugared
+    , flag "desugar:    " hasDesugar
     , flag "core:       " hasCore
     , flag "core-type:  " hasCoreType
     , flag "core-simp:  " doCoreSimp

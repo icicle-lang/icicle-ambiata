@@ -68,6 +68,8 @@ substC ss cc
      -> CEquals (substT ss p) (substT ss q)
     CIsNum p
      -> CIsNum (substT ss p)
+    CTemporalityJoin a b c
+     -> CTemporalityJoin (substT ss a) (substT ss b) (substT ss c)
     CReturnOfLetTemporalities ret def body
      -> CReturnOfLetTemporalities (substT ss ret) (substT ss def) (substT ss body)
     CReturnOfLatest ret tmp dat

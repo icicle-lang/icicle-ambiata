@@ -14,10 +14,11 @@ module Icicle.Source.Type.Constraints (
 
 import                  Icicle.Source.Type.Base
 import                  Icicle.Source.Type.Subst
+import                  Icicle.Source.Type.Compounds
 
 import                  Icicle.Internal.Pretty
 
-import                  P
+import                  P hiding (join)
 
 import                  Data.List (nubBy)
 import qualified        Data.Map as Map
@@ -41,6 +42,7 @@ data DischargeError n
  | NotANumber  (Type n)
  -- | IsNum String
  | ConflictingLetTemporalities (Type n) (Type n) (Type n)
+ | ConflictingJoinTemporalities (Type n) (Type n) (Type n)
  deriving (Eq, Ord, Show)
 
 instance Pretty n => Pretty (DischargeError n) where
@@ -51,6 +53,9 @@ instance Pretty n => Pretty (DischargeError n) where
  pretty (ConflictingLetTemporalities ret def body)
   =  "Conflicting let temporalities." <> line
   <> "An Aggregate let statement with an Element body is not allowed: " <> pretty ret <+> pretty def <+> pretty body
+ pretty (ConflictingJoinTemporalities a b c)
+  =  "Conflicting join temporalities." <> line
+  <> pretty a <+> pretty b <+> pretty c
 
 -- | Discharge a single constraint
 dischargeC :: Ord n => Constraint n -> Either (DischargeError n) (DischargeResult n)
@@ -69,6 +74,20 @@ dischargeC c
      -> case unifyT a b of
          Nothing -> Left $ CannotUnify a b
          Just s  -> return $ DischargeSubst s
+
+    -- "Join" temporalities. Pure joins with anything. Aggregate only joins with itself or Pure.
+    CTemporalityJoin x y z
+     | ty       <- getTemporalityOrPure y
+     , tz       <- getTemporalityOrPure z
+     , Just tmp <- join ty tz
+     -> case getTemporality x of
+         Nothing
+          -> return $ DischargeSubst Map.empty
+         Just (tx, _)
+          -> dischargeC (CEquals tmp tx)
+          >> innerEquals y z
+     | otherwise
+     -> Left $ ConflictingJoinTemporalities x y z
 
     -- Still variables, so can't discharge
     CReturnOfLetTemporalities _ (TypeVar _) _
@@ -90,6 +109,21 @@ dischargeC c
           -> return $ DischargeLeftover c
 
  where
+  innerEquals x y
+   | Just x' <- getBaseType x
+   , Just y' <- getBaseType y
+   = dischargeC $ CEquals x' y'
+   | otherwise
+   = Left $ CannotUnify x y
+
+  join TemporalityPure      TemporalityAggregate = Just TemporalityAggregate
+  join TemporalityAggregate TemporalityPure      = Just TemporalityAggregate
+  join TemporalityPure      TemporalityElement   = Just TemporalityElement
+  join TemporalityElement   TemporalityPure      = Just TemporalityElement
+  join y z
+   | y == z    = Just y
+   | otherwise = Nothing
+
   returnOfLet def body
    = case (def,body) of
       (TemporalityPure, TemporalityPure)

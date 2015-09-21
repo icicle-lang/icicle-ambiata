@@ -45,11 +45,10 @@ import                  Icicle.Common.Base
 
 import                  P
 
+import                  Control.Monad.Morph
 import                  Control.Monad.Trans.State.Lazy
-import                  Control.Monad.Trans.Class
-import                  Data.List (zip, unzip, zipWith)
+import                  Data.List (zip, unzip)
 
-import                  Data.Functor.Identity
 import qualified        Data.Map as Map
 
 
@@ -445,7 +444,7 @@ convertQuery q
          TemporalityAggregate
           -> do (bs,n')      <- convertReduce    def
                 convertModifyFeatures (Map.delete b)
-                b'      <- convertFreshenAdd b
+                b'           <- convertFreshenAdd b
                 (bs',n'')    <- convertQuery     q'
                 return (bs <> post b' (CE.xVar n') <> bs', n'')
 
@@ -643,20 +642,16 @@ convertReduce xx
 
         scrut' <- convertReduce scrut
         pats'  <- convertCaseFreshenPats pats
-        --alts'  <- mapM convertReduce alts
         alts'  <- mapM convertExp alts
         alts'' <- hoist runFreshIdentity $ lift $ mapM (ANormal.anormal ()) alts'
 
-        --let bs' = fst scrut' <> mconcat (fmap fst alts')
         let bs' = fst scrut'
 
         let sX  = CE.xVar $ snd scrut'
-        --let aXs = fmap (CE.xVar . snd) alts'
 
         scrutT <- convertValType ann $ annResult $ annotOfExp scrut
         resT   <- convertValType ann $ retty
 
-        --x'     <- convertCase xx sX (pats' `zip` aXs) scrutT resT
         x'     <- convertCase xx sX (pats' `zip` alts'') scrutT resT
         nm     <- lift fresh
 
