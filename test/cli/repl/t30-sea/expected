@@ -1,0 +1,624 @@
+welcome to iREPL
+ok, loaded 8 functions from data/libs/prelude.icicle
+ok, loaded test/cli/repl/data.psv, 8 rows
+> -- Show everything
+> ok, flatten is now on
+ok, c is now on
+ok, c evaluation now on
+                   _________-----_____
+        _____------           __      ----_
+ ___----             ___------              \
+    ----________        ----                 \
+                -----__    |             _____)
+                     __-                /     \
+         _______-----    ___--          \    /)\
+   ------_______      ---____            \__/  /
+                -----__    \ --    _          /\
+                       --__--__     \_____/   \_/\
+                               ----|   /          |
+                                   |  |___________|
+                                   |  | ((_(_)| )_)
+                                   |  \_((_(_)|/(_)
+                                   \             (
+                                    \_____________)
+> > -- Oldest
+> - Flattened:
+gen$date = DATE
+{
+  init [Mutable] [Bool] acc$conv$6$simp$0 = False : Bool;
+  init [Mutable] [Int] acc$conv$6$simp$1 = 0 : Int;
+  load_resumable [Bool] acc$conv$6$simp$0;
+  load_resumable [Int] acc$conv$6$simp$1;
+  for_facts (elem$gen$fact : Int, elem$gen$date : Date) in new {
+    read [Mutable] [Bool] acc$conv$6$simp$2 = acc$conv$6$simp$0;
+    read [Mutable] [Int] acc$conv$6$simp$3 = acc$conv$6$simp$1;
+    if (acc$conv$6$simp$2) {
+      write acc$conv$6$simp$0 = True : Bool;
+      write acc$conv$6$simp$1 = acc$conv$6$simp$3;
+    } else {
+      write acc$conv$6$simp$0 = True : Bool;
+      write acc$conv$6$simp$1 = elem$gen$fact;
+    }
+  }
+  save_resumable [Bool] acc$conv$6$simp$0;
+  save_resumable [Int] acc$conv$6$simp$1;
+  read [Mutable] [Bool] conv$6$simp$4 = acc$conv$6$simp$0;
+  read [Mutable] [Int] conv$6$simp$5 = acc$conv$6$simp$1;
+  if (conv$6$simp$4) {
+    output repl conv$6$simp$5;
+  } 
+   else {
+    output repl Exception: Fold1, but there is no value : Int;
+  } 
+  
+}
+
+- C:
+#include <stdbool.h>
+#include <stdint.h>
+#include <math.h>
+
+typedef uint64_t iunit_t;
+typedef uint64_t ibool_t;
+typedef  int64_t iint_t;
+typedef   double idouble_t;
+typedef  int64_t idate_t;
+
+typedef const char *ierror_t;
+
+typedef struct {
+    /* inputs */
+    idate_t    gen_date;
+    iint_t     new_count;
+    idate_t   *new_date;
+    iint_t    *new_fact;
+
+    /* outputs */
+    ierror_t   error;
+    iint_t     repl;
+
+    /* resumables */
+    ibool_t    acc_conv_6_simp_0;
+    iint_t     acc_conv_6_simp_1;
+} icicle_state_t;
+
+static const iunit_t iunit  = 0x1c1c13;
+static const ibool_t ifalse = 0;
+static const ibool_t itrue  = 1;
+
+#define INLINE __attribute__((always_inline))
+
+static idouble_t INLINE iint_extend   (iint_t    x)              { return x; }
+static iint_t    INLINE iint_add      (iint_t    x, iint_t    y) { return x +  y; }
+static iint_t    INLINE iint_sub      (iint_t    x, iint_t    y) { return x -  y; }
+static iint_t    INLINE iint_mul      (iint_t    x, iint_t    y) { return x *  y; }
+static ibool_t   INLINE iint_gt       (iint_t    x, iint_t    y) { return x >  y; }
+static ibool_t   INLINE iint_ge       (iint_t    x, iint_t    y) { return x >= y; }
+static ibool_t   INLINE iint_lt       (iint_t    x, iint_t    y) { return x <  y; }
+static ibool_t   INLINE iint_le       (iint_t    x, iint_t    y) { return x <= y; }
+static ibool_t   INLINE iint_eq       (iint_t    x, iint_t    y) { return x == y; }
+static ibool_t   INLINE iint_ne       (iint_t    x, iint_t    y) { return x != y; }
+
+static iint_t    INLINE idouble_trunc (idouble_t x)              { return (iint_t)x; }
+static idouble_t INLINE idouble_add   (idouble_t x, idouble_t y) { return x + y; }
+static idouble_t INLINE idouble_sub   (idouble_t x, idouble_t y) { return x - y; }
+static idouble_t INLINE idouble_mul   (idouble_t x, idouble_t y) { return x * y; }
+static idouble_t INLINE idouble_pow   (idouble_t x, idouble_t y) { return pow(x, y); }
+static idouble_t INLINE idouble_div   (idouble_t x, idouble_t y) { return x / y; }
+static idouble_t INLINE idouble_log   (idouble_t x)              { return log(x); }
+static idouble_t INLINE idouble_exp   (idouble_t x)              { return exp(x); }
+static ibool_t   INLINE idouble_gt    (idouble_t x, idouble_t y) { return x >  y; }
+static ibool_t   INLINE idouble_ge    (idouble_t x, idouble_t y) { return x >= y; }
+static ibool_t   INLINE idouble_lt    (idouble_t x, idouble_t y) { return x <  y; }
+static ibool_t   INLINE idouble_le    (idouble_t x, idouble_t y) { return x <= y; }
+static ibool_t   INLINE idouble_eq    (idouble_t x, idouble_t y) { return x == y; }
+static ibool_t   INLINE idouble_ne    (idouble_t x, idouble_t y) { return x != y; }
+
+static iint_t INLINE iint_err (icicle_state_t *s, ierror_t error)  {
+    s->error = error;
+    return 0xBAD1c3;
+}
+
+static idouble_t INLINE idouble_err (icicle_state_t *s, ierror_t error)  {
+    s->error = error;
+    return 0/0;
+}
+
+void compute(icicle_state_t *s)
+{
+    ibool_t    acc_conv_6_simp_0;
+    iint_t     acc_conv_6_simp_1;
+    ibool_t    acc_conv_6_simp_2;
+    iint_t     acc_conv_6_simp_3;
+    ibool_t    conv_6_simp_4;
+    iint_t     conv_6_simp_5;
+
+    acc_conv_6_simp_0                    = ifalse;
+    acc_conv_6_simp_1                    = 0;
+    acc_conv_6_simp_0                    = s->acc_conv_6_simp_0;
+    acc_conv_6_simp_1                    = s->acc_conv_6_simp_1;
+    
+    const iint_t            new_count    = s->new_count;
+    const idate_t    *const new_date     = s->new_date;
+    const iint_t     *const new_fact     = s->new_fact;
+    
+    for (iint_t i = 0; i < new_count; i++) {
+        idate_t    elem_gen_date         = new_date[i];
+        iint_t     elem_gen_fact         = new_fact[i];
+        acc_conv_6_simp_2                = acc_conv_6_simp_0;
+        acc_conv_6_simp_3                = acc_conv_6_simp_1;
+        
+        if (acc_conv_6_simp_2) {
+            acc_conv_6_simp_0            = itrue;
+            acc_conv_6_simp_1            = acc_conv_6_simp_3;
+        } else {
+            acc_conv_6_simp_0            = itrue;
+            acc_conv_6_simp_1            = elem_gen_fact;
+        }
+        
+    }
+    
+    s->acc_conv_6_simp_0                 = acc_conv_6_simp_0;
+    s->acc_conv_6_simp_1                 = acc_conv_6_simp_1;
+    conv_6_simp_4                        = acc_conv_6_simp_0;
+    conv_6_simp_5                        = acc_conv_6_simp_1;
+    
+    if (conv_6_simp_4) {
+        s->repl                          = conv_6_simp_5;
+    } else {
+        s->repl                          = iint_err (s, "ExceptFold1NoValue");
+    }
+    
+}
+
+- C evaluation:
+[(homer,100),(marge,0)]
+
+- Core evaluation:
+[homer, 100,marge, 0]
+
+> > -- Filtering works
+> - Flattened:
+gen$date = DATE
+{
+  init [Mutable] [Int] acc$c$conv$4 = 0 : Int;
+  load_resumable [Int] acc$c$conv$4;
+  for_facts (elem$gen$fact : Int, elem$gen$date : Date) in new {
+    if (gt# [Int] elem$gen$fact
+        (300 : Int)) {
+      read [Mutable] [Int] acc$c$conv$4 = acc$c$conv$4;
+      write acc$c$conv$4 = add# [Int]
+                           acc$c$conv$4 (1 : Int);
+    }
+  } 
+  
+  save_resumable [Int] acc$c$conv$4;
+  read [Mutable] [Int] c$conv$4 = acc$c$conv$4;
+  output repl c$conv$4;
+}
+
+- C:
+#include <stdbool.h>
+#include <stdint.h>
+#include <math.h>
+
+typedef uint64_t iunit_t;
+typedef uint64_t ibool_t;
+typedef  int64_t iint_t;
+typedef   double idouble_t;
+typedef  int64_t idate_t;
+
+typedef const char *ierror_t;
+
+typedef struct {
+    /* inputs */
+    idate_t    gen_date;
+    iint_t     new_count;
+    idate_t   *new_date;
+    iint_t    *new_fact;
+
+    /* outputs */
+    ierror_t   error;
+    iint_t     repl;
+
+    /* resumables */
+    iint_t     acc_c_conv_4;
+} icicle_state_t;
+
+static const iunit_t iunit  = 0x1c1c13;
+static const ibool_t ifalse = 0;
+static const ibool_t itrue  = 1;
+
+#define INLINE __attribute__((always_inline))
+
+static idouble_t INLINE iint_extend   (iint_t    x)              { return x; }
+static iint_t    INLINE iint_add      (iint_t    x, iint_t    y) { return x +  y; }
+static iint_t    INLINE iint_sub      (iint_t    x, iint_t    y) { return x -  y; }
+static iint_t    INLINE iint_mul      (iint_t    x, iint_t    y) { return x *  y; }
+static ibool_t   INLINE iint_gt       (iint_t    x, iint_t    y) { return x >  y; }
+static ibool_t   INLINE iint_ge       (iint_t    x, iint_t    y) { return x >= y; }
+static ibool_t   INLINE iint_lt       (iint_t    x, iint_t    y) { return x <  y; }
+static ibool_t   INLINE iint_le       (iint_t    x, iint_t    y) { return x <= y; }
+static ibool_t   INLINE iint_eq       (iint_t    x, iint_t    y) { return x == y; }
+static ibool_t   INLINE iint_ne       (iint_t    x, iint_t    y) { return x != y; }
+
+static iint_t    INLINE idouble_trunc (idouble_t x)              { return (iint_t)x; }
+static idouble_t INLINE idouble_add   (idouble_t x, idouble_t y) { return x + y; }
+static idouble_t INLINE idouble_sub   (idouble_t x, idouble_t y) { return x - y; }
+static idouble_t INLINE idouble_mul   (idouble_t x, idouble_t y) { return x * y; }
+static idouble_t INLINE idouble_pow   (idouble_t x, idouble_t y) { return pow(x, y); }
+static idouble_t INLINE idouble_div   (idouble_t x, idouble_t y) { return x / y; }
+static idouble_t INLINE idouble_log   (idouble_t x)              { return log(x); }
+static idouble_t INLINE idouble_exp   (idouble_t x)              { return exp(x); }
+static ibool_t   INLINE idouble_gt    (idouble_t x, idouble_t y) { return x >  y; }
+static ibool_t   INLINE idouble_ge    (idouble_t x, idouble_t y) { return x >= y; }
+static ibool_t   INLINE idouble_lt    (idouble_t x, idouble_t y) { return x <  y; }
+static ibool_t   INLINE idouble_le    (idouble_t x, idouble_t y) { return x <= y; }
+static ibool_t   INLINE idouble_eq    (idouble_t x, idouble_t y) { return x == y; }
+static ibool_t   INLINE idouble_ne    (idouble_t x, idouble_t y) { return x != y; }
+
+static iint_t INLINE iint_err (icicle_state_t *s, ierror_t error)  {
+    s->error = error;
+    return 0xBAD1c3;
+}
+
+static idouble_t INLINE idouble_err (icicle_state_t *s, ierror_t error)  {
+    s->error = error;
+    return 0/0;
+}
+
+void compute(icicle_state_t *s)
+{
+    iint_t     acc_c_conv_4;
+    iint_t     c_conv_4;
+
+    acc_c_conv_4                         = 0;
+    acc_c_conv_4                         = s->acc_c_conv_4;
+    
+    const iint_t            new_count    = s->new_count;
+    const idate_t    *const new_date     = s->new_date;
+    const iint_t     *const new_fact     = s->new_fact;
+    
+    for (iint_t i = 0; i < new_count; i++) {
+        idate_t    elem_gen_date         = new_date[i];
+        iint_t     elem_gen_fact         = new_fact[i];
+        
+        if (iint_gt (elem_gen_fact, 300)) {
+            acc_c_conv_4                 = acc_c_conv_4;
+            acc_c_conv_4                 = iint_add (acc_c_conv_4, 1);
+        }
+        
+    }
+    
+    s->acc_c_conv_4                      = acc_c_conv_4;
+    c_conv_4                             = acc_c_conv_4;
+    s->repl                              = c_conv_4;
+}
+
+- C evaluation:
+[(homer,2),(marge,0)]
+
+- Core evaluation:
+[homer, 2,marge, 0]
+
+> > -- An interesting expression
+> - Flattened:
+gen$date = DATE
+{
+  init [Mutable] [Double] acc$s$conv$8 = 0.0 : Double;
+  init [Mutable] [Double] acc$s$conv$13 = 0.0 : Double;
+  init [Mutable] [Double] acc$c$conv$15 = 0.0 : Double;
+  init [Mutable] [Double] acc$c$conv$20 = 0.0 : Double;
+  init [Mutable] [Double] acc$c$conv$22 = 0.0 : Double;
+  init [Mutable] [Double] acc$s$conv$38 = 0.0 : Double;
+  init [Mutable] [Double] acc$s$conv$43 = 0.0 : Double;
+  init [Mutable] [Double] acc$c$conv$45 = 0.0 : Double;
+  init [Mutable] [Double] acc$c$conv$50 = 0.0 : Double;
+  init [Mutable] [Double] acc$c$conv$52 = 0.0 : Double;
+  load_resumable [Double] acc$s$conv$8;
+  load_resumable [Double] acc$s$conv$13;
+  load_resumable [Double] acc$c$conv$15;
+  load_resumable [Double] acc$c$conv$20;
+  load_resumable [Double] acc$c$conv$22;
+  load_resumable [Double] acc$s$conv$38;
+  load_resumable [Double] acc$s$conv$43;
+  load_resumable [Double] acc$c$conv$45;
+  load_resumable [Double] acc$c$conv$50;
+  load_resumable [Double] acc$c$conv$52;
+  for_facts (elem$gen$fact : Int, elem$gen$date : Date) in new {
+    let anf$35 = doubleOfInt#
+                 elem$gen$fact;
+    read [Mutable] [Double] acc$c$conv$15 = acc$c$conv$15;
+    write acc$c$conv$15 = add# [Double]
+                          acc$c$conv$15 (1.0 : Double);
+    read [Mutable] [Double] acc$c$conv$20 = acc$c$conv$20;
+    write acc$c$conv$20 = add# [Double]
+                          acc$c$conv$20 (1.0 : Double);
+    read [Mutable] [Double] acc$c$conv$22 = acc$c$conv$22;
+    write acc$c$conv$22 = add# [Double]
+                          acc$c$conv$22 (1.0 : Double);
+    read [Mutable] [Double] acc$s$conv$8 = acc$s$conv$8;
+    write acc$s$conv$8 = add# [Double]
+                         anf$35 acc$s$conv$8;
+    let anf$45 = mul# [Double]
+                 anf$35 anf$35;
+    read [Mutable] [Double] acc$s$conv$13 = acc$s$conv$13;
+    write acc$s$conv$13 = add# [Double]
+                          anf$45 acc$s$conv$13;
+    if (lt# [Int] elem$gen$fact
+        (300 : Int)) {
+      read [Mutable] [Double] acc$c$conv$45 = acc$c$conv$45;
+      write acc$c$conv$45 = add# [Double]
+                            acc$c$conv$45 (1.0 : Double);
+      read [Mutable] [Double] acc$c$conv$50 = acc$c$conv$50;
+      write acc$c$conv$50 = add# [Double]
+                            acc$c$conv$50 (1.0 : Double);
+      read [Mutable] [Double] acc$c$conv$52 = acc$c$conv$52;
+      write acc$c$conv$52 = add# [Double]
+                            acc$c$conv$52 (1.0 : Double);
+      read [Mutable] [Double] acc$s$conv$38 = acc$s$conv$38;
+      write acc$s$conv$38 = add# [Double]
+                            anf$35 acc$s$conv$38;
+      read [Mutable] [Double] acc$s$conv$43 = acc$s$conv$43;
+      write acc$s$conv$43 = add# [Double]
+                            anf$45 acc$s$conv$43;
+    }
+  }
+  save_resumable [Double] acc$s$conv$8;
+  save_resumable [Double] acc$s$conv$13;
+  save_resumable [Double] acc$c$conv$15;
+  save_resumable [Double] acc$c$conv$20;
+  save_resumable [Double] acc$c$conv$22;
+  save_resumable [Double] acc$s$conv$38;
+  save_resumable [Double] acc$s$conv$43;
+  save_resumable [Double] acc$c$conv$45;
+  save_resumable [Double] acc$c$conv$50;
+  save_resumable [Double] acc$c$conv$52;
+  read [Mutable] [Double] s$conv$8 = acc$s$conv$8;
+  read [Mutable] [Double] s$conv$13 = acc$s$conv$13;
+  read [Mutable] [Double] c$conv$15 = acc$c$conv$15;
+  read [Mutable] [Double] c$conv$20 = acc$c$conv$20;
+  read [Mutable] [Double] c$conv$22 = acc$c$conv$22;
+  read [Mutable] [Double] s$conv$38 = acc$s$conv$38;
+  read [Mutable] [Double] s$conv$43 = acc$s$conv$43;
+  read [Mutable] [Double] c$conv$45 = acc$c$conv$45;
+  read [Mutable] [Double] c$conv$50 = acc$c$conv$50;
+  read [Mutable] [Double] c$conv$52 = acc$c$conv$52;
+  let conv$16 = mul# [Double]
+                s$conv$13 c$conv$15;
+  let conv$17 = mul# [Double]
+                s$conv$8 s$conv$8;
+  let conv$18 = sub# [Double]
+                conv$16 conv$17;
+  let conv$24 = sub# [Double]
+                c$conv$22 (1.0 : Double);
+  let conv$25 = mul# [Double]
+                c$conv$20 conv$24;
+  let conv$26 = div# conv$18
+                conv$25;
+  let conv$28 = pow# [Double]
+                conv$26 (0.5 : Double);
+  let conv$46 = mul# [Double]
+                s$conv$43 c$conv$45;
+  let conv$47 = mul# [Double]
+                s$conv$38 s$conv$38;
+  let conv$48 = sub# [Double]
+                conv$46 conv$47;
+  let conv$54 = sub# [Double]
+                c$conv$52 (1.0 : Double);
+  let conv$55 = mul# [Double]
+                c$conv$50 conv$54;
+  let conv$56 = div# conv$48
+                conv$55;
+  let conv$58 = pow# [Double]
+                conv$56 (0.5 : Double);
+  let conv$59 = mul# [Double]
+                conv$28 conv$58;
+  output repl conv$59;
+}
+
+- C:
+#include <stdbool.h>
+#include <stdint.h>
+#include <math.h>
+
+typedef uint64_t iunit_t;
+typedef uint64_t ibool_t;
+typedef  int64_t iint_t;
+typedef   double idouble_t;
+typedef  int64_t idate_t;
+
+typedef const char *ierror_t;
+
+typedef struct {
+    /* inputs */
+    idate_t    gen_date;
+    iint_t     new_count;
+    idate_t   *new_date;
+    iint_t    *new_fact;
+
+    /* outputs */
+    ierror_t   error;
+    idouble_t  repl;
+
+    /* resumables */
+    idouble_t  acc_c_conv_15;
+    idouble_t  acc_c_conv_20;
+    idouble_t  acc_c_conv_22;
+    idouble_t  acc_c_conv_45;
+    idouble_t  acc_c_conv_50;
+    idouble_t  acc_c_conv_52;
+    idouble_t  acc_s_conv_13;
+    idouble_t  acc_s_conv_38;
+    idouble_t  acc_s_conv_43;
+    idouble_t  acc_s_conv_8;
+} icicle_state_t;
+
+static const iunit_t iunit  = 0x1c1c13;
+static const ibool_t ifalse = 0;
+static const ibool_t itrue  = 1;
+
+#define INLINE __attribute__((always_inline))
+
+static idouble_t INLINE iint_extend   (iint_t    x)              { return x; }
+static iint_t    INLINE iint_add      (iint_t    x, iint_t    y) { return x +  y; }
+static iint_t    INLINE iint_sub      (iint_t    x, iint_t    y) { return x -  y; }
+static iint_t    INLINE iint_mul      (iint_t    x, iint_t    y) { return x *  y; }
+static ibool_t   INLINE iint_gt       (iint_t    x, iint_t    y) { return x >  y; }
+static ibool_t   INLINE iint_ge       (iint_t    x, iint_t    y) { return x >= y; }
+static ibool_t   INLINE iint_lt       (iint_t    x, iint_t    y) { return x <  y; }
+static ibool_t   INLINE iint_le       (iint_t    x, iint_t    y) { return x <= y; }
+static ibool_t   INLINE iint_eq       (iint_t    x, iint_t    y) { return x == y; }
+static ibool_t   INLINE iint_ne       (iint_t    x, iint_t    y) { return x != y; }
+
+static iint_t    INLINE idouble_trunc (idouble_t x)              { return (iint_t)x; }
+static idouble_t INLINE idouble_add   (idouble_t x, idouble_t y) { return x + y; }
+static idouble_t INLINE idouble_sub   (idouble_t x, idouble_t y) { return x - y; }
+static idouble_t INLINE idouble_mul   (idouble_t x, idouble_t y) { return x * y; }
+static idouble_t INLINE idouble_pow   (idouble_t x, idouble_t y) { return pow(x, y); }
+static idouble_t INLINE idouble_div   (idouble_t x, idouble_t y) { return x / y; }
+static idouble_t INLINE idouble_log   (idouble_t x)              { return log(x); }
+static idouble_t INLINE idouble_exp   (idouble_t x)              { return exp(x); }
+static ibool_t   INLINE idouble_gt    (idouble_t x, idouble_t y) { return x >  y; }
+static ibool_t   INLINE idouble_ge    (idouble_t x, idouble_t y) { return x >= y; }
+static ibool_t   INLINE idouble_lt    (idouble_t x, idouble_t y) { return x <  y; }
+static ibool_t   INLINE idouble_le    (idouble_t x, idouble_t y) { return x <= y; }
+static ibool_t   INLINE idouble_eq    (idouble_t x, idouble_t y) { return x == y; }
+static ibool_t   INLINE idouble_ne    (idouble_t x, idouble_t y) { return x != y; }
+
+static iint_t INLINE iint_err (icicle_state_t *s, ierror_t error)  {
+    s->error = error;
+    return 0xBAD1c3;
+}
+
+static idouble_t INLINE idouble_err (icicle_state_t *s, ierror_t error)  {
+    s->error = error;
+    return 0/0;
+}
+
+void compute(icicle_state_t *s)
+{
+    idouble_t  acc_c_conv_15;
+    idouble_t  acc_c_conv_20;
+    idouble_t  acc_c_conv_22;
+    idouble_t  acc_c_conv_45;
+    idouble_t  acc_c_conv_50;
+    idouble_t  acc_c_conv_52;
+    idouble_t  acc_s_conv_13;
+    idouble_t  acc_s_conv_38;
+    idouble_t  acc_s_conv_43;
+    idouble_t  acc_s_conv_8;
+    idouble_t  c_conv_15;
+    idouble_t  c_conv_20;
+    idouble_t  c_conv_22;
+    idouble_t  c_conv_45;
+    idouble_t  c_conv_50;
+    idouble_t  c_conv_52;
+    idouble_t  s_conv_13;
+    idouble_t  s_conv_38;
+    idouble_t  s_conv_43;
+    idouble_t  s_conv_8;
+
+    acc_s_conv_8                         = 0.0;
+    acc_s_conv_13                        = 0.0;
+    acc_c_conv_15                        = 0.0;
+    acc_c_conv_20                        = 0.0;
+    acc_c_conv_22                        = 0.0;
+    acc_s_conv_38                        = 0.0;
+    acc_s_conv_43                        = 0.0;
+    acc_c_conv_45                        = 0.0;
+    acc_c_conv_50                        = 0.0;
+    acc_c_conv_52                        = 0.0;
+    acc_s_conv_8                         = s->acc_s_conv_8;
+    acc_s_conv_13                        = s->acc_s_conv_13;
+    acc_c_conv_15                        = s->acc_c_conv_15;
+    acc_c_conv_20                        = s->acc_c_conv_20;
+    acc_c_conv_22                        = s->acc_c_conv_22;
+    acc_s_conv_38                        = s->acc_s_conv_38;
+    acc_s_conv_43                        = s->acc_s_conv_43;
+    acc_c_conv_45                        = s->acc_c_conv_45;
+    acc_c_conv_50                        = s->acc_c_conv_50;
+    acc_c_conv_52                        = s->acc_c_conv_52;
+    
+    const iint_t            new_count    = s->new_count;
+    const idate_t    *const new_date     = s->new_date;
+    const iint_t     *const new_fact     = s->new_fact;
+    
+    for (iint_t i = 0; i < new_count; i++) {
+        idate_t    elem_gen_date         = new_date[i];
+        iint_t     elem_gen_fact         = new_fact[i];
+        idouble_t  anf_35                = iint_extend (elem_gen_fact);
+        acc_c_conv_15                    = acc_c_conv_15;
+        acc_c_conv_15                    = idouble_add (acc_c_conv_15, 1.0);
+        acc_c_conv_20                    = acc_c_conv_20;
+        acc_c_conv_20                    = idouble_add (acc_c_conv_20, 1.0);
+        acc_c_conv_22                    = acc_c_conv_22;
+        acc_c_conv_22                    = idouble_add (acc_c_conv_22, 1.0);
+        acc_s_conv_8                     = acc_s_conv_8;
+        acc_s_conv_8                     = idouble_add (anf_35, acc_s_conv_8);
+        idouble_t  anf_45                = idouble_mul (anf_35, anf_35);
+        acc_s_conv_13                    = acc_s_conv_13;
+        acc_s_conv_13                    = idouble_add (anf_45, acc_s_conv_13);
+        
+        if (iint_lt (elem_gen_fact, 300)) {
+            acc_c_conv_45                = acc_c_conv_45;
+            acc_c_conv_45                = idouble_add (acc_c_conv_45, 1.0);
+            acc_c_conv_50                = acc_c_conv_50;
+            acc_c_conv_50                = idouble_add (acc_c_conv_50, 1.0);
+            acc_c_conv_52                = acc_c_conv_52;
+            acc_c_conv_52                = idouble_add (acc_c_conv_52, 1.0);
+            acc_s_conv_38                = acc_s_conv_38;
+            acc_s_conv_38                = idouble_add (anf_35, acc_s_conv_38);
+            acc_s_conv_43                = acc_s_conv_43;
+            acc_s_conv_43                = idouble_add (anf_45, acc_s_conv_43);
+        }
+        
+    }
+    
+    s->acc_s_conv_8                      = acc_s_conv_8;
+    s->acc_s_conv_13                     = acc_s_conv_13;
+    s->acc_c_conv_15                     = acc_c_conv_15;
+    s->acc_c_conv_20                     = acc_c_conv_20;
+    s->acc_c_conv_22                     = acc_c_conv_22;
+    s->acc_s_conv_38                     = acc_s_conv_38;
+    s->acc_s_conv_43                     = acc_s_conv_43;
+    s->acc_c_conv_45                     = acc_c_conv_45;
+    s->acc_c_conv_50                     = acc_c_conv_50;
+    s->acc_c_conv_52                     = acc_c_conv_52;
+    s_conv_8                             = acc_s_conv_8;
+    s_conv_13                            = acc_s_conv_13;
+    c_conv_15                            = acc_c_conv_15;
+    c_conv_20                            = acc_c_conv_20;
+    c_conv_22                            = acc_c_conv_22;
+    s_conv_38                            = acc_s_conv_38;
+    s_conv_43                            = acc_s_conv_43;
+    c_conv_45                            = acc_c_conv_45;
+    c_conv_50                            = acc_c_conv_50;
+    c_conv_52                            = acc_c_conv_52;
+    idouble_t  conv_16                   = idouble_mul (s_conv_13, c_conv_15);
+    idouble_t  conv_17                   = idouble_mul (s_conv_8, s_conv_8);
+    idouble_t  conv_18                   = idouble_sub (conv_16, conv_17);
+    idouble_t  conv_24                   = idouble_sub (c_conv_22, 1.0);
+    idouble_t  conv_25                   = idouble_mul (c_conv_20, conv_24);
+    idouble_t  conv_26                   = idouble_div (conv_18, conv_25);
+    idouble_t  conv_28                   = idouble_pow (conv_26, 0.5);
+    idouble_t  conv_46                   = idouble_mul (s_conv_43, c_conv_45);
+    idouble_t  conv_47                   = idouble_mul (s_conv_38, s_conv_38);
+    idouble_t  conv_48                   = idouble_sub (conv_46, conv_47);
+    idouble_t  conv_54                   = idouble_sub (c_conv_52, 1.0);
+    idouble_t  conv_55                   = idouble_mul (c_conv_50, conv_54);
+    idouble_t  conv_56                   = idouble_div (conv_48, conv_55);
+    idouble_t  conv_58                   = idouble_pow (conv_56, 0.5);
+    idouble_t  conv_59                   = idouble_mul (conv_28, conv_58);
+    s->repl                              = conv_59;
+}
+
+- C evaluation:
+[(homer,11180.33988749895)
+,(marge,100.0)]
+
+- Core evaluation:
+[homer, 11180.33988749895
+,marge, 100.0]
+
+> 
