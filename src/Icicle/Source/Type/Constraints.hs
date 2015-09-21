@@ -45,12 +45,17 @@ data DischargeError n
 
 instance Pretty n => Pretty (DischargeError n) where
  pretty (CannotUnify p q)
-  = "Cannot unify " <> pretty p <> " = " <> pretty q
+  =  "Cannot unify: " <> indent 0 (pretty p) <> line
+  <> "With type:    " <> indent 0 (pretty q) <> line
+  <> "These types were required to be equal, but are not."
  pretty (NotANumber t)
-  = "Not a number: " <> pretty t
- pretty (ConflictingLetTemporalities ret def body)
+  =  "Not a number: " <> pretty t <> line
+  <> "Chances are you tried to apply some numerical computation like (+) or sum to the wrong field."
+ pretty (ConflictingLetTemporalities _ def body)
   =  "Conflicting let temporalities." <> line
-  <> "An Aggregate let statement with an Element body is not allowed: " <> pretty ret <+> pretty def <+> pretty body
+  <> "This kind of let isn't allowed because its definition could never be used." <> line
+  <> "The definition is a " <> pretty def
+  <> ", while the body is a " <> pretty body <> "."
 
 -- | Discharge a single constraint
 dischargeC :: Ord n => Constraint n -> Either (DischargeError n) (DischargeResult n)

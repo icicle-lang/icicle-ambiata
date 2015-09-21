@@ -15,9 +15,10 @@ ok, loaded test/cli/repl/data.psv, 8 rows
 >                                     [34mλλλλ[0m
 REPL Error:
 Check error:
-  Cannot discharge constraints at  (line 1, column 35)
-  Constraints: ((line 1, column 35)
-               ,Conflicting let temporalities.
-               An Aggregate let statement with an Element body is not allowed: t$3 Aggregate Element)  
+  Cannot discharge constraints at 1:35
+  Constraints: 
+    1:35  Conflicting let temporalities.
+          This kind of let isn't allowed because its definition could never be used.
+          The definition is a Aggregate, while the body is a Element.
 
 > > 

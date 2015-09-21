@@ -28,7 +28,7 @@ import                  Data.List (lookup)
 import                  Prelude (Enum(..), Bounded(..), minBound,maxBound)
 
 -- Export source position type
-import                  Text.Parsec (SourcePos)
+import                  Text.Parsec (SourcePos, sourceLine, sourceColumn, sourceName)
 
 type TOK = (Token, SourcePos)
 
@@ -149,5 +149,9 @@ instance IsString Variable where
  fromString s = Variable $ T.pack s
 
 instance Pretty SourcePos where
- pretty sp = text $ show sp
+ pretty sp
+  = pretty (sourceLine sp) <> ":" <> pretty (sourceColumn sp)
+  <> (if sourceName sp == ""
+      then ""
+      else ":" <> pretty (sourceName sp))
 

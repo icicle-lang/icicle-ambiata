@@ -23,7 +23,7 @@ ok, loaded test/cli/repl/data.psv, 8 rows
 >                      [34mλλλλ[0m
 REPL Error:
 Check error:
-  Unknown variable ea1 at (line 1, column 20)
+  Unknown variable ea1 at 1:20
   Extra information:
     Suggested bindings are:
       max                  : Element a b -> Aggregate a b
