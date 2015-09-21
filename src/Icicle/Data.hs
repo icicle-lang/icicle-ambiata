@@ -4,6 +4,7 @@ module Icicle.Data (
     Entity (..)
   , Namespace (..)
   , Attribute (..)
+  , FeatureId (..)
   , Fact (..)
   , Fact' (..)
   , AsAt (..)
@@ -42,6 +43,13 @@ newtype Attribute =
   Attribute {
       getAttribute  :: Text
     } deriving (Eq, Ord, Show)
+
+data FeatureId =
+  FeatureId {
+    fidNamespace :: Namespace
+  , fidAttribute :: Attribute
+  }
+
 
 instance Pretty Attribute where
   pretty (Attribute t) = text (unpack t)

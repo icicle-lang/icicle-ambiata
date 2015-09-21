@@ -131,7 +131,7 @@ valueToCore v
                    -> V.VStruct . Map.fromList
                   <$> mapM (\(a,b) -> (,) <$> pure (V.StructField $ getAttribute a) <*> valueToCore b) vs
     DateValue d    -> return $ V.VDateTime d
-    Tombstone      -> Left   $ SimulateErrorCannotConvertToCore v
+    Tombstone      -> return $ V.VTombstone
 
 valueFromCore :: V.BaseValue -> Either (SimulateError a) Value
 valueFromCore v
@@ -151,5 +151,6 @@ valueFromCore v
                   <$> mapM (\(a,b) -> (,) <$> valueFromCore a <*> valueFromCore b) (Map.toList vs)
     V.VStruct vs  -> StructValue . Struct <$> mapM (\(a,b) -> (,) <$> pure (Attribute $ V.nameOfStructField a) <*> valueFromCore b) (Map.toList vs)
 
+    V.VTombstone  -> return Tombstone
     V.VException _-> return Tombstone
 

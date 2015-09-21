@@ -33,6 +33,8 @@ import           Icicle.Encoding
 import           Icicle.Internal.Pretty
 
 import qualified Data.Map                           as Map
+import qualified Data.Set                           as Set
+import           Data.Text (Text)
 
 import           P
 
@@ -50,9 +52,11 @@ data DictionaryEntry =
   deriving (Eq, Show)
 
 data Definition =
-    ConcreteDefinition Encoding
+    ConcreteDefinition Encoding Tombstones
   | VirtualDefinition  Virtual
   deriving (Eq, Show)
+
+type Tombstones = Set.Set Text
 
 -- A parsed and typechecked source program.
 newtype Virtual = Virtual {
@@ -74,8 +78,8 @@ parseFact (Dictionary { dictionaryEntries = dict }) fact'
  = do   def <- maybeToRight (DecodeErrorNotInDictionary attr)
                             (P.find (\(DictionaryEntry attr' _) -> (==) attr attr') dict)
         case def of
-         DictionaryEntry _ (ConcreteDefinition enc)
-          -> factOf <$> parseValue enc (value' fact')
+         DictionaryEntry _ (ConcreteDefinition enc ts)
+          -> factOf <$> parseValue enc ts (value' fact')
          DictionaryEntry _ (VirtualDefinition _)
           -> Left (DecodeErrorValueForVirtual attr)
 
@@ -95,7 +99,7 @@ featureMapOfDictionary (Dictionary { dictionaryEntries = ds, dictionaryFunctions
  (Map.fromList $ concatMap go ds)
  (Map.map fst functions)
  where
-  go (DictionaryEntry (Attribute attr) (ConcreteDefinition enc))
+  go (DictionaryEntry (Attribute attr) (ConcreteDefinition enc _))
    | StructT st@(StructType fs) <- sourceTypeOfEncoding enc
    = let e' = StructT st
      in [ ( var attr
@@ -144,7 +148,7 @@ prettyDictionarySummary dict
  <> "Features" <> line
  <> indent 2 (vcat $ fmap pprEntry $ dictionaryEntries dict))
  where
-  pprEntry (DictionaryEntry attr (ConcreteDefinition enc))
+  pprEntry (DictionaryEntry attr (ConcreteDefinition enc _))
    = padDoc 20 (pretty attr) <> " : " <> pretty enc
   pprEntry (DictionaryEntry attr (VirtualDefinition virt))
    = padDoc 20 (pretty attr) <> " = " <> indent 0 (pretty virt)
