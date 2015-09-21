@@ -44,6 +44,8 @@ import           Icicle.Data.DateTime
 import           Icicle.Dictionary
 import           Icicle.Internal.Rename
 import qualified Icicle.Repl                          as SR
+import qualified Icicle.Sea.Eval                      as Sea
+import qualified Icicle.Sea.FromAvalanche             as Sea
 import qualified Icicle.Simulator                     as S
 import qualified Icicle.Source.Parser                 as SP
 import qualified Icicle.Source.PrettyAnnot            as SPretty
@@ -101,10 +103,12 @@ data ReplState
    , hasInlined   :: Bool
    , hasCore      :: Bool
    , hasCoreType  :: Bool
+   , hasCoreEval  :: Bool
    , hasAvalanche :: Bool
    , hasFlatten   :: Bool
    , hasJava      :: Bool
-   , hasEval      :: Bool
+   , hasSea       :: Bool
+   , hasSeaEval   :: Bool
    , doCoreSimp   :: Bool }
 
 -- | Settable REPL states
@@ -114,10 +118,12 @@ data Set
    | ShowInlined        Bool
    | ShowCore           Bool
    | ShowCoreType       Bool
-   | ShowEval           Bool
+   | ShowCoreEval       Bool
    | ShowAvalanche      Bool
    | ShowFlatten        Bool
    | ShowJava           Bool
+   | ShowSea            Bool
+   | ShowSeaEval        Bool
    | CurrentDate        DateTime
    | PerformCoreSimp    Bool
 
@@ -137,8 +143,8 @@ data Command
 
 defaultState :: ReplState
 defaultState
-  = (ReplState [] demographics (unsafeDateOfYMD 1970 1 1) False False False False False False False False False False)
-    { hasEval = True }
+  = (ReplState [] demographics (unsafeDateOfYMD 1970 1 1) False False False False False False False False False False False False)
+    { hasCoreEval = True }
 
 readCommand :: String -> Maybe Command
 readCommand ss = case words ss of
@@ -159,35 +165,41 @@ readCommand ss = case words ss of
 readSetCommands :: [String] -> Maybe [Set]
 readSetCommands ss
  = case ss of
-    ("+type":rest)      -> (:) (ShowType True)        <$> readSetCommands rest
-    ("-type":rest)      -> (:) (ShowType False)       <$> readSetCommands rest
+    ("+type":rest)      -> (:) (ShowType        True)  <$> readSetCommands rest
+    ("-type":rest)      -> (:) (ShowType        False) <$> readSetCommands rest
 
-    ("+annotated":rest) -> (:) (ShowAnnotated True)   <$> readSetCommands rest
-    ("-annotated":rest) -> (:) (ShowAnnotated False)  <$> readSetCommands rest
+    ("+annotated":rest) -> (:) (ShowAnnotated   True)  <$> readSetCommands rest
+    ("-annotated":rest) -> (:) (ShowAnnotated   False) <$> readSetCommands rest
 
-    ("+inlined":rest)   -> (:) (ShowInlined   True)   <$> readSetCommands rest
-    ("-inlined":rest)   -> (:) (ShowInlined   False)  <$> readSetCommands rest
+    ("+inlined":rest)   -> (:) (ShowInlined     True)  <$> readSetCommands rest
+    ("-inlined":rest)   -> (:) (ShowInlined     False) <$> readSetCommands rest
 
-    ("+core":rest)      -> (:) (ShowCore True)        <$> readSetCommands rest
-    ("-core":rest)      -> (:) (ShowCore False)       <$> readSetCommands rest
+    ("+core":rest)      -> (:) (ShowCore        True)  <$> readSetCommands rest
+    ("-core":rest)      -> (:) (ShowCore        False) <$> readSetCommands rest
 
-    ("+core-type":rest) -> (:) (ShowCoreType True)    <$> readSetCommands rest
-    ("-core-type":rest) -> (:) (ShowCoreType False)   <$> readSetCommands rest
+    ("+core-type":rest) -> (:) (ShowCoreType    True)  <$> readSetCommands rest
+    ("-core-type":rest) -> (:) (ShowCoreType    False) <$> readSetCommands rest
 
-    ("+core-simp":rest) -> (:) (PerformCoreSimp True) <$> readSetCommands rest
-    ("-core-simp":rest) -> (:) (PerformCoreSimp False)<$> readSetCommands rest
+    ("+core-simp":rest) -> (:) (PerformCoreSimp True)  <$> readSetCommands rest
+    ("-core-simp":rest) -> (:) (PerformCoreSimp False) <$> readSetCommands rest
 
-    ("+eval":rest)      -> (:) (ShowEval True)        <$> readSetCommands rest
-    ("-eval":rest)      -> (:) (ShowEval False)       <$> readSetCommands rest
+    ("+core-eval":rest) -> (:) (ShowCoreEval    True)  <$> readSetCommands rest
+    ("-core-eval":rest) -> (:) (ShowCoreEval    False) <$> readSetCommands rest
 
-    ("+avalanche":rest) -> (:) (ShowAvalanche True)   <$> readSetCommands rest
-    ("-avalanche":rest) -> (:) (ShowAvalanche False)  <$> readSetCommands rest
+    ("+avalanche":rest) -> (:) (ShowAvalanche   True)  <$> readSetCommands rest
+    ("-avalanche":rest) -> (:) (ShowAvalanche   False) <$> readSetCommands rest
 
-    ("+flatten":rest)   -> (:) (ShowFlatten   True)   <$> readSetCommands rest
-    ("-flatten":rest)   -> (:) (ShowFlatten   False)  <$> readSetCommands rest
+    ("+flatten":rest)   -> (:) (ShowFlatten     True)  <$> readSetCommands rest
+    ("-flatten":rest)   -> (:) (ShowFlatten     False) <$> readSetCommands rest
 
-    ("+java":rest)      -> (:) (ShowJava      True)   <$> readSetCommands rest
-    ("-java":rest)      -> (:) (ShowJava      False)  <$> readSetCommands rest
+    ("+java":rest)      -> (:) (ShowJava        True)  <$> readSetCommands rest
+    ("-java":rest)      -> (:) (ShowJava        False) <$> readSetCommands rest
+
+    ("+c":rest)         -> (:) (ShowSea         True)  <$> readSetCommands rest
+    ("-c":rest)         -> (:) (ShowSea         False) <$> readSetCommands rest
+
+    ("+c-eval":rest)    -> (:) (ShowSeaEval     True)  <$> readSetCommands rest
+    ("-c-eval":rest)    -> (:) (ShowSeaEval     False) <$> readSetCommands rest
 
     ("date" : y : m : d : rest)
        | Just y' <- readMaybe y
@@ -298,11 +310,19 @@ handleLine state line = case readCommand line of
         let flatChecked = checkAvalanche f
         case flatChecked of
          Left  e  -> prettyOut (const True) "- Avalanche type error:" e
-         Right f' -> prettyOut hasJava      "- Java:" (AJ.programToJava f')
+         Right f' -> do
+           prettyOut hasJava "- Java:" (AJ.programToJava f')
+           prettyOut hasSea  "- C:"    (Sea.seaOfProgram f')
+
+           when (hasSeaEval state) $ do
+             result <- liftIO . runEitherT $ seaEval (currentDate state) (facts state) annot' f'
+             case result of
+               Left  e -> prettyOut (const True) "- C error:" e
+               Right r -> prettyOut (const True) "- C evaluation:" r
 
       case coreEval (currentDate state) (facts state) annot' core' of
-       Left  e -> prettyOut hasEval "- Result error:" e
-       Right r -> prettyOut hasEval "- Result:" r
+       Left  e -> prettyOut hasCoreEval "- Core error:" e
+       Right r -> prettyOut hasCoreEval "- Core evaluation:" r
 
       return ()
 
@@ -335,6 +355,10 @@ handleSetCommand state set
         HL.outputStrLn $ "ok, core-type is now " <> showFlag b
         return $ state { hasCoreType = b }
 
+    ShowCoreEval b -> do
+        HL.outputStrLn $ "ok, core evaluation is now " <> showFlag b
+        return $ state { hasCoreEval = b }
+
     ShowAvalanche b -> do
         HL.outputStrLn $ "ok, avalanche is now " <> showFlag b
         return $ state { hasAvalanche = b }
@@ -347,9 +371,30 @@ handleSetCommand state set
         HL.outputStrLn $ "ok, java is now " <> showFlag b
         return $ state { hasJava = b }
 
-    ShowEval b -> do
-        HL.outputStrLn $ "ok, eval is now " <> showFlag b
-        return $ state { hasEval = b }
+    ShowSea b -> do
+        HL.outputStrLn $ "ok, c is now " <> showFlag b
+        return $ state { hasSea = b }
+
+    ShowSeaEval b -> do
+        HL.outputStrLn $ "ok, c evaluation now " <> showFlag b
+        when b $ do
+          HL.outputStrLn "                   _________-----_____"
+          HL.outputStrLn "        _____------           __      ----_"
+          HL.outputStrLn " ___----             ___------              \\"
+          HL.outputStrLn "    ----________        ----                 \\"
+          HL.outputStrLn "                -----__    |             _____)"
+          HL.outputStrLn "                     __-                /     \\"
+          HL.outputStrLn "         _______-----    ___--          \\    /)\\"
+          HL.outputStrLn "   ------_______      ---____            \\__/  /"
+          HL.outputStrLn "                -----__    \\ --    _          /\\"
+          HL.outputStrLn "                       --__--__     \\_____/   \\_/\\"
+          HL.outputStrLn "                               ----|   /          |"
+          HL.outputStrLn "                                   |  |___________|"
+          HL.outputStrLn "                                   |  | ((_(_)| )_)"
+          HL.outputStrLn "                                   |  \\_((_(_)|/(_)"
+          HL.outputStrLn "                                   \\             ("
+          HL.outputStrLn "                                    \\_____________)"
+        return $ state { hasSeaEval = b }
 
     CurrentDate d -> do
         HL.outputStrLn $ "ok, date set to " <> T.unpack (renderDate d)
@@ -397,6 +442,31 @@ coreEval d fs (renameQT unVar -> query) prog
     evalV
       = S.evaluateVirtualValue prog d
 
+seaEval :: DateTime
+        -> [AsAt Fact]
+        -> QueryTopPUV
+        -> AP.Program (C.Annot ()) Text APF.Prim
+        -> EitherT Sea.SeaError IO [(Entity, Value)]
+seaEval date newFacts (renameQT unVar -> query) program =
+    mconcat <$> sequence results
+  where
+    partitions :: [S.Partition]
+    partitions  = S.streams newFacts
+
+    results :: [EitherT Sea.SeaError IO [(Entity, Value)]]
+    results = fmap (evalP (SQ.feature query)) partitions
+
+    evalP :: CommonBase.Name Text
+          -> S.Partition
+          -> EitherT Sea.SeaError IO [(Entity, Value)]
+    evalP featureName (S.Partition entityName attributeName values)
+      | CommonBase.Name name <- featureName
+      , Attribute name == attributeName
+      = do outputs <- Sea.seaEval program date values
+           return $ fmap (\out -> (entityName, snd out)) outputs
+
+      | otherwise
+      = return []
 
 -- | Converts Core to Avalanche then flattens the result.
 --
@@ -472,10 +542,12 @@ showState state
     , flag "core:       " hasCore
     , flag "core-type:  " hasCoreType
     , flag "core-simp:  " doCoreSimp
-    , flag "eval:       " hasEval
+    , flag "core-eval:  " hasCoreEval
     , flag "avalanche:  " hasAvalanche
     , flag "flatten:    " hasFlatten
     , flag "java:       " hasJava
+    , flag "c:          " hasSea
+    , flag "c-eval:     " hasSeaEval
     ,      "now:        " <> T.unpack (renderDate $ currentDate state)
     ,      "data:       " <> show (length $ facts state) <> " rows"
     ,      "dictionary: " <> show (prettyDictionarySummary (dictionary state))
@@ -498,8 +570,10 @@ usage
       , ":set  +/-core      -- whether to show the Core conversion"
       , ":set  +/-core-type -- whether to show the Core conversion's type"
       , ":set  +/-core-simp -- whether to simplify the result of Core conversion"
-      , ":set  +/-eval      -- whether to show the result"
+      , ":set  +/-core-eval -- whether to show the result (using Core evaluation)"
       , ":set  +/-avalanche -- whether to show the Avalanche conversion"
       , ":set  +/-flatten   -- whether to show flattened Avalanche conversion"
-      , ":set  +/-java      -- whether to show the Java result" ]
+      , ":set  +/-java      -- whether to show the Java conversion"
+      , ":set  +/-c         -- whether to show the C conversion"
+      , ":set  +/-c-eval    -- whether to show the result (using C evaluation)" ]
 
