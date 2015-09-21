@@ -10,7 +10,7 @@ sdd v = let v_ = double v ~> let sv = (sum v_) ~> (((sum (v_*v_) * count) - (sv 
 
 sd v = let fold a = ((0, 0.0), 0.0)
      :  case a | ((n,m),m2) -> (let nn = n + 1 ~> let d = v - m ~> let mm = m + d / nn ~> let m22 = m2 + d * (v - mm) ~> ((nn, mm), m22)) end
-     ~> case a | ((x,_),y)  -> y / (x - 1) end.
+     ~> let x = case a | ((x,_),y)  -> y / (x - 1) end ~> x ^ 0.5.
 
 # Time statements
 newest v = latest 1 ~> let fold1 s = v : v ~> s.

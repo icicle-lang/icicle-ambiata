@@ -303,7 +303,7 @@ handleLine state line = case readCommand line of
        Right f -> do
         prettyOut hasFlatten "- Flattened:" f
 
-        let flatChecked = checkAvalanche f
+        let flatChecked = checkAvalanche (simpAvalanche f)
         case flatChecked of
          Left  e  -> prettyOut (const True) "- Avalanche type error:" e
          Right f' -> prettyOut hasJava      "- Java:" (AJ.programToJava f')

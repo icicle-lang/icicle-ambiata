@@ -47,8 +47,9 @@ import                  P
 
 import                  Control.Monad.Trans.State.Lazy
 import                  Control.Monad.Trans.Class
-import                  Data.List (zip, unzip)
+import                  Data.List (zip, unzip, zipWith)
 
+import                  Data.Functor.Identity
 import qualified        Data.Map as Map
 
 
