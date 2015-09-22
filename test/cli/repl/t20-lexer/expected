@@ -26,11 +26,11 @@ Check error:
   Unknown variable ea1 at 1:20
   Extra information:
     Suggested bindings are:
-      max                  : Element a b -> Aggregate a b
-      mean                 : (Num b) => Element a b -> Aggregate a Double
+      max                  : Element a -> Aggregate a
+      mean                 : (Num a) => Element a -> Aggregate Double
       date                 : Element Definitely DateTime
-      min                  : Element a b -> Aggregate a b
-      sd                   : (Num b) => Element a b -> Aggregate a Double
+      min                  : Element a -> Aggregate a
+      sd                   : (Num a) => Element a -> Aggregate Double
 
 > > -- Expect a parse error on unterminated string
 >                  [34mλλλλ[0m
