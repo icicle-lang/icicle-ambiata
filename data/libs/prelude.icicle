@@ -6,8 +6,6 @@ mean v = sum (double v) / count.
 max v = let fold1 s = v : case v > s | True -> v | False -> s end ~> s.
 min v = let fold1 s = v : case v < s | True -> v | False -> s end ~> s.
 
-sdd v = let v_ = double v ~> let sv = (sum v_) ~> (((sum (v_*v_) * count) - (sv * sv)) / (count * (count - 1)))^(0.5).
-
 sd v = let fold a = ((0, 0.0), 0.0)
      :  case a | ((n,m),m2) -> (let nn = n + 1 ~> let d = v - m ~> let mm = m + d / nn ~> let m22 = m2 + d * (v - mm) ~> ((nn, mm), m22)) end
      ~> let x = case a | ((x,_),y)  -> y / (x - 1) end ~> x ^ 0.5.

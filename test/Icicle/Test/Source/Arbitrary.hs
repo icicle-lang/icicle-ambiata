@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards #-}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
@@ -20,10 +21,13 @@ import           Test.QuickCheck.Instances ()
 
 import           P
 
-import                  Control.Monad.Trans.Either
+import           Control.Monad.Trans.Either
 import qualified Data.Text as Text
+import qualified Data.List as List
 
-freshnamer = (counterPrefixNameState (T.Variable . Text.pack . show) (T.Variable "v"))
+
+freshnamer = counterPrefixNameState (T.Variable . Text.pack . show) (T.Variable "v")
+
 freshtest p
  = snd <$> runFreshT p freshnamer
 
@@ -43,8 +47,8 @@ instance Arbitrary n => Arbitrary (Exp () n) where
         , Prim   () <$> arbitrary ]
         [ (simplifyNestedX . Nested ()) <$> arbitrary
         , App    () <$> arbitrary <*> arbitrary
-        -- TODO: generate other patterns for case expressions
-        , Case   () <$> arbitrary <*> ((\a b -> [(PatCon ConTrue [], a), (PatCon ConFalse [], b)]) <$> arbitrary <*> arbitrary)
+        , Case   () <$> arbitrary
+                    <*> arbitrary `suchThat` (not . null)
         , preop
         , inop ]
 
@@ -89,7 +93,12 @@ instance Arbitrary Constructor where
 instance Arbitrary n => Arbitrary (Pattern n) where
  arbitrary
   = oneof_sized [ return PatDefault, PatVariable <$> arbitrary ]
-                [ PatCon <$> arbitrary <*> arbitrary ]
+                [ patcon ]
+  where
+   patcon
+    = do con  <- arbitrary
+         args <- List.take (arityOfConstructor con) <$> (infiniteList :: Gen [Pattern n])
+         return (PatCon con args)
 
 
 instance Arbitrary n => Arbitrary (Context () n) where

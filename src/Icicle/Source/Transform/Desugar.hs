@@ -2,29 +2,55 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE PatternSynonyms   #-}
 {-# LANGUAGE TupleSections     #-}
+{-# LANGUAGE DeriveTraversable #-}
+{-# LANGUAGE DeriveFoldable    #-}
 module Icicle.Source.Transform.Desugar where
 
 import           Icicle.Common.Base
 import           Icicle.Common.Fresh
 import           Icicle.Source.Query
 
+import           Data.Functor.Identity
+import           Data.Either.Combinators
+
+import           Control.Monad.Trans.Either
+import           Control.Monad.Trans.Class
+
 import           P
 
-import           Prelude             (error)
 
+data DesugarError n
+ = DesugarErrorNoAlternative (Pattern n) -- ^ we generated a pattern that cannot be matched
+                                         --   with any alternative.
+ | DesugarErrorImpossible                -- ^ just impossible, the world has ended.
+ deriving (Eq, Show)
 
-desugarQT :: (Eq n) => QueryTop a n -> Fresh n (QueryTop a n)
+type DesugarM a n x = FreshT n (EitherT (DesugarError n) Identity) x
+
+runDesugar :: NameState n -> DesugarM a n x -> Either (DesugarError n) x
+runDesugar n m = mapRight snd . runIdentity . runEitherT $ runFreshT m n
+
+desugarQT
+  :: (Eq n)
+  => QueryTop a n
+  -> DesugarM a n (QueryTop a n)
 desugarQT qt
   = do qq' <- desugarQ (query qt)
        return $ qt { query = qq' }
 
-desugarQ :: (Eq n) => Query a n -> Fresh n (Query a n)
+desugarQ
+  :: (Eq n)
+  => Query a n
+  -> DesugarM a n (Query a n)
 desugarQ qq
   = do cs <- mapM desugarC (contexts qq)
        f  <- desugarX (final qq)
        return $ Query cs f
 
-desugarC :: (Eq n) => Context a n -> Fresh n (Context a n)
+desugarC
+  :: (Eq n)
+  => Context a n
+  -> DesugarM a n (Context a n)
 desugarC cc
  = case cc of
     GroupBy  a   x -> GroupBy  a   <$> desugarX x
@@ -34,13 +60,19 @@ desugarC cc
     LetFold  a   f -> LetFold  a   <$> desugarF f
     _              -> return cc
 
-desugarF :: (Eq n) => Fold (Query a n) a n -> Fresh n (Fold (Query a n) a n)
+desugarF
+  :: (Eq n)
+  => Fold (Query a n) a n
+  -> DesugarM a n (Fold (Query a n) a n)
 desugarF ff
   = do fi' <- desugarX (foldInit ff)
        fw' <- desugarX (foldWork ff)
        return $ ff { foldInit = fi', foldWork = fw'}
 
-desugarX :: (Eq n) => Exp a n -> Fresh n (Exp a n)
+desugarX
+  :: (Eq n)
+  => Exp a n
+  -> DesugarM a n (Exp a n)
 desugarX xx
  = case xx of
     Nested a q
@@ -51,7 +83,7 @@ desugarX xx
      -> do let pats  = fmap fst patalts
            let ty    = foldl' (flip addToTy) TyAny pats
            tree     <- casesForTy a scrut ty
-           return $ treeToCase a patalts tree
+           treeToCase a patalts tree
 
     App a x1 x2
       -> do x1' <- desugarX x1
@@ -94,7 +126,10 @@ addToTy _                          ty            = ty
 
 
 casesForTy
-  :: a -> Exp' (Query a n) a n -> Ty -> Fresh n (Tree a n (Pattern n))
+  :: a
+  -> Exp' (Query a n) a n
+  -> Ty
+  -> DesugarM a n (Tree a n (Pattern n))
 casesForTy ann scrut ty
  = case ty of
 
@@ -140,7 +175,7 @@ data Tree a n x
  | TLet  (Name n)                  -- ^ insert a let because we cannot generate pattern variables.
          (Exp' (Query a n) a n)
          (Tree a n x)
- deriving (Functor, Show)
+ deriving (Functor, Foldable, Traversable, Show)
 
 instance Monad (Tree a n) where
   return  = Done
@@ -152,13 +187,14 @@ instance Monad (Tree a n) where
 
 
 treeToCase
-  :: (Pretty n, Show n, Show a, Eq n)
+  :: (Eq n)
   => a
   -> [(Pattern n, Exp' (Query a n) a n)]
   -> Tree a n (Pattern n)
-  -> Exp' (Query a n) a n
-treeToCase ann patalts
- = simpCaseAlts . simpLets . caseStmtsFor . fmap (getAltBody patalts)
+  -> DesugarM a n (Exp' (Query a n) a n)
+treeToCase ann patalts tree
+ = lift . fmap (simpCaseAlts . simpLets . caseStmtsFor) . sequence
+ $ fmap (getAltBody patalts) tree
   where
    -- Convert tree structure to AST
    caseStmtsFor (Done x)
@@ -171,19 +207,26 @@ treeToCase ann patalts
    -- Look up the alternative for this pattern
    getAltBody ((px, x) : xs) p
     = case matcher p px of
-       Nothing -> getAltBody xs p
-       Just [] -> x
-       Just s  -> Nested ann (Query (fmap generateLet s) x)
+       Nothing
+        -> getAltBody xs p
+       Just []
+        -> right x
+       Just s
+        -> do s' <- mapM generateLet s
+              right $ Nested ann (Query s' x)
+   getAltBody _ p
+    = left $ DesugarErrorNoAlternative p
 
    generateLet (n ,p)
-     = Let ann n (patternToExp p)
+    = Let ann n <$> patternToExp p
 
    patternToExp (PatCon c as)
-     = foldl (App ann) (Prim ann (PrimCon c)) (fmap patternToExp as)
+    = do xs <- mapM patternToExp as
+         right $ foldl (App ann) (Prim ann (PrimCon c)) xs
    patternToExp (PatVariable v)
-     = Var ann v
-   patternToExp (PatDefault)
-     = error "desugar: impossible! case flattening could not have generated default patterns!"
+    = right $ Var ann v
+   patternToExp PatDefault
+    = left DesugarErrorImpossible -- we never generate default patterns.
 
    -- "Unify" the generated pattern and a user-supplied pattern.
    -- Return a list of substitutions if success. This is necessary in case the
@@ -203,6 +246,59 @@ treeToCase ann patalts
    matcher _ _
     = Nothing
 
+--------------------------------------------------------------------------------
+
+-- | Simplify cases with a single default/variable pattern.
+--
+simpCaseAlts
+ :: Exp' (Query a n) a n -> Exp' (Query a n) a n
+simpCaseAlts xx
+ = case xx of
+    Case _ _ [(PatDefault, x)]
+     -> simpX x
+
+    Case a e [(PatVariable n, x)]
+     -> let q = Query [Let a n (simpX e)] (simpX x)
+        in  Nested a q
+
+    Case a e ps
+     -> Case a (simpX e) (fmap (fmap simpX) ps)
+
+    Nested a q
+     -> Nested a (simpQ q)
+
+    App a x y
+     -> App a (simpX x) (simpX y)
+
+    Var{}  -> xx
+    Prim{} -> xx
+
+ where
+  simpX
+   = simpCaseAlts
+
+  simpQ qq
+   = qq { contexts = fmap simpC (contexts qq)
+        , final    = simpX (final qq) }
+
+  simpC cc
+   = case cc of
+      GroupBy a x
+       -> GroupBy a (simpX x)
+      Distinct a x
+       -> Distinct a (simpX x)
+      Filter a x
+       -> Filter a (simpX x)
+      LetFold a (Fold b i w t)
+       -> LetFold a (Fold b (simpX i) (simpX w) t)
+      Let a n x
+       -> Let a n (simpX x)
+      GroupFold a n1 n2 x
+       -> GroupFold a n1 n2 (simpX x)
+      Windowed{} -> cc
+      Latest{}   -> cc
+
+--------------------------------------------------------------------------------
 
 -- | Simplify nested bindings from variables to variables, e.g. `let x = y ~>..`
 --   This recurses into nested queries so it's not a traditional beta-reduction.
@@ -257,12 +353,12 @@ simpLets xx
        Let a n e
         | n /= x
         -> (f, Let a n (substX x y e) : rest')
-        | n == x
+        | otherwise
         -> (False, Let a n (substX x y e) : rest)
        LetFold a (Fold n init work ty)
         | n /= x
         -> (f, LetFold a (Fold n (substX x y init) (substX x y work) ty):rest')
-        | n == x
+        | otherwise
         -> (False, LetFold a (Fold n (substX x y init) work ty) : rest)
        GroupBy a e
         -> (f, GroupBy a (substX x y e) : rest')
@@ -270,9 +366,11 @@ simpLets xx
         -> (f, Distinct a (substX x y e) : rest')
        Filter a e
         -> (f, Filter a (substX x y e) : rest')
+       GroupFold a n1 n2 e
+        -> (f, GroupFold a n1 n2 (substX x y e) : rest')
 
        Windowed {} -> (f, cc : rest')
-       Latest {}   -> (f, cc :rest')
+       Latest {}   -> (f, cc : rest')
 
   substQ x y qq
    = let (f, ctxs) = substC x y (contexts qq)

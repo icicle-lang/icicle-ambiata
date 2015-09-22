@@ -276,7 +276,7 @@ handleLine state line = case readCommand line of
       prettyOut hasAnnotated "- Annotated:" (SPretty.PrettyAnnot annot)
 
       let inlined= SR.sourceInline (dictionary state) annot
-      blanded    <- hoist $ return $ SR.sourceDesugar inlined
+      blanded    <- hoist $ SR.sourceDesugar inlined
       prettyOut hasDesugar "- Desugar:" blanded
 
       (annot',_) <- hoist $ SR.sourceCheck (dictionary state) blanded

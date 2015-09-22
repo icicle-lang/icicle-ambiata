@@ -628,7 +628,7 @@ convertReduce xx
  -- So we revert the state at the end, clearing any bindings,
  -- rolling back to the old input type, etc.
  | Nested _ q   <- xx
-        o <- get
+ = do   o <- get
         r <- convertQuery q
         put o
         return r

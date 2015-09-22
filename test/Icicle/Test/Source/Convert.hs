@@ -11,6 +11,7 @@ import           Icicle.Source.Query
 import           Icicle.Source.ToCore.Context
 import           Icicle.Source.ToCore.ToCore
 import           Icicle.Source.Type
+import           Icicle.Source.Transform.Desugar
 import qualified Icicle.Source.Lexer.Token as T
 
 import qualified Icicle.Common.Exp.Prim.Minimal as Min
@@ -39,7 +40,8 @@ prop_convert_ok nm tt fn q
  $ case typ of
     Right (qt', _)
      | restrict q
-     -> let conv = freshtest $ convertQueryTop fets qt'
+     , Right bland <- runDesugar freshnamer $ desugarQT qt'
+     -> let conv  = freshtest (convertQueryTop fets bland)
         in  counterexample (show conv)
           $ isRight conv
     _
