@@ -43,6 +43,9 @@ desugarF ff
 desugarX :: (Eq n) => Exp a n -> Fresh n (Exp a n)
 desugarX xx
  = case xx of
+    Nested a q
+     -> do q' <- desugarQ q
+           return $ Nested a q'
 
     Case a scrut patalts
      -> do let pats  = fmap fst patalts
@@ -50,7 +53,15 @@ desugarX xx
            tree     <- casesForTy a scrut ty
            return $ treeToCase a patalts tree
 
-    _ -> return xx
+    App a x1 x2
+      -> do x1' <- desugarX x1
+            x2' <- desugarX x2
+            return $ App a x1' x2'
+
+    Var _ _
+      -> return xx
+    Prim _ _
+     -> return xx
 
 --------------------------------------------------------------------------------
 
@@ -141,13 +152,13 @@ instance Monad (Tree a n) where
 
 
 treeToCase
-  :: (Eq n)
+  :: (Pretty n, Show n, Show a, Eq n)
   => a
   -> [(Pattern n, Exp' (Query a n) a n)]
   -> Tree a n (Pattern n)
   -> Exp' (Query a n) a n
 treeToCase ann patalts
- = simpLets . caseStmtsFor . fmap (getAltBody patalts)
+ = simpCaseAlts . simpLets . caseStmtsFor . fmap (getAltBody patalts)
   where
    -- Convert tree structure to AST
    caseStmtsFor (Done x)
@@ -237,30 +248,31 @@ simpLets xx
   varsIn (PatVariable v) = [ v ]
   varsIn (PatDefault)    = []
 
+  -- substC x y cc| trace ("SIMP: SUBSTC: \n" <> (show $ pretty x) <> " " <> (show $ pretty y) <> " " <> (show $ pretty cc)) False = undefined
   substC _ _ []
    = (True, [])
   substC x y (cc:rest)
    = let (f, rest') = substC x y rest
-      in case cc of
-        Let a n e
-         | n /= x
-         -> (f, Let a n (substX x y e) : rest')
-         | n == x
-         -> (False, Let a n (substX x y e) : rest)
-        LetFold a (Fold n init work ty)
-         | n /= x
-         -> (f, LetFold a (Fold n (substX x y init) (substX x y work) ty):rest')
-         | n == x
-         -> (False, LetFold a (Fold n (substX x y init) work ty) : rest)
-        GroupBy a e
-         -> (f, GroupBy a (substX x y e) : rest')
-        Distinct a e
-         -> (f, Distinct a (substX x y e) : rest')
-        Filter a e
-         -> (f, Filter a (substX x y e) : rest')
+     in  case cc of
+       Let a n e
+        | n /= x
+        -> (f, Let a n (substX x y e) : rest')
+        | n == x
+        -> (False, Let a n (substX x y e) : rest)
+       LetFold a (Fold n init work ty)
+        | n /= x
+        -> (f, LetFold a (Fold n (substX x y init) (substX x y work) ty):rest')
+        | n == x
+        -> (False, LetFold a (Fold n (substX x y init) work ty) : rest)
+       GroupBy a e
+        -> (f, GroupBy a (substX x y e) : rest')
+       Distinct a e
+        -> (f, Distinct a (substX x y e) : rest')
+       Filter a e
+        -> (f, Filter a (substX x y e) : rest')
 
-        Windowed {} -> (f, cc : rest')
-        Latest {}   -> (f, cc :rest')
+       Windowed {} -> (f, cc : rest')
+       Latest {}   -> (f, cc :rest')
 
   substQ x y qq
    = let (f, ctxs) = substC x y (contexts qq)

@@ -346,24 +346,22 @@ generateX x
            annotate Map.empty resT $ \a' -> Prim a' p
 
     -- Cases require:
-    --  * Alternatives to have "join-able" types, i.e. no mixing of aggregates and elements.
-    --  * The scrutinee and alternatives to have "join-able" temporalities.
+    --  * alternatives to have "join-able" types, i.e. no mixing of aggregates and elements.
+    --
     Case a scrut pats
      -> do (scrut', sub) <- generateX scrut
            (pats', subs) <- unzip <$> mapM (generateP $ annResult $ annotOfExp scrut') pats
 
-           let scrutT  = annResult $ annotOfExp scrut'
-           resT <- TypeVar <$> fresh
-
-           traceM ("SCRUTTY=" <> show (scrutT))
-           traceM ("REST=" <> show resT)
-           traceM ("PATS=" <> show (fmap (annResult . annotOfExp . snd) pats'))
+           let scrutT  =  annResult $ annotOfExp scrut'
+           resT        <- case pats' of
+                           [] -> hoistEither
+                               $ errorNoSuggestions
+                               $ ErrorEmptyCase a x
+                           ((_,alt):_)
+                              -> return $ annResult $ annotOfExp alt
 
            -- all alternatives must have compatible temporalities
            joinAlts a scrutT pats'
-
-           -- return temporality
-           mapM_ (require a . CTemporalityJoin resT scrutT . annResult . annotOfExp . snd) pats'
 
            let t' = resT
            annotate (Map.unions (sub : subs)) t' $ \a' -> Case a' scrut' pats'
