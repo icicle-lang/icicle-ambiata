@@ -6,6 +6,7 @@
 module Icicle.Source.Type.Compounds (
     function0
   , freeT
+  , freeC
   , canonT
   , decomposeT
   , recomposeT
@@ -57,6 +58,20 @@ freeT t
     PossibilityDefinitely   -> Set.empty
 
     TypeVar n               -> Set.singleton n
+
+
+freeC :: Ord n => Constraint n -> Set.Set (Name n)
+freeC c
+ = case c of
+    CEquals p q             -> Set.union (freeT p) (freeT q)
+    CIsNum  p               -> freeT p
+    CReturnOfLetTemporalities
+                    p q r   -> Set.unions
+                             $ fmap freeT
+                             [ p, q, r ]
+    CReturnOfLatest p q r   -> Set.unions
+                             $ fmap freeT
+                             [ p, q, r ]
 
 
 canonT :: Type n -> Type n

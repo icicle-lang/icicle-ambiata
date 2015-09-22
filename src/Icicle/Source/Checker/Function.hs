@@ -62,10 +62,24 @@ checkF' fun
                   $ fmap snd
                   $ stateConstraints ctx
 
+      let keepModes
+                  = Set.unions
+                  $ fmap freeC constrs
+
+      let remode t
+           | Just (TypeVar n) <- t
+           , not $ Set.member n keepModes
+           = Nothing
+           | otherwise
+           = t
+      let fixmodes t
+           = let (tmp,pos,dat) = decomposeT t
+             in  recomposeT (remode tmp, remode pos, dat)
+
       args <- mapM lookupArg $ arguments fun
 
-      let argTs = fmap (annResult . fst) args
-      let resT  = annResult $ annotOfQuery q'
+      let argTs = fmap (fixmodes . annResult . fst) args
+      let resT  = fixmodes $ annResult $ annotOfQuery q'
 
       let binds = Set.toList
                 $ Set.unions
