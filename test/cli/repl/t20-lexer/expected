@@ -30,10 +30,10 @@ Check error:
       mean                 : (Num b) => Element a b -> Aggregate a Double
       date                 : Element Definitely DateTime
       min                  : Element a b -> Aggregate a b
-      sd                   : (Element =: ReturnOfLet Pure t$80
-                             ,t$78 =: ReturnOfLet a a
-                             ,t$79 =: ReturnOfLet a t$78
-                             ,t$80 =: ReturnOfLet a t$79) => a b Double -> Aggregate b Double
+      sd                   : (Element =: ReturnOfLet Pure t$107
+                             ,t$105 =: ReturnOfLet a a
+                             ,t$106 =: ReturnOfLet a t$105
+                             ,t$107 =: ReturnOfLet a t$106) => a b Double -> Aggregate b Double
 
 > > -- Expect a parse error on unterminated string
 >                  [34mλλλλ[0m
