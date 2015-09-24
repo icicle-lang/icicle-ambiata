@@ -74,6 +74,8 @@ substC ss cc
      -> CReturnOfLetTemporalities (substT ss ret) (substT ss def) (substT ss body)
     CReturnOfLatest ret tmp dat
      -> CReturnOfLatest (substT ss ret) (substT ss tmp) (substT ss dat)
+    CExtractTemporality temp ty tau
+     -> CExtractTemporality (substT ss temp) (substT ss ty) (substT ss tau)
 
 
 -- | Substitute into a function type.

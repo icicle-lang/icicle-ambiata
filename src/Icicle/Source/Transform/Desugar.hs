@@ -23,6 +23,7 @@ data DesugarError n
  = DesugarErrorNoAlternative (Pattern n) -- ^ we generated a pattern that cannot be matched
                                          --   with any alternative.
  | DesugarErrorImpossible                -- ^ just impossible, the world has ended.
+ | DesugarOverlappingPattern (Pattern n) -- ^ duh
  deriving (Eq, Show)
 
 type DesugarM a n x = FreshT n (EitherT (DesugarError n) Identity) x
@@ -53,12 +54,14 @@ desugarC
   -> DesugarM a n (Context a n)
 desugarC cc
  = case cc of
-    GroupBy  a   x -> GroupBy  a   <$> desugarX x
-    Distinct a   x -> Distinct a   <$> desugarX x
-    Filter   a   x -> Filter   a   <$> desugarX x
-    Let      a n x -> Let      a n <$> desugarX x
-    LetFold  a   f -> LetFold  a   <$> desugarF f
-    _              -> return cc
+    GroupBy   a   x   -> GroupBy   a     <$> desugarX x
+    Distinct  a   x   -> Distinct  a     <$> desugarX x
+    Filter    a   x   -> Filter    a     <$> desugarX x
+    Let       a n x   -> Let       a n   <$> desugarX x
+    LetFold   a   f   -> LetFold   a     <$> desugarF f
+    GroupFold a k v x -> GroupFold a k v <$> desugarX x
+    Windowed{}        -> return cc
+    Latest{}          -> return cc
 
 desugarF
   :: (Eq n)
@@ -82,8 +85,11 @@ desugarX xx
     Case a scrut patalts
      -> do let pats  = fmap fst patalts
            let ty    = foldl' (flip addToTy) TyAny pats
+           patalts' <- mapM (mapM desugarX) patalts
+
            tree     <- casesForTy a scrut ty
-           treeToCase a patalts tree
+           checkOverlapping pats (toList tree)
+           treeToCase a patalts' tree
 
     App a x1 x2
       -> do x1' <- desugarX x1
@@ -91,6 +97,7 @@ desugarX xx
             return $ App a x1' x2'
 
     Var _ _
+
       -> return xx
     Prim _ _
      -> return xx
@@ -228,25 +235,37 @@ treeToCase ann patalts tree
    patternToExp PatDefault
     = left DesugarErrorImpossible -- we never generate default patterns.
 
-   -- "Unify" the generated pattern and a user-supplied pattern.
-   -- Return a list of substitutions if success. This is necessary in case the
-   -- generated patterns are more specific than the user's pattern, e.g.
-   -- if we have `None` and the user just supplies a variable.
-   --
-   -- Precondition: matcher p q assumes p is more specific than q
-   -- Precondition: matcher p q assumes p contains no PatDefault
-   matcher (PatCon c as) (PatCon c' bs)
-    = do guard (c == c')
-         substs <- zipWithM matcher as bs
-         return (concat substs)
-   matcher p (PatVariable x)
-    = return [(x, p)]
-   matcher _ (PatDefault)
-    = return []
-   matcher _ _
-    = Nothing
+-- "Unify" the generated pattern and a user-supplied pattern.
+-- Return a list of substitutions if success. This is necessary in case the
+-- generated patterns are more specific than the user's pattern, e.g.
+-- if we have `None` and the user just supplies a variable.
+--
+-- Precondition: matcher p q assumes p is more specific than q
+-- Precondition: matcher p q assumes p contains no PatDefault
+matcher :: Pattern t -> Pattern t -> Maybe [(Name t, Pattern t)]
+matcher (PatCon c as) (PatCon c' bs)
+ = do guard (c == c')
+      substs <- zipWithM matcher as bs
+      return (concat substs)
+matcher p (PatVariable x)
+ = return [(x, p)]
+matcher _ (PatDefault)
+ = return []
+matcher _ _
+ = Nothing
 
 --------------------------------------------------------------------------------
+
+checkOverlapping
+  :: [Pattern n] -> [Pattern n] -> DesugarM a n ()
+checkOverlapping userpats genpats
+  = foldM_ (\p -> lift . go p) genpats userpats
+  where
+   go gps up
+    = let gps' = filter (\gp -> isNothing $ matcher gp up ) gps
+      in  if length gps' < length gps
+          then return gps'
+          else left (DesugarOverlappingPattern up)
 
 -- | Simplify cases with a single default/variable pattern.
 --

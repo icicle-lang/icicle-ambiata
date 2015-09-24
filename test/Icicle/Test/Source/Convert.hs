@@ -33,15 +33,13 @@ import           Test.QuickCheck
 
 import qualified Data.Map as Map
 
-
 prop_convert_ok :: CB.OutputName -> CT.ValType -> CB.Name T.Variable -> Query () T.Variable -> Property
 prop_convert_ok nm tt fn q
  = counterexample pp
  $ case typ of
-    Right (qt', _)
+    Right (Right (qt', _))
      | restrict q
-     , Right bland <- runDesugar freshnamer $ desugarQT qt'
-     -> let conv  = freshtest (convertQueryTop fets bland)
+     -> let conv    = freshtest (convertQueryTop fets qt')
         in  counterexample (show conv)
           $ isRight conv
     _
@@ -52,7 +50,8 @@ prop_convert_ok nm tt fn q
         (Map.singleton fn (typeOfValType tt, Map.singleton fn (typeOfValType tt, xfst tt)))
          Map.empty
 
-  typ = freshcheck $ checkQT fets qt
+  bland = runDesugar freshnamer $ desugarQT qt
+  typ = fmap (freshcheck . checkQT fets) bland
   pp = show $ pretty q
 
 

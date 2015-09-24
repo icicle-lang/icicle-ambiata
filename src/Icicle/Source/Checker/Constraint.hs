@@ -67,6 +67,8 @@ defaults q
    = []
   defaultOfConstraint (CTemporalityJoin _ _ _)
    = []
+  defaultOfConstraint (CExtractTemporality _ _ _)
+   = []
 
 
 
@@ -346,45 +348,50 @@ generateX x
            annotate Map.empty resT $ \a' -> Prim a' p
 
     -- Cases require:
-    --  * alternatives to have "join-able" types, i.e. no mixing of aggregates and elements.
+    --
+    --  1. Alternatives to have "join-able" types, i.e. no mixing of aggregates and elements.
+    --  2. The return temporality is the join of the scrutinee with the alternatives.
+    --  3. The type of the scrutinee is compatible with all patterns.
     --
     Case a scrut pats
      -> do (scrut', sub) <- generateX scrut
-           (pats', subs) <- unzip <$> mapM (generateP $ annResult $ annotOfExp scrut') pats
 
-           let scrutT  =  annResult $ annotOfExp scrut'
-           resT        <- case pats' of
-                           [] -> hoistEither
-                               $ errorNoSuggestions
-                               $ ErrorEmptyCase a x
-                           ((_,alt):_)
-                              -> return $ annResult $ annotOfExp alt
+           -- Destruct the scrutinee type into the base type
+           -- and the temporality (defaulting to Pure).
+           let scrutT  = annResult $ annotOfExp scrut'
+           scrutTy    <- TypeVar <$> fresh
+           scrutTm    <- TypeVar <$> fresh
+           require a $ CExtractTemporality scrutTm scrutTy scrutT
 
-           -- all alternatives must have compatible temporalities
-           joinAlts a scrutT pats'
+           -- Require the scrutinee and the alternatives to have compatible temporalities.
+           returnType    <- TypeVar <$> fresh
+           returnTemp    <- TypeVar <$> fresh
+           returnTemp'   <- TypeVar <$> fresh
+           require a $ CTemporalityJoin returnTemp' scrutTm returnTemp
+           (pats', subs) <- unzip <$> generateP a scrutT returnType returnTemp pats
 
-           let t' = resT
+           let t' = Temporality returnTemp returnType
            annotate (Map.unions (sub : subs)) t' $ \a' -> Case a' scrut' pats'
-
- where
-  joinAlts a t pats
-   = mapM_ (require a . uncurry (CTemporalityJoin t))
-   $ cross $ fmap (annResult . annotOfExp . snd) pats
-
-  cross xs
-   = [ (a,b) | a <- xs, b <- xs, a /= b]
-
+  where
   annotate s' t' f
    = do cs <- stateConstraints <$> (lift $ lift State.get)
         let a' = Annot (annotOfExp x) t' cs
         return (f a', s')
 
 
-generateP   :: Ord n
-            => Type n
-            -> (Pattern n, Exp a n)
-            -> Gen a n ((Pattern n, Exp'C a n), SubstT n)
-generateP scrutTy (pat, alt)
+generateP
+  :: Ord n
+  => a
+  -> Type n                 -- ^ scrutinee type
+  -> Type n                 -- ^ result base type
+  -> Type n                 -- ^ result temporality
+  -> [(Pattern n, Exp a n)]
+  -> Gen a n [((Pattern n, Exp'C a n), SubstT n)]
+generateP ann _ _ resTp []
+ = do   require ann $ CEquals resTp TemporalityPure
+        return []
+
+generateP ann scrutTy resTy resTm ((pat, alt):rest)
  = do   e <- lift $ lift State.get
         t <- goPat pat
 
@@ -392,11 +399,27 @@ generateP scrutTy (pat, alt)
         require (annotOfExp alt) $ CEquals datS t
 
         (alt',sub) <- generateX alt
+        let altTy'  = annResult (annotOfExp alt')
+        altTy      <- TypeVar <$> fresh
+        altTp      <- TypeVar <$> fresh
 
-        e' <- lift $ lift State.get
+        -- Require alternative types to have the same temporality if they
+        -- do have temporalities. Otherwise defaults to TemporalityPure.
+        require (annotOfExp alt) $ CExtractTemporality altTp altTy altTy'
+
+        -- Require the alternative types without temporality to be the same.
+        require (annotOfExp alt) $ CEquals resTy altTy
+
+        -- Require return temporality to be compatible with alternative temporalities.
+        resTp' <- TypeVar <$> fresh
+        require (annotOfExp alt) $ CTemporalityJoin resTm resTp' altTp
+
+        e'    <- lift $ lift State.get
         lift $ lift $ State.put (e' { stateEnvironment = stateEnvironment e })
+        rest' <- generateP ann scrutTy resTy resTp' rest
 
-        return ((pat,alt'), sub)
+        return (((pat,alt'), sub):rest')
+
  where
   goPat PatDefault
    = TypeVar <$> fresh
