@@ -65,6 +65,8 @@ defaults q
    = []
   defaultOfConstraint (CReturnOfLatest _ _ _)
    = []
+  defaultOfConstraint (CPossibilityJoin _ _ _)
+   = []
 
 
 

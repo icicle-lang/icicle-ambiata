@@ -94,6 +94,20 @@ dischargeC c
          _
           -> return $ DischargeLeftover c
 
+    CPossibilityJoin ret PossibilityPossibly _
+     -> dischargeC (CEquals ret PossibilityPossibly)
+    CPossibilityJoin ret _ PossibilityPossibly
+     -> dischargeC (CEquals ret PossibilityPossibly)
+    CPossibilityJoin ret PossibilityDefinitely z
+     -> dischargeC (CEquals ret z)
+    CPossibilityJoin ret y PossibilityDefinitely
+     -> dischargeC (CEquals ret y)
+    CPossibilityJoin ret y z
+     | y == z
+     -> dischargeC (CEquals ret y)
+    CPossibilityJoin _ _ _
+     -> return $ DischargeLeftover c
+
  where
   returnOfLet def body
    = case (def,body) of

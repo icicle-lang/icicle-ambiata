@@ -72,6 +72,8 @@ substC ss cc
      -> CReturnOfLetTemporalities (substT ss ret) (substT ss def) (substT ss body)
     CReturnOfLatest ret tmp dat
      -> CReturnOfLatest (substT ss ret) (substT ss tmp) (substT ss dat)
+    CPossibilityJoin ret b c
+     -> CPossibilityJoin (substT ss ret) (substT ss b) (substT ss c)
 
 
 -- | Substitute into a function type.
