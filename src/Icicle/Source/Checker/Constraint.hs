@@ -104,9 +104,14 @@ generateQ qq@(Query (c:_) _)
  -- Discharge any constraints on the result
  = discharge (annAnnot.annotOfQuery) substTQ
  $ case c of
-    -- Here, x't stands for "temporality of x", x'd "data type of x" and so on.
-    -- >   windowed n days ~> Aggregate x'd
-    -- > : Aggregate x'd
+    -- In the following "rules",
+    --  x't stands for "temporality of x";
+    --  x'p "possibility of x";
+    --  x'd "data type of x"
+    --  and so on.
+    --
+    -- >   windowed n days ~> Aggregate x'p x'd
+    -- > : Aggregate x'p x'd
     Windowed _ from to
      -> do  (q',sq,t') <- rest
             -- Windowed only works for aggregates
@@ -114,8 +119,8 @@ generateQ qq@(Query (c:_) _)
             let t'' = canonT $ Temporality TemporalityAggregate t'
             with q' sq t'' $ \a' -> Windowed a' from to
 
-    -- >   latest n ~> x't x'd
-    -- > : Aggregate (ReturnOfLatest x't x'd)
+    -- >   latest n ~> x't x'p x'd
+    -- > : Aggregate Possibly (ReturnOfLatest x't x'd)
     Latest _ i
      -> do  (q',sq,tq) <- rest
             retDat <- TypeVar <$> fresh
@@ -150,23 +155,32 @@ generateQ qq@(Query (c:_) _)
             -- > ReturnOfLatest Element   d = Array d
             --
             require a $ CReturnOfLatest retDat (fromMaybe TemporalityPure tmpq) datq
-            let t' = canonT $ Temporality TemporalityAggregate retDat
+            let t'  = canonT
+                    $ Temporality TemporalityAggregate
+                    $ Possibility PossibilityPossibly retDat
             with q' sq t' $ \a' -> Latest a' i
 
-    -- >   group (Element k'd) ~> Aggregate v'd
-    -- > : Aggregate (Group k'd v'd)
+    -- >   group (Element k'p k'd) ~> Aggregate v'p v'd
+    -- > : Aggregate (PossibilityJoin k'p v'p) (Group k'd v'd)
     GroupBy _ x
      -> do  (x',sx) <- generateX x
             (q',sq,tval) <- rest
-            requireTemporality (annResult $ annotOfExp x') TemporalityElement
-            requireAgg tval
             let tkey = annResult $ annotOfExp x'
-            let t'  = canonT $ Temporality TemporalityAggregate $ GroupT tkey tval
+            requireTemporality tkey TemporalityElement
+            requireAgg tval
+
+            poss <- requirePossibilityJoin tkey tval
+
+            let t'  = canonT
+                    $ Temporality TemporalityAggregate
+                    $ Possibility poss
+                    $ GroupT tkey tval
+
             with q' (compose sx sq) t' $ \a' -> GroupBy a' x'
 
-    -- >   group fold (k, v) = ( |- Q : Aggregate (Group a'k a'v))
-    -- >   ~> (k: Element a'k, v: Element a'v |- Aggregate a)
-    -- >    : Aggregate a
+    -- >   group fold (k, v) = ( |- Q : Aggregate g'p (Group a'k a'v))
+    -- >   ~> (k: Element a'k, v: Element a'v |- Aggregate a'p a)
+    -- >    : Aggregate (PossibilityJoin g'p a'p) a
     GroupFold _ k v x
      -> do  (x',sx)    <- generateX x
             retKey     <- Temporality TemporalityElement . TypeVar <$> fresh
@@ -174,48 +188,72 @@ generateQ qq@(Query (c:_) _)
             (q',sq,t') <- withBind k retKey
                         $ withBind v retVal rest
             let tgroup  = annResult $ annotOfExp x'
-            let t''     = canonT $ Temporality TemporalityAggregate t'
             requireAgg  t'
             requireAgg  tgroup
             requireData tgroup $ GroupT retKey retVal
+            poss <- requirePossibilityJoin tgroup t'
+
+            let t''     = canonT
+                        $ Temporality TemporalityAggregate
+                        $ Possibility poss t'
             with q' (compose sx sq) t'' $ \a' -> GroupFold a' k v x'
 
-    -- >   distinct (Element k'd) ~> Aggregate v'd
-    -- > : Aggregate v'd
+    -- >   distinct (Element k'p k'd) ~> Aggregate v'p v'd
+    -- > : Aggregate (PossibilityJoin k'p v'p) v'd
     Distinct _ x
      -> do  (x',sx) <- generateX x
             (q',sq,t') <- rest
-            requireTemporality (annResult $ annotOfExp x') TemporalityElement
+            let tkey = annResult $ annotOfExp x'
+            requireTemporality tkey TemporalityElement
             requireAgg t'
-            let t'' = canonT $ Temporality TemporalityAggregate t'
+            poss <- requirePossibilityJoin tkey t'
+
+            let t'' = canonT
+                    $ Temporality TemporalityAggregate
+                    $ Possibility poss t'
             with q' (compose sx sq) t'' $ \a' -> Distinct a' x'
 
-    -- >   filter (Element Bool) ~> Aggregate x'd
-    -- > : Aggregate x'd
+    -- >   filter (Element p'p Bool) ~> Aggregate x'p x'd
+    -- > : Aggregate (PossibilityJoin p'p x'p) x'd
     Filter _ x
-     -> do  (x',sx) <- generateX x
+     -> do  (x',sx)    <- generateX x
             (q',sq,t') <- rest
-            -- TODO allow possibly
-            requireTemporality (annResult $ annotOfExp x') TemporalityElement
-            requireData        (annResult $ annotOfExp x') BoolT
-
+            let pred    = annResult $ annotOfExp x'
+            requireTemporality pred TemporalityElement
+            requireData        pred BoolT
             requireAgg t'
-            let t'' = canonT $ Temporality TemporalityAggregate t'
+            poss <- requirePossibilityJoin pred t'
+
+            let t'' = canonT
+                    $ Temporality TemporalityAggregate
+                    $ Possibility poss t'
             with q' (compose sx sq) t'' $ \a' -> Filter a' x'
 
-    -- >     let fold  bind = ( |- Pure a'd) : ( bind : Element a'd |- Element a'd)
-    -- >  ~> (bind : Aggregate a'd |- Aggregate r'd)
-    -- >   :  Aggregate r'd
+    -- >     let fold  bind = ( |- Pure z'p a'd) : ( bind : Element z'p a'd |- Element k'p a'd)
+    -- >  ~> (bind : Aggregate k'p a'd |- Aggregate r'p r'd)
+    -- >   :  Aggregate r'p r'd
     --
-    -- >     let fold1 bind = ( |- Element a'd) : ( bind : Element a'd |- Element a'd)
-    -- >  ~> (bind : Aggregate a'd |- Aggregate r'd)
-    -- >   :  Aggregate Possibly r'd
+    -- >     let fold1 bind = ( |- Element z'p a'd) : ( bind : Element z'p a'd |- Element k'p a'd)
+    -- >  ~> (bind : Aggregate Possibly a'd |- Aggregate r'p r'd)
+    -- >   :  Aggregate r'p r'd
     LetFold _ f
      -> do  (i,si) <- generateX $ foldInit f
             (w,sw) <- withBind (foldBind f) (annResult $ annotOfExp i)
                     $ generateX $ foldWork f
 
-            (q',sq,t') <- withBind (foldBind f) (canonT $ Temporality TemporalityAggregate $ annResult $ annotOfExp w) rest
+            let bindType
+                 | FoldTypeFoldl1 <- foldType f
+                 = canonT
+                 $ Temporality TemporalityAggregate
+                 $ Possibility PossibilityPossibly
+                 $ annResult $ annotOfExp w
+
+                 | otherwise
+                 = canonT
+                 $ Temporality TemporalityAggregate
+                 $ annResult $ annotOfExp w
+
+            (q',sq,t') <- withBind (foldBind f) bindType rest
 
             case foldType f of
              FoldTypeFoldl1
@@ -224,7 +262,6 @@ generateQ qq@(Query (c:_) _)
               -> requireTemporality (annResult $ annotOfExp i) TemporalityPure
 
             requireAgg t'
-            -- TODO: this should allow possibly too
             requireTemporality (annResult $ annotOfExp w) TemporalityElement
 
             let (_,_,it) = decomposeT $ annResult $ annotOfExp i
@@ -242,9 +279,9 @@ generateQ qq@(Query (c:_) _)
     --
     -- The constraint "let't = ReturnOfLetTemporalities def't body't" is used for this.
     -- 
-    -- >   let n = ( |- def't def'd )
-    -- >    ~> ( n : def't def'd |- body't body'd )
-    -- > : (ReturnOfLetTemporalities def't body't) body'd
+    -- >   let n = ( |- def't def'p def'd )
+    -- >    ~> ( n : def't def'p def'd |- body't body'p body'd )
+    -- > : (ReturnOfLetTemporalities def't body't) body'p body'd
     Let _ n x
      -> do  (x',sx) <- generateX x
             (q',sq,tq) <- withBind n (annResult $ annotOfExp x') rest
@@ -286,6 +323,11 @@ generateQ qq@(Query (c:_) _)
    = let (_,_,d1) = decomposeT t1
          (_,_,d2) = decomposeT t2
      in  require a $ CEquals d1 d2
+
+  requirePossibilityJoin t1 t2
+   = do poss <- TypeVar <$> fresh
+        require a $ CPossibilityJoin poss (getPossibilityOrDefinitely t1) (getPossibilityOrDefinitely t2)
+        return poss
 
 -- | Generate constraints for expression
 generateX :: Ord n => Exp a n -> Gen a n (Exp'C a n, SubstT n)

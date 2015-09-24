@@ -13,6 +13,7 @@ module Icicle.Source.Type.Compounds (
   , getTemporality
   , getPossibility
   , getTemporalityOrPure
+  , getPossibilityOrDefinitely
   ) where
 
 
@@ -125,7 +126,7 @@ getTemporality tt
     TemporalityElement    -> Nothing
     TemporalityAggregate  -> Nothing
 
-    Possibility _ _       -> Nothing
+    Possibility a b       -> wrap2 go Possibility a b
     PossibilityPossibly   -> Nothing
     PossibilityDefinitely -> Nothing
 
@@ -160,7 +161,7 @@ getPossibility tt
                          vs  = fmap snd fs'
                      in  wrapN go (\t vs' -> Just (t, StructT $ Map.fromList (ks `zip` vs'))) vs
 
-    Temporality _ _       -> Nothing
+    Temporality a b       -> wrap2 go Temporality a b
     TemporalityPure       -> Nothing
     TemporalityElement    -> Nothing
     TemporalityAggregate  -> Nothing
@@ -177,6 +178,12 @@ getPossibility tt
 
  where
   go = getPossibility
+
+getPossibilityOrDefinitely :: Type n -> Type n
+getPossibilityOrDefinitely t
+ = case getPossibility t of
+    Just (a,_) -> a
+    Nothing    -> PossibilityDefinitely
 
 
 
