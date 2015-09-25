@@ -41,7 +41,6 @@ import qualified Icicle.Source.ToCore.ToCore        as STC
 import qualified Icicle.Source.Type                 as ST
 import qualified Icicle.Source.Transform.Inline     as STI
 import qualified Icicle.Source.Transform.Desugar    as STD
-import qualified Icicle.Source.Transform.Simp       as STS
 
 import           P
 

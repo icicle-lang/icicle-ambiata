@@ -18,7 +18,6 @@ import           Icicle.Source.Query
 import           Icicle.Source.Transform.Simp
 
 import           Data.Functor.Identity
-import           Data.Either.Combinators
 
 import           Control.Monad.Trans.Either
 import           Control.Monad.Trans.Class

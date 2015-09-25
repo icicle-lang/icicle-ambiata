@@ -1,5 +1,5 @@
 welcome to iREPL
-ok, loaded 8 functions from data/libs/prelude.icicle
+ok, loaded 9 functions from data/libs/prelude.icicle
 ok, loaded test/cli/repl/data.psv, 8 rows
 > -- Numbers
 > - Core evaluation:
@@ -30,10 +30,10 @@ Check error:
       mean                 : (Num b) => Element a b -> Aggregate a Double
       date                 : Element Definitely DateTime
       min                  : Element a b -> Aggregate a b
-      sd                   : (Element =: ReturnOfLet Pure t$107
-                             ,t$105 =: ReturnOfLet a a
-                             ,t$106 =: ReturnOfLet a t$105
-                             ,t$107 =: ReturnOfLet a t$106) => a b Double -> Aggregate b Double
+      sd                   : (Element =: ReturnOfLet Pure t$137
+                             ,t$135 =: ReturnOfLet a a
+                             ,t$136 =: ReturnOfLet a t$135
+                             ,t$137 =: ReturnOfLet a t$136) => a b Double -> Aggregate b Double
 
 > > -- Expect a parse error on unterminated string
 >                  [34mλλλλ[0m
