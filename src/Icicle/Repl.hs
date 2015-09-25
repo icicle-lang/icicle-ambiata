@@ -7,7 +7,6 @@ module Icicle.Repl (
   , sourceParse
   , sourceDesugar
   , sourceCheck
-  , sourceSimp
   , sourceConvert
   , sourceParseConvert
   , sourceInline
@@ -155,10 +154,6 @@ sourceDesugar q
  $ Fresh.runFreshT
      (STD.desugarQT q)
      (freshNamer "desugar")
-
-sourceSimp :: QueryTop' -> QueryTop'
-sourceSimp
- = STS.simpDumbQT
 
 sourceCheck :: D.Dictionary -> QueryTop' -> Either ReplError (QueryTop'T, ST.Type Var)
 sourceCheck d q

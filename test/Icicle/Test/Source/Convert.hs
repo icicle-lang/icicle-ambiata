@@ -35,25 +35,24 @@ import qualified Data.Map as Map
 
 prop_convert_ok :: CB.OutputName -> CT.ValType -> CB.Name T.Variable -> Query () T.Variable -> Property
 prop_convert_ok nm tt fn q
- = counterexample pp
- $ case typ of
-    Right (Right (qt', _))
-     | restrict q
-     -> let conv    = freshtest (convertQueryTop fets qt')
-        in  counterexample (show conv)
-          $ isRight conv
-    _
-     -> property Discard
+ = let original = QueryTop fn nm q
+       desugar  = runDesugar freshnamer $ desugarQT original
+   in  counterexample (show (pretty original))
+     $ case desugar of
+        Left _
+         -> property Discard
+        Right qt
+         -> let typ = (freshcheck . checkQT fets) qt
+            in  case typ of
+                 Left _
+                  -> property Discard
+                 Right (qt', _)
+                  -> let conv = freshtest (convertQueryTop fets qt')
+                     in  counterexample (show conv) $ isRight conv
  where
-  qt  = QueryTop fn nm q
   fets = Features
         (Map.singleton fn (typeOfValType tt, Map.singleton fn (typeOfValType tt, xfst tt)))
          Map.empty
-
-  bland = runDesugar freshnamer $ desugarQT qt
-  typ = fmap (freshcheck . checkQT fets) bland
-  pp = show $ pretty q
-
 
 prop_convert_is_well_typed :: CB.OutputName -> CB.Name T.Variable -> Query () T.Variable -> Property
 prop_convert_is_well_typed nm fn q

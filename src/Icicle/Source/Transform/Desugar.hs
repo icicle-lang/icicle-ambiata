@@ -36,7 +36,7 @@ data DesugarError n
 type DesugarM a n x = FreshT n (EitherT (DesugarError n) Identity) x
 
 runDesugar :: NameState n -> DesugarM a n x -> Either (DesugarError n) x
-runDesugar n m = mapRight snd . runIdentity . runEitherT $ runFreshT m n
+runDesugar n m = runIdentity . runEitherT . bimapEitherT id snd $ runFreshT m n
 
 desugarQT
   :: (Eq n)
@@ -92,9 +92,11 @@ desugarX xx
     Case a scrut patalts
      -> do let pats  = fmap fst patalts
            let ty    = foldl' (flip addToTy) TyAny pats
+
+           scrut'   <- desugarX scrut
            patalts' <- mapM (mapM desugarX) patalts
 
-           tree     <- casesForTy a scrut ty
+           tree     <- casesForTy a scrut' ty
            checkOverlapping pats (toList tree)
 
            treeToCase a patalts' tree
