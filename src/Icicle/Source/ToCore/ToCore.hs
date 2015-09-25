@@ -313,13 +313,14 @@ convertQuery q
             n'   <- lift fresh
             nacc <- lift fresh
 
+            -- Convert the inner group into a stream fold that produces a map.
+            (bs, nm) <- convertReduce e
+
+            -- The key and value will be available after the fold
             convertModifyFeatures (Map.delete k)
             k' <- convertFreshenAdd k
             convertModifyFeatures (Map.delete v)
             v' <- convertFreshenAdd v
-
-            -- Convert the inner group into a stream fold that produces a map.
-            (bs, nm) <- convertReduce e
 
             -- Convert the rest of the query into a map fold.
             res      <- convertFold q'

@@ -102,7 +102,6 @@ data ReplState
    , hasAnnotated   :: Bool
    , hasInlined     :: Bool
    , hasDesugar     :: Bool
-   , hasDesugarSimp :: Bool
    , hasCore        :: Bool
    , hasCoreType    :: Bool
    , hasCoreEval    :: Bool
@@ -119,7 +118,6 @@ data Set
    | ShowAnnotated      Bool
    | ShowInlined        Bool
    | ShowDesugar        Bool
-   | ShowDesugarSimp    Bool
    | ShowCore           Bool
    | ShowCoreType       Bool
    | ShowCoreEval       Bool
@@ -147,7 +145,7 @@ data Command
 
 defaultState :: ReplState
 defaultState
-  = (ReplState [] demographics (unsafeDateOfYMD 1970 1 1) False False False False False False False False False False False False False False)
+  = (ReplState [] demographics (unsafeDateOfYMD 1970 1 1) False False False False False False False False False False False False False)
     { hasCoreEval = True }
 
 readCommand :: String -> Maybe Command
@@ -179,9 +177,6 @@ readSetCommands ss
 
     ("+desugar":rest)      -> (:) (ShowDesugar   True)     <$> readSetCommands rest
     ("-desugar":rest)      -> (:) (ShowDesugar   False)    <$> readSetCommands rest
-
-    ("+desugar-simp":rest) -> (:) (ShowDesugarSimp True)   <$> readSetCommands rest
-    ("-desugar-simp":rest) -> (:) (ShowDesugarSimp False)  <$> readSetCommands rest
 
     ("+core":rest)         -> (:) (ShowCore True)          <$> readSetCommands rest
     ("-core":rest)         -> (:) (ShowCore False)         <$> readSetCommands rest
@@ -295,14 +290,11 @@ handleLine state line = case readCommand line of
 
       blanded     <- hoist $ SR.sourceDesugar inlined
 
-      simplyBland <- hoist $ return $ SR.sourceSimp blanded
-
-      (annot',_)  <- hoist $ SR.sourceCheck (dictionary state) simplyBland
+      (annot',_)  <- hoist $ SR.sourceCheck (dictionary state) blanded
 
       prettyOut hasInlined "- Inlined:" inlined
       prettyOut hasInlined "- Inlined:" (SPretty.PrettyAnnot annot')
       prettyOut hasDesugar "- Desugar:" blanded
-      prettyOut hasDesugarSimp "Desugar Simplified: " simplyBland
 
       core      <- hoist $ SR.sourceConvert (dictionary state) annot'
       let core'  | doCoreSimp state
@@ -367,10 +359,6 @@ handleSetCommand state set
     ShowDesugar b -> do
         HL.outputStrLn $ "ok, desugar is now " <> showFlag b
         return $ state { hasDesugar = b }
-
-    ShowDesugarSimp b -> do
-        HL.outputStrLn $ "ok, desugar-simp is now " <> showFlag b
-        return $ state { hasDesugarSimp = b }
 
     ShowCore b -> do
         HL.outputStrLn $ "ok, core is now " <> showFlag b
@@ -565,7 +553,6 @@ showState state
     , flag "annotated:    " hasAnnotated
     , flag "inlined:      " hasInlined
     , flag "desugar:      " hasDesugar
-    , flag "desugar-simp: " hasDesugar
     , flag "core:         " hasCore
     , flag "core-type:    " hasCoreType
     , flag "core-simp:    " doCoreSimp
@@ -595,7 +582,6 @@ usage
       , ":import <filepath>    -- imports functions from a file"
       , ":set  +/-type         -- whether to show the checked expression type"
       , ":set  +/-desugar      -- whether to show the desugar-ed Source"
-      , ":set  +/-desugar-simp -- whether to show the simplified desugar-ed Source"
       , ":set  +/-core         -- whether to show the Core conversion"
       , ":set  +/-core-type    -- whether to show the Core conversion's type"
       , ":set  +/-core-simp    -- whether to simplify the result of Core conversion"

@@ -96,6 +96,7 @@ desugarX xx
 
            tree     <- casesForTy a scrut ty
            checkOverlapping pats (toList tree)
+
            treeToCase a patalts' tree
 
     App a x1 x2
@@ -207,7 +208,7 @@ treeToCase
   -> Tree a n (Pattern n)
   -> DesugarM a n (Exp' (Query a n) a n)
 treeToCase ann patalts tree
- = lift . fmap caseStmtsFor . sequence
+ = lift . fmap (simpDumbX . caseStmtsFor) . sequence
  $ fmap (getAltBody patalts) tree
   where
    -- Convert tree structure to AST

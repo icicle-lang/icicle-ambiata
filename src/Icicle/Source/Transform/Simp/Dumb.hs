@@ -7,6 +7,7 @@ module Icicle.Source.Transform.Simp.Dumb
   ( dumbSimpTransform
   , simpDumbQT
   , simpDumbQ
+  , simpDumbX
   ) where
 
 import           Icicle.Source.Query
@@ -62,7 +63,7 @@ simpDumbF ff
       , foldWork = simpDumbX (foldWork ff) }
 
 simpDumbX :: Eq n => Exp' (Query a n) a n -> Exp' (Query a n) a n
-simpDumbX =  simpDumbCases . simpDumbLets
+simpDumbX = simpDumbCases . simpDumbLets
 
 -- | Simplify cases with a single default/variable pattern.
 --

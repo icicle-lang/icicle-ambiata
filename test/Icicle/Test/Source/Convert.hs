@@ -12,7 +12,6 @@ import           Icicle.Source.ToCore.Context
 import           Icicle.Source.ToCore.ToCore
 import           Icicle.Source.Type
 import           Icicle.Source.Transform.Desugar
-import           Icicle.Source.Transform.Simp
 import qualified Icicle.Source.Lexer.Token as T
 
 import qualified Icicle.Common.Exp.Prim.Minimal as Min
@@ -51,7 +50,7 @@ prop_convert_ok nm tt fn q
         (Map.singleton fn (typeOfValType tt, Map.singleton fn (typeOfValType tt, xfst tt)))
          Map.empty
 
-  bland = fmap simpDumbQT $ runDesugar freshnamer $ desugarQT qt
+  bland = runDesugar freshnamer $ desugarQT qt
   typ = fmap (freshcheck . checkQT fets) bland
   pp = show $ pretty q
 
