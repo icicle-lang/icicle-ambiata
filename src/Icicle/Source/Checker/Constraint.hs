@@ -408,7 +408,7 @@ generateP ann scrutTy resTy resTm ((pat, alt):rest)
         require (annotOfExp alt) $ CExtractTemporality altTp altTy altTy'
 
         -- Require the alternative types without temporality to be the same.
-        require (annotOfExp alt) $ CEquals resTy altTy
+        requireData resTy altTy
 
         -- Require return temporality to be compatible with alternative temporalities.
         resTp' <- TypeVar <$> fresh
@@ -421,6 +421,11 @@ generateP ann scrutTy resTy resTm ((pat, alt):rest)
         return (((pat,alt'), sub):rest')
 
  where
+  requireData t1 t2
+   = let (_,_,d1) = decomposeT t1
+         (_,_,d2) = decomposeT t2
+     in  require ann $ CEquals d1 d2
+
   goPat PatDefault
    = TypeVar <$> fresh
   goPat (PatVariable n)

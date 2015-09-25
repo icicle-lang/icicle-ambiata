@@ -37,7 +37,6 @@ import qualified        Icicle.Core.Exp.Combinators as CE
 import qualified        Icicle.Common.Exp           as CE
 import qualified        Icicle.Common.Exp.Prim.Minimal as Min
 import qualified        Icicle.Common.Exp.Simp.Beta    as Beta
-import qualified        Icicle.Common.Exp.Simp.ANormal as ANormal
 import qualified        Icicle.Common.Type as T
 import                  Icicle.Common.Fresh
 import                  Icicle.Common.Base
@@ -643,7 +642,6 @@ convertReduce xx
         scrut' <- convertReduce scrut
         pats'  <- convertCaseFreshenPats pats
         alts'  <- mapM convertExp alts
-        alts'' <- hoist runFreshIdentity $ lift $ mapM (ANormal.anormal ()) alts'
 
         let bs' = fst scrut'
 
@@ -652,7 +650,7 @@ convertReduce xx
         scrutT <- convertValType ann $ annResult $ annotOfExp scrut
         resT   <- convertValType ann $ retty
 
-        x'     <- convertCase xx sX (pats' `zip` alts'') scrutT resT
+        x'     <- convertCase xx sX (pats' `zip` alts') scrutT resT
         nm     <- lift fresh
 
         let b'  | TemporalityPure <- getTemporalityOrPure retty

@@ -4,11 +4,18 @@
 {-# LANGUAGE TupleSections     #-}
 {-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE DeriveFoldable    #-}
-module Icicle.Source.Transform.Desugar where
+module Icicle.Source.Transform.Desugar
+  ( DesugarError(..)
+  , runDesugar
+  , desugarQT
+  , desugarQ
+  ) where
 
 import           Icicle.Common.Base
 import           Icicle.Common.Fresh
+
 import           Icicle.Source.Query
+import           Icicle.Source.Transform.Simp
 
 import           Data.Functor.Identity
 import           Data.Either.Combinators
@@ -200,7 +207,7 @@ treeToCase
   -> Tree a n (Pattern n)
   -> DesugarM a n (Exp' (Query a n) a n)
 treeToCase ann patalts tree
- = lift . fmap (simpCaseAlts . simpLets . caseStmtsFor) . sequence
+ = lift . fmap caseStmtsFor . sequence
  $ fmap (getAltBody patalts) tree
   where
    -- Convert tree structure to AST
@@ -254,7 +261,6 @@ matcher _ (PatDefault)
 matcher _ _
  = Nothing
 
---------------------------------------------------------------------------------
 
 checkOverlapping
   :: [Pattern n] -> [Pattern n] -> DesugarM a n ()
@@ -266,135 +272,6 @@ checkOverlapping userpats genpats
       in  if length gps' < length gps
           then return gps'
           else left (DesugarOverlappingPattern up)
-
--- | Simplify cases with a single default/variable pattern.
---
-simpCaseAlts
- :: Exp' (Query a n) a n -> Exp' (Query a n) a n
-simpCaseAlts xx
- = case xx of
-    Case _ _ [(PatDefault, x)]
-     -> simpX x
-
-    Case a e [(PatVariable n, x)]
-     -> let q = Query [Let a n (simpX e)] (simpX x)
-        in  Nested a q
-
-    Case a e ps
-     -> Case a (simpX e) (fmap (fmap simpX) ps)
-
-    Nested a q
-     -> Nested a (simpQ q)
-
-    App a x y
-     -> App a (simpX x) (simpX y)
-
-    Var{}  -> xx
-    Prim{} -> xx
-
- where
-  simpX
-   = simpCaseAlts
-
-  simpQ qq
-   = qq { contexts = fmap simpC (contexts qq)
-        , final    = simpX (final qq) }
-
-  simpC cc
-   = case cc of
-      GroupBy a x
-       -> GroupBy a (simpX x)
-      Distinct a x
-       -> Distinct a (simpX x)
-      Filter a x
-       -> Filter a (simpX x)
-      LetFold a (Fold b i w t)
-       -> LetFold a (Fold b (simpX i) (simpX w) t)
-      Let a n x
-       -> Let a n (simpX x)
-      GroupFold a n1 n2 x
-       -> GroupFold a n1 n2 (simpX x)
-      Windowed{} -> cc
-      Latest{}   -> cc
-
---------------------------------------------------------------------------------
-
--- | Simplify nested bindings from variables to variables, e.g. `let x = y ~>..`
---   This recurses into nested queries so it's not a traditional beta-reduction.
---
-simpLets :: (Eq n) => Exp' (Query a n) a n -> Exp' (Query a n) a n
-simpLets xx
- = case xx of
-    Nested _ q
-     -> go q
-
-    Case a e ps
-     -> Case a e $ fmap (fmap simpLets) ps
-
-    _ -> xx
-
- where
-  go qq
-   = case qq of
-       Query [] bd
-         -> simpLets bd
-       Query (Let _ x (Var _ y) : cs) bd
-         -> go (Query cs (substX x y bd))
-       _ -> xx
-
-  substX x y bd
-   = case bd of
-      Var a n
-        | n == x
-        -> Var a y
-      Nested a q
-        -> Nested a $ substQ x y q
-      App a e1 e2
-        -> App a (substX x y e1) (substX x y e2)
-      Case a e pats
-        -> Case a (substX x y e) (fmap (substA x y) pats)
-      _ -> bd
-
-  substA x y (pat, e)
-   | x `elem` varsIn pat = (pat, e)
-   | otherwise           = (pat, substX x y e)
-
-  varsIn (PatCon _ as)   = concatMap varsIn as
-  varsIn (PatVariable v) = [ v ]
-  varsIn (PatDefault)    = []
-
-  -- substC x y cc| trace ("SIMP: SUBSTC: \n" <> (show $ pretty x) <> " " <> (show $ pretty y) <> " " <> (show $ pretty cc)) False = undefined
-  substC _ _ []
-   = (True, [])
-  substC x y (cc:rest)
-   = let (f, rest') = substC x y rest
-     in  case cc of
-       Let a n e
-        | n /= x
-        -> (f, Let a n (substX x y e) : rest')
-        | otherwise
-        -> (False, Let a n (substX x y e) : rest)
-       LetFold a (Fold n init work ty)
-        | n /= x
-        -> (f, LetFold a (Fold n (substX x y init) (substX x y work) ty):rest')
-        | otherwise
-        -> (False, LetFold a (Fold n (substX x y init) work ty) : rest)
-       GroupBy a e
-        -> (f, GroupBy a (substX x y e) : rest')
-       Distinct a e
-        -> (f, Distinct a (substX x y e) : rest')
-       Filter a e
-        -> (f, Filter a (substX x y e) : rest')
-       GroupFold a n1 n2 e
-        -> (f, GroupFold a n1 n2 (substX x y e) : rest')
-
-       Windowed {} -> (f, cc : rest')
-       Latest {}   -> (f, cc : rest')
-
-  substQ x y qq
-   = let (f, ctxs) = substC x y (contexts qq)
-      in qq { contexts = ctxs
-            , final    = if f then substX x y (final qq) else final qq }
 
 
 freshes :: Monad m => Int -> FreshT n m [Name n]

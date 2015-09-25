@@ -93,20 +93,21 @@ runRepl inits
 
 data ReplState
    = ReplState
-   { facts        :: [AsAt Fact]
-   , dictionary   :: Dictionary
-   , currentDate  :: DateTime
-   , hasType      :: Bool
-   , hasAnnotated :: Bool
-   , hasInlined   :: Bool
-   , hasDesugar   :: Bool
-   , hasCore      :: Bool
-   , hasCoreType  :: Bool
-   , hasAvalanche :: Bool
-   , hasFlatten   :: Bool
-   , hasJava      :: Bool
-   , hasEval      :: Bool
-   , doCoreSimp   :: Bool }
+   { facts          :: [AsAt Fact]
+   , dictionary     :: Dictionary
+   , currentDate    :: DateTime
+   , hasType        :: Bool
+   , hasAnnotated   :: Bool
+   , hasInlined     :: Bool
+   , hasDesugar     :: Bool
+   , hasDesugarSimp :: Bool
+   , hasCore        :: Bool
+   , hasCoreType    :: Bool
+   , hasAvalanche   :: Bool
+   , hasFlatten     :: Bool
+   , hasJava        :: Bool
+   , hasEval        :: Bool
+   , doCoreSimp     :: Bool }
 
 -- | Settable REPL states
 data Set
@@ -114,6 +115,7 @@ data Set
    | ShowAnnotated      Bool
    | ShowInlined        Bool
    | ShowDesugar        Bool
+   | ShowDesugarSimp    Bool
    | ShowCore           Bool
    | ShowCoreType       Bool
    | ShowEval           Bool
@@ -139,70 +141,72 @@ data Command
 
 defaultState :: ReplState
 defaultState
-  = (ReplState [] demographics (unsafeDateOfYMD 1970 1 1) False False False False False False False False False False False)
+  = (ReplState [] demographics (unsafeDateOfYMD 1970 1 1) False False False False False False False False False False False False)
     { hasEval = True }
 
 readCommand :: String -> Maybe Command
 readCommand ss = case words ss of
-  []                    -> Just CommandBlank
-  ":h":_                -> Just CommandHelp
-  ":help":_             -> Just CommandHelp
-
-  [":set"]              -> Just $ CommandSetShow
-  (":set":rest)         -> CommandSet <$> readSetCommands rest
-  [":load", f]          -> Just $ CommandLoad f
+  []                               -> Just CommandBlank
+  ":h":_                           -> Just CommandHelp
+  ":help":_                        -> Just CommandHelp
+  [":set"]                         -> Just $ CommandSetShow
+  (":set":rest)                    -> CommandSet <$> readSetCommands rest
+  [":load", f]                     -> Just $ CommandLoad f
   [":dictionary-deprecated", f]    -> Just $ CommandLoadDictionary $ SR.DictionaryLoadTextV1 f
-  [":dictionary", f]    -> Just $ CommandLoadDictionary $ SR.DictionaryLoadToml f
-  [":import", f]        -> Just $ CommandImportLibrary f
-  ('-':'-':_):_         -> Just $ CommandComment $ ss
-  (':':_):_             -> Just $ CommandUnknown $ ss
-  _                     -> Nothing
+  [":dictionary", f]               -> Just $ CommandLoadDictionary $ SR.DictionaryLoadToml f
+  [":import", f]                   -> Just $ CommandImportLibrary f
+  ('-':'-':_):_                    -> Just $ CommandComment $ ss
+  (':':_):_                        -> Just $ CommandUnknown $ ss
+  _                                -> Nothing
 
 readSetCommands :: [String] -> Maybe [Set]
 readSetCommands ss
  = case ss of
-    ("+type":rest)      -> (:) (ShowType True)        <$> readSetCommands rest
-    ("-type":rest)      -> (:) (ShowType False)       <$> readSetCommands rest
+    ("+type":rest)         -> (:) (ShowType True)          <$> readSetCommands rest
+    ("-type":rest)         -> (:) (ShowType False)         <$> readSetCommands rest
 
-    ("+annotated":rest) -> (:) (ShowAnnotated True)   <$> readSetCommands rest
-    ("-annotated":rest) -> (:) (ShowAnnotated False)  <$> readSetCommands rest
+    ("+annotated":rest)    -> (:) (ShowAnnotated True)     <$> readSetCommands rest
+    ("-annotated":rest)    -> (:) (ShowAnnotated False)    <$> readSetCommands rest
 
-    ("+inlined":rest)   -> (:) (ShowInlined   True)   <$> readSetCommands rest
-    ("-inlined":rest)   -> (:) (ShowInlined   False)  <$> readSetCommands rest
+    ("+inlined":rest)      -> (:) (ShowInlined   True)     <$> readSetCommands rest
+    ("-inlined":rest)      -> (:) (ShowInlined   False)    <$> readSetCommands rest
 
-    ("+desugar":rest)   -> (:) (ShowDesugar   True)   <$> readSetCommands rest
-    ("-desugar":rest)   -> (:) (ShowDesugar   False)  <$> readSetCommands rest
+    ("+desugar":rest)      -> (:) (ShowDesugar   True)     <$> readSetCommands rest
+    ("-desugar":rest)      -> (:) (ShowDesugar   False)    <$> readSetCommands rest
 
-    ("+core":rest)      -> (:) (ShowCore True)        <$> readSetCommands rest
-    ("-core":rest)      -> (:) (ShowCore False)       <$> readSetCommands rest
+    ("+desugar-simp":rest) -> (:) (ShowDesugarSimp True)   <$> readSetCommands rest
+    ("-desugar-simp":rest) -> (:) (ShowDesugarSimp False)  <$> readSetCommands rest
 
-    ("+core-type":rest) -> (:) (ShowCoreType True)    <$> readSetCommands rest
-    ("-core-type":rest) -> (:) (ShowCoreType False)   <$> readSetCommands rest
+    ("+core":rest)         -> (:) (ShowCore True)          <$> readSetCommands rest
+    ("-core":rest)         -> (:) (ShowCore False)         <$> readSetCommands rest
 
-    ("+core-simp":rest) -> (:) (PerformCoreSimp True) <$> readSetCommands rest
-    ("-core-simp":rest) -> (:) (PerformCoreSimp False)<$> readSetCommands rest
+    ("+core-type":rest)    -> (:) (ShowCoreType True)      <$> readSetCommands rest
+    ("-core-type":rest)    -> (:) (ShowCoreType False)     <$> readSetCommands rest
 
-    ("+eval":rest)      -> (:) (ShowEval True)        <$> readSetCommands rest
-    ("-eval":rest)      -> (:) (ShowEval False)       <$> readSetCommands rest
+    ("+core-simp":rest)    -> (:) (PerformCoreSimp True)   <$> readSetCommands rest
+    ("-core-simp":rest)    -> (:) (PerformCoreSimp False)  <$> readSetCommands rest
 
-    ("+avalanche":rest) -> (:) (ShowAvalanche True)   <$> readSetCommands rest
-    ("-avalanche":rest) -> (:) (ShowAvalanche False)  <$> readSetCommands rest
+    ("+eval":rest)         -> (:) (ShowEval True)          <$> readSetCommands rest
+    ("-eval":rest)         -> (:) (ShowEval False)         <$> readSetCommands rest
 
-    ("+flatten":rest)   -> (:) (ShowFlatten   True)   <$> readSetCommands rest
-    ("-flatten":rest)   -> (:) (ShowFlatten   False)  <$> readSetCommands rest
+    ("+avalanche":rest)    -> (:) (ShowAvalanche True)     <$> readSetCommands rest
+    ("-avalanche":rest)    -> (:) (ShowAvalanche False)    <$> readSetCommands rest
 
-    ("+java":rest)      -> (:) (ShowJava      True)   <$> readSetCommands rest
-    ("-java":rest)      -> (:) (ShowJava      False)  <$> readSetCommands rest
+    ("+flatten":rest)      -> (:) (ShowFlatten   True)     <$> readSetCommands rest
+    ("-flatten":rest)      -> (:) (ShowFlatten   False)    <$> readSetCommands rest
+
+    ("+java":rest)         -> (:) (ShowJava      True)     <$> readSetCommands rest
+    ("-java":rest)         -> (:) (ShowJava      False)    <$> readSetCommands rest
 
     ("date" : y : m : d : rest)
        | Just y' <- readMaybe y
        , Just m' <- readMaybe m
        , Just d' <- readMaybe d
        , Just x' <- dateOfYMD y' m' d'
-       -> (:) (CurrentDate x')                        <$> readSetCommands rest
+       -> (:) (CurrentDate x') <$> readSetCommands rest
 
-    []                  -> Just []
-    _                   -> Nothing
+    [] -> Just []
+    _  -> Nothing
 
 
 handleLine :: ReplState -> String -> HL.InputT IO ReplState
@@ -276,12 +280,17 @@ handleLine state line = case readCommand line of
       prettyOut hasAnnotated "- Annotated:" (SPretty.PrettyAnnot annot)
 
       let inlined= SR.sourceInline (dictionary state) annot
-      blanded    <- hoist $ SR.sourceDesugar inlined
-      prettyOut hasDesugar "- Desugar:" blanded
 
-      (annot',_) <- hoist $ SR.sourceCheck (dictionary state) blanded
+      blanded     <- hoist $ SR.sourceDesugar inlined
+
+      simplyBland <- hoist $ return $ SR.sourceSimp blanded
+
+      (annot',_)  <- hoist $ SR.sourceCheck (dictionary state) simplyBland
+
       prettyOut hasInlined "- Inlined:" inlined
       prettyOut hasInlined "- Inlined:" (SPretty.PrettyAnnot annot')
+      prettyOut hasDesugar "- Desugar:" blanded
+      prettyOut hasDesugarSimp "Desugar Simplified: " simplyBland
 
       core      <- hoist $ SR.sourceConvert (dictionary state) annot'
       let core'  | doCoreSimp state
@@ -338,6 +347,10 @@ handleSetCommand state set
     ShowDesugar b -> do
         HL.outputStrLn $ "ok, desugar is now " <> showFlag b
         return $ state { hasDesugar = b }
+
+    ShowDesugarSimp b -> do
+        HL.outputStrLn $ "ok, desugar-simp is now " <> showFlag b
+        return $ state { hasDesugarSimp = b }
 
     ShowCore b -> do
         HL.outputStrLn $ "ok, core is now " <> showFlag b
@@ -478,20 +491,21 @@ showFlag False = "off"
 showState :: ReplState -> HL.InputT IO ()
 showState state
  = mapM_ HL.outputStrLn
-    [ flag "type:       " hasType
-    , flag "annotated:  " hasAnnotated
-    , flag "inlined:    " hasInlined
-    , flag "desugar:    " hasDesugar
-    , flag "core:       " hasCore
-    , flag "core-type:  " hasCoreType
-    , flag "core-simp:  " doCoreSimp
-    , flag "eval:       " hasEval
-    , flag "avalanche:  " hasAvalanche
-    , flag "flatten:    " hasFlatten
-    , flag "java:       " hasJava
-    ,      "now:        " <> T.unpack (renderDate $ currentDate state)
-    ,      "data:       " <> show (length $ facts state) <> " rows"
-    ,      "dictionary: " <> show (prettyDictionarySummary (dictionary state))
+    [ flag "type:         " hasType
+    , flag "annotated:    " hasAnnotated
+    , flag "inlined:      " hasInlined
+    , flag "desugar:      " hasDesugar
+    , flag "desugar-simp: " hasDesugar
+    , flag "core:         " hasCore
+    , flag "core-type:    " hasCoreType
+    , flag "core-simp:    " doCoreSimp
+    , flag "eval:         " hasEval
+    , flag "avalanche:    " hasAvalanche
+    , flag "flatten:      " hasFlatten
+    , flag "java:         " hasJava
+    ,      "now:          " <> T.unpack (renderDate $ currentDate state)
+    ,      "data:         " <> show (length $ facts state) <> " rows"
+    ,      "dictionary:   " <> show (prettyDictionarySummary (dictionary state))
     ]
  where
   flag nm setting
@@ -502,17 +516,19 @@ usage :: HL.InputT IO ()
 usage
  = mapM_ HL.outputStrLn
       [ "Usage:"
-      , ":help or :h        -- shows this message"
-      , ":quit or :q        -- quits the REPL"
-      , ":load <filepath>   -- loads a data set"
-      , ":dictionary <path> -- loads a dictionary"
-      , ":import <filepath> -- imports functions from a file"
-      , ":set  +/-type      -- whether to show the checked expression type"
-      , ":set  +/-core      -- whether to show the Core conversion"
-      , ":set  +/-core-type -- whether to show the Core conversion's type"
-      , ":set  +/-core-simp -- whether to simplify the result of Core conversion"
-      , ":set  +/-eval      -- whether to show the result"
-      , ":set  +/-avalanche -- whether to show the Avalanche conversion"
-      , ":set  +/-flatten   -- whether to show flattened Avalanche conversion"
-      , ":set  +/-java      -- whether to show the Java result" ]
+      , ":help or :h           -- shows this message"
+      , ":quit or :q           -- quits the REPL"
+      , ":load <filepath>      -- loads a data set"
+      , ":dictionary <path>    -- loads a dictionary"
+      , ":import <filepath>    -- imports functions from a file"
+      , ":set  +/-type         -- whether to show the checked expression type"
+      , ":set  +/-desugar      -- whether to show the desugar-ed Source"
+      , ":set  +/-desugar-simp -- whether to show the simplified desugar-ed Source"
+      , ":set  +/-core         -- whether to show the Core conversion"
+      , ":set  +/-core-type    -- whether to show the Core conversion's type"
+      , ":set  +/-core-simp    -- whether to simplify the result of Core conversion"
+      , ":set  +/-eval         -- whether to show the result"
+      , ":set  +/-avalanche    -- whether to show the Avalanche conversion"
+      , ":set  +/-flatten      -- whether to show flattened Avalanche conversion"
+      , ":set  +/-java         -- whether to show the Java result" ]
 
