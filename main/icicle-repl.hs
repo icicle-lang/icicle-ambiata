@@ -248,7 +248,7 @@ handleLine state line = case readCommand line of
 
   Just (CommandImportLibrary fp) -> do
     s  <- liftIO $ T.readFile fp
-    case SR.readIcicleLibrary s of
+    case SR.readIcicleLibrary fp s of
       Left e   -> prettyHL e >> return state
       Right is -> do
         HL.outputStrLn $ "ok, loaded " <> show (Map.size is) <> " functions from " <> fp

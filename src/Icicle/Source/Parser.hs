@@ -24,10 +24,10 @@ import Text.Parsec
 
 import P
 
-parseFunctions :: Text -> Either ParseError [((SourcePos, Name Variable), (Function SourcePos Variable))]
-parseFunctions inp
- = let toks = lexer "" inp
-   in  runParser functions () "" toks
+parseFunctions :: SourceName -> Text -> Either ParseError [((SourcePos, Name Variable), (Function SourcePos Variable))]
+parseFunctions source inp
+ = let toks = lexer source inp
+   in  runParser functions () source toks
 
 parseQueryTop :: OutputName -> Text -> Either ParseError (QueryTop SourcePos Variable)
 parseQueryTop name inp
