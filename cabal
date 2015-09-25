@@ -14,6 +14,7 @@ Commands:
     test            Test this project, by default this runs all test suites.
     testci          Test this project, but process control characters (\b, \r) which
                     reposition the cursor, prior to emitting each line of output.
+    bench           Build and run benchmarks.
     repl            Start the repl, by default on the the main library source.
     quick           Start the repl directly skipping cabal, this is useful developing
                     across multiple source trees at once.
@@ -115,8 +116,8 @@ initialize () {
     done
 
     # all dependencies installed, and configure been run?
-    cabal install -j --only-dependencies --force-reinstalls --enable-tests
-    cabal configure --enable-tests $CABAL_CONFIG_ARGS
+    cabal install -j --only-dependencies --force-reinstalls --enable-tests --enable-benchmarks
+    cabal configure --enable-tests --enable-benchmarks $CABAL_CONFIG_ARGS
 }
 
 #
@@ -133,6 +134,14 @@ run_build () {
 run_test () {
     initialize
     cabal test --show-details=streaming "$@"
+}
+
+#
+# Cabal bench.
+#
+run_bench () {
+    initialize
+    cabal bench "$@"
 }
 
 #
@@ -223,7 +232,7 @@ run_quick () {
     [ ! -d test ] || SRC_DIRS="${SRC_DIRS:-} -itest"
     [ ! -d gen ] || SRC_DIRS="${SRC_DIRS:-} -igen"
     [ ! -d dist/build/autogen ] || SRC_DIRS="${SRC_DIRS:-} -idist/build/autogen"
-    ghci -package-db=$(find .cabal-sandbox -name '*-packages.conf.d') ${SRC_DIRS:-} "$1"
+    ghci -no-user-package-db -package-db=$(find .cabal-sandbox -name '*-packages.conf.d') ${SRC_DIRS:-} "$1"
 }
 
 #
@@ -240,7 +249,7 @@ run_watch () {
     [ ! -d dist/build/autogen ] || SRC_DIRS="${SRC_DIRS:-} -idist/build/autogen"
     ENTRY=$1
     shift
-    ghcid -c "ghci -package-db=$(find .cabal-sandbox -name '*-packages.conf.d') ${SRC_DIRS:-} \"$ENTRY\"" "$@"
+    ghcid -c "ghci -no-user-package-db -package-db=$(find .cabal-sandbox -name '*-packages.conf.d') ${SRC_DIRS:-} \"$ENTRY\"" "$@"
 }
 
 #
@@ -405,7 +414,7 @@ esac
 
 MODE="$1"; shift
 case "$MODE" in
-build|test|testci|repl|quick|tags|lint|update|clean|depend|watch|upgrade) run_$MODE "$@" ;;
+build|test|testci|bench|repl|quick|tags|lint|update|clean|depend|watch|upgrade) run_$MODE "$@" ;;
 *) fail "Unknown mode: $MODE"
 esac
-# Version: f0e377563dc8c5ff581d47e5b0f04d7078775f88
+# Version: 3145405852b7e0d6b0583061562cd365daa4583d

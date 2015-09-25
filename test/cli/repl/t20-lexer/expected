@@ -2,7 +2,7 @@ welcome to iREPL
 ok, loaded 8 functions from data/libs/prelude.icicle
 ok, loaded test/cli/repl/data.psv, 8 rows
 > -- Numbers
-> - Result:
+> - Core evaluation:
 [homer, (((((5,1),2.21),3000.0)
          ,4.44e-4)
         ,0.555)
@@ -11,7 +11,7 @@ ok, loaded test/cli/repl/data.psv, 8 rows
         ,0.555)]
 
 > > -- Strings
-> - Result:
+> - Core evaluation:
 [homer, (((((5,"")," "),"ok")
          ,"\"hello\"")
         ,"\tok\t")

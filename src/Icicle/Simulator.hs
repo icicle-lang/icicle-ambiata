@@ -5,7 +5,6 @@ module Icicle.Simulator (
     streams
   , Partition(..)
   , SimulateError
-  , evaluateVirtuals
   , evaluateVirtualValue
   , evaluateVirtualValue'
   , valueToCore
@@ -20,7 +19,6 @@ import           Data.Text (Text)
 import qualified Icicle.BubbleGum   as B
 import           Icicle.Common.Base
 import           Icicle.Data
-import           Icicle.Dictionary
 
 import           Icicle.Internal.Pretty
 
@@ -34,9 +32,6 @@ import qualified Icicle.Avalanche.Program as A
 import qualified Icicle.Core.Eval.Exp     as XV
 import qualified Icicle.Core.Exp.Prim     as XP
 import qualified Icicle.Avalanche.Eval    as AE
-
-import           Icicle.Source.Query
-import           Icicle.Source.Lexer.Token
 
 data Partition =
   Partition
@@ -86,30 +81,9 @@ makePartition fs@(f:_)
                 (attribute $ fact f)
                 (fmap (\f' -> AsAt (value $ fact f') (time f')) fs) ]
 
-
-evaluateVirtuals :: Dictionary -> DateTime -> [Partition] -> [(Attribute, [(Entity, Result a)])]
-evaluateVirtuals (Dictionary { dictionaryEntries = fields }) date facts
- = P.concatMap go fields
- where
-  go (DictionaryEntry attr (VirtualDefinition virt))
-   = [(attr, evaluateVirtual virt date facts)]
-  go _
-   = []
-
-evaluateVirtual  :: Virtual -> DateTime -> [Partition] -> [(Entity, Result a)]
-evaluateVirtual virt _ facts
- = P.concatMap go facts
- where
-  go (Partition _ attr _)
-   | (Name . Variable . getAttribute) attr == (feature . unVirtual) virt
-   = []
-   -- = [(ent, evaluateVirtualValue (program virt) date values)]
-   | otherwise
-   = []
-
 evaluateVirtualValue :: P.Program a Text -> DateTime -> [AsAt Value] -> Result a
 evaluateVirtualValue p date vs
- = do   vs' <- mapM toCore vs
+ = do   vs' <- zipWithM toCore [1..] vs
 
         xv  <- mapLeft SimulateErrorRuntime
              $ PV.eval date vs' p
@@ -118,13 +92,13 @@ evaluateVirtualValue p date vs
         bg' <- mapM (B.mapValue valueFromCore) (PV.history xv)
         return (v', bg')
  where
-  toCore a
+  toCore n a
    = do v' <- valueToCore $ fact a
-        return a { fact = (B.BubbleGumFact $ B.Flavour 0 $ time a, v') }
+        return a { fact = (B.BubbleGumFact $ B.Flavour n $ time a, v') }
 
 evaluateVirtualValue' :: A.Program a Text XP.Prim -> DateTime -> [AsAt Value] -> Result a
 evaluateVirtualValue' p date vs
- = do   vs' <- mapM toCore vs
+ = do   vs' <- zipWithM toCore [1..] vs
 
         xv  <- mapLeft SimulateErrorRuntime'
              $ AE.evalProgram XV.evalPrim date vs' p
@@ -133,9 +107,9 @@ evaluateVirtualValue' p date vs
         bg' <- mapM (B.mapValue valueFromCore) (fst xv)
         return (v', bg')
  where
-  toCore a
+  toCore n a
    = do v' <- valueToCore $ fact a
-        return a { fact = (B.BubbleGumFact $ B.Flavour 0 $ time a, v') }
+        return a { fact = (B.BubbleGumFact $ B.Flavour n $ time a, v') }
 
 
 valueToCore :: Value -> Either (SimulateError a) V.BaseValue
@@ -157,7 +131,7 @@ valueToCore v
                    -> V.VStruct . Map.fromList
                   <$> mapM (\(a,b) -> (,) <$> pure (V.StructField $ getAttribute a) <*> valueToCore b) vs
     DateValue d    -> return $ V.VDateTime d
-    Tombstone      -> Left   $ SimulateErrorCannotConvertToCore v
+    Tombstone      -> return $ V.VTombstone
 
 valueFromCore :: V.BaseValue -> Either (SimulateError a) Value
 valueFromCore v
@@ -177,5 +151,6 @@ valueFromCore v
                   <$> mapM (\(a,b) -> (,) <$> valueFromCore a <*> valueFromCore b) (Map.toList vs)
     V.VStruct vs  -> StructValue . Struct <$> mapM (\(a,b) -> (,) <$> pure (Attribute $ V.nameOfStructField a) <*> valueFromCore b) (Map.toList vs)
 
+    V.VTombstone  -> return Tombstone
     V.VException _-> return Tombstone
 

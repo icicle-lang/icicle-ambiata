@@ -43,7 +43,7 @@ data BubbleGumFact
 --
 -- TODO: add Attribute and reduction name here
 data BubbleGumOutput n v
- -- | Result of a *full* reduction, as opposed to a windowed reduction. 
+ -- | Result of a *full* reduction, as opposed to a windowed reduction.
  -- There might be multiple reductions in a single feature,
  -- so we want the name of the reduction variable too.
  = BubbleGumReduction   (Name n) v

@@ -3,10 +3,10 @@ ok, loaded 8 functions from data/libs/prelude.icicle
 ok, loaded test/cli/repl/data.psv, 8 rows
 > -- These two were failing before, but should pass now.
 > -- Not that they are particularly interesting.
-> - Result:
+> - Core evaluation:
 [homer, 4,marge, 3]
 
-> - Result:
+> - Core evaluation:
 [homer, [0.5,0.5]
 ,marge, [0.5,0.5]]
 

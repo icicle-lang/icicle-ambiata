@@ -2,7 +2,7 @@ welcome to iREPL
 ok, loaded 8 functions from data/libs/prelude.icicle
 ok, loaded test/cli/repl/data.psv, 8 rows
 > -- Simplest group-by there is
-> - Result:
+> - Core evaluation:
 [homer, [(100,1)
         ,(200,1)
         ,(300,1)
@@ -11,7 +11,7 @@ ok, loaded test/cli/repl/data.psv, 8 rows
 ,marge, [(0,1),(10,1),(20,1)]]
 
 > > -- Grouping by the date
-> - Result:
+> - Core evaluation:
 [homer, [(1989-12-17,1)
         ,(1990-01-01,1)
         ,(1994-01-01,1)
@@ -20,7 +20,7 @@ ok, loaded test/cli/repl/data.psv, 8 rows
 ,marge, [(1989-12-17,3)]]
 
 > > -- Filter before group
-> - Result:
+> - Core evaluation:
 [homer, [(1990-01-01,1)
         ,(1994-01-01,1)
         ,(1999-01-01,1)
@@ -29,7 +29,7 @@ ok, loaded test/cli/repl/data.psv, 8 rows
 
 > > -- Filter after group.
 > -- Note that this gives us counts of zero
-> - Result:
+> - Core evaluation:
 [homer, [(1989-12-17,0)
         ,(1990-01-01,1)
         ,(1994-01-01,1)
@@ -38,7 +38,7 @@ ok, loaded test/cli/repl/data.psv, 8 rows
 ,marge, [(1989-12-17,0)]]
 
 > > -- Group with average
-> - Result:
+> - Core evaluation:
 [homer, [(1989-12-17,100.0)
         ,(1990-01-01,200.0)
         ,(1994-01-01,300.0)
@@ -47,7 +47,7 @@ ok, loaded test/cli/repl/data.psv, 8 rows
 ,marge, [(1989-12-17,10.0)]]
 
 > > -- Throw some constants in for good measure
-> - Result:
+> - Core evaluation:
 [homer, [(1989-12-17,515)
         ,(1990-01-01,1015)
         ,(1994-01-01,1515)

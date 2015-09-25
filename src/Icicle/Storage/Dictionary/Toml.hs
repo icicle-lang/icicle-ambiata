@@ -39,6 +39,7 @@ import qualified Data.Text                          as T
 import qualified Data.Text.IO                       as T
 
 import qualified Data.Map                           as M
+import qualified Data.Set                           as S
 
 import qualified Text.Parsec                        as Parsec
 
@@ -82,10 +83,15 @@ loadDictionary' parentFuncs parentConf parentConcrete fp
      $ tomlDict parentConf rawToml
 
   parsedImports
-    <- (\fp' ->
-         EitherT
-         $ ((A.left DictionaryErrorParsecFunc) . SP.parseFunctions)
-        <$> T.readFile (rp </> (T.unpack fp'))
+    <- (\fp' -> do
+         let fp'' = T.unpack fp'
+         importsText
+           <- EitherT
+            $ A.left DictionaryErrorIO
+           <$> E.try (T.readFile (rp </> fp''))
+         hoistEither
+            $ A.left DictionaryErrorParsecFunc
+            $ SP.parseFunctions fp'' importsText
        ) `traverse` (imports conf)
 
   importedFunctions
@@ -124,7 +130,7 @@ loadDictionary' parentFuncs parentConf parentConcrete fp
     where
       rp = (takeDirectory fp)
 
-      remakeConcrete (DictionaryEntry' a (ConcreteDefinition' e)) cds = (DictionaryEntry a (ConcreteDefinition e)) : cds
+      remakeConcrete (DictionaryEntry' a (ConcreteDefinition' _ e t)) cds = (DictionaryEntry a (ConcreteDefinition e $ S.fromList $ toList t)) : cds
       remakeConcrete _ cds = cds
 
       remakeVirtuals (DictionaryEntry' a (VirtualDefinition' (Virtual' v))) vds = (a, v) : vds

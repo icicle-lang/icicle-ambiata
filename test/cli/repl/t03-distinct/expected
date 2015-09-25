@@ -2,15 +2,15 @@ welcome to iREPL
 ok, loaded 8 functions from data/libs/prelude.icicle
 ok, loaded test/cli/repl/data.psv, 8 rows
 > -- Distinct by value. Expect 5 and 3
-> - Result:
+> - Core evaluation:
 [homer, 5,marge, 3]
 
 > > -- Distinct by date. Expect 5 and 1
-> - Result:
+> - Core evaluation:
 [homer, 5,marge, 1]
 
 > > -- Average of distincts. That is, find the *last* for each date, and average all lasts
-> - Result:
+> - Core evaluation:
 [homer, 300.0,marge, 20.0]
 
 > 

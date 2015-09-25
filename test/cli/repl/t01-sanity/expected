@@ -2,23 +2,23 @@ welcome to iREPL
 ok, loaded 8 functions from data/libs/prelude.icicle
 ok, loaded test/cli/repl/data.psv, 8 rows
 > -- Try a simple sum. Expect 1500 and 30.
-> - Result:
+> - Core evaluation:
 [homer, 1500,marge, 30]
 
 > > -- Tuples
-> - Result:
+> - Core evaluation:
 [homer, (1500,5),marge, (30,3)]
 
 > > -- Now let's try average. Expect 300 and 10.
-> - Result:
+> - Core evaluation:
 [homer, 300.0,marge, 10.0]
 
 > > -- Filtering
-> - Result:
+> - Core evaluation:
 [homer, 5,marge, 1]
 
 > > -- Average of latest 3 entries
-> - Result:
+> - Core evaluation:
 [homer, 400.0,marge, 10.0]
 
 > > 
