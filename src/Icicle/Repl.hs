@@ -210,14 +210,15 @@ loadDictionary load
      -> do  firstEitherT ReplErrorDictionaryLoad $ DictionaryToml.loadDictionary fp
 
 readIcicleLibrary
-    :: Text
+    :: Parsec.SourceName
+    -> Text
     -> Either ReplError
       (M.Map (CommonBase.Name Var)
              ( ST.FunctionType Var
              , SQ.Function (ST.Annot Parsec.SourcePos Var) Var))
-readIcicleLibrary input
+readIcicleLibrary source input
  = do
-  input' <- mapLeft ReplErrorParse $ SP.parseFunctions input
+  input' <- mapLeft ReplErrorParse $ SP.parseFunctions source input
   mapLeft ReplErrorCheck
          $ snd
          $ flip Fresh.runFresh (freshNamer "t")
