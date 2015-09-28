@@ -171,10 +171,13 @@ generateQ qq@(Query (c:_) _)
     -- >    : Aggregate a
     GroupFold _ k v x
      -> do  (x',sx)    <- generateX x
+
             retKey     <- Temporality TemporalityElement . TypeVar <$> fresh
             retVal     <- Temporality TemporalityElement . TypeVar <$> fresh
+            removeElementBinds
             (q',sq,t') <- withBind k retKey
                         $ withBind v retVal rest
+
             let tgroup  = annResult $ annotOfExp x'
             let t''     = canonT $ Temporality TemporalityAggregate t'
             requireAgg  t'
@@ -288,6 +291,16 @@ generateQ qq@(Query (c:_) _)
    = let (_,_,d1) = decomposeT t1
          (_,_,d2) = decomposeT t2
      in  require a $ CEquals d1 d2
+
+  removeElementBinds
+   = do st       <- lift (lift State.get)
+        let env   = stateEnvironment st
+            elts  = Map.keys $ Map.filter isElementTemporality env
+            env'  = foldr Map.delete env elts
+        lift . lift . State.put $ st { stateEnvironment = env' }
+
+  isElementTemporality ft
+   = getTemporalityOrPure (functionReturn ft) == TemporalityElement
 
 -- | Generate constraints for expression
 generateX :: Ord n => Exp a n -> Gen a n (Exp'C a n, SubstT n)
