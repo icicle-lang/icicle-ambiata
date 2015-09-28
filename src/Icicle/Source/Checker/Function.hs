@@ -49,28 +49,92 @@ checkF  :: Ord n
 checkF env fun
  = evalGen (checkF' fun) (CheckState env [])
 
+
+-- | Typecheck a function definition, generalising types and pulling out constraints
 checkF' :: Ord n
         => Function a n
         -> Gen a n (Function (Annot a n) n, FunctionType n)
 
 checkF' fun
- = do mapM_ bindArg $ arguments fun
+ = do -- Give each argument a fresh type variable
+      mapM_ bindArg $ arguments fun
+      -- Get the annotated body
       (q',_)  <- generateQ    $ body      fun
 
+      -- Find all leftover constraints and nub them
       ctx <- lift $ lift State.get
       let constrs = ordNub
                   $ fmap snd
                   $ stateConstraints ctx
 
+      -- We want to remove any modes (temporalities or possibilities)
+      -- that are bound by foralls with no constraints on them.
+      -- A (forall t : Temporality. t a) is morally equivalent to
+      -- an unadorned, or pure, a.
+      --
+      -- However, removing these 'free modes' has a few small advantages:
+      -- * Aesthetically the type "Int" is nicer than "forall t. t Int"
+      -- * We don't need to perform let-generalisation on modes in the rest of the typechecker
+      --
+      -- To illustrate the second point, consider:
+      -- > let x = ( 1 + 2          : forall t a. Num a => t a )
+      -- > let useInt = x * (value  : Element Int)
+      -- > let useDbl = x * (0.5    : Float)
+      --
+      -- Here, "x" is pure and should be able to be used in both Element and pure contexts.
+      -- So "x"'s type must be generalised to "forall t. Num a => t a"
+      -- However the "a" must not be generalised into a forall, because that would
+      -- cause duplicate computation, and allow x to be used as both an Int and a Float.
+      --
+      -- This certainly isn't a massive problem.
+      -- However, given that we don't have lambdas as expressions, we can get away
+      -- with having no let generalisation at all.
+      -- So this seems like the simpler option.
+      --
+      -- XXX mode removal for "unsafeCoerceMode : forall t1 t2. t1 a -> t2 a"
+      -- Note that the current implementation is subtly incorrect though, in the presence
+      -- of a function of type unsafeCoerceMode.
+      -- If you simply removed all the modes for
+      -- > forall t1 t2. t1 a -> t2 a
+      -- you would get the result
+      -- > a -> a
+      -- which is quite different!
+      --
+      -- So this is interesting, but I do not foresee this being an issue in practice.
+
+      -- Get all the names mentioned in constraints.
+      -- Any modes mentioned in constraints are not necessarily pure.
+      let keepModes
+                  = Set.unions
+                  $ fmap freeC constrs
+
+      -- Generalise any modes - temporality or possibility - that are not mentioned in constraints
+      let remode t
+           | Just (TypeVar n) <- t
+           , not $ Set.member n keepModes
+           = Nothing
+           | otherwise
+           = t
+     -- Take apart temporality and possibility, remode, then put it back together
+      let fixmodes t
+           = let (tmp,pos,dat) = decomposeT t
+             in  recomposeT (remode tmp, remode pos, dat)
+
+      -- Look up the argument types after solving all constraints.
+      -- Because they started as fresh unification variables,
+      -- they will end up being unified to the actual types.
       args <- mapM lookupArg $ arguments fun
 
-      let argTs = fmap (annResult . fst) args
-      let resT  = annResult $ annotOfQuery q'
+      -- Fix the modes of all the argument and result types
+      let argTs = fmap (fixmodes . annResult . fst) args
+      let resT  = fixmodes $ annResult $ annotOfQuery q'
 
+      -- Find free variables in types - these have to be bound as foralls.
       let binds = Set.toList
                 $ Set.unions
                 $ freeT resT : fmap freeT argTs
 
+      -- Put it all together
       let funT  = FunctionType binds constrs argTs resT
 
       return (Function args q', funT)

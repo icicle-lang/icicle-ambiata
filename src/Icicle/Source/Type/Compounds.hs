@@ -6,6 +6,7 @@
 module Icicle.Source.Type.Compounds (
     function0
   , freeT
+  , freeC
   , canonT
   , decomposeT
   , recomposeT
@@ -13,6 +14,7 @@ module Icicle.Source.Type.Compounds (
   , getTemporality
   , getPossibility
   , getTemporalityOrPure
+  , getPossibilityOrDefinitely
   ) where
 
 
@@ -58,6 +60,30 @@ freeT t
     PossibilityDefinitely   -> Set.empty
 
     TypeVar n               -> Set.singleton n
+
+
+freeC :: Ord n => Constraint n -> Set.Set (Name n)
+freeC c
+ = case c of
+    CEquals p q             -> Set.union (freeT p) (freeT q)
+    CIsNum  p               -> freeT p
+    CReturnOfLetTemporalities
+                    p q r   -> Set.unions
+                             $ fmap freeT
+                             [ p, q, r ]
+    CReturnOfLatest p q r   -> Set.unions
+                             $ fmap freeT
+                             [ p, q, r ]
+    CPossibilityJoin p q r  -> Set.unions
+                             $ fmap freeT
+                             [ p, q, r ]
+    CTemporalityJoin p q r  -> Set.unions
+                             $ fmap freeT
+                             [ p, q, r ]
+    CExtractTemporality p q r
+                            -> Set.unions
+                             $ fmap freeT
+                             [ p, q, r ]
 
 
 canonT :: Type n -> Type n
@@ -108,7 +134,7 @@ getTemporality tt
     TemporalityElement    -> Nothing
     TemporalityAggregate  -> Nothing
 
-    Possibility _ _       -> Nothing
+    Possibility a b       -> wrap2 go Possibility a b
     PossibilityPossibly   -> Nothing
     PossibilityDefinitely -> Nothing
 
@@ -143,7 +169,7 @@ getPossibility tt
                          vs  = fmap snd fs'
                      in  wrapN go (\t vs' -> Just (t, StructT $ Map.fromList (ks `zip` vs'))) vs
 
-    Temporality _ _       -> Nothing
+    Temporality a b       -> wrap2 go Temporality a b
     TemporalityPure       -> Nothing
     TemporalityElement    -> Nothing
     TemporalityAggregate  -> Nothing
@@ -160,6 +186,12 @@ getPossibility tt
 
  where
   go = getPossibility
+
+getPossibilityOrDefinitely :: Type n -> Type n
+getPossibilityOrDefinitely t
+ = case getPossibility t of
+    Just (a,_) -> a
+    Nothing    -> PossibilityDefinitely
 
 getBaseType :: Type n -> Maybe (Type n)
 getBaseType tt

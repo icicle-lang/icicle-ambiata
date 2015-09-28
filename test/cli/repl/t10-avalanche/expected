@@ -10,7 +10,7 @@ ok, avalanche is now on
 ok, flatten is now on
 > > -- A rather complicated feature to convert to Avalanche
 > - Type:
-Aggregate (Int, (Array Int))
+Aggregate Possibly (Int, (Array Int))
 
 - Core:
 Program (source : Stream Int)

@@ -46,12 +46,17 @@ data DischargeError n
 
 instance Pretty n => Pretty (DischargeError n) where
  pretty (CannotUnify p q)
-  = "Cannot unify " <> pretty p <> " = " <> pretty q
+  =  "Cannot unify: " <> indent 0 (pretty p) <> line
+  <> "With type:    " <> indent 0 (pretty q) <> line
+  <> "These types were required to be equal, but are not."
  pretty (NotANumber t)
-  = "Not a number: " <> pretty t
- pretty (ConflictingLetTemporalities ret def body)
+  =  "Not a number: " <> pretty t <> line
+  <> "Chances are you tried to apply some numerical computation like (+) or sum to the wrong field."
+ pretty (ConflictingLetTemporalities _ def body)
   =  "Conflicting let temporalities." <> line
-  <> "An Aggregate let statement with an Element body is not allowed: " <> pretty ret <+> pretty def <+> pretty body
+  <> "This kind of let isn't allowed because its definition could never be used." <> line
+  <> "The definition is a " <> pretty def
+  <> ", while the body is a " <> pretty body <> "."
  pretty (ConflictingJoinTemporalities a b)
   =  "Conflicting join temporalities." <> line
   <> pretty a <+> pretty b
@@ -95,6 +100,9 @@ dischargeC c
            dischargeC $ CEquals a temp
 
     -- Still variables, so can't discharge
+    CReturnOfLetTemporalities ret def body
+     | def == body
+     -> dischargeC (CEquals ret def)
     CReturnOfLetTemporalities _ (TypeVar _) _
      -> return $ DischargeLeftover c
     CReturnOfLetTemporalities _ _ (TypeVar _)
@@ -112,6 +120,20 @@ dischargeC c
           -> dischargeC (CEquals ret ret')
          _
           -> return $ DischargeLeftover c
+
+    CPossibilityJoin ret PossibilityPossibly _
+     -> dischargeC (CEquals ret PossibilityPossibly)
+    CPossibilityJoin ret _ PossibilityPossibly
+     -> dischargeC (CEquals ret PossibilityPossibly)
+    CPossibilityJoin ret PossibilityDefinitely z
+     -> dischargeC (CEquals ret z)
+    CPossibilityJoin ret y PossibilityDefinitely
+     -> dischargeC (CEquals ret y)
+    CPossibilityJoin ret y z
+     | y == z
+     -> dischargeC (CEquals ret y)
+    CPossibilityJoin _ _ _
+     -> return $ DischargeLeftover c
 
  where
   lub (TemporalityPure) x = return x

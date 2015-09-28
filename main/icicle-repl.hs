@@ -257,9 +257,9 @@ handleLine state line = case readCommand line of
       Right is -> do
         HL.outputStrLn $ "ok, loaded " <> show (Map.size is) <> " functions from " <> fp
         let d = dictionary state
-        let f = Map.union (dictionaryFunctions d) is
+        -- Merge in the new functions with new functions taking precedence over existing ones
+        let f = Map.union is (dictionaryFunctions d)
         return $ state { dictionary = d { dictionaryFunctions = f } }
-        -- TODO, add a state which holds what we just loaded.
 
   Just (CommandComment comment) -> do
     HL.outputStrLn comment

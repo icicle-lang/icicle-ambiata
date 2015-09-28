@@ -102,32 +102,33 @@ instance (Pretty a, Pretty n) => Pretty (ErrorInfo a n) where
       <> "Context: " <> inp c
 
      ErrorFunctionWrongArgs a x f tys
-      -> "Function applied to wrong number of arguments at " <+> pretty a <> line
+      -> "Function applied to wrong number of arguments at" <+> pretty a <> line
       <> "Expression:     " <> inp x
       <> "Function type:  " <> inp f
       <> "Argument types: " <> inp tys
 
      ErrorApplicationNotFunction a x
-      -> "Application of non-function at " <+> pretty a <> line
+      -> "Application of non-function at" <+> pretty a <> line
       <> "Exp: " <> inp x
 
      ErrorConstraintsNotSatisfied a ds
-      -> "Cannot discharge constraints at " <+> pretty a <> line
-      <> "Constraints: " <> cat (fmap ((<+>" ").pretty) ds)
+      -> "Cannot discharge constraints at" <+> pretty a <> line
+      <> "Constraints: " <> line
+      <> vcat (fmap (\(an,con) -> indent 2 (pretty an) <> indent 2 (pretty con)) ds)
 
      ErrorReturnNotAggregate a t
-      -> "Return type is not an aggregate at " <+> pretty a <> line
+      -> "Return type is not an aggregate at" <+> pretty a <> line
       <> "Type: " <> inp t
 
      ErrorDuplicateFunctionNames a n
       -> "Function" <+> pretty n <+> "at" <+> pretty a <+> "is already defined"
 
      ErrorEmptyCase a x
-      -> "Case expression has no clauses at " <+> pretty a <> line
+      -> "Case expression has no clauses at" <+> pretty a <> line
       <> "Exp: " <> inp x
 
      ErrorCaseBadPattern a p
-      -> "Case expression has ill-formed pattern at " <+> pretty a <> line
+      -> "Case expression has ill-formed pattern at" <+> pretty a <> line
       <> "Pattern: " <> inp p
 
 

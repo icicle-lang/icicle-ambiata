@@ -23,17 +23,14 @@ ok, loaded test/cli/repl/data.psv, 8 rows
 >                      [34mλλλλ[0m
 REPL Error:
 Check error:
-  Unknown variable ea1 at (line 1, column 20)
+  Unknown variable ea1 at 1:20
   Extra information:
     Suggested bindings are:
-      max                  : Element a b -> Aggregate a b
-      mean                 : (Num b) => Element a b -> Aggregate a Double
+      max                  : Element a -> Aggregate Possibly a
+      mean                 : (Num a) => Element a -> Aggregate Double
       date                 : Element Definitely DateTime
-      min                  : Element a b -> Aggregate a b
-      sd                   : (Element =: ReturnOfLet Pure t$137
-                             ,t$135 =: ReturnOfLet a a
-                             ,t$136 =: ReturnOfLet a t$135
-                             ,t$137 =: ReturnOfLet a t$136) => a b Double -> Aggregate b Double
+      min                  : Element a -> Aggregate Possibly a
+      sd                   : (Element =: ReturnOfLet Pure a) => a Double -> Aggregate Double
 
 > > -- Expect a parse error on unterminated string
 >                  [34mλλλλ[0m
