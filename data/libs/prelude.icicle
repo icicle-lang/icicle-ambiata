@@ -17,4 +17,4 @@ newest v = latest 1 ~> let fold1 s = v : v ~> s.
 oldest v = let fold1 s = v : s ~> s.
 
 # Boolean statements
-not a = let r = case a | True -> False | False -> True end ~> r.
+not a = case a | True -> False | False -> True end.
