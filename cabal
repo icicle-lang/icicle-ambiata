@@ -132,7 +132,9 @@ run_build () {
 # Cabal test.
 #
 run_test () {
-    initialize
+    # build will initialize
+    # need to build first because the cli tests rely on build artifacts
+    run_build "$@"
     cabal test --show-details=streaming "$@"
 }
 
