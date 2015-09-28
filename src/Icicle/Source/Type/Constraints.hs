@@ -100,6 +100,9 @@ dischargeC c
            dischargeC $ CEquals a temp
 
     -- Still variables, so can't discharge
+    CReturnOfLetTemporalities ret def body
+     | def == body
+     -> dischargeC (CEquals ret def)
     CReturnOfLetTemporalities _ (TypeVar _) _
      -> return $ DischargeLeftover c
     CReturnOfLetTemporalities _ _ (TypeVar _)
