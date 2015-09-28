@@ -53,12 +53,48 @@ project_name () {
     find . -maxdepth 1 -name  \*.cabal -type f | xargs basename | sed -e 's/.cabal//'
 }
 
+
+mafia_exec () {
+    [ $# -eq 1 ] || fail "'mafia_exec' requires a single argument, specifying the package you wish to build."
+    EXECUTABLE=$1
+    EXECUTABLE_LOCATION=$HOME/.ambiata/mafia/bin/$EXECUTABLE
+    EXECUTABLE_DIR=$(dirname $EXECUTABLE_LOCATION)
+    [ -f "$EXECUTABLE_LOCATION" ] || {
+
+        # Create a temporary directory which will be deleted when the script
+        # terminates. Unfortunately `mktemp` doesn't behave the same on
+        # Linux and OS/X so we need to try two different approaches.
+        MAFIA_EXEC_TEMP=$(mktemp -d 2>/dev/null || mktemp -d -t 'mafia-exec')
+        trap "rm -rf $MAFIA_EXEC_TEMP" EXIT
+        mkdir -p $MAFIA_EXEC_TEMP
+
+        [ -d "$EXECUTABLE_DIR" ] || {
+           mkdir -p $EXECUTABLE_DIR
+        }
+
+        (
+            cd "$MAFIA_EXEC_TEMP"
+            cabal sandbox init || exit $?
+            cabal install $EXECUTABLE || exit $?
+        ) || exit $?
+
+        cp "$MAFIA_EXEC_TEMP/.cabal-sandbox/bin/$EXECUTABLE" "$EXECUTABLE_LOCATION" || exit $?
+    }
+    export PATH="$EXECUTABLE_DIR:$PATH"
+}
+
+
 #
 # Initialize things for a build. This can be made faster by being
 # a lot smarter about doing things conditionally, but for now,
 # brute force wins.
 #
 initialize () {
+
+    # check if happy and alex exist in mafia
+    mafia_exec "happy"
+    mafia_exec "alex"
+
     # sandbox has all sources
     project=$(project_name)
     SANDBOX_DIR=.cabal-sandbox
@@ -101,7 +137,8 @@ initialize () {
       source_path=$(echo $source | sed s#${PROJECT_ROOT}/##)
       if ! $(echo "${CABAL_SOURCES}" | grep -q "${source_path}"); then
         echo "${source_path} no longer exists - removing from the sandbox"
-        cabal sandbox delete-source "$source" 1> /dev/null
+        # This will fail if there are any remaining non-existent sources
+        cabal sandbox delete-source "$source" 1> /dev/null || true
       fi
     done
 
@@ -132,9 +169,7 @@ run_build () {
 # Cabal test.
 #
 run_test () {
-    # build will initialize
-    # need to build first because the cli tests rely on build artifacts
-    run_build "$@"
+    initialize
     cabal test --show-details=streaming "$@"
 }
 
@@ -193,9 +228,7 @@ EOF
     PIPE=$CABAL_EXTRAS_TEMP/testci.pipe
     mkfifo $PIPE
     runghc $UNCTL < $PIPE &
-
-    initialize > $PIPE
-    cabal test --show-details=streaming "$@" > $PIPE
+    run_test "$@" > $PIPE
 }
 
 #
@@ -421,4 +454,4 @@ case "$MODE" in
 build|test|testci|bench|repl|quick|tags|lint|update|clean|depend|watch|upgrade) run_$MODE "$@" ;;
 *) fail "Unknown mode: $MODE"
 esac
-# Version: 3145405852b7e0d6b0583061562cd365daa4583d
+# Version: b3a81fb770bffc8a4a4f792fc166e9094e4957f5
