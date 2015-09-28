@@ -188,6 +188,11 @@ evalPrim p originalP vs
       | otherwise
       -> primError
 
-
-
+     PrimTombstone _
+      | [VBase VTombstone] <- vs
+      -> return $ VBase $ VBool True
+      | [VBase _] <- vs
+      -> return $ VBase $ VBool False
+      | otherwise
+      -> primError
 
