@@ -177,7 +177,9 @@ convertFold q
             -- We know that the scrutinee and the patterns are all aggregates.
             -- Elements are handled elsewhere.
             let args = scrut : fmap snd pats
-            res <- mapM (convertFold . Query []) args
+            pats'  <- convertCaseFreshenPats (fmap fst pats)
+
+            res    <- mapM (convertFold . Query []) args
             retty' <- convertValType' retty
             scrutT <- convertValType' $ annResult $ annotOfExp scrut
 
@@ -191,7 +193,7 @@ convertFold q
             let cp ns
                     = case fmap (uncurry CE.xApp) (fmap mapExtract res `zip` ns) of
                         (s:alts)
-                         -> convertCase (final q) s (fmap fst pats `zip` alts) scrutT retty'
+                         -> convertCase (final q) s (pats' `zip` alts) scrutT retty'
                         _
                          -> convertError $ ConvertErrorBadCaseNoDefault ann (final q)
             xx       <- pairDestruct cp ts retty

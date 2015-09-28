@@ -10,6 +10,8 @@ module Icicle.Source.ToCore.Exp (
     convertExp
   , convertExpQ
   , convertCase
+  , convertCaseFreshenPat
+  , convertCaseFreshenPats
   ) where
 
 import                  Icicle.Source.Query
@@ -74,7 +76,8 @@ convertExp x
     -- Only deal with flattened, single layer cases.
     -- We need a pass beforehand to simplify them.
     Case ann scrut pats
-     -> do  pats'  <- mapM (\(p,alt) -> (,) p <$> convertExp alt) pats
+     -> do  ps     <- convertCaseFreshenPats (fmap fst pats)
+            pats'  <- mapM (\(p,alt) -> (,) p <$> convertExp alt) (zip ps (fmap snd pats))
             scrut' <- convertExp scrut
             scrutT <- convertValType (annAnnot ann) $ annResult $ annotOfExp scrut
             resT   <- convertValType (annAnnot ann) $ annResult ann
@@ -100,6 +103,22 @@ convertExpQ q
      -> convertError
       $ ConvertErrorExpNestedQueryNotAllowedHere (annAnnot $ annotOfQuery q) q
 
+
+convertCaseFreshenPats :: Ord n => [Pattern n] -> ConvertM a n [Pattern n]
+convertCaseFreshenPats = mapM convertCaseFreshenPat
+
+
+-- | Enfreshinate the variables in a case pattern and add them to the convert environment.
+--
+convertCaseFreshenPat :: Ord n => Pattern n -> ConvertM a n (Pattern n)
+convertCaseFreshenPat p
+ = case p of
+    PatCon c ps
+      -> PatCon c <$> convertCaseFreshenPats ps
+    PatDefault
+      -> return PatDefault
+    PatVariable n
+      -> PatVariable <$> convertFreshenAdd n
 
 
 convertCase
@@ -153,7 +172,7 @@ convertCase x scrut pats scrutT resT
   mkVars PatDefault
    = lift fresh
   mkVars (PatVariable n)
-   = convertFreshenAdd n
+   = return n -- convertFreshenAdd n
   mkVars (PatCon _ _)
    = convertError $ ConvertErrorBadCaseNestedConstructors (annAnnot $ annotOfExp x) x
 

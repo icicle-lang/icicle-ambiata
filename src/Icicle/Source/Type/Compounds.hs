@@ -9,6 +9,7 @@ module Icicle.Source.Type.Compounds (
   , canonT
   , decomposeT
   , recomposeT
+  , getBaseType
   , getTemporality
   , getPossibility
   , getTemporalityOrPure
@@ -160,6 +161,31 @@ getPossibility tt
  where
   go = getPossibility
 
+getBaseType :: Type n -> Maybe (Type n)
+getBaseType tt
+ = case tt of
+    BoolT         -> Just tt
+    DateTimeT     -> Just tt
+    DoubleT       -> Just tt
+    IntT          -> Just tt
+    StringT       -> Just tt
+    UnitT         -> Just tt
+    ArrayT  _     -> Just tt
+    GroupT  _ _   -> Just tt
+    OptionT _     -> Just tt
+    PairT   _ _   -> Just tt
+    StructT _     -> Just tt
+
+    Temporality _ t       -> getBaseType t
+    TemporalityPure       -> Nothing
+    TemporalityElement    -> Nothing
+    TemporalityAggregate  -> Nothing
+
+    Possibility _ t       -> getBaseType t
+    PossibilityPossibly   -> Nothing
+    PossibilityDefinitely -> Nothing
+
+    TypeVar _             -> Just tt
 
 
 -- Temporality and possibility helpers --

@@ -12,6 +12,8 @@ import           Icicle.Source.Query
 import           Icicle.Source.Eval
 import           Icicle.Source.Type
 import qualified Icicle.Source.Lexer.Token as T
+import           Icicle.Source.Transform.Desugar
+
 import qualified Icicle.Common.Base          as CB
 import qualified Icicle.Common.Type          as CT
 
@@ -32,6 +34,9 @@ mkElems m = emptyCheckEnv { checkEnvironment = Map.map (function0 . Temporality 
 
 prop_progress_no_values :: Map.Map (CB.Name T.Variable) CT.ValType -> Query () T.Variable -> Property
 prop_progress_no_values f q
+ | Right bland <- runDesugar freshnamer (desugarQ q)
+ , typ         <- freshcheck $ checkQ (mkElems f) bland
+ , pp          <- show $ pretty bland
  = counterexample pp
  $ counterexample (show typ)
  $ case typ of
@@ -41,10 +46,7 @@ prop_progress_no_values f q
       $ isRight val
     Left _
      -> discard
- where
-  typ = freshcheck $ checkQ (mkElems f) q
-  pp = show $ pretty q
-
+ | otherwise = discard
 
 
 return []
