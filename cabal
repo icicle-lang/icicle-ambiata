@@ -193,7 +193,9 @@ EOF
     PIPE=$CABAL_EXTRAS_TEMP/testci.pipe
     mkfifo $PIPE
     runghc $UNCTL < $PIPE &
-    run_test "$@" > $PIPE
+
+    initialize > $PIPE
+    cabal test --show-details=streaming "$@" > $PIPE
 }
 
 #
