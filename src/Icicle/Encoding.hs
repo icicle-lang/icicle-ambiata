@@ -216,6 +216,8 @@ parseValue e tombstone t
 
 -- | Attempt to decode value from JSON
 valueOfJSON :: Encoding -> A.Value -> Either DecodeError Value
+valueOfJSON _ A.Null
+ = return Tombstone
 valueOfJSON e v
  = case e of
     StringEncoding
