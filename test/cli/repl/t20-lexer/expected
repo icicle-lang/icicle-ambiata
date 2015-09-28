@@ -1,5 +1,5 @@
 welcome to iREPL
-ok, loaded 9 functions from data/libs/prelude.icicle
+ok, loaded 10 functions from data/libs/prelude.icicle
 ok, loaded test/cli/repl/data.psv, 8 rows
 > -- Numbers
 > - Core evaluation:
@@ -30,7 +30,7 @@ Check error:
       [32mmean[0m                 : (Num [32ma[0m) => Element [32ma[0m -> Aggregate Double
       [32mdate[0m                 : Element Definitely DateTime
       [32mmin[0m                  : Element [32ma[0m -> Aggregate Possibly [32ma[0m
-      [32msd[0m                   : (Element =: ReturnOfLet Pure [32ma[0m) => [32ma[0m Double -> Aggregate Double
+      [32mnot[0m                  : ([32mt[0m$[32m179[0m =: TemporalityJoin [32ma[0m Pure) => [32ma[0m Bool -> Pure Bool
 
 > > -- Expect a parse error on unterminated string
 >                  [34mλλλλ[0m
