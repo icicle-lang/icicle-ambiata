@@ -1,0 +1,5 @@
+title = "Broken dictionary 2"
+version = 1
+import = [
+  "bad.icicle"
+]

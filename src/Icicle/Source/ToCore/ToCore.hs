@@ -44,8 +44,8 @@ import                  Icicle.Common.Base
 
 import                  P
 
+import                  Control.Monad.Morph
 import                  Control.Monad.Trans.State.Lazy
-import                  Control.Monad.Trans.Class
 import                  Data.List (zip, unzip)
 
 import qualified        Data.Map as Map
@@ -313,13 +313,14 @@ convertQuery q
             n'   <- lift fresh
             nacc <- lift fresh
 
+            -- Convert the inner group into a stream fold that produces a map.
+            (bs, nm) <- convertReduce e
+
+            -- The key and value will be available after the fold
             convertModifyFeatures (Map.delete k)
             k' <- convertFreshenAdd k
             convertModifyFeatures (Map.delete v)
             v' <- convertFreshenAdd v
-
-            -- Convert the inner group into a stream fold that produces a map.
-            (bs, nm) <- convertReduce e
 
             -- Convert the rest of the query into a map fold.
             res      <- convertFold q'
@@ -443,7 +444,7 @@ convertQuery q
          TemporalityAggregate
           -> do (bs,n')      <- convertReduce    def
                 convertModifyFeatures (Map.delete b)
-                b'      <- convertFreshenAdd b
+                b'           <- convertFreshenAdd b
                 (bs',n'')    <- convertQuery     q'
                 return (bs <> post b' (CE.xVar n') <> bs', n'')
 
@@ -637,19 +638,20 @@ convertReduce xx
 
 
  | Case (Annot { annAnnot = ann, annResult = retty }) scrut patalts <- xx
- = do   scrut' <- convertReduce scrut
-        let (pats,alts) = unzip patalts
-        alts'  <- mapM convertReduce alts
+ = do   let (pats,alts) = unzip patalts
 
-        let bs' = fst scrut' <> mconcat (fmap fst alts')
+        scrut' <- convertReduce scrut
+        pats'  <- convertCaseFreshenPats pats
+        alts'  <- mapM convertExp alts
+
+        let bs' = fst scrut'
 
         let sX  = CE.xVar $ snd scrut'
-        let aXs = fmap (CE.xVar . snd) alts'
 
         scrutT <- convertValType ann $ annResult $ annotOfExp scrut
         resT   <- convertValType ann $ retty
 
-        x'     <- convertCase xx sX (pats `zip` aXs) scrutT resT
+        x'     <- convertCase xx sX (pats' `zip` alts') scrutT resT
         nm     <- lift fresh
 
         let b'  | TemporalityPure <- getTemporalityOrPure retty
@@ -657,12 +659,9 @@ convertReduce xx
                 | otherwise
                 = post nm x'
 
-        return (bs' <> b', nm)
-
-
+        return (b' <> bs', nm)
 
  -- It's not a variable or a nested query,
  -- so it must be an application of a non-primitive
  | otherwise
  = convertError $ ConvertErrorExpApplicationOfNonPrimitive (annAnnot $ annotOfExp xx) xx
-

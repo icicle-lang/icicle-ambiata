@@ -1,0 +1,5 @@
+title = "Broken dictionary"
+version = 1
+import = [
+  "non-existant.icicle"
+]

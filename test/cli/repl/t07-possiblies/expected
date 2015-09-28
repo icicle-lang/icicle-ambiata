@@ -1,28 +1,28 @@
 welcome to iREPL
-ok, loaded 8 functions from data/libs/prelude.icicle
+ok, loaded 9 functions from data/libs/prelude.icicle
 ok, loaded test/cli/repl/data.psv, 8 rows
 > -- Divisions return Possibles.
 > -- Try with group:
-> - Result:
+> - Core evaluation:
 [homer, [(0,4.0)
         ,(1,20.0)
         ,(2,36.0)]
 ,marge, [(0,1.2)]]
 
 > > -- Distincts
-> - Result:
+> - Core evaluation:
 [homer, 60.0,marge, 1.2]
 
 > > -- Maybe some lets
-> - Result:
+> - Core evaluation:
 [homer, 3000,marge, 60]
 
 > > -- Add a filter
-> - Result:
+> - Core evaluation:
 [homer, 5,marge, 2]
 
 > > -- newest or something
-> - Result:
+> - Core evaluation:
 [homer, ((100.0,20.0),1500)
 ,marge, ((4.0,0.0),30)]
 

@@ -105,7 +105,7 @@ instance Pretty n => Pretty (Pattern n) where
  pretty (PatCon c [])
   = pretty c
  pretty (PatCon c vs)
-  = "(" <> pretty c <> hsep (fmap pretty vs) <> ")"
+  = "(" <> pretty c <> " " <> hsep (fmap pretty vs) <> ")"
  pretty PatDefault
   = "_"
  pretty (PatVariable n)

@@ -1,0 +1,11 @@
+-- Show everything
+:set +flatten +c +c-eval
+
+-- Oldest
+feature salary ~> oldest value
+
+-- Filtering works
+feature salary ~> filter value > 300 ~> count
+
+-- An interesting expression
+feature salary ~> sd_old value * (filter value < 300 ~> sd_old value)

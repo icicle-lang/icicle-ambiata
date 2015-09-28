@@ -156,7 +156,7 @@ renderValue tombstone val
    = T.decodeUtf8
    $ BS.toStrict
    $ A.encode
-   $ jsonOfValue (A.String tombstone) val
+   $ jsonOfValue tombstone val
 
 
 -- | Attempt to decode value with given encoding.
@@ -289,9 +289,17 @@ valueOfJSON e v
   getField obj attr
    = HM.lookup (getAttribute attr) obj
 
-
-jsonOfValue :: A.Value -> Value -> A.Value
-jsonOfValue tombstone val
+-- Render as json. This is as close to Ivory output as
+-- is possible. "No Value" or "Tombstoned" values are
+-- rendered as the json null type.
+-- Map and pair values are encoded as a json struct
+-- with the first items as the json keys. This has the
+-- obvious downside that all encoding are rendered as
+-- strings. The tombstone value from renderValue is
+-- used as the key if this is required (as one can't
+-- use json null as the key).
+jsonOfValue :: Text -> Value -> A.Value
+jsonOfValue t val
  = case val of
     StringValue v
      -> A.String v
@@ -306,16 +314,18 @@ jsonOfValue tombstone val
     StructValue (Struct sfs)
      -> A.Object $ P.foldl insert HM.empty sfs
     ListValue (List l)
-     -> A.Array  $ V.fromList $ fmap (jsonOfValue tombstone) l
+     -> A.Array  $ V.fromList $ fmap (jsonOfValue t) l
     Tombstone
-     -> tombstone
-    PairValue a b
-     -> A.Array $ V.fromList [jsonOfValue tombstone a, jsonOfValue tombstone b]
+     -> A.Null
+    PairValue k v
+      -> A.Object $ pair k v
     MapValue kvs
-     -> A.Array $ V.fromList $ fmap (jsonOfValue tombstone . uncurry PairValue) kvs
+     -> A.Array $ V.fromList $ fmap (jsonOfValue t . uncurry PairValue) kvs
  where
   insert hm (attr,v)
-   = HM.insert (getAttribute attr) (jsonOfValue tombstone v) hm
+   = HM.insert (getAttribute attr) (jsonOfValue t v) hm
+  pair k v
+   = HM.singleton (renderValue t k) (jsonOfValue t v)
 
 
 -- | Perform read, only succeed if all input is used

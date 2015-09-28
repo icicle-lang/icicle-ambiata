@@ -1,8 +1,8 @@
 welcome to iREPL
-ok, loaded 8 functions from data/libs/prelude.icicle
+ok, loaded 9 functions from data/libs/prelude.icicle
 ok, loaded test/cli/repl/data.psv, 8 rows
 > -- Numbers
-> - Result:
+> - Core evaluation:
 [homer, (((((5,1),2.21),3000.0)
          ,4.44e-4)
         ,0.555)
@@ -11,7 +11,7 @@ ok, loaded test/cli/repl/data.psv, 8 rows
         ,0.555)]
 
 > > -- Strings
-> - Result:
+> - Core evaluation:
 [homer, (((((5,"")," "),"ok")
          ,"\"hello\"")
         ,"\tok\t")
@@ -29,8 +29,11 @@ Check error:
       max                  : Element a -> Aggregate Possibly a
       mean                 : (Num a) => Element a -> Aggregate Double
       date                 : Element Definitely DateTime
-      min                  : Element a -> Aggregate Possibly a
-      sd                   : (Num a) => Element a -> Aggregate Double
+      min                  : Element a b -> Aggregate a b
+      sd                   : (Element =: ReturnOfLet Pure t$137
+                             ,t$135 =: ReturnOfLet a a
+                             ,t$136 =: ReturnOfLet a t$135
+                             ,t$137 =: ReturnOfLet a t$136) => a b Double -> Aggregate b Double
 
 > > -- Expect a parse error on unterminated string
 >                  [34mλλλλ[0m

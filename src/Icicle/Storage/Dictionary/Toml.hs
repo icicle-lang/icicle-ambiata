@@ -83,10 +83,15 @@ loadDictionary' parentFuncs parentConf parentConcrete fp
      $ tomlDict parentConf rawToml
 
   parsedImports
-    <- (\fp' ->
-         EitherT
-         $ ((A.left DictionaryErrorParsecFunc) . SP.parseFunctions)
-        <$> T.readFile (rp </> (T.unpack fp'))
+    <- (\fp' -> do
+         let fp'' = T.unpack fp'
+         importsText
+           <- EitherT
+            $ A.left DictionaryErrorIO
+           <$> E.try (T.readFile (rp </> fp''))
+         hoistEither
+            $ A.left DictionaryErrorParsecFunc
+            $ SP.parseFunctions fp'' importsText
        ) `traverse` (imports conf)
 
   importedFunctions

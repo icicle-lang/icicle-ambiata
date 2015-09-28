@@ -68,12 +68,16 @@ substC ss cc
      -> CEquals (substT ss p) (substT ss q)
     CIsNum p
      -> CIsNum (substT ss p)
+    CTemporalityJoin a b c
+     -> CTemporalityJoin (substT ss a) (substT ss b) (substT ss c)
     CReturnOfLetTemporalities ret def body
      -> CReturnOfLetTemporalities (substT ss ret) (substT ss def) (substT ss body)
     CReturnOfLatest ret tmp dat
      -> CReturnOfLatest (substT ss ret) (substT ss tmp) (substT ss dat)
     CPossibilityJoin ret b c
      -> CPossibilityJoin (substT ss ret) (substT ss b) (substT ss c)
+    CExtractTemporality temp ty tau
+     -> CExtractTemporality (substT ss temp) (substT ss ty) (substT ss tau)
 
 
 -- | Substitute into a function type.

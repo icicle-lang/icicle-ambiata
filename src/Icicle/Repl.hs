@@ -5,6 +5,7 @@ module Icicle.Repl (
     ReplError (..)
   , annotOfError
   , sourceParse
+  , sourceDesugar
   , sourceCheck
   , sourceConvert
   , sourceParseConvert
@@ -39,6 +40,7 @@ import qualified Icicle.Source.ToCore.Base          as STC
 import qualified Icicle.Source.ToCore.ToCore        as STC
 import qualified Icicle.Source.Type                 as ST
 import qualified Icicle.Source.Transform.Inline     as STI
+import qualified Icicle.Source.Transform.Desugar    as STD
 
 import           P
 
@@ -47,6 +49,7 @@ import           Control.Monad.Trans.Either
 import         X.Control.Monad.Trans.Either
 
 import           Data.Either.Combinators
+import           Data.Functor.Identity
 import           Data.Text                          (Text)
 import qualified Data.Text                          as T
 import qualified Data.Text.IO                         as T
@@ -59,6 +62,7 @@ import qualified Text.ParserCombinators.Parsec      as Parsec
 
 data ReplError
  = ReplErrorParse   Parsec.ParseError
+ | ReplErrorDesugar (STD.DesugarError Var)
  | ReplErrorCheck   (SC.CheckError Parsec.SourcePos Var)
  | ReplErrorConvert (STC.ConvertError Parsec.SourcePos Var)
  | ReplErrorDecode  S.ParseError
@@ -74,6 +78,8 @@ annotOfError e
     ReplErrorParse sp
      -> Just
       $ Parsec.errorPos sp
+    ReplErrorDesugar _
+     -> Nothing
     ReplErrorCheck       e'
      -> SC.annotOfError  e'
     ReplErrorConvert     e'
@@ -95,6 +101,9 @@ instance Pretty ReplError where
      ReplErrorParse p
       -> "Parse error:" <> line
       <> indent 2 (text $ show p)
+     ReplErrorDesugar d
+      -> "Desugar error:" <> line
+      <> indent 2 (text $ show d)
      ReplErrorCheck ce
       -> "Check error:" <> line
       <> indent 2 (pretty ce)
@@ -136,6 +145,14 @@ sourceParse t
  = mapLeft ReplErrorParse
  $ SP.parseQueryTop (CommonBase.OutputName "repl") t
 
+sourceDesugar :: QueryTop' -> Either ReplError QueryTop'
+sourceDesugar q
+ = runIdentity
+ $ runEitherT
+ $ bimapEitherT ReplErrorDesugar snd
+ $ Fresh.runFreshT
+     (STD.desugarQT q)
+     (freshNamer "desugar")
 
 sourceCheck :: D.Dictionary -> QueryTop' -> Either ReplError (QueryTop'T, ST.Type Var)
 sourceCheck d q
@@ -210,14 +227,15 @@ loadDictionary load
      -> do  firstEitherT ReplErrorDictionaryLoad $ DictionaryToml.loadDictionary fp
 
 readIcicleLibrary
-    :: Text
+    :: Parsec.SourceName
+    -> Text
     -> Either ReplError
       (M.Map (CommonBase.Name Var)
              ( ST.FunctionType Var
              , SQ.Function (ST.Annot Parsec.SourcePos Var) Var))
-readIcicleLibrary input
+readIcicleLibrary source input
  = do
-  input' <- mapLeft ReplErrorParse $ SP.parseFunctions input
+  input' <- mapLeft ReplErrorParse $ SP.parseFunctions source input
   mapLeft ReplErrorCheck
          $ snd
          $ flip Fresh.runFresh (freshNamer "t")

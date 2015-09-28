@@ -17,7 +17,7 @@ import                  Icicle.Source.Type.Subst
 
 import                  Icicle.Internal.Pretty
 
-import                  P
+import                  P hiding (join)
 
 import                  Data.List (nubBy)
 import qualified        Data.Map as Map
@@ -41,6 +41,7 @@ data DischargeError n
  | NotANumber  (Type n)
  -- | IsNum String
  | ConflictingLetTemporalities (Type n) (Type n) (Type n)
+ | ConflictingJoinTemporalities (Type n) (Type n) 
  deriving (Eq, Ord, Show)
 
 instance Pretty n => Pretty (DischargeError n) where
@@ -56,6 +57,9 @@ instance Pretty n => Pretty (DischargeError n) where
   <> "This kind of let isn't allowed because its definition could never be used." <> line
   <> "The definition is a " <> pretty def
   <> ", while the body is a " <> pretty body <> "."
+ pretty (ConflictingJoinTemporalities a b)
+  =  "Conflicting join temporalities." <> line
+  <> pretty a <+> pretty b
 
 -- | Discharge a single constraint
 dischargeC :: Ord n => Constraint n -> Either (DischargeError n) (DischargeResult n)
@@ -74,6 +78,26 @@ dischargeC c
      -> case unifyT a b of
          Nothing -> Left $ CannotUnify a b
          Just s  -> return $ DischargeSubst s
+
+    -- Like CEquals, but defaults temporality to Pure if the type doesn't have temporality.
+    CExtractTemporality tp ty t@(Temporality _ _)
+      -> dischargeC (CEquals (Temporality tp ty) t)
+    CExtractTemporality _  _  (TypeVar _)
+      -> return $ DischargeLeftover c
+    CExtractTemporality tp ty t
+      -> dischargeC (CEquals (Temporality tp ty) (Temporality TemporalityPure t))
+
+    -- Join temporalities. Pure joins with everything.
+    CTemporalityJoin (TypeVar _) _          (TypeVar _)
+     -> return $ DischargeLeftover c
+    CTemporalityJoin (TypeVar _) (TypeVar _) _
+     -> return $ DischargeLeftover c
+    CTemporalityJoin (TypeVar v) atemp btemp
+     -> do temp <- lub atemp btemp
+           return $ DischargeSubst $ Map.fromList [(v, temp)]
+    CTemporalityJoin a b d
+     -> do temp <- lub b d
+           dischargeC $ CEquals a temp
 
     -- Still variables, so can't discharge
     CReturnOfLetTemporalities _ (TypeVar _) _
@@ -109,6 +133,11 @@ dischargeC c
      -> return $ DischargeLeftover c
 
  where
+  lub (TemporalityPure) x = return x
+  lub x (TemporalityPure) = return x
+  lub x y | x == y = return x
+          | otherwise = Left $ ConflictingJoinTemporalities x y
+
   returnOfLet def body
    = case (def,body) of
       (TemporalityPure, TemporalityPure)

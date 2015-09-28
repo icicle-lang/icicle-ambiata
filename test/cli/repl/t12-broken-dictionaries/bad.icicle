@@ -1,0 +1,1 @@
+sum v = let fld s = 0 : v + s ~> s.
