@@ -34,7 +34,7 @@ prop_json_roundtrip e =
 
 prop_text_roundtrip e =
  forAll  (valueOfEncoding e)
- $ \v -> (parseValue e Set.empty . renderValue "☠") v === Right v
+ $ \v -> (parseValue e (Set.singleton "☠"). renderValue "☠") v === Right v
 
 return []
 tests :: IO Bool
