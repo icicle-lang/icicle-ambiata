@@ -33,9 +33,10 @@ import           Test.QuickCheck
 
 import qualified Data.Map as Map
 
-prop_convert_ok :: CB.OutputName -> CT.ValType -> CB.Name T.Variable -> Query () T.Variable -> Property
-prop_convert_ok nm tt fn q
- = let original = QueryTop fn nm q
+prop_convert_ok :: CB.OutputName -> CT.ValType -> CB.Name T.Variable -> Maybe (CB.Name T.Variable) -> Query () T.Variable -> Property
+prop_convert_ok nm tt fn now q
+ = Just fn /= now ==>
+   let original = QueryTop fn nm q
        desugar  = runDesugar freshnamer $ desugarQT original
    in  counterexample (show (pretty original))
      $ case desugar of
@@ -53,11 +54,12 @@ prop_convert_ok nm tt fn q
   fets = Features
         (Map.singleton fn (typeOfValType tt, Map.singleton fn (typeOfValType tt, xfst tt)))
          Map.empty
-         Nothing
+         now
 
-prop_convert_is_well_typed :: CB.OutputName -> CB.Name T.Variable -> Query () T.Variable -> Property
-prop_convert_is_well_typed nm fn q
- = counterexample pp
+prop_convert_is_well_typed :: CB.OutputName -> CB.Name T.Variable -> Maybe (CB.Name T.Variable) -> Query () T.Variable -> Property
+prop_convert_is_well_typed nm fn now q
+ = Just fn /= now ==>
+ counterexample pp
  $ case typ of
     Right (qt', _)
      | restrict q
@@ -75,7 +77,7 @@ prop_convert_is_well_typed nm fn q
   fets = Features
        (Map.singleton fn (typeOfValType tt, Map.singleton fn (typeOfValType tt, xfst tt)))
         Map.empty
-        Nothing
+        now
 
   tt = CT.IntT
 
