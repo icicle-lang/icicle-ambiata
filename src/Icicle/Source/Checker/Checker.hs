@@ -36,9 +36,11 @@ checkQT :: Ord n
 checkQT features qt
  = case Map.lookup (feature qt) (featuresConcretes features) of
     Just (_,f)
-     -> do  let env = fmap function0 $ envOfFeatureContext f
-            let env' = env `Map.union` featuresFunctions features
-            (q,t) <- checkQ (emptyCheckEnv { checkEnvironment = env' }) (query qt)
+     -> do  let env = Map.unions
+                      [ fmap function0 (envOfFeatureContext f)
+                      , featuresFunctions features
+                      , fmap function0 (envOfFeatureNow  (featureNow features)) ]
+            (q,t) <- checkQ (emptyCheckEnv { checkEnvironment = env }) (query qt)
             return (qt { query = q }, t)
 
     Nothing

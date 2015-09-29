@@ -13,3 +13,5 @@ feature salary ~> filter value > 10 ~> count
 -- Average of latest 3 entries
 feature salary ~> latest 3 ~> sum (double value) / count
 
+-- Now should collect the current date
+feature salary ~> now

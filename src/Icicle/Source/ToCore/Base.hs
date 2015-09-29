@@ -58,24 +58,25 @@ programOfBinds
     :: OutputName
     -> ValType
     -> CoreBinds a n
+    -> Maybe (Name n)
     -> a
     -> Name n
     -> C.Program a n
-programOfBinds outputName inpType binds a_ret ret
+programOfBinds outputName inpType binds postdate a_ret ret
  = C.Program
  { C.input      = inpType
  , C.precomps   = precomps  binds
  , C.streams    = streams   binds
  , C.reduces    = reduces   binds
  , C.postcomps  = postcomps binds
- , C.postdate   = Nothing
+ , C.postdate   = postdate
  , C.returns    = [(outputName, X.XVar a_ret ret)]
  }
 
 instance Monoid (CoreBinds a n) where
  mempty = CoreBinds [] [] [] []
- mappend (CoreBinds a b c d) (CoreBinds e f g h)
-  = CoreBinds (a<>e) (b<>f) (c<>g) (d<>h)
+ mappend (CoreBinds a b c d) (CoreBinds f g h i)
+  = CoreBinds (a<>f) (b<>g) (c<>h) (d<>i)
 
 
 pre :: Name n -> C.Exp a n -> CoreBinds a n
@@ -89,8 +90,6 @@ red n x = mempty { reduces = [(n,x)] }
 
 post :: Name n -> C.Exp a n -> CoreBinds a n
 post n x = mempty { postcomps = [(n,x)] }
-
-
 
 data ConvertError a n
  = ConvertErrorNoSuchFeature (Name n)

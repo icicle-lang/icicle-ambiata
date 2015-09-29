@@ -30,7 +30,7 @@ Check error:
       [32mmean[0m                 : (Num [32ma[0m) => Element [32ma[0m -> Aggregate Double
       [32mdate[0m                 : Element Definitely DateTime
       [32mmin[0m                  : Element [32ma[0m -> Aggregate Possibly [32ma[0m
-      [32msd[0m                   : (Element =: ReturnOfLet Pure [32ma[0m) => [32ma[0m Double -> Aggregate Double
+      [32mnow[0m                  : Aggregate Definitely DateTime
 
 > > -- Expect a parse error on unterminated string
 >                  [34mλλλλ[0m

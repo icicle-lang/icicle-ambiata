@@ -21,4 +21,9 @@ ok, loaded test/cli/repl/data.psv, 8 rows
 > - Core evaluation:
 [homer, 400.0,marge, 10.0]
 
-> > 
+> > -- Now should collect the current date
+> - Core evaluation:
+[homer, 1970-01-01
+,marge, 1970-01-01]
+
+> 
