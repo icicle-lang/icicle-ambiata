@@ -34,7 +34,7 @@ library
                      , unordered-containers            == 0.2.*
                      , validation                      == 0.5.*
                      , vector                          == 0.10.*
-                     , wl-pprint                       == 1.2.*
+                     , annotated-wl-pprint             == 0.7.*
 
                      -- Well, it might look very odd that we're using both attoparsec
                      -- and parsec.
@@ -214,6 +214,7 @@ executable             icicle-repl
     build-depends:     base
                      , ambiata-p
                      , ambiata-x-optparse
+                     , ansi-terminal                   == 0.6.*
                      , containers
                      , either
                      , icicle

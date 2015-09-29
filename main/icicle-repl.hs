@@ -5,6 +5,7 @@
 {-# LANGUAGE TupleSections     #-}
 {-# LANGUAGE ViewPatterns      #-}
 {-# LANGUAGE DoAndIfThenElse   #-}
+{-# LANGUAGE LambdaCase        #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 import           Control.Monad.Trans.Class
@@ -20,10 +21,11 @@ import qualified Data.Text                            as T
 import qualified Data.Text.IO                         as T
 import           System.Console.Haskeline             as HL
 import qualified System.Console.Terminal.Size         as TS
+import qualified System.Console.ANSI                  as ANSI
 import           System.Directory
 import           System.Environment                   (getArgs)
 import           System.IO
-import qualified Text.PrettyPrint.Leijen              as PP
+import qualified Icicle.Internal.Pretty               as PP
 import qualified Text.ParserCombinators.Parsec        as Parsec
 
 import qualified Icicle.Avalanche.FromCore            as AC
@@ -526,7 +528,11 @@ prettyE e
  where
   ppos
    | Just sp <- SR.annotOfError e
-   = HL.outputStrLn (replicate (Parsec.sourceColumn sp + 1) ' ' <> "\ESC[34mλλλλ\ESC[0m")
+   = HL.outputStrLn
+   $ replicate (Parsec.sourceColumn sp + 1) ' '
+     <> ANSI.setSGRCode [ANSI.SetColor ANSI.Foreground ANSI.Dull ANSI.Blue]
+     <> "λλλλ"
+     <> ANSI.setSGRCode [ANSI.Reset]
    | otherwise
    = return ()
 
@@ -534,7 +540,18 @@ prettyHL :: PP.Pretty a => a -> HL.InputT IO ()
 prettyHL x
  = do   width <- terminalWidth
         let width' = maybe 80 id width
-        HL.outputStrLn $ PP.displayS (PP.renderPretty 0.4 width' $ PP.pretty x) ""
+        HL.outputStrLn $ PP.displayDecorated withColour (PP.renderPretty 0.4 width' $ PP.pretty x)
+    where
+      withColour attr str = sgrAttr attr <> str <> sgrReset
+
+      sgrReset = ANSI.setSGRCode [ANSI.Reset]
+
+      sgrAttr = \case
+        PP.AnnVariable    -> ANSI.setSGRCode [ANSI.SetColor ANSI.Foreground ANSI.Dull ANSI.Green]
+        PP.AnnOperator    -> ANSI.setSGRCode [ANSI.SetColor ANSI.Foreground ANSI.Dull ANSI.Yellow]
+        PP.AnnLiteral     -> ANSI.setSGRCode [ANSI.SetColor ANSI.Foreground ANSI.Dull ANSI.Yellow]
+        PP.AnnError       -> ANSI.setSGRCode [ANSI.SetColor ANSI.Foreground ANSI.Dull ANSI.Red]
+
 
 terminalWidth :: HL.InputT IO (Maybe Int)
 terminalWidth

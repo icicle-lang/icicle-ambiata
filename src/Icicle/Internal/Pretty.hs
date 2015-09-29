@@ -9,35 +9,85 @@
 -- We will just hide that one.
 --
 {-# OPTIONS_GHC -fno-warn-orphans #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Internal.Pretty (
     module PP
     , (<+?>)
     , padDoc
+    , Pretty (..)
+    , Doc
+    , Annotation (..)
     ) where
 
 -- The one we want to export without <> or <$>
-import              Text.PrettyPrint.Leijen as PP hiding ((<>), (<$>))
+import              Text.PrettyPrint.Annotated.Leijen as PP hiding ((<>), (<$>), Doc)
 -- The one with <>
-import              Text.PrettyPrint.Leijen as PJOIN
+import qualified    Text.PrettyPrint.Annotated.Leijen as PJOIN
 
 import              P
 
 import              Data.List (replicate, lines)
 import qualified    Data.Text               as T
-import              Data.String (IsString(..))
+
+type Doc = PJOIN.Doc Annotation
+
+data Annotation
+ = AnnVariable
+ | AnnOperator
+ | AnnLiteral
+ | AnnError
+ deriving (Eq, Show)
 
 instance Monoid Doc where
  mempty  =  PJOIN.empty
  mappend = (PJOIN.<>)
 
--- We also need to be able to pretty Data.Text...
-instance Pretty T.Text where
- pretty t = text (T.unpack t)
+class Pretty a where
+  pretty        :: a -> Doc
+  prettyList    :: [a] -> Doc
+  prettyList    = list . fmap pretty
 
--- String literals are nice to have.
-instance IsString Doc where
- fromString = text
+instance Pretty a => Pretty [a] where
+  pretty        = prettyList
+
+instance Pretty Doc where
+  pretty        = id
+
+instance Pretty () where
+  pretty ()     = PP.text "()"
+
+instance Pretty Bool where
+  pretty b      = PP.bool b
+
+instance Pretty Char where
+  pretty c      = PP.char c
+  prettyList s  = PP.string s
+
+instance Pretty Int where
+  pretty i      = PP.int i
+
+instance Pretty Integer where
+  pretty i      = PP.integer i
+
+instance Pretty Float where
+  pretty f      = PP.float f
+
+instance Pretty Double where
+  pretty d      = PP.double d
+
+instance (Pretty a, Pretty b) => Pretty (a,b) where
+  pretty (x,y)  = tupled [pretty x, pretty y]
+
+instance (Pretty a, Pretty b, Pretty c) => Pretty (a,b,c) where
+  pretty (x,y,z)= tupled [pretty x, pretty y, pretty z]
+
+instance Pretty a => Pretty (Maybe a) where
+  pretty Nothing        = PP.empty
+  pretty (Just x)       = pretty x
+
+instance Pretty T.Text where
+  pretty t = text (T.unpack t)
 
 -- | Concatenate two possibly-empty documents, separated by spaces.
 -- This probably shouldn't be used for large documents.
