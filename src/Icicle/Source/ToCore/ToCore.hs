@@ -80,9 +80,13 @@ convertQueryTop feats qt
                   Just t' -> return t'
         let inpTy'dated = T.PairT inpTy T.DateTimeT
 
-        (bs,ret) <- evalStateT (convertQuery $ query qt) (ConvertState inp inpTy'dated fs Map.empty)
+        (now,bs,ret) <- evalStateT (do
+                                       now      <- traverse convertFreshenAdd $ featureNow feats
+                                       (bs,ret) <- convertQuery $ query qt
+                                       pure (now, bs, ret))
+                                   (ConvertState inp inpTy'dated fs Map.empty)
         let bs'   = strm inp C.Source <> bs
-        return (programOfBinds (queryName qt) inpTy bs' () ret)
+        return (programOfBinds (queryName qt) inpTy bs' now () ret)
 
 
 -- | Convert a Query to Core

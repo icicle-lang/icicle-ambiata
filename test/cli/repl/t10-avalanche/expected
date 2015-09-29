@@ -19,37 +19,37 @@ Precomputations:
 Stream transformers:
 conv$0 =
     source
-conv$1 =
+conv$2 =
     sfilter [(Int, DateTime)] (
-    \conv$2 : (Int, DateTime).  
+    \conv$3 : (Int, DateTime).  
     let simp$1 = fst# [Int] [DateTime]
-                 conv$2
+                 conv$3
      in gt# [Int] simp$1 (10 : Int))
     conv$0
-conv$6 =
+conv$7 =
     smap    [(Int, DateTime)] [Int]
     (
-    \conv$7 : (Int, DateTime). 
-    fst# [Int] [DateTime] conv$7)
+    \conv$8 : (Int, DateTime). 
+    fst# [Int] [DateTime] conv$8)
     conv$0
 Reductions:
-c$conv$4 =
+c$conv$5 =
     rfold   [(Int, DateTime)]
     [Int] (
-    \c$conv$4 : Int.  
-    \conv$3 : (Int, DateTime). 
-    add# [Int] c$conv$4 (1 : Int))
-    (0 : Int) conv$1
-conv$5 =
+    \c$conv$5 : Int.  
+    \conv$4 : (Int, DateTime). 
+    add# [Int] c$conv$5 (1 : Int))
+    (0 : Int) conv$2
+conv$6 =
     rlatest [Int] (3 : Int)
-    conv$6
-Postcomputations:
-conv$8 =
+    conv$7
+Postcomputations with date as now$conv$1:
+conv$9 =
     pair# [Int] [Array Int]
-    c$conv$4 conv$5
+    c$conv$5 conv$6
 Returning:
 repl =
-    conv$8
+    conv$9
 
 
 - Core type:
@@ -58,16 +58,16 @@ repl =
 - Avalanche:
 gen$date = DATE
 {
-  init [Latest] [Int] acc$conv$5 = 3 : Int;
+  init [Latest] [Int] acc$conv$6 = 3 : Int;
   for_facts (elem$gen$fact : Int, elem$gen$date : Date) in history {
     let gen$fact = pair# [Int] [DateTime]
                    elem$gen$fact elem$gen$date;
-    let elem$conv$6 = fst# [Int] [DateTime]
+    let elem$conv$7 = fst# [Int] [DateTime]
                       gen$fact;
-    push acc$conv$5(elem$conv$6);
+    push acc$conv$6(elem$conv$7);
   }
-  init [Mutable] [Int] acc$c$conv$4 = 0 : Int;
-  load_resumable [Int] acc$c$conv$4;
+  init [Mutable] [Int] acc$c$conv$5 = 0 : Int;
+  load_resumable [Int] acc$c$conv$5;
   for_facts (elem$gen$fact : Int, elem$gen$date : Date) in new {
     let gen$fact = pair# [Int] [DateTime]
                    elem$gen$fact elem$gen$date;
@@ -75,46 +75,46 @@ gen$date = DATE
                 gen$fact;
     if (gt# [Int] anf$1
         (10 : Int)) {
-      read [Mutable] [Int] acc$c$conv$4 = acc$c$conv$4;
-      write acc$c$conv$4 = add# [Int]
-                           acc$c$conv$4 (1 : Int);
+      read [Mutable] [Int] acc$c$conv$5 = acc$c$conv$5;
+      write acc$c$conv$5 = add# [Int]
+                           acc$c$conv$5 (1 : Int);
     }
-    let elem$conv$6 = anf$1;
-    push acc$conv$5(elem$conv$6);
+    let elem$conv$7 = anf$1;
+    push acc$conv$6(elem$conv$7);
   }
-  save_resumable [Int] acc$c$conv$4;
-  read [Mutable] [Int] c$conv$4 = acc$c$conv$4;
-  read [Latest] [Int] conv$5 = acc$conv$5;
-  let conv$8 = pair# [Int] [Array Int]
-               c$conv$4 conv$5;
-  output repl conv$8;
+  save_resumable [Int] acc$c$conv$5;
+  read [Mutable] [Int] c$conv$5 = acc$c$conv$5;
+  read [Latest] [Int] conv$6 = acc$conv$6;
+  let conv$9 = pair# [Int] [Array Int]
+               c$conv$5 conv$6;
+  output repl conv$9;
 }
 
 - Flattened:
 gen$date = DATE
 {
-  init [Latest] [Int] acc$conv$5 = 3 : Int;
+  init [Latest] [Int] acc$conv$6 = 3 : Int;
   for_facts (elem$gen$fact : Int, elem$gen$date : Date) in history {
-    push acc$conv$5(elem$gen$fact);
+    push acc$conv$6(elem$gen$fact);
   } 
   
-  init [Mutable] [Int] acc$c$conv$4 = 0 : Int;
-  load_resumable [Int] acc$c$conv$4;
+  init [Mutable] [Int] acc$c$conv$5 = 0 : Int;
+  load_resumable [Int] acc$c$conv$5;
   for_facts (elem$gen$fact : Int, elem$gen$date : Date) in new {
     if (gt# [Int] elem$gen$fact
         (10 : Int)) {
-      read [Mutable] [Int] acc$c$conv$4 = acc$c$conv$4;
-      write acc$c$conv$4 = add# [Int]
-                           acc$c$conv$4 (1 : Int);
+      read [Mutable] [Int] acc$c$conv$5 = acc$c$conv$5;
+      write acc$c$conv$5 = add# [Int]
+                           acc$c$conv$5 (1 : Int);
     }
-    push acc$conv$5(elem$gen$fact);
+    push acc$conv$6(elem$gen$fact);
   }
-  save_resumable [Int] acc$c$conv$4;
-  read [Mutable] [Int] c$conv$4 = acc$c$conv$4;
-  read [Latest] [Int] conv$5 = acc$conv$5;
-  let conv$8 = pair# [Int] [Array Int]
-               c$conv$4 conv$5;
-  output repl conv$8;
+  save_resumable [Int] acc$c$conv$5;
+  read [Mutable] [Int] c$conv$5 = acc$c$conv$5;
+  read [Latest] [Int] conv$6 = acc$conv$6;
+  let conv$9 = pair# [Int] [Array Int]
+               c$conv$5 conv$6;
+  output repl conv$9;
 }
 
 - Core evaluation:

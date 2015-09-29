@@ -53,6 +53,7 @@ prop_convert_ok nm tt fn q
   fets = Features
         (Map.singleton fn (typeOfValType tt, Map.singleton fn (typeOfValType tt, xfst tt)))
          Map.empty
+         Nothing
 
 prop_convert_is_well_typed :: CB.OutputName -> CB.Name T.Variable -> Query () T.Variable -> Property
 prop_convert_is_well_typed nm fn q
@@ -74,6 +75,7 @@ prop_convert_is_well_typed nm fn q
   fets = Features
        (Map.singleton fn (typeOfValType tt, Map.singleton fn (typeOfValType tt, xfst tt)))
         Map.empty
+        Nothing
 
   tt = CT.IntT
 
