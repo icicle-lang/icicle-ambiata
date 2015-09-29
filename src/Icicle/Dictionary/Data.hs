@@ -98,6 +98,7 @@ featureMapOfDictionary (Dictionary { dictionaryEntries = ds, dictionaryFunctions
  = STC.Features
  (Map.fromList $ concatMap go ds)
  (Map.map fst functions)
+ (Just $ var "now")
  where
   go (DictionaryEntry (Attribute attr) (ConcreteDefinition enc _))
    | StructT st@(StructType fs) <- sourceTypeOfEncoding enc
