@@ -154,3 +154,8 @@ valueFromCore v
     V.VTombstone  -> return Tombstone
     V.VException _-> return Tombstone
 
+    -- TODO XXX for now just unwrap the Either constructors.
+    -- This is somewhat OK if it is an "Either Error actualvalue"
+    V.VLeft  a    -> valueFromCore a
+    V.VRight a    -> valueFromCore a
+

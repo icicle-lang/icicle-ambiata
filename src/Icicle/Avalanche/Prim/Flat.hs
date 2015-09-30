@@ -54,6 +54,7 @@ data PrimProject
  | PrimProjectMapLength   ValType ValType
  | PrimProjectMapLookup   ValType ValType
  | PrimProjectOptionIsSome ValType
+ | PrimProjectSumIsLeft    ValType ValType
  deriving (Eq, Ord, Show)
 
 
@@ -65,6 +66,8 @@ data PrimUnsafe
  | PrimUnsafeArrayCreate        ValType
  | PrimUnsafeMapIndex   ValType ValType
  | PrimUnsafeOptionGet  ValType
+ | PrimUnsafeSumGetLeft         ValType ValType
+ | PrimUnsafeSumGetRight        ValType ValType
  deriving (Eq, Ord, Show)
 
 
@@ -106,6 +109,9 @@ typeOfPrim p
     PrimProject (PrimProjectOptionIsSome a)
      -> FunT [funOfVal (OptionT a)] BoolT
 
+    PrimProject (PrimProjectSumIsLeft a b)
+     -> FunT [funOfVal (SumT a b)] BoolT
+
 
     PrimUnsafe  (PrimUnsafeArrayIndex a)
      -> FunT [funOfVal (ArrayT a), funOfVal IntT] a
@@ -118,6 +124,11 @@ typeOfPrim p
 
     PrimUnsafe  (PrimUnsafeOptionGet a)
      -> FunT [funOfVal (OptionT a)] a
+
+    PrimUnsafe  (PrimUnsafeSumGetLeft a b)
+     -> FunT [funOfVal (SumT a b)] a
+    PrimUnsafe  (PrimUnsafeSumGetRight a b)
+     -> FunT [funOfVal (SumT a b)] b
 
     PrimUpdate  (PrimUpdateMapPut a b)
      -> FunT [funOfVal (MapT a b), funOfVal a, funOfVal b] (MapT a b)
@@ -145,6 +156,8 @@ instance Pretty Prim where
   = text "Map_lookup#" <+> brackets (pretty a) <+> brackets (pretty b)
  pretty (PrimProject (PrimProjectOptionIsSome a))
   = text "Option_isSome#" <+> brackets (pretty a)
+ pretty (PrimProject (PrimProjectSumIsLeft a b))
+  = text "Sum_isLeft#" <+> brackets (pretty a) <+> brackets (pretty b)
 
 
  pretty (PrimUnsafe (PrimUnsafeArrayIndex a))
@@ -158,6 +171,13 @@ instance Pretty Prim where
 
  pretty (PrimUnsafe (PrimUnsafeOptionGet a))
   = text "unsafe_Option_get#" <+> brackets (pretty a)
+
+ pretty (PrimUnsafe (PrimUnsafeSumGetLeft a b))
+  = text "unsafe_Sum_left#" <+> brackets (pretty a) <+> brackets (pretty b)
+
+ pretty (PrimUnsafe (PrimUnsafeSumGetRight a b))
+  = text "unsafe_Sum_right#" <+> brackets (pretty a) <+> brackets (pretty b)
+
 
 
  pretty (PrimUpdate (PrimUpdateMapPut a b))

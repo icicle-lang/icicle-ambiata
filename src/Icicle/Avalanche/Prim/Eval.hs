@@ -53,6 +53,15 @@ evalPrim p vs
       | otherwise
       -> primError
 
+     PrimProject (PrimProjectSumIsLeft _ _)
+      | [VBase (VLeft _)]  <- vs
+      -> return $ VBase $ VBool True
+      | [VBase (VRight _)]  <- vs
+      -> return $ VBase $ VBool False
+      | otherwise
+      -> primError
+
+
 
      -- TODO: give better errors here - at least that an unsafe went wrong
      PrimUnsafe (PrimUnsafeArrayIndex _)
@@ -85,6 +94,23 @@ evalPrim p vs
       -> return $ VBase (defaultOfType t)
       | otherwise
       -> primError
+
+     PrimUnsafe (PrimUnsafeSumGetLeft t _)
+      | [VBase (VLeft v)]  <- vs
+      -> return $ VBase v
+      | [VBase (VRight _)]      <- vs
+      -> return $ VBase (defaultOfType t)
+      | otherwise
+      -> primError
+
+     PrimUnsafe (PrimUnsafeSumGetRight _ t)
+      | [VBase (VRight v)]  <- vs
+      -> return $ VBase v
+      | [VBase (VRight _)]      <- vs
+      -> return $ VBase (defaultOfType t)
+      | otherwise
+      -> primError
+
 
      PrimUpdate (PrimUpdateMapPut _ _)
       | [VBase (VMap vmap), VBase k, VBase v]  <- vs

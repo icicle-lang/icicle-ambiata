@@ -41,6 +41,8 @@ data BaseValue
  | VString T.Text
  | VArray [BaseValue]
  | VPair  BaseValue BaseValue
+ | VLeft  BaseValue
+ | VRight BaseValue
  | VSome  BaseValue
  | VNone
  | VMap    (Map.Map BaseValue    BaseValue)
@@ -94,6 +96,10 @@ instance Pretty BaseValue where
       -> pretty vs
      VPair a b
       -> text "(" <> pretty a <> text ", " <> pretty b <> text ")"
+     VLeft a
+      -> text "Left"  <+> pretty a
+     VRight a
+      -> text "Right" <+> pretty a
      VSome a
       -> text "Some" <+> pretty a
      VNone

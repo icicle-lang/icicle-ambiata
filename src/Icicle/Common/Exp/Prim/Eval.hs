@@ -160,6 +160,18 @@ evalPrim p originalP vs
       | otherwise
       -> primError
 
+     PrimConst (PrimConstLeft _ _)
+      | [VBase v] <- vs
+      -> return $ VBase $ VLeft v
+      | otherwise
+      -> primError
+
+     PrimConst (PrimConstRight _ _)
+      | [VBase v] <- vs
+      -> return $ VBase $ VRight v
+      | otherwise
+      -> primError
+
 
      -- Date stuff
      PrimDateTime PrimDateTimeDaysDifference

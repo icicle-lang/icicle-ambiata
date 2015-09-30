@@ -87,8 +87,10 @@ data PrimLogical
 
 -- | Constructors
 data PrimConst
- = PrimConstPair ValType ValType
- | PrimConstSome ValType
+ = PrimConstPair  ValType ValType
+ | PrimConstSome  ValType
+ | PrimConstLeft  ValType ValType
+ | PrimConstRight ValType ValType
  deriving (Eq, Ord, Show)
 
 -- | DateTime primitives
@@ -149,6 +151,10 @@ typeOfPrim p
      -> FunT [funOfVal a, funOfVal b] (PairT a b)
     PrimConst (PrimConstSome a)
      -> FunT [funOfVal a] (OptionT a)
+    PrimConst (PrimConstLeft a b)
+     -> FunT [funOfVal a] (SumT a b)
+    PrimConst (PrimConstRight a b)
+     -> FunT [funOfVal b] (SumT a b)
 
     PrimDateTime PrimDateTimeDaysDifference
      -> FunT [funOfVal DateTimeT, funOfVal DateTimeT] IntT
@@ -216,6 +222,10 @@ instance Pretty Prim where
 
  pretty (PrimConst (PrimConstPair a b)) = text "pair#" <+> brackets (pretty a) <+> brackets (pretty b)
  pretty (PrimConst (PrimConstSome t))   = text "some#" <+> brackets (pretty t)
+ pretty (PrimConst (PrimConstLeft  a b))
+  = text "left#" <+> brackets (pretty a) <+> brackets (pretty b)
+ pretty (PrimConst (PrimConstRight a b))
+  = text "left#" <+> brackets (pretty a) <+> brackets (pretty b)
 
  pretty (PrimDateTime PrimDateTimeDaysDifference)
   = text "DateTime_daysDifference#"

@@ -61,6 +61,7 @@ data ValType
  | MapT   ValType ValType
  | OptionT        ValType
  | PairT  ValType ValType
+ | SumT   ValType ValType
  | StructT StructType
  deriving (Eq,Ord,Show)
 
@@ -93,6 +94,7 @@ defaultOfType typ
      OptionT _ -> VNone
      PairT a b -> VPair (defaultOfType a)
                         (defaultOfType b)
+     SumT  a _ -> VLeft (defaultOfType a)
      StructT t -> VStruct (Map.map defaultOfType (getStructType t))
 
 
@@ -250,6 +252,13 @@ valueMatchesType v t
     (PairT _ _, _)
      -> False
 
+    (SumT p _, VLeft a)
+     -> valueMatchesType a p
+    (SumT _ q, VRight b)
+     -> valueMatchesType b q
+    (SumT _ _, _)
+     -> False
+
     (OptionT p, VSome a)
      -> valueMatchesType a p
     (OptionT _, VNone)
@@ -305,6 +314,7 @@ ppValType needParens vt =
     MapT k v   -> parens' (text "Map"    <+> ppSub k <+> ppSub v)
     OptionT a  -> parens' (text "Option" <+> ppSub a)
     PairT a b  -> parens  (ppTop a <> text ", " <> ppTop b)
+    SumT  a b  -> parens  (text "Sum" <+> ppSub a <+> ppSub b)
     StructT fs -> parens' (pretty fs)
   where
     parens' | needParens = parens

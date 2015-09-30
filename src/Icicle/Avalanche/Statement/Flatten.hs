@@ -383,6 +383,24 @@ flatX a_fresh xx stm
          -- There's no value so return the none branch
          <*> flatX' xnone stm
 
+  -- Fold over an either
+  flatFold (Core.PrimFoldSum ta tb) _ [xleft, xright, scrut]
+   = let fpIsLeft    = xPrim (Flat.PrimProject  (Flat.PrimProjectSumIsLeft  ta tb))
+         fpLeft      = xPrim (Flat.PrimUnsafe   (Flat.PrimUnsafeSumGetLeft  ta tb))
+         fpRight     = xPrim (Flat.PrimUnsafe   (Flat.PrimUnsafeSumGetRight ta tb))
+     in  flatX' scrut
+      $ \scrut'
+      -- If we have a value
+      -> If (fpIsLeft `xApp` scrut')
+         -- Rip the left out and apply it
+         <$> slet (fpLeft `xApp` scrut')
+             (\val -> flatX' (xleft `xApp` val) stm)
+
+         -- Take right
+         <*> slet (fpRight `xApp` scrut')
+             (\val -> flatX' (xright `xApp` val) stm)
+
+
   -- None of the above cases apply, so must be bad arguments
   flatFold pf rt xs
    = lift $ Left $ FlattenErrorPrimBadArgs (Core.PrimFold pf rt) xs

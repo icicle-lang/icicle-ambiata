@@ -7,8 +7,8 @@
 {-# LANGUAGE PatternGuards #-}
 module Icicle.Source.Type.Base (
     Type        (..)
-  , valTypeOfType
   , typeOfValType
+  , valTypeOfType
   , Constraint  (..)
   , FunctionType(..)
   , Annot (..)
@@ -64,6 +64,8 @@ typeOfValType vt
     CT.MapT  k v    -> GroupT (go k) (go v)
     CT.OptionT a    -> OptionT (go a)
     CT.PairT a b    -> PairT (go a) (go b)
+    -- TODO this is WRONG
+    CT.SumT  a b    -> PairT (go a) (go b)
     CT.StructT st   -> StructT (Map.map go $ CT.getStructType st)
  where
   go = typeOfValType

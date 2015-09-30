@@ -34,6 +34,7 @@ data PrimFold
  = PrimFoldBool
  | PrimFoldArray  ValType
  | PrimFoldOption ValType
+ | PrimFoldSum    ValType ValType
  | PrimFoldMap    ValType ValType
  deriving (Eq, Ord, Show)
 
@@ -66,6 +67,8 @@ typeOfPrim p
      -> FunT [FunT [funOfVal ret, funOfVal a] ret, funOfVal ret, funOfVal (ArrayT a)] ret
     PrimFold (PrimFoldOption a) ret
      -> FunT [FunT [funOfVal a] ret, funOfVal ret, funOfVal (OptionT a)] ret
+    PrimFold (PrimFoldSum    a b) ret
+     -> FunT [FunT [funOfVal a] ret, FunT [funOfVal b] ret, funOfVal (SumT a b)] ret
     PrimFold (PrimFoldMap k v) ret
      -> FunT [FunT [funOfVal ret, funOfVal k, funOfVal v] ret, funOfVal ret, funOfVal (MapT k v)] ret
 
@@ -95,6 +98,8 @@ instance Pretty Prim where
                -> text "Array_fold#" <+> brackets (pretty a)
               PrimFoldOption a
                -> text "Option_fold#" <+> brackets (pretty a)
+              PrimFoldSum    a b
+               -> text "Sum_fold#"    <+> brackets (pretty a) <+> brackets (pretty b)
               PrimFoldMap k v
                -> text "Map_fold#" <+> brackets (pretty k) <+> brackets (pretty v)
     in f' <+> brackets (pretty ret)
