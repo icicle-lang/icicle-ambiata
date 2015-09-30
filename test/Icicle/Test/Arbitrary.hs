@@ -64,7 +64,10 @@ instance Arbitrary StructFieldType where
     oneof [return Mandatory, return Optional]
 
 valueOfEncoding :: Encoding -> Gen Value
-valueOfEncoding e
+valueOfEncoding e = frequency [(1, pure Tombstone), (5, valueOfEncoding' e)]
+
+valueOfEncoding' :: Encoding -> Gen Value
+valueOfEncoding' e
  = case e of
     StringEncoding
      -> StringValue  <$> arbitrary
@@ -90,17 +93,17 @@ valueOfEncoding e
  where
 
   attrValue (StructField Mandatory attr enc)
-   = do v <- valueOfEncoding enc
+   = do v <- valueOfEncoding' enc
         return [(attr, v)]
 
   attrValue (StructField Optional attr enc)
    = do b <- arbitrary
-        v <- valueOfEncoding enc
+        v <- valueOfEncoding' enc
         case b of
          True  -> return [(attr, v)]
          False -> return []
 
   -- This seems to generate way too large lists sometimes
   listOfEncoding le
-   = smaller $ listOf (valueOfEncoding le)
+   = smaller $ listOf (valueOfEncoding' le)
 

@@ -129,14 +129,20 @@ featureMapOfDictionary (Dictionary { dictionaryEntries = ds, dictionaryFunctions
    = X.XPrim () (X.PrimMinimal $ X.PrimPair $ X.PrimPairSnd t1 t2)
   xget f t fs
    = X.XPrim () (X.PrimMinimal $ X.PrimStruct $ X.PrimStructGet f t fs)
+  xtomb t1
+   = X.XPrim () (X.PrimMinimal $ X.PrimTombstone t1)
 
   exps str e'
    = [ (var str, ( baseType e', X.XApp () (xfst e' DateTimeT)))
-     , date_as_snd e']
+     , date_as_snd e'
+     , true_when_tombstone e' ]
   date_as_snd e'
    = (var "date" , ( baseType DateTimeT, X.XApp () (xsnd e' DateTimeT)))
+  true_when_tombstone e'
+   = (var "tombstone" , ( baseType BoolT, X.XApp () (xtomb e') . X.XApp () (xfst e' DateTimeT)))
 
   var = Name . Variable
+
 
 
 prettyDictionarySummary :: Dictionary -> Doc
