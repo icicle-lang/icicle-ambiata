@@ -1,14 +1,15 @@
 -- | Basic things for basic people
-{-# LANGUAGE PatternGuards #-}
-{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE NoImplicitPrelude          #-}
+{-# LANGUAGE PatternGuards              #-}
 module Icicle.Source.Checker.Base (
     CheckEnv (..)
   , Invariants (..)
   , emptyCheckEnv
   , emptyInvariants
 
-  , CheckState (..)
-  , Gen
+  , GenEnv, GenConstraintSet
+  , Gen(..)
   , Query'C
   , Exp'C
   , evalGen
@@ -16,7 +17,7 @@ module Icicle.Source.Checker.Base (
   , require
   , discharge
   , fresh
-  , freshenFunction
+  , introForalls
   , lookup
   , bind
   , withBind
@@ -27,22 +28,21 @@ module Icicle.Source.Checker.Base (
 
   ) where
 
-import                  Icicle.Source.Checker.Error
+import           Icicle.Source.Checker.Error
 
-import                  Icicle.Source.Query
-import                  Icicle.Source.Type
+import           Icicle.Source.Query
+import           Icicle.Source.Type
 
-import                  Icicle.Common.Base
-import qualified        Icicle.Common.Fresh     as Fresh
+import           Icicle.Common.Base
+import qualified Icicle.Common.Fresh         as Fresh
 
-import                  P
+import           P
 
-import                  Control.Monad.Trans.Class
-import                  Control.Monad.Trans.Either
-import qualified        Control.Monad.Trans.State as State
-import                  Data.Functor.Identity
+import           Control.Monad.Trans.Class
+import           Control.Monad.Trans.Either
+import           Data.Functor.Identity
 
-import qualified        Data.Map                as Map
+import qualified Data.Map                    as Map
 
 
 -- | Type checking environment.
@@ -73,120 +73,115 @@ emptyCheckEnv
 emptyInvariants :: Invariants
 emptyInvariants = Invariants True
 
--- | State needed when doing constraint generation checking
-data CheckState a n
- = CheckState
- { stateEnvironment :: Map.Map (Name n) (FunctionType n)
- , stateConstraints :: [(a, Constraint n)]
- }
- deriving (Eq, Ord, Show)
+--------------------------------------------------------------------------------
 
-type Gen a n t
- = EitherT
-    (CheckError a n)
-    (Fresh.FreshT n
-        (State.State (CheckState a n)))
-    t
+type GenEnv n             = Map.Map (Name n) (FunctionType n)
+type GenConstraintSet a n = [(a, Constraint n)]
+
+newtype Gen a n t
+ = Gen { constraintGen :: EitherT (CheckError a n) (Fresh.Fresh n) t }
+ deriving (Functor, Applicative, Monad)
 
 evalGen
-    :: Gen a n t
-    -> CheckState a n
+    :: (GenConstraintSet a n -> Gen a n t)
+    -> GenConstraintSet a n
     -> EitherT (CheckError a n) (Fresh.Fresh n) t
-evalGen gen env
+evalGen f cons
  = EitherT
  $ Fresh.FreshT
  $ \ns -> Identity
- $ flip State.evalState env
- $ flip Fresh.runFreshT ns
+ $ flip Fresh.runFresh ns
  $ runEitherT
- $ gen
-
+ $ constraintGen
+ $ f cons
 
 type Query'C a n = Query (Annot a n) n
 type Exp'C   a n = Exp   (Annot a n) n
 
 
-require :: a -> Constraint n -> Gen a n ()
-require a c
- = lift
- $ lift
- $ do   e <- State.get
-        State.put (e { stateConstraints = (a,c) : stateConstraints e })
+-- | Add a constraint to the context.
+require :: a -> Constraint n -> GenConstraintSet a n -> GenConstraintSet a n
+require a c s = (a,c):s
 
-discharge :: Ord n => (q -> a) -> (SubstT n -> q -> q) -> Gen a n (q, SubstT n) -> Gen a n (q, SubstT n)
-discharge ann sub g
- = do (q,s) <- g
-      e <- lift $ lift State.get
-      let cs = nubConstraints $ fmap (\(a,c) -> (a, substC s c)) $ stateConstraints e
+-- | Discharge the constraints in some context after applying some type substitutions.
+--
+discharge
+  :: Ord n
+  => (q -> a)
+  -> (SubstT n -> q -> q)
+  -> (q, SubstT n, GenConstraintSet a n)
+  -> Gen a n (q, SubstT n, GenConstraintSet a n)
+discharge annotOf sub (q, s, conset)
+ = do let cs = nubConstraints $ fmap (\(a,c) -> (a, substC s c)) conset
       case dischargeCS cs of
        Left errs
-        -> hoistEither $ errorNoSuggestions (ErrorConstraintsNotSatisfied (ann q) errs)
+        -> Gen . hoistEither
+         $ errorNoSuggestions (ErrorConstraintsNotSatisfied (annotOf q) errs)
        Right (s', cs')
         -> do let s'' = compose s s'
-              -- TODO: why does setting constraints not work?
-              -- Was producing error with
-              -- > feature salary ~> let fold fozzy = 0 == 1 : - 0 ~> 0 + fozzy
-              --
-              let e' = CheckState (fmap (substFT s'') $ stateEnvironment e) cs'
-              lift $ lift $ State.put e'
-              return (sub s'' q, s'')
+              --let e' = fmap (substFT s'') env
+              return (sub s'' q, s'', cs')
 
 fresh :: Gen a n (Name n)
 fresh
- = lift $ Fresh.fresh
+ = Gen . lift $ Fresh.fresh
 
+-- | Freshen function type by applying introduction rules to foralls.
+--
+introForalls
+  :: Ord n
+  => a
+  -> FunctionType n
+  -> GenConstraintSet a n
+  -> Gen a n (FunctionType n, [Type n], Type n, GenConstraintSet a n)
+introForalls ann f cons
+ = do freshen <- Map.fromList <$> mapM mkSubst (functionForalls f)
 
+      let cons' = foldr (require ann . substC freshen) cons (functionConstraints f)
 
-freshenFunction :: Ord n => a -> FunctionType n -> Gen a n ([Type n], Type n, FunctionType n)
-freshenFunction ann f
- = do   freshen <- Map.fromList <$> mapM mkSubst (functionForalls f)
-
-        mapM_ (require ann . substC freshen) (functionConstraints f)
-
-        let sub = substT freshen
-        return ( fmap sub $ functionArguments f
-               ,      sub $ functionReturn    f
-               ,                              f)
-
+      let sub   = substT freshen
+      return ( f
+             , fmap sub $ functionArguments f
+             ,      sub $ functionReturn    f
+             , cons' )
  where
   mkSubst n
    = ((,) n . TypeVar) <$> fresh
 
+-- | Look up a name in the context. Return the original type, along with the argument
+--   types and return type where forall-quantified variables have been freshen'd.
+--
+lookup
+  :: Ord n
+  => a
+  -> Name n
+  -> GenEnv n
+  -> GenConstraintSet a n
+  -> Gen a n (FunctionType n, [Type n], Type n, GenConstraintSet a n)
+lookup ann n env cons
+ = case Map.lookup n env of
+     Just t
+      -> introForalls ann t cons
+     Nothing
+      -> Gen . hoistEither
+       $ errorSuggestions (ErrorNoSuchVariable ann n)
+                           [AvailableBindings n $ Map.toList env]
 
-lookup :: Ord n => a -> Name n -> Gen a n ([Type n], Type n, FunctionType n)
-lookup ann n
- = do   e <- lift $ lift $ State.get
-        let env = stateEnvironment e
-        case Map.lookup n env of
-         Just t
-          -> freshenFunction ann t
-         Nothing
-          -> hoistEither
-           $ errorSuggestions (ErrorNoSuchVariable ann n)
-                              [AvailableBindings n $ Map.toList env]
-
-bind :: Ord n => Name n -> Type n -> Gen a n ()
+-- | Bind a new to a type in the given context.
+bind :: Ord n => Name n -> Type n -> GenEnv n -> GenEnv n
 bind n t
- = lift
- $ lift
- $ do   e <- State.get
-        State.put (e { stateEnvironment = Map.insert n (function0 t) (stateEnvironment e) })
+ = Map.insert n (function0 t)
 
-withBind :: Ord n => Name n -> Type n -> Gen a n r -> Gen a n r
-withBind n t gen
- = do   old <- lift $ lift $ State.get
-        bind n t
-        r   <- gen
-
-        new <- lift $ lift $ State.get
-        let env'
-             | Just o' <- Map.lookup n (stateEnvironment old)
-             = Map.insert n o' $ stateEnvironment new
-             | otherwise
-             = Map.delete n    $ stateEnvironment new
-        lift $ lift $ State.put $ new { stateEnvironment = env' }
-
-        return r
+-- | Temporarily add the binding to a context, then do something.
+withBind
+  :: Ord n
+  => Name n
+  -> Type n
+  -> GenEnv n
+  -> (GenEnv n -> Gen a n r)
+  -> Gen a n r
+withBind n t old gen
+ = gen (bind n t old)
 
 
 substTQ :: Ord n => SubstT n -> Query'C a n -> Query'C a n
@@ -205,5 +200,3 @@ substAnnot s ann
  { annResult = substT s $ annResult ann
  , annConstraints = nubConstraints $ fmap (\(a,c) -> (a, substC s c)) $ annConstraints ann
  }
-
-

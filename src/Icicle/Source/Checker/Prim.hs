@@ -2,7 +2,6 @@
 -- It is odd that we need to look up inside a Fresh monad.
 -- However, because the types are polymorphic in the variable type, we have no way of saying "forall a".
 -- So we must generate a fresh name for any forall binders.
-{-# LANGUAGE PatternGuards #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Source.Checker.Prim (
     primLookup
@@ -18,10 +17,13 @@ import                  P
 
 
 
-primLookup :: Ord n => a -> Prim -> Gen a n ([Type n], Type n, FunctionType n)
-primLookup ann p
+primLookup
+ :: Ord n
+ => a -> Prim -> GenConstraintSet a n
+ -> Gen a n (FunctionType n, [Type n], Type n, GenConstraintSet a n)
+primLookup ann p cons
  = do ft <- primLookup' p
-      freshenFunction ann ft
+      introForalls ann ft cons
 
 primLookup' :: Prim -> Gen a n (FunctionType n)
 primLookup' p

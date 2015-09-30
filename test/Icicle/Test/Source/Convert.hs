@@ -81,8 +81,6 @@ prop_convert_is_well_typed nm fn q
   pp = show $ pretty q
 
 
-
-
 -- For now we can't say anything about *all* programs,
 -- but we can say that a restricted subset should convert OK.
 restrict
@@ -122,4 +120,4 @@ xfst tt
 return []
 tests :: IO Bool
 -- tests = $quickCheckAll
-tests = $forAllProperties $ quickCheckWithResult (stdArgs { {- maxSuccess = 5000, -} maxSize = 10, maxDiscardRatio = 10000})
+tests = $forAllProperties $ quickCheckWithResult (stdArgs { maxSuccess = 5000, maxSize = 10, maxDiscardRatio = 10000})
