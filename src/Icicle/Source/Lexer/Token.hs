@@ -143,7 +143,10 @@ operator t
 
 
 instance Pretty Variable where
- pretty (Variable v) = text $ T.unpack v
+ pretty (Variable v)
+   = annotate AnnVariable
+   $ text
+   $ T.unpack v
 
 instance IsString Variable where
  fromString s = Variable $ T.pack s

@@ -98,6 +98,7 @@ instance Arbitrary PM.Prim where
           , PM.PrimPair <$> (PM.PrimPairFst <$> arbitrary <*> arbitrary)
           , PM.PrimPair <$> (PM.PrimPairSnd <$> arbitrary <*> arbitrary)
           , PM.PrimStruct <$> (PM.PrimStructGet <$> arbitrary <*> arbitrary <*> arbitrary)
+          , PM.PrimTombstone <$> arbitrary
           ]
 
 instance Arbitrary Prim where
