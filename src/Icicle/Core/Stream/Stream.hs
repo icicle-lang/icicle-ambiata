@@ -23,7 +23,7 @@ import qualified    Data.List   as List
 
 data Stream a n
  = Source
- | SWindow ValType (Exp a n) (Maybe (Exp a n)) (Name n)
+ | SWindow ValType WindowUnit (Maybe WindowUnit) (Name n)
  | STrans StreamTransform (Exp a n) (Name n)
  deriving (Eq,Ord,Show)
 
@@ -55,7 +55,7 @@ outputOfStreamTransform st
 
 renameStream :: (Name n -> Name n') -> Stream a n -> Stream a n'
 renameStream _ Source                 = Source
-renameStream f (SWindow t x mx n)     = SWindow t (renameExp f x) (fmap (renameExp f) mx) (f n)
+renameStream f (SWindow t x mx n)     = SWindow t x mx (f n)
 renameStream f (STrans t x n)         = STrans t (renameExp f x) (f n)
 
 

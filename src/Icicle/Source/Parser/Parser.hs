@@ -16,7 +16,7 @@ import                  Icicle.Source.Parser.Operators
 import                  Icicle.Source.Parser.Constructor
 import qualified        Icicle.Source.Query        as Q
 
-import                  Icicle.Common.Base
+import                  Icicle.Common.Base         as B
 
 import                  P hiding (exp)
 
@@ -170,10 +170,10 @@ exp1
         return (pat, xx)
 
 
-windowUnit :: Parser Q.WindowUnit
+windowUnit :: Parser B.WindowUnit
 windowUnit
  = do   i <- pLitInt                                        <?> "window amount"
-        unit T.Days (Q.Days i) <|> unit T.Months (Q.Months i) <|> unit T.Weeks (Q.Weeks i)
+        unit T.Days (B.Days i) <|> unit T.Months (B.Months i) <|> unit T.Weeks (B.Weeks i)
  where
   unit kw q
    = pKeyword kw *> return q

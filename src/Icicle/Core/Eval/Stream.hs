@@ -148,8 +148,8 @@ eval window_check xh concreteValues sh s
     --
     SWindow _ newerThan olderThan n
      -> do  sv <- getInput n
-            newer  <- evalX newerThan
-            older  <- mapM evalX olderThan
+            let newer  = genDiff newerThan
+            let older  = genDiff <$> olderThan
 
             let windowBy p p'history wind =
                  return $
@@ -170,6 +170,12 @@ eval window_check xh concreteValues sh s
               -> Left $ RuntimeErrorExpNotOfType older' IntT
              _
               -> Left $ RuntimeErrorExpNotOfType newer IntT
+
+          where
+            genDiff :: WindowUnit -> V.Value a n Prim
+            genDiff (Days   d) = V.VBase $ VInt $ d
+            genDiff (Weeks  w) = V.VBase $ VInt $ 7*w
+            genDiff (Months m) = V.VBase $ VInt $ 30*m
 
     -- Transformers are slightly more involved
     -- Evaluate transform over given values.

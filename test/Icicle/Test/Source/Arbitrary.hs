@@ -123,15 +123,6 @@ instance Arbitrary n => Arbitrary (Context () n) where
     | otherwise = False
 
 
-instance Arbitrary WindowUnit where
- arbitrary
-  = oneof
-        [ Days   <$> pos
-        , Months <$> pos
-        , Weeks  <$> pos ]
-  where
-   pos = abs <$> arbitrary
-
 instance Arbitrary n => Arbitrary (Fold (Query () n) () n) where
  arbitrary
   = Fold <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary

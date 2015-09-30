@@ -12,6 +12,7 @@ import              Icicle.Common.Base
 import              Icicle.Common.Type
 import qualified    Icicle.Common.Exp.Simp.Beta as Beta
 
+import qualified    Icicle.Core.Exp.Exp     as X
 import              Icicle.Core.Exp.Prim
 import              Icicle.Core.Exp.Combinators
 
@@ -183,20 +184,27 @@ insertStream namer inputType strs reds (n, strm)
 
        -- If within i days
        CS.SWindow _ newerThan olderThan inp
-        -> let factDate  = namerElemPrefix namer (namerDate namer)
-               nowDate   = namerDate namer
-               diff      = xPrim (PrimMinimal $ Min.PrimDateTime Min.PrimDateTimeDaysDifference)
+        -> let
+               genDiff :: WindowUnit -> (X.Exp () n, X.Exp () n)
+               genDiff (Days   d) = (constI d     ,xPrim (PrimMinimal $ Min.PrimDateTime Min.PrimDateTimeDaysDifference))
+               genDiff (Weeks  w) = (constI (7*w) ,xPrim (PrimMinimal $ Min.PrimDateTime Min.PrimDateTimeDaysDifference))
+               genDiff (Months m) = (constI (30*m),xPrim (PrimMinimal $ Min.PrimDateTime Min.PrimDateTimeDaysDifference))
 
-               check  | Just o' <- olderThan
+               factDate   = namerElemPrefix namer (namerDate namer)
+               nowDate    = namerDate namer
+               (n', d')    = genDiff newerThan
+               olderThan' = genDiff <$> olderThan
+
+               check  | Just (o',d'') <- olderThan'
                       = xPrim (PrimMinimal $ Min.PrimLogical Min.PrimLogicalAnd)
-                        @~ (diff @~ xVar factDate @~ xVar nowDate) <=~ newerThan
-                        @~ (diff @~ xVar factDate @~ xVar nowDate) >=~ o'
+                        @~ (d'  @~ xVar factDate @~ xVar nowDate) <=~ n'
+                        @~ (d'' @~ xVar factDate @~ xVar nowDate) >=~ o'
 
                       | otherwise
-                      = (diff @~ xVar factDate @~ xVar nowDate) <=~ newerThan
+                      = (d' @~ xVar factDate @~ xVar nowDate) <=~ n'
 
-               else_  | Just o' <- olderThan
-                      = If ((diff @~ xVar factDate @~ xVar nowDate) <~ o' )
+               else_  | Just (o',d'') <- olderThan'
+                      = If ((d'' @~ xVar factDate @~ xVar nowDate) <~ o' )
                            KeepFactInHistory
                            mempty
 
