@@ -9,6 +9,8 @@ module Icicle.Data.DateTime (
   , daysOfDate
   , withinWindow
   , daysDifference
+  , minusMonths
+  , minusDays
   , unsafeDateOfYMD
   , pDate
   ) where
@@ -76,4 +78,20 @@ withinWindow fact now window
 daysDifference :: DateTime -> DateTime -> Int
 daysDifference fact now
  = daysOfDate now - daysOfDate fact
+
+minusDays :: DateTime -> Integer -> DateTime
+minusDays d i
+ = DateTime
+ $ D.dayToDateTime
+ $ C.addDays (negate i)
+ $ D.dateTimeToDay
+ $ getDateTime d
+
+minusMonths :: DateTime -> Integer -> DateTime
+minusMonths d i
+ = DateTime
+ $ D.dayToDateTime
+ $ C.addGregorianMonthsClip (negate i)
+ $ D.dateTimeToDay
+ $ getDateTime d
 

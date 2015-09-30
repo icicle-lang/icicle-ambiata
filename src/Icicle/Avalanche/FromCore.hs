@@ -192,7 +192,7 @@ insertStream namer inputType strs reds (n, strm)
 
                factDate   = namerElemPrefix namer (namerDate namer)
                nowDate    = namerDate namer
-               (n', d')    = genDiff newerThan
+               (n', d')   = genDiff newerThan
                olderThan' = genDiff <$> olderThan
 
                check  | Just (o',d'') <- olderThan'
