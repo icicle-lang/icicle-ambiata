@@ -186,9 +186,18 @@ insertStream namer inputType strs reds (n, strm)
        CS.SWindow _ newerThan olderThan inp
         -> let
                genDiff :: WindowUnit -> (X.Exp () n, X.Exp () n)
-               genDiff (Days   d) = (constI d     ,xPrim (PrimMinimal $ Min.PrimDateTime Min.PrimDateTimeDaysDifference))
-               genDiff (Weeks  w) = (constI (7*w) ,xPrim (PrimMinimal $ Min.PrimDateTime Min.PrimDateTimeDaysDifference))
-               genDiff (Months m) = (constI (30*m),xPrim (PrimMinimal $ Min.PrimDateTime Min.PrimDateTimeDaysDifference))
+               genDiff (Days   d) = (constI d     ,xPrim (PrimMinimal $ Min.PrimDateTime Min.PrimDateTimeMinusDays))
+               genDiff (Weeks  w) = (constI (7*w) ,xPrim (PrimMinimal $ Min.PrimDateTime Min.PrimDateTimeMinusDays))
+               genDiff (Months m) = (constI m     ,xPrim (PrimMinimal $ Min.PrimDateTime Min.PrimDateTimeMinusMonths))
+
+               (>~~) = prim2 (PrimMinimal $ Min.PrimRelation Min.PrimRelationGt DateTimeT)
+               infix 4 >~~
+
+               (>=~~) = prim2 (PrimMinimal $ Min.PrimRelation Min.PrimRelationGe DateTimeT)
+               infix 4 >=~~
+
+               (<=~~) = prim2 (PrimMinimal $ Min.PrimRelation Min.PrimRelationLe DateTimeT)
+               infix 4 <=~~
 
                factDate   = namerElemPrefix namer (namerDate namer)
                nowDate    = namerDate namer
@@ -197,14 +206,14 @@ insertStream namer inputType strs reds (n, strm)
 
                check  | Just (o',d'') <- olderThan'
                       = xPrim (PrimMinimal $ Min.PrimLogical Min.PrimLogicalAnd)
-                        @~ (d'  @~ xVar factDate @~ xVar nowDate) <=~ n'
-                        @~ (d'' @~ xVar factDate @~ xVar nowDate) >=~ o'
+                        @~ xVar factDate >=~~ (d'  @~ xVar nowDate @~ n')
+                        @~ xVar factDate <=~~ (d'' @~ xVar nowDate @~ o')
 
                       | otherwise
-                      = (d' @~ xVar factDate @~ xVar nowDate) <=~ n'
+                      = xVar factDate    >=~~ (d' @~ xVar nowDate @~ n')
 
                else_  | Just (o',d'') <- olderThan'
-                      = If ((d'' @~ xVar factDate @~ xVar nowDate) <~ o' )
+                      = If (xVar factDate >~~ (d'' @~ xVar nowDate @~ o'))
                            KeepFactInHistory
                            mempty
 

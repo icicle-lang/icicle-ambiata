@@ -79,19 +79,19 @@ daysDifference :: DateTime -> DateTime -> Int
 daysDifference fact now
  = daysOfDate now - daysOfDate fact
 
-minusDays :: DateTime -> Integer -> DateTime
+minusDays :: DateTime -> Int -> DateTime
 minusDays d i
  = DateTime
  $ D.dayToDateTime
- $ C.addDays (negate i)
+ $ C.addDays (negate $ toInteger i)
  $ D.dateTimeToDay
  $ getDateTime d
 
-minusMonths :: DateTime -> Integer -> DateTime
+minusMonths :: DateTime -> Int -> DateTime
 minusMonths d i
  = DateTime
  $ D.dayToDateTime
- $ C.addGregorianMonthsClip (negate i)
+ $ C.addGregorianMonthsClip (negate $ toInteger i)
  $ D.dateTimeToDay
  $ getDateTime d
 

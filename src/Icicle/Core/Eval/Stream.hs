@@ -169,9 +169,9 @@ eval window_check xh concreteValues sh s
 
           where
             windowEdge :: WindowUnit -> DateTime
-            windowEdge (Days   d) = minusDays window_check $ toInteger d
-            windowEdge (Weeks  w) = minusDays window_check $ toInteger $ 7 * w
-            windowEdge (Months m) = minusMonths window_check $ toInteger m
+            windowEdge (Days   d) = minusDays window_check d
+            windowEdge (Weeks  w) = minusDays window_check $ 7 * w
+            windowEdge (Months m) = minusMonths window_check m
 
     -- Transformers are slightly more involved
     -- Evaluate transform over given values.
