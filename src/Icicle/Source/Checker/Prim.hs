@@ -37,9 +37,9 @@ primLookup' p
      -> f1 $ \a at -> FunctionType [a] [] [at, at] BoolT
 
     Op (LogicalUnary _)
-     -> fBool $ \at -> ([at], at)
+     -> f0 [BoolT] BoolT
     Op (LogicalBinary _)
-     -> fBool $ \at -> ([at, at], at)
+     -> f0 [BoolT, BoolT] BoolT
 
     Op  TupleComma
      -> do a <- fresh
@@ -85,9 +85,6 @@ primLookup' p
 
   fNum f
    = f1 (\a at -> uncurry (FunctionType [a] [CIsNum at]) (f at))
-
-  fBool f
-   = f1 (\a at -> uncurry (FunctionType [a] [CEquals BoolT at]) (f at))
 
   f1 f
    = do n <- fresh
