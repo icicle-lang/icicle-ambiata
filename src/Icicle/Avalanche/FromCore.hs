@@ -198,12 +198,11 @@ insertStream namer inputType strs reds (n, strm)
                nowDate    = namerDate namer
 
                check  | Just olderThan' <- olderThan
-                      = xPrim (PrimMinimal $ Min.PrimLogical Min.PrimLogicalAnd)
-                        @~ xVar factDate ~>=~ windowEdge nowDate newerThan
-                        @~ xVar factDate ~<=~ windowEdge nowDate olderThan'
+                      =   xVar factDate ~>=~ windowEdge nowDate newerThan
+                      &&~ xVar factDate ~<=~ windowEdge nowDate olderThan'
 
                       | otherwise
-                      = xVar factDate    ~>=~ windowEdge nowDate newerThan
+                      = xVar factDate   ~>=~ windowEdge nowDate newerThan
 
                else_  | Just olderThan' <- olderThan
                       = If (xVar factDate ~>~ windowEdge nowDate olderThan')
