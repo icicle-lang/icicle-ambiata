@@ -104,6 +104,18 @@ convertExpQ q
       $ ConvertErrorExpNestedQueryNotAllowedHere (annAnnot $ annotOfQuery q) q
 
 
+-- TODO XXX this is not quite correct, where this is being called.
+-- We should actually intersperse the calls to convertCaseFreshenPat with converting the nested thing.
+-- eg
+-- > case xxx
+-- > | Left  i -> ... i ...
+-- > | Right i -> ... i ...
+-- > end
+-- here, the first pattern will be freshened to i$1, then the second to i$2,
+-- but after both patterns are freshened we have the "i => i$2" binding in context and so
+-- the first alternative becomes
+-- > | Left i$1 -> ... i$2 ...
+-- what a mess!
 convertCaseFreshenPats :: Ord n => [Pattern n] -> ConvertM a n [Pattern n]
 convertCaseFreshenPats = mapM convertCaseFreshenPat
 
