@@ -73,6 +73,11 @@ primLookup' p
     PrimCon ConFalse
      -> f0 [] BoolT
 
+    PrimCon ConLeft
+     -> f2 $ \a at b bt -> FunctionType [a, b] [] [at] (SumT at bt)
+    PrimCon ConRight
+     -> f2 $ \a at b bt -> FunctionType [a, b] [] [bt] (SumT at bt)
+
  where
 
   f0 argsT resT

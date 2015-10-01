@@ -92,6 +92,8 @@ dischargeC c
      -> return $ DischargeLeftover c
     CTemporalityJoin (TypeVar _) (TypeVar _) _
      -> return $ DischargeLeftover c
+    CTemporalityJoin _ (TypeVar _) (TypeVar _)
+     -> return $ DischargeLeftover c
     CTemporalityJoin (TypeVar v) atemp btemp
      -> do temp <- lub atemp btemp
            return $ DischargeSubst $ Map.fromList [(v, temp)]

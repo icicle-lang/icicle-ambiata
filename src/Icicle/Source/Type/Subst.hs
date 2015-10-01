@@ -43,6 +43,7 @@ substT ss tt
       GroupT  a b   -> GroupT  (go a) (go b)
       OptionT a     -> OptionT (go a)
       PairT   a b   -> PairT   (go a) (go b)
+      SumT    a b   -> SumT    (go a) (go b)
       StructT fs    -> StructT (Map.map go fs)
 
       Temporality a b       -> Temporality (go a) (go b)
@@ -172,6 +173,12 @@ unifyT t1 t2
 
     PairT a1 a2
      | PairT b1 b2 <- t2
+     -> compose <$> unifyT a1 b1 <*> unifyT a2 b2
+     | otherwise
+     -> Nothing
+
+    SumT  a1 a2
+     | SumT  b1 b2 <- t2
      -> compose <$> unifyT a1 b1 <*> unifyT a2 b2
      | otherwise
      -> Nothing

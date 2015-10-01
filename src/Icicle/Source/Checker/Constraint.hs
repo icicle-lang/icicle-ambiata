@@ -242,7 +242,7 @@ generateQ qq@(Query (c:_) _)
     -- >   :  Aggregate r'p r'd
     LetFold _ f
      -> do  (i,si) <- generateX $ foldInit f
-            (w,sw) <- withBind (foldBind f) (annResult $ annotOfExp i)
+            (w,sw) <- withBind (foldBind f) (canonT $ Temporality TemporalityElement $ annResult $ annotOfExp i)
                     $ generateX $ foldWork f
 
             let bindType
@@ -503,6 +503,16 @@ generateP ann scrutTy resTy resTm ((pat, alt):rest)
       ConFalse
        | [] <- pats
        -> return BoolT
+       | otherwise
+       -> err
+      ConLeft
+       | [p] <- pats
+       -> SumT <$> goPat p <*> (TypeVar <$> fresh)
+       | otherwise
+       -> err
+      ConRight
+       | [p] <- pats
+       -> SumT <$> (TypeVar <$> fresh) <*> goPat p
        | otherwise
        -> err
 

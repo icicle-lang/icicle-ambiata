@@ -157,6 +157,15 @@ convertCase x scrut pats scrutT resT
                     $ CE.XLet () nb xsnd
                     $ tup)
 
+         T.SumT ta tb
+          | Just ([nl],xl)  <- Map.lookup ConLeft    m
+          , Just ([nr],xr)  <- Map.lookup ConRight   m
+
+          -> return ((CE.xPrim $ C.PrimFold (C.PrimFoldSum ta tb) resT)
+                     CE.@~ (CE.xLam nl ta xl)
+                     CE.@~ (CE.xLam nr tb xr)
+                     CE.@~ scrut)
+
          _
           -> convertError $ ConvertErrorBadCaseNoDefault (annAnnot $ annotOfExp x) x
  where

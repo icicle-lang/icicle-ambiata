@@ -37,6 +37,7 @@ data Type n
  | GroupT   (Type n) (Type n)
  | OptionT  (Type n)
  | PairT    (Type n) (Type n)
+ | SumT     (Type n) (Type n)
  | StructT (Map.Map CT.StructField (Type n))
 
  | Temporality         (Type n) (Type n)
@@ -64,8 +65,7 @@ typeOfValType vt
     CT.MapT  k v    -> GroupT (go k) (go v)
     CT.OptionT a    -> OptionT (go a)
     CT.PairT a b    -> PairT (go a) (go b)
-    -- TODO this is WRONG
-    CT.SumT  a b    -> PairT (go a) (go b)
+    CT.SumT  a b    -> SumT  (go a) (go b)
     CT.StructT st   -> StructT (Map.map go $ CT.getStructType st)
  where
   go = typeOfValType
@@ -83,6 +83,7 @@ valTypeOfType bt
     GroupT k v   -> CT.MapT    <$> go k <*> go v
     OptionT a    -> CT.OptionT <$> go a
     PairT a b    -> CT.PairT   <$> go a <*> go b
+    SumT  a b    -> CT.SumT    <$> go a <*> go b
     StructT st   -> (CT.StructT . CT.StructType)
                 <$> traverse go st
 
@@ -148,6 +149,7 @@ instance Pretty n => Pretty (Type n) where
  pretty (GroupT k v)    = parens (text "Group" <+> pretty k <+> pretty v)
  pretty (OptionT a)     = parens (text "Option" <+> pretty a)
  pretty (PairT a b)     = text "(" <> pretty a <> text ", " <> pretty b <> text ")"
+ pretty (SumT  a b)     = parens (text "Sum" <+> pretty a <+> pretty b)
  pretty (StructT fs)    = parens (text "Struct" <+> pretty (Map.toList fs))
  pretty (TypeVar v) = pretty v
 

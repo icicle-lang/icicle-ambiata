@@ -88,7 +88,7 @@ instance Arbitrary Prim where
 
 instance Arbitrary Constructor where
  arbitrary
-  = oneof_vals [ ConSome, ConNone, ConTuple, ConTrue, ConFalse ]
+  = oneof_vals [ ConSome, ConNone, ConTuple, ConTrue, ConFalse, ConLeft, ConRight ]
 
 instance Arbitrary n => Arbitrary (Pattern n) where
  arbitrary

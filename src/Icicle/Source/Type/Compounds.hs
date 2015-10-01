@@ -46,6 +46,7 @@ freeT t
     GroupT      a b         -> Set.union (freeT a) (freeT b)
     OptionT     a           -> freeT a
     PairT       a b         -> Set.union (freeT a) (freeT b)
+    SumT        a b         -> Set.union (freeT a) (freeT b)
     StructT ms              -> Set.unions
                              $ fmap freeT
                              $ Map.elems ms
@@ -120,6 +121,7 @@ getTemporality tt
     GroupT  a b   -> wrap2 go GroupT a b
     OptionT a     -> wrap go OptionT a
     PairT   a b   -> wrap2 go PairT  a b
+    SumT    a b   -> wrap2 go SumT   a b
     StructT fs    -> let fs' = Map.toList fs
                          ks  = fmap fst fs'
                          vs  = fmap snd fs'
@@ -164,6 +166,7 @@ getPossibility tt
     GroupT  a b   -> wrap2 go GroupT a b
     OptionT a     -> wrap go OptionT a
     PairT   a b   -> wrap2 go PairT  a b
+    SumT    a b   -> wrap2 go SumT   a b
     StructT fs    -> let fs' = Map.toList fs
                          ks  = fmap fst fs'
                          vs  = fmap snd fs'
@@ -206,6 +209,7 @@ getBaseType tt
     GroupT  _ _   -> Just tt
     OptionT _     -> Just tt
     PairT   _ _   -> Just tt
+    SumT    _ _   -> Just tt
     StructT _     -> Just tt
 
     Temporality _ t       -> getBaseType t

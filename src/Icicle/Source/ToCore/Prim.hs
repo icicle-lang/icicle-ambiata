@@ -66,6 +66,23 @@ convertPrim p ann resT xts
    = return $ CE.XValue () T.BoolT $ V.VBool True
   go (PrimCon ConFalse)
    = return $ CE.XValue () T.BoolT $ V.VBool False
+  go (PrimCon ConLeft)
+   | (_, _, SumT a b) <- decomposeT resT
+   = do a' <- convertValType ann a
+        b' <- convertValType ann b
+        return $ primmin $ Min.PrimConst $ Min.PrimConstLeft a' b'
+   | otherwise
+   = convertError
+   $ ConvertErrorPrimNoArguments ann 2 p
+  go (PrimCon ConRight)
+   | (_, _, SumT a b) <- decomposeT resT
+   = do a' <- convertValType ann a
+        b' <- convertValType ann b
+        return $ primmin $ Min.PrimConst $ Min.PrimConstRight a' b'
+   | otherwise
+   = convertError
+   $ ConvertErrorPrimNoArguments ann 2 p
+
 
   go (Fun f)
    = gofun f

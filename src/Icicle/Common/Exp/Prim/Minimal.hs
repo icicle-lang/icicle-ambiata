@@ -223,9 +223,9 @@ instance Pretty Prim where
  pretty (PrimConst (PrimConstPair a b)) = text "pair#" <+> brackets (pretty a) <+> brackets (pretty b)
  pretty (PrimConst (PrimConstSome t))   = text "some#" <+> brackets (pretty t)
  pretty (PrimConst (PrimConstLeft  a b))
-  = text "left#" <+> brackets (pretty a) <+> brackets (pretty b)
+  = text "left#"  <+> brackets (pretty a) <+> brackets (pretty b)
  pretty (PrimConst (PrimConstRight a b))
-  = text "left#" <+> brackets (pretty a) <+> brackets (pretty b)
+  = text "right#" <+> brackets (pretty a) <+> brackets (pretty b)
 
  pretty (PrimDateTime PrimDateTimeDaysDifference)
   = text "DateTime_daysDifference#"

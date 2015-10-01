@@ -213,6 +213,16 @@ evalP ann p xs vs env
               -> return $ VBool True
              ConFalse
               -> return $ VBool False
+             ConLeft
+              | [va] <- args
+              -> return $ VLeft va
+              | otherwise
+              -> err
+             ConRight
+              | [va] <- args
+              -> return $ VRight va
+              | otherwise
+              -> err
 
     Fun f
      -> do  args <- mapM (\x' -> evalX x' vs env) xs
