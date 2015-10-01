@@ -95,6 +95,14 @@ infix 4 ==~
 (/=~) = prim2 (PrimMinimal $ Min.PrimRelation Min.PrimRelationNe IntT)
 infix 4 /=~
 
+(&&~) :: X.Exp () n -> X.Exp () n -> X.Exp () n
+(&&~) = prim2 (PrimMinimal $ Min.PrimLogical Min.PrimLogicalAnd)
+infix 3 &&~
+
+(||~) :: X.Exp () n -> X.Exp () n -> X.Exp () n
+(||~) = prim2 (PrimMinimal $ Min.PrimLogical Min.PrimLogicalOr)
+infix 2 ||~
+
 doubleOfInt :: X.Exp () n -> X.Exp () n
 doubleOfInt x
  = xPrim (PrimMinimal $ Min.PrimCast Min.PrimCastDoubleOfInt) @~ x

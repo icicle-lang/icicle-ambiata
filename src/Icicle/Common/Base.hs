@@ -1,5 +1,6 @@
 -- | Base definitions common across all languages.
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveFunctor #-}
 
 module Icicle.Common.Base (
@@ -8,6 +9,7 @@ module Icicle.Common.Base (
     , StructField (..)
     , ExceptionInfo (..)
     , OutputName (..)
+    , WindowUnit(..)
     ) where
 
 import              Icicle.Internal.Pretty
@@ -26,6 +28,12 @@ data Name n =
  -- Very useful for generating fresh(ish) readable names.
  | NameMod  n (Name n)
  deriving (Eq,Ord,Show,Functor)
+
+data WindowUnit
+ = Days   Int
+ | Months Int
+ | Weeks  Int
+ deriving (Show, Eq, Ord)
 
 
 -- | Base values - real values that can be serialised and whatnot
@@ -118,4 +126,11 @@ instance Pretty ExceptionInfo where
 
 instance Pretty OutputName where
  pretty = pretty . unOutputName
+
+instance Pretty WindowUnit where
+ pretty wu
+  = case wu of
+     Days   i -> pretty i <+> "days"
+     Months i -> pretty i <+> "months"
+     Weeks  i -> pretty i <+> "weeks"
 

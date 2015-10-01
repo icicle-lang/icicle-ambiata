@@ -12,6 +12,7 @@ import              Icicle.Common.Base
 import              Icicle.Common.Type
 import qualified    Icicle.Common.Exp.Simp.Beta as Beta
 
+import qualified    Icicle.Core.Exp.Exp     as X
 import              Icicle.Core.Exp.Prim
 import              Icicle.Core.Exp.Combinators
 
@@ -183,20 +184,28 @@ insertStream namer inputType strs reds (n, strm)
 
        -- If within i days
        CS.SWindow _ newerThan olderThan inp
-        -> let factDate  = namerElemPrefix namer (namerDate namer)
-               nowDate   = namerDate namer
-               diff      = xPrim (PrimMinimal $ Min.PrimDateTime Min.PrimDateTimeDaysDifference)
+        -> let
+               -- The comparison functions in Icicle.Core.Exp.Combinators compare on IntT,
+               -- so here for convenience I create a set with comparison type DateTimeT.
+               (~>~)  = prim2 (PrimMinimal $ Min.PrimRelation Min.PrimRelationGt DateTimeT)
+               infix 4 ~>~
+               (~>=~) = prim2 (PrimMinimal $ Min.PrimRelation Min.PrimRelationGe DateTimeT)
+               infix 4 ~>=~
+               (~<=~) = prim2 (PrimMinimal $ Min.PrimRelation Min.PrimRelationLe DateTimeT)
+               infix 4 ~<=~
 
-               check  | Just o' <- olderThan
-                      = xPrim (PrimMinimal $ Min.PrimLogical Min.PrimLogicalAnd)
-                        @~ (diff @~ xVar factDate @~ xVar nowDate) <=~ newerThan
-                        @~ (diff @~ xVar factDate @~ xVar nowDate) >=~ o'
+               factDate   = namerElemPrefix namer (namerDate namer)
+               nowDate    = namerDate namer
+
+               check  | Just olderThan' <- olderThan
+                      =   xVar factDate ~>=~ windowEdge nowDate newerThan
+                      &&~ xVar factDate ~<=~ windowEdge nowDate olderThan'
 
                       | otherwise
-                      = (diff @~ xVar factDate @~ xVar nowDate) <=~ newerThan
+                      = xVar factDate   ~>=~ windowEdge nowDate newerThan
 
-               else_  | Just o' <- olderThan
-                      = If ((diff @~ xVar factDate @~ xVar nowDate) <~ o' )
+               else_  | Just olderThan' <- olderThan
+                      = If (xVar factDate ~>~ windowEdge nowDate olderThan')
                            KeepFactInHistory
                            mempty
 
@@ -216,6 +225,14 @@ insertStream namer inputType strs reds (n, strm)
        CS.STrans (CS.SMap _ _) x inp
         -> allLet $ Beta.betaToLets () $ xApp x $ xVar $ namerElemPrefix namer inp
 
+-- | Avalanche program to obtain the edge date for a window.
+windowEdge
+        :: Name n
+        -> WindowUnit
+        -> X.Exp () n
+windowEdge n (Days   d) = xPrim (PrimMinimal $ Min.PrimDateTime Min.PrimDateTimeMinusDays)   @~ xVar n @~ constI d
+windowEdge n (Weeks  w) = xPrim (PrimMinimal $ Min.PrimDateTime Min.PrimDateTimeMinusDays)   @~ xVar n @~ constI (7*w)
+windowEdge n (Months m) = xPrim (PrimMinimal $ Min.PrimDateTime Min.PrimDateTimeMinusMonths) @~ xVar n @~ constI m
 
 -- | Get update statement for given reduce
 statementOfReduce

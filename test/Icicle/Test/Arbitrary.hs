@@ -3,6 +3,7 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Icicle.Test.Arbitrary where
 
+import           Icicle.Common.Base (WindowUnit (..))
 import           Icicle.Data
 import           Icicle.Data.DateTime
 
@@ -107,3 +108,11 @@ valueOfEncoding' e
   listOfEncoding le
    = smaller $ listOf (valueOfEncoding' le)
 
+instance Arbitrary WindowUnit where
+ arbitrary
+  = oneof
+        [ Days   <$> pos
+        , Months <$> pos
+        , Weeks  <$> pos ]
+  where
+   pos = abs <$> arbitrary
