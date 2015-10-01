@@ -118,7 +118,7 @@ context
 exp :: Parser (Q.Exp T.SourcePos Var)
 exp
  = do   xs <- many1 ((Left <$> exp1) <|> op)                <?> "expression"
-        either (parserFail.show) return
+        either (parserFail.renderDefixError) return
                (defix xs)
  where
   -- Get the position before reading the operator

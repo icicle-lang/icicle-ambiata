@@ -3,6 +3,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Icicle.Source.Parser.Operators (
     defix
+  , renderDefixError
   , DefixError(..)
   ) where
 
@@ -12,7 +13,8 @@ import                  Icicle.Source.Query.Operators
 
 import                  P
 
-import                  Data.Text (Text)
+import                  Data.String (String)
+import                  Data.Text (Text, unpack)
 import                  Data.Either.Combinators
 
 data DefixError n
@@ -24,11 +26,26 @@ data DefixError n
  | ErrorBUGLeftovers [Q.Exp T.SourcePos n] [(Q.Op, T.SourcePos)]
  deriving (Show, Eq, Ord)
 
+renderDefixError :: Show n => DefixError n -> String
+renderDefixError e
+ | ErrorNoSuchPrefixOperator op <- e
+ , OpsOfSymbol (Just _) _ <- symbol op
+ = "the infix operator \"" <> unpack op <> "\" was used in a prefix position."
+ | ErrorNoSuchPrefixOperator op <- e
+ = "no such prefix operator \"" <> unpack op <> "\" exists."
+ | ErrorNoSuchInfixOperator op <- e
+ , OpsOfSymbol _ (Just _) <- symbol op
+ = "the prefix operator \"" <> unpack op <> "\" was used in an infix position."
+ | ErrorNoSuchInfixOperator op <- e
+ = "no such infix operator \"" <> unpack op <> "\" exists."
+ | otherwise
+ = show e -- The others seem much less likely
+
 data Ops
  = Ops Text OpsOfSymbol
  deriving (Show, Eq, Ord)
 
- 
+
 -- | Convert from infix operators to ast - "de-infixing"
 defix :: [Either (Q.Exp T.SourcePos n) (T.Operator, T.SourcePos)] -> Either (DefixError n) (Q.Exp T.SourcePos n)
 defix inps
