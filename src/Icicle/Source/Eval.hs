@@ -325,6 +325,24 @@ evalP ann p xs vs env
               | otherwise
               -> err
 
+             LogicalUnary Not
+              | [VBool i] <- args
+              -> return $ VBool $ not i
+              | otherwise
+              -> err
+
+             LogicalBinary And
+              | [VBool i, VBool j] <- args
+              -> return $ VBool $ i && j
+              | otherwise
+              -> err
+
+             LogicalBinary Or
+              | [VBool i, VBool j] <- args
+              -> return $ VBool $ i || j
+              | otherwise
+              -> err
+
              TupleComma
               | [a, b] <- args
               -> return $ VPair a b

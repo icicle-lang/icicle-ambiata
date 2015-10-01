@@ -73,10 +73,14 @@ instance Arbitrary n => Arbitrary (Exp () n) where
         , Op    (ArithBinary Sub)
         , Op    (ArithBinary Pow)
         , Op    (Relation Gt)
-        , Op    (Relation Eq) ]
+        , Op    (Relation Eq)
+        , Op    (LogicalBinary And)
+        , Op    (LogicalBinary Or)]
 
    operator_pre
-    = return $ Op (ArithUnary Negate)
+    = oneof_vals
+        [ Op (ArithUnary Negate)
+        , Op (LogicalUnary Not)]
 
 instance Arbitrary Prim where
  arbitrary

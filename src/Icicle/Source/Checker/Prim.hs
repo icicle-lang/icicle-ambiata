@@ -36,6 +36,11 @@ primLookup' p
     Op (Relation _)
      -> f1 $ \a at -> FunctionType [a] [] [at, at] BoolT
 
+    Op (LogicalUnary _)
+     -> f0 [BoolT] BoolT
+    Op (LogicalBinary _)
+     -> f0 [BoolT, BoolT] BoolT
+
     Op  TupleComma
      -> do a <- fresh
            b <- fresh

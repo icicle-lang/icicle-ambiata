@@ -1,15 +1,17 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Icicle.Source.Query.Operators (
-    Op          (..)
-  , ArithUnary  (..)
-  , ArithBinary (..)
-  , ArithDouble (..)
-  , Relation    (..)
-  , Fixity      (..)
-  , Infixity    (..)
-  , Assoc       (..)
-  , OpsOfSymbol (..)
+    Op            (..)
+  , ArithUnary    (..)
+  , ArithBinary   (..)
+  , ArithDouble   (..)
+  , Relation      (..)
+  , LogicalBinary (..)
+  , LogicalUnary  (..)
+  , Fixity        (..)
+  , Infixity      (..)
+  , Assoc         (..)
+  , OpsOfSymbol   (..)
   , fixity
   , symbol
   , precedencePrefix
@@ -25,10 +27,12 @@ import                  P
 import                  Data.Text
 
 data Op
- = ArithUnary  ArithUnary
- | ArithBinary ArithBinary
- | ArithDouble ArithDouble
- | Relation Relation
+ = ArithUnary    ArithUnary
+ | ArithBinary   ArithBinary
+ | ArithDouble   ArithDouble
+ | Relation      Relation
+ | LogicalUnary  LogicalUnary
+ | LogicalBinary LogicalBinary
 
  | TupleComma
  deriving (Show, Eq, Ord)
@@ -48,7 +52,6 @@ data ArithDouble
  = Div
  deriving (Show, Eq, Ord)
 
-
 data Relation
  = Lt
  | Le
@@ -56,6 +59,15 @@ data Relation
  | Ge
  | Eq
  | Ne
+ deriving (Show, Eq, Ord)
+
+data LogicalUnary
+ = Not
+ deriving (Show, Eq, Ord)
+
+data LogicalBinary
+ = And
+ | Or
  deriving (Show, Eq, Ord)
 
 data Fixity
@@ -93,6 +105,13 @@ fixity o
     Relation _
      -> FInfix $ Infix AssocLeft 4
 
+    LogicalUnary Not
+     -> FPrefix
+    LogicalBinary And
+     -> FInfix $ Infix AssocLeft 3
+    LogicalBinary Or
+     -> FInfix $ Infix AssocLeft 2
+
     TupleComma
         -> FInfix $ Infix AssocLeft 0
 
@@ -120,13 +139,16 @@ symbol s
     "=="-> inf $ Relation Eq
     "/="-> inf $ Relation Ne
 
+    "!" -> pre $ LogicalUnary  Not
+    "&&"-> inf $ LogicalBinary  And
+    "||"-> inf $ LogicalBinary  Or
 
     "," -> inf TupleComma
 
     _   -> OpsOfSymbol  Nothing    Nothing
  where
   inf o = OpsOfSymbol (Just o) Nothing
-
+  pre o = OpsOfSymbol Nothing (Just o)
 
 -- | Prefix operators are baked in to the parser, but these are used for pretty printing.
 precedencePrefix :: (Int,Assoc)
@@ -159,6 +181,10 @@ instance Pretty Op where
  pretty (Relation Ge)           = ">="
  pretty (Relation Eq)           = "=="
  pretty (Relation Ne)           = "/="
+
+ pretty (LogicalUnary Not)      = "!"
+ pretty (LogicalBinary And)     = "&&"
+ pretty (LogicalBinary Or)      = "||"
 
  pretty TupleComma              = ","
 
