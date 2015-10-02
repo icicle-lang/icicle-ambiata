@@ -57,6 +57,7 @@ data ValType
  | IntT
  | StringT
  | UnitT
+ | ErrorT
  | ArrayT ValType
  | MapT   ValType ValType
  | OptionT        ValType
@@ -89,6 +90,7 @@ defaultOfType typ
      IntT      -> VInt 0
      StringT   -> VString T.empty
      UnitT     -> VUnit
+     ErrorT    -> VError ExceptTombstone
      ArrayT  _ -> VArray []
      MapT  _ _ -> VMap Map.empty
      OptionT _ -> VNone
@@ -208,10 +210,6 @@ requireSame err p q
 valueMatchesType :: BaseValue -> ValType -> Bool
 valueMatchesType v t
  = case (t,v) of
-    -- XXX TODO exception types
-    (_, VException _)
-     -> True
-
     (IntT, VInt{})
      -> True
     (IntT, _)
@@ -225,6 +223,11 @@ valueMatchesType v t
     (UnitT, VUnit{})
      -> True
     (UnitT, _)
+     -> False
+
+    (ErrorT, VError _)
+     -> True
+    (ErrorT, _)
      -> False
 
     (BoolT, VBool{})
@@ -307,6 +310,7 @@ ppValType needParens vt =
     IntT       -> text "Int"
     DoubleT    -> text "Double"
     UnitT      -> text "Unit"
+    ErrorT     -> text "Error"
     BoolT      -> text "Bool"
     DateTimeT  -> text "DateTime"
     StringT    -> text "String"

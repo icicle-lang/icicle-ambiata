@@ -126,6 +126,10 @@ data Ty
  | TyOpt Ty
  | TySum Ty Ty
  | TyBool
+ -- Literals such as numbers and argument-less enums:
+ -- where we can, instead of doing a real case, check against "x == Con".
+ -- This doesn't work for Bool because this desugaring uses Bool
+ | TyLit [Constructor]
  | TyAny
  deriving (Show)
 
@@ -202,6 +206,16 @@ addToTy err (PatCon con pats) ty
      -> TySum <$> return TyAny <*> go p TyAny
      | otherwise
      -> lift $ left err
+
+    ConError _
+     | []               <- pats
+     , TyLit cs         <- ty
+     -> return $ TyLit (cs <> [con])
+     | []               <- pats
+     , TyAny            <- ty
+     -> return $ TyLit [con]
+     | otherwise
+     -> lift $ left err
  where
   go = addToTy err
 
@@ -252,6 +266,13 @@ casesForTy ann scrut ty
            return $ TCase scrut [ (pleft,  bl)
                                 , (pright, br) ]
 
+    TyLit cs
+     -> do var <- fresh
+           return $ TLet var scrut
+                  $ TLits   (Var ann var)
+                            (fmap (\c -> (c, Done $ PatCon c [])) cs)
+                            (Done $ PatVariable var)
+
     -- If we don't know the type of this pattern, use a fresh variable
     -- Use TLet to avoid generating variable patterns, since Core can't handle them.
     TyAny
@@ -273,7 +294,10 @@ data Tree a n x
  | TLet  (Name n)                  -- ^ insert a let because we cannot generate pattern variables.
          (Exp' (Query a n) a n)
          (Tree a n x)
+ | TLits (Exp' (Query a n) a n)    -- ^ special case for literals
+         [(Constructor, Tree a n x)] (Tree a n x)
  deriving (Functor, Foldable, Traversable, Show)
+
 
 instance Monad (Tree a n) where
   return  = Done
@@ -282,6 +306,8 @@ instance Monad (Tree a n) where
     joinT (Done x)     = x
     joinT (TCase n ls) = TCase n (fmap (fmap joinT) ls)
     joinT (TLet n x t) = TLet  n x (joinT t)
+    joinT (TLits  s cs d)
+                       = TLits s (fmap (fmap joinT) cs) (joinT d)
 
 
 treeToCase
@@ -301,6 +327,16 @@ treeToCase ann patalts tree
     = Case ann scrut (fmap (fmap caseStmtsFor) alts)
    caseStmtsFor (TLet n x e)
     = Nested ann (Query [Let ann n x] (caseStmtsFor e))
+
+   caseStmtsFor (TLits scrut ((c,x):cs) d)
+    = let eq = Prim ann $ Op $ Relation Eq
+          c' = Prim ann $ PrimCon c
+          sc = App ann (App ann eq scrut) c'
+      in Case ann sc
+            [ ( PatCon ConTrue  [], caseStmtsFor x )
+            , ( PatCon ConFalse [], caseStmtsFor $ TLits scrut cs d ) ]
+   caseStmtsFor (TLits _ [] d)
+    = caseStmtsFor d
 
    -- Look up the alternative for this pattern
    getAltBody ((px, x) : xs) p

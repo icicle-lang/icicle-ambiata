@@ -78,6 +78,9 @@ primLookup' p
     PrimCon ConRight
      -> f2 $ \a at b bt -> FunctionType [a, b] [] [bt] (SumT at bt)
 
+    PrimCon (ConError _)
+     -> f0 [] ErrorT
+
  where
 
   f0 argsT resT

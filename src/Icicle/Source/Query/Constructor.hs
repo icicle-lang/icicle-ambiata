@@ -31,6 +31,9 @@ data Constructor
  -- Either
  | ConLeft
  | ConRight
+
+ -- Error
+ | ConError ExceptionInfo
  deriving (Eq, Ord, Show)
 
 data Pattern n
@@ -101,6 +104,14 @@ substOfPattern (PatCon ConRight pats) val
  | otherwise
  = Nothing
 
+substOfPattern (PatCon (ConError ex) pats) val
+ | []             <- pats
+ , VError ex'     <- val
+ , ex == ex'
+ = return Map.empty
+ | otherwise
+ = Nothing
+
 
 arityOfConstructor :: Constructor -> Int
 arityOfConstructor cc
@@ -116,6 +127,8 @@ arityOfConstructor cc
     ConLeft  -> 1
     ConRight -> 1
 
+    ConError _ -> 0
+
 
 instance Pretty Constructor where
  pretty ConSome  = "Some"
@@ -128,6 +141,8 @@ instance Pretty Constructor where
 
  pretty ConLeft  = "Left"
  pretty ConRight = "Right"
+
+ pretty (ConError e) = text $ show e
 
 
 instance Pretty n => Pretty (Pattern n) where

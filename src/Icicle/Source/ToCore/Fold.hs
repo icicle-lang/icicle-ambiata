@@ -127,7 +127,7 @@ convertFold q
                     i <- idFun retty'
                     n'v <- lift fresh
                     let k = CE.xLam n'v retty' $ CE.xVar v'
-                    let err = CE.xValue retty' $ VException ExceptScalarVariableNotAvailable
+                    let err = CE.xValue retty' $ VError ExceptScalarVariableNotAvailable
                     return $ ConvertFoldResult k err i retty' retty'
 
              -- For aggregate variables, the actual folding doesn't matter:
@@ -166,7 +166,7 @@ convertFold q
                     n'v <- lift fresh
                     inp <- convertInputName
                     let k = CE.xLam n'v retty' $ var' $ CE.xVar inp
-                    let err = CE.xValue retty' $ VException ExceptScalarVariableNotAvailable
+                    let err = CE.xValue retty' $ VError ExceptScalarVariableNotAvailable
                     return $ ConvertFoldResult k err i retty' retty'
 
               | otherwise
@@ -249,7 +249,7 @@ convertFold q
      -> do  def' <- convertExp def
             n'   <- lift fresh
             t' <- convertValType' $ annResult $ annotOfExp def
-            let err = CE.xValue t' $ VException ExceptScalarVariableNotAvailable
+            let err = CE.xValue t' $ VError ExceptScalarVariableNotAvailable
             let res = ConvertFoldResult (CE.xLam n' t' def') err (CE.xLam n' t' $ CE.xVar n') t' t'
             convertAsLet b res
 
@@ -283,7 +283,7 @@ convertFold q
             let x' = CE.xLam n'a tO
                    ( opt tU
                      CE.@~ CE.xLam   n'a' tU (CE.xVar n'a')
-                     CE.@~ CE.xValue tU (VException ExceptFold1NoValue)
+                     CE.@~ CE.xValue tU (VError ExceptFold1NoValue)
                      CE.@~ CE.xVar   n'a )
 
             let res = ConvertFoldResult k' (CE.xValue tO VNone) x' tO tU

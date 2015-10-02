@@ -131,7 +131,7 @@ valueToCore v
                    -> V.VStruct . Map.fromList
                   <$> mapM (\(a,b) -> (,) <$> pure (V.StructField $ getAttribute a) <*> valueToCore b) vs
     DateValue d    -> return $ V.VDateTime d
-    Tombstone      -> return $ V.VTombstone
+    Tombstone      -> return $ V.VError V.ExceptTombstone
 
 valueFromCore :: V.BaseValue -> Either (SimulateError a) Value
 valueFromCore v
@@ -151,8 +151,7 @@ valueFromCore v
                   <$> mapM (\(a,b) -> (,) <$> valueFromCore a <*> valueFromCore b) (Map.toList vs)
     V.VStruct vs  -> StructValue . Struct <$> mapM (\(a,b) -> (,) <$> pure (Attribute $ V.nameOfStructField a) <*> valueFromCore b) (Map.toList vs)
 
-    V.VTombstone  -> return Tombstone
-    V.VException _-> return Tombstone
+    V.VError _    -> return Tombstone
 
     -- TODO XXX for now just unwrap the Either constructors.
     -- This is somewhat OK if it is an "Either Error actualvalue"

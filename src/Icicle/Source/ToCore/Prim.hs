@@ -82,6 +82,8 @@ convertPrim p ann resT xts
    | otherwise
    = convertError
    $ ConvertErrorPrimNoArguments ann 2 p
+  go (PrimCon (ConError err))
+   = return $ CE.XValue () T.ErrorT $ V.VError err
 
 
   go (Fun f)

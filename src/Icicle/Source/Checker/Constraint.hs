@@ -515,6 +515,11 @@ generateP ann scrutTy resTy resTm ((pat, alt):rest)
        -> SumT <$> (TypeVar <$> fresh) <*> goPat p
        | otherwise
        -> err
+      ConError _
+       | [] <- pats
+       -> return ErrorT
+       | otherwise
+       -> err
 
 
   err = hoistEither $ errorNoSuggestions (ErrorCaseBadPattern (annotOfExp alt) pat)

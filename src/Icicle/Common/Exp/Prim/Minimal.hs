@@ -37,7 +37,6 @@ data Prim
  | PrimDateTime PrimDateTime
  | PrimPair     PrimPair
  | PrimStruct   PrimStruct
- | PrimTombstone ValType
  deriving (Eq, Ord, Show)
 
 -- | Arithmetic primitives, common to all number-like things
@@ -167,8 +166,6 @@ typeOfPrim p
     PrimStruct (PrimStructGet f t (StructType fs))
      -> FunT [funOfVal (StructT $ StructType $ Map.insert f t fs)] t
 
-    PrimTombstone a
-     -> FunT [funOfVal a] BoolT
 
 -- Pretty -------------
 
@@ -235,5 +232,4 @@ instance Pretty Prim where
 
  pretty (PrimStruct (PrimStructGet f t fs)) = text "get#" <+> brackets (pretty f) <+> brackets (pretty t) <+> brackets (pretty fs)
 
- pretty (PrimTombstone _) = text "tombstone#"
 

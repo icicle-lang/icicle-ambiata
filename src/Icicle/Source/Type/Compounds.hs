@@ -41,6 +41,7 @@ freeT t
     IntT                    -> Set.empty
     StringT                 -> Set.empty
     UnitT                   -> Set.empty
+    ErrorT                  -> Set.empty
 
     ArrayT      a           -> freeT a
     GroupT      a b         -> Set.union (freeT a) (freeT b)
@@ -116,6 +117,7 @@ getTemporality tt
     IntT          -> Nothing
     StringT       -> Nothing
     UnitT         -> Nothing
+    ErrorT        -> Nothing
 
     ArrayT  a     -> wrap go ArrayT  a
     GroupT  a b   -> wrap2 go GroupT a b
@@ -161,6 +163,7 @@ getPossibility tt
     IntT          -> Nothing
     StringT       -> Nothing
     UnitT         -> Nothing
+    ErrorT        -> Nothing
 
     ArrayT  a     -> wrap go ArrayT  a
     GroupT  a b   -> wrap2 go GroupT a b
@@ -205,6 +208,7 @@ getBaseType tt
     IntT          -> Just tt
     StringT       -> Just tt
     UnitT         -> Just tt
+    ErrorT        -> Just tt
     ArrayT  _     -> Just tt
     GroupT  _ _   -> Just tt
     OptionT _     -> Just tt

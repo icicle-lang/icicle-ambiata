@@ -32,6 +32,7 @@ data Type n
  | IntT
  | StringT
  | UnitT
+ | ErrorT
 
  | ArrayT   (Type n)
  | GroupT   (Type n) (Type n)
@@ -61,6 +62,7 @@ typeOfValType vt
     CT.IntT         -> IntT
     CT.StringT      -> StringT
     CT.UnitT        -> UnitT
+    CT.ErrorT       -> ErrorT
     CT.ArrayT a     -> ArrayT (go a)
     CT.MapT  k v    -> GroupT (go k) (go v)
     CT.OptionT a    -> OptionT (go a)
@@ -79,6 +81,7 @@ valTypeOfType bt
     IntT         -> return CT.IntT
     StringT      -> return CT.StringT
     UnitT        -> return CT.UnitT
+    ErrorT       -> return CT.ErrorT
     ArrayT a     -> CT.ArrayT  <$> go a
     GroupT k v   -> CT.MapT    <$> go k <*> go v
     OptionT a    -> CT.OptionT <$> go a
@@ -142,6 +145,7 @@ instance Pretty n => Pretty (Type n) where
  pretty IntT            = text "Int"
  pretty DoubleT         = text "Double"
  pretty UnitT           = text "Unit"
+ pretty ErrorT          = text "ErrorT"
  pretty BoolT           = text "Bool"
  pretty DateTimeT       = text "DateTime"
  pretty StringT         = text "String"

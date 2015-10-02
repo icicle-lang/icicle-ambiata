@@ -100,7 +100,6 @@ instance Arbitrary PM.Prim where
           , PM.PrimPair <$> (PM.PrimPairFst <$> arbitrary <*> arbitrary)
           , PM.PrimPair <$> (PM.PrimPairSnd <$> arbitrary <*> arbitrary)
           , PM.PrimStruct <$> (PM.PrimStructGet <$> arbitrary <*> arbitrary <*> arbitrary)
-          , PM.PrimTombstone <$> arbitrary
           ]
 
 instance Arbitrary Prim where
@@ -423,6 +422,8 @@ baseValueForType t
      -> VDouble <$> arbitrary
     UnitT
      -> return VUnit
+    ErrorT
+     -> return $ VError ExceptTombstone
     BoolT
      -> VBool <$> arbitrary
     DateTimeT

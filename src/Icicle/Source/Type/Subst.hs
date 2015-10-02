@@ -38,6 +38,7 @@ substT ss tt
       IntT          -> t
       StringT       -> t
       UnitT         -> t
+      ErrorT        -> t
 
       ArrayT  a     -> ArrayT  (go a)
       GroupT  a b   -> GroupT  (go a) (go b)
@@ -152,6 +153,7 @@ unifyT t1 t2
     IntT        -> eq
     StringT     -> eq
     UnitT       -> eq
+    ErrorT      -> eq
 
     ArrayT a
      | ArrayT b <- t2

@@ -18,8 +18,7 @@ import              Icicle.Common.Type
 
 import              Icicle.Internal.Pretty
 
-import              Prelude  (error)
-import              P hiding (error)
+import              P
 
 import              Data.Functor.Identity
 
@@ -267,9 +266,6 @@ primTypeOfPrim p
   min' (M.PrimStruct (M.PrimStructGet f t _))
    = Special1 $ \a -> a <> "." <> angled (boxedType t) <> "getField" <> "(" <> stringy f <> ")"
 
-  min' (M.PrimTombstone _)
-   = error "todo"
-
   unary   M.PrimArithNegate = Prefix    "-"
 
   binary   M.PrimArithPlus   = Infix     "+"
@@ -388,6 +384,7 @@ boxedType t
      IntT       -> "Integer"
      DoubleT    -> "Double"
      UnitT      -> "Integer"
+     ErrorT     -> "Error"
      BoolT      -> "Boolean"
      DateTimeT  -> "Integer"
      ArrayT a   -> "ArrayList" <> angled (boxedType a)

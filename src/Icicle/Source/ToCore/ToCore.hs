@@ -506,7 +506,7 @@ convertQuery q
                             -- just return inner layer as-is
                             (CE.xLam n'a'' tU $ CE.xVar n'a'')
                             -- Outer layer is a "None", so throw an exception
-                            (CE.xValue tU $ VException ExceptFold1NoValue)
+                            (CE.xValue tU $ VError ExceptFold1NoValue)
                             (CE.xVar n'))
 
 
