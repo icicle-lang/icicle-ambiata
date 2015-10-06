@@ -142,6 +142,10 @@ unifyT :: Ord n => Type n -> Type n -> Maybe (SubstT n)
 unifyT t1 t2
  = case t1 of
     TypeVar a
+     | TypeVar b <- t2
+     , a == b
+     -> return $ Map.empty
+    TypeVar a
      -> return $ Map.singleton a t2
     _
      | TypeVar b <- t2

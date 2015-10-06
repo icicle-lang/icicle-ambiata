@@ -498,13 +498,13 @@ generateX x env cons
            returnTemp' <- TypeVar <$> fresh
            let cons''  =  require a (CTemporalityJoin returnTemp' scrutTm returnTemp) cons'
 
-           (patsubs, ctx'') <- generateP a scrutT returnType returnTemp pats env cons'
+           (patsubs, ctx'') <- generateP a scrutT returnType returnTemp pats env cons''
            let (pats', subs) = unzip patsubs
 
-           let t'    = Temporality returnTemp returnType
+           let t'    = Temporality returnTemp' returnType
            let subst = Map.unions (sub : subs)
 
-           let x' = annotate cons'' t'
+           let x' = annotate ctx'' t'
                   $ \a' -> Case a' scrut' pats'
 
            return (x', subst, ctx'')
