@@ -1,4 +1,5 @@
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE PatternGuards #-}
 module Icicle.Source.Transform.ReifyPossibility (
     reifyPossibilityTransform
   ) where
@@ -12,9 +13,6 @@ import Icicle.Common.Fresh
 
 import P
 
-import              Data.Functor.Identity
-import              Data.List (zip)
-import qualified    Data.Map as Map
 
 reifyPossibilityTransform
         :: Ord n
@@ -38,38 +36,40 @@ reifyPossibilityTransform
               let b  = foldBind f
                   a' = a { annResult = canonT $ SumT ErrorT $ annResult a }
 
-                  z' = con1 a' ConLeft $ ConError ErrorEmptyFold1
+                  z' = con1 a' ConLeft $ con0 a' $ ConError ExceptFold1NoValue
 
                   -- Will need to desugar after this
-                  k' = Case a' b
-                     [ ( PatCon ConLeft  [ PatCon $ ConError ErrorEmptyFold1 ]
-                       , wrapRight $ foldZero f )
+                  k' = Case a' (Var a' b)
+                     [ ( PatCon ConLeft  [ PatCon (ConError ExceptFold1NoValue) [] ]
+                       , wrapRight $ foldInit f )
                      , ( PatCon ConLeft  [ PatVariable nError ]
                        , con1 a' ConLeft $ Var a' nError )
                      , ( PatCon ConRight [ PatVariable nValue ]
                        , wrapRight
                        $ wrapBareInput nValue
-                       $ foldKons f ) ]
+                       $ foldWork f ) ]
 
                   f' = f { foldType = FoldTypeFoldl
-                         , foldZero = z'
-                         , foldKons = k' }
+                         , foldInit = z'
+                         , foldWork = k' }
 
               return ((), LetFold a' f')
 
       _
        -> return ((), c)
 
+  con0 a c   =        Prim a (PrimCon c)
   con1 a c x = App a (Prim a (PrimCon c)) x
 
   wrapRight x
    | ann        <- annotOfExp x
    , t          <- annResult  ann
-   , Possibly   <- getPossibilityOrDefinitely t
-   = con1 (ann { annResult = canonT $ SumT ErrorT t) ConRight x
+   , PossibilityPossibly <- getPossibilityOrDefinitely t
+   = con1 (ann { annResult = canonT $ SumT ErrorT t } ) ConRight x
    | otherwise
    = x
 
-  wrapBareInput n x
-   = ...
+  -- TODO
+  wrapBareInput _n x
+   = x
 
