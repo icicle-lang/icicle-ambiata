@@ -24,7 +24,7 @@ import                  P
 
 import                  Control.Monad.Trans.Either
 
-import                  Data.List (zip,unzip)
+import                  Data.List (zip,unzip,unzip3)
 import qualified        Data.Map                as Map
 
 
@@ -447,26 +447,22 @@ generateX x env cons
                         | otherwise
                         = Gen . hoistEither
                         $ errorNoSuggestions (ErrorApplicationNotFunction a x)
-            -- Generate constraints for this argument and combine with the acuumulator.
-            arg (as, ss, cs) e
-                        = do (a', s', c') <- generateX e env cs
-                             return (as <> [a'], compose ss s', cs <> c')
         in do   (fErr, argsT, resT, cons') <- look
 
-                (args', subs', conss) <- foldM arg ([], Map.empty, cons') args
-                let argsT'             = fmap (annResult.annotOfExp) args'
+                (args', subs', conss)      <- unzip3 <$> mapM ((flip . flip generateX) env cons') args
+                let argsT'                  = fmap (annResult.annotOfExp) args'
 
                 when (length argsT /= length args)
                  $ Gen. hoistEither
                  $ errorNoSuggestions (ErrorFunctionWrongArgs a x fErr argsT')
 
                 let go (t, c) u     = appType a t u c
-                let (resT', cons'') = foldl' go (resT, conss) (argsT `zip` argsT')
+                let (resT', cons'') = foldl' go (resT, concat conss) (argsT `zip` argsT')
 
+                let s' = foldl compose Map.empty subs'
                 let f' = annotate cons'' resT' $ \a' -> reannotX (const a') f
-                let x' = foldl mkApp f' args'
 
-                return (x', subs', cons'')
+                return (foldl mkApp f' args', s', cons'')
 
     -- Unapplied primitives should be relatively easy
     Prim a p

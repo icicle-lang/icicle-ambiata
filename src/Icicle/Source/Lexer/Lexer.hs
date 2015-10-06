@@ -119,7 +119,7 @@ lexerPositions ts
   isVarStart c
    = C.isAlpha c || c == '_'
   isVarRest c
-   = C.isAlphaNum c || c == '_'
+   = C.isAlphaNum c || c == '_' || c == '$' || c == '\''
 
   isOperator c
    =  not (isVarRest c)

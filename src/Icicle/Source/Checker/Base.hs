@@ -138,7 +138,7 @@ introForalls
 introForalls ann f cons
  = do freshen <- Map.fromList <$> mapM mkSubst (functionForalls f)
 
-      let cons' = foldr (require ann . substC freshen) cons (functionConstraints f)
+      let cons' = foldl (flip $ require ann . substC freshen) cons (functionConstraints f)
 
       let sub   = substT freshen
       return ( f

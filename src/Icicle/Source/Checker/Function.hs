@@ -59,7 +59,12 @@ checkF' fun env cons
  = do -- Give each argument a fresh type variable
       env' <- foldM bindArg env $ arguments fun
       -- Get the annotated body
-      (q',_,cons')  <- generateQ (body fun) env' cons
+      (q', subs, cons')  <- generateQ (body fun) env' cons
+
+      -- Look up the argument types after solving all constraints.
+      -- Because they started as fresh unification variables,
+      -- they will end up being unified to the actual types.
+      args <- mapM (lookupArg subs env' cons') (arguments fun)
 
       -- Find all leftover constraints and nub them
       let constrs = ordNub $ fmap snd cons'
@@ -117,11 +122,6 @@ checkF' fun env cons
            = let (tmp,pos,dat) = decomposeT t
              in  recomposeT (remode tmp, remode pos, dat)
 
-      -- Look up the argument types after solving all constraints.
-      -- Because they started as fresh unification variables,
-      -- they will end up being unified to the actual types.
-      args <- mapM (lookupArg env' cons') $ arguments fun
-
       -- Fix the modes of all the argument and result types
       let argTs = fmap (fixmodes . annResult . fst) args
       let resT  = fixmodes $ annResult $ annotOfQuery q'
@@ -145,7 +145,7 @@ checkF' fun env cons
    <*> (Possibility <$> (TypeVar <$> fresh)
    <*>                  (TypeVar <$> fresh))
 
-  lookupArg e c (a,n)
+  lookupArg subs e c (a,n)
    = do (_,_,t,_) <- lookup a n e c
-        return (Annot a t [], n)
+        return (Annot a (substT subs t) [], n)
 
