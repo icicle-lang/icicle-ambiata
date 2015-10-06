@@ -106,8 +106,8 @@ instance (Pretty a, Pretty n) => Pretty (ErrorInfo a n) where
 
      ErrorFunctionWrongArgs a x f tys
       -> "Function applied to wrong number of arguments at" <+> pretty a <> line
-      <> "Expression:     " <> inp x
-      <> "Function type:  " <> inp f
+      <> "Expression:     " <> inp x <> line
+      <> "Function type:  " <> inp f <> line
       <> "Argument types: " <> inp tys
 
      ErrorApplicationNotFunction a x
