@@ -7,12 +7,15 @@ module Icicle.Source.Transform.ReifyPossibility (
 import Icicle.Source.Query
 import Icicle.Source.Type
 import Icicle.Source.Transform.Base
+import Icicle.Source.Transform.SubstX
 
 import Icicle.Common.Base
 import Icicle.Common.Fresh
 
 import P
 
+import Data.Functor.Identity
+import qualified Data.Map as Map
 
 reifyPossibilityTransform
         :: Ord n
@@ -46,7 +49,7 @@ reifyPossibilityTransform
                        , con1 a' ConLeft $ Var a' nError )
                      , ( PatCon ConRight [ PatVariable nValue ]
                        , wrapRight
-                       $ wrapBareInput nValue
+                       $ substIntoIfDefinitely b (Var a nValue)
                        $ foldWork f ) ]
 
                   f' = f { foldType = FoldTypeFoldl
@@ -69,7 +72,16 @@ reifyPossibilityTransform
    | otherwise
    = x
 
-  -- TODO
-  wrapBareInput _n x
-   = x
+  substIntoIfDefinitely var payload into
+   | PossibilityDefinitely <- getPossibilityOrDefinitely $ annResult $ annotOfExp into
+   = substInto var payload into
+   | otherwise
+   = into
+
+  substInto var payload into
+   = runIdentity
+   $ transformX
+     unsafeSubstTransform
+   { transformState = Map.singleton var payload }
+     into
 
