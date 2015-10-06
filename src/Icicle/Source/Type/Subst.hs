@@ -78,8 +78,6 @@ substC ss cc
      -> CReturnOfLatest (substT ss ret) (substT ss tmp) (substT ss dat)
     CPossibilityJoin ret b c
      -> CPossibilityJoin (substT ss ret) (substT ss b) (substT ss c)
-    CExtractTemporality temp ty tau
-     -> CExtractTemporality (substT ss temp) (substT ss ty) (substT ss tau)
 
 
 -- | Substitute into a function type.

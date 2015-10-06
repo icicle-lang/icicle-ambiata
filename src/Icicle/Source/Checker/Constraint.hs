@@ -69,8 +69,6 @@ defaults q
    = []
   defaultOfConstraint (CTemporalityJoin _ _ _)
    = []
-  defaultOfConstraint (CExtractTemporality _ _ _)
-   = []
 
 
 
@@ -505,10 +503,8 @@ generateX x env
 
            -- Destruct the scrutinee type into the base type
            -- and the temporality (defaulting to Pure).
-           let scrutT =  annResult $ annotOfExp scrut'
-           scrutTy    <- TypeVar <$> fresh
-           scrutTm    <- TypeVar <$> fresh
-           let consSt =  require a (CExtractTemporality scrutTm scrutTy scrutT)
+           let scrutT  =  annResult $ annotOfExp scrut'
+           let scrutTm = getTemporalityOrPure scrutT
 
            -- Require the scrutinee and the alternatives to have compatible temporalities.
            returnType  <- TypeVar <$> fresh
@@ -521,7 +517,7 @@ generateX x env
 
            let t'    = Temporality returnTemp' returnType
            let subst = Map.unions (sub : subs)
-           let cons' = concat [consS, consSt, consTj, consA]
+           let cons' = concat [consS, consTj, consA]
 
            let x' = annotate cons' t'
                   $ \a' -> Case a' scrut' pats'
@@ -555,17 +551,15 @@ generateP ann scrutTy resTy resTm ((pat, alt):rest) env
 
         (alt', sub, consa) <- generateX alt envp
 
-        let altTy'  = annResult (annotOfExp alt')
-        altTy      <- TypeVar <$> fresh
-        altTp      <- TypeVar <$> fresh
+        let altTy' = annResult (annotOfExp alt')
+        let altTp  = getTemporalityOrPure altTy'
         resTp'     <- TypeVar <$> fresh
 
         -- Require alternative types to have the same temporality if they
         -- do have temporalities. Otherwise defaults to TemporalityPure.
         let consT = concat
-                  [ require (annotOfExp alt) (CExtractTemporality altTp altTy altTy')
-        -- Require the alternative types without temporality to be the same.
-                  , requireData resTy altTy
+                  -- Require the alternative types without temporality to be the same.
+                  [ requireData resTy altTy'
         -- Require return temporality to be compatible with alternative temporalities.
                   , require (annotOfExp alt) (CTemporalityJoin resTm resTp' altTp)
                   ]

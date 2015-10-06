@@ -82,10 +82,6 @@ freeC c
     CTemporalityJoin p q r  -> Set.unions
                              $ fmap freeT
                              [ p, q, r ]
-    CExtractTemporality p q r
-                            -> Set.unions
-                             $ fmap freeT
-                             [ p, q, r ]
 
 
 canonT :: Type n -> Type n

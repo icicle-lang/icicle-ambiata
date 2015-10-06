@@ -112,7 +112,6 @@ data Constraint n
  | CReturnOfLetTemporalities (Type n) (Type n) (Type n)
  | CReturnOfLatest (Type n) (Type n) (Type n)
  | CPossibilityJoin (Type n) (Type n) (Type n)
- | CExtractTemporality (Type n) (Type n) (Type n)
  deriving (Eq, Ord, Show)
 
 
@@ -180,8 +179,6 @@ instance Pretty n => Pretty (Constraint n) where
   = pretty t <+> "=: ReturnOfLatest" <+> pretty tmp <+> pretty dat
  pretty (CPossibilityJoin a b c)
   = pretty a <+> "=: PossibilityJoin" <+> pretty b <+> pretty c
- pretty (CExtractTemporality tmp ty t)
-  = "Temporality " <+> pretty tmp <+> pretty ty <+> "~:" <+> pretty t
 
 
 instance Pretty n => Pretty (FunctionType n) where
