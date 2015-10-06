@@ -23,7 +23,7 @@ instance Arbitrary Entity where
 
 instance Arbitrary Attribute where
   arbitrary =
-    Attribute <$> elements viruses
+    Attribute <$> elements weather
 
 instance Arbitrary DateTime where
   arbitrary =

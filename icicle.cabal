@@ -189,6 +189,7 @@ library
                        Icicle.Storage.Dictionary.Toml
                        Icicle.Storage.Dictionary.Toml.Types
                        Icicle.Storage.Dictionary.Toml.Toml
+                       Icicle.Storage.Dictionary.Toml.Persist
                        Icicle.Storage.Dictionary.Toml.Prisms
                        Icicle.Storage.Dictionary.Toml.TomlDictionary
 
@@ -251,6 +252,34 @@ test-suite test
                      , containers                      == 0.5.*
                      , transformers                    >= 0.3        && < 0.5
                      , either
+
+test-suite test-io
+  type:
+                    exitcode-stdio-1.0
+
+  main-is:
+                    test-io.hs
+
+  ghc-options:
+                    -Wall -threaded -O2
+
+  hs-source-dirs:
+                    test
+
+  build-depends:
+                      base                            >= 3          && < 5
+                    , icicle
+                    , ambiata-disorder-core
+                    , ambiata-disorder-corpus
+                    , ambiata-p
+                    , containers
+                    , either
+                    , text
+                    , QuickCheck                      == 2.7.*
+                    , quickcheck-instances            == 0.3.*
+                    , temporary
+                    , transformers
+                    , filepath
 
 test-suite test-cli
   type:                exitcode-stdio-1.0
