@@ -21,6 +21,7 @@ module Icicle.Source.Checker.Base (
   , lookup
   , bind
   , withBind
+  , removeElementBinds
 
   , substTQ
   , substTX
@@ -182,6 +183,14 @@ withBind
   -> Gen a n r
 withBind n t old gen
  = gen (bind n t old)
+
+removeElementBinds :: Ord n => GenEnv n -> GenEnv n
+removeElementBinds env
+ = let elts  = Map.keys $ Map.filter isElementTemporality env
+   in  foldr Map.delete env elts
+ where
+  isElementTemporality ft
+   = getTemporalityOrPure (functionReturn ft) == TemporalityElement
 
 
 substTQ :: Ord n => SubstT n -> Query'C a n -> Query'C a n

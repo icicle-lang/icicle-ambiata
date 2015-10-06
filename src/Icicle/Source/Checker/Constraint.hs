@@ -218,8 +218,9 @@ generateQ qq@(Query (c:_) _) env cons
             retk <- Temporality TemporalityElement . TypeVar <$> fresh
             retv <- Temporality TemporalityElement . TypeVar <$> fresh
 
+            let env' = removeElementBinds env
             (q', sq, t', consr)
-                <- withBind k retk env
+                <- withBind k retk env'
                  $ (fmap flip . withBind) v retv (rest consg)
 
             cons'  <-  requireAgg  t' consr
