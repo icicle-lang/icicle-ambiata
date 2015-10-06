@@ -210,6 +210,10 @@ requireSame err p q
 valueMatchesType :: BaseValue -> ValType -> Bool
 valueMatchesType v t
  = case (t,v) of
+    -- XXX reintroducing error-as-anything test for now
+    (_, VError{})
+     -> True
+
     (IntT, VInt{})
      -> True
     (IntT, _)
@@ -225,8 +229,8 @@ valueMatchesType v t
     (UnitT, _)
      -> False
 
-    (ErrorT, VError _)
-     -> True
+    -- (ErrorT, VError _)
+    -- -> True
     (ErrorT, _)
      -> False
 

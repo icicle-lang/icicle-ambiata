@@ -48,7 +48,7 @@ gen$date = DATE
     output repl conv$7$simp$5;
   } 
    else {
-    output repl Exception: Fold1, but there is no value : Int;
+    output repl ExceptFold1NoValue : Int;
   } 
   
 }
