@@ -85,8 +85,6 @@ prop_convert_is_well_typed nm fn now q
   pp = show $ pretty q
 
 
-
-
 -- For now we can't say anything about *all* programs,
 -- but we can say that a restricted subset should convert OK.
 restrict
