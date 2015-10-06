@@ -32,6 +32,7 @@ data ErrorInfo a n
  | ErrorFunctionWrongArgs      a (Exp a n) (FunctionType n) [Type n]
  | ErrorApplicationNotFunction a (Exp a n)
  | ErrorConstraintsNotSatisfied a [(a, DischargeError n)]
+ | ErrorConstraintLeftover      a [(a, Constraint n)]
  | ErrorReturnNotAggregate a (Type n)
  | ErrorDuplicateFunctionNames a (Name n)
  | ErrorEmptyCase a (Exp a n)
@@ -52,6 +53,8 @@ annotOfError (CheckError e _)
     ErrorApplicationNotFunction a _
      -> Just a
     ErrorConstraintsNotSatisfied          a _
+     -> Just a
+    ErrorConstraintLeftover a _
      -> Just a
     ErrorReturnNotAggregate          a _
      -> Just a
@@ -114,6 +117,10 @@ instance (Pretty a, Pretty n) => Pretty (ErrorInfo a n) where
      ErrorConstraintsNotSatisfied a ds
       -> "Cannot discharge constraints at" <+> pretty a <> line
       <> "Constraints: " <> line
+      <> vcat (fmap (\(an,con) -> indent 2 (pretty an) <> indent 2 (pretty con)) ds)
+
+     ErrorConstraintLeftover a ds
+      -> "Unsolvable constraint at " <+> pretty a <> line
       <> vcat (fmap (\(an,con) -> indent 2 (pretty an) <> indent 2 (pretty con)) ds)
 
      ErrorReturnNotAggregate a t

@@ -18,9 +18,7 @@ import qualified        Icicle.Common.Fresh     as Fresh
 
 import                  P
 
-import                  Control.Monad.Trans.Class
 import                  Control.Monad.Trans.Either
-import qualified        Control.Monad.Trans.State as State
 
 import qualified        Data.Map                as Map
 import qualified        Data.Set                as Set
@@ -47,25 +45,24 @@ checkF  :: Ord n
                    (Function (Annot a n) n, FunctionType n)
 
 checkF env fun
- = evalGen (checkF' fun) (CheckState env [])
+ = evalGen (checkF' fun env) []
 
 
 -- | Typecheck a function definition, generalising types and pulling out constraints
 checkF' :: Ord n
         => Function a n
+        -> GenEnv n
+        -> GenConstraintSet a n
         -> Gen a n (Function (Annot a n) n, FunctionType n)
 
-checkF' fun
+checkF' fun env cons
  = do -- Give each argument a fresh type variable
-      mapM_ bindArg $ arguments fun
+      env' <- foldM bindArg env $ arguments fun
       -- Get the annotated body
-      (q',_)  <- generateQ    $ body      fun
+      (q',_,cons')  <- generateQ (body fun) env' cons
 
       -- Find all leftover constraints and nub them
-      ctx <- lift $ lift State.get
-      let constrs = ordNub
-                  $ fmap snd
-                  $ stateConstraints ctx
+      let constrs = ordNub $ fmap snd cons'
 
       -- We want to remove any modes (temporalities or possibilities)
       -- that are bound by foralls with no constraints on them.
@@ -123,7 +120,7 @@ checkF' fun
       -- Look up the argument types after solving all constraints.
       -- Because they started as fresh unification variables,
       -- they will end up being unified to the actual types.
-      args <- mapM lookupArg $ arguments fun
+      args <- mapM (lookupArg env' cons') $ arguments fun
 
       -- Fix the modes of all the argument and result types
       let argTs = fmap (fixmodes . annResult . fst) args
@@ -139,15 +136,16 @@ checkF' fun
 
       return (Function args q', funT)
  where
-  bindArg (_,n)
-   = freshType >>= bind n
+  bindArg cx (_,n)
+   = do t <- freshType
+        return (bind n t cx)
 
   freshType
    =    Temporality <$> (TypeVar <$> fresh)
    <*> (Possibility <$> (TypeVar <$> fresh)
    <*>                  (TypeVar <$> fresh))
 
-  lookupArg (a,n)
-   = do (_,t,_) <- lookup a n
+  lookupArg e c (a,n)
+   = do (_,_,t,_) <- lookup a n e c
         return (Annot a t [], n)
 

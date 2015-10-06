@@ -47,7 +47,7 @@ type StreamValue
  = ([AsAt (BubbleGumFact, BaseValue)], StreamWindow)
 
 -- | Whether this stream is the result - directly or indirectly - of a windowed source
-data StreamWindow = Windowed Int | UnWindowed
+data StreamWindow = Windowed WindowUnit | UnWindowed
  deriving (Eq,Ord,Show)
 
 -- | Right at the start, we need dates on the stream values.
@@ -148,28 +148,30 @@ eval window_check xh concreteValues sh s
     --
     SWindow _ newerThan olderThan n
      -> do  sv <- getInput n
-            newer  <- evalX newerThan
-            older  <- mapM evalX olderThan
+            let newer  = windowEdge newerThan
+            let older  = windowEdge <$> olderThan
 
-            let windowBy p p'history wind =
+            let windowBy p p'history =
                  return $
                   EvalResult
-                        ( filter (\v -> p (daysDifference (time v) window_check))
+                        ( filter (\v -> p $ time v)
                         $ fst sv
-                        , Windowed wind)
+                        , Windowed newerThan)
                         ( fmap (fst . fact)
-                        $ filter (\v -> p'history (daysDifference (time v) window_check))
+                        $ filter (\v -> p'history $ time v)
                         $ fst sv)
 
             case (newer, older) of
-             (VBase (VInt newer'), Nothing)
-              -> windowBy (<= newer') (const False) newer'
-             (VBase (VInt newer'), Just (VBase (VInt older')))
-              -> windowBy (\d -> d <= newer' && d >= older') (< older') newer'
-             (VBase (VInt _), Just older')
-              -> Left $ RuntimeErrorExpNotOfType older' IntT
-             _
-              -> Left $ RuntimeErrorExpNotOfType newer IntT
+             (newer', Nothing)
+              -> windowBy (>= newer') (const False)
+             (newer', Just (older'))
+              -> windowBy (\d -> d >= newer' && d <= older') (> older')
+
+          where
+            windowEdge :: WindowUnit -> DateTime
+            windowEdge (Days   d) = minusDays window_check d
+            windowEdge (Weeks  w) = minusDays window_check $ 7 * w
+            windowEdge (Months m) = minusMonths window_check m
 
     -- Transformers are slightly more involved
     -- Evaluate transform over given values.

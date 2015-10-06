@@ -180,6 +180,17 @@ evalPrim p originalP vs
       | otherwise
       -> primError
 
+     PrimDateTime PrimDateTimeMinusDays
+      | [VBase (VDateTime a), VBase (VInt b)] <- vs
+      -> return $ VBase $ VDateTime $ DT.minusDays a b
+      | otherwise
+      -> primError
+
+     PrimDateTime PrimDateTimeMinusMonths
+      | [VBase (VDateTime a), VBase (VInt b)] <- vs
+      -> return $ VBase $ VDateTime $ DT.minusMonths a b
+      | otherwise
+      -> primError
 
      PrimPair (PrimPairFst _ _)
       | [VBase (VPair x _)] <- vs

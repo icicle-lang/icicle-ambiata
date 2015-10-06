@@ -78,7 +78,7 @@ renameNS f (n, s) = (renameN f n, renameS f s)
 
 renameS :: (n -> m) -> CS.Stream a n -> CS.Stream a m
 renameS _ CS.Source                 = CS.Source
-renameS f (CS.SWindow t x mx n)     = CS.SWindow t (renameCX f x) (fmap (renameCX f) mx) (renameN f n)
+renameS f (CS.SWindow t x mx n)     = CS.SWindow t x mx (renameN f n)
 renameS f (CS.STrans i e n)         = CS.STrans i (renameCX f e) (renameN f n)
 
 renameNR :: (n -> m) -> (Name n, CR.Reduce a n) -> (Name m, CR.Reduce a m)

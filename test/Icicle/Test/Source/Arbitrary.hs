@@ -73,10 +73,14 @@ instance Arbitrary n => Arbitrary (Exp () n) where
         , Op    (ArithBinary Sub)
         , Op    (ArithBinary Pow)
         , Op    (Relation Gt)
-        , Op    (Relation Eq) ]
+        , Op    (Relation Eq)
+        , Op    (LogicalBinary And)
+        , Op    (LogicalBinary Or)]
 
    operator_pre
-    = return $ Op (ArithUnary Negate)
+    = oneof_vals
+        [ Op (ArithUnary Negate)
+        , Op (LogicalUnary Not)]
 
 instance Arbitrary Prim where
  arbitrary
@@ -122,15 +126,6 @@ instance Arbitrary n => Arbitrary (Context () n) where
     | (GroupBy _ _ : _) <- contexts q = True
     | otherwise = False
 
-
-instance Arbitrary WindowUnit where
- arbitrary
-  = oneof
-        [ Days   <$> pos
-        , Months <$> pos
-        , Weeks  <$> pos ]
-  where
-   pos = abs <$> arbitrary
 
 instance Arbitrary n => Arbitrary (Fold (Query () n) () n) where
  arbitrary

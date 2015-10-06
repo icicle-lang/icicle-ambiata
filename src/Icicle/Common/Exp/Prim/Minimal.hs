@@ -95,6 +95,8 @@ data PrimConst
 -- | DateTime primitives
 data PrimDateTime
  = PrimDateTimeDaysDifference
+ | PrimDateTimeMinusDays
+ | PrimDateTimeMinusMonths
  deriving (Eq, Ord, Show)
 
 -- | Pair primitives
@@ -157,6 +159,10 @@ typeOfPrim p
 
     PrimDateTime PrimDateTimeDaysDifference
      -> FunT [funOfVal DateTimeT, funOfVal DateTimeT] IntT
+    PrimDateTime PrimDateTimeMinusDays
+     -> FunT [funOfVal DateTimeT, funOfVal IntT] DateTimeT
+    PrimDateTime PrimDateTimeMinusMonths
+     -> FunT [funOfVal DateTimeT, funOfVal IntT] DateTimeT
 
     PrimPair (PrimPairFst a b)
      -> FunT [funOfVal (PairT a b)] a
@@ -224,8 +230,9 @@ instance Pretty Prim where
  pretty (PrimConst (PrimConstRight a b))
   = text "right#" <+> brackets (pretty a) <+> brackets (pretty b)
 
- pretty (PrimDateTime PrimDateTimeDaysDifference)
-  = text "DateTime_daysDifference#"
+ pretty (PrimDateTime PrimDateTimeDaysDifference) = text "DateTime_daysDifference#"
+ pretty (PrimDateTime PrimDateTimeMinusDays)      = text "DateTime_minusDays#"
+ pretty (PrimDateTime PrimDateTimeMinusMonths)    = text "DateTime_minusMonths#"
 
  pretty (PrimPair (PrimPairFst a b)) = text "fst#" <+> brackets (pretty a) <+> brackets (pretty b)
  pretty (PrimPair (PrimPairSnd a b)) = text "snd#" <+> brackets (pretty a) <+> brackets (pretty b)

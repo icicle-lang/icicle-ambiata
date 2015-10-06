@@ -106,6 +106,15 @@ convertPrim p ann resT xts
   goop (ArithDouble Div)
    = return $ primmin $ Min.PrimDouble Min.PrimDoubleDiv
 
+  goop (LogicalUnary Not)
+   = return $ primmin $ Min.PrimLogical Min.PrimLogicalNot
+
+  goop (LogicalBinary And)
+   = return $ primmin $ Min.PrimLogical Min.PrimLogicalAnd
+  goop (LogicalBinary Or)
+   = return $ primmin $ Min.PrimLogical Min.PrimLogicalOr
+
+
   goop (Relation Gt)
    = primmin <$> (Min.PrimRelation Min.PrimRelationGt <$> t1 2)
   goop (Relation Ge)

@@ -78,8 +78,8 @@ streamEquivalent s s'
  | SWindow t  newer  older  inp  <- s
  , SWindow t' newer' older' inp' <- s'
  =  t   == t'
- && newer `alphaEquality` newer'
- && older `alphaEqualityMaybe` older'
+ && newer == newer'
+ && older == older'
  && inp == inp'
 
  | STrans st  x  inp     <- s
@@ -92,13 +92,6 @@ streamEquivalent s s'
  | otherwise
  = False
 
- where
-  alphaEqualityMaybe (Just a) (Just b)
-   = alphaEquality a b
-  alphaEqualityMaybe Nothing Nothing
-   = True
-  alphaEqualityMaybe _ _
-   = False
 
 
 -- | Rename all uses of stream to another name

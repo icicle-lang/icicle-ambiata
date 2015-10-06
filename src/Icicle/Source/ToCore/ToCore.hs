@@ -142,8 +142,8 @@ convertQuery q
      -> do  n'      <- lift fresh
             (bs, b) <- convertWithInputName n' $ convertQuery q'
 
-            let newerThan' =      convertWindowUnits newerThan
-            let olderThan' = fmap convertWindowUnits olderThan
+            let newerThan' = newerThan
+            let olderThan' = olderThan
 
             (inpstream, inpty) <- convertInput
             let bs'  = strm n' (C.SWindow inpty newerThan' olderThan' inpstream) <> bs

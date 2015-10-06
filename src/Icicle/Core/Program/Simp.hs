@@ -49,9 +49,7 @@ simpStream a_fresh ss = case ss of
   Source
     ->    return ss
   SWindow t x mx n
-    -> do x'  <- simp a_fresh x
-          mx' <- mapM (simp a_fresh) mx
-          return (SWindow t x' mx' n)
+    -> return (SWindow t x mx n)
   STrans t x n
     -> do x'  <- simp a_fresh x
           return (STrans t x' n)

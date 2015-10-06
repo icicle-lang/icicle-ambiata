@@ -348,7 +348,7 @@ programForStreamType streamType
    = streamSource
    | otherwise
    = oneof [ streamSource
-           , streamWindow      s_env pre_env
+           , streamWindow      s_env
            , streamTransformer s_env pre_env ]
 
   -- Raw source or windowed
@@ -370,15 +370,12 @@ programForStreamType streamType
         (,) ot <$> (STrans <$> return st <*> gen_exp ty pre_env <*> return i)
 
   -- Window
-  streamWindow :: Env Var ValType -> Env Var Type -> Gen (ValType, Stream () Var)
-  streamWindow s_env pre_env
+  streamWindow :: Env Var ValType -> Gen (ValType, Stream () Var)
+  streamWindow s_env
    = do (i,t) <- oneof $ fmap return $ Map.toList s_env
 
-        let intT = funOfVal IntT
-
-        newer <- gen_exp intT pre_env
-        older <- oneof [ return Nothing
-                       , Just <$> gen_exp intT pre_env ]
+        newer <- arbitrary
+        older <- arbitrary
 
         return (t, SWindow t newer older i)
 

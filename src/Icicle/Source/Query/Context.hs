@@ -4,7 +4,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Icicle.Source.Query.Context (
     Context'  (..)
-  , WindowUnit(..)
   , Fold      (..)
   , FoldType  (..)
   , annotOfContext
@@ -26,12 +25,6 @@ data Context' q a n
  | LetFold   a          (Fold q a n)
  | Let       a (Name n) (Exp' q a n)
  | GroupFold a (Name n) (Name n) (Exp' q a n)
- deriving (Show, Eq, Ord)
-
-data WindowUnit
- = Days   Int
- | Months Int
- | Weeks  Int
  deriving (Show, Eq, Ord)
 
 data Fold q a n
@@ -103,11 +96,3 @@ instance Pretty FoldType where
   = "fold1"
  pretty FoldTypeFoldl
   = "fold"
-
-instance Pretty WindowUnit where
- pretty wu
-  = case wu of
-     Days   i -> pretty i <+> "days"
-     Months i -> pretty i <+> "months"
-     Weeks  i -> pretty i <+> "weeks"
-
