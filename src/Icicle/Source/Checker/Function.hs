@@ -22,7 +22,6 @@ import                  Control.Monad.Trans.Either
 
 import qualified        Data.Map                as Map
 import qualified        Data.Set                as Set
-import qualified        Data.List               as List
 
 checkFs :: Ord n
         => Map.Map (Name n) (FunctionType n, Function (Annot a n) n)
@@ -65,10 +64,10 @@ checkF' fun env cons
       -- Look up the argument types after solving all constraints.
       -- Because they started as fresh unification variables,
       -- they will end up being unified to the actual types.
-      (args, cs) <- List.unzip <$> mapM (lookupArg subs env' cons') (arguments fun)
+      args <- mapM (lookupArg subs env' cons') (arguments fun)
 
       -- Find all leftover constraints and nub them
-      let constrs = ordNub $ fmap snd (concat cs)
+      let constrs = ordNub $ fmap snd cons'
 
       -- We want to remove any modes (temporalities or possibilities)
       -- that are bound by foralls with no constraints on them.
@@ -147,6 +146,6 @@ checkF' fun env cons
    <*>                  (TypeVar <$> fresh))
 
   lookupArg subs e c (a,n)
-   = do (_,_,t,c') <- lookup a n e c
-        return ((Annot a (substT subs t) [], n), c')
+   = do (_,_,t,_) <- lookup a n e c
+        return (Annot a (substT subs t) [], n)
 
