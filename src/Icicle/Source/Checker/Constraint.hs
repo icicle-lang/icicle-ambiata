@@ -590,6 +590,15 @@ generateP ann scrutTy resTy resTm ((pat, alt):rest) env cons
   goPat (PatCon (ConError _)  []) e
    = return (ErrorT, e)
 
+  goPat (PatCon ConLeft  [p]) e
+   = do (l,e') <- goPat p e
+        r      <- TypeVar <$> fresh
+        return ( SumT l r , e' )
+  goPat (PatCon ConRight  [p]) e
+   = do l      <- TypeVar <$> fresh
+        (r,e') <- goPat p e
+        return ( SumT l r , e' )
+
   goPat _ _
    = Gen . hoistEither
    $ errorNoSuggestions (ErrorCaseBadPattern (annotOfExp alt) pat)

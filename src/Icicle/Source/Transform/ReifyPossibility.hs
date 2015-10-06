@@ -64,7 +64,7 @@ reifyPossibilityTransform
   wrapRight x
    | ann        <- annotOfExp x
    , t          <- annResult  ann
-   , PossibilityPossibly <- getPossibilityOrDefinitely t
+   , PossibilityDefinitely <- getPossibilityOrDefinitely t
    = con1 (ann { annResult = canonT $ SumT ErrorT t } ) ConRight x
    | otherwise
    = x
