@@ -23,6 +23,7 @@ module Icicle.Source.Eval (
 
 import                  Icicle.Common.Base
 import                  Icicle.Source.Query
+import qualified        Icicle.Data.DateTime            as DT
 
 import                  P
 import                  Data.List (zip, nubBy, groupBy, take)
@@ -247,6 +248,10 @@ evalP ann p xs vs env
              ToInt
               | [VDouble i] <- args
               -> return $ VDouble $ fromIntegral (truncate i :: Int)
+              | otherwise -> err
+             DaysBetween
+              | [VDateTime i, VDateTime j] <- args
+              -> return $ VInt $ DT.daysDifference i j
               | otherwise -> err
 
     Op o

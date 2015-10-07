@@ -114,7 +114,6 @@ convertPrim p ann resT xts
   goop (LogicalBinary Or)
    = return $ primmin $ Min.PrimLogical Min.PrimLogicalOr
 
-
   goop (Relation Gt)
    = primmin <$> (Min.PrimRelation Min.PrimRelationGt <$> t1 2)
   goop (Relation Ge)
@@ -156,6 +155,8 @@ convertPrim p ann resT xts
        -> return xx
       _
        -> return $ primmin $ Min.PrimCast Min.PrimCastIntOfDouble
+  gofun DaysBetween
+   = return $ primmin $ Min.PrimDateTime Min.PrimDateTimeDaysDifference
 
   t1 num_args
    = case xts of

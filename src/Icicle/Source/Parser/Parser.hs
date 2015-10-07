@@ -140,7 +140,8 @@ exp1
   -- TODO: this should be a lookup rather than asum
   prims
    =  asum (fmap (\(k,q) -> pKeyword k *> return q) primitives)
-   <|> ((Q.Lit . Q.LitInt) <$> pLitInt)
+   <|> ((Q.Fun Q.DaysBetween) <$  pKeyword T.Days <* pKeyword T.Between)
+   <|> ((Q.Lit . Q.LitInt)    <$> pLitInt)
    <|> ((Q.Lit . Q.LitDouble) <$> pLitDouble)
    <|> ((Q.Lit . Q.LitString) <$> pLitString)
    <|> (Q.PrimCon             <$> constructor)
