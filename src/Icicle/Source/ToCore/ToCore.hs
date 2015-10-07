@@ -580,16 +580,28 @@ convertReduce xx
 
         scrut' <- convertReduce scrut
         pats'  <- convertCaseFreshenPats pats
-        alts'  <- mapM convertExp alts
 
-        let bs' = fst scrut'
+        -- Because the alternatives can contain more folds and stuff, we need to
+        -- use convertReduce on them.
+        -- However, because the pattern variables must be Aggregates, we know that
+        -- any pattern variables will only be mentioned in the postcomputations.
+        -- Therefore we need to pull out the postcomputations into a let,
+        -- and stick them inside the new case alternative.
+        --
+        -- All the foldy bits of each alternative must be computed, because
+        -- we won't know which ones will be needed until after they are run.
+        alts'  <- fmap (pullPosts ())
+              <$> mapM convertReduce alts
+
+        let bs' = fst scrut' <> mconcat (fmap fst alts')
 
         let sX  = CE.xVar $ snd scrut'
+        let aXs = fmap snd alts'
 
         scrutT <- convertValType ann $ annResult $ annotOfExp scrut
         resT   <- convertValType ann $ retty
 
-        x'     <- convertCase xx sX (pats' `zip` alts') scrutT resT
+        x'     <- convertCase xx sX (pats' `zip` aXs) scrutT resT
         nm     <- lift fresh
 
         let b'  | TemporalityPure <- getTemporalityOrPure retty

@@ -22,6 +22,7 @@ module Icicle.Source.ToCore.Base (
 
   , pre, strm, red, post
   , programOfBinds
+  , pullPosts
   , convertWindowUnits
   ) where
 
@@ -72,6 +73,19 @@ programOfBinds outputName inpType binds postdate a_ret ret
  , C.postdate   = postdate
  , C.returns    = [(outputName, X.XVar a_ret ret)]
  }
+
+
+-- | Rip out the postcomputations into lets.
+-- The result expression has the postcomputations as lets,
+-- the result bindings have no postcomputations.
+pullPosts :: a
+          -> (CoreBinds a n, Name n)
+          -> (CoreBinds a n, C.Exp a n)
+pullPosts a (bs,ret)
+ = let ps  = postcomps bs
+       bs' = bs { postcomps = [] }
+   in  (bs', X.makeLets a ps $ X.XVar a ret)
+
 
 instance Monoid (CoreBinds a n) where
  mempty = CoreBinds [] [] [] []
