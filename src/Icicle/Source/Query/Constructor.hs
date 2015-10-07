@@ -27,6 +27,13 @@ data Constructor
  -- Bool
  | ConTrue
  | ConFalse
+
+ -- Either
+ | ConLeft
+ | ConRight
+
+ -- Error
+ | ConError ExceptionInfo
  deriving (Eq, Ord, Show)
 
 data Pattern n
@@ -36,6 +43,12 @@ data Pattern n
  deriving (Show, Eq, Ord)
 
 
+-- | Given a pattern and a value,
+-- check if the value matches the pattern, and if so,
+-- return a mapping from pattern names to the sub-values.
+-- For example
+-- > substOfPattern (True,a) (True, False)
+-- > = Just { a => False }
 substOfPattern :: Ord n => Pattern n -> BaseValue -> Maybe (Map.Map (Name n) BaseValue)
 substOfPattern PatDefault _
  = return Map.empty
@@ -77,26 +90,59 @@ substOfPattern (PatCon ConFalse pats) val
  | otherwise
  = Nothing
 
+substOfPattern (PatCon ConLeft pats) val
+ | [pa]         <- pats
+ , VLeft va     <- val
+ = substOfPattern pa va
+ | otherwise
+ = Nothing
+
+substOfPattern (PatCon ConRight pats) val
+ | [pa]         <- pats
+ , VRight va    <- val
+ = substOfPattern pa va
+ | otherwise
+ = Nothing
+
+substOfPattern (PatCon (ConError ex) pats) val
+ | []             <- pats
+ , VError ex'     <- val
+ , ex == ex'
+ = return Map.empty
+ | otherwise
+ = Nothing
+
 
 arityOfConstructor :: Constructor -> Int
 arityOfConstructor cc
  = case cc of
-    ConSome -> 1
-    ConNone -> 0
+    ConSome  -> 1
+    ConNone  -> 0
 
     ConTuple -> 2
 
-    ConTrue -> 0
+    ConTrue  -> 0
     ConFalse -> 0
 
+    ConLeft  -> 1
+    ConRight -> 1
+
+    ConError _ -> 0
+
+
 instance Pretty Constructor where
- pretty ConSome = "Some"
- pretty ConNone = "None"
+ pretty ConSome  = "Some"
+ pretty ConNone  = "None"
 
  pretty ConTuple = "Tuple"
 
- pretty ConTrue = "True"
+ pretty ConTrue  = "True"
  pretty ConFalse = "False"
+
+ pretty ConLeft  = "Left"
+ pretty ConRight = "Right"
+
+ pretty (ConError e) = text $ show e
 
 
 instance Pretty n => Pretty (Pattern n) where

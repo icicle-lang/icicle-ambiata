@@ -119,7 +119,7 @@ evalQ q vs env
                         evalQ q' vs (ins v' env)
 
                  | otherwise
-                 -> return $ VException ExceptFold1NoValue
+                 -> return $ VError ExceptFold1NoValue
 
                 Let a n x
                  -> let str = mapM (\v -> Map.insert n <$> evalX x [] v <*> return v) vs
@@ -213,6 +213,18 @@ evalP ann p xs vs env
               -> return $ VBool True
              ConFalse
               -> return $ VBool False
+             ConLeft
+              | [va] <- args
+              -> return $ VLeft va
+              | otherwise
+              -> err
+             ConRight
+              | [va] <- args
+              -> return $ VRight va
+              | otherwise
+              -> err
+             ConError ex
+              -> return $ VError ex
 
     Fun f
      -> do  args <- mapM (\x' -> evalX x' vs env) xs
@@ -241,7 +253,7 @@ evalP ann p xs vs env
      -> do  args <- mapM (\x' -> evalX x' vs env) xs
             let err = Left $ EvalErrorPrimBadArgs ann p args
             let isExcept v
-                    | VException _ <- v
+                    | VError _ <- v
                     = True
                     | otherwise
                     = False

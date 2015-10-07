@@ -1,0 +1,29 @@
+welcome to iREPL
+ok, loaded 10 functions from data/libs/prelude.icicle
+ok, loaded test/cli/repl/data.psv, 8 rows
+> ok, type is now on
+> - Type:
+Aggregate (Sum Int Double)
+
+- Core evaluation:
+[homer, 5.0,marge, 3.0]
+
+> - Type:
+Aggregate (Sum Int Double)
+
+- Core evaluation:
+[homer, 5.0,marge, 3.0]
+
+> > > - Type:
+Aggregate (Sum Int Int)
+
+- Core evaluation:
+[homer, 0,marge, 0]
+
+> - Type:
+Aggregate (Sum Int Int)
+
+- Core evaluation:
+[homer, 0,marge, 0]
+
+> 

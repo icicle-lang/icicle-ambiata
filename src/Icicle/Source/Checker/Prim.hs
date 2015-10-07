@@ -19,11 +19,11 @@ import                  P
 
 primLookup
  :: Ord n
- => a -> Prim -> GenConstraintSet a n
+ => a -> Prim
  -> Gen a n (FunctionType n, [Type n], Type n, GenConstraintSet a n)
-primLookup ann p cons
+primLookup ann p
  = do ft <- primLookup' p
-      introForalls ann ft cons
+      introForalls ann ft
 
 primLookup' :: Prim -> Gen a n (FunctionType n)
 primLookup' p
@@ -79,6 +79,14 @@ primLookup' p
      -> f0 [] BoolT
     PrimCon ConFalse
      -> f0 [] BoolT
+
+    PrimCon ConLeft
+     -> f2 $ \a at b bt -> FunctionType [a, b] [] [at] (SumT at bt)
+    PrimCon ConRight
+     -> f2 $ \a at b bt -> FunctionType [a, b] [] [bt] (SumT at bt)
+
+    PrimCon (ConError _)
+     -> f0 [] ErrorT
 
  where
 

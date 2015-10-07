@@ -69,8 +69,6 @@ defaults q
    = []
   defaultOfConstraint (CTemporalityJoin _ _ _)
    = []
-  defaultOfConstraint (CExtractTemporality _ _ _)
-   = []
 
 
 
@@ -82,7 +80,7 @@ constraintsQ
   -> Query a n
   -> EitherT (CheckError a n) (Fresh.Fresh n) (Query'C a n)
 constraintsQ env q
- = do (x, _, cons) <- evalGen (generateQ q env) []
+ = do (x, _, cons) <- evalGen $ generateQ q env
       -- We must have been able to solve all constraints except numeric requirements.
       if   all (isNumConstraint . snd) cons
       then right x
@@ -110,16 +108,15 @@ generateQ
   :: Ord n
   => Query a n
   -> GenEnv n
-  -> GenConstraintSet a n
   -> Gen a n (Query'C a n, SubstT n, GenConstraintSet a n)
 
 -- End of query - at this stage it is just an expression with no contexts.
-generateQ (Query [] x) env cons
- = do   (x', s, cons') <- generateX x env cons
-        return (Query [] x', s, cons')
+generateQ (Query [] x) env
+ = do   (x', s, cons) <- generateX x env
+        return (Query [] x', s, cons)
 
 -- Query with a context
-generateQ qq@(Query (c:_) _) env cons
+generateQ qq@(Query (c:_) _) env
  -- Discharge any constraints on the result
  =   discharge (annAnnot.annotOfQuery) substTQ
  =<< case c of
@@ -132,11 +129,13 @@ generateQ qq@(Query (c:_) _) env cons
     -- >   windowed n days ~> Aggregate x'p x'd
     -- > : Aggregate x'p x'd
     Windowed _ from to
-     -> do  (q', sq, t', consr) <- rest cons env
+     -> do  (q', sq, t', consr) <- rest env
 
             -- Windowed only works for aggregates
-            cons'    <- requireAgg t' consr
+            consT    <- requireAgg t'
             let t''   = canonT $ Temporality TemporalityAggregate t'
+
+            let cons' = concat [consr, consT]
 
             let q''   = with cons' q' t'' $ \a' -> Windowed a' from to
             return (q'', sq, cons')
@@ -144,7 +143,7 @@ generateQ qq@(Query (c:_) _) env cons
     -- >   latest n ~> x't x'p x'd
     -- > : Aggregate Possibly (ReturnOfLatest x't x'd)
     Latest _ i
-     -> do  (q', sq, tq, consr) <- rest cons env
+     -> do  (q', sq, tq, consr) <- rest env
 
             let (tmpq, _, datq)  = decomposeT tq
             retDat              <- TypeVar <$> fresh
@@ -179,10 +178,12 @@ generateQ qq@(Query (c:_) _) env cons
             -- > ReturnOfLatest Aggregate d = d
             -- > ReturnOfLatest Element   d = Array d
             --
-            let cons' = require a (CReturnOfLatest retDat (fromMaybe TemporalityPure tmpq) datq) consr
+            let consT = require a (CReturnOfLatest retDat (fromMaybe TemporalityPure tmpq) datq)
             let t'    = canonT
                       $ Temporality TemporalityAggregate
                       $ Possibility PossibilityPossibly retDat
+
+            let cons' = concat [consr, consT]
 
             let q''   = with cons' q' t' $ \a' -> Latest a' i
             return (q'', sq, cons')
@@ -190,29 +191,31 @@ generateQ qq@(Query (c:_) _) env cons
     -- >   group (Element k'p k'd) ~> Aggregate v'p v'd
     -- > : Aggregate (PossibilityJoin k'p v'p) (Group k'd v'd)
     GroupBy _ x
-     -> do  (x', sx, consk)       <- generateX x env cons
-            (q', sq, tval, consr) <- rest consk env
+     -> do  (x', sx, consk)       <- generateX x env
+            (q', sq, tval, consr) <- rest env
 
             let tkey = annResult $ annotOfExp x'
 
-            cons'          <-  requireTemporality tkey TemporalityElement consr
-                           >>= requireAgg tval
-            (poss, cons'') <-  requirePossibilityJoin tkey tval cons'
+            consT          <-  (<>) <$> requireTemporality tkey TemporalityElement
+                                    <*> requireAgg tval
+            (poss, consp)  <-  requirePossibilityJoin tkey tval
 
             let t'  = canonT
                     $ Temporality TemporalityAggregate
                     $ Possibility poss
                     $ GroupT tkey tval
 
+            let cons' = concat [consk, consr, consT, consp]
+
             let ss  = compose sx sq
-            let q'' = with cons'' q' t' $ \a' -> GroupBy a' x'
-            return (q'', ss, cons'')
+            let q'' = with cons' q' t' $ \a' -> GroupBy a' x'
+            return (q'', ss, cons')
 
     -- >   group fold (k, v) = ( |- Q : Aggregate g'p (Group a'k a'v))
     -- >   ~> (k: Element a'k, v: Element a'v |- Aggregate a'p a)
     -- >    : Aggregate (PossibilityJoin g'p a'p) a
     GroupFold _ k v x
-     -> do  (x', sx, consg) <- generateX x env cons
+     -> do  (x', sx, consg) <- generateX x env
             let tgroup       = annResult $ annotOfExp x'
 
             retk <- Temporality TemporalityElement . TypeVar <$> fresh
@@ -220,63 +223,70 @@ generateQ qq@(Query (c:_) _) env cons
 
             let env' = removeElementBinds env
             (q', sq, t', consr)
-                <- withBind k retk env'
-                 $ (fmap flip . withBind) v retv (rest consg)
+                <- rest
+                 $ bind k retk
+                 $ bind v retv env'
 
-            cons'  <-  requireAgg  t' consr
-                   >>= requireAgg  tgroup
-                   >>= return . requireData tgroup (GroupT retk retv)
+            consT  <-  requireAgg  t'
+            consgt <-  requireAgg  tgroup
+            let consgd = requireData tgroup (GroupT retk retv)
 
-            (poss, cons'') <- requirePossibilityJoin tgroup t' cons'
+            (poss, consp)  <- requirePossibilityJoin tgroup t'
 
             let t'' = canonT
                     $ Temporality TemporalityAggregate
                     $ Possibility poss t'
 
+            let cons' = concat [consg, consr, consT, consgt, consgd, consp]
+
             let ss  = compose sx sq
-            let q'' = with cons'' q' t'' $ \a' -> GroupFold a' k v x'
-            return (q'', ss, cons'')
+            let q'' = with cons' q' t'' $ \a' -> GroupFold a' k v x'
+            return (q'', ss, cons')
 
     -- >   distinct (Element k'p k'd) ~> Aggregate v'p v'd
     -- > : Aggregate (PossibilityJoin k'p v'p) v'd
     Distinct _ x
-     -> do  (x', sx, consk)     <- generateX x env cons
-            (q', sq, t', consr) <- rest consk env
+     -> do  (x', sx, consk)     <- generateX x env
+            (q', sq, t', consr) <- rest env
 
             let tkey = annResult $ annotOfExp x'
 
-            cons'          <-  requireTemporality tkey TemporalityElement consr
-                           >>= requireAgg t'
-            (poss, cons'') <-  requirePossibilityJoin tkey t' cons'
+            consT          <-  (<>) <$> requireTemporality tkey TemporalityElement
+                                    <*> requireAgg t'
+            (poss, consp)  <-  requirePossibilityJoin tkey t'
 
             let t'' = canonT
                     $ Temporality TemporalityAggregate
                     $ Possibility poss t'
 
+            let cons' = concat [consk, consr, consT, consp]
+
             let ss  = compose sx sq
-            let q'' = with cons'' q' t'' $ \a' -> Distinct a' x'
-            return (q'', ss, cons'')
+            let q'' = with cons' q' t'' $ \a' -> Distinct a' x'
+            return (q'', ss, cons')
 
     -- >   filter (Element p'p Bool) ~> Aggregate x'p x'd
     -- > : Aggregate (PossibilityJoin p'p x'p) x'd
     Filter _ x
-     -> do  (x', sx, consp)     <- generateX x env cons
-            (q', sq, t', consr) <- rest consp env
+     -> do  (x', sx, consx)     <- generateX x env
+            (q', sq, t', consr) <- rest env
 
             let pred = annResult $ annotOfExp x'
 
-            cons'          <-  requireTemporality pred TemporalityElement consr
-                           >>= return . requireData pred BoolT
-                           >>= requireAgg t'
-            (poss, cons'') <-  requirePossibilityJoin pred t' cons'
+            consT          <-  (<>) <$> requireTemporality pred TemporalityElement
+                                    <*> requireAgg t'
+            let consd       = requireData pred BoolT
+            (poss, consp)  <-  requirePossibilityJoin pred t'
 
             let t'' = canonT
                     $ Temporality TemporalityAggregate
                     $ Possibility poss t'
 
+            let cons' = concat [consx, consr, consT, consd, consp]
+
             let ss  = compose sx sq
-            let q'' = with cons'' q' t'' $ \a' -> Filter a' x'
-            return (q'', ss, cons'')
+            let q'' = with cons' q' t'' $ \a' -> Filter a' x'
+            return (q'', ss, cons')
 
     -- >     let fold  bind = ( |- Pure z'p a'd) : ( bind : Element z'p a'd |- Element k'p a'd)
     -- >  ~> (bind : Aggregate k'p a'd |- Aggregate r'p r'd)
@@ -286,9 +296,13 @@ generateQ qq@(Query (c:_) _) env cons
     -- >  ~> (bind : Aggregate Possibly a'd |- Aggregate r'p r'd)
     -- >   :  Aggregate r'p r'd
     LetFold _ f
-     -> do  (i,si, csi) <- generateX (foldInit f) env cons
-            (w,sw, csw) <- withBind  (foldBind f) (annResult $ annotOfExp i) env
-                                     (fmap flip generateX (foldWork f) csi)
+     -> do  (i,si, csi) <- generateX (foldInit f) env
+            let ti  = canonT
+                    $ Temporality TemporalityElement
+                    $ annResult $ annotOfExp i
+
+            (w,sw, csw) <- generateX (foldWork f)
+                         $ bind (foldBind f) ti env
 
             let bindType
                  | FoldTypeFoldl1 <- foldType f
@@ -302,21 +316,23 @@ generateQ qq@(Query (c:_) _) env cons
                  $ Temporality TemporalityAggregate
                  $ annResult $ annotOfExp w
 
-            (q', sq, t', consr) <- withBind (foldBind f) bindType env (rest csw)
+            (q', sq, t', consr) <- withBind (foldBind f) bindType env rest
 
             consf
               <- case foldType f of
                   FoldTypeFoldl1
-                   -> requireTemporality (annResult $ annotOfExp i) TemporalityElement consr
+                   -> requireTemporality (annResult $ annotOfExp i) TemporalityElement
                   FoldTypeFoldl
-                   -> requireTemporality (annResult $ annotOfExp i) TemporalityPure consr
+                   -> requireTemporality (annResult $ annotOfExp i) TemporalityPure
 
             let (_,_,it) = decomposeT $ annResult $ annotOfExp i
             let (_,_,wt) = decomposeT $ annResult $ annotOfExp w
 
-            cons' <-  requireAgg t' consf
-                  >>= requireTemporality (annResult $ annotOfExp w) TemporalityElement
-                  >>= return . require a (CEquals it wt)
+            consT <-  (<>) <$> requireAgg t'
+                           <*> requireTemporality (annResult $ annotOfExp w) TemporalityElement
+            let conseq = require a (CEquals it wt)
+
+            let cons' = concat [csi, csw, consr, consf, consT, conseq]
 
             let t'' = canonT $ Temporality TemporalityAggregate t'
             let s'  = si `compose` sw `compose` sq
@@ -335,15 +351,17 @@ generateQ qq@(Query (c:_) _) env cons
     -- >    ~> ( n : def't def'p def'd |- body't body'p body'd )
     -- > : (ReturnOfLetTemporalities def't body't) body'p body'd
     Let _ n x
-     -> do  (x', sx, consd) <- generateX x env cons
+     -> do  (x', sx, consd) <- generateX x env
 
-            (q',sq,tq,consr) <- withBind n (annResult $ annotOfExp x') env (rest consd)
+            (q',sq,tq,consr) <- withBind n (annResult $ annotOfExp x') env rest
 
             retTmp   <- TypeVar <$> fresh
             let tmpx  = getTemporalityOrPure $ annResult $ annotOfExp x'
             let tmpq  = getTemporalityOrPure $ tq
 
-            let cons' = require a (CReturnOfLetTemporalities retTmp tmpx tmpq) consr
+            let consT = require a (CReturnOfLetTemporalities retTmp tmpx tmpq)
+            let cons' = concat [consd, consr, consT]
+
             let t'    = canonT $ Temporality retTmp tq
 
             let ss  = compose sx sq
@@ -354,8 +372,8 @@ generateQ qq@(Query (c:_) _) env cons
   a  = annotOfContext c
 
   -- Generate constraints for the remainder of the query, and rip out the result type
-  rest cs e
-   = do (q',s',cx') <- generateQ (qq { contexts = drop 1 $ contexts qq }) e cs
+  rest e
+   = do (q',s',cx') <- generateQ (qq { contexts = drop 1 $ contexts qq }) e
         return (q', s', annResult $ annotOfQuery q',cx')
 
   -- Rebuild the result with given substitution and type, using the given constraints
@@ -364,26 +382,27 @@ generateQ qq@(Query (c:_) _) env cons
      in  q' { contexts = c' a' : contexts q' }
 
   -- Helpers for adding constraints
-  requireTemporality ty tmp cx
-   | TemporalityPure <- getTemporalityOrPure ty
-   = return cx
-   | otherwise
-   = do n <- fresh
-        return $ require a (CEquals ty (Temporality tmp $ TypeVar n)) cx
+  requireTemporality ty tmp
+   | (tmp',_,_) <- decomposeT ty
+   = case tmp' of
+      Just TemporalityPure -> return []
+      Nothing              -> return []
+      Just tmp''
+       -> return $ require a (CEquals tmp'' tmp)
 
   requireAgg t
    = requireTemporality t TemporalityAggregate
 
-  requireData t1 t2 cx
+  requireData t1 t2
    = let (_,_,d1) = decomposeT t1
          (_,_,d2) = decomposeT t2
-     in  require a (CEquals d1 d2) cx
+     in  require a (CEquals d1 d2)
 
-  requirePossibilityJoin t1 t2 cx
+  requirePossibilityJoin t1 t2
    = do poss   <- TypeVar <$> fresh
         let pt1 = getPossibilityOrDefinitely t1
         let pt2 = getPossibilityOrDefinitely t2
-        let c'  = require a (CPossibilityJoin poss pt1 pt2) cx
+        let c'  = require a (CPossibilityJoin poss pt1 pt2)
         return (poss, c')
 
 
@@ -392,14 +411,13 @@ generateX
   :: Ord n
   => Exp a n
   -> GenEnv n
-  -> GenConstraintSet a n
   -> Gen a n (Exp'C a n, SubstT n, GenConstraintSet a n)
-generateX x env cons
+generateX x env
  =   discharge (annAnnot.annotOfExp) substTX
  =<< case x of
     -- Variables can only be values, not functions.
     Var a n
-     -> do (fErr, argsT, resT, cons') <- lookup a n env cons
+     -> do (fErr, argsT, resT, cons') <- lookup a n env
 
            when (not $ null argsT)
              $ Gen . hoistEither
@@ -411,7 +429,7 @@ generateX x env cons
 
     -- Nested just has the type of its inner query.
     Nested _ q
-     -> do (q', sq, cons') <- generateQ q env cons
+     -> do (q', sq, cons') <- generateQ q env
 
            let x' = annotate cons' (annResult $ annotOfQuery q')
                   $ \a' -> Nested a' q'
@@ -437,15 +455,15 @@ generateX x env cons
     App a _ _
      -> let (f, args)   = takeApps x
             look        | Prim _ p <- f
-                        = primLookup a p cons
+                        = primLookup a p
                         | Var _ n  <- f
-                        = lookup a n env cons
+                        = lookup a n env
                         | otherwise
                         = Gen . hoistEither
                         $ errorNoSuggestions (ErrorApplicationNotFunction a x)
-        in do   (fErr, argsT, resT, cons') <- look
+        in do   (fErr, argsT, resT, consf) <- look
 
-                (args', subs', conss)      <- unzip3 <$> mapM ((flip . flip generateX) env cons') args
+                (args', subs', consxs)     <- unzip3 <$> mapM (flip generateX env) args
                 let argsT'                  = fmap (annResult.annotOfExp) args'
 
                 when (length argsT /= length args)
@@ -453,16 +471,18 @@ generateX x env cons
                  $ errorNoSuggestions (ErrorFunctionWrongArgs a x fErr argsT')
 
                 let go (t, c) u     = appType a t u c
-                let (resT', cons'') = foldl' go (resT, concat conss) (argsT `zip` argsT')
+                let (resT', consap) = foldl' go (resT, []) (argsT `zip` argsT')
 
                 let s' = foldl compose Map.empty subs'
-                let f' = annotate cons'' resT' $ \a' -> reannotX (const a') f
+                let cons' = concat (consf : consap : consxs)
 
-                return (foldl mkApp f' args', s', cons'')
+                let f' = annotate cons' resT' $ \a' -> reannotX (const a') f
+
+                return (foldl mkApp f' args', s', cons')
 
     -- Unapplied primitives should be relatively easy
     Prim a p
-     -> do (fErr, argsT, resT, cons') <- primLookup a p cons
+     -> do (fErr, argsT, resT, cons') <- primLookup a p
 
            when (not $ null argsT)
              $ Gen . hoistEither
@@ -479,31 +499,30 @@ generateX x env cons
     --  3. The type of the scrutinee is compatible with all patterns.
     --
     Case a scrut pats
-     -> do (scrut', sub, consS) <- generateX scrut env cons
+     -> do (scrut', sub, consS) <- generateX scrut env
 
            -- Destruct the scrutinee type into the base type
            -- and the temporality (defaulting to Pure).
-           let scrutT =  annResult $ annotOfExp scrut'
-           scrutTy    <- TypeVar <$> fresh
-           scrutTm    <- TypeVar <$> fresh
-           let cons'  =  require a (CExtractTemporality scrutTm scrutTy scrutT) consS
+           let scrutT  =  annResult $ annotOfExp scrut'
+           let scrutTm = getTemporalityOrPure scrutT
 
            -- Require the scrutinee and the alternatives to have compatible temporalities.
            returnType  <- TypeVar <$> fresh
            returnTemp  <- TypeVar <$> fresh
            returnTemp' <- TypeVar <$> fresh
-           let cons''  =  require a (CTemporalityJoin returnTemp' scrutTm returnTemp) cons'
+           let consTj  =  require a (CTemporalityJoin returnTemp' scrutTm returnTemp)
 
-           (patsubs, ctx'') <- generateP a scrutT returnType returnTemp pats env cons'
+           (patsubs, consA) <- generateP a scrutT returnType returnTemp pats env
            let (pats', subs) = unzip patsubs
 
-           let t'    = Temporality returnTemp returnType
+           let t'    = Temporality returnTemp' returnType
            let subst = Map.unions (sub : subs)
+           let cons' = concat [consS, consTj, consA]
 
-           let x' = annotate cons'' t'
+           let x' = annotate cons' t'
                   $ \a' -> Case a' scrut' pats'
 
-           return (x', subst, ctx'')
+           return (x', subst, cons')
   where
   annotate cs t' f
    = let a' = Annot (annotOfExp x) t' cs
@@ -518,39 +537,38 @@ generateP
   -> Type n                 -- ^ result temporality
   -> [(Pattern n, Exp a n)] -- ^ pattern and alternative
   -> GenEnv n
-  -> GenConstraintSet a n
   -> Gen a n ([((Pattern n, Exp'C a n), SubstT n)], GenConstraintSet a n)
 
-generateP ann _ _ resTm [] _ cons
- = do   let cons' = require ann (CEquals resTm TemporalityPure) cons
+generateP ann _ _ resTm [] _
+ = do   let cons' = require ann (CEquals resTm TemporalityPure)
         return ([], cons')
 
-generateP ann scrutTy resTy resTm ((pat, alt):rest) env cons
+generateP ann scrutTy resTy resTm ((pat, alt):rest) env
  = do   (t, envp) <- goPat pat env
 
         let (_,_,datS) = decomposeT $ canonT scrutTy
-        let conss      = require (annotOfExp alt) (CEquals datS t) cons
+        let conss      = require (annotOfExp alt) (CEquals datS t)
 
-        (alt', sub, consa) <- generateX alt envp conss
+        (alt', sub, consa) <- generateX alt envp
 
-        let altTy'  = annResult (annotOfExp alt')
-        altTy      <- TypeVar <$> fresh
-        altTp      <- TypeVar <$> fresh
+        let altTy' = annResult (annotOfExp alt')
+        let altTp  = getTemporalityOrPure altTy'
         resTp'     <- TypeVar <$> fresh
 
         -- Require alternative types to have the same temporality if they
         -- do have temporalities. Otherwise defaults to TemporalityPure.
-        let cons' = require (annotOfExp alt) (CExtractTemporality altTp altTy altTy')
-        -- Require the alternative types without temporality to be the same.
-                  . requireData resTy altTy
+        let consT = concat
+                  -- Require the alternative types without temporality to be the same.
+                  [ requireData resTy altTy'
         -- Require return temporality to be compatible with alternative temporalities.
-                  . require (annotOfExp alt) (CTemporalityJoin resTm resTp' altTp)
-                  $ consa
+                  , require (annotOfExp alt) (CTemporalityJoin resTm resTp' altTp)
+                  ]
 
-        (rest', cons'') <- generateP ann scrutTy resTy resTp' rest env cons'
+        (rest', consr) <- generateP ann scrutTy resTy resTp' rest env
+        let cons' = concat [conss, consa, consT, consr]
         let patsubs     = ((pat, alt'), sub) : rest'
 
-        return (patsubs, cons'')
+        return (patsubs, cons')
 
  where
   requireData t1 t2
@@ -579,6 +597,17 @@ generateP ann scrutTy resTy resTm ((pat, alt):rest) env cons
    = do (ta, ea) <- goPat a e
         (tb, eb) <- goPat b ea
         return (PairT ta tb, eb)
+  goPat (PatCon (ConError _)  []) e
+   = return (ErrorT, e)
+
+  goPat (PatCon ConLeft  [p]) e
+   = do (l,e') <- goPat p e
+        r      <- TypeVar <$> fresh
+        return ( SumT l r , e' )
+  goPat (PatCon ConRight  [p]) e
+   = do l      <- TypeVar <$> fresh
+        (r,e') <- goPat p e
+        return ( SumT l r , e' )
 
   goPat _ _
    = Gen . hoistEither
@@ -596,31 +625,31 @@ appType ann resT (expT,actT) cons
        (tmpA,posA,datA) = decomposeT $ canonT actT
        (tmpR,posR,datR) = decomposeT $ canonT resT
 
-       cons' = require ann (CEquals datE datA) cons
+       consD = require ann (CEquals datE datA)
 
-       (tmpR', cs)  = checkTemp (purely tmpE) (purely tmpA) (purely tmpR) cons'
-       (posR', cs') = checkPoss (definitely posE) (definitely posA) (definitely posR) cs
+       (tmpR', consT)  = checkTemp (purely tmpE) (purely tmpA) (purely tmpR)
+       (posR', consP) = checkPoss (definitely posE) (definitely posA) (definitely posR)
 
        t = recomposeT (tmpR', posR', datR)
-   in  (t, cs')
+   in  (t, concat [cons, consD, consT, consP])
 
  where
   checkTemp = check' TemporalityPure
   checkPoss = check' PossibilityDefinitely
 
-  check' pureMode modE modA modR cx
+  check' pureMode modE modA modR
    | Nothing <- modA
-   = (modR, cx)
+   = (modR, [])
    | Just _  <- modA
    , Nothing <- modE
    , Nothing <- modR
-   = (modA, cx)
+   = (modA, [])
    | Just a' <- modA
    , Nothing <- modE
    , Just r' <- modR
-   = (modR, require ann (CEquals a' r') cx)
+   = (modR, require ann (CEquals a' r'))
    | otherwise
-   = (modR, require ann (CEquals (maybe pureMode id modE) (maybe pureMode id modA)) cx)
+   = (modR, require ann (CEquals (maybe pureMode id modE) (maybe pureMode id modA)))
 
 
   purely (Just TemporalityPure) = Nothing

@@ -181,6 +181,7 @@ library
                        Icicle.Source.Transform.SubstX
                        Icicle.Source.Transform.Inline
                        Icicle.Source.Transform.Desugar
+                       Icicle.Source.Transform.ReifyPossibility
                        Icicle.Source.Transform.Simp
                        Icicle.Source.Transform.Simp.Dumb
                        Icicle.Source.PrettyAnnot

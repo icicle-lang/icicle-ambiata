@@ -33,7 +33,13 @@ constructors
  = [("Some", Q.ConSome)
    ,("None", Q.ConNone)
    ,("True", Q.ConTrue)
-   ,("False",Q.ConFalse)]
+   ,("False",Q.ConFalse)
+   ,("Left", Q.ConLeft)
+   ,("Right",Q.ConRight)
+   ,("ExceptTombstone",         Q.ConError ExceptTombstone)
+   ,("ExceptFold1NoValue",      Q.ConError ExceptFold1NoValue)
+   ,("ExceptScalarVariableNotAvailable",      Q.ConError ExceptScalarVariableNotAvailable)
+   ]
 
 
 pattern :: Parser (Q.Pattern Var)

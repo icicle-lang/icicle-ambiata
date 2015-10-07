@@ -95,10 +95,11 @@ instance Arbitrary PM.Prim where
           , return $ PM.PrimLogical  PM.PrimLogicalAnd
           , PM.PrimConst <$> (PM.PrimConstPair <$> arbitrary <*> arbitrary)
           , PM.PrimConst . PM.PrimConstSome <$> arbitrary
+          , PM.PrimConst <$> (PM.PrimConstLeft <$> arbitrary <*> arbitrary)
+          , PM.PrimConst <$> (PM.PrimConstRight <$> arbitrary <*> arbitrary)
           , PM.PrimPair <$> (PM.PrimPairFst <$> arbitrary <*> arbitrary)
           , PM.PrimPair <$> (PM.PrimPairSnd <$> arbitrary <*> arbitrary)
           , PM.PrimStruct <$> (PM.PrimStructGet <$> arbitrary <*> arbitrary <*> arbitrary)
-          , PM.PrimTombstone <$> arbitrary
           ]
 
 instance Arbitrary Prim where
@@ -109,6 +110,7 @@ instance Arbitrary Prim where
           [ PrimFold   PrimFoldBool <$> arbitrary
           , PrimFold <$> (PrimFoldArray <$> arbitrary) <*> arbitrary
           , PrimFold <$> (PrimFoldOption <$> arbitrary) <*> arbitrary
+          , PrimFold <$> (PrimFoldSum <$> arbitrary <*> arbitrary) <*> arbitrary
           , PrimFold <$> (PrimFoldMap <$> arbitrary <*> arbitrary) <*> arbitrary
 
           , PrimMap <$> (PrimMapInsertOrUpdate <$> arbitrary <*> arbitrary)
@@ -128,6 +130,7 @@ instance Arbitrary ValType where
          , StringT ]
          [ ArrayT <$> arbitrary
          , PairT  <$> arbitrary <*> arbitrary
+         , SumT   <$> arbitrary <*> arbitrary
          , MapT  <$> arbitrary <*> arbitrary
          , OptionT <$> arbitrary
          , StructT <$> arbitrary
@@ -416,6 +419,8 @@ baseValueForType t
      -> VDouble <$> arbitrary
     UnitT
      -> return VUnit
+    ErrorT
+     -> return $ VError ExceptTombstone
     BoolT
      -> VBool <$> arbitrary
     DateTimeT
@@ -424,6 +429,10 @@ baseValueForType t
      -> smaller (VArray <$> listOf (baseValueForType t'))
     PairT a b
      -> smaller (VPair <$> baseValueForType a <*> baseValueForType b)
+    SumT a b
+     -> smaller
+      $ oneof [ VLeft  <$> baseValueForType a
+              , VRight <$> baseValueForType b ]
     OptionT t'
      -> oneof_sized [ return VNone ]
                     [ VSome <$> baseValueForType t' ]

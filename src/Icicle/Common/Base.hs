@@ -49,17 +49,22 @@ data BaseValue
  | VString T.Text
  | VArray [BaseValue]
  | VPair  BaseValue BaseValue
+ | VLeft  BaseValue
+ | VRight BaseValue
  | VSome  BaseValue
  | VNone
  | VMap    (Map.Map BaseValue    BaseValue)
  | VStruct (Map.Map StructField  BaseValue)
- | VTombstone
 
- | VException ExceptionInfo
+ | VError ExceptionInfo
  deriving (Show, Ord, Eq)
 
+-- | Called "exceptions"
+-- because they aren't really errors,
+-- but they aren't really good values either..
 data ExceptionInfo
- = ExceptFold1NoValue
+ = ExceptTombstone
+ | ExceptFold1NoValue
  | ExceptScalarVariableNotAvailable
  deriving (Show, Ord, Eq)
 
@@ -102,6 +107,10 @@ instance Pretty BaseValue where
       -> pretty vs
      VPair a b
       -> text "(" <> pretty a <> text ", " <> pretty b <> text ")"
+     VLeft a
+      -> text "Left"  <+> pretty a
+     VRight a
+      -> text "Right" <+> pretty a
      VSome a
       -> text "Some" <+> pretty a
      VNone
@@ -110,19 +119,14 @@ instance Pretty BaseValue where
       -> text "Map" <+> pretty (Map.toList mv)
      VStruct mv
       -> text "Struct" <+> pretty (Map.toList mv)
-     VTombstone
-      -> text "Tombstone"
-     VException e
-      -> text "Exception:" <+> pretty e
+     VError e
+      -> pretty e
 
 instance Pretty StructField where
  pretty = text . T.unpack . nameOfStructField
 
 instance Pretty ExceptionInfo where
- pretty ExceptFold1NoValue
-        = text "Fold1, but there is no value"
- pretty ExceptScalarVariableNotAvailable
-        = text "Scalar variable not available here"
+ pretty = text . show
 
 instance Pretty OutputName where
  pretty = pretty . unOutputName

@@ -7,8 +7,8 @@
 {-# LANGUAGE PatternGuards #-}
 module Icicle.Source.Type.Base (
     Type        (..)
-  , valTypeOfType
   , typeOfValType
+  , valTypeOfType
   , Constraint  (..)
   , FunctionType(..)
   , Annot (..)
@@ -32,11 +32,13 @@ data Type n
  | IntT
  | StringT
  | UnitT
+ | ErrorT
 
  | ArrayT   (Type n)
  | GroupT   (Type n) (Type n)
  | OptionT  (Type n)
  | PairT    (Type n) (Type n)
+ | SumT     (Type n) (Type n)
  | StructT (Map.Map CT.StructField (Type n))
 
  | Temporality         (Type n) (Type n)
@@ -60,10 +62,12 @@ typeOfValType vt
     CT.IntT         -> IntT
     CT.StringT      -> StringT
     CT.UnitT        -> UnitT
+    CT.ErrorT       -> ErrorT
     CT.ArrayT a     -> ArrayT (go a)
     CT.MapT  k v    -> GroupT (go k) (go v)
     CT.OptionT a    -> OptionT (go a)
     CT.PairT a b    -> PairT (go a) (go b)
+    CT.SumT  a b    -> SumT  (go a) (go b)
     CT.StructT st   -> StructT (Map.map go $ CT.getStructType st)
  where
   go = typeOfValType
@@ -77,10 +81,12 @@ valTypeOfType bt
     IntT         -> return CT.IntT
     StringT      -> return CT.StringT
     UnitT        -> return CT.UnitT
+    ErrorT       -> return CT.ErrorT
     ArrayT a     -> CT.ArrayT  <$> go a
     GroupT k v   -> CT.MapT    <$> go k <*> go v
     OptionT a    -> CT.OptionT <$> go a
     PairT a b    -> CT.PairT   <$> go a <*> go b
+    SumT  a b    -> CT.SumT    <$> go a <*> go b
     StructT st   -> (CT.StructT . CT.StructType)
                 <$> traverse go st
 
@@ -106,7 +112,6 @@ data Constraint n
  | CReturnOfLetTemporalities (Type n) (Type n) (Type n)
  | CReturnOfLatest (Type n) (Type n) (Type n)
  | CPossibilityJoin (Type n) (Type n) (Type n)
- | CExtractTemporality (Type n) (Type n) (Type n)
  deriving (Eq, Ord, Show)
 
 
@@ -139,6 +144,7 @@ instance Pretty n => Pretty (Type n) where
  pretty IntT            = text "Int"
  pretty DoubleT         = text "Double"
  pretty UnitT           = text "Unit"
+ pretty ErrorT          = text "ErrorT"
  pretty BoolT           = text "Bool"
  pretty DateTimeT       = text "DateTime"
  pretty StringT         = text "String"
@@ -146,6 +152,7 @@ instance Pretty n => Pretty (Type n) where
  pretty (GroupT k v)    = parens (text "Group" <+> pretty k <+> pretty v)
  pretty (OptionT a)     = parens (text "Option" <+> pretty a)
  pretty (PairT a b)     = text "(" <> pretty a <> text ", " <> pretty b <> text ")"
+ pretty (SumT  a b)     = parens (text "Sum" <+> pretty a <+> pretty b)
  pretty (StructT fs)    = parens (text "Struct" <+> pretty (Map.toList fs))
  pretty (TypeVar v) = pretty v
 
@@ -172,8 +179,6 @@ instance Pretty n => Pretty (Constraint n) where
   = pretty t <+> "=: ReturnOfLatest" <+> pretty tmp <+> pretty dat
  pretty (CPossibilityJoin a b c)
   = pretty a <+> "=: PossibilityJoin" <+> pretty b <+> pretty c
- pretty (CExtractTemporality tmp ty t)
-  = "Temporality " <+> pretty tmp <+> pretty ty <+> "~:" <+> pretty t
 
 
 instance Pretty n => Pretty (FunctionType n) where

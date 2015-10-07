@@ -43,4 +43,6 @@ prop_parse_pretty_same q
 
 return []
 tests :: IO Bool
-tests = $quickCheckAll
+-- tests = $quickCheckAll
+-- Seems like the generator is making too big values
+tests = $forAllProperties $ quickCheckWithResult (stdArgs { maxSize = 10})

@@ -46,6 +46,14 @@ evalPrim p vs
       | otherwise
       -> primError
 
+     PrimFold (PrimFoldSum _ _) _
+      | [s, _, VBase (VLeft v)] <- vs
+      -> applies' s [VBase v]
+      | [_, s, VBase (VRight v)] <- vs
+      -> applies' s [VBase v]
+      | otherwise
+      -> primError
+
      PrimFold (PrimFoldMap _ _) _
       | [k, z, VBase (VMap mm)] <- vs
       -> foldM (\a (b,c) -> applies' k [a,VBase b,VBase c]) z

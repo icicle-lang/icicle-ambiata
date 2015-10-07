@@ -271,7 +271,7 @@ seaOfXValue t v
      -- TODO C escapes /= Haskell escapes
      VString x     -> text (show x)
 
-     VException msg
+     VError msg
       | IntT <- t
       -> "iint_err (s, \"" <> text (show msg) <> "\")"
 

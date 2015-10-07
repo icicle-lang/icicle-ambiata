@@ -18,8 +18,7 @@ import              Icicle.Common.Type
 
 import              Icicle.Internal.Pretty
 
-import              Prelude  (error)
-import              P hiding (error)
+import              P
 
 import              Data.Functor.Identity
 
@@ -252,6 +251,10 @@ primTypeOfPrim p
    = Function "Pair.create"
   min' (M.PrimConst (M.PrimConstSome _))
    = Function ""
+  min' (M.PrimConst (M.PrimConstLeft _ _))
+   = Function "Either.left"
+  min' (M.PrimConst (M.PrimConstRight _ _))
+   = Function "Either.right"
   min' (M.PrimDateTime M.PrimDateTimeDaysDifference)
    = Function "icicle.daysDifference"
   min' (M.PrimDateTime M.PrimDateTimeMinusDays)
@@ -266,9 +269,6 @@ primTypeOfPrim p
 
   min' (M.PrimStruct (M.PrimStructGet f t _))
    = Special1 $ \a -> a <> "." <> angled (boxedType t) <> "getField" <> "(" <> stringy f <> ")"
-
-  min' (M.PrimTombstone _)
-   = error "todo"
 
   unary   M.PrimArithNegate = Prefix    "-"
 
@@ -301,11 +301,14 @@ primTypeOfPrim p
   proj (PrimProjectMapLength _ _) = Method "size"
   proj (PrimProjectMapLookup _ _) = Method "get"
   proj (PrimProjectOptionIsSome _)= Special1 $ \a -> a <> " != null"
+  proj (PrimProjectSumIsLeft _ _) = Method "isLeft"
 
   unsa (PrimUnsafeArrayIndex _)    = Method "get"
   unsa (PrimUnsafeArrayCreate t)   = Function ("new ArrayList" <> angled (boxedType t))
   unsa (PrimUnsafeMapIndex _ _)    = Function "IcicleMap.getByIndex"
-  unsa (PrimUnsafeOptionGet _)      = Special1 $ \a -> a
+  unsa (PrimUnsafeOptionGet _)     = Special1 $ \a -> a
+  unsa (PrimUnsafeSumGetLeft  _ _) = Method "left"
+  unsa (PrimUnsafeSumGetRight _ _) = Method "right"
 
   upda (PrimUpdateMapPut _ _)      = Function "IcicleMap.put"
   upda (PrimUpdateArrayPut _)      = Function "Array.put"
@@ -385,12 +388,14 @@ boxedType t
      IntT       -> "Integer"
      DoubleT    -> "Double"
      UnitT      -> "Integer"
+     ErrorT     -> "Error"
      BoolT      -> "Boolean"
      DateTimeT  -> "Integer"
      ArrayT a   -> "ArrayList" <> angled (boxedType a)
      MapT a b   -> "HashMap" <> angled (commas [boxedType a, boxedType b])
      OptionT a  -> boxedType a
      PairT a b  -> "Pair" <> angled (commas [boxedType a, boxedType b])
+     SumT  a b  -> "Either" <> angled (commas [boxedType a, boxedType b])
      -- ???
      StructT _  -> "IcicleStruct"
      StringT    -> "String"

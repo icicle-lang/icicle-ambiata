@@ -12,8 +12,11 @@ These possibilities only show up in the very first stage of Source.
 After that, we need a transform to convert any possibility to explicit error handling.
 This should be able to be a Source to Source transformation.
 
-Fold examples
-------------------
+Folds
+-----
+
+The source-to-source ReifyPossibility transform converts fold1s into folds.
+Core conversion should not need to worry but possibility of folds, or fold1s at all.
 
 
 ### Fold: sum of tombstone
@@ -58,6 +61,21 @@ fold sum
 ~> sum
 ```
 
+Conversion to Core for this is "trivial":
+(assume that simple case expressions are allowed in Core for now)
+```
+Program
+Reduction
+ sum = Fold
+        (\sum input
+          -> case input
+             | Left err -> Left err
+             | Right input' -> case sum ...
+             end
+        (Right 0)
+        Source
+```
+
 ### Fold1: newest of tombstone
 
 Newest of tombstone field: ``input :: Element Possibly Int``
@@ -95,14 +113,7 @@ fold  newest
 ~> newest
 ```
 
-or if the ToCore conversion handled the ErrorEmptyFoldl1, as it currently does, then we actually don't need to modify this one at all:
-
-```
-fold1 newest
-    = input
-    : input
-~> newest
-```
+Now the ToCore conversion becomes rather simple.
 
 
 ### Fold1 over definites
@@ -147,18 +158,122 @@ fold  earliest
 ~> newest
 ```
 
-But we can also leave it as a fold1 with
+
+Window
+------
+Windows can be left alone. (Right?)
+
+Latest
+------
+Latest returns a Possibly, because there might not be enough rows to fill the whole buffer.
+ReifyPossibility needn't worry about this, but ToCore should be modified:
 ```
-fold1 earliest
-    = Right date
-    : earliest
-~> earliest
+latest 5 ~> value
+```
+must become something like
+```
+Program
+Streams
+ values  = Map (\v -> value v) Source
+Reductions
+ latests = Latest 5 values
+Postcomputations
+ post    = if   length latests == 5
+           then Right latests
+           else Left  ErrorLatestLacksData
 ```
 
+There are other options - Core Latest could actually return an (Either Error (Array a)), but this would require changing Core and Avalanche.FromCore at the same time.
+
+Note that Latest will also need to change quite a bit in order to allow Latests inside groups; see [issue 107](https://github.com/ambiata/icicle/issues/107).
+
+
+Group
+-----
+ToCore needs to do fancy things for Groups.
+Assume key and value are both possibly.
+```
+group key ~> sum value
+```
+becomes
+```
+Program
+Reductions
+ groups = Fold
+            (\a v
+            -> case a
+               | Left err -> Left err
+               | Right map
+               -> case key v
+                  | Left err -> Left (GroupKeyBad err)
+                  | Right k
+                  -> case Map.lookup k map
+                     | None
+                     -> case Right 0
+                        | Left err -> Left (GroupValueInitialBad err)
+                        | Right i  -> Right (Map.insert k i m)
+                        end
+                     | Some current_value
+                     -> case value v
+                        | Left err -> Left (GroupValueUpdateBad err)
+                        | Right i  -> Right (Map.insert k (current_value + i) m)
+                        end
+                     end
+                  end
+               end
+            )
+            (Right Map.empty) Source
+```
+
+Gosh, that's quite an earful.
+Note that the ``case Right 0`` should get case-of-constructored out pretty easily.
+Funny thing about this is that we cannot use an ``insertOrUpdate`` primitive, but we could probably have lookup return the update index or something too.
+
+GroupFold
+---------
+
+So, I don't think anything much special is required here; it just ends up being a fold over the map at the end, so just unwrapping the map before folding.
+```
+group fold (k,v) = (group key ~> sum value)
+~> min value
+```
+
+Distinct
+--------
+Might be better off just converting this to an equivalent groupfold/group in the source-to-source transform.
+
+Filter
+------
+Filter has very interesting semantics, because it's supposed to be history-agnostic: so if you filter one element, it shouldn't depend on whether any earlier elements were filtered.
+So what happens if you are filtering over a field and get tombstone?
+I think in this case, the element should be returned through the filter as Error, but subsequent elements must act normally.
+
+So filter actually needs to be converted to something like
+```
+filter tomb ~> rest
+```
+becomes two maps and a filter (oh my)
+```
+x1 = Map (\v -> case tomb v
+                | Left e -> (True, Left e)
+                | Right p -> (p, Right v))
+x2 = Filter (\(p,v) -> p) x1
+x3 = Map (\(p,v) -> v) x2
+...
+rest
+...
+```
+
+Actually, maybe this could be done in Source-to-Source, but I don't know whether it matters any more.
+
+Let
+---
+I think let is "fairly simple".
 
 Other stuff
 -------
 
 Ok so for now I think, the ToCore conversion will have to deal with some of it: for groups, latests, fold1s etc.
 However having this pass beforehand deal with function application and wrapping should simplify that a lot.
+
 

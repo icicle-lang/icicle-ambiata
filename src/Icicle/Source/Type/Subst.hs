@@ -38,11 +38,13 @@ substT ss tt
       IntT          -> t
       StringT       -> t
       UnitT         -> t
+      ErrorT        -> t
 
       ArrayT  a     -> ArrayT  (go a)
       GroupT  a b   -> GroupT  (go a) (go b)
       OptionT a     -> OptionT (go a)
       PairT   a b   -> PairT   (go a) (go b)
+      SumT    a b   -> SumT    (go a) (go b)
       StructT fs    -> StructT (Map.map go fs)
 
       Temporality a b       -> Temporality (go a) (go b)
@@ -76,8 +78,6 @@ substC ss cc
      -> CReturnOfLatest (substT ss ret) (substT ss tmp) (substT ss dat)
     CPossibilityJoin ret b c
      -> CPossibilityJoin (substT ss ret) (substT ss b) (substT ss c)
-    CExtractTemporality temp ty tau
-     -> CExtractTemporality (substT ss temp) (substT ss ty) (substT ss tau)
 
 
 -- | Substitute into a function type.
@@ -140,6 +140,10 @@ unifyT :: Ord n => Type n -> Type n -> Maybe (SubstT n)
 unifyT t1 t2
  = case t1 of
     TypeVar a
+     | TypeVar b <- t2
+     , a == b
+     -> return $ Map.empty
+    TypeVar a
      -> return $ Map.singleton a t2
     _
      | TypeVar b <- t2
@@ -151,6 +155,7 @@ unifyT t1 t2
     IntT        -> eq
     StringT     -> eq
     UnitT       -> eq
+    ErrorT      -> eq
 
     ArrayT a
      | ArrayT b <- t2
@@ -172,6 +177,12 @@ unifyT t1 t2
 
     PairT a1 a2
      | PairT b1 b2 <- t2
+     -> compose <$> unifyT a1 b1 <*> unifyT a2 b2
+     | otherwise
+     -> Nothing
+
+    SumT  a1 a2
+     | SumT  b1 b2 <- t2
      -> compose <$> unifyT a1 b1 <*> unifyT a2 b2
      | otherwise
      -> Nothing

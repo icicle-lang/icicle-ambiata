@@ -79,18 +79,26 @@ dischargeC c
          Nothing -> Left $ CannotUnify a b
          Just s  -> return $ DischargeSubst s
 
-    -- Like CEquals, but defaults temporality to Pure if the type doesn't have temporality.
-    CExtractTemporality tp ty t@(Temporality _ _)
-      -> dischargeC (CEquals (Temporality tp ty) t)
-    CExtractTemporality _  _  (TypeVar _)
-      -> return $ DischargeLeftover c
-    CExtractTemporality tp ty t
-      -> dischargeC (CEquals (Temporality tp ty) (Temporality TemporalityPure t))
-
     -- Join temporalities. Pure joins with everything.
+    --
+    -- Even if there are unknowns, if one of them is pure,
+    -- the result must equal the other one.
+    CTemporalityJoin atemp btemp TemporalityPure
+     -> dischargeC $ CEquals atemp btemp
+    CTemporalityJoin atemp TemporalityPure ctemp
+     -> dischargeC $ CEquals atemp ctemp
+
+    -- Likewise if the two are unknown but equal,
+    -- the result must be equal
+    CTemporalityJoin atemp btemp ctemp
+     | btemp == ctemp
+     -> dischargeC $ CEquals atemp btemp
+
     CTemporalityJoin (TypeVar _) _          (TypeVar _)
      -> return $ DischargeLeftover c
     CTemporalityJoin (TypeVar _) (TypeVar _) _
+     -> return $ DischargeLeftover c
+    CTemporalityJoin _ (TypeVar _) (TypeVar _)
      -> return $ DischargeLeftover c
     CTemporalityJoin (TypeVar v) atemp btemp
      -> do temp <- lub atemp btemp

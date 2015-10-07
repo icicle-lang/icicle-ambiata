@@ -84,25 +84,23 @@ newtype Gen a n t
  deriving (Functor, Applicative, Monad)
 
 evalGen
-    :: (GenConstraintSet a n -> Gen a n t)
-    -> GenConstraintSet a n
+    :: Gen a n t
     -> EitherT (CheckError a n) (Fresh.Fresh n) t
-evalGen f cons
+evalGen f
  = EitherT
  $ Fresh.FreshT
  $ \ns -> Identity
  $ flip Fresh.runFresh ns
  $ runEitherT
- $ constraintGen
- $ f cons
+ $ constraintGen f
 
 type Query'C a n = Query (Annot a n) n
 type Exp'C   a n = Exp   (Annot a n) n
 
 
 -- | Add a constraint to the context.
-require :: a -> Constraint n -> GenConstraintSet a n -> GenConstraintSet a n
-require a c s = (a,c):s
+require :: a -> Constraint n -> GenConstraintSet a n
+require a c = [(a,c)]
 
 -- | Discharge the constraints in some context after applying some type substitutions.
 --
@@ -133,18 +131,19 @@ introForalls
   :: Ord n
   => a
   -> FunctionType n
-  -> GenConstraintSet a n
   -> Gen a n (FunctionType n, [Type n], Type n, GenConstraintSet a n)
-introForalls ann f cons
+introForalls ann f
  = do freshen <- Map.fromList <$> mapM mkSubst (functionForalls f)
 
-      let cons' = foldl (flip $ require ann . substC freshen) cons (functionConstraints f)
+      let cons = concat
+               $ fmap (require ann . substC freshen)
+               $ functionConstraints f
 
       let sub   = substT freshen
       return ( f
              , fmap sub $ functionArguments f
              ,      sub $ functionReturn    f
-             , cons' )
+             , cons )
  where
   mkSubst n
    = ((,) n . TypeVar) <$> fresh
@@ -157,12 +156,11 @@ lookup
   => a
   -> Name n
   -> GenEnv n
-  -> GenConstraintSet a n
   -> Gen a n (FunctionType n, [Type n], Type n, GenConstraintSet a n)
-lookup ann n env cons
+lookup ann n env
  = case Map.lookup n env of
      Just t
-      -> introForalls ann t cons
+      -> introForalls ann t
      Nothing
       -> Gen . hoistEither
        $ errorSuggestions (ErrorNoSuchVariable ann n)

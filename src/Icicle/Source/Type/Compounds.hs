@@ -41,11 +41,13 @@ freeT t
     IntT                    -> Set.empty
     StringT                 -> Set.empty
     UnitT                   -> Set.empty
+    ErrorT                  -> Set.empty
 
     ArrayT      a           -> freeT a
     GroupT      a b         -> Set.union (freeT a) (freeT b)
     OptionT     a           -> freeT a
     PairT       a b         -> Set.union (freeT a) (freeT b)
+    SumT        a b         -> Set.union (freeT a) (freeT b)
     StructT ms              -> Set.unions
                              $ fmap freeT
                              $ Map.elems ms
@@ -80,10 +82,6 @@ freeC c
     CTemporalityJoin p q r  -> Set.unions
                              $ fmap freeT
                              [ p, q, r ]
-    CExtractTemporality p q r
-                            -> Set.unions
-                             $ fmap freeT
-                             [ p, q, r ]
 
 
 canonT :: Type n -> Type n
@@ -115,11 +113,13 @@ getTemporality tt
     IntT          -> Nothing
     StringT       -> Nothing
     UnitT         -> Nothing
+    ErrorT        -> Nothing
 
     ArrayT  a     -> wrap go ArrayT  a
     GroupT  a b   -> wrap2 go GroupT a b
     OptionT a     -> wrap go OptionT a
     PairT   a b   -> wrap2 go PairT  a b
+    SumT    a b   -> wrap2 go SumT   a b
     StructT fs    -> let fs' = Map.toList fs
                          ks  = fmap fst fs'
                          vs  = fmap snd fs'
@@ -159,11 +159,13 @@ getPossibility tt
     IntT          -> Nothing
     StringT       -> Nothing
     UnitT         -> Nothing
+    ErrorT        -> Nothing
 
     ArrayT  a     -> wrap go ArrayT  a
     GroupT  a b   -> wrap2 go GroupT a b
     OptionT a     -> wrap go OptionT a
     PairT   a b   -> wrap2 go PairT  a b
+    SumT    a b   -> wrap2 go SumT   a b
     StructT fs    -> let fs' = Map.toList fs
                          ks  = fmap fst fs'
                          vs  = fmap snd fs'
@@ -202,10 +204,12 @@ getBaseType tt
     IntT          -> Just tt
     StringT       -> Just tt
     UnitT         -> Just tt
+    ErrorT        -> Just tt
     ArrayT  _     -> Just tt
     GroupT  _ _   -> Just tt
     OptionT _     -> Just tt
     PairT   _ _   -> Just tt
+    SumT    _ _   -> Just tt
     StructT _     -> Just tt
 
     Temporality _ t       -> getBaseType t

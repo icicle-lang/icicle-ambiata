@@ -57,10 +57,12 @@ data ValType
  | IntT
  | StringT
  | UnitT
+ | ErrorT
  | ArrayT ValType
  | MapT   ValType ValType
  | OptionT        ValType
  | PairT  ValType ValType
+ | SumT   ValType ValType
  | StructT StructType
  deriving (Eq,Ord,Show)
 
@@ -88,11 +90,13 @@ defaultOfType typ
      IntT      -> VInt 0
      StringT   -> VString T.empty
      UnitT     -> VUnit
+     ErrorT    -> VError ExceptTombstone
      ArrayT  _ -> VArray []
      MapT  _ _ -> VMap Map.empty
      OptionT _ -> VNone
      PairT a b -> VPair (defaultOfType a)
                         (defaultOfType b)
+     SumT  a _ -> VLeft (defaultOfType a)
      StructT t -> VStruct (Map.map defaultOfType (getStructType t))
 
 
@@ -206,8 +210,8 @@ requireSame err p q
 valueMatchesType :: BaseValue -> ValType -> Bool
 valueMatchesType v t
  = case (t,v) of
-    -- XXX TODO exception types
-    (_, VException _)
+    -- XXX reintroducing error-as-anything test for now
+    (_, VError{})
      -> True
 
     (IntT, VInt{})
@@ -223,6 +227,11 @@ valueMatchesType v t
     (UnitT, VUnit{})
      -> True
     (UnitT, _)
+     -> False
+
+    -- (ErrorT, VError _)
+    -- -> True
+    (ErrorT, _)
      -> False
 
     (BoolT, VBool{})
@@ -248,6 +257,13 @@ valueMatchesType v t
     (PairT p q, VPair a b)
      -> valueMatchesType a p && valueMatchesType b q
     (PairT _ _, _)
+     -> False
+
+    (SumT p _, VLeft a)
+     -> valueMatchesType a p
+    (SumT _ q, VRight b)
+     -> valueMatchesType b q
+    (SumT _ _, _)
      -> False
 
     (OptionT p, VSome a)
@@ -298,6 +314,7 @@ ppValType needParens vt =
     IntT       -> text "Int"
     DoubleT    -> text "Double"
     UnitT      -> text "Unit"
+    ErrorT     -> text "Error"
     BoolT      -> text "Bool"
     DateTimeT  -> text "DateTime"
     StringT    -> text "String"
@@ -305,6 +322,7 @@ ppValType needParens vt =
     MapT k v   -> parens' (text "Map"    <+> ppSub k <+> ppSub v)
     OptionT a  -> parens' (text "Option" <+> ppSub a)
     PairT a b  -> parens  (ppTop a <> text ", " <> ppTop b)
+    SumT  a b  -> parens  (text "Sum" <+> ppSub a <+> ppSub b)
     StructT fs -> parens' (pretty fs)
   where
     parens' | needParens = parens

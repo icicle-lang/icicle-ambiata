@@ -37,7 +37,6 @@ data Prim
  | PrimDateTime PrimDateTime
  | PrimPair     PrimPair
  | PrimStruct   PrimStruct
- | PrimTombstone ValType
  deriving (Eq, Ord, Show)
 
 -- | Arithmetic primitives, common to all number-like things
@@ -87,8 +86,10 @@ data PrimLogical
 
 -- | Constructors
 data PrimConst
- = PrimConstPair ValType ValType
- | PrimConstSome ValType
+ = PrimConstPair  ValType ValType
+ | PrimConstSome  ValType
+ | PrimConstLeft  ValType ValType
+ | PrimConstRight ValType ValType
  deriving (Eq, Ord, Show)
 
 -- | DateTime primitives
@@ -151,6 +152,10 @@ typeOfPrim p
      -> FunT [funOfVal a, funOfVal b] (PairT a b)
     PrimConst (PrimConstSome a)
      -> FunT [funOfVal a] (OptionT a)
+    PrimConst (PrimConstLeft a b)
+     -> FunT [funOfVal a] (SumT a b)
+    PrimConst (PrimConstRight a b)
+     -> FunT [funOfVal b] (SumT a b)
 
     PrimDateTime PrimDateTimeDaysDifference
      -> FunT [funOfVal DateTimeT, funOfVal DateTimeT] IntT
@@ -167,8 +172,6 @@ typeOfPrim p
     PrimStruct (PrimStructGet f t (StructType fs))
      -> FunT [funOfVal (StructT $ StructType $ Map.insert f t fs)] t
 
-    PrimTombstone a
-     -> FunT [funOfVal a] BoolT
 
 -- Pretty -------------
 
@@ -222,6 +225,10 @@ instance Pretty Prim where
 
  pretty (PrimConst (PrimConstPair a b)) = text "pair#" <+> brackets (pretty a) <+> brackets (pretty b)
  pretty (PrimConst (PrimConstSome t))   = text "some#" <+> brackets (pretty t)
+ pretty (PrimConst (PrimConstLeft  a b))
+  = text "left#"  <+> brackets (pretty a) <+> brackets (pretty b)
+ pretty (PrimConst (PrimConstRight a b))
+  = text "right#" <+> brackets (pretty a) <+> brackets (pretty b)
 
  pretty (PrimDateTime PrimDateTimeDaysDifference) = text "DateTime_daysDifference#"
  pretty (PrimDateTime PrimDateTimeMinusDays)      = text "DateTime_minusDays#"
@@ -232,5 +239,4 @@ instance Pretty Prim where
 
  pretty (PrimStruct (PrimStructGet f t fs)) = text "get#" <+> brackets (pretty f) <+> brackets (pretty t) <+> brackets (pretty fs)
 
- pretty (PrimTombstone _) = text "tombstone#"
 

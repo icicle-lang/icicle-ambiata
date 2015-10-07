@@ -1,6 +1,7 @@
 {-# LANGUAGE DeriveFunctor     #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE PatternSynonyms   #-}
+{-# LANGUAGE PatternGuards     #-}
 {-# LANGUAGE TupleSections     #-}
 {-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE DeriveFoldable    #-}
@@ -30,6 +31,7 @@ data DesugarError n
                                          --   with any alternative.
  | DesugarErrorImpossible                -- ^ just impossible, the world has ended.
  | DesugarOverlappingPattern (Pattern n) -- ^ duh
+ | DesugarIllTypedPatterns   [Pattern n] -- ^ patterns use constructors from different types
  deriving (Eq, Show)
 
 type DesugarM a n x = FreshT n (EitherT (DesugarError n) Identity) x
@@ -90,7 +92,7 @@ desugarX xx
 
     Case a scrut patalts
      -> do let pats  = fmap fst patalts
-           let ty    = foldl' (flip addToTy) TyAny pats
+           ty       <- foldM (flip $ addToTy $ DesugarIllTypedPatterns pats) TyAny pats
 
            scrut'   <- desugarX scrut
            patalts' <- mapM (mapM desugarX) patalts
@@ -122,23 +124,103 @@ desugarX xx
 data Ty
  = TyTup Ty Ty
  | TyOpt Ty
+ | TySum Ty Ty
  | TyBool
+ -- Literals such as numbers and argument-less enums:
+ -- where we can, instead of doing a real case, check against "x == Con".
+ -- This doesn't work for Bool because this desugaring uses Bool
+ | TyLit [Constructor]
  | TyAny
  deriving (Show)
 
 
-addToTy :: Pattern n -> Ty -> Ty
-addToTy (PatCon ConTuple [p1, p2]) (TyTup t1 t2) = TyTup (addToTy p1 t1) (addToTy p2 t2)
-addToTy (PatCon ConTuple [p1, p2]) TyAny         = TyTup (addToTy p1 TyAny) (addToTy p2 TyAny)
-addToTy (PatCon ConSome  [p])      (TyOpt t)     = TyOpt (addToTy p t)
-addToTy (PatCon ConSome  [p])      TyAny         = TyOpt (addToTy p TyAny)
-addToTy (PatCon ConNone  [])       ty@(TyOpt _)  = ty
-addToTy (PatCon ConNone  [])       TyAny         = TyOpt TyAny
-addToTy (PatCon ConTrue  [])       ty@TyBool     = ty
-addToTy (PatCon ConTrue  [])       TyAny         = TyBool
-addToTy (PatCon ConFalse [])       ty@TyBool     = ty
-addToTy (PatCon ConFalse [])       TyAny         = TyBool
-addToTy _                          ty            = ty
+addToTy :: DesugarError n -> Pattern n -> Ty -> DesugarM a n Ty
+addToTy err (PatCon con pats) ty
+ = case con of
+    ConTuple
+     | [p1, p2]         <- pats
+     , TyTup t1 t2      <- ty
+     -> TyTup <$> go p1 t1    <*> go p2 t2
+     | [p1, p2]         <- pats
+     , TyAny            <- ty
+     -> TyTup <$> go p1 TyAny <*> go p2 TyAny
+     | otherwise
+     -> lift $ left err
+
+    ConSome
+     | [p]              <- pats
+     , TyOpt t          <- ty
+     -> TyOpt <$> go p t
+     | [p]              <- pats
+     , TyAny            <- ty
+     -> TyOpt <$> go p TyAny
+     | otherwise
+     -> lift $ left err
+
+    ConNone
+     | []               <- pats
+     , TyOpt _          <- ty
+     -> return ty
+     | []               <- pats
+     , TyAny            <- ty
+     -> return $ TyOpt TyAny
+     | otherwise
+     -> lift $ left err
+
+    ConTrue
+     | []               <- pats
+     , TyBool           <- ty
+     -> return ty
+     | []               <- pats
+     , TyAny            <- ty
+     -> return TyBool
+     | otherwise
+     -> lift $ left err
+
+    ConFalse
+     | []               <- pats
+     , TyBool           <- ty
+     -> return ty
+     | []               <- pats
+     , TyAny            <- ty
+     -> return TyBool
+     | otherwise
+     -> lift $ left err
+
+    ConLeft
+     | [p]              <- pats
+     , TySum t1 t2      <- ty
+     -> TySum <$> go p t1    <*> return t2
+     | [p]              <- pats
+     , TyAny            <- ty
+     -> TySum <$> go p TyAny <*> return TyAny
+     | otherwise
+     -> lift $ left err
+
+    ConRight
+     | [p]              <- pats
+     , TySum t1 t2      <- ty
+     -> TySum <$> return t1    <*> go p t2
+     | [p]              <- pats
+     , TyAny            <- ty
+     -> TySum <$> return TyAny <*> go p TyAny
+     | otherwise
+     -> lift $ left err
+
+    ConError _
+     | []               <- pats
+     , TyLit cs         <- ty
+     -> return $ TyLit (cs <> [con])
+     | []               <- pats
+     , TyAny            <- ty
+     -> return $ TyLit [con]
+     | otherwise
+     -> lift $ left err
+ where
+  go = addToTy err
+
+addToTy _ PatDefault      ty    = return ty
+addToTy _ (PatVariable _) ty    = return ty
 
 
 casesForTy
@@ -160,8 +242,7 @@ casesForTy ann scrut ty
      -> do args     <- freshes 2
            let pat'  = PatCon ConTuple (fmap PatVariable args)
            let vars  = fmap (Var ann) args
-           bd       <- liftM (fmap (PatCon ConTuple) . sequence)
-                     $ zipWithM (casesForTy ann) vars [a,b]
+           bd       <- subtree ConTuple vars [a, b]
            return $ TCase scrut [ (pat', bd) ]
 
     -- Options need a case for None, and nested cases for Some arguments
@@ -169,10 +250,28 @@ casesForTy ann scrut ty
      -> do args     <- freshes 1
            let pat'  = PatCon ConSome (fmap PatVariable args)
            let vars  = fmap (Var ann) args
-           bd       <- liftM (fmap (PatCon ConSome) . sequence)
-                     $ zipWithM (casesForTy ann) vars [a]
+           bd       <- subtree ConSome vars [a]
            return $ TCase scrut [ (pat', bd)
                                , (PatCon ConNone [], Done (PatCon ConNone [])) ]
+
+    -- Options need a case for None, and nested cases for Some arguments
+    TySum a b
+     -> do aleft     <- freshes 1
+           let pleft  = PatCon ConLeft  (fmap PatVariable aleft)
+           aright    <- freshes 1
+           let pright = PatCon ConRight (fmap PatVariable aright)
+           let vars args = fmap (Var ann) args
+           bl <- subtree ConLeft  (vars aleft)  [a]
+           br <- subtree ConRight (vars aright) [b]
+           return $ TCase scrut [ (pleft,  bl)
+                                , (pright, br) ]
+
+    TyLit cs
+     -> do var <- fresh
+           return $ TLet var scrut
+                  $ TLits   (Var ann var)
+                            (fmap (\c -> (c, Done $ PatCon c [])) cs)
+                            (Done $ PatVariable var)
 
     -- If we don't know the type of this pattern, use a fresh variable
     -- Use TLet to avoid generating variable patterns, since Core can't handle them.
@@ -180,6 +279,10 @@ casesForTy ann scrut ty
      -> do var <- fresh
            return $ TLet var scrut (Done (PatVariable var) )
 
+ where
+  subtree con vars tys
+   = liftM (fmap (PatCon con) . sequence)
+   $ zipWithM (casesForTy ann) vars tys
 
 -- | A nested case AST. We generate this from the patterns and convert it into
 --   a case statement.
@@ -191,7 +294,10 @@ data Tree a n x
  | TLet  (Name n)                  -- ^ insert a let because we cannot generate pattern variables.
          (Exp' (Query a n) a n)
          (Tree a n x)
+ | TLits (Exp' (Query a n) a n)    -- ^ special case for literals
+         [(Constructor, Tree a n x)] (Tree a n x)
  deriving (Functor, Foldable, Traversable, Show)
+
 
 instance Monad (Tree a n) where
   return  = Done
@@ -200,6 +306,8 @@ instance Monad (Tree a n) where
     joinT (Done x)     = x
     joinT (TCase n ls) = TCase n (fmap (fmap joinT) ls)
     joinT (TLet n x t) = TLet  n x (joinT t)
+    joinT (TLits  s cs d)
+                       = TLits s (fmap (fmap joinT) cs) (joinT d)
 
 
 treeToCase
@@ -219,6 +327,16 @@ treeToCase ann patalts tree
     = Case ann scrut (fmap (fmap caseStmtsFor) alts)
    caseStmtsFor (TLet n x e)
     = Nested ann (Query [Let ann n x] (caseStmtsFor e))
+
+   caseStmtsFor (TLits scrut ((c,x):cs) d)
+    = let eq = Prim ann $ Op $ Relation Eq
+          c' = Prim ann $ PrimCon c
+          sc = App ann (App ann eq scrut) c'
+      in Case ann sc
+            [ ( PatCon ConTrue  [], caseStmtsFor x )
+            , ( PatCon ConFalse [], caseStmtsFor $ TLits scrut cs d ) ]
+   caseStmtsFor (TLits _ [] d)
+    = caseStmtsFor d
 
    -- Look up the alternative for this pattern
    getAltBody ((px, x) : xs) p

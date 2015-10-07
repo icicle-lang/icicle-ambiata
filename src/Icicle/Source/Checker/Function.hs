@@ -45,26 +45,25 @@ checkF  :: Ord n
                    (Function (Annot a n) n, FunctionType n)
 
 checkF env fun
- = evalGen (checkF' fun env) []
+ = evalGen $ checkF' fun env
 
 
 -- | Typecheck a function definition, generalising types and pulling out constraints
 checkF' :: Ord n
         => Function a n
         -> GenEnv n
-        -> GenConstraintSet a n
         -> Gen a n (Function (Annot a n) n, FunctionType n)
 
-checkF' fun env cons
+checkF' fun env
  = do -- Give each argument a fresh type variable
       env' <- foldM bindArg env $ arguments fun
       -- Get the annotated body
-      (q', subs, cons')  <- generateQ (body fun) env' cons
+      (q', subs, cons')  <- generateQ (body fun) env'
 
       -- Look up the argument types after solving all constraints.
       -- Because they started as fresh unification variables,
       -- they will end up being unified to the actual types.
-      args <- mapM (lookupArg subs env' cons') (arguments fun)
+      args <- mapM (lookupArg subs env') (arguments fun)
 
       -- Find all leftover constraints and nub them
       let constrs = ordNub $ fmap snd cons'
@@ -145,7 +144,7 @@ checkF' fun env cons
    <*> (Possibility <$> (TypeVar <$> fresh)
    <*>                  (TypeVar <$> fresh))
 
-  lookupArg subs e c (a,n)
-   = do (_,_,t,_) <- lookup a n e c
+  lookupArg subs e (a,n)
+   = do (_,_,t,_) <- lookup a n e
         return (Annot a (substT subs t) [], n)
 

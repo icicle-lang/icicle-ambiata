@@ -160,6 +160,18 @@ evalPrim p originalP vs
       | otherwise
       -> primError
 
+     PrimConst (PrimConstLeft _ _)
+      | [VBase v] <- vs
+      -> return $ VBase $ VLeft v
+      | otherwise
+      -> primError
+
+     PrimConst (PrimConstRight _ _)
+      | [VBase v] <- vs
+      -> return $ VBase $ VRight v
+      | otherwise
+      -> primError
+
 
      -- Date stuff
      PrimDateTime PrimDateTimeDaysDifference
@@ -196,14 +208,6 @@ evalPrim p originalP vs
       | [VBase (VStruct fs)] <- vs
       , Just v' <- Map.lookup f fs
       -> return $ VBase v'
-      | otherwise
-      -> primError
-
-     PrimTombstone _
-      | [VBase VTombstone] <- vs
-      -> return $ VBase $ VBool True
-      | [VBase _] <- vs
-      -> return $ VBase $ VBool False
       | otherwise
       -> primError
 

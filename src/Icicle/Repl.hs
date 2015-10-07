@@ -6,6 +6,7 @@ module Icicle.Repl (
   , annotOfError
   , sourceParse
   , sourceDesugar
+  , sourceReify
   , sourceCheck
   , sourceConvert
   , sourceParseConvert
@@ -39,8 +40,10 @@ import qualified Icicle.Source.Query                as SQ
 import qualified Icicle.Source.ToCore.Base          as STC
 import qualified Icicle.Source.ToCore.ToCore        as STC
 import qualified Icicle.Source.Type                 as ST
+import qualified Icicle.Source.Transform.Base       as ST
 import qualified Icicle.Source.Transform.Inline     as STI
 import qualified Icicle.Source.Transform.Desugar    as STD
+import qualified Icicle.Source.Transform.ReifyPossibility as STR
 
 import           P
 
@@ -153,6 +156,19 @@ sourceDesugar q
  $ Fresh.runFreshT
      (STD.desugarQT q)
      (freshNamer "desugar")
+
+sourceReify :: D.Dictionary -> QueryTop' -> Either ReplError QueryTop'
+sourceReify d q
+ = do q'c    <- fst <$> sourceCheck d q
+      let q'r = reify q'c
+      sourceDesugar $ SQ.reannotQT ST.annAnnot q'r
+ where
+  reify q'
+     = snd
+     $ runIdentity
+     $ Fresh.runFreshT
+         (ST.transformQT STR.reifyPossibilityTransform q')
+         (freshNamer "reify")
 
 sourceCheck :: D.Dictionary -> QueryTop' -> Either ReplError (QueryTop'T, ST.Type Var)
 sourceCheck d q

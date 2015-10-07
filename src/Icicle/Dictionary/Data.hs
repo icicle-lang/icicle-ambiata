@@ -130,7 +130,8 @@ featureMapOfDictionary (Dictionary { dictionaryEntries = ds, dictionaryFunctions
   xget f t fs
    = X.XPrim () (X.PrimMinimal $ X.PrimStruct $ X.PrimStructGet f t fs)
   xtomb t1
-   = X.XPrim () (X.PrimMinimal $ X.PrimTombstone t1)
+   = X.XApp () (X.XPrim () (X.PrimMinimal $ X.PrimRelation X.PrimRelationEq t1))
+               (X.XValue () (SumT ErrorT t1) (VLeft $ VError ExceptTombstone))
 
   exps str e'
    = [ (var str, ( baseType e', X.XApp () (xfst e' DateTimeT)))
