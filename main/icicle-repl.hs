@@ -297,8 +297,7 @@ handleLine state line = case readCommand line of
 
       reified     <- hoist $ SR.sourceReify (dictionary state) blanded
       prettyOut hasInlined "- Reified:" reified
-      -- XXX This should be operating on reified, but I'm disabling it for now
-      (annot',_)  <- hoist $ SR.sourceCheck (dictionary state) blanded -- reified
+      (annot',_)  <- hoist $ SR.sourceCheck (dictionary state) reified
 
       prettyOut hasInlined "- Inlined:" (SPretty.PrettyAnnot annot')
 
