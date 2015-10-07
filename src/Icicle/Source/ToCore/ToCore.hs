@@ -597,7 +597,7 @@ convertReduce xx
                 | otherwise
                 = post nm x'
 
-        return (b' <> bs', nm)
+        return (bs' <> b', nm)
 
  -- It's not a variable or a nested query,
  -- so it must be an application of a non-primitive
