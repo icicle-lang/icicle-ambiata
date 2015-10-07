@@ -457,63 +457,8 @@ convertQuery q
 
 
     -- Converting fold1s.
-    (LetFold _ f@Fold{ foldType = FoldTypeFoldl1 } : _)
-     -> do  -- Type helpers
-            tU <- convertValType' $ annResult $ annotOfExp $ foldWork f
-            let tO = T.OptionT tU
-
-            -- Generate fresh names
-            -- Element of the stream
-            -- :                input type
-            n'elem <- lift fresh
-            -- Current accumulator
-            -- : Option tU
-            n'a     <- lift fresh
-
-
-            z   <- convertWithInputName n'elem $ convertExp (foldInit f)
-            -- Current accumulator is only available in worker
-            -- Remove binding before converting init and work expressions,
-            -- just in case the same name has been used elsewhere
-            convertModifyFeatures (Map.delete (foldBind f))
-            n'a'' <- convertFreshenAdd $ foldBind f
-            k   <- convertWithInputName n'elem $ convertExp (foldWork f)
-
-            -- Wrap zero and kons up in Some
-            let z' = som tU $ z
-            let k' = som tU $ k
-
-
-            (inpstream, inpty) <- convertInput
-
-            -- Worker function of the fold
-            let go  = CE.xLam n'a tO
-                    ( CE.xLam n'elem inpty
-                    $ opt tU tO
-                    ( CE.xLam n'a'' tU k')
-                      z'
-                      (CE.xVar n'a))
-
-
-            -- Bind the fold to a fresh name
-            n' <- lift fresh
-            let bs = red n'
-                        (C.RFold inpty tO go (none tU) inpstream)
-                     -- Then unwrap the actual result and bind it
-                  <> post n'a''
-                        (opt tU tU
-                            -- If the outer layer is a "Some",
-                            -- just return inner layer as-is
-                            (CE.xLam n'a'' tU $ CE.xVar n'a'')
-                            -- Outer layer is a "None", so throw an exception
-                            (CE.xValue tU $ VError ExceptFold1NoValue)
-                            (CE.xVar n'))
-
-
-            (bs', n'')      <- convertQuery q'
-
-            return (bs <> bs', n'')
-
+    (LetFold (Annot { annAnnot = ann }) Fold{ foldType = FoldTypeFoldl1 } : _)
+     -> convertError $ ConvertErrorImpossibleFold1 ann
 
     -- In comparison, normal folds are quite easy.
     --
@@ -581,17 +526,6 @@ convertQuery q
   -- Perform beta reduction, just to simplify the output a tiny bit.
   beta = Beta.betaToLets ()
        . Beta.beta Beta.isSimpleValue
-
-  -- Some helpers for generating Option expressions
-  -- Note that the "t"s here are the types without the outermost
-  -- layer of Option wrapping
-  opt t tret ss nn scrutinee
-   = CE.xPrim (C.PrimFold (C.PrimFoldOption t) tret)
-     CE.@~ ss CE.@~ nn CE.@~ scrutinee
-  none t
-   = CE.xValue (T.OptionT t) VNone
-  som t
-   = CE.some t
 
   convertValType' = convertValType (annAnnot $ annotOfQuery q)
 

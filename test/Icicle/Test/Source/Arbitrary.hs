@@ -134,8 +134,9 @@ instance Arbitrary n => Arbitrary (Fold (Query () n) () n) where
 instance Arbitrary FoldType where
  arbitrary
   = oneof
-        [ return FoldTypeFoldl1
-        , return FoldTypeFoldl ]
+        -- Disable foldl1 for now as it needs to be put through desugar first
+        -- [ return FoldTypeFoldl1
+        [ return FoldTypeFoldl ]
 
 
 instance Arbitrary n => Arbitrary (Query () n) where

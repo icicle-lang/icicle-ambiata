@@ -127,7 +127,7 @@ convertFold q
                     i <- idFun retty'
                     n'v <- lift fresh
                     let k = CE.xLam n'v retty' $ CE.xVar v'
-                    let err = CE.xValue retty' $ VError ExceptScalarVariableNotAvailable
+                    let err = CE.xValue retty' $ T.defaultOfType retty'
                     return $ ConvertFoldResult k err i retty' retty'
 
              -- For aggregate variables, the actual folding doesn't matter:
@@ -166,7 +166,7 @@ convertFold q
                     n'v <- lift fresh
                     inp <- convertInputName
                     let k = CE.xLam n'v retty' $ var' $ CE.xVar inp
-                    let err = CE.xValue retty' $ VError ExceptScalarVariableNotAvailable
+                    let err = CE.xValue retty' $ T.defaultOfType retty'
                     return $ ConvertFoldResult k err i retty' retty'
 
               | otherwise
@@ -249,7 +249,7 @@ convertFold q
      -> do  def' <- convertExp def
             n'   <- lift fresh
             t' <- convertValType' $ annResult $ annotOfExp def
-            let err = CE.xValue t' $ VError ExceptScalarVariableNotAvailable
+            let err = CE.xValue t' $ T.defaultOfType t'
             let res = ConvertFoldResult (CE.xLam n' t' def') err (CE.xLam n' t' $ CE.xVar n') t' t'
             convertAsLet b res
 
@@ -257,37 +257,8 @@ convertFold q
      -> do  resb <- convertFold (Query [] def)
             convertAsLet b resb
 
-    (LetFold _ f@Fold{ foldType = FoldTypeFoldl1 } : _)
-     -> do  -- Type helpers
-            tU <- convertValType' $ annResult $ annotOfExp $ foldWork f
-            let tO = T.OptionT tU
-
-            -- Generate fresh names
-            -- Current accumulator
-            -- : Option tU
-            n'a     <- lift fresh
-
-            z   <- convertExp (foldInit f)
-            -- Current accumulator is only available in worker
-            n'a' <- convertFreshenAdd $ foldBind f
-            k   <- convertExp (foldWork f)
-
-            let opt r = CE.xPrim $ C.PrimFold (C.PrimFoldOption tU) r
-            -- Wrap zero and kons up in Some
-            let k' = CE.xLam n'a tO
-                   ( opt tO
-                     CE.@~ CE.xLam n'a' tU (CE.some tU $ k)
-                     CE.@~ CE.some tU z
-                     CE.@~ CE.xVar n'a)
-
-            let x' = CE.xLam n'a tO
-                   ( opt tU
-                     CE.@~ CE.xLam   n'a' tU (CE.xVar n'a')
-                     CE.@~ CE.xValue tU (VError ExceptFold1NoValue)
-                     CE.@~ CE.xVar   n'a )
-
-            let res = ConvertFoldResult k' (CE.xValue tO VNone) x' tO tU
-            convertAsLet (foldBind f) res
+    (LetFold (Annot { annAnnot = ann }) Fold{ foldType = FoldTypeFoldl1 } : _)
+     -> convertError $ ConvertErrorImpossibleFold1 ann
 
 
     (LetFold _ f@Fold{ foldType = FoldTypeFoldl } : _)

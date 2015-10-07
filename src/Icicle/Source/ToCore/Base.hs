@@ -104,6 +104,7 @@ data ConvertError a n
  | ConvertErrorCannotConvertType a (Type n)
  | ConvertErrorBadCaseNoDefault a (Exp (Annot a n) n)
  | ConvertErrorBadCaseNestedConstructors a (Exp (Annot a n) n)
+ | ConvertErrorImpossibleFold1 a
  deriving (Show, Eq, Ord)
 
 annotOfError :: ConvertError a n -> Maybe a
@@ -132,6 +133,8 @@ annotOfError e
     ConvertErrorBadCaseNoDefault a _
      -> Just a
     ConvertErrorBadCaseNestedConstructors a _
+     -> Just a
+    ConvertErrorImpossibleFold1 a
      -> Just a
 
 
@@ -274,5 +277,7 @@ instance (Pretty a, Pretty n) => Pretty (ConvertError a n) where
       -> pretty a <> ": case has no default alternative: " <> pretty x
      ConvertErrorBadCaseNestedConstructors a x
       -> pretty a <> ": case has nested constructors in pattern; these should be removed by an earlier pass: " <> pretty x
+     ConvertErrorImpossibleFold1 a
+      -> pretty a <> ": fold1 cannot be converted; desugar first"
 
 
