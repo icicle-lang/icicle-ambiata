@@ -33,13 +33,17 @@ reifyPossibilityTransform
       Var a n
        -> return ((), Var   (wrapAnnot a) n)
       Nested a q
-       -> return ((), wrapRightIfAnnot a $ Nested (wrapAnnot a) q)
+       -> return ((), Nested (wrapAnnot a) q)
       App a _ _
        -> do let (fun,args) = takeApps x
              x' <- makeApps a fun args False
              return ((), x')
       Prim a p
        -> return ((), Prim  (wrapAnnot a) p)
+      -- TODO XXX this should perform case analysis on scrut if Possibly:
+      -- case scrut of
+      --  Left e -> Left e
+      --  Right scrut' -> case scrut' -> alts ...
       Case a scrut alts
        -> return ((), Case  (wrapAnnot a) (wrapRightIfAnnot a scrut)
                             (fmap (\(p,xx) -> (p, wrapRightIfAnnot a xx)) alts))
@@ -51,26 +55,36 @@ reifyPossibilityTransform
        -> do  nError <- fresh
               nValue <- fresh
               let b  = foldBind f
-                  a' = wrapAnnot a
+                  a'B = typeAnnot a BoolT
+                  a'E = typeAnnot a ErrorT
+                  a'D = definiteAnnot $ wrapAnnot a
 
-                  z' = con1 a' ConLeft $ con0 (definiteAnnot a) $ ConError ExceptFold1NoValue
+                  vError = Var a'E nError
+                  vValue = Var (definiteAnnot a) nValue
 
-                  -- Will need to desugar after this
-                  k' = Case a' (Var a' b)
-                     [ ( PatCon ConLeft  [ PatCon (ConError ExceptFold1NoValue) [] ]
-                       , wrapRight $ foldInit f )
-                     , ( PatCon ConLeft  [ PatVariable nError ]
-                       , con1 a' ConLeft $ Var (definiteAnnot a) nError )
+                  z' = con1 a'D ConLeft $ con0 a'E $ ConError ExceptFold1NoValue
+
+                  eqError = App a'B
+                                (App a'B (Prim a'B $ Op $ Relation Eq) (con0 a'E $ ConError ExceptFold1NoValue))
+                                vError
+
+                  k' = Case a'D (Var a'D b)
+                     [ ( PatCon ConLeft  [ PatVariable nError ]
+                       , Case a'D eqError
+                            [ ( PatCon ConTrue []
+                              , wrapRight $ foldInit f )
+                            , ( PatCon ConFalse []
+                              , con1 a'D ConLeft $ vError ) ] )
                      , ( PatCon ConRight [ PatVariable nValue ]
                        , wrapRight
-                       $ substIntoIfDefinitely b (Var (definiteAnnot a) nValue)
+                       $ substIntoIfDefinitely b vValue
                        $ foldWork f ) ]
 
                   f' = f { foldType = FoldTypeFoldl
                          , foldInit = z'
                          , foldWork = k' }
 
-              return ((), LetFold a' f')
+              return ((), LetFold a'D f')
 
        | otherwise
        -> do  let -- If the other part returns a possibly but this doesn't, wrap it
@@ -113,9 +127,9 @@ reifyPossibilityTransform
    , PossibilityPossibly <- getPossibilityOrDefinitely $ annResult arga
    =  do  nError <- fresh
           nValue <- fresh
-          let a'    = definiteAnnot a
+          let a'    = wrapAnnot a
               arga' = wrapAnnot arga
-              err   = con1 arga' ConLeft $ Var a' nError
+              err   = con1 a' ConLeft $ Var (definiteAnnot a) nError
 
               -- Bare value. Note that this is now definite, but with same (bare) type
               bare  = Var (definiteAnnot arga) nValue
@@ -141,12 +155,15 @@ reifyPossibilityTransform
   wrapAnnot ann
    | t                   <- annResult ann
    , PossibilityPossibly <- getPossibilityOrDefinitely t
-   = ann { annResult = canonT $ SumT ErrorT t }
+   = ann { annResult = canonT $ Possibility PossibilityDefinitely $ SumT ErrorT t }
    | otherwise
    = ann
 
   definiteAnnot ann
    = ann { annResult = canonT $ Possibility PossibilityDefinitely $ annResult ann }
+
+  typeAnnot ann t
+   = ann { annResult = t }
 
 
   wrapRightIfAnnot ann x
@@ -167,7 +184,7 @@ reifyPossibilityTransform
   conRight x
    = let ann = annotOfExp x
          t   = annResult  ann
-     in con1 (ann { annResult = canonT $ Possibility PossibilityPossibly $ SumT ErrorT t } ) ConRight x
+     in con1 (ann { annResult = canonT $ SumT ErrorT t } ) ConRight x
 
   substIntoIfDefinitely var payload into
    | PossibilityDefinitely <- getPossibilityOrDefinitely $ annResult $ annotOfExp into
