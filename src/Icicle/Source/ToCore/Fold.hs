@@ -225,7 +225,7 @@ convertFold q
                      CE.@~ (foldKons res CE.@~ prev') CE.@~ prev' CE.@~ e' )
             return (res { foldKons = k' })
 
-    (Windowed (Annot { annAnnot = ann }) _ _ : _)
+    (Windowed (Annot { annAnnot = ann }) _ _ _ : _)
      -> errNotAllowed ann
     (Latest (Annot { annAnnot = ann }) _ : _)
      -> errNotAllowed ann

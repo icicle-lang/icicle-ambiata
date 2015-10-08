@@ -10,6 +10,7 @@ module Icicle.Common.Base (
     , ExceptionInfo (..)
     , OutputName (..)
     , WindowUnit(..)
+    , WindowFrame(..)
     ) where
 
 import              Icicle.Internal.Pretty
@@ -35,6 +36,10 @@ data WindowUnit
  | Weeks  Int
  deriving (Show, Eq, Ord)
 
+data WindowFrame
+ = Framed
+ | Unframed
+ deriving (Show, Eq, Ord)
 
 -- | Base values - real values that can be serialised and whatnot
 -- These are used in the expressions, but actual values can be
@@ -130,6 +135,12 @@ instance Pretty ExceptionInfo where
 
 instance Pretty OutputName where
  pretty = pretty . unOutputName
+
+instance Pretty WindowFrame where
+ pretty wf
+  = case wf of
+    Framed    -> "framed"
+    Unframed  -> "unframed"
 
 instance Pretty WindowUnit where
  pretty wu

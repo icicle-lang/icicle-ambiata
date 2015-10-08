@@ -40,7 +40,7 @@ instance (Pretty a, Pretty n) => Pretty (PrettyAnnot (Exp a n)) where
 instance (Pretty a, Pretty n) => Pretty (PrettyAnnot (Context a n)) where
  pretty cc
   = case getPrettyAnnot cc of
-     Windowed a _ _ -> "windowed@{" <> pretty a <> "}"
+     Windowed a _ _ _ -> "windowed@{" <> pretty a <> "}"
      Latest a _     -> "latest@{" <> pretty a <> "}" 
      GroupBy a x    -> "group@{" <> pretty a <> "} " <> pretty (PrettyAnnot x)
      GroupFold a _ _ x -> "groupfold@{" <> pretty a <> "}" <> pretty (PrettyAnnot x)

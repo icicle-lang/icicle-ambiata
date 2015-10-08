@@ -76,6 +76,7 @@ data Keyword
  | Distinct
  | End
  | Feature
+ | Framed
  | Filter
  | Fold
  | Fold1

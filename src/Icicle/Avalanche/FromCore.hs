@@ -183,7 +183,7 @@ insertStream namer inputType strs reds (n, strm)
         -> allLet $ xVar $ namerFact namer
 
        -- If within i days
-       CS.SWindow _ newerThan olderThan inp
+       CS.SWindow _ newerThan olderThan _ inp
         -> let
                -- The comparison functions in Icicle.Core.Exp.Combinators compare on IntT,
                -- so here for convenience I create a set with comparison type DateTimeT.

@@ -128,7 +128,7 @@ generateQ qq@(Query (c:_) _) env
     --
     -- >   windowed n days ~> Aggregate x'p x'd
     -- > : Aggregate x'p x'd
-    Windowed _ from to
+    Windowed _ from to frame
      -> do  (q', sq, t', consr) <- rest env
 
             -- Windowed only works for aggregates
@@ -137,7 +137,7 @@ generateQ qq@(Query (c:_) _) env
 
             let cons' = concat [consr, consT]
 
-            let q''   = with cons' q' t'' $ \a' -> Windowed a' from to
+            let q''   = with cons' q' t'' $ \a' -> Windowed a' from to frame
             return (q'', sq, cons')
 
     -- >   latest n ~> x't x'p x'd

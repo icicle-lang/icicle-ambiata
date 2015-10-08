@@ -25,7 +25,7 @@ renameQ f (SQ.Query cs x)
 
 renameC :: (n -> m) -> SQ.Context a n -> SQ.Context a m
 renameC f cc = case cc of
-  SQ.Windowed  a b c   -> SQ.Windowed  a b c
+  SQ.Windowed  a b c d -> SQ.Windowed  a b c d
   SQ.Latest    a b     -> SQ.Latest    a b
   SQ.GroupBy   a e     -> SQ.GroupBy   a (renameX f e)
   SQ.GroupFold a k v e -> SQ.GroupFold a (renameN f k) (renameN f v) (renameX f e)
@@ -78,7 +78,7 @@ renameNS f (n, s) = (renameN f n, renameS f s)
 
 renameS :: (n -> m) -> CS.Stream a n -> CS.Stream a m
 renameS _ CS.Source                 = CS.Source
-renameS f (CS.SWindow t x mx n)     = CS.SWindow t x mx (renameN f n)
+renameS f (CS.SWindow t x mx fr n)  = CS.SWindow t x mx fr (renameN f n)
 renameS f (CS.STrans i e n)         = CS.STrans i (renameCX f e) (renameN f n)
 
 renameNR :: (n -> m) -> (Name n, CR.Reduce a n) -> (Name m, CR.Reduce a m)

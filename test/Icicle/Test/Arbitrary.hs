@@ -3,7 +3,7 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Icicle.Test.Arbitrary where
 
-import           Icicle.Common.Base (WindowUnit (..))
+import           Icicle.Common.Base (WindowUnit (..), WindowFrame (..))
 import           Icicle.Data
 import           Icicle.Data.DateTime
 
@@ -116,3 +116,9 @@ instance Arbitrary WindowUnit where
         , Weeks  <$> pos ]
   where
    pos = abs <$> arbitrary
+
+
+instance Arbitrary WindowFrame where
+ arbitrary
+  = oneof_vals
+        [ Framed, Unframed ]

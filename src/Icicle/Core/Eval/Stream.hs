@@ -146,7 +146,7 @@ eval window_check xh concreteValues sh s
     -- For now, I have gone with the first option:
     -- marking all newer entries is simpler and sufficient.
     --
-    SWindow _ newerThan olderThan n
+    SWindow _ newerThan olderThan _ n
      -> do  sv <- getInput n
             let newer  = windowEdge newerThan
             let older  = windowEdge <$> olderThan

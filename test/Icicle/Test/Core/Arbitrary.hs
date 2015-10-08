@@ -379,8 +379,9 @@ programForStreamType streamType
 
         newer <- arbitrary
         older <- arbitrary
+        frame <- arbitrary
 
-        return (t, SWindow t newer older i)
+        return (t, SWindow t newer older frame i)
 
   -- Generate some reductions using given stream environment
   gen_reduces :: Env Var ValType -> Env Var Type -> Int -> Gen (Env Var Type, [(Name Var, Reduce () Var)])
