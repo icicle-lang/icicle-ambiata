@@ -43,6 +43,8 @@ some t x
  = xPrim (PrimMinimal $ Min.PrimConst $ Min.PrimConstSome t)
     @~ x
 
+negate :: X.Exp () n -> X.Exp () n
+negate x = xPrim (PrimMinimal $ Min.PrimArithUnary Min.PrimArithNegate ArithIntT) @~ x
 
 constB :: Bool -> X.Exp () n
 constB = xValue BoolT . VBool
@@ -66,6 +68,10 @@ infixl 6 +~
 (-~) :: X.Exp () n -> X.Exp () n -> X.Exp () n
 (-~) = prim2 (PrimMinimal $ Min.PrimArithBinary Min.PrimArithMinus ArithIntT)
 infixl 6 -~
+
+(*~) :: X.Exp () n -> X.Exp () n -> X.Exp () n
+(*~) = prim2 (PrimMinimal $ Min.PrimArithBinary Min.PrimArithMul ArithIntT)
+infixl 7 *~
 
 (/~) :: X.Exp () n -> X.Exp () n -> X.Exp () n
 (/~) = prim2 (PrimMinimal $ Min.PrimDouble Min.PrimDoubleDiv)

@@ -68,6 +68,8 @@ data Token
 
 data Keyword
  = And
+ | After
+ | Before
  | Between
  | Case
  | Days

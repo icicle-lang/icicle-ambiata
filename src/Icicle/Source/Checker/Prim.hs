@@ -42,6 +42,8 @@ primLookup' p
      -> f0 [BoolT] BoolT
     Op (LogicalBinary _)
      -> f0 [BoolT, BoolT] BoolT
+    Op (DateBinary _)
+     -> f0 [IntT, DateTimeT] DateTimeT
 
     Op  TupleComma
      -> do a <- fresh

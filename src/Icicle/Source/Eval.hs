@@ -360,6 +360,42 @@ evalP ann p xs vs env
               | otherwise
               -> err
 
+             DateBinary DaysBefore
+              | [VInt i, VDateTime j] <- args
+              -> return $ VDateTime $ DT.minusDays j i
+              | otherwise
+              -> err
+
+             DateBinary DaysAfter
+              | [VInt i, VDateTime j] <- args
+              -> return $ VDateTime $ DT.minusDays j $ negate i
+              | otherwise
+              -> err
+
+             DateBinary WeeksBefore
+              | [VInt i, VDateTime j] <- args
+              -> return $ VDateTime $ DT.minusDays j (7*i)
+              | otherwise
+              -> err
+
+             DateBinary WeeksAfter
+              | [VInt i, VDateTime j] <- args
+              -> return $ VDateTime $ DT.minusDays j $ negate (7*i)
+              | otherwise
+              -> err
+
+             DateBinary MonthsBefore
+              | [VInt i, VDateTime j] <- args
+              -> return $ VDateTime $ DT.minusMonths j i
+              | otherwise
+              -> err
+
+             DateBinary MonthsAfter
+              | [VInt i, VDateTime j] <- args
+              -> return $ VDateTime $ DT.minusMonths j $ negate i
+              | otherwise
+              -> err
+
              TupleComma
               | [a, b] <- args
               -> return $ VPair a b
