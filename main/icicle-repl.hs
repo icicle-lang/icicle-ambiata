@@ -296,10 +296,10 @@ handleLine state line = case readCommand line of
       prettyOut hasDesugar "- Desugar:" blanded
 
       reified     <- hoist $ SR.sourceReify (dictionary state) blanded
-      prettyOut hasInlined "- Reified:" reified
-      (annot',_)  <- hoist $ SR.sourceCheck (dictionary state) reified
+      prettyOut hasInlined "- Reified:"                      reified
+      prettyOut hasInlined "- Reified:" (SPretty.PrettyAnnot reified)
+      let annot'   = reified
 
-      prettyOut hasInlined "- Inlined:" (SPretty.PrettyAnnot annot')
 
       core      <- hoist $ SR.sourceConvert (dictionary state) annot'
       let core'  | doCoreSimp state

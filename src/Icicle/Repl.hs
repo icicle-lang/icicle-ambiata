@@ -157,11 +157,9 @@ sourceDesugar q
      (STD.desugarQT q)
      (freshNamer "desugar")
 
-sourceReify :: D.Dictionary -> QueryTop' -> Either ReplError QueryTop'
+sourceReify :: D.Dictionary -> QueryTop' -> Either ReplError QueryTop'T
 sourceReify d q
- = do q'c    <- fst <$> sourceCheck d q
-      let q'r = reify q'c
-      sourceDesugar $ SQ.reannotQT ST.annAnnot q'r
+ = reify <$> fst <$> sourceCheck d q
  where
   reify q'
      = snd
