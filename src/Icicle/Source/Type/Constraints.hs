@@ -58,8 +58,8 @@ instance Pretty n => Pretty (DischargeError n) where
   <> "The definition is a " <> pretty def
   <> ", while the body is a " <> pretty body <> "."
  pretty (ConflictingJoinTemporalities a b)
-  =  "Conflicting join temporalities." <> line
-  <> pretty a <+> pretty b
+  =  "Cannot join temporalities." <> line
+  <> pretty a <> " with " <> pretty b
 
 -- | Discharge a single constraint
 dischargeC :: Ord n => Constraint n -> Either (DischargeError n) (DischargeResult n)
@@ -94,15 +94,14 @@ dischargeC c
      | btemp == ctemp
      -> dischargeC $ CEquals atemp btemp
 
-    CTemporalityJoin (TypeVar _) _          (TypeVar _)
+    CTemporalityJoin _ _ (TypeVar _)
      -> return $ DischargeLeftover c
-    CTemporalityJoin (TypeVar _) (TypeVar _) _
-     -> return $ DischargeLeftover c
-    CTemporalityJoin _ (TypeVar _) (TypeVar _)
+    CTemporalityJoin _ (TypeVar _) _
      -> return $ DischargeLeftover c
     CTemporalityJoin (TypeVar v) atemp btemp
      -> do temp <- lub atemp btemp
            return $ DischargeSubst $ Map.fromList [(v, temp)]
+
     CTemporalityJoin a b d
      -> do temp <- lub b d
            dischargeC $ CEquals a temp
