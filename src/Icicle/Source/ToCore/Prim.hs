@@ -113,8 +113,42 @@ convertPrim p ann resT xts
    = return $ primmin $ Min.PrimLogical Min.PrimLogicalAnd
   goop (LogicalBinary Or)
    = return $ primmin $ Min.PrimLogical Min.PrimLogicalOr
-
-
+  goop (DateBinary DaysBefore)
+   | [(a,_),(b,_)] <- xts
+   = return (CE.xPrim (C.PrimMinimal $ Min.PrimDateTime Min.PrimDateTimeMinusDays) CE.@~ b CE.@~ a)
+   | otherwise
+   = convertError
+   $ ConvertErrorPrimNoArguments ann 2 p
+  goop (DateBinary WeeksBefore)
+   | [(a,_),(b,_)] <- xts
+   = return (CE.xPrim (C.PrimMinimal $ Min.PrimDateTime Min.PrimDateTimeMinusDays) CE.@~ b CE.@~ (CE.constI 7 CE.*~ a))
+   | otherwise
+   = convertError
+   $ ConvertErrorPrimNoArguments ann 2 p
+  goop (DateBinary MonthsBefore)
+   | [(a,_),(b,_)] <- xts
+   = return (CE.xPrim (C.PrimMinimal $ Min.PrimDateTime Min.PrimDateTimeMinusMonths) CE.@~ b CE.@~ a)
+   | otherwise
+   = convertError
+   $ ConvertErrorPrimNoArguments ann 2 p
+  goop (DateBinary DaysAfter)
+   | [(a,_),(b,_)] <- xts
+   = return (CE.xPrim (C.PrimMinimal $ Min.PrimDateTime Min.PrimDateTimeMinusDays) CE.@~ b CE.@~ (CE.negate a))
+   | otherwise
+   = convertError
+   $ ConvertErrorPrimNoArguments ann 2 p
+  goop (DateBinary WeeksAfter)
+   | [(a,_),(b,_)] <- xts
+   = return (CE.xPrim (C.PrimMinimal $ Min.PrimDateTime Min.PrimDateTimeMinusDays) CE.@~ b CE.@~ (CE.negate (CE.constI 7 CE.*~ a)))
+   | otherwise
+   = convertError
+   $ ConvertErrorPrimNoArguments ann 2 p
+  goop (DateBinary MonthsAfter)
+   | [(a,_),(b,_)] <- xts
+   = return (CE.xPrim (C.PrimMinimal $ Min.PrimDateTime Min.PrimDateTimeMinusMonths) CE.@~ b CE.@~ (CE.negate a))
+   | otherwise
+   = convertError
+   $ ConvertErrorPrimNoArguments ann 2 p
   goop (Relation Gt)
    = primmin <$> (Min.PrimRelation Min.PrimRelationGt <$> t1 2)
   goop (Relation Ge)
@@ -156,6 +190,8 @@ convertPrim p ann resT xts
        -> return xx
       _
        -> return $ primmin $ Min.PrimCast Min.PrimCastIntOfDouble
+  gofun DaysBetween
+   = return $ primmin $ Min.PrimDateTime Min.PrimDateTimeDaysDifference
 
   t1 num_args
    = case xts of

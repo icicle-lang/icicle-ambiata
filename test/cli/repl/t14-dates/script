@@ -1,0 +1,5 @@
+:set date 2010 01 01
+
+feature salary ~> days between (newest date) (3 days after now)
+
+feature salary ~> days between (newest date) (3 months before now)

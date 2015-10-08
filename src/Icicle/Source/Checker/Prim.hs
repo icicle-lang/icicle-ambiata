@@ -42,6 +42,8 @@ primLookup' p
      -> f0 [BoolT] BoolT
     Op (LogicalBinary _)
      -> f0 [BoolT, BoolT] BoolT
+    Op (DateBinary _)
+     -> f0 [IntT, DateTimeT] DateTimeT
 
     Op  TupleComma
      -> do a <- fresh
@@ -65,6 +67,8 @@ primLookup' p
      -> fNum $ \at -> ([at], DoubleT)
     Fun ToInt
      -> fNum $ \at -> ([at], IntT)
+    Fun DaysBetween
+     -> f0 [DateTimeT, DateTimeT] IntT
 
     PrimCon ConSome
      -> f1 $ \a at -> FunctionType [a] [] [at] (OptionT at)

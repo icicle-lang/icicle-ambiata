@@ -23,6 +23,7 @@ module Icicle.Source.Eval (
 
 import                  Icicle.Common.Base
 import                  Icicle.Source.Query
+import qualified        Icicle.Data.DateTime            as DT
 
 import                  P
 import                  Data.List (zip, nubBy, groupBy, take)
@@ -248,6 +249,10 @@ evalP ann p xs vs env
               | [VDouble i] <- args
               -> return $ VDouble $ fromIntegral (truncate i :: Int)
               | otherwise -> err
+             DaysBetween
+              | [VDateTime i, VDateTime j] <- args
+              -> return $ VInt $ DT.daysDifference i j
+              | otherwise -> err
 
     Op o
      -> do  args <- mapM (\x' -> evalX x' vs env) xs
@@ -352,6 +357,42 @@ evalP ann p xs vs env
              LogicalBinary Or
               | [VBool i, VBool j] <- args
               -> return $ VBool $ i || j
+              | otherwise
+              -> err
+
+             DateBinary DaysBefore
+              | [VInt i, VDateTime j] <- args
+              -> return $ VDateTime $ DT.minusDays j i
+              | otherwise
+              -> err
+
+             DateBinary DaysAfter
+              | [VInt i, VDateTime j] <- args
+              -> return $ VDateTime $ DT.minusDays j $ negate i
+              | otherwise
+              -> err
+
+             DateBinary WeeksBefore
+              | [VInt i, VDateTime j] <- args
+              -> return $ VDateTime $ DT.minusDays j (7*i)
+              | otherwise
+              -> err
+
+             DateBinary WeeksAfter
+              | [VInt i, VDateTime j] <- args
+              -> return $ VDateTime $ DT.minusDays j $ negate (7*i)
+              | otherwise
+              -> err
+
+             DateBinary MonthsBefore
+              | [VInt i, VDateTime j] <- args
+              -> return $ VDateTime $ DT.minusMonths j i
+              | otherwise
+              -> err
+
+             DateBinary MonthsAfter
+              | [VInt i, VDateTime j] <- args
+              -> return $ VDateTime $ DT.minusMonths j $ negate i
               | otherwise
               -> err
 

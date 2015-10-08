@@ -93,6 +93,9 @@ instance Arbitrary PM.Prim where
           , return $ PM.PrimRelation PM.PrimRelationGe IntT
           , return $ PM.PrimLogical  PM.PrimLogicalNot
           , return $ PM.PrimLogical  PM.PrimLogicalAnd
+          , return $ PM.PrimDateTime PM.PrimDateTimeDaysDifference
+          , return $ PM.PrimDateTime PM.PrimDateTimeMinusDays
+          , return $ PM.PrimDateTime PM.PrimDateTimeMinusMonths
           , PM.PrimConst <$> (PM.PrimConstPair <$> arbitrary <*> arbitrary)
           , PM.PrimConst . PM.PrimConstSome <$> arbitrary
           , PM.PrimConst <$> (PM.PrimConstLeft <$> arbitrary <*> arbitrary)
