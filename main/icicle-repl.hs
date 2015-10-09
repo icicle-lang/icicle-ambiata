@@ -46,6 +46,7 @@ import           Icicle.Data.DateTime
 import           Icicle.Dictionary
 import           Icicle.Internal.Rename
 import qualified Icicle.Repl                          as SR
+import qualified Icicle.Pipeline                      as SP
 import qualified Icicle.Sea.Eval                      as Sea
 import qualified Icicle.Sea.FromAvalanche             as Sea
 import qualified Icicle.Simulator                     as S
@@ -56,6 +57,7 @@ import qualified Icicle.Source.Type                   as ST
 
 
 import           P
+
 
 
 main :: IO ()
@@ -493,7 +495,7 @@ coreFlatten :: ProgramT -> Either SR.ReplError (AP.Program () Text APF.Prim)
 coreFlatten prog
  = let av = coreAvalanche prog
        ns = F.counterPrefixNameState (T.pack . show) "flat"
-   in   mapLeft  SR.ReplErrorFlatten
+   in   mapLeft  (SR.ReplErrorCompile . SP.CompileErrorFlatten)
       . mapRight simpFlattened
       . mapRight (\(_,s') -> av { AP.statements = s' })
       $ F.runFreshT (AF.flatten () $ AP.statements av) ns
@@ -501,7 +503,7 @@ coreFlatten prog
 checkAvalanche :: AP.Program () Text APF.Prim
                -> Either SR.ReplError (AP.Program (C.Annot ()) Text APF.Prim)
 checkAvalanche prog
- = mapLeft SR.ReplErrorProgram
+ = mapLeft (SR.ReplErrorCompile . SP.CompileErrorProgram)
  $ AC.checkProgram APF.flatFragment prog
 
 coreAvalanche :: ProgramT -> AP.Program () Text CP.Prim

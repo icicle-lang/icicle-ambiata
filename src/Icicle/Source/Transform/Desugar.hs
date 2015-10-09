@@ -9,7 +9,7 @@ module Icicle.Source.Transform.Desugar
   ( DesugarError(..)
   , runDesugar
   , desugarQT
-  , desugarQ
+  , desugarFun
   ) where
 
 import           Icicle.Common.Base
@@ -38,6 +38,14 @@ type DesugarM a n x = FreshT n (EitherT (DesugarError n) Identity) x
 
 runDesugar :: NameState n -> DesugarM a n x -> Either (DesugarError n) x
 runDesugar n m = runIdentity . runEitherT . bimapEitherT id snd $ runFreshT m n
+
+desugarFun
+  :: (Eq n)
+  => Function a n
+  -> DesugarM a n (Function a n)
+desugarFun f
+  = do b' <- desugarQ (body f)
+       return $ f { body = b'}
 
 desugarQT
   :: (Eq n)
@@ -254,13 +262,13 @@ casesForTy ann scrut ty
            return $ TCase scrut [ (pat', bd)
                                , (PatCon ConNone [], Done (PatCon ConNone [])) ]
 
-    -- Options need a case for None, and nested cases for Some arguments
+    -- Sums need nested cases for both
     TySum a b
      -> do aleft     <- freshes 1
            let pleft  = PatCon ConLeft  (fmap PatVariable aleft)
            aright    <- freshes 1
            let pright = PatCon ConRight (fmap PatVariable aright)
-           let vars args = fmap (Var ann) args
+           let vars   = fmap (Var ann)
            bl <- subtree ConLeft  (vars aleft)  [a]
            br <- subtree ConRight (vars aright) [b]
            return $ TCase scrut [ (pleft,  bl)
