@@ -154,7 +154,7 @@ eval window_check xh concreteValues sh s
             let windowBy p p'history =
                  return $
                   EvalResult
-                        ( filter' frame (\v -> p $ time v)
+                        ( filter' frame (\v -> p $ time v) (\v -> p'history $ time v)
                         $ fst sv
                         , Windowed newerThan)
                         ( fmap (fst . fact)
@@ -177,17 +177,19 @@ eval window_check xh concreteValues sh s
             -- includes one feature before the predicate becomes true. So
             -- filter' (>2) [1..3] yields [2,3].
             -- When unframed it's just filter.
-            filter' :: WindowFrame -> (a -> Bool) -> [a] -> [a]
-            filter' Unframed f xs = filter f xs
-            filter' Framed f xs = snd $ foldr (frame' f) (False,[]) xs
+            filter' :: WindowFrame -> (a -> Bool) -> (a -> Bool) -> [a] -> [a]
+            filter' Unframed f _ xs = filter f xs
+            filter' Framed f f' xs = snd $ foldr (frame' f f') (True,[]) xs
 
-            frame' :: (a -> Bool) -> a -> (Bool, [a]) -> (Bool, [a])
-            frame' f l (b, ls) | f l
-                               = (True, l : ls)
-                               | True <- b
-                               = (False, l : ls)
-                               | otherwise
-                               = (False, ls)
+            frame' :: (a -> Bool) -> (a -> Bool) -> a -> (Bool, [a]) -> (Bool, [a])
+            frame' f f' l (b, ls) | f l
+                                  = (True, l : ls)
+                                  | f' l
+                                  = (True, ls)
+                                  | True <- b
+                                  = (False, l : ls)
+                                  | otherwise
+                                  = (False, ls)
 
     -- Transformers are slightly more involved
     -- Evaluate transform over given values.
