@@ -155,15 +155,14 @@ makeApps a fun (arg:rest) doWrap
  =  do  nError <- fresh
         nValue <- fresh
         let a'    = wrapAnnot a
-            arga' = wrapAnnot arga
             err   = con1 a' ConLeft $ Var (definiteAnnot a) nError
 
             -- Bare value. Note that this is now definite, but with same (bare) type
-            bare  = Var (definiteAnnot arga) nValue
+            bare  = Var (extractValueAnnot arga) nValue
 
-        fun' <- makeApps a' (App a' fun bare) rest True
+        fun' <- makeApps a (App a fun bare) rest True
 
-        let app'  = Case arga' arg
+        let app'  = Case a' arg
                   [ ( PatCon ConLeft  [ PatVariable nError ]
                     , err )
                   , ( PatCon ConRight [ PatVariable nValue ]
@@ -186,7 +185,16 @@ wrapAnnot :: Annot a n -> Annot a n
 wrapAnnot ann
  | t                   <- annResult ann
  , PossibilityPossibly <- getPossibilityOrDefinitely t
- = ann { annResult = canonT $ Possibility PossibilityDefinitely $ SumT ErrorT t }
+ = ann { annResult = canonT $ SumT ErrorT t }
+ | otherwise
+ = ann
+
+extractValueAnnot :: Annot a n -> Annot a n
+extractValueAnnot ann
+ | (tmp, _, dat)  <- decomposeT $ annResult ann
+ , SumT ErrorT tv <- dat
+ , t'             <- recomposeT (tmp, Just PossibilityDefinitely, tv)
+ = ann { annResult = t' }
  | otherwise
  = ann
 
@@ -244,6 +252,7 @@ substInto
 substInto var payload into
  = runIdentity
  $ transformX
+   -- This unsafe subst transform is safe as long as the payload only mentions fresh variable names
    unsafeSubstTransform
  { transformState = Map.singleton var payload }
    into
