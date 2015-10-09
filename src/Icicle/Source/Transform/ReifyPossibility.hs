@@ -1,7 +1,10 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE PatternGuards #-}
 module Icicle.Source.Transform.ReifyPossibility (
-    reifyPossibilityTransform
+    reifyPossibilityQT
+  , reifyPossibilityQ
+  , reifyPossibilityX
+  , reifyPossibilityC
   ) where
 
 import Icicle.Source.Query
@@ -17,43 +20,62 @@ import P
 import Data.Functor.Identity
 import qualified Data.Map as Map
 
-reifyPossibilityTransform
+reifyPossibilityQT
         :: Ord n
-        => Transform (Fresh n) () (Annot a n) n
-reifyPossibilityTransform
- = Transform
- { transformExp         = tranx
- , transformPat         = \_ p -> return ((), p)
- , transformContext     = tranc
- , transformState       = ()
- }
- where
-  tranx _ x
+        => QueryTop (Annot a n) n
+        -> Fresh n (QueryTop (Annot a n) n)
+reifyPossibilityQT qt
+ = do   q' <- reifyPossibilityQ (query qt)
+        return $ qt { query = q' }
+
+reifyPossibilityQ
+        :: Ord n
+        => Query (Annot a n) n
+        -> Fresh n (Query (Annot a n) n)
+reifyPossibilityQ q
+ = do cs' <- mapM reifyPossibilityC $ contexts q
+      x'  <- reifyPossibilityX $ final q
+      return $ Query cs' x'
+
+reifyPossibilityX
+        :: Ord n
+        => Exp (Annot a n) n
+        -> Fresh n (Exp (Annot a n) n)
+reifyPossibilityX x
    = case x of
       Var a n
-       -> return ((), Var   (wrapAnnot a) n)
+       -> return $ Var (wrapAnnot a) n
       Nested a q
-       -> return ((), Nested (wrapAnnot a) q)
+       -> Nested (wrapAnnot a) <$> reifyPossibilityQ q
       App a _ _
        -> do let (fun,args) = takeApps x
-             x' <- makeApps a fun args False
-             return ((), x')
+             fun'  <-      reifyPossibilityX fun
+             args' <- mapM reifyPossibilityX args
+             makeApps a fun' args' False
       Prim a p
-       -> return ((), Prim  (wrapAnnot a) p)
+       -> return $ Prim (wrapAnnot a) p
       -- TODO XXX this should perform case analysis on scrut if Possibly:
       -- case scrut of
       --  Left e -> Left e
       --  Right scrut' -> case scrut' -> alts ...
       Case a scrut alts
-       -> return ((), Case  (wrapAnnot a) (wrapRightIfAnnot a scrut)
-                            (fmap (\(p,xx) -> (p, wrapRightIfAnnot a xx)) alts))
+       -> do scrut' <-      reifyPossibilityX scrut
+             alts'  <- mapM (\(p,xx) -> (,) p <$> reifyPossibilityX xx) alts
+             return $ Case  (wrapAnnot a) (wrapRightIfAnnot a scrut')
+                            (fmap (\(p,xx) -> (p, wrapRightIfAnnot a xx)) alts')
 
-  tranc _ c
+reifyPossibilityC
+        :: Ord n
+        => Context (Annot a n) n
+        -> Fresh n (Context (Annot a n) n)
+reifyPossibilityC c
    = case c of
       LetFold a f
        | FoldTypeFoldl1 <- foldType f
        -> do  nError <- fresh
               nValue <- fresh
+              k      <- reifyPossibilityX $ foldWork f
+              z      <- reifyPossibilityX $ foldInit f
               let b  = foldBind f
                   a'B = typeAnnot a BoolT
                   a'E = typeAnnot a ErrorT
@@ -72,130 +94,157 @@ reifyPossibilityTransform
                      [ ( PatCon ConLeft  [ PatVariable nError ]
                        , Case a'D eqError
                             [ ( PatCon ConTrue []
-                              , wrapRight $ foldInit f )
+                              , wrapRight $ z )
                             , ( PatCon ConFalse []
                               , con1 a'D ConLeft $ vError ) ] )
                      , ( PatCon ConRight [ PatVariable nValue ]
                        , wrapRight
                        $ substIntoIfDefinitely b vValue
-                       $ foldWork f ) ]
+                       $ k ) ]
 
                   f' = f { foldType = FoldTypeFoldl
                          , foldInit = z'
                          , foldWork = k' }
 
-              return ((), LetFold a'D f')
+              return $ LetFold a'D f'
 
        | otherwise
-       -> do  let -- If the other part returns a possibly but this doesn't, wrap it
-                  z' = wrapRightIfAnnot (annotOfExp $ foldWork f) $ foldInit f
-                  k' = wrapRightIfAnnot (annotOfExp $ foldInit f) $ foldWork f
+       -> do  z' <- wrapRightIfAnnot (annotOfExp $ foldWork f) <$> reifyPossibilityX (foldInit f)
+              k' <- wrapRightIfAnnot (annotOfExp $ foldInit f) <$> reifyPossibilityX (foldWork f)
 
-                  f' = f { foldInit = z'
+              let f' = f { foldInit = z'
                          , foldWork = k' }
 
-              return ((), LetFold (wrapAnnot a) f')
+              return $ LetFold (wrapAnnot a) f'
 
       Windowed a w w'
-       -> return ((), Windowed  (wrapAnnot a) w w')
+       -> return $ Windowed  (wrapAnnot a) w w'
       Latest a i
-       -> return ((), Latest    (wrapAnnot a) i)
+       -> return $ Latest    (wrapAnnot a) i
       GroupBy a x
-       -> return ((), GroupBy   (wrapAnnot a)       x)
+       -> GroupBy   (wrapAnnot a)     <$> reifyPossibilityX x
       Distinct a x
-       -> return ((), Distinct  (wrapAnnot a)       x)
+       -> Distinct  (wrapAnnot a)     <$> reifyPossibilityX x
       Filter a x
-       -> return ((), Filter    (wrapAnnot a)       x)
+       -> Filter    (wrapAnnot a)     <$> reifyPossibilityX x
       Let a n x
-       -> return ((), Let       (wrapAnnot a) n     x)
+       -> Let       (wrapAnnot a) n   <$> reifyPossibilityX x
       GroupFold a k v x
-       -> return ((), GroupFold (wrapAnnot a) k v   x)
+       -> GroupFold (wrapAnnot a) k v <$> reifyPossibilityX x
 
 
-  -- XXX this is ignoring the possibility of functions that return differing modes.
-  -- This is true of all current primitives, and at this stage we can only have primitives.
-  makeApps _ fun [] doWrap
-   = let funR = conRight fun
-     in  if   doWrap
-         then return funR
-         else return fun
+-- XXX this is ignoring the possibility of functions that return differing modes.
+-- This is true of all current primitives, and at this stage we can only have primitives.
+makeApps
+        :: Annot a n
+        ->  Exp (Annot a n) n
+        -> [Exp (Annot a n) n]
+        -> Bool
+        -> Fresh n (Exp (Annot a n) n)
+makeApps _ fun [] doWrap
+ = let funR = conRight fun
+   in  if   doWrap
+       then return funR
+       else return fun
 
-  makeApps a fun (arg:rest) doWrap
-   -- Check if the argument is a possibly.
-   -- If so, we need to unwrap it before applying
-   | arga                <- annotOfExp arg
-   , PossibilityPossibly <- getPossibilityOrDefinitely $ annResult arga
-   =  do  nError <- fresh
-          nValue <- fresh
-          let a'    = wrapAnnot a
-              arga' = wrapAnnot arga
-              err   = con1 a' ConLeft $ Var (definiteAnnot a) nError
+makeApps a fun (arg:rest) doWrap
+ -- Check if the argument is a possibly.
+ -- If so, we need to unwrap it before applying
+ | arga                <- annotOfExp arg
+ , PossibilityPossibly <- getPossibilityOrDefinitely $ annResult arga
+ =  do  nError <- fresh
+        nValue <- fresh
+        let a'    = wrapAnnot a
+            arga' = wrapAnnot arga
+            err   = con1 a' ConLeft $ Var (definiteAnnot a) nError
 
-              -- Bare value. Note that this is now definite, but with same (bare) type
-              bare  = Var (definiteAnnot arga) nValue
+            -- Bare value. Note that this is now definite, but with same (bare) type
+            bare  = Var (definiteAnnot arga) nValue
 
-          fun' <- makeApps a' (App a' fun bare) rest True
+        fun' <- makeApps a' (App a' fun bare) rest True
 
-          let app'  = Case arga' arg
-                    [ ( PatCon ConLeft  [ PatVariable nError ]
-                      , err )
-                    , ( PatCon ConRight [ PatVariable nValue ]
-                      , fun') ]
+        let app'  = Case arga' arg
+                  [ ( PatCon ConLeft  [ PatVariable nError ]
+                    , err )
+                  , ( PatCon ConRight [ PatVariable nValue ]
+                    , fun') ]
 
-          return app'
+        return app'
 
-   -- If argument is a definitely, just apply it as usual
-   | otherwise
-   =  makeApps a (App a fun arg) rest doWrap
-
-
-  con0 a c   =        Prim a (PrimCon c)
-  con1 a c x = App a (Prim a (PrimCon c)) x
-
-  wrapAnnot ann
-   | t                   <- annResult ann
-   , PossibilityPossibly <- getPossibilityOrDefinitely t
-   = ann { annResult = canonT $ Possibility PossibilityDefinitely $ SumT ErrorT t }
-   | otherwise
-   = ann
-
-  definiteAnnot ann
-   = ann { annResult = canonT $ Possibility PossibilityDefinitely $ annResult ann }
-
-  typeAnnot ann t
-   = ann { annResult = t }
+ -- If argument is a definitely, just apply it as usual
+ | otherwise
+ =  makeApps a (App a fun arg) rest doWrap
 
 
-  wrapRightIfAnnot ann x
-   | t                   <- annResult ann
-   , PossibilityPossibly <- getPossibilityOrDefinitely t
-   = wrapRight x
-   | otherwise
-   = x
+con0 :: Annot a n -> Constructor -> Exp (Annot a n) n
+con0 a c   =        Prim a (PrimCon c)
 
-  wrapRight x
-   | ann        <- annotOfExp x
-   , t          <- annResult  ann
-   , PossibilityDefinitely <- getPossibilityOrDefinitely t
-   = conRight x
-   | otherwise
-   = x
+con1 :: Annot a n -> Constructor -> Exp (Annot a n) n -> Exp (Annot a n) n
+con1 a c x = App a (Prim a (PrimCon c)) x
 
-  conRight x
-   = let ann = annotOfExp x
-         t   = annResult  ann
-     in con1 (ann { annResult = canonT $ SumT ErrorT t } ) ConRight x
+wrapAnnot :: Annot a n -> Annot a n
+wrapAnnot ann
+ | t                   <- annResult ann
+ , PossibilityPossibly <- getPossibilityOrDefinitely t
+ = ann { annResult = canonT $ Possibility PossibilityDefinitely $ SumT ErrorT t }
+ | otherwise
+ = ann
 
-  substIntoIfDefinitely var payload into
-   | PossibilityDefinitely <- getPossibilityOrDefinitely $ annResult $ annotOfExp into
-   = substInto var payload into
-   | otherwise
-   = into
+definiteAnnot :: Annot a n -> Annot a n
+definiteAnnot ann
+ = ann { annResult = canonT $ Possibility PossibilityDefinitely $ annResult ann }
 
-  substInto var payload into
-   = runIdentity
-   $ transformX
-     unsafeSubstTransform
-   { transformState = Map.singleton var payload }
-     into
+typeAnnot :: Annot a n -> Type n -> Annot a n
+typeAnnot ann t
+ = ann { annResult = t }
+
+
+wrapRightIfAnnot :: Annot a n -> Exp (Annot a n) n -> Exp (Annot a n) n
+wrapRightIfAnnot ann x
+ | t                   <- annResult ann
+ , PossibilityPossibly <- getPossibilityOrDefinitely t
+ = wrapRight x
+ | otherwise
+ = x
+
+wrapRight :: Exp (Annot a n) n -> Exp (Annot a n) n
+wrapRight x
+ | ann        <- annotOfExp x
+ , t          <- annResult  ann
+ , PossibilityDefinitely <- getPossibilityOrDefinitely t
+ = conRight x
+ | otherwise
+ = x
+
+conRight :: Exp (Annot a n) n -> Exp (Annot a n) n
+conRight x
+ = let ann = annotOfExp x
+       t   = annResult  ann
+   in con1 (ann { annResult = canonT $ SumT ErrorT t } ) ConRight x
+
+substIntoIfDefinitely
+        :: Ord n
+        => Name n
+        -> Exp (Annot a n) n
+        -> Exp (Annot a n) n
+        -> Exp (Annot a n) n
+substIntoIfDefinitely var payload into
+ | PossibilityDefinitely <- getPossibilityOrDefinitely $ annResult $ annotOfExp into
+ = substInto var payload into
+ | otherwise
+ = into
+
+
+substInto
+        :: Ord n
+        => Name n
+        -> Exp (Annot a n) n
+        -> Exp (Annot a n) n
+        -> Exp (Annot a n) n
+substInto var payload into
+ = runIdentity
+ $ transformX
+   unsafeSubstTransform
+ { transformState = Map.singleton var payload }
+   into
 

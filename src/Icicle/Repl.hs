@@ -40,7 +40,6 @@ import qualified Icicle.Source.Query                as SQ
 import qualified Icicle.Source.ToCore.Base          as STC
 import qualified Icicle.Source.ToCore.ToCore        as STC
 import qualified Icicle.Source.Type                 as ST
-import qualified Icicle.Source.Transform.Base       as ST
 import qualified Icicle.Source.Transform.Inline     as STI
 import qualified Icicle.Source.Transform.Desugar    as STD
 import qualified Icicle.Source.Transform.ReifyPossibility as STR
@@ -165,7 +164,7 @@ sourceReify d q
      = snd
      $ runIdentity
      $ Fresh.runFreshT
-         (ST.transformQT STR.reifyPossibilityTransform q')
+         (STR.reifyPossibilityQT q')
          (freshNamer "reify")
 
 sourceCheck :: D.Dictionary -> QueryTop' -> Either ReplError (QueryTop'T, ST.Type Var)
