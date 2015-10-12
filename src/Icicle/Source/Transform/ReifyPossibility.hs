@@ -54,15 +54,41 @@ reifyPossibilityX x
              makeApps a fun' args' False
       Prim a p
        -> return $ Prim (wrapAnnot a) p
-      -- TODO XXX this should perform case analysis on scrut if Possibly:
-      -- case scrut of
-      --  Left e -> Left e
-      --  Right scrut' -> case scrut' -> alts ...
+      -- If the scrutinee is possibly, we need to unwrap it before performing the case:
+      -- > case scrut | alt -> ...
+      -- ==>
+      -- > case scrut
+      -- > | Left e -> Left e
+      -- > | Right scrut' -> case scrut' | alt -> ...
       Case a scrut alts
-       -> do scrut' <-      reifyPossibilityX scrut
-             alts'  <- mapM (\(p,xx) -> (,) p <$> reifyPossibilityX xx) alts
-             return $ Case  (wrapAnnot a) (wrapRightIfAnnot a scrut')
-                            (fmap (\(p,xx) -> (p, wrapRightIfAnnot a xx)) alts')
+       | t <- annResult $ annotOfExp scrut
+       , PossibilityPossibly <- getPossibilityOrDefinitely t
+       -> do  nError <- fresh
+              nValue <- fresh
+              scrut' <- reifyPossibilityX scrut
+              let a'  = wrapAnnot a
+                  a'E = typeAnnot a ErrorT
+                  a'D = definiteAnnot a
+
+                  vError = Var a'E nError
+                  vValue = Var a'D nValue
+
+              alts'  <- mapM (\(p,xx) -> (,) p <$> (wrapRightIfAnnot a <$> reifyPossibilityX xx)) alts
+
+              return $ Case (wrapAnnot a) scrut'
+                            [ ( PatCon ConLeft  [ PatVariable nError ]
+                              , con1 a' ConLeft $ vError )
+                            , ( PatCon ConRight [ PatVariable nValue ]
+                              , Case (wrapAnnot a) vValue alts' ) ]
+
+       -- Scrutinee is definite
+       | otherwise
+       -> do  scrut' <-      reifyPossibilityX scrut
+              -- If the return of the case is a Possibly, then at least one of the alternatives must be possibly.
+              -- For the non-possibly alternatives, wrap them as a Right.
+              alts'  <- mapM (\(p,xx) -> (,) p <$> (wrapRightIfAnnot a <$> reifyPossibilityX xx)) alts
+              return $ Case  (wrapAnnot a) scrut' alts'
+
 
 reifyPossibilityC
         :: Ord n
@@ -79,10 +105,10 @@ reifyPossibilityC c
               let b  = foldBind f
                   a'B = typeAnnot a BoolT
                   a'E = typeAnnot a ErrorT
-                  a'D = definiteAnnot $ wrapAnnot a
+                  a'D = wrapAnnotReally $ annotOfExp $ foldWork f
 
                   vError = Var a'E nError
-                  vValue = Var (definiteAnnot a) nValue
+                  vValue = Var (annotOfExp $ foldWork f) nValue
 
                   z' = con1 a'D ConLeft $ con0 a'E $ ConError ExceptFold1NoValue
 
@@ -106,7 +132,7 @@ reifyPossibilityC c
                          , foldInit = z'
                          , foldWork = k' }
 
-              return $ LetFold a'D f'
+              return $ LetFold (wrapAnnot a) f'
 
        | otherwise
        -> do  z' <- wrapRightIfAnnot (annotOfExp $ foldWork f) <$> reifyPossibilityX (foldInit f)
@@ -185,9 +211,15 @@ wrapAnnot :: Annot a n -> Annot a n
 wrapAnnot ann
  | t                   <- annResult ann
  , PossibilityPossibly <- getPossibilityOrDefinitely t
- = ann { annResult = canonT $ SumT ErrorT t }
+ = wrapAnnotReally ann
  | otherwise
  = ann
+
+wrapAnnotReally :: Annot a n -> Annot a n
+wrapAnnotReally ann
+ = let t = annResult ann
+   in  ann { annResult = canonT $ SumT ErrorT t }
+
 
 extractValueAnnot :: Annot a n -> Annot a n
 extractValueAnnot ann
