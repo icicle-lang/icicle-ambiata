@@ -236,8 +236,7 @@ convertQuery q
     -- as long as the "by" is something like an enum, and the "value" has bounded memory.
     --
     (GroupBy (Annot { annAnnot = ann, annResult = retty }) e : _)
-     -> do  t1 <- getGroupByMapType ann retty
-            n'      <- lift fresh
+     -> do  n'      <- lift fresh
             n''     <- lift fresh
             nmap    <- lift fresh
             nval    <- lift fresh
@@ -248,16 +247,14 @@ convertQuery q
             -- See convertFold.
             res     <- convertWithInputName nval $ convertFold q'
 
-            let tV'  = typeFold res
-            let t1'  = t1
-            let t2'  = typeExtract res
+            tK      <- convertValType' $ annResult $ annotOfExp e
+            let tV   = typeFold res
 
             -- Convert the "by" to a simple expression.
             -- This becomes the map insertion key.
             e'      <- convertWithInputName nval $ convertExp e
 
-            let mapt = T.MapT t1' tV'
-
+            let mapt = T.MapT tK tV
 
             (inpstream, inpty) <- convertInput
 
@@ -270,7 +267,7 @@ convertQuery q
             -- with the zero accumulator.
             -- This is because the map doesn't start with "zero"s in it, unlike a normal fold.
             let priminsert
-                    = C.PrimMapInsertOrUpdate t1' tV'
+                    = C.PrimMapInsertOrUpdate tK tV
 
             let insertOrUpdate
                     = CE.makeApps () (CE.xPrim $ C.PrimMap $ priminsert)
@@ -286,24 +283,78 @@ convertQuery q
                     $ insertOrUpdate
 
             let emptyMap
-                    = CE.emptyMap t1' tV'
+                    = CE.emptyMap tK tV
 
             -- Perform the map fold
-            let r = red n' 
+            let r = red n'
                   $ C.RFold inpty mapt insertOrUpdate' emptyMap inpstream
 
             -- After all the elements have been seen, we go through the map and perform
             -- the "extract" on each value.
             -- This performs any fixups that couldn't be performed during the fold.
 
+            -- Unwrapped results
+            (tKr,tXr) <- getGroupByMapType ann retty
+            let isPossibly = PossibilityPossibly == getPossibilityOrDefinitely retty
+                sumt | isPossibly
+                     = T.SumT T.ErrorT $ T.MapT tKr tXr
+                     | otherwise
+                     = T.MapT tKr tXr
+                emptyResult
+                     | isPossibly
+                     = CE.xValue sumt $ VRight $ VMap Map.empty
+                     | otherwise
+                     = CE.xValue sumt $ VMap Map.empty
+
+            nkey    <- lift fresh
+            nkey'   <- lift fresh
+            nval'   <- lift fresh
+            nval''  <- lift fresh
+            nmap'   <- lift fresh
+
+            nErr    <- lift fresh
+            let retT = T.MapT tKr tXr
+            let unwrapSum x nk t bodyx
+                     | T.SumT T.ErrorT ty <- t
+                     = CE.makeApps () (CE.xPrim $ C.PrimFold (C.PrimFoldSum T.ErrorT ty) sumt)
+                     [ CE.xLam nErr T.ErrorT ( CE.makeApps () (CE.xPrim $ C.PrimMinimal $ Min.PrimConst $ Min.PrimConstLeft T.ErrorT retT)
+                                             [ CE.xVar nErr ])
+                     , CE.xLam nk ty bodyx
+                     , x ]
+                     | otherwise
+                     = CE.xLet nk x bodyx
+
+            let rewrapSum bodyx
+                     | isPossibly
+                     = CE.makeApps () (CE.xPrim $ C.PrimMinimal $ Min.PrimConst $ Min.PrimConstRight T.ErrorT retT)
+                     [ bodyx ]
+                     | otherwise
+                     = bodyx
+
+            let ins = CE.xLam nmap sumt
+                    $ CE.xLam nkey tK
+                    $ CE.xLam nval tV
+                    $ unwrapSum (CE.xVar nmap) nmap' sumt
+                    $ unwrapSum (CE.xVar nkey) nkey' tK
+                    $ unwrapSum (beta (mapExtract res CE.@~ CE.xVar nval)) nval' (typeExtract res)
+                    $ rewrapSum
+                    $ CE.makeApps () (CE.xPrim $ C.PrimMap $ C.PrimMapInsertOrUpdate tKr tXr)
+                    [ CE.xLam nval'' tXr $ CE.xVar nval''
+                    , CE.xVar nval'
+                    , CE.xVar nkey'
+                    , CE.xVar nmap']
+
+
             let mapResult
-                    = CE.xPrim (C.PrimMap $ C.PrimMapMapValues t1' tV' t2')
-                    CE.@~ beta (mapExtract res)
+                    = CE.xPrim (C.PrimFold (C.PrimFoldMap tK tV) sumt)
+                    CE.@~ beta ins
+                    CE.@~ emptyResult
                     CE.@~ CE.xVar n'
 
             let p   = post n'' mapResult
 
             return (r <> p, n'')
+
 
     -- Convert a group fold using a Map. Very similar to Group By, with an additional
     -- postcomputation.
@@ -389,7 +440,7 @@ convertQuery q
 
             -- Perform the map fold
             let r = red n'
-                  $ C.RFold inpty mapt insertOrUpdate 
+                  $ C.RFold inpty mapt insertOrUpdate
                   ( CE.emptyMap tkey tval)
                     inpstream
 
@@ -508,8 +559,11 @@ convertQuery q
   -- Because Core is explicitly typed, we need to pull out the key type and value type.
   getGroupByMapType ann ty
    | (_,_,t') <- decomposeT ty
-   , (GroupT tk _tv) <- t'
-   = convertValType' tk
+   , (GroupT tk tv) <- t'
+   = (,) <$> convertValType' tk <*> convertValType' tv
+   | (_,_,t') <- decomposeT ty
+   , (SumT ErrorT (GroupT tk tv)) <- t'
+   = (,) <$> convertValType' tk <*> convertValType' tv
    | otherwise
    = convertError $ ConvertErrorGroupByHasNonGroupResult ann ty
 

@@ -145,7 +145,7 @@ generateQ qq@(Query (c:_) _) env
     Latest _ i
      -> do  (q', sq, tq, consr) <- rest env
 
-            let (tmpq, _, datq)  = decomposeT tq
+            let (tmpq, posq, datq)  = decomposeT tq
             retDat              <- TypeVar <$> fresh
 
             -- Latest works for aggregates or elements.
@@ -181,7 +181,9 @@ generateQ qq@(Query (c:_) _) env
             let consT = require a (CReturnOfLatest retDat (fromMaybe TemporalityPure tmpq) datq)
             let t'    = canonT
                       $ Temporality TemporalityAggregate
-                      $ Possibility PossibilityPossibly retDat
+                      $ Possibility (maybe PossibilityDefinitely id posq) retDat
+                      -- TODO: requires change to ToCore
+                      -- $ Possibility PossibilityPossibly retDat
 
             let cons' = concat [consr, consT]
 
