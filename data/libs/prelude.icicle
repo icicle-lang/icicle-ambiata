@@ -6,11 +6,48 @@ mean v = sum (double v) / count.
 max v = let fold1 s = v : case v > s | True -> v | False -> s end ~> s.
 min v = let fold1 s = v : case v < s | True -> v | False -> s end ~> s.
 
+minby a b = let fold1 s = (a, b)
+   :  case s | (a1, b1) -> (case a < a1 | True -> (a,b) | False -> (a1,b1) end) end
+   ~> case s | (a1, b1) -> b1 end.
+
+maxby a b = let fold1 s = (a, b)
+   :  case s | (a1, b1) -> (case a > a1 | True -> (a,b) | False -> (a1,b1) end) end
+   ~> case s | (a1, b1) -> b1 end.
+
+# Numerically unstable standard deviation. Best to not use.
 sd_old v = let v_ = double v ~> let sv = (sum v_) ~> (((sum (v_*v_) * count) - (sv * sv)) / (count * (count - 1)))^(0.5).
 
-sd v = let fold a = ((0, 0.0), 0.0)
-     :  case a | ((n,m),m2) -> (let nn = n + 1 ~> let d = v - m ~> let mm = m + d / nn ~> let m22 = m2 + d * (v - mm) ~> ((nn, mm), m22)) end
-     ~> let x = case a | ((x,_),y)  -> y / (x - 1) end ~> x ^ 0.5.
+# Numerically stable variance
+variance v = let fold a = ((0, 0.0), 0.0)
+     :  case a | ((n,m),m2) -> (
+                   let nn = n + 1 ~>
+                   let d = v - m ~>
+                   let mm = m + d / nn ~>
+                   let m22 = m2 + d * (v - mm) ~>
+                   ((nn, mm), m22)
+                  ) end
+     ~> case a | ((x,_),y)  -> y / (x - 1) end.
+
+sd v = (variance v) ^ 0.5.
+
+# Numerically stable covariance
+covariance a b = let fold x = (((0, 0.0), 0.0), 0.0)
+     :  case x | (((n,m1),m2),m12) -> (
+                    let nn  = n + 1 ~>
+                    let d1 = (a - m1) / nn ~>
+                    let mm1 = m1 + d1 ~>
+                    let d2 = (b - m2) / nn ~>
+                    let mm2 = m2 + d2 ~>
+                    let mm12 = m12 + n * d1 * d2 - m12 / nn ~>
+                    (((nn, mm1), mm2),mm12)
+                 ) end
+     ~> case x | (((n,_),_),m12) -> m12 * n / (n - 1) end.
+
+# Pearson's product-moment correlation coefficient. A unitless gradient measure.
+pearsons a b = covariance a b / (sd a * sd b).
+
+# Gradient measure with units y/x.
+gradient a b = covariance a b / variance b.
 
 # Time statements
 newest v = latest 1 ~> let fold1 s = v : v ~> s.
@@ -18,3 +55,20 @@ oldest v = let fold1 s = v : s ~> s.
 
 # Boolean statements
 not a = case a | True -> False | False -> True end.
+
+# Version of num flips which should fail upon finding a tombstone value.
+numflips v = let fold1 s = (v,0) : case s | (s0,i) -> (case (s0 == v) | True -> (v,i) | False -> (v,i+1) end) end ~> case s | (s0,i) -> i end.
+
+# Version of num flips which will accommodate tombstone values. Must have the tombstone feature passed to it.
+numflips' v t
+ = let fold1 s
+   = case t | True -> (None,0) | False -> (Some(v),0) end
+   : case t | True  -> (case s | (Some(s0),i) -> (None,i+1)
+                               | (None,i) -> (None,i)
+                               end )
+            | False -> (case s | (Some(s0),i) ->
+                                    (case (s0 == v) | True -> (Some(v),i) | False -> (Some(v),i+1) end)
+                               | (None,i) -> (Some(v),i+1)
+                               end )
+          end
+ ~> case s | (s0,i) -> i end.
