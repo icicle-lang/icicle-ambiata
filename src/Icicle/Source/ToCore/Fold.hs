@@ -1,42 +1,42 @@
 -- | Convert queries into folds.
 -- Used in body of group-bys, distincts,...
 
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE PatternGuards #-}
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PatternGuards     #-}
 module Icicle.Source.ToCore.Fold (
     convertFold
   , ConvertFoldResult(..)
   ) where
 
-import                  Icicle.Source.Query
-import                  Icicle.Source.ToCore.Base
-import                  Icicle.Source.ToCore.Exp
-import                  Icicle.Source.ToCore.Prim
-import                  Icicle.Source.Type
+import           Icicle.Source.Query
+import           Icicle.Source.ToCore.Base
+import           Icicle.Source.ToCore.Exp
+import           Icicle.Source.ToCore.Prim
+import           Icicle.Source.Type
 
-import qualified        Icicle.Core as C
-import qualified        Icicle.Core.Exp.Combinators as CE
-import qualified        Icicle.Common.Exp.Prim.Minimal as Min
-import qualified        Icicle.Common.Type as T
-import                  Icicle.Common.Fresh
-import                  Icicle.Common.Base
+import           Icicle.Common.Base
+import qualified Icicle.Common.Exp.Prim.Minimal as Min
+import           Icicle.Common.Fresh
+import qualified Icicle.Common.Type             as T
+import qualified Icicle.Core                    as C
+import qualified Icicle.Core.Exp.Combinators    as CE
 
 
-import                  P
+import           P
 
-import                  Control.Monad.Trans.Class
-import                  Data.List (zip)
-import qualified        Data.Map    as Map
+import           Control.Monad.Trans.Class
+import           Data.List                      (zip)
+import qualified Data.Map                       as Map
 
 
 data ConvertFoldResult n
  = ConvertFoldResult
- { foldKons     :: C.Exp () n
- , foldZero     :: C.Exp () n
- , mapExtract   :: C.Exp () n
- , typeFold     :: T.ValType
- , typeExtract  :: T.ValType
+ { foldKons    :: C.Exp () n
+ , foldZero    :: C.Exp () n
+ , mapExtract  :: C.Exp () n
+ , typeFold    :: T.ValType
+ , typeExtract :: T.ValType
  } deriving (Eq, Ord, Show)
 
 

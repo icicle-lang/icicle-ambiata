@@ -283,6 +283,54 @@ flatX a_fresh xx stm
        -> lift $ Left $ FlattenErrorPrimBadArgs p xs
 
 
+      Core.PrimLatest (Core.PrimLatestMake t)
+       | [i] <- xs
+       -> flatX' i
+       $  \i'
+       -> do   accN      <- fresh
+               let bufT   = BufT t
+               let accT   = Mutable
+               let fpBuf  = xPrim (Flat.PrimBuf $ Flat.PrimBufMake t)
+               stm'      <- stm (xVar accN)
+
+               return
+                 $ InitAccumulator
+                     (Accumulator accN accT bufT (fpBuf `xApp` i'))
+                     (Read accN accN accT bufT stm')
+
+       | otherwise
+       -> lift $ Left $ FlattenErrorPrimBadArgs p xs
+
+
+      Core.PrimLatest (Core.PrimLatestPush t)
+       | [buf, e]    <- xs
+       , XVar _ bufN <- buf
+       -> flatX' e
+       $  \e'
+       -> flatX' buf
+       $  \buf'
+       -> do   let fpPush = xPrim (Flat.PrimBuf $ Flat.PrimBufPush t) `xApp` buf' `xApp` e'
+               return $ Write bufN fpPush
+
+       | otherwise
+       -> lift $ Left $ FlattenErrorPrimBadArgs p xs
+
+
+      Core.PrimLatest (Core.PrimLatestRead t)
+       | [buf] <- xs
+       -> flatX' buf
+       $  \buf'
+       -> do   accN <- fresh
+               let bufT   = BufT t
+               let accT   = Mutable
+               let fpRead = xPrim (Flat.PrimBuf $ Flat.PrimBufRead t) `xApp` buf'
+               stm'      <- stm (xVar accN)
+               return $ Let accN fpRead stm'
+
+       | otherwise
+       -> lift $ Left $ FlattenErrorPrimBadArgs p xs
+
+
   -- Convert arguments to a simple primitive.
   -- conv is what we've already converted
   primApps p [] conv

@@ -8,7 +8,6 @@
 -- and everything simpler.
 --
 {-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE PatternGuards #-}
 module Icicle.Common.Type (
       ValType (..)
     , FunType (..)
@@ -58,13 +57,15 @@ data ValType
  | StringT
  | UnitT
  | ErrorT
- | ArrayT ValType
- | MapT   ValType ValType
- | OptionT        ValType
- | PairT  ValType ValType
- | SumT   ValType ValType
+ | ArrayT  ValType
+ | MapT    ValType    ValType
+ | OptionT ValType
+ | PairT   ValType    ValType
+ | SumT    ValType    ValType
  | StructT StructType
+ | BufT    ValType
  deriving (Eq,Ord,Show)
+
 
 data ArithType
  = ArithIntT
@@ -98,6 +99,7 @@ defaultOfType typ
                         (defaultOfType b)
      SumT  a _ -> VLeft (defaultOfType a)
      StructT t -> VStruct (Map.map defaultOfType (getStructType t))
+     BufT _    -> VBuf []
 
 
 data StructType
@@ -285,6 +287,11 @@ valueMatchesType v t
     (StructT _, _)
      -> False
 
+    (BufT t', VBuf vs')
+     -> all (flip valueMatchesType t') vs'
+    (BufT _, _)
+     -> False
+
 
 -- Pretty printing ---------------
 
@@ -324,6 +331,7 @@ ppValType needParens vt =
     PairT a b  -> parens  (ppTop a <> text ", " <> ppTop b)
     SumT  a b  -> parens  (text "Sum" <+> ppSub a <+> ppSub b)
     StructT fs -> parens' (pretty fs)
+    BufT t     -> parens' (text "Buf " <> ppSub t)
   where
     parens' | needParens = parens
             | otherwise  = id

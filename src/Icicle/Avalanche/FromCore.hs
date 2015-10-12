@@ -83,10 +83,8 @@ programFromCore namer p
   factLoopHistory
    = factLoop FactLoopHistory (filter (readFromHistory.snd) $ C.reduces p)
 
-  readFromHistory r
-   = case r of
-      CR.RLatest{} -> True
-      CR.RFold _ _ _ _ inp -> CS.isStreamWindowed (C.streams p) inp
+  readFromHistory (CR.RFold _ _ _ _ inp)
+   = CS.isStreamWindowed (C.streams p) inp
 
   -- Nest the streams into a single loop
   factLoopNew
@@ -105,26 +103,15 @@ programFromCore namer p
    = Block
    $ fmap (uncurry A.Output) (C.returns p)
 
-  -- Create a latest accumulator
-  accum (n, CR.RLatest ty x _)
-   = A.Accumulator (namerAccPrefix namer n) A.Latest ty x
-
   -- Fold accumulator
   accum (n, CR.RFold _ ty _ x _)
    = A.Accumulator (namerAccPrefix namer n) A.Mutable ty x
 
   loadResumables (n, CR.RFold _ ty _ _ _)
    = LoadResumable (namerAccPrefix namer n) ty
-  loadResumables _
-   = mempty
 
   saveResumables (n, CR.RFold _ ty _ _ _)
    = SaveResumable (namerAccPrefix namer n) ty
-  saveResumables _
-   = mempty
-
-  readaccum (n, CR.RLatest ty _ _)
-   = Read n (namerAccPrefix namer n) A.Latest ty
 
   readaccum (n, CR.RFold _ ty _ _ _)
    = Read n (namerAccPrefix namer n) A.Mutable ty
@@ -257,7 +244,4 @@ statementOfReduce namer strs (n,r)
                                        `xApp` (xVar $ namerElemPrefix namer inp))
 
         in  Read n' n' A.Mutable ty (Write n' x <> k')
-    -- Push most recent inp
-    CR.RLatest _ _ inp
-     -> Push (namerAccPrefix namer n) (xVar $ namerElemPrefix namer inp)
 

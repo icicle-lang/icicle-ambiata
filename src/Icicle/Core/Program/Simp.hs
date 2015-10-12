@@ -63,6 +63,3 @@ simpReduce a_fresh ss = case ss of
     -> do y1 <- simp a_fresh x1
           y2 <- simp a_fresh x2
           return $ RFold t1 t2 y1 y2 n
-  RLatest t x n
-    -> do x' <- simp a_fresh x
-          return $ RLatest t x' n

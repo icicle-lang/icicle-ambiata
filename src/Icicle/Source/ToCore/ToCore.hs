@@ -187,9 +187,26 @@ convertQuery q
             -- Same result, just requires a smaller buffer
             let bmap  = strm  n'map
                       $ C.STrans (C.SMap inpty t') (CE.xLam n'v inpty x') inpstream
-            let barr  = red  n'arr
-                      $ C.RLatest t' (CE.constI i) n'map
-            return (bmap <> barr, n'arr)
+
+            n'buf     <- lift fresh
+            n'acc     <- lift fresh
+            n'i       <- lift fresh
+
+            -- Push onto the circular buffer
+            let t'buf = T.BufT t'
+            let kons  = beta
+                      $ CE.xLam n'acc t'buf
+                      $ CE.xLam n'i t'
+                      ( CE.pushBuf t' CE.@~ CE.xVar n'acc CE.@~ CE.xVar n'i )
+            let zero  = CE.emptyBuf t' CE.@~ CE.constI i
+            let bbuf  = red  n'buf
+                      $ C.RFold t' t'buf kons zero n'map
+
+            -- Read it into an array at the end
+            let barr  = post n'arr
+                      ( CE.readBuf t' CE.@~ CE.xVar n'buf )
+
+            return (bmap <> bbuf <> barr, n'arr)
 
      | otherwise
      -> do  n'arr   <- lift fresh
@@ -216,16 +233,30 @@ convertQuery q
                       $ beta
                       ( foldKons res CE.@~ CE.xVar n'a)
 
+            n'buf    <- lift fresh
+            n'acc    <- lift fresh
+            n'i      <- lift fresh
+            let tbuf  = T.BufT inpty
+            let kons  = beta
+                      $ CE.xLam n'acc tbuf
+                      $ CE.xLam n'i   inpty
+                      ( CE.pushBuf inpty CE.@~ CE.xVar n'acc CE.@~ CE.xVar n'i )
+            let zero  = CE.emptyBuf inpty CE.@~ CE.constI i
+
             -- Construct the "latest" reduction,
             -- the fold over the resulting array,
             -- and the extraction of the actual result of the array.
             -- (See convertFold)
-            let barr  = red  n'arr   (C.RLatest inpty (CE.constI i) inpstream)
+            let bbuf  = red  n'buf
+                      $ C.RFold inpty tbuf kons zero inpstream
+            let barr  = post n'arr
+                      ( CE.readBuf inpty CE.@~ CE.xVar n'buf )
+            --let barr  = red  n'arr   (C.RLatest inpty (CE.constI i) inpstream)
             let bfold = post n'fold  (CE.xPrim (C.PrimFold (C.PrimFoldArray inpty) tV')
                                       CE.@~ k' CE.@~ beta (foldZero res) CE.@~ CE.xVar n'arr)
             let bxtra = post n'xtra (beta (mapExtract res CE.@~ CE.xVar n'fold))
 
-            return (barr <> bfold <> bxtra, n'xtra)
+            return (bbuf <> barr <> bfold <> bxtra, n'xtra)
 
     -- Convert a group by into the construction of a Map.
     -- The key is the "by" of the group, while the value is the result of the

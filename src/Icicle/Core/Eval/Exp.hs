@@ -12,7 +12,8 @@ import Icicle.Core.Exp.Prim
 
 import              P
 
-import qualified    Data.Map as Map
+import qualified    Data.Map  as Map
+import qualified    Data.List as List
 import qualified    Icicle.Common.Exp.Prim.Eval as Min
 
 
@@ -85,6 +86,26 @@ evalPrim p vs
       | otherwise
       -> primError
 
+     PrimLatest (PrimLatestMake _)
+      | [VBase (VInt i)] <- vs
+      -> return . VBase . VBuf
+      $  List.replicate i (VError ExceptScalarVariableNotAvailable)
+      | otherwise
+      -> primError
+
+     PrimLatest (PrimLatestPush _)
+      | [VBase (VBuf as), VBase e] <- vs
+      -> return . VBase . VBuf
+      $  circ e as
+      | otherwise
+      -> primError
+
+     PrimLatest (PrimLatestRead _)
+      | [VBase (VBuf as)] <- vs
+      -> return . VBase . VArray
+      $ filter justElem as
+      | otherwise
+      -> primError
 
  where
   applies' = applies evalPrim
@@ -98,3 +119,13 @@ evalPrim p vs
   primError
    = Left $ RuntimeErrorPrimBadArgs p vs
 
+  -- TODO make an efficient circular buffer
+  circ x xs
+   = List.drop 1 (xs <> [x])
+
+  -- If the circular buffer is not completely filled,
+  -- just grab the filled part.
+  justElem (VError ExceptScalarVariableNotAvailable)
+   = False
+  justElem _
+   = True
