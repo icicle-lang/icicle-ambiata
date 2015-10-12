@@ -559,13 +559,10 @@ convertQuery q
 
   -- Get the key and value type of a group inside a group-fold.
   getGroupFoldType a e
-   = case e of
-       Nested (Annot { annResult = ty }) _
-         -> do t <- convertValType' ty
-               case t of
-                 T.MapT tk tv -> return (tk, tv)
-                 _            -> convertError $ ConvertErrorGroupFoldNotOnGroup a e
-       _ -> convertError $ ConvertErrorGroupFoldNotOnGroup a e
+   = do t <- convertValType' $ annResult $ annotOfExp e
+        case t of
+         T.MapT tk tv -> return (tk, tv)
+         _            -> convertError $ ConvertErrorGroupFoldNotOnGroup a e
 
   -- Perform beta reduction, just to simplify the output a tiny bit.
   beta = Beta.betaToLets ()
