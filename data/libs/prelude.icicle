@@ -18,12 +18,14 @@ maxby a b = let fold1 s = (a, b)
 sd_old v = let v_ = double v ~> let sv = (sum v_) ~> (((sum (v_*v_) * count) - (sv * sv)) / (count * (count - 1)))^(0.5).
 
 # Numerically stable variance
-variance v = let fold a = ((0, 0.0), 0.0)
+variance v =
+  let v_ = double v ~>
+  let fold a = ((0, 0.0), 0.0)
      :  case a | ((n,m),m2) -> (
                    let nn = n + 1 ~>
-                   let d = v - m ~>
+                   let d = v_ - m ~>
                    let mm = m + d / nn ~>
-                   let m22 = m2 + d * (v - mm) ~>
+                   let m22 = m2 + d * (v_ - mm) ~>
                    ((nn, mm), m22)
                   ) end
      ~> case a | ((x,_),y)  -> y / (x - 1) end.
@@ -31,12 +33,15 @@ variance v = let fold a = ((0, 0.0), 0.0)
 sd v = (variance v) ^ 0.5.
 
 # Numerically stable covariance
-covariance a b = let fold x = (((0, 0.0), 0.0), 0.0)
+covariance a b =
+  let a_ = double a ~>
+  let b_ = double b ~>
+  let fold x = (((0, 0.0), 0.0), 0.0)
      :  case x | (((n,m1),m2),m12) -> (
                     let nn  = n + 1 ~>
-                    let d1 = (a - m1) / nn ~>
+                    let d1 = (a_ - m1) / nn ~>
                     let mm1 = m1 + d1 ~>
-                    let d2 = (b - m2) / nn ~>
+                    let d2 = (b_ - m2) / nn ~>
                     let mm2 = m2 + d2 ~>
                     let mm12 = m12 + n * d1 * d2 - m12 / nn ~>
                     (((nn, mm1), mm2),mm12)
