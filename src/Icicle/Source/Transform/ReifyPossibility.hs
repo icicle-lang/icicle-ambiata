@@ -148,6 +148,30 @@ reifyPossibilityQ (Query (c:cs) final_x)
     Let a n x
      -> add' (Let       (wrapAnnot a) n   <$> reifyPossibilityX x)
     GroupFold a k v grp
+     | grpa                <- annotOfExp grp
+     , PossibilityPossibly <- getPossibilityOrDefinitely $ annResult grpa
+     -> do  nError <- fresh
+            nValue <- fresh
+            grp'   <- reifyPossibilityX grp
+            let a'  = wrapAnnot a
+                a'E = typeAnnot a ErrorT
+
+                vError = Var a'E nError
+                vValue = Var grpa nValue
+
+            rest'    <- rest
+            let a'R   = wrapAnnot $ annotOfQuery rest'
+                ins'  = ins (GroupFold a'R k v vValue) rest'
+
+
+            let xx = Case (wrapAnnot a) grp'
+                          [ ( PatCon ConLeft  [ PatVariable nError ]
+                            , con1 a' ConLeft $ vError )
+                          , ( PatCon ConRight [ PatVariable nValue ]
+                            , wrapRight $ Nested a'R ins' ) ]
+            return (Query [] xx)
+
+     | otherwise
      -> add' (GroupFold (wrapAnnot a) k v <$> reifyPossibilityX grp)
 
  where
@@ -157,10 +181,9 @@ reifyPossibilityQ (Query (c:cs) final_x)
   add ctx
    = add' (return ctx)
   add' ctx
-   = do Query cs' x' <- rest
-        c'           <- ctx
-        return $ Query (c' : cs') x'
-
+   = ins <$> ctx <*> rest
+  ins ctx (Query ctxs x)
+   = Query (ctx:ctxs) x
 
 -- XXX this is ignoring the possibility of functions that return differing modes.
 -- This is true of all current primitives, and at this stage we can only have primitives.

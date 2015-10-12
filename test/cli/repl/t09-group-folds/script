@@ -6,3 +6,6 @@ feature salary ~> group fold (k, v) = (group date ~> count) ~> sum v
 
 -- Max of count of values
 feature salary ~> group fold (k, v) = (group date ~> count) ~> max v
+
+-- Fold over oldests. Not really that meaningful but a useful test
+feature salary ~> group fold (k, v) = (group date ~> oldest value) ~> max v
