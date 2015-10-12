@@ -87,6 +87,7 @@ data Fun
  | ToDouble
  | ToInt
  | DaysBetween
+ | DaysEpoch
  deriving (Show, Eq, Ord)
 
 
@@ -215,3 +216,4 @@ instance Pretty Fun where
  pretty ToDouble    = "double"
  pretty ToInt       = "int"
  pretty DaysBetween = "days between"
+ pretty DaysEpoch   = "days"

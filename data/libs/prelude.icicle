@@ -43,10 +43,10 @@ covariance a b = let fold x = (((0, 0.0), 0.0), 0.0)
                  ) end
      ~> case x | (((n,_),_),m12) -> m12 * n / (n - 1) end.
 
-# Pearson's product-moment correlation coefficient. A unitless gradient measure.
+# Pearson's product-moment correlation coefficient; a unitless gradient measure.
 pearsons a b = covariance a b / (sd a * sd b).
 
-# Gradient measure with units y/x.
+# Gradient with units y/x.
 gradient a b = covariance a b / variance b.
 
 # Time statements

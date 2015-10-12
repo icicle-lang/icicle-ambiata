@@ -192,6 +192,8 @@ convertPrim p ann resT xts
        -> return $ primmin $ Min.PrimCast Min.PrimCastIntOfDouble
   gofun DaysBetween
    = return $ primmin $ Min.PrimDateTime Min.PrimDateTimeDaysDifference
+  gofun DaysEpoch
+   = return $ primmin $ Min.PrimDateTime Min.PrimDateTimeDaysEpoch
 
   t1 num_args
    = case xts of

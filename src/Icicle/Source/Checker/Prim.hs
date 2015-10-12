@@ -69,6 +69,8 @@ primLookup' p
      -> fNum $ \at -> ([at], IntT)
     Fun DaysBetween
      -> f0 [DateTimeT, DateTimeT] IntT
+    Fun DaysEpoch
+     -> f0 [DateTimeT] IntT
 
     PrimCon ConSome
      -> f1 $ \a at -> FunctionType [a] [] [at] (OptionT at)

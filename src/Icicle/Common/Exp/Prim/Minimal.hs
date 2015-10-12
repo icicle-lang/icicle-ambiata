@@ -95,6 +95,7 @@ data PrimConst
 -- | DateTime primitives
 data PrimDateTime
  = PrimDateTimeDaysDifference
+ | PrimDateTimeDaysEpoch
  | PrimDateTimeMinusDays
  | PrimDateTimeMinusMonths
  deriving (Eq, Ord, Show)
@@ -159,6 +160,8 @@ typeOfPrim p
 
     PrimDateTime PrimDateTimeDaysDifference
      -> FunT [funOfVal DateTimeT, funOfVal DateTimeT] IntT
+    PrimDateTime PrimDateTimeDaysEpoch
+     -> FunT [funOfVal DateTimeT] IntT
     PrimDateTime PrimDateTimeMinusDays
      -> FunT [funOfVal DateTimeT, funOfVal IntT] DateTimeT
     PrimDateTime PrimDateTimeMinusMonths
@@ -231,6 +234,7 @@ instance Pretty Prim where
   = text "right#" <+> brackets (pretty a) <+> brackets (pretty b)
 
  pretty (PrimDateTime PrimDateTimeDaysDifference) = text "DateTime_daysDifference#"
+ pretty (PrimDateTime PrimDateTimeDaysEpoch)      = text "DateTime_daysEpoch#"
  pretty (PrimDateTime PrimDateTimeMinusDays)      = text "DateTime_minusDays#"
  pretty (PrimDateTime PrimDateTimeMinusMonths)    = text "DateTime_minusMonths#"
 

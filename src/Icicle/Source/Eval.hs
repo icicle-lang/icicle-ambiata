@@ -253,7 +253,10 @@ evalP ann p xs vs env
               | [VDateTime i, VDateTime j] <- args
               -> return $ VInt $ DT.daysDifference i j
               | otherwise -> err
-
+             DaysEpoch
+              | [VDateTime i] <- args
+              -> return $ VInt $ DT.daysOfDate i
+              | otherwise -> err
     Op o
      -> do  args <- mapM (\x' -> evalX x' vs env) xs
             let err = Left $ EvalErrorPrimBadArgs ann p args
