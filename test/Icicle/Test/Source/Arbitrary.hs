@@ -80,7 +80,8 @@ instance Arbitrary n => Arbitrary (Exp () n) where
         , Op    (DateBinary DaysAfter)
         , Op    (DateBinary MonthsBefore)
         , Op    (DateBinary MonthsAfter)
-        , Fun   (DaysBetween) ]
+        , Fun   (DaysBetween)
+        , Fun   (DaysEpoch) ]
 
    operator_pre
     = oneof_vals

@@ -1,6 +1,6 @@
 welcome to iREPL
-ok, loaded 10 functions from data/libs/prelude.icicle
-ok, loaded test/cli/repl/data.psv, 8 rows
+ok, loaded 18 functions from data/libs/prelude.icicle
+ok, loaded test/cli/repl/data.psv, 13 rows
 > -- Load dictionary
 > Dictionary load error:
   IO Exception: test/cli/repl/t12-broken-dictionaries/non-existant.icicle: openFile: does not exist (No such file or directory)
