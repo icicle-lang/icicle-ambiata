@@ -4,7 +4,6 @@ module Icicle.Source.Transform.ReifyPossibility (
     reifyPossibilityQT
   , reifyPossibilityQ
   , reifyPossibilityX
-  , reifyPossibilityC
   ) where
 
 import Icicle.Source.Query
@@ -27,15 +26,6 @@ reifyPossibilityQT
 reifyPossibilityQT qt
  = do   q' <- reifyPossibilityQ (query qt)
         return $ qt { query = q' }
-
-reifyPossibilityQ
-        :: Ord n
-        => Query (Annot a n) n
-        -> Fresh n (Query (Annot a n) n)
-reifyPossibilityQ q
- = do cs' <- mapM reifyPossibilityC $ contexts q
-      x'  <- reifyPossibilityX $ final q
-      return $ Query cs' x'
 
 reifyPossibilityX
         :: Ord n
@@ -90,73 +80,86 @@ reifyPossibilityX x
               return $ Case  (wrapAnnot a) scrut' alts'
 
 
-reifyPossibilityC
+reifyPossibilityQ
         :: Ord n
-        => Context (Annot a n) n
-        -> Fresh n (Context (Annot a n) n)
-reifyPossibilityC c
-   = case c of
-      LetFold a f
-       | FoldTypeFoldl1 <- foldType f
-       -> do  nError <- fresh
-              nValue <- fresh
-              k      <- reifyPossibilityX $ foldWork f
-              z      <- reifyPossibilityX $ foldInit f
-              let b  = foldBind f
-                  a'B = typeAnnot a BoolT
-                  a'E = typeAnnot a ErrorT
-                  a'D = wrapAnnotReally $ annotOfExp $ foldWork f
+        => Query (Annot a n) n
+        -> Fresh n (Query (Annot a n) n)
+reifyPossibilityQ (Query [] x)
+ = Query [] <$> reifyPossibilityX x
+reifyPossibilityQ (Query (c:cs) final_x)
+ = case c of
+    LetFold a f
+     | FoldTypeFoldl1 <- foldType f
+     -> do  nError <- fresh
+            nValue <- fresh
+            k      <- reifyPossibilityX $ foldWork f
+            z      <- reifyPossibilityX $ foldInit f
+            let b  = foldBind f
+                a'B = typeAnnot a BoolT
+                a'E = typeAnnot a ErrorT
+                a'D = wrapAnnotReally $ annotOfExp $ foldWork f
 
-                  vError = Var a'E nError
-                  vValue = Var (annotOfExp $ foldWork f) nValue
+                vError = Var a'E nError
+                vValue = Var (annotOfExp $ foldWork f) nValue
 
-                  z' = con1 a'D ConLeft $ con0 a'E $ ConError ExceptFold1NoValue
+                z' = con1 a'D ConLeft $ con0 a'E $ ConError ExceptFold1NoValue
 
-                  eqError = App a'B
-                                (App a'B (Prim a'B $ Op $ Relation Eq) (con0 a'E $ ConError ExceptFold1NoValue))
-                                vError
+                eqError = App a'B
+                              (App a'B (Prim a'B $ Op $ Relation Eq) (con0 a'E $ ConError ExceptFold1NoValue))
+                              vError
 
-                  k' = Case a'D (Var a'D b)
-                     [ ( PatCon ConLeft  [ PatVariable nError ]
-                       , Case a'D eqError
-                            [ ( PatCon ConTrue []
-                              , wrapRight $ z )
-                            , ( PatCon ConFalse []
-                              , con1 a'D ConLeft $ vError ) ] )
-                     , ( PatCon ConRight [ PatVariable nValue ]
-                       , wrapRight
-                       $ substIntoIfDefinitely b vValue
-                       $ k ) ]
+                k' = Case a'D (Var a'D b)
+                   [ ( PatCon ConLeft  [ PatVariable nError ]
+                     , Case a'D eqError
+                          [ ( PatCon ConTrue []
+                            , wrapRight $ z )
+                          , ( PatCon ConFalse []
+                            , con1 a'D ConLeft $ vError ) ] )
+                   , ( PatCon ConRight [ PatVariable nValue ]
+                     , wrapRight
+                     $ substIntoIfDefinitely b vValue
+                     $ k ) ]
 
-                  f' = f { foldType = FoldTypeFoldl
-                         , foldInit = z'
-                         , foldWork = k' }
+                f' = f { foldType = FoldTypeFoldl
+                       , foldInit = z'
+                       , foldWork = k' }
 
-              return $ LetFold (wrapAnnot a) f'
+            add $ LetFold (wrapAnnot a) f'
 
-       | otherwise
-       -> do  z' <- wrapRightIfAnnot (annotOfExp $ foldWork f) <$> reifyPossibilityX (foldInit f)
-              k' <- wrapRightIfAnnot (annotOfExp $ foldInit f) <$> reifyPossibilityX (foldWork f)
+     | otherwise
+     -> do  z' <- wrapRightIfAnnot (annotOfExp $ foldWork f) <$> reifyPossibilityX (foldInit f)
+            k' <- wrapRightIfAnnot (annotOfExp $ foldInit f) <$> reifyPossibilityX (foldWork f)
 
-              let f' = f { foldInit = z'
-                         , foldWork = k' }
+            let f' = f { foldInit = z'
+                       , foldWork = k' }
 
-              return $ LetFold (wrapAnnot a) f'
+            add $ LetFold (wrapAnnot a) f'
 
-      Windowed a w w'
-       -> return $ Windowed  (wrapAnnot a) w w'
-      Latest a i
-       -> return $ Latest    (wrapAnnot a) i
-      GroupBy a x
-       -> GroupBy   (wrapAnnot a)     <$> reifyPossibilityX x
-      Distinct a x
-       -> Distinct  (wrapAnnot a)     <$> reifyPossibilityX x
-      Filter a x
-       -> Filter    (wrapAnnot a)     <$> reifyPossibilityX x
-      Let a n x
-       -> Let       (wrapAnnot a) n   <$> reifyPossibilityX x
-      GroupFold a k v x
-       -> GroupFold (wrapAnnot a) k v <$> reifyPossibilityX x
+    Windowed a w w'
+     -> add $ Windowed  (wrapAnnot a) w w'
+    Latest a i
+     -> add $ Latest    (wrapAnnot a) i
+    GroupBy a x
+     -> add' (GroupBy   (wrapAnnot a)     <$> reifyPossibilityX x)
+    Distinct a x
+     -> add' (Distinct  (wrapAnnot a)     <$> reifyPossibilityX x)
+    Filter a x
+     -> add' (Filter    (wrapAnnot a)     <$> reifyPossibilityX x)
+    Let a n x
+     -> add' (Let       (wrapAnnot a) n   <$> reifyPossibilityX x)
+    GroupFold a k v grp
+     -> add' (GroupFold (wrapAnnot a) k v <$> reifyPossibilityX grp)
+
+ where
+  rest
+   = reifyPossibilityQ (Query cs final_x)
+
+  add ctx
+   = add' (return ctx)
+  add' ctx
+   = do Query cs' x' <- rest
+        c'           <- ctx
+        return $ Query (c' : cs') x'
 
 
 -- XXX this is ignoring the possibility of functions that return differing modes.
