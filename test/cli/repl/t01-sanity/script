@@ -15,9 +15,3 @@ feature salary ~> latest 3 ~> sum (double value) / count
 
 -- Now should collect the current date
 feature salary ~> now
-
--- Standard deviation should be correct
-feature salary ~> sd (double value)
-
--- Gradient should be correct
-feature salary ~> gradient (double value) (double (days date) / 365)

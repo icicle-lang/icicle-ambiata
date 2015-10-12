@@ -48,8 +48,8 @@ covariance a b =
                  ) end
      ~> case x | (((n,_),_),m12) -> m12 * n / (n - 1) end.
 
-# Pearson's product-moment correlation coefficient; a measurement of linearity.
-pearsons a b = covariance a b / (sd a * sd b).
+# Pearson's product-moment correlation coefficient.
+correlation a b = covariance a b / (sd a * sd b).
 
 # Gradient with units y/x.
 gradient a b = covariance a b / variance b.

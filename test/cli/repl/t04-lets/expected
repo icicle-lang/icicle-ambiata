@@ -1,6 +1,6 @@
 welcome to iREPL
 ok, loaded 18 functions from data/libs/prelude.icicle
-ok, loaded test/cli/repl/data.psv, 8 rows
+ok, loaded test/cli/repl/data.psv, 13 rows
 > -- Elem/Scalar lets
 > - Core evaluation:
 [homer, 3000,marge, 60]
