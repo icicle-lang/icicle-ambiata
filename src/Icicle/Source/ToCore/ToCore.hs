@@ -313,31 +313,21 @@ convertQuery q
             nmap'   <- lift fresh
 
             nErr    <- lift fresh
-            let retT = T.MapT tKr tXr
-            let unwrapSum x nk t bodyx
-                     | T.SumT T.ErrorT ty <- t
-                     = CE.makeApps () (CE.xPrim $ C.PrimFold (C.PrimFoldSum T.ErrorT ty) sumt)
-                     [ CE.xLam nErr T.ErrorT ( CE.makeApps () (CE.xPrim $ C.PrimMinimal $ Min.PrimConst $ Min.PrimConstLeft T.ErrorT retT)
-                                             [ CE.xVar nErr ])
-                     , CE.xLam nk ty bodyx
-                     , x ]
-                     | otherwise
-                     = CE.xLet nk x bodyx
 
-            let rewrapSum bodyx
-                     | isPossibly
-                     = CE.makeApps () (CE.xPrim $ C.PrimMinimal $ Min.PrimConst $ Min.PrimConstRight T.ErrorT retT)
-                     [ bodyx ]
-                     | otherwise
-                     = bodyx
+            let unwrapSum' chk = unwrapSum chk sumt nErr
+
+            let rewrapSum' = rewrapSum isPossibly sumt
 
             let ins = CE.xLam nmap sumt
                     $ CE.xLam nkey tK
                     $ CE.xLam nval tV
-                    $ unwrapSum (CE.xVar nmap) nmap' sumt
-                    $ unwrapSum (CE.xVar nkey) nkey' tK
-                    $ unwrapSum (beta (mapExtract res CE.@~ CE.xVar nval)) nval' (typeExtract res)
-                    $ rewrapSum
+                    $ unwrapSum' isPossibly
+                                 (CE.xVar nmap) nmap' sumt
+                    $ unwrapSum' (isAnnotPossibly $ annotOfExp e)
+                                 (CE.xVar nkey) nkey' tK
+                    $ unwrapSum' (isAnnotPossibly $ annotOfQuery q')
+                                 (beta (mapExtract res CE.@~ CE.xVar nval)) nval' (typeExtract res)
+                    $ rewrapSum'
                     $ CE.makeApps () (CE.xPrim $ C.PrimMap $ C.PrimMapInsertOrUpdate tKr tXr)
                     [ CE.xLam nval'' tXr $ CE.xVar nval''
                     , CE.xVar nval'
@@ -582,6 +572,30 @@ convertQuery q
        . Beta.beta Beta.isSimpleValue
 
   convertValType' = convertValType (annAnnot $ annotOfQuery q)
+
+  isAnnotPossibly ann = PossibilityPossibly == getPossibilityOrDefinitely (annResult ann)
+
+  unwrapSum isPossibly rett nErr x nk t bodyx
+     | T.SumT T.ErrorT ty <- t
+     , T.SumT T.ErrorT ret' <- rett
+     -- We can only do this for (Sum Error)s introduced by Reify:
+     -- not ones that the programmer explicitly wrote
+     , isPossibly
+     = CE.makeApps () (CE.xPrim $ C.PrimFold (C.PrimFoldSum T.ErrorT ty) rett)
+     [ CE.xLam nErr T.ErrorT ( CE.makeApps () (CE.xPrim $ C.PrimMinimal $ Min.PrimConst $ Min.PrimConstLeft T.ErrorT ret')
+                             [ CE.xVar nErr ])
+     , CE.xLam nk ty bodyx
+     , x ]
+     | otherwise
+     = CE.xLet nk x bodyx
+
+  rewrapSum isPossibly rett bodyx
+     | T.SumT T.ErrorT ret' <- rett
+     , isPossibly
+     = CE.makeApps () (CE.xPrim $ C.PrimMinimal $ Min.PrimConst $ Min.PrimConstRight T.ErrorT ret')
+     [ bodyx ]
+     | otherwise
+     = bodyx
 
 
 -- | Convert an Aggregate computation at the end of a query.
