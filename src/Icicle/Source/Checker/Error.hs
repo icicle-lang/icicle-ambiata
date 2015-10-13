@@ -120,7 +120,7 @@ instance (Pretty a, Pretty n) => Pretty (ErrorInfo a n) where
       <> vcat (fmap (\(an,con) -> indent 2 (pretty an) <> indent 2 (pretty con)) ds)
 
      ErrorConstraintLeftover a ds
-      -> "Unsolvable constraint at " <+> pretty a <> line
+      -> "Unsolved constraints at " <+> pretty a <> line
       <> vcat (fmap (\(an,con) -> indent 2 (pretty an) <> indent 2 (pretty con)) ds)
 
      ErrorReturnNotAggregate a t
