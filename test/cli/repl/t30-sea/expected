@@ -25,32 +25,34 @@ ok, c evaluation now on
 > - Flattened:
 gen$date = DATE
 {
-  init [Mutable] [Bool] acc$conv$7$simp$0 = False : Bool;
-  init [Mutable] [Int] acc$conv$7$simp$1 = 0 : Int;
-  load_resumable [Bool] acc$conv$7$simp$0;
-  load_resumable [Int] acc$conv$7$simp$1;
+  init [Mutable] [(Sum Error Int)] acc$s$reify$2$conv$5 = left# [Error] [Int]
+                                                          (ExceptFold1NoValue : Error);
+  load_resumable [(Sum Error Int)] acc$s$reify$2$conv$5;
   for_facts (elem$gen$fact : Int, elem$gen$date : Date) in new {
-    read [Mutable] [Bool] acc$conv$7$simp$2 = acc$conv$7$simp$0;
-    read [Mutable] [Int] acc$conv$7$simp$3 = acc$conv$7$simp$1;
-    if (acc$conv$7$simp$2) {
-      write acc$conv$7$simp$0 = True : Bool;
-      write acc$conv$7$simp$1 = acc$conv$7$simp$3;
+    read [Mutable] [(Sum Error Int)] acc$s$reify$2$conv$5 = acc$s$reify$2$conv$5;
+    if (Sum_isLeft# [Error] [Int]
+        acc$s$reify$2$conv$5) {
+      let flat$0 = unsafe_Sum_left# [Error] [Int]
+                   acc$s$reify$2$conv$5;
+      if (eq# [Error]
+          (ExceptFold1NoValue : Error)
+          flat$0) {
+        write acc$s$reify$2$conv$5 = right# [Error] [Int]
+                                     elem$gen$fact;
+      } 
+       else {
+        write acc$s$reify$2$conv$5 = left# [Error] [Int]
+                                     flat$0;
+      } 
+      
     } else {
-      write acc$conv$7$simp$0 = True : Bool;
-      write acc$conv$7$simp$1 = elem$gen$fact;
-    }
+      write acc$s$reify$2$conv$5 = acc$s$reify$2$conv$5;
+    } 
+    
   }
-  save_resumable [Bool] acc$conv$7$simp$0;
-  save_resumable [Int] acc$conv$7$simp$1;
-  read [Mutable] [Bool] conv$7$simp$4 = acc$conv$7$simp$0;
-  read [Mutable] [Int] conv$7$simp$5 = acc$conv$7$simp$1;
-  if (conv$7$simp$4) {
-    output repl conv$7$simp$5;
-  } 
-   else {
-    output repl ExceptFold1NoValue : Int;
-  } 
-  
+  save_resumable [(Sum Error Int)] acc$s$reify$2$conv$5;
+  read [Mutable] [(Sum Error Int)] s$reify$2$conv$5 = acc$s$reify$2$conv$5;
+  output repl s$reify$2$conv$5;
 }
 
 - C:
@@ -75,11 +77,14 @@ typedef struct {
 
     /* outputs */
     ierror_t   error;
-    iint_t     repl;
+    
+    #error Failed during codegen (seaOfValType: SumT ErrorT IntT..)
+     repl;
 
     /* resumables */
-    ibool_t    acc_conv_7_simp_0;
-    iint_t     acc_conv_7_simp_1;
+    
+    #error Failed during codegen (seaOfValType: SumT ErrorT IntT..)
+     acc_s_reify_2_conv_5;
 } icicle_state_t;
 
 static const iunit_t iunit  = 0x1c1c13;
@@ -126,17 +131,19 @@ static idouble_t INLINE idouble_err (icicle_state_t *s, ierror_t error)  {
 
 void compute(icicle_state_t *s)
 {
-    ibool_t    acc_conv_7_simp_0;
-    iint_t     acc_conv_7_simp_1;
-    ibool_t    acc_conv_7_simp_2;
-    iint_t     acc_conv_7_simp_3;
-    ibool_t    conv_7_simp_4;
-    iint_t     conv_7_simp_5;
+    
+    #error Failed during codegen (seaOfValType: SumT ErrorT IntT..)
+     acc_s_reify_2_conv_5;
+    
+    #error Failed during codegen (seaOfValType: SumT ErrorT IntT..)
+     s_reify_2_conv_5;
 
-    acc_conv_7_simp_0                    = ifalse;
-    acc_conv_7_simp_1                    = 0;
-    acc_conv_7_simp_0                    = s->acc_conv_7_simp_0;
-    acc_conv_7_simp_1                    = s->acc_conv_7_simp_1;
+    acc_s_reify_2_conv_5                 = 
+    #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstLeft Er..)
+     (
+    #error Failed during codegen (seaOfXValue: VError ExceptFold1NoValue..)
+    );
+    acc_s_reify_2_conv_5                 = s->acc_s_reify_2_conv_5;
     
     const iint_t            new_count    = s->new_count;
     const idate_t    *const new_date     = s->new_date;
@@ -145,34 +152,106 @@ void compute(icicle_state_t *s)
     for (iint_t i = 0; i < new_count; i++) {
         idate_t    elem_gen_date         = new_date[i];
         iint_t     elem_gen_fact         = new_fact[i];
-        acc_conv_7_simp_2                = acc_conv_7_simp_0;
-        acc_conv_7_simp_3                = acc_conv_7_simp_1;
+        acc_s_reify_2_conv_5             = acc_s_reify_2_conv_5;
         
-        if (acc_conv_7_simp_2) {
-            acc_conv_7_simp_0            = itrue;
-            acc_conv_7_simp_1            = acc_conv_7_simp_3;
+        if (
+        #error Failed during codegen (seaOfXPrim: PrimProject (PrimProjectSumIsLeft ErrorT..)
+         (acc_s_reify_2_conv_5)) {
+            
+            #error Failed during codegen (seaOfValType: ErrorT..)
+             flat_0                      = 
+            #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetLeft ErrorT ..)
+             (acc_s_reify_2_conv_5);
+            
+            if (
+            #error Failed during codegen (prefixOfValType: ErrorT..)
+            eq (
+            #error Failed during codegen (seaOfXValue: VError ExceptFold1NoValue..)
+            , flat_0)) {
+                acc_s_reify_2_conv_5     = 
+                #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstRight E..)
+                 (elem_gen_fact);
+            } else {
+                acc_s_reify_2_conv_5     = 
+                #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstLeft Er..)
+                 (flat_0);
+            }
+            
         } else {
-            acc_conv_7_simp_0            = itrue;
-            acc_conv_7_simp_1            = elem_gen_fact;
+            acc_s_reify_2_conv_5         = acc_s_reify_2_conv_5;
         }
         
     }
     
-    s->acc_conv_7_simp_0                 = acc_conv_7_simp_0;
-    s->acc_conv_7_simp_1                 = acc_conv_7_simp_1;
-    conv_7_simp_4                        = acc_conv_7_simp_0;
-    conv_7_simp_5                        = acc_conv_7_simp_1;
-    
-    if (conv_7_simp_4) {
-        s->repl                          = conv_7_simp_5;
-    } else {
-        s->repl                          = iint_err (s, "ExceptFold1NoValue");
-    }
-    
+    s->acc_s_reify_2_conv_5              = acc_s_reify_2_conv_5;
+    s_reify_2_conv_5                     = acc_s_reify_2_conv_5;
+    s->repl                              = s_reify_2_conv_5;
 }
 
-- C evaluation:
-[(homer,100),(marge,0)]
+- C error:
+/var/folders/k1/8wwmm60s321c8d69my6zvwwh0000gn/T/jetski-69402/jetski.c:23:6: error: Failed during codegen (seaOfValType: SumT ErrorT IntT..)
+    #error Failed during codegen (seaOfValType: SumT ErrorT IntT..)
+     ^
+/var/folders/k1/8wwmm60s321c8d69my6zvwwh0000gn/T/jetski-69402/jetski.c:24:6: error: type name requires a specifier or qualifier
+     repl;
+     ^
+/var/folders/k1/8wwmm60s321c8d69my6zvwwh0000gn/T/jetski-69402/jetski.c:28:6: error: Failed during codegen (seaOfValType: SumT ErrorT IntT..)
+    #error Failed during codegen (seaOfValType: SumT ErrorT IntT..)
+     ^
+/var/folders/k1/8wwmm60s321c8d69my6zvwwh0000gn/T/jetski-69402/jetski.c:29:6: error: type name requires a specifier or qualifier
+     acc_s_reify_2_conv_5;
+     ^
+/var/folders/k1/8wwmm60s321c8d69my6zvwwh0000gn/T/jetski-69402/jetski.c:71:13: warning: division by zero is undefined [-Wdivision-by-zero]
+    return 0/0;
+            ^~
+/var/folders/k1/8wwmm60s321c8d69my6zvwwh0000gn/T/jetski-69402/jetski.c:77:6: error: Failed during codegen (seaOfValType: SumT ErrorT IntT..)
+    #error Failed during codegen (seaOfValType: SumT ErrorT IntT..)
+     ^
+/var/folders/k1/8wwmm60s321c8d69my6zvwwh0000gn/T/jetski-69402/jetski.c:78:6: error: use of undeclared identifier 'acc_s_reify_2_conv_5'
+     acc_s_reify_2_conv_5;
+     ^
+/var/folders/k1/8wwmm60s321c8d69my6zvwwh0000gn/T/jetski-69402/jetski.c:80:6: error: Failed during codegen (seaOfValType: SumT ErrorT IntT..)
+    #error Failed during codegen (seaOfValType: SumT ErrorT IntT..)
+     ^
+/var/folders/k1/8wwmm60s321c8d69my6zvwwh0000gn/T/jetski-69402/jetski.c:81:6: error: use of undeclared identifier 's_reify_2_conv_5'
+     s_reify_2_conv_5;
+     ^
+/var/folders/k1/8wwmm60s321c8d69my6zvwwh0000gn/T/jetski-69402/jetski.c:83:5: error: use of undeclared identifier 'acc_s_reify_2_conv_5'
+    acc_s_reify_2_conv_5                 = 
+    ^
+/var/folders/k1/8wwmm60s321c8d69my6zvwwh0000gn/T/jetski-69402/jetski.c:84:6: error: Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstLeft Er..)
+    #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstLeft Er..)
+     ^
+/var/folders/k1/8wwmm60s321c8d69my6zvwwh0000gn/T/jetski-69402/jetski.c:86:6: error: Failed during codegen (seaOfXValue: VError ExceptFold1NoValue..)
+    #error Failed during codegen (seaOfXValue: VError ExceptFold1NoValue..)
+     ^
+/var/folders/k1/8wwmm60s321c8d69my6zvwwh0000gn/T/jetski-69402/jetski.c:87:5: error: expected expression
+    );
+    ^
+/var/folders/k1/8wwmm60s321c8d69my6zvwwh0000gn/T/jetski-69402/jetski.c:88:5: error: use of undeclared identifier 'acc_s_reify_2_conv_5'
+    acc_s_reify_2_conv_5                 = s->acc_s_reify_2_conv_5;
+    ^
+/var/folders/k1/8wwmm60s321c8d69my6zvwwh0000gn/T/jetski-69402/jetski.c:97:9: error: use of undeclared identifier 'acc_s_reify_2_conv_5'
+        acc_s_reify_2_conv_5             = acc_s_reify_2_conv_5;
+        ^
+/var/folders/k1/8wwmm60s321c8d69my6zvwwh0000gn/T/jetski-69402/jetski.c:97:44: error: use of undeclared identifier 'acc_s_reify_2_conv_5'
+        acc_s_reify_2_conv_5             = acc_s_reify_2_conv_5;
+                                           ^
+/var/folders/k1/8wwmm60s321c8d69my6zvwwh0000gn/T/jetski-69402/jetski.c:100:10: error: Failed during codegen (seaOfXPrim: PrimProject (PrimProjectSumIsLeft ErrorT..)
+        #error Failed during codegen (seaOfXPrim: PrimProject (PrimProjectSumIsLeft ErrorT..)
+         ^
+/var/folders/k1/8wwmm60s321c8d69my6zvwwh0000gn/T/jetski-69402/jetski.c:101:11: error: use of undeclared identifier 'acc_s_reify_2_conv_5'
+         (acc_s_reify_2_conv_5)) {
+          ^
+/var/folders/k1/8wwmm60s321c8d69my6zvwwh0000gn/T/jetski-69402/jetski.c:103:14: error: Failed during codegen (seaOfValType: ErrorT..)
+            #error Failed during codegen (seaOfValType: ErrorT..)
+             ^
+/var/folders/k1/8wwmm60s321c8d69my6zvwwh0000gn/T/jetski-69402/jetski.c:104:14: error: use of undeclared identifier 'flat_0'
+             flat_0                      = 
+             ^
+fatal error: too many errors emitted, stopping now [-ferror-limit=]
+1 warning and 20 errors generated.
+
 
 - Core evaluation:
 [homer, 100,marge, 0]
