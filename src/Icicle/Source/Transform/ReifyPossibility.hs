@@ -129,8 +129,8 @@ reifyPossibilityQ (Query (c:cs) final_x)
                        , foldWork = k' }
 
             rest' <- rest
-            let rsub = substInto (foldBind f) vBind (Nested (annotOfQuery rest') rest')
-            return $ Query [LetFold (wrapAnnot a) f'] rsub
+            let rsub = unsafeSubstQ (Map.singleton (foldBind f) vBind) rest'
+            return $ ins (LetFold (wrapAnnot a) f') rsub
 
      | otherwise
      -> do  z' <- wrapRightIfAnnot (annotOfExp $ foldWork f) <$> reifyPossibilityX (foldInit f)
@@ -256,7 +256,7 @@ wrapAnnot ann
 wrapAnnotReally :: Annot a n -> Annot a n
 wrapAnnotReally ann
  = let t = annResult ann
-   in  ann { annResult = canonT $ SumT ErrorT t }
+   in  ann { annResult = canonT $ Possibility PossibilityPossibly $ SumT ErrorT t }
 
 
 extractValueAnnot :: Annot a n -> Annot a n
