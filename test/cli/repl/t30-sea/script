@@ -1,5 +1,7 @@
 -- Show everything
-:set +flatten +c +c-eval
+:set +flatten +c
+-- Disable C evaluation for now
+-- +c-eval
 
 -- Oldest
 feature salary ~> oldest value

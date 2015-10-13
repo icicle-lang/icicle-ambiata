@@ -4,23 +4,8 @@ ok, loaded test/cli/repl/data.psv, 8 rows
 > -- Show everything
 > ok, flatten is now on
 ok, c is now on
-ok, c evaluation now on
-                   _________-----_____
-        _____------           __      ----_
- ___----             ___------              \
-    ----________        ----                 \
-                -----__    |             _____)
-                     __-                /     \
-         _______-----    ___--          \    /)\
-   ------_______      ---____            \__/  /
-                -----__    \ --    _          /\
-                       --__--__     \_____/   \_/\
-                               ----|   /          |
-                                   |  |___________|
-                                   |  | ((_(_)| )_)
-                                   |  \_((_(_)|/(_)
-                                   \             (
-                                    \_____________)
+> -- Disable C evaluation for now
+> -- +c-eval
 > > -- Oldest
 > - Flattened:
 gen$date = DATE
@@ -188,71 +173,6 @@ void compute(icicle_state_t *s)
     s->repl                              = s_reify_2_conv_5;
 }
 
-- C error:
-/var/folders/k1/8wwmm60s321c8d69my6zvwwh0000gn/T/jetski-69402/jetski.c:23:6: error: Failed during codegen (seaOfValType: SumT ErrorT IntT..)
-    #error Failed during codegen (seaOfValType: SumT ErrorT IntT..)
-     ^
-/var/folders/k1/8wwmm60s321c8d69my6zvwwh0000gn/T/jetski-69402/jetski.c:24:6: error: type name requires a specifier or qualifier
-     repl;
-     ^
-/var/folders/k1/8wwmm60s321c8d69my6zvwwh0000gn/T/jetski-69402/jetski.c:28:6: error: Failed during codegen (seaOfValType: SumT ErrorT IntT..)
-    #error Failed during codegen (seaOfValType: SumT ErrorT IntT..)
-     ^
-/var/folders/k1/8wwmm60s321c8d69my6zvwwh0000gn/T/jetski-69402/jetski.c:29:6: error: type name requires a specifier or qualifier
-     acc_s_reify_2_conv_5;
-     ^
-/var/folders/k1/8wwmm60s321c8d69my6zvwwh0000gn/T/jetski-69402/jetski.c:71:13: warning: division by zero is undefined [-Wdivision-by-zero]
-    return 0/0;
-            ^~
-/var/folders/k1/8wwmm60s321c8d69my6zvwwh0000gn/T/jetski-69402/jetski.c:77:6: error: Failed during codegen (seaOfValType: SumT ErrorT IntT..)
-    #error Failed during codegen (seaOfValType: SumT ErrorT IntT..)
-     ^
-/var/folders/k1/8wwmm60s321c8d69my6zvwwh0000gn/T/jetski-69402/jetski.c:78:6: error: use of undeclared identifier 'acc_s_reify_2_conv_5'
-     acc_s_reify_2_conv_5;
-     ^
-/var/folders/k1/8wwmm60s321c8d69my6zvwwh0000gn/T/jetski-69402/jetski.c:80:6: error: Failed during codegen (seaOfValType: SumT ErrorT IntT..)
-    #error Failed during codegen (seaOfValType: SumT ErrorT IntT..)
-     ^
-/var/folders/k1/8wwmm60s321c8d69my6zvwwh0000gn/T/jetski-69402/jetski.c:81:6: error: use of undeclared identifier 's_reify_2_conv_5'
-     s_reify_2_conv_5;
-     ^
-/var/folders/k1/8wwmm60s321c8d69my6zvwwh0000gn/T/jetski-69402/jetski.c:83:5: error: use of undeclared identifier 'acc_s_reify_2_conv_5'
-    acc_s_reify_2_conv_5                 = 
-    ^
-/var/folders/k1/8wwmm60s321c8d69my6zvwwh0000gn/T/jetski-69402/jetski.c:84:6: error: Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstLeft Er..)
-    #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstLeft Er..)
-     ^
-/var/folders/k1/8wwmm60s321c8d69my6zvwwh0000gn/T/jetski-69402/jetski.c:86:6: error: Failed during codegen (seaOfXValue: VError ExceptFold1NoValue..)
-    #error Failed during codegen (seaOfXValue: VError ExceptFold1NoValue..)
-     ^
-/var/folders/k1/8wwmm60s321c8d69my6zvwwh0000gn/T/jetski-69402/jetski.c:87:5: error: expected expression
-    );
-    ^
-/var/folders/k1/8wwmm60s321c8d69my6zvwwh0000gn/T/jetski-69402/jetski.c:88:5: error: use of undeclared identifier 'acc_s_reify_2_conv_5'
-    acc_s_reify_2_conv_5                 = s->acc_s_reify_2_conv_5;
-    ^
-/var/folders/k1/8wwmm60s321c8d69my6zvwwh0000gn/T/jetski-69402/jetski.c:97:9: error: use of undeclared identifier 'acc_s_reify_2_conv_5'
-        acc_s_reify_2_conv_5             = acc_s_reify_2_conv_5;
-        ^
-/var/folders/k1/8wwmm60s321c8d69my6zvwwh0000gn/T/jetski-69402/jetski.c:97:44: error: use of undeclared identifier 'acc_s_reify_2_conv_5'
-        acc_s_reify_2_conv_5             = acc_s_reify_2_conv_5;
-                                           ^
-/var/folders/k1/8wwmm60s321c8d69my6zvwwh0000gn/T/jetski-69402/jetski.c:100:10: error: Failed during codegen (seaOfXPrim: PrimProject (PrimProjectSumIsLeft ErrorT..)
-        #error Failed during codegen (seaOfXPrim: PrimProject (PrimProjectSumIsLeft ErrorT..)
-         ^
-/var/folders/k1/8wwmm60s321c8d69my6zvwwh0000gn/T/jetski-69402/jetski.c:101:11: error: use of undeclared identifier 'acc_s_reify_2_conv_5'
-         (acc_s_reify_2_conv_5)) {
-          ^
-/var/folders/k1/8wwmm60s321c8d69my6zvwwh0000gn/T/jetski-69402/jetski.c:103:14: error: Failed during codegen (seaOfValType: ErrorT..)
-            #error Failed during codegen (seaOfValType: ErrorT..)
-             ^
-/var/folders/k1/8wwmm60s321c8d69my6zvwwh0000gn/T/jetski-69402/jetski.c:104:14: error: use of undeclared identifier 'flat_0'
-             flat_0                      = 
-             ^
-fatal error: too many errors emitted, stopping now [-ferror-limit=]
-1 warning and 20 errors generated.
-
-
 - Core evaluation:
 [homer, 100,marge, 0]
 
@@ -373,9 +293,6 @@ void compute(icicle_state_t *s)
     c_conv_5                             = acc_c_conv_5;
     s->repl                              = c_conv_5;
 }
-
-- C evaluation:
-[(homer,2),(marge,0)]
 
 - Core evaluation:
 [homer, 2,marge, 0]
@@ -691,10 +608,6 @@ void compute(icicle_state_t *s)
     idouble_t  conv_60                   = idouble_mul (conv_29, conv_59);
     s->repl                              = conv_60;
 }
-
-- C evaluation:
-[(homer,11180.33988749895)
-,(marge,100.0)]
 
 - Core evaluation:
 [homer, 11180.33988749895
