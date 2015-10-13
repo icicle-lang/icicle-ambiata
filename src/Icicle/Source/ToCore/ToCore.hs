@@ -99,7 +99,8 @@ convertQuery
         => Query (Annot a n) n
         -> ConvertM a n (CoreBinds () n, Name n)
 convertQuery q
- = case contexts q of
+ = convertContext
+ $ case contexts q of
     -- There are no queries left, so deal with simple aggregates and nested queries.
     []
      -> convertReduce (final q)
@@ -641,10 +642,7 @@ convertReduce xx
 
 
  | Case (Annot { annAnnot = ann, annResult = retty }) scrut patalts <- xx
- = do   let (pats,alts) = unzip patalts
-
-        scrut' <- convertReduce scrut
-        pats'  <- convertCaseFreshenPats pats
+ = do   scrut' <- convertReduce scrut
 
         -- Because the alternatives can contain more folds and stuff, we need to
         -- use convertReduce on them.
@@ -655,8 +653,11 @@ convertReduce xx
         --
         -- All the foldy bits of each alternative must be computed, because
         -- we won't know which ones will be needed until after they are run.
-        alts'  <- fmap (pullPosts ())
-              <$> mapM convertReduce alts
+        let goPatAlt (p,alt)
+                  = (,) <$> convertCaseFreshenPat p <*> convertReduce alt
+        patalts' <- mapM goPatAlt patalts
+        let pats' = fmap                 fst  patalts'
+            alts' = fmap (pullPosts () . snd) patalts'
 
         let bs' = fst scrut' <> mconcat (fmap fst alts')
 

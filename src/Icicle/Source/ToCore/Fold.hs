@@ -176,10 +176,13 @@ convertFold q
       -> do -- Case expressions are very similar to primops.
             -- We know that the scrutinee and the patterns are all aggregates.
             -- Elements are handled elsewhere.
-            let args = scrut : fmap snd pats
-            pats'  <- convertCaseFreshenPats (fmap fst pats)
+            let args = (PatDefault, scrut) : pats
+            let goPat (p,alt)
+                    = (,) <$> convertCaseFreshenPat p <*> convertFold (Query [] alt)
+            args'  <- mapM goPat args
+            let pats'= drop 1 $ fmap fst args'
+            let res = fmap snd args'
 
-            res    <- mapM (convertFold . Query []) args
             retty' <- convertValType' retty
             scrutT <- convertValType' $ annResult $ annotOfExp scrut
 
@@ -268,8 +271,10 @@ convertFold q
 
             z   <- convertExp (foldInit f)
             -- Current accumulator is only available in worker
-            n'a <- convertFreshenAdd $ foldBind f
-            k   <- convertExp (foldWork f)
+            (n'a,k) <- convertContext
+                     $ do n'a <- convertFreshenAdd $ foldBind f
+                          k   <- convertExp (foldWork f)
+                          return (n'a, k)
 
             let k' = CE.xLam n'a tU k
 
@@ -332,7 +337,8 @@ convertFold q
 
 
   convertAsLet b resb
-   =    do  b'     <- convertFreshenAdd b
+   = convertContext
+   $    do  b'     <- convertFreshenAdd b
             resq   <- convertFold q'
             let tb' = typeFold resb
             let tq' = typeFold resq

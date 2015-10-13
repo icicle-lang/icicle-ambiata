@@ -19,6 +19,7 @@ module Icicle.Source.ToCore.Base (
   , convertFreshenLookup
   , convertFreshenLookupMaybe
   , convertValType
+  , convertContext
 
   , pre, strm, red, post
   , programOfBinds
@@ -191,6 +192,15 @@ convertWithInput n t c
  = do   o <- get
         put (o { csInputName = n, csInputType = t })
         r <- c
+        put o
+        return r
+
+convertContext
+        :: ConvertM a n r
+        -> ConvertM a n r
+convertContext with
+ = do   o <- get
+        r <- with
         put o
         return r
 

@@ -11,7 +11,6 @@ module Icicle.Source.ToCore.Exp (
   , convertExpQ
   , convertCase
   , convertCaseFreshenPat
-  , convertCaseFreshenPats
   ) where
 
 import                  Icicle.Source.Query
@@ -76,13 +75,18 @@ convertExp x
     -- Only deal with flattened, single layer cases.
     -- We need a pass beforehand to simplify them.
     Case ann scrut pats
-     -> do  ps     <- convertCaseFreshenPats (fmap fst pats)
-            pats'  <- mapM (\(p,alt) -> (,) p <$> convertExp alt) (zip ps (fmap snd pats))
-            scrut' <- convertExp scrut
+     -> do  scrut' <- convertExp scrut
+            pats'  <- mapM goPat pats
             scrutT <- convertValType (annAnnot ann) $ annResult $ annotOfExp scrut
             resT   <- convertValType (annAnnot ann) $ annResult ann
             convertCase x scrut' pats' scrutT resT
 
+ where
+  goPat (p,alt)
+   = convertContext
+   $ do p'   <- convertCaseFreshenPat p
+        alt' <- convertExp alt
+        return (p', alt')
 
 
 convertExpQ
@@ -90,7 +94,9 @@ convertExpQ
         => Query (Annot a n) n
         -> ConvertM a n (C.Exp () n)
 convertExpQ q
- = case contexts q of
+ -- Remove any new bindings from context afterwards
+ = convertContext
+ $ case contexts q of
     []
      -> convertExp $ final q
     (Let _ b d:cs)
@@ -104,29 +110,13 @@ convertExpQ q
       $ ConvertErrorExpNestedQueryNotAllowedHere (annAnnot $ annotOfQuery q) q
 
 
--- TODO XXX this is not quite correct, where this is being called.
--- We should actually intersperse the calls to convertCaseFreshenPat with converting the nested thing.
--- eg
--- > case xxx
--- > | Left  i -> ... i ...
--- > | Right i -> ... i ...
--- > end
--- here, the first pattern will be freshened to i$1, then the second to i$2,
--- but after both patterns are freshened we have the "i => i$2" binding in context and so
--- the first alternative becomes
--- > | Left i$1 -> ... i$2 ...
--- what a mess!
-convertCaseFreshenPats :: Ord n => [Pattern n] -> ConvertM a n [Pattern n]
-convertCaseFreshenPats = mapM convertCaseFreshenPat
-
-
 -- | Enfreshinate the variables in a case pattern and add them to the convert environment.
 --
 convertCaseFreshenPat :: Ord n => Pattern n -> ConvertM a n (Pattern n)
 convertCaseFreshenPat p
  = case p of
     PatCon c ps
-      -> PatCon c <$> convertCaseFreshenPats ps
+      -> PatCon c <$> mapM convertCaseFreshenPat ps
     PatDefault
       -> return PatDefault
     PatVariable n
@@ -193,7 +183,7 @@ convertCase x scrut pats scrutT resT
   mkVars PatDefault
    = lift fresh
   mkVars (PatVariable n)
-   = return n -- convertFreshenAdd n
+   = return n
   mkVars (PatCon _ _)
    = convertError $ ConvertErrorBadCaseNestedConstructors (annAnnot $ annotOfExp x) x
 

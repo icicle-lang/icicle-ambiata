@@ -160,7 +160,8 @@ reifyPossibilityQ (Query (c:cs) final_x)
                 vValue = Var grpa nValue
 
             rest'    <- rest
-            let a'R   = wrapAnnot $ annotOfQuery rest'
+            -- The inner return must be an aggregate
+            let a'R   = aggAnnot $ wrapAnnot $ annotOfQuery rest'
                 ins'  = ins (GroupFold a'R k v vValue) rest'
 
 
@@ -232,6 +233,11 @@ con0 a c   =        Prim a (PrimCon c)
 
 con1 :: Annot a n -> Constructor -> Exp (Annot a n) n -> Exp (Annot a n) n
 con1 a c x = App a (Prim a (PrimCon c)) x
+
+aggAnnot :: Annot a n -> Annot a n
+aggAnnot ann
+ = let t = annResult ann
+   in  ann { annResult = canonT $ Temporality TemporalityAggregate t }
 
 wrapAnnot :: Annot a n -> Annot a n
 wrapAnnot ann
