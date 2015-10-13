@@ -92,15 +92,19 @@ reifyPossibilityQ (Query (c:cs) final_x)
      | FoldTypeFoldl1 <- foldType f
      -> do  nError <- fresh
             nValue <- fresh
+            -- We need to give the fold a new name, because moving the "z" into the "k" means
+            -- the binding is available under "z" now, which potentially shadows an existing binding.
+            nBind  <- freshPrefix'      $ foldBind f
+
             k      <- reifyPossibilityX $ foldWork f
             z      <- reifyPossibilityX $ foldInit f
-            let b  = foldBind f
-                a'B = typeAnnot a BoolT
+            let a'B = typeAnnot a BoolT
                 a'E = typeAnnot a ErrorT
                 a'D = wrapAnnotReally $ annotOfExp $ foldWork f
 
                 vError = Var a'E nError
                 vValue = Var (annotOfExp $ foldWork f) nValue
+                vBind  = Var a'D nBind
 
                 z' = con1 a'D ConLeft $ con0 a'E $ ConError ExceptFold1NoValue
 
@@ -108,7 +112,7 @@ reifyPossibilityQ (Query (c:cs) final_x)
                               (App a'B (Prim a'B $ Op $ Relation Eq) (con0 a'E $ ConError ExceptFold1NoValue))
                               vError
 
-                k' = Case a'D (Var a'D b)
+                k' = Case a'D vBind
                    [ ( PatCon ConLeft  [ PatVariable nError ]
                      , Case a'D eqError
                           [ ( PatCon ConTrue []
@@ -117,14 +121,18 @@ reifyPossibilityQ (Query (c:cs) final_x)
                             , con1 a'D ConLeft $ vError ) ] )
                    , ( PatCon ConRight [ PatVariable nValue ]
                      , wrapRight
-                     $ substIntoIfDefinitely b vValue
+                     $ substIntoIfDefinitely nBind vValue
+                     $ substInto (foldBind f) vBind
                      $ k ) ]
 
                 f' = f { foldType = FoldTypeFoldl
+                       , foldBind = nBind
                        , foldInit = z'
                        , foldWork = k' }
 
-            add $ LetFold (wrapAnnot a) f'
+            rest' <- rest
+            let rsub = substInto (foldBind f) vBind (Nested (annotOfQuery rest') rest')
+            return $ Query [LetFold (wrapAnnot a) f'] rsub
 
      | otherwise
      -> do  z' <- wrapRightIfAnnot (annotOfExp $ foldWork f) <$> reifyPossibilityX (foldInit f)
