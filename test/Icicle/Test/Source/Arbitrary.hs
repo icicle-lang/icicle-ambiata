@@ -188,7 +188,7 @@ data QueryWithFeature
 qwfFeatureMap :: QueryWithFeature -> Features () T.Variable
 qwfFeatureMap qwf
  = Features
-    (Map.singleton (qwfFeatureN qwf) (typeOfValType (qwfFeatureT qwf), Map.singleton (qwfFeatureN qwf) (typeOfValType (qwfFeatureT qwf), xfst (qwfFeatureT qwf))))
+    (Map.singleton (qwfFeatureN qwf) (typeOfValType (qwfFeatureT qwf), Map.singleton (qwfFeatureN qwf) (FeatureVariable (typeOfValType (qwfFeatureT qwf)) (xfst (qwfFeatureT qwf)) False)))
      Map.empty
      (qwfNow qwf)
 

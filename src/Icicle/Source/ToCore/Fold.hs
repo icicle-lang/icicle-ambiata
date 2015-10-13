@@ -11,6 +11,7 @@ module Icicle.Source.ToCore.Fold (
 
 import                  Icicle.Source.Query
 import                  Icicle.Source.ToCore.Base
+import                  Icicle.Source.ToCore.Context
 import                  Icicle.Source.ToCore.Exp
 import                  Icicle.Source.ToCore.Prim
 import                  Icicle.Source.Type
@@ -148,7 +149,7 @@ convertFold q
 
              -- Otherwise it must be a feature
              _
-              | Just (_, var') <- Map.lookup v fs
+              | Just fv <- Map.lookup v fs
               -> do -- Creating a fold from a scalar variable is strange, since
                     -- the scalar variable is only available inside each iteration.
                     -- For the konstrukt, we just return the current value.
@@ -165,7 +166,7 @@ convertFold q
                     i <- idFun retty'
                     n'v <- lift fresh
                     inp <- convertInputName
-                    let k = CE.xLam n'v retty' $ var' $ CE.xVar inp
+                    let k = CE.xLam n'v retty' $ featureVariableExp fv $ CE.xVar inp
                     let err = CE.xValue retty' $ T.defaultOfType retty'
                     return $ ConvertFoldResult k err i retty' retty'
 

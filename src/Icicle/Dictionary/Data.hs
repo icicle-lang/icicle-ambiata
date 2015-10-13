@@ -109,7 +109,7 @@ featureMapOfDictionary (Dictionary { dictionaryEntries = ds, dictionaryFunctions
         $ exps "fields" e'
         <> (fmap (\(k,t)
         -> ( var $ nameOfStructField k
-           , (baseType t, X.XApp () (xget k t st) . X.XApp () (xfst e' DateTimeT)))
+           , STC.FeatureVariable (baseType t) (X.XApp () (xget k t st) . X.XApp () (xfst e' DateTimeT)) False)
         )
         $ Map.toList fs)))]
 
@@ -134,13 +134,15 @@ featureMapOfDictionary (Dictionary { dictionaryEntries = ds, dictionaryFunctions
                (X.XValue () t1 (VError ExceptTombstone))
 
   exps str e'
-   = [ (var str, ( baseType e', X.XApp () (xfst e' DateTimeT)))
+   = [ (var str, STC.FeatureVariable (baseType e') (X.XApp () (xfst e' DateTimeT)) False)
      , date_as_snd e'
      , true_when_tombstone e' ]
   date_as_snd e'
-   = (var "date" , ( baseType DateTimeT, X.XApp () (xsnd e' DateTimeT)))
+   = ( var "date"
+     , STC.FeatureVariable (baseType DateTimeT) (X.XApp () (xsnd e' DateTimeT)) False)
   true_when_tombstone e'
-   = (var "tombstone" , ( baseType BoolT, X.XApp () (xtomb e') . X.XApp () (xfst e' DateTimeT)))
+   = (var "tombstone"
+     , STC.FeatureVariable (baseType BoolT) (X.XApp () (xtomb e') . X.XApp () (xfst e' DateTimeT)) False)
 
   var = Name . Variable
 

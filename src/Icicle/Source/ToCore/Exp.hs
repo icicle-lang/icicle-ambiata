@@ -15,6 +15,7 @@ module Icicle.Source.ToCore.Exp (
 
 import                  Icicle.Source.Query
 import                  Icicle.Source.ToCore.Base
+import                  Icicle.Source.ToCore.Context
 import                  Icicle.Source.ToCore.Prim
 import                  Icicle.Source.Type
 
@@ -46,8 +47,8 @@ convertExp x
     Var ann n
      -> do  fs <- convertFeatures
             case Map.lookup n fs of
-             Just (_, x')
-              -> (x' . CE.XVar ()) <$> convertInputName
+             Just fv
+              -> (featureVariableExp fv . CE.XVar ()) <$> convertInputName
              -- Variable must be bound as a precomputation
              Nothing
               -> CE.XVar () <$> convertFreshenLookup (annAnnot ann) n
