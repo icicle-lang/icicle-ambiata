@@ -5,9 +5,21 @@ ok, loaded test/cli/repl/data.psv, 13 rows
 > - Core evaluation:
 [homer, 1500,marge, 30]
 
+> > -- Count example
+> - Core evaluation:
+[homer, 5,marge, 3]
+
 > > -- Mean example
 > - Core evaluation:
 [homer, 300.0,marge, 10.0]
+
+> > -- minby / min example
+> - Core evaluation:
+[homer, ("head",1)]
+
+> > -- maxby / max example
+> - Core evaluation:
+[homer, ("arm",4)]
 
 > > -- Standard deviation example
 > - Core evaluation:
@@ -23,14 +35,6 @@ ok, loaded test/cli/repl/data.psv, 13 rows
 > - Core evaluation:
 [homer, 0.927982944131114
 ,marge, NaN]
-
-> > -- minby / min example
-> - Core evaluation:
-[homer, ("head",1)]
-
-> > -- maxby / max example
-> - Core evaluation:
-[homer, ("arm",4)]
 
 > > -- Newest example
 > - Core evaluation:
