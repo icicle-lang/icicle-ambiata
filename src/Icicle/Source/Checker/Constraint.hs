@@ -505,8 +505,9 @@ generateX x env
 
            -- Destruct the scrutinee type into the base type
            -- and the temporality (defaulting to Pure).
-           let scrutT  =  annResult $ annotOfExp scrut'
-           let scrutTm = getTemporalityOrPure scrutT
+           let scrutT  = annResult $ annotOfExp     scrut'
+           let scrutTm = getTemporalityOrPure       scrutT
+           let scrutPs = getPossibilityOrDefinitely scrutT
 
            -- Require the scrutinee and the alternatives to have compatible temporalities.
            returnType  <- TypeVar <$> fresh
@@ -514,12 +515,18 @@ generateX x env
            returnTemp' <- TypeVar <$> fresh
            let consTj  =  require a (CTemporalityJoin returnTemp' scrutTm returnTemp)
 
-           (patsubs, consA) <- generateP a scrutT returnType returnTemp pats env
+           returnPoss  <- TypeVar <$> fresh
+           returnPoss' <- TypeVar <$> fresh
+           let consPs  =  require a (CPossibilityJoin returnPoss' scrutPs returnPoss)
+
+           (patsubs, consA) <- generateP a scrutT returnType returnTemp returnPoss pats env
            let (pats', subs) = unzip patsubs
 
-           let t'    = Temporality returnTemp' returnType
+           let t'    = canonT
+                     $ Temporality returnTemp'
+                     $ Possibility returnPoss' returnType
            let subst = Map.unions (sub : subs)
-           let cons' = concat [consS, consTj, consA]
+           let cons' = concat [consS, consTj, consPs, consA]
 
            let x' = annotate cons' t'
                   $ \a' -> Case a' scrut' pats'
@@ -537,15 +544,17 @@ generateP
   -> Type n                 -- ^ scrutinee type
   -> Type n                 -- ^ result base type
   -> Type n                 -- ^ result temporality
+  -> Type n                 -- ^ result possibility
   -> [(Pattern n, Exp a n)] -- ^ pattern and alternative
   -> GenEnv n
   -> Gen a n ([((Pattern n, Exp'C a n), SubstT n)], GenConstraintSet a n)
 
-generateP ann _ _ resTm [] _
- = do   let cons' = require ann (CEquals resTm TemporalityPure)
-        return ([], cons')
+generateP ann _ _ resTm resPs [] _
+ = do   let consT = require ann (CEquals resTm TemporalityPure)
+        let consP = require ann (CEquals resPs PossibilityDefinitely)
+        return ([], concat [consT, consP])
 
-generateP ann scrutTy resTy resTm ((pat, alt):rest) env
+generateP ann scrutTy resTy resTm resPs ((pat, alt):rest) env
  = do   (t, envp) <- goPat pat env
 
         let (_,_,datS) = decomposeT $ canonT scrutTy
@@ -554,8 +563,10 @@ generateP ann scrutTy resTy resTm ((pat, alt):rest) env
         (alt', sub, consa) <- generateX alt envp
 
         let altTy' = annResult (annotOfExp alt')
-        let altTp  = getTemporalityOrPure altTy'
+        let altTp  = getTemporalityOrPure       altTy'
+        let altPs  = getPossibilityOrDefinitely altTy'
         resTp'     <- TypeVar <$> fresh
+        resPs'     <- TypeVar <$> fresh
 
         -- Require alternative types to have the same temporality if they
         -- do have temporalities. Otherwise defaults to TemporalityPure.
@@ -564,9 +575,10 @@ generateP ann scrutTy resTy resTm ((pat, alt):rest) env
                   [ requireData resTy altTy'
         -- Require return temporality to be compatible with alternative temporalities.
                   , require (annotOfExp alt) (CTemporalityJoin resTm resTp' altTp)
+                  , require (annotOfExp alt) (CPossibilityJoin resPs resPs' altPs)
                   ]
 
-        (rest', consr) <- generateP ann scrutTy resTy resTp' rest env
+        (rest', consr) <- generateP ann scrutTy resTy resTp' resPs' rest env
         let cons' = concat [conss, consa, consT, consr]
         let patsubs     = ((pat, alt'), sub) : rest'
 
@@ -582,9 +594,11 @@ generateP ann scrutTy resTy resTm ((pat, alt):rest) env
    = (,e) . TypeVar <$> fresh
 
   goPat (PatVariable n) e
-   = do let (tmpS,posS,_)  = decomposeT $ canonT scrutTy
+   = do let (tmpS,_,_)  = decomposeT $ canonT scrutTy
         datV              <- TypeVar <$> fresh
-        let env'           = bind n (recomposeT (tmpS, posS, datV)) e
+        -- The bound variable is actually Definite, because the case will only succeed
+        -- if the scrutinee is an actual value.
+        let env'           = bind n (recomposeT (tmpS, Nothing, datV)) e
         return (datV, env')
 
   goPat (PatCon ConSome  [p]) e
