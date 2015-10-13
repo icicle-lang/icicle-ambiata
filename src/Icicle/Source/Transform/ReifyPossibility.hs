@@ -8,7 +8,6 @@ module Icicle.Source.Transform.ReifyPossibility (
 
 import Icicle.Source.Query
 import Icicle.Source.Type
-import Icicle.Source.Transform.Base
 import Icicle.Source.Transform.SubstX
 
 import Icicle.Common.Base
@@ -16,7 +15,6 @@ import Icicle.Common.Fresh
 
 import P
 
-import Data.Functor.Identity
 import qualified Data.Map as Map
 
 reifyPossibilityQT
@@ -100,7 +98,7 @@ reifyPossibilityQ (Query (c:cs) final_x)
             z      <- reifyPossibilityX $ foldInit f
             let a'B = typeAnnot a BoolT
                 a'E = typeAnnot a ErrorT
-                a'D = wrapAnnotReally $ annotOfExp $ foldWork f
+                a'D = aggAnnot $ wrapAnnotReally $ annotOfExp $ foldWork f
 
                 vError = Var a'E nError
                 vValue = Var (annotOfExp $ foldWork f) nValue
@@ -322,10 +320,7 @@ substInto
         -> Exp (Annot a n) n
         -> Exp (Annot a n) n
 substInto var payload into
- = runIdentity
- $ transformX
    -- This unsafe subst transform is safe as long as the payload only mentions fresh variable names
-   unsafeSubstTransform
- { transformState = Map.singleton var payload }
+ = unsafeSubstX (Map.singleton var payload)
    into
 
