@@ -1,5 +1,5 @@
 # Numflips where changes in state to unknown (tombstoned) count as a change. Pass the value and tombstone to numflips'
-numflips' v t
+test_numflips v t
  = let fold1 s
    = case t | True -> (None,0) | False -> (Some(v),0) end
    : case t | True  -> (case s | (Some(s0),i) -> (None,i+1)

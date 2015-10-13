@@ -86,8 +86,9 @@ annotOfError e
 instance Pretty CompileError where
  pretty e
   = case e of
-     CompileErrorParse parsecErr
-      -> text $ show parsecErr
+     CompileErrorParse p
+      -> "Parse error:" <> line
+      <> indent 2 (text $ show p)
      CompileErrorDesugar d
       -> "Desugar error:" <> line
       <> indent 2 (text $ show d)

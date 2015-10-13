@@ -1,4 +1,3 @@
-welcome to iREPL
 ok, loaded 21 functions from data/libs/prelude.icicle
 ok, loaded test/cli/repl/data.psv, 13 rows
 > ok, date set to 2010-01-01

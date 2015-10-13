@@ -9,6 +9,7 @@ module Icicle.Source.Transform.Desugar
   ( DesugarError(..)
   , runDesugar
   , desugarQT
+  , desugarQ
   , desugarFun
   ) where
 

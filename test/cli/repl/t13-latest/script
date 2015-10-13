@@ -1,0 +1,8 @@
+-- latest over a group
+feature salary ~> group date ~> latest 2 ~> value
+
+-- latest aggregate over a group
+feature salary ~> group date ~> latest 2 ~> sum value
+
+-- multiple latest
+feature salary ~> group date ~> (latest 1, latest 2) ~> value

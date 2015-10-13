@@ -43,6 +43,7 @@ data DictionaryImportError
   | DictionaryErrorParsecFunc P.CompileError
   | DictionaryErrorParse      [DictionaryValidationError]
   | DictionaryErrorCheck      P.CompileError
+  | DictionaryErrorTransform  P.CompileError
   deriving (Show)
 
 -- Top level IO function which loads all dictionaries and imports
@@ -130,7 +131,8 @@ checkDefs d defs
   go (a, q)
    = do  (checked, _)  <- check' d q
          let inlined    = P.sourceInline d checked
-         (checked', _) <- check' d inlined
+         blanded       <- hoistEither . mapLeft DictionaryErrorTransform $ P.sourceDesugarQT inlined
+         (checked', _) <- check' d blanded
          pure $ DictionaryEntry a (VirtualDefinition (Virtual checked'))
   check' d'
    = hoistEither . mapLeft DictionaryErrorCheck . P.sourceCheckQT d'
@@ -142,10 +144,11 @@ instance Pretty DictionaryImportError where
   pretty (DictionaryErrorParsecTOML e)
    = "TOML parse error:" <+> (text . show) e
   pretty (DictionaryErrorParsecFunc e)
-   = "Function parse error:" <+> (text . show) e
+   = "Function error:" <+> pretty e
   pretty (DictionaryErrorParse es)
    = pretty es
   pretty (DictionaryErrorCheck e)
    = pretty e
-
+  pretty (DictionaryErrorTransform e)
+   = pretty e
 

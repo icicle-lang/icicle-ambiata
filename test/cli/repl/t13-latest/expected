@@ -1,0 +1,41 @@
+welcome to iREPL
+ok, loaded 20 functions from data/libs/prelude.icicle
+ok, loaded data/example/demographics.psv, 23 rows
+ok, loaded dictionary with 7 features and 20 functions
+ok, type is now on
+ok, core is now on
+ok, core-type is now on
+ok, avalanche is now on
+ok, flatten is now on
+ok, core evaluation is now on
+ok, loaded 20 functions from data/libs/prelude.icicle
+ok, loaded test/cli/repl/data.psv, 13 rows
+> -- latest over a group
+>                                          [34mλλλλ[0m
+REPL Error:
+Check error:
+  Context is not allowed at 1:40
+  Context: latest 2
+  Extra information:
+    Groups, distincts, latests and windows cannot be nested
+    Latest inside a group or distinct is not currently supported. Latest inside a latest is silly, and also not supported
+
+> > -- latest aggregate over a group
+>                                          [34mλλλλ[0m
+REPL Error:
+Check error:
+  Context is not allowed at 1:40
+  Context: latest 2
+  Extra information:
+    Groups, distincts, latests and windows cannot be nested
+    Latest inside a group or distinct is not currently supported. Latest inside a latest is silly, and also not supported
+
+> > -- multiple latest
+>                                           [34mλλλλ[0m
+REPL Error:
+Parse error:
+  (line 1, column 41):
+unexpected (TOperator (Operator ","),(line 1, column 42))
+expecting flows into (~>)
+
+> 
