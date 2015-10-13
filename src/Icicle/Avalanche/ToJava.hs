@@ -257,6 +257,8 @@ primTypeOfPrim p
    = Function "Either.right"
   min' (M.PrimDateTime M.PrimDateTimeDaysDifference)
    = Function "icicle.daysDifference"
+  min' (M.PrimDateTime M.PrimDateTimeDaysEpoch)
+   = Function "icicle.daysEpoch"
   min' (M.PrimDateTime M.PrimDateTimeMinusDays)
    = Function "icicle.minusDays"
   min' (M.PrimDateTime M.PrimDateTimeMinusMonths)

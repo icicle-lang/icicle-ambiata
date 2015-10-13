@@ -87,7 +87,13 @@ instance Arbitrary n => Arbitrary (Exp () n) where
         , Op    (Relation Gt)
         , Op    (Relation Eq)
         , Op    (LogicalBinary And)
-        , Op    (LogicalBinary Or)]
+        , Op    (LogicalBinary Or)
+        , Op    (DateBinary DaysBefore)
+        , Op    (DateBinary DaysAfter)
+        , Op    (DateBinary MonthsBefore)
+        , Op    (DateBinary MonthsAfter)
+        , Fun   (DaysBetween)
+        , Fun   (DaysEpoch) ]
 
    operator_pre
     = oneof_vals
@@ -99,8 +105,7 @@ instance Arbitrary Prim where
   = oneof_vals
         [ Lit $ LitInt 0
         , Lit $ LitInt 1
-        , Lit $ LitInt 2
-        ]
+        , Lit $ LitInt 2 ]
 
 instance Arbitrary Constructor where
  arbitrary

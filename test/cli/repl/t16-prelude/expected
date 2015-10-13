@@ -1,0 +1,52 @@
+welcome to iREPL
+ok, loaded 18 functions from data/libs/prelude.icicle
+ok, loaded test/cli/repl/data.psv, 13 rows
+> -- Sum example
+> - Core evaluation:
+[homer, 1500,marge, 30]
+
+> > -- Mean example
+> - Core evaluation:
+[homer, 300.0,marge, 10.0]
+
+> > -- Standard deviation example
+> - Core evaluation:
+[homer, 158.11388300841898
+,marge, 10.0]
+
+> > -- Gradient example
+> - Core evaluation:
+[homer, 17.533363405944193
+,marge, NaN]
+
+> > -- Pearsons correlation example
+> - Core evaluation:
+[homer, 0.927982944131114
+,marge, NaN]
+
+> > -- minby / min example
+> - Core evaluation:
+[homer, ("head",1)]
+
+> > -- maxby / max example
+> - Core evaluation:
+[homer, ("arm",4)]
+
+> > -- Newest example
+> - Core evaluation:
+[homer, [(location,"torso")
+        ,(severity,1)]]
+
+> > -- Oldest example
+> - Core evaluation:
+[homer, [(location,"head")
+        ,(severity,2)]]
+
+> > -- Numflips example
+> - Core evaluation:
+[homer, 2]
+
+> - Core evaluation:
+[homer, 2]
+
+> 

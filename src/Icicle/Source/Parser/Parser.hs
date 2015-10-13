@@ -1,4 +1,5 @@
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards #-}
 module Icicle.Source.Parser.Parser (
     top
@@ -20,7 +21,7 @@ import                  Icicle.Common.Base         as B
 
 import                  P hiding (exp)
 
-import                  Text.Parsec (many1, parserFail, getPosition, eof, (<?>), sepEndBy)
+import                  Text.Parsec (many1, parserFail, getPosition, eof, (<?>), sepEndBy, try, notFollowedBy)
 
 top :: OutputName -> Parser (Q.QueryTop T.SourcePos Var)
 top name
@@ -140,7 +141,9 @@ exp1
   -- TODO: this should be a lookup rather than asum
   prims
    =  asum (fmap (\(k,q) -> pKeyword k *> return q) primitives)
-   <|> ((Q.Lit . Q.LitInt) <$> pLitInt)
+   <|> try ((Q.Fun Q.DaysBetween) <$  pKeyword T.Days <* pKeyword T.Between)
+   <|> try ((Q.Fun Q.DaysEpoch) <$  pKeyword T.Days <* notFollowedBy (pKeyword T.Before <|> pKeyword T.After))
+   <|> ((Q.Lit . Q.LitInt)    <$> pLitInt)
    <|> ((Q.Lit . Q.LitDouble) <$> pLitDouble)
    <|> ((Q.Lit . Q.LitString) <$> pLitString)
    <|> (Q.PrimCon             <$> constructor)

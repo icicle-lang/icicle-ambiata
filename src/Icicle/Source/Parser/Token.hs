@@ -1,4 +1,5 @@
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards #-}
 module Icicle.Source.Parser.Token (
     Parser
@@ -21,7 +22,7 @@ module Icicle.Source.Parser.Token (
 import qualified        Icicle.Source.Lexer.Token as T
 import                  Icicle.Common.Base
 
-import                  P
+import                  P hiding ((<|>))
 
 import                  Text.Parsec
 import                  Data.Text (Text)
@@ -53,7 +54,11 @@ pKeyword kw
 
 pOperator :: Parser T.Operator
 pOperator
- = pTok get <?> "operator"
+ = pTok get
+   <|> (pKeyword T.Days *> (T.Operator ("days before") <$ pKeyword T.Before <|> T.Operator ("days after") <$ pKeyword T.After))
+   <|> (pKeyword T.Weeks *> (T.Operator ("weeks before") <$ pKeyword T.Before <|> T.Operator ("weeks after") <$ pKeyword T.After))
+   <|> (pKeyword T.Months *> (T.Operator ("months before") <$ pKeyword T.Before <|> T.Operator ("months after") <$ pKeyword T.After))
+   <?> "operator"
  where
   get (T.TOperator op) = Just op
   get  _               = Nothing

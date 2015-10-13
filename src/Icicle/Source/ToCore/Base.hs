@@ -24,7 +24,6 @@ module Icicle.Source.ToCore.Base (
   , pre, strm, red, post
   , programOfBinds
   , pullPosts
-  , convertWindowUnits
   ) where
 
 import qualified        Icicle.Core             as C
@@ -32,7 +31,6 @@ import                  Icicle.Common.Fresh
 import                  Icicle.Common.Base
 import                  Icicle.Common.Type  hiding (Type)
 import qualified        Icicle.Common.Exp       as X
-import qualified        Icicle.Core.Exp.Combinators as CE
 
 import                  Icicle.Source.Query
 import                  Icicle.Source.Type
@@ -245,19 +243,6 @@ convertValType ann ty
 
 convertError :: ConvertError a n -> ConvertM a n r
 convertError = lift . lift . Left
-
-
-convertWindowUnits :: WindowUnit -> C.Exp () n
-convertWindowUnits wu
- = CE.constI
- $ case wu of
-    Days d -> d
-    -- TODO: month should be... better
-    Months m -> m * 30
-    Weeks w -> w * 7
-
-
-
 
 -- | These errors should only occur if
 --   - there is a bug in the conversion (there is)

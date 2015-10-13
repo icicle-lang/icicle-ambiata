@@ -1,0 +1,11 @@
+welcome to iREPL
+ok, loaded 18 functions from data/libs/prelude.icicle
+ok, loaded test/cli/repl/data.psv, 13 rows
+> ok, date set to 2010-01-01
+> > - Core evaluation:
+[homer, 3,marge, 7323]
+
+> > - Core evaluation:
+[homer, -92,marge, 7228]
+
+> 

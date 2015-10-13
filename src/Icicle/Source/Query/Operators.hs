@@ -8,6 +8,7 @@ module Icicle.Source.Query.Operators (
   , Relation      (..)
   , LogicalBinary (..)
   , LogicalUnary  (..)
+  , DateBinary    (..)
   , Fixity        (..)
   , Infixity      (..)
   , Assoc         (..)
@@ -33,6 +34,7 @@ data Op
  | Relation      Relation
  | LogicalUnary  LogicalUnary
  | LogicalBinary LogicalBinary
+ | DateBinary    DateBinary
 
  | TupleComma
  deriving (Show, Eq, Ord)
@@ -68,6 +70,15 @@ data LogicalUnary
 data LogicalBinary
  = And
  | Or
+ deriving (Show, Eq, Ord)
+
+data DateBinary
+ = DaysBefore
+ | DaysAfter
+ | WeeksBefore
+ | WeeksAfter
+ | MonthsBefore
+ | MonthsAfter
  deriving (Show, Eq, Ord)
 
 data Fixity
@@ -112,6 +123,9 @@ fixity o
     LogicalBinary Or
      -> FInfix $ Infix AssocLeft 2
 
+    DateBinary _
+     -> FInfix $ Infix AssocLeft 6
+
     TupleComma
         -> FInfix $ Infix AssocLeft 0
 
@@ -142,6 +156,13 @@ symbol s
     "!" -> pre $ LogicalUnary  Not
     "&&"-> inf $ LogicalBinary  And
     "||"-> inf $ LogicalBinary  Or
+
+    "days before" -> inf $ DateBinary DaysBefore
+    "days after" -> inf $ DateBinary DaysAfter
+    "weeks before" -> inf $ DateBinary WeeksBefore
+    "weeks after" -> inf $ DateBinary WeeksAfter
+    "months before" -> inf $ DateBinary MonthsBefore
+    "months after" -> inf $ DateBinary MonthsAfter
 
     "," -> inf TupleComma
 
@@ -185,6 +206,13 @@ instance Pretty Op where
  pretty (LogicalUnary Not)      = "!"
  pretty (LogicalBinary And)     = "&&"
  pretty (LogicalBinary Or)      = "||"
+
+ pretty (DateBinary DaysAfter)  = "days after"
+ pretty (DateBinary DaysBefore) = "days before"
+ pretty (DateBinary WeeksAfter)  = "weeks after"
+ pretty (DateBinary WeeksBefore) = "weeks before"
+ pretty (DateBinary MonthsAfter)  = "months after"
+ pretty (DateBinary MonthsBefore)  = "months before"
 
  pretty TupleComma              = ","
 

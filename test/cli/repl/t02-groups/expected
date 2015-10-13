@@ -1,6 +1,6 @@
 welcome to iREPL
-ok, loaded 10 functions from data/libs/prelude.icicle
-ok, loaded test/cli/repl/data.psv, 8 rows
+ok, loaded 18 functions from data/libs/prelude.icicle
+ok, loaded test/cli/repl/data.psv, 13 rows
 > -- Simplest group-by there is
 > - Core evaluation:
 [homer, [(100,1)
