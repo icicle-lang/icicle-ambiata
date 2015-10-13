@@ -56,7 +56,7 @@ reifyPossibilityX x
               scrut' <- reifyPossibilityX scrut
               let a'  = wrapAnnot a
                   a'E = typeAnnot a ErrorT
-                  a'D = definiteAnnot a
+                  a'D = definiteAnnot $ annotOfExp scrut
 
                   vError = Var a'E nError
                   vValue = Var a'D nValue
