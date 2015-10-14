@@ -295,6 +295,10 @@ handleLine state line = case readCommand line of
       prettyOut hasInlined "- Inlined:" inlined
       prettyOut hasDesugar "- Desugar:" blanded
 
+      (annobland, _) <- hoist $ SR.sourceCheck (dictionary state) blanded
+      prettyOut hasInlined "- Annotated desugar:" (SPretty.PrettyAnnot annobland)
+
+
       reified     <- hoist $ SR.sourceReify (dictionary state) blanded
       prettyOut hasInlined "- Reified:"                      reified
       prettyOut hasInlined "- Reified:" (SPretty.PrettyAnnot reified)

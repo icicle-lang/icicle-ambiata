@@ -150,6 +150,15 @@ reifyPossibilityQ (Query (c:cs) final_x)
     Distinct a x
      -> add' (Distinct  (wrapAnnot a)     <$> reifyPossibilityX x)
     Filter a x
+     | preda               <- annotOfExp x
+     , PossibilityPossibly <- getPossibilityOrDefinitely $ annResult preda
+     -> do  x' <- reifyPossibilityX x
+            let eqT = App preda
+                              (App preda (Prim preda $ Op $ Relation Eq) (con1 (wrapAnnot preda) ConRight $ con0 preda $ ConTrue))
+                              x'
+            rest'    <- rest
+            return $ ins (Filter (wrapAnnot a) eqT) (Query [] $ wrapRight $ Nested (annotOfQuery rest') rest')
+     | otherwise
      -> add' (Filter    (wrapAnnot a)     <$> reifyPossibilityX x)
     Let a n x
      -> add' (Let       (wrapAnnot a) n   <$> reifyPossibilityX x)

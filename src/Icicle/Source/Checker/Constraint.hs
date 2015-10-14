@@ -300,9 +300,11 @@ generateQ qq@(Query (c:_) _) env
     LetFold _ f
      -> do  (i,si, csi) <- generateX (foldInit f) env
             iniPos   <- TypeVar <$> fresh
-            let ti  = canonT
+            let ip  = getPossibilityOrDefinitely $ annResult $ annotOfExp i
+                ip' = if ip == PossibilityDefinitely then iniPos else ip
+                ti  = canonT
                     $ Temporality TemporalityElement
-                    $ Possibility iniPos
+                    $ Possibility ip'
                     $ annResult $ annotOfExp i
 
             (w,sw, csw) <- generateX (foldWork f)
@@ -329,9 +331,8 @@ generateQ qq@(Query (c:_) _) env
                   FoldTypeFoldl
                    -> requireTemporality (annResult $ annotOfExp i) TemporalityPure
 
-            let (_,ip,it)  = decomposeT $ annResult $ annotOfExp i
+            let (_, _,it) = decomposeT $ annResult $ annotOfExp i
             let (_,wp,wt) = decomposeT $ annResult $ annotOfExp w
-            let ip'       = maybe PossibilityDefinitely id ip
             let wp'       = maybe PossibilityDefinitely id wp
 
             consT <-  (<>) <$> requireAgg t'
@@ -339,8 +340,16 @@ generateQ qq@(Query (c:_) _) env
             let conseq = concat
                        [ require a (CEquals it wt)
                        , require a (CPossibilityJoin iniPos wp' ip') ]
+            -- XXX HACK: if possibility of worker is still a variable (after generateX discharged constraints)
+            -- then it must be a Definitely; nothing else can constrain it to be Possibly
+            let conshack
+                       | ip == PossibilityDefinitely
+                       , TypeVar _ <- wp'
+                       = require a (CEquals wp' PossibilityDefinitely)
+                       | otherwise
+                       = []
 
-            let cons' = concat [csi, csw, consr, consf, consT, conseq]
+            let cons' = concat [csi, csw, consr, consf, consT, conseq, conshack]
 
             let t'' = canonT $ Temporality TemporalityAggregate t'
             let s'  = si `compose` sw `compose` sq
