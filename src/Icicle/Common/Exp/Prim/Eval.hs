@@ -6,6 +6,7 @@ module Icicle.Common.Exp.Prim.Eval (
 
 import              Icicle.Common.Base
 import              Icicle.Common.Value
+import              Icicle.Common.Type
 import              Icicle.Common.Exp.Eval
 import              Icicle.Common.Exp.Prim.Minimal
 import qualified    Icicle.Data.DateTime            as DT
@@ -209,6 +210,13 @@ evalPrim p originalP vs
       -> return $ VBase $ y
       | otherwise
       -> primError
+
+     PrimStruct (PrimStructGet f (OptionT _) _)
+      | [VBase (VStruct fs)] <- vs
+      , Just v' <- Map.lookup f fs
+      -> return $ VBase $ VSome v'
+      | otherwise
+      -> return $ VBase $ VNone
 
      PrimStruct (PrimStructGet f _ _)
       | [VBase (VStruct fs)] <- vs
