@@ -1,4 +1,5 @@
-ok, loaded 21 functions from data/libs/prelude.icicle
+welcome to iREPL
+ok, loaded 20 functions from data/libs/prelude.icicle
 ok, loaded test/cli/repl/data.psv, 13 rows
 > ok, type is now on
 > - Type:

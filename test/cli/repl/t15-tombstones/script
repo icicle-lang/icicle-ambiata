@@ -4,4 +4,4 @@
 
 feature a ~> latest 5 ~> (value, tombstone)
 
-feature a ~> test_numflips value tombstone
+feature a ~> numflips value tombstone
