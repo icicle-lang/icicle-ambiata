@@ -109,7 +109,7 @@ featureMapOfDictionary (Dictionary { dictionaryEntries = ds, dictionaryFunctions
         $ exps "fields" e'
         <> (fmap (\(k,t)
         -> ( var $ nameOfStructField k
-           , STC.FeatureVariable (baseType t) (X.XApp () (xget k t st) . X.XApp () (xfst e' DateTimeT)) True)
+           , STC.FeatureVariable (baseType t) (xgetsum k t st)  True)
         )
         $ Map.toList fs)))]
 
@@ -128,10 +128,25 @@ featureMapOfDictionary (Dictionary { dictionaryEntries = ds, dictionaryFunctions
    = X.XPrim () (X.PrimMinimal $ X.PrimPair $ X.PrimPairFst t1 t2)
   xsnd t1 t2
    = X.XPrim () (X.PrimMinimal $ X.PrimPair $ X.PrimPairSnd t1 t2)
+
   xget f t fs
    = X.XPrim () (X.PrimMinimal $ X.PrimStruct $ X.PrimStructGet f t fs)
+  xgetsum f t fs x
+   = let e'     = StructT fs
+         nVal   = var "_val"
+         nErr   = var "_err"
+         xcase  = X.XPrim () $ X.PrimFold (X.PrimFoldSum ErrorT e') (SumT ErrorT t)
+         xleft  = X.XPrim () $ X.PrimMinimal $ X.PrimConst $ X.PrimConstLeft  ErrorT t
+         xright = X.XPrim () $ X.PrimMinimal $ X.PrimConst $ X.PrimConstRight ErrorT t
+         xfld   = xget f t fs
+         xapp   = X.XApp ()
+     in xcase
+      `xapp` (X.XLam () nErr ErrorT (xleft `xapp` X.XVar () nErr))
+      `xapp` (X.XLam () nVal e'     (xright `xapp` (xfld `xapp` X.XVar () nVal)))
+      `xapp` (xfst (SumT ErrorT e') DateTimeT `xapp` x)
+
   xtomb t1
-   = X.XApp () (X.XPrim () (X.PrimMinimal $ X.PrimRelation X.PrimRelationEq t1))
+   = X.XApp () (X.XPrim () (X.PrimMinimal $ X.PrimRelation X.PrimRelationEq $ SumT ErrorT t1))
                (X.XValue () (SumT ErrorT t1) (VLeft $ VError ExceptTombstone))
 
   exps str e'

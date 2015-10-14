@@ -6,8 +6,8 @@ ok, loaded test/cli/repl/data.psv, 13 rows
 > > - Core evaluation:
 [gonzo, [("a",False)
         ,("b",False)
-        ,(tombstone,True)
-        ,(tombstone,True)
+        ,tombstone
+        ,tombstone
         ,("c",False)]]
 
 > > - Core evaluation:
