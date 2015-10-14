@@ -1,5 +1,5 @@
 welcome to iREPL
-ok, loaded 18 functions from data/libs/prelude.icicle
+ok, loaded 21 functions from data/libs/prelude.icicle
 ok, loaded test/cli/repl/data.psv, 13 rows
 > -- Sum example
 > - Core evaluation:
@@ -52,5 +52,21 @@ ok, loaded test/cli/repl/data.psv, 13 rows
 
 > - Core evaluation:
 [homer, 2]
+
+> > -- IsSome
+> - Core evaluation:
+[homer, [True],marge, [True]]
+
+> -- IsNone
+> - Core evaluation:
+[homer, [False],marge, [False]]
+
+> > --GetOrElse example
+>                     [34mλλλλ[0m
+REPL Error:
+Check error:
+  Unsolvable constraint at  1:19
+    1:19  [32mt[0m$[32m502[0m =: TemporalityJoin [32mt[0m$[32m0[0m Aggregate
+    1:19  [32mt[0m$[32m3[0m =: TemporalityJoin Aggregate [32mt[0m$[32m502[0m
 
 > 
