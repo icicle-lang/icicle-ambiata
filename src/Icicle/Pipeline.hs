@@ -1,9 +1,8 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE ViewPatterns      #-}
-{-# LANGUAGE PatternGuards     #-}
 module Icicle.Pipeline
   ( CompileError(..)
+  , QueryTop', QueryTop'T, Program'
   , annotOfError
   , sourceParseQT
   , sourceParseF
@@ -139,14 +138,14 @@ sourceDesugarQT q
  = runIdentity . runEitherT . bimapEitherT CompileErrorDesugar snd
  $ Fresh.runFreshT
      (STD.desugarQT q)
-     (freshNamer "desugar")
+     (freshNamer "desugar_q")
 
-sourceDesugarF :: Funs a -> Either CompileError (Funs a)
+sourceDesugarF :: Pretty a => Funs a -> Either CompileError (Funs a)
 sourceDesugarF fun
  = runIdentity . runEitherT . bimapEitherT CompileErrorDesugar snd
  $ Fresh.runFreshT
      (mapM (mapM STD.desugarFun) fun)
-     (freshNamer "desugar")
+     (freshNamer "desugar_f")
 
 
 sourceReifyQT :: D.Dictionary -> QueryTop' -> Either CompileError QueryTop'
@@ -168,17 +167,17 @@ sourceCheckQT d q
  = let d' = D.featureMapOfDictionary d
    in  mapLeft CompileErrorCheck
      $ snd
-     $ flip Fresh.runFresh (freshNamer "t")
+     $ flip Fresh.runFresh (freshNamer "check")
      $ runEitherT
      $ SC.checkQT d' q
 
-sourceCheckF :: FunEnvT -> Funs Parsec.SourcePos -> Either CompileError FunEnvT
-sourceCheckF env parsedImport
+sourceCheckF :: Funs Parsec.SourcePos -> Either CompileError FunEnvT
+sourceCheckF parsedImport
  = mapLeft CompileErrorCheck
  $ snd
- $ flip Fresh.runFresh (freshNamer "f")
+ $ flip Fresh.runFresh (freshNamer "check")
  $ runEitherT
- $ SC.checkFs env parsedImport
+ $ SC.checkFs M.empty parsedImport
 
 
 sourceConvert :: D.Dictionary -> QueryTop'T -> Either CompileError Program'

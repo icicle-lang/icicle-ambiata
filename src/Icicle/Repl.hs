@@ -1,6 +1,5 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 
 module Icicle.Repl (
     ReplError (..)
@@ -10,8 +9,8 @@ module Icicle.Repl (
   , sourceReify
   , sourceCheck
   , sourceConvert
-  , sourceInline
-  , coreSimp
+  , P.sourceInline
+  , P.coreSimp
   , readFacts
   , readIcicleLibrary
 
@@ -96,21 +95,22 @@ data DictionaryLoadType
 
 -- * Check and Convert
 
-sourceParse
- = mapLeft ReplErrorCompile . P.sourceParseQT "repl"
-sourceDesugar
- = mapLeft ReplErrorCompile . P.sourceDesugarQT
-sourceReify d
- = mapLeft ReplErrorCompile . P.sourceReifyQT d
+sourceParse :: Text -> Either ReplError P.QueryTop'
+sourceParse = mapLeft ReplErrorCompile . P.sourceParseQT "repl"
+
+sourceDesugar :: P.QueryTop' -> Either ReplError P.QueryTop'
+sourceDesugar = mapLeft ReplErrorCompile . P.sourceDesugarQT
+
+sourceReify :: D.Dictionary -> P.QueryTop' -> Either ReplError P.QueryTop'
+sourceReify d = mapLeft ReplErrorCompile . P.sourceReifyQT d
+
+sourceCheck :: D.Dictionary -> P.QueryTop' -> Either ReplError (P.QueryTop'T, ST.Type SP.Variable)
 sourceCheck d
  = mapLeft ReplErrorCompile . P.sourceCheckQT d
+
+sourceConvert :: D.Dictionary -> P.QueryTop'T -> Either ReplError P.Program'
 sourceConvert d
  = mapLeft ReplErrorCompile . P.sourceConvert d
-sourceInline
- = P.sourceInline
-coreSimp
- = P.coreSimp
-
 
 readFacts :: D.Dictionary -> Text -> Either ReplError [AsAt Fact]
 readFacts dict raw
@@ -143,6 +143,6 @@ readIcicleLibrary source input
  = do input' <- mapLeft (ReplErrorCompile . P.CompileErrorParse) $ SP.parseFunctions source input
       mapLeft (ReplErrorCompile . P.CompileErrorCheck)
              $ snd
-             $ flip Fresh.runFresh (P.freshNamer "t")
+             $ flip Fresh.runFresh (P.freshNamer "repl")
              $ runEitherT
              $ SC.checkFs M.empty input'

@@ -1,7 +1,6 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TupleSections     #-}
-{-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 
 module Icicle.Storage.Dictionary.Toml (
     DictionaryImportError (..)
@@ -9,6 +8,7 @@ module Icicle.Storage.Dictionary.Toml (
   ) where
 
 import           Icicle.Common.Base
+import           Icicle.Data                                   (Attribute)
 import           Icicle.Dictionary.Data
 import           Icicle.Internal.Pretty                        hiding ((</>))
 import qualified Icicle.Pipeline                               as P
@@ -46,6 +46,12 @@ data DictionaryImportError
   | DictionaryErrorTransform  P.CompileError
   deriving (Show)
 
+type Funs a  = [((a, Name SP.Variable), SQ.Function a SP.Variable)]
+type FunEnvT = M.Map ( Name SP.Variable)
+                     ( ST.FunctionType SP.Variable
+                     , SQ.Function (ST.Annot Parsec.SourcePos SP.Variable) SP.Variable )
+
+
 -- Top level IO function which loads all dictionaries and imports
 loadDictionary :: FilePath
   -> EitherT DictionaryImportError IO Dictionary
@@ -53,7 +59,7 @@ loadDictionary dictionary
  = loadDictionary' M.empty mempty [] dictionary
 
 loadDictionary'
-  :: M.Map (Name SP.Variable) (ST.FunctionType SP.Variable, SQ.Function (ST.Annot Parsec.SourcePos SP.Variable) SP.Variable)
+  :: FunEnvT
   -> DictionaryConfig
   -> [DictionaryEntry]
   -> FilePath
@@ -91,7 +97,8 @@ loadDictionary' parentFuncs parentConf parentConcrete fp
          loadDictionary' importedFunctions conf concreteDefinitions (rp </> (T.unpack fp'))
        ) `traverse` (chapter conf)
 
-  let functions = M.unions $ importedFunctions : (dictionaryFunctions <$> loadedChapters)
+  -- Dictionary functions should take precedence over imported functions
+  let functions = M.unions $ (dictionaryFunctions <$> loadedChapters) <> [importedFunctions]
   let totaldefinitions = concreteDefinitions <> virtualDefinitions <> (join $ dictionaryEntries <$> loadedChapters)
 
   pure $ Dictionary totaldefinitions functions
@@ -105,6 +112,10 @@ loadDictionary' parentFuncs parentConf parentConcrete fp
       remakeVirtuals (DictionaryEntry' a (VirtualDefinition' (Virtual' v))) vds = (a, v) : vds
       remakeVirtuals _ vds = vds
 
+parseImports
+  :: DictionaryConfig
+  -> FilePath
+  -> EitherT DictionaryImportError IO [Funs Parsec.SourcePos]
 parseImports conf rp
  = go `traverse` imports conf
  where
@@ -118,13 +129,22 @@ parseImports conf rp
            $ A.left DictionaryErrorParsecFunc
            $ P.sourceParseF fp'' importsText
 
+loadImports
+  :: FunEnvT
+  -> [Funs Parsec.SourcePos]
+  -> EitherT DictionaryImportError IO FunEnvT
 loadImports parentFuncs parsedImports
  = hoistEither . mapLeft DictionaryErrorCheck
  $ foldlM go parentFuncs parsedImports
  where
   go env f
-   = P.sourceDesugarF f >>= P.sourceCheckF env
+   = do f' <- P.sourceDesugarF f >>= P.sourceCheckF
+        return $ M.union f' env
 
+checkDefs
+  :: Dictionary
+  -> [(Attribute, P.QueryTop')]
+  -> EitherT DictionaryImportError IO [DictionaryEntry]
 checkDefs d defs
  = go `traverse` defs
  where
