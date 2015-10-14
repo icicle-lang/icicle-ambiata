@@ -299,8 +299,10 @@ generateQ qq@(Query (c:_) _) env
     -- >   :  Aggregate r'p r'd
     LetFold _ f
      -> do  (i,si, csi) <- generateX (foldInit f) env
+            iniPos   <- TypeVar <$> fresh
             let ti  = canonT
                     $ Temporality TemporalityElement
+                    $ Possibility iniPos
                     $ annResult $ annotOfExp i
 
             (w,sw, csw) <- generateX (foldWork f)
@@ -327,12 +329,16 @@ generateQ qq@(Query (c:_) _) env
                   FoldTypeFoldl
                    -> requireTemporality (annResult $ annotOfExp i) TemporalityPure
 
-            let (_,_,it) = decomposeT $ annResult $ annotOfExp i
-            let (_,_,wt) = decomposeT $ annResult $ annotOfExp w
+            let (_,ip,it)  = decomposeT $ annResult $ annotOfExp i
+            let (_,wp,wt) = decomposeT $ annResult $ annotOfExp w
+            let ip'       = maybe PossibilityDefinitely id ip
+            let wp'       = maybe PossibilityDefinitely id wp
 
             consT <-  (<>) <$> requireAgg t'
                            <*> requireTemporality (annResult $ annotOfExp w) TemporalityElement
-            let conseq = require a (CEquals it wt)
+            let conseq = concat
+                       [ require a (CEquals it wt)
+                       , require a (CPossibilityJoin iniPos wp' ip') ]
 
             let cons' = concat [csi, csw, consr, consf, consT, conseq]
 
