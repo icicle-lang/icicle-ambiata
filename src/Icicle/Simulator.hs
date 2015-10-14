@@ -93,7 +93,7 @@ evaluateVirtualValue p date vs
         return (v', bg')
  where
   toCore n a
-   = do v' <- valueToCore $ fact a
+   = do v' <- wrapValue <$> (valueToCore $ fact a)
         return a { fact = (B.BubbleGumFact $ B.Flavour n $ time a, v') }
 
 evaluateVirtualValue' :: A.Program a Text XP.Prim -> DateTime -> [AsAt Value] -> Result a
@@ -111,6 +111,11 @@ evaluateVirtualValue' p date vs
    = do v' <- valueToCore $ fact a
         return a { fact = (B.BubbleGumFact $ B.Flavour n $ time a, v') }
 
+wrapValue :: V.BaseValue -> V.BaseValue
+wrapValue v
+ = if   v == V.VError V.ExceptTombstone
+   then V.VLeft v
+   else V.VRight v
 
 valueToCore :: Value -> Either (SimulateError a) V.BaseValue
 valueToCore v
