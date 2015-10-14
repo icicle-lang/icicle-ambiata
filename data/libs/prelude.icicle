@@ -77,3 +77,8 @@ numflips' v t
                                end )
           end
  ~> case s | (s0,i) -> i end.
+
+isSome a = case a | Some a' -> True  | None -> False end.
+isNone a = case a | Some a' -> False | None -> True  end.
+
+getOrElse default a  = case a | Some a' -> a' | None -> default end.
