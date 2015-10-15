@@ -385,32 +385,35 @@ flatX a_fresh xx stm
       -> flatX' xnone
       $ \xnone'
       -> do
-         acc <- fresh
+         acc  <- fresh
          stm' <- stm (xVar acc)
-         tmp <- fresh
+         tmp  <- fresh
          flatX' (xsome `xApp` (xVar tmp)) $ \xsome' ->
-           let if_   = If (fpIsSome `xApp` opt') (Write tmp (fpOptionGet `xApp` opt') <> Write acc xsome') (Write acc xnone')
+           let if_   = If (fpIsSome `xApp` opt') (Let tmp (fpOptionGet `xApp` opt') $ Write acc xsome') (Write acc xnone')
                accT  = Mutable
                -- After if, read back result from accumulator and then go do the rest of the statements
                read_ = Read acc acc accT valT stm'
            in  return (InitAccumulator (Accumulator acc accT valT $ xValue valT $ defaultOfType valT) (if_ <> read_))
 
   -- Fold over an either
-  flatFold (Core.PrimFoldSum ta tb) _ [xleft, xright, scrut]
+  flatFold (Core.PrimFoldSum ta tb) valT [xleft, xright, scrut]
    = let fpIsLeft    = xPrim (Flat.PrimProject  (Flat.PrimProjectSumIsLeft  ta tb))
          fpLeft      = xPrim (Flat.PrimUnsafe   (Flat.PrimUnsafeSumGetLeft  ta tb))
          fpRight     = xPrim (Flat.PrimUnsafe   (Flat.PrimUnsafeSumGetRight ta tb))
      in  flatX' scrut
       $ \scrut'
-      -- If we have a value
-      -> If (fpIsLeft `xApp` scrut')
-         -- Rip the left out and apply it
-         <$> slet (fpLeft `xApp` scrut')
-             (\val -> flatX' (xleft `xApp` val) stm)
-
-         -- Take right
-         <*> slet (fpRight `xApp` scrut')
-             (\val -> flatX' (xright `xApp` val) stm)
+      -> do
+         acc  <- fresh
+         stm' <- stm (xVar acc)
+         tmp  <- fresh
+         tmp' <- fresh
+         flatX' (xleft `xApp` (xVar tmp))  $ \xleft' ->
+           flatX' (xright `xApp` (xVar tmp')) $ \xright' ->
+             let if_   = If (fpIsLeft `xApp` scrut') (Let tmp (fpLeft `xApp` scrut') $ Write acc xleft') (Let tmp' (fpRight `xApp` scrut') $ Write acc xright')
+                 accT  = Mutable
+               -- After if, read back result from accumulator and then go do the rest of the statements
+                 read_ = Read acc acc accT valT stm'
+             in  return (InitAccumulator (Accumulator acc accT valT $ xValue valT $ defaultOfType valT) (if_ <> read_))
 
 
   -- None of the above cases apply, so must be bad arguments
