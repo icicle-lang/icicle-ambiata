@@ -194,7 +194,7 @@ generateQ qq@(Query (c:_) _) env
     -- > : Aggregate (PossibilityJoin k'p v'p) (Group k'd v'd)
     GroupBy _ x
      -> do  (x', sx, consk)       <- generateX x env
-            (q', sq, tval, consr) <- rest env
+            (q', sq, tval, consr) <- rest $ substE sx env
 
             let tkey = annResult $ annotOfExp x'
 
@@ -223,7 +223,7 @@ generateQ qq@(Query (c:_) _) env
             retk <- Temporality TemporalityElement . TypeVar <$> fresh
             retv <- Temporality TemporalityElement . TypeVar <$> fresh
 
-            let env' = removeElementBinds env
+            let env' = removeElementBinds $ substE sx env
             (q', sq, t', consr)
                 <- rest
                  $ bind k retk
@@ -249,7 +249,7 @@ generateQ qq@(Query (c:_) _) env
     -- > : Aggregate (PossibilityJoin k'p v'p) v'd
     Distinct _ x
      -> do  (x', sx, consk)     <- generateX x env
-            (q', sq, t', consr) <- rest env
+            (q', sq, t', consr) <- rest $ substE sx env
 
             let tkey = annResult $ annotOfExp x'
 
@@ -271,7 +271,7 @@ generateQ qq@(Query (c:_) _) env
     -- > : Aggregate (PossibilityJoin p'p x'p) x'd
     Filter _ x
      -> do  (x', sx, consx)     <- generateX x env
-            (q', sq, t', consr) <- rest env
+            (q', sq, t', consr) <- rest $ substE sx env
 
             let pred = annResult $ annotOfExp x'
 
@@ -307,8 +307,9 @@ generateQ qq@(Query (c:_) _) env
                     $ Possibility ip'
                     $ annResult $ annotOfExp i
 
+            let env' = substE si env
             (w,sw, csw) <- generateX (foldWork f)
-                         $ bind (foldBind f) ti env
+                         $ bind (foldBind f) ti env'
 
             let bindType
                  | FoldTypeFoldl1 <- foldType f
@@ -322,7 +323,8 @@ generateQ qq@(Query (c:_) _) env
                  $ Temporality TemporalityAggregate
                  $ annResult $ annotOfExp w
 
-            (q', sq, t', consr) <- withBind (foldBind f) bindType env rest
+            let env'' = substE sw env'
+            (q', sq, t', consr) <- withBind (foldBind f) bindType env'' rest
 
             consf
               <- case foldType f of
@@ -370,7 +372,7 @@ generateQ qq@(Query (c:_) _) env
     Let _ n x
      -> do  (x', sx, consd) <- generateX x env
 
-            (q',sq,tq,consr) <- withBind n (annResult $ annotOfExp x') env rest
+            (q',sq,tq,consr) <- withBind n (annResult $ annotOfExp x') (substE sx env) rest
 
             retTmp   <- TypeVar <$> fresh
             let tmpx  = getTemporalityOrPure $ annResult $ annotOfExp x'
@@ -478,9 +480,15 @@ generateX x env
                         | otherwise
                         = Gen . hoistEither
                         $ errorNoSuggestions (ErrorApplicationNotFunction a x)
+            genXs [] _  = return []
+            genXs (xx:xs) env'
+                        = do (xx',s,c) <- generateX xx env'
+                             rs       <- genXs xs (substE s env')
+                             return ((xx',s,c) : rs)
+
         in do   (fErr, argsT, resT, consf) <- look
 
-                (args', subs', consxs)     <- unzip3 <$> mapM (flip generateX env) args
+                (args', subs', consxs)     <- unzip3 <$> genXs args env
                 let argsT'                  = fmap (annResult.annotOfExp) args'
 
                 when (length argsT /= length args)
@@ -534,7 +542,7 @@ generateX x env
            returnPoss' <- TypeVar <$> fresh
            let consPs  =  require a (CPossibilityJoin returnPoss' scrutPs returnPoss)
 
-           (patsubs, consA) <- generateP a scrutT returnType returnTemp returnPoss pats env
+           (patsubs, consA) <- generateP a scrutT returnType returnTemp returnPoss pats (substE sub env)
            let (pats', subs) = unzip patsubs
 
            let t'    = canonT
@@ -593,7 +601,7 @@ generateP ann scrutTy resTy resTm resPs ((pat, alt):rest) env
                   , require (annotOfExp alt) (CPossibilityJoin resPs resPs' altPs)
                   ]
 
-        (rest', consr) <- generateP ann scrutTy resTy resTp' resPs' rest env
+        (rest', consr) <- generateP ann scrutTy resTy resTp' resPs' rest (substE sub env)
         let cons' = concat [conss, consa, consT, consr]
         let patsubs     = ((pat, alt'), sub) : rest'
 
