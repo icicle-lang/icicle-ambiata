@@ -31,3 +31,11 @@ feature injury ~> oldest fields
 -- Numflips example
 feature injury ~> numflips location
 feature injury ~> numflips' location tombstone
+
+-- IsSome
+feature salary ~> latest 1 ~> isSome (Some "hi")
+-- IsNone
+feature salary ~> latest 1 ~> isNone (Some "hi")
+
+--GetOrElse example
+feature salary ~> getOrElse 3 (Some (newest value))

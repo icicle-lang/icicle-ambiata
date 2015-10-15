@@ -101,7 +101,7 @@ defaultOfType typ
 
 
 data StructType
- = StructType 
+ = StructType
  { getStructType :: Map.Map StructField ValType }
  deriving (Eq, Ord, Show)
 
