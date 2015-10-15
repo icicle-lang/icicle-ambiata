@@ -304,13 +304,13 @@ flatX a_fresh xx stm
 
       Core.PrimLatest (Core.PrimLatestPush t)
        | [buf, e]    <- xs
-       , XVar _ bufN <- buf
        -> flatX' e
        $  \e'
        -> flatX' buf
        $  \buf'
-       -> do   let fpPush = xPrim (Flat.PrimBuf $ Flat.PrimBufPush t) `xApp` buf' `xApp` e'
-               return $ Write bufN fpPush
+       -> do   tmpN <- fresh
+               let fpPush = xPrim (Flat.PrimBuf $ Flat.PrimBufPush t) `xApp` buf' `xApp` e'
+               return $ Let tmpN fpPush emptyStm
 
        | otherwise
        -> lift $ Left $ FlattenErrorPrimBadArgs p xs
@@ -461,3 +461,5 @@ flatX a_fresh xx stm
             = Min.PrimPairSnd ta tb
      in (xPrim $ Flat.PrimMinimal $ Min.PrimPair $ pm) `xApp` e
 
+  emptyStm
+   = Block []

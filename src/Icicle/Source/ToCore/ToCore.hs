@@ -251,9 +251,11 @@ convertQuery q
                       $ C.RFold inpty tbuf kons zero inpstream
             let barr  = post n'arr
                       ( CE.readBuf inpty CE.@~ CE.xVar n'buf )
-            --let barr  = red  n'arr   (C.RLatest inpty (CE.constI i) inpstream)
-            let bfold = post n'fold  (CE.xPrim (C.PrimFold (C.PrimFoldArray inpty) tV')
-                                      CE.@~ k' CE.@~ beta (foldZero res) CE.@~ CE.xVar n'arr)
+            let bfold = post n'fold
+                      ( CE.xPrim (C.PrimFold (C.PrimFoldArray inpty) tV')
+                          CE.@~ k'
+                          CE.@~ beta (foldZero res)
+                          CE.@~ CE.xVar n'arr )
             let bxtra = post n'xtra (beta (mapExtract res CE.@~ CE.xVar n'fold))
 
             return (bbuf <> barr <> bfold <> bxtra, n'xtra)

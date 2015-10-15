@@ -132,10 +132,11 @@ instance Arbitrary ValType where
          , BoolT
          , DateTimeT
          , StringT ]
-         [ ArrayT <$> arbitrary
-         , PairT  <$> arbitrary <*> arbitrary
-         , SumT   <$> arbitrary <*> arbitrary
-         , MapT  <$> arbitrary <*> arbitrary
+         [ ArrayT  <$> arbitrary
+         , BufT    <$> arbitrary
+         , PairT   <$> arbitrary <*> arbitrary
+         , SumT    <$> arbitrary <*> arbitrary
+         , MapT    <$> arbitrary <*> arbitrary
          , OptionT <$> arbitrary
          , StructT <$> arbitrary
          ]
@@ -180,8 +181,7 @@ instance (Arbitrary a, Arbitrary n) => Arbitrary (Stream a n) where
 
 instance (Arbitrary a, Arbitrary n) => Arbitrary (Reduce a n) where
  arbitrary =
-   oneof [ RFold   <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
-         , RLatest <$> arbitrary <*> arbitrary <*> arbitrary ]
+   RFold   <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
 
 instance (Arbitrary a, Arbitrary n) => Arbitrary (Program a n) where
  arbitrary =
@@ -396,13 +396,10 @@ programForStreamType streamType
   -- A reduction is either a fold or a latest
   gen_reduce sE pE
    = do (i,t) <- oneof $ fmap return $ Map.toList sE
-        oneof   [ do ix <- gen_exp (FunT [] IntT) pE
-                     return (ArrayT t, RLatest t ix i)
-                , do at <- arbitrary
-                     kx <- gen_exp (FunT [FunT [] at, FunT [] t] at) pE
-                     zx <- gen_exp (FunT [] at) pE
-                     return (at, RFold t at kx zx i)
-                ]
+        at <- arbitrary
+        kx <- gen_exp (FunT [FunT [] at, FunT [] t] at) pE
+        zx <- gen_exp (FunT [] at) pE
+        return (at, RFold t at kx zx i)
 
 
 
@@ -431,6 +428,8 @@ baseValueForType t
      -> VDateTime <$> arbitrary
     ArrayT t'
      -> smaller (VArray <$> listOf (baseValueForType t'))
+    BufT t'
+     -> smaller (VBuf <$> listOf (baseValueForType t'))
     PairT a b
      -> smaller (VPair <$> baseValueForType a <*> baseValueForType b)
     SumT a b

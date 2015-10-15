@@ -55,7 +55,7 @@ data BaseValue
  | VNone
  | VMap    (Map.Map BaseValue    BaseValue)
  | VStruct (Map.Map StructField  BaseValue)
- | VBuf    [BaseValue]
+ | VBuf   [BaseValue]
  | VError ExceptionInfo
  deriving (Show, Ord, Eq)
 

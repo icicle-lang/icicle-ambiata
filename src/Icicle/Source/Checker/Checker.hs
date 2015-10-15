@@ -70,7 +70,7 @@ checkQ ctx q
           $ errorSuggestions (ErrorReturnNotAggregate (annotOfQuery $ q) t)
                              [Suggest "The return must be an aggregate, otherwise the result could be quite large"]
 
-      hoistEither $ invariantQ ctx q
+      --hoistEither $ invariantQ ctx q
 
       return (q', t)
 
