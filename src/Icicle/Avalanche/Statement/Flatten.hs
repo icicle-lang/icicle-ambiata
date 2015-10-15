@@ -377,19 +377,23 @@ flatX a_fresh xx stm
 
 
   -- Fold over an option is just "maybe" combinator.
-  flatFold (Core.PrimFoldOption ta) _ [xsome, xnone, opt]
+  flatFold (Core.PrimFoldOption ta) valT [xsome, xnone, opt]
    = let fpIsSome    = xPrim (Flat.PrimProject  (Flat.PrimProjectOptionIsSome ta))
          fpOptionGet = xPrim (Flat.PrimUnsafe   (Flat.PrimUnsafeOptionGet     ta))
      in  flatX' opt
       $ \opt'
-      -- If we have a value
-      -> If (fpIsSome `xApp` opt')
-         -- Rip the value out and apply it
-         <$> slet (fpOptionGet `xApp` opt')
-             (\val -> flatX' (xsome `xApp` val) stm)
-
-         -- There's no value so return the none branch
-         <*> flatX' xnone stm
+      -> flatX' xnone
+      $ \xnone'
+      -> do
+         acc <- fresh
+         stm' <- stm (xVar acc)
+         tmp <- fresh
+         flatX' (xsome `xApp` (xVar tmp)) $ \xsome' ->
+           let if_   = If (fpIsSome `xApp` opt') (Write tmp (fpOptionGet `xApp` opt') <> Write acc xsome') (Write acc xnone')
+               accT  = Mutable
+               -- After if, read back result from accumulator and then go do the rest of the statements
+               read_ = Read acc acc accT valT stm'
+           in  return (InitAccumulator (Accumulator acc accT valT $ xValue valT $ defaultOfType valT) (if_ <> read_))
 
   -- Fold over an either
   flatFold (Core.PrimFoldSum ta tb) _ [xleft, xright, scrut]
