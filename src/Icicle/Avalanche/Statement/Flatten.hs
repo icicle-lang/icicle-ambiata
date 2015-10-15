@@ -308,16 +308,24 @@ flatX a_fresh xx stm
   -- Handle primitive folds
   --
   -- Bool is just an if
-  flatFold Core.PrimFoldBool _ [then_, else_, pred]
-   -- XXX: we are using "stm" twice here,
-   -- so duplicating branches.
-   -- I don't think this is a biggie
-   -- (yet)
+  flatFold Core.PrimFoldBool valT [then_, else_, pred]
    = flatX' pred
    $ \pred'
-   -> If pred'
-        <$> flatX' then_ stm
-        <*> flatX' else_ stm
+   -> flatX' then_
+   $ \then_'
+   -> flatX' else_
+   $ \else_'
+   -> do -- Fresh name for accumulator and result.
+         -- We can use same name for acc & result variables because accumulators and variables are in different scopes
+         acc <- fresh
+         -- Compute the rest of the computation, assuming we've stored result in variable named acc
+         stm' <- stm (xVar acc)
+         -- Perform if and write result
+         let if_ =  If pred' (Write acc then_') (Write acc else_')
+         let accT = Mutable
+         -- After if, read back result from accumulator and then go do the rest of the statements
+         let read_ = Read acc acc accT valT stm'
+         return (InitAccumulator (Accumulator acc accT valT $ xValue valT $ defaultOfType valT) (if_ <> read_))
 
   -- Array fold becomes a loop
   flatFold (Core.PrimFoldArray telem) valT [k, z, arr]
