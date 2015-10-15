@@ -311,17 +311,15 @@ flatX a_fresh xx stm
   flatFold Core.PrimFoldBool valT [then_, else_, pred]
    = flatX' pred
    $ \pred'
-   -> flatX' then_
-   $ \then_'
-   -> flatX' else_
-   $ \else_'
    -> do -- Fresh name for accumulator and result.
          -- We can use same name for acc & result variables because accumulators and variables are in different scopes
          acc <- fresh
          -- Compute the rest of the computation, assuming we've stored result in variable named acc
          stm' <- stm (xVar acc)
+         sthen <- flatX' then_ $ (return . Write acc)
+         selse <- flatX' else_ $ (return . Write acc)
          -- Perform if and write result
-         let if_ =  If pred' (Write acc then_') (Write acc else_')
+         let if_ =  If pred' sthen selse
          let accT = Mutable
          -- After if, read back result from accumulator and then go do the rest of the statements
          let read_ = Read acc acc accT valT stm'
@@ -382,18 +380,17 @@ flatX a_fresh xx stm
          fpOptionGet = xPrim (Flat.PrimUnsafe   (Flat.PrimUnsafeOptionGet     ta))
      in  flatX' opt
       $ \opt'
-      -> flatX' xnone
-      $ \xnone'
       -> do
          acc  <- fresh
          stm' <- stm (xVar acc)
          tmp  <- fresh
-         flatX' (xsome `xApp` (xVar tmp)) $ \xsome' ->
-           let if_   = If (fpIsSome `xApp` opt') (Let tmp (fpOptionGet `xApp` opt') $ Write acc xsome') (Write acc xnone')
-               accT  = Mutable
-               -- After if, read back result from accumulator and then go do the rest of the statements
-               read_ = Read acc acc accT valT stm'
-           in  return (InitAccumulator (Accumulator acc accT valT $ xValue valT $ defaultOfType valT) (if_ <> read_))
+         ssome <- flatX' (xsome `xApp` (xVar tmp)) $ (return . Write acc)
+         snone <- flatX' xnone $ (return . Write acc)
+         let if_   = If (fpIsSome `xApp` opt') (Let tmp (fpOptionGet `xApp` opt') ssome) snone
+             accT  = Mutable
+             -- After if, read back result from accumulator and then go do the rest of the statements
+             read_ = Read acc acc accT valT stm'
+         return (InitAccumulator (Accumulator acc accT valT $ xValue valT $ defaultOfType valT) (if_ <> read_))
 
   -- Fold over an either
   flatFold (Core.PrimFoldSum ta tb) valT [xleft, xright, scrut]
@@ -407,13 +404,14 @@ flatX a_fresh xx stm
          stm' <- stm (xVar acc)
          tmp  <- fresh
          tmp' <- fresh
-         flatX' (xleft `xApp` (xVar tmp))  $ \xleft' ->
-           flatX' (xright `xApp` (xVar tmp')) $ \xright' ->
-             let if_   = If (fpIsLeft `xApp` scrut') (Let tmp (fpLeft `xApp` scrut') $ Write acc xleft') (Let tmp' (fpRight `xApp` scrut') $ Write acc xright')
-                 accT  = Mutable
-               -- After if, read back result from accumulator and then go do the rest of the statements
-                 read_ = Read acc acc accT valT stm'
-             in  return (InitAccumulator (Accumulator acc accT valT $ xValue valT $ defaultOfType valT) (if_ <> read_))
+         sleft   <- flatX' (xleft  `xApp` (xVar tmp )) $ (return . Write acc)
+         sright  <- flatX' (xright `xApp` (xVar tmp')) $ (return . Write acc)
+
+         let if_   = If (fpIsLeft `xApp` scrut') (Let tmp (fpLeft `xApp` scrut') sleft) (Let tmp' (fpRight `xApp` scrut') sright)
+             accT  = Mutable
+           -- After if, read back result from accumulator and then go do the rest of the statements
+             read_ = Read acc acc accT valT stm'
+         return (InitAccumulator (Accumulator acc accT valT $ xValue valT $ defaultOfType valT) (if_ <> read_))
 
 
   -- None of the above cases apply, so must be bad arguments

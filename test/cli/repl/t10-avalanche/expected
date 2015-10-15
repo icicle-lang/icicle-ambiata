@@ -10,115 +10,286 @@ ok, avalanche is now on
 ok, flatten is now on
 > > -- A rather complicated feature to convert to Avalanche
 > - Type:
-Aggregate (Int, (Array Int))
+Aggregate Possibly (Int, (Array Int))
 
 - Core:
-Program (source : Stream Int)
+Program (source : Stream (Sum Error Int))
 Precomputations:
 
 Stream transformers:
 conv$0 =
     source
 conv$2 =
-    sfilter [(Int, DateTime)] (
-    \conv$3 : (Int, DateTime).  
-    let simp$1 = fst# [Int] [DateTime]
-                 conv$3
-     in gt# [Int] simp$1 (10 : Int))
-    conv$0
-conv$7 =
-    smap    [(Int, DateTime)] [Int]
+    sfilter [((Sum Error Int), DateTime)]
     (
-    \conv$8 : (Int, DateTime). 
-    fst# [Int] [DateTime] conv$8)
-    conv$0
+    \conv$3 : ((Sum Error Int), DateTime). 
+    
+    let simp$2 = fst# [(Sum Error Int)] [DateTime]
+                 conv$3
+     in 
+    let simp$3 = Sum_fold# [Error] [Int] [(Sum Error Bool)]
+                 (
+                 \reify$0$conv$4 : Error. 
+                 left# [Error] [Bool]
+                 reify$0$conv$4) (
+                 \reify$1$conv$5 : Int. 
+                 right# [Error] [Bool] (gt# [Int]
+                                        reify$1$conv$5 (10 : Int)))
+                 simp$2
+     in eq# [(Sum Error Bool)]
+        (Right True : (Sum Error Bool))
+        simp$3) conv$0
+conv$14 =
+    smap    [((Sum Error Int), DateTime)] [(Sum Error Int)]
+    (
+    \conv$15 : ((Sum Error Int), DateTime). 
+    fst# [(Sum Error Int)] [DateTime]
+    conv$15) conv$0
 Reductions:
-c$conv$5 =
-    rfold   [(Int, DateTime)]
+c$conv$8 =
+    rfold  
+    [((Sum Error Int), DateTime)]
     [Int] (
-    \c$conv$5 : Int.  
-    \conv$4 : (Int, DateTime). 
-    add# [Int] c$conv$5 (1 : Int))
+    \c$conv$8 : Int.  
+    \conv$7 : ((Sum Error Int), DateTime). 
+    add# [Int] c$conv$8 (1 : Int))
     (0 : Int) conv$2
-conv$6 =
-    rlatest [Int] (3 : Int)
-    conv$7
+conv$13 =
+    rlatest [(Sum Error Int)]
+    (3 : Int) conv$14
 Postcomputations with date as now$conv$1:
 conv$9 =
-    pair# [Int] [Array Int]
-    c$conv$5 conv$6
+    right# [Error] [Int]
+    c$conv$8
+conv$24 =
+    Sum_fold# [Error] [Int] [(Sum Error (Int, Array Int))]
+    (
+    \reify$2$conv$10 : Error.  
+    let conv$11 = left# [Error] [(Int, Array Int)]
+                  reify$2$conv$10
+     in conv$11) (
+    \reify$3$conv$12 : Int.  
+    let conv$22 = Sum_fold# [Error] [Array Int] [(Sum Error (Int, Array Int))]
+                  (
+                  \reify$4$conv$16 : Error.  
+                  let conv$17 = left# [Error] [(Int, Array Int)]
+                                reify$4$conv$16
+                   in conv$17) (
+                  \reify$5$conv$18 : Array Int.  
+                  let conv$19 = pair# [Int] [Array Int]
+                                reify$3$conv$12 reify$5$conv$18
+                   in 
+                  let conv$20 = right# [Error] [(Int, Array Int)]
+                                conv$19
+                   in conv$20) conv$13
+     in conv$22) conv$9
 Returning:
 repl =
-    conv$9
+    conv$24
 
 
-- Core type:
-[(repl,(Int, Array Int))]
+- Core type error:
+Post error: 
+    Application error:
+      Fun: Sum_fold# [Error] [Array Int] [(Sum Error (Int, Array Int))]
+           (
+           \reify$4$conv$16 : Error.  
+           let conv$17 = left# [Error] [(Int, Array Int)]
+                         reify$4$conv$16
+            in conv$17) (
+           \reify$5$conv$18 : Array Int.  
+           let conv$19 = pair# [Int] [Array Int]
+                         reify$3$conv$12 reify$5$conv$18
+            in 
+           let conv$20 = right# [Error] [(Int, Array Int)]
+                         conv$19
+            in conv$20)
+      With type: (Sum Error (Array Int)) -> (Sum Error (Int, Array Int))
+      Arg: conv$13
+      With type: Array (Sum Error Int)
+      
 
 - Avalanche:
 gen$date = DATE
 {
-  init [Latest] [Int] acc$conv$6 = 3 : Int;
-  for_facts (elem$gen$fact : Int, elem$gen$date : Date) in history {
-    let gen$fact = pair# [Int] [DateTime]
+  init [Latest] [(Sum Error Int)] acc$conv$13 = 3 : Int;
+  for_facts (elem$gen$fact : (Sum Error Int), elem$gen$date : Date) in history {
+    let gen$fact = pair# [(Sum Error Int)] [DateTime]
                    elem$gen$fact elem$gen$date;
-    let elem$conv$7 = fst# [Int] [DateTime]
-                      gen$fact;
-    push acc$conv$6(elem$conv$7);
+    let elem$conv$14 = fst# [(Sum Error Int)] [DateTime]
+                       gen$fact;
+    push acc$conv$13(elem$conv$14);
   }
-  init [Mutable] [Int] acc$c$conv$5 = 0 : Int;
-  load_resumable [Int] acc$c$conv$5;
-  for_facts (elem$gen$fact : Int, elem$gen$date : Date) in new {
-    let gen$fact = pair# [Int] [DateTime]
+  init [Mutable] [Int] acc$c$conv$8 = 0 : Int;
+  load_resumable [Int] acc$c$conv$8;
+  for_facts (elem$gen$fact : (Sum Error Int), elem$gen$date : Date) in new {
+    let gen$fact = pair# [(Sum Error Int)] [DateTime]
                    elem$gen$fact elem$gen$date;
-    let anf$1 = fst# [Int] [DateTime]
+    let anf$2 = fst# [(Sum Error Int)] [DateTime]
                 gen$fact;
-    if (gt# [Int] anf$1
-        (10 : Int)) {
-      read [Mutable] [Int] acc$c$conv$5 = acc$c$conv$5;
-      write acc$c$conv$5 = add# [Int]
-                           acc$c$conv$5 (1 : Int);
+    let anf$3 = Sum_fold# [Error] [Int] [(Sum Error Bool)]
+                (
+                \reify$0$conv$4 : Error. 
+                left# [Error] [Bool]
+                reify$0$conv$4) (
+                \reify$1$conv$5 : Int. 
+                right# [Error] [Bool] (gt# [Int]
+                                       reify$1$conv$5 (10 : Int)))
+                anf$2;
+    if (eq# [(Sum Error Bool)]
+        (Right True : (Sum Error Bool))
+        anf$3) {
+      read [Mutable] [Int] acc$c$conv$8 = acc$c$conv$8;
+      write acc$c$conv$8 = add# [Int]
+                           acc$c$conv$8 (1 : Int);
     }
-    let elem$conv$7 = anf$1;
-    push acc$conv$6(elem$conv$7);
+    let elem$conv$14 = anf$2;
+    push acc$conv$13(elem$conv$14);
   }
-  save_resumable [Int] acc$c$conv$5;
-  read [Mutable] [Int] c$conv$5 = acc$c$conv$5;
-  read [Latest] [Int] conv$6 = acc$conv$6;
-  let conv$9 = pair# [Int] [Array Int]
-               c$conv$5 conv$6;
-  output repl conv$9;
+  save_resumable [Int] acc$c$conv$8;
+  read [Mutable] [Int] c$conv$8 = acc$c$conv$8;
+  read [Latest] [(Sum Error Int)] conv$13 = acc$conv$13;
+  let conv$9 = right# [Error] [Int]
+               c$conv$8;
+  let conv$24 = Sum_fold# [Error] [Int] [(Sum Error (Int, Array Int))]
+                (
+                \reify$2$conv$10 : Error.  
+                let conv$11 = left# [Error] [(Int, Array Int)]
+                              reify$2$conv$10
+                 in conv$11) (
+                \reify$3$conv$12 : Int.  
+                let conv$22 = Sum_fold# [Error] [Array Int] [(Sum Error (Int, Array Int))]
+                              (
+                              \reify$4$conv$16 : Error.  
+                              let conv$17 = left# [Error] [(Int, Array Int)]
+                                            reify$4$conv$16
+                               in conv$17) (
+                              \reify$5$conv$18 : Array Int.  
+                              let conv$19 = pair# [Int] [Array Int]
+                                            reify$3$conv$12 reify$5$conv$18
+                               in 
+                              let conv$20 = right# [Error] [(Int, Array Int)]
+                                            conv$19
+                               in conv$20) conv$13
+                 in conv$22) conv$9;
+  output repl conv$24;
 }
 
 - Flattened:
 gen$date = DATE
 {
-  init [Latest] [Int] acc$conv$6 = 3 : Int;
-  for_facts (elem$gen$fact : Int, elem$gen$date : Date) in history {
-    push acc$conv$6(elem$gen$fact);
+  init [Latest] [(Sum Error Int)] acc$conv$13 = 3 : Int;
+  for_facts (elem$gen$fact : (Sum Error Int), elem$gen$date : Date) in history {
+    push acc$conv$13(elem$gen$fact);
   } 
   
-  init [Mutable] [Int] acc$c$conv$5 = 0 : Int;
-  load_resumable [Int] acc$c$conv$5;
-  for_facts (elem$gen$fact : Int, elem$gen$date : Date) in new {
-    if (gt# [Int] elem$gen$fact
-        (10 : Int)) {
-      read [Mutable] [Int] acc$c$conv$5 = acc$c$conv$5;
-      write acc$c$conv$5 = add# [Int]
-                           acc$c$conv$5 (1 : Int);
+  init [Mutable] [Int] acc$c$conv$8 = 0 : Int;
+  load_resumable [Int] acc$c$conv$8;
+  for_facts (elem$gen$fact : (Sum Error Int), elem$gen$date : Date) in new {
+    init [Mutable] [(Sum Error Bool)] flat$0 = Left ExceptTombstone : (Sum Error Bool);
+    if (Sum_isLeft# [Error] [Int]
+        elem$gen$fact) {
+      let flat$1 = unsafe_Sum_left# [Error] [Int]
+                   elem$gen$fact;
+      write flat$0 = left# [Error] [Bool]
+                     flat$1;
+    } else {
+      let flat$2 = unsafe_Sum_right# [Error] [Int]
+                   elem$gen$fact;
+      let simp$1 = gt# [Int] flat$2
+                   (10 : Int);
+      write flat$0 = right# [Error] [Bool]
+                     simp$1;
     }
-    push acc$conv$6(elem$gen$fact);
+    read [Mutable] [(Sum Error Bool)] flat$0 = flat$0;
+    if (eq# [(Sum Error Bool)]
+        (Right True : (Sum Error Bool))
+        flat$0) {
+      read [Mutable] [Int] acc$c$conv$8 = acc$c$conv$8;
+      write acc$c$conv$8 = add# [Int]
+                           acc$c$conv$8 (1 : Int);
+    }
+    push acc$conv$13(elem$gen$fact);
   }
-  save_resumable [Int] acc$c$conv$5;
-  read [Mutable] [Int] c$conv$5 = acc$c$conv$5;
-  read [Latest] [Int] conv$6 = acc$conv$6;
-  let conv$9 = pair# [Int] [Array Int]
-               c$conv$5 conv$6;
-  output repl conv$9;
+  save_resumable [Int] acc$c$conv$8;
+  read [Mutable] [Int] c$conv$8 = acc$c$conv$8;
+  read [Latest] [(Sum Error Int)] conv$13 = acc$conv$13;
+  let conv$9 = right# [Error] [Int]
+               c$conv$8;
+  init [Mutable] [(Sum Error (Int, Array Int))] flat$3 = Left ExceptTombstone : (Sum Error (Int, Array Int));
+  if (Sum_isLeft# [Error] [Int]
+      conv$9) {
+    let flat$4 = unsafe_Sum_left# [Error] [Int]
+                 conv$9;
+    let conv$11 = left# [Error] [(Int, Array Int)]
+                  flat$4;
+    write flat$3 = conv$11;
+  } else {
+    let flat$5 = unsafe_Sum_right# [Error] [Int]
+                 conv$9;
+    init [Mutable] [(Sum Error (Int, Array Int))] flat$6 = Left ExceptTombstone : (Sum Error (Int, Array Int));
+    if (Sum_isLeft# [Error] [Array Int]
+        conv$13) {
+      let flat$7 = unsafe_Sum_left# [Error] [Array Int]
+                   conv$13;
+      let conv$17 = left# [Error] [(Int, Array Int)]
+                    flat$7;
+      write flat$6 = conv$17;
+    } else {
+      let flat$8 = unsafe_Sum_right# [Error] [Array Int]
+                   conv$13;
+      let conv$19 = pair# [Int] [Array Int]
+                    flat$5 flat$8;
+      let conv$20 = right# [Error] [(Int, Array Int)]
+                    conv$19;
+      write flat$6 = conv$20;
+    }
+    read [Mutable] [(Sum Error (Int, Array Int))] flat$6 = flat$6;
+    write flat$3 = flat$6;
+  }
+  read [Mutable] [(Sum Error (Int, Array Int))] flat$3 = flat$3;
+  output repl flat$3;
 }
 
-- Core evaluation:
-[homer, (5,[300,400,500])
-,marge, (1,[0,10,20])]
+- Avalanche type error:
+Program error:
+  ProgramErrorExp (ExpErrorApp (XPrim () (PrimProject (PrimProjectSumIsLeft ErrorT (ArrayT IntT)))) (XVar () (NameMod "conv" (Name "13"))) (FunT [FunT [] (SumT ErrorT (ArrayT IntT))] BoolT) (FunT [] (ArrayT (SumT ErrorT IntT))))
+
+- Core error:
+Runtime error:
+  Postcomputation error:
+    Bad arguments to primitive: 
+      Primitive: Sum_fold# [Error] [Array Int] [(Sum Error (Int, Array Int))]
+      Arguments: [closure# [(c$conv$8
+                            ,5)
+                           ,(conv$13
+                            ,[Right 300
+                             ,Right 400
+                             ,Right 500])
+                           ,(conv$9,Right 5)
+                           ,(now$conv$1,1970-01-01)
+                           ,(reify$3$conv$12
+                            ,5)] \reify$4$conv$16. 
+                 let conv$17 = left# [Error] [(Int, Array Int)]
+                               reify$4$conv$16
+                  in conv$17
+                 ,closure# [(c$conv$8,5)
+                           ,(conv$13
+                            ,[Right 300
+                             ,Right 400
+                             ,Right 500])
+                           ,(conv$9,Right 5)
+                           ,(now$conv$1,1970-01-01)
+                           ,(reify$3$conv$12
+                            ,5)] \reify$5$conv$18. 
+                 let conv$19 = pair# [Int] [Array Int]
+                               reify$3$conv$12 reify$5$conv$18
+                  in 
+                 let conv$20 = right# [Error] [(Int, Array Int)]
+                               conv$19
+                  in conv$20
+                 ,[Right 300
+                  ,Right 400
+                  ,Right 500]]
 
 > > 
