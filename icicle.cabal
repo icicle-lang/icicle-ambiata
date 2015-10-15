@@ -196,6 +196,7 @@ library
 
                        Icicle.Storage.Encoding
 
+                       Icicle.Pipeline
                        Icicle.Repl
 
 -- executable             icicle

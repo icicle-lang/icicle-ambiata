@@ -1,6 +1,7 @@
 :dictionary test/cli/repl/t15-tombstones/test-dictionary.toml
 :load       test/cli/repl/t15-tombstones/data.psv
+:import     test/cli/repl/t15-tombstones/numflips.icicle
 
 feature a ~> latest 5 ~> (value, tombstone)
 
-feature a ~> numflips' value tombstone
+feature a ~> numflips value tombstone

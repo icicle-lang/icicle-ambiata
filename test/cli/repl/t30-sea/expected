@@ -1,5 +1,5 @@
 welcome to iREPL
-ok, loaded 21 functions from data/libs/prelude.icicle
+ok, loaded 20 functions from data/libs/prelude.icicle
 ok, loaded test/cli/repl/data.psv, 13 rows
 > -- Show everything
 > ok, flatten is now on
@@ -305,116 +305,96 @@ void compute(icicle_state_t *s)
 > - Flattened:
 gen$date = DATE
 {
-  init [Mutable] [Double] acc$s$conv$9 = 0.0 : Double;
-  init [Mutable] [Double] acc$s$conv$14 = 0.0 : Double;
-  init [Mutable] [Double] acc$c$conv$16 = 0.0 : Double;
-  init [Mutable] [Double] acc$c$conv$21 = 0.0 : Double;
-  init [Mutable] [Double] acc$c$conv$23 = 0.0 : Double;
-  init [Mutable] [Double] acc$s$conv$39 = 0.0 : Double;
-  init [Mutable] [Double] acc$s$conv$44 = 0.0 : Double;
-  init [Mutable] [Double] acc$c$conv$46 = 0.0 : Double;
-  init [Mutable] [Double] acc$c$conv$51 = 0.0 : Double;
-  init [Mutable] [Double] acc$c$conv$53 = 0.0 : Double;
-  load_resumable [Double] acc$s$conv$9;
-  load_resumable [Double] acc$s$conv$14;
-  load_resumable [Double] acc$c$conv$16;
-  load_resumable [Double] acc$c$conv$21;
-  load_resumable [Double] acc$c$conv$23;
-  load_resumable [Double] acc$s$conv$39;
-  load_resumable [Double] acc$s$conv$44;
-  load_resumable [Double] acc$c$conv$46;
-  load_resumable [Double] acc$c$conv$51;
-  load_resumable [Double] acc$c$conv$53;
+  init [Mutable] [Double] acc$a$conv$9$simp$0$simp$2 = 0.0 : Double;
+  init [Mutable] [Double] acc$a$conv$9$simp$0$simp$3 = 0.0 : Double;
+  init [Mutable] [Double] acc$a$conv$9$simp$1 = 0.0 : Double;
+  init [Mutable] [Double] acc$a$conv$38$simp$4$simp$6 = 0.0 : Double;
+  init [Mutable] [Double] acc$a$conv$38$simp$4$simp$7 = 0.0 : Double;
+  init [Mutable] [Double] acc$a$conv$38$simp$5 = 0.0 : Double;
+  load_resumable [Double] acc$a$conv$9$simp$0$simp$2;
+  load_resumable [Double] acc$a$conv$9$simp$0$simp$3;
+  load_resumable [Double] acc$a$conv$9$simp$1;
+  load_resumable [Double] acc$a$conv$38$simp$4$simp$6;
+  load_resumable [Double] acc$a$conv$38$simp$4$simp$7;
+  load_resumable [Double] acc$a$conv$38$simp$5;
   for_facts (elem$gen$fact : Int, elem$gen$date : Date) in new {
-    let anf$35 = doubleOfInt#
+    let anf$29 = doubleOfInt#
                  elem$gen$fact;
-    read [Mutable] [Double] acc$c$conv$16 = acc$c$conv$16;
-    write acc$c$conv$16 = add# [Double]
-                          acc$c$conv$16 (1.0 : Double);
-    read [Mutable] [Double] acc$c$conv$21 = acc$c$conv$21;
-    write acc$c$conv$21 = add# [Double]
-                          acc$c$conv$21 (1.0 : Double);
-    read [Mutable] [Double] acc$c$conv$23 = acc$c$conv$23;
-    write acc$c$conv$23 = add# [Double]
-                          acc$c$conv$23 (1.0 : Double);
-    read [Mutable] [Double] acc$s$conv$9 = acc$s$conv$9;
-    write acc$s$conv$9 = add# [Double]
-                         anf$35 acc$s$conv$9;
-    let anf$45 = mul# [Double]
-                 anf$35 anf$35;
-    read [Mutable] [Double] acc$s$conv$14 = acc$s$conv$14;
-    write acc$s$conv$14 = add# [Double]
-                          anf$45 acc$s$conv$14;
+    read [Mutable] [Double] acc$a$conv$9$simp$8$simp$10 = acc$a$conv$9$simp$0$simp$2;
+    read [Mutable] [Double] acc$a$conv$9$simp$8$simp$11 = acc$a$conv$9$simp$0$simp$3;
+    read [Mutable] [Double] acc$a$conv$9$simp$9 = acc$a$conv$9$simp$1;
+    let anf$40 = add# [Double]
+                 acc$a$conv$9$simp$8$simp$10
+                 (1.0 : Double);
+    let anf$42 = sub# [Double]
+                 anf$29
+                 acc$a$conv$9$simp$8$simp$11;
+    let anf$43 = div# anf$42 anf$40;
+    let anf$44 = add# [Double]
+                 acc$a$conv$9$simp$8$simp$11
+                 anf$43;
+    let anf$46 = sub# [Double]
+                 anf$29 anf$44;
+    let anf$47 = mul# [Double]
+                 anf$42 anf$46;
+    let anf$48 = add# [Double]
+                 acc$a$conv$9$simp$9 anf$47;
+    write acc$a$conv$9$simp$0$simp$2 = anf$40;
+    write acc$a$conv$9$simp$0$simp$3 = anf$44;
+    write acc$a$conv$9$simp$1 = anf$48;
     if (lt# [Int] elem$gen$fact
         (300 : Int)) {
-      read [Mutable] [Double] acc$c$conv$46 = acc$c$conv$46;
-      write acc$c$conv$46 = add# [Double]
-                            acc$c$conv$46 (1.0 : Double);
-      read [Mutable] [Double] acc$c$conv$51 = acc$c$conv$51;
-      write acc$c$conv$51 = add# [Double]
-                            acc$c$conv$51 (1.0 : Double);
-      read [Mutable] [Double] acc$c$conv$53 = acc$c$conv$53;
-      write acc$c$conv$53 = add# [Double]
-                            acc$c$conv$53 (1.0 : Double);
-      read [Mutable] [Double] acc$s$conv$39 = acc$s$conv$39;
-      write acc$s$conv$39 = add# [Double]
-                            anf$35 acc$s$conv$39;
-      read [Mutable] [Double] acc$s$conv$44 = acc$s$conv$44;
-      write acc$s$conv$44 = add# [Double]
-                            anf$45 acc$s$conv$44;
+      read [Mutable] [Double] acc$a$conv$38$simp$12$simp$14 = acc$a$conv$38$simp$4$simp$6;
+      read [Mutable] [Double] acc$a$conv$38$simp$12$simp$15 = acc$a$conv$38$simp$4$simp$7;
+      read [Mutable] [Double] acc$a$conv$38$simp$13 = acc$a$conv$38$simp$5;
+      let anf$70 = add# [Double]
+                   acc$a$conv$38$simp$12$simp$14
+                   (1.0 : Double);
+      let anf$72 = sub# [Double]
+                   anf$29
+                   acc$a$conv$38$simp$12$simp$15;
+      let anf$73 = div# anf$72 anf$70;
+      let anf$74 = add# [Double]
+                   acc$a$conv$38$simp$12$simp$15
+                   anf$73;
+      let anf$76 = sub# [Double]
+                   anf$29 anf$74;
+      let anf$77 = mul# [Double]
+                   anf$72 anf$76;
+      let anf$78 = add# [Double]
+                   acc$a$conv$38$simp$13 anf$77;
+      write acc$a$conv$38$simp$4$simp$6 = anf$70;
+      write acc$a$conv$38$simp$4$simp$7 = anf$74;
+      write acc$a$conv$38$simp$5 = anf$78;
     }
   }
-  save_resumable [Double] acc$s$conv$9;
-  save_resumable [Double] acc$s$conv$14;
-  save_resumable [Double] acc$c$conv$16;
-  save_resumable [Double] acc$c$conv$21;
-  save_resumable [Double] acc$c$conv$23;
-  save_resumable [Double] acc$s$conv$39;
-  save_resumable [Double] acc$s$conv$44;
-  save_resumable [Double] acc$c$conv$46;
-  save_resumable [Double] acc$c$conv$51;
-  save_resumable [Double] acc$c$conv$53;
-  read [Mutable] [Double] s$conv$9 = acc$s$conv$9;
-  read [Mutable] [Double] s$conv$14 = acc$s$conv$14;
-  read [Mutable] [Double] c$conv$16 = acc$c$conv$16;
-  read [Mutable] [Double] c$conv$21 = acc$c$conv$21;
-  read [Mutable] [Double] c$conv$23 = acc$c$conv$23;
-  read [Mutable] [Double] s$conv$39 = acc$s$conv$39;
-  read [Mutable] [Double] s$conv$44 = acc$s$conv$44;
-  read [Mutable] [Double] c$conv$46 = acc$c$conv$46;
-  read [Mutable] [Double] c$conv$51 = acc$c$conv$51;
-  read [Mutable] [Double] c$conv$53 = acc$c$conv$53;
-  let conv$17 = mul# [Double]
-                s$conv$14 c$conv$16;
-  let conv$18 = mul# [Double]
-                s$conv$9 s$conv$9;
-  let conv$19 = sub# [Double]
-                conv$17 conv$18;
-  let conv$25 = sub# [Double]
-                c$conv$23 (1.0 : Double);
-  let conv$26 = mul# [Double]
-                c$conv$21 conv$25;
-  let conv$27 = div# conv$19
-                conv$26;
-  let conv$29 = pow# [Double]
-                conv$27 (0.5 : Double);
-  let conv$47 = mul# [Double]
-                s$conv$44 c$conv$46;
-  let conv$48 = mul# [Double]
-                s$conv$39 s$conv$39;
-  let conv$49 = sub# [Double]
-                conv$47 conv$48;
-  let conv$55 = sub# [Double]
-                c$conv$53 (1.0 : Double);
-  let conv$56 = mul# [Double]
-                c$conv$51 conv$55;
-  let conv$57 = div# conv$49
-                conv$56;
-  let conv$59 = pow# [Double]
-                conv$57 (0.5 : Double);
-  let conv$60 = mul# [Double]
-                conv$29 conv$59;
-  output repl conv$60;
+  save_resumable [Double] acc$a$conv$9$simp$0$simp$2;
+  save_resumable [Double] acc$a$conv$9$simp$0$simp$3;
+  save_resumable [Double] acc$a$conv$9$simp$1;
+  save_resumable [Double] acc$a$conv$38$simp$4$simp$6;
+  save_resumable [Double] acc$a$conv$38$simp$4$simp$7;
+  save_resumable [Double] acc$a$conv$38$simp$5;
+  read [Mutable] [Double] a$conv$9$simp$16$simp$18 = acc$a$conv$9$simp$0$simp$2;
+  read [Mutable] [Double] a$conv$9$simp$17 = acc$a$conv$9$simp$1;
+  read [Mutable] [Double] a$conv$38$simp$20$simp$22 = acc$a$conv$38$simp$4$simp$6;
+  read [Mutable] [Double] a$conv$38$simp$21 = acc$a$conv$38$simp$5;
+  let anf$84 = sub# [Double]
+               a$conv$9$simp$16$simp$18
+               (1.0 : Double);
+  let conv$26 = div#
+                a$conv$9$simp$17 anf$84;
+  let conv$28 = pow# [Double]
+                conv$26 (0.5 : Double);
+  let anf$89 = sub# [Double]
+               a$conv$38$simp$20$simp$22
+               (1.0 : Double);
+  let conv$55 = div#
+                a$conv$38$simp$21 anf$89;
+  let conv$57 = pow# [Double]
+                conv$55 (0.5 : Double);
+  let conv$58 = mul# [Double]
+                conv$28 conv$57;
+  output repl conv$58;
 }
 
 - C:
@@ -442,16 +422,12 @@ typedef struct {
     idouble_t  repl;
 
     /* resumables */
-    idouble_t  acc_c_conv_16;
-    idouble_t  acc_c_conv_21;
-    idouble_t  acc_c_conv_23;
-    idouble_t  acc_c_conv_46;
-    idouble_t  acc_c_conv_51;
-    idouble_t  acc_c_conv_53;
-    idouble_t  acc_s_conv_14;
-    idouble_t  acc_s_conv_39;
-    idouble_t  acc_s_conv_44;
-    idouble_t  acc_s_conv_9;
+    idouble_t  acc_a_conv_38_simp_5;
+    idouble_t  acc_a_conv_38_simp_4_simp_6;
+    idouble_t  acc_a_conv_38_simp_4_simp_7;
+    idouble_t  acc_a_conv_9_simp_1;
+    idouble_t  acc_a_conv_9_simp_0_simp_2;
+    idouble_t  acc_a_conv_9_simp_0_simp_3;
 } icicle_state_t;
 
 static const iunit_t iunit  = 0x1c1c13;
@@ -498,47 +474,35 @@ static idouble_t INLINE idouble_err (icicle_state_t *s, ierror_t error)  {
 
 void compute(icicle_state_t *s)
 {
-    idouble_t  acc_c_conv_16;
-    idouble_t  acc_c_conv_21;
-    idouble_t  acc_c_conv_23;
-    idouble_t  acc_c_conv_46;
-    idouble_t  acc_c_conv_51;
-    idouble_t  acc_c_conv_53;
-    idouble_t  acc_s_conv_14;
-    idouble_t  acc_s_conv_39;
-    idouble_t  acc_s_conv_44;
-    idouble_t  acc_s_conv_9;
-    idouble_t  c_conv_16;
-    idouble_t  c_conv_21;
-    idouble_t  c_conv_23;
-    idouble_t  c_conv_46;
-    idouble_t  c_conv_51;
-    idouble_t  c_conv_53;
-    idouble_t  s_conv_14;
-    idouble_t  s_conv_39;
-    idouble_t  s_conv_44;
-    idouble_t  s_conv_9;
+    idouble_t  a_conv_38_simp_21;
+    idouble_t  a_conv_38_simp_20_simp_22;
+    idouble_t  a_conv_9_simp_17;
+    idouble_t  a_conv_9_simp_16_simp_18;
+    idouble_t  acc_a_conv_38_simp_13;
+    idouble_t  acc_a_conv_38_simp_5;
+    idouble_t  acc_a_conv_38_simp_12_simp_14;
+    idouble_t  acc_a_conv_38_simp_12_simp_15;
+    idouble_t  acc_a_conv_38_simp_4_simp_6;
+    idouble_t  acc_a_conv_38_simp_4_simp_7;
+    idouble_t  acc_a_conv_9_simp_1;
+    idouble_t  acc_a_conv_9_simp_9;
+    idouble_t  acc_a_conv_9_simp_0_simp_2;
+    idouble_t  acc_a_conv_9_simp_0_simp_3;
+    idouble_t  acc_a_conv_9_simp_8_simp_10;
+    idouble_t  acc_a_conv_9_simp_8_simp_11;
 
-    acc_s_conv_9                         = 0.0;
-    acc_s_conv_14                        = 0.0;
-    acc_c_conv_16                        = 0.0;
-    acc_c_conv_21                        = 0.0;
-    acc_c_conv_23                        = 0.0;
-    acc_s_conv_39                        = 0.0;
-    acc_s_conv_44                        = 0.0;
-    acc_c_conv_46                        = 0.0;
-    acc_c_conv_51                        = 0.0;
-    acc_c_conv_53                        = 0.0;
-    acc_s_conv_9                         = s->acc_s_conv_9;
-    acc_s_conv_14                        = s->acc_s_conv_14;
-    acc_c_conv_16                        = s->acc_c_conv_16;
-    acc_c_conv_21                        = s->acc_c_conv_21;
-    acc_c_conv_23                        = s->acc_c_conv_23;
-    acc_s_conv_39                        = s->acc_s_conv_39;
-    acc_s_conv_44                        = s->acc_s_conv_44;
-    acc_c_conv_46                        = s->acc_c_conv_46;
-    acc_c_conv_51                        = s->acc_c_conv_51;
-    acc_c_conv_53                        = s->acc_c_conv_53;
+    acc_a_conv_9_simp_0_simp_2           = 0.0;
+    acc_a_conv_9_simp_0_simp_3           = 0.0;
+    acc_a_conv_9_simp_1                  = 0.0;
+    acc_a_conv_38_simp_4_simp_6          = 0.0;
+    acc_a_conv_38_simp_4_simp_7          = 0.0;
+    acc_a_conv_38_simp_5                 = 0.0;
+    acc_a_conv_9_simp_0_simp_2           = s->acc_a_conv_9_simp_0_simp_2;
+    acc_a_conv_9_simp_0_simp_3           = s->acc_a_conv_9_simp_0_simp_3;
+    acc_a_conv_9_simp_1                  = s->acc_a_conv_9_simp_1;
+    acc_a_conv_38_simp_4_simp_6          = s->acc_a_conv_38_simp_4_simp_6;
+    acc_a_conv_38_simp_4_simp_7          = s->acc_a_conv_38_simp_4_simp_7;
+    acc_a_conv_38_simp_5                 = s->acc_a_conv_38_simp_5;
     
     const iint_t            new_count    = s->new_count;
     const idate_t    *const new_date     = s->new_date;
@@ -547,70 +511,57 @@ void compute(icicle_state_t *s)
     for (iint_t i = 0; i < new_count; i++) {
         idate_t    elem_gen_date         = new_date[i];
         iint_t     elem_gen_fact         = new_fact[i];
-        idouble_t  anf_35                = iint_extend (elem_gen_fact);
-        acc_c_conv_16                    = acc_c_conv_16;
-        acc_c_conv_16                    = idouble_add (acc_c_conv_16, 1.0);
-        acc_c_conv_21                    = acc_c_conv_21;
-        acc_c_conv_21                    = idouble_add (acc_c_conv_21, 1.0);
-        acc_c_conv_23                    = acc_c_conv_23;
-        acc_c_conv_23                    = idouble_add (acc_c_conv_23, 1.0);
-        acc_s_conv_9                     = acc_s_conv_9;
-        acc_s_conv_9                     = idouble_add (anf_35, acc_s_conv_9);
-        idouble_t  anf_45                = idouble_mul (anf_35, anf_35);
-        acc_s_conv_14                    = acc_s_conv_14;
-        acc_s_conv_14                    = idouble_add (anf_45, acc_s_conv_14);
+        idouble_t  anf_29                = iint_extend (elem_gen_fact);
+        acc_a_conv_9_simp_8_simp_10      = acc_a_conv_9_simp_0_simp_2;
+        acc_a_conv_9_simp_8_simp_11      = acc_a_conv_9_simp_0_simp_3;
+        acc_a_conv_9_simp_9              = acc_a_conv_9_simp_1;
+        idouble_t  anf_40                = idouble_add (acc_a_conv_9_simp_8_simp_10, 1.0);
+        idouble_t  anf_42                = idouble_sub (anf_29, acc_a_conv_9_simp_8_simp_11);
+        idouble_t  anf_43                = idouble_div (anf_42, anf_40);
+        idouble_t  anf_44                = idouble_add (acc_a_conv_9_simp_8_simp_11, anf_43);
+        idouble_t  anf_46                = idouble_sub (anf_29, anf_44);
+        idouble_t  anf_47                = idouble_mul (anf_42, anf_46);
+        idouble_t  anf_48                = idouble_add (acc_a_conv_9_simp_9, anf_47);
+        acc_a_conv_9_simp_0_simp_2       = anf_40;
+        acc_a_conv_9_simp_0_simp_3       = anf_44;
+        acc_a_conv_9_simp_1              = anf_48;
         
         if (iint_lt (elem_gen_fact, 300)) {
-            acc_c_conv_46                = acc_c_conv_46;
-            acc_c_conv_46                = idouble_add (acc_c_conv_46, 1.0);
-            acc_c_conv_51                = acc_c_conv_51;
-            acc_c_conv_51                = idouble_add (acc_c_conv_51, 1.0);
-            acc_c_conv_53                = acc_c_conv_53;
-            acc_c_conv_53                = idouble_add (acc_c_conv_53, 1.0);
-            acc_s_conv_39                = acc_s_conv_39;
-            acc_s_conv_39                = idouble_add (anf_35, acc_s_conv_39);
-            acc_s_conv_44                = acc_s_conv_44;
-            acc_s_conv_44                = idouble_add (anf_45, acc_s_conv_44);
+            acc_a_conv_38_simp_12_simp_14 = acc_a_conv_38_simp_4_simp_6;
+            acc_a_conv_38_simp_12_simp_15 = acc_a_conv_38_simp_4_simp_7;
+            acc_a_conv_38_simp_13        = acc_a_conv_38_simp_5;
+            idouble_t  anf_70            = idouble_add (acc_a_conv_38_simp_12_simp_14, 1.0);
+            idouble_t  anf_72            = idouble_sub (anf_29, acc_a_conv_38_simp_12_simp_15);
+            idouble_t  anf_73            = idouble_div (anf_72, anf_70);
+            idouble_t  anf_74            = idouble_add (acc_a_conv_38_simp_12_simp_15, anf_73);
+            idouble_t  anf_76            = idouble_sub (anf_29, anf_74);
+            idouble_t  anf_77            = idouble_mul (anf_72, anf_76);
+            idouble_t  anf_78            = idouble_add (acc_a_conv_38_simp_13, anf_77);
+            acc_a_conv_38_simp_4_simp_6  = anf_70;
+            acc_a_conv_38_simp_4_simp_7  = anf_74;
+            acc_a_conv_38_simp_5         = anf_78;
         }
         
     }
     
-    s->acc_s_conv_9                      = acc_s_conv_9;
-    s->acc_s_conv_14                     = acc_s_conv_14;
-    s->acc_c_conv_16                     = acc_c_conv_16;
-    s->acc_c_conv_21                     = acc_c_conv_21;
-    s->acc_c_conv_23                     = acc_c_conv_23;
-    s->acc_s_conv_39                     = acc_s_conv_39;
-    s->acc_s_conv_44                     = acc_s_conv_44;
-    s->acc_c_conv_46                     = acc_c_conv_46;
-    s->acc_c_conv_51                     = acc_c_conv_51;
-    s->acc_c_conv_53                     = acc_c_conv_53;
-    s_conv_9                             = acc_s_conv_9;
-    s_conv_14                            = acc_s_conv_14;
-    c_conv_16                            = acc_c_conv_16;
-    c_conv_21                            = acc_c_conv_21;
-    c_conv_23                            = acc_c_conv_23;
-    s_conv_39                            = acc_s_conv_39;
-    s_conv_44                            = acc_s_conv_44;
-    c_conv_46                            = acc_c_conv_46;
-    c_conv_51                            = acc_c_conv_51;
-    c_conv_53                            = acc_c_conv_53;
-    idouble_t  conv_17                   = idouble_mul (s_conv_14, c_conv_16);
-    idouble_t  conv_18                   = idouble_mul (s_conv_9, s_conv_9);
-    idouble_t  conv_19                   = idouble_sub (conv_17, conv_18);
-    idouble_t  conv_25                   = idouble_sub (c_conv_23, 1.0);
-    idouble_t  conv_26                   = idouble_mul (c_conv_21, conv_25);
-    idouble_t  conv_27                   = idouble_div (conv_19, conv_26);
-    idouble_t  conv_29                   = idouble_pow (conv_27, 0.5);
-    idouble_t  conv_47                   = idouble_mul (s_conv_44, c_conv_46);
-    idouble_t  conv_48                   = idouble_mul (s_conv_39, s_conv_39);
-    idouble_t  conv_49                   = idouble_sub (conv_47, conv_48);
-    idouble_t  conv_55                   = idouble_sub (c_conv_53, 1.0);
-    idouble_t  conv_56                   = idouble_mul (c_conv_51, conv_55);
-    idouble_t  conv_57                   = idouble_div (conv_49, conv_56);
-    idouble_t  conv_59                   = idouble_pow (conv_57, 0.5);
-    idouble_t  conv_60                   = idouble_mul (conv_29, conv_59);
-    s->repl                              = conv_60;
+    s->acc_a_conv_9_simp_0_simp_2        = acc_a_conv_9_simp_0_simp_2;
+    s->acc_a_conv_9_simp_0_simp_3        = acc_a_conv_9_simp_0_simp_3;
+    s->acc_a_conv_9_simp_1               = acc_a_conv_9_simp_1;
+    s->acc_a_conv_38_simp_4_simp_6       = acc_a_conv_38_simp_4_simp_6;
+    s->acc_a_conv_38_simp_4_simp_7       = acc_a_conv_38_simp_4_simp_7;
+    s->acc_a_conv_38_simp_5              = acc_a_conv_38_simp_5;
+    a_conv_9_simp_16_simp_18             = acc_a_conv_9_simp_0_simp_2;
+    a_conv_9_simp_17                     = acc_a_conv_9_simp_1;
+    a_conv_38_simp_20_simp_22            = acc_a_conv_38_simp_4_simp_6;
+    a_conv_38_simp_21                    = acc_a_conv_38_simp_5;
+    idouble_t  anf_84                    = idouble_sub (a_conv_9_simp_16_simp_18, 1.0);
+    idouble_t  conv_26                   = idouble_div (a_conv_9_simp_17, anf_84);
+    idouble_t  conv_28                   = idouble_pow (conv_26, 0.5);
+    idouble_t  anf_89                    = idouble_sub (a_conv_38_simp_20_simp_22, 1.0);
+    idouble_t  conv_55                   = idouble_div (a_conv_38_simp_21, anf_89);
+    idouble_t  conv_57                   = idouble_pow (conv_55, 0.5);
+    idouble_t  conv_58                   = idouble_mul (conv_28, conv_57);
+    s->repl                              = conv_58;
 }
 
 - C evaluation:
