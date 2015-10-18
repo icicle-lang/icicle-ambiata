@@ -14,9 +14,6 @@ maxby a b = let fold1 s = (a, b)
    :  case s | (a1, b1) -> (case a > a1 | True -> (a,b) | False -> (a1,b1) end) end
    ~> case s | (a1, b1) -> b1 end.
 
-# Numerically unstable standard deviation. Best to not use.
-sd_old v = let v_ = double v ~> let sv = (sum v_) ~> (((sum (v_*v_) * count) - (sv * sv)) / (count * (count - 1)))^(0.5).
-
 # Numerically stable variance
 variance v =
   let v_ = double v ~>

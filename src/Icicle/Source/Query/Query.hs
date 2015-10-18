@@ -148,7 +148,6 @@ reannotQT f qt
  = qt
  { query = reannotQ f (query qt) }
 
-
 annotOfQuery :: Query a n -> a
 annotOfQuery q
  = case contexts q of
