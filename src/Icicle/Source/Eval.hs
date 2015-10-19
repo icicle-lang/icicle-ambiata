@@ -254,11 +254,11 @@ evalP ann p xs vs env
               | otherwise -> err
              DaysBetween
               | [VDateTime i, VDateTime j] <- args
-              -> return $ VInt $ DT.daysDifference i j
+              -> return $ VDouble $ fromIntegral $ DT.daysDifference i j
               | otherwise -> err
              DaysEpoch
               | [VDateTime i] <- args
-              -> return $ VInt $ DT.daysOfDate i
+              -> return $ VDouble $ fromIntegral $ DT.daysOfDate i
               | otherwise -> err
     Op o
      -> do  args <- mapM (\x' -> evalX x' vs env) xs
@@ -367,38 +367,38 @@ evalP ann p xs vs env
               -> err
 
              DateBinary DaysBefore
-              | [VInt i, VDateTime j] <- args
-              -> return $ VDateTime $ DT.minusDays j i
+              | [VDouble i, VDateTime j] <- args
+              -> return $ VDateTime $ DT.minusDays j $ truncate i
               | otherwise
               -> err
 
              DateBinary DaysAfter
-              | [VInt i, VDateTime j] <- args
-              -> return $ VDateTime $ DT.minusDays j $ negate i
+              | [VDouble i, VDateTime j] <- args
+              -> return $ VDateTime $ DT.minusDays j $ negate $ truncate i
               | otherwise
               -> err
 
              DateBinary WeeksBefore
-              | [VInt i, VDateTime j] <- args
-              -> return $ VDateTime $ DT.minusDays j (7*i)
+              | [VDouble i, VDateTime j] <- args
+              -> return $ VDateTime $ DT.minusDays j (7 * truncate i)
               | otherwise
               -> err
 
              DateBinary WeeksAfter
-              | [VInt i, VDateTime j] <- args
-              -> return $ VDateTime $ DT.minusDays j $ negate (7*i)
+              | [VDouble i, VDateTime j] <- args
+              -> return $ VDateTime $ DT.minusDays j $ negate (7 * truncate i)
               | otherwise
               -> err
 
              DateBinary MonthsBefore
-              | [VInt i, VDateTime j] <- args
-              -> return $ VDateTime $ DT.minusMonths j i
+              | [VDouble i, VDateTime j] <- args
+              -> return $ VDateTime $ DT.minusMonths j $ truncate i
               | otherwise
               -> err
 
              DateBinary MonthsAfter
-              | [VInt i, VDateTime j] <- args
-              -> return $ VDateTime $ DT.minusMonths j $ negate i
+              | [VDouble i, VDateTime j] <- args
+              -> return $ VDateTime $ DT.minusMonths j $ negate $ truncate i
               | otherwise
               -> err
 
