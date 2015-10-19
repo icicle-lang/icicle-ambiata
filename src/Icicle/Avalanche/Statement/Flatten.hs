@@ -283,6 +283,50 @@ flatX a_fresh xx stm
        -> lift $ Left $ FlattenErrorPrimBadArgs p xs
 
 
+      Core.PrimLatest (Core.PrimLatestMake t)
+       | [i] <- xs
+       -> flatX' i
+       $  \i'
+       -> do   tmpN      <- fresh
+               let fpBuf  = xPrim (Flat.PrimBuf $ Flat.PrimBufMake t)
+               stm'      <- stm (xVar tmpN)
+
+               return
+                 $ Let tmpN (fpBuf `xApp` i') stm'
+
+       | otherwise
+       -> lift $ Left $ FlattenErrorPrimBadArgs p xs
+
+
+      Core.PrimLatest (Core.PrimLatestPush t)
+       | [buf, e]    <- xs
+       -> flatX' e
+       $  \e'
+       -> flatX' buf
+       $  \buf'
+       -> do   tmpN      <- fresh
+               let fpPush = xPrim (Flat.PrimBuf $ Flat.PrimBufPush t) `xApp` buf' `xApp` e'
+               return
+                 $ Let tmpN fpPush mempty
+
+       | otherwise
+       -> lift $ Left $ FlattenErrorPrimBadArgs p xs
+
+
+      Core.PrimLatest (Core.PrimLatestRead t)
+       | [buf] <- xs
+       -> flatX' buf
+       $  \buf'
+       -> do   tmpN       <- fresh
+               let fpRead  = xPrim (Flat.PrimBuf $ Flat.PrimBufRead t) `xApp` buf'
+               stm'       <- stm (xVar tmpN)
+               return
+                 $ Let tmpN fpRead stm'
+
+       | otherwise
+       -> lift $ Left $ FlattenErrorPrimBadArgs p xs
+
+
   -- Convert arguments to a simple primitive.
   -- conv is what we've already converted
   primApps p [] conv
@@ -412,4 +456,3 @@ flatX a_fresh xx stm
             | otherwise
             = Min.PrimPairSnd ta tb
      in (xPrim $ Flat.PrimMinimal $ Min.PrimPair $ pm) `xApp` e
-

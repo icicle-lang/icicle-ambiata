@@ -1,42 +1,41 @@
 -- | Convert queries into folds.
 -- Used in body of group-bys, distincts,...
 
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE PatternGuards #-}
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PatternGuards     #-}
 module Icicle.Source.ToCore.Fold (
     convertFold
   , ConvertFoldResult(..)
   ) where
 
-import                  Icicle.Source.Query
-import                  Icicle.Source.ToCore.Base
-import                  Icicle.Source.ToCore.Exp
-import                  Icicle.Source.ToCore.Prim
-import                  Icicle.Source.Type
+import           Icicle.Common.Base
+import qualified Icicle.Common.Exp.Prim.Minimal as Min
+import qualified Icicle.Common.Exp.Simp.Beta    as Beta
+import           Icicle.Common.Fresh
+import qualified Icicle.Common.Type             as T
+import qualified Icicle.Core                    as C
+import qualified Icicle.Core.Exp.Combinators    as CE
+import           Icicle.Source.Query
+import           Icicle.Source.ToCore.Base
+import           Icicle.Source.ToCore.Exp
+import           Icicle.Source.ToCore.Prim
+import           Icicle.Source.Type
 
-import qualified        Icicle.Core as C
-import qualified        Icicle.Core.Exp.Combinators as CE
-import qualified        Icicle.Common.Exp.Prim.Minimal as Min
-import qualified        Icicle.Common.Type as T
-import                  Icicle.Common.Fresh
-import                  Icicle.Common.Base
+import           P
 
-
-import                  P
-
-import                  Control.Monad.Trans.Class
-import                  Data.List (zip)
-import qualified        Data.Map    as Map
+import           Control.Monad.Trans.Class
+import           Data.List                      (zip)
+import qualified Data.Map                       as Map
 
 
 data ConvertFoldResult n
  = ConvertFoldResult
- { foldKons     :: C.Exp () n
- , foldZero     :: C.Exp () n
- , mapExtract   :: C.Exp () n
- , typeFold     :: T.ValType
- , typeExtract  :: T.ValType
+ { foldKons    :: C.Exp () n
+ , foldZero    :: C.Exp () n
+ , mapExtract  :: C.Exp () n
+ , typeFold    :: T.ValType
+ , typeExtract :: T.ValType
  } deriving (Eq, Ord, Show)
 
 
@@ -225,9 +224,88 @@ convertFold q
                      CE.@~ (foldKons res CE.@~ prev') CE.@~ prev' CE.@~ e' )
             return (res { foldKons = k' })
 
+    -- If latest is being used in this position, it must be after a group.
+    (Latest _ i : _)
+     | case getTemporalityOrPure $ annResult $ annotOfQuery q' of
+        TemporalityElement  -> True
+        TemporalityPure     -> True
+        _                   -> False
+     -> do n'arr <- lift fresh
+           n'acc <- lift fresh
+           n'buf <- lift fresh
+           n'q   <- lift fresh
+
+           inp       <- convertInputName
+           inpT      <- convertInputType
+           let t'e    = inpT
+           let t'buf  = T.BufT t'e
+
+           res       <- convertWithInputName n'q $ convertExpQ q'
+           t'x       <- convertValType' $ annResult $ annotOfQuery q'
+           let t'arr  = T.ArrayT t'x
+
+           let kons  = CE.xLam n'acc t'buf
+                     ( CE.pushBuf t'e
+                         CE.@~ CE.xVar n'acc
+                         CE.@~ CE.xVar inp )
+           let zero  = CE.emptyBuf t'e
+                         CE.@~ CE.constI i
+
+           let x'    = CE.xLam n'buf t'buf
+                     $ CE.xLet n'arr (CE.readBuf t'e CE.@~ CE.xVar n'buf)
+                     ( CE.xPrim (C.PrimArray $ C.PrimArrayMap t'e t'x)
+                         CE.@~ CE.xLam n'q t'e res
+                         CE.@~ CE.xVar n'arr )
+
+           return $ ConvertFoldResult kons zero x' t'buf t'arr
+
+     | otherwise
+     -> do n'arr <- lift fresh
+           n'acc <- lift fresh
+           n'buf <- lift fresh
+           n'e   <- lift fresh
+           n'x   <- lift fresh
+           n'a   <- lift fresh
+
+           inp       <- convertInputName
+           inpT      <- convertInputType
+           let t'e    = inpT
+           let t'buf  = T.BufT t'e
+
+           res       <- convertWithInputName n'e $ convertFold q'
+           let t'x    = typeFold res
+           let t'r    = typeExtract res
+
+           let kons  = CE.xLam n'acc t'buf
+                     ( CE.pushBuf t'e
+                         CE.@~ CE.xVar n'acc
+                         CE.@~ CE.xVar inp )
+           let zero  = CE.emptyBuf t'e
+                         CE.@~ CE.constI i
+
+           -- Flip the res fold arguments so it can be use with Array_fold
+           let k'    = CE.xLam n'x t'x
+                     $ CE.xLam n'e t'e
+                     $ beta
+                     ( foldKons res CE.@~ CE.xVar n'x )
+
+           -- Apply the res fold
+           let x'    = CE.xLet n'arr
+                     ( CE.readBuf t'e CE.@~ CE.xVar n'buf )
+                     ( CE.xPrim (C.PrimFold (C.PrimFoldArray t'e) t'x)
+                         CE.@~ k'
+                         CE.@~ beta (foldZero res)
+                         CE.@~ CE.xVar n'arr )
+
+           -- Apply the res extract
+           let xtra  = CE.xLam n'buf t'buf
+                     $ CE.xLet n'a x'
+                     ( mapExtract res CE.@~ CE.xVar n'a )
+
+           return $ ConvertFoldResult kons zero xtra t'buf t'r
+
+
     (Windowed (Annot { annAnnot = ann }) _ _ : _)
-     -> errNotAllowed ann
-    (Latest (Annot { annAnnot = ann }) _ : _)
      -> errNotAllowed ann
     (GroupBy (Annot { annAnnot = ann }) _ : _)
      -> errNotAllowed ann
@@ -314,6 +392,10 @@ convertFold q
 
   errNotAllowed ann
    = convertError $ ConvertErrorContextNotAllowedInGroupBy ann q
+
+  -- Perform beta reduction, just to simplify the output a tiny bit.
+  beta = Beta.betaToLets ()
+       . Beta.beta Beta.isSimpleValue
 
   -- Construct an identity function
   idFun tt = lift fresh >>= \n -> return (CE.xLam n tt (CE.xVar n))

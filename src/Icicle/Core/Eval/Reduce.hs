@@ -9,7 +9,6 @@ module Icicle.Core.Eval.Reduce (
 import              Icicle.BubbleGum
 
 import              Icicle.Common.Base
-import              Icicle.Common.Type
 import              Icicle.Common.Value as V
 import              Icicle.Core.Reduce
 import qualified    Icicle.Common.Exp.Eval  as XV
@@ -73,25 +72,6 @@ eval reduction_name xh sh r
 
             return (bg, v')
 
-    -- Get most recent or last num elements
-    RLatest _ num n
-     -> do  -- First get the stream
-            sv <- maybeToRight  (SV.RuntimeErrorNoSuchStream n)
-                                (Map.lookup n sh)
-            -- Evaluate the number
-            num' <- evalX num
-            -- It better be an Int
-            case num' of
-             V.VBase (VInt i)
-                 -- Take the latest i 
-              -> let sv' = latest i $ fst sv
-                 -- and split into history and values
-                 in  return ( BubbleGumFacts $ flavoursOfSource sv'
-                            , VArray $ fmap (snd.fact) sv' )
-
-             _
-              -> Left (SV.RuntimeErrorExpNotOfType num' IntT)
-
  where
   -- Evaluate expression with environment,
   -- raise to a stream error if it fails
@@ -109,12 +89,6 @@ eval reduction_name xh sh r
   appV f a
    = mapLeft SV.RuntimeErrorExp
    $ XV.applyValues XV.evalPrim f a
-
-  -- In real code we use a circular buffer, but here we can
-  -- afford to keep everything in memory
-  latest i vs
-   = let len = length vs
-     in  drop (len - i) vs
 
   -- Get the history of some stream input
   flavoursOfSource

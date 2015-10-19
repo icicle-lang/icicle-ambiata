@@ -58,12 +58,16 @@ data CheckEnv a n
  }
 
 -- | Typechecking invariants that aren't checked by the type system.
+--   i.e. unimplemented things.
+--
 data Invariants
  = Invariants
  -- | We can't have windows or other group-like things inside groups.
  -- This is actually treating all of latests, distincts and groups as "group-like"
  -- because they all require compilation to a single fold.
  { allowWindowsOrGroups :: Bool
+ -- | Latest is good now
+ , allowLatest :: Bool
  }
 
 -- | Initial environment at top-level, not inside a group, and allowing contexts
@@ -72,7 +76,7 @@ emptyCheckEnv
  = CheckEnv Map.empty Map.empty emptyInvariants
 
 emptyInvariants :: Invariants
-emptyInvariants = Invariants True
+emptyInvariants = Invariants True True
 
 --------------------------------------------------------------------------------
 

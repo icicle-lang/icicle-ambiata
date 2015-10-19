@@ -7,6 +7,7 @@ module Icicle.Avalanche.Prim.Flat (
     , PrimUpdate  (..)
     , PrimArray   (..)
     , PrimOption  (..)
+    , PrimBuf     (..)
     , typeOfPrim
     , flatFragment
   ) where
@@ -31,7 +32,8 @@ flatFragment
 -- Folds are converted to imperative accessors, loops and so on.
 data Prim
  -- | Include a bunch of basic things common across languages
- = PrimMinimal    Min.Prim
+ = PrimMinimal         Min.Prim
+
  -- | Safe projections
  | PrimProject         PrimProject
 
@@ -46,6 +48,9 @@ data Prim
 
  -- | Option prims
  | PrimOption          PrimOption
+
+ -- | Abstract circular buffer prims
+ | PrimBuf             PrimBuf
  deriving (Eq, Ord, Show)
 
 
@@ -86,6 +91,12 @@ data PrimOption
  deriving (Eq, Ord, Show)
 
 
+-- | These correspond directly to the latest buffer primitives in Core.
+data PrimBuf
+ = PrimBufMake ValType
+ | PrimBufPush ValType
+ | PrimBufRead ValType
+ deriving (Eq, Ord, Show)
 
 
 -- | A primitive always has a well-defined type
@@ -142,6 +153,15 @@ typeOfPrim p
     PrimOption  (PrimOptionPack t)
      -> FunT [funOfVal BoolT, funOfVal t] (OptionT t)
 
+    PrimBuf     (PrimBufMake t)
+     -> FunT [funOfVal IntT] (BufT t)
+
+    PrimBuf     (PrimBufPush t)
+     -> FunT [funOfVal (BufT t), funOfVal t] (BufT t)
+
+    PrimBuf     (PrimBufRead t)
+     -> FunT [funOfVal (BufT t)] (ArrayT t)
+
 
 -- Pretty -------------
 
@@ -193,3 +213,12 @@ instance Pretty Prim where
 
  pretty (PrimOption (PrimOptionPack t))
   = text "Option_pack#" <+> brackets (pretty t)
+
+ pretty (PrimBuf    (PrimBufMake t))
+  = text "Buf_make#" <+> brackets (pretty t)
+
+ pretty (PrimBuf    (PrimBufPush t))
+  = text "Buf_push#" <+> brackets (pretty t)
+
+ pretty (PrimBuf    (PrimBufRead t))
+  = text "Buf_read#" <+> brackets (pretty t)

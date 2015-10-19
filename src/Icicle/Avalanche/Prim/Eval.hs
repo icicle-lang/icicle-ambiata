@@ -14,7 +14,8 @@ import Icicle.Avalanche.Prim.Flat
 import              P
 import              Data.List (lookup, zip, zipWith)
 
-import qualified    Data.Map as Map
+import qualified    Data.List as List
+import qualified    Data.Map  as Map
 import qualified    Icicle.Common.Exp.Prim.Eval as Min
 
 evalPrim :: Ord n => EvalPrim a n Prim
@@ -61,7 +62,26 @@ evalPrim p vs
       | otherwise
       -> primError
 
+     PrimBuf (PrimBufMake _)
+      | [VBase (VInt i)] <- vs
+      -> return . VBase . VBuf
+      $  List.replicate i (VError ExceptScalarVariableNotAvailable)
+      | otherwise
+      -> primError
 
+     PrimBuf (PrimBufPush _)
+      | [VBase (VBuf as), VBase e] <- vs
+      -> return . VBase . VBuf
+      $  circ e as
+      | otherwise
+      -> primError
+
+     PrimBuf (PrimBufRead _)
+      | [VBase (VBuf as)] <- vs
+      -> return . VBase . VArray
+      $ filter justElem as
+      | otherwise
+      -> primError
 
      -- TODO: give better errors here - at least that an unsafe went wrong
      PrimUnsafe (PrimUnsafeArrayIndex _)
@@ -141,4 +161,11 @@ evalPrim p vs
       -> return $ VBase $ VNone
       | otherwise
       -> primError
+ where
+  circ x xs
+   = List.drop 1 (xs <> [x])
 
+  justElem (VError ExceptScalarVariableNotAvailable)
+   = False
+  justElem _
+   = True

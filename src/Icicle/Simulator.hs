@@ -153,6 +153,10 @@ valueFromCore v
 
     V.VError _    -> return Tombstone
 
+    -- TODO need an efficient representation of circular buffer
+    V.VBuf vs      ->  ListValue . List
+                  <$> mapM valueFromCore vs
+
     -- TODO XXX for now just unwrap the Either constructors.
     -- This is somewhat OK if it is an "Either Error actualvalue"
     V.VLeft  a    -> valueFromCore a
