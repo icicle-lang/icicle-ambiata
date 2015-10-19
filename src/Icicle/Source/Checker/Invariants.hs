@@ -40,10 +40,12 @@ invariantQ ctx (Query (c:cs) xfinal)
      | allowWindowsOrGroups inv
      -> goNotAllowed
      | otherwise
-     -> errNotAllowed "Latest inside a group or distinct is not currently supported. Latest inside a latest is silly, and also not supported"
+     -> errNotAllowed "Latest inside a latest is silly, not supported"
     GroupBy _ x
      | allowWindowsOrGroups inv
-     -> goX x >> goNotAllowed
+     -> case cs of
+         (Latest _ _ : _) -> goX x >> go
+         _                -> goX x >> goNotAllowed
      | otherwise
      -> errNotAllowed "Nested groups are not supported"
     Distinct _ x
