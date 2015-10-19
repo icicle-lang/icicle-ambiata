@@ -33,6 +33,7 @@ import           Test.QuickCheck.Instances ()
 import           P
 
 import           Data.Text  as T
+import qualified Data.List  as List
 import qualified Data.Map   as Map
 
 
@@ -429,7 +430,8 @@ baseValueForType t
     ArrayT t'
      -> smaller (VArray <$> listOf (baseValueForType t'))
     BufT t'
-     -> smaller (VBuf <$> listOf (baseValueForType t'))
+     -> do n <- arbitrary
+           smaller (VBuf n . List.take n <$> infiniteListOf (baseValueForType t'))
     PairT a b
      -> smaller (VPair <$> baseValueForType a <*> baseValueForType b)
     SumT a b
