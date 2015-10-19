@@ -234,32 +234,23 @@ convertFold q
         TemporalityElement  -> True
         TemporalityPure     -> True
         _                   -> False
-     -> do n'arr <- lift fresh
-           n'acc <- lift fresh
+     -> do n'acc <- lift fresh
            n'buf <- lift fresh
-           n'q   <- lift fresh
 
-           inp       <- convertInputName
-           inpT      <- convertInputType
-           let t'e    = inpT
+           res       <- convertExpQ q'
+           t'e       <- convertValType' $ annResult $ annotOfQuery q'
+           let t'arr  = T.ArrayT t'e
            let t'buf  = T.BufT t'e
-
-           res       <- convertWithInputName n'q $ convertExpQ q'
-           t'x       <- convertValType' $ annResult $ annotOfQuery q'
-           let t'arr  = T.ArrayT t'x
 
            let kons  = CE.xLam n'acc t'buf
                      ( CE.pushBuf t'e
                          CE.@~ CE.xVar n'acc
-                         CE.@~ CE.xVar inp )
+                         CE.@~ res )
            let zero  = CE.emptyBuf t'e
                          CE.@~ CE.constI i
 
            let x'    = CE.xLam n'buf t'buf
-                     $ CE.xLet n'arr (CE.readBuf t'e CE.@~ CE.xVar n'buf)
-                     ( CE.xPrim (C.PrimArray $ C.PrimArrayMap t'e t'x)
-                         CE.@~ CE.xLam n'q t'e res
-                         CE.@~ CE.xVar n'arr )
+                     ( CE.readBuf t'e CE.@~ CE.xVar n'buf )
 
            return $ ConvertFoldResult kons zero x' t'buf t'arr
 
