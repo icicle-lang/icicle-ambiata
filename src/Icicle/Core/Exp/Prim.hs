@@ -5,6 +5,7 @@ module Icicle.Core.Exp.Prim (
     , PrimFold      (..)
     , PrimArray     (..)
     , PrimMap       (..)
+    , PrimLatest    (..)
     , typeOfPrim
     ) where
 
@@ -19,13 +20,15 @@ import              P
 -- Includes folds etc that won't be present in Avalanche
 data Prim
  -- | Include a bunch of basic things common across languages
- = PrimMinimal    Min.Prim
+ = PrimMinimal  Min.Prim
  -- | Fold and return type
  | PrimFold     PrimFold ValType
  -- | Array primitives
  | PrimArray    PrimArray
  -- | Map primitives
  | PrimMap      PrimMap
+ -- | Circular buffer for latest
+ | PrimLatest   PrimLatest
  deriving (Eq, Ord, Show)
 
 
@@ -49,6 +52,14 @@ data PrimArray
 data PrimMap
  = PrimMapInsertOrUpdate ValType ValType
  | PrimMapMapValues ValType ValType ValType
+ deriving (Eq, Ord, Show)
+
+
+-- | Latest buffer primitives
+data PrimLatest
+ = PrimLatestMake ValType
+ | PrimLatestPush ValType
+ | PrimLatestRead ValType
  deriving (Eq, Ord, Show)
 
 
@@ -79,10 +90,16 @@ typeOfPrim p
     -- Map primitives
     PrimMap (PrimMapInsertOrUpdate k v)
      -> FunT [FunT [funOfVal v] v, funOfVal v, funOfVal k, funOfVal (MapT k v)] (MapT k v)
-
     PrimMap (PrimMapMapValues k v v')
      -> FunT [FunT [funOfVal v] v', funOfVal (MapT k v)] (MapT k v')
 
+    -- Latest buffer primitives
+    PrimLatest (PrimLatestMake t)
+     -> FunT [funOfVal IntT] (BufT t)
+    PrimLatest (PrimLatestPush t)
+     -> FunT [funOfVal (BufT t), funOfVal t] (BufT t)
+    PrimLatest (PrimLatestRead t)
+     -> FunT [funOfVal (BufT t)] (ArrayT t)
 
 
 -- Pretty -------------
@@ -112,4 +129,13 @@ instance Pretty Prim where
 
  pretty (PrimMap (PrimMapMapValues k v v'))
   = text "Map_mapValues#" <+> brackets (pretty k) <+> brackets (pretty v) <+> brackets (pretty v')
+
+ pretty (PrimLatest (PrimLatestMake t))
+  = text "Latest_make#" <+> brackets (pretty t)
+
+ pretty (PrimLatest (PrimLatestPush t))
+  = text "Latest_push#" <+> brackets (pretty t)
+
+ pretty (PrimLatest (PrimLatestRead t))
+  = text "Latest_read#" <+> brackets (pretty t)
 

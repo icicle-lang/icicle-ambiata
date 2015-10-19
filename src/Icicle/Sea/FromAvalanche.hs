@@ -357,6 +357,8 @@ seaOfValType t
      StringT   -> "istring_t "
      DateTimeT -> "idate_t   "
      StructT _ -> "istruct_t "
+     BufT    _ -> "ibuf_t    "
+     ArrayT  _ -> "iarray_t  "
      _         -> seaError "seaOfValType" t
 
 valTypeOfExp :: Exp (Annot a) n p -> Maybe ValType

@@ -57,6 +57,7 @@ c$conv$11 =
     \conv$10 : ((Sum Error Int), DateTime). 
     add# [Int] c$conv$11 (1 : Int))
     (0 : Int) conv$2
+<<<<<<< HEAD
 conv$16 =
     rlatest [(Sum Error Int)]
     (3 : Int) conv$17
@@ -89,6 +90,27 @@ conv$27 =
 Returning:
 repl =
     conv$27
+=======
+conv$9 =
+    rfold   [Int] [Buf Int] (
+    \conv$10 : Buf Int.  
+    \conv$11 : Int. 
+    Latest_push# [Int] conv$10
+    conv$11)
+    ([ExceptScalarVariableNotAvailable
+     ,ExceptScalarVariableNotAvailable
+     ,ExceptScalarVariableNotAvailable] : Buf Int)
+    conv$7
+Postcomputations with date as now$conv$1:
+conv$6 =
+    Latest_read# [Int] conv$9
+conv$12 =
+    pair# [Int] [Array Int]
+    c$conv$5 conv$6
+Returning:
+repl =
+    conv$12
+>>>>>>> 1c6d00cdeacf74e593a515edefbae9ff2bbba592
 
 
 - Core type error:
@@ -115,6 +137,7 @@ Post error:
 - Avalanche:
 gen$date = DATE
 {
+<<<<<<< HEAD
   init [Latest] [(Sum Error Int)] acc$conv$16 = 3 : Int;
   for_facts (elem$gen$fact : (Sum Error Int), elem$gen$date : Date) in history {
     let gen$fact = pair# [(Sum Error Int)] [DateTime]
@@ -127,6 +150,16 @@ gen$date = DATE
   load_resumable [Int] acc$c$conv$11;
   for_facts (elem$gen$fact : (Sum Error Int), elem$gen$date : Date) in new {
     let gen$fact = pair# [(Sum Error Int)] [DateTime]
+=======
+  init [Mutable] [Int] acc$c$conv$5 = 0 : Int;
+  init [Mutable] [Buf Int] acc$conv$9 = [ExceptScalarVariableNotAvailable
+                                        ,ExceptScalarVariableNotAvailable
+                                        ,ExceptScalarVariableNotAvailable] : Buf Int;
+  load_resumable [Int] acc$c$conv$5;
+  load_resumable [Buf Int] acc$conv$9;
+  for_facts (elem$gen$fact : Int, elem$gen$date : Date) in new {
+    let gen$fact = pair# [Int] [DateTime]
+>>>>>>> 1c6d00cdeacf74e593a515edefbae9ff2bbba592
                    elem$gen$fact elem$gen$date;
     let anf$2 = fst# [(Sum Error Int)] [DateTime]
                 gen$fact;
@@ -149,6 +182,7 @@ gen$date = DATE
       write acc$c$conv$11 = add# [Int]
                             acc$c$conv$11 (1 : Int);
     }
+<<<<<<< HEAD
     let elem$conv$17 = anf$2;
     push acc$conv$16(elem$conv$17);
   }
@@ -179,11 +213,28 @@ gen$date = DATE
                                in conv$23) conv$16
                  in conv$25) conv$12;
   output repl conv$27;
+=======
+    let elem$conv$7 = anf$1;
+    read [Mutable] [Buf Int] acc$conv$9 = acc$conv$9;
+    write acc$conv$9 = Latest_push# [Int]
+                       acc$conv$9 elem$conv$7;
+  }
+  save_resumable [Int] acc$c$conv$5;
+  save_resumable [Buf Int] acc$conv$9;
+  read [Mutable] [Int] c$conv$5 = acc$c$conv$5;
+  read [Mutable] [Buf Int] conv$9 = acc$conv$9;
+  let conv$6 = Latest_read# [Int]
+               conv$9;
+  let conv$12 = pair# [Int] [Array Int]
+                c$conv$5 conv$6;
+  output repl conv$12;
+>>>>>>> 1c6d00cdeacf74e593a515edefbae9ff2bbba592
 }
 
 - Flattened:
 gen$date = DATE
 {
+<<<<<<< HEAD
   init [Latest] [(Sum Error Int)] acc$conv$16 = 3 : Int;
   for_facts (elem$gen$fact : (Sum Error Int), elem$gen$date : Date) in history {
     push acc$conv$16(elem$gen$fact);
@@ -264,6 +315,28 @@ gen$date = DATE
   }
   read [Mutable] [(Sum Error (Int, Array Int))] flat$6 = flat$6;
   output repl flat$6;
+=======
+  init [Mutable] [Int] acc$c$conv$5 = 0 : Int;
+  load_resumable [Int] acc$c$conv$5;
+  for_facts (elem$gen$fact : Int, elem$gen$date : Date) in new {
+    if (gt# [Int] elem$gen$fact
+        (10 : Int)) {
+      read [Mutable] [Int] acc$c$conv$5 = acc$c$conv$5;
+      write acc$c$conv$5 = add# [Int]
+                           acc$c$conv$5 (1 : Int);
+    }
+  } 
+  
+  save_resumable [Int] acc$c$conv$5;
+  read [Mutable] [Int] c$conv$5 = acc$c$conv$5;
+  let flat$1 = Buf_read# [Int]
+               ([ExceptScalarVariableNotAvailable
+                ,ExceptScalarVariableNotAvailable
+                ,ExceptScalarVariableNotAvailable] : Buf Int);
+  let conv$12 = pair# [Int] [Array Int]
+                c$conv$5 flat$1;
+  output repl conv$12;
+>>>>>>> 1c6d00cdeacf74e593a515edefbae9ff2bbba592
 }
 
 - Avalanche type error:
@@ -306,5 +379,194 @@ Runtime error:
                  ,[Right 300
                   ,Right 400
                   ,Right 500]]
+
+> > -- Something involves the abstract buffer type
+> - Type:
+Aggregate Possibly (Group DateTime Int)
+
+- Core:
+Program (source : Stream Int)
+Precomputations:
+
+Stream transformers:
+conv$0 =
+    source
+Reductions:
+conv$2 =
+    rfold   [(Int, DateTime)]
+    [Map DateTime (Buf (Int, DateTime))]
+    (
+    \conv$4 : Map DateTime (Buf (Int, DateTime)). 
+    
+    \conv$5 : (Int, DateTime).  
+    let simp$2 = Latest_push# [(Int, DateTime)]
+                 ([ExceptScalarVariableNotAvailable
+                  ,ExceptScalarVariableNotAvailable] : Buf (Int, DateTime))
+                 conv$5
+     in 
+    let simp$3 = snd# [Int] [DateTime]
+                 conv$5
+     in Map_insertOrUpdate# [DateTime] [Buf (Int, DateTime)]
+        (
+        \conv$7 : Buf (Int, DateTime). 
+        Latest_push# [(Int, DateTime)]
+        conv$7 conv$5) simp$2 simp$3
+        conv$4)
+    (Map [] : Map DateTime (Buf (Int, DateTime)))
+    conv$0
+Postcomputations with date as now$conv$1:
+conv$3 =
+    Map_mapValues# [DateTime] [Buf (Int, DateTime)] [Int]
+    (
+    \conv$8 : Buf (Int, DateTime).  
+    let conv$11 = 
+                  let conv$6 = Latest_read# [(Int, DateTime)]
+                               conv$8
+                   in Array_fold# [(Int, DateTime)] [(Int, (Int, Unit))]
+                      (
+                      \conv$10 : (Int, (Int, Unit)).  
+                      \conv$9 : (Int, DateTime).  
+                      let v$inline$0$conv$13 = fst# [Int] [DateTime]
+                                               conv$9
+                       in pair# [Int] [(Int, Unit)]
+                          v$inline$0$conv$13 (
+                          let conv$18 = snd# [Int] [(Int, Unit)]
+                                        conv$10
+                           in 
+                          let s$conv$16 = 
+                                          let s$conv$14 = fst# [Int] [Unit]
+                                                          conv$18
+                                           in add# [Int]
+                                              v$inline$0$conv$13 s$conv$14
+                           in pair# [Int] [Unit] s$conv$16
+                              (() : Unit)))
+                      ((ExceptScalarVariableNotAvailable, (0, ())) : (Int, (Int, Unit)))
+                      conv$6
+     in 
+    let conv$18 = snd# [Int] [(Int, Unit)]
+                  conv$11
+     in 
+    let s$conv$16 = 
+                    let conv$15 = fst# [Int] [Unit]
+                                  conv$18
+                     in conv$15
+     in s$conv$16) conv$2
+Returning:
+repl =
+    conv$3
+
+
+- Core type:
+[(repl,Map DateTime Int)]
+
+- Avalanche:
+gen$date = DATE
+{
+  init [Mutable] [Map DateTime (Buf (Int, DateTime))] acc$conv$2 = Map [] : Map DateTime (Buf (Int, DateTime));
+  load_resumable [Map DateTime (Buf (Int, DateTime))] acc$conv$2;
+  for_facts (elem$gen$fact : Int, elem$gen$date : Date) in new {
+    let gen$fact = pair# [Int] [DateTime]
+                   elem$gen$fact elem$gen$date;
+    read [Mutable] [Map DateTime (Buf (Int, DateTime))] acc$conv$2 = acc$conv$2;
+    let anf$0 = Latest_push# [(Int, DateTime)]
+                ([ExceptScalarVariableNotAvailable
+                 ,ExceptScalarVariableNotAvailable] : Buf (Int, DateTime))
+                gen$fact;
+    let anf$1 = snd# [Int] [DateTime]
+                gen$fact;
+    write acc$conv$2 = Map_insertOrUpdate# [DateTime] [Buf (Int, DateTime)]
+                       (
+                       \conv$7 : Buf (Int, DateTime). 
+                       Latest_push# [(Int, DateTime)]
+                       conv$7 gen$fact) anf$0 anf$1
+                       acc$conv$2;
+  }
+  save_resumable [Map DateTime (Buf (Int, DateTime))] acc$conv$2;
+  read [Mutable] [Map DateTime (Buf (Int, DateTime))] conv$2 = acc$conv$2;
+  let conv$3 = Map_mapValues# [DateTime] [Buf (Int, DateTime)] [Int]
+               (
+               \conv$8 : Buf (Int, DateTime).  
+               let conv$11 = 
+                             let conv$6 = Latest_read# [(Int, DateTime)]
+                                          conv$8
+                              in Array_fold# [(Int, DateTime)] [(Int, (Int, Unit))]
+                                 (
+                                 \conv$10 : (Int, (Int, Unit)).  
+                                 \conv$9 : (Int, DateTime).  
+                                 let v$inline$0$conv$13 = fst# [Int] [DateTime]
+                                                          conv$9
+                                  in pair# [Int] [(Int, Unit)]
+                                     v$inline$0$conv$13 (
+                                     let conv$18 = snd# [Int] [(Int, Unit)]
+                                                   conv$10
+                                      in 
+                                     let s$conv$16 = 
+                                                     let s$conv$14 = fst# [Int] [Unit]
+                                                                     conv$18
+                                                      in add# [Int]
+                                                         v$inline$0$conv$13
+                                                         s$conv$14
+                                      in pair# [Int] [Unit] s$conv$16
+                                         (() : Unit)))
+                                 ((ExceptScalarVariableNotAvailable, (0, ())) : (Int, (Int, Unit)))
+                                 conv$6
+                in 
+               let conv$18 = snd# [Int] [(Int, Unit)]
+                             conv$11
+                in 
+               let s$conv$16 = 
+                               let conv$15 = fst# [Int] [Unit]
+                                             conv$18
+                                in conv$15
+                in s$conv$16) conv$2;
+  output repl conv$3;
+}
+
+- Flattened:
+gen$date = DATE
+{
+  init [Mutable] [Map DateTime Int] flat$1 = Map [] : Map DateTime Int;
+  foreach (flat$2 in 0 : Int..Map_length# [DateTime] [Buf (Int, DateTime)]
+                              (Map [] : Map DateTime (Buf (Int, DateTime)))) {
+    read [Mutable] [Map DateTime Int] flat$1 = flat$1;
+    let flat$3 = unsafe_Map_index# [DateTime] [Buf (Int, DateTime)]
+                 (Map [] : Map DateTime (Buf (Int, DateTime)))
+                 flat$2;
+    let flat$4 = fst# [DateTime] [Buf (Int, DateTime)]
+                 flat$3;
+    let flat$5 = snd# [DateTime] [Buf (Int, DateTime)]
+                 flat$3;
+    let flat$6 = Buf_read# [(Int, DateTime)]
+                 flat$5;
+    init [Mutable] [Int] flat$7$simp$3$simp$4 = 0 : Int;
+    foreach (flat$9 in 0 : Int..Array_length# [(Int, DateTime)]
+                                flat$6) {
+      read [Mutable] [Int] flat$7$simp$7$simp$8 = flat$7$simp$3$simp$4;
+      let flat$10 = unsafe_Array_index# [(Int, DateTime)]
+                    flat$6 flat$9;
+      let v$inline$0$conv$13 = fst# [Int] [DateTime]
+                               flat$10;
+      let s$conv$16 = add# [Int]
+                      v$inline$0$conv$13
+                      flat$7$simp$7$simp$8;
+      write flat$7$simp$3$simp$4 = s$conv$16;
+    }
+    read [Mutable] [Int] flat$7$simp$11$simp$12 = flat$7$simp$3$simp$4;
+    let flat$8 = Map_put# [DateTime] [Int]
+                 flat$1 flat$4
+                 flat$7$simp$11$simp$12;
+    write flat$1 = flat$8;
+  }
+  read [Mutable] [Map DateTime Int] flat$1 = flat$1;
+  output repl flat$1;
+}
+
+- Core evaluation:
+[homer, [(1989-12-17,100)
+        ,(1990-01-01,200)
+        ,(1994-01-01,300)
+        ,(1999-01-01,400)
+        ,(2010-01-01,500)]
+,marge, [(1989-12-17,30)]]
 
 > > 

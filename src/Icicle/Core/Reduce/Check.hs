@@ -36,17 +36,6 @@ checkReduce se r
 
             return a
 
-    RLatest t num n
-     -> do  inp <- lookupOrDie ReduceErrorNoSuchStream (streams se) n
-            nty <- checkX num
-
-            requireSame (ReduceErrorTypeError num)
-                        (funOfVal t)                     (funOfVal inp)
-            requireSame (ReduceErrorTypeError num)
-                        (funOfVal IntT)                   nty
-
-            return (ArrayT t)
-
  where
   checkX
    = mapLeft ReduceErrorExp . typeExp coreFragmentWorkerFun (scalars se)

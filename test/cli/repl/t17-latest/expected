@@ -1,0 +1,41 @@
+welcome to iREPL
+ok, loaded 20 functions from data/libs/prelude.icicle
+ok, loaded test/cli/repl/data.psv, 13 rows
+> ok, type is now on
+> > -- Latests of groups
+> - Type:
+Aggregate Possibly (Group DateTime (Array Int))
+
+- Core evaluation:
+[homer, [(1989-12-17,[100])
+        ,(1990-01-01,[200])
+        ,(1994-01-01,[300])
+        ,(1999-01-01,[400])
+        ,(2010-01-01,[500])]
+,marge, [(1989-12-17,[10,20])]]
+
+> > -- Aggregates of latests in groups
+> - Type:
+Aggregate Possibly (Group DateTime Int)
+
+- Core evaluation:
+[homer, [(1989-12-17,100)
+        ,(1990-01-01,200)
+        ,(1994-01-01,300)
+        ,(1999-01-01,400)
+        ,(2010-01-01,500)]
+,marge, [(1989-12-17,30)]]
+
+> > -- Something complicated
+> - Type:
+Aggregate Possibly (Group DateTime (Int, Int))
+
+- Core evaluation:
+[homer, [(1989-12-17,(1500,0))
+        ,(1990-01-01,(1500,200))
+        ,(1994-01-01,(1500,300))
+        ,(1999-01-01,(1500,400))
+        ,(2010-01-01,(1500,500))]
+,marge, [(1989-12-17,(30,0))]]
+
+> 
