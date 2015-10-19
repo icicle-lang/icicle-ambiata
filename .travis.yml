@@ -24,8 +24,8 @@ install:
   - ghc-pkg list
 
   # Install dependencies and build the project
-  - ./cabal build
+  - ./mafia build
 
 script:
   # Run all the tests
-  - ./cabal testci
+  - ./mafia testci
