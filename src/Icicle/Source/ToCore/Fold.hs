@@ -236,31 +236,81 @@ convertFold q
         _                   -> False
      -> do n'acc <- lift fresh
            n'buf <- lift fresh
+           n'val <- lift fresh
+           n'err <- lift fresh
 
            res       <- convertExpQ q'
-           t'e       <- convertValType' $ annResult $ annotOfQuery q'
-           let t'arr  = T.ArrayT t'e
-           -- TODO:
-           --  * t'buf should be (SumT Error (BufT t'e)) if Possibly
-           let t'buf  = T.BufT t'e
+           t'exp     <- convertValType' $ annResult $ annotOfQuery q'
 
-           let kons  = CE.xLam n'acc t'buf
-           --  * case res of
-           --     Left e -> Left [t'buf] e
-           --     Right r -> Right (push .. )
-                     ( CE.pushBuf t'e
-                         CE.@~ CE.xVar n'acc
-                         CE.@~ res )
-           let zero  = CE.emptyBuf t'e
-                         CE.@~ CE.constI i
+           let 
 
-           --  * case n'buf of
-           --      Left e -> Left e
-           --      Right r -> readBuf r
-           let x'    = CE.xLam n'buf t'buf
-                     ( CE.readBuf t'e CE.@~ CE.xVar n'buf )
+               isPossibly
+                      = isAnnotPossibly $ annotOfQuery q'
+               t'e    | isPossibly
+                      , T.SumT T.ErrorT tt <- t'exp
+                      = tt
+                      | otherwise
+                      = t'exp
 
-           return $ ConvertFoldResult kons zero x' t'buf t'arr
+               t'buf  = T.BufT t'e
+               t'arr  | isPossibly
+                      = T.SumT T.ErrorT (T.ArrayT t'e)
+                      | otherwise
+                      = T.ArrayT t'e
+
+               t'sum  | isPossibly
+                      = T.SumT T.ErrorT t'buf
+                      | otherwise
+                      = t'buf
+
+           let err t x
+                      = let t' = case t of
+                                    T.SumT T.ErrorT t'' -> t''
+                                    _ -> t
+                        in CE.xPrim (C.PrimMinimal $ Min.PrimConst $ Min.PrimConstLeft T.ErrorT t')
+                            CE.@~ x
+           let val t x  = CE.xPrim (C.PrimMinimal $ Min.PrimConst $ Min.PrimConstRight T.ErrorT t)
+                        CE.@~ x
+
+           let foldSum t'scrut t'ret x'scrut nm x'val
+                      = CE.xPrim (C.PrimFold (C.PrimFoldSum T.ErrorT t'scrut) t'ret)
+                        CE.@~ (CE.xLam n'err T.ErrorT $ err t'ret $ CE.xVar n'err)
+                        CE.@~ (CE.xLam nm t'scrut  $ x'val $ CE.xVar nm)
+                        CE.@~ x'scrut
+
+           let push x | isPossibly
+                      = foldSum t'e t'sum res n'val
+                        (\v -> val t'buf
+                        (CE.pushBuf t'e
+                         CE.@~ x
+                         CE.@~ v))
+                      | otherwise
+                      = CE.pushBuf t'e
+                         CE.@~ x
+                         CE.@~ res
+
+           let kons   | isPossibly
+                      = CE.xLam n'acc t'sum
+                      $ foldSum t'buf t'sum (CE.xVar n'acc)
+                        n'buf push
+                      | otherwise
+                      = CE.xLam n'acc t'buf $ push $ CE.xVar n'acc
+
+           let zero   | isPossibly
+                      = val t'buf
+                      ( CE.emptyBuf t'e CE.@~ CE.constI i)
+                      | otherwise
+                      = CE.emptyBuf t'e CE.@~ CE.constI i
+
+           let x'     | isPossibly
+                      = CE.xLam n'buf t'sum
+                      $ foldSum t'buf t'arr (CE.xVar n'buf) n'val
+                        (\b -> val (T.ArrayT t'e) (CE.readBuf t'e CE.@~ b))
+                      | otherwise
+                      = CE.xLam n'buf t'buf
+                      ( CE.readBuf t'e CE.@~ CE.xVar n'buf )
+
+           return $ ConvertFoldResult kons zero x' t'sum t'arr
 
      | otherwise
      -> do n'arr <- lift fresh

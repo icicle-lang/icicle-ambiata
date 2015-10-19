@@ -11,6 +11,10 @@ module Icicle.Source.ToCore.Exp (
   , convertExpQ
   , convertCase
   , convertCaseFreshenPat
+
+  , isAnnotPossibly
+  , unwrapSum
+  , rewrapSum
   ) where
 
 import                  Icicle.Source.Query
@@ -24,6 +28,7 @@ import qualified        Icicle.Core.Exp.Combinators as CE
 import qualified        Icicle.Common.Exp           as CE
 import qualified        Icicle.Common.Exp.Prim.Minimal as Min
 import qualified        Icicle.Common.Type          as T
+import                  Icicle.Common.Base
 import                  Icicle.Common.Fresh
 
 import                  P
@@ -188,3 +193,47 @@ convertCase x scrut pats scrutT resT
   mkVars (PatCon _ _)
    = convertError $ ConvertErrorBadCaseNestedConstructors (annAnnot $ annotOfExp x) x
 
+
+isAnnotPossibly :: Annot a n -> Bool
+isAnnotPossibly ann
+ = case getPossibilityOrDefinitely (annResult ann) of
+    PossibilityPossibly -> True
+    _                   -> False
+
+
+unwrapSum
+    :: Bool
+    -> T.ValType
+    -> Name n
+    -> C.Exp () n
+    -> Name n
+    -> T.ValType
+    -> C.Exp () n
+    -> C.Exp () n
+unwrapSum isPossibly rett nErr x nk t bodyx
+ | T.SumT T.ErrorT ty <- t
+ , T.SumT T.ErrorT ret' <- rett
+ -- We can only do this for (Sum Error)s introduced by Reify:
+ -- not ones that the programmer explicitly wrote
+ , isPossibly
+ = CE.makeApps () (CE.xPrim $ C.PrimFold (C.PrimFoldSum T.ErrorT ty) rett)
+ [ CE.xLam nErr T.ErrorT ( CE.makeApps () (CE.xPrim $ C.PrimMinimal $ Min.PrimConst $ Min.PrimConstLeft T.ErrorT ret')
+                         [ CE.xVar nErr ])
+ , CE.xLam nk ty bodyx
+ , x ]
+ | otherwise
+ = CE.xLet nk x bodyx
+
+
+rewrapSum
+    :: Bool
+    -> T.ValType
+    -> C.Exp () n
+    -> C.Exp () n
+rewrapSum isPossibly rett bodyx
+ | T.SumT T.ErrorT ret' <- rett
+ , isPossibly
+ = CE.makeApps () (CE.xPrim $ C.PrimMinimal $ Min.PrimConst $ Min.PrimConstRight T.ErrorT ret')
+ [ bodyx ]
+ | otherwise
+ = bodyx

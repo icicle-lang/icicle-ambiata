@@ -526,29 +526,6 @@ convertQuery q
 
   convertValType' = convertValType (annAnnot $ annotOfQuery q)
 
-  isAnnotPossibly ann = PossibilityPossibly == getPossibilityOrDefinitely (annResult ann)
-
-  unwrapSum isPossibly rett nErr x nk t bodyx
-     | T.SumT T.ErrorT ty <- t
-     , T.SumT T.ErrorT ret' <- rett
-     -- We can only do this for (Sum Error)s introduced by Reify:
-     -- not ones that the programmer explicitly wrote
-     , isPossibly
-     = CE.makeApps () (CE.xPrim $ C.PrimFold (C.PrimFoldSum T.ErrorT ty) rett)
-     [ CE.xLam nErr T.ErrorT ( CE.makeApps () (CE.xPrim $ C.PrimMinimal $ Min.PrimConst $ Min.PrimConstLeft T.ErrorT ret')
-                             [ CE.xVar nErr ])
-     , CE.xLam nk ty bodyx
-     , x ]
-     | otherwise
-     = CE.xLet nk x bodyx
-
-  rewrapSum isPossibly rett bodyx
-     | T.SumT T.ErrorT ret' <- rett
-     , isPossibly
-     = CE.makeApps () (CE.xPrim $ C.PrimMinimal $ Min.PrimConst $ Min.PrimConstRight T.ErrorT ret')
-     [ bodyx ]
-     | otherwise
-     = bodyx
 
 
 -- | Convert an Aggregate computation at the end of a query.
