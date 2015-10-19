@@ -152,12 +152,16 @@ reifyPossibilityQ (Query (c:cs) final_x)
     Filter a x
      | preda               <- annotOfExp x
      , PossibilityPossibly <- getPossibilityOrDefinitely $ annResult preda
-     -> do  x' <- reifyPossibilityX x
-            let eqT = App preda
-                              (App preda (Prim preda $ Op $ Relation Eq) (con1 (wrapAnnot preda) ConRight $ con0 preda $ ConTrue))
-                              x'
+     -> do  x'     <- reifyPossibilityX x
+            nError <- fresh
+            nValue <- fresh
+            let vValue  = Var preda nValue
+
+                pred'   = Case preda x'
+                            [ ( PatCon ConLeft  [PatVariable nError] , con0 preda ConTrue )
+                            , ( PatCon ConRight [PatVariable nValue] , vValue ) ]
             rest'    <- rest
-            return $ ins (Filter (wrapAnnot a) eqT) (Query [] $ wrapRight $ Nested (annotOfQuery rest') rest')
+            return $ ins (Filter (wrapAnnot a) pred') (Query [] $ wrapRight $ Nested (annotOfQuery rest') rest')
      | otherwise
      -> add' (Filter    (wrapAnnot a)     <$> reifyPossibilityX x)
     Let a n x
