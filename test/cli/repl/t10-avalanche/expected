@@ -96,10 +96,7 @@ conv$9 =
     \conv$10 : Buf Int.  
     \conv$11 : Int. 
     Latest_push# [Int] conv$10
-    conv$11)
-    ([ExceptScalarVariableNotAvailable
-     ,ExceptScalarVariableNotAvailable
-     ,ExceptScalarVariableNotAvailable] : Buf Int)
+    conv$11) (Buf 3 [] : Buf Int)
     conv$7
 Postcomputations with date as now$conv$1:
 conv$6 =
@@ -152,9 +149,7 @@ gen$date = DATE
     let gen$fact = pair# [(Sum Error Int)] [DateTime]
 =======
   init [Mutable] [Int] acc$c$conv$5 = 0 : Int;
-  init [Mutable] [Buf Int] acc$conv$9 = [ExceptScalarVariableNotAvailable
-                                        ,ExceptScalarVariableNotAvailable
-                                        ,ExceptScalarVariableNotAvailable] : Buf Int;
+  init [Mutable] [Buf Int] acc$conv$9 = Buf 3 [] : Buf Int;
   load_resumable [Int] acc$c$conv$5;
   load_resumable [Buf Int] acc$conv$9;
   for_facts (elem$gen$fact : Int, elem$gen$date : Date) in new {
@@ -330,9 +325,7 @@ gen$date = DATE
   save_resumable [Int] acc$c$conv$5;
   read [Mutable] [Int] c$conv$5 = acc$c$conv$5;
   let flat$1 = Buf_read# [Int]
-               ([ExceptScalarVariableNotAvailable
-                ,ExceptScalarVariableNotAvailable
-                ,ExceptScalarVariableNotAvailable] : Buf Int);
+               (Buf 3 [] : Buf Int);
   let conv$12 = pair# [Int] [Array Int]
                 c$conv$5 flat$1;
   output repl conv$12;
@@ -400,8 +393,7 @@ conv$2 =
     
     \conv$5 : (Int, DateTime).  
     let simp$2 = Latest_push# [(Int, DateTime)]
-                 ([ExceptScalarVariableNotAvailable
-                  ,ExceptScalarVariableNotAvailable] : Buf (Int, DateTime))
+                 (Buf 2 [] : Buf (Int, DateTime))
                  conv$5
      in 
     let simp$3 = snd# [Int] [DateTime]
@@ -469,8 +461,7 @@ gen$date = DATE
                    elem$gen$fact elem$gen$date;
     read [Mutable] [Map DateTime (Buf (Int, DateTime))] acc$conv$2 = acc$conv$2;
     let anf$0 = Latest_push# [(Int, DateTime)]
-                ([ExceptScalarVariableNotAvailable
-                 ,ExceptScalarVariableNotAvailable] : Buf (Int, DateTime))
+                (Buf 2 [] : Buf (Int, DateTime))
                 gen$fact;
     let anf$1 = snd# [Int] [DateTime]
                 gen$fact;

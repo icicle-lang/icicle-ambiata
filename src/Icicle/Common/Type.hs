@@ -99,7 +99,7 @@ defaultOfType typ
                         (defaultOfType b)
      SumT  a _ -> VLeft (defaultOfType a)
      StructT t -> VStruct (Map.map defaultOfType (getStructType t))
-     BufT _    -> VBuf []
+     BufT _    -> VBuf 0 []
 
 
 data StructType
@@ -283,7 +283,7 @@ valueMatchesType v t
     (StructT _, _)
      -> False
 
-    (BufT t', VBuf vs')
+    (BufT t', VBuf _ vs')
      -> all (flip valueMatchesType t') vs'
     (BufT _, _)
      -> False

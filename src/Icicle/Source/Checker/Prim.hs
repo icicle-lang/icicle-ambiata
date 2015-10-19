@@ -58,6 +58,8 @@ primLookup' p
      -> f0 [] DoubleT
     Lit (LitString _)
      -> f0 [] StringT
+    Lit (LitDate _)
+     -> f0 [] DateTimeT
 
     Fun Log
      -> f0 [DoubleT] DoubleT

@@ -3,3 +3,5 @@
 feature salary ~> days between (newest date) (3 days after now)
 
 feature salary ~> days between (newest date) (3 months before now)
+
+feature salary ~> days between (newest date) `2014-01-01`
