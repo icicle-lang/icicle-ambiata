@@ -104,43 +104,61 @@ featureMapOfDictionary (Dictionary { dictionaryEntries = ds, dictionaryFunctions
    | StructT st@(StructType fs) <- sourceTypeOfEncoding enc
    = let e' = StructT st
      in [ ( var attr
-        , ( baseType e'
+        , ( baseType $ sumT e'
         , Map.fromList
         $ exps "fields" e'
         <> (fmap (\(k,t)
         -> ( var $ nameOfStructField k
-           , (baseType t, X.XApp () (xget k t st) . X.XApp () (xfst e' DateTimeT)))
+           , STC.FeatureVariable (baseType t) (xgetsum k t st)  True)
         )
         $ Map.toList fs)))]
 
    | otherwise
    = let e' = sourceTypeOfEncoding enc
      in [ ( var attr
-        , ( baseType e'
+        , ( baseType $ sumT e'
         , Map.fromList $ exps "value" e'))]
   go _
    = []
 
+  sumT ty  = SumT ErrorT ty
   baseType = ST.typeOfValType
 
   xfst t1 t2
    = X.XPrim () (X.PrimMinimal $ X.PrimPair $ X.PrimPairFst t1 t2)
   xsnd t1 t2
    = X.XPrim () (X.PrimMinimal $ X.PrimPair $ X.PrimPairSnd t1 t2)
+
   xget f t fs
    = X.XPrim () (X.PrimMinimal $ X.PrimStruct $ X.PrimStructGet f t fs)
+  xgetsum f t fs x
+   = let e'     = StructT fs
+         nVal   = var "_val"
+         nErr   = var "_err"
+         xcase  = X.XPrim () $ X.PrimFold (X.PrimFoldSum ErrorT e') (SumT ErrorT t)
+         xleft  = X.XPrim () $ X.PrimMinimal $ X.PrimConst $ X.PrimConstLeft  ErrorT t
+         xright = X.XPrim () $ X.PrimMinimal $ X.PrimConst $ X.PrimConstRight ErrorT t
+         xfld   = xget f t fs
+         xapp   = X.XApp ()
+     in xcase
+      `xapp` (X.XLam () nErr ErrorT (xleft `xapp` X.XVar () nErr))
+      `xapp` (X.XLam () nVal e'     (xright `xapp` (xfld `xapp` X.XVar () nVal)))
+      `xapp` (xfst (SumT ErrorT e') DateTimeT `xapp` x)
+
   xtomb t1
-   = X.XApp () (X.XPrim () (X.PrimMinimal $ X.PrimRelation X.PrimRelationEq t1))
-               (X.XValue () t1 (VError ExceptTombstone))
+   = X.XApp () (X.XPrim () (X.PrimMinimal $ X.PrimRelation X.PrimRelationEq $ SumT ErrorT t1))
+               (X.XValue () (SumT ErrorT t1) (VLeft $ VError ExceptTombstone))
 
   exps str e'
-   = [ (var str, ( baseType e', X.XApp () (xfst e' DateTimeT)))
+   = [ (var str, STC.FeatureVariable (baseType e') (X.XApp () (xfst (sumT e') DateTimeT)) True)
      , date_as_snd e'
      , true_when_tombstone e' ]
   date_as_snd e'
-   = (var "date" , ( baseType DateTimeT, X.XApp () (xsnd e' DateTimeT)))
+   = ( var "date"
+     , STC.FeatureVariable (baseType DateTimeT) (X.XApp () (xsnd (sumT e') DateTimeT)) False)
   true_when_tombstone e'
-   = (var "tombstone" , ( baseType BoolT, X.XApp () (xtomb e') . X.XApp () (xfst e' DateTimeT)))
+   = (var "tombstone"
+     , STC.FeatureVariable (baseType BoolT) (X.XApp () (xtomb e') . X.XApp () (xfst (sumT e') DateTimeT)) False)
 
   var = Name . Variable
 

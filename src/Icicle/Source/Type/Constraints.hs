@@ -7,7 +7,9 @@ module Icicle.Source.Type.Constraints (
     DischargeResult (..)
   , DischargeError (..)
   , dischargeC
+  , dischargeC'toplevel
   , dischargeCS
+  , dischargeCS'
   , nubConstraints
   ) where
 
@@ -187,10 +189,52 @@ dischargeC c
   returnOfLatest _ _
    = Nothing
 
+
+-- | Discharge a constraint at the top level.
+-- This is a bit of a hack, but the idea is that function application rule
+-- takes care of joining modes as well.
+-- This means that if we have a function with constraint
+-- "Element =: TemporalityJoin b Element",
+-- it is really the same as just requiring "b" to be element.
+dischargeC'toplevel
+        :: Ord n
+        => Constraint n
+        -> Either (DischargeError n) (DischargeResult n)
+dischargeC'toplevel cons
+ = case dischargeC cons of
+    Right (DischargeLeftover cons')
+     | CTemporalityJoin a b c <- cons'
+     -> DischargeSubst <$> discharges [(a,b), (b,c)] Map.empty
+     | CPossibilityJoin a b c <- cons'
+     -> DischargeSubst <$> discharges [(a,b), (b,c)] Map.empty
+    dish
+     -> dish
+ where
+  discharges [] s
+   = return s
+  discharges ((a,b):cs) s
+   = let a' = substT s a
+         b' = substT s b
+     in  case unifyT a' b' of
+          Nothing -> Left $ CannotUnify a' b'
+          Just s' -> discharges cs (compose s s')
+
+
+dischargeCS
+        :: Ord n
+        => [(a, Constraint n)]
+        -> Either [(a, DischargeError n)] (SubstT n, [(a, Constraint n)])
+dischargeCS = dischargeCS' dischargeC
+
+
 -- | Attempt to discharge a set of constraints
 -- Return a list of errors, or the substitution and any leftover constraints
-dischargeCS :: Ord n => [(a, Constraint n)] -> Either [(a, DischargeError n)] (SubstT n, [(a, Constraint n)])
-dischargeCS
+dischargeCS'
+        :: Ord n
+        => (Constraint n -> Either (DischargeError n) (DischargeResult n))
+        -> [(a, Constraint n)]
+        -> Either [(a, DischargeError n)] (SubstT n, [(a, Constraint n)])
+dischargeCS' solver
  -- Accumulators: substitution, leftover constraints and errors
  = go Map.empty [] []
  where
@@ -203,7 +247,7 @@ dischargeCS
 
   -- Try to discharge one constraint
   go s cs errs ((a,c):rest)
-   = case dischargeC c of
+   = case solver c of
       -- Error, so just add it to the list
       Left e
        -> go s cs ((a,e):errs) rest

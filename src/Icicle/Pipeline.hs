@@ -33,7 +33,6 @@ import qualified Icicle.Source.Parser                     as SP
 import qualified Icicle.Source.Query                      as SQ
 import qualified Icicle.Source.ToCore.Base                as STC
 import qualified Icicle.Source.ToCore.ToCore              as STC
-import qualified Icicle.Source.Transform.Base             as ST
 import qualified Icicle.Source.Transform.Desugar          as STD
 import qualified Icicle.Source.Transform.Inline           as STI
 import qualified Icicle.Source.Transform.ReifyPossibility as STR
@@ -148,18 +147,13 @@ sourceDesugarF fun
      (freshNamer "desugar_f")
 
 
-sourceReifyQT :: D.Dictionary -> QueryTop' -> Either CompileError QueryTop'
-sourceReifyQT d q
- = do q'c    <- fst <$> sourceCheckQT d q
-      let q'r = reify q'c
-      sourceDesugarQT $ SQ.reannotQT ST.annAnnot q'r
- where
-  reify q'
-     = snd
-     $ runIdentity
-     $ Fresh.runFreshT
-         (ST.transformQT STR.reifyPossibilityTransform q')
-         (freshNamer "reify")
+sourceReifyQT :: QueryTop'T -> QueryTop'T
+sourceReifyQT q
+ = snd
+ $ runIdentity
+ $ Fresh.runFreshT
+     (STR.reifyPossibilityQT q)
+     (freshNamer "reify")
 
 
 sourceCheckQT :: D.Dictionary -> QueryTop' -> Either CompileError (QueryTop'T, ST.Type Var)

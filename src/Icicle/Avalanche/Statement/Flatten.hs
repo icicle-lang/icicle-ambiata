@@ -352,16 +352,22 @@ flatX a_fresh xx stm
   -- Handle primitive folds
   --
   -- Bool is just an if
-  flatFold Core.PrimFoldBool _ [then_, else_, pred]
-   -- XXX: we are using "stm" twice here,
-   -- so duplicating branches.
-   -- I don't think this is a biggie
-   -- (yet)
+  flatFold Core.PrimFoldBool valT [then_, else_, pred]
    = flatX' pred
    $ \pred'
-   -> If pred'
-        <$> flatX' then_ stm
-        <*> flatX' else_ stm
+   -> do -- Fresh name for accumulator and result.
+         -- We can use same name for acc & result variables because accumulators and variables are in different scopes
+         acc <- fresh
+         -- Compute the rest of the computation, assuming we've stored result in variable named acc
+         stm' <- stm (xVar acc)
+         sthen <- flatX' then_ $ (return . Write acc)
+         selse <- flatX' else_ $ (return . Write acc)
+         -- Perform if and write result
+         let if_ =  If pred' sthen selse
+         let accT = Mutable
+         -- After if, read back result from accumulator and then go do the rest of the statements
+         let read_ = Read acc acc accT valT stm'
+         return (InitAccumulator (Accumulator acc accT valT $ xValue valT $ defaultOfType valT) (if_ <> read_))
 
   -- Array fold becomes a loop
   flatFold (Core.PrimFoldArray telem) valT [k, z, arr]
@@ -413,36 +419,43 @@ flatX a_fresh xx stm
 
 
   -- Fold over an option is just "maybe" combinator.
-  flatFold (Core.PrimFoldOption ta) _ [xsome, xnone, opt]
+  flatFold (Core.PrimFoldOption ta) valT [xsome, xnone, opt]
    = let fpIsSome    = xPrim (Flat.PrimProject  (Flat.PrimProjectOptionIsSome ta))
          fpOptionGet = xPrim (Flat.PrimUnsafe   (Flat.PrimUnsafeOptionGet     ta))
      in  flatX' opt
       $ \opt'
-      -- If we have a value
-      -> If (fpIsSome `xApp` opt')
-         -- Rip the value out and apply it
-         <$> slet (fpOptionGet `xApp` opt')
-             (\val -> flatX' (xsome `xApp` val) stm)
-
-         -- There's no value so return the none branch
-         <*> flatX' xnone stm
+      -> do
+         acc  <- fresh
+         stm' <- stm (xVar acc)
+         tmp  <- fresh
+         ssome <- flatX' (xsome `xApp` (xVar tmp)) $ (return . Write acc)
+         snone <- flatX' xnone $ (return . Write acc)
+         let if_   = If (fpIsSome `xApp` opt') (Let tmp (fpOptionGet `xApp` opt') ssome) snone
+             accT  = Mutable
+             -- After if, read back result from accumulator and then go do the rest of the statements
+             read_ = Read acc acc accT valT stm'
+         return (InitAccumulator (Accumulator acc accT valT $ xValue valT $ defaultOfType valT) (if_ <> read_))
 
   -- Fold over an either
-  flatFold (Core.PrimFoldSum ta tb) _ [xleft, xright, scrut]
+  flatFold (Core.PrimFoldSum ta tb) valT [xleft, xright, scrut]
    = let fpIsLeft    = xPrim (Flat.PrimProject  (Flat.PrimProjectSumIsLeft  ta tb))
          fpLeft      = xPrim (Flat.PrimUnsafe   (Flat.PrimUnsafeSumGetLeft  ta tb))
          fpRight     = xPrim (Flat.PrimUnsafe   (Flat.PrimUnsafeSumGetRight ta tb))
      in  flatX' scrut
       $ \scrut'
-      -- If we have a value
-      -> If (fpIsLeft `xApp` scrut')
-         -- Rip the left out and apply it
-         <$> slet (fpLeft `xApp` scrut')
-             (\val -> flatX' (xleft `xApp` val) stm)
+      -> do
+         acc  <- fresh
+         stm' <- stm (xVar acc)
+         tmp  <- fresh
+         tmp' <- fresh
+         sleft   <- flatX' (xleft  `xApp` (xVar tmp )) $ (return . Write acc)
+         sright  <- flatX' (xright `xApp` (xVar tmp')) $ (return . Write acc)
 
-         -- Take right
-         <*> slet (fpRight `xApp` scrut')
-             (\val -> flatX' (xright `xApp` val) stm)
+         let if_   = If (fpIsLeft `xApp` scrut') (Let tmp (fpLeft `xApp` scrut') sleft) (Let tmp' (fpRight `xApp` scrut') sright)
+             accT  = Mutable
+           -- After if, read back result from accumulator and then go do the rest of the statements
+             read_ = Read acc acc accT valT stm'
+         return (InitAccumulator (Accumulator acc accT valT $ xValue valT $ defaultOfType valT) (if_ <> read_))
 
 
   -- None of the above cases apply, so must be bad arguments

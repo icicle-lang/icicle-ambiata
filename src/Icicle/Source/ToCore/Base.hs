@@ -19,9 +19,11 @@ module Icicle.Source.ToCore.Base (
   , convertFreshenLookup
   , convertFreshenLookupMaybe
   , convertValType
+  , convertContext
 
   , pre, strm, red, post
   , programOfBinds
+  , pullPosts
   ) where
 
 import qualified        Icicle.Core             as C
@@ -71,6 +73,19 @@ programOfBinds outputName inpType binds postdate a_ret ret
  , C.returns    = [(outputName, X.XVar a_ret ret)]
  }
 
+
+-- | Rip out the postcomputations into lets.
+-- The result expression has the postcomputations as lets,
+-- the result bindings have no postcomputations.
+pullPosts :: a
+          -> (CoreBinds a n, Name n)
+          -> (CoreBinds a n, C.Exp a n)
+pullPosts a (bs,ret)
+ = let ps  = postcomps bs
+       bs' = bs { postcomps = [] }
+   in  (bs', X.makeLets a ps $ X.XVar a ret)
+
+
 instance Monoid (CoreBinds a n) where
  mempty = CoreBinds [] [] [] []
  mappend (CoreBinds a b c d) (CoreBinds f g h i)
@@ -102,6 +117,7 @@ data ConvertError a n
  | ConvertErrorCannotConvertType a (Type n)
  | ConvertErrorBadCaseNoDefault a (Exp (Annot a n) n)
  | ConvertErrorBadCaseNestedConstructors a (Exp (Annot a n) n)
+ | ConvertErrorImpossibleFold1 a
  deriving (Show, Eq, Ord)
 
 annotOfError :: ConvertError a n -> Maybe a
@@ -130,6 +146,8 @@ annotOfError e
     ConvertErrorBadCaseNoDefault a _
      -> Just a
     ConvertErrorBadCaseNestedConstructors a _
+     -> Just a
+    ConvertErrorImpossibleFold1 a
      -> Just a
 
 
@@ -172,6 +190,15 @@ convertWithInput n t c
  = do   o <- get
         put (o { csInputName = n, csInputType = t })
         r <- c
+        put o
+        return r
+
+convertContext
+        :: ConvertM a n r
+        -> ConvertM a n r
+convertContext with
+ = do   o <- get
+        r <- with
         put o
         return r
 
@@ -259,5 +286,7 @@ instance (Pretty a, Pretty n) => Pretty (ConvertError a n) where
       -> pretty a <> ": case has no default alternative: " <> pretty x
      ConvertErrorBadCaseNestedConstructors a x
       -> pretty a <> ": case has nested constructors in pattern; these should be removed by an earlier pass: " <> pretty x
+     ConvertErrorImpossibleFold1 a
+      -> pretty a <> ": fold1 cannot be converted; desugar first"
 
 

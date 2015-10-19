@@ -8,9 +8,25 @@
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 module Icicle.Test.Source.Arbitrary where
 
+import           Icicle.Internal.Pretty
+import           Icicle.Source.Checker.Checker
+import           Icicle.Source.Checker.Error
 import           Icicle.Source.Query
+import           Icicle.Source.Type
 import qualified Icicle.Source.Lexer.Token as T
 import           Icicle.Common.Fresh
+import qualified Icicle.Common.Base             as CB
+import qualified Icicle.Common.Type             as CT
+
+import qualified Icicle.Common.Exp.Prim.Minimal as Min
+import qualified Icicle.Core.Exp.Combinators    as CE
+import qualified Icicle.Core.Exp                as CE
+
+
+import           Icicle.Source.ToCore.Context
+import           Icicle.Source.ToCore.ToCore
+import           Icicle.Source.Transform.Desugar
+import           Icicle.Source.Transform.ReifyPossibility
 
 import           Icicle.Test.Arbitrary.Base
 import           Icicle.Test.Core.Arbitrary ()
@@ -24,17 +40,13 @@ import           P
 import           Control.Monad.Trans.Either
 import qualified Data.Text as Text
 import qualified Data.List as List
+import qualified Data.Map as Map
+import           Data.Functor.Identity
 
+import           Data.String (String)
 
-freshnamer = counterPrefixNameState (T.Variable . Text.pack . show) (T.Variable "v")
+import           Data.Either.Combinators
 
-freshtest p
- = snd <$> runFreshT p freshnamer
-
-freshcheck
- = snd
- . flip runFresh freshnamer
- . runEitherT
 
 instance Arbitrary T.Variable where
  arbitrary
@@ -156,3 +168,78 @@ instance Arbitrary n => Arbitrary (Query () n) where
 instance Arbitrary n => Arbitrary (QueryTop () n) where
  arbitrary
   = QueryTop <$> arbitrary <*> arbitrary <*> arbitrary
+
+
+freshnamer t = counterPrefixNameState (T.Variable . Text.pack . show) (T.Variable t)
+
+freshtest t p
+ = snd <$> runFreshT p (freshnamer t)
+
+freshcheck t
+ = snd
+ . flip runFresh (freshnamer t)
+ . runEitherT
+
+data QueryWithFeature
+ = QueryWithFeature
+ { qwfQuery     :: Query    () T.Variable
+ , qwfNow       :: Maybe (CB.Name T.Variable)
+ , qwfOutput    :: CB.OutputName
+ , qwfFeatureT  :: CT.ValType
+ , qwfFeatureN  :: CB.Name T.Variable
+ }
+ deriving Show
+
+
+qwfFeatureMap :: QueryWithFeature -> Features () T.Variable
+qwfFeatureMap qwf
+ = Features
+    (Map.singleton (qwfFeatureN qwf) (typeOfValType (qwfFeatureT qwf), Map.singleton (qwfFeatureN qwf) (FeatureVariable (typeOfValType (qwfFeatureT qwf)) (xfst (qwfFeatureT qwf)) False)))
+     Map.empty
+     (qwfNow qwf)
+
+ where
+  xfst tt
+   = CE.xApp
+   $ CE.xPrim     $ CE.PrimMinimal
+   $ Min.PrimPair $ Min.PrimPairFst tt CT.DateTimeT
+
+qwfQueryTop :: QueryWithFeature -> QueryTop () T.Variable
+qwfQueryTop qwf
+ = QueryTop (qwfFeatureN qwf) (qwfOutput qwf) (qwfQuery qwf)
+
+instance Arbitrary QueryWithFeature where
+ arbitrary
+  = do q   <- arbitrary
+       now <- arbitrary
+       o   <- arbitrary
+       t   <- arbitrary
+       nm  <- arbitrary `suchThat` (\n -> Just n /= now)
+       return $ QueryWithFeature q now o t nm
+
+qwfPretty :: QueryWithFeature -> String
+qwfPretty qwf
+ = show $ pretty $ qwfQueryTop qwf
+
+
+data CheckErr
+ = CheckErrTC (CheckError () T.Variable)
+ | CheckErrDS (DesugarError T.Variable)
+ deriving Show
+
+qwfCheck :: QueryWithFeature -> Either CheckErr (QueryTop (Annot () T.Variable) T.Variable)
+qwfCheck qwf
+ = do qd' <- qwfDesugar qwf
+      (qt',_) <- mapLeft CheckErrTC $ freshcheck "check" $ checkQT (qwfFeatureMap qwf) qd'
+      return qt'
+
+qwfDesugar :: QueryWithFeature -> Either CheckErr (QueryTop () T.Variable)
+qwfDesugar qwf
+ = mapLeft CheckErrDS
+ $ runDesugar (freshnamer "desugar")
+ $ desugarQT
+ $ qwfQueryTop qwf
+
+qwfConvertToCore qwf qt
+ = freshtest "core" $ convertQueryTop (qwfFeatureMap qwf)
+  (runIdentity $ freshtest "reify" $ reifyPossibilityQT qt)

@@ -23,6 +23,7 @@ module Icicle.Source.Checker.Base (
   , withBind
   , removeElementBinds
 
+  , substE
   , substTQ
   , substTX
   , substAnnot
@@ -195,15 +196,17 @@ removeElementBinds env
    = getTemporalityOrPure (functionReturn ft) == TemporalityElement
 
 
+substE :: Ord n => SubstT n -> GenEnv n -> GenEnv n
+substE s
+ = fmap (substFT s)
+
 substTQ :: Ord n => SubstT n -> Query'C a n -> Query'C a n
 substTQ s
  = reannotQ (substAnnot s)
 
-
 substTX :: Ord n => SubstT n -> Exp'C a n -> Exp'C a n
 substTX s
  = reannotX (substAnnot s)
-
 
 substAnnot :: Ord n => SubstT n -> Annot a n -> Annot a n
 substAnnot s ann

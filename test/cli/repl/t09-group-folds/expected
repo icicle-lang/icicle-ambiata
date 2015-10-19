@@ -13,4 +13,8 @@ ok, loaded test/cli/repl/data.psv, 13 rows
 > - Core evaluation:
 [homer, 1,marge, 3]
 
+> > -- Fold over oldests. Not really that meaningful but a useful test
+> - Core evaluation:
+[homer, 500,marge, 0]
+
 > 

@@ -101,8 +101,8 @@ sourceParse = mapLeft ReplErrorCompile . P.sourceParseQT "repl"
 sourceDesugar :: P.QueryTop' -> Either ReplError P.QueryTop'
 sourceDesugar = mapLeft ReplErrorCompile . P.sourceDesugarQT
 
-sourceReify :: D.Dictionary -> P.QueryTop' -> Either ReplError P.QueryTop'
-sourceReify d = mapLeft ReplErrorCompile . P.sourceReifyQT d
+sourceReify :: P.QueryTop'T -> Either ReplError P.QueryTop'T
+sourceReify = return . P.sourceReifyQT
 
 sourceCheck :: D.Dictionary -> P.QueryTop' -> Either ReplError (P.QueryTop'T, ST.Type SP.Variable)
 sourceCheck d

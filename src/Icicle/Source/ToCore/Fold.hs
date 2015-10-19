@@ -18,6 +18,7 @@ import qualified Icicle.Core                    as C
 import qualified Icicle.Core.Exp.Combinators    as CE
 import           Icicle.Source.Query
 import           Icicle.Source.ToCore.Base
+import           Icicle.Source.ToCore.Context
 import           Icicle.Source.ToCore.Exp
 import           Icicle.Source.ToCore.Prim
 import           Icicle.Source.Type
@@ -126,7 +127,7 @@ convertFold q
                     i <- idFun retty'
                     n'v <- lift fresh
                     let k = CE.xLam n'v retty' $ CE.xVar v'
-                    let err = CE.xValue retty' $ VError ExceptScalarVariableNotAvailable
+                    let err = CE.xValue retty' $ T.defaultOfType retty'
                     return $ ConvertFoldResult k err i retty' retty'
 
              -- For aggregate variables, the actual folding doesn't matter:
@@ -147,7 +148,7 @@ convertFold q
 
              -- Otherwise it must be a feature
              _
-              | Just (_, var') <- Map.lookup v fs
+              | Just fv <- Map.lookup v fs
               -> do -- Creating a fold from a scalar variable is strange, since
                     -- the scalar variable is only available inside each iteration.
                     -- For the konstrukt, we just return the current value.
@@ -164,8 +165,8 @@ convertFold q
                     i <- idFun retty'
                     n'v <- lift fresh
                     inp <- convertInputName
-                    let k = CE.xLam n'v retty' $ var' $ CE.xVar inp
-                    let err = CE.xValue retty' $ VError ExceptScalarVariableNotAvailable
+                    let k = CE.xLam n'v retty' $ featureVariableExp fv $ CE.xVar inp
+                    let err = CE.xValue retty' $ T.defaultOfType retty'
                     return $ ConvertFoldResult k err i retty' retty'
 
               | otherwise
@@ -175,10 +176,13 @@ convertFold q
       -> do -- Case expressions are very similar to primops.
             -- We know that the scrutinee and the patterns are all aggregates.
             -- Elements are handled elsewhere.
-            let args = scrut : fmap snd pats
-            pats'  <- convertCaseFreshenPats (fmap fst pats)
+            let args = (PatDefault, scrut) : pats
+            let goPat (p,alt)
+                    = (,) <$> convertCaseFreshenPat p <*> convertFold (Query [] alt)
+            args'  <- mapM goPat args
+            let pats'= drop 1 $ fmap fst args'
+            let res = fmap snd args'
 
-            res    <- mapM (convertFold . Query []) args
             retty' <- convertValType' retty
             scrutT <- convertValType' $ annResult $ annotOfExp scrut
 
@@ -230,34 +234,83 @@ convertFold q
         TemporalityElement  -> True
         TemporalityPure     -> True
         _                   -> False
-     -> do n'arr <- lift fresh
-           n'acc <- lift fresh
+     -> do n'acc <- lift fresh
            n'buf <- lift fresh
-           n'q   <- lift fresh
+           n'val <- lift fresh
+           n'err <- lift fresh
 
-           inp       <- convertInputName
-           inpT      <- convertInputType
-           let t'e    = inpT
-           let t'buf  = T.BufT t'e
+           res       <- convertExpQ q'
+           t'exp     <- convertValType' $ annResult $ annotOfQuery q'
 
-           res       <- convertWithInputName n'q $ convertExpQ q'
-           t'x       <- convertValType' $ annResult $ annotOfQuery q'
-           let t'arr  = T.ArrayT t'x
+           let 
 
-           let kons  = CE.xLam n'acc t'buf
-                     ( CE.pushBuf t'e
-                         CE.@~ CE.xVar n'acc
-                         CE.@~ CE.xVar inp )
-           let zero  = CE.emptyBuf t'e
-                         CE.@~ CE.constI i
+               isPossibly
+                      = isAnnotPossibly $ annotOfQuery q'
+               t'e    | isPossibly
+                      , T.SumT T.ErrorT tt <- t'exp
+                      = tt
+                      | otherwise
+                      = t'exp
 
-           let x'    = CE.xLam n'buf t'buf
-                     $ CE.xLet n'arr (CE.readBuf t'e CE.@~ CE.xVar n'buf)
-                     ( CE.xPrim (C.PrimArray $ C.PrimArrayMap t'e t'x)
-                         CE.@~ CE.xLam n'q t'e res
-                         CE.@~ CE.xVar n'arr )
+               t'buf  = T.BufT t'e
+               t'arr  | isPossibly
+                      = T.SumT T.ErrorT (T.ArrayT t'e)
+                      | otherwise
+                      = T.ArrayT t'e
 
-           return $ ConvertFoldResult kons zero x' t'buf t'arr
+               t'sum  | isPossibly
+                      = T.SumT T.ErrorT t'buf
+                      | otherwise
+                      = t'buf
+
+           let err t x
+                      = let t' = case t of
+                                    T.SumT T.ErrorT t'' -> t''
+                                    _ -> t
+                        in CE.xPrim (C.PrimMinimal $ Min.PrimConst $ Min.PrimConstLeft T.ErrorT t')
+                            CE.@~ x
+           let val t x  = CE.xPrim (C.PrimMinimal $ Min.PrimConst $ Min.PrimConstRight T.ErrorT t)
+                        CE.@~ x
+
+           let foldSum t'scrut t'ret x'scrut nm x'val
+                      = CE.xPrim (C.PrimFold (C.PrimFoldSum T.ErrorT t'scrut) t'ret)
+                        CE.@~ (CE.xLam n'err T.ErrorT $ err t'ret $ CE.xVar n'err)
+                        CE.@~ (CE.xLam nm t'scrut  $ x'val $ CE.xVar nm)
+                        CE.@~ x'scrut
+
+           let push x | isPossibly
+                      = foldSum t'e t'sum res n'val
+                        (\v -> val t'buf
+                        (CE.pushBuf t'e
+                         CE.@~ x
+                         CE.@~ v))
+                      | otherwise
+                      = CE.pushBuf t'e
+                         CE.@~ x
+                         CE.@~ res
+
+           let kons   | isPossibly
+                      = CE.xLam n'acc t'sum
+                      $ foldSum t'buf t'sum (CE.xVar n'acc)
+                        n'buf push
+                      | otherwise
+                      = CE.xLam n'acc t'buf $ push $ CE.xVar n'acc
+
+           let zero   | isPossibly
+                      = val t'buf
+                      ( CE.emptyBuf t'e CE.@~ CE.constI i)
+                      | otherwise
+                      = CE.emptyBuf t'e CE.@~ CE.constI i
+
+           let x'     | isPossibly
+                      = CE.xLam n'buf t'sum
+                      $ foldSum t'buf t'arr (CE.xVar n'buf) n'val
+                        (\b -> val (T.ArrayT t'e) (CE.readBuf t'e CE.@~ b))
+                      | otherwise
+                      = CE.xLam n'buf t'buf
+                      ( CE.readBuf t'e CE.@~ CE.xVar n'buf )
+
+           return $ ConvertFoldResult kons zero x' t'sum t'arr
 
      | otherwise
      -> do n'arr <- lift fresh
@@ -327,7 +380,7 @@ convertFold q
      -> do  def' <- convertExp def
             n'   <- lift fresh
             t' <- convertValType' $ annResult $ annotOfExp def
-            let err = CE.xValue t' $ VError ExceptScalarVariableNotAvailable
+            let err = CE.xValue t' $ T.defaultOfType t'
             let res = ConvertFoldResult (CE.xLam n' t' def') err (CE.xLam n' t' $ CE.xVar n') t' t'
             convertAsLet b res
 
@@ -335,37 +388,8 @@ convertFold q
      -> do  resb <- convertFold (Query [] def)
             convertAsLet b resb
 
-    (LetFold _ f@Fold{ foldType = FoldTypeFoldl1 } : _)
-     -> do  -- Type helpers
-            tU <- convertValType' $ annResult $ annotOfExp $ foldWork f
-            let tO = T.OptionT tU
-
-            -- Generate fresh names
-            -- Current accumulator
-            -- : Option tU
-            n'a     <- lift fresh
-
-            z   <- convertExp (foldInit f)
-            -- Current accumulator is only available in worker
-            n'a' <- convertFreshenAdd $ foldBind f
-            k   <- convertExp (foldWork f)
-
-            let opt r = CE.xPrim $ C.PrimFold (C.PrimFoldOption tU) r
-            -- Wrap zero and kons up in Some
-            let k' = CE.xLam n'a tO
-                   ( opt tO
-                     CE.@~ CE.xLam n'a' tU (CE.some tU $ k)
-                     CE.@~ CE.some tU z
-                     CE.@~ CE.xVar n'a)
-
-            let x' = CE.xLam n'a tO
-                   ( opt tU
-                     CE.@~ CE.xLam   n'a' tU (CE.xVar n'a')
-                     CE.@~ CE.xValue tU (VError ExceptFold1NoValue)
-                     CE.@~ CE.xVar   n'a )
-
-            let res = ConvertFoldResult k' (CE.xValue tO VNone) x' tO tU
-            convertAsLet (foldBind f) res
+    (LetFold (Annot { annAnnot = ann }) Fold{ foldType = FoldTypeFoldl1 } : _)
+     -> convertError $ ConvertErrorImpossibleFold1 ann
 
 
     (LetFold _ f@Fold{ foldType = FoldTypeFoldl } : _)
@@ -375,8 +399,10 @@ convertFold q
 
             z   <- convertExp (foldInit f)
             -- Current accumulator is only available in worker
-            n'a <- convertFreshenAdd $ foldBind f
-            k   <- convertExp (foldWork f)
+            (n'a,k) <- convertContext
+                     $ do n'a <- convertFreshenAdd $ foldBind f
+                          k   <- convertExp (foldWork f)
+                          return (n'a, k)
 
             let k' = CE.xLam n'a tU k
 
@@ -443,7 +469,8 @@ convertFold q
 
 
   convertAsLet b resb
-   =    do  b'     <- convertFreshenAdd b
+   = convertContext
+   $    do  b'     <- convertFreshenAdd b
             resq   <- convertFold q'
             let tb' = typeFold resb
             let tq' = typeFold resq

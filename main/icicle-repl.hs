@@ -297,14 +297,17 @@ handleLine state line = case readCommand line of
       prettyOut hasInlined "- Inlined:" inlined
       prettyOut hasDesugar "- Desugar:" blanded
 
-      reified     <- hoist $ SR.sourceReify (dictionary state) blanded
-      prettyOut hasInlined "- Reified:" reified
-      -- XXX This should be operating on reified, but I'm disabling it for now
-      (annot',_)  <- hoist $ SR.sourceCheck (dictionary state) blanded -- reified
+      (annobland, _) <- hoist $ SR.sourceCheck (dictionary state) blanded
+      prettyOut hasInlined "- Annotated desugar:" (SPretty.PrettyAnnot annobland)
 
-      prettyOut hasInlined "- Inlined:" (SPretty.PrettyAnnot annot')
 
-      core      <- hoist $ SR.sourceConvert (dictionary state) annot'
+      reified        <- hoist $ SR.sourceReify annobland
+      prettyOut hasInlined "- Reified:"                      reified
+      prettyOut hasInlined "- Reified:" (SPretty.PrettyAnnot reified)
+      let finalSource   = reified
+
+
+      core      <- hoist $ SR.sourceConvert (dictionary state) finalSource
       let core'  | doCoreSimp state
                  = renameP unVar $ SR.coreSimp core
                  | otherwise
@@ -332,12 +335,12 @@ handleLine state line = case readCommand line of
            prettyOut hasSea  "- C:"    (Sea.seaOfProgram f')
 
            when (hasSeaEval state) $ do
-             result <- liftIO . runEitherT $ seaEval (currentDate state) (facts state) annot' f'
+             result <- liftIO . runEitherT $ seaEval (currentDate state) (facts state) finalSource f'
              case result of
                Left  e -> prettyOut (const True) "- C error:" e
                Right r -> prettyOut (const True) "- C evaluation:" r
 
-      case coreEval (currentDate state) (facts state) annot' core' of
+      case coreEval (currentDate state) (facts state) finalSource core' of
        Left  e -> prettyOut hasCoreEval "- Core error:" e
        Right r -> prettyOut hasCoreEval "- Core evaluation:" r
 
