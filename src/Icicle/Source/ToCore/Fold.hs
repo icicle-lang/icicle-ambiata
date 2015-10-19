@@ -240,15 +240,23 @@ convertFold q
            res       <- convertExpQ q'
            t'e       <- convertValType' $ annResult $ annotOfQuery q'
            let t'arr  = T.ArrayT t'e
+           -- TODO:
+           --  * t'buf should be (SumT Error (BufT t'e)) if Possibly
            let t'buf  = T.BufT t'e
 
            let kons  = CE.xLam n'acc t'buf
+           --  * case res of
+           --     Left e -> Left [t'buf] e
+           --     Right r -> Right (push .. )
                      ( CE.pushBuf t'e
                          CE.@~ CE.xVar n'acc
                          CE.@~ res )
            let zero  = CE.emptyBuf t'e
                          CE.@~ CE.constI i
 
+           --  * case n'buf of
+           --      Left e -> Left e
+           --      Right r -> readBuf r
            let x'    = CE.xLam n'buf t'buf
                      ( CE.readBuf t'e CE.@~ CE.xVar n'buf )
 
