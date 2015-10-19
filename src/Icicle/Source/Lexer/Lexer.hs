@@ -1,11 +1,13 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE PatternGuards #-}
+{-# LANGUAGE OverloadedStrings #-}
 module Icicle.Source.Lexer.Lexer (
     lexer
   , lexerPositions
   ) where
 
 import Icicle.Source.Lexer.Token
+import Icicle.Data.DateTime
 
 import                  P
 
@@ -17,7 +19,7 @@ import qualified        Text.Read as R
 
 import qualified        Text.Parsec.Pos as Pos
 
-
+import qualified        Data.Attoparsec.Text as A
 
 -- | Lex a string into tokens.
 -- The SourceName is used for annotating tokens with their file positions
@@ -86,6 +88,14 @@ lexerPositions ts
           in  (lit, pos) : lexerPositions rest
       Left tok
        -> [(tok, pos)]
+
+   -- Date literals are marked with backticks. A date is 10 chars long, plus a '`', so take 11 chars.
+   | c == '`'
+   = case A.parseOnly (pDate <* A.char '`' <* A.endOfInput) (T.pack $ fmap fst $ L.take 11 t') of
+    Right r
+     -> (TLiteral $ LitDate r, pos) : lexerPositions (L.drop 11 t')
+    Left _
+     -> [(TUnexpected "Invalid date", pos)]
 
    -- Parens are easy
    | c == '('

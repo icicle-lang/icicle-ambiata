@@ -55,6 +55,8 @@ convertPrim p ann resT xts
    = return $ CE.XValue () T.DoubleT (V.VDouble i)
   go (Lit (LitString i))
    = return $ CE.XValue () T.StringT (V.VString i)
+  go (Lit (LitDate i))
+   = return $ CE.XValue () T.DateTimeT (V.VDateTime i)
 
   go (PrimCon ConSome)
    = primmin <$> (Min.PrimConst <$> (Min.PrimConstSome <$> t1 1))
