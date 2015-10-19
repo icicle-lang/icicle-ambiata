@@ -287,16 +287,12 @@ flatX a_fresh xx stm
        | [i] <- xs
        -> flatX' i
        $  \i'
-       -> do   accN      <- fresh
-               let bufT   = BufT t
-               let accT   = Mutable
+       -> do   tmpN      <- fresh
                let fpBuf  = xPrim (Flat.PrimBuf $ Flat.PrimBufMake t)
-               stm'      <- stm (xVar accN)
+               stm'      <- stm (xVar tmpN)
 
                return
-                 $ InitAccumulator
-                     (Accumulator accN accT bufT (fpBuf `xApp` i'))
-                     (Read accN accN accT bufT stm')
+                 $ Let tmpN (fpBuf `xApp` i') stm'
 
        | otherwise
        -> lift $ Left $ FlattenErrorPrimBadArgs p xs
@@ -308,9 +304,10 @@ flatX a_fresh xx stm
        $  \e'
        -> flatX' buf
        $  \buf'
-       -> do   tmpN <- fresh
+       -> do   tmpN      <- fresh
                let fpPush = xPrim (Flat.PrimBuf $ Flat.PrimBufPush t) `xApp` buf' `xApp` e'
-               return $ Let tmpN fpPush emptyStm
+               return
+                 $ Let tmpN fpPush mempty
 
        | otherwise
        -> lift $ Left $ FlattenErrorPrimBadArgs p xs
@@ -320,12 +317,11 @@ flatX a_fresh xx stm
        | [buf] <- xs
        -> flatX' buf
        $  \buf'
-       -> do   accN <- fresh
-               let bufT   = BufT t
-               let accT   = Mutable
-               let fpRead = xPrim (Flat.PrimBuf $ Flat.PrimBufRead t) `xApp` buf'
-               stm'      <- stm (xVar accN)
-               return $ Let accN fpRead stm'
+       -> do   tmpN       <- fresh
+               let fpRead  = xPrim (Flat.PrimBuf $ Flat.PrimBufRead t) `xApp` buf'
+               stm'       <- stm (xVar tmpN)
+               return
+                 $ Let tmpN fpRead stm'
 
        | otherwise
        -> lift $ Left $ FlattenErrorPrimBadArgs p xs
@@ -460,6 +456,3 @@ flatX a_fresh xx stm
             | otherwise
             = Min.PrimPairSnd ta tb
      in (xPrim $ Flat.PrimMinimal $ Min.PrimPair $ pm) `xApp` e
-
-  emptyStm
-   = Block []

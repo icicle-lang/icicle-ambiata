@@ -9,7 +9,6 @@ module Icicle.Core.Eval.Reduce (
 import              Icicle.BubbleGum
 
 import              Icicle.Common.Base
-import              Icicle.Common.Type
 import              Icicle.Common.Value as V
 import              Icicle.Core.Reduce
 import qualified    Icicle.Common.Exp.Eval  as XV
@@ -90,12 +89,6 @@ eval reduction_name xh sh r
   appV f a
    = mapLeft SV.RuntimeErrorExp
    $ XV.applyValues XV.evalPrim f a
-
-  -- In real code we use a circular buffer, but here we can
-  -- afford to keep everything in memory
-  latest i vs
-   = let len = length vs
-     in  drop (len - i) vs
 
   -- Get the history of some stream input
   flavoursOfSource
