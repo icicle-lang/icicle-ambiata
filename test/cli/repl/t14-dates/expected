@@ -8,4 +8,7 @@ ok, loaded test/cli/repl/data.psv, 13 rows
 > > - Core evaluation:
 [homer, -92,marge, 7228]
 
+> > - Core evaluation:
+[homer, 1461,marge, 8781]
+
 > 
