@@ -88,22 +88,20 @@ evalPrim p vs
 
      PrimLatest (PrimLatestMake _)
       | [VBase (VInt i)] <- vs
-      -> return . VBase . VBuf
-      $  List.replicate i (VError ExceptScalarVariableNotAvailable)
+      -> return . VBase . VBuf i $ []
       | otherwise
       -> primError
 
      PrimLatest (PrimLatestPush _)
-      | [VBase (VBuf as), VBase e] <- vs
-      -> return . VBase . VBuf
-      $  circ e as
+      | [VBase (VBuf i as), VBase e] <- vs
+      -> return . VBase . VBuf i
+      $  circ i e as
       | otherwise
       -> primError
 
      PrimLatest (PrimLatestRead _)
-      | [VBase (VBuf as)] <- vs
-      -> return . VBase . VArray
-      $ filter justElem as
+      | [VBase (VBuf _ as)] <- vs
+      -> return . VBase . VArray $ as
       | otherwise
       -> primError
 
@@ -119,13 +117,8 @@ evalPrim p vs
   primError
    = Left $ RuntimeErrorPrimBadArgs p vs
 
-  -- TODO make an efficient circular buffer
-  circ x xs
+  circ n x xs
+   | length xs < n
+   = xs <> [x]
+   | otherwise
    = List.drop 1 (xs <> [x])
-
-  -- If the circular buffer is not completely filled,
-  -- just grab the filled part.
-  justElem (VError ExceptScalarVariableNotAvailable)
-   = False
-  justElem _
-   = True

@@ -64,22 +64,20 @@ evalPrim p vs
 
      PrimBuf (PrimBufMake _)
       | [VBase (VInt i)] <- vs
-      -> return . VBase . VBuf
-      $  List.replicate i (VError ExceptScalarVariableNotAvailable)
+      -> return . VBase . VBuf i $ []
       | otherwise
       -> primError
 
      PrimBuf (PrimBufPush _)
-      | [VBase (VBuf as), VBase e] <- vs
-      -> return . VBase . VBuf
-      $  circ e as
+      | [VBase (VBuf i as), VBase e] <- vs
+      -> return . VBase . VBuf i
+      $  circ i e as
       | otherwise
       -> primError
 
      PrimBuf (PrimBufRead _)
-      | [VBase (VBuf as)] <- vs
-      -> return . VBase . VArray
-      $ filter justElem as
+      | [VBase (VBuf _ as)] <- vs
+      -> return . VBase . VArray $ as
       | otherwise
       -> primError
 
@@ -162,10 +160,8 @@ evalPrim p vs
       | otherwise
       -> primError
  where
-  circ x xs
+  circ n x xs
+   | length xs < n
+   = xs <> [x]
+   | otherwise
    = List.drop 1 (xs <> [x])
-
-  justElem (VError ExceptScalarVariableNotAvailable)
-   = False
-  justElem _
-   = True
