@@ -213,7 +213,14 @@ instance Arbitrary QueryWithFeature where
   = do q   <- arbitrary
        now <- arbitrary
        o   <- arbitrary
-       t   <- arbitrary
+       -- Convert to Source type and back, because this filters out Bufs.
+       -- (It actually converts them to Arrays)
+       -- This is fine, because Buf can't be in feature types.
+       --
+       -- This was causing issues with conversion from Source, because
+       -- part of the resulting Core was using the ValType with Bufs, and
+       -- part was using the Source-converted type with Arrays.
+       Just t <- (valTypeOfType . typeOfValType) <$> arbitrary
        nm  <- arbitrary `suchThat` (\n -> Just n /= now)
        return $ QueryWithFeature q now o t nm
 
