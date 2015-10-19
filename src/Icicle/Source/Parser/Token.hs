@@ -14,6 +14,7 @@ module Icicle.Source.Parser.Token (
   , pLitInt
   , pLitDouble
   , pLitString
+  , pLitDate
   , pParenL
   , pParenR
   , pFlowsInto
@@ -21,6 +22,7 @@ module Icicle.Source.Parser.Token (
 
 import qualified        Icicle.Source.Lexer.Token as T
 import                  Icicle.Common.Base
+import                  Icicle.Data.DateTime
 
 import                  P hiding ((<|>))
 
@@ -103,6 +105,15 @@ pLitString
  = pTok get <?> "string literal"
  where
   get (T.TLiteral (T.LitString i))
+   = Just i
+  get _
+   = Nothing
+
+pLitDate :: Parser DateTime
+pLitDate
+ = pTok get <?> "date literal"
+ where
+  get (T.TLiteral (T.LitDate i))
    = Just i
   get _
    = Nothing

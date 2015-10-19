@@ -90,10 +90,16 @@ instance Arbitrary n => Arbitrary (Exp () n) where
 
 instance Arbitrary Prim where
  arbitrary
-  = oneof_vals
-        [ Lit $ LitInt 0
-        , Lit $ LitInt 1
-        , Lit $ LitInt 2 ]
+  = oneof
+        [ Lit . LitInt    <$> pos
+        , Lit . LitDouble <$> pos'
+        , Lit . LitString <$> (elements southpark)
+        , Lit . LitDate   <$> arbitrary ]
+    where
+      -- Negative literals get parsed into negative, then a positive literal.
+      -- This isn't a problem mathematically, but would break symmetry tests.
+      pos  = abs <$> arbitrary
+      pos' = abs <$> arbitrary
 
 instance Arbitrary Constructor where
  arbitrary

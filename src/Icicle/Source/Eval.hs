@@ -194,6 +194,9 @@ evalP ann p xs vs env
     Lit (LitString i)
      -> return (VString i)
 
+    Lit (LitDate i)
+     -> return (VDateTime i)
+
     PrimCon con
      -> do  args <- mapM (\x' -> evalX x' vs env) xs
             let err = Left $ EvalErrorPrimBadArgs ann p args

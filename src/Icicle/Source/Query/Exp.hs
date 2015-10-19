@@ -21,12 +21,13 @@ module Icicle.Source.Query.Exp (
 
 import                  Icicle.Source.Query.Constructor
 import                  Icicle.Source.Query.Operators
+import                  Icicle.Data.DateTime
 import                  Icicle.Internal.Pretty
 import                  Icicle.Common.Base
 
 import                  P
 
-import                  Data.Text (Text)
+import                  Data.Text (Text, unpack)
 
 
 data Exp' q a n
@@ -79,6 +80,7 @@ data Lit
  = LitInt Int
  | LitDouble Double
  | LitString Text
+ | LitDate DateTime
  deriving (Show, Eq, Ord)
 
 data Fun
@@ -209,6 +211,7 @@ instance Pretty Lit where
  pretty (LitInt i) = text $ show i
  pretty (LitDouble i) = text $ show i
  pretty (LitString i) = text $ show i
+ pretty (LitDate i) = "`" <> (text $ unpack $ renderDate i) <> "`"
 
 instance Pretty Fun where
  pretty Log         = "log"
