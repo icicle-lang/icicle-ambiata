@@ -54,11 +54,11 @@ evalPrim p vs
       | otherwise
       -> primError
 
-     PrimProject (PrimProjectSumIsLeft _ _)
+     PrimProject (PrimProjectSumIsRight _ _)
       | [VBase (VLeft _)]  <- vs
-      -> return $ VBase $ VBool True
-      | [VBase (VRight _)]  <- vs
       -> return $ VBase $ VBool False
+      | [VBase (VRight _)]  <- vs
+      -> return $ VBase $ VBool True
       | otherwise
       -> primError
 
@@ -152,11 +152,19 @@ evalPrim p vs
       | otherwise
       -> primError
 
-     PrimOption (PrimOptionPack _)
-      | [VBase (VBool True), VBase v]  <- vs
-      -> return $ VBase $ VSome v
+     PrimPack (PrimOptionPack _)
       | [VBase (VBool False), _]       <- vs
       -> return $ VBase $ VNone
+      | [VBase (VBool True), VBase v]  <- vs
+      -> return $ VBase $ VSome v
+      | otherwise
+      -> primError
+
+     PrimPack (PrimSumPack _ _)
+      | [VBase (VBool False), VBase a, _]       <- vs
+      -> return $ VBase $ VLeft a
+      | [VBase (VBool True), _, VBase b]  <- vs
+      -> return $ VBase $ VRight b
       | otherwise
       -> primError
  where

@@ -438,7 +438,7 @@ flatX a_fresh xx stm
 
   -- Fold over an either
   flatFold (Core.PrimFoldSum ta tb) valT [xleft, xright, scrut]
-   = let fpIsLeft    = xPrim (Flat.PrimProject  (Flat.PrimProjectSumIsLeft  ta tb))
+   = let fpIsRight   = xPrim (Flat.PrimProject  (Flat.PrimProjectSumIsRight ta tb))
          fpLeft      = xPrim (Flat.PrimUnsafe   (Flat.PrimUnsafeSumGetLeft  ta tb))
          fpRight     = xPrim (Flat.PrimUnsafe   (Flat.PrimUnsafeSumGetRight ta tb))
      in  flatX' scrut
@@ -451,7 +451,7 @@ flatX a_fresh xx stm
          sleft   <- flatX' (xleft  `xApp` (xVar tmp )) $ (return . Write acc)
          sright  <- flatX' (xright `xApp` (xVar tmp')) $ (return . Write acc)
 
-         let if_   = If (fpIsLeft `xApp` scrut') (Let tmp (fpLeft `xApp` scrut') sleft) (Let tmp' (fpRight `xApp` scrut') sright)
+         let if_   = If (fpIsRight `xApp` scrut') (Let tmp' (fpRight `xApp` scrut') sright) (Let tmp (fpLeft `xApp` scrut') sleft)
              accT  = Mutable
            -- After if, read back result from accumulator and then go do the rest of the statements
              read_ = Read acc acc accT valT stm'

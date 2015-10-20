@@ -10,40 +10,65 @@ ok, c is now on
 > - Flattened:
 gen$date = DATE
 {
-  init [Mutable] [(Sum Error Int)] acc$s$reify$2$conv$5 = left# [Error] [Int]
-                                                          (ExceptFold1NoValue : Error);
-  load_resumable [(Sum Error Int)] acc$s$reify$2$conv$5;
-  for_facts (elem$gen$fact : (Sum Error Int),
+  init [Mutable] [Bool] acc$s$reify$2$conv$5$simp$0 = False : Bool;
+  init [Mutable] [Error] acc$s$reify$2$conv$5$simp$1 = ExceptFold1NoValue : Error;
+  init [Mutable] [Int] acc$s$reify$2$conv$5$simp$2 = 0 : Int;
+  load_resumable [Bool] acc$s$reify$2$conv$5$simp$0;
+  load_resumable [Error] acc$s$reify$2$conv$5$simp$1;
+  load_resumable [Int] acc$s$reify$2$conv$5$simp$2;
+  for_facts (elem$gen$fact$simp$21 : Bool,
+             elem$gen$fact$simp$22 : Error,
+             elem$gen$fact$simp$23 : Int,
              elem$gen$date : DateTime) in new {
-    read [Mutable] [(Sum Error Int)] acc$s$reify$2$conv$5 = acc$s$reify$2$conv$5;
-    init [Mutable] [(Sum Error Int)] flat$0 = Left ExceptTombstone : (Sum Error Int);
-    if (Sum_isLeft# [Error] [Int]
-        acc$s$reify$2$conv$5) {
-      let flat$1 = unsafe_Sum_left# [Error] [Int]
-                   acc$s$reify$2$conv$5;
-      init [Mutable] [(Sum Error Int)] flat$3 = Left ExceptTombstone : (Sum Error Int);
+    read [Mutable] [Bool] acc$s$reify$2$conv$5$simp$3 = acc$s$reify$2$conv$5$simp$0;
+    read [Mutable] [Error] acc$s$reify$2$conv$5$simp$4 = acc$s$reify$2$conv$5$simp$1;
+    read [Mutable] [Int] acc$s$reify$2$conv$5$simp$5 = acc$s$reify$2$conv$5$simp$2;
+    init [Mutable] [Bool] flat$0$simp$6 = False : Bool;
+    init [Mutable] [Error] flat$0$simp$7 = ExceptTombstone : Error;
+    init [Mutable] [Int] flat$0$simp$8 = 0 : Int;
+    if (acc$s$reify$2$conv$5$simp$3) {
+      write flat$0$simp$6 = acc$s$reify$2$conv$5$simp$3;
+      write flat$0$simp$7 = acc$s$reify$2$conv$5$simp$4;
+      write flat$0$simp$8 = acc$s$reify$2$conv$5$simp$5;
+    } else {
+      init [Mutable] [Bool] flat$3$simp$9 = False : Bool;
+      init [Mutable] [Error] flat$3$simp$10 = ExceptTombstone : Error;
+      init [Mutable] [Int] flat$3$simp$11 = 0 : Int;
       if (eq# [Error]
           (ExceptFold1NoValue : Error)
-          flat$1) {
-        write flat$3 = elem$gen$fact;
-      } 
-       else {
-        write flat$3 = left# [Error] [Int]
-                       flat$1;
-      } 
-      
-      read [Mutable] [(Sum Error Int)] flat$3 = flat$3;
-      write flat$0 = flat$3;
-    } else {
-      write flat$0 = acc$s$reify$2$conv$5;
-    } 
-    
-    read [Mutable] [(Sum Error Int)] flat$0 = flat$0;
-    write acc$s$reify$2$conv$5 = flat$0;
+          acc$s$reify$2$conv$5$simp$4) {
+        write flat$3$simp$9 = elem$gen$fact$simp$21;
+        write flat$3$simp$10 = elem$gen$fact$simp$22;
+        write flat$3$simp$11 = elem$gen$fact$simp$23;
+      } else {
+        write flat$3$simp$9 = False : Bool;
+        write flat$3$simp$10 = acc$s$reify$2$conv$5$simp$4;
+        write flat$3$simp$11 = 0 : Int;
+      }
+      read [Mutable] [Bool] flat$3$simp$12 = flat$3$simp$9;
+      read [Mutable] [Error] flat$3$simp$13 = flat$3$simp$10;
+      read [Mutable] [Int] flat$3$simp$14 = flat$3$simp$11;
+      write flat$0$simp$6 = flat$3$simp$12;
+      write flat$0$simp$7 = flat$3$simp$13;
+      write flat$0$simp$8 = flat$3$simp$14;
+    }
+    read [Mutable] [Bool] flat$0$simp$15 = flat$0$simp$6;
+    read [Mutable] [Error] flat$0$simp$16 = flat$0$simp$7;
+    read [Mutable] [Int] flat$0$simp$17 = flat$0$simp$8;
+    write acc$s$reify$2$conv$5$simp$0 = flat$0$simp$15;
+    write acc$s$reify$2$conv$5$simp$1 = flat$0$simp$16;
+    write acc$s$reify$2$conv$5$simp$2 = flat$0$simp$17;
   }
-  save_resumable [(Sum Error Int)] acc$s$reify$2$conv$5;
-  read [Mutable] [(Sum Error Int)] s$reify$2$conv$5 = acc$s$reify$2$conv$5;
-  output repl s$reify$2$conv$5;
+  save_resumable [Bool] acc$s$reify$2$conv$5$simp$0;
+  save_resumable [Error] acc$s$reify$2$conv$5$simp$1;
+  save_resumable [Int] acc$s$reify$2$conv$5$simp$2;
+  read [Mutable] [Bool] s$reify$2$conv$5$simp$18 = acc$s$reify$2$conv$5$simp$0;
+  read [Mutable] [Error] s$reify$2$conv$5$simp$19 = acc$s$reify$2$conv$5$simp$1;
+  read [Mutable] [Int] s$reify$2$conv$5$simp$20 = acc$s$reify$2$conv$5$simp$2;
+  output repl Sum_pack# [Error] [Int]
+              s$reify$2$conv$5$simp$18
+              s$reify$2$conv$5$simp$19
+              s$reify$2$conv$5$simp$20;
 }
 
 - C:
@@ -51,6 +76,7 @@ gen$date = DATE
 #include <stdint.h>
 #include <math.h>
 
+typedef uint64_t ierror_t;
 typedef uint64_t iunit_t;
 typedef uint64_t ibool_t;
 typedef  int64_t iint_t;
@@ -63,9 +89,9 @@ typedef struct {
     /* inputs */
     idate_t    gen_date;
     iint_t     new_count;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT IntT..)
-     *new_elem_gen_fact;
+    ibool_t    *new_elem_gen_fact_simp_21;
+    ierror_t   *new_elem_gen_fact_simp_22;
+    iint_t     *new_elem_gen_fact_simp_23;
     idate_t    *new_elem_gen_date;
 
     /* outputs */
@@ -75,16 +101,20 @@ typedef struct {
      repl;
 
     /* resumables */
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT IntT..)
-     acc_s_reify_2_conv_5;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT IntT..)
-     flat_0;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT IntT..)
-     flat_3;
+    ibool_t    acc_s_reify_2_conv_5_simp_0;
+    ierror_t   acc_s_reify_2_conv_5_simp_1;
+    iint_t     acc_s_reify_2_conv_5_simp_2;
+    ibool_t    flat_0_simp_6;
+    ierror_t   flat_0_simp_7;
+    iint_t     flat_0_simp_8;
+    ierror_t   flat_3_simp_10;
+    iint_t     flat_3_simp_11;
+    ibool_t    flat_3_simp_9;
 } icicle_state_t;
+
+static const ierror_t ierror_tombstone              = 0;
+static const ierror_t ierror_fold1_no_value         = 1;
+static const ierror_t ierror_variable_not_available = 2;
 
 static const iunit_t iunit  = 0x1c1c13;
 static const ibool_t ifalse = 0;
@@ -118,91 +148,99 @@ static ibool_t   INLINE idouble_le    (idouble_t x, idouble_t y) { return x <= y
 static ibool_t   INLINE idouble_eq    (idouble_t x, idouble_t y) { return x == y; }
 static ibool_t   INLINE idouble_ne    (idouble_t x, idouble_t y) { return x != y; }
 
-static iint_t INLINE iint_err (icicle_state_t *s, ierror_t error)  {
-    s->error = error;
-    return 0xBAD1c3;
-}
-
-static idouble_t INLINE idouble_err (icicle_state_t *s, ierror_t error)  {
-    s->error = error;
-    return 0/0;
-}
-
 void compute(icicle_state_t *s)
 {
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT IntT..)
-     acc_s_reify_2_conv_5;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT IntT..)
-     flat_0;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT IntT..)
-     flat_3;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT IntT..)
-     s_reify_2_conv_5;
+    ibool_t    acc_s_reify_2_conv_5_simp_0;
+    ierror_t   acc_s_reify_2_conv_5_simp_1;
+    iint_t     acc_s_reify_2_conv_5_simp_2;
+    ibool_t    acc_s_reify_2_conv_5_simp_3;
+    ierror_t   acc_s_reify_2_conv_5_simp_4;
+    iint_t     acc_s_reify_2_conv_5_simp_5;
+    ibool_t    flat_0_simp_15;
+    ierror_t   flat_0_simp_16;
+    iint_t     flat_0_simp_17;
+    ibool_t    flat_0_simp_6;
+    ierror_t   flat_0_simp_7;
+    iint_t     flat_0_simp_8;
+    ierror_t   flat_3_simp_10;
+    iint_t     flat_3_simp_11;
+    ibool_t    flat_3_simp_12;
+    ierror_t   flat_3_simp_13;
+    iint_t     flat_3_simp_14;
+    ibool_t    flat_3_simp_9;
+    ibool_t    s_reify_2_conv_5_simp_18;
+    ierror_t   s_reify_2_conv_5_simp_19;
+    iint_t     s_reify_2_conv_5_simp_20;
 
-    acc_s_reify_2_conv_5                 = 
-    #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstLeft Er..)
-     (
-    #error Failed during codegen (seaOfXValue: VError ExceptFold1NoValue..)
-    );
-    acc_s_reify_2_conv_5                 = s->acc_s_reify_2_conv_5;
+    acc_s_reify_2_conv_5_simp_0          = ifalse;
+    acc_s_reify_2_conv_5_simp_1          = ierror_fold1_no_value;
+    acc_s_reify_2_conv_5_simp_2          = 0;
+    acc_s_reify_2_conv_5_simp_0          = s->acc_s_reify_2_conv_5_simp_0;
+    acc_s_reify_2_conv_5_simp_1          = s->acc_s_reify_2_conv_5_simp_1;
+    acc_s_reify_2_conv_5_simp_2          = s->acc_s_reify_2_conv_5_simp_2;
     
     const iint_t    new_count            = s->new_count;
-    const 
-    #error Failed during codegen (seaOfValType: SumT ErrorT IntT..)
-    *const new_elem_gen_fact             = s->new_elem_gen_fact;
+    const ibool_t   *const new_elem_gen_fact_simp_21 = s->new_elem_gen_fact_simp_21;
+    const ierror_t  *const new_elem_gen_fact_simp_22 = s->new_elem_gen_fact_simp_22;
+    const iint_t    *const new_elem_gen_fact_simp_23 = s->new_elem_gen_fact_simp_23;
     const idate_t   *const new_elem_gen_date = s->new_elem_gen_date;
     
     for (iint_t i = 0; i < new_count; i++) {
-        
-        #error Failed during codegen (seaOfValType: SumT ErrorT IntT..)
-         elem_gen_fact                   = new_elem_gen_fact[i];
+        ibool_t    elem_gen_fact_simp_21 = new_elem_gen_fact_simp_21[i];
+        ierror_t   elem_gen_fact_simp_22 = new_elem_gen_fact_simp_22[i];
+        iint_t     elem_gen_fact_simp_23 = new_elem_gen_fact_simp_23[i];
         idate_t    elem_gen_date         = new_elem_gen_date[i];
-        acc_s_reify_2_conv_5             = acc_s_reify_2_conv_5;
-        flat_0                           = 
-        #error Failed during codegen (seaOfXValue: VLeft (VError ExceptTombstone)..)
-        ;
+        acc_s_reify_2_conv_5_simp_3      = acc_s_reify_2_conv_5_simp_0;
+        acc_s_reify_2_conv_5_simp_4      = acc_s_reify_2_conv_5_simp_1;
+        acc_s_reify_2_conv_5_simp_5      = acc_s_reify_2_conv_5_simp_2;
+        flat_0_simp_6                    = ifalse;
+        flat_0_simp_7                    = ierror_tombstone;
+        flat_0_simp_8                    = 0;
         
-        if (
-        #error Failed during codegen (seaOfXPrim: PrimProject (PrimProjectSumIsLeft ErrorT..)
-         (acc_s_reify_2_conv_5)) {
+        if (acc_s_reify_2_conv_5_simp_3) {
+            flat_0_simp_6                = acc_s_reify_2_conv_5_simp_3;
+            flat_0_simp_7                = acc_s_reify_2_conv_5_simp_4;
+            flat_0_simp_8                = acc_s_reify_2_conv_5_simp_5;
+        } else {
+            flat_3_simp_9                = ifalse;
+            flat_3_simp_10               = ierror_tombstone;
+            flat_3_simp_11               = 0;
             
-            #error Failed during codegen (seaOfValType: ErrorT..)
-             flat_1                      = 
-            #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetLeft ErrorT ..)
-             (acc_s_reify_2_conv_5);
-            flat_3                       = 
-            #error Failed during codegen (seaOfXValue: VLeft (VError ExceptTombstone)..)
-            ;
-            
-            if (
-            #error Failed during codegen (prefixOfValType: ErrorT..)
-            eq (
-            #error Failed during codegen (seaOfXValue: VError ExceptFold1NoValue..)
-            , flat_1)) {
-                flat_3                   = elem_gen_fact;
+            if (ierror_eq (ierror_fold1_no_value, acc_s_reify_2_conv_5_simp_4)) {
+                flat_3_simp_9            = elem_gen_fact_simp_21;
+                flat_3_simp_10           = elem_gen_fact_simp_22;
+                flat_3_simp_11           = elem_gen_fact_simp_23;
             } else {
-                flat_3                   = 
-                #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstLeft Er..)
-                 (flat_1);
+                flat_3_simp_9            = ifalse;
+                flat_3_simp_10           = acc_s_reify_2_conv_5_simp_4;
+                flat_3_simp_11           = 0;
             }
             
-            flat_3                       = flat_3;
-            flat_0                       = flat_3;
-        } else {
-            flat_0                       = acc_s_reify_2_conv_5;
+            flat_3_simp_12               = flat_3_simp_9;
+            flat_3_simp_13               = flat_3_simp_10;
+            flat_3_simp_14               = flat_3_simp_11;
+            flat_0_simp_6                = flat_3_simp_12;
+            flat_0_simp_7                = flat_3_simp_13;
+            flat_0_simp_8                = flat_3_simp_14;
         }
         
-        flat_0                           = flat_0;
-        acc_s_reify_2_conv_5             = flat_0;
+        flat_0_simp_15                   = flat_0_simp_6;
+        flat_0_simp_16                   = flat_0_simp_7;
+        flat_0_simp_17                   = flat_0_simp_8;
+        acc_s_reify_2_conv_5_simp_0      = flat_0_simp_15;
+        acc_s_reify_2_conv_5_simp_1      = flat_0_simp_16;
+        acc_s_reify_2_conv_5_simp_2      = flat_0_simp_17;
     }
     
-    s->acc_s_reify_2_conv_5              = acc_s_reify_2_conv_5;
-    s_reify_2_conv_5                     = acc_s_reify_2_conv_5;
-    s->repl                              = s_reify_2_conv_5;
+    s->acc_s_reify_2_conv_5_simp_0       = acc_s_reify_2_conv_5_simp_0;
+    s->acc_s_reify_2_conv_5_simp_1       = acc_s_reify_2_conv_5_simp_1;
+    s->acc_s_reify_2_conv_5_simp_2       = acc_s_reify_2_conv_5_simp_2;
+    s_reify_2_conv_5_simp_18             = acc_s_reify_2_conv_5_simp_0;
+    s_reify_2_conv_5_simp_19             = acc_s_reify_2_conv_5_simp_1;
+    s_reify_2_conv_5_simp_20             = acc_s_reify_2_conv_5_simp_2;
+    s->repl                              = 
+    #error Failed during codegen (seaOfXPrim: PrimPack (PrimSumPack ErrorT IntT)..)
+     (s_reify_2_conv_5_simp_18, s_reify_2_conv_5_simp_19, s_reify_2_conv_5_simp_20);
 }
 
 - Core evaluation:
@@ -214,34 +252,32 @@ gen$date = DATE
 {
   init [Mutable] [Int] acc$c$conv$11 = 0 : Int;
   load_resumable [Int] acc$c$conv$11;
-  for_facts (elem$gen$fact : (Sum Error Int),
+  for_facts (elem$gen$fact$simp$8 : Bool,
+             elem$gen$fact$simp$9 : Error,
+             elem$gen$fact$simp$10 : Int,
              elem$gen$date : DateTime) in new {
-    init [Mutable] [(Sum Error Bool)] flat$0 = Left ExceptTombstone : (Sum Error Bool);
-    if (Sum_isLeft# [Error] [Int]
-        elem$gen$fact) {
-      let flat$4 = unsafe_Sum_left# [Error] [Int]
-                   elem$gen$fact;
-      write flat$0 = left# [Error] [Bool]
-                     flat$4;
-    } else {
-      let flat$5 = unsafe_Sum_right# [Error] [Int]
-                   elem$gen$fact;
-      let simp$1 = gt# [Int] flat$5
+    init [Mutable] [Bool] flat$0$simp$2 = False : Bool;
+    init [Mutable] [Bool] flat$0$simp$4 = False : Bool;
+    if (elem$gen$fact$simp$8) {
+      let simp$1 = gt# [Int]
+                   elem$gen$fact$simp$10
                    (300 : Int);
-      write flat$0 = right# [Error] [Bool]
-                     simp$1;
+      write flat$0$simp$2 = True : Bool;
+      write flat$0$simp$4 = simp$1;
+    } else {
+      write flat$0$simp$2 = False : Bool;
+      write flat$0$simp$4 = False : Bool;
     }
-    read [Mutable] [(Sum Error Bool)] flat$0 = flat$0;
+    read [Mutable] [Bool] flat$0$simp$5 = flat$0$simp$2;
+    read [Mutable] [Bool] flat$0$simp$7 = flat$0$simp$4;
     init [Mutable] [Bool] flat$1 = False : Bool;
-    if (Sum_isLeft# [Error] [Bool]
-        flat$0) {
-      write flat$1 = True : Bool;
+    if (flat$0$simp$5) {
+      write flat$1 = flat$0$simp$7;
     } 
      else {
-      let flat$3 = unsafe_Sum_right# [Error] [Bool]
-                   flat$0;
-      write flat$1 = flat$3;
-    }
+      write flat$1 = True : Bool;
+    } 
+    
     read [Mutable] [Bool] flat$1 = flat$1;
     if (flat$1) {
       read [Mutable] [Int] acc$c$conv$11 = acc$c$conv$11;
@@ -261,6 +297,7 @@ gen$date = DATE
 #include <stdint.h>
 #include <math.h>
 
+typedef uint64_t ierror_t;
 typedef uint64_t iunit_t;
 typedef uint64_t ibool_t;
 typedef  int64_t iint_t;
@@ -273,9 +310,9 @@ typedef struct {
     /* inputs */
     idate_t    gen_date;
     iint_t     new_count;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT IntT..)
-     *new_elem_gen_fact;
+    ibool_t    *new_elem_gen_fact_simp_8;
+    ierror_t   *new_elem_gen_fact_simp_9;
+    iint_t     *new_elem_gen_fact_simp_10;
     idate_t    *new_elem_gen_date;
 
     /* outputs */
@@ -286,11 +323,14 @@ typedef struct {
 
     /* resumables */
     iint_t     acc_c_conv_11;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT BoolT..)
-     flat_0;
     ibool_t    flat_1;
+    ibool_t    flat_0_simp_2;
+    ibool_t    flat_0_simp_4;
 } icicle_state_t;
+
+static const ierror_t ierror_tombstone              = 0;
+static const ierror_t ierror_fold1_no_value         = 1;
+static const ierror_t ierror_variable_not_available = 2;
 
 static const iunit_t iunit  = 0x1c1c13;
 static const ibool_t ifalse = 0;
@@ -324,76 +364,50 @@ static ibool_t   INLINE idouble_le    (idouble_t x, idouble_t y) { return x <= y
 static ibool_t   INLINE idouble_eq    (idouble_t x, idouble_t y) { return x == y; }
 static ibool_t   INLINE idouble_ne    (idouble_t x, idouble_t y) { return x != y; }
 
-static iint_t INLINE iint_err (icicle_state_t *s, ierror_t error)  {
-    s->error = error;
-    return 0xBAD1c3;
-}
-
-static idouble_t INLINE idouble_err (icicle_state_t *s, ierror_t error)  {
-    s->error = error;
-    return 0/0;
-}
-
 void compute(icicle_state_t *s)
 {
     iint_t     acc_c_conv_11;
     iint_t     c_conv_11;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT BoolT..)
-     flat_0;
     ibool_t    flat_1;
+    ibool_t    flat_0_simp_2;
+    ibool_t    flat_0_simp_4;
+    ibool_t    flat_0_simp_5;
+    ibool_t    flat_0_simp_7;
 
     acc_c_conv_11                        = 0;
     acc_c_conv_11                        = s->acc_c_conv_11;
     
     const iint_t    new_count            = s->new_count;
-    const 
-    #error Failed during codegen (seaOfValType: SumT ErrorT IntT..)
-    *const new_elem_gen_fact             = s->new_elem_gen_fact;
+    const ibool_t   *const new_elem_gen_fact_simp_8 = s->new_elem_gen_fact_simp_8;
+    const ierror_t  *const new_elem_gen_fact_simp_9 = s->new_elem_gen_fact_simp_9;
+    const iint_t    *const new_elem_gen_fact_simp_10 = s->new_elem_gen_fact_simp_10;
     const idate_t   *const new_elem_gen_date = s->new_elem_gen_date;
     
     for (iint_t i = 0; i < new_count; i++) {
-        
-        #error Failed during codegen (seaOfValType: SumT ErrorT IntT..)
-         elem_gen_fact                   = new_elem_gen_fact[i];
+        ibool_t    elem_gen_fact_simp_8  = new_elem_gen_fact_simp_8[i];
+        ierror_t   elem_gen_fact_simp_9  = new_elem_gen_fact_simp_9[i];
+        iint_t     elem_gen_fact_simp_10 = new_elem_gen_fact_simp_10[i];
         idate_t    elem_gen_date         = new_elem_gen_date[i];
-        flat_0                           = 
-        #error Failed during codegen (seaOfXValue: VLeft (VError ExceptTombstone)..)
-        ;
+        flat_0_simp_2                    = ifalse;
+        flat_0_simp_4                    = ifalse;
         
-        if (
-        #error Failed during codegen (seaOfXPrim: PrimProject (PrimProjectSumIsLeft ErrorT..)
-         (elem_gen_fact)) {
-            
-            #error Failed during codegen (seaOfValType: ErrorT..)
-             flat_4                      = 
-            #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetLeft ErrorT ..)
-             (elem_gen_fact);
-            flat_0                       = 
-            #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstLeft Er..)
-             (flat_4);
+        if (elem_gen_fact_simp_8) {
+            ibool_t    simp_1            = iint_gt (elem_gen_fact_simp_10, 300);
+            flat_0_simp_2                = itrue;
+            flat_0_simp_4                = simp_1;
         } else {
-            iint_t     flat_5            = 
-            #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetRight ErrorT..)
-             (elem_gen_fact);
-            ibool_t    simp_1            = iint_gt (flat_5, 300);
-            flat_0                       = 
-            #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstRight E..)
-             (simp_1);
+            flat_0_simp_2                = ifalse;
+            flat_0_simp_4                = ifalse;
         }
         
-        flat_0                           = flat_0;
+        flat_0_simp_5                    = flat_0_simp_2;
+        flat_0_simp_7                    = flat_0_simp_4;
         flat_1                           = ifalse;
         
-        if (
-        #error Failed during codegen (seaOfXPrim: PrimProject (PrimProjectSumIsLeft ErrorT..)
-         (flat_0)) {
-            flat_1                       = itrue;
+        if (flat_0_simp_5) {
+            flat_1                       = flat_0_simp_7;
         } else {
-            ibool_t    flat_3            = 
-            #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetRight ErrorT..)
-             (flat_0);
-            flat_1                       = flat_3;
+            flat_1                       = itrue;
         }
         
         flat_1                           = flat_1;
@@ -422,593 +436,696 @@ void compute(icicle_state_t *s)
 > - Flattened:
 gen$date = DATE
 {
-  let anf$22 = pair# [Double] [Double]
-               (0.0 : Double) (0.0 : Double);
-  let anf$23 = pair# [(Double, Double)] [Double]
-               anf$22 (0.0 : Double);
-  init [Mutable] [(Sum Error ((Double, Double), Double))] acc$a$conv$12 = right# [Error] [((Double, Double), Double)]
-                                                                          anf$23;
-  init [Mutable] [(Sum Error ((Double, Double), Double))] acc$a$conv$105 = right# [Error] [((Double, Double), Double)]
-                                                                           anf$23;
-  load_resumable [(Sum Error ((Double, Double), Double))] acc$a$conv$12;
-  load_resumable [(Sum Error ((Double, Double), Double))] acc$a$conv$105;
-  for_facts (elem$gen$fact : (Sum Error Int),
+  init [Mutable] [Bool] acc$a$conv$12$simp$62 = True : Bool;
+  init [Mutable] [Error] acc$a$conv$12$simp$63 = ExceptTombstone : Error;
+  init [Mutable] [Double] acc$a$conv$12$simp$64$simp$65$simp$67 = 0.0 : Double;
+  init [Mutable] [Double] acc$a$conv$12$simp$64$simp$65$simp$68 = 0.0 : Double;
+  init [Mutable] [Double] acc$a$conv$12$simp$64$simp$66 = 0.0 : Double;
+  init [Mutable] [Bool] acc$a$conv$105$simp$69 = True : Bool;
+  init [Mutable] [Error] acc$a$conv$105$simp$70 = ExceptTombstone : Error;
+  init [Mutable] [Double] acc$a$conv$105$simp$71$simp$72$simp$74 = 0.0 : Double;
+  init [Mutable] [Double] acc$a$conv$105$simp$71$simp$72$simp$75 = 0.0 : Double;
+  init [Mutable] [Double] acc$a$conv$105$simp$71$simp$73 = 0.0 : Double;
+  load_resumable [Bool] acc$a$conv$12$simp$62;
+  load_resumable [Error] acc$a$conv$12$simp$63;
+  load_resumable [Double] acc$a$conv$12$simp$64$simp$65$simp$67;
+  load_resumable [Double] acc$a$conv$12$simp$64$simp$65$simp$68;
+  load_resumable [Double] acc$a$conv$12$simp$64$simp$66;
+  load_resumable [Bool] acc$a$conv$105$simp$69;
+  load_resumable [Error] acc$a$conv$105$simp$70;
+  load_resumable [Double] acc$a$conv$105$simp$71$simp$72$simp$74;
+  load_resumable [Double] acc$a$conv$105$simp$71$simp$72$simp$75;
+  load_resumable [Double] acc$a$conv$105$simp$71$simp$73;
+  for_facts (elem$gen$fact$simp$358 : Bool,
+             elem$gen$fact$simp$359 : Error,
+             elem$gen$fact$simp$360 : Int,
              elem$gen$date : DateTime) in new {
-    init [Mutable] [(Sum Error Double)] flat$0 = Left ExceptTombstone : (Sum Error Double);
-    if (Sum_isLeft# [Error] [Int]
-        elem$gen$fact) {
-      let flat$82 = unsafe_Sum_left# [Error] [Int]
-                    elem$gen$fact;
-      write flat$0 = left# [Error] [Double]
-                     flat$82;
-    } else {
-      let flat$83 = unsafe_Sum_right# [Error] [Int]
-                    elem$gen$fact;
+    init [Mutable] [Bool] flat$0$simp$76 = False : Bool;
+    init [Mutable] [Error] flat$0$simp$77 = ExceptTombstone : Error;
+    init [Mutable] [Double] flat$0$simp$78 = 0.0 : Double;
+    if (elem$gen$fact$simp$358) {
       let simp$1 = doubleOfInt#
-                   flat$83;
-      write flat$0 = right# [Error] [Double]
-                     simp$1;
-    }
-    read [Mutable] [(Sum Error Double)] flat$0 = flat$0;
-    read [Mutable] [(Sum Error ((Double, Double), Double))] acc$a$conv$12 = acc$a$conv$12;
-    init [Mutable] [(Sum Error ((Double, Double), Double))] flat$1 = Left ExceptTombstone : (Sum Error ((Double, Double), Double));
-    if (Sum_isLeft# [Error] [((Double, Double), Double)]
-        acc$a$conv$12) {
-      let flat$2 = unsafe_Sum_left# [Error] [((Double, Double), Double)]
-                   acc$a$conv$12;
-      write flat$1 = left# [Error] [((Double, Double), Double)]
-                     flat$2;
+                   elem$gen$fact$simp$360;
+      write flat$0$simp$76 = True : Bool;
+      write flat$0$simp$77 = ExceptTombstone : Error;
+      write flat$0$simp$78 = simp$1;
     } else {
-      let flat$3 = unsafe_Sum_right# [Error] [((Double, Double), Double)]
-                   acc$a$conv$12;
-      let desugar_q$0$conv$15 = fst# [(Double, Double)] [Double]
-                                flat$3;
-      let desugar_q$1$conv$16 = snd# [(Double, Double)] [Double]
-                                flat$3;
-      let desugar_q$2$conv$17 = fst# [Double] [Double]
-                                desugar_q$0$conv$15;
-      let desugar_q$3$conv$18 = snd# [Double] [Double]
-                                desugar_q$0$conv$15;
+      write flat$0$simp$76 = False : Bool;
+      write flat$0$simp$77 = elem$gen$fact$simp$359;
+      write flat$0$simp$78 = 0.0 : Double;
+    }
+    read [Mutable] [Bool] flat$0$simp$79 = flat$0$simp$76;
+    read [Mutable] [Error] flat$0$simp$80 = flat$0$simp$77;
+    read [Mutable] [Double] flat$0$simp$81 = flat$0$simp$78;
+    read [Mutable] [Bool] acc$a$conv$12$simp$82 = acc$a$conv$12$simp$62;
+    read [Mutable] [Error] acc$a$conv$12$simp$83 = acc$a$conv$12$simp$63;
+    read [Mutable] [Double] acc$a$conv$12$simp$84$simp$85$simp$87 = acc$a$conv$12$simp$64$simp$65$simp$67;
+    read [Mutable] [Double] acc$a$conv$12$simp$84$simp$85$simp$88 = acc$a$conv$12$simp$64$simp$65$simp$68;
+    read [Mutable] [Double] acc$a$conv$12$simp$84$simp$86 = acc$a$conv$12$simp$64$simp$66;
+    init [Mutable] [Bool] flat$1$simp$89 = False : Bool;
+    init [Mutable] [Error] flat$1$simp$90 = ExceptTombstone : Error;
+    init [Mutable] [Double] flat$1$simp$91$simp$92$simp$94 = 0.0 : Double;
+    init [Mutable] [Double] flat$1$simp$91$simp$92$simp$95 = 0.0 : Double;
+    init [Mutable] [Double] flat$1$simp$91$simp$93 = 0.0 : Double;
+    if (acc$a$conv$12$simp$82) {
       let nn$conv$19 = add# [Double]
-                       desugar_q$2$conv$17
+                       acc$a$conv$12$simp$84$simp$85$simp$87
                        (1.0 : Double);
-      init [Mutable] [(Sum Error Double)] flat$4 = Left ExceptTombstone : (Sum Error Double);
-      if (Sum_isLeft# [Error] [Double]
-          flat$0) {
-        let flat$35 = unsafe_Sum_left# [Error] [Double]
-                      flat$0;
-        write flat$4 = left# [Error] [Double]
-                       flat$35;
+      init [Mutable] [Bool] flat$4$simp$96 = False : Bool;
+      init [Mutable] [Error] flat$4$simp$97 = ExceptTombstone : Error;
+      init [Mutable] [Double] flat$4$simp$98 = 0.0 : Double;
+      if (flat$0$simp$79) {
+        let simp$7 = sub# [Double]
+                     flat$0$simp$81
+                     acc$a$conv$12$simp$84$simp$85$simp$88;
+        write flat$4$simp$96 = True : Bool;
+        write flat$4$simp$97 = ExceptTombstone : Error;
+        write flat$4$simp$98 = simp$7;
       } else {
-        let flat$36 = unsafe_Sum_right# [Error] [Double]
-                      flat$0;
-        let simp$9 = sub# [Double]
-                     flat$36 desugar_q$3$conv$18;
-        write flat$4 = right# [Error] [Double]
-                       simp$9;
+        write flat$4$simp$96 = False : Bool;
+        write flat$4$simp$97 = flat$0$simp$80;
+        write flat$4$simp$98 = 0.0 : Double;
       }
-      read [Mutable] [(Sum Error Double)] flat$4 = flat$4;
-      init [Mutable] [(Sum Error Double)] flat$5 = Left ExceptTombstone : (Sum Error Double);
-      if (Sum_isLeft# [Error] [Double]
-          flat$4) {
-        let flat$33 = unsafe_Sum_left# [Error] [Double]
-                      flat$4;
-        write flat$5 = left# [Error] [Double]
-                       flat$33;
+      read [Mutable] [Bool] flat$4$simp$99 = flat$4$simp$96;
+      read [Mutable] [Error] flat$4$simp$100 = flat$4$simp$97;
+      read [Mutable] [Double] flat$4$simp$101 = flat$4$simp$98;
+      init [Mutable] [Bool] flat$5$simp$102 = False : Bool;
+      init [Mutable] [Error] flat$5$simp$103 = ExceptTombstone : Error;
+      init [Mutable] [Double] flat$5$simp$104 = 0.0 : Double;
+      if (flat$4$simp$99) {
+        let simp$11 = div#
+                      flat$4$simp$101 nn$conv$19;
+        write flat$5$simp$102 = True : Bool;
+        write flat$5$simp$103 = ExceptTombstone : Error;
+        write flat$5$simp$104 = simp$11;
       } else {
-        let flat$34 = unsafe_Sum_right# [Error] [Double]
-                      flat$4;
-        let simp$11 = div# flat$34
-                      nn$conv$19;
-        write flat$5 = right# [Error] [Double]
-                       simp$11;
+        write flat$5$simp$102 = False : Bool;
+        write flat$5$simp$103 = flat$4$simp$100;
+        write flat$5$simp$104 = 0.0 : Double;
       }
-      read [Mutable] [(Sum Error Double)] flat$5 = flat$5;
-      init [Mutable] [(Sum Error Double)] flat$6 = Left ExceptTombstone : (Sum Error Double);
-      if (Sum_isLeft# [Error] [Double]
-          flat$5) {
-        let flat$31 = unsafe_Sum_left# [Error] [Double]
-                      flat$5;
-        write flat$6 = left# [Error] [Double]
-                       flat$31;
-      } else {
-        let flat$32 = unsafe_Sum_right# [Error] [Double]
-                      flat$5;
+      read [Mutable] [Bool] flat$5$simp$105 = flat$5$simp$102;
+      read [Mutable] [Error] flat$5$simp$106 = flat$5$simp$103;
+      read [Mutable] [Double] flat$5$simp$107 = flat$5$simp$104;
+      init [Mutable] [Bool] flat$6$simp$108 = False : Bool;
+      init [Mutable] [Error] flat$6$simp$109 = ExceptTombstone : Error;
+      init [Mutable] [Double] flat$6$simp$110 = 0.0 : Double;
+      if (flat$5$simp$105) {
         let simp$13 = add# [Double]
-                      desugar_q$3$conv$18 flat$32;
-        write flat$6 = right# [Error] [Double]
-                       simp$13;
-      }
-      read [Mutable] [(Sum Error Double)] flat$6 = flat$6;
-      init [Mutable] [(Sum Error Double)] flat$7 = Left ExceptTombstone : (Sum Error Double);
-      if (Sum_isLeft# [Error] [Double]
-          flat$4) {
-        let flat$20 = unsafe_Sum_left# [Error] [Double]
-                      flat$4;
-        write flat$7 = left# [Error] [Double]
-                       flat$20;
+                      acc$a$conv$12$simp$84$simp$85$simp$88
+                      flat$5$simp$107;
+        write flat$6$simp$108 = True : Bool;
+        write flat$6$simp$109 = ExceptTombstone : Error;
+        write flat$6$simp$110 = simp$13;
       } else {
-        let flat$21 = unsafe_Sum_right# [Error] [Double]
-                      flat$4;
-        init [Mutable] [(Sum Error Double)] flat$22 = Left ExceptTombstone : (Sum Error Double);
-        if (Sum_isLeft# [Error] [Double]
-            flat$0) {
-          let flat$26 = unsafe_Sum_left# [Error] [Double]
-                        flat$0;
-          write flat$22 = left# [Error] [Double]
-                          flat$26;
-        } else {
-          let flat$27 = unsafe_Sum_right# [Error] [Double]
-                        flat$0;
-          init [Mutable] [(Sum Error Double)] flat$28 = Left ExceptTombstone : (Sum Error Double);
-          if (Sum_isLeft# [Error] [Double]
-              flat$6) {
-            let flat$29 = unsafe_Sum_left# [Error] [Double]
-                          flat$6;
-            write flat$28 = left# [Error] [Double]
-                            flat$29;
+        write flat$6$simp$108 = False : Bool;
+        write flat$6$simp$109 = flat$5$simp$106;
+        write flat$6$simp$110 = 0.0 : Double;
+      }
+      read [Mutable] [Bool] flat$6$simp$111 = flat$6$simp$108;
+      read [Mutable] [Error] flat$6$simp$112 = flat$6$simp$109;
+      read [Mutable] [Double] flat$6$simp$113 = flat$6$simp$110;
+      init [Mutable] [Bool] flat$7$simp$114 = False : Bool;
+      init [Mutable] [Error] flat$7$simp$115 = ExceptTombstone : Error;
+      init [Mutable] [Double] flat$7$simp$116 = 0.0 : Double;
+      if (flat$4$simp$99) {
+        init [Mutable] [Bool] flat$22$simp$117 = False : Bool;
+        init [Mutable] [Error] flat$22$simp$118 = ExceptTombstone : Error;
+        init [Mutable] [Double] flat$22$simp$119 = 0.0 : Double;
+        if (flat$0$simp$79) {
+          init [Mutable] [Bool] flat$28$simp$120 = False : Bool;
+          init [Mutable] [Error] flat$28$simp$121 = ExceptTombstone : Error;
+          init [Mutable] [Double] flat$28$simp$122 = 0.0 : Double;
+          if (flat$6$simp$111) {
+            let simp$19 = sub# [Double]
+                          flat$0$simp$81 flat$6$simp$113;
+            write flat$28$simp$120 = True : Bool;
+            write flat$28$simp$121 = ExceptTombstone : Error;
+            write flat$28$simp$122 = simp$19;
           } else {
-            let flat$30 = unsafe_Sum_right# [Error] [Double]
-                          flat$6;
-            let simp$21 = sub# [Double]
-                          flat$27 flat$30;
-            write flat$28 = right# [Error] [Double]
-                            simp$21;
+            write flat$28$simp$120 = False : Bool;
+            write flat$28$simp$121 = flat$6$simp$112;
+            write flat$28$simp$122 = 0.0 : Double;
           }
-          read [Mutable] [(Sum Error Double)] flat$28 = flat$28;
-          write flat$22 = flat$28;
-        }
-        read [Mutable] [(Sum Error Double)] flat$22 = flat$22;
-        init [Mutable] [(Sum Error Double)] flat$23 = Left ExceptTombstone : (Sum Error Double);
-        if (Sum_isLeft# [Error] [Double]
-            flat$22) {
-          let flat$24 = unsafe_Sum_left# [Error] [Double]
-                        flat$22;
-          write flat$23 = left# [Error] [Double]
-                          flat$24;
+          read [Mutable] [Bool] flat$28$simp$123 = flat$28$simp$120;
+          read [Mutable] [Error] flat$28$simp$124 = flat$28$simp$121;
+          read [Mutable] [Double] flat$28$simp$125 = flat$28$simp$122;
+          write flat$22$simp$117 = flat$28$simp$123;
+          write flat$22$simp$118 = flat$28$simp$124;
+          write flat$22$simp$119 = flat$28$simp$125;
         } else {
-          let flat$25 = unsafe_Sum_right# [Error] [Double]
-                        flat$22;
+          write flat$22$simp$117 = False : Bool;
+          write flat$22$simp$118 = flat$0$simp$80;
+          write flat$22$simp$119 = 0.0 : Double;
+        }
+        read [Mutable] [Bool] flat$22$simp$126 = flat$22$simp$117;
+        read [Mutable] [Error] flat$22$simp$127 = flat$22$simp$118;
+        read [Mutable] [Double] flat$22$simp$128 = flat$22$simp$119;
+        init [Mutable] [Bool] flat$23$simp$129 = False : Bool;
+        init [Mutable] [Error] flat$23$simp$130 = ExceptTombstone : Error;
+        init [Mutable] [Double] flat$23$simp$131 = 0.0 : Double;
+        if (flat$22$simp$126) {
           let simp$23 = mul# [Double]
-                        flat$21 flat$25;
-          write flat$23 = right# [Error] [Double]
-                          simp$23;
-        }
-        read [Mutable] [(Sum Error Double)] flat$23 = flat$23;
-        write flat$7 = flat$23;
-      }
-      read [Mutable] [(Sum Error Double)] flat$7 = flat$7;
-      init [Mutable] [(Sum Error Double)] flat$8 = Left ExceptTombstone : (Sum Error Double);
-      if (Sum_isLeft# [Error] [Double]
-          flat$7) {
-        let flat$18 = unsafe_Sum_left# [Error] [Double]
-                      flat$7;
-        write flat$8 = left# [Error] [Double]
-                       flat$18;
-      } else {
-        let flat$19 = unsafe_Sum_right# [Error] [Double]
-                      flat$7;
-        let simp$25 = add# [Double]
-                      desugar_q$1$conv$16 flat$19;
-        write flat$8 = right# [Error] [Double]
-                       simp$25;
-      }
-      read [Mutable] [(Sum Error Double)] flat$8 = flat$8;
-      init [Mutable] [(Sum Error (Double, Double))] flat$9 = Left ExceptTombstone : (Sum Error (Double, Double));
-      if (Sum_isLeft# [Error] [Double]
-          flat$6) {
-        let flat$16 = unsafe_Sum_left# [Error] [Double]
-                      flat$6;
-        write flat$9 = left# [Error] [(Double, Double)]
-                       flat$16;
-      } else {
-        let flat$17 = unsafe_Sum_right# [Error] [Double]
-                      flat$6;
-        let simp$27 = pair# [Double] [Double]
-                      nn$conv$19 flat$17;
-        write flat$9 = right# [Error] [(Double, Double)]
-                       simp$27;
-      }
-      read [Mutable] [(Sum Error (Double, Double))] flat$9 = flat$9;
-      init [Mutable] [(Sum Error ((Double, Double), Double))] flat$10 = Left ExceptTombstone : (Sum Error ((Double, Double), Double));
-      if (Sum_isLeft# [Error] [(Double, Double)]
-          flat$9) {
-        let flat$11 = unsafe_Sum_left# [Error] [(Double, Double)]
-                      flat$9;
-        write flat$10 = left# [Error] [((Double, Double), Double)]
-                        flat$11;
-      } else {
-        let flat$12 = unsafe_Sum_right# [Error] [(Double, Double)]
-                      flat$9;
-        init [Mutable] [(Sum Error ((Double, Double), Double))] flat$13 = Left ExceptTombstone : (Sum Error ((Double, Double), Double));
-        if (Sum_isLeft# [Error] [Double]
-            flat$8) {
-          let flat$14 = unsafe_Sum_left# [Error] [Double]
-                        flat$8;
-          write flat$13 = left# [Error] [((Double, Double), Double)]
-                          flat$14;
+                        flat$4$simp$101
+                        flat$22$simp$128;
+          write flat$23$simp$129 = True : Bool;
+          write flat$23$simp$130 = ExceptTombstone : Error;
+          write flat$23$simp$131 = simp$23;
         } else {
-          let flat$15 = unsafe_Sum_right# [Error] [Double]
-                        flat$8;
-          let simp$29 = pair# [(Double, Double)] [Double]
-                        flat$12 flat$15;
-          write flat$13 = right# [Error] [((Double, Double), Double)]
-                          simp$29;
+          write flat$23$simp$129 = False : Bool;
+          write flat$23$simp$130 = flat$22$simp$127;
+          write flat$23$simp$131 = 0.0 : Double;
         }
-        read [Mutable] [(Sum Error ((Double, Double), Double))] flat$13 = flat$13;
-        write flat$10 = flat$13;
+        read [Mutable] [Bool] flat$23$simp$132 = flat$23$simp$129;
+        read [Mutable] [Error] flat$23$simp$133 = flat$23$simp$130;
+        read [Mutable] [Double] flat$23$simp$134 = flat$23$simp$131;
+        write flat$7$simp$114 = flat$23$simp$132;
+        write flat$7$simp$115 = flat$23$simp$133;
+        write flat$7$simp$116 = flat$23$simp$134;
+      } else {
+        write flat$7$simp$114 = False : Bool;
+        write flat$7$simp$115 = flat$4$simp$100;
+        write flat$7$simp$116 = 0.0 : Double;
       }
-      read [Mutable] [(Sum Error ((Double, Double), Double))] flat$10 = flat$10;
-      write flat$1 = flat$10;
-    }
-    read [Mutable] [(Sum Error ((Double, Double), Double))] flat$1 = flat$1;
-    write acc$a$conv$12 = flat$1;
-    init [Mutable] [(Sum Error Bool)] flat$37 = Left ExceptTombstone : (Sum Error Bool);
-    if (Sum_isLeft# [Error] [Int]
-        elem$gen$fact) {
-      let flat$80 = unsafe_Sum_left# [Error] [Int]
-                    elem$gen$fact;
-      write flat$37 = left# [Error] [Bool]
-                      flat$80;
+      read [Mutable] [Bool] flat$7$simp$135 = flat$7$simp$114;
+      read [Mutable] [Error] flat$7$simp$136 = flat$7$simp$115;
+      read [Mutable] [Double] flat$7$simp$137 = flat$7$simp$116;
+      init [Mutable] [Bool] flat$8$simp$138 = False : Bool;
+      init [Mutable] [Error] flat$8$simp$139 = ExceptTombstone : Error;
+      init [Mutable] [Double] flat$8$simp$140 = 0.0 : Double;
+      if (flat$7$simp$135) {
+        let simp$25 = add# [Double]
+                      acc$a$conv$12$simp$84$simp$86
+                      flat$7$simp$137;
+        write flat$8$simp$138 = True : Bool;
+        write flat$8$simp$139 = ExceptTombstone : Error;
+        write flat$8$simp$140 = simp$25;
+      } else {
+        write flat$8$simp$138 = False : Bool;
+        write flat$8$simp$139 = flat$7$simp$136;
+        write flat$8$simp$140 = 0.0 : Double;
+      }
+      read [Mutable] [Bool] flat$8$simp$141 = flat$8$simp$138;
+      read [Mutable] [Error] flat$8$simp$142 = flat$8$simp$139;
+      read [Mutable] [Double] flat$8$simp$143 = flat$8$simp$140;
+      init [Mutable] [Bool] flat$9$simp$144 = False : Bool;
+      init [Mutable] [Error] flat$9$simp$145 = ExceptTombstone : Error;
+      init [Mutable] [Double] flat$9$simp$146$simp$147 = 0.0 : Double;
+      init [Mutable] [Double] flat$9$simp$146$simp$148 = 0.0 : Double;
+      if (flat$6$simp$111) {
+        write flat$9$simp$144 = True : Bool;
+        write flat$9$simp$145 = ExceptTombstone : Error;
+        write flat$9$simp$146$simp$147 = nn$conv$19;
+        write flat$9$simp$146$simp$148 = flat$6$simp$113;
+      } else {
+        write flat$9$simp$144 = False : Bool;
+        write flat$9$simp$145 = flat$6$simp$112;
+        write flat$9$simp$146$simp$147 = 0.0 : Double;
+        write flat$9$simp$146$simp$148 = 0.0 : Double;
+      }
+      read [Mutable] [Bool] flat$9$simp$149 = flat$9$simp$144;
+      read [Mutable] [Error] flat$9$simp$150 = flat$9$simp$145;
+      read [Mutable] [Double] flat$9$simp$151$simp$152 = flat$9$simp$146$simp$147;
+      read [Mutable] [Double] flat$9$simp$151$simp$153 = flat$9$simp$146$simp$148;
+      init [Mutable] [Bool] flat$10$simp$154 = False : Bool;
+      init [Mutable] [Error] flat$10$simp$155 = ExceptTombstone : Error;
+      init [Mutable] [Double] flat$10$simp$156$simp$157$simp$159 = 0.0 : Double;
+      init [Mutable] [Double] flat$10$simp$156$simp$157$simp$160 = 0.0 : Double;
+      init [Mutable] [Double] flat$10$simp$156$simp$158 = 0.0 : Double;
+      if (flat$9$simp$149) {
+        init [Mutable] [Bool] flat$13$simp$161 = False : Bool;
+        init [Mutable] [Error] flat$13$simp$162 = ExceptTombstone : Error;
+        init [Mutable] [Double] flat$13$simp$163$simp$164$simp$166 = 0.0 : Double;
+        init [Mutable] [Double] flat$13$simp$163$simp$164$simp$167 = 0.0 : Double;
+        init [Mutable] [Double] flat$13$simp$163$simp$165 = 0.0 : Double;
+        if (flat$8$simp$141) {
+          write flat$13$simp$161 = True : Bool;
+          write flat$13$simp$162 = ExceptTombstone : Error;
+          write flat$13$simp$163$simp$164$simp$166 = flat$9$simp$151$simp$152;
+          write flat$13$simp$163$simp$164$simp$167 = flat$9$simp$151$simp$153;
+          write flat$13$simp$163$simp$165 = flat$8$simp$143;
+        } else {
+          write flat$13$simp$161 = False : Bool;
+          write flat$13$simp$162 = flat$8$simp$142;
+          write flat$13$simp$163$simp$164$simp$166 = 0.0 : Double;
+          write flat$13$simp$163$simp$164$simp$167 = 0.0 : Double;
+          write flat$13$simp$163$simp$165 = 0.0 : Double;
+        }
+        read [Mutable] [Bool] flat$13$simp$168 = flat$13$simp$161;
+        read [Mutable] [Error] flat$13$simp$169 = flat$13$simp$162;
+        read [Mutable] [Double] flat$13$simp$170$simp$171$simp$173 = flat$13$simp$163$simp$164$simp$166;
+        read [Mutable] [Double] flat$13$simp$170$simp$171$simp$174 = flat$13$simp$163$simp$164$simp$167;
+        read [Mutable] [Double] flat$13$simp$170$simp$172 = flat$13$simp$163$simp$165;
+        write flat$10$simp$154 = flat$13$simp$168;
+        write flat$10$simp$155 = flat$13$simp$169;
+        write flat$10$simp$156$simp$157$simp$159 = flat$13$simp$170$simp$171$simp$173;
+        write flat$10$simp$156$simp$157$simp$160 = flat$13$simp$170$simp$171$simp$174;
+        write flat$10$simp$156$simp$158 = flat$13$simp$170$simp$172;
+      } else {
+        write flat$10$simp$154 = False : Bool;
+        write flat$10$simp$155 = flat$9$simp$150;
+        write flat$10$simp$156$simp$157$simp$159 = 0.0 : Double;
+        write flat$10$simp$156$simp$157$simp$160 = 0.0 : Double;
+        write flat$10$simp$156$simp$158 = 0.0 : Double;
+      }
+      read [Mutable] [Bool] flat$10$simp$175 = flat$10$simp$154;
+      read [Mutable] [Error] flat$10$simp$176 = flat$10$simp$155;
+      read [Mutable] [Double] flat$10$simp$177$simp$178$simp$180 = flat$10$simp$156$simp$157$simp$159;
+      read [Mutable] [Double] flat$10$simp$177$simp$178$simp$181 = flat$10$simp$156$simp$157$simp$160;
+      read [Mutable] [Double] flat$10$simp$177$simp$179 = flat$10$simp$156$simp$158;
+      write flat$1$simp$89 = flat$10$simp$175;
+      write flat$1$simp$90 = flat$10$simp$176;
+      write flat$1$simp$91$simp$92$simp$94 = flat$10$simp$177$simp$178$simp$180;
+      write flat$1$simp$91$simp$92$simp$95 = flat$10$simp$177$simp$178$simp$181;
+      write flat$1$simp$91$simp$93 = flat$10$simp$177$simp$179;
     } else {
-      let flat$81 = unsafe_Sum_right# [Error] [Int]
-                    elem$gen$fact;
-      let simp$31 = lt# [Int] flat$81
-                    (300 : Int);
-      write flat$37 = right# [Error] [Bool]
-                      simp$31;
+      write flat$1$simp$89 = False : Bool;
+      write flat$1$simp$90 = acc$a$conv$12$simp$83;
+      write flat$1$simp$91$simp$92$simp$94 = 0.0 : Double;
+      write flat$1$simp$91$simp$92$simp$95 = 0.0 : Double;
+      write flat$1$simp$91$simp$93 = 0.0 : Double;
     }
-    read [Mutable] [(Sum Error Bool)] flat$37 = flat$37;
+    read [Mutable] [Bool] flat$1$simp$182 = flat$1$simp$89;
+    read [Mutable] [Error] flat$1$simp$183 = flat$1$simp$90;
+    read [Mutable] [Double] flat$1$simp$184$simp$185$simp$187 = flat$1$simp$91$simp$92$simp$94;
+    read [Mutable] [Double] flat$1$simp$184$simp$185$simp$188 = flat$1$simp$91$simp$92$simp$95;
+    read [Mutable] [Double] flat$1$simp$184$simp$186 = flat$1$simp$91$simp$93;
+    write acc$a$conv$12$simp$62 = flat$1$simp$182;
+    write acc$a$conv$12$simp$63 = flat$1$simp$183;
+    write acc$a$conv$12$simp$64$simp$65$simp$67 = flat$1$simp$184$simp$185$simp$187;
+    write acc$a$conv$12$simp$64$simp$65$simp$68 = flat$1$simp$184$simp$185$simp$188;
+    write acc$a$conv$12$simp$64$simp$66 = flat$1$simp$184$simp$186;
+    init [Mutable] [Bool] flat$37$simp$189 = False : Bool;
+    init [Mutable] [Bool] flat$37$simp$191 = False : Bool;
+    if (elem$gen$fact$simp$358) {
+      let simp$31 = lt# [Int]
+                    elem$gen$fact$simp$360
+                    (300 : Int);
+      write flat$37$simp$189 = True : Bool;
+      write flat$37$simp$191 = simp$31;
+    } else {
+      write flat$37$simp$189 = False : Bool;
+      write flat$37$simp$191 = False : Bool;
+    }
+    read [Mutable] [Bool] flat$37$simp$192 = flat$37$simp$189;
+    read [Mutable] [Bool] flat$37$simp$194 = flat$37$simp$191;
     init [Mutable] [Bool] flat$38 = False : Bool;
-    if (Sum_isLeft# [Error] [Bool]
-        flat$37) {
-      write flat$38 = True : Bool;
+    if (flat$37$simp$192) {
+      write flat$38 = flat$37$simp$194;
     } 
      else {
-      let flat$79 = unsafe_Sum_right# [Error] [Bool]
-                    flat$37;
-      write flat$38 = flat$79;
-    }
+      write flat$38 = True : Bool;
+    } 
+    
     read [Mutable] [Bool] flat$38 = flat$38;
     if (flat$38) {
-      init [Mutable] [(Sum Error Double)] flat$39 = Left ExceptTombstone : (Sum Error Double);
-      if (Sum_isLeft# [Error] [Int]
-          elem$gen$fact) {
-        let flat$76 = unsafe_Sum_left# [Error] [Int]
-                      elem$gen$fact;
-        write flat$39 = left# [Error] [Double]
-                        flat$76;
-      } else {
-        let flat$77 = unsafe_Sum_right# [Error] [Int]
-                      elem$gen$fact;
+      init [Mutable] [Bool] flat$39$simp$195 = False : Bool;
+      init [Mutable] [Error] flat$39$simp$196 = ExceptTombstone : Error;
+      init [Mutable] [Double] flat$39$simp$197 = 0.0 : Double;
+      if (elem$gen$fact$simp$358) {
         let simp$33 = doubleOfInt#
-                      flat$77;
-        write flat$39 = right# [Error] [Double]
-                        simp$33;
-      }
-      read [Mutable] [(Sum Error Double)] flat$39 = flat$39;
-      read [Mutable] [(Sum Error ((Double, Double), Double))] acc$a$conv$105 = acc$a$conv$105;
-      init [Mutable] [(Sum Error ((Double, Double), Double))] flat$40 = Left ExceptTombstone : (Sum Error ((Double, Double), Double));
-      if (Sum_isLeft# [Error] [((Double, Double), Double)]
-          acc$a$conv$105) {
-        let flat$41 = unsafe_Sum_left# [Error] [((Double, Double), Double)]
-                      acc$a$conv$105;
-        write flat$40 = left# [Error] [((Double, Double), Double)]
-                        flat$41;
+                      elem$gen$fact$simp$360;
+        write flat$39$simp$195 = True : Bool;
+        write flat$39$simp$196 = ExceptTombstone : Error;
+        write flat$39$simp$197 = simp$33;
       } else {
-        let flat$42 = unsafe_Sum_right# [Error] [((Double, Double), Double)]
-                      acc$a$conv$105;
-        let desugar_q$14$conv$108 = fst# [(Double, Double)] [Double]
-                                    flat$42;
-        let desugar_q$15$conv$109 = snd# [(Double, Double)] [Double]
-                                    flat$42;
-        let desugar_q$16$conv$110 = fst# [Double] [Double]
-                                    desugar_q$14$conv$108;
-        let desugar_q$17$conv$111 = snd# [Double] [Double]
-                                    desugar_q$14$conv$108;
-        let nn$conv$112 = add# [Double]
-                          desugar_q$16$conv$110
-                          (1.0 : Double);
-        init [Mutable] [(Sum Error Double)] flat$43 = Left ExceptTombstone : (Sum Error Double);
-        if (Sum_isLeft# [Error] [Double]
-            flat$39) {
-          let flat$74 = unsafe_Sum_left# [Error] [Double]
-                        flat$39;
-          write flat$43 = left# [Error] [Double]
-                          flat$74;
-        } else {
-          let flat$75 = unsafe_Sum_right# [Error] [Double]
-                        flat$39;
-          let simp$41 = sub# [Double]
-                        flat$75 desugar_q$17$conv$111;
-          write flat$43 = right# [Error] [Double]
-                          simp$41;
-        }
-        read [Mutable] [(Sum Error Double)] flat$43 = flat$43;
-        init [Mutable] [(Sum Error Double)] flat$44 = Left ExceptTombstone : (Sum Error Double);
-        if (Sum_isLeft# [Error] [Double]
-            flat$43) {
-          let flat$72 = unsafe_Sum_left# [Error] [Double]
-                        flat$43;
-          write flat$44 = left# [Error] [Double]
-                          flat$72;
-        } else {
-          let flat$73 = unsafe_Sum_right# [Error] [Double]
-                        flat$43;
-          let simp$43 = div# flat$73
-                        nn$conv$112;
-          write flat$44 = right# [Error] [Double]
-                          simp$43;
-        }
-        read [Mutable] [(Sum Error Double)] flat$44 = flat$44;
-        init [Mutable] [(Sum Error Double)] flat$45 = Left ExceptTombstone : (Sum Error Double);
-        if (Sum_isLeft# [Error] [Double]
-            flat$44) {
-          let flat$70 = unsafe_Sum_left# [Error] [Double]
-                        flat$44;
-          write flat$45 = left# [Error] [Double]
-                          flat$70;
-        } else {
-          let flat$71 = unsafe_Sum_right# [Error] [Double]
-                        flat$44;
-          let simp$45 = add# [Double]
-                        desugar_q$17$conv$111 flat$71;
-          write flat$45 = right# [Error] [Double]
-                          simp$45;
-        }
-        read [Mutable] [(Sum Error Double)] flat$45 = flat$45;
-        init [Mutable] [(Sum Error Double)] flat$46 = Left ExceptTombstone : (Sum Error Double);
-        if (Sum_isLeft# [Error] [Double]
-            flat$43) {
-          let flat$59 = unsafe_Sum_left# [Error] [Double]
-                        flat$43;
-          write flat$46 = left# [Error] [Double]
-                          flat$59;
-        } else {
-          let flat$60 = unsafe_Sum_right# [Error] [Double]
-                        flat$43;
-          init [Mutable] [(Sum Error Double)] flat$61 = Left ExceptTombstone : (Sum Error Double);
-          if (Sum_isLeft# [Error] [Double]
-              flat$39) {
-            let flat$65 = unsafe_Sum_left# [Error] [Double]
-                          flat$39;
-            write flat$61 = left# [Error] [Double]
-                            flat$65;
-          } else {
-            let flat$66 = unsafe_Sum_right# [Error] [Double]
-                          flat$39;
-            init [Mutable] [(Sum Error Double)] flat$67 = Left ExceptTombstone : (Sum Error Double);
-            if (Sum_isLeft# [Error] [Double]
-                flat$45) {
-              let flat$68 = unsafe_Sum_left# [Error] [Double]
-                            flat$45;
-              write flat$67 = left# [Error] [Double]
-                              flat$68;
-            } else {
-              let flat$69 = unsafe_Sum_right# [Error] [Double]
-                            flat$45;
-              let simp$53 = sub# [Double]
-                            flat$66 flat$69;
-              write flat$67 = right# [Error] [Double]
-                              simp$53;
-            }
-            read [Mutable] [(Sum Error Double)] flat$67 = flat$67;
-            write flat$61 = flat$67;
-          }
-          read [Mutable] [(Sum Error Double)] flat$61 = flat$61;
-          init [Mutable] [(Sum Error Double)] flat$62 = Left ExceptTombstone : (Sum Error Double);
-          if (Sum_isLeft# [Error] [Double]
-              flat$61) {
-            let flat$63 = unsafe_Sum_left# [Error] [Double]
-                          flat$61;
-            write flat$62 = left# [Error] [Double]
-                            flat$63;
-          } else {
-            let flat$64 = unsafe_Sum_right# [Error] [Double]
-                          flat$61;
-            let simp$55 = mul# [Double]
-                          flat$60 flat$64;
-            write flat$62 = right# [Error] [Double]
-                            simp$55;
-          }
-          read [Mutable] [(Sum Error Double)] flat$62 = flat$62;
-          write flat$46 = flat$62;
-        }
-        read [Mutable] [(Sum Error Double)] flat$46 = flat$46;
-        init [Mutable] [(Sum Error Double)] flat$47 = Left ExceptTombstone : (Sum Error Double);
-        if (Sum_isLeft# [Error] [Double]
-            flat$46) {
-          let flat$57 = unsafe_Sum_left# [Error] [Double]
-                        flat$46;
-          write flat$47 = left# [Error] [Double]
-                          flat$57;
-        } else {
-          let flat$58 = unsafe_Sum_right# [Error] [Double]
-                        flat$46;
-          let simp$57 = add# [Double]
-                        desugar_q$15$conv$109 flat$58;
-          write flat$47 = right# [Error] [Double]
-                          simp$57;
-        }
-        read [Mutable] [(Sum Error Double)] flat$47 = flat$47;
-        init [Mutable] [(Sum Error (Double, Double))] flat$48 = Left ExceptTombstone : (Sum Error (Double, Double));
-        if (Sum_isLeft# [Error] [Double]
-            flat$45) {
-          let flat$55 = unsafe_Sum_left# [Error] [Double]
-                        flat$45;
-          write flat$48 = left# [Error] [(Double, Double)]
-                          flat$55;
-        } else {
-          let flat$56 = unsafe_Sum_right# [Error] [Double]
-                        flat$45;
-          let simp$59 = pair# [Double] [Double]
-                        nn$conv$112 flat$56;
-          write flat$48 = right# [Error] [(Double, Double)]
-                          simp$59;
-        }
-        read [Mutable] [(Sum Error (Double, Double))] flat$48 = flat$48;
-        init [Mutable] [(Sum Error ((Double, Double), Double))] flat$49 = Left ExceptTombstone : (Sum Error ((Double, Double), Double));
-        if (Sum_isLeft# [Error] [(Double, Double)]
-            flat$48) {
-          let flat$50 = unsafe_Sum_left# [Error] [(Double, Double)]
-                        flat$48;
-          write flat$49 = left# [Error] [((Double, Double), Double)]
-                          flat$50;
-        } else {
-          let flat$51 = unsafe_Sum_right# [Error] [(Double, Double)]
-                        flat$48;
-          init [Mutable] [(Sum Error ((Double, Double), Double))] flat$52 = Left ExceptTombstone : (Sum Error ((Double, Double), Double));
-          if (Sum_isLeft# [Error] [Double]
-              flat$47) {
-            let flat$53 = unsafe_Sum_left# [Error] [Double]
-                          flat$47;
-            write flat$52 = left# [Error] [((Double, Double), Double)]
-                            flat$53;
-          } else {
-            let flat$54 = unsafe_Sum_right# [Error] [Double]
-                          flat$47;
-            let simp$61 = pair# [(Double, Double)] [Double]
-                          flat$51 flat$54;
-            write flat$52 = right# [Error] [((Double, Double), Double)]
-                            simp$61;
-          }
-          read [Mutable] [(Sum Error ((Double, Double), Double))] flat$52 = flat$52;
-          write flat$49 = flat$52;
-        }
-        read [Mutable] [(Sum Error ((Double, Double), Double))] flat$49 = flat$49;
-        write flat$40 = flat$49;
+        write flat$39$simp$195 = False : Bool;
+        write flat$39$simp$196 = elem$gen$fact$simp$359;
+        write flat$39$simp$197 = 0.0 : Double;
       }
-      read [Mutable] [(Sum Error ((Double, Double), Double))] flat$40 = flat$40;
-      write acc$a$conv$105 = flat$40;
+      read [Mutable] [Bool] flat$39$simp$198 = flat$39$simp$195;
+      read [Mutable] [Error] flat$39$simp$199 = flat$39$simp$196;
+      read [Mutable] [Double] flat$39$simp$200 = flat$39$simp$197;
+      read [Mutable] [Bool] acc$a$conv$105$simp$201 = acc$a$conv$105$simp$69;
+      read [Mutable] [Error] acc$a$conv$105$simp$202 = acc$a$conv$105$simp$70;
+      read [Mutable] [Double] acc$a$conv$105$simp$203$simp$204$simp$206 = acc$a$conv$105$simp$71$simp$72$simp$74;
+      read [Mutable] [Double] acc$a$conv$105$simp$203$simp$204$simp$207 = acc$a$conv$105$simp$71$simp$72$simp$75;
+      read [Mutable] [Double] acc$a$conv$105$simp$203$simp$205 = acc$a$conv$105$simp$71$simp$73;
+      init [Mutable] [Bool] flat$40$simp$208 = False : Bool;
+      init [Mutable] [Error] flat$40$simp$209 = ExceptTombstone : Error;
+      init [Mutable] [Double] flat$40$simp$210$simp$211$simp$213 = 0.0 : Double;
+      init [Mutable] [Double] flat$40$simp$210$simp$211$simp$214 = 0.0 : Double;
+      init [Mutable] [Double] flat$40$simp$210$simp$212 = 0.0 : Double;
+      if (acc$a$conv$105$simp$201) {
+        let nn$conv$112 = add# [Double]
+                          acc$a$conv$105$simp$203$simp$204$simp$206
+                          (1.0 : Double);
+        init [Mutable] [Bool] flat$43$simp$215 = False : Bool;
+        init [Mutable] [Error] flat$43$simp$216 = ExceptTombstone : Error;
+        init [Mutable] [Double] flat$43$simp$217 = 0.0 : Double;
+        if (flat$39$simp$198) {
+          let simp$39 = sub# [Double]
+                        flat$39$simp$200
+                        acc$a$conv$105$simp$203$simp$204$simp$207;
+          write flat$43$simp$215 = True : Bool;
+          write flat$43$simp$216 = ExceptTombstone : Error;
+          write flat$43$simp$217 = simp$39;
+        } else {
+          write flat$43$simp$215 = False : Bool;
+          write flat$43$simp$216 = flat$39$simp$199;
+          write flat$43$simp$217 = 0.0 : Double;
+        }
+        read [Mutable] [Bool] flat$43$simp$218 = flat$43$simp$215;
+        read [Mutable] [Error] flat$43$simp$219 = flat$43$simp$216;
+        read [Mutable] [Double] flat$43$simp$220 = flat$43$simp$217;
+        init [Mutable] [Bool] flat$44$simp$221 = False : Bool;
+        init [Mutable] [Error] flat$44$simp$222 = ExceptTombstone : Error;
+        init [Mutable] [Double] flat$44$simp$223 = 0.0 : Double;
+        if (flat$43$simp$218) {
+          let simp$43 = div#
+                        flat$43$simp$220 nn$conv$112;
+          write flat$44$simp$221 = True : Bool;
+          write flat$44$simp$222 = ExceptTombstone : Error;
+          write flat$44$simp$223 = simp$43;
+        } else {
+          write flat$44$simp$221 = False : Bool;
+          write flat$44$simp$222 = flat$43$simp$219;
+          write flat$44$simp$223 = 0.0 : Double;
+        }
+        read [Mutable] [Bool] flat$44$simp$224 = flat$44$simp$221;
+        read [Mutable] [Error] flat$44$simp$225 = flat$44$simp$222;
+        read [Mutable] [Double] flat$44$simp$226 = flat$44$simp$223;
+        init [Mutable] [Bool] flat$45$simp$227 = False : Bool;
+        init [Mutable] [Error] flat$45$simp$228 = ExceptTombstone : Error;
+        init [Mutable] [Double] flat$45$simp$229 = 0.0 : Double;
+        if (flat$44$simp$224) {
+          let simp$45 = add# [Double]
+                        acc$a$conv$105$simp$203$simp$204$simp$207
+                        flat$44$simp$226;
+          write flat$45$simp$227 = True : Bool;
+          write flat$45$simp$228 = ExceptTombstone : Error;
+          write flat$45$simp$229 = simp$45;
+        } else {
+          write flat$45$simp$227 = False : Bool;
+          write flat$45$simp$228 = flat$44$simp$225;
+          write flat$45$simp$229 = 0.0 : Double;
+        }
+        read [Mutable] [Bool] flat$45$simp$230 = flat$45$simp$227;
+        read [Mutable] [Error] flat$45$simp$231 = flat$45$simp$228;
+        read [Mutable] [Double] flat$45$simp$232 = flat$45$simp$229;
+        init [Mutable] [Bool] flat$46$simp$233 = False : Bool;
+        init [Mutable] [Error] flat$46$simp$234 = ExceptTombstone : Error;
+        init [Mutable] [Double] flat$46$simp$235 = 0.0 : Double;
+        if (flat$43$simp$218) {
+          init [Mutable] [Bool] flat$61$simp$236 = False : Bool;
+          init [Mutable] [Error] flat$61$simp$237 = ExceptTombstone : Error;
+          init [Mutable] [Double] flat$61$simp$238 = 0.0 : Double;
+          if (flat$39$simp$198) {
+            init [Mutable] [Bool] flat$67$simp$239 = False : Bool;
+            init [Mutable] [Error] flat$67$simp$240 = ExceptTombstone : Error;
+            init [Mutable] [Double] flat$67$simp$241 = 0.0 : Double;
+            if (flat$45$simp$230) {
+              let simp$51 = sub# [Double]
+                            flat$39$simp$200
+                            flat$45$simp$232;
+              write flat$67$simp$239 = True : Bool;
+              write flat$67$simp$240 = ExceptTombstone : Error;
+              write flat$67$simp$241 = simp$51;
+            } else {
+              write flat$67$simp$239 = False : Bool;
+              write flat$67$simp$240 = flat$45$simp$231;
+              write flat$67$simp$241 = 0.0 : Double;
+            }
+            read [Mutable] [Bool] flat$67$simp$242 = flat$67$simp$239;
+            read [Mutable] [Error] flat$67$simp$243 = flat$67$simp$240;
+            read [Mutable] [Double] flat$67$simp$244 = flat$67$simp$241;
+            write flat$61$simp$236 = flat$67$simp$242;
+            write flat$61$simp$237 = flat$67$simp$243;
+            write flat$61$simp$238 = flat$67$simp$244;
+          } else {
+            write flat$61$simp$236 = False : Bool;
+            write flat$61$simp$237 = flat$39$simp$199;
+            write flat$61$simp$238 = 0.0 : Double;
+          }
+          read [Mutable] [Bool] flat$61$simp$245 = flat$61$simp$236;
+          read [Mutable] [Error] flat$61$simp$246 = flat$61$simp$237;
+          read [Mutable] [Double] flat$61$simp$247 = flat$61$simp$238;
+          init [Mutable] [Bool] flat$62$simp$248 = False : Bool;
+          init [Mutable] [Error] flat$62$simp$249 = ExceptTombstone : Error;
+          init [Mutable] [Double] flat$62$simp$250 = 0.0 : Double;
+          if (flat$61$simp$245) {
+            let simp$55 = mul# [Double]
+                          flat$43$simp$220
+                          flat$61$simp$247;
+            write flat$62$simp$248 = True : Bool;
+            write flat$62$simp$249 = ExceptTombstone : Error;
+            write flat$62$simp$250 = simp$55;
+          } else {
+            write flat$62$simp$248 = False : Bool;
+            write flat$62$simp$249 = flat$61$simp$246;
+            write flat$62$simp$250 = 0.0 : Double;
+          }
+          read [Mutable] [Bool] flat$62$simp$251 = flat$62$simp$248;
+          read [Mutable] [Error] flat$62$simp$252 = flat$62$simp$249;
+          read [Mutable] [Double] flat$62$simp$253 = flat$62$simp$250;
+          write flat$46$simp$233 = flat$62$simp$251;
+          write flat$46$simp$234 = flat$62$simp$252;
+          write flat$46$simp$235 = flat$62$simp$253;
+        } else {
+          write flat$46$simp$233 = False : Bool;
+          write flat$46$simp$234 = flat$43$simp$219;
+          write flat$46$simp$235 = 0.0 : Double;
+        }
+        read [Mutable] [Bool] flat$46$simp$254 = flat$46$simp$233;
+        read [Mutable] [Error] flat$46$simp$255 = flat$46$simp$234;
+        read [Mutable] [Double] flat$46$simp$256 = flat$46$simp$235;
+        init [Mutable] [Bool] flat$47$simp$257 = False : Bool;
+        init [Mutable] [Error] flat$47$simp$258 = ExceptTombstone : Error;
+        init [Mutable] [Double] flat$47$simp$259 = 0.0 : Double;
+        if (flat$46$simp$254) {
+          let simp$57 = add# [Double]
+                        acc$a$conv$105$simp$203$simp$205
+                        flat$46$simp$256;
+          write flat$47$simp$257 = True : Bool;
+          write flat$47$simp$258 = ExceptTombstone : Error;
+          write flat$47$simp$259 = simp$57;
+        } else {
+          write flat$47$simp$257 = False : Bool;
+          write flat$47$simp$258 = flat$46$simp$255;
+          write flat$47$simp$259 = 0.0 : Double;
+        }
+        read [Mutable] [Bool] flat$47$simp$260 = flat$47$simp$257;
+        read [Mutable] [Error] flat$47$simp$261 = flat$47$simp$258;
+        read [Mutable] [Double] flat$47$simp$262 = flat$47$simp$259;
+        init [Mutable] [Bool] flat$48$simp$263 = False : Bool;
+        init [Mutable] [Error] flat$48$simp$264 = ExceptTombstone : Error;
+        init [Mutable] [Double] flat$48$simp$265$simp$266 = 0.0 : Double;
+        init [Mutable] [Double] flat$48$simp$265$simp$267 = 0.0 : Double;
+        if (flat$45$simp$230) {
+          write flat$48$simp$263 = True : Bool;
+          write flat$48$simp$264 = ExceptTombstone : Error;
+          write flat$48$simp$265$simp$266 = nn$conv$112;
+          write flat$48$simp$265$simp$267 = flat$45$simp$232;
+        } else {
+          write flat$48$simp$263 = False : Bool;
+          write flat$48$simp$264 = flat$45$simp$231;
+          write flat$48$simp$265$simp$266 = 0.0 : Double;
+          write flat$48$simp$265$simp$267 = 0.0 : Double;
+        }
+        read [Mutable] [Bool] flat$48$simp$268 = flat$48$simp$263;
+        read [Mutable] [Error] flat$48$simp$269 = flat$48$simp$264;
+        read [Mutable] [Double] flat$48$simp$270$simp$271 = flat$48$simp$265$simp$266;
+        read [Mutable] [Double] flat$48$simp$270$simp$272 = flat$48$simp$265$simp$267;
+        init [Mutable] [Bool] flat$49$simp$273 = False : Bool;
+        init [Mutable] [Error] flat$49$simp$274 = ExceptTombstone : Error;
+        init [Mutable] [Double] flat$49$simp$275$simp$276$simp$278 = 0.0 : Double;
+        init [Mutable] [Double] flat$49$simp$275$simp$276$simp$279 = 0.0 : Double;
+        init [Mutable] [Double] flat$49$simp$275$simp$277 = 0.0 : Double;
+        if (flat$48$simp$268) {
+          init [Mutable] [Bool] flat$52$simp$280 = False : Bool;
+          init [Mutable] [Error] flat$52$simp$281 = ExceptTombstone : Error;
+          init [Mutable] [Double] flat$52$simp$282$simp$283$simp$285 = 0.0 : Double;
+          init [Mutable] [Double] flat$52$simp$282$simp$283$simp$286 = 0.0 : Double;
+          init [Mutable] [Double] flat$52$simp$282$simp$284 = 0.0 : Double;
+          if (flat$47$simp$260) {
+            write flat$52$simp$280 = True : Bool;
+            write flat$52$simp$281 = ExceptTombstone : Error;
+            write flat$52$simp$282$simp$283$simp$285 = flat$48$simp$270$simp$271;
+            write flat$52$simp$282$simp$283$simp$286 = flat$48$simp$270$simp$272;
+            write flat$52$simp$282$simp$284 = flat$47$simp$262;
+          } else {
+            write flat$52$simp$280 = False : Bool;
+            write flat$52$simp$281 = flat$47$simp$261;
+            write flat$52$simp$282$simp$283$simp$285 = 0.0 : Double;
+            write flat$52$simp$282$simp$283$simp$286 = 0.0 : Double;
+            write flat$52$simp$282$simp$284 = 0.0 : Double;
+          }
+          read [Mutable] [Bool] flat$52$simp$287 = flat$52$simp$280;
+          read [Mutable] [Error] flat$52$simp$288 = flat$52$simp$281;
+          read [Mutable] [Double] flat$52$simp$289$simp$290$simp$292 = flat$52$simp$282$simp$283$simp$285;
+          read [Mutable] [Double] flat$52$simp$289$simp$290$simp$293 = flat$52$simp$282$simp$283$simp$286;
+          read [Mutable] [Double] flat$52$simp$289$simp$291 = flat$52$simp$282$simp$284;
+          write flat$49$simp$273 = flat$52$simp$287;
+          write flat$49$simp$274 = flat$52$simp$288;
+          write flat$49$simp$275$simp$276$simp$278 = flat$52$simp$289$simp$290$simp$292;
+          write flat$49$simp$275$simp$276$simp$279 = flat$52$simp$289$simp$290$simp$293;
+          write flat$49$simp$275$simp$277 = flat$52$simp$289$simp$291;
+        } else {
+          write flat$49$simp$273 = False : Bool;
+          write flat$49$simp$274 = flat$48$simp$269;
+          write flat$49$simp$275$simp$276$simp$278 = 0.0 : Double;
+          write flat$49$simp$275$simp$276$simp$279 = 0.0 : Double;
+          write flat$49$simp$275$simp$277 = 0.0 : Double;
+        }
+        read [Mutable] [Bool] flat$49$simp$294 = flat$49$simp$273;
+        read [Mutable] [Error] flat$49$simp$295 = flat$49$simp$274;
+        read [Mutable] [Double] flat$49$simp$296$simp$297$simp$299 = flat$49$simp$275$simp$276$simp$278;
+        read [Mutable] [Double] flat$49$simp$296$simp$297$simp$300 = flat$49$simp$275$simp$276$simp$279;
+        read [Mutable] [Double] flat$49$simp$296$simp$298 = flat$49$simp$275$simp$277;
+        write flat$40$simp$208 = flat$49$simp$294;
+        write flat$40$simp$209 = flat$49$simp$295;
+        write flat$40$simp$210$simp$211$simp$213 = flat$49$simp$296$simp$297$simp$299;
+        write flat$40$simp$210$simp$211$simp$214 = flat$49$simp$296$simp$297$simp$300;
+        write flat$40$simp$210$simp$212 = flat$49$simp$296$simp$298;
+      } else {
+        write flat$40$simp$208 = False : Bool;
+        write flat$40$simp$209 = acc$a$conv$105$simp$202;
+        write flat$40$simp$210$simp$211$simp$213 = 0.0 : Double;
+        write flat$40$simp$210$simp$211$simp$214 = 0.0 : Double;
+        write flat$40$simp$210$simp$212 = 0.0 : Double;
+      }
+      read [Mutable] [Bool] flat$40$simp$301 = flat$40$simp$208;
+      read [Mutable] [Error] flat$40$simp$302 = flat$40$simp$209;
+      read [Mutable] [Double] flat$40$simp$303$simp$304$simp$306 = flat$40$simp$210$simp$211$simp$213;
+      read [Mutable] [Double] flat$40$simp$303$simp$304$simp$307 = flat$40$simp$210$simp$211$simp$214;
+      read [Mutable] [Double] flat$40$simp$303$simp$305 = flat$40$simp$210$simp$212;
+      write acc$a$conv$105$simp$69 = flat$40$simp$301;
+      write acc$a$conv$105$simp$70 = flat$40$simp$302;
+      write acc$a$conv$105$simp$71$simp$72$simp$74 = flat$40$simp$303$simp$304$simp$306;
+      write acc$a$conv$105$simp$71$simp$72$simp$75 = flat$40$simp$303$simp$304$simp$307;
+      write acc$a$conv$105$simp$71$simp$73 = flat$40$simp$303$simp$305;
     }
   }
-  save_resumable [(Sum Error ((Double, Double), Double))] acc$a$conv$12;
-  save_resumable [(Sum Error ((Double, Double), Double))] acc$a$conv$105;
-  read [Mutable] [(Sum Error ((Double, Double), Double))] a$conv$12 = acc$a$conv$12;
-  read [Mutable] [(Sum Error ((Double, Double), Double))] a$conv$105 = acc$a$conv$105;
-  init [Mutable] [(Sum Error Double)] flat$84 = Left ExceptTombstone : (Sum Error Double);
-  if (Sum_isLeft# [Error] [((Double, Double), Double)]
-      a$conv$12) {
-    let flat$100 = unsafe_Sum_left# [Error] [((Double, Double), Double)]
-                   a$conv$12;
-    let conv$60 = left# [Error] [Double]
-                  flat$100;
-    write flat$84 = conv$60;
-  } else {
-    let flat$101 = unsafe_Sum_right# [Error] [((Double, Double), Double)]
-                   a$conv$12;
-    let desugar_q$7$conv$62 = fst# [(Double, Double)] [Double]
-                              flat$101;
-    let desugar_q$8$conv$63 = snd# [(Double, Double)] [Double]
-                              flat$101;
-    let desugar_q$9$conv$64 = fst# [Double] [Double]
-                              desugar_q$7$conv$62;
+  save_resumable [Bool] acc$a$conv$12$simp$62;
+  save_resumable [Error] acc$a$conv$12$simp$63;
+  save_resumable [Double] acc$a$conv$12$simp$64$simp$65$simp$67;
+  save_resumable [Double] acc$a$conv$12$simp$64$simp$65$simp$68;
+  save_resumable [Double] acc$a$conv$12$simp$64$simp$66;
+  save_resumable [Bool] acc$a$conv$105$simp$69;
+  save_resumable [Error] acc$a$conv$105$simp$70;
+  save_resumable [Double] acc$a$conv$105$simp$71$simp$72$simp$74;
+  save_resumable [Double] acc$a$conv$105$simp$71$simp$72$simp$75;
+  save_resumable [Double] acc$a$conv$105$simp$71$simp$73;
+  read [Mutable] [Bool] a$conv$12$simp$308 = acc$a$conv$12$simp$62;
+  read [Mutable] [Error] a$conv$12$simp$309 = acc$a$conv$12$simp$63;
+  read [Mutable] [Double] a$conv$12$simp$310$simp$311$simp$313 = acc$a$conv$12$simp$64$simp$65$simp$67;
+  read [Mutable] [Double] a$conv$12$simp$310$simp$312 = acc$a$conv$12$simp$64$simp$66;
+  read [Mutable] [Bool] a$conv$105$simp$315 = acc$a$conv$105$simp$69;
+  read [Mutable] [Error] a$conv$105$simp$316 = acc$a$conv$105$simp$70;
+  read [Mutable] [Double] a$conv$105$simp$317$simp$318$simp$320 = acc$a$conv$105$simp$71$simp$72$simp$74;
+  read [Mutable] [Double] a$conv$105$simp$317$simp$319 = acc$a$conv$105$simp$71$simp$73;
+  init [Mutable] [Bool] flat$84$simp$322 = False : Bool;
+  init [Mutable] [Error] flat$84$simp$323 = ExceptTombstone : Error;
+  init [Mutable] [Double] flat$84$simp$324 = 0.0 : Double;
+  if (a$conv$12$simp$308) {
     let conv$67 = sub# [Double]
-                  desugar_q$9$conv$64
+                  a$conv$12$simp$310$simp$311$simp$313
                   (1.0 : Double);
     let conv$68 = div#
-                  desugar_q$8$conv$63 conv$67;
-    let conv$71 = right# [Error] [Double]
-                  conv$68;
-    write flat$84 = conv$71;
-  }
-  read [Mutable] [(Sum Error Double)] flat$84 = flat$84;
-  init [Mutable] [(Sum Error Double)] flat$85 = Left ExceptTombstone : (Sum Error Double);
-  if (Sum_isLeft# [Error] [Double]
-      flat$84) {
-    let flat$98 = unsafe_Sum_left# [Error] [Double]
-                  flat$84;
-    let conv$77 = left# [Error] [Double]
-                  flat$98;
-    write flat$85 = conv$77;
+                  a$conv$12$simp$310$simp$312
+                  conv$67;
+    write flat$84$simp$322 = True : Bool;
+    write flat$84$simp$323 = ExceptTombstone : Error;
+    write flat$84$simp$324 = conv$68;
   } else {
-    let flat$99 = unsafe_Sum_right# [Error] [Double]
-                  flat$84;
+    write flat$84$simp$322 = False : Bool;
+    write flat$84$simp$323 = a$conv$12$simp$309;
+    write flat$84$simp$324 = 0.0 : Double;
+  }
+  read [Mutable] [Bool] flat$84$simp$325 = flat$84$simp$322;
+  read [Mutable] [Error] flat$84$simp$326 = flat$84$simp$323;
+  read [Mutable] [Double] flat$84$simp$327 = flat$84$simp$324;
+  init [Mutable] [Bool] flat$85$simp$328 = False : Bool;
+  init [Mutable] [Error] flat$85$simp$329 = ExceptTombstone : Error;
+  init [Mutable] [Double] flat$85$simp$330 = 0.0 : Double;
+  if (flat$84$simp$325) {
     let conv$80 = pow# [Double]
-                  flat$99 (0.5 : Double);
-    let conv$81 = right# [Error] [Double]
-                  conv$80;
-    write flat$85 = conv$81;
-  }
-  read [Mutable] [(Sum Error Double)] flat$85 = flat$85;
-  init [Mutable] [(Sum Error Double)] flat$86 = Left ExceptTombstone : (Sum Error Double);
-  if (Sum_isLeft# [Error] [Double]
-      flat$85) {
-    let flat$87 = unsafe_Sum_left# [Error] [Double]
-                  flat$85;
-    let conv$85 = left# [Error] [Double]
-                  flat$87;
-    write flat$86 = conv$85;
+                  flat$84$simp$327 (0.5 : Double);
+    write flat$85$simp$328 = True : Bool;
+    write flat$85$simp$329 = ExceptTombstone : Error;
+    write flat$85$simp$330 = conv$80;
   } else {
-    let flat$88 = unsafe_Sum_right# [Error] [Double]
-                  flat$85;
-    init [Mutable] [(Sum Error Double)] flat$89 = Left ExceptTombstone : (Sum Error Double);
-    if (Sum_isLeft# [Error] [((Double, Double), Double)]
-        a$conv$105) {
-      let flat$96 = unsafe_Sum_left# [Error] [((Double, Double), Double)]
-                    a$conv$105;
-      let conv$153 = left# [Error] [Double]
-                     flat$96;
-      write flat$89 = conv$153;
-    } else {
-      let flat$97 = unsafe_Sum_right# [Error] [((Double, Double), Double)]
-                    a$conv$105;
-      let desugar_q$21$conv$155 = fst# [(Double, Double)] [Double]
-                                  flat$97;
-      let desugar_q$22$conv$156 = snd# [(Double, Double)] [Double]
-                                  flat$97;
-      let desugar_q$23$conv$157 = fst# [Double] [Double]
-                                  desugar_q$21$conv$155;
+    write flat$85$simp$328 = False : Bool;
+    write flat$85$simp$329 = flat$84$simp$326;
+    write flat$85$simp$330 = 0.0 : Double;
+  }
+  read [Mutable] [Bool] flat$85$simp$331 = flat$85$simp$328;
+  read [Mutable] [Error] flat$85$simp$332 = flat$85$simp$329;
+  read [Mutable] [Double] flat$85$simp$333 = flat$85$simp$330;
+  init [Mutable] [Bool] flat$86$simp$334 = False : Bool;
+  init [Mutable] [Error] flat$86$simp$335 = ExceptTombstone : Error;
+  init [Mutable] [Double] flat$86$simp$336 = 0.0 : Double;
+  if (flat$85$simp$331) {
+    init [Mutable] [Bool] flat$89$simp$337 = False : Bool;
+    init [Mutable] [Error] flat$89$simp$338 = ExceptTombstone : Error;
+    init [Mutable] [Double] flat$89$simp$339 = 0.0 : Double;
+    if (a$conv$105$simp$315) {
       let conv$160 = sub# [Double]
-                     desugar_q$23$conv$157
+                     a$conv$105$simp$317$simp$318$simp$320
                      (1.0 : Double);
       let conv$161 = div#
-                     desugar_q$22$conv$156 conv$160;
-      let conv$164 = right# [Error] [Double]
-                     conv$161;
-      write flat$89 = conv$164;
-    }
-    read [Mutable] [(Sum Error Double)] flat$89 = flat$89;
-    init [Mutable] [(Sum Error Double)] flat$90 = Left ExceptTombstone : (Sum Error Double);
-    if (Sum_isLeft# [Error] [Double]
-        flat$89) {
-      let flat$94 = unsafe_Sum_left# [Error] [Double]
-                    flat$89;
-      let conv$170 = left# [Error] [Double]
-                     flat$94;
-      write flat$90 = conv$170;
+                     a$conv$105$simp$317$simp$319
+                     conv$160;
+      write flat$89$simp$337 = True : Bool;
+      write flat$89$simp$338 = ExceptTombstone : Error;
+      write flat$89$simp$339 = conv$161;
     } else {
-      let flat$95 = unsafe_Sum_right# [Error] [Double]
-                    flat$89;
+      write flat$89$simp$337 = False : Bool;
+      write flat$89$simp$338 = a$conv$105$simp$316;
+      write flat$89$simp$339 = 0.0 : Double;
+    }
+    read [Mutable] [Bool] flat$89$simp$340 = flat$89$simp$337;
+    read [Mutable] [Error] flat$89$simp$341 = flat$89$simp$338;
+    read [Mutable] [Double] flat$89$simp$342 = flat$89$simp$339;
+    init [Mutable] [Bool] flat$90$simp$343 = False : Bool;
+    init [Mutable] [Error] flat$90$simp$344 = ExceptTombstone : Error;
+    init [Mutable] [Double] flat$90$simp$345 = 0.0 : Double;
+    if (flat$89$simp$340) {
       let conv$173 = pow# [Double]
-                     flat$95 (0.5 : Double);
-      let conv$174 = right# [Error] [Double]
-                     conv$173;
-      write flat$90 = conv$174;
-    }
-    read [Mutable] [(Sum Error Double)] flat$90 = flat$90;
-    init [Mutable] [(Sum Error Double)] flat$91 = Left ExceptTombstone : (Sum Error Double);
-    if (Sum_isLeft# [Error] [Double]
-        flat$90) {
-      let flat$92 = unsafe_Sum_left# [Error] [Double]
-                    flat$90;
-      let conv$178 = left# [Error] [Double]
-                     flat$92;
-      write flat$91 = conv$178;
+                     flat$89$simp$342 (0.5 : Double);
+      write flat$90$simp$343 = True : Bool;
+      write flat$90$simp$344 = ExceptTombstone : Error;
+      write flat$90$simp$345 = conv$173;
     } else {
-      let flat$93 = unsafe_Sum_right# [Error] [Double]
-                    flat$90;
-      let conv$180 = mul# [Double]
-                     flat$88 flat$93;
-      let conv$181 = right# [Error] [Double]
-                     conv$180;
-      write flat$91 = conv$181;
+      write flat$90$simp$343 = False : Bool;
+      write flat$90$simp$344 = flat$89$simp$341;
+      write flat$90$simp$345 = 0.0 : Double;
     }
-    read [Mutable] [(Sum Error Double)] flat$91 = flat$91;
-    write flat$86 = flat$91;
+    read [Mutable] [Bool] flat$90$simp$346 = flat$90$simp$343;
+    read [Mutable] [Error] flat$90$simp$347 = flat$90$simp$344;
+    read [Mutable] [Double] flat$90$simp$348 = flat$90$simp$345;
+    init [Mutable] [Bool] flat$91$simp$349 = False : Bool;
+    init [Mutable] [Error] flat$91$simp$350 = ExceptTombstone : Error;
+    init [Mutable] [Double] flat$91$simp$351 = 0.0 : Double;
+    if (flat$90$simp$346) {
+      let conv$180 = mul# [Double]
+                     flat$85$simp$333
+                     flat$90$simp$348;
+      write flat$91$simp$349 = True : Bool;
+      write flat$91$simp$350 = ExceptTombstone : Error;
+      write flat$91$simp$351 = conv$180;
+    } else {
+      write flat$91$simp$349 = False : Bool;
+      write flat$91$simp$350 = flat$90$simp$347;
+      write flat$91$simp$351 = 0.0 : Double;
+    }
+    read [Mutable] [Bool] flat$91$simp$352 = flat$91$simp$349;
+    read [Mutable] [Error] flat$91$simp$353 = flat$91$simp$350;
+    read [Mutable] [Double] flat$91$simp$354 = flat$91$simp$351;
+    write flat$86$simp$334 = flat$91$simp$352;
+    write flat$86$simp$335 = flat$91$simp$353;
+    write flat$86$simp$336 = flat$91$simp$354;
+  } else {
+    write flat$86$simp$334 = False : Bool;
+    write flat$86$simp$335 = flat$85$simp$332;
+    write flat$86$simp$336 = 0.0 : Double;
   }
-  read [Mutable] [(Sum Error Double)] flat$86 = flat$86;
-  output repl flat$86;
+  read [Mutable] [Bool] flat$86$simp$355 = flat$86$simp$334;
+  read [Mutable] [Error] flat$86$simp$356 = flat$86$simp$335;
+  read [Mutable] [Double] flat$86$simp$357 = flat$86$simp$336;
+  output repl Sum_pack# [Error] [Double]
+              flat$86$simp$355
+              flat$86$simp$356
+              flat$86$simp$357;
 }
 
 - C:
@@ -1016,6 +1133,7 @@ gen$date = DATE
 #include <stdint.h>
 #include <math.h>
 
+typedef uint64_t ierror_t;
 typedef uint64_t iunit_t;
 typedef uint64_t ibool_t;
 typedef  int64_t iint_t;
@@ -1028,9 +1146,9 @@ typedef struct {
     /* inputs */
     idate_t    gen_date;
     iint_t     new_count;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT IntT..)
-     *new_elem_gen_fact;
+    ibool_t    *new_elem_gen_fact_simp_358;
+    ierror_t   *new_elem_gen_fact_simp_359;
+    iint_t     *new_elem_gen_fact_simp_360;
     idate_t    *new_elem_gen_date;
 
     /* outputs */
@@ -1040,113 +1158,134 @@ typedef struct {
      repl;
 
     /* resumables */
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT (PairT (PairT DoubleT Double..)
-     acc_a_conv_105;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT (PairT (PairT DoubleT Double..)
-     acc_a_conv_12;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT DoubleT..)
-     flat_0;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT (PairT (PairT DoubleT Double..)
-     flat_1;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT (PairT (PairT DoubleT Double..)
-     flat_10;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT (PairT (PairT DoubleT Double..)
-     flat_13;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT DoubleT..)
-     flat_22;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT DoubleT..)
-     flat_23;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT DoubleT..)
-     flat_28;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT BoolT..)
-     flat_37;
+    ibool_t    acc_a_conv_105_simp_69;
+    ierror_t   acc_a_conv_105_simp_70;
+    idouble_t  acc_a_conv_105_simp_71_simp_73;
+    idouble_t  acc_a_conv_105_simp_71_simp_72_simp_74;
+    idouble_t  acc_a_conv_105_simp_71_simp_72_simp_75;
+    ibool_t    acc_a_conv_12_simp_62;
+    ierror_t   acc_a_conv_12_simp_63;
+    idouble_t  acc_a_conv_12_simp_64_simp_66;
+    idouble_t  acc_a_conv_12_simp_64_simp_65_simp_67;
+    idouble_t  acc_a_conv_12_simp_64_simp_65_simp_68;
     ibool_t    flat_38;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT DoubleT..)
-     flat_39;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT DoubleT..)
-     flat_4;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT (PairT (PairT DoubleT Double..)
-     flat_40;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT DoubleT..)
-     flat_43;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT DoubleT..)
-     flat_44;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT DoubleT..)
-     flat_45;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT DoubleT..)
-     flat_46;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT DoubleT..)
-     flat_47;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT (PairT DoubleT DoubleT)..)
-     flat_48;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT (PairT (PairT DoubleT Double..)
-     flat_49;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT DoubleT..)
-     flat_5;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT (PairT (PairT DoubleT Double..)
-     flat_52;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT DoubleT..)
-     flat_6;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT DoubleT..)
-     flat_61;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT DoubleT..)
-     flat_62;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT DoubleT..)
-     flat_67;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT DoubleT..)
-     flat_7;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT DoubleT..)
-     flat_8;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT DoubleT..)
-     flat_84;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT DoubleT..)
-     flat_85;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT DoubleT..)
-     flat_86;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT DoubleT..)
-     flat_89;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT (PairT DoubleT DoubleT)..)
-     flat_9;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT DoubleT..)
-     flat_90;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT DoubleT..)
-     flat_91;
+    ibool_t    flat_0_simp_76;
+    ierror_t   flat_0_simp_77;
+    idouble_t  flat_0_simp_78;
+    ibool_t    flat_1_simp_89;
+    ierror_t   flat_1_simp_90;
+    idouble_t  flat_1_simp_91_simp_93;
+    idouble_t  flat_1_simp_91_simp_92_simp_94;
+    idouble_t  flat_1_simp_91_simp_92_simp_95;
+    ibool_t    flat_10_simp_154;
+    ierror_t   flat_10_simp_155;
+    idouble_t  flat_10_simp_156_simp_158;
+    idouble_t  flat_10_simp_156_simp_157_simp_159;
+    idouble_t  flat_10_simp_156_simp_157_simp_160;
+    ibool_t    flat_13_simp_161;
+    ierror_t   flat_13_simp_162;
+    idouble_t  flat_13_simp_163_simp_165;
+    idouble_t  flat_13_simp_163_simp_164_simp_166;
+    idouble_t  flat_13_simp_163_simp_164_simp_167;
+    ibool_t    flat_22_simp_117;
+    ierror_t   flat_22_simp_118;
+    idouble_t  flat_22_simp_119;
+    ibool_t    flat_23_simp_129;
+    ierror_t   flat_23_simp_130;
+    idouble_t  flat_23_simp_131;
+    ibool_t    flat_28_simp_120;
+    ierror_t   flat_28_simp_121;
+    idouble_t  flat_28_simp_122;
+    ibool_t    flat_37_simp_189;
+    ibool_t    flat_37_simp_191;
+    ibool_t    flat_39_simp_195;
+    ierror_t   flat_39_simp_196;
+    idouble_t  flat_39_simp_197;
+    ibool_t    flat_4_simp_96;
+    ierror_t   flat_4_simp_97;
+    idouble_t  flat_4_simp_98;
+    ibool_t    flat_40_simp_208;
+    ierror_t   flat_40_simp_209;
+    idouble_t  flat_40_simp_210_simp_212;
+    idouble_t  flat_40_simp_210_simp_211_simp_213;
+    idouble_t  flat_40_simp_210_simp_211_simp_214;
+    ibool_t    flat_43_simp_215;
+    ierror_t   flat_43_simp_216;
+    idouble_t  flat_43_simp_217;
+    ibool_t    flat_44_simp_221;
+    ierror_t   flat_44_simp_222;
+    idouble_t  flat_44_simp_223;
+    ibool_t    flat_45_simp_227;
+    ierror_t   flat_45_simp_228;
+    idouble_t  flat_45_simp_229;
+    ibool_t    flat_46_simp_233;
+    ierror_t   flat_46_simp_234;
+    idouble_t  flat_46_simp_235;
+    ibool_t    flat_47_simp_257;
+    ierror_t   flat_47_simp_258;
+    idouble_t  flat_47_simp_259;
+    ibool_t    flat_48_simp_263;
+    ierror_t   flat_48_simp_264;
+    idouble_t  flat_48_simp_265_simp_266;
+    idouble_t  flat_48_simp_265_simp_267;
+    ibool_t    flat_49_simp_273;
+    ierror_t   flat_49_simp_274;
+    idouble_t  flat_49_simp_275_simp_277;
+    idouble_t  flat_49_simp_275_simp_276_simp_278;
+    idouble_t  flat_49_simp_275_simp_276_simp_279;
+    ibool_t    flat_5_simp_102;
+    ierror_t   flat_5_simp_103;
+    idouble_t  flat_5_simp_104;
+    ibool_t    flat_52_simp_280;
+    ierror_t   flat_52_simp_281;
+    idouble_t  flat_52_simp_282_simp_284;
+    idouble_t  flat_52_simp_282_simp_283_simp_285;
+    idouble_t  flat_52_simp_282_simp_283_simp_286;
+    ibool_t    flat_6_simp_108;
+    ierror_t   flat_6_simp_109;
+    idouble_t  flat_6_simp_110;
+    ibool_t    flat_61_simp_236;
+    ierror_t   flat_61_simp_237;
+    idouble_t  flat_61_simp_238;
+    ibool_t    flat_62_simp_248;
+    ierror_t   flat_62_simp_249;
+    idouble_t  flat_62_simp_250;
+    ibool_t    flat_67_simp_239;
+    ierror_t   flat_67_simp_240;
+    idouble_t  flat_67_simp_241;
+    ibool_t    flat_7_simp_114;
+    ierror_t   flat_7_simp_115;
+    idouble_t  flat_7_simp_116;
+    ibool_t    flat_8_simp_138;
+    ierror_t   flat_8_simp_139;
+    idouble_t  flat_8_simp_140;
+    ibool_t    flat_84_simp_322;
+    ierror_t   flat_84_simp_323;
+    idouble_t  flat_84_simp_324;
+    ibool_t    flat_85_simp_328;
+    ierror_t   flat_85_simp_329;
+    idouble_t  flat_85_simp_330;
+    ibool_t    flat_86_simp_334;
+    ierror_t   flat_86_simp_335;
+    idouble_t  flat_86_simp_336;
+    ibool_t    flat_89_simp_337;
+    ierror_t   flat_89_simp_338;
+    idouble_t  flat_89_simp_339;
+    ibool_t    flat_9_simp_144;
+    ierror_t   flat_9_simp_145;
+    idouble_t  flat_9_simp_146_simp_147;
+    idouble_t  flat_9_simp_146_simp_148;
+    ibool_t    flat_90_simp_343;
+    ierror_t   flat_90_simp_344;
+    idouble_t  flat_90_simp_345;
+    ibool_t    flat_91_simp_349;
+    ierror_t   flat_91_simp_350;
+    idouble_t  flat_91_simp_351;
 } icicle_state_t;
+
+static const ierror_t ierror_tombstone              = 0;
+static const ierror_t ierror_fold1_no_value         = 1;
+static const ierror_t ierror_variable_not_available = 2;
 
 static const iunit_t iunit  = 0x1c1c13;
 static const ibool_t ifalse = 0;
@@ -1180,1136 +1319,987 @@ static ibool_t   INLINE idouble_le    (idouble_t x, idouble_t y) { return x <= y
 static ibool_t   INLINE idouble_eq    (idouble_t x, idouble_t y) { return x == y; }
 static ibool_t   INLINE idouble_ne    (idouble_t x, idouble_t y) { return x != y; }
 
-static iint_t INLINE iint_err (icicle_state_t *s, ierror_t error)  {
-    s->error = error;
-    return 0xBAD1c3;
-}
-
-static idouble_t INLINE idouble_err (icicle_state_t *s, ierror_t error)  {
-    s->error = error;
-    return 0/0;
-}
-
 void compute(icicle_state_t *s)
 {
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT (PairT (PairT DoubleT Double..)
-     a_conv_105;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT (PairT (PairT DoubleT Double..)
-     a_conv_12;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT (PairT (PairT DoubleT Double..)
-     acc_a_conv_105;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT (PairT (PairT DoubleT Double..)
-     acc_a_conv_12;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT DoubleT..)
-     flat_0;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT (PairT (PairT DoubleT Double..)
-     flat_1;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT (PairT (PairT DoubleT Double..)
-     flat_10;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT (PairT (PairT DoubleT Double..)
-     flat_13;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT DoubleT..)
-     flat_22;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT DoubleT..)
-     flat_23;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT DoubleT..)
-     flat_28;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT BoolT..)
-     flat_37;
+    ibool_t    a_conv_105_simp_315;
+    ierror_t   a_conv_105_simp_316;
+    idouble_t  a_conv_105_simp_317_simp_319;
+    idouble_t  a_conv_105_simp_317_simp_318_simp_320;
+    ibool_t    a_conv_12_simp_308;
+    ierror_t   a_conv_12_simp_309;
+    idouble_t  a_conv_12_simp_310_simp_312;
+    idouble_t  a_conv_12_simp_310_simp_311_simp_313;
+    ibool_t    acc_a_conv_105_simp_201;
+    ierror_t   acc_a_conv_105_simp_202;
+    ibool_t    acc_a_conv_105_simp_69;
+    ierror_t   acc_a_conv_105_simp_70;
+    idouble_t  acc_a_conv_105_simp_203_simp_205;
+    idouble_t  acc_a_conv_105_simp_203_simp_204_simp_206;
+    idouble_t  acc_a_conv_105_simp_203_simp_204_simp_207;
+    idouble_t  acc_a_conv_105_simp_71_simp_73;
+    idouble_t  acc_a_conv_105_simp_71_simp_72_simp_74;
+    idouble_t  acc_a_conv_105_simp_71_simp_72_simp_75;
+    ibool_t    acc_a_conv_12_simp_62;
+    ierror_t   acc_a_conv_12_simp_63;
+    ibool_t    acc_a_conv_12_simp_82;
+    ierror_t   acc_a_conv_12_simp_83;
+    idouble_t  acc_a_conv_12_simp_64_simp_66;
+    idouble_t  acc_a_conv_12_simp_64_simp_65_simp_67;
+    idouble_t  acc_a_conv_12_simp_64_simp_65_simp_68;
+    idouble_t  acc_a_conv_12_simp_84_simp_86;
+    idouble_t  acc_a_conv_12_simp_84_simp_85_simp_87;
+    idouble_t  acc_a_conv_12_simp_84_simp_85_simp_88;
     ibool_t    flat_38;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT DoubleT..)
-     flat_39;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT DoubleT..)
-     flat_4;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT (PairT (PairT DoubleT Double..)
-     flat_40;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT DoubleT..)
-     flat_43;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT DoubleT..)
-     flat_44;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT DoubleT..)
-     flat_45;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT DoubleT..)
-     flat_46;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT DoubleT..)
-     flat_47;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT (PairT DoubleT DoubleT)..)
-     flat_48;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT (PairT (PairT DoubleT Double..)
-     flat_49;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT DoubleT..)
-     flat_5;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT (PairT (PairT DoubleT Double..)
-     flat_52;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT DoubleT..)
-     flat_6;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT DoubleT..)
-     flat_61;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT DoubleT..)
-     flat_62;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT DoubleT..)
-     flat_67;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT DoubleT..)
-     flat_7;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT DoubleT..)
-     flat_8;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT DoubleT..)
-     flat_84;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT DoubleT..)
-     flat_85;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT DoubleT..)
-     flat_86;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT DoubleT..)
-     flat_89;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT (PairT DoubleT DoubleT)..)
-     flat_9;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT DoubleT..)
-     flat_90;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT DoubleT..)
-     flat_91;
+    ibool_t    flat_0_simp_76;
+    ierror_t   flat_0_simp_77;
+    idouble_t  flat_0_simp_78;
+    ibool_t    flat_0_simp_79;
+    ierror_t   flat_0_simp_80;
+    idouble_t  flat_0_simp_81;
+    ibool_t    flat_1_simp_182;
+    ierror_t   flat_1_simp_183;
+    ibool_t    flat_1_simp_89;
+    ierror_t   flat_1_simp_90;
+    idouble_t  flat_1_simp_184_simp_186;
+    idouble_t  flat_1_simp_184_simp_185_simp_187;
+    idouble_t  flat_1_simp_184_simp_185_simp_188;
+    idouble_t  flat_1_simp_91_simp_93;
+    idouble_t  flat_1_simp_91_simp_92_simp_94;
+    idouble_t  flat_1_simp_91_simp_92_simp_95;
+    ibool_t    flat_10_simp_154;
+    ierror_t   flat_10_simp_155;
+    ibool_t    flat_10_simp_175;
+    ierror_t   flat_10_simp_176;
+    idouble_t  flat_10_simp_156_simp_158;
+    idouble_t  flat_10_simp_156_simp_157_simp_159;
+    idouble_t  flat_10_simp_156_simp_157_simp_160;
+    idouble_t  flat_10_simp_177_simp_179;
+    idouble_t  flat_10_simp_177_simp_178_simp_180;
+    idouble_t  flat_10_simp_177_simp_178_simp_181;
+    ibool_t    flat_13_simp_161;
+    ierror_t   flat_13_simp_162;
+    ibool_t    flat_13_simp_168;
+    ierror_t   flat_13_simp_169;
+    idouble_t  flat_13_simp_163_simp_165;
+    idouble_t  flat_13_simp_163_simp_164_simp_166;
+    idouble_t  flat_13_simp_163_simp_164_simp_167;
+    idouble_t  flat_13_simp_170_simp_172;
+    idouble_t  flat_13_simp_170_simp_171_simp_173;
+    idouble_t  flat_13_simp_170_simp_171_simp_174;
+    ibool_t    flat_22_simp_117;
+    ierror_t   flat_22_simp_118;
+    idouble_t  flat_22_simp_119;
+    ibool_t    flat_22_simp_126;
+    ierror_t   flat_22_simp_127;
+    idouble_t  flat_22_simp_128;
+    ibool_t    flat_23_simp_129;
+    ierror_t   flat_23_simp_130;
+    idouble_t  flat_23_simp_131;
+    ibool_t    flat_23_simp_132;
+    ierror_t   flat_23_simp_133;
+    idouble_t  flat_23_simp_134;
+    ibool_t    flat_28_simp_120;
+    ierror_t   flat_28_simp_121;
+    idouble_t  flat_28_simp_122;
+    ibool_t    flat_28_simp_123;
+    ierror_t   flat_28_simp_124;
+    idouble_t  flat_28_simp_125;
+    ibool_t    flat_37_simp_189;
+    ibool_t    flat_37_simp_191;
+    ibool_t    flat_37_simp_192;
+    ibool_t    flat_37_simp_194;
+    ibool_t    flat_39_simp_195;
+    ierror_t   flat_39_simp_196;
+    idouble_t  flat_39_simp_197;
+    ibool_t    flat_39_simp_198;
+    ierror_t   flat_39_simp_199;
+    idouble_t  flat_39_simp_200;
+    ierror_t   flat_4_simp_100;
+    idouble_t  flat_4_simp_101;
+    ibool_t    flat_4_simp_96;
+    ierror_t   flat_4_simp_97;
+    idouble_t  flat_4_simp_98;
+    ibool_t    flat_4_simp_99;
+    ibool_t    flat_40_simp_208;
+    ierror_t   flat_40_simp_209;
+    ibool_t    flat_40_simp_301;
+    ierror_t   flat_40_simp_302;
+    idouble_t  flat_40_simp_210_simp_212;
+    idouble_t  flat_40_simp_210_simp_211_simp_213;
+    idouble_t  flat_40_simp_210_simp_211_simp_214;
+    idouble_t  flat_40_simp_303_simp_305;
+    idouble_t  flat_40_simp_303_simp_304_simp_306;
+    idouble_t  flat_40_simp_303_simp_304_simp_307;
+    ibool_t    flat_43_simp_215;
+    ierror_t   flat_43_simp_216;
+    idouble_t  flat_43_simp_217;
+    ibool_t    flat_43_simp_218;
+    ierror_t   flat_43_simp_219;
+    idouble_t  flat_43_simp_220;
+    ibool_t    flat_44_simp_221;
+    ierror_t   flat_44_simp_222;
+    idouble_t  flat_44_simp_223;
+    ibool_t    flat_44_simp_224;
+    ierror_t   flat_44_simp_225;
+    idouble_t  flat_44_simp_226;
+    ibool_t    flat_45_simp_227;
+    ierror_t   flat_45_simp_228;
+    idouble_t  flat_45_simp_229;
+    ibool_t    flat_45_simp_230;
+    ierror_t   flat_45_simp_231;
+    idouble_t  flat_45_simp_232;
+    ibool_t    flat_46_simp_233;
+    ierror_t   flat_46_simp_234;
+    idouble_t  flat_46_simp_235;
+    ibool_t    flat_46_simp_254;
+    ierror_t   flat_46_simp_255;
+    idouble_t  flat_46_simp_256;
+    ibool_t    flat_47_simp_257;
+    ierror_t   flat_47_simp_258;
+    idouble_t  flat_47_simp_259;
+    ibool_t    flat_47_simp_260;
+    ierror_t   flat_47_simp_261;
+    idouble_t  flat_47_simp_262;
+    ibool_t    flat_48_simp_263;
+    ierror_t   flat_48_simp_264;
+    ibool_t    flat_48_simp_268;
+    ierror_t   flat_48_simp_269;
+    idouble_t  flat_48_simp_265_simp_266;
+    idouble_t  flat_48_simp_265_simp_267;
+    idouble_t  flat_48_simp_270_simp_271;
+    idouble_t  flat_48_simp_270_simp_272;
+    ibool_t    flat_49_simp_273;
+    ierror_t   flat_49_simp_274;
+    ibool_t    flat_49_simp_294;
+    ierror_t   flat_49_simp_295;
+    idouble_t  flat_49_simp_275_simp_277;
+    idouble_t  flat_49_simp_275_simp_276_simp_278;
+    idouble_t  flat_49_simp_275_simp_276_simp_279;
+    idouble_t  flat_49_simp_296_simp_298;
+    idouble_t  flat_49_simp_296_simp_297_simp_299;
+    idouble_t  flat_49_simp_296_simp_297_simp_300;
+    ibool_t    flat_5_simp_102;
+    ierror_t   flat_5_simp_103;
+    idouble_t  flat_5_simp_104;
+    ibool_t    flat_5_simp_105;
+    ierror_t   flat_5_simp_106;
+    idouble_t  flat_5_simp_107;
+    ibool_t    flat_52_simp_280;
+    ierror_t   flat_52_simp_281;
+    ibool_t    flat_52_simp_287;
+    ierror_t   flat_52_simp_288;
+    idouble_t  flat_52_simp_282_simp_284;
+    idouble_t  flat_52_simp_282_simp_283_simp_285;
+    idouble_t  flat_52_simp_282_simp_283_simp_286;
+    idouble_t  flat_52_simp_289_simp_291;
+    idouble_t  flat_52_simp_289_simp_290_simp_292;
+    idouble_t  flat_52_simp_289_simp_290_simp_293;
+    ibool_t    flat_6_simp_108;
+    ierror_t   flat_6_simp_109;
+    idouble_t  flat_6_simp_110;
+    ibool_t    flat_6_simp_111;
+    ierror_t   flat_6_simp_112;
+    idouble_t  flat_6_simp_113;
+    ibool_t    flat_61_simp_236;
+    ierror_t   flat_61_simp_237;
+    idouble_t  flat_61_simp_238;
+    ibool_t    flat_61_simp_245;
+    ierror_t   flat_61_simp_246;
+    idouble_t  flat_61_simp_247;
+    ibool_t    flat_62_simp_248;
+    ierror_t   flat_62_simp_249;
+    idouble_t  flat_62_simp_250;
+    ibool_t    flat_62_simp_251;
+    ierror_t   flat_62_simp_252;
+    idouble_t  flat_62_simp_253;
+    ibool_t    flat_67_simp_239;
+    ierror_t   flat_67_simp_240;
+    idouble_t  flat_67_simp_241;
+    ibool_t    flat_67_simp_242;
+    ierror_t   flat_67_simp_243;
+    idouble_t  flat_67_simp_244;
+    ibool_t    flat_7_simp_114;
+    ierror_t   flat_7_simp_115;
+    idouble_t  flat_7_simp_116;
+    ibool_t    flat_7_simp_135;
+    ierror_t   flat_7_simp_136;
+    idouble_t  flat_7_simp_137;
+    ibool_t    flat_8_simp_138;
+    ierror_t   flat_8_simp_139;
+    idouble_t  flat_8_simp_140;
+    ibool_t    flat_8_simp_141;
+    ierror_t   flat_8_simp_142;
+    idouble_t  flat_8_simp_143;
+    ibool_t    flat_84_simp_322;
+    ierror_t   flat_84_simp_323;
+    idouble_t  flat_84_simp_324;
+    ibool_t    flat_84_simp_325;
+    ierror_t   flat_84_simp_326;
+    idouble_t  flat_84_simp_327;
+    ibool_t    flat_85_simp_328;
+    ierror_t   flat_85_simp_329;
+    idouble_t  flat_85_simp_330;
+    ibool_t    flat_85_simp_331;
+    ierror_t   flat_85_simp_332;
+    idouble_t  flat_85_simp_333;
+    ibool_t    flat_86_simp_334;
+    ierror_t   flat_86_simp_335;
+    idouble_t  flat_86_simp_336;
+    ibool_t    flat_86_simp_355;
+    ierror_t   flat_86_simp_356;
+    idouble_t  flat_86_simp_357;
+    ibool_t    flat_89_simp_337;
+    ierror_t   flat_89_simp_338;
+    idouble_t  flat_89_simp_339;
+    ibool_t    flat_89_simp_340;
+    ierror_t   flat_89_simp_341;
+    idouble_t  flat_89_simp_342;
+    ibool_t    flat_9_simp_144;
+    ierror_t   flat_9_simp_145;
+    ibool_t    flat_9_simp_149;
+    ierror_t   flat_9_simp_150;
+    idouble_t  flat_9_simp_146_simp_147;
+    idouble_t  flat_9_simp_146_simp_148;
+    idouble_t  flat_9_simp_151_simp_152;
+    idouble_t  flat_9_simp_151_simp_153;
+    ibool_t    flat_90_simp_343;
+    ierror_t   flat_90_simp_344;
+    idouble_t  flat_90_simp_345;
+    ibool_t    flat_90_simp_346;
+    ierror_t   flat_90_simp_347;
+    idouble_t  flat_90_simp_348;
+    ibool_t    flat_91_simp_349;
+    ierror_t   flat_91_simp_350;
+    idouble_t  flat_91_simp_351;
+    ibool_t    flat_91_simp_352;
+    ierror_t   flat_91_simp_353;
+    idouble_t  flat_91_simp_354;
 
-    
-    #error Failed during codegen (seaOfValType: PairT DoubleT DoubleT..)
-     anf_22                              = 
-    #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstPair Do..)
-     (0.0, 0.0);
-    
-    #error Failed during codegen (seaOfValType: PairT (PairT DoubleT DoubleT) DoubleT..)
-     anf_23                              = 
-    #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstPair (P..)
-     (anf_22, 0.0);
-    acc_a_conv_12                        = 
-    #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstRight E..)
-     (anf_23);
-    acc_a_conv_105                       = 
-    #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstRight E..)
-     (anf_23);
-    acc_a_conv_12                        = s->acc_a_conv_12;
-    acc_a_conv_105                       = s->acc_a_conv_105;
+    acc_a_conv_12_simp_62                = itrue;
+    acc_a_conv_12_simp_63                = ierror_tombstone;
+    acc_a_conv_12_simp_64_simp_65_simp_67 = 0.0;
+    acc_a_conv_12_simp_64_simp_65_simp_68 = 0.0;
+    acc_a_conv_12_simp_64_simp_66        = 0.0;
+    acc_a_conv_105_simp_69               = itrue;
+    acc_a_conv_105_simp_70               = ierror_tombstone;
+    acc_a_conv_105_simp_71_simp_72_simp_74 = 0.0;
+    acc_a_conv_105_simp_71_simp_72_simp_75 = 0.0;
+    acc_a_conv_105_simp_71_simp_73       = 0.0;
+    acc_a_conv_12_simp_62                = s->acc_a_conv_12_simp_62;
+    acc_a_conv_12_simp_63                = s->acc_a_conv_12_simp_63;
+    acc_a_conv_12_simp_64_simp_65_simp_67 = s->acc_a_conv_12_simp_64_simp_65_simp_67;
+    acc_a_conv_12_simp_64_simp_65_simp_68 = s->acc_a_conv_12_simp_64_simp_65_simp_68;
+    acc_a_conv_12_simp_64_simp_66        = s->acc_a_conv_12_simp_64_simp_66;
+    acc_a_conv_105_simp_69               = s->acc_a_conv_105_simp_69;
+    acc_a_conv_105_simp_70               = s->acc_a_conv_105_simp_70;
+    acc_a_conv_105_simp_71_simp_72_simp_74 = s->acc_a_conv_105_simp_71_simp_72_simp_74;
+    acc_a_conv_105_simp_71_simp_72_simp_75 = s->acc_a_conv_105_simp_71_simp_72_simp_75;
+    acc_a_conv_105_simp_71_simp_73       = s->acc_a_conv_105_simp_71_simp_73;
     
     const iint_t    new_count            = s->new_count;
-    const 
-    #error Failed during codegen (seaOfValType: SumT ErrorT IntT..)
-    *const new_elem_gen_fact             = s->new_elem_gen_fact;
+    const ibool_t   *const new_elem_gen_fact_simp_358 = s->new_elem_gen_fact_simp_358;
+    const ierror_t  *const new_elem_gen_fact_simp_359 = s->new_elem_gen_fact_simp_359;
+    const iint_t    *const new_elem_gen_fact_simp_360 = s->new_elem_gen_fact_simp_360;
     const idate_t   *const new_elem_gen_date = s->new_elem_gen_date;
     
     for (iint_t i = 0; i < new_count; i++) {
-        
-        #error Failed during codegen (seaOfValType: SumT ErrorT IntT..)
-         elem_gen_fact                   = new_elem_gen_fact[i];
+        ibool_t    elem_gen_fact_simp_358 = new_elem_gen_fact_simp_358[i];
+        ierror_t   elem_gen_fact_simp_359 = new_elem_gen_fact_simp_359[i];
+        iint_t     elem_gen_fact_simp_360 = new_elem_gen_fact_simp_360[i];
         idate_t    elem_gen_date         = new_elem_gen_date[i];
-        flat_0                           = 
-        #error Failed during codegen (seaOfXValue: VLeft (VError ExceptTombstone)..)
-        ;
+        flat_0_simp_76                   = ifalse;
+        flat_0_simp_77                   = ierror_tombstone;
+        flat_0_simp_78                   = 0.0;
         
-        if (
-        #error Failed during codegen (seaOfXPrim: PrimProject (PrimProjectSumIsLeft ErrorT..)
-         (elem_gen_fact)) {
-            
-            #error Failed during codegen (seaOfValType: ErrorT..)
-             flat_82                     = 
-            #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetLeft ErrorT ..)
-             (elem_gen_fact);
-            flat_0                       = 
-            #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstLeft Er..)
-             (flat_82);
+        if (elem_gen_fact_simp_358) {
+            idouble_t  simp_1            = iint_extend (elem_gen_fact_simp_360);
+            flat_0_simp_76               = itrue;
+            flat_0_simp_77               = ierror_tombstone;
+            flat_0_simp_78               = simp_1;
         } else {
-            iint_t     flat_83           = 
-            #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetRight ErrorT..)
-             (elem_gen_fact);
-            idouble_t  simp_1            = iint_extend (flat_83);
-            flat_0                       = 
-            #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstRight E..)
-             (simp_1);
+            flat_0_simp_76               = ifalse;
+            flat_0_simp_77               = elem_gen_fact_simp_359;
+            flat_0_simp_78               = 0.0;
         }
         
-        flat_0                           = flat_0;
-        acc_a_conv_12                    = acc_a_conv_12;
-        flat_1                           = 
-        #error Failed during codegen (seaOfXValue: VLeft (VError ExceptTombstone)..)
-        ;
+        flat_0_simp_79                   = flat_0_simp_76;
+        flat_0_simp_80                   = flat_0_simp_77;
+        flat_0_simp_81                   = flat_0_simp_78;
+        acc_a_conv_12_simp_82            = acc_a_conv_12_simp_62;
+        acc_a_conv_12_simp_83            = acc_a_conv_12_simp_63;
+        acc_a_conv_12_simp_84_simp_85_simp_87 = acc_a_conv_12_simp_64_simp_65_simp_67;
+        acc_a_conv_12_simp_84_simp_85_simp_88 = acc_a_conv_12_simp_64_simp_65_simp_68;
+        acc_a_conv_12_simp_84_simp_86    = acc_a_conv_12_simp_64_simp_66;
+        flat_1_simp_89                   = ifalse;
+        flat_1_simp_90                   = ierror_tombstone;
+        flat_1_simp_91_simp_92_simp_94   = 0.0;
+        flat_1_simp_91_simp_92_simp_95   = 0.0;
+        flat_1_simp_91_simp_93           = 0.0;
         
-        if (
-        #error Failed during codegen (seaOfXPrim: PrimProject (PrimProjectSumIsLeft ErrorT..)
-         (acc_a_conv_12)) {
+        if (acc_a_conv_12_simp_82) {
+            idouble_t  nn_conv_19        = idouble_add (acc_a_conv_12_simp_84_simp_85_simp_87, 1.0);
+            flat_4_simp_96               = ifalse;
+            flat_4_simp_97               = ierror_tombstone;
+            flat_4_simp_98               = 0.0;
             
-            #error Failed during codegen (seaOfValType: ErrorT..)
-             flat_2                      = 
-            #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetLeft ErrorT ..)
-             (acc_a_conv_12);
-            flat_1                       = 
-            #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstLeft Er..)
-             (flat_2);
-        } else {
-            
-            #error Failed during codegen (seaOfValType: PairT (PairT DoubleT DoubleT) DoubleT..)
-             flat_3                      = 
-            #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetRight ErrorT..)
-             (acc_a_conv_12);
-            
-            #error Failed during codegen (seaOfValType: PairT DoubleT DoubleT..)
-             desugar_q_0_conv_15         = 
-            #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimPair (PrimPairFst (Pair..)
-             (flat_3);
-            idouble_t  desugar_q_1_conv_16 = 
-            #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimPair (PrimPairSnd (Pair..)
-             (flat_3);
-            idouble_t  desugar_q_2_conv_17 = 
-            #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimPair (PrimPairFst Doubl..)
-             (desugar_q_0_conv_15);
-            idouble_t  desugar_q_3_conv_18 = 
-            #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimPair (PrimPairSnd Doubl..)
-             (desugar_q_0_conv_15);
-            idouble_t  nn_conv_19        = idouble_add (desugar_q_2_conv_17, 1.0);
-            flat_4                       = 
-            #error Failed during codegen (seaOfXValue: VLeft (VError ExceptTombstone)..)
-            ;
-            
-            if (
-            #error Failed during codegen (seaOfXPrim: PrimProject (PrimProjectSumIsLeft ErrorT..)
-             (flat_0)) {
-                
-                #error Failed during codegen (seaOfValType: ErrorT..)
-                 flat_35                 = 
-                #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetLeft ErrorT ..)
-                 (flat_0);
-                flat_4                   = 
-                #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstLeft Er..)
-                 (flat_35);
+            if (flat_0_simp_79) {
+                idouble_t  simp_7        = idouble_sub (flat_0_simp_81, acc_a_conv_12_simp_84_simp_85_simp_88);
+                flat_4_simp_96           = itrue;
+                flat_4_simp_97           = ierror_tombstone;
+                flat_4_simp_98           = simp_7;
             } else {
-                idouble_t  flat_36       = 
-                #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetRight ErrorT..)
-                 (flat_0);
-                idouble_t  simp_9        = idouble_sub (flat_36, desugar_q_3_conv_18);
-                flat_4                   = 
-                #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstRight E..)
-                 (simp_9);
+                flat_4_simp_96           = ifalse;
+                flat_4_simp_97           = flat_0_simp_80;
+                flat_4_simp_98           = 0.0;
             }
             
-            flat_4                       = flat_4;
-            flat_5                       = 
-            #error Failed during codegen (seaOfXValue: VLeft (VError ExceptTombstone)..)
-            ;
+            flat_4_simp_99               = flat_4_simp_96;
+            flat_4_simp_100              = flat_4_simp_97;
+            flat_4_simp_101              = flat_4_simp_98;
+            flat_5_simp_102              = ifalse;
+            flat_5_simp_103              = ierror_tombstone;
+            flat_5_simp_104              = 0.0;
             
-            if (
-            #error Failed during codegen (seaOfXPrim: PrimProject (PrimProjectSumIsLeft ErrorT..)
-             (flat_4)) {
-                
-                #error Failed during codegen (seaOfValType: ErrorT..)
-                 flat_33                 = 
-                #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetLeft ErrorT ..)
-                 (flat_4);
-                flat_5                   = 
-                #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstLeft Er..)
-                 (flat_33);
+            if (flat_4_simp_99) {
+                idouble_t  simp_11       = idouble_div (flat_4_simp_101, nn_conv_19);
+                flat_5_simp_102          = itrue;
+                flat_5_simp_103          = ierror_tombstone;
+                flat_5_simp_104          = simp_11;
             } else {
-                idouble_t  flat_34       = 
-                #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetRight ErrorT..)
-                 (flat_4);
-                idouble_t  simp_11       = idouble_div (flat_34, nn_conv_19);
-                flat_5                   = 
-                #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstRight E..)
-                 (simp_11);
+                flat_5_simp_102          = ifalse;
+                flat_5_simp_103          = flat_4_simp_100;
+                flat_5_simp_104          = 0.0;
             }
             
-            flat_5                       = flat_5;
-            flat_6                       = 
-            #error Failed during codegen (seaOfXValue: VLeft (VError ExceptTombstone)..)
-            ;
+            flat_5_simp_105              = flat_5_simp_102;
+            flat_5_simp_106              = flat_5_simp_103;
+            flat_5_simp_107              = flat_5_simp_104;
+            flat_6_simp_108              = ifalse;
+            flat_6_simp_109              = ierror_tombstone;
+            flat_6_simp_110              = 0.0;
             
-            if (
-            #error Failed during codegen (seaOfXPrim: PrimProject (PrimProjectSumIsLeft ErrorT..)
-             (flat_5)) {
-                
-                #error Failed during codegen (seaOfValType: ErrorT..)
-                 flat_31                 = 
-                #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetLeft ErrorT ..)
-                 (flat_5);
-                flat_6                   = 
-                #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstLeft Er..)
-                 (flat_31);
+            if (flat_5_simp_105) {
+                idouble_t  simp_13       = idouble_add (acc_a_conv_12_simp_84_simp_85_simp_88, flat_5_simp_107);
+                flat_6_simp_108          = itrue;
+                flat_6_simp_109          = ierror_tombstone;
+                flat_6_simp_110          = simp_13;
             } else {
-                idouble_t  flat_32       = 
-                #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetRight ErrorT..)
-                 (flat_5);
-                idouble_t  simp_13       = idouble_add (desugar_q_3_conv_18, flat_32);
-                flat_6                   = 
-                #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstRight E..)
-                 (simp_13);
+                flat_6_simp_108          = ifalse;
+                flat_6_simp_109          = flat_5_simp_106;
+                flat_6_simp_110          = 0.0;
             }
             
-            flat_6                       = flat_6;
-            flat_7                       = 
-            #error Failed during codegen (seaOfXValue: VLeft (VError ExceptTombstone)..)
-            ;
+            flat_6_simp_111              = flat_6_simp_108;
+            flat_6_simp_112              = flat_6_simp_109;
+            flat_6_simp_113              = flat_6_simp_110;
+            flat_7_simp_114              = ifalse;
+            flat_7_simp_115              = ierror_tombstone;
+            flat_7_simp_116              = 0.0;
             
-            if (
-            #error Failed during codegen (seaOfXPrim: PrimProject (PrimProjectSumIsLeft ErrorT..)
-             (flat_4)) {
+            if (flat_4_simp_99) {
+                flat_22_simp_117         = ifalse;
+                flat_22_simp_118         = ierror_tombstone;
+                flat_22_simp_119         = 0.0;
                 
-                #error Failed during codegen (seaOfValType: ErrorT..)
-                 flat_20                 = 
-                #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetLeft ErrorT ..)
-                 (flat_4);
-                flat_7                   = 
-                #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstLeft Er..)
-                 (flat_20);
-            } else {
-                idouble_t  flat_21       = 
-                #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetRight ErrorT..)
-                 (flat_4);
-                flat_22                  = 
-                #error Failed during codegen (seaOfXValue: VLeft (VError ExceptTombstone)..)
-                ;
-                
-                if (
-                #error Failed during codegen (seaOfXPrim: PrimProject (PrimProjectSumIsLeft ErrorT..)
-                 (flat_0)) {
+                if (flat_0_simp_79) {
+                    flat_28_simp_120     = ifalse;
+                    flat_28_simp_121     = ierror_tombstone;
+                    flat_28_simp_122     = 0.0;
                     
-                    #error Failed during codegen (seaOfValType: ErrorT..)
-                     flat_26             = 
-                    #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetLeft ErrorT ..)
-                     (flat_0);
-                    flat_22              = 
-                    #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstLeft Er..)
-                     (flat_26);
-                } else {
-                    idouble_t  flat_27   = 
-                    #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetRight ErrorT..)
-                     (flat_0);
-                    flat_28              = 
-                    #error Failed during codegen (seaOfXValue: VLeft (VError ExceptTombstone)..)
-                    ;
-                    
-                    if (
-                    #error Failed during codegen (seaOfXPrim: PrimProject (PrimProjectSumIsLeft ErrorT..)
-                     (flat_6)) {
-                        
-                        #error Failed during codegen (seaOfValType: ErrorT..)
-                         flat_29         = 
-                        #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetLeft ErrorT ..)
-                         (flat_6);
-                        flat_28          = 
-                        #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstLeft Er..)
-                         (flat_29);
+                    if (flat_6_simp_111) {
+                        idouble_t  simp_19 = idouble_sub (flat_0_simp_81, flat_6_simp_113);
+                        flat_28_simp_120 = itrue;
+                        flat_28_simp_121 = ierror_tombstone;
+                        flat_28_simp_122 = simp_19;
                     } else {
-                        idouble_t  flat_30 = 
-                        #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetRight ErrorT..)
-                         (flat_6);
-                        idouble_t  simp_21 = idouble_sub (flat_27, flat_30);
-                        flat_28          = 
-                        #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstRight E..)
-                         (simp_21);
+                        flat_28_simp_120 = ifalse;
+                        flat_28_simp_121 = flat_6_simp_112;
+                        flat_28_simp_122 = 0.0;
                     }
                     
-                    flat_28              = flat_28;
-                    flat_22              = flat_28;
-                }
-                
-                flat_22                  = flat_22;
-                flat_23                  = 
-                #error Failed during codegen (seaOfXValue: VLeft (VError ExceptTombstone)..)
-                ;
-                
-                if (
-                #error Failed during codegen (seaOfXPrim: PrimProject (PrimProjectSumIsLeft ErrorT..)
-                 (flat_22)) {
-                    
-                    #error Failed during codegen (seaOfValType: ErrorT..)
-                     flat_24             = 
-                    #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetLeft ErrorT ..)
-                     (flat_22);
-                    flat_23              = 
-                    #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstLeft Er..)
-                     (flat_24);
+                    flat_28_simp_123     = flat_28_simp_120;
+                    flat_28_simp_124     = flat_28_simp_121;
+                    flat_28_simp_125     = flat_28_simp_122;
+                    flat_22_simp_117     = flat_28_simp_123;
+                    flat_22_simp_118     = flat_28_simp_124;
+                    flat_22_simp_119     = flat_28_simp_125;
                 } else {
-                    idouble_t  flat_25   = 
-                    #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetRight ErrorT..)
-                     (flat_22);
-                    idouble_t  simp_23   = idouble_mul (flat_21, flat_25);
-                    flat_23              = 
-                    #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstRight E..)
-                     (simp_23);
+                    flat_22_simp_117     = ifalse;
+                    flat_22_simp_118     = flat_0_simp_80;
+                    flat_22_simp_119     = 0.0;
                 }
                 
-                flat_23                  = flat_23;
-                flat_7                   = flat_23;
-            }
-            
-            flat_7                       = flat_7;
-            flat_8                       = 
-            #error Failed during codegen (seaOfXValue: VLeft (VError ExceptTombstone)..)
-            ;
-            
-            if (
-            #error Failed during codegen (seaOfXPrim: PrimProject (PrimProjectSumIsLeft ErrorT..)
-             (flat_7)) {
+                flat_22_simp_126         = flat_22_simp_117;
+                flat_22_simp_127         = flat_22_simp_118;
+                flat_22_simp_128         = flat_22_simp_119;
+                flat_23_simp_129         = ifalse;
+                flat_23_simp_130         = ierror_tombstone;
+                flat_23_simp_131         = 0.0;
                 
-                #error Failed during codegen (seaOfValType: ErrorT..)
-                 flat_18                 = 
-                #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetLeft ErrorT ..)
-                 (flat_7);
-                flat_8                   = 
-                #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstLeft Er..)
-                 (flat_18);
-            } else {
-                idouble_t  flat_19       = 
-                #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetRight ErrorT..)
-                 (flat_7);
-                idouble_t  simp_25       = idouble_add (desugar_q_1_conv_16, flat_19);
-                flat_8                   = 
-                #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstRight E..)
-                 (simp_25);
-            }
-            
-            flat_8                       = flat_8;
-            flat_9                       = 
-            #error Failed during codegen (seaOfXValue: VLeft (VError ExceptTombstone)..)
-            ;
-            
-            if (
-            #error Failed during codegen (seaOfXPrim: PrimProject (PrimProjectSumIsLeft ErrorT..)
-             (flat_6)) {
-                
-                #error Failed during codegen (seaOfValType: ErrorT..)
-                 flat_16                 = 
-                #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetLeft ErrorT ..)
-                 (flat_6);
-                flat_9                   = 
-                #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstLeft Er..)
-                 (flat_16);
-            } else {
-                idouble_t  flat_17       = 
-                #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetRight ErrorT..)
-                 (flat_6);
-                
-                #error Failed during codegen (seaOfValType: PairT DoubleT DoubleT..)
-                 simp_27                 = 
-                #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstPair Do..)
-                 (nn_conv_19, flat_17);
-                flat_9                   = 
-                #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstRight E..)
-                 (simp_27);
-            }
-            
-            flat_9                       = flat_9;
-            flat_10                      = 
-            #error Failed during codegen (seaOfXValue: VLeft (VError ExceptTombstone)..)
-            ;
-            
-            if (
-            #error Failed during codegen (seaOfXPrim: PrimProject (PrimProjectSumIsLeft ErrorT..)
-             (flat_9)) {
-                
-                #error Failed during codegen (seaOfValType: ErrorT..)
-                 flat_11                 = 
-                #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetLeft ErrorT ..)
-                 (flat_9);
-                flat_10                  = 
-                #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstLeft Er..)
-                 (flat_11);
-            } else {
-                
-                #error Failed during codegen (seaOfValType: PairT DoubleT DoubleT..)
-                 flat_12                 = 
-                #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetRight ErrorT..)
-                 (flat_9);
-                flat_13                  = 
-                #error Failed during codegen (seaOfXValue: VLeft (VError ExceptTombstone)..)
-                ;
-                
-                if (
-                #error Failed during codegen (seaOfXPrim: PrimProject (PrimProjectSumIsLeft ErrorT..)
-                 (flat_8)) {
-                    
-                    #error Failed during codegen (seaOfValType: ErrorT..)
-                     flat_14             = 
-                    #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetLeft ErrorT ..)
-                     (flat_8);
-                    flat_13              = 
-                    #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstLeft Er..)
-                     (flat_14);
+                if (flat_22_simp_126) {
+                    idouble_t  simp_23   = idouble_mul (flat_4_simp_101, flat_22_simp_128);
+                    flat_23_simp_129     = itrue;
+                    flat_23_simp_130     = ierror_tombstone;
+                    flat_23_simp_131     = simp_23;
                 } else {
-                    idouble_t  flat_15   = 
-                    #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetRight ErrorT..)
-                     (flat_8);
-                    
-                    #error Failed during codegen (seaOfValType: PairT (PairT DoubleT DoubleT) DoubleT..)
-                     simp_29             = 
-                    #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstPair (P..)
-                     (flat_12, flat_15);
-                    flat_13              = 
-                    #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstRight E..)
-                     (simp_29);
+                    flat_23_simp_129     = ifalse;
+                    flat_23_simp_130     = flat_22_simp_127;
+                    flat_23_simp_131     = 0.0;
                 }
                 
-                flat_13                  = flat_13;
-                flat_10                  = flat_13;
+                flat_23_simp_132         = flat_23_simp_129;
+                flat_23_simp_133         = flat_23_simp_130;
+                flat_23_simp_134         = flat_23_simp_131;
+                flat_7_simp_114          = flat_23_simp_132;
+                flat_7_simp_115          = flat_23_simp_133;
+                flat_7_simp_116          = flat_23_simp_134;
+            } else {
+                flat_7_simp_114          = ifalse;
+                flat_7_simp_115          = flat_4_simp_100;
+                flat_7_simp_116          = 0.0;
             }
             
-            flat_10                      = flat_10;
-            flat_1                       = flat_10;
-        }
-        
-        flat_1                           = flat_1;
-        acc_a_conv_12                    = flat_1;
-        flat_37                          = 
-        #error Failed during codegen (seaOfXValue: VLeft (VError ExceptTombstone)..)
-        ;
-        
-        if (
-        #error Failed during codegen (seaOfXPrim: PrimProject (PrimProjectSumIsLeft ErrorT..)
-         (elem_gen_fact)) {
+            flat_7_simp_135              = flat_7_simp_114;
+            flat_7_simp_136              = flat_7_simp_115;
+            flat_7_simp_137              = flat_7_simp_116;
+            flat_8_simp_138              = ifalse;
+            flat_8_simp_139              = ierror_tombstone;
+            flat_8_simp_140              = 0.0;
             
-            #error Failed during codegen (seaOfValType: ErrorT..)
-             flat_80                     = 
-            #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetLeft ErrorT ..)
-             (elem_gen_fact);
-            flat_37                      = 
-            #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstLeft Er..)
-             (flat_80);
+            if (flat_7_simp_135) {
+                idouble_t  simp_25       = idouble_add (acc_a_conv_12_simp_84_simp_86, flat_7_simp_137);
+                flat_8_simp_138          = itrue;
+                flat_8_simp_139          = ierror_tombstone;
+                flat_8_simp_140          = simp_25;
+            } else {
+                flat_8_simp_138          = ifalse;
+                flat_8_simp_139          = flat_7_simp_136;
+                flat_8_simp_140          = 0.0;
+            }
+            
+            flat_8_simp_141              = flat_8_simp_138;
+            flat_8_simp_142              = flat_8_simp_139;
+            flat_8_simp_143              = flat_8_simp_140;
+            flat_9_simp_144              = ifalse;
+            flat_9_simp_145              = ierror_tombstone;
+            flat_9_simp_146_simp_147     = 0.0;
+            flat_9_simp_146_simp_148     = 0.0;
+            
+            if (flat_6_simp_111) {
+                flat_9_simp_144          = itrue;
+                flat_9_simp_145          = ierror_tombstone;
+                flat_9_simp_146_simp_147 = nn_conv_19;
+                flat_9_simp_146_simp_148 = flat_6_simp_113;
+            } else {
+                flat_9_simp_144          = ifalse;
+                flat_9_simp_145          = flat_6_simp_112;
+                flat_9_simp_146_simp_147 = 0.0;
+                flat_9_simp_146_simp_148 = 0.0;
+            }
+            
+            flat_9_simp_149              = flat_9_simp_144;
+            flat_9_simp_150              = flat_9_simp_145;
+            flat_9_simp_151_simp_152     = flat_9_simp_146_simp_147;
+            flat_9_simp_151_simp_153     = flat_9_simp_146_simp_148;
+            flat_10_simp_154             = ifalse;
+            flat_10_simp_155             = ierror_tombstone;
+            flat_10_simp_156_simp_157_simp_159 = 0.0;
+            flat_10_simp_156_simp_157_simp_160 = 0.0;
+            flat_10_simp_156_simp_158    = 0.0;
+            
+            if (flat_9_simp_149) {
+                flat_13_simp_161         = ifalse;
+                flat_13_simp_162         = ierror_tombstone;
+                flat_13_simp_163_simp_164_simp_166 = 0.0;
+                flat_13_simp_163_simp_164_simp_167 = 0.0;
+                flat_13_simp_163_simp_165 = 0.0;
+                
+                if (flat_8_simp_141) {
+                    flat_13_simp_161     = itrue;
+                    flat_13_simp_162     = ierror_tombstone;
+                    flat_13_simp_163_simp_164_simp_166 = flat_9_simp_151_simp_152;
+                    flat_13_simp_163_simp_164_simp_167 = flat_9_simp_151_simp_153;
+                    flat_13_simp_163_simp_165 = flat_8_simp_143;
+                } else {
+                    flat_13_simp_161     = ifalse;
+                    flat_13_simp_162     = flat_8_simp_142;
+                    flat_13_simp_163_simp_164_simp_166 = 0.0;
+                    flat_13_simp_163_simp_164_simp_167 = 0.0;
+                    flat_13_simp_163_simp_165 = 0.0;
+                }
+                
+                flat_13_simp_168         = flat_13_simp_161;
+                flat_13_simp_169         = flat_13_simp_162;
+                flat_13_simp_170_simp_171_simp_173 = flat_13_simp_163_simp_164_simp_166;
+                flat_13_simp_170_simp_171_simp_174 = flat_13_simp_163_simp_164_simp_167;
+                flat_13_simp_170_simp_172 = flat_13_simp_163_simp_165;
+                flat_10_simp_154         = flat_13_simp_168;
+                flat_10_simp_155         = flat_13_simp_169;
+                flat_10_simp_156_simp_157_simp_159 = flat_13_simp_170_simp_171_simp_173;
+                flat_10_simp_156_simp_157_simp_160 = flat_13_simp_170_simp_171_simp_174;
+                flat_10_simp_156_simp_158 = flat_13_simp_170_simp_172;
+            } else {
+                flat_10_simp_154         = ifalse;
+                flat_10_simp_155         = flat_9_simp_150;
+                flat_10_simp_156_simp_157_simp_159 = 0.0;
+                flat_10_simp_156_simp_157_simp_160 = 0.0;
+                flat_10_simp_156_simp_158 = 0.0;
+            }
+            
+            flat_10_simp_175             = flat_10_simp_154;
+            flat_10_simp_176             = flat_10_simp_155;
+            flat_10_simp_177_simp_178_simp_180 = flat_10_simp_156_simp_157_simp_159;
+            flat_10_simp_177_simp_178_simp_181 = flat_10_simp_156_simp_157_simp_160;
+            flat_10_simp_177_simp_179    = flat_10_simp_156_simp_158;
+            flat_1_simp_89               = flat_10_simp_175;
+            flat_1_simp_90               = flat_10_simp_176;
+            flat_1_simp_91_simp_92_simp_94 = flat_10_simp_177_simp_178_simp_180;
+            flat_1_simp_91_simp_92_simp_95 = flat_10_simp_177_simp_178_simp_181;
+            flat_1_simp_91_simp_93       = flat_10_simp_177_simp_179;
         } else {
-            iint_t     flat_81           = 
-            #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetRight ErrorT..)
-             (elem_gen_fact);
-            ibool_t    simp_31           = iint_lt (flat_81, 300);
-            flat_37                      = 
-            #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstRight E..)
-             (simp_31);
+            flat_1_simp_89               = ifalse;
+            flat_1_simp_90               = acc_a_conv_12_simp_83;
+            flat_1_simp_91_simp_92_simp_94 = 0.0;
+            flat_1_simp_91_simp_92_simp_95 = 0.0;
+            flat_1_simp_91_simp_93       = 0.0;
         }
         
-        flat_37                          = flat_37;
+        flat_1_simp_182                  = flat_1_simp_89;
+        flat_1_simp_183                  = flat_1_simp_90;
+        flat_1_simp_184_simp_185_simp_187 = flat_1_simp_91_simp_92_simp_94;
+        flat_1_simp_184_simp_185_simp_188 = flat_1_simp_91_simp_92_simp_95;
+        flat_1_simp_184_simp_186         = flat_1_simp_91_simp_93;
+        acc_a_conv_12_simp_62            = flat_1_simp_182;
+        acc_a_conv_12_simp_63            = flat_1_simp_183;
+        acc_a_conv_12_simp_64_simp_65_simp_67 = flat_1_simp_184_simp_185_simp_187;
+        acc_a_conv_12_simp_64_simp_65_simp_68 = flat_1_simp_184_simp_185_simp_188;
+        acc_a_conv_12_simp_64_simp_66    = flat_1_simp_184_simp_186;
+        flat_37_simp_189                 = ifalse;
+        flat_37_simp_191                 = ifalse;
+        
+        if (elem_gen_fact_simp_358) {
+            ibool_t    simp_31           = iint_lt (elem_gen_fact_simp_360, 300);
+            flat_37_simp_189             = itrue;
+            flat_37_simp_191             = simp_31;
+        } else {
+            flat_37_simp_189             = ifalse;
+            flat_37_simp_191             = ifalse;
+        }
+        
+        flat_37_simp_192                 = flat_37_simp_189;
+        flat_37_simp_194                 = flat_37_simp_191;
         flat_38                          = ifalse;
         
-        if (
-        #error Failed during codegen (seaOfXPrim: PrimProject (PrimProjectSumIsLeft ErrorT..)
-         (flat_37)) {
-            flat_38                      = itrue;
+        if (flat_37_simp_192) {
+            flat_38                      = flat_37_simp_194;
         } else {
-            ibool_t    flat_79           = 
-            #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetRight ErrorT..)
-             (flat_37);
-            flat_38                      = flat_79;
+            flat_38                      = itrue;
         }
         
         flat_38                          = flat_38;
         
         if (flat_38) {
-            flat_39                      = 
-            #error Failed during codegen (seaOfXValue: VLeft (VError ExceptTombstone)..)
-            ;
+            flat_39_simp_195             = ifalse;
+            flat_39_simp_196             = ierror_tombstone;
+            flat_39_simp_197             = 0.0;
             
-            if (
-            #error Failed during codegen (seaOfXPrim: PrimProject (PrimProjectSumIsLeft ErrorT..)
-             (elem_gen_fact)) {
-                
-                #error Failed during codegen (seaOfValType: ErrorT..)
-                 flat_76                 = 
-                #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetLeft ErrorT ..)
-                 (elem_gen_fact);
-                flat_39                  = 
-                #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstLeft Er..)
-                 (flat_76);
+            if (elem_gen_fact_simp_358) {
+                idouble_t  simp_33       = iint_extend (elem_gen_fact_simp_360);
+                flat_39_simp_195         = itrue;
+                flat_39_simp_196         = ierror_tombstone;
+                flat_39_simp_197         = simp_33;
             } else {
-                iint_t     flat_77       = 
-                #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetRight ErrorT..)
-                 (elem_gen_fact);
-                idouble_t  simp_33       = iint_extend (flat_77);
-                flat_39                  = 
-                #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstRight E..)
-                 (simp_33);
+                flat_39_simp_195         = ifalse;
+                flat_39_simp_196         = elem_gen_fact_simp_359;
+                flat_39_simp_197         = 0.0;
             }
             
-            flat_39                      = flat_39;
-            acc_a_conv_105               = acc_a_conv_105;
-            flat_40                      = 
-            #error Failed during codegen (seaOfXValue: VLeft (VError ExceptTombstone)..)
-            ;
+            flat_39_simp_198             = flat_39_simp_195;
+            flat_39_simp_199             = flat_39_simp_196;
+            flat_39_simp_200             = flat_39_simp_197;
+            acc_a_conv_105_simp_201      = acc_a_conv_105_simp_69;
+            acc_a_conv_105_simp_202      = acc_a_conv_105_simp_70;
+            acc_a_conv_105_simp_203_simp_204_simp_206 = acc_a_conv_105_simp_71_simp_72_simp_74;
+            acc_a_conv_105_simp_203_simp_204_simp_207 = acc_a_conv_105_simp_71_simp_72_simp_75;
+            acc_a_conv_105_simp_203_simp_205 = acc_a_conv_105_simp_71_simp_73;
+            flat_40_simp_208             = ifalse;
+            flat_40_simp_209             = ierror_tombstone;
+            flat_40_simp_210_simp_211_simp_213 = 0.0;
+            flat_40_simp_210_simp_211_simp_214 = 0.0;
+            flat_40_simp_210_simp_212    = 0.0;
             
-            if (
-            #error Failed during codegen (seaOfXPrim: PrimProject (PrimProjectSumIsLeft ErrorT..)
-             (acc_a_conv_105)) {
+            if (acc_a_conv_105_simp_201) {
+                idouble_t  nn_conv_112   = idouble_add (acc_a_conv_105_simp_203_simp_204_simp_206, 1.0);
+                flat_43_simp_215         = ifalse;
+                flat_43_simp_216         = ierror_tombstone;
+                flat_43_simp_217         = 0.0;
                 
-                #error Failed during codegen (seaOfValType: ErrorT..)
-                 flat_41                 = 
-                #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetLeft ErrorT ..)
-                 (acc_a_conv_105);
-                flat_40                  = 
-                #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstLeft Er..)
-                 (flat_41);
-            } else {
-                
-                #error Failed during codegen (seaOfValType: PairT (PairT DoubleT DoubleT) DoubleT..)
-                 flat_42                 = 
-                #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetRight ErrorT..)
-                 (acc_a_conv_105);
-                
-                #error Failed during codegen (seaOfValType: PairT DoubleT DoubleT..)
-                 desugar_q_14_conv_108   = 
-                #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimPair (PrimPairFst (Pair..)
-                 (flat_42);
-                idouble_t  desugar_q_15_conv_109 = 
-                #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimPair (PrimPairSnd (Pair..)
-                 (flat_42);
-                idouble_t  desugar_q_16_conv_110 = 
-                #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimPair (PrimPairFst Doubl..)
-                 (desugar_q_14_conv_108);
-                idouble_t  desugar_q_17_conv_111 = 
-                #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimPair (PrimPairSnd Doubl..)
-                 (desugar_q_14_conv_108);
-                idouble_t  nn_conv_112   = idouble_add (desugar_q_16_conv_110, 1.0);
-                flat_43                  = 
-                #error Failed during codegen (seaOfXValue: VLeft (VError ExceptTombstone)..)
-                ;
-                
-                if (
-                #error Failed during codegen (seaOfXPrim: PrimProject (PrimProjectSumIsLeft ErrorT..)
-                 (flat_39)) {
-                    
-                    #error Failed during codegen (seaOfValType: ErrorT..)
-                     flat_74             = 
-                    #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetLeft ErrorT ..)
-                     (flat_39);
-                    flat_43              = 
-                    #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstLeft Er..)
-                     (flat_74);
+                if (flat_39_simp_198) {
+                    idouble_t  simp_39   = idouble_sub (flat_39_simp_200, acc_a_conv_105_simp_203_simp_204_simp_207);
+                    flat_43_simp_215     = itrue;
+                    flat_43_simp_216     = ierror_tombstone;
+                    flat_43_simp_217     = simp_39;
                 } else {
-                    idouble_t  flat_75   = 
-                    #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetRight ErrorT..)
-                     (flat_39);
-                    idouble_t  simp_41   = idouble_sub (flat_75, desugar_q_17_conv_111);
-                    flat_43              = 
-                    #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstRight E..)
-                     (simp_41);
+                    flat_43_simp_215     = ifalse;
+                    flat_43_simp_216     = flat_39_simp_199;
+                    flat_43_simp_217     = 0.0;
                 }
                 
-                flat_43                  = flat_43;
-                flat_44                  = 
-                #error Failed during codegen (seaOfXValue: VLeft (VError ExceptTombstone)..)
-                ;
+                flat_43_simp_218         = flat_43_simp_215;
+                flat_43_simp_219         = flat_43_simp_216;
+                flat_43_simp_220         = flat_43_simp_217;
+                flat_44_simp_221         = ifalse;
+                flat_44_simp_222         = ierror_tombstone;
+                flat_44_simp_223         = 0.0;
                 
-                if (
-                #error Failed during codegen (seaOfXPrim: PrimProject (PrimProjectSumIsLeft ErrorT..)
-                 (flat_43)) {
-                    
-                    #error Failed during codegen (seaOfValType: ErrorT..)
-                     flat_72             = 
-                    #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetLeft ErrorT ..)
-                     (flat_43);
-                    flat_44              = 
-                    #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstLeft Er..)
-                     (flat_72);
+                if (flat_43_simp_218) {
+                    idouble_t  simp_43   = idouble_div (flat_43_simp_220, nn_conv_112);
+                    flat_44_simp_221     = itrue;
+                    flat_44_simp_222     = ierror_tombstone;
+                    flat_44_simp_223     = simp_43;
                 } else {
-                    idouble_t  flat_73   = 
-                    #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetRight ErrorT..)
-                     (flat_43);
-                    idouble_t  simp_43   = idouble_div (flat_73, nn_conv_112);
-                    flat_44              = 
-                    #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstRight E..)
-                     (simp_43);
+                    flat_44_simp_221     = ifalse;
+                    flat_44_simp_222     = flat_43_simp_219;
+                    flat_44_simp_223     = 0.0;
                 }
                 
-                flat_44                  = flat_44;
-                flat_45                  = 
-                #error Failed during codegen (seaOfXValue: VLeft (VError ExceptTombstone)..)
-                ;
+                flat_44_simp_224         = flat_44_simp_221;
+                flat_44_simp_225         = flat_44_simp_222;
+                flat_44_simp_226         = flat_44_simp_223;
+                flat_45_simp_227         = ifalse;
+                flat_45_simp_228         = ierror_tombstone;
+                flat_45_simp_229         = 0.0;
                 
-                if (
-                #error Failed during codegen (seaOfXPrim: PrimProject (PrimProjectSumIsLeft ErrorT..)
-                 (flat_44)) {
-                    
-                    #error Failed during codegen (seaOfValType: ErrorT..)
-                     flat_70             = 
-                    #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetLeft ErrorT ..)
-                     (flat_44);
-                    flat_45              = 
-                    #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstLeft Er..)
-                     (flat_70);
+                if (flat_44_simp_224) {
+                    idouble_t  simp_45   = idouble_add (acc_a_conv_105_simp_203_simp_204_simp_207, flat_44_simp_226);
+                    flat_45_simp_227     = itrue;
+                    flat_45_simp_228     = ierror_tombstone;
+                    flat_45_simp_229     = simp_45;
                 } else {
-                    idouble_t  flat_71   = 
-                    #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetRight ErrorT..)
-                     (flat_44);
-                    idouble_t  simp_45   = idouble_add (desugar_q_17_conv_111, flat_71);
-                    flat_45              = 
-                    #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstRight E..)
-                     (simp_45);
+                    flat_45_simp_227     = ifalse;
+                    flat_45_simp_228     = flat_44_simp_225;
+                    flat_45_simp_229     = 0.0;
                 }
                 
-                flat_45                  = flat_45;
-                flat_46                  = 
-                #error Failed during codegen (seaOfXValue: VLeft (VError ExceptTombstone)..)
-                ;
+                flat_45_simp_230         = flat_45_simp_227;
+                flat_45_simp_231         = flat_45_simp_228;
+                flat_45_simp_232         = flat_45_simp_229;
+                flat_46_simp_233         = ifalse;
+                flat_46_simp_234         = ierror_tombstone;
+                flat_46_simp_235         = 0.0;
                 
-                if (
-                #error Failed during codegen (seaOfXPrim: PrimProject (PrimProjectSumIsLeft ErrorT..)
-                 (flat_43)) {
+                if (flat_43_simp_218) {
+                    flat_61_simp_236     = ifalse;
+                    flat_61_simp_237     = ierror_tombstone;
+                    flat_61_simp_238     = 0.0;
                     
-                    #error Failed during codegen (seaOfValType: ErrorT..)
-                     flat_59             = 
-                    #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetLeft ErrorT ..)
-                     (flat_43);
-                    flat_46              = 
-                    #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstLeft Er..)
-                     (flat_59);
-                } else {
-                    idouble_t  flat_60   = 
-                    #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetRight ErrorT..)
-                     (flat_43);
-                    flat_61              = 
-                    #error Failed during codegen (seaOfXValue: VLeft (VError ExceptTombstone)..)
-                    ;
-                    
-                    if (
-                    #error Failed during codegen (seaOfXPrim: PrimProject (PrimProjectSumIsLeft ErrorT..)
-                     (flat_39)) {
+                    if (flat_39_simp_198) {
+                        flat_67_simp_239 = ifalse;
+                        flat_67_simp_240 = ierror_tombstone;
+                        flat_67_simp_241 = 0.0;
                         
-                        #error Failed during codegen (seaOfValType: ErrorT..)
-                         flat_65         = 
-                        #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetLeft ErrorT ..)
-                         (flat_39);
-                        flat_61          = 
-                        #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstLeft Er..)
-                         (flat_65);
-                    } else {
-                        idouble_t  flat_66 = 
-                        #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetRight ErrorT..)
-                         (flat_39);
-                        flat_67          = 
-                        #error Failed during codegen (seaOfXValue: VLeft (VError ExceptTombstone)..)
-                        ;
-                        
-                        if (
-                        #error Failed during codegen (seaOfXPrim: PrimProject (PrimProjectSumIsLeft ErrorT..)
-                         (flat_45)) {
-                            
-                            #error Failed during codegen (seaOfValType: ErrorT..)
-                             flat_68     = 
-                            #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetLeft ErrorT ..)
-                             (flat_45);
-                            flat_67      = 
-                            #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstLeft Er..)
-                             (flat_68);
+                        if (flat_45_simp_230) {
+                            idouble_t  simp_51 = idouble_sub (flat_39_simp_200, flat_45_simp_232);
+                            flat_67_simp_239 = itrue;
+                            flat_67_simp_240 = ierror_tombstone;
+                            flat_67_simp_241 = simp_51;
                         } else {
-                            idouble_t  flat_69 = 
-                            #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetRight ErrorT..)
-                             (flat_45);
-                            idouble_t  simp_53 = idouble_sub (flat_66, flat_69);
-                            flat_67      = 
-                            #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstRight E..)
-                             (simp_53);
+                            flat_67_simp_239 = ifalse;
+                            flat_67_simp_240 = flat_45_simp_231;
+                            flat_67_simp_241 = 0.0;
                         }
                         
-                        flat_67          = flat_67;
-                        flat_61          = flat_67;
-                    }
-                    
-                    flat_61              = flat_61;
-                    flat_62              = 
-                    #error Failed during codegen (seaOfXValue: VLeft (VError ExceptTombstone)..)
-                    ;
-                    
-                    if (
-                    #error Failed during codegen (seaOfXPrim: PrimProject (PrimProjectSumIsLeft ErrorT..)
-                     (flat_61)) {
-                        
-                        #error Failed during codegen (seaOfValType: ErrorT..)
-                         flat_63         = 
-                        #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetLeft ErrorT ..)
-                         (flat_61);
-                        flat_62          = 
-                        #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstLeft Er..)
-                         (flat_63);
+                        flat_67_simp_242 = flat_67_simp_239;
+                        flat_67_simp_243 = flat_67_simp_240;
+                        flat_67_simp_244 = flat_67_simp_241;
+                        flat_61_simp_236 = flat_67_simp_242;
+                        flat_61_simp_237 = flat_67_simp_243;
+                        flat_61_simp_238 = flat_67_simp_244;
                     } else {
-                        idouble_t  flat_64 = 
-                        #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetRight ErrorT..)
-                         (flat_61);
-                        idouble_t  simp_55 = idouble_mul (flat_60, flat_64);
-                        flat_62          = 
-                        #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstRight E..)
-                         (simp_55);
+                        flat_61_simp_236 = ifalse;
+                        flat_61_simp_237 = flat_39_simp_199;
+                        flat_61_simp_238 = 0.0;
                     }
                     
-                    flat_62              = flat_62;
-                    flat_46              = flat_62;
-                }
-                
-                flat_46                  = flat_46;
-                flat_47                  = 
-                #error Failed during codegen (seaOfXValue: VLeft (VError ExceptTombstone)..)
-                ;
-                
-                if (
-                #error Failed during codegen (seaOfXPrim: PrimProject (PrimProjectSumIsLeft ErrorT..)
-                 (flat_46)) {
+                    flat_61_simp_245     = flat_61_simp_236;
+                    flat_61_simp_246     = flat_61_simp_237;
+                    flat_61_simp_247     = flat_61_simp_238;
+                    flat_62_simp_248     = ifalse;
+                    flat_62_simp_249     = ierror_tombstone;
+                    flat_62_simp_250     = 0.0;
                     
-                    #error Failed during codegen (seaOfValType: ErrorT..)
-                     flat_57             = 
-                    #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetLeft ErrorT ..)
-                     (flat_46);
-                    flat_47              = 
-                    #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstLeft Er..)
-                     (flat_57);
-                } else {
-                    idouble_t  flat_58   = 
-                    #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetRight ErrorT..)
-                     (flat_46);
-                    idouble_t  simp_57   = idouble_add (desugar_q_15_conv_109, flat_58);
-                    flat_47              = 
-                    #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstRight E..)
-                     (simp_57);
-                }
-                
-                flat_47                  = flat_47;
-                flat_48                  = 
-                #error Failed during codegen (seaOfXValue: VLeft (VError ExceptTombstone)..)
-                ;
-                
-                if (
-                #error Failed during codegen (seaOfXPrim: PrimProject (PrimProjectSumIsLeft ErrorT..)
-                 (flat_45)) {
-                    
-                    #error Failed during codegen (seaOfValType: ErrorT..)
-                     flat_55             = 
-                    #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetLeft ErrorT ..)
-                     (flat_45);
-                    flat_48              = 
-                    #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstLeft Er..)
-                     (flat_55);
-                } else {
-                    idouble_t  flat_56   = 
-                    #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetRight ErrorT..)
-                     (flat_45);
-                    
-                    #error Failed during codegen (seaOfValType: PairT DoubleT DoubleT..)
-                     simp_59             = 
-                    #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstPair Do..)
-                     (nn_conv_112, flat_56);
-                    flat_48              = 
-                    #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstRight E..)
-                     (simp_59);
-                }
-                
-                flat_48                  = flat_48;
-                flat_49                  = 
-                #error Failed during codegen (seaOfXValue: VLeft (VError ExceptTombstone)..)
-                ;
-                
-                if (
-                #error Failed during codegen (seaOfXPrim: PrimProject (PrimProjectSumIsLeft ErrorT..)
-                 (flat_48)) {
-                    
-                    #error Failed during codegen (seaOfValType: ErrorT..)
-                     flat_50             = 
-                    #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetLeft ErrorT ..)
-                     (flat_48);
-                    flat_49              = 
-                    #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstLeft Er..)
-                     (flat_50);
-                } else {
-                    
-                    #error Failed during codegen (seaOfValType: PairT DoubleT DoubleT..)
-                     flat_51             = 
-                    #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetRight ErrorT..)
-                     (flat_48);
-                    flat_52              = 
-                    #error Failed during codegen (seaOfXValue: VLeft (VError ExceptTombstone)..)
-                    ;
-                    
-                    if (
-                    #error Failed during codegen (seaOfXPrim: PrimProject (PrimProjectSumIsLeft ErrorT..)
-                     (flat_47)) {
-                        
-                        #error Failed during codegen (seaOfValType: ErrorT..)
-                         flat_53         = 
-                        #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetLeft ErrorT ..)
-                         (flat_47);
-                        flat_52          = 
-                        #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstLeft Er..)
-                         (flat_53);
+                    if (flat_61_simp_245) {
+                        idouble_t  simp_55 = idouble_mul (flat_43_simp_220, flat_61_simp_247);
+                        flat_62_simp_248 = itrue;
+                        flat_62_simp_249 = ierror_tombstone;
+                        flat_62_simp_250 = simp_55;
                     } else {
-                        idouble_t  flat_54 = 
-                        #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetRight ErrorT..)
-                         (flat_47);
-                        
-                        #error Failed during codegen (seaOfValType: PairT (PairT DoubleT DoubleT) DoubleT..)
-                         simp_61         = 
-                        #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstPair (P..)
-                         (flat_51, flat_54);
-                        flat_52          = 
-                        #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstRight E..)
-                         (simp_61);
+                        flat_62_simp_248 = ifalse;
+                        flat_62_simp_249 = flat_61_simp_246;
+                        flat_62_simp_250 = 0.0;
                     }
                     
-                    flat_52              = flat_52;
-                    flat_49              = flat_52;
+                    flat_62_simp_251     = flat_62_simp_248;
+                    flat_62_simp_252     = flat_62_simp_249;
+                    flat_62_simp_253     = flat_62_simp_250;
+                    flat_46_simp_233     = flat_62_simp_251;
+                    flat_46_simp_234     = flat_62_simp_252;
+                    flat_46_simp_235     = flat_62_simp_253;
+                } else {
+                    flat_46_simp_233     = ifalse;
+                    flat_46_simp_234     = flat_43_simp_219;
+                    flat_46_simp_235     = 0.0;
                 }
                 
-                flat_49                  = flat_49;
-                flat_40                  = flat_49;
+                flat_46_simp_254         = flat_46_simp_233;
+                flat_46_simp_255         = flat_46_simp_234;
+                flat_46_simp_256         = flat_46_simp_235;
+                flat_47_simp_257         = ifalse;
+                flat_47_simp_258         = ierror_tombstone;
+                flat_47_simp_259         = 0.0;
+                
+                if (flat_46_simp_254) {
+                    idouble_t  simp_57   = idouble_add (acc_a_conv_105_simp_203_simp_205, flat_46_simp_256);
+                    flat_47_simp_257     = itrue;
+                    flat_47_simp_258     = ierror_tombstone;
+                    flat_47_simp_259     = simp_57;
+                } else {
+                    flat_47_simp_257     = ifalse;
+                    flat_47_simp_258     = flat_46_simp_255;
+                    flat_47_simp_259     = 0.0;
+                }
+                
+                flat_47_simp_260         = flat_47_simp_257;
+                flat_47_simp_261         = flat_47_simp_258;
+                flat_47_simp_262         = flat_47_simp_259;
+                flat_48_simp_263         = ifalse;
+                flat_48_simp_264         = ierror_tombstone;
+                flat_48_simp_265_simp_266 = 0.0;
+                flat_48_simp_265_simp_267 = 0.0;
+                
+                if (flat_45_simp_230) {
+                    flat_48_simp_263     = itrue;
+                    flat_48_simp_264     = ierror_tombstone;
+                    flat_48_simp_265_simp_266 = nn_conv_112;
+                    flat_48_simp_265_simp_267 = flat_45_simp_232;
+                } else {
+                    flat_48_simp_263     = ifalse;
+                    flat_48_simp_264     = flat_45_simp_231;
+                    flat_48_simp_265_simp_266 = 0.0;
+                    flat_48_simp_265_simp_267 = 0.0;
+                }
+                
+                flat_48_simp_268         = flat_48_simp_263;
+                flat_48_simp_269         = flat_48_simp_264;
+                flat_48_simp_270_simp_271 = flat_48_simp_265_simp_266;
+                flat_48_simp_270_simp_272 = flat_48_simp_265_simp_267;
+                flat_49_simp_273         = ifalse;
+                flat_49_simp_274         = ierror_tombstone;
+                flat_49_simp_275_simp_276_simp_278 = 0.0;
+                flat_49_simp_275_simp_276_simp_279 = 0.0;
+                flat_49_simp_275_simp_277 = 0.0;
+                
+                if (flat_48_simp_268) {
+                    flat_52_simp_280     = ifalse;
+                    flat_52_simp_281     = ierror_tombstone;
+                    flat_52_simp_282_simp_283_simp_285 = 0.0;
+                    flat_52_simp_282_simp_283_simp_286 = 0.0;
+                    flat_52_simp_282_simp_284 = 0.0;
+                    
+                    if (flat_47_simp_260) {
+                        flat_52_simp_280 = itrue;
+                        flat_52_simp_281 = ierror_tombstone;
+                        flat_52_simp_282_simp_283_simp_285 = flat_48_simp_270_simp_271;
+                        flat_52_simp_282_simp_283_simp_286 = flat_48_simp_270_simp_272;
+                        flat_52_simp_282_simp_284 = flat_47_simp_262;
+                    } else {
+                        flat_52_simp_280 = ifalse;
+                        flat_52_simp_281 = flat_47_simp_261;
+                        flat_52_simp_282_simp_283_simp_285 = 0.0;
+                        flat_52_simp_282_simp_283_simp_286 = 0.0;
+                        flat_52_simp_282_simp_284 = 0.0;
+                    }
+                    
+                    flat_52_simp_287     = flat_52_simp_280;
+                    flat_52_simp_288     = flat_52_simp_281;
+                    flat_52_simp_289_simp_290_simp_292 = flat_52_simp_282_simp_283_simp_285;
+                    flat_52_simp_289_simp_290_simp_293 = flat_52_simp_282_simp_283_simp_286;
+                    flat_52_simp_289_simp_291 = flat_52_simp_282_simp_284;
+                    flat_49_simp_273     = flat_52_simp_287;
+                    flat_49_simp_274     = flat_52_simp_288;
+                    flat_49_simp_275_simp_276_simp_278 = flat_52_simp_289_simp_290_simp_292;
+                    flat_49_simp_275_simp_276_simp_279 = flat_52_simp_289_simp_290_simp_293;
+                    flat_49_simp_275_simp_277 = flat_52_simp_289_simp_291;
+                } else {
+                    flat_49_simp_273     = ifalse;
+                    flat_49_simp_274     = flat_48_simp_269;
+                    flat_49_simp_275_simp_276_simp_278 = 0.0;
+                    flat_49_simp_275_simp_276_simp_279 = 0.0;
+                    flat_49_simp_275_simp_277 = 0.0;
+                }
+                
+                flat_49_simp_294         = flat_49_simp_273;
+                flat_49_simp_295         = flat_49_simp_274;
+                flat_49_simp_296_simp_297_simp_299 = flat_49_simp_275_simp_276_simp_278;
+                flat_49_simp_296_simp_297_simp_300 = flat_49_simp_275_simp_276_simp_279;
+                flat_49_simp_296_simp_298 = flat_49_simp_275_simp_277;
+                flat_40_simp_208         = flat_49_simp_294;
+                flat_40_simp_209         = flat_49_simp_295;
+                flat_40_simp_210_simp_211_simp_213 = flat_49_simp_296_simp_297_simp_299;
+                flat_40_simp_210_simp_211_simp_214 = flat_49_simp_296_simp_297_simp_300;
+                flat_40_simp_210_simp_212 = flat_49_simp_296_simp_298;
+            } else {
+                flat_40_simp_208         = ifalse;
+                flat_40_simp_209         = acc_a_conv_105_simp_202;
+                flat_40_simp_210_simp_211_simp_213 = 0.0;
+                flat_40_simp_210_simp_211_simp_214 = 0.0;
+                flat_40_simp_210_simp_212 = 0.0;
             }
             
-            flat_40                      = flat_40;
-            acc_a_conv_105               = flat_40;
+            flat_40_simp_301             = flat_40_simp_208;
+            flat_40_simp_302             = flat_40_simp_209;
+            flat_40_simp_303_simp_304_simp_306 = flat_40_simp_210_simp_211_simp_213;
+            flat_40_simp_303_simp_304_simp_307 = flat_40_simp_210_simp_211_simp_214;
+            flat_40_simp_303_simp_305    = flat_40_simp_210_simp_212;
+            acc_a_conv_105_simp_69       = flat_40_simp_301;
+            acc_a_conv_105_simp_70       = flat_40_simp_302;
+            acc_a_conv_105_simp_71_simp_72_simp_74 = flat_40_simp_303_simp_304_simp_306;
+            acc_a_conv_105_simp_71_simp_72_simp_75 = flat_40_simp_303_simp_304_simp_307;
+            acc_a_conv_105_simp_71_simp_73 = flat_40_simp_303_simp_305;
         }
         
     }
     
-    s->acc_a_conv_12                     = acc_a_conv_12;
-    s->acc_a_conv_105                    = acc_a_conv_105;
-    a_conv_12                            = acc_a_conv_12;
-    a_conv_105                           = acc_a_conv_105;
-    flat_84                              = 
-    #error Failed during codegen (seaOfXValue: VLeft (VError ExceptTombstone)..)
-    ;
+    s->acc_a_conv_12_simp_62             = acc_a_conv_12_simp_62;
+    s->acc_a_conv_12_simp_63             = acc_a_conv_12_simp_63;
+    s->acc_a_conv_12_simp_64_simp_65_simp_67 = acc_a_conv_12_simp_64_simp_65_simp_67;
+    s->acc_a_conv_12_simp_64_simp_65_simp_68 = acc_a_conv_12_simp_64_simp_65_simp_68;
+    s->acc_a_conv_12_simp_64_simp_66     = acc_a_conv_12_simp_64_simp_66;
+    s->acc_a_conv_105_simp_69            = acc_a_conv_105_simp_69;
+    s->acc_a_conv_105_simp_70            = acc_a_conv_105_simp_70;
+    s->acc_a_conv_105_simp_71_simp_72_simp_74 = acc_a_conv_105_simp_71_simp_72_simp_74;
+    s->acc_a_conv_105_simp_71_simp_72_simp_75 = acc_a_conv_105_simp_71_simp_72_simp_75;
+    s->acc_a_conv_105_simp_71_simp_73    = acc_a_conv_105_simp_71_simp_73;
+    a_conv_12_simp_308                   = acc_a_conv_12_simp_62;
+    a_conv_12_simp_309                   = acc_a_conv_12_simp_63;
+    a_conv_12_simp_310_simp_311_simp_313 = acc_a_conv_12_simp_64_simp_65_simp_67;
+    a_conv_12_simp_310_simp_312          = acc_a_conv_12_simp_64_simp_66;
+    a_conv_105_simp_315                  = acc_a_conv_105_simp_69;
+    a_conv_105_simp_316                  = acc_a_conv_105_simp_70;
+    a_conv_105_simp_317_simp_318_simp_320 = acc_a_conv_105_simp_71_simp_72_simp_74;
+    a_conv_105_simp_317_simp_319         = acc_a_conv_105_simp_71_simp_73;
+    flat_84_simp_322                     = ifalse;
+    flat_84_simp_323                     = ierror_tombstone;
+    flat_84_simp_324                     = 0.0;
     
-    if (
-    #error Failed during codegen (seaOfXPrim: PrimProject (PrimProjectSumIsLeft ErrorT..)
-     (a_conv_12)) {
-        
-        #error Failed during codegen (seaOfValType: ErrorT..)
-         flat_100                        = 
-        #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetLeft ErrorT ..)
-         (a_conv_12);
-        
-        #error Failed during codegen (seaOfValType: SumT ErrorT DoubleT..)
-         conv_60                         = 
-        #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstLeft Er..)
-         (flat_100);
-        flat_84                          = conv_60;
+    if (a_conv_12_simp_308) {
+        idouble_t  conv_67               = idouble_sub (a_conv_12_simp_310_simp_311_simp_313, 1.0);
+        idouble_t  conv_68               = idouble_div (a_conv_12_simp_310_simp_312, conv_67);
+        flat_84_simp_322                 = itrue;
+        flat_84_simp_323                 = ierror_tombstone;
+        flat_84_simp_324                 = conv_68;
     } else {
-        
-        #error Failed during codegen (seaOfValType: PairT (PairT DoubleT DoubleT) DoubleT..)
-         flat_101                        = 
-        #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetRight ErrorT..)
-         (a_conv_12);
-        
-        #error Failed during codegen (seaOfValType: PairT DoubleT DoubleT..)
-         desugar_q_7_conv_62             = 
-        #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimPair (PrimPairFst (Pair..)
-         (flat_101);
-        idouble_t  desugar_q_8_conv_63   = 
-        #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimPair (PrimPairSnd (Pair..)
-         (flat_101);
-        idouble_t  desugar_q_9_conv_64   = 
-        #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimPair (PrimPairFst Doubl..)
-         (desugar_q_7_conv_62);
-        idouble_t  conv_67               = idouble_sub (desugar_q_9_conv_64, 1.0);
-        idouble_t  conv_68               = idouble_div (desugar_q_8_conv_63, conv_67);
-        
-        #error Failed during codegen (seaOfValType: SumT ErrorT DoubleT..)
-         conv_71                         = 
-        #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstRight E..)
-         (conv_68);
-        flat_84                          = conv_71;
+        flat_84_simp_322                 = ifalse;
+        flat_84_simp_323                 = a_conv_12_simp_309;
+        flat_84_simp_324                 = 0.0;
     }
     
-    flat_84                              = flat_84;
-    flat_85                              = 
-    #error Failed during codegen (seaOfXValue: VLeft (VError ExceptTombstone)..)
-    ;
+    flat_84_simp_325                     = flat_84_simp_322;
+    flat_84_simp_326                     = flat_84_simp_323;
+    flat_84_simp_327                     = flat_84_simp_324;
+    flat_85_simp_328                     = ifalse;
+    flat_85_simp_329                     = ierror_tombstone;
+    flat_85_simp_330                     = 0.0;
     
-    if (
-    #error Failed during codegen (seaOfXPrim: PrimProject (PrimProjectSumIsLeft ErrorT..)
-     (flat_84)) {
-        
-        #error Failed during codegen (seaOfValType: ErrorT..)
-         flat_98                         = 
-        #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetLeft ErrorT ..)
-         (flat_84);
-        
-        #error Failed during codegen (seaOfValType: SumT ErrorT DoubleT..)
-         conv_77                         = 
-        #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstLeft Er..)
-         (flat_98);
-        flat_85                          = conv_77;
+    if (flat_84_simp_325) {
+        idouble_t  conv_80               = idouble_pow (flat_84_simp_327, 0.5);
+        flat_85_simp_328                 = itrue;
+        flat_85_simp_329                 = ierror_tombstone;
+        flat_85_simp_330                 = conv_80;
     } else {
-        idouble_t  flat_99               = 
-        #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetRight ErrorT..)
-         (flat_84);
-        idouble_t  conv_80               = idouble_pow (flat_99, 0.5);
-        
-        #error Failed during codegen (seaOfValType: SumT ErrorT DoubleT..)
-         conv_81                         = 
-        #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstRight E..)
-         (conv_80);
-        flat_85                          = conv_81;
+        flat_85_simp_328                 = ifalse;
+        flat_85_simp_329                 = flat_84_simp_326;
+        flat_85_simp_330                 = 0.0;
     }
     
-    flat_85                              = flat_85;
-    flat_86                              = 
-    #error Failed during codegen (seaOfXValue: VLeft (VError ExceptTombstone)..)
-    ;
+    flat_85_simp_331                     = flat_85_simp_328;
+    flat_85_simp_332                     = flat_85_simp_329;
+    flat_85_simp_333                     = flat_85_simp_330;
+    flat_86_simp_334                     = ifalse;
+    flat_86_simp_335                     = ierror_tombstone;
+    flat_86_simp_336                     = 0.0;
     
-    if (
-    #error Failed during codegen (seaOfXPrim: PrimProject (PrimProjectSumIsLeft ErrorT..)
-     (flat_85)) {
+    if (flat_85_simp_331) {
+        flat_89_simp_337                 = ifalse;
+        flat_89_simp_338                 = ierror_tombstone;
+        flat_89_simp_339                 = 0.0;
         
-        #error Failed during codegen (seaOfValType: ErrorT..)
-         flat_87                         = 
-        #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetLeft ErrorT ..)
-         (flat_85);
+        if (a_conv_105_simp_315) {
+            idouble_t  conv_160          = idouble_sub (a_conv_105_simp_317_simp_318_simp_320, 1.0);
+            idouble_t  conv_161          = idouble_div (a_conv_105_simp_317_simp_319, conv_160);
+            flat_89_simp_337             = itrue;
+            flat_89_simp_338             = ierror_tombstone;
+            flat_89_simp_339             = conv_161;
+        } else {
+            flat_89_simp_337             = ifalse;
+            flat_89_simp_338             = a_conv_105_simp_316;
+            flat_89_simp_339             = 0.0;
+        }
         
-        #error Failed during codegen (seaOfValType: SumT ErrorT DoubleT..)
-         conv_85                         = 
-        #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstLeft Er..)
-         (flat_87);
-        flat_86                          = conv_85;
+        flat_89_simp_340                 = flat_89_simp_337;
+        flat_89_simp_341                 = flat_89_simp_338;
+        flat_89_simp_342                 = flat_89_simp_339;
+        flat_90_simp_343                 = ifalse;
+        flat_90_simp_344                 = ierror_tombstone;
+        flat_90_simp_345                 = 0.0;
+        
+        if (flat_89_simp_340) {
+            idouble_t  conv_173          = idouble_pow (flat_89_simp_342, 0.5);
+            flat_90_simp_343             = itrue;
+            flat_90_simp_344             = ierror_tombstone;
+            flat_90_simp_345             = conv_173;
+        } else {
+            flat_90_simp_343             = ifalse;
+            flat_90_simp_344             = flat_89_simp_341;
+            flat_90_simp_345             = 0.0;
+        }
+        
+        flat_90_simp_346                 = flat_90_simp_343;
+        flat_90_simp_347                 = flat_90_simp_344;
+        flat_90_simp_348                 = flat_90_simp_345;
+        flat_91_simp_349                 = ifalse;
+        flat_91_simp_350                 = ierror_tombstone;
+        flat_91_simp_351                 = 0.0;
+        
+        if (flat_90_simp_346) {
+            idouble_t  conv_180          = idouble_mul (flat_85_simp_333, flat_90_simp_348);
+            flat_91_simp_349             = itrue;
+            flat_91_simp_350             = ierror_tombstone;
+            flat_91_simp_351             = conv_180;
+        } else {
+            flat_91_simp_349             = ifalse;
+            flat_91_simp_350             = flat_90_simp_347;
+            flat_91_simp_351             = 0.0;
+        }
+        
+        flat_91_simp_352                 = flat_91_simp_349;
+        flat_91_simp_353                 = flat_91_simp_350;
+        flat_91_simp_354                 = flat_91_simp_351;
+        flat_86_simp_334                 = flat_91_simp_352;
+        flat_86_simp_335                 = flat_91_simp_353;
+        flat_86_simp_336                 = flat_91_simp_354;
     } else {
-        idouble_t  flat_88               = 
-        #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetRight ErrorT..)
-         (flat_85);
-        flat_89                          = 
-        #error Failed during codegen (seaOfXValue: VLeft (VError ExceptTombstone)..)
-        ;
-        
-        if (
-        #error Failed during codegen (seaOfXPrim: PrimProject (PrimProjectSumIsLeft ErrorT..)
-         (a_conv_105)) {
-            
-            #error Failed during codegen (seaOfValType: ErrorT..)
-             flat_96                     = 
-            #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetLeft ErrorT ..)
-             (a_conv_105);
-            
-            #error Failed during codegen (seaOfValType: SumT ErrorT DoubleT..)
-             conv_153                    = 
-            #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstLeft Er..)
-             (flat_96);
-            flat_89                      = conv_153;
-        } else {
-            
-            #error Failed during codegen (seaOfValType: PairT (PairT DoubleT DoubleT) DoubleT..)
-             flat_97                     = 
-            #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetRight ErrorT..)
-             (a_conv_105);
-            
-            #error Failed during codegen (seaOfValType: PairT DoubleT DoubleT..)
-             desugar_q_21_conv_155       = 
-            #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimPair (PrimPairFst (Pair..)
-             (flat_97);
-            idouble_t  desugar_q_22_conv_156 = 
-            #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimPair (PrimPairSnd (Pair..)
-             (flat_97);
-            idouble_t  desugar_q_23_conv_157 = 
-            #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimPair (PrimPairFst Doubl..)
-             (desugar_q_21_conv_155);
-            idouble_t  conv_160          = idouble_sub (desugar_q_23_conv_157, 1.0);
-            idouble_t  conv_161          = idouble_div (desugar_q_22_conv_156, conv_160);
-            
-            #error Failed during codegen (seaOfValType: SumT ErrorT DoubleT..)
-             conv_164                    = 
-            #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstRight E..)
-             (conv_161);
-            flat_89                      = conv_164;
-        }
-        
-        flat_89                          = flat_89;
-        flat_90                          = 
-        #error Failed during codegen (seaOfXValue: VLeft (VError ExceptTombstone)..)
-        ;
-        
-        if (
-        #error Failed during codegen (seaOfXPrim: PrimProject (PrimProjectSumIsLeft ErrorT..)
-         (flat_89)) {
-            
-            #error Failed during codegen (seaOfValType: ErrorT..)
-             flat_94                     = 
-            #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetLeft ErrorT ..)
-             (flat_89);
-            
-            #error Failed during codegen (seaOfValType: SumT ErrorT DoubleT..)
-             conv_170                    = 
-            #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstLeft Er..)
-             (flat_94);
-            flat_90                      = conv_170;
-        } else {
-            idouble_t  flat_95           = 
-            #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetRight ErrorT..)
-             (flat_89);
-            idouble_t  conv_173          = idouble_pow (flat_95, 0.5);
-            
-            #error Failed during codegen (seaOfValType: SumT ErrorT DoubleT..)
-             conv_174                    = 
-            #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstRight E..)
-             (conv_173);
-            flat_90                      = conv_174;
-        }
-        
-        flat_90                          = flat_90;
-        flat_91                          = 
-        #error Failed during codegen (seaOfXValue: VLeft (VError ExceptTombstone)..)
-        ;
-        
-        if (
-        #error Failed during codegen (seaOfXPrim: PrimProject (PrimProjectSumIsLeft ErrorT..)
-         (flat_90)) {
-            
-            #error Failed during codegen (seaOfValType: ErrorT..)
-             flat_92                     = 
-            #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetLeft ErrorT ..)
-             (flat_90);
-            
-            #error Failed during codegen (seaOfValType: SumT ErrorT DoubleT..)
-             conv_178                    = 
-            #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstLeft Er..)
-             (flat_92);
-            flat_91                      = conv_178;
-        } else {
-            idouble_t  flat_93           = 
-            #error Failed during codegen (seaOfXPrim: PrimUnsafe (PrimUnsafeSumGetRight ErrorT..)
-             (flat_90);
-            idouble_t  conv_180          = idouble_mul (flat_88, flat_93);
-            
-            #error Failed during codegen (seaOfValType: SumT ErrorT DoubleT..)
-             conv_181                    = 
-            #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstRight E..)
-             (conv_180);
-            flat_91                      = conv_181;
-        }
-        
-        flat_91                          = flat_91;
-        flat_86                          = flat_91;
+        flat_86_simp_334                 = ifalse;
+        flat_86_simp_335                 = flat_85_simp_332;
+        flat_86_simp_336                 = 0.0;
     }
     
-    flat_86                              = flat_86;
-    s->repl                              = flat_86;
+    flat_86_simp_355                     = flat_86_simp_334;
+    flat_86_simp_356                     = flat_86_simp_335;
+    flat_86_simp_357                     = flat_86_simp_336;
+    s->repl                              = 
+    #error Failed during codegen (seaOfXPrim: PrimPack (PrimSumPack ErrorT DoubleT)..)
+     (flat_86_simp_355, flat_86_simp_356, flat_86_simp_357);
 }
 
 - Core evaluation:
