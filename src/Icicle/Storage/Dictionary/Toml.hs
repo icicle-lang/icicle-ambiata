@@ -153,7 +153,8 @@ checkDefs d defs
          let inlined    = P.sourceInline d checked
          blanded       <- hoistEither . mapLeft DictionaryErrorTransform $ P.sourceDesugarQT inlined
          (checked', _) <- check' d blanded
-         pure $ DictionaryEntry a (VirtualDefinition (Virtual checked'))
+         let reified    = P.sourceReifyQT checked'
+         pure $ DictionaryEntry a (VirtualDefinition (Virtual reified))
   check' d'
    = hoistEither . mapLeft DictionaryErrorCheck . P.sourceCheckQT d'
 
