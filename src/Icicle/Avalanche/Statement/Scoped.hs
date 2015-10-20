@@ -31,7 +31,7 @@ import              P
 data Scoped a n p
  = If    (Exp a n p)  (Scoped a n p) (Scoped a n p)
  | ForeachInts  (Name n) (Exp a n p) (Exp a n p) (Scoped a n p)
- | ForeachFacts (Name n) (Name n) ValType    S.FactLoopType (Scoped a n p)
+ | ForeachFacts [(Name n, ValType)] ValType S.FactLoopType (Scoped a n p)
  | Block     [Either (Binding a n p) (Scoped a n p)]
  | Write (Name n)    (Exp a n p)
  | Push  (Name n)    (Exp a n p)
@@ -58,8 +58,8 @@ bindsOfStatement s
      -> [Right $ If x (scopedOfStatement ss) (scopedOfStatement es)]
     S.ForeachInts n from to ss
      -> [Right $ ForeachInts n from to (scopedOfStatement ss)]
-    S.ForeachFacts n n' vt lo ss
-     -> [Right $ ForeachFacts n n' vt lo (scopedOfStatement ss)]
+    S.ForeachFacts ns vt lo ss
+     -> [Right $ ForeachFacts ns vt lo (scopedOfStatement ss)]
     S.Block ss
      -- -> fmap (Right . scopedOfStatement) ss
      -> concatMap bindsOfStatement ss
@@ -93,8 +93,8 @@ statementOfScoped s
      -> S.If x (statementOfScoped ss) (statementOfScoped es)
     ForeachInts n from to ss
      -> S.ForeachInts n from to (statementOfScoped ss)
-    ForeachFacts n n' vt lo ss
-     -> S.ForeachFacts n n' vt lo (statementOfScoped ss)
+    ForeachFacts ns vt lo ss
+     -> S.ForeachFacts ns vt lo (statementOfScoped ss)
     Block []
      -> S.Block []
     Block bs@(Right _ : _)
@@ -163,11 +163,10 @@ instance (Pretty n, Pretty p) => Pretty (Scoped a n p) where
       <> text ") "
       <> inner ss
 
-     ForeachFacts n n' vt lo ss
-      -> text "for_facts ("
-      <> pretty n <> text " : " <> pretty vt
-      <> text ", "
-      <> pretty n' <> text " : Date) in "
+     ForeachFacts ns _ lo ss
+      -> text "for_facts "
+      <> prettyFactParts ns
+      <> text " in "
       <> pretty lo
       <> text " "
       <> inner ss
@@ -201,6 +200,9 @@ instance (Pretty n, Pretty p) => Pretty (Scoped a n p) where
   where
    inner si@(Block _) = pretty si
    inner si           = text "{" <> line <> indent 2 (pretty si) <> line <> text "} " <> line
+
+   prettyFactPart (nf, tf) = pretty nf <+> text ":" <+> pretty tf
+   prettyFactParts         = parens . align . cat . punctuate comma . fmap prettyFactPart
 
 
 instance (Pretty n, Pretty p) => Pretty (Binding a n p) where

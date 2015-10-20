@@ -94,8 +94,8 @@ checkStatement frag ctx stmt
 
                ForeachInts n from' to' <$> go stmts
 
-        ForeachFacts n n' vt lo stmts
-         -> ForeachFacts n n' vt lo <$> go stmts
+        ForeachFacts ns vt lo stmts
+         -> ForeachFacts ns vt lo <$> go stmts
 
 
         Block stmts
@@ -213,8 +213,8 @@ statementContext frag ctx stmt
     ForeachInts n _ _ _
      -> return (ctx { ctxExp = Map.insert n (FunT [] IntT) (ctxExp ctx) })
 
-    ForeachFacts n n' ty _ _
-     -> return (ctx { ctxExp = Map.insert n (FunT [] ty) $ Map.insert n' (FunT [] DateTimeT) (ctxExp ctx)})
+    ForeachFacts ns _ _ _
+     -> return (ctx { ctxExp = foldr (\(n, ty) m -> Map.insert n (FunT [] ty) m) (ctxExp ctx) ns })
 
     Block _
      -> return ctx
