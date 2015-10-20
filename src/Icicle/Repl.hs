@@ -40,7 +40,6 @@ import           Control.Monad.Trans.Either
 import           X.Control.Monad.Trans.Either
 
 import           Data.Either.Combinators
-import qualified Data.Map                         as M
 import           Data.Text                        (Text)
 import qualified Data.Text                        as T
 import qualified Data.Text.IO                     as T
@@ -127,7 +126,7 @@ loadDictionary load
                  $ TR.traverse DictionaryText.parseDictionaryLineV1
                  $ T.lines raw
 
-            return $ D.Dictionary ds M.empty
+            return $ D.Dictionary ds []
 
     DictionaryLoadToml fp
      -> firstEitherT ReplErrorDictionaryLoad $ DictionaryToml.loadDictionary fp
@@ -136,13 +135,13 @@ readIcicleLibrary
     :: Parsec.SourceName
     -> Text
     -> Either ReplError
-      (M.Map (CommonBase.Name Var)
-             ( ST.FunctionType Var
-             , SQ.Function (ST.Annot Parsec.SourcePos Var) Var))
+          [ (CommonBase.Name Var
+            , ( ST.FunctionType Var
+              , SQ.Function (ST.Annot Parsec.SourcePos Var) Var)) ]
 readIcicleLibrary source input
  = do input' <- mapLeft (ReplErrorCompile . P.CompileErrorParse) $ SP.parseFunctions source input
       mapLeft (ReplErrorCompile . P.CompileErrorCheck)
              $ snd
              $ flip Fresh.runFresh (P.freshNamer "repl")
              $ runEitherT
-             $ SC.checkFs M.empty input'
+             $ SC.checkFs [] input'

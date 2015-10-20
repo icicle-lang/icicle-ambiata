@@ -22,20 +22,27 @@ import                  Control.Monad.Trans.Either
 
 import qualified        Data.Map                as Map
 import qualified        Data.Set                as Set
+import qualified        Data.List               as List
+
+type Funs a n = [((a, Name n), Function a n)]
+type FunEnvT a n = [ ( Name n
+                   , ( FunctionType n
+                     , Function (Annot a n) n ) ) ]
+
 
 checkFs :: Ord n
-        => Map.Map (Name n) (FunctionType n, Function (Annot a n) n)
-        -> [((a, Name n), Function a n)]
+        => FunEnvT a n
+        -> Funs a n
         -> EitherT (CheckError a n) (Fresh.Fresh n)
-                   (Map.Map (Name n) (FunctionType n, Function (Annot a n) n))
+                   (FunEnvT a n)
 
 checkFs env functions
  = foldlM (\env' -> \(name,fun) -> do
-            (annotfun, funtype) <- checkF (fst <$> env') fun
-            if (Map.member (snd name) env')
+            (annotfun, funtype) <- checkF (fst <$> (Map.fromList env')) fun
+            if (isJust $ List.lookup (snd name) env')
               then hoistEither $ Left $ CheckError (ErrorDuplicateFunctionNames (fst name) (snd name)) []
                 else
-                  pure (Map.insert (snd name) (funtype, annotfun) env'))
+                  pure (env' <> [(snd name , (funtype, annotfun))]))
           env functions
 
 checkF  :: Ord n

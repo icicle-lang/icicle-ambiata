@@ -26,7 +26,7 @@ import           System.FilePath
 import           System.IO
 
 import           Data.Either.Combinators
-import qualified Data.Map                                      as M
+import qualified Data.List                                     as L
 import qualified Data.Set                                      as S
 import qualified Data.Text                                     as T
 import qualified Data.Text.IO                                  as T
@@ -34,7 +34,6 @@ import qualified Data.Text.IO                                  as T
 import qualified Text.Parsec                                   as Parsec
 
 import           P
-
 
 
 data DictionaryImportError
@@ -47,16 +46,16 @@ data DictionaryImportError
   deriving (Show)
 
 type Funs a  = [((a, Name SP.Variable), SQ.Function a SP.Variable)]
-type FunEnvT = M.Map ( Name SP.Variable)
-                     ( ST.FunctionType SP.Variable
-                     , SQ.Function (ST.Annot Parsec.SourcePos SP.Variable) SP.Variable )
+type FunEnvT = [ ( Name SP.Variable
+                 , ( ST.FunctionType SP.Variable
+                   , SQ.Function (ST.Annot Parsec.SourcePos SP.Variable) SP.Variable ) ) ]
 
 
 -- Top level IO function which loads all dictionaries and imports
 loadDictionary :: FilePath
   -> EitherT DictionaryImportError IO Dictionary
 loadDictionary dictionary
- = loadDictionary' M.empty mempty [] dictionary
+ = loadDictionary' [] mempty [] dictionary
 
 loadDictionary'
   :: FunEnvT
@@ -98,7 +97,7 @@ loadDictionary' parentFuncs parentConf parentConcrete fp
        ) `traverse` (chapter conf)
 
   -- Dictionary functions should take precedence over imported functions
-  let functions = M.unions $ (dictionaryFunctions <$> loadedChapters) <> [importedFunctions]
+  let functions = L.nub $ join $ [importedFunctions] <> (dictionaryFunctions <$> loadedChapters)
   let totaldefinitions = concreteDefinitions <> virtualDefinitions <> (join $ dictionaryEntries <$> loadedChapters)
 
   pure $ Dictionary totaldefinitions functions
@@ -138,8 +137,8 @@ loadImports parentFuncs parsedImports
  $ foldlM go parentFuncs parsedImports
  where
   go env f
-   = do f' <- P.sourceDesugarF f >>= P.sourceCheckF
-        return $ M.union f' env
+   = do f' <- P.sourceCheckF env f
+        return $ env <> f'
 
 checkDefs
   :: Dictionary
@@ -150,11 +149,7 @@ checkDefs d defs
  where
   go (a, q)
    = do  (checked, _)  <- check' d q
-         let inlined    = P.sourceInline d checked
-         blanded       <- hoistEither . mapLeft DictionaryErrorTransform $ P.sourceDesugarQT inlined
-         (checked', _) <- check' d blanded
-         let reified    = P.sourceReifyQT checked'
-         pure $ DictionaryEntry a (VirtualDefinition (Virtual reified))
+         pure $ DictionaryEntry a (VirtualDefinition (Virtual checked))
   check' d'
    = hoistEither . mapLeft DictionaryErrorCheck . P.sourceCheckQT d'
 

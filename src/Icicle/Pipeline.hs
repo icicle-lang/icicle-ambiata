@@ -116,9 +116,9 @@ type QueryTop'  = SQ.QueryTop Parsec.SourcePos Var
 type QueryTop'T = SQ.QueryTop AnnotT Var
 
 type Funs a  = [((a, Name SP.Variable), SQ.Function a SP.Variable)]
-type FunEnvT = M.Map ( Name Var)
-                     ( ST.FunctionType SP.Variable
-                     , SQ.Function AnnotT SP.Variable )
+type FunEnvT = [ ( Name Var
+                 , ( ST.FunctionType SP.Variable
+                   , SQ.Function AnnotT SP.Variable ) ) ]
 
 
 sourceParseQT :: Text -> Text -> Either CompileError QueryTop'
@@ -165,13 +165,13 @@ sourceCheckQT d q
      $ runEitherT
      $ SC.checkQT d' q
 
-sourceCheckF :: Funs Parsec.SourcePos -> Either CompileError FunEnvT
-sourceCheckF parsedImport
+sourceCheckF :: FunEnvT -> Funs Parsec.SourcePos -> Either CompileError FunEnvT
+sourceCheckF env parsedImport
  = mapLeft CompileErrorCheck
  $ snd
  $ flip Fresh.runFresh (freshNamer "check")
  $ runEitherT
- $ SC.checkFs M.empty parsedImport
+ $ SC.checkFs env parsedImport
 
 
 sourceConvert :: D.Dictionary -> QueryTop'T -> Either CompileError Program'
@@ -191,12 +191,12 @@ sourceInline d q
  $ inline q
  where
   funs      = M.map snd
+            $ M.fromList
             $ D.dictionaryFunctions d
   inline q' = snd
             $ Fresh.runFresh
                 (STI.inlineQT funs q')
                 (freshNamer "inline")
-
 
 coreSimp :: Program' -> Program'
 coreSimp p
