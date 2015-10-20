@@ -13,7 +13,8 @@ gen$date = DATE
   init [Mutable] [(Sum Error Int)] acc$s$reify$2$conv$5 = left# [Error] [Int]
                                                           (ExceptFold1NoValue : Error);
   load_resumable [(Sum Error Int)] acc$s$reify$2$conv$5;
-  for_facts (elem$gen$fact : (Sum Error Int), elem$gen$date : Date) in new {
+  for_facts (elem$gen$fact : (Sum Error Int),
+             elem$gen$date : DateTime) in new {
     read [Mutable] [(Sum Error Int)] acc$s$reify$2$conv$5 = acc$s$reify$2$conv$5;
     init [Mutable] [(Sum Error Int)] flat$0 = Left ExceptTombstone : (Sum Error Int);
     if (Sum_isLeft# [Error] [Int]
@@ -62,8 +63,10 @@ typedef struct {
     /* inputs */
     idate_t    gen_date;
     iint_t     new_count;
-    idate_t   *new_date;
-    iint_t    *new_fact;
+    
+    #error Failed during codegen (seaOfValType: SumT ErrorT IntT..)
+     *new_elem_gen_fact;
+    idate_t    *new_elem_gen_date;
 
     /* outputs */
     ierror_t   error;
@@ -147,17 +150,17 @@ void compute(icicle_state_t *s)
     );
     acc_s_reify_2_conv_5                 = s->acc_s_reify_2_conv_5;
     
-    const iint_t            new_count    = s->new_count;
-    const idate_t    *const new_date     = s->new_date;
+    const iint_t    new_count            = s->new_count;
     const 
     #error Failed during codegen (seaOfValType: SumT ErrorT IntT..)
-     *const new_fact                     = s->new_fact;
+    *const new_elem_gen_fact             = s->new_elem_gen_fact;
+    const idate_t   *const new_elem_gen_date = s->new_elem_gen_date;
     
     for (iint_t i = 0; i < new_count; i++) {
-        idate_t    elem_gen_date         = new_date[i];
         
         #error Failed during codegen (seaOfValType: SumT ErrorT IntT..)
-         elem_gen_fact                   = new_fact[i];
+         elem_gen_fact                   = new_elem_gen_fact[i];
+        idate_t    elem_gen_date         = new_elem_gen_date[i];
         acc_s_reify_2_conv_5             = acc_s_reify_2_conv_5;
         flat_0                           = 
         #error Failed during codegen (seaOfXValue: VLeft (VError ExceptTombstone)..)
@@ -211,7 +214,8 @@ gen$date = DATE
 {
   init [Mutable] [Int] acc$c$conv$11 = 0 : Int;
   load_resumable [Int] acc$c$conv$11;
-  for_facts (elem$gen$fact : (Sum Error Int), elem$gen$date : Date) in new {
+  for_facts (elem$gen$fact : (Sum Error Int),
+             elem$gen$date : DateTime) in new {
     init [Mutable] [(Sum Error Bool)] flat$0 = Left ExceptTombstone : (Sum Error Bool);
     if (Sum_isLeft# [Error] [Int]
         elem$gen$fact) {
@@ -269,8 +273,10 @@ typedef struct {
     /* inputs */
     idate_t    gen_date;
     iint_t     new_count;
-    idate_t   *new_date;
-    iint_t    *new_fact;
+    
+    #error Failed during codegen (seaOfValType: SumT ErrorT IntT..)
+     *new_elem_gen_fact;
+    idate_t    *new_elem_gen_date;
 
     /* outputs */
     ierror_t   error;
@@ -340,17 +346,17 @@ void compute(icicle_state_t *s)
     acc_c_conv_11                        = 0;
     acc_c_conv_11                        = s->acc_c_conv_11;
     
-    const iint_t            new_count    = s->new_count;
-    const idate_t    *const new_date     = s->new_date;
+    const iint_t    new_count            = s->new_count;
     const 
     #error Failed during codegen (seaOfValType: SumT ErrorT IntT..)
-     *const new_fact                     = s->new_fact;
+    *const new_elem_gen_fact             = s->new_elem_gen_fact;
+    const idate_t   *const new_elem_gen_date = s->new_elem_gen_date;
     
     for (iint_t i = 0; i < new_count; i++) {
-        idate_t    elem_gen_date         = new_date[i];
         
         #error Failed during codegen (seaOfValType: SumT ErrorT IntT..)
-         elem_gen_fact                   = new_fact[i];
+         elem_gen_fact                   = new_elem_gen_fact[i];
+        idate_t    elem_gen_date         = new_elem_gen_date[i];
         flat_0                           = 
         #error Failed during codegen (seaOfXValue: VLeft (VError ExceptTombstone)..)
         ;
@@ -426,7 +432,8 @@ gen$date = DATE
                                                                            anf$23;
   load_resumable [(Sum Error ((Double, Double), Double))] acc$a$conv$12;
   load_resumable [(Sum Error ((Double, Double), Double))] acc$a$conv$105;
-  for_facts (elem$gen$fact : (Sum Error Int), elem$gen$date : Date) in new {
+  for_facts (elem$gen$fact : (Sum Error Int),
+             elem$gen$date : DateTime) in new {
     init [Mutable] [(Sum Error Double)] flat$0 = Left ExceptTombstone : (Sum Error Double);
     if (Sum_isLeft# [Error] [Int]
         elem$gen$fact) {
@@ -1021,8 +1028,10 @@ typedef struct {
     /* inputs */
     idate_t    gen_date;
     iint_t     new_count;
-    idate_t   *new_date;
-    iint_t    *new_fact;
+    
+    #error Failed during codegen (seaOfValType: SumT ErrorT IntT..)
+     *new_elem_gen_fact;
+    idate_t    *new_elem_gen_date;
 
     /* outputs */
     ierror_t   error;
@@ -1315,17 +1324,17 @@ void compute(icicle_state_t *s)
     acc_a_conv_12                        = s->acc_a_conv_12;
     acc_a_conv_105                       = s->acc_a_conv_105;
     
-    const iint_t            new_count    = s->new_count;
-    const idate_t    *const new_date     = s->new_date;
+    const iint_t    new_count            = s->new_count;
     const 
     #error Failed during codegen (seaOfValType: SumT ErrorT IntT..)
-     *const new_fact                     = s->new_fact;
+    *const new_elem_gen_fact             = s->new_elem_gen_fact;
+    const idate_t   *const new_elem_gen_date = s->new_elem_gen_date;
     
     for (iint_t i = 0; i < new_count; i++) {
-        idate_t    elem_gen_date         = new_date[i];
         
         #error Failed during codegen (seaOfValType: SumT ErrorT IntT..)
-         elem_gen_fact                   = new_fact[i];
+         elem_gen_fact                   = new_elem_gen_fact[i];
+        idate_t    elem_gen_date         = new_elem_gen_date[i];
         flat_0                           = 
         #error Failed during codegen (seaOfXValue: VLeft (VError ExceptTombstone)..)
         ;

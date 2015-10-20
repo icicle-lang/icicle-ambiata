@@ -149,8 +149,8 @@ substXinS a_fresh name payload statements
        | n == name
        -> finished s
 
-      ForeachFacts n1 n2 _ _ _
-       | n1 == name || n2 == name
+      ForeachFacts ns _ _ _
+       | name `elem` fmap fst ns
        -> finished s
 
       _

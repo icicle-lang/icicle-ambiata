@@ -91,7 +91,9 @@ programFromCore namer p
    = factLoop FactLoopNew (C.reduces p)
 
   factLoop loopType reduces
-   = ForeachFacts (namerElemPrefix namer $ namerFact namer) (namerElemPrefix namer $ namerDate namer) (C.input p) loopType
+   = ForeachFacts [ (namerElemPrefix namer $ namerFact namer, C.input p)
+                  , (namerElemPrefix namer $ namerDate namer, DateTimeT) ]
+                  (PairT (C.input p) DateTimeT) loopType
    $ Let (namerFact namer)
         (xPrim (PrimMinimal $ Min.PrimConst $ Min.PrimConstPair (C.input p) DateTimeT)
         `xApp` (xVar $ namerElemPrefix namer $ namerFact namer)

@@ -62,8 +62,8 @@ flatten a_fresh s
      $ \to'
      -> ForeachInts n from' to' <$> flatten a_fresh ss
 
-    ForeachFacts n n' vt lo ss
-     -> ForeachFacts n n' vt lo <$> flatten a_fresh ss
+    ForeachFacts ns vt lo ss
+     -> ForeachFacts ns vt lo <$> flatten a_fresh ss
 
     Block ss
      -> Block <$> mapM (flatten a_fresh) ss

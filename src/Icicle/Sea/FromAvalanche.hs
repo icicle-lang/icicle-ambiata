@@ -113,8 +113,10 @@ stateOfProgram program = vsep
    , "    /* inputs */"
    , "    idate_t    gen_date;"
    , "    iint_t     new_count;"
-   , "    idate_t   *new_date;"
-   , "    iint_t    *new_fact;"
+   , indent 4 . vsep
+              . fmap defOfFactVar
+              . factVarsOfProgram FactLoopNew
+              $ program
    , ""
    , "    /* outputs */"
    , "    ierror_t   error;"
@@ -137,8 +139,7 @@ stateWordsOfProgram :: Ord n => Program (Annot a) n Prim -> Int
 stateWordsOfProgram program
  = 1 -- gen_date
  + 1 -- new_count
- + 1 -- new_date
- + 1 -- new_fact
+ + length (factVarsOfProgram FactLoopNew program)
  + 1 -- error
  + Map.size (outputsOfProgram program)
  + Map.size (accumsOfProgram  program)
@@ -151,6 +152,10 @@ defOfAccumulator (n, (at, vt))
       -> seaOfValType vt <+> seaOfName n <> semi
      Latest
       -> seaError "defOfAccumulator" (n, at, vt)
+
+defOfFactVar :: Pretty n => (Name n, ValType) -> Doc
+defOfFactVar (n, t)
+ = seaOfValType t <+> "*" <> "new_" <> seaOfName n <> semi
 
 defOfOutput :: (OutputName, ValType) -> Doc
 defOfOutput (n, t)
@@ -195,24 +200,21 @@ seaOfStatement stmt
               , ""
               ]
 
-     ForeachFacts n_fact n_date vt lt stmt'
-      | FactLoopNew <- lt
-      , dt          <- DateTimeT
-      -> vsep [ ""
-              , assign ("const " <> seaOfValType IntT
-                                 <> "        new_count") "s->new_count;"
-              , assign ("const " <> seaOfValType dt
-                                 <> " *const new_date")  "s->new_date;"
-              , assign ("const " <> seaOfValType vt
-                                 <> " *const new_fact")  "s->new_fact;"
-              , ""
-              , "for (iint_t i = 0; i < new_count; i++) {"
-              , indent 4 $ assign (seaOfValType dt <+> seaOfName n_date) "new_date[i]" <> semi <> line
-                        <> assign (seaOfValType vt <+> seaOfName n_fact) "new_fact[i]" <> semi <> line
-                        <> seaOfStatement stmt'
-              , "}"
-              , ""
-              ]
+     ForeachFacts ns _ lt stmt'
+      | FactLoopNew  <- lt
+      , structAssign <- \(n, t) -> assign ("const " <> seaOfValType t <> "*const new_" <> seaOfName n)
+                                          ("s->new_" <> seaOfName n) <> semi
+      , loopAssign   <- \(n, t) -> assign (seaOfValType t <+> seaOfName n)
+                                          ("new_" <> seaOfName n <> "[i]") <> semi
+      -> vsep $ [ ""
+                , assign ("const " <> seaOfValType IntT <> "new_count") "s->new_count;"
+                ] <> fmap structAssign ns <>
+                [ ""
+                , "for (iint_t i = 0; i < new_count; i++) {"
+                , indent 4 $ vsep (fmap loopAssign ns) <> line <> seaOfStatement stmt'
+                , "}"
+                , ""
+                ]
 
      InitAccumulator acc stmt'
       | Accumulator n Mutable _ xx <- acc
@@ -397,27 +399,58 @@ tuple xs  = "(" <> go xs
 ------------------------------------------------------------------------
 -- Analysis
 
+factVarsOfProgram :: Ord n => FactLoopType -> Program (Annot a) n Prim -> [(Name n, ValType)]
+factVarsOfProgram loopType = factVarsOfStatement loopType . statements
+
+factVarsOfStatement :: Ord n => FactLoopType -> Statement (Annot a) n Prim -> [(Name n, ValType)]
+factVarsOfStatement loopType stmt
+ = case stmt of
+     Block []              -> []
+     Block (s:ss)          -> factVarsOfStatement loopType s <>
+                              factVarsOfStatement loopType (Block ss)
+     Let _ _ ss            -> factVarsOfStatement loopType ss
+     If _ tt ee            -> factVarsOfStatement loopType tt <>
+                              factVarsOfStatement loopType ee
+     ForeachInts  _ _ _ ss -> factVarsOfStatement loopType ss
+     InitAccumulator _ ss  -> factVarsOfStatement loopType ss
+     Read _ _ _ _ ss       -> factVarsOfStatement loopType ss
+     Write _ _             -> []
+     Push  _ _             -> []
+     LoadResumable _ _     -> []
+     SaveResumable _ _     -> []
+     Output _ _            -> []
+     KeepFactInHistory     -> []
+
+     ForeachFacts ns _ ty ss
+      | ty == loopType
+      -> ns
+
+      | otherwise
+      -> factVarsOfStatement loopType ss
+
+------------------------------------------------------------------------
+
 accumsOfProgram :: Ord n => Program (Annot a) n Prim -> Map (Name n) (AccumulatorType, ValType)
 accumsOfProgram = accumsOfStatement . statements
 
 accumsOfStatement :: Ord n => Statement (Annot a) n Prim -> Map (Name n) (AccumulatorType, ValType)
 accumsOfStatement stmt
  = case stmt of
-     Block []                -> Map.empty
-     Block (s:ss)            -> accumsOfStatement s `Map.union`
-                                accumsOfStatement (Block ss)
-     Let _ _ ss              -> accumsOfStatement ss
-     If _ tt ee              -> accumsOfStatement tt `Map.union`
-                                accumsOfStatement ee
-     ForeachInts    _ _ _ ss -> accumsOfStatement ss
-     ForeachFacts _ _ _ _ ss -> accumsOfStatement ss
-     Read _ _ _ _ ss         -> accumsOfStatement ss
-     Write _ _               -> Map.empty
-     Push  _ _               -> Map.empty
-     LoadResumable _ _       -> Map.empty
-     SaveResumable _ _       -> Map.empty
-     Output _ _              -> Map.empty
-     KeepFactInHistory       -> Map.empty
+     Block []              -> Map.empty
+     Block (s:ss)          -> accumsOfStatement s `Map.union`
+                              accumsOfStatement (Block ss)
+     Let _ _ ss            -> accumsOfStatement ss
+     If _ tt ee            -> accumsOfStatement tt `Map.union`
+                              accumsOfStatement ee
+     ForeachInts  _ _ _ ss -> accumsOfStatement ss
+     ForeachFacts _ _ _ ss -> accumsOfStatement ss
+     Read _ _ _ _ ss       -> accumsOfStatement ss
+     Write _ _             -> Map.empty
+     Push  _ _             -> Map.empty
+     LoadResumable _ _     -> Map.empty
+     SaveResumable _ _     -> Map.empty
+     Output _ _            -> Map.empty
+     KeepFactInHistory     -> Map.empty
 
      InitAccumulator (Accumulator n at avt _) ss
       -> Map.singleton n (at, avt) `Map.union`
@@ -431,21 +464,21 @@ readsOfProgram = readsOfStatement . statements
 readsOfStatement :: Ord n => Statement (Annot a) n Prim -> Map (Name n) (AccumulatorType, ValType)
 readsOfStatement stmt
  = case stmt of
-     Block []                -> Map.empty
-     Block (s:ss)            -> readsOfStatement s `Map.union`
-                                readsOfStatement (Block ss)
-     Let _ _ ss              -> readsOfStatement ss
-     If _ tt ee              -> readsOfStatement tt `Map.union`
-                                readsOfStatement ee
-     ForeachInts    _ _ _ ss -> readsOfStatement ss
-     ForeachFacts _ _ _ _ ss -> readsOfStatement ss
-     InitAccumulator _ ss    -> readsOfStatement ss
-     Write _ _               -> Map.empty
-     Push  _ _               -> Map.empty
-     LoadResumable _ _       -> Map.empty
-     SaveResumable _ _       -> Map.empty
-     Output _ _              -> Map.empty
-     KeepFactInHistory       -> Map.empty
+     Block []              -> Map.empty
+     Block (s:ss)          -> readsOfStatement s `Map.union`
+                              readsOfStatement (Block ss)
+     Let _ _ ss            -> readsOfStatement ss
+     If _ tt ee            -> readsOfStatement tt `Map.union`
+                              readsOfStatement ee
+     ForeachInts  _ _ _ ss -> readsOfStatement ss
+     ForeachFacts _ _ _ ss -> readsOfStatement ss
+     InitAccumulator _ ss  -> readsOfStatement ss
+     Write _ _             -> Map.empty
+     Push  _ _             -> Map.empty
+     LoadResumable _ _     -> Map.empty
+     SaveResumable _ _     -> Map.empty
+     Output _ _            -> Map.empty
+     KeepFactInHistory     -> Map.empty
 
      Read n _ at vt ss
       -> Map.singleton n (at, vt) `Map.union`
@@ -459,21 +492,21 @@ outputsOfProgram = outputsOfStatement . statements
 outputsOfStatement :: Statement (Annot a) n Prim -> Map OutputName ValType
 outputsOfStatement stmt
  = case stmt of
-     Block []                -> Map.empty
-     Block (s:ss)            -> outputsOfStatement s `Map.union`
-                                outputsOfStatement (Block ss)
-     Let _ _ ss              -> outputsOfStatement ss
-     If _ tt ee              -> outputsOfStatement tt `Map.union`
-                                outputsOfStatement ee
-     ForeachInts    _ _ _ ss -> outputsOfStatement ss
-     ForeachFacts _ _ _ _ ss -> outputsOfStatement ss
-     InitAccumulator _ ss    -> outputsOfStatement ss
-     Read _ _ _ _ ss         -> outputsOfStatement ss
-     Write _ _               -> Map.empty
-     Push  _ _               -> Map.empty
-     LoadResumable _ _       -> Map.empty
-     SaveResumable _ _       -> Map.empty
-     KeepFactInHistory       -> Map.empty
+     Block []              -> Map.empty
+     Block (s:ss)          -> outputsOfStatement s `Map.union`
+                              outputsOfStatement (Block ss)
+     Let _ _ ss            -> outputsOfStatement ss
+     If _ tt ee            -> outputsOfStatement tt `Map.union`
+                              outputsOfStatement ee
+     ForeachInts  _ _ _ ss -> outputsOfStatement ss
+     ForeachFacts _ _ _ ss -> outputsOfStatement ss
+     InitAccumulator _ ss  -> outputsOfStatement ss
+     Read _ _ _ _ ss       -> outputsOfStatement ss
+     Write _ _             -> Map.empty
+     Push  _ _             -> Map.empty
+     LoadResumable _ _     -> Map.empty
+     SaveResumable _ _     -> Map.empty
+     KeepFactInHistory     -> Map.empty
 
      Output n xx
       | Just t <- valTypeOfExp xx

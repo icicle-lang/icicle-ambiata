@@ -12,7 +12,8 @@ gen$date = DATE
   init [Mutable] [(Sum Error (Buf Int))] acc$conv$22 = Right Buf 3 [] : (Sum Error (Buf Int));
   load_resumable [Int] acc$c$conv$11;
   load_resumable [(Sum Error (Buf Int))] acc$conv$22;
-  for_facts (elem$gen$fact : (Sum Error Int), elem$gen$date : Date) in new {
+  for_facts (elem$gen$fact : (Sum Error Int),
+             elem$gen$date : DateTime) in new {
     read [Mutable] [(Sum Error (Buf Int))] acc$conv$22 = acc$conv$22;
     init [Mutable] [(Sum Error (Buf Int))] flat$0 = Left ExceptTombstone : (Sum Error (Buf Int));
     if (Sum_isLeft# [Error] [Buf Int]
