@@ -26,7 +26,6 @@ import           System.FilePath
 import           System.IO
 
 import           Data.Either.Combinators
-import qualified Data.List                                     as L
 import qualified Data.Set                                      as S
 import qualified Data.Text                                     as T
 import qualified Data.Text.IO                                  as T
@@ -84,20 +83,25 @@ loadDictionary' parentFuncs parentConf parentConcrete fp
   parsedImports     <- parseImports conf rp
   importedFunctions <- loadImports parentFuncs parsedImports
 
+  -- Functions available for virtual features, and visible in sub-dictionaries.
+  let availableFunctions = parentFuncs <> importedFunctions
+
   let concreteDefinitions = foldr remakeConcrete [] definitions'
   let virtualDefinitions' = foldr remakeVirtuals [] definitions'
 
-  let d' = Dictionary (concreteDefinitions <> parentConcrete) importedFunctions
+  let d' = Dictionary (concreteDefinitions <> parentConcrete) availableFunctions
 
   virtualDefinitions <- checkDefs d' virtualDefinitions'
 
   loadedChapters
     <- (\fp' ->
-         loadDictionary' importedFunctions conf concreteDefinitions (rp </> (T.unpack fp'))
+         loadDictionary' availableFunctions conf concreteDefinitions (rp </> (T.unpack fp'))
        ) `traverse` (chapter conf)
 
-  -- Dictionary functions should take precedence over imported functions
-  let functions = L.nub $ join $ [importedFunctions] <> (dictionaryFunctions <$> loadedChapters)
+  -- Dictionaries loaded after one another can see the functions of previous dictionaries. So sub-dictionaries imports can use
+  -- prelude functions. Export the dictionaries loaded here, and in sub dictionaries (but not parent functions, as the parent
+  -- already knows about those).
+  let functions = join $ [importedFunctions] <> (dictionaryFunctions <$> loadedChapters)
   let totaldefinitions = concreteDefinitions <> virtualDefinitions <> (join $ dictionaryEntries <$> loadedChapters)
 
   pure $ Dictionary totaldefinitions functions
@@ -134,11 +138,11 @@ loadImports
   -> EitherT DictionaryImportError IO FunEnvT
 loadImports parentFuncs parsedImports
  = hoistEither . mapLeft DictionaryErrorCheck
- $ foldlM go parentFuncs parsedImports
+ $ foldlM (go parentFuncs) [] parsedImports
  where
-  go env f
-   = do f' <- P.sourceCheckF env f
-        return $ env <> f'
+  go env acc f
+   = do f' <- P.sourceCheckF (env <> acc) f
+        return $ acc <> f'
 
 checkDefs
   :: Dictionary
