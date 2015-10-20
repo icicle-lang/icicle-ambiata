@@ -46,7 +46,7 @@ concreteFeatureType ss
  where
   up _ r s
    = case s of
-      S.ForeachFacts _ _ ty _ _
+      S.ForeachFacts _ ty _ _
        -> return (Just ty)
       _
        -> return r
@@ -74,15 +74,14 @@ statementsToJava ss
                 <> name n <> " < " <> expToJava Unboxed to <> "; "
                 <> name n <> "++)" <> block [statementsToJava s]
 
-    ForeachFacts n n' t f s
-     -> (case f of
-          S.FactLoopHistory -> "icicle.startHistory();"
-          S.FactLoopNew     -> "icicle.startNew();")
-        <> line
-        <> "while (icicle.nextRow())"
-        <> block [ local t n <> " = " <> unbox t "icicle.currentRow()" <> ";"
-                 , local DateTimeT n' <> " = icicle.currentRowDate();"
-                 , statementsToJava s]
+    ForeachFacts ns _ f s
+     -> let readVar (n, t) = local t n <> " = " <> unbox t ("icicle.currentRow(\"" <> pretty n <> "\")") <> ";"
+        in (case f of
+             S.FactLoopHistory -> "icicle.startHistory();"
+             S.FactLoopNew     -> "icicle.startNew();")
+           <> line
+           <> "while (icicle.nextRow())"
+           <> block (fmap readVar ns <> [statementsToJava s])
     Block blocks
      -> vcat (fmap (either bindingToJava statementsToJava) blocks)
 

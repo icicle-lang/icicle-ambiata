@@ -13,6 +13,7 @@ import              Icicle.Avalanche.Program
 import              Icicle.BubbleGum
 
 import              Icicle.Common.Base
+import              Icicle.Common.Type
 import              Icicle.Common.Value
 import qualified    Icicle.Common.Exp as XV
 
@@ -53,6 +54,7 @@ data RuntimeError a n p
  | RuntimeErrorLoopAccumulatorBad (Name n)
  | RuntimeErrorIfNotBool     BaseValue
  | RuntimeErrorForeachNotInt BaseValue BaseValue
+ | RuntimeErrorFlatForeach   [(Name n, ValType)]
  | RuntimeErrorNotBaseValue  (Value a n p)
  | RuntimeErrorKeepFactNotInFactLoop
  | RuntimeErrorAccumulatorLatestNotInt  BaseValue
@@ -71,6 +73,8 @@ instance (Pretty n, Pretty p) => Pretty (RuntimeError a n p) where
   = "Value should be a bool but isn't" <+> (pretty p)
  pretty (RuntimeErrorForeachNotInt p p')
   = "Foreach not ints:" <+> pretty p <+> pretty p'
+ pretty (RuntimeErrorFlatForeach ns)
+  = "Cannot eval flattened foreach: " <+> pretty ns
  pretty (RuntimeErrorNotBaseValue p)
   = "Value isn't a base value:" <+> (pretty p)
  pretty (RuntimeErrorKeepFactNotInFactLoop)
@@ -240,14 +244,17 @@ evalStmt evalPrim now xh values bubblegum ah stmt
 
     -- TODO: evaluation ignores history/bubblegum.
     -- All inputs are new, so history loop does nothing.
-    ForeachFacts _ _ _ FactLoopHistory _
+    ForeachFacts _ _ FactLoopHistory _
      -> return (ah, [])
 
     -- TODO: ignoring outputs inside loops.
-    ForeachFacts n n' _ FactLoopNew  stmts
+    ForeachFacts [(n, _), (n', _)] _ FactLoopNew  stmts
      -> do  let with input = Map.insert n (VBase $ snd $ fact input) $ Map.insert n' (VBase $ VDateTime $ time input) xh
             ahs <- foldM (\ah' input -> fst <$> evalStmt evalPrim now (with input) [] (Just $ fst $ fact input) ah' stmts) ah values
             return (ahs, [])
+
+    ForeachFacts ns _ FactLoopNew _
+     -> Left (RuntimeErrorFlatForeach ns)
 
     Block []
      -> return (ah, [])

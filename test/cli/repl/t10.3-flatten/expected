@@ -10,7 +10,8 @@ gen$date = DATE
 {
   init [Mutable] [Int] acc$c$conv$11 = 0 : Int;
   load_resumable [Int] acc$c$conv$11;
-  for_facts (elem$gen$fact : (Sum Error Int), elem$gen$date : Date) in new {
+  for_facts (elem$gen$fact : (Sum Error Int),
+             elem$gen$date : DateTime) in new {
     init [Mutable] [(Sum Error Bool)] flat$1 = Left ExceptTombstone : (Sum Error Bool);
     if (Sum_isLeft# [Error] [Int]
         elem$gen$fact) {

@@ -12,7 +12,8 @@ gen$date = DATE
   init [Mutable] [Buf (Sum Error Int)] acc$conv$20 = Buf 3 [] : Buf (Sum Error Int);
   load_resumable [Int] acc$c$conv$11;
   load_resumable [Buf (Sum Error Int)] acc$conv$20;
-  for_facts (elem$gen$fact : (Sum Error Int), elem$gen$date : Date) in new {
+  for_facts (elem$gen$fact : (Sum Error Int),
+             elem$gen$date : DateTime) in new {
     let gen$fact = pair# [(Sum Error Int)] [DateTime]
                    elem$gen$fact elem$gen$date;
     read [Mutable] [Buf (Sum Error Int)] acc$conv$20 = acc$conv$20;
@@ -76,7 +77,8 @@ gen$date = DATE
 {
   init [Mutable] [Map DateTime (Buf ((Sum Error Int), DateTime))] acc$conv$2 = Map [] : Map DateTime (Buf ((Sum Error Int), DateTime));
   load_resumable [Map DateTime (Buf ((Sum Error Int), DateTime))] acc$conv$2;
-  for_facts (elem$gen$fact : (Sum Error Int), elem$gen$date : Date) in new {
+  for_facts (elem$gen$fact : (Sum Error Int),
+             elem$gen$date : DateTime) in new {
     let gen$fact = pair# [(Sum Error Int)] [DateTime]
                    elem$gen$fact elem$gen$date;
     read [Mutable] [Map DateTime (Buf ((Sum Error Int), DateTime))] acc$conv$2 = acc$conv$2;
