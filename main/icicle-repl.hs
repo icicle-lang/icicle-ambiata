@@ -13,7 +13,7 @@ import           Control.Monad.Trans.Either
 import           Control.Monad.IO.Class
 import           Data.Either.Combinators
 import           Data.Monoid
-import           Data.List                            (words, replicate)
+import           Data.List                            (words, replicate, nubBy)
 import           Data.String                          (String, lines)
 import           Data.Text                            (Text)
 import qualified Data.Text                            as T
@@ -261,7 +261,7 @@ handleLine state line = case readCommand line of
         HL.outputStrLn $ "ok, loaded " <> show (length is) <> " functions from " <> fp
         let d = dictionary state
         -- Merge in the new functions with new functions taking precedence over existing ones
-        let f =  is <> (dictionaryFunctions d)
+        let f = nubBy ((==) `on` fst) $ is <> (dictionaryFunctions d)
         return $ state { dictionary = d { dictionaryFunctions = f } }
 
   Just (CommandComment comment) -> do
