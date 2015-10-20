@@ -74,8 +74,10 @@ substC ss cc
      -> CTemporalityJoin (substT ss a) (substT ss b) (substT ss c)
     CReturnOfLetTemporalities ret def body
      -> CReturnOfLetTemporalities (substT ss ret) (substT ss def) (substT ss body)
-    CReturnOfLatest ret tmp dat
-     -> CReturnOfLatest (substT ss ret) (substT ss tmp) (substT ss dat)
+    CDataOfLatest ret tmp pos dat
+     -> CDataOfLatest (substT ss ret) (substT ss tmp) (substT ss pos) (substT ss dat)
+    CPossibilityOfLatest ret tmp pos
+     -> CPossibilityOfLatest (substT ss ret) (substT ss tmp) (substT ss pos)
     CPossibilityJoin ret b c
      -> CPossibilityJoin (substT ss ret) (substT ss b) (substT ss c)
 

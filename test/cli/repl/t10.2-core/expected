@@ -45,76 +45,49 @@ c$conv$11 =
     \conv$10 : ((Sum Error Int), DateTime). 
     add# [Int] c$conv$11 (1 : Int))
     (0 : Int) conv$2
-conv$22 =
+conv$20 =
     rfold  
     [((Sum Error Int), DateTime)]
-    [(Sum Error (Buf Int))] (
-    \conv$17 : (Sum Error (Buf Int)). 
+    [Buf (Sum Error Int)] (
+    \conv$17 : Buf (Sum Error Int). 
     
     \conv$16 : ((Sum Error Int), DateTime). 
-    Sum_fold# [Error] [Buf Int] [(Sum Error (Buf Int))]
-    (
-    \conv$21 : Error. 
-    left# [Error] [Buf Int] conv$21)
-    (
-    \conv$19 : Buf Int. 
-    Sum_fold# [Error] [Int] [(Sum Error (Buf Int))]
-    (
-    \conv$21 : Error. 
-    left# [Error] [Buf Int] conv$21)
-    (
-    \conv$20 : Int. 
-    right# [Error] [Buf Int]
-    (Latest_push# [Int] conv$19
-     conv$20))
-    (fst# [(Sum Error Int)] [DateTime]
-     conv$16)) conv$17)
-    (Right Buf 3 [] : (Sum Error (Buf Int)))
+    
+    let simp$5 = fst# [(Sum Error Int)] [DateTime]
+                 conv$16
+     in Latest_push# [(Sum Error Int)]
+        conv$17 simp$5)
+    (Buf 3 [] : Buf (Sum Error Int))
     conv$0
 Postcomputations with date as now$conv$1:
 conv$12 =
     right# [Error] [Int]
     c$conv$11
-conv$32 =
-    Sum_fold# [Error] [Int] [(Sum Error (Int, Array Int))]
+conv$25 =
+    Sum_fold# [Error] [Int] [(Sum Error (Int, Array (Sum Error Int)))]
     (
     \reify$4$conv$13 : Error.  
-    let conv$14 = left# [Error] [(Int, Array Int)]
+    let conv$14 = left# [Error] [(Int, Array (Sum Error Int))]
                   reify$4$conv$13
      in conv$14) (
     \reify$5$conv$15 : Int.  
-    let conv$23 = Sum_fold# [Error] [Buf Int] [(Sum Error (Array Int))]
-                  (
-                  \conv$21 : Error. 
-                  left# [Error] [Array Int]
-                  conv$21) (
-                  \conv$20 : Buf Int. 
-                  right# [Error] [Array Int]
-                  (Latest_read# [Int] conv$20))
-                  conv$22
+    let conv$21 = Latest_read# [(Sum Error Int)]
+                  conv$20
      in 
-    let conv$30 = Sum_fold# [Error] [Array Int] [(Sum Error (Int, Array Int))]
-                  (
-                  \reify$6$conv$24 : Error.  
-                  let conv$25 = left# [Error] [(Int, Array Int)]
-                                reify$6$conv$24
-                   in conv$25) (
-                  \reify$7$conv$26 : Array Int.  
-                  let conv$27 = pair# [Int] [Array Int]
-                                reify$5$conv$15 reify$7$conv$26
-                   in 
-                  let conv$28 = right# [Error] [(Int, Array Int)]
-                                conv$27
-                   in conv$28) conv$23
-     in conv$30) conv$12
+    let conv$22 = pair# [Int] [Array (Sum Error Int)]
+                  reify$5$conv$15 conv$21
+     in 
+    let conv$23 = right# [Error] [(Int, Array (Sum Error Int))]
+                  conv$22
+     in conv$23) conv$12
 Returning:
 repl =
-    conv$32
+    conv$25
 
 
 - Core type:
 [(repl
- ,(Sum Error (Int, Array Int)))]
+ ,(Sum Error (Int, Array (Sum Error Int))))]
 
 - Core evaluation:
 [homer, (5,[300,400,500])

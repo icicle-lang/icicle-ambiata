@@ -73,7 +73,11 @@ freeC c
                     p q r   -> Set.unions
                              $ fmap freeT
                              [ p, q, r ]
-    CReturnOfLatest p q r   -> Set.unions
+    CDataOfLatest   p q r s -> Set.unions
+                             $ fmap freeT
+                             [ p, q, r, s ]
+    CPossibilityOfLatest
+                    p q r   -> Set.unions
                              $ fmap freeT
                              [ p, q, r ]
     CPossibilityJoin p q r  -> Set.unions
