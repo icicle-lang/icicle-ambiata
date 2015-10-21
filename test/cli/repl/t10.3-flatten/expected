@@ -16,10 +16,10 @@ gen$date = DATE
   load_resumable [Bool] acc$conv$22$simp$8;
   load_resumable [Error] acc$conv$22$simp$9;
   load_resumable [Buf Int] acc$conv$22$simp$10;
-  for_facts (elem$gen$fact$simp$61 : Bool,
-             elem$gen$fact$simp$62 : Error,
-             elem$gen$fact$simp$63 : Int,
-             elem$gen$date : DateTime) in new {
+  for_facts (gen$fact$simp$61$simp$63 : Bool,
+             gen$fact$simp$61$simp$64 : Error,
+             gen$fact$simp$61$simp$65 : Int,
+             gen$fact$simp$62 : DateTime) in new {
     read [Mutable] [Bool] acc$conv$22$simp$11 = acc$conv$22$simp$8;
     read [Mutable] [Error] acc$conv$22$simp$12 = acc$conv$22$simp$9;
     init [Mutable] [Bool] flat$0$simp$14 = False : Bool;
@@ -29,11 +29,11 @@ gen$date = DATE
       init [Mutable] [Bool] flat$3$simp$17 = False : Bool;
       init [Mutable] [Error] flat$3$simp$18 = ExceptTombstone : Error;
       init [Mutable] [Buf Int] flat$3$simp$19 = Buf 0 [] : Buf Int;
-      if (elem$gen$fact$simp$61) {
+      if (gen$fact$simp$61$simp$63) {
         
       } else {
         write flat$3$simp$17 = False : Bool;
-        write flat$3$simp$18 = elem$gen$fact$simp$62;
+        write flat$3$simp$18 = gen$fact$simp$61$simp$64;
         write flat$3$simp$19 = Buf 0 [] : Buf Int;
       }
       read [Mutable] [Bool] flat$3$simp$20 = flat$3$simp$17;
@@ -55,9 +55,9 @@ gen$date = DATE
     write acc$conv$22$simp$10 = flat$0$simp$25;
     init [Mutable] [Bool] flat$7$simp$26 = False : Bool;
     init [Mutable] [Bool] flat$7$simp$28 = False : Bool;
-    if (elem$gen$fact$simp$61) {
+    if (gen$fact$simp$61$simp$63) {
       let simp$7 = gt# [Int]
-                   elem$gen$fact$simp$63
+                   gen$fact$simp$61$simp$65
                    (10 : Int);
       write flat$7$simp$26 = True : Bool;
       write flat$7$simp$28 = simp$7;
@@ -145,12 +145,12 @@ gen$date = DATE
   read [Mutable] [Error] flat$13$simp$57 = flat$13$simp$36;
   read [Mutable] [Int] flat$13$simp$58$simp$59 = flat$13$simp$37$simp$38;
   read [Mutable] [Array Int] flat$13$simp$58$simp$60 = flat$13$simp$37$simp$39;
-  let simp$173 = pair# [Int] [Array Int]
+  let simp$183 = pair# [Int] [Array Int]
                  flat$13$simp$58$simp$59
                  flat$13$simp$58$simp$60;
   output repl Sum_pack# [Error] [(Int, Array Int)]
               flat$13$simp$56 flat$13$simp$57
-              simp$173;
+              simp$183;
 }
 
 - Core evaluation:

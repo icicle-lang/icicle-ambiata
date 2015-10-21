@@ -16,10 +16,10 @@ gen$date = DATE
   load_resumable [Bool] acc$s$reify$2$conv$5$simp$0;
   load_resumable [Error] acc$s$reify$2$conv$5$simp$1;
   load_resumable [Int] acc$s$reify$2$conv$5$simp$2;
-  for_facts (elem$gen$fact$simp$21 : Bool,
-             elem$gen$fact$simp$22 : Error,
-             elem$gen$fact$simp$23 : Int,
-             elem$gen$date : DateTime) in new {
+  for_facts (gen$fact$simp$21$simp$23 : Bool,
+             gen$fact$simp$21$simp$24 : Error,
+             gen$fact$simp$21$simp$25 : Int,
+             gen$fact$simp$22 : DateTime) in new {
     read [Mutable] [Bool] acc$s$reify$2$conv$5$simp$3 = acc$s$reify$2$conv$5$simp$0;
     read [Mutable] [Error] acc$s$reify$2$conv$5$simp$4 = acc$s$reify$2$conv$5$simp$1;
     read [Mutable] [Int] acc$s$reify$2$conv$5$simp$5 = acc$s$reify$2$conv$5$simp$2;
@@ -37,9 +37,9 @@ gen$date = DATE
       if (eq# [Error]
           (ExceptFold1NoValue : Error)
           acc$s$reify$2$conv$5$simp$4) {
-        write flat$3$simp$9 = elem$gen$fact$simp$21;
-        write flat$3$simp$10 = elem$gen$fact$simp$22;
-        write flat$3$simp$11 = elem$gen$fact$simp$23;
+        write flat$3$simp$9 = gen$fact$simp$21$simp$23;
+        write flat$3$simp$10 = gen$fact$simp$21$simp$24;
+        write flat$3$simp$11 = gen$fact$simp$21$simp$25;
       } else {
         write flat$3$simp$9 = False : Bool;
         write flat$3$simp$10 = acc$s$reify$2$conv$5$simp$4;
@@ -89,10 +89,10 @@ typedef struct {
     /* inputs */
     idate_t    gen_date;
     iint_t     new_count;
-    ibool_t    *new_elem_gen_fact_simp_21;
-    ierror_t   *new_elem_gen_fact_simp_22;
-    iint_t     *new_elem_gen_fact_simp_23;
-    idate_t    *new_elem_gen_date;
+    ibool_t    *new_gen_fact_simp_21_simp_23;
+    ierror_t   *new_gen_fact_simp_21_simp_24;
+    iint_t     *new_gen_fact_simp_21_simp_25;
+    idate_t    *new_gen_fact_simp_22;
 
     /* outputs */
     ierror_t   error;
@@ -180,16 +180,16 @@ void compute(icicle_state_t *s)
     acc_s_reify_2_conv_5_simp_2          = s->acc_s_reify_2_conv_5_simp_2;
     
     const iint_t    new_count            = s->new_count;
-    const ibool_t   *const new_elem_gen_fact_simp_21 = s->new_elem_gen_fact_simp_21;
-    const ierror_t  *const new_elem_gen_fact_simp_22 = s->new_elem_gen_fact_simp_22;
-    const iint_t    *const new_elem_gen_fact_simp_23 = s->new_elem_gen_fact_simp_23;
-    const idate_t   *const new_elem_gen_date = s->new_elem_gen_date;
+    const ibool_t   *const new_gen_fact_simp_21_simp_23 = s->new_gen_fact_simp_21_simp_23;
+    const ierror_t  *const new_gen_fact_simp_21_simp_24 = s->new_gen_fact_simp_21_simp_24;
+    const iint_t    *const new_gen_fact_simp_21_simp_25 = s->new_gen_fact_simp_21_simp_25;
+    const idate_t   *const new_gen_fact_simp_22 = s->new_gen_fact_simp_22;
     
     for (iint_t i = 0; i < new_count; i++) {
-        ibool_t    elem_gen_fact_simp_21 = new_elem_gen_fact_simp_21[i];
-        ierror_t   elem_gen_fact_simp_22 = new_elem_gen_fact_simp_22[i];
-        iint_t     elem_gen_fact_simp_23 = new_elem_gen_fact_simp_23[i];
-        idate_t    elem_gen_date         = new_elem_gen_date[i];
+        ibool_t    gen_fact_simp_21_simp_23 = new_gen_fact_simp_21_simp_23[i];
+        ierror_t   gen_fact_simp_21_simp_24 = new_gen_fact_simp_21_simp_24[i];
+        iint_t     gen_fact_simp_21_simp_25 = new_gen_fact_simp_21_simp_25[i];
+        idate_t    gen_fact_simp_22      = new_gen_fact_simp_22[i];
         acc_s_reify_2_conv_5_simp_3      = acc_s_reify_2_conv_5_simp_0;
         acc_s_reify_2_conv_5_simp_4      = acc_s_reify_2_conv_5_simp_1;
         acc_s_reify_2_conv_5_simp_5      = acc_s_reify_2_conv_5_simp_2;
@@ -207,9 +207,9 @@ void compute(icicle_state_t *s)
             flat_3_simp_11               = 0;
             
             if (ierror_eq (ierror_fold1_no_value, acc_s_reify_2_conv_5_simp_4)) {
-                flat_3_simp_9            = elem_gen_fact_simp_21;
-                flat_3_simp_10           = elem_gen_fact_simp_22;
-                flat_3_simp_11           = elem_gen_fact_simp_23;
+                flat_3_simp_9            = gen_fact_simp_21_simp_23;
+                flat_3_simp_10           = gen_fact_simp_21_simp_24;
+                flat_3_simp_11           = gen_fact_simp_21_simp_25;
             } else {
                 flat_3_simp_9            = ifalse;
                 flat_3_simp_10           = acc_s_reify_2_conv_5_simp_4;
@@ -252,15 +252,15 @@ gen$date = DATE
 {
   init [Mutable] [Int] acc$c$conv$11 = 0 : Int;
   load_resumable [Int] acc$c$conv$11;
-  for_facts (elem$gen$fact$simp$8 : Bool,
-             elem$gen$fact$simp$9 : Error,
-             elem$gen$fact$simp$10 : Int,
-             elem$gen$date : DateTime) in new {
+  for_facts (gen$fact$simp$8$simp$10 : Bool,
+             gen$fact$simp$8$simp$11 : Error,
+             gen$fact$simp$8$simp$12 : Int,
+             gen$fact$simp$9 : DateTime) in new {
     init [Mutable] [Bool] flat$0$simp$2 = False : Bool;
     init [Mutable] [Bool] flat$0$simp$4 = False : Bool;
-    if (elem$gen$fact$simp$8) {
+    if (gen$fact$simp$8$simp$10) {
       let simp$1 = gt# [Int]
-                   elem$gen$fact$simp$10
+                   gen$fact$simp$8$simp$12
                    (300 : Int);
       write flat$0$simp$2 = True : Bool;
       write flat$0$simp$4 = simp$1;
@@ -310,10 +310,10 @@ typedef struct {
     /* inputs */
     idate_t    gen_date;
     iint_t     new_count;
-    ibool_t    *new_elem_gen_fact_simp_8;
-    ierror_t   *new_elem_gen_fact_simp_9;
-    iint_t     *new_elem_gen_fact_simp_10;
-    idate_t    *new_elem_gen_date;
+    ibool_t    *new_gen_fact_simp_8_simp_10;
+    ierror_t   *new_gen_fact_simp_8_simp_11;
+    iint_t     *new_gen_fact_simp_8_simp_12;
+    idate_t    *new_gen_fact_simp_9;
 
     /* outputs */
     ierror_t   error;
@@ -378,21 +378,21 @@ void compute(icicle_state_t *s)
     acc_c_conv_11                        = s->acc_c_conv_11;
     
     const iint_t    new_count            = s->new_count;
-    const ibool_t   *const new_elem_gen_fact_simp_8 = s->new_elem_gen_fact_simp_8;
-    const ierror_t  *const new_elem_gen_fact_simp_9 = s->new_elem_gen_fact_simp_9;
-    const iint_t    *const new_elem_gen_fact_simp_10 = s->new_elem_gen_fact_simp_10;
-    const idate_t   *const new_elem_gen_date = s->new_elem_gen_date;
+    const ibool_t   *const new_gen_fact_simp_8_simp_10 = s->new_gen_fact_simp_8_simp_10;
+    const ierror_t  *const new_gen_fact_simp_8_simp_11 = s->new_gen_fact_simp_8_simp_11;
+    const iint_t    *const new_gen_fact_simp_8_simp_12 = s->new_gen_fact_simp_8_simp_12;
+    const idate_t   *const new_gen_fact_simp_9 = s->new_gen_fact_simp_9;
     
     for (iint_t i = 0; i < new_count; i++) {
-        ibool_t    elem_gen_fact_simp_8  = new_elem_gen_fact_simp_8[i];
-        ierror_t   elem_gen_fact_simp_9  = new_elem_gen_fact_simp_9[i];
-        iint_t     elem_gen_fact_simp_10 = new_elem_gen_fact_simp_10[i];
-        idate_t    elem_gen_date         = new_elem_gen_date[i];
+        ibool_t    gen_fact_simp_8_simp_10 = new_gen_fact_simp_8_simp_10[i];
+        ierror_t   gen_fact_simp_8_simp_11 = new_gen_fact_simp_8_simp_11[i];
+        iint_t     gen_fact_simp_8_simp_12 = new_gen_fact_simp_8_simp_12[i];
+        idate_t    gen_fact_simp_9       = new_gen_fact_simp_9[i];
         flat_0_simp_2                    = ifalse;
         flat_0_simp_4                    = ifalse;
         
-        if (elem_gen_fact_simp_8) {
-            ibool_t    simp_1            = iint_gt (elem_gen_fact_simp_10, 300);
+        if (gen_fact_simp_8_simp_10) {
+            ibool_t    simp_1            = iint_gt (gen_fact_simp_8_simp_12, 300);
             flat_0_simp_2                = itrue;
             flat_0_simp_4                = simp_1;
         } else {
@@ -456,22 +456,22 @@ gen$date = DATE
   load_resumable [Double] acc$a$conv$105$simp$71$simp$72$simp$74;
   load_resumable [Double] acc$a$conv$105$simp$71$simp$72$simp$75;
   load_resumable [Double] acc$a$conv$105$simp$71$simp$73;
-  for_facts (elem$gen$fact$simp$358 : Bool,
-             elem$gen$fact$simp$359 : Error,
-             elem$gen$fact$simp$360 : Int,
-             elem$gen$date : DateTime) in new {
+  for_facts (gen$fact$simp$358$simp$360 : Bool,
+             gen$fact$simp$358$simp$361 : Error,
+             gen$fact$simp$358$simp$362 : Int,
+             gen$fact$simp$359 : DateTime) in new {
     init [Mutable] [Bool] flat$0$simp$76 = False : Bool;
     init [Mutable] [Error] flat$0$simp$77 = ExceptTombstone : Error;
     init [Mutable] [Double] flat$0$simp$78 = 0.0 : Double;
-    if (elem$gen$fact$simp$358) {
+    if (gen$fact$simp$358$simp$360) {
       let simp$1 = doubleOfInt#
-                   elem$gen$fact$simp$360;
+                   gen$fact$simp$358$simp$362;
       write flat$0$simp$76 = True : Bool;
       write flat$0$simp$77 = ExceptTombstone : Error;
       write flat$0$simp$78 = simp$1;
     } else {
       write flat$0$simp$76 = False : Bool;
-      write flat$0$simp$77 = elem$gen$fact$simp$359;
+      write flat$0$simp$77 = gen$fact$simp$358$simp$361;
       write flat$0$simp$78 = 0.0 : Double;
     }
     read [Mutable] [Bool] flat$0$simp$79 = flat$0$simp$76;
@@ -716,9 +716,9 @@ gen$date = DATE
     write acc$a$conv$12$simp$64$simp$66 = flat$1$simp$184$simp$186;
     init [Mutable] [Bool] flat$37$simp$189 = False : Bool;
     init [Mutable] [Bool] flat$37$simp$191 = False : Bool;
-    if (elem$gen$fact$simp$358) {
+    if (gen$fact$simp$358$simp$360) {
       let simp$31 = lt# [Int]
-                    elem$gen$fact$simp$360
+                    gen$fact$simp$358$simp$362
                     (300 : Int);
       write flat$37$simp$189 = True : Bool;
       write flat$37$simp$191 = simp$31;
@@ -741,15 +741,15 @@ gen$date = DATE
       init [Mutable] [Bool] flat$39$simp$195 = False : Bool;
       init [Mutable] [Error] flat$39$simp$196 = ExceptTombstone : Error;
       init [Mutable] [Double] flat$39$simp$197 = 0.0 : Double;
-      if (elem$gen$fact$simp$358) {
+      if (gen$fact$simp$358$simp$360) {
         let simp$33 = doubleOfInt#
-                      elem$gen$fact$simp$360;
+                      gen$fact$simp$358$simp$362;
         write flat$39$simp$195 = True : Bool;
         write flat$39$simp$196 = ExceptTombstone : Error;
         write flat$39$simp$197 = simp$33;
       } else {
         write flat$39$simp$195 = False : Bool;
-        write flat$39$simp$196 = elem$gen$fact$simp$359;
+        write flat$39$simp$196 = gen$fact$simp$358$simp$361;
         write flat$39$simp$197 = 0.0 : Double;
       }
       read [Mutable] [Bool] flat$39$simp$198 = flat$39$simp$195;
@@ -1146,10 +1146,10 @@ typedef struct {
     /* inputs */
     idate_t    gen_date;
     iint_t     new_count;
-    ibool_t    *new_elem_gen_fact_simp_358;
-    ierror_t   *new_elem_gen_fact_simp_359;
-    iint_t     *new_elem_gen_fact_simp_360;
-    idate_t    *new_elem_gen_date;
+    ibool_t    *new_gen_fact_simp_358_simp_360;
+    ierror_t   *new_gen_fact_simp_358_simp_361;
+    iint_t     *new_gen_fact_simp_358_simp_362;
+    idate_t    *new_gen_fact_simp_359;
 
     /* outputs */
     ierror_t   error;
@@ -1597,28 +1597,28 @@ void compute(icicle_state_t *s)
     acc_a_conv_105_simp_71_simp_73       = s->acc_a_conv_105_simp_71_simp_73;
     
     const iint_t    new_count            = s->new_count;
-    const ibool_t   *const new_elem_gen_fact_simp_358 = s->new_elem_gen_fact_simp_358;
-    const ierror_t  *const new_elem_gen_fact_simp_359 = s->new_elem_gen_fact_simp_359;
-    const iint_t    *const new_elem_gen_fact_simp_360 = s->new_elem_gen_fact_simp_360;
-    const idate_t   *const new_elem_gen_date = s->new_elem_gen_date;
+    const ibool_t   *const new_gen_fact_simp_358_simp_360 = s->new_gen_fact_simp_358_simp_360;
+    const ierror_t  *const new_gen_fact_simp_358_simp_361 = s->new_gen_fact_simp_358_simp_361;
+    const iint_t    *const new_gen_fact_simp_358_simp_362 = s->new_gen_fact_simp_358_simp_362;
+    const idate_t   *const new_gen_fact_simp_359 = s->new_gen_fact_simp_359;
     
     for (iint_t i = 0; i < new_count; i++) {
-        ibool_t    elem_gen_fact_simp_358 = new_elem_gen_fact_simp_358[i];
-        ierror_t   elem_gen_fact_simp_359 = new_elem_gen_fact_simp_359[i];
-        iint_t     elem_gen_fact_simp_360 = new_elem_gen_fact_simp_360[i];
-        idate_t    elem_gen_date         = new_elem_gen_date[i];
+        ibool_t    gen_fact_simp_358_simp_360 = new_gen_fact_simp_358_simp_360[i];
+        ierror_t   gen_fact_simp_358_simp_361 = new_gen_fact_simp_358_simp_361[i];
+        iint_t     gen_fact_simp_358_simp_362 = new_gen_fact_simp_358_simp_362[i];
+        idate_t    gen_fact_simp_359     = new_gen_fact_simp_359[i];
         flat_0_simp_76                   = ifalse;
         flat_0_simp_77                   = ierror_tombstone;
         flat_0_simp_78                   = 0.0;
         
-        if (elem_gen_fact_simp_358) {
-            idouble_t  simp_1            = iint_extend (elem_gen_fact_simp_360);
+        if (gen_fact_simp_358_simp_360) {
+            idouble_t  simp_1            = iint_extend (gen_fact_simp_358_simp_362);
             flat_0_simp_76               = itrue;
             flat_0_simp_77               = ierror_tombstone;
             flat_0_simp_78               = simp_1;
         } else {
             flat_0_simp_76               = ifalse;
-            flat_0_simp_77               = elem_gen_fact_simp_359;
+            flat_0_simp_77               = gen_fact_simp_358_simp_361;
             flat_0_simp_78               = 0.0;
         }
         
@@ -1877,8 +1877,8 @@ void compute(icicle_state_t *s)
         flat_37_simp_189                 = ifalse;
         flat_37_simp_191                 = ifalse;
         
-        if (elem_gen_fact_simp_358) {
-            ibool_t    simp_31           = iint_lt (elem_gen_fact_simp_360, 300);
+        if (gen_fact_simp_358_simp_360) {
+            ibool_t    simp_31           = iint_lt (gen_fact_simp_358_simp_362, 300);
             flat_37_simp_189             = itrue;
             flat_37_simp_191             = simp_31;
         } else {
@@ -1903,14 +1903,14 @@ void compute(icicle_state_t *s)
             flat_39_simp_196             = ierror_tombstone;
             flat_39_simp_197             = 0.0;
             
-            if (elem_gen_fact_simp_358) {
-                idouble_t  simp_33       = iint_extend (elem_gen_fact_simp_360);
+            if (gen_fact_simp_358_simp_360) {
+                idouble_t  simp_33       = iint_extend (gen_fact_simp_358_simp_362);
                 flat_39_simp_195         = itrue;
                 flat_39_simp_196         = ierror_tombstone;
                 flat_39_simp_197         = simp_33;
             } else {
                 flat_39_simp_195         = ifalse;
-                flat_39_simp_196         = elem_gen_fact_simp_359;
+                flat_39_simp_196         = gen_fact_simp_358_simp_361;
                 flat_39_simp_197         = 0.0;
             }
             
