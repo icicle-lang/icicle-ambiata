@@ -70,8 +70,8 @@ annotOfError e
     CompileErrorParse sp
      -> Just
       $ Parsec.errorPos sp
-    CompileErrorDesugar _
-     -> Nothing
+    CompileErrorDesugar e'
+     -> STD.annotOfError e'
     CompileErrorCheck       e'
      -> SC.annotOfError  e'
     CompileErrorConvert     e'
