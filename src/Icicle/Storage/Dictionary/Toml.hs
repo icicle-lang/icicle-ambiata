@@ -143,7 +143,9 @@ loadImports parentFuncs parsedImports
   go env acc f
    = do -- Run desugar to ensure pattern matches are complete.
         _  <- P.sourceDesugarF f
+        -- Type check the function (allowing it to use parents and previous).
         f' <- P.sourceCheckF (env <> acc) f
+        -- Return these functions at the end of the accumulator.
         return $ acc <> f'
 
 checkDefs
@@ -151,14 +153,15 @@ checkDefs
   -> [(Attribute, P.QueryTop')]
   -> EitherT DictionaryImportError IO [DictionaryEntry]
 checkDefs d defs
- = go `traverse` defs
+ = hoistEither . mapLeft DictionaryErrorCheck
+ $ go `traverse` defs
  where
   go (a, q)
-   = do  (checked, _)  <- check' d q
+   = do  -- Run desugar to ensure pattern matches are complete.
+         _             <- P.sourceDesugarQT q
+         -- Type check the virtual definition.
+         (checked, _)  <- P.sourceCheckQT d q
          pure $ DictionaryEntry a (VirtualDefinition (Virtual checked))
-  check' d'
-   = hoistEither . mapLeft DictionaryErrorCheck . P.sourceCheckQT d'
-
 
 instance Pretty DictionaryImportError where
   pretty (DictionaryErrorIO e)
