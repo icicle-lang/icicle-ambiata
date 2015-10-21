@@ -70,6 +70,14 @@ prop_flatten_simp_commutes_value t =
          counter = (Fresh.counterNameState (Name . Var "anf") 0)
          conv = Fresh.runFreshT (AF.flatten () $ AP.statements p') counter
          simp (c,s') =( s', Fresh.runFresh (AS.simpFlattened () (p'{AP.statements = s'})) c )
+
+         compareEvalResult xv yv =
+           let xv' = mapRight snd (mapLeft show xv)
+               yv' = mapRight snd (mapLeft show yv)
+           in either (counterexample . show . pretty) (const id) xv $
+              either (counterexample . show . pretty) (const id) yv $
+              xv' === yv'
+
      in case simp <$> conv of
          Left e
           -> counterexample (show e)
@@ -78,7 +86,7 @@ prop_flatten_simp_commutes_value t =
          Right (s', (_, p''))
           -> counterexample (show $ pretty (p' { AP.statements = s' }))
            $ counterexample (show $ pretty p'')
-             (mapRight snd (mapLeft show (eval XV.evalPrim p')) === mapRight snd (mapLeft show (eval AE.evalPrim p'')))
+             (eval XV.evalPrim p' `compareEvalResult` eval AE.evalPrim p'')
 
 
 return []

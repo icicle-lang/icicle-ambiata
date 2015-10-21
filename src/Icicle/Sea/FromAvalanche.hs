@@ -39,6 +39,7 @@ seaOfProgram program = vsep
   , "#include <stdint.h>"
   , "#include <math.h>"
   , ""
+  , "typedef uint64_t ierror_t;"
   , "typedef uint64_t iunit_t;"
   , "typedef uint64_t ibool_t;"
   , "typedef  int64_t iint_t;"
@@ -48,6 +49,10 @@ seaOfProgram program = vsep
   , "typedef const char *ierror_t;"
   , ""
   , stateOfProgram program
+  , ""
+  , "static const ierror_t ierror_tombstone              = 0;"
+  , "static const ierror_t ierror_fold1_no_value         = 1;"
+  , "static const ierror_t ierror_variable_not_available = 2;"
   , ""
   , "static const iunit_t iunit  = 0x1c1c13;"
   , "static const ibool_t ifalse = 0;"
@@ -80,16 +85,6 @@ seaOfProgram program = vsep
   , "static ibool_t   INLINE idouble_le    (idouble_t x, idouble_t y) { return x <= y; }"
   , "static ibool_t   INLINE idouble_eq    (idouble_t x, idouble_t y) { return x == y; }"
   , "static ibool_t   INLINE idouble_ne    (idouble_t x, idouble_t y) { return x != y; }"
-  , ""
-  , "static iint_t INLINE iint_err (icicle_state_t *s, ierror_t error)  {"
-  , "    s->error = error;"
-  , "    return 0xBAD1c3;"
-  , "}"
-  , ""
-  , "static idouble_t INLINE idouble_err (icicle_state_t *s, ierror_t error)  {"
-  , "    s->error = error;"
-  , "    return 0/0;"
-  , "}"
   , ""
   , "void compute(icicle_state_t *s)"
   , "{"
@@ -249,8 +244,7 @@ seaOfExp :: (Show a, Show n, Pretty n, Ord n)
 seaOfExp xx
  = case xx of
      XValue _ _ v
-      | Just t <- valTypeOfExp xx
-      -> seaOfXValue t v
+      -> seaOfXValue v
 
      XVar _ n
       -> seaOfName n
@@ -262,9 +256,10 @@ seaOfExp xx
      _
       -> seaError "seaOfExp" xx
 
-seaOfXValue :: ValType -> BaseValue -> Doc
-seaOfXValue t v
+seaOfXValue :: BaseValue -> Doc
+seaOfXValue v
  = case v of
+     VError  err   -> seaOfError err
      VBool   True  -> "itrue"
      VBool   False -> "ifalse"
      VInt    x     -> int x
@@ -273,14 +268,20 @@ seaOfXValue t v
      -- TODO C escapes /= Haskell escapes
      VString x     -> text (show x)
 
-     VError msg
-      | IntT <- t
-      -> "iint_err (s, \"" <> text (show msg) <> "\")"
-
-      | DoubleT <- t
-      -> "idouble_err (s, \"" <> text (show msg) <> "\")"
      _
       -> seaError "seaOfXValue" v
+
+seaOfError :: ExceptionInfo -> Doc
+seaOfError e
+ = case e of
+     ExceptTombstone
+      -> "ierror_tombstone"
+
+     ExceptFold1NoValue
+      -> "ierror_fold1_no_value"
+
+     ExceptScalarVariableNotAvailable
+      -> "ierror_variable_not_available"
 
 seaOfXPrim :: Prim -> Doc
 seaOfXPrim p
@@ -345,6 +346,7 @@ prefixOfValType t
      IntT      -> "iint_"
      DoubleT   -> "idouble_"
      DateTimeT -> "idate_"
+     ErrorT    -> "ierror_"
      _         -> seaError "prefixOfValType" t
 
 ------------------------------------------------------------------------
@@ -361,6 +363,7 @@ seaOfValType t
      StructT _ -> "istruct_t "
      BufT    _ -> "ibuf_t    "
      ArrayT  _ -> "iarray_t  "
+     ErrorT    -> "ierror_t  "
      _         -> seaError "seaOfValType" t
 
 valTypeOfExp :: Exp (Annot a) n p -> Maybe ValType

@@ -9,59 +9,72 @@ ok, flatten is now on
 gen$date = DATE
 {
   init [Mutable] [Int] acc$c$conv$11 = 0 : Int;
-  init [Mutable] [(Sum Error (Buf Int))] acc$conv$22 = Right Buf 3 [] : (Sum Error (Buf Int));
+  init [Mutable] [Bool] acc$conv$22$simp$8 = True : Bool;
+  init [Mutable] [Error] acc$conv$22$simp$9 = ExceptTombstone : Error;
+  init [Mutable] [Buf Int] acc$conv$22$simp$10 = Buf 3 [] : Buf Int;
   load_resumable [Int] acc$c$conv$11;
-  load_resumable [(Sum Error (Buf Int))] acc$conv$22;
-  for_facts (elem$gen$fact : (Sum Error Int),
-             elem$gen$date : DateTime) in new {
-    read [Mutable] [(Sum Error (Buf Int))] acc$conv$22 = acc$conv$22;
-    init [Mutable] [(Sum Error (Buf Int))] flat$0 = Left ExceptTombstone : (Sum Error (Buf Int));
-    if (Sum_isLeft# [Error] [Buf Int]
-        acc$conv$22) {
-      let flat$1 = unsafe_Sum_left# [Error] [Buf Int]
-                   acc$conv$22;
-      write flat$0 = left# [Error] [Buf Int]
-                     flat$1;
-    } else {
-      init [Mutable] [(Sum Error (Buf Int))] flat$3 = Left ExceptTombstone : (Sum Error (Buf Int));
-      if (Sum_isLeft# [Error] [Int]
-          elem$gen$fact) {
-        let flat$4 = unsafe_Sum_left# [Error] [Int]
-                     elem$gen$fact;
-        write flat$3 = left# [Error] [Buf Int]
-                       flat$4;
+  load_resumable [Bool] acc$conv$22$simp$8;
+  load_resumable [Error] acc$conv$22$simp$9;
+  load_resumable [Buf Int] acc$conv$22$simp$10;
+  for_facts (gen$fact$simp$61$simp$63 : Bool,
+             gen$fact$simp$61$simp$64 : Error,
+             gen$fact$simp$61$simp$65 : Int,
+             gen$fact$simp$62 : DateTime) in new {
+    read [Mutable] [Bool] acc$conv$22$simp$11 = acc$conv$22$simp$8;
+    read [Mutable] [Error] acc$conv$22$simp$12 = acc$conv$22$simp$9;
+    init [Mutable] [Bool] flat$0$simp$14 = False : Bool;
+    init [Mutable] [Error] flat$0$simp$15 = ExceptTombstone : Error;
+    init [Mutable] [Buf Int] flat$0$simp$16 = Buf 0 [] : Buf Int;
+    if (acc$conv$22$simp$11) {
+      init [Mutable] [Bool] flat$3$simp$17 = False : Bool;
+      init [Mutable] [Error] flat$3$simp$18 = ExceptTombstone : Error;
+      init [Mutable] [Buf Int] flat$3$simp$19 = Buf 0 [] : Buf Int;
+      if (gen$fact$simp$61$simp$63) {
+        
+      } else {
+        write flat$3$simp$17 = False : Bool;
+        write flat$3$simp$18 = gen$fact$simp$61$simp$64;
+        write flat$3$simp$19 = Buf 0 [] : Buf Int;
       }
-      read [Mutable] [(Sum Error (Buf Int))] flat$3 = flat$3;
-      write flat$0 = flat$3;
-    }
-    read [Mutable] [(Sum Error (Buf Int))] flat$0 = flat$0;
-    write acc$conv$22 = flat$0;
-    init [Mutable] [(Sum Error Bool)] flat$7 = Left ExceptTombstone : (Sum Error Bool);
-    if (Sum_isLeft# [Error] [Int]
-        elem$gen$fact) {
-      let flat$11 = unsafe_Sum_left# [Error] [Int]
-                    elem$gen$fact;
-      write flat$7 = left# [Error] [Bool]
-                     flat$11;
+      read [Mutable] [Bool] flat$3$simp$20 = flat$3$simp$17;
+      read [Mutable] [Error] flat$3$simp$21 = flat$3$simp$18;
+      read [Mutable] [Buf Int] flat$3$simp$22 = flat$3$simp$19;
+      write flat$0$simp$14 = flat$3$simp$20;
+      write flat$0$simp$15 = flat$3$simp$21;
+      write flat$0$simp$16 = flat$3$simp$22;
     } else {
-      let flat$12 = unsafe_Sum_right# [Error] [Int]
-                    elem$gen$fact;
-      let simp$7 = gt# [Int] flat$12
-                   (10 : Int);
-      write flat$7 = right# [Error] [Bool]
-                     simp$7;
+      write flat$0$simp$14 = False : Bool;
+      write flat$0$simp$15 = acc$conv$22$simp$12;
+      write flat$0$simp$16 = Buf 0 [] : Buf Int;
     }
-    read [Mutable] [(Sum Error Bool)] flat$7 = flat$7;
+    read [Mutable] [Bool] flat$0$simp$23 = flat$0$simp$14;
+    read [Mutable] [Error] flat$0$simp$24 = flat$0$simp$15;
+    read [Mutable] [Buf Int] flat$0$simp$25 = flat$0$simp$16;
+    write acc$conv$22$simp$8 = flat$0$simp$23;
+    write acc$conv$22$simp$9 = flat$0$simp$24;
+    write acc$conv$22$simp$10 = flat$0$simp$25;
+    init [Mutable] [Bool] flat$7$simp$26 = False : Bool;
+    init [Mutable] [Bool] flat$7$simp$28 = False : Bool;
+    if (gen$fact$simp$61$simp$63) {
+      let simp$7 = gt# [Int]
+                   gen$fact$simp$61$simp$65
+                   (10 : Int);
+      write flat$7$simp$26 = True : Bool;
+      write flat$7$simp$28 = simp$7;
+    } else {
+      write flat$7$simp$26 = False : Bool;
+      write flat$7$simp$28 = False : Bool;
+    }
+    read [Mutable] [Bool] flat$7$simp$29 = flat$7$simp$26;
+    read [Mutable] [Bool] flat$7$simp$31 = flat$7$simp$28;
     init [Mutable] [Bool] flat$8 = False : Bool;
-    if (Sum_isLeft# [Error] [Bool]
-        flat$7) {
-      write flat$8 = True : Bool;
+    if (flat$7$simp$29) {
+      write flat$8 = flat$7$simp$31;
     } 
      else {
-      let flat$10 = unsafe_Sum_right# [Error] [Bool]
-                    flat$7;
-      write flat$8 = flat$10;
-    }
+      write flat$8 = True : Bool;
+    } 
+    
     read [Mutable] [Bool] flat$8 = flat$8;
     if (flat$8) {
       read [Mutable] [Int] acc$c$conv$11 = acc$c$conv$11;
@@ -70,60 +83,74 @@ gen$date = DATE
     }
   }
   save_resumable [Int] acc$c$conv$11;
-  save_resumable [(Sum Error (Buf Int))] acc$conv$22;
+  save_resumable [Bool] acc$conv$22$simp$8;
+  save_resumable [Error] acc$conv$22$simp$9;
+  save_resumable [Buf Int] acc$conv$22$simp$10;
   read [Mutable] [Int] c$conv$11 = acc$c$conv$11;
-  read [Mutable] [(Sum Error (Buf Int))] conv$22 = acc$conv$22;
-  let conv$12 = right# [Error] [Int]
-                c$conv$11;
-  init [Mutable] [(Sum Error (Int, Array Int))] flat$13 = Left ExceptTombstone : (Sum Error (Int, Array Int));
-  if (Sum_isLeft# [Error] [Int]
-      conv$12) {
-    let flat$14 = unsafe_Sum_left# [Error] [Int]
-                  conv$12;
-    let conv$14 = left# [Error] [(Int, Array Int)]
-                  flat$14;
-    write flat$13 = conv$14;
-  } else {
-    let flat$15 = unsafe_Sum_right# [Error] [Int]
-                  conv$12;
-    init [Mutable] [(Sum Error (Array Int))] flat$16 = Left ExceptTombstone : (Sum Error (Array Int));
-    if (Sum_isLeft# [Error] [Buf Int]
-        conv$22) {
-      let flat$20 = unsafe_Sum_left# [Error] [Buf Int]
-                    conv$22;
-      write flat$16 = left# [Error] [Array Int]
-                      flat$20;
-    } else {
-      let flat$21 = unsafe_Sum_right# [Error] [Buf Int]
-                    conv$22;
+  read [Mutable] [Bool] conv$22$simp$32 = acc$conv$22$simp$8;
+  read [Mutable] [Error] conv$22$simp$33 = acc$conv$22$simp$9;
+  read [Mutable] [Buf Int] conv$22$simp$34 = acc$conv$22$simp$10;
+  init [Mutable] [Bool] flat$13$simp$35 = False : Bool;
+  init [Mutable] [Error] flat$13$simp$36 = ExceptTombstone : Error;
+  init [Mutable] [Int] flat$13$simp$37$simp$38 = 0 : Int;
+  init [Mutable] [Array Int] flat$13$simp$37$simp$39 = [] : Array Int;
+  if (True : Bool) {
+    init [Mutable] [Bool] flat$16$simp$40 = False : Bool;
+    init [Mutable] [Error] flat$16$simp$41 = ExceptTombstone : Error;
+    init [Mutable] [Array Int] flat$16$simp$42 = [] : Array Int;
+    if (conv$22$simp$32) {
       let flat$22 = Buf_read# [Int]
-                    flat$21;
-      write flat$16 = right# [Error] [Array Int]
-                      flat$22;
-    }
-    read [Mutable] [(Sum Error (Array Int))] flat$16 = flat$16;
-    init [Mutable] [(Sum Error (Int, Array Int))] flat$17 = Left ExceptTombstone : (Sum Error (Int, Array Int));
-    if (Sum_isLeft# [Error] [Array Int]
-        flat$16) {
-      let flat$18 = unsafe_Sum_left# [Error] [Array Int]
-                    flat$16;
-      let conv$25 = left# [Error] [(Int, Array Int)]
-                    flat$18;
-      write flat$17 = conv$25;
+                    conv$22$simp$34;
+      write flat$16$simp$40 = True : Bool;
+      write flat$16$simp$41 = ExceptTombstone : Error;
+      write flat$16$simp$42 = flat$22;
     } else {
-      let flat$19 = unsafe_Sum_right# [Error] [Array Int]
-                    flat$16;
-      let conv$27 = pair# [Int] [Array Int]
-                    flat$15 flat$19;
-      let conv$28 = right# [Error] [(Int, Array Int)]
-                    conv$27;
-      write flat$17 = conv$28;
+      write flat$16$simp$40 = False : Bool;
+      write flat$16$simp$41 = conv$22$simp$33;
+      write flat$16$simp$42 = [] : Array Int;
     }
-    read [Mutable] [(Sum Error (Int, Array Int))] flat$17 = flat$17;
-    write flat$13 = flat$17;
+    read [Mutable] [Bool] flat$16$simp$43 = flat$16$simp$40;
+    read [Mutable] [Error] flat$16$simp$44 = flat$16$simp$41;
+    read [Mutable] [Array Int] flat$16$simp$45 = flat$16$simp$42;
+    init [Mutable] [Bool] flat$17$simp$46 = False : Bool;
+    init [Mutable] [Error] flat$17$simp$47 = ExceptTombstone : Error;
+    init [Mutable] [Int] flat$17$simp$48$simp$49 = 0 : Int;
+    init [Mutable] [Array Int] flat$17$simp$48$simp$50 = [] : Array Int;
+    if (flat$16$simp$43) {
+      write flat$17$simp$46 = True : Bool;
+      write flat$17$simp$47 = ExceptTombstone : Error;
+      write flat$17$simp$48$simp$49 = c$conv$11;
+      write flat$17$simp$48$simp$50 = flat$16$simp$45;
+    } else {
+      write flat$17$simp$46 = False : Bool;
+      write flat$17$simp$47 = flat$16$simp$44;
+      write flat$17$simp$48$simp$49 = 0 : Int;
+      write flat$17$simp$48$simp$50 = [] : Array Int;
+    }
+    read [Mutable] [Bool] flat$17$simp$51 = flat$17$simp$46;
+    read [Mutable] [Error] flat$17$simp$52 = flat$17$simp$47;
+    read [Mutable] [Int] flat$17$simp$53$simp$54 = flat$17$simp$48$simp$49;
+    read [Mutable] [Array Int] flat$17$simp$53$simp$55 = flat$17$simp$48$simp$50;
+    write flat$13$simp$35 = flat$17$simp$51;
+    write flat$13$simp$36 = flat$17$simp$52;
+    write flat$13$simp$37$simp$38 = flat$17$simp$53$simp$54;
+    write flat$13$simp$37$simp$39 = flat$17$simp$53$simp$55;
+  } else {
+    write flat$13$simp$35 = False : Bool;
+    write flat$13$simp$36 = ExceptTombstone : Error;
+    write flat$13$simp$37$simp$38 = 0 : Int;
+    write flat$13$simp$37$simp$39 = [] : Array Int;
   }
-  read [Mutable] [(Sum Error (Int, Array Int))] flat$13 = flat$13;
-  output repl flat$13;
+  read [Mutable] [Bool] flat$13$simp$56 = flat$13$simp$35;
+  read [Mutable] [Error] flat$13$simp$57 = flat$13$simp$36;
+  read [Mutable] [Int] flat$13$simp$58$simp$59 = flat$13$simp$37$simp$38;
+  read [Mutable] [Array Int] flat$13$simp$58$simp$60 = flat$13$simp$37$simp$39;
+  let simp$183 = pair# [Int] [Array Int]
+                 flat$13$simp$58$simp$59
+                 flat$13$simp$58$simp$60;
+  output repl Sum_pack# [Error] [(Int, Array Int)]
+              flat$13$simp$56 flat$13$simp$57
+              simp$183;
 }
 
 - Core evaluation:
@@ -134,10 +161,14 @@ gen$date = DATE
 > - Flattened:
 gen$date = DATE
 {
-  init [Mutable] [(Sum Error (Map DateTime Int))] flat$1 = Right Map [] : (Sum Error (Map DateTime Int));
+  init [Mutable] [Bool] flat$1$simp$4 = True : Bool;
+  init [Mutable] [Error] flat$1$simp$5 = ExceptTombstone : Error;
+  init [Mutable] [Map DateTime Int] flat$1$simp$6 = Map [] : Map DateTime Int;
   foreach (flat$2 in 0 : Int..Map_length# [DateTime] [Buf ((Sum Error Int), DateTime)]
                               (Map [] : Map DateTime (Buf ((Sum Error Int), DateTime)))) {
-    read [Mutable] [(Sum Error (Map DateTime Int))] flat$1 = flat$1;
+    read [Mutable] [Bool] flat$1$simp$7 = flat$1$simp$4;
+    read [Mutable] [Error] flat$1$simp$8 = flat$1$simp$5;
+    read [Mutable] [Map DateTime Int] flat$1$simp$9 = flat$1$simp$6;
     let flat$3 = unsafe_Map_index# [DateTime] [Buf ((Sum Error Int), DateTime)]
                  (Map [] : Map DateTime (Buf ((Sum Error Int), DateTime)))
                  flat$2;
@@ -145,93 +176,121 @@ gen$date = DATE
                  flat$3;
     let flat$5 = snd# [DateTime] [Buf ((Sum Error Int), DateTime)]
                  flat$3;
-    init [Mutable] [(Sum Error (Map DateTime Int))] flat$6 = Left ExceptTombstone : (Sum Error (Map DateTime Int));
-    if (Sum_isLeft# [Error] [Map DateTime Int]
-        flat$1) {
-      let flat$7 = unsafe_Sum_left# [Error] [Map DateTime Int]
-                   flat$1;
-      write flat$6 = left# [Error] [Map DateTime Int]
-                     flat$7;
-    } else {
-      let flat$8 = unsafe_Sum_right# [Error] [Map DateTime Int]
-                   flat$1;
+    init [Mutable] [Bool] flat$6$simp$10 = False : Bool;
+    init [Mutable] [Error] flat$6$simp$11 = ExceptTombstone : Error;
+    init [Mutable] [Map DateTime Int] flat$6$simp$12 = Map [] : Map DateTime Int;
+    if (flat$1$simp$7) {
       let flat$9 = Buf_read# [((Sum Error Int), DateTime)]
                    flat$5;
-      init [Mutable] [(Sum Error Int)] flat$10$simp$5$simp$6 = Right 0 : (Sum Error Int);
+      init [Mutable] [Bool] flat$10$simp$14$simp$18$simp$20 = True : Bool;
+      init [Mutable] [Error] flat$10$simp$14$simp$18$simp$21 = ExceptTombstone : Error;
+      init [Mutable] [Int] flat$10$simp$14$simp$18$simp$22 = 0 : Int;
       foreach (flat$18 in 0 : Int..Array_length# [((Sum Error Int), DateTime)]
                                    flat$9) {
-        read [Mutable] [(Sum Error Int)] flat$10$simp$9$simp$10 = flat$10$simp$5$simp$6;
+        read [Mutable] [Bool] flat$10$simp$24$simp$28$simp$30 = flat$10$simp$14$simp$18$simp$20;
+        read [Mutable] [Error] flat$10$simp$24$simp$28$simp$31 = flat$10$simp$14$simp$18$simp$21;
+        read [Mutable] [Int] flat$10$simp$24$simp$28$simp$32 = flat$10$simp$14$simp$18$simp$22;
         let flat$19 = unsafe_Array_index# [((Sum Error Int), DateTime)]
                       flat$9 flat$18;
         let v$inline$0$conv$13 = fst# [(Sum Error Int)] [DateTime]
                                  flat$19;
-        init [Mutable] [(Sum Error Int)] flat$20 = Left ExceptTombstone : (Sum Error Int);
-        if (Sum_isLeft# [Error] [Int]
+        init [Mutable] [Bool] flat$20$simp$33 = False : Bool;
+        init [Mutable] [Error] flat$20$simp$34 = ExceptTombstone : Error;
+        init [Mutable] [Int] flat$20$simp$35 = 0 : Int;
+        if (Sum_isRight# [Error] [Int]
             v$inline$0$conv$13) {
-          let flat$21 = unsafe_Sum_left# [Error] [Int]
-                        v$inline$0$conv$13;
-          write flat$20 = left# [Error] [Int]
-                          flat$21;
-        } else {
           let flat$22 = unsafe_Sum_right# [Error] [Int]
                         v$inline$0$conv$13;
-          init [Mutable] [(Sum Error Int)] flat$23 = Left ExceptTombstone : (Sum Error Int);
-          if (Sum_isLeft# [Error] [Int]
-              flat$10$simp$9$simp$10) {
-            let flat$24 = unsafe_Sum_left# [Error] [Int]
-                          flat$10$simp$9$simp$10;
-            write flat$23 = left# [Error] [Int]
-                            flat$24;
+          init [Mutable] [Bool] flat$23$simp$36 = False : Bool;
+          init [Mutable] [Error] flat$23$simp$37 = ExceptTombstone : Error;
+          init [Mutable] [Int] flat$23$simp$38 = 0 : Int;
+          if (flat$10$simp$24$simp$28$simp$30) {
+            let simp$1 = add# [Int]
+                         flat$22
+                         flat$10$simp$24$simp$28$simp$32;
+            write flat$23$simp$36 = True : Bool;
+            write flat$23$simp$37 = ExceptTombstone : Error;
+            write flat$23$simp$38 = simp$1;
           } else {
-            let flat$25 = unsafe_Sum_right# [Error] [Int]
-                          flat$10$simp$9$simp$10;
-            let simp$1 = add# [Int] flat$22
-                         flat$25;
-            write flat$23 = right# [Error] [Int]
-                            simp$1;
+            write flat$23$simp$36 = False : Bool;
+            write flat$23$simp$37 = flat$10$simp$24$simp$28$simp$31;
+            write flat$23$simp$38 = 0 : Int;
           }
-          read [Mutable] [(Sum Error Int)] flat$23 = flat$23;
-          write flat$20 = flat$23;
+          read [Mutable] [Bool] flat$23$simp$39 = flat$23$simp$36;
+          read [Mutable] [Error] flat$23$simp$40 = flat$23$simp$37;
+          read [Mutable] [Int] flat$23$simp$41 = flat$23$simp$38;
+          write flat$20$simp$33 = flat$23$simp$39;
+          write flat$20$simp$34 = flat$23$simp$40;
+          write flat$20$simp$35 = flat$23$simp$41;
+        } else {
+          let flat$21 = unsafe_Sum_left# [Error] [Int]
+                        v$inline$0$conv$13;
+          write flat$20$simp$33 = False : Bool;
+          write flat$20$simp$34 = flat$21;
+          write flat$20$simp$35 = 0 : Int;
         }
-        read [Mutable] [(Sum Error Int)] flat$20 = flat$20;
-        write flat$10$simp$5$simp$6 = flat$20;
+        read [Mutable] [Bool] flat$20$simp$42 = flat$20$simp$33;
+        read [Mutable] [Error] flat$20$simp$43 = flat$20$simp$34;
+        read [Mutable] [Int] flat$20$simp$44 = flat$20$simp$35;
+        write flat$10$simp$14$simp$18$simp$20 = flat$20$simp$42;
+        write flat$10$simp$14$simp$18$simp$21 = flat$20$simp$43;
+        write flat$10$simp$14$simp$18$simp$22 = flat$20$simp$44;
       }
-      read [Mutable] [(Sum Error Int)] flat$10$simp$13$simp$14 = flat$10$simp$5$simp$6;
-      init [Mutable] [(Sum Error (Map DateTime Int))] flat$11 = Left ExceptTombstone : (Sum Error (Map DateTime Int));
-      if (Sum_isLeft# [Error] [Int]
-          flat$10$simp$13$simp$14) {
-        let flat$12 = unsafe_Sum_left# [Error] [Int]
-                      flat$10$simp$13$simp$14;
-        write flat$11 = left# [Error] [Map DateTime Int]
-                        flat$12;
-      } else {
-        let flat$13 = unsafe_Sum_right# [Error] [Int]
-                      flat$10$simp$13$simp$14;
+      read [Mutable] [Bool] flat$10$simp$46$simp$50$simp$52 = flat$10$simp$14$simp$18$simp$20;
+      read [Mutable] [Error] flat$10$simp$46$simp$50$simp$53 = flat$10$simp$14$simp$18$simp$21;
+      read [Mutable] [Int] flat$10$simp$46$simp$50$simp$54 = flat$10$simp$14$simp$18$simp$22;
+      init [Mutable] [Bool] flat$11$simp$55 = False : Bool;
+      init [Mutable] [Error] flat$11$simp$56 = ExceptTombstone : Error;
+      init [Mutable] [Map DateTime Int] flat$11$simp$57 = Map [] : Map DateTime Int;
+      if (flat$10$simp$46$simp$50$simp$52) {
         let flat$14 = Map_lookup# [DateTime] [Int]
-                      flat$8 flat$4;
+                      flat$1$simp$9 flat$4;
         if (Option_isSome# [Int]
             flat$14) {
           let flat$15 = unsafe_Option_get# [Int]
                         flat$14;
           let flat$16 = Map_put# [DateTime] [Int]
-                        flat$8 flat$4 flat$15;
-          write flat$11 = right# [Error] [Map DateTime Int]
-                          flat$16;
+                        flat$1$simp$9 flat$4 flat$15;
+          write flat$11$simp$55 = True : Bool;
+          write flat$11$simp$56 = ExceptTombstone : Error;
+          write flat$11$simp$57 = flat$16;
         } else {
           let flat$17 = Map_put# [DateTime] [Int]
-                        flat$8 flat$4 flat$13;
-          write flat$11 = right# [Error] [Map DateTime Int]
-                          flat$17;
+                        flat$1$simp$9 flat$4
+                        flat$10$simp$46$simp$50$simp$54;
+          write flat$11$simp$55 = True : Bool;
+          write flat$11$simp$56 = ExceptTombstone : Error;
+          write flat$11$simp$57 = flat$17;
         }
+      } else {
+        write flat$11$simp$55 = False : Bool;
+        write flat$11$simp$56 = flat$10$simp$46$simp$50$simp$53;
+        write flat$11$simp$57 = Map [] : Map DateTime Int;
       }
-      read [Mutable] [(Sum Error (Map DateTime Int))] flat$11 = flat$11;
-      write flat$6 = flat$11;
+      read [Mutable] [Bool] flat$11$simp$58 = flat$11$simp$55;
+      read [Mutable] [Error] flat$11$simp$59 = flat$11$simp$56;
+      read [Mutable] [Map DateTime Int] flat$11$simp$60 = flat$11$simp$57;
+      write flat$6$simp$10 = flat$11$simp$58;
+      write flat$6$simp$11 = flat$11$simp$59;
+      write flat$6$simp$12 = flat$11$simp$60;
+    } else {
+      write flat$6$simp$10 = False : Bool;
+      write flat$6$simp$11 = flat$1$simp$8;
+      write flat$6$simp$12 = Map [] : Map DateTime Int;
     }
-    read [Mutable] [(Sum Error (Map DateTime Int))] flat$6 = flat$6;
-    write flat$1 = flat$6;
+    read [Mutable] [Bool] flat$6$simp$61 = flat$6$simp$10;
+    read [Mutable] [Error] flat$6$simp$62 = flat$6$simp$11;
+    read [Mutable] [Map DateTime Int] flat$6$simp$63 = flat$6$simp$12;
+    write flat$1$simp$4 = flat$6$simp$61;
+    write flat$1$simp$5 = flat$6$simp$62;
+    write flat$1$simp$6 = flat$6$simp$63;
   }
-  read [Mutable] [(Sum Error (Map DateTime Int))] flat$1 = flat$1;
-  output repl flat$1;
+  read [Mutable] [Bool] flat$1$simp$64 = flat$1$simp$4;
+  read [Mutable] [Error] flat$1$simp$65 = flat$1$simp$5;
+  read [Mutable] [Map DateTime Int] flat$1$simp$66 = flat$1$simp$6;
+  output repl Sum_pack# [Error] [Map DateTime Int]
+              flat$1$simp$64 flat$1$simp$65
+              flat$1$simp$66;
 }
 
 - Core evaluation:
