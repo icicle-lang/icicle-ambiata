@@ -54,24 +54,24 @@ import           P
 
 --------------------------------------------------------------------------------
 
-data CompileError
+data CompileError a
  = CompileErrorParse   Parsec.ParseError
- | CompileErrorDesugar (STD.DesugarError Var)
- | CompileErrorCheck   (SC.CheckError Parsec.SourcePos Var)
- | CompileErrorConvert (STC.ConvertError Parsec.SourcePos Var)
+ | CompileErrorDesugar (STD.DesugarError a Var)
+ | CompileErrorCheck   (SC.CheckError a Var)
+ | CompileErrorConvert (STC.ConvertError a Var)
  | CompileErrorFlatten (AS.FlattenError () Text)
  | CompileErrorProgram (AC.ProgramError () Text APF.Prim)
  deriving (Show)
 
 
-annotOfError :: CompileError -> Maybe Parsec.SourcePos
+annotOfError :: CompileError Parsec.SourcePos -> Maybe Parsec.SourcePos
 annotOfError e
  = case e of
     CompileErrorParse sp
      -> Just
       $ Parsec.errorPos sp
-    CompileErrorDesugar _
-     -> Nothing
+    CompileErrorDesugar e'
+     -> STD.annotOfError e'
     CompileErrorCheck       e'
      -> SC.annotOfError  e'
     CompileErrorConvert     e'
@@ -81,7 +81,7 @@ annotOfError e
     CompileErrorProgram _
      -> Nothing
 
-instance Pretty CompileError where
+instance Pretty a => Pretty (CompileError a) where
  pretty e
   = case e of
      CompileErrorParse p
@@ -89,7 +89,7 @@ instance Pretty CompileError where
       <> indent 2 (text $ show p)
      CompileErrorDesugar d
       -> "Desugar error:" <> line
-      <> indent 2 (text $ show d)
+      <> indent 2 (pretty d)
      CompileErrorCheck ce
       -> "Check error:" <> line
       <> indent 2 (pretty ce)
@@ -116,30 +116,30 @@ type QueryTop'  = SQ.QueryTop Parsec.SourcePos Var
 type QueryTop'T = SQ.QueryTop AnnotT Var
 
 type Funs a  = [((a, Name SP.Variable), SQ.Function a SP.Variable)]
-type FunEnvT = M.Map ( Name Var)
-                     ( ST.FunctionType SP.Variable
-                     , SQ.Function AnnotT SP.Variable )
+type FunEnvT = [ ( Name Var
+                 , ( ST.FunctionType SP.Variable
+                   , SQ.Function AnnotT SP.Variable ) ) ]
 
 
-sourceParseQT :: Text -> Text -> Either CompileError QueryTop'
+sourceParseQT :: Text -> Text -> Either (CompileError Parsec.SourcePos) QueryTop'
 sourceParseQT base t
  = mapLeft CompileErrorParse
  $ SP.parseQueryTop (CommonBase.OutputName base) t
 
-sourceParseF :: Parsec.SourceName -> Text -> Either CompileError (Funs Parsec.SourcePos)
+sourceParseF :: Parsec.SourceName -> Text -> Either (CompileError Parsec.SourcePos) (Funs Parsec.SourcePos)
 sourceParseF env t
  = mapLeft CompileErrorParse
  $ SP.parseFunctions env t
 
 
-sourceDesugarQT :: QueryTop' -> Either CompileError QueryTop'
+sourceDesugarQT :: QueryTop' -> Either (CompileError Parsec.SourcePos) QueryTop'
 sourceDesugarQT q
  = runIdentity . runEitherT . bimapEitherT CompileErrorDesugar snd
  $ Fresh.runFreshT
      (STD.desugarQT q)
      (freshNamer "desugar_q")
 
-sourceDesugarF :: Pretty a => Funs a -> Either CompileError (Funs a)
+sourceDesugarF :: Funs Parsec.SourcePos -> Either (CompileError Parsec.SourcePos) (Funs Parsec.SourcePos)
 sourceDesugarF fun
  = runIdentity . runEitherT . bimapEitherT CompileErrorDesugar snd
  $ Fresh.runFreshT
@@ -156,7 +156,7 @@ sourceReifyQT q
      (freshNamer "reify")
 
 
-sourceCheckQT :: D.Dictionary -> QueryTop' -> Either CompileError (QueryTop'T, ST.Type Var)
+sourceCheckQT :: D.Dictionary -> QueryTop' -> Either (CompileError Parsec.SourcePos) (QueryTop'T, ST.Type Var)
 sourceCheckQT d q
  = let d' = D.featureMapOfDictionary d
    in  mapLeft CompileErrorCheck
@@ -165,16 +165,16 @@ sourceCheckQT d q
      $ runEitherT
      $ SC.checkQT d' q
 
-sourceCheckF :: Funs Parsec.SourcePos -> Either CompileError FunEnvT
-sourceCheckF parsedImport
+sourceCheckF :: FunEnvT -> Funs Parsec.SourcePos -> Either (CompileError Parsec.SourcePos) FunEnvT
+sourceCheckF env parsedImport
  = mapLeft CompileErrorCheck
  $ snd
  $ flip Fresh.runFresh (freshNamer "check")
  $ runEitherT
- $ SC.checkFs M.empty parsedImport
+ $ SC.checkFs env parsedImport
 
 
-sourceConvert :: D.Dictionary -> QueryTop'T -> Either CompileError Program'
+sourceConvert :: D.Dictionary -> QueryTop'T -> Either (CompileError Parsec.SourcePos) Program'
 sourceConvert d q
  = mapRight snd
  $ mapLeft CompileErrorConvert conv
@@ -191,12 +191,12 @@ sourceInline d q
  $ inline q
  where
   funs      = M.map snd
+            $ M.fromList
             $ D.dictionaryFunctions d
   inline q' = snd
             $ Fresh.runFresh
                 (STI.inlineQT funs q')
                 (freshNamer "inline")
-
 
 coreSimp :: Program' -> Program'
 coreSimp p

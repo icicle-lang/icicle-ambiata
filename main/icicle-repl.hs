@@ -13,8 +13,7 @@ import           Control.Monad.Trans.Either
 import           Control.Monad.IO.Class
 import           Data.Either.Combinators
 import           Data.Monoid
-import           Data.List                            (words, replicate)
-import qualified Data.Map                             as Map
+import           Data.List                            (words, replicate, nubBy)
 import           Data.String                          (String, lines)
 import           Data.Text                            (Text)
 import qualified Data.Text                            as T
@@ -251,7 +250,7 @@ handleLine state line = case readCommand line of
     case s of
       Left e   -> prettyHL e >> return state
       Right d -> do
-        HL.outputStrLn $ "ok, loaded dictionary with " <> show (length $ dictionaryEntries d) <> " features and " <> show (Map.size $ dictionaryFunctions d) <> " functions"
+        HL.outputStrLn $ "ok, loaded dictionary with " <> show (length $ dictionaryEntries d) <> " features and " <> show (length $ dictionaryFunctions d) <> " functions"
         return $ state { dictionary = d }
 
   Just (CommandImportLibrary fp) -> do
@@ -259,10 +258,10 @@ handleLine state line = case readCommand line of
     case SR.readIcicleLibrary fp s of
       Left e   -> prettyHL e >> return state
       Right is -> do
-        HL.outputStrLn $ "ok, loaded " <> show (Map.size is) <> " functions from " <> fp
+        HL.outputStrLn $ "ok, loaded " <> show (length is) <> " functions from " <> fp
         let d = dictionary state
         -- Merge in the new functions with new functions taking precedence over existing ones
-        let f = Map.union is (dictionaryFunctions d)
+        let f = nubBy ((==) `on` fst) $ is <> (dictionaryFunctions d)
         return $ state { dictionary = d { dictionaryFunctions = f } }
 
   Just (CommandComment comment) -> do

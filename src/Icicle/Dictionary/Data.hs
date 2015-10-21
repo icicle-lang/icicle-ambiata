@@ -41,10 +41,9 @@ import           P
 data Dictionary =
   Dictionary
   { dictionaryEntries   :: [DictionaryEntry]
-  , dictionaryFunctions :: Map.Map
-                            (Name Variable)
-                            ( ST.FunctionType Variable
-                            , Function (ST.Annot SourcePos Variable) Variable)}
+  , dictionaryFunctions :: [ (Name Variable
+                           , ( ST.FunctionType Variable
+                             , Function (ST.Annot SourcePos Variable) Variable)) ] }
   deriving (Eq, Show)
 
 data DictionaryEntry =
@@ -97,7 +96,7 @@ featureMapOfDictionary :: Dictionary -> STC.Features () Variable
 featureMapOfDictionary (Dictionary { dictionaryEntries = ds, dictionaryFunctions = functions })
  = STC.Features
  (Map.fromList $ concatMap go ds)
- (Map.map fst functions)
+ (Map.fromList $ fmap (\(a,(b,_)) -> (a,b)) functions)
  (Just $ var "now")
  where
   go (DictionaryEntry (Attribute attr) (ConcreteDefinition enc _))
@@ -162,14 +161,12 @@ featureMapOfDictionary (Dictionary { dictionaryEntries = ds, dictionaryFunctions
 
   var = Name . Variable
 
-
-
 prettyDictionarySummary :: Dictionary -> Doc
 prettyDictionarySummary dict
  = "Dictionary" <> line
  <> indent 2
  (  "Functions" <> line
- <> indent 2 (vcat $ fmap pprFun $ Map.toList $ dictionaryFunctions dict)
+ <> indent 2 (vcat $ fmap pprFun $ dictionaryFunctions dict)
  <> line
  <> "Features" <> line
  <> indent 2 (vcat $ fmap pprEntry $ dictionaryEntries dict))

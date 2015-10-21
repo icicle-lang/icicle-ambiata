@@ -26,7 +26,6 @@ import           System.FilePath
 import           System.IO
 
 import           Data.Either.Combinators
-import qualified Data.Map                                      as M
 import qualified Data.Set                                      as S
 import qualified Data.Text                                     as T
 import qualified Data.Text.IO                                  as T
@@ -36,27 +35,26 @@ import qualified Text.Parsec                                   as Parsec
 import           P
 
 
-
 data DictionaryImportError
   = DictionaryErrorIO         E.SomeException
   | DictionaryErrorParsecTOML Parsec.ParseError
-  | DictionaryErrorParsecFunc P.CompileError
+  | DictionaryErrorParsecFunc (P.CompileError Parsec.SourcePos)
   | DictionaryErrorParse      [DictionaryValidationError]
-  | DictionaryErrorCheck      P.CompileError
-  | DictionaryErrorTransform  P.CompileError
+  | DictionaryErrorCheck      (P.CompileError Parsec.SourcePos)
+  | DictionaryErrorTransform  (P.CompileError Parsec.SourcePos)
   deriving (Show)
 
 type Funs a  = [((a, Name SP.Variable), SQ.Function a SP.Variable)]
-type FunEnvT = M.Map ( Name SP.Variable)
-                     ( ST.FunctionType SP.Variable
-                     , SQ.Function (ST.Annot Parsec.SourcePos SP.Variable) SP.Variable )
+type FunEnvT = [ ( Name SP.Variable
+                 , ( ST.FunctionType SP.Variable
+                   , SQ.Function (ST.Annot Parsec.SourcePos SP.Variable) SP.Variable ) ) ]
 
 
 -- Top level IO function which loads all dictionaries and imports
 loadDictionary :: FilePath
   -> EitherT DictionaryImportError IO Dictionary
 loadDictionary dictionary
- = loadDictionary' M.empty mempty [] dictionary
+ = loadDictionary' [] mempty [] dictionary
 
 loadDictionary'
   :: FunEnvT
@@ -85,20 +83,25 @@ loadDictionary' parentFuncs parentConf parentConcrete fp
   parsedImports     <- parseImports conf rp
   importedFunctions <- loadImports parentFuncs parsedImports
 
+  -- Functions available for virtual features, and visible in sub-dictionaries.
+  let availableFunctions = parentFuncs <> importedFunctions
+
   let concreteDefinitions = foldr remakeConcrete [] definitions'
   let virtualDefinitions' = foldr remakeVirtuals [] definitions'
 
-  let d' = Dictionary (concreteDefinitions <> parentConcrete) importedFunctions
+  let d' = Dictionary (concreteDefinitions <> parentConcrete) availableFunctions
 
   virtualDefinitions <- checkDefs d' virtualDefinitions'
 
   loadedChapters
     <- (\fp' ->
-         loadDictionary' importedFunctions conf concreteDefinitions (rp </> (T.unpack fp'))
+         loadDictionary' availableFunctions conf concreteDefinitions (rp </> (T.unpack fp'))
        ) `traverse` (chapter conf)
 
-  -- Dictionary functions should take precedence over imported functions
-  let functions = M.unions $ (dictionaryFunctions <$> loadedChapters) <> [importedFunctions]
+  -- Dictionaries loaded after one another can see the functions of previous dictionaries. So sub-dictionaries imports can use
+  -- prelude functions. Export the dictionaries loaded here, and in sub dictionaries (but not parent functions, as the parent
+  -- already knows about those).
+  let functions = join $ [importedFunctions] <> (dictionaryFunctions <$> loadedChapters)
   let totaldefinitions = concreteDefinitions <> virtualDefinitions <> (join $ dictionaryEntries <$> loadedChapters)
 
   pure $ Dictionary totaldefinitions functions
@@ -135,11 +138,13 @@ loadImports
   -> EitherT DictionaryImportError IO FunEnvT
 loadImports parentFuncs parsedImports
  = hoistEither . mapLeft DictionaryErrorCheck
- $ foldlM go parentFuncs parsedImports
+ $ foldlM (go parentFuncs) [] parsedImports
  where
-  go env f
-   = do f' <- P.sourceDesugarF f >>= P.sourceCheckF
-        return $ M.union f' env
+  go env acc f
+   = do -- Run desugar to ensure pattern matches are complete.
+        _  <- P.sourceDesugarF f
+        f' <- P.sourceCheckF (env <> acc) f
+        return $ acc <> f'
 
 checkDefs
   :: Dictionary
@@ -150,10 +155,7 @@ checkDefs d defs
  where
   go (a, q)
    = do  (checked, _)  <- check' d q
-         let inlined    = P.sourceInline d checked
-         blanded       <- hoistEither . mapLeft DictionaryErrorTransform $ P.sourceDesugarQT inlined
-         (checked', _) <- check' d blanded
-         pure $ DictionaryEntry a (VirtualDefinition (Virtual checked'))
+         pure $ DictionaryEntry a (VirtualDefinition (Virtual checked))
   check' d'
    = hoistEither . mapLeft DictionaryErrorCheck . P.sourceCheckQT d'
 
