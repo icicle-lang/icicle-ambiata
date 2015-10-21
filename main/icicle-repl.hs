@@ -33,7 +33,6 @@ import qualified Icicle.Avalanche.ToJava              as AJ
 import qualified Icicle.Common.Annot                  as C
 import qualified Icicle.Common.Base                   as CommonBase
 import qualified Icicle.Core.Program.Check            as CP
-import qualified Icicle.Core.Program.Program          as CP
 import           Icicle.Data
 import           Icicle.Data.DateTime
 import           Icicle.Dictionary
@@ -45,7 +44,6 @@ import qualified Icicle.Simulator                     as S
 import qualified Icicle.Source.Parser                 as SP
 import qualified Icicle.Source.PrettyAnnot            as SPretty
 import qualified Icicle.Source.Query                  as SQ
-import qualified Icicle.Source.Type                   as ST
 
 
 import           P
@@ -422,8 +420,6 @@ handleSetCommand state set
 
 --------------------------------------------------------------------------------
 
-type QueryTopPUV = SQ.QueryTop (ST.Annot SP.SourcePos SP.Variable) SP.Variable
-type ProgramT    = CP.Program () Text
 newtype Result   = Result (Entity, Value)
 
 instance PP.Pretty Result where
@@ -433,7 +429,7 @@ instance PP.Pretty Result where
 unVar :: SP.Variable -> Text
 unVar (SP.Variable t)  = t
 
-coreEval :: DateTime -> [AsAt Fact] -> QueryTopPUV -> ProgramT
+coreEval :: DateTime -> [AsAt Fact] -> SR.QueryTop'T -> SR.ProgramT
          -> Either SR.ReplError [Result]
 coreEval d fs (renameQT unVar -> query) prog
  = do let partitions = S.streams fs
@@ -460,7 +456,7 @@ coreEval d fs (renameQT unVar -> query) prog
 
 seaEval :: DateTime
         -> [AsAt Fact]
-        -> QueryTopPUV
+        -> SR.QueryTop'T
         -> AP.Program (C.Annot ()) Text APF.Prim
         -> EitherT Sea.SeaError IO [(Entity, Value)]
 seaEval date newFacts (renameQT unVar -> query) program =

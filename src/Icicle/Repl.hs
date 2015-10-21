@@ -3,6 +3,7 @@
 
 module Icicle.Repl (
     ReplError (..)
+  , P.QueryTop', P.QueryTop'T, P.Program', P.ProgramT
   , annotOfError
   , sourceParse
   , sourceDesugar
@@ -117,7 +118,7 @@ sourceDesugar = mapLeft ReplErrorCompileCore . P.sourceDesugarQT
 sourceReify :: P.QueryTop'T -> P.QueryTop'T
 sourceReify = P.sourceReifyQT
 
-sourceCheck :: D.Dictionary -> P.QueryTop' -> Either ReplError (P.QueryTop'T, ST.Type SP.Variable)
+sourceCheck :: D.Dictionary -> P.QueryTop' -> Either ReplError (P.QueryTop'T, ST.Type Var)
 sourceCheck d
  = mapLeft ReplErrorCompileCore . P.sourceCheckQT d
 

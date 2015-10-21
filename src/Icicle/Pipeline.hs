@@ -130,8 +130,8 @@ type QueryTop'T = SQ.QueryTop (AnnotT Parsec.SourcePos) Var
 
 type Funs a b = [((a, Name b), SQ.Function a b)]
 type FunEnvT a b = [ ( Name b
-                 , ( ST.FunctionType b
-                   , SQ.Function (AnnotT a) b ) ) ]
+                   , ( ST.FunctionType b
+                     , SQ.Function (AnnotT a) b )) ]
 
 
 sourceParseQT :: Text -> Text -> Either (CompileError Parsec.SourcePos Var ()) QueryTop'
