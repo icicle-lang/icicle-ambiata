@@ -32,14 +32,14 @@ import           P
 data DesugarError a n
  = DesugarErrorNoAlternative a (Pattern n) -- ^ we generated a pattern that cannot be matched
                                            --   with any alternative.
- | DesugarErrorImpossible                  -- ^ just impossible, the world has ended.
+ | DesugarErrorImpossible a                -- ^ just impossible, the world has ended.
  | DesugarOverlappingPattern a (Pattern n) -- ^ duh
  | DesugarIllTypedPatterns   a [Pattern n] -- ^ patterns use constructors from different types
  deriving (Eq, Show)
 
 instance (Pretty a, Pretty n) => Pretty (DesugarError a n) where
   pretty (DesugarErrorNoAlternative a n) = "Missing alternative:" <+> pretty n <+> "at" <+> pretty a
-  pretty (DesugarErrorImpossible)        = "Impossible desugar error."
+  pretty (DesugarErrorImpossible a)      = "Impossible desugar error" <+> "at" <+> pretty a
   pretty (DesugarOverlappingPattern a x) = "Overlapping pattern:" <+> pretty x <+> "at" <+> pretty a
   pretty (DesugarIllTypedPatterns a xs)  = "Illtyped patterns:"   <+> align (vcat (pretty <$> xs)) <> line <> "at" <+> pretty a
 
@@ -377,7 +377,7 @@ treeToCase ann patalts tree
    patternToExp (PatVariable v)
     = right $ Var ann v
    patternToExp PatDefault
-    = left DesugarErrorImpossible -- we never generate default patterns.
+    = left $ DesugarErrorImpossible ann -- we never generate default patterns.
 
 -- "Unify" the generated pattern and a user-supplied pattern.
 -- Return a list of substitutions if success. This is necessary in case the
