@@ -59,8 +59,8 @@ import           System.IO
 import qualified Text.ParserCombinators.Parsec    as Parsec
 
 data ReplError
- = ReplErrorCompileCore      (P.CompileError Parsec.SourcePos SP.Variable)
- | ReplErrorCompileAvalanche (P.CompileError () Text)
+ = ReplErrorCompileCore      (P.CompileError Parsec.SourcePos SP.Variable ())
+ | ReplErrorCompileAvalanche (P.CompileError () Text APF.Prim)
  | ReplErrorRuntime          (S.SimulateError ())
  | ReplErrorDictionaryLoad   DictionaryToml.DictionaryImportError
  | ReplErrorDecode           S.ParseError
