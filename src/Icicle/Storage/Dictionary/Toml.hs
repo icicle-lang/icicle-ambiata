@@ -38,10 +38,10 @@ import           P
 data DictionaryImportError
   = DictionaryErrorIO         E.SomeException
   | DictionaryErrorParsecTOML Parsec.ParseError
-  | DictionaryErrorParsecFunc (P.CompileError Parsec.SourcePos)
+  | DictionaryErrorParsecFunc (P.CompileError Parsec.SourcePos SP.Variable)
   | DictionaryErrorParse      [DictionaryValidationError]
-  | DictionaryErrorCheck      (P.CompileError Parsec.SourcePos)
-  | DictionaryErrorTransform  (P.CompileError Parsec.SourcePos)
+  | DictionaryErrorCheck      (P.CompileError Parsec.SourcePos SP.Variable)
+  | DictionaryErrorTransform  (P.CompileError Parsec.SourcePos SP.Variable)
   deriving (Show)
 
 type Funs a  = [((a, Name SP.Variable), SQ.Function a SP.Variable)]

@@ -59,17 +59,20 @@ import           System.IO
 import qualified Text.ParserCombinators.Parsec    as Parsec
 
 data ReplError
- = ReplErrorCompile        (P.CompileError Parsec.SourcePos)
- | ReplErrorRuntime        (S.SimulateError ())
- | ReplErrorDictionaryLoad DictionaryToml.DictionaryImportError
- | ReplErrorDecode         S.ParseError
+ = ReplErrorCompileCore      (P.CompileError Parsec.SourcePos SP.Variable)
+ | ReplErrorCompileAvalanche (P.CompileError () Text)
+ | ReplErrorRuntime          (S.SimulateError ())
+ | ReplErrorDictionaryLoad   DictionaryToml.DictionaryImportError
+ | ReplErrorDecode           S.ParseError
  deriving (Show)
 
 annotOfError :: ReplError -> Maybe Parsec.SourcePos
 annotOfError e
  = case e of
-    ReplErrorCompile d
+    ReplErrorCompileCore d
      -> P.annotOfError d
+    ReplErrorCompileAvalanche _
+     -> Nothing
     ReplErrorRuntime _
      -> Nothing
     ReplErrorDictionaryLoad _
@@ -80,7 +83,9 @@ annotOfError e
 instance Pretty ReplError where
  pretty e
   = case e of
-     ReplErrorCompile d
+     ReplErrorCompileCore d
+      -> pretty d
+     ReplErrorCompileAvalanche d
       -> pretty d
      ReplErrorRuntime d
       -> "Runtime error:" <> line
@@ -104,30 +109,30 @@ data DictionaryLoadType
 -- * Check and Convert
 
 sourceParse :: Text -> Either ReplError P.QueryTop'
-sourceParse = mapLeft ReplErrorCompile . P.sourceParseQT "repl"
+sourceParse = mapLeft ReplErrorCompileCore . P.sourceParseQT "repl"
 
 sourceDesugar :: P.QueryTop' -> Either ReplError P.QueryTop'
-sourceDesugar = mapLeft ReplErrorCompile . P.sourceDesugarQT
+sourceDesugar = mapLeft ReplErrorCompileCore . P.sourceDesugarQT
 
 sourceReify :: P.QueryTop'T -> P.QueryTop'T
 sourceReify = P.sourceReifyQT
 
 sourceCheck :: D.Dictionary -> P.QueryTop' -> Either ReplError (P.QueryTop'T, ST.Type SP.Variable)
 sourceCheck d
- = mapLeft ReplErrorCompile . P.sourceCheckQT d
+ = mapLeft ReplErrorCompileCore . P.sourceCheckQT d
 
 sourceConvert :: D.Dictionary -> P.QueryTop'T -> Either ReplError P.Program'
 sourceConvert d
- = mapLeft ReplErrorCompile . P.sourceConvert d
+ = mapLeft ReplErrorCompileCore . P.sourceConvert d
 
 coreFlatten :: P.ProgramT -> Either ReplError (AP.Program () Text APF.Prim)
 coreFlatten
- = mapLeft ReplErrorCompile . P.coreFlatten
+ = mapLeft ReplErrorCompileAvalanche . P.coreFlatten
 
 checkAvalanche :: AP.Program () Text APF.Prim
                -> Either ReplError (AP.Program (CommonAnnotation.Annot ()) Text APF.Prim)
 checkAvalanche
- = mapLeft ReplErrorCompile . P.checkAvalanche
+ = mapLeft ReplErrorCompileAvalanche . P.checkAvalanche
 
 readFacts :: D.Dictionary -> Text -> Either ReplError [AsAt Fact]
 readFacts dict raw
@@ -157,8 +162,8 @@ readIcicleLibrary
             , ( ST.FunctionType Var
               , SQ.Function (ST.Annot Parsec.SourcePos Var) Var)) ]
 readIcicleLibrary source input
- = do input' <- mapLeft (ReplErrorCompile . P.CompileErrorParse) $ SP.parseFunctions source input
-      mapLeft (ReplErrorCompile . P.CompileErrorCheck)
+ = do input' <- mapLeft (ReplErrorCompileCore . P.CompileErrorParse) $ SP.parseFunctions source input
+      mapLeft (ReplErrorCompileCore . P.CompileErrorCheck)
              $ snd
              $ flip Fresh.runFresh (P.freshNamer "repl")
              $ runEitherT
