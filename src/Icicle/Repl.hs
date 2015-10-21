@@ -9,6 +9,11 @@ module Icicle.Repl (
   , sourceReify
   , sourceCheck
   , sourceConvert
+  , checkAvalanche
+  , P.coreAvalanche
+  , coreFlatten
+  , P.simpAvalanche
+  , P.simpFlattened
   , P.sourceInline
   , P.coreSimp
   , readFacts
@@ -18,7 +23,11 @@ module Icicle.Repl (
   , loadDictionary
   ) where
 
+import qualified Icicle.Avalanche.Program         as AP
+import qualified Icicle.Avalanche.Prim.Flat       as APF
+
 import qualified Icicle.Common.Base               as CommonBase
+import qualified Icicle.Common.Annot              as CommonAnnotation
 import qualified Icicle.Common.Fresh              as Fresh
 import           Icicle.Data
 import qualified Icicle.Dictionary                as D
@@ -100,8 +109,8 @@ sourceParse = mapLeft ReplErrorCompile . P.sourceParseQT "repl"
 sourceDesugar :: P.QueryTop' -> Either ReplError P.QueryTop'
 sourceDesugar = mapLeft ReplErrorCompile . P.sourceDesugarQT
 
-sourceReify :: P.QueryTop'T -> Either ReplError P.QueryTop'T
-sourceReify = return . P.sourceReifyQT
+sourceReify :: P.QueryTop'T -> P.QueryTop'T
+sourceReify = P.sourceReifyQT
 
 sourceCheck :: D.Dictionary -> P.QueryTop' -> Either ReplError (P.QueryTop'T, ST.Type SP.Variable)
 sourceCheck d
@@ -110,6 +119,15 @@ sourceCheck d
 sourceConvert :: D.Dictionary -> P.QueryTop'T -> Either ReplError P.Program'
 sourceConvert d
  = mapLeft ReplErrorCompile . P.sourceConvert d
+
+coreFlatten :: P.ProgramT -> Either ReplError (AP.Program () Text APF.Prim)
+coreFlatten
+ = mapLeft ReplErrorCompile . P.coreFlatten
+
+checkAvalanche :: AP.Program () Text APF.Prim
+               -> Either ReplError (AP.Program (CommonAnnotation.Annot ()) Text APF.Prim)
+checkAvalanche
+ = mapLeft ReplErrorCompile . P.checkAvalanche
 
 readFacts :: D.Dictionary -> Text -> Either ReplError [AsAt Fact]
 readFacts dict raw

@@ -2,7 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Icicle.Pipeline
   ( CompileError(..)
-  , QueryTop', QueryTop'T, Program'
+  , QueryTop', QueryTop'T, Program', ProgramT
   , annotOfError
   , sourceParseQT
   , sourceParseF
@@ -14,18 +14,29 @@ module Icicle.Pipeline
   , sourceConvert
   , sourceInline
   , coreSimp
+  , coreFlatten
+  , checkAvalanche
+  , coreAvalanche
+  , simpAvalanche
+  , simpFlattened
   , freshNamer
   ) where
 
+import qualified Icicle.Avalanche.FromCore                as AC
 import qualified Icicle.Avalanche.Check                   as AC
 import qualified Icicle.Avalanche.Prim.Flat               as APF
+import qualified Icicle.Avalanche.Program                 as AP
+import qualified Icicle.Avalanche.Simp                    as AS
 import qualified Icicle.Avalanche.Statement.Flatten       as AS
 import           Icicle.Common.Base                       (Name)
 import qualified Icicle.Common.Base                       as CommonBase
+import qualified Icicle.Common.Annot                      as CommonAnnotation
 import qualified Icicle.Common.Fresh                      as Fresh
 import qualified Icicle.Core.Program.Condense             as Core
 import qualified Icicle.Core.Program.Program              as Core
 import qualified Icicle.Core.Program.Simp                 as Core
+import qualified Icicle.Core.Exp.Prim                     as Core
+
 import qualified Icicle.Dictionary                        as D
 import           Icicle.Internal.Pretty
 import qualified Icicle.Source.Checker                    as SC
@@ -111,6 +122,7 @@ type Var        = SP.Variable
 type AnnotT     = ST.Annot Parsec.SourcePos Var
 
 type Program'   = Core.Program () Var
+type ProgramT   = Core.Program () Text
 
 type QueryTop'  = SQ.QueryTop Parsec.SourcePos Var
 type QueryTop'T = SQ.QueryTop AnnotT Var
@@ -197,6 +209,39 @@ sourceInline d q
             $ Fresh.runFresh
                 (STI.inlineQT funs q')
                 (freshNamer "inline")
+
+coreFlatten :: ProgramT -> Either (CompileError a) (AP.Program () Text APF.Prim)
+coreFlatten prog
+ = let av = coreAvalanche prog
+       ns = Fresh.counterPrefixNameState (T.pack . show) "flat"
+   in   mapLeft  CompileErrorFlatten
+      . mapRight simpFlattened
+      . mapRight (\(_,s') -> av { AP.statements = s' })
+      $ Fresh.runFreshT (AS.flatten () $ AP.statements av) ns
+
+checkAvalanche :: AP.Program () Text APF.Prim
+               -> Either (CompileError a) (AP.Program (CommonAnnotation.Annot ()) Text APF.Prim)
+checkAvalanche prog
+ = mapLeft CompileErrorProgram
+ $ AC.checkProgram APF.flatFragment prog
+
+coreAvalanche :: ProgramT -> AP.Program () Text Core.Prim
+coreAvalanche prog
+ = simpAvalanche
+ $ AC.programFromCore (AC.namerText id) prog
+
+simpAvalanche :: (Eq p, Show p) => AP.Program () Text p -> AP.Program () Text p
+simpAvalanche av
+ = let simp = AS.simpAvalanche () av
+       name = Fresh.counterPrefixNameState (T.pack . show) "anf"
+   in  snd $ Fresh.runFresh simp name
+
+simpFlattened :: AP.Program () Text APF.Prim -> AP.Program () Text APF.Prim
+simpFlattened av
+ = let simp = AS.simpFlattened () av
+       name = Fresh.counterPrefixNameState (T.pack . show) "simp"
+   in  snd $ Fresh.runFresh (simp >>= AS.simpFlattened ()) name
+
 
 coreSimp :: Program' -> Program'
 coreSimp p

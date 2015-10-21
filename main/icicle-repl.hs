@@ -27,25 +27,18 @@ import           System.IO
 import qualified Icicle.Internal.Pretty               as PP
 import qualified Text.ParserCombinators.Parsec        as Parsec
 
-import qualified Icicle.Avalanche.FromCore            as AC
-import qualified Icicle.Avalanche.Check               as AC
 import qualified Icicle.Avalanche.Prim.Flat           as APF
 import qualified Icicle.Avalanche.Program             as AP
-import qualified Icicle.Avalanche.Simp                as AS
-import qualified Icicle.Avalanche.Statement.Flatten   as AF
 import qualified Icicle.Avalanche.ToJava              as AJ
 import qualified Icicle.Common.Annot                  as C
 import qualified Icicle.Common.Base                   as CommonBase
-import qualified Icicle.Common.Fresh                  as F
 import qualified Icicle.Core.Program.Check            as CP
 import qualified Icicle.Core.Program.Program          as CP
-import qualified Icicle.Core.Exp.Prim                 as CP
 import           Icicle.Data
 import           Icicle.Data.DateTime
 import           Icicle.Dictionary
 import           Icicle.Internal.Rename
 import qualified Icicle.Repl                          as SR
-import qualified Icicle.Pipeline                      as SP
 import qualified Icicle.Sea.Eval                      as Sea
 import qualified Icicle.Sea.FromAvalanche             as Sea
 import qualified Icicle.Simulator                     as S
@@ -300,7 +293,7 @@ handleLine state line = case readCommand line of
       prettyOut hasInlined "- Annotated desugar:" (SPretty.PrettyAnnot annobland)
 
 
-      reified        <- hoist $ SR.sourceReify annobland
+      let reified       = SR.sourceReify annobland
       prettyOut hasInlined "- Reified:"                      reified
       prettyOut hasInlined "- Reified:" (SPretty.PrettyAnnot reified)
       let finalSource   = reified
@@ -318,15 +311,15 @@ handleLine state line = case readCommand line of
        Left  e -> prettyOut (const True) "- Core type error:" e
        Right t -> prettyOut hasCoreType "- Core type:" t
 
-      prettyOut hasAvalanche "- Avalanche:" (coreAvalanche core')
+      prettyOut hasAvalanche "- Avalanche:" (SR.coreAvalanche core')
 
-      let flat = coreFlatten core'
+      let flat = SR.coreFlatten core'
       case flat of
        Left  e -> prettyOut (const True) "- Flatten error:" e
        Right f -> do
         prettyOut hasFlatten "- Flattened:" f
 
-        let flatChecked = checkAvalanche (simpAvalanche f)
+        let flatChecked = SR.checkAvalanche (SR.simpAvalanche f)
         case flatChecked of
          Left  e  -> prettyOut (const True) "- Avalanche type error:" e
          Right f' -> do
@@ -490,40 +483,6 @@ seaEval date newFacts (renameQT unVar -> query) program =
 
       | otherwise
       = return []
-
--- | Converts Core to Avalanche then flattens the result.
---
-coreFlatten :: ProgramT -> Either SR.ReplError (AP.Program () Text APF.Prim)
-coreFlatten prog
- = let av = coreAvalanche prog
-       ns = F.counterPrefixNameState (T.pack . show) "flat"
-   in   mapLeft  (SR.ReplErrorCompile . SP.CompileErrorFlatten)
-      . mapRight simpFlattened
-      . mapRight (\(_,s') -> av { AP.statements = s' })
-      $ F.runFreshT (AF.flatten () $ AP.statements av) ns
-
-checkAvalanche :: AP.Program () Text APF.Prim
-               -> Either SR.ReplError (AP.Program (C.Annot ()) Text APF.Prim)
-checkAvalanche prog
- = mapLeft (SR.ReplErrorCompile . SP.CompileErrorProgram)
- $ AC.checkProgram APF.flatFragment prog
-
-coreAvalanche :: ProgramT -> AP.Program () Text CP.Prim
-coreAvalanche prog
- = simpAvalanche
- $ AC.programFromCore (AC.namerText id) prog
-
-simpAvalanche :: (Eq p, Show p) => AP.Program () Text p -> AP.Program () Text p
-simpAvalanche av
- = let simp = AS.simpAvalanche () av
-       name = F.counterPrefixNameState (T.pack . show) "anf"
-   in  snd $ F.runFresh simp name
-
-simpFlattened :: AP.Program () Text APF.Prim -> AP.Program () Text APF.Prim
-simpFlattened av
- = let simp = AS.simpFlattened () av
-       name = F.counterPrefixNameState (T.pack . show) "simp"
-   in  snd $ F.runFresh (simp >>= AS.simpFlattened ()) name
 
 --------------------------------------------------------------------------------
 
