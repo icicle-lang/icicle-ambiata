@@ -38,10 +38,10 @@ import           P
 data DictionaryImportError
   = DictionaryErrorIO         E.SomeException
   | DictionaryErrorParsecTOML Parsec.ParseError
-  | DictionaryErrorParsecFunc P.CompileError
+  | DictionaryErrorParsecFunc (P.CompileError Parsec.SourcePos)
   | DictionaryErrorParse      [DictionaryValidationError]
-  | DictionaryErrorCheck      P.CompileError
-  | DictionaryErrorTransform  P.CompileError
+  | DictionaryErrorCheck      (P.CompileError Parsec.SourcePos)
+  | DictionaryErrorTransform  (P.CompileError Parsec.SourcePos)
   deriving (Show)
 
 type Funs a  = [((a, Name SP.Variable), SQ.Function a SP.Variable)]
@@ -141,7 +141,9 @@ loadImports parentFuncs parsedImports
  $ foldlM (go parentFuncs) [] parsedImports
  where
   go env acc f
-   = do f' <- P.sourceCheckF (env <> acc) f
+   = do -- Run desugar to ensure pattern matches are complete.
+        _  <- P.sourceDesugarF f
+        f' <- P.sourceCheckF (env <> acc) f
         return $ acc <> f'
 
 checkDefs

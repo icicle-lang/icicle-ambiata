@@ -231,7 +231,7 @@ qwfPretty qwf
 
 data CheckErr
  = CheckErrTC (CheckError () T.Variable)
- | CheckErrDS (DesugarError T.Variable)
+ | CheckErrDS (DesugarError () T.Variable)
  deriving Show
 
 qwfCheck :: QueryWithFeature -> Either CheckErr (QueryTop (Annot () T.Variable) T.Variable)

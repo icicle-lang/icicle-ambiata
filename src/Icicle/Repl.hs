@@ -50,7 +50,7 @@ import           System.IO
 import qualified Text.ParserCombinators.Parsec    as Parsec
 
 data ReplError
- = ReplErrorCompile        P.CompileError
+ = ReplErrorCompile        (P.CompileError Parsec.SourcePos)
  | ReplErrorRuntime        (S.SimulateError ())
  | ReplErrorDictionaryLoad DictionaryToml.DictionaryImportError
  | ReplErrorDecode         S.ParseError
