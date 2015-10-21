@@ -116,15 +116,15 @@ evalPrim p vs
      PrimUnsafe (PrimUnsafeSumGetLeft t _)
       | [VBase (VLeft v)]  <- vs
       -> return $ VBase v
-      | [VBase (VRight _)]      <- vs
+      | [VBase (VRight _)] <- vs
       -> return $ VBase (defaultOfType t)
       | otherwise
       -> primError
 
      PrimUnsafe (PrimUnsafeSumGetRight _ t)
-      | [VBase (VRight v)]  <- vs
+      | [VBase (VRight v)] <- vs
       -> return $ VBase v
-      | [VBase (VRight _)]      <- vs
+      | [VBase (VLeft _)]  <- vs
       -> return $ VBase (defaultOfType t)
       | otherwise
       -> primError

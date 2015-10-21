@@ -1,3 +1,4 @@
+{-# LANGUAGE DoAndIfThenElse #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards #-}
@@ -6,6 +7,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 module Icicle.Avalanche.Statement.Simp.Melt (
     melt
+  , meltValue
   ) where
 
 import              Icicle.Avalanche.Prim.Flat
@@ -301,10 +303,16 @@ meltForeachFacts a_fresh statements
   goStmt () stmt
    = case stmt of
        ForeachFacts ns vt lt ss
-        -> do (ns', ss') <- meltFacts ns ss
+        -> do (ns', ss') <- meltFix ns ss
               return ((), ForeachFacts ns' vt lt ss')
        _
         -> return ((), stmt)
+
+  meltFix ns0 ss0 = do
+    (ns1, ss1) <- meltFacts ns0 ss0
+    if length ns0 /= length ns1
+    then meltFix ns1 ss1
+    else return (ns1, ss1)
 
 
   meltFacts :: [(Name n, ValType)]
@@ -323,6 +331,20 @@ meltForeachFacts a_fresh statements
            -> Fresh n ([(Name n, ValType)], Statement a n Prim)
 
   meltFact (n, t) ss
+   | PairT ta tb <- t
+   = do na <- freshPrefix' n
+        nb <- freshPrefix' n
+        ss' <- substXinS a_fresh n (primPair ta tb na nb) ss
+        let ns = [(na, ta), (nb, tb)]
+        return (ns, ss')
+
+   | OptionT tv <- t
+   = do nb <- freshPrefix' n
+        nv <- freshPrefix' n
+        ss' <- substXinS a_fresh n (primMkOpt tv nb nv) ss
+        let ns = [(nb, BoolT), (nv, tv)]
+        return (ns, ss')
+
    | SumT ta tb <- t
    = do ni <- freshPrefix' n
         na <- freshPrefix' n
@@ -333,3 +355,57 @@ meltForeachFacts a_fresh statements
 
    | otherwise
    = return ([(n, t)], ss)
+
+------------------------------------------------------------------------
+
+-- implementation should match `meltFact` above
+meltValue :: BaseValue -> ValType -> Maybe [BaseValue]
+meltValue v t
+ = let apcat x y = (<>) <$> x <*> y
+   in case v of
+     VInt{}      -> Just [v]
+     VDouble{}   -> Just [v]
+     VUnit{}     -> Just [v]
+     VBool{}     -> Just [v]
+     VDateTime{} -> Just [v]
+     VString{}   -> Just [v]
+     VArray{}    -> Just [v]
+     VMap{}      -> Just [v]
+     VStruct{}   -> Just [v]
+     VBuf{}      -> Just [v]
+     VError{}    -> Just [v]
+
+     VPair a b
+      | PairT ta tb <- t
+      -> meltValue a ta `apcat` meltValue b tb
+
+      | otherwise
+      -> Nothing
+
+     VLeft a
+      | SumT ta tb <- t
+      -> pure [VBool False] `apcat` meltValue a ta `apcat` meltValue (defaultOfType tb) tb
+
+      | otherwise
+      -> Nothing
+
+     VRight b
+      | SumT ta tb <- t
+      -> pure [VBool True] `apcat` meltValue (defaultOfType ta) ta `apcat` meltValue b tb
+
+      | otherwise
+      -> Nothing
+
+     VNone
+      | OptionT tv <- t
+      -> pure [VBool False] `apcat` meltValue (defaultOfType tv) tv
+
+      | otherwise
+      -> Nothing
+
+     VSome x
+      | OptionT tx <- t
+      -> pure [VBool True] `apcat` meltValue x tx
+
+      | otherwise
+      -> Nothing
