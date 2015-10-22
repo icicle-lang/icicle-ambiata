@@ -107,7 +107,7 @@ evaluateVirtualValue' p date vs
         return (v', bg')
  where
   toCore n a
-   = do v' <- valueToCore $ fact a
+   = do v' <- wrapValue <$> (valueToCore $ fact a)
         return a { fact = (B.BubbleGumFact $ B.Flavour n $ time a, v') }
 
 wrapValue :: V.BaseValue -> V.BaseValue
