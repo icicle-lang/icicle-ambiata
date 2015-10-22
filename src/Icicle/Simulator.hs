@@ -28,8 +28,8 @@ import qualified Icicle.Core.Eval.Program as PV
 import qualified Icicle.Core.Program.Program as P
 
 import qualified Icicle.Avalanche.Program as A
-import qualified Icicle.Core.Eval.Exp     as XV
-import qualified Icicle.Core.Exp.Prim     as XP
+import qualified Icicle.Avalanche.Prim.Eval  as APF
+import qualified Icicle.Avalanche.Prim.Flat  as APF
 import qualified Icicle.Avalanche.Eval    as AE
 
 data Partition =
@@ -43,7 +43,7 @@ type Result a n = Either (SimulateError a n) ([(OutputName, Value)], [B.BubbleGu
 
 data SimulateError a n
  = SimulateErrorRuntime (PV.RuntimeError a n)
- | SimulateErrorRuntime' (AE.RuntimeError a n XP.Prim)
+ | SimulateErrorRuntime' (AE.RuntimeError a n APF.Prim)
  | SimulateErrorCannotConvertToCore        Value
  | SimulateErrorCannotConvertFromCore      V.BaseValue
   deriving (Eq,Show)
@@ -95,12 +95,12 @@ evaluateVirtualValue p date vs
    = do v' <- wrapValue <$> (valueToCore $ fact a)
         return a { fact = (B.BubbleGumFact $ B.Flavour n $ time a, v') }
 
-evaluateVirtualValue' :: Ord n => A.Program a n XP.Prim -> DateTime -> [AsAt Value] -> Result a n
+evaluateVirtualValue' :: Ord n => A.Program a n APF.Prim -> DateTime -> [AsAt Value] -> Result a n
 evaluateVirtualValue' p date vs
  = do   vs' <- zipWithM toCore [1..] vs
 
         xv  <- mapLeft SimulateErrorRuntime'
-             $ AE.evalProgram XV.evalPrim date vs' p
+             $ AE.evalProgram APF.evalPrim date vs' p
 
         v'  <- mapM (\(n,v) -> (,) n <$> valueFromCore v) $ snd xv
         bg' <- mapM (B.mapValue valueFromCore) (fst xv)

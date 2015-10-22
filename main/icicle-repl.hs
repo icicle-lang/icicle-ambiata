@@ -89,22 +89,23 @@ runRepl inits
 
 data ReplState
    = ReplState
-   { facts          :: [AsAt Fact]
-   , dictionary     :: Dictionary
-   , currentDate    :: DateTime
-   , hasType        :: Bool
-   , hasAnnotated   :: Bool
-   , hasInlined     :: Bool
-   , hasDesugar     :: Bool
-   , hasCore        :: Bool
-   , hasCoreType    :: Bool
-   , hasCoreEval    :: Bool
-   , hasAvalanche   :: Bool
-   , hasFlatten     :: Bool
-   , hasJava        :: Bool
-   , hasSea         :: Bool
-   , hasSeaEval     :: Bool
-   , doCoreSimp     :: Bool }
+   { facts            :: [AsAt Fact]
+   , dictionary       :: Dictionary
+   , currentDate      :: DateTime
+   , hasType          :: Bool
+   , hasAnnotated     :: Bool
+   , hasInlined       :: Bool
+   , hasDesugar       :: Bool
+   , hasCore          :: Bool
+   , hasCoreType      :: Bool
+   , hasCoreEval      :: Bool
+   , hasAvalanche     :: Bool
+   , hasAvalancheEval :: Bool
+   , hasFlatten       :: Bool
+   , hasJava          :: Bool
+   , hasSea           :: Bool
+   , hasSeaEval       :: Bool
+   , doCoreSimp       :: Bool }
 
 -- | Settable REPL states
 data Set
@@ -116,6 +117,7 @@ data Set
    | ShowCoreType       Bool
    | ShowCoreEval       Bool
    | ShowAvalanche      Bool
+   | ShowAvalancheEval  Bool
    | ShowFlatten        Bool
    | ShowJava           Bool
    | ShowSea            Bool
@@ -139,7 +141,7 @@ data Command
 
 defaultState :: ReplState
 defaultState
-  = (ReplState [] demographics (unsafeDateOfYMD 1970 1 1) False False False False False False False False False False False False False)
+  = (ReplState [] demographics (unsafeDateOfYMD 1970 1 1) False False False False False False False False False False False False False False)
     { hasCoreEval = True }
 
 readCommand :: String -> Maybe Command
@@ -186,6 +188,9 @@ readSetCommands ss
 
     ("+avalanche":rest)    -> (:) (ShowAvalanche True)     <$> readSetCommands rest
     ("-avalanche":rest)    -> (:) (ShowAvalanche False)    <$> readSetCommands rest
+
+    ("+avalanche-eval":rest) -> (:) (ShowAvalancheEval True)  <$> readSetCommands rest
+    ("-avalanche-eval":rest) -> (:) (ShowAvalancheEval False) <$> readSetCommands rest
 
     ("+flatten":rest)      -> (:) (ShowFlatten   True)     <$> readSetCommands rest
     ("-flatten":rest)      -> (:) (ShowFlatten   False)    <$> readSetCommands rest
@@ -317,6 +322,10 @@ handleLine state line = case readCommand line of
        Right f -> do
         prettyOut hasFlatten "- Flattened:" f
 
+        case avalancheEval (currentDate state) (facts state) finalSource f of
+         Left  e -> prettyOut hasAvalancheEval "- Avalanche error:" e
+         Right r -> prettyOut hasAvalancheEval "- Avalanche evaluation:" r
+
         let flatChecked = SR.checkAvalanche (SR.simpAvalanche f)
         case flatChecked of
          Left  e  -> prettyOut (const True) "- Avalanche type error:" e
@@ -376,6 +385,10 @@ handleSetCommand state set
     ShowAvalanche b -> do
         HL.outputStrLn $ "ok, avalanche is now " <> showFlag b
         return $ state { hasAvalanche = b }
+
+    ShowAvalancheEval b -> do
+        HL.outputStrLn $ "ok, avalanche eval is now " <> showFlag b
+        return $ state { hasAvalancheEval = b }
 
     ShowFlatten b -> do
         HL.outputStrLn $ "ok, flatten is now " <> showFlag b
@@ -453,6 +466,31 @@ coreEval d fs (renameQT unVar -> query) prog
 
     evalV
       = S.evaluateVirtualValue prog d
+
+avalancheEval :: DateTime -> [AsAt Fact] -> SR.QueryTop'T -> AP.Program () SP.Variable APF.Prim
+              -> Either SR.ReplError [Result]
+avalancheEval d fs (renameQT unVar -> query) prog
+ = do let partitions = S.streams fs
+      let feat       = SQ.feature query
+      let results    = fmap (evalP feat) partitions
+
+      res' <- mapLeft SR.ReplErrorRuntime
+            $ sequence results
+
+      return $ concat res'
+
+  where
+    evalP feat (S.Partition ent attr values)
+      | CommonBase.Name feat' <- feat
+      , attr == Attribute feat'
+      = do  (vs',_) <- evalV values
+            return $ fmap (\v -> Result (ent, snd v)) vs'
+
+      | otherwise
+      = return []
+
+    evalV
+      = S.evaluateVirtualValue' prog d
 
 seaEval :: DateTime
         -> [AsAt Fact]
