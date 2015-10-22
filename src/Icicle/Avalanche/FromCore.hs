@@ -25,8 +25,7 @@ import qualified    Icicle.Core.Reduce          as CR
 import qualified    Icicle.Core.Stream          as CS
 
 import              P
-import              Data.Text (Text)
-
+import              Data.String
 
 data Namer n
  = Namer
@@ -41,12 +40,12 @@ data Namer n
  , namerFact       :: Name n
  }
 
-namerText :: (Text -> n) -> Namer n
+namerText :: IsString a => (a -> n) -> Namer n
 namerText f
- = Namer (NameMod (f "elem"))
-         (NameMod (f "acc"))
-         (NameMod (f "gen") $ Name (f "date"))
-         (NameMod (f "gen") $ Name (f "fact"))
+ = Namer (NameMod (f (fromString "elem")))
+         (NameMod (f (fromString "acc")))
+         (NameMod (f (fromString "gen")) $ Name (f (fromString "date")))
+         (NameMod (f (fromString "gen")) $ Name (f (fromString "fact")))
 
 
 -- | Convert an entire program to Avalanche
