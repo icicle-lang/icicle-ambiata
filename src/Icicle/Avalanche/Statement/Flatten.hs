@@ -322,8 +322,9 @@ flatX a_fresh xx stm
        $  \buf'
        -> do   tmpN      <- fresh
                let fpPush = xPrim (Flat.PrimBuf $ Flat.PrimBufPush t) `xApp` buf' `xApp` e'
+               stm'      <- stm (xVar tmpN)
                return
-                 $ Let tmpN fpPush mempty
+                 $ Let tmpN fpPush stm'
 
        | otherwise
        -> lift $ Left $ FlattenErrorPrimBadArgs p xs
