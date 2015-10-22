@@ -235,8 +235,10 @@ primTypeOfPrim p
      -> upda pu
     PrimArray (PrimArrayZip _ _)
      -> Function "Array.zip"
-    PrimOption (PrimOptionPack _)
+    PrimPack (PrimOptionPack _)
      -> Function "Option.pack"
+    PrimPack (PrimSumPack _ _)
+     -> Function "Sum.pack"
     PrimBuf pb
      -> buf pb
 
@@ -304,7 +306,7 @@ primTypeOfPrim p
   proj (PrimProjectMapLength _ _) = Method "size"
   proj (PrimProjectMapLookup _ _) = Method "get"
   proj (PrimProjectOptionIsSome _)= Special1 $ \a -> a <> " != null"
-  proj (PrimProjectSumIsLeft _ _) = Method "isLeft"
+  proj (PrimProjectSumIsRight _ _) = Method "isRight"
 
   unsa (PrimUnsafeArrayIndex _)    = Method "get"
   unsa (PrimUnsafeArrayCreate t)   = Function ("new ArrayList" <> angled (boxedType t))

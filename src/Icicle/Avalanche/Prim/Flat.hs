@@ -6,7 +6,7 @@ module Icicle.Avalanche.Prim.Flat (
     , PrimUnsafe  (..)
     , PrimUpdate  (..)
     , PrimArray   (..)
-    , PrimOption  (..)
+    , PrimPack    (..)
     , PrimBuf     (..)
     , typeOfPrim
     , flatFragment
@@ -46,8 +46,8 @@ data Prim
  -- | Array prims
  | PrimArray           PrimArray
 
- -- | Option prims
- | PrimOption          PrimOption
+ -- | Packing prims
+ | PrimPack            PrimPack
 
  -- | Abstract circular buffer prims
  | PrimBuf             PrimBuf
@@ -59,7 +59,7 @@ data PrimProject
  | PrimProjectMapLength   ValType ValType
  | PrimProjectMapLookup   ValType ValType
  | PrimProjectOptionIsSome ValType
- | PrimProjectSumIsLeft    ValType ValType
+ | PrimProjectSumIsRight   ValType ValType
  deriving (Eq, Ord, Show)
 
 
@@ -68,11 +68,11 @@ data PrimUnsafe
  -- | Create a new, uninitialised array.
  -- This is unsafe because it's uninitialised:
  -- you need to promise me that you'll initialise it before reading from it.
- | PrimUnsafeArrayCreate        ValType
- | PrimUnsafeMapIndex   ValType ValType
- | PrimUnsafeOptionGet  ValType
- | PrimUnsafeSumGetLeft         ValType ValType
- | PrimUnsafeSumGetRight        ValType ValType
+ | PrimUnsafeArrayCreate ValType
+ | PrimUnsafeMapIndex    ValType ValType
+ | PrimUnsafeSumGetLeft  ValType ValType
+ | PrimUnsafeSumGetRight ValType ValType
+ | PrimUnsafeOptionGet   ValType
  deriving (Eq, Ord, Show)
 
 
@@ -86,8 +86,9 @@ data PrimArray
  = PrimArrayZip ValType ValType
  deriving (Eq, Ord, Show)
 
-data PrimOption
- = PrimOptionPack ValType
+data PrimPack
+ = PrimSumPack    ValType ValType
+ | PrimOptionPack ValType
  deriving (Eq, Ord, Show)
 
 
@@ -120,7 +121,7 @@ typeOfPrim p
     PrimProject (PrimProjectOptionIsSome a)
      -> FunT [funOfVal (OptionT a)] BoolT
 
-    PrimProject (PrimProjectSumIsLeft a b)
+    PrimProject (PrimProjectSumIsRight a b)
      -> FunT [funOfVal (SumT a b)] BoolT
 
 
@@ -150,7 +151,10 @@ typeOfPrim p
     PrimArray   (PrimArrayZip a b)
      -> FunT [funOfVal (ArrayT a), funOfVal (ArrayT b)] (ArrayT (PairT a b))
 
-    PrimOption  (PrimOptionPack t)
+    PrimPack    (PrimSumPack a b)
+     -> FunT [funOfVal BoolT, funOfVal a, funOfVal b] (SumT a b)
+
+    PrimPack    (PrimOptionPack t)
      -> FunT [funOfVal BoolT, funOfVal t] (OptionT t)
 
     PrimBuf     (PrimBufMake t)
@@ -176,8 +180,8 @@ instance Pretty Prim where
   = text "Map_lookup#" <+> brackets (pretty a) <+> brackets (pretty b)
  pretty (PrimProject (PrimProjectOptionIsSome a))
   = text "Option_isSome#" <+> brackets (pretty a)
- pretty (PrimProject (PrimProjectSumIsLeft a b))
-  = text "Sum_isLeft#" <+> brackets (pretty a) <+> brackets (pretty b)
+ pretty (PrimProject (PrimProjectSumIsRight a b))
+  = text "Sum_isRight#" <+> brackets (pretty a) <+> brackets (pretty b)
 
 
  pretty (PrimUnsafe (PrimUnsafeArrayIndex a))
@@ -211,8 +215,12 @@ instance Pretty Prim where
   = text "Array_zip#" <+> brackets (pretty a) <+> brackets (pretty b)
 
 
- pretty (PrimOption (PrimOptionPack t))
+ pretty (PrimPack (PrimOptionPack t))
   = text "Option_pack#" <+> brackets (pretty t)
+
+ pretty (PrimPack (PrimSumPack a b))
+  = text "Sum_pack#" <+> brackets (pretty a) <+> brackets (pretty b)
+
 
  pretty (PrimBuf    (PrimBufMake t))
   = text "Buf_make#" <+> brackets (pretty t)

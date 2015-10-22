@@ -5,7 +5,7 @@ ok, loaded test/cli/repl/data.psv, 13 rows
 > Dictionary load error:
   IO Exception: test/cli/repl/t12-broken-dictionaries/non-existant.icicle: openFile: does not exist (No such file or directory)
 > Dictionary load error:
-  Function error: Parse error:
+  Parse error:
     "bad.icicle" (line 1, column 13):
 unexpected (TVariable (Variable "s"),"bad.icicle" (line 1, column 17))
 > 

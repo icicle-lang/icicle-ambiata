@@ -8,6 +8,7 @@ module Icicle.Avalanche.Eval (
   ) where
 
 import              Icicle.Avalanche.Statement.Statement
+import              Icicle.Avalanche.Statement.Simp.Melt
 import              Icicle.Avalanche.Program
 
 import              Icicle.BubbleGum
@@ -23,7 +24,7 @@ import              Icicle.Data         (AsAt(..))
 import              P
 
 import              Data.Either.Combinators
-import              Data.List   (take, sort)
+import              Data.List   (take, sort, zip)
 import qualified    Data.Map    as Map
 
 import              Icicle.Internal.Pretty
@@ -54,7 +55,7 @@ data RuntimeError a n p
  | RuntimeErrorLoopAccumulatorBad (Name n)
  | RuntimeErrorIfNotBool     BaseValue
  | RuntimeErrorForeachNotInt BaseValue BaseValue
- | RuntimeErrorFlatForeach   [(Name n, ValType)]
+ | RuntimeErrorForeachTypeMismatch [(Name n, ValType)] ValType BaseValue
  | RuntimeErrorNotBaseValue  (Value a n p)
  | RuntimeErrorKeepFactNotInFactLoop
  | RuntimeErrorAccumulatorLatestNotInt  BaseValue
@@ -73,8 +74,10 @@ instance (Pretty n, Pretty p) => Pretty (RuntimeError a n p) where
   = "Value should be a bool but isn't" <+> (pretty p)
  pretty (RuntimeErrorForeachNotInt p p')
   = "Foreach not ints:" <+> pretty p <+> pretty p'
- pretty (RuntimeErrorFlatForeach ns)
-  = "Cannot eval flattened foreach: " <+> pretty ns
+ pretty (RuntimeErrorForeachTypeMismatch ns ty v)
+  = "Foreach type error: bindings = " <+> align (vcat (fmap pretty ns)) <> line <>
+    "                    type     = " <+> pretty ty <> line <>
+    "                    value    = " <+> pretty v
  pretty (RuntimeErrorNotBaseValue p)
   = "Value isn't a base value:" <+> (pretty p)
  pretty (RuntimeErrorKeepFactNotInFactLoop)
@@ -248,13 +251,46 @@ evalStmt evalPrim now xh values bubblegum ah stmt
      -> return (ah, [])
 
     -- TODO: ignoring outputs inside loops.
-    ForeachFacts [(n, _), (n', _)] _ FactLoopNew  stmts
-     -> do  let with input = Map.insert n (VBase $ snd $ fact input) $ Map.insert n' (VBase $ VDateTime $ time input) xh
-            ahs <- foldM (\ah' input -> fst <$> evalStmt evalPrim now (with input) [] (Just $ fst $ fact input) ah' stmts) ah values
+
+    -- Allow unmelted foreach
+    -- (i.e. where ty == ty' and we only have a singleton list of bindings)
+    ForeachFacts [(n, ty)] ty' FactLoopNew stmts
+     | ty == ty'
+     -> do  let evalInput ah' input = do
+                  let v0     = snd (fact input)
+                      v1     = VDateTime (time input)
+                      vv     = VPair v0 v1
+                      input' = Map.insert n (VBase vv) xh
+                      bgf    = Just $ fst $ fact input
+
+                  fst <$> evalStmt evalPrim now input' [] bgf ah' stmts
+
+            ahs <- foldM evalInput ah values
             return (ahs, [])
 
-    ForeachFacts ns _ FactLoopNew _
-     -> Left (RuntimeErrorFlatForeach ns)
+    ForeachFacts ns ty FactLoopNew stmts
+     -> do  let evalInput ah' input = do
+                  let v0  = snd (fact input)
+                      v1  = VDateTime (time input)
+                      vv  = VPair v0 v1
+                      mvs = meltValue vv ty
+
+                  case mvs of
+                    Nothing
+                     -> Left (RuntimeErrorForeachTypeMismatch ns ty vv)
+
+                    Just vs
+                     | length vs /= length ns
+                     -> Left (RuntimeErrorForeachTypeMismatch ns ty vv)
+
+                     | otherwise
+                     , nvs    <- zip (fmap fst ns) vs
+                     , input' <- foldr (\(n, v) -> Map.insert n (VBase v)) xh nvs
+                     , bgf    <- Just $ fst $ fact input
+                     -> fst <$> evalStmt evalPrim now input' [] bgf ah' stmts
+
+            ahs <- foldM evalInput ah values
+            return (ahs, [])
 
     Block []
      -> return (ah, [])

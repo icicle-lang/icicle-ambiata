@@ -12,7 +12,7 @@ ok, loaded test/cli/repl/data.psv, 13 rows
 
 > > > -- This is a type error because "kermit" is not used!!!
 > -- Expect error.
->                                     [34mλλλλ[0m
+>                                     λλλλ
 REPL Error:
 Check error:
   Cannot discharge constraints at 1:35

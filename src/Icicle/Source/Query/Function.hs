@@ -25,5 +25,5 @@ reannotF f fun
 instance Pretty n => Pretty (Function a n) where
  pretty q =
   let p = (pretty . snd) <$> (arguments q)
-  in (sep p) <> line <> "=" <+> pretty (body q)
+  in (sep p) <> line <> indent 2 ("=" <+> pretty (body q))
 

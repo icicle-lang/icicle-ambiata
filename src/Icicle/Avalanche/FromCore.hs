@@ -25,8 +25,7 @@ import qualified    Icicle.Core.Reduce          as CR
 import qualified    Icicle.Core.Stream          as CS
 
 import              P
-import              Data.Text (Text)
-
+import              Data.String
 
 data Namer n
  = Namer
@@ -41,12 +40,12 @@ data Namer n
  , namerFact       :: Name n
  }
 
-namerText :: (Text -> n) -> Namer n
+namerText :: IsString a => (a -> n) -> Namer n
 namerText f
- = Namer (NameMod (f "elem"))
-         (NameMod (f "acc"))
-         (NameMod (f "gen") $ Name (f "date"))
-         (NameMod (f "gen") $ Name (f "fact"))
+ = Namer (NameMod (f (fromString "elem")))
+         (NameMod (f (fromString "acc")))
+         (NameMod (f (fromString "gen")) $ Name (f (fromString "date")))
+         (NameMod (f (fromString "gen")) $ Name (f (fromString "fact")))
 
 
 -- | Convert an entire program to Avalanche
@@ -91,13 +90,14 @@ programFromCore namer p
    = factLoop FactLoopNew (C.reduces p)
 
   factLoop loopType reduces
-   = ForeachFacts [ (namerElemPrefix namer $ namerFact namer, C.input p)
-                  , (namerElemPrefix namer $ namerDate namer, DateTimeT) ]
+   = ForeachFacts [(namerFact namer, PairT (C.input p) DateTimeT)]
                   (PairT (C.input p) DateTimeT) loopType
-   $ Let (namerFact namer)
-        (xPrim (PrimMinimal $ Min.PrimConst $ Min.PrimConstPair (C.input p) DateTimeT)
-        `xApp` (xVar $ namerElemPrefix namer $ namerFact namer)
-        `xApp` (xVar $ namerElemPrefix namer $ namerDate namer))
+   $ Let (namerElemPrefix namer $ namerFact namer)
+        (xPrim (PrimMinimal $ Min.PrimPair $ Min.PrimPairFst (C.input p) DateTimeT)
+        `xApp` (xVar $ namerFact namer))
+   $ Let (namerElemPrefix namer $ namerDate namer)
+        (xPrim (PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd (C.input p) DateTimeT)
+        `xApp` (xVar $ namerFact namer))
    $ Block
    $ makeStatements namer (C.input p) (C.streams p) reduces
 

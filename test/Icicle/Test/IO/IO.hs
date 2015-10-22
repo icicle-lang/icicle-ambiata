@@ -30,7 +30,6 @@ import           Icicle.Test.Source.Arbitrary ()
 import           Test.QuickCheck
 import           Test.QuickCheck.Instances ()
 import           Test.QuickCheck.Property
-import qualified Data.Map                           as Map
 import qualified Data.Set                           as Set
 
 import qualified Icicle.Internal.Pretty as PP
@@ -41,7 +40,9 @@ prop_toml_dictionary_symmetry x
  $ withSystemTempDirectory "foodictionary"
  $ \dir -> do
    let p = dir </> "d.toml"
+   let i = dir </> "normalised_imports.icicle"
    writeFile p $ PP.display (PP.renderPretty 0.4 80 $ normalisedTomlDictionary x)
+   writeFile i $ PP.display (PP.renderPretty 0.4 80 $ normalisedFunctions x)
    runEitherT  $ (\x' -> sortD x' === sortD x )    <$> loadDictionary p
 
 prop_toml_dictionary_example :: Property
@@ -52,14 +53,16 @@ prop_toml_dictionary_example
  $ \dir -> runEitherT $ do
    x  <- loadDictionary "data/example/DictionaryTrial.toml"
    let p = dir </> "d.toml"
+   let i = dir </> "normalised_imports.icicle"
    lift $ writeFile p $ PP.display (PP.renderPretty 0.4 80 $ normalisedTomlDictionary x)
+   lift $ writeFile i $ PP.display (PP.renderPretty 0.4 80 $ normalisedFunctions x)
    x' <- loadDictionary p
    -- I run pretty here because nameMod is written with a $, but we read as a Name with a $ (it's a bit ugly).
-   pure $ (PP.display $ PP.renderCompact $ prettyDictionarySummary $ sortD x') === (PP.display $ PP.renderCompact $ prettyDictionarySummary $ dropFunctions $ sortD x)
+   pure $ (PP.display $ PP.renderCompact $ prettyDictionarySummary $ sortD x') === (PP.display $ PP.renderCompact $ prettyDictionarySummary $ sortD x)
 
 instance Arbitrary Dictionary where
  arbitrary
-  = Dictionary <$> (nubBy ((==) `on` getAttr) <$> arbitrary) <*> pure Map.empty
+  = Dictionary <$> (nubBy ((==) `on` getAttr) <$> arbitrary) <*> pure []
 
 instance Arbitrary DictionaryEntry where
  arbitrary
@@ -68,9 +71,6 @@ instance Arbitrary DictionaryEntry where
 instance Show a => Testable (Either a Property) where
   property (Right x) = x
   property (Left  x) = (counterexample . show) x $ failed
-
-dropFunctions :: Dictionary -> Dictionary
-dropFunctions (Dictionary es _) = Dictionary es Map.empty
 
 getAttr :: DictionaryEntry -> Attribute
 getAttr (DictionaryEntry a _) = a
