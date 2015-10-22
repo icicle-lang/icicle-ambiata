@@ -8,6 +8,7 @@
 module Icicle.Avalanche.Statement.Simp.Melt (
     melt
   , meltValue
+  , unmeltValue
   ) where
 
 import              Icicle.Avalanche.Prim.Flat
@@ -93,9 +94,11 @@ melt :: (Show n, Ord n)
      => a
      -> Statement a n Prim
      -> Fresh n (Statement a n Prim)
-melt a_fresh statements
- = do ss <- meltAccumulators a_fresh statements
-      meltForeachFacts a_fresh ss
+melt a_fresh ss0
+ = do ss1 <- meltAccumulators a_fresh ss0
+      ss2 <- meltForeachFacts a_fresh ss1
+      ss3 <- meltOutputs      a_fresh ss2
+      return ss3
 
 ------------------------------------------------------------------------
 
@@ -358,6 +361,57 @@ meltForeachFacts a_fresh statements
 
 ------------------------------------------------------------------------
 
+meltOutputs :: forall a n. (Show n, Ord n)
+            => a
+            -> Statement a n Prim
+            -> Fresh n (Statement a n Prim)
+meltOutputs a_fresh statements
+ = transformUDStmt goStmt () statements
+ where
+  MeltOps{..} = meltOps a_fresh
+
+  goStmt () stmt
+   = case stmt of
+       Output n t xts
+        -> return ((), Output n t (meltExps a_fresh xts))
+       _
+        -> return ((), stmt)
+
+meltExps :: a -> [(Exp a n Prim, ValType)] -> [(Exp a n Prim, ValType)]
+meltExps a_fresh
+ = concatMap (\(x,t) -> meltExp a_fresh x t)
+
+meltExp :: a -> Exp a n Prim -> ValType -> [(Exp a n Prim, ValType)]
+meltExp a_fresh x t
+ = let MeltOps{..} = meltOps a_fresh
+   in case t of
+     IntT{}      -> [(x, t)]
+     DoubleT{}   -> [(x, t)]
+     UnitT{}     -> [(x, t)]
+     BoolT{}     -> [(x, t)]
+     DateTimeT{} -> [(x, t)]
+     StringT{}   -> [(x, t)]
+     ArrayT{}    -> [(x, t)]
+     MapT{}      -> [(x, t)]
+     StructT{}   -> [(x, t)]
+     BufT{}      -> [(x, t)]
+     ErrorT{}    -> [(x, t)]
+
+     PairT ta tb
+      -> meltExp a_fresh (primFst ta tb x) ta
+      <> meltExp a_fresh (primSnd ta tb x) tb
+
+     SumT ta tb
+      -> meltExp a_fresh (primIsRight ta tb x) BoolT
+      <> meltExp a_fresh (primLeft    ta tb x) ta
+      <> meltExp a_fresh (primRight   ta tb x) tb
+
+     OptionT tx
+      -> meltExp a_fresh (primIsSome tx x) BoolT
+      <> meltExp a_fresh (primGet    tx x) tx
+
+------------------------------------------------------------------------
+
 -- implementation should match `meltFact` above
 meltValue :: BaseValue -> ValType -> Maybe [BaseValue]
 meltValue v t
@@ -409,3 +463,55 @@ meltValue v t
 
       | otherwise
       -> Nothing
+
+------------------------------------------------------------------------
+
+unmeltValue :: [BaseValue] -> ValType -> Maybe BaseValue
+unmeltValue vs t
+ = case unmeltValue' vs t of
+     Just (v, [])   -> Just v
+     Nothing        -> Nothing
+
+     -- if we still have values left over
+     -- after unmelting, it's a type error
+     Just (_v, _xs) -> Nothing
+
+unmeltValue' :: [BaseValue] -> ValType -> Maybe (BaseValue, [BaseValue])
+unmeltValue' []        _ = Nothing
+unmeltValue' vs0@(v:vs) t
+ = case t of
+     -- these are all type errors, as we should have hit the
+     -- pattern match on the singleton list
+     IntT{}      -> Just (v, vs)
+     DoubleT{}   -> Just (v, vs)
+     UnitT{}     -> Just (v, vs)
+     BoolT{}     -> Just (v, vs)
+     DateTimeT{} -> Just (v, vs)
+     StringT{}   -> Just (v, vs)
+     ArrayT{}    -> Just (v, vs)
+     MapT{}      -> Just (v, vs)
+     StructT{}   -> Just (v, vs)
+     BufT{}      -> Just (v, vs)
+     ErrorT{}    -> Just (v, vs)
+
+     PairT ta tb
+      -> do (a, vs1) <- unmeltValue' vs0 ta
+            (b, vs2) <- unmeltValue' vs1 tb
+            Just (VPair a b, vs2)
+
+     SumT ta tb
+      -> do (i, vs1) <- unmeltValue' vs0 BoolT
+            (a, vs2) <- unmeltValue' vs1 ta
+            (b, vs3) <- unmeltValue' vs2 tb
+            case i of
+              VBool False -> Just (VLeft  a, vs3)
+              VBool True  -> Just (VRight b, vs3)
+              _           -> Nothing
+
+     OptionT tx
+      -> do (b, vs1) <- unmeltValue' vs0 BoolT
+            (x, vs2) <- unmeltValue' vs1 tx
+            case b of
+              VBool False -> Just (VNone,   vs2)
+              VBool True  -> Just (VSome x, vs2)
+              _           -> Nothing

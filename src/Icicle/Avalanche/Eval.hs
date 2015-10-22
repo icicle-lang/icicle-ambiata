@@ -56,6 +56,7 @@ data RuntimeError a n p
  | RuntimeErrorIfNotBool     BaseValue
  | RuntimeErrorForeachNotInt BaseValue BaseValue
  | RuntimeErrorForeachTypeMismatch [(Name n, ValType)] ValType BaseValue
+ | RuntimeErrorOutputTypeMismatch  OutputName ValType [BaseValue]
  | RuntimeErrorNotBaseValue  (Value a n p)
  | RuntimeErrorKeepFactNotInFactLoop
  | RuntimeErrorAccumulatorLatestNotInt  BaseValue
@@ -75,9 +76,13 @@ instance (Pretty n, Pretty p) => Pretty (RuntimeError a n p) where
  pretty (RuntimeErrorForeachNotInt p p')
   = "Foreach not ints:" <+> pretty p <+> pretty p'
  pretty (RuntimeErrorForeachTypeMismatch ns ty v)
-  = "Foreach type error: bindings = " <+> align (vcat (fmap pretty ns)) <> line <>
+  = "Foreach type error: bindings = " <+> align (vsep (fmap pretty ns)) <> line <>
     "                    type     = " <+> pretty ty <> line <>
     "                    value    = " <+> pretty v
+ pretty (RuntimeErrorOutputTypeMismatch n ty vs)
+  = "Output type error: name   = " <+> pretty n  <> line <>
+    "                   type   = " <+> pretty ty <> line <>
+    "                   values = " <+> align (vsep (fmap pretty vs))
  pretty (RuntimeErrorNotBaseValue p)
   = "Value isn't a base value:" <+> (pretty p)
  pretty (RuntimeErrorKeepFactNotInFactLoop)
@@ -330,9 +335,12 @@ evalStmt evalPrim now xh values bubblegum ah stmt
             ah' <- updateOrPush ah n bubblegum v
             return (ah', [])
 
-    Output n x
-     -> do  v  <- eval x >>= baseValue
-            return (ah, [(n, v)])
+    Output n t xts
+     -> do  vs  <- traverse ((baseValue =<<) . eval . fst) xts
+            case (vs, unmeltValue vs t) of
+              (v:[], _)    -> return (ah, [(n, v)])
+              (_, Just v)  -> return (ah, [(n, v)])
+              (_, Nothing) -> Left (RuntimeErrorOutputTypeMismatch n t vs)
 
     -- Keep this fact in history
     KeepFactInHistory

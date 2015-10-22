@@ -65,10 +65,9 @@ gen$date = DATE
   read [Mutable] [Bool] s$reify$2$conv$5$simp$18 = acc$s$reify$2$conv$5$simp$0;
   read [Mutable] [Error] s$reify$2$conv$5$simp$19 = acc$s$reify$2$conv$5$simp$1;
   read [Mutable] [Int] s$reify$2$conv$5$simp$20 = acc$s$reify$2$conv$5$simp$2;
-  output repl Sum_pack# [Error] [Int]
-              s$reify$2$conv$5$simp$18
-              s$reify$2$conv$5$simp$19
-              s$reify$2$conv$5$simp$20;
+  output [(Sum Error Int)] repl (s$reify$2$conv$5$simp$18 : Bool,
+                                 s$reify$2$conv$5$simp$19 : Error,
+                                 s$reify$2$conv$5$simp$20 : Int);
 }
 
 - C:
@@ -83,8 +82,6 @@ typedef  int64_t iint_t;
 typedef   double idouble_t;
 typedef  int64_t idate_t;
 
-typedef const char *ierror_t;
-
 typedef struct {
     /* inputs */
     idate_t    gen_date;
@@ -95,10 +92,9 @@ typedef struct {
     idate_t    *new_gen_fact_simp_22;
 
     /* outputs */
-    ierror_t   error;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT IntT..)
-     repl;
+    ibool_t    repl_ix_0;
+    ierror_t   repl_ix_1;
+    iint_t     repl_ix_2;
 
     /* resumables */
     ibool_t    acc_s_reify_2_conv_5_simp_0;
@@ -238,9 +234,9 @@ void compute(icicle_state_t *s)
     s_reify_2_conv_5_simp_18             = acc_s_reify_2_conv_5_simp_0;
     s_reify_2_conv_5_simp_19             = acc_s_reify_2_conv_5_simp_1;
     s_reify_2_conv_5_simp_20             = acc_s_reify_2_conv_5_simp_2;
-    s->repl                              = 
-    #error Failed during codegen (seaOfXPrim: PrimPack (PrimSumPack ErrorT IntT)..)
-     (s_reify_2_conv_5_simp_18, s_reify_2_conv_5_simp_19, s_reify_2_conv_5_simp_20);
+    s->repl_ix_0                         = s_reify_2_conv_5_simp_18;
+    s->repl_ix_1                         = s_reify_2_conv_5_simp_19;
+    s->repl_ix_2                         = s_reify_2_conv_5_simp_20;
 }
 
 - Core evaluation:
@@ -287,9 +283,9 @@ gen$date = DATE
   }
   save_resumable [Int] acc$c$conv$11;
   read [Mutable] [Int] c$conv$11 = acc$c$conv$11;
-  let conv$12 = right# [Error] [Int]
-                c$conv$11;
-  output repl conv$12;
+  output [(Sum Error Int)] repl (True : Bool : Bool,
+                                 ExceptTombstone : Error : Error,
+                                 c$conv$11 : Int);
 }
 
 - C:
@@ -304,8 +300,6 @@ typedef  int64_t iint_t;
 typedef   double idouble_t;
 typedef  int64_t idate_t;
 
-typedef const char *ierror_t;
-
 typedef struct {
     /* inputs */
     idate_t    gen_date;
@@ -316,10 +310,9 @@ typedef struct {
     idate_t    *new_gen_fact_simp_9;
 
     /* outputs */
-    ierror_t   error;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT IntT..)
-     repl;
+    ibool_t    repl_ix_0;
+    ierror_t   repl_ix_1;
+    iint_t     repl_ix_2;
 
     /* resumables */
     iint_t     acc_c_conv_11;
@@ -421,12 +414,9 @@ void compute(icicle_state_t *s)
     
     s->acc_c_conv_11                     = acc_c_conv_11;
     c_conv_11                            = acc_c_conv_11;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT IntT..)
-     conv_12                             = 
-    #error Failed during codegen (seaOfXPrim: PrimMinimal (PrimConst (PrimConstRight E..)
-     (c_conv_11);
-    s->repl                              = conv_12;
+    s->repl_ix_0                         = itrue;
+    s->repl_ix_1                         = ierror_tombstone;
+    s->repl_ix_2                         = c_conv_11;
 }
 
 - Core evaluation:
@@ -1122,10 +1112,9 @@ gen$date = DATE
   read [Mutable] [Bool] flat$86$simp$355 = flat$86$simp$334;
   read [Mutable] [Error] flat$86$simp$356 = flat$86$simp$335;
   read [Mutable] [Double] flat$86$simp$357 = flat$86$simp$336;
-  output repl Sum_pack# [Error] [Double]
-              flat$86$simp$355
-              flat$86$simp$356
-              flat$86$simp$357;
+  output [(Sum Error Double)] repl (flat$86$simp$355 : Bool,
+                                    flat$86$simp$356 : Error,
+                                    flat$86$simp$357 : Double);
 }
 
 - C:
@@ -1140,8 +1129,6 @@ typedef  int64_t iint_t;
 typedef   double idouble_t;
 typedef  int64_t idate_t;
 
-typedef const char *ierror_t;
-
 typedef struct {
     /* inputs */
     idate_t    gen_date;
@@ -1152,10 +1139,9 @@ typedef struct {
     idate_t    *new_gen_fact_simp_359;
 
     /* outputs */
-    ierror_t   error;
-    
-    #error Failed during codegen (seaOfValType: SumT ErrorT DoubleT..)
-     repl;
+    ibool_t    repl_ix_0;
+    ierror_t   repl_ix_1;
+    idouble_t  repl_ix_2;
 
     /* resumables */
     ibool_t    acc_a_conv_105_simp_69;
@@ -2297,9 +2283,9 @@ void compute(icicle_state_t *s)
     flat_86_simp_355                     = flat_86_simp_334;
     flat_86_simp_356                     = flat_86_simp_335;
     flat_86_simp_357                     = flat_86_simp_336;
-    s->repl                              = 
-    #error Failed during codegen (seaOfXPrim: PrimPack (PrimSumPack ErrorT DoubleT)..)
-     (flat_86_simp_355, flat_86_simp_356, flat_86_simp_357);
+    s->repl_ix_0                         = flat_86_simp_355;
+    s->repl_ix_1                         = flat_86_simp_356;
+    s->repl_ix_2                         = flat_86_simp_357;
 }
 
 - Core evaluation:

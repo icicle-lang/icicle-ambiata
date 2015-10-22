@@ -91,8 +91,8 @@ statementsToJava ss
     Push n x
      -> "icicle.pushLatest(" <> acc_name n <> ", " <> expToJava Boxed x <> ");"
 
-    Output n x
-     -> "icicle.output(" <> stringy n <> ", " <> expToJava Boxed x <> ");"
+    Output n _ _
+     -> "icicle.output(" <> stringy n <> ");"
 
     KeepFactInHistory
      -> "icicle.keepFactInHistory();"

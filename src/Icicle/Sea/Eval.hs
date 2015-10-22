@@ -93,8 +93,8 @@ seaEval program date values = do
 
           -- we should probably fix the order of this inside the ToSea module
           case Map.toList (outputsOfProgram program) of
-            []         -> return (Left SeaNoOutputs)
-            ((n, t):_) -> do
+            []              -> return (Left SeaNoOutputs)
+            ((n, (t, _)):_) -> do
               ev <- liftIO (peekWordOff' t pState 5)
               return (fmap (\v -> [(n, v)]) ev)
   where

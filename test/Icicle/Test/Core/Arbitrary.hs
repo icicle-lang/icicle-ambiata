@@ -79,7 +79,7 @@ instance Arbitrary Var where
     Var <$> elements viruses <*> choose (0, size)
 
 instance Arbitrary OutputName where
-  arbitrary = OutputName <$> arbitrary
+  arbitrary = OutputName <$> elements muppets
 
 instance Arbitrary n => Arbitrary (Name n) where
   arbitrary =
