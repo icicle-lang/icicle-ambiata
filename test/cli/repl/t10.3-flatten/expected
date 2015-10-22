@@ -66,12 +66,10 @@ gen$date = DATE
   read [Mutable] [Error] flat$7$simp$14 = flat$7$simp$9;
   read [Mutable] [Int] flat$7$simp$15$simp$16 = flat$7$simp$10$simp$11;
   read [Mutable] [Array (Sum Error Int)] flat$7$simp$15$simp$17 = flat$7$simp$10$simp$12;
-  let simp$57 = pair# [Int] [Array (Sum Error Int)]
-                flat$7$simp$15$simp$16
-                flat$7$simp$15$simp$17;
-  output repl Sum_pack# [Error] [(Int, Array (Sum Error Int))]
-              flat$7$simp$13 flat$7$simp$14
-              simp$57;
+  output [(Sum Error (Int, Array (Sum Error Int)))] repl (flat$7$simp$13 : Bool,
+                                                          flat$7$simp$14 : Error,
+                                                          flat$7$simp$15$simp$16 : Int,
+                                                          flat$7$simp$15$simp$17 : Array (Sum Error Int));
 }
 
 - Core evaluation:
@@ -209,9 +207,9 @@ gen$date = DATE
   read [Mutable] [Bool] flat$1$simp$64 = flat$1$simp$4;
   read [Mutable] [Error] flat$1$simp$65 = flat$1$simp$5;
   read [Mutable] [Map DateTime Int] flat$1$simp$66 = flat$1$simp$6;
-  output repl Sum_pack# [Error] [Map DateTime Int]
-              flat$1$simp$64 flat$1$simp$65
-              flat$1$simp$66;
+  output [(Sum Error (Map DateTime Int))] repl (flat$1$simp$64 : Bool,
+                                                flat$1$simp$65 : Error,
+                                                flat$1$simp$66 : Map DateTime Int);
 }
 
 - Core evaluation:

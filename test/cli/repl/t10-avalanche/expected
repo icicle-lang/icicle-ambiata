@@ -61,7 +61,7 @@ gen$date = DATE
                 let conv$23 = right# [Error] [(Int, Array (Sum Error Int))]
                               conv$22
                  in conv$23) conv$12;
-  output repl conv$25;
+  output [(Sum Error (Int, Array (Sum Error Int)))] repl (conv$25 : (Sum Error (Int, Array (Sum Error Int))));
 }
 
 - Core evaluation:
@@ -165,7 +165,7 @@ gen$date = DATE
                 in s$conv$22)) conv$4)
                (Right Map [] : (Sum Error (Map DateTime Int)))
                conv$2;
-  output repl conv$3;
+  output [(Sum Error (Map DateTime Int))] repl (conv$3 : (Sum Error (Map DateTime Int)));
 }
 
 - Core evaluation:
