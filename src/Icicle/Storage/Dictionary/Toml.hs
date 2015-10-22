@@ -171,7 +171,7 @@ instance Pretty DictionaryImportError where
   pretty (DictionaryErrorParsecFunc e)
    = "Function error:" <+> pretty e
   pretty (DictionaryErrorParse es)
-   = pretty es
+   = "Validation error:" <+> pretty es
   pretty (DictionaryErrorCheck e)
    = pretty e
   pretty (DictionaryErrorTransform e)

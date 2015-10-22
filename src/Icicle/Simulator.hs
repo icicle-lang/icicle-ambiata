@@ -14,7 +14,6 @@ module Icicle.Simulator (
 import           Data.List
 import           Data.Either.Combinators
 import qualified Data.Map           as Map
-import           Data.Text (Text)
 
 import qualified Icicle.BubbleGum   as B
 import           Icicle.Common.Base
@@ -40,16 +39,16 @@ data Partition =
     [AsAt Value]
   deriving (Eq,Show)
 
-type Result a = Either (SimulateError a) ([(OutputName, Value)], [B.BubbleGumOutput Text Value])
+type Result a n = Either (SimulateError a n) ([(OutputName, Value)], [B.BubbleGumOutput n Value])
 
-data SimulateError a
- = SimulateErrorRuntime (PV.RuntimeError a Text)
- | SimulateErrorRuntime' (AE.RuntimeError a Text XP.Prim)
+data SimulateError a n
+ = SimulateErrorRuntime (PV.RuntimeError a n)
+ | SimulateErrorRuntime' (AE.RuntimeError a n XP.Prim)
  | SimulateErrorCannotConvertToCore        Value
  | SimulateErrorCannotConvertFromCore      V.BaseValue
   deriving (Eq,Show)
 
-instance Pretty (SimulateError a) where
+instance Pretty n => Pretty (SimulateError a n) where
  pretty (SimulateErrorRuntime e)
   = pretty e
  pretty (SimulateErrorRuntime' e)
@@ -81,7 +80,7 @@ makePartition fs@(f:_)
                 (attribute $ fact f)
                 (fmap (\f' -> AsAt (value $ fact f') (time f')) fs) ]
 
-evaluateVirtualValue :: P.Program a Text -> DateTime -> [AsAt Value] -> Result a
+evaluateVirtualValue :: Ord n => P.Program a n -> DateTime -> [AsAt Value] -> Result a n
 evaluateVirtualValue p date vs
  = do   vs' <- zipWithM toCore [1..] vs
 
@@ -96,7 +95,7 @@ evaluateVirtualValue p date vs
    = do v' <- wrapValue <$> (valueToCore $ fact a)
         return a { fact = (B.BubbleGumFact $ B.Flavour n $ time a, v') }
 
-evaluateVirtualValue' :: A.Program a Text XP.Prim -> DateTime -> [AsAt Value] -> Result a
+evaluateVirtualValue' :: Ord n => A.Program a n XP.Prim -> DateTime -> [AsAt Value] -> Result a n
 evaluateVirtualValue' p date vs
  = do   vs' <- zipWithM toCore [1..] vs
 
@@ -117,7 +116,7 @@ wrapValue v
    then V.VLeft v
    else V.VRight v
 
-valueToCore :: Value -> Either (SimulateError a) V.BaseValue
+valueToCore :: Value -> Either (SimulateError a n) V.BaseValue
 valueToCore v
  = case v of
     IntValue i     -> return $ V.VInt i
@@ -138,7 +137,7 @@ valueToCore v
     DateValue d    -> return $ V.VDateTime d
     Tombstone      -> return $ V.VError V.ExceptTombstone
 
-valueFromCore :: V.BaseValue -> Either (SimulateError a) Value
+valueFromCore :: V.BaseValue -> Either (SimulateError a n) Value
 valueFromCore v
  = case v of
     V.VInt i      -> return $ IntValue i

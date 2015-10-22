@@ -3,7 +3,7 @@
 
 module Icicle.Repl (
     ReplError (..)
-  , P.QueryTop', P.QueryTop'T, P.Program', P.ProgramT
+  , P.QueryTop', P.QueryTop'T, P.Program'
   , annotOfError
   , sourceParse
   , sourceDesugar
@@ -60,9 +60,9 @@ import           System.IO
 import qualified Text.ParserCombinators.Parsec    as Parsec
 
 data ReplError
- = ReplErrorCompileCore      (P.CompileError Parsec.SourcePos SP.Variable ())
- | ReplErrorCompileAvalanche (P.CompileError () Text APF.Prim)
- | ReplErrorRuntime          (S.SimulateError ())
+ = ReplErrorCompileCore      (P.CompileError  Parsec.SourcePos SP.Variable ())
+ | ReplErrorCompileAvalanche (P.CompileError  ()               SP.Variable APF.Prim)
+ | ReplErrorRuntime          (S.SimulateError ()               SP.Variable)
  | ReplErrorDictionaryLoad   DictionaryToml.DictionaryImportError
  | ReplErrorDecode           S.ParseError
  deriving (Show)
@@ -126,12 +126,12 @@ sourceConvert :: D.Dictionary -> P.QueryTop'T -> Either ReplError P.Program'
 sourceConvert d
  = mapLeft ReplErrorCompileCore . P.sourceConvert d
 
-coreFlatten :: P.ProgramT -> Either ReplError (AP.Program () Text APF.Prim)
+coreFlatten :: P.Program' -> Either ReplError (AP.Program () Var APF.Prim)
 coreFlatten
  = mapLeft ReplErrorCompileAvalanche . P.coreFlatten
 
-checkAvalanche :: AP.Program () Text APF.Prim
-               -> Either ReplError (AP.Program (CommonAnnotation.Annot ()) Text APF.Prim)
+checkAvalanche :: AP.Program () Var APF.Prim
+               -> Either ReplError (AP.Program (CommonAnnotation.Annot ()) Var APF.Prim)
 checkAvalanche
  = mapLeft ReplErrorCompileAvalanche . P.checkAvalanche
 

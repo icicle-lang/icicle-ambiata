@@ -299,9 +299,9 @@ handleLine state line = case readCommand line of
 
       core      <- hoist $ SR.sourceConvert (dictionary state) finalSource
       let core'  | doCoreSimp state
-                 = renameP unVar $ SR.coreSimp core
+                 = SR.coreSimp core
                  | otherwise
-                 = renameP unVar core
+                 = core
 
       prettyOut hasCore "- Core:" core'
 
@@ -429,7 +429,7 @@ instance PP.Pretty Result where
 unVar :: SP.Variable -> Text
 unVar (SP.Variable t)  = t
 
-coreEval :: DateTime -> [AsAt Fact] -> SR.QueryTop'T -> SR.ProgramT
+coreEval :: DateTime -> [AsAt Fact] -> SR.QueryTop'T -> SR.Program'
          -> Either SR.ReplError [Result]
 coreEval d fs (renameQT unVar -> query) prog
  = do let partitions = S.streams fs
@@ -457,7 +457,7 @@ coreEval d fs (renameQT unVar -> query) prog
 seaEval :: DateTime
         -> [AsAt Fact]
         -> SR.QueryTop'T
-        -> AP.Program (C.Annot ()) Text APF.Prim
+        -> AP.Program (C.Annot ()) SP.Variable APF.Prim
         -> EitherT Sea.SeaError IO [(Entity, Value)]
 seaEval date newFacts (renameQT unVar -> query) program =
     mconcat <$> sequence results
