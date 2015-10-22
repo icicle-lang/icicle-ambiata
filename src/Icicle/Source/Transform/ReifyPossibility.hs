@@ -287,7 +287,11 @@ definiteAnnot ann
 
 typeAnnot :: Annot a n -> Type n -> Annot a n
 typeAnnot ann t
- = ann { annResult = t }
+ -- Make sure we keep the temporality the same, because the conversion to Core
+ -- uses temporality to decide where to put things
+ = let (tmpq,posq,_) = decomposeT $ annResult ann
+       t'            = recomposeT (tmpq, posq, t)
+   in ann { annResult = t' }
 
 
 wrapRightIfAnnot :: Annot a n -> Exp (Annot a n) n -> Exp (Annot a n) n

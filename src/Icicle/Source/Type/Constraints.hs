@@ -123,12 +123,20 @@ dischargeC c
          Nothing
           -> Left $ ConflictingLetTemporalities ret def body
 
-    CReturnOfLatest ret tmp dat
-     -> case returnOfLatest tmp dat of
+    CDataOfLatest ret tmp pos dat
+     -> case dataOfLatest tmp pos dat of
          Just ret'
           -> dischargeC (CEquals ret ret')
          _
           -> return $ DischargeLeftover c
+
+    CPossibilityOfLatest ret tmp pos
+     -> case possibilityOfLatest tmp pos of
+         Just ret'
+          -> dischargeC (CEquals ret ret')
+         _
+          -> return $ DischargeLeftover c
+
 
     CPossibilityJoin ret PossibilityPossibly _
      -> dischargeC (CEquals ret PossibilityPossibly)
@@ -179,16 +187,29 @@ dischargeC c
       (_, _)
        -> Nothing
 
-  returnOfLatest TemporalityPure d
+  pureOrElem t
+   = t == TemporalityPure || t == TemporalityElement
+
+  dataOfLatest tmp PossibilityDefinitely d
+   | pureOrElem tmp
    = Just $ ArrayT d
-  returnOfLatest TemporalityElement d
-   = Just $ ArrayT d
-  returnOfLatest TemporalityAggregate d
+  dataOfLatest tmp PossibilityPossibly d
+   | pureOrElem tmp
+   = Just $ ArrayT $ SumT ErrorT d
+  dataOfLatest TemporalityAggregate _ d
    = Just d
   -- Probably a variable
-  returnOfLatest _ _
+  dataOfLatest _ _ _
    = Nothing
 
+  possibilityOfLatest tmp _
+   | pureOrElem tmp
+   = Just $ PossibilityDefinitely
+  possibilityOfLatest TemporalityAggregate pos
+   = Just pos
+  -- Probably a variable
+  possibilityOfLatest _ _
+   = Nothing
 
 -- | Discharge a constraint at the top level.
 -- This is a bit of a hack, but the idea is that function application rule

@@ -111,7 +111,8 @@ data Constraint n
  | CIsNum (Type n)
  | CTemporalityJoin (Type n) (Type n) (Type n)
  | CReturnOfLetTemporalities (Type n) (Type n) (Type n)
- | CReturnOfLatest (Type n) (Type n) (Type n)
+ | CDataOfLatest (Type n) (Type n) (Type n) (Type n)
+ | CPossibilityOfLatest (Type n) (Type n) (Type n)
  | CPossibilityJoin (Type n) (Type n) (Type n)
  deriving (Eq, Ord, Show)
 
@@ -176,8 +177,10 @@ instance Pretty n => Pretty (Constraint n) where
   = pretty ret <+> "=: TemporalityJoin" <+> pretty a <+> pretty b
  pretty (CReturnOfLetTemporalities t def body)
   = pretty t <+> "=: ReturnOfLet" <+> pretty def <+> pretty body
- pretty (CReturnOfLatest t tmp dat)
-  = pretty t <+> "=: ReturnOfLatest" <+> pretty tmp <+> pretty dat
+ pretty (CDataOfLatest t tmp pos dat)
+  = pretty t <+> "=: DataOfLatest" <+> pretty tmp <+> pretty pos <+> pretty dat
+ pretty (CPossibilityOfLatest t tmp dat)
+  = pretty t <+> "=: PossibilityOfLatest" <+> pretty tmp <+> pretty dat
  pretty (CPossibilityJoin a b c)
   = pretty a <+> "=: PossibilityJoin" <+> pretty b <+> pretty c
 

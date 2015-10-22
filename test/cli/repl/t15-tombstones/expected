@@ -5,7 +5,11 @@ ok, loaded test/cli/repl/data.psv, 13 rows
 > ok, loaded test/cli/repl/t15-tombstones/data.psv, 5 rows
 > ok, loaded 1 functions from test/cli/repl/t15-tombstones/numflips.icicle
 > > - Core evaluation:
-[gonzo, tombstone]
+[gonzo, [("a",False)
+        ,("b",False)
+        ,tombstone
+        ,tombstone
+        ,("c",False)]]
 
 > > - Core evaluation:
 [gonzo, 3]

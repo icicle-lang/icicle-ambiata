@@ -63,7 +63,9 @@ defaults q
    = []
   defaultOfConstraint (CReturnOfLetTemporalities _ _ _)
    = []
-  defaultOfConstraint (CReturnOfLatest _ _ _)
+  defaultOfConstraint (CDataOfLatest _ _ _ _)
+   = []
+  defaultOfConstraint (CPossibilityOfLatest _ _ _)
    = []
   defaultOfConstraint (CPossibilityJoin _ _ _)
    = []
@@ -141,12 +143,13 @@ generateQ qq@(Query (c:_) _) env
             return (q'', sq, cons')
 
     -- >   latest n ~> x't x'p x'd
-    -- > : Aggregate Possibly (ReturnOfLatest x't x'd)
+    -- > : Aggregate (PossibilityOfLatest x't x'p) (DataOfLatest x't x'p x'd)
     Latest _ i
      -> do  (q', sq, tq, consr) <- rest env
 
             let (tmpq, posq, datq)  = decomposeT tq
             retDat              <- TypeVar <$> fresh
+            retPos              <- TypeVar <$> fresh
 
             -- Latest works for aggregates or elements.
             -- If the end is an element, such as
@@ -167,23 +170,27 @@ generateQ qq@(Query (c:_) _) env
             --
             -- > silly_function x = latest 3 ~> x
             -- >  : forall (x't : Temporality)
+            -- >           (x'p : Possibility)
             -- >           (x'd : Data)
             -- >           (ret : Data)
-            -- >    (ret = ReturnOfLatest x't x'd)
+            -- >    (ret = DataOfLatest x't x'p x'd)
             -- > => x't x'd -> Aggregate ret
             --
-            -- The definition for ReturnOfLatest is in Icicle.Source.Type.Constraints,
+            -- The definition for DataOfLatest is in Icicle.Source.Type.Constraints,
             -- but is something like
             --
-            -- > ReturnOfLatest Aggregate d = d
-            -- > ReturnOfLatest Element   d = Array d
+            -- > DataOfLatest Aggregate d = d
+            -- > DataOfLatest Element   d = Array d
             --
-            let consT = require a (CReturnOfLatest retDat (fromMaybe TemporalityPure tmpq) datq)
+            let tmpq' = fromMaybe TemporalityPure tmpq
+            let posq' = fromMaybe PossibilityDefinitely posq
+
+            let consT = require a (CDataOfLatest        retDat tmpq' posq' datq)
+                      <>require a (CPossibilityOfLatest retPos tmpq' posq')
+
             let t'    = canonT
                       $ Temporality TemporalityAggregate
-                      $ Possibility (maybe PossibilityDefinitely id posq) retDat
-                      -- TODO: requires change to ToCore
-                      -- $ Possibility PossibilityPossibly retDat
+                      $ Possibility retPos retDat
 
             let cons' = concat [consr, consT]
 
