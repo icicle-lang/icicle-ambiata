@@ -21,6 +21,7 @@ import              P
 
 import              Data.Functor.Identity
 import qualified    Data.Set as Set
+import qualified    Data.List as List
 
 
 
@@ -47,8 +48,8 @@ pullLets statements
       Push n x
        -> pres x $ Push n
 
-      Output n x
-       -> pres x $ Output n
+      Output n t xs
+       -> presN xs $ Output n t
 
       _
        -> return ((), s)
@@ -61,6 +62,13 @@ pullLets statements
    = let (bs, x') = takeLets x
          (cs, y') = takeLets y
      in  return ((), foldr mkLet (instmt x' y') (bs<>cs))
+
+  presN xts instmt
+   = let ts  = fmap snd xts
+         bxs = fmap (takeLets . fst) xts
+         bs  = concat (fmap fst bxs)
+         xs  = List.zip (fmap snd bxs) ts
+     in  return ((), foldr mkLet (instmt xs) bs)
 
   mkLet (n,x) s
    = Let n x s
@@ -142,8 +150,8 @@ substXinS a_fresh name payload statements
       Push  n x
        -> sub1 x $ Push n
 
-      Output n  x
-       -> sub1 x $ Output n
+      Output n t xs
+       -> subN xs $ Output n t
 
       Read n _ _ _ _
        | n == name
@@ -160,6 +168,12 @@ substXinS a_fresh name payload statements
   sub1 x f
    = do x' <- sub x
         return (True, f x')
+
+  subN xts f
+   = do let ts = fmap snd xts
+        xs <- traverse (sub . fst) xts
+        let xts' = List.zip xs ts
+        return (True, f xts')
 
   finished s
    = return (False, s)
@@ -239,7 +253,7 @@ hasEffect statements
    = return $ not $ Set.member n ignore
 
     -- Outputting is an effect
-   | Output _ _  <- s
+   | Output _ _ _       <- s
    = return True
 
     -- Marking a fact as used is an effect.
@@ -299,8 +313,8 @@ stmtFreeX statements
            -> ret x
           Push  _ x
            -> ret x
-          Output _ x
-           -> ret x
+          Output _ _ xs
+           -> return (Set.unions (fmap (freevars . fst) xs) `Set.union` subvars)
 
           -- Leftovers: just the union of the under bits
           _

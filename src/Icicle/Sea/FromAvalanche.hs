@@ -46,8 +46,6 @@ seaOfProgram program = vsep
   , "typedef   double idouble_t;"
   , "typedef  int64_t idate_t;"
   , ""
-  , "typedef const char *ierror_t;"
-  , ""
   , stateOfProgram program
   , ""
   , "static const ierror_t ierror_tombstone              = 0;"
@@ -114,9 +112,9 @@ stateOfProgram program = vsep
               $ program
    , ""
    , "    /* outputs */"
-   , "    ierror_t   error;"
    , indent 4 . vsep
-              . fmap defOfOutput
+              . concat
+              . fmap defsOfOutput
               . Map.toList
               . outputsOfProgram
               $ program
@@ -135,7 +133,6 @@ stateWordsOfProgram program
  = 1 -- gen_date
  + 1 -- new_count
  + length (factVarsOfProgram FactLoopNew program)
- + 1 -- error
  + Map.size (outputsOfProgram program)
  + Map.size (accumsOfProgram  program)
 
@@ -152,9 +149,13 @@ defOfFactVar :: Pretty n => (Name n, ValType) -> Doc
 defOfFactVar (n, t)
  = seaOfValType t <+> "*" <> "new_" <> seaOfName n <> semi
 
-defOfOutput :: (OutputName, ValType) -> Doc
-defOfOutput (n, t)
- = seaOfValType t <+> seaOfName n <> semi
+defsOfOutput :: (OutputName, (ValType, [ValType])) -> [Doc]
+defsOfOutput (n, (_, ts))
+ = List.zipWith (defOfOutputIx n) [0..] ts
+
+defOfOutputIx :: OutputName -> Int -> ValType -> Doc
+defOfOutputIx n ix t
+ = seaOfValType t <+> seaOfNameIx n ix <> semi
 
 ------------------------------------------------------------------------
 
@@ -230,8 +231,10 @@ seaOfStatement stmt
      SaveResumable n _
       -> assign ("s->" <> seaOfName n) (seaOfName n) <> semi
 
-     Output n xx
-      -> assign ("s->" <> seaOfName n) (seaOfExp xx) <> semi
+     Output n _ xts
+      | ixAssign <- \ix xx -> assign ("s->" <> seaOfNameIx n ix) (seaOfExp xx) <> semi
+      -> vsep . List.zipWith ixAssign [0..]
+              $ fmap fst xts
 
      _
       -> seaError "seaOfStatement" stmt
@@ -380,6 +383,9 @@ seaOfName = string . fmap mangle . show . pretty
     mangle '$' = '_'
     mangle  c  =  c
 
+seaOfNameIx :: Pretty n => n -> Int -> Doc
+seaOfNameIx n ix = seaOfName (pretty n <> text "$ix$" <> int ix)
+
 ------------------------------------------------------------------------
 
 seaError :: Show a => Doc -> a -> Doc
@@ -421,7 +427,7 @@ factVarsOfStatement loopType stmt
      Push  _ _             -> []
      LoadResumable _ _     -> []
      SaveResumable _ _     -> []
-     Output _ _            -> []
+     Output _ _ _          -> []
      KeepFactInHistory     -> []
 
      ForeachFacts ns _ ty ss
@@ -452,7 +458,7 @@ accumsOfStatement stmt
      Push  _ _             -> Map.empty
      LoadResumable _ _     -> Map.empty
      SaveResumable _ _     -> Map.empty
-     Output _ _            -> Map.empty
+     Output _ _ _          -> Map.empty
      KeepFactInHistory     -> Map.empty
 
      InitAccumulator (Accumulator n at avt _) ss
@@ -480,7 +486,7 @@ readsOfStatement stmt
      Push  _ _             -> Map.empty
      LoadResumable _ _     -> Map.empty
      SaveResumable _ _     -> Map.empty
-     Output _ _            -> Map.empty
+     Output _ _ _          -> Map.empty
      KeepFactInHistory     -> Map.empty
 
      Read n _ at vt ss
@@ -489,10 +495,10 @@ readsOfStatement stmt
 
 ------------------------------------------------------------------------
 
-outputsOfProgram :: Program (Annot a) n Prim -> Map OutputName ValType
+outputsOfProgram :: Program (Annot a) n Prim -> Map OutputName (ValType, [ValType])
 outputsOfProgram = outputsOfStatement . statements
 
-outputsOfStatement :: Statement (Annot a) n Prim -> Map OutputName ValType
+outputsOfStatement :: Statement (Annot a) n Prim -> Map OutputName (ValType, [ValType])
 outputsOfStatement stmt
  = case stmt of
      Block []              -> Map.empty
@@ -511,9 +517,5 @@ outputsOfStatement stmt
      SaveResumable _ _     -> Map.empty
      KeepFactInHistory     -> Map.empty
 
-     Output n xx
-      | Just t <- valTypeOfExp xx
-      -> Map.singleton n t
-
-      | otherwise
-      -> Map.empty
+     Output n t xts
+      -> Map.singleton n (t, fmap snd xts)

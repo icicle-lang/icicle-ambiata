@@ -24,6 +24,7 @@ import              Icicle.Internal.Pretty
 import              P
 import              Control.Monad.Trans.Class
 
+import qualified    Data.List                      as List
 import qualified    Data.Map                       as Map
 
 
@@ -86,10 +87,12 @@ flatten a_fresh s
      $ \x'
      -> return $ Push n x'
 
-    Output n x
-     -> flatX a_fresh x
-     $ \x'
-     -> return $ Output n x'
+    Output n t xts
+     | xs <- fmap fst xts
+     , ts <- fmap snd xts
+     -> flatXS a_fresh xs []
+     $ \xs'
+     -> return $ Output n t (List.zip xs' ts)
 
     KeepFactInHistory
      -> return $ KeepFactInHistory
@@ -99,6 +102,19 @@ flatten a_fresh s
     SaveResumable n t
      -> return $ SaveResumable n t
 
+
+flatXS  :: (Ord n, Pretty n)
+        => a
+        -> [Exp a n Core.Prim]
+        -> [Exp a n Flat.Prim]
+        -> ([Exp a n Flat.Prim] -> FlatM a n)
+        -> FlatM a n
+
+flatXS _       []     ys stm = stm ys
+flatXS a_fresh (x:xs) ys stm
+ = flatX a_fresh x
+ $ \x'
+ -> flatXS a_fresh xs (ys <> [x']) stm
 
 
 -- | Flatten an expression, wrapping the statement with any lets or loops or other bindings

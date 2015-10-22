@@ -35,7 +35,7 @@ data Scoped a n p
  | Block     [Either (Binding a n p) (Scoped a n p)]
  | Write (Name n)    (Exp a n p)
  | Push  (Name n)    (Exp a n p)
- | Output OutputName (Exp a n p)
+ | Output OutputName ValType [(Exp a n p, ValType)]
  | KeepFactInHistory
  | LoadResumable (Name n) ValType
  | SaveResumable (Name n) ValType
@@ -67,8 +67,8 @@ bindsOfStatement s
      -> [Right $ Write n x]
     S.Push n x
      -> [Right $ Push n x]
-    S.Output n x
-     -> [Right $ Output n x]
+    S.Output n t xs
+     -> [Right $ Output n t xs]
     S.KeepFactInHistory
      -> [Right $ KeepFactInHistory]
     S.LoadResumable n t
@@ -121,8 +121,8 @@ statementOfScoped s
      -> S.Write n x
     Push n x
      -> S.Push n x
-    Output n x
-     -> S.Output n x
+    Output n t xs
+     -> S.Output n t xs
     KeepFactInHistory
      -> S.KeepFactInHistory
     LoadResumable n t
@@ -183,8 +183,8 @@ instance (Pretty n, Pretty p) => Pretty (Scoped a n p) where
       -> text "push" <+> pretty n <> text "(" <> pretty x <> text ")"
       <> text ";"
 
-     Output n x
-      -> text "output" <+> pretty n <+> pretty x
+     Output n t xs
+      -> text "output" <+> brackets (pretty t) <+> pretty n <+> prettyOutputParts xs
       <> text ";"
      KeepFactInHistory
       -> text "keep_fact_in_history"
@@ -203,6 +203,9 @@ instance (Pretty n, Pretty p) => Pretty (Scoped a n p) where
 
    prettyFactPart (nf, tf) = pretty nf <+> text ":" <+> pretty tf
    prettyFactParts         = parens . align . cat . punctuate comma . fmap prettyFactPart
+
+   prettyOutputPart (xf, tf) = pretty xf <+> text ":" <+> pretty tf
+   prettyOutputParts         = parens . align . cat . punctuate comma . fmap prettyOutputPart
 
 
 instance (Pretty n, Pretty p) => Pretty (Binding a n p) where

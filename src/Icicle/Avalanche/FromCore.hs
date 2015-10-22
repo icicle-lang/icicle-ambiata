@@ -21,11 +21,14 @@ import qualified    Icicle.Common.Exp.Prim.Minimal as Min
 import              Icicle.Avalanche.Statement.Statement as A
 import              Icicle.Avalanche.Program    as A
 import qualified    Icicle.Core.Program.Program as C
+import qualified    Icicle.Core.Program.Check   as C
 import qualified    Icicle.Core.Reduce          as CR
 import qualified    Icicle.Core.Stream          as CS
 
 import              P
 import              Data.String
+import qualified    Data.Map as Map
+
 
 data Namer n
  = Namer
@@ -101,9 +104,21 @@ programFromCore namer p
    $ Block
    $ makeStatements namer (C.input p) (C.streams p) reduces
 
+  outputExps
+   = Map.fromList (C.returns p)
+
+  outputTypes
+   = Map.fromList
+   $ mapMaybe (\(n,t) -> (,) <$> pure n <*> fromFunT t)
+   $ either (const []) id (C.checkProgram p)
+
+  fromFunT (FunT [] t) = Just t
+  fromFunT _           = Nothing
+
   outputs
    = Block
-   $ fmap (uncurry A.Output) (C.returns p)
+   $ Map.elems
+   $ Map.intersectionWithKey (\n x t -> A.Output n t [(x, t)]) outputExps outputTypes
 
   -- Fold accumulator
   accum (n, CR.RFold _ ty _ x _)

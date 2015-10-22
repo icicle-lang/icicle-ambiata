@@ -16,6 +16,8 @@ import              Icicle.Common.Type
 
 import              P
 
+import qualified    Data.List as List
+
 
 constructor :: Ord n => a -> Statement a n Prim -> Fresh n (Statement a n Prim)
 constructor a_fresh statements
@@ -45,8 +47,10 @@ constructor a_fresh statements
            -> ret $ Write n (go x)
           Push n x
            -> ret $ Push n (go x)
-          Output n x
-           -> ret $ Output n (go x)
+          Output n t xts
+           | xs <- fmap (go . fst) xts
+           , ts <- fmap snd xts
+           -> ret $ Output n t (List.zip xs ts)
           _
            -> ret s
 
