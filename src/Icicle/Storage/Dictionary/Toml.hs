@@ -36,12 +36,10 @@ import           P
 
 
 data DictionaryImportError
-  = DictionaryErrorIO         E.SomeException
-  | DictionaryErrorParsecTOML Parsec.ParseError
-  | DictionaryErrorParsecFunc (P.CompileError Parsec.SourcePos SP.Variable ())
-  | DictionaryErrorParse      [DictionaryValidationError]
-  | DictionaryErrorCheck      (P.CompileError Parsec.SourcePos SP.Variable ())
-  | DictionaryErrorTransform  (P.CompileError Parsec.SourcePos SP.Variable ())
+  = DictionaryErrorIO          E.SomeException
+  | DictionaryErrorParsecTOML  Parsec.ParseError
+  | DictionaryErrorCompilation (P.CompileError Parsec.SourcePos SP.Variable ())
+  | DictionaryErrorParse       [DictionaryValidationError]
   deriving (Show)
 
 type Funs a  = [((a, Name SP.Variable), SQ.Function a SP.Variable)]
@@ -129,7 +127,7 @@ parseImports conf rp
            $ A.left DictionaryErrorIO
           <$> E.try (T.readFile (rp </> fp''))
         hoistEither
-           $ A.left DictionaryErrorParsecFunc
+           $ A.left DictionaryErrorCompilation
            $ P.sourceParseF fp'' importsText
 
 loadImports
@@ -137,7 +135,7 @@ loadImports
   -> [Funs Parsec.SourcePos]
   -> EitherT DictionaryImportError IO FunEnvT
 loadImports parentFuncs parsedImports
- = hoistEither . mapLeft DictionaryErrorCheck
+ = hoistEither . mapLeft DictionaryErrorCompilation
  $ foldlM (go parentFuncs) [] parsedImports
  where
   go env acc f
@@ -153,7 +151,7 @@ checkDefs
   -> [(Attribute, P.QueryTop')]
   -> EitherT DictionaryImportError IO [DictionaryEntry]
 checkDefs d defs
- = hoistEither . mapLeft DictionaryErrorCheck
+ = hoistEither . mapLeft DictionaryErrorCompilation
  $ go `traverse` defs
  where
   go (a, q)
@@ -163,17 +161,15 @@ checkDefs d defs
          (checked, _)  <- P.sourceCheckQT d q
          pure $ DictionaryEntry a (VirtualDefinition (Virtual checked))
 
+
+
 instance Pretty DictionaryImportError where
   pretty (DictionaryErrorIO e)
    = "IO Exception:" <+> (text . show) e
   pretty (DictionaryErrorParsecTOML e)
    = "TOML parse error:" <+> (text . show) e
-  pretty (DictionaryErrorParsecFunc e)
-   = "Function error:" <+> pretty e
+  pretty (DictionaryErrorCompilation e)
+   = pretty e
   pretty (DictionaryErrorParse es)
    = "Validation error:" <+> align (vcat (pretty <$> es))
-  pretty (DictionaryErrorCheck e)
-   = pretty e
-  pretty (DictionaryErrorTransform e)
-   = pretty e
 
