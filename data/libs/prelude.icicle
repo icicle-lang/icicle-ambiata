@@ -1,8 +1,8 @@
 
 # Basic statistics
 sum v = let fold s = 0 : v + s ~> s.
-count = let fold c = 0 : c + 1 ~> c.
-mean v = sum (double v) / count.
+count v = let fold c = 0 : seq v (c + 1) ~> c.
+mean v = sum (double v) / count v.
 max v = let fold1 s = v : case v > s | True -> v | False -> s end ~> s.
 min v = let fold1 s = v : case v < s | True -> v | False -> s end ~> s.
 

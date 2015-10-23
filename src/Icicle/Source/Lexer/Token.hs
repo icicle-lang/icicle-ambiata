@@ -90,6 +90,7 @@ data Keyword
  | Exp
  | Double
  | Int
+ | Seq
  deriving (Eq, Ord, Show, Enum, Bounded)
 
 

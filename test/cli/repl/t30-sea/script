@@ -7,7 +7,7 @@
 feature salary ~> oldest value
 
 -- Filtering works
-feature salary ~> filter value > 300 ~> count
+feature salary ~> filter value > 300 ~> count value
 
 -- An interesting expression
 feature salary ~> sd value * (filter value < 300 ~> sd value)

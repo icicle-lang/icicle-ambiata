@@ -246,29 +246,33 @@ void compute(icicle_state_t *s)
 > - Flattened:
 gen$date = DATE
 {
-  init [Mutable] [Int] acc$c$conv$11 = 0 : Int;
-  load_resumable [Int] acc$c$conv$11;
-  for_facts (gen$fact$simp$8$simp$10 : Bool,
-             gen$fact$simp$8$simp$11 : Error,
-             gen$fact$simp$8$simp$12 : Int,
-             gen$fact$simp$9 : DateTime) in new {
-    init [Mutable] [Bool] flat$0$simp$2 = False : Bool;
-    init [Mutable] [Bool] flat$0$simp$4 = False : Bool;
-    if (gen$fact$simp$8$simp$10) {
+  init [Mutable] [Bool] acc$c$conv$13$simp$4 = True : Bool;
+  init [Mutable] [Error] acc$c$conv$13$simp$5 = ExceptTombstone : Error;
+  init [Mutable] [Int] acc$c$conv$13$simp$6 = 0 : Int;
+  load_resumable [Bool] acc$c$conv$13$simp$4;
+  load_resumable [Error] acc$c$conv$13$simp$5;
+  load_resumable [Int] acc$c$conv$13$simp$6;
+  for_facts (gen$fact$simp$37$simp$39 : Bool,
+             gen$fact$simp$37$simp$40 : Error,
+             gen$fact$simp$37$simp$41 : Int,
+             gen$fact$simp$38 : DateTime) in new {
+    init [Mutable] [Bool] flat$0$simp$7 = False : Bool;
+    init [Mutable] [Bool] flat$0$simp$9 = False : Bool;
+    if (gen$fact$simp$37$simp$39) {
       let simp$1 = gt# [Int]
-                   gen$fact$simp$8$simp$12
+                   gen$fact$simp$37$simp$41
                    (300 : Int);
-      write flat$0$simp$2 = True : Bool;
-      write flat$0$simp$4 = simp$1;
+      write flat$0$simp$7 = True : Bool;
+      write flat$0$simp$9 = simp$1;
     } else {
-      write flat$0$simp$2 = False : Bool;
-      write flat$0$simp$4 = False : Bool;
+      write flat$0$simp$7 = False : Bool;
+      write flat$0$simp$9 = False : Bool;
     }
-    read [Mutable] [Bool] flat$0$simp$5 = flat$0$simp$2;
-    read [Mutable] [Bool] flat$0$simp$7 = flat$0$simp$4;
+    read [Mutable] [Bool] flat$0$simp$10 = flat$0$simp$7;
+    read [Mutable] [Bool] flat$0$simp$12 = flat$0$simp$9;
     init [Mutable] [Bool] flat$1 = False : Bool;
-    if (flat$0$simp$5) {
-      write flat$1 = flat$0$simp$7;
+    if (flat$0$simp$10) {
+      write flat$1 = flat$0$simp$12;
     } 
      else {
       write flat$1 = True : Bool;
@@ -276,16 +280,70 @@ gen$date = DATE
     
     read [Mutable] [Bool] flat$1 = flat$1;
     if (flat$1) {
-      read [Mutable] [Int] acc$c$conv$11 = acc$c$conv$11;
-      write acc$c$conv$11 = add# [Int]
-                            acc$c$conv$11 (1 : Int);
+      read [Mutable] [Bool] acc$c$conv$13$simp$13 = acc$c$conv$13$simp$4;
+      read [Mutable] [Error] acc$c$conv$13$simp$14 = acc$c$conv$13$simp$5;
+      read [Mutable] [Int] acc$c$conv$13$simp$15 = acc$c$conv$13$simp$6;
+      init [Mutable] [Bool] flat$2$simp$16 = False : Bool;
+      init [Mutable] [Error] flat$2$simp$17 = ExceptTombstone : Error;
+      init [Mutable] [Int] flat$2$simp$18 = 0 : Int;
+      if (gen$fact$simp$37$simp$39) {
+        init [Mutable] [Bool] flat$5$simp$19 = False : Bool;
+        init [Mutable] [Error] flat$5$simp$20 = ExceptTombstone : Error;
+        init [Mutable] [Int] flat$5$simp$21 = 0 : Int;
+        if (acc$c$conv$13$simp$13) {
+          let simp$3 = add# [Int]
+                       acc$c$conv$13$simp$15 (1 : Int);
+          write flat$5$simp$19 = True : Bool;
+          write flat$5$simp$20 = ExceptTombstone : Error;
+          write flat$5$simp$21 = simp$3;
+        } else {
+          write flat$5$simp$19 = False : Bool;
+          write flat$5$simp$20 = acc$c$conv$13$simp$14;
+          write flat$5$simp$21 = 0 : Int;
+        }
+        read [Mutable] [Bool] flat$5$simp$22 = flat$5$simp$19;
+        read [Mutable] [Error] flat$5$simp$23 = flat$5$simp$20;
+        read [Mutable] [Int] flat$5$simp$24 = flat$5$simp$21;
+        init [Mutable] [Bool] flat$6$simp$25 = False : Bool;
+        init [Mutable] [Error] flat$6$simp$26 = ExceptTombstone : Error;
+        init [Mutable] [Int] flat$6$simp$27 = 0 : Int;
+        if (flat$5$simp$22) {
+          write flat$6$simp$25 = True : Bool;
+          write flat$6$simp$26 = ExceptTombstone : Error;
+          write flat$6$simp$27 = flat$5$simp$24;
+        } else {
+          write flat$6$simp$25 = False : Bool;
+          write flat$6$simp$26 = flat$5$simp$23;
+          write flat$6$simp$27 = 0 : Int;
+        }
+        read [Mutable] [Bool] flat$6$simp$28 = flat$6$simp$25;
+        read [Mutable] [Error] flat$6$simp$29 = flat$6$simp$26;
+        read [Mutable] [Int] flat$6$simp$30 = flat$6$simp$27;
+        write flat$2$simp$16 = flat$6$simp$28;
+        write flat$2$simp$17 = flat$6$simp$29;
+        write flat$2$simp$18 = flat$6$simp$30;
+      } else {
+        write flat$2$simp$16 = False : Bool;
+        write flat$2$simp$17 = gen$fact$simp$37$simp$40;
+        write flat$2$simp$18 = 0 : Int;
+      }
+      read [Mutable] [Bool] flat$2$simp$31 = flat$2$simp$16;
+      read [Mutable] [Error] flat$2$simp$32 = flat$2$simp$17;
+      read [Mutable] [Int] flat$2$simp$33 = flat$2$simp$18;
+      write acc$c$conv$13$simp$4 = flat$2$simp$31;
+      write acc$c$conv$13$simp$5 = flat$2$simp$32;
+      write acc$c$conv$13$simp$6 = flat$2$simp$33;
     }
   }
-  save_resumable [Int] acc$c$conv$11;
-  read [Mutable] [Int] c$conv$11 = acc$c$conv$11;
-  output [(Sum Error Int)] repl (True : Bool : Bool,
-                                 ExceptTombstone : Error : Error,
-                                 c$conv$11 : Int);
+  save_resumable [Bool] acc$c$conv$13$simp$4;
+  save_resumable [Error] acc$c$conv$13$simp$5;
+  save_resumable [Int] acc$c$conv$13$simp$6;
+  read [Mutable] [Bool] c$conv$13$simp$34 = acc$c$conv$13$simp$4;
+  read [Mutable] [Error] c$conv$13$simp$35 = acc$c$conv$13$simp$5;
+  read [Mutable] [Int] c$conv$13$simp$36 = acc$c$conv$13$simp$6;
+  output [(Sum Error Int)] repl (c$conv$13$simp$34 : Bool,
+                                 c$conv$13$simp$35 : Error,
+                                 c$conv$13$simp$36 : Int);
 }
 
 - C:
@@ -304,10 +362,10 @@ typedef struct {
     /* inputs */
     idate_t    gen_date;
     iint_t     new_count;
-    ibool_t    *new_gen_fact_simp_8_simp_10;
-    ierror_t   *new_gen_fact_simp_8_simp_11;
-    iint_t     *new_gen_fact_simp_8_simp_12;
-    idate_t    *new_gen_fact_simp_9;
+    ibool_t    *new_gen_fact_simp_37_simp_39;
+    ierror_t   *new_gen_fact_simp_37_simp_40;
+    iint_t     *new_gen_fact_simp_37_simp_41;
+    idate_t    *new_gen_fact_simp_38;
 
     /* outputs */
     ibool_t    repl_ix_0;
@@ -315,10 +373,21 @@ typedef struct {
     iint_t     repl_ix_2;
 
     /* resumables */
-    iint_t     acc_c_conv_11;
+    ibool_t    acc_c_conv_13_simp_4;
+    ierror_t   acc_c_conv_13_simp_5;
+    iint_t     acc_c_conv_13_simp_6;
     ibool_t    flat_1;
-    ibool_t    flat_0_simp_2;
-    ibool_t    flat_0_simp_4;
+    ibool_t    flat_0_simp_7;
+    ibool_t    flat_0_simp_9;
+    ibool_t    flat_2_simp_16;
+    ierror_t   flat_2_simp_17;
+    iint_t     flat_2_simp_18;
+    ibool_t    flat_5_simp_19;
+    ierror_t   flat_5_simp_20;
+    iint_t     flat_5_simp_21;
+    ibool_t    flat_6_simp_25;
+    ierror_t   flat_6_simp_26;
+    iint_t     flat_6_simp_27;
 } icicle_state_t;
 
 static const ierror_t ierror_tombstone              = 0;
@@ -359,46 +428,75 @@ static ibool_t   INLINE idouble_ne    (idouble_t x, idouble_t y) { return x != y
 
 void compute(icicle_state_t *s)
 {
-    iint_t     acc_c_conv_11;
-    iint_t     c_conv_11;
+    ibool_t    acc_c_conv_13_simp_13;
+    ierror_t   acc_c_conv_13_simp_14;
+    iint_t     acc_c_conv_13_simp_15;
+    ibool_t    acc_c_conv_13_simp_4;
+    ierror_t   acc_c_conv_13_simp_5;
+    iint_t     acc_c_conv_13_simp_6;
+    ibool_t    c_conv_13_simp_34;
+    ierror_t   c_conv_13_simp_35;
+    iint_t     c_conv_13_simp_36;
     ibool_t    flat_1;
-    ibool_t    flat_0_simp_2;
-    ibool_t    flat_0_simp_4;
-    ibool_t    flat_0_simp_5;
+    ibool_t    flat_0_simp_10;
+    ibool_t    flat_0_simp_12;
     ibool_t    flat_0_simp_7;
+    ibool_t    flat_0_simp_9;
+    ibool_t    flat_2_simp_16;
+    ierror_t   flat_2_simp_17;
+    iint_t     flat_2_simp_18;
+    ibool_t    flat_2_simp_31;
+    ierror_t   flat_2_simp_32;
+    iint_t     flat_2_simp_33;
+    ibool_t    flat_5_simp_19;
+    ierror_t   flat_5_simp_20;
+    iint_t     flat_5_simp_21;
+    ibool_t    flat_5_simp_22;
+    ierror_t   flat_5_simp_23;
+    iint_t     flat_5_simp_24;
+    ibool_t    flat_6_simp_25;
+    ierror_t   flat_6_simp_26;
+    iint_t     flat_6_simp_27;
+    ibool_t    flat_6_simp_28;
+    ierror_t   flat_6_simp_29;
+    iint_t     flat_6_simp_30;
 
-    acc_c_conv_11                        = 0;
-    acc_c_conv_11                        = s->acc_c_conv_11;
+    acc_c_conv_13_simp_4                 = itrue;
+    acc_c_conv_13_simp_5                 = ierror_tombstone;
+    acc_c_conv_13_simp_6                 = 0;
+    acc_c_conv_13_simp_4                 = s->acc_c_conv_13_simp_4;
+    acc_c_conv_13_simp_5                 = s->acc_c_conv_13_simp_5;
+    acc_c_conv_13_simp_6                 = s->acc_c_conv_13_simp_6;
     
     const iint_t    new_count            = s->new_count;
-    const ibool_t   *const new_gen_fact_simp_8_simp_10 = s->new_gen_fact_simp_8_simp_10;
-    const ierror_t  *const new_gen_fact_simp_8_simp_11 = s->new_gen_fact_simp_8_simp_11;
-    const iint_t    *const new_gen_fact_simp_8_simp_12 = s->new_gen_fact_simp_8_simp_12;
-    const idate_t   *const new_gen_fact_simp_9 = s->new_gen_fact_simp_9;
+    const ibool_t   *const new_gen_fact_simp_37_simp_39 = s->new_gen_fact_simp_37_simp_39;
+    const ierror_t  *const new_gen_fact_simp_37_simp_40 = s->new_gen_fact_simp_37_simp_40;
+    const iint_t    *const new_gen_fact_simp_37_simp_41 = s->new_gen_fact_simp_37_simp_41;
+    const idate_t   *const new_gen_fact_simp_38 = s->new_gen_fact_simp_38;
     
     for (iint_t i = 0; i < new_count; i++) {
-        ibool_t    gen_fact_simp_8_simp_10 = new_gen_fact_simp_8_simp_10[i];
-        ierror_t   gen_fact_simp_8_simp_11 = new_gen_fact_simp_8_simp_11[i];
-        iint_t     gen_fact_simp_8_simp_12 = new_gen_fact_simp_8_simp_12[i];
-        idate_t    gen_fact_simp_9       = new_gen_fact_simp_9[i];
-        flat_0_simp_2                    = ifalse;
-        flat_0_simp_4                    = ifalse;
+        ibool_t    gen_fact_simp_37_simp_39 = new_gen_fact_simp_37_simp_39[i];
+        ierror_t   gen_fact_simp_37_simp_40 = new_gen_fact_simp_37_simp_40[i];
+        iint_t     gen_fact_simp_37_simp_41 = new_gen_fact_simp_37_simp_41[i];
+        idate_t    gen_fact_simp_38      = new_gen_fact_simp_38[i];
+        flat_0_simp_7                    = ifalse;
+        flat_0_simp_9                    = ifalse;
         
-        if (gen_fact_simp_8_simp_10) {
-            ibool_t    simp_1            = iint_gt (gen_fact_simp_8_simp_12, 300);
-            flat_0_simp_2                = itrue;
-            flat_0_simp_4                = simp_1;
+        if (gen_fact_simp_37_simp_39) {
+            ibool_t    simp_1            = iint_gt (gen_fact_simp_37_simp_41, 300);
+            flat_0_simp_7                = itrue;
+            flat_0_simp_9                = simp_1;
         } else {
-            flat_0_simp_2                = ifalse;
-            flat_0_simp_4                = ifalse;
+            flat_0_simp_7                = ifalse;
+            flat_0_simp_9                = ifalse;
         }
         
-        flat_0_simp_5                    = flat_0_simp_2;
-        flat_0_simp_7                    = flat_0_simp_4;
+        flat_0_simp_10                   = flat_0_simp_7;
+        flat_0_simp_12                   = flat_0_simp_9;
         flat_1                           = ifalse;
         
-        if (flat_0_simp_5) {
-            flat_1                       = flat_0_simp_7;
+        if (flat_0_simp_10) {
+            flat_1                       = flat_0_simp_12;
         } else {
             flat_1                       = itrue;
         }
@@ -406,17 +504,77 @@ void compute(icicle_state_t *s)
         flat_1                           = flat_1;
         
         if (flat_1) {
-            acc_c_conv_11                = acc_c_conv_11;
-            acc_c_conv_11                = iint_add (acc_c_conv_11, 1);
+            acc_c_conv_13_simp_13        = acc_c_conv_13_simp_4;
+            acc_c_conv_13_simp_14        = acc_c_conv_13_simp_5;
+            acc_c_conv_13_simp_15        = acc_c_conv_13_simp_6;
+            flat_2_simp_16               = ifalse;
+            flat_2_simp_17               = ierror_tombstone;
+            flat_2_simp_18               = 0;
+            
+            if (gen_fact_simp_37_simp_39) {
+                flat_5_simp_19           = ifalse;
+                flat_5_simp_20           = ierror_tombstone;
+                flat_5_simp_21           = 0;
+                
+                if (acc_c_conv_13_simp_13) {
+                    iint_t     simp_3    = iint_add (acc_c_conv_13_simp_15, 1);
+                    flat_5_simp_19       = itrue;
+                    flat_5_simp_20       = ierror_tombstone;
+                    flat_5_simp_21       = simp_3;
+                } else {
+                    flat_5_simp_19       = ifalse;
+                    flat_5_simp_20       = acc_c_conv_13_simp_14;
+                    flat_5_simp_21       = 0;
+                }
+                
+                flat_5_simp_22           = flat_5_simp_19;
+                flat_5_simp_23           = flat_5_simp_20;
+                flat_5_simp_24           = flat_5_simp_21;
+                flat_6_simp_25           = ifalse;
+                flat_6_simp_26           = ierror_tombstone;
+                flat_6_simp_27           = 0;
+                
+                if (flat_5_simp_22) {
+                    flat_6_simp_25       = itrue;
+                    flat_6_simp_26       = ierror_tombstone;
+                    flat_6_simp_27       = flat_5_simp_24;
+                } else {
+                    flat_6_simp_25       = ifalse;
+                    flat_6_simp_26       = flat_5_simp_23;
+                    flat_6_simp_27       = 0;
+                }
+                
+                flat_6_simp_28           = flat_6_simp_25;
+                flat_6_simp_29           = flat_6_simp_26;
+                flat_6_simp_30           = flat_6_simp_27;
+                flat_2_simp_16           = flat_6_simp_28;
+                flat_2_simp_17           = flat_6_simp_29;
+                flat_2_simp_18           = flat_6_simp_30;
+            } else {
+                flat_2_simp_16           = ifalse;
+                flat_2_simp_17           = gen_fact_simp_37_simp_40;
+                flat_2_simp_18           = 0;
+            }
+            
+            flat_2_simp_31               = flat_2_simp_16;
+            flat_2_simp_32               = flat_2_simp_17;
+            flat_2_simp_33               = flat_2_simp_18;
+            acc_c_conv_13_simp_4         = flat_2_simp_31;
+            acc_c_conv_13_simp_5         = flat_2_simp_32;
+            acc_c_conv_13_simp_6         = flat_2_simp_33;
         }
         
     }
     
-    s->acc_c_conv_11                     = acc_c_conv_11;
-    c_conv_11                            = acc_c_conv_11;
-    s->repl_ix_0                         = itrue;
-    s->repl_ix_1                         = ierror_tombstone;
-    s->repl_ix_2                         = c_conv_11;
+    s->acc_c_conv_13_simp_4              = acc_c_conv_13_simp_4;
+    s->acc_c_conv_13_simp_5              = acc_c_conv_13_simp_5;
+    s->acc_c_conv_13_simp_6              = acc_c_conv_13_simp_6;
+    c_conv_13_simp_34                    = acc_c_conv_13_simp_4;
+    c_conv_13_simp_35                    = acc_c_conv_13_simp_5;
+    c_conv_13_simp_36                    = acc_c_conv_13_simp_6;
+    s->repl_ix_0                         = c_conv_13_simp_34;
+    s->repl_ix_1                         = c_conv_13_simp_35;
+    s->repl_ix_2                         = c_conv_13_simp_36;
 }
 
 - Core evaluation:

@@ -36,53 +36,85 @@ conv$2 =
         True : Bool) (
         \reify$3$conv$8 : Bool. 
         reify$3$conv$8) simp$3) conv$0
-Reductions:
-c$conv$11 =
-    rfold  
-    [((Sum Error Int), DateTime)]
-    [Int] (
-    \c$conv$11 : Int.  
+conv$11 =
+    smap    [((Sum Error Int), DateTime)] [((Sum Error Int), ((Sum Error Int), DateTime))]
+    (
     \conv$10 : ((Sum Error Int), DateTime). 
-    add# [Int] c$conv$11 (1 : Int))
-    (0 : Int) conv$2
-conv$20 =
+    
+    let simp$5 = fst# [(Sum Error Int)] [DateTime]
+                 conv$10
+     in pair# [(Sum Error Int)] [((Sum Error Int), DateTime)]
+        simp$5 conv$10) conv$2
+Reductions:
+c$conv$13 =
+    rfold  
+    [((Sum Error Int), ((Sum Error Int), DateTime))]
+    [(Sum Error Int)] (
+    \c$conv$13 : (Sum Error Int).  
+    \conv$12 : ((Sum Error Int), ((Sum Error Int), DateTime)). 
+    
+    let simp$7 = fst# [(Sum Error Int)] [((Sum Error Int), DateTime)]
+                 conv$12
+     in Sum_fold# [Error] [Int] [(Sum Error Int)]
+        (
+        \reify$6$conv$14 : Error. 
+        left# [Error] [Int]
+        reify$6$conv$14) (
+        \reify$7$conv$15 : Int. 
+        Sum_fold# [Error] [Int] [(Sum Error Int)]
+        (
+        \reify$8$conv$19 : Error. 
+        left# [Error] [Int]
+        reify$8$conv$19) (
+        \reify$9$conv$20 : Int. 
+        right# [Error] [Int]
+        reify$9$conv$20)
+        (Sum_fold# [Error] [Int] [(Sum Error Int)]
+         (
+         \reify$4$conv$16 : Error. 
+         left# [Error] [Int]
+         reify$4$conv$16) (
+         \reify$5$conv$17 : Int. 
+         right# [Error] [Int] (add# [Int]
+                               reify$5$conv$17 (1 : Int)))
+         c$conv$13)) simp$7)
+    (Right 0 : (Sum Error Int))
+    conv$11
+conv$30 =
     rfold  
     [((Sum Error Int), DateTime)]
     [Buf (Sum Error Int)] (
-    \conv$17 : Buf (Sum Error Int). 
+    \conv$27 : Buf (Sum Error Int). 
     
-    \conv$16 : ((Sum Error Int), DateTime). 
+    \conv$26 : ((Sum Error Int), DateTime). 
     
-    let simp$5 = fst# [(Sum Error Int)] [DateTime]
-                 conv$16
+    let simp$9 = fst# [(Sum Error Int)] [DateTime]
+                 conv$26
      in Latest_push# [(Sum Error Int)]
-        conv$17 simp$5)
+        conv$27 simp$9)
     (Buf 3 [] : Buf (Sum Error Int))
     conv$0
 Postcomputations with date as now$conv$1:
-conv$12 =
-    right# [Error] [Int]
-    c$conv$11
-conv$25 =
+conv$35 =
     Sum_fold# [Error] [Int] [(Sum Error (Int, Array (Sum Error Int)))]
     (
-    \reify$4$conv$13 : Error.  
-    let conv$14 = left# [Error] [(Int, Array (Sum Error Int))]
-                  reify$4$conv$13
-     in conv$14) (
-    \reify$5$conv$15 : Int.  
-    let conv$21 = Latest_read# [(Sum Error Int)]
-                  conv$20
+    \reify$10$conv$23 : Error.  
+    let conv$24 = left# [Error] [(Int, Array (Sum Error Int))]
+                  reify$10$conv$23
+     in conv$24) (
+    \reify$11$conv$25 : Int.  
+    let conv$31 = Latest_read# [(Sum Error Int)]
+                  conv$30
      in 
-    let conv$22 = pair# [Int] [Array (Sum Error Int)]
-                  reify$5$conv$15 conv$21
+    let conv$32 = pair# [Int] [Array (Sum Error Int)]
+                  reify$11$conv$25 conv$31
      in 
-    let conv$23 = right# [Error] [(Int, Array (Sum Error Int))]
-                  conv$22
-     in conv$23) conv$12
+    let conv$33 = right# [Error] [(Int, Array (Sum Error Int))]
+                  conv$32
+     in conv$33) c$conv$13
 Returning:
 repl =
-    conv$25
+    conv$35
 
 
 - Core type:

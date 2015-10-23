@@ -197,6 +197,16 @@ convertPrim p ann resT xts
   gofun DaysEpoch
    = return $ primmin $ Min.PrimDateTime Min.PrimDateTimeDaysEpoch
 
+  -- This looks pointless, but actually isn't. Reify possibilities takes care of sequencing both
+  -- of the possiblities of this function, so although we don't check that the first tuple is
+  -- not a tombstone here, it is now assured to not be.
+  gofun Seq
+   | [_,(xb,_)] <- xts
+   = return xb
+   | otherwise
+   = convertError
+   $ ConvertErrorPrimNoArguments ann 2 p
+
   t1 num_args
    = case xts of
       ((_,tt):_) -> convertValType ann tt

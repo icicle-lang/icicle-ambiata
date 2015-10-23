@@ -8,18 +8,18 @@ ok, avalanche is now on
 > - Avalanche:
 gen$date = DATE
 {
-  init [Mutable] [Int] acc$c$conv$11 = 0 : Int;
-  init [Mutable] [Buf (Sum Error Int)] acc$conv$20 = Buf 3 [] : Buf (Sum Error Int);
-  load_resumable [Int] acc$c$conv$11;
-  load_resumable [Buf (Sum Error Int)] acc$conv$20;
+  init [Mutable] [(Sum Error Int)] acc$c$conv$13 = Right 0 : (Sum Error Int);
+  init [Mutable] [Buf (Sum Error Int)] acc$conv$30 = Buf 3 [] : Buf (Sum Error Int);
+  load_resumable [(Sum Error Int)] acc$c$conv$13;
+  load_resumable [Buf (Sum Error Int)] acc$conv$30;
   for_facts (gen$fact : ((Sum Error Int), DateTime)) in new {
-    read [Mutable] [Buf (Sum Error Int)] acc$conv$20 = acc$conv$20;
-    let anf$2 = fst# [(Sum Error Int)] [DateTime]
+    read [Mutable] [Buf (Sum Error Int)] acc$conv$30 = acc$conv$30;
+    let anf$3 = fst# [(Sum Error Int)] [DateTime]
                 gen$fact;
-    write acc$conv$20 = Latest_push# [(Sum Error Int)]
-                        acc$conv$20 anf$2;
-    let anf$3 = anf$2;
-    let anf$4 = Sum_fold# [Error] [Int] [(Sum Error Bool)]
+    write acc$conv$30 = Latest_push# [(Sum Error Int)]
+                        acc$conv$30 anf$3;
+    let anf$4 = anf$3;
+    let anf$5 = Sum_fold# [Error] [Int] [(Sum Error Bool)]
                 (
                 \reify$0$conv$4 : Error. 
                 left# [Error] [Bool]
@@ -27,41 +27,64 @@ gen$date = DATE
                 \reify$1$conv$5 : Int. 
                 right# [Error] [Bool] (gt# [Int]
                                        reify$1$conv$5 (10 : Int)))
-                anf$3;
+                anf$4;
     if (Sum_fold# [Error] [Bool] [Bool]
         (
         \reify$2$conv$7 : Error. 
         True : Bool) (
         \reify$3$conv$8 : Bool. 
-        reify$3$conv$8) anf$4) {
-      read [Mutable] [Int] acc$c$conv$11 = acc$c$conv$11;
-      write acc$c$conv$11 = add# [Int]
-                            acc$c$conv$11 (1 : Int);
+        reify$3$conv$8) anf$5) {
+      let elem$conv$11 = pair# [(Sum Error Int)] [((Sum Error Int), DateTime)]
+                         anf$4 gen$fact;
+      read [Mutable] [(Sum Error Int)] acc$c$conv$13 = acc$c$conv$13;
+      let anf$7 = fst# [(Sum Error Int)] [((Sum Error Int), DateTime)]
+                  elem$conv$11;
+      write acc$c$conv$13 = Sum_fold# [Error] [Int] [(Sum Error Int)]
+                            (
+                            \reify$6$conv$14 : Error. 
+                            left# [Error] [Int]
+                            reify$6$conv$14) (
+                            \reify$7$conv$15 : Int. 
+                            Sum_fold# [Error] [Int] [(Sum Error Int)]
+                            (
+                            \reify$8$conv$19 : Error. 
+                            left# [Error] [Int]
+                            reify$8$conv$19) (
+                            \reify$9$conv$20 : Int. 
+                            right# [Error] [Int]
+                            reify$9$conv$20)
+                            (Sum_fold# [Error] [Int] [(Sum Error Int)]
+                             (
+                             \reify$4$conv$16 : Error. 
+                             left# [Error] [Int]
+                             reify$4$conv$16) (
+                             \reify$5$conv$17 : Int. 
+                             right# [Error] [Int] (add# [Int]
+                                                   reify$5$conv$17 (1 : Int)))
+                             acc$c$conv$13)) anf$7;
     }
   }
-  save_resumable [Int] acc$c$conv$11;
-  save_resumable [Buf (Sum Error Int)] acc$conv$20;
-  read [Mutable] [Int] c$conv$11 = acc$c$conv$11;
-  read [Mutable] [Buf (Sum Error Int)] conv$20 = acc$conv$20;
-  let conv$12 = right# [Error] [Int]
-                c$conv$11;
-  let conv$25 = Sum_fold# [Error] [Int] [(Sum Error (Int, Array (Sum Error Int)))]
+  save_resumable [(Sum Error Int)] acc$c$conv$13;
+  save_resumable [Buf (Sum Error Int)] acc$conv$30;
+  read [Mutable] [(Sum Error Int)] c$conv$13 = acc$c$conv$13;
+  read [Mutable] [Buf (Sum Error Int)] conv$30 = acc$conv$30;
+  let conv$35 = Sum_fold# [Error] [Int] [(Sum Error (Int, Array (Sum Error Int)))]
                 (
-                \reify$4$conv$13 : Error.  
-                let conv$14 = left# [Error] [(Int, Array (Sum Error Int))]
-                              reify$4$conv$13
-                 in conv$14) (
-                \reify$5$conv$15 : Int.  
-                let conv$21 = Latest_read# [(Sum Error Int)]
-                              conv$20
+                \reify$10$conv$23 : Error.  
+                let conv$24 = left# [Error] [(Int, Array (Sum Error Int))]
+                              reify$10$conv$23
+                 in conv$24) (
+                \reify$11$conv$25 : Int.  
+                let conv$31 = Latest_read# [(Sum Error Int)]
+                              conv$30
                  in 
-                let conv$22 = pair# [Int] [Array (Sum Error Int)]
-                              reify$5$conv$15 conv$21
+                let conv$32 = pair# [Int] [Array (Sum Error Int)]
+                              reify$11$conv$25 conv$31
                  in 
-                let conv$23 = right# [Error] [(Int, Array (Sum Error Int))]
-                              conv$22
-                 in conv$23) conv$12;
-  output [(Sum Error (Int, Array (Sum Error Int)))] repl (conv$25 : (Sum Error (Int, Array (Sum Error Int))));
+                let conv$33 = right# [Error] [(Int, Array (Sum Error Int))]
+                              conv$32
+                 in conv$33) c$conv$13;
+  output [(Sum Error (Int, Array (Sum Error Int)))] repl (conv$35 : (Sum Error (Int, Array (Sum Error Int))));
 }
 
 - Core evaluation:
