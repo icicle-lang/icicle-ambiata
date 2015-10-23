@@ -189,5 +189,6 @@ primitives
    ,(T.Exp,     Q.Fun Q.Exp)
    ,(T.Double,  Q.Fun Q.ToDouble)
    ,(T.Int,     Q.Fun Q.ToInt)
+   ,(T.Seq,     Q.Fun Q.Seq)
    ]
 

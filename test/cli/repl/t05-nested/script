@@ -1,6 +1,6 @@
 -- The ratio of > 300 to all?
-feature salary ~> (filter value > 300 ~> count), count
+feature salary ~> (filter value > 300 ~> count value), count value
 
 -- Number of values above, as well as number of distinct by date
-feature salary ~> (filter value > 300 ~> count), (distinct date ~> count)
+feature salary ~> (filter value > 300 ~> count value), (distinct date ~> count value)
 

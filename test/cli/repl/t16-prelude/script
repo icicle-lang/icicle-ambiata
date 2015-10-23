@@ -2,7 +2,7 @@
 feature salary ~> sum value
 
 -- Count example
-feature salary ~> count
+feature salary ~> count value
 
 -- Mean example
 feature salary ~> mean value

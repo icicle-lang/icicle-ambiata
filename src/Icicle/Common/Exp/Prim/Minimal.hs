@@ -175,7 +175,6 @@ typeOfPrim p
     PrimStruct (PrimStructGet f t (StructType fs))
      -> FunT [funOfVal (StructT $ StructType $ Map.insert f t fs)] t
 
-
 -- Pretty -------------
 
 instance Pretty Prim where
@@ -242,5 +241,4 @@ instance Pretty Prim where
  pretty (PrimPair (PrimPairSnd a b)) = text "snd#" <+> brackets (pretty a) <+> brackets (pretty b)
 
  pretty (PrimStruct (PrimStructGet f t fs)) = text "get#" <+> brackets (pretty f) <+> brackets (pretty t) <+> brackets (pretty fs)
-
 

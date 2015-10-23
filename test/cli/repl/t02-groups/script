@@ -1,15 +1,15 @@
 -- Simplest group-by there is
-feature salary ~> group value ~> count
+feature salary ~> group value ~> count value
 
 -- Grouping by the date
-feature salary ~> group date ~> count
+feature salary ~> group date ~> count value
 
 -- Filter before group
-feature salary ~> filter value > 100 ~> group date ~> count
+feature salary ~> filter value > 100 ~> group date ~> count value
 
 -- Filter after group.
 -- Note that this gives us counts of zero
-feature salary ~> group date ~> filter value > 100 ~> count
+feature salary ~> group date ~> filter value > 100 ~> count value
 
 -- Group with average
 feature salary ~> group date ~> mean value

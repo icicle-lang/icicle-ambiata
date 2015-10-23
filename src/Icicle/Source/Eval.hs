@@ -260,6 +260,12 @@ evalP ann p xs vs env
               | [VDateTime i] <- args
               -> return $ VDouble $ fromIntegral $ DT.daysOfDate i
               | otherwise -> err
+             Seq
+              | [VError e,_] <- args
+              -> return $ VError e
+              | [_,i] <- args
+              -> return i
+              | otherwise -> err
     Op o
      -> do  args <- mapM (\x' -> evalX x' vs env) xs
             let err = Left $ EvalErrorPrimBadArgs ann p args

@@ -2,7 +2,7 @@
 feature salary ~> let x = value * 2 ~> sum x
 
 -- Pure let, can use it everywhere
-feature salary ~> let sx = 13013 ~> sum (value + sx) - (sx * count)
+feature salary ~> let sx = 13013 ~> sum (value + sx) - (sx * count value)
 
 -- Aggregate let
 feature salary ~> let sx = sum value ~> sx * 2
