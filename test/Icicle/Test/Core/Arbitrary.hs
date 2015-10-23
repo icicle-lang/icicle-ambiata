@@ -227,7 +227,29 @@ tryExpForType ty env
 --
 tryExp :: Env Var Type -> Gen (Exp () Var Prim, Type)
 tryExp env
- = context env
+ = oneof_sized
+    -- Something from the context, or a primitive application.
+    [ context env ]
+    -- A function?
+    [ funs env ]
+ where
+  funs e
+   = do ts    <- listOf $ firstOrderType
+        r     <- arbitrary
+        let t  = FunT ts r
+        x     <- tryExpForType t e
+        return (x, t)
+
+firstOrderType :: Gen Type
+firstOrderType
+ = oneof [ val, args ]
+ where
+  val
+   = FunT [] <$> arbitrary
+  args
+   = do ts <- listOf $ firstOrderType
+        r  <- arbitrary
+        return (FunT ts r)
 
 -- | Try to generate an expression from the context.
 --
@@ -355,12 +377,10 @@ programForStreamType streamType
 
  where
   gen_exp e
-   -- = do a <- tryExp e `suchThatMaybe` ((== Right t) . typeExp X.coreFragmentWorkerFun e . fst)
    = do a <- tryExp e `suchThatMaybe` (isRight . typeExp X.coreFragmentWorkerFun e . fst)
         case a of
          Just x  -> return x
          Nothing -> arbitrary
-
 
   -- Generate an expression, and try very hard to make sure it's well typed
   -- (but don't try so hard that we loop forever)
@@ -436,18 +456,19 @@ programForStreamType streamType
   gen_reduces _sE pE 0
    = return (pE, [])
   gen_reduces sE pE n
-   = do (t,red) <- gen_reduce sE pE
-        nm      <- freshInEnv pE
-        (env', rs) <- gen_reduces sE (Map.insert nm (FunT [] t) pE) (n-1)
+   = do (t,red)    <- gen_reduce sE pE
+        nm         <- freshInEnv pE
+        (env', rs) <- gen_reduces sE (Map.insert nm t pE) (n-1)
         return (env', (nm, red) : rs)
 
   -- A reduction is a fold
+  gen_reduce :: Env Var ValType -> Env Var Type -> Gen (Type, Reduce () Var)
   gen_reduce sE pE
-   = do (i,t) <- oneof $ fmap return $ Map.toList sE
-        at <- arbitrary
-        kx <- gen_exp_for_type (FunT [FunT [] at, FunT [] t] at) pE
-        zx <- gen_exp_for_type (FunT [] at) pE
-        return (at, RFold t at kx zx i)
+   = do (i,t)    <- oneof $ fmap return $ Map.toList sE
+        (zx, at) <- gen_exp pE
+        let a     = functionReturns at
+        kx       <- gen_exp_for_type (FunT [at, FunT [] t] a) pE
+        return (at, RFold t a kx zx i)
 
 
 
