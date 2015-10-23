@@ -189,7 +189,8 @@ instance (Arbitrary a, Arbitrary n) => Arbitrary (Program a n) where
    Program <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
 
 
--- | Make an effort to generate a well typed expression, but no promises
+-- | Make an effort to generate a well typed expression that has some given type.
+--
 tryExpForType :: Type -> Env Var Type -> Gen (Exp () Var Prim)
 tryExpForType ty env
  = case ty of
@@ -213,59 +214,121 @@ tryExpForType ty env
     FunT [] ret
      -> oneof_sized
               [ xValue ret <$> baseValueForType ret
-              , context   ret ]
-              [ primitive ret
+              , contextForType   env ret ]
+
+              [ primitiveForType env ret
               -- Because context falls back to primitive, it doesn't hurt to double
               -- its chances
-              , context   ret
-              , letty     ret ]
+              , contextForType   env ret
+              , letty            env ret ]
 
+
+-- | Make an effort to generate a well typed expression.
+--
+tryExp :: Env Var Type -> Gen (Exp () Var Prim, Type)
+tryExp env
+ = oneof_sized
+    -- Something from the context, or a primitive application.
+    [ context env ]
+    -- A function?
+    [ funs env ]
  where
-  primitive r
-   = do -- Try to get a primitive that has the right return type
-        p <- arbitrary `suchThatMaybe` ((==r) . functionReturns . typeOfPrim)
-        case p of
-         -- Give up.
-         -- Maybe we can generate a constant based on the type
-         Nothing
-          -> xValue r <$> baseValueForType r
+  funs e
+   = do ts    <- listOf $ firstOrderType
+        r     <- arbitrary
+        let t  = FunT ts r
+        x     <- tryExpForType t e
+        return (x, t)
 
-         Just p'
-          -> fillprim p'
+firstOrderType :: Gen Type
+firstOrderType
+ = oneof [ val, args ]
+ where
+  val
+   = FunT [] <$> arbitrary
+  args
+   = do ts <- listOf $ firstOrderType
+        r  <- arbitrary
+        return (FunT ts r)
 
-  -- For each argument of the primitive, generate a new expression
-  fillprim p
-   = do as <- mapM (flip tryExpForType env) (functionArguments $ typeOfPrim p)
-        return $ P.foldl xApp (xPrim p) as
+-- | Try to generate an expression from the context.
+--
+context :: Env Var Type -> Gen (Exp () Var Prim, Type)
+context env
+ | not $ Map.null env
+ = oneof [ fromContext, usePrimitive ]
+ | otherwise
+ = usePrimitive
+ where
+  fromContext
+   = do (k, t) <- elements (Map.toList env)
+        return (xVar k, t)
+  usePrimitive
+   = do (x, vt) <- primitive env
+        return (x, FunT [] vt)
 
-  context r
-   | not $ Map.null env
-   = do k <- oneof (fmap return $ Map.keys env) `suchThatMaybe` ((==Just (FunT [] r)) . flip Map.lookup env)
-        case k of
-         -- If we can't find anything good in the context, try a primitive
-         Nothing
-          -> primitive r
-         Just k'
-          -> return $ xVar k'
-   | otherwise
-   = primitive r
+-- | Try to generate an expression with a given type from the context.
+--
+contextForType :: Env Var Type -> ValType -> Gen (Exp () Var Prim)
+contextForType env r
+ | not $ Map.null env
+ = do k <- oneof (fmap return $ Map.keys env) `suchThatMaybe` ((==Just (FunT [] r)) . flip Map.lookup env)
+      case k of
+       -- If we can't find anything good in the context, try a primitive
+       Nothing
+        -> primitiveForType env r
+       Just k'
+        -> return $ xVar k'
+ | otherwise
+ = primitiveForType env r
 
-  letty r
-   = do t  <- arbitrary
-        n  <- freshInEnv env
-        x  <- tryExpForType t env
-        let env' = Map.insert n t env
-        xLet n x <$> tryExpForType (FunT [] r) env'
+-- | For each argument of a primitive, generate a new expression.
+fillprim :: Env Var Type -> Prim -> Gen (Exp () Var Prim)
+fillprim env p
+ = do as <- mapM (flip tryExpForType env) (functionArguments $ typeOfPrim p)
+      return $ P.foldl xApp (xPrim p) as
+
+-- | Try to generate a primitive.
+primitive :: Env Var Type -> Gen (Exp () Var Prim, ValType)
+primitive env
+ = do p <- arbitrary
+      x <- fillprim env p
+      return (x, functionReturns $ typeOfPrim p)
+
+-- | Try to generate a primitive of a given type.
+--
+primitiveForType :: Env Var Type -> ValType -> Gen (Exp () Var Prim)
+primitiveForType env r
+ = do -- Try to get a primitive that has the right return type
+      p <- arbitrary `suchThatMaybe` ((==r) . functionReturns . typeOfPrim)
+      case p of
+       -- Give up.
+       -- Maybe we can generate a constant based on the type
+       Nothing
+        -> xValue r <$> baseValueForType r
+
+       Just p'
+        -> fillprim env p'
+
+-- | Try to generate a let binding with a given return type.
+--
+letty :: Env Var Type -> ValType -> Gen (Exp () Var Prim)
+letty env r
+ = do n        <- freshInEnv env
+      (x, t)   <- tryExp env
+      let env'  = Map.insert n t env
+      xLet n x <$> tryExpForType (FunT [] r) env'
 
 
 -- | Generate a well typed expression.
 -- If we can't generate a well typed expression we want quickcheck to count it as
 -- failing to satisfy a precondition.
-withTypedExp :: Testable prop => (Exp () Var Prim -> ValType -> prop) -> Property
+-- withTypedExp :: Testable prop => (Exp () Var Prim -> ValType -> prop) -> Property
+withTypedExp :: Testable prop => (Exp () Var Prim -> Type -> prop) -> Property
 withTypedExp prop
- = forAll arbitrary $ \t ->
-   forAll (tryExpForType (FunT [] t) Map.empty) $ \x ->
-     typeExp0 X.coreFragment x == Right (FunT [] t) ==> prop x t
+ = forAll (tryExp Map.empty)
+ $ \(x, t)
+ -> typeExp0 X.coreFragment x == Right t ==> prop x t
 
 
 -- | Attempt to generate well typed expressions
@@ -300,8 +363,7 @@ programForStreamType streamType
 
         -- Finally, everything is wrapped up into one return value
         retName     <- arbitrary
-        retT        <- arbitrary
-        ret         <- gen_exp (FunT [] retT) eE
+        (ret, _)    <- gen_exp eE
 
         return Program
                { P.input        = streamType
@@ -314,9 +376,15 @@ programForStreamType streamType
                }
 
  where
+  gen_exp e
+   = do a <- tryExp e `suchThatMaybe` (isRight . typeExp X.coreFragmentWorkerFun e . fst)
+        case a of
+         Just x  -> return x
+         Nothing -> arbitrary
+
   -- Generate an expression, and try very hard to make sure it's well typed
   -- (but don't try so hard that we loop forever)
-  gen_exp t e
+  gen_exp_for_type t e
    = do x <- tryExpForType t e `suchThatMaybe` ((== Right t) . typeExp X.coreFragmentWorkerFun e)
         case x of
          Just x' -> return x'
@@ -326,10 +394,9 @@ programForStreamType streamType
   gen_exps env 0
    = return (env, [])
   gen_exps env n
-   = do t   <- arbitrary
-        x   <- gen_exp (FunT [] t) env
-        nm  <- freshInEnv env
-        let env' = Map.insert nm (FunT [] t) env
+   = do (x,t)       <- gen_exp env
+        nm          <- freshInEnv env
+        let env'     = Map.insert nm t env
         (env'', xs) <- gen_exps env' (n-1)
         return (env'', (nm, x) : xs)
 
@@ -372,7 +439,7 @@ programForStreamType streamType
 
         let ty = typeOfStreamTransform st
         let ot = outputOfStreamTransform st
-        (,) ot <$> (STrans <$> return st <*> gen_exp ty pre_env <*> return i)
+        (,) ot <$> (STrans <$> return st <*> gen_exp_for_type ty pre_env <*> return i)
 
   -- Window
   streamWindow :: Env Var ValType -> Gen (ValType, Stream () Var)
@@ -389,18 +456,19 @@ programForStreamType streamType
   gen_reduces _sE pE 0
    = return (pE, [])
   gen_reduces sE pE n
-   = do (t,red) <- gen_reduce sE pE
-        nm      <- freshInEnv pE
-        (env', rs) <- gen_reduces sE (Map.insert nm (FunT [] t) pE) (n-1)
+   = do (t,red)    <- gen_reduce sE pE
+        nm         <- freshInEnv pE
+        (env', rs) <- gen_reduces sE (Map.insert nm t pE) (n-1)
         return (env', (nm, red) : rs)
 
-  -- A reduction is either a fold or a latest
+  -- A reduction is a fold
+  gen_reduce :: Env Var ValType -> Env Var Type -> Gen (Type, Reduce () Var)
   gen_reduce sE pE
-   = do (i,t) <- oneof $ fmap return $ Map.toList sE
-        at <- arbitrary
-        kx <- gen_exp (FunT [FunT [] at, FunT [] t] at) pE
-        zx <- gen_exp (FunT [] at) pE
-        return (at, RFold t at kx zx i)
+   = do (i,t)    <- oneof $ fmap return $ Map.toList sE
+        (zx, at) <- gen_exp pE
+        let a     = functionReturns at
+        kx       <- gen_exp_for_type (FunT [at, FunT [] t] a) pE
+        return (at, RFold t a kx zx i)
 
 
 
