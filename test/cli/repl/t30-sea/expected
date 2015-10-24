@@ -10,64 +10,63 @@ ok, c is now on
 > - Flattened:
 gen$date = DATE
 {
-  init [Mutable] [Bool] acc$s$reify$2$conv$5$simp$0 = False : Bool;
-  init [Mutable] [Error] acc$s$reify$2$conv$5$simp$1 = ExceptFold1NoValue : Error;
-  init [Mutable] [Int] acc$s$reify$2$conv$5$simp$2 = 0 : Int;
-  load_resumable [Bool] acc$s$reify$2$conv$5$simp$0;
-  load_resumable [Error] acc$s$reify$2$conv$5$simp$1;
-  load_resumable [Int] acc$s$reify$2$conv$5$simp$2;
-  for_facts (gen$fact$simp$21$simp$23 : Bool,
-             gen$fact$simp$21$simp$24 : Error,
-             gen$fact$simp$21$simp$25 : Int,
-             gen$fact$simp$22 : DateTime) in new {
-    read [Mutable] [Bool] acc$s$reify$2$conv$5$simp$3 = acc$s$reify$2$conv$5$simp$0;
-    read [Mutable] [Error] acc$s$reify$2$conv$5$simp$4 = acc$s$reify$2$conv$5$simp$1;
-    read [Mutable] [Int] acc$s$reify$2$conv$5$simp$5 = acc$s$reify$2$conv$5$simp$2;
-    init [Mutable] [Bool] flat$0$simp$6 = False : Bool;
-    init [Mutable] [Error] flat$0$simp$7 = ExceptTombstone : Error;
-    init [Mutable] [Int] flat$0$simp$8 = 0 : Int;
+  init acc$s$reify$2$conv$5$simp$0@{Mutable Bool} = False@{Bool};
+  init acc$s$reify$2$conv$5$simp$1@{Mutable Error} = ExceptFold1NoValue@{Error};
+  init acc$s$reify$2$conv$5$simp$2@{Mutable Int} = 0@{Int};
+  load_resumable@{Bool} acc$s$reify$2$conv$5$simp$0;
+  load_resumable@{Error} acc$s$reify$2$conv$5$simp$1;
+  load_resumable@{Int} acc$s$reify$2$conv$5$simp$2;
+  for_facts (gen$fact$simp$21$simp$23@{Bool},
+             gen$fact$simp$21$simp$24@{Error},
+             gen$fact$simp$21$simp$25@{Int},
+             gen$fact$simp$22@{DateTime}) in new {
+    read@{Mutable Bool} acc$s$reify$2$conv$5$simp$3 = acc$s$reify$2$conv$5$simp$0;
+    read@{Mutable Error} acc$s$reify$2$conv$5$simp$4 = acc$s$reify$2$conv$5$simp$1;
+    read@{Mutable Int} acc$s$reify$2$conv$5$simp$5 = acc$s$reify$2$conv$5$simp$2;
+    init flat$0$simp$6@{Mutable Bool} = False@{Bool};
+    init flat$0$simp$7@{Mutable Error} = ExceptTombstone@{Error};
+    init flat$0$simp$8@{Mutable Int} = 0@{Int};
     if (acc$s$reify$2$conv$5$simp$3) {
       write flat$0$simp$6 = acc$s$reify$2$conv$5$simp$3;
       write flat$0$simp$7 = acc$s$reify$2$conv$5$simp$4;
       write flat$0$simp$8 = acc$s$reify$2$conv$5$simp$5;
     } else {
-      init [Mutable] [Bool] flat$3$simp$9 = False : Bool;
-      init [Mutable] [Error] flat$3$simp$10 = ExceptTombstone : Error;
-      init [Mutable] [Int] flat$3$simp$11 = 0 : Int;
-      if (eq# [Error]
-          (ExceptFold1NoValue : Error)
+      init flat$3$simp$9@{Mutable Bool} = False@{Bool};
+      init flat$3$simp$10@{Mutable Error} = ExceptTombstone@{Error};
+      init flat$3$simp$11@{Mutable Int} = 0@{Int};
+      if (eq#@{Error} (ExceptFold1NoValue@{Error})
           acc$s$reify$2$conv$5$simp$4) {
         write flat$3$simp$9 = gen$fact$simp$21$simp$23;
         write flat$3$simp$10 = gen$fact$simp$21$simp$24;
         write flat$3$simp$11 = gen$fact$simp$21$simp$25;
       } else {
-        write flat$3$simp$9 = False : Bool;
+        write flat$3$simp$9 = False@{Bool};
         write flat$3$simp$10 = acc$s$reify$2$conv$5$simp$4;
-        write flat$3$simp$11 = 0 : Int;
+        write flat$3$simp$11 = 0@{Int};
       }
-      read [Mutable] [Bool] flat$3$simp$12 = flat$3$simp$9;
-      read [Mutable] [Error] flat$3$simp$13 = flat$3$simp$10;
-      read [Mutable] [Int] flat$3$simp$14 = flat$3$simp$11;
+      read@{Mutable Bool} flat$3$simp$12 = flat$3$simp$9;
+      read@{Mutable Error} flat$3$simp$13 = flat$3$simp$10;
+      read@{Mutable Int} flat$3$simp$14 = flat$3$simp$11;
       write flat$0$simp$6 = flat$3$simp$12;
       write flat$0$simp$7 = flat$3$simp$13;
       write flat$0$simp$8 = flat$3$simp$14;
     }
-    read [Mutable] [Bool] flat$0$simp$15 = flat$0$simp$6;
-    read [Mutable] [Error] flat$0$simp$16 = flat$0$simp$7;
-    read [Mutable] [Int] flat$0$simp$17 = flat$0$simp$8;
+    read@{Mutable Bool} flat$0$simp$15 = flat$0$simp$6;
+    read@{Mutable Error} flat$0$simp$16 = flat$0$simp$7;
+    read@{Mutable Int} flat$0$simp$17 = flat$0$simp$8;
     write acc$s$reify$2$conv$5$simp$0 = flat$0$simp$15;
     write acc$s$reify$2$conv$5$simp$1 = flat$0$simp$16;
     write acc$s$reify$2$conv$5$simp$2 = flat$0$simp$17;
   }
-  save_resumable [Bool] acc$s$reify$2$conv$5$simp$0;
-  save_resumable [Error] acc$s$reify$2$conv$5$simp$1;
-  save_resumable [Int] acc$s$reify$2$conv$5$simp$2;
-  read [Mutable] [Bool] s$reify$2$conv$5$simp$18 = acc$s$reify$2$conv$5$simp$0;
-  read [Mutable] [Error] s$reify$2$conv$5$simp$19 = acc$s$reify$2$conv$5$simp$1;
-  read [Mutable] [Int] s$reify$2$conv$5$simp$20 = acc$s$reify$2$conv$5$simp$2;
-  output [(Sum Error Int)] repl (s$reify$2$conv$5$simp$18 : Bool,
-                                 s$reify$2$conv$5$simp$19 : Error,
-                                 s$reify$2$conv$5$simp$20 : Int);
+  save_resumable@{Bool} acc$s$reify$2$conv$5$simp$0;
+  save_resumable@{Error} acc$s$reify$2$conv$5$simp$1;
+  save_resumable@{Int} acc$s$reify$2$conv$5$simp$2;
+  read@{Mutable Bool} s$reify$2$conv$5$simp$18 = acc$s$reify$2$conv$5$simp$0;
+  read@{Mutable Error} s$reify$2$conv$5$simp$19 = acc$s$reify$2$conv$5$simp$1;
+  read@{Mutable Int} s$reify$2$conv$5$simp$20 = acc$s$reify$2$conv$5$simp$2;
+  output@{(Sum Error Int)} repl (s$reify$2$conv$5$simp$18@{Bool},
+               s$reify$2$conv$5$simp$19@{Error},
+               s$reify$2$conv$5$simp$20@{Int});
 }
 
 - C:
@@ -246,104 +245,103 @@ void compute(icicle_state_t *s)
 > - Flattened:
 gen$date = DATE
 {
-  init [Mutable] [Bool] acc$c$conv$13$simp$4 = True : Bool;
-  init [Mutable] [Error] acc$c$conv$13$simp$5 = ExceptTombstone : Error;
-  init [Mutable] [Int] acc$c$conv$13$simp$6 = 0 : Int;
-  load_resumable [Bool] acc$c$conv$13$simp$4;
-  load_resumable [Error] acc$c$conv$13$simp$5;
-  load_resumable [Int] acc$c$conv$13$simp$6;
-  for_facts (gen$fact$simp$37$simp$39 : Bool,
-             gen$fact$simp$37$simp$40 : Error,
-             gen$fact$simp$37$simp$41 : Int,
-             gen$fact$simp$38 : DateTime) in new {
-    init [Mutable] [Bool] flat$0$simp$7 = False : Bool;
-    init [Mutable] [Bool] flat$0$simp$9 = False : Bool;
+  init acc$c$conv$13$simp$4@{Mutable Bool} = True@{Bool};
+  init acc$c$conv$13$simp$5@{Mutable Error} = ExceptTombstone@{Error};
+  init acc$c$conv$13$simp$6@{Mutable Int} = 0@{Int};
+  load_resumable@{Bool} acc$c$conv$13$simp$4;
+  load_resumable@{Error} acc$c$conv$13$simp$5;
+  load_resumable@{Int} acc$c$conv$13$simp$6;
+  for_facts (gen$fact$simp$37$simp$39@{Bool},
+             gen$fact$simp$37$simp$40@{Error},
+             gen$fact$simp$37$simp$41@{Int},
+             gen$fact$simp$38@{DateTime}) in new {
+    init flat$0$simp$7@{Mutable Bool} = False@{Bool};
+    init flat$0$simp$9@{Mutable Bool} = False@{Bool};
     if (gen$fact$simp$37$simp$39) {
-      let simp$1 = gt# [Int]
-                   gen$fact$simp$37$simp$41
-                   (300 : Int);
-      write flat$0$simp$7 = True : Bool;
+      let simp$1 = gt#@{Int}
+                   gen$fact$simp$37$simp$41 (300@{Int});
+      write flat$0$simp$7 = True@{Bool};
       write flat$0$simp$9 = simp$1;
     } else {
-      write flat$0$simp$7 = False : Bool;
-      write flat$0$simp$9 = False : Bool;
+      write flat$0$simp$7 = False@{Bool};
+      write flat$0$simp$9 = False@{Bool};
     }
-    read [Mutable] [Bool] flat$0$simp$10 = flat$0$simp$7;
-    read [Mutable] [Bool] flat$0$simp$12 = flat$0$simp$9;
-    init [Mutable] [Bool] flat$1 = False : Bool;
+    read@{Mutable Bool} flat$0$simp$10 = flat$0$simp$7;
+    read@{Mutable Bool} flat$0$simp$12 = flat$0$simp$9;
+    init flat$1@{Mutable Bool} = False@{Bool};
     if (flat$0$simp$10) {
       write flat$1 = flat$0$simp$12;
     } 
      else {
-      write flat$1 = True : Bool;
+      write flat$1 = True@{Bool};
     } 
     
-    read [Mutable] [Bool] flat$1 = flat$1;
+    read@{Mutable Bool} flat$1 = flat$1;
     if (flat$1) {
-      read [Mutable] [Bool] acc$c$conv$13$simp$13 = acc$c$conv$13$simp$4;
-      read [Mutable] [Error] acc$c$conv$13$simp$14 = acc$c$conv$13$simp$5;
-      read [Mutable] [Int] acc$c$conv$13$simp$15 = acc$c$conv$13$simp$6;
-      init [Mutable] [Bool] flat$2$simp$16 = False : Bool;
-      init [Mutable] [Error] flat$2$simp$17 = ExceptTombstone : Error;
-      init [Mutable] [Int] flat$2$simp$18 = 0 : Int;
+      read@{Mutable Bool} acc$c$conv$13$simp$13 = acc$c$conv$13$simp$4;
+      read@{Mutable Error} acc$c$conv$13$simp$14 = acc$c$conv$13$simp$5;
+      read@{Mutable Int} acc$c$conv$13$simp$15 = acc$c$conv$13$simp$6;
+      init flat$2$simp$16@{Mutable Bool} = False@{Bool};
+      init flat$2$simp$17@{Mutable Error} = ExceptTombstone@{Error};
+      init flat$2$simp$18@{Mutable Int} = 0@{Int};
       if (gen$fact$simp$37$simp$39) {
-        init [Mutable] [Bool] flat$5$simp$19 = False : Bool;
-        init [Mutable] [Error] flat$5$simp$20 = ExceptTombstone : Error;
-        init [Mutable] [Int] flat$5$simp$21 = 0 : Int;
+        init flat$5$simp$19@{Mutable Bool} = False@{Bool};
+        init flat$5$simp$20@{Mutable Error} = ExceptTombstone@{Error};
+        init flat$5$simp$21@{Mutable Int} = 0@{Int};
         if (acc$c$conv$13$simp$13) {
-          let simp$3 = add# [Int]
-                       acc$c$conv$13$simp$15 (1 : Int);
-          write flat$5$simp$19 = True : Bool;
-          write flat$5$simp$20 = ExceptTombstone : Error;
+          let simp$3 = add#@{Int}
+                       acc$c$conv$13$simp$15 (1@{Int});
+          write flat$5$simp$19 = True@{Bool};
+          write flat$5$simp$20 = ExceptTombstone@{Error};
           write flat$5$simp$21 = simp$3;
         } else {
-          write flat$5$simp$19 = False : Bool;
+          write flat$5$simp$19 = False@{Bool};
           write flat$5$simp$20 = acc$c$conv$13$simp$14;
-          write flat$5$simp$21 = 0 : Int;
+          write flat$5$simp$21 = 0@{Int};
         }
-        read [Mutable] [Bool] flat$5$simp$22 = flat$5$simp$19;
-        read [Mutable] [Error] flat$5$simp$23 = flat$5$simp$20;
-        read [Mutable] [Int] flat$5$simp$24 = flat$5$simp$21;
-        init [Mutable] [Bool] flat$6$simp$25 = False : Bool;
-        init [Mutable] [Error] flat$6$simp$26 = ExceptTombstone : Error;
-        init [Mutable] [Int] flat$6$simp$27 = 0 : Int;
+        read@{Mutable Bool} flat$5$simp$22 = flat$5$simp$19;
+        read@{Mutable Error} flat$5$simp$23 = flat$5$simp$20;
+        read@{Mutable Int} flat$5$simp$24 = flat$5$simp$21;
+        init flat$6$simp$25@{Mutable Bool} = False@{Bool};
+        init flat$6$simp$26@{Mutable Error} = ExceptTombstone@{Error};
+        init flat$6$simp$27@{Mutable Int} = 0@{Int};
         if (flat$5$simp$22) {
-          write flat$6$simp$25 = True : Bool;
-          write flat$6$simp$26 = ExceptTombstone : Error;
+          write flat$6$simp$25 = True@{Bool};
+          write flat$6$simp$26 = ExceptTombstone@{Error};
           write flat$6$simp$27 = flat$5$simp$24;
         } else {
-          write flat$6$simp$25 = False : Bool;
+          write flat$6$simp$25 = False@{Bool};
           write flat$6$simp$26 = flat$5$simp$23;
-          write flat$6$simp$27 = 0 : Int;
+          write flat$6$simp$27 = 0@{Int};
         }
-        read [Mutable] [Bool] flat$6$simp$28 = flat$6$simp$25;
-        read [Mutable] [Error] flat$6$simp$29 = flat$6$simp$26;
-        read [Mutable] [Int] flat$6$simp$30 = flat$6$simp$27;
+        read@{Mutable Bool} flat$6$simp$28 = flat$6$simp$25;
+        read@{Mutable Error} flat$6$simp$29 = flat$6$simp$26;
+        read@{Mutable Int} flat$6$simp$30 = flat$6$simp$27;
         write flat$2$simp$16 = flat$6$simp$28;
         write flat$2$simp$17 = flat$6$simp$29;
         write flat$2$simp$18 = flat$6$simp$30;
       } else {
-        write flat$2$simp$16 = False : Bool;
+        write flat$2$simp$16 = False@{Bool};
         write flat$2$simp$17 = gen$fact$simp$37$simp$40;
-        write flat$2$simp$18 = 0 : Int;
+        write flat$2$simp$18 = 0@{Int};
       }
-      read [Mutable] [Bool] flat$2$simp$31 = flat$2$simp$16;
-      read [Mutable] [Error] flat$2$simp$32 = flat$2$simp$17;
-      read [Mutable] [Int] flat$2$simp$33 = flat$2$simp$18;
+      read@{Mutable Bool} flat$2$simp$31 = flat$2$simp$16;
+      read@{Mutable Error} flat$2$simp$32 = flat$2$simp$17;
+      read@{Mutable Int} flat$2$simp$33 = flat$2$simp$18;
       write acc$c$conv$13$simp$4 = flat$2$simp$31;
       write acc$c$conv$13$simp$5 = flat$2$simp$32;
       write acc$c$conv$13$simp$6 = flat$2$simp$33;
     }
   }
-  save_resumable [Bool] acc$c$conv$13$simp$4;
-  save_resumable [Error] acc$c$conv$13$simp$5;
-  save_resumable [Int] acc$c$conv$13$simp$6;
-  read [Mutable] [Bool] c$conv$13$simp$34 = acc$c$conv$13$simp$4;
-  read [Mutable] [Error] c$conv$13$simp$35 = acc$c$conv$13$simp$5;
-  read [Mutable] [Int] c$conv$13$simp$36 = acc$c$conv$13$simp$6;
-  output [(Sum Error Int)] repl (c$conv$13$simp$34 : Bool,
-                                 c$conv$13$simp$35 : Error,
-                                 c$conv$13$simp$36 : Int);
+  save_resumable@{Bool} acc$c$conv$13$simp$4;
+  save_resumable@{Error} acc$c$conv$13$simp$5;
+  save_resumable@{Int} acc$c$conv$13$simp$6;
+  read@{Mutable Bool} c$conv$13$simp$34 = acc$c$conv$13$simp$4;
+  read@{Mutable Error} c$conv$13$simp$35 = acc$c$conv$13$simp$5;
+  read@{Mutable Int} c$conv$13$simp$36 = acc$c$conv$13$simp$6;
+  output@{(Sum Error Int)} repl (c$conv$13$simp$34@{Bool},
+               c$conv$13$simp$35@{Error},
+               c$conv$13$simp$36@{Int});
 }
 
 - C:
@@ -584,558 +582,558 @@ void compute(icicle_state_t *s)
 > - Flattened:
 gen$date = DATE
 {
-  init [Mutable] [Bool] acc$a$conv$12$simp$62 = True : Bool;
-  init [Mutable] [Error] acc$a$conv$12$simp$63 = ExceptTombstone : Error;
-  init [Mutable] [Double] acc$a$conv$12$simp$64$simp$65$simp$67 = 0.0 : Double;
-  init [Mutable] [Double] acc$a$conv$12$simp$64$simp$65$simp$68 = 0.0 : Double;
-  init [Mutable] [Double] acc$a$conv$12$simp$64$simp$66 = 0.0 : Double;
-  init [Mutable] [Bool] acc$a$conv$105$simp$69 = True : Bool;
-  init [Mutable] [Error] acc$a$conv$105$simp$70 = ExceptTombstone : Error;
-  init [Mutable] [Double] acc$a$conv$105$simp$71$simp$72$simp$74 = 0.0 : Double;
-  init [Mutable] [Double] acc$a$conv$105$simp$71$simp$72$simp$75 = 0.0 : Double;
-  init [Mutable] [Double] acc$a$conv$105$simp$71$simp$73 = 0.0 : Double;
-  load_resumable [Bool] acc$a$conv$12$simp$62;
-  load_resumable [Error] acc$a$conv$12$simp$63;
-  load_resumable [Double] acc$a$conv$12$simp$64$simp$65$simp$67;
-  load_resumable [Double] acc$a$conv$12$simp$64$simp$65$simp$68;
-  load_resumable [Double] acc$a$conv$12$simp$64$simp$66;
-  load_resumable [Bool] acc$a$conv$105$simp$69;
-  load_resumable [Error] acc$a$conv$105$simp$70;
-  load_resumable [Double] acc$a$conv$105$simp$71$simp$72$simp$74;
-  load_resumable [Double] acc$a$conv$105$simp$71$simp$72$simp$75;
-  load_resumable [Double] acc$a$conv$105$simp$71$simp$73;
-  for_facts (gen$fact$simp$358$simp$360 : Bool,
-             gen$fact$simp$358$simp$361 : Error,
-             gen$fact$simp$358$simp$362 : Int,
-             gen$fact$simp$359 : DateTime) in new {
-    init [Mutable] [Bool] flat$0$simp$76 = False : Bool;
-    init [Mutable] [Error] flat$0$simp$77 = ExceptTombstone : Error;
-    init [Mutable] [Double] flat$0$simp$78 = 0.0 : Double;
+  init acc$a$conv$12$simp$62@{Mutable Bool} = True@{Bool};
+  init acc$a$conv$12$simp$63@{Mutable Error} = ExceptTombstone@{Error};
+  init acc$a$conv$12$simp$64$simp$65$simp$67@{Mutable Double} = 0.0@{Double};
+  init acc$a$conv$12$simp$64$simp$65$simp$68@{Mutable Double} = 0.0@{Double};
+  init acc$a$conv$12$simp$64$simp$66@{Mutable Double} = 0.0@{Double};
+  init acc$a$conv$105$simp$69@{Mutable Bool} = True@{Bool};
+  init acc$a$conv$105$simp$70@{Mutable Error} = ExceptTombstone@{Error};
+  init acc$a$conv$105$simp$71$simp$72$simp$74@{Mutable Double} = 0.0@{Double};
+  init acc$a$conv$105$simp$71$simp$72$simp$75@{Mutable Double} = 0.0@{Double};
+  init acc$a$conv$105$simp$71$simp$73@{Mutable Double} = 0.0@{Double};
+  load_resumable@{Bool} acc$a$conv$12$simp$62;
+  load_resumable@{Error} acc$a$conv$12$simp$63;
+  load_resumable@{Double} acc$a$conv$12$simp$64$simp$65$simp$67;
+  load_resumable@{Double} acc$a$conv$12$simp$64$simp$65$simp$68;
+  load_resumable@{Double} acc$a$conv$12$simp$64$simp$66;
+  load_resumable@{Bool} acc$a$conv$105$simp$69;
+  load_resumable@{Error} acc$a$conv$105$simp$70;
+  load_resumable@{Double} acc$a$conv$105$simp$71$simp$72$simp$74;
+  load_resumable@{Double} acc$a$conv$105$simp$71$simp$72$simp$75;
+  load_resumable@{Double} acc$a$conv$105$simp$71$simp$73;
+  for_facts (gen$fact$simp$358$simp$360@{Bool},
+             gen$fact$simp$358$simp$361@{Error},
+             gen$fact$simp$358$simp$362@{Int},
+             gen$fact$simp$359@{DateTime}) in new {
+    init flat$0$simp$76@{Mutable Bool} = False@{Bool};
+    init flat$0$simp$77@{Mutable Error} = ExceptTombstone@{Error};
+    init flat$0$simp$78@{Mutable Double} = 0.0@{Double};
     if (gen$fact$simp$358$simp$360) {
       let simp$1 = doubleOfInt#
                    gen$fact$simp$358$simp$362;
-      write flat$0$simp$76 = True : Bool;
-      write flat$0$simp$77 = ExceptTombstone : Error;
+      write flat$0$simp$76 = True@{Bool};
+      write flat$0$simp$77 = ExceptTombstone@{Error};
       write flat$0$simp$78 = simp$1;
     } else {
-      write flat$0$simp$76 = False : Bool;
+      write flat$0$simp$76 = False@{Bool};
       write flat$0$simp$77 = gen$fact$simp$358$simp$361;
-      write flat$0$simp$78 = 0.0 : Double;
+      write flat$0$simp$78 = 0.0@{Double};
     }
-    read [Mutable] [Bool] flat$0$simp$79 = flat$0$simp$76;
-    read [Mutable] [Error] flat$0$simp$80 = flat$0$simp$77;
-    read [Mutable] [Double] flat$0$simp$81 = flat$0$simp$78;
-    read [Mutable] [Bool] acc$a$conv$12$simp$82 = acc$a$conv$12$simp$62;
-    read [Mutable] [Error] acc$a$conv$12$simp$83 = acc$a$conv$12$simp$63;
-    read [Mutable] [Double] acc$a$conv$12$simp$84$simp$85$simp$87 = acc$a$conv$12$simp$64$simp$65$simp$67;
-    read [Mutable] [Double] acc$a$conv$12$simp$84$simp$85$simp$88 = acc$a$conv$12$simp$64$simp$65$simp$68;
-    read [Mutable] [Double] acc$a$conv$12$simp$84$simp$86 = acc$a$conv$12$simp$64$simp$66;
-    init [Mutable] [Bool] flat$1$simp$89 = False : Bool;
-    init [Mutable] [Error] flat$1$simp$90 = ExceptTombstone : Error;
-    init [Mutable] [Double] flat$1$simp$91$simp$92$simp$94 = 0.0 : Double;
-    init [Mutable] [Double] flat$1$simp$91$simp$92$simp$95 = 0.0 : Double;
-    init [Mutable] [Double] flat$1$simp$91$simp$93 = 0.0 : Double;
+    read@{Mutable Bool} flat$0$simp$79 = flat$0$simp$76;
+    read@{Mutable Error} flat$0$simp$80 = flat$0$simp$77;
+    read@{Mutable Double} flat$0$simp$81 = flat$0$simp$78;
+    read@{Mutable Bool} acc$a$conv$12$simp$82 = acc$a$conv$12$simp$62;
+    read@{Mutable Error} acc$a$conv$12$simp$83 = acc$a$conv$12$simp$63;
+    read@{Mutable Double} acc$a$conv$12$simp$84$simp$85$simp$87 = acc$a$conv$12$simp$64$simp$65$simp$67;
+    read@{Mutable Double} acc$a$conv$12$simp$84$simp$85$simp$88 = acc$a$conv$12$simp$64$simp$65$simp$68;
+    read@{Mutable Double} acc$a$conv$12$simp$84$simp$86 = acc$a$conv$12$simp$64$simp$66;
+    init flat$1$simp$89@{Mutable Bool} = False@{Bool};
+    init flat$1$simp$90@{Mutable Error} = ExceptTombstone@{Error};
+    init flat$1$simp$91$simp$92$simp$94@{Mutable Double} = 0.0@{Double};
+    init flat$1$simp$91$simp$92$simp$95@{Mutable Double} = 0.0@{Double};
+    init flat$1$simp$91$simp$93@{Mutable Double} = 0.0@{Double};
     if (acc$a$conv$12$simp$82) {
-      let nn$conv$19 = add# [Double]
+      let nn$conv$19 = add#@{Double}
                        acc$a$conv$12$simp$84$simp$85$simp$87
-                       (1.0 : Double);
-      init [Mutable] [Bool] flat$4$simp$96 = False : Bool;
-      init [Mutable] [Error] flat$4$simp$97 = ExceptTombstone : Error;
-      init [Mutable] [Double] flat$4$simp$98 = 0.0 : Double;
+                       (1.0@{Double});
+      init flat$4$simp$96@{Mutable Bool} = False@{Bool};
+      init flat$4$simp$97@{Mutable Error} = ExceptTombstone@{Error};
+      init flat$4$simp$98@{Mutable Double} = 0.0@{Double};
       if (flat$0$simp$79) {
-        let simp$7 = sub# [Double]
+        let simp$7 = sub#@{Double}
                      flat$0$simp$81
                      acc$a$conv$12$simp$84$simp$85$simp$88;
-        write flat$4$simp$96 = True : Bool;
-        write flat$4$simp$97 = ExceptTombstone : Error;
+        write flat$4$simp$96 = True@{Bool};
+        write flat$4$simp$97 = ExceptTombstone@{Error};
         write flat$4$simp$98 = simp$7;
       } else {
-        write flat$4$simp$96 = False : Bool;
+        write flat$4$simp$96 = False@{Bool};
         write flat$4$simp$97 = flat$0$simp$80;
-        write flat$4$simp$98 = 0.0 : Double;
+        write flat$4$simp$98 = 0.0@{Double};
       }
-      read [Mutable] [Bool] flat$4$simp$99 = flat$4$simp$96;
-      read [Mutable] [Error] flat$4$simp$100 = flat$4$simp$97;
-      read [Mutable] [Double] flat$4$simp$101 = flat$4$simp$98;
-      init [Mutable] [Bool] flat$5$simp$102 = False : Bool;
-      init [Mutable] [Error] flat$5$simp$103 = ExceptTombstone : Error;
-      init [Mutable] [Double] flat$5$simp$104 = 0.0 : Double;
+      read@{Mutable Bool} flat$4$simp$99 = flat$4$simp$96;
+      read@{Mutable Error} flat$4$simp$100 = flat$4$simp$97;
+      read@{Mutable Double} flat$4$simp$101 = flat$4$simp$98;
+      init flat$5$simp$102@{Mutable Bool} = False@{Bool};
+      init flat$5$simp$103@{Mutable Error} = ExceptTombstone@{Error};
+      init flat$5$simp$104@{Mutable Double} = 0.0@{Double};
       if (flat$4$simp$99) {
         let simp$11 = div#
                       flat$4$simp$101 nn$conv$19;
-        write flat$5$simp$102 = True : Bool;
-        write flat$5$simp$103 = ExceptTombstone : Error;
+        write flat$5$simp$102 = True@{Bool};
+        write flat$5$simp$103 = ExceptTombstone@{Error};
         write flat$5$simp$104 = simp$11;
       } else {
-        write flat$5$simp$102 = False : Bool;
+        write flat$5$simp$102 = False@{Bool};
         write flat$5$simp$103 = flat$4$simp$100;
-        write flat$5$simp$104 = 0.0 : Double;
+        write flat$5$simp$104 = 0.0@{Double};
       }
-      read [Mutable] [Bool] flat$5$simp$105 = flat$5$simp$102;
-      read [Mutable] [Error] flat$5$simp$106 = flat$5$simp$103;
-      read [Mutable] [Double] flat$5$simp$107 = flat$5$simp$104;
-      init [Mutable] [Bool] flat$6$simp$108 = False : Bool;
-      init [Mutable] [Error] flat$6$simp$109 = ExceptTombstone : Error;
-      init [Mutable] [Double] flat$6$simp$110 = 0.0 : Double;
+      read@{Mutable Bool} flat$5$simp$105 = flat$5$simp$102;
+      read@{Mutable Error} flat$5$simp$106 = flat$5$simp$103;
+      read@{Mutable Double} flat$5$simp$107 = flat$5$simp$104;
+      init flat$6$simp$108@{Mutable Bool} = False@{Bool};
+      init flat$6$simp$109@{Mutable Error} = ExceptTombstone@{Error};
+      init flat$6$simp$110@{Mutable Double} = 0.0@{Double};
       if (flat$5$simp$105) {
-        let simp$13 = add# [Double]
+        let simp$13 = add#@{Double}
                       acc$a$conv$12$simp$84$simp$85$simp$88
                       flat$5$simp$107;
-        write flat$6$simp$108 = True : Bool;
-        write flat$6$simp$109 = ExceptTombstone : Error;
+        write flat$6$simp$108 = True@{Bool};
+        write flat$6$simp$109 = ExceptTombstone@{Error};
         write flat$6$simp$110 = simp$13;
       } else {
-        write flat$6$simp$108 = False : Bool;
+        write flat$6$simp$108 = False@{Bool};
         write flat$6$simp$109 = flat$5$simp$106;
-        write flat$6$simp$110 = 0.0 : Double;
+        write flat$6$simp$110 = 0.0@{Double};
       }
-      read [Mutable] [Bool] flat$6$simp$111 = flat$6$simp$108;
-      read [Mutable] [Error] flat$6$simp$112 = flat$6$simp$109;
-      read [Mutable] [Double] flat$6$simp$113 = flat$6$simp$110;
-      init [Mutable] [Bool] flat$7$simp$114 = False : Bool;
-      init [Mutable] [Error] flat$7$simp$115 = ExceptTombstone : Error;
-      init [Mutable] [Double] flat$7$simp$116 = 0.0 : Double;
+      read@{Mutable Bool} flat$6$simp$111 = flat$6$simp$108;
+      read@{Mutable Error} flat$6$simp$112 = flat$6$simp$109;
+      read@{Mutable Double} flat$6$simp$113 = flat$6$simp$110;
+      init flat$7$simp$114@{Mutable Bool} = False@{Bool};
+      init flat$7$simp$115@{Mutable Error} = ExceptTombstone@{Error};
+      init flat$7$simp$116@{Mutable Double} = 0.0@{Double};
       if (flat$4$simp$99) {
-        init [Mutable] [Bool] flat$22$simp$117 = False : Bool;
-        init [Mutable] [Error] flat$22$simp$118 = ExceptTombstone : Error;
-        init [Mutable] [Double] flat$22$simp$119 = 0.0 : Double;
+        init flat$22$simp$117@{Mutable Bool} = False@{Bool};
+        init flat$22$simp$118@{Mutable Error} = ExceptTombstone@{Error};
+        init flat$22$simp$119@{Mutable Double} = 0.0@{Double};
         if (flat$0$simp$79) {
-          init [Mutable] [Bool] flat$28$simp$120 = False : Bool;
-          init [Mutable] [Error] flat$28$simp$121 = ExceptTombstone : Error;
-          init [Mutable] [Double] flat$28$simp$122 = 0.0 : Double;
+          init flat$28$simp$120@{Mutable Bool} = False@{Bool};
+          init flat$28$simp$121@{Mutable Error} = ExceptTombstone@{Error};
+          init flat$28$simp$122@{Mutable Double} = 0.0@{Double};
           if (flat$6$simp$111) {
-            let simp$19 = sub# [Double]
+            let simp$19 = sub#@{Double}
                           flat$0$simp$81 flat$6$simp$113;
-            write flat$28$simp$120 = True : Bool;
-            write flat$28$simp$121 = ExceptTombstone : Error;
+            write flat$28$simp$120 = True@{Bool};
+            write flat$28$simp$121 = ExceptTombstone@{Error};
             write flat$28$simp$122 = simp$19;
           } else {
-            write flat$28$simp$120 = False : Bool;
+            write flat$28$simp$120 = False@{Bool};
             write flat$28$simp$121 = flat$6$simp$112;
-            write flat$28$simp$122 = 0.0 : Double;
+            write flat$28$simp$122 = 0.0@{Double};
           }
-          read [Mutable] [Bool] flat$28$simp$123 = flat$28$simp$120;
-          read [Mutable] [Error] flat$28$simp$124 = flat$28$simp$121;
-          read [Mutable] [Double] flat$28$simp$125 = flat$28$simp$122;
+          read@{Mutable Bool} flat$28$simp$123 = flat$28$simp$120;
+          read@{Mutable Error} flat$28$simp$124 = flat$28$simp$121;
+          read@{Mutable Double} flat$28$simp$125 = flat$28$simp$122;
           write flat$22$simp$117 = flat$28$simp$123;
           write flat$22$simp$118 = flat$28$simp$124;
           write flat$22$simp$119 = flat$28$simp$125;
         } else {
-          write flat$22$simp$117 = False : Bool;
+          write flat$22$simp$117 = False@{Bool};
           write flat$22$simp$118 = flat$0$simp$80;
-          write flat$22$simp$119 = 0.0 : Double;
+          write flat$22$simp$119 = 0.0@{Double};
         }
-        read [Mutable] [Bool] flat$22$simp$126 = flat$22$simp$117;
-        read [Mutable] [Error] flat$22$simp$127 = flat$22$simp$118;
-        read [Mutable] [Double] flat$22$simp$128 = flat$22$simp$119;
-        init [Mutable] [Bool] flat$23$simp$129 = False : Bool;
-        init [Mutable] [Error] flat$23$simp$130 = ExceptTombstone : Error;
-        init [Mutable] [Double] flat$23$simp$131 = 0.0 : Double;
+        read@{Mutable Bool} flat$22$simp$126 = flat$22$simp$117;
+        read@{Mutable Error} flat$22$simp$127 = flat$22$simp$118;
+        read@{Mutable Double} flat$22$simp$128 = flat$22$simp$119;
+        init flat$23$simp$129@{Mutable Bool} = False@{Bool};
+        init flat$23$simp$130@{Mutable Error} = ExceptTombstone@{Error};
+        init flat$23$simp$131@{Mutable Double} = 0.0@{Double};
         if (flat$22$simp$126) {
-          let simp$23 = mul# [Double]
+          let simp$23 = mul#@{Double}
                         flat$4$simp$101
                         flat$22$simp$128;
-          write flat$23$simp$129 = True : Bool;
-          write flat$23$simp$130 = ExceptTombstone : Error;
+          write flat$23$simp$129 = True@{Bool};
+          write flat$23$simp$130 = ExceptTombstone@{Error};
           write flat$23$simp$131 = simp$23;
         } else {
-          write flat$23$simp$129 = False : Bool;
+          write flat$23$simp$129 = False@{Bool};
           write flat$23$simp$130 = flat$22$simp$127;
-          write flat$23$simp$131 = 0.0 : Double;
+          write flat$23$simp$131 = 0.0@{Double};
         }
-        read [Mutable] [Bool] flat$23$simp$132 = flat$23$simp$129;
-        read [Mutable] [Error] flat$23$simp$133 = flat$23$simp$130;
-        read [Mutable] [Double] flat$23$simp$134 = flat$23$simp$131;
+        read@{Mutable Bool} flat$23$simp$132 = flat$23$simp$129;
+        read@{Mutable Error} flat$23$simp$133 = flat$23$simp$130;
+        read@{Mutable Double} flat$23$simp$134 = flat$23$simp$131;
         write flat$7$simp$114 = flat$23$simp$132;
         write flat$7$simp$115 = flat$23$simp$133;
         write flat$7$simp$116 = flat$23$simp$134;
       } else {
-        write flat$7$simp$114 = False : Bool;
+        write flat$7$simp$114 = False@{Bool};
         write flat$7$simp$115 = flat$4$simp$100;
-        write flat$7$simp$116 = 0.0 : Double;
+        write flat$7$simp$116 = 0.0@{Double};
       }
-      read [Mutable] [Bool] flat$7$simp$135 = flat$7$simp$114;
-      read [Mutable] [Error] flat$7$simp$136 = flat$7$simp$115;
-      read [Mutable] [Double] flat$7$simp$137 = flat$7$simp$116;
-      init [Mutable] [Bool] flat$8$simp$138 = False : Bool;
-      init [Mutable] [Error] flat$8$simp$139 = ExceptTombstone : Error;
-      init [Mutable] [Double] flat$8$simp$140 = 0.0 : Double;
+      read@{Mutable Bool} flat$7$simp$135 = flat$7$simp$114;
+      read@{Mutable Error} flat$7$simp$136 = flat$7$simp$115;
+      read@{Mutable Double} flat$7$simp$137 = flat$7$simp$116;
+      init flat$8$simp$138@{Mutable Bool} = False@{Bool};
+      init flat$8$simp$139@{Mutable Error} = ExceptTombstone@{Error};
+      init flat$8$simp$140@{Mutable Double} = 0.0@{Double};
       if (flat$7$simp$135) {
-        let simp$25 = add# [Double]
+        let simp$25 = add#@{Double}
                       acc$a$conv$12$simp$84$simp$86
                       flat$7$simp$137;
-        write flat$8$simp$138 = True : Bool;
-        write flat$8$simp$139 = ExceptTombstone : Error;
+        write flat$8$simp$138 = True@{Bool};
+        write flat$8$simp$139 = ExceptTombstone@{Error};
         write flat$8$simp$140 = simp$25;
       } else {
-        write flat$8$simp$138 = False : Bool;
+        write flat$8$simp$138 = False@{Bool};
         write flat$8$simp$139 = flat$7$simp$136;
-        write flat$8$simp$140 = 0.0 : Double;
+        write flat$8$simp$140 = 0.0@{Double};
       }
-      read [Mutable] [Bool] flat$8$simp$141 = flat$8$simp$138;
-      read [Mutable] [Error] flat$8$simp$142 = flat$8$simp$139;
-      read [Mutable] [Double] flat$8$simp$143 = flat$8$simp$140;
-      init [Mutable] [Bool] flat$9$simp$144 = False : Bool;
-      init [Mutable] [Error] flat$9$simp$145 = ExceptTombstone : Error;
-      init [Mutable] [Double] flat$9$simp$146$simp$147 = 0.0 : Double;
-      init [Mutable] [Double] flat$9$simp$146$simp$148 = 0.0 : Double;
+      read@{Mutable Bool} flat$8$simp$141 = flat$8$simp$138;
+      read@{Mutable Error} flat$8$simp$142 = flat$8$simp$139;
+      read@{Mutable Double} flat$8$simp$143 = flat$8$simp$140;
+      init flat$9$simp$144@{Mutable Bool} = False@{Bool};
+      init flat$9$simp$145@{Mutable Error} = ExceptTombstone@{Error};
+      init flat$9$simp$146$simp$147@{Mutable Double} = 0.0@{Double};
+      init flat$9$simp$146$simp$148@{Mutable Double} = 0.0@{Double};
       if (flat$6$simp$111) {
-        write flat$9$simp$144 = True : Bool;
-        write flat$9$simp$145 = ExceptTombstone : Error;
+        write flat$9$simp$144 = True@{Bool};
+        write flat$9$simp$145 = ExceptTombstone@{Error};
         write flat$9$simp$146$simp$147 = nn$conv$19;
         write flat$9$simp$146$simp$148 = flat$6$simp$113;
       } else {
-        write flat$9$simp$144 = False : Bool;
+        write flat$9$simp$144 = False@{Bool};
         write flat$9$simp$145 = flat$6$simp$112;
-        write flat$9$simp$146$simp$147 = 0.0 : Double;
-        write flat$9$simp$146$simp$148 = 0.0 : Double;
+        write flat$9$simp$146$simp$147 = 0.0@{Double};
+        write flat$9$simp$146$simp$148 = 0.0@{Double};
       }
-      read [Mutable] [Bool] flat$9$simp$149 = flat$9$simp$144;
-      read [Mutable] [Error] flat$9$simp$150 = flat$9$simp$145;
-      read [Mutable] [Double] flat$9$simp$151$simp$152 = flat$9$simp$146$simp$147;
-      read [Mutable] [Double] flat$9$simp$151$simp$153 = flat$9$simp$146$simp$148;
-      init [Mutable] [Bool] flat$10$simp$154 = False : Bool;
-      init [Mutable] [Error] flat$10$simp$155 = ExceptTombstone : Error;
-      init [Mutable] [Double] flat$10$simp$156$simp$157$simp$159 = 0.0 : Double;
-      init [Mutable] [Double] flat$10$simp$156$simp$157$simp$160 = 0.0 : Double;
-      init [Mutable] [Double] flat$10$simp$156$simp$158 = 0.0 : Double;
+      read@{Mutable Bool} flat$9$simp$149 = flat$9$simp$144;
+      read@{Mutable Error} flat$9$simp$150 = flat$9$simp$145;
+      read@{Mutable Double} flat$9$simp$151$simp$152 = flat$9$simp$146$simp$147;
+      read@{Mutable Double} flat$9$simp$151$simp$153 = flat$9$simp$146$simp$148;
+      init flat$10$simp$154@{Mutable Bool} = False@{Bool};
+      init flat$10$simp$155@{Mutable Error} = ExceptTombstone@{Error};
+      init flat$10$simp$156$simp$157$simp$159@{Mutable Double} = 0.0@{Double};
+      init flat$10$simp$156$simp$157$simp$160@{Mutable Double} = 0.0@{Double};
+      init flat$10$simp$156$simp$158@{Mutable Double} = 0.0@{Double};
       if (flat$9$simp$149) {
-        init [Mutable] [Bool] flat$13$simp$161 = False : Bool;
-        init [Mutable] [Error] flat$13$simp$162 = ExceptTombstone : Error;
-        init [Mutable] [Double] flat$13$simp$163$simp$164$simp$166 = 0.0 : Double;
-        init [Mutable] [Double] flat$13$simp$163$simp$164$simp$167 = 0.0 : Double;
-        init [Mutable] [Double] flat$13$simp$163$simp$165 = 0.0 : Double;
+        init flat$13$simp$161@{Mutable Bool} = False@{Bool};
+        init flat$13$simp$162@{Mutable Error} = ExceptTombstone@{Error};
+        init flat$13$simp$163$simp$164$simp$166@{Mutable Double} = 0.0@{Double};
+        init flat$13$simp$163$simp$164$simp$167@{Mutable Double} = 0.0@{Double};
+        init flat$13$simp$163$simp$165@{Mutable Double} = 0.0@{Double};
         if (flat$8$simp$141) {
-          write flat$13$simp$161 = True : Bool;
-          write flat$13$simp$162 = ExceptTombstone : Error;
+          write flat$13$simp$161 = True@{Bool};
+          write flat$13$simp$162 = ExceptTombstone@{Error};
           write flat$13$simp$163$simp$164$simp$166 = flat$9$simp$151$simp$152;
           write flat$13$simp$163$simp$164$simp$167 = flat$9$simp$151$simp$153;
           write flat$13$simp$163$simp$165 = flat$8$simp$143;
         } else {
-          write flat$13$simp$161 = False : Bool;
+          write flat$13$simp$161 = False@{Bool};
           write flat$13$simp$162 = flat$8$simp$142;
-          write flat$13$simp$163$simp$164$simp$166 = 0.0 : Double;
-          write flat$13$simp$163$simp$164$simp$167 = 0.0 : Double;
-          write flat$13$simp$163$simp$165 = 0.0 : Double;
+          write flat$13$simp$163$simp$164$simp$166 = 0.0@{Double};
+          write flat$13$simp$163$simp$164$simp$167 = 0.0@{Double};
+          write flat$13$simp$163$simp$165 = 0.0@{Double};
         }
-        read [Mutable] [Bool] flat$13$simp$168 = flat$13$simp$161;
-        read [Mutable] [Error] flat$13$simp$169 = flat$13$simp$162;
-        read [Mutable] [Double] flat$13$simp$170$simp$171$simp$173 = flat$13$simp$163$simp$164$simp$166;
-        read [Mutable] [Double] flat$13$simp$170$simp$171$simp$174 = flat$13$simp$163$simp$164$simp$167;
-        read [Mutable] [Double] flat$13$simp$170$simp$172 = flat$13$simp$163$simp$165;
+        read@{Mutable Bool} flat$13$simp$168 = flat$13$simp$161;
+        read@{Mutable Error} flat$13$simp$169 = flat$13$simp$162;
+        read@{Mutable Double} flat$13$simp$170$simp$171$simp$173 = flat$13$simp$163$simp$164$simp$166;
+        read@{Mutable Double} flat$13$simp$170$simp$171$simp$174 = flat$13$simp$163$simp$164$simp$167;
+        read@{Mutable Double} flat$13$simp$170$simp$172 = flat$13$simp$163$simp$165;
         write flat$10$simp$154 = flat$13$simp$168;
         write flat$10$simp$155 = flat$13$simp$169;
         write flat$10$simp$156$simp$157$simp$159 = flat$13$simp$170$simp$171$simp$173;
         write flat$10$simp$156$simp$157$simp$160 = flat$13$simp$170$simp$171$simp$174;
         write flat$10$simp$156$simp$158 = flat$13$simp$170$simp$172;
       } else {
-        write flat$10$simp$154 = False : Bool;
+        write flat$10$simp$154 = False@{Bool};
         write flat$10$simp$155 = flat$9$simp$150;
-        write flat$10$simp$156$simp$157$simp$159 = 0.0 : Double;
-        write flat$10$simp$156$simp$157$simp$160 = 0.0 : Double;
-        write flat$10$simp$156$simp$158 = 0.0 : Double;
+        write flat$10$simp$156$simp$157$simp$159 = 0.0@{Double};
+        write flat$10$simp$156$simp$157$simp$160 = 0.0@{Double};
+        write flat$10$simp$156$simp$158 = 0.0@{Double};
       }
-      read [Mutable] [Bool] flat$10$simp$175 = flat$10$simp$154;
-      read [Mutable] [Error] flat$10$simp$176 = flat$10$simp$155;
-      read [Mutable] [Double] flat$10$simp$177$simp$178$simp$180 = flat$10$simp$156$simp$157$simp$159;
-      read [Mutable] [Double] flat$10$simp$177$simp$178$simp$181 = flat$10$simp$156$simp$157$simp$160;
-      read [Mutable] [Double] flat$10$simp$177$simp$179 = flat$10$simp$156$simp$158;
+      read@{Mutable Bool} flat$10$simp$175 = flat$10$simp$154;
+      read@{Mutable Error} flat$10$simp$176 = flat$10$simp$155;
+      read@{Mutable Double} flat$10$simp$177$simp$178$simp$180 = flat$10$simp$156$simp$157$simp$159;
+      read@{Mutable Double} flat$10$simp$177$simp$178$simp$181 = flat$10$simp$156$simp$157$simp$160;
+      read@{Mutable Double} flat$10$simp$177$simp$179 = flat$10$simp$156$simp$158;
       write flat$1$simp$89 = flat$10$simp$175;
       write flat$1$simp$90 = flat$10$simp$176;
       write flat$1$simp$91$simp$92$simp$94 = flat$10$simp$177$simp$178$simp$180;
       write flat$1$simp$91$simp$92$simp$95 = flat$10$simp$177$simp$178$simp$181;
       write flat$1$simp$91$simp$93 = flat$10$simp$177$simp$179;
     } else {
-      write flat$1$simp$89 = False : Bool;
+      write flat$1$simp$89 = False@{Bool};
       write flat$1$simp$90 = acc$a$conv$12$simp$83;
-      write flat$1$simp$91$simp$92$simp$94 = 0.0 : Double;
-      write flat$1$simp$91$simp$92$simp$95 = 0.0 : Double;
-      write flat$1$simp$91$simp$93 = 0.0 : Double;
+      write flat$1$simp$91$simp$92$simp$94 = 0.0@{Double};
+      write flat$1$simp$91$simp$92$simp$95 = 0.0@{Double};
+      write flat$1$simp$91$simp$93 = 0.0@{Double};
     }
-    read [Mutable] [Bool] flat$1$simp$182 = flat$1$simp$89;
-    read [Mutable] [Error] flat$1$simp$183 = flat$1$simp$90;
-    read [Mutable] [Double] flat$1$simp$184$simp$185$simp$187 = flat$1$simp$91$simp$92$simp$94;
-    read [Mutable] [Double] flat$1$simp$184$simp$185$simp$188 = flat$1$simp$91$simp$92$simp$95;
-    read [Mutable] [Double] flat$1$simp$184$simp$186 = flat$1$simp$91$simp$93;
+    read@{Mutable Bool} flat$1$simp$182 = flat$1$simp$89;
+    read@{Mutable Error} flat$1$simp$183 = flat$1$simp$90;
+    read@{Mutable Double} flat$1$simp$184$simp$185$simp$187 = flat$1$simp$91$simp$92$simp$94;
+    read@{Mutable Double} flat$1$simp$184$simp$185$simp$188 = flat$1$simp$91$simp$92$simp$95;
+    read@{Mutable Double} flat$1$simp$184$simp$186 = flat$1$simp$91$simp$93;
     write acc$a$conv$12$simp$62 = flat$1$simp$182;
     write acc$a$conv$12$simp$63 = flat$1$simp$183;
     write acc$a$conv$12$simp$64$simp$65$simp$67 = flat$1$simp$184$simp$185$simp$187;
     write acc$a$conv$12$simp$64$simp$65$simp$68 = flat$1$simp$184$simp$185$simp$188;
     write acc$a$conv$12$simp$64$simp$66 = flat$1$simp$184$simp$186;
-    init [Mutable] [Bool] flat$37$simp$189 = False : Bool;
-    init [Mutable] [Bool] flat$37$simp$191 = False : Bool;
+    init flat$37$simp$189@{Mutable Bool} = False@{Bool};
+    init flat$37$simp$191@{Mutable Bool} = False@{Bool};
     if (gen$fact$simp$358$simp$360) {
-      let simp$31 = lt# [Int]
+      let simp$31 = lt#@{Int}
                     gen$fact$simp$358$simp$362
-                    (300 : Int);
-      write flat$37$simp$189 = True : Bool;
+                    (300@{Int});
+      write flat$37$simp$189 = True@{Bool};
       write flat$37$simp$191 = simp$31;
     } else {
-      write flat$37$simp$189 = False : Bool;
-      write flat$37$simp$191 = False : Bool;
+      write flat$37$simp$189 = False@{Bool};
+      write flat$37$simp$191 = False@{Bool};
     }
-    read [Mutable] [Bool] flat$37$simp$192 = flat$37$simp$189;
-    read [Mutable] [Bool] flat$37$simp$194 = flat$37$simp$191;
-    init [Mutable] [Bool] flat$38 = False : Bool;
+    read@{Mutable Bool} flat$37$simp$192 = flat$37$simp$189;
+    read@{Mutable Bool} flat$37$simp$194 = flat$37$simp$191;
+    init flat$38@{Mutable Bool} = False@{Bool};
     if (flat$37$simp$192) {
       write flat$38 = flat$37$simp$194;
     } 
      else {
-      write flat$38 = True : Bool;
+      write flat$38 = True@{Bool};
     } 
     
-    read [Mutable] [Bool] flat$38 = flat$38;
+    read@{Mutable Bool} flat$38 = flat$38;
     if (flat$38) {
-      init [Mutable] [Bool] flat$39$simp$195 = False : Bool;
-      init [Mutable] [Error] flat$39$simp$196 = ExceptTombstone : Error;
-      init [Mutable] [Double] flat$39$simp$197 = 0.0 : Double;
+      init flat$39$simp$195@{Mutable Bool} = False@{Bool};
+      init flat$39$simp$196@{Mutable Error} = ExceptTombstone@{Error};
+      init flat$39$simp$197@{Mutable Double} = 0.0@{Double};
       if (gen$fact$simp$358$simp$360) {
         let simp$33 = doubleOfInt#
                       gen$fact$simp$358$simp$362;
-        write flat$39$simp$195 = True : Bool;
-        write flat$39$simp$196 = ExceptTombstone : Error;
+        write flat$39$simp$195 = True@{Bool};
+        write flat$39$simp$196 = ExceptTombstone@{Error};
         write flat$39$simp$197 = simp$33;
       } else {
-        write flat$39$simp$195 = False : Bool;
+        write flat$39$simp$195 = False@{Bool};
         write flat$39$simp$196 = gen$fact$simp$358$simp$361;
-        write flat$39$simp$197 = 0.0 : Double;
+        write flat$39$simp$197 = 0.0@{Double};
       }
-      read [Mutable] [Bool] flat$39$simp$198 = flat$39$simp$195;
-      read [Mutable] [Error] flat$39$simp$199 = flat$39$simp$196;
-      read [Mutable] [Double] flat$39$simp$200 = flat$39$simp$197;
-      read [Mutable] [Bool] acc$a$conv$105$simp$201 = acc$a$conv$105$simp$69;
-      read [Mutable] [Error] acc$a$conv$105$simp$202 = acc$a$conv$105$simp$70;
-      read [Mutable] [Double] acc$a$conv$105$simp$203$simp$204$simp$206 = acc$a$conv$105$simp$71$simp$72$simp$74;
-      read [Mutable] [Double] acc$a$conv$105$simp$203$simp$204$simp$207 = acc$a$conv$105$simp$71$simp$72$simp$75;
-      read [Mutable] [Double] acc$a$conv$105$simp$203$simp$205 = acc$a$conv$105$simp$71$simp$73;
-      init [Mutable] [Bool] flat$40$simp$208 = False : Bool;
-      init [Mutable] [Error] flat$40$simp$209 = ExceptTombstone : Error;
-      init [Mutable] [Double] flat$40$simp$210$simp$211$simp$213 = 0.0 : Double;
-      init [Mutable] [Double] flat$40$simp$210$simp$211$simp$214 = 0.0 : Double;
-      init [Mutable] [Double] flat$40$simp$210$simp$212 = 0.0 : Double;
+      read@{Mutable Bool} flat$39$simp$198 = flat$39$simp$195;
+      read@{Mutable Error} flat$39$simp$199 = flat$39$simp$196;
+      read@{Mutable Double} flat$39$simp$200 = flat$39$simp$197;
+      read@{Mutable Bool} acc$a$conv$105$simp$201 = acc$a$conv$105$simp$69;
+      read@{Mutable Error} acc$a$conv$105$simp$202 = acc$a$conv$105$simp$70;
+      read@{Mutable Double} acc$a$conv$105$simp$203$simp$204$simp$206 = acc$a$conv$105$simp$71$simp$72$simp$74;
+      read@{Mutable Double} acc$a$conv$105$simp$203$simp$204$simp$207 = acc$a$conv$105$simp$71$simp$72$simp$75;
+      read@{Mutable Double} acc$a$conv$105$simp$203$simp$205 = acc$a$conv$105$simp$71$simp$73;
+      init flat$40$simp$208@{Mutable Bool} = False@{Bool};
+      init flat$40$simp$209@{Mutable Error} = ExceptTombstone@{Error};
+      init flat$40$simp$210$simp$211$simp$213@{Mutable Double} = 0.0@{Double};
+      init flat$40$simp$210$simp$211$simp$214@{Mutable Double} = 0.0@{Double};
+      init flat$40$simp$210$simp$212@{Mutable Double} = 0.0@{Double};
       if (acc$a$conv$105$simp$201) {
-        let nn$conv$112 = add# [Double]
+        let nn$conv$112 = add#@{Double}
                           acc$a$conv$105$simp$203$simp$204$simp$206
-                          (1.0 : Double);
-        init [Mutable] [Bool] flat$43$simp$215 = False : Bool;
-        init [Mutable] [Error] flat$43$simp$216 = ExceptTombstone : Error;
-        init [Mutable] [Double] flat$43$simp$217 = 0.0 : Double;
+                          (1.0@{Double});
+        init flat$43$simp$215@{Mutable Bool} = False@{Bool};
+        init flat$43$simp$216@{Mutable Error} = ExceptTombstone@{Error};
+        init flat$43$simp$217@{Mutable Double} = 0.0@{Double};
         if (flat$39$simp$198) {
-          let simp$39 = sub# [Double]
+          let simp$39 = sub#@{Double}
                         flat$39$simp$200
                         acc$a$conv$105$simp$203$simp$204$simp$207;
-          write flat$43$simp$215 = True : Bool;
-          write flat$43$simp$216 = ExceptTombstone : Error;
+          write flat$43$simp$215 = True@{Bool};
+          write flat$43$simp$216 = ExceptTombstone@{Error};
           write flat$43$simp$217 = simp$39;
         } else {
-          write flat$43$simp$215 = False : Bool;
+          write flat$43$simp$215 = False@{Bool};
           write flat$43$simp$216 = flat$39$simp$199;
-          write flat$43$simp$217 = 0.0 : Double;
+          write flat$43$simp$217 = 0.0@{Double};
         }
-        read [Mutable] [Bool] flat$43$simp$218 = flat$43$simp$215;
-        read [Mutable] [Error] flat$43$simp$219 = flat$43$simp$216;
-        read [Mutable] [Double] flat$43$simp$220 = flat$43$simp$217;
-        init [Mutable] [Bool] flat$44$simp$221 = False : Bool;
-        init [Mutable] [Error] flat$44$simp$222 = ExceptTombstone : Error;
-        init [Mutable] [Double] flat$44$simp$223 = 0.0 : Double;
+        read@{Mutable Bool} flat$43$simp$218 = flat$43$simp$215;
+        read@{Mutable Error} flat$43$simp$219 = flat$43$simp$216;
+        read@{Mutable Double} flat$43$simp$220 = flat$43$simp$217;
+        init flat$44$simp$221@{Mutable Bool} = False@{Bool};
+        init flat$44$simp$222@{Mutable Error} = ExceptTombstone@{Error};
+        init flat$44$simp$223@{Mutable Double} = 0.0@{Double};
         if (flat$43$simp$218) {
           let simp$43 = div#
                         flat$43$simp$220 nn$conv$112;
-          write flat$44$simp$221 = True : Bool;
-          write flat$44$simp$222 = ExceptTombstone : Error;
+          write flat$44$simp$221 = True@{Bool};
+          write flat$44$simp$222 = ExceptTombstone@{Error};
           write flat$44$simp$223 = simp$43;
         } else {
-          write flat$44$simp$221 = False : Bool;
+          write flat$44$simp$221 = False@{Bool};
           write flat$44$simp$222 = flat$43$simp$219;
-          write flat$44$simp$223 = 0.0 : Double;
+          write flat$44$simp$223 = 0.0@{Double};
         }
-        read [Mutable] [Bool] flat$44$simp$224 = flat$44$simp$221;
-        read [Mutable] [Error] flat$44$simp$225 = flat$44$simp$222;
-        read [Mutable] [Double] flat$44$simp$226 = flat$44$simp$223;
-        init [Mutable] [Bool] flat$45$simp$227 = False : Bool;
-        init [Mutable] [Error] flat$45$simp$228 = ExceptTombstone : Error;
-        init [Mutable] [Double] flat$45$simp$229 = 0.0 : Double;
+        read@{Mutable Bool} flat$44$simp$224 = flat$44$simp$221;
+        read@{Mutable Error} flat$44$simp$225 = flat$44$simp$222;
+        read@{Mutable Double} flat$44$simp$226 = flat$44$simp$223;
+        init flat$45$simp$227@{Mutable Bool} = False@{Bool};
+        init flat$45$simp$228@{Mutable Error} = ExceptTombstone@{Error};
+        init flat$45$simp$229@{Mutable Double} = 0.0@{Double};
         if (flat$44$simp$224) {
-          let simp$45 = add# [Double]
+          let simp$45 = add#@{Double}
                         acc$a$conv$105$simp$203$simp$204$simp$207
                         flat$44$simp$226;
-          write flat$45$simp$227 = True : Bool;
-          write flat$45$simp$228 = ExceptTombstone : Error;
+          write flat$45$simp$227 = True@{Bool};
+          write flat$45$simp$228 = ExceptTombstone@{Error};
           write flat$45$simp$229 = simp$45;
         } else {
-          write flat$45$simp$227 = False : Bool;
+          write flat$45$simp$227 = False@{Bool};
           write flat$45$simp$228 = flat$44$simp$225;
-          write flat$45$simp$229 = 0.0 : Double;
+          write flat$45$simp$229 = 0.0@{Double};
         }
-        read [Mutable] [Bool] flat$45$simp$230 = flat$45$simp$227;
-        read [Mutable] [Error] flat$45$simp$231 = flat$45$simp$228;
-        read [Mutable] [Double] flat$45$simp$232 = flat$45$simp$229;
-        init [Mutable] [Bool] flat$46$simp$233 = False : Bool;
-        init [Mutable] [Error] flat$46$simp$234 = ExceptTombstone : Error;
-        init [Mutable] [Double] flat$46$simp$235 = 0.0 : Double;
+        read@{Mutable Bool} flat$45$simp$230 = flat$45$simp$227;
+        read@{Mutable Error} flat$45$simp$231 = flat$45$simp$228;
+        read@{Mutable Double} flat$45$simp$232 = flat$45$simp$229;
+        init flat$46$simp$233@{Mutable Bool} = False@{Bool};
+        init flat$46$simp$234@{Mutable Error} = ExceptTombstone@{Error};
+        init flat$46$simp$235@{Mutable Double} = 0.0@{Double};
         if (flat$43$simp$218) {
-          init [Mutable] [Bool] flat$61$simp$236 = False : Bool;
-          init [Mutable] [Error] flat$61$simp$237 = ExceptTombstone : Error;
-          init [Mutable] [Double] flat$61$simp$238 = 0.0 : Double;
+          init flat$61$simp$236@{Mutable Bool} = False@{Bool};
+          init flat$61$simp$237@{Mutable Error} = ExceptTombstone@{Error};
+          init flat$61$simp$238@{Mutable Double} = 0.0@{Double};
           if (flat$39$simp$198) {
-            init [Mutable] [Bool] flat$67$simp$239 = False : Bool;
-            init [Mutable] [Error] flat$67$simp$240 = ExceptTombstone : Error;
-            init [Mutable] [Double] flat$67$simp$241 = 0.0 : Double;
+            init flat$67$simp$239@{Mutable Bool} = False@{Bool};
+            init flat$67$simp$240@{Mutable Error} = ExceptTombstone@{Error};
+            init flat$67$simp$241@{Mutable Double} = 0.0@{Double};
             if (flat$45$simp$230) {
-              let simp$51 = sub# [Double]
+              let simp$51 = sub#@{Double}
                             flat$39$simp$200
                             flat$45$simp$232;
-              write flat$67$simp$239 = True : Bool;
-              write flat$67$simp$240 = ExceptTombstone : Error;
+              write flat$67$simp$239 = True@{Bool};
+              write flat$67$simp$240 = ExceptTombstone@{Error};
               write flat$67$simp$241 = simp$51;
             } else {
-              write flat$67$simp$239 = False : Bool;
+              write flat$67$simp$239 = False@{Bool};
               write flat$67$simp$240 = flat$45$simp$231;
-              write flat$67$simp$241 = 0.0 : Double;
+              write flat$67$simp$241 = 0.0@{Double};
             }
-            read [Mutable] [Bool] flat$67$simp$242 = flat$67$simp$239;
-            read [Mutable] [Error] flat$67$simp$243 = flat$67$simp$240;
-            read [Mutable] [Double] flat$67$simp$244 = flat$67$simp$241;
+            read@{Mutable Bool} flat$67$simp$242 = flat$67$simp$239;
+            read@{Mutable Error} flat$67$simp$243 = flat$67$simp$240;
+            read@{Mutable Double} flat$67$simp$244 = flat$67$simp$241;
             write flat$61$simp$236 = flat$67$simp$242;
             write flat$61$simp$237 = flat$67$simp$243;
             write flat$61$simp$238 = flat$67$simp$244;
           } else {
-            write flat$61$simp$236 = False : Bool;
+            write flat$61$simp$236 = False@{Bool};
             write flat$61$simp$237 = flat$39$simp$199;
-            write flat$61$simp$238 = 0.0 : Double;
+            write flat$61$simp$238 = 0.0@{Double};
           }
-          read [Mutable] [Bool] flat$61$simp$245 = flat$61$simp$236;
-          read [Mutable] [Error] flat$61$simp$246 = flat$61$simp$237;
-          read [Mutable] [Double] flat$61$simp$247 = flat$61$simp$238;
-          init [Mutable] [Bool] flat$62$simp$248 = False : Bool;
-          init [Mutable] [Error] flat$62$simp$249 = ExceptTombstone : Error;
-          init [Mutable] [Double] flat$62$simp$250 = 0.0 : Double;
+          read@{Mutable Bool} flat$61$simp$245 = flat$61$simp$236;
+          read@{Mutable Error} flat$61$simp$246 = flat$61$simp$237;
+          read@{Mutable Double} flat$61$simp$247 = flat$61$simp$238;
+          init flat$62$simp$248@{Mutable Bool} = False@{Bool};
+          init flat$62$simp$249@{Mutable Error} = ExceptTombstone@{Error};
+          init flat$62$simp$250@{Mutable Double} = 0.0@{Double};
           if (flat$61$simp$245) {
-            let simp$55 = mul# [Double]
+            let simp$55 = mul#@{Double}
                           flat$43$simp$220
                           flat$61$simp$247;
-            write flat$62$simp$248 = True : Bool;
-            write flat$62$simp$249 = ExceptTombstone : Error;
+            write flat$62$simp$248 = True@{Bool};
+            write flat$62$simp$249 = ExceptTombstone@{Error};
             write flat$62$simp$250 = simp$55;
           } else {
-            write flat$62$simp$248 = False : Bool;
+            write flat$62$simp$248 = False@{Bool};
             write flat$62$simp$249 = flat$61$simp$246;
-            write flat$62$simp$250 = 0.0 : Double;
+            write flat$62$simp$250 = 0.0@{Double};
           }
-          read [Mutable] [Bool] flat$62$simp$251 = flat$62$simp$248;
-          read [Mutable] [Error] flat$62$simp$252 = flat$62$simp$249;
-          read [Mutable] [Double] flat$62$simp$253 = flat$62$simp$250;
+          read@{Mutable Bool} flat$62$simp$251 = flat$62$simp$248;
+          read@{Mutable Error} flat$62$simp$252 = flat$62$simp$249;
+          read@{Mutable Double} flat$62$simp$253 = flat$62$simp$250;
           write flat$46$simp$233 = flat$62$simp$251;
           write flat$46$simp$234 = flat$62$simp$252;
           write flat$46$simp$235 = flat$62$simp$253;
         } else {
-          write flat$46$simp$233 = False : Bool;
+          write flat$46$simp$233 = False@{Bool};
           write flat$46$simp$234 = flat$43$simp$219;
-          write flat$46$simp$235 = 0.0 : Double;
+          write flat$46$simp$235 = 0.0@{Double};
         }
-        read [Mutable] [Bool] flat$46$simp$254 = flat$46$simp$233;
-        read [Mutable] [Error] flat$46$simp$255 = flat$46$simp$234;
-        read [Mutable] [Double] flat$46$simp$256 = flat$46$simp$235;
-        init [Mutable] [Bool] flat$47$simp$257 = False : Bool;
-        init [Mutable] [Error] flat$47$simp$258 = ExceptTombstone : Error;
-        init [Mutable] [Double] flat$47$simp$259 = 0.0 : Double;
+        read@{Mutable Bool} flat$46$simp$254 = flat$46$simp$233;
+        read@{Mutable Error} flat$46$simp$255 = flat$46$simp$234;
+        read@{Mutable Double} flat$46$simp$256 = flat$46$simp$235;
+        init flat$47$simp$257@{Mutable Bool} = False@{Bool};
+        init flat$47$simp$258@{Mutable Error} = ExceptTombstone@{Error};
+        init flat$47$simp$259@{Mutable Double} = 0.0@{Double};
         if (flat$46$simp$254) {
-          let simp$57 = add# [Double]
+          let simp$57 = add#@{Double}
                         acc$a$conv$105$simp$203$simp$205
                         flat$46$simp$256;
-          write flat$47$simp$257 = True : Bool;
-          write flat$47$simp$258 = ExceptTombstone : Error;
+          write flat$47$simp$257 = True@{Bool};
+          write flat$47$simp$258 = ExceptTombstone@{Error};
           write flat$47$simp$259 = simp$57;
         } else {
-          write flat$47$simp$257 = False : Bool;
+          write flat$47$simp$257 = False@{Bool};
           write flat$47$simp$258 = flat$46$simp$255;
-          write flat$47$simp$259 = 0.0 : Double;
+          write flat$47$simp$259 = 0.0@{Double};
         }
-        read [Mutable] [Bool] flat$47$simp$260 = flat$47$simp$257;
-        read [Mutable] [Error] flat$47$simp$261 = flat$47$simp$258;
-        read [Mutable] [Double] flat$47$simp$262 = flat$47$simp$259;
-        init [Mutable] [Bool] flat$48$simp$263 = False : Bool;
-        init [Mutable] [Error] flat$48$simp$264 = ExceptTombstone : Error;
-        init [Mutable] [Double] flat$48$simp$265$simp$266 = 0.0 : Double;
-        init [Mutable] [Double] flat$48$simp$265$simp$267 = 0.0 : Double;
+        read@{Mutable Bool} flat$47$simp$260 = flat$47$simp$257;
+        read@{Mutable Error} flat$47$simp$261 = flat$47$simp$258;
+        read@{Mutable Double} flat$47$simp$262 = flat$47$simp$259;
+        init flat$48$simp$263@{Mutable Bool} = False@{Bool};
+        init flat$48$simp$264@{Mutable Error} = ExceptTombstone@{Error};
+        init flat$48$simp$265$simp$266@{Mutable Double} = 0.0@{Double};
+        init flat$48$simp$265$simp$267@{Mutable Double} = 0.0@{Double};
         if (flat$45$simp$230) {
-          write flat$48$simp$263 = True : Bool;
-          write flat$48$simp$264 = ExceptTombstone : Error;
+          write flat$48$simp$263 = True@{Bool};
+          write flat$48$simp$264 = ExceptTombstone@{Error};
           write flat$48$simp$265$simp$266 = nn$conv$112;
           write flat$48$simp$265$simp$267 = flat$45$simp$232;
         } else {
-          write flat$48$simp$263 = False : Bool;
+          write flat$48$simp$263 = False@{Bool};
           write flat$48$simp$264 = flat$45$simp$231;
-          write flat$48$simp$265$simp$266 = 0.0 : Double;
-          write flat$48$simp$265$simp$267 = 0.0 : Double;
+          write flat$48$simp$265$simp$266 = 0.0@{Double};
+          write flat$48$simp$265$simp$267 = 0.0@{Double};
         }
-        read [Mutable] [Bool] flat$48$simp$268 = flat$48$simp$263;
-        read [Mutable] [Error] flat$48$simp$269 = flat$48$simp$264;
-        read [Mutable] [Double] flat$48$simp$270$simp$271 = flat$48$simp$265$simp$266;
-        read [Mutable] [Double] flat$48$simp$270$simp$272 = flat$48$simp$265$simp$267;
-        init [Mutable] [Bool] flat$49$simp$273 = False : Bool;
-        init [Mutable] [Error] flat$49$simp$274 = ExceptTombstone : Error;
-        init [Mutable] [Double] flat$49$simp$275$simp$276$simp$278 = 0.0 : Double;
-        init [Mutable] [Double] flat$49$simp$275$simp$276$simp$279 = 0.0 : Double;
-        init [Mutable] [Double] flat$49$simp$275$simp$277 = 0.0 : Double;
+        read@{Mutable Bool} flat$48$simp$268 = flat$48$simp$263;
+        read@{Mutable Error} flat$48$simp$269 = flat$48$simp$264;
+        read@{Mutable Double} flat$48$simp$270$simp$271 = flat$48$simp$265$simp$266;
+        read@{Mutable Double} flat$48$simp$270$simp$272 = flat$48$simp$265$simp$267;
+        init flat$49$simp$273@{Mutable Bool} = False@{Bool};
+        init flat$49$simp$274@{Mutable Error} = ExceptTombstone@{Error};
+        init flat$49$simp$275$simp$276$simp$278@{Mutable Double} = 0.0@{Double};
+        init flat$49$simp$275$simp$276$simp$279@{Mutable Double} = 0.0@{Double};
+        init flat$49$simp$275$simp$277@{Mutable Double} = 0.0@{Double};
         if (flat$48$simp$268) {
-          init [Mutable] [Bool] flat$52$simp$280 = False : Bool;
-          init [Mutable] [Error] flat$52$simp$281 = ExceptTombstone : Error;
-          init [Mutable] [Double] flat$52$simp$282$simp$283$simp$285 = 0.0 : Double;
-          init [Mutable] [Double] flat$52$simp$282$simp$283$simp$286 = 0.0 : Double;
-          init [Mutable] [Double] flat$52$simp$282$simp$284 = 0.0 : Double;
+          init flat$52$simp$280@{Mutable Bool} = False@{Bool};
+          init flat$52$simp$281@{Mutable Error} = ExceptTombstone@{Error};
+          init flat$52$simp$282$simp$283$simp$285@{Mutable Double} = 0.0@{Double};
+          init flat$52$simp$282$simp$283$simp$286@{Mutable Double} = 0.0@{Double};
+          init flat$52$simp$282$simp$284@{Mutable Double} = 0.0@{Double};
           if (flat$47$simp$260) {
-            write flat$52$simp$280 = True : Bool;
-            write flat$52$simp$281 = ExceptTombstone : Error;
+            write flat$52$simp$280 = True@{Bool};
+            write flat$52$simp$281 = ExceptTombstone@{Error};
             write flat$52$simp$282$simp$283$simp$285 = flat$48$simp$270$simp$271;
             write flat$52$simp$282$simp$283$simp$286 = flat$48$simp$270$simp$272;
             write flat$52$simp$282$simp$284 = flat$47$simp$262;
           } else {
-            write flat$52$simp$280 = False : Bool;
+            write flat$52$simp$280 = False@{Bool};
             write flat$52$simp$281 = flat$47$simp$261;
-            write flat$52$simp$282$simp$283$simp$285 = 0.0 : Double;
-            write flat$52$simp$282$simp$283$simp$286 = 0.0 : Double;
-            write flat$52$simp$282$simp$284 = 0.0 : Double;
+            write flat$52$simp$282$simp$283$simp$285 = 0.0@{Double};
+            write flat$52$simp$282$simp$283$simp$286 = 0.0@{Double};
+            write flat$52$simp$282$simp$284 = 0.0@{Double};
           }
-          read [Mutable] [Bool] flat$52$simp$287 = flat$52$simp$280;
-          read [Mutable] [Error] flat$52$simp$288 = flat$52$simp$281;
-          read [Mutable] [Double] flat$52$simp$289$simp$290$simp$292 = flat$52$simp$282$simp$283$simp$285;
-          read [Mutable] [Double] flat$52$simp$289$simp$290$simp$293 = flat$52$simp$282$simp$283$simp$286;
-          read [Mutable] [Double] flat$52$simp$289$simp$291 = flat$52$simp$282$simp$284;
+          read@{Mutable Bool} flat$52$simp$287 = flat$52$simp$280;
+          read@{Mutable Error} flat$52$simp$288 = flat$52$simp$281;
+          read@{Mutable Double} flat$52$simp$289$simp$290$simp$292 = flat$52$simp$282$simp$283$simp$285;
+          read@{Mutable Double} flat$52$simp$289$simp$290$simp$293 = flat$52$simp$282$simp$283$simp$286;
+          read@{Mutable Double} flat$52$simp$289$simp$291 = flat$52$simp$282$simp$284;
           write flat$49$simp$273 = flat$52$simp$287;
           write flat$49$simp$274 = flat$52$simp$288;
           write flat$49$simp$275$simp$276$simp$278 = flat$52$simp$289$simp$290$simp$292;
           write flat$49$simp$275$simp$276$simp$279 = flat$52$simp$289$simp$290$simp$293;
           write flat$49$simp$275$simp$277 = flat$52$simp$289$simp$291;
         } else {
-          write flat$49$simp$273 = False : Bool;
+          write flat$49$simp$273 = False@{Bool};
           write flat$49$simp$274 = flat$48$simp$269;
-          write flat$49$simp$275$simp$276$simp$278 = 0.0 : Double;
-          write flat$49$simp$275$simp$276$simp$279 = 0.0 : Double;
-          write flat$49$simp$275$simp$277 = 0.0 : Double;
+          write flat$49$simp$275$simp$276$simp$278 = 0.0@{Double};
+          write flat$49$simp$275$simp$276$simp$279 = 0.0@{Double};
+          write flat$49$simp$275$simp$277 = 0.0@{Double};
         }
-        read [Mutable] [Bool] flat$49$simp$294 = flat$49$simp$273;
-        read [Mutable] [Error] flat$49$simp$295 = flat$49$simp$274;
-        read [Mutable] [Double] flat$49$simp$296$simp$297$simp$299 = flat$49$simp$275$simp$276$simp$278;
-        read [Mutable] [Double] flat$49$simp$296$simp$297$simp$300 = flat$49$simp$275$simp$276$simp$279;
-        read [Mutable] [Double] flat$49$simp$296$simp$298 = flat$49$simp$275$simp$277;
+        read@{Mutable Bool} flat$49$simp$294 = flat$49$simp$273;
+        read@{Mutable Error} flat$49$simp$295 = flat$49$simp$274;
+        read@{Mutable Double} flat$49$simp$296$simp$297$simp$299 = flat$49$simp$275$simp$276$simp$278;
+        read@{Mutable Double} flat$49$simp$296$simp$297$simp$300 = flat$49$simp$275$simp$276$simp$279;
+        read@{Mutable Double} flat$49$simp$296$simp$298 = flat$49$simp$275$simp$277;
         write flat$40$simp$208 = flat$49$simp$294;
         write flat$40$simp$209 = flat$49$simp$295;
         write flat$40$simp$210$simp$211$simp$213 = flat$49$simp$296$simp$297$simp$299;
         write flat$40$simp$210$simp$211$simp$214 = flat$49$simp$296$simp$297$simp$300;
         write flat$40$simp$210$simp$212 = flat$49$simp$296$simp$298;
       } else {
-        write flat$40$simp$208 = False : Bool;
+        write flat$40$simp$208 = False@{Bool};
         write flat$40$simp$209 = acc$a$conv$105$simp$202;
-        write flat$40$simp$210$simp$211$simp$213 = 0.0 : Double;
-        write flat$40$simp$210$simp$211$simp$214 = 0.0 : Double;
-        write flat$40$simp$210$simp$212 = 0.0 : Double;
+        write flat$40$simp$210$simp$211$simp$213 = 0.0@{Double};
+        write flat$40$simp$210$simp$211$simp$214 = 0.0@{Double};
+        write flat$40$simp$210$simp$212 = 0.0@{Double};
       }
-      read [Mutable] [Bool] flat$40$simp$301 = flat$40$simp$208;
-      read [Mutable] [Error] flat$40$simp$302 = flat$40$simp$209;
-      read [Mutable] [Double] flat$40$simp$303$simp$304$simp$306 = flat$40$simp$210$simp$211$simp$213;
-      read [Mutable] [Double] flat$40$simp$303$simp$304$simp$307 = flat$40$simp$210$simp$211$simp$214;
-      read [Mutable] [Double] flat$40$simp$303$simp$305 = flat$40$simp$210$simp$212;
+      read@{Mutable Bool} flat$40$simp$301 = flat$40$simp$208;
+      read@{Mutable Error} flat$40$simp$302 = flat$40$simp$209;
+      read@{Mutable Double} flat$40$simp$303$simp$304$simp$306 = flat$40$simp$210$simp$211$simp$213;
+      read@{Mutable Double} flat$40$simp$303$simp$304$simp$307 = flat$40$simp$210$simp$211$simp$214;
+      read@{Mutable Double} flat$40$simp$303$simp$305 = flat$40$simp$210$simp$212;
       write acc$a$conv$105$simp$69 = flat$40$simp$301;
       write acc$a$conv$105$simp$70 = flat$40$simp$302;
       write acc$a$conv$105$simp$71$simp$72$simp$74 = flat$40$simp$303$simp$304$simp$306;
@@ -1143,136 +1141,136 @@ gen$date = DATE
       write acc$a$conv$105$simp$71$simp$73 = flat$40$simp$303$simp$305;
     }
   }
-  save_resumable [Bool] acc$a$conv$12$simp$62;
-  save_resumable [Error] acc$a$conv$12$simp$63;
-  save_resumable [Double] acc$a$conv$12$simp$64$simp$65$simp$67;
-  save_resumable [Double] acc$a$conv$12$simp$64$simp$65$simp$68;
-  save_resumable [Double] acc$a$conv$12$simp$64$simp$66;
-  save_resumable [Bool] acc$a$conv$105$simp$69;
-  save_resumable [Error] acc$a$conv$105$simp$70;
-  save_resumable [Double] acc$a$conv$105$simp$71$simp$72$simp$74;
-  save_resumable [Double] acc$a$conv$105$simp$71$simp$72$simp$75;
-  save_resumable [Double] acc$a$conv$105$simp$71$simp$73;
-  read [Mutable] [Bool] a$conv$12$simp$308 = acc$a$conv$12$simp$62;
-  read [Mutable] [Error] a$conv$12$simp$309 = acc$a$conv$12$simp$63;
-  read [Mutable] [Double] a$conv$12$simp$310$simp$311$simp$313 = acc$a$conv$12$simp$64$simp$65$simp$67;
-  read [Mutable] [Double] a$conv$12$simp$310$simp$312 = acc$a$conv$12$simp$64$simp$66;
-  read [Mutable] [Bool] a$conv$105$simp$315 = acc$a$conv$105$simp$69;
-  read [Mutable] [Error] a$conv$105$simp$316 = acc$a$conv$105$simp$70;
-  read [Mutable] [Double] a$conv$105$simp$317$simp$318$simp$320 = acc$a$conv$105$simp$71$simp$72$simp$74;
-  read [Mutable] [Double] a$conv$105$simp$317$simp$319 = acc$a$conv$105$simp$71$simp$73;
-  init [Mutable] [Bool] flat$84$simp$322 = False : Bool;
-  init [Mutable] [Error] flat$84$simp$323 = ExceptTombstone : Error;
-  init [Mutable] [Double] flat$84$simp$324 = 0.0 : Double;
+  save_resumable@{Bool} acc$a$conv$12$simp$62;
+  save_resumable@{Error} acc$a$conv$12$simp$63;
+  save_resumable@{Double} acc$a$conv$12$simp$64$simp$65$simp$67;
+  save_resumable@{Double} acc$a$conv$12$simp$64$simp$65$simp$68;
+  save_resumable@{Double} acc$a$conv$12$simp$64$simp$66;
+  save_resumable@{Bool} acc$a$conv$105$simp$69;
+  save_resumable@{Error} acc$a$conv$105$simp$70;
+  save_resumable@{Double} acc$a$conv$105$simp$71$simp$72$simp$74;
+  save_resumable@{Double} acc$a$conv$105$simp$71$simp$72$simp$75;
+  save_resumable@{Double} acc$a$conv$105$simp$71$simp$73;
+  read@{Mutable Bool} a$conv$12$simp$308 = acc$a$conv$12$simp$62;
+  read@{Mutable Error} a$conv$12$simp$309 = acc$a$conv$12$simp$63;
+  read@{Mutable Double} a$conv$12$simp$310$simp$311$simp$313 = acc$a$conv$12$simp$64$simp$65$simp$67;
+  read@{Mutable Double} a$conv$12$simp$310$simp$312 = acc$a$conv$12$simp$64$simp$66;
+  read@{Mutable Bool} a$conv$105$simp$315 = acc$a$conv$105$simp$69;
+  read@{Mutable Error} a$conv$105$simp$316 = acc$a$conv$105$simp$70;
+  read@{Mutable Double} a$conv$105$simp$317$simp$318$simp$320 = acc$a$conv$105$simp$71$simp$72$simp$74;
+  read@{Mutable Double} a$conv$105$simp$317$simp$319 = acc$a$conv$105$simp$71$simp$73;
+  init flat$84$simp$322@{Mutable Bool} = False@{Bool};
+  init flat$84$simp$323@{Mutable Error} = ExceptTombstone@{Error};
+  init flat$84$simp$324@{Mutable Double} = 0.0@{Double};
   if (a$conv$12$simp$308) {
-    let conv$67 = sub# [Double]
+    let conv$67 = sub#@{Double}
                   a$conv$12$simp$310$simp$311$simp$313
-                  (1.0 : Double);
+                  (1.0@{Double});
     let conv$68 = div#
                   a$conv$12$simp$310$simp$312
                   conv$67;
-    write flat$84$simp$322 = True : Bool;
-    write flat$84$simp$323 = ExceptTombstone : Error;
+    write flat$84$simp$322 = True@{Bool};
+    write flat$84$simp$323 = ExceptTombstone@{Error};
     write flat$84$simp$324 = conv$68;
   } else {
-    write flat$84$simp$322 = False : Bool;
+    write flat$84$simp$322 = False@{Bool};
     write flat$84$simp$323 = a$conv$12$simp$309;
-    write flat$84$simp$324 = 0.0 : Double;
+    write flat$84$simp$324 = 0.0@{Double};
   }
-  read [Mutable] [Bool] flat$84$simp$325 = flat$84$simp$322;
-  read [Mutable] [Error] flat$84$simp$326 = flat$84$simp$323;
-  read [Mutable] [Double] flat$84$simp$327 = flat$84$simp$324;
-  init [Mutable] [Bool] flat$85$simp$328 = False : Bool;
-  init [Mutable] [Error] flat$85$simp$329 = ExceptTombstone : Error;
-  init [Mutable] [Double] flat$85$simp$330 = 0.0 : Double;
+  read@{Mutable Bool} flat$84$simp$325 = flat$84$simp$322;
+  read@{Mutable Error} flat$84$simp$326 = flat$84$simp$323;
+  read@{Mutable Double} flat$84$simp$327 = flat$84$simp$324;
+  init flat$85$simp$328@{Mutable Bool} = False@{Bool};
+  init flat$85$simp$329@{Mutable Error} = ExceptTombstone@{Error};
+  init flat$85$simp$330@{Mutable Double} = 0.0@{Double};
   if (flat$84$simp$325) {
-    let conv$80 = pow# [Double]
-                  flat$84$simp$327 (0.5 : Double);
-    write flat$85$simp$328 = True : Bool;
-    write flat$85$simp$329 = ExceptTombstone : Error;
+    let conv$80 = pow#@{Double}
+                  flat$84$simp$327 (0.5@{Double});
+    write flat$85$simp$328 = True@{Bool};
+    write flat$85$simp$329 = ExceptTombstone@{Error};
     write flat$85$simp$330 = conv$80;
   } else {
-    write flat$85$simp$328 = False : Bool;
+    write flat$85$simp$328 = False@{Bool};
     write flat$85$simp$329 = flat$84$simp$326;
-    write flat$85$simp$330 = 0.0 : Double;
+    write flat$85$simp$330 = 0.0@{Double};
   }
-  read [Mutable] [Bool] flat$85$simp$331 = flat$85$simp$328;
-  read [Mutable] [Error] flat$85$simp$332 = flat$85$simp$329;
-  read [Mutable] [Double] flat$85$simp$333 = flat$85$simp$330;
-  init [Mutable] [Bool] flat$86$simp$334 = False : Bool;
-  init [Mutable] [Error] flat$86$simp$335 = ExceptTombstone : Error;
-  init [Mutable] [Double] flat$86$simp$336 = 0.0 : Double;
+  read@{Mutable Bool} flat$85$simp$331 = flat$85$simp$328;
+  read@{Mutable Error} flat$85$simp$332 = flat$85$simp$329;
+  read@{Mutable Double} flat$85$simp$333 = flat$85$simp$330;
+  init flat$86$simp$334@{Mutable Bool} = False@{Bool};
+  init flat$86$simp$335@{Mutable Error} = ExceptTombstone@{Error};
+  init flat$86$simp$336@{Mutable Double} = 0.0@{Double};
   if (flat$85$simp$331) {
-    init [Mutable] [Bool] flat$89$simp$337 = False : Bool;
-    init [Mutable] [Error] flat$89$simp$338 = ExceptTombstone : Error;
-    init [Mutable] [Double] flat$89$simp$339 = 0.0 : Double;
+    init flat$89$simp$337@{Mutable Bool} = False@{Bool};
+    init flat$89$simp$338@{Mutable Error} = ExceptTombstone@{Error};
+    init flat$89$simp$339@{Mutable Double} = 0.0@{Double};
     if (a$conv$105$simp$315) {
-      let conv$160 = sub# [Double]
+      let conv$160 = sub#@{Double}
                      a$conv$105$simp$317$simp$318$simp$320
-                     (1.0 : Double);
+                     (1.0@{Double});
       let conv$161 = div#
                      a$conv$105$simp$317$simp$319
                      conv$160;
-      write flat$89$simp$337 = True : Bool;
-      write flat$89$simp$338 = ExceptTombstone : Error;
+      write flat$89$simp$337 = True@{Bool};
+      write flat$89$simp$338 = ExceptTombstone@{Error};
       write flat$89$simp$339 = conv$161;
     } else {
-      write flat$89$simp$337 = False : Bool;
+      write flat$89$simp$337 = False@{Bool};
       write flat$89$simp$338 = a$conv$105$simp$316;
-      write flat$89$simp$339 = 0.0 : Double;
+      write flat$89$simp$339 = 0.0@{Double};
     }
-    read [Mutable] [Bool] flat$89$simp$340 = flat$89$simp$337;
-    read [Mutable] [Error] flat$89$simp$341 = flat$89$simp$338;
-    read [Mutable] [Double] flat$89$simp$342 = flat$89$simp$339;
-    init [Mutable] [Bool] flat$90$simp$343 = False : Bool;
-    init [Mutable] [Error] flat$90$simp$344 = ExceptTombstone : Error;
-    init [Mutable] [Double] flat$90$simp$345 = 0.0 : Double;
+    read@{Mutable Bool} flat$89$simp$340 = flat$89$simp$337;
+    read@{Mutable Error} flat$89$simp$341 = flat$89$simp$338;
+    read@{Mutable Double} flat$89$simp$342 = flat$89$simp$339;
+    init flat$90$simp$343@{Mutable Bool} = False@{Bool};
+    init flat$90$simp$344@{Mutable Error} = ExceptTombstone@{Error};
+    init flat$90$simp$345@{Mutable Double} = 0.0@{Double};
     if (flat$89$simp$340) {
-      let conv$173 = pow# [Double]
-                     flat$89$simp$342 (0.5 : Double);
-      write flat$90$simp$343 = True : Bool;
-      write flat$90$simp$344 = ExceptTombstone : Error;
+      let conv$173 = pow#@{Double}
+                     flat$89$simp$342 (0.5@{Double});
+      write flat$90$simp$343 = True@{Bool};
+      write flat$90$simp$344 = ExceptTombstone@{Error};
       write flat$90$simp$345 = conv$173;
     } else {
-      write flat$90$simp$343 = False : Bool;
+      write flat$90$simp$343 = False@{Bool};
       write flat$90$simp$344 = flat$89$simp$341;
-      write flat$90$simp$345 = 0.0 : Double;
+      write flat$90$simp$345 = 0.0@{Double};
     }
-    read [Mutable] [Bool] flat$90$simp$346 = flat$90$simp$343;
-    read [Mutable] [Error] flat$90$simp$347 = flat$90$simp$344;
-    read [Mutable] [Double] flat$90$simp$348 = flat$90$simp$345;
-    init [Mutable] [Bool] flat$91$simp$349 = False : Bool;
-    init [Mutable] [Error] flat$91$simp$350 = ExceptTombstone : Error;
-    init [Mutable] [Double] flat$91$simp$351 = 0.0 : Double;
+    read@{Mutable Bool} flat$90$simp$346 = flat$90$simp$343;
+    read@{Mutable Error} flat$90$simp$347 = flat$90$simp$344;
+    read@{Mutable Double} flat$90$simp$348 = flat$90$simp$345;
+    init flat$91$simp$349@{Mutable Bool} = False@{Bool};
+    init flat$91$simp$350@{Mutable Error} = ExceptTombstone@{Error};
+    init flat$91$simp$351@{Mutable Double} = 0.0@{Double};
     if (flat$90$simp$346) {
-      let conv$180 = mul# [Double]
+      let conv$180 = mul#@{Double}
                      flat$85$simp$333
                      flat$90$simp$348;
-      write flat$91$simp$349 = True : Bool;
-      write flat$91$simp$350 = ExceptTombstone : Error;
+      write flat$91$simp$349 = True@{Bool};
+      write flat$91$simp$350 = ExceptTombstone@{Error};
       write flat$91$simp$351 = conv$180;
     } else {
-      write flat$91$simp$349 = False : Bool;
+      write flat$91$simp$349 = False@{Bool};
       write flat$91$simp$350 = flat$90$simp$347;
-      write flat$91$simp$351 = 0.0 : Double;
+      write flat$91$simp$351 = 0.0@{Double};
     }
-    read [Mutable] [Bool] flat$91$simp$352 = flat$91$simp$349;
-    read [Mutable] [Error] flat$91$simp$353 = flat$91$simp$350;
-    read [Mutable] [Double] flat$91$simp$354 = flat$91$simp$351;
+    read@{Mutable Bool} flat$91$simp$352 = flat$91$simp$349;
+    read@{Mutable Error} flat$91$simp$353 = flat$91$simp$350;
+    read@{Mutable Double} flat$91$simp$354 = flat$91$simp$351;
     write flat$86$simp$334 = flat$91$simp$352;
     write flat$86$simp$335 = flat$91$simp$353;
     write flat$86$simp$336 = flat$91$simp$354;
   } else {
-    write flat$86$simp$334 = False : Bool;
+    write flat$86$simp$334 = False@{Bool};
     write flat$86$simp$335 = flat$85$simp$332;
-    write flat$86$simp$336 = 0.0 : Double;
+    write flat$86$simp$336 = 0.0@{Double};
   }
-  read [Mutable] [Bool] flat$86$simp$355 = flat$86$simp$334;
-  read [Mutable] [Error] flat$86$simp$356 = flat$86$simp$335;
-  read [Mutable] [Double] flat$86$simp$357 = flat$86$simp$336;
-  output [(Sum Error Double)] repl (flat$86$simp$355 : Bool,
-                                    flat$86$simp$356 : Error,
-                                    flat$86$simp$357 : Double);
+  read@{Mutable Bool} flat$86$simp$355 = flat$86$simp$334;
+  read@{Mutable Error} flat$86$simp$356 = flat$86$simp$335;
+  read@{Mutable Double} flat$86$simp$357 = flat$86$simp$336;
+  output@{(Sum Error Double)} repl (flat$86$simp$355@{Bool},
+               flat$86$simp$356@{Error},
+               flat$86$simp$357@{Double});
 }
 
 - C:
