@@ -184,16 +184,16 @@ instance (Pretty n, Pretty p) => Pretty (Scoped a n p) where
       <> text ";"
 
      Output n t xs
-      -> text "output" <+> brackets (pretty t) <+> pretty n <+> prettyOutputParts xs
+      -> annotate (AnnType t) (text "output") <+> pretty n <+> prettyOutputParts xs
       <> text ";"
      KeepFactInHistory
       -> text "keep_fact_in_history"
       <> text ";"
      LoadResumable n t
-      -> text "load_resumable" <+> brackets (pretty t) <+> pretty n
+      -> annotate (AnnType t) (text "load_resumable") <+> pretty n
       <> text ";"
      SaveResumable n t
-      -> text "save_resumable" <+> brackets (pretty t) <+> pretty n
+      -> annotate (AnnType t) (text "save_resumable") <+> pretty n
       <> text ";"
 
 
@@ -201,10 +201,10 @@ instance (Pretty n, Pretty p) => Pretty (Scoped a n p) where
    inner si@(Block _) = pretty si
    inner si           = text "{" <> line <> indent 2 (pretty si) <> line <> text "} " <> line
 
-   prettyFactPart (nf, tf) = pretty nf <+> text ":" <+> pretty tf
+   prettyFactPart (nf, tf) = annotate (AnnType tf) (pretty nf)
    prettyFactParts         = parens . align . cat . punctuate comma . fmap prettyFactPart
 
-   prettyOutputPart (xf, tf) = pretty xf <+> text ":" <+> pretty tf
+   prettyOutputPart (xf, tf) = annotate (AnnType tf) (pretty xf)
    prettyOutputParts         = parens . align . cat . punctuate comma . fmap prettyOutputPart
 
 
@@ -218,8 +218,7 @@ instance (Pretty n, Pretty p) => Pretty (Binding a n p) where
       -> text "let" <+> pretty n <+> text "=" <+> pretty x
       <> text ";"
      Read n acc at vt
-      -> text "read" <+> brackets (pretty at)
-                     <+> brackets (pretty vt)
+      -> annotate (AnnType $ (pretty at) <+> (pretty vt)) (text "read")
                      <+> pretty n
                      <+> text "=" <+> pretty acc
       <> text ";"

@@ -17,6 +17,7 @@ module Icicle.Source.Query.Exp (
   , takePrimApps
   , annotOfExp
   , mkApp
+  , precedenceOfX
   ) where
 
 import                  Icicle.Source.Query.Constructor

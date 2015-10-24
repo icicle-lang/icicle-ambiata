@@ -543,15 +543,14 @@ prettyHL x
         let width' = maybe 80 id width
         HL.outputStrLn $ PP.displayDecorated withColour (PP.renderPretty 0.4 width' $ PP.pretty x)
     where
-      withColour attr str = sgrAttr attr <> str <> sgrReset
+      withColour a'@(PP.AnnVariable) str = sgrAttr a' <> str <> sgrReset
+      withColour a'@(PP.AnnType a)   str = str <> sgrAttr a' <> "@{" <> (PP.display . PP.renderCompact . PP.pretty) a <> "}" <> sgrReset
 
       sgrReset = ANSI.setSGRCode [ANSI.Reset]
 
       sgrAttr = \case
         PP.AnnVariable    -> ANSI.setSGRCode [ANSI.SetColor ANSI.Foreground ANSI.Dull ANSI.Green]
-        PP.AnnOperator    -> ANSI.setSGRCode [ANSI.SetColor ANSI.Foreground ANSI.Dull ANSI.Yellow]
-        PP.AnnLiteral     -> ANSI.setSGRCode [ANSI.SetColor ANSI.Foreground ANSI.Dull ANSI.Yellow]
-        PP.AnnError       -> ANSI.setSGRCode [ANSI.SetColor ANSI.Foreground ANSI.Dull ANSI.Red]
+        PP.AnnType _      -> ANSI.setSGRCode [ANSI.SetColor ANSI.Foreground ANSI.Dull ANSI.Red]
 
 
 terminalWidth :: HL.InputT IO (Maybe Int)
