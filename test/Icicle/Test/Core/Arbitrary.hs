@@ -498,7 +498,7 @@ baseValueForType t
     ArrayT t'
      -> smaller (VArray <$> listOf (baseValueForType t'))
     BufT t'
-     -> do n <- arbitrary
+     -> do NonNegative n <- arbitrary
            smaller (VBuf n . List.take n <$> infiniteListOf (baseValueForType t'))
     PairT a b
      -> smaller (VPair <$> baseValueForType a <*> baseValueForType b)
