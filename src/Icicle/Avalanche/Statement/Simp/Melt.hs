@@ -480,8 +480,6 @@ unmeltValue' :: [BaseValue] -> ValType -> Maybe (BaseValue, [BaseValue])
 unmeltValue' []        _ = Nothing
 unmeltValue' vs0@(v:vs) t
  = case t of
-     -- these are all type errors, as we should have hit the
-     -- pattern match on the singleton list
      IntT{}      -> Just (v, vs)
      DoubleT{}   -> Just (v, vs)
      UnitT{}     -> Just (v, vs)

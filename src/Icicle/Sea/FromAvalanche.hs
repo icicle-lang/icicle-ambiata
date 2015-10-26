@@ -5,6 +5,7 @@
 module Icicle.Sea.FromAvalanche (
     seaOfProgram
   , stateWordsOfProgram
+  , factVarsOfProgram
   , accumsOfProgram
   , outputsOfProgram
   ) where
@@ -46,17 +47,17 @@ seaOfProgram program = vsep
   , "typedef   double idouble_t;"
   , "typedef  int64_t idate_t;"
   , ""
-  , stateOfProgram program
-  , ""
   , "static const ierror_t ierror_tombstone              = 0;"
   , "static const ierror_t ierror_fold1_no_value         = 1;"
   , "static const ierror_t ierror_variable_not_available = 2;"
   , ""
-  , "static const iunit_t iunit  = 0x1c1c13;"
+  , "static const iunit_t iunit  = 0x13013;"
   , "static const ibool_t ifalse = 0;"
   , "static const ibool_t itrue  = 1;"
   , ""
   , "#define INLINE __attribute__((always_inline))"
+  , ""
+  , "static ibool_t   INLINE ierror_eq     (ierror_t  x, ierror_t  y) { return x == y; }"
   , ""
   , "static idouble_t INLINE iint_extend   (iint_t    x)              { return x; }"
   , "static iint_t    INLINE iint_add      (iint_t    x, iint_t    y) { return x +  y; }"
@@ -84,6 +85,8 @@ seaOfProgram program = vsep
   , "static ibool_t   INLINE idouble_eq    (idouble_t x, idouble_t y) { return x == y; }"
   , "static ibool_t   INLINE idouble_ne    (idouble_t x, idouble_t y) { return x != y; }"
   , ""
+  , stateOfProgram program
+  , ""
   , "void compute(icicle_state_t *s)"
   , "{"
   , indent 4 . vsep
@@ -108,6 +111,7 @@ stateOfProgram program = vsep
    , "    iint_t     new_count;"
    , indent 4 . vsep
               . fmap defOfFactVar
+              . maybe [] snd
               . factVarsOfProgram FactLoopNew
               $ program
    , ""
@@ -115,15 +119,14 @@ stateOfProgram program = vsep
    , indent 4 . vsep
               . concat
               . fmap defsOfOutput
-              . Map.toList
               . outputsOfProgram
               $ program
    , ""
    , "    /* resumables */"
    , indent 4 . vsep
-              . fmap defOfAccumulator
+              . fmap defOfResumable
               . Map.toList
-              . accumsOfProgram
+              . resumablesOfProgram
               $ program
    , "} icicle_state_t;"
    ]
@@ -132,9 +135,9 @@ stateWordsOfProgram :: Ord n => Program (Annot a) n Prim -> Int
 stateWordsOfProgram program
  = 1 -- gen_date
  + 1 -- new_count
- + length (factVarsOfProgram FactLoopNew program)
- + Map.size (outputsOfProgram program)
- + Map.size (accumsOfProgram  program)
+ + length (maybe [] snd (factVarsOfProgram FactLoopNew program))
+ + sum (fmap (length . snd . snd) (outputsOfProgram program))
+ + 2 * Map.size (resumablesOfProgram program)
 
 defOfAccumulator :: (Show n, Pretty n, Ord n)
                   => (Name n, (AccumulatorType, ValType)) -> Doc
@@ -144,6 +147,11 @@ defOfAccumulator (n, (at, vt))
       -> seaOfValType vt <+> seaOfName n <> semi
      Latest
       -> seaError "defOfAccumulator" (n, at, vt)
+
+defOfResumable :: (Show n, Pretty n, Ord n) => (Name n, ValType) -> Doc
+defOfResumable (n, t)
+ =  seaOfValType BoolT <+> "has_" <> seaOfName n <> semi <> line
+ <> seaOfValType t     <+> "res_" <> seaOfName n <> semi
 
 defOfFactVar :: Pretty n => (Name n, ValType) -> Doc
 defOfFactVar (n, t)
@@ -175,7 +183,7 @@ seaOfStatement stmt
 
      Let n xx stmt'
       | Just xt <- valTypeOfExp xx
-      -> assign (seaOfValType xt <+> seaOfName n) (seaOfExp xx) <> semi <> line
+      -> assign (seaOfValType xt <+> seaOfName n) (seaOfExp xx) <> semi <> suffix "let" <> line
       <> seaOfStatement stmt'
 
      If ii tt (Block [])
@@ -214,27 +222,30 @@ seaOfStatement stmt
 
      InitAccumulator acc stmt'
       | Accumulator n Mutable _ xx <- acc
-      -> assign (seaOfName n) (seaOfExp xx) <> semi <> line
+      -> assign (seaOfName n) (seaOfExp xx) <> semi <> suffix "init" <> line
       <> seaOfStatement stmt'
 
      Read n_val n_acc at _ stmt'
       | Mutable <- at
-      -> assign (seaOfName n_val) (seaOfName n_acc) <> semi <> line
+      -> assign (seaOfName n_val) (seaOfName n_acc) <> semi <> suffix "read" <> line
       <> seaOfStatement stmt'
 
      Write n xx
-      -> assign (seaOfName n) (seaOfExp xx) <> semi
+      -> assign (seaOfName n) (seaOfExp xx) <> semi <> suffix "write"
 
      LoadResumable n _
-      -> assign (seaOfName n) ("s->" <> seaOfName n) <> semi
+      -> vsep [ ""
+              , "if (s->has_" <> seaOfName n <> ") {"
+              , indent 4 $ assign (seaOfName n) ("s->res_" <> seaOfName n) <> semi <> suffix "load"
+              , "}" ]
 
      SaveResumable n _
-      -> assign ("s->" <> seaOfName n) (seaOfName n) <> semi
+      -> assign ("s->has_" <> seaOfName n) "itrue"       <> semi <> suffix "save" <> line
+      <> assign ("s->res_" <> seaOfName n) (seaOfName n) <> semi <> suffix "save" <> line
 
      Output n _ xts
-      | ixAssign <- \ix xx -> assign ("s->" <> seaOfNameIx n ix) (seaOfExp xx) <> semi
-      -> vsep . List.zipWith ixAssign [0..]
-              $ fmap fst xts
+      | ixAssign <- \ix xx -> assign ("s->" <> seaOfNameIx n ix) (seaOfExp xx) <> semi <> suffix "output"
+      -> vsep (List.zipWith ixAssign [0..] (fmap fst xts))
 
      _
       -> seaError "seaOfStatement" stmt
@@ -396,6 +407,9 @@ seaError msg x = line <> "#error Failed during codegen (" <> msg <> ": " <> str 
 assign :: Doc -> Doc -> Doc
 assign x y = x <> column (\k -> indent (40-k) " =") <+> y
 
+suffix :: Doc -> Doc
+suffix annot = column (\k -> indent (80-k) (" /*" <+> annot <+> "*/"))
+
 tuple :: [Doc] -> Doc
 tuple []  = "()"
 tuple [x] = "(" <> x <> ")"
@@ -408,34 +422,69 @@ tuple xs  = "(" <> go xs
 ------------------------------------------------------------------------
 -- Analysis
 
-factVarsOfProgram :: Ord n => FactLoopType -> Program (Annot a) n Prim -> [(Name n, ValType)]
+factVarsOfProgram :: Ord n
+                  => FactLoopType
+                  -> Program (Annot a) n Prim
+                  -> Maybe (ValType, [(Name n, ValType)])
+
 factVarsOfProgram loopType = factVarsOfStatement loopType . statements
 
-factVarsOfStatement :: Ord n => FactLoopType -> Statement (Annot a) n Prim -> [(Name n, ValType)]
+
+factVarsOfStatement :: Ord n
+                    => FactLoopType
+                    -> Statement (Annot a) n Prim
+                    -> Maybe (ValType, [(Name n, ValType)])
+
 factVarsOfStatement loopType stmt
  = case stmt of
-     Block []              -> []
-     Block (s:ss)          -> factVarsOfStatement loopType s <>
+     Block []              -> Nothing
+     Block (s:ss)          -> factVarsOfStatement loopType s <|>
                               factVarsOfStatement loopType (Block ss)
      Let _ _ ss            -> factVarsOfStatement loopType ss
-     If _ tt ee            -> factVarsOfStatement loopType tt <>
+     If _ tt ee            -> factVarsOfStatement loopType tt <|>
                               factVarsOfStatement loopType ee
      ForeachInts  _ _ _ ss -> factVarsOfStatement loopType ss
      InitAccumulator _ ss  -> factVarsOfStatement loopType ss
      Read _ _ _ _ ss       -> factVarsOfStatement loopType ss
-     Write _ _             -> []
-     Push  _ _             -> []
-     LoadResumable _ _     -> []
-     SaveResumable _ _     -> []
-     Output _ _ _          -> []
-     KeepFactInHistory     -> []
+     Write _ _             -> Nothing
+     Push  _ _             -> Nothing
+     LoadResumable _ _     -> Nothing
+     SaveResumable _ _     -> Nothing
+     Output _ _ _          -> Nothing
+     KeepFactInHistory     -> Nothing
 
-     ForeachFacts ns _ ty ss
-      | ty == loopType
-      -> ns
+     ForeachFacts ns vt lt ss
+      | lt == loopType
+      -> Just (vt, ns)
 
       | otherwise
       -> factVarsOfStatement loopType ss
+
+------------------------------------------------------------------------
+
+resumablesOfProgram :: Ord n => Program (Annot a) n Prim -> Map (Name n) ValType
+resumablesOfProgram = resumablesOfStatement . statements
+
+resumablesOfStatement :: Ord n => Statement (Annot a) n Prim -> Map (Name n) ValType
+resumablesOfStatement stmt
+ = case stmt of
+     Block []              -> Map.empty
+     Block (s:ss)          -> resumablesOfStatement s `Map.union`
+                              resumablesOfStatement (Block ss)
+     Let _ _ ss            -> resumablesOfStatement ss
+     If _ tt ee            -> resumablesOfStatement tt `Map.union`
+                              resumablesOfStatement ee
+     ForeachInts  _ _ _ ss -> resumablesOfStatement ss
+     ForeachFacts _ _ _ ss -> resumablesOfStatement ss
+     InitAccumulator  _ ss -> resumablesOfStatement ss
+     Read _ _ _ _ ss       -> resumablesOfStatement ss
+     Write _ _             -> Map.empty
+     Push  _ _             -> Map.empty
+     Output _ _ _          -> Map.empty
+     KeepFactInHistory     -> Map.empty
+
+     LoadResumable n t     -> Map.singleton n t
+     SaveResumable n t     -> Map.singleton n t
 
 ------------------------------------------------------------------------
 
@@ -495,8 +544,8 @@ readsOfStatement stmt
 
 ------------------------------------------------------------------------
 
-outputsOfProgram :: Program (Annot a) n Prim -> Map OutputName (ValType, [ValType])
-outputsOfProgram = outputsOfStatement . statements
+outputsOfProgram :: Program (Annot a) n Prim -> [(OutputName, (ValType, [ValType]))]
+outputsOfProgram = Map.toList . outputsOfStatement . statements
 
 outputsOfStatement :: Statement (Annot a) n Prim -> Map OutputName (ValType, [ValType])
 outputsOfStatement stmt

@@ -3,6 +3,7 @@
 -- At the end, you can taste the bubblegum to see what flavours went into it
 --
 -- The actual implementation will have to be smarter, but this is just an abstraction.
+{-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.BubbleGum (
       Flavour (..)
@@ -50,7 +51,7 @@ data BubbleGumOutput n v
 
  -- | List of facts used for windowed reduction or latest
  | BubbleGumFacts       [Flavour]
- deriving (Show, Eq, Ord)
+ deriving (Show, Eq, Ord, Functor)
 
 
 bubbleGumOutputOfFacts :: [BubbleGumFact] -> BubbleGumOutput n v
