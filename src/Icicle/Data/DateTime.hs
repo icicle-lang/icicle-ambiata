@@ -13,6 +13,8 @@ module Icicle.Data.DateTime (
   , minusDays
   , unsafeDateOfYMD
   , pDate
+  , packWord64
+  , unpackWord64
   ) where
 import           Data.Attoparsec.Text
 
@@ -20,10 +22,12 @@ import qualified Data.Dates         as D
 import qualified Data.Time.Calendar as C
 
 import           Data.Text  as T
+import           Data.Word (Word64)
+import           Data.Bits
 
 import           P
 
-data DateTime =
+newtype DateTime =
   DateTime {
       getDateTime :: D.DateTime
     } deriving (Eq, Ord)
@@ -112,3 +116,26 @@ minusMonths d i
  $ D.dateTimeToDay
  $ getDateTime d
 
+-- Pack into Ivory's DateTime (for use in Sea evaluation).
+-- A packed long
+--   16 bits: year represented as a short
+--   8 bits:  month represented as a byte
+--   8 bits:  day represented as a byte
+--   32 bits: seconds since start of day
+packWord64 :: DateTime -> Word64
+packWord64 (DateTime d)
+  =  shift (fromIntegral (D.year  d)) 48
+ .|. shift (fromIntegral (D.month d)) 40
+ .|. shift (fromIntegral (D.day d))   32
+ .|. (fromIntegral (3600 * D.hour d + 60 * D.minute d + D.second d))
+
+unpackWord64 :: Word64 -> DateTime
+unpackWord64 d
+ = let y  = shift (fromIntegral d) (-48)
+       m  = shift (fromIntegral d) (-40) .&. 0xff
+       d' = shift (fromIntegral d) (-32) .&. 0xff
+       i  =       (fromIntegral d)       .&. 0xffffffff
+       h  = i `quot` 3600
+       m' = i `rem` 3600 `quot` 60
+       s  = i `rem` 60
+  in DateTime $ D.DateTime y m d' h m' s

@@ -22,6 +22,7 @@ import qualified Icicle.Test.Avalanche.Scoped
 -- Superseded
 -- import qualified Icicle.Test.Dictionary.Types
 
+import qualified Icicle.Test.Data.DateTime
 import qualified Icicle.Test.Internal.EditDistance
 
 import qualified Icicle.Test.Source.PrettyParse
@@ -48,6 +49,7 @@ main
         , Icicle.Test.Core.Program.Fusion.tests
         , Icicle.Test.Core.Program.Condense.tests
 
+
         , Icicle.Test.Avalanche.EvalCommutes.tests
         , Icicle.Test.Avalanche.CheckCommutes.tests
         , Icicle.Test.Avalanche.SimpCommutes.tests
@@ -57,6 +59,7 @@ main
 
         -- , Icicle.Test.Dictionary.Types.tests
 
+        , Icicle.Test.Data.DateTime.tests
         , Icicle.Test.Internal.EditDistance.tests
 
         , Icicle.Test.Source.PrettyParse.tests

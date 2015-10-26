@@ -26,8 +26,11 @@ instance Arbitrary Attribute where
     Attribute <$> elements weather
 
 instance Arbitrary DateTime where
-  arbitrary =
-    unsafeDateOfYMD <$> oneof_vals [2010..2014] <*> oneof_vals [1..12] <*> oneof_vals [1..28]
+  arbitrary = do
+    potential <- dateOfYMD <$> oneof_vals [2000..2050] <*> oneof_vals [1..12] <*> oneof_vals [1..31]
+    case potential of
+      Just a  -> pure a
+      Nothing -> discard
 
 instance Arbitrary Fact' where
   arbitrary =
