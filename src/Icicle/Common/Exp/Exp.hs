@@ -68,7 +68,7 @@ class TransformX x where
 instance (Pretty n, Pretty p) => Pretty (Exp a n p) where
  pretty (XVar _ n)    = pretty n
  pretty (XPrim _ p)   = pretty p
- pretty (XValue _ t v)= pretty v <+> text ":" <+> pretty t
+ pretty (XValue _ t v)= annotate (AnnType t) (pretty v)
 
  pretty (XApp _ p q)  = align (inner' p </> inner q)
   where
@@ -85,7 +85,7 @@ instance (Pretty n, Pretty p) => Pretty (Exp a n p) where
        XLet{} -> parens $ pretty i
        _      ->          pretty i
 
- pretty (XLam _ b t x) = line <> text "\\" <> pretty b <> text " : " <> pretty t <> text ". " </> pretty x
+ pretty (XLam _ b t x) = line <> annotate (AnnType t) (text "\\" <> pretty b) </> pretty x
 
  pretty (XLet _ b x i) = line
                       <> text "let " <> pretty b

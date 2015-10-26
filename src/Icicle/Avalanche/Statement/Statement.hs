@@ -1,5 +1,6 @@
 -- | Statements and mutable accumulators (variables) for Avalanche
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
 module Icicle.Avalanche.Statement.Statement (
     Statement       (..)
   , Accumulator     (..)
@@ -328,9 +329,9 @@ instance (Pretty n, Pretty p) => Pretty (Statement a n p) where
       -> text "keep_fact_in_history"
 
      LoadResumable n t
-      -> text "load_resumable" <+> pretty n <+> brackets (pretty t)
+      -> annotate (AnnType t) "load_resumable" <+> pretty n
      SaveResumable n t
-      -> text "save_resumable" <+> pretty n <+> brackets (pretty t)
+      -> annotate (AnnType t) "save_resumable" <+> pretty n
 
 
   where
@@ -351,7 +352,7 @@ instance (Pretty n, Pretty p) => Pretty (Statement a n p) where
 
 instance (Pretty n, Pretty p) => Pretty (Accumulator a n p) where
  pretty (Accumulator n at vt x)
-  = brackets (pretty at) <+> brackets (pretty vt) <+> pretty n <+> text "=" <+> pretty x
+  = annotate (AnnType (pretty at <+> pretty vt)) (pretty n) <+> text "=" <+> pretty x
 
 instance Pretty AccumulatorType where
  pretty Latest  = text "Latest"

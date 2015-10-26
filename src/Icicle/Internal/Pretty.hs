@@ -11,6 +11,7 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE ExistentialQuantification #-}
 module Icicle.Internal.Pretty (
     module PP
     , (<+?>)
@@ -34,10 +35,9 @@ type Doc = PJOIN.Doc Annotation
 
 data Annotation
  = AnnVariable
- | AnnOperator
- | AnnLiteral
- | AnnError
- deriving (Eq, Show)
+ -- Type annotations.
+ -- Why aren't these specific? This module is first to import, and all types export Pretty.
+ | forall a. Pretty a => AnnType a
 
 instance Monoid Doc where
  mempty  =  PJOIN.empty

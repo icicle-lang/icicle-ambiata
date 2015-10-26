@@ -1,5 +1,6 @@
 -- | Reductions over a stream
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
 module Icicle.Core.Reduce.Reduce (
       Reduce     (..)
     , renameReduce
@@ -35,8 +36,6 @@ inputOfReduce (RFold _ _ _ _ inp) = inp
 
 instance (Pretty n) => Pretty (Reduce a n) where
  pretty (RFold t a k z n)
-  =   text "rfold  "
-  </> text "[" <> pretty t <> text "]"
-  </> text "[" <> pretty a <> text "]"
+  =   annotate (AnnType $ (pretty t) <+> (pretty a)) "rfold"
   </> parens (pretty k) </> parens (pretty z) </> pretty n
 

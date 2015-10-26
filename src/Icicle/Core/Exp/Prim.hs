@@ -1,5 +1,6 @@
 -- | Primitive functions, constant values and so on
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
 module Icicle.Core.Exp.Prim (
       Prim          (..)
     , PrimFold      (..)
@@ -110,32 +111,32 @@ instance Pretty Prim where
  pretty (PrimFold f ret)
   = let f' = case f of
               PrimFoldBool
-                -> text "if#"
+               -> "if#"
               PrimFoldArray a
-               -> text "Array_fold#" <+> brackets (pretty a)
+               -> annotate (AnnType a) "Array_fold#"
               PrimFoldOption a
-               -> text "Option_fold#" <+> brackets (pretty a)
+               -> annotate (AnnType a) "Option_fold#"
               PrimFoldSum    a b
-               -> text "Sum_fold#"    <+> brackets (pretty a) <+> brackets (pretty b)
+               -> annotate (AnnType (a , b)) "Sum_fold#"
               PrimFoldMap k v
-               -> text "Map_fold#" <+> brackets (pretty k) <+> brackets (pretty v)
-    in f' <+> brackets (pretty ret)
+               -> annotate (AnnType (k , v)) "Map_fold#"
+    in annotate (AnnType ret) f'
 
  pretty (PrimArray (PrimArrayMap a b))
-  = text "Array_map#" <+> brackets (pretty a) <+> brackets (pretty b)
+  = annotate (AnnType (a, b)) "Array_map#"
 
  pretty (PrimMap (PrimMapInsertOrUpdate k v))
-  = text "Map_insertOrUpdate#" <+> brackets (pretty k) <+> brackets (pretty v)
+  = annotate (AnnType (k , v)) "Map_insertOrUpdate#"
 
  pretty (PrimMap (PrimMapMapValues k v v'))
-  = text "Map_mapValues#" <+> brackets (pretty k) <+> brackets (pretty v) <+> brackets (pretty v')
+  = annotate (AnnType (k , v , v')) "Map_mapValues#"
 
  pretty (PrimLatest (PrimLatestMake t))
-  = text "Latest_make#" <+> brackets (pretty t)
+  = annotate (AnnType t) "Latest_make#"
 
  pretty (PrimLatest (PrimLatestPush t))
-  = text "Latest_push#" <+> brackets (pretty t)
+  = annotate (AnnType t) "Latest_push#"
 
  pretty (PrimLatest (PrimLatestRead t))
-  = text "Latest_read#" <+> brackets (pretty t)
+  = annotate (AnnType t) "Latest_read#"
 
