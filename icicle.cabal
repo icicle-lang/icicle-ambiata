@@ -255,6 +255,7 @@ test-suite test
                      , ambiata-disorder-core
                      , ambiata-disorder-corpus
                      , ambiata-p
+                     , ambiata-jetski
                      , icicle
                      , text
                      , aeson                           == 0.8.*
