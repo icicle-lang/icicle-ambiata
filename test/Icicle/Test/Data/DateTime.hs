@@ -125,4 +125,5 @@ textOfDoc doc = T.pack (PP.displayS (PP.renderPretty 0.8 80 (PP.pretty doc)) "")
 
 return []
 tests :: IO Bool
-tests = $quickCheckAll
+-- tests = $quickCheckAll
+tests = $forAllProperties $ quickCheckWithResult (stdArgs { maxSuccess = 20 })
