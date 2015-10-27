@@ -63,6 +63,7 @@ library
                        Icicle.Avalanche.Eval
                        Icicle.Avalanche.Check
                        Icicle.Avalanche.Simp
+                       Icicle.Avalanche.Annot
                        Icicle.Avalanche.Statement.Statement
                        Icicle.Avalanche.Statement.Scoped
                        Icicle.Avalanche.Statement.Simp

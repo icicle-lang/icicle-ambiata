@@ -20,6 +20,7 @@ import              Icicle.Common.Base
 import              Icicle.Common.Exp
 import              Icicle.Common.Fresh
 import              Icicle.Common.Type
+import              Icicle.Common.Annot
 
 import              P
 
