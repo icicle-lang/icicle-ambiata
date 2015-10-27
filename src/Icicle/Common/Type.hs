@@ -105,7 +105,11 @@ defaultOfType typ
 data StructType
  = StructType
  { getStructType :: Map.Map StructField ValType }
- deriving (Eq, Ord, Show)
+ deriving (Eq, Ord)
+
+instance Show StructType where
+ showsPrec p (StructType x)
+  = showParen (p > 10) (showString "StructType " . showsPrec 11 x)
 
 
 -- | Function types.
