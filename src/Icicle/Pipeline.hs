@@ -244,8 +244,7 @@ simpAvalanche
   -> AP.Program () Var p
 simpAvalanche av
  = let name = Fresh.counterPrefixNameState (SP.Variable . T.pack . show) "anf"
-   in  AA.eraseAnnotP
-     $ snd
+   in  snd
      $ Fresh.runFresh go name
  where
   go = AS.simpAvalanche () av
@@ -257,10 +256,14 @@ simpFlattened av
  = let name = Fresh.counterPrefixNameState (SP.Variable . T.pack . show) "simp"
    in  AA.eraseAnnotP
      $ snd
-     $ Fresh.runFresh go name
+     $ Fresh.runFresh go2 name
  where
+  -- The magic recipe for nice, small, clean Avalanche
+  go2
+   = go av >>= go
   -- Thread through a dummy annotation
-  go = AS.simpFlattened (CA.Annot (CT.FunT [] CT.ErrorT) ()) av
+  go
+   = AS.simpFlattened (CA.Annot (CT.FunT [] CT.ErrorT) ())
 
 
 coreSimp :: Program' -> Program'

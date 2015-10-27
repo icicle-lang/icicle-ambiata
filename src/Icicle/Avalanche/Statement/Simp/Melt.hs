@@ -32,6 +32,8 @@ import qualified    Data.Map            as Map
 -- this could be shared between modules if it's useful?
 
 pattern PrimZip     ta tb = PrimArray   (PrimArrayZip ta tb)
+pattern PrimUnzip   ta tb = PrimArray   (PrimArrayUnzip ta tb)
+
 pattern PrimPair    ta tb = PrimMinimal (Min.PrimConst (Min.PrimConstPair ta tb))
 pattern PrimFst     ta tb = PrimMinimal (Min.PrimPair  (Min.PrimPairFst   ta tb))
 pattern PrimSnd     ta tb = PrimMinimal (Min.PrimPair  (Min.PrimPairSnd   ta tb))
@@ -51,7 +53,9 @@ data MeltOps a n p = MeltOps {
   , xValue :: ValType   -> BaseValue -> Exp a n p
   , xApp   :: Exp a n p -> Exp a n p -> Exp a n p
 
-  , primZip  :: ValType -> ValType -> Name n -> Name n -> Exp a n p
+  , primZip   :: ValType -> ValType -> Name n -> Name n -> Exp a n p
+  , primUnzip :: ValType -> ValType -> Name n -> Exp a n p
+
   , primPair :: ValType -> ValType -> Name n -> Name n -> Exp a n p
   , primFst  :: ValType -> ValType -> Exp a n p        -> Exp a n p
   , primSnd  :: ValType -> ValType -> Exp a n p        -> Exp a n p
@@ -64,6 +68,8 @@ data MeltOps a n p = MeltOps {
   , primIsRight :: ValType -> ValType -> Exp a n p                  -> Exp a n p
   , primLeft    :: ValType -> ValType -> Exp a n p                  -> Exp a n p
   , primRight   :: ValType -> ValType -> Exp a n p                  -> Exp a n p
+
+  , primBoolArray :: ValType -> Name n -> Exp a n p
   }
 
 meltOps :: a -> MeltOps a n Prim
@@ -76,6 +82,7 @@ meltOps a_fresh
   xApp   = XApp   a_fresh
 
   primZip     ta tb x y   = xPrim (PrimZip     ta tb) `xApp` xVar x `xApp` xVar y
+  primUnzip   ta tb x     = xPrim (PrimUnzip   ta tb) `xApp` xVar x
   primPair    ta tb x y   = xPrim (PrimPair    ta tb) `xApp` xVar x `xApp` xVar y
   primFst     ta tb x     = xPrim (PrimFst     ta tb) `xApp` x
   primSnd     ta tb x     = xPrim (PrimSnd     ta tb) `xApp` x
@@ -89,17 +96,21 @@ meltOps a_fresh
   primLeft    ta tb x     = xPrim (PrimLeft    ta tb) `xApp` x
   primRight   ta tb x     = xPrim (PrimRight   ta tb) `xApp` x
 
+  primBoolArray a x       = xPrim (PrimUnsafe (PrimUnsafeArrayCreate BoolT))
+                            `xApp` (xPrim (PrimProject (PrimProjectArrayLength a))
+                                    `xApp` xVar x)
+
 ------------------------------------------------------------------------
 
 melt :: (Show n, Ord n)
-     => a
-     -> Statement a n Prim
-     -> Fresh n (Statement a n Prim)
-melt a_fresh ss0
- = do ss1 <- meltAccumulators a_fresh ss0
-      ss2 <- meltForeachFacts a_fresh ss1
-      ss3 <- meltOutputs      a_fresh ss2
-      return ss3
+     => Annot a
+     -> Statement (Annot a) n Prim
+     -> Fresh n (Statement (Annot a) n Prim)
+melt a_fresh ss
+ =   meltAccumulators a_fresh ss
+ >>= meltForeachFacts a_fresh
+ >>= meltOutputs      a_fresh
+-- >>= meltBindings     a_fresh
 
 ------------------------------------------------------------------------
 
@@ -117,32 +128,44 @@ meltAccumulators a_fresh statements
         let go = goStmt env'
         case stmt of
 
-          InitAccumulator (Accumulator n avt _ x) ss
+          InitAccumulator (Accumulator n ak _ x) ss
            | Just (Latest, PairT ta tb, [na, nb])       <- Map.lookup n env'
            -> go
-            . InitAccumulator (Accumulator na avt ta x)
-            . InitAccumulator (Accumulator nb avt tb x)
+            . InitAccumulator (Accumulator na ak ta x)
+            . InitAccumulator (Accumulator nb ak tb x)
             $ ss
 
            | Just (Mutable, PairT ta tb, [na, nb])      <- Map.lookup n env'
            -> go
-            . InitAccumulator (Accumulator na avt ta (primFst ta tb x))
-            . InitAccumulator (Accumulator nb avt tb (primSnd ta tb x))
+            . InitAccumulator (Accumulator na ak ta (primFst ta tb x))
+            . InitAccumulator (Accumulator nb ak tb (primSnd ta tb x))
             $ ss
 
            | Just (Mutable, OptionT tv, [nb, nv])       <- Map.lookup n env'
            , tb                                         <- BoolT
            -> go
-            . InitAccumulator (Accumulator nb avt tb (primIsSome tv x))
-            . InitAccumulator (Accumulator nv avt tv (primGet    tv x))
+            . InitAccumulator (Accumulator nb ak tb (primIsSome tv x))
+            . InitAccumulator (Accumulator nv ak tv (primGet    tv x))
             $ ss
 
            | Just (Mutable, SumT ta tb, [ni, na, nb])   <- Map.lookup n env'
            , ti                                         <- BoolT
            -> go
-            . InitAccumulator (Accumulator ni avt ti (primIsRight ta tb x))
-            . InitAccumulator (Accumulator na avt ta (primLeft    ta tb x))
-            . InitAccumulator (Accumulator nb avt tb (primRight   ta tb x))
+            . InitAccumulator (Accumulator ni ak ti (primIsRight ta tb x))
+            . InitAccumulator (Accumulator na ak ta (primLeft    ta tb x))
+            . InitAccumulator (Accumulator nb ak tb (primRight   ta tb x))
+            $ ss
+
+           | Just (Mutable, ArrayT at, [ni, na, nb]) <- Map.lookup n env'
+           , SumT ta tb      <- at
+           , ta'             <- ArrayT ta
+           , tb'             <- ArrayT tb
+           , ti              <- ArrayT BoolT
+           , [(xa,_),(xb,_)] <- meltExp a_fresh (primUnzip ta tb n) at
+           -> go
+            . InitAccumulator (Accumulator ni ak ti  (primBoolArray at n))
+            . InitAccumulator (Accumulator na ak ta' xa)
+            . InitAccumulator (Accumulator nb ak tb' xb)
             $ ss
 
            | Just (Mutable, UnitT, [])                  <- Map.lookup n env'
@@ -292,6 +315,43 @@ meltAccumulators a_fresh statements
 
    | otherwise
    = return env
+
+--------------------------------------------------------------------------------
+
+meltBindings
+  :: (Ord n)
+  => Annot a
+  -> Statement (Annot a) n Prim
+  -> Fresh n (Statement (Annot a) n Prim)
+meltBindings a_fresh statements
+ = transformUDStmt goStmt Map.empty statements
+ where
+  MeltOps{..} = meltOps a_fresh
+
+  updateEnv xx env
+   | Let n x _ <- xx
+   , t         <- annType (annotOfExp x)
+   = Map.insert n t env
+   | otherwise
+   = env
+
+  goStmt env stmt
+   = let env' = updateEnv stmt env
+         go   = goStmt env'
+         mkLets _ rest []
+          = return rest
+         mkLets n rest (x:xs)
+          = do n' <- freshPrefix' n
+               Let n' x <$> mkLets n rest xs
+     in case stmt of
+         Let n x ss
+          | FunT _ vt <- annType (annotOfExp x)
+          , xs        <- meltExp a_fresh x vt
+          -> do (env'', ss') <- go ss
+                stmt'        <- mkLets n ss' (fmap fst xs)
+                return (env'', stmt')
+         _
+          -> return (env', stmt)
 
 ------------------------------------------------------------------------
 

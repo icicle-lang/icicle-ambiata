@@ -9,6 +9,7 @@ module Icicle.Avalanche.Simp (
 import              Icicle.Common.Exp
 import              Icicle.Common.Fresh
 import              Icicle.Common.Annot
+import              Icicle.Common.Exp.Simp.Beta
 
 import              Icicle.Avalanche.Prim.Flat
 import              Icicle.Avalanche.Statement.Simp

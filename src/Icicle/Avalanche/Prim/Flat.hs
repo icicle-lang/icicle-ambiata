@@ -84,7 +84,8 @@ data PrimUpdate
  deriving (Eq, Ord, Show)
 
 data PrimArray
- = PrimArrayZip ValType ValType
+ = PrimArrayZip   ValType ValType
+ | PrimArrayUnzip ValType ValType
  deriving (Eq, Ord, Show)
 
 data PrimPack
@@ -108,6 +109,7 @@ typeOfPrim p
     -- All arithmetics are int to int for now
     PrimMinimal m
      -> Min.typeOfPrim m
+
 
     PrimProject (PrimProjectArrayLength a)
      -> FunT [funOfVal (ArrayT a)] IntT
@@ -149,14 +151,20 @@ typeOfPrim p
     PrimUpdate  (PrimUpdateArrayPut a)
      -> FunT [funOfVal (ArrayT a), funOfVal IntT, funOfVal a] (ArrayT a)
 
+
     PrimArray   (PrimArrayZip a b)
      -> FunT [funOfVal (ArrayT a), funOfVal (ArrayT b)] (ArrayT (PairT a b))
+
+    PrimArray   (PrimArrayUnzip a b)
+     -> FunT [funOfVal (ArrayT (PairT a b))] (PairT (ArrayT a) (ArrayT b))
+
 
     PrimPack    (PrimSumPack a b)
      -> FunT [funOfVal BoolT, funOfVal a, funOfVal b] (SumT a b)
 
     PrimPack    (PrimOptionPack t)
      -> FunT [funOfVal BoolT, funOfVal t] (OptionT t)
+
 
     PrimBuf     (PrimBufMake t)
      -> FunT [funOfVal IntT] (BufT t)
@@ -214,6 +222,9 @@ instance Pretty Prim where
 
  pretty (PrimArray (PrimArrayZip a b))
   = annotate (AnnType $ (pretty a) <+> (pretty b)) "Array_zip#"
+
+ pretty (PrimArray (PrimArrayUnzip a b))
+  = annotate (AnnType $ (pretty a) <+> (pretty b)) "Array_unzip#"
 
 
  pretty (PrimPack (PrimOptionPack t))
