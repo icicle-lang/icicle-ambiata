@@ -214,7 +214,7 @@ evalPrim p originalP vs
      PrimStruct (PrimStructGet f (OptionT _) _)
       | [VBase (VStruct fs)] <- vs
       , Just v' <- Map.lookup f fs
-      -> return $ VBase $ VSome v'
+      -> return $ VBase v'
       | otherwise
       -> return $ VBase $ VNone
 

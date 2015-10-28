@@ -355,30 +355,47 @@ prefixOfArithType t
 
 prefixOfValType :: ValType -> Doc
 prefixOfValType t
- = case t of
+ = let nope = seaError "prefixOfValType" . string
+   in case t of
+     UnitT     -> "iunit_"
      BoolT     -> "ibool_"
      IntT      -> "iint_"
      DoubleT   -> "idouble_"
      DateTimeT -> "idate_"
      ErrorT    -> "ierror_"
-     _         -> seaError "prefixOfValType" t
+
+     StringT   -> nope "strings not implemented"
+     BufT{}    -> nope "buffers not implemented"
+     ArrayT{}  -> nope "arrays not implemented"
+     MapT{}    -> nope "maps not implemented"
+
+     StructT{} -> nope "structs should have been melted"
+     OptionT{} -> nope "options should have been melted"
+     PairT{}   -> nope "pairs should have been melted"
+     SumT{}    -> nope "sums should have been melted"
 
 ------------------------------------------------------------------------
 
 seaOfValType :: ValType -> Doc
 seaOfValType t
- = case t of
+ = let nope = seaError "seaOfValType" . string
+   in case t of
      UnitT     -> "iunit_t   "
      BoolT     -> "ibool_t   "
      IntT      -> "iint_t    "
      DoubleT   -> "idouble_t "
-     StringT   -> "istring_t "
      DateTimeT -> "idate_t   "
-     StructT _ -> "istruct_t "
-     BufT    _ -> "ibuf_t    "
-     ArrayT  _ -> "iarray_t  "
      ErrorT    -> "ierror_t  "
-     _         -> seaError "seaOfValType" t
+
+     StringT   -> nope "strings not implemented"
+     BufT{}    -> nope "buffers not implemented"
+     ArrayT{}  -> nope "arrays not implemented"
+     MapT{}    -> nope "maps not implemented"
+
+     StructT{} -> nope "structs should have been melted"
+     OptionT{} -> nope "options should have been melted"
+     PairT{}   -> nope "pairs should have been melted"
+     SumT{}    -> nope "sums should have been melted"
 
 valTypeOfExp :: Exp (Annot a) n p -> Maybe ValType
 valTypeOfExp = unFun . annType . annotOfExp
@@ -400,9 +417,10 @@ seaOfNameIx n ix = seaOfName (pretty n <> text "$ix$" <> int ix)
 ------------------------------------------------------------------------
 
 seaError :: Show a => Doc -> a -> Doc
-seaError msg x = line <> "#error Failed during codegen (" <> msg <> ": " <> str <> "..)" <> line
-  where
-    str = string (List.take 40 (show x))
+seaError subject x = seaError' subject (string (List.take 40 (show x)))
+
+seaError' :: Doc -> Doc -> Doc
+seaError' subject msg = line <> "#error Failed during codegen (" <> subject <> ": " <> msg <> "..)" <> line
 
 assign :: Doc -> Doc -> Doc
 assign x y = x <> column (\k -> indent (40-k) " =") <+> y

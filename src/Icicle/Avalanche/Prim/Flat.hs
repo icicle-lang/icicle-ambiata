@@ -1,6 +1,7 @@
 -- | Flat primitives - after the folds are removed
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PatternGuards #-}
 module Icicle.Avalanche.Prim.Flat (
       Prim        (..)
     , PrimProject (..)
@@ -20,6 +21,9 @@ import qualified    Icicle.Common.Exp.Prim.Minimal as Min
 import qualified    Icicle.Common.Fragment         as Frag
 
 import              P
+
+import qualified    Data.Map as Map
+
 
 flatFragment :: Frag.Fragment Prim
 flatFragment
@@ -90,6 +94,7 @@ data PrimArray
 data PrimPack
  = PrimSumPack    ValType ValType
  | PrimOptionPack ValType
+ | PrimStructPack StructType
  deriving (Eq, Ord, Show)
 
 
@@ -158,6 +163,10 @@ typeOfPrim p
     PrimPack    (PrimOptionPack t)
      -> FunT [funOfVal BoolT, funOfVal t] (OptionT t)
 
+    PrimPack    (PrimStructPack t@(StructType fs))
+     | ts <- fmap (funOfVal . snd) (Map.toList fs)
+     -> FunT ts (StructT t)
+
     PrimBuf     (PrimBufMake t)
      -> FunT [funOfVal IntT] (BufT t)
 
@@ -221,6 +230,9 @@ instance Pretty Prim where
 
  pretty (PrimPack (PrimSumPack a b))
   = annotate (AnnType $ (pretty a) <+> (pretty b)) "Sum_pack#"
+
+ pretty (PrimPack (PrimStructPack t))
+  = annotate (AnnType (StructT t)) "Struct_pack#"
 
 
  pretty (PrimBuf    (PrimBufMake t))

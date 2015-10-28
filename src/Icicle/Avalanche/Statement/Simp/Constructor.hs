@@ -17,6 +17,7 @@ import              Icicle.Common.Type
 import              P
 
 import qualified    Data.List as List
+import qualified    Data.Map as Map
 
 
 constructor :: Ord n => a -> Statement a n Prim -> Fresh n (Statement a n Prim)
@@ -64,6 +65,11 @@ constructor a_fresh statements
    , Just x' <- resolve env n
    , Just (_,_,_,b) <- fromPair x'
    = b
+
+   | Just (PrimMinimal (Min.PrimStruct (Min.PrimStructGet f _ _)), [n]) <- takePrimApps x
+   , Just x' <- resolve env n
+   , Just v  <- fromStruct f x'
+   = v
 
    | Just (PrimProject (PrimProjectOptionIsSome _), [n]) <- takePrimApps x
    , Just x' <- resolve env n
@@ -118,6 +124,17 @@ constructor a_fresh statements
 
    | Just (PrimMinimal (Min.PrimConst (Min.PrimConstPair ta tb)), [a,b]) <- takePrimApps x
    = Just (ta, tb, a, b)
+
+   | otherwise
+   = Nothing
+
+  fromStruct f x
+   | XValue _ (StructT (StructType ts)) (VStruct vs) <- x
+   = xValue <$> Map.lookup f ts <*> Map.lookup f vs
+
+   | Just (PrimPack (PrimStructPack (StructType ts)), xs) <- takePrimApps x
+   , fxs <- Map.fromList (List.zip (Map.keys ts) xs)
+   = Map.lookup f fxs
 
    | otherwise
    = Nothing

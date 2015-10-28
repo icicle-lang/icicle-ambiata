@@ -2,7 +2,7 @@
 -- TODO support times as well
 {-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Data.DateTime (
-    DateTime
+    DateTime(..)
   , renderDate
   , dateOfYMD
   , dateOfDays

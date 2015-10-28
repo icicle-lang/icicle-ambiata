@@ -10,8 +10,9 @@ module Icicle.Sea.Eval (
   ) where
 
 import           Control.Monad.IO.Class (MonadIO(..))
-import           Control.Monad.Trans.Either (EitherT(..), hoistEither)
+import           Control.Monad.Trans.Either (EitherT(..), hoistEither, left)
 
+import qualified Data.Map as Map
 import           Data.Text (Text)
 import qualified Data.Text as T
 import           Data.Vector.Storable.Mutable (IOVector)
@@ -30,7 +31,7 @@ import           Icicle.Avalanche.Statement.Statement (FactLoopType(..))
 import           Icicle.Common.Annot (Annot)
 import           Icicle.Common.Base
 import           Icicle.Common.Data (asAtValueToCore, valueFromCore)
-import           Icicle.Common.Type (ValType(..), defaultOfType)
+import           Icicle.Common.Type (ValType(..), StructType(..), defaultOfType)
 import qualified Icicle.Data as D
 import           Icicle.Data.DateTime (dateOfDays, daysOfDate)
 import           Icicle.Internal.Pretty ((<+>), pretty, text)
@@ -56,8 +57,8 @@ data SeaMVector
 
 data SeaError
   = SeaJetskiError              JetskiError
-  | SeaValueConversionError     D.Value   ValType
-  | SeaBaseValueConversionError BaseValue ValType
+  | SeaFactConversionError      [D.AsAt D.Value] ValType
+  | SeaBaseValueConversionError BaseValue (Maybe ValType)
   | SeaTypeConversionError      ValType
   | SeaNoFactLoop
   | SeaNoOutputs
@@ -65,11 +66,15 @@ data SeaError
 
 instance Pretty SeaError where
   pretty = \case
-    SeaValueConversionError v t
-     -> text "Cannot convert value " <> pretty v <+> text ":" <+> pretty t
+    SeaFactConversionError vs t
+     -> text "Cannot convert facts "
+     <> pretty (fmap D.fact vs) <+> text ": [" <> pretty t <> text "]"
 
-    SeaBaseValueConversionError v t
-     -> text "Cannot convert core value " <> pretty v <+> text ":" <+> pretty t
+    SeaBaseValueConversionError v Nothing
+     -> text "Cannot convert value " <> pretty v
+
+    SeaBaseValueConversionError v (Just t)
+     -> text "Cannot convert value " <> pretty v <+> text ":" <+> pretty t
 
     SeaTypeConversionError t
      -> text "Cannot convert type " <> pretty t
@@ -98,7 +103,7 @@ seaEval program date values = do
   let words = stateWordsOfProgram program
 
   facts <- case factVarsOfProgram FactLoopNew program of
-             Nothing     -> hoistEither (Left SeaNoFactLoop)
+             Nothing     -> left SeaNoFactLoop
              Just (t, _) -> vectorsOfFacts values t
 
   withWords      words $ \pState -> do
@@ -127,7 +132,8 @@ seaEval program date values = do
       compute <- firstEitherT SeaJetskiError (function lib "compute" retVoid)
       _       <- liftIO (compute [argPtr pState])
 
-      fmap (second valueFromCore) <$> peekOutputs pState outputsIx (outputsOfProgram program)
+      outputs <- peekOutputs pState outputsIx (outputsOfProgram program)
+      hoistEither (traverse (\(k,v) -> (,) <$> pure k <*> valueFromCore' v) outputs)
 
 compilerOptions :: [CompilerOption]
 compilerOptions =
@@ -139,6 +145,10 @@ compilerOptions =
 
 textOfDoc :: Doc -> Text
 textOfDoc doc = T.pack (displayS (renderPretty 0.8 80 (pretty doc)) "")
+
+valueFromCore' :: BaseValue -> Either SeaError D.Value
+valueFromCore' v =
+  maybe (Left (SeaBaseValueConversionError v Nothing)) Right (valueFromCore v)
 
 ------------------------------------------------------------------------
 
@@ -175,10 +185,12 @@ withSeaVector sv io =
 
 vectorsOfFacts :: [D.AsAt D.Value] -> ValType -> EitherT SeaError IO [SeaMVector]
 vectorsOfFacts vs t = do
-  let vs' = fmap asAtValueToCore vs
-  svs <- newSeaVectors (length vs') t
-  zipWithM_ (pokeInput svs t) [0..] vs'
-  pure svs
+  case traverse (\v -> asAtValueToCore v t) vs of
+    Nothing  -> left (SeaFactConversionError vs t)
+    Just vs' -> do
+      svs <- newSeaVectors (length vs') t
+      zipWithM_ (pokeInput svs t) [0..] vs'
+      pure svs
 
 newSeaVectors :: Int -> ValType -> EitherT SeaError IO [SeaMVector]
 newSeaVectors sz t =
@@ -190,11 +202,10 @@ newSeaVectors sz t =
     DateTimeT{} -> (:[]) . I64 <$> liftIO (MV.new sz)
     ErrorT{}    -> (:[]) . U64 <$> liftIO (MV.new sz)
 
-    StringT{}   -> hoistEither (Left (SeaTypeConversionError t))
-    ArrayT{}    -> hoistEither (Left (SeaTypeConversionError t))
-    MapT{}      -> hoistEither (Left (SeaTypeConversionError t))
-    StructT{}   -> hoistEither (Left (SeaTypeConversionError t))
-    BufT{}      -> hoistEither (Left (SeaTypeConversionError t))
+    StringT{}   -> left (SeaTypeConversionError t)
+    ArrayT{}    -> left (SeaTypeConversionError t)
+    MapT{}      -> left (SeaTypeConversionError t)
+    BufT{}      -> left (SeaTypeConversionError t)
 
     PairT ta tb
      -> do va <- newSeaVectors sz ta
@@ -212,15 +223,19 @@ newSeaVectors sz t =
            vx <- newSeaVectors sz tx
            pure (vb <> vx)
 
+    StructT (StructType ts)
+     -> do vss <- traverse (newSeaVectors sz) (Map.elems ts)
+           pure (concat vss)
+
 pokeInput :: [SeaMVector] -> ValType -> Int -> BaseValue -> EitherT SeaError IO ()
 pokeInput svs t ix val = do
   svs' <- pokeInput' svs t ix val
   case svs' of
     [] -> pure ()
-    _  -> hoistEither (Left (SeaBaseValueConversionError val t))
+    _  -> left (SeaBaseValueConversionError val (Just t))
 
 pokeInput' :: [SeaMVector] -> ValType -> Int -> BaseValue -> EitherT SeaError IO [SeaMVector]
-pokeInput' []            t _  val = hoistEither (Left (SeaBaseValueConversionError val t))
+pokeInput' []            t _  val = left (SeaBaseValueConversionError val (Just t))
 pokeInput' svs0@(sv:svs) t ix val =
   case (sv, val, t) of
     (U64 v, VBool False, BoolT{})     -> pure svs <* liftIO (MV.write v ix 0)
@@ -235,6 +250,16 @@ pokeInput' svs0@(sv:svs) t ix val =
            svs2 <- pokeInput' svs1 tb ix b
            pure svs2
 
+    (_, VNone, OptionT tx)
+     -> do svs1 <- pokeInput' svs0 BoolT ix (VBool False)
+           svs2 <- pokeInput' svs1 tx    ix (defaultOfType tx)
+           pure svs2
+
+    (_, VSome x, OptionT tx)
+     -> do svs1 <- pokeInput' svs0 BoolT ix (VBool True)
+           svs2 <- pokeInput' svs1 tx    ix x
+           pure svs2
+
     (_, VLeft a, SumT ta tb)
      -> do svs1 <- pokeInput' svs0 BoolT ix (VBool False)
            svs2 <- pokeInput' svs1 ta    ix a
@@ -247,8 +272,20 @@ pokeInput' svs0@(sv:svs) t ix val =
            svs3 <- pokeInput' svs2 tb    ix b
            pure svs3
 
+    (_, VStruct xs, StructT (StructType ts))
+     -> do let lookup f = \case
+                 OptionT _ -> Just (maybe VNone VSome (Map.lookup f xs))
+                 _         -> Map.lookup f xs
+
+               pokeField svs1 (f, tf) =
+                 case lookup f tf of
+                   Nothing -> left (SeaBaseValueConversionError val (Just t))
+                   Just vf -> pokeInput' svs1 tf ix vf
+
+           foldM pokeField svs0 (Map.toList ts)
+
     _
-     -> hoistEither (Left (SeaBaseValueConversionError val t))
+     -> left (SeaBaseValueConversionError val (Just t))
 
 ------------------------------------------------------------------------
 
@@ -273,11 +310,11 @@ peekOutput ptr ix0 t =
     DateTimeT{} -> (ix0+1,) . VDateTime . dateOfWord  <$> peekWordOff ptr ix0
     ErrorT{}    -> (ix0+1,) . VError    . errorOfWord <$> peekWordOff ptr ix0
 
-    StringT{}   -> hoistEither (Left (SeaTypeConversionError t))
-    ArrayT{}    -> hoistEither (Left (SeaTypeConversionError t))
-    MapT{}      -> hoistEither (Left (SeaTypeConversionError t))
-    StructT{}   -> hoistEither (Left (SeaTypeConversionError t))
-    BufT{}      -> hoistEither (Left (SeaTypeConversionError t))
+    StringT{}   -> left (SeaTypeConversionError t)
+    ArrayT{}    -> left (SeaTypeConversionError t)
+    MapT{}      -> left (SeaTypeConversionError t)
+    StructT{}   -> left (SeaTypeConversionError t)
+    BufT{}      -> left (SeaTypeConversionError t)
 
     BoolT{}
      -> do b <- peekWordOff ptr ix0

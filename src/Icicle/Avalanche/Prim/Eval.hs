@@ -153,18 +153,25 @@ evalPrim p vs
       -> primError
 
      PrimPack (PrimOptionPack _)
-      | [VBase (VBool False), _]       <- vs
+      | [VBase (VBool False), _]      <- vs
       -> return $ VBase $ VNone
-      | [VBase (VBool True), VBase v]  <- vs
+      | [VBase (VBool True), VBase v] <- vs
       -> return $ VBase $ VSome v
       | otherwise
       -> primError
 
      PrimPack (PrimSumPack _ _)
-      | [VBase (VBool False), VBase a, _]       <- vs
+      | [VBase (VBool False), VBase a, _] <- vs
       -> return $ VBase $ VLeft a
       | [VBase (VBool True), _, VBase b]  <- vs
       -> return $ VBase $ VRight b
+      | otherwise
+      -> primError
+
+     PrimPack (PrimStructPack (StructType fts))
+      | Just vs' <- traverse unpack vs
+      , fs       <- Map.keys fts
+      -> return $ VBase $ VStruct $ Map.fromList $ List.zip fs vs'
       | otherwise
       -> primError
  where
@@ -173,3 +180,6 @@ evalPrim p vs
    = xs <> [x]
    | otherwise
    = List.drop 1 (xs <> [x])
+
+  unpack (VBase x)    = Just x
+  unpack (VFun _ _ _) = Nothing

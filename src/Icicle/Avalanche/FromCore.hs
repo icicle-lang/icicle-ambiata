@@ -58,7 +58,9 @@ programFromCore :: Ord n
                 -> A.Program () n Prim
 programFromCore namer p
  = A.Program
- { A.binddate
+ { A.input
+    = C.input p
+ , A.binddate
     = namerDate namer
  , A.statements
     = lets (C.precomps p)
