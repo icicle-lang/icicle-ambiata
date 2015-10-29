@@ -54,7 +54,7 @@ data MeltOps a n p = MeltOps {
   , xApp   :: Exp a n p -> Exp a n p -> Exp a n p
 
   , primZip   :: ValType -> ValType -> Name n -> Name n -> Exp a n p
-  , primUnzip :: ValType -> ValType -> Name n -> Exp a n p
+  , primUnzip :: ValType -> ValType -> Exp a n p -> Exp a n p
 
   , primPair :: ValType -> ValType -> Name n -> Name n -> Exp a n p
   , primFst  :: ValType -> ValType -> Exp a n p        -> Exp a n p
@@ -82,7 +82,7 @@ meltOps a_fresh
   xApp   = XApp   a_fresh
 
   primZip     ta tb x y   = xPrim (PrimZip     ta tb) `xApp` xVar x `xApp` xVar y
-  primUnzip   ta tb x     = xPrim (PrimUnzip   ta tb) `xApp` xVar x
+  primUnzip   ta tb x     = xPrim (PrimUnzip   ta tb) `xApp` x
   primPair    ta tb x y   = xPrim (PrimPair    ta tb) `xApp` xVar x `xApp` xVar y
   primFst     ta tb x     = xPrim (PrimFst     ta tb) `xApp` x
   primSnd     ta tb x     = xPrim (PrimSnd     ta tb) `xApp` x
@@ -128,6 +128,7 @@ meltAccumulators a_fresh statements
         let go = goStmt env'
         case stmt of
 
+          ----------------------------------------
           InitAccumulator (Accumulator n ak _ x) ss
            | Just (Latest, PairT ta tb, [na, nb])       <- Map.lookup n env'
            -> go
@@ -156,34 +157,32 @@ meltAccumulators a_fresh statements
             . InitAccumulator (Accumulator nb ak tb (primRight   ta tb x))
             $ ss
 
-           | Just (Mutable, ArrayT at, [ni, na, nb]) <- Map.lookup n env'
-           , SumT ta tb      <- at
-           , ta'             <- ArrayT ta
-           , tb'             <- ArrayT tb
-           , ti              <- ArrayT BoolT
-           , [(xa,_),(xb,_)] <- meltExp a_fresh (primUnzip ta tb n) at
+           | Just (Mutable, t, [na, nb]) <- Map.lookup n env'
+           , Just (f, at)     <- takeFunctorType t
+           , [ta, tb]         <- takeBinType at
+           , ta'              <- f ta
+           , tb'              <- f tb
+           , [(xa,_), (xb,_)] <- meltExp a_fresh (primUnzip ta tb x) (PairT ta' tb')
            -> go
-            . InitAccumulator (Accumulator ni ak ti  (primBoolArray at n))
-            . InitAccumulator (Accumulator na ak ta' xa)
-            . InitAccumulator (Accumulator nb ak tb' xb)
-            $ ss
+           -- InitAccumulator (Accumulator ni ak ti  (primBoolArray at n))
+           . InitAccumulator (Accumulator na ak ta' xa)
+           . InitAccumulator (Accumulator nb ak tb' xb)
+           $ ss
 
            | Just (Mutable, UnitT, [])                  <- Map.lookup n env'
            -> go ss
 
-
+          ----------------------------------------
           Read n acc avt _ ss
            | Just (Latest, PairT ta tb, [na, nb])       <- Map.lookup acc env'
-           -> do na' <- freshPrefix' n
-                 nb' <- freshPrefix' n
+           -> do [na', nb'] <- freshes 2 n
                  ss' <- substXinS a_fresh n (primZip ta tb na' nb') ss
                  go . Read na' na avt ta
                     . Read nb' nb avt tb
                     $ ss'
 
            | Just (Mutable, PairT ta tb, [na, nb])      <- Map.lookup acc env'
-           -> do na' <- freshPrefix' n
-                 nb' <- freshPrefix' n
+           -> do [na', nb'] <- freshes 2 n
                  ss' <- substXinS a_fresh n (primPair ta tb na' nb') ss
                  go . Read na' na avt ta
                     . Read nb' nb avt tb
@@ -191,8 +190,7 @@ meltAccumulators a_fresh statements
 
            | Just (Mutable, OptionT tv, [nb, nv])       <- Map.lookup acc env'
            , tb                                         <- BoolT
-           -> do nb' <- freshPrefix' n
-                 nv' <- freshPrefix' n
+           -> do [nb', nv'] <- freshes 2 n
                  ss' <- substXinS a_fresh n (primMkOpt tv nb' nv') ss
                  go . Read nb' nb avt tb
                     . Read nv' nv avt tv
@@ -200,27 +198,36 @@ meltAccumulators a_fresh statements
 
            | Just (Mutable, SumT ta tb, [ni, na, nb])   <- Map.lookup acc env'
            , ti                                         <- BoolT
-           -> do ni' <- freshPrefix' n
-                 na' <- freshPrefix' n
-                 nb' <- freshPrefix' n
+           -> do [ni', na', nb'] <- freshes 3 n
                  ss' <- substXinS a_fresh n (primMkSum ta tb ni' na' nb') ss
                  go . Read ni' ni avt ti
                     . Read na' na avt ta
                     . Read nb' nb avt tb
                     $ ss'
 
+           | Just (Mutable, t, [na, nb]) <- Map.lookup acc env'
+           , Just (f, at)                <- takeFunctorType t
+           , [ta, tb]                    <- takeBinType at
+           , ta'                         <- f ta
+           , tb'                         <- f tb
+           -> do [na', nb'] <- freshes 3 n
+                 ss' <- substXinS a_fresh n (primPair ta' tb' na' nb') ss
+                 go . Read na' na avt ta'
+                    . Read nb' nb avt tb'
+                    $ ss'
+
            | Just (Mutable, UnitT, [])                  <- Map.lookup acc env'
            -> do ss' <- substXinS a_fresh n (xValue UnitT VUnit) ss
                  go ss'
 
-
+          ----------------------------------------
           Push n x
            | Just (Latest, PairT ta tb, [na, nb])       <- Map.lookup n env'
            -> go
             $ Block [ Push na (primFst ta tb x)
                     , Push nb (primSnd ta tb x) ]
 
-
+          ----------------------------------------
           Write n x
            | Just (Mutable, PairT ta tb, [na, nb])      <- Map.lookup n env'
            -> go
@@ -238,10 +245,19 @@ meltAccumulators a_fresh statements
                     , Write na (primLeft    ta tb x)
                     , Write nb (primRight   ta tb x) ]
 
+           | Just (Mutable, t, [na, nb]) <- Map.lookup n env'
+           , Just (f, at)                <- takeFunctorType t
+           , [ta, tb]                    <- takeBinType at
+           , ta'                         <- f ta
+           , tb'                         <- f tb
+           -> go
+            $ Block [ Write na (primFst ta' tb' x)
+                    , Write nb (primSnd ta' tb' x) ]
+
            | Just (_, UnitT, _)                         <- Map.lookup n env'
            -> return (env', mempty)
 
-
+          ----------------------------------------
           LoadResumable n _
            | Just (_, PairT ta tb, [na, nb])            <- Map.lookup n env'
            -> go
@@ -265,7 +281,7 @@ meltAccumulators a_fresh statements
            -> go
             $ Block []
 
-
+          ----------------------------------------
           SaveResumable n _
            | Just (_, PairT ta tb, [na, nb])            <- Map.lookup n env'
            -> go
@@ -294,27 +310,39 @@ meltAccumulators a_fresh statements
 
 
   updateEnv s env
+   | InitAccumulator (Accumulator n Mutable UnitT _) _ <- s
+   = return (Map.insert n (Mutable, UnitT, []) env)
+
    | InitAccumulator (Accumulator n at avt@(PairT _ _) _) _ <- s
-   = do na <- freshPrefix' n
-        nb <- freshPrefix' n
-        return (Map.insert n (at, avt, [na, nb]) env)
+   = two n at avt env
+   | InitAccumulator (Accumulator n at avt@(OptionT _) _) _ <- s
+   = two n at avt env
 
    | InitAccumulator (Accumulator n at avt@(SumT _ _) _) _ <- s
-   = do ni <- freshPrefix' n
-        na <- freshPrefix' n
-        nb <- freshPrefix' n
-        return (Map.insert n (at, avt, [ni, na, nb]) env)
+   = three n at avt env
+   | InitAccumulator (Accumulator n at avt@(ArrayT (SumT _ _)) _) _ <- s
+   = three n at avt env
 
-   | InitAccumulator (Accumulator n at avt@(OptionT _) _) _ <- s
+   | otherwise
+   = return env
+
+  two n at avt env
    = do nb <- freshPrefix' n
         nv <- freshPrefix' n
         return (Map.insert n (at, avt, [nb, nv]) env)
 
-   | InitAccumulator (Accumulator n Mutable UnitT _) _ <- s
-   = do return (Map.insert n (Mutable, UnitT, []) env)
+  three n at avt env
+   = do ni <- freshPrefix' n
+        na <- freshPrefix' n
+        nb <- freshPrefix' n
+        return $ Map.insert n (at, avt, [ni, na, nb]) env
 
-   | otherwise
-   = return env
+  takeBinType (SumT ta tb) = [ta, tb]
+  takeBinType _            = []
+
+  takeFunctorType (ArrayT t) = Just (ArrayT, t)
+  takeFunctorType (BufT   t) = Just (BufT,   t)
+  takeFunctorType _          = Nothing
 
 --------------------------------------------------------------------------------
 
@@ -524,6 +552,10 @@ meltValue v t
 
       | otherwise
       -> Nothing
+
+freshes :: Int -> Name n -> Fresh n [Name n]
+freshes i n
+ = replicateM i $ freshPrefix' n
 
 ------------------------------------------------------------------------
 

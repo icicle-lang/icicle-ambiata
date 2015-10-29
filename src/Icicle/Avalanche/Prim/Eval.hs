@@ -20,8 +20,7 @@ import qualified    Icicle.Common.Exp.Prim.Eval as Min
 
 evalPrim :: Ord n => EvalPrim a n Prim
 evalPrim p vs
- = let primError = Left $ RuntimeErrorPrimBadArgs p vs
-   in case p of
+ = case p of
      PrimMinimal m
       -> Min.evalPrim m p vs
 
@@ -152,6 +151,13 @@ evalPrim p vs
       | otherwise
       -> primError
 
+     PrimArray (PrimArrayUnzip _ _)
+      | [VBase (VArray arr)] <- vs
+      -> do (arr1, arr2) <- foldM uz mempty arr
+            return . VBase $ VPair (VArray arr1) (VArray arr2)
+      | otherwise
+      -> primError
+
      PrimPack (PrimOptionPack _)
       | [VBase (VBool False), _]       <- vs
       -> return $ VBase $ VNone
@@ -173,3 +179,13 @@ evalPrim p vs
    = xs <> [x]
    | otherwise
    = List.drop 1 (xs <> [x])
+
+  uz (ls, rs) (VLeft l)
+   = return (l:ls, rs)
+  uz (ls, rs) (VRight r)
+   = return (ls, r:rs)
+  uz _ _
+   = primError
+
+  primError
+   = Left $ RuntimeErrorPrimBadArgs p vs

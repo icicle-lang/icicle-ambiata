@@ -9,7 +9,6 @@ module Icicle.Avalanche.Simp (
 import              Icicle.Common.Exp
 import              Icicle.Common.Fresh
 import              Icicle.Common.Annot
-import              Icicle.Common.Exp.Simp.Beta
 
 import              Icicle.Avalanche.Prim.Flat
 import              Icicle.Avalanche.Statement.Simp
@@ -53,8 +52,10 @@ simpFlattened a_fresh p
          >>= crunch
          >>= crunch
          >>= crunch
+         >>= return . simpStatementExps a_fresh
 
       return $ p { statements = s' }
+
  where
   crunch ss
    =   constructor  a_fresh (pullLets ss)
