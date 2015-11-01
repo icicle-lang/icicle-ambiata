@@ -2,7 +2,7 @@
 -- TODO support times as well
 {-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Data.DateTime (
-    DateTime
+    DateTime(..)
   , renderDate
   , dateOfYMD
   , dateOfDays
@@ -26,7 +26,24 @@ import           P
 data DateTime =
   DateTime {
       getDateTime :: D.DateTime
-    } deriving (Eq, Ord, Show)
+    } deriving (Eq, Ord)
+
+instance Show DateTime where
+ showsPrec p (DateTime x)
+  = showParen (p > 10)
+  $ showString "DateTime (D.DateTime "
+  . showsPrec 11 (D.year x)
+  . showString " "
+  . showsPrec 11 (D.month x)
+  . showString " "
+  . showsPrec 11 (D.day x)
+  . showString " "
+  . showsPrec 11 (D.hour x)
+  . showString " "
+  . showsPrec 11 (D.minute x)
+  . showString " "
+  . showsPrec 11 (D.second x)
+  . showString ")"
 
 
 renderDate  :: DateTime -> Text

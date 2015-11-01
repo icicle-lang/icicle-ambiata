@@ -1,6 +1,8 @@
 import qualified Icicle.Test.Encoding
 import qualified Icicle.Test.Serial
 
+import qualified Icicle.Test.Common.Data
+
 import qualified Icicle.Test.Core.Exp.Alpha
 import qualified Icicle.Test.Core.Exp.Check
 import qualified Icicle.Test.Core.Exp.Eval
@@ -14,6 +16,7 @@ import qualified Icicle.Test.Avalanche.EvalCommutes
 import qualified Icicle.Test.Avalanche.CheckCommutes
 import qualified Icicle.Test.Avalanche.SimpCommutes
 import qualified Icicle.Test.Avalanche.Flatten
+import qualified Icicle.Test.Avalanche.Melt
 import qualified Icicle.Test.Avalanche.Scoped
 
 -- Superseded
@@ -34,6 +37,8 @@ main
         [ Icicle.Test.Encoding.tests
         , Icicle.Test.Serial.tests
 
+        , Icicle.Test.Common.Data.tests
+
         , Icicle.Test.Core.Exp.Alpha.tests
         , Icicle.Test.Core.Exp.Check.tests
         , Icicle.Test.Core.Exp.Eval.tests
@@ -47,6 +52,7 @@ main
         , Icicle.Test.Avalanche.CheckCommutes.tests
         , Icicle.Test.Avalanche.SimpCommutes.tests
         , Icicle.Test.Avalanche.Flatten.tests
+        , Icicle.Test.Avalanche.Melt.tests
         , Icicle.Test.Avalanche.Scoped.tests
 
         -- , Icicle.Test.Dictionary.Types.tests

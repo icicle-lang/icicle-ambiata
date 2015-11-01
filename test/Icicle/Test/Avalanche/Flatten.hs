@@ -26,6 +26,8 @@ import           P
 import           System.IO
 
 import           Test.QuickCheck
+import           Test.QuickCheck.Property
+
 
 -- We need a way to differentiate stream variables from scalars
 namer = AC.namerText (flip Var 0)
@@ -61,7 +63,19 @@ prop_flatten_simp_commutes_value t =
  forAll (programForStreamType t)
  $ \p ->
  forAll (inputsForType t)
- $ \(vs,d) ->
+ $ \x@(_vs,_d) ->
+   flatten_simp_commutes_value p x
+
+--
+-- This can be used to run a counterexample.
+--
+--   fprog  = the program to flatten
+--   ffacts = the inputs for the program
+--
+--run_flatten_simp_commutes_value =
+-- quickCheck (once (flatten_simp_commutes_value fprog ffacts))
+
+flatten_simp_commutes_value p (vs, d) =
     P.isRight     (checkProgram p) ==>
      let p' = AC.programFromCore namer p
 
@@ -76,7 +90,12 @@ prop_flatten_simp_commutes_value t =
                yv' = mapRight snd (mapLeft show yv)
            in either (counterexample . show . pretty) (const id) xv $
               either (counterexample . show . pretty) (const id) yv $
-              xv' === yv'
+              if xv' == yv'
+              then property succeeded
+              else counterexample (show xv') $
+                   counterexample " /="      $
+                   counterexample (show yv') $
+                   property failed
 
      in case simp <$> conv of
          Left e
@@ -92,5 +111,5 @@ prop_flatten_simp_commutes_value t =
 return []
 tests :: IO Bool
 tests = $quickCheckAll
--- tests = $forAllProperties $ quickCheckWithResult (stdArgs {maxSuccess = 10000, maxSize = 10})
+--tests = $forAllProperties $ quickCheckWithResult (stdArgs {maxSuccess = 10000, maxSize = 10})
 

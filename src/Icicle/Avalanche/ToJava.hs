@@ -239,6 +239,8 @@ primTypeOfPrim p
      -> Function "Option.pack"
     PrimPack (PrimSumPack _ _)
      -> Function "Sum.pack"
+    PrimPack (PrimStructPack _)
+     -> Function "Struct.pack"
     PrimBuf pb
      -> buf pb
 

@@ -8,6 +8,7 @@ import              Icicle.Avalanche.Statement.Statement
 import qualified    Icicle.Avalanche.Statement.Scoped as Scoped
 import              Icicle.Common.Base
 import              Icicle.Common.Exp
+import              Icicle.Common.Type
 
 import              Icicle.Internal.Pretty
 
@@ -16,7 +17,8 @@ import              P
 -- | An entire Avalanche program
 data Program a n p =
   Program
-  { binddate    :: Name n
+  { input       :: ValType
+  , binddate    :: Name n
   , statements  :: Statement a n p
   }
  deriving (Eq, Ord, Show)
@@ -27,7 +29,8 @@ instance TransformX Program where
         statements' <-      transformX names exps  $ statements p
 
         return $ Program 
-               { binddate   = binddate'
+               { input      = input p
+               , binddate   = binddate'
                , statements = statements'
                }
 

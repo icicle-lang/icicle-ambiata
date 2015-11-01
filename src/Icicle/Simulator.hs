@@ -14,6 +14,7 @@ import           Data.Either.Combinators
 
 import qualified Icicle.BubbleGum   as B
 import           Icicle.Common.Base
+import           Icicle.Common.Type
 import           Icicle.Common.Data (valueToCore, valueFromCore)
 import           Icicle.Data
 
@@ -42,7 +43,7 @@ type Result a n = Either (SimulateError a n) ([(OutputName, Value)], [B.BubbleGu
 data SimulateError a n
  = SimulateErrorRuntime (PV.RuntimeError a n)
  | SimulateErrorRuntime' (AE.RuntimeError a n APF.Prim)
- | SimulateErrorCannotConvertToCore        Value
+ | SimulateErrorCannotConvertToCore        Value ValType
  | SimulateErrorCannotConvertFromCore      V.BaseValue
   deriving (Eq,Show)
 
@@ -51,8 +52,8 @@ instance Pretty n => Pretty (SimulateError a n) where
   = pretty e
  pretty (SimulateErrorRuntime' e)
   = pretty e
- pretty (SimulateErrorCannotConvertToCore v)
-  = "Cannot convert value to Core: " <> pretty v
+ pretty (SimulateErrorCannotConvertToCore v t)
+  = "Cannot convert value to Core: " <> pretty v <+> ":" <+> pretty t
  pretty (SimulateErrorCannotConvertFromCore v)
   = "Cannot convert value from Core: " <> pretty v
 
@@ -80,36 +81,38 @@ makePartition fs@(f:_)
 
 evaluateVirtualValue :: Ord n => P.Program a n -> DateTime -> [AsAt Value] -> Result a n
 evaluateVirtualValue p date vs
- = do   let vs' = zipWith toCore [1..] vs
+ = do   vs' <- zipWithM toCore [1..] vs
 
         xv  <- mapLeft SimulateErrorRuntime
              $ PV.eval date vs' p
 
-        let v'  = fmap (second valueFromCore) (PV.value xv)
-            bg' = fmap (fmap valueFromCore) (PV.history xv)
+        v'  <- traverse (\(k,v) -> (,) <$> pure k <*> valueFromCore' v) (PV.value xv)
+        bg' <- traverse (traverse valueFromCore') (PV.history xv)
         return (v', bg')
  where
   toCore n a
-   = let v' = wrapValue (valueToCore $ fact a)
-     in  a { fact = (B.BubbleGumFact $ B.Flavour n $ time a, v') }
+   = do v' <- valueToCore' (fact a) (P.input p)
+        return $ a { fact = (B.BubbleGumFact $ B.Flavour n $ time a, v') }
 
 evaluateVirtualValue' :: Ord n => A.Program a n APF.Prim -> DateTime -> [AsAt Value] -> Result a n
 evaluateVirtualValue' p date vs
- = do   let vs' = zipWith toCore [1..] vs
+ = do   vs' <- zipWithM toCore [1..] vs
 
         xv  <- mapLeft SimulateErrorRuntime'
              $ AE.evalProgram APF.evalPrim date vs' p
 
-        let v'  = fmap (second valueFromCore) (snd xv)
-            bg' = fmap (fmap valueFromCore)   (fst xv)
+        v'  <- traverse (\(k,v) -> (,) <$> pure k <*> valueFromCore' v) (snd xv)
+        bg' <- traverse (traverse valueFromCore') (fst xv)
         return (v', bg')
  where
   toCore n a
-   = let v' = wrapValue (valueToCore $ fact a)
-     in  a { fact = (B.BubbleGumFact $ B.Flavour n $ time a, v') }
+   = do v' <- valueToCore' (fact a) (A.input p)
+        return $ a { fact = (B.BubbleGumFact $ B.Flavour n $ time a, v') }
 
-wrapValue :: V.BaseValue -> V.BaseValue
-wrapValue v
- = if   v == V.VError V.ExceptTombstone
-   then V.VLeft v
-   else V.VRight v
+valueToCore' :: Value -> ValType -> Either (SimulateError a n) BaseValue
+valueToCore' v vt
+ = maybe (Left (SimulateErrorCannotConvertToCore v vt)) Right (valueToCore v vt)
+
+valueFromCore' :: V.BaseValue -> Either (SimulateError a n) Value
+valueFromCore' v
+ = maybe (Left (SimulateErrorCannotConvertFromCore v)) Right (valueFromCore v)

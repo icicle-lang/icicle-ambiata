@@ -73,14 +73,21 @@ data StructField
  = StructField
  { nameOfStructField :: T.Text
  }
- deriving (Show, Ord, Eq)
+ deriving (Ord, Eq)
 
 
 newtype OutputName
  = OutputName
  { unOutputName :: T.Text }
- deriving (Eq, Ord, Show)
+ deriving (Eq, Ord)
 
+instance Show StructField where
+ showsPrec p (StructField x)
+  = showParen (p > 10) (showString "StructField " . showsPrec 11 x)
+
+instance Show OutputName where
+ showsPrec p (OutputName x)
+  = showParen (p > 10) (showString "OutputName " . showsPrec 11 x)
 
 -- Pretty printing ---------------
 
