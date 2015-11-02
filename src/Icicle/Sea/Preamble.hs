@@ -10,7 +10,8 @@ import           Icicle.Internal.Pretty as Pretty
 
 import           P
 
-import qualified Data.ByteString.Char8 as BS
+import qualified Data.Text as T
+import qualified Data.Text.Encoding as T
 
 import           Data.FileEmbed
 
@@ -27,6 +28,8 @@ seaPreamble
 
   go (f,bs)
    = vsep
-   [ " // "   <> text f
+   [ "// " <> text f
    , "#line 1 \"" <> text f <> "\""
-   , text $ BS.unpack bs ]
+   , text . T.unpack . T.strip $ T.decodeUtf8 bs
+   , ""
+   ]

@@ -1,7 +1,8 @@
 -- Show everything
 :set +flatten +c
--- Disable C evaluation for now
--- +c-eval
+
+-- Enable C evaluation
+:set +c-eval
 
 -- Oldest
 feature salary ~> oldest value
@@ -11,3 +12,15 @@ feature salary ~> filter value > 300 ~> count value
 
 -- An interesting expression
 feature salary ~> sd value * (filter value < 300 ~> sd value)
+
+-- An interesting expression
+feature salary ~> sd value * (filter value < 300 ~> sd value)
+
+-- Structs
+feature injury ~> mean (double severity)
+
+-- Strings
+feature injury ~> filter (location == "head") ~> count location
+
+-- String outputs
+feature injury ~> max location

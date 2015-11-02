@@ -1,4 +1,3 @@
-
 static ibool_t   INLINE ierror_eq     (ierror_t  x, ierror_t  y) { return x == y; }
 
 static idouble_t INLINE iint_extend   (iint_t    x)              { return x; }
@@ -27,3 +26,9 @@ static ibool_t   INLINE idouble_le    (idouble_t x, idouble_t y) { return x <= y
 static ibool_t   INLINE idouble_eq    (idouble_t x, idouble_t y) { return x == y; }
 static ibool_t   INLINE idouble_ne    (idouble_t x, idouble_t y) { return x != y; }
 
+static ibool_t   INLINE istring_gt    (istring_t x, istring_t y) { return strcmp(x, y) >  0; }
+static ibool_t   INLINE istring_ge    (istring_t x, istring_t y) { return strcmp(x, y) >= 0; }
+static ibool_t   INLINE istring_lt    (istring_t x, istring_t y) { return strcmp(x, y) <  0; }
+static ibool_t   INLINE istring_le    (istring_t x, istring_t y) { return strcmp(x, y) <= 0; }
+static ibool_t   INLINE istring_eq    (istring_t x, istring_t y) { return strcmp(x, y) == 0; }
+static ibool_t   INLINE istring_ne    (istring_t x, istring_t y) { return strcmp(x, y) != 0; }
