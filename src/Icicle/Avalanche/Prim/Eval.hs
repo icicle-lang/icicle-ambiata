@@ -158,6 +158,21 @@ evalPrim p vs
       | otherwise
       -> primError
 
+     PrimArray (PrimArraySum _ _)
+      | [VBase (VArray arr), VBase (VArray arr1), VBase (VArray arr2)]  <- vs
+      -> do arr' <- zipWithM pick arr (zip arr1 arr2)
+            return . VBase . VArray $ arr'
+      | otherwise
+      -> primError
+
+     PrimArray (PrimArrayUnsum _ _)
+      | [VBase (VArray arr)] <- vs
+      -> do (arr0, arr1, arr2) <- foldM us mempty arr
+            return . VBase $ VPair (VArray arr0) (VPair (VArray arr1) (VArray arr2))
+      | otherwise
+      -> primError
+
+
      PrimPack (PrimOptionPack _)
       | [VBase (VBool False), _]       <- vs
       -> return $ VBase $ VNone
@@ -180,12 +195,22 @@ evalPrim p vs
    | otherwise
    = List.drop 1 (xs <> [x])
 
-  uz (ls, rs) (VLeft l)
-   = return (l:ls, rs)
-  uz (ls, rs) (VRight r)
-   = return (ls, r:rs)
+  uz (fs, ss) (VPair f s)
+   = return (f:fs, s:ss)
   uz _ _
+   = primError
+
+  us (bs, ls, rs) (VLeft l)
+   = return (VBool False : bs, l : ls, rs)
+  us (bs, ls, rs) (VRight r)
+   = return (VBool True : bs, ls, r : rs)
+  us _ _
    = primError
 
   primError
    = Left $ RuntimeErrorPrimBadArgs p vs
+
+  pick (VBool b) (l,r)
+   = return $ if b then r else l
+  pick _ _
+   = primError

@@ -24,7 +24,9 @@ import              Icicle.Common.Annot
 
 import              P
 
+import qualified    Data.List           as List
 import qualified    Data.Map            as Map
+import qualified    Data.Tuple          as Tuple
 
 
 ------------------------------------------------------------------------
@@ -33,6 +35,9 @@ import qualified    Data.Map            as Map
 
 pattern PrimZip     ta tb = PrimArray   (PrimArrayZip ta tb)
 pattern PrimUnzip   ta tb = PrimArray   (PrimArrayUnzip ta tb)
+
+pattern PrimSum     ta tb = PrimArray   (PrimArraySum ta tb)
+pattern PrimUnsum   ta tb = PrimArray   (PrimArrayUnsum ta tb)
 
 pattern PrimPair    ta tb = PrimMinimal (Min.PrimConst (Min.PrimConstPair ta tb))
 pattern PrimFst     ta tb = PrimMinimal (Min.PrimPair  (Min.PrimPairFst   ta tb))
@@ -55,6 +60,9 @@ data MeltOps a n p = MeltOps {
 
   , primZip   :: ValType -> ValType -> Name n -> Name n -> Exp a n p
   , primUnzip :: ValType -> ValType -> Exp a n p -> Exp a n p
+
+  , primSum   :: ValType -> ValType -> Name n -> Name n -> Name n -> Exp a n p
+  , primUnsum :: ValType -> ValType -> Exp a n p -> Exp a n p
 
   , primPair :: ValType -> ValType -> Name n -> Name n -> Exp a n p
   , primFst  :: ValType -> ValType -> Exp a n p        -> Exp a n p
@@ -83,6 +91,10 @@ meltOps a_fresh
 
   primZip     ta tb x y   = xPrim (PrimZip     ta tb) `xApp` xVar x `xApp` xVar y
   primUnzip   ta tb x     = xPrim (PrimUnzip   ta tb) `xApp` x
+
+  primSum     ta tb x y z = xPrim (PrimSum     ta tb) `xApp` xVar x `xApp` xVar y `xApp` xVar z
+  primUnsum   ta tb x     = xPrim (PrimUnsum   ta tb) `xApp` x
+
   primPair    ta tb x y   = xPrim (PrimPair    ta tb) `xApp` xVar x `xApp` xVar y
   primFst     ta tb x     = xPrim (PrimFst     ta tb) `xApp` x
   primSnd     ta tb x     = xPrim (PrimSnd     ta tb) `xApp` x
@@ -107,10 +119,10 @@ melt :: (Show n, Ord n)
      -> Statement (Annot a) n Prim
      -> Fresh n (Statement (Annot a) n Prim)
 melt a_fresh ss
- =   meltAccumulators a_fresh ss
+ =   meltBindings     a_fresh ss
+ >>= meltAccumulators a_fresh
  >>= meltForeachFacts a_fresh
  >>= meltOutputs      a_fresh
--- >>= meltBindings     a_fresh
 
 ------------------------------------------------------------------------
 
@@ -129,7 +141,7 @@ meltAccumulators a_fresh statements
         case stmt of
 
           ----------------------------------------
-          InitAccumulator (Accumulator n ak _ x) ss
+          InitAccumulator (Accumulator n ak avt x) ss
            | Just (Latest, PairT ta tb, [na, nb])       <- Map.lookup n env'
            -> go
             . InitAccumulator (Accumulator na ak ta x)
@@ -157,6 +169,7 @@ meltAccumulators a_fresh statements
             . InitAccumulator (Accumulator nb ak tb (primRight   ta tb x))
             $ ss
 
+{-
            | Just (Mutable, t, [na, nb]) <- Map.lookup n env'
            , Just (f, at)     <- takeFunctorType t
            , [ta, tb]         <- takeBinType at
@@ -168,6 +181,11 @@ meltAccumulators a_fresh statements
            . InitAccumulator (Accumulator na ak ta' xa)
            . InitAccumulator (Accumulator nb ak tb' xb)
            $ ss
+-}
+
+           | Just (Mutable, ArrayT (SumT ta tb), [na,nb]) <- Map.lookup n env'
+           -> do (xs', _) <- meltBody a_fresh (n, avt, x)
+                 go . foldr (mkInitAccum ak) id xs' $ ss
 
            | Just (Mutable, UnitT, [])                  <- Map.lookup n env'
            -> go ss
@@ -326,6 +344,9 @@ meltAccumulators a_fresh statements
    | otherwise
    = return env
 
+  mkInitAccum ak (n, t, x) acc
+   = InitAccumulator (Accumulator n ak t x) . acc
+
   two n at avt env
    = do nb <- freshPrefix' n
         nv <- freshPrefix' n
@@ -346,40 +367,80 @@ meltAccumulators a_fresh statements
 
 --------------------------------------------------------------------------------
 
+-- | Melt the body of Let bindings into multiple bindings and substitute the
+--   old binding with new ones.
+--
 meltBindings
   :: (Ord n)
   => Annot a
   -> Statement (Annot a) n Prim
   -> Fresh n (Statement (Annot a) n Prim)
 meltBindings a_fresh statements
- = transformUDStmt goStmt Map.empty statements
+ = transformUDStmt goStmt () statements
  where
   MeltOps{..} = meltOps a_fresh
 
-  updateEnv xx env
-   | Let n x _ <- xx
-   , t         <- annType (annotOfExp x)
-   = Map.insert n t env
-   | otherwise
-   = env
+  goStmt () stmt
+   = case stmt of
+       Let n x ss
+        | vt <- functionReturns (annType (annotOfExp x))
+        -> do (xs, x') <- meltBody a_fresh (n, vt, x)
+              ss'      <- substXinS a_fresh n x' ss
+              let stmt' = foldr mkLet ss' xs
+              --traceM $ "ORIGINAL:\n" <> show (pretty stmt) <> "\nAFTER:\n" <> show (pretty stmt')
+              return ((), stmt')
 
-  goStmt env stmt
-   = let env' = updateEnv stmt env
-         go   = goStmt env'
-         mkLets _ rest []
-          = return rest
-         mkLets n rest (x:xs)
-          = do n' <- freshPrefix' n
-               Let n' x <$> mkLets n rest xs
-     in case stmt of
-         Let n x ss
-          | FunT _ vt <- annType (annotOfExp x)
-          , xs        <- meltExp a_fresh x vt
-          -> do (env'', ss') <- go ss
-                stmt'        <- mkLets n ss' (fmap fst xs)
-                return (env'', stmt')
-         _
-          -> return (env', stmt)
+       _ -> return ((), stmt)
+
+  mkLet (n,_,x) s
+   = Let n x s
+
+
+meltBody
+ :: a -> (Name n, ValType, Exp a n Prim) -> Fresh n ([(Name n, ValType, Exp a n Prim)], Exp a n Prim)
+meltBody a_fresh (n, vt, x)
+ = case vt of
+    SumT ta tb
+     -> do [bn,ln,rn] <- mkNames n vt
+           (bx,bu)    <- meltBody a_fresh (bn, BoolT, primIsRight ta tb x)
+           (lx,lu)    <- meltBody a_fresh (ln, ta,    primLeft    ta tb x)
+           (rx,ru)    <- meltBody a_fresh (rn, tb,    primRight   ta tb x)
+           let binds   = bx <> lx <> rx <> [(bn,BoolT,bu),(ln,ta,lu),(rn,tb,ru)]
+           let unmelt  = primMkSum ta tb bn ln rn
+           return (binds, unmelt)
+
+    PairT ta tb
+     -> do [ln,rn]    <- mkNames n vt
+           (lx,lu)    <- meltBody a_fresh (ln, ta,    primFst ta tb x)
+           (rx,ru)    <- meltBody a_fresh (rn, tb,    primSnd ta tb x)
+           let binds   = lx <> rx <> [(ln,ta,lu),(rn,tb,ru)]
+           let unmelt  = primPair ta tb ln rn
+           return (binds, unmelt)
+
+    ArrayT t@(SumT ta tb)
+     -> do [bn,ln,rn] <- mkNames n t
+           let x' = primUnsum ta tb x
+               t1 = ArrayT BoolT
+               t2 = PairT t3 t4
+               t3 = ArrayT ta
+               t4 = ArrayT tb
+           (bx,bu)    <- meltBody a_fresh (bn, BoolT, primFst t1 t2 x')
+           (lx,lu)    <- meltBody a_fresh (ln, ta,    primFst t3 t4 (primSnd t1 t2 x'))
+           (rx,ru)    <- meltBody a_fresh (rn, tb,    primSnd t3 t4 (primSnd t1 t2 x'))
+           let binds   = bx <> lx <> rx <> [(bn,BoolT,bu),(ln,ta,lu),(rn,tb,ru)]
+           let unmelt  = primSum ta tb bn ln rn
+           return (binds, unmelt)
+
+    _ -> return ([(n, vt, x)], x)
+
+ where
+  MeltOps{..} = meltOps a_fresh
+
+
+mkNames :: Name n -> ValType -> Fresh n [Name n]
+mkNames n (SumT  _ _) = freshes 3 n
+mkNames n (PairT _ _) = freshes 2 n
+mkNames n (OptionT _) = freshes 2 n
 
 ------------------------------------------------------------------------
 

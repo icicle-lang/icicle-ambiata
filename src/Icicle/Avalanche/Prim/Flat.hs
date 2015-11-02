@@ -84,8 +84,10 @@ data PrimUpdate
  deriving (Eq, Ord, Show)
 
 data PrimArray
- = PrimArrayZip   ValType ValType
- | PrimArrayUnzip ValType ValType
+ = PrimArrayZip     ValType ValType -- ^ Zip two arrays into one
+ | PrimArrayUnzip   ValType ValType -- ^ Unzip an array of pairs into two arrays of pairs
+ | PrimArraySum     ValType ValType -- ^ Combine three arrays into an array of sums
+ | PrimArrayUnsum   ValType ValType -- ^ Split an array of sums into three arrays
  deriving (Eq, Ord, Show)
 
 data PrimPack
@@ -157,6 +159,12 @@ typeOfPrim p
 
     PrimArray   (PrimArrayUnzip a b)
      -> FunT [funOfVal (ArrayT (PairT a b))] (PairT (ArrayT a) (ArrayT b))
+
+    PrimArray   (PrimArraySum a b)
+     -> FunT [funOfVal (ArrayT BoolT), funOfVal (ArrayT a), funOfVal (ArrayT b)] (ArrayT (SumT a b))
+
+    PrimArray   (PrimArrayUnsum a b)
+     -> FunT [funOfVal (ArrayT (SumT a b))] (PairT (ArrayT BoolT) (PairT (ArrayT a) (ArrayT b)))
 
 
     PrimPack    (PrimSumPack a b)
