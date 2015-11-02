@@ -76,8 +76,7 @@ instance (Pretty n, Pretty q) => Pretty (Context' q a n) where
      Filter   _ x
       -> "filter"   <+> pretty x
      LetFold  _ f
-      ->  "let"
-      <+> pretty (foldType f)
+      ->  pretty (foldType f)
       <+> pretty (foldBind f)
       <+> "="
       <+> pretty (foldInit f)
