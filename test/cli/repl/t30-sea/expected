@@ -113,18 +113,25 @@ static const ibool_t itrue  = 1;
 
 // 02-numbers.h
 #line 1 "02-numbers.h"
-static ibool_t   INLINE ierror_eq     (ierror_t  x, ierror_t  y) { return x == y; }
+#define MK_SIMPLE_CMPS(t,pre)                                                   \
+    static ibool_t   INLINE pre##eq   (t x, t y) { return x == y; }             \
+    static ibool_t   INLINE pre##ne   (t x, t y) { return x != y; }             \
+    static ibool_t   INLINE pre##gt   (t x, t y) { return x >  y; }             \
+    static ibool_t   INLINE pre##ge   (t x, t y) { return x >= y; }             \
+    static ibool_t   INLINE pre##lt   (t x, t y) { return x <  y; }             \
+    static ibool_t   INLINE pre##le   (t x, t y) { return x <= y; }             \
+
+MK_SIMPLE_CMPS(ierror_t, ierror_)
+MK_SIMPLE_CMPS(ibool_t,  ibool_)
+MK_SIMPLE_CMPS(idate_t,  idate_)
+MK_SIMPLE_CMPS(iunit_t,  iunit_)
 
 static idouble_t INLINE iint_extend   (iint_t    x)              { return x; }
 static iint_t    INLINE iint_add      (iint_t    x, iint_t    y) { return x +  y; }
 static iint_t    INLINE iint_sub      (iint_t    x, iint_t    y) { return x -  y; }
 static iint_t    INLINE iint_mul      (iint_t    x, iint_t    y) { return x *  y; }
-static ibool_t   INLINE iint_gt       (iint_t    x, iint_t    y) { return x >  y; }
-static ibool_t   INLINE iint_ge       (iint_t    x, iint_t    y) { return x >= y; }
-static ibool_t   INLINE iint_lt       (iint_t    x, iint_t    y) { return x <  y; }
-static ibool_t   INLINE iint_le       (iint_t    x, iint_t    y) { return x <= y; }
-static ibool_t   INLINE iint_eq       (iint_t    x, iint_t    y) { return x == y; }
-static ibool_t   INLINE iint_ne       (iint_t    x, iint_t    y) { return x != y; }
+
+MK_SIMPLE_CMPS(iint_t, iint_)
 
 static iint_t    INLINE idouble_trunc (idouble_t x)              { return (iint_t)x; }
 static idouble_t INLINE idouble_add   (idouble_t x, idouble_t y) { return x + y; }
@@ -134,12 +141,8 @@ static idouble_t INLINE idouble_pow   (idouble_t x, idouble_t y) { return pow(x,
 static idouble_t INLINE idouble_div   (idouble_t x, idouble_t y) { return x / y; }
 static idouble_t INLINE idouble_log   (idouble_t x)              { return log(x); }
 static idouble_t INLINE idouble_exp   (idouble_t x)              { return exp(x); }
-static ibool_t   INLINE idouble_gt    (idouble_t x, idouble_t y) { return x >  y; }
-static ibool_t   INLINE idouble_ge    (idouble_t x, idouble_t y) { return x >= y; }
-static ibool_t   INLINE idouble_lt    (idouble_t x, idouble_t y) { return x <  y; }
-static ibool_t   INLINE idouble_le    (idouble_t x, idouble_t y) { return x <= y; }
-static ibool_t   INLINE idouble_eq    (idouble_t x, idouble_t y) { return x == y; }
-static ibool_t   INLINE idouble_ne    (idouble_t x, idouble_t y) { return x != y; }
+
+MK_SIMPLE_CMPS(idouble_t, idouble_)
 
 static ibool_t   INLINE istring_gt    (istring_t x, istring_t y) { return strcmp(x, y) >  0; }
 static ibool_t   INLINE istring_ge    (istring_t x, istring_t y) { return strcmp(x, y) >= 0; }
@@ -147,6 +150,274 @@ static ibool_t   INLINE istring_lt    (istring_t x, istring_t y) { return strcmp
 static ibool_t   INLINE istring_le    (istring_t x, istring_t y) { return strcmp(x, y) <= 0; }
 static ibool_t   INLINE istring_eq    (istring_t x, istring_t y) { return strcmp(x, y) == 0; }
 static ibool_t   INLINE istring_ne    (istring_t x, istring_t y) { return strcmp(x, y) != 0; }
+
+// 03-array.h
+#line 1 "03-array.h"
+typedef struct
+{
+    iint_t count;
+} iarray_struct;
+// payload goes straight after
+
+#define ARRAY_OF(t) iarray_t__##t
+#define ARRAY_FUN(f,pre) iarray__##pre##f
+
+// I'm not certain there's a point having a different one for each type.
+// It makes it look a little better, but I don't think it's any safer.
+#define MK_ARRAY_STRUCT(t) typedef iarray_struct* ARRAY_OF(t);
+
+// get payload by advancing pointer by size of struct
+// (which should be equivalent to straight after struct fields)
+// then casting to t*
+#define ARRAY_PAYLOAD(x,t) ((t*)(x+1))
+
+
+#define MK_ARRAY_LENGTH(t,pre)                                                  \
+    static iint_t INLINE ARRAY_FUN(length,pre) (ARRAY_OF(t) arr)                \
+    { return arr->count; }
+
+#define MK_ARRAY_EQ(t,pre)                                                      \
+    static ibool_t INLINE ARRAY_FUN(eq,pre) (ARRAY_OF(t) x, ARRAY_OF(t) y)      \
+    {                                                                           \
+        if (x->count != y->count) return ifalse;                                \
+        for (iint_t ix = 0; ix != x->count; ++ix) {                             \
+            if (!pre##eq(ARRAY_PAYLOAD(x,t)[ix], ARRAY_PAYLOAD(y,t)[ix]))       \
+                return ifalse;                                                  \
+        }                                                                       \
+        return itrue;                                                           \
+    }
+
+#define MK_ARRAY_LT(t,pre)                                                      \
+    static ibool_t INLINE ARRAY_FUN(lt,pre) (ARRAY_OF(t) x, ARRAY_OF(t) y)      \
+    {                                                                           \
+        iint_t min = (x->count < y->count) ? x->count : y->count;               \
+        for (iint_t ix = 0; ix != min; ++ix) {                                  \
+            if (!pre##lt(ARRAY_PAYLOAD(x,t)[ix], ARRAY_PAYLOAD(y,t)[ix]))       \
+                return ifalse;                                                  \
+        }                                                                       \
+        if (x->count < y->count)                                                \
+            return itrue;                                                       \
+        else                                                                    \
+            return ifalse;                                                      \
+    }
+
+#define MK_ARRAY_CMP(t,pre,op,ret)                                              \
+    static ibool_t INLINE ARRAY_FUN(op,pre) (ARRAY_OF(t) x, ARRAY_OF(t) y)      \
+    { return ret ; }                                                            \
+
+#define MK_ARRAY_CMPS(t,pre)                                                    \
+    MK_ARRAY_EQ(t,pre)                                                          \
+    MK_ARRAY_LT(t,pre)                                                          \
+    MK_ARRAY_CMP(t,pre,ne, !ARRAY_FUN(eq,pre) (x,y))                            \
+    MK_ARRAY_CMP(t,pre,le,  ARRAY_FUN(lt,pre) (x,y) || ARRAY_FUN(eq,pre) (x,y)) \
+    MK_ARRAY_CMP(t,pre,ge, !ARRAY_FUN(lt,pre) (x,y))                            \
+    MK_ARRAY_CMP(t,pre,gt, !ARRAY_FUN(le,pre) (x,y))                            \
+
+
+
+#define MK_ARRAY_INDEX(t,pre)                                                   \
+    static t       INLINE ARRAY_FUN(index,pre) (ARRAY_OF(t) x, iint_t ix)       \
+    { return ARRAY_PAYLOAD(x,t)[ix]; }                                          \
+
+
+#define MK_ARRAY_CREATE(t,pre)                                                  \
+    static ARRAY_OF(t)  INLINE ARRAY_FUN(create,pre)                            \
+                                        (iallocate_t alloc, iint_t sz)          \
+    {                                                                           \
+        iint_t bytes     = sizeof(t) * sz + sizeof(iarray_struct);      \
+        ARRAY_OF(t)  ret = (ARRAY_OF(t))allocate(alloc, bytes);                 \
+        ret->count = sz;                                                        \
+        return ret;                                                             \
+    }                                                                           \
+
+#define MK_ARRAY_PUT(t,pre)                                                     \
+    static iunit_t INLINE ARRAY_FUN(put,pre)   (ARRAY_OF(t) x, iint_t ix, t v)  \
+    {                                                                           \
+        ARRAY_PAYLOAD(x,t)[ix] = v;                                             \
+        return iunit;                                                           \
+    }                                                                           \
+
+                                                                                \
+                                                                                \
+                                                                                \
+                                                                                \
+                                                                                \
+
+
+
+#define MAKE_ARRAY(t,pre)                                                       \
+    MK_ARRAY_STRUCT (t)                                                         \
+    MK_ARRAY_LENGTH (t,pre)                                                     \
+    MK_ARRAY_CMPS   (t,pre)                                                     \
+    MK_ARRAY_INDEX  (t,pre)                                                     \
+    MK_ARRAY_CREATE (t,pre)                                                     \
+    MK_ARRAY_PUT    (t,pre)                                                     \
+    // MK_ARRAY_ZIP    (t,pre)                                                     \
+
+// TEMPORARY
+typedef void* iallocate_t;
+void* allocate(iallocate_t t, iint_t sz);
+
+MAKE_ARRAY(idouble_t,   idouble_)
+MAKE_ARRAY(iint_t,      iint_)
+MAKE_ARRAY(ierror_t,    ierror_)
+MAKE_ARRAY(ibool_t,     ibool_)
+MAKE_ARRAY(idate_t,     idate_)
+MAKE_ARRAY(iunit_t,     iunit_)
+
+// 04-buffer.h
+#line 1 "04-buffer.h"
+typedef struct
+{
+    iint_t max_size;
+    iint_t cur_size;
+    iint_t head;
+} ibuf_struct;
+/*
+ Invariants
+  0 <= cur_size <= max_size
+  0 <= head     <  max_size
+
+  read = ARRAY[ head..(head+cur_size) % max_size )
+
+*/
+
+#define BUF_OF(t)   ibuf_t__##t
+#define BUF_FUN(f,pre) ibuf__##pre##f
+
+#define MK_BUF_STRUCT(t) typedef ibuf_struct* BUF_OF(t);
+
+#define BUF_PAYLOAD(x,t) ((t*)(x+1))
+
+/*
+Make
+ Pre
+  0 <= sz
+
+ Post
+  cur_size' = 0
+  head'     = 0
+  max_size' = sz
+  ARRAY'    = [??...]
+
+  read'     = ARRAY'[head'..head'+cur_size')
+            = ARRAY'[0..0)
+            = []
+
+  (invariants hold)
+
+*/
+#define MK_BUF_MAKE(t,pre)                                                      \
+    static BUF_OF(t) INLINE BUF_FUN(make,pre)                                   \
+                     (iallocate_t alloc, iint_t sz)                             \
+    {                                                                           \
+        iint_t bytes     = sizeof(t) * sz + sizeof(ibuf_struct);                \
+        BUF_OF(t) ret    = (BUF_OF(t))allocate(alloc, bytes);                   \
+        ret->max_size = sz;                                                     \
+        ret->cur_size = 0;                                                      \
+        ret->head     = 0;                                                      \
+        return ret;                                                             \
+    }
+
+/*
+Push(buf, val)
+ Pre
+  (buf invariants hold)
+ Post
+  cur_size' = min max_size (cur_size+1)
+  read'     = (take (max_size - 1) read) ++ [val]
+
+*/
+
+/*
+Push(buf, val)
+  {buf invariants hold}
+  ...
+  {
+  head'     = if cur_size < max_size
+              then head
+              else (head+1) % max_size
+
+  cur_size' = min max_size (cur_size+1)
+
+  ARRAY'    = ARRAY[update]:=val
+  read'     = ARRAY[head'..(head'+cur_size') % max_size)
+  update    = (head' + cur_size') % max_size
+  }
+  ==>
+  {
+  cur_size' = min max_size (cur_size+1)
+  read'     = (take (max_size - 1) read) ++ [val]
+  }
+
+*/
+
+#define MK_BUF_PUSH(t,pre)                                                      \
+    static BUF_OF(t) INLINE BUF_FUN(push,pre) (BUF_OF(t) buf, t val)            \
+    {                                                                           \
+        iint_t head_new = (buf->cur_size < buf->max_size)                       \
+                        ?  buf->head                                            \
+                        : (buf->head+1) % buf->max_size;                        \
+                                                                                \
+        iint_t size_new = (buf->cur_size < buf->max_size)                       \
+                        ?  buf->cur_size + 1                                    \
+                        :  buf->max_size;                                       \
+                                                                                \
+        iint_t update   = (head_new + buf->cur_size) % buf->max_size;           \
+                                                                                \
+        BUF_PAYLOAD(buf,t)[update] = val;                                       \
+                                                                                \
+        buf->head     = head_new;                                               \
+        buf->cur_size = size_new;                                               \
+        return buf;                                                             \
+    }
+
+
+
+                                                                                \
+                                                                                \
+                                                                                \
+                                                                                \
+                                                                                \
+
+
+/*
+Read(buf)
+ Pre
+  (buf invariants hold)
+ Post
+  out       = read
+*/
+
+#define MK_BUF_READ(t,pre)                                                      \
+    static ARRAY_OF(t) INLINE BUF_FUN(read,pre)                                 \
+                       (iallocate_t alloc, BUF_OF(t) buf)                       \
+    {                                                                           \
+        ARRAY_OF(t) out = ARRAY_FUN(create,pre)(alloc, buf->cur_size);          \
+                                                                                \
+        for (iint_t ix = 0; ix != buf->cur_size; ++ix)                          \
+        {                                                                       \
+            iint_t in = (buf->head + ix) % buf->max_size;                       \
+            ARRAY_PAYLOAD(out,t)[ix] = BUF_PAYLOAD(buf,t)[in];                  \
+        }                                                                       \
+                                                                                \
+        return out;                                                             \
+    }
+
+
+
+#define MAKE_BUF(t,pre)                                                         \
+    MK_BUF_STRUCT (t)                                                           \
+    MK_BUF_MAKE   (t,pre)                                                       \
+    MK_BUF_PUSH   (t,pre)                                                       \
+    MK_BUF_READ   (t,pre)                                                       \
+
+MAKE_BUF(idouble_t,   idouble_)
+MAKE_BUF(iint_t,      iint_)
+MAKE_BUF(ierror_t,    ierror_)
+MAKE_BUF(ibool_t,     ibool_)
+MAKE_BUF(idate_t,     idate_)
+MAKE_BUF(iunit_t,     iunit_)
 
 #line 1 "state definition"
 typedef struct {
@@ -420,18 +691,25 @@ static const ibool_t itrue  = 1;
 
 // 02-numbers.h
 #line 1 "02-numbers.h"
-static ibool_t   INLINE ierror_eq     (ierror_t  x, ierror_t  y) { return x == y; }
+#define MK_SIMPLE_CMPS(t,pre)                                                   \
+    static ibool_t   INLINE pre##eq   (t x, t y) { return x == y; }             \
+    static ibool_t   INLINE pre##ne   (t x, t y) { return x != y; }             \
+    static ibool_t   INLINE pre##gt   (t x, t y) { return x >  y; }             \
+    static ibool_t   INLINE pre##ge   (t x, t y) { return x >= y; }             \
+    static ibool_t   INLINE pre##lt   (t x, t y) { return x <  y; }             \
+    static ibool_t   INLINE pre##le   (t x, t y) { return x <= y; }             \
+
+MK_SIMPLE_CMPS(ierror_t, ierror_)
+MK_SIMPLE_CMPS(ibool_t,  ibool_)
+MK_SIMPLE_CMPS(idate_t,  idate_)
+MK_SIMPLE_CMPS(iunit_t,  iunit_)
 
 static idouble_t INLINE iint_extend   (iint_t    x)              { return x; }
 static iint_t    INLINE iint_add      (iint_t    x, iint_t    y) { return x +  y; }
 static iint_t    INLINE iint_sub      (iint_t    x, iint_t    y) { return x -  y; }
 static iint_t    INLINE iint_mul      (iint_t    x, iint_t    y) { return x *  y; }
-static ibool_t   INLINE iint_gt       (iint_t    x, iint_t    y) { return x >  y; }
-static ibool_t   INLINE iint_ge       (iint_t    x, iint_t    y) { return x >= y; }
-static ibool_t   INLINE iint_lt       (iint_t    x, iint_t    y) { return x <  y; }
-static ibool_t   INLINE iint_le       (iint_t    x, iint_t    y) { return x <= y; }
-static ibool_t   INLINE iint_eq       (iint_t    x, iint_t    y) { return x == y; }
-static ibool_t   INLINE iint_ne       (iint_t    x, iint_t    y) { return x != y; }
+
+MK_SIMPLE_CMPS(iint_t, iint_)
 
 static iint_t    INLINE idouble_trunc (idouble_t x)              { return (iint_t)x; }
 static idouble_t INLINE idouble_add   (idouble_t x, idouble_t y) { return x + y; }
@@ -441,12 +719,8 @@ static idouble_t INLINE idouble_pow   (idouble_t x, idouble_t y) { return pow(x,
 static idouble_t INLINE idouble_div   (idouble_t x, idouble_t y) { return x / y; }
 static idouble_t INLINE idouble_log   (idouble_t x)              { return log(x); }
 static idouble_t INLINE idouble_exp   (idouble_t x)              { return exp(x); }
-static ibool_t   INLINE idouble_gt    (idouble_t x, idouble_t y) { return x >  y; }
-static ibool_t   INLINE idouble_ge    (idouble_t x, idouble_t y) { return x >= y; }
-static ibool_t   INLINE idouble_lt    (idouble_t x, idouble_t y) { return x <  y; }
-static ibool_t   INLINE idouble_le    (idouble_t x, idouble_t y) { return x <= y; }
-static ibool_t   INLINE idouble_eq    (idouble_t x, idouble_t y) { return x == y; }
-static ibool_t   INLINE idouble_ne    (idouble_t x, idouble_t y) { return x != y; }
+
+MK_SIMPLE_CMPS(idouble_t, idouble_)
 
 static ibool_t   INLINE istring_gt    (istring_t x, istring_t y) { return strcmp(x, y) >  0; }
 static ibool_t   INLINE istring_ge    (istring_t x, istring_t y) { return strcmp(x, y) >= 0; }
@@ -454,6 +728,274 @@ static ibool_t   INLINE istring_lt    (istring_t x, istring_t y) { return strcmp
 static ibool_t   INLINE istring_le    (istring_t x, istring_t y) { return strcmp(x, y) <= 0; }
 static ibool_t   INLINE istring_eq    (istring_t x, istring_t y) { return strcmp(x, y) == 0; }
 static ibool_t   INLINE istring_ne    (istring_t x, istring_t y) { return strcmp(x, y) != 0; }
+
+// 03-array.h
+#line 1 "03-array.h"
+typedef struct
+{
+    iint_t count;
+} iarray_struct;
+// payload goes straight after
+
+#define ARRAY_OF(t) iarray_t__##t
+#define ARRAY_FUN(f,pre) iarray__##pre##f
+
+// I'm not certain there's a point having a different one for each type.
+// It makes it look a little better, but I don't think it's any safer.
+#define MK_ARRAY_STRUCT(t) typedef iarray_struct* ARRAY_OF(t);
+
+// get payload by advancing pointer by size of struct
+// (which should be equivalent to straight after struct fields)
+// then casting to t*
+#define ARRAY_PAYLOAD(x,t) ((t*)(x+1))
+
+
+#define MK_ARRAY_LENGTH(t,pre)                                                  \
+    static iint_t INLINE ARRAY_FUN(length,pre) (ARRAY_OF(t) arr)                \
+    { return arr->count; }
+
+#define MK_ARRAY_EQ(t,pre)                                                      \
+    static ibool_t INLINE ARRAY_FUN(eq,pre) (ARRAY_OF(t) x, ARRAY_OF(t) y)      \
+    {                                                                           \
+        if (x->count != y->count) return ifalse;                                \
+        for (iint_t ix = 0; ix != x->count; ++ix) {                             \
+            if (!pre##eq(ARRAY_PAYLOAD(x,t)[ix], ARRAY_PAYLOAD(y,t)[ix]))       \
+                return ifalse;                                                  \
+        }                                                                       \
+        return itrue;                                                           \
+    }
+
+#define MK_ARRAY_LT(t,pre)                                                      \
+    static ibool_t INLINE ARRAY_FUN(lt,pre) (ARRAY_OF(t) x, ARRAY_OF(t) y)      \
+    {                                                                           \
+        iint_t min = (x->count < y->count) ? x->count : y->count;               \
+        for (iint_t ix = 0; ix != min; ++ix) {                                  \
+            if (!pre##lt(ARRAY_PAYLOAD(x,t)[ix], ARRAY_PAYLOAD(y,t)[ix]))       \
+                return ifalse;                                                  \
+        }                                                                       \
+        if (x->count < y->count)                                                \
+            return itrue;                                                       \
+        else                                                                    \
+            return ifalse;                                                      \
+    }
+
+#define MK_ARRAY_CMP(t,pre,op,ret)                                              \
+    static ibool_t INLINE ARRAY_FUN(op,pre) (ARRAY_OF(t) x, ARRAY_OF(t) y)      \
+    { return ret ; }                                                            \
+
+#define MK_ARRAY_CMPS(t,pre)                                                    \
+    MK_ARRAY_EQ(t,pre)                                                          \
+    MK_ARRAY_LT(t,pre)                                                          \
+    MK_ARRAY_CMP(t,pre,ne, !ARRAY_FUN(eq,pre) (x,y))                            \
+    MK_ARRAY_CMP(t,pre,le,  ARRAY_FUN(lt,pre) (x,y) || ARRAY_FUN(eq,pre) (x,y)) \
+    MK_ARRAY_CMP(t,pre,ge, !ARRAY_FUN(lt,pre) (x,y))                            \
+    MK_ARRAY_CMP(t,pre,gt, !ARRAY_FUN(le,pre) (x,y))                            \
+
+
+
+#define MK_ARRAY_INDEX(t,pre)                                                   \
+    static t       INLINE ARRAY_FUN(index,pre) (ARRAY_OF(t) x, iint_t ix)       \
+    { return ARRAY_PAYLOAD(x,t)[ix]; }                                          \
+
+
+#define MK_ARRAY_CREATE(t,pre)                                                  \
+    static ARRAY_OF(t)  INLINE ARRAY_FUN(create,pre)                            \
+                                        (iallocate_t alloc, iint_t sz)          \
+    {                                                                           \
+        iint_t bytes     = sizeof(t) * sz + sizeof(iarray_struct);      \
+        ARRAY_OF(t)  ret = (ARRAY_OF(t))allocate(alloc, bytes);                 \
+        ret->count = sz;                                                        \
+        return ret;                                                             \
+    }                                                                           \
+
+#define MK_ARRAY_PUT(t,pre)                                                     \
+    static iunit_t INLINE ARRAY_FUN(put,pre)   (ARRAY_OF(t) x, iint_t ix, t v)  \
+    {                                                                           \
+        ARRAY_PAYLOAD(x,t)[ix] = v;                                             \
+        return iunit;                                                           \
+    }                                                                           \
+
+                                                                                \
+                                                                                \
+                                                                                \
+                                                                                \
+                                                                                \
+
+
+
+#define MAKE_ARRAY(t,pre)                                                       \
+    MK_ARRAY_STRUCT (t)                                                         \
+    MK_ARRAY_LENGTH (t,pre)                                                     \
+    MK_ARRAY_CMPS   (t,pre)                                                     \
+    MK_ARRAY_INDEX  (t,pre)                                                     \
+    MK_ARRAY_CREATE (t,pre)                                                     \
+    MK_ARRAY_PUT    (t,pre)                                                     \
+    // MK_ARRAY_ZIP    (t,pre)                                                     \
+
+// TEMPORARY
+typedef void* iallocate_t;
+void* allocate(iallocate_t t, iint_t sz);
+
+MAKE_ARRAY(idouble_t,   idouble_)
+MAKE_ARRAY(iint_t,      iint_)
+MAKE_ARRAY(ierror_t,    ierror_)
+MAKE_ARRAY(ibool_t,     ibool_)
+MAKE_ARRAY(idate_t,     idate_)
+MAKE_ARRAY(iunit_t,     iunit_)
+
+// 04-buffer.h
+#line 1 "04-buffer.h"
+typedef struct
+{
+    iint_t max_size;
+    iint_t cur_size;
+    iint_t head;
+} ibuf_struct;
+/*
+ Invariants
+  0 <= cur_size <= max_size
+  0 <= head     <  max_size
+
+  read = ARRAY[ head..(head+cur_size) % max_size )
+
+*/
+
+#define BUF_OF(t)   ibuf_t__##t
+#define BUF_FUN(f,pre) ibuf__##pre##f
+
+#define MK_BUF_STRUCT(t) typedef ibuf_struct* BUF_OF(t);
+
+#define BUF_PAYLOAD(x,t) ((t*)(x+1))
+
+/*
+Make
+ Pre
+  0 <= sz
+
+ Post
+  cur_size' = 0
+  head'     = 0
+  max_size' = sz
+  ARRAY'    = [??...]
+
+  read'     = ARRAY'[head'..head'+cur_size')
+            = ARRAY'[0..0)
+            = []
+
+  (invariants hold)
+
+*/
+#define MK_BUF_MAKE(t,pre)                                                      \
+    static BUF_OF(t) INLINE BUF_FUN(make,pre)                                   \
+                     (iallocate_t alloc, iint_t sz)                             \
+    {                                                                           \
+        iint_t bytes     = sizeof(t) * sz + sizeof(ibuf_struct);                \
+        BUF_OF(t) ret    = (BUF_OF(t))allocate(alloc, bytes);                   \
+        ret->max_size = sz;                                                     \
+        ret->cur_size = 0;                                                      \
+        ret->head     = 0;                                                      \
+        return ret;                                                             \
+    }
+
+/*
+Push(buf, val)
+ Pre
+  (buf invariants hold)
+ Post
+  cur_size' = min max_size (cur_size+1)
+  read'     = (take (max_size - 1) read) ++ [val]
+
+*/
+
+/*
+Push(buf, val)
+  {buf invariants hold}
+  ...
+  {
+  head'     = if cur_size < max_size
+              then head
+              else (head+1) % max_size
+
+  cur_size' = min max_size (cur_size+1)
+
+  ARRAY'    = ARRAY[update]:=val
+  read'     = ARRAY[head'..(head'+cur_size') % max_size)
+  update    = (head' + cur_size') % max_size
+  }
+  ==>
+  {
+  cur_size' = min max_size (cur_size+1)
+  read'     = (take (max_size - 1) read) ++ [val]
+  }
+
+*/
+
+#define MK_BUF_PUSH(t,pre)                                                      \
+    static BUF_OF(t) INLINE BUF_FUN(push,pre) (BUF_OF(t) buf, t val)            \
+    {                                                                           \
+        iint_t head_new = (buf->cur_size < buf->max_size)                       \
+                        ?  buf->head                                            \
+                        : (buf->head+1) % buf->max_size;                        \
+                                                                                \
+        iint_t size_new = (buf->cur_size < buf->max_size)                       \
+                        ?  buf->cur_size + 1                                    \
+                        :  buf->max_size;                                       \
+                                                                                \
+        iint_t update   = (head_new + buf->cur_size) % buf->max_size;           \
+                                                                                \
+        BUF_PAYLOAD(buf,t)[update] = val;                                       \
+                                                                                \
+        buf->head     = head_new;                                               \
+        buf->cur_size = size_new;                                               \
+        return buf;                                                             \
+    }
+
+
+
+                                                                                \
+                                                                                \
+                                                                                \
+                                                                                \
+                                                                                \
+
+
+/*
+Read(buf)
+ Pre
+  (buf invariants hold)
+ Post
+  out       = read
+*/
+
+#define MK_BUF_READ(t,pre)                                                      \
+    static ARRAY_OF(t) INLINE BUF_FUN(read,pre)                                 \
+                       (iallocate_t alloc, BUF_OF(t) buf)                       \
+    {                                                                           \
+        ARRAY_OF(t) out = ARRAY_FUN(create,pre)(alloc, buf->cur_size);          \
+                                                                                \
+        for (iint_t ix = 0; ix != buf->cur_size; ++ix)                          \
+        {                                                                       \
+            iint_t in = (buf->head + ix) % buf->max_size;                       \
+            ARRAY_PAYLOAD(out,t)[ix] = BUF_PAYLOAD(buf,t)[in];                  \
+        }                                                                       \
+                                                                                \
+        return out;                                                             \
+    }
+
+
+
+#define MAKE_BUF(t,pre)                                                         \
+    MK_BUF_STRUCT (t)                                                           \
+    MK_BUF_MAKE   (t,pre)                                                       \
+    MK_BUF_PUSH   (t,pre)                                                       \
+    MK_BUF_READ   (t,pre)                                                       \
+
+MAKE_BUF(idouble_t,   idouble_)
+MAKE_BUF(iint_t,      iint_)
+MAKE_BUF(ierror_t,    ierror_)
+MAKE_BUF(ibool_t,     ibool_)
+MAKE_BUF(idate_t,     idate_)
+MAKE_BUF(iunit_t,     iunit_)
 
 #line 1 "state definition"
 typedef struct {
@@ -1375,18 +1917,25 @@ static const ibool_t itrue  = 1;
 
 // 02-numbers.h
 #line 1 "02-numbers.h"
-static ibool_t   INLINE ierror_eq     (ierror_t  x, ierror_t  y) { return x == y; }
+#define MK_SIMPLE_CMPS(t,pre)                                                   \
+    static ibool_t   INLINE pre##eq   (t x, t y) { return x == y; }             \
+    static ibool_t   INLINE pre##ne   (t x, t y) { return x != y; }             \
+    static ibool_t   INLINE pre##gt   (t x, t y) { return x >  y; }             \
+    static ibool_t   INLINE pre##ge   (t x, t y) { return x >= y; }             \
+    static ibool_t   INLINE pre##lt   (t x, t y) { return x <  y; }             \
+    static ibool_t   INLINE pre##le   (t x, t y) { return x <= y; }             \
+
+MK_SIMPLE_CMPS(ierror_t, ierror_)
+MK_SIMPLE_CMPS(ibool_t,  ibool_)
+MK_SIMPLE_CMPS(idate_t,  idate_)
+MK_SIMPLE_CMPS(iunit_t,  iunit_)
 
 static idouble_t INLINE iint_extend   (iint_t    x)              { return x; }
 static iint_t    INLINE iint_add      (iint_t    x, iint_t    y) { return x +  y; }
 static iint_t    INLINE iint_sub      (iint_t    x, iint_t    y) { return x -  y; }
 static iint_t    INLINE iint_mul      (iint_t    x, iint_t    y) { return x *  y; }
-static ibool_t   INLINE iint_gt       (iint_t    x, iint_t    y) { return x >  y; }
-static ibool_t   INLINE iint_ge       (iint_t    x, iint_t    y) { return x >= y; }
-static ibool_t   INLINE iint_lt       (iint_t    x, iint_t    y) { return x <  y; }
-static ibool_t   INLINE iint_le       (iint_t    x, iint_t    y) { return x <= y; }
-static ibool_t   INLINE iint_eq       (iint_t    x, iint_t    y) { return x == y; }
-static ibool_t   INLINE iint_ne       (iint_t    x, iint_t    y) { return x != y; }
+
+MK_SIMPLE_CMPS(iint_t, iint_)
 
 static iint_t    INLINE idouble_trunc (idouble_t x)              { return (iint_t)x; }
 static idouble_t INLINE idouble_add   (idouble_t x, idouble_t y) { return x + y; }
@@ -1396,12 +1945,8 @@ static idouble_t INLINE idouble_pow   (idouble_t x, idouble_t y) { return pow(x,
 static idouble_t INLINE idouble_div   (idouble_t x, idouble_t y) { return x / y; }
 static idouble_t INLINE idouble_log   (idouble_t x)              { return log(x); }
 static idouble_t INLINE idouble_exp   (idouble_t x)              { return exp(x); }
-static ibool_t   INLINE idouble_gt    (idouble_t x, idouble_t y) { return x >  y; }
-static ibool_t   INLINE idouble_ge    (idouble_t x, idouble_t y) { return x >= y; }
-static ibool_t   INLINE idouble_lt    (idouble_t x, idouble_t y) { return x <  y; }
-static ibool_t   INLINE idouble_le    (idouble_t x, idouble_t y) { return x <= y; }
-static ibool_t   INLINE idouble_eq    (idouble_t x, idouble_t y) { return x == y; }
-static ibool_t   INLINE idouble_ne    (idouble_t x, idouble_t y) { return x != y; }
+
+MK_SIMPLE_CMPS(idouble_t, idouble_)
 
 static ibool_t   INLINE istring_gt    (istring_t x, istring_t y) { return strcmp(x, y) >  0; }
 static ibool_t   INLINE istring_ge    (istring_t x, istring_t y) { return strcmp(x, y) >= 0; }
@@ -1409,6 +1954,274 @@ static ibool_t   INLINE istring_lt    (istring_t x, istring_t y) { return strcmp
 static ibool_t   INLINE istring_le    (istring_t x, istring_t y) { return strcmp(x, y) <= 0; }
 static ibool_t   INLINE istring_eq    (istring_t x, istring_t y) { return strcmp(x, y) == 0; }
 static ibool_t   INLINE istring_ne    (istring_t x, istring_t y) { return strcmp(x, y) != 0; }
+
+// 03-array.h
+#line 1 "03-array.h"
+typedef struct
+{
+    iint_t count;
+} iarray_struct;
+// payload goes straight after
+
+#define ARRAY_OF(t) iarray_t__##t
+#define ARRAY_FUN(f,pre) iarray__##pre##f
+
+// I'm not certain there's a point having a different one for each type.
+// It makes it look a little better, but I don't think it's any safer.
+#define MK_ARRAY_STRUCT(t) typedef iarray_struct* ARRAY_OF(t);
+
+// get payload by advancing pointer by size of struct
+// (which should be equivalent to straight after struct fields)
+// then casting to t*
+#define ARRAY_PAYLOAD(x,t) ((t*)(x+1))
+
+
+#define MK_ARRAY_LENGTH(t,pre)                                                  \
+    static iint_t INLINE ARRAY_FUN(length,pre) (ARRAY_OF(t) arr)                \
+    { return arr->count; }
+
+#define MK_ARRAY_EQ(t,pre)                                                      \
+    static ibool_t INLINE ARRAY_FUN(eq,pre) (ARRAY_OF(t) x, ARRAY_OF(t) y)      \
+    {                                                                           \
+        if (x->count != y->count) return ifalse;                                \
+        for (iint_t ix = 0; ix != x->count; ++ix) {                             \
+            if (!pre##eq(ARRAY_PAYLOAD(x,t)[ix], ARRAY_PAYLOAD(y,t)[ix]))       \
+                return ifalse;                                                  \
+        }                                                                       \
+        return itrue;                                                           \
+    }
+
+#define MK_ARRAY_LT(t,pre)                                                      \
+    static ibool_t INLINE ARRAY_FUN(lt,pre) (ARRAY_OF(t) x, ARRAY_OF(t) y)      \
+    {                                                                           \
+        iint_t min = (x->count < y->count) ? x->count : y->count;               \
+        for (iint_t ix = 0; ix != min; ++ix) {                                  \
+            if (!pre##lt(ARRAY_PAYLOAD(x,t)[ix], ARRAY_PAYLOAD(y,t)[ix]))       \
+                return ifalse;                                                  \
+        }                                                                       \
+        if (x->count < y->count)                                                \
+            return itrue;                                                       \
+        else                                                                    \
+            return ifalse;                                                      \
+    }
+
+#define MK_ARRAY_CMP(t,pre,op,ret)                                              \
+    static ibool_t INLINE ARRAY_FUN(op,pre) (ARRAY_OF(t) x, ARRAY_OF(t) y)      \
+    { return ret ; }                                                            \
+
+#define MK_ARRAY_CMPS(t,pre)                                                    \
+    MK_ARRAY_EQ(t,pre)                                                          \
+    MK_ARRAY_LT(t,pre)                                                          \
+    MK_ARRAY_CMP(t,pre,ne, !ARRAY_FUN(eq,pre) (x,y))                            \
+    MK_ARRAY_CMP(t,pre,le,  ARRAY_FUN(lt,pre) (x,y) || ARRAY_FUN(eq,pre) (x,y)) \
+    MK_ARRAY_CMP(t,pre,ge, !ARRAY_FUN(lt,pre) (x,y))                            \
+    MK_ARRAY_CMP(t,pre,gt, !ARRAY_FUN(le,pre) (x,y))                            \
+
+
+
+#define MK_ARRAY_INDEX(t,pre)                                                   \
+    static t       INLINE ARRAY_FUN(index,pre) (ARRAY_OF(t) x, iint_t ix)       \
+    { return ARRAY_PAYLOAD(x,t)[ix]; }                                          \
+
+
+#define MK_ARRAY_CREATE(t,pre)                                                  \
+    static ARRAY_OF(t)  INLINE ARRAY_FUN(create,pre)                            \
+                                        (iallocate_t alloc, iint_t sz)          \
+    {                                                                           \
+        iint_t bytes     = sizeof(t) * sz + sizeof(iarray_struct);      \
+        ARRAY_OF(t)  ret = (ARRAY_OF(t))allocate(alloc, bytes);                 \
+        ret->count = sz;                                                        \
+        return ret;                                                             \
+    }                                                                           \
+
+#define MK_ARRAY_PUT(t,pre)                                                     \
+    static iunit_t INLINE ARRAY_FUN(put,pre)   (ARRAY_OF(t) x, iint_t ix, t v)  \
+    {                                                                           \
+        ARRAY_PAYLOAD(x,t)[ix] = v;                                             \
+        return iunit;                                                           \
+    }                                                                           \
+
+                                                                                \
+                                                                                \
+                                                                                \
+                                                                                \
+                                                                                \
+
+
+
+#define MAKE_ARRAY(t,pre)                                                       \
+    MK_ARRAY_STRUCT (t)                                                         \
+    MK_ARRAY_LENGTH (t,pre)                                                     \
+    MK_ARRAY_CMPS   (t,pre)                                                     \
+    MK_ARRAY_INDEX  (t,pre)                                                     \
+    MK_ARRAY_CREATE (t,pre)                                                     \
+    MK_ARRAY_PUT    (t,pre)                                                     \
+    // MK_ARRAY_ZIP    (t,pre)                                                     \
+
+// TEMPORARY
+typedef void* iallocate_t;
+void* allocate(iallocate_t t, iint_t sz);
+
+MAKE_ARRAY(idouble_t,   idouble_)
+MAKE_ARRAY(iint_t,      iint_)
+MAKE_ARRAY(ierror_t,    ierror_)
+MAKE_ARRAY(ibool_t,     ibool_)
+MAKE_ARRAY(idate_t,     idate_)
+MAKE_ARRAY(iunit_t,     iunit_)
+
+// 04-buffer.h
+#line 1 "04-buffer.h"
+typedef struct
+{
+    iint_t max_size;
+    iint_t cur_size;
+    iint_t head;
+} ibuf_struct;
+/*
+ Invariants
+  0 <= cur_size <= max_size
+  0 <= head     <  max_size
+
+  read = ARRAY[ head..(head+cur_size) % max_size )
+
+*/
+
+#define BUF_OF(t)   ibuf_t__##t
+#define BUF_FUN(f,pre) ibuf__##pre##f
+
+#define MK_BUF_STRUCT(t) typedef ibuf_struct* BUF_OF(t);
+
+#define BUF_PAYLOAD(x,t) ((t*)(x+1))
+
+/*
+Make
+ Pre
+  0 <= sz
+
+ Post
+  cur_size' = 0
+  head'     = 0
+  max_size' = sz
+  ARRAY'    = [??...]
+
+  read'     = ARRAY'[head'..head'+cur_size')
+            = ARRAY'[0..0)
+            = []
+
+  (invariants hold)
+
+*/
+#define MK_BUF_MAKE(t,pre)                                                      \
+    static BUF_OF(t) INLINE BUF_FUN(make,pre)                                   \
+                     (iallocate_t alloc, iint_t sz)                             \
+    {                                                                           \
+        iint_t bytes     = sizeof(t) * sz + sizeof(ibuf_struct);                \
+        BUF_OF(t) ret    = (BUF_OF(t))allocate(alloc, bytes);                   \
+        ret->max_size = sz;                                                     \
+        ret->cur_size = 0;                                                      \
+        ret->head     = 0;                                                      \
+        return ret;                                                             \
+    }
+
+/*
+Push(buf, val)
+ Pre
+  (buf invariants hold)
+ Post
+  cur_size' = min max_size (cur_size+1)
+  read'     = (take (max_size - 1) read) ++ [val]
+
+*/
+
+/*
+Push(buf, val)
+  {buf invariants hold}
+  ...
+  {
+  head'     = if cur_size < max_size
+              then head
+              else (head+1) % max_size
+
+  cur_size' = min max_size (cur_size+1)
+
+  ARRAY'    = ARRAY[update]:=val
+  read'     = ARRAY[head'..(head'+cur_size') % max_size)
+  update    = (head' + cur_size') % max_size
+  }
+  ==>
+  {
+  cur_size' = min max_size (cur_size+1)
+  read'     = (take (max_size - 1) read) ++ [val]
+  }
+
+*/
+
+#define MK_BUF_PUSH(t,pre)                                                      \
+    static BUF_OF(t) INLINE BUF_FUN(push,pre) (BUF_OF(t) buf, t val)            \
+    {                                                                           \
+        iint_t head_new = (buf->cur_size < buf->max_size)                       \
+                        ?  buf->head                                            \
+                        : (buf->head+1) % buf->max_size;                        \
+                                                                                \
+        iint_t size_new = (buf->cur_size < buf->max_size)                       \
+                        ?  buf->cur_size + 1                                    \
+                        :  buf->max_size;                                       \
+                                                                                \
+        iint_t update   = (head_new + buf->cur_size) % buf->max_size;           \
+                                                                                \
+        BUF_PAYLOAD(buf,t)[update] = val;                                       \
+                                                                                \
+        buf->head     = head_new;                                               \
+        buf->cur_size = size_new;                                               \
+        return buf;                                                             \
+    }
+
+
+
+                                                                                \
+                                                                                \
+                                                                                \
+                                                                                \
+                                                                                \
+
+
+/*
+Read(buf)
+ Pre
+  (buf invariants hold)
+ Post
+  out       = read
+*/
+
+#define MK_BUF_READ(t,pre)                                                      \
+    static ARRAY_OF(t) INLINE BUF_FUN(read,pre)                                 \
+                       (iallocate_t alloc, BUF_OF(t) buf)                       \
+    {                                                                           \
+        ARRAY_OF(t) out = ARRAY_FUN(create,pre)(alloc, buf->cur_size);          \
+                                                                                \
+        for (iint_t ix = 0; ix != buf->cur_size; ++ix)                          \
+        {                                                                       \
+            iint_t in = (buf->head + ix) % buf->max_size;                       \
+            ARRAY_PAYLOAD(out,t)[ix] = BUF_PAYLOAD(buf,t)[in];                  \
+        }                                                                       \
+                                                                                \
+        return out;                                                             \
+    }
+
+
+
+#define MAKE_BUF(t,pre)                                                         \
+    MK_BUF_STRUCT (t)                                                           \
+    MK_BUF_MAKE   (t,pre)                                                       \
+    MK_BUF_PUSH   (t,pre)                                                       \
+    MK_BUF_READ   (t,pre)                                                       \
+
+MAKE_BUF(idouble_t,   idouble_)
+MAKE_BUF(iint_t,      iint_)
+MAKE_BUF(ierror_t,    ierror_)
+MAKE_BUF(ibool_t,     ibool_)
+MAKE_BUF(idate_t,     idate_)
+MAKE_BUF(iunit_t,     iunit_)
 
 #line 1 "state definition"
 typedef struct {
@@ -3213,18 +4026,25 @@ static const ibool_t itrue  = 1;
 
 // 02-numbers.h
 #line 1 "02-numbers.h"
-static ibool_t   INLINE ierror_eq     (ierror_t  x, ierror_t  y) { return x == y; }
+#define MK_SIMPLE_CMPS(t,pre)                                                   \
+    static ibool_t   INLINE pre##eq   (t x, t y) { return x == y; }             \
+    static ibool_t   INLINE pre##ne   (t x, t y) { return x != y; }             \
+    static ibool_t   INLINE pre##gt   (t x, t y) { return x >  y; }             \
+    static ibool_t   INLINE pre##ge   (t x, t y) { return x >= y; }             \
+    static ibool_t   INLINE pre##lt   (t x, t y) { return x <  y; }             \
+    static ibool_t   INLINE pre##le   (t x, t y) { return x <= y; }             \
+
+MK_SIMPLE_CMPS(ierror_t, ierror_)
+MK_SIMPLE_CMPS(ibool_t,  ibool_)
+MK_SIMPLE_CMPS(idate_t,  idate_)
+MK_SIMPLE_CMPS(iunit_t,  iunit_)
 
 static idouble_t INLINE iint_extend   (iint_t    x)              { return x; }
 static iint_t    INLINE iint_add      (iint_t    x, iint_t    y) { return x +  y; }
 static iint_t    INLINE iint_sub      (iint_t    x, iint_t    y) { return x -  y; }
 static iint_t    INLINE iint_mul      (iint_t    x, iint_t    y) { return x *  y; }
-static ibool_t   INLINE iint_gt       (iint_t    x, iint_t    y) { return x >  y; }
-static ibool_t   INLINE iint_ge       (iint_t    x, iint_t    y) { return x >= y; }
-static ibool_t   INLINE iint_lt       (iint_t    x, iint_t    y) { return x <  y; }
-static ibool_t   INLINE iint_le       (iint_t    x, iint_t    y) { return x <= y; }
-static ibool_t   INLINE iint_eq       (iint_t    x, iint_t    y) { return x == y; }
-static ibool_t   INLINE iint_ne       (iint_t    x, iint_t    y) { return x != y; }
+
+MK_SIMPLE_CMPS(iint_t, iint_)
 
 static iint_t    INLINE idouble_trunc (idouble_t x)              { return (iint_t)x; }
 static idouble_t INLINE idouble_add   (idouble_t x, idouble_t y) { return x + y; }
@@ -3234,12 +4054,8 @@ static idouble_t INLINE idouble_pow   (idouble_t x, idouble_t y) { return pow(x,
 static idouble_t INLINE idouble_div   (idouble_t x, idouble_t y) { return x / y; }
 static idouble_t INLINE idouble_log   (idouble_t x)              { return log(x); }
 static idouble_t INLINE idouble_exp   (idouble_t x)              { return exp(x); }
-static ibool_t   INLINE idouble_gt    (idouble_t x, idouble_t y) { return x >  y; }
-static ibool_t   INLINE idouble_ge    (idouble_t x, idouble_t y) { return x >= y; }
-static ibool_t   INLINE idouble_lt    (idouble_t x, idouble_t y) { return x <  y; }
-static ibool_t   INLINE idouble_le    (idouble_t x, idouble_t y) { return x <= y; }
-static ibool_t   INLINE idouble_eq    (idouble_t x, idouble_t y) { return x == y; }
-static ibool_t   INLINE idouble_ne    (idouble_t x, idouble_t y) { return x != y; }
+
+MK_SIMPLE_CMPS(idouble_t, idouble_)
 
 static ibool_t   INLINE istring_gt    (istring_t x, istring_t y) { return strcmp(x, y) >  0; }
 static ibool_t   INLINE istring_ge    (istring_t x, istring_t y) { return strcmp(x, y) >= 0; }
@@ -3247,6 +4063,274 @@ static ibool_t   INLINE istring_lt    (istring_t x, istring_t y) { return strcmp
 static ibool_t   INLINE istring_le    (istring_t x, istring_t y) { return strcmp(x, y) <= 0; }
 static ibool_t   INLINE istring_eq    (istring_t x, istring_t y) { return strcmp(x, y) == 0; }
 static ibool_t   INLINE istring_ne    (istring_t x, istring_t y) { return strcmp(x, y) != 0; }
+
+// 03-array.h
+#line 1 "03-array.h"
+typedef struct
+{
+    iint_t count;
+} iarray_struct;
+// payload goes straight after
+
+#define ARRAY_OF(t) iarray_t__##t
+#define ARRAY_FUN(f,pre) iarray__##pre##f
+
+// I'm not certain there's a point having a different one for each type.
+// It makes it look a little better, but I don't think it's any safer.
+#define MK_ARRAY_STRUCT(t) typedef iarray_struct* ARRAY_OF(t);
+
+// get payload by advancing pointer by size of struct
+// (which should be equivalent to straight after struct fields)
+// then casting to t*
+#define ARRAY_PAYLOAD(x,t) ((t*)(x+1))
+
+
+#define MK_ARRAY_LENGTH(t,pre)                                                  \
+    static iint_t INLINE ARRAY_FUN(length,pre) (ARRAY_OF(t) arr)                \
+    { return arr->count; }
+
+#define MK_ARRAY_EQ(t,pre)                                                      \
+    static ibool_t INLINE ARRAY_FUN(eq,pre) (ARRAY_OF(t) x, ARRAY_OF(t) y)      \
+    {                                                                           \
+        if (x->count != y->count) return ifalse;                                \
+        for (iint_t ix = 0; ix != x->count; ++ix) {                             \
+            if (!pre##eq(ARRAY_PAYLOAD(x,t)[ix], ARRAY_PAYLOAD(y,t)[ix]))       \
+                return ifalse;                                                  \
+        }                                                                       \
+        return itrue;                                                           \
+    }
+
+#define MK_ARRAY_LT(t,pre)                                                      \
+    static ibool_t INLINE ARRAY_FUN(lt,pre) (ARRAY_OF(t) x, ARRAY_OF(t) y)      \
+    {                                                                           \
+        iint_t min = (x->count < y->count) ? x->count : y->count;               \
+        for (iint_t ix = 0; ix != min; ++ix) {                                  \
+            if (!pre##lt(ARRAY_PAYLOAD(x,t)[ix], ARRAY_PAYLOAD(y,t)[ix]))       \
+                return ifalse;                                                  \
+        }                                                                       \
+        if (x->count < y->count)                                                \
+            return itrue;                                                       \
+        else                                                                    \
+            return ifalse;                                                      \
+    }
+
+#define MK_ARRAY_CMP(t,pre,op,ret)                                              \
+    static ibool_t INLINE ARRAY_FUN(op,pre) (ARRAY_OF(t) x, ARRAY_OF(t) y)      \
+    { return ret ; }                                                            \
+
+#define MK_ARRAY_CMPS(t,pre)                                                    \
+    MK_ARRAY_EQ(t,pre)                                                          \
+    MK_ARRAY_LT(t,pre)                                                          \
+    MK_ARRAY_CMP(t,pre,ne, !ARRAY_FUN(eq,pre) (x,y))                            \
+    MK_ARRAY_CMP(t,pre,le,  ARRAY_FUN(lt,pre) (x,y) || ARRAY_FUN(eq,pre) (x,y)) \
+    MK_ARRAY_CMP(t,pre,ge, !ARRAY_FUN(lt,pre) (x,y))                            \
+    MK_ARRAY_CMP(t,pre,gt, !ARRAY_FUN(le,pre) (x,y))                            \
+
+
+
+#define MK_ARRAY_INDEX(t,pre)                                                   \
+    static t       INLINE ARRAY_FUN(index,pre) (ARRAY_OF(t) x, iint_t ix)       \
+    { return ARRAY_PAYLOAD(x,t)[ix]; }                                          \
+
+
+#define MK_ARRAY_CREATE(t,pre)                                                  \
+    static ARRAY_OF(t)  INLINE ARRAY_FUN(create,pre)                            \
+                                        (iallocate_t alloc, iint_t sz)          \
+    {                                                                           \
+        iint_t bytes     = sizeof(t) * sz + sizeof(iarray_struct);      \
+        ARRAY_OF(t)  ret = (ARRAY_OF(t))allocate(alloc, bytes);                 \
+        ret->count = sz;                                                        \
+        return ret;                                                             \
+    }                                                                           \
+
+#define MK_ARRAY_PUT(t,pre)                                                     \
+    static iunit_t INLINE ARRAY_FUN(put,pre)   (ARRAY_OF(t) x, iint_t ix, t v)  \
+    {                                                                           \
+        ARRAY_PAYLOAD(x,t)[ix] = v;                                             \
+        return iunit;                                                           \
+    }                                                                           \
+
+                                                                                \
+                                                                                \
+                                                                                \
+                                                                                \
+                                                                                \
+
+
+
+#define MAKE_ARRAY(t,pre)                                                       \
+    MK_ARRAY_STRUCT (t)                                                         \
+    MK_ARRAY_LENGTH (t,pre)                                                     \
+    MK_ARRAY_CMPS   (t,pre)                                                     \
+    MK_ARRAY_INDEX  (t,pre)                                                     \
+    MK_ARRAY_CREATE (t,pre)                                                     \
+    MK_ARRAY_PUT    (t,pre)                                                     \
+    // MK_ARRAY_ZIP    (t,pre)                                                     \
+
+// TEMPORARY
+typedef void* iallocate_t;
+void* allocate(iallocate_t t, iint_t sz);
+
+MAKE_ARRAY(idouble_t,   idouble_)
+MAKE_ARRAY(iint_t,      iint_)
+MAKE_ARRAY(ierror_t,    ierror_)
+MAKE_ARRAY(ibool_t,     ibool_)
+MAKE_ARRAY(idate_t,     idate_)
+MAKE_ARRAY(iunit_t,     iunit_)
+
+// 04-buffer.h
+#line 1 "04-buffer.h"
+typedef struct
+{
+    iint_t max_size;
+    iint_t cur_size;
+    iint_t head;
+} ibuf_struct;
+/*
+ Invariants
+  0 <= cur_size <= max_size
+  0 <= head     <  max_size
+
+  read = ARRAY[ head..(head+cur_size) % max_size )
+
+*/
+
+#define BUF_OF(t)   ibuf_t__##t
+#define BUF_FUN(f,pre) ibuf__##pre##f
+
+#define MK_BUF_STRUCT(t) typedef ibuf_struct* BUF_OF(t);
+
+#define BUF_PAYLOAD(x,t) ((t*)(x+1))
+
+/*
+Make
+ Pre
+  0 <= sz
+
+ Post
+  cur_size' = 0
+  head'     = 0
+  max_size' = sz
+  ARRAY'    = [??...]
+
+  read'     = ARRAY'[head'..head'+cur_size')
+            = ARRAY'[0..0)
+            = []
+
+  (invariants hold)
+
+*/
+#define MK_BUF_MAKE(t,pre)                                                      \
+    static BUF_OF(t) INLINE BUF_FUN(make,pre)                                   \
+                     (iallocate_t alloc, iint_t sz)                             \
+    {                                                                           \
+        iint_t bytes     = sizeof(t) * sz + sizeof(ibuf_struct);                \
+        BUF_OF(t) ret    = (BUF_OF(t))allocate(alloc, bytes);                   \
+        ret->max_size = sz;                                                     \
+        ret->cur_size = 0;                                                      \
+        ret->head     = 0;                                                      \
+        return ret;                                                             \
+    }
+
+/*
+Push(buf, val)
+ Pre
+  (buf invariants hold)
+ Post
+  cur_size' = min max_size (cur_size+1)
+  read'     = (take (max_size - 1) read) ++ [val]
+
+*/
+
+/*
+Push(buf, val)
+  {buf invariants hold}
+  ...
+  {
+  head'     = if cur_size < max_size
+              then head
+              else (head+1) % max_size
+
+  cur_size' = min max_size (cur_size+1)
+
+  ARRAY'    = ARRAY[update]:=val
+  read'     = ARRAY[head'..(head'+cur_size') % max_size)
+  update    = (head' + cur_size') % max_size
+  }
+  ==>
+  {
+  cur_size' = min max_size (cur_size+1)
+  read'     = (take (max_size - 1) read) ++ [val]
+  }
+
+*/
+
+#define MK_BUF_PUSH(t,pre)                                                      \
+    static BUF_OF(t) INLINE BUF_FUN(push,pre) (BUF_OF(t) buf, t val)            \
+    {                                                                           \
+        iint_t head_new = (buf->cur_size < buf->max_size)                       \
+                        ?  buf->head                                            \
+                        : (buf->head+1) % buf->max_size;                        \
+                                                                                \
+        iint_t size_new = (buf->cur_size < buf->max_size)                       \
+                        ?  buf->cur_size + 1                                    \
+                        :  buf->max_size;                                       \
+                                                                                \
+        iint_t update   = (head_new + buf->cur_size) % buf->max_size;           \
+                                                                                \
+        BUF_PAYLOAD(buf,t)[update] = val;                                       \
+                                                                                \
+        buf->head     = head_new;                                               \
+        buf->cur_size = size_new;                                               \
+        return buf;                                                             \
+    }
+
+
+
+                                                                                \
+                                                                                \
+                                                                                \
+                                                                                \
+                                                                                \
+
+
+/*
+Read(buf)
+ Pre
+  (buf invariants hold)
+ Post
+  out       = read
+*/
+
+#define MK_BUF_READ(t,pre)                                                      \
+    static ARRAY_OF(t) INLINE BUF_FUN(read,pre)                                 \
+                       (iallocate_t alloc, BUF_OF(t) buf)                       \
+    {                                                                           \
+        ARRAY_OF(t) out = ARRAY_FUN(create,pre)(alloc, buf->cur_size);          \
+                                                                                \
+        for (iint_t ix = 0; ix != buf->cur_size; ++ix)                          \
+        {                                                                       \
+            iint_t in = (buf->head + ix) % buf->max_size;                       \
+            ARRAY_PAYLOAD(out,t)[ix] = BUF_PAYLOAD(buf,t)[in];                  \
+        }                                                                       \
+                                                                                \
+        return out;                                                             \
+    }
+
+
+
+#define MAKE_BUF(t,pre)                                                         \
+    MK_BUF_STRUCT (t)                                                           \
+    MK_BUF_MAKE   (t,pre)                                                       \
+    MK_BUF_PUSH   (t,pre)                                                       \
+    MK_BUF_READ   (t,pre)                                                       \
+
+MAKE_BUF(idouble_t,   idouble_)
+MAKE_BUF(iint_t,      iint_)
+MAKE_BUF(ierror_t,    ierror_)
+MAKE_BUF(ibool_t,     ibool_)
+MAKE_BUF(idate_t,     idate_)
+MAKE_BUF(iunit_t,     iunit_)
 
 #line 1 "state definition"
 typedef struct {
@@ -4567,18 +5651,25 @@ static const ibool_t itrue  = 1;
 
 // 02-numbers.h
 #line 1 "02-numbers.h"
-static ibool_t   INLINE ierror_eq     (ierror_t  x, ierror_t  y) { return x == y; }
+#define MK_SIMPLE_CMPS(t,pre)                                                   \
+    static ibool_t   INLINE pre##eq   (t x, t y) { return x == y; }             \
+    static ibool_t   INLINE pre##ne   (t x, t y) { return x != y; }             \
+    static ibool_t   INLINE pre##gt   (t x, t y) { return x >  y; }             \
+    static ibool_t   INLINE pre##ge   (t x, t y) { return x >= y; }             \
+    static ibool_t   INLINE pre##lt   (t x, t y) { return x <  y; }             \
+    static ibool_t   INLINE pre##le   (t x, t y) { return x <= y; }             \
+
+MK_SIMPLE_CMPS(ierror_t, ierror_)
+MK_SIMPLE_CMPS(ibool_t,  ibool_)
+MK_SIMPLE_CMPS(idate_t,  idate_)
+MK_SIMPLE_CMPS(iunit_t,  iunit_)
 
 static idouble_t INLINE iint_extend   (iint_t    x)              { return x; }
 static iint_t    INLINE iint_add      (iint_t    x, iint_t    y) { return x +  y; }
 static iint_t    INLINE iint_sub      (iint_t    x, iint_t    y) { return x -  y; }
 static iint_t    INLINE iint_mul      (iint_t    x, iint_t    y) { return x *  y; }
-static ibool_t   INLINE iint_gt       (iint_t    x, iint_t    y) { return x >  y; }
-static ibool_t   INLINE iint_ge       (iint_t    x, iint_t    y) { return x >= y; }
-static ibool_t   INLINE iint_lt       (iint_t    x, iint_t    y) { return x <  y; }
-static ibool_t   INLINE iint_le       (iint_t    x, iint_t    y) { return x <= y; }
-static ibool_t   INLINE iint_eq       (iint_t    x, iint_t    y) { return x == y; }
-static ibool_t   INLINE iint_ne       (iint_t    x, iint_t    y) { return x != y; }
+
+MK_SIMPLE_CMPS(iint_t, iint_)
 
 static iint_t    INLINE idouble_trunc (idouble_t x)              { return (iint_t)x; }
 static idouble_t INLINE idouble_add   (idouble_t x, idouble_t y) { return x + y; }
@@ -4588,12 +5679,8 @@ static idouble_t INLINE idouble_pow   (idouble_t x, idouble_t y) { return pow(x,
 static idouble_t INLINE idouble_div   (idouble_t x, idouble_t y) { return x / y; }
 static idouble_t INLINE idouble_log   (idouble_t x)              { return log(x); }
 static idouble_t INLINE idouble_exp   (idouble_t x)              { return exp(x); }
-static ibool_t   INLINE idouble_gt    (idouble_t x, idouble_t y) { return x >  y; }
-static ibool_t   INLINE idouble_ge    (idouble_t x, idouble_t y) { return x >= y; }
-static ibool_t   INLINE idouble_lt    (idouble_t x, idouble_t y) { return x <  y; }
-static ibool_t   INLINE idouble_le    (idouble_t x, idouble_t y) { return x <= y; }
-static ibool_t   INLINE idouble_eq    (idouble_t x, idouble_t y) { return x == y; }
-static ibool_t   INLINE idouble_ne    (idouble_t x, idouble_t y) { return x != y; }
+
+MK_SIMPLE_CMPS(idouble_t, idouble_)
 
 static ibool_t   INLINE istring_gt    (istring_t x, istring_t y) { return strcmp(x, y) >  0; }
 static ibool_t   INLINE istring_ge    (istring_t x, istring_t y) { return strcmp(x, y) >= 0; }
@@ -4601,6 +5688,274 @@ static ibool_t   INLINE istring_lt    (istring_t x, istring_t y) { return strcmp
 static ibool_t   INLINE istring_le    (istring_t x, istring_t y) { return strcmp(x, y) <= 0; }
 static ibool_t   INLINE istring_eq    (istring_t x, istring_t y) { return strcmp(x, y) == 0; }
 static ibool_t   INLINE istring_ne    (istring_t x, istring_t y) { return strcmp(x, y) != 0; }
+
+// 03-array.h
+#line 1 "03-array.h"
+typedef struct
+{
+    iint_t count;
+} iarray_struct;
+// payload goes straight after
+
+#define ARRAY_OF(t) iarray_t__##t
+#define ARRAY_FUN(f,pre) iarray__##pre##f
+
+// I'm not certain there's a point having a different one for each type.
+// It makes it look a little better, but I don't think it's any safer.
+#define MK_ARRAY_STRUCT(t) typedef iarray_struct* ARRAY_OF(t);
+
+// get payload by advancing pointer by size of struct
+// (which should be equivalent to straight after struct fields)
+// then casting to t*
+#define ARRAY_PAYLOAD(x,t) ((t*)(x+1))
+
+
+#define MK_ARRAY_LENGTH(t,pre)                                                  \
+    static iint_t INLINE ARRAY_FUN(length,pre) (ARRAY_OF(t) arr)                \
+    { return arr->count; }
+
+#define MK_ARRAY_EQ(t,pre)                                                      \
+    static ibool_t INLINE ARRAY_FUN(eq,pre) (ARRAY_OF(t) x, ARRAY_OF(t) y)      \
+    {                                                                           \
+        if (x->count != y->count) return ifalse;                                \
+        for (iint_t ix = 0; ix != x->count; ++ix) {                             \
+            if (!pre##eq(ARRAY_PAYLOAD(x,t)[ix], ARRAY_PAYLOAD(y,t)[ix]))       \
+                return ifalse;                                                  \
+        }                                                                       \
+        return itrue;                                                           \
+    }
+
+#define MK_ARRAY_LT(t,pre)                                                      \
+    static ibool_t INLINE ARRAY_FUN(lt,pre) (ARRAY_OF(t) x, ARRAY_OF(t) y)      \
+    {                                                                           \
+        iint_t min = (x->count < y->count) ? x->count : y->count;               \
+        for (iint_t ix = 0; ix != min; ++ix) {                                  \
+            if (!pre##lt(ARRAY_PAYLOAD(x,t)[ix], ARRAY_PAYLOAD(y,t)[ix]))       \
+                return ifalse;                                                  \
+        }                                                                       \
+        if (x->count < y->count)                                                \
+            return itrue;                                                       \
+        else                                                                    \
+            return ifalse;                                                      \
+    }
+
+#define MK_ARRAY_CMP(t,pre,op,ret)                                              \
+    static ibool_t INLINE ARRAY_FUN(op,pre) (ARRAY_OF(t) x, ARRAY_OF(t) y)      \
+    { return ret ; }                                                            \
+
+#define MK_ARRAY_CMPS(t,pre)                                                    \
+    MK_ARRAY_EQ(t,pre)                                                          \
+    MK_ARRAY_LT(t,pre)                                                          \
+    MK_ARRAY_CMP(t,pre,ne, !ARRAY_FUN(eq,pre) (x,y))                            \
+    MK_ARRAY_CMP(t,pre,le,  ARRAY_FUN(lt,pre) (x,y) || ARRAY_FUN(eq,pre) (x,y)) \
+    MK_ARRAY_CMP(t,pre,ge, !ARRAY_FUN(lt,pre) (x,y))                            \
+    MK_ARRAY_CMP(t,pre,gt, !ARRAY_FUN(le,pre) (x,y))                            \
+
+
+
+#define MK_ARRAY_INDEX(t,pre)                                                   \
+    static t       INLINE ARRAY_FUN(index,pre) (ARRAY_OF(t) x, iint_t ix)       \
+    { return ARRAY_PAYLOAD(x,t)[ix]; }                                          \
+
+
+#define MK_ARRAY_CREATE(t,pre)                                                  \
+    static ARRAY_OF(t)  INLINE ARRAY_FUN(create,pre)                            \
+                                        (iallocate_t alloc, iint_t sz)          \
+    {                                                                           \
+        iint_t bytes     = sizeof(t) * sz + sizeof(iarray_struct);      \
+        ARRAY_OF(t)  ret = (ARRAY_OF(t))allocate(alloc, bytes);                 \
+        ret->count = sz;                                                        \
+        return ret;                                                             \
+    }                                                                           \
+
+#define MK_ARRAY_PUT(t,pre)                                                     \
+    static iunit_t INLINE ARRAY_FUN(put,pre)   (ARRAY_OF(t) x, iint_t ix, t v)  \
+    {                                                                           \
+        ARRAY_PAYLOAD(x,t)[ix] = v;                                             \
+        return iunit;                                                           \
+    }                                                                           \
+
+                                                                                \
+                                                                                \
+                                                                                \
+                                                                                \
+                                                                                \
+
+
+
+#define MAKE_ARRAY(t,pre)                                                       \
+    MK_ARRAY_STRUCT (t)                                                         \
+    MK_ARRAY_LENGTH (t,pre)                                                     \
+    MK_ARRAY_CMPS   (t,pre)                                                     \
+    MK_ARRAY_INDEX  (t,pre)                                                     \
+    MK_ARRAY_CREATE (t,pre)                                                     \
+    MK_ARRAY_PUT    (t,pre)                                                     \
+    // MK_ARRAY_ZIP    (t,pre)                                                     \
+
+// TEMPORARY
+typedef void* iallocate_t;
+void* allocate(iallocate_t t, iint_t sz);
+
+MAKE_ARRAY(idouble_t,   idouble_)
+MAKE_ARRAY(iint_t,      iint_)
+MAKE_ARRAY(ierror_t,    ierror_)
+MAKE_ARRAY(ibool_t,     ibool_)
+MAKE_ARRAY(idate_t,     idate_)
+MAKE_ARRAY(iunit_t,     iunit_)
+
+// 04-buffer.h
+#line 1 "04-buffer.h"
+typedef struct
+{
+    iint_t max_size;
+    iint_t cur_size;
+    iint_t head;
+} ibuf_struct;
+/*
+ Invariants
+  0 <= cur_size <= max_size
+  0 <= head     <  max_size
+
+  read = ARRAY[ head..(head+cur_size) % max_size )
+
+*/
+
+#define BUF_OF(t)   ibuf_t__##t
+#define BUF_FUN(f,pre) ibuf__##pre##f
+
+#define MK_BUF_STRUCT(t) typedef ibuf_struct* BUF_OF(t);
+
+#define BUF_PAYLOAD(x,t) ((t*)(x+1))
+
+/*
+Make
+ Pre
+  0 <= sz
+
+ Post
+  cur_size' = 0
+  head'     = 0
+  max_size' = sz
+  ARRAY'    = [??...]
+
+  read'     = ARRAY'[head'..head'+cur_size')
+            = ARRAY'[0..0)
+            = []
+
+  (invariants hold)
+
+*/
+#define MK_BUF_MAKE(t,pre)                                                      \
+    static BUF_OF(t) INLINE BUF_FUN(make,pre)                                   \
+                     (iallocate_t alloc, iint_t sz)                             \
+    {                                                                           \
+        iint_t bytes     = sizeof(t) * sz + sizeof(ibuf_struct);                \
+        BUF_OF(t) ret    = (BUF_OF(t))allocate(alloc, bytes);                   \
+        ret->max_size = sz;                                                     \
+        ret->cur_size = 0;                                                      \
+        ret->head     = 0;                                                      \
+        return ret;                                                             \
+    }
+
+/*
+Push(buf, val)
+ Pre
+  (buf invariants hold)
+ Post
+  cur_size' = min max_size (cur_size+1)
+  read'     = (take (max_size - 1) read) ++ [val]
+
+*/
+
+/*
+Push(buf, val)
+  {buf invariants hold}
+  ...
+  {
+  head'     = if cur_size < max_size
+              then head
+              else (head+1) % max_size
+
+  cur_size' = min max_size (cur_size+1)
+
+  ARRAY'    = ARRAY[update]:=val
+  read'     = ARRAY[head'..(head'+cur_size') % max_size)
+  update    = (head' + cur_size') % max_size
+  }
+  ==>
+  {
+  cur_size' = min max_size (cur_size+1)
+  read'     = (take (max_size - 1) read) ++ [val]
+  }
+
+*/
+
+#define MK_BUF_PUSH(t,pre)                                                      \
+    static BUF_OF(t) INLINE BUF_FUN(push,pre) (BUF_OF(t) buf, t val)            \
+    {                                                                           \
+        iint_t head_new = (buf->cur_size < buf->max_size)                       \
+                        ?  buf->head                                            \
+                        : (buf->head+1) % buf->max_size;                        \
+                                                                                \
+        iint_t size_new = (buf->cur_size < buf->max_size)                       \
+                        ?  buf->cur_size + 1                                    \
+                        :  buf->max_size;                                       \
+                                                                                \
+        iint_t update   = (head_new + buf->cur_size) % buf->max_size;           \
+                                                                                \
+        BUF_PAYLOAD(buf,t)[update] = val;                                       \
+                                                                                \
+        buf->head     = head_new;                                               \
+        buf->cur_size = size_new;                                               \
+        return buf;                                                             \
+    }
+
+
+
+                                                                                \
+                                                                                \
+                                                                                \
+                                                                                \
+                                                                                \
+
+
+/*
+Read(buf)
+ Pre
+  (buf invariants hold)
+ Post
+  out       = read
+*/
+
+#define MK_BUF_READ(t,pre)                                                      \
+    static ARRAY_OF(t) INLINE BUF_FUN(read,pre)                                 \
+                       (iallocate_t alloc, BUF_OF(t) buf)                       \
+    {                                                                           \
+        ARRAY_OF(t) out = ARRAY_FUN(create,pre)(alloc, buf->cur_size);          \
+                                                                                \
+        for (iint_t ix = 0; ix != buf->cur_size; ++ix)                          \
+        {                                                                       \
+            iint_t in = (buf->head + ix) % buf->max_size;                       \
+            ARRAY_PAYLOAD(out,t)[ix] = BUF_PAYLOAD(buf,t)[in];                  \
+        }                                                                       \
+                                                                                \
+        return out;                                                             \
+    }
+
+
+
+#define MAKE_BUF(t,pre)                                                         \
+    MK_BUF_STRUCT (t)                                                           \
+    MK_BUF_MAKE   (t,pre)                                                       \
+    MK_BUF_PUSH   (t,pre)                                                       \
+    MK_BUF_READ   (t,pre)                                                       \
+
+MAKE_BUF(idouble_t,   idouble_)
+MAKE_BUF(iint_t,      iint_)
+MAKE_BUF(ierror_t,    ierror_)
+MAKE_BUF(ibool_t,     ibool_)
+MAKE_BUF(idate_t,     idate_)
+MAKE_BUF(iunit_t,     iunit_)
 
 #line 1 "state definition"
 typedef struct {
@@ -5129,18 +6484,25 @@ static const ibool_t itrue  = 1;
 
 // 02-numbers.h
 #line 1 "02-numbers.h"
-static ibool_t   INLINE ierror_eq     (ierror_t  x, ierror_t  y) { return x == y; }
+#define MK_SIMPLE_CMPS(t,pre)                                                   \
+    static ibool_t   INLINE pre##eq   (t x, t y) { return x == y; }             \
+    static ibool_t   INLINE pre##ne   (t x, t y) { return x != y; }             \
+    static ibool_t   INLINE pre##gt   (t x, t y) { return x >  y; }             \
+    static ibool_t   INLINE pre##ge   (t x, t y) { return x >= y; }             \
+    static ibool_t   INLINE pre##lt   (t x, t y) { return x <  y; }             \
+    static ibool_t   INLINE pre##le   (t x, t y) { return x <= y; }             \
+
+MK_SIMPLE_CMPS(ierror_t, ierror_)
+MK_SIMPLE_CMPS(ibool_t,  ibool_)
+MK_SIMPLE_CMPS(idate_t,  idate_)
+MK_SIMPLE_CMPS(iunit_t,  iunit_)
 
 static idouble_t INLINE iint_extend   (iint_t    x)              { return x; }
 static iint_t    INLINE iint_add      (iint_t    x, iint_t    y) { return x +  y; }
 static iint_t    INLINE iint_sub      (iint_t    x, iint_t    y) { return x -  y; }
 static iint_t    INLINE iint_mul      (iint_t    x, iint_t    y) { return x *  y; }
-static ibool_t   INLINE iint_gt       (iint_t    x, iint_t    y) { return x >  y; }
-static ibool_t   INLINE iint_ge       (iint_t    x, iint_t    y) { return x >= y; }
-static ibool_t   INLINE iint_lt       (iint_t    x, iint_t    y) { return x <  y; }
-static ibool_t   INLINE iint_le       (iint_t    x, iint_t    y) { return x <= y; }
-static ibool_t   INLINE iint_eq       (iint_t    x, iint_t    y) { return x == y; }
-static ibool_t   INLINE iint_ne       (iint_t    x, iint_t    y) { return x != y; }
+
+MK_SIMPLE_CMPS(iint_t, iint_)
 
 static iint_t    INLINE idouble_trunc (idouble_t x)              { return (iint_t)x; }
 static idouble_t INLINE idouble_add   (idouble_t x, idouble_t y) { return x + y; }
@@ -5150,12 +6512,8 @@ static idouble_t INLINE idouble_pow   (idouble_t x, idouble_t y) { return pow(x,
 static idouble_t INLINE idouble_div   (idouble_t x, idouble_t y) { return x / y; }
 static idouble_t INLINE idouble_log   (idouble_t x)              { return log(x); }
 static idouble_t INLINE idouble_exp   (idouble_t x)              { return exp(x); }
-static ibool_t   INLINE idouble_gt    (idouble_t x, idouble_t y) { return x >  y; }
-static ibool_t   INLINE idouble_ge    (idouble_t x, idouble_t y) { return x >= y; }
-static ibool_t   INLINE idouble_lt    (idouble_t x, idouble_t y) { return x <  y; }
-static ibool_t   INLINE idouble_le    (idouble_t x, idouble_t y) { return x <= y; }
-static ibool_t   INLINE idouble_eq    (idouble_t x, idouble_t y) { return x == y; }
-static ibool_t   INLINE idouble_ne    (idouble_t x, idouble_t y) { return x != y; }
+
+MK_SIMPLE_CMPS(idouble_t, idouble_)
 
 static ibool_t   INLINE istring_gt    (istring_t x, istring_t y) { return strcmp(x, y) >  0; }
 static ibool_t   INLINE istring_ge    (istring_t x, istring_t y) { return strcmp(x, y) >= 0; }
@@ -5163,6 +6521,274 @@ static ibool_t   INLINE istring_lt    (istring_t x, istring_t y) { return strcmp
 static ibool_t   INLINE istring_le    (istring_t x, istring_t y) { return strcmp(x, y) <= 0; }
 static ibool_t   INLINE istring_eq    (istring_t x, istring_t y) { return strcmp(x, y) == 0; }
 static ibool_t   INLINE istring_ne    (istring_t x, istring_t y) { return strcmp(x, y) != 0; }
+
+// 03-array.h
+#line 1 "03-array.h"
+typedef struct
+{
+    iint_t count;
+} iarray_struct;
+// payload goes straight after
+
+#define ARRAY_OF(t) iarray_t__##t
+#define ARRAY_FUN(f,pre) iarray__##pre##f
+
+// I'm not certain there's a point having a different one for each type.
+// It makes it look a little better, but I don't think it's any safer.
+#define MK_ARRAY_STRUCT(t) typedef iarray_struct* ARRAY_OF(t);
+
+// get payload by advancing pointer by size of struct
+// (which should be equivalent to straight after struct fields)
+// then casting to t*
+#define ARRAY_PAYLOAD(x,t) ((t*)(x+1))
+
+
+#define MK_ARRAY_LENGTH(t,pre)                                                  \
+    static iint_t INLINE ARRAY_FUN(length,pre) (ARRAY_OF(t) arr)                \
+    { return arr->count; }
+
+#define MK_ARRAY_EQ(t,pre)                                                      \
+    static ibool_t INLINE ARRAY_FUN(eq,pre) (ARRAY_OF(t) x, ARRAY_OF(t) y)      \
+    {                                                                           \
+        if (x->count != y->count) return ifalse;                                \
+        for (iint_t ix = 0; ix != x->count; ++ix) {                             \
+            if (!pre##eq(ARRAY_PAYLOAD(x,t)[ix], ARRAY_PAYLOAD(y,t)[ix]))       \
+                return ifalse;                                                  \
+        }                                                                       \
+        return itrue;                                                           \
+    }
+
+#define MK_ARRAY_LT(t,pre)                                                      \
+    static ibool_t INLINE ARRAY_FUN(lt,pre) (ARRAY_OF(t) x, ARRAY_OF(t) y)      \
+    {                                                                           \
+        iint_t min = (x->count < y->count) ? x->count : y->count;               \
+        for (iint_t ix = 0; ix != min; ++ix) {                                  \
+            if (!pre##lt(ARRAY_PAYLOAD(x,t)[ix], ARRAY_PAYLOAD(y,t)[ix]))       \
+                return ifalse;                                                  \
+        }                                                                       \
+        if (x->count < y->count)                                                \
+            return itrue;                                                       \
+        else                                                                    \
+            return ifalse;                                                      \
+    }
+
+#define MK_ARRAY_CMP(t,pre,op,ret)                                              \
+    static ibool_t INLINE ARRAY_FUN(op,pre) (ARRAY_OF(t) x, ARRAY_OF(t) y)      \
+    { return ret ; }                                                            \
+
+#define MK_ARRAY_CMPS(t,pre)                                                    \
+    MK_ARRAY_EQ(t,pre)                                                          \
+    MK_ARRAY_LT(t,pre)                                                          \
+    MK_ARRAY_CMP(t,pre,ne, !ARRAY_FUN(eq,pre) (x,y))                            \
+    MK_ARRAY_CMP(t,pre,le,  ARRAY_FUN(lt,pre) (x,y) || ARRAY_FUN(eq,pre) (x,y)) \
+    MK_ARRAY_CMP(t,pre,ge, !ARRAY_FUN(lt,pre) (x,y))                            \
+    MK_ARRAY_CMP(t,pre,gt, !ARRAY_FUN(le,pre) (x,y))                            \
+
+
+
+#define MK_ARRAY_INDEX(t,pre)                                                   \
+    static t       INLINE ARRAY_FUN(index,pre) (ARRAY_OF(t) x, iint_t ix)       \
+    { return ARRAY_PAYLOAD(x,t)[ix]; }                                          \
+
+
+#define MK_ARRAY_CREATE(t,pre)                                                  \
+    static ARRAY_OF(t)  INLINE ARRAY_FUN(create,pre)                            \
+                                        (iallocate_t alloc, iint_t sz)          \
+    {                                                                           \
+        iint_t bytes     = sizeof(t) * sz + sizeof(iarray_struct);      \
+        ARRAY_OF(t)  ret = (ARRAY_OF(t))allocate(alloc, bytes);                 \
+        ret->count = sz;                                                        \
+        return ret;                                                             \
+    }                                                                           \
+
+#define MK_ARRAY_PUT(t,pre)                                                     \
+    static iunit_t INLINE ARRAY_FUN(put,pre)   (ARRAY_OF(t) x, iint_t ix, t v)  \
+    {                                                                           \
+        ARRAY_PAYLOAD(x,t)[ix] = v;                                             \
+        return iunit;                                                           \
+    }                                                                           \
+
+                                                                                \
+                                                                                \
+                                                                                \
+                                                                                \
+                                                                                \
+
+
+
+#define MAKE_ARRAY(t,pre)                                                       \
+    MK_ARRAY_STRUCT (t)                                                         \
+    MK_ARRAY_LENGTH (t,pre)                                                     \
+    MK_ARRAY_CMPS   (t,pre)                                                     \
+    MK_ARRAY_INDEX  (t,pre)                                                     \
+    MK_ARRAY_CREATE (t,pre)                                                     \
+    MK_ARRAY_PUT    (t,pre)                                                     \
+    // MK_ARRAY_ZIP    (t,pre)                                                     \
+
+// TEMPORARY
+typedef void* iallocate_t;
+void* allocate(iallocate_t t, iint_t sz);
+
+MAKE_ARRAY(idouble_t,   idouble_)
+MAKE_ARRAY(iint_t,      iint_)
+MAKE_ARRAY(ierror_t,    ierror_)
+MAKE_ARRAY(ibool_t,     ibool_)
+MAKE_ARRAY(idate_t,     idate_)
+MAKE_ARRAY(iunit_t,     iunit_)
+
+// 04-buffer.h
+#line 1 "04-buffer.h"
+typedef struct
+{
+    iint_t max_size;
+    iint_t cur_size;
+    iint_t head;
+} ibuf_struct;
+/*
+ Invariants
+  0 <= cur_size <= max_size
+  0 <= head     <  max_size
+
+  read = ARRAY[ head..(head+cur_size) % max_size )
+
+*/
+
+#define BUF_OF(t)   ibuf_t__##t
+#define BUF_FUN(f,pre) ibuf__##pre##f
+
+#define MK_BUF_STRUCT(t) typedef ibuf_struct* BUF_OF(t);
+
+#define BUF_PAYLOAD(x,t) ((t*)(x+1))
+
+/*
+Make
+ Pre
+  0 <= sz
+
+ Post
+  cur_size' = 0
+  head'     = 0
+  max_size' = sz
+  ARRAY'    = [??...]
+
+  read'     = ARRAY'[head'..head'+cur_size')
+            = ARRAY'[0..0)
+            = []
+
+  (invariants hold)
+
+*/
+#define MK_BUF_MAKE(t,pre)                                                      \
+    static BUF_OF(t) INLINE BUF_FUN(make,pre)                                   \
+                     (iallocate_t alloc, iint_t sz)                             \
+    {                                                                           \
+        iint_t bytes     = sizeof(t) * sz + sizeof(ibuf_struct);                \
+        BUF_OF(t) ret    = (BUF_OF(t))allocate(alloc, bytes);                   \
+        ret->max_size = sz;                                                     \
+        ret->cur_size = 0;                                                      \
+        ret->head     = 0;                                                      \
+        return ret;                                                             \
+    }
+
+/*
+Push(buf, val)
+ Pre
+  (buf invariants hold)
+ Post
+  cur_size' = min max_size (cur_size+1)
+  read'     = (take (max_size - 1) read) ++ [val]
+
+*/
+
+/*
+Push(buf, val)
+  {buf invariants hold}
+  ...
+  {
+  head'     = if cur_size < max_size
+              then head
+              else (head+1) % max_size
+
+  cur_size' = min max_size (cur_size+1)
+
+  ARRAY'    = ARRAY[update]:=val
+  read'     = ARRAY[head'..(head'+cur_size') % max_size)
+  update    = (head' + cur_size') % max_size
+  }
+  ==>
+  {
+  cur_size' = min max_size (cur_size+1)
+  read'     = (take (max_size - 1) read) ++ [val]
+  }
+
+*/
+
+#define MK_BUF_PUSH(t,pre)                                                      \
+    static BUF_OF(t) INLINE BUF_FUN(push,pre) (BUF_OF(t) buf, t val)            \
+    {                                                                           \
+        iint_t head_new = (buf->cur_size < buf->max_size)                       \
+                        ?  buf->head                                            \
+                        : (buf->head+1) % buf->max_size;                        \
+                                                                                \
+        iint_t size_new = (buf->cur_size < buf->max_size)                       \
+                        ?  buf->cur_size + 1                                    \
+                        :  buf->max_size;                                       \
+                                                                                \
+        iint_t update   = (head_new + buf->cur_size) % buf->max_size;           \
+                                                                                \
+        BUF_PAYLOAD(buf,t)[update] = val;                                       \
+                                                                                \
+        buf->head     = head_new;                                               \
+        buf->cur_size = size_new;                                               \
+        return buf;                                                             \
+    }
+
+
+
+                                                                                \
+                                                                                \
+                                                                                \
+                                                                                \
+                                                                                \
+
+
+/*
+Read(buf)
+ Pre
+  (buf invariants hold)
+ Post
+  out       = read
+*/
+
+#define MK_BUF_READ(t,pre)                                                      \
+    static ARRAY_OF(t) INLINE BUF_FUN(read,pre)                                 \
+                       (iallocate_t alloc, BUF_OF(t) buf)                       \
+    {                                                                           \
+        ARRAY_OF(t) out = ARRAY_FUN(create,pre)(alloc, buf->cur_size);          \
+                                                                                \
+        for (iint_t ix = 0; ix != buf->cur_size; ++ix)                          \
+        {                                                                       \
+            iint_t in = (buf->head + ix) % buf->max_size;                       \
+            ARRAY_PAYLOAD(out,t)[ix] = BUF_PAYLOAD(buf,t)[in];                  \
+        }                                                                       \
+                                                                                \
+        return out;                                                             \
+    }
+
+
+
+#define MAKE_BUF(t,pre)                                                         \
+    MK_BUF_STRUCT (t)                                                           \
+    MK_BUF_MAKE   (t,pre)                                                       \
+    MK_BUF_PUSH   (t,pre)                                                       \
+    MK_BUF_READ   (t,pre)                                                       \
+
+MAKE_BUF(idouble_t,   idouble_)
+MAKE_BUF(iint_t,      iint_)
+MAKE_BUF(ierror_t,    ierror_)
+MAKE_BUF(ibool_t,     ibool_)
+MAKE_BUF(idate_t,     idate_)
+MAKE_BUF(iunit_t,     iunit_)
 
 #line 1 "state definition"
 typedef struct {
@@ -5557,18 +7183,25 @@ static const ibool_t itrue  = 1;
 
 // 02-numbers.h
 #line 1 "02-numbers.h"
-static ibool_t   INLINE ierror_eq     (ierror_t  x, ierror_t  y) { return x == y; }
+#define MK_SIMPLE_CMPS(t,pre)                                                   \
+    static ibool_t   INLINE pre##eq   (t x, t y) { return x == y; }             \
+    static ibool_t   INLINE pre##ne   (t x, t y) { return x != y; }             \
+    static ibool_t   INLINE pre##gt   (t x, t y) { return x >  y; }             \
+    static ibool_t   INLINE pre##ge   (t x, t y) { return x >= y; }             \
+    static ibool_t   INLINE pre##lt   (t x, t y) { return x <  y; }             \
+    static ibool_t   INLINE pre##le   (t x, t y) { return x <= y; }             \
+
+MK_SIMPLE_CMPS(ierror_t, ierror_)
+MK_SIMPLE_CMPS(ibool_t,  ibool_)
+MK_SIMPLE_CMPS(idate_t,  idate_)
+MK_SIMPLE_CMPS(iunit_t,  iunit_)
 
 static idouble_t INLINE iint_extend   (iint_t    x)              { return x; }
 static iint_t    INLINE iint_add      (iint_t    x, iint_t    y) { return x +  y; }
 static iint_t    INLINE iint_sub      (iint_t    x, iint_t    y) { return x -  y; }
 static iint_t    INLINE iint_mul      (iint_t    x, iint_t    y) { return x *  y; }
-static ibool_t   INLINE iint_gt       (iint_t    x, iint_t    y) { return x >  y; }
-static ibool_t   INLINE iint_ge       (iint_t    x, iint_t    y) { return x >= y; }
-static ibool_t   INLINE iint_lt       (iint_t    x, iint_t    y) { return x <  y; }
-static ibool_t   INLINE iint_le       (iint_t    x, iint_t    y) { return x <= y; }
-static ibool_t   INLINE iint_eq       (iint_t    x, iint_t    y) { return x == y; }
-static ibool_t   INLINE iint_ne       (iint_t    x, iint_t    y) { return x != y; }
+
+MK_SIMPLE_CMPS(iint_t, iint_)
 
 static iint_t    INLINE idouble_trunc (idouble_t x)              { return (iint_t)x; }
 static idouble_t INLINE idouble_add   (idouble_t x, idouble_t y) { return x + y; }
@@ -5578,12 +7211,8 @@ static idouble_t INLINE idouble_pow   (idouble_t x, idouble_t y) { return pow(x,
 static idouble_t INLINE idouble_div   (idouble_t x, idouble_t y) { return x / y; }
 static idouble_t INLINE idouble_log   (idouble_t x)              { return log(x); }
 static idouble_t INLINE idouble_exp   (idouble_t x)              { return exp(x); }
-static ibool_t   INLINE idouble_gt    (idouble_t x, idouble_t y) { return x >  y; }
-static ibool_t   INLINE idouble_ge    (idouble_t x, idouble_t y) { return x >= y; }
-static ibool_t   INLINE idouble_lt    (idouble_t x, idouble_t y) { return x <  y; }
-static ibool_t   INLINE idouble_le    (idouble_t x, idouble_t y) { return x <= y; }
-static ibool_t   INLINE idouble_eq    (idouble_t x, idouble_t y) { return x == y; }
-static ibool_t   INLINE idouble_ne    (idouble_t x, idouble_t y) { return x != y; }
+
+MK_SIMPLE_CMPS(idouble_t, idouble_)
 
 static ibool_t   INLINE istring_gt    (istring_t x, istring_t y) { return strcmp(x, y) >  0; }
 static ibool_t   INLINE istring_ge    (istring_t x, istring_t y) { return strcmp(x, y) >= 0; }
@@ -5591,6 +7220,274 @@ static ibool_t   INLINE istring_lt    (istring_t x, istring_t y) { return strcmp
 static ibool_t   INLINE istring_le    (istring_t x, istring_t y) { return strcmp(x, y) <= 0; }
 static ibool_t   INLINE istring_eq    (istring_t x, istring_t y) { return strcmp(x, y) == 0; }
 static ibool_t   INLINE istring_ne    (istring_t x, istring_t y) { return strcmp(x, y) != 0; }
+
+// 03-array.h
+#line 1 "03-array.h"
+typedef struct
+{
+    iint_t count;
+} iarray_struct;
+// payload goes straight after
+
+#define ARRAY_OF(t) iarray_t__##t
+#define ARRAY_FUN(f,pre) iarray__##pre##f
+
+// I'm not certain there's a point having a different one for each type.
+// It makes it look a little better, but I don't think it's any safer.
+#define MK_ARRAY_STRUCT(t) typedef iarray_struct* ARRAY_OF(t);
+
+// get payload by advancing pointer by size of struct
+// (which should be equivalent to straight after struct fields)
+// then casting to t*
+#define ARRAY_PAYLOAD(x,t) ((t*)(x+1))
+
+
+#define MK_ARRAY_LENGTH(t,pre)                                                  \
+    static iint_t INLINE ARRAY_FUN(length,pre) (ARRAY_OF(t) arr)                \
+    { return arr->count; }
+
+#define MK_ARRAY_EQ(t,pre)                                                      \
+    static ibool_t INLINE ARRAY_FUN(eq,pre) (ARRAY_OF(t) x, ARRAY_OF(t) y)      \
+    {                                                                           \
+        if (x->count != y->count) return ifalse;                                \
+        for (iint_t ix = 0; ix != x->count; ++ix) {                             \
+            if (!pre##eq(ARRAY_PAYLOAD(x,t)[ix], ARRAY_PAYLOAD(y,t)[ix]))       \
+                return ifalse;                                                  \
+        }                                                                       \
+        return itrue;                                                           \
+    }
+
+#define MK_ARRAY_LT(t,pre)                                                      \
+    static ibool_t INLINE ARRAY_FUN(lt,pre) (ARRAY_OF(t) x, ARRAY_OF(t) y)      \
+    {                                                                           \
+        iint_t min = (x->count < y->count) ? x->count : y->count;               \
+        for (iint_t ix = 0; ix != min; ++ix) {                                  \
+            if (!pre##lt(ARRAY_PAYLOAD(x,t)[ix], ARRAY_PAYLOAD(y,t)[ix]))       \
+                return ifalse;                                                  \
+        }                                                                       \
+        if (x->count < y->count)                                                \
+            return itrue;                                                       \
+        else                                                                    \
+            return ifalse;                                                      \
+    }
+
+#define MK_ARRAY_CMP(t,pre,op,ret)                                              \
+    static ibool_t INLINE ARRAY_FUN(op,pre) (ARRAY_OF(t) x, ARRAY_OF(t) y)      \
+    { return ret ; }                                                            \
+
+#define MK_ARRAY_CMPS(t,pre)                                                    \
+    MK_ARRAY_EQ(t,pre)                                                          \
+    MK_ARRAY_LT(t,pre)                                                          \
+    MK_ARRAY_CMP(t,pre,ne, !ARRAY_FUN(eq,pre) (x,y))                            \
+    MK_ARRAY_CMP(t,pre,le,  ARRAY_FUN(lt,pre) (x,y) || ARRAY_FUN(eq,pre) (x,y)) \
+    MK_ARRAY_CMP(t,pre,ge, !ARRAY_FUN(lt,pre) (x,y))                            \
+    MK_ARRAY_CMP(t,pre,gt, !ARRAY_FUN(le,pre) (x,y))                            \
+
+
+
+#define MK_ARRAY_INDEX(t,pre)                                                   \
+    static t       INLINE ARRAY_FUN(index,pre) (ARRAY_OF(t) x, iint_t ix)       \
+    { return ARRAY_PAYLOAD(x,t)[ix]; }                                          \
+
+
+#define MK_ARRAY_CREATE(t,pre)                                                  \
+    static ARRAY_OF(t)  INLINE ARRAY_FUN(create,pre)                            \
+                                        (iallocate_t alloc, iint_t sz)          \
+    {                                                                           \
+        iint_t bytes     = sizeof(t) * sz + sizeof(iarray_struct);      \
+        ARRAY_OF(t)  ret = (ARRAY_OF(t))allocate(alloc, bytes);                 \
+        ret->count = sz;                                                        \
+        return ret;                                                             \
+    }                                                                           \
+
+#define MK_ARRAY_PUT(t,pre)                                                     \
+    static iunit_t INLINE ARRAY_FUN(put,pre)   (ARRAY_OF(t) x, iint_t ix, t v)  \
+    {                                                                           \
+        ARRAY_PAYLOAD(x,t)[ix] = v;                                             \
+        return iunit;                                                           \
+    }                                                                           \
+
+                                                                                \
+                                                                                \
+                                                                                \
+                                                                                \
+                                                                                \
+
+
+
+#define MAKE_ARRAY(t,pre)                                                       \
+    MK_ARRAY_STRUCT (t)                                                         \
+    MK_ARRAY_LENGTH (t,pre)                                                     \
+    MK_ARRAY_CMPS   (t,pre)                                                     \
+    MK_ARRAY_INDEX  (t,pre)                                                     \
+    MK_ARRAY_CREATE (t,pre)                                                     \
+    MK_ARRAY_PUT    (t,pre)                                                     \
+    // MK_ARRAY_ZIP    (t,pre)                                                     \
+
+// TEMPORARY
+typedef void* iallocate_t;
+void* allocate(iallocate_t t, iint_t sz);
+
+MAKE_ARRAY(idouble_t,   idouble_)
+MAKE_ARRAY(iint_t,      iint_)
+MAKE_ARRAY(ierror_t,    ierror_)
+MAKE_ARRAY(ibool_t,     ibool_)
+MAKE_ARRAY(idate_t,     idate_)
+MAKE_ARRAY(iunit_t,     iunit_)
+
+// 04-buffer.h
+#line 1 "04-buffer.h"
+typedef struct
+{
+    iint_t max_size;
+    iint_t cur_size;
+    iint_t head;
+} ibuf_struct;
+/*
+ Invariants
+  0 <= cur_size <= max_size
+  0 <= head     <  max_size
+
+  read = ARRAY[ head..(head+cur_size) % max_size )
+
+*/
+
+#define BUF_OF(t)   ibuf_t__##t
+#define BUF_FUN(f,pre) ibuf__##pre##f
+
+#define MK_BUF_STRUCT(t) typedef ibuf_struct* BUF_OF(t);
+
+#define BUF_PAYLOAD(x,t) ((t*)(x+1))
+
+/*
+Make
+ Pre
+  0 <= sz
+
+ Post
+  cur_size' = 0
+  head'     = 0
+  max_size' = sz
+  ARRAY'    = [??...]
+
+  read'     = ARRAY'[head'..head'+cur_size')
+            = ARRAY'[0..0)
+            = []
+
+  (invariants hold)
+
+*/
+#define MK_BUF_MAKE(t,pre)                                                      \
+    static BUF_OF(t) INLINE BUF_FUN(make,pre)                                   \
+                     (iallocate_t alloc, iint_t sz)                             \
+    {                                                                           \
+        iint_t bytes     = sizeof(t) * sz + sizeof(ibuf_struct);                \
+        BUF_OF(t) ret    = (BUF_OF(t))allocate(alloc, bytes);                   \
+        ret->max_size = sz;                                                     \
+        ret->cur_size = 0;                                                      \
+        ret->head     = 0;                                                      \
+        return ret;                                                             \
+    }
+
+/*
+Push(buf, val)
+ Pre
+  (buf invariants hold)
+ Post
+  cur_size' = min max_size (cur_size+1)
+  read'     = (take (max_size - 1) read) ++ [val]
+
+*/
+
+/*
+Push(buf, val)
+  {buf invariants hold}
+  ...
+  {
+  head'     = if cur_size < max_size
+              then head
+              else (head+1) % max_size
+
+  cur_size' = min max_size (cur_size+1)
+
+  ARRAY'    = ARRAY[update]:=val
+  read'     = ARRAY[head'..(head'+cur_size') % max_size)
+  update    = (head' + cur_size') % max_size
+  }
+  ==>
+  {
+  cur_size' = min max_size (cur_size+1)
+  read'     = (take (max_size - 1) read) ++ [val]
+  }
+
+*/
+
+#define MK_BUF_PUSH(t,pre)                                                      \
+    static BUF_OF(t) INLINE BUF_FUN(push,pre) (BUF_OF(t) buf, t val)            \
+    {                                                                           \
+        iint_t head_new = (buf->cur_size < buf->max_size)                       \
+                        ?  buf->head                                            \
+                        : (buf->head+1) % buf->max_size;                        \
+                                                                                \
+        iint_t size_new = (buf->cur_size < buf->max_size)                       \
+                        ?  buf->cur_size + 1                                    \
+                        :  buf->max_size;                                       \
+                                                                                \
+        iint_t update   = (head_new + buf->cur_size) % buf->max_size;           \
+                                                                                \
+        BUF_PAYLOAD(buf,t)[update] = val;                                       \
+                                                                                \
+        buf->head     = head_new;                                               \
+        buf->cur_size = size_new;                                               \
+        return buf;                                                             \
+    }
+
+
+
+                                                                                \
+                                                                                \
+                                                                                \
+                                                                                \
+                                                                                \
+
+
+/*
+Read(buf)
+ Pre
+  (buf invariants hold)
+ Post
+  out       = read
+*/
+
+#define MK_BUF_READ(t,pre)                                                      \
+    static ARRAY_OF(t) INLINE BUF_FUN(read,pre)                                 \
+                       (iallocate_t alloc, BUF_OF(t) buf)                       \
+    {                                                                           \
+        ARRAY_OF(t) out = ARRAY_FUN(create,pre)(alloc, buf->cur_size);          \
+                                                                                \
+        for (iint_t ix = 0; ix != buf->cur_size; ++ix)                          \
+        {                                                                       \
+            iint_t in = (buf->head + ix) % buf->max_size;                       \
+            ARRAY_PAYLOAD(out,t)[ix] = BUF_PAYLOAD(buf,t)[in];                  \
+        }                                                                       \
+                                                                                \
+        return out;                                                             \
+    }
+
+
+
+#define MAKE_BUF(t,pre)                                                         \
+    MK_BUF_STRUCT (t)                                                           \
+    MK_BUF_MAKE   (t,pre)                                                       \
+    MK_BUF_PUSH   (t,pre)                                                       \
+    MK_BUF_READ   (t,pre)                                                       \
+
+MAKE_BUF(idouble_t,   idouble_)
+MAKE_BUF(iint_t,      iint_)
+MAKE_BUF(ierror_t,    ierror_)
+MAKE_BUF(ibool_t,     ibool_)
+MAKE_BUF(idate_t,     idate_)
+MAKE_BUF(iunit_t,     iunit_)
 
 #line 1 "state definition"
 typedef struct {
