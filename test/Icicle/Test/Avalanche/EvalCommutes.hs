@@ -53,7 +53,8 @@ prop_eval_commutes_value t =
        -> counterexample ("Avalanche runtime error " <> show err) False
 
 
--- going to core doesn't affect history
+-- going to Avalanche doesn't affect history
+--
 prop_eval_commutes_history t =
  forAll (programForStreamType t)
  $ \p ->
@@ -62,7 +63,17 @@ prop_eval_commutes_history t =
     isRight     (checkProgram p) ==>
      case (AE.evalProgram XV.evalPrim d vs $ AC.programFromCore namer p, PV.eval d vs p) of
       (Right (abg, _), Right cres)
-       ->  (sort abg)  === (fmap prefixBubbleGum $ sort $ PV.history cres)
+       ->  let abg' = sort abg
+               cres'= fmap prefixBubbleGum $ sort $ PV.history cres
+               -- Temporarily modified to check for subset rather than equality.
+               --
+               -- See "Note: resumables_save and garbage collection" in src/Icicle/Avalanche/FromCore.hs
+               -- and see doc/design/ice-v1.md
+               --
+               -- Every member of Core bubblegum must be in Avalanche bubblegum,
+               -- but Avalanche bubblegum might contain more things.
+           in  counterexample (show (abg', cres'))
+             $ all (flip elem abg') cres'
       _
        -> property False
 

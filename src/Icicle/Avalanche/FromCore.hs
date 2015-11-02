@@ -69,12 +69,30 @@ programFromCore namer p
     ( accums resumables
     ( mconcat (fmap loadResumables resumables) <>
       factLoopNew               <>
-      mconcat (fmap saveResumables resumables) <>
+      mconcat (fmap saveResumables resumables_save) <>
       readaccums
     ( lets (makepostdate <> C.postcomps p) outputs) )))
  }
  where
   resumables = filter (not.readFromHistory.snd) $ C.reduces p
+
+  -- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  -- Note: resumables_save and garbage collection
+  -- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  --
+  -- For first cut of the real deal, for the C evaluation,
+  -- we are doing a very simple garbage collection strategy that only deallocates
+  -- the inputs, the saved resumables and the outputs.
+  --
+  -- This means the result of allocations all have to be marked as saved resumables,
+  -- so even for windowed resumables we save them.
+  --
+  -- This is too simplistic for all dynamic allocations but is good enough for the first cut
+  -- if we disallow runtime string generation like concat and show.
+  --
+  -- See doc/design/ice-v1.md
+  --
+  resumables_save = C.reduces p
 
   lets stmts inner
    = foldr (\(n,x) a -> Let n x a) inner stmts
