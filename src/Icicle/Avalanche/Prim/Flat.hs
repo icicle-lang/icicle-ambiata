@@ -184,13 +184,13 @@ instance Pretty Prim where
  pretty (PrimProject (PrimProjectArrayLength a))
   = annotate (AnnType a) "Array_length#"
  pretty (PrimProject (PrimProjectMapLength a b))
-  = annotate (AnnType $ (pretty a) <+> (pretty b)) "Map_length#"
+  = annotate (AnnType $ (pretty a) <.> (pretty b)) "Map_length#"
  pretty (PrimProject (PrimProjectMapLookup a b))
-  = annotate (AnnType $ (pretty a) <+> (pretty b)) "Map_lookup#"
+  = annotate (AnnType $ (pretty a) <.> (pretty b)) "Map_lookup#"
  pretty (PrimProject (PrimProjectOptionIsSome a))
   = text "Option_isSome#" <+> brackets (pretty a)
  pretty (PrimProject (PrimProjectSumIsRight a b))
-  = annotate (AnnType $ (pretty a) <+> (pretty b)) "Sum_isRight#"
+  = annotate (AnnType $ (pretty a) <.> (pretty b)) "Sum_isRight#"
 
 
  pretty (PrimUnsafe (PrimUnsafeArrayIndex a))
@@ -200,38 +200,44 @@ instance Pretty Prim where
   = annotate (AnnType a) "unsafe_Array_create#"
 
  pretty (PrimUnsafe (PrimUnsafeMapIndex a b))
-  = annotate (AnnType $ (pretty a) <+> (pretty b)) "unsafe_Map_index#"
+  = annotate (AnnType $ (pretty a) <.> (pretty b)) "unsafe_Map_index#"
 
  pretty (PrimUnsafe (PrimUnsafeOptionGet a))
   = annotate (AnnType a) "unsafe_Option_get#"
 
  pretty (PrimUnsafe (PrimUnsafeSumGetLeft a b))
-  = annotate (AnnType $ (pretty a) <+> (pretty b)) "unsafe_Sum_left#"
+  = annotate (AnnType $ (pretty a) <.> (pretty b)) "unsafe_Sum_left#"
 
  pretty (PrimUnsafe (PrimUnsafeSumGetRight a b))
-  = annotate (AnnType $ (pretty a) <+> (pretty b)) "unsafe_Sum_right#"
+  = annotate (AnnType $ (pretty a) <.> (pretty b)) "unsafe_Sum_right#"
 
 
 
  pretty (PrimUpdate (PrimUpdateMapPut a b))
-  = annotate (AnnType $ (pretty a) <+> (pretty b)) "Map_put#"
+  = annotate (AnnType $ (pretty a) <.> (pretty b)) "Map_put#"
 
  pretty (PrimUpdate (PrimUpdateArrayPut a))
   = annotate (AnnType a) "Array_put#"
 
 
  pretty (PrimArray (PrimArrayZip a b))
-  = annotate (AnnType $ (pretty a) <+> (pretty b)) "Array_zip#"
+  = annotate (AnnType $ (pretty a) <.> (pretty b)) "Array_zip#"
 
  pretty (PrimArray (PrimArrayUnzip a b))
-  = annotate (AnnType $ (pretty a) <+> (pretty b)) "Array_unzip#"
+  = annotate (AnnType $ (pretty a) <.> (pretty b)) "Array_unzip#"
+
+ pretty (PrimArray (PrimArraySum a b))
+  = annotate (AnnType $ (pretty a) <.> (pretty b)) "Array_sum#"
+
+ pretty (PrimArray (PrimArrayUnsum a b))
+  = annotate (AnnType $ (pretty a) <.> (pretty b)) "Array_unsum#"
 
 
  pretty (PrimPack (PrimOptionPack t))
   = annotate (AnnType t) "Option_pack#"
 
  pretty (PrimPack (PrimSumPack a b))
-  = annotate (AnnType $ (pretty a) <+> (pretty b)) "Sum_pack#"
+  = annotate (AnnType $ (pretty a) <.> (pretty b)) "Sum_pack#"
 
 
  pretty (PrimBuf    (PrimBufMake t))

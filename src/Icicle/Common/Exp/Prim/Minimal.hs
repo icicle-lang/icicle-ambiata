@@ -238,8 +238,8 @@ instance Pretty Prim where
  pretty (PrimDateTime PrimDateTimeMinusDays)      = "DateTime_minusDays#"
  pretty (PrimDateTime PrimDateTimeMinusMonths)    = "DateTime_minusMonths#"
 
- pretty (PrimPair (PrimPairFst a b)) = annotate (AnnType $ (pretty a) <+> (pretty b)) "fst#"
- pretty (PrimPair (PrimPairSnd a b)) = annotate (AnnType $ (pretty a) <+> (pretty b)) "snd#"
+ pretty (PrimPair (PrimPairFst a b)) = annotate (AnnType $ (pretty a) <.> (pretty b)) "fst#"
+ pretty (PrimPair (PrimPairSnd a b)) = annotate (AnnType $ (pretty a) <.> (pretty b)) "snd#"
 
  pretty (PrimStruct (PrimStructGet f t fs)) = annotate (AnnType $ (pretty f) <+> (pretty t) <+> (pretty fs)) "get#"
 
