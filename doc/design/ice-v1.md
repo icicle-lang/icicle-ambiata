@@ -10,6 +10,16 @@ Assumptions
 4. No runtime string generation functions (stringOfDouble#)
 
 
+Todo
+----
+
+1. Conversion of strings to/from C
+2. Special SaveResumable even in windowed
+3. "Garbage collection" or freeing of result bubblegum and inputs
+4. Stupid linear implementation of maps
+...
+999. C implementation of parsing
+
 
 
 Garbage collection of Maps
