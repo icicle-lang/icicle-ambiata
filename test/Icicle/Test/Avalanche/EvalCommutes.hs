@@ -65,15 +65,7 @@ prop_eval_commutes_history t =
       (Right (abg, _), Right cres)
        ->  let abg' = sort abg
                cres'= fmap prefixBubbleGum $ sort $ PV.history cres
-               -- Temporarily modified to check for subset rather than equality.
-               --
-               -- See "Note: resumables_save and garbage collection" in src/Icicle/Avalanche/FromCore.hs
-               -- and see doc/design/ice-v1.md
-               --
-               -- Every member of Core bubblegum must be in Avalanche bubblegum,
-               -- but Avalanche bubblegum might contain more things.
-           in  counterexample (show (abg', cres'))
-             $ all (flip elem abg') cres'
+           in  abg' === cres'
       _
        -> property False
 
