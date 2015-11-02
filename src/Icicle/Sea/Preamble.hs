@@ -14,13 +14,16 @@ import qualified Data.ByteString.Char8 as BS
 
 import           Data.FileEmbed
 
+import           Data.List (sortBy)
+
 seaPreamble :: Doc
 seaPreamble
  = vsep
  $ fmap go files
  where
   files
-   = $(embedDir "data/sea/")
+   = sortBy (compare `on` fst)
+   $ $(embedDir "data/sea/")
 
   go (f,bs)
    = vsep
