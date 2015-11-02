@@ -70,6 +70,8 @@ gen$date = DATE
 }
 
 - C:
+ // includes.h
+#line 1 "includes.h"
 #include <stdbool.h>
 #include <stdint.h>
 #include <math.h>
@@ -90,6 +92,10 @@ static const ibool_t ifalse = 0;
 static const ibool_t itrue  = 1;
 
 #define INLINE __attribute__((always_inline))
+
+
+ // numbers.h
+#line 1 "numbers.h"
 
 static ibool_t   INLINE ierror_eq     (ierror_t  x, ierror_t  y) { return x == y; }
 
@@ -119,6 +125,7 @@ static ibool_t   INLINE idouble_le    (idouble_t x, idouble_t y) { return x <= y
 static ibool_t   INLINE idouble_eq    (idouble_t x, idouble_t y) { return x == y; }
 static ibool_t   INLINE idouble_ne    (idouble_t x, idouble_t y) { return x != y; }
 
+#line 1 "state definition"
 typedef struct {
     /* inputs */
     idate_t    gen_date;
@@ -142,6 +149,7 @@ typedef struct {
     iint_t     res_acc_s_reify_2_conv_5_simp_2;
 } icicle_state_t;
 
+#line 1 "compute function"
 void compute(icicle_state_t *s)
 {
     ibool_t    acc_s_reify_2_conv_5_simp_0;
@@ -359,6 +367,8 @@ gen$date = DATE
 }
 
 - C:
+ // includes.h
+#line 1 "includes.h"
 #include <stdbool.h>
 #include <stdint.h>
 #include <math.h>
@@ -379,6 +389,10 @@ static const ibool_t ifalse = 0;
 static const ibool_t itrue  = 1;
 
 #define INLINE __attribute__((always_inline))
+
+
+ // numbers.h
+#line 1 "numbers.h"
 
 static ibool_t   INLINE ierror_eq     (ierror_t  x, ierror_t  y) { return x == y; }
 
@@ -408,6 +422,7 @@ static ibool_t   INLINE idouble_le    (idouble_t x, idouble_t y) { return x <= y
 static ibool_t   INLINE idouble_eq    (idouble_t x, idouble_t y) { return x == y; }
 static ibool_t   INLINE idouble_ne    (idouble_t x, idouble_t y) { return x != y; }
 
+#line 1 "state definition"
 typedef struct {
     /* inputs */
     idate_t    gen_date;
@@ -431,6 +446,7 @@ typedef struct {
     iint_t     res_acc_c_conv_13_simp_6;
 } icicle_state_t;
 
+#line 1 "compute function"
 void compute(icicle_state_t *s)
 {
     ibool_t    acc_c_conv_13_simp_13;
@@ -1296,6 +1312,8 @@ gen$date = DATE
 }
 
 - C:
+ // includes.h
+#line 1 "includes.h"
 #include <stdbool.h>
 #include <stdint.h>
 #include <math.h>
@@ -1316,6 +1334,10 @@ static const ibool_t ifalse = 0;
 static const ibool_t itrue  = 1;
 
 #define INLINE __attribute__((always_inline))
+
+
+ // numbers.h
+#line 1 "numbers.h"
 
 static ibool_t   INLINE ierror_eq     (ierror_t  x, ierror_t  y) { return x == y; }
 
@@ -1345,6 +1367,7 @@ static ibool_t   INLINE idouble_le    (idouble_t x, idouble_t y) { return x <= y
 static ibool_t   INLINE idouble_eq    (idouble_t x, idouble_t y) { return x == y; }
 static ibool_t   INLINE idouble_ne    (idouble_t x, idouble_t y) { return x != y; }
 
+#line 1 "state definition"
 typedef struct {
     /* inputs */
     idate_t    gen_date;
@@ -1382,6 +1405,7 @@ typedef struct {
     idouble_t  res_acc_a_conv_12_simp_64_simp_65_simp_68;
 } icicle_state_t;
 
+#line 1 "compute function"
 void compute(icicle_state_t *s)
 {
     ibool_t    a_conv_105_simp_315;

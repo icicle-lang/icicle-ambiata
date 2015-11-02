@@ -36,6 +36,7 @@ library
                      , validation                      == 0.5.*
                      , vector                          == 0.10.*
                      , annotated-wl-pprint             == 0.7.*
+                     , file-embed                      == 0.0.9
 
                      -- Well, it might look very odd that we're using both attoparsec
                      -- and parsec.
@@ -138,6 +139,7 @@ library
 
                        Icicle.Sea.Eval
                        Icicle.Sea.FromAvalanche
+                       Icicle.Sea.Preamble
 
                        Icicle.Source.Eval
                        Icicle.Source.Query
