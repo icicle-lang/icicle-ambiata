@@ -60,6 +60,9 @@ seaOfXPrim p
      PrimArray op
       -> PDFun $ seaOfPrimArray op
 
+     PrimBuf   op
+      -> seaOfPrimBuf op
+
      _
       -> PDFun $ seaError "seaOfXPrim" p
 
@@ -99,7 +102,7 @@ seaOfPrimProject :: PrimProject -> Doc
 seaOfPrimProject p
  = case p of
      PrimProjectArrayLength t
-      -> prefixOfValType t <> "length"
+      -> prefixOfValType (ArrayT t) <> "length"
      _
       -> seaError "seaOfPrimProject" p
 
@@ -107,9 +110,9 @@ seaOfPrimUnsafe :: PrimUnsafe -> PrimDoc
 seaOfPrimUnsafe p
  = case p of
      PrimUnsafeArrayIndex t
-      -> PDFun   (prefixOfValType t <> "index")
+      -> PDFun   (prefixOfValType (ArrayT t) <> "index")
      PrimUnsafeArrayCreate t
-      -> PDAlloc (prefixOfValType t <> "create")
+      -> PDAlloc (prefixOfValType (ArrayT t) <> "create")
      _
       -> PDFun   (seaError "seaOfPrimUnsafe" p)
 
@@ -117,7 +120,7 @@ seaOfPrimUpdate :: PrimUpdate -> Doc
 seaOfPrimUpdate p
  = case p of
      PrimUpdateArrayPut t
-      -> prefixOfValType t <> "put"
+      -> prefixOfValType (ArrayT t) <> "put"
      _
       -> seaError "seaOfPrimUpdate" p
 
@@ -126,5 +129,15 @@ seaOfPrimArray p
  = case p of
      _
       -> seaError "seaOfPrimArray" p
+
+seaOfPrimBuf :: PrimBuf -> PrimDoc
+seaOfPrimBuf p
+ = case p of
+     PrimBufMake t
+      -> PDAlloc (prefixOfValType (BufT t) <> "make")
+     PrimBufPush t
+      -> PDFun   (prefixOfValType (BufT t) <> "push")
+     PrimBufRead t
+      -> PDAlloc (prefixOfValType (BufT t) <> "read")
 
 

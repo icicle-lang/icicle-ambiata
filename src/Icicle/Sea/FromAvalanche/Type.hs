@@ -40,8 +40,8 @@ prefixOfValType t
      ErrorT    -> "ierror_"
 
      StringT   -> nope "strings not implemented"
-     BufT{}    -> nope "buffers not implemented"
-     ArrayT{}  -> "ARRAY_PREFIX(" <> prefixOfValType t <> ")"
+     BufT   t' -> "ibuf__"   <> prefixOfValType t'
+     ArrayT t' -> "iarray__" <> prefixOfValType t'
      MapT{}    -> nope "maps not implemented"
 
      StructT{} -> nope "structs should have been melted"
@@ -63,7 +63,7 @@ seaOfValType t
      ErrorT    -> "ierror_t  "
 
      StringT   -> nope "strings not implemented"
-     BufT{}    -> nope "buffers not implemented"
+     BufT   t' -> "BUF_OF("   <> seaOfValType t' <> ")"
      ArrayT t' -> "ARRAY_OF(" <> seaOfValType t' <> ")"
      MapT{}    -> nope "maps not implemented"
 
