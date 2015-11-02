@@ -15,14 +15,16 @@ import           Control.Monad.Trans.Either (EitherT(..), hoistEither, left)
 import qualified Data.Map as Map
 import           Data.Text (Text)
 import qualified Data.Text as T
+import qualified Data.Vector.Storable as V
 import           Data.Vector.Storable.Mutable (IOVector)
 import qualified Data.Vector.Storable.Mutable as MV
 import           Data.Word (Word64)
 
+import           Foreign.C.String (newCString, peekCString)
 import           Foreign.ForeignPtr (ForeignPtr, touchForeignPtr, castForeignPtr)
 import           Foreign.ForeignPtr.Unsafe (unsafeForeignPtrToPtr)
 import           Foreign.Marshal (mallocBytes, free)
-import           Foreign.Ptr (Ptr)
+import           Foreign.Ptr (Ptr, WordPtr, ptrToWordPtr, wordPtrToPtr)
 import           Foreign.Storable (Storable(..))
 
 import           Icicle.Avalanche.Prim.Flat (Prim)
@@ -44,6 +46,7 @@ import           Jetski
 import           P hiding (count)
 
 import           System.IO (IO)
+import           System.IO.Unsafe (unsafePerformIO)
 
 import           X.Control.Monad.Catch (bracketEitherT')
 import           X.Control.Monad.Trans.Either (firstEitherT)
@@ -54,6 +57,14 @@ data SeaMVector
   = I64 (IOVector Int64)
   | U64 (IOVector Word64)
   | F64 (IOVector Double)
+  | P64 (IOVector WordPtr)
+
+instance Show SeaMVector where
+  showsPrec p sv = showParen (p > 10) $ case sv of
+    I64 v -> showString "I64 " . showsPrec 11 (unsafePerformIO (V.unsafeFreeze v))
+    U64 v -> showString "U64 " . showsPrec 11 (unsafePerformIO (V.unsafeFreeze v))
+    F64 v -> showString "F64 " . showsPrec 11 (unsafePerformIO (V.unsafeFreeze v))
+    P64 v -> showString "P64 " . showsPrec 11 (unsafePerformIO (V.unsafeFreeze v))
 
 data SeaError
   = SeaJetskiError              JetskiError
@@ -102,10 +113,15 @@ seaEval :: (Show a, Show n, Pretty n, Ord n)
 seaEval program date values = do
   let words = stateWordsOfProgram program
 
-  facts <- case factVarsOfProgram FactLoopNew program of
-             Nothing     -> left SeaNoFactLoop
-             Just (t, _) -> vectorsOfFacts values t
+      acquireFacts =
+        case factVarsOfProgram FactLoopNew program of
+          Nothing     -> left SeaNoFactLoop
+          Just (t, _) -> vectorsOfFacts values t
 
+      releaseFacts facts =
+        traverse_ freeSeaVector facts
+
+  bracketEitherT' acquireFacts releaseFacts $ \facts -> do
   withWords      words $ \pState -> do
   withSeaVectors facts $ \count psFacts -> do
 
@@ -123,11 +139,10 @@ seaEval program date values = do
 
     zipWithM_ (pokeWordOff pState) [factsIx..] psFacts
 
-    let code    = textOfDoc (seaOfProgram program)
-        acquire = firstEitherT SeaJetskiError (compileLibrary compilerOptions code)
-        release = releaseLibrary
+    let code           = textOfDoc (seaOfProgram program)
+        acquireLibrary = firstEitherT SeaJetskiError (compileLibrary compilerOptions code)
 
-    bracketEitherT' acquire release $ \lib -> do
+    bracketEitherT' acquireLibrary releaseLibrary $ \lib -> do
 
       compute <- firstEitherT SeaJetskiError (function lib "compute" retVoid)
       _       <- liftIO (compute [argPtr pState])
@@ -157,12 +172,23 @@ lengthOfSeaVector = \case
   I64 v -> MV.length v
   U64 v -> MV.length v
   F64 v -> MV.length v
+  P64 v -> MV.length v
 
 ptrOfSeaVector :: SeaMVector -> ForeignPtr Word64
 ptrOfSeaVector = \case
   I64 v -> castForeignPtr . fst $ MV.unsafeToForeignPtr0 v
   U64 v -> castForeignPtr . fst $ MV.unsafeToForeignPtr0 v
   F64 v -> castForeignPtr . fst $ MV.unsafeToForeignPtr0 v
+  P64 v -> castForeignPtr . fst $ MV.unsafeToForeignPtr0 v
+
+freeSeaVector :: MonadIO m => SeaMVector -> m ()
+freeSeaVector = \case
+  I64 _  -> return ()
+  U64 _  -> return ()
+  F64 _  -> return ()
+  P64 mv -> do
+    v <- liftIO (V.unsafeFreeze mv)
+    V.mapM_ freeWordPtr v
 
 
 withSeaVectors :: [SeaMVector]
@@ -182,7 +208,6 @@ withSeaVector sv io =
 
 ------------------------------------------------------------------------
 
-
 vectorsOfFacts :: [D.AsAt D.Value] -> ValType -> EitherT SeaError IO [SeaMVector]
 vectorsOfFacts vs t = do
   case traverse (\v -> asAtValueToCore v t) vs of
@@ -201,8 +226,8 @@ newSeaVectors sz t =
     BoolT{}     -> (:[]) . U64 <$> liftIO (MV.new sz)
     DateTimeT{} -> (:[]) . I64 <$> liftIO (MV.new sz)
     ErrorT{}    -> (:[]) . U64 <$> liftIO (MV.new sz)
+    StringT{}   -> (:[]) . P64 <$> liftIO (MV.new sz)
 
-    StringT{}   -> left (SeaTypeConversionError t)
     ArrayT{}    -> left (SeaTypeConversionError t)
     MapT{}      -> left (SeaTypeConversionError t)
     BufT{}      -> left (SeaTypeConversionError t)
@@ -245,6 +270,12 @@ pokeInput' svs0@(sv:svs) t ix val =
     (I64 v, VDateTime x, DateTimeT{}) -> pure svs <* liftIO (MV.write v ix (wordOfDate x))
     (U64 v, VError    x, ErrorT{})    -> pure svs <* liftIO (MV.write v ix (wordOfError x))
 
+    (P64 v, VString  xs, StringT{})
+     -> do let str = T.unpack xs
+           ptr <- ptrToWordPtr <$> liftIO (newCString str)
+           liftIO (MV.write v ix ptr)
+           pure svs
+
     (_, VPair a b, PairT ta tb)
      -> do svs1 <- pokeInput' svs0 ta ix a
            svs2 <- pokeInput' svs1 tb ix b
@@ -273,12 +304,8 @@ pokeInput' svs0@(sv:svs) t ix val =
            pure svs3
 
     (_, VStruct xs, StructT (StructType ts))
-     -> do let lookup f = \case
-                 OptionT _ -> Just (maybe VNone VSome (Map.lookup f xs))
-                 _         -> Map.lookup f xs
-
-               pokeField svs1 (f, tf) =
-                 case lookup f tf of
+     -> do let pokeField svs1 (f, tf) =
+                 case Map.lookup f xs of
                    Nothing -> left (SeaBaseValueConversionError val (Just t))
                    Just vf -> pokeInput' svs1 tf ix vf
 
@@ -310,15 +337,19 @@ peekOutput ptr ix0 t =
     DateTimeT{} -> (ix0+1,) . VDateTime . dateOfWord  <$> peekWordOff ptr ix0
     ErrorT{}    -> (ix0+1,) . VError    . errorOfWord <$> peekWordOff ptr ix0
 
-    StringT{}   -> left (SeaTypeConversionError t)
     ArrayT{}    -> left (SeaTypeConversionError t)
     MapT{}      -> left (SeaTypeConversionError t)
     StructT{}   -> left (SeaTypeConversionError t)
     BufT{}      -> left (SeaTypeConversionError t)
 
+    StringT{}
+     -> do strPtr <- wordPtrToPtr <$> peekWordOff ptr ix0
+           str    <- liftIO (peekCString strPtr)
+           pure (ix0+1, VString (T.pack str))
+
     BoolT{}
      -> do b <- peekWordOff ptr ix0
-           case (b :: Word64) of
+           case b :: Word64 of
              0 -> pure (ix0+1, VBool False)
              _ -> pure (ix0+1, VBool True)
 
@@ -351,6 +382,11 @@ withWords n = bracketEitherT' (mallocWords n) (liftIO . free)
 
 mallocWords :: MonadIO m => Int -> m (Ptr a)
 mallocWords n = liftIO (mallocBytes (n*8))
+
+freeWordPtr :: MonadIO m => WordPtr -> m ()
+freeWordPtr wp = do
+  let ptr :: Ptr Word64 = wordPtrToPtr wp
+  liftIO (free ptr)
 
 pokeWordOff :: (MonadIO m, Storable a) => Ptr x -> Int -> a -> m ()
 pokeWordOff ptr off x = liftIO (pokeByteOff ptr (off*8) x)

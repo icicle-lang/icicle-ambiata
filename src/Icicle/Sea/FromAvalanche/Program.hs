@@ -37,55 +37,56 @@ import qualified Data.Map as Map
 seaOfProgram :: (Show a, Show n, Pretty n, Ord n)
              => Program (Annot a) n Prim -> Doc
 seaOfProgram program
- =  seaPreamble
- <> vsep
-  [ "#line 1 \"state definition\""
-  , stateOfProgram program
-  , ""
-  , "#line 1 \"compute function\""
-  , "void compute(icicle_state_t *s)"
-  , "{"
-  , indent 4 . vsep
-             . fmap defOfAccumulator
-             . Map.toList
-             $ accumsOfProgram program `Map.union`
-               readsOfProgram  program
-  , ""
-  , indent 4 (seaOfStatement (statements program))
-  , "}"
-  ]
+ =  vsep
+ [ seaPreamble
+ , "#line 1 \"state definition\""
+ , stateOfProgram program
+ , ""
+ , "#line 1 \"compute function\""
+ , "void compute(icicle_state_t *s)"
+ , "{"
+ , indent 4 . vsep
+            . fmap defOfAccumulator
+            . Map.toList
+            $ accumsOfProgram program `Map.union`
+              readsOfProgram  program
+ , ""
+ , indent 4 (seaOfStatement (statements program))
+ , "}"
+ ]
 
 
 ------------------------------------------------------------------------
 
 stateOfProgram :: (Show a, Show n, Pretty n, Ord n)
                => Program (Annot a) n Prim -> Doc
-stateOfProgram program = vsep
-   [ "typedef struct {"
-   , "    /* inputs */"
-   , "    idate_t    gen_date;"
-   , "    iint_t     new_count;"
-   , indent 4 . vsep
-              . fmap defOfFactVar
-              . maybe [] snd
-              . factVarsOfProgram FactLoopNew
-              $ program
-   , ""
-   , "    /* outputs */"
-   , indent 4 . vsep
-              . concat
-              . fmap defsOfOutput
-              . outputsOfProgram
-              $ program
-   , ""
-   , "    /* resumables */"
-   , indent 4 . vsep
-              . fmap defOfResumable
-              . Map.toList
-              . resumablesOfProgram
-              $ program
-   , "} icicle_state_t;"
-   ]
+stateOfProgram program
+ = vsep
+ [ "typedef struct {"
+ , "    /* inputs */"
+ , "    idate_t    gen_date;"
+ , "    iint_t     new_count;"
+ , indent 4 . vsep
+            . fmap defOfFactVar
+            . maybe [] snd
+            . factVarsOfProgram FactLoopNew
+            $ program
+ , ""
+ , "    /* outputs */"
+ , indent 4 . vsep
+            . concat
+            . fmap defsOfOutput
+            . outputsOfProgram
+            $ program
+ , ""
+ , "    /* resumables */"
+ , indent 4 . vsep
+            . fmap defOfResumable
+            . Map.toList
+            . resumablesOfProgram
+            $ program
+ , "} icicle_state_t;"
+ ]
 
 stateWordsOfProgram :: Ord n => Program (Annot a) n Prim -> Int
 stateWordsOfProgram program

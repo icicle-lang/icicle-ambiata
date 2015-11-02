@@ -39,7 +39,7 @@ prefixOfValType t
      DateTimeT -> "idate_"
      ErrorT    -> "ierror_"
 
-     StringT   -> nope "strings not implemented"
+     StringT   -> "istring_"
      BufT   t' -> "ibuf__"   <> prefixOfValType t'
      ArrayT t' -> "iarray__" <> prefixOfValType t'
      MapT{}    -> nope "maps not implemented"
@@ -62,7 +62,7 @@ seaOfValType t
      DateTimeT -> "idate_t   "
      ErrorT    -> "ierror_t  "
 
-     StringT   -> nope "strings not implemented"
+     StringT   -> "istring_t "
      BufT   t' -> "BUF_OF("   <> seaOfValType t' <> ")"
      ArrayT t' -> "ARRAY_OF(" <> seaOfValType t' <> ")"
      MapT{}    -> nope "maps not implemented"

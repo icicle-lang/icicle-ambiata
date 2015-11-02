@@ -30,3 +30,9 @@ static idouble_t INLINE idouble_exp   (idouble_t x)              { return exp(x)
 
 MK_SIMPLE_CMPS(idouble_t, idouble_)
 
+static ibool_t   INLINE istring_gt    (istring_t x, istring_t y) { return strcmp(x, y) >  0; }
+static ibool_t   INLINE istring_ge    (istring_t x, istring_t y) { return strcmp(x, y) >= 0; }
+static ibool_t   INLINE istring_lt    (istring_t x, istring_t y) { return strcmp(x, y) <  0; }
+static ibool_t   INLINE istring_le    (istring_t x, istring_t y) { return strcmp(x, y) <= 0; }
+static ibool_t   INLINE istring_eq    (istring_t x, istring_t y) { return strcmp(x, y) == 0; }
+static ibool_t   INLINE istring_ne    (istring_t x, istring_t y) { return strcmp(x, y) != 0; }
