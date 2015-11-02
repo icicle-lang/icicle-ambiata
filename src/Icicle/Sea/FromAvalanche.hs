@@ -269,6 +269,18 @@ seaOfXPrim p
      PrimMinimal (M.PrimRelation op t)
       -> prefixOfValType t <> seaOfPrimRelation op
 
+     PrimProject op
+      -> seaOfPrimProject op
+
+     PrimUnsafe op
+      -> seaOfPrimUnsafe op
+
+     PrimUpdate op
+      -> seaOfPrimUpdate op
+
+     PrimArray op
+      -> seaOfPrimArray op
+
      _
       -> seaError "seaOfXPrim" p
 
@@ -304,6 +316,40 @@ seaOfPrimRelation p
      M.PrimRelationEq -> "eq"
      M.PrimRelationNe -> "ne"
 
+seaOfPrimProject :: PrimProject -> Doc
+seaOfPrimProject p
+ = case p of
+     PrimProjectArrayLength t
+      -> prefixOfValType t <> "length"
+     _
+      -> seaError "seaOfPrimProject" p
+
+seaOfPrimUnsafe :: PrimUnsafe -> Doc
+seaOfPrimUnsafe p
+ = case p of
+     PrimUnsafeArrayIndex t
+      -> prefixOfValType t <> "index"
+     PrimUnsafeArrayCreate t
+      -> prefixOfValType t <> "create"
+     _
+      -> seaError "seaOfPrimUnsafe" p
+
+seaOfPrimUpdate :: PrimUpdate -> Doc
+seaOfPrimUpdate p
+ = case p of
+     PrimUpdateArrayPut t
+      -> prefixOfValType t <> "put"
+     _
+      -> seaError "seaOfPrimUpdate" p
+
+seaOfPrimArray :: PrimArray -> Doc
+seaOfPrimArray p
+ = case p of
+     _
+      -> seaError "seaOfPrimArray" p
+
+
+
 prefixOfArithType :: ArithType -> Doc
 prefixOfArithType t
  = case t of
@@ -323,7 +369,7 @@ prefixOfValType t
 
      StringT   -> nope "strings not implemented"
      BufT{}    -> nope "buffers not implemented"
-     ArrayT{}  -> nope "arrays not implemented"
+     ArrayT{}  -> "ARRAY_PREFIX(" <> prefixOfValType t <> ")"
      MapT{}    -> nope "maps not implemented"
 
      StructT{} -> nope "structs should have been melted"
@@ -346,7 +392,7 @@ seaOfValType t
 
      StringT   -> nope "strings not implemented"
      BufT{}    -> nope "buffers not implemented"
-     ArrayT{}  -> nope "arrays not implemented"
+     ArrayT t' -> "ARRAY_OF(" <> seaOfValType t' <> ")"
      MapT{}    -> nope "maps not implemented"
 
      StructT{} -> nope "structs should have been melted"
