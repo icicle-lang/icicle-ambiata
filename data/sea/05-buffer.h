@@ -15,10 +15,10 @@ typedef struct
 
 */
 
-#define BUF_OF(t)   ibuf_t__##t
+#define BUF(t)         ibuf_t__##t
 #define BUF_FUN(f,pre) ibuf__##pre##f
 
-#define MK_BUF_STRUCT(t) typedef ibuf_struct* BUF_OF(t);
+#define MK_BUF_STRUCT(t) typedef ibuf_struct* BUF(t);
 
 #define BUF_PAYLOAD(x,t) ((t*)(x+1))
 
@@ -41,11 +41,11 @@ Make
 
 */
 #define MK_BUF_MAKE(t,pre)                                                      \
-    static BUF_OF(t) INLINE BUF_FUN(make,pre)                                   \
+    static BUF(t) INLINE BUF_FUN(make,pre)                                      \
                      (imempool_t *pool, iint_t sz)                              \
     {                                                                           \
-        size_t bytes     = sizeof(t) * sz + sizeof(ibuf_struct);                \
-        BUF_OF(t) ret    = (BUF_OF(t))imempool_alloc(pool, bytes);              \
+        size_t bytes  = sizeof(t) * sz + sizeof(ibuf_struct);                   \
+        BUF(t) ret    = (BUF(t))imempool_alloc(pool, bytes);                    \
         ret->max_size = sz;                                                     \
         ret->cur_size = 0;                                                      \
         ret->head     = 0;                                                      \
@@ -86,7 +86,7 @@ Push(buf, val)
 */
 
 #define MK_BUF_PUSH(t,pre)                                                      \
-    static BUF_OF(t) INLINE BUF_FUN(push,pre) (BUF_OF(t) buf, t val)            \
+    static BUF(t) INLINE BUF_FUN(push,pre) (BUF(t) buf, t val)                  \
     {                                                                           \
         iint_t head_new = (buf->cur_size < buf->max_size)                       \
                         ?  buf->head                                            \
@@ -106,14 +106,6 @@ Push(buf, val)
     }
 
 
-
-                                                                                \
-                                                                                \
-                                                                                \
-                                                                                \
-                                                                                \
-
-
 /*
 Read(buf)
  Pre
@@ -123,10 +115,10 @@ Read(buf)
 */
 
 #define MK_BUF_READ(t,pre)                                                      \
-    static ARRAY_OF(t) INLINE BUF_FUN(read,pre)                                 \
-                       (imempool_t *pool, BUF_OF(t) buf)                        \
+    static ARRAY(t) INLINE BUF_FUN(read,pre)                                    \
+                    (imempool_t *pool, BUF(t) buf)                              \
     {                                                                           \
-        ARRAY_OF(t) out = ARRAY_FUN(create,pre)(pool, buf->cur_size);           \
+        ARRAY(t) out = ARRAY_FUN(create,pre)(pool, buf->cur_size);              \
                                                                                 \
         for (iint_t ix = 0; ix != buf->cur_size; ++ix)                          \
         {                                                                       \
@@ -143,7 +135,7 @@ Read(buf)
     MK_BUF_STRUCT (t)                                                           \
     MK_BUF_MAKE   (t,pre)                                                       \
     MK_BUF_PUSH   (t,pre)                                                       \
-    MK_BUF_READ   (t,pre)                                                       \
+    MK_BUF_READ   (t,pre)
 
 MAKE_BUF(idouble_t,   idouble_)
 MAKE_BUF(iint_t,      iint_)

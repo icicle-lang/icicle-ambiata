@@ -62,11 +62,11 @@ stateOfProgram program
  = vsep
  [ "typedef struct {"
  , "    /* runtime */"
- , "    imempool_t mempool;"
+ , "    imempool_t       mempool;"
  , ""
  , "    /* inputs */"
- , "    idate_t    gen_date;"
- , "    iint_t     new_count;"
+ , "    idate_t          gen_date;"
+ , "    iint_t           new_count;"
  , indent 4 . vsep
             . fmap defOfFactVar
             . maybe [] snd
