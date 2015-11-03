@@ -14,11 +14,16 @@ import qualified Icicle.Avalanche.Eval      as AE
 import qualified Icicle.Avalanche.Statement.Flatten   as AF
 import qualified Icicle.Avalanche.Prim.Eval as AE
 import qualified Icicle.Avalanche.Simp      as AS
+import qualified Icicle.Avalanche.Check     as AC
+import qualified Icicle.Avalanche.Prim.Flat as APF
 
 import           Icicle.Common.Base
+import           Icicle.Common.Annot
+import           Icicle.Common.Type
 import qualified Icicle.Common.Fresh                as Fresh
 
 import           Icicle.Internal.Pretty
+
 import           Data.Either.Combinators
 
 import           P
@@ -62,15 +67,14 @@ prop_flatten_simp_commutes_value t =
  $ \p ->
  forAll (inputsForType t)
  $ \(vs,d) ->
-    P.isRight     (checkProgram p) ==>
-     let p' = AC.programFromCore namer p
-
-         eval xp = AE.evalProgram xp d vs
-
-         counter = (Fresh.counterNameState (Name . Var "anf") 0)
-         conv = Fresh.runFreshT (AF.flatten () $ AP.statements p') counter
-         simp (c,s') =( s', Fresh.runFresh (AS.simpFlattened () (p'{AP.statements = s'})) c )
-
+    P.isRight (checkProgram p) ==>
+     let eval xp  = AE.evalProgram xp d vs
+         counter  = (Fresh.counterNameState (Name . Var "anf") 0)
+         counter' = (Fresh.counterNameState (Name . Var "simp") 0)
+         dummyAnn = Annot (FunT [] ErrorT) ()
+         simp s'  = (s', Fresh.runFresh (AS.simpFlattened dummyAnn (avalanched {AP.statements = s'})) counter')
+         replaceStmts prog stms
+          = prog { AP.statements = stms }
          compareEvalResult xv yv =
            let xv' = mapRight snd (mapLeft show xv)
                yv' = mapRight snd (mapLeft show yv)
@@ -78,15 +82,20 @@ prop_flatten_simp_commutes_value t =
               either (counterexample . show . pretty) (const id) yv $
               xv' === yv'
 
-     in case simp <$> conv of
-         Left e
-          -> counterexample (show e)
-           $ counterexample (show $ pretty p')
-             False
-         Right (s', (_, p''))
-          -> counterexample (show $ pretty (p' { AP.statements = s' }))
-           $ counterexample (show $ pretty p'')
-             (eval XV.evalPrim p' `compareEvalResult` eval AE.evalPrim p'')
+         avalanched = AC.programFromCore namer p
+         flattened  = Fresh.runFreshT (AF.flatten () $ AP.statements avalanched) counter
+         checked    = mapRight (AC.checkProgram APF.flatFragment) (fmap (replaceStmts avalanched . snd) flattened)
+     in  case (fmap (fmap (simp . AP.statements)) $ checked) of -- simp <$> checked' of
+                  Left e
+                   -> counterexample (show e)
+                    $ counterexample (show $ pretty avalanched)
+                      False
+                  Right (Left _)
+                   -> discard -- not well-typed avalanche
+                  Right (Right (s', (_, p'')))
+                   -> counterexample ("FLATTENED:\n" <> show (pretty s' <> "\n")) -- (avalanched { AP.statements = s' }))
+                    $ counterexample ("SIMPED:\n" <> show (pretty p''))
+                      (eval XV.evalPrim avalanched `compareEvalResult` eval AE.evalPrim p'')
 
 
 return []

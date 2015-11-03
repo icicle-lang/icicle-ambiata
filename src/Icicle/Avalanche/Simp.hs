@@ -41,9 +41,7 @@ simpFlattened
   -> Fresh n (Program (Annot a) n Prim)
 simpFlattened a_fresh p
  = do p' <- transformX return (simp a_fresh) p
-      -- s' <- (forwardStmts a_fresh $ pullLets $ statements p')
-         -- >>= melt   a_fresh
-      s' <- melt a_fresh (statements p')
+      s' <-  melt a_fresh (statements p')
          >>= forwardStmts a_fresh . pullLets
          >>= crunch
          >>= crunch
@@ -60,8 +58,8 @@ simpFlattened a_fresh p
 
  where
   crunch ss
-   =   constructor  a_fresh (pullLets ss)
-   >>= forwardStmts a_fresh
+   =   constructor  a_fresh  (pullLets ss)
+   >>= forwardStmts a_fresh . pullLets
    >>= nestBlocks   a_fresh
    >>= thresher     a_fresh
 

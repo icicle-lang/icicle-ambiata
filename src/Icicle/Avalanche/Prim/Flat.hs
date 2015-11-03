@@ -56,9 +56,9 @@ data Prim
 
 
 data PrimProject
- = PrimProjectArrayLength ValType
- | PrimProjectMapLength   ValType ValType
- | PrimProjectMapLookup   ValType ValType
+ = PrimProjectArrayLength  ValType
+ | PrimProjectMapLength    ValType ValType
+ | PrimProjectMapLookup    ValType ValType
  | PrimProjectOptionIsSome ValType
  | PrimProjectSumIsRight   ValType ValType
  deriving (Eq, Ord, Show)

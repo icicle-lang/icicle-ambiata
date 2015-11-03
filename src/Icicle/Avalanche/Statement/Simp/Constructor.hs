@@ -19,6 +19,8 @@ import              P
 import qualified    Data.List as List
 
 
+-- | Simplify applied primitives.
+--
 constructor :: Ord n => a -> Statement a n Prim -> Fresh n (Statement a n Prim)
 constructor a_fresh statements
  = transformUDStmt goS emptyExpEnv statements
@@ -55,6 +57,7 @@ constructor a_fresh statements
            -> ret s
 
   goX env x
+   -- min
    | Just (PrimMinimal (Min.PrimPair (Min.PrimPairFst _ _)), [n]) <- takePrimApps x
    , Just x' <- resolve env n
    , Just (_,_,a,_) <- fromPair x'
@@ -65,20 +68,35 @@ constructor a_fresh statements
    , Just (_,_,_,b) <- fromPair x'
    = b
 
+   -- safe projections
+   | Just (PrimProject (PrimProjectArrayLength _), [XVar _ n]) <- takePrimApps x
+   , Just x' <- get env n
+   , Just (ta, _, a, _) <- fromZippedArray x'
+   = xPrim (PrimProject $ PrimProjectArrayLength ta)
+    `xApp` a
+
    | Just (PrimProject (PrimProjectOptionIsSome _), [n]) <- takePrimApps x
    , Just x' <- resolve env n
    , Just (_,b,_) <- fromOption x'
    = b
 
-   | Just (PrimUnsafe (PrimUnsafeOptionGet _), [n]) <- takePrimApps x
-   , Just x' <- resolve env n
-   , Just (_,_,v) <- fromOption x'
-   = v
-
    | Just (PrimProject (PrimProjectSumIsRight _ _), [n]) <- takePrimApps x
    , Just x' <- resolve env n
    , Just (_,_,i,_,_) <- fromSum x'
    = i
+
+   -- unsafe projections
+   | Just (PrimUnsafe (PrimUnsafeArrayIndex _), [XVar _ n, ix]) <- takePrimApps x
+   , Just x' <- get env n
+   , Just (ta, tb, a, b) <- fromZippedArray x'
+   = xPrim (PrimMinimal $ Min.PrimConst $ Min.PrimConstPair ta tb)
+    `xApp` (xPrim (PrimUnsafe (PrimUnsafeArrayIndex ta)) `xApp` a `xApp` ix)
+    `xApp` (xPrim (PrimUnsafe (PrimUnsafeArrayIndex tb)) `xApp` b `xApp` ix)
+
+   | Just (PrimUnsafe (PrimUnsafeOptionGet _), [n]) <- takePrimApps x
+   , Just x' <- resolve env n
+   , Just (_,_,v) <- fromOption x'
+   = v
 
    | Just (PrimUnsafe (PrimUnsafeSumGetLeft _ _), [n]) <- takePrimApps x
    , Just x' <- resolve env n
@@ -90,21 +108,9 @@ constructor a_fresh statements
    , Just (_,_,_,_,b) <- fromSum x'
    = b
 
-   | Just (PrimUnsafe (PrimUnsafeArrayIndex _), [XVar _ n, ix]) <- takePrimApps x
-   , Just x' <- get env n
-   , Just (ta, tb, a, b) <- fromZippedArray x'
-   = xPrim (PrimMinimal $ Min.PrimConst $ Min.PrimConstPair ta tb)
-    `xApp` (xPrim (PrimUnsafe (PrimUnsafeArrayIndex ta)) `xApp` a `xApp` ix)
-    `xApp` (xPrim (PrimUnsafe (PrimUnsafeArrayIndex tb)) `xApp` b `xApp` ix)
-
-   | Just (PrimProject (PrimProjectArrayLength _), [XVar _ n]) <- takePrimApps x
-   , Just x' <- get env n
-   , Just (ta, _, a, _) <- fromZippedArray x'
-   = xPrim (PrimProject $ PrimProjectArrayLength ta)
-    `xApp` a
-
    | otherwise
    = x
+
 
   fromZippedArray x
    | Just (PrimArray (PrimArrayZip ta tb), [a, b]) <- takePrimApps x
@@ -112,12 +118,19 @@ constructor a_fresh statements
    | otherwise
    = Nothing
 
+
   fromPair x
    | XValue _ (PairT ta tb) (VPair a b) <- x
    = Just (ta, tb, xValue ta a, xValue tb b)
 
    | Just (PrimMinimal (Min.PrimConst (Min.PrimConstPair ta tb)), [a,b]) <- takePrimApps x
    = Just (ta, tb, a, b)
+
+   | Just (PrimMinimal (Min.PrimPair (Min.PrimPairFst ta tb)), [a]) <- takePrimApps x
+   = Just (ta, tb, a, xDefault tb)
+
+   | Just (PrimMinimal (Min.PrimPair (Min.PrimPairSnd ta tb)), [a]) <- takePrimApps x
+   = Just (ta, tb, a, xDefault tb)
 
    | otherwise
    = Nothing
