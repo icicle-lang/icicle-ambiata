@@ -34,7 +34,7 @@ constructor a_fresh statements
   goS env s
    = let env' = updateExpEnv s env
          go   = goX env
-         ret s' = return (env', s')
+         ret s' = return (updateExpEnv s' env', s')
      in  case s of
           If x t e
            -> ret $ If (go x) t e
