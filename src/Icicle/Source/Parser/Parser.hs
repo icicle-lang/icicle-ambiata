@@ -62,7 +62,8 @@ context
    <|> pKeyword T.Distinct *> (flip Q.Distinct <$> exp      <*> getPosition)
    <|> pKeyword T.Filter   *> (flip Q.Filter   <$> exp      <*> getPosition)
    <|> pKeyword T.Latest   *> (flip Q.Latest   <$> pLitInt  <*> getPosition)
-   <|> pKeyword T.Let      *> (cletfold <|> clet)
+   <|> pKeyword T.Let      *> clet
+   <|> cletfold
 
   cwindowed
    = cwindowed2 <|> cwindowed1

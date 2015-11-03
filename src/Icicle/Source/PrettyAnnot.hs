@@ -108,7 +108,7 @@ instance (Pretty a, Pretty n) => Pretty (PrettyAnnot (Context (Annot a n) n)) wh
                                                               <+> pretty (PrettyAnnot x)
      Distinct  a x     -> annotate (AnnType a)  "distinct"  <+> pretty (PrettyAnnot x)
      Filter    a x     -> annotate (AnnType a)  "filter"    <+> pretty (PrettyAnnot x)
-     LetFold   a f     -> annotate (AnnType a) ("let"       <+> pretty (foldType f) <+> pretty (foldBind f))
+     LetFold   a f     -> annotate (AnnType a)                 (pretty (foldType f) <+> pretty (foldBind f))
                        <> line
                        <> indent 2 ( "=" <+> pretty (PrettyAnnot $ foldInit f) <> line <>
                                      ":" <+> pretty (PrettyAnnot $ foldWork f))
