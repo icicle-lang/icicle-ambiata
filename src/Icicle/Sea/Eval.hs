@@ -245,9 +245,15 @@ newSeaVectors sz t =
     ErrorT{}    -> (:[]) . U64 <$> liftIO (MV.new sz)
     StringT{}   -> (:[]) . P64 <$> liftIO (MV.new sz)
 
-    ArrayT{}    -> left (SeaTypeConversionError t)
     MapT{}      -> left (SeaTypeConversionError t)
     BufT{}      -> left (SeaTypeConversionError t)
+
+    ArrayT tx
+     | StringT <- tx
+     -> left (SeaTypeConversionError t)
+
+     | otherwise
+     -> (:[]) . P64 <$> liftIO (MV.new sz)
 
     PairT ta tb
      -> do va <- newSeaVectors sz ta
@@ -280,17 +286,23 @@ pokeInput' :: [SeaMVector] -> ValType -> Int -> BaseValue -> EitherT SeaError IO
 pokeInput' []            t _  val = left (SeaBaseValueConversionError val (Just t))
 pokeInput' svs0@(sv:svs) t ix val =
   case (sv, val, t) of
-    (U64 v, VBool False, BoolT{})     -> pure svs <* liftIO (MV.write v ix 0)
-    (U64 v, VBool  True, BoolT{})     -> pure svs <* liftIO (MV.write v ix 1)
-    (I64 v, VInt      x, IntT{})      -> pure svs <* liftIO (MV.write v ix (fromIntegral x))
-    (F64 v, VDouble   x, DoubleT{})   -> pure svs <* liftIO (MV.write v ix x)
-    (I64 v, VDateTime x, DateTimeT{}) -> pure svs <* liftIO (MV.write v ix (wordOfDate x))
-    (U64 v, VError    x, ErrorT{})    -> pure svs <* liftIO (MV.write v ix (wordOfError x))
+    (U64 v, VBool False, BoolT)     -> pure svs <* liftIO (MV.write v ix 0)
+    (U64 v, VBool  True, BoolT)     -> pure svs <* liftIO (MV.write v ix 1)
+    (I64 v, VInt      x, IntT)      -> pure svs <* liftIO (MV.write v ix (fromIntegral x))
+    (F64 v, VDouble   x, DoubleT)   -> pure svs <* liftIO (MV.write v ix x)
+    (I64 v, VDateTime x, DateTimeT) -> pure svs <* liftIO (MV.write v ix (wordOfDate x))
+    (U64 v, VError    x, ErrorT)    -> pure svs <* liftIO (MV.write v ix (wordOfError x))
 
-    (P64 v, VString  xs, StringT{})
+    (P64 v, VString xs, StringT)
      -> do let str = T.unpack xs
            ptr <- ptrToWordPtr <$> liftIO (newCString str)
            liftIO (MV.write v ix ptr)
+           pure svs
+
+    (P64 v, VArray xs, ArrayT tx)
+     -> do ptr :: Ptr Word64 <- liftIO (mallocWords (length xs + 1))
+           pokeArray ptr tx xs
+           liftIO (MV.write v ix (ptrToWordPtr ptr))
            pure svs
 
     (_, VPair a b, PairT ta tb)
@@ -348,23 +360,31 @@ peekOutputs ptr ix ((n, (t, _)) : ots) = do
 peekOutput :: Ptr a -> Int -> ValType -> EitherT SeaError IO (Int, BaseValue)
 peekOutput ptr ix0 t =
   case t of
-    UnitT{}     -> (ix0+1,)                           <$> pure VUnit
-    IntT{}      -> (ix0+1,) . VInt      . fromInt64   <$> peekWordOff ptr ix0
-    DoubleT{}   -> (ix0+1,) . VDouble                 <$> peekWordOff ptr ix0
-    DateTimeT{} -> (ix0+1,) . VDateTime . dateOfWord  <$> peekWordOff ptr ix0
-    ErrorT{}    -> (ix0+1,) . VError    . errorOfWord <$> peekWordOff ptr ix0
+    UnitT     -> (ix0+1,)                           <$> pure VUnit
+    IntT      -> (ix0+1,) . VInt      . fromInt64   <$> peekWordOff ptr ix0
+    DoubleT   -> (ix0+1,) . VDouble                 <$> peekWordOff ptr ix0
+    DateTimeT -> (ix0+1,) . VDateTime . dateOfWord  <$> peekWordOff ptr ix0
+    ErrorT    -> (ix0+1,) . VError    . errorOfWord <$> peekWordOff ptr ix0
 
-    ArrayT{}    -> left (SeaTypeConversionError t)
-    MapT{}      -> left (SeaTypeConversionError t)
-    StructT{}   -> left (SeaTypeConversionError t)
-    BufT{}      -> left (SeaTypeConversionError t)
+    MapT{}    -> left (SeaTypeConversionError t)
+    StructT{} -> left (SeaTypeConversionError t)
+    BufT{}    -> left (SeaTypeConversionError t)
 
-    StringT{}
+    StringT
      -> do strPtr <- wordPtrToPtr <$> peekWordOff ptr ix0
            str    <- liftIO (peekCString strPtr)
            pure (ix0+1, VString (T.pack str))
 
-    BoolT{}
+    ArrayT tx
+     | StringT <- tx
+     -> left (SeaTypeConversionError t)
+
+     | otherwise
+     -> do arrPtr :: Ptr Word64 <- wordPtrToPtr <$> peekWordOff ptr ix0
+           xs <- peekArray arrPtr tx
+           pure (ix0+1, VArray xs)
+
+    BoolT
      -> do b <- peekWordOff ptr ix0
            case b :: Word64 of
              0 -> pure (ix0+1, VBool False)
@@ -385,6 +405,47 @@ peekOutput ptr ix0 t =
      -> do (ix1, vb) <- peekOutput ptr ix0 BoolT
            (ix2, vx) <- peekOutput ptr ix1 tx
            pure (ix2, if vb == VBool False then VNone else VSome vx)
+
+------------------------------------------------------------------------
+
+pokeArray :: Ptr x -> ValType -> [BaseValue] -> EitherT SeaError IO ()
+pokeArray ptr t vs = do
+  let len = fromIntegral (length vs) :: Int64
+  liftIO (pokeWordOff ptr 0 len)
+  zipWithM_ (pokeArrayIx ptr t) [1..] vs
+
+pokeArrayIx :: Ptr x -> ValType -> Int -> BaseValue -> EitherT SeaError IO ()
+pokeArrayIx ptr t ix v =
+  case (v, t) of
+    (VBool False, BoolT)     -> liftIO (pokeWordOff ptr ix (0 :: Word64))
+    (VBool  True, BoolT)     -> liftIO (pokeWordOff ptr ix (1 :: Word64))
+    (VInt      x, IntT)      -> liftIO (pokeWordOff ptr ix (fromIntegral x :: Int64))
+    (VDouble   x, DoubleT)   -> liftIO (pokeWordOff ptr ix x)
+    (VDateTime x, DateTimeT) -> liftIO (pokeWordOff ptr ix (wordOfDate x))
+    (VError    x, ErrorT)    -> liftIO (pokeWordOff ptr ix (wordOfError x))
+    _                        -> left (SeaBaseValueConversionError v (Just t))
+
+peekArray :: Ptr x -> ValType -> EitherT SeaError IO [BaseValue]
+peekArray ptr t = do
+  len <- peekWordOff ptr 0
+  traverse (peekArrayIx ptr t) [1..len]
+
+peekArrayIx :: Ptr x -> ValType -> Int -> EitherT SeaError IO BaseValue
+peekArrayIx ptr t ix =
+  case t of
+    IntT      -> VInt      . fromInt64   <$> peekWordOff ptr ix
+    DoubleT   -> VDouble                 <$> peekWordOff ptr ix
+    DateTimeT -> VDateTime . dateOfWord  <$> peekWordOff ptr ix
+    ErrorT    -> VError    . errorOfWord <$> peekWordOff ptr ix
+
+    BoolT
+     -> do b <- peekWordOff ptr ix
+           case b :: Word64 of
+             0 -> pure (VBool False)
+             _ -> pure (VBool True)
+
+    _
+     -> left (SeaTypeConversionError t)
 
 ------------------------------------------------------------------------
 
