@@ -1,13 +1,18 @@
 Plan for Ice V1.
 ---------------
 
-Assumptions
+This is what I would *really* like to get done before my internship officially ends on Friday 20th.
+That would be an ice that supports a decent chunk of Icicle, executing fast enough to be useful via the C backend.
+It will only work on the whole data set at once, with no ingests.
+
+Assumptions/limitations
 -----------
 
-1. No resumables or bubblegum used
+We can ignore a whole bunch of things:
+
+1. No resumables or bubblegum used (as all data is available)
 2. All stream input for given customer processed in single run
 3. All stream input for given customer fits in memory
-4. No runtime string generation functions (stringOfDouble#)
 
 
 Todo
@@ -28,5 +33,5 @@ Todo
 ## Low
 
 1. topic/window-frames https://github.com/ambiata/icicle/pull/133
-
+2. String generation functions eg concatenation, stringOfDouble?
 
