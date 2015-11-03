@@ -35,8 +35,8 @@ updateExpEnv s env
       -- New variables are bound, so clear the environment
       ForeachInts n _ _ _
        -> clearFromExpEnv n env
-      ForeachFacts n n' _ _ _
-       -> clearFromExpEnv n' $ clearFromExpEnv n env
+      ForeachFacts ns _ _ _
+       -> foldr (clearFromExpEnv . fst) env ns
 
       Read n _ _ _ _
       -- we need to clear any mentions of "n" from the environment

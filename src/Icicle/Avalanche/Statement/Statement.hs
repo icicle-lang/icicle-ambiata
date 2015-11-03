@@ -1,5 +1,6 @@
 -- | Statements and mutable accumulators (variables) for Avalanche
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
 module Icicle.Avalanche.Statement.Statement (
     Statement       (..)
   , Accumulator     (..)
@@ -31,7 +32,7 @@ data Statement a n p
 
  -- | A loop over all the facts.
  -- This should only occur once in the program, and not inside a loop.
- | ForeachFacts (Name n) (Name n) ValType FactLoopType (Statement a n p)
+ | ForeachFacts [(Name n, ValType)] ValType FactLoopType (Statement a n p)
 
  -- | Execute several statements in a block.
  | Block [Statement a n p]
@@ -55,7 +56,7 @@ data Statement a n p
  | Push   (Name n) (Exp a n p)
 
  -- | Emit a value to output
- | Output OutputName (Exp a n p)
+ | Output OutputName ValType [(Exp a n p, ValType)]
 
  -- | Mark the current fact as being historically relevant
  | KeepFactInHistory
@@ -152,8 +153,8 @@ transformUDStmt fun env statements
            -> Let n x <$> go e' ss
           ForeachInts n from to ss
            -> ForeachInts n from to <$> go e' ss
-          ForeachFacts n n' ty lo ss
-           -> ForeachFacts n n' ty lo <$> go e' ss
+          ForeachFacts ns ty lo ss
+           -> ForeachFacts ns ty lo <$> go e' ss
           Block ss
            -> Block <$> mapM (go e') ss
           InitAccumulator acc ss
@@ -164,8 +165,8 @@ transformUDStmt fun env statements
            -> return $ Write n x
           Push n x
            -> return $ Push n x
-          Output n x
-           -> return $ Output n x
+          Output n t xs
+           -> return $ Output n t xs
           KeepFactInHistory
            -> return $ KeepFactInHistory
           LoadResumable n t
@@ -199,7 +200,7 @@ foldStmt down up rjoin env res statements
            -> sub1 ss
           ForeachInts _ _ _ ss
            -> sub1 ss
-          ForeachFacts _ _ _ _ ss
+          ForeachFacts _ _ _ ss
            -> sub1 ss
           Block ss
            -> do    rs <- mapM (go e') ss
@@ -235,8 +236,9 @@ instance TransformX Statement where
      ForeachInts n from to ss
       -> ForeachInts <$> names n <*> exps from <*> exps to <*> go ss
 
-     ForeachFacts n1 n2 v lo ss
-      -> ForeachFacts <$> names n1 <*> names n2 <*> return v <*> return lo <*> go ss
+     ForeachFacts ns v lo ss
+      -> let name_go (n, t) = (,) <$> names n <*> pure t
+         in ForeachFacts <$> traverse name_go ns <*> return v <*> return lo <*> go ss
 
      Block ss
       -> Block <$> gos ss
@@ -251,8 +253,8 @@ instance TransformX Statement where
      Push n x
       -> Push <$> names n <*> exps x
 
-     Output n x
-      -> Output n <$> exps x
+     Output n ty xs
+      -> Output n ty <$> traverse (\(x,t) -> (,) <$> exps x <*> pure t) xs
 
      KeepFactInHistory
       -> return KeepFactInHistory
@@ -301,8 +303,8 @@ instance (Pretty n, Pretty p) => Pretty (Statement a n p) where
       -> text "for" <+> pretty n <+> text "in" <+> pretty from <+> text ".." <+> pretty to <> line
       <> semis stmts
 
-     ForeachFacts n n' t lo stmts
-      -> text "for facts as (" <> pretty n <+> text ":" <+> pretty t <> text ", " <> pretty n' <+> text ": Date) in" <+> pretty lo <> line
+     ForeachFacts ns t lo stmts
+      -> text "for facts : [" <> pretty t <> text "] as" <+> prettyFactParts ns <+> text "in" <+> pretty lo <> line
       <> semis stmts
 
      Block stmts
@@ -320,16 +322,16 @@ instance (Pretty n, Pretty p) => Pretty (Statement a n p) where
      Push n x
       -> text "push" <+> pretty n <+> text "=" <+> pretty x
 
-     Output n x
-      -> text "output" <+> pretty n <+> pretty x
+     Output n t xs
+      -> text "output" <+> pretty n <+> pretty t <+> pretty xs
 
      KeepFactInHistory
       -> text "keep_fact_in_history"
 
      LoadResumable n t
-      -> text "load_resumable" <+> pretty n <+> brackets (pretty t)
+      -> annotate (AnnType t) "load_resumable" <+> pretty n
      SaveResumable n t
-      -> text "save_resumable" <+> pretty n <+> brackets (pretty t)
+      -> annotate (AnnType t) "save_resumable" <+> pretty n
 
 
   where
@@ -344,10 +346,13 @@ instance (Pretty n, Pretty p) => Pretty (Statement a n p) where
    inde Block{} = 2
    inde _       = 0
 
+   prettyFactPart (nf, tf) = pretty nf <+> text ":" <+> pretty tf
+   prettyFactParts         = parens . align . cat . punctuate comma . fmap prettyFactPart
+
 
 instance (Pretty n, Pretty p) => Pretty (Accumulator a n p) where
  pretty (Accumulator n at vt x)
-  = brackets (pretty at) <+> brackets (pretty vt) <+> pretty n <+> text "=" <+> pretty x
+  = annotate (AnnType (pretty at <+> pretty vt)) (pretty n) <+> text "=" <+> pretty x
 
 instance Pretty AccumulatorType where
  pretty Latest  = text "Latest"

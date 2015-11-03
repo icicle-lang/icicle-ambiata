@@ -1,6 +1,9 @@
 -- Show everything
-:set +type +core +core-simp +core-type +avalanche +flatten
+:set +core-simp +avalanche
 
 -- A rather complicated feature to convert to Avalanche
-feature salary ~> (filter value > 10 ~> count), (latest 3 ~> value)
+feature salary ~> (filter value > 10 ~> count value), (latest 3 ~> value)
+
+-- Something involves the abstract buffer type
+feature salary ~> group date ~> latest 2 ~> sum value
 

@@ -23,6 +23,7 @@ module Icicle.Source.Checker.Base (
   , withBind
   , removeElementBinds
 
+  , substE
   , substTQ
   , substTX
   , substAnnot
@@ -58,12 +59,16 @@ data CheckEnv a n
  }
 
 -- | Typechecking invariants that aren't checked by the type system.
+--   i.e. unimplemented things.
+--
 data Invariants
  = Invariants
  -- | We can't have windows or other group-like things inside groups.
  -- This is actually treating all of latests, distincts and groups as "group-like"
  -- because they all require compilation to a single fold.
  { allowWindowsOrGroups :: Bool
+ -- | Latest is good now
+ , allowLatest :: Bool
  }
 
 -- | Initial environment at top-level, not inside a group, and allowing contexts
@@ -72,7 +77,7 @@ emptyCheckEnv
  = CheckEnv Map.empty Map.empty emptyInvariants
 
 emptyInvariants :: Invariants
-emptyInvariants = Invariants True
+emptyInvariants = Invariants True True
 
 --------------------------------------------------------------------------------
 
@@ -191,15 +196,17 @@ removeElementBinds env
    = getTemporalityOrPure (functionReturn ft) == TemporalityElement
 
 
+substE :: Ord n => SubstT n -> GenEnv n -> GenEnv n
+substE s
+ = fmap (substFT s)
+
 substTQ :: Ord n => SubstT n -> Query'C a n -> Query'C a n
 substTQ s
  = reannotQ (substAnnot s)
 
-
 substTX :: Ord n => SubstT n -> Exp'C a n -> Exp'C a n
 substTX s
  = reannotX (substAnnot s)
-
 
 substAnnot :: Ord n => SubstT n -> Annot a n -> Annot a n
 substAnnot s ann

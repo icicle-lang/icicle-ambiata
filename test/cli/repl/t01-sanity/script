@@ -2,16 +2,16 @@
 feature salary ~> sum value
 
 -- Tuples
-feature salary ~> (sum value, count)
+feature salary ~> (sum value, count value)
 
 -- Now let's try average. Expect 300 and 10.
-feature salary ~> double (sum value) / count
+feature salary ~> double (sum value) / count value
 
 -- Filtering
-feature salary ~> filter value > 10 ~> count
+feature salary ~> filter value > 10 ~> count value
 
 -- Average of latest 3 entries
-feature salary ~> latest 3 ~> sum (double value) / count
+feature salary ~> latest 3 ~> sum (double value) / count value
 
 -- Now should collect the current date
 feature salary ~> now

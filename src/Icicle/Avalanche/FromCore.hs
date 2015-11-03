@@ -21,11 +21,13 @@ import qualified    Icicle.Common.Exp.Prim.Minimal as Min
 import              Icicle.Avalanche.Statement.Statement as A
 import              Icicle.Avalanche.Program    as A
 import qualified    Icicle.Core.Program.Program as C
+import qualified    Icicle.Core.Program.Check   as C
 import qualified    Icicle.Core.Reduce          as CR
 import qualified    Icicle.Core.Stream          as CS
 
 import              P
-import              Data.Text (Text)
+import              Data.String
+import qualified    Data.Map as Map
 
 
 data Namer n
@@ -41,12 +43,12 @@ data Namer n
  , namerFact       :: Name n
  }
 
-namerText :: (Text -> n) -> Namer n
+namerText :: IsString a => (a -> n) -> Namer n
 namerText f
- = Namer (NameMod (f "elem"))
-         (NameMod (f "acc"))
-         (NameMod (f "gen") $ Name (f "date"))
-         (NameMod (f "gen") $ Name (f "fact"))
+ = Namer (NameMod (f (fromString "elem")))
+         (NameMod (f (fromString "acc")))
+         (NameMod (f (fromString "gen")) $ Name (f (fromString "date")))
+         (NameMod (f (fromString "gen")) $ Name (f (fromString "fact")))
 
 
 -- | Convert an entire program to Avalanche
@@ -56,7 +58,9 @@ programFromCore :: Ord n
                 -> A.Program () n Prim
 programFromCore namer p
  = A.Program
- { A.binddate
+ { A.input
+    = C.input p
+ , A.binddate
     = namerDate namer
  , A.statements
     = lets (C.precomps p)
@@ -83,31 +87,40 @@ programFromCore namer p
   factLoopHistory
    = factLoop FactLoopHistory (filter (readFromHistory.snd) $ C.reduces p)
 
-  readFromHistory r
-   = case r of
-      CR.RLatest{} -> True
-      CR.RFold _ _ _ _ inp -> CS.isStreamWindowed (C.streams p) inp
+  readFromHistory (CR.RFold _ _ _ _ inp)
+   = CS.isStreamWindowed (C.streams p) inp
 
   -- Nest the streams into a single loop
   factLoopNew
    = factLoop FactLoopNew (C.reduces p)
 
   factLoop loopType reduces
-   = ForeachFacts (namerElemPrefix namer $ namerFact namer) (namerElemPrefix namer $ namerDate namer) (C.input p) loopType
-   $ Let (namerFact namer)
-        (xPrim (PrimMinimal $ Min.PrimConst $ Min.PrimConstPair (C.input p) DateTimeT)
-        `xApp` (xVar $ namerElemPrefix namer $ namerFact namer)
-        `xApp` (xVar $ namerElemPrefix namer $ namerDate namer))
+   = ForeachFacts [(namerFact namer, PairT (C.input p) DateTimeT)]
+                  (PairT (C.input p) DateTimeT) loopType
+   $ Let (namerElemPrefix namer $ namerFact namer)
+        (xPrim (PrimMinimal $ Min.PrimPair $ Min.PrimPairFst (C.input p) DateTimeT)
+        `xApp` (xVar $ namerFact namer))
+   $ Let (namerElemPrefix namer $ namerDate namer)
+        (xPrim (PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd (C.input p) DateTimeT)
+        `xApp` (xVar $ namerFact namer))
    $ Block
    $ makeStatements namer (C.input p) (C.streams p) reduces
 
+  outputExps
+   = Map.fromList (C.returns p)
+
+  outputTypes
+   = Map.fromList
+   $ mapMaybe (\(n,t) -> (,) <$> pure n <*> fromFunT t)
+   $ either (const []) id (C.checkProgram p)
+
+  fromFunT (FunT [] t) = Just t
+  fromFunT _           = Nothing
+
   outputs
    = Block
-   $ fmap (uncurry A.Output) (C.returns p)
-
-  -- Create a latest accumulator
-  accum (n, CR.RLatest ty x _)
-   = A.Accumulator (namerAccPrefix namer n) A.Latest ty x
+   $ Map.elems
+   $ Map.intersectionWithKey (\n x t -> A.Output n t [(x, t)]) outputExps outputTypes
 
   -- Fold accumulator
   accum (n, CR.RFold _ ty _ x _)
@@ -115,16 +128,9 @@ programFromCore namer p
 
   loadResumables (n, CR.RFold _ ty _ _ _)
    = LoadResumable (namerAccPrefix namer n) ty
-  loadResumables _
-   = mempty
 
   saveResumables (n, CR.RFold _ ty _ _ _)
    = SaveResumable (namerAccPrefix namer n) ty
-  saveResumables _
-   = mempty
-
-  readaccum (n, CR.RLatest ty _ _)
-   = Read n (namerAccPrefix namer n) A.Latest ty
 
   readaccum (n, CR.RFold _ ty _ _ _)
    = Read n (namerAccPrefix namer n) A.Mutable ty
@@ -257,7 +263,4 @@ statementOfReduce namer strs (n,r)
                                        `xApp` (xVar $ namerElemPrefix namer inp))
 
         in  Read n' n' A.Mutable ty (Write n' x <> k')
-    -- Push most recent inp
-    CR.RLatest _ _ inp
-     -> Push (namerAccPrefix namer n) (xVar $ namerElemPrefix namer inp)
 

@@ -21,7 +21,7 @@ import                  Icicle.Common.Base         as B
 
 import                  P hiding (exp)
 
-import                  Text.Parsec (many1, parserFail, getPosition, eof, (<?>), sepEndBy, try)
+import                  Text.Parsec (many1, parserFail, getPosition, eof, (<?>), sepEndBy, try, notFollowedBy)
 
 top :: OutputName -> Parser (Q.QueryTop T.SourcePos Var)
 top name
@@ -63,7 +63,8 @@ context
    <|> pKeyword T.Distinct *> (flip Q.Distinct <$> exp      <*> getPosition)
    <|> pKeyword T.Filter   *> (flip Q.Filter   <$> exp      <*> getPosition)
    <|> pKeyword T.Latest   *> (flip Q.Latest   <$> pLitInt  <*> getPosition)
-   <|> pKeyword T.Let      *> (cletfold <|> clet)
+   <|> pKeyword T.Let      *> clet
+   <|> cletfold
 
   cwindowed frame
    = cwindowed2 frame <|> cwindowed1 frame
@@ -143,9 +144,11 @@ exp1
   prims
    =  asum (fmap (\(k,q) -> pKeyword k *> return q) primitives)
    <|> try ((Q.Fun Q.DaysBetween) <$  pKeyword T.Days <* pKeyword T.Between)
+   <|> try ((Q.Fun Q.DaysEpoch) <$  pKeyword T.Days <* notFollowedBy (pKeyword T.Before <|> pKeyword T.After))
    <|> ((Q.Lit . Q.LitInt)    <$> pLitInt)
    <|> ((Q.Lit . Q.LitDouble) <$> pLitDouble)
    <|> ((Q.Lit . Q.LitString) <$> pLitString)
+   <|> ((Q.Lit . Q.LitDate)   <$> pLitDate)
    <|> (Q.PrimCon             <$> constructor)
    <?> "primitive"
 
@@ -188,5 +191,6 @@ primitives
    ,(T.Exp,     Q.Fun Q.Exp)
    ,(T.Double,  Q.Fun Q.ToDouble)
    ,(T.Int,     Q.Fun Q.ToInt)
+   ,(T.Seq,     Q.Fun Q.Seq)
    ]
 

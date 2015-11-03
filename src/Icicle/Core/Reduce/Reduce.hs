@@ -1,5 +1,6 @@
 -- | Reductions over a stream
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
 module Icicle.Core.Reduce.Reduce (
       Reduce     (..)
     , renameReduce
@@ -18,19 +19,16 @@ import              P
 
 data Reduce a n
  = RFold   ValType ValType (Exp a n) (Exp a n) (Name n)
- | RLatest ValType         (Exp a n)           (Name n)
  deriving (Eq,Ord,Show)
 
 
 renameReduce :: (Name n -> Name n') -> Reduce a n -> Reduce a n'
 renameReduce f (RFold t a k z n) = RFold t a (renameExp f k) (renameExp f z) (f n)
-renameReduce f (RLatest t   x n) = RLatest t                 (renameExp f x) (f n)
 
 
 -- | Get name of input stream for given reduction
 inputOfReduce :: Reduce a n -> Name n
 inputOfReduce (RFold _ _ _ _ inp) = inp
-inputOfReduce (RLatest   _ _ inp) = inp
 
 
 -- Pretty printing ---------------
@@ -38,12 +36,6 @@ inputOfReduce (RLatest   _ _ inp) = inp
 
 instance (Pretty n) => Pretty (Reduce a n) where
  pretty (RFold t a k z n)
-  =   text "rfold  "
-  </> text "[" <> pretty t <> text "]"
-  </> text "[" <> pretty a <> text "]"
+  =   annotate (AnnType $ (pretty t) <+> (pretty a)) "rfold"
   </> parens (pretty k) </> parens (pretty z) </> pretty n
- pretty (RLatest t x n)
-  =   text "rlatest"
-  </> text "[" <> pretty t <> text "]"
-  </> parens (pretty x) </> pretty n
 

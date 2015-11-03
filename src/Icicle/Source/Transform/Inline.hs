@@ -15,7 +15,6 @@ import Icicle.Common.Fresh
 
 import P
 
-import              Data.Functor.Identity
 import              Data.List (zip)
 import qualified    Data.Map as Map
 
@@ -43,11 +42,8 @@ inlineTransform funs
 
         let sub     = Map.fromList
                     $ argNames `zip` fmap (Var a) ns
-        let sub'    = unsafeSubstTransform
-                    { transformState = sub }
 
-        let body'   = runIdentity
-                    $ transformQ sub'
+        let body'   = unsafeSubstQ sub
                     $ body fun
 
         let lets = fmap (mkLet a) (ns `zip` args)

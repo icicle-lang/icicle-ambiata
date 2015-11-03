@@ -60,7 +60,7 @@ data BaseValue
  | VNone
  | VMap    (Map.Map BaseValue    BaseValue)
  | VStruct (Map.Map StructField  BaseValue)
-
+ | VBuf   Int [BaseValue]
  | VError ExceptionInfo
  deriving (Show, Ord, Eq)
 
@@ -78,14 +78,21 @@ data StructField
  = StructField
  { nameOfStructField :: T.Text
  }
- deriving (Show, Ord, Eq)
+ deriving (Ord, Eq)
 
 
 newtype OutputName
  = OutputName
  { unOutputName :: T.Text }
- deriving (Eq, Ord, Show)
+ deriving (Eq, Ord)
 
+instance Show StructField where
+ showsPrec p (StructField x)
+  = showParen (p > 10) (showString "StructField " . showsPrec 11 x)
+
+instance Show OutputName where
+ showsPrec p (OutputName x)
+  = showParen (p > 10) (showString "OutputName " . showsPrec 11 x)
 
 -- Pretty printing ---------------
 
@@ -126,6 +133,8 @@ instance Pretty BaseValue where
       -> text "Struct" <+> pretty (Map.toList mv)
      VError e
       -> pretty e
+     VBuf i vs
+      -> text "Buf" <+> pretty i <+> pretty vs
 
 instance Pretty StructField where
  pretty = text . T.unpack . nameOfStructField

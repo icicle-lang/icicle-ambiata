@@ -26,6 +26,8 @@ import           P
 import           System.IO
 
 import           Test.QuickCheck
+import           Test.QuickCheck.Property
+
 
 -- We need a way to differentiate stream variables from scalars
 namer = AC.namerText (flip Var 0)
@@ -61,7 +63,19 @@ prop_flatten_simp_commutes_value t =
  forAll (programForStreamType t)
  $ \p ->
  forAll (inputsForType t)
- $ \(vs,d) ->
+ $ \x@(_vs,_d) ->
+   flatten_simp_commutes_value p x
+
+--
+-- This can be used to run a counterexample.
+--
+--   fprog  = the program to flatten
+--   ffacts = the inputs for the program
+--
+--run_flatten_simp_commutes_value =
+-- quickCheck (once (flatten_simp_commutes_value fprog ffacts))
+
+flatten_simp_commutes_value p (vs, d) =
     P.isRight     (checkProgram p) ==>
      let p' = AC.programFromCore namer p
 
@@ -70,6 +84,19 @@ prop_flatten_simp_commutes_value t =
          counter = (Fresh.counterNameState (Name . Var "anf") 0)
          conv = Fresh.runFreshT (AF.flatten () $ AP.statements p') counter
          simp (c,s') =( s', Fresh.runFresh (AS.simpFlattened () (p'{AP.statements = s'})) c )
+
+         compareEvalResult xv yv =
+           let xv' = mapRight snd (mapLeft show xv)
+               yv' = mapRight snd (mapLeft show yv)
+           in either (counterexample . show . pretty) (const id) xv $
+              either (counterexample . show . pretty) (const id) yv $
+              if xv' == yv'
+              then property succeeded
+              else counterexample (show xv') $
+                   counterexample " /="      $
+                   counterexample (show yv') $
+                   property failed
+
      in case simp <$> conv of
          Left e
           -> counterexample (show e)
@@ -78,11 +105,11 @@ prop_flatten_simp_commutes_value t =
          Right (s', (_, p''))
           -> counterexample (show $ pretty (p' { AP.statements = s' }))
            $ counterexample (show $ pretty p'')
-             (mapRight snd (mapLeft show (eval XV.evalPrim p')) === mapRight snd (mapLeft show (eval AE.evalPrim p'')))
+             (eval XV.evalPrim p' `compareEvalResult` eval AE.evalPrim p'')
 
 
 return []
 tests :: IO Bool
 tests = $quickCheckAll
--- tests = $forAllProperties $ quickCheckWithResult (stdArgs {maxSuccess = 10000, maxSize = 10})
+--tests = $forAllProperties $ quickCheckWithResult (stdArgs {maxSuccess = 10000, maxSize = 10})
 

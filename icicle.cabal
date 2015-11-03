@@ -17,6 +17,7 @@ library
                      , ambiata-jetski
                      , ambiata-p
                      , ambiata-x-either
+                     , ambiata-x-exception
                      , bifunctors                      == 4.2.*
                      , bytestring                      == 0.10.*
                      , containers                      == 0.5.*
@@ -35,6 +36,7 @@ library
                      , validation                      == 0.5.*
                      , vector                          == 0.10.*
                      , annotated-wl-pprint             == 0.7.*
+                     , file-embed                      == 0.0.9
 
                      -- Well, it might look very odd that we're using both attoparsec
                      -- and parsec.
@@ -77,6 +79,7 @@ library
 
                        Icicle.Common.Annot
                        Icicle.Common.Base
+                       Icicle.Common.Data
                        Icicle.Common.Fresh
                        Icicle.Common.Exp
                        Icicle.Common.Exp.Alpha
@@ -136,6 +139,12 @@ library
 
                        Icicle.Sea.Eval
                        Icicle.Sea.FromAvalanche
+                       Icicle.Sea.FromAvalanche.Analysis
+                       Icicle.Sea.FromAvalanche.Base
+                       Icicle.Sea.FromAvalanche.Prim
+                       Icicle.Sea.FromAvalanche.Program
+                       Icicle.Sea.FromAvalanche.Type
+                       Icicle.Sea.Preamble
 
                        Icicle.Source.Eval
                        Icicle.Source.Query
@@ -196,6 +205,7 @@ library
 
                        Icicle.Storage.Encoding
 
+                       Icicle.Pipeline
                        Icicle.Repl
 
 -- executable             icicle

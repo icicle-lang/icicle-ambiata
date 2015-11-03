@@ -55,6 +55,8 @@ convertPrim p ann resT xts
    = return $ CE.XValue () T.DoubleT (V.VDouble i)
   go (Lit (LitString i))
    = return $ CE.XValue () T.StringT (V.VString i)
+  go (Lit (LitDate i))
+   = return $ CE.XValue () T.DateTimeT (V.VDateTime i)
 
   go (PrimCon ConSome)
    = primmin <$> (Min.PrimConst <$> (Min.PrimConstSome <$> t1 1))
@@ -192,6 +194,18 @@ convertPrim p ann resT xts
        -> return $ primmin $ Min.PrimCast Min.PrimCastIntOfDouble
   gofun DaysBetween
    = return $ primmin $ Min.PrimDateTime Min.PrimDateTimeDaysDifference
+  gofun DaysEpoch
+   = return $ primmin $ Min.PrimDateTime Min.PrimDateTimeDaysEpoch
+
+  -- This looks pointless, but actually isn't. Reify possibilities takes care of sequencing both
+  -- of the possiblities of this function, so although we don't check that the first tuple is
+  -- not a tombstone here, it is now assured to not be.
+  gofun Seq
+   | [_,(xb,_)] <- xts
+   = return xb
+   | otherwise
+   = convertError
+   $ ConvertErrorPrimNoArguments ann 2 p
 
   t1 num_args
    = case xts of

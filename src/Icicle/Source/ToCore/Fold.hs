@@ -1,42 +1,42 @@
 -- | Convert queries into folds.
 -- Used in body of group-bys, distincts,...
 
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE PatternGuards #-}
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PatternGuards     #-}
 module Icicle.Source.ToCore.Fold (
     convertFold
   , ConvertFoldResult(..)
   ) where
 
-import                  Icicle.Source.Query
-import                  Icicle.Source.ToCore.Base
-import                  Icicle.Source.ToCore.Exp
-import                  Icicle.Source.ToCore.Prim
-import                  Icicle.Source.Type
+import           Icicle.Common.Base
+import qualified Icicle.Common.Exp.Prim.Minimal as Min
+import qualified Icicle.Common.Exp.Simp.Beta    as Beta
+import           Icicle.Common.Fresh
+import qualified Icicle.Common.Type             as T
+import qualified Icicle.Core                    as C
+import qualified Icicle.Core.Exp.Combinators    as CE
+import           Icicle.Source.Query
+import           Icicle.Source.ToCore.Base
+import           Icicle.Source.ToCore.Context
+import           Icicle.Source.ToCore.Exp
+import           Icicle.Source.ToCore.Prim
+import           Icicle.Source.Type
 
-import qualified        Icicle.Core as C
-import qualified        Icicle.Core.Exp.Combinators as CE
-import qualified        Icicle.Common.Exp.Prim.Minimal as Min
-import qualified        Icicle.Common.Type as T
-import                  Icicle.Common.Fresh
-import                  Icicle.Common.Base
+import           P
 
-
-import                  P
-
-import                  Control.Monad.Trans.Class
-import                  Data.List (zip)
-import qualified        Data.Map    as Map
+import           Control.Monad.Trans.Class
+import           Data.List                      (zip)
+import qualified Data.Map                       as Map
 
 
 data ConvertFoldResult n
  = ConvertFoldResult
- { foldKons     :: C.Exp () n
- , foldZero     :: C.Exp () n
- , mapExtract   :: C.Exp () n
- , typeFold     :: T.ValType
- , typeExtract  :: T.ValType
+ { foldKons    :: C.Exp () n
+ , foldZero    :: C.Exp () n
+ , mapExtract  :: C.Exp () n
+ , typeFold    :: T.ValType
+ , typeExtract :: T.ValType
  } deriving (Eq, Ord, Show)
 
 
@@ -127,7 +127,7 @@ convertFold q
                     i <- idFun retty'
                     n'v <- lift fresh
                     let k = CE.xLam n'v retty' $ CE.xVar v'
-                    let err = CE.xValue retty' $ VError ExceptScalarVariableNotAvailable
+                    let err = CE.xValue retty' $ T.defaultOfType retty'
                     return $ ConvertFoldResult k err i retty' retty'
 
              -- For aggregate variables, the actual folding doesn't matter:
@@ -148,7 +148,7 @@ convertFold q
 
              -- Otherwise it must be a feature
              _
-              | Just (_, var') <- Map.lookup v fs
+              | Just fv <- Map.lookup v fs
               -> do -- Creating a fold from a scalar variable is strange, since
                     -- the scalar variable is only available inside each iteration.
                     -- For the konstrukt, we just return the current value.
@@ -165,8 +165,8 @@ convertFold q
                     i <- idFun retty'
                     n'v <- lift fresh
                     inp <- convertInputName
-                    let k = CE.xLam n'v retty' $ var' $ CE.xVar inp
-                    let err = CE.xValue retty' $ VError ExceptScalarVariableNotAvailable
+                    let k = CE.xLam n'v retty' $ featureVariableExp fv $ CE.xVar inp
+                    let err = CE.xValue retty' $ T.defaultOfType retty'
                     return $ ConvertFoldResult k err i retty' retty'
 
               | otherwise
@@ -176,10 +176,13 @@ convertFold q
       -> do -- Case expressions are very similar to primops.
             -- We know that the scrutinee and the patterns are all aggregates.
             -- Elements are handled elsewhere.
-            let args = scrut : fmap snd pats
-            pats'  <- convertCaseFreshenPats (fmap fst pats)
+            let args = (PatDefault, scrut) : pats
+            let goPat (p,alt)
+                    = (,) <$> convertCaseFreshenPat p <*> convertFold (Query [] alt)
+            args'  <- mapM goPat args
+            let pats'= drop 1 $ fmap fst args'
+            let res = fmap snd args'
 
-            res    <- mapM (convertFold . Query []) args
             retty' <- convertValType' retty
             scrutT <- convertValType' $ annResult $ annotOfExp scrut
 
@@ -225,9 +228,79 @@ convertFold q
                      CE.@~ (foldKons res CE.@~ prev') CE.@~ prev' CE.@~ e' )
             return (res { foldKons = k' })
 
+    -- If latest is being used in this position, it must be after a group.
+    (Latest _ i : _)
+     | case getTemporalityOrPure $ annResult $ annotOfQuery q' of
+        TemporalityElement  -> True
+        TemporalityPure     -> True
+        _                   -> False
+     -> do n'acc <- lift fresh
+           n'buf <- lift fresh
+
+           res       <- convertExpQ q'
+           t'e       <- convertValType' $ annResult $ annotOfQuery q'
+           let t'arr  = T.ArrayT t'e
+           let t'buf  = T.BufT t'e
+
+           let kons  = CE.xLam n'acc t'buf
+                     ( CE.pushBuf t'e
+                         CE.@~ CE.xVar n'acc
+                         CE.@~ res )
+           let zero  = CE.emptyBuf t'e
+                         CE.@~ CE.constI i
+
+           let x'    = CE.xLam n'buf t'buf
+                     ( CE.readBuf t'e CE.@~ CE.xVar n'buf )
+
+           return $ ConvertFoldResult kons zero x' t'buf t'arr
+
+     | otherwise
+     -> do n'arr <- lift fresh
+           n'acc <- lift fresh
+           n'buf <- lift fresh
+           n'e   <- lift fresh
+           n'x   <- lift fresh
+           n'a   <- lift fresh
+
+           inp       <- convertInputName
+           inpT      <- convertInputType
+           let t'e    = inpT
+           let t'buf  = T.BufT t'e
+
+           res       <- convertWithInputName n'e $ convertFold q'
+           let t'x    = typeFold res
+           let t'r    = typeExtract res
+
+           let kons  = CE.xLam n'acc t'buf
+                     ( CE.pushBuf t'e
+                         CE.@~ CE.xVar n'acc
+                         CE.@~ CE.xVar inp )
+           let zero  = CE.emptyBuf t'e
+                         CE.@~ CE.constI i
+
+           -- Flip the res fold arguments so it can be use with Array_fold
+           let k'    = CE.xLam n'x t'x
+                     $ CE.xLam n'e t'e
+                     $ beta
+                     ( foldKons res CE.@~ CE.xVar n'x )
+
+           -- Apply the res fold
+           let x'    = CE.xLet n'arr
+                     ( CE.readBuf t'e CE.@~ CE.xVar n'buf )
+                     ( CE.xPrim (C.PrimFold (C.PrimFoldArray t'e) t'x)
+                         CE.@~ k'
+                         CE.@~ beta (foldZero res)
+                         CE.@~ CE.xVar n'arr )
+
+           -- Apply the res extract
+           let xtra  = CE.xLam n'buf t'buf
+                     $ CE.xLet n'a x'
+                     ( mapExtract res CE.@~ CE.xVar n'a )
+
+           return $ ConvertFoldResult kons zero xtra t'buf t'r
+
+
     (Windowed (Annot { annAnnot = ann }) _ _ _ : _)
-     -> errNotAllowed ann
-    (Latest (Annot { annAnnot = ann }) _ : _)
      -> errNotAllowed ann
     (GroupBy (Annot { annAnnot = ann }) _ : _)
      -> errNotAllowed ann
@@ -249,7 +322,7 @@ convertFold q
      -> do  def' <- convertExp def
             n'   <- lift fresh
             t' <- convertValType' $ annResult $ annotOfExp def
-            let err = CE.xValue t' $ VError ExceptScalarVariableNotAvailable
+            let err = CE.xValue t' $ T.defaultOfType t'
             let res = ConvertFoldResult (CE.xLam n' t' def') err (CE.xLam n' t' $ CE.xVar n') t' t'
             convertAsLet b res
 
@@ -257,37 +330,8 @@ convertFold q
      -> do  resb <- convertFold (Query [] def)
             convertAsLet b resb
 
-    (LetFold _ f@Fold{ foldType = FoldTypeFoldl1 } : _)
-     -> do  -- Type helpers
-            tU <- convertValType' $ annResult $ annotOfExp $ foldWork f
-            let tO = T.OptionT tU
-
-            -- Generate fresh names
-            -- Current accumulator
-            -- : Option tU
-            n'a     <- lift fresh
-
-            z   <- convertExp (foldInit f)
-            -- Current accumulator is only available in worker
-            n'a' <- convertFreshenAdd $ foldBind f
-            k   <- convertExp (foldWork f)
-
-            let opt r = CE.xPrim $ C.PrimFold (C.PrimFoldOption tU) r
-            -- Wrap zero and kons up in Some
-            let k' = CE.xLam n'a tO
-                   ( opt tO
-                     CE.@~ CE.xLam n'a' tU (CE.some tU $ k)
-                     CE.@~ CE.some tU z
-                     CE.@~ CE.xVar n'a)
-
-            let x' = CE.xLam n'a tO
-                   ( opt tU
-                     CE.@~ CE.xLam   n'a' tU (CE.xVar n'a')
-                     CE.@~ CE.xValue tU (VError ExceptFold1NoValue)
-                     CE.@~ CE.xVar   n'a )
-
-            let res = ConvertFoldResult k' (CE.xValue tO VNone) x' tO tU
-            convertAsLet (foldBind f) res
+    (LetFold (Annot { annAnnot = ann }) Fold{ foldType = FoldTypeFoldl1 } : _)
+     -> convertError $ ConvertErrorImpossibleFold1 ann
 
 
     (LetFold _ f@Fold{ foldType = FoldTypeFoldl } : _)
@@ -297,8 +341,10 @@ convertFold q
 
             z   <- convertExp (foldInit f)
             -- Current accumulator is only available in worker
-            n'a <- convertFreshenAdd $ foldBind f
-            k   <- convertExp (foldWork f)
+            (n'a,k) <- convertContext
+                     $ do n'a <- convertFreshenAdd $ foldBind f
+                          k   <- convertExp (foldWork f)
+                          return (n'a, k)
 
             let k' = CE.xLam n'a tU k
 
@@ -314,6 +360,10 @@ convertFold q
 
   errNotAllowed ann
    = convertError $ ConvertErrorContextNotAllowedInGroupBy ann q
+
+  -- Perform beta reduction, just to simplify the output a tiny bit.
+  beta = Beta.betaToLets ()
+       . Beta.beta Beta.isSimpleValue
 
   -- Construct an identity function
   idFun tt = lift fresh >>= \n -> return (CE.xLam n tt (CE.xVar n))
@@ -361,7 +411,8 @@ convertFold q
 
 
   convertAsLet b resb
-   =    do  b'     <- convertFreshenAdd b
+   = convertContext
+   $    do  b'     <- convertFreshenAdd b
             resq   <- convertFold q'
             let tb' = typeFold resb
             let tq' = typeFold resq

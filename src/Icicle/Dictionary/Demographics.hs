@@ -8,7 +8,6 @@ import           Icicle.Data
 
 import           Icicle.Dictionary.Data
 
-import qualified Data.Map                           as Map
 import qualified Data.Set                           as Set
 
 -- | Example demographics dictionary
@@ -24,4 +23,4 @@ demographics =
                         [StructField Mandatory (Attribute "location") StringEncoding
                         ,StructField Mandatory (Attribute "severity") IntEncoding]) Set.empty)
  ]
- Map.empty
+ []

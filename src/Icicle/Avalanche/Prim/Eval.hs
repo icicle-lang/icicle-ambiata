@@ -14,7 +14,8 @@ import Icicle.Avalanche.Prim.Flat
 import              P
 import              Data.List (lookup, zip, zipWith)
 
-import qualified    Data.Map as Map
+import qualified    Data.List as List
+import qualified    Data.Map  as Map
 import qualified    Icicle.Common.Exp.Prim.Eval as Min
 
 evalPrim :: Ord n => EvalPrim a n Prim
@@ -53,15 +54,32 @@ evalPrim p vs
       | otherwise
       -> primError
 
-     PrimProject (PrimProjectSumIsLeft _ _)
+     PrimProject (PrimProjectSumIsRight _ _)
       | [VBase (VLeft _)]  <- vs
-      -> return $ VBase $ VBool True
-      | [VBase (VRight _)]  <- vs
       -> return $ VBase $ VBool False
+      | [VBase (VRight _)]  <- vs
+      -> return $ VBase $ VBool True
       | otherwise
       -> primError
 
+     PrimBuf (PrimBufMake _)
+      | [VBase (VInt i)] <- vs
+      -> return . VBase . VBuf i $ []
+      | otherwise
+      -> primError
 
+     PrimBuf (PrimBufPush _)
+      | [VBase (VBuf i as), VBase e] <- vs
+      -> return . VBase . VBuf i
+      $  circ i e as
+      | otherwise
+      -> primError
+
+     PrimBuf (PrimBufRead _)
+      | [VBase (VBuf _ as)] <- vs
+      -> return . VBase . VArray $ as
+      | otherwise
+      -> primError
 
      -- TODO: give better errors here - at least that an unsafe went wrong
      PrimUnsafe (PrimUnsafeArrayIndex _)
@@ -98,15 +116,15 @@ evalPrim p vs
      PrimUnsafe (PrimUnsafeSumGetLeft t _)
       | [VBase (VLeft v)]  <- vs
       -> return $ VBase v
-      | [VBase (VRight _)]      <- vs
+      | [VBase (VRight _)] <- vs
       -> return $ VBase (defaultOfType t)
       | otherwise
       -> primError
 
      PrimUnsafe (PrimUnsafeSumGetRight _ t)
-      | [VBase (VRight v)]  <- vs
+      | [VBase (VRight v)] <- vs
       -> return $ VBase v
-      | [VBase (VRight _)]      <- vs
+      | [VBase (VLeft _)]  <- vs
       -> return $ VBase (defaultOfType t)
       | otherwise
       -> primError
@@ -134,11 +152,34 @@ evalPrim p vs
       | otherwise
       -> primError
 
-     PrimOption (PrimOptionPack _)
-      | [VBase (VBool True), VBase v]  <- vs
-      -> return $ VBase $ VSome v
-      | [VBase (VBool False), _]       <- vs
+     PrimPack (PrimOptionPack _)
+      | [VBase (VBool False), _]      <- vs
       -> return $ VBase $ VNone
+      | [VBase (VBool True), VBase v] <- vs
+      -> return $ VBase $ VSome v
       | otherwise
       -> primError
 
+     PrimPack (PrimSumPack _ _)
+      | [VBase (VBool False), VBase a, _] <- vs
+      -> return $ VBase $ VLeft a
+      | [VBase (VBool True), _, VBase b]  <- vs
+      -> return $ VBase $ VRight b
+      | otherwise
+      -> primError
+
+     PrimPack (PrimStructPack (StructType fts))
+      | Just vs' <- traverse unpack vs
+      , fs       <- Map.keys fts
+      -> return $ VBase $ VStruct $ Map.fromList $ List.zip fs vs'
+      | otherwise
+      -> primError
+ where
+  circ n x xs
+   | length xs < n
+   = xs <> [x]
+   | otherwise
+   = List.drop 1 (xs <> [x])
+
+  unpack (VBase x)    = Just x
+  unpack (VFun _ _ _) = Nothing

@@ -8,11 +8,13 @@ module Icicle.Avalanche.Eval (
   ) where
 
 import              Icicle.Avalanche.Statement.Statement
+import              Icicle.Avalanche.Statement.Simp.Melt
 import              Icicle.Avalanche.Program
 
 import              Icicle.BubbleGum
 
 import              Icicle.Common.Base
+import              Icicle.Common.Type
 import              Icicle.Common.Value
 import qualified    Icicle.Common.Exp as XV
 
@@ -22,7 +24,7 @@ import              Icicle.Data         (AsAt(..))
 import              P
 
 import              Data.Either.Combinators
-import              Data.List   (take, sort)
+import              Data.List   (take, sort, zip)
 import qualified    Data.Map    as Map
 
 import              Icicle.Internal.Pretty
@@ -53,6 +55,8 @@ data RuntimeError a n p
  | RuntimeErrorLoopAccumulatorBad (Name n)
  | RuntimeErrorIfNotBool     BaseValue
  | RuntimeErrorForeachNotInt BaseValue BaseValue
+ | RuntimeErrorForeachTypeMismatch [(Name n, ValType)] ValType BaseValue
+ | RuntimeErrorOutputTypeMismatch  OutputName ValType [BaseValue]
  | RuntimeErrorNotBaseValue  (Value a n p)
  | RuntimeErrorKeepFactNotInFactLoop
  | RuntimeErrorAccumulatorLatestNotInt  BaseValue
@@ -71,6 +75,14 @@ instance (Pretty n, Pretty p) => Pretty (RuntimeError a n p) where
   = "Value should be a bool but isn't" <+> (pretty p)
  pretty (RuntimeErrorForeachNotInt p p')
   = "Foreach not ints:" <+> pretty p <+> pretty p'
+ pretty (RuntimeErrorForeachTypeMismatch ns ty v)
+  = "Foreach type error: bindings = " <+> align (vsep (fmap pretty ns)) <> line <>
+    "                    type     = " <+> pretty ty <> line <>
+    "                    value    = " <+> pretty v
+ pretty (RuntimeErrorOutputTypeMismatch n ty vs)
+  = "Output type error: name   = " <+> pretty n  <> line <>
+    "                   type   = " <+> pretty ty <> line <>
+    "                   values = " <+> align (vsep (fmap pretty vs))
  pretty (RuntimeErrorNotBaseValue p)
   = "Value isn't a base value:" <+> (pretty p)
  pretty (RuntimeErrorKeepFactNotInFactLoop)
@@ -240,13 +252,49 @@ evalStmt evalPrim now xh values bubblegum ah stmt
 
     -- TODO: evaluation ignores history/bubblegum.
     -- All inputs are new, so history loop does nothing.
-    ForeachFacts _ _ _ FactLoopHistory _
+    ForeachFacts _ _ FactLoopHistory _
      -> return (ah, [])
 
     -- TODO: ignoring outputs inside loops.
-    ForeachFacts n n' _ FactLoopNew  stmts
-     -> do  let with input = Map.insert n (VBase $ snd $ fact input) $ Map.insert n' (VBase $ VDateTime $ time input) xh
-            ahs <- foldM (\ah' input -> fst <$> evalStmt evalPrim now (with input) [] (Just $ fst $ fact input) ah' stmts) ah values
+
+    -- Allow unmelted foreach
+    -- (i.e. where ty == ty' and we only have a singleton list of bindings)
+    ForeachFacts [(n, ty)] ty' FactLoopNew stmts
+     | ty == ty'
+     -> do  let evalInput ah' inp = do
+                  let v0     = snd (fact inp)
+                      v1     = VDateTime (time inp)
+                      vv     = VPair v0 v1
+                      input' = Map.insert n (VBase vv) xh
+                      bgf    = Just $ fst $ fact inp
+
+                  fst <$> evalStmt evalPrim now input' [] bgf ah' stmts
+
+            ahs <- foldM evalInput ah values
+            return (ahs, [])
+
+    ForeachFacts ns ty FactLoopNew stmts
+     -> do  let evalInput ah' inp = do
+                  let v0  = snd (fact inp)
+                      v1  = VDateTime (time inp)
+                      vv  = VPair v0 v1
+                      mvs = meltValue vv ty
+
+                  case mvs of
+                    Nothing
+                     -> Left (RuntimeErrorForeachTypeMismatch ns ty vv)
+
+                    Just vs
+                     | length vs /= length ns
+                     -> Left (RuntimeErrorForeachTypeMismatch ns ty vv)
+
+                     | otherwise
+                     , nvs    <- zip (fmap fst ns) vs
+                     , input' <- foldr (\(n, v) -> Map.insert n (VBase v)) xh nvs
+                     , bgf    <- Just $ fst $ fact inp
+                     -> fst <$> evalStmt evalPrim now input' [] bgf ah' stmts
+
+            ahs <- foldM evalInput ah values
             return (ahs, [])
 
     Block []
@@ -287,9 +335,23 @@ evalStmt evalPrim now xh values bubblegum ah stmt
             ah' <- updateOrPush ah n bubblegum v
             return (ah', [])
 
-    Output n x
-     -> do  v  <- eval x >>= baseValue
-            return (ah, [(n, v)])
+    Output n t xts
+     -> do  vs  <- traverse ((baseValue =<<) . eval . fst) xts
+            case (vs, unmeltValue vs t) of
+              --
+              -- If this Avalanche program has been through the melting
+              -- transform and everything worked properly then `unmeltValue`
+              -- will return `Just v`, otherwise it will return `Nothing`.
+              --
+              -- `Nothing` could mean that we have an invalid Avalanche program
+              -- or a bug in `unmeltValue`, but if `vs` only contains a single
+              -- value, then it probably means that it was a value that didn't
+              -- need unmelting because the program has not been through the
+              -- melting transform yet.
+              --
+              (_,    Just v)  -> return (ah, [(n, v)])
+              (v:[], Nothing) -> return (ah, [(n, v)])
+              (_,    Nothing) -> Left (RuntimeErrorOutputTypeMismatch n t vs)
 
     -- Keep this fact in history
     KeepFactInHistory

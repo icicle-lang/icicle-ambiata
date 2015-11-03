@@ -1,12 +1,12 @@
 -- Rolling average
-feature salary ~> let v = double value ~> let fold1 roll = v : roll * 0.5 + v * 0.5 ~> roll
+feature salary ~> let v = double value ~> fold1 roll = v : roll * 0.5 + v * 0.5 ~> roll
 
 -- Sum
-feature salary ~> let fold xsum = 0 : xsum + value ~> xsum
+feature salary ~> fold xsum = 0 : xsum + value ~> xsum
 
 -- Newest and oldest
-feature salary ~> let fold1 xnew = value : value ~> let fold1 xold = value : xold ~> (xnew, xold)
+feature salary ~> fold1 xnew = value : value ~> fold1 xold = value : xold ~> (xnew, xold)
 
 -- Inside a group
-feature salary ~> group date ~> let fold1 xnew = value : value ~> let fold1 xold = value : xold ~> (xnew, xold)
+feature salary ~> group date ~> fold1 xnew = value : value ~> fold1 xold = value : xold ~> (xnew, xold)
 

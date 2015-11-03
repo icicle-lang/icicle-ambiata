@@ -13,8 +13,7 @@ import           Control.Monad.Trans.Either
 import           Control.Monad.IO.Class
 import           Data.Either.Combinators
 import           Data.Monoid
-import           Data.List                            (words, replicate)
-import qualified Data.Map                             as Map
+import           Data.List                            (words, replicate, nubBy)
 import           Data.String                          (String, lines)
 import           Data.Text                            (Text)
 import qualified Data.Text                            as T
@@ -28,19 +27,12 @@ import           System.IO
 import qualified Icicle.Internal.Pretty               as PP
 import qualified Text.ParserCombinators.Parsec        as Parsec
 
-import qualified Icicle.Avalanche.FromCore            as AC
-import qualified Icicle.Avalanche.Check               as AC
 import qualified Icicle.Avalanche.Prim.Flat           as APF
 import qualified Icicle.Avalanche.Program             as AP
-import qualified Icicle.Avalanche.Simp                as AS
-import qualified Icicle.Avalanche.Statement.Flatten   as AF
 import qualified Icicle.Avalanche.ToJava              as AJ
 import qualified Icicle.Common.Annot                  as C
 import qualified Icicle.Common.Base                   as CommonBase
-import qualified Icicle.Common.Fresh                  as F
 import qualified Icicle.Core.Program.Check            as CP
-import qualified Icicle.Core.Program.Program          as CP
-import qualified Icicle.Core.Exp.Prim                 as CP
 import           Icicle.Data
 import           Icicle.Data.DateTime
 import           Icicle.Dictionary
@@ -52,10 +44,10 @@ import qualified Icicle.Simulator                     as S
 import qualified Icicle.Source.Parser                 as SP
 import qualified Icicle.Source.PrettyAnnot            as SPretty
 import qualified Icicle.Source.Query                  as SQ
-import qualified Icicle.Source.Type                   as ST
 
 
 import           P
+
 
 
 main :: IO ()
@@ -97,22 +89,23 @@ runRepl inits
 
 data ReplState
    = ReplState
-   { facts          :: [AsAt Fact]
-   , dictionary     :: Dictionary
-   , currentDate    :: DateTime
-   , hasType        :: Bool
-   , hasAnnotated   :: Bool
-   , hasInlined     :: Bool
-   , hasDesugar     :: Bool
-   , hasCore        :: Bool
-   , hasCoreType    :: Bool
-   , hasCoreEval    :: Bool
-   , hasAvalanche   :: Bool
-   , hasFlatten     :: Bool
-   , hasJava        :: Bool
-   , hasSea         :: Bool
-   , hasSeaEval     :: Bool
-   , doCoreSimp     :: Bool }
+   { facts            :: [AsAt Fact]
+   , dictionary       :: Dictionary
+   , currentDate      :: DateTime
+   , hasType          :: Bool
+   , hasAnnotated     :: Bool
+   , hasInlined       :: Bool
+   , hasDesugar       :: Bool
+   , hasCore          :: Bool
+   , hasCoreType      :: Bool
+   , hasCoreEval      :: Bool
+   , hasAvalanche     :: Bool
+   , hasAvalancheEval :: Bool
+   , hasFlatten       :: Bool
+   , hasJava          :: Bool
+   , hasSea           :: Bool
+   , hasSeaEval       :: Bool
+   , doCoreSimp       :: Bool }
 
 -- | Settable REPL states
 data Set
@@ -124,6 +117,7 @@ data Set
    | ShowCoreType       Bool
    | ShowCoreEval       Bool
    | ShowAvalanche      Bool
+   | ShowAvalancheEval  Bool
    | ShowFlatten        Bool
    | ShowJava           Bool
    | ShowSea            Bool
@@ -147,7 +141,7 @@ data Command
 
 defaultState :: ReplState
 defaultState
-  = (ReplState [] demographics (unsafeDateOfYMD 1970 1 1) False False False False False False False False False False False False False)
+  = (ReplState [] demographics (unsafeDateOfYMD 1970 1 1) False False False False False False False False False False False False False False)
     { hasCoreEval = True }
 
 readCommand :: String -> Maybe Command
@@ -194,6 +188,9 @@ readSetCommands ss
 
     ("+avalanche":rest)    -> (:) (ShowAvalanche True)     <$> readSetCommands rest
     ("-avalanche":rest)    -> (:) (ShowAvalanche False)    <$> readSetCommands rest
+
+    ("+avalanche-eval":rest) -> (:) (ShowAvalancheEval True)  <$> readSetCommands rest
+    ("-avalanche-eval":rest) -> (:) (ShowAvalancheEval False) <$> readSetCommands rest
 
     ("+flatten":rest)      -> (:) (ShowFlatten   True)     <$> readSetCommands rest
     ("-flatten":rest)      -> (:) (ShowFlatten   False)    <$> readSetCommands rest
@@ -249,7 +246,7 @@ handleLine state line = case readCommand line of
     case s of
       Left e   -> prettyHL e >> return state
       Right d -> do
-        HL.outputStrLn $ "ok, loaded dictionary with " <> show (length $ dictionaryEntries d) <> " features and " <> show (Map.size $ dictionaryFunctions d) <> " functions"
+        HL.outputStrLn $ "ok, loaded dictionary with " <> show (length $ dictionaryEntries d) <> " features and " <> show (length $ dictionaryFunctions d) <> " functions"
         return $ state { dictionary = d }
 
   Just (CommandImportLibrary fp) -> do
@@ -257,10 +254,10 @@ handleLine state line = case readCommand line of
     case SR.readIcicleLibrary fp s of
       Left e   -> prettyHL e >> return state
       Right is -> do
-        HL.outputStrLn $ "ok, loaded " <> show (Map.size is) <> " functions from " <> fp
+        HL.outputStrLn $ "ok, loaded " <> show (length is) <> " functions from " <> fp
         let d = dictionary state
         -- Merge in the new functions with new functions taking precedence over existing ones
-        let f = Map.union is (dictionaryFunctions d)
+        let f = nubBy ((==) `on` fst) $ is <> (dictionaryFunctions d)
         return $ state { dictionary = d { dictionaryFunctions = f } }
 
   Just (CommandComment comment) -> do
@@ -295,18 +292,21 @@ handleLine state line = case readCommand line of
       prettyOut hasInlined "- Inlined:" inlined
       prettyOut hasDesugar "- Desugar:" blanded
 
-      reified     <- hoist $ SR.sourceReify (dictionary state) blanded
-      prettyOut hasInlined "- Reified:" reified
-      -- XXX This should be operating on reified, but I'm disabling it for now
-      (annot',_)  <- hoist $ SR.sourceCheck (dictionary state) blanded -- reified
+      (annobland, _) <- hoist $ SR.sourceCheck (dictionary state) blanded
+      prettyOut hasInlined "- Annotated desugar:" (SPretty.PrettyAnnot annobland)
 
-      prettyOut hasInlined "- Inlined:" (SPretty.PrettyAnnot annot')
 
-      core      <- hoist $ SR.sourceConvert (dictionary state) annot'
+      let reified       = SR.sourceReify annobland
+      prettyOut hasInlined "- Reified:"                      reified
+      prettyOut hasInlined "- Reified:" (SPretty.PrettyAnnot reified)
+      let finalSource   = reified
+
+
+      core      <- hoist $ SR.sourceConvert (dictionary state) finalSource
       let core'  | doCoreSimp state
-                 = renameP unVar $ SR.coreSimp core
+                 = SR.coreSimp core
                  | otherwise
-                 = renameP unVar core
+                 = core
 
       prettyOut hasCore "- Core:" core'
 
@@ -314,15 +314,19 @@ handleLine state line = case readCommand line of
        Left  e -> prettyOut (const True) "- Core type error:" e
        Right t -> prettyOut hasCoreType "- Core type:" t
 
-      prettyOut hasAvalanche "- Avalanche:" (coreAvalanche core')
+      prettyOut hasAvalanche "- Avalanche:" (SR.coreAvalanche core')
 
-      let flat = coreFlatten core'
+      let flat = SR.coreFlatten core'
       case flat of
        Left  e -> prettyOut (const True) "- Flatten error:" e
        Right f -> do
         prettyOut hasFlatten "- Flattened:" f
 
-        let flatChecked = checkAvalanche (simpAvalanche f)
+        case avalancheEval (currentDate state) (facts state) finalSource f of
+         Left  e -> prettyOut hasAvalancheEval "- Avalanche error:" e
+         Right r -> prettyOut hasAvalancheEval "- Avalanche evaluation:" r
+
+        let flatChecked = SR.checkAvalanche (SR.simpAvalanche f)
         case flatChecked of
          Left  e  -> prettyOut (const True) "- Avalanche type error:" e
          Right f' -> do
@@ -330,12 +334,12 @@ handleLine state line = case readCommand line of
            prettyOut hasSea  "- C:"    (Sea.seaOfProgram f')
 
            when (hasSeaEval state) $ do
-             result <- liftIO . runEitherT $ seaEval (currentDate state) (facts state) annot' f'
+             result <- liftIO . runEitherT $ seaEval (currentDate state) (facts state) finalSource f'
              case result of
                Left  e -> prettyOut (const True) "- C error:" e
                Right r -> prettyOut (const True) "- C evaluation:" r
 
-      case coreEval (currentDate state) (facts state) annot' core' of
+      case coreEval (currentDate state) (facts state) finalSource core' of
        Left  e -> prettyOut hasCoreEval "- Core error:" e
        Right r -> prettyOut hasCoreEval "- Core evaluation:" r
 
@@ -382,6 +386,10 @@ handleSetCommand state set
         HL.outputStrLn $ "ok, avalanche is now " <> showFlag b
         return $ state { hasAvalanche = b }
 
+    ShowAvalancheEval b -> do
+        HL.outputStrLn $ "ok, avalanche eval is now " <> showFlag b
+        return $ state { hasAvalancheEval = b }
+
     ShowFlatten b -> do
         HL.outputStrLn $ "ok, flatten is now " <> showFlag b
         return $ state { hasFlatten = b }
@@ -425,8 +433,6 @@ handleSetCommand state set
 
 --------------------------------------------------------------------------------
 
-type QueryTopPUV = SQ.QueryTop (ST.Annot SP.SourcePos SP.Variable) SP.Variable
-type ProgramT    = CP.Program () Text
 newtype Result   = Result (Entity, Value)
 
 instance PP.Pretty Result where
@@ -436,7 +442,7 @@ instance PP.Pretty Result where
 unVar :: SP.Variable -> Text
 unVar (SP.Variable t)  = t
 
-coreEval :: DateTime -> [AsAt Fact] -> QueryTopPUV -> ProgramT
+coreEval :: DateTime -> [AsAt Fact] -> SR.QueryTop'T -> SR.Program'
          -> Either SR.ReplError [Result]
 coreEval d fs (renameQT unVar -> query) prog
  = do let partitions = S.streams fs
@@ -461,10 +467,35 @@ coreEval d fs (renameQT unVar -> query) prog
     evalV
       = S.evaluateVirtualValue prog d
 
+avalancheEval :: DateTime -> [AsAt Fact] -> SR.QueryTop'T -> AP.Program () SP.Variable APF.Prim
+              -> Either SR.ReplError [Result]
+avalancheEval d fs (renameQT unVar -> query) prog
+ = do let partitions = S.streams fs
+      let feat       = SQ.feature query
+      let results    = fmap (evalP feat) partitions
+
+      res' <- mapLeft SR.ReplErrorRuntime
+            $ sequence results
+
+      return $ concat res'
+
+  where
+    evalP feat (S.Partition ent attr values)
+      | CommonBase.Name feat' <- feat
+      , attr == Attribute feat'
+      = do  (vs',_) <- evalV values
+            return $ fmap (\v -> Result (ent, snd v)) vs'
+
+      | otherwise
+      = return []
+
+    evalV
+      = S.evaluateVirtualValue' prog d
+
 seaEval :: DateTime
         -> [AsAt Fact]
-        -> QueryTopPUV
-        -> AP.Program (C.Annot ()) Text APF.Prim
+        -> SR.QueryTop'T
+        -> AP.Program (C.Annot ()) SP.Variable APF.Prim
         -> EitherT Sea.SeaError IO [(Entity, Value)]
 seaEval date newFacts (renameQT unVar -> query) program =
     mconcat <$> sequence results
@@ -486,40 +517,6 @@ seaEval date newFacts (renameQT unVar -> query) program =
 
       | otherwise
       = return []
-
--- | Converts Core to Avalanche then flattens the result.
---
-coreFlatten :: ProgramT -> Either SR.ReplError (AP.Program () Text APF.Prim)
-coreFlatten prog
- = let av = coreAvalanche prog
-       ns = F.counterPrefixNameState (T.pack . show) "flat"
-   in   mapLeft  SR.ReplErrorFlatten
-      . mapRight simpFlattened
-      . mapRight (\(_,s') -> av { AP.statements = s' })
-      $ F.runFreshT (AF.flatten () $ AP.statements av) ns
-
-checkAvalanche :: AP.Program () Text APF.Prim
-               -> Either SR.ReplError (AP.Program (C.Annot ()) Text APF.Prim)
-checkAvalanche prog
- = mapLeft SR.ReplErrorProgram
- $ AC.checkProgram APF.flatFragment prog
-
-coreAvalanche :: ProgramT -> AP.Program () Text CP.Prim
-coreAvalanche prog
- = simpAvalanche
- $ AC.programFromCore (AC.namerText id) prog
-
-simpAvalanche :: (Eq p, Show p) => AP.Program () Text p -> AP.Program () Text p
-simpAvalanche av
- = let simp = AS.simpAvalanche () av
-       name = F.counterPrefixNameState (T.pack . show) "anf"
-   in  snd $ F.runFresh simp name
-
-simpFlattened :: AP.Program () Text APF.Prim -> AP.Program () Text APF.Prim
-simpFlattened av
- = let simp = AS.simpFlattened () av
-       name = F.counterPrefixNameState (T.pack . show) "simp"
-   in  snd $ F.runFresh (simp >>= AS.simpFlattened ()) name
 
 --------------------------------------------------------------------------------
 
@@ -546,15 +543,14 @@ prettyHL x
         let width' = maybe 80 id width
         HL.outputStrLn $ PP.displayDecorated withColour (PP.renderPretty 0.4 width' $ PP.pretty x)
     where
-      withColour attr str = sgrAttr attr <> str <> sgrReset
+      withColour a'@(PP.AnnVariable) str = sgrAttr a' <> str <> sgrReset
+      withColour a'@(PP.AnnType a)   str = str <> sgrAttr a' <> "@{" <> (PP.display . PP.renderCompact . PP.pretty) a <> "}" <> sgrReset
 
       sgrReset = ANSI.setSGRCode [ANSI.Reset]
 
       sgrAttr = \case
         PP.AnnVariable    -> ANSI.setSGRCode [ANSI.SetColor ANSI.Foreground ANSI.Dull ANSI.Green]
-        PP.AnnOperator    -> ANSI.setSGRCode [ANSI.SetColor ANSI.Foreground ANSI.Dull ANSI.Yellow]
-        PP.AnnLiteral     -> ANSI.setSGRCode [ANSI.SetColor ANSI.Foreground ANSI.Dull ANSI.Yellow]
-        PP.AnnError       -> ANSI.setSGRCode [ANSI.SetColor ANSI.Foreground ANSI.Dull ANSI.Red]
+        PP.AnnType _      -> ANSI.setSGRCode [ANSI.SetColor ANSI.Foreground ANSI.Dull ANSI.Red]
 
 
 terminalWidth :: HL.InputT IO (Maybe Int)

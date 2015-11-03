@@ -1,10 +1,11 @@
 welcome to iREPL
-ok, loaded 10 functions from data/libs/prelude.icicle
-ok, loaded test/cli/repl/data.psv, 8 rows
+ok, loaded 20 functions from data/libs/prelude.icicle
+ok, loaded test/cli/repl/data.psv, 13 rows
 > -- Load dictionary
 > Dictionary load error:
   IO Exception: test/cli/repl/t12-broken-dictionaries/non-existant.icicle: openFile: does not exist (No such file or directory)
 > Dictionary load error:
-  Function parse error: "bad.icicle" (line 1, column 13):
+  Parse error:
+    "bad.icicle" (line 1, column 13):
 unexpected (TVariable (Variable "s"),"bad.icicle" (line 1, column 17))
 > 

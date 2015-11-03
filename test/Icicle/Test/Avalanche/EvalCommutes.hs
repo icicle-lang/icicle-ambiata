@@ -53,7 +53,8 @@ prop_eval_commutes_value t =
        -> counterexample ("Avalanche runtime error " <> show err) False
 
 
--- going to core doesn't affect history
+-- going to Avalanche doesn't affect history
+--
 prop_eval_commutes_history t =
  forAll (programForStreamType t)
  $ \p ->
@@ -62,7 +63,9 @@ prop_eval_commutes_history t =
     isRight     (checkProgram p) ==>
      case (AE.evalProgram XV.evalPrim d vs $ AC.programFromCore namer p, PV.eval d vs p) of
       (Right (abg, _), Right cres)
-       ->  (sort abg)  === (fmap prefixBubbleGum $ sort $ PV.history cres)
+       ->  let abg' = sort abg
+               cres'= fmap prefixBubbleGum $ sort $ PV.history cres
+           in  abg' === cres'
       _
        -> property False
 

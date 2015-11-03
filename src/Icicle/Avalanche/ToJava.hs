@@ -46,7 +46,7 @@ concreteFeatureType ss
  where
   up _ r s
    = case s of
-      S.ForeachFacts _ _ ty _ _
+      S.ForeachFacts _ ty _ _
        -> return (Just ty)
       _
        -> return r
@@ -74,15 +74,14 @@ statementsToJava ss
                 <> name n <> " < " <> expToJava Unboxed to <> "; "
                 <> name n <> "++)" <> block [statementsToJava s]
 
-    ForeachFacts n n' t f s
-     -> (case f of
-          S.FactLoopHistory -> "icicle.startHistory();"
-          S.FactLoopNew     -> "icicle.startNew();")
-        <> line
-        <> "while (icicle.nextRow())"
-        <> block [ local t n <> " = " <> unbox t "icicle.currentRow()" <> ";"
-                 , local DateTimeT n' <> " = icicle.currentRowDate();"
-                 , statementsToJava s]
+    ForeachFacts ns _ f s
+     -> let readVar (n, t) = local t n <> " = " <> unbox t ("icicle.currentRow(\"" <> pretty n <> "\")") <> ";"
+        in (case f of
+             S.FactLoopHistory -> "icicle.startHistory();"
+             S.FactLoopNew     -> "icicle.startNew();")
+           <> line
+           <> "while (icicle.nextRow())"
+           <> block (fmap readVar ns <> [statementsToJava s])
     Block blocks
      -> vcat (fmap (either bindingToJava statementsToJava) blocks)
 
@@ -92,8 +91,8 @@ statementsToJava ss
     Push n x
      -> "icicle.pushLatest(" <> acc_name n <> ", " <> expToJava Boxed x <> ");"
 
-    Output n x
-     -> "icicle.output(" <> stringy n <> ", " <> expToJava Boxed x <> ");"
+    Output n _ _
+     -> "icicle.output(" <> stringy n <> ");"
 
     KeepFactInHistory
      -> "icicle.keepFactInHistory();"
@@ -236,8 +235,14 @@ primTypeOfPrim p
      -> upda pu
     PrimArray (PrimArrayZip _ _)
      -> Function "Array.zip"
-    PrimOption (PrimOptionPack _)
+    PrimPack (PrimOptionPack _)
      -> Function "Option.pack"
+    PrimPack (PrimSumPack _ _)
+     -> Function "Sum.pack"
+    PrimPack (PrimStructPack _)
+     -> Function "Struct.pack"
+    PrimBuf pb
+     -> buf pb
 
  where
   min' (M.PrimArithUnary ar _) = unary ar
@@ -257,6 +262,8 @@ primTypeOfPrim p
    = Function "Either.right"
   min' (M.PrimDateTime M.PrimDateTimeDaysDifference)
    = Function "icicle.daysDifference"
+  min' (M.PrimDateTime M.PrimDateTimeDaysEpoch)
+   = Function "icicle.daysEpoch"
   min' (M.PrimDateTime M.PrimDateTimeMinusDays)
    = Function "icicle.minusDays"
   min' (M.PrimDateTime M.PrimDateTimeMinusMonths)
@@ -301,7 +308,7 @@ primTypeOfPrim p
   proj (PrimProjectMapLength _ _) = Method "size"
   proj (PrimProjectMapLookup _ _) = Method "get"
   proj (PrimProjectOptionIsSome _)= Special1 $ \a -> a <> " != null"
-  proj (PrimProjectSumIsLeft _ _) = Method "isLeft"
+  proj (PrimProjectSumIsRight _ _) = Method "isRight"
 
   unsa (PrimUnsafeArrayIndex _)    = Method "get"
   unsa (PrimUnsafeArrayCreate t)   = Function ("new ArrayList" <> angled (boxedType t))
@@ -313,6 +320,9 @@ primTypeOfPrim p
   upda (PrimUpdateMapPut _ _)      = Function "IcicleMap.put"
   upda (PrimUpdateArrayPut _)      = Function "Array.put"
 
+  buf (PrimBufMake t) = Function $ "new IcicleBuf" <> angled (boxedType t)
+  buf (PrimBufPush _) = Method "push"
+  buf (PrimBufRead _) = Method "read"
 
 data Boxy = Boxed | Unboxed
 
@@ -392,6 +402,7 @@ boxedType t
      BoolT      -> "Boolean"
      DateTimeT  -> "Integer"
      ArrayT a   -> "ArrayList" <> angled (boxedType a)
+     BufT   a   -> "IcicleBuf" <> angled (boxedType a)
      MapT a b   -> "HashMap" <> angled (commas [boxedType a, boxedType b])
      OptionT a  -> boxedType a
      PairT a b  -> "Pair" <> angled (commas [boxedType a, boxedType b])

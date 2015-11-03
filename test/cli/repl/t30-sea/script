@@ -1,11 +1,26 @@
 -- Show everything
-:set +flatten +c +c-eval
+:set +flatten +c
+
+-- Enable C evaluation
+:set +c-eval
 
 -- Oldest
 feature salary ~> oldest value
 
 -- Filtering works
-feature salary ~> filter value > 300 ~> count
+feature salary ~> filter value > 300 ~> count value
 
 -- An interesting expression
-feature salary ~> sd_old value * (filter value < 300 ~> sd_old value)
+feature salary ~> sd value * (filter value < 300 ~> sd value)
+
+-- An interesting expression
+feature salary ~> sd value * (filter value < 300 ~> sd value)
+
+-- Structs
+feature injury ~> mean (double severity)
+
+-- Strings
+feature injury ~> filter (location == "head") ~> count location
+
+-- String outputs
+feature injury ~> max location

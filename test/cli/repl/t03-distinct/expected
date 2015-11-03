@@ -1,6 +1,6 @@
 welcome to iREPL
-ok, loaded 10 functions from data/libs/prelude.icicle
-ok, loaded test/cli/repl/data.psv, 8 rows
+ok, loaded 20 functions from data/libs/prelude.icicle
+ok, loaded test/cli/repl/data.psv, 13 rows
 > -- Distinct by value. Expect 5 and 3
 > - Core evaluation:
 [homer, 5,marge, 3]

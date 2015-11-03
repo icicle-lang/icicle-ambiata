@@ -1,0 +1,41 @@
+-- Sum example
+feature salary ~> sum value
+
+-- Count example
+feature salary ~> count value
+
+-- Mean example
+feature salary ~> mean value
+
+-- minby / min example
+feature injury ~> minby severity location , min severity
+
+-- maxby / max example
+feature injury ~> maxby severity location , max severity
+
+-- Standard deviation example
+feature salary ~> sd value
+
+-- Gradient example
+feature salary ~> gradient value (double (days date) / 365)
+
+-- Pearsons correlation example
+feature salary ~> correlation value (double (days date) / 365)
+
+-- Newest example
+feature injury ~> newest fields
+
+-- Oldest example
+feature injury ~> oldest fields
+
+-- Numflips example
+feature injury ~> numflips location
+feature injury ~> numflips' location tombstone
+
+-- IsSome
+feature salary ~> latest 1 ~> isSome (Some "hi")
+-- IsNone
+feature salary ~> latest 1 ~> isNone (Some "hi")
+
+--GetOrElse example
+feature salary ~> getOrElse 3 (Some (newest value))

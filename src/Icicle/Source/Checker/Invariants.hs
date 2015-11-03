@@ -37,10 +37,7 @@ invariantQ ctx (Query (c:cs) xfinal)
      | otherwise
      -> errNotAllowed "Consider moving the window to the start of the query"
     Latest{}
-     | allowWindowsOrGroups inv
      -> goNotAllowed
-     | otherwise
-     -> errNotAllowed "Latest inside a group or distinct is not currently supported. Latest inside a latest is silly, and also not supported"
     GroupBy _ x
      | allowWindowsOrGroups inv
      -> goX x >> goNotAllowed

@@ -9,8 +9,10 @@ feature salary ~> distinct (double value / 5) ~> sum (double value / 5) / 5
 feature salary ~> let x = 2 / 1 ~> sum (int (double value * x))
 
 -- Add a filter
-feature salary ~> let x = 2 / 1 ~> filter (double value > x) ~> count
+feature salary ~> let x = 2 / 1 ~> filter (double value > x) ~> count value
 
 -- newest or something
 feature salary ~> (newest (double value) / 5, oldest (double value / 5), sum value)
 
+-- This was causing an issue with nested possibility cases before
+feature salary ~> latest 1 ~> case (0,sum value) | (z,s) -> s end

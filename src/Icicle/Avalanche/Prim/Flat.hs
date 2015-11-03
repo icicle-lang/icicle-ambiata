@@ -1,12 +1,15 @@
 -- | Flat primitives - after the folds are removed
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PatternGuards #-}
 module Icicle.Avalanche.Prim.Flat (
       Prim        (..)
     , PrimProject (..)
     , PrimUnsafe  (..)
     , PrimUpdate  (..)
     , PrimArray   (..)
-    , PrimOption  (..)
+    , PrimPack    (..)
+    , PrimBuf     (..)
     , typeOfPrim
     , flatFragment
   ) where
@@ -18,6 +21,9 @@ import qualified    Icicle.Common.Exp.Prim.Minimal as Min
 import qualified    Icicle.Common.Fragment         as Frag
 
 import              P
+
+import qualified    Data.Map as Map
+
 
 flatFragment :: Frag.Fragment Prim
 flatFragment
@@ -31,7 +37,8 @@ flatFragment
 -- Folds are converted to imperative accessors, loops and so on.
 data Prim
  -- | Include a bunch of basic things common across languages
- = PrimMinimal    Min.Prim
+ = PrimMinimal         Min.Prim
+
  -- | Safe projections
  | PrimProject         PrimProject
 
@@ -44,8 +51,11 @@ data Prim
  -- | Array prims
  | PrimArray           PrimArray
 
- -- | Option prims
- | PrimOption          PrimOption
+ -- | Packing prims
+ | PrimPack            PrimPack
+
+ -- | Abstract circular buffer prims
+ | PrimBuf             PrimBuf
  deriving (Eq, Ord, Show)
 
 
@@ -54,7 +64,7 @@ data PrimProject
  | PrimProjectMapLength   ValType ValType
  | PrimProjectMapLookup   ValType ValType
  | PrimProjectOptionIsSome ValType
- | PrimProjectSumIsLeft    ValType ValType
+ | PrimProjectSumIsRight   ValType ValType
  deriving (Eq, Ord, Show)
 
 
@@ -63,11 +73,11 @@ data PrimUnsafe
  -- | Create a new, uninitialised array.
  -- This is unsafe because it's uninitialised:
  -- you need to promise me that you'll initialise it before reading from it.
- | PrimUnsafeArrayCreate        ValType
- | PrimUnsafeMapIndex   ValType ValType
- | PrimUnsafeOptionGet  ValType
- | PrimUnsafeSumGetLeft         ValType ValType
- | PrimUnsafeSumGetRight        ValType ValType
+ | PrimUnsafeArrayCreate ValType
+ | PrimUnsafeMapIndex    ValType ValType
+ | PrimUnsafeSumGetLeft  ValType ValType
+ | PrimUnsafeSumGetRight ValType ValType
+ | PrimUnsafeOptionGet   ValType
  deriving (Eq, Ord, Show)
 
 
@@ -81,11 +91,19 @@ data PrimArray
  = PrimArrayZip ValType ValType
  deriving (Eq, Ord, Show)
 
-data PrimOption
- = PrimOptionPack ValType
+data PrimPack
+ = PrimSumPack    ValType ValType
+ | PrimOptionPack ValType
+ | PrimStructPack StructType
  deriving (Eq, Ord, Show)
 
 
+-- | These correspond directly to the latest buffer primitives in Core.
+data PrimBuf
+ = PrimBufMake ValType
+ | PrimBufPush ValType
+ | PrimBufRead ValType
+ deriving (Eq, Ord, Show)
 
 
 -- | A primitive always has a well-defined type
@@ -109,7 +127,7 @@ typeOfPrim p
     PrimProject (PrimProjectOptionIsSome a)
      -> FunT [funOfVal (OptionT a)] BoolT
 
-    PrimProject (PrimProjectSumIsLeft a b)
+    PrimProject (PrimProjectSumIsRight a b)
      -> FunT [funOfVal (SumT a b)] BoolT
 
 
@@ -139,8 +157,24 @@ typeOfPrim p
     PrimArray   (PrimArrayZip a b)
      -> FunT [funOfVal (ArrayT a), funOfVal (ArrayT b)] (ArrayT (PairT a b))
 
-    PrimOption  (PrimOptionPack t)
+    PrimPack    (PrimSumPack a b)
+     -> FunT [funOfVal BoolT, funOfVal a, funOfVal b] (SumT a b)
+
+    PrimPack    (PrimOptionPack t)
      -> FunT [funOfVal BoolT, funOfVal t] (OptionT t)
+
+    PrimPack    (PrimStructPack t@(StructType fs))
+     | ts <- fmap (funOfVal . snd) (Map.toList fs)
+     -> FunT ts (StructT t)
+
+    PrimBuf     (PrimBufMake t)
+     -> FunT [funOfVal IntT] (BufT t)
+
+    PrimBuf     (PrimBufPush t)
+     -> FunT [funOfVal (BufT t), funOfVal t] (BufT t)
+
+    PrimBuf     (PrimBufRead t)
+     -> FunT [funOfVal (BufT t)] (ArrayT t)
 
 
 -- Pretty -------------
@@ -149,47 +183,63 @@ instance Pretty Prim where
  pretty (PrimMinimal m) = pretty m
 
  pretty (PrimProject (PrimProjectArrayLength a))
-  = text "Array_length#" <+> brackets (pretty a)
+  = annotate (AnnType a) "Array_length#"
  pretty (PrimProject (PrimProjectMapLength a b))
-  = text "Map_length#" <+> brackets (pretty a) <+> brackets (pretty b)
+  = annotate (AnnType $ (pretty a) <+> (pretty b)) "Map_length#"
  pretty (PrimProject (PrimProjectMapLookup a b))
-  = text "Map_lookup#" <+> brackets (pretty a) <+> brackets (pretty b)
+  = annotate (AnnType $ (pretty a) <+> (pretty b)) "Map_lookup#"
  pretty (PrimProject (PrimProjectOptionIsSome a))
   = text "Option_isSome#" <+> brackets (pretty a)
- pretty (PrimProject (PrimProjectSumIsLeft a b))
-  = text "Sum_isLeft#" <+> brackets (pretty a) <+> brackets (pretty b)
+ pretty (PrimProject (PrimProjectSumIsRight a b))
+  = annotate (AnnType $ (pretty a) <+> (pretty b)) "Sum_isRight#"
 
 
  pretty (PrimUnsafe (PrimUnsafeArrayIndex a))
-  = text "unsafe_Array_index#" <+> brackets (pretty a)
+  = annotate (AnnType a) "unsafe_Array_index#"
 
  pretty (PrimUnsafe (PrimUnsafeArrayCreate a))
-  = text "unsafe_Array_create#" <+> brackets (pretty a)
+  = annotate (AnnType a) "unsafe_Array_create#"
 
  pretty (PrimUnsafe (PrimUnsafeMapIndex a b))
-  = text "unsafe_Map_index#" <+> brackets (pretty a) <+> brackets (pretty b)
+  = annotate (AnnType $ (pretty a) <+> (pretty b)) "unsafe_Map_index#"
 
  pretty (PrimUnsafe (PrimUnsafeOptionGet a))
-  = text "unsafe_Option_get#" <+> brackets (pretty a)
+  = annotate (AnnType a) "unsafe_Option_get#"
 
  pretty (PrimUnsafe (PrimUnsafeSumGetLeft a b))
-  = text "unsafe_Sum_left#" <+> brackets (pretty a) <+> brackets (pretty b)
+  = annotate (AnnType $ (pretty a) <+> (pretty b)) "unsafe_Sum_left#"
 
  pretty (PrimUnsafe (PrimUnsafeSumGetRight a b))
-  = text "unsafe_Sum_right#" <+> brackets (pretty a) <+> brackets (pretty b)
+  = annotate (AnnType $ (pretty a) <+> (pretty b)) "unsafe_Sum_right#"
 
 
 
  pretty (PrimUpdate (PrimUpdateMapPut a b))
-  = text "Map_put#" <+> brackets (pretty a) <+> brackets (pretty b)
+  = annotate (AnnType $ (pretty a) <+> (pretty b)) "Map_put#"
 
  pretty (PrimUpdate (PrimUpdateArrayPut a))
-  = text "Array_put#" <+> brackets (pretty a)
+  = annotate (AnnType a) "Array_put#"
 
 
  pretty (PrimArray (PrimArrayZip a b))
-  = text "Array_zip#" <+> brackets (pretty a) <+> brackets (pretty b)
+  = annotate (AnnType $ (pretty a) <+> (pretty b)) "Array_zip#"
 
 
- pretty (PrimOption (PrimOptionPack t))
-  = text "Option_pack#" <+> brackets (pretty t)
+ pretty (PrimPack (PrimOptionPack t))
+  = annotate (AnnType t) "Option_pack#"
+
+ pretty (PrimPack (PrimSumPack a b))
+  = annotate (AnnType $ (pretty a) <+> (pretty b)) "Sum_pack#"
+
+ pretty (PrimPack (PrimStructPack t))
+  = annotate (AnnType (StructT t)) "Struct_pack#"
+
+
+ pretty (PrimBuf    (PrimBufMake t))
+  = annotate (AnnType t) "Buf_make#"
+
+ pretty (PrimBuf    (PrimBufPush t))
+  = annotate (AnnType t) "Buf_push#"
+
+ pretty (PrimBuf    (PrimBufRead t))
+  = annotate (AnnType t) "Buf_read#"

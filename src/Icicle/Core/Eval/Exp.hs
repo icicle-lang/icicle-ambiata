@@ -12,7 +12,8 @@ import Icicle.Core.Exp.Prim
 
 import              P
 
-import qualified    Data.Map as Map
+import qualified    Data.Map  as Map
+import qualified    Data.List as List
 import qualified    Icicle.Common.Exp.Prim.Eval as Min
 
 
@@ -85,6 +86,24 @@ evalPrim p vs
       | otherwise
       -> primError
 
+     PrimLatest (PrimLatestMake _)
+      | [VBase (VInt i)] <- vs
+      -> return . VBase . VBuf i $ []
+      | otherwise
+      -> primError
+
+     PrimLatest (PrimLatestPush _)
+      | [VBase (VBuf i as), VBase e] <- vs
+      -> return . VBase . VBuf i
+      $  circ i e as
+      | otherwise
+      -> primError
+
+     PrimLatest (PrimLatestRead _)
+      | [VBase (VBuf _ as)] <- vs
+      -> return . VBase . VArray $ as
+      | otherwise
+      -> primError
 
  where
   applies' = applies evalPrim
@@ -98,3 +117,8 @@ evalPrim p vs
   primError
    = Left $ RuntimeErrorPrimBadArgs p vs
 
+  circ n x xs
+   | length xs < n
+   = xs <> [x]
+   | otherwise
+   = List.drop 1 (xs <> [x])

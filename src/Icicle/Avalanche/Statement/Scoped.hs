@@ -31,11 +31,11 @@ import              P
 data Scoped a n p
  = If    (Exp a n p)  (Scoped a n p) (Scoped a n p)
  | ForeachInts  (Name n) (Exp a n p) (Exp a n p) (Scoped a n p)
- | ForeachFacts (Name n) (Name n) ValType    S.FactLoopType (Scoped a n p)
+ | ForeachFacts [(Name n, ValType)] ValType S.FactLoopType (Scoped a n p)
  | Block     [Either (Binding a n p) (Scoped a n p)]
  | Write (Name n)    (Exp a n p)
  | Push  (Name n)    (Exp a n p)
- | Output OutputName (Exp a n p)
+ | Output OutputName ValType [(Exp a n p, ValType)]
  | KeepFactInHistory
  | LoadResumable (Name n) ValType
  | SaveResumable (Name n) ValType
@@ -58,8 +58,8 @@ bindsOfStatement s
      -> [Right $ If x (scopedOfStatement ss) (scopedOfStatement es)]
     S.ForeachInts n from to ss
      -> [Right $ ForeachInts n from to (scopedOfStatement ss)]
-    S.ForeachFacts n n' vt lo ss
-     -> [Right $ ForeachFacts n n' vt lo (scopedOfStatement ss)]
+    S.ForeachFacts ns vt lo ss
+     -> [Right $ ForeachFacts ns vt lo (scopedOfStatement ss)]
     S.Block ss
      -- -> fmap (Right . scopedOfStatement) ss
      -> concatMap bindsOfStatement ss
@@ -67,8 +67,8 @@ bindsOfStatement s
      -> [Right $ Write n x]
     S.Push n x
      -> [Right $ Push n x]
-    S.Output n x
-     -> [Right $ Output n x]
+    S.Output n t xs
+     -> [Right $ Output n t xs]
     S.KeepFactInHistory
      -> [Right $ KeepFactInHistory]
     S.LoadResumable n t
@@ -93,8 +93,8 @@ statementOfScoped s
      -> S.If x (statementOfScoped ss) (statementOfScoped es)
     ForeachInts n from to ss
      -> S.ForeachInts n from to (statementOfScoped ss)
-    ForeachFacts n n' vt lo ss
-     -> S.ForeachFacts n n' vt lo (statementOfScoped ss)
+    ForeachFacts ns vt lo ss
+     -> S.ForeachFacts ns vt lo (statementOfScoped ss)
     Block []
      -> S.Block []
     Block bs@(Right _ : _)
@@ -121,8 +121,8 @@ statementOfScoped s
      -> S.Write n x
     Push n x
      -> S.Push n x
-    Output n x
-     -> S.Output n x
+    Output n t xs
+     -> S.Output n t xs
     KeepFactInHistory
      -> S.KeepFactInHistory
     LoadResumable n t
@@ -163,11 +163,10 @@ instance (Pretty n, Pretty p) => Pretty (Scoped a n p) where
       <> text ") "
       <> inner ss
 
-     ForeachFacts n n' vt lo ss
-      -> text "for_facts ("
-      <> pretty n <> text " : " <> pretty vt
-      <> text ", "
-      <> pretty n' <> text " : Date) in "
+     ForeachFacts ns _ lo ss
+      -> text "for_facts "
+      <> prettyFactParts ns
+      <> text " in "
       <> pretty lo
       <> text " "
       <> inner ss
@@ -184,23 +183,29 @@ instance (Pretty n, Pretty p) => Pretty (Scoped a n p) where
       -> text "push" <+> pretty n <> text "(" <> pretty x <> text ")"
       <> text ";"
 
-     Output n x
-      -> text "output" <+> pretty n <+> pretty x
+     Output n t xs
+      -> annotate (AnnType t) (text "output") <+> pretty n <+> prettyOutputParts xs
       <> text ";"
      KeepFactInHistory
       -> text "keep_fact_in_history"
       <> text ";"
      LoadResumable n t
-      -> text "load_resumable" <+> brackets (pretty t) <+> pretty n
+      -> annotate (AnnType t) (text "load_resumable") <+> pretty n
       <> text ";"
      SaveResumable n t
-      -> text "save_resumable" <+> brackets (pretty t) <+> pretty n
+      -> annotate (AnnType t) (text "save_resumable") <+> pretty n
       <> text ";"
 
 
   where
    inner si@(Block _) = pretty si
    inner si           = text "{" <> line <> indent 2 (pretty si) <> line <> text "} " <> line
+
+   prettyFactPart (nf, tf) = annotate (AnnType tf) (pretty nf)
+   prettyFactParts         = parens . align . cat . punctuate comma . fmap prettyFactPart
+
+   prettyOutputPart (xf, tf) = annotate (AnnType tf) (pretty xf)
+   prettyOutputParts         = parens . align . cat . punctuate comma . fmap prettyOutputPart
 
 
 instance (Pretty n, Pretty p) => Pretty (Binding a n p) where
@@ -213,8 +218,7 @@ instance (Pretty n, Pretty p) => Pretty (Binding a n p) where
       -> text "let" <+> pretty n <+> text "=" <+> pretty x
       <> text ";"
      Read n acc at vt
-      -> text "read" <+> brackets (pretty at)
-                     <+> brackets (pretty vt)
+      -> annotate (AnnType $ (pretty at) <+> (pretty vt)) (text "read")
                      <+> pretty n
                      <+> text "=" <+> pretty acc
       <> text ";"

@@ -11,11 +11,15 @@ module Icicle.Source.ToCore.Exp (
   , convertExpQ
   , convertCase
   , convertCaseFreshenPat
-  , convertCaseFreshenPats
+
+  , isAnnotPossibly
+  , unwrapSum
+  , rewrapSum
   ) where
 
 import                  Icicle.Source.Query
 import                  Icicle.Source.ToCore.Base
+import                  Icicle.Source.ToCore.Context
 import                  Icicle.Source.ToCore.Prim
 import                  Icicle.Source.Type
 
@@ -24,6 +28,7 @@ import qualified        Icicle.Core.Exp.Combinators as CE
 import qualified        Icicle.Common.Exp           as CE
 import qualified        Icicle.Common.Exp.Prim.Minimal as Min
 import qualified        Icicle.Common.Type          as T
+import                  Icicle.Common.Base
 import                  Icicle.Common.Fresh
 
 import                  P
@@ -47,8 +52,8 @@ convertExp x
     Var ann n
      -> do  fs <- convertFeatures
             case Map.lookup n fs of
-             Just (_, x')
-              -> (x' . CE.XVar ()) <$> convertInputName
+             Just fv
+              -> (featureVariableExp fv . CE.XVar ()) <$> convertInputName
              -- Variable must be bound as a precomputation
              Nothing
               -> CE.XVar () <$> convertFreshenLookup (annAnnot ann) n
@@ -76,13 +81,18 @@ convertExp x
     -- Only deal with flattened, single layer cases.
     -- We need a pass beforehand to simplify them.
     Case ann scrut pats
-     -> do  ps     <- convertCaseFreshenPats (fmap fst pats)
-            pats'  <- mapM (\(p,alt) -> (,) p <$> convertExp alt) (zip ps (fmap snd pats))
-            scrut' <- convertExp scrut
+     -> do  scrut' <- convertExp scrut
+            pats'  <- mapM goPat pats
             scrutT <- convertValType (annAnnot ann) $ annResult $ annotOfExp scrut
             resT   <- convertValType (annAnnot ann) $ annResult ann
             convertCase x scrut' pats' scrutT resT
 
+ where
+  goPat (p,alt)
+   = convertContext
+   $ do p'   <- convertCaseFreshenPat p
+        alt' <- convertExp alt
+        return (p', alt')
 
 
 convertExpQ
@@ -90,7 +100,9 @@ convertExpQ
         => Query (Annot a n) n
         -> ConvertM a n (C.Exp () n)
 convertExpQ q
- = case contexts q of
+ -- Remove any new bindings from context afterwards
+ = convertContext
+ $ case contexts q of
     []
      -> convertExp $ final q
     (Let _ b d:cs)
@@ -104,29 +116,13 @@ convertExpQ q
       $ ConvertErrorExpNestedQueryNotAllowedHere (annAnnot $ annotOfQuery q) q
 
 
--- TODO XXX this is not quite correct, where this is being called.
--- We should actually intersperse the calls to convertCaseFreshenPat with converting the nested thing.
--- eg
--- > case xxx
--- > | Left  i -> ... i ...
--- > | Right i -> ... i ...
--- > end
--- here, the first pattern will be freshened to i$1, then the second to i$2,
--- but after both patterns are freshened we have the "i => i$2" binding in context and so
--- the first alternative becomes
--- > | Left i$1 -> ... i$2 ...
--- what a mess!
-convertCaseFreshenPats :: Ord n => [Pattern n] -> ConvertM a n [Pattern n]
-convertCaseFreshenPats = mapM convertCaseFreshenPat
-
-
 -- | Enfreshinate the variables in a case pattern and add them to the convert environment.
 --
 convertCaseFreshenPat :: Ord n => Pattern n -> ConvertM a n (Pattern n)
 convertCaseFreshenPat p
  = case p of
     PatCon c ps
-      -> PatCon c <$> convertCaseFreshenPats ps
+      -> PatCon c <$> mapM convertCaseFreshenPat ps
     PatDefault
       -> return PatDefault
     PatVariable n
@@ -193,7 +189,51 @@ convertCase x scrut pats scrutT resT
   mkVars PatDefault
    = lift fresh
   mkVars (PatVariable n)
-   = return n -- convertFreshenAdd n
+   = return n
   mkVars (PatCon _ _)
    = convertError $ ConvertErrorBadCaseNestedConstructors (annAnnot $ annotOfExp x) x
 
+
+isAnnotPossibly :: Annot a n -> Bool
+isAnnotPossibly ann
+ = case getPossibilityOrDefinitely (annResult ann) of
+    PossibilityPossibly -> True
+    _                   -> False
+
+
+unwrapSum
+    :: Bool
+    -> T.ValType
+    -> Name n
+    -> C.Exp () n
+    -> Name n
+    -> T.ValType
+    -> C.Exp () n
+    -> C.Exp () n
+unwrapSum isPossibly rett nErr x nk t bodyx
+ | T.SumT T.ErrorT ty <- t
+ , T.SumT T.ErrorT ret' <- rett
+ -- We can only do this for (Sum Error)s introduced by Reify:
+ -- not ones that the programmer explicitly wrote
+ , isPossibly
+ = CE.makeApps () (CE.xPrim $ C.PrimFold (C.PrimFoldSum T.ErrorT ty) rett)
+ [ CE.xLam nErr T.ErrorT ( CE.makeApps () (CE.xPrim $ C.PrimMinimal $ Min.PrimConst $ Min.PrimConstLeft T.ErrorT ret')
+                         [ CE.xVar nErr ])
+ , CE.xLam nk ty bodyx
+ , x ]
+ | otherwise
+ = CE.xLet nk x bodyx
+
+
+rewrapSum
+    :: Bool
+    -> T.ValType
+    -> C.Exp () n
+    -> C.Exp () n
+rewrapSum isPossibly rett bodyx
+ | T.SumT T.ErrorT ret' <- rett
+ , isPossibly
+ = CE.makeApps () (CE.xPrim $ C.PrimMinimal $ Min.PrimConst $ Min.PrimConstRight T.ErrorT ret')
+ [ bodyx ]
+ | otherwise
+ = bodyx

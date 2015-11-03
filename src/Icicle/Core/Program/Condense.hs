@@ -125,9 +125,6 @@ substStreamName from to ss rs
       RFold t a k z inp
        | inp == from
        -> RFold t a k z to
-      RLatest t x inp
-       | inp == from
-       -> RLatest t x to
       _
        -> r
 
@@ -142,12 +139,6 @@ reduceEquivalent r r'
  && ta == ta'
  && xk `alphaEquality` xk'
  && xz `alphaEquality` xz'
- && inp == inp'
-
- | RLatest tt  xn  inp        <- r
- , RLatest tt' xn' inp'       <- r'
- =  tt == tt'
- && xn `alphaEquality` xn'
  && inp == inp'
 
  -- Must be different constructors

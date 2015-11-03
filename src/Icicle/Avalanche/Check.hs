@@ -17,6 +17,7 @@ import              Icicle.Common.Exp
 import              P
 
 import              Data.Either.Combinators
+import qualified    Data.List   as List
 import qualified    Data.Map    as Map
 
 data ProgramError a n p
@@ -94,8 +95,8 @@ checkStatement frag ctx stmt
 
                ForeachInts n from' to' <$> go stmts
 
-        ForeachFacts n n' vt lo stmts
-         -> ForeachFacts n n' vt lo <$> go stmts
+        ForeachFacts ns vt lo stmts
+         -> ForeachFacts ns vt lo <$> go stmts
 
 
         Block stmts
@@ -141,11 +142,16 @@ checkStatement frag ctx stmt
                 _
                  -> Left (ProgramErrorWrongAccumulatorType n)
 
-        Output n x
-         -> do x' <- mapLeft ProgramErrorExp
-                   $ checkExp frag (ctxExp ctx) x
+        Output n t xts
+         -> do let xs = fmap fst xts
+                   ts = fmap snd xts
 
-               return (Output n x')
+               xs' <- mapLeft ProgramErrorExp
+                    $ traverse (checkExp frag (ctxExp ctx)) xs
+
+               let xts' = List.zip xs' ts
+
+               return (Output n t xts')
 
         KeepFactInHistory
          -> return KeepFactInHistory
@@ -213,8 +219,8 @@ statementContext frag ctx stmt
     ForeachInts n _ _ _
      -> return (ctx { ctxExp = Map.insert n (FunT [] IntT) (ctxExp ctx) })
 
-    ForeachFacts n n' ty _ _
-     -> return (ctx { ctxExp = Map.insert n (FunT [] ty) $ Map.insert n' (FunT [] DateTimeT) (ctxExp ctx)})
+    ForeachFacts ns _ _ _
+     -> return (ctx { ctxExp = foldr (\(n, ty) m -> Map.insert n (FunT [] ty) m) (ctxExp ctx) ns })
 
     Block _
      -> return ctx
@@ -235,7 +241,7 @@ statementContext frag ctx stmt
     Push _ _
      -> return ctx
 
-    Output _ _
+    Output _ _ _
      -> return ctx
 
     KeepFactInHistory

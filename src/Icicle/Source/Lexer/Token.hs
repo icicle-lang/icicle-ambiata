@@ -15,6 +15,7 @@ module Icicle.Source.Lexer.Token (
   ) where
 
 import Icicle.Internal.Pretty
+import Icicle.Data.DateTime
 
 import                  P
 
@@ -90,6 +91,7 @@ data Keyword
  | Exp
  | Double
  | Int
+ | Seq
  deriving (Eq, Ord, Show, Enum, Bounded)
 
 
@@ -99,6 +101,7 @@ data Literal
  = LitInt Int
  | LitDouble Double
  | LitString Text
+ | LitDate DateTime
  deriving (Eq, Ord, Show)
 
 data Operator

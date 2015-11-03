@@ -5,11 +5,14 @@
 {-# LANGUAGE TupleSections     #-}
 {-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE DeriveFoldable    #-}
+{-# LANGUAGE OverloadedStrings #-}
 module Icicle.Source.Transform.Desugar
   ( DesugarError(..)
+  , annotOfError
   , runDesugar
   , desugarQT
   , desugarQ
+  , desugarFun
   ) where
 
 import           Icicle.Common.Base
@@ -17,6 +20,7 @@ import           Icicle.Common.Fresh
 
 import           Icicle.Source.Query
 import           Icicle.Source.Transform.Simp
+import           Icicle.Internal.Pretty
 
 import           Data.Functor.Identity
 
@@ -26,18 +30,38 @@ import           Control.Monad.Trans.Class
 import           P
 
 
-data DesugarError n
- = DesugarErrorNoAlternative (Pattern n) -- ^ we generated a pattern that cannot be matched
-                                         --   with any alternative.
- | DesugarErrorImpossible                -- ^ just impossible, the world has ended.
- | DesugarOverlappingPattern (Pattern n) -- ^ duh
- | DesugarIllTypedPatterns   [Pattern n] -- ^ patterns use constructors from different types
+data DesugarError a n
+ = DesugarErrorNoAlternative a (Pattern n) -- ^ we generated a pattern that cannot be matched
+                                           --   with any alternative.
+ | DesugarErrorImpossible a                -- ^ just impossible, the world has ended.
+ | DesugarOverlappingPattern a (Pattern n) -- ^ duh
+ | DesugarIllTypedPatterns   a [Pattern n] -- ^ patterns use constructors from different types
  deriving (Eq, Show)
 
-type DesugarM a n x = FreshT n (EitherT (DesugarError n) Identity) x
+instance (Pretty a, Pretty n) => Pretty (DesugarError a n) where
+  pretty (DesugarErrorNoAlternative a n) = "Missing alternative:" <+> pretty n <+> "at" <+> pretty a
+  pretty (DesugarErrorImpossible a)      = "Impossible desugar error" <+> "at" <+> pretty a
+  pretty (DesugarOverlappingPattern a x) = "Overlapping pattern:" <+> pretty x <+> "at" <+> pretty a
+  pretty (DesugarIllTypedPatterns a xs)  = "Illtyped patterns:"   <+> align (vcat (pretty <$> xs)) <> line <> "at" <+> pretty a
 
-runDesugar :: NameState n -> DesugarM a n x -> Either (DesugarError n) x
+type DesugarM a n x = FreshT n (EitherT (DesugarError a n) Identity) x
+
+annotOfError :: DesugarError a n -> Maybe a
+annotOfError (DesugarErrorNoAlternative a _) = Just a
+annotOfError (DesugarErrorImpossible a)      = Just a
+annotOfError (DesugarOverlappingPattern a _) = Just a
+annotOfError (DesugarIllTypedPatterns a _)   = Just a
+
+runDesugar :: NameState n -> DesugarM a n x -> Either (DesugarError a n) x
 runDesugar n m = runIdentity . runEitherT . bimapEitherT id snd $ runFreshT m n
+
+desugarFun
+  :: (Eq n)
+  => Function a n
+  -> DesugarM a n (Function a n)
+desugarFun f
+  = do b' <- desugarQ (body f)
+       return $ f { body = b'}
 
 desugarQT
   :: (Eq n)
@@ -92,13 +116,13 @@ desugarX xx
 
     Case a scrut patalts
      -> do let pats  = fmap fst patalts
-           ty       <- foldM (flip $ addToTy $ DesugarIllTypedPatterns pats) TyAny pats
+           ty       <- foldM (flip $ addToTy $ DesugarIllTypedPatterns a pats) TyAny pats
 
            scrut'   <- desugarX scrut
            patalts' <- mapM (mapM desugarX) patalts
 
            tree     <- casesForTy a scrut' ty
-           checkOverlapping pats (toList tree)
+           checkOverlapping a pats (toList tree)
 
            treeToCase a patalts' tree
 
@@ -134,7 +158,7 @@ data Ty
  deriving (Show)
 
 
-addToTy :: DesugarError n -> Pattern n -> Ty -> DesugarM a n Ty
+addToTy :: DesugarError a n -> Pattern n -> Ty -> DesugarM a n Ty
 addToTy err (PatCon con pats) ty
  = case con of
     ConTuple
@@ -254,13 +278,13 @@ casesForTy ann scrut ty
            return $ TCase scrut [ (pat', bd)
                                , (PatCon ConNone [], Done (PatCon ConNone [])) ]
 
-    -- Options need a case for None, and nested cases for Some arguments
+    -- Sums need nested cases for both
     TySum a b
      -> do aleft     <- freshes 1
            let pleft  = PatCon ConLeft  (fmap PatVariable aleft)
            aright    <- freshes 1
            let pright = PatCon ConRight (fmap PatVariable aright)
-           let vars args = fmap (Var ann) args
+           let vars   = fmap (Var ann)
            bl <- subtree ConLeft  (vars aleft)  [a]
            br <- subtree ConRight (vars aright) [b]
            return $ TCase scrut [ (pleft,  bl)
@@ -349,7 +373,7 @@ treeToCase ann patalts tree
         -> do s' <- mapM generateLet s
               right $ Nested ann (Query s' x)
    getAltBody _ p
-    = left $ DesugarErrorNoAlternative p
+    = left $ DesugarErrorNoAlternative ann p
 
    generateLet (n ,p)
     = Let ann n <$> patternToExp p
@@ -360,7 +384,7 @@ treeToCase ann patalts tree
    patternToExp (PatVariable v)
     = right $ Var ann v
    patternToExp PatDefault
-    = left DesugarErrorImpossible -- we never generate default patterns.
+    = left $ DesugarErrorImpossible ann -- we never generate default patterns.
 
 -- "Unify" the generated pattern and a user-supplied pattern.
 -- Return a list of substitutions if success. This is necessary in case the
@@ -383,15 +407,15 @@ matcher _ _
 
 
 checkOverlapping
-  :: [Pattern n] -> [Pattern n] -> DesugarM a n ()
-checkOverlapping userpats genpats
+  :: a -> [Pattern n] -> [Pattern n] -> DesugarM a n ()
+checkOverlapping ann userpats genpats
   = foldM_ (\p -> lift . go p) genpats userpats
   where
    go gps up
     = let gps' = filter (\gp -> isNothing $ matcher gp up ) gps
       in  if length gps' < length gps
           then return gps'
-          else left (DesugarOverlappingPattern up)
+          else left (DesugarOverlappingPattern ann up)
 
 
 freshes :: Monad m => Int -> FreshT n m [Name n]

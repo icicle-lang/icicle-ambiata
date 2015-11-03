@@ -1,4 +1,5 @@
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
 module Icicle.Common.Exp.Prim.Minimal (
       Prim   (..)
     , PrimArithUnary(..)
@@ -95,6 +96,7 @@ data PrimConst
 -- | DateTime primitives
 data PrimDateTime
  = PrimDateTimeDaysDifference
+ | PrimDateTimeDaysEpoch
  | PrimDateTimeMinusDays
  | PrimDateTimeMinusMonths
  deriving (Eq, Ord, Show)
@@ -159,6 +161,8 @@ typeOfPrim p
 
     PrimDateTime PrimDateTimeDaysDifference
      -> FunT [funOfVal DateTimeT, funOfVal DateTimeT] IntT
+    PrimDateTime PrimDateTimeDaysEpoch
+     -> FunT [funOfVal DateTimeT] IntT
     PrimDateTime PrimDateTimeMinusDays
      -> FunT [funOfVal DateTimeT, funOfVal IntT] DateTimeT
     PrimDateTime PrimDateTimeMinusMonths
@@ -172,19 +176,18 @@ typeOfPrim p
     PrimStruct (PrimStructGet f t (StructType fs))
      -> FunT [funOfVal (StructT $ StructType $ Map.insert f t fs)] t
 
-
 -- Pretty -------------
 
 instance Pretty Prim where
  pretty (PrimArithUnary p t)
-  = text p' <+> brackets (pretty $ valTypeOfArithType t)
+  = annotate (AnnType $ valTypeOfArithType t) p'
   where
    p'
     = case p of
        PrimArithNegate -> "negate#"
 
  pretty (PrimArithBinary p t)
-  = text p' <+> brackets (pretty $ valTypeOfArithType t)
+  = annotate (AnnType $ valTypeOfArithType t) p'
   where
    p'
     = case p of
@@ -195,20 +198,20 @@ instance Pretty Prim where
 
  pretty (PrimDouble p)
   = case p of
-     PrimDoubleDiv -> text  "div#"
-     PrimDoubleLog -> text  "log#"
-     PrimDoubleExp -> text  "exp#"
+     PrimDoubleDiv -> "div#"
+     PrimDoubleLog -> "log#"
+     PrimDoubleExp -> "exp#"
 
  pretty (PrimCast p)
   = case p of
-     PrimCastDoubleOfInt -> text  "doubleOfInt#"
-     PrimCastIntOfDouble -> text  "intOfDouble#"
-     PrimCastStringOfInt -> text  "stringOfInt#"
-     PrimCastStringOfDouble -> text  "stringOfDouble#"
+     PrimCastDoubleOfInt -> "doubleOfInt#"
+     PrimCastIntOfDouble -> "intOfDouble#"
+     PrimCastStringOfInt -> "stringOfInt#"
+     PrimCastStringOfDouble -> "stringOfDouble#"
 
 
  pretty (PrimRelation rel t)
-  = text prel <+> brackets (pretty t)
+  = annotate (AnnType t) prel
   where
    prel
     = case rel of
@@ -219,24 +222,24 @@ instance Pretty Prim where
        PrimRelationEq -> "eq#"
        PrimRelationNe -> "ne#"
 
- pretty (PrimLogical  PrimLogicalNot)   = text  "not#"
- pretty (PrimLogical  PrimLogicalAnd)   = text  "and#"
- pretty (PrimLogical  PrimLogicalOr)    = text  "or#"
+ pretty (PrimLogical  PrimLogicalNot)   = "not#"
+ pretty (PrimLogical  PrimLogicalAnd)   = "and#"
+ pretty (PrimLogical  PrimLogicalOr)    = "or#"
 
- pretty (PrimConst (PrimConstPair a b)) = text "pair#" <+> brackets (pretty a) <+> brackets (pretty b)
- pretty (PrimConst (PrimConstSome t))   = text "some#" <+> brackets (pretty t)
+ pretty (PrimConst (PrimConstPair a b)) = annotate (AnnType $ (pretty a) <+> (pretty b)) "pair#"
+ pretty (PrimConst (PrimConstSome t))   = annotate (AnnType t)  "some#"
  pretty (PrimConst (PrimConstLeft  a b))
-  = text "left#"  <+> brackets (pretty a) <+> brackets (pretty b)
+  = annotate (AnnType $ (pretty a) <+> (pretty b)) "left#"
  pretty (PrimConst (PrimConstRight a b))
-  = text "right#" <+> brackets (pretty a) <+> brackets (pretty b)
+  = annotate (AnnType $ (pretty a) <+> (pretty b)) "right#"
 
- pretty (PrimDateTime PrimDateTimeDaysDifference) = text "DateTime_daysDifference#"
- pretty (PrimDateTime PrimDateTimeMinusDays)      = text "DateTime_minusDays#"
- pretty (PrimDateTime PrimDateTimeMinusMonths)    = text "DateTime_minusMonths#"
+ pretty (PrimDateTime PrimDateTimeDaysDifference) = "DateTime_daysDifference#"
+ pretty (PrimDateTime PrimDateTimeDaysEpoch)      = "DateTime_daysEpoch#"
+ pretty (PrimDateTime PrimDateTimeMinusDays)      = "DateTime_minusDays#"
+ pretty (PrimDateTime PrimDateTimeMinusMonths)    = "DateTime_minusMonths#"
 
- pretty (PrimPair (PrimPairFst a b)) = text "fst#" <+> brackets (pretty a) <+> brackets (pretty b)
- pretty (PrimPair (PrimPairSnd a b)) = text "snd#" <+> brackets (pretty a) <+> brackets (pretty b)
+ pretty (PrimPair (PrimPairFst a b)) = annotate (AnnType $ (pretty a) <+> (pretty b)) "fst#"
+ pretty (PrimPair (PrimPairSnd a b)) = annotate (AnnType $ (pretty a) <+> (pretty b)) "snd#"
 
- pretty (PrimStruct (PrimStructGet f t fs)) = text "get#" <+> brackets (pretty f) <+> brackets (pretty t) <+> brackets (pretty fs)
-
+ pretty (PrimStruct (PrimStructGet f t fs)) = annotate (AnnType $ (pretty f) <+> (pretty t) <+> (pretty fs)) "get#"
 

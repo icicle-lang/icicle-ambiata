@@ -24,6 +24,7 @@ import              Icicle.Internal.Pretty
 import              P
 import              Control.Monad.Trans.Class
 
+import qualified    Data.List                      as List
 import qualified    Data.Map                       as Map
 
 
@@ -62,8 +63,8 @@ flatten a_fresh s
      $ \to'
      -> ForeachInts n from' to' <$> flatten a_fresh ss
 
-    ForeachFacts n n' vt lo ss
-     -> ForeachFacts n n' vt lo <$> flatten a_fresh ss
+    ForeachFacts ns vt lo ss
+     -> ForeachFacts ns vt lo <$> flatten a_fresh ss
 
     Block ss
      -> Block <$> mapM (flatten a_fresh) ss
@@ -86,10 +87,12 @@ flatten a_fresh s
      $ \x'
      -> return $ Push n x'
 
-    Output n x
-     -> flatX a_fresh x
-     $ \x'
-     -> return $ Output n x'
+    Output n t xts
+     | xs <- fmap fst xts
+     , ts <- fmap snd xts
+     -> flatXS a_fresh xs []
+     $ \xs'
+     -> return $ Output n t (List.zip xs' ts)
 
     KeepFactInHistory
      -> return $ KeepFactInHistory
@@ -99,6 +102,19 @@ flatten a_fresh s
     SaveResumable n t
      -> return $ SaveResumable n t
 
+
+flatXS  :: (Ord n, Pretty n)
+        => a
+        -> [Exp a n Core.Prim]
+        -> [Exp a n Flat.Prim]
+        -> ([Exp a n Flat.Prim] -> FlatM a n)
+        -> FlatM a n
+
+flatXS _       []     ys stm = stm ys
+flatXS a_fresh (x:xs) ys stm
+ = flatX a_fresh x
+ $ \x'
+ -> flatXS a_fresh xs (ys <> [x']) stm
 
 
 -- | Flatten an expression, wrapping the statement with any lets or loops or other bindings
@@ -283,6 +299,51 @@ flatX a_fresh xx stm
        -> lift $ Left $ FlattenErrorPrimBadArgs p xs
 
 
+      Core.PrimLatest (Core.PrimLatestMake t)
+       | [i] <- xs
+       -> flatX' i
+       $  \i'
+       -> do   tmpN      <- fresh
+               let fpBuf  = xPrim (Flat.PrimBuf $ Flat.PrimBufMake t)
+               stm'      <- stm (xVar tmpN)
+
+               return
+                 $ Let tmpN (fpBuf `xApp` i') stm'
+
+       | otherwise
+       -> lift $ Left $ FlattenErrorPrimBadArgs p xs
+
+
+      Core.PrimLatest (Core.PrimLatestPush t)
+       | [buf, e]    <- xs
+       -> flatX' e
+       $  \e'
+       -> flatX' buf
+       $  \buf'
+       -> do   tmpN      <- fresh
+               let fpPush = xPrim (Flat.PrimBuf $ Flat.PrimBufPush t) `xApp` buf' `xApp` e'
+               stm'      <- stm (xVar tmpN)
+               return
+                 $ Let tmpN fpPush stm'
+
+       | otherwise
+       -> lift $ Left $ FlattenErrorPrimBadArgs p xs
+
+
+      Core.PrimLatest (Core.PrimLatestRead t)
+       | [buf] <- xs
+       -> flatX' buf
+       $  \buf'
+       -> do   tmpN       <- fresh
+               let fpRead  = xPrim (Flat.PrimBuf $ Flat.PrimBufRead t) `xApp` buf'
+               stm'       <- stm (xVar tmpN)
+               return
+                 $ Let tmpN fpRead stm'
+
+       | otherwise
+       -> lift $ Left $ FlattenErrorPrimBadArgs p xs
+
+
   -- Convert arguments to a simple primitive.
   -- conv is what we've already converted
   primApps p [] conv
@@ -308,16 +369,22 @@ flatX a_fresh xx stm
   -- Handle primitive folds
   --
   -- Bool is just an if
-  flatFold Core.PrimFoldBool _ [then_, else_, pred]
-   -- XXX: we are using "stm" twice here,
-   -- so duplicating branches.
-   -- I don't think this is a biggie
-   -- (yet)
+  flatFold Core.PrimFoldBool valT [then_, else_, pred]
    = flatX' pred
    $ \pred'
-   -> If pred'
-        <$> flatX' then_ stm
-        <*> flatX' else_ stm
+   -> do -- Fresh name for accumulator and result.
+         -- We can use same name for acc & result variables because accumulators and variables are in different scopes
+         acc <- fresh
+         -- Compute the rest of the computation, assuming we've stored result in variable named acc
+         stm' <- stm (xVar acc)
+         sthen <- flatX' then_ $ (return . Write acc)
+         selse <- flatX' else_ $ (return . Write acc)
+         -- Perform if and write result
+         let if_ =  If pred' sthen selse
+         let accT = Mutable
+         -- After if, read back result from accumulator and then go do the rest of the statements
+         let read_ = Read acc acc accT valT stm'
+         return (InitAccumulator (Accumulator acc accT valT $ xValue valT $ defaultOfType valT) (if_ <> read_))
 
   -- Array fold becomes a loop
   flatFold (Core.PrimFoldArray telem) valT [k, z, arr]
@@ -369,36 +436,43 @@ flatX a_fresh xx stm
 
 
   -- Fold over an option is just "maybe" combinator.
-  flatFold (Core.PrimFoldOption ta) _ [xsome, xnone, opt]
+  flatFold (Core.PrimFoldOption ta) valT [xsome, xnone, opt]
    = let fpIsSome    = xPrim (Flat.PrimProject  (Flat.PrimProjectOptionIsSome ta))
          fpOptionGet = xPrim (Flat.PrimUnsafe   (Flat.PrimUnsafeOptionGet     ta))
      in  flatX' opt
       $ \opt'
-      -- If we have a value
-      -> If (fpIsSome `xApp` opt')
-         -- Rip the value out and apply it
-         <$> slet (fpOptionGet `xApp` opt')
-             (\val -> flatX' (xsome `xApp` val) stm)
-
-         -- There's no value so return the none branch
-         <*> flatX' xnone stm
+      -> do
+         acc  <- fresh
+         stm' <- stm (xVar acc)
+         tmp  <- fresh
+         ssome <- flatX' (xsome `xApp` (xVar tmp)) $ (return . Write acc)
+         snone <- flatX' xnone $ (return . Write acc)
+         let if_   = If (fpIsSome `xApp` opt') (Let tmp (fpOptionGet `xApp` opt') ssome) snone
+             accT  = Mutable
+             -- After if, read back result from accumulator and then go do the rest of the statements
+             read_ = Read acc acc accT valT stm'
+         return (InitAccumulator (Accumulator acc accT valT $ xValue valT $ defaultOfType valT) (if_ <> read_))
 
   -- Fold over an either
-  flatFold (Core.PrimFoldSum ta tb) _ [xleft, xright, scrut]
-   = let fpIsLeft    = xPrim (Flat.PrimProject  (Flat.PrimProjectSumIsLeft  ta tb))
+  flatFold (Core.PrimFoldSum ta tb) valT [xleft, xright, scrut]
+   = let fpIsRight   = xPrim (Flat.PrimProject  (Flat.PrimProjectSumIsRight ta tb))
          fpLeft      = xPrim (Flat.PrimUnsafe   (Flat.PrimUnsafeSumGetLeft  ta tb))
          fpRight     = xPrim (Flat.PrimUnsafe   (Flat.PrimUnsafeSumGetRight ta tb))
      in  flatX' scrut
       $ \scrut'
-      -- If we have a value
-      -> If (fpIsLeft `xApp` scrut')
-         -- Rip the left out and apply it
-         <$> slet (fpLeft `xApp` scrut')
-             (\val -> flatX' (xleft `xApp` val) stm)
+      -> do
+         acc  <- fresh
+         stm' <- stm (xVar acc)
+         tmp  <- fresh
+         tmp' <- fresh
+         sleft   <- flatX' (xleft  `xApp` (xVar tmp )) $ (return . Write acc)
+         sright  <- flatX' (xright `xApp` (xVar tmp')) $ (return . Write acc)
 
-         -- Take right
-         <*> slet (fpRight `xApp` scrut')
-             (\val -> flatX' (xright `xApp` val) stm)
+         let if_   = If (fpIsRight `xApp` scrut') (Let tmp' (fpRight `xApp` scrut') sright) (Let tmp (fpLeft `xApp` scrut') sleft)
+             accT  = Mutable
+           -- After if, read back result from accumulator and then go do the rest of the statements
+             read_ = Read acc acc accT valT stm'
+         return (InitAccumulator (Accumulator acc accT valT $ xValue valT $ defaultOfType valT) (if_ <> read_))
 
 
   -- None of the above cases apply, so must be bad arguments
@@ -412,4 +486,3 @@ flatX a_fresh xx stm
             | otherwise
             = Min.PrimPairSnd ta tb
      in (xPrim $ Flat.PrimMinimal $ Min.PrimPair $ pm) `xApp` e
-

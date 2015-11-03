@@ -8,7 +8,6 @@
 -- and everything simpler.
 --
 {-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE PatternGuards #-}
 module Icicle.Common.Type (
       ValType (..)
     , FunType (..)
@@ -58,13 +57,15 @@ data ValType
  | StringT
  | UnitT
  | ErrorT
- | ArrayT ValType
- | MapT   ValType ValType
- | OptionT        ValType
- | PairT  ValType ValType
- | SumT   ValType ValType
+ | ArrayT  ValType
+ | MapT    ValType    ValType
+ | OptionT ValType
+ | PairT   ValType    ValType
+ | SumT    ValType    ValType
  | StructT StructType
+ | BufT    ValType
  deriving (Eq,Ord,Show)
+
 
 data ArithType
  = ArithIntT
@@ -98,12 +99,17 @@ defaultOfType typ
                         (defaultOfType b)
      SumT  a _ -> VLeft (defaultOfType a)
      StructT t -> VStruct (Map.map defaultOfType (getStructType t))
+     BufT _    -> VBuf 0 []
 
 
 data StructType
- = StructType 
+ = StructType
  { getStructType :: Map.Map StructField ValType }
- deriving (Eq, Ord, Show)
+ deriving (Eq, Ord)
+
+instance Show StructType where
+ showsPrec p (StructType x)
+  = showParen (p > 10) (showString "StructType " . showsPrec 11 x)
 
 
 -- | Function types.
@@ -210,10 +216,6 @@ requireSame err p q
 valueMatchesType :: BaseValue -> ValType -> Bool
 valueMatchesType v t
  = case (t,v) of
-    -- XXX reintroducing error-as-anything test for now
-    (_, VError{})
-     -> True
-
     (IntT, VInt{})
      -> True
     (IntT, _)
@@ -229,8 +231,8 @@ valueMatchesType v t
     (UnitT, _)
      -> False
 
-    -- (ErrorT, VError _)
-    -- -> True
+    (ErrorT, VError _)
+     -> True
     (ErrorT, _)
      -> False
 
@@ -285,6 +287,11 @@ valueMatchesType v t
     (StructT _, _)
      -> False
 
+    (BufT t', VBuf _ vs')
+     -> all (flip valueMatchesType t') vs'
+    (BufT _, _)
+     -> False
+
 
 -- Pretty printing ---------------
 
@@ -324,6 +331,7 @@ ppValType needParens vt =
     PairT a b  -> parens  (ppTop a <> text ", " <> ppTop b)
     SumT  a b  -> parens  (text "Sum" <+> ppSub a <+> ppSub b)
     StructT fs -> parens' (pretty fs)
+    BufT t     -> parens' (text "Buf " <> ppSub t)
   where
     parens' | needParens = parens
             | otherwise  = id

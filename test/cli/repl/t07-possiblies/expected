@@ -1,6 +1,6 @@
 welcome to iREPL
-ok, loaded 10 functions from data/libs/prelude.icicle
-ok, loaded test/cli/repl/data.psv, 8 rows
+ok, loaded 20 functions from data/libs/prelude.icicle
+ok, loaded test/cli/repl/data.psv, 13 rows
 > -- Divisions return Possibles.
 > -- Try with group:
 > - Core evaluation:
@@ -26,4 +26,8 @@ ok, loaded test/cli/repl/data.psv, 8 rows
 [homer, ((100.0,20.0),1500)
 ,marge, ((4.0,0.0),30)]
 
-> > 
+> > -- This was causing an issue with nested possibility cases before
+> - Core evaluation:
+[homer, 500,marge, 20]
+
+> 

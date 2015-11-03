@@ -7,17 +7,15 @@ module Icicle.Simulator (
   , SimulateError
   , evaluateVirtualValue
   , evaluateVirtualValue'
-  , valueToCore
-  , valueFromCore
   ) where
 
 import           Data.List
 import           Data.Either.Combinators
-import qualified Data.Map           as Map
-import           Data.Text (Text)
 
 import qualified Icicle.BubbleGum   as B
 import           Icicle.Common.Base
+import           Icicle.Common.Type
+import           Icicle.Common.Data (valueToCore, valueFromCore)
 import           Icicle.Data
 
 import           Icicle.Internal.Pretty
@@ -29,8 +27,8 @@ import qualified Icicle.Core.Eval.Program as PV
 import qualified Icicle.Core.Program.Program as P
 
 import qualified Icicle.Avalanche.Program as A
-import qualified Icicle.Core.Eval.Exp     as XV
-import qualified Icicle.Core.Exp.Prim     as XP
+import qualified Icicle.Avalanche.Prim.Eval  as APF
+import qualified Icicle.Avalanche.Prim.Flat  as APF
 import qualified Icicle.Avalanche.Eval    as AE
 
 data Partition =
@@ -40,22 +38,22 @@ data Partition =
     [AsAt Value]
   deriving (Eq,Show)
 
-type Result a = Either (SimulateError a) ([(OutputName, Value)], [B.BubbleGumOutput Text Value])
+type Result a n = Either (SimulateError a n) ([(OutputName, Value)], [B.BubbleGumOutput n Value])
 
-data SimulateError a
- = SimulateErrorRuntime (PV.RuntimeError a Text)
- | SimulateErrorRuntime' (AE.RuntimeError a Text XP.Prim)
- | SimulateErrorCannotConvertToCore        Value
+data SimulateError a n
+ = SimulateErrorRuntime (PV.RuntimeError a n)
+ | SimulateErrorRuntime' (AE.RuntimeError a n APF.Prim)
+ | SimulateErrorCannotConvertToCore        Value ValType
  | SimulateErrorCannotConvertFromCore      V.BaseValue
   deriving (Eq,Show)
 
-instance Pretty (SimulateError a) where
+instance Pretty n => Pretty (SimulateError a n) where
  pretty (SimulateErrorRuntime e)
   = pretty e
  pretty (SimulateErrorRuntime' e)
   = pretty e
- pretty (SimulateErrorCannotConvertToCore v)
-  = "Cannot convert value to Core: " <> pretty v
+ pretty (SimulateErrorCannotConvertToCore v t)
+  = "Cannot convert value to Core: " <> pretty v <+> ":" <+> pretty t
  pretty (SimulateErrorCannotConvertFromCore v)
   = "Cannot convert value from Core: " <> pretty v
 
@@ -81,80 +79,40 @@ makePartition fs@(f:_)
                 (attribute $ fact f)
                 (fmap (\f' -> AsAt (value $ fact f') (time f')) fs) ]
 
-evaluateVirtualValue :: P.Program a Text -> DateTime -> [AsAt Value] -> Result a
+evaluateVirtualValue :: Ord n => P.Program a n -> DateTime -> [AsAt Value] -> Result a n
 evaluateVirtualValue p date vs
  = do   vs' <- zipWithM toCore [1..] vs
 
         xv  <- mapLeft SimulateErrorRuntime
              $ PV.eval date vs' p
 
-        v'  <- mapM (\(n,v) -> (,) n <$> valueFromCore v) $ PV.value xv
-        bg' <- mapM (B.mapValue valueFromCore) (PV.history xv)
+        v'  <- traverse (\(k,v) -> (,) <$> pure k <*> valueFromCore' v) (PV.value xv)
+        bg' <- traverse (traverse valueFromCore') (PV.history xv)
         return (v', bg')
  where
   toCore n a
-   = do v' <- valueToCore $ fact a
-        return a { fact = (B.BubbleGumFact $ B.Flavour n $ time a, v') }
+   = do v' <- valueToCore' (fact a) (P.input p)
+        return $ a { fact = (B.BubbleGumFact $ B.Flavour n $ time a, v') }
 
-evaluateVirtualValue' :: A.Program a Text XP.Prim -> DateTime -> [AsAt Value] -> Result a
+evaluateVirtualValue' :: Ord n => A.Program a n APF.Prim -> DateTime -> [AsAt Value] -> Result a n
 evaluateVirtualValue' p date vs
  = do   vs' <- zipWithM toCore [1..] vs
 
         xv  <- mapLeft SimulateErrorRuntime'
-             $ AE.evalProgram XV.evalPrim date vs' p
+             $ AE.evalProgram APF.evalPrim date vs' p
 
-        v'  <- mapM (\(n,v) -> (,) n <$> valueFromCore v) $ snd xv
-        bg' <- mapM (B.mapValue valueFromCore) (fst xv)
+        v'  <- traverse (\(k,v) -> (,) <$> pure k <*> valueFromCore' v) (snd xv)
+        bg' <- traverse (traverse valueFromCore') (fst xv)
         return (v', bg')
  where
   toCore n a
-   = do v' <- valueToCore $ fact a
-        return a { fact = (B.BubbleGumFact $ B.Flavour n $ time a, v') }
+   = do v' <- valueToCore' (fact a) (A.input p)
+        return $ a { fact = (B.BubbleGumFact $ B.Flavour n $ time a, v') }
 
+valueToCore' :: Value -> ValType -> Either (SimulateError a n) BaseValue
+valueToCore' v vt
+ = maybe (Left (SimulateErrorCannotConvertToCore v vt)) Right (valueToCore v vt)
 
-valueToCore :: Value -> Either (SimulateError a) V.BaseValue
-valueToCore v
- = case v of
-    IntValue i     -> return $ V.VInt i
-    DoubleValue d  -> return $ V.VDouble d
-    BooleanValue b -> return $ V.VBool b
-    ListValue (List ls)
-                   -> V.VArray
-                            <$> mapM valueToCore ls
-
-    PairValue a b  -> V.VPair <$> valueToCore a <*> valueToCore b
-
-    MapValue  kvs  -> V.VMap . Map.fromList
-                            <$> mapM (\(a,b) -> (,) <$> valueToCore a <*> valueToCore b) kvs
-    StringValue t  -> return $ V.VString t
-    StructValue (Struct vs)
-                   -> V.VStruct . Map.fromList
-                  <$> mapM (\(a,b) -> (,) <$> pure (V.StructField $ getAttribute a) <*> valueToCore b) vs
-    DateValue d    -> return $ V.VDateTime d
-    Tombstone      -> return $ V.VError V.ExceptTombstone
-
-valueFromCore :: V.BaseValue -> Either (SimulateError a) Value
-valueFromCore v
- = case v of
-    V.VInt i      -> return $ IntValue i
-    V.VDouble d   -> return $ DoubleValue d
-    V.VUnit       -> return $ IntValue 13013
-    V.VBool b     -> return $ BooleanValue b
-    V.VDateTime d -> return $ DateValue d
-    V.VString t   -> return $ StringValue t
-    V.VArray vs   -> ListValue . List
-                  <$> mapM valueFromCore vs
-    V.VPair a b   -> PairValue <$> valueFromCore a <*> valueFromCore b
-    V.VSome a     -> valueFromCore a
-    V.VNone       -> return Tombstone
-    V.VMap vs     -> MapValue
-                  <$> mapM (\(a,b) -> (,) <$> valueFromCore a <*> valueFromCore b) (Map.toList vs)
-    V.VStruct vs  -> StructValue . Struct <$> mapM (\(a,b) -> (,) <$> pure (Attribute $ V.nameOfStructField a) <*> valueFromCore b) (Map.toList vs)
-
-    V.VError _    -> return Tombstone
-
-    -- TODO XXX for now just unwrap the Either constructors.
-    -- This is somewhat OK if it is an "Either Error actualvalue"
-    V.VLeft  a    -> valueFromCore a
-    V.VRight a    -> valueFromCore a
-
+valueFromCore' :: V.BaseValue -> Either (SimulateError a n) Value
+valueFromCore' v
+ = maybe (Left (SimulateErrorCannotConvertFromCore v)) Right (valueFromCore v)

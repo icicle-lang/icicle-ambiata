@@ -1,7 +1,7 @@
 :set +type
-feature salary ~> let fold perhaps = Left 0 : case perhaps | Left i -> Right (double i+1) | Right j -> Left (int j+1) end ~> perhaps
-feature salary ~> let fold perhaps = Left 0 : case perhaps | Right i -> Left (int i+1) | Left j -> Right (double j+1) end ~> perhaps
+feature salary ~> fold perhaps = Left 0 : case perhaps | Left i -> Right (double i+1) | Right j -> Left (int j+1) end ~> perhaps
+feature salary ~> fold perhaps = Left 0 : case perhaps | Right i -> Left (int i+1) | Left j -> Right (double j+1) end ~> perhaps
 
 
-feature salary ~> let fold perhaps = Left 0 : case perhaps | Left i -> Right i | Right j -> Left j end ~> perhaps
-feature salary ~> let fold perhaps = Left 0 : case perhaps | Right i -> Left i | Left j -> Right j end ~> perhaps
+feature salary ~> fold perhaps = Left 0 : case perhaps | Left i -> Right i | Right j -> Left j end ~> perhaps
+feature salary ~> fold perhaps = Left 0 : case perhaps | Right i -> Left i | Left j -> Right j end ~> perhaps

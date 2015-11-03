@@ -1,6 +1,6 @@
 welcome to iREPL
-ok, loaded 10 functions from data/libs/prelude.icicle
-ok, loaded test/cli/repl/data.psv, 8 rows
+ok, loaded 20 functions from data/libs/prelude.icicle
+ok, loaded test/cli/repl/data.psv, 13 rows
 > -- Count unique dates, this is equivalent to `distinct date ~> count`
 > - Core evaluation:
 [homer, 5,marge, 1]
@@ -12,5 +12,9 @@ ok, loaded test/cli/repl/data.psv, 8 rows
 > > -- Max of count of values
 > - Core evaluation:
 [homer, 1,marge, 3]
+
+> > -- Fold over oldests. Not really that meaningful but a useful test
+> - Core evaluation:
+[homer, 500,marge, 0]
 
 > 

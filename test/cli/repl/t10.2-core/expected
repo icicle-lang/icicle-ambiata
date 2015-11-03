@@ -1,0 +1,201 @@
+welcome to iREPL
+ok, loaded 20 functions from data/libs/prelude.icicle
+ok, loaded test/cli/repl/data.psv, 13 rows
+> -- Show everything
+> ok, core is now on
+ok, core-type is now on
+ok, core-simp is now on
+> > -- A rather complicated feature to convert to Avalanche
+> - Core:
+Program (source : Stream (Sum Error Int))
+Precomputations:
+
+Stream transformers:
+conv$0 =
+    source
+conv$2 =
+    sfilter [((Sum Error Int), DateTime)]
+    (
+    \conv$3@{((Sum Error Int), DateTime)} 
+    let simp$2 = fst#@{(Sum Error Int) DateTime} conv$3
+     in 
+    let simp$3 = Sum_fold#@{(Error
+,Int)}@{(Sum Error Bool)} (
+                 \reify$0$conv$4@{Error} left#@{Error Bool}
+                                 reify$0$conv$4) (
+                 \reify$1$conv$5@{Int} right#@{Error Bool} (gt#@{Int}
+                                         reify$1$conv$5 (10@{Int}))) simp$2
+     in Sum_fold#@{(Error
+,Bool)}@{Bool} (
+        \reify$2$conv$7@{Error} True@{Bool}) (
+        \reify$3$conv$8@{Bool} reify$3$conv$8)
+        simp$3) conv$0
+conv$11 =
+    smap    [((Sum Error Int), DateTime)] [((Sum Error Int), ((Sum Error Int), DateTime))]
+    (
+    \conv$10@{((Sum Error Int), DateTime)} 
+    let simp$5 = fst#@{(Sum Error Int) DateTime} conv$10
+     in pair#@{(Sum Error Int) ((Sum Error Int), DateTime)} simp$5 conv$10) conv$2
+Reductions:
+c$conv$13 =
+    rfold@{((Sum Error Int), ((Sum Error Int), DateTime)) (Sum Error Int)} (
+    \c$conv$13@{(Sum Error Int)} 
+    \conv$12@{((Sum Error Int), ((Sum Error Int), DateTime))} 
+    let simp$7 = fst#@{(Sum Error Int) ((Sum Error Int), DateTime)} conv$12
+     in Sum_fold#@{(Error
+,Int)}@{(Sum Error Int)} (
+        \reify$6$conv$14@{Error} left#@{Error Int}
+                         reify$6$conv$14) (
+        \reify$7$conv$15@{Int} Sum_fold#@{(Error
+,Int)}@{(Sum Error Int)} (
+                         \reify$8$conv$19@{Error} left#@{Error Int}
+                                          reify$8$conv$19) (
+                         \reify$9$conv$20@{Int} right#@{Error Int}
+                                          reify$9$conv$20) (Sum_fold#@{(Error
+,Int)}@{(Sum Error Int)} (
+                                                            \reify$4$conv$16@{Error}
+                                                            left#@{Error Int}
+                                                            reify$4$conv$16) (
+                                                            \reify$5$conv$17@{Int}
+                                                            right#@{Error Int} (add#@{Int}
+                                                                    reify$5$conv$17
+                                                                    (1@{Int})))
+                                                            c$conv$13)) simp$7)
+    (Right 0@{(Sum Error Int)}) conv$11
+conv$30 =
+    rfold@{((Sum Error Int), DateTime) Buf (Sum Error Int)} (
+    \conv$27@{Buf (Sum Error Int)} 
+    \conv$26@{((Sum Error Int), DateTime)} 
+    let simp$9 = fst#@{(Sum Error Int) DateTime} conv$26
+     in Latest_push#@{(Sum Error Int)} conv$27 simp$9)
+    (Buf 3 []@{Buf (Sum Error Int)}) conv$0
+Postcomputations with date as now$conv$1:
+conv$35 =
+    Sum_fold#@{(Error
+,Int)}@{(Sum Error (Int, Array (Sum Error Int)))} (
+    \reify$10$conv$23@{Error} 
+    let conv$24 = left#@{Error (Int, Array (Sum Error Int))}
+                  reify$10$conv$23
+     in conv$24) (
+    \reify$11$conv$25@{Int} 
+    let conv$31 = Latest_read#@{(Sum Error Int)}
+                  conv$30
+     in 
+    let conv$32 = pair#@{Int Array (Sum Error Int)}
+                  reify$11$conv$25 conv$31
+     in 
+    let conv$33 = right#@{Error (Int, Array (Sum Error Int))} conv$32
+     in conv$33) c$conv$13
+Returning:
+repl =
+    conv$35
+
+
+- Core type:
+[(repl
+ ,(Sum Error (Int, Array (Sum Error Int))))]
+
+- Core evaluation:
+[homer, (5,[300,400,500])
+,marge, (1,[0,10,20])]
+
+> > -- Something involves the abstract buffer type
+> - Core:
+Program (source : Stream (Sum Error Int))
+Precomputations:
+
+Stream transformers:
+conv$0 =
+    source
+Reductions:
+conv$2 =
+    rfold@{((Sum Error Int), DateTime) Map DateTime (Buf ((Sum Error Int), DateTime))} (
+    \conv$4@{Map DateTime (Buf ((Sum Error Int), DateTime))} 
+    \conv$5@{((Sum Error Int), DateTime)} 
+    let simp$2 = Latest_push#@{((Sum Error Int), DateTime)}
+                 (Buf 2 []@{Buf ((Sum Error Int), DateTime)}) conv$5
+     in 
+    let simp$3 = snd#@{(Sum Error Int) DateTime} conv$5
+     in Map_insertOrUpdate#@{(DateTime
+,Buf ((Sum Error Int), DateTime))} (
+        \conv$7@{Buf ((Sum Error Int), DateTime)} Latest_push#@{((Sum Error Int), DateTime)} conv$7
+                conv$5) simp$2 simp$3 conv$4)
+    (Map []@{Map DateTime (Buf ((Sum Error Int), DateTime))}) conv$0
+Postcomputations with date as now$conv$1:
+conv$3 =
+    Map_fold#@{(DateTime
+,Buf ((Sum Error Int), DateTime))}@{(Sum Error (Map DateTime Int))} (
+    \conv$4@{(Sum Error (Map DateTime Int))} 
+    \conv$26@{DateTime} 
+    \conv$5@{Buf ((Sum Error Int), DateTime)} Sum_fold#@{(Error
+,Map DateTime Int)}@{(Sum Error (Map DateTime Int))} (
+            \conv$31@{Error} left#@{Error Map DateTime Int} conv$31) (
+            \conv$30@{Map DateTime Int} Sum_fold#@{(Error
+,Int)}@{(Sum Error (Map DateTime Int))} (
+                     \conv$31@{Error} left#@{Error Map DateTime Int} conv$31) (
+                     \conv$28@{Int} right#@{Error Map DateTime Int}
+                              (Map_insertOrUpdate#@{(DateTime
+,Int)} (
+                               \conv$29@{Int} conv$29) conv$28
+                               conv$26 conv$30)) (
+                     let conv$11 = 
+                                   let conv$6 = Latest_read#@{((Sum Error Int), DateTime)} conv$5
+                                    in Array_fold#@{((Sum Error Int), DateTime)}@{((Sum Error Int), ((Sum Error Int), Unit))} (
+                                       \conv$10@{((Sum Error Int), ((Sum Error Int), Unit))} 
+                                       \conv$9@{((Sum Error Int), DateTime)} 
+                                       let v$inline$0$conv$13 = fst#@{(Sum Error Int) DateTime}
+                                                                conv$9
+                                        in pair#@{(Sum Error Int) ((Sum Error Int), Unit)} v$inline$0$conv$13 (
+                                           let conv$24 = snd#@{(Sum Error Int) ((Sum Error Int), Unit)} conv$10
+                                            in 
+                                           let s$conv$22 = 
+                                                           let s$conv$14 = fst#@{(Sum Error Int) Unit}
+                                                                           conv$24
+                                                            in Sum_fold#@{(Error
+,Int)}@{(Sum Error Int)} (
+                                                               \reify$0$conv$15@{Error}
+                                                               left#@{Error Int}
+                                                               reify$0$conv$15)
+                                                               (
+                                                               \reify$1$conv$16@{Int}
+                                                               Sum_fold#@{(Error
+,Int)}@{(Sum Error Int)} (
+                                                               \reify$2$conv$17@{Error}
+                                                               left#@{Error Int}
+                                                               reify$2$conv$17)
+                                                               (
+                                                               \reify$3$conv$18@{Int}
+                                                               right#@{Error Int} (add#@{Int}
+                                                                       reify$1$conv$16
+                                                                       reify$3$conv$18))
+                                                               s$conv$14)
+                                                               v$inline$0$conv$13
+                                            in pair#@{(Sum Error Int) Unit} s$conv$22 (()@{Unit})))
+                                       ((Left ExceptTombstone, (Right 0, ()))@{((Sum Error Int), ((Sum Error Int), Unit))})
+                                       conv$6
+                      in 
+                     let conv$24 = snd#@{(Sum Error Int) ((Sum Error Int), Unit)} conv$11
+                      in 
+                     let s$conv$22 = 
+                                     let conv$21 = fst#@{(Sum Error Int) Unit} conv$24
+                                      in conv$21
+                      in s$conv$22)) conv$4)
+    (Right Map []@{(Sum Error (Map DateTime Int))}) conv$2
+Returning:
+repl =
+    conv$3
+
+
+- Core type:
+[(repl
+ ,(Sum Error (Map DateTime Int)))]
+
+- Core evaluation:
+[homer, [(1989-12-17,100)
+        ,(1990-01-01,200)
+        ,(1994-01-01,300)
+        ,(1999-01-01,400)
+        ,(2010-01-01,500)]
+,marge, [(1989-12-17,30)]]
+
+> > > 

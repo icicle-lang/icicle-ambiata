@@ -22,20 +22,27 @@ import                  Control.Monad.Trans.Either
 
 import qualified        Data.Map                as Map
 import qualified        Data.Set                as Set
+import qualified        Data.List               as List
+
+type Funs a n = [((a, Name n), Function a n)]
+type FunEnvT a n = [ ( Name n
+                   , ( FunctionType n
+                     , Function (Annot a n) n ) ) ]
+
 
 checkFs :: Ord n
-        => Map.Map (Name n) (FunctionType n, Function (Annot a n) n)
-        -> [((a, Name n), Function a n)]
+        => FunEnvT a n
+        -> Funs a n
         -> EitherT (CheckError a n) (Fresh.Fresh n)
-                   (Map.Map (Name n) (FunctionType n, Function (Annot a n) n))
+                   (FunEnvT a n)
 
 checkFs env functions
  = foldlM (\env' -> \(name,fun) -> do
-            (annotfun, funtype) <- checkF (fst <$> env') fun
-            if (Map.member (snd name) env')
+            (annotfun, funtype) <- checkF (fst <$> (Map.fromList env')) fun
+            if (isJust $ List.lookup (snd name) env')
               then hoistEither $ Left $ CheckError (ErrorDuplicateFunctionNames (fst name) (snd name)) []
                 else
-                  pure (Map.insert (snd name) (funtype, annotfun) env'))
+                  pure (env' <> [(snd name , (funtype, annotfun))]))
           env functions
 
 checkF  :: Ord n
@@ -58,15 +65,17 @@ checkF' fun env
  = do -- Give each argument a fresh type variable
       env' <- foldM bindArg env $ arguments fun
       -- Get the annotated body
-      (q', subs, cons')  <- generateQ (body fun) env'
+      (q, subs, cons)  <- generateQ (body fun) env'
+      (subs',cons')     <- dischargeF (annotOfQuery $ body fun) subs cons
+      let q' = substTQ subs' q
 
       -- Look up the argument types after solving all constraints.
       -- Because they started as fresh unification variables,
       -- they will end up being unified to the actual types.
-      args <- mapM (lookupArg subs env') (arguments fun)
+      args <- mapM (lookupArg subs' env') (arguments fun)
 
       -- Find all leftover constraints and nub them
-      let constrs = ordNub $ fmap snd cons'
+      let constrs = fmap snd cons'
 
       -- We want to remove any modes (temporalities or possibilities)
       -- that are bound by foralls with no constraints on them.
@@ -125,10 +134,10 @@ checkF' fun env
       let argTs = fmap (fixmodes . annResult . fst) args
       let resT  = fixmodes $ annResult $ annotOfQuery q'
 
-      -- Find free variables in types - these have to be bound as foralls.
+      -- Find free variables in types and constraints - these have to be bound as foralls.
       let binds = Set.toList
                 $ Set.unions
-                $ freeT resT : fmap freeT argTs
+                $ keepModes : freeT resT : fmap freeT argTs
 
       -- Put it all together
       let funT  = FunctionType binds constrs argTs resT
@@ -147,4 +156,14 @@ checkF' fun env
   lookupArg subs e (a,n)
    = do (_,_,t,_) <- lookup a n e
         return (Annot a (substT subs t) [], n)
+
+
+dischargeF :: Ord n => a -> SubstT n -> [(a, Constraint n)] -> Gen a n (SubstT n, [(a, Constraint n)])
+dischargeF ann sub cons
+ = case dischargeCS' dischargeC'toplevel cons of
+    Left errs
+     -> Gen . hoistEither
+      $ errorNoSuggestions (ErrorConstraintsNotSatisfied ann errs)
+    Right (sub', cons')
+     -> return (compose sub sub', cons')
 

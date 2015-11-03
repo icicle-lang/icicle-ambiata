@@ -99,7 +99,8 @@ convertQuery
         => Query (Annot a n) n
         -> ConvertM a n (CoreBinds () n, Name n)
 convertQuery q
- = case contexts q of
+ = convertContext
+ $ case contexts q of
     -- There are no queries left, so deal with simple aggregates and nested queries.
     []
      -> convertReduce (final q)
@@ -157,72 +158,27 @@ convertQuery q
     --
     -- However, at the moment we only support folds with single pass,
     -- and not returning the whole array.
-    (Latest _ i : _)
+    (Latest _ _ : _)
+     -> do  -- We can cheat!
+            -- Convert the entire latest query as a fold.
+            (inpstream,inpty) <- convertInput
 
-     -- Special case: just a value.
-     -- We still need to support eg
-     --
-     -- "latest 5 ~> filter P ~> Elem"
-     -- and also
-     -- "latest 5 ~> let V = Elem ~> Elem"
-     --
-     | case getTemporalityOrPure $ annResult $ annotOfQuery q' of
-        TemporalityElement  -> True
-        TemporalityPure     -> True
-        _                   -> False
-     -> do  n'arr   <- lift fresh
-            n'map   <- lift fresh
+            n'inp      <- lift fresh
+            n'acc      <- lift fresh
+            res        <- convertWithInputName n'inp $ convertFold q
+            n'red      <- lift fresh
+            n'ret      <- lift fresh
 
-            n'v     <- lift fresh
+            let k'      = beta
+                        $ CE.xLam n'acc (typeFold res)
+                        $ CE.xLam n'inp inpty
+                        ( foldKons res CE.@~ CE.xVar n'acc)
 
-            x' <- convertWithInputName n'v $ convertExpQ q'
-            t' <- convertValType' $ annResult $ annotOfQuery q'
+            let b'red   = red  n'red
+                        $ C.RFold inpty (typeFold res) k' (foldZero res) inpstream
+            let b'ret   = post n'ret $ beta (mapExtract res CE.@~ CE.xVar n'red)
 
-            (inpstream, inpty) <- convertInput
-
-            -- Do the map before the latest.
-            -- Same result, just requires a smaller buffer
-            let bmap  = strm  n'map
-                      $ C.STrans (C.SMap inpty t') (CE.xLam n'v inpty x') inpstream
-            let barr  = red  n'arr
-                      $ C.RLatest t' (CE.constI i) n'map
-            return (bmap <> barr, n'arr)
-
-     | otherwise
-     -> do  n'arr   <- lift fresh
-            n'fold  <- lift fresh
-            n'xtra  <- lift fresh
-
-            n'a     <- lift fresh
-            n'v     <- lift fresh
-
-            -- Destruct the aggregate into a fold expression:
-            -- x (fold k z inps)
-            -- where x :: tV -> retty
-            res
-                    <- convertWithInputName n'v $ convertFold q'
-
-            let tV'  = typeFold res
-
-            (inpstream, inpty) <- convertInput
-
-            -- Because Map_insertOrUpdate and Array_fold take their "k" in a different order,
-            -- we need to flip the k here.
-            let k'    = CE.xLam n'a tV'
-                      $ CE.xLam n'v inpty
-                      $ beta
-                      ( foldKons res CE.@~ CE.xVar n'a)
-
-            -- Construct the "latest" reduction,
-            -- the fold over the resulting array,
-            -- and the extraction of the actual result of the array.
-            -- (See convertFold)
-            let barr  = red  n'arr   (C.RLatest inpty (CE.constI i) inpstream)
-            let bfold = post n'fold  (CE.xPrim (C.PrimFold (C.PrimFoldArray inpty) tV')
-                                      CE.@~ k' CE.@~ beta (foldZero res) CE.@~ CE.xVar n'arr)
-            let bxtra = post n'xtra (beta (mapExtract res CE.@~ CE.xVar n'fold))
-
-            return (barr <> bfold <> bxtra, n'xtra)
+            return (b'red <> b'ret, n'ret)
 
     -- Convert a group by into the construction of a Map.
     -- The key is the "by" of the group, while the value is the result of the
@@ -233,8 +189,7 @@ convertQuery q
     -- as long as the "by" is something like an enum, and the "value" has bounded memory.
     --
     (GroupBy (Annot { annAnnot = ann, annResult = retty }) e : _)
-     -> do  t1 <- getGroupByMapType ann retty
-            n'      <- lift fresh
+     -> do  n'      <- lift fresh
             n''     <- lift fresh
             nmap    <- lift fresh
             nval    <- lift fresh
@@ -245,16 +200,14 @@ convertQuery q
             -- See convertFold.
             res     <- convertWithInputName nval $ convertFold q'
 
-            let tV'  = typeFold res
-            let t1'  = t1
-            let t2'  = typeExtract res
+            tK      <- convertValType' $ annResult $ annotOfExp e
+            let tV   = typeFold res
 
             -- Convert the "by" to a simple expression.
             -- This becomes the map insertion key.
             e'      <- convertWithInputName nval $ convertExp e
 
-            let mapt = T.MapT t1' tV'
-
+            let mapt = T.MapT tK tV
 
             (inpstream, inpty) <- convertInput
 
@@ -267,7 +220,7 @@ convertQuery q
             -- with the zero accumulator.
             -- This is because the map doesn't start with "zero"s in it, unlike a normal fold.
             let priminsert
-                    = C.PrimMapInsertOrUpdate t1' tV'
+                    = C.PrimMapInsertOrUpdate tK tV
 
             let insertOrUpdate
                     = CE.makeApps () (CE.xPrim $ C.PrimMap $ priminsert)
@@ -283,24 +236,68 @@ convertQuery q
                     $ insertOrUpdate
 
             let emptyMap
-                    = CE.emptyMap t1' tV'
+                    = CE.emptyMap tK tV
 
             -- Perform the map fold
-            let r = red n' 
+            let r = red n'
                   $ C.RFold inpty mapt insertOrUpdate' emptyMap inpstream
 
             -- After all the elements have been seen, we go through the map and perform
             -- the "extract" on each value.
             -- This performs any fixups that couldn't be performed during the fold.
 
+            -- Unwrapped results
+            (tKr,tXr) <- getGroupByMapType ann retty
+            let isPossibly = PossibilityPossibly == getPossibilityOrDefinitely retty
+                sumt | isPossibly
+                     = T.SumT T.ErrorT $ T.MapT tKr tXr
+                     | otherwise
+                     = T.MapT tKr tXr
+                emptyResult
+                     | isPossibly
+                     = CE.xValue sumt $ VRight $ VMap Map.empty
+                     | otherwise
+                     = CE.xValue sumt $ VMap Map.empty
+
+            nkey    <- lift fresh
+            nkey'   <- lift fresh
+            nval'   <- lift fresh
+            nval''  <- lift fresh
+            nmap'   <- lift fresh
+
+            nErr    <- lift fresh
+
+            let unwrapSum' chk = unwrapSum chk sumt nErr
+
+            let rewrapSum' = rewrapSum isPossibly sumt
+
+            let ins = CE.xLam nmap sumt
+                    $ CE.xLam nkey tK
+                    $ CE.xLam nval tV
+                    $ unwrapSum' isPossibly
+                                 (CE.xVar nmap) nmap' sumt
+                    $ unwrapSum' (isAnnotPossibly $ annotOfExp e)
+                                 (CE.xVar nkey) nkey' tK
+                    $ unwrapSum' (isAnnotPossibly $ annotOfQuery q')
+                                 (beta (mapExtract res CE.@~ CE.xVar nval)) nval' (typeExtract res)
+                    $ rewrapSum'
+                    $ CE.makeApps () (CE.xPrim $ C.PrimMap $ C.PrimMapInsertOrUpdate tKr tXr)
+                    [ CE.xLam nval'' tXr $ CE.xVar nval''
+                    , CE.xVar nval'
+                    , CE.xVar nkey'
+                    , CE.xVar nmap']
+
+
             let mapResult
-                    = CE.xPrim (C.PrimMap $ C.PrimMapMapValues t1' tV' t2')
-                    CE.@~ beta (mapExtract res)
+                    = CE.xPrim (C.PrimFold (C.PrimFoldMap tK tV) sumt)
+                    CE.@~ beta ins
+                    CE.@~ emptyResult
                     CE.@~ CE.xVar n'
 
             let p   = post n'' mapResult
 
             return (r <> p, n'')
+
 
     -- Convert a group fold using a Map. Very similar to Group By, with an additional
     -- postcomputation.
@@ -386,7 +383,7 @@ convertQuery q
 
             -- Perform the map fold
             let r = red n'
-                  $ C.RFold inpty mapt insertOrUpdate 
+                  $ C.RFold inpty mapt insertOrUpdate
                   ( CE.emptyMap tkey tval)
                     inpstream
 
@@ -421,7 +418,7 @@ convertQuery q
                 let xsnd = CE.xApp
                          $ CE.xPrim $ C.PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd t' inpty
 
-                convertModifyFeatures (Map.insert b (annResult $ annotOfExp def, xfst) . Map.map (\(t,f) -> (t, f . xsnd)))
+                convertModifyFeatures (Map.insert b (FeatureVariable (annResult $ annotOfExp def) xfst False) . Map.map (\fv -> fv { featureVariableExp = featureVariableExp fv . xsnd }))
 
                 let pair = (CE.xPrim $ C.PrimMinimal $ Min.PrimConst $ Min.PrimConstPair t' inpty)
                          CE.@~ e' CE.@~ CE.xVar n'e
@@ -454,63 +451,8 @@ convertQuery q
 
 
     -- Converting fold1s.
-    (LetFold _ f@Fold{ foldType = FoldTypeFoldl1 } : _)
-     -> do  -- Type helpers
-            tU <- convertValType' $ annResult $ annotOfExp $ foldWork f
-            let tO = T.OptionT tU
-
-            -- Generate fresh names
-            -- Element of the stream
-            -- :                input type
-            n'elem <- lift fresh
-            -- Current accumulator
-            -- : Option tU
-            n'a     <- lift fresh
-
-
-            z   <- convertWithInputName n'elem $ convertExp (foldInit f)
-            -- Current accumulator is only available in worker
-            -- Remove binding before converting init and work expressions,
-            -- just in case the same name has been used elsewhere
-            convertModifyFeatures (Map.delete (foldBind f))
-            n'a'' <- convertFreshenAdd $ foldBind f
-            k   <- convertWithInputName n'elem $ convertExp (foldWork f)
-
-            -- Wrap zero and kons up in Some
-            let z' = som tU $ z
-            let k' = som tU $ k
-
-
-            (inpstream, inpty) <- convertInput
-
-            -- Worker function of the fold
-            let go  = CE.xLam n'a tO
-                    ( CE.xLam n'elem inpty
-                    $ opt tU tO
-                    ( CE.xLam n'a'' tU k')
-                      z'
-                      (CE.xVar n'a))
-
-
-            -- Bind the fold to a fresh name
-            n' <- lift fresh
-            let bs = red n'
-                        (C.RFold inpty tO go (none tU) inpstream)
-                     -- Then unwrap the actual result and bind it
-                  <> post n'a''
-                        (opt tU tU
-                            -- If the outer layer is a "Some",
-                            -- just return inner layer as-is
-                            (CE.xLam n'a'' tU $ CE.xVar n'a'')
-                            -- Outer layer is a "None", so throw an exception
-                            (CE.xValue tU $ VError ExceptFold1NoValue)
-                            (CE.xVar n'))
-
-
-            (bs', n'')      <- convertQuery q'
-
-            return (bs <> bs', n'')
-
+    (LetFold (Annot { annAnnot = ann }) Fold{ foldType = FoldTypeFoldl1 } : _)
+     -> convertError $ ConvertErrorImpossibleFold1 ann
 
     -- In comparison, normal folds are quite easy.
     --
@@ -560,37 +502,27 @@ convertQuery q
   -- Because Core is explicitly typed, we need to pull out the key type and value type.
   getGroupByMapType ann ty
    | (_,_,t') <- decomposeT ty
-   , (GroupT tk _tv) <- t'
-   = convertValType' tk
+   , (GroupT tk tv) <- t'
+   = (,) <$> convertValType' tk <*> convertValType' tv
+   | (_,_,t') <- decomposeT ty
+   , (SumT ErrorT (GroupT tk tv)) <- t'
+   = (,) <$> convertValType' tk <*> convertValType' tv
    | otherwise
    = convertError $ ConvertErrorGroupByHasNonGroupResult ann ty
 
   -- Get the key and value type of a group inside a group-fold.
   getGroupFoldType a e
-   = case e of
-       Nested (Annot { annResult = ty }) _
-         -> do t <- convertValType' ty
-               case t of
-                 T.MapT tk tv -> return (tk, tv)
-                 _            -> convertError $ ConvertErrorGroupFoldNotOnGroup a e
-       _ -> convertError $ ConvertErrorGroupFoldNotOnGroup a e
+   = do t <- convertValType' $ annResult $ annotOfExp e
+        case t of
+         T.MapT tk tv -> return (tk, tv)
+         _            -> convertError $ ConvertErrorGroupFoldNotOnGroup a e
 
   -- Perform beta reduction, just to simplify the output a tiny bit.
   beta = Beta.betaToLets ()
        . Beta.beta Beta.isSimpleValue
 
-  -- Some helpers for generating Option expressions
-  -- Note that the "t"s here are the types without the outermost
-  -- layer of Option wrapping
-  opt t tret ss nn scrutinee
-   = CE.xPrim (C.PrimFold (C.PrimFoldOption t) tret)
-     CE.@~ ss CE.@~ nn CE.@~ scrutinee
-  none t
-   = CE.xValue (T.OptionT t) VNone
-  som t
-   = CE.some t
-
   convertValType' = convertValType (annAnnot $ annotOfQuery q)
+
 
 
 -- | Convert an Aggregate computation at the end of a query.
@@ -639,20 +571,32 @@ convertReduce xx
 
 
  | Case (Annot { annAnnot = ann, annResult = retty }) scrut patalts <- xx
- = do   let (pats,alts) = unzip patalts
+ = do   scrut' <- convertReduce scrut
 
-        scrut' <- convertReduce scrut
-        pats'  <- convertCaseFreshenPats pats
-        alts'  <- mapM convertExp alts
+        -- Because the alternatives can contain more folds and stuff, we need to
+        -- use convertReduce on them.
+        -- However, because the pattern variables must be Aggregates, we know that
+        -- any pattern variables will only be mentioned in the postcomputations.
+        -- Therefore we need to pull out the postcomputations into a let,
+        -- and stick them inside the new case alternative.
+        --
+        -- All the foldy bits of each alternative must be computed, because
+        -- we won't know which ones will be needed until after they are run.
+        let goPatAlt (p,alt)
+                  = (,) <$> convertCaseFreshenPat p <*> convertReduce alt
+        patalts' <- mapM goPatAlt patalts
+        let pats' = fmap                 fst  patalts'
+            alts' = fmap (pullPosts () . snd) patalts'
 
-        let bs' = fst scrut'
+        let bs' = fst scrut' <> mconcat (fmap fst alts')
 
         let sX  = CE.xVar $ snd scrut'
+        let aXs = fmap snd alts'
 
         scrutT <- convertValType ann $ annResult $ annotOfExp scrut
         resT   <- convertValType ann $ retty
 
-        x'     <- convertCase xx sX (pats' `zip` alts') scrutT resT
+        x'     <- convertCase xx sX (pats' `zip` aXs) scrutT resT
         nm     <- lift fresh
 
         let b'  | TemporalityPure <- getTemporalityOrPure retty
@@ -660,7 +604,7 @@ convertReduce xx
                 | otherwise
                 = post nm x'
 
-        return (b' <> bs', nm)
+        return (bs' <> b', nm)
 
  -- It's not a variable or a nested query,
  -- so it must be an application of a non-primitive
