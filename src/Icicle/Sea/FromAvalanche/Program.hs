@@ -61,6 +61,9 @@ stateOfProgram :: (Show a, Show n, Pretty n, Ord n)
 stateOfProgram program
  = vsep
  [ "typedef struct {"
+ , "    /* runtime */"
+ , "    imempool_t mempool;"
+ , ""
  , "    /* inputs */"
  , "    idate_t    gen_date;"
  , "    iint_t     new_count;"
@@ -88,7 +91,8 @@ stateOfProgram program
 
 stateWordsOfProgram :: Ord n => Program (Annot a) n Prim -> Int
 stateWordsOfProgram program
- = 1 -- gen_date
+ = 3 -- mempool
+ + 1 -- gen_date
  + 1 -- new_count
  + length (maybe [] snd (factVarsOfProgram FactLoopNew program))
  + sum (fmap (length . snd . snd) (outputsOfProgram program))

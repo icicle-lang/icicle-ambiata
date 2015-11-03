@@ -24,3 +24,16 @@ static const ibool_t itrue  = 1;
 
 #define INLINE   __attribute__((always_inline))
 #define NOINLINE __attribute__((noinline))
+
+#define ASSERT_SIZE(t, num_words) \
+  _Static_assert (sizeof (t) == (num_words) * 8, #t " must be " #num_words " words in size");
+
+_Static_assert (sizeof (void *) == sizeof (uint64_t), "Icicle only supports systems with a 64-bit word size");
+
+/* #if-style conditionals cannot be used inside macros so we define a macro
+ * which only outputs its code when we're in debug mode. */
+#if ICICLE_DEBUG
+#   define ICICLE_WHEN_DEBUG(code) code
+#else
+#   define ICICLE_WHEN_DEBUG(code)
+#endif

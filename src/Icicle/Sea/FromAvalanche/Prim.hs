@@ -28,7 +28,7 @@ seaOfPrimDocApps :: PrimDoc -> [Doc] -> Doc
 seaOfPrimDocApps p xs
  = case p of
     PDFun   d -> d <+> tuple xs
-    PDAlloc d -> d <+> tuple ("s->allocator" : xs)
+    PDAlloc d -> d <+> tuple ("&s->mempool" : xs)
 
 seaOfXPrim :: Prim -> PrimDoc
 seaOfXPrim p

@@ -1,3 +1,4 @@
+#include "03-simple.h"
 
 typedef struct
 {
@@ -68,10 +69,10 @@ typedef struct
 
 #define MK_ARRAY_CREATE(t,pre)                                                  \
     static ARRAY_OF(t)  INLINE ARRAY_FUN(create,pre)                            \
-                                        (iallocate_t alloc, iint_t sz)          \
+                                        (imempool_t *pool, iint_t sz)           \
     {                                                                           \
-        iint_t bytes     = sizeof(t) * sz + sizeof(iarray_struct);      \
-        ARRAY_OF(t)  ret = (ARRAY_OF(t))allocate(alloc, bytes);                 \
+        size_t bytes     = sizeof(t) * sz + sizeof(iarray_struct);              \
+        ARRAY_OF(t)  ret = (ARRAY_OF(t))imempool_alloc(pool, bytes);            \
         ret->count = sz;                                                        \
         return ret;                                                             \
     }                                                                           \
@@ -99,10 +100,6 @@ typedef struct
     MK_ARRAY_CREATE (t,pre)                                                     \
     MK_ARRAY_PUT    (t,pre)                                                     \
     // MK_ARRAY_ZIP    (t,pre)                                                     \
-
-// TEMPORARY
-typedef void* iallocate_t;
-void* allocate(iallocate_t t, iint_t sz);
 
 MAKE_ARRAY(idouble_t,   idouble_)
 MAKE_ARRAY(iint_t,      iint_)
