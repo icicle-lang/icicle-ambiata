@@ -10,6 +10,7 @@ import           Icicle.Internal.Pretty as Pretty
 
 import           P
 
+import           Data.ByteString (ByteString)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 
@@ -30,6 +31,16 @@ seaPreamble
    = vsep
    [ "// " <> text f
    , "#line 1 \"" <> text f <> "\""
-   , text . T.unpack . T.strip $ T.decodeUtf8 bs
+   , seaOfExternal bs
    , ""
    ]
+
+seaOfExternal :: ByteString -> Doc
+seaOfExternal
+ = text
+ . T.unpack
+ . T.strip
+ . T.unlines
+ . filter (not . T.isPrefixOf "#include \"")
+ . T.lines
+ . T.decodeUtf8

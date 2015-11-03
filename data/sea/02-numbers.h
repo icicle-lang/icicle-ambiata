@@ -1,3 +1,4 @@
+#include "01-includes.h"
 
 #define MK_SIMPLE_CMPS(t,pre)                                                   \
     static ibool_t   INLINE pre##eq   (t x, t y) { return x == y; }             \
