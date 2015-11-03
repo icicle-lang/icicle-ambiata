@@ -41,10 +41,10 @@ seaError' :: Doc -> Doc -> Doc
 seaError' subject msg = line <> "#error Failed during codegen (" <> subject <> ": " <> msg <> "..)" <> line
 
 assign :: Doc -> Doc -> Doc
-assign x y = x <> column (\k -> indent (40-k) " =") <+> y
+assign x y = x <> column (\k -> indent (45-k) " =") <+> y
 
 suffix :: Doc -> Doc
-suffix annot = column (\k -> indent (80-k) (" /*" <+> annot <+> "*/"))
+suffix annot = column (\k -> indent (85-k) (" /*" <+> annot <+> "*/"))
 
 tuple :: [Doc] -> Doc
 tuple []  = "()"
