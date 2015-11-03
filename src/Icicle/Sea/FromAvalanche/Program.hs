@@ -24,7 +24,6 @@ import           Icicle.Sea.FromAvalanche.Analysis
 import           Icicle.Sea.FromAvalanche.Base
 import           Icicle.Sea.FromAvalanche.Prim
 import           Icicle.Sea.FromAvalanche.Type
-import           Icicle.Sea.Preamble
 
 import           P
 
@@ -38,8 +37,7 @@ seaOfProgram :: (Show a, Show n, Pretty n, Ord n)
              => Program (Annot a) n Prim -> Doc
 seaOfProgram program
  =  vsep
- [ seaPreamble
- , "#line 1 \"state definition\""
+ [ "#line 1 \"state definition\""
  , stateOfProgram program
  , ""
  , "#line 1 \"compute function\""
