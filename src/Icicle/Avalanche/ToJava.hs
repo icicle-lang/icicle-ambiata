@@ -241,6 +241,12 @@ primTypeOfPrim p
      -> Function "Sum.pack"
     PrimPack (PrimStructPack _)
      -> Function "Struct.pack"
+    PrimMap (PrimMapPack _ _)
+     -> Function "Map.pack"
+    PrimMap (PrimMapUnpackKeys _ _)
+     -> Function "Map.unpackKeys"
+    PrimMap (PrimMapUnpackValues _ _)
+     -> Function "Map.unpackValues"
     PrimBuf pb
      -> buf pb
 
@@ -305,19 +311,15 @@ primTypeOfPrim p
   logic   M.PrimLogicalOr   = Infix     "||"
 
   proj (PrimProjectArrayLength _) = Method "size"
-  proj (PrimProjectMapLength _ _) = Method "size"
-  proj (PrimProjectMapLookup _ _) = Method "get"
   proj (PrimProjectOptionIsSome _)= Special1 $ \a -> a <> " != null"
   proj (PrimProjectSumIsRight _ _) = Method "isRight"
 
   unsa (PrimUnsafeArrayIndex _)    = Method "get"
   unsa (PrimUnsafeArrayCreate t)   = Function ("new ArrayList" <> angled (boxedType t))
-  unsa (PrimUnsafeMapIndex _ _)    = Function "IcicleMap.getByIndex"
   unsa (PrimUnsafeOptionGet _)     = Special1 $ \a -> a
   unsa (PrimUnsafeSumGetLeft  _ _) = Method "left"
   unsa (PrimUnsafeSumGetRight _ _) = Method "right"
 
-  upda (PrimUpdateMapPut _ _)      = Function "IcicleMap.put"
   upda (PrimUpdateArrayPut _)      = Function "Array.put"
 
   buf (PrimBufMake t) = Function $ "new IcicleBuf" <> angled (boxedType t)
@@ -354,11 +356,7 @@ boxyOfPrimReturn p
  = Boxed
  | PrimMinimal (M.PrimPair _) <- p
  = Boxed
- | PrimProject (PrimProjectMapLookup _ _) <- p
- = Boxed
  | PrimUnsafe (PrimUnsafeArrayIndex _) <- p
- = Boxed
- | PrimUnsafe (PrimUnsafeMapIndex _ _) <- p
  = Boxed
  | PrimMinimal (M.PrimConst (M.PrimConstSome _)) <- p
  = Boxed
@@ -370,8 +368,6 @@ boxyOfPrimReturn p
 boxyOfPrimArgs :: Prim -> Boxy
 boxyOfPrimArgs p
  | PrimMinimal (M.PrimConst _) <- p
- = Boxed
- | PrimProject (PrimProjectMapLookup _ _) <- p
  = Boxed
  | PrimMinimal (M.PrimStruct _) <- p
  = Boxed

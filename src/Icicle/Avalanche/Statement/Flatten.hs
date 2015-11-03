@@ -206,11 +206,7 @@ flatX a_fresh xx stm
        $ \key'
        -> flatX' map
        $ \map'
-       -> let fpLookup    = xPrim (Flat.PrimProject (Flat.PrimProjectMapLookup tk tv))
-              fpIsSome    = xPrim (Flat.PrimProject (Flat.PrimProjectOptionIsSome tv))
-              fpOptionGet = xPrim (Flat.PrimUnsafe (Flat.PrimUnsafeOptionGet tv))
-              fpUpdate    = xPrim (Flat.PrimUpdate (Flat.PrimUpdateMapPut tk tv))
-
+       -> let 
               update val
                      =  slet    (fpOptionGet `xApp` val)                 $ \val'
                      -> flatX'  (upd `xApp` val')                        $ \upd'
@@ -272,25 +268,20 @@ flatX a_fresh xx stm
        -> flatX' arr
        $ \arr'
        -> do    accN <- fresh
-                let fpArrLen   = xPrim (Flat.PrimProject $ Flat.PrimProjectArrayLength ta)
-                let fpArrIx    = xPrim (Flat.PrimUnsafe  $ Flat.PrimUnsafeArrayIndex   ta)
-                let fpArrNew   = xPrim (Flat.PrimUnsafe  $ Flat.PrimUnsafeArrayCreate  tb)
-                let fpUpdate   = xPrim (Flat.PrimUpdate  $ Flat.PrimUpdateArrayPut     tb)
-
                 stm' <- stm (xVar accN)
 
                 let arrT = ArrayT tb
                     accT = Mutable
 
-                loop <- forI (fpArrLen `xApp` arr')                 $ \iter
+                loop <- forI (fpArrLen ta `xApp` arr')                 $ \iter
                      -> fmap    (Read accN accN accT arrT)          $
-                        slet    (fpArrIx `makeApps'` [arr', iter])  $ \elm
+                        slet    (fpArrIx ta `makeApps'` [arr', iter])  $ \elm
                      -> flatX'  (upd `xApp` elm)                    $ \elm'
-                     -> slet    (fpUpdate `makeApps'` [xVar accN, iter, elm']) $ \arr''
+                     -> slet    (fpArrUpd tb `makeApps'` [xVar accN, iter, elm']) $ \arr''
                      -> return  (Write accN arr'')
 
                 return $ InitAccumulator
-                            (Accumulator accN accT arrT (fpArrNew `xApp` (fpArrLen `xApp` arr')))
+                            (Accumulator accN accT arrT (fpArrNew tb `xApp` (fpArrLen ta `xApp` arr')))
                             (loop <> Read accN accN accT arrT stm')
 
 
@@ -391,16 +382,13 @@ flatX a_fresh xx stm
    = do accN <- fresh
         stm' <- stm (xVar accN)
 
-        let fpArrayLen = xPrim (Flat.PrimProject $ Flat.PrimProjectArrayLength telem)
-        let fpArrayIx  = xPrim (Flat.PrimUnsafe  $ Flat.PrimUnsafeArrayIndex   telem)
-
         let accT = Mutable
 
         -- Loop body updates accumulator with k function
         loop <-  flatX' arr                                  $ \arr'
-             ->  forI   (fpArrayLen `xApp` arr')             $ \iter
+             ->  forI   (fpArrayLen telem `xApp` arr')             $ \iter
              ->  fmap   (Read accN accN accT valT)           $
-                 slet   (fpArrayIx `makeApps'` [arr', iter]) $ \elm
+                 slet   (fpArrayIx  telem `makeApps'` [arr', iter]) $ \elm
              ->  flatX' (makeApps' k [xVar accN, elm])       $ \x
              ->  return (Write accN x)
 
@@ -437,21 +425,19 @@ flatX a_fresh xx stm
 
   -- Fold over an option is just "maybe" combinator.
   flatFold (Core.PrimFoldOption ta) valT [xsome, xnone, opt]
-   = let fpIsSome    = xPrim (Flat.PrimProject  (Flat.PrimProjectOptionIsSome ta))
-         fpOptionGet = xPrim (Flat.PrimUnsafe   (Flat.PrimUnsafeOptionGet     ta))
-     in  flatX' opt
-      $ \opt'
-      -> do
-         acc  <- fresh
-         stm' <- stm (xVar acc)
-         tmp  <- fresh
-         ssome <- flatX' (xsome `xApp` (xVar tmp)) $ (return . Write acc)
-         snone <- flatX' xnone $ (return . Write acc)
-         let if_   = If (fpIsSome `xApp` opt') (Let tmp (fpOptionGet `xApp` opt') ssome) snone
-             accT  = Mutable
-             -- After if, read back result from accumulator and then go do the rest of the statements
-             read_ = Read acc acc accT valT stm'
-         return (InitAccumulator (Accumulator acc accT valT $ xValue valT $ defaultOfType valT) (if_ <> read_))
+   = flatX' opt
+   $ \opt'
+   -> do
+      acc  <- fresh
+      stm' <- stm (xVar acc)
+      tmp  <- fresh
+      ssome <- flatX' (xsome `xApp` (xVar tmp)) $ (return . Write acc)
+      snone <- flatX' xnone $ (return . Write acc)
+      let if_   = If (fpIsSome ta `xApp` opt') (Let tmp (fpOptionGet ta `xApp` opt') ssome) snone
+          accT  = Mutable
+          -- After if, read back result from accumulator and then go do the rest of the statements
+          read_ = Read acc acc accT valT stm'
+      return (InitAccumulator (Accumulator acc accT valT $ xValue valT $ defaultOfType valT) (if_ <> read_))
 
   -- Fold over an either
   flatFold (Core.PrimFoldSum ta tb) valT [xleft, xright, scrut]
@@ -486,3 +472,18 @@ flatX a_fresh xx stm
             | otherwise
             = Min.PrimPairSnd ta tb
      in (xPrim $ Flat.PrimMinimal $ Min.PrimPair $ pm) `xApp` e
+
+
+  fpArrLen t = xPrim (Flat.PrimProject $ Flat.PrimProjectArrayLength t)
+  fpArrIx  t = xPrim (Flat.PrimUnsafe  $ Flat.PrimUnsafeArrayIndex   t)
+  fpArrNew t = xPrim (Flat.PrimUnsafe  $ Flat.PrimUnsafeArrayCreate  t)
+  fpArrUpd t = xPrim (Flat.PrimUpdate  $ Flat.PrimUpdateArrayPut     t)
+
+
+  fpMapPack k v = xPrim (Flat.PrimMap (Flat.PrimMapPack         k v))
+  fpMapKeys k v = xPrim (Flat.PrimMap (Flat.PrimMapUnpackKeys   k v))
+  fpMapVals k v = xPrim (Flat.PrimMap (Flat.PrimMapUnpackValues k v))
+
+  fpIsSome    t = xPrim (Flat.PrimProject (Flat.PrimProjectOptionIsSome t))
+  fpOptionGet t = xPrim (Flat.PrimUnsafe (Flat.PrimUnsafeOptionGet t))
+
