@@ -1,6 +1,9 @@
+#include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 typedef uint64_t ierror_t;
 typedef uint64_t iunit_t;
@@ -19,4 +22,5 @@ static const iunit_t iunit  = 0x13013;
 static const ibool_t ifalse = 0;
 static const ibool_t itrue  = 1;
 
-#define INLINE __attribute__((always_inline))
+#define INLINE   __attribute__((always_inline))
+#define NOINLINE __attribute__((noinline))
