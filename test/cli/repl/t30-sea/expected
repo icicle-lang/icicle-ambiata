@@ -88,6 +88,9 @@ gen$date = DATE
 - C:
 #line 1 "state definition"
 typedef struct {
+    /* runtime */
+    imempool_t mempool;
+
     /* inputs */
     idate_t    gen_date;
     iint_t     new_count;
@@ -333,6 +336,9 @@ gen$date = DATE
 - C:
 #line 1 "state definition"
 typedef struct {
+    /* runtime */
+    imempool_t mempool;
+
     /* inputs */
     idate_t    gen_date;
     iint_t     new_count;
@@ -1226,6 +1232,9 @@ gen$date = DATE
 - C:
 #line 1 "state definition"
 typedef struct {
+    /* runtime */
+    imempool_t mempool;
+
     /* inputs */
     idate_t    gen_date;
     iint_t     new_count;
@@ -3002,6 +3011,9 @@ gen$date = DATE
 - C:
 #line 1 "state definition"
 typedef struct {
+    /* runtime */
+    imempool_t mempool;
+
     /* inputs */
     idate_t    gen_date;
     iint_t     new_count;
@@ -4294,6 +4306,9 @@ gen$date = DATE
 - C:
 #line 1 "state definition"
 typedef struct {
+    /* runtime */
+    imempool_t mempool;
+
     /* inputs */
     idate_t    gen_date;
     iint_t     new_count;
@@ -4794,6 +4809,9 @@ gen$date = DATE
 - C:
 #line 1 "state definition"
 typedef struct {
+    /* runtime */
+    imempool_t mempool;
+
     /* inputs */
     idate_t    gen_date;
     iint_t     new_count;
@@ -5160,6 +5178,9 @@ gen$date = DATE
 - C:
 #line 1 "state definition"
 typedef struct {
+    /* runtime */
+    imempool_t mempool;
+
     /* inputs */
     idate_t    gen_date;
     iint_t     new_count;

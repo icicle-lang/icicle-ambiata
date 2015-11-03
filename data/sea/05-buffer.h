@@ -1,3 +1,4 @@
+#include "04-array.h"
 
 typedef struct
 {
@@ -41,10 +42,10 @@ Make
 */
 #define MK_BUF_MAKE(t,pre)                                                      \
     static BUF_OF(t) INLINE BUF_FUN(make,pre)                                   \
-                     (iallocate_t alloc, iint_t sz)                             \
+                     (imempool_t *pool, iint_t sz)                              \
     {                                                                           \
-        iint_t bytes     = sizeof(t) * sz + sizeof(ibuf_struct);                \
-        BUF_OF(t) ret    = (BUF_OF(t))allocate(alloc, bytes);                   \
+        size_t bytes     = sizeof(t) * sz + sizeof(ibuf_struct);                \
+        BUF_OF(t) ret    = (BUF_OF(t))imempool_alloc(pool, bytes);              \
         ret->max_size = sz;                                                     \
         ret->cur_size = 0;                                                      \
         ret->head     = 0;                                                      \
@@ -123,9 +124,9 @@ Read(buf)
 
 #define MK_BUF_READ(t,pre)                                                      \
     static ARRAY_OF(t) INLINE BUF_FUN(read,pre)                                 \
-                       (iallocate_t alloc, BUF_OF(t) buf)                       \
+                       (imempool_t *pool, BUF_OF(t) buf)                        \
     {                                                                           \
-        ARRAY_OF(t) out = ARRAY_FUN(create,pre)(alloc, buf->cur_size);          \
+        ARRAY_OF(t) out = ARRAY_FUN(create,pre)(pool, buf->cur_size);           \
                                                                                 \
         for (iint_t ix = 0; ix != buf->cur_size; ++ix)                          \
         {                                                                       \

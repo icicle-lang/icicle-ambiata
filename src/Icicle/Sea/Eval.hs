@@ -127,10 +127,11 @@ seaEval program date values = do
   withWords      words $ \pState -> do
   withSeaVectors facts $ \count psFacts -> do
 
-    let dateIx    = 0
-        countIx   = 1
-        factsIx   = 2
-        outputsIx = 2 + length psFacts
+    let _mempoolIx = 0 :: Int
+        dateIx     = 3
+        countIx    = 4
+        factsIx    = 5
+        outputsIx  = 5 + length psFacts
 
     -- clear the pState struct
     forM_ [0..(words-1)] $ \off ->
@@ -146,11 +147,17 @@ seaEval program date values = do
 
     bracketEitherT' acquireLibrary releaseLibrary $ \lib -> do
 
-      compute <- firstEitherT SeaJetskiError (function lib "compute" retVoid)
-      _       <- liftIO (compute [argPtr pState])
+      compute         <- firstEitherT SeaJetskiError (function lib "compute"         retVoid)
+      imempool_create <- firstEitherT SeaJetskiError (function lib "imempool_create" retVoid)
+      imempool_free   <- firstEitherT SeaJetskiError (function lib "imempool_free"   retVoid)
 
-      outputs <- peekOutputs pState outputsIx (outputsOfProgram program)
-      hoistEither (traverse (\(k,v) -> (,) <$> pure k <*> valueFromCore' v) outputs)
+      let createPool    = liftIO (imempool_create [argPtr pState])
+          releasePool _ = liftIO (imempool_free   [argPtr pState])
+
+      bracketEitherT' createPool releasePool $ \_ -> do
+        _       <- liftIO (compute [argPtr pState])
+        outputs <- peekOutputs pState outputsIx (outputsOfProgram program)
+        hoistEither (traverse (\(k,v) -> (,) <$> pure k <*> valueFromCore' v) outputs)
 
 compilerOptions :: [CompilerOption]
 compilerOptions =
