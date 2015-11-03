@@ -25,10 +25,12 @@ static const ibool_t itrue  = 1;
 #define INLINE   __attribute__((always_inline))
 #define NOINLINE __attribute__((noinline))
 
-#define ASSERT_SIZE(t, num_words) \
-  _Static_assert(sizeof (t) == (num_words) * 8, #t " must be " #num_words " words in size");
+#define STATIC_ASSERT(cond, msg) typedef char static_assert_##msg[(!!(cond))*2-1];
 
-_Static_assert(sizeof (void *) == sizeof (uint64_t), "Icicle only supports systems with a 64-bit word size");
+#define ASSERT_SIZE(t, num_words) \
+  STATIC_ASSERT (sizeof (t) == (num_words) * 8, type_has_unexpected_size);
+
+STATIC_ASSERT(sizeof (void *) == sizeof (uint64_t), icicle_only_supports_systems_with_a_64_bit_word_size);
 
 /* #if-style conditionals cannot be used inside macros so we define a macro
  * which only outputs its code when we're in debug mode. */
