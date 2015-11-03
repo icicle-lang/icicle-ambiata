@@ -7,6 +7,7 @@
 module Icicle.Sea.Eval (
     SeaError (..)
   , seaEval
+  , assemblyOfProgram
   ) where
 
 import           Control.Monad.IO.Class (MonadIO(..))
@@ -36,10 +37,11 @@ import           Icicle.Common.Data (asAtValueToCore, valueFromCore)
 import           Icicle.Common.Type (ValType(..), StructType(..), defaultOfType)
 import qualified Icicle.Data as D
 import           Icicle.Data.DateTime (dateOfDays, daysOfDate)
-import           Icicle.Internal.Pretty ((<+>), pretty, text)
+import           Icicle.Internal.Pretty ((<+>), pretty, text, vsep)
 import           Icicle.Internal.Pretty (Doc, Pretty, displayS, renderPretty)
-import           Icicle.Sea.FromAvalanche (factVarsOfProgram, outputsOfProgram)
-import           Icicle.Sea.FromAvalanche (seaOfProgram, stateWordsOfProgram)
+import           Icicle.Sea.FromAvalanche.Analysis (factVarsOfProgram, outputsOfProgram)
+import           Icicle.Sea.FromAvalanche.Program (seaOfProgram, stateWordsOfProgram)
+import           Icicle.Sea.Preamble (seaPreamble)
 
 import           Jetski
 
@@ -139,7 +141,7 @@ seaEval program date values = do
 
     zipWithM_ (pokeWordOff pState) [factsIx..] psFacts
 
-    let code           = textOfDoc (seaOfProgram program)
+    let code           = codeOfProgram program
         acquireLibrary = firstEitherT SeaJetskiError (compileLibrary compilerOptions code)
 
     bracketEitherT' acquireLibrary releaseLibrary $ \lib -> do
@@ -157,6 +159,14 @@ compilerOptions =
   , "-std=c99"      -- 👹  variable declarations anywhere!
   , "-fPIC"         -- 🌏  position independent code, required on Linux
   ]
+
+assemblyOfProgram :: (Show a, Show n, Pretty n, Ord n) => Program (Annot a) n Prim -> EitherT SeaError IO Text
+assemblyOfProgram program = do
+  let code = codeOfProgram program
+  firstEitherT SeaJetskiError (compileAssembly compilerOptions code)
+
+codeOfProgram :: (Show a, Show n, Pretty n, Ord n) => Program (Annot a) n Prim -> Text
+codeOfProgram program = textOfDoc (vsep [seaPreamble, seaOfProgram program])
 
 textOfDoc :: Doc -> Text
 textOfDoc doc = T.pack (displayS (renderPretty 0.8 80 (pretty doc)) "")
