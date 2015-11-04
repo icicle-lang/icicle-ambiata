@@ -14,13 +14,15 @@ MK_SIMPLE_CMPS(idate_t,  idate_)
 MK_SIMPLE_CMPS(iunit_t,  iunit_)
 
 static idouble_t INLINE iint_extend   (iint_t    x)              { return x; }
-static iint_t    INLINE iint_add      (iint_t    x, iint_t    y) { return x +  y; }
-static iint_t    INLINE iint_sub      (iint_t    x, iint_t    y) { return x -  y; }
-static iint_t    INLINE iint_mul      (iint_t    x, iint_t    y) { return x *  y; }
+static iint_t    INLINE iint_neg      (iint_t    x)              { return -x; }
+static iint_t    INLINE iint_add      (iint_t    x, iint_t    y) { return x + y; }
+static iint_t    INLINE iint_sub      (iint_t    x, iint_t    y) { return x - y; }
+static iint_t    INLINE iint_mul      (iint_t    x, iint_t    y) { return x * y; }
 
 MK_SIMPLE_CMPS(iint_t, iint_)
 
 static iint_t    INLINE idouble_trunc (idouble_t x)              { return (iint_t)x; }
+static idouble_t INLINE idouble_neg   (idouble_t x)              { return -x; }
 static idouble_t INLINE idouble_add   (idouble_t x, idouble_t y) { return x + y; }
 static idouble_t INLINE idouble_sub   (idouble_t x, idouble_t y) { return x - y; }
 static idouble_t INLINE idouble_mul   (idouble_t x, idouble_t y) { return x * y; }
