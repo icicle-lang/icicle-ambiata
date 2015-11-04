@@ -1,3 +1,4 @@
+{-# LANGUAGE EmptyDataDecls #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -5,12 +6,18 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TupleSections #-}
 module Icicle.Sea.Eval (
-    SeaError (..)
+    SeaState
+  , SeaProgram (..)
+  , SeaError (..)
+  , seaCompile
   , seaEval
+  , seaRelease
+  , seaEvalAvalanche
   , assemblyOfProgram
   , compilerOptions
   ) where
 
+import           Control.Monad.Catch (MonadMask(..))
 import           Control.Monad.IO.Class (MonadIO(..))
 import           Control.Monad.Trans.Either (EitherT(..), hoistEither, left)
 
@@ -55,6 +62,18 @@ import           X.Control.Monad.Catch (bracketEitherT')
 import           X.Control.Monad.Trans.Either (firstEitherT)
 
 ------------------------------------------------------------------------
+
+data SeaState
+
+data SeaProgram = SeaProgram {
+    seaLibrary     :: Library
+  , seaFactType    :: ValType
+  , seaStateWords  :: Int
+  , seaOutputs     :: [(OutputName, (ValType, [ValType]))]
+  , seaCompute     :: Ptr SeaState -> IO ()
+  , seaCreatePool  :: Ptr SeaState -> IO ()
+  , seaReleasePool :: Ptr SeaState -> IO ()
+  }
 
 data SeaMVector
   = I64 (IOVector Int64)
@@ -107,22 +126,27 @@ instance Pretty SeaError where
 
 ------------------------------------------------------------------------
 
-seaEval :: (Show a, Show n, Pretty n, Ord n)
+seaEvalAvalanche :: (Show a, Show n, Pretty n, Ord n)
         => Program (Annot a) n Prim
         -> D.DateTime
         -> [D.AsAt D.Value]
         -> EitherT SeaError IO [(OutputName, D.Value)]
 
+seaEvalAvalanche program date values =
+  bracketEitherT' (seaCompile program) seaRelease (\sea -> seaEval sea date values)
+
+seaEval :: forall m. (MonadIO m, MonadMask m)
+       => SeaProgram
+       -> D.DateTime
+       -> [D.AsAt D.Value]
+       -> EitherT SeaError m [(OutputName, D.Value)]
 seaEval program date values = do
-  let words = stateWordsOfProgram program
+  let words              = seaStateWords program
+      acquireFacts :: EitherT SeaError m [SeaMVector]
+      acquireFacts       = vectorsOfFacts values (seaFactType program)
 
-      acquireFacts =
-        case factVarsOfProgram FactLoopNew program of
-          Nothing     -> left SeaNoFactLoop
-          Just (t, _) -> vectorsOfFacts values t
-
-      releaseFacts facts =
-        traverse_ freeSeaVector facts
+      releaseFacts :: [SeaMVector] -> EitherT SeaError m ()
+      releaseFacts facts = traverse_ freeSeaVector facts
 
   bracketEitherT' acquireFacts releaseFacts $ \facts -> do
   withWords      words $ \pState -> do
@@ -143,22 +167,52 @@ seaEval program date values = do
 
     zipWithM_ (pokeWordOff pState) [factsIx..] psFacts
 
-    let code           = codeOfProgram program
-        acquireLibrary = firstEitherT SeaJetskiError (compileLibrary compilerOptions code)
+    let acquirePool   = liftIO (seaCreatePool  program pState)
+        releasePool _ = liftIO (seaReleasePool program pState)
 
-    bracketEitherT' acquireLibrary releaseLibrary $ \lib -> do
+    bracketEitherT' acquirePool releasePool $ \_ -> do
+      _       <- liftIO (seaCompute program pState)
+      outputs <- peekOutputs pState outputsIx (seaOutputs program)
+      hoistEither (traverse (\(k,v) -> (,) <$> pure k <*> valueFromCore' v) outputs)
 
-      compute         <- firstEitherT SeaJetskiError (function lib "compute"         retVoid)
-      imempool_create <- firstEitherT SeaJetskiError (function lib "imempool_create" retVoid)
-      imempool_free   <- firstEitherT SeaJetskiError (function lib "imempool_free"   retVoid)
+valueFromCore' :: BaseValue -> Either SeaError D.Value
+valueFromCore' v =
+  maybe (Left (SeaBaseValueConversionError v Nothing)) Right (valueFromCore v)
 
-      let createPool    = liftIO (imempool_create [argPtr pState])
-          releasePool _ = liftIO (imempool_free   [argPtr pState])
+------------------------------------------------------------------------
 
-      bracketEitherT' createPool releasePool $ \_ -> do
-        _       <- liftIO (compute [argPtr pState])
-        outputs <- peekOutputs pState outputsIx (outputsOfProgram program)
-        hoistEither (traverse (\(k,v) -> (,) <$> pure k <*> valueFromCore' v) outputs)
+seaCompile :: (MonadIO m, MonadMask m, Functor m)
+           => (Show a, Show n, Pretty n, Ord n)
+           => Program (Annot a) n Prim
+           -> EitherT SeaError m SeaProgram
+seaCompile program = do
+  let code    = codeOfProgram program
+      words   = stateWordsOfProgram program
+      outputs = outputsOfProgram program
+
+  factType <- case factVarsOfProgram FactLoopNew program of
+                Nothing     -> left SeaNoFactLoop
+                Just (t, _) -> return t
+
+  lib <- firstEitherT SeaJetskiError (compileLibrary compilerOptions code)
+
+  compute         <- firstEitherT SeaJetskiError (function lib "compute"         retVoid)
+  imempool_create <- firstEitherT SeaJetskiError (function lib "imempool_create" retVoid)
+  imempool_free   <- firstEitherT SeaJetskiError (function lib "imempool_free"   retVoid)
+
+  return SeaProgram {
+      seaLibrary     = lib
+    , seaFactType    = factType
+    , seaStateWords  = words
+    , seaOutputs     = outputs
+    , seaCompute     = \ptr -> compute         [argPtr ptr]
+    , seaCreatePool  = \ptr -> imempool_create [argPtr ptr]
+    , seaReleasePool = \ptr -> imempool_free   [argPtr ptr]
+    }
+
+seaRelease :: MonadIO m => SeaProgram -> m ()
+seaRelease program =
+  releaseLibrary (seaLibrary program)
 
 compilerOptions :: [CompilerOption]
 compilerOptions =
@@ -178,10 +232,6 @@ codeOfProgram program = textOfDoc (vsep [seaPreamble, seaOfProgram program])
 
 textOfDoc :: Doc -> Text
 textOfDoc doc = T.pack (displayS (renderPretty 0.8 80 (pretty doc)) "")
-
-valueFromCore' :: BaseValue -> Either SeaError D.Value
-valueFromCore' v =
-  maybe (Left (SeaBaseValueConversionError v Nothing)) Right (valueFromCore v)
 
 ------------------------------------------------------------------------
 
@@ -209,24 +259,26 @@ freeSeaVector = \case
     V.mapM_ freeWordPtr v
 
 
-withSeaVectors :: [SeaMVector]
-               -> (Int -> [Ptr Word64] -> EitherT SeaError IO a)
-               -> EitherT SeaError IO a
+withSeaVectors :: MonadIO m
+               => [SeaMVector]
+               -> (Int -> [Ptr Word64] -> EitherT SeaError m a)
+               -> EitherT SeaError m a
 withSeaVectors []       io = io 0 []
 withSeaVectors (sv:svs) io =
   withSeaVector  sv  $ \len ptr  ->
   withSeaVectors svs $ \_   ptrs ->
   io len (ptr : ptrs)
 
-withSeaVector :: SeaMVector
-              -> (Int -> Ptr Word64 -> EitherT SeaError IO a)
-              -> EitherT SeaError IO a
+withSeaVector :: MonadIO m
+              => SeaMVector
+              -> (Int -> Ptr Word64 -> EitherT SeaError m a)
+              -> EitherT SeaError m a
 withSeaVector sv io =
   withForeignPtr (ptrOfSeaVector sv) (io (lengthOfSeaVector sv))
 
 ------------------------------------------------------------------------
 
-vectorsOfFacts :: [D.AsAt D.Value] -> ValType -> EitherT SeaError IO [SeaMVector]
+vectorsOfFacts :: MonadIO m => [D.AsAt D.Value] -> ValType -> EitherT SeaError m [SeaMVector]
 vectorsOfFacts vs t = do
   case traverse (\v -> asAtValueToCore v t) vs of
     Nothing  -> left (SeaFactConversionError vs t)
@@ -235,7 +287,7 @@ vectorsOfFacts vs t = do
       zipWithM_ (pokeInput svs t) [0..] vs'
       pure svs
 
-newSeaVectors :: Int -> ValType -> EitherT SeaError IO [SeaMVector]
+newSeaVectors :: MonadIO m => Int -> ValType -> EitherT SeaError m [SeaMVector]
 newSeaVectors sz t =
   case t of
     IntT      -> (:[]) . I64 <$> liftIO (MV.new sz)
@@ -276,14 +328,14 @@ newSeaVectors sz t =
      -> do vss <- traverse (newSeaVectors sz) (Map.elems ts)
            pure (concat vss)
 
-pokeInput :: [SeaMVector] -> ValType -> Int -> BaseValue -> EitherT SeaError IO ()
+pokeInput :: MonadIO m => [SeaMVector] -> ValType -> Int -> BaseValue -> EitherT SeaError m ()
 pokeInput svs t ix val = do
   svs' <- pokeInput' svs t ix val
   case svs' of
     [] -> pure ()
     _  -> left (SeaBaseValueConversionError val (Just t))
 
-pokeInput' :: [SeaMVector] -> ValType -> Int -> BaseValue -> EitherT SeaError IO [SeaMVector]
+pokeInput' :: MonadIO m => [SeaMVector] -> ValType -> Int -> BaseValue -> EitherT SeaError m [SeaMVector]
 pokeInput' []            t _  val = left (SeaBaseValueConversionError val (Just t))
 pokeInput' svs0@(sv:svs) t ix val =
   case (sv, val, t) of
@@ -346,10 +398,11 @@ pokeInput' svs0@(sv:svs) t ix val =
 
 ------------------------------------------------------------------------
 
-peekOutputs :: Ptr a
+peekOutputs :: MonadIO m
+            => Ptr a
             -> Int
             -> [(OutputName, (ValType, [ValType]))]
-            -> EitherT SeaError IO [(OutputName, BaseValue)]
+            -> EitherT SeaError m [(OutputName, BaseValue)]
 
 peekOutputs _ _ []                     = pure []
 peekOutputs ptr ix ((n, (t, _)) : ots) = do
@@ -358,7 +411,7 @@ peekOutputs ptr ix ((n, (t, _)) : ots) = do
   pure ((n, v) : nvs)
 
 
-peekOutput :: Ptr a -> Int -> ValType -> EitherT SeaError IO (Int, BaseValue)
+peekOutput :: MonadIO m => Ptr a -> Int -> ValType -> EitherT SeaError m (Int, BaseValue)
 peekOutput ptr ix0 t =
   case t of
     UnitT     -> (ix0+1,)                            <$> pure VUnit
@@ -409,13 +462,13 @@ peekOutput ptr ix0 t =
 
 ------------------------------------------------------------------------
 
-pokeArray :: Ptr x -> ValType -> [BaseValue] -> EitherT SeaError IO ()
+pokeArray :: MonadIO m => Ptr x -> ValType -> [BaseValue] -> EitherT SeaError m ()
 pokeArray ptr t vs = do
   let len = fromIntegral (length vs) :: Int64
   liftIO (pokeWordOff ptr 0 len)
   zipWithM_ (pokeArrayIx ptr t) [1..] vs
 
-pokeArrayIx :: Ptr x -> ValType -> Int -> BaseValue -> EitherT SeaError IO ()
+pokeArrayIx :: MonadIO m => Ptr x -> ValType -> Int -> BaseValue -> EitherT SeaError m ()
 pokeArrayIx ptr t ix v =
   case (v, t) of
     (VBool False, BoolT)     -> liftIO (pokeWordOff ptr ix (0 :: Word64))
@@ -426,12 +479,12 @@ pokeArrayIx ptr t ix v =
     (VError    x, ErrorT)    -> liftIO (pokeWordOff ptr ix (wordOfError x))
     _                        -> left (SeaBaseValueConversionError v (Just t))
 
-peekArray :: Ptr x -> ValType -> EitherT SeaError IO [BaseValue]
+peekArray :: MonadIO m => Ptr x -> ValType -> EitherT SeaError m [BaseValue]
 peekArray ptr t = do
   len <- peekWordOff ptr 0
   traverse (peekArrayIx ptr t) [1..len]
 
-peekArrayIx :: Ptr x -> ValType -> Int -> EitherT SeaError IO BaseValue
+peekArrayIx :: MonadIO m => Ptr x -> ValType -> Int -> EitherT SeaError m BaseValue
 peekArrayIx ptr t ix =
   case t of
     IntT      -> VInt      . fromInt64    <$> peekWordOff ptr ix
@@ -450,13 +503,13 @@ peekArrayIx ptr t ix =
 
 ------------------------------------------------------------------------
 
-withForeignPtr :: ForeignPtr a -> (Ptr a -> EitherT SeaError IO b) -> EitherT SeaError IO b
+withForeignPtr :: MonadIO m => ForeignPtr a -> (Ptr a -> EitherT SeaError m b) -> EitherT SeaError m b
 withForeignPtr fp io = do
   x <- io (unsafeForeignPtrToPtr fp)
   liftIO (touchForeignPtr fp)
   pure x
 
-withWords :: Int -> (Ptr a -> EitherT SeaError IO b) -> EitherT SeaError IO b
+withWords :: (MonadIO m, MonadMask m) => Int -> (Ptr a -> EitherT SeaError m b) -> EitherT SeaError m b
 withWords n = bracketEitherT' (mallocWords n) (liftIO . free)
 
 mallocWords :: MonadIO m => Int -> m (Ptr a)
