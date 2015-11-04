@@ -24,3 +24,9 @@ feature injury ~> filter (location == "head") ~> count location
 
 -- String outputs
 feature injury ~> max location
+
+-- Dates
+feature salary ~> max (days between `1980-01-06` date)
+
+-- Months
+feature salary ~> min (3 months after date)

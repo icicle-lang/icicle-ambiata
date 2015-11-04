@@ -5439,4 +5439,470 @@ void compute(icicle_state_t *s)
 - Core evaluation:
 [homer, "torso"]
 
+> > -- Dates
+> - Flattened:
+gen$date = DATE
+{
+  init acc$s$reify$2$conv$5$simp$4@{Mutable Bool} = False@{Bool};
+  init acc$s$reify$2$conv$5$simp$5@{Mutable Error} = ExceptFold1NoValue@{Error};
+  init acc$s$reify$2$conv$5$simp$6@{Mutable Int} = 0@{Int};
+  load_resumable@{Bool} acc$s$reify$2$conv$5$simp$4;
+  load_resumable@{Error} acc$s$reify$2$conv$5$simp$5;
+  load_resumable@{Int} acc$s$reify$2$conv$5$simp$6;
+  for_facts (gen$fact$simp$25$simp$27@{Bool},
+             gen$fact$simp$25$simp$28@{Error},
+             gen$fact$simp$25$simp$29@{Int},
+             gen$fact$simp$26@{DateTime}) in new {
+    let anf$7 = DateTime_daysDifference#
+                (1980-01-06@{DateTime}) gen$fact$simp$26;
+    read@{Mutable Bool} acc$s$reify$2$conv$5$simp$7 = acc$s$reify$2$conv$5$simp$4;
+    read@{Mutable Error} acc$s$reify$2$conv$5$simp$8 = acc$s$reify$2$conv$5$simp$5;
+    read@{Mutable Int} acc$s$reify$2$conv$5$simp$9 = acc$s$reify$2$conv$5$simp$6;
+    init flat$0$simp$10@{Mutable Bool} = False@{Bool};
+    init flat$0$simp$11@{Mutable Error} = ExceptTombstone@{Error};
+    init flat$0$simp$12@{Mutable Int} = 0@{Int};
+    if (acc$s$reify$2$conv$5$simp$7) {
+      init flat$4@{Mutable Int} = 0@{Int};
+      if (gt#@{Int} anf$7
+          acc$s$reify$2$conv$5$simp$9) {
+        write flat$4 = anf$7;
+      } 
+       else {
+        write flat$4 = acc$s$reify$2$conv$5$simp$9;
+      } 
+      
+      read@{Mutable Int} flat$4 = flat$4;
+      write flat$0$simp$10 = True@{Bool};
+      write flat$0$simp$11 = ExceptTombstone@{Error};
+      write flat$0$simp$12 = flat$4;
+    } else {
+      init flat$3$simp$13@{Mutable Bool} = False@{Bool};
+      init flat$3$simp$14@{Mutable Error} = ExceptTombstone@{Error};
+      init flat$3$simp$15@{Mutable Int} = 0@{Int};
+      if (eq#@{Error} (ExceptFold1NoValue@{Error})
+          acc$s$reify$2$conv$5$simp$8) {
+        write flat$3$simp$13 = True@{Bool};
+        write flat$3$simp$14 = ExceptTombstone@{Error};
+        write flat$3$simp$15 = anf$7;
+      } else {
+        write flat$3$simp$13 = False@{Bool};
+        write flat$3$simp$14 = acc$s$reify$2$conv$5$simp$8;
+        write flat$3$simp$15 = 0@{Int};
+      }
+      read@{Mutable Bool} flat$3$simp$16 = flat$3$simp$13;
+      read@{Mutable Error} flat$3$simp$17 = flat$3$simp$14;
+      read@{Mutable Int} flat$3$simp$18 = flat$3$simp$15;
+      write flat$0$simp$10 = flat$3$simp$16;
+      write flat$0$simp$11 = flat$3$simp$17;
+      write flat$0$simp$12 = flat$3$simp$18;
+    }
+    read@{Mutable Bool} flat$0$simp$19 = flat$0$simp$10;
+    read@{Mutable Error} flat$0$simp$20 = flat$0$simp$11;
+    read@{Mutable Int} flat$0$simp$21 = flat$0$simp$12;
+    write acc$s$reify$2$conv$5$simp$4 = flat$0$simp$19;
+    write acc$s$reify$2$conv$5$simp$5 = flat$0$simp$20;
+    write acc$s$reify$2$conv$5$simp$6 = flat$0$simp$21;
+  }
+  save_resumable@{Bool} acc$s$reify$2$conv$5$simp$4;
+  save_resumable@{Error} acc$s$reify$2$conv$5$simp$5;
+  save_resumable@{Int} acc$s$reify$2$conv$5$simp$6;
+  read@{Mutable Bool} s$reify$2$conv$5$simp$22 = acc$s$reify$2$conv$5$simp$4;
+  read@{Mutable Error} s$reify$2$conv$5$simp$23 = acc$s$reify$2$conv$5$simp$5;
+  read@{Mutable Int} s$reify$2$conv$5$simp$24 = acc$s$reify$2$conv$5$simp$6;
+  output@{(Sum Error Int)} repl (s$reify$2$conv$5$simp$22@{Bool},
+               s$reify$2$conv$5$simp$23@{Error},
+               s$reify$2$conv$5$simp$24@{Int});
+}
+
+- C:
+#line 1 "state definition"
+typedef struct {
+    /* runtime */
+    imempool_t       mempool;
+
+    /* inputs */
+    idate_t          gen_date;
+    iint_t           new_count;
+    ibool_t          *new_gen_fact_simp_25_simp_27;
+    ierror_t         *new_gen_fact_simp_25_simp_28;
+    iint_t           *new_gen_fact_simp_25_simp_29;
+    idate_t          *new_gen_fact_simp_26;
+
+    /* outputs */
+    ibool_t          repl_ix_0;
+    ierror_t         repl_ix_1;
+    iint_t           repl_ix_2;
+
+    /* resumables */
+    ibool_t          has_acc_s_reify_2_conv_5_simp_4;
+    ibool_t          res_acc_s_reify_2_conv_5_simp_4;
+    ibool_t          has_acc_s_reify_2_conv_5_simp_5;
+    ierror_t         res_acc_s_reify_2_conv_5_simp_5;
+    ibool_t          has_acc_s_reify_2_conv_5_simp_6;
+    iint_t           res_acc_s_reify_2_conv_5_simp_6;
+} icicle_state_t;
+
+#line 1 "compute function"
+void compute(icicle_state_t *s)
+{
+    ibool_t          acc_s_reify_2_conv_5_simp_4;
+    ierror_t         acc_s_reify_2_conv_5_simp_5;
+    iint_t           acc_s_reify_2_conv_5_simp_6;
+    ibool_t          acc_s_reify_2_conv_5_simp_7;
+    ierror_t         acc_s_reify_2_conv_5_simp_8;
+    iint_t           acc_s_reify_2_conv_5_simp_9;
+    iint_t           flat_4;
+    ibool_t          flat_0_simp_10;
+    ierror_t         flat_0_simp_11;
+    iint_t           flat_0_simp_12;
+    ibool_t          flat_0_simp_19;
+    ierror_t         flat_0_simp_20;
+    iint_t           flat_0_simp_21;
+    ibool_t          flat_3_simp_13;
+    ierror_t         flat_3_simp_14;
+    iint_t           flat_3_simp_15;
+    ibool_t          flat_3_simp_16;
+    ierror_t         flat_3_simp_17;
+    iint_t           flat_3_simp_18;
+    ibool_t          s_reify_2_conv_5_simp_22;
+    ierror_t         s_reify_2_conv_5_simp_23;
+    iint_t           s_reify_2_conv_5_simp_24;
+
+    acc_s_reify_2_conv_5_simp_4               = ifalse;                               /* init */
+    acc_s_reify_2_conv_5_simp_5               = ierror_fold1_no_value;                /* init */
+    acc_s_reify_2_conv_5_simp_6               = 0;                                    /* init */
+    
+    if (s->has_acc_s_reify_2_conv_5_simp_4) {
+        acc_s_reify_2_conv_5_simp_4           = s->res_acc_s_reify_2_conv_5_simp_4;   /* load */
+    }
+    
+    if (s->has_acc_s_reify_2_conv_5_simp_5) {
+        acc_s_reify_2_conv_5_simp_5           = s->res_acc_s_reify_2_conv_5_simp_5;   /* load */
+    }
+    
+    if (s->has_acc_s_reify_2_conv_5_simp_6) {
+        acc_s_reify_2_conv_5_simp_6           = s->res_acc_s_reify_2_conv_5_simp_6;   /* load */
+    }
+    
+    const iint_t          new_count           = s->new_count;
+    const ibool_t         *const new_gen_fact_simp_25_simp_27 = s->new_gen_fact_simp_25_simp_27;
+    const ierror_t        *const new_gen_fact_simp_25_simp_28 = s->new_gen_fact_simp_25_simp_28;
+    const iint_t          *const new_gen_fact_simp_25_simp_29 = s->new_gen_fact_simp_25_simp_29;
+    const idate_t         *const new_gen_fact_simp_26 = s->new_gen_fact_simp_26;
+    
+    for (iint_t i = 0; i < new_count; i++) {
+        ibool_t          gen_fact_simp_25_simp_27 = new_gen_fact_simp_25_simp_27[i];
+        ierror_t         gen_fact_simp_25_simp_28 = new_gen_fact_simp_25_simp_28[i];
+        iint_t           gen_fact_simp_25_simp_29 = new_gen_fact_simp_25_simp_29[i];
+        idate_t          gen_fact_simp_26     = new_gen_fact_simp_26[i];
+        iint_t           anf_7                = idate_days_diff (0x7bc010600000000, gen_fact_simp_26); /* let */
+        acc_s_reify_2_conv_5_simp_7           = acc_s_reify_2_conv_5_simp_4;          /* read */
+        acc_s_reify_2_conv_5_simp_8           = acc_s_reify_2_conv_5_simp_5;          /* read */
+        acc_s_reify_2_conv_5_simp_9           = acc_s_reify_2_conv_5_simp_6;          /* read */
+        flat_0_simp_10                        = ifalse;                               /* init */
+        flat_0_simp_11                        = ierror_tombstone;                     /* init */
+        flat_0_simp_12                        = 0;                                    /* init */
+        
+        if (acc_s_reify_2_conv_5_simp_7) {
+            flat_4                            = 0;                                    /* init */
+            
+            if (iint_gt (anf_7, acc_s_reify_2_conv_5_simp_9)) {
+                flat_4                        = anf_7;                                /* write */
+            } else {
+                flat_4                        = acc_s_reify_2_conv_5_simp_9;          /* write */
+            }
+            
+            flat_4                            = flat_4;                               /* read */
+            flat_0_simp_10                    = itrue;                                /* write */
+            flat_0_simp_11                    = ierror_tombstone;                     /* write */
+            flat_0_simp_12                    = flat_4;                               /* write */
+        } else {
+            flat_3_simp_13                    = ifalse;                               /* init */
+            flat_3_simp_14                    = ierror_tombstone;                     /* init */
+            flat_3_simp_15                    = 0;                                    /* init */
+            
+            if (ierror_eq (ierror_fold1_no_value, acc_s_reify_2_conv_5_simp_8)) {
+                flat_3_simp_13                = itrue;                                /* write */
+                flat_3_simp_14                = ierror_tombstone;                     /* write */
+                flat_3_simp_15                = anf_7;                                /* write */
+            } else {
+                flat_3_simp_13                = ifalse;                               /* write */
+                flat_3_simp_14                = acc_s_reify_2_conv_5_simp_8;          /* write */
+                flat_3_simp_15                = 0;                                    /* write */
+            }
+            
+            flat_3_simp_16                    = flat_3_simp_13;                       /* read */
+            flat_3_simp_17                    = flat_3_simp_14;                       /* read */
+            flat_3_simp_18                    = flat_3_simp_15;                       /* read */
+            flat_0_simp_10                    = flat_3_simp_16;                       /* write */
+            flat_0_simp_11                    = flat_3_simp_17;                       /* write */
+            flat_0_simp_12                    = flat_3_simp_18;                       /* write */
+        }
+        
+        flat_0_simp_19                        = flat_0_simp_10;                       /* read */
+        flat_0_simp_20                        = flat_0_simp_11;                       /* read */
+        flat_0_simp_21                        = flat_0_simp_12;                       /* read */
+        acc_s_reify_2_conv_5_simp_4           = flat_0_simp_19;                       /* write */
+        acc_s_reify_2_conv_5_simp_5           = flat_0_simp_20;                       /* write */
+        acc_s_reify_2_conv_5_simp_6           = flat_0_simp_21;                       /* write */
+    }
+    
+    s->has_acc_s_reify_2_conv_5_simp_4        = itrue;                                /* save */
+    s->res_acc_s_reify_2_conv_5_simp_4        = acc_s_reify_2_conv_5_simp_4;          /* save */
+    
+    s->has_acc_s_reify_2_conv_5_simp_5        = itrue;                                /* save */
+    s->res_acc_s_reify_2_conv_5_simp_5        = acc_s_reify_2_conv_5_simp_5;          /* save */
+    
+    s->has_acc_s_reify_2_conv_5_simp_6        = itrue;                                /* save */
+    s->res_acc_s_reify_2_conv_5_simp_6        = acc_s_reify_2_conv_5_simp_6;          /* save */
+    
+    s_reify_2_conv_5_simp_22                  = acc_s_reify_2_conv_5_simp_4;          /* read */
+    s_reify_2_conv_5_simp_23                  = acc_s_reify_2_conv_5_simp_5;          /* read */
+    s_reify_2_conv_5_simp_24                  = acc_s_reify_2_conv_5_simp_6;          /* read */
+    s->repl_ix_0                              = s_reify_2_conv_5_simp_22;             /* output */
+    s->repl_ix_1                              = s_reify_2_conv_5_simp_23;             /* output */
+    s->repl_ix_2                              = s_reify_2_conv_5_simp_24;             /* output */
+}
+
+- C evaluation:
+[(homer,10953),(marge,3633)]
+
+- Core evaluation:
+[homer, 10953,marge, 3633]
+
+> > -- Months
+> - Flattened:
+gen$date = DATE
+{
+  init acc$s$reify$2$conv$5$simp$4@{Mutable Bool} = False@{Bool};
+  init acc$s$reify$2$conv$5$simp$5@{Mutable Error} = ExceptFold1NoValue@{Error};
+  init acc$s$reify$2$conv$5$simp$6@{Mutable DateTime} = 1858-11-17@{DateTime};
+  load_resumable@{Bool} acc$s$reify$2$conv$5$simp$4;
+  load_resumable@{Error} acc$s$reify$2$conv$5$simp$5;
+  load_resumable@{DateTime} acc$s$reify$2$conv$5$simp$6;
+  for_facts (gen$fact$simp$25$simp$27@{Bool},
+             gen$fact$simp$25$simp$28@{Error},
+             gen$fact$simp$25$simp$29@{Int},
+             gen$fact$simp$26@{DateTime}) in new {
+    let anf$10 = negate#@{Int} (3@{Int});
+    let anf$11 = DateTime_minusMonths#
+                 gen$fact$simp$26 anf$10;
+    read@{Mutable Bool} acc$s$reify$2$conv$5$simp$7 = acc$s$reify$2$conv$5$simp$4;
+    read@{Mutable Error} acc$s$reify$2$conv$5$simp$8 = acc$s$reify$2$conv$5$simp$5;
+    read@{Mutable DateTime} acc$s$reify$2$conv$5$simp$9 = acc$s$reify$2$conv$5$simp$6;
+    init flat$0$simp$10@{Mutable Bool} = False@{Bool};
+    init flat$0$simp$11@{Mutable Error} = ExceptTombstone@{Error};
+    init flat$0$simp$12@{Mutable DateTime} = 1858-11-17@{DateTime};
+    if (acc$s$reify$2$conv$5$simp$7) {
+      init flat$4@{Mutable DateTime} = 1858-11-17@{DateTime};
+      if (lt#@{DateTime} anf$11
+          acc$s$reify$2$conv$5$simp$9) {
+        write flat$4 = anf$11;
+      } 
+       else {
+        write flat$4 = acc$s$reify$2$conv$5$simp$9;
+      } 
+      
+      read@{Mutable DateTime} flat$4 = flat$4;
+      write flat$0$simp$10 = True@{Bool};
+      write flat$0$simp$11 = ExceptTombstone@{Error};
+      write flat$0$simp$12 = flat$4;
+    } else {
+      init flat$3$simp$13@{Mutable Bool} = False@{Bool};
+      init flat$3$simp$14@{Mutable Error} = ExceptTombstone@{Error};
+      init flat$3$simp$15@{Mutable DateTime} = 1858-11-17@{DateTime};
+      if (eq#@{Error} (ExceptFold1NoValue@{Error})
+          acc$s$reify$2$conv$5$simp$8) {
+        write flat$3$simp$13 = True@{Bool};
+        write flat$3$simp$14 = ExceptTombstone@{Error};
+        write flat$3$simp$15 = anf$11;
+      } else {
+        write flat$3$simp$13 = False@{Bool};
+        write flat$3$simp$14 = acc$s$reify$2$conv$5$simp$8;
+        write flat$3$simp$15 = 1858-11-17@{DateTime};
+      }
+      read@{Mutable Bool} flat$3$simp$16 = flat$3$simp$13;
+      read@{Mutable Error} flat$3$simp$17 = flat$3$simp$14;
+      read@{Mutable DateTime} flat$3$simp$18 = flat$3$simp$15;
+      write flat$0$simp$10 = flat$3$simp$16;
+      write flat$0$simp$11 = flat$3$simp$17;
+      write flat$0$simp$12 = flat$3$simp$18;
+    }
+    read@{Mutable Bool} flat$0$simp$19 = flat$0$simp$10;
+    read@{Mutable Error} flat$0$simp$20 = flat$0$simp$11;
+    read@{Mutable DateTime} flat$0$simp$21 = flat$0$simp$12;
+    write acc$s$reify$2$conv$5$simp$4 = flat$0$simp$19;
+    write acc$s$reify$2$conv$5$simp$5 = flat$0$simp$20;
+    write acc$s$reify$2$conv$5$simp$6 = flat$0$simp$21;
+  }
+  save_resumable@{Bool} acc$s$reify$2$conv$5$simp$4;
+  save_resumable@{Error} acc$s$reify$2$conv$5$simp$5;
+  save_resumable@{DateTime} acc$s$reify$2$conv$5$simp$6;
+  read@{Mutable Bool} s$reify$2$conv$5$simp$22 = acc$s$reify$2$conv$5$simp$4;
+  read@{Mutable Error} s$reify$2$conv$5$simp$23 = acc$s$reify$2$conv$5$simp$5;
+  read@{Mutable DateTime} s$reify$2$conv$5$simp$24 = acc$s$reify$2$conv$5$simp$6;
+  output@{(Sum Error DateTime)} repl (s$reify$2$conv$5$simp$22@{Bool},
+               s$reify$2$conv$5$simp$23@{Error},
+               s$reify$2$conv$5$simp$24@{DateTime});
+}
+
+- C:
+#line 1 "state definition"
+typedef struct {
+    /* runtime */
+    imempool_t       mempool;
+
+    /* inputs */
+    idate_t          gen_date;
+    iint_t           new_count;
+    ibool_t          *new_gen_fact_simp_25_simp_27;
+    ierror_t         *new_gen_fact_simp_25_simp_28;
+    iint_t           *new_gen_fact_simp_25_simp_29;
+    idate_t          *new_gen_fact_simp_26;
+
+    /* outputs */
+    ibool_t          repl_ix_0;
+    ierror_t         repl_ix_1;
+    idate_t          repl_ix_2;
+
+    /* resumables */
+    ibool_t          has_acc_s_reify_2_conv_5_simp_4;
+    ibool_t          res_acc_s_reify_2_conv_5_simp_4;
+    ibool_t          has_acc_s_reify_2_conv_5_simp_5;
+    ierror_t         res_acc_s_reify_2_conv_5_simp_5;
+    ibool_t          has_acc_s_reify_2_conv_5_simp_6;
+    idate_t          res_acc_s_reify_2_conv_5_simp_6;
+} icicle_state_t;
+
+#line 1 "compute function"
+void compute(icicle_state_t *s)
+{
+    ibool_t          acc_s_reify_2_conv_5_simp_4;
+    ierror_t         acc_s_reify_2_conv_5_simp_5;
+    idate_t          acc_s_reify_2_conv_5_simp_6;
+    ibool_t          acc_s_reify_2_conv_5_simp_7;
+    ierror_t         acc_s_reify_2_conv_5_simp_8;
+    idate_t          acc_s_reify_2_conv_5_simp_9;
+    idate_t          flat_4;
+    ibool_t          flat_0_simp_10;
+    ierror_t         flat_0_simp_11;
+    idate_t          flat_0_simp_12;
+    ibool_t          flat_0_simp_19;
+    ierror_t         flat_0_simp_20;
+    idate_t          flat_0_simp_21;
+    ibool_t          flat_3_simp_13;
+    ierror_t         flat_3_simp_14;
+    idate_t          flat_3_simp_15;
+    ibool_t          flat_3_simp_16;
+    ierror_t         flat_3_simp_17;
+    idate_t          flat_3_simp_18;
+    ibool_t          s_reify_2_conv_5_simp_22;
+    ierror_t         s_reify_2_conv_5_simp_23;
+    idate_t          s_reify_2_conv_5_simp_24;
+
+    acc_s_reify_2_conv_5_simp_4               = ifalse;                               /* init */
+    acc_s_reify_2_conv_5_simp_5               = ierror_fold1_no_value;                /* init */
+    acc_s_reify_2_conv_5_simp_6               = 0x7420b1100000000;                    /* init */
+    
+    if (s->has_acc_s_reify_2_conv_5_simp_4) {
+        acc_s_reify_2_conv_5_simp_4           = s->res_acc_s_reify_2_conv_5_simp_4;   /* load */
+    }
+    
+    if (s->has_acc_s_reify_2_conv_5_simp_5) {
+        acc_s_reify_2_conv_5_simp_5           = s->res_acc_s_reify_2_conv_5_simp_5;   /* load */
+    }
+    
+    if (s->has_acc_s_reify_2_conv_5_simp_6) {
+        acc_s_reify_2_conv_5_simp_6           = s->res_acc_s_reify_2_conv_5_simp_6;   /* load */
+    }
+    
+    const iint_t          new_count           = s->new_count;
+    const ibool_t         *const new_gen_fact_simp_25_simp_27 = s->new_gen_fact_simp_25_simp_27;
+    const ierror_t        *const new_gen_fact_simp_25_simp_28 = s->new_gen_fact_simp_25_simp_28;
+    const iint_t          *const new_gen_fact_simp_25_simp_29 = s->new_gen_fact_simp_25_simp_29;
+    const idate_t         *const new_gen_fact_simp_26 = s->new_gen_fact_simp_26;
+    
+    for (iint_t i = 0; i < new_count; i++) {
+        ibool_t          gen_fact_simp_25_simp_27 = new_gen_fact_simp_25_simp_27[i];
+        ierror_t         gen_fact_simp_25_simp_28 = new_gen_fact_simp_25_simp_28[i];
+        iint_t           gen_fact_simp_25_simp_29 = new_gen_fact_simp_25_simp_29[i];
+        idate_t          gen_fact_simp_26     = new_gen_fact_simp_26[i];
+        iint_t           anf_10               = iint_neg (3);                         /* let */
+        idate_t          anf_11               = idate_minus_months (gen_fact_simp_26, anf_10); /* let */
+        acc_s_reify_2_conv_5_simp_7           = acc_s_reify_2_conv_5_simp_4;          /* read */
+        acc_s_reify_2_conv_5_simp_8           = acc_s_reify_2_conv_5_simp_5;          /* read */
+        acc_s_reify_2_conv_5_simp_9           = acc_s_reify_2_conv_5_simp_6;          /* read */
+        flat_0_simp_10                        = ifalse;                               /* init */
+        flat_0_simp_11                        = ierror_tombstone;                     /* init */
+        flat_0_simp_12                        = 0x7420b1100000000;                    /* init */
+        
+        if (acc_s_reify_2_conv_5_simp_7) {
+            flat_4                            = 0x7420b1100000000;                    /* init */
+            
+            if (idate_lt (anf_11, acc_s_reify_2_conv_5_simp_9)) {
+                flat_4                        = anf_11;                               /* write */
+            } else {
+                flat_4                        = acc_s_reify_2_conv_5_simp_9;          /* write */
+            }
+            
+            flat_4                            = flat_4;                               /* read */
+            flat_0_simp_10                    = itrue;                                /* write */
+            flat_0_simp_11                    = ierror_tombstone;                     /* write */
+            flat_0_simp_12                    = flat_4;                               /* write */
+        } else {
+            flat_3_simp_13                    = ifalse;                               /* init */
+            flat_3_simp_14                    = ierror_tombstone;                     /* init */
+            flat_3_simp_15                    = 0x7420b1100000000;                    /* init */
+            
+            if (ierror_eq (ierror_fold1_no_value, acc_s_reify_2_conv_5_simp_8)) {
+                flat_3_simp_13                = itrue;                                /* write */
+                flat_3_simp_14                = ierror_tombstone;                     /* write */
+                flat_3_simp_15                = anf_11;                               /* write */
+            } else {
+                flat_3_simp_13                = ifalse;                               /* write */
+                flat_3_simp_14                = acc_s_reify_2_conv_5_simp_8;          /* write */
+                flat_3_simp_15                = 0x7420b1100000000;                    /* write */
+            }
+            
+            flat_3_simp_16                    = flat_3_simp_13;                       /* read */
+            flat_3_simp_17                    = flat_3_simp_14;                       /* read */
+            flat_3_simp_18                    = flat_3_simp_15;                       /* read */
+            flat_0_simp_10                    = flat_3_simp_16;                       /* write */
+            flat_0_simp_11                    = flat_3_simp_17;                       /* write */
+            flat_0_simp_12                    = flat_3_simp_18;                       /* write */
+        }
+        
+        flat_0_simp_19                        = flat_0_simp_10;                       /* read */
+        flat_0_simp_20                        = flat_0_simp_11;                       /* read */
+        flat_0_simp_21                        = flat_0_simp_12;                       /* read */
+        acc_s_reify_2_conv_5_simp_4           = flat_0_simp_19;                       /* write */
+        acc_s_reify_2_conv_5_simp_5           = flat_0_simp_20;                       /* write */
+        acc_s_reify_2_conv_5_simp_6           = flat_0_simp_21;                       /* write */
+    }
+    
+    s->has_acc_s_reify_2_conv_5_simp_4        = itrue;                                /* save */
+    s->res_acc_s_reify_2_conv_5_simp_4        = acc_s_reify_2_conv_5_simp_4;          /* save */
+    
+    s->has_acc_s_reify_2_conv_5_simp_5        = itrue;                                /* save */
+    s->res_acc_s_reify_2_conv_5_simp_5        = acc_s_reify_2_conv_5_simp_5;          /* save */
+    
+    s->has_acc_s_reify_2_conv_5_simp_6        = itrue;                                /* save */
+    s->res_acc_s_reify_2_conv_5_simp_6        = acc_s_reify_2_conv_5_simp_6;          /* save */
+    
+    s_reify_2_conv_5_simp_22                  = acc_s_reify_2_conv_5_simp_4;          /* read */
+    s_reify_2_conv_5_simp_23                  = acc_s_reify_2_conv_5_simp_5;          /* read */
+    s_reify_2_conv_5_simp_24                  = acc_s_reify_2_conv_5_simp_6;          /* read */
+    s->repl_ix_0                              = s_reify_2_conv_5_simp_22;             /* output */
+    s->repl_ix_1                              = s_reify_2_conv_5_simp_23;             /* output */
+    s->repl_ix_2                              = s_reify_2_conv_5_simp_24;             /* output */
+}
+
+- C evaluation:
+[(homer,1990-03-17)
+,(marge,1990-03-17)]
+
+- Core evaluation:
+[homer, 1990-03-17
+,marge, 1990-03-17]
+
 > 
