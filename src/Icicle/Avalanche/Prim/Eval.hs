@@ -146,9 +146,9 @@ evalPrim p vs
       | otherwise
       -> primError
 
-     PrimArray (PrimArrayUnsum _ _)
+     PrimArray (PrimArrayUnsum tl tr)
       | [VBase (VArray arr)]   <- vs
-      -> do (arr0, arr1, arr2) <- foldM us mempty arr
+      -> do (arr0, arr1, arr2) <- foldM (us tl tr) mempty arr
             return . VBase $ VPair (VArray $ reverse arr0)
                                    (VPair (VArray $ reverse arr1)
                                            (VArray $ reverse arr2))
@@ -208,17 +208,17 @@ evalPrim p vs
   uz _ _
    = primError
 
-  us (bs, ls, rs) (VLeft l)
-   = return ( VBool  False  : bs
-            , l             : ls
-            , VUnit         : rs )
-  us (bs, ls, rs) (VRight r)
-   = return ( VBool  True  : bs
-            , VUnit        : ls
-            , r            : rs )
-  us (bs, ls, rs) VUnit -- uninitialised array
+  us _ tr (bs, ls, rs) (VLeft l)
+   = return ( VBool  False     : bs
+            , l                : ls
+            , defaultOfType tr : rs )
+  us tl _ (bs, ls, rs) (VRight r)
+   = return ( VBool  True      : bs
+            , defaultOfType tl : ls
+            , r                : rs )
+  us _ _ (bs, ls, rs) VUnit -- uninitialised array
    = return (VUnit : bs, VUnit : ls, VUnit : rs)
-  us _ _
+  us _ _ _ _
    = primError
 
   primError
