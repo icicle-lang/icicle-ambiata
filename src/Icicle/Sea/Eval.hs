@@ -135,17 +135,14 @@ seaEvalAvalanche :: (Show a, Show n, Pretty n, Ord n)
 seaEvalAvalanche program date values =
   bracketEitherT' (seaCompile program) seaRelease (\sea -> seaEval sea date values)
 
-seaEval :: forall m. (MonadIO m, MonadMask m)
+seaEval :: (MonadIO m, MonadMask m)
        => SeaProgram
        -> D.DateTime
        -> [D.AsAt D.Value]
        -> EitherT SeaError m [(OutputName, D.Value)]
 seaEval program date values = do
   let words              = seaStateWords program
-      acquireFacts :: EitherT SeaError m [SeaMVector]
       acquireFacts       = vectorsOfFacts values (seaFactType program)
-
-      releaseFacts :: [SeaMVector] -> EitherT SeaError m ()
       releaseFacts facts = traverse_ freeSeaVector facts
 
   bracketEitherT' acquireFacts releaseFacts $ \facts -> do
