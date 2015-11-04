@@ -22,7 +22,7 @@ Todo
 
 1. Stupid linear implementation of maps: perhaps this can be done during flatten
 2. Melt for arrays (Tran)
-3. topic/ivory-dates and implementations of date primitives https://github.com/ambiata/icicle/tree/topic/ivory-dates
+3. ~~topic/ivory-dates and implementations of date primitives https://github.com/ambiata/icicle/tree/topic/ivory-dates~~
 4. ~~Name shadowing bug https://github.com/ambiata/icicle/issues/166~~
 
 ## Medium
