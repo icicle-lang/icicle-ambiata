@@ -539,7 +539,7 @@ seaEval date newFacts (renameQT unVar -> query) program =
     evalP featureName (S.Partition entityName attributeName values)
       | CommonBase.Name name <- featureName
       , Attribute name == attributeName
-      = do outputs <- Sea.seaEval program date values
+      = do outputs <- Sea.seaEvalAvalanche program date values
            return $ fmap (\out -> (entityName, snd out)) outputs
 
       | otherwise
