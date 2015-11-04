@@ -1,4 +1,5 @@
 {-# LANGUAGE DoAndIfThenElse #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards #-}
@@ -24,7 +25,8 @@ import              Icicle.Common.Annot
 
 import              P
 
-import qualified    Data.Map            as Map
+import qualified    Data.List as List
+import qualified    Data.Map as Map
 
 
 ------------------------------------------------------------------------
@@ -41,18 +43,21 @@ pattern PrimPair    ta tb = PrimMinimal (Min.PrimConst (Min.PrimConstPair ta tb)
 pattern PrimFst     ta tb = PrimMinimal (Min.PrimPair  (Min.PrimPairFst   ta tb))
 pattern PrimSnd     ta tb = PrimMinimal (Min.PrimPair  (Min.PrimPairSnd   ta tb))
 
-pattern PrimMkOpt      tv = PrimPack    (PrimOptionPack          tv)
-pattern PrimIsSome     tv = PrimProject (PrimProjectOptionIsSome tv)
-pattern PrimGet        tv = PrimUnsafe  (PrimUnsafeOptionGet     tv)
+pattern PrimMkOpt   tv = PrimPack    (PrimOptionPack          tv)
+pattern PrimIsSome  tv = PrimProject (PrimProjectOptionIsSome tv)
+pattern PrimGetSome tv = PrimUnsafe  (PrimUnsafeOptionGet     tv)
 
-pattern PrimMkSum   ta tb = PrimPack    (PrimSumPack           ta tb)
-pattern PrimIsRight ta tb = PrimProject (PrimProjectSumIsRight ta tb)
-pattern PrimLeft    ta tb = PrimUnsafe  (PrimUnsafeSumGetLeft  ta tb)
-pattern PrimRight   ta tb = PrimUnsafe  (PrimUnsafeSumGetRight ta tb)
+pattern PrimMkSum    ta tb = PrimPack    (PrimSumPack           ta tb)
+pattern PrimIsRight  ta tb = PrimProject (PrimProjectSumIsRight ta tb)
+pattern PrimGetLeft  ta tb = PrimUnsafe  (PrimUnsafeSumGetLeft  ta tb)
+pattern PrimGetRight ta tb = PrimUnsafe  (PrimUnsafeSumGetRight ta tb)
+
+pattern PrimMkStruct ts       = PrimPack    (PrimStructPack ts)
+pattern PrimGetField ts nf tf = PrimMinimal (Min.PrimStruct (Min.PrimStructGet nf tf ts))
 
 data MeltOps a n p = MeltOps {
-    xPrim  :: p -> Exp a n p
-  , xVar   :: Name n -> Exp a n p
+    xPrim  :: p                      -> Exp a n p
+  , xVar   :: Name n                 -> Exp a n p
   , xValue :: ValType   -> BaseValue -> Exp a n p
   , xApp   :: Exp a n p -> Exp a n p -> Exp a n p
 
@@ -66,15 +71,17 @@ data MeltOps a n p = MeltOps {
   , primFst  :: ValType -> ValType -> Exp a n p        -> Exp a n p
   , primSnd  :: ValType -> ValType -> Exp a n p        -> Exp a n p
 
-  , primMkOpt  :: ValType -> Name n -> Name n -> Exp a n p
-  , primIsSome :: ValType -> Exp a n p        -> Exp a n p
-  , primGet    :: ValType -> Exp a n p        -> Exp a n p
+  , primMkOpt   :: ValType -> Name n -> Name n -> Exp a n p
+  , primIsSome  :: ValType -> Exp a n p        -> Exp a n p
+  , primGetSome :: ValType -> Exp a n p        -> Exp a n p
 
-  , primMkSum   :: ValType -> ValType -> Name n -> Name n -> Name n -> Exp a n p
-  , primIsRight :: ValType -> ValType -> Exp a n p                  -> Exp a n p
-  , primLeft    :: ValType -> ValType -> Exp a n p                  -> Exp a n p
-  , primRight   :: ValType -> ValType -> Exp a n p                  -> Exp a n p
+  , primMkSum    :: ValType -> ValType -> Name n -> Name n -> Name n -> Exp a n p
+  , primIsRight  :: ValType -> ValType -> Exp a n p                  -> Exp a n p
+  , primGetLeft  :: ValType -> ValType -> Exp a n p                  -> Exp a n p
+  , primGetRight :: ValType -> ValType -> Exp a n p                  -> Exp a n p
 
+  , primMkStruct :: StructType -> [Name n]                            -> Exp a n p
+  , primGetField :: StructType -> StructField -> ValType -> Exp a n p -> Exp a n p
   }
 
 meltOps :: a -> MeltOps a n Prim
@@ -96,14 +103,17 @@ meltOps a_fresh
   primFst     ta tb x     = xPrim (PrimFst     ta tb) `xApp` x
   primSnd     ta tb x     = xPrim (PrimSnd     ta tb) `xApp` x
 
-  primMkOpt   tv b v      = xPrim (PrimMkOpt      tv) `xApp` xVar b `xApp` xVar v
-  primIsSome  tv v        = xPrim (PrimIsSome     tv) `xApp` v
-  primGet     tv v        = xPrim (PrimGet        tv) `xApp` v
+  primMkOpt   tv b v = xPrim (PrimMkOpt   tv) `xApp` xVar b `xApp` xVar v
+  primIsSome  tv v   = xPrim (PrimIsSome  tv) `xApp` v
+  primGetSome tv v   = xPrim (PrimGetSome tv) `xApp` v
 
-  primMkSum   ta tb i x y = xPrim (PrimMkSum   ta tb) `xApp` xVar i `xApp` xVar x `xApp` xVar y
-  primIsRight ta tb x     = xPrim (PrimIsRight ta tb) `xApp` x
-  primLeft    ta tb x     = xPrim (PrimLeft    ta tb) `xApp` x
-  primRight   ta tb x     = xPrim (PrimRight   ta tb) `xApp` x
+  primMkSum    ta tb i x y = xPrim (PrimMkSum    ta tb) `xApp` xVar i `xApp` xVar x `xApp` xVar y
+  primIsRight  ta tb x     = xPrim (PrimIsRight  ta tb) `xApp` x
+  primGetLeft  ta tb x     = xPrim (PrimGetLeft  ta tb) `xApp` x
+  primGetRight ta tb x     = xPrim (PrimGetRight ta tb) `xApp` x
+
+  primMkStruct ts ns      = foldl (\x n -> x `xApp` xVar n) (xPrim (PrimMkStruct ts)) ns
+  primGetField ts nf tf x = xPrim (PrimGetField ts nf tf) `xApp` x
 
 
 ------------------------------------------------------------------------
@@ -151,17 +161,22 @@ meltAccumulators a_fresh statements
            | Just (Mutable, OptionT tv, [nb, nv])       <- Map.lookup n env'
            , tb                                         <- BoolT
            -> go
-            . InitAccumulator (Accumulator nb ak tb (primIsSome tv x))
-            . InitAccumulator (Accumulator nv ak tv (primGet    tv x))
+            . InitAccumulator (Accumulator nb avt tb (primIsSome  tv x))
+            . InitAccumulator (Accumulator nv avt tv (primGetSome tv x))
             $ ss
 
            | Just (Mutable, SumT ta tb, [ni, na, nb])   <- Map.lookup n env'
            , ti                                         <- BoolT
            -> go
-            . InitAccumulator (Accumulator ni ak ti (primIsRight ta tb x))
-            . InitAccumulator (Accumulator na ak ta (primLeft    ta tb x))
-            . InitAccumulator (Accumulator nb ak tb (primRight   ta tb x))
+            . InitAccumulator (Accumulator ni avt ti (primIsRight  ta tb x))
+            . InitAccumulator (Accumulator na avt ta (primGetLeft  ta tb x))
+            . InitAccumulator (Accumulator nb avt tb (primGetRight ta tb x))
             $ ss
+
+           | Just (Mutable, StructT ts, ns)             <- Map.lookup n env'
+           , nfts                                       <- List.zip ns (Map.toList (getStructType ts))
+           -> go
+            $ foldr (\(na,(f,t)) -> InitAccumulator (Accumulator na avt t (primGetField ts f t x))) ss nfts
 
            | Just (Mutable, t@(ArrayT (SumT _ _)), _)       <- Map.lookup n env'
            -> do (xs', _) <- meltBody a_fresh (n, t, x)
@@ -224,6 +239,12 @@ meltAccumulators a_fresh statements
                     . Read nb' nb avt (ArrayT tb)
                     $ ss'
 
+           | Just (Mutable, StructT ts, nas)            <- Map.lookup acc env'
+           , fts                                        <- Map.elems (getStructType ts)
+           -> do ns' <- replicateM (length fts) (freshPrefix' n)
+                 ss' <- substXinS a_fresh n (primMkStruct ts ns') ss
+                 go $ foldr (\(n',na,t) -> Read n' na avt t) ss' (List.zip3 ns' nas fts)
+
            | Just (Mutable, UnitT, [])                  <- Map.lookup acc env'
            -> do ss' <- substXinS a_fresh n (xValue UnitT VUnit) ss
                  go ss'
@@ -244,14 +265,19 @@ meltAccumulators a_fresh statements
 
            | Just (Mutable, OptionT tv, [nb, nv])       <- Map.lookup n env'
            -> go
-            $ Block [ Write nb (primIsSome tv x)
-                    , Write nv (primGet    tv x) ]
+            $ Block [ Write nb (primIsSome  tv x)
+                    , Write nv (primGetSome tv x) ]
 
            | Just (Mutable, SumT ta tb, [ni, na, nb])   <- Map.lookup n env'
            -> go
-            $ Block [ Write ni (primIsRight ta tb x)
-                    , Write na (primLeft    ta tb x)
-                    , Write nb (primRight   ta tb x) ]
+            $ Block [ Write ni (primIsRight  ta tb x)
+                    , Write na (primGetLeft  ta tb x)
+                    , Write nb (primGetRight ta tb x) ]
+
+           | Just (Mutable, StructT ts, nas)            <- Map.lookup n env'
+           , nfts                                       <- List.zip nas (Map.toList (getStructType ts))
+           -> go . Block
+            $ fmap (\(na,(f,t)) -> Write na (primGetField ts f t x)) nfts
 
            | Just (Mutable, ArrayT (SumT ta tb), [ni, na, nb]) <- Map.lookup n env'
            , tai <- ArrayT BoolT
@@ -304,6 +330,11 @@ meltAccumulators a_fresh statements
             $ Block [ LoadResumable na (ArrayT ta)
                     , LoadResumable nb (ArrayT tb) ]
 
+           | Just (_, StructT ts, nas)                  <- Map.lookup n env'
+           , nts                                        <- List.zip nas (Map.elems (getStructType ts))
+           -> go . Block
+            $ fmap (\(na,t) -> LoadResumable na t) nts
+
            | Just (_, UnitT, [])                        <- Map.lookup n env'
            -> go
             $ Block []
@@ -339,6 +370,11 @@ meltAccumulators a_fresh statements
             $ Block [ SaveResumable na (ArrayT ta)
                     , SaveResumable nb (ArrayT tb) ]
 
+           | Just (_, StructT ts, nas)                  <- Map.lookup n env'
+           , nts                                        <- List.zip nas (Map.elems (getStructType ts))
+           -> go . Block
+            $ fmap (\(na,t) -> SaveResumable na t) nts
+
            | Just (_, UnitT, [])                        <- Map.lookup n env'
            -> go
             $ Block []
@@ -360,6 +396,13 @@ meltAccumulators a_fresh statements
    = three n at avt env
    | InitAccumulator (Accumulator n at avt@(ArrayT (SumT _ _)) _) _ <- s
    = three n at avt env
+
+   | InitAccumulator (Accumulator n at avt@(StructT (StructType fts)) _) _ <- s
+   = do ns <- replicateM (Map.size fts) (freshPrefix' n)
+        return (Map.insert n (at, avt, ns) env)
+
+   | InitAccumulator (Accumulator n Mutable UnitT _) _ <- s
+   = do return (Map.insert n (Mutable, UnitT, []) env)
 
    | otherwise
    = return env
@@ -501,7 +544,7 @@ meltForeachFacts a_fresh statements
 
   meltFix ns0 ss0 = do
     (ns1, ss1) <- meltFacts ns0 ss0
-    if length ns0 /= length ns1
+    if fmap snd ns0 /= fmap snd ns1
     then meltFix ns1 ss1
     else return (ns1, ss1)
 
@@ -522,27 +565,37 @@ meltForeachFacts a_fresh statements
            -> Fresh n ([(Name n, ValType)], Statement a n Prim)
 
   meltFact (n, t) ss
+   | UnitT <- t
+   = do ss' <- substXinS a_fresh n (xValue UnitT VUnit) ss
+        return ([], ss')
+
    | PairT ta tb <- t
    = do na <- freshPrefix' n
         nb <- freshPrefix' n
         ss' <- substXinS a_fresh n (primPair ta tb na nb) ss
-        let ns = [(na, ta), (nb, tb)]
-        return (ns, ss')
+        let nts = [(na, ta), (nb, tb)]
+        return (nts, ss')
 
    | OptionT tv <- t
    = do nb <- freshPrefix' n
         nv <- freshPrefix' n
         ss' <- substXinS a_fresh n (primMkOpt tv nb nv) ss
-        let ns = [(nb, BoolT), (nv, tv)]
-        return (ns, ss')
+        let nts = [(nb, BoolT), (nv, tv)]
+        return (nts, ss')
 
    | SumT ta tb <- t
    = do ni <- freshPrefix' n
         na <- freshPrefix' n
         nb <- freshPrefix' n
         ss' <- substXinS a_fresh n (primMkSum ta tb ni na nb) ss
-        let ns = [(ni, BoolT), (na, ta), (nb, tb)]
-        return (ns, ss')
+        let nts = [(ni, BoolT), (na, ta), (nb, tb)]
+        return (nts, ss')
+
+   | StructT ts@(StructType fts) <- t
+   = do ns  <- replicateM (Map.size fts) (freshPrefix' n)
+        ss' <- substXinS a_fresh n (primMkStruct ts ns) ss
+        let nts = List.zip ns (Map.elems fts)
+        return (nts, ss')
 
    | otherwise
    = return ([(n, t)], ss)
@@ -573,15 +626,14 @@ meltExp :: a -> Exp a n Prim -> ValType -> [(Exp a n Prim, ValType)]
 meltExp a_fresh x t
  = let MeltOps{..} = meltOps a_fresh
    in case t of
+     UnitT{}     -> []
      IntT{}      -> [(x, t)]
      DoubleT{}   -> [(x, t)]
-     UnitT{}     -> [(x, t)]
      BoolT{}     -> [(x, t)]
      DateTimeT{} -> [(x, t)]
      StringT{}   -> [(x, t)]
      ArrayT{}    -> [(x, t)]
      MapT{}      -> [(x, t)]
-     StructT{}   -> [(x, t)]
      BufT{}      -> [(x, t)]
      ErrorT{}    -> [(x, t)]
 
@@ -590,13 +642,18 @@ meltExp a_fresh x t
       <> meltExp a_fresh (primSnd ta tb x) tb
 
      SumT ta tb
-      -> meltExp a_fresh (primIsRight ta tb x) BoolT
-      <> meltExp a_fresh (primLeft    ta tb x) ta
-      <> meltExp a_fresh (primRight   ta tb x) tb
+      -> meltExp a_fresh (primIsRight  ta tb x) BoolT
+      <> meltExp a_fresh (primGetLeft  ta tb x) ta
+      <> meltExp a_fresh (primGetRight ta tb x) tb
 
      OptionT tx
-      -> meltExp a_fresh (primIsSome tx x) BoolT
-      <> meltExp a_fresh (primGet    tx x) tx
+      -> meltExp a_fresh (primIsSome  tx x) BoolT
+      <> meltExp a_fresh (primGetSome tx x) tx
+
+     StructT ts
+      | fts <- Map.toList (getStructType ts)
+      -> let go (nf,tf) = meltExp a_fresh (primGetField ts nf tf x) tf
+         in concat (fmap go fts)
 
 ------------------------------------------------------------------------
 
@@ -605,15 +662,14 @@ meltValue :: BaseValue -> ValType -> Maybe [BaseValue]
 meltValue v t
  = let apcat x y = (<>) <$> x <*> y
    in case v of
+     VUnit{}     -> Just []
      VInt{}      -> Just [v]
      VDouble{}   -> Just [v]
-     VUnit{}     -> Just [v]
      VBool{}     -> Just [v]
      VDateTime{} -> Just [v]
      VString{}   -> Just [v]
      VArray{}    -> Just [v]
      VMap{}      -> Just [v]
-     VStruct{}   -> Just [v]
      VBuf{}      -> Just [v]
      VError{}    -> Just [v]
 
@@ -652,6 +708,17 @@ meltValue v t
       | otherwise
       -> Nothing
 
+     VStruct fvs
+      | StructT ts <- t
+      , fts        <- Map.toList (getStructType ts)
+      -> let go (nf,tf) = do
+               fv <- Map.lookup nf fvs
+               meltValue fv tf
+         in concat <$> traverse go fts
+
+      | otherwise
+      -> Nothing
+
 freshes :: Int -> Name n -> Fresh n [Name n]
 freshes i n
  = replicateM i $ freshPrefix' n
@@ -669,27 +736,33 @@ unmeltValue vs t
      Just (_v, _xs) -> Nothing
 
 unmeltValue' :: [BaseValue] -> ValType -> Maybe (BaseValue, [BaseValue])
-unmeltValue' []        _ = Nothing
-unmeltValue' vs0@(v:vs) t
- = case t of
-     IntT{}      -> Just (v, vs)
-     DoubleT{}   -> Just (v, vs)
-     UnitT{}     -> Just (v, vs)
-     BoolT{}     -> Just (v, vs)
-     DateTimeT{} -> Just (v, vs)
-     StringT{}   -> Just (v, vs)
-     ArrayT{}    -> Just (v, vs)
-     MapT{}      -> Just (v, vs)
-     StructT{}   -> Just (v, vs)
-     BufT{}      -> Just (v, vs)
-     ErrorT{}    -> Just (v, vs)
+unmeltValue' vs0 t
+ = case (vs0, t) of
+     -- value was not properly melted in the first place
+     (VPair{}:_,   _) -> Nothing
+     (VNone{}:_,   _) -> Nothing
+     (VSome{}:_,   _) -> Nothing
+     (VLeft{}:_,   _) -> Nothing
+     (VRight{}:_,  _) -> Nothing
+     (VStruct{}:_, _) -> Nothing
 
-     PairT ta tb
+     (vs,   UnitT{})     -> Just (VUnit, vs)
+     (v:vs, IntT{})      -> Just (v, vs)
+     (v:vs, DoubleT{})   -> Just (v, vs)
+     (v:vs, BoolT{})     -> Just (v, vs)
+     (v:vs, DateTimeT{}) -> Just (v, vs)
+     (v:vs, StringT{})   -> Just (v, vs)
+     (v:vs, ArrayT{})    -> Just (v, vs)
+     (v:vs, MapT{})      -> Just (v, vs)
+     (v:vs, BufT{})      -> Just (v, vs)
+     (v:vs, ErrorT{})    -> Just (v, vs)
+
+     (_, PairT ta tb)
       -> do (a, vs1) <- unmeltValue' vs0 ta
             (b, vs2) <- unmeltValue' vs1 tb
             Just (VPair a b, vs2)
 
-     SumT ta tb
+     (_, SumT ta tb)
       -> do (i, vs1) <- unmeltValue' vs0 BoolT
             (a, vs2) <- unmeltValue' vs1 ta
             (b, vs3) <- unmeltValue' vs2 tb
@@ -698,10 +771,22 @@ unmeltValue' vs0@(v:vs) t
               VBool True  -> Just (VRight b, vs3)
               _           -> Nothing
 
-     OptionT tx
+     (_, OptionT tx)
       -> do (b, vs1) <- unmeltValue' vs0 BoolT
             (x, vs2) <- unmeltValue' vs1 tx
             case b of
               VBool False -> Just (VNone,   vs2)
               VBool True  -> Just (VSome x, vs2)
               _           -> Nothing
+
+     (_, StructT (StructType ts))
+      -> do let go (acc, vs1) ft = do
+                  (fv, vs2) <- unmeltValue' vs1 ft
+                  return (acc <> [fv], vs2)
+
+            (acc, vs3) <- foldM go ([], vs0) (Map.elems ts)
+            let fvs = Map.fromList $ List.zip (Map.keys ts) acc
+            Just (VStruct fvs, vs3)
+
+     ([], _)
+      -> Nothing

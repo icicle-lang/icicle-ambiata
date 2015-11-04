@@ -4,6 +4,8 @@
 --
 -- The actual implementation will have to be smarter, but this is just an abstraction.
 {-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE DeriveFoldable #-}
+{-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.BubbleGum (
       Flavour (..)
@@ -51,7 +53,7 @@ data BubbleGumOutput n v
 
  -- | List of facts used for windowed reduction or latest
  | BubbleGumFacts       [Flavour]
- deriving (Show, Eq, Ord, Functor)
+ deriving (Show, Eq, Ord, Functor, Foldable, Traversable)
 
 
 bubbleGumOutputOfFacts :: [BubbleGumFact] -> BubbleGumOutput n v

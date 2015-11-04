@@ -22,6 +22,7 @@ library
                      , bytestring                      == 0.10.*
                      , containers                      == 0.5.*
                      , dates                           == 0.2.*
+                     , exceptions                      == 0.8.*
                      , time                            == 1.4.*
                      , lens                            == 4.7.*
                      , old-locale                      == 1.0.*
@@ -36,6 +37,7 @@ library
                      , validation                      == 0.5.*
                      , vector                          == 0.10.*
                      , annotated-wl-pprint             == 0.7.*
+                     , file-embed                      == 0.0.9
 
                      -- Well, it might look very odd that we're using both attoparsec
                      -- and parsec.
@@ -139,6 +141,12 @@ library
 
                        Icicle.Sea.Eval
                        Icicle.Sea.FromAvalanche
+                       Icicle.Sea.FromAvalanche.Analysis
+                       Icicle.Sea.FromAvalanche.Base
+                       Icicle.Sea.FromAvalanche.Prim
+                       Icicle.Sea.FromAvalanche.Program
+                       Icicle.Sea.FromAvalanche.Type
+                       Icicle.Sea.Preamble
 
                        Icicle.Source.Eval
                        Icicle.Source.Query
@@ -249,6 +257,7 @@ test-suite test
                      , ambiata-disorder-core
                      , ambiata-disorder-corpus
                      , ambiata-p
+                     , ambiata-jetski
                      , icicle
                      , text
                      , aeson                           == 0.8.*

@@ -1,8 +1,9 @@
 -- | Quick and dirty date stuff
 -- TODO support times as well
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
 module Icicle.Data.DateTime (
-    DateTime
+    DateTime(..)
   , renderDate
   , dateOfYMD
   , dateOfDays
@@ -13,6 +14,8 @@ module Icicle.Data.DateTime (
   , minusDays
   , unsafeDateOfYMD
   , pDate
+  , packedOfDate
+  , dateOfPacked
   ) where
 import           Data.Attoparsec.Text
 
@@ -20,13 +23,32 @@ import qualified Data.Dates         as D
 import qualified Data.Time.Calendar as C
 
 import           Data.Text  as T
+import           Data.Word (Word64)
+import           Data.Bits
 
 import           P
 
-data DateTime =
+newtype DateTime =
   DateTime {
       getDateTime :: D.DateTime
-    } deriving (Eq, Ord, Show)
+    } deriving (Eq, Ord)
+
+instance Show DateTime where
+ showsPrec p (DateTime x)
+  = showParen (p > 10)
+  $ showString "DateTime (D.DateTime "
+  . showsPrec 11 (D.year x)
+  . showString " "
+  . showsPrec 11 (D.month x)
+  . showString " "
+  . showsPrec 11 (D.day x)
+  . showString " "
+  . showsPrec 11 (D.hour x)
+  . showString " "
+  . showsPrec 11 (D.minute x)
+  . showString " "
+  . showsPrec 11 (D.second x)
+  . showString ")"
 
 
 renderDate  :: DateTime -> Text
@@ -95,3 +117,27 @@ minusMonths d i
  $ D.dateTimeToDay
  $ getDateTime d
 
+-- Pack into Ivory's DateTime (for use in Sea evaluation).
+-- A packed long
+--   16 bits: year represented as a short
+--   8 bits:  month represented as a byte
+--   8 bits:  day represented as a byte
+--   32 bits: seconds since start of day
+packedOfDate :: DateTime -> Word64
+packedOfDate (DateTime d)
+  =  shift (fromIntegral (D.year  d)) 48
+ .|. shift (fromIntegral (D.month d)) 40
+ .|. shift (fromIntegral (D.day d))   32
+ .|. (fromIntegral (3600 * D.hour d + 60 * D.minute d + D.second d))
+
+-- Unpack the word into an icicle DateTime
+dateOfPacked :: Word64 -> DateTime
+dateOfPacked d
+ = let y  = shift (fromIntegral d) (-48)
+       m  = shift (fromIntegral d) (-40) .&. 0xff
+       d' = shift (fromIntegral d) (-32) .&. 0xff
+       i  =       (fromIntegral d)       .&. 0xffffffff
+       h  = i `quot` 3600
+       m' = i `rem`  3600 `quot` 60
+       s  = i `rem`  60
+   in DateTime $ D.DateTime y m d' h m' s

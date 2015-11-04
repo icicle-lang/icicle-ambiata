@@ -114,15 +114,6 @@ forwardStmts a_fresh statements
 -- > in subst monkey := banana
 -- > in (subst banana := banana' in monkey)
 --
--- or we could also rename the variables in the payload
--- > let banana' = banana
--- > in subst monkey := (subst banana := banana' in banana)
--- > in (let banana = 5 in monkey)
---
--- This should be fixed, but in the mean time the payload must only mention fresh variables.
---
--- TODO: introduce renaming to avoid capturing payload variables
---
 substXinS :: Ord n => a -> Name n -> Exp a n p -> Statement a n p -> Fresh n (Statement a n p)
 substXinS a_fresh name payload statements
  = transformUDStmt trans True statements
@@ -137,13 +128,18 @@ substXinS a_fresh name payload statements
 
       Let n x ss
        | n == name
-       -> finished s
+       -> do x' <- sub x
+             finished (Let n x' ss)
+       | Set.member n frees
+       -> freshen n ss $ \n' ss' -> Let n' x ss'
        | otherwise
        -> sub1 x $ \x' -> Let n x' ss
 
       ForeachInts n from to ss
        | n == name
        -> finished s
+       | Set.member n frees
+       -> freshen n ss $ \n' ss' -> ForeachInts n' from to ss'
        | otherwise
        -> do    from' <- sub from
                 to'   <- sub to
@@ -160,13 +156,17 @@ substXinS a_fresh name payload statements
       Output n t xs
        -> subN xs $ Output n t
 
-      Read n _ _ _ _
+      Read n x y z ss
        | n == name
        -> finished s
+       | Set.member n frees
+       -> freshen n ss $ \n' ss' -> Read n' x y z ss'
 
-      ForeachFacts ns _ _ _
+      ForeachFacts ns x y ss
        | name `elem` fmap fst ns
        -> finished s
+       | any (flip Set.member frees . fst) ns
+       -> freshenForeach [] ns x y ss
 
       _
        -> return (True, s)
@@ -184,6 +184,20 @@ substXinS a_fresh name payload statements
 
   finished s
    = return (False, s)
+
+  freshen n ss f
+   = do n' <- fresh
+        ss' <- substXinS a_fresh n (XVar a_fresh n') ss
+        trans True (f n' ss')
+
+  freshenForeach ns [] x y ss
+   = return (True, ForeachFacts ns x y ss)
+  freshenForeach ns ((n,t):ns') x y ss
+   = do n'  <- fresh
+        ss' <- substXinS a_fresh n (XVar a_fresh n') ss
+        freshenForeach (ns <> [(n',t)]) ns' x y ss'
+
+  frees = freevars payload
 
 
 -- | Thresher transform - throw out the chaff.

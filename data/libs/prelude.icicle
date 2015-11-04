@@ -1,23 +1,23 @@
 
 # Basic statistics
-sum v = let fold s = 0 : v + s ~> s.
-count v = let fold c = 0 : seq v (c + 1) ~> c.
+sum v = fold s = 0 : v + s ~> s.
+count v = fold c = 0 : seq v (c + 1) ~> c.
 mean v = sum (double v) / count v.
-max v = let fold1 s = v : case v > s | True -> v | False -> s end ~> s.
-min v = let fold1 s = v : case v < s | True -> v | False -> s end ~> s.
+max v = fold1 s = v : case v > s | True -> v | False -> s end ~> s.
+min v = fold1 s = v : case v < s | True -> v | False -> s end ~> s.
 
-minby a b = let fold1 s = (a, b)
+minby a b = fold1 s = (a, b)
    :  case s | (a1, b1) -> (case a < a1 | True -> (a,b) | False -> (a1,b1) end) end
    ~> case s | (a1, b1) -> b1 end.
 
-maxby a b = let fold1 s = (a, b)
+maxby a b = fold1 s = (a, b)
    :  case s | (a1, b1) -> (case a > a1 | True -> (a,b) | False -> (a1,b1) end) end
    ~> case s | (a1, b1) -> b1 end.
 
 # Numerically stable variance
 variance v =
   let v_ = double v ~>
-  let fold a = ((0, 0.0), 0.0)
+  fold a = ((0, 0.0), 0.0)
      :  case a | ((n,m),m2) -> (
                    let nn = n + 1 ~>
                    let d = v_ - m ~>
@@ -33,7 +33,7 @@ sd v = (variance v) ^ 0.5.
 covariance a b =
   let a_ = double a ~>
   let b_ = double b ~>
-  let fold x = (((0, 0.0), 0.0), 0.0)
+  fold x = (((0, 0.0), 0.0), 0.0)
      :  case x | (((n,m1),m2),m12) -> (
                     let nn  = n + 1 ~>
                     let d1 = (a_ - m1) / nn ~>
@@ -52,18 +52,18 @@ correlation a b = covariance a b / (sd a * sd b).
 gradient a b = covariance a b / variance b.
 
 # Time statements
-newest v = latest 1 ~> let fold1 s = v : v ~> s.
-oldest v = let fold1 s = v : s ~> s.
+newest v = latest 1 ~> fold1 s = v : v ~> s.
+oldest v = fold1 s = v : s ~> s.
 
 # Boolean statements
 not a = case a | True -> False | False -> True end.
 
 # Version of num flips which should fail upon finding a tombstone value.
-numflips v = let fold1 s = (v,0) : case s | (s0,i) -> (case (s0 == v) | True -> (v,i) | False -> (v,i+1) end) end ~> case s | (s0,i) -> i end.
+numflips v = fold1 s = (v,0) : case s | (s0,i) -> (case (s0 == v) | True -> (v,i) | False -> (v,i+1) end) end ~> case s | (s0,i) -> i end.
 
 # Version of num flips which will accommodate tombstone values. Must have the tombstone feature passed to it.
 numflips' v t
- = let fold1 s
+ = fold1 s
    = case t | True -> (None,0) | False -> (Some(v),0) end
    : case t | True  -> (case s | (Some(s0),i) -> (None,i+1)
                                | (None,i) -> (None,i)

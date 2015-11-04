@@ -1,13 +1,11 @@
 -- Show everything
 :set +flatten +c
--- Disable C evaluation for now
--- +c-eval
 
--- Oldest
-feature salary ~> oldest value
+-- Enable C evaluation
+:set +c-eval
 
--- Filtering works
-feature salary ~> filter value > 300 ~> count value
+-- An interesting expression with structs and strings
+feature injury ~> mean (double severity) * (filter location == "torso" ~> sd severity)
 
--- An interesting expression
-feature salary ~> sd value * (filter value < 300 ~> sd value)
+-- Dates
+feature salary ~> max (days between `1980-01-06` date days after `2000-01-01`)

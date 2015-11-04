@@ -261,12 +261,12 @@ evalStmt evalPrim now xh values bubblegum ah stmt
     -- (i.e. where ty == ty' and we only have a singleton list of bindings)
     ForeachFacts [(n, ty)] ty' FactLoopNew stmts
      | ty == ty'
-     -> do  let evalInput ah' input = do
-                  let v0     = snd (fact input)
-                      v1     = VDateTime (time input)
+     -> do  let evalInput ah' inp = do
+                  let v0     = snd (fact inp)
+                      v1     = VDateTime (time inp)
                       vv     = VPair v0 v1
                       input' = Map.insert n (VBase vv) xh
-                      bgf    = Just $ fst $ fact input
+                      bgf    = Just $ fst $ fact inp
 
                   fst <$> evalStmt evalPrim now input' [] bgf ah' stmts
 
@@ -274,9 +274,9 @@ evalStmt evalPrim now xh values bubblegum ah stmt
             return (ahs, [])
 
     ForeachFacts ns ty FactLoopNew stmts
-     -> do  let evalInput ah' input = do
-                  let v0  = snd (fact input)
-                      v1  = VDateTime (time input)
+     -> do  let evalInput ah' inp = do
+                  let v0  = snd (fact inp)
+                      v1  = VDateTime (time inp)
                       vv  = VPair v0 v1
                       mvs = meltValue vv ty
 
@@ -291,7 +291,7 @@ evalStmt evalPrim now xh values bubblegum ah stmt
                      | otherwise
                      , nvs    <- zip (fmap fst ns) vs
                      , input' <- foldr (\(n, v) -> Map.insert n (VBase v)) xh nvs
-                     , bgf    <- Just $ fst $ fact input
+                     , bgf    <- Just $ fst $ fact inp
                      -> fst <$> evalStmt evalPrim now input' [] bgf ah' stmts
 
             ahs <- foldM evalInput ah values
@@ -338,9 +338,20 @@ evalStmt evalPrim now xh values bubblegum ah stmt
     Output n t xts
      -> do  vs  <- traverse ((baseValue =<<) . eval . fst) xts
             case (vs, unmeltValue vs t) of
-              (v:[], _)    -> return (ah, [(n, v)])
-              (_, Just v)  -> return (ah, [(n, v)])
-              (_, Nothing) -> Left (RuntimeErrorOutputTypeMismatch n t vs)
+              --
+              -- If this Avalanche program has been through the melting
+              -- transform and everything worked properly then `unmeltValue`
+              -- will return `Just v`, otherwise it will return `Nothing`.
+              --
+              -- `Nothing` could mean that we have an invalid Avalanche program
+              -- or a bug in `unmeltValue`, but if `vs` only contains a single
+              -- value, then it probably means that it was a value that didn't
+              -- need unmelting because the program has not been through the
+              -- melting transform yet.
+              --
+              (_,    Just v)  -> return (ah, [(n, v)])
+              (v:[], Nothing) -> return (ah, [(n, v)])
+              (_,    Nothing) -> Left (RuntimeErrorOutputTypeMismatch n t vs)
 
     -- Keep this fact in history
     KeepFactInHistory

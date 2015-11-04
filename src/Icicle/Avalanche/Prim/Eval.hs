@@ -30,21 +30,6 @@ evalPrim p vs
       | otherwise
       -> primError
 
-     PrimProject (PrimProjectMapLength _ _)
-      | [VBase (VMap var)]    <- vs
-      -> return $ VBase $ VInt $ Map.size var
-      | otherwise
-      -> primError
-
-     PrimProject (PrimProjectMapLookup _ _)
-      | [VBase (VMap var), VBase vk]  <- vs
-      -> return $ VBase
-       $ case Map.lookup vk var of
-          Nothing -> VNone
-          Just v' -> VSome v'
-      | otherwise
-      -> primError
-
      PrimProject (PrimProjectOptionIsSome _)
       | [VBase VNone]  <- vs
       -> return $ VBase $ VBool False
@@ -97,13 +82,6 @@ evalPrim p vs
       | otherwise
       -> primError
 
-     PrimUnsafe (PrimUnsafeMapIndex _ _)
-      | [VBase (VMap var), VBase (VInt ix)]  <- vs
-      , Just (k,v) <- lookup ix (zip [0..] $ Map.toList var)
-      -> return $ VBase $ VPair k v
-      | otherwise
-      -> primError
-
      PrimUnsafe (PrimUnsafeOptionGet t)
       | [VBase (VSome v)]  <- vs
       -> return $ VBase v
@@ -128,12 +106,6 @@ evalPrim p vs
       | otherwise
       -> primError
 
-
-     PrimUpdate (PrimUpdateMapPut _ _)
-      | [VBase (VMap vmap), VBase k, VBase v]  <- vs
-      -> return $ VBase $ VMap $ Map.insert k v vmap
-      | otherwise
-      -> primError
 
      PrimUpdate (PrimUpdateArrayPut _)
       | [VBase (VArray varr), VBase (VInt ix), VBase v]  <- vs
@@ -185,18 +157,41 @@ evalPrim p vs
 
 
      PrimPack (PrimOptionPack _)
-      | [VBase (VBool False), _]       <- vs
+      | [VBase (VBool False), _]      <- vs
       -> return $ VBase $ VNone
-      | [VBase (VBool True), VBase v]  <- vs
+      | [VBase (VBool True), VBase v] <- vs
       -> return $ VBase $ VSome v
       | otherwise
       -> primError
 
      PrimPack (PrimSumPack _ _)
-      | [VBase (VBool False), VBase a, _]       <- vs
+      | [VBase (VBool False), VBase a, _] <- vs
       -> return $ VBase $ VLeft a
       | [VBase (VBool True), _, VBase b]  <- vs
       -> return $ VBase $ VRight b
+      | otherwise
+      -> primError
+
+     PrimPack (PrimStructPack (StructType fts))
+      | Just vs' <- traverse unpack vs
+      , fs       <- Map.keys fts
+      -> return $ VBase $ VStruct $ Map.fromList $ List.zip fs vs'
+      | otherwise
+      -> primError
+
+     PrimMap (PrimMapPack _ _)
+      | [VBase (VArray ks), VBase (VArray vals)] <- vs
+      -> return $ VBase $ VMap $ Map.fromList $ List.zip ks vals
+      | otherwise
+      -> primError
+     PrimMap (PrimMapUnpackKeys _ _)
+      | [VBase (VMap m)] <- vs
+      -> return $ VBase $ VArray $ Map.keys m
+      | otherwise
+      -> primError
+     PrimMap (PrimMapUnpackValues _ _)
+      | [VBase (VMap m)] <- vs
+      -> return $ VBase $ VArray $ Map.elems m
       | otherwise
       -> primError
  where
@@ -235,3 +230,6 @@ evalPrim p vs
    = return VUnit
   pick _ _
    = primError
+
+  unpack (VBase x)    = Just x
+  unpack (VFun _ _ _) = Nothing

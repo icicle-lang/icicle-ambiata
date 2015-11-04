@@ -1,0 +1,26 @@
+-- Enable C evaluation
+:set +c-eval
+
+-- Oldest
+feature salary ~> oldest value
+
+-- Filtering works
+feature salary ~> filter value > 300 ~> count value
+
+-- An interesting expression
+feature salary ~> sd value * (filter value < 300 ~> sd value)
+
+-- Structs
+feature injury ~> mean (double severity)
+
+-- Strings
+feature injury ~> filter (location == "head") ~> count location
+
+-- String outputs
+feature injury ~> max location
+
+-- Dates
+feature salary ~> max (days between `1980-01-06` date)
+
+-- Months
+feature salary ~> min (3 months after date)

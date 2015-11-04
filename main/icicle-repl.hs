@@ -39,7 +39,8 @@ import           Icicle.Dictionary
 import           Icicle.Internal.Rename
 import qualified Icicle.Repl                          as SR
 import qualified Icicle.Sea.Eval                      as Sea
-import qualified Icicle.Sea.FromAvalanche             as Sea
+import qualified Icicle.Sea.FromAvalanche.Program     as Sea
+import qualified Icicle.Sea.Preamble                  as Sea
 import qualified Icicle.Simulator                     as S
 import qualified Icicle.Source.Parser                 as SP
 import qualified Icicle.Source.PrettyAnnot            as SPretty
@@ -103,7 +104,9 @@ data ReplState
    , hasAvalancheEval :: Bool
    , hasFlatten       :: Bool
    , hasJava          :: Bool
+   , hasSeaPreamble   :: Bool
    , hasSea           :: Bool
+   , hasSeaAssembly   :: Bool
    , hasSeaEval       :: Bool
    , doCoreSimp       :: Bool }
 
@@ -120,7 +123,9 @@ data Set
    | ShowAvalancheEval  Bool
    | ShowFlatten        Bool
    | ShowJava           Bool
+   | ShowSeaPreamble    Bool
    | ShowSea            Bool
+   | ShowSeaAssembly    Bool
    | ShowSeaEval        Bool
    | CurrentDate        DateTime
    | PerformCoreSimp    Bool
@@ -141,7 +146,7 @@ data Command
 
 defaultState :: ReplState
 defaultState
-  = (ReplState [] demographics (unsafeDateOfYMD 1970 1 1) False False False False False False False False False False False False False False)
+  = (ReplState [] demographics (unsafeDateOfYMD 1970 1 1) False False False False False False False False False False False False False False False False)
     { hasCoreEval = True }
 
 readCommand :: String -> Maybe Command
@@ -198,8 +203,14 @@ readSetCommands ss
     ("+java":rest)         -> (:) (ShowJava      True)     <$> readSetCommands rest
     ("-java":rest)         -> (:) (ShowJava      False)    <$> readSetCommands rest
 
+    ("+c-preamble":rest)   -> (:) (ShowSeaPreamble True)  <$> readSetCommands rest
+    ("-c-preamble":rest)   -> (:) (ShowSeaPreamble False) <$> readSetCommands rest
+
     ("+c":rest)            -> (:) (ShowSea         True)  <$> readSetCommands rest
     ("-c":rest)            -> (:) (ShowSea         False) <$> readSetCommands rest
+
+    ("+c-assembly":rest)   -> (:) (ShowSeaAssembly True)  <$> readSetCommands rest
+    ("-c-assembly":rest)   -> (:) (ShowSeaAssembly False) <$> readSetCommands rest
 
     ("+c-eval":rest)       -> (:) (ShowSeaEval     True)  <$> readSetCommands rest
     ("-c-eval":rest)       -> (:) (ShowSeaEval     False) <$> readSetCommands rest
@@ -331,7 +342,15 @@ handleLine state line = case readCommand line of
          Left  e  -> prettyOut (const True) "- Avalanche type error:" e
          Right f' -> do
            prettyOut hasJava "- Java:" (AJ.programToJava f')
-           prettyOut hasSea  "- C:"    (Sea.seaOfProgram f')
+
+           prettyOut hasSeaPreamble "- C preamble:" Sea.seaPreamble
+           prettyOut hasSea         "- C:"          (Sea.seaOfProgram f')
+
+           when (hasSeaAssembly state) $ do
+             result <- liftIO . runEitherT $ Sea.assemblyOfProgram f'
+             case result of
+               Left  e -> prettyOut (const True) "- C assembly error:" e
+               Right r -> prettyOut (const True) "- C assembly:" r
 
            when (hasSeaEval state) $ do
              result <- liftIO . runEitherT $ seaEval (currentDate state) (facts state) finalSource f'
@@ -398,9 +417,17 @@ handleSetCommand state set
         HL.outputStrLn $ "ok, java is now " <> showFlag b
         return $ state { hasJava = b }
 
+    ShowSeaPreamble b -> do
+        HL.outputStrLn $ "ok, c preamble is now " <> showFlag b
+        return $ state { hasSeaPreamble = b }
+
     ShowSea b -> do
         HL.outputStrLn $ "ok, c is now " <> showFlag b
         return $ state { hasSea = b }
+
+    ShowSeaAssembly b -> do
+        HL.outputStrLn $ "ok, c assembly is now " <> showFlag b
+        return $ state { hasSeaAssembly = b }
 
     ShowSeaEval b -> do
         HL.outputStrLn $ "ok, c evaluation now " <> showFlag b
@@ -512,7 +539,7 @@ seaEval date newFacts (renameQT unVar -> query) program =
     evalP featureName (S.Partition entityName attributeName values)
       | CommonBase.Name name <- featureName
       , Attribute name == attributeName
-      = do outputs <- Sea.seaEval program date values
+      = do outputs <- Sea.seaEvalAvalanche program date values
            return $ fmap (\out -> (entityName, snd out)) outputs
 
       | otherwise
@@ -577,7 +604,9 @@ showState state
     , flag "avalanche:    " hasAvalanche
     , flag "flatten:      " hasFlatten
     , flag "java:         " hasJava
+    , flag "c-preamble:   " hasSeaPreamble
     , flag "c:            " hasSea
+    , flag "c-assembly:   " hasSeaAssembly
     , flag "c-eval:       " hasSeaEval
     ,      "now:          " <> T.unpack (renderDate $ currentDate state)
     ,      "data:         " <> show (length $ facts state) <> " rows"
@@ -606,6 +635,8 @@ usage
       , ":set  +/-avalanche    -- whether to show the Avalanche conversion"
       , ":set  +/-flatten      -- whether to show flattened Avalanche conversion"
       , ":set  +/-java         -- whether to show the Java result"
+      , ":set  +/-c-preamble   -- whether to show the C preamble"
       , ":set  +/-c            -- whether to show the C conversion"
+      , ":set  +/-c-assembly   -- whether to show the C assembly"
       , ":set  +/-c-eval       -- whether to show the result (using C evaluation)" ]
 

@@ -17,6 +17,7 @@ import              Icicle.Common.Type
 import              P
 
 import qualified    Data.List as List
+import qualified    Data.Map as Map
 
 
 -- | Simplify applied primitives.
@@ -35,7 +36,7 @@ constructor a_fresh statements
   goS env s
    = let env' = updateExpEnv s env
          go   = goX env
-         ret s' = return (env', s')
+         ret s' = return (updateExpEnv s' env', s')
      in  case s of
           If x t e
            -> ret $ If (go x) t e
@@ -66,6 +67,11 @@ constructor a_fresh statements
    , Just x'        <- resolve env n
    , Just (_,_,_,b) <- fromPair x'
    = b
+
+   | Just (PrimMinimal (Min.PrimStruct (Min.PrimStructGet f _ _)), [n]) <- takePrimApps x
+   , Just x' <- resolve env n
+   , Just v  <- fromStruct f x'
+   = v
 
    -- safe projections
    | Just (PrimProject (PrimProjectArrayLength _), [XVar _ n]) <- takePrimApps x
@@ -172,6 +178,17 @@ constructor a_fresh statements
 
    | Just (PrimMinimal (Min.PrimConst (Min.PrimConstPair ta tb)), [a,b]) <- takePrimApps x
    = Just (ta, tb, a, b)
+
+   | otherwise
+   = Nothing
+
+  fromStruct f x
+   | XValue _ (StructT (StructType ts)) (VStruct vs) <- x
+   = xValue <$> Map.lookup f ts <*> Map.lookup f vs
+
+   | Just (PrimPack (PrimStructPack (StructType ts)), xs) <- takePrimApps x
+   , fxs <- Map.fromList (List.zip (Map.keys ts) xs)
+   = Map.lookup f fxs
 
    | otherwise
    = Nothing
