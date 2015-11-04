@@ -142,8 +142,6 @@ seaOfPrimUpdate p
  = case p of
      PrimUpdateArrayPut t
       -> prefixOfValType (ArrayT t) <> "put"
-     _
-      -> seaError "seaOfPrimUpdate" p
 
 seaOfPrimArray :: PrimArray -> Doc
 seaOfPrimArray p
