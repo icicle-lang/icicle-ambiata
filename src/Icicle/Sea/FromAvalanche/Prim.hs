@@ -33,6 +33,10 @@ seaOfPrimDocApps p xs
 seaOfXPrim :: Prim -> PrimDoc
 seaOfXPrim p
  = case p of
+     PrimMinimal (M.PrimArithUnary op t)
+      -> PDFun
+       ( prefixOfArithType t <> seaOfPrimArithUnary op )
+
      PrimMinimal (M.PrimArithBinary op t)
       -> PDFun
        ( prefixOfArithType t <> seaOfPrimArithBinary op )
@@ -40,6 +44,10 @@ seaOfXPrim p
      PrimMinimal (M.PrimDouble op)
       -> PDFun
        ( prefixOfValType DoubleT <> seaOfPrimDouble op )
+
+     PrimMinimal (M.PrimDateTime op)
+      -> PDFun
+       ( prefixOfValType DateTimeT <> seaOfPrimDateTime op )
 
      PrimMinimal (M.PrimCast op)
       -> PDFun $ seaOfPrimCast op
@@ -66,6 +74,11 @@ seaOfXPrim p
      _
       -> PDFun $ seaError "seaOfXPrim" p
 
+seaOfPrimArithUnary :: M.PrimArithUnary -> Doc
+seaOfPrimArithUnary p
+ = case p of
+     M.PrimArithNegate -> "neg"
+
 seaOfPrimArithBinary :: M.PrimArithBinary -> Doc
 seaOfPrimArithBinary p
  = case p of
@@ -80,6 +93,14 @@ seaOfPrimDouble p
      M.PrimDoubleDiv -> "div"
      M.PrimDoubleLog -> "log"
      M.PrimDoubleExp -> "exp"
+
+seaOfPrimDateTime :: M.PrimDateTime -> Doc
+seaOfPrimDateTime p
+ = case p of
+     M.PrimDateTimeDaysDifference -> "days_diff"
+     M.PrimDateTimeDaysEpoch      -> "to_epoch"
+     M.PrimDateTimeMinusDays      -> "minus_days"
+     M.PrimDateTimeMinusMonths    -> "minus_months"
 
 seaOfPrimCast :: M.PrimCast -> Doc
 seaOfPrimCast p

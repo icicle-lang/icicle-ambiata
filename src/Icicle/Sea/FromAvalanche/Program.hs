@@ -16,6 +16,7 @@ import           Icicle.Common.Base
 import           Icicle.Common.Exp
 import           Icicle.Common.Type
 
+import           Icicle.Data.DateTime
 
 import           Icicle.Internal.Pretty
 import qualified Icicle.Internal.Pretty as Pretty
@@ -29,6 +30,8 @@ import           P
 
 import qualified Data.List as List
 import qualified Data.Map as Map
+
+import           Numeric (showHex)
 
 
 ------------------------------------------------------------------------
@@ -232,11 +235,12 @@ seaOfExp xx
 seaOfXValue :: BaseValue -> Doc
 seaOfXValue v
  = case v of
-     VError  err   -> seaOfError err
-     VBool   True  -> "itrue"
-     VBool   False -> "ifalse"
-     VInt    x     -> int x
-     VDouble x     -> double x
+     VError    err   -> seaOfError err
+     VBool     True  -> "itrue"
+     VBool     False -> "ifalse"
+     VInt      x     -> int x
+     VDouble   x     -> double x
+     VDateTime x     -> text ("0x" <> showHex (packedOfDate x) "")
 
      -- TODO C escapes /= Haskell escapes
      VString x     -> text (show x)

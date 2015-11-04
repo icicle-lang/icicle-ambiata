@@ -8,6 +8,7 @@ module Icicle.Sea.Eval (
     SeaError (..)
   , seaEval
   , assemblyOfProgram
+  , compilerOptions
   ) where
 
 import           Control.Monad.IO.Class (MonadIO(..))
@@ -36,7 +37,7 @@ import           Icicle.Common.Base
 import           Icicle.Common.Data (asAtValueToCore, valueFromCore)
 import           Icicle.Common.Type (ValType(..), StructType(..), defaultOfType)
 import qualified Icicle.Data as D
-import           Icicle.Data.DateTime (dateOfDays, daysOfDate)
+import           Icicle.Data.DateTime (packedOfDate, dateOfPacked)
 import           Icicle.Internal.Pretty ((<+>), pretty, text, vsep)
 import           Icicle.Internal.Pretty (Doc, Pretty, displayS, renderPretty)
 import           Icicle.Sea.FromAvalanche.Analysis (factVarsOfProgram, outputsOfProgram)
@@ -137,7 +138,7 @@ seaEval program date values = do
     forM_ [0..(words-1)] $ \off ->
       pokeWordOff pState off (0 :: Word64)
 
-    pokeWordOff pState dateIx  (wordOfDate date)
+    pokeWordOff pState dateIx  (packedOfDate date)
     pokeWordOff pState countIx (fromIntegral count :: Int64)
 
     zipWithM_ (pokeWordOff pState) [factsIx..] psFacts
@@ -237,16 +238,16 @@ vectorsOfFacts vs t = do
 newSeaVectors :: Int -> ValType -> EitherT SeaError IO [SeaMVector]
 newSeaVectors sz t =
   case t of
-    IntT{}      -> (:[]) . I64 <$> liftIO (MV.new sz)
-    DoubleT{}   -> (:[]) . F64 <$> liftIO (MV.new sz)
-    UnitT{}     -> (:[]) . U64 <$> liftIO (MV.new sz)
-    BoolT{}     -> (:[]) . U64 <$> liftIO (MV.new sz)
-    DateTimeT{} -> (:[]) . I64 <$> liftIO (MV.new sz)
-    ErrorT{}    -> (:[]) . U64 <$> liftIO (MV.new sz)
-    StringT{}   -> (:[]) . P64 <$> liftIO (MV.new sz)
+    IntT      -> (:[]) . I64 <$> liftIO (MV.new sz)
+    DoubleT   -> (:[]) . F64 <$> liftIO (MV.new sz)
+    UnitT     -> (:[]) . U64 <$> liftIO (MV.new sz)
+    BoolT     -> (:[]) . U64 <$> liftIO (MV.new sz)
+    DateTimeT -> (:[]) . U64 <$> liftIO (MV.new sz)
+    ErrorT    -> (:[]) . U64 <$> liftIO (MV.new sz)
+    StringT   -> (:[]) . P64 <$> liftIO (MV.new sz)
 
-    MapT{}      -> left (SeaTypeConversionError t)
-    BufT{}      -> left (SeaTypeConversionError t)
+    MapT{}    -> left (SeaTypeConversionError t)
+    BufT{}    -> left (SeaTypeConversionError t)
 
     ArrayT tx
      | StringT <- tx
@@ -290,7 +291,7 @@ pokeInput' svs0@(sv:svs) t ix val =
     (U64 v, VBool  True, BoolT)     -> pure svs <* liftIO (MV.write v ix 1)
     (I64 v, VInt      x, IntT)      -> pure svs <* liftIO (MV.write v ix (fromIntegral x))
     (F64 v, VDouble   x, DoubleT)   -> pure svs <* liftIO (MV.write v ix x)
-    (I64 v, VDateTime x, DateTimeT) -> pure svs <* liftIO (MV.write v ix (wordOfDate x))
+    (U64 v, VDateTime x, DateTimeT) -> pure svs <* liftIO (MV.write v ix (packedOfDate x))
     (U64 v, VError    x, ErrorT)    -> pure svs <* liftIO (MV.write v ix (wordOfError x))
 
     (P64 v, VString xs, StringT)
@@ -360,11 +361,11 @@ peekOutputs ptr ix ((n, (t, _)) : ots) = do
 peekOutput :: Ptr a -> Int -> ValType -> EitherT SeaError IO (Int, BaseValue)
 peekOutput ptr ix0 t =
   case t of
-    UnitT     -> (ix0+1,)                           <$> pure VUnit
-    IntT      -> (ix0+1,) . VInt      . fromInt64   <$> peekWordOff ptr ix0
-    DoubleT   -> (ix0+1,) . VDouble                 <$> peekWordOff ptr ix0
-    DateTimeT -> (ix0+1,) . VDateTime . dateOfWord  <$> peekWordOff ptr ix0
-    ErrorT    -> (ix0+1,) . VError    . errorOfWord <$> peekWordOff ptr ix0
+    UnitT     -> (ix0+1,)                            <$> pure VUnit
+    IntT      -> (ix0+1,) . VInt      . fromInt64    <$> peekWordOff ptr ix0
+    DoubleT   -> (ix0+1,) . VDouble                  <$> peekWordOff ptr ix0
+    DateTimeT -> (ix0+1,) . VDateTime . dateOfPacked <$> peekWordOff ptr ix0
+    ErrorT    -> (ix0+1,) . VError    . errorOfWord  <$> peekWordOff ptr ix0
 
     MapT{}    -> left (SeaTypeConversionError t)
     StructT{} -> left (SeaTypeConversionError t)
@@ -421,7 +422,7 @@ pokeArrayIx ptr t ix v =
     (VBool  True, BoolT)     -> liftIO (pokeWordOff ptr ix (1 :: Word64))
     (VInt      x, IntT)      -> liftIO (pokeWordOff ptr ix (fromIntegral x :: Int64))
     (VDouble   x, DoubleT)   -> liftIO (pokeWordOff ptr ix x)
-    (VDateTime x, DateTimeT) -> liftIO (pokeWordOff ptr ix (wordOfDate x))
+    (VDateTime x, DateTimeT) -> liftIO (pokeWordOff ptr ix (packedOfDate x))
     (VError    x, ErrorT)    -> liftIO (pokeWordOff ptr ix (wordOfError x))
     _                        -> left (SeaBaseValueConversionError v (Just t))
 
@@ -433,10 +434,10 @@ peekArray ptr t = do
 peekArrayIx :: Ptr x -> ValType -> Int -> EitherT SeaError IO BaseValue
 peekArrayIx ptr t ix =
   case t of
-    IntT      -> VInt      . fromInt64   <$> peekWordOff ptr ix
-    DoubleT   -> VDouble                 <$> peekWordOff ptr ix
-    DateTimeT -> VDateTime . dateOfWord  <$> peekWordOff ptr ix
-    ErrorT    -> VError    . errorOfWord <$> peekWordOff ptr ix
+    IntT      -> VInt      . fromInt64    <$> peekWordOff ptr ix
+    DoubleT   -> VDouble                  <$> peekWordOff ptr ix
+    DateTimeT -> VDateTime . dateOfPacked <$> peekWordOff ptr ix
+    ErrorT    -> VError    . errorOfWord  <$> peekWordOff ptr ix
 
     BoolT
      -> do b <- peekWordOff ptr ix
@@ -474,12 +475,6 @@ peekWordOff ptr off = liftIO (peekByteOff ptr (off*8))
 
 fromInt64 :: Int64 -> Int
 fromInt64 = fromIntegral
-
-wordOfDate :: D.DateTime -> Int64
-wordOfDate = fromIntegral . daysOfDate
-
-dateOfWord :: Int64 -> D.DateTime
-dateOfWord = dateOfDays . fromIntegral
 
 wordOfError :: ExceptionInfo -> Word64
 wordOfError = \case
