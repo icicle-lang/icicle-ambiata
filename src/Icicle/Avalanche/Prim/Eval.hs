@@ -161,8 +161,9 @@ evalPrim p vs
 
      PrimArray (PrimArrayUnzip _ _)
       | [VBase (VArray arr)] <- vs
-      -> do (arr1, arr2) <- foldM uz mempty arr
-            return . VBase $ VPair (VArray arr1) (VArray arr2)
+      -> do (arr1, arr2)     <- foldM uz mempty arr
+            return . VBase $ VPair (VArray $ reverse arr1)
+                                   (VArray $ reverse arr2)
       | otherwise
       -> primError
 
@@ -174,9 +175,11 @@ evalPrim p vs
       -> primError
 
      PrimArray (PrimArrayUnsum _ _)
-      | [VBase (VArray arr)] <- vs
+      | [VBase (VArray arr)]   <- vs
       -> do (arr0, arr1, arr2) <- foldM us mempty arr
-            return . VBase $ VPair (VArray arr0) (VPair (VArray arr1) (VArray arr2))
+            return . VBase $ VPair (VArray $ reverse arr0)
+                                   (VPair (VArray $ reverse arr1)
+                                           (VArray $ reverse arr2))
       | otherwise
       -> primError
 
@@ -204,14 +207,22 @@ evalPrim p vs
    = List.drop 1 (xs <> [x])
 
   uz (fs, ss) (VPair f s)
-   = return (f:fs, s:ss)
+   = return (f     : fs, s     : ss)
+  uz (fs, ss) VUnit -- unitialised array
+   = return (VUnit : fs, VUnit : ss)
   uz _ _
    = primError
 
   us (bs, ls, rs) (VLeft l)
-   = return (VBool False : bs, l : ls, rs)
+   = return ( VBool  False  : bs
+            , l             : ls
+            , VUnit         : rs )
   us (bs, ls, rs) (VRight r)
-   = return (VBool True : bs, ls, r : rs)
+   = return ( VBool  True  : bs
+            , VUnit        : ls
+            , r            : rs )
+  us (bs, ls, rs) VUnit -- uninitialised array
+   = return (VUnit : bs, VUnit : ls, VUnit : rs)
   us _ _
    = primError
 
@@ -219,6 +230,8 @@ evalPrim p vs
    = Left $ RuntimeErrorPrimBadArgs p vs
 
   pick (VBool b) (l,r)
-   = return $ if b then r else l
+   = return $ if b then VRight r else VLeft l
+  pick  VUnit _ -- uninitialised array
+   = return VUnit
   pick _ _
    = primError

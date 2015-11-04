@@ -105,9 +105,6 @@ meltOps a_fresh
   primLeft    ta tb x     = xPrim (PrimLeft    ta tb) `xApp` x
   primRight   ta tb x     = xPrim (PrimRight   ta tb) `xApp` x
 
-  primBoolArray a x       = xPrim (PrimUnsafe (PrimUnsafeArrayCreate BoolT))
-                            `xApp` (xPrim (PrimProject (PrimProjectArrayLength a))
-                                    `xApp` xVar x)
 
 ------------------------------------------------------------------------
 
@@ -116,8 +113,8 @@ melt :: (Show n, Ord n)
      -> Statement (Annot a) n Prim
      -> Fresh n (Statement (Annot a) n Prim)
 melt a_fresh ss
- =   meltBindings     a_fresh ss
- >>= meltAccumulators a_fresh
+ = meltAccumulators   a_fresh ss
+ >>= meltBindings     a_fresh
  >>= meltForeachFacts a_fresh
  >>= meltOutputs      a_fresh
 
@@ -138,7 +135,7 @@ meltAccumulators a_fresh statements
         case stmt of
 
           ----------------------------------------
-          InitAccumulator (Accumulator n ak avt x) ss
+          InitAccumulator (Accumulator n ak _ x) ss
            | Just (Latest, PairT ta tb, [na, nb])       <- Map.lookup n env'
            -> go
             . InitAccumulator (Accumulator na ak ta x)
@@ -166,13 +163,13 @@ meltAccumulators a_fresh statements
             . InitAccumulator (Accumulator nb ak tb (primRight   ta tb x))
             $ ss
 
-           | Just (Mutable, ArrayT (SumT _ _), _)       <- Map.lookup n env'
-           -> do (xs', _) <- meltBody a_fresh (n, avt, x)
+           | Just (Mutable, t@(ArrayT (SumT _ _)), _)       <- Map.lookup n env'
+           -> do (xs', _) <- meltBody a_fresh (n, t, x)
                  let env'' = useNames n xs' env'
                  goStmt env'' . foldr (mkInitAccum ak) id xs' $ ss
 
-           | Just (Mutable, ArrayT (PairT _ _), _)       <- Map.lookup n env'
-           -> do (xs', _) <- meltBody a_fresh (n, avt, x)
+           | Just (Mutable, t@(ArrayT (PairT _ _)), _)       <- Map.lookup n env'
+           -> do (xs', _) <- meltBody a_fresh (n, t, x)
                  let env'' = useNames n xs' env'
                  goStmt env'' . foldr (mkInitAccum ak) id xs' $ ss
 
@@ -262,7 +259,7 @@ meltAccumulators a_fresh statements
            , tab <- ArrayT tb
            , tp  <- PairT  taa tab
            -> go
-            $ Block [ Write ni (primFst tai tp  (primUnsum ta tb x))
+            $ Block [ Write ni                  (primFst tai tp (primUnsum ta tb x))
                     , Write na (primFst taa tab (primSnd tai tp (primUnsum ta tb x)))
                     , Write nb (primSnd taa tab (primSnd tai tp (primUnsum ta tb x))) ]
 
@@ -405,12 +402,19 @@ meltBindings a_fresh statements
    = case stmt of
        Let n x ss
         | vt <- functionReturns (annType (annotOfExp x))
+        , meltable vt
         -> do (xs, x') <- meltBody a_fresh (n, vt, x)
               ss'      <- substXinS a_fresh n x' ss
               let stmt' = foldr mkLet ss' xs
               return ((), stmt')
 
        _ -> return ((), stmt)
+
+  meltable (SumT _ _)   = True
+  meltable (PairT _ _)  = True
+  meltable (ArrayT (SumT _ _))  = True
+  meltable (ArrayT (PairT _ _)) = True
+  meltable _ = False
 
   mkLet (n,_,x) s
    = Let n x s
@@ -445,8 +449,8 @@ meltBody a_fresh (n, vt, x)
                t2      = PairT  t3 t4
                t3      = ArrayT ta
                t4      = ArrayT tb
-               x'      = primUnsum ta tb x
-           let bx      = (bn, t1, primFst t1 t2 x')
+           let x'      = primUnsum ta tb x
+               bx      = (bn, t1, primFst t1 t2 x')
                lx      = (ln, t3, primFst t3 t4 (primSnd t1 t2 x'))
                rx      = (rn, t4, primSnd t3 t4 (primSnd t1 t2 x'))
                binds   = [bx, lx, rx]

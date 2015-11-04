@@ -59,12 +59,11 @@ constructor a_fresh statements
   goX env x
    -- min
    | Just (PrimMinimal (Min.PrimPair (Min.PrimPairFst _ _)), [n]) <- takePrimApps x
-   , Just x' <- resolve env n
+   , Just x'        <- resolve env n
    , Just (_,_,a,_) <- fromPair x'
    = a
-
    | Just (PrimMinimal (Min.PrimPair (Min.PrimPairSnd _ _)), [n]) <- takePrimApps x
-   , Just x' <- resolve env n
+   , Just x'        <- resolve env n
    , Just (_,_,_,b) <- fromPair x'
    = b
 
