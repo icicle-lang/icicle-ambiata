@@ -8,6 +8,7 @@ module Icicle.Sea.Eval (
     SeaError (..)
   , seaEval
   , assemblyOfProgram
+  , compilerOptions
   ) where
 
 import           Control.Monad.IO.Class (MonadIO(..))

@@ -6,21 +6,29 @@
 module Icicle.Test.Data.DateTime where
 
 import           Icicle.Data.DateTime
-import           Icicle.Test.Arbitrary ()
 import qualified Icicle.Internal.Pretty as PP
+import           Icicle.Sea.Preamble (seaPreamble)
+import           Icicle.Sea.Eval (compilerOptions)
+import           Icicle.Test.Arbitrary ()
 
+import           Control.Exception (finally)
 import           Control.Monad.IO.Class (liftIO)
 import           Control.Monad.Trans.Either
 
-import           P
+import qualified Data.Text as T
+import           Data.IORef (IORef, newIORef, readIORef, writeIORef)
+
 import           Disorder.Core.IO
 
+import           Jetski
+
+import           P
+
 import           System.IO
-import qualified Data.Text as T
+import           System.IO.Unsafe (unsafePerformIO)
+
 import           Test.QuickCheck
 import           Test.QuickCheck.Property
-
-import           Jetski
 
 prop_date_symmetry :: DateTime -> Property
 prop_date_symmetry d =
@@ -32,8 +40,9 @@ prop_date_sea_to_days d
   let epochDate = unsafeDateOfYMD 1600 03 01
   let expected  = daysDifference epochDate d
 
-  runRight $ withLibrary [] code $ \library -> do
-    f <- function library "idate_to_epoch" retInt
+  runRight $ do
+    library <- readLibraryRef
+    f <- function library "testable_idate_to_epoch" retInt
     r <- liftIO $ f [argWord64 $ packWord64 d]
     pure $ expected === r
 
@@ -43,8 +52,9 @@ prop_date_sea_from_days d
   let epochDate = unsafeDateOfYMD 1600 03 01
   let epochDiff = daysDifference epochDate d
 
-  runRight $ withLibrary [] code $ \library -> do
-    f <- function library "idate_from_epoch" retInt
+  runRight $ do
+    library <- readLibraryRef
+    f <- function library "testable_idate_from_epoch" retInt
     r <- liftIO $ f [argWord64 $ fromIntegral epochDiff]
     pure $ d === unpackWord64 (fromIntegral r)
 
@@ -53,8 +63,9 @@ prop_date_symmetry_sea d1 d2
   = testIO $ do
   let expected  = daysDifference d1 d2
 
-  runRight $ withLibrary [] code $ \library -> do
-    f <- function library "idate_days_diff" retInt
+  runRight $ do
+    library <- readLibraryRef
+    f <- function library "testable_idate_days_diff" retInt
     r <- liftIO $ f [argWord64 (packWord64 d1), argWord64 (packWord64 d2)]
     pure $ expected === fromIntegral r
 
@@ -65,8 +76,9 @@ prop_date_minus_days d num
   let num' = num `rem` 3650
   let expected  = minusDays d num'
 
-  runRight $ withLibrary [] code $ \library -> do
-    f <- function library "idate_minus_days" retInt
+  runRight $ do
+    library <- readLibraryRef
+    f <- function library "testable_idate_minus_days" retInt
     r <- liftIO $ f [argWord64 $ packWord64 d, argWord64 (fromIntegral num')]
     pure $ expected === unpackWord64 (fromIntegral r)
 
@@ -77,8 +89,9 @@ prop_date_minus_months d num
   let num' = num `rem` 120
   let expected = minusMonths d num'
 
-  runRight $ withLibrary [] code $ \library -> do
-    f <- function library "idate_minus_months" retInt
+  runRight $ do
+    library <- readLibraryRef
+    f <- function library "testable_idate_minus_months" retInt
     r <- liftIO $ f [argWord64 $ packWord64 d, argWord64 (fromIntegral num')]
     pure $ expected === unpackWord64 (fromIntegral r)
 
@@ -93,37 +106,47 @@ runRight a =
   ) <$> (runEitherT a)
 
 code :: T.Text
-code = textOfDoc $ seaTypes PP.</> seaDateFunctions
+code = textOfDoc $ seaPreamble PP.</> seaTestables
 
-seaTypes :: PP.Doc
-seaTypes = PP.vsep
-  [ "#include <stdbool.h>"
-  , "#include <stdint.h>"
-  , "#include <math.h>"
-  , ""
-  , "typedef uint64_t ierror_t;"
-  , "typedef uint64_t iunit_t;"
-  , "typedef uint64_t ibool_t;"
-  , "typedef int64_t iint_t;"
-  , "typedef double idouble_t;"
-  , "typedef int64_t idate_t;"
-  , ""
-  , "static const ierror_t ierror_tombstone              = 0;"
-  , "static const ierror_t ierror_fold1_no_value         = 1;"
-  , "static const ierror_t ierror_variable_not_available = 2;"
-  , ""
-  , "static const iunit_t iunit  = 0x1c1c13;"
-  , "static const ibool_t ifalse = 0;"
-  , "static const ibool_t itrue  = 1;"
-  , ""
-  , "#define INLINE __attribute__((always_inline))"
-  , ""
+seaTestables :: PP.Doc
+seaTestables = PP.vsep
+  [ "iint_t testable_idate_to_epoch     (idate_t x)            { return idate_to_epoch     (x);    }"
+  , "iint_t testable_idate_from_epoch   (iint_t g)             { return idate_from_epoch   (g);    }"
+  , "iint_t testable_idate_days_diff    (idate_t x, idate_t y) { return idate_days_diff    (x, y); }"
+  , "iint_t testable_idate_minus_days   (idate_t x, iint_t y)  { return idate_minus_days   (x, y); }"
+  , "iint_t testable_idate_minus_months (idate_t x, iint_t y)  { return idate_minus_months (x, y); }"
   ]
+
+-- These C testing utils should perhaps be generalised and placed in their own module.
 
 textOfDoc :: PP.Doc -> T.Text
 textOfDoc doc = T.pack (PP.displayS (PP.renderPretty 0.8 80 (PP.pretty doc)) "")
 
+libraryRef :: IORef (Maybe (Either JetskiError Library))
+libraryRef = unsafePerformIO (newIORef Nothing)
+
+readLibraryRef :: EitherT JetskiError IO Library
+readLibraryRef = do
+  mlib <- liftIO (readIORef libraryRef)
+  case mlib of
+    Just elib -> hoistEither elib
+    Nothing   -> do
+      elib <- liftIO (runEitherT (compileLibrary compilerOptions code))
+      liftIO (writeIORef libraryRef (Just elib))
+      hoistEither elib
+
+releaseLibraryRef :: IO ()
+releaseLibraryRef = do
+  elib <- readIORef libraryRef
+  case elib of
+    Nothing          -> pure ()
+    Just (Left  _)   -> pure ()
+    Just (Right lib) -> do
+      writeIORef libraryRef Nothing
+      releaseLibrary lib
+
 return []
 tests :: IO Bool
--- tests = $quickCheckAll
-tests = $forAllProperties $ quickCheckWithResult (stdArgs { maxSuccess = 20 })
+tests = flip finally releaseLibraryRef $ do
+  -- $quickCheckAll
+  $forAllProperties $ quickCheckWithResult (stdArgs { maxSuccess = 1000 })

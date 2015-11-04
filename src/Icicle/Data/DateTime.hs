@@ -16,7 +16,6 @@ module Icicle.Data.DateTime (
   , pDate
   , packWord64
   , unpackWord64
-  , seaDateFunctions
   ) where
 import           Data.Attoparsec.Text
 
@@ -28,7 +27,6 @@ import           Data.Word (Word64)
 import           Data.Bits
 
 import           P
-import qualified Icicle.Internal.Pretty as PP
 
 newtype DateTime =
   DateTime {
@@ -143,77 +141,3 @@ unpackWord64 d
        m' = i `rem`  3600 `quot` 60
        s  = i `rem`  60
    in DateTime $ D.DateTime y m d' h m' s
-
--- C functions for fast date manipulations.
-seaDateFunctions :: PP.Doc
-seaDateFunctions = PP.vsep
-  [ "// Number of days since 1600-03-01 (see Ivory DateTime)."
-  , "iint_t idate_to_epoch (idate_t x)"
-  , "  { "
-  , "    int64_t y = (x >> 48) - 1600;"
-  , "    int64_t m = (x >> 40) & 0xff;"
-  , "    int64_t d = (x >> 32) & 0xff;"
-  , "    m = (m + 9) % 12;"
-  , "    y = y - m/10;"
-  , "    return (365*y + y/4 - y/100 + y/400 + (m*306 + 5)/10 + ( d - 1 ));"
-  , "  }"
-  , ""
-  , "iint_t idate_from_epoch (iint_t g)"
-  , "  {"
-  , "    int64_t y = ((10000*g + 14780)/3652425);"
-  , "    int64_t ddd = g - (365*y + y/4 - y/100 + y/400);"
-  , "    if (ddd < 0) {"
-  , "      y = y - 1;"
-  , "      ddd = g - (365*y + y/4 - y/100 + y/400);"
-  , "    }"
-  , "    int64_t mi = (100*ddd + 52)/3060;"
-  , "    int64_t mm = (mi + 2)%12 + 1;"
-  , "    y = y + (mi + 2)/12;"
-  , "    int64_t dd = ddd - (mi*306 + 5)/10 + 1;"
-  , "    return ((y + 1600) << 48 | mm << 40 | dd << 32);"
-  , "  }"
-  , ""
-  , "iint_t idate_days_diff (idate_t x, idate_t y)"
-  , "  {"
-  , "     return (idate_to_epoch(y) - idate_to_epoch(x));"
-  , "  }"
-  , ""
-  , "iint_t idate_minus_days (idate_t x, iint_t y)"
-  , "  {"
-  , "     return (idate_from_epoch(idate_to_epoch(x) - y));"
-  , "  }"
-  , ""
-  , "static bool INLINE isLeapYear (int64_t y)"
-  , "  {"
-  , "     return (y % 4 == 0 && y % 100 != 0) || y % 400 == 0;"
-  , "  }"
-  , ""
-  , "iint_t idate_minus_months (idate_t x, iint_t offset)"
-  , "  {"
-  , "    int64_t monthLengths[] = {31,28,31,30,31,30,31,31,30,31,30,31};"
-  , "    int64_t y = (x >> 48) - 1600;"
-  , "    int64_t m = (x >> 40) & 0xff;"
-  , "    int64_t d = (x >> 32) & 0xff;"
-  , "    bool prevYear = (offset > 0 && offset >= m);"
-  , "    bool succYear = (offset < 0 && -offset > 12 - m);"
-  , "    if ( prevYear ) {"
-  , "      y = y - ((12 + offset - m) / 12);"
-  , "      m = 12 + ((m - offset) % 12);"
-  , "    } else if ( succYear ) {"
-  , "      y = y + ((m - offset - 1) / 12);"
-  , "      m = ((m - offset) % 12);"
-  , "      if (m == 0) m = 12;"
-  , "    } else {"
-  , "      m = m - offset;"
-  , "    }"
-  , "    if (m == 2 && d > 28 && isLeapYear(y)) {"
-  , "      d = 29;"
-  , "    } else {"
-  , "      int64_t maxMonth = monthLengths[m-1];"
-  , "      if (d > maxMonth) {"
-  , "        d = maxMonth;"
-  , "      }"
-  , "    }"
-  , "    return ((y + 1600) << 48 | m << 40 | d << 32);"
-  , "  }"
-  ]
