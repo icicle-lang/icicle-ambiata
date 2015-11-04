@@ -32,7 +32,7 @@ import           Test.QuickCheck.Property
 
 prop_date_symmetry :: DateTime -> Property
 prop_date_symmetry d =
-  d === unpackWord64 (packWord64 d)
+  d === dateOfPacked (packedOfDate d)
 
 prop_date_sea_to_days :: DateTime -> Property
 prop_date_sea_to_days d
@@ -43,7 +43,7 @@ prop_date_sea_to_days d
   runRight $ do
     library <- readLibraryRef
     f <- function library "testable_idate_to_epoch" retInt
-    r <- liftIO $ f [argWord64 $ packWord64 d]
+    r <- liftIO $ f [argWord64 $ packedOfDate d]
     pure $ expected === r
 
 prop_date_sea_from_days :: DateTime -> Property
@@ -56,7 +56,7 @@ prop_date_sea_from_days d
     library <- readLibraryRef
     f <- function library "testable_idate_from_epoch" retInt
     r <- liftIO $ f [argWord64 $ fromIntegral epochDiff]
-    pure $ d === unpackWord64 (fromIntegral r)
+    pure $ d === dateOfPacked (fromIntegral r)
 
 prop_date_symmetry_sea :: DateTime -> DateTime -> Property
 prop_date_symmetry_sea d1 d2
@@ -66,7 +66,7 @@ prop_date_symmetry_sea d1 d2
   runRight $ do
     library <- readLibraryRef
     f <- function library "testable_idate_days_diff" retInt
-    r <- liftIO $ f [argWord64 (packWord64 d1), argWord64 (packWord64 d2)]
+    r <- liftIO $ f [argWord64 (packedOfDate d1), argWord64 (packedOfDate d2)]
     pure $ expected === fromIntegral r
 
 prop_date_minus_days :: DateTime -> Int -> Property
@@ -79,8 +79,8 @@ prop_date_minus_days d num
   runRight $ do
     library <- readLibraryRef
     f <- function library "testable_idate_minus_days" retInt
-    r <- liftIO $ f [argWord64 $ packWord64 d, argWord64 (fromIntegral num')]
-    pure $ expected === unpackWord64 (fromIntegral r)
+    r <- liftIO $ f [argWord64 $ packedOfDate d, argWord64 (fromIntegral num')]
+    pure $ expected === dateOfPacked (fromIntegral r)
 
 prop_date_minus_months :: DateTime -> Int -> Property
 prop_date_minus_months d num
@@ -92,8 +92,8 @@ prop_date_minus_months d num
   runRight $ do
     library <- readLibraryRef
     f <- function library "testable_idate_minus_months" retInt
-    r <- liftIO $ f [argWord64 $ packWord64 d, argWord64 (fromIntegral num')]
-    pure $ expected === unpackWord64 (fromIntegral r)
+    r <- liftIO $ f [argWord64 $ packedOfDate d, argWord64 (fromIntegral num')]
+    pure $ expected === dateOfPacked (fromIntegral r)
 
 
 runRight :: (Functor m, Show a)

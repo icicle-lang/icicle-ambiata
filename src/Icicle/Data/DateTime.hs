@@ -14,8 +14,8 @@ module Icicle.Data.DateTime (
   , minusDays
   , unsafeDateOfYMD
   , pDate
-  , packWord64
-  , unpackWord64
+  , packedOfDate
+  , dateOfPacked
   ) where
 import           Data.Attoparsec.Text
 
@@ -123,16 +123,16 @@ minusMonths d i
 --   8 bits:  month represented as a byte
 --   8 bits:  day represented as a byte
 --   32 bits: seconds since start of day
-packWord64 :: DateTime -> Word64
-packWord64 (DateTime d)
+packedOfDate :: DateTime -> Word64
+packedOfDate (DateTime d)
   =  shift (fromIntegral (D.year  d)) 48
  .|. shift (fromIntegral (D.month d)) 40
  .|. shift (fromIntegral (D.day d))   32
  .|. (fromIntegral (3600 * D.hour d + 60 * D.minute d + D.second d))
 
 -- Unpack the word into an icicle DateTime
-unpackWord64 :: Word64 -> DateTime
-unpackWord64 d
+dateOfPacked :: Word64 -> DateTime
+dateOfPacked d
  = let y  = shift (fromIntegral d) (-48)
        m  = shift (fromIntegral d) (-40) .&. 0xff
        d' = shift (fromIntegral d) (-32) .&. 0xff
