@@ -1,0 +1,82 @@
+welcome to iREPL
+ok, loaded 20 functions from data/libs/prelude.icicle
+ok, loaded test/cli/repl/data.psv, 13 rows
+> -- Enable C evaluation
+> ok, c evaluation now on
+                   _________-----_____
+        _____------           __      ----_
+ ___----             ___------              \
+    ----________        ----                 \
+                -----__    |             _____)
+                     __-                /     \
+         _______-----    ___--          \    /)\
+   ------_______      ---____            \__/  /
+                -----__    \ --    _          /\
+                       --__--__     \_____/   \_/\
+                               ----|   /          |
+                                   |  |___________|
+                                   |  | ((_(_)| )_)
+                                   |  \_((_(_)|/(_)
+                                   \             (
+                                    \_____________)
+> > -- Oldest
+> - C evaluation:
+[(homer,100),(marge,0)]
+
+- Core evaluation:
+[homer, 100,marge, 0]
+
+> > -- Filtering works
+> - C evaluation:
+[(homer,2),(marge,0)]
+
+- Core evaluation:
+[homer, 2,marge, 0]
+
+> > -- An interesting expression
+> - C evaluation:
+[(homer,11180.33988749895)
+,(marge,100.0)]
+
+- Core evaluation:
+[homer, 11180.33988749895
+,marge, 100.0]
+
+> > -- Structs
+> - C evaluation:
+[(homer,2.2)]
+
+- Core evaluation:
+[homer, 2.2]
+
+> > -- Strings
+> - C evaluation:
+[(homer,2)]
+
+- Core evaluation:
+[homer, 2]
+
+> > -- String outputs
+> - C evaluation:
+[(homer,"torso")]
+
+- Core evaluation:
+[homer, "torso"]
+
+> > -- Dates
+> - C evaluation:
+[(homer,10953),(marge,3633)]
+
+- Core evaluation:
+[homer, 10953,marge, 3633]
+
+> > -- Months
+> - C evaluation:
+[(homer,1990-03-17)
+,(marge,1990-03-17)]
+
+- Core evaluation:
+[homer, 1990-03-17
+,marge, 1990-03-17]
+
+> 
