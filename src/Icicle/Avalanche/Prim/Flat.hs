@@ -10,6 +10,7 @@ module Icicle.Avalanche.Prim.Flat (
     , PrimArray   (..)
     , PrimPack    (..)
     , PrimBuf     (..)
+    , PrimMap     (..)
     , typeOfPrim
     , flatFragment
   ) where
