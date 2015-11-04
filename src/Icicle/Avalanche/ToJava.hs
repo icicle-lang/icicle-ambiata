@@ -235,6 +235,12 @@ primTypeOfPrim p
      -> upda pu
     PrimArray (PrimArrayZip _ _)
      -> Function "Array.zip"
+    PrimArray (PrimArrayUnzip _ _)
+     -> Function "Array.unzip"
+    PrimArray (PrimArraySum _ _)
+     -> Function "Array.sum"
+    PrimArray (PrimArrayUnsum _ _)
+     -> Function "Array.unsum"
     PrimPack (PrimOptionPack _)
      -> Function "Option.pack"
     PrimPack (PrimSumPack _ _)
@@ -317,6 +323,7 @@ primTypeOfPrim p
 
   upda (PrimUpdateMapPut _ _)      = Function "IcicleMap.put"
   upda (PrimUpdateArrayPut _)      = Function "Array.put"
+  upda (PrimUpdateArrayPut2 _ _)   = Function "Array.put2"
 
   buf (PrimBufMake t) = Function $ "new IcicleBuf" <> angled (boxedType t)
   buf (PrimBufPush _) = Method "push"

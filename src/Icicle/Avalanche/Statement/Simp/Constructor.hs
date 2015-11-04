@@ -75,6 +75,12 @@ constructor a_fresh statements
    = xPrim (PrimProject $ PrimProjectArrayLength ta)
     `xApp` a
 
+   | Just (PrimProject (PrimProjectArrayLength _), [XVar _ n]) <- takePrimApps x
+   , Just x' <- get env n
+   , Just (_, _, i, _, _) <- fromSummedArray x'
+   = xPrim (PrimProject $ PrimProjectArrayLength BoolT)
+    `xApp` i
+
    | Just (PrimProject (PrimProjectOptionIsSome _), [n]) <- takePrimApps x
    , Just x' <- resolve env n
    , Just (_,b,_) <- fromOption x'
@@ -93,6 +99,14 @@ constructor a_fresh statements
     `xApp` (xPrim (PrimUnsafe (PrimUnsafeArrayIndex ta)) `xApp` a `xApp` ix)
     `xApp` (xPrim (PrimUnsafe (PrimUnsafeArrayIndex tb)) `xApp` b `xApp` ix)
 
+   | Just (PrimUnsafe (PrimUnsafeArrayIndex _), [XVar _ n, ix]) <- takePrimApps x
+   , Just x' <- get env n
+   , Just (ta, tb, i, a, b) <- fromSummedArray x'
+   = xPrim (PrimPack $ PrimSumPack ta tb)
+    `xApp` (xPrim (PrimUnsafe (PrimUnsafeArrayIndex BoolT)) `xApp` i `xApp` ix)
+    `xApp` (xPrim (PrimUnsafe (PrimUnsafeArrayIndex ta))    `xApp` a `xApp` ix)
+    `xApp` (xPrim (PrimUnsafe (PrimUnsafeArrayIndex tb))    `xApp` b `xApp` ix)
+
    | Just (PrimUnsafe (PrimUnsafeOptionGet _), [n]) <- takePrimApps x
    , Just x' <- resolve env n
    , Just (_,_,v) <- fromOption x'
@@ -108,6 +122,35 @@ constructor a_fresh statements
    , Just (_,_,_,_,b) <- fromSum x'
    = b
 
+   -- update
+   | Just (PrimUpdate (PrimUpdateArrayPut _), [arr,ix,v]) <- takePrimApps x
+   , Just arrx              <- resolve env arr
+   , Just (ta, tb, i, a, b) <- fromSummedArray arrx
+   , Just vx                <- resolve env v
+   , Just (_,_,boool,l,r)   <- fromSum vx
+   , tai                    <- ArrayT BoolT
+   , taa                    <- ArrayT ta
+   , tab                    <- ArrayT tb
+   = case boool of
+      XValue _ _ (VBool False)
+       -> xPrim (PrimMinimal (Min.PrimPair (Min.PrimPairSnd tai taa)))
+          `xApp` (xPrim (PrimUpdate (PrimUpdateArrayPut2 (ArrayT BoolT) (ArrayT ta)))
+                  `xApp` i `xApp` a `xApp` ix `xApp` xValue BoolT (VBool False) `xApp` l)
+      XValue _ _ (VBool True)
+       -> xPrim (PrimMinimal (Min.PrimPair (Min.PrimPairSnd tai tab)))
+          `xApp` (xPrim (PrimUpdate (PrimUpdateArrayPut2 (ArrayT BoolT) (ArrayT tb)))
+                  `xApp` i `xApp` b `xApp` ix `xApp` xValue BoolT (VBool True) `xApp` r)
+      _ -> x
+
+   | Just (PrimUpdate (PrimUpdateArrayPut _), [arr,ix,v]) <- takePrimApps x
+   , Just arrx           <- resolve env arr
+   , Just (ta, tb, a, b) <- fromZippedArray arrx
+   , Just vx             <- resolve env v
+   , Just (_,_,f,s)      <- fromPair vx
+   = xPrim (PrimMinimal $ Min.PrimConst $ Min.PrimConstPair ta tb)
+     `xApp` (xPrim (PrimUpdate (PrimUpdateArrayPut (ArrayT ta))) `xApp` a `xApp` ix `xApp` f)
+     `xApp` (xPrim (PrimUpdate (PrimUpdateArrayPut (ArrayT ta))) `xApp` b `xApp` ix `xApp` s)
+
    | otherwise
    = x
 
@@ -118,6 +161,11 @@ constructor a_fresh statements
    | otherwise
    = Nothing
 
+  fromSummedArray x
+   | Just (PrimArray (PrimArraySum ta tb), [i, a, b]) <- takePrimApps x
+   = Just (ta, tb, i, a, b)
+   | otherwise
+   = Nothing
 
   fromPair x
    | XValue _ (PairT ta tb) (VPair a b) <- x
@@ -125,12 +173,6 @@ constructor a_fresh statements
 
    | Just (PrimMinimal (Min.PrimConst (Min.PrimConstPair ta tb)), [a,b]) <- takePrimApps x
    = Just (ta, tb, a, b)
-
-   | Just (PrimMinimal (Min.PrimPair (Min.PrimPairFst ta tb)), [a]) <- takePrimApps x
-   = Just (ta, tb, a, xDefault tb)
-
-   | Just (PrimMinimal (Min.PrimPair (Min.PrimPairSnd ta tb)), [a]) <- takePrimApps x
-   = Just (ta, tb, a, xDefault tb)
 
    | otherwise
    = Nothing

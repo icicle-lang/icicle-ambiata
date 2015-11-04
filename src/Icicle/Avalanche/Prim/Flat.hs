@@ -78,16 +78,16 @@ data PrimUnsafe
 
 
 data PrimUpdate
- = PrimUpdateMapPut  ValType ValType
- -- | Should this be unsafe too? It's really both.
- | PrimUpdateArrayPut        ValType
+ = PrimUpdateMapPut    ValType ValType
+ | PrimUpdateArrayPut  ValType
+ | PrimUpdateArrayPut2 ValType ValType -- ^ update 2 arrays, should become C statement exps
  deriving (Eq, Ord, Show)
 
 data PrimArray
- = PrimArrayZip     ValType ValType -- ^ Zip two arrays into one
- | PrimArrayUnzip   ValType ValType -- ^ Unzip an array of pairs into two arrays of pairs
- | PrimArraySum     ValType ValType -- ^ Combine three arrays into an array of sums
- | PrimArrayUnsum   ValType ValType -- ^ Split an array of sums into three arrays
+ = PrimArrayZip     ValType ValType -- ^ zip two arrays into one
+ | PrimArrayUnzip   ValType ValType -- ^ unzip an array of pairs into two arrays of pairs
+ | PrimArraySum     ValType ValType -- ^ combine three arrays into an array of sums
+ | PrimArrayUnsum   ValType ValType -- ^ split an array of sums into three arrays
  deriving (Eq, Ord, Show)
 
 data PrimPack
@@ -147,11 +147,15 @@ typeOfPrim p
     PrimUnsafe  (PrimUnsafeSumGetRight a b)
      -> FunT [funOfVal (SumT a b)] b
 
+
     PrimUpdate  (PrimUpdateMapPut a b)
      -> FunT [funOfVal (MapT a b), funOfVal a, funOfVal b] (MapT a b)
 
     PrimUpdate  (PrimUpdateArrayPut a)
      -> FunT [funOfVal (ArrayT a), funOfVal IntT, funOfVal a] (ArrayT a)
+
+    PrimUpdate  (PrimUpdateArrayPut2 a b)
+     -> FunT [funOfVal (ArrayT a), funOfVal (ArrayT b), funOfVal IntT, funOfVal a, funOfVal b] (PairT (ArrayT a) (ArrayT b))
 
 
     PrimArray   (PrimArrayZip a b)
@@ -226,6 +230,9 @@ instance Pretty Prim where
 
  pretty (PrimUpdate (PrimUpdateArrayPut a))
   = annotate (AnnType a) "Array_put#"
+
+ pretty (PrimUpdate (PrimUpdateArrayPut2 a b))
+  = annotate (AnnType $ pretty a <.> pretty b) "Array_put2#"
 
 
  pretty (PrimArray (PrimArrayZip a b))

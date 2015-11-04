@@ -143,6 +143,14 @@ evalPrim p vs
       | otherwise
       -> primError
 
+     PrimUpdate (PrimUpdateArrayPut2 _ _)
+      | [VBase (VArray varr1), VBase (VArray varr2), VBase (VInt ix), VBase v1, VBase v2]  <- vs
+      -> return . VBase $ VPair
+         (VArray [ if i == ix then v1 else u | (i,u) <- zip [0..] varr1 ])
+         (VArray [ if i == ix then v2 else u | (i,u) <- zip [0..] varr2 ])
+      | otherwise
+      -> primError
+
 
      PrimArray (PrimArrayZip _ _)
       | [VBase (VArray arr1), VBase (VArray arr2)]  <- vs
