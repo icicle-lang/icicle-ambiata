@@ -161,22 +161,22 @@ meltAccumulators a_fresh statements
            | Just (Mutable, OptionT tv, [nb, nv])       <- Map.lookup n env'
            , tb                                         <- BoolT
            -> go
-            . InitAccumulator (Accumulator nb avt tb (primIsSome  tv x))
-            . InitAccumulator (Accumulator nv avt tv (primGetSome tv x))
+            . InitAccumulator (Accumulator nb ak tb (primIsSome  tv x))
+            . InitAccumulator (Accumulator nv ak tv (primGetSome tv x))
             $ ss
 
            | Just (Mutable, SumT ta tb, [ni, na, nb])   <- Map.lookup n env'
            , ti                                         <- BoolT
            -> go
-            . InitAccumulator (Accumulator ni avt ti (primIsRight  ta tb x))
-            . InitAccumulator (Accumulator na avt ta (primGetLeft  ta tb x))
-            . InitAccumulator (Accumulator nb avt tb (primGetRight ta tb x))
+            . InitAccumulator (Accumulator ni ak ti (primIsRight  ta tb x))
+            . InitAccumulator (Accumulator na ak ta (primGetLeft  ta tb x))
+            . InitAccumulator (Accumulator nb ak tb (primGetRight ta tb x))
             $ ss
 
            | Just (Mutable, StructT ts, ns)             <- Map.lookup n env'
            , nfts                                       <- List.zip ns (Map.toList (getStructType ts))
            -> go
-            $ foldr (\(na,(f,t)) -> InitAccumulator (Accumulator na avt t (primGetField ts f t x))) ss nfts
+            $ foldr (\(na,(f,t)) -> InitAccumulator (Accumulator na ak t (primGetField ts f t x))) ss nfts
 
            | Just (Mutable, t@(ArrayT (SumT _ _)), _)       <- Map.lookup n env'
            -> do (xs', _) <- meltBody a_fresh (n, t, x)
@@ -472,8 +472,8 @@ meltBody a_fresh (n, vt, x)
     SumT ta tb
      -> do [bn,ln,rn] <- mkNames n vt
            let bx      = (bn, BoolT, primIsRight ta tb x)
-               lx      = (ln, ta,    primLeft    ta tb x)
-               rx      = (rn, tb,    primRight   ta tb x)
+               lx      = (ln, ta,    primGetLeft    ta tb x)
+               rx      = (rn, tb,    primGetRight   ta tb x)
                binds   = [bx, lx, rx]
                unmelt  = primMkSum ta tb bn ln rn
            return (binds, unmelt)
