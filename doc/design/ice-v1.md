@@ -28,8 +28,10 @@ Todo
 3. Array of strings
     - Converting to/from C values
 4. seaOfXValue needs to allocate and fill arrays, buffers, maps.
-    - eg ``Array [1]`` should be ``iarray_int_t x = iarray_int_create(1); iarray_int_push(x, 1); x`` 
-    - actually, Map values shouldn't appear after melt
+    - eg ``Array [1]`` should be ``iarray_int_t x = iarray_int_create(1); iarray_int_put(x, 0, 1); x`` 
+    - to write the above as an expression, ``iarray_…_put`` can be modified to return the array:
+    - ``iarray_int_put(iarray_int_create(s->mempool, 1), 0, 1)``
+    - actually, Map values shouldn't appear after melt so I think it's only Arrays and maybe Bufs
 
 ## Medium
 
