@@ -161,6 +161,23 @@ constructor a_fresh statements
    `xApp` (xPrim (PrimUpdate (PrimUpdateArrayPut ta)) `xApp` a `xApp` ix `xApp` f')
    `xApp` (xPrim (PrimUpdate (PrimUpdateArrayPut ta)) `xApp` b `xApp` ix `xApp` s')
 
+   -- * Arrays
+   --   unzip [e1,e2,...en] ~> ([fst e1, fst e2, ..., fst en ], [snd e1, snd e2, ..., snd en])
+   | Just (PrimArray (PrimArrayUnzip _ _), [arr])       <- takePrimApps x
+   , Just (XValue _ (ArrayT (PairT ta tb)) (VArray xs)) <- resolve env arr
+   , Just (as, bs)                                      <- unzip' xs
+   = xValue
+      (PairT (ArrayT ta) (ArrayT tb))
+      (VPair (VArray as) (VArray bs))
+
+   -- unsum [e1..en] ~> ([isRight e1..isRight en], ([getLeft e1..getLeft en], [getRight e1..getRight en]))
+   | Just (PrimArray (PrimArrayUnsum _ _), [arr])      <- takePrimApps x
+   , Just (XValue _ (ArrayT (SumT ta tb)) (VArray xs)) <- resolve env arr
+   , Just (is, as, bs)                                 <- unsum' ta tb xs
+   = xValue
+      (PairT (ArrayT BoolT) (PairT (ArrayT ta) (ArrayT tb)))
+      (VPair (VArray is) (VPair (VArray as) (VArray bs)))
+
    -- * "Rewrite rules"
    --   unsum (sum i a b) ~> (i, (a, b))
    | Just (PrimArray (PrimArrayUnsum ta tb), [arr])     <- takePrimApps x
@@ -246,6 +263,25 @@ constructor a_fresh statements
    = Just (ta, tb, xTrue, xDefault ta, b)
 
    | otherwise
+   = Nothing
+
+  unzip' []
+    = return ([], [])
+  unzip' (VPair a b : xs)
+    = do (as, bs) <- unzip' xs
+         return (a:as, b:bs)
+  unzip' _
+    = Nothing
+
+  unsum' _ _ []
+   = return ([], [], [])
+  unsum' ta tb (VLeft a : xs)
+   = do (is', as', bs') <- unsum' ta tb xs
+        return (VBool False : is', a : as', defaultOfType tb : bs')
+  unsum' ta tb (VRight b : xs)
+   = do (is', as', bs') <- unsum' ta tb xs
+        return (VBool True : is', defaultOfType ta : as', b : bs')
+  unsum' _ _ _
    = Nothing
 
   -- Either lookup a name, or just return the value if it's already a constant.
