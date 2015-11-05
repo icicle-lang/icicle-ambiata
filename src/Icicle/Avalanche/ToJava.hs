@@ -327,7 +327,6 @@ primTypeOfPrim p
   unsa (PrimUnsafeSumGetRight _ _) = Method "right"
 
   upda (PrimUpdateArrayPut _)      = Function "Array.put"
-  upda (PrimUpdateArrayPut2 _ _)   = Function "Array.put2"
 
   buf (PrimBufMake t) = Function $ "new IcicleBuf" <> angled (boxedType t)
   buf (PrimBufPush _) = Method "push"

@@ -84,7 +84,6 @@ data PrimUnsafe
 
 data PrimUpdate
  = PrimUpdateArrayPut  ValType
- | PrimUpdateArrayPut2 ValType ValType -- ^ update 2 arrays, should become C statement exps
  deriving (Eq, Ord, Show)
 
 data PrimArray
@@ -151,9 +150,6 @@ typeOfPrim p
 
     PrimUpdate  (PrimUpdateArrayPut a)
      -> FunT [funOfVal (ArrayT a), funOfVal IntT, funOfVal a] (ArrayT a)
-
-    PrimUpdate  (PrimUpdateArrayPut2 a b)
-     -> FunT [funOfVal (ArrayT a), funOfVal (ArrayT b), funOfVal IntT, funOfVal a, funOfVal b] (PairT (ArrayT a) (ArrayT b))
 
 
     PrimArray   (PrimArrayZip a b)
@@ -230,9 +226,6 @@ instance Pretty Prim where
 
  pretty (PrimUpdate (PrimUpdateArrayPut a))
   = annotate (AnnType a) "Array_put#"
-
- pretty (PrimUpdate (PrimUpdateArrayPut2 a b))
-  = annotate (AnnType $ pretty a <.> pretty b) "Array_put2#"
 
 
  pretty (PrimArray (PrimArrayZip a b))

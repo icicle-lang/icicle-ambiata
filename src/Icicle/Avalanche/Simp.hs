@@ -62,12 +62,6 @@ simpFlattened a_fresh p
       return $ p { statements = s' }
 
  where
-  crunchFix i bd ss
-   = do ss' <- crunch i bd ss
-        if ss == ss'
-        then return ss
-        else crunchFix i bd ss'
-
   crunch i bd ss
    =   constructor  a_fresh  (pullLets ss)
    >>= forwardStmts a_fresh
