@@ -301,7 +301,7 @@ gen$date = DATE
           write flat$46$simp$70 = flat$49$simp$76;
           write flat$46$simp$71 = flat$49$simp$77;
         } else {
-          let flat$47 = unsafe_Sum_left#@{Error Int}
+          let flat$47 = unsafe_Sum_left#@{Error, Int}
                         v$inline$0$conv$13;
           write flat$46$simp$69 = False@{Bool};
           write flat$46$simp$70 = flat$47;
