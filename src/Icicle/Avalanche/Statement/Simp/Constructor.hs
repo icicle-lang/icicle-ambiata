@@ -60,7 +60,7 @@ constructor a_fresh statements
   goX env x
    | x' <- goX' env x
    , x /= x'
-   = x'
+   = goX env x'
    | otherwise
    = x
 
@@ -180,7 +180,8 @@ constructor a_fresh statements
 
    -- * "Rewrite rules"
    --   unsum (sum i a b) ~> (i, (a, b))
-   | Just (PrimArray (PrimArrayUnsum ta tb), [arr])     <- takePrimApps x
+   | Just (PrimArray (PrimArrayUnsum ta tb), [n])       <- takePrimApps x
+   , Just arr                                           <- resolve env n
    , Just (PrimArray (PrimArraySum   _  _),  [i, a, b]) <- takePrimApps arr
    = xPrim (PrimMinimal $ Min.PrimConst $ Min.PrimConstPair (ArrayT BoolT) (PairT (ArrayT ta) (ArrayT tb)))
    `xApp` i
@@ -188,7 +189,8 @@ constructor a_fresh statements
            `xApp` a `xApp` b)
 
    --   unzip (zip a b) ~> (a, b)
-   | Just (PrimArray (PrimArrayUnzip ta tb), [arr])  <- takePrimApps x
+   | Just (PrimArray (PrimArrayUnzip ta tb), [n])    <- takePrimApps x
+   , Just arr                                        <- resolve env n
    , Just (PrimArray (PrimArrayZip   _  _),  [a, b]) <- takePrimApps arr
    = xPrim (PrimMinimal $ Min.PrimConst $ Min.PrimConstPair (ArrayT ta) (ArrayT tb))
    `xApp` a `xApp` b

@@ -45,8 +45,19 @@ simpFlattened a_fresh p
       let Program i bd s = p'
 
       s' <-  melt a_fresh s
-         >>= constructor  a_fresh . pullLets
-         >>= crunchFix i bd
+         >>= forwardStmts a_fresh . pullLets
+         >>= crunch i bd
+         >>= crunch i bd
+         >>= crunch i bd
+         >>= crunch i bd
+         >>= crunch i bd
+         >>= crunch i bd
+         >>= crunch i bd
+         >>= crunch i bd
+         >>= crunch i bd
+         >>= crunch i bd
+         >>= crunch i bd
+         >>= crunch i bd
 
       return $ p { statements = s' }
 
@@ -55,11 +66,11 @@ simpFlattened a_fresh p
    = do ss' <- crunch i bd ss
         if ss == ss'
         then return ss
-        else return ss'
+        else crunchFix i bd ss'
 
   crunch i bd ss
-   -- =   constructor  a_fresh  (pullLets ss)
-   =   forwardStmts a_fresh (pullLets ss)
+   =   constructor  a_fresh  (pullLets ss)
+   >>= forwardStmts a_fresh
    >>= nestBlocks   a_fresh
    >>= thresher     a_fresh
    >>= fmap statements . transformX return (simp a_fresh) . Program i bd
