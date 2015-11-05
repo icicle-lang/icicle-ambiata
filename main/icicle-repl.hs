@@ -344,10 +344,10 @@ handleLine state line = case readCommand line of
            prettyOut hasJava "- Java:" (AJ.programToJava f')
 
            prettyOut hasSeaPreamble "- C preamble:" Sea.seaPreamble
-           prettyOut hasSea         "- C:"          (Sea.seaOfProgram f')
+           prettyOut hasSea         "- C:"          (Sea.seaOfProgram 0 "repl" f')
 
            when (hasSeaAssembly state) $ do
-             result <- liftIO . runEitherT $ Sea.assemblyOfProgram f'
+             result <- liftIO . runEitherT $ Sea.assemblyOfPrograms [("repl", f')]
              case result of
                Left  e -> prettyOut (const True) "- C assembly error:" e
                Right r -> prettyOut (const True) "- C assembly:" r

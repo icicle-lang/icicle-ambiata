@@ -4,6 +4,8 @@
 
 module Icicle.Sea.FromAvalanche.Program (
     seaOfProgram
+  , programName
+  , stateName
   , stateWordsOfProgram
   ) where
 
@@ -28,8 +30,11 @@ import           Icicle.Sea.FromAvalanche.Type
 
 import           P
 
+import           Data.Char (isLower, isUpper)
 import qualified Data.List as List
 import qualified Data.Map as Map
+import           Data.Text (Text)
+import qualified Data.Text as T
 
 import           Numeric (showHex)
 
@@ -37,14 +42,14 @@ import           Numeric (showHex)
 ------------------------------------------------------------------------
 
 seaOfProgram :: (Show a, Show n, Pretty n, Ord n)
-             => Program (Annot a) n Prim -> Doc
-seaOfProgram program
+             => Int -> Text -> Program (Annot a) n Prim -> Doc
+seaOfProgram name info program
  =  vsep
- [ "#line 1 \"state definition\""
- , stateOfProgram program
+ [ "#line 1 \"state definition #" <> int name <> seaOfInfo info <> "\""
+ , stateOfProgram name program
  , ""
- , "#line 1 \"compute function\""
- , "void compute(icicle_state_t *s)"
+ , "#line 1 \"compute function #" <> int name <> seaOfInfo info <> "\""
+ , "void " <> pretty (programName name) <> "(" <> pretty (stateName name) <+> "*s)"
  , "{"
  , indent 4 . vsep
             . fmap defOfAccumulator
@@ -56,12 +61,24 @@ seaOfProgram program
  , "}"
  ]
 
+seaOfInfo :: Text -> Doc
+seaOfInfo xs
+  | T.null xs = string ""
+  | otherwise = string " - " <> pretty (T.filter isLegal xs)
+ where
+  isLegal c = isLower c || isUpper c || c == ' ' || c == '_'
+
+programName :: Int -> Text
+programName name = "iprogram_" <> T.pack (show name)
+
+stateName :: Int -> Text
+stateName name = "istate_" <> T.pack (show name) <> "_t"
 
 ------------------------------------------------------------------------
 
 stateOfProgram :: (Show a, Show n, Pretty n, Ord n)
-               => Program (Annot a) n Prim -> Doc
-stateOfProgram program
+               => Int -> Program (Annot a) n Prim -> Doc
+stateOfProgram name program
  = vsep
  [ "typedef struct {"
  , "    /* runtime */"
@@ -89,7 +106,7 @@ stateOfProgram program
             . Map.toList
             . resumablesOfProgram
             $ program
- , "} icicle_state_t;"
+ , "}" <+> pretty (stateName name) <> ";"
  ]
 
 stateWordsOfProgram :: Ord n => Program (Annot a) n Prim -> Int
