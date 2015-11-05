@@ -1,5 +1,6 @@
 -- | Convert Core programs to Avalanche
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE DoAndIfThenElse   #-}
 module Icicle.Avalanche.Simp (
     simpAvalanche
   , simpFlattened
@@ -8,6 +9,7 @@ module Icicle.Avalanche.Simp (
 
 import              Icicle.Common.Exp
 import              Icicle.Common.Fresh
+import              Icicle.Common.Annot
 
 import              Icicle.Avalanche.Prim.Flat
 import              Icicle.Avalanche.Statement.Simp
@@ -17,7 +19,12 @@ import              Icicle.Avalanche.Program
 
 import              P
 
-simpAvalanche :: (Show n, Show p, Ord n, Eq p) => a -> Program a n p -> Fresh n (Program a n p)
+
+simpAvalanche
+  :: (Show n, Show p, Ord n, Eq p)
+  => a
+  -> Program a n p
+  -> Fresh n (Program a n p)
 simpAvalanche a_fresh p
  = do p' <- transformX return (simp a_fresh) p
       s' <- (forwardStmts a_fresh $ pullLets $ statements p')
@@ -28,27 +35,39 @@ simpAvalanche a_fresh p
 
       return $ p { statements = s' }
 
-simpFlattened :: (Show n, Ord n) => a -> Program a n Prim -> Fresh n (Program a n Prim)
+simpFlattened
+  :: (Show n, Ord n, Eq a)
+  => Annot a
+  -> Program (Annot a) n Prim
+  -> Fresh n (Program (Annot a) n Prim)
 simpFlattened a_fresh p
  = do p' <- transformX return (simp a_fresh) p
-      s' <- (forwardStmts a_fresh $ pullLets $ statements p')
-         >>= melt   a_fresh
-         >>= crunch
-         >>= crunch
-         >>= crunch
-         >>= crunch
-         >>= crunch
-         >>= crunch
-         >>= crunch
-         >>= crunch
-         >>= crunch
+      let Program i bd s = p'
+
+      s' <-  melt a_fresh s
+         >>= forwardStmts a_fresh . pullLets
+         >>= crunch i bd
+         >>= crunch i bd
+         >>= crunch i bd
+         >>= crunch i bd
+         >>= crunch i bd
+         >>= crunch i bd
+         >>= crunch i bd
+         >>= crunch i bd
+         >>= crunch i bd
+         >>= crunch i bd
+         >>= crunch i bd
+         >>= crunch i bd
+         >>= return . simpStatementExps a_fresh
 
       return $ p { statements = s' }
+
  where
-  crunch ss
-   =   constructor  a_fresh (pullLets ss)
+  crunch i bd ss
+   =   constructor  a_fresh  (pullLets ss)
    >>= forwardStmts a_fresh
    >>= nestBlocks   a_fresh
    >>= thresher     a_fresh
+   >>= fmap statements . transformX return (simp a_fresh) . Program i bd
 
 

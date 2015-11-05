@@ -18,7 +18,6 @@ import qualified Icicle.Core.Eval.Exp           as CE
 
 import           P
 
-import qualified Data.Map                       as Map
 import qualified Data.Set                       as Set
 
 
@@ -79,15 +78,3 @@ simpP a_fresh p vs
      -> Nothing
     Left _
      -> Nothing
-
-
-takeValue :: Exp a n p -> Maybe (Value a n p)
-takeValue (XValue _ _ b) = Just (VBase b)
--- We're pulling out a lambda as a closure.
--- However, we're ignoring the closure's heap.
--- This is fine - if the lambda references anything outside,
--- it will not evaluate and so won't be simplified.
-takeValue (XLam _ n _ x) = Just (VFun Map.empty n x)
--- I promise this is exhaustive.
-takeValue  _             = Nothing
-

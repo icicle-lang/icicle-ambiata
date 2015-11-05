@@ -12,9 +12,11 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE OverloadedStrings #-}
 module Icicle.Internal.Pretty (
     module PP
     , (<+?>)
+    , (<.>)
     , padDoc
     , Pretty (..)
     , Doc
@@ -100,6 +102,9 @@ a <+?> b
  | otherwise
  = a <+> b
 
+(<.>) :: Doc -> Doc -> Doc
+a <.> b
+ = pretty a <> "," <+> pretty b
 
 -- | Pad a document out to some width
 -- left aligned

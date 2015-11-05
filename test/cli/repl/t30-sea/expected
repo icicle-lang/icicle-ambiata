@@ -48,21 +48,21 @@ gen$date = DATE
   load_resumable@{Double} acc$a$conv$66$simp$52$simp$53$simp$55;
   load_resumable@{Double} acc$a$conv$66$simp$52$simp$53$simp$56;
   load_resumable@{Double} acc$a$conv$66$simp$52$simp$54;
-  for_facts (gen$fact$simp$291$simp$293@{Bool},
-             gen$fact$simp$291$simp$294@{Error},
-             gen$fact$simp$291$simp$295$simp$296@{String},
-             gen$fact$simp$291$simp$295$simp$297@{Int},
-             gen$fact$simp$292@{DateTime}) in new {
+  for_facts (gen$fact$simp$297$simp$299@{Bool},
+             gen$fact$simp$297$simp$300@{Error},
+             gen$fact$simp$297$simp$301$simp$302@{String},
+             gen$fact$simp$297$simp$301$simp$303@{Int},
+             gen$fact$simp$298@{DateTime}) in new {
     init flat$0$simp$57@{Mutable Bool} = False@{Bool};
     init flat$0$simp$58@{Mutable Error} = ExceptTombstone@{Error};
     init flat$0$simp$59@{Mutable Int} = 0@{Int};
-    if (gen$fact$simp$291$simp$293) {
+    if (gen$fact$simp$297$simp$299) {
       write flat$0$simp$57 = True@{Bool};
       write flat$0$simp$58 = ExceptTombstone@{Error};
-      write flat$0$simp$59 = gen$fact$simp$291$simp$295$simp$297;
+      write flat$0$simp$59 = gen$fact$simp$297$simp$301$simp$303;
     } else {
       write flat$0$simp$57 = False@{Bool};
-      write flat$0$simp$58 = gen$fact$simp$291$simp$294;
+      write flat$0$simp$58 = gen$fact$simp$297$simp$300;
       write flat$0$simp$59 = 0@{Int};
     }
     read@{Mutable Bool} flat$0$simp$60 = flat$0$simp$57;
@@ -72,11 +72,11 @@ gen$date = DATE
     init flat$1$simp$64@{Mutable Error} = ExceptTombstone@{Error};
     init flat$1$simp$65@{Mutable Double} = 0.0@{Double};
     if (flat$0$simp$60) {
-      let simp$3 = doubleOfInt#
-                   flat$0$simp$62;
+      let simp$358 = doubleOfInt#
+                     flat$0$simp$62;
       write flat$1$simp$63 = True@{Bool};
       write flat$1$simp$64 = ExceptTombstone@{Error};
-      write flat$1$simp$65 = simp$3;
+      write flat$1$simp$65 = simp$358;
     } else {
       write flat$1$simp$63 = False@{Bool};
       write flat$1$simp$64 = flat$0$simp$61;
@@ -111,12 +111,12 @@ gen$date = DATE
       init flat$6$simp$82@{Mutable Error} = ExceptTombstone@{Error};
       init flat$6$simp$83@{Mutable Double} = 0.0@{Double};
       if (acc$s$conv$13$simp$75) {
-        let simp$5 = add#@{Double}
-                     flat$2$simp$74
-                     acc$s$conv$13$simp$77;
         write flat$6$simp$81 = True@{Bool};
+        let simp$398 = add#@{Double}
+                       flat$2$simp$74
+                       acc$s$conv$13$simp$77;
         write flat$6$simp$82 = ExceptTombstone@{Error};
-        write flat$6$simp$83 = simp$5;
+        write flat$6$simp$83 = simp$398;
       } else {
         write flat$6$simp$81 = False@{Bool};
         write flat$6$simp$82 = acc$s$conv$13$simp$76;
@@ -150,11 +150,11 @@ gen$date = DATE
       init flat$12$simp$97@{Mutable Error} = ExceptTombstone@{Error};
       init flat$12$simp$98@{Mutable Double} = 0.0@{Double};
       if (acc$c$conv$26$simp$90) {
-        let simp$7 = add#@{Double}
-                     acc$c$conv$26$simp$92 (1.0@{Double});
         write flat$12$simp$96 = True@{Bool};
+        let simp$437 = add#@{Double}
+                       acc$c$conv$26$simp$92 (1.0@{Double});
         write flat$12$simp$97 = ExceptTombstone@{Error};
-        write flat$12$simp$98 = simp$7;
+        write flat$12$simp$98 = simp$437;
       } else {
         write flat$12$simp$96 = False@{Bool};
         write flat$12$simp$97 = acc$c$conv$26$simp$91;
@@ -194,9 +194,9 @@ gen$date = DATE
     write acc$c$conv$26$simp$49 = flat$9$simp$110;
     init flat$18$simp$111@{Mutable Bool} = False@{Bool};
     init flat$18$simp$113@{Mutable String} = ""@{String};
-    if (gen$fact$simp$291$simp$293) {
+    if (gen$fact$simp$297$simp$299) {
       write flat$18$simp$111 = True@{Bool};
-      write flat$18$simp$113 = gen$fact$simp$291$simp$295$simp$296;
+      write flat$18$simp$113 = gen$fact$simp$297$simp$301$simp$302;
     } else {
       write flat$18$simp$111 = False@{Bool};
       write flat$18$simp$113 = ""@{String};
@@ -206,10 +206,10 @@ gen$date = DATE
     init flat$19$simp$117@{Mutable Bool} = False@{Bool};
     init flat$19$simp$119@{Mutable Bool} = False@{Bool};
     if (flat$18$simp$114) {
-      let simp$11 = eq#@{String}
-                    flat$18$simp$116 ("torso"@{String});
+      let simp$502 = eq#@{String}
+                     flat$18$simp$116 ("torso"@{String});
       write flat$19$simp$117 = True@{Bool};
-      write flat$19$simp$119 = simp$11;
+      write flat$19$simp$119 = simp$502;
     } else {
       write flat$19$simp$117 = False@{Bool};
       write flat$19$simp$119 = False@{Bool};
@@ -229,13 +229,13 @@ gen$date = DATE
       init flat$21$simp$123@{Mutable Bool} = False@{Bool};
       init flat$21$simp$124@{Mutable Error} = ExceptTombstone@{Error};
       init flat$21$simp$125@{Mutable Int} = 0@{Int};
-      if (gen$fact$simp$291$simp$293) {
+      if (gen$fact$simp$297$simp$299) {
         write flat$21$simp$123 = True@{Bool};
         write flat$21$simp$124 = ExceptTombstone@{Error};
-        write flat$21$simp$125 = gen$fact$simp$291$simp$295$simp$297;
+        write flat$21$simp$125 = gen$fact$simp$297$simp$301$simp$303;
       } else {
         write flat$21$simp$123 = False@{Bool};
-        write flat$21$simp$124 = gen$fact$simp$291$simp$294;
+        write flat$21$simp$124 = gen$fact$simp$297$simp$300;
         write flat$21$simp$125 = 0@{Int};
       }
       read@{Mutable Bool} flat$21$simp$126 = flat$21$simp$123;
@@ -245,11 +245,11 @@ gen$date = DATE
       init flat$22$simp$130@{Mutable Error} = ExceptTombstone@{Error};
       init flat$22$simp$131@{Mutable Double} = 0.0@{Double};
       if (flat$21$simp$126) {
-        let simp$15 = doubleOfInt#
-                      flat$21$simp$128;
+        let simp$538 = doubleOfInt#
+                       flat$21$simp$128;
         write flat$22$simp$129 = True@{Bool};
         write flat$22$simp$130 = ExceptTombstone@{Error};
-        write flat$22$simp$131 = simp$15;
+        write flat$22$simp$131 = simp$538;
       } else {
         write flat$22$simp$129 = False@{Bool};
         write flat$22$simp$130 = flat$21$simp$127;
@@ -276,12 +276,12 @@ gen$date = DATE
         init flat$26$simp$150@{Mutable Error} = ExceptTombstone@{Error};
         init flat$26$simp$151@{Mutable Double} = 0.0@{Double};
         if (flat$22$simp$132) {
-          let simp$21 = sub#@{Double}
-                        flat$22$simp$134
-                        acc$a$conv$66$simp$137$simp$138$simp$141;
+          let simp$575 = sub#@{Double}
+                         flat$22$simp$134
+                         acc$a$conv$66$simp$137$simp$138$simp$141;
           write flat$26$simp$149 = True@{Bool};
           write flat$26$simp$150 = ExceptTombstone@{Error};
-          write flat$26$simp$151 = simp$21;
+          write flat$26$simp$151 = simp$575;
         } else {
           write flat$26$simp$149 = False@{Bool};
           write flat$26$simp$150 = flat$22$simp$133;
@@ -294,11 +294,11 @@ gen$date = DATE
         init flat$27$simp$156@{Mutable Error} = ExceptTombstone@{Error};
         init flat$27$simp$157@{Mutable Double} = 0.0@{Double};
         if (flat$26$simp$152) {
-          let simp$25 = div#
-                        flat$26$simp$154 nn$conv$73;
+          let simp$590 = div#
+                         flat$26$simp$154 nn$conv$73;
           write flat$27$simp$155 = True@{Bool};
           write flat$27$simp$156 = ExceptTombstone@{Error};
-          write flat$27$simp$157 = simp$25;
+          write flat$27$simp$157 = simp$590;
         } else {
           write flat$27$simp$155 = False@{Bool};
           write flat$27$simp$156 = flat$26$simp$153;
@@ -311,12 +311,12 @@ gen$date = DATE
         init flat$28$simp$162@{Mutable Error} = ExceptTombstone@{Error};
         init flat$28$simp$163@{Mutable Double} = 0.0@{Double};
         if (flat$27$simp$158) {
-          let simp$27 = add#@{Double}
-                        acc$a$conv$66$simp$137$simp$138$simp$141
-                        flat$27$simp$160;
           write flat$28$simp$161 = True@{Bool};
+          let simp$612 = add#@{Double}
+                         acc$a$conv$66$simp$137$simp$138$simp$141
+                         flat$27$simp$160;
           write flat$28$simp$162 = ExceptTombstone@{Error};
-          write flat$28$simp$163 = simp$27;
+          write flat$28$simp$163 = simp$612;
         } else {
           write flat$28$simp$161 = False@{Bool};
           write flat$28$simp$162 = flat$27$simp$159;
@@ -337,12 +337,12 @@ gen$date = DATE
             init flat$50$simp$174@{Mutable Error} = ExceptTombstone@{Error};
             init flat$50$simp$175@{Mutable Double} = 0.0@{Double};
             if (flat$28$simp$164) {
-              let simp$33 = sub#@{Double}
-                            flat$22$simp$134
-                            flat$28$simp$166;
+              let simp$626 = sub#@{Double}
+                             flat$22$simp$134
+                             flat$28$simp$166;
               write flat$50$simp$173 = True@{Bool};
               write flat$50$simp$174 = ExceptTombstone@{Error};
-              write flat$50$simp$175 = simp$33;
+              write flat$50$simp$175 = simp$626;
             } else {
               write flat$50$simp$173 = False@{Bool};
               write flat$50$simp$174 = flat$28$simp$165;
@@ -366,12 +366,12 @@ gen$date = DATE
           init flat$45$simp$183@{Mutable Error} = ExceptTombstone@{Error};
           init flat$45$simp$184@{Mutable Double} = 0.0@{Double};
           if (flat$44$simp$179) {
-            let simp$37 = mul#@{Double}
-                          flat$26$simp$154
-                          flat$44$simp$181;
             write flat$45$simp$182 = True@{Bool};
+            let simp$660 = mul#@{Double}
+                           flat$26$simp$154
+                           flat$44$simp$181;
             write flat$45$simp$183 = ExceptTombstone@{Error};
-            write flat$45$simp$184 = simp$37;
+            write flat$45$simp$184 = simp$660;
           } else {
             write flat$45$simp$182 = False@{Bool};
             write flat$45$simp$183 = flat$44$simp$180;
@@ -395,12 +395,12 @@ gen$date = DATE
         init flat$30$simp$192@{Mutable Error} = ExceptTombstone@{Error};
         init flat$30$simp$193@{Mutable Double} = 0.0@{Double};
         if (flat$29$simp$188) {
-          let simp$39 = add#@{Double}
-                        acc$a$conv$66$simp$137$simp$139
-                        flat$29$simp$190;
           write flat$30$simp$191 = True@{Bool};
+          let simp$693 = add#@{Double}
+                         acc$a$conv$66$simp$137$simp$139
+                         flat$29$simp$190;
           write flat$30$simp$192 = ExceptTombstone@{Error};
-          write flat$30$simp$193 = simp$39;
+          write flat$30$simp$193 = simp$693;
         } else {
           write flat$30$simp$191 = False@{Bool};
           write flat$30$simp$192 = flat$29$simp$189;
@@ -637,11 +637,11 @@ typedef struct {
     /* inputs */
     idate_t          gen_date;
     iint_t           new_count;
-    ibool_t          *new_gen_fact_simp_291_simp_293;
-    ierror_t         *new_gen_fact_simp_291_simp_294;
-    istring_t        *new_gen_fact_simp_291_simp_295_simp_296;
-    iint_t           *new_gen_fact_simp_291_simp_295_simp_297;
-    idate_t          *new_gen_fact_simp_292;
+    ibool_t          *new_gen_fact_simp_297_simp_299;
+    ierror_t         *new_gen_fact_simp_297_simp_300;
+    istring_t        *new_gen_fact_simp_297_simp_301_simp_302;
+    iint_t           *new_gen_fact_simp_297_simp_301_simp_303;
+    idate_t          *new_gen_fact_simp_298;
 
     /* outputs */
     ibool_t          repl_ix_0;
@@ -957,29 +957,29 @@ void compute(icicle_state_t *s)
     }
     
     const iint_t          new_count           = s->new_count;
-    const ibool_t         *const new_gen_fact_simp_291_simp_293 = s->new_gen_fact_simp_291_simp_293;
-    const ierror_t        *const new_gen_fact_simp_291_simp_294 = s->new_gen_fact_simp_291_simp_294;
-    const istring_t       *const new_gen_fact_simp_291_simp_295_simp_296 = s->new_gen_fact_simp_291_simp_295_simp_296;
-    const iint_t          *const new_gen_fact_simp_291_simp_295_simp_297 = s->new_gen_fact_simp_291_simp_295_simp_297;
-    const idate_t         *const new_gen_fact_simp_292 = s->new_gen_fact_simp_292;
+    const ibool_t         *const new_gen_fact_simp_297_simp_299 = s->new_gen_fact_simp_297_simp_299;
+    const ierror_t        *const new_gen_fact_simp_297_simp_300 = s->new_gen_fact_simp_297_simp_300;
+    const istring_t       *const new_gen_fact_simp_297_simp_301_simp_302 = s->new_gen_fact_simp_297_simp_301_simp_302;
+    const iint_t          *const new_gen_fact_simp_297_simp_301_simp_303 = s->new_gen_fact_simp_297_simp_301_simp_303;
+    const idate_t         *const new_gen_fact_simp_298 = s->new_gen_fact_simp_298;
     
     for (iint_t i = 0; i < new_count; i++) {
-        ibool_t          gen_fact_simp_291_simp_293 = new_gen_fact_simp_291_simp_293[i];
-        ierror_t         gen_fact_simp_291_simp_294 = new_gen_fact_simp_291_simp_294[i];
-        istring_t        gen_fact_simp_291_simp_295_simp_296 = new_gen_fact_simp_291_simp_295_simp_296[i];
-        iint_t           gen_fact_simp_291_simp_295_simp_297 = new_gen_fact_simp_291_simp_295_simp_297[i];
-        idate_t          gen_fact_simp_292    = new_gen_fact_simp_292[i];
+        ibool_t          gen_fact_simp_297_simp_299 = new_gen_fact_simp_297_simp_299[i];
+        ierror_t         gen_fact_simp_297_simp_300 = new_gen_fact_simp_297_simp_300[i];
+        istring_t        gen_fact_simp_297_simp_301_simp_302 = new_gen_fact_simp_297_simp_301_simp_302[i];
+        iint_t           gen_fact_simp_297_simp_301_simp_303 = new_gen_fact_simp_297_simp_301_simp_303[i];
+        idate_t          gen_fact_simp_298    = new_gen_fact_simp_298[i];
         flat_0_simp_57                        = ifalse;                               /* init */
         flat_0_simp_58                        = ierror_tombstone;                     /* init */
         flat_0_simp_59                        = 0;                                    /* init */
         
-        if (gen_fact_simp_291_simp_293) {
+        if (gen_fact_simp_297_simp_299) {
             flat_0_simp_57                    = itrue;                                /* write */
             flat_0_simp_58                    = ierror_tombstone;                     /* write */
-            flat_0_simp_59                    = gen_fact_simp_291_simp_295_simp_297;  /* write */
+            flat_0_simp_59                    = gen_fact_simp_297_simp_301_simp_303;  /* write */
         } else {
             flat_0_simp_57                    = ifalse;                               /* write */
-            flat_0_simp_58                    = gen_fact_simp_291_simp_294;           /* write */
+            flat_0_simp_58                    = gen_fact_simp_297_simp_300;           /* write */
             flat_0_simp_59                    = 0;                                    /* write */
         }
         
@@ -991,10 +991,10 @@ void compute(icicle_state_t *s)
         flat_1_simp_65                        = 0.0;                                  /* init */
         
         if (flat_0_simp_60) {
-            idouble_t        simp_3           = iint_extend (flat_0_simp_62);         /* let */
+            idouble_t        simp_358         = iint_extend (flat_0_simp_62);         /* let */
             flat_1_simp_63                    = itrue;                                /* write */
             flat_1_simp_64                    = ierror_tombstone;                     /* write */
-            flat_1_simp_65                    = simp_3;                               /* write */
+            flat_1_simp_65                    = simp_358;                             /* write */
         } else {
             flat_1_simp_63                    = ifalse;                               /* write */
             flat_1_simp_64                    = flat_0_simp_61;                       /* write */
@@ -1034,10 +1034,10 @@ void compute(icicle_state_t *s)
             flat_6_simp_83                    = 0.0;                                  /* init */
             
             if (acc_s_conv_13_simp_75) {
-                idouble_t        simp_5       = idouble_add (flat_2_simp_74, acc_s_conv_13_simp_77); /* let */
                 flat_6_simp_81                = itrue;                                /* write */
+                idouble_t        simp_398     = idouble_add (flat_2_simp_74, acc_s_conv_13_simp_77); /* let */
                 flat_6_simp_82                = ierror_tombstone;                     /* write */
-                flat_6_simp_83                = simp_5;                               /* write */
+                flat_6_simp_83                = simp_398;                             /* write */
             } else {
                 flat_6_simp_81                = ifalse;                               /* write */
                 flat_6_simp_82                = acc_s_conv_13_simp_76;                /* write */
@@ -1075,10 +1075,10 @@ void compute(icicle_state_t *s)
             flat_12_simp_98                   = 0.0;                                  /* init */
             
             if (acc_c_conv_26_simp_90) {
-                idouble_t        simp_7       = idouble_add (acc_c_conv_26_simp_92, 1.0); /* let */
                 flat_12_simp_96               = itrue;                                /* write */
+                idouble_t        simp_437     = idouble_add (acc_c_conv_26_simp_92, 1.0); /* let */
                 flat_12_simp_97               = ierror_tombstone;                     /* write */
-                flat_12_simp_98               = simp_7;                               /* write */
+                flat_12_simp_98               = simp_437;                             /* write */
             } else {
                 flat_12_simp_96               = ifalse;                               /* write */
                 flat_12_simp_97               = acc_c_conv_26_simp_91;                /* write */
@@ -1123,9 +1123,9 @@ void compute(icicle_state_t *s)
         flat_18_simp_111                      = ifalse;                               /* init */
         flat_18_simp_113                      = "";                                   /* init */
         
-        if (gen_fact_simp_291_simp_293) {
+        if (gen_fact_simp_297_simp_299) {
             flat_18_simp_111                  = itrue;                                /* write */
-            flat_18_simp_113                  = gen_fact_simp_291_simp_295_simp_296;  /* write */
+            flat_18_simp_113                  = gen_fact_simp_297_simp_301_simp_302;  /* write */
         } else {
             flat_18_simp_111                  = ifalse;                               /* write */
             flat_18_simp_113                  = "";                                   /* write */
@@ -1137,9 +1137,9 @@ void compute(icicle_state_t *s)
         flat_19_simp_119                      = ifalse;                               /* init */
         
         if (flat_18_simp_114) {
-            ibool_t          simp_11          = istring_eq (flat_18_simp_116, "torso"); /* let */
+            ibool_t          simp_502         = istring_eq (flat_18_simp_116, "torso"); /* let */
             flat_19_simp_117                  = itrue;                                /* write */
-            flat_19_simp_119                  = simp_11;                              /* write */
+            flat_19_simp_119                  = simp_502;                             /* write */
         } else {
             flat_19_simp_117                  = ifalse;                               /* write */
             flat_19_simp_119                  = ifalse;                               /* write */
@@ -1162,13 +1162,13 @@ void compute(icicle_state_t *s)
             flat_21_simp_124                  = ierror_tombstone;                     /* init */
             flat_21_simp_125                  = 0;                                    /* init */
             
-            if (gen_fact_simp_291_simp_293) {
+            if (gen_fact_simp_297_simp_299) {
                 flat_21_simp_123              = itrue;                                /* write */
                 flat_21_simp_124              = ierror_tombstone;                     /* write */
-                flat_21_simp_125              = gen_fact_simp_291_simp_295_simp_297;  /* write */
+                flat_21_simp_125              = gen_fact_simp_297_simp_301_simp_303;  /* write */
             } else {
                 flat_21_simp_123              = ifalse;                               /* write */
-                flat_21_simp_124              = gen_fact_simp_291_simp_294;           /* write */
+                flat_21_simp_124              = gen_fact_simp_297_simp_300;           /* write */
                 flat_21_simp_125              = 0;                                    /* write */
             }
             
@@ -1180,10 +1180,10 @@ void compute(icicle_state_t *s)
             flat_22_simp_131                  = 0.0;                                  /* init */
             
             if (flat_21_simp_126) {
-                idouble_t        simp_15      = iint_extend (flat_21_simp_128);       /* let */
+                idouble_t        simp_538     = iint_extend (flat_21_simp_128);       /* let */
                 flat_22_simp_129              = itrue;                                /* write */
                 flat_22_simp_130              = ierror_tombstone;                     /* write */
-                flat_22_simp_131              = simp_15;                              /* write */
+                flat_22_simp_131              = simp_538;                             /* write */
             } else {
                 flat_22_simp_129              = ifalse;                               /* write */
                 flat_22_simp_130              = flat_21_simp_127;                     /* write */
@@ -1211,10 +1211,10 @@ void compute(icicle_state_t *s)
                 flat_26_simp_151              = 0.0;                                  /* init */
                 
                 if (flat_22_simp_132) {
-                    idouble_t        simp_21  = idouble_sub (flat_22_simp_134, acc_a_conv_66_simp_137_simp_138_simp_141); /* let */
+                    idouble_t        simp_575 = idouble_sub (flat_22_simp_134, acc_a_conv_66_simp_137_simp_138_simp_141); /* let */
                     flat_26_simp_149          = itrue;                                /* write */
                     flat_26_simp_150          = ierror_tombstone;                     /* write */
-                    flat_26_simp_151          = simp_21;                              /* write */
+                    flat_26_simp_151          = simp_575;                             /* write */
                 } else {
                     flat_26_simp_149          = ifalse;                               /* write */
                     flat_26_simp_150          = flat_22_simp_133;                     /* write */
@@ -1229,10 +1229,10 @@ void compute(icicle_state_t *s)
                 flat_27_simp_157              = 0.0;                                  /* init */
                 
                 if (flat_26_simp_152) {
-                    idouble_t        simp_25  = idouble_div (flat_26_simp_154, nn_conv_73); /* let */
+                    idouble_t        simp_590 = idouble_div (flat_26_simp_154, nn_conv_73); /* let */
                     flat_27_simp_155          = itrue;                                /* write */
                     flat_27_simp_156          = ierror_tombstone;                     /* write */
-                    flat_27_simp_157          = simp_25;                              /* write */
+                    flat_27_simp_157          = simp_590;                             /* write */
                 } else {
                     flat_27_simp_155          = ifalse;                               /* write */
                     flat_27_simp_156          = flat_26_simp_153;                     /* write */
@@ -1247,10 +1247,10 @@ void compute(icicle_state_t *s)
                 flat_28_simp_163              = 0.0;                                  /* init */
                 
                 if (flat_27_simp_158) {
-                    idouble_t        simp_27  = idouble_add (acc_a_conv_66_simp_137_simp_138_simp_141, flat_27_simp_160); /* let */
                     flat_28_simp_161          = itrue;                                /* write */
+                    idouble_t        simp_612 = idouble_add (acc_a_conv_66_simp_137_simp_138_simp_141, flat_27_simp_160); /* let */
                     flat_28_simp_162          = ierror_tombstone;                     /* write */
-                    flat_28_simp_163          = simp_27;                              /* write */
+                    flat_28_simp_163          = simp_612;                             /* write */
                 } else {
                     flat_28_simp_161          = ifalse;                               /* write */
                     flat_28_simp_162          = flat_27_simp_159;                     /* write */
@@ -1275,10 +1275,10 @@ void compute(icicle_state_t *s)
                         flat_50_simp_175      = 0.0;                                  /* init */
                         
                         if (flat_28_simp_164) {
-                            idouble_t        simp_33 = idouble_sub (flat_22_simp_134, flat_28_simp_166); /* let */
+                            idouble_t        simp_626 = idouble_sub (flat_22_simp_134, flat_28_simp_166); /* let */
                             flat_50_simp_173  = itrue;                                /* write */
                             flat_50_simp_174  = ierror_tombstone;                     /* write */
-                            flat_50_simp_175  = simp_33;                              /* write */
+                            flat_50_simp_175  = simp_626;                             /* write */
                         } else {
                             flat_50_simp_173  = ifalse;                               /* write */
                             flat_50_simp_174  = flat_28_simp_165;                     /* write */
@@ -1305,10 +1305,10 @@ void compute(icicle_state_t *s)
                     flat_45_simp_184          = 0.0;                                  /* init */
                     
                     if (flat_44_simp_179) {
-                        idouble_t        simp_37 = idouble_mul (flat_26_simp_154, flat_44_simp_181); /* let */
                         flat_45_simp_182      = itrue;                                /* write */
+                        idouble_t        simp_660 = idouble_mul (flat_26_simp_154, flat_44_simp_181); /* let */
                         flat_45_simp_183      = ierror_tombstone;                     /* write */
-                        flat_45_simp_184      = simp_37;                              /* write */
+                        flat_45_simp_184      = simp_660;                             /* write */
                     } else {
                         flat_45_simp_182      = ifalse;                               /* write */
                         flat_45_simp_183      = flat_44_simp_180;                     /* write */
@@ -1335,10 +1335,10 @@ void compute(icicle_state_t *s)
                 flat_30_simp_193              = 0.0;                                  /* init */
                 
                 if (flat_29_simp_188) {
-                    idouble_t        simp_39  = idouble_add (acc_a_conv_66_simp_137_simp_139, flat_29_simp_190); /* let */
                     flat_30_simp_191          = itrue;                                /* write */
+                    idouble_t        simp_693 = idouble_add (acc_a_conv_66_simp_137_simp_139, flat_29_simp_190); /* let */
                     flat_30_simp_192          = ierror_tombstone;                     /* write */
-                    flat_30_simp_193          = simp_39;                              /* write */
+                    flat_30_simp_193          = simp_693;                             /* write */
                 } else {
                     flat_30_simp_191          = ifalse;                               /* write */
                     flat_30_simp_192          = flat_29_simp_189;                     /* write */

@@ -14,7 +14,7 @@ gen$date = DATE
   load_resumable@{Buf (Sum Error Int)} acc$conv$30;
   for_facts (gen$fact@{((Sum Error Int), DateTime)}) in new {
     read@{Mutable Buf (Sum Error Int)} acc$conv$30 = acc$conv$30;
-    let anf$3 = fst#@{(Sum Error Int) DateTime} gen$fact;
+    let anf$3 = fst#@{(Sum Error Int), DateTime} gen$fact;
     write acc$conv$30 = Latest_push#@{(Sum Error Int)}
                         acc$conv$30 anf$3;
     let anf$4 = anf$3;
@@ -32,7 +32,7 @@ gen$date = DATE
       let elem$conv$11 = pair#@{(Sum Error Int) ((Sum Error Int), DateTime)} anf$4
                          gen$fact;
       read@{Mutable (Sum Error Int)} acc$c$conv$13 = acc$c$conv$13;
-      let anf$7 = fst#@{(Sum Error Int) ((Sum Error Int), DateTime)} elem$conv$11;
+      let anf$7 = fst#@{(Sum Error Int), ((Sum Error Int), DateTime)} elem$conv$11;
       write acc$c$conv$13 = Sum_fold#@{(Error
 ,Int)}@{(Sum Error Int)}
                             (
@@ -91,7 +91,7 @@ gen$date = DATE
     read@{Mutable Map DateTime (Buf ((Sum Error Int), DateTime))} acc$conv$2 = acc$conv$2;
     let anf$0 = Latest_push#@{((Sum Error Int), DateTime)}
                 (Buf 2 []@{Buf ((Sum Error Int), DateTime)}) gen$fact;
-    let anf$1 = snd#@{(Sum Error Int) DateTime} gen$fact;
+    let anf$1 = snd#@{(Sum Error Int), DateTime} gen$fact;
     write acc$conv$2 = Map_insertOrUpdate#@{(DateTime
 ,Buf ((Sum Error Int), DateTime))}
                        (
@@ -121,13 +121,13 @@ gen$date = DATE
                                                in Array_fold#@{((Sum Error Int), DateTime)}@{((Sum Error Int), ((Sum Error Int), Unit))} (
                                                   \conv$10@{((Sum Error Int), ((Sum Error Int), Unit))} 
                                                   \conv$9@{((Sum Error Int), DateTime)} 
-                                                  let v$inline$0$conv$13 = fst#@{(Sum Error Int) DateTime}
+                                                  let v$inline$0$conv$13 = fst#@{(Sum Error Int), DateTime}
                                                                            conv$9
                                                    in pair#@{(Sum Error Int) ((Sum Error Int), Unit)} v$inline$0$conv$13 (
-                                                      let conv$24 = snd#@{(Sum Error Int) ((Sum Error Int), Unit)} conv$10
+                                                      let conv$24 = snd#@{(Sum Error Int), ((Sum Error Int), Unit)} conv$10
                                                        in 
                                                       let s$conv$22 = 
-                                                                      let s$conv$14 = fst#@{(Sum Error Int) Unit}
+                                                                      let s$conv$14 = fst#@{(Sum Error Int), Unit}
                                                                                       conv$24
                                                                        in Sum_fold#@{(Error
 ,Int)}@{(Sum Error Int)}
@@ -155,10 +155,10 @@ gen$date = DATE
                                                   ((Left ExceptTombstone, (Right 0, ()))@{((Sum Error Int), ((Sum Error Int), Unit))})
                                                   conv$6
                                  in 
-                                let conv$24 = snd#@{(Sum Error Int) ((Sum Error Int), Unit)} conv$11
+                                let conv$24 = snd#@{(Sum Error Int), ((Sum Error Int), Unit)} conv$11
                                  in 
                                 let s$conv$22 = 
-                                                let conv$21 = fst#@{(Sum Error Int) Unit} conv$24
+                                                let conv$21 = fst#@{(Sum Error Int), Unit} conv$24
                                                  in conv$21
                                  in s$conv$22)) conv$4)
                (Right Map []@{(Sum Error (Map DateTime Int))}) conv$2;

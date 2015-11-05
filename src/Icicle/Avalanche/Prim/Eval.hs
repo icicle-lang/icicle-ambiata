@@ -20,8 +20,7 @@ import qualified    Icicle.Common.Exp.Prim.Eval as Min
 
 evalPrim :: Ord n => EvalPrim a n Prim
 evalPrim p vs
- = let primError = Left $ RuntimeErrorPrimBadArgs p vs
-   in case p of
+ = case p of
      PrimMinimal m
       -> Min.evalPrim m p vs
 
@@ -77,9 +76,9 @@ evalPrim p vs
      -- Create an uninitialised array.
      -- We have nothing to put in there, so we might as well just
      -- fill it up with units.
-     PrimUnsafe (PrimUnsafeArrayCreate _)
+     PrimUnsafe (PrimUnsafeArrayCreate t)
       | [VBase (VInt sz)]  <- vs
-      -> return $ VBase $ VArray $ [VUnit | _ <- [1..sz]]
+      -> return $ VBase $ VArray $ [defaultOfType t | _ <- [1..sz]]
       | otherwise
       -> primError
 
@@ -123,6 +122,31 @@ evalPrim p vs
        $ VArray (zipWith VPair arr1 arr2)
       | otherwise
       -> primError
+
+     PrimArray (PrimArrayUnzip _ _)
+      | [VBase (VArray arr)] <- vs
+      -> do (arr1, arr2)     <- foldM uz mempty arr
+            return . VBase $ VPair (VArray $ reverse arr1)
+                                   (VArray $ reverse arr2)
+      | otherwise
+      -> primError
+
+     PrimArray (PrimArraySum _ _)
+      | [VBase (VArray arr), VBase (VArray arr1), VBase (VArray arr2)]  <- vs
+      -> do arr' <- zipWithM pick arr (zip arr1 arr2)
+            return . VBase . VArray $ arr'
+      | otherwise
+      -> primError
+
+     PrimArray (PrimArrayUnsum tl tr)
+      | [VBase (VArray arr)]   <- vs
+      -> do (arr0, arr1, arr2) <- foldM (us tl tr) mempty arr
+            return . VBase $ VPair (VArray $ reverse arr0)
+                                   (VPair (VArray $ reverse arr1)
+                                           (VArray $ reverse arr2))
+      | otherwise
+      -> primError
+
 
      PrimPack (PrimOptionPack _)
       | [VBase (VBool False), _]      <- vs
@@ -168,6 +192,30 @@ evalPrim p vs
    = xs <> [x]
    | otherwise
    = List.drop 1 (xs <> [x])
+
+  uz (fs, ss) (VPair f s)
+   = return (f     : fs, s     : ss)
+  uz _ _
+   = primError
+
+  us _ tr (bs, ls, rs) (VLeft l)
+   = return ( VBool  False     : bs
+            , l                : ls
+            , defaultOfType tr : rs )
+  us tl _ (bs, ls, rs) (VRight r)
+   = return ( VBool  True      : bs
+            , defaultOfType tl : ls
+            , r                : rs )
+  us _ _ _ _
+   = primError
+
+  primError
+   = Left $ RuntimeErrorPrimBadArgs p vs
+
+  pick (VBool b) (l,r)
+   = return $ if b then VRight r else VLeft l
+  pick _ _
+   = primError
 
   unpack (VBase x)    = Just x
   unpack (VFun _ _ _) = Nothing

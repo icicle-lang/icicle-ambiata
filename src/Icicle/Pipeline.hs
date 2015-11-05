@@ -27,10 +27,12 @@ import qualified Icicle.Avalanche.Check                   as AC
 import qualified Icicle.Avalanche.Prim.Flat               as APF
 import qualified Icicle.Avalanche.Program                 as AP
 import qualified Icicle.Avalanche.Simp                    as AS
+import qualified Icicle.Avalanche.Annot                   as AA
 import qualified Icicle.Avalanche.Statement.Flatten       as AS
 import           Icicle.Common.Base                       (Name)
 import qualified Icicle.Common.Base                       as CommonBase
-import qualified Icicle.Common.Annot                      as CommonAnnotation
+import qualified Icicle.Common.Annot                      as CA
+import qualified Icicle.Common.Type                       as CT
 import qualified Icicle.Common.Fresh                      as Fresh
 import qualified Icicle.Core.Program.Condense             as Core
 import qualified Icicle.Core.Program.Program              as Core
@@ -212,15 +214,21 @@ sourceInline d q
 
 coreFlatten :: Program' -> Either (CompileError () Var APF.Prim) (AP.Program () Var APF.Prim)
 coreFlatten prog
- = let av = coreAvalanche prog
-       ns = Fresh.counterPrefixNameState (SP.Variable . T.pack . show) "flat"
-   in   mapLeft  CompileErrorFlatten
-      . mapRight simpFlattened
-      . mapRight (\(_,s') -> av { AP.statements = s' })
-      $ Fresh.runFreshT (AS.flatten () $ AP.statements av) ns
+ = let  ns = Fresh.counterPrefixNameState (SP.Variable . T.pack . show) "flat"
+   in   mapRight simpFlattened
+      . join
+      . mapRight snd
+      . mapLeft CompileErrorFlatten
+      $ Fresh.runFreshT go ns
+ where
+  av = coreAvalanche prog
+  go
+   = do s' <- AS.flatten () (AP.statements av)
+        return $ checkAvalanche (av { AP.statements = s' })
 
-checkAvalanche :: AP.Program () Var APF.Prim
-               -> Either (CompileError () Var APF.Prim) (AP.Program (CommonAnnotation.Annot ()) Var APF.Prim)
+checkAvalanche
+  :: AP.Program () Var APF.Prim
+  -> Either (CompileError () Var APF.Prim) (AP.Program (CA.Annot ()) Var APF.Prim)
 checkAvalanche prog
  = mapLeft CompileErrorProgram
  $ AC.checkProgram APF.flatFragment prog
@@ -230,17 +238,32 @@ coreAvalanche prog
  = simpAvalanche
  $ AC.programFromCore (AC.namerText id) prog
 
-simpAvalanche :: (Eq p, Show p) => AP.Program () Var p -> AP.Program () Var p
+simpAvalanche
+  :: (Eq p, Show p)
+  => AP.Program () Var p
+  -> AP.Program () Var p
 simpAvalanche av
- = let simp = AS.simpAvalanche () av
-       name = Fresh.counterPrefixNameState (SP.Variable . T.pack . show) "anf"
-   in  snd $ Fresh.runFresh simp name
+ = let name = Fresh.counterPrefixNameState (SP.Variable . T.pack . show) "anf"
+   in  snd
+     $ Fresh.runFresh go name
+ where
+  go = AS.simpAvalanche () av
 
-simpFlattened :: AP.Program () Var APF.Prim -> AP.Program () Var APF.Prim
+simpFlattened
+  :: AP.Program (CA.Annot ()) Var APF.Prim
+  -> AP.Program () Var APF.Prim
 simpFlattened av
- = let simp = AS.simpFlattened () av
-       name = Fresh.counterPrefixNameState (SP.Variable . T.pack . show) "simp"
-   in  snd $ Fresh.runFresh (simp >>= AS.simpFlattened ()) name
+ = let name = Fresh.counterPrefixNameState (SP.Variable . T.pack . show) "simp"
+   in  AA.eraseAnnotP
+     $ snd
+     $ Fresh.runFresh go2 name
+ where
+  -- The magic recipe for nice, small, clean Avalanche
+  go2
+   = go av >>= go
+  -- Thread through a dummy annotation
+  go
+   = AS.simpFlattened (CA.Annot (CT.FunT [] CT.ErrorT) ())
 
 
 coreSimp :: Program' -> Program'

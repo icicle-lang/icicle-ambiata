@@ -5,6 +5,7 @@ module Icicle.Common.Exp.Compounds (
       makeApps
     , takeApps
     , takePrimApps
+    , takeValue
     , makeLets
     , takeLets
     , freevars
@@ -16,9 +17,12 @@ module Icicle.Common.Exp.Compounds (
 import              Icicle.Common.Base
 import              Icicle.Common.Exp.Exp
 import              Icicle.Common.Fresh
+import              Icicle.Common.Value
+
 import              P
 
 import qualified    Data.Set    as Set
+import qualified    Data.Map    as Map
 
 
 -- | Apply an expression to any number of arguments
@@ -62,6 +66,16 @@ takeLets xx
     _
      -> ([], xx)
 
+
+takeValue :: Exp a n p -> Maybe (Value a n p)
+takeValue (XValue _ _ b) = Just (VBase b)
+-- We're pulling out a lambda as a closure.
+-- However, we're ignoring the closure's heap.
+-- This is fine - if the lambda references anything outside,
+-- it will not evaluate and so won't be simplified.
+takeValue (XLam _ n _ x) = Just (VFun Map.empty n x)
+-- I promise this is exhaustive.
+takeValue  _             = Nothing
 
 
 -- | Collect all free variables in an expression
