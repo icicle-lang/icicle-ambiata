@@ -35,7 +35,7 @@ simpAvalanche a_fresh p
       return $ p { statements = s' }
 
 simpFlattened
-  :: (Show n, Ord n)
+  :: (Show n, Ord n, Eq a)
   => Annot a
   -> Program (Annot a) n Prim
   -> Fresh n (Program (Annot a) n Prim)
@@ -46,15 +46,6 @@ simpFlattened a_fresh p
       s' <-  melt a_fresh s
          >>= forwardStmts a_fresh . pullLets
          >>= crunch i bd
-         >>= crunch i bd
-         >>= crunch i bd
-         >>= crunch i bd
-         >>= crunch i bd
-         >>= crunch i bd
-         >>= crunch i bd
-         >>= crunch i bd
-         >>= crunch i bd
-         >>= return . simpStatementExps a_fresh
 
       return $ p { statements = s' }
 

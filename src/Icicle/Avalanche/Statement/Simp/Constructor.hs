@@ -22,7 +22,7 @@ import qualified    Data.Map as Map
 
 -- | Simplify applied primitives.
 --
-constructor :: Ord n => a -> Statement a n Prim -> Fresh n (Statement a n Prim)
+constructor :: (Eq a, Ord n) => a -> Statement a n Prim -> Fresh n (Statement a n Prim)
 constructor a_fresh statements
  = transformUDStmt goS emptyExpEnv statements
  where
@@ -58,6 +58,13 @@ constructor a_fresh statements
            -> ret s
 
   goX env x
+   | x' <- goX' env x
+   , x /= x'
+   = x'
+   | otherwise
+   = x
+
+  goX' env x
    -- min
    | Just (PrimMinimal (Min.PrimPair (Min.PrimPairFst _ _)), [n]) <- takePrimApps x
    , Just x'        <- resolve env n
@@ -127,34 +134,47 @@ constructor a_fresh statements
    , Just (_,_,_,_,b) <- fromSum x'
    = b
 
-   -- update
+   -- * Update
+   --   put (sum i a b) ~> sum (put i) (put a) (put b)
    | Just (PrimUpdate (PrimUpdateArrayPut _), [arr,ix,v]) <- takePrimApps x
    , Just arrx              <- resolve env arr
    , Just (ta, tb, i, a, b) <- fromSummedArray arrx
-   , Just vx                <- resolve env v
-   , Just (_,_,boool,l,r)   <- fromSum vx
-   , tai                    <- ArrayT BoolT
-   , taa                    <- ArrayT ta
-   , tab                    <- ArrayT tb
-   = case boool of
-      XValue _ _ (VBool False)
-       -> xPrim (PrimMinimal (Min.PrimPair (Min.PrimPairSnd tai taa)))
-          `xApp` (xPrim (PrimUpdate (PrimUpdateArrayPut2 (ArrayT BoolT) (ArrayT ta)))
-                  `xApp` i `xApp` a `xApp` ix `xApp` xValue BoolT (VBool False) `xApp` l)
-      XValue _ _ (VBool True)
-       -> xPrim (PrimMinimal (Min.PrimPair (Min.PrimPairSnd tai tab)))
-          `xApp` (xPrim (PrimUpdate (PrimUpdateArrayPut2 (ArrayT BoolT) (ArrayT tb)))
-                  `xApp` i `xApp` b `xApp` ix `xApp` xValue BoolT (VBool True) `xApp` r)
-      _ -> x
+   , boool                  <- xPrim (PrimProject (PrimProjectSumIsRight ta tb)) `xApp` v
+   , l                      <- xPrim (PrimUnsafe  (PrimUnsafeSumGetLeft  ta tb)) `xApp` v
+   , r                      <- xPrim (PrimUnsafe  (PrimUnsafeSumGetRight ta tb)) `xApp` v
+   , l'                     <- goX env l
+   , r'                     <- goX env r
+   = xPrim (PrimArray $ PrimArraySum ta tb)
+   `xApp` (xPrim (PrimUpdate (PrimUpdateArrayPut BoolT)) `xApp` i `xApp` ix `xApp` boool)
+   `xApp` (xPrim (PrimUpdate (PrimUpdateArrayPut ta))    `xApp` a `xApp` ix `xApp` l')
+   `xApp` (xPrim (PrimUpdate (PrimUpdateArrayPut tb))    `xApp` b `xApp` ix `xApp` r')
 
+   -- put (zip a b) ~> zip (put a) (put b)
    | Just (PrimUpdate (PrimUpdateArrayPut _), [arr,ix,v]) <- takePrimApps x
    , Just arrx           <- resolve env arr
    , Just (ta, tb, a, b) <- fromZippedArray arrx
-   , Just vx             <- resolve env v
-   , Just (_,_,f,s)      <- fromPair vx
-   = xPrim (PrimMinimal $ Min.PrimConst $ Min.PrimConstPair ta tb)
-     `xApp` (xPrim (PrimUpdate (PrimUpdateArrayPut (ArrayT ta))) `xApp` a `xApp` ix `xApp` f)
-     `xApp` (xPrim (PrimUpdate (PrimUpdateArrayPut (ArrayT ta))) `xApp` b `xApp` ix `xApp` s)
+   , f                   <- xPrim (PrimMinimal $ Min.PrimPair $ Min.PrimPairFst ta tb) `xApp` v
+   , s                   <- xPrim (PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd ta tb) `xApp` v
+   , f'                  <- goX env f
+   , s'                  <- goX env s
+   = xPrim (PrimArray $ PrimArrayZip ta tb)
+   `xApp` (xPrim (PrimUpdate (PrimUpdateArrayPut ta)) `xApp` a `xApp` ix `xApp` f')
+   `xApp` (xPrim (PrimUpdate (PrimUpdateArrayPut ta)) `xApp` b `xApp` ix `xApp` s')
+
+   -- * "Rewrite rules"
+   --   unsum (sum i a b) ~> (i, (a, b))
+   | Just (PrimArray (PrimArrayUnsum ta tb), [arr])     <- takePrimApps x
+   , Just (PrimArray (PrimArraySum   _  _),  [i, a, b]) <- takePrimApps arr
+   = xPrim (PrimMinimal $ Min.PrimConst $ Min.PrimConstPair (ArrayT BoolT) (PairT (ArrayT ta) (ArrayT tb)))
+   `xApp` i
+   `xApp` (xPrim (PrimMinimal $ Min.PrimConst $ Min.PrimConstPair (ArrayT ta) (ArrayT tb))
+           `xApp` a `xApp` b)
+
+   --   unzip (zip a b) ~> (a, b)
+   | Just (PrimArray (PrimArrayUnzip ta tb), [arr])  <- takePrimApps x
+   , Just (PrimArray (PrimArrayZip   _  _),  [a, b]) <- takePrimApps arr
+   = xPrim (PrimMinimal $ Min.PrimConst $ Min.PrimConstPair (ArrayT ta) (ArrayT tb))
+   `xApp` a `xApp` b
 
    | otherwise
    = x
