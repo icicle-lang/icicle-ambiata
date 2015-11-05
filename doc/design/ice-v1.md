@@ -21,12 +21,12 @@ Todo
 
 ## High
 
-1. Melt for arrays (Tran)
-2. Melt maps into pair of arrays
+1. Melt maps into pair of arrays
     - (should be simple after melt arrays because majority is done in flatten)
     - Converting maps to/from C values
-3. Array of strings
+2. Array of strings
     - Converting to/from C values
+3. Melt bufs (tran)
 
 ## Medium
 
@@ -43,4 +43,4 @@ Todo
 3. ~~Name shadowing bug https://github.com/ambiata/icicle/issues/166~~
 4. ~~Assembly output in repl, C output strip out preamble boilerplate~~
 6. ~~seaOfXValue needs to allocate and fill arrays, buffers, maps.~~ (not particularly well tested)
-
+7. ~~Melt for arrays~~
