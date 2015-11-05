@@ -75,7 +75,7 @@ Push(buf, val)
 
   ARRAY'    = ARRAY[update]:=val
   read'     = ARRAY[head'..(head'+cur_size') % max_size)
-  update    = (head' + cur_size') % max_size
+  update    = (head + cur_size) % max_size
   }
   ==>
   {
@@ -96,7 +96,7 @@ Push(buf, val)
                         ?  buf->cur_size + 1                                    \
                         :  buf->max_size;                                       \
                                                                                 \
-        iint_t update   = (head_new + buf->cur_size) % buf->max_size;           \
+        iint_t update   = (buf->head + buf->cur_size) % buf->max_size;          \
                                                                                 \
         BUF_PAYLOAD(buf,t)[update] = val;                                       \
                                                                                 \

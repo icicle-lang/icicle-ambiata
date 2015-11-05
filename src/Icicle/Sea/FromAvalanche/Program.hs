@@ -219,8 +219,8 @@ seaOfExp :: (Show a, Show n, Pretty n, Ord n)
          => Exp (Annot a) n Prim -> Doc
 seaOfExp xx
  = case xx of
-     XValue _ _ v
-      -> seaOfXValue v
+     XValue _ t v
+      -> seaOfXValue v t
 
      XVar _ n
       -> seaOfName n
@@ -232,8 +232,8 @@ seaOfExp xx
      _
       -> seaError "seaOfExp" xx
 
-seaOfXValue :: BaseValue -> Doc
-seaOfXValue v
+seaOfXValue :: BaseValue -> ValType -> Doc
+seaOfXValue v t
  = case v of
      VError    err   -> seaOfError err
      VBool     True  -> "itrue"
@@ -245,8 +245,39 @@ seaOfXValue v
      -- TODO C escapes /= Haskell escapes
      VString x     -> text (show x)
 
+     VArray vs
+      | ArrayT t' <- t
+      -> let len = length vs
+             writes arr (v',i)
+              = prim (PrimUpdate $ PrimUpdateArrayPut t')
+                     [arr, int i, seaOfXValue v' t']
+             init
+              = prim (PrimUnsafe $ PrimUnsafeArrayCreate t')
+                     [int len]
+        in  foldl writes init (vs `List.zip` [0..])
+
+      | otherwise
+      -> seaError "seaOfXValue: array of wrong type" (v,t)
+
+     VBuf len vs
+      | BufT t' <- t
+      -> let writes buf v'
+              = prim (PrimBuf $ PrimBufPush t')
+                     [buf, seaOfXValue v' t']
+             init
+              = prim (PrimBuf $ PrimBufMake t')
+                     [int len]
+        in  foldl writes init vs
+      | otherwise
+      -> seaError "seaOfXValue: buffer of wrong type" (v,t)
+
+     VMap _
+      -> seaError "seaOfXValue: maps should be removed by flatten" v
      _
-      -> seaError "seaOfXValue" v
+      -> seaError "seaOfXValue: this should be removed by melt" v
+ where
+  prim p args
+   = seaOfPrimDocApps (seaOfXPrim p) args
 
 seaOfError :: ExceptionInfo -> Doc
 seaOfError e

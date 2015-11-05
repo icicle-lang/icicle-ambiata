@@ -78,11 +78,12 @@ typedef struct
     }
 
 #define MK_ARRAY_PUT(t,pre)                                                     \
-    static iunit_t INLINE ARRAY_FUN(put,pre)   (ARRAY(t) x, iint_t ix, t v)     \
+    static ARRAY(t) INLINE ARRAY_FUN(put,pre)   (ARRAY(t) x, iint_t ix, t v)    \
     {                                                                           \
         ARRAY_PAYLOAD(x,t)[ix] = v;                                             \
-        return iunit;                                                           \
+        return x;                                                               \
     }
+
 
 
 #define MAKE_ARRAY(t,pre)                                                       \
