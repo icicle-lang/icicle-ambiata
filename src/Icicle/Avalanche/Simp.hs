@@ -58,6 +58,7 @@ simpFlattened a_fresh p
          >>= crunch i bd
          >>= crunch i bd
          >>= crunch i bd
+         >>= return . simpStatementExps a_fresh
 
       return $ p { statements = s' }
 

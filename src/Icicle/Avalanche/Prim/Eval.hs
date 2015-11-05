@@ -76,9 +76,9 @@ evalPrim p vs
      -- Create an uninitialised array.
      -- We have nothing to put in there, so we might as well just
      -- fill it up with units.
-     PrimUnsafe (PrimUnsafeArrayCreate _)
+     PrimUnsafe (PrimUnsafeArrayCreate t)
       | [VBase (VInt sz)]  <- vs
-      -> return $ VBase $ VArray $ [VUnit | _ <- [1..sz]]
+      -> return $ VBase $ VArray $ [defaultOfType t | _ <- [1..sz]]
       | otherwise
       -> primError
 
@@ -195,8 +195,6 @@ evalPrim p vs
 
   uz (fs, ss) (VPair f s)
    = return (f     : fs, s     : ss)
-  uz (fs, ss) VUnit -- unitialised array
-   = return (VUnit : fs, VUnit : ss)
   uz _ _
    = primError
 
@@ -208,8 +206,6 @@ evalPrim p vs
    = return ( VBool  True      : bs
             , defaultOfType tl : ls
             , r                : rs )
-  us _ _ (bs, ls, rs) VUnit -- uninitialised array
-   = return (VUnit : bs, VUnit : ls, VUnit : rs)
   us _ _ _ _
    = primError
 
@@ -218,8 +214,6 @@ evalPrim p vs
 
   pick (VBool b) (l,r)
    = return $ if b then VRight r else VLeft l
-  pick  VUnit _ -- uninitialised array
-   = return VUnit
   pick _ _
    = primError
 
