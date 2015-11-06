@@ -145,141 +145,122 @@ meltAccumulators a_fresh statements
         case stmt of
 
           ----------------------------------------
-          InitAccumulator (Accumulator n ak _ x) ss
-           | Just (Latest, PairT ta tb, [na, nb])       <- Map.lookup n env'
+          InitAccumulator (Accumulator n _ x) ss
+           | Just (PairT ta tb, [na, nb]) <- Map.lookup n env'
            -> go
-            . InitAccumulator (Accumulator na ak ta x)
-            . InitAccumulator (Accumulator nb ak tb x)
+            . InitAccumulator (Accumulator na ta (primFst ta tb x))
+            . InitAccumulator (Accumulator nb tb (primSnd ta tb x))
+           $ ss
+
+           | Just (OptionT tv, [nb, nv]) <- Map.lookup n env'
+           , tb                          <- BoolT
+           -> go
+            . InitAccumulator (Accumulator nb tb (primIsSome  tv x))
+            . InitAccumulator (Accumulator nv tv (primGetSome tv x))
             $ ss
 
-           | Just (Mutable, PairT ta tb, [na, nb])      <- Map.lookup n env'
+           | Just (SumT ta tb, [ni, na, nb]) <- Map.lookup n env'
+           , ti                              <- BoolT
            -> go
-            . InitAccumulator (Accumulator na ak ta (primFst ta tb x))
-            . InitAccumulator (Accumulator nb ak tb (primSnd ta tb x))
+            . InitAccumulator (Accumulator ni ti (primIsRight  ta tb x))
+            . InitAccumulator (Accumulator na ta (primGetLeft  ta tb x))
+            . InitAccumulator (Accumulator nb tb (primGetRight ta tb x))
             $ ss
 
-           | Just (Mutable, OptionT tv, [nb, nv])       <- Map.lookup n env'
-           , tb                                         <- BoolT
+           | Just (StructT ts, ns) <- Map.lookup n env'
+           , nfts                  <- List.zip ns (Map.toList (getStructType ts))
            -> go
-            . InitAccumulator (Accumulator nb ak tb (primIsSome  tv x))
-            . InitAccumulator (Accumulator nv ak tv (primGetSome tv x))
-            $ ss
+            $ foldr (\(na,(f,t))
+            -> InitAccumulator (Accumulator na t (primGetField ts f t x))) ss nfts
 
-           | Just (Mutable, SumT ta tb, [ni, na, nb])   <- Map.lookup n env'
-           , ti                                         <- BoolT
-           -> go
-            . InitAccumulator (Accumulator ni ak ti (primIsRight  ta tb x))
-            . InitAccumulator (Accumulator na ak ta (primGetLeft  ta tb x))
-            . InitAccumulator (Accumulator nb ak tb (primGetRight ta tb x))
-            $ ss
-
-           | Just (Mutable, StructT ts, ns)             <- Map.lookup n env'
-           , nfts                                       <- List.zip ns (Map.toList (getStructType ts))
-           -> go
-            $ foldr (\(na,(f,t)) -> InitAccumulator (Accumulator na ak t (primGetField ts f t x))) ss nfts
-
-           | Just (Mutable, t@(ArrayT (SumT _ _)), _)       <- Map.lookup n env'
+           | Just (t@(ArrayT (SumT _ _)), _) <- Map.lookup n env'
            -> do (xs', _) <- meltBody a_fresh (n, t, x)
                  let env'' = useNames n xs' env'
-                 goStmt env'' . foldr (mkInitAccum ak) id xs' $ ss
+                 goStmt env'' . foldr (mkInitAccum) id xs' $ ss
 
-           | Just (Mutable, t@(ArrayT (PairT _ _)), _)       <- Map.lookup n env'
+           | Just (t@(ArrayT (PairT _ _)), _) <- Map.lookup n env'
            -> do (xs', _) <- meltBody a_fresh (n, t, x)
                  let env'' = useNames n xs' env'
-                 goStmt env'' . foldr (mkInitAccum ak) id xs' $ ss
+                 goStmt env'' . foldr (mkInitAccum) id xs' $ ss
 
-           | Just (Mutable, UnitT, [])                  <- Map.lookup n env'
+           | Just (UnitT, []) <- Map.lookup n env'
            -> go ss
 
           ----------------------------------------
-          Read n acc avt _ ss
-           | Just (Latest, PairT ta tb, [na, nb])       <- Map.lookup acc env'
-           -> do [na', nb'] <- freshes 2 n
-                 ss' <- substXinS a_fresh n (primZip ta tb na' nb') ss
-                 go . Read na' na avt ta
-                    . Read nb' nb avt tb
-                    $ ss'
-
-           | Just (Mutable, PairT ta tb, [na, nb])      <- Map.lookup acc env'
+          Read n acc _ ss
+           | Just (PairT ta tb, [na, nb]) <- Map.lookup acc env'
            -> do [na', nb'] <- freshes 2 n
                  ss' <- substXinS a_fresh n (primPair ta tb na' nb') ss
-                 go . Read na' na avt ta
-                    . Read nb' nb avt tb
+                 go . Read na' na ta
+                    . Read nb' nb tb
                     $ ss'
 
-           | Just (Mutable, OptionT tv, [nb, nv])       <- Map.lookup acc env'
+           | Just (OptionT tv, [nb, nv]) <- Map.lookup acc env'
            , tb                                         <- BoolT
            -> do [nb', nv'] <- freshes 2 n
                  ss' <- substXinS a_fresh n (primMkOpt tv nb' nv') ss
-                 go . Read nb' nb avt tb
-                    . Read nv' nv avt tv
+                 go . Read nb' nb tb
+                    . Read nv' nv tv
                     $ ss'
 
-           | Just (Mutable, SumT ta tb, [ni, na, nb])   <- Map.lookup acc env'
-           , ti                                         <- BoolT
+           | Just (SumT ta tb, [ni, na, nb]) <- Map.lookup acc env'
+           , ti                              <- BoolT
            -> do [ni', na', nb'] <- freshes 3 n
                  ss' <- substXinS a_fresh n (primMkSum ta tb ni' na' nb') ss
-                 go . Read ni' ni avt ti
-                    . Read na' na avt ta
-                    . Read nb' nb avt tb
+                 go . Read ni' ni ti
+                    . Read na' na ta
+                    . Read nb' nb tb
                     $ ss'
 
-           | Just (Mutable, ArrayT (SumT ta tb), [ni, na, nb]) <- Map.lookup acc env'
+           | Just (ArrayT (SumT ta tb), [ni, na, nb]) <- Map.lookup acc env'
            -> do [ni', na', nb'] <- freshes 3 n
                  ss' <- substXinS a_fresh n (primSum ta tb ni' na' nb') ss
-                 go . Read ni' ni avt (ArrayT BoolT)
-                    . Read na' na avt (ArrayT ta)
-                    . Read nb' nb avt (ArrayT tb)
+                 go . Read ni' ni (ArrayT BoolT)
+                    . Read na' na (ArrayT ta)
+                    . Read nb' nb (ArrayT tb)
                     $ ss'
 
-           | Just (Mutable, ArrayT (PairT ta tb), [na, nb]) <- Map.lookup acc env'
+           | Just (ArrayT (PairT ta tb), [na, nb]) <- Map.lookup acc env'
            -> do [na', nb'] <- freshes 2 n
                  ss' <- substXinS a_fresh n (primZip ta tb na' nb') ss
-                 go . Read na' na avt (ArrayT ta)
-                    . Read nb' nb avt (ArrayT tb)
+                 go . Read na' na (ArrayT ta)
+                    . Read nb' nb (ArrayT tb)
                     $ ss'
 
-           | Just (Mutable, StructT ts, nas)            <- Map.lookup acc env'
-           , fts                                        <- Map.elems (getStructType ts)
+           | Just (StructT ts, nas) <- Map.lookup acc env'
+           , fts                    <- Map.elems (getStructType ts)
            -> do ns' <- replicateM (length fts) (freshPrefix' n)
                  ss' <- substXinS a_fresh n (primMkStruct ts ns') ss
-                 go $ foldr (\(n',na,t) -> Read n' na avt t) ss' (List.zip3 ns' nas fts)
+                 go $ foldr (\(n',na,t) -> Read n' na t) ss' (List.zip3 ns' nas fts)
 
-           | Just (Mutable, UnitT, [])                  <- Map.lookup acc env'
+           | Just (UnitT, []) <- Map.lookup acc env'
            -> do ss' <- substXinS a_fresh n (xValue UnitT VUnit) ss
                  go ss'
 
           ----------------------------------------
-          Push n x
-           | Just (Latest, PairT ta tb, [na, nb])       <- Map.lookup n env'
-           -> go
-            $ Block [ Push na (primFst ta tb x)
-                    , Push nb (primSnd ta tb x) ]
-
-          ----------------------------------------
           Write n x
-           | Just (Mutable, PairT ta tb, [na, nb])      <- Map.lookup n env'
+           | Just (PairT ta tb, [na, nb])      <- Map.lookup n env'
            -> go
             $ Block [ Write na (primFst ta tb x)
                     , Write nb (primSnd ta tb x) ]
 
-           | Just (Mutable, OptionT tv, [nb, nv])       <- Map.lookup n env'
+           | Just (OptionT tv, [nb, nv])       <- Map.lookup n env'
            -> go
             $ Block [ Write nb (primIsSome  tv x)
                     , Write nv (primGetSome tv x) ]
 
-           | Just (Mutable, SumT ta tb, [ni, na, nb])   <- Map.lookup n env'
+           | Just (SumT ta tb, [ni, na, nb])   <- Map.lookup n env'
            -> go
             $ Block [ Write ni (primIsRight  ta tb x)
                     , Write na (primGetLeft  ta tb x)
                     , Write nb (primGetRight ta tb x) ]
 
-           | Just (Mutable, StructT ts, nas)            <- Map.lookup n env'
-           , nfts                                       <- List.zip nas (Map.toList (getStructType ts))
+           | Just (StructT ts, nas) <- Map.lookup n env'
+           , nfts                   <- List.zip nas (Map.toList (getStructType ts))
            -> go . Block
             $ fmap (\(na,(f,t)) -> Write na (primGetField ts f t x)) nfts
 
-           | Just (Mutable, ArrayT (SumT ta tb), [ni, na, nb]) <- Map.lookup n env'
+           | Just (ArrayT (SumT ta tb), [ni, na, nb]) <- Map.lookup n env'
            , tai <- ArrayT BoolT
            , taa <- ArrayT ta
            , tab <- ArrayT tb
@@ -289,93 +270,93 @@ meltAccumulators a_fresh statements
                     , Write na (primFst taa tab (primSnd tai tp (primUnsum ta tb x)))
                     , Write nb (primSnd taa tab (primSnd tai tp (primUnsum ta tb x))) ]
 
-           | Just (Mutable, ArrayT (PairT ta tb), [na, nb]) <- Map.lookup n env'
+           | Just (ArrayT (PairT ta tb), [na, nb]) <- Map.lookup n env'
            , taa <- ArrayT ta
            , tab <- ArrayT tb
            -> go
             $ Block [ Write na (primFst taa tab (primUnzip ta tb x))
                     , Write nb (primSnd taa tab (primUnzip ta tb x)) ]
 
-           | Just (_, UnitT, _)                         <- Map.lookup n env'
+           | Just (UnitT, _)                         <- Map.lookup n env'
            -> return (env', mempty)
 
           ----------------------------------------
           LoadResumable n _
-           | Just (_, PairT ta tb, [na, nb])            <- Map.lookup n env'
+           | Just (PairT ta tb, [na, nb])            <- Map.lookup n env'
            -> go
             $ Block [ LoadResumable na ta
                     , LoadResumable nb tb ]
 
-           | Just (_, OptionT tv, [nb, nv])             <- Map.lookup n env'
+           | Just (OptionT tv, [nb, nv])             <- Map.lookup n env'
            , tb                                         <- BoolT
            -> go
             $ Block [ LoadResumable nb tb
                     , LoadResumable nv tv ]
 
-           | Just (_, SumT ta tb, [ni, na, nb])         <- Map.lookup n env'
+           | Just (SumT ta tb, [ni, na, nb])         <- Map.lookup n env'
            , ti                                         <- BoolT
            -> go
             $ Block [ LoadResumable ni ti
                     , LoadResumable na ta
                     , LoadResumable nb tb ]
 
-           | Just (Mutable, ArrayT (SumT ta tb), [ni, na, nb]) <- Map.lookup n env'
+           | Just (ArrayT (SumT ta tb), [ni, na, nb]) <- Map.lookup n env'
            -> go
             $ Block [ LoadResumable ni (ArrayT BoolT)
                     , LoadResumable na (ArrayT ta)
                     , LoadResumable nb (ArrayT tb) ]
 
-           | Just (Mutable, ArrayT (PairT ta tb), [na, nb]) <- Map.lookup n env'
+           | Just (ArrayT (PairT ta tb), [na, nb]) <- Map.lookup n env'
            -> go
             $ Block [ LoadResumable na (ArrayT ta)
                     , LoadResumable nb (ArrayT tb) ]
 
-           | Just (_, StructT ts, nas)                  <- Map.lookup n env'
+           | Just (StructT ts, nas)                  <- Map.lookup n env'
            , nts                                        <- List.zip nas (Map.elems (getStructType ts))
            -> go . Block
             $ fmap (\(na,t) -> LoadResumable na t) nts
 
-           | Just (_, UnitT, [])                        <- Map.lookup n env'
+           | Just (UnitT, [])                        <- Map.lookup n env'
            -> go
             $ Block []
 
           ----------------------------------------
           SaveResumable n _
-           | Just (_, PairT ta tb, [na, nb])            <- Map.lookup n env'
+           | Just (PairT ta tb, [na, nb])            <- Map.lookup n env'
            -> go
             $ Block [ SaveResumable na ta
                     , SaveResumable nb tb ]
 
-           | Just (_, OptionT tv, [nb, nv])             <- Map.lookup n env'
+           | Just (OptionT tv, [nb, nv])             <- Map.lookup n env'
            , tb                                         <- BoolT
            -> go
             $ Block [ SaveResumable nb tb
                     , SaveResumable nv tv ]
 
-           | Just (_, SumT ta tb, [ni, na, nb])         <- Map.lookup n env'
+           | Just (SumT ta tb, [ni, na, nb])         <- Map.lookup n env'
            , ti                                         <- BoolT
            -> go
             $ Block [ SaveResumable ni ti
                     , SaveResumable na ta
                     , SaveResumable nb tb ]
 
-           | Just (Mutable, ArrayT (SumT ta tb), [ni, na, nb]) <- Map.lookup n env'
+           | Just (ArrayT (SumT ta tb), [ni, na, nb]) <- Map.lookup n env'
            -> go
             $ Block [ SaveResumable ni (ArrayT BoolT)
                     , SaveResumable na (ArrayT ta)
                     , SaveResumable nb (ArrayT tb) ]
 
-           | Just (Mutable, ArrayT (PairT ta tb), [na, nb]) <- Map.lookup n env'
+           | Just (ArrayT (PairT ta tb), [na, nb]) <- Map.lookup n env'
            -> go
             $ Block [ SaveResumable na (ArrayT ta)
                     , SaveResumable nb (ArrayT tb) ]
 
-           | Just (_, StructT ts, nas)                  <- Map.lookup n env'
+           | Just (StructT ts, nas)                  <- Map.lookup n env'
            , nts                                        <- List.zip nas (Map.elems (getStructType ts))
            -> go . Block
             $ fmap (\(na,t) -> SaveResumable na t) nts
 
-           | Just (_, UnitT, [])                        <- Map.lookup n env'
+           | Just (UnitT, [])                        <- Map.lookup n env'
            -> go
             $ Block []
 
@@ -384,45 +365,45 @@ meltAccumulators a_fresh statements
 
 
   updateEnv s env
-   | InitAccumulator (Accumulator n Mutable UnitT _) _ <- s
-   = return (Map.insert n (Mutable, UnitT, []) env)
+   | InitAccumulator (Accumulator n UnitT _) _ <- s
+   = return (Map.insert n (UnitT, []) env)
 
-   | InitAccumulator (Accumulator n at avt@(PairT _ _) _) _ <- s
-   = two n at avt env
-   | InitAccumulator (Accumulator n at avt@(OptionT _) _) _ <- s
-   = two n at avt env
+   | InitAccumulator (Accumulator n avt@(PairT _ _) _) _ <- s
+   = two n avt env
+   | InitAccumulator (Accumulator n avt@(OptionT _) _) _ <- s
+   = two n avt env
 
-   | InitAccumulator (Accumulator n at avt@(SumT _ _) _) _ <- s
-   = three n at avt env
-   | InitAccumulator (Accumulator n at avt@(ArrayT (SumT _ _)) _) _ <- s
-   = three n at avt env
+   | InitAccumulator (Accumulator n avt@(SumT _ _) _) _ <- s
+   = three n avt env
+   | InitAccumulator (Accumulator n avt@(ArrayT (SumT _ _)) _) _ <- s
+   = three n avt env
 
-   | InitAccumulator (Accumulator n at avt@(StructT (StructType fts)) _) _ <- s
+   | InitAccumulator (Accumulator n avt@(StructT (StructType fts)) _) _ <- s
    = do ns <- replicateM (Map.size fts) (freshPrefix' n)
-        return (Map.insert n (at, avt, ns) env)
+        return (Map.insert n (avt, ns) env)
 
-   | InitAccumulator (Accumulator n Mutable UnitT _) _ <- s
-   = do return (Map.insert n (Mutable, UnitT, []) env)
+   | InitAccumulator (Accumulator n UnitT _) _ <- s
+   = do return (Map.insert n (UnitT, []) env)
 
    | otherwise
    = return env
 
-  two n at avt env
+  two n avt env
    = do nb <- freshPrefix' n
         nv <- freshPrefix' n
-        return (Map.insert n (at, avt, [nb, nv]) env)
+        return (Map.insert n (avt, [nb, nv]) env)
 
-  three n at avt env
+  three n avt env
    = do ni <- freshPrefix' n
         na <- freshPrefix' n
         nb <- freshPrefix' n
-        return $ Map.insert n (at, avt, [ni, na, nb]) env
+        return $ Map.insert n (avt, [ni, na, nb]) env
 
-  mkInitAccum ak (n, t, x) acc
-   = InitAccumulator (Accumulator n ak t x) . acc
+  mkInitAccum (n, t, x) acc
+   = InitAccumulator (Accumulator n t x) . acc
 
   useNames n args
-   = Map.adjust (\(at, avt, _) -> (at, avt, fmap fsst args)) n
+   = Map.adjust (\(avt, _) -> (avt, fmap fsst args)) n
 
   fsst (x,_,_) = x
 

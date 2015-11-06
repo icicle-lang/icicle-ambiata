@@ -43,7 +43,7 @@ data Scoped a n p
 data Binding a n p
  = InitAccumulator (S.Accumulator a n p)
  | Let             (Name n) (Exp  a n p)
- | Read            (Name n) (Name n) S.AccumulatorType ValType
+ | Read            (Name n) (Name n) ValType
 
 scopedOfStatement :: S.Statement a n p -> Scoped a n p
 scopedOfStatement s
@@ -81,9 +81,9 @@ bindsOfStatement s
     S.Let n x ss
      -> let bs = bindsOfStatement ss
         in  Left (Let n x) : bs
-    S.Read n acc at vt ss
+    S.Read n acc vt ss
      -> let bs = bindsOfStatement ss
-        in  Left (Read n acc at vt) : bs
+        in  Left (Read n acc vt) : bs
 
 
 statementOfScoped :: Scoped a n p -> S.Statement a n p
@@ -114,8 +114,8 @@ statementOfScoped s
               -> S.InitAccumulator acc rest
              Let n x
               -> S.Let n x rest
-             Read n acc at vt
-              -> S.Read n acc at vt rest
+             Read n acc vt
+              -> S.Read n acc vt rest
 
     Write n x
      -> S.Write n x
@@ -217,8 +217,8 @@ instance (Pretty n, Pretty p) => Pretty (Binding a n p) where
      Let n x
       -> text "let" <+> pretty n <+> text "=" <+> pretty x
       <> text ";"
-     Read n acc at vt
-      -> annotate (AnnType $ (pretty at) <+> (pretty vt)) (text "read")
+     Read n acc vt
+      -> annotate (AnnType (pretty vt)) (text "read")
                      <+> pretty n
                      <+> text "=" <+> pretty acc
       <> text ";"

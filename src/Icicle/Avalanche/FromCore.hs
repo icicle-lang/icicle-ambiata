@@ -124,7 +124,7 @@ programFromCore namer p
 
   -- Fold accumulator
   accum (n, CR.RFold _ ty _ x _)
-   = A.Accumulator (namerAccPrefix namer n) A.Mutable ty x
+   = A.Accumulator (namerAccPrefix namer n) ty x
 
   loadResumables (n, CR.RFold _ ty _ _ _)
    = LoadResumable (namerAccPrefix namer n) ty
@@ -133,7 +133,7 @@ programFromCore namer p
    = SaveResumable (namerAccPrefix namer n) ty
 
   readaccum (n, CR.RFold _ ty _ _ _)
-   = Read n (namerAccPrefix namer n) A.Mutable ty
+   = Read n (namerAccPrefix namer n) ty
 
   readaccums inner
    = foldr readaccum inner (C.reduces p)
@@ -262,5 +262,5 @@ statementOfReduce namer strs (n,r)
             x  = Beta.betaToLets () (k `xApp` (xVar n')
                                        `xApp` (xVar $ namerElemPrefix namer inp))
 
-        in  Read n' n' A.Mutable ty (Write n' x <> k')
+        in  Read n' n' ty (Write n' x <> k')
 

@@ -38,7 +38,7 @@ updateExpEnv s env
       ForeachFacts ns _ _ _
        -> foldr (clearFromExpEnv . fst) env ns
 
-      Read n _ _ _ _
+      Read n _ _ _
       -- we need to clear any mentions of "n" from the environment
        -> clearFromExpEnv n env
 

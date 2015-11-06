@@ -47,8 +47,8 @@ pullLets statements
       ForeachInts n from to subs
        -> pres2 from to $ \from' to' -> ForeachInts n from' to' subs
 
-      InitAccumulator (Accumulator n at vt x) subs
-       -> pres x $ \x' -> InitAccumulator (Accumulator n at vt x') subs
+      InitAccumulator (Accumulator n vt x) subs
+       -> pres x $ \x' -> InitAccumulator (Accumulator n vt x') subs
 
       Write n x
        -> pres x $ Write n
@@ -145,8 +145,8 @@ substXinS a_fresh name payload statements
                 to'   <- sub to
                 return (True, ForeachInts n from' to' ss)
 
-      InitAccumulator (Accumulator n at vt x) ss
-       -> sub1 x $ \x' -> InitAccumulator (Accumulator n at vt x') ss
+      InitAccumulator (Accumulator n vt x) ss
+       -> sub1 x $ \x' -> InitAccumulator (Accumulator n vt x') ss
 
       Write n x
        -> sub1 x $ Write n
@@ -156,11 +156,11 @@ substXinS a_fresh name payload statements
       Output n t xs
        -> subN xs $ Output n t
 
-      Read n x y z ss
+      Read n x z ss
        | n == name
        -> finished s
        | Set.member n frees
-       -> freshen n ss $ \n' ss' -> Read n' x y z ss'
+       -> freshen n ss $ \n' ss' -> Read n' x z ss'
 
       ForeachFacts ns x y ss
        | name `elem` fmap fst ns
@@ -232,11 +232,11 @@ thresher a_fresh statements
        -> return (env, Let n (XVar a_fresh n') ss)
 
       -- Read that's never used
-      Read n _ _ _ ss
+      Read n _ _ ss
        | not $ Set.member n $ stmtFreeX ss
        -> return (env, ss)
 
-      InitAccumulator (Accumulator n _ _ x) ss
+      InitAccumulator (Accumulator n _ x) ss
        |  not (accRead $ accumulatorUsed n ss) || not (accWritten $ accumulatorUsed n ss)
        -> do    n' <- fresh
                 let ss' = Let n' x (killAccumulator n (XVar a_fresh n') ss)
@@ -325,7 +325,7 @@ stmtFreeX statements
           -- We're binding a new expression variable from an accumulator.
           -- The accumulator doesn't matter - but we need to hide n from
           -- the substatement's free variables.
-          Read n _ _ _ _
+          Read n _ _ _
            -> return (Set.delete n subvars)
 
           -- Leaves that use expressions.
@@ -383,9 +383,9 @@ nestBlocks a_fresh statements
   goBlock (InitAccumulator acc inner : baloney : ls) pres
    = do goBlock (InitAccumulator acc (inner <> baloney) : ls) pres
 
-  goBlock (Read nx nacc at vt inner : baloney : ls) pres
+  goBlock (Read nx nacc vt inner : baloney : ls) pres
    = do (nx',inner') <- maybeRename nx baloney inner
-        goBlock (Read nx' nacc at vt (inner' <> baloney) : ls) pres
+        goBlock (Read nx' nacc vt (inner' <> baloney) : ls) pres
 
   goBlock (skip : ls) pres
    = goBlock ls (skip : pres)
@@ -434,7 +434,7 @@ accumulatorUsed acc statements
    , n == acc
    = return (AccumulatorUsage True False)
 
-   | Read _ n _ _ _ <- s
+   | Read _ n _ _ <- s
    , n == acc
    = return (ors r (AccumulatorUsage False True))
 
@@ -447,7 +447,7 @@ killAccumulator acc xx statements
  $ transformUDStmt trans () statements
  where
   trans _ s
-   | Read n acc' _ _ ss <- s
+   | Read n acc' _ ss <- s
    , acc == acc'
    = return ((), Let n xx ss)
    | Write acc' _ <- s

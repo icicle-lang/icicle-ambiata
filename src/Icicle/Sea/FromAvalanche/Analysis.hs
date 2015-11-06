@@ -50,7 +50,7 @@ factVarsOfStatement loopType stmt
                               factVarsOfStatement loopType ee
      ForeachInts  _ _ _ ss -> factVarsOfStatement loopType ss
      InitAccumulator _ ss  -> factVarsOfStatement loopType ss
-     Read _ _ _ _ ss       -> factVarsOfStatement loopType ss
+     Read _ _ _ ss         -> factVarsOfStatement loopType ss
      Write _ _             -> Nothing
      Push  _ _             -> Nothing
      LoadResumable _ _     -> Nothing
@@ -82,7 +82,7 @@ resumablesOfStatement stmt
      ForeachInts  _ _ _ ss -> resumablesOfStatement ss
      ForeachFacts _ _ _ ss -> resumablesOfStatement ss
      InitAccumulator  _ ss -> resumablesOfStatement ss
-     Read _ _ _ _ ss       -> resumablesOfStatement ss
+     Read _ _ _ ss         -> resumablesOfStatement ss
      Write _ _             -> Map.empty
      Push  _ _             -> Map.empty
      Output _ _ _          -> Map.empty
@@ -93,10 +93,10 @@ resumablesOfStatement stmt
 
 ------------------------------------------------------------------------
 
-accumsOfProgram :: Ord n => Program (Annot a) n Prim -> Map (Name n) (AccumulatorType, ValType)
+accumsOfProgram :: Ord n => Program (Annot a) n Prim -> Map (Name n) (ValType)
 accumsOfProgram = accumsOfStatement . statements
 
-accumsOfStatement :: Ord n => Statement (Annot a) n Prim -> Map (Name n) (AccumulatorType, ValType)
+accumsOfStatement :: Ord n => Statement (Annot a) n Prim -> Map (Name n) (ValType)
 accumsOfStatement stmt
  = case stmt of
      Block []              -> Map.empty
@@ -107,7 +107,7 @@ accumsOfStatement stmt
                               accumsOfStatement ee
      ForeachInts  _ _ _ ss -> accumsOfStatement ss
      ForeachFacts _ _ _ ss -> accumsOfStatement ss
-     Read _ _ _ _ ss       -> accumsOfStatement ss
+     Read _ _ _ ss         -> accumsOfStatement ss
      Write _ _             -> Map.empty
      Push  _ _             -> Map.empty
      LoadResumable _ _     -> Map.empty
@@ -115,16 +115,16 @@ accumsOfStatement stmt
      Output _ _ _          -> Map.empty
      KeepFactInHistory     -> Map.empty
 
-     InitAccumulator (Accumulator n at avt _) ss
-      -> Map.singleton n (at, avt) `Map.union`
+     InitAccumulator (Accumulator n avt _) ss
+      -> Map.singleton n avt `Map.union`
          accumsOfStatement ss
 
 ------------------------------------------------------------------------
 
-readsOfProgram :: Ord n => Program (Annot a) n Prim -> Map (Name n) (AccumulatorType, ValType)
+readsOfProgram :: Ord n => Program (Annot a) n Prim -> Map (Name n) (ValType)
 readsOfProgram = readsOfStatement . statements
 
-readsOfStatement :: Ord n => Statement (Annot a) n Prim -> Map (Name n) (AccumulatorType, ValType)
+readsOfStatement :: Ord n => Statement (Annot a) n Prim -> Map (Name n) (ValType)
 readsOfStatement stmt
  = case stmt of
      Block []              -> Map.empty
@@ -143,8 +143,8 @@ readsOfStatement stmt
      Output _ _ _          -> Map.empty
      KeepFactInHistory     -> Map.empty
 
-     Read n _ at vt ss
-      -> Map.singleton n (at, vt) `Map.union`
+     Read n _ vt ss
+      -> Map.singleton n vt `Map.union`
          readsOfStatement ss
 
 ------------------------------------------------------------------------
@@ -164,7 +164,7 @@ outputsOfStatement stmt
      ForeachInts  _ _ _ ss -> outputsOfStatement ss
      ForeachFacts _ _ _ ss -> outputsOfStatement ss
      InitAccumulator _ ss  -> outputsOfStatement ss
-     Read _ _ _ _ ss       -> outputsOfStatement ss
+     Read _ _ _ ss         -> outputsOfStatement ss
      Write _ _             -> Map.empty
      Push  _ _             -> Map.empty
      LoadResumable _ _     -> Map.empty

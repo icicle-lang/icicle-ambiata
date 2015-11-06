@@ -102,13 +102,9 @@ stateWordsOfProgram program
  + 2 * Map.size (resumablesOfProgram program)
 
 defOfAccumulator :: (Show n, Pretty n, Ord n)
-                  => (Name n, (AccumulatorType, ValType)) -> Doc
-defOfAccumulator (n, (at, vt))
- = case at of
-     Mutable
-      -> seaOfValType vt <+> seaOfName n <> semi
-     Latest
-      -> seaError "defOfAccumulator" (n, at, vt)
+                  => (Name n, ValType) -> Doc
+defOfAccumulator (n, vt)
+ = seaOfValType vt <+> seaOfName n <> semi
 
 defOfResumable :: (Show n, Pretty n, Ord n) => (Name n, ValType) -> Doc
 defOfResumable (n, t)
@@ -183,12 +179,11 @@ seaOfStatement stmt
                 ]
 
      InitAccumulator acc stmt'
-      | Accumulator n Mutable _ xx <- acc
+      | Accumulator n _ xx <- acc
       -> assign (seaOfName n) (seaOfExp xx) <> semi <> suffix "init" <> line
       <> seaOfStatement stmt'
 
-     Read n_val n_acc at _ stmt'
-      | Mutable <- at
+     Read n_val n_acc _ stmt'
       -> assign (seaOfName n_val) (seaOfName n_acc) <> semi <> suffix "read" <> line
       <> seaOfStatement stmt'
 

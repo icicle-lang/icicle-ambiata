@@ -44,8 +44,8 @@ constructor a_fresh statements
            -> ret $ Let n (go x) ss
           ForeachInts n from to ss
            -> ret $ ForeachInts n (go from) (go to) ss
-          InitAccumulator (Accumulator n at vt x) ss
-           -> ret $ InitAccumulator (Accumulator n at vt (go x)) ss
+          InitAccumulator (Accumulator n vt x) ss
+           -> ret $ InitAccumulator (Accumulator n vt (go x)) ss
           Write n x
            -> ret $ Write n (go x)
           Push n x
