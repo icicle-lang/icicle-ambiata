@@ -8,12 +8,12 @@ ok, avalanche is now on
 > - Avalanche:
 gen$date = DATE
 {
-  init acc$c$conv$13@{Mutable (Sum Error Int)} = Right 0@{(Sum Error Int)};
-  init acc$conv$30@{Mutable Buf (Sum Error Int)} = Buf 3 []@{Buf (Sum Error Int)};
+  init acc$c$conv$13@{(Sum Error Int)} = Right 0@{(Sum Error Int)};
+  init acc$conv$30@{Buf (Sum Error Int)} = Buf 3 []@{Buf (Sum Error Int)};
   load_resumable@{(Sum Error Int)} acc$c$conv$13;
   load_resumable@{Buf (Sum Error Int)} acc$conv$30;
   for_facts (gen$fact@{((Sum Error Int), DateTime)}) in new {
-    read@{Mutable Buf (Sum Error Int)} acc$conv$30 = acc$conv$30;
+    read@{Buf (Sum Error Int)} acc$conv$30 = acc$conv$30;
     let anf$3 = fst#@{(Sum Error Int), DateTime} gen$fact;
     write acc$conv$30 = Latest_push#@{(Sum Error Int)}
                         acc$conv$30 anf$3;
@@ -31,7 +31,7 @@ gen$date = DATE
         anf$5) {
       let elem$conv$11 = pair#@{(Sum Error Int) ((Sum Error Int), DateTime)} anf$4
                          gen$fact;
-      read@{Mutable (Sum Error Int)} acc$c$conv$13 = acc$c$conv$13;
+      read@{(Sum Error Int)} acc$c$conv$13 = acc$c$conv$13;
       let anf$7 = fst#@{(Sum Error Int), ((Sum Error Int), DateTime)} elem$conv$11;
       write acc$c$conv$13 = Sum_fold#@{(Error
 ,Int)}@{(Sum Error Int)}
@@ -57,8 +57,8 @@ gen$date = DATE
   }
   save_resumable@{(Sum Error Int)} acc$c$conv$13;
   save_resumable@{Buf (Sum Error Int)} acc$conv$30;
-  read@{Mutable (Sum Error Int)} c$conv$13 = acc$c$conv$13;
-  read@{Mutable Buf (Sum Error Int)} conv$30 = acc$conv$30;
+  read@{(Sum Error Int)} c$conv$13 = acc$c$conv$13;
+  read@{Buf (Sum Error Int)} conv$30 = acc$conv$30;
   let conv$35 = Sum_fold#@{(Error
 ,Int)}@{(Sum Error (Int, Array (Sum Error Int)))} (
                 \reify$10$conv$23@{Error} 
@@ -85,10 +85,10 @@ gen$date = DATE
 > - Avalanche:
 gen$date = DATE
 {
-  init acc$conv$2@{Mutable Map DateTime (Buf ((Sum Error Int), DateTime))} = Map []@{Map DateTime (Buf ((Sum Error Int), DateTime))};
+  init acc$conv$2@{Map DateTime (Buf ((Sum Error Int), DateTime))} = Map []@{Map DateTime (Buf ((Sum Error Int), DateTime))};
   load_resumable@{Map DateTime (Buf ((Sum Error Int), DateTime))} acc$conv$2;
   for_facts (gen$fact@{((Sum Error Int), DateTime)}) in new {
-    read@{Mutable Map DateTime (Buf ((Sum Error Int), DateTime))} acc$conv$2 = acc$conv$2;
+    read@{Map DateTime (Buf ((Sum Error Int), DateTime))} acc$conv$2 = acc$conv$2;
     let anf$0 = Latest_push#@{((Sum Error Int), DateTime)}
                 (Buf 2 []@{Buf ((Sum Error Int), DateTime)}) gen$fact;
     let anf$1 = snd#@{(Sum Error Int), DateTime} gen$fact;
@@ -100,7 +100,7 @@ gen$date = DATE
                        acc$conv$2;
   }
   save_resumable@{Map DateTime (Buf ((Sum Error Int), DateTime))} acc$conv$2;
-  read@{Mutable Map DateTime (Buf ((Sum Error Int), DateTime))} conv$2 = acc$conv$2;
+  read@{Map DateTime (Buf ((Sum Error Int), DateTime))} conv$2 = acc$conv$2;
   let conv$3 = Map_fold#@{(DateTime
 ,Buf ((Sum Error Int), DateTime))}@{(Sum Error (Map DateTime Int))} (
                \conv$4@{(Sum Error (Map DateTime Int))} 
