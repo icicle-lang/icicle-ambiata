@@ -122,18 +122,6 @@ checkStatement frag ctx stmt
                requireSame (ProgramErrorWrongType x) t (FunT [] vt)
                return (Write n x')
 
-        Push n x
-         -> do x' <- mapLeft ProgramErrorExp
-                   $ checkExp frag (ctxExp ctx) x
-
-               vt <- maybeToRight (ProgramErrorNoSuchAccumulator n)
-                   $ Map.lookup n $ ctxAcc ctx
-
-               let t = annType (annotOfExp x')
-
-               requireSame (ProgramErrorWrongType x) t (FunT [] vt)
-               return (Push n x')
-
         Output n t xts
          -> do let xs = fmap fst xts
                    ts = fmap snd xts
@@ -212,9 +200,6 @@ statementContext frag ctx stmt
      -> return (ctx { ctxExp = Map.insert n (FunT [] vt) $ ctxExp ctx })
 
     Write _ _
-     -> return ctx
-
-    Push _ _
      -> return ctx
 
     Output _ _ _

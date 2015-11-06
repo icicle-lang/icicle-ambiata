@@ -53,9 +53,6 @@ reannotS f ss
     Write n x
      -> Write n (reannotX f x)
 
-    Push n x
-     -> Push n (reannotX  f x)
-
     Output n vt xs
      -> Output n vt (fmap (first (reannotX f)) xs)
 

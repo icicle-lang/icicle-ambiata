@@ -50,9 +50,6 @@ data Statement a n p
  -- | Update a resumable or windowed fold accumulator,
  -- with Exp : acc
  | Write  (Name n) (Exp a n p)
- -- | Push to a latest accumulator
- -- with Exp : elem
- | Push   (Name n) (Exp a n p)
 
  -- | Emit a value to output
  | Output OutputName ValType [(Exp a n p, ValType)]
@@ -146,8 +143,6 @@ transformUDStmt fun env statements
            -> Read n acc vt <$> go e' ss
           Write n x
            -> return $ Write n x
-          Push n x
-           -> return $ Push n x
           Output n t xs
            -> return $ Output n t xs
           KeepFactInHistory
@@ -195,8 +190,6 @@ foldStmt down up rjoin env res statements
            -> sub1 ss
           Write{}
            -> up e' res s
-          Push{}
-           -> up e' res s
           Output{}
            -> up e' res s
           KeepFactInHistory
@@ -233,8 +226,6 @@ instance TransformX Statement where
       -> Read <$> names n <*> names acc <*> pure vt <*> go ss
      Write n x
       -> Write <$> names n <*> exps x
-     Push n x
-      -> Push <$> names n <*> exps x
 
      Output n ty xs
       -> Output n ty <$> traverse (\(x,t) -> (,) <$> exps x <*> pure t) xs
@@ -300,9 +291,6 @@ instance (Pretty n, Pretty p) => Pretty (Statement a n p) where
 
      Write n x
       -> text "write" <+> pretty n <+> text "=" <+> pretty x <> line
-
-     Push n x
-      -> text "push" <+> pretty n <+> text "=" <+> pretty x
 
      Output n t xs
       -> text "output" <+> pretty n <+> pretty t <+> pretty xs

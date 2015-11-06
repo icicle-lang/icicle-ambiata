@@ -48,8 +48,6 @@ constructor a_fresh statements
            -> ret $ InitAccumulator (Accumulator n vt (go x)) ss
           Write n x
            -> ret $ Write n (go x)
-          Push n x
-           -> ret $ Push n (go x)
           Output n t xts
            | xs <- fmap (go . fst) xts
            , ts <- fmap snd xts

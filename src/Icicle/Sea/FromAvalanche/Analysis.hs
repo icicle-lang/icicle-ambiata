@@ -52,7 +52,6 @@ factVarsOfStatement loopType stmt
      InitAccumulator _ ss  -> factVarsOfStatement loopType ss
      Read _ _ _ ss         -> factVarsOfStatement loopType ss
      Write _ _             -> Nothing
-     Push  _ _             -> Nothing
      LoadResumable _ _     -> Nothing
      SaveResumable _ _     -> Nothing
      Output _ _ _          -> Nothing
@@ -84,7 +83,6 @@ resumablesOfStatement stmt
      InitAccumulator  _ ss -> resumablesOfStatement ss
      Read _ _ _ ss         -> resumablesOfStatement ss
      Write _ _             -> Map.empty
-     Push  _ _             -> Map.empty
      Output _ _ _          -> Map.empty
      KeepFactInHistory     -> Map.empty
 
@@ -109,7 +107,6 @@ accumsOfStatement stmt
      ForeachFacts _ _ _ ss -> accumsOfStatement ss
      Read _ _ _ ss         -> accumsOfStatement ss
      Write _ _             -> Map.empty
-     Push  _ _             -> Map.empty
      LoadResumable _ _     -> Map.empty
      SaveResumable _ _     -> Map.empty
      Output _ _ _          -> Map.empty
@@ -137,7 +134,6 @@ readsOfStatement stmt
      ForeachFacts _ _ _ ss -> readsOfStatement ss
      InitAccumulator _ ss  -> readsOfStatement ss
      Write _ _             -> Map.empty
-     Push  _ _             -> Map.empty
      LoadResumable _ _     -> Map.empty
      SaveResumable _ _     -> Map.empty
      Output _ _ _          -> Map.empty
@@ -166,7 +162,6 @@ outputsOfStatement stmt
      InitAccumulator _ ss  -> outputsOfStatement ss
      Read _ _ _ ss         -> outputsOfStatement ss
      Write _ _             -> Map.empty
-     Push  _ _             -> Map.empty
      LoadResumable _ _     -> Map.empty
      SaveResumable _ _     -> Map.empty
      KeepFactInHistory     -> Map.empty

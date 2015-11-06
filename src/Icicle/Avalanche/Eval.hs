@@ -285,12 +285,6 @@ evalStmt evalPrim now xh values bubblegum ah stmt
             ah' <- updateOrPush ah n v
             return (ah', [])
 
-    -- Push a value to a latest accumulator.
-    Push n x
-     -> do  v   <- eval x >>= baseValue
-            ah' <- updateOrPush ah n v
-            return (ah', [])
-
     Output n t xts
      -> do  vs  <- traverse ((baseValue =<<) . eval . fst) xts
             case (vs, unmeltValue vs t) of

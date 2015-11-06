@@ -52,8 +52,6 @@ pullLets statements
 
       Write n x
        -> pres x $ Write n
-      Push n x
-       -> pres x $ Push n
 
       Output n t xs
        -> presN xs $ Output n t
@@ -150,8 +148,6 @@ substXinS a_fresh name payload statements
 
       Write n x
        -> sub1 x $ Write n
-      Push  n x
-       -> sub1 x $ Push n
 
       Output n t xs
        -> subN xs $ Output n t
@@ -270,8 +266,6 @@ hasEffect statements
    -- unless we're explicitly ignoring this accumulator
    | Write n _ <- s
    = return $ not $ Set.member n ignore
-   | Push  n _ <- s
-   = return $ not $ Set.member n ignore
 
     -- Outputting is an effect
    | Output _ _ _       <- s
@@ -331,8 +325,6 @@ stmtFreeX statements
           -- Leaves that use expressions.
           -- Here, the name is an accumulator variable, so doesn't affect expressions.
           Write _ x
-           -> ret x
-          Push  _ x
            -> ret x
           Output _ _ xs
            -> return (Set.unions (fmap (freevars . fst) xs) `Set.union` subvars)
@@ -430,9 +422,6 @@ accumulatorUsed acc statements
    | Write n _ <- s
    , n == acc
    = return (AccumulatorUsage True False)
-   | Push  n _ <- s
-   , n == acc
-   = return (AccumulatorUsage True False)
 
    | Read _ n _ _ <- s
    , n == acc
@@ -451,9 +440,6 @@ killAccumulator acc xx statements
    , acc == acc'
    = return ((), Let n xx ss)
    | Write acc' _ <- s
-   , acc == acc'
-   = return ((), mempty)
-   | Push acc' _ <- s
    , acc == acc'
    = return ((), mempty)
    | LoadResumable acc' _ <- s
@@ -482,7 +468,6 @@ simpStatementExps a_fresh statements
       Let n x s             -> Let n (goX x) s
       ForeachInts n x1 x2 s -> ForeachInts n (goX x1) (goX x2) s
       Write n x             -> Write n (goX x)
-      Push  n x             -> Push n (goX x)
       InitAccumulator a s   -> InitAccumulator (goA a) s
       Output n t xs         -> Output n t (fmap (first goX) xs)
       _                     -> ss

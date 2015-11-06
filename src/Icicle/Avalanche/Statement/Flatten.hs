@@ -81,11 +81,6 @@ flatten a_fresh s
      $ \x'
      -> return $ Write n x'
 
-    Push n x
-     -> flatX a_fresh x
-     $ \x'
-     -> return $ Push n x'
-
     Output n t xts
      | xs <- fmap fst xts
      , ts <- fmap snd xts

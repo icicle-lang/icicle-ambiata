@@ -88,9 +88,6 @@ statementsToJava ss
     Write n x
      -> acc_name n <> " = " <> expToJava Unboxed x <> ";"
 
-    Push n x
-     -> "icicle.pushLatest(" <> acc_name n <> ", " <> expToJava Boxed x <> ");"
-
     Output n _ _
      -> "icicle.output(" <> stringy n <> ");"
 

@@ -34,7 +34,6 @@ data Scoped a n p
  | ForeachFacts [(Name n, ValType)] ValType S.FactLoopType (Scoped a n p)
  | Block     [Either (Binding a n p) (Scoped a n p)]
  | Write (Name n)    (Exp a n p)
- | Push  (Name n)    (Exp a n p)
  | Output OutputName ValType [(Exp a n p, ValType)]
  | KeepFactInHistory
  | LoadResumable (Name n) ValType
@@ -65,8 +64,6 @@ bindsOfStatement s
      -> concatMap bindsOfStatement ss
     S.Write n x
      -> [Right $ Write n x]
-    S.Push n x
-     -> [Right $ Push n x]
     S.Output n t xs
      -> [Right $ Output n t xs]
     S.KeepFactInHistory
@@ -119,8 +116,6 @@ statementOfScoped s
 
     Write n x
      -> S.Write n x
-    Push n x
-     -> S.Push n x
     Output n t xs
      -> S.Output n t xs
     KeepFactInHistory
@@ -178,9 +173,6 @@ instance (Pretty n, Pretty p) => Pretty (Scoped a n p) where
 
      Write n x
       -> text "write" <+> pretty n <+> text "=" <+> pretty x
-      <> text ";"
-     Push  n x
-      -> text "push" <+> pretty n <> text "(" <> pretty x <> text ")"
       <> text ";"
 
      Output n t xs
