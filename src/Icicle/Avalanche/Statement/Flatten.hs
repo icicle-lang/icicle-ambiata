@@ -73,18 +73,13 @@ flatten a_fresh s
      $ \x'
      -> InitAccumulator (acc { accInit = x' }) <$> flatten a_fresh ss
 
-    Read n m at vt ss
-     -> Read n m at vt <$> flatten a_fresh ss
+    Read n m vt ss
+     -> Read n m vt <$> flatten a_fresh ss
 
     Write n x
      -> flatX a_fresh x
      $ \x'
      -> return $ Write n x'
-
-    Push n x
-     -> flatX a_fresh x
-     $ \x'
-     -> return $ Push n x'
 
     Output n t xts
      | xs <- fmap fst xts
@@ -209,16 +204,16 @@ flatX a_fresh xx stm
              n'map'k     <- fresh
              n'map'v     <- fresh
              n'map'sz    <- fresh
-             let acc'done = Accumulator n'done  Mutable BoolT $ xValue BoolT $ VBool False
-                 acc'map'k= Accumulator n'map'k Mutable (ArrayT tk) (fpMapKeys tk tv `xApp` map')
-                 acc'map'v= Accumulator n'map'v Mutable (ArrayT tv) (fpMapVals tk tv `xApp` map')
+             let acc'done = Accumulator n'done  BoolT $ xValue BoolT $ VBool False
+                 acc'map'k= Accumulator n'map'k (ArrayT tk) (fpMapKeys tk tv `xApp` map')
+                 acc'map'v= Accumulator n'map'v (ArrayT tv) (fpMapVals tk tv `xApp` map')
 
                  x'done   = xVar n'done
                  x'map'k  = xVar n'map'k
                  x'map'v  = xVar n'map'v
 
-                 read'k   = Read n'map'k n'map'k Mutable (ArrayT tk)
-                 read'v   = Read n'map'v n'map'v Mutable (ArrayT tv)
+                 read'k   = Read n'map'k n'map'k (ArrayT tk)
+                 read'v   = Read n'map'v n'map'v (ArrayT tv)
 
                  sz       = xVar n'map'sz -- fpArrLen tk `xApp` x'map'k
                  eq       = xPrim $ Flat.PrimMinimal $ Min.PrimRelation Min.PrimRelationEq tk
@@ -246,7 +241,7 @@ flatX a_fresh xx stm
              n'map'      <- fresh
              stm'        <- stm $ xVar n'map'
 
-             let if_ins   = Read n'done n'done Mutable BoolT
+             let if_ins   = Read n'done n'done BoolT
                           $ If x'done mempty (loop2 <> loop3)
 
                  stm''    = read'k
@@ -298,18 +293,17 @@ flatX a_fresh xx stm
                 stm' <- stm (xVar accN)
 
                 let arrT = ArrayT tb
-                    accT = Mutable
 
                 loop <- forI (fpArrLen ta `xApp` arr')                 $ \iter
-                     -> fmap    (Read accN accN accT arrT)          $
+                     -> fmap    (Read accN accN arrT)                  $
                         slet    (fpArrIx ta `makeApps'` [arr', iter])  $ \elm
                      -> flatX'  (upd `xApp` elm)                    $ \elm'
                      -> slet    (fpArrUpd tb `makeApps'` [xVar accN, iter, elm']) $ \arr''
                      -> return  (Write accN arr'')
 
                 return $ InitAccumulator
-                            (Accumulator accN accT arrT (fpArrNew tb `xApp` (fpArrLen ta `xApp` arr')))
-                            (loop <> Read accN accN accT arrT stm')
+                            (Accumulator accN arrT (fpArrNew tb `xApp` (fpArrLen ta `xApp` arr')))
+                            (loop <> Read accN accN arrT stm')
 
 
        -- Map with wrong arguments
@@ -386,7 +380,7 @@ flatX a_fresh xx stm
 
   -- Update an accumulator
   update acc t x
-   = Read acc acc Mutable t
+   = Read acc acc t
    $ Write acc x
 
 
@@ -405,30 +399,27 @@ flatX a_fresh xx stm
          selse <- flatX' else_ $ (return . Write acc)
          -- Perform if and write result
          let if_ =  If pred' sthen selse
-         let accT = Mutable
          -- After if, read back result from accumulator and then go do the rest of the statements
-         let read_ = Read acc acc accT valT stm'
-         return (InitAccumulator (Accumulator acc accT valT $ xValue valT $ defaultOfType valT) (if_ <> read_))
+         let read_ = Read acc acc valT stm'
+         return (InitAccumulator (Accumulator acc valT $ xValue valT $ defaultOfType valT) (if_ <> read_))
 
   -- Array fold becomes a loop
   flatFold (Core.PrimFoldArray telem) valT [k, z, arr]
    = do accN <- fresh
         stm' <- stm (xVar accN)
 
-        let accT = Mutable
-
         -- Loop body updates accumulator with k function
-        loop <-  flatX' arr                                  $ \arr'
-             ->  forI   (fpArrLen telem `xApp` arr')             $ \iter
-             ->  fmap   (Read accN accN accT valT)           $
+        loop <-  flatX' arr                                       $ \arr'
+             ->  forI   (fpArrLen telem `xApp` arr')              $ \iter
+             ->  fmap   (Read accN accN valT)                     $
                  slet   (fpArrIx  telem `makeApps'` [arr', iter]) $ \elm
-             ->  flatX' (makeApps' k [xVar accN, elm])       $ \x
+             ->  flatX' (makeApps' k [xVar accN, elm])            $ \x
              ->  return (Write accN x)
 
         -- Initialise accumulator with value z, execute loop, read from accumulator
         flatX' z $ \z' ->
-            return (InitAccumulator (Accumulator accN accT valT z')
-                   (loop <> Read accN accN accT valT stm'))
+            return (InitAccumulator (Accumulator accN valT z')
+                   (loop <> Read accN accN valT stm'))
 
 
   -- Fold over map. Very similar to above
@@ -469,10 +460,9 @@ flatX a_fresh xx stm
       ssome <- flatX' (xsome `xApp` (xVar tmp)) $ (return . Write acc)
       snone <- flatX' xnone $ (return . Write acc)
       let if_   = If (fpIsSome ta `xApp` opt') (Let tmp (fpOptionGet ta `xApp` opt') ssome) snone
-          accT  = Mutable
           -- After if, read back result from accumulator and then go do the rest of the statements
-          read_ = Read acc acc accT valT stm'
-      return (InitAccumulator (Accumulator acc accT valT $ xValue valT $ defaultOfType valT) (if_ <> read_))
+          read_ = Read acc acc valT stm'
+      return (InitAccumulator (Accumulator acc valT $ xValue valT $ defaultOfType valT) (if_ <> read_))
 
   -- Fold over an either
   flatFold (Core.PrimFoldSum ta tb) valT [xleft, xright, scrut]
@@ -490,10 +480,9 @@ flatX a_fresh xx stm
          sright  <- flatX' (xright `xApp` (xVar tmp')) $ (return . Write acc)
 
          let if_   = If (fpIsRight `xApp` scrut') (Let tmp' (fpRight `xApp` scrut') sright) (Let tmp (fpLeft `xApp` scrut') sleft)
-             accT  = Mutable
            -- After if, read back result from accumulator and then go do the rest of the statements
-             read_ = Read acc acc accT valT stm'
-         return (InitAccumulator (Accumulator acc accT valT $ xValue valT $ defaultOfType valT) (if_ <> read_))
+             read_ = Read acc acc valT stm'
+         return (InitAccumulator (Accumulator acc valT $ xValue valT $ defaultOfType valT) (if_ <> read_))
 
 
   -- None of the above cases apply, so must be bad arguments
@@ -532,7 +521,7 @@ flatX a_fresh xx stm
             sz'  = xPrim (Flat.PrimMinimal $ Min.PrimArithBinary Min.PrimArithPlus ArithIntT)
                  `makeApps'` [sz, xValue IntT $ VInt 1]
 
-            acc  = Accumulator n'arr Mutable t' (fpArrNew t `xApp` sz')
+            acc  = Accumulator n'arr t' (fpArrNew t `xApp` sz')
 
             get i   = fpArrIx t  `makeApps'` [from, i]
             put i x = fpArrUpd t `makeApps'` [xVar n'arr, i, x]
@@ -542,9 +531,9 @@ flatX a_fresh xx stm
 
         let put' = update n'arr t'
                  $ put sz push
-            read = Read n'arr n'arr Mutable t'
+            read = Read n'arr n'arr t'
                  $ Write n'acc $ xVar n'arr
 
-        return $ Read n'from n'acc Mutable t'
+        return $ Read n'from n'acc t'
                $ InitAccumulator acc (loop <> put' <> read)
 

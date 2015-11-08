@@ -47,14 +47,11 @@ reannotS f ss
     InitAccumulator a s
      -> InitAccumulator (reannotA f a) (reannotS f s)
 
-    Read n1 n2 at vt s
-     -> Read n1 n2 at vt (reannotS f s)
+    Read n1 n2 vt s
+     -> Read n1 n2 vt (reannotS f s)
 
     Write n x
      -> Write n (reannotX f x)
-
-    Push n x
-     -> Push n (reannotX  f x)
 
     Output n vt xs
      -> Output n vt (fmap (first (reannotX f)) xs)

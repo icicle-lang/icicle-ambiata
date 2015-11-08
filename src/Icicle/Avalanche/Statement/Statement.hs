@@ -4,7 +4,6 @@
 module Icicle.Avalanche.Statement.Statement (
     Statement       (..)
   , Accumulator     (..)
-  , AccumulatorType (..)
   , FactLoopType    (..)
   , transformUDStmt
   , foldStmt
@@ -45,15 +44,12 @@ data Statement a n p
  -- As let:
  --      Let  local = accumulator,
  --      Read local = accumulator.
- | Read   (Name n) (Name n) AccumulatorType ValType (Statement a n p)
+ | Read   (Name n) (Name n) ValType (Statement a n p)
 
  -- Leaf nodes
  -- | Update a resumable or windowed fold accumulator,
  -- with Exp : acc
  | Write  (Name n) (Exp a n p)
- -- | Push to a latest accumulator
- -- with Exp : elem
- | Push   (Name n) (Exp a n p)
 
  -- | Emit a value to output
  | Output OutputName ValType [(Exp a n p, ValType)]
@@ -85,25 +81,9 @@ instance Monoid (Statement a n p) where
 data Accumulator a n p
  = Accumulator
  { accName      :: Name n
- , accKind      :: AccumulatorType
  , accValType   :: ValType
  , accInit      :: Exp a n p
  }
- deriving (Eq, Ord, Show)
-
--- | There are three different kinds of reductions,
--- each a different kind of accumulator.
--- Additionally, we have non-core accumulators that don't affect history.
-data AccumulatorType
- -- | Latest N, where the value is not so much updated as a
- -- fact is pushed on
- --
- -- Exp is size/count.
- = Latest
-
- -- | Another kind of accumulator.
- -- Just a mutable variable with no history.
- | Mutable
  deriving (Eq, Ord, Show)
 
 
@@ -159,12 +139,10 @@ transformUDStmt fun env statements
            -> Block <$> mapM (go e') ss
           InitAccumulator acc ss
            -> InitAccumulator acc <$> go e' ss
-          Read n acc at vt ss
-           -> Read n acc at vt <$> go e' ss
+          Read n acc vt ss
+           -> Read n acc vt <$> go e' ss
           Write n x
            -> return $ Write n x
-          Push n x
-           -> return $ Push n x
           Output n t xs
            -> return $ Output n t xs
           KeepFactInHistory
@@ -208,11 +186,9 @@ foldStmt down up rjoin env res statements
                     up e' r' s
           InitAccumulator _ ss
            -> sub1 ss
-          Read _ _ _ _ ss
+          Read _ _ _ ss
            -> sub1 ss
           Write{}
-           -> up e' res s
-          Push{}
            -> up e' res s
           Output{}
            -> up e' res s
@@ -246,12 +222,10 @@ instance TransformX Statement where
      InitAccumulator acc ss
       -> InitAccumulator <$> transformX names exps acc <*> go ss
 
-     Read n acc at vt ss
-      -> Read <$> names n <*> names acc <*> pure at <*> pure vt <*> go ss
+     Read n acc vt ss
+      -> Read <$> names n <*> names acc <*> pure vt <*> go ss
      Write n x
       -> Write <$> names n <*> exps x
-     Push n x
-      -> Push <$> names n <*> exps x
 
      Output n ty xs
       -> Output n ty <$> traverse (\(x,t) -> (,) <$> exps x <*> pure t) xs
@@ -270,10 +244,10 @@ instance TransformX Statement where
 
 
 instance TransformX Accumulator where
- transformX names exps (Accumulator n at t x)
+ transformX names exps (Accumulator n t x)
   = do n' <- names n
        x' <- exps  x
-       return $ Accumulator n' at t x'
+       return $ Accumulator n' t x'
 
 
 -- Pretty printing -------------
@@ -293,9 +267,8 @@ instance (Pretty n, Pretty p) => Pretty (Statement a n p) where
       -> pretty n <+> text "=" <+> pretty x <> line
       <> semisScope stmts
 
-     Read n acc at vt stmts
+     Read n acc vt stmts
       -> text "read" <+> pretty n <+> text "=" <+> pretty acc
-                                               <+> brackets (pretty at)
                                                <+> brackets (pretty vt) <> line
       <> semisScope stmts
 
@@ -318,9 +291,6 @@ instance (Pretty n, Pretty p) => Pretty (Statement a n p) where
 
      Write n x
       -> text "write" <+> pretty n <+> text "=" <+> pretty x <> line
-
-     Push n x
-      -> text "push" <+> pretty n <+> text "=" <+> pretty x
 
      Output n t xs
       -> text "output" <+> pretty n <+> pretty t <+> pretty xs
@@ -351,12 +321,8 @@ instance (Pretty n, Pretty p) => Pretty (Statement a n p) where
 
 
 instance (Pretty n, Pretty p) => Pretty (Accumulator a n p) where
- pretty (Accumulator n at vt x)
-  = annotate (AnnType (pretty at <+> pretty vt)) (pretty n) <+> text "=" <+> pretty x
-
-instance Pretty AccumulatorType where
- pretty Latest  = text "Latest"
- pretty Mutable = text "Mutable"
+ pretty (Accumulator n vt x)
+  = annotate (AnnType (pretty vt)) (pretty n) <+> text "=" <+> pretty x
 
 instance Pretty FactLoopType where
  pretty FactLoopHistory = text "history"

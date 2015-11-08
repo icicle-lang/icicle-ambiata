@@ -26,17 +26,17 @@ ok, c is now on
 > - Flattened:
 gen$date = DATE
 {
-  init acc$s$conv$13$simp$44@{Mutable Bool} = True@{Bool};
-  init acc$s$conv$13$simp$45@{Mutable Error} = ExceptTombstone@{Error};
-  init acc$s$conv$13$simp$46@{Mutable Double} = 0.0@{Double};
-  init acc$c$conv$26$simp$47@{Mutable Bool} = True@{Bool};
-  init acc$c$conv$26$simp$48@{Mutable Error} = ExceptTombstone@{Error};
-  init acc$c$conv$26$simp$49@{Mutable Double} = 0.0@{Double};
-  init acc$a$conv$66$simp$50@{Mutable Bool} = True@{Bool};
-  init acc$a$conv$66$simp$51@{Mutable Error} = ExceptTombstone@{Error};
-  init acc$a$conv$66$simp$52$simp$53$simp$55@{Mutable Double} = 0.0@{Double};
-  init acc$a$conv$66$simp$52$simp$53$simp$56@{Mutable Double} = 0.0@{Double};
-  init acc$a$conv$66$simp$52$simp$54@{Mutable Double} = 0.0@{Double};
+  init acc$s$conv$13$simp$44@{Bool} = True@{Bool};
+  init acc$s$conv$13$simp$45@{Error} = ExceptTombstone@{Error};
+  init acc$s$conv$13$simp$46@{Double} = 0.0@{Double};
+  init acc$c$conv$26$simp$47@{Bool} = True@{Bool};
+  init acc$c$conv$26$simp$48@{Error} = ExceptTombstone@{Error};
+  init acc$c$conv$26$simp$49@{Double} = 0.0@{Double};
+  init acc$a$conv$66$simp$50@{Bool} = True@{Bool};
+  init acc$a$conv$66$simp$51@{Error} = ExceptTombstone@{Error};
+  init acc$a$conv$66$simp$52$simp$53$simp$55@{Double} = 0.0@{Double};
+  init acc$a$conv$66$simp$52$simp$53$simp$56@{Double} = 0.0@{Double};
+  init acc$a$conv$66$simp$52$simp$54@{Double} = 0.0@{Double};
   load_resumable@{Bool} acc$s$conv$13$simp$44;
   load_resumable@{Error} acc$s$conv$13$simp$45;
   load_resumable@{Double} acc$s$conv$13$simp$46;
@@ -53,9 +53,9 @@ gen$date = DATE
              gen$fact$simp$297$simp$301$simp$302@{String},
              gen$fact$simp$297$simp$301$simp$303@{Int},
              gen$fact$simp$298@{DateTime}) in new {
-    init flat$0$simp$57@{Mutable Bool} = False@{Bool};
-    init flat$0$simp$58@{Mutable Error} = ExceptTombstone@{Error};
-    init flat$0$simp$59@{Mutable Int} = 0@{Int};
+    init flat$0$simp$57@{Bool} = False@{Bool};
+    init flat$0$simp$58@{Error} = ExceptTombstone@{Error};
+    init flat$0$simp$59@{Int} = 0@{Int};
     if (gen$fact$simp$297$simp$299) {
       write flat$0$simp$57 = True@{Bool};
       write flat$0$simp$58 = ExceptTombstone@{Error};
@@ -65,12 +65,12 @@ gen$date = DATE
       write flat$0$simp$58 = gen$fact$simp$297$simp$300;
       write flat$0$simp$59 = 0@{Int};
     }
-    read@{Mutable Bool} flat$0$simp$60 = flat$0$simp$57;
-    read@{Mutable Error} flat$0$simp$61 = flat$0$simp$58;
-    read@{Mutable Int} flat$0$simp$62 = flat$0$simp$59;
-    init flat$1$simp$63@{Mutable Bool} = False@{Bool};
-    init flat$1$simp$64@{Mutable Error} = ExceptTombstone@{Error};
-    init flat$1$simp$65@{Mutable Double} = 0.0@{Double};
+    read@{Bool} flat$0$simp$60 = flat$0$simp$57;
+    read@{Error} flat$0$simp$61 = flat$0$simp$58;
+    read@{Int} flat$0$simp$62 = flat$0$simp$59;
+    init flat$1$simp$63@{Bool} = False@{Bool};
+    init flat$1$simp$64@{Error} = ExceptTombstone@{Error};
+    init flat$1$simp$65@{Double} = 0.0@{Double};
     if (flat$0$simp$60) {
       let simp$358 = doubleOfInt#
                      flat$0$simp$62;
@@ -82,12 +82,12 @@ gen$date = DATE
       write flat$1$simp$64 = flat$0$simp$61;
       write flat$1$simp$65 = 0.0@{Double};
     }
-    read@{Mutable Bool} flat$1$simp$66 = flat$1$simp$63;
-    read@{Mutable Error} flat$1$simp$67 = flat$1$simp$64;
-    read@{Mutable Double} flat$1$simp$68 = flat$1$simp$65;
-    init flat$2$simp$69@{Mutable Bool} = False@{Bool};
-    init flat$2$simp$70@{Mutable Error} = ExceptTombstone@{Error};
-    init flat$2$simp$71@{Mutable Double} = 0.0@{Double};
+    read@{Bool} flat$1$simp$66 = flat$1$simp$63;
+    read@{Error} flat$1$simp$67 = flat$1$simp$64;
+    read@{Double} flat$1$simp$68 = flat$1$simp$65;
+    init flat$2$simp$69@{Bool} = False@{Bool};
+    init flat$2$simp$70@{Error} = ExceptTombstone@{Error};
+    init flat$2$simp$71@{Double} = 0.0@{Double};
     if (flat$1$simp$66) {
       write flat$2$simp$69 = True@{Bool};
       write flat$2$simp$70 = ExceptTombstone@{Error};
@@ -97,19 +97,19 @@ gen$date = DATE
       write flat$2$simp$70 = flat$1$simp$67;
       write flat$2$simp$71 = 0.0@{Double};
     }
-    read@{Mutable Bool} flat$2$simp$72 = flat$2$simp$69;
-    read@{Mutable Error} flat$2$simp$73 = flat$2$simp$70;
-    read@{Mutable Double} flat$2$simp$74 = flat$2$simp$71;
-    read@{Mutable Bool} acc$s$conv$13$simp$75 = acc$s$conv$13$simp$44;
-    read@{Mutable Error} acc$s$conv$13$simp$76 = acc$s$conv$13$simp$45;
-    read@{Mutable Double} acc$s$conv$13$simp$77 = acc$s$conv$13$simp$46;
-    init flat$3$simp$78@{Mutable Bool} = False@{Bool};
-    init flat$3$simp$79@{Mutable Error} = ExceptTombstone@{Error};
-    init flat$3$simp$80@{Mutable Double} = 0.0@{Double};
+    read@{Bool} flat$2$simp$72 = flat$2$simp$69;
+    read@{Error} flat$2$simp$73 = flat$2$simp$70;
+    read@{Double} flat$2$simp$74 = flat$2$simp$71;
+    read@{Bool} acc$s$conv$13$simp$75 = acc$s$conv$13$simp$44;
+    read@{Error} acc$s$conv$13$simp$76 = acc$s$conv$13$simp$45;
+    read@{Double} acc$s$conv$13$simp$77 = acc$s$conv$13$simp$46;
+    init flat$3$simp$78@{Bool} = False@{Bool};
+    init flat$3$simp$79@{Error} = ExceptTombstone@{Error};
+    init flat$3$simp$80@{Double} = 0.0@{Double};
     if (flat$2$simp$72) {
-      init flat$6$simp$81@{Mutable Bool} = False@{Bool};
-      init flat$6$simp$82@{Mutable Error} = ExceptTombstone@{Error};
-      init flat$6$simp$83@{Mutable Double} = 0.0@{Double};
+      init flat$6$simp$81@{Bool} = False@{Bool};
+      init flat$6$simp$82@{Error} = ExceptTombstone@{Error};
+      init flat$6$simp$83@{Double} = 0.0@{Double};
       if (acc$s$conv$13$simp$75) {
         write flat$6$simp$81 = True@{Bool};
         let simp$398 = add#@{Double}
@@ -122,9 +122,9 @@ gen$date = DATE
         write flat$6$simp$82 = acc$s$conv$13$simp$76;
         write flat$6$simp$83 = 0.0@{Double};
       }
-      read@{Mutable Bool} flat$6$simp$84 = flat$6$simp$81;
-      read@{Mutable Error} flat$6$simp$85 = flat$6$simp$82;
-      read@{Mutable Double} flat$6$simp$86 = flat$6$simp$83;
+      read@{Bool} flat$6$simp$84 = flat$6$simp$81;
+      read@{Error} flat$6$simp$85 = flat$6$simp$82;
+      read@{Double} flat$6$simp$86 = flat$6$simp$83;
       write flat$3$simp$78 = flat$6$simp$84;
       write flat$3$simp$79 = flat$6$simp$85;
       write flat$3$simp$80 = flat$6$simp$86;
@@ -133,22 +133,22 @@ gen$date = DATE
       write flat$3$simp$79 = flat$2$simp$73;
       write flat$3$simp$80 = 0.0@{Double};
     }
-    read@{Mutable Bool} flat$3$simp$87 = flat$3$simp$78;
-    read@{Mutable Error} flat$3$simp$88 = flat$3$simp$79;
-    read@{Mutable Double} flat$3$simp$89 = flat$3$simp$80;
+    read@{Bool} flat$3$simp$87 = flat$3$simp$78;
+    read@{Error} flat$3$simp$88 = flat$3$simp$79;
+    read@{Double} flat$3$simp$89 = flat$3$simp$80;
     write acc$s$conv$13$simp$44 = flat$3$simp$87;
     write acc$s$conv$13$simp$45 = flat$3$simp$88;
     write acc$s$conv$13$simp$46 = flat$3$simp$89;
-    read@{Mutable Bool} acc$c$conv$26$simp$90 = acc$c$conv$26$simp$47;
-    read@{Mutable Error} acc$c$conv$26$simp$91 = acc$c$conv$26$simp$48;
-    read@{Mutable Double} acc$c$conv$26$simp$92 = acc$c$conv$26$simp$49;
-    init flat$9$simp$93@{Mutable Bool} = False@{Bool};
-    init flat$9$simp$94@{Mutable Error} = ExceptTombstone@{Error};
-    init flat$9$simp$95@{Mutable Double} = 0.0@{Double};
+    read@{Bool} acc$c$conv$26$simp$90 = acc$c$conv$26$simp$47;
+    read@{Error} acc$c$conv$26$simp$91 = acc$c$conv$26$simp$48;
+    read@{Double} acc$c$conv$26$simp$92 = acc$c$conv$26$simp$49;
+    init flat$9$simp$93@{Bool} = False@{Bool};
+    init flat$9$simp$94@{Error} = ExceptTombstone@{Error};
+    init flat$9$simp$95@{Double} = 0.0@{Double};
     if (flat$1$simp$66) {
-      init flat$12$simp$96@{Mutable Bool} = False@{Bool};
-      init flat$12$simp$97@{Mutable Error} = ExceptTombstone@{Error};
-      init flat$12$simp$98@{Mutable Double} = 0.0@{Double};
+      init flat$12$simp$96@{Bool} = False@{Bool};
+      init flat$12$simp$97@{Error} = ExceptTombstone@{Error};
+      init flat$12$simp$98@{Double} = 0.0@{Double};
       if (acc$c$conv$26$simp$90) {
         write flat$12$simp$96 = True@{Bool};
         let simp$437 = add#@{Double}
@@ -160,12 +160,12 @@ gen$date = DATE
         write flat$12$simp$97 = acc$c$conv$26$simp$91;
         write flat$12$simp$98 = 0.0@{Double};
       }
-      read@{Mutable Bool} flat$12$simp$99 = flat$12$simp$96;
-      read@{Mutable Error} flat$12$simp$100 = flat$12$simp$97;
-      read@{Mutable Double} flat$12$simp$101 = flat$12$simp$98;
-      init flat$13$simp$102@{Mutable Bool} = False@{Bool};
-      init flat$13$simp$103@{Mutable Error} = ExceptTombstone@{Error};
-      init flat$13$simp$104@{Mutable Double} = 0.0@{Double};
+      read@{Bool} flat$12$simp$99 = flat$12$simp$96;
+      read@{Error} flat$12$simp$100 = flat$12$simp$97;
+      read@{Double} flat$12$simp$101 = flat$12$simp$98;
+      init flat$13$simp$102@{Bool} = False@{Bool};
+      init flat$13$simp$103@{Error} = ExceptTombstone@{Error};
+      init flat$13$simp$104@{Double} = 0.0@{Double};
       if (flat$12$simp$99) {
         write flat$13$simp$102 = True@{Bool};
         write flat$13$simp$103 = ExceptTombstone@{Error};
@@ -175,9 +175,9 @@ gen$date = DATE
         write flat$13$simp$103 = flat$12$simp$100;
         write flat$13$simp$104 = 0.0@{Double};
       }
-      read@{Mutable Bool} flat$13$simp$105 = flat$13$simp$102;
-      read@{Mutable Error} flat$13$simp$106 = flat$13$simp$103;
-      read@{Mutable Double} flat$13$simp$107 = flat$13$simp$104;
+      read@{Bool} flat$13$simp$105 = flat$13$simp$102;
+      read@{Error} flat$13$simp$106 = flat$13$simp$103;
+      read@{Double} flat$13$simp$107 = flat$13$simp$104;
       write flat$9$simp$93 = flat$13$simp$105;
       write flat$9$simp$94 = flat$13$simp$106;
       write flat$9$simp$95 = flat$13$simp$107;
@@ -186,14 +186,14 @@ gen$date = DATE
       write flat$9$simp$94 = flat$1$simp$67;
       write flat$9$simp$95 = 0.0@{Double};
     }
-    read@{Mutable Bool} flat$9$simp$108 = flat$9$simp$93;
-    read@{Mutable Error} flat$9$simp$109 = flat$9$simp$94;
-    read@{Mutable Double} flat$9$simp$110 = flat$9$simp$95;
+    read@{Bool} flat$9$simp$108 = flat$9$simp$93;
+    read@{Error} flat$9$simp$109 = flat$9$simp$94;
+    read@{Double} flat$9$simp$110 = flat$9$simp$95;
     write acc$c$conv$26$simp$47 = flat$9$simp$108;
     write acc$c$conv$26$simp$48 = flat$9$simp$109;
     write acc$c$conv$26$simp$49 = flat$9$simp$110;
-    init flat$18$simp$111@{Mutable Bool} = False@{Bool};
-    init flat$18$simp$113@{Mutable String} = ""@{String};
+    init flat$18$simp$111@{Bool} = False@{Bool};
+    init flat$18$simp$113@{String} = ""@{String};
     if (gen$fact$simp$297$simp$299) {
       write flat$18$simp$111 = True@{Bool};
       write flat$18$simp$113 = gen$fact$simp$297$simp$301$simp$302;
@@ -201,10 +201,10 @@ gen$date = DATE
       write flat$18$simp$111 = False@{Bool};
       write flat$18$simp$113 = ""@{String};
     }
-    read@{Mutable Bool} flat$18$simp$114 = flat$18$simp$111;
-    read@{Mutable String} flat$18$simp$116 = flat$18$simp$113;
-    init flat$19$simp$117@{Mutable Bool} = False@{Bool};
-    init flat$19$simp$119@{Mutable Bool} = False@{Bool};
+    read@{Bool} flat$18$simp$114 = flat$18$simp$111;
+    read@{String} flat$18$simp$116 = flat$18$simp$113;
+    init flat$19$simp$117@{Bool} = False@{Bool};
+    init flat$19$simp$119@{Bool} = False@{Bool};
     if (flat$18$simp$114) {
       let simp$502 = eq#@{String}
                      flat$18$simp$116 ("torso"@{String});
@@ -214,9 +214,9 @@ gen$date = DATE
       write flat$19$simp$117 = False@{Bool};
       write flat$19$simp$119 = False@{Bool};
     }
-    read@{Mutable Bool} flat$19$simp$120 = flat$19$simp$117;
-    read@{Mutable Bool} flat$19$simp$122 = flat$19$simp$119;
-    init flat$20@{Mutable Bool} = False@{Bool};
+    read@{Bool} flat$19$simp$120 = flat$19$simp$117;
+    read@{Bool} flat$19$simp$122 = flat$19$simp$119;
+    init flat$20@{Bool} = False@{Bool};
     if (flat$19$simp$120) {
       write flat$20 = flat$19$simp$122;
     } 
@@ -224,11 +224,11 @@ gen$date = DATE
       write flat$20 = True@{Bool};
     } 
     
-    read@{Mutable Bool} flat$20 = flat$20;
+    read@{Bool} flat$20 = flat$20;
     if (flat$20) {
-      init flat$21$simp$123@{Mutable Bool} = False@{Bool};
-      init flat$21$simp$124@{Mutable Error} = ExceptTombstone@{Error};
-      init flat$21$simp$125@{Mutable Int} = 0@{Int};
+      init flat$21$simp$123@{Bool} = False@{Bool};
+      init flat$21$simp$124@{Error} = ExceptTombstone@{Error};
+      init flat$21$simp$125@{Int} = 0@{Int};
       if (gen$fact$simp$297$simp$299) {
         write flat$21$simp$123 = True@{Bool};
         write flat$21$simp$124 = ExceptTombstone@{Error};
@@ -238,12 +238,12 @@ gen$date = DATE
         write flat$21$simp$124 = gen$fact$simp$297$simp$300;
         write flat$21$simp$125 = 0@{Int};
       }
-      read@{Mutable Bool} flat$21$simp$126 = flat$21$simp$123;
-      read@{Mutable Error} flat$21$simp$127 = flat$21$simp$124;
-      read@{Mutable Int} flat$21$simp$128 = flat$21$simp$125;
-      init flat$22$simp$129@{Mutable Bool} = False@{Bool};
-      init flat$22$simp$130@{Mutable Error} = ExceptTombstone@{Error};
-      init flat$22$simp$131@{Mutable Double} = 0.0@{Double};
+      read@{Bool} flat$21$simp$126 = flat$21$simp$123;
+      read@{Error} flat$21$simp$127 = flat$21$simp$124;
+      read@{Int} flat$21$simp$128 = flat$21$simp$125;
+      init flat$22$simp$129@{Bool} = False@{Bool};
+      init flat$22$simp$130@{Error} = ExceptTombstone@{Error};
+      init flat$22$simp$131@{Double} = 0.0@{Double};
       if (flat$21$simp$126) {
         let simp$538 = doubleOfInt#
                        flat$21$simp$128;
@@ -255,26 +255,26 @@ gen$date = DATE
         write flat$22$simp$130 = flat$21$simp$127;
         write flat$22$simp$131 = 0.0@{Double};
       }
-      read@{Mutable Bool} flat$22$simp$132 = flat$22$simp$129;
-      read@{Mutable Error} flat$22$simp$133 = flat$22$simp$130;
-      read@{Mutable Double} flat$22$simp$134 = flat$22$simp$131;
-      read@{Mutable Bool} acc$a$conv$66$simp$135 = acc$a$conv$66$simp$50;
-      read@{Mutable Error} acc$a$conv$66$simp$136 = acc$a$conv$66$simp$51;
-      read@{Mutable Double} acc$a$conv$66$simp$137$simp$138$simp$140 = acc$a$conv$66$simp$52$simp$53$simp$55;
-      read@{Mutable Double} acc$a$conv$66$simp$137$simp$138$simp$141 = acc$a$conv$66$simp$52$simp$53$simp$56;
-      read@{Mutable Double} acc$a$conv$66$simp$137$simp$139 = acc$a$conv$66$simp$52$simp$54;
-      init flat$23$simp$142@{Mutable Bool} = False@{Bool};
-      init flat$23$simp$143@{Mutable Error} = ExceptTombstone@{Error};
-      init flat$23$simp$144$simp$145$simp$147@{Mutable Double} = 0.0@{Double};
-      init flat$23$simp$144$simp$145$simp$148@{Mutable Double} = 0.0@{Double};
-      init flat$23$simp$144$simp$146@{Mutable Double} = 0.0@{Double};
+      read@{Bool} flat$22$simp$132 = flat$22$simp$129;
+      read@{Error} flat$22$simp$133 = flat$22$simp$130;
+      read@{Double} flat$22$simp$134 = flat$22$simp$131;
+      read@{Bool} acc$a$conv$66$simp$135 = acc$a$conv$66$simp$50;
+      read@{Error} acc$a$conv$66$simp$136 = acc$a$conv$66$simp$51;
+      read@{Double} acc$a$conv$66$simp$137$simp$138$simp$140 = acc$a$conv$66$simp$52$simp$53$simp$55;
+      read@{Double} acc$a$conv$66$simp$137$simp$138$simp$141 = acc$a$conv$66$simp$52$simp$53$simp$56;
+      read@{Double} acc$a$conv$66$simp$137$simp$139 = acc$a$conv$66$simp$52$simp$54;
+      init flat$23$simp$142@{Bool} = False@{Bool};
+      init flat$23$simp$143@{Error} = ExceptTombstone@{Error};
+      init flat$23$simp$144$simp$145$simp$147@{Double} = 0.0@{Double};
+      init flat$23$simp$144$simp$145$simp$148@{Double} = 0.0@{Double};
+      init flat$23$simp$144$simp$146@{Double} = 0.0@{Double};
       if (acc$a$conv$66$simp$135) {
         let nn$conv$73 = add#@{Double}
                          acc$a$conv$66$simp$137$simp$138$simp$140
                          (1.0@{Double});
-        init flat$26$simp$149@{Mutable Bool} = False@{Bool};
-        init flat$26$simp$150@{Mutable Error} = ExceptTombstone@{Error};
-        init flat$26$simp$151@{Mutable Double} = 0.0@{Double};
+        init flat$26$simp$149@{Bool} = False@{Bool};
+        init flat$26$simp$150@{Error} = ExceptTombstone@{Error};
+        init flat$26$simp$151@{Double} = 0.0@{Double};
         if (flat$22$simp$132) {
           let simp$575 = sub#@{Double}
                          flat$22$simp$134
@@ -287,12 +287,12 @@ gen$date = DATE
           write flat$26$simp$150 = flat$22$simp$133;
           write flat$26$simp$151 = 0.0@{Double};
         }
-        read@{Mutable Bool} flat$26$simp$152 = flat$26$simp$149;
-        read@{Mutable Error} flat$26$simp$153 = flat$26$simp$150;
-        read@{Mutable Double} flat$26$simp$154 = flat$26$simp$151;
-        init flat$27$simp$155@{Mutable Bool} = False@{Bool};
-        init flat$27$simp$156@{Mutable Error} = ExceptTombstone@{Error};
-        init flat$27$simp$157@{Mutable Double} = 0.0@{Double};
+        read@{Bool} flat$26$simp$152 = flat$26$simp$149;
+        read@{Error} flat$26$simp$153 = flat$26$simp$150;
+        read@{Double} flat$26$simp$154 = flat$26$simp$151;
+        init flat$27$simp$155@{Bool} = False@{Bool};
+        init flat$27$simp$156@{Error} = ExceptTombstone@{Error};
+        init flat$27$simp$157@{Double} = 0.0@{Double};
         if (flat$26$simp$152) {
           let simp$590 = div#
                          flat$26$simp$154 nn$conv$73;
@@ -304,12 +304,12 @@ gen$date = DATE
           write flat$27$simp$156 = flat$26$simp$153;
           write flat$27$simp$157 = 0.0@{Double};
         }
-        read@{Mutable Bool} flat$27$simp$158 = flat$27$simp$155;
-        read@{Mutable Error} flat$27$simp$159 = flat$27$simp$156;
-        read@{Mutable Double} flat$27$simp$160 = flat$27$simp$157;
-        init flat$28$simp$161@{Mutable Bool} = False@{Bool};
-        init flat$28$simp$162@{Mutable Error} = ExceptTombstone@{Error};
-        init flat$28$simp$163@{Mutable Double} = 0.0@{Double};
+        read@{Bool} flat$27$simp$158 = flat$27$simp$155;
+        read@{Error} flat$27$simp$159 = flat$27$simp$156;
+        read@{Double} flat$27$simp$160 = flat$27$simp$157;
+        init flat$28$simp$161@{Bool} = False@{Bool};
+        init flat$28$simp$162@{Error} = ExceptTombstone@{Error};
+        init flat$28$simp$163@{Double} = 0.0@{Double};
         if (flat$27$simp$158) {
           write flat$28$simp$161 = True@{Bool};
           let simp$612 = add#@{Double}
@@ -322,20 +322,20 @@ gen$date = DATE
           write flat$28$simp$162 = flat$27$simp$159;
           write flat$28$simp$163 = 0.0@{Double};
         }
-        read@{Mutable Bool} flat$28$simp$164 = flat$28$simp$161;
-        read@{Mutable Error} flat$28$simp$165 = flat$28$simp$162;
-        read@{Mutable Double} flat$28$simp$166 = flat$28$simp$163;
-        init flat$29$simp$167@{Mutable Bool} = False@{Bool};
-        init flat$29$simp$168@{Mutable Error} = ExceptTombstone@{Error};
-        init flat$29$simp$169@{Mutable Double} = 0.0@{Double};
+        read@{Bool} flat$28$simp$164 = flat$28$simp$161;
+        read@{Error} flat$28$simp$165 = flat$28$simp$162;
+        read@{Double} flat$28$simp$166 = flat$28$simp$163;
+        init flat$29$simp$167@{Bool} = False@{Bool};
+        init flat$29$simp$168@{Error} = ExceptTombstone@{Error};
+        init flat$29$simp$169@{Double} = 0.0@{Double};
         if (flat$26$simp$152) {
-          init flat$44$simp$170@{Mutable Bool} = False@{Bool};
-          init flat$44$simp$171@{Mutable Error} = ExceptTombstone@{Error};
-          init flat$44$simp$172@{Mutable Double} = 0.0@{Double};
+          init flat$44$simp$170@{Bool} = False@{Bool};
+          init flat$44$simp$171@{Error} = ExceptTombstone@{Error};
+          init flat$44$simp$172@{Double} = 0.0@{Double};
           if (flat$22$simp$132) {
-            init flat$50$simp$173@{Mutable Bool} = False@{Bool};
-            init flat$50$simp$174@{Mutable Error} = ExceptTombstone@{Error};
-            init flat$50$simp$175@{Mutable Double} = 0.0@{Double};
+            init flat$50$simp$173@{Bool} = False@{Bool};
+            init flat$50$simp$174@{Error} = ExceptTombstone@{Error};
+            init flat$50$simp$175@{Double} = 0.0@{Double};
             if (flat$28$simp$164) {
               let simp$626 = sub#@{Double}
                              flat$22$simp$134
@@ -348,9 +348,9 @@ gen$date = DATE
               write flat$50$simp$174 = flat$28$simp$165;
               write flat$50$simp$175 = 0.0@{Double};
             }
-            read@{Mutable Bool} flat$50$simp$176 = flat$50$simp$173;
-            read@{Mutable Error} flat$50$simp$177 = flat$50$simp$174;
-            read@{Mutable Double} flat$50$simp$178 = flat$50$simp$175;
+            read@{Bool} flat$50$simp$176 = flat$50$simp$173;
+            read@{Error} flat$50$simp$177 = flat$50$simp$174;
+            read@{Double} flat$50$simp$178 = flat$50$simp$175;
             write flat$44$simp$170 = flat$50$simp$176;
             write flat$44$simp$171 = flat$50$simp$177;
             write flat$44$simp$172 = flat$50$simp$178;
@@ -359,12 +359,12 @@ gen$date = DATE
             write flat$44$simp$171 = flat$22$simp$133;
             write flat$44$simp$172 = 0.0@{Double};
           }
-          read@{Mutable Bool} flat$44$simp$179 = flat$44$simp$170;
-          read@{Mutable Error} flat$44$simp$180 = flat$44$simp$171;
-          read@{Mutable Double} flat$44$simp$181 = flat$44$simp$172;
-          init flat$45$simp$182@{Mutable Bool} = False@{Bool};
-          init flat$45$simp$183@{Mutable Error} = ExceptTombstone@{Error};
-          init flat$45$simp$184@{Mutable Double} = 0.0@{Double};
+          read@{Bool} flat$44$simp$179 = flat$44$simp$170;
+          read@{Error} flat$44$simp$180 = flat$44$simp$171;
+          read@{Double} flat$44$simp$181 = flat$44$simp$172;
+          init flat$45$simp$182@{Bool} = False@{Bool};
+          init flat$45$simp$183@{Error} = ExceptTombstone@{Error};
+          init flat$45$simp$184@{Double} = 0.0@{Double};
           if (flat$44$simp$179) {
             write flat$45$simp$182 = True@{Bool};
             let simp$660 = mul#@{Double}
@@ -377,9 +377,9 @@ gen$date = DATE
             write flat$45$simp$183 = flat$44$simp$180;
             write flat$45$simp$184 = 0.0@{Double};
           }
-          read@{Mutable Bool} flat$45$simp$185 = flat$45$simp$182;
-          read@{Mutable Error} flat$45$simp$186 = flat$45$simp$183;
-          read@{Mutable Double} flat$45$simp$187 = flat$45$simp$184;
+          read@{Bool} flat$45$simp$185 = flat$45$simp$182;
+          read@{Error} flat$45$simp$186 = flat$45$simp$183;
+          read@{Double} flat$45$simp$187 = flat$45$simp$184;
           write flat$29$simp$167 = flat$45$simp$185;
           write flat$29$simp$168 = flat$45$simp$186;
           write flat$29$simp$169 = flat$45$simp$187;
@@ -388,12 +388,12 @@ gen$date = DATE
           write flat$29$simp$168 = flat$26$simp$153;
           write flat$29$simp$169 = 0.0@{Double};
         }
-        read@{Mutable Bool} flat$29$simp$188 = flat$29$simp$167;
-        read@{Mutable Error} flat$29$simp$189 = flat$29$simp$168;
-        read@{Mutable Double} flat$29$simp$190 = flat$29$simp$169;
-        init flat$30$simp$191@{Mutable Bool} = False@{Bool};
-        init flat$30$simp$192@{Mutable Error} = ExceptTombstone@{Error};
-        init flat$30$simp$193@{Mutable Double} = 0.0@{Double};
+        read@{Bool} flat$29$simp$188 = flat$29$simp$167;
+        read@{Error} flat$29$simp$189 = flat$29$simp$168;
+        read@{Double} flat$29$simp$190 = flat$29$simp$169;
+        init flat$30$simp$191@{Bool} = False@{Bool};
+        init flat$30$simp$192@{Error} = ExceptTombstone@{Error};
+        init flat$30$simp$193@{Double} = 0.0@{Double};
         if (flat$29$simp$188) {
           write flat$30$simp$191 = True@{Bool};
           let simp$693 = add#@{Double}
@@ -406,13 +406,13 @@ gen$date = DATE
           write flat$30$simp$192 = flat$29$simp$189;
           write flat$30$simp$193 = 0.0@{Double};
         }
-        read@{Mutable Bool} flat$30$simp$194 = flat$30$simp$191;
-        read@{Mutable Error} flat$30$simp$195 = flat$30$simp$192;
-        read@{Mutable Double} flat$30$simp$196 = flat$30$simp$193;
-        init flat$31$simp$197@{Mutable Bool} = False@{Bool};
-        init flat$31$simp$198@{Mutable Error} = ExceptTombstone@{Error};
-        init flat$31$simp$199$simp$200@{Mutable Double} = 0.0@{Double};
-        init flat$31$simp$199$simp$201@{Mutable Double} = 0.0@{Double};
+        read@{Bool} flat$30$simp$194 = flat$30$simp$191;
+        read@{Error} flat$30$simp$195 = flat$30$simp$192;
+        read@{Double} flat$30$simp$196 = flat$30$simp$193;
+        init flat$31$simp$197@{Bool} = False@{Bool};
+        init flat$31$simp$198@{Error} = ExceptTombstone@{Error};
+        init flat$31$simp$199$simp$200@{Double} = 0.0@{Double};
+        init flat$31$simp$199$simp$201@{Double} = 0.0@{Double};
         if (flat$28$simp$164) {
           write flat$31$simp$197 = True@{Bool};
           write flat$31$simp$198 = ExceptTombstone@{Error};
@@ -424,21 +424,21 @@ gen$date = DATE
           write flat$31$simp$199$simp$200 = 0.0@{Double};
           write flat$31$simp$199$simp$201 = 0.0@{Double};
         }
-        read@{Mutable Bool} flat$31$simp$202 = flat$31$simp$197;
-        read@{Mutable Error} flat$31$simp$203 = flat$31$simp$198;
-        read@{Mutable Double} flat$31$simp$204$simp$205 = flat$31$simp$199$simp$200;
-        read@{Mutable Double} flat$31$simp$204$simp$206 = flat$31$simp$199$simp$201;
-        init flat$32$simp$207@{Mutable Bool} = False@{Bool};
-        init flat$32$simp$208@{Mutable Error} = ExceptTombstone@{Error};
-        init flat$32$simp$209$simp$210$simp$212@{Mutable Double} = 0.0@{Double};
-        init flat$32$simp$209$simp$210$simp$213@{Mutable Double} = 0.0@{Double};
-        init flat$32$simp$209$simp$211@{Mutable Double} = 0.0@{Double};
+        read@{Bool} flat$31$simp$202 = flat$31$simp$197;
+        read@{Error} flat$31$simp$203 = flat$31$simp$198;
+        read@{Double} flat$31$simp$204$simp$205 = flat$31$simp$199$simp$200;
+        read@{Double} flat$31$simp$204$simp$206 = flat$31$simp$199$simp$201;
+        init flat$32$simp$207@{Bool} = False@{Bool};
+        init flat$32$simp$208@{Error} = ExceptTombstone@{Error};
+        init flat$32$simp$209$simp$210$simp$212@{Double} = 0.0@{Double};
+        init flat$32$simp$209$simp$210$simp$213@{Double} = 0.0@{Double};
+        init flat$32$simp$209$simp$211@{Double} = 0.0@{Double};
         if (flat$31$simp$202) {
-          init flat$35$simp$214@{Mutable Bool} = False@{Bool};
-          init flat$35$simp$215@{Mutable Error} = ExceptTombstone@{Error};
-          init flat$35$simp$216$simp$217$simp$219@{Mutable Double} = 0.0@{Double};
-          init flat$35$simp$216$simp$217$simp$220@{Mutable Double} = 0.0@{Double};
-          init flat$35$simp$216$simp$218@{Mutable Double} = 0.0@{Double};
+          init flat$35$simp$214@{Bool} = False@{Bool};
+          init flat$35$simp$215@{Error} = ExceptTombstone@{Error};
+          init flat$35$simp$216$simp$217$simp$219@{Double} = 0.0@{Double};
+          init flat$35$simp$216$simp$217$simp$220@{Double} = 0.0@{Double};
+          init flat$35$simp$216$simp$218@{Double} = 0.0@{Double};
           if (flat$30$simp$194) {
             write flat$35$simp$214 = True@{Bool};
             write flat$35$simp$215 = ExceptTombstone@{Error};
@@ -452,11 +452,11 @@ gen$date = DATE
             write flat$35$simp$216$simp$217$simp$220 = 0.0@{Double};
             write flat$35$simp$216$simp$218 = 0.0@{Double};
           }
-          read@{Mutable Bool} flat$35$simp$221 = flat$35$simp$214;
-          read@{Mutable Error} flat$35$simp$222 = flat$35$simp$215;
-          read@{Mutable Double} flat$35$simp$223$simp$224$simp$226 = flat$35$simp$216$simp$217$simp$219;
-          read@{Mutable Double} flat$35$simp$223$simp$224$simp$227 = flat$35$simp$216$simp$217$simp$220;
-          read@{Mutable Double} flat$35$simp$223$simp$225 = flat$35$simp$216$simp$218;
+          read@{Bool} flat$35$simp$221 = flat$35$simp$214;
+          read@{Error} flat$35$simp$222 = flat$35$simp$215;
+          read@{Double} flat$35$simp$223$simp$224$simp$226 = flat$35$simp$216$simp$217$simp$219;
+          read@{Double} flat$35$simp$223$simp$224$simp$227 = flat$35$simp$216$simp$217$simp$220;
+          read@{Double} flat$35$simp$223$simp$225 = flat$35$simp$216$simp$218;
           write flat$32$simp$207 = flat$35$simp$221;
           write flat$32$simp$208 = flat$35$simp$222;
           write flat$32$simp$209$simp$210$simp$212 = flat$35$simp$223$simp$224$simp$226;
@@ -469,11 +469,11 @@ gen$date = DATE
           write flat$32$simp$209$simp$210$simp$213 = 0.0@{Double};
           write flat$32$simp$209$simp$211 = 0.0@{Double};
         }
-        read@{Mutable Bool} flat$32$simp$228 = flat$32$simp$207;
-        read@{Mutable Error} flat$32$simp$229 = flat$32$simp$208;
-        read@{Mutable Double} flat$32$simp$230$simp$231$simp$233 = flat$32$simp$209$simp$210$simp$212;
-        read@{Mutable Double} flat$32$simp$230$simp$231$simp$234 = flat$32$simp$209$simp$210$simp$213;
-        read@{Mutable Double} flat$32$simp$230$simp$232 = flat$32$simp$209$simp$211;
+        read@{Bool} flat$32$simp$228 = flat$32$simp$207;
+        read@{Error} flat$32$simp$229 = flat$32$simp$208;
+        read@{Double} flat$32$simp$230$simp$231$simp$233 = flat$32$simp$209$simp$210$simp$212;
+        read@{Double} flat$32$simp$230$simp$231$simp$234 = flat$32$simp$209$simp$210$simp$213;
+        read@{Double} flat$32$simp$230$simp$232 = flat$32$simp$209$simp$211;
         write flat$23$simp$142 = flat$32$simp$228;
         write flat$23$simp$143 = flat$32$simp$229;
         write flat$23$simp$144$simp$145$simp$147 = flat$32$simp$230$simp$231$simp$233;
@@ -486,11 +486,11 @@ gen$date = DATE
         write flat$23$simp$144$simp$145$simp$148 = 0.0@{Double};
         write flat$23$simp$144$simp$146 = 0.0@{Double};
       }
-      read@{Mutable Bool} flat$23$simp$235 = flat$23$simp$142;
-      read@{Mutable Error} flat$23$simp$236 = flat$23$simp$143;
-      read@{Mutable Double} flat$23$simp$237$simp$238$simp$240 = flat$23$simp$144$simp$145$simp$147;
-      read@{Mutable Double} flat$23$simp$237$simp$238$simp$241 = flat$23$simp$144$simp$145$simp$148;
-      read@{Mutable Double} flat$23$simp$237$simp$239 = flat$23$simp$144$simp$146;
+      read@{Bool} flat$23$simp$235 = flat$23$simp$142;
+      read@{Error} flat$23$simp$236 = flat$23$simp$143;
+      read@{Double} flat$23$simp$237$simp$238$simp$240 = flat$23$simp$144$simp$145$simp$147;
+      read@{Double} flat$23$simp$237$simp$238$simp$241 = flat$23$simp$144$simp$145$simp$148;
+      read@{Double} flat$23$simp$237$simp$239 = flat$23$simp$144$simp$146;
       write acc$a$conv$66$simp$50 = flat$23$simp$235;
       write acc$a$conv$66$simp$51 = flat$23$simp$236;
       write acc$a$conv$66$simp$52$simp$53$simp$55 = flat$23$simp$237$simp$238$simp$240;
@@ -509,23 +509,23 @@ gen$date = DATE
   save_resumable@{Double} acc$a$conv$66$simp$52$simp$53$simp$55;
   save_resumable@{Double} acc$a$conv$66$simp$52$simp$53$simp$56;
   save_resumable@{Double} acc$a$conv$66$simp$52$simp$54;
-  read@{Mutable Bool} s$conv$13$simp$242 = acc$s$conv$13$simp$44;
-  read@{Mutable Error} s$conv$13$simp$243 = acc$s$conv$13$simp$45;
-  read@{Mutable Double} s$conv$13$simp$244 = acc$s$conv$13$simp$46;
-  read@{Mutable Bool} c$conv$26$simp$245 = acc$c$conv$26$simp$47;
-  read@{Mutable Error} c$conv$26$simp$246 = acc$c$conv$26$simp$48;
-  read@{Mutable Double} c$conv$26$simp$247 = acc$c$conv$26$simp$49;
-  read@{Mutable Bool} a$conv$66$simp$248 = acc$a$conv$66$simp$50;
-  read@{Mutable Error} a$conv$66$simp$249 = acc$a$conv$66$simp$51;
-  read@{Mutable Double} a$conv$66$simp$250$simp$251$simp$253 = acc$a$conv$66$simp$52$simp$53$simp$55;
-  read@{Mutable Double} a$conv$66$simp$250$simp$252 = acc$a$conv$66$simp$52$simp$54;
-  init flat$75$simp$255@{Mutable Bool} = False@{Bool};
-  init flat$75$simp$256@{Mutable Error} = ExceptTombstone@{Error};
-  init flat$75$simp$257@{Mutable Double} = 0.0@{Double};
+  read@{Bool} s$conv$13$simp$242 = acc$s$conv$13$simp$44;
+  read@{Error} s$conv$13$simp$243 = acc$s$conv$13$simp$45;
+  read@{Double} s$conv$13$simp$244 = acc$s$conv$13$simp$46;
+  read@{Bool} c$conv$26$simp$245 = acc$c$conv$26$simp$47;
+  read@{Error} c$conv$26$simp$246 = acc$c$conv$26$simp$48;
+  read@{Double} c$conv$26$simp$247 = acc$c$conv$26$simp$49;
+  read@{Bool} a$conv$66$simp$248 = acc$a$conv$66$simp$50;
+  read@{Error} a$conv$66$simp$249 = acc$a$conv$66$simp$51;
+  read@{Double} a$conv$66$simp$250$simp$251$simp$253 = acc$a$conv$66$simp$52$simp$53$simp$55;
+  read@{Double} a$conv$66$simp$250$simp$252 = acc$a$conv$66$simp$52$simp$54;
+  init flat$75$simp$255@{Bool} = False@{Bool};
+  init flat$75$simp$256@{Error} = ExceptTombstone@{Error};
+  init flat$75$simp$257@{Double} = 0.0@{Double};
   if (s$conv$13$simp$242) {
-    init flat$90$simp$258@{Mutable Bool} = False@{Bool};
-    init flat$90$simp$259@{Mutable Error} = ExceptTombstone@{Error};
-    init flat$90$simp$260@{Mutable Double} = 0.0@{Double};
+    init flat$90$simp$258@{Bool} = False@{Bool};
+    init flat$90$simp$259@{Error} = ExceptTombstone@{Error};
+    init flat$90$simp$260@{Double} = 0.0@{Double};
     if (c$conv$26$simp$245) {
       let conv$39 = div#
                     s$conv$13$simp$244
@@ -538,9 +538,9 @@ gen$date = DATE
       write flat$90$simp$259 = c$conv$26$simp$246;
       write flat$90$simp$260 = 0.0@{Double};
     }
-    read@{Mutable Bool} flat$90$simp$261 = flat$90$simp$258;
-    read@{Mutable Error} flat$90$simp$262 = flat$90$simp$259;
-    read@{Mutable Double} flat$90$simp$263 = flat$90$simp$260;
+    read@{Bool} flat$90$simp$261 = flat$90$simp$258;
+    read@{Error} flat$90$simp$262 = flat$90$simp$259;
+    read@{Double} flat$90$simp$263 = flat$90$simp$260;
     write flat$75$simp$255 = flat$90$simp$261;
     write flat$75$simp$256 = flat$90$simp$262;
     write flat$75$simp$257 = flat$90$simp$263;
@@ -549,16 +549,16 @@ gen$date = DATE
     write flat$75$simp$256 = s$conv$13$simp$243;
     write flat$75$simp$257 = 0.0@{Double};
   }
-  read@{Mutable Bool} flat$75$simp$264 = flat$75$simp$255;
-  read@{Mutable Error} flat$75$simp$265 = flat$75$simp$256;
-  read@{Mutable Double} flat$75$simp$266 = flat$75$simp$257;
-  init flat$76$simp$267@{Mutable Bool} = False@{Bool};
-  init flat$76$simp$268@{Mutable Error} = ExceptTombstone@{Error};
-  init flat$76$simp$269@{Mutable Double} = 0.0@{Double};
+  read@{Bool} flat$75$simp$264 = flat$75$simp$255;
+  read@{Error} flat$75$simp$265 = flat$75$simp$256;
+  read@{Double} flat$75$simp$266 = flat$75$simp$257;
+  init flat$76$simp$267@{Bool} = False@{Bool};
+  init flat$76$simp$268@{Error} = ExceptTombstone@{Error};
+  init flat$76$simp$269@{Double} = 0.0@{Double};
   if (flat$75$simp$264) {
-    init flat$79$simp$270@{Mutable Bool} = False@{Bool};
-    init flat$79$simp$271@{Mutable Error} = ExceptTombstone@{Error};
-    init flat$79$simp$272@{Mutable Double} = 0.0@{Double};
+    init flat$79$simp$270@{Bool} = False@{Bool};
+    init flat$79$simp$271@{Error} = ExceptTombstone@{Error};
+    init flat$79$simp$272@{Double} = 0.0@{Double};
     if (a$conv$66$simp$248) {
       let conv$121 = sub#@{Double}
                      a$conv$66$simp$250$simp$251$simp$253
@@ -574,12 +574,12 @@ gen$date = DATE
       write flat$79$simp$271 = a$conv$66$simp$249;
       write flat$79$simp$272 = 0.0@{Double};
     }
-    read@{Mutable Bool} flat$79$simp$273 = flat$79$simp$270;
-    read@{Mutable Error} flat$79$simp$274 = flat$79$simp$271;
-    read@{Mutable Double} flat$79$simp$275 = flat$79$simp$272;
-    init flat$80$simp$276@{Mutable Bool} = False@{Bool};
-    init flat$80$simp$277@{Mutable Error} = ExceptTombstone@{Error};
-    init flat$80$simp$278@{Mutable Double} = 0.0@{Double};
+    read@{Bool} flat$79$simp$273 = flat$79$simp$270;
+    read@{Error} flat$79$simp$274 = flat$79$simp$271;
+    read@{Double} flat$79$simp$275 = flat$79$simp$272;
+    init flat$80$simp$276@{Bool} = False@{Bool};
+    init flat$80$simp$277@{Error} = ExceptTombstone@{Error};
+    init flat$80$simp$278@{Double} = 0.0@{Double};
     if (flat$79$simp$273) {
       let conv$134 = pow#@{Double}
                      flat$79$simp$275 (0.5@{Double});
@@ -591,12 +591,12 @@ gen$date = DATE
       write flat$80$simp$277 = flat$79$simp$274;
       write flat$80$simp$278 = 0.0@{Double};
     }
-    read@{Mutable Bool} flat$80$simp$279 = flat$80$simp$276;
-    read@{Mutable Error} flat$80$simp$280 = flat$80$simp$277;
-    read@{Mutable Double} flat$80$simp$281 = flat$80$simp$278;
-    init flat$81$simp$282@{Mutable Bool} = False@{Bool};
-    init flat$81$simp$283@{Mutable Error} = ExceptTombstone@{Error};
-    init flat$81$simp$284@{Mutable Double} = 0.0@{Double};
+    read@{Bool} flat$80$simp$279 = flat$80$simp$276;
+    read@{Error} flat$80$simp$280 = flat$80$simp$277;
+    read@{Double} flat$80$simp$281 = flat$80$simp$278;
+    init flat$81$simp$282@{Bool} = False@{Bool};
+    init flat$81$simp$283@{Error} = ExceptTombstone@{Error};
+    init flat$81$simp$284@{Double} = 0.0@{Double};
     if (flat$80$simp$279) {
       let conv$141 = mul#@{Double}
                      flat$75$simp$266
@@ -609,9 +609,9 @@ gen$date = DATE
       write flat$81$simp$283 = flat$80$simp$280;
       write flat$81$simp$284 = 0.0@{Double};
     }
-    read@{Mutable Bool} flat$81$simp$285 = flat$81$simp$282;
-    read@{Mutable Error} flat$81$simp$286 = flat$81$simp$283;
-    read@{Mutable Double} flat$81$simp$287 = flat$81$simp$284;
+    read@{Bool} flat$81$simp$285 = flat$81$simp$282;
+    read@{Error} flat$81$simp$286 = flat$81$simp$283;
+    read@{Double} flat$81$simp$287 = flat$81$simp$284;
     write flat$76$simp$267 = flat$81$simp$285;
     write flat$76$simp$268 = flat$81$simp$286;
     write flat$76$simp$269 = flat$81$simp$287;
@@ -620,9 +620,9 @@ gen$date = DATE
     write flat$76$simp$268 = flat$75$simp$265;
     write flat$76$simp$269 = 0.0@{Double};
   }
-  read@{Mutable Bool} flat$76$simp$288 = flat$76$simp$267;
-  read@{Mutable Error} flat$76$simp$289 = flat$76$simp$268;
-  read@{Mutable Double} flat$76$simp$290 = flat$76$simp$269;
+  read@{Bool} flat$76$simp$288 = flat$76$simp$267;
+  read@{Error} flat$76$simp$289 = flat$76$simp$268;
+  read@{Double} flat$76$simp$290 = flat$76$simp$269;
   output@{(Sum Error Double)} repl (flat$76$simp$288@{Bool},
                flat$76$simp$289@{Error},
                flat$76$simp$290@{Double});
@@ -1611,9 +1611,9 @@ void compute(icicle_state_t *s)
 > - Flattened:
 gen$date = DATE
 {
-  init acc$s$reify$2$conv$5$simp$4@{Mutable Bool} = False@{Bool};
-  init acc$s$reify$2$conv$5$simp$5@{Mutable Error} = ExceptFold1NoValue@{Error};
-  init acc$s$reify$2$conv$5$simp$6@{Mutable DateTime} = 1858-11-17@{DateTime};
+  init acc$s$reify$2$conv$5$simp$4@{Bool} = False@{Bool};
+  init acc$s$reify$2$conv$5$simp$5@{Error} = ExceptFold1NoValue@{Error};
+  init acc$s$reify$2$conv$5$simp$6@{DateTime} = 1858-11-17@{DateTime};
   load_resumable@{Bool} acc$s$reify$2$conv$5$simp$4;
   load_resumable@{Error} acc$s$reify$2$conv$5$simp$5;
   load_resumable@{DateTime} acc$s$reify$2$conv$5$simp$6;
@@ -1626,14 +1626,14 @@ gen$date = DATE
     let anf$14 = negate#@{Int} anf$13;
     let anf$15 = DateTime_minusDays#
                  (2000-01-01@{DateTime}) anf$14;
-    read@{Mutable Bool} acc$s$reify$2$conv$5$simp$7 = acc$s$reify$2$conv$5$simp$4;
-    read@{Mutable Error} acc$s$reify$2$conv$5$simp$8 = acc$s$reify$2$conv$5$simp$5;
-    read@{Mutable DateTime} acc$s$reify$2$conv$5$simp$9 = acc$s$reify$2$conv$5$simp$6;
-    init flat$0$simp$10@{Mutable Bool} = False@{Bool};
-    init flat$0$simp$11@{Mutable Error} = ExceptTombstone@{Error};
-    init flat$0$simp$12@{Mutable DateTime} = 1858-11-17@{DateTime};
+    read@{Bool} acc$s$reify$2$conv$5$simp$7 = acc$s$reify$2$conv$5$simp$4;
+    read@{Error} acc$s$reify$2$conv$5$simp$8 = acc$s$reify$2$conv$5$simp$5;
+    read@{DateTime} acc$s$reify$2$conv$5$simp$9 = acc$s$reify$2$conv$5$simp$6;
+    init flat$0$simp$10@{Bool} = False@{Bool};
+    init flat$0$simp$11@{Error} = ExceptTombstone@{Error};
+    init flat$0$simp$12@{DateTime} = 1858-11-17@{DateTime};
     if (acc$s$reify$2$conv$5$simp$7) {
-      init flat$4@{Mutable DateTime} = 1858-11-17@{DateTime};
+      init flat$4@{DateTime} = 1858-11-17@{DateTime};
       if (gt#@{DateTime} anf$15
           acc$s$reify$2$conv$5$simp$9) {
         write flat$4 = anf$15;
@@ -1642,14 +1642,14 @@ gen$date = DATE
         write flat$4 = acc$s$reify$2$conv$5$simp$9;
       } 
       
-      read@{Mutable DateTime} flat$4 = flat$4;
+      read@{DateTime} flat$4 = flat$4;
       write flat$0$simp$10 = True@{Bool};
       write flat$0$simp$11 = ExceptTombstone@{Error};
       write flat$0$simp$12 = flat$4;
     } else {
-      init flat$3$simp$13@{Mutable Bool} = False@{Bool};
-      init flat$3$simp$14@{Mutable Error} = ExceptTombstone@{Error};
-      init flat$3$simp$15@{Mutable DateTime} = 1858-11-17@{DateTime};
+      init flat$3$simp$13@{Bool} = False@{Bool};
+      init flat$3$simp$14@{Error} = ExceptTombstone@{Error};
+      init flat$3$simp$15@{DateTime} = 1858-11-17@{DateTime};
       if (eq#@{Error} (ExceptFold1NoValue@{Error})
           acc$s$reify$2$conv$5$simp$8) {
         write flat$3$simp$13 = True@{Bool};
@@ -1660,16 +1660,16 @@ gen$date = DATE
         write flat$3$simp$14 = acc$s$reify$2$conv$5$simp$8;
         write flat$3$simp$15 = 1858-11-17@{DateTime};
       }
-      read@{Mutable Bool} flat$3$simp$16 = flat$3$simp$13;
-      read@{Mutable Error} flat$3$simp$17 = flat$3$simp$14;
-      read@{Mutable DateTime} flat$3$simp$18 = flat$3$simp$15;
+      read@{Bool} flat$3$simp$16 = flat$3$simp$13;
+      read@{Error} flat$3$simp$17 = flat$3$simp$14;
+      read@{DateTime} flat$3$simp$18 = flat$3$simp$15;
       write flat$0$simp$10 = flat$3$simp$16;
       write flat$0$simp$11 = flat$3$simp$17;
       write flat$0$simp$12 = flat$3$simp$18;
     }
-    read@{Mutable Bool} flat$0$simp$19 = flat$0$simp$10;
-    read@{Mutable Error} flat$0$simp$20 = flat$0$simp$11;
-    read@{Mutable DateTime} flat$0$simp$21 = flat$0$simp$12;
+    read@{Bool} flat$0$simp$19 = flat$0$simp$10;
+    read@{Error} flat$0$simp$20 = flat$0$simp$11;
+    read@{DateTime} flat$0$simp$21 = flat$0$simp$12;
     write acc$s$reify$2$conv$5$simp$4 = flat$0$simp$19;
     write acc$s$reify$2$conv$5$simp$5 = flat$0$simp$20;
     write acc$s$reify$2$conv$5$simp$6 = flat$0$simp$21;
@@ -1677,9 +1677,9 @@ gen$date = DATE
   save_resumable@{Bool} acc$s$reify$2$conv$5$simp$4;
   save_resumable@{Error} acc$s$reify$2$conv$5$simp$5;
   save_resumable@{DateTime} acc$s$reify$2$conv$5$simp$6;
-  read@{Mutable Bool} s$reify$2$conv$5$simp$22 = acc$s$reify$2$conv$5$simp$4;
-  read@{Mutable Error} s$reify$2$conv$5$simp$23 = acc$s$reify$2$conv$5$simp$5;
-  read@{Mutable DateTime} s$reify$2$conv$5$simp$24 = acc$s$reify$2$conv$5$simp$6;
+  read@{Bool} s$reify$2$conv$5$simp$22 = acc$s$reify$2$conv$5$simp$4;
+  read@{Error} s$reify$2$conv$5$simp$23 = acc$s$reify$2$conv$5$simp$5;
+  read@{DateTime} s$reify$2$conv$5$simp$24 = acc$s$reify$2$conv$5$simp$6;
   output@{(Sum Error DateTime)} repl (s$reify$2$conv$5$simp$22@{Bool},
                s$reify$2$conv$5$simp$23@{Error},
                s$reify$2$conv$5$simp$24@{DateTime});

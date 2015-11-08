@@ -24,7 +24,7 @@ import              Icicle.Data         (AsAt(..))
 import              P
 
 import              Data.Either.Combinators
-import              Data.List   (take, sort, zip)
+import              Data.List   (zip)
 import qualified    Data.Map    as Map
 
 import              Icicle.Internal.Pretty
@@ -38,12 +38,7 @@ data AccumulatorHeap n
 
 -- | The value of an accumulator
 data AccumulatorValue
- -- | Accumulator storing latest N values
- -- Stored in reverse so we can just cons or take it
- = AVLatest Int [BaseValue]
-
- -- | A mutable value with no history attached
- | AVMutable BaseValue
+ = AVMutable BaseValue
  deriving (Eq, Ord, Show)
 
 
@@ -97,56 +92,32 @@ baseValue v
  = getBaseValue (RuntimeErrorNotBaseValue v) v
 
 
--- | Update value or push value to an accumulator, taking care of history
+-- | Update accumulator value, taking care of history
 updateOrPush
         :: Ord n
         => AccumulatorHeap n
         -> Name n
-        -> Maybe BubbleGumFact
         -> BaseValue
         -> Either (RuntimeError a n p) (AccumulatorHeap n)
 
-updateOrPush heap n bg v
+updateOrPush heap n v
  = do   let map          = accumulatorHeapMap heap
 
         let replace map' = return
                          $ heap { accumulatorHeapMap = map' }
 
-        v' <- maybeToRight (RuntimeErrorNoAccumulator n)
+        -- Just make sure it exists
+        _ <- maybeToRight (RuntimeErrorNoAccumulator n)
                            (Map.lookup n map)
-        case v' of
-         (bgs, AVLatest num vs)
-          -> replace
-           $ Map.insert n
-           ( take num (insbgs bgs)
-           , AVLatest num (take num (v : vs)) ) map
-         (_, AVMutable _)
-          -> replace
-           $ Map.insert n ([], AVMutable v) map
- where
-  insbgs bgs
-   = case bg of
-      Nothing  -> bgs
-      Just bg' -> bg' : bgs
-
+        replace $ Map.insert n ([], AVMutable v) map
 
 -- | For each accumulator value, get the history information
 bubbleGumOutputOfAccumulatorHeap
         :: Ord n
         => AccumulatorHeap n
         -> [BubbleGumOutput n (BaseValue)]
-
 bubbleGumOutputOfAccumulatorHeap acc
- = bubbleGumNubOutputs
- (accumulatorHeapMarked acc <> concatMap mk (Map.toList $ accumulatorHeapMap acc))
- where
-  mk (_, (bgs, AVLatest _ _))
-   = [BubbleGumFacts $ sort $ fmap flav bgs]
-  mk (_, (_, AVMutable _))
-   = []
-
-  flav (BubbleGumFact f) = f
-
+ = bubbleGumNubOutputs (accumulatorHeapMarked acc)
 
 -- | Evaluate an entire program
 -- with given primitive evaluator and values
@@ -181,7 +152,7 @@ initAcc :: Ord n
         -> Accumulator a n p
         -> Either (RuntimeError a n p) (Name n, ([BubbleGumFact], AccumulatorValue))
 
-initAcc evalPrim env (Accumulator n at _ x)
+initAcc evalPrim env (Accumulator n _ x)
  = do av <- getValue
       -- There is no history yet, just a value
       return (n, ([], av))
@@ -192,20 +163,7 @@ initAcc evalPrim env (Accumulator n at _ x)
         baseValue v
 
   getValue
-   = case at of
-     -- Start with initial value.
-     Mutable
-      -> AVMutable <$> ev
-     Latest
-            -- Figure out how many latest to store,
-            -- but nothing is stored yet
-      -> do v    <- ev
-            case v of
-             VInt i
-              -> return $ AVLatest i []
-             _
-              -> Left (RuntimeErrorAccumulatorLatestNotInt v)
-
+   = AVMutable <$> ev
 
 -- | Evaluate a single statement for a single value
 evalStmt
@@ -312,13 +270,11 @@ evalStmt evalPrim now xh values bubblegum ah stmt
            go xh (ah { accumulatorHeapMap = map' }) stmts
 
     -- Read from an accumulator
-    Read n acc _ _ stmts
+    Read n acc _ stmts
      -> do  -- Get the current value and apply the function
             v   <- case Map.lookup acc $ accumulatorHeapMap ah of
                     Just (_, AVMutable vacc)
                      -> return $ VBase vacc
-                    Just (_, AVLatest _ vals)
-                     -> return $ VBase $ VArray $ reverse vals
                     _
                      -> Left (RuntimeErrorLoopAccumulatorBad acc)
             go (Map.insert n v xh) ah stmts
@@ -326,13 +282,7 @@ evalStmt evalPrim now xh values bubblegum ah stmt
     -- Update accumulator
     Write n x
      -> do  v   <- eval x >>= baseValue
-            ah' <- updateOrPush ah n bubblegum v
-            return (ah', [])
-
-    -- Push a value to a latest accumulator.
-    Push n x
-     -> do  v   <- eval x >>= baseValue
-            ah' <- updateOrPush ah n bubblegum v
+            ah' <- updateOrPush ah n v
             return (ah', [])
 
     Output n t xts
@@ -367,8 +317,6 @@ evalStmt evalPrim now xh values bubblegum ah stmt
      -> do  v   <- case Map.lookup acc $ accumulatorHeapMap ah of
                     Just (_, AVMutable vacc)
                      -> return $ vacc
-                    Just (_, AVLatest _ vals)
-                     -> return $ VArray $ reverse vals
                     _
                      -> Left (RuntimeErrorLoopAccumulatorBad acc)
             return (ah { accumulatorHeapMarked = BubbleGumReduction acc v : accumulatorHeapMarked ah }, [])

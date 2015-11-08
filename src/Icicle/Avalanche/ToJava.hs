@@ -88,9 +88,6 @@ statementsToJava ss
     Write n x
      -> acc_name n <> " = " <> expToJava Unboxed x <> ";"
 
-    Push n x
-     -> "icicle.pushLatest(" <> acc_name n <> ", " <> expToJava Boxed x <> ");"
-
     Output n _ _
      -> "icicle.output(" <> stringy n <> ");"
 
@@ -111,24 +108,14 @@ statementsToJava ss
 bindingToJava :: (Show a, Show n, Pretty n, Ord n) => Binding (Annot a) n Prim -> Doc
 bindingToJava bb
  = case bb of
-    InitAccumulator acc@(S.Accumulator { S.accKind = S.Latest })
-     -> "Latest" <> angled (boxedType $ S.accValType acc)
-     <+> (acc_name $ S.accName acc)
-     <> " = icicle."
-     <> "makeLatest"
-     <> "(" <> expToJava Unboxed (S.accInit acc) <> ");"
-
-    InitAccumulator acc@(S.Accumulator { S.accKind = S.Mutable })
+    InitAccumulator acc@(S.Accumulator{})
      -> unboxedType (S.accValType acc) <+> (acc_name $ S.accName acc)
      <> " = " <> expToJava Unboxed (S.accInit acc) <> ";"
 
     Let n x
      -> local (typeOfExp x) n <> " = " <> expToJava Unboxed x <> ";"
 
-    Read n acc S.Latest t
-     -> local (ArrayT t) n <> " = icicle.readLatest(" <> acc_name acc <> ");"
-
-    Read n acc S.Mutable t
+    Read n acc t
      -> local t n <> " = " <> acc_name acc <> ";"
 
 
