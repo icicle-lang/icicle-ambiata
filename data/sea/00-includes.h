@@ -37,3 +37,6 @@ STATIC_ASSERT(sizeof (void *) == sizeof (uint64_t), icicle_only_supports_systems
 #else
 #   define ICICLE_WHEN_DEBUG(code)
 #endif
+
+#define ICICLE_FUNCTION extern "C"
+
