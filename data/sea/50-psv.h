@@ -226,11 +226,11 @@ void psv_snapshot (psv_snapshot_t *s)
 
 
 /* generated code */
-typedef struct istate {
+struct istate {
     iint_t   new_count;
     iint_t  *new_fact;
     idate_t *new_date;
-} istate_t;
+};
 
 static void psv_read_value
   ( istate_t     *state
