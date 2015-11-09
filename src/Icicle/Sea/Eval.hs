@@ -6,14 +6,21 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TupleSections #-}
 module Icicle.Sea.Eval (
-    SeaState
+    MemPool
+  , PsvState
+  , SeaState
+  , SeaFleet (..)
   , SeaProgram (..)
   , SeaError (..)
+
   , seaCompile
   , seaEval
+  , seaPsvSnapshot
   , seaRelease
+
   , seaEvalAvalanche
-  , assemblyOfProgram
+
+  , assemblyOfPrograms
   , compilerOptions
   ) where
 
@@ -21,7 +28,10 @@ import           Control.Monad.Catch (MonadMask(..))
 import           Control.Monad.IO.Class (MonadIO(..))
 import           Control.Monad.Trans.Either (EitherT(..), hoistEither, left)
 
+import qualified Data.List as List
+import           Data.Map (Map)
 import qualified Data.Map as Map
+import           Data.String (String)
 import           Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Vector.Storable as V
@@ -29,11 +39,11 @@ import           Data.Vector.Storable.Mutable (IOVector)
 import qualified Data.Vector.Storable.Mutable as MV
 import           Data.Word (Word64)
 
-import           Foreign.C.String (newCString, peekCString)
+import           Foreign.C.String (CString, newCString, peekCString)
 import           Foreign.ForeignPtr (ForeignPtr, touchForeignPtr, castForeignPtr)
 import           Foreign.ForeignPtr.Unsafe (unsafeForeignPtrToPtr)
 import           Foreign.Marshal (mallocBytes, free)
-import           Foreign.Ptr (Ptr, WordPtr, ptrToWordPtr, wordPtrToPtr)
+import           Foreign.Ptr (Ptr, WordPtr, ptrToWordPtr, wordPtrToPtr, castPtr, nullPtr)
 import           Foreign.Storable (Storable(..))
 
 import           Icicle.Avalanche.Prim.Flat (Prim)
@@ -43,19 +53,20 @@ import           Icicle.Common.Annot (Annot)
 import           Icicle.Common.Base
 import           Icicle.Common.Data (asAtValueToCore, valueFromCore)
 import           Icicle.Common.Type (ValType(..), StructType(..), defaultOfType)
+import           Icicle.Data (Attribute(..))
 import qualified Icicle.Data as D
 import           Icicle.Data.DateTime (packedOfDate, dateOfPacked)
 import           Icicle.Internal.Pretty ((<+>), pretty, text, vsep)
 import           Icicle.Internal.Pretty (Doc, Pretty, displayS, renderPretty)
 import           Icicle.Sea.FromAvalanche.Analysis (factVarsOfProgram, outputsOfProgram)
-import           Icicle.Sea.FromAvalanche.Program (seaOfProgram, stateWordsOfProgram)
+import           Icicle.Sea.FromAvalanche.Program (seaOfProgram, programName, stateWordsOfProgram)
 import           Icicle.Sea.Preamble (seaPreamble)
 
 import           Jetski
 
 import           P hiding (count)
 
-import           System.IO (IO)
+import           System.IO (IO, FilePath)
 import           System.IO.Unsafe (unsafePerformIO)
 
 import           X.Control.Monad.Catch (bracketEitherT')
@@ -63,16 +74,24 @@ import           X.Control.Monad.Trans.Either (firstEitherT)
 
 ------------------------------------------------------------------------
 
+data MemPool
+data PsvState
 data SeaState
 
+data SeaFleet = SeaFleet {
+    sfLibrary     :: Library
+  , sfPrograms    :: Map Attribute SeaProgram
+  , sfCreatePool  :: Ptr MemPool  -> IO ()
+  , sfReleasePool :: Ptr MemPool  -> IO ()
+  , sfPsvSnapshot :: Ptr PsvState -> IO ()
+  }
+
 data SeaProgram = SeaProgram {
-    seaLibrary     :: Library
-  , seaFactType    :: ValType
-  , seaStateWords  :: Int
-  , seaOutputs     :: [(OutputName, (ValType, [ValType]))]
-  , seaCompute     :: Ptr SeaState -> IO ()
-  , seaCreatePool  :: Ptr SeaState -> IO ()
-  , seaReleasePool :: Ptr SeaState -> IO ()
+    spName        :: Int
+  , spStateWords  :: Int
+  , spFactType    :: ValType
+  , spOutputs     :: [(OutputName, (ValType, [ValType]))]
+  , spCompute     :: Ptr SeaState -> IO ()
   }
 
 data SeaMVector
@@ -90,6 +109,8 @@ instance Show SeaMVector where
 
 data SeaError
   = SeaJetskiError              JetskiError
+  | SeaPsvError                 Text
+  | SeaProgramNotFound          Attribute
   | SeaFactConversionError      [D.AsAt D.Value] ValType
   | SeaBaseValueConversionError BaseValue (Maybe ValType)
   | SeaTypeConversionError      ValType
@@ -118,31 +139,78 @@ instance Pretty SeaError where
     SeaNoOutputs
      -> text "No outputs"
 
+    SeaProgramNotFound attr
+     -> text "Program for attribute \"" <> pretty attr <> "\" not found"
+
     SeaJetskiError (CompilerError _ _ stderr)
      -> pretty stderr
 
     SeaJetskiError je
      -> pretty (show je)
 
+    SeaPsvError pe
+     -> pretty pe
+
 ------------------------------------------------------------------------
 
-seaEvalAvalanche :: (Show a, Show n, Pretty n, Ord n)
-        => Program (Annot a) n Prim
-        -> D.DateTime
-        -> [D.AsAt D.Value]
-        -> EitherT SeaError IO [(OutputName, D.Value)]
+seaPsvSnapshot :: SeaFleet -> FilePath -> FilePath -> EitherT SeaError IO ()
+seaPsvSnapshot fleet input output =
+  withWords   3      $ \pState  ->
+  withCString input  $ \pInput  ->
+  withCString output $ \pOutput -> do
 
-seaEvalAvalanche program date values =
-  bracketEitherT' (seaCompile program) seaRelease (\sea -> seaEval sea date values)
+  pokeWordOff pState 0 pInput
+  pokeWordOff pState 1 pOutput
 
-seaEval :: (MonadIO m, MonadMask m)
-       => SeaProgram
-       -> D.DateTime
-       -> [D.AsAt D.Value]
-       -> EitherT SeaError m [(OutputName, D.Value)]
-seaEval program date values = do
-  let words              = seaStateWords program
-      acquireFacts       = vectorsOfFacts values (seaFactType program)
+  liftIO (sfPsvSnapshot fleet pState)
+
+  pError <- peekWordOff pState 2
+
+  when (pError /= nullPtr) $ do
+    msg <- liftIO (peekCString pError)
+    left (SeaPsvError (T.pack msg))
+
+  return ()
+
+------------------------------------------------------------------------
+
+seaEvalAvalanche
+  :: (Show a, Show n, Pretty n, Ord n)
+  => Program (Annot a) n Prim
+  -> D.DateTime
+  -> [D.AsAt D.Value]
+  -> EitherT SeaError IO [(OutputName, D.Value)]
+seaEvalAvalanche program date values = do
+  let attr = Attribute "eval"
+      ps   = Map.singleton attr program
+  bracketEitherT' (seaCompile ps) seaRelease (\fleet -> seaEval attr fleet date values)
+
+seaEval
+  :: (MonadIO m, MonadMask m)
+  => Attribute
+  -> SeaFleet
+  -> D.DateTime
+  -> [D.AsAt D.Value]
+  -> EitherT SeaError m [(OutputName, D.Value)]
+seaEval attribute fleet date values =
+  case Map.lookup attribute (sfPrograms fleet) of
+    Nothing      -> left (SeaProgramNotFound attribute)
+    Just program -> do
+      let create  = liftIO . sfCreatePool  fleet
+          release = liftIO . sfReleasePool fleet
+      seaEval' program create release date values
+
+seaEval'
+  :: (MonadIO m, MonadMask m)
+  => SeaProgram
+  -> (Ptr MemPool -> EitherT SeaError m ())
+  -> (Ptr MemPool -> EitherT SeaError m ())
+  -> D.DateTime
+  -> [D.AsAt D.Value]
+  -> EitherT SeaError m [(OutputName, D.Value)]
+seaEval' program createPool releasePool date values = do
+  let words              = spStateWords program
+      acquireFacts       = vectorsOfFacts values (spFactType program)
       releaseFacts facts = traverse_ freeSeaVector facts
 
   bracketEitherT' acquireFacts releaseFacts $ \facts -> do
@@ -155,21 +223,16 @@ seaEval program date values = do
         factsIx    = 5
         outputsIx  = 5 + length psFacts
 
-    -- clear the pState struct
-    forM_ [0..(words-1)] $ \off ->
-      pokeWordOff pState off (0 :: Word64)
-
     pokeWordOff pState dateIx  (packedOfDate date)
     pokeWordOff pState countIx (fromIntegral count :: Int64)
 
     zipWithM_ (pokeWordOff pState) [factsIx..] psFacts
 
-    let acquirePool   = liftIO (seaCreatePool  program pState)
-        releasePool _ = liftIO (seaReleasePool program pState)
+    let pMemPool = castPtr pState
 
-    bracketEitherT' acquirePool releasePool $ \_ -> do
-      _       <- liftIO (seaCompute program pState)
-      outputs <- peekOutputs pState outputsIx (seaOutputs program)
+    bracketEitherT' (createPool pMemPool) (const $ releasePool pMemPool) $ \_ -> do
+      _       <- liftIO (spCompute program pState)
+      outputs <- peekOutputs pState outputsIx (spOutputs program)
       hoistEither (traverse (\(k,v) -> (,) <$> pure k <*> valueFromCore' v) outputs)
 
 valueFromCore' :: BaseValue -> Either SeaError D.Value
@@ -178,38 +241,56 @@ valueFromCore' v =
 
 ------------------------------------------------------------------------
 
-seaCompile :: (MonadIO m, MonadMask m, Functor m)
-           => (Show a, Show n, Pretty n, Ord n)
-           => Program (Annot a) n Prim
-           -> EitherT SeaError m SeaProgram
-seaCompile program = do
-  let code    = codeOfProgram program
-      words   = stateWordsOfProgram program
+seaCompile
+  :: (MonadIO m, MonadMask m, Functor m)
+  => (Show a, Show n, Pretty n, Ord n)
+  => Map Attribute (Program (Annot a) n Prim)
+  -> EitherT SeaError m SeaFleet
+seaCompile programs = do
+  let code = codeOfPrograms . fmap (first D.getAttribute) $ Map.toList programs
+
+  lib             <- firstEitherT SeaJetskiError (compileLibrary compilerOptions code)
+  imempool_create <- firstEitherT SeaJetskiError (function lib "imempool_create" retVoid)
+  imempool_free   <- firstEitherT SeaJetskiError (function lib "imempool_free"   retVoid)
+  psv_snapshot    <- firstEitherT SeaJetskiError (function lib "psv_snapshot"    retVoid)
+
+  compiled <- zipWithM (mkSeaProgram lib) [0..] (Map.elems programs)
+
+  return SeaFleet {
+      sfLibrary     = lib
+    , sfPrograms    = Map.fromList (List.zip (Map.keys programs) compiled)
+    , sfCreatePool  = \ptr -> imempool_create [argPtr ptr]
+    , sfReleasePool = \ptr -> imempool_free   [argPtr ptr]
+    , sfPsvSnapshot = \ptr -> psv_snapshot    [argPtr ptr]
+    }
+
+mkSeaProgram
+  :: (MonadIO m, MonadMask m, Functor m, Ord n)
+  => Library
+  -> Int
+  -> Program (Annot a) n Prim
+  -> EitherT SeaError m SeaProgram
+mkSeaProgram lib name program = do
+  let words   = stateWordsOfProgram program
       outputs = outputsOfProgram program
 
   factType <- case factVarsOfProgram FactLoopNew program of
                 Nothing     -> left SeaNoFactLoop
                 Just (t, _) -> return t
 
-  lib <- firstEitherT SeaJetskiError (compileLibrary compilerOptions code)
-
-  compute         <- firstEitherT SeaJetskiError (function lib "compute"         retVoid)
-  imempool_create <- firstEitherT SeaJetskiError (function lib "imempool_create" retVoid)
-  imempool_free   <- firstEitherT SeaJetskiError (function lib "imempool_free"   retVoid)
+  compute <- firstEitherT SeaJetskiError (function lib (programName name) retVoid)
 
   return SeaProgram {
-      seaLibrary     = lib
-    , seaFactType    = factType
-    , seaStateWords  = words
-    , seaOutputs     = outputs
-    , seaCompute     = \ptr -> compute         [argPtr ptr]
-    , seaCreatePool  = \ptr -> imempool_create [argPtr ptr]
-    , seaReleasePool = \ptr -> imempool_free   [argPtr ptr]
+      spName       = name
+    , spStateWords = words
+    , spFactType   = factType
+    , spOutputs    = outputs
+    , spCompute    = \ptr -> compute [argPtr ptr]
     }
 
-seaRelease :: MonadIO m => SeaProgram -> m ()
-seaRelease program =
-  releaseLibrary (seaLibrary program)
+seaRelease :: MonadIO m => SeaFleet -> m ()
+seaRelease fleet =
+  releaseLibrary (sfLibrary fleet)
 
 compilerOptions :: [CompilerOption]
 compilerOptions =
@@ -219,13 +300,21 @@ compilerOptions =
   , "-fPIC"         -- 🌏  position independent code, required on Linux
   ]
 
-assemblyOfProgram :: (Show a, Show n, Pretty n, Ord n) => Program (Annot a) n Prim -> EitherT SeaError IO Text
-assemblyOfProgram program = do
-  let code = codeOfProgram program
+assemblyOfPrograms
+  :: (Show a, Show n, Pretty n, Ord n)
+  => [(Text, Program (Annot a) n Prim)]
+  -> EitherT SeaError IO Text
+assemblyOfPrograms programs = do
+  let code = codeOfPrograms programs
   firstEitherT SeaJetskiError (compileAssembly compilerOptions code)
 
-codeOfProgram :: (Show a, Show n, Pretty n, Ord n) => Program (Annot a) n Prim -> Text
-codeOfProgram program = textOfDoc (vsep [seaPreamble, seaOfProgram program])
+codeOfPrograms
+  :: (Show a, Show n, Pretty n, Ord n)
+  => [(Text, Program (Annot a) n Prim)]
+  -> Text
+codeOfPrograms programs = do
+  let docs = List.zipWith (\ix (info,p) -> seaOfProgram ix info p) [0..] programs
+  textOfDoc . vsep $ [seaPreamble] <> docs
 
 textOfDoc :: Doc -> Text
 textOfDoc doc = T.pack (displayS (renderPretty 0.8 80 (pretty doc)) "")
@@ -507,10 +596,18 @@ withForeignPtr fp io = do
   pure x
 
 withWords :: (MonadIO m, MonadMask m) => Int -> (Ptr a -> EitherT SeaError m b) -> EitherT SeaError m b
-withWords n = bracketEitherT' (mallocWords n) (liftIO . free)
+withWords n io =
+  bracketEitherT' (mallocWords n) (liftIO . free) $ \ptr -> do
+    forM_ [0..(n-1)] $ \off ->
+      pokeWordOff ptr off (0 :: Word64)
+    io ptr
 
 mallocWords :: MonadIO m => Int -> m (Ptr a)
 mallocWords n = liftIO (mallocBytes (n*8))
+
+withCString :: (MonadIO m, MonadMask m) => String -> (CString -> EitherT SeaError m a) -> EitherT SeaError m a
+withCString str io =
+  bracketEitherT' (liftIO (newCString str)) (liftIO . free) io
 
 freeWordPtr :: MonadIO m => WordPtr -> m ()
 freeWordPtr wp = do

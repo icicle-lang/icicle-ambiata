@@ -2,7 +2,8 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE PatternGuards #-}
 module Icicle.Core.Program.Fusion (
-    fusePrograms
+    FusionError (..)
+  , fusePrograms
   , fuseMultiple
   ) where
 

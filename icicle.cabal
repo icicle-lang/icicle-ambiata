@@ -241,6 +241,20 @@ executable             icicle-repl
                      , wl-pprint
                      , parsec
 
+executable             icicle-bench
+    ghc-options:       -Wall -threaded -O2
+    main-is:           main/icicle-bench.hs
+    build-depends:     base
+                     , ambiata-jetski
+                     , ambiata-p
+                     , ambiata-x-either
+                     , ambiata-x-exception
+                     , icicle
+                     , containers                      == 0.5.*
+                     , parsec                          == 3.1.*
+                     , text                            == 1.2.*
+                     , transformers                    >= 0.3        && < 0.5
+
 test-suite test
   type:                exitcode-stdio-1.0
 
