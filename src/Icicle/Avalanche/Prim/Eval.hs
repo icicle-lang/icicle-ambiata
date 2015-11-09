@@ -12,7 +12,6 @@ import Icicle.Common.Value
 import Icicle.Avalanche.Prim.Flat
 
 import              P
-import              Data.List (lookup, zip, zipWith)
 
 import qualified    Data.List as List
 import qualified    Data.Map  as Map
@@ -27,6 +26,21 @@ evalPrim p vs
      PrimProject (PrimProjectArrayLength _)
       | [VBase (VArray var)]    <- vs
       -> return $ VBase $ VInt $ length var
+      | otherwise
+      -> primError
+
+     PrimProject (PrimProjectMapLength _ _)
+      | [VBase (VMap var)]    <- vs
+      -> return $ VBase $ VInt $ Map.size var
+      | otherwise
+      -> primError
+
+     PrimProject (PrimProjectMapLookup _ _)
+      | [VBase (VMap map), VBase key]    <- vs
+      -> return
+       $ VBase
+       $ maybe VNone VSome
+       $ Map.lookup key map
       | otherwise
       -> primError
 
@@ -68,7 +82,7 @@ evalPrim p vs
      -- TODO: give better errors here - at least that an unsafe went wrong
      PrimUnsafe (PrimUnsafeArrayIndex _)
       | [VBase (VArray var), VBase (VInt ix)]  <- vs
-      , Just v <- lookup ix (zip [0..] var)
+      , Just v <- List.lookup ix (List.zip [0..] var)
       -> return $ VBase $ v
       | otherwise
       -> primError
@@ -106,46 +120,31 @@ evalPrim p vs
       | otherwise
       -> primError
 
+     PrimUnsafe (PrimUnsafeMapIndex _ _)
+      | [VBase (VMap map), VBase (VInt ix)] <- vs
+      , Just (k,v) <- List.lookup ix (List.zip [0..] $ Map.toList map)
+      -> return $ VBase $ VPair k v
+      | otherwise
+      -> primError
+
 
      PrimUpdate (PrimUpdateArrayPut _)
       | [VBase (VArray varr), VBase (VInt ix), VBase v]  <- vs
       -> return $ VBase
        $ VArray [ if i == ix then v else u
-                | (i,u) <- zip [0..] varr ]
+                | (i,u) <- List.zip [0..] varr ]
       | otherwise
       -> primError
 
-
-     PrimArray (PrimArrayZip _ _)
-      | [VBase (VArray arr1), VBase (VArray arr2)]  <- vs
+     PrimUpdate (PrimUpdateMapPut _ _)
+      | [VBase (VMap map), VBase k, VBase v]  <- vs
       -> return $ VBase
-       $ VArray (zipWith VPair arr1 arr2)
+       $ VMap
+       $ Map.insert k v map
       | otherwise
       -> primError
 
-     PrimArray (PrimArrayUnzip _ _)
-      | [VBase (VArray arr)] <- vs
-      -> do (arr1, arr2)     <- foldM uz mempty arr
-            return . VBase $ VPair (VArray $ reverse arr1)
-                                   (VArray $ reverse arr2)
-      | otherwise
-      -> primError
 
-     PrimArray (PrimArraySum _ _)
-      | [VBase (VArray arr), VBase (VArray arr1), VBase (VArray arr2)]  <- vs
-      -> do arr' <- zipWithM pick arr (zip arr1 arr2)
-            return . VBase . VArray $ arr'
-      | otherwise
-      -> primError
-
-     PrimArray (PrimArrayUnsum tl tr)
-      | [VBase (VArray arr)]   <- vs
-      -> do (arr0, arr1, arr2) <- foldM (us tl tr) mempty arr
-            return . VBase $ VPair (VArray $ reverse arr0)
-                                   (VPair (VArray $ reverse arr1)
-                                           (VArray $ reverse arr2))
-      | otherwise
-      -> primError
 
 
      PrimPack (PrimOptionPack _)
@@ -171,21 +170,6 @@ evalPrim p vs
       | otherwise
       -> primError
 
-     PrimMap (PrimMapPack _ _)
-      | [VBase (VArray ks), VBase (VArray vals)] <- vs
-      -> return $ VBase $ VMap $ Map.fromList $ List.zip ks vals
-      | otherwise
-      -> primError
-     PrimMap (PrimMapUnpackKeys _ _)
-      | [VBase (VMap m)] <- vs
-      -> return $ VBase $ VArray $ Map.keys m
-      | otherwise
-      -> primError
-     PrimMap (PrimMapUnpackValues _ _)
-      | [VBase (VMap m)] <- vs
-      -> return $ VBase $ VArray $ Map.elems m
-      | otherwise
-      -> primError
  where
   circ n x xs
    | length xs < n
@@ -193,29 +177,8 @@ evalPrim p vs
    | otherwise
    = List.drop 1 (xs <> [x])
 
-  uz (fs, ss) (VPair f s)
-   = return (f     : fs, s     : ss)
-  uz _ _
-   = primError
-
-  us _ tr (bs, ls, rs) (VLeft l)
-   = return ( VBool  False     : bs
-            , l                : ls
-            , defaultOfType tr : rs )
-  us tl _ (bs, ls, rs) (VRight r)
-   = return ( VBool  True      : bs
-            , defaultOfType tl : ls
-            , r                : rs )
-  us _ _ _ _
-   = primError
-
   primError
    = Left $ RuntimeErrorPrimBadArgs p vs
-
-  pick (VBool b) (l,r)
-   = return $ if b then VRight r else VLeft l
-  pick _ _
-   = primError
 
   unpack (VBase x)    = Just x
   unpack (VFun _ _ _) = Nothing

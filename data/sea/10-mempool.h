@@ -13,6 +13,9 @@ typedef struct {
     void     *maximum_ptr;
 } imempool_t;
 
+// Advance a void pointer. C++ is pedantic about pointer arithmetic on a void*
+#define ADVANCE_PTR(ptr,by) (void*)((char*)ptr + by)
+
 // If the size of imempool_t changes, be sure to update the `seaEval` and
 // `stateWordsOfProgram` functions.
 ASSERT_SIZE (imempool_t, 3)
@@ -22,7 +25,7 @@ static iblock_t * iblock_create (iblock_t *prev)
     void     *ptr = malloc (iblock_size);
     iblock_t  src = { ptr, prev };
 
-    iblock_t *dst = malloc (sizeof (iblock_t));
+    iblock_t *dst = (iblock_t*)malloc (sizeof (iblock_t));
     memcpy (dst, &src, sizeof (iblock_t));
 
 #if ICICLE_DEBUG
@@ -50,7 +53,7 @@ static void imempool_add_block (imempool_t *pool)
 
     pool->last        = next;
     pool->current_ptr = next->ptr;
-    pool->maximum_ptr = next->ptr + iblock_size;
+    pool->maximum_ptr = ADVANCE_PTR(next->ptr, iblock_size);
 }
 
 /* This has to be a macro as when it's a function we end up with an extra
@@ -58,7 +61,7 @@ static void imempool_add_block (imempool_t *pool)
  * succeeded or not. */
 #define TRY_ALLOC(fn_name)                                                                             \
     void *ptr  = pool->current_ptr;                                                                    \
-    void *next = ptr + num_bytes;                                                                      \
+    void *next = ADVANCE_PTR(ptr, num_bytes);                                                                      \
                                                                                                        \
     if (next <= pool->maximum_ptr) {                                                                   \
         ICICLE_WHEN_DEBUG (fprintf (stderr, #fn_name ": %p (allocated %zu bytes)\n", ptr, num_bytes)); \
@@ -84,6 +87,13 @@ void * INLINE imempool_alloc (imempool_t *pool, size_t num_bytes)
 
     return imempool_alloc_block (pool, num_bytes);
 }
+
+template<typename T>
+T * INLINE imempool_alloc_of (imempool_t *pool, size_t num_elts)
+{
+    return (T*)imempool_alloc(pool, num_elts * sizeof(T));
+}
+
 
 void imempool_create (imempool_t *pool)
 {

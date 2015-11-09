@@ -25,6 +25,7 @@ import              P
 import              Control.Monad.Trans.Class
 
 import qualified    Data.List                      as List
+import qualified    Data.Map                       as Map
 
 
 data FlattenError a n
@@ -200,63 +201,32 @@ flatX a_fresh xx stm
        $ \key'
        -> flatX' map
        $ \map'
-       -> do n'done      <- fresh
-             n'map'k     <- fresh
-             n'map'v     <- fresh
-             n'map'sz    <- fresh
-             let acc'done = Accumulator n'done  BoolT $ xValue BoolT $ VBool False
-                 acc'map'k= Accumulator n'map'k (ArrayT tk) (fpMapKeys tk tv `xApp` map')
-                 acc'map'v= Accumulator n'map'v (ArrayT tv) (fpMapVals tk tv `xApp` map')
+       -> do n'lookup    <- fresh
+             n'key       <- fresh
+             n'val       <- fresh
+             n'res       <- fresh
+             n'map       <- fresh
 
-                 x'done   = xVar n'done
-                 x'map'k  = xVar n'map'k
-                 x'map'v  = xVar n'map'v
+             let t'       = MapT tk tv
+                 acc'res  = Accumulator n'res  (MapT tk tv) map'
 
-                 read'k   = Read n'map'k n'map'k (ArrayT tk)
-                 read'v   = Read n'map'v n'map'v (ArrayT tv)
 
-                 sz       = xVar n'map'sz -- fpArrLen tk `xApp` x'map'k
-                 eq       = xPrim $ Flat.PrimMinimal $ Min.PrimRelation Min.PrimRelationEq tk
-                 get'k i  = fpArrIx  tk `makeApps'` [x'map'k, i]
-                 get'v i  = fpArrIx  tv `makeApps'` [x'map'v, i]
-                 put'v i x= fpArrUpd tv `makeApps'` [x'map'v, i, x]
+             let write x  = return $ Write n'res (fpMapUpd tk tv `makeApps'` [map', xVar n'key, x])
 
-                 upd' i   = slet (get'v i)
-                          $ \v    -> flatX' (upd `xApp` v)
-                          $ \u' -> return (Write n'map'v (put'v i u') <> Write n'done (xValue BoolT $ VBool True))
 
-             loop1       <- forI sz  $ \i
-                         ->  (read'k
-                         <$> (read'v
-                         <$> (If (eq `makeApps'` [get'k i, key'])
-                               <$> upd' i
-                               <*> return mempty)))
+             x'update    <- flatX' (upd `xApp` xVar n'val) write
+             x'insert    <- flatX' ins write
 
-             loop2       <- pushArray tk n'map'k key'
-             loop3       <- flatX' ins
-                          $ pushArray tv n'map'v
+             let iffy     = Let n'key    key'
+                          $ Let n'lookup (fpMapGet tk tv `makeApps'` [map', xVar n'key])
+                          $ If (fpIsSome tv `xApp` xVar n'lookup)
+                               (Let n'val (fpOptionGet tv `xApp` xVar n'lookup) x'update)
+                               x'insert
 
-             -- XX can't read with same name twice I think
-             -- n'map'rr    <- fresh
-             n'map'      <- fresh
-             stm'        <- stm $ xVar n'map'
+             stm'        <- stm $ xVar n'map
 
-             let if_ins   = Read n'done n'done BoolT
-                          $ If x'done mempty (loop2 <> loop3)
-
-                 stm''    = read'k
-                          $ read'v
-                          $ Let n'map' (fpMapPack tk tv `makeApps'` [x'map'k, x'map'v])
-                          $ stm'
-
-                 ss       = InitAccumulator acc'done
-                          $ InitAccumulator acc'map'k
-                          $ InitAccumulator acc'map'v
-                          $ read'k
-                          $ Let n'map'sz (fpArrLen tk `xApp` x'map'k)
-                          ( loop1 <> if_ins <> stm'' )
-
-             return ss
+             return $ InitAccumulator acc'res
+                    (iffy <> Read n'map n'res t' stm')
 
        -- Map with wrong arguments
        | otherwise
@@ -267,17 +237,22 @@ flatX a_fresh xx stm
        | [upd, map]   <- xs
        -> flatX' map
        $ \map'
-       -> do n'keys <- fresh
-             n'vals <- fresh
+       -> do n'map  <- fresh
 
-             stm'   <- flatX'
-                     ( xPrim (Core.PrimArray $ Core.PrimArrayMap tv tv')
-                       `makeApps'` [upd, xVar n'vals] )
-                     (\v -> stm (fpMapPack tk tv `makeApps'` [xVar n'keys, v]))
+             let t' = MapT tk tv'
+             loop   <- forI (fpMapLen tk tv `xApp` map')        $ \iter
+                    -> slet (fpMapIx  tk tv `makeApps'` [map',iter])   $ \elm
+                    -> slet (proj False tk tv elm)              $ \key
+                    -> slet (proj True  tk tv elm)              $ \val
+                    -> flatX' (upd `xApp` val)                  $ \val'
+                    -> return
+                     $ Read n'map n'map t'
+                     $ Write n'map (fpMapUpd tk tv `makeApps'` [xVar n'map, key, val'])
 
-             return  $ Let n'vals (fpMapVals tk tv `xApp` map')
-                     $ Let n'keys (fpMapKeys tk tv `xApp` map')
-                     $ stm'
+             stm'   <- stm $ xVar n'map
+
+             return  $ InitAccumulator (Accumulator n'map t' $ xValue t' $ VMap Map.empty)
+                     ( loop <> Read n'map n'map t' stm')
 
        -- Map with wrong arguments
        | otherwise
@@ -378,11 +353,6 @@ flatX a_fresh xx stm
    = do n  <- fresh
         ForeachInts n (xValue IntT (VInt 0)) to <$> ss (xVar n)
 
-  -- Update an accumulator
-  update acc t x
-   = Read acc acc t
-   $ Write acc x
-
 
   -- Handle primitive folds
   --
@@ -423,29 +393,26 @@ flatX a_fresh xx stm
 
 
   -- Fold over map. Very similar to above
-  flatFold (Core.PrimFoldMap tk tv) valT [k, z, mmm]
-   =  flatX' mmm
-   $ \mmm'
-   -> do n'keys  <- fresh
-         n'vals  <- fresh
-         n'zips  <- fresh
+  flatFold (Core.PrimFoldMap tk tv) valT [k, z, map]
+   =  flatX' map
+   $ \map'
+   -> flatX' z
+   $ \z'
+   -> do n'acc  <- fresh
 
-         n'kv <- fresh
-         n'ac <- fresh
-         let k'   = XLam a_fresh n'ac  valT
-                  $ XLam a_fresh n'kv (PairT tk tv)
-                  ( k `makeApps'` [ xVar n'ac
-                                  , proj False tk tv $ xVar n'kv
-                                  , proj True  tk tv $ xVar n'kv ])
+         loop   <- forI (fpMapLen tk tv `xApp` map')        $ \iter
+                -> slet (fpMapIx  tk tv `makeApps'` [map',iter])   $ \elm
+                -> slet (proj False tk tv elm)              $ \key
+                -> slet (proj True  tk tv elm)              $ \val
+                -> fmap (Read n'acc n'acc valT)             $
+                   flatX' (k `makeApps'` [xVar n'acc, key, val]) $ \acc'
+                -> return
+                 $ Write n'acc acc'
 
-         res     <- flatX'
-                  ( xPrim (Core.PrimFold (Core.PrimFoldArray (PairT tk tv)) valT)
-                     `makeApps'` [k', z, xVar n'zips] ) stm
+         stm'   <- stm $ xVar n'acc
 
-         return   $ Let n'keys (fpMapKeys tk tv `xApp` mmm')
-                  $ Let n'vals (fpMapVals tk tv `xApp` mmm')
-                  $ Let n'zips (fpArrZip  tk tv `makeApps'` [xVar n'keys, xVar n'vals])
-                  $ res
+         return  $ InitAccumulator (Accumulator n'acc valT z')
+                 ( loop <> Read n'acc n'acc valT stm')
 
 
 
@@ -495,45 +462,19 @@ flatX a_fresh xx stm
             = Min.PrimPairFst ta tb
             | otherwise
             = Min.PrimPairSnd ta tb
-     in (xPrim $ Core.PrimMinimal $ Min.PrimPair $ pm) `xApp` e
+     in (xPrim $ Flat.PrimMinimal $ Min.PrimPair $ pm) `xApp` e
 
 
   fpArrLen t = xPrim (Flat.PrimProject $ Flat.PrimProjectArrayLength t)
   fpArrIx  t = xPrim (Flat.PrimUnsafe  $ Flat.PrimUnsafeArrayIndex   t)
   fpArrNew t = xPrim (Flat.PrimUnsafe  $ Flat.PrimUnsafeArrayCreate  t)
   fpArrUpd t = xPrim (Flat.PrimUpdate  $ Flat.PrimUpdateArrayPut     t)
-  fpArrZip k v = xPrim (Flat.PrimArray $ Flat.PrimArrayZip           k v)
 
-
-  fpMapPack k v = xPrim (Flat.PrimMap (Flat.PrimMapPack         k v))
-  fpMapKeys k v = xPrim (Flat.PrimMap (Flat.PrimMapUnpackKeys   k v))
-  fpMapVals k v = xPrim (Flat.PrimMap (Flat.PrimMapUnpackValues k v))
+  fpMapUpd k v = xPrim (Flat.PrimUpdate  $ Flat.PrimUpdateMapPut     k v)
+  fpMapLen k v = xPrim (Flat.PrimProject $ Flat.PrimProjectMapLength k v)
+  fpMapGet k v = xPrim (Flat.PrimProject $ Flat.PrimProjectMapLookup k v)
+  fpMapIx  k v = xPrim (Flat.PrimUnsafe  $ Flat.PrimUnsafeMapIndex   k v)
 
   fpIsSome    t = xPrim (Flat.PrimProject (Flat.PrimProjectOptionIsSome t))
   fpOptionGet t = xPrim (Flat.PrimUnsafe (Flat.PrimUnsafeOptionGet t))
-
-  pushArray t n'acc push
-   = do n'arr   <- fresh
-        n'from  <- fresh
-        let t'   = ArrayT t
-            from = xVar n'from
-            sz   = fpArrLen t `xApp` from
-            sz'  = xPrim (Flat.PrimMinimal $ Min.PrimArithBinary Min.PrimArithPlus ArithIntT)
-                 `makeApps'` [sz, xValue IntT $ VInt 1]
-
-            acc  = Accumulator n'arr t' (fpArrNew t `xApp` sz')
-
-            get i   = fpArrIx t  `makeApps'` [from, i]
-            put i x = fpArrUpd t `makeApps'` [xVar n'arr, i, x]
-
-        loop    <- forI sz $ \i
-                -> return  $ update n'arr t' $ put i $ get i
-
-        let put' = update n'arr t'
-                 $ put sz push
-            read = Read n'arr n'arr t'
-                 $ Write n'acc $ xVar n'arr
-
-        return $ Read n'from n'acc t'
-               $ InitAccumulator acc (loop <> put' <> read)
 

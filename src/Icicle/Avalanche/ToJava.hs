@@ -220,26 +220,12 @@ primTypeOfPrim p
      -> unsa pu
     PrimUpdate pu
      -> upda pu
-    PrimArray (PrimArrayZip _ _)
-     -> Function "Array.zip"
-    PrimArray (PrimArrayUnzip _ _)
-     -> Function "Array.unzip"
-    PrimArray (PrimArraySum _ _)
-     -> Function "Array.sum"
-    PrimArray (PrimArrayUnsum _ _)
-     -> Function "Array.unsum"
     PrimPack (PrimOptionPack _)
      -> Function "Option.pack"
     PrimPack (PrimSumPack _ _)
      -> Function "Sum.pack"
     PrimPack (PrimStructPack _)
      -> Function "Struct.pack"
-    PrimMap (PrimMapPack _ _)
-     -> Function "Map.pack"
-    PrimMap (PrimMapUnpackKeys _ _)
-     -> Function "Map.unpackKeys"
-    PrimMap (PrimMapUnpackValues _ _)
-     -> Function "Map.unpackValues"
     PrimBuf pb
      -> buf pb
 
@@ -306,14 +292,18 @@ primTypeOfPrim p
   proj (PrimProjectArrayLength _) = Method "size"
   proj (PrimProjectOptionIsSome _)= Special1 $ \a -> a <> " != null"
   proj (PrimProjectSumIsRight _ _) = Method "isRight"
+  proj (PrimProjectMapLength _ _) = Method "size"
+  proj (PrimProjectMapLookup _ _) = Method "lookup"
 
   unsa (PrimUnsafeArrayIndex _)    = Method "get"
   unsa (PrimUnsafeArrayCreate t)   = Function ("new ArrayList" <> angled (boxedType t))
   unsa (PrimUnsafeOptionGet _)     = Special1 $ \a -> a
   unsa (PrimUnsafeSumGetLeft  _ _) = Method "left"
   unsa (PrimUnsafeSumGetRight _ _) = Method "right"
+  unsa (PrimUnsafeMapIndex _ _)    = Method "get"
 
   upda (PrimUpdateArrayPut _)      = Function "Array.put"
+  upda (PrimUpdateMapPut _ _)      = Function "Map.put"
 
   buf (PrimBufMake t) = Function $ "new IcicleBuf" <> angled (boxedType t)
   buf (PrimBufPush _) = Method "push"
