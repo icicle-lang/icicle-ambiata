@@ -1,103 +1,62 @@
-#include "21-date.h"
+#include "22-string.h"
 
-typedef struct
+template<typename T>
+class iarray_t
 {
     iint_t count;
-} iarray_struct;
-// payload goes straight after
+    T* payload;
 
-#define ARRAY(t)         iarray_t__##t
-#define ARRAY_FUN(f,pre) iarray__##pre##f
-
-// I'm not certain there's a point having a different one for each type.
-// It makes it look a little better, but I don't think it's any safer.
-#define MK_ARRAY_STRUCT(t) typedef iarray_struct* ARRAY(t);
-
-// get payload by advancing pointer by size of struct
-// (which should be equivalent to straight after struct fields)
-// then casting to t*
-#define ARRAY_PAYLOAD(x,t) ((t*)(x+1))
-
-
-#define MK_ARRAY_LENGTH(t,pre)                                                  \
-    static iint_t INLINE ARRAY_FUN(length,pre) (ARRAY(t) arr)                   \
-    { return arr->count; }
-
-#define MK_ARRAY_EQ(t,pre)                                                      \
-    static ibool_t INLINE ARRAY_FUN(eq,pre) (ARRAY(t) x, ARRAY(t) y)            \
-    {                                                                           \
-        if (x->count != y->count) return ifalse;                                \
-        for (iint_t ix = 0; ix != x->count; ++ix) {                             \
-            if (!pre##eq(ARRAY_PAYLOAD(x,t)[ix], ARRAY_PAYLOAD(y,t)[ix]))       \
-                return ifalse;                                                  \
-        }                                                                       \
-        return itrue;                                                           \
+    iint_t length() const
+    {
+        return this->count;
     }
 
-#define MK_ARRAY_LT(t,pre)                                                      \
-    static ibool_t INLINE ARRAY_FUN(lt,pre) (ARRAY(t) x, ARRAY(t) y)            \
-    {                                                                           \
-        iint_t min = (x->count < y->count) ? x->count : y->count;               \
-        for (iint_t ix = 0; ix != min; ++ix) {                                  \
-            if (!pre##lt(ARRAY_PAYLOAD(x,t)[ix], ARRAY_PAYLOAD(y,t)[ix]))       \
-                return ifalse;                                                  \
-        }                                                                       \
-        if (x->count < y->count)                                                \
-            return itrue;                                                       \
-        else                                                                    \
-            return ifalse;                                                      \
+    ibool_t operator==(const iarray_t<T>& other) const
+    {
+        if (other.count != count) return ifalse;
+        for (iint_t ix = 0; ix != other.count; ++ix) {
+            if (payload[ix] != other.payload[ix]) {
+                return ifalse;
+            }
+        }
+        return itrue;
     }
 
-#define MK_ARRAY_CMP(t,pre,op,ret)                                              \
-    static ibool_t INLINE ARRAY_FUN(op,pre) (ARRAY(t) x, ARRAY(t) y)            \
-    { return ret ; }
-
-#define MK_ARRAY_CMPS(t,pre)                                                    \
-    MK_ARRAY_EQ(t,pre)                                                          \
-    MK_ARRAY_LT(t,pre)                                                          \
-    MK_ARRAY_CMP(t,pre,ne, !ARRAY_FUN(eq,pre) (x,y))                            \
-    MK_ARRAY_CMP(t,pre,le,  ARRAY_FUN(lt,pre) (x,y) || ARRAY_FUN(eq,pre) (x,y)) \
-    MK_ARRAY_CMP(t,pre,ge, !ARRAY_FUN(lt,pre) (x,y))                            \
-    MK_ARRAY_CMP(t,pre,gt, !ARRAY_FUN(le,pre) (x,y))
-
-
-
-#define MK_ARRAY_INDEX(t,pre)                                                   \
-    static t       INLINE ARRAY_FUN(index,pre) (ARRAY(t) x, iint_t ix)          \
-    { return ARRAY_PAYLOAD(x,t)[ix]; }
-
-
-#define MK_ARRAY_CREATE(t,pre)                                                  \
-    static ARRAY(t)  INLINE ARRAY_FUN(create,pre)                               \
-                                     (imempool_t *pool, iint_t sz)              \
-    {                                                                           \
-        size_t bytes = sizeof(t) * sz + sizeof(iarray_struct);                  \
-        ARRAY(t) ret = (ARRAY(t))imempool_alloc(pool, bytes);                   \
-        ret->count   = sz;                                                      \
-        return ret;                                                             \
+    ibool_t operator<(const iarray_t<T>& other) const
+    {
+        iint_t min = (count < other.count) ? count : other.count;
+        for (iint_t ix = 0; ix != min; ++ix) {
+            if (!(payload[ix] < other.payload[ix])) {
+                return ifalse;
+            }
+        }
+        if (count < other.count) return itrue;
+        else return ifalse;
     }
 
-#define MK_ARRAY_PUT(t,pre)                                                     \
-    static ARRAY(t) INLINE ARRAY_FUN(put,pre)   (ARRAY(t) x, iint_t ix, t v)    \
-    {                                                                           \
-        ARRAY_PAYLOAD(x,t)[ix] = v;                                             \
-        return x;                                                               \
+    ibool_t operator!=(const iarray_t<T>& other) const
+    { return !(*this == other); }
+    ibool_t operator<=(const iarray_t<T>& other) const
+    { return (*this == other) || (*this < other); }
+    ibool_t operator>=(const iarray_t<T>& other) const
+    { return !(*this < other); }
+    ibool_t operator>(const iarray_t<T>& other) const
+    { return !(*this <= other); }
+
+    const T& index(iint_t ix) const
+    { return this->payload[ix]; }
+
+    iarray_t<T>& put(iint_t ix, const T& v)
+    {
+        this->payload[ix] = v;
+        return *this;
     }
 
+    iarray_t(imempool_t* pool, iint_t count)
+    {
+        this->count = count;
+        size_t bytes = sizeof(T) * count;
+        payload = (T*)imempool_alloc(pool, bytes);
+    }
+};
 
-
-#define MAKE_ARRAY(t,pre)                                                       \
-    MK_ARRAY_STRUCT (t)                                                         \
-    MK_ARRAY_LENGTH (t,pre)                                                     \
-    MK_ARRAY_CMPS   (t,pre)                                                     \
-    MK_ARRAY_INDEX  (t,pre)                                                     \
-    MK_ARRAY_CREATE (t,pre)                                                     \
-    MK_ARRAY_PUT    (t,pre)                                                     \
-    // MK_ARRAY_ZIP    (t,pre)                                                     \
-
-MAKE_ARRAY(idouble_t,   idouble_)
-MAKE_ARRAY(iint_t,      iint_)
-MAKE_ARRAY(ierror_t,    ierror_)
-MAKE_ARRAY(ibool_t,     ibool_)
-MAKE_ARRAY(idate_t,     idate_)
-MAKE_ARRAY(iunit_t,     iunit_)

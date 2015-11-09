@@ -12,8 +12,6 @@ typedef  int64_t iint_t;
 typedef   double idouble_t;
 typedef  int64_t idate_t;
 
-typedef const char *istring_t;
-
 static const ierror_t ierror_tombstone              = 0;
 static const ierror_t ierror_fold1_no_value         = 1;
 static const ierror_t ierror_variable_not_available = 2;
