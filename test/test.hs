@@ -29,6 +29,8 @@ import qualified Icicle.Test.Source.PrettyParse
 import qualified Icicle.Test.Source.Progress
 import qualified Icicle.Test.Source.Convert
 
+import qualified Icicle.Test.Sea.Seaworthy
+
 import           Disorder.Core.Main
 
 
@@ -56,6 +58,8 @@ main
         , Icicle.Test.Avalanche.Flatten.tests
         , Icicle.Test.Avalanche.Melt.tests
         , Icicle.Test.Avalanche.Scoped.tests
+
+        , Icicle.Test.Sea.Seaworthy.tests
 
         -- , Icicle.Test.Dictionary.Types.tests
 
