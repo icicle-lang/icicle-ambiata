@@ -33,12 +33,6 @@ import qualified    Data.Map as Map
 
 -- this could be shared between modules if it's useful?
 
-pattern PrimZip     ta tb = PrimArray   (PrimArrayZip ta tb)
-pattern PrimUnzip   ta tb = PrimArray   (PrimArrayUnzip ta tb)
-
-pattern PrimSum     ta tb = PrimArray   (PrimArraySum ta tb)
-pattern PrimUnsum   ta tb = PrimArray   (PrimArrayUnsum ta tb)
-
 pattern PrimPair    ta tb = PrimMinimal (Min.PrimConst (Min.PrimConstPair ta tb))
 pattern PrimFst     ta tb = PrimMinimal (Min.PrimPair  (Min.PrimPairFst   ta tb))
 pattern PrimSnd     ta tb = PrimMinimal (Min.PrimPair  (Min.PrimPairSnd   ta tb))
@@ -60,12 +54,6 @@ data MeltOps a n p = MeltOps {
   , xVar   :: Name n                 -> Exp a n p
   , xValue :: ValType   -> BaseValue -> Exp a n p
   , xApp   :: Exp a n p -> Exp a n p -> Exp a n p
-
-  , primZip   :: ValType -> ValType -> Name n -> Name n -> Exp a n p
-  , primUnzip :: ValType -> ValType -> Exp a n p -> Exp a n p
-
-  , primSum   :: ValType -> ValType -> Name n -> Name n -> Name n -> Exp a n p
-  , primUnsum :: ValType -> ValType -> Exp a n p -> Exp a n p
 
   , primPair :: ValType -> ValType -> Name n -> Name n -> Exp a n p
   , primFst  :: ValType -> ValType -> Exp a n p        -> Exp a n p
@@ -92,12 +80,6 @@ meltOps a_fresh
   xPrim  = XPrim  a_fresh
   xValue = XValue a_fresh
   xApp   = XApp   a_fresh
-
-  primZip     ta tb x y   = xPrim (PrimZip     ta tb) `xApp` xVar x `xApp` xVar y
-  primUnzip   ta tb x     = xPrim (PrimUnzip   ta tb) `xApp` x
-
-  primSum     ta tb x y z = xPrim (PrimSum     ta tb) `xApp` xVar x `xApp` xVar y `xApp` xVar z
-  primUnsum   ta tb x     = xPrim (PrimUnsum   ta tb) `xApp` x
 
   primPair    ta tb x y   = xPrim (PrimPair    ta tb) `xApp` xVar x `xApp` xVar y
   primFst     ta tb x     = xPrim (PrimFst     ta tb) `xApp` x
@@ -173,16 +155,6 @@ meltAccumulators a_fresh statements
             $ foldr (\(na,(f,t))
             -> InitAccumulator (Accumulator na t (primGetField ts f t x))) ss nfts
 
-           | Just (t@(ArrayT (SumT _ _)), _) <- Map.lookup n env'
-           -> do (xs', _) <- meltBody a_fresh (n, t, x)
-                 let env'' = useNames n xs' env'
-                 goStmt env'' . foldr (mkInitAccum) id xs' $ ss
-
-           | Just (t@(ArrayT (PairT _ _)), _) <- Map.lookup n env'
-           -> do (xs', _) <- meltBody a_fresh (n, t, x)
-                 let env'' = useNames n xs' env'
-                 goStmt env'' . foldr (mkInitAccum) id xs' $ ss
-
            | Just (UnitT, []) <- Map.lookup n env'
            -> go ss
 
@@ -210,21 +182,6 @@ meltAccumulators a_fresh statements
                  go . Read ni' ni ti
                     . Read na' na ta
                     . Read nb' nb tb
-                    $ ss'
-
-           | Just (ArrayT (SumT ta tb), [ni, na, nb]) <- Map.lookup acc env'
-           -> do [ni', na', nb'] <- freshes 3 n
-                 ss' <- substXinS a_fresh n (primSum ta tb ni' na' nb') ss
-                 go . Read ni' ni (ArrayT BoolT)
-                    . Read na' na (ArrayT ta)
-                    . Read nb' nb (ArrayT tb)
-                    $ ss'
-
-           | Just (ArrayT (PairT ta tb), [na, nb]) <- Map.lookup acc env'
-           -> do [na', nb'] <- freshes 2 n
-                 ss' <- substXinS a_fresh n (primZip ta tb na' nb') ss
-                 go . Read na' na (ArrayT ta)
-                    . Read nb' nb (ArrayT tb)
                     $ ss'
 
            | Just (StructT ts, nas) <- Map.lookup acc env'
@@ -260,23 +217,6 @@ meltAccumulators a_fresh statements
            -> go . Block
             $ fmap (\(na,(f,t)) -> Write na (primGetField ts f t x)) nfts
 
-           | Just (ArrayT (SumT ta tb), [ni, na, nb]) <- Map.lookup n env'
-           , tai <- ArrayT BoolT
-           , taa <- ArrayT ta
-           , tab <- ArrayT tb
-           , tp  <- PairT  taa tab
-           -> go
-            $ Block [ Write ni                  (primFst tai tp (primUnsum ta tb x))
-                    , Write na (primFst taa tab (primSnd tai tp (primUnsum ta tb x)))
-                    , Write nb (primSnd taa tab (primSnd tai tp (primUnsum ta tb x))) ]
-
-           | Just (ArrayT (PairT ta tb), [na, nb]) <- Map.lookup n env'
-           , taa <- ArrayT ta
-           , tab <- ArrayT tb
-           -> go
-            $ Block [ Write na (primFst taa tab (primUnzip ta tb x))
-                    , Write nb (primSnd taa tab (primUnzip ta tb x)) ]
-
            | Just (UnitT, _)                         <- Map.lookup n env'
            -> return (env', mempty)
 
@@ -299,17 +239,6 @@ meltAccumulators a_fresh statements
             $ Block [ LoadResumable ni ti
                     , LoadResumable na ta
                     , LoadResumable nb tb ]
-
-           | Just (ArrayT (SumT ta tb), [ni, na, nb]) <- Map.lookup n env'
-           -> go
-            $ Block [ LoadResumable ni (ArrayT BoolT)
-                    , LoadResumable na (ArrayT ta)
-                    , LoadResumable nb (ArrayT tb) ]
-
-           | Just (ArrayT (PairT ta tb), [na, nb]) <- Map.lookup n env'
-           -> go
-            $ Block [ LoadResumable na (ArrayT ta)
-                    , LoadResumable nb (ArrayT tb) ]
 
            | Just (StructT ts, nas)                  <- Map.lookup n env'
            , nts                                        <- List.zip nas (Map.elems (getStructType ts))
@@ -340,17 +269,6 @@ meltAccumulators a_fresh statements
                     , SaveResumable na ta
                     , SaveResumable nb tb ]
 
-           | Just (ArrayT (SumT ta tb), [ni, na, nb]) <- Map.lookup n env'
-           -> go
-            $ Block [ SaveResumable ni (ArrayT BoolT)
-                    , SaveResumable na (ArrayT ta)
-                    , SaveResumable nb (ArrayT tb) ]
-
-           | Just (ArrayT (PairT ta tb), [na, nb]) <- Map.lookup n env'
-           -> go
-            $ Block [ SaveResumable na (ArrayT ta)
-                    , SaveResumable nb (ArrayT tb) ]
-
            | Just (StructT ts, nas)                  <- Map.lookup n env'
            , nts                                        <- List.zip nas (Map.elems (getStructType ts))
            -> go . Block
@@ -375,8 +293,6 @@ meltAccumulators a_fresh statements
 
    | InitAccumulator (Accumulator n avt@(SumT _ _) _) _ <- s
    = three n avt env
-   | InitAccumulator (Accumulator n avt@(ArrayT (SumT _ _)) _) _ <- s
-   = three n avt env
 
    | InitAccumulator (Accumulator n avt@(StructT (StructType fts)) _) _ <- s
    = do ns <- replicateM (Map.size fts) (freshPrefix' n)
@@ -399,13 +315,6 @@ meltAccumulators a_fresh statements
         nb <- freshPrefix' n
         return $ Map.insert n (avt, [ni, na, nb]) env
 
-  mkInitAccum (n, t, x) acc
-   = InitAccumulator (Accumulator n t x) . acc
-
-  useNames n args
-   = Map.adjust (\(avt, _) -> (avt, fmap fsst args)) n
-
-  fsst (x,_,_) = x
 
 --------------------------------------------------------------------------------
 
@@ -436,8 +345,6 @@ meltBindings a_fresh statements
 
   meltable (SumT _ _)   = True
   meltable (PairT _ _)  = True
-  meltable (ArrayT (SumT _ _))  = True
-  meltable (ArrayT (PairT _ _)) = True
   meltable _ = False
 
   mkLet (n,_,x) s
@@ -465,31 +372,6 @@ meltBody a_fresh (n, vt, x)
                rx      = (rn, tb, primSnd ta tb x)
                binds   = [lx, rx]
                unmelt  = primPair ta tb ln rn
-           return (binds, unmelt)
-
-    ArrayT t@(SumT ta tb)
-     -> do [bn,ln,rn] <- mkNames n t
-           let t1      = ArrayT BoolT
-               t2      = PairT  t3 t4
-               t3      = ArrayT ta
-               t4      = ArrayT tb
-           let x'      = primUnsum ta tb x
-               bx      = (bn, t1, primFst t1 t2 x')
-               lx      = (ln, t3, primFst t3 t4 (primSnd t1 t2 x'))
-               rx      = (rn, t4, primSnd t3 t4 (primSnd t1 t2 x'))
-               binds   = [bx, lx, rx]
-               unmelt  = primSum ta tb bn ln rn
-           return (binds, unmelt)
-
-    ArrayT t@(PairT ta tb)
-     -> do [ln,rn] <- mkNames n t
-           let tl      = ArrayT ta
-               tr      = ArrayT tb
-               x'      = primUnzip ta tb x
-           let lx      = (ln, tl, primFst tl tr x')
-               rx      = (rn, tr, primSnd tl tr x')
-               binds   = [lx, rx]
-               unmelt  = primZip ta tb ln rn
            return (binds, unmelt)
 
     _ -> return ([(n, vt, x)], x)

@@ -7,10 +7,8 @@ module Icicle.Avalanche.Prim.Flat (
     , PrimProject (..)
     , PrimUnsafe  (..)
     , PrimUpdate  (..)
-    , PrimArray   (..)
     , PrimPack    (..)
     , PrimBuf     (..)
-    , PrimMap     (..)
     , typeOfPrim
     , flatFragment
   ) where
@@ -49,14 +47,8 @@ data Prim
  -- | Safe updates
  | PrimUpdate          PrimUpdate
 
- -- | Array prims
- | PrimArray           PrimArray
-
  -- | Packing prims
  | PrimPack            PrimPack
-
- -- | Packing and unpacking maps
- | PrimMap             PrimMap
 
  -- | Abstract circular buffer prims
  | PrimBuf             PrimBuf
@@ -64,7 +56,9 @@ data Prim
 
 
 data PrimProject
- = PrimProjectArrayLength ValType
+ = PrimProjectArrayLength  ValType
+ | PrimProjectMapLength    ValType ValType
+ | PrimProjectMapLookup    ValType ValType
  | PrimProjectOptionIsSome ValType
  | PrimProjectSumIsRight   ValType ValType
  deriving (Eq, Ord, Show)
@@ -79,24 +73,13 @@ data PrimUnsafe
  | PrimUnsafeSumGetLeft  ValType ValType
  | PrimUnsafeSumGetRight ValType ValType
  | PrimUnsafeOptionGet   ValType
+ | PrimUnsafeMapIndex    ValType ValType
  deriving (Eq, Ord, Show)
 
 
 data PrimUpdate
  = PrimUpdateArrayPut  ValType
- deriving (Eq, Ord, Show)
-
-data PrimArray
- = PrimArrayZip     ValType ValType -- ^ zip two arrays into one
- | PrimArrayUnzip   ValType ValType -- ^ unzip an array of pairs into two arrays of pairs
- | PrimArraySum     ValType ValType -- ^ combine three arrays into an array of sums
- | PrimArrayUnsum   ValType ValType -- ^ split an array of sums into three arrays
- deriving (Eq, Ord, Show)
-
-data PrimMap
- = PrimMapPack         ValType ValType
- | PrimMapUnpackKeys   ValType ValType
- | PrimMapUnpackValues ValType ValType
+ | PrimUpdateMapPut    ValType ValType
  deriving (Eq, Ord, Show)
 
 
@@ -127,6 +110,12 @@ typeOfPrim p
     PrimProject (PrimProjectArrayLength a)
      -> FunT [funOfVal (ArrayT a)] IntT
 
+    PrimProject (PrimProjectMapLength a b)
+     -> FunT [funOfVal (MapT a b)] IntT
+
+    PrimProject (PrimProjectMapLookup a b)
+     -> FunT [funOfVal (MapT a b), funOfVal a] (OptionT b)
+
     PrimProject (PrimProjectOptionIsSome a)
      -> FunT [funOfVal (OptionT a)] BoolT
 
@@ -143,6 +132,9 @@ typeOfPrim p
     PrimUnsafe  (PrimUnsafeOptionGet a)
      -> FunT [funOfVal (OptionT a)] a
 
+    PrimUnsafe  (PrimUnsafeMapIndex a b)
+     -> FunT [funOfVal (MapT a b), funOfVal IntT] (PairT a b)
+
     PrimUnsafe  (PrimUnsafeSumGetLeft a b)
      -> FunT [funOfVal (SumT a b)] a
     PrimUnsafe  (PrimUnsafeSumGetRight a b)
@@ -151,18 +143,9 @@ typeOfPrim p
     PrimUpdate  (PrimUpdateArrayPut a)
      -> FunT [funOfVal (ArrayT a), funOfVal IntT, funOfVal a] (ArrayT a)
 
+    PrimUpdate  (PrimUpdateMapPut a b)
+     -> FunT [funOfVal (MapT a b), funOfVal a, funOfVal b] (MapT a b)
 
-    PrimArray   (PrimArrayZip a b)
-     -> FunT [funOfVal (ArrayT a), funOfVal (ArrayT b)] (ArrayT (PairT a b))
-
-    PrimArray   (PrimArrayUnzip a b)
-     -> FunT [funOfVal (ArrayT (PairT a b))] (PairT (ArrayT a) (ArrayT b))
-
-    PrimArray   (PrimArraySum a b)
-     -> FunT [funOfVal (ArrayT BoolT), funOfVal (ArrayT a), funOfVal (ArrayT b)] (ArrayT (SumT a b))
-
-    PrimArray   (PrimArrayUnsum a b)
-     -> FunT [funOfVal (ArrayT (SumT a b))] (PairT (ArrayT BoolT) (PairT (ArrayT a) (ArrayT b)))
 
 
     PrimPack    (PrimSumPack a b)
@@ -174,15 +157,6 @@ typeOfPrim p
     PrimPack    (PrimStructPack t@(StructType fs))
      | ts <- fmap (funOfVal . snd) (Map.toList fs)
      -> FunT ts (StructT t)
-
-    PrimMap    (PrimMapPack k v)
-     -> FunT [funOfVal (ArrayT k), funOfVal (ArrayT v)] (MapT k v)
-
-    PrimMap    (PrimMapUnpackKeys k v)
-     -> FunT [funOfVal (MapT k v)] (ArrayT k)
-
-    PrimMap    (PrimMapUnpackValues k v)
-     -> FunT [funOfVal (MapT k v)] (ArrayT v)
 
 
     PrimBuf     (PrimBufMake t)
@@ -202,6 +176,10 @@ instance Pretty Prim where
 
  pretty (PrimProject (PrimProjectArrayLength a))
   = annotate (AnnType a) "Array_length#"
+ pretty (PrimProject (PrimProjectMapLength a b))
+  = annotate (AnnType $ pretty a <.> pretty b) "Map_length#"
+ pretty (PrimProject (PrimProjectMapLookup a b))
+  = annotate (AnnType $ pretty a <.> pretty b) "Map_lookup#"
  pretty (PrimProject (PrimProjectOptionIsSome a))
   = text "Option_isSome#" <+> brackets (pretty a)
  pretty (PrimProject (PrimProjectSumIsRight a b))
@@ -217,6 +195,9 @@ instance Pretty Prim where
  pretty (PrimUnsafe (PrimUnsafeOptionGet a))
   = annotate (AnnType a) "unsafe_Option_get#"
 
+ pretty (PrimUnsafe (PrimUnsafeMapIndex a b))
+  = annotate (AnnType $ pretty a <.> pretty b) "unsafe_Map_index#"
+
  pretty (PrimUnsafe (PrimUnsafeSumGetLeft a b))
   = annotate (AnnType $ (pretty a) <.> (pretty b)) "unsafe_Sum_left#"
 
@@ -227,19 +208,8 @@ instance Pretty Prim where
  pretty (PrimUpdate (PrimUpdateArrayPut a))
   = annotate (AnnType a) "Array_put#"
 
-
- pretty (PrimArray (PrimArrayZip a b))
-  = annotate (AnnType $ (pretty a) <.> (pretty b)) "Array_zip#"
-
- pretty (PrimArray (PrimArrayUnzip a b))
-  = annotate (AnnType $ (pretty a) <.> (pretty b)) "Array_unzip#"
-
- pretty (PrimArray (PrimArraySum a b))
-  = annotate (AnnType $ (pretty a) <.> (pretty b)) "Array_sum#"
-
- pretty (PrimArray (PrimArrayUnsum a b))
-  = annotate (AnnType $ (pretty a) <.> (pretty b)) "Array_unsum#"
-
+ pretty (PrimUpdate (PrimUpdateMapPut a b))
+  = annotate (AnnType $ pretty a <.> pretty b) "Map_put#"
 
  pretty (PrimPack (PrimOptionPack t))
   = annotate (AnnType t) "Option_pack#"
@@ -249,14 +219,6 @@ instance Pretty Prim where
 
  pretty (PrimPack (PrimStructPack t))
   = annotate (AnnType (StructT t)) "Struct_pack#"
-
- pretty (PrimMap (PrimMapPack a b))
-  = annotate (AnnType $ (pretty a) <+> (pretty b)) "Map_pack#"
-
- pretty (PrimMap (PrimMapUnpackKeys a b))
-  = annotate (AnnType $ (pretty a) <+> (pretty b)) "Map_unpack_keys#"
- pretty (PrimMap (PrimMapUnpackValues a b))
-  = annotate (AnnType $ (pretty a) <+> (pretty b)) "Map_unpack_values#"
 
 
  pretty (PrimBuf    (PrimBufMake t))

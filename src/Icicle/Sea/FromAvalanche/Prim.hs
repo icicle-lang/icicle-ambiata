@@ -65,9 +65,6 @@ seaOfXPrim p
      PrimUpdate op
       -> PDFun $ seaOfPrimUpdate op
 
-     PrimArray op
-      -> PDFun $ seaOfPrimArray op
-
      PrimBuf   op
       -> seaOfPrimBuf op
 
@@ -142,12 +139,8 @@ seaOfPrimUpdate p
  = case p of
      PrimUpdateArrayPut t
       -> prefixOfValType (ArrayT t) <> "put"
-
-seaOfPrimArray :: PrimArray -> Doc
-seaOfPrimArray p
- = case p of
-     _
-      -> seaError "seaOfPrimArray" p
+     PrimUpdateMapPut k v
+      -> prefixOfValType (MapT k v) <> "put"
 
 seaOfPrimBuf :: PrimBuf -> PrimDoc
 seaOfPrimBuf p
