@@ -1,4 +1,4 @@
-#include "22-string.h"
+#include "23-compounds.h"
 
 template<typename T>
 class iarray_t
@@ -55,8 +55,7 @@ class iarray_t
     iarray_t(imempool_t* pool, iint_t count)
     {
         this->count = count;
-        size_t bytes = sizeof(T) * count;
-        payload = (T*)imempool_alloc(pool, bytes);
+        payload = imempool_alloc_of<T>(pool, count);
     }
 };
 

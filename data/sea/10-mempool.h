@@ -13,7 +13,7 @@ typedef struct {
     void     *maximum_ptr;
 } imempool_t;
 
-// Advance a null pointer. C++ is pedantic about pointer arithmetic on a void*
+// Advance a void pointer. C++ is pedantic about pointer arithmetic on a void*
 #define ADVANCE_PTR(ptr,by) (void*)((char*)ptr + by)
 
 // If the size of imempool_t changes, be sure to update the `seaEval` and
@@ -87,6 +87,13 @@ void * INLINE imempool_alloc (imempool_t *pool, size_t num_bytes)
 
     return imempool_alloc_block (pool, num_bytes);
 }
+
+template<typename T>
+T * INLINE imempool_alloc_of (imempool_t *pool, size_t num_elts)
+{
+    return (T*)imempool_alloc(pool, num_elts * sizeof(T));
+}
+
 
 void imempool_create (imempool_t *pool)
 {
