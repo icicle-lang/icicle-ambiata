@@ -63,12 +63,12 @@ c$conv$13 =
                                                             c$conv$13)) simp$7)
     (Right 0@{(Sum Error Int)}) conv$11
 conv$30 =
-    rfold@{((Sum Error Int), DateTime) Buf (Sum Error Int)} (
-    \conv$27@{Buf (Sum Error Int)} 
+    rfold@{((Sum Error Int), DateTime) Buf 3 (Sum Error Int)} (
+    \conv$27@{Buf 3 (Sum Error Int)} 
     \conv$26@{((Sum Error Int), DateTime)} 
     let simp$9 = fst#@{(Sum Error Int), DateTime} conv$26
-     in Latest_push#@{(Sum Error Int)} conv$27 simp$9)
-    (Buf 3 []@{Buf (Sum Error Int)}) conv$0
+     in Latest_push#@{Buf 3 (Sum Error Int)} conv$27 simp$9)
+    (Buf []@{Buf 3 (Sum Error Int)}) conv$0
 Postcomputations with date as now$conv$1:
 conv$35 =
     Sum_fold#@{(Error
@@ -78,7 +78,7 @@ conv$35 =
                   reify$10$conv$23
      in conv$24) (
     \reify$11$conv$25@{Int} 
-    let conv$31 = Latest_read#@{(Sum Error Int)}
+    let conv$31 = Latest_read#@{Array (Sum Error Int)}
                   conv$30
      in 
     let conv$32 = pair#@{Int Array (Sum Error Int)}
@@ -109,25 +109,25 @@ conv$0 =
     source
 Reductions:
 conv$2 =
-    rfold@{((Sum Error Int), DateTime) Map DateTime (Buf ((Sum Error Int), DateTime))} (
-    \conv$4@{Map DateTime (Buf ((Sum Error Int), DateTime))} 
+    rfold@{((Sum Error Int), DateTime) Map DateTime (Buf 2 ((Sum Error Int), DateTime))} (
+    \conv$4@{Map DateTime (Buf 2 ((Sum Error Int), DateTime))} 
     \conv$5@{((Sum Error Int), DateTime)} 
-    let simp$2 = Latest_push#@{((Sum Error Int), DateTime)}
-                 (Buf 2 []@{Buf ((Sum Error Int), DateTime)}) conv$5
+    let simp$2 = Latest_push#@{Buf 2 ((Sum Error Int), DateTime)}
+                 (Buf []@{Buf 2 ((Sum Error Int), DateTime)}) conv$5
      in 
     let simp$3 = snd#@{(Sum Error Int), DateTime} conv$5
      in Map_insertOrUpdate#@{(DateTime
-,Buf ((Sum Error Int), DateTime))} (
-        \conv$7@{Buf ((Sum Error Int), DateTime)} Latest_push#@{((Sum Error Int), DateTime)} conv$7
+,Buf 2 ((Sum Error Int), DateTime))} (
+        \conv$7@{Buf 2 ((Sum Error Int), DateTime)} Latest_push#@{Buf 2 ((Sum Error Int), DateTime)} conv$7
                 conv$5) simp$2 simp$3 conv$4)
-    (Map []@{Map DateTime (Buf ((Sum Error Int), DateTime))}) conv$0
+    (Map []@{Map DateTime (Buf 2 ((Sum Error Int), DateTime))}) conv$0
 Postcomputations with date as now$conv$1:
 conv$3 =
     Map_fold#@{(DateTime
-,Buf ((Sum Error Int), DateTime))}@{(Sum Error (Map DateTime Int))} (
+,Buf 2 ((Sum Error Int), DateTime))}@{(Sum Error (Map DateTime Int))} (
     \conv$4@{(Sum Error (Map DateTime Int))} 
     \conv$26@{DateTime} 
-    \conv$5@{Buf ((Sum Error Int), DateTime)} Sum_fold#@{(Error
+    \conv$5@{Buf 2 ((Sum Error Int), DateTime)} Sum_fold#@{(Error
 ,Map DateTime Int)}@{(Sum Error (Map DateTime Int))} (
             \conv$31@{Error} left#@{Error Map DateTime Int} conv$31) (
             \conv$30@{Map DateTime Int} Sum_fold#@{(Error
@@ -139,7 +139,7 @@ conv$3 =
                                \conv$29@{Int} conv$29) conv$28
                                conv$26 conv$30)) (
                      let conv$11 = 
-                                   let conv$6 = Latest_read#@{((Sum Error Int), DateTime)} conv$5
+                                   let conv$6 = Latest_read#@{Array ((Sum Error Int), DateTime)} conv$5
                                     in Array_fold#@{((Sum Error Int), DateTime)}@{((Sum Error Int), ((Sum Error Int), Unit))} (
                                        \conv$10@{((Sum Error Int), ((Sum Error Int), Unit))} 
                                        \conv$9@{((Sum Error Int), DateTime)} 
