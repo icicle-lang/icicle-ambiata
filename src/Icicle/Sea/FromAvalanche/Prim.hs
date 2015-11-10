@@ -56,6 +56,10 @@ seaOfXPrim p
       -> PDFun
        ( prefixOfValType t <> seaOfPrimRelation op )
 
+     PrimMinimal (M.PrimLogical op)
+      -> PDFun
+       ( prefixOfValType BoolT <> seaOfPrimLogical op )
+
      PrimProject op
       -> PDFun $ seaOfPrimProject op
 
@@ -118,6 +122,13 @@ seaOfPrimRelation p
      M.PrimRelationLe -> "le"
      M.PrimRelationEq -> "eq"
      M.PrimRelationNe -> "ne"
+
+seaOfPrimLogical :: M.PrimLogical -> Doc
+seaOfPrimLogical p
+ = case p of
+     M.PrimLogicalAnd -> "and"
+     M.PrimLogicalOr  -> "or"
+     M.PrimLogicalNot -> "not"
 
 seaOfPrimProject :: PrimProject -> Doc
 seaOfPrimProject p

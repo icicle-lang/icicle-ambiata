@@ -35,6 +35,21 @@ constructor a_fresh statements
   xFalse     = xValue BoolT (VBool False)
   xDefault t = xValue t (defaultOfType t)
 
+  primAnd = primLogical  Min.PrimLogicalAnd
+  primEq  = primRelation Min.PrimRelationEq
+
+  primFold1 append xs
+   = case xs of
+      []     -> xValue UnitT VUnit -- this case shouldn't happen, make it a type error
+      (y:[]) -> y
+      (y:ys) -> y `append` primFold1 append ys
+
+  primLogical op x y
+   = xPrim (PrimMinimal (Min.PrimLogical op)) `xApp` x `xApp` y
+
+  primRelation op t x y
+   = xPrim (PrimMinimal (Min.PrimRelation op t)) `xApp` x `xApp` y
+
   primBufRead i t x
    = xPrim (PrimBuf (PrimBufRead i t)) `xApp` x
 
@@ -194,6 +209,14 @@ constructor a_fresh statements
    = primPack env (ArrayT tx)
    $ fmap (\(t, ix) -> primArrayPut aix t (primUnpack ix (ArrayT tx) na)
                                           (primUnpack ix         tx  nv)) tis
+
+   -- comparison
+   | Just (PrimMinimal (Min.PrimRelation Min.PrimRelationEq t), [nx, ny]) <- takePrimApps x
+   , Just ts <- tryMeltType t
+   , tis     <- List.zip ts [0..]
+   = primFold1 primAnd
+   $ fmap (\(tv, i) -> primEq tv (primUnpack i t nx)
+                                 (primUnpack i t ny)) tis
 
 
    | otherwise

@@ -143,4 +143,4 @@ MAKE_BUF(ierror_t,    ierror_)
 MAKE_BUF(ibool_t,     ibool_)
 MAKE_BUF(idate_t,     idate_)
 MAKE_BUF(iunit_t,     iunit_)
-
+MAKE_BUF(istring_t,   istring_)

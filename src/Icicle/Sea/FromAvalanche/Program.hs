@@ -256,6 +256,7 @@ seaOfXValue :: BaseValue -> ValType -> Doc
 seaOfXValue v t
  = case v of
      VError    err   -> seaOfError err
+     VUnit           -> "iunit"
      VBool     True  -> "itrue"
      VBool     False -> "ifalse"
      VInt      x     -> int x
