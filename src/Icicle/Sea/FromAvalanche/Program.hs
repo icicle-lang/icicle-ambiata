@@ -24,6 +24,7 @@ import qualified Icicle.Internal.Pretty as Pretty
 import           Icicle.Sea.FromAvalanche.Analysis
 import           Icicle.Sea.FromAvalanche.Base
 import           Icicle.Sea.FromAvalanche.Prim
+import           Icicle.Sea.FromAvalanche.Struct
 import           Icicle.Sea.FromAvalanche.Type
 
 import           P
@@ -40,10 +41,12 @@ seaOfProgram :: (Show a, Show n, Pretty n, Ord n)
              => Program (Annot a) n Prim -> Doc
 seaOfProgram program
  =  vsep
--- [ "#line 1 \"state definition\""
- [ stateOfProgram program
+ [ "#line 1 \"struct types\""
+ , makeStructDeclarations $ typesOfProgram program
+ , "#line 1 \"state definition\""
+ , stateOfProgram program
  , ""
--- , "#line 1 \"compute function\""
+ , "#line 1 \"compute function\""
  , "ICICLE_FUNCTION"
  , "void compute(icicle_state_t *s)"
  , "{"

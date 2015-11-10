@@ -170,7 +170,7 @@ seaOfPrimStruct :: M.PrimStruct -> PrimDoc
 seaOfPrimStruct p
  = case p of
      M.PrimStructGet f _ _
-      -> PDMeth (pretty f)
+      -> PDMeth ("getField__" <> pretty f)
 
 
 seaOfPrimRelation :: M.PrimRelation -> Doc

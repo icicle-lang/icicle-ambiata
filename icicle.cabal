@@ -145,6 +145,7 @@ library
                        Icicle.Sea.FromAvalanche.Base
                        Icicle.Sea.FromAvalanche.Prim
                        Icicle.Sea.FromAvalanche.Program
+                       Icicle.Sea.FromAvalanche.Struct
                        Icicle.Sea.FromAvalanche.Type
                        Icicle.Sea.Preamble
 

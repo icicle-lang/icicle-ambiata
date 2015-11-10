@@ -24,6 +24,8 @@ import           Icicle.Sea.FromAvalanche.Base
 
 import           P
 
+import qualified Data.Map as Map
+
 
 prefixOfArithType :: ArithType -> Doc
 prefixOfArithType t
@@ -41,16 +43,8 @@ prefixOfValType t
      DoubleT   -> "idouble_"
      DateTimeT -> "idate_"
      ErrorT    -> "ierror_"
-
      StringT   -> "istring_"
-     BufT   t' -> "ibuf__"   <> prefixOfValType t'
-     ArrayT t' -> "iarray__" <> prefixOfValType t'
-     MapT{}    -> nope "maps not implemented"
-
-     StructT{} -> nope "structs should have been melted"
-     OptionT{} -> nope "options should have been melted"
-     PairT{}   -> nope "pairs should have been melted"
-     SumT{}    -> nope "sums should have been melted"
+     _         -> nope ("no prefix operations for " <> show t)
 
 ------------------------------------------------------------------------
 
@@ -77,7 +71,11 @@ stringOfValType t
      ArrayT t' -> "iarray_t" <> templateOfValType [t']
 
      MapT k v  -> "imap_t" <> templateOfValType [k,v]
-     StructT{} -> "structs should have been melted"
+     StructT (StructType ts)
+      -> "istruct_t_"
+      <> ( intercalate "__"
+         $ fmap (\(ff,tt) -> show (pretty ff) <> "_" <> stringOfValType tt)
+         $ Map.toList ts)
      OptionT t'-> "ioption_t" <> templateOfValType [t']
      PairT a b -> "ipair_t" <> templateOfValType [a,b]
      SumT a b  -> "isum_t" <> templateOfValType [a,b]
