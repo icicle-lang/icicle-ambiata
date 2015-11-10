@@ -15,7 +15,7 @@ module Icicle.Avalanche.Prim.Flat (
     , flatFragment
     , meltType
     , tryMeltType
-    , typeOfGet
+    , typeOfUnpack
   ) where
 
 import              Icicle.Internal.Pretty
@@ -157,7 +157,7 @@ typeOfPrim p
      -> FunT (fmap funOfVal ts) t
 
     PrimMelt    (PrimMeltUnpack ix t)
-     | tg <- typeOfGet ix t
+     | tg <- typeOfUnpack ix t
      -> FunT [funOfVal t] tg
 
 
@@ -212,8 +212,8 @@ tryMeltType t
       then Nothing
       else Just ts
 
-typeOfGet :: Int -> ValType -> ValType
-typeOfGet ix t
+typeOfUnpack :: Int -> ValType -> ValType
+typeOfUnpack ix t
  = case drop ix (meltType t) of
      []     -> UnitT
      (tg:_) -> tg
@@ -259,7 +259,7 @@ instance Pretty Prim where
   = annotate (AnnType t) "Melt_pack#"
 
  pretty (PrimMelt (PrimMeltUnpack i t))
-  = annotate (AnnType (typeOfGet i t)) ("Melt_unpack" <> int i <> "#")
+  = annotate (AnnType (typeOfUnpack i t)) ("Melt_unpack" <> int i <> "#")
 
 
  pretty (PrimMap (PrimMapPack a b))

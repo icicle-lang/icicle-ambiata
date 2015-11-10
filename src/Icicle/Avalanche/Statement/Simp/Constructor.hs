@@ -1,6 +1,5 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE PatternGuards #-}
-{-# OPTIONS_GHC -w #-}
 module Icicle.Avalanche.Statement.Simp.Constructor (
     constructor
   ) where
