@@ -111,6 +111,12 @@ constructor a_fresh statements
    | Just (PrimMinimal (Min.PrimPair (Min.PrimPairSnd ta tb)), [n]) <- takePrimApps x
    = primRepack env (PairT ta tb) [ta] tb n
 
+   | Just (PrimMap (PrimMapUnpackKeys tk tv), [n]) <- takePrimApps x
+   = primRepack env (MapT tk tv) [] (ArrayT tk) n
+
+   | Just (PrimMap (PrimMapUnpackValues tk tv), [n]) <- takePrimApps x
+   = primRepack env (MapT tk tv) [ArrayT tk] (ArrayT tv) n
+
    | Just (PrimProject (PrimProjectOptionIsSome tx), [n]) <- takePrimApps x
    = primRepack env (OptionT tx) [] BoolT n
 
@@ -132,8 +138,14 @@ constructor a_fresh statements
    = primRepack env (StructT ts) tpre tf n
 
    -- repacking const
-   | Just (PrimMinimal (Min.PrimConst (Min.PrimConstPair ta tb)), [n1, n2]) <- takePrimApps x
-   = primPackAll env (PairT ta tb) [n1, n2]
+   | Just (PrimMinimal (Min.PrimConst (Min.PrimConstPair ta tb)), [na, nb]) <- takePrimApps x
+   = primPackAll env (PairT ta tb) [na, nb]
+
+   | Just (PrimArray (PrimArrayZip ta tb), [nk, nv]) <- takePrimApps x
+   = primPackAll env (ArrayT (PairT ta tb)) [nk, nv]
+
+   | Just (PrimMap (PrimMapPack tk tv), [nk, nv]) <- takePrimApps x
+   = primPackAll env (MapT tk tv) [nk, nv]
 
    | Just (PrimMinimal (Min.PrimConst (Min.PrimConstSome tx)), [n]) <- takePrimApps x
    = primPackAll env (OptionT tx) [xTrue, n]

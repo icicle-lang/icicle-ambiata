@@ -221,7 +221,6 @@ meltValue v t
      VDateTime{} -> Just [v]
      VString{}   -> Just [v]
      VError{}    -> Just [v]
-     VMap{}      -> Just [v]
 
      VArray vs
       | Nothing <- tryMeltType t
@@ -249,6 +248,15 @@ meltValue v t
       | BufT _ ta <- t
       -> do vss <- traverse (\vv -> meltValue vv ta) vs
             Just (fmap VBuf (List.transpose vss))
+
+      | otherwise
+      -> Nothing
+
+     VMap kvs
+      | MapT tk tv <- t
+      , ks         <- Map.keys  kvs
+      , vs         <- Map.elems kvs
+      -> meltValue (VArray ks) (ArrayT tk) `apcat` meltValue (VArray vs) (ArrayT tv)
 
       | otherwise
       -> Nothing
@@ -332,7 +340,6 @@ unmeltValue' vs0 t
      (v:vs, BoolT{})     -> Just (v, vs)
      (v:vs, DateTimeT{}) -> Just (v, vs)
      (v:vs, StringT{})   -> Just (v, vs)
-     (v:vs, MapT{})      -> Just (v, vs)
      (v:vs, ErrorT{})    -> Just (v, vs)
 
      (v:vs, ArrayT ta)
@@ -354,6 +361,13 @@ unmeltValue' vs0 t
 
       | otherwise
       -> Just (v, vs)
+
+     (_, MapT tk tv)
+      -> do (bks, vs1) <- unmeltValue' vs0 (ArrayT tk)
+            (bvs, vs2) <- unmeltValue' vs1 (ArrayT tv)
+            ks <- unArray bks
+            vs <- unArray bvs
+            Just (VMap . Map.fromList $ List.zip ks vs, vs2)
 
      (_, PairT ta tb)
       -> do (a, vs1) <- unmeltValue' vs0 ta

@@ -206,9 +206,9 @@ meltType t
     SumT    a b -> [BoolT] <> meltType a <> meltType b
     OptionT a   -> [BoolT] <> meltType a
 
-    ArrayT a  -> fmap ArrayT   (meltType a)
-    BufT i a  -> fmap (BufT i) (meltType a)
-    MapT{}    -> [t]
+    ArrayT a -> fmap ArrayT   (meltType a)
+    BufT i a -> fmap (BufT i) (meltType a)
+    MapT k v -> meltType (ArrayT k) <> meltType (ArrayT v)
 
     StructT (StructType fs)
      | Map.null fs
