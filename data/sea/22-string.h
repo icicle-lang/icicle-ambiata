@@ -21,7 +21,11 @@ struct istring_t
         return strcmp(this->payload, y.payload);
     }
 
-    const char* const payload;
+    const char* payload;
+
+    istring_t()
+        : payload(0)
+    { }
 
     istring_t(const char* const payload)
         : payload(payload)

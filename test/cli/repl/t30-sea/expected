@@ -629,7 +629,6 @@ gen$date = DATE
 }
 
 - C:
-#line 1 "state definition"
 typedef struct {
     /* runtime */
     imempool_t       mempool;
@@ -673,7 +672,7 @@ typedef struct {
     idouble_t        res_acc_s_conv_13_simp_46;
 } icicle_state_t;
 
-#line 1 "compute function"
+ICICLE_FUNCTION
 void compute(icicle_state_t *s)
 {
     ibool_t          a_conv_66_simp_248;
@@ -1137,7 +1136,7 @@ void compute(icicle_state_t *s)
         flat_19_simp_119                      = ifalse;                               /* init */
         
         if (flat_18_simp_114) {
-            ibool_t          simp_502         = istring_eq (flat_18_simp_116, "torso"); /* let */
+            ibool_t          simp_502         = ieq<istring_t>  (flat_18_simp_116, "torso"); /* let */
             flat_19_simp_117                  = itrue;                                /* write */
             flat_19_simp_119                  = simp_502;                             /* write */
         } else {
@@ -1686,7 +1685,6 @@ gen$date = DATE
 }
 
 - C:
-#line 1 "state definition"
 typedef struct {
     /* runtime */
     imempool_t       mempool;
@@ -1713,7 +1711,7 @@ typedef struct {
     idate_t          res_acc_s_reify_2_conv_5_simp_6;
 } icicle_state_t;
 
-#line 1 "compute function"
+ICICLE_FUNCTION
 void compute(icicle_state_t *s)
 {
     ibool_t          acc_s_reify_2_conv_5_simp_4;
@@ -1779,7 +1777,7 @@ void compute(icicle_state_t *s)
         if (acc_s_reify_2_conv_5_simp_7) {
             flat_4                            = 0x7420b1100000000;                    /* init */
             
-            if (idate_gt (anf_15, acc_s_reify_2_conv_5_simp_9)) {
+            if (igt<idate_t>  (anf_15, acc_s_reify_2_conv_5_simp_9)) {
                 flat_4                        = anf_15;                               /* write */
             } else {
                 flat_4                        = acc_s_reify_2_conv_5_simp_9;          /* write */
@@ -1794,7 +1792,7 @@ void compute(icicle_state_t *s)
             flat_3_simp_14                    = ierror_tombstone;                     /* init */
             flat_3_simp_15                    = 0x7420b1100000000;                    /* init */
             
-            if (ierror_eq (ierror_fold1_no_value, acc_s_reify_2_conv_5_simp_8)) {
+            if (ieq<ierror_t>  (ierror_fold1_no_value, acc_s_reify_2_conv_5_simp_8)) {
                 flat_3_simp_13                = itrue;                                /* write */
                 flat_3_simp_14                = ierror_tombstone;                     /* write */
                 flat_3_simp_15                = anf_15;                               /* write */
