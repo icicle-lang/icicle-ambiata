@@ -79,4 +79,27 @@ ok, loaded test/cli/repl/data.psv, 13 rows
 [homer, 1990-03-17
 ,marge, 1990-03-17]
 
+> > -- Maps
+> - C evaluation:
+[(homer
+ ,[("arm",4)
+  ,("head",2)
+  ,("torso",3)])]
+
+- Core evaluation:
+[homer, [("arm",4)
+        ,("head",2)
+        ,("torso",3)]]
+
+> > -- Maps
+> - C evaluation:
+[(homer
+ ,[(1,2),(2,1),(3,1),(4,1)])]
+
+- Core evaluation:
+[homer, [(1,2)
+        ,(2,1)
+        ,(3,1)
+        ,(4,1)]]
+
 > 
