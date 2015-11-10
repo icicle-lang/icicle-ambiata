@@ -64,7 +64,7 @@ typeOfValType vt
     CT.UnitT        -> UnitT
     CT.ErrorT       -> ErrorT
     CT.ArrayT a     -> ArrayT (go a)
-    CT.BufT   a     -> ArrayT (go a)
+    CT.BufT  _ a    -> ArrayT (go a)
     CT.MapT  k v    -> GroupT (go k) (go v)
     CT.OptionT a    -> OptionT (go a)
     CT.PairT a b    -> PairT (go a) (go b)

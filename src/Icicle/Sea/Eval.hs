@@ -46,7 +46,8 @@ import           Foreign.Marshal (mallocBytes, free)
 import           Foreign.Ptr (Ptr, WordPtr, ptrToWordPtr, wordPtrToPtr, castPtr, nullPtr)
 import           Foreign.Storable (Storable(..))
 
-import           Icicle.Avalanche.Prim.Flat (Prim)
+import           Icicle.Avalanche.Prim.Flat (Prim, tryMeltType)
+import           Icicle.Avalanche.Prim.Eval (unmeltValue)
 import           Icicle.Avalanche.Program (Program)
 import           Icicle.Avalanche.Statement.Statement (FactLoopType(..))
 import           Icicle.Common.Annot (Annot)
@@ -232,7 +233,7 @@ seaEval' program createPool releasePool date values = do
 
     bracketEitherT' (createPool pMemPool) (const $ releasePool pMemPool) $ \_ -> do
       _       <- liftIO (spCompute program pState)
-      outputs <- peekOutputs pState outputsIx (spOutputs program)
+      outputs <- peekNamedOutputs pState outputsIx (spOutputs program)
       hoistEither (traverse (\(k,v) -> (,) <$> pure k <*> valueFromCore' v) outputs)
 
 valueFromCore' :: BaseValue -> Either SeaError D.Value
@@ -384,7 +385,6 @@ newSeaVectors sz t =
     ErrorT    -> (:[]) . U64 <$> liftIO (MV.new sz)
     StringT   -> (:[]) . P64 <$> liftIO (MV.new sz)
 
-    MapT{}    -> left (SeaTypeConversionError t)
     BufT{}    -> left (SeaTypeConversionError t)
 
     ArrayT tx
@@ -393,6 +393,11 @@ newSeaVectors sz t =
 
      | otherwise
      -> (:[]) . P64 <$> liftIO (MV.new sz)
+
+    MapT tk tv
+     -> do vk <- newSeaVectors sz (ArrayT tk)
+           vv <- newSeaVectors sz (ArrayT tv)
+           pure (vk <> vv)
 
     PairT ta tb
      -> do va <- newSeaVectors sz ta
@@ -444,6 +449,11 @@ pokeInput' svs0@(sv:svs) t ix val =
            liftIO (MV.write v ix (ptrToWordPtr ptr))
            pure svs
 
+    (_, VMap kvs, MapT tk tv)
+     -> do svs1 <- pokeInput' svs0 (ArrayT tk) ix (VArray (Map.keys  kvs))
+           svs2 <- pokeInput' svs1 (ArrayT tv) ix (VArray (Map.elems kvs))
+           pure svs2
+
     (_, VPair a b, PairT ta tb)
      -> do svs1 <- pokeInput' svs0 ta ix a
            svs2 <- pokeInput' svs1 tb ix b
@@ -484,17 +494,32 @@ pokeInput' svs0@(sv:svs) t ix val =
 
 ------------------------------------------------------------------------
 
-peekOutputs :: MonadIO m
-            => Ptr a
-            -> Int
-            -> [(OutputName, (ValType, [ValType]))]
-            -> EitherT SeaError m [(OutputName, BaseValue)]
+peekNamedOutputs
+  :: MonadIO m
+  => Ptr a
+  -> Int
+  -> [(OutputName, (ValType, [ValType]))]
+  -> EitherT SeaError m [(OutputName, BaseValue)]
 
-peekOutputs _ _ []                     = pure []
-peekOutputs ptr ix ((n, (t, _)) : ots) = do
-  nvs    <- peekOutputs ptr (ix+1) ots
+peekNamedOutputs _ _ []                     = pure []
+peekNamedOutputs ptr ix ((n, (t, _)) : ots) = do
+  nvs    <- peekNamedOutputs ptr (ix+1) ots
   (_, v) <- peekOutput  ptr ix t
   pure ((n, v) : nvs)
+
+
+peekOutputs
+  :: MonadIO m
+  => Ptr a
+  -> Int
+  -> [ValType]
+  -> EitherT SeaError m (Int, [BaseValue])
+
+peekOutputs _   ix0 []       = pure (ix0, [])
+peekOutputs ptr ix0 (t : ts) = do
+  (ix1, v)  <- peekOutput  ptr ix0 t
+  (ix2, vs) <- peekOutputs ptr ix1 ts
+  pure (ix2, v : vs)
 
 
 peekOutput :: MonadIO m => Ptr a -> Int -> ValType -> EitherT SeaError m (Int, BaseValue)
@@ -506,7 +531,6 @@ peekOutput ptr ix0 t =
     DateTimeT -> (ix0+1,) . VDateTime . dateOfPacked <$> peekWordOff ptr ix0
     ErrorT    -> (ix0+1,) . VError    . errorOfWord  <$> peekWordOff ptr ix0
 
-    MapT{}    -> left (SeaTypeConversionError t)
     StructT{} -> left (SeaTypeConversionError t)
     BufT{}    -> left (SeaTypeConversionError t)
 
@@ -516,8 +540,10 @@ peekOutput ptr ix0 t =
            pure (ix0+1, VString (T.pack str))
 
     ArrayT tx
-     | StringT <- tx
-     -> left (SeaTypeConversionError t)
+     | Just ts <- tryMeltType t
+     -> do (ix1, oss) <- peekOutputs ptr ix0 ts
+           v <- unmeltValueE (SeaTypeConversionError t) oss t
+           pure (ix1, v)
 
      | otherwise
      -> do arrPtr :: Ptr Word64 <- wordPtrToPtr <$> peekWordOff ptr ix0
@@ -529,6 +555,13 @@ peekOutput ptr ix0 t =
            case b :: Word64 of
              0 -> pure (ix0+1, VBool False)
              _ -> pure (ix0+1, VBool True)
+
+    MapT tk tv
+     -> do (ix1, vk) <- peekOutput ptr ix0 (ArrayT tk)
+           (ix2, vv) <- peekOutput ptr ix1 (ArrayT tv)
+           ak <- unArray (SeaTypeConversionError t) vk
+           av <- unArray (SeaTypeConversionError t) vv
+           pure (ix2, VMap (Map.fromList (List.zip ak av)))
 
     PairT ta tb
      -> do (ix1, va) <- peekOutput ptr ix0 ta
@@ -584,8 +617,19 @@ peekArrayIx ptr t ix =
              0 -> pure (VBool False)
              _ -> pure (VBool True)
 
+    StringT
+     -> do strPtr <- wordPtrToPtr <$> peekWordOff ptr ix
+           str    <- liftIO (peekCString strPtr)
+           pure (VString (T.pack str))
     _
-     -> left (SeaTypeConversionError t)
+     -> left (SeaTypeConversionError (ArrayT t))
+
+unArray :: Monad m => e -> BaseValue -> EitherT e m [BaseValue]
+unArray _ (VArray vs) = pure vs
+unArray e _           = left e
+
+unmeltValueE :: Monad m => e -> [BaseValue] -> ValType -> EitherT e m BaseValue
+unmeltValueE e vs t = maybe (left e) pure (unmeltValue vs t)
 
 ------------------------------------------------------------------------
 

@@ -58,9 +58,8 @@ data PrimMap
 
 -- | Latest buffer primitives
 data PrimLatest
- = PrimLatestMake ValType
- | PrimLatestPush ValType
- | PrimLatestRead ValType
+ = PrimLatestPush Int ValType
+ | PrimLatestRead Int ValType
  deriving (Eq, Ord, Show)
 
 
@@ -95,12 +94,10 @@ typeOfPrim p
      -> FunT [FunT [funOfVal v] v', funOfVal (MapT k v)] (MapT k v')
 
     -- Latest buffer primitives
-    PrimLatest (PrimLatestMake t)
-     -> FunT [funOfVal IntT] (BufT t)
-    PrimLatest (PrimLatestPush t)
-     -> FunT [funOfVal (BufT t), funOfVal t] (BufT t)
-    PrimLatest (PrimLatestRead t)
-     -> FunT [funOfVal (BufT t)] (ArrayT t)
+    PrimLatest (PrimLatestPush i t)
+     -> FunT [funOfVal (BufT i t), funOfVal t] (BufT i t)
+    PrimLatest (PrimLatestRead i t)
+     -> FunT [funOfVal (BufT i t)] (ArrayT t)
 
 
 -- Pretty -------------
@@ -131,12 +128,9 @@ instance Pretty Prim where
  pretty (PrimMap (PrimMapMapValues k v v'))
   = annotate (AnnType (k , v , v')) "Map_mapValues#"
 
- pretty (PrimLatest (PrimLatestMake t))
-  = annotate (AnnType t) "Latest_make#"
+ pretty (PrimLatest (PrimLatestPush i t))
+  = annotate (AnnType (BufT i t)) "Latest_push#"
 
- pretty (PrimLatest (PrimLatestPush t))
-  = annotate (AnnType t) "Latest_push#"
-
- pretty (PrimLatest (PrimLatestRead t))
-  = annotate (AnnType t) "Latest_read#"
+ pretty (PrimLatest (PrimLatestRead _ t))
+  = annotate (AnnType (ArrayT t)) "Latest_read#"
 

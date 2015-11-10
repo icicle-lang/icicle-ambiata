@@ -240,17 +240,16 @@ convertFold q
            res       <- convertExpQ q'
            t'e       <- convertValType' $ annResult $ annotOfQuery q'
            let t'arr  = T.ArrayT t'e
-           let t'buf  = T.BufT t'e
+           let t'buf  = T.BufT i t'e
 
            let kons  = CE.xLam n'acc t'buf
-                     ( CE.pushBuf t'e
+                     ( CE.pushBuf i t'e
                          CE.@~ CE.xVar n'acc
                          CE.@~ res )
-           let zero  = CE.emptyBuf t'e
-                         CE.@~ CE.constI i
+           let zero  = CE.emptyBuf i t'e
 
            let x'    = CE.xLam n'buf t'buf
-                     ( CE.readBuf t'e CE.@~ CE.xVar n'buf )
+                     ( CE.readBuf i t'e CE.@~ CE.xVar n'buf )
 
            return $ ConvertFoldResult kons zero x' t'buf t'arr
 
@@ -265,18 +264,17 @@ convertFold q
            inp       <- convertInputName
            inpT      <- convertInputType
            let t'e    = inpT
-           let t'buf  = T.BufT t'e
+           let t'buf  = T.BufT i t'e
 
            res       <- convertWithInputName n'e $ convertFold q'
            let t'x    = typeFold res
            let t'r    = typeExtract res
 
            let kons  = CE.xLam n'acc t'buf
-                     ( CE.pushBuf t'e
+                     ( CE.pushBuf i t'e
                          CE.@~ CE.xVar n'acc
                          CE.@~ CE.xVar inp )
-           let zero  = CE.emptyBuf t'e
-                         CE.@~ CE.constI i
+           let zero  = CE.emptyBuf i t'e
 
            -- Flip the res fold arguments so it can be use with Array_fold
            let k'    = CE.xLam n'x t'x
@@ -286,7 +284,7 @@ convertFold q
 
            -- Apply the res fold
            let x'    = CE.xLet n'arr
-                     ( CE.readBuf t'e CE.@~ CE.xVar n'buf )
+                     ( CE.readBuf i t'e CE.@~ CE.xVar n'buf )
                      ( CE.xPrim (C.PrimFold (C.PrimFoldArray t'e) t'x)
                          CE.@~ k'
                          CE.@~ beta (foldZero res)

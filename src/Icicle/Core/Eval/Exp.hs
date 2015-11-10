@@ -86,21 +86,15 @@ evalPrim p vs
       | otherwise
       -> primError
 
-     PrimLatest (PrimLatestMake _)
-      | [VBase (VInt i)] <- vs
-      -> return . VBase . VBuf i $ []
-      | otherwise
-      -> primError
-
-     PrimLatest (PrimLatestPush _)
-      | [VBase (VBuf i as), VBase e] <- vs
-      -> return . VBase . VBuf i
+     PrimLatest (PrimLatestPush i _)
+      | [VBase (VBuf as), VBase e] <- vs
+      -> return . VBase . VBuf
       $  circ i e as
       | otherwise
       -> primError
 
-     PrimLatest (PrimLatestRead _)
-      | [VBase (VBuf _ as)] <- vs
+     PrimLatest (PrimLatestRead _ _)
+      | [VBase (VBuf as)] <- vs
       -> return . VBase . VArray $ as
       | otherwise
       -> primError

@@ -83,7 +83,7 @@ valueFromCore = \case
   C.VSome     x -> valueFromCore x
   C.VPair   x y -> D.PairValue <$> valueFromCore x <*> valueFromCore y
   C.VArray   xs -> D.ListValue . D.List <$> traverse valueFromCore xs
-  C.VBuf   _ xs -> D.ListValue . D.List <$> traverse valueFromCore xs
+  C.VBuf     xs -> D.ListValue . D.List <$> traverse valueFromCore xs
 
   C.VMap kvs
    -> let go (k,v) = (,) <$> valueFromCore k <*> valueFromCore v

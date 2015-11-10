@@ -179,6 +179,14 @@ seaOfStatement stmt
               , ""
               ]
 
+     ForeachInts n start end stmt'
+      -> vsep [ "for (iint_t" <+> seaOfName n <+> "=" <+> seaOfExp start <> ";"
+                              <+> seaOfName n <+> "<" <+> seaOfExp end   <> ";"
+                              <+> seaOfName n <>  "++) {"
+              , indent 4 $ seaOfStatement stmt'
+              , "}"
+              ]
+
      ForeachFacts ns _ lt stmt'
       | FactLoopNew  <- lt
       , structAssign <- \(n, t) -> assign ("const " <> seaOfValType t <> "*const new_" <> seaOfName n)
@@ -248,6 +256,7 @@ seaOfXValue :: BaseValue -> ValType -> Doc
 seaOfXValue v t
  = case v of
      VError    err   -> seaOfError err
+     VUnit           -> "iunit"
      VBool     True  -> "itrue"
      VBool     False -> "ifalse"
      VInt      x     -> int x
@@ -271,13 +280,14 @@ seaOfXValue v t
       | otherwise
       -> seaError "seaOfXValue: array of wrong type" (v,t)
 
-     VBuf len vs
-      | BufT t' <- t
+     VBuf vs
+      | BufT len t' <- t
       -> let writes buf v'
-              = prim (PrimBuf $ PrimBufPush t')
+              = prim (PrimBuf $ PrimBufPush len t')
                      [buf, seaOfXValue v' t']
              init
-              = prim (PrimBuf $ PrimBufMake t')
+              = seaOfPrimDocApps
+                     (PDAlloc (prefixOfValType t <> "make"))
                      [int len]
         in  foldl writes init vs
       | otherwise
