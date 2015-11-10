@@ -222,12 +222,6 @@ primTypeOfPrim p
      -> upda pu
     PrimArray (PrimArrayZip _ _)
      -> Function "Array.zip"
-    PrimArray (PrimArrayUnzip _ _)
-     -> Function "Array.unzip"
-    PrimArray (PrimArraySum _ _)
-     -> Function "Array.sum"
-    PrimArray (PrimArrayUnsum _ _)
-     -> Function "Array.unsum"
     PrimPack (PrimPackAll _)
      -> Function "Pack.all"
     PrimPack (PrimPackGet _ _)

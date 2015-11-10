@@ -90,10 +90,7 @@ data PrimUpdate
  deriving (Eq, Ord, Show)
 
 data PrimArray
- = PrimArrayZip     ValType ValType -- ^ zip two arrays into one
- | PrimArrayUnzip   ValType ValType -- ^ unzip an array of pairs into two arrays of pairs
- | PrimArraySum     ValType ValType -- ^ combine three arrays into an array of sums
- | PrimArrayUnsum   ValType ValType -- ^ split an array of sums into three arrays
+ = PrimArrayZip ValType ValType -- ^ zip two arrays into one
  deriving (Eq, Ord, Show)
 
 data PrimMap
@@ -153,15 +150,6 @@ typeOfPrim p
 
     PrimArray   (PrimArrayZip a b)
      -> FunT [funOfVal (ArrayT a), funOfVal (ArrayT b)] (ArrayT (PairT a b))
-
-    PrimArray   (PrimArrayUnzip a b)
-     -> FunT [funOfVal (ArrayT (PairT a b))] (PairT (ArrayT a) (ArrayT b))
-
-    PrimArray   (PrimArraySum a b)
-     -> FunT [funOfVal (ArrayT BoolT), funOfVal (ArrayT a), funOfVal (ArrayT b)] (ArrayT (SumT a b))
-
-    PrimArray   (PrimArrayUnsum a b)
-     -> FunT [funOfVal (ArrayT (SumT a b))] (PairT (ArrayT BoolT) (PairT (ArrayT a) (ArrayT b)))
 
 
     PrimPack    (PrimPackAll t)
@@ -265,15 +253,6 @@ instance Pretty Prim where
 
  pretty (PrimArray (PrimArrayZip a b))
   = annotate (AnnType $ (pretty a) <.> (pretty b)) "Array_zip#"
-
- pretty (PrimArray (PrimArrayUnzip a b))
-  = annotate (AnnType $ (pretty a) <.> (pretty b)) "Array_unzip#"
-
- pretty (PrimArray (PrimArraySum a b))
-  = annotate (AnnType $ (pretty a) <.> (pretty b)) "Array_sum#"
-
- pretty (PrimArray (PrimArrayUnsum a b))
-  = annotate (AnnType $ (pretty a) <.> (pretty b)) "Array_unsum#"
 
 
  pretty (PrimPack (PrimPackAll t))
