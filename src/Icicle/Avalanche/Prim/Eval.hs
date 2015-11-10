@@ -120,14 +120,14 @@ evalPrim p vs
       -> primError
 
 
-     PrimPack (PrimPackAll t)
+     PrimMelt (PrimMeltPack t)
       | Just vs' <- traverse unpack vs
       , Just v   <- unmeltValue vs' t
       -> return (VBase v)
       | otherwise
       -> primError
 
-     PrimPack (PrimPackGet ix t)
+     PrimMelt (PrimMeltUnpack ix t)
       | [VBase v]   <- vs
       , Just (v':_) <- fmap (drop ix) (meltValue v t)
       -> return (VBase v')

@@ -37,8 +37,8 @@ data MeltOps a n p = MeltOps {
   , xValue :: ValType   -> BaseValue -> Exp a n p
   , xApp   :: Exp a n p -> Exp a n p -> Exp a n p
 
-  , primPackAll ::        ValType -> [Name n]  -> Exp a n p
-  , primPackGet :: Int -> ValType -> Exp a n p -> Exp a n p
+  , primPack ::          ValType -> [Name n]  -> Exp a n p
+  , primUnpack :: Int -> ValType -> Exp a n p -> Exp a n p
   }
 
 meltOps :: a -> MeltOps a n Prim
@@ -50,8 +50,8 @@ meltOps a_fresh
   xValue = XValue a_fresh
   xApp   = XApp   a_fresh
 
-  primPackAll    t ns = foldl (\x n -> x `xApp` xVar n) (xPrim (PrimPack (PrimPackAll t))) ns
-  primPackGet ix t x  = xPrim (PrimPack (PrimPackGet ix t)) `xApp` x
+  primPack      t ns = foldl (\x n -> x `xApp` xVar n) (xPrim (PrimMelt (PrimMeltPack t))) ns
+  primUnpack ix t x  = xPrim (PrimMelt (PrimMeltUnpack ix t)) `xApp` x
 
 ------------------------------------------------------------------------
 
@@ -86,13 +86,13 @@ meltAccumulators a_fresh statements
            , ntis           <- List.zip3 nas ts [0..]
            -> go
             $ foldr (\(na,t,ix)
-            -> InitAccumulator (Accumulator na t (primPackGet ix tp x))) ss ntis
+            -> InitAccumulator (Accumulator na t (primUnpack ix tp x))) ss ntis
 
           Read na acc _ ss
            | Just (tp, ns) <- Map.lookup acc env'
            , Just ts       <- tryMeltType tp
            -> do ns' <- freshes (length ns) na
-                 ss' <- substXinS a_fresh na (primPackAll tp ns') ss
+                 ss' <- substXinS a_fresh na (primPack tp ns') ss
                  go $ foldr (\(n',n,t) -> Read n' n t) ss' (List.zip3 ns' ns ts)
 
           Write n x
@@ -100,7 +100,7 @@ meltAccumulators a_fresh statements
            , Just _         <- tryMeltType tp
            , nis            <- List.zip nas [0..]
            -> go . Block
-            $ fmap (\(na,ix) -> Write na (primPackGet ix tp x)) nis
+            $ fmap (\(na,ix) -> Write na (primUnpack ix tp x)) nis
 
           LoadResumable n _
            | Just (tp, nas) <- Map.lookup n env'
@@ -167,9 +167,9 @@ meltBody
 meltBody a_fresh (n, vt, x)
  = do let ts = meltType vt
       bns <- freshes (length ts) n
-      let binds  = fmap (\(bn, bt, ix) -> (bn, bt, primPackGet ix vt x))
+      let binds  = fmap (\(bn, bt, ix) -> (bn, bt, primUnpack ix vt x))
                  $ List.zip3 bns ts [0..]
-          unmelt = primPackAll vt bns
+          unmelt = primPack vt bns
       return (binds, unmelt)
  where
   MeltOps{..} = meltOps a_fresh
@@ -218,7 +218,7 @@ meltForeachFacts a_fresh statements
   meltFact (n, t) ss
    | Just ts <- tryMeltType t
    = do ns  <- freshes (length ts) n
-        ss' <- substXinS a_fresh n (primPackAll t ns) ss
+        ss' <- substXinS a_fresh n (primPack t ns) ss
         let nts = List.zip ns ts
         return (nts, ss')
 
@@ -252,7 +252,7 @@ meltExp a_fresh x t
  | Just ts <- tryMeltType t
  = let MeltOps{..} = meltOps a_fresh
        tis         = List.zip ts [0..]
-       go (tv,ix)  = meltExp a_fresh (primPackGet ix t x) tv
+       go (tv,ix)  = meltExp a_fresh (primUnpack ix t x) tv
    in concat (fmap go tis)
 
  | otherwise

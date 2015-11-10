@@ -8,7 +8,7 @@ module Icicle.Avalanche.Prim.Flat (
     , PrimUnsafe  (..)
     , PrimUpdate  (..)
     , PrimArray   (..)
-    , PrimPack    (..)
+    , PrimMelt    (..)
     , PrimBuf     (..)
     , PrimMap     (..)
     , typeOfPrim
@@ -56,7 +56,7 @@ data Prim
  | PrimArray           PrimArray
 
  -- | Packing/unpacking prims
- | PrimPack            PrimPack
+ | PrimMelt            PrimMelt
 
  -- | Packing and unpacking maps
  | PrimMap             PrimMap
@@ -99,9 +99,9 @@ data PrimMap
  | PrimMapUnpackValues ValType ValType
  deriving (Eq, Ord, Show)
 
-data PrimPack
- = PrimPackAll     ValType
- | PrimPackGet Int ValType
+data PrimMelt
+ = PrimMeltPack       ValType
+ | PrimMeltUnpack Int ValType
  deriving (Eq, Ord, Show)
 
 -- | These correspond directly to the latest buffer primitives in Core.
@@ -152,11 +152,11 @@ typeOfPrim p
      -> FunT [funOfVal (ArrayT a), funOfVal (ArrayT b)] (ArrayT (PairT a b))
 
 
-    PrimPack    (PrimPackAll t)
+    PrimMelt    (PrimMeltPack t)
      | ts <- meltType t
      -> FunT (fmap funOfVal ts) t
 
-    PrimPack    (PrimPackGet ix t)
+    PrimMelt    (PrimMeltUnpack ix t)
      | tg <- typeOfGet ix t
      -> FunT [funOfVal t] tg
 
@@ -255,11 +255,11 @@ instance Pretty Prim where
   = annotate (AnnType $ (pretty a) <.> (pretty b)) "Array_zip#"
 
 
- pretty (PrimPack (PrimPackAll t))
-  = annotate (AnnType t) "pack#"
+ pretty (PrimMelt (PrimMeltPack t))
+  = annotate (AnnType t) "Melt_pack#"
 
- pretty (PrimPack (PrimPackGet i t))
-  = annotate (AnnType (typeOfGet i t)) ("get" <> int i <> "#")
+ pretty (PrimMelt (PrimMeltUnpack i t))
+  = annotate (AnnType (typeOfGet i t)) ("Melt_unpack" <> int i <> "#")
 
 
  pretty (PrimMap (PrimMapPack a b))

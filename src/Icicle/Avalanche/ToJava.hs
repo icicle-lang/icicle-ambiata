@@ -222,10 +222,10 @@ primTypeOfPrim p
      -> upda pu
     PrimArray (PrimArrayZip _ _)
      -> Function "Array.zip"
-    PrimPack (PrimPackAll _)
-     -> Function "Pack.all"
-    PrimPack (PrimPackGet _ _)
-     -> Function "Pack.get"
+    PrimMelt (PrimMeltPack _)
+     -> Function "Melt.pack"
+    PrimMelt (PrimMeltUnpack _ _)
+     -> Function "Melt.unpack"
     PrimMap (PrimMapPack _ _)
      -> Function "Map.pack"
     PrimMap (PrimMapUnpackKeys _ _)
