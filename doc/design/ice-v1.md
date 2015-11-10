@@ -21,16 +21,16 @@ Todo
 
 ## High
 
-1. Melt maps into pair of arrays
-    - (should be simple after melt arrays because majority is done in flatten)
-    - Converting maps to/from C values
-2. Array of strings
-    - Converting to/from C values
-3. Melt bufs (tran)
-
-## Medium
-
-1. C implementation of parsing
+1. Read output from C evaluator.
+    - Currently does not handle Maps, Arrays etc
+2. Equality and comparison for ``ipair_t``, ``isum_t`` and so on
+    - Implement operator ``==, !=, <=`` etc as in ``istring_t``.
+3. Implement structs
+    - Each struct should become its own C++ class
+    - Find all unique struct types mentioned and generate class for each
+    - Class should have constructor, field accessors, equality and comparison
+4. C implementation of parsing
+    - So it goes fast
 
 ## Low
 
