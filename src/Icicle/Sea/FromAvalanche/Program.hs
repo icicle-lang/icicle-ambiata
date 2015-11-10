@@ -259,6 +259,50 @@ seaOfXValue v t
      VDateTime x     -> text ("0x" <> showHex (packedOfDate x) "")
      VUnit           -> "iunit"
 
+     VPair x y
+      | PairT tx ty <- t
+      -> "ipair_pair"  <> string (templateOfValType [tx,ty])
+                       <> tupled [seaOfXValue x tx, seaOfXValue y ty]
+      | otherwise
+      -> seaError "seaOfXValue: pair of wrong type" (v,t)
+
+     VLeft x
+      | SumT tx ty <- t
+      -> "isum_left"   <> string (templateOfValType [tx,ty])
+                       <> tupled [seaOfXValue x tx]
+      | otherwise
+      -> seaError "seaOfXValue: left of wrong type" (v,t)
+
+     VRight y
+      | SumT tx ty <- t
+      -> "isum_right"  <> string (templateOfValType [tx,ty])
+                       <> tupled [seaOfXValue y ty]
+      | otherwise
+      -> seaError "seaOfXValue: right of wrong type" (v,t)
+
+     VSome x
+      | OptionT tx <- t
+      -> "ioption_some"<> string (templateOfValType [tx])
+                       <> tupled [seaOfXValue x tx]
+      | otherwise
+      -> seaError "seaOfXValue: some of wrong type" (v,t)
+
+     VNone
+      | OptionT tx <- t
+      -> "ioption_none"<> string (templateOfValType [tx])
+                       <> tupled []
+      | otherwise
+      -> seaError "seaOfXValue: none of wrong type" (v,t)
+
+     VStruct fs
+      | StructT (StructType ts) <- t
+      -> noPadSeaOfValType t
+      <> tupled ( fmap (uncurry seaOfXValue)
+                $ Map.elems
+                $ Map.intersectionWith (,) fs ts)
+      | otherwise
+      -> seaError "seaOfXValue: none of wrong type" (v,t)
+
 
      -- TODO C escapes /= Haskell escapes
      VString x     -> text (show x)
@@ -300,8 +344,6 @@ seaOfXValue v t
       | otherwise
       -> seaError "seaOfXValue: buffer of wrong type" (v,t)
 
-     _
-      -> seaError "seaOfXValue: this should be removed by melt" v
  where
   prim p args
    = seaOfPrimDocApps (seaOfXPrim p) args
