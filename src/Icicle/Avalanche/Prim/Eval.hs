@@ -48,21 +48,15 @@ evalPrim p vs
       | otherwise
       -> primError
 
-     PrimBuf (PrimBufMake _)
-      | [VBase (VInt i)] <- vs
-      -> return . VBase . VBuf i $ []
-      | otherwise
-      -> primError
-
-     PrimBuf (PrimBufPush _)
-      | [VBase (VBuf i as), VBase e] <- vs
-      -> return . VBase . VBuf i
+     PrimBuf (PrimBufPush i _)
+      | [VBase (VBuf as), VBase e] <- vs
+      -> return . VBase . VBuf
       $  circ i e as
       | otherwise
       -> primError
 
-     PrimBuf (PrimBufRead _)
-      | [VBase (VBuf _ as)] <- vs
+     PrimBuf (PrimBufRead _ _)
+      | [VBase (VBuf as)] <- vs
       -> return . VBase . VArray $ as
       | otherwise
       -> primError
@@ -244,17 +238,17 @@ meltValue v t
       | otherwise
       -> Nothing
 
-     VBuf i vs
+     VBuf vs
       | Nothing <- tryMeltType t
       -> Just [v]
 
       | [] <- vs
       , ts <- meltType t
-      -> Just (List.replicate (length ts) (VBuf i []))
+      -> Just (List.replicate (length ts) (VBuf []))
 
-      | BufT ta <- t
+      | BufT _ ta <- t
       -> do vss <- traverse (\vv -> meltValue vv ta) vs
-            Just (fmap (VBuf i) (List.transpose vss))
+            Just (fmap VBuf (List.transpose vss))
 
       | otherwise
       -> Nothing
@@ -351,13 +345,12 @@ unmeltValue' vs0 t
       | otherwise
       -> Just (v, vs)
 
-     (v:vs, BufT ta)
+     (v:vs, BufT _ ta)
       | Just ts <- tryMeltType ta
       -> do let n = length ts
-            i   <- unBufLen v
             xss <- List.transpose <$> traverse unBuf (List.take n vs0)
             xs  <- traverse (\xs -> unmeltValue xs ta) xss
-            Just (VBuf i xs, List.drop n vs0)
+            Just (VBuf xs, List.drop n vs0)
 
       | otherwise
       -> Just (v, vs)
@@ -405,9 +398,5 @@ unArray (VArray vs) = Just vs
 unArray _           = Nothing
 
 unBuf :: BaseValue -> Maybe [BaseValue]
-unBuf (VBuf _ vs) = Just vs
-unBuf _           = Nothing
-
-unBufLen :: BaseValue -> Maybe Int
-unBufLen (VBuf i _) = Just i
-unBufLen _          = Nothing
+unBuf (VBuf vs) = Just vs
+unBuf _         = Nothing

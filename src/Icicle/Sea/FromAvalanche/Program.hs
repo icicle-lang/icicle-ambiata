@@ -279,13 +279,14 @@ seaOfXValue v t
       | otherwise
       -> seaError "seaOfXValue: array of wrong type" (v,t)
 
-     VBuf len vs
-      | BufT t' <- t
+     VBuf vs
+      | BufT len t' <- t
       -> let writes buf v'
-              = prim (PrimBuf $ PrimBufPush t')
+              = prim (PrimBuf $ PrimBufPush len t')
                      [buf, seaOfXValue v' t']
              init
-              = prim (PrimBuf $ PrimBufMake t')
+              = seaOfPrimDocApps
+                     (PDAlloc (prefixOfValType t <> "make"))
                      [int len]
         in  foldl writes init vs
       | otherwise

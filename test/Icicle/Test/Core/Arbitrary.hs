@@ -134,7 +134,7 @@ instance Arbitrary ValType where
          , DateTimeT
          , StringT ]
          [ ArrayT  <$> arbitrary
-         , BufT    <$> arbitrary
+         , BufT    <$> (getNonNegative <$> arbitrary) <*> arbitrary
          , PairT   <$> arbitrary <*> arbitrary
          , SumT    <$> arbitrary <*> arbitrary
          , MapT    <$> arbitrary <*> arbitrary
@@ -497,9 +497,8 @@ baseValueForType t
      -> VDateTime <$> arbitrary
     ArrayT t'
      -> smaller (VArray <$> listOf (baseValueForType t'))
-    BufT t'
-     -> do NonNegative n <- arbitrary
-           smaller (VBuf n . List.take n <$> infiniteListOf (baseValueForType t'))
+    BufT n t'
+     -> smaller (VBuf . List.take n <$> infiniteListOf (baseValueForType t'))
     PairT a b
      -> smaller (VPair <$> baseValueForType a <*> baseValueForType b)
     SumT a b

@@ -147,14 +147,14 @@ lam t f
   varOfInt i
    = NameMod "_" $ Name $ T.pack $ show i
 
-emptyBuf :: ValType -> X.Exp () n
-emptyBuf = xPrim . PrimLatest . PrimLatestMake
+emptyBuf :: Int -> ValType -> X.Exp () n
+emptyBuf i t = xValue (BufT i t) (VBuf [])
 
-pushBuf :: ValType -> X.Exp () n
-pushBuf = xPrim . PrimLatest . PrimLatestPush
+pushBuf :: Int -> ValType -> X.Exp () n
+pushBuf i t = xPrim (PrimLatest (PrimLatestPush i t))
 
-readBuf :: ValType -> X.Exp () n
-readBuf = xPrim . PrimLatest . PrimLatestRead
+readBuf :: Int -> ValType -> X.Exp () n
+readBuf i t = xPrim (PrimLatest (PrimLatestRead i t))
 
 -- Constructors with () annotations ------------------------
 

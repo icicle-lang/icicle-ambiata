@@ -55,7 +55,7 @@ data BaseValue
  | VNone
  | VMap    (Map.Map BaseValue    BaseValue)
  | VStruct (Map.Map StructField  BaseValue)
- | VBuf   Int [BaseValue]
+ | VBuf   [BaseValue]
  | VError ExceptionInfo
  deriving (Show, Ord, Eq)
 
@@ -128,8 +128,8 @@ instance Pretty BaseValue where
       -> text "Struct" <+> pretty (Map.toList mv)
      VError e
       -> pretty e
-     VBuf i vs
-      -> text "Buf" <+> pretty i <+> pretty vs
+     VBuf vs
+      -> text "Buf" <+> pretty vs
 
 instance Pretty StructField where
  pretty = text . T.unpack . nameOfStructField

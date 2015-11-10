@@ -109,9 +109,8 @@ data PrimPack
 
 -- | These correspond directly to the latest buffer primitives in Core.
 data PrimBuf
- = PrimBufMake ValType
- | PrimBufPush ValType
- | PrimBufRead ValType
+ = PrimBufPush Int ValType
+ | PrimBufRead Int ValType
  deriving (Eq, Ord, Show)
 
 
@@ -184,14 +183,11 @@ typeOfPrim p
      -> FunT [funOfVal (MapT k v)] (ArrayT v)
 
 
-    PrimBuf     (PrimBufMake t)
-     -> FunT [funOfVal IntT] (BufT t)
+    PrimBuf     (PrimBufPush i t)
+     -> FunT [funOfVal (BufT i t), funOfVal t] (BufT i t)
 
-    PrimBuf     (PrimBufPush t)
-     -> FunT [funOfVal (BufT t), funOfVal t] (BufT t)
-
-    PrimBuf     (PrimBufRead t)
-     -> FunT [funOfVal (BufT t)] (ArrayT t)
+    PrimBuf     (PrimBufRead i t)
+     -> FunT [funOfVal (BufT i t)] (ArrayT t)
 
 
 
@@ -210,8 +206,8 @@ meltType t
     SumT    a b -> [BoolT] <> meltType a <> meltType b
     OptionT a   -> [BoolT] <> meltType a
 
-    ArrayT a  -> fmap ArrayT (meltType a)
-    BufT   a  -> fmap BufT   (meltType a)
+    ArrayT a  -> fmap ArrayT   (meltType a)
+    BufT i a  -> fmap (BufT i) (meltType a)
     MapT{}    -> [t]
 
     StructT (StructType fs)
@@ -296,11 +292,8 @@ instance Pretty Prim where
   = annotate (AnnType $ (pretty a) <+> (pretty b)) "Map_unpack_values#"
 
 
- pretty (PrimBuf    (PrimBufMake t))
-  = annotate (AnnType t) "Buf_make#"
+ pretty (PrimBuf    (PrimBufPush i t))
+  = annotate (AnnType (BufT i t)) "Buf_push#"
 
- pretty (PrimBuf    (PrimBufPush t))
-  = annotate (AnnType t) "Buf_push#"
-
- pretty (PrimBuf    (PrimBufRead t))
-  = annotate (AnnType t) "Buf_read#"
+ pretty (PrimBuf    (PrimBufRead _ t))
+  = annotate (AnnType (ArrayT t)) "Buf_read#"

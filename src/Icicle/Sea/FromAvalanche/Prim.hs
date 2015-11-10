@@ -152,11 +152,9 @@ seaOfPrimArray p
 seaOfPrimBuf :: PrimBuf -> PrimDoc
 seaOfPrimBuf p
  = case p of
-     PrimBufMake t
-      -> PDAlloc (prefixOfValType (BufT t) <> "make")
-     PrimBufPush t
-      -> PDFun   (prefixOfValType (BufT t) <> "push")
-     PrimBufRead t
-      -> PDAlloc (prefixOfValType (BufT t) <> "read")
+     PrimBufPush i t
+      -> PDFun   (prefixOfValType (BufT i t) <> "push")
+     PrimBufRead i t
+      -> PDAlloc (prefixOfValType (BufT i t) <> "read")
 
 

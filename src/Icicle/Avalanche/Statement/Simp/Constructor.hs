@@ -35,11 +35,11 @@ constructor a_fresh statements
   xFalse     = xValue BoolT (VBool False)
   xDefault t = xValue t (defaultOfType t)
 
-  primBufRead t x
-   = xPrim (PrimBuf (PrimBufRead t)) `xApp` x
+  primBufRead i t x
+   = xPrim (PrimBuf (PrimBufRead i t)) `xApp` x
 
-  primBufPush t x y
-   = xPrim (PrimBuf (PrimBufPush t)) `xApp` x `xApp` y
+  primBufPush i t x y
+   = xPrim (PrimBuf (PrimBufPush i t)) `xApp` x `xApp` y
 
   primArrayCreate i t
    = xPrim (PrimUnsafe (PrimUnsafeArrayCreate t)) `xApp` i
@@ -146,18 +146,18 @@ constructor a_fresh statements
 
 
    -- buffers
-   | Just (PrimBuf (PrimBufPush tx), [nb, nx]) <- takePrimApps x
+   | Just (PrimBuf (PrimBufPush i tx), [nb, nx]) <- takePrimApps x
    , Just ts <- tryMeltType tx
    , tis     <- List.zip ts [0..]
-   = primPackAll env (BufT tx)
-   $ fmap (\(t, ix) -> primBufPush t (primPackGet ix (BufT tx) nb)
-                                     (primPackGet ix tx        nx)) tis
+   = primPackAll env (BufT i tx)
+   $ fmap (\(t, ix) -> primBufPush i t (primPackGet ix (BufT i tx) nb)
+                                       (primPackGet ix tx          nx)) tis
 
-   | Just (PrimBuf (PrimBufRead tx), [n]) <- takePrimApps x
+   | Just (PrimBuf (PrimBufRead i tx), [n]) <- takePrimApps x
    , Just ts <- tryMeltType tx
    , tis     <- List.zip ts [0..]
    = primPackAll env (ArrayT tx)
-   $ fmap (\(t, ix) -> primBufRead t (primPackGet ix (BufT tx) n)) tis
+   $ fmap (\(t, ix) -> primBufRead i t (primPackGet ix (BufT i tx) n)) tis
 
 
    -- arrays

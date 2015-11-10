@@ -313,9 +313,8 @@ primTypeOfPrim p
 
   upda (PrimUpdateArrayPut _)      = Function "Array.put"
 
-  buf (PrimBufMake t) = Function $ "new IcicleBuf" <> angled (boxedType t)
-  buf (PrimBufPush _) = Method "push"
-  buf (PrimBufRead _) = Method "read"
+  buf (PrimBufPush _ _) = Method "push"
+  buf (PrimBufRead _ _) = Method "read"
 
 data Boxy = Boxed | Unboxed
 
@@ -389,7 +388,7 @@ boxedType t
      BoolT      -> "Boolean"
      DateTimeT  -> "Integer"
      ArrayT a   -> "ArrayList" <> angled (boxedType a)
-     BufT   a   -> "IcicleBuf" <> angled (boxedType a)
+     BufT _ a   -> "IcicleBuf" <> angled (boxedType a)
      MapT a b   -> "HashMap" <> angled (commas [boxedType a, boxedType b])
      OptionT a  -> boxedType a
      PairT a b  -> "Pair" <> angled (commas [boxedType a, boxedType b])
