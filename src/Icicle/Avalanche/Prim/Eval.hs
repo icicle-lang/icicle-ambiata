@@ -3,6 +3,8 @@
 {-# LANGUAGE PatternGuards #-}
 module Icicle.Avalanche.Prim.Eval (
       evalPrim
+    , meltValue
+    , unmeltValue
     ) where
 
 import Icicle.Common.Base
@@ -148,28 +150,20 @@ evalPrim p vs
       -> primError
 
 
-     PrimPack (PrimOptionPack _)
-      | [VBase (VBool False), _]      <- vs
-      -> return $ VBase $ VNone
-      | [VBase (VBool True), VBase v] <- vs
-      -> return $ VBase $ VSome v
-      | otherwise
-      -> primError
-
-     PrimPack (PrimSumPack _ _)
-      | [VBase (VBool False), VBase a, _] <- vs
-      -> return $ VBase $ VLeft a
-      | [VBase (VBool True), _, VBase b]  <- vs
-      -> return $ VBase $ VRight b
-      | otherwise
-      -> primError
-
-     PrimPack (PrimStructPack (StructType fts))
+     PrimPack (PrimPackAll t)
       | Just vs' <- traverse unpack vs
-      , fs       <- Map.keys fts
-      -> return $ VBase $ VStruct $ Map.fromList $ List.zip fs vs'
+      , Just v   <- unmeltValue vs' t
+      -> return (VBase v)
       | otherwise
       -> primError
+
+     PrimPack (PrimPackGet ix t)
+      | [VBase v]   <- vs
+      , Just (v':_) <- fmap (drop ix) (meltValue v t)
+      -> return (VBase v')
+      | otherwise
+      -> primError
+
 
      PrimMap (PrimMapPack _ _)
       | [VBase (VArray ks), VBase (VArray vals)] <- vs
@@ -219,3 +213,201 @@ evalPrim p vs
 
   unpack (VBase x)    = Just x
   unpack (VFun _ _ _) = Nothing
+
+------------------------------------------------------------------------
+
+meltValue :: BaseValue -> ValType -> Maybe [BaseValue]
+meltValue v t
+ = let apcat x y = (<>) <$> x <*> y
+   in case v of
+     VUnit{}     -> Just [v]
+     VInt{}      -> Just [v]
+     VDouble{}   -> Just [v]
+     VBool{}     -> Just [v]
+     VDateTime{} -> Just [v]
+     VString{}   -> Just [v]
+     VError{}    -> Just [v]
+     VMap{}      -> Just [v]
+
+     VArray vs
+      | Nothing <- tryMeltType t
+      -> Just [v]
+
+      | [] <- vs
+      , ts <- meltType t
+      -> Just (List.replicate (length ts) (VArray []))
+
+      | ArrayT ta <- t
+      -> do vss <- traverse (\vv -> meltValue vv ta) vs
+            Just (fmap VArray (List.transpose vss))
+
+      | otherwise
+      -> Nothing
+
+     VBuf i vs
+      | Nothing <- tryMeltType t
+      -> Just [v]
+
+      | [] <- vs
+      , ts <- meltType t
+      -> Just (List.replicate (length ts) (VBuf i []))
+
+      | BufT ta <- t
+      -> do vss <- traverse (\vv -> meltValue vv ta) vs
+            Just (fmap (VBuf i) (List.transpose vss))
+
+      | otherwise
+      -> Nothing
+
+     VPair a b
+      | PairT ta tb <- t
+      -> meltValue a ta `apcat` meltValue b tb
+
+      | otherwise
+      -> Nothing
+
+     VLeft a
+      | SumT ta tb <- t
+      -> pure [VBool False] `apcat` meltValue a ta `apcat` meltValue (defaultOfType tb) tb
+
+      | otherwise
+      -> Nothing
+
+     VRight b
+      | SumT ta tb <- t
+      -> pure [VBool True] `apcat` meltValue (defaultOfType ta) ta `apcat` meltValue b tb
+
+      | otherwise
+      -> Nothing
+
+     VNone
+      | OptionT tv <- t
+      -> pure [VBool False] `apcat` meltValue (defaultOfType tv) tv
+
+      | otherwise
+      -> Nothing
+
+     VSome x
+      | OptionT tx <- t
+      -> pure [VBool True] `apcat` meltValue x tx
+
+      | otherwise
+      -> Nothing
+
+     VStruct fvs
+      | StructT (StructType fs) <- t
+      , Map.null fs
+      -> pure [VUnit]
+
+      | StructT ts <- t
+      , fts        <- Map.toList (getStructType ts)
+      -> let go (nf,tf) = do
+               fv <- Map.lookup nf fvs
+               meltValue fv tf
+         in concat <$> traverse go fts
+
+      | otherwise
+      -> Nothing
+
+------------------------------------------------------------------------
+
+unmeltValue :: [BaseValue] -> ValType -> Maybe BaseValue
+unmeltValue vs t
+ = case unmeltValue' vs t of
+     Just (v, [])   -> Just v
+     Nothing        -> Nothing
+
+     -- if we still have values left over
+     -- after unmelting, it's a type error
+     Just (_v, _xs) -> Nothing
+
+unmeltValue' :: [BaseValue] -> ValType -> Maybe (BaseValue, [BaseValue])
+unmeltValue' vs0 t
+ = case (vs0, t) of
+     -- value was not properly melted in the first place
+     (VPair{}:_,   _) -> Nothing
+     (VNone{}:_,   _) -> Nothing
+     (VSome{}:_,   _) -> Nothing
+     (VLeft{}:_,   _) -> Nothing
+     (VRight{}:_,  _) -> Nothing
+     (VStruct{}:_, _) -> Nothing
+
+     (v:vs, UnitT{})     -> Just (v, vs)
+     (v:vs, IntT{})      -> Just (v, vs)
+     (v:vs, DoubleT{})   -> Just (v, vs)
+     (v:vs, BoolT{})     -> Just (v, vs)
+     (v:vs, DateTimeT{}) -> Just (v, vs)
+     (v:vs, StringT{})   -> Just (v, vs)
+     (v:vs, MapT{})      -> Just (v, vs)
+     (v:vs, ErrorT{})    -> Just (v, vs)
+
+     (v:vs, ArrayT ta)
+      | Just ts <- tryMeltType ta
+      -> do let n = length ts
+            xss <- List.transpose <$> traverse unArray (List.take n vs0)
+            xs  <- traverse (\xs -> unmeltValue xs ta) xss
+            Just (VArray xs, List.drop n vs0)
+
+      | otherwise
+      -> Just (v, vs)
+
+     (v:vs, BufT ta)
+      | Just ts <- tryMeltType ta
+      -> do let n = length ts
+            i   <- unBufLen v
+            xss <- List.transpose <$> traverse unBuf (List.take n vs0)
+            xs  <- traverse (\xs -> unmeltValue xs ta) xss
+            Just (VBuf i xs, List.drop n vs0)
+
+      | otherwise
+      -> Just (v, vs)
+
+     (_, PairT ta tb)
+      -> do (a, vs1) <- unmeltValue' vs0 ta
+            (b, vs2) <- unmeltValue' vs1 tb
+            Just (VPair a b, vs2)
+
+     (_, SumT ta tb)
+      -> do (i, vs1) <- unmeltValue' vs0 BoolT
+            (a, vs2) <- unmeltValue' vs1 ta
+            (b, vs3) <- unmeltValue' vs2 tb
+            case i of
+              VBool False -> Just (VLeft  a, vs3)
+              VBool True  -> Just (VRight b, vs3)
+              _           -> Nothing
+
+     (_, OptionT tx)
+      -> do (b, vs1) <- unmeltValue' vs0 BoolT
+            (x, vs2) <- unmeltValue' vs1 tx
+            case b of
+              VBool False -> Just (VNone,   vs2)
+              VBool True  -> Just (VSome x, vs2)
+              _           -> Nothing
+
+     (VUnit:vs, StructT (StructType fs))
+      | Map.null fs
+      -> Just (VStruct Map.empty, vs)
+
+     (_, StructT (StructType ts))
+      -> do let go (acc, vs1) ft = do
+                  (fv, vs2) <- unmeltValue' vs1 ft
+                  return (acc <> [fv], vs2)
+
+            (acc, vs3) <- foldM go ([], vs0) (Map.elems ts)
+            let fvs = Map.fromList $ List.zip (Map.keys ts) acc
+            Just (VStruct fvs, vs3)
+
+     ([], _)
+      -> Nothing
+
+unArray :: BaseValue -> Maybe [BaseValue]
+unArray (VArray vs) = Just vs
+unArray _           = Nothing
+
+unBuf :: BaseValue -> Maybe [BaseValue]
+unBuf (VBuf _ vs) = Just vs
+unBuf _           = Nothing
+
+unBufLen :: BaseValue -> Maybe Int
+unBufLen (VBuf i _) = Just i
+unBufLen _          = Nothing

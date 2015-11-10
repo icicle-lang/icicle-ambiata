@@ -228,12 +228,10 @@ primTypeOfPrim p
      -> Function "Array.sum"
     PrimArray (PrimArrayUnsum _ _)
      -> Function "Array.unsum"
-    PrimPack (PrimOptionPack _)
-     -> Function "Option.pack"
-    PrimPack (PrimSumPack _ _)
-     -> Function "Sum.pack"
-    PrimPack (PrimStructPack _)
-     -> Function "Struct.pack"
+    PrimPack (PrimPackAll _)
+     -> Function "Pack.all"
+    PrimPack (PrimPackGet _ _)
+     -> Function "Pack.get"
     PrimMap (PrimMapPack _ _)
      -> Function "Map.pack"
     PrimMap (PrimMapUnpackKeys _ _)

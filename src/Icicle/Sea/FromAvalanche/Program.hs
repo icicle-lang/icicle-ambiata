@@ -179,6 +179,14 @@ seaOfStatement stmt
               , ""
               ]
 
+     ForeachInts n start end stmt'
+      -> vsep [ "for (iint_t" <+> seaOfName n <+> "=" <+> seaOfExp start <> ";"
+                              <+> seaOfName n <+> "<" <+> seaOfExp end   <> ";"
+                              <+> seaOfName n <>  "++) {"
+              , indent 4 $ seaOfStatement stmt'
+              , "}"
+              ]
+
      ForeachFacts ns _ lt stmt'
       | FactLoopNew  <- lt
       , structAssign <- \(n, t) -> assign ("const " <> seaOfValType t <> "*const new_" <> seaOfName n)
