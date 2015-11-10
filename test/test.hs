@@ -29,7 +29,7 @@ import qualified Icicle.Test.Source.PrettyParse
 import qualified Icicle.Test.Source.Progress
 import qualified Icicle.Test.Source.Convert
 
-import qualified Icicle.Test.Sea.Seaworthy
+-- import qualified Icicle.Test.Sea.Seaworthy
 
 import           Disorder.Core.Main
 
