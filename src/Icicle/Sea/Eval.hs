@@ -215,7 +215,7 @@ compilerOptions :: [CompilerOption]
 compilerOptions =
   [ "-O3"           -- 🔨
   , "-march=native" -- 🚀  all optimisations valid for the current CPU (AVX512, etc)
-  , "-std=c99"      -- 👹  variable declarations anywhere!
+  -- , "-std=c99"      -- 👹  variable declarations anywhere!
   , "-fPIC"         -- 🌏  position independent code, required on Linux
   ]
 

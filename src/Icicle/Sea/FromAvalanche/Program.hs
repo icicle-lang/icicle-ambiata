@@ -40,10 +40,11 @@ seaOfProgram :: (Show a, Show n, Pretty n, Ord n)
              => Program (Annot a) n Prim -> Doc
 seaOfProgram program
  =  vsep
- [ "#line 1 \"state definition\""
- , stateOfProgram program
+-- [ "#line 1 \"state definition\""
+ [ stateOfProgram program
  , ""
- , "#line 1 \"compute function\""
+-- , "#line 1 \"compute function\""
+ , "ICICLE_FUNCTION"
  , "void compute(icicle_state_t *s)"
  , "{"
  , indent 4 . vsep
@@ -99,7 +100,19 @@ stateWordsOfProgram program
  + 1 -- new_count
  + length (maybe [] snd (factVarsOfProgram FactLoopNew program))
  + sum (fmap (length . snd . snd) (outputsOfProgram program))
- + 2 * Map.size (resumablesOfProgram program)
+ + 2 * (sum $ fmap stateWordsOfType $ Map.elems $ resumablesOfProgram program)
+
+stateWordsOfType :: ValType -> Int
+stateWordsOfType vt
+ = case vt of
+   MapT{}   -> 3
+   ArrayT{} -> 2
+   BufT{}   -> 4
+   PairT a b-> stateWordsOfType a + stateWordsOfType b
+   SumT  a b-> stateWordsOfType a + stateWordsOfType b + 1
+   OptionT a-> stateWordsOfType a + 1
+   _        -> 1
+
 
 defOfAccumulator :: (Show n, Pretty n, Ord n)
                   => (Name n, ValType) -> Doc
@@ -204,6 +217,14 @@ seaOfStatement stmt
       | ixAssign <- \ix xx -> assign ("s->" <> seaOfNameIx n ix) (seaOfExp xx) <> semi <> suffix "output"
       -> vsep (List.zipWith ixAssign [0..] (fmap fst xts))
 
+     ForeachInts n from to stmt'
+      -> vsep [ ""
+              , "for (iint_t " <> seaOfName n <> " = " <> seaOfExp from <> "; "<> seaOfName n <>"  < "<> seaOfExp to <> "; "<>seaOfName n<>"++) {"
+              , indent 4 $ seaOfStatement stmt'
+              , "}"
+              , ""
+              ]
+
      _
       -> seaError "seaOfStatement" stmt
 
@@ -236,6 +257,8 @@ seaOfXValue v t
      VInt      x     -> int x
      VDouble   x     -> double x
      VDateTime x     -> text ("0x" <> showHex (packedOfDate x) "")
+     VUnit           -> "iunit"
+
 
      -- TODO C escapes /= Haskell escapes
      VString x     -> text (show x)
@@ -266,8 +289,17 @@ seaOfXValue v t
       | otherwise
       -> seaError "seaOfXValue: buffer of wrong type" (v,t)
 
-     VMap _
-      -> seaError "seaOfXValue: maps should be removed by flatten" v
+     VMap mm
+      | MapT tk tv <- t
+      -> let writes buf (k',v')
+              = prim (PrimUpdate $ PrimUpdateMapPut tk tv)
+                     [buf, seaOfXValue k' tk, seaOfXValue v' tv]
+             init
+              = "imap_t" <> string (templateOfValType [tk,tv]) <> "()"
+        in  foldl writes init $ Map.toList mm
+      | otherwise
+      -> seaError "seaOfXValue: buffer of wrong type" (v,t)
+
      _
       -> seaError "seaOfXValue: this should be removed by melt" v
  where

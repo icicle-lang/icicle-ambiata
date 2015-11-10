@@ -1,7 +1,7 @@
 #include "23-compounds.h"
 
 template<typename T>
-class iarray_t
+struct iarray_t
 {
     iint_t count;
     T* payload;
@@ -52,10 +52,16 @@ class iarray_t
         return *this;
     }
 
+    iarray_t()
+    {
+        this->count   = 0;
+        this->payload = 0;
+    }
+
     iarray_t(imempool_t* pool, iint_t count)
     {
-        this->count = count;
-        payload = imempool_alloc_of<T>(pool, count);
+        this->count   = count;
+        this->payload = imempool_alloc_of<T>(pool, count);
     }
 };
 

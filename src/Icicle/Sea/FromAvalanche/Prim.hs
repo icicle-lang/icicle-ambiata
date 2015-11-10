@@ -22,13 +22,27 @@ import           P
 
 data PrimDoc
  = PDFun   Doc
+ | PDMeth  Doc
+ | PDMethAlloc  Doc
  | PDAlloc Doc
 
 seaOfPrimDocApps :: PrimDoc -> [Doc] -> Doc
 seaOfPrimDocApps p xs
  = case p of
     PDFun   d -> d <+> tuple xs
-    PDAlloc d -> d <+> tuple ("&s->mempool" : xs)
+    PDMeth  d
+     | x:xs' <- xs
+     -> x <> "." <> d <+> tuple xs'
+     | otherwise
+     -> seaError "Method with no target" (d,xs)
+    PDMethAlloc  d
+     | x:xs' <- xs
+     -> x <> "." <> d <+> tuple (alloc xs')
+     | otherwise
+     -> seaError "Method with no target" (d,xs)
+    PDAlloc d -> d <+> tuple (alloc xs)
+ where
+  alloc = ("&s->mempool" :)
 
 seaOfXPrim :: Prim -> PrimDoc
 seaOfXPrim p
@@ -54,22 +68,38 @@ seaOfXPrim p
 
      PrimMinimal (M.PrimRelation op t)
       -> PDFun
-       ( prefixOfValType t <> seaOfPrimRelation op )
+       ( seaOfPrimRelation op <> string (templateOfValType [t]))
+
+     PrimMinimal (M.PrimConst op)
+      -> seaOfPrimConst op
+
+     PrimMinimal (M.PrimLogical op)
+      -> seaOfPrimLogical op
+
+     PrimMinimal (M.PrimPair op)
+      -> seaOfPrimPair op
+
+     PrimMinimal (M.PrimStruct op)
+      -> seaOfPrimStruct op
+
 
      PrimProject op
-      -> PDFun $ seaOfPrimProject op
+      -> seaOfPrimProject op
 
      PrimUnsafe op
       -> seaOfPrimUnsafe op
 
      PrimUpdate op
-      -> PDFun $ seaOfPrimUpdate op
+      -> seaOfPrimUpdate op
 
      PrimBuf   op
       -> seaOfPrimBuf op
 
-     _
-      -> PDFun $ seaError "seaOfXPrim" p
+     PrimPack op
+      -> seaOfPrimPack op
+
+     -- _
+     -- -> PDFun $ seaError "seaOfXPrim" p
 
 seaOfPrimArithUnary :: M.PrimArithUnary -> Doc
 seaOfPrimArithUnary p
@@ -106,50 +136,111 @@ seaOfPrimCast p
      M.PrimCastIntOfDouble -> "idouble_trunc"
      _                     -> seaError "seaOfPrimCast" p
 
+seaOfPrimConst :: M.PrimConst -> PrimDoc
+seaOfPrimConst p
+ = case p of
+     M.PrimConstPair a b
+      -> PDFun ("ipair_t" <> string (templateOfValType [a,b]))
+     M.PrimConstSome t
+      -> PDFun ("ioption_some" <> string (templateOfValType [t]))
+     M.PrimConstLeft a b
+      -> PDFun ("isum_left" <> string (templateOfValType [a,b]))
+     M.PrimConstRight a b
+      -> PDFun ("isum_right" <> string (templateOfValType [a,b]))
+
+seaOfPrimLogical :: M.PrimLogical -> PrimDoc
+seaOfPrimLogical p
+ = case p of
+     M.PrimLogicalNot
+      -> PDFun "ibool_not"
+     M.PrimLogicalAnd
+      -> PDFun "ibool_and"
+     M.PrimLogicalOr
+      -> PDFun "ibool_or"
+
+seaOfPrimPair :: M.PrimPair -> PrimDoc
+seaOfPrimPair p
+ = case p of
+     M.PrimPairFst _ _
+      -> PDMeth "fst"
+     M.PrimPairSnd _ _
+      -> PDMeth "snd"
+
+seaOfPrimStruct :: M.PrimStruct -> PrimDoc
+seaOfPrimStruct p
+ = case p of
+     M.PrimStructGet f _ _
+      -> PDMeth (pretty f)
+
+
 seaOfPrimRelation :: M.PrimRelation -> Doc
 seaOfPrimRelation p
  = case p of
-     M.PrimRelationGt -> "gt"
-     M.PrimRelationGe -> "ge"
-     M.PrimRelationLt -> "lt"
-     M.PrimRelationLe -> "le"
-     M.PrimRelationEq -> "eq"
-     M.PrimRelationNe -> "ne"
+     M.PrimRelationGt -> "igt"
+     M.PrimRelationGe -> "ige"
+     M.PrimRelationLt -> "ilt"
+     M.PrimRelationLe -> "ile"
+     M.PrimRelationEq -> "ieq"
+     M.PrimRelationNe -> "ine"
 
-seaOfPrimProject :: PrimProject -> Doc
+seaOfPrimProject :: PrimProject -> PrimDoc
 seaOfPrimProject p
  = case p of
-     PrimProjectArrayLength t
-      -> prefixOfValType (ArrayT t) <> "length"
-     _
-      -> seaError "seaOfPrimProject" p
+     PrimProjectArrayLength _
+      -> PDMeth "length"
+     PrimProjectMapLength _ _
+      -> PDMeth "length"
+     PrimProjectMapLookup _ _
+      -> PDMeth "lookup"
+     PrimProjectOptionIsSome _
+      -> PDMeth "isSome"
+     PrimProjectSumIsRight _ _
+      -> PDMeth "isRight"
 
 seaOfPrimUnsafe :: PrimUnsafe -> PrimDoc
 seaOfPrimUnsafe p
  = case p of
-     PrimUnsafeArrayIndex t
-      -> PDFun   (prefixOfValType (ArrayT t) <> "index")
+     PrimUnsafeArrayIndex _
+      -> PDMeth  "index"
      PrimUnsafeArrayCreate t
-      -> PDAlloc (prefixOfValType (ArrayT t) <> "create")
-     _
-      -> PDFun   (seaError "seaOfPrimUnsafe" p)
+      -> PDAlloc ("iarray_t" <> string (templateOfValType [t]))
+     PrimUnsafeOptionGet _
+      -> PDMeth "unsafeGet"
+     PrimUnsafeSumGetLeft _ _
+      -> PDMeth "unsafeLeft"
+     PrimUnsafeSumGetRight _ _
+      -> PDMeth "unsafeRight"
+     PrimUnsafeMapIndex _ _
+      -> PDMeth "index"
 
-seaOfPrimUpdate :: PrimUpdate -> Doc
+seaOfPrimUpdate :: PrimUpdate -> PrimDoc
 seaOfPrimUpdate p
  = case p of
-     PrimUpdateArrayPut t
-      -> prefixOfValType (ArrayT t) <> "put"
-     PrimUpdateMapPut k v
-      -> prefixOfValType (MapT k v) <> "put"
+     PrimUpdateArrayPut _
+      -> PDMeth "put"
+     PrimUpdateMapPut _ _
+      -> PDMethAlloc "put"
 
 seaOfPrimBuf :: PrimBuf -> PrimDoc
 seaOfPrimBuf p
  = case p of
      PrimBufMake t
-      -> PDAlloc (prefixOfValType (BufT t) <> "make")
-     PrimBufPush t
-      -> PDFun   (prefixOfValType (BufT t) <> "push")
-     PrimBufRead t
-      -> PDAlloc (prefixOfValType (BufT t) <> "read")
+      -> PDAlloc ("ibuf_t" <> string (templateOfValType [t]))
+     PrimBufPush _
+      -> PDMeth  "push"
+     PrimBufRead _
+      -> PDMethAlloc "read"
+
+
+seaOfPrimPack :: PrimPack -> PrimDoc
+seaOfPrimPack p
+ = case p of
+     PrimSumPack a b
+      -> PDFun ("isum_t" <> string (templateOfValType [a, b]))
+     PrimOptionPack a
+      -> PDFun ("ioption_t" <> string (templateOfValType [a]))
+     PrimStructPack fs
+      -> PDFun (noPadSeaOfValType $ StructT fs)
+
 
 

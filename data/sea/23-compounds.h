@@ -3,7 +3,7 @@
 // TODO equality etc
 
 template <typename T>
-class ioption_t
+struct ioption_t
 {
     const ibool_t is_some;
     const T       value;
@@ -41,20 +41,23 @@ ioption_t<T> ioption_some(const T& t)
 
 
 template <typename T, typename U>
-class ipair_t
+struct ipair_t
 {
-    const T t;
-    const U u;
+    T t;
+    U u;
 
-    T& fst() const
+    const T& fst() const
     {
         return this->t;
     }
 
-    U& snd() const
+    const U& snd() const
     {
-        return this->snd;
+        return this->u;
     }
+
+    ipair_t()
+     {};
 
     ipair_t(const T& t, const U& u)
      : t(t), u(u)
@@ -71,11 +74,11 @@ ipair_t<T,U> ipair_pair(const T& t, const U& u)
 
 
 template <typename L, typename R>
-class isum_t
+struct isum_t
 {
-    const ibool_t   is_right;
-    const L         l;
-    const R         r;
+    ibool_t   is_right;
+    L         l;
+    R         r;
 
     ibool_t isRight() const
     {
@@ -91,6 +94,9 @@ class isum_t
     {
         return this->r;
     }
+
+    isum_t()
+     {};
 
     isum_t(ibool_t is_right, const L& l, const R& r)
      : is_right(is_right), l(l), r(r)

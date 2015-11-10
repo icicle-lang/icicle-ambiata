@@ -1,7 +1,7 @@
 #include "31-buffer.h"
 
 template <typename K, typename V>
-class imap_t
+struct imap_t
 {
     iint_t count;
     K* keys;
@@ -30,18 +30,18 @@ class imap_t
             }
         }
 
-        count = count + 1;
-        K* keys_ = imempool_alloc_of<K>(count);
-        V* vals_ = imempool_alloc_of<V>(count);
+        K* keys_ = imempool_alloc_of<K>(pool, count+1);
+        V* vals_ = imempool_alloc_of<V>(pool, count+1);
 
         for (iint_t ix = 0; ix != count; ++ix)
         {
             keys_[ix] = keys[ix];
             vals_[ix] = vals[ix];
         }
-        keys_[count-1] = key;
-        vals_[count-1] = val;
+        keys_[count] = key;
+        vals_[count] = val;
 
+        count = count + 1;
         keys = keys_;
         vals = vals_;
 

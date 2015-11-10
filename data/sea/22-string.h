@@ -1,6 +1,6 @@
 #include "21-date.h"
 
-class istring_t
+struct istring_t
 {
 
     bool operator==(const istring_t& y) const

@@ -81,6 +81,7 @@ static void * NOINLINE imempool_alloc_block (imempool_t *pool, size_t num_bytes)
     exit (1);
 }
 
+ICICLE_FUNCTION
 void * INLINE imempool_alloc (imempool_t *pool, size_t num_bytes)
 {
     TRY_ALLOC (imempool_alloc);
@@ -95,6 +96,7 @@ T * INLINE imempool_alloc_of (imempool_t *pool, size_t num_elts)
 }
 
 
+ICICLE_FUNCTION
 void imempool_create (imempool_t *pool)
 {
     pool->last        = 0;
@@ -104,6 +106,7 @@ void imempool_create (imempool_t *pool)
     imempool_add_block (pool);
 }
 
+ICICLE_FUNCTION
 void imempool_free (imempool_t *pool)
 {
     iblock_free (pool->last);
