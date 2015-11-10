@@ -110,11 +110,11 @@ code = textOfDoc $ seaPreamble PP.</> seaTestables
 
 seaTestables :: PP.Doc
 seaTestables = PP.vsep
-  [ "iint_t testable_idate_to_epoch     (idate_t x)            { return idate_to_epoch     (x);    }"
-  , "iint_t testable_idate_from_epoch   (iint_t g)             { return idate_from_epoch   (g);    }"
-  , "iint_t testable_idate_days_diff    (idate_t x, idate_t y) { return idate_days_diff    (x, y); }"
-  , "iint_t testable_idate_minus_days   (idate_t x, iint_t y)  { return idate_minus_days   (x, y); }"
-  , "iint_t testable_idate_minus_months (idate_t x, iint_t y)  { return idate_minus_months (x, y); }"
+  [ "extern \"C\" iint_t testable_idate_to_epoch     (idate_t x)            { return idate_to_epoch     (x);    }"
+  , "extern \"C\" iint_t testable_idate_from_epoch   (iint_t g)             { return idate_from_epoch   (g);    }"
+  , "extern \"C\" iint_t testable_idate_days_diff    (idate_t x, idate_t y) { return idate_days_diff    (x, y); }"
+  , "extern \"C\" iint_t testable_idate_minus_days   (idate_t x, iint_t y)  { return idate_minus_days   (x, y); }"
+  , "extern \"C\" iint_t testable_idate_minus_months (idate_t x, iint_t y)  { return idate_minus_months (x, y); }"
   ]
 
 -- These C testing utils should perhaps be generalised and placed in their own module.
