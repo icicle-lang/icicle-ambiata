@@ -491,9 +491,6 @@ simpStatementExps a_fresh statements
         -> XLam a n t (goX x1)
 
       XLet a n x1 x2
-        | not $ n `Set.member` freevars (goX x2)
-        -> goX x2
-        | otherwise
         -> XLet a n (goX x1) (goX x2)
 
       b@(XVar{})   -> b
