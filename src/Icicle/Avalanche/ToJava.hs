@@ -222,18 +222,10 @@ primTypeOfPrim p
      -> upda pu
     PrimArray (PrimArrayZip _ _)
      -> Function "Array.zip"
-    PrimArray (PrimArrayUnzip _ _)
-     -> Function "Array.unzip"
-    PrimArray (PrimArraySum _ _)
-     -> Function "Array.sum"
-    PrimArray (PrimArrayUnsum _ _)
-     -> Function "Array.unsum"
-    PrimPack (PrimOptionPack _)
-     -> Function "Option.pack"
-    PrimPack (PrimSumPack _ _)
-     -> Function "Sum.pack"
-    PrimPack (PrimStructPack _)
-     -> Function "Struct.pack"
+    PrimMelt (PrimMeltPack _)
+     -> Function "Melt.pack"
+    PrimMelt (PrimMeltUnpack _ _)
+     -> Function "Melt.unpack"
     PrimMap (PrimMapPack _ _)
      -> Function "Map.pack"
     PrimMap (PrimMapUnpackKeys _ _)
@@ -315,9 +307,8 @@ primTypeOfPrim p
 
   upda (PrimUpdateArrayPut _)      = Function "Array.put"
 
-  buf (PrimBufMake t) = Function $ "new IcicleBuf" <> angled (boxedType t)
-  buf (PrimBufPush _) = Method "push"
-  buf (PrimBufRead _) = Method "read"
+  buf (PrimBufPush _ _) = Method "push"
+  buf (PrimBufRead _ _) = Method "read"
 
 data Boxy = Boxed | Unboxed
 
@@ -391,7 +382,7 @@ boxedType t
      BoolT      -> "Boolean"
      DateTimeT  -> "Integer"
      ArrayT a   -> "ArrayList" <> angled (boxedType a)
-     BufT   a   -> "IcicleBuf" <> angled (boxedType a)
+     BufT _ a   -> "IcicleBuf" <> angled (boxedType a)
      MapT a b   -> "HashMap" <> angled (commas [boxedType a, boxedType b])
      OptionT a  -> boxedType a
      PairT a b  -> "Pair" <> angled (commas [boxedType a, boxedType b])

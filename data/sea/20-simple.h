@@ -1,5 +1,9 @@
 #include "10-mempool.h"
 
+#define ibool_and(x, y) (x) && (y)
+#define ibool_or(x, y)  (x) || (y)
+#define ibool_not(x)    !(x)
+
 #define MK_SIMPLE_CMPS(t,pre)                                                   \
     static ibool_t   INLINE pre##eq   (t x, t y) { return x == y; }             \
     static ibool_t   INLINE pre##ne   (t x, t y) { return x != y; }             \

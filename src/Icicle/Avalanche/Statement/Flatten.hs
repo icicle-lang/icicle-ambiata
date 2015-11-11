@@ -311,29 +311,14 @@ flatX a_fresh xx stm
        -> lift $ Left $ FlattenErrorPrimBadArgs p xs
 
 
-      Core.PrimLatest (Core.PrimLatestMake t)
-       | [i] <- xs
-       -> flatX' i
-       $  \i'
-       -> do   tmpN      <- fresh
-               let fpBuf  = xPrim (Flat.PrimBuf $ Flat.PrimBufMake t)
-               stm'      <- stm (xVar tmpN)
-
-               return
-                 $ Let tmpN (fpBuf `xApp` i') stm'
-
-       | otherwise
-       -> lift $ Left $ FlattenErrorPrimBadArgs p xs
-
-
-      Core.PrimLatest (Core.PrimLatestPush t)
+      Core.PrimLatest (Core.PrimLatestPush i t)
        | [buf, e]    <- xs
        -> flatX' e
        $  \e'
        -> flatX' buf
        $  \buf'
        -> do   tmpN      <- fresh
-               let fpPush = xPrim (Flat.PrimBuf $ Flat.PrimBufPush t) `xApp` buf' `xApp` e'
+               let fpPush = xPrim (Flat.PrimBuf $ Flat.PrimBufPush i t) `xApp` buf' `xApp` e'
                stm'      <- stm (xVar tmpN)
                return
                  $ Let tmpN fpPush stm'
@@ -342,12 +327,12 @@ flatX a_fresh xx stm
        -> lift $ Left $ FlattenErrorPrimBadArgs p xs
 
 
-      Core.PrimLatest (Core.PrimLatestRead t)
+      Core.PrimLatest (Core.PrimLatestRead i t)
        | [buf] <- xs
        -> flatX' buf
        $  \buf'
        -> do   tmpN       <- fresh
-               let fpRead  = xPrim (Flat.PrimBuf $ Flat.PrimBufRead t) `xApp` buf'
+               let fpRead  = xPrim (Flat.PrimBuf $ Flat.PrimBufRead i t) `xApp` buf'
                stm'       <- stm (xVar tmpN)
                return
                  $ Let tmpN fpRead stm'

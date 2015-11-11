@@ -11,39 +11,46 @@ gen$date = DATE
   init acc$c$conv$13$simp$4@{Bool} = True@{Bool};
   init acc$c$conv$13$simp$5@{Error} = ExceptTombstone@{Error};
   init acc$c$conv$13$simp$6@{Int} = 0@{Int};
-  init acc$conv$30@{Buf (Sum Error Int)} = Buf 3 []@{Buf (Sum Error Int)};
+  init acc$conv$30$simp$7@{Buf 3 Bool} = Buf []@{Buf 3 Bool};
+  init acc$conv$30$simp$8@{Buf 3 Error} = Buf []@{Buf 3 Error};
+  init acc$conv$30$simp$9@{Buf 3 Int} = Buf []@{Buf 3 Int};
   load_resumable@{Bool} acc$c$conv$13$simp$4;
   load_resumable@{Error} acc$c$conv$13$simp$5;
   load_resumable@{Int} acc$c$conv$13$simp$6;
-  load_resumable@{Buf (Sum Error Int)} acc$conv$30;
-  for_facts (gen$fact$simp$62$simp$64@{Bool},
-             gen$fact$simp$62$simp$65@{Error},
-             gen$fact$simp$62$simp$66@{Int},
-             gen$fact$simp$63@{DateTime}) in new {
-    read@{Buf (Sum Error Int)} acc$conv$30 = acc$conv$30;
-    let simp$69 = Sum_pack#@{Error, Int}
-                  gen$fact$simp$62$simp$64
-                  gen$fact$simp$62$simp$65
-                  gen$fact$simp$62$simp$66;
-    let flat$0 = Buf_push#@{(Sum Error Int)}
-                 acc$conv$30 simp$69;
-    write acc$conv$30 = flat$0;
-    init flat$1$simp$7@{Bool} = False@{Bool};
-    init flat$1$simp$9@{Bool} = False@{Bool};
-    if (gen$fact$simp$62$simp$64) {
-      write flat$1$simp$7 = True@{Bool};
-      let simp$79 = gt#@{Int}
-                    gen$fact$simp$62$simp$66 (10@{Int});
-      write flat$1$simp$9 = simp$79;
+  load_resumable@{Buf 3 Bool} acc$conv$30$simp$7;
+  load_resumable@{Buf 3 Error} acc$conv$30$simp$8;
+  load_resumable@{Buf 3 Int} acc$conv$30$simp$9;
+  for_facts (gen$fact$simp$64@{Bool},
+             gen$fact$simp$65@{Error},
+             gen$fact$simp$66@{Int},
+             gen$fact$simp$67@{DateTime}) in new {
+    read@{Buf 3 Bool} acc$conv$30$simp$10 = acc$conv$30$simp$7;
+    read@{Buf 3 Error} acc$conv$30$simp$11 = acc$conv$30$simp$8;
+    read@{Buf 3 Int} acc$conv$30$simp$12 = acc$conv$30$simp$9;
+    write acc$conv$30$simp$7 = Buf_push#@{Buf 3 Bool}
+                               acc$conv$30$simp$10
+                               gen$fact$simp$64;
+    write acc$conv$30$simp$8 = Buf_push#@{Buf 3 Error}
+                               acc$conv$30$simp$11
+                               gen$fact$simp$65;
+    write acc$conv$30$simp$9 = Buf_push#@{Buf 3 Int}
+                               acc$conv$30$simp$12
+                               gen$fact$simp$66;
+    init flat$1$simp$13@{Bool} = False@{Bool};
+    init flat$1$simp$15@{Bool} = False@{Bool};
+    if (gen$fact$simp$64) {
+      write flat$1$simp$13 = True@{Bool};
+      write flat$1$simp$15 = gt#@{Int}
+                             gen$fact$simp$66 (10@{Int});
     } else {
-      write flat$1$simp$7 = False@{Bool};
-      write flat$1$simp$9 = False@{Bool};
+      write flat$1$simp$13 = False@{Bool};
+      write flat$1$simp$15 = False@{Bool};
     }
-    read@{Bool} flat$1$simp$10 = flat$1$simp$7;
-    read@{Bool} flat$1$simp$12 = flat$1$simp$9;
+    read@{Bool} flat$1$simp$16 = flat$1$simp$13;
+    read@{Bool} flat$1$simp$18 = flat$1$simp$15;
     init flat$2@{Bool} = False@{Bool};
-    if (flat$1$simp$10) {
-      write flat$2 = flat$1$simp$12;
+    if (flat$1$simp$16) {
+      write flat$2 = flat$1$simp$18;
     } 
      else {
       write flat$2 = True@{Bool};
@@ -51,115 +58,108 @@ gen$date = DATE
     
     read@{Bool} flat$2 = flat$2;
     if (flat$2) {
-      read@{Bool} acc$c$conv$13$simp$13 = acc$c$conv$13$simp$4;
-      read@{Error} acc$c$conv$13$simp$14 = acc$c$conv$13$simp$5;
-      read@{Int} acc$c$conv$13$simp$15 = acc$c$conv$13$simp$6;
-      init flat$3$simp$16@{Bool} = False@{Bool};
-      init flat$3$simp$17@{Error} = ExceptTombstone@{Error};
-      init flat$3$simp$18@{Int} = 0@{Int};
-      if (gen$fact$simp$62$simp$64) {
-        init flat$6$simp$19@{Bool} = False@{Bool};
-        init flat$6$simp$20@{Error} = ExceptTombstone@{Error};
-        init flat$6$simp$21@{Int} = 0@{Int};
-        if (acc$c$conv$13$simp$13) {
-          write flat$6$simp$19 = True@{Bool};
-          let simp$100 = add#@{Int}
-                         acc$c$conv$13$simp$15 (1@{Int});
-          write flat$6$simp$20 = ExceptTombstone@{Error};
-          write flat$6$simp$21 = simp$100;
+      read@{Bool} acc$c$conv$13$simp$19 = acc$c$conv$13$simp$4;
+      read@{Error} acc$c$conv$13$simp$20 = acc$c$conv$13$simp$5;
+      read@{Int} acc$c$conv$13$simp$21 = acc$c$conv$13$simp$6;
+      init flat$3$simp$22@{Bool} = False@{Bool};
+      init flat$3$simp$23@{Error} = ExceptTombstone@{Error};
+      init flat$3$simp$24@{Int} = 0@{Int};
+      if (gen$fact$simp$64) {
+        init flat$6$simp$25@{Bool} = False@{Bool};
+        init flat$6$simp$26@{Error} = ExceptTombstone@{Error};
+        init flat$6$simp$27@{Int} = 0@{Int};
+        if (acc$c$conv$13$simp$19) {
+          write flat$6$simp$25 = True@{Bool};
+          write flat$6$simp$26 = ExceptTombstone@{Error};
+          write flat$6$simp$27 = add#@{Int}
+                                 acc$c$conv$13$simp$21 (1@{Int});
         } else {
-          write flat$6$simp$19 = False@{Bool};
-          write flat$6$simp$20 = acc$c$conv$13$simp$14;
-          write flat$6$simp$21 = 0@{Int};
+          write flat$6$simp$25 = False@{Bool};
+          write flat$6$simp$26 = acc$c$conv$13$simp$20;
+          write flat$6$simp$27 = 0@{Int};
         }
-        read@{Bool} flat$6$simp$22 = flat$6$simp$19;
-        read@{Error} flat$6$simp$23 = flat$6$simp$20;
-        read@{Int} flat$6$simp$24 = flat$6$simp$21;
-        init flat$7$simp$25@{Bool} = False@{Bool};
-        init flat$7$simp$26@{Error} = ExceptTombstone@{Error};
-        init flat$7$simp$27@{Int} = 0@{Int};
-        if (flat$6$simp$22) {
-          write flat$7$simp$25 = True@{Bool};
-          write flat$7$simp$26 = ExceptTombstone@{Error};
-          write flat$7$simp$27 = flat$6$simp$24;
+        read@{Bool} flat$6$simp$28 = flat$6$simp$25;
+        read@{Error} flat$6$simp$29 = flat$6$simp$26;
+        read@{Int} flat$6$simp$30 = flat$6$simp$27;
+        init flat$7$simp$31@{Bool} = False@{Bool};
+        init flat$7$simp$32@{Error} = ExceptTombstone@{Error};
+        init flat$7$simp$33@{Int} = 0@{Int};
+        if (flat$6$simp$28) {
+          write flat$7$simp$31 = True@{Bool};
+          write flat$7$simp$32 = ExceptTombstone@{Error};
+          write flat$7$simp$33 = flat$6$simp$30;
         } else {
-          write flat$7$simp$25 = False@{Bool};
-          write flat$7$simp$26 = flat$6$simp$23;
-          write flat$7$simp$27 = 0@{Int};
+          write flat$7$simp$31 = False@{Bool};
+          write flat$7$simp$32 = flat$6$simp$29;
+          write flat$7$simp$33 = 0@{Int};
         }
-        read@{Bool} flat$7$simp$28 = flat$7$simp$25;
-        read@{Error} flat$7$simp$29 = flat$7$simp$26;
-        read@{Int} flat$7$simp$30 = flat$7$simp$27;
-        write flat$3$simp$16 = flat$7$simp$28;
-        write flat$3$simp$17 = flat$7$simp$29;
-        write flat$3$simp$18 = flat$7$simp$30;
+        read@{Bool} flat$7$simp$34 = flat$7$simp$31;
+        read@{Error} flat$7$simp$35 = flat$7$simp$32;
+        read@{Int} flat$7$simp$36 = flat$7$simp$33;
+        write flat$3$simp$22 = flat$7$simp$34;
+        write flat$3$simp$23 = flat$7$simp$35;
+        write flat$3$simp$24 = flat$7$simp$36;
       } else {
-        write flat$3$simp$16 = False@{Bool};
-        write flat$3$simp$17 = gen$fact$simp$62$simp$65;
-        write flat$3$simp$18 = 0@{Int};
+        write flat$3$simp$22 = False@{Bool};
+        write flat$3$simp$23 = gen$fact$simp$65;
+        write flat$3$simp$24 = 0@{Int};
       }
-      read@{Bool} flat$3$simp$31 = flat$3$simp$16;
-      read@{Error} flat$3$simp$32 = flat$3$simp$17;
-      read@{Int} flat$3$simp$33 = flat$3$simp$18;
-      write acc$c$conv$13$simp$4 = flat$3$simp$31;
-      write acc$c$conv$13$simp$5 = flat$3$simp$32;
-      write acc$c$conv$13$simp$6 = flat$3$simp$33;
+      read@{Bool} flat$3$simp$37 = flat$3$simp$22;
+      read@{Error} flat$3$simp$38 = flat$3$simp$23;
+      read@{Int} flat$3$simp$39 = flat$3$simp$24;
+      write acc$c$conv$13$simp$4 = flat$3$simp$37;
+      write acc$c$conv$13$simp$5 = flat$3$simp$38;
+      write acc$c$conv$13$simp$6 = flat$3$simp$39;
     }
   }
   save_resumable@{Bool} acc$c$conv$13$simp$4;
   save_resumable@{Error} acc$c$conv$13$simp$5;
   save_resumable@{Int} acc$c$conv$13$simp$6;
-  save_resumable@{Buf (Sum Error Int)} acc$conv$30;
-  read@{Bool} c$conv$13$simp$34 = acc$c$conv$13$simp$4;
-  read@{Error} c$conv$13$simp$35 = acc$c$conv$13$simp$5;
-  read@{Int} c$conv$13$simp$36 = acc$c$conv$13$simp$6;
-  read@{Buf (Sum Error Int)} conv$30 = acc$conv$30;
-  init flat$16$simp$37@{Bool} = False@{Bool};
-  init flat$16$simp$38@{Error} = ExceptTombstone@{Error};
-  init flat$16$simp$39$simp$40@{Int} = 0@{Int};
-  init flat$16$simp$39$simp$41$simp$45@{Array Bool} = []@{Array Bool};
-  init flat$16$simp$39$simp$41$simp$46@{Array Error} = []@{Array Error};
-  init flat$16$simp$39$simp$41$simp$47@{Array Int} = []@{Array Int};
-  if (c$conv$13$simp$34) {
-    let flat$19 = Buf_read#@{(Sum Error Int)}
-                  conv$30;
-    let simp$178 = Array_unsum#@{Error, Int}
-                   flat$19;
-    let conv$31$simp$59 = fst#@{Array Bool, (Array Error, Array Int)}
-                          simp$178;
-    let simp$182 = snd#@{Array Bool, (Array Error, Array Int)} simp$178;
-    let conv$31$simp$60 = fst#@{Array Error, Array Int}
-                          simp$182;
-    let conv$31$simp$61 = snd#@{Array Error, Array Int}
-                          simp$182;
-    write flat$16$simp$37 = True@{Bool};
-    write flat$16$simp$38 = ExceptTombstone@{Error};
-    write flat$16$simp$39$simp$40 = c$conv$13$simp$36;
-    write flat$16$simp$39$simp$41$simp$45 = conv$31$simp$59;
-    write flat$16$simp$39$simp$41$simp$46 = conv$31$simp$60;
-    write flat$16$simp$39$simp$41$simp$47 = conv$31$simp$61;
+  save_resumable@{Buf 3 Bool} acc$conv$30$simp$7;
+  save_resumable@{Buf 3 Error} acc$conv$30$simp$8;
+  save_resumable@{Buf 3 Int} acc$conv$30$simp$9;
+  read@{Bool} c$conv$13$simp$40 = acc$c$conv$13$simp$4;
+  read@{Error} c$conv$13$simp$41 = acc$c$conv$13$simp$5;
+  read@{Int} c$conv$13$simp$42 = acc$c$conv$13$simp$6;
+  read@{Buf 3 Bool} conv$30$simp$43 = acc$conv$30$simp$7;
+  read@{Buf 3 Error} conv$30$simp$44 = acc$conv$30$simp$8;
+  read@{Buf 3 Int} conv$30$simp$45 = acc$conv$30$simp$9;
+  init flat$16$simp$46@{Bool} = False@{Bool};
+  init flat$16$simp$47@{Error} = ExceptTombstone@{Error};
+  init flat$16$simp$48@{Int} = 0@{Int};
+  init flat$16$simp$49@{Array Bool} = []@{Array Bool};
+  init flat$16$simp$50@{Array Error} = []@{Array Error};
+  init flat$16$simp$51@{Array Int} = []@{Array Int};
+  if (c$conv$13$simp$40) {
+    write flat$16$simp$46 = True@{Bool};
+    write flat$16$simp$47 = ExceptTombstone@{Error};
+    write flat$16$simp$48 = c$conv$13$simp$42;
+    write flat$16$simp$49 = Buf_read#@{Array Bool}
+                            conv$30$simp$43;
+    write flat$16$simp$50 = Buf_read#@{Array Error}
+                            conv$30$simp$44;
+    write flat$16$simp$51 = Buf_read#@{Array Int}
+                            conv$30$simp$45;
   } else {
-    write flat$16$simp$37 = False@{Bool};
-    write flat$16$simp$38 = c$conv$13$simp$35;
-    write flat$16$simp$39$simp$40 = 0@{Int};
-    write flat$16$simp$39$simp$41$simp$45 = []@{Array Bool};
-    write flat$16$simp$39$simp$41$simp$46 = []@{Array Error};
-    write flat$16$simp$39$simp$41$simp$47 = []@{Array Int};
+    write flat$16$simp$46 = False@{Bool};
+    write flat$16$simp$47 = c$conv$13$simp$41;
+    write flat$16$simp$48 = 0@{Int};
+    write flat$16$simp$49 = []@{Array Bool};
+    write flat$16$simp$50 = []@{Array Error};
+    write flat$16$simp$51 = []@{Array Int};
   }
-  read@{Bool} flat$16$simp$48 = flat$16$simp$37;
-  read@{Error} flat$16$simp$49 = flat$16$simp$38;
-  read@{Int} flat$16$simp$50$simp$51 = flat$16$simp$39$simp$40;
-  read@{Array Bool} flat$16$simp$50$simp$52$simp$53 = flat$16$simp$39$simp$41$simp$45;
-  read@{Array Error} flat$16$simp$50$simp$52$simp$54 = flat$16$simp$39$simp$41$simp$46;
-  read@{Array Int} flat$16$simp$50$simp$52$simp$55 = flat$16$simp$39$simp$41$simp$47;
-  let simp$241 = Array_sum#@{Error, Int}
-                 flat$16$simp$50$simp$52$simp$53
-                 flat$16$simp$50$simp$52$simp$54
-                 flat$16$simp$50$simp$52$simp$55;
-  output@{(Sum Error (Int, Array (Sum Error Int)))} repl (flat$16$simp$48@{Bool},
-               flat$16$simp$49@{Error},
-               flat$16$simp$50$simp$51@{Int},
-               simp$241@{Array (Sum Error Int)});
+  read@{Bool} flat$16$simp$52 = flat$16$simp$46;
+  read@{Error} flat$16$simp$53 = flat$16$simp$47;
+  read@{Int} flat$16$simp$54 = flat$16$simp$48;
+  read@{Array Bool} flat$16$simp$55 = flat$16$simp$49;
+  read@{Array Error} flat$16$simp$56 = flat$16$simp$50;
+  read@{Array Int} flat$16$simp$57 = flat$16$simp$51;
+  output@{(Sum Error (Int, Array (Sum Error Int)))} repl (flat$16$simp$52@{Bool},
+               flat$16$simp$53@{Error},
+               flat$16$simp$54@{Int},
+               flat$16$simp$55@{Array Bool},
+               flat$16$simp$56@{Array Error},
+               flat$16$simp$57@{Array Int});
 }
 
 - Core evaluation:
@@ -170,42 +170,76 @@ gen$date = DATE
 > - Flattened:
 gen$date = DATE
 {
-  init acc$conv$2@{Map DateTime (Buf ((Sum Error Int), DateTime))} = Map []@{Map DateTime (Buf ((Sum Error Int), DateTime))};
-  load_resumable@{Map DateTime (Buf ((Sum Error Int), DateTime))} acc$conv$2;
-  for_facts (gen$fact$simp$108$simp$110@{Bool},
-             gen$fact$simp$108$simp$111@{Error},
-             gen$fact$simp$108$simp$112@{Int},
-             gen$fact$simp$109@{DateTime}) in new {
-    read@{Map DateTime (Buf ((Sum Error Int), DateTime))} acc$conv$2 = acc$conv$2;
-    let simp$115 = Sum_pack#@{Error, Int}
-                   gen$fact$simp$108$simp$110
-                   gen$fact$simp$108$simp$111
-                   gen$fact$simp$108$simp$112;
-    let simp$116 = pair#@{(Sum Error Int) DateTime} simp$115
-                   gen$fact$simp$109;
-    let flat$0 = Buf_push#@{((Sum Error Int), DateTime)}
-                 (Buf 2 []@{Buf ((Sum Error Int), DateTime)}) simp$116;
+  init acc$conv$2$simp$40@{Array DateTime} = []@{Array DateTime};
+  init acc$conv$2$simp$41@{Array (Buf 2 Bool)} = []@{Array (Buf 2 Bool)};
+  init acc$conv$2$simp$42@{Array (Buf 2 Error)} = []@{Array (Buf 2 Error)};
+  init acc$conv$2$simp$43@{Array (Buf 2 Int)} = []@{Array (Buf 2 Int)};
+  init acc$conv$2$simp$44@{Array (Buf 2 DateTime)} = []@{Array (Buf 2 DateTime)};
+  load_resumable@{Array DateTime} acc$conv$2$simp$40;
+  load_resumable@{Array (Buf 2 Bool)} acc$conv$2$simp$41;
+  load_resumable@{Array (Buf 2 Error)} acc$conv$2$simp$42;
+  load_resumable@{Array (Buf 2 Int)} acc$conv$2$simp$43;
+  load_resumable@{Array (Buf 2 DateTime)} acc$conv$2$simp$44;
+  for_facts (gen$fact$simp$159@{Bool},
+             gen$fact$simp$160@{Error},
+             gen$fact$simp$161@{Int},
+             gen$fact$simp$162@{DateTime}) in new {
+    read@{Array DateTime} acc$conv$2$simp$45 = acc$conv$2$simp$40;
+    read@{Array (Buf 2 Bool)} acc$conv$2$simp$46 = acc$conv$2$simp$41;
+    read@{Array (Buf 2 Error)} acc$conv$2$simp$47 = acc$conv$2$simp$42;
+    read@{Array (Buf 2 Int)} acc$conv$2$simp$48 = acc$conv$2$simp$43;
+    read@{Array (Buf 2 DateTime)} acc$conv$2$simp$49 = acc$conv$2$simp$44;
+    let anf$0$simp$148 = Buf_push#@{Buf 2 Bool}
+                         (Buf []@{Buf 2 Bool}) gen$fact$simp$159;
+    let anf$0$simp$149 = Buf_push#@{Buf 2 Error}
+                         (Buf []@{Buf 2 Error}) gen$fact$simp$160;
+    let anf$0$simp$150 = Buf_push#@{Buf 2 Int}
+                         (Buf []@{Buf 2 Int}) gen$fact$simp$161;
+    let anf$0$simp$151 = Buf_push#@{Buf 2 DateTime}
+                         (Buf []@{Buf 2 DateTime}) gen$fact$simp$162;
     init flat$1@{Bool} = False@{Bool};
-    init flat$2@{Array DateTime} = Map_unpack_keys#@{DateTime Buf ((Sum Error Int), DateTime)}
-                  acc$conv$2;
-    init flat$3@{Array (Buf ((Sum Error Int), DateTime))} = Map_unpack_values#@{DateTime Buf ((Sum Error Int), DateTime)}
-                  acc$conv$2;
+    init flat$2@{Array DateTime} = acc$conv$2$simp$45;
+    init flat$3$simp$50@{Array (Buf 2 Bool)} = acc$conv$2$simp$46;
+    init flat$3$simp$51@{Array (Buf 2 Error)} = acc$conv$2$simp$47;
+    init flat$3$simp$52@{Array (Buf 2 Int)} = acc$conv$2$simp$48;
+    init flat$3$simp$53@{Array (Buf 2 DateTime)} = acc$conv$2$simp$49;
     read@{Array DateTime} flat$2 = flat$2;
     let flat$4 = Array_length#@{DateTime}
                  flat$2;
     foreach (flat$5 in 0@{Int}..flat$4) {
       read@{Array DateTime} flat$2 = flat$2;
-      read@{Array (Buf ((Sum Error Int), DateTime))} flat$3 = flat$3;
+      read@{Array (Buf 2 Bool)} flat$3$simp$54 = flat$3$simp$50;
+      read@{Array (Buf 2 Error)} flat$3$simp$55 = flat$3$simp$51;
+      read@{Array (Buf 2 Int)} flat$3$simp$56 = flat$3$simp$52;
+      read@{Array (Buf 2 DateTime)} flat$3$simp$57 = flat$3$simp$53;
       let simp$1 = unsafe_Array_index#@{DateTime}
                    flat$2 flat$5;
       if (eq#@{DateTime} simp$1
-          gen$fact$simp$109) {
-        let flat$6 = unsafe_Array_index#@{Buf ((Sum Error Int), DateTime)}
-                     flat$3 flat$5;
-        let flat$7 = Buf_push#@{((Sum Error Int), DateTime)} flat$6
-                     simp$116;
-        write flat$3 = Array_put#@{Buf ((Sum Error Int), DateTime)} flat$3
-                       flat$5 flat$7;
+          gen$fact$simp$162) {
+        let simp$221 = unsafe_Array_index#@{Buf 2 Bool}
+                       flat$3$simp$54 flat$5;
+        let simp$224 = unsafe_Array_index#@{Buf 2 Error}
+                       flat$3$simp$55 flat$5;
+        let simp$227 = unsafe_Array_index#@{Buf 2 Int}
+                       flat$3$simp$56 flat$5;
+        let simp$230 = unsafe_Array_index#@{Buf 2 DateTime}
+                       flat$3$simp$57 flat$5;
+        let simp$250 = Buf_push#@{Buf 2 Bool}
+                       simp$221 gen$fact$simp$159;
+        let simp$254 = Buf_push#@{Buf 2 Error}
+                       simp$224 gen$fact$simp$160;
+        let simp$258 = Buf_push#@{Buf 2 Int}
+                       simp$227 gen$fact$simp$161;
+        let simp$262 = Buf_push#@{Buf 2 DateTime}
+                       simp$230 gen$fact$simp$162;
+        write flat$3$simp$50 = Array_put#@{Buf 2 Bool}
+                               flat$3$simp$54 flat$5 simp$250;
+        write flat$3$simp$51 = Array_put#@{Buf 2 Error}
+                               flat$3$simp$55 flat$5 simp$254;
+        write flat$3$simp$52 = Array_put#@{Buf 2 Int}
+                               flat$3$simp$56 flat$5 simp$258;
+        write flat$3$simp$53 = Array_put#@{Buf 2 DateTime}
+                               flat$3$simp$57 flat$5 simp$262;
         write flat$1 = True@{Bool};
       }
     }
@@ -229,126 +263,184 @@ gen$date = DATE
       }
       read@{Array DateTime} flat$8 = flat$8;
       write flat$8 = Array_put#@{DateTime} flat$8
-                     simp$4 gen$fact$simp$109;
+                     simp$4 gen$fact$simp$162;
       read@{Array DateTime} flat$8 = flat$8;
       write flat$2 = flat$8;
-      read@{Array (Buf ((Sum Error Int), DateTime))} flat$12 = flat$3;
-      let simp$12 = Array_length#@{Buf ((Sum Error Int), DateTime)}
-                    flat$12;
-      let simp$13 = add#@{Int} simp$12 (1@{Int});
-      init flat$11@{Array (Buf ((Sum Error Int), DateTime))} = unsafe_Array_create#@{Buf ((Sum Error Int), DateTime)}
-                     simp$13;
-      foreach (flat$13 in 0@{Int}..Array_length#@{Buf ((Sum Error Int), DateTime)}
-                             flat$12) {
-        read@{Array (Buf ((Sum Error Int), DateTime))} flat$11 = flat$11;
-        let simp$15 = unsafe_Array_index#@{Buf ((Sum Error Int), DateTime)}
-                      flat$12 flat$13;
-        write flat$11 = Array_put#@{Buf ((Sum Error Int), DateTime)}
-                        flat$11 flat$13 simp$15;
+      read@{Array (Buf 2 Bool)} flat$12$simp$58 = flat$3$simp$50;
+      read@{Array (Buf 2 Error)} flat$12$simp$59 = flat$3$simp$51;
+      read@{Array (Buf 2 Int)} flat$12$simp$60 = flat$3$simp$52;
+      read@{Array (Buf 2 DateTime)} flat$12$simp$61 = flat$3$simp$53;
+      let simp$282 = Array_length#@{Buf 2 Bool}
+                     flat$12$simp$58;
+      let simp$283 = add#@{Int} simp$282
+                     (1@{Int});
+      init flat$11$simp$62@{Array (Buf 2 Bool)} = unsafe_Array_create#@{Buf 2 Bool}
+                             simp$283;
+      init flat$11$simp$63@{Array (Buf 2 Error)} = unsafe_Array_create#@{Buf 2 Error}
+                             simp$283;
+      init flat$11$simp$64@{Array (Buf 2 Int)} = unsafe_Array_create#@{Buf 2 Int}
+                             simp$283;
+      init flat$11$simp$65@{Array (Buf 2 DateTime)} = unsafe_Array_create#@{Buf 2 DateTime}
+                             simp$283;
+      foreach (flat$13 in 0@{Int}..Array_length#@{Buf 2 Bool}
+                             flat$12$simp$58) {
+        read@{Array (Buf 2 Bool)} flat$11$simp$66 = flat$11$simp$62;
+        read@{Array (Buf 2 Error)} flat$11$simp$67 = flat$11$simp$63;
+        read@{Array (Buf 2 Int)} flat$11$simp$68 = flat$11$simp$64;
+        read@{Array (Buf 2 DateTime)} flat$11$simp$69 = flat$11$simp$65;
+        let simp$682 = unsafe_Array_index#@{Buf 2 Bool}
+                       flat$12$simp$58 flat$13;
+        write flat$11$simp$62 = Array_put#@{Buf 2 Bool}
+                                flat$11$simp$66 flat$13
+                                simp$682;
+        let simp$704 = unsafe_Array_index#@{Buf 2 Error}
+                       flat$12$simp$59 flat$13;
+        write flat$11$simp$63 = Array_put#@{Buf 2 Error}
+                                flat$11$simp$67 flat$13
+                                simp$704;
+        let simp$726 = unsafe_Array_index#@{Buf 2 Int}
+                       flat$12$simp$60 flat$13;
+        write flat$11$simp$64 = Array_put#@{Buf 2 Int}
+                                flat$11$simp$68 flat$13
+                                simp$726;
+        let simp$748 = unsafe_Array_index#@{Buf 2 DateTime}
+                       flat$12$simp$61 flat$13;
+        write flat$11$simp$65 = Array_put#@{Buf 2 DateTime}
+                                flat$11$simp$69 flat$13
+                                simp$748;
       }
-      read@{Array (Buf ((Sum Error Int), DateTime))} flat$11 = flat$11;
-      write flat$11 = Array_put#@{Buf ((Sum Error Int), DateTime)}
-                      flat$11 simp$12 flat$0;
-      read@{Array (Buf ((Sum Error Int), DateTime))} flat$11 = flat$11;
-      write flat$3 = flat$11;
+      read@{Array (Buf 2 Bool)} flat$11$simp$70 = flat$11$simp$62;
+      read@{Array (Buf 2 Error)} flat$11$simp$71 = flat$11$simp$63;
+      read@{Array (Buf 2 Int)} flat$11$simp$72 = flat$11$simp$64;
+      read@{Array (Buf 2 DateTime)} flat$11$simp$73 = flat$11$simp$65;
+      write flat$11$simp$62 = Array_put#@{Buf 2 Bool}
+                              flat$11$simp$70 simp$282
+                              anf$0$simp$148;
+      write flat$11$simp$63 = Array_put#@{Buf 2 Error}
+                              flat$11$simp$71 simp$282
+                              anf$0$simp$149;
+      write flat$11$simp$64 = Array_put#@{Buf 2 Int}
+                              flat$11$simp$72 simp$282
+                              anf$0$simp$150;
+      write flat$11$simp$65 = Array_put#@{Buf 2 DateTime}
+                              flat$11$simp$73 simp$282
+                              anf$0$simp$151;
+      read@{Array (Buf 2 Bool)} flat$11$simp$74 = flat$11$simp$62;
+      read@{Array (Buf 2 Error)} flat$11$simp$75 = flat$11$simp$63;
+      read@{Array (Buf 2 Int)} flat$11$simp$76 = flat$11$simp$64;
+      read@{Array (Buf 2 DateTime)} flat$11$simp$77 = flat$11$simp$65;
+      write flat$3$simp$50 = flat$11$simp$74;
+      write flat$3$simp$51 = flat$11$simp$75;
+      write flat$3$simp$52 = flat$11$simp$76;
+      write flat$3$simp$53 = flat$11$simp$77;
     }
     read@{Array DateTime} flat$2 = flat$2;
-    read@{Array (Buf ((Sum Error Int), DateTime))} flat$3 = flat$3;
-    let flat$14 = Map_pack#@{DateTime Buf ((Sum Error Int), DateTime)} flat$2
-                  flat$3;
-    write acc$conv$2 = flat$14;
+    read@{Array (Buf 2 Bool)} flat$3$simp$78 = flat$3$simp$50;
+    read@{Array (Buf 2 Error)} flat$3$simp$79 = flat$3$simp$51;
+    read@{Array (Buf 2 Int)} flat$3$simp$80 = flat$3$simp$52;
+    read@{Array (Buf 2 DateTime)} flat$3$simp$81 = flat$3$simp$53;
+    write acc$conv$2$simp$40 = flat$2;
+    write acc$conv$2$simp$41 = flat$3$simp$78;
+    write acc$conv$2$simp$42 = flat$3$simp$79;
+    write acc$conv$2$simp$43 = flat$3$simp$80;
+    write acc$conv$2$simp$44 = flat$3$simp$81;
   }
-  save_resumable@{Map DateTime (Buf ((Sum Error Int), DateTime))} acc$conv$2;
-  read@{Map DateTime (Buf ((Sum Error Int), DateTime))} conv$2 = acc$conv$2;
-  let flat$15 = Map_unpack_keys#@{DateTime Buf ((Sum Error Int), DateTime)}
-                conv$2;
-  let flat$16 = Map_unpack_values#@{DateTime Buf ((Sum Error Int), DateTime)}
-                conv$2;
-  init flat$20$simp$40@{Bool} = True@{Bool};
-  init flat$20$simp$41@{Error} = ExceptTombstone@{Error};
-  init flat$20$simp$42@{Map DateTime Int} = Map []@{Map DateTime Int};
+  save_resumable@{Array DateTime} acc$conv$2$simp$40;
+  save_resumable@{Array (Buf 2 Bool)} acc$conv$2$simp$41;
+  save_resumable@{Array (Buf 2 Error)} acc$conv$2$simp$42;
+  save_resumable@{Array (Buf 2 Int)} acc$conv$2$simp$43;
+  save_resumable@{Array (Buf 2 DateTime)} acc$conv$2$simp$44;
+  read@{Array DateTime} conv$2$simp$82 = acc$conv$2$simp$40;
+  read@{Array (Buf 2 Bool)} conv$2$simp$83 = acc$conv$2$simp$41;
+  read@{Array (Buf 2 Error)} conv$2$simp$84 = acc$conv$2$simp$42;
+  read@{Array (Buf 2 Int)} conv$2$simp$85 = acc$conv$2$simp$43;
+  init flat$20$simp$87@{Bool} = True@{Bool};
+  init flat$20$simp$88@{Error} = ExceptTombstone@{Error};
+  init flat$20$simp$89@{Array DateTime} = []@{Array DateTime};
+  init flat$20$simp$90@{Array Int} = []@{Array Int};
   foreach (flat$21 in 0@{Int}..Array_length#@{DateTime}
-                         flat$15) {
-    read@{Bool} flat$20$simp$43 = flat$20$simp$40;
-    read@{Error} flat$20$simp$44 = flat$20$simp$41;
-    read@{Map DateTime Int} flat$20$simp$45 = flat$20$simp$42;
+                         conv$2$simp$82) {
+    read@{Bool} flat$20$simp$91 = flat$20$simp$87;
+    read@{Error} flat$20$simp$92 = flat$20$simp$88;
+    read@{Array DateTime} flat$20$simp$93 = flat$20$simp$89;
+    read@{Array Int} flat$20$simp$94 = flat$20$simp$90;
+    let simp$430 = unsafe_Array_index#@{Buf 2 Bool}
+                   conv$2$simp$83 flat$21;
+    let simp$432 = unsafe_Array_index#@{Buf 2 Error}
+                   conv$2$simp$84 flat$21;
+    let simp$434 = unsafe_Array_index#@{Buf 2 Int}
+                   conv$2$simp$85 flat$21;
     let conv$26 = unsafe_Array_index#@{DateTime}
-                  flat$15 flat$21;
-    let conv$5 = unsafe_Array_index#@{Buf ((Sum Error Int), DateTime)}
-                 flat$16 flat$21;
-    init flat$23$simp$46@{Bool} = False@{Bool};
-    init flat$23$simp$47@{Error} = ExceptTombstone@{Error};
-    init flat$23$simp$48@{Map DateTime Int} = Map []@{Map DateTime Int};
-    if (flat$20$simp$43) {
-      let flat$26 = Buf_read#@{((Sum Error Int), DateTime)}
-                    conv$5;
-      let simp$130 = Array_unzip#@{(Sum Error Int), DateTime}
-                     flat$26;
-      let conv$6$simp$103 = fst#@{Array (Sum Error Int), Array DateTime}
-                            simp$130;
-      init flat$27$simp$50$simp$54$simp$56@{Bool} = True@{Bool};
-      init flat$27$simp$50$simp$54$simp$57@{Error} = ExceptTombstone@{Error};
-      init flat$27$simp$50$simp$54$simp$58@{Int} = 0@{Int};
-      foreach (flat$44 in 0@{Int}..Array_length#@{(Sum Error Int)}
-                             conv$6$simp$103) {
-        read@{Bool} flat$27$simp$60$simp$64$simp$66 = flat$27$simp$50$simp$54$simp$56;
-        read@{Error} flat$27$simp$60$simp$64$simp$67 = flat$27$simp$50$simp$54$simp$57;
-        read@{Int} flat$27$simp$60$simp$64$simp$68 = flat$27$simp$50$simp$54$simp$58;
-        let v$inline$0$conv$13 = unsafe_Array_index#@{(Sum Error Int)}
-                                 conv$6$simp$103 flat$44;
-        init flat$46$simp$69@{Bool} = False@{Bool};
-        init flat$46$simp$70@{Error} = ExceptTombstone@{Error};
-        init flat$46$simp$71@{Int} = 0@{Int};
-        if (Sum_isRight#@{Error, Int}
-            v$inline$0$conv$13) {
-          let flat$48 = unsafe_Sum_right#@{Error, Int}
-                        v$inline$0$conv$13;
-          init flat$49$simp$72@{Bool} = False@{Bool};
-          init flat$49$simp$73@{Error} = ExceptTombstone@{Error};
-          init flat$49$simp$74@{Int} = 0@{Int};
-          if (flat$27$simp$60$simp$64$simp$66) {
-            let simp$164 = add#@{Int} flat$48
-                           flat$27$simp$60$simp$64$simp$68;
-            write flat$49$simp$72 = True@{Bool};
-            write flat$49$simp$73 = ExceptTombstone@{Error};
-            write flat$49$simp$74 = simp$164;
+                  conv$2$simp$82 flat$21;
+    init flat$23$simp$95@{Bool} = False@{Bool};
+    init flat$23$simp$96@{Error} = ExceptTombstone@{Error};
+    init flat$23$simp$97@{Array DateTime} = []@{Array DateTime};
+    init flat$23$simp$98@{Array Int} = []@{Array Int};
+    if (flat$20$simp$91) {
+      let simp$460 = Buf_read#@{Array Error}
+                     simp$432;
+      let simp$462 = Buf_read#@{Array Int}
+                     simp$434;
+      let conv$6$simp$152 = Buf_read#@{Array Bool}
+                            simp$430;
+      init flat$27$simp$102@{Bool} = True@{Bool};
+      init flat$27$simp$103@{Error} = ExceptTombstone@{Error};
+      init flat$27$simp$104@{Int} = 0@{Int};
+      foreach (flat$44 in 0@{Int}..Array_length#@{Bool}
+                             conv$6$simp$152) {
+        read@{Bool} flat$27$simp$109 = flat$27$simp$102;
+        read@{Error} flat$27$simp$110 = flat$27$simp$103;
+        read@{Int} flat$27$simp$111 = flat$27$simp$104;
+        init flat$46$simp$113@{Bool} = False@{Bool};
+        init flat$46$simp$114@{Error} = ExceptTombstone@{Error};
+        init flat$46$simp$115@{Int} = 0@{Int};
+        if (unsafe_Array_index#@{Bool}
+            conv$6$simp$152 flat$44) {
+          let flat$48 = unsafe_Array_index#@{Int}
+                        simp$462 flat$44;
+          init flat$49$simp$116@{Bool} = False@{Bool};
+          init flat$49$simp$117@{Error} = ExceptTombstone@{Error};
+          init flat$49$simp$118@{Int} = 0@{Int};
+          if (flat$27$simp$109) {
+            write flat$49$simp$116 = True@{Bool};
+            write flat$49$simp$117 = ExceptTombstone@{Error};
+            write flat$49$simp$118 = add#@{Int}
+                                     flat$48 flat$27$simp$111;
           } else {
-            write flat$49$simp$72 = False@{Bool};
-            write flat$49$simp$73 = flat$27$simp$60$simp$64$simp$67;
-            write flat$49$simp$74 = 0@{Int};
+            write flat$49$simp$116 = False@{Bool};
+            write flat$49$simp$117 = flat$27$simp$110;
+            write flat$49$simp$118 = 0@{Int};
           }
-          read@{Bool} flat$49$simp$75 = flat$49$simp$72;
-          read@{Error} flat$49$simp$76 = flat$49$simp$73;
-          read@{Int} flat$49$simp$77 = flat$49$simp$74;
-          write flat$46$simp$69 = flat$49$simp$75;
-          write flat$46$simp$70 = flat$49$simp$76;
-          write flat$46$simp$71 = flat$49$simp$77;
+          read@{Bool} flat$49$simp$119 = flat$49$simp$116;
+          read@{Error} flat$49$simp$120 = flat$49$simp$117;
+          read@{Int} flat$49$simp$121 = flat$49$simp$118;
+          write flat$46$simp$113 = flat$49$simp$119;
+          write flat$46$simp$114 = flat$49$simp$120;
+          write flat$46$simp$115 = flat$49$simp$121;
         } else {
-          let flat$47 = unsafe_Sum_left#@{Error, Int}
-                        v$inline$0$conv$13;
-          write flat$46$simp$69 = False@{Bool};
-          write flat$46$simp$70 = flat$47;
-          write flat$46$simp$71 = 0@{Int};
+          write flat$46$simp$113 = False@{Bool};
+          write flat$46$simp$114 = unsafe_Array_index#@{Error}
+                                   simp$460 flat$44;
+          write flat$46$simp$115 = 0@{Int};
         }
-        read@{Bool} flat$46$simp$78 = flat$46$simp$69;
-        read@{Error} flat$46$simp$79 = flat$46$simp$70;
-        read@{Int} flat$46$simp$80 = flat$46$simp$71;
-        write flat$27$simp$50$simp$54$simp$56 = flat$46$simp$78;
-        write flat$27$simp$50$simp$54$simp$57 = flat$46$simp$79;
-        write flat$27$simp$50$simp$54$simp$58 = flat$46$simp$80;
+        read@{Bool} flat$46$simp$122 = flat$46$simp$113;
+        read@{Error} flat$46$simp$123 = flat$46$simp$114;
+        read@{Int} flat$46$simp$124 = flat$46$simp$115;
+        write flat$27$simp$102 = flat$46$simp$122;
+        write flat$27$simp$103 = flat$46$simp$123;
+        write flat$27$simp$104 = flat$46$simp$124;
       }
-      read@{Bool} flat$27$simp$82$simp$86$simp$88 = flat$27$simp$50$simp$54$simp$56;
-      read@{Error} flat$27$simp$82$simp$86$simp$89 = flat$27$simp$50$simp$54$simp$57;
-      read@{Int} flat$27$simp$82$simp$86$simp$90 = flat$27$simp$50$simp$54$simp$58;
-      init flat$28$simp$91@{Bool} = False@{Bool};
-      init flat$28$simp$92@{Error} = ExceptTombstone@{Error};
-      init flat$28$simp$93@{Map DateTime Int} = Map []@{Map DateTime Int};
-      if (flat$27$simp$82$simp$86$simp$88) {
+      read@{Bool} flat$27$simp$128 = flat$27$simp$102;
+      read@{Error} flat$27$simp$129 = flat$27$simp$103;
+      read@{Int} flat$27$simp$130 = flat$27$simp$104;
+      init flat$28$simp$132@{Bool} = False@{Bool};
+      init flat$28$simp$133@{Error} = ExceptTombstone@{Error};
+      init flat$28$simp$134@{Array DateTime} = []@{Array DateTime};
+      init flat$28$simp$135@{Array Int} = []@{Array Int};
+      if (flat$27$simp$128) {
         init flat$31@{Bool} = False@{Bool};
-        init flat$32@{Array DateTime} = Map_unpack_keys#@{DateTime Int}
-                       flat$20$simp$45;
-        init flat$33@{Array Int} = Map_unpack_values#@{DateTime Int}
-                       flat$20$simp$45;
+        init flat$32@{Array DateTime} = flat$20$simp$93;
+        init flat$33@{Array Int} = flat$20$simp$94;
         read@{Array DateTime} flat$32 = flat$32;
         let flat$34 = Array_length#@{DateTime}
                       flat$32;
@@ -405,46 +497,53 @@ gen$date = DATE
           read@{Array Int} flat$40 = flat$40;
           write flat$40 = Array_put#@{Int}
                           flat$40 simp$34
-                          flat$27$simp$82$simp$86$simp$90;
+                          flat$27$simp$130;
           read@{Array Int} flat$40 = flat$40;
           write flat$33 = flat$40;
         }
         read@{Array DateTime} flat$32 = flat$32;
         read@{Array Int} flat$33 = flat$33;
-        let flat$43 = Map_pack#@{DateTime Int} flat$32
-                      flat$33;
-        write flat$28$simp$91 = True@{Bool};
-        write flat$28$simp$92 = ExceptTombstone@{Error};
-        write flat$28$simp$93 = flat$43;
+        write flat$28$simp$132 = True@{Bool};
+        write flat$28$simp$133 = ExceptTombstone@{Error};
+        write flat$28$simp$134 = flat$32;
+        write flat$28$simp$135 = flat$33;
       } else {
-        write flat$28$simp$91 = False@{Bool};
-        write flat$28$simp$92 = flat$27$simp$82$simp$86$simp$89;
-        write flat$28$simp$93 = Map []@{Map DateTime Int};
+        write flat$28$simp$132 = False@{Bool};
+        write flat$28$simp$133 = flat$27$simp$129;
+        write flat$28$simp$134 = []@{Array DateTime};
+        write flat$28$simp$135 = []@{Array Int};
       }
-      read@{Bool} flat$28$simp$94 = flat$28$simp$91;
-      read@{Error} flat$28$simp$95 = flat$28$simp$92;
-      read@{Map DateTime Int} flat$28$simp$96 = flat$28$simp$93;
-      write flat$23$simp$46 = flat$28$simp$94;
-      write flat$23$simp$47 = flat$28$simp$95;
-      write flat$23$simp$48 = flat$28$simp$96;
+      read@{Bool} flat$28$simp$136 = flat$28$simp$132;
+      read@{Error} flat$28$simp$137 = flat$28$simp$133;
+      read@{Array DateTime} flat$28$simp$138 = flat$28$simp$134;
+      read@{Array Int} flat$28$simp$139 = flat$28$simp$135;
+      write flat$23$simp$95 = flat$28$simp$136;
+      write flat$23$simp$96 = flat$28$simp$137;
+      write flat$23$simp$97 = flat$28$simp$138;
+      write flat$23$simp$98 = flat$28$simp$139;
     } else {
-      write flat$23$simp$46 = False@{Bool};
-      write flat$23$simp$47 = flat$20$simp$44;
-      write flat$23$simp$48 = Map []@{Map DateTime Int};
+      write flat$23$simp$95 = False@{Bool};
+      write flat$23$simp$96 = flat$20$simp$92;
+      write flat$23$simp$97 = []@{Array DateTime};
+      write flat$23$simp$98 = []@{Array Int};
     }
-    read@{Bool} flat$23$simp$97 = flat$23$simp$46;
-    read@{Error} flat$23$simp$98 = flat$23$simp$47;
-    read@{Map DateTime Int} flat$23$simp$99 = flat$23$simp$48;
-    write flat$20$simp$40 = flat$23$simp$97;
-    write flat$20$simp$41 = flat$23$simp$98;
-    write flat$20$simp$42 = flat$23$simp$99;
+    read@{Bool} flat$23$simp$140 = flat$23$simp$95;
+    read@{Error} flat$23$simp$141 = flat$23$simp$96;
+    read@{Array DateTime} flat$23$simp$142 = flat$23$simp$97;
+    read@{Array Int} flat$23$simp$143 = flat$23$simp$98;
+    write flat$20$simp$87 = flat$23$simp$140;
+    write flat$20$simp$88 = flat$23$simp$141;
+    write flat$20$simp$89 = flat$23$simp$142;
+    write flat$20$simp$90 = flat$23$simp$143;
   }
-  read@{Bool} flat$20$simp$100 = flat$20$simp$40;
-  read@{Error} flat$20$simp$101 = flat$20$simp$41;
-  read@{Map DateTime Int} flat$20$simp$102 = flat$20$simp$42;
-  output@{(Sum Error (Map DateTime Int))} repl (flat$20$simp$100@{Bool},
-               flat$20$simp$101@{Error},
-               flat$20$simp$102@{Map DateTime Int});
+  read@{Bool} flat$20$simp$144 = flat$20$simp$87;
+  read@{Error} flat$20$simp$145 = flat$20$simp$88;
+  read@{Array DateTime} flat$20$simp$146 = flat$20$simp$89;
+  read@{Array Int} flat$20$simp$147 = flat$20$simp$90;
+  output@{(Sum Error (Map DateTime Int))} repl (flat$20$simp$144@{Bool},
+               flat$20$simp$145@{Error},
+               flat$20$simp$146@{Array DateTime},
+               flat$20$simp$147@{Array Int});
 }
 
 - Core evaluation:
