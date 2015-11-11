@@ -119,6 +119,8 @@ flatten_simp_commutes_value p (vs, d) =
 
 return []
 tests :: IO Bool
-tests = $quickCheckAll
---tests = $forAllProperties $ quickCheckWithResult (stdArgs {maxSuccess = 10000, maxSize = 10})
+-- tests = $quickCheckAll
+-- tests = $forAllProperties $ quickCheckWithResult (stdArgs {maxSuccess = 10000, maxSize = 10})
+tests = $forAllProperties $ quickCheckWithResult (stdArgs {maxDiscardRatio = 10000})
+-- Need a larger discard ratio sometimes
 

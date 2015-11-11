@@ -1594,7 +1594,7 @@ gen$date = DATE
     let anf$13 = DateTime_daysDifference#
                  (1980-01-06@{DateTime}) gen$fact$simp$28;
     let anf$14 = negate#@{Int} anf$13;
-    let simp$38 = DateTime_minusDays#
+    let simp$40 = DateTime_minusDays#
                   (2000-01-01@{DateTime}) anf$14;
     read@{Bool} acc$s$reify$2$conv$5$simp$7 = acc$s$reify$2$conv$5$simp$4;
     read@{Error} acc$s$reify$2$conv$5$simp$8 = acc$s$reify$2$conv$5$simp$5;
@@ -1604,10 +1604,9 @@ gen$date = DATE
     init flat$0$simp$12@{DateTime} = 1858-11-17@{DateTime};
     if (acc$s$reify$2$conv$5$simp$7) {
       init flat$4@{DateTime} = 1858-11-17@{DateTime};
-      if (gt#@{DateTime} simp$38
+      if (gt#@{DateTime} simp$40
           acc$s$reify$2$conv$5$simp$9) {
-        write flat$4 = DateTime_minusDays#
-                       (2000-01-01@{DateTime}) anf$14;
+        write flat$4 = simp$40;
       } 
        else {
         write flat$4 = acc$s$reify$2$conv$5$simp$9;
@@ -1625,8 +1624,7 @@ gen$date = DATE
           acc$s$reify$2$conv$5$simp$8) {
         write flat$3$simp$13 = True@{Bool};
         write flat$3$simp$14 = ExceptTombstone@{Error};
-        write flat$3$simp$15 = DateTime_minusDays#
-                               (2000-01-01@{DateTime}) anf$14;
+        write flat$3$simp$15 = simp$40;
       } else {
         write flat$3$simp$13 = False@{Bool};
         write flat$3$simp$14 = acc$s$reify$2$conv$5$simp$8;
@@ -1740,7 +1738,7 @@ void iprogram_0(istate_0_t *s)
         idate_t          gen_fact_simp_28     = new_gen_fact_simp_28[i];
         iint_t           anf_13               = idate_days_diff (0x7bc010600000000, gen_fact_simp_28); /* let */
         iint_t           anf_14               = iint_neg (anf_13);                    /* let */
-        idate_t          simp_38              = idate_minus_days (0x7d0010100000000, anf_14); /* let */
+        idate_t          simp_40              = idate_minus_days (0x7d0010100000000, anf_14); /* let */
         acc_s_reify_2_conv_5_simp_7           = acc_s_reify_2_conv_5_simp_4;          /* read */
         acc_s_reify_2_conv_5_simp_8           = acc_s_reify_2_conv_5_simp_5;          /* read */
         acc_s_reify_2_conv_5_simp_9           = acc_s_reify_2_conv_5_simp_6;          /* read */
@@ -1751,8 +1749,8 @@ void iprogram_0(istate_0_t *s)
         if (acc_s_reify_2_conv_5_simp_7) {
             flat_4                            = 0x7420b1100000000;                    /* init */
             
-            if (idate_gt (simp_38, acc_s_reify_2_conv_5_simp_9)) {
-                flat_4                        = idate_minus_days (0x7d0010100000000, anf_14); /* write */
+            if (idate_gt (simp_40, acc_s_reify_2_conv_5_simp_9)) {
+                flat_4                        = simp_40;                              /* write */
             } else {
                 flat_4                        = acc_s_reify_2_conv_5_simp_9;          /* write */
             }
@@ -1769,7 +1767,7 @@ void iprogram_0(istate_0_t *s)
             if (ierror_eq (ierror_fold1_no_value, acc_s_reify_2_conv_5_simp_8)) {
                 flat_3_simp_13                = itrue;                                /* write */
                 flat_3_simp_14                = ierror_tombstone;                     /* write */
-                flat_3_simp_15                = idate_minus_days (0x7d0010100000000, anf_14); /* write */
+                flat_3_simp_15                = simp_40;                              /* write */
             } else {
                 flat_3_simp_13                = ifalse;                               /* write */
                 flat_3_simp_14                = acc_s_reify_2_conv_5_simp_8;          /* write */

@@ -57,13 +57,13 @@ data ValType
  | StringT
  | UnitT
  | ErrorT
- | ArrayT  ValType
- | MapT    ValType    ValType
- | OptionT ValType
- | PairT   ValType    ValType
- | SumT    ValType    ValType
- | StructT StructType
- | BufT    Int        ValType
+ | ArrayT  !ValType
+ | MapT    !ValType    !ValType
+ | OptionT !ValType
+ | PairT   !ValType    !ValType
+ | SumT    !ValType    !ValType
+ | StructT !StructType
+ | BufT    !Int        ValType
  deriving (Eq,Ord,Show)
 
 
@@ -102,7 +102,7 @@ defaultOfType typ
      BufT _ _  -> VBuf []
 
 
-data StructType
+newtype StructType
  = StructType
  { getStructType :: Map.Map StructField ValType }
  deriving (Eq, Ord)

@@ -5,6 +5,7 @@ module Icicle.Avalanche.Statement.Simp.ExpEnv (
   , emptyExpEnv
   , updateExpEnv
   , clearFromExpEnv
+  , getFromEnv
   ) where
 
 import              Icicle.Avalanche.Statement.Statement
@@ -66,4 +67,13 @@ updateExpEnv s env
 clearFromExpEnv :: Ord n => Name n -> ExpEnv a n p -> ExpEnv a n p
 clearFromExpEnv n env
  = filter (\(n',x') -> n' /= n && not (Set.member n $ freevars x')) env
+
+
+-- Lookup a name in the environment.
+getFromEnv :: Eq n => ExpEnv a n p -> Name n -> Maybe (Exp a n p)
+getFromEnv env n
+ | (_,x'):_ <- filter ((==n).fst) env
+ = Just x'
+ | otherwise
+ = Nothing
 
