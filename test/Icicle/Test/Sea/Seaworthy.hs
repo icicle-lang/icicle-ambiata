@@ -16,8 +16,11 @@ import qualified Icicle.Avalanche.FromCore          as A
 import qualified Icicle.Avalanche.Prim.Flat         as APF
 import qualified Icicle.Avalanche.Program           as AP
 import qualified Icicle.Avalanche.Statement.Flatten as AF
+import qualified Icicle.Avalanche.Simp      as AS
 
 import           Icicle.Common.Base
+import           Icicle.Common.Type
+import           Icicle.Common.Annot
 import qualified Icicle.Common.Fresh                as Fresh
 
 import           Icicle.Test.Core.Arbitrary
@@ -47,7 +50,8 @@ prop_seaworthy t
            flatProgram  = fmap ( AC.checkProgram APF.flatFragment
                                . replaceStmts avalProgram
                                . snd) flatStmts
-       case flatProgram of
+           meltProgram  = fmap (fmap simp) flatProgram
+       case meltProgram of
          Right (Right f)
           -> do let attr         = Attribute "eval"
                 let seaProgram   = Map.singleton attr f
@@ -64,10 +68,13 @@ prop_seaworthy t
          Right (Left _)
           -> discard -- not well typed avalanche
  where
-  counter
-   = Fresh.counterNameState (Name . Var "anf") 0
   replaceStmts prog stms
    = prog { AP.statements = stms }
+  simp p
+   = snd $ Fresh.runFresh (AS.simpFlattened dummyAnn p) counter'
+  dummyAnn = Annot (FunT [] ErrorT) ()
+  counter  = Fresh.counterNameState (Name . Var "anf") 0
+  counter' = Fresh.counterNameState (Name . Var "simp") 0
 
 return []
 tests :: IO Bool
