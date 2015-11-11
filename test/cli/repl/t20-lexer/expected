@@ -27,7 +27,7 @@ Check error:
   Extra information:
     Suggested bindings are:
       max                  : Element a -> Aggregate Possibly a
-      mean                 : (Num a) => Element a -> Aggregate Double
+      mean                 : (Num a) => Element a -> Aggregate Possibly Double
       date                 : Element Definitely DateTime
       min                  : Element a -> Aggregate Possibly a
       not                  : Bool -> Bool
