@@ -17,7 +17,7 @@ import              P
 -- | Incredibly simple expressions;
 data Exp a n p
  -- | Read a variable from heap
- = XVar a (Name n)
+ = XVar a !(Name n)
 
  -- | A predefined primitive
  | XPrim a p
@@ -32,10 +32,10 @@ data Exp a n p
 
  -- | Lambda abstraction:
  -- This is only really used for arguments passed to primitives such as fold.
- | XLam a (Name n) ValType (Exp a n p)
+ | XLam a !(Name n) ValType (Exp a n p)
 
  -- | Let binding
- | XLet a (Name n) (Exp a n p) (Exp a n p)
+ | XLet a !(Name n) (Exp a n p) (Exp a n p)
  deriving (Eq,Ord,Show)
 
 

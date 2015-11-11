@@ -35,14 +35,14 @@ type TOK = (Token, SourcePos)
 
 data Token
  -- | Primitive keywords
- = TKeyword  Keyword
+ = TKeyword  !Keyword
  -- | Ints, strings, whatever
- | TLiteral  Literal
+ | TLiteral  !Literal
  -- | Function operators like (+) (>)
- | TOperator Operator
+ | TOperator    {-# UNPACK #-}!Operator
  -- | Names. I dunno
- | TVariable Variable
- | TConstructor Variable
+ | TVariable    {-# UNPACK #-}!Variable
+ | TConstructor {-# UNPACK #-}!Variable
 
  -- | '('
  | TParenL
@@ -64,7 +64,7 @@ data Token
  | TAlternative
 
  -- | An error
- | TUnexpected Text
+ | TUnexpected {-# UNPACK #-}!Text
  deriving (Eq, Ord, Show)
 
 data Keyword
@@ -97,17 +97,17 @@ data Keyword
 
 -- TODO: Strings, floats
 data Literal
- = LitInt Int
- | LitDouble Double
- | LitString Text
- | LitDate DateTime
+ = LitInt    {-# UNPACK #-}!Int
+ | LitDouble {-# UNPACK #-}!Double
+ | LitString {-# UNPACK #-}!Text
+ | LitDate   {-# UNPACK #-}!DateTime
  deriving (Eq, Ord, Show)
 
-data Operator
+newtype Operator
  = Operator Text
  deriving (Eq, Ord, Show)
 
-data Variable
+newtype Variable
  = Variable Text
  deriving (Eq, Ord, Show)
 
