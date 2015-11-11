@@ -247,7 +247,7 @@ constructor a_fresh statements
    = List.zipWith xValue ts vs
 
    | XVar _ n <- x
-   , Just x'  <- get env n
+   , Just x'  <- getFromEnv env n
    = unpack' env x'
 
    | Just (PrimMelt (PrimMeltPack _), ns) <- takePrimApps x
@@ -258,13 +258,7 @@ constructor a_fresh statements
 
 
   -- Either lookup a name, or just return the value if it's already a constant.
-  resolve env    (XVar   _ n)   = get env n
+  resolve env    (XVar   _ n)   = getFromEnv env n
   resolve _   xx@(XValue _ _ _) = Just xx
   resolve _       _             = Nothing
 
-  -- Lookup a name in the environment.
-  get env n
-   | (_,x'):_ <- filter ((==n).fst) env
-   = Just x'
-   | otherwise
-   = Nothing

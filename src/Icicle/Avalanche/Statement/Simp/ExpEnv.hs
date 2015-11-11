@@ -5,6 +5,7 @@ module Icicle.Avalanche.Statement.Simp.ExpEnv (
   , emptyExpEnv
   , updateExpEnv
   , clearFromExpEnv
+  , getFromEnv
   ) where
 
 import              Icicle.Avalanche.Statement.Statement
@@ -15,12 +16,13 @@ import              Icicle.Common.Exp
 import              P
 
 import qualified    Data.Set            as Set
+import qualified    Data.Map            as Map
 
 
-type ExpEnv a n p = [(Name n, Exp a n p)]
+type ExpEnv a n p = Map.Map (Name n) (Exp a n p)
 
 emptyExpEnv :: ExpEnv a n p
-emptyExpEnv = []
+emptyExpEnv = Map.empty
 
 updateExpEnv :: Ord n
              => Statement a n p
@@ -30,7 +32,8 @@ updateExpEnv s env
    = case s of
       Let n x _
       -- Normal let: remember the name and expression for later
-       -> (n,x) : clearFromExpEnv n env
+       -> Map.insert n x
+        $ clearFromExpEnv n env
 
       -- New variables are bound, so clear the environment
       ForeachInts n _ _ _
@@ -65,5 +68,11 @@ updateExpEnv s env
 --
 clearFromExpEnv :: Ord n => Name n -> ExpEnv a n p -> ExpEnv a n p
 clearFromExpEnv n env
- = filter (\(n',x') -> n' /= n && not (Set.member n $ freevars x')) env
+ = Map.filterWithKey (\n' x' -> n' /= n && not (Set.member n $ freevars x')) env
+
+
+-- Lookup a name in the environment.
+getFromEnv :: Ord n => ExpEnv a n p -> Name n -> Maybe (Exp a n p)
+getFromEnv env n
+ = Map.lookup n env
 
