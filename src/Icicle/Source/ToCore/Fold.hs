@@ -26,7 +26,7 @@ import           Icicle.Source.Type
 import           P
 
 import           Control.Monad.Trans.Class
-import           Data.List                      (zip)
+import           Data.List                      (zip, replicate)
 import qualified Data.Map                       as Map
 
 
@@ -370,7 +370,7 @@ convertFold q
   -- Create nested pair type for storing the result of subexpressions
   pairTypes ts
    = case nonunits ts of
-      (t:ts') -> foldr T.PairT t ts'
+      (t:ts') -> foldl T.PairT t ts'
       []      -> T.UnitT
 
   -- Create nested pairs of arguments
@@ -379,7 +379,7 @@ convertFold q
      in  return
        $ case xts of
           ((x,t):xts')
-           -> foldr
+           -> foldl
                (\(xa,ta) (x',t')
                 -> ( CE.xPrim
                         (C.PrimMinimal $ Min.PrimConst $ Min.PrimConstPair ta t')
@@ -390,28 +390,37 @@ convertFold q
 
   -- Destruct nested pairs.
   -- Call "f" with expression for each element of the pair.
-  pairDestruct f []
+  pairDestruct f ts
+   | [] <- nonunits ts
+   = do n1 <- lift fresh
+        f' <- f (replicate (length ts) (CE.xValue T.UnitT VUnit))
+        return $ CE.xLam n1 T.UnitT f'
+
+  pairDestruct f ts
+   = pairDestruct' f ts
+
+  pairDestruct' f []
    = f []
 
-  pairDestruct f (T.UnitT:ts)
+  pairDestruct' f (T.UnitT:ts)
    = do let f' xs = f (CE.xValue T.UnitT VUnit : xs)
-        pairDestruct f' ts
+        pairDestruct' f' ts
 
-  pairDestruct f (t:ts)
+  pairDestruct' f (t:ts)
    | [] <- nonunits ts
    = do n1 <- lift fresh
         let f' xs = f (CE.xVar n1 : xs)
-        rest <- pairDestruct f' ts
+        rest <- pairDestruct' f' ts
         let xx = CE.xLam n1 t rest
         return xx
 
-  pairDestruct f (t:ts)
+  pairDestruct' f (t:ts)
    = do nl <- lift fresh
         n1 <- lift fresh
         let f' xs = f (CE.xVar n1 : xs)
         let tr    = pairTypes ts
 
-        rest <- pairDestruct f' ts
+        rest <- pairDestruct' f' ts
 
         let xfst = CE.xPrim (C.PrimMinimal $ Min.PrimPair $ Min.PrimPairFst t tr) CE.@~ CE.xVar nl
         let xsnd = CE.xPrim (C.PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd t tr) CE.@~ CE.xVar nl
