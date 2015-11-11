@@ -3,14 +3,22 @@
 {-# LANGUAGE PatternGuards #-}
 
 module Icicle.Sea.FromAvalanche.Base (
-    seaOfName
+    textOfName
+  , seaOfName
   , seaOfNameIx
+  , seaOfAttributeDesc
   , seaError
   , seaError'
   , assign
   , suffix
   , tuple
   ) where
+
+import           Data.Char (isLower, isUpper)
+import           Data.Text (Text)
+import qualified Data.Text as T
+
+import           Icicle.Data
 
 import           Icicle.Internal.Pretty
 
@@ -19,9 +27,10 @@ import           P
 import qualified Data.List as List
 
 
-
-
 ------------------------------------------------------------------------
+
+textOfName :: Pretty n => n -> Text
+textOfName = T.pack . show . seaOfName
 
 seaOfName :: Pretty n => n -> Doc
 seaOfName = string . fmap mangle . show . pretty
@@ -31,6 +40,13 @@ seaOfName = string . fmap mangle . show . pretty
 
 seaOfNameIx :: Pretty n => n -> Int -> Doc
 seaOfNameIx n ix = seaOfName (pretty n <> text "$ix$" <> int ix)
+
+seaOfAttributeDesc :: Attribute -> Doc
+seaOfAttributeDesc (Attribute xs)
+  | T.null xs = string ""
+  | otherwise = pretty (T.filter isLegal xs)
+ where
+  isLegal c = isLower c || isUpper c || c == ' ' || c == '_'
 
 ------------------------------------------------------------------------
 
@@ -54,5 +70,3 @@ tuple xs  = "(" <> go xs
     go []     = ")" -- impossible
     go (y:[]) = y <> ")"
     go (y:ys) = y <> ", " <> go ys
-
-

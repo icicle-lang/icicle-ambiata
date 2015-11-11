@@ -12,6 +12,7 @@ module Icicle.Sea.Eval (
   , SeaFleet (..)
   , SeaProgram (..)
   , SeaError (..)
+  , Psv (..)
 
   , seaCompile
   , seaEval
@@ -57,10 +58,14 @@ import           Icicle.Common.Type (ValType(..), StructType(..), defaultOfType)
 import           Icicle.Data (Attribute(..))
 import qualified Icicle.Data as D
 import           Icicle.Data.DateTime (packedOfDate, dateOfPacked)
-import           Icicle.Internal.Pretty ((<+>), pretty, text, vsep)
+import           Icicle.Internal.Pretty (pretty, vsep)
 import           Icicle.Internal.Pretty (Doc, Pretty, displayS, renderPretty)
+
+import           Icicle.Sea.Error (SeaError(..))
 import           Icicle.Sea.FromAvalanche.Analysis (factVarsOfProgram, outputsOfProgram)
-import           Icicle.Sea.FromAvalanche.Program (seaOfProgram, programName, stateWordsOfProgram)
+import           Icicle.Sea.FromAvalanche.Program (seaOfProgram, nameOfProgram', stateWordsOfProgram)
+import           Icicle.Sea.FromAvalanche.State (stateOfProgram)
+import           Icicle.Sea.FromAvalanche.Psv (seaOfPsvDriver)
 import           Icicle.Sea.Preamble (seaPreamble)
 
 import           Jetski
@@ -74,6 +79,8 @@ import           X.Control.Monad.Catch (bracketEitherT')
 import           X.Control.Monad.Trans.Either (firstEitherT)
 
 ------------------------------------------------------------------------
+
+data Psv = NoPsv | Psv
 
 data MemPool
 data PsvState
@@ -108,50 +115,6 @@ instance Show SeaMVector where
     F64 v -> showString "F64 " . showsPrec 11 (unsafePerformIO (V.unsafeFreeze v))
     P64 v -> showString "P64 " . showsPrec 11 (unsafePerformIO (V.unsafeFreeze v))
 
-data SeaError
-  = SeaJetskiError              JetskiError
-  | SeaPsvError                 Text
-  | SeaProgramNotFound          Attribute
-  | SeaFactConversionError      [D.AsAt D.Value] ValType
-  | SeaBaseValueConversionError BaseValue (Maybe ValType)
-  | SeaTypeConversionError      ValType
-  | SeaNoFactLoop
-  | SeaNoOutputs
-  deriving (Eq, Show)
-
-instance Pretty SeaError where
-  pretty = \case
-    SeaFactConversionError vs t
-     -> text "Cannot convert facts "
-     <> pretty (fmap D.fact vs) <+> text ": [" <> pretty t <> text "]"
-
-    SeaBaseValueConversionError v Nothing
-     -> text "Cannot convert value " <> pretty v
-
-    SeaBaseValueConversionError v (Just t)
-     -> text "Cannot convert value " <> pretty v <+> text ":" <+> pretty t
-
-    SeaTypeConversionError t
-     -> text "Cannot convert type " <> pretty t
-
-    SeaNoFactLoop
-     -> text "No fact loop"
-
-    SeaNoOutputs
-     -> text "No outputs"
-
-    SeaProgramNotFound attr
-     -> text "Program for attribute \"" <> pretty attr <> "\" not found"
-
-    SeaJetskiError (CompilerError _ _ stderr)
-     -> pretty stderr
-
-    SeaJetskiError je
-     -> pretty (show je)
-
-    SeaPsvError pe
-     -> pretty pe
-
 ------------------------------------------------------------------------
 
 seaPsvSnapshot :: SeaFleet -> FilePath -> FilePath -> EitherT SeaError IO ()
@@ -184,7 +147,7 @@ seaEvalAvalanche
 seaEvalAvalanche program date values = do
   let attr = Attribute "eval"
       ps   = Map.singleton attr program
-  bracketEitherT' (seaCompile ps) seaRelease (\fleet -> seaEval attr fleet date values)
+  bracketEitherT' (seaCompile NoPsv ps) seaRelease (\fleet -> seaEval attr fleet date values)
 
 seaEval
   :: (MonadIO m, MonadMask m)
@@ -245,15 +208,22 @@ valueFromCore' v =
 seaCompile
   :: (MonadIO m, MonadMask m, Functor m)
   => (Show a, Show n, Pretty n, Ord n)
-  => Map Attribute (Program (Annot a) n Prim)
+  => Psv
+  -> Map Attribute (Program (Annot a) n Prim)
   -> EitherT SeaError m SeaFleet
-seaCompile programs = do
-  let code = codeOfPrograms . fmap (first D.getAttribute) $ Map.toList programs
+seaCompile psv programs = do
+  code <- hoistEither (codeOfPrograms psv (Map.toList programs))
 
   lib             <- firstEitherT SeaJetskiError (compileLibrary compilerOptions code)
   imempool_create <- firstEitherT SeaJetskiError (function lib "imempool_create" retVoid)
   imempool_free   <- firstEitherT SeaJetskiError (function lib "imempool_free"   retVoid)
-  psv_snapshot    <- firstEitherT SeaJetskiError (function lib "psv_snapshot"    retVoid)
+
+  psv_snapshot <- case psv of
+    NoPsv -> do
+      return (\_ -> return ())
+    Psv -> do
+      fn <- firstEitherT SeaJetskiError (function lib "psv_snapshot" retVoid)
+      return (\ptr -> fn [argPtr ptr])
 
   compiled <- zipWithM (mkSeaProgram lib) [0..] (Map.elems programs)
 
@@ -262,7 +232,7 @@ seaCompile programs = do
     , sfPrograms    = Map.fromList (List.zip (Map.keys programs) compiled)
     , sfCreatePool  = \ptr -> imempool_create [argPtr ptr]
     , sfReleasePool = \ptr -> imempool_free   [argPtr ptr]
-    , sfPsvSnapshot = \ptr -> psv_snapshot    [argPtr ptr]
+    , sfPsvSnapshot = psv_snapshot
     }
 
 mkSeaProgram
@@ -279,7 +249,7 @@ mkSeaProgram lib name program = do
                 Nothing     -> left SeaNoFactLoop
                 Just (t, _) -> return t
 
-  compute <- firstEitherT SeaJetskiError (function lib (programName name) retVoid)
+  compute <- firstEitherT SeaJetskiError (function lib (nameOfProgram' name) retVoid)
 
   return SeaProgram {
       spName       = name
@@ -303,19 +273,28 @@ compilerOptions =
 
 assemblyOfPrograms
   :: (Show a, Show n, Pretty n, Ord n)
-  => [(Text, Program (Annot a) n Prim)]
+  => Psv
+  -> [(Attribute, Program (Annot a) n Prim)]
   -> EitherT SeaError IO Text
-assemblyOfPrograms programs = do
-  let code = codeOfPrograms programs
+assemblyOfPrograms psv programs = do
+  code <- hoistEither (codeOfPrograms psv programs)
   firstEitherT SeaJetskiError (compileAssembly compilerOptions code)
 
 codeOfPrograms
   :: (Show a, Show n, Pretty n, Ord n)
-  => [(Text, Program (Annot a) n Prim)]
-  -> Text
-codeOfPrograms programs = do
-  let docs = List.zipWith (\ix (info,p) -> seaOfProgram ix info p) [0..] programs
-  textOfDoc . vsep $ [seaPreamble] <> docs
+  => Psv
+  -> [(Attribute, Program (Annot a) n Prim)]
+  -> Either SeaError Text
+codeOfPrograms psv programs = do
+  docs    <- zipWithM (\ix (a, p) -> seaOfProgram   ix a p) [0..] programs
+  states  <- zipWithM (\ix (a, p) -> stateOfProgram ix a p) [0..] programs
+
+  case psv of
+    NoPsv -> do
+      pure . textOfDoc . vsep $ ["#define ICICLE_NO_PSV 1", seaPreamble] <> docs
+    Psv -> do
+      psv_doc <- seaOfPsvDriver states
+      pure . textOfDoc . vsep $ [seaPreamble] <> docs <> ["", psv_doc]
 
 textOfDoc :: Doc -> Text
 textOfDoc doc = T.pack (displayS (renderPretty 0.8 80 (pretty doc)) "")

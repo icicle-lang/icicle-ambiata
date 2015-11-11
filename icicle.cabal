@@ -141,12 +141,15 @@ library
                        Icicle.Serial
                        Icicle.Simulator
 
+                       Icicle.Sea.Error
                        Icicle.Sea.Eval
                        Icicle.Sea.FromAvalanche
                        Icicle.Sea.FromAvalanche.Analysis
                        Icicle.Sea.FromAvalanche.Base
                        Icicle.Sea.FromAvalanche.Prim
                        Icicle.Sea.FromAvalanche.Program
+                       Icicle.Sea.FromAvalanche.Psv
+                       Icicle.Sea.FromAvalanche.State
                        Icicle.Sea.FromAvalanche.Type
                        Icicle.Sea.Preamble
 
@@ -251,10 +254,11 @@ executable             icicle-bench
                      , ambiata-p
                      , ambiata-x-either
                      , ambiata-x-exception
-                     , icicle
                      , containers                      == 0.5.*
+                     , icicle
                      , parsec                          == 3.1.*
                      , text                            == 1.2.*
+                     , time                            == 1.4.*
                      , transformers                    >= 0.3        && < 0.5
 
 test-suite test

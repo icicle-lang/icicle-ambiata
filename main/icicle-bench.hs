@@ -3,35 +3,43 @@
 
 import           Control.Monad.IO.Class (liftIO)
 
+import           Data.Time (getCurrentTime, diffUTCTime)
 import           Data.Map (Map)
 import qualified Data.Map as Map
 import           Data.Text (Text)
+import qualified Data.Text.IO as T
 
-import qualified Icicle.Avalanche.Program as A
 import qualified Icicle.Avalanche.Prim.Flat as A
-import           Icicle.Common.Base
+import qualified Icicle.Avalanche.Program as A
 import           Icicle.Common.Annot (Annot)
+import           Icicle.Common.Base
 import           Icicle.Core.Program.Fusion (FusionError)
 import qualified Icicle.Core.Program.Fusion as C
 import qualified Icicle.Core.Program.Program as C
 import           Icicle.Data
 import           Icicle.Dictionary
 import           Icicle.Pipeline
+import           Icicle.Internal.Pretty (pretty)
 import           Icicle.Sea.Eval
 import qualified Icicle.Source.Parser as S
 import qualified Icicle.Source.Query as S
 import           Icicle.Storage.Dictionary.Toml
 
+import           Jetski
+
 import           P
 
 import           System.Environment (getArgs)
 import           System.IO (IO, FilePath, putStrLn, print)
+import           System.IO (IOMode(..), withFile, hFileSize)
 
 import           Text.ParserCombinators.Parsec (SourcePos)
+import           Text.Printf (printf)
 
 import           X.Control.Monad.Trans.Either
 import           X.Control.Monad.Catch
 
+------------------------------------------------------------------------
 
 data BenchError =
     BenchDictionaryImportError DictionaryImportError
@@ -41,30 +49,55 @@ data BenchError =
   | BenchSeaError       SeaError
   deriving (Show)
 
+------------------------------------------------------------------------
 
 main :: IO ()
 main = do
   args <- getArgs
   case args of
-    [dict, inp, out] -> do
-      xx <- runEitherT (runBench dict inp out)
-      print xx
+    [dict, inp, out, src] -> do
+      xx <- runEitherT (runBench dict inp out src)
+      case xx of
+        Left (BenchSeaError err) -> print (pretty err)
+        Left err                 -> print err
+        Right _                  -> return ()
 
     _ -> do
+      putStrLn "usage: icicle-bench DICTIONARY INPUT_PSV OUTPUT_PSV OUTPUT_C"
       putStrLn ("invalid args: " <> show args)
 
+------------------------------------------------------------------------
 
-runBench :: FilePath -> FilePath -> FilePath -> EitherT BenchError IO ()
-runBench dictionaryPath input output = do
-  liftIO (print (dictionaryPath, input, output))
+runBench :: FilePath -> FilePath -> FilePath -> FilePath -> EitherT BenchError IO ()
+runBench dictionaryPath inputPath outputPath sourcePath = do
+  liftIO (putStrLn "icicle-bench: starting compilation")
+  compStart <- liftIO getCurrentTime
+
   dictionary <- firstEitherT BenchDictionaryImportError (loadDictionary dictionaryPath)
   avalanche  <- hoistEither (avalancheOfDictionary dictionary)
 
-  let acquireFleet = firstEitherT BenchSeaError (seaCompile avalanche)
+  let acquireFleet = firstEitherT BenchSeaError (seaCompile Psv avalanche)
       releaseFleet = seaRelease
 
   bracketEitherT' acquireFleet releaseFleet $ \fleet -> do
-    firstEitherT BenchSeaError (seaPsvSnapshot fleet input output)
+    compEnd <- liftIO getCurrentTime
+    let compSecs = realToFrac (compEnd `diffUTCTime` compStart) :: Double
+    liftIO (printf "icicle-bench: compilation time = %.2fs\n" compSecs)
+
+    let src = libSource (sfLibrary fleet)
+    liftIO (T.writeFile sourcePath src)
+
+    liftIO (putStrLn "icicle-bench: starting snapshot")
+
+    psvStart <- liftIO getCurrentTime
+    firstEitherT BenchSeaError (seaPsvSnapshot fleet inputPath outputPath)
+    psvEnd   <- liftIO getCurrentTime
+
+    size <- liftIO (withFile inputPath ReadMode hFileSize)
+
+    let psvSecs = realToFrac (psvEnd `diffUTCTime` psvStart) :: Double
+        mbps    = (fromIntegral size / psvSecs) / (1024 * 1024)
+    liftIO (printf "icicle-bench: snapshot time = %.2fs (%.2fMB/s)\n" psvSecs mbps)
 
 ------------------------------------------------------------------------
 
