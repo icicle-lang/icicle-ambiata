@@ -36,9 +36,9 @@ simp a_fresh isValue = anormal a_fresh . deadX . fixp (50 :: Int) (simpX a_fresh
 
 
 simpX :: Ord n => a -> (C.Exp a n -> Bool) -> C.Exp a n -> C.Exp a n
-simpX a_fresh _isValue = go . beta
+simpX a_fresh isValue = go . beta
   where
-    beta  = B.betaToLets a_fresh
+    beta  = B.beta isValue
     go xx = case xx of
       -- * constant folding for some primitives
       XApp a p q
