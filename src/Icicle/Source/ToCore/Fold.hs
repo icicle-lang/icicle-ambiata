@@ -100,12 +100,12 @@ convertFold q
             let cp ns
                     = convertPrim p ann retty
                         ((fmap (uncurry CE.xApp) (fmap mapExtract res `zip` ns)) `zip` fmap (annResult . annotOfExp) args)
-            xx       <- pairDestruct cp ts retty
+            xx       <- pairDestruct cp ts
 
             -- For konstrukt, we need to destruct the pairs, apply the sub-ks,
             -- then box it up again in pairs.
             let applyKs ns = fst <$> pairConstruct (fmap (uncurry CE.xApp) (fmap foldKons res `zip` ns)) ts
-            kk       <- pairDestruct applyKs ts tt
+            kk       <- pairDestruct applyKs ts
 
             return $ ConvertFoldResult kk zz xx tt retty'
 
@@ -199,12 +199,12 @@ convertFold q
                          -> convertCase (final q) s (pats' `zip` alts) scrutT retty'
                         _
                          -> convertError $ ConvertErrorBadCaseNoDefault ann (final q)
-            xx       <- pairDestruct cp ts retty
+            xx       <- pairDestruct cp ts
 
             -- For konstrukt, we need to destruct the pairs, apply the sub-ks,
             -- then box it up again in pairs.
             let applyKs ns = fst <$> pairConstruct (fmap (uncurry CE.xApp) (fmap foldKons res `zip` ns)) ts
-            kk       <- pairDestruct applyKs ts tt
+            kk       <- pairDestruct applyKs ts
 
             return $ ConvertFoldResult kk zz xx tt retty'
 
@@ -366,42 +366,57 @@ convertFold q
   -- Construct an identity function
   idFun tt = lift fresh >>= \n -> return (CE.xLam n tt (CE.xVar n))
 
+  nonunits = filter (/=T.UnitT)
   -- Create nested pair type for storing the result of subexpressions
   pairTypes ts
-   = foldr T.PairT T.UnitT ts
+   = case nonunits ts of
+      (t:ts') -> foldr T.PairT t ts'
+      []      -> T.UnitT
 
   -- Create nested pairs of arguments
   pairConstruct xs ts
-   = return
-   $ foldr
-   (\(xa,ta) (x',t')
-    -> ( CE.xPrim
-            (C.PrimMinimal $ Min.PrimConst $ Min.PrimConstPair ta t')
-            CE.@~ xa CE.@~ x'
-       , T.PairT ta t'))
-   ( CE.xValue T.UnitT VUnit, T.UnitT )
-   ( zip xs ts )
+   = let xts = filter ((/=T.UnitT).snd) $ zip xs ts
+     in  return
+       $ case xts of
+          ((x,t):xts')
+           -> foldr
+               (\(xa,ta) (x',t')
+                -> ( CE.xPrim
+                        (C.PrimMinimal $ Min.PrimConst $ Min.PrimConstPair ta t')
+                        CE.@~ xa CE.@~ x'
+                   , T.PairT ta t')) ( x, t ) xts'
+          []
+           -> (CE.xValue T.UnitT VUnit, T.UnitT)
 
   -- Destruct nested pairs.
   -- Call "f" with expression for each element of the pair.
-  pairDestruct f [] _ret
-   = do nl <- lift fresh
-        f' <- f []
-        return $ CE.xLam nl T.UnitT $ f'
+  pairDestruct f []
+   = f []
 
-  pairDestruct f (t1:ts) ret
+  pairDestruct f (T.UnitT:ts)
+   = do let f' xs = f (CE.xValue T.UnitT VUnit : xs)
+        pairDestruct f' ts
+
+  pairDestruct f (t:ts)
+   | [] <- nonunits ts
+   = do n1 <- lift fresh
+        let f' xs = f (CE.xVar n1 : xs)
+        rest <- pairDestruct f' ts
+        let xx = CE.xLam n1 t rest
+        return xx
+
+  pairDestruct f (t:ts)
    = do nl <- lift fresh
         n1 <- lift fresh
-
         let f' xs = f (CE.xVar n1 : xs)
         let tr    = pairTypes ts
 
-        rest <- pairDestruct f' ts ret
+        rest <- pairDestruct f' ts
 
-        let xfst = CE.xPrim (C.PrimMinimal $ Min.PrimPair $ Min.PrimPairFst t1 tr) CE.@~ CE.xVar nl
-        let xsnd = CE.xPrim (C.PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd t1 tr) CE.@~ CE.xVar nl
+        let xfst = CE.xPrim (C.PrimMinimal $ Min.PrimPair $ Min.PrimPairFst t tr) CE.@~ CE.xVar nl
+        let xsnd = CE.xPrim (C.PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd t tr) CE.@~ CE.xVar nl
 
-        let xx = CE.xLam nl (T.PairT t1 tr)
+        let xx = CE.xLam nl (T.PairT t tr)
                $ CE.xLet n1 xfst
                ( rest CE.@~ xsnd )
 
