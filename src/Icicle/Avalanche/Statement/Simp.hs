@@ -28,7 +28,6 @@ import              P
 
 import              Data.Functor.Identity
 import qualified    Data.Set as Set
-import qualified    Data.Map as Map
 import qualified    Data.List as List
 
 
@@ -225,8 +224,7 @@ thresher a_fresh statements
        | not $ Set.member n $ stmtFreeX ss
        -> return (env, ss)
       -- Duplicate let: change to refer to existing one
-       | ((n',_):_) <- filter (\(_,x') -> x `alphaEquality` x')
-                     $ Map.toList env
+       | ((n',_):_) <- filter (\(_,x') -> x `alphaEquality` x') env
        -> return (env, Let n (XVar a_fresh n') ss)
 
       -- Read that's never used
