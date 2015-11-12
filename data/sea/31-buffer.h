@@ -130,6 +130,19 @@ Read(buf)
         return out;                                                             \
     }
 
+#define MK_BUF_COPY(t,pre)                                                     \
+    static BUF(t) INLINE BUF_FUN(copy,pre)   (imempool_t *pool, imempool_t *into, BUF(t) x)    \
+    {                                                                           \
+        BUF(t) arr = BUF_FUN(make,pre)(into, x->max_size);                   \
+        arr->cur_size = x->cur_size;                                        \
+        arr->head     = x->head;                                            \
+        for (iint_t ix = 0; ix != x->max_size; ++ix) {                             \
+            t cp = BUF_PAYLOAD(x,t)[ix];                                      \
+            BUF_PAYLOAD(arr,t)[ix] = pre##copy(pool, into, cp);               \
+        }                                                                       \
+        return arr;                                                             \
+    }
+
 
 #define MK_BUF_EQ(t,pre)                                                        \
     static ibool_t INLINE BUF_FUN(eq,pre) (BUF(t) x, BUF(t) y)                  \

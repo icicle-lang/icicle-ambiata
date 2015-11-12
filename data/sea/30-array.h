@@ -84,6 +84,18 @@ typedef struct
         return x;                                                               \
     }
 
+#define MK_ARRAY_COPY(t,pre)                                                     \
+    static ARRAY(t) INLINE ARRAY_FUN(copy,pre)   (imempool_t *pool, imempool_t *into, ARRAY(t) x)    \
+    {                                                                           \
+        ARRAY(t) arr = ARRAY_FUN(create,pre)(into, x->count);                   \
+        for (iint_t ix = 0; ix != x->count; ++ix) {                             \
+            t cp = ARRAY_PAYLOAD(x,t)[ix];                                      \
+            ARRAY_PAYLOAD(arr,t)[ix] = pre##copy(pool, into, cp);               \
+        }                                                                       \
+        return arr;                                                             \
+    }
+
+
 
 
 #define MAKE_ARRAY(t,pre)                                                       \
@@ -93,12 +105,31 @@ typedef struct
     MK_ARRAY_INDEX  (t,pre)                                                     \
     MK_ARRAY_CREATE (t,pre)                                                     \
     MK_ARRAY_PUT    (t,pre)                                                     \
-    // MK_ARRAY_ZIP    (t,pre)                                                     \
+    MK_ARRAY_COPY   (t,pre)                                                     \
 
 MAKE_ARRAY(idouble_t,   idouble_)
 MAKE_ARRAY(iint_t,      iint_)
 MAKE_ARRAY(ierror_t,    ierror_)
 MAKE_ARRAY(ibool_t,     ibool_)
 MAKE_ARRAY(idate_t,     idate_)
-MAKE_ARRAY(iunit_t,     iunit_)
 MAKE_ARRAY(istring_t,   istring_)
+MAKE_ARRAY(iunit_t,     iunit_)
+
+
+// Specialise array of unit to a single int
+/*
+typedef iint_t ARRAY(iunit_t);
+MK_SIMPLE_CMPS(iarray_t__iunit_t, iarray__iunit_)
+
+static iint_t INLINE ARRAY_FUN(length,iunit_) (ARRAY(iunit_t) arr)
+{ return arr; }
+static iint_t INLINE ARRAY_FUN(index,iunit_) (ARRAY(iunit_t) arr, iint_t ix)
+{ return iunit; }
+static iint_t INLINE ARRAY_FUN(create,iunit_) (imempool_t *pool, iint_t sz)
+{ return sz; }
+static iint_t INLINE ARRAY_FUN(put,iunit_) (ARRAY(iunit_t) arr, iint_t ix, iunit_t v)
+{ return arr; }
+static iint_t INLINE ARRAY_FUN(copy,iunit_) (imempool_t *pool, imempool_t *into, ARRAY(iunit_t) arr)
+{ return arr; }
+
+*/
