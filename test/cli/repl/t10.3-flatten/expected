@@ -288,26 +288,26 @@ gen$date = DATE
         read@{Array (Buf 2 Error)} flat$11$simp$67 = flat$11$simp$63;
         read@{Array (Buf 2 Int)} flat$11$simp$68 = flat$11$simp$64;
         read@{Array (Buf 2 DateTime)} flat$11$simp$69 = flat$11$simp$65;
-        let simp$715 = unsafe_Array_index#@{Buf 2 Bool}
+        let simp$666 = unsafe_Array_index#@{Buf 2 Bool}
                        flat$12$simp$58 flat$13;
-        let simp$717 = unsafe_Array_index#@{Buf 2 Error}
+        let simp$668 = unsafe_Array_index#@{Buf 2 Error}
                        flat$12$simp$59 flat$13;
-        let simp$719 = unsafe_Array_index#@{Buf 2 Int}
+        let simp$670 = unsafe_Array_index#@{Buf 2 Int}
                        flat$12$simp$60 flat$13;
-        let simp$721 = unsafe_Array_index#@{Buf 2 DateTime}
+        let simp$672 = unsafe_Array_index#@{Buf 2 DateTime}
                        flat$12$simp$61 flat$13;
         write flat$11$simp$62 = Array_put#@{Buf 2 Bool}
                                 flat$11$simp$66 flat$13
-                                simp$715;
+                                simp$666;
         write flat$11$simp$63 = Array_put#@{Buf 2 Error}
                                 flat$11$simp$67 flat$13
-                                simp$717;
+                                simp$668;
         write flat$11$simp$64 = Array_put#@{Buf 2 Int}
                                 flat$11$simp$68 flat$13
-                                simp$719;
+                                simp$670;
         write flat$11$simp$65 = Array_put#@{Buf 2 DateTime}
                                 flat$11$simp$69 flat$13
-                                simp$721;
+                                simp$672;
       }
       read@{Array (Buf 2 Bool)} flat$11$simp$68 = flat$11$simp$60;
       read@{Array (Buf 2 Error)} flat$11$simp$69 = flat$11$simp$61;

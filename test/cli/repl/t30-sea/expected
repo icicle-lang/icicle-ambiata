@@ -550,11 +550,11 @@ gen$date = DATE
     if (a$conv$66$simp$230) {
       let conv$121 = sub#@{Double}
                      a$conv$66$simp$232 (1.0@{Double});
-      let conv$127$simp$276 = div#
-                              a$conv$66$simp$234 conv$121;
+      let conv$122 = div#
+                     a$conv$66$simp$234 conv$121;
       write flat$79$simp$250 = True@{Bool};
       write flat$79$simp$251 = ExceptTombstone@{Error};
-      write flat$79$simp$252 = conv$127$simp$276;
+      write flat$79$simp$252 = conv$122;
     } else {
       write flat$79$simp$250 = False@{Bool};
       write flat$79$simp$251 = a$conv$66$simp$231;
@@ -1507,10 +1507,10 @@ void iprogram_0(iprogram_0_t *s)
         
         if (a_conv_66_simp_230) {
             idouble_t        conv_121         = idouble_sub (a_conv_66_simp_232, 1.0); /* let */
-            idouble_t        conv_127_simp_276 = idouble_div (a_conv_66_simp_234, conv_121); /* let */
+            idouble_t        conv_122         = idouble_div (a_conv_66_simp_234, conv_121); /* let */
             flat_79_simp_250                  = itrue;                                /* write */
             flat_79_simp_251                  = ierror_tombstone;                     /* write */
-            flat_79_simp_252                  = conv_127_simp_276;                    /* write */
+            flat_79_simp_252                  = conv_122;                             /* write */
         } else {
             flat_79_simp_250                  = ifalse;                               /* write */
             flat_79_simp_251                  = a_conv_66_simp_231;                   /* write */
