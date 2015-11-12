@@ -147,7 +147,8 @@ data Command
 defaultState :: ReplState
 defaultState
   = (ReplState [] demographics (unsafeDateOfYMD 1970 1 1) False False False False False False False False False False False False False False False False)
-    { hasCoreEval = True }
+    { hasCoreEval = True
+    , doCoreSimp  = True }
 
 readCommand :: String -> Maybe Command
 readCommand ss = case words ss of
