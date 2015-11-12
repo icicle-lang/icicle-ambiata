@@ -152,7 +152,10 @@ gen$date = DATE
                                                                           s$conv$14)
                                                                           v$inline$0$conv$13
                                                        in pair#@{(Sum Error Int) Unit} s$conv$22 (()@{Unit})))
-                                                  ((Left ExceptTombstone, (Right 0, ()))@{((Sum Error Int), ((Sum Error Int), Unit))})
+                                                  (pair#@{(Sum Error Int) ((Sum Error Int), Unit)} (Left ExceptTombstone@{(Sum Error Int)})
+                                                   (
+                                                   let s$conv$22 = right#@{Error Int} (0@{Int})
+                                                    in pair#@{(Sum Error Int) Unit} s$conv$22 (()@{Unit})))
                                                   conv$6
                                  in 
                                 let conv$24 = snd#@{(Sum Error Int), ((Sum Error Int), Unit)} conv$11

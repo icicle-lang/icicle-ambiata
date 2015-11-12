@@ -43,25 +43,36 @@ simpX a_fresh isValue = go . beta
     go xx = case xx of
       -- * constant folding for some primitives
       XApp a p q
-        | Just p' <- go p
-        , Just q' <- go q
-        , Just (prim, as) <- takePrimApps (XApp a p' q')
-        , Just args       <- join . fmap sequence
-                           $ mapM (fmap takeValue . go) as
-        -> return $ fromMaybe (XApp a p' q') (simpP a_fresh prim args)
+        | mp <- go p
+        , mq <- go q
+        , p' <- fromMaybe p mp
+        , q' <- fromMaybe q mq
+        , x' <- XApp a p' q'
+        , Just (prim, as) <- takePrimApps x'
+        , Just args       <- mapM (takeValue . just go) as
+        -> case simpP a_fresh prim args of
+            Just x''
+             -> return x''
+            Nothing
+             | isJust mp || isJust mq
+             -> return x'
+             | otherwise
+             -> Nothing
 
       XApp a p q
-        -> XApp a <$> go p <*> go q
+        -> XApp a (just go p) <$> go q
 
       XLam a n t x1
         -> XLam a n t <$> go x1
 
       XLet a n x1 x2
-        -> XLet a n <$> go x1 <*> go x2
+        -> XLet a n (just go x1) <$> go x2
 
       XVar{}   -> Nothing
       XPrim{}  -> Nothing
       XValue{} -> Nothing
+
+    just f x = fromMaybe x (f x)
 
 
 -- | Primitive Simplifier
