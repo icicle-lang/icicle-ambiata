@@ -74,8 +74,8 @@ stringOfValType t
      DateTimeT -> Right "idate_t"
      ErrorT    -> Right "ierror_t"
      StringT   -> Right "istring_t"
-     BufT _ t' -> fmap (\x -> "BUF("   <> x <> ")") (stringOfValType t')
-     ArrayT t' -> fmap (\x -> "ARRAY(" <> x <> ")") (stringOfValType t')
+     BufT _ t' -> fmap (\x -> "ibuf_t__"   <> x <> "") (stringOfValType t')
+     ArrayT t' -> fmap (\x -> "iarray_t__" <> x <> "") (stringOfValType t')
 
      MapT{}    -> Left "maps not implemented"
      StructT{} -> Left "structs should have been melted"

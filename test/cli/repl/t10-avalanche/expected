@@ -104,63 +104,56 @@ gen$date = DATE
   let conv$3 = Map_fold#@{(DateTime
 ,Buf 2 ((Sum Error Int), DateTime))}@{(Sum Error (Map DateTime Int))} (
                \conv$4@{(Sum Error (Map DateTime Int))} 
-               \conv$26@{DateTime} 
+               \conv$32@{DateTime} 
                \conv$5@{Buf 2 ((Sum Error Int), DateTime)} Sum_fold#@{(Error
 ,Map DateTime Int)}@{(Sum Error (Map DateTime Int))} (
-                       \conv$31@{Error} left#@{Error Map DateTime Int} conv$31) (
-                       \conv$30@{Map DateTime Int} Sum_fold#@{(Error
+                       \conv$37@{Error} left#@{Error Map DateTime Int} conv$37) (
+                       \conv$36@{Map DateTime Int} Sum_fold#@{(Error
 ,Int)}@{(Sum Error (Map DateTime Int))} (
-                                \conv$31@{Error} left#@{Error Map DateTime Int} conv$31) (
-                                \conv$28@{Int} right#@{Error Map DateTime Int}
+                                \conv$37@{Error} left#@{Error Map DateTime Int} conv$37) (
+                                \conv$34@{Int} right#@{Error Map DateTime Int}
                                          (Map_insertOrUpdate#@{(DateTime
 ,Int)} (
-                                          \conv$29@{Int} conv$29) conv$28
-                                          conv$26 conv$30)) (
+                                          \conv$35@{Int} conv$35) conv$34
+                                          conv$32 conv$36)) (
                                 let conv$11 = 
                                               let conv$6 = Latest_read#@{Array ((Sum Error Int), DateTime)} conv$5
-                                               in Array_fold#@{((Sum Error Int), DateTime)}@{((Sum Error Int), ((Sum Error Int), Unit))} (
-                                                  \conv$10@{((Sum Error Int), ((Sum Error Int), Unit))} 
+                                               in Array_fold#@{((Sum Error Int), DateTime)}@{((Sum Error Int), (Sum Error Int))} (
+                                                  \conv$10@{((Sum Error Int), (Sum Error Int))} 
                                                   \conv$9@{((Sum Error Int), DateTime)} 
+                                                  let conv$28 = snd#@{(Sum Error Int), (Sum Error Int)} conv$10
+                                                   in 
                                                   let v$inline$0$conv$13 = fst#@{(Sum Error Int), DateTime}
                                                                            conv$9
-                                                   in pair#@{(Sum Error Int) ((Sum Error Int), Unit)} v$inline$0$conv$13 (
-                                                      let conv$24 = snd#@{(Sum Error Int), ((Sum Error Int), Unit)} conv$10
-                                                       in 
-                                                      let s$conv$22 = 
-                                                                      let s$conv$14 = fst#@{(Sum Error Int), Unit}
-                                                                                      conv$24
-                                                                       in Sum_fold#@{(Error
+                                                   in pair#@{(Sum Error Int) (Sum Error Int)} v$inline$0$conv$13 (
+                                                      let s$conv$22 = Sum_fold#@{(Error
 ,Int)}@{(Sum Error Int)}
-                                                                          (
-                                                                          \reify$0$conv$15@{Error}
-                                                                          left#@{Error Int}
-                                                                          reify$0$conv$15)
-                                                                          (
-                                                                          \reify$1$conv$16@{Int}
-                                                                          Sum_fold#@{(Error
+                                                                      (
+                                                                      \reify$0$conv$15@{Error}
+                                                                      left#@{Error Int}
+                                                                      reify$0$conv$15)
+                                                                      (
+                                                                      \reify$1$conv$16@{Int}
+                                                                      Sum_fold#@{(Error
 ,Int)}@{(Sum Error Int)}
-                                                                          (
-                                                                          \reify$2$conv$17@{Error}
-                                                                          left#@{Error Int}
-                                                                          reify$2$conv$17)
-                                                                          (
-                                                                          \reify$3$conv$18@{Int}
-                                                                          right#@{Error Int}
-                                                                          (add#@{Int}
-                                                                           reify$1$conv$16
-                                                                           reify$3$conv$18))
-                                                                          s$conv$14)
-                                                                          v$inline$0$conv$13
-                                                       in pair#@{(Sum Error Int) Unit} s$conv$22 (()@{Unit})))
-                                                  ((Left ExceptTombstone, (Right 0, ()))@{((Sum Error Int), ((Sum Error Int), Unit))})
+                                                                      (
+                                                                      \reify$2$conv$17@{Error}
+                                                                      left#@{Error Int}
+                                                                      reify$2$conv$17)
+                                                                      (
+                                                                      \reify$3$conv$18@{Int}
+                                                                      right#@{Error Int}
+                                                                      (add#@{Int}
+                                                                       reify$1$conv$16
+                                                                       reify$3$conv$18))
+                                                                      conv$28)
+                                                                      v$inline$0$conv$13
+                                                       in s$conv$22))
+                                                  ((Left ExceptTombstone, Right 0)@{((Sum Error Int), (Sum Error Int))})
                                                   conv$6
                                  in 
-                                let conv$24 = snd#@{(Sum Error Int), ((Sum Error Int), Unit)} conv$11
-                                 in 
-                                let s$conv$22 = 
-                                                let conv$21 = fst#@{(Sum Error Int), Unit} conv$24
-                                                 in conv$21
-                                 in s$conv$22)) conv$4)
+                                let conv$31 = snd#@{(Sum Error Int), (Sum Error Int)} conv$11
+                                 in conv$31)) conv$4)
                (Right Map []@{(Sum Error (Map DateTime Int))}) conv$2;
   output@{(Sum Error (Map DateTime Int))} repl (conv$3@{(Sum Error (Map DateTime Int))});
 }

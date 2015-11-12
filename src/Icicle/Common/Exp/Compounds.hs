@@ -141,12 +141,7 @@ substMaybe name payload into
       XLam a n t x
        -- If the name clashes, we can't do anything
        | (n `Set.member` payload_free) || n == name
-       , name `Set.member` freevars x
        -> Nothing
-
-       -- If name isn't mentioned in x, we don't need to do anything
-       | not (name `Set.member` freevars x)
-       -> return xx
 
        -- Name is mentioned and no clashes, so proceed
        | otherwise
@@ -158,13 +153,7 @@ substMaybe name payload into
        -- we cannot proceed.
        -- (It doesn't matter if the definition, x1, mentions name because "n" is not bound there)
        | (n `Set.member` payload_free) || n == name
-       , name `Set.member` freevars x2
        -> Nothing
-
-       -- If name is not mentioned in x1 or x2, we do not need to perform any substitution.
-       |  not (name `Set.member` freevars x1)
-       && not (name `Set.member` freevars x2)
-       -> return xx
 
        -- Proceed as usual
        | otherwise
@@ -203,14 +192,9 @@ subst a_fresh name payload into
       XLam a n t x
        -- If the name clashes, we need to rename n
        | (n `Set.member` payload_free) || n == name
-       , name `Set.member` freevars x
        -> do    n' <- fresh
                 x' <- subst a_fresh n (XVar a_fresh n') x
                 XLam a n' t <$> go x'
-
-       -- If name isn't mentioned in x, we don't need to do anything
-       | not (name `Set.member` freevars x)
-       -> return xx
 
        -- Name is mentioned and no clashes, so proceed
        | otherwise
@@ -220,15 +204,9 @@ subst a_fresh name payload into
        -- If the let's name clashes with the substitution we're trying to make,
        -- we need to rename
        | (n `Set.member` payload_free) || n == name
-       , name `Set.member` freevars x2
        -> do    n'  <- fresh
                 x2' <- subst a_fresh n (XVar a_fresh n') x2
                 XLet a n' <$> go x1 <*> go x2'
-
-       -- If name is not mentioned in x1 or x2, we do not need to perform any substitution.
-       |  not (name `Set.member` freevars x1)
-       && not (name `Set.member` freevars x2)
-       -> return xx
 
        -- Proceed as usual
        | otherwise
