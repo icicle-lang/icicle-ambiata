@@ -1,5 +1,6 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE TemplateHaskell #-}
+
 {-# LANGUAGE OverloadedStrings #-}
 
 module Icicle.Sea.Preamble (
