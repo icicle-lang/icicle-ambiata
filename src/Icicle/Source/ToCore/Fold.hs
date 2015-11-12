@@ -438,30 +438,26 @@ convertFold q
             resq   <- convertFold q'
             let tb' = typeFold resb
             let tq' = typeFold resq
-            let tpair = T.PairT tb' tq'
+            let tpair = pairTypes [tb', tq']
 
-            let mkPair x y
-                   = CE.xPrim
-                   (C.PrimMinimal $ Min.PrimConst $ Min.PrimConstPair tb' tq')
-                     CE.@~ x CE.@~ y
-            let xproj which x
-                   = CE.xPrim
-                   (C.PrimMinimal $ Min.PrimPair $ which tb' tq')
-                     CE.@~ x
-            let xfst = xproj Min.PrimPairFst
-            let xsnd = xproj Min.PrimPairSnd
+            let fk' [xa,xb]
+                    = do (kp',_) <- pairConstruct [CE.xVar b', foldKons resq CE.@~ xb ] [tb', tq']
+                         return $ CE.xLet b' (foldKons resb CE.@~ xa) kp'
+                fk' s
+                    = fk' s
+            k' <- pairDestruct fk' [tb', tq']
 
-            n' <- lift fresh
-            let k'  = CE.xLam n' tpair
-                    $ CE.xLet b' (foldKons resb CE.@~ xfst (CE.xVar n'))
-                    $ mkPair (CE.xVar b') (foldKons resq CE.@~ xsnd (CE.xVar n'))
+            (zp',_) <- pairConstruct [CE.xVar b', foldZero resq ] [tb', tq']
+            let z'  = CE.xLet b' (foldZero resb) zp'
 
-            let z'  = CE.xLet b' (foldZero resb)
-                    $ mkPair (CE.xVar b') (foldZero resq)
 
-            let x'  = CE.xLam n' tpair
-                    $ CE.xLet b' (mapExtract resb CE.@~ xfst (CE.xVar n'))
-                                 (mapExtract resq CE.@~ xsnd (CE.xVar n'))
+            let cp [xa,xb]
+                    = return
+                    $ CE.xLet b' (mapExtract resb CE.@~ xa)
+                                 (mapExtract resq CE.@~ xb)
+                cp  s
+                    = cp  s
+            x' <- pairDestruct cp [tb', tq']
 
             return $ ConvertFoldResult k' z' x' tpair (typeExtract resq)
 
