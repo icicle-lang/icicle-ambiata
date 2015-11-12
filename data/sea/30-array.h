@@ -115,6 +115,15 @@ MAKE_ARRAY(idate_t,     idate_)
 MAKE_ARRAY(istring_t,   istring_)
 MAKE_ARRAY(iunit_t,     iunit_)
 
+MAKE_ARRAY(iarray_t__idouble_t,   iarray__idouble_)
+MAKE_ARRAY(iarray_t__iint_t,      iarray__iint_)
+MAKE_ARRAY(iarray_t__ierror_t,    iarray__ierror_)
+MAKE_ARRAY(iarray_t__ibool_t,     iarray__ibool_)
+MAKE_ARRAY(iarray_t__idate_t,     iarray__idate_)
+MAKE_ARRAY(iarray_t__istring_t,   iarray__istring_)
+MAKE_ARRAY(iarray_t__iunit_t,     iarray__iunit_)
+
+
 
 // Specialise array of unit to a single int
 /*
