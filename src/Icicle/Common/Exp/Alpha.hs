@@ -10,7 +10,6 @@ import              Icicle.Common.Exp.Exp
 import              P
 
 import qualified    Data.Map                as Map
-import qualified    Data.List               as List
 
 
 -- | Check whether two expressions are syntactically equal,
@@ -19,14 +18,14 @@ alphaEquality
         :: (Ord n, Eq p)
         => Exp a n p -> Exp a n p
         -> Bool
-alphaEquality = alphaEquality' Map.empty
+alphaEquality = alphaEquality' emptyCtx
 
 
 -- | Check alpha equality with bijection of names bound in left expression to
 -- their equivalent in right
 alphaEquality'
         :: (Ord n, Eq p)
-        => Map.Map (Name n) (Name n)
+        => Ctx n
         -> Exp a n p -> Exp a n p
         -> Bool
 alphaEquality' m x1 x2
@@ -74,34 +73,29 @@ alphaEquality' m x1 x2
   go = alphaEquality' m
 
 
+type Ctx n = (Map.Map (Name n) (Name n), Map.Map (Name n) (Name n))
+
+emptyCtx :: Ctx n
+emptyCtx = (Map.empty, Map.empty)
+
 -- | Insert l=r into bijection map.
 -- If there is already a binding that mentions l, it will be overwritten by the Map.insert.
 -- If there is already a binding that mentions r, we must find its matching left and remove it.
-insertBoth :: Ord n => Map.Map n n -> (n,n) -> Map.Map n n
-insertBoth m (l,r)
- = case reverseLookup r m of
-    Nothing -> Map.insert l r m
-    Just l' -> Map.insert l r
-             $ Map.delete l'  m
+insertBoth :: Ord n => Ctx n -> (Name n, Name n) -> Ctx n
+insertBoth (ml,mr) (l,r)
+ = (Map.insert l r ml, Map.insert r l mr)
 
 -- | Check if two names are equal.
 -- If they both occur in the bijection map, check that they both match.
 -- If neither occur in the map they are free variables, and must be equal.
 -- Otherwise one is bound and the other isn't, which means they cannot be equal.
-lookupBoth :: Ord n => Map.Map n n -> (n,n) -> Bool
-lookupBoth m (l,r)
- = case (Map.lookup l m, reverseLookup r m) of
+lookupBoth :: Ord n => Ctx n -> (Name n, Name n) -> Bool
+lookupBoth (ml,mr) (l,r)
+ = case (Map.lookup l ml, Map.lookup r mr) of
     (Just r', Just l')
      -> l == l' && r == r'
     (Nothing, Nothing)
      -> l == r
     _
      -> False
-
--- | Look up in map according to value. Slow
-reverseLookup :: (Ord k, Eq v) => v -> Map.Map k v -> Maybe k
-reverseLookup n m
- = List.lookup n
- $ fmap swap
- $ Map.toList m
 
