@@ -192,7 +192,8 @@ Read(buf)
     MK_BUF_MAKE   (t,pre)                                                       \
     MK_BUF_CMPS   (t,pre)                                                       \
     MK_BUF_PUSH   (t,pre)                                                       \
-    MK_BUF_READ   (t,pre)
+    MK_BUF_READ   (t,pre)                                                       \
+    MK_BUF_COPY   (t,pre)
 
 MAKE_BUF(idouble_t,   idouble_)
 MAKE_BUF(iint_t,      iint_)
