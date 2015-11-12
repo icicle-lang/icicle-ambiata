@@ -60,7 +60,7 @@ melt :: (Show n, Ord n)
      -> Statement (Annot a) n Prim
      -> Fresh n (Statement (Annot a) n Prim)
 melt a_fresh ss
- = meltAccumulators   a_fresh ss
+ =   meltAccumulators a_fresh ss
  >>= meltBindings     a_fresh
  >>= meltForeachFacts a_fresh
  >>= meltOutputs      a_fresh

@@ -46,16 +46,8 @@ simpFlattened a_fresh p
 
       s' <-  melt a_fresh s
          >>= forwardStmts a_fresh . pullLets
-         >>= crunch i bd
-         >>= crunch i bd
-         >>= crunch i bd
-         >>= crunch i bd
-         >>= crunch i bd
-         >>= crunch i bd
-         >>= crunch i bd
-         >>= crunch i bd
-         >>= crunch i bd
-         >>= crunch i bd
+         >>= thresher a_fresh
+         >>= forwardStmts a_fresh
          >>= crunch i bd
          >>= crunch i bd
          >>= return . simpStatementExps a_fresh
@@ -65,6 +57,7 @@ simpFlattened a_fresh p
  where
   crunch i bd ss
    =   constructor  a_fresh  (pullLets ss)
+   >>= thresher     a_fresh
    >>= forwardStmts a_fresh
    >>= nestBlocks   a_fresh
    >>= thresher     a_fresh
