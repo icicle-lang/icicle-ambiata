@@ -40,8 +40,8 @@ simpX :: Ord n => a -> (C.Exp a n -> Bool) -> C.Exp a n -> Maybe (C.Exp a n)
 simpX a_fresh isValue = go . beta
   where
     beta  = B.beta isValue
+    -- * constant folding for some primitives
     go xx = case xx of
-      -- * constant folding for some primitives
       XApp a p q
         | mp <- go p
         , mq <- go q
@@ -58,15 +58,20 @@ simpX a_fresh isValue = go . beta
              -> return x'
              | otherwise
              -> Nothing
-
       XApp a p q
-        -> XApp a (just go p) <$> go q
+        | Just p' <- go p, Just q' <- go q -> Just $ XApp a p' q'
+        | Just p' <- go p, Nothing <- go q -> Just $ XApp a p' q
+        | Nothing <- go p, Just q' <- go q -> Just $ XApp a p  q'
+        | otherwise                        -> Nothing
 
       XLam a n t x1
         -> XLam a n t <$> go x1
 
-      XLet a n x1 x2
-        -> XLet a n (just go x1) <$> go x2
+      XLet a n p q
+        | Just p' <- go p, Just q' <- go q -> Just $ XLet a n p' q'
+        | Just p' <- go p, Nothing <- go q -> Just $ XLet a n p' q
+        | Nothing <- go p, Just q' <- go q -> Just $ XLet a n p  q'
+        | otherwise                        -> Nothing
 
       XVar{}   -> Nothing
       XPrim{}  -> Nothing
