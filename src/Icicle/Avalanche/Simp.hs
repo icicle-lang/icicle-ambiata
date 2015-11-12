@@ -45,8 +45,7 @@ simpFlattened a_fresh p
       let Program i bd s = p'
 
       s' <-  melt a_fresh s
-         >>= crunchy i bd . pullLets
-         >>= return . simpStatementExps a_fresh
+         >>= crunchy i bd
 
       return $ p { statements = s' }
  where
