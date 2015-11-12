@@ -29,40 +29,55 @@ import qualified Data.Set                       as Set
 --   * ...something exciting???
 --
 simp :: Ord n => a -> (C.Exp a n -> Bool) -> C.Exp a n -> Fresh n (C.Exp a n)
-simp a_fresh isValue = anormal a_fresh . deadX . fixp (50 :: Int) (simpX a_fresh isValue)
+simp a_fresh isValue = anormal a_fresh . deadX . fixp (simpX a_fresh isValue)
  where
-  fixp 0 f = f
-  fixp n f = f . fixp (n-1) f
+  fixp f x
+   | Just x' <- f x = fixp f x'
+   | otherwise      = x
 
 
-simpX :: Ord n => a -> (C.Exp a n -> Bool) -> C.Exp a n -> C.Exp a n
+simpX :: Ord n => a -> (C.Exp a n -> Bool) -> C.Exp a n -> Maybe (C.Exp a n)
 simpX a_fresh isValue = go . beta
   where
     beta  = B.beta isValue
+    -- * constant folding for some primitives
     go xx = case xx of
-      -- * constant folding for some primitives
       XApp a p q
-        | p' <- go p
-        , q' <- go q
-        , Just (prim, as) <- takePrimApps (XApp a p' q')
-        , Just args       <- mapM (takeValue . go) as
-        -> fromMaybe (XApp a p' q') (simpP a_fresh prim args)
-
+        | mp <- go p
+        , mq <- go q
+        , p' <- fromMaybe p mp
+        , q' <- fromMaybe q mq
+        , x' <- XApp a p' q'
+        , Just (prim, as) <- takePrimApps x'
+        , Just args       <- mapM (takeValue . just go) as
+        -> case simpP a_fresh prim args of
+            Just x''
+             -> return x''
+            Nothing
+             | isJust mp || isJust mq
+             -> return x'
+             | otherwise
+             -> Nothing
       XApp a p q
-        -> XApp a (go p) (go q)
+        | Just p' <- go p, Just q' <- go q -> Just $ XApp a p' q'
+        | Just p' <- go p, Nothing <- go q -> Just $ XApp a p' q
+        | Nothing <- go p, Just q' <- go q -> Just $ XApp a p  q'
+        | otherwise                        -> Nothing
 
       XLam a n t x1
-        -> XLam a n t (go x1)
+        -> XLam a n t <$> go x1
 
-      XLet a n x1 x2
-        -- | not $ n `Set.member` freevars (go x2)
-        -- -> go x2
-        -- | otherwise
-        -> XLet a n (go x1) (go x2)
+      XLet a n p q
+        | Just p' <- go p, Just q' <- go q -> Just $ XLet a n p' q'
+        | Just p' <- go p, Nothing <- go q -> Just $ XLet a n p' q
+        | Nothing <- go p, Just q' <- go q -> Just $ XLet a n p  q'
+        | otherwise                        -> Nothing
 
-      b@(XVar{})   -> b
-      b@(XPrim{})  -> b
-      b@(XValue{}) -> b
+      XVar{}   -> Nothing
+      XPrim{}  -> Nothing
+      XValue{} -> Nothing
+
+    just f x = fromMaybe x (f x)
 
 
 -- | Primitive Simplifier
