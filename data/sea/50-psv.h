@@ -173,6 +173,9 @@ static psv_error_t INLINE psv_read_json_string (char **pp, char *pe, istring_t *
     if (*p++ != ':')
         return psv_alloc_error ("missing ':'",  p, pe - p);
 
+    if (*p++ != '"')
+        return psv_alloc_error ("missing '\"'",  p, pe - p);
+
     char *quote_ptr = memchr (p, '"', pe - p);
 
     if (!quote_ptr)
