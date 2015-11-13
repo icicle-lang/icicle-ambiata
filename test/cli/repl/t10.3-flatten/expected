@@ -283,31 +283,31 @@ gen$date = DATE
       init flat$11$simp$63@{Array (Buf 2 DateTime)} = unsafe_Array_create#@{Buf 2 DateTime}
                              simp$279;
       foreach (flat$13 in 0@{Int}..Array_length#@{Buf 2 Bool}
-                             flat$12$simp$58) {
-        read@{Array (Buf 2 Bool)} flat$11$simp$66 = flat$11$simp$62;
-        read@{Array (Buf 2 Error)} flat$11$simp$67 = flat$11$simp$63;
-        read@{Array (Buf 2 Int)} flat$11$simp$68 = flat$11$simp$64;
-        read@{Array (Buf 2 DateTime)} flat$11$simp$69 = flat$11$simp$65;
-        let simp$666 = unsafe_Array_index#@{Buf 2 Bool}
+                             flat$12$simp$56) {
+        read@{Array (Buf 2 Bool)} flat$11$simp$64 = flat$11$simp$60;
+        read@{Array (Buf 2 Error)} flat$11$simp$65 = flat$11$simp$61;
+        read@{Array (Buf 2 Int)} flat$11$simp$66 = flat$11$simp$62;
+        read@{Array (Buf 2 DateTime)} flat$11$simp$67 = flat$11$simp$63;
+        let simp$631 = unsafe_Array_index#@{Buf 2 Bool}
+                       flat$12$simp$56 flat$13;
+        let simp$633 = unsafe_Array_index#@{Buf 2 Error}
+                       flat$12$simp$57 flat$13;
+        let simp$635 = unsafe_Array_index#@{Buf 2 Int}
                        flat$12$simp$58 flat$13;
-        let simp$668 = unsafe_Array_index#@{Buf 2 Error}
+        let simp$637 = unsafe_Array_index#@{Buf 2 DateTime}
                        flat$12$simp$59 flat$13;
-        let simp$670 = unsafe_Array_index#@{Buf 2 Int}
-                       flat$12$simp$60 flat$13;
-        let simp$672 = unsafe_Array_index#@{Buf 2 DateTime}
-                       flat$12$simp$61 flat$13;
-        write flat$11$simp$62 = Array_put#@{Buf 2 Bool}
+        write flat$11$simp$60 = Array_put#@{Buf 2 Bool}
+                                flat$11$simp$64 flat$13
+                                simp$631;
+        write flat$11$simp$61 = Array_put#@{Buf 2 Error}
+                                flat$11$simp$65 flat$13
+                                simp$633;
+        write flat$11$simp$62 = Array_put#@{Buf 2 Int}
                                 flat$11$simp$66 flat$13
-                                simp$666;
-        write flat$11$simp$63 = Array_put#@{Buf 2 Error}
+                                simp$635;
+        write flat$11$simp$63 = Array_put#@{Buf 2 DateTime}
                                 flat$11$simp$67 flat$13
-                                simp$668;
-        write flat$11$simp$64 = Array_put#@{Buf 2 Int}
-                                flat$11$simp$68 flat$13
-                                simp$670;
-        write flat$11$simp$65 = Array_put#@{Buf 2 DateTime}
-                                flat$11$simp$69 flat$13
-                                simp$672;
+                                simp$637;
       }
       read@{Array (Buf 2 Bool)} flat$11$simp$68 = flat$11$simp$60;
       read@{Array (Buf 2 Error)} flat$11$simp$69 = flat$11$simp$61;
@@ -359,54 +359,54 @@ gen$date = DATE
   init flat$20$simp$87@{Array DateTime} = []@{Array DateTime};
   init flat$20$simp$88@{Array Int} = []@{Array Int};
   foreach (flat$21 in 0@{Int}..Array_length#@{DateTime}
-                         conv$2$simp$82) {
-    read@{Bool} flat$20$simp$91 = flat$20$simp$87;
-    read@{Error} flat$20$simp$92 = flat$20$simp$88;
-    read@{Array DateTime} flat$20$simp$93 = flat$20$simp$89;
-    read@{Array Int} flat$20$simp$94 = flat$20$simp$90;
-    let simp$416 = unsafe_Array_index#@{DateTime}
+                         conv$2$simp$80) {
+    read@{Bool} flat$20$simp$89 = flat$20$simp$85;
+    read@{Error} flat$20$simp$90 = flat$20$simp$86;
+    read@{Array DateTime} flat$20$simp$91 = flat$20$simp$87;
+    read@{Array Int} flat$20$simp$92 = flat$20$simp$88;
+    let simp$408 = unsafe_Array_index#@{DateTime}
+                   conv$2$simp$80 flat$21;
+    let simp$410 = unsafe_Array_index#@{Buf 2 Bool}
+                   conv$2$simp$81 flat$21;
+    let simp$412 = unsafe_Array_index#@{Buf 2 Error}
                    conv$2$simp$82 flat$21;
-    let simp$418 = unsafe_Array_index#@{Buf 2 Bool}
+    let simp$414 = unsafe_Array_index#@{Buf 2 Int}
                    conv$2$simp$83 flat$21;
-    let simp$420 = unsafe_Array_index#@{Buf 2 Error}
-                   conv$2$simp$84 flat$21;
-    let simp$422 = unsafe_Array_index#@{Buf 2 Int}
-                   conv$2$simp$85 flat$21;
-    init flat$23$simp$95@{Bool} = False@{Bool};
-    init flat$23$simp$96@{Error} = ExceptTombstone@{Error};
-    init flat$23$simp$97@{Array DateTime} = []@{Array DateTime};
-    init flat$23$simp$98@{Array Int} = []@{Array Int};
-    if (flat$20$simp$91) {
-      let conv$6$simp$152 = Buf_read#@{Array Bool}
-                            simp$418;
-      let conv$6$simp$153 = Buf_read#@{Array Error}
-                            simp$420;
-      let conv$6$simp$154 = Buf_read#@{Array Int}
-                            simp$422;
-      init flat$27$simp$102@{Bool} = True@{Bool};
-      init flat$27$simp$103@{Error} = ExceptTombstone@{Error};
-      init flat$27$simp$104@{Int} = 0@{Int};
+    init flat$23$simp$93@{Bool} = False@{Bool};
+    init flat$23$simp$94@{Error} = ExceptTombstone@{Error};
+    init flat$23$simp$95@{Array DateTime} = []@{Array DateTime};
+    init flat$23$simp$96@{Array Int} = []@{Array Int};
+    if (flat$20$simp$89) {
+      let conv$6$simp$147 = Buf_read#@{Array Bool}
+                            simp$410;
+      let conv$6$simp$148 = Buf_read#@{Array Error}
+                            simp$412;
+      let conv$6$simp$149 = Buf_read#@{Array Int}
+                            simp$414;
+      init flat$27$simp$100@{Bool} = True@{Bool};
+      init flat$27$simp$101@{Error} = ExceptTombstone@{Error};
+      init flat$27$simp$102@{Int} = 0@{Int};
       foreach (flat$44 in 0@{Int}..Array_length#@{Bool}
-                             conv$6$simp$152) {
-        read@{Bool} flat$27$simp$109 = flat$27$simp$102;
-        read@{Error} flat$27$simp$110 = flat$27$simp$103;
-        read@{Int} flat$27$simp$111 = flat$27$simp$104;
-        let simp$473 = unsafe_Array_index#@{Bool}
-                       conv$6$simp$152 flat$44;
-        let simp$479 = unsafe_Array_index#@{Int}
-                       conv$6$simp$154 flat$44;
-        init flat$46$simp$113@{Bool} = False@{Bool};
-        init flat$46$simp$114@{Error} = ExceptTombstone@{Error};
-        init flat$46$simp$115@{Int} = 0@{Int};
-        if (simp$473) {
-          init flat$49$simp$116@{Bool} = False@{Bool};
-          init flat$49$simp$117@{Error} = ExceptTombstone@{Error};
-          init flat$49$simp$118@{Int} = 0@{Int};
-          if (flat$27$simp$109) {
-            write flat$49$simp$116 = True@{Bool};
-            write flat$49$simp$117 = ExceptTombstone@{Error};
-            write flat$49$simp$118 = add#@{Int}
-                                     simp$479 flat$27$simp$111;
+                             conv$6$simp$147) {
+        read@{Bool} flat$27$simp$106 = flat$27$simp$100;
+        read@{Error} flat$27$simp$107 = flat$27$simp$101;
+        read@{Int} flat$27$simp$108 = flat$27$simp$102;
+        let simp$465 = unsafe_Array_index#@{Bool}
+                       conv$6$simp$147 flat$44;
+        let simp$471 = unsafe_Array_index#@{Int}
+                       conv$6$simp$149 flat$44;
+        init flat$46$simp$109@{Bool} = False@{Bool};
+        init flat$46$simp$110@{Error} = ExceptTombstone@{Error};
+        init flat$46$simp$111@{Int} = 0@{Int};
+        if (simp$465) {
+          init flat$49$simp$112@{Bool} = False@{Bool};
+          init flat$49$simp$113@{Error} = ExceptTombstone@{Error};
+          init flat$49$simp$114@{Int} = 0@{Int};
+          if (flat$27$simp$106) {
+            write flat$49$simp$112 = True@{Bool};
+            write flat$49$simp$113 = ExceptTombstone@{Error};
+            write flat$49$simp$114 = add#@{Int}
+                                     simp$471 flat$27$simp$108;
           } else {
             write flat$49$simp$112 = False@{Bool};
             write flat$49$simp$113 = flat$27$simp$107;
@@ -450,7 +450,7 @@ gen$date = DATE
           read@{Array Int} flat$33 = flat$33;
           let simp$21 = unsafe_Array_index#@{DateTime}
                         flat$32 flat$35;
-          if (eq#@{DateTime} simp$23 simp$416) {
+          if (eq#@{DateTime} simp$21 simp$408) {
             let flat$36 = unsafe_Array_index#@{Int}
                           flat$33 flat$35;
             write flat$33 = Array_put#@{Int}
@@ -478,7 +478,7 @@ gen$date = DATE
           }
           read@{Array DateTime} flat$37 = flat$37;
           write flat$37 = Array_put#@{DateTime}
-                          flat$37 simp$26 simp$416;
+                          flat$37 simp$24 simp$408;
           read@{Array DateTime} flat$37 = flat$37;
           write flat$32 = flat$37;
           read@{Array Int} flat$41 = flat$33;
