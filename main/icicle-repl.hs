@@ -475,8 +475,9 @@ instance PP.Pretty Result where
 unVar :: SP.Variable -> Text
 unVar (SP.Variable t)  = t
 
-coreEval :: DateTime -> [AsAt Fact] -> SR.QueryTop'T -> SR.Program'
-         -> Either SR.ReplError [Result]
+coreEval
+  :: DateTime -> [AsAt Fact] -> SR.QueryTop'T SR.Var -> SR.CoreProgram' SR.Var
+  -> Either SR.ReplError [Result]
 coreEval d fs (renameQT unVar -> query) prog
  = do let partitions = S.streams fs
       let feat       = SQ.feature query
@@ -500,8 +501,9 @@ coreEval d fs (renameQT unVar -> query) prog
     evalV
       = S.evaluateVirtualValue prog d
 
-avalancheEval :: DateTime -> [AsAt Fact] -> SR.QueryTop'T -> AP.Program () SP.Variable APF.Prim
-              -> Either SR.ReplError [Result]
+avalancheEval
+  :: DateTime -> [AsAt Fact] -> SR.QueryTop'T SR.Var -> AP.Program () SR.Var APF.Prim
+  -> Either SR.ReplError [Result]
 avalancheEval d fs (renameQT unVar -> query) prog
  = do let partitions = S.streams fs
       let feat       = SQ.feature query
@@ -527,7 +529,7 @@ avalancheEval d fs (renameQT unVar -> query) prog
 
 seaEval :: DateTime
         -> [AsAt Fact]
-        -> SR.QueryTop'T
+        -> SR.QueryTop'T SR.Var
         -> AP.Program (C.Annot ()) SP.Variable APF.Prim
         -> EitherT Sea.SeaError IO [(Entity, Value)]
 seaEval date newFacts (renameQT unVar -> query) program =

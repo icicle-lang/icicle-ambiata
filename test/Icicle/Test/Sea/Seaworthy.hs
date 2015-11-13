@@ -55,7 +55,7 @@ prop_seaworthy t
          Right (Right f)
           -> do let attr         = Attribute "eval"
                 let seaProgram   = Map.singleton attr f
-                fleet           <- lift $ runEitherT $ S.seaCompile seaProgram
+                fleet           <- lift $ runEitherT $ S.seaCompile S.NoPsv seaProgram
                 stop $ case fleet of
                  Right _
                   -> property True

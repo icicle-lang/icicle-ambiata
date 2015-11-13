@@ -39,7 +39,7 @@ namer = AC.namerText (flip Var 0)
 
 
 -- Flattening - removing all folds keeps value same
-zprop_flatten_commutes_value t =
+prop_flatten_commutes_value t =
  forAll (programForStreamType t)
  $ \p ->
  forAll (inputsForType t)
@@ -61,6 +61,7 @@ zprop_flatten_commutes_value t =
           -> counterexample (show $ pretty p')
            $ counterexample (show $ pretty s')
              (mapLeft show (eval XV.evalPrim p') === mapLeft show (eval AE.evalPrim p' { AP.statements = s'}))
+
 
 
 prop_flatten_simp_commutes_value t =
