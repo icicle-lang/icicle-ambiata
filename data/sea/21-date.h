@@ -1,22 +1,27 @@
 #include "20-simple.h"
 
-static void INLINE idate_to_gregorian (idate_t x, iint_t *y, iint_t *m, iint_t *d)
+static void INLINE idate_to_gregorian (idate_t x, iint_t *y, iint_t *M, iint_t *d, iint_t *h, iint_t *m, iint_t *s)
 {
     *y = (x >> 48);
-    *m = (x >> 40) & 0xff;
+    *M = (x >> 40) & 0xff;
     *d = (x >> 32) & 0xff;
+
+    int64_t i = x & 0xffffffff;
+    *h = i / 3600;
+    *m = i % 3600 / 60;
+    *s = i % 60;
 }
 
-static idate_t INLINE idate_from_gregorian (iint_t y, iint_t m, iint_t d)
+static idate_t INLINE idate_from_gregorian (iint_t y, iint_t M, iint_t d, iint_t h, iint_t m, iint_t s)
 {
-    return y << 48 | m << 40 | d << 32;
+    return y << 48 | M << 40 | d << 32 | (3600 * h + 60 * m + s);
 }
 
 /* Number of days since 1600-03-01 (see Ivory DateTime). */
 static iint_t INLINE idate_to_epoch (idate_t x)
 {
-    int64_t y, m, d;
-    idate_to_gregorian (x, &y, &m, &d);
+    int64_t y, m, d, _0, _1, _2;
+    idate_to_gregorian (x, &y, &m, &d, &_0, &_1, &_2);
     y = y - 1600;
 
     m = (m + 9) % 12;
@@ -42,7 +47,7 @@ static idate_t INLINE idate_from_epoch (iint_t g)
 
     int64_t dd = ddd - (mi*306 + 5)/10 + 1;
 
-    return idate_from_gregorian (y + 1600, mm, dd);
+    return idate_from_gregorian (y + 1600, mm, dd, 0, 0, 0);
 }
 
 static iint_t INLINE idate_days_diff (idate_t x, idate_t y)
@@ -64,32 +69,32 @@ const int64_t month_lengths[] = {31,28,31,30,31,30,31,31,30,31,30,31};
 
 static idate_t INLINE idate_minus_months (idate_t x, iint_t offset)
 {
-    int64_t y, m, d;
-    idate_to_gregorian (x, &y, &m, &d);
+    int64_t y, M, d, h, m, s;
+    idate_to_gregorian (x, &y, &M, &d, &h, &m, &s);
     y = y - 1600;
 
-    ibool_t prev_year = offset > 0 && offset >= m;
-    ibool_t succ_year = offset < 0 && -offset > 12 - m;
+    ibool_t prev_year = offset > 0 && offset >= M;
+    ibool_t succ_year = offset < 0 && -offset > 12 - M;
 
     if (prev_year) {
-        y = y - ((12 + offset - m) / 12);
-        m = 12 + ((m - offset) % 12);
+        y = y - ((12 + offset - M) / 12);
+        M = 12 + ((M - offset) % 12);
     } else if (succ_year) {
-        y = y + ((m - offset - 1) / 12);
-        m = ((m - offset) % 12);
-        if (m == 0) m = 12;
+        y = y + ((M - offset - 1) / 12);
+        M = ((M - offset) % 12);
+        if (M == 0) M = 12;
     } else {
-        m = m - offset;
+        M = M - offset;
     }
 
-    if (m == 2 && d > 28 && is_leap_year (y)) {
+    if (M == 2 && d > 28 && is_leap_year (y)) {
         d = 29;
     } else {
-        int64_t max_month = month_lengths[m-1];
+        int64_t max_month = month_lengths[M-1];
         if (d > max_month) {
             d = max_month;
         }
     }
 
-    return idate_from_gregorian (y + 1600, m, d);
+    return idate_from_gregorian (y + 1600, M, d, h, m, s);
 }
