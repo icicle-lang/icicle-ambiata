@@ -72,7 +72,7 @@ seaOfAllocFleet states
  [ "#line 1 \"allocate fleet state\""
  , "static ifleet_t * psv_alloc_fleet ()"
  , "{"
- , "    idate_t date = idate_from_gregorian (2015, 1, 1);"
+ , "    idate_t date = idate_from_gregorian (2015, 1, 1, 0, 0, 0);"
  , ""
  , "    ifleet_t *fleet = calloc (1, sizeof (ifleet_t));"
  , "    fleet->snapshot_date = date;"
@@ -316,8 +316,8 @@ seaOfWriteFleetOutput states = do
     , "static void psv_write_outputs (int fd, const char *entity, ifleet_t *fleet)"
     , "{"
     , "    idate_t snapshot_date = fleet->snapshot_date;"
-    , "    iint_t year, month, day;"
-    , "    idate_to_gregorian (snapshot_date, &year, &month, &day);"
+    , "    iint_t year, month, day, hour, minute, second;"
+    , "    idate_to_gregorian (snapshot_date, &year, &month, &day, &hour, &minute, &second);"
     , indent 4 (vsep write_sea)
     , "}"
     ]
@@ -347,8 +347,8 @@ seaOfOutput ps oname@(OutputName name) otype ts
         mismatch    = Left (SeaOutputTypeMismatch oname otype ts)
         unsupported = Left (SeaUnsupportedOutputType otype)
 
-        dprintf fmt n = "dprintf (fd, \"%s|" <> attrib <> "|" <> fmt <> "|%lld-%02lld-%02lld\\n\""
-                     <> ", entity, " <> n <> ", year, month, day);"
+        dprintf fmt n = "dprintf (fd, \"%s|" <> attrib <> "|" <> fmt <> "|%lld-%02lld-%02lldT%02lld:%02lld:%02lld\\n\""
+                     <> ", entity, " <> n <> ", year, month, day, hour, minute, second);"
     in case otype of
       SumT ErrorT IntT
        | [BoolT, ErrorT, IntT] <- ts

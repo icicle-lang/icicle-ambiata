@@ -79,22 +79,61 @@ static void psv_debug (const char *msg, const char *value_ptr, const size_t valu
 
 static psv_error_t INLINE psv_read_date (const char *time_ptr, const size_t time_size, idate_t *output_ptr)
 {
-                       /* time_ptr + 0123456789 */
-    const size_t yyyymmdd = sizeof ("YYYY-MM-DD");
+    const size_t time0_size = time_size + 1;
 
-    if (yyyymmdd != time_size + 1 || *(time_ptr + 4) != '-' || *(time_ptr + 7) != '-')
-      return psv_alloc_error ("expected YYYY-MM-DD", time_ptr, time_size);
+                        /* time_ptr + 0123456789 */
+    const size_t date_only = sizeof ("yyyy-mm-dd");
 
-    char *year_end, *month_end, *day_end;
-    const iint_t year  = strtol (time_ptr + 0, &year_end,  10);
-    const iint_t month = strtol (time_ptr + 5, &month_end, 10);
-    const iint_t day   = strtol (time_ptr + 8, &day_end,   10);
+    if (date_only == time0_size &&
+        *(time_ptr + 4) == '-'  &&
+        *(time_ptr + 7) == '-') {
 
-    if (year_end != time_ptr + 4 || month_end != time_ptr + 7 || day_end != time_ptr + 10)
-      return psv_alloc_error ("expected YYYY-MM-DD", time_ptr, time_size);
+        char *year_end, *month_end, *day_end;
+        const iint_t year  = strtol (time_ptr + 0, &year_end,  10);
+        const iint_t month = strtol (time_ptr + 5, &month_end, 10);
+        const iint_t day   = strtol (time_ptr + 8, &day_end,   10);
 
-    *output_ptr = idate_from_gregorian (year, month, day);
-    return 0;
+        if (year_end  != time_ptr + 4 ||
+            month_end != time_ptr + 7 ||
+            day_end   != time_ptr + 10)
+            return psv_alloc_error ("expected yyyy-mm-dd", time_ptr, time_size);
+
+        *output_ptr = idate_from_gregorian (year, month, day, 0, 0, 0);
+        return 0;
+    }
+
+                        /* time_ptr + 01234567890123456789 */
+    const size_t date_time = sizeof ("yyyy-mm-ddThh:mm:ssZ");
+
+    if (date_time == time0_size &&
+        *(time_ptr +  4) == '-' &&
+        *(time_ptr +  7) == '-' &&
+        *(time_ptr + 10) == 'T' &&
+        *(time_ptr + 13) == ':' &&
+        *(time_ptr + 16) == ':' &&
+        *(time_ptr + 19) == 'Z') {
+
+        char *year_end, *month_end, *day_end, *hour_end, *minute_end, *second_end;
+        const iint_t year   = strtol (time_ptr +  0, &year_end,   10);
+        const iint_t month  = strtol (time_ptr +  5, &month_end,  10);
+        const iint_t day    = strtol (time_ptr +  8, &day_end,    10);
+        const iint_t hour   = strtol (time_ptr + 11, &hour_end,   10);
+        const iint_t minute = strtol (time_ptr + 14, &minute_end, 10);
+        const iint_t second = strtol (time_ptr + 17, &second_end, 10);
+
+        if (year_end   != time_ptr +  4 ||
+            month_end  != time_ptr +  7 ||
+            day_end    != time_ptr + 10 ||
+            hour_end   != time_ptr + 13 ||
+            minute_end != time_ptr + 16 ||
+            second_end != time_ptr + 19)
+            return psv_alloc_error ("expected yyyy-mm-ddThh:mm:ssZ", time_ptr, time_size);
+
+        *output_ptr = idate_from_gregorian (year, month, day, hour, minute, second);
+        return 0;
+    }
+
+    return psv_alloc_error ("expected yyyy-mm-dd or yyyy-mm-ddThh:mm:ssZ but was", time_ptr, time_size);
 }
 
 static psv_error_t INLINE psv_read_json_date (char **pp, char *pe, idate_t *output_ptr, ibool_t *done_ptr)
@@ -133,6 +172,9 @@ static psv_error_t INLINE psv_read_json_string (char **pp, char *pe, istring_t *
 
     if (*p++ != ':')
         return psv_alloc_error ("missing ':'",  p, pe - p);
+
+    if (*p++ != '"')
+        return psv_alloc_error ("missing '\"'",  p, pe - p);
 
     char *quote_ptr = memchr (p, '"', pe - p);
 
@@ -230,12 +272,20 @@ static psv_error_t psv_read_buffer (psv_state_t *s)
         if (attrib_end == 0)
             return psv_alloc_error ("missing |", attrib_ptr, n_ptr - attrib_ptr);
 
-        const char  *time_ptr   = n_ptr - 10;
+        const char *time_ptr;
+        const char *n11_ptr = n_ptr - 11;
+        const char *n21_ptr = n_ptr - 21;
+
+        if (*n11_ptr == '|') {
+            time_ptr = n11_ptr + 1;
+        } else if (*n21_ptr == '|') {
+            time_ptr = n21_ptr + 1;
+        } else {
+            return psv_alloc_error ("expected |", n21_ptr, n_ptr - n21_ptr);
+        }
+
         const char  *time_end   = n_ptr;
         const size_t time_size  = time_end - time_ptr;
-
-        if (*(time_ptr - 1) != '|')
-            return psv_alloc_error ("expected |", time_ptr - 1, time_size + 1);
 
         const char  *value_ptr  = attrib_end + 1;
         const char  *value_end  = time_ptr - 1;
