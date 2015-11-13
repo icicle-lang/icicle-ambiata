@@ -28,6 +28,7 @@ import              P
 
 import              Data.Functor.Identity
 import qualified    Data.Set as Set
+import qualified    Data.Map as Map
 import qualified    Data.List as List
 
 
@@ -224,7 +225,8 @@ thresher a_fresh statements
        | not $ Set.member n $ stmtFreeX ss
        -> return (env, ss)
       -- Duplicate let: change to refer to existing one
-       | ((n',_):_) <- filter (\(_,x') -> x `alphaEquality` x') env
+      -- I tried to use simple equality for simpFlattened since expressions cannot contain lambdas, but it was slower. WEIRD.
+       | ((n',_):_) <- filter (\(_,x') -> x `alphaEquality` x') $ Map.toList env
        -> return (env, Let n (XVar a_fresh n') ss)
 
       -- Read that's never used
@@ -233,7 +235,8 @@ thresher a_fresh statements
        -> return (env, ss)
 
       InitAccumulator (Accumulator n _ x) ss
-       |  not (accRead $ accumulatorUsed n ss) || not (accWritten $ accumulatorUsed n ss)
+       | usage <- accumulatorUsed n ss
+       , not (accRead usage) || not (accWritten usage)
        -> do    n' <- fresh
                 let ss' = Let n' x (killAccumulator n (XVar a_fresh n') ss)
                 return (env, ss')
