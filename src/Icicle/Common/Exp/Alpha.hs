@@ -107,39 +107,21 @@ simpleEquality
         => Exp a n p -> Exp a n p
         -> Bool
 simpleEquality x1 x2
- | XVar _ n1          <- x1
- , XVar _ n2          <- x2
- = n1 == n2
+ = case (x1,x2) of
+    (XVar _ n1, XVar _ n2)
+     -> n1 == n2
+    (XPrim _ p1, XPrim _ p2)
+     -> p1 == p2
+    (XValue _ t1 v1, XValue _ t2 v2)
+     -> t1 == t2 && v1 == v2
+    (XApp _ x11 x12, XApp _ x21 x22)
+     -> go x11 x21 && go x12 x22
+    (XLam _ n1 t1 x1', XLam _ n2 t2 x2')
+     -> n1 == n2 && t1 == t2 && go x1' x2'
+    (XLet _ n1 x11 x12, XLet _ n2 x21 x22 )
+     -> n1 == n2 && go x11 x21 && go x12 x22
 
- | XPrim _ p1         <- x1
- , XPrim _ p2         <- x2
- = p1 == p2
-
- | XValue _ t1 v1     <- x1
- , XValue _ t2 v2     <- x2
- =  t1 == t2
- && v1 == v2
-
- | XApp _ x11 x12     <- x1
- , XApp _ x21 x22     <- x2
- = go x11 x21 && go x12 x22
-
- | XLam _ n1 t1 x1'   <- x1
- , XLam _ n2 t2 x2'   <- x2
- =  n1 == n2
- && t1 == t2 
- && go x1' x2'
-
- | XLet _ n1 x11 x12  <- x1
- , XLet _ n2 x21 x22  <- x2
- =  n1 == n2
- && go x11 x21
- && go x12 x22
-
- -- If none of the above cases match, the expressions must be different constructors.
- | otherwise
- = False
-
+    _ -> False
  where
   go = simpleEquality
 

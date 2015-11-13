@@ -85,12 +85,12 @@ typedef struct
     }
 
 #define MK_ARRAY_COPY(t,pre)                                                     \
-    static ARRAY(t) INLINE ARRAY_FUN(copy,pre)   (imempool_t *pool, imempool_t *into, ARRAY(t) x)    \
+    static ARRAY(t) INLINE ARRAY_FUN(copy,pre)   (imempool_t *into, ARRAY(t) x)    \
     {                                                                           \
         ARRAY(t) arr = ARRAY_FUN(create,pre)(into, x->count);                   \
         for (iint_t ix = 0; ix != x->count; ++ix) {                             \
             t cp = ARRAY_PAYLOAD(x,t)[ix];                                      \
-            ARRAY_PAYLOAD(arr,t)[ix] = pre##copy(pool, into, cp);               \
+            ARRAY_PAYLOAD(arr,t)[ix] = pre##copy(into, cp);                     \
         }                                                                       \
         return arr;                                                             \
     }

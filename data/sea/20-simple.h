@@ -18,7 +18,7 @@ MK_SIMPLE_CMPS(idate_t,  idate_)
 MK_SIMPLE_CMPS(iunit_t,  iunit_)
 
 #define MK_SIMPLE_COPY(t,pre)                                                   \
-    static t    INLINE pre##copy(imempool_t *pool, imempool_t *into, t val) { return val; } \
+    static t    INLINE pre##copy(imempool_t *into, t val) { return val; } \
 
 MK_SIMPLE_COPY(ierror_t, ierror_)
 MK_SIMPLE_COPY(ibool_t,  ibool_)
@@ -55,7 +55,7 @@ static ibool_t   INLINE istring_le    (istring_t x, istring_t y) { return strcmp
 static ibool_t   INLINE istring_eq    (istring_t x, istring_t y) { return strcmp(x, y) == 0; }
 static ibool_t   INLINE istring_ne    (istring_t x, istring_t y) { return strcmp(x, y) != 0; }
 
-static istring_t INLINE istring_copy(imempool_t *pool, imempool_t *into, istring_t val)
+static istring_t INLINE istring_copy(imempool_t *into, istring_t val)
 {
     char* alloc = imempool_alloc(into, strlen(val));
     strcpy(alloc, val);

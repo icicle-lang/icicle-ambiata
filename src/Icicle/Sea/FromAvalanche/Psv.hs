@@ -32,14 +32,17 @@ import           P
 
 seaOfPsvDriver :: [SeaProgramState] -> Either SeaError Doc
 seaOfPsvDriver states = do
-  let struct_sea = seaOfFleetState states
-      alloc_sea  = seaOfAllocFleet states
+  let struct_sea    = seaOfFleetState   states
+      alloc_sea     = seaOfAllocFleet   states
+      collect_sea   = seaOfCollectFleet states
   read_sea  <- seaOfReadAnyFact    states
   write_sea <- seaOfWriteFleetOutput   states
   pure $ vsep
     [ struct_sea
     , ""
     , alloc_sea
+    , ""
+    , collect_sea
     , ""
     , read_sea
     , ""
@@ -93,6 +96,43 @@ seaOfAllocProgram state
            , vsep (fmap go (stateInputVars state))
            , ""
            ]
+
+------------------------------------------------------------------------
+
+seaOfCollectFleet :: [SeaProgramState] -> Doc
+seaOfCollectFleet states
+ = vsep
+ [ "#line 1 \"collect fleet state\""
+ , "static void psv_collect_fleet (ifleet_t *fleet)"
+ , "{"
+ , "    imempool_t *into_pool = imempool_create ();"
+ , "    imempool_t *last_pool = 0;"
+ , ""
+ , indent 4 (vsep (fmap seaOfCollectProgram states))
+ , ""
+ , "    if (last_pool != 0) {"
+ , "        imempool_free(last_pool);"
+ , "    }"
+ , "}"
+ ]
+
+seaOfCollectProgram :: SeaProgramState -> Doc
+seaOfCollectProgram state
+ = let ps        = "fleet->" <> pretty (nameOfProgram state) <> "."
+       res n     = ps <> pretty (resPrefix <> n)
+       go (n, t) = "if (" <> ps <> pretty (hasPrefix <> n) <> ")"
+                <> line
+                <> indent 4 (res n <> " = " <> prefixOfValType t <> "copy (into_pool, " <> res n <> ");")
+
+   in vsep [ "/* " <> seaOfAttributeDesc (stateAttribute state) <> " */"
+           , "last_pool = " <> ps <> "mempool;"
+           , "if (last_pool != 0) {"
+           , indent 4 $ vsep $ fmap go $ stateResumables state
+           , "}"
+           , ps <> "mempool = into_pool;"
+           , ""
+           ]
+
 
 ------------------------------------------------------------------------
 
@@ -288,7 +328,7 @@ seaOfFieldMapping (FieldMapping fname ftype vars) = do
 seaOfReadJson :: ValType -> [Text] -> Either SeaError Doc
 seaOfReadJson ftype vars
  = let readJson t n = "psv_error_t error = psv_read_json_" <> t
-                   <> " (&p, pe, &program->" <> pretty n <> "[program->new_count], &done);"
+                   <> " (program->mempool, &p, pe, &program->" <> pretty n <> "[program->new_count], &done);"
    in case (ftype, vars) of
        (OptionT t, [nb, nx]) -> do
          val_sea <- seaOfReadJson t [nx]

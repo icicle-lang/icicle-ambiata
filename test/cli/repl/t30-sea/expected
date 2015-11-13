@@ -616,7 +616,7 @@ gen$date = DATE
 #line 1 "state definition #0 - repl"
 typedef struct {
     /* runtime */
-    imempool_t       mempool;
+    imempool_t      *mempool;
 
     /* inputs */
     idate_t          gen_date;
@@ -1659,7 +1659,7 @@ gen$date = DATE
 #line 1 "state definition #0 - repl"
 typedef struct {
     /* runtime */
-    imempool_t       mempool;
+    imempool_t      *mempool;
 
     /* inputs */
     idate_t          gen_date;
