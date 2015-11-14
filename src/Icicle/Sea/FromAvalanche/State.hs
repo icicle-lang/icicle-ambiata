@@ -95,7 +95,7 @@ seaOfState state
  [ "#line 1 \"state definition" <+> seaOfStateInfo state <> "\""
  , "typedef struct {"
  , "    /* runtime */"
- , "    imempool_t       mempool;"
+ , "    imempool_t      *mempool;"
  , ""
  , "    /* inputs */"
  , "    idate_t          gen_date;"
@@ -124,7 +124,7 @@ seaOfState state
 
 stateWordsOfProgram :: Ord n => Program (Annot a) n Prim -> Int
 stateWordsOfProgram program
- = 3 -- mempool
+ = 1 -- mempool*
  + 1 -- gen_date
  + 1 -- new_count
  + length (maybe [] snd (factVarsOfProgram FactLoopNew program))

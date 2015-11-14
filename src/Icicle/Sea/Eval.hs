@@ -89,7 +89,7 @@ data SeaState
 data SeaFleet = SeaFleet {
     sfLibrary     :: Library
   , sfPrograms    :: Map Attribute SeaProgram
-  , sfCreatePool  :: Ptr MemPool  -> IO ()
+  , sfCreatePool  :: IO (Ptr MemPool)
   , sfReleasePool :: Ptr MemPool  -> IO ()
   , sfPsvSnapshot :: Ptr PsvState -> IO ()
   }
@@ -160,14 +160,14 @@ seaEval attribute fleet date values =
   case Map.lookup attribute (sfPrograms fleet) of
     Nothing      -> left (SeaProgramNotFound attribute)
     Just program -> do
-      let create  = liftIO . sfCreatePool  fleet
+      let create  = liftIO $ sfCreatePool  fleet
           release = liftIO . sfReleasePool fleet
       seaEval' program create release date values
 
 seaEval'
   :: (MonadIO m, MonadMask m)
   => SeaProgram
-  -> (Ptr MemPool -> EitherT SeaError m ())
+  -> (EitherT SeaError m (Ptr MemPool))
   -> (Ptr MemPool -> EitherT SeaError m ())
   -> D.DateTime
   -> [D.AsAt D.Value]
@@ -181,20 +181,19 @@ seaEval' program createPool releasePool date values = do
   withWords      words $ \pState -> do
   withSeaVectors facts $ \count psFacts -> do
 
-    let _mempoolIx = 0 :: Int
-        dateIx     = 3
-        countIx    = 4
-        factsIx    = 5
-        outputsIx  = 5 + length psFacts
+    let mempoolIx  = 0 :: Int
+        dateIx     = 1
+        countIx    = 2
+        factsIx    = 3
+        outputsIx  = 3 + length psFacts
 
     pokeWordOff pState dateIx  (packedOfDate date)
     pokeWordOff pState countIx (fromIntegral count :: Int64)
 
     zipWithM_ (pokeWordOff pState) [factsIx..] psFacts
 
-    let pMemPool = castPtr pState
-
-    bracketEitherT' (createPool pMemPool) (const $ releasePool pMemPool) $ \_ -> do
+    bracketEitherT' createPool releasePool $ \poolPtr -> do
+      pokeWordOff pState mempoolIx poolPtr
       _       <- liftIO (spCompute program pState)
       outputs <- peekNamedOutputs pState outputsIx (spOutputs program)
       hoistEither (traverse (\(k,v) -> (,) <$> pure k <*> valueFromCore' v) outputs)
@@ -215,7 +214,7 @@ seaCompile psv programs = do
   code <- hoistEither (codeOfPrograms psv (Map.toList programs))
 
   lib             <- firstEitherT SeaJetskiError (compileLibrary compilerOptions code)
-  imempool_create <- firstEitherT SeaJetskiError (function lib "imempool_create" retVoid)
+  imempool_create <- firstEitherT SeaJetskiError (function lib "imempool_create" (retPtr retVoid))
   imempool_free   <- firstEitherT SeaJetskiError (function lib "imempool_free"   retVoid)
 
   psv_snapshot <- case psv of
@@ -230,7 +229,7 @@ seaCompile psv programs = do
   return SeaFleet {
       sfLibrary     = lib
     , sfPrograms    = Map.fromList (List.zip (Map.keys programs) compiled)
-    , sfCreatePool  = \ptr -> imempool_create [argPtr ptr]
+    , sfCreatePool  = castPtr <$> imempool_create []
     , sfReleasePool = \ptr -> imempool_free   [argPtr ptr]
     , sfPsvSnapshot = psv_snapshot
     }

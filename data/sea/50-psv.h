@@ -38,6 +38,8 @@ typedef struct {
 /* forward declarations for functions, implemented by generated code */
 static ifleet_t * INLINE psv_alloc_fleet ();
 
+static void INLINE psv_collect_fleet (ifleet_t *fleet);
+
 static void INLINE psv_write_outputs (int fd, const char *entity, ifleet_t *fleet);
 
 static psv_error_t INLINE psv_read_fact
@@ -136,7 +138,7 @@ static psv_error_t INLINE psv_read_date (const char *time_ptr, const size_t time
     return psv_alloc_error ("expected yyyy-mm-dd or yyyy-mm-ddThh:mm:ssZ but was", time_ptr, time_size);
 }
 
-static psv_error_t INLINE psv_read_json_date (char **pp, char *pe, idate_t *output_ptr, ibool_t *done_ptr)
+static psv_error_t INLINE psv_read_json_date (imempool_t *pool, char **pp, char *pe, idate_t *output_ptr, ibool_t *done_ptr)
 {
     char *p = *pp;
 
@@ -166,7 +168,7 @@ static psv_error_t INLINE psv_read_json_date (char **pp, char *pe, idate_t *outp
     return 0;
 }
 
-static psv_error_t INLINE psv_read_json_string (char **pp, char *pe, istring_t *output_ptr, ibool_t *done_ptr)
+static psv_error_t INLINE psv_read_json_string (imempool_t *pool, char **pp, char *pe, istring_t *output_ptr, ibool_t *done_ptr)
 {
     char *p = *pp;
 
@@ -189,9 +191,8 @@ static psv_error_t INLINE psv_read_json_string (char **pp, char *pe, istring_t *
     if (*term_ptr == '}')
         *done_ptr = itrue;
 
-    /* TODO use mempool */
     size_t output_size = quote_ptr - p + 1;
-    char  *output      = malloc (output_size);
+    char  *output      = imempool_alloc (pool, output_size);
 
     output[output_size] = 0;
     memcpy (output, p, output_size - 1);
@@ -202,7 +203,7 @@ static psv_error_t INLINE psv_read_json_string (char **pp, char *pe, istring_t *
     return 0;
 }
 
-static psv_error_t INLINE psv_read_json_int (char **pp, char *pe, iint_t *output_ptr, ibool_t *done_ptr)
+static psv_error_t INLINE psv_read_json_int (imempool_t *pool, char **pp, char *pe, iint_t *output_ptr, ibool_t *done_ptr)
 {
     char *p = *pp;
 
@@ -353,6 +354,8 @@ void psv_snapshot (psv_config_t *cfg)
     size_t buffer_offset = 0;
 
     for (;;) {
+        psv_collect_fleet(fleet);
+
         size_t bytes_read = read ( ifd
                                  , buffer_ptr  + buffer_offset
                                  , psv_buffer_size - buffer_offset );
