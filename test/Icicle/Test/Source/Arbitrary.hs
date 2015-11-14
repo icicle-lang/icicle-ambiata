@@ -132,7 +132,7 @@ instance Arbitrary n => Arbitrary (Pattern n) where
 instance Arbitrary n => Arbitrary (Context () n) where
  arbitrary
   = oneof_sized
-        [ Windowed () <$> arbitrary <*> arbitrary
+        [ Windowed () <$> arbitrary <*> arbitrary <*> arbitrary
         , Latest   () . abs <$> arbitrary ]
         [ GroupBy  () <$> arbitrary
         , Distinct () <$> arbitrary

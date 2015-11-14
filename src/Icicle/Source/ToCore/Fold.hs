@@ -298,7 +298,7 @@ convertFold q
            return $ ConvertFoldResult kons zero xtra t'buf t'r
 
 
-    (Windowed (Annot { annAnnot = ann }) _ _ : _)
+    (Windowed (Annot { annAnnot = ann }) _ _ _ : _)
      -> errNotAllowed ann
     (GroupBy (Annot { annAnnot = ann }) _ : _)
      -> errNotAllowed ann

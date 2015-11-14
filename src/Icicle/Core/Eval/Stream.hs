@@ -146,7 +146,7 @@ eval window_check xh concreteValues sh s
     -- For now, I have gone with the first option:
     -- marking all newer entries is simpler and sufficient.
     --
-    SWindow _ newerThan olderThan n
+    SWindow _ newerThan olderThan frame n
      -> do  sv <- getInput n
             let newer  = windowEdge newerThan
             let older  = windowEdge <$> olderThan
@@ -154,7 +154,7 @@ eval window_check xh concreteValues sh s
             let windowBy p p'history =
                  return $
                   EvalResult
-                        ( filter (\v -> p $ time v)
+                        ( filter' frame (\v -> p $ time v) (\v -> p'history $ time v)
                         $ fst sv
                         , Windowed newerThan)
                         ( fmap (fst . fact)
@@ -172,6 +172,24 @@ eval window_check xh concreteValues sh s
             windowEdge (Days   d) = minusDays window_check d
             windowEdge (Weeks  w) = minusDays window_check $ 7 * w
             windowEdge (Months m) = minusMonths window_check m
+
+            -- A special filter which, when given the frame predicate, also
+            -- includes one feature before the predicate becomes true. So
+            -- filter' (>2) [1..3] yields [2,3].
+            -- When unframed it's just filter.
+            filter' :: WindowFrame -> (a -> Bool) -> (a -> Bool) -> [a] -> [a]
+            filter' Unframed f _ xs = filter f xs
+            filter' Framed f f' xs = snd $ foldr (frame' f f') (True,[]) xs
+
+            frame' :: (a -> Bool) -> (a -> Bool) -> a -> (Bool, [a]) -> (Bool, [a])
+            frame' f f' l (b, ls) | f l
+                                  = (True, l : ls)
+                                  | f' l
+                                  = (True, ls)
+                                  | True <- b
+                                  = (False, l : ls)
+                                  | otherwise
+                                  = (False, ls)
 
     -- Transformers are slightly more involved
     -- Evaluate transform over given values.

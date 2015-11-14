@@ -23,7 +23,7 @@ import qualified    Data.List   as List
 
 data Stream a n
  = Source
- | SWindow ValType WindowUnit (Maybe WindowUnit) (Name n)
+ | SWindow ValType WindowUnit (Maybe WindowUnit) WindowFrame (Name n)
  | STrans StreamTransform (Exp a n) (Name n)
  deriving (Eq,Ord,Show)
 
@@ -55,7 +55,7 @@ outputOfStreamTransform st
 
 renameStream :: (Name n -> Name n') -> Stream a n -> Stream a n'
 renameStream _ Source                 = Source
-renameStream f (SWindow t x mx n)     = SWindow t x mx (f n)
+renameStream f (SWindow t x mx fr n)  = SWindow t x mx fr (f n)
 renameStream f (STrans t x n)         = STrans t (renameExp f x) (f n)
 
 
@@ -73,7 +73,7 @@ isStreamWindowed ss nm
 -- | Get name of input stream, if applicable
 inputOfStream :: Stream a n -> Maybe (Name n)
 inputOfStream  Source                = Nothing
-inputOfStream (SWindow _ _ _ inp)    = Just inp
+inputOfStream (SWindow _ _ _ _ inp)  = Just inp
 inputOfStream (STrans  _ _   inp)    = Just inp
 
 
@@ -82,9 +82,9 @@ inputOfStream (STrans  _ _   inp)    = Just inp
 
 instance (Pretty n) => Pretty (Stream a n) where
  pretty Source         = text "source"
- pretty (SWindow t x mx inp)
+ pretty (SWindow t x mx fr inp)
                        = text "swindow [" <> pretty t <> text "]"
-                       </> parens (pretty x) </> parens (pretty mx) </> pretty inp
+                       </> parens (pretty x) </> parens (pretty mx) </> parens (pretty fr) </> pretty inp
 
  pretty (STrans t x n) = pretty t </> parens (pretty x) </> pretty n
 

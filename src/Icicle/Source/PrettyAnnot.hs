@@ -96,11 +96,7 @@ prettyX outer_prec xx
 instance (Pretty a, Pretty n) => Pretty (PrettyAnnot (Context (Annot a n) n)) where
  pretty cc
   = case getPrettyAnnot cc of
-     Windowed  a n Nothing
-                       -> annotate (AnnType a) ("windowed"  <+> pretty n)
-     Windowed  a n (Just o)
-                       -> annotate (AnnType a) ("windowed between" <+> pretty o
-                                                           <+> "and" <+> pretty n)
+     Windowed  a _ _ _ -> annotate (AnnType a) (pretty $ getPrettyAnnot cc)
      Latest    a x     -> annotate (AnnType a) ("latest"    <+> pretty x)
      GroupBy   a x     -> annotate (AnnType a)  "group"     <+> pretty (PrettyAnnot x)
      GroupFold a n m x -> annotate (AnnType a) ("group fold"<+> pretty (n, m))

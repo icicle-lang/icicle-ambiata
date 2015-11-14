@@ -139,15 +139,12 @@ convertQuery q
     -- We could support "older than" by storing reduce result of the end of window and
     -- storing all corresponding newer thans in the snapshot, so if this ends up being an issue
     -- we can address it.
-    (Windowed _ newerThan olderThan : _)
+    (Windowed _ newerThan olderThan frame : _)
      -> do  n'      <- lift fresh
             (bs, b) <- convertWithInputName n' $ convertQuery q'
 
-            let newerThan' = newerThan
-            let olderThan' = olderThan
-
             (inpstream, inpty) <- convertInput
-            let bs'  = strm n' (C.SWindow inpty newerThan' olderThan' inpstream) <> bs
+            let bs'  = strm n' (C.SWindow inpty newerThan olderThan frame inpstream) <> bs
             return (bs', b)
 
 

@@ -57,7 +57,8 @@ context
         return c
  where
   context1
-   =   pKeyword T.Windowed *> cwindowed
+   =   pKeyword T.Framed   *> pKeyword T.Windowed *> cwindowed Framed
+   <|> pKeyword T.Windowed *> cwindowed Unframed
    <|> pKeyword T.Group    *> (cgroupfold <|> (flip Q.GroupBy <$> exp <*> getPosition))
    <|> pKeyword T.Distinct *> (flip Q.Distinct <$> exp      <*> getPosition)
    <|> pKeyword T.Filter   *> (flip Q.Filter   <$> exp      <*> getPosition)
@@ -65,21 +66,21 @@ context
    <|> pKeyword T.Let      *> clet
    <|> cletfold
 
-  cwindowed
-   = cwindowed2 <|> cwindowed1
+  cwindowed frame
+   = cwindowed2 frame <|> cwindowed1 frame
 
-  cwindowed1
+  cwindowed1 frame
    = do t1 <- windowUnit
         p  <- getPosition
-        return $ Q.Windowed p t1 Nothing
+        return $ Q.Windowed p t1 Nothing frame
 
-  cwindowed2
+  cwindowed2 frame
    = do pKeyword T.Between
         p <- getPosition
         t1 <- windowUnit
         pKeyword T.And
         t2 <- windowUnit
-        return $ Q.Windowed p t2 $ Just t1
+        return $ Q.Windowed p t2 (Just t1) frame
 
   cgroupfold
    = do pKeyword T.Fold

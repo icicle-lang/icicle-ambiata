@@ -141,8 +141,8 @@ reifyPossibilityQ (Query (c:cs) final_x)
 
             add $ LetFold (wrapAnnot a) f'
 
-    Windowed a w w'
-     -> add $ Windowed  (wrapAnnot a) w w'
+    Windowed a w w' frame
+     -> add $ Windowed  (wrapAnnot a) w w' frame
     Latest a i
      -> add $ Latest    (wrapAnnot a) i
     GroupBy a x

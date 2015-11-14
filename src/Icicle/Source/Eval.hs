@@ -57,7 +57,7 @@ evalQ q vs env
     (c:cs)
      -> let q' = q { contexts = cs }
         in  case c of
-                Windowed _ _ _
+                Windowed _ _ _ _
                  -> let vs' = filter window vs
                         window _ = True -- TODO
                     in  evalQ q' vs' env

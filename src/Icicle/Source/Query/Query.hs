@@ -126,7 +126,7 @@ reannotX f xx
 reannotC :: (a -> a') -> Context a n -> Context a' n
 reannotC f cc
  = case cc of
-    Windowed  a b c   -> Windowed  (f a) b c
+    Windowed  a b c d -> Windowed  (f a) b c d
     Latest    a i     -> Latest    (f a) i
     GroupBy   a x     -> GroupBy   (f a) (reannotX f x)
     GroupFold a k v x -> GroupFold (f a) k v (reannotX f x)

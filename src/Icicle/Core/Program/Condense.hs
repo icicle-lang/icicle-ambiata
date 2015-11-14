@@ -75,11 +75,12 @@ streamEquivalent s s'
  , Source                <- s'
  = True
 
- | SWindow t  newer  older  inp  <- s
- , SWindow t' newer' older' inp' <- s'
+ | SWindow t  newer  older  frame  inp  <- s
+ , SWindow t' newer' older' frame' inp' <- s'
  =  t   == t'
  && newer == newer'
  && older == older'
+ && frame == frame'
  && inp == inp'
 
  | STrans st  x  inp     <- s
@@ -113,9 +114,9 @@ substStreamName from to ss rs
       STrans st x inp
        | inp == from
        -> STrans st x to
-      SWindow t x mx inp
+      SWindow t x mx fr inp
        | inp == from
-       -> SWindow t x mx to
+       -> SWindow t x mx fr to
       _
        -> s
 

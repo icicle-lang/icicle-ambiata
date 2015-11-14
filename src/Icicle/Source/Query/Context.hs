@@ -17,7 +17,7 @@ import                  P
 
 
 data Context' q a n
- = Windowed a WindowUnit (Maybe WindowUnit)
+ = Windowed a WindowUnit (Maybe WindowUnit) WindowFrame
  | Latest a Int
  | GroupBy   a          (Exp' q a n)
  | Distinct  a          (Exp' q a n)
@@ -44,7 +44,7 @@ data FoldType
 annotOfContext :: Context' q a n -> a
 annotOfContext c
  = case c of
-    Windowed  a _ _   -> a
+    Windowed  a _ _ _ -> a
     Latest    a _     -> a
     GroupBy   a _     -> a
     GroupFold a _ _ _ -> a
@@ -56,12 +56,16 @@ annotOfContext c
 instance (Pretty n, Pretty q) => Pretty (Context' q a n) where
  pretty cc
   = case cc of
-     Windowed _ newer Nothing
+     Windowed _ newer Nothing Framed
+      -> "framed" <+> "windowed" <+> pretty newer
+     Windowed _ newer (Just older) Framed
+      -> "framed" <+> "windowed between" <+> pretty older
+                  <+> "and" <+> pretty newer
+     Windowed _ newer Nothing Unframed
       -> "windowed" <+> pretty newer
-     Windowed _ newer (Just older)
+     Windowed _ newer (Just older) Unframed
       -> "windowed between" <+> pretty older
                   <+> "and" <+> pretty newer
-
      Latest   _ i
       -> "latest"   <+> pretty i
      GroupBy  _ x
