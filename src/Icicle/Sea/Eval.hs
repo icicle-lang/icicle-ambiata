@@ -16,7 +16,8 @@ module Icicle.Sea.Eval (
 
   , seaCompile
   , seaEval
-  , seaPsvSnapshot
+  , seaPsvSnapshotFilePath
+  , seaPsvSnapshotFd
   , seaRelease
 
   , seaEvalAvalanche
@@ -32,7 +33,6 @@ import           Control.Monad.Trans.Either (EitherT(..), hoistEither, left)
 import qualified Data.List as List
 import           Data.Map (Map)
 import qualified Data.Map as Map
-import           Data.String (String)
 import           Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Vector.Storable as V
@@ -40,7 +40,7 @@ import           Data.Vector.Storable.Mutable (IOVector)
 import qualified Data.Vector.Storable.Mutable as MV
 import           Data.Word (Word64)
 
-import           Foreign.C.String (CString, newCString, peekCString)
+import           Foreign.C.String (newCString, peekCString)
 import           Foreign.ForeignPtr (ForeignPtr, touchForeignPtr, castForeignPtr)
 import           Foreign.ForeignPtr.Unsafe (unsafeForeignPtrToPtr)
 import           Foreign.Marshal (mallocBytes, free)
@@ -74,6 +74,8 @@ import           P hiding (count)
 
 import           System.IO (IO, FilePath)
 import           System.IO.Unsafe (unsafePerformIO)
+
+import qualified System.Posix    as Posix
 
 import           X.Control.Monad.Catch (bracketEitherT')
 import           X.Control.Monad.Trans.Either (firstEitherT)
@@ -117,14 +119,21 @@ instance Show SeaMVector where
 
 ------------------------------------------------------------------------
 
-seaPsvSnapshot :: SeaFleet -> FilePath -> FilePath -> EitherT SeaError IO ()
-seaPsvSnapshot fleet input output =
-  withWords   3      $ \pState  ->
-  withCString input  $ \pInput  ->
-  withCString output $ \pOutput -> do
+seaPsvSnapshotFilePath :: SeaFleet -> FilePath -> FilePath -> EitherT SeaError IO ()
+seaPsvSnapshotFilePath fleet input output = do
+  bracketEitherT' (liftIO $ Posix.openFd input Posix.ReadOnly Nothing Posix.defaultFileFlags)
+                  (liftIO . Posix.closeFd) $ \ifd -> do
+  bracketEitherT' (liftIO $ Posix.createFile output (Posix.CMode 0O644))
+                  (liftIO . Posix.closeFd) $ \ofd -> do
+  seaPsvSnapshotFd fleet ifd ofd
 
-  pokeWordOff pState 0 pInput
-  pokeWordOff pState 1 pOutput
+
+seaPsvSnapshotFd :: SeaFleet -> Posix.Fd -> Posix.Fd -> EitherT SeaError IO ()
+seaPsvSnapshotFd fleet input output =
+  withWords   3      $ \pState  -> do
+
+  pokeWordOff pState 0 input
+  pokeWordOff pState 1 output
 
   liftIO (sfPsvSnapshot fleet pState)
 
@@ -626,10 +635,6 @@ withWords n io =
 
 mallocWords :: MonadIO m => Int -> m (Ptr a)
 mallocWords n = liftIO (mallocBytes (n*8))
-
-withCString :: (MonadIO m, MonadMask m) => String -> (CString -> EitherT SeaError m a) -> EitherT SeaError m a
-withCString str io =
-  bracketEitherT' (liftIO (newCString str)) (liftIO . free) io
 
 freeWordPtr :: MonadIO m => WordPtr -> m ()
 freeWordPtr wp = do

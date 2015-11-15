@@ -10,8 +10,9 @@ typedef const char * psv_error_t;
 
 typedef struct {
     /* inputs */
-    istring_t input;
-    istring_t output;
+    /* these are 32-bit file handles, but storing them as 64-bit in the struct makes it easier to poke from Haskell */
+    iint_t input_fd;
+    iint_t output_fd;
 
     /* outputs */
     psv_error_t error;
@@ -321,19 +322,8 @@ static psv_error_t psv_read_buffer (psv_state_t *s)
 
 void psv_snapshot (psv_config_t *cfg)
 {
-    int ifd = open (cfg->input,  O_RDONLY);
-
-    if (ifd == -1) {
-        cfg->error = psv_alloc_error ("error opening input file", cfg->input, strlen (cfg->input));
-        return;
-    }
-
-    int ofd = open (cfg->output, O_WRONLY | O_CREAT | O_TRUNC, 0644);
-
-    if (ofd == -1) {
-        cfg->error = psv_alloc_error ("error opening output file", cfg->output, strlen (cfg->output));
-        return;
-    }
+    int ifd = (int)cfg->input_fd;
+    int ofd = (int)cfg->output_fd;
 
     static const size_t psv_read_error = (size_t) -1;
 

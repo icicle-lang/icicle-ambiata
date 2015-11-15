@@ -49,6 +49,7 @@ library
                      , attoparsec                      == 0.12.*
                      ,     parsec                      == 3.1.*
 
+                     , unix                            == 2.7.*
 
   ghc-options:
                        -Wall
