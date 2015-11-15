@@ -24,3 +24,9 @@ feature salary ~> max (days between `1980-01-06` date)
 
 -- Months
 feature salary ~> min (3 months after date)
+
+-- Maps
+feature injury ~> group location ~> max severity
+
+-- Maps
+feature injury ~> group severity ~> count location

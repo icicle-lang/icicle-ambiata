@@ -9,25 +9,21 @@ module Icicle.Avalanche.Statement.Simp (
   , substXinS
   , thresher
   , nestBlocks
-  , simpStatementExps
   ) where
 
 import              Icicle.Avalanche.Statement.Statement
 import              Icicle.Avalanche.Statement.Simp.ExpEnv
-import qualified    Icicle.Avalanche.Prim.Flat as F
-import qualified    Icicle.Avalanche.Prim.Eval as AE
 
 import              Icicle.Common.Base
 import              Icicle.Common.Exp
 import              Icicle.Common.Exp.Simp.Beta
 import              Icicle.Common.Fresh
-import              Icicle.Common.Type
-import              Icicle.Common.Value
 
 import              P
 
 import              Data.Functor.Identity
 import qualified    Data.Set as Set
+import qualified    Data.Map as Map
 import qualified    Data.List as List
 
 
@@ -224,7 +220,8 @@ thresher a_fresh statements
        | not $ Set.member n $ stmtFreeX ss
        -> return (env, ss)
       -- Duplicate let: change to refer to existing one
-       | ((n',_):_) <- filter (\(_,x') -> x `alphaEquality` x') env
+      -- I tried to use simple equality for simpFlattened since expressions cannot contain lambdas, but it was slower. WEIRD.
+       | ((n',_):_) <- filter (\(_,x') -> x `alphaEquality` x') $ Map.toList env
        -> return (env, Let n (XVar a_fresh n') ss)
 
       -- Read that's never used
@@ -233,7 +230,8 @@ thresher a_fresh statements
        -> return (env, ss)
 
       InitAccumulator (Accumulator n _ x) ss
-       |  not (accRead $ accumulatorUsed n ss) || not (accWritten $ accumulatorUsed n ss)
+       | usage <- accumulatorUsed n ss
+       , not (accRead usage) || not (accWritten usage)
        -> do    n' <- fresh
                 let ss' = Let n' x (killAccumulator n (XVar a_fresh n') ss)
                 return (env, ss')
@@ -451,58 +449,3 @@ killAccumulator acc xx statements
 
    | otherwise
    = return ((), s)
-
--- | Simplify expressions with flattened primitives. Performs:
---    * constant folding for common expressions and flat prims.
---    * beta reduction
---
-simpStatementExps :: Ord n => a -> Statement a n F.Prim -> Statement a n F.Prim
-simpStatementExps a_fresh statements
- = runIdentity
- $ transformUDStmt trans () statements
- where
-  trans _ ss
-   = return . ((),)
-   $ case ss of
-      If x s1 s2            -> If (goX x) s1 s2
-      Let n x s             -> Let n (goX x) s
-      ForeachInts n x1 x2 s -> ForeachInts n (goX x1) (goX x2) s
-      Write n x             -> Write n (goX x)
-      InitAccumulator a s   -> InitAccumulator (goA a) s
-      Output n t xs         -> Output n t (fmap (first goX) xs)
-      _                     -> ss
-
-  goA aa
-   = aa { accInit = goX (accInit aa) }
-
-  goX xx
-   = case xx of
-      XApp a p q
-       | p' <- goX p
-       , q' <- goX q
-       , Just (prim, as) <- takePrimApps (XApp a p' q')
-       , Just args       <- mapM (takeValue . goX) as
-       -> fromMaybe (XApp a p' q') (goP prim args)
-
-      XApp a p q
-        -> XApp a (goX p) (goX q)
-
-      XLam a n t x1
-        -> XLam a n t (goX x1)
-
-      XLet a n x1 x2
-        | not $ n `Set.member` freevars (goX x2)
-        -> goX x2
-        | otherwise
-        -> XLet a n (goX x1) (goX x2)
-
-      b@(XVar{})   -> b
-      b@(XPrim{})  -> b
-      b@(XValue{}) -> b
-
-  goP p vs
-   = case AE.evalPrim p vs of
-      Right (VBase b)
-       -> Just
-        $ XValue a_fresh (functionReturns $ F.typeOfPrim p) b
-      _ -> Nothing

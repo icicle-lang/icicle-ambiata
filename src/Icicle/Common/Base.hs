@@ -23,10 +23,10 @@ import qualified    Data.Text   as T
 -- | User defined names.
 data Name n =
  -- | Raw name
-   Name     n
+   Name     !n
  -- | Prefix a name.
  -- Very useful for generating fresh(ish) readable names.
- | NameMod  n (Name n)
+ | NameMod  !n !(Name n)
  deriving (Eq,Ord,Show,Functor)
 
 data WindowUnit
@@ -41,22 +41,22 @@ data WindowUnit
 -- closures, which include expressions.
 -- This is in here to resolve circular dependency.
 data BaseValue
- = VInt   Int
- | VDouble Double
+ = VInt      {-# UNPACK #-}!Int
+ | VDouble   {-# UNPACK #-}!Double
  | VUnit
- | VBool  Bool
- | VDateTime        DateTime
- | VString T.Text
- | VArray [BaseValue]
- | VPair  BaseValue BaseValue
- | VLeft  BaseValue
- | VRight BaseValue
- | VSome  BaseValue
+ | VBool     !Bool
+ | VDateTime {-# UNPACK #-}!DateTime
+ | VString   {-# UNPACK #-}!T.Text
+ | VArray    ![BaseValue]
+ | VPair     !BaseValue !BaseValue
+ | VLeft     !BaseValue
+ | VRight    !BaseValue
+ | VSome     !BaseValue
  | VNone
- | VMap    (Map.Map BaseValue    BaseValue)
- | VStruct (Map.Map StructField  BaseValue)
- | VBuf   Int [BaseValue]
- | VError ExceptionInfo
+ | VMap      !(Map.Map BaseValue    BaseValue)
+ | VStruct   !(Map.Map StructField  BaseValue)
+ | VBuf      ![BaseValue]
+ | VError    !ExceptionInfo
  deriving (Show, Ord, Eq)
 
 -- | Called "exceptions"
@@ -69,7 +69,7 @@ data ExceptionInfo
  deriving (Show, Ord, Eq)
 
 
-data StructField
+newtype StructField
  = StructField
  { nameOfStructField :: T.Text
  }
@@ -128,8 +128,8 @@ instance Pretty BaseValue where
       -> text "Struct" <+> pretty (Map.toList mv)
      VError e
       -> pretty e
-     VBuf i vs
-      -> text "Buf" <+> pretty i <+> pretty vs
+     VBuf vs
+      -> text "Buf" <+> pretty vs
 
 instance Pretty StructField where
  pretty = text . T.unpack . nameOfStructField

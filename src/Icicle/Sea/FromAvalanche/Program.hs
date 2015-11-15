@@ -4,8 +4,9 @@
 
 module Icicle.Sea.FromAvalanche.Program (
     seaOfProgram
-  , programName
-  , stateName
+  , nameOfProgram
+  , nameOfProgram'
+  , nameOfStateType
   , stateWordsOfProgram
   ) where
 
@@ -18,23 +19,23 @@ import           Icicle.Common.Base
 import           Icicle.Common.Exp
 import           Icicle.Common.Type
 
+import           Icicle.Data
 import           Icicle.Data.DateTime
 
 import           Icicle.Internal.Pretty
 import qualified Icicle.Internal.Pretty as Pretty
 
+import           Icicle.Sea.Error
 import           Icicle.Sea.FromAvalanche.Analysis
 import           Icicle.Sea.FromAvalanche.Base
 import           Icicle.Sea.FromAvalanche.Prim
+import           Icicle.Sea.FromAvalanche.State
 import           Icicle.Sea.FromAvalanche.Type
 
 import           P
 
-import           Data.Char (isLower, isUpper)
 import qualified Data.List as List
 import qualified Data.Map as Map
-import           Data.Text (Text)
-import qualified Data.Text as T
 
 import           Numeric (showHex)
 
@@ -42,103 +43,28 @@ import           Numeric (showHex)
 ------------------------------------------------------------------------
 
 seaOfProgram :: (Show a, Show n, Pretty n, Ord n)
-             => Int -> Text -> Program (Annot a) n Prim -> Doc
-seaOfProgram name info program
- =  vsep
- [ "#line 1 \"state definition #" <> int name <> seaOfInfo info <> "\""
- , stateOfProgram name program
- , ""
- , "#line 1 \"compute function #" <> int name <> seaOfInfo info <> "\""
- , "void " <> pretty (programName name) <> "(" <> pretty (stateName name) <+> "*s)"
- , "{"
- , indent 4 . vsep
-            . fmap defOfAccumulator
-            . Map.toList
-            $ accumsOfProgram program `Map.union`
-              readsOfProgram  program
- , ""
- , indent 4 (seaOfStatement (statements program))
- , "}"
- ]
+             => Int -> Attribute -> Program (Annot a) n Prim -> Either SeaError Doc
+seaOfProgram name attrib program = do
+  state <- stateOfProgram name attrib program
+  pure $ vsep
+    [ seaOfState state
+    , ""
+    , "#line 1 \"compute function" <+> seaOfStateInfo state <> "\""
+    , "void " <> pretty (nameOfProgram state) <> "(" <> pretty (nameOfStateType state) <+> "*s)"
+    , "{"
+    , indent 4 . vsep
+               . fmap defOfAccumulator
+               . Map.toList
+               $ accumsOfProgram program `Map.union`
+                 readsOfProgram  program
+    , ""
+    , indent 4 (seaOfStatement (statements program))
+    , "}"
+    ]
 
-seaOfInfo :: Text -> Doc
-seaOfInfo xs
-  | T.null xs = string ""
-  | otherwise = string " - " <> pretty (T.filter isLegal xs)
- where
-  isLegal c = isLower c || isUpper c || c == ' ' || c == '_'
-
-programName :: Int -> Text
-programName name = "iprogram_" <> T.pack (show name)
-
-stateName :: Int -> Text
-stateName name = "istate_" <> T.pack (show name) <> "_t"
-
-------------------------------------------------------------------------
-
-stateOfProgram :: (Show a, Show n, Pretty n, Ord n)
-               => Int -> Program (Annot a) n Prim -> Doc
-stateOfProgram name program
- = vsep
- [ "typedef struct {"
- , "    /* runtime */"
- , "    imempool_t       mempool;"
- , ""
- , "    /* inputs */"
- , "    idate_t          gen_date;"
- , "    iint_t           new_count;"
- , indent 4 . vsep
-            . fmap defOfFactVar
-            . maybe [] snd
-            . factVarsOfProgram FactLoopNew
-            $ program
- , ""
- , "    /* outputs */"
- , indent 4 . vsep
-            . concat
-            . fmap defsOfOutput
-            . outputsOfProgram
-            $ program
- , ""
- , "    /* resumables */"
- , indent 4 . vsep
-            . fmap defOfResumable
-            . Map.toList
-            . resumablesOfProgram
-            $ program
- , "}" <+> pretty (stateName name) <> ";"
- ]
-
-stateWordsOfProgram :: Ord n => Program (Annot a) n Prim -> Int
-stateWordsOfProgram program
- = 3 -- mempool
- + 1 -- gen_date
- + 1 -- new_count
- + length (maybe [] snd (factVarsOfProgram FactLoopNew program))
- + sum (fmap (length . snd . snd) (outputsOfProgram program))
- + 2 * Map.size (resumablesOfProgram program)
-
-defOfAccumulator :: (Show n, Pretty n, Ord n)
-                  => (Name n, ValType) -> Doc
+defOfAccumulator :: (Show n, Pretty n, Ord n) => (Name n, ValType) -> Doc
 defOfAccumulator (n, vt)
  = seaOfValType vt <+> seaOfName n <> semi
-
-defOfResumable :: (Show n, Pretty n, Ord n) => (Name n, ValType) -> Doc
-defOfResumable (n, t)
- =  seaOfValType BoolT <+> "has_" <> seaOfName n <> semi <> line
- <> seaOfValType t     <+> "res_" <> seaOfName n <> semi
-
-defOfFactVar :: Pretty n => (Name n, ValType) -> Doc
-defOfFactVar (n, t)
- = seaOfValType t <+> "*" <> "new_" <> seaOfName n <> semi
-
-defsOfOutput :: (OutputName, (ValType, [ValType])) -> [Doc]
-defsOfOutput (n, (_, ts))
- = List.zipWith (defOfOutputIx n) [0..] ts
-
-defOfOutputIx :: OutputName -> Int -> ValType -> Doc
-defOfOutputIx n ix t
- = seaOfValType t <+> seaOfNameIx n ix <> semi
 
 ------------------------------------------------------------------------
 
@@ -179,12 +105,20 @@ seaOfStatement stmt
               , ""
               ]
 
+     ForeachInts n start end stmt'
+      -> vsep [ "for (iint_t" <+> seaOfName n <+> "=" <+> seaOfExp start <> ";"
+                              <+> seaOfName n <+> "<" <+> seaOfExp end   <> ";"
+                              <+> seaOfName n <>  "++) {"
+              , indent 4 $ seaOfStatement stmt'
+              , "}"
+              ]
+
      ForeachFacts ns _ lt stmt'
       | FactLoopNew  <- lt
-      , structAssign <- \(n, t) -> assign ("const " <> seaOfValType t <> "*const new_" <> seaOfName n)
-                                          ("s->new_" <> seaOfName n) <> semi
+      , structAssign <- \(n, t) -> assign ("const " <> seaOfValType t <> "*const" <+> pretty newPrefix <> seaOfName n)
+                                          ("s->" <> pretty newPrefix <> seaOfName n) <> semi
       , loopAssign   <- \(n, t) -> assign (seaOfValType t <+> seaOfName n)
-                                          ("new_" <> seaOfName n <> "[i]") <> semi
+                                          (pretty newPrefix <> seaOfName n <> "[i]") <> semi
       -> vsep $ [ ""
                 , assign ("const " <> seaOfValType IntT <> "new_count") "s->new_count;"
                 ] <> fmap structAssign ns <>
@@ -209,13 +143,13 @@ seaOfStatement stmt
 
      LoadResumable n _
       -> vsep [ ""
-              , "if (s->has_" <> seaOfName n <> ") {"
-              , indent 4 $ assign (seaOfName n) ("s->res_" <> seaOfName n) <> semi <> suffix "load"
+              , "if (s->" <> pretty hasPrefix <> seaOfName n <> ") {"
+              , indent 4 $ assign (seaOfName n) ("s->" <> pretty resPrefix <> seaOfName n) <> semi <> suffix "load"
               , "}" ]
 
      SaveResumable n _
-      -> assign ("s->has_" <> seaOfName n) "itrue"       <> semi <> suffix "save" <> line
-      <> assign ("s->res_" <> seaOfName n) (seaOfName n) <> semi <> suffix "save" <> line
+      -> assign ("s->" <> pretty hasPrefix <> seaOfName n) "itrue"       <> semi <> suffix "save" <> line
+      <> assign ("s->" <> pretty resPrefix <> seaOfName n) (seaOfName n) <> semi <> suffix "save" <> line
 
      Output n _ xts
       | ixAssign <- \ix xx -> assign ("s->" <> seaOfNameIx n ix) (seaOfExp xx) <> semi <> suffix "output"
@@ -248,6 +182,7 @@ seaOfXValue :: BaseValue -> ValType -> Doc
 seaOfXValue v t
  = case v of
      VError    err   -> seaOfError err
+     VUnit           -> "iunit"
      VBool     True  -> "itrue"
      VBool     False -> "ifalse"
      VInt      x     -> int x
@@ -271,13 +206,14 @@ seaOfXValue v t
       | otherwise
       -> seaError "seaOfXValue: array of wrong type" (v,t)
 
-     VBuf len vs
-      | BufT t' <- t
+     VBuf vs
+      | BufT len t' <- t
       -> let writes buf v'
-              = prim (PrimBuf $ PrimBufPush t')
+              = prim (PrimBuf $ PrimBufPush len t')
                      [buf, seaOfXValue v' t']
              init
-              = prim (PrimBuf $ PrimBufMake t')
+              = seaOfPrimDocApps
+                     (PDAlloc (prefixOfValType t <> "make"))
                      [int len]
         in  foldl writes init vs
       | otherwise

@@ -96,17 +96,15 @@ prop_date_minus_months d num
     pure $ expected === dateOfPacked (fromIntegral r)
 
 
-runRight :: (Functor m, Show a)
-         => EitherT a m Property
-         -> m Property
-runRight a =
-  (\case
-    Right x -> x
-    Left  x -> (counterexample . show) x $ failed
-  ) <$> (runEitherT a)
+runRight :: (Monad m, Show a) => EitherT a m Property -> m Property
+runRight a = do
+  e <- runEitherT a
+  case e of
+    Left  x -> return (counterexample (show x) failed)
+    Right x -> return x
 
 code :: T.Text
-code = textOfDoc $ seaPreamble PP.</> seaTestables
+code = textOfDoc (PP.vsep ["#define ICICLE_NO_PSV 1", seaPreamble, seaTestables])
 
 seaTestables :: PP.Doc
 seaTestables = PP.vsep

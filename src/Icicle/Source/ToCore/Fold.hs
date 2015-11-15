@@ -26,7 +26,7 @@ import           Icicle.Source.Type
 import           P
 
 import           Control.Monad.Trans.Class
-import           Data.List                      (zip)
+import           Data.List                      (zip, replicate)
 import qualified Data.Map                       as Map
 
 
@@ -100,12 +100,12 @@ convertFold q
             let cp ns
                     = convertPrim p ann retty
                         ((fmap (uncurry CE.xApp) (fmap mapExtract res `zip` ns)) `zip` fmap (annResult . annotOfExp) args)
-            xx       <- pairDestruct cp ts retty
+            xx       <- pairDestruct cp ts
 
             -- For konstrukt, we need to destruct the pairs, apply the sub-ks,
             -- then box it up again in pairs.
             let applyKs ns = fst <$> pairConstruct (fmap (uncurry CE.xApp) (fmap foldKons res `zip` ns)) ts
-            kk       <- pairDestruct applyKs ts tt
+            kk       <- pairDestruct applyKs ts
 
             return $ ConvertFoldResult kk zz xx tt retty'
 
@@ -199,12 +199,12 @@ convertFold q
                          -> convertCase (final q) s (pats' `zip` alts) scrutT retty'
                         _
                          -> convertError $ ConvertErrorBadCaseNoDefault ann (final q)
-            xx       <- pairDestruct cp ts retty
+            xx       <- pairDestruct cp ts
 
             -- For konstrukt, we need to destruct the pairs, apply the sub-ks,
             -- then box it up again in pairs.
             let applyKs ns = fst <$> pairConstruct (fmap (uncurry CE.xApp) (fmap foldKons res `zip` ns)) ts
-            kk       <- pairDestruct applyKs ts tt
+            kk       <- pairDestruct applyKs ts
 
             return $ ConvertFoldResult kk zz xx tt retty'
 
@@ -240,17 +240,16 @@ convertFold q
            res       <- convertExpQ q'
            t'e       <- convertValType' $ annResult $ annotOfQuery q'
            let t'arr  = T.ArrayT t'e
-           let t'buf  = T.BufT t'e
+           let t'buf  = T.BufT i t'e
 
            let kons  = CE.xLam n'acc t'buf
-                     ( CE.pushBuf t'e
+                     ( CE.pushBuf i t'e
                          CE.@~ CE.xVar n'acc
                          CE.@~ res )
-           let zero  = CE.emptyBuf t'e
-                         CE.@~ CE.constI i
+           let zero  = CE.emptyBuf i t'e
 
            let x'    = CE.xLam n'buf t'buf
-                     ( CE.readBuf t'e CE.@~ CE.xVar n'buf )
+                     ( CE.readBuf i t'e CE.@~ CE.xVar n'buf )
 
            return $ ConvertFoldResult kons zero x' t'buf t'arr
 
@@ -265,18 +264,17 @@ convertFold q
            inp       <- convertInputName
            inpT      <- convertInputType
            let t'e    = inpT
-           let t'buf  = T.BufT t'e
+           let t'buf  = T.BufT i t'e
 
            res       <- convertWithInputName n'e $ convertFold q'
            let t'x    = typeFold res
            let t'r    = typeExtract res
 
            let kons  = CE.xLam n'acc t'buf
-                     ( CE.pushBuf t'e
+                     ( CE.pushBuf i t'e
                          CE.@~ CE.xVar n'acc
                          CE.@~ CE.xVar inp )
-           let zero  = CE.emptyBuf t'e
-                         CE.@~ CE.constI i
+           let zero  = CE.emptyBuf i t'e
 
            -- Flip the res fold arguments so it can be use with Array_fold
            let k'    = CE.xLam n'x t'x
@@ -286,7 +284,7 @@ convertFold q
 
            -- Apply the res fold
            let x'    = CE.xLet n'arr
-                     ( CE.readBuf t'e CE.@~ CE.xVar n'buf )
+                     ( CE.readBuf i t'e CE.@~ CE.xVar n'buf )
                      ( CE.xPrim (C.PrimFold (C.PrimFoldArray t'e) t'x)
                          CE.@~ k'
                          CE.@~ beta (foldZero res)
@@ -368,42 +366,66 @@ convertFold q
   -- Construct an identity function
   idFun tt = lift fresh >>= \n -> return (CE.xLam n tt (CE.xVar n))
 
+  nonunits = filter (/=T.UnitT)
   -- Create nested pair type for storing the result of subexpressions
   pairTypes ts
-   = foldr T.PairT T.UnitT ts
+   = case nonunits ts of
+      (t:ts') -> foldl T.PairT t ts'
+      []      -> T.UnitT
 
   -- Create nested pairs of arguments
   pairConstruct xs ts
-   = return
-   $ foldr
-   (\(xa,ta) (x',t')
-    -> ( CE.xPrim
-            (C.PrimMinimal $ Min.PrimConst $ Min.PrimConstPair ta t')
-            CE.@~ xa CE.@~ x'
-       , T.PairT ta t'))
-   ( CE.xValue T.UnitT VUnit, T.UnitT )
-   ( zip xs ts )
+   = let xts = filter ((/=T.UnitT).snd) $ zip xs ts
+     in  return
+       $ case xts of
+          ((x,t):xts')
+           -> foldl
+               (\(xa,ta) (x',t')
+                -> ( CE.xPrim
+                        (C.PrimMinimal $ Min.PrimConst $ Min.PrimConstPair ta t')
+                        CE.@~ xa CE.@~ x'
+                   , T.PairT ta t')) ( x, t ) xts'
+          []
+           -> (CE.xValue T.UnitT VUnit, T.UnitT)
 
   -- Destruct nested pairs.
   -- Call "f" with expression for each element of the pair.
-  pairDestruct f [] _ret
-   = do nl <- lift fresh
-        f' <- f []
-        return $ CE.xLam nl T.UnitT $ f'
+  pairDestruct f ts
+   | [] <- nonunits ts
+   = do n1 <- lift fresh
+        f' <- f (replicate (length ts) (CE.xValue T.UnitT VUnit))
+        return $ CE.xLam n1 T.UnitT f'
 
-  pairDestruct f (t1:ts) ret
+  pairDestruct f ts
+   = pairDestruct' f ts
+
+  pairDestruct' f []
+   = f []
+
+  pairDestruct' f (T.UnitT:ts)
+   = do let f' xs = f (CE.xValue T.UnitT VUnit : xs)
+        pairDestruct' f' ts
+
+  pairDestruct' f (t:ts)
+   | [] <- nonunits ts
+   = do n1 <- lift fresh
+        let f' xs = f (CE.xVar n1 : xs)
+        rest <- pairDestruct' f' ts
+        let xx = CE.xLam n1 t rest
+        return xx
+
+  pairDestruct' f (t:ts)
    = do nl <- lift fresh
         n1 <- lift fresh
-
         let f' xs = f (CE.xVar n1 : xs)
         let tr    = pairTypes ts
 
-        rest <- pairDestruct f' ts ret
+        rest <- pairDestruct' f' ts
 
-        let xfst = CE.xPrim (C.PrimMinimal $ Min.PrimPair $ Min.PrimPairFst t1 tr) CE.@~ CE.xVar nl
-        let xsnd = CE.xPrim (C.PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd t1 tr) CE.@~ CE.xVar nl
+        let xfst = CE.xPrim (C.PrimMinimal $ Min.PrimPair $ Min.PrimPairFst t tr) CE.@~ CE.xVar nl
+        let xsnd = CE.xPrim (C.PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd t tr) CE.@~ CE.xVar nl
 
-        let xx = CE.xLam nl (T.PairT t1 tr)
+        let xx = CE.xLam nl (T.PairT t tr)
                $ CE.xLet n1 xfst
                ( rest CE.@~ xsnd )
 
@@ -416,30 +438,26 @@ convertFold q
             resq   <- convertFold q'
             let tb' = typeFold resb
             let tq' = typeFold resq
-            let tpair = T.PairT tb' tq'
+            let tpair = pairTypes [tb', tq']
 
-            let mkPair x y
-                   = CE.xPrim
-                   (C.PrimMinimal $ Min.PrimConst $ Min.PrimConstPair tb' tq')
-                     CE.@~ x CE.@~ y
-            let xproj which x
-                   = CE.xPrim
-                   (C.PrimMinimal $ Min.PrimPair $ which tb' tq')
-                     CE.@~ x
-            let xfst = xproj Min.PrimPairFst
-            let xsnd = xproj Min.PrimPairSnd
+            let fk' [xa,xb]
+                    = do (kp',_) <- pairConstruct [CE.xVar b', foldKons resq CE.@~ xb ] [tb', tq']
+                         return $ CE.xLet b' (foldKons resb CE.@~ xa) kp'
+                fk' s
+                    = fk' s
+            k' <- pairDestruct fk' [tb', tq']
 
-            n' <- lift fresh
-            let k'  = CE.xLam n' tpair
-                    $ CE.xLet b' (foldKons resb CE.@~ xfst (CE.xVar n'))
-                    $ mkPair (CE.xVar b') (foldKons resq CE.@~ xsnd (CE.xVar n'))
+            (zp',_) <- pairConstruct [CE.xVar b', foldZero resq ] [tb', tq']
+            let z'  = CE.xLet b' (foldZero resb) zp'
 
-            let z'  = CE.xLet b' (foldZero resb)
-                    $ mkPair (CE.xVar b') (foldZero resq)
 
-            let x'  = CE.xLam n' tpair
-                    $ CE.xLet b' (mapExtract resb CE.@~ xfst (CE.xVar n'))
-                                 (mapExtract resq CE.@~ xsnd (CE.xVar n'))
+            let cp [xa,xb]
+                    = return
+                    $ CE.xLet b' (mapExtract resb CE.@~ xa)
+                                 (mapExtract resq CE.@~ xb)
+                cp  s
+                    = cp  s
+            x' <- pairDestruct cp [tb', tq']
 
             return $ ConvertFoldResult k' z' x' tpair (typeExtract resq)
 

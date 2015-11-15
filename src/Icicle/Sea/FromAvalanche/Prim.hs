@@ -28,7 +28,7 @@ seaOfPrimDocApps :: PrimDoc -> [Doc] -> Doc
 seaOfPrimDocApps p xs
  = case p of
     PDFun   d -> d <+> tuple xs
-    PDAlloc d -> d <+> tuple ("&s->mempool" : xs)
+    PDAlloc d -> d <+> tuple ("s->mempool" : xs)
 
 seaOfXPrim :: Prim -> PrimDoc
 seaOfXPrim p
@@ -55,6 +55,10 @@ seaOfXPrim p
      PrimMinimal (M.PrimRelation op t)
       -> PDFun
        ( prefixOfValType t <> seaOfPrimRelation op )
+
+     PrimMinimal (M.PrimLogical op)
+      -> PDFun
+       ( prefixOfValType BoolT <> seaOfPrimLogical op )
 
      PrimProject op
       -> PDFun $ seaOfPrimProject op
@@ -119,6 +123,13 @@ seaOfPrimRelation p
      M.PrimRelationEq -> "eq"
      M.PrimRelationNe -> "ne"
 
+seaOfPrimLogical :: M.PrimLogical -> Doc
+seaOfPrimLogical p
+ = case p of
+     M.PrimLogicalAnd -> "and"
+     M.PrimLogicalOr  -> "or"
+     M.PrimLogicalNot -> "not"
+
 seaOfPrimProject :: PrimProject -> Doc
 seaOfPrimProject p
  = case p of
@@ -152,11 +163,9 @@ seaOfPrimArray p
 seaOfPrimBuf :: PrimBuf -> PrimDoc
 seaOfPrimBuf p
  = case p of
-     PrimBufMake t
-      -> PDAlloc (prefixOfValType (BufT t) <> "make")
-     PrimBufPush t
-      -> PDFun   (prefixOfValType (BufT t) <> "push")
-     PrimBufRead t
-      -> PDAlloc (prefixOfValType (BufT t) <> "read")
+     PrimBufPush i t
+      -> PDFun   (prefixOfValType (BufT i t) <> "push")
+     PrimBufRead i t
+      -> PDAlloc (prefixOfValType (BufT i t) <> "read")
 
 

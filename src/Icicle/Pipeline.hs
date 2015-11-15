@@ -256,11 +256,10 @@ simpFlattened av
  = let name = Fresh.counterPrefixNameState (SP.Variable . T.pack . show) "simp"
    in  AA.eraseAnnotP
      $ snd
-     $ Fresh.runFresh go2 name
+     $ Fresh.runFresh go' name
  where
-  -- The magic recipe for nice, small, clean Avalanche
-  go2
-   = go av >>= go
+  go'
+   = go av
   -- Thread through a dummy annotation
   go
    = AS.simpFlattened (CA.Annot (CT.FunT [] CT.ErrorT) ())

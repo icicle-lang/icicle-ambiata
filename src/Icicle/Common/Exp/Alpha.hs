@@ -3,6 +3,7 @@
 {-# LANGUAGE PatternGuards #-}
 module Icicle.Common.Exp.Alpha (
       alphaEquality
+    , simpleEquality
     ) where
 
 import              Icicle.Common.Base
@@ -10,7 +11,6 @@ import              Icicle.Common.Exp.Exp
 import              P
 
 import qualified    Data.Map                as Map
-import qualified    Data.List               as List
 
 
 -- | Check whether two expressions are syntactically equal,
@@ -19,14 +19,14 @@ alphaEquality
         :: (Ord n, Eq p)
         => Exp a n p -> Exp a n p
         -> Bool
-alphaEquality = alphaEquality' Map.empty
+alphaEquality = alphaEquality' emptyCtx
 
 
 -- | Check alpha equality with bijection of names bound in left expression to
 -- their equivalent in right
 alphaEquality'
         :: (Ord n, Eq p)
-        => Map.Map (Name n) (Name n)
+        => Ctx n
         -> Exp a n p -> Exp a n p
         -> Bool
 alphaEquality' m x1 x2
@@ -74,23 +74,25 @@ alphaEquality' m x1 x2
   go = alphaEquality' m
 
 
+type Ctx n = (Map.Map (Name n) (Name n), Map.Map (Name n) (Name n))
+
+emptyCtx :: Ctx n
+emptyCtx = (Map.empty, Map.empty)
+
 -- | Insert l=r into bijection map.
 -- If there is already a binding that mentions l, it will be overwritten by the Map.insert.
 -- If there is already a binding that mentions r, we must find its matching left and remove it.
-insertBoth :: Ord n => Map.Map n n -> (n,n) -> Map.Map n n
-insertBoth m (l,r)
- = case reverseLookup r m of
-    Nothing -> Map.insert l r m
-    Just l' -> Map.insert l r
-             $ Map.delete l'  m
+insertBoth :: Ord n => Ctx n -> (Name n, Name n) -> Ctx n
+insertBoth (ml,mr) (l,r)
+ = (Map.insert l r ml, Map.insert r l mr)
 
 -- | Check if two names are equal.
 -- If they both occur in the bijection map, check that they both match.
 -- If neither occur in the map they are free variables, and must be equal.
 -- Otherwise one is bound and the other isn't, which means they cannot be equal.
-lookupBoth :: Ord n => Map.Map n n -> (n,n) -> Bool
-lookupBoth m (l,r)
- = case (Map.lookup l m, reverseLookup r m) of
+lookupBoth :: Ord n => Ctx n -> (Name n, Name n) -> Bool
+lookupBoth (ml,mr) (l,r)
+ = case (Map.lookup l ml, Map.lookup r mr) of
     (Just r', Just l')
      -> l == l' && r == r'
     (Nothing, Nothing)
@@ -98,10 +100,28 @@ lookupBoth m (l,r)
     _
      -> False
 
--- | Look up in map according to value. Slow
-reverseLookup :: (Ord k, Eq v) => v -> Map.Map k v -> Maybe k
-reverseLookup n m
- = List.lookup n
- $ fmap swap
- $ Map.toList m
+
+-- | Simple equality, ignoring annotations
+simpleEquality
+        :: (Eq n, Eq p)
+        => Exp a n p -> Exp a n p
+        -> Bool
+simpleEquality x1 x2
+ = case (x1,x2) of
+    (XVar _ n1, XVar _ n2)
+     -> n1 == n2
+    (XPrim _ p1, XPrim _ p2)
+     -> p1 == p2
+    (XValue _ t1 v1, XValue _ t2 v2)
+     -> t1 == t2 && v1 == v2
+    (XApp _ x11 x12, XApp _ x21 x22)
+     -> go x11 x21 && go x12 x22
+    (XLam _ n1 t1 x1', XLam _ n2 t2 x2')
+     -> n1 == n2 && t1 == t2 && go x1' x2'
+    (XLet _ n1 x11 x12, XLet _ n2 x21 x22 )
+     -> n1 == n2 && go x11 x21 && go x12 x22
+
+    _ -> False
+ where
+  go = simpleEquality
 

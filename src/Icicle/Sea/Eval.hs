@@ -12,6 +12,7 @@ module Icicle.Sea.Eval (
   , SeaFleet (..)
   , SeaProgram (..)
   , SeaError (..)
+  , Psv (..)
 
   , seaCompile
   , seaEval
@@ -46,7 +47,8 @@ import           Foreign.Marshal (mallocBytes, free)
 import           Foreign.Ptr (Ptr, WordPtr, ptrToWordPtr, wordPtrToPtr, castPtr, nullPtr)
 import           Foreign.Storable (Storable(..))
 
-import           Icicle.Avalanche.Prim.Flat (Prim)
+import           Icicle.Avalanche.Prim.Flat (Prim, tryMeltType)
+import           Icicle.Avalanche.Prim.Eval (unmeltValue)
 import           Icicle.Avalanche.Program (Program)
 import           Icicle.Avalanche.Statement.Statement (FactLoopType(..))
 import           Icicle.Common.Annot (Annot)
@@ -56,10 +58,14 @@ import           Icicle.Common.Type (ValType(..), StructType(..), defaultOfType)
 import           Icicle.Data (Attribute(..))
 import qualified Icicle.Data as D
 import           Icicle.Data.DateTime (packedOfDate, dateOfPacked)
-import           Icicle.Internal.Pretty ((<+>), pretty, text, vsep)
+import           Icicle.Internal.Pretty (pretty, vsep)
 import           Icicle.Internal.Pretty (Doc, Pretty, displayS, renderPretty)
+
+import           Icicle.Sea.Error (SeaError(..))
 import           Icicle.Sea.FromAvalanche.Analysis (factVarsOfProgram, outputsOfProgram)
-import           Icicle.Sea.FromAvalanche.Program (seaOfProgram, programName, stateWordsOfProgram)
+import           Icicle.Sea.FromAvalanche.Program (seaOfProgram, nameOfProgram', stateWordsOfProgram)
+import           Icicle.Sea.FromAvalanche.State (stateOfProgram)
+import           Icicle.Sea.FromAvalanche.Psv (seaOfPsvDriver)
 import           Icicle.Sea.Preamble (seaPreamble)
 
 import           Jetski
@@ -74,6 +80,8 @@ import           X.Control.Monad.Trans.Either (firstEitherT)
 
 ------------------------------------------------------------------------
 
+data Psv = NoPsv | Psv
+
 data MemPool
 data PsvState
 data SeaState
@@ -81,7 +89,7 @@ data SeaState
 data SeaFleet = SeaFleet {
     sfLibrary     :: Library
   , sfPrograms    :: Map Attribute SeaProgram
-  , sfCreatePool  :: Ptr MemPool  -> IO ()
+  , sfCreatePool  :: IO (Ptr MemPool)
   , sfReleasePool :: Ptr MemPool  -> IO ()
   , sfPsvSnapshot :: Ptr PsvState -> IO ()
   }
@@ -106,50 +114,6 @@ instance Show SeaMVector where
     U64 v -> showString "U64 " . showsPrec 11 (unsafePerformIO (V.unsafeFreeze v))
     F64 v -> showString "F64 " . showsPrec 11 (unsafePerformIO (V.unsafeFreeze v))
     P64 v -> showString "P64 " . showsPrec 11 (unsafePerformIO (V.unsafeFreeze v))
-
-data SeaError
-  = SeaJetskiError              JetskiError
-  | SeaPsvError                 Text
-  | SeaProgramNotFound          Attribute
-  | SeaFactConversionError      [D.AsAt D.Value] ValType
-  | SeaBaseValueConversionError BaseValue (Maybe ValType)
-  | SeaTypeConversionError      ValType
-  | SeaNoFactLoop
-  | SeaNoOutputs
-  deriving (Eq, Show)
-
-instance Pretty SeaError where
-  pretty = \case
-    SeaFactConversionError vs t
-     -> text "Cannot convert facts "
-     <> pretty (fmap D.fact vs) <+> text ": [" <> pretty t <> text "]"
-
-    SeaBaseValueConversionError v Nothing
-     -> text "Cannot convert value " <> pretty v
-
-    SeaBaseValueConversionError v (Just t)
-     -> text "Cannot convert value " <> pretty v <+> text ":" <+> pretty t
-
-    SeaTypeConversionError t
-     -> text "Cannot convert type " <> pretty t
-
-    SeaNoFactLoop
-     -> text "No fact loop"
-
-    SeaNoOutputs
-     -> text "No outputs"
-
-    SeaProgramNotFound attr
-     -> text "Program for attribute \"" <> pretty attr <> "\" not found"
-
-    SeaJetskiError (CompilerError _ _ stderr)
-     -> pretty stderr
-
-    SeaJetskiError je
-     -> pretty (show je)
-
-    SeaPsvError pe
-     -> pretty pe
 
 ------------------------------------------------------------------------
 
@@ -183,7 +147,7 @@ seaEvalAvalanche
 seaEvalAvalanche program date values = do
   let attr = Attribute "eval"
       ps   = Map.singleton attr program
-  bracketEitherT' (seaCompile ps) seaRelease (\fleet -> seaEval attr fleet date values)
+  bracketEitherT' (seaCompile NoPsv ps) seaRelease (\fleet -> seaEval attr fleet date values)
 
 seaEval
   :: (MonadIO m, MonadMask m)
@@ -196,14 +160,14 @@ seaEval attribute fleet date values =
   case Map.lookup attribute (sfPrograms fleet) of
     Nothing      -> left (SeaProgramNotFound attribute)
     Just program -> do
-      let create  = liftIO . sfCreatePool  fleet
+      let create  = liftIO $ sfCreatePool  fleet
           release = liftIO . sfReleasePool fleet
       seaEval' program create release date values
 
 seaEval'
   :: (MonadIO m, MonadMask m)
   => SeaProgram
-  -> (Ptr MemPool -> EitherT SeaError m ())
+  -> (EitherT SeaError m (Ptr MemPool))
   -> (Ptr MemPool -> EitherT SeaError m ())
   -> D.DateTime
   -> [D.AsAt D.Value]
@@ -217,22 +181,21 @@ seaEval' program createPool releasePool date values = do
   withWords      words $ \pState -> do
   withSeaVectors facts $ \count psFacts -> do
 
-    let _mempoolIx = 0 :: Int
-        dateIx     = 3
-        countIx    = 4
-        factsIx    = 5
-        outputsIx  = 5 + length psFacts
+    let mempoolIx  = 0 :: Int
+        dateIx     = 1
+        countIx    = 2
+        factsIx    = 3
+        outputsIx  = 3 + length psFacts
 
     pokeWordOff pState dateIx  (packedOfDate date)
     pokeWordOff pState countIx (fromIntegral count :: Int64)
 
     zipWithM_ (pokeWordOff pState) [factsIx..] psFacts
 
-    let pMemPool = castPtr pState
-
-    bracketEitherT' (createPool pMemPool) (const $ releasePool pMemPool) $ \_ -> do
+    bracketEitherT' createPool releasePool $ \poolPtr -> do
+      pokeWordOff pState mempoolIx poolPtr
       _       <- liftIO (spCompute program pState)
-      outputs <- peekOutputs pState outputsIx (spOutputs program)
+      outputs <- peekNamedOutputs pState outputsIx (spOutputs program)
       hoistEither (traverse (\(k,v) -> (,) <$> pure k <*> valueFromCore' v) outputs)
 
 valueFromCore' :: BaseValue -> Either SeaError D.Value
@@ -244,24 +207,31 @@ valueFromCore' v =
 seaCompile
   :: (MonadIO m, MonadMask m, Functor m)
   => (Show a, Show n, Pretty n, Ord n)
-  => Map Attribute (Program (Annot a) n Prim)
+  => Psv
+  -> Map Attribute (Program (Annot a) n Prim)
   -> EitherT SeaError m SeaFleet
-seaCompile programs = do
-  let code = codeOfPrograms . fmap (first D.getAttribute) $ Map.toList programs
+seaCompile psv programs = do
+  code <- hoistEither (codeOfPrograms psv (Map.toList programs))
 
   lib             <- firstEitherT SeaJetskiError (compileLibrary compilerOptions code)
-  imempool_create <- firstEitherT SeaJetskiError (function lib "imempool_create" retVoid)
+  imempool_create <- firstEitherT SeaJetskiError (function lib "imempool_create" (retPtr retVoid))
   imempool_free   <- firstEitherT SeaJetskiError (function lib "imempool_free"   retVoid)
-  psv_snapshot    <- firstEitherT SeaJetskiError (function lib "psv_snapshot"    retVoid)
+
+  psv_snapshot <- case psv of
+    NoPsv -> do
+      return (\_ -> return ())
+    Psv -> do
+      fn <- firstEitherT SeaJetskiError (function lib "psv_snapshot" retVoid)
+      return (\ptr -> fn [argPtr ptr])
 
   compiled <- zipWithM (mkSeaProgram lib) [0..] (Map.elems programs)
 
   return SeaFleet {
       sfLibrary     = lib
     , sfPrograms    = Map.fromList (List.zip (Map.keys programs) compiled)
-    , sfCreatePool  = \ptr -> imempool_create [argPtr ptr]
+    , sfCreatePool  = castPtr <$> imempool_create []
     , sfReleasePool = \ptr -> imempool_free   [argPtr ptr]
-    , sfPsvSnapshot = \ptr -> psv_snapshot    [argPtr ptr]
+    , sfPsvSnapshot = psv_snapshot
     }
 
 mkSeaProgram
@@ -278,7 +248,7 @@ mkSeaProgram lib name program = do
                 Nothing     -> left SeaNoFactLoop
                 Just (t, _) -> return t
 
-  compute <- firstEitherT SeaJetskiError (function lib (programName name) retVoid)
+  compute <- firstEitherT SeaJetskiError (function lib (nameOfProgram' name) retVoid)
 
   return SeaProgram {
       spName       = name
@@ -302,19 +272,28 @@ compilerOptions =
 
 assemblyOfPrograms
   :: (Show a, Show n, Pretty n, Ord n)
-  => [(Text, Program (Annot a) n Prim)]
+  => Psv
+  -> [(Attribute, Program (Annot a) n Prim)]
   -> EitherT SeaError IO Text
-assemblyOfPrograms programs = do
-  let code = codeOfPrograms programs
+assemblyOfPrograms psv programs = do
+  code <- hoistEither (codeOfPrograms psv programs)
   firstEitherT SeaJetskiError (compileAssembly compilerOptions code)
 
 codeOfPrograms
   :: (Show a, Show n, Pretty n, Ord n)
-  => [(Text, Program (Annot a) n Prim)]
-  -> Text
-codeOfPrograms programs = do
-  let docs = List.zipWith (\ix (info,p) -> seaOfProgram ix info p) [0..] programs
-  textOfDoc . vsep $ [seaPreamble] <> docs
+  => Psv
+  -> [(Attribute, Program (Annot a) n Prim)]
+  -> Either SeaError Text
+codeOfPrograms psv programs = do
+  docs    <- zipWithM (\ix (a, p) -> seaOfProgram   ix a p) [0..] programs
+  states  <- zipWithM (\ix (a, p) -> stateOfProgram ix a p) [0..] programs
+
+  case psv of
+    NoPsv -> do
+      pure . textOfDoc . vsep $ ["#define ICICLE_NO_PSV 1", seaPreamble] <> docs
+    Psv -> do
+      psv_doc <- seaOfPsvDriver states
+      pure . textOfDoc . vsep $ [seaPreamble] <> docs <> ["", psv_doc]
 
 textOfDoc :: Doc -> Text
 textOfDoc doc = T.pack (displayS (renderPretty 0.8 80 (pretty doc)) "")
@@ -384,7 +363,6 @@ newSeaVectors sz t =
     ErrorT    -> (:[]) . U64 <$> liftIO (MV.new sz)
     StringT   -> (:[]) . P64 <$> liftIO (MV.new sz)
 
-    MapT{}    -> left (SeaTypeConversionError t)
     BufT{}    -> left (SeaTypeConversionError t)
 
     ArrayT tx
@@ -393,6 +371,11 @@ newSeaVectors sz t =
 
      | otherwise
      -> (:[]) . P64 <$> liftIO (MV.new sz)
+
+    MapT tk tv
+     -> do vk <- newSeaVectors sz (ArrayT tk)
+           vv <- newSeaVectors sz (ArrayT tv)
+           pure (vk <> vv)
 
     PairT ta tb
      -> do va <- newSeaVectors sz ta
@@ -444,6 +427,11 @@ pokeInput' svs0@(sv:svs) t ix val =
            liftIO (MV.write v ix (ptrToWordPtr ptr))
            pure svs
 
+    (_, VMap kvs, MapT tk tv)
+     -> do svs1 <- pokeInput' svs0 (ArrayT tk) ix (VArray (Map.keys  kvs))
+           svs2 <- pokeInput' svs1 (ArrayT tv) ix (VArray (Map.elems kvs))
+           pure svs2
+
     (_, VPair a b, PairT ta tb)
      -> do svs1 <- pokeInput' svs0 ta ix a
            svs2 <- pokeInput' svs1 tb ix b
@@ -484,17 +472,32 @@ pokeInput' svs0@(sv:svs) t ix val =
 
 ------------------------------------------------------------------------
 
-peekOutputs :: MonadIO m
-            => Ptr a
-            -> Int
-            -> [(OutputName, (ValType, [ValType]))]
-            -> EitherT SeaError m [(OutputName, BaseValue)]
+peekNamedOutputs
+  :: MonadIO m
+  => Ptr a
+  -> Int
+  -> [(OutputName, (ValType, [ValType]))]
+  -> EitherT SeaError m [(OutputName, BaseValue)]
 
-peekOutputs _ _ []                     = pure []
-peekOutputs ptr ix ((n, (t, _)) : ots) = do
-  nvs    <- peekOutputs ptr (ix+1) ots
+peekNamedOutputs _ _ []                     = pure []
+peekNamedOutputs ptr ix ((n, (t, _)) : ots) = do
+  nvs    <- peekNamedOutputs ptr (ix+1) ots
   (_, v) <- peekOutput  ptr ix t
   pure ((n, v) : nvs)
+
+
+peekOutputs
+  :: MonadIO m
+  => Ptr a
+  -> Int
+  -> [ValType]
+  -> EitherT SeaError m (Int, [BaseValue])
+
+peekOutputs _   ix0 []       = pure (ix0, [])
+peekOutputs ptr ix0 (t : ts) = do
+  (ix1, v)  <- peekOutput  ptr ix0 t
+  (ix2, vs) <- peekOutputs ptr ix1 ts
+  pure (ix2, v : vs)
 
 
 peekOutput :: MonadIO m => Ptr a -> Int -> ValType -> EitherT SeaError m (Int, BaseValue)
@@ -506,7 +509,6 @@ peekOutput ptr ix0 t =
     DateTimeT -> (ix0+1,) . VDateTime . dateOfPacked <$> peekWordOff ptr ix0
     ErrorT    -> (ix0+1,) . VError    . errorOfWord  <$> peekWordOff ptr ix0
 
-    MapT{}    -> left (SeaTypeConversionError t)
     StructT{} -> left (SeaTypeConversionError t)
     BufT{}    -> left (SeaTypeConversionError t)
 
@@ -516,8 +518,10 @@ peekOutput ptr ix0 t =
            pure (ix0+1, VString (T.pack str))
 
     ArrayT tx
-     | StringT <- tx
-     -> left (SeaTypeConversionError t)
+     | Just ts <- tryMeltType t
+     -> do (ix1, oss) <- peekOutputs ptr ix0 ts
+           v <- unmeltValueE (SeaTypeConversionError t) oss t
+           pure (ix1, v)
 
      | otherwise
      -> do arrPtr :: Ptr Word64 <- wordPtrToPtr <$> peekWordOff ptr ix0
@@ -529,6 +533,13 @@ peekOutput ptr ix0 t =
            case b :: Word64 of
              0 -> pure (ix0+1, VBool False)
              _ -> pure (ix0+1, VBool True)
+
+    MapT tk tv
+     -> do (ix1, vk) <- peekOutput ptr ix0 (ArrayT tk)
+           (ix2, vv) <- peekOutput ptr ix1 (ArrayT tv)
+           ak <- unArray (SeaTypeConversionError t) vk
+           av <- unArray (SeaTypeConversionError t) vv
+           pure (ix2, VMap (Map.fromList (List.zip ak av)))
 
     PairT ta tb
      -> do (ix1, va) <- peekOutput ptr ix0 ta
@@ -584,8 +595,19 @@ peekArrayIx ptr t ix =
              0 -> pure (VBool False)
              _ -> pure (VBool True)
 
+    StringT
+     -> do strPtr <- wordPtrToPtr <$> peekWordOff ptr ix
+           str    <- liftIO (peekCString strPtr)
+           pure (VString (T.pack str))
     _
-     -> left (SeaTypeConversionError t)
+     -> left (SeaTypeConversionError (ArrayT t))
+
+unArray :: Monad m => e -> BaseValue -> EitherT e m [BaseValue]
+unArray _ (VArray vs) = pure vs
+unArray e _           = left e
+
+unmeltValueE :: Monad m => e -> [BaseValue] -> ValType -> EitherT e m BaseValue
+unmeltValueE e vs t = maybe (left e) pure (unmeltValue vs t)
 
 ------------------------------------------------------------------------
 

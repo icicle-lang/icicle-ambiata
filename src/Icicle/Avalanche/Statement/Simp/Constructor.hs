@@ -4,6 +4,7 @@ module Icicle.Avalanche.Statement.Simp.Constructor (
     constructor
   ) where
 
+import              Icicle.Avalanche.Prim.Eval
 import              Icicle.Avalanche.Prim.Flat
 import              Icicle.Avalanche.Statement.Simp.ExpEnv
 import              Icicle.Avalanche.Statement.Statement
@@ -33,9 +34,53 @@ constructor a_fresh statements
   xFalse     = xValue BoolT (VBool False)
   xDefault t = xValue t (defaultOfType t)
 
+  primAnd = primLogical  Min.PrimLogicalAnd
+  primEq  = primRelation Min.PrimRelationEq
+
+  primFold1 append xs
+   = case xs of
+      []     -> xValue UnitT VUnit -- this case shouldn't happen, make it a type error
+      (y:[]) -> y
+      (y:ys) -> y `append` primFold1 append ys
+
+  primLogical op x y
+   = xPrim (PrimMinimal (Min.PrimLogical op)) `xApp` x `xApp` y
+
+  primRelation op t x y
+   = xPrim (PrimMinimal (Min.PrimRelation op t)) `xApp` x `xApp` y
+
+  primBufRead i t x
+   = xPrim (PrimBuf (PrimBufRead i t)) `xApp` x
+
+  primBufPush i t x y
+   = xPrim (PrimBuf (PrimBufPush i t)) `xApp` x `xApp` y
+
+  primArrayCreate i t
+   = xPrim (PrimUnsafe (PrimUnsafeArrayCreate t)) `xApp` i
+
+  primArrayLength t a
+   = xPrim (PrimProject (PrimProjectArrayLength t)) `xApp` a
+
+  primArrayGet i t a
+   = xPrim (PrimUnsafe (PrimUnsafeArrayIndex t)) `xApp` a `xApp` i
+
+  primArrayPut i t a v
+   = xPrim (PrimUpdate (PrimUpdateArrayPut t)) `xApp` a `xApp` i `xApp` v
+
+  primUnpack ix t x
+   = xPrim (PrimMelt (PrimMeltUnpack ix t)) `xApp` x
+
+  primPack env t xs
+   = foldl (\f x -> f `xApp` x) (xPrim (PrimMelt (PrimMeltPack t))) (unpack env xs)
+
+  primRepack  env t skip take x
+   = let start = length (concatMap meltType skip)
+         end   = start + length (meltType take) - 1
+     in primPack env take (fmap (\ix -> primUnpack ix t x) [start..end])
+
   goS env s
    = let env' = updateExpEnv s env
-         go   = goX env
+         go   = goX env'
          ret s' = return (updateExpEnv s' env', s')
      in  case s of
           If x t e
@@ -56,242 +101,164 @@ constructor a_fresh statements
            -> ret s
 
   goX env x
-   | x' <- goX' env x
-   , x /= x'
-   = goX env x'
+   | Just prima <- takePrimApps x
+   , x' <- goX' env x prima
+   = x'
    | otherwise
    = x
 
-  goX' env x
-   -- min
-   | Just (PrimMinimal (Min.PrimPair (Min.PrimPairFst _ _)), [n]) <- takePrimApps x
-   , Just x'        <- resolve env n
-   , Just (_,_,a,_) <- fromPair x'
-   = a
-   | Just (PrimMinimal (Min.PrimPair (Min.PrimPairSnd _ _)), [n]) <- takePrimApps x
-   , Just x'        <- resolve env n
-   , Just (_,_,_,b) <- fromPair x'
-   = b
 
-   | Just (PrimMinimal (Min.PrimStruct (Min.PrimStructGet f _ _)), [n]) <- takePrimApps x
+  goX' env x prima
+   | (PrimMelt (PrimMeltPack t), [n]) <- prima
+   , Nothing <- tryMeltType t
+   = n
+
+   | (PrimMelt (PrimMeltUnpack ix _), [n]) <- prima
    , Just x' <- resolve env n
-   , Just v  <- fromStruct f x'
+   , Just v  <- fromPacked ix x'
    = v
 
-   -- safe projections
-   | Just (PrimProject (PrimProjectArrayLength _), [XVar _ n]) <- takePrimApps x
-   , Just x' <- get env n
-   , Just (ta, _, a, _) <- fromZippedArray x'
-   = xPrim (PrimProject $ PrimProjectArrayLength ta)
-    `xApp` a
+   -- repacking projections
+   | (PrimMinimal (Min.PrimPair (Min.PrimPairFst ta tb)), [n]) <- prima
+   = primRepack env (PairT ta tb) [] ta n
 
-   | Just (PrimProject (PrimProjectArrayLength _), [XVar _ n]) <- takePrimApps x
-   , Just x' <- get env n
-   , Just (_, _, i, _, _) <- fromSummedArray x'
-   = xPrim (PrimProject $ PrimProjectArrayLength BoolT)
-    `xApp` i
+   | (PrimMinimal (Min.PrimPair (Min.PrimPairSnd ta tb)), [n]) <- prima
+   = primRepack env (PairT ta tb) [ta] tb n
 
-   | Just (PrimProject (PrimProjectOptionIsSome _), [n]) <- takePrimApps x
-   , Just x' <- resolve env n
-   , Just (_,b,_) <- fromOption x'
-   = b
+   | (PrimMap (PrimMapUnpackKeys tk tv), [n]) <- prima
+   = primRepack env (MapT tk tv) [] (ArrayT tk) n
 
-   | Just (PrimProject (PrimProjectSumIsRight _ _), [n]) <- takePrimApps x
-   , Just x' <- resolve env n
-   , Just (_,_,i,_,_) <- fromSum x'
-   = i
+   | (PrimMap (PrimMapUnpackValues tk tv), [n]) <- prima
+   = primRepack env (MapT tk tv) [ArrayT tk] (ArrayT tv) n
 
-   -- unsafe projections
-   | Just (PrimUnsafe (PrimUnsafeArrayIndex _), [XVar _ n, ix]) <- takePrimApps x
-   , Just x' <- get env n
-   , Just (ta, tb, a, b) <- fromZippedArray x'
-   = xPrim (PrimMinimal $ Min.PrimConst $ Min.PrimConstPair ta tb)
-    `xApp` (xPrim (PrimUnsafe (PrimUnsafeArrayIndex ta)) `xApp` a `xApp` ix)
-    `xApp` (xPrim (PrimUnsafe (PrimUnsafeArrayIndex tb)) `xApp` b `xApp` ix)
+   | (PrimProject (PrimProjectOptionIsSome tx), [n]) <- prima
+   = primRepack env (OptionT tx) [] BoolT n
 
-   | Just (PrimUnsafe (PrimUnsafeArrayIndex _), [XVar _ n, ix]) <- takePrimApps x
-   , Just x' <- get env n
-   , Just (ta, tb, i, a, b) <- fromSummedArray x'
-   = xPrim (PrimPack $ PrimSumPack ta tb)
-    `xApp` (xPrim (PrimUnsafe (PrimUnsafeArrayIndex BoolT)) `xApp` i `xApp` ix)
-    `xApp` (xPrim (PrimUnsafe (PrimUnsafeArrayIndex ta))    `xApp` a `xApp` ix)
-    `xApp` (xPrim (PrimUnsafe (PrimUnsafeArrayIndex tb))    `xApp` b `xApp` ix)
+   | (PrimUnsafe (PrimUnsafeOptionGet tx), [n]) <- prima
+   = primRepack env (OptionT tx) [BoolT] tx n
 
-   | Just (PrimUnsafe (PrimUnsafeOptionGet _), [n]) <- takePrimApps x
-   , Just x' <- resolve env n
-   , Just (_,_,v) <- fromOption x'
-   = v
+   | (PrimProject (PrimProjectSumIsRight ta tb), [n]) <- prima
+   = primRepack env (SumT ta tb) [] BoolT n
 
-   | Just (PrimUnsafe (PrimUnsafeSumGetLeft _ _), [n]) <- takePrimApps x
-   , Just x' <- resolve env n
-   , Just (_,_,_,a,_) <- fromSum x'
-   = a
+   | (PrimUnsafe (PrimUnsafeSumGetLeft ta tb), [n]) <- prima
+   = primRepack env (SumT ta tb) [BoolT] ta n
 
-   | Just (PrimUnsafe (PrimUnsafeSumGetRight _ _), [n]) <- takePrimApps x
-   , Just x' <- resolve env n
-   , Just (_,_,_,_,b) <- fromSum x'
-   = b
+   | (PrimUnsafe (PrimUnsafeSumGetRight ta tb), [n]) <- prima
+   = primRepack env (SumT ta tb) [BoolT, ta] tb n
 
-   -- * Update
-   --   put (sum i a b) ~> sum (put i) (put a) (put b)
-   | Just (PrimUpdate (PrimUpdateArrayPut _), [arr,ix,v]) <- takePrimApps x
-   , Just arrx              <- resolve env arr
-   , Just (ta, tb, i, a, b) <- fromSummedArray arrx
-   , boool                  <- xPrim (PrimProject (PrimProjectSumIsRight ta tb)) `xApp` v
-   , l                      <- xPrim (PrimUnsafe  (PrimUnsafeSumGetLeft  ta tb)) `xApp` v
-   , r                      <- xPrim (PrimUnsafe  (PrimUnsafeSumGetRight ta tb)) `xApp` v
-   , l'                     <- goX env l
-   , r'                     <- goX env r
-   = xPrim (PrimArray $ PrimArraySum ta tb)
-   `xApp` (xPrim (PrimUpdate (PrimUpdateArrayPut BoolT)) `xApp` i `xApp` ix `xApp` boool)
-   `xApp` (xPrim (PrimUpdate (PrimUpdateArrayPut ta))    `xApp` a `xApp` ix `xApp` l')
-   `xApp` (xPrim (PrimUpdate (PrimUpdateArrayPut tb))    `xApp` b `xApp` ix `xApp` r')
+   | (PrimMinimal (Min.PrimStruct (Min.PrimStructGet f tf ts@(StructType fs))), [n]) <- prima
+   , (pre, _:_) <- List.span (/= f) (Map.keys fs)
+   , tpre       <- List.take (length pre) (Map.elems fs)
+   = primRepack env (StructT ts) tpre tf n
 
-   -- put (zip a b) ~> zip (put a) (put b)
-   | Just (PrimUpdate (PrimUpdateArrayPut _), [arr,ix,v]) <- takePrimApps x
-   , Just arrx           <- resolve env arr
-   , Just (ta, tb, a, b) <- fromZippedArray arrx
-   , f                   <- xPrim (PrimMinimal $ Min.PrimPair $ Min.PrimPairFst ta tb) `xApp` v
-   , s                   <- xPrim (PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd ta tb) `xApp` v
-   , f'                  <- goX env f
-   , s'                  <- goX env s
-   = xPrim (PrimArray $ PrimArrayZip ta tb)
-   `xApp` (xPrim (PrimUpdate (PrimUpdateArrayPut ta)) `xApp` a `xApp` ix `xApp` f')
-   `xApp` (xPrim (PrimUpdate (PrimUpdateArrayPut ta)) `xApp` b `xApp` ix `xApp` s')
+   -- repacking const
+   | (PrimMinimal (Min.PrimConst (Min.PrimConstPair ta tb)), [na, nb]) <- prima
+   = primPack env (PairT ta tb) [na, nb]
 
-   -- * Arrays
-   --   unzip [e1,e2,...en] ~> ([fst e1, fst e2, ..., fst en ], [snd e1, snd e2, ..., snd en])
-   | Just (PrimArray (PrimArrayUnzip _ _), [arr])       <- takePrimApps x
-   , Just (XValue _ (ArrayT (PairT ta tb)) (VArray xs)) <- resolve env arr
-   , Just (as, bs)                                      <- unzip' xs
-   = xValue
-      (PairT (ArrayT ta) (ArrayT tb))
-      (VPair (VArray as) (VArray bs))
+   | (PrimArray (PrimArrayZip ta tb), [nk, nv]) <- prima
+   = primPack env (ArrayT (PairT ta tb)) [nk, nv]
 
-   -- unsum [e1..en] ~> ([isRight e1..isRight en], ([getLeft e1..getLeft en], [getRight e1..getRight en]))
-   | Just (PrimArray (PrimArrayUnsum _ _), [arr])      <- takePrimApps x
-   , Just (XValue _ (ArrayT (SumT ta tb)) (VArray xs)) <- resolve env arr
-   , Just (is, as, bs)                                 <- unsum' ta tb xs
-   = xValue
-      (PairT (ArrayT BoolT) (PairT (ArrayT ta) (ArrayT tb)))
-      (VPair (VArray is) (VPair (VArray as) (VArray bs)))
+   | (PrimMap (PrimMapPack tk tv), [nk, nv]) <- prima
+   = primPack env (MapT tk tv) [nk, nv]
 
-   -- * "Rewrite rules"
-   --   unsum (sum i a b) ~> (i, (a, b))
-   | Just (PrimArray (PrimArrayUnsum ta tb), [n])       <- takePrimApps x
-   , Just arr                                           <- resolve env n
-   , Just (PrimArray (PrimArraySum   _  _),  [i, a, b]) <- takePrimApps arr
-   = xPrim (PrimMinimal $ Min.PrimConst $ Min.PrimConstPair (ArrayT BoolT) (PairT (ArrayT ta) (ArrayT tb)))
-   `xApp` i
-   `xApp` (xPrim (PrimMinimal $ Min.PrimConst $ Min.PrimConstPair (ArrayT ta) (ArrayT tb))
-           `xApp` a `xApp` b)
+   | (PrimMinimal (Min.PrimConst (Min.PrimConstSome tx)), [n]) <- prima
+   = primPack env (OptionT tx) [xTrue, n]
 
-   --   unzip (zip a b) ~> (a, b)
-   | Just (PrimArray (PrimArrayUnzip ta tb), [n])    <- takePrimApps x
-   , Just arr                                        <- resolve env n
-   , Just (PrimArray (PrimArrayZip   _  _),  [a, b]) <- takePrimApps arr
-   = xPrim (PrimMinimal $ Min.PrimConst $ Min.PrimConstPair (ArrayT ta) (ArrayT tb))
-   `xApp` a `xApp` b
+   | (PrimMinimal (Min.PrimConst (Min.PrimConstLeft ta tb)), [n]) <- prima
+   = primPack env (SumT ta tb) [xFalse, n, xDefault tb]
+
+   | (PrimMinimal (Min.PrimConst (Min.PrimConstRight ta tb)), [n]) <- prima
+   = primPack env (SumT ta tb) [xTrue, xDefault ta, n]
+
+
+   -- buffers
+   | (PrimBuf (PrimBufPush i tx), [nb, nx]) <- prima
+   , Just ts <- tryMeltType tx
+   , tis     <- List.zip ts [0..]
+   = primPack env (BufT i tx)
+   $ fmap (\(t, ix) -> primBufPush i t (primUnpack ix (BufT i tx) nb)
+                                       (primUnpack ix tx          nx)) tis
+
+   | (PrimBuf (PrimBufRead i tx), [n]) <- prima
+   , Just ts <- tryMeltType tx
+   , tis     <- List.zip ts [0..]
+   = primPack env (ArrayT tx)
+   $ fmap (\(t, ix) -> primBufRead i t (primUnpack ix (BufT i tx) n)) tis
+
+
+   -- arrays
+   | (PrimUnsafe (PrimUnsafeArrayCreate tx), [n]) <- prima
+   , Just ts <- tryMeltType tx
+   = primPack env (ArrayT tx)
+   $ fmap (primArrayCreate n) ts
+
+   | (PrimProject (PrimProjectArrayLength tx), [n]) <- prima
+   , Just (t:_) <- tryMeltType tx
+   = primArrayLength t (primUnpack 0 (ArrayT tx) n)
+
+   | (PrimUnsafe (PrimUnsafeArrayIndex tx), [n, aix]) <- prima
+   , Just ts <- tryMeltType tx
+   , tis     <- List.zip ts [0..]
+   = primPack env tx
+   $ fmap (\(t, ix) -> primArrayGet aix t (primUnpack ix (ArrayT tx) n)) tis
+
+   | (PrimUpdate (PrimUpdateArrayPut tx), [na, aix, nv]) <- prima
+   , Just ts <- tryMeltType tx
+   , tis     <- List.zip ts [0..]
+   = primPack env (ArrayT tx)
+   $ fmap (\(t, ix) -> primArrayPut aix t (primUnpack ix (ArrayT tx) na)
+                                          (primUnpack ix         tx  nv)) tis
+
+   -- comparison
+   | (PrimMinimal (Min.PrimRelation Min.PrimRelationEq t), [nx, ny]) <- prima
+   , Just ts <- tryMeltType t
+   , tis     <- List.zip ts [0..]
+   = primFold1 primAnd
+   $ fmap (\(tv, i) -> primEq tv (primUnpack i t nx)
+                                 (primUnpack i t ny)) tis
+
 
    | otherwise
    = x
 
 
-  fromZippedArray x
-   | Just (PrimArray (PrimArrayZip ta tb), [a, b]) <- takePrimApps x
-   = Just (ta, tb, a, b)
-   | otherwise
-   = Nothing
+  fromPacked ix x
+   | XValue _ t v <- x
+   , ts           <- meltType t
+   , Just vs      <- meltValue v t
+   , (t',v'):_    <- drop ix (List.zip ts vs)
+   = Just (xValue t' v')
 
-  fromSummedArray x
-   | Just (PrimArray (PrimArraySum ta tb), [i, a, b]) <- takePrimApps x
-   = Just (ta, tb, i, a, b)
-   | otherwise
-   = Nothing
-
-  fromPair x
-   | XValue _ (PairT ta tb) (VPair a b) <- x
-   = Just (ta, tb, xValue ta a, xValue tb b)
-
-   | Just (PrimMinimal (Min.PrimConst (Min.PrimConstPair ta tb)), [a,b]) <- takePrimApps x
-   = Just (ta, tb, a, b)
+   | Just (PrimMelt (PrimMeltPack _), xs) <- takePrimApps x
+   , (xx:_)                              <- drop ix xs
+   = Just xx
 
    | otherwise
    = Nothing
 
-  fromStruct f x
-   | XValue _ (StructT (StructType ts)) (VStruct vs) <- x
-   = xValue <$> Map.lookup f ts <*> Map.lookup f vs
 
-   | Just (PrimPack (PrimStructPack (StructType ts)), xs) <- takePrimApps x
-   , fxs <- Map.fromList (List.zip (Map.keys ts) xs)
-   = Map.lookup f fxs
+  unpack env xs
+   = concatMap (unpack' env) xs
 
-   | otherwise
-   = Nothing
+  unpack' env x
+   | XValue _ t v <- x
+   , Just ts      <- tryMeltType t
+   , Just vs      <- meltValue v t
+   = List.zipWith xValue ts vs
 
-  fromOption x
-   | XValue _ (OptionT tv) VNone <- x
-   = Just (tv, xFalse, xDefault tv)
+   | XVar _ n <- x
+   , Just x'  <- getFromEnv env n
+   = unpack' env x'
 
-   | XValue _ (OptionT tv) (VSome v) <- x
-   = Just (tv, xTrue, xValue tv v)
-
-   | Just (PrimPack (PrimOptionPack tv), [b, v]) <- takePrimApps x
-   = Just (tv, b, v)
-
-   | Just (PrimMinimal (Min.PrimConst (Min.PrimConstSome tv)), [v]) <- takePrimApps x
-   = Just (tv, xTrue, v)
+   | Just (PrimMelt (PrimMeltPack _), ns) <- takePrimApps x
+   = concatMap (unpack' env) ns
 
    | otherwise
-   = Nothing
+   = [x]
 
-  fromSum x
-   | XValue _ (SumT ta tb) (VLeft a) <- x
-   = Just (ta, tb, xFalse, xValue ta a, xDefault tb)
-
-   | XValue _ (SumT ta tb) (VRight b) <- x
-   = Just (ta, tb, xTrue, xDefault ta, xValue tb b)
-
-   | Just (PrimPack (PrimSumPack ta tb), [i, a, b]) <- takePrimApps x
-   = Just (ta, tb, i, a, b)
-
-   | Just (PrimMinimal (Min.PrimConst (Min.PrimConstLeft ta tb)), [a]) <- takePrimApps x
-   = Just (ta, tb, xFalse, a, xDefault tb)
-
-   | Just (PrimMinimal (Min.PrimConst (Min.PrimConstRight ta tb)), [b]) <- takePrimApps x
-   = Just (ta, tb, xTrue, xDefault ta, b)
-
-   | otherwise
-   = Nothing
-
-  unzip' []
-    = return ([], [])
-  unzip' (VPair a b : xs)
-    = do (as, bs) <- unzip' xs
-         return (a:as, b:bs)
-  unzip' _
-    = Nothing
-
-  unsum' _ _ []
-   = return ([], [], [])
-  unsum' ta tb (VLeft a : xs)
-   = do (is', as', bs') <- unsum' ta tb xs
-        return (VBool False : is', a : as', defaultOfType tb : bs')
-  unsum' ta tb (VRight b : xs)
-   = do (is', as', bs') <- unsum' ta tb xs
-        return (VBool True : is', defaultOfType ta : as', b : bs')
-  unsum' _ _ _
-   = Nothing
 
   -- Either lookup a name, or just return the value if it's already a constant.
-  resolve env    (XVar   _ n)   = get env n
+  resolve env    (XVar   _ n)   = getFromEnv env n
   resolve _   xx@(XValue _ _ _) = Just xx
   resolve _       _             = Nothing
 
-  -- Lookup a name in the environment.
-  get env n
-   | (_,x'):_ <- filter ((==n).fst) env
-   = Just x'
-   | otherwise
-   = Nothing

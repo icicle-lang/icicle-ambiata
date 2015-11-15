@@ -8,11 +8,14 @@ module Icicle.Avalanche.Prim.Flat (
     , PrimUnsafe  (..)
     , PrimUpdate  (..)
     , PrimArray   (..)
-    , PrimPack    (..)
+    , PrimMelt    (..)
     , PrimBuf     (..)
     , PrimMap     (..)
     , typeOfPrim
     , flatFragment
+    , meltType
+    , tryMeltType
+    , typeOfUnpack
   ) where
 
 import              Icicle.Internal.Pretty
@@ -52,8 +55,8 @@ data Prim
  -- | Array prims
  | PrimArray           PrimArray
 
- -- | Packing prims
- | PrimPack            PrimPack
+ -- | Packing/unpacking prims
+ | PrimMelt            PrimMelt
 
  -- | Packing and unpacking maps
  | PrimMap             PrimMap
@@ -87,10 +90,7 @@ data PrimUpdate
  deriving (Eq, Ord, Show)
 
 data PrimArray
- = PrimArrayZip     ValType ValType -- ^ zip two arrays into one
- | PrimArrayUnzip   ValType ValType -- ^ unzip an array of pairs into two arrays of pairs
- | PrimArraySum     ValType ValType -- ^ combine three arrays into an array of sums
- | PrimArrayUnsum   ValType ValType -- ^ split an array of sums into three arrays
+ = PrimArrayZip ValType ValType -- ^ zip two arrays into one
  deriving (Eq, Ord, Show)
 
 data PrimMap
@@ -99,19 +99,15 @@ data PrimMap
  | PrimMapUnpackValues ValType ValType
  deriving (Eq, Ord, Show)
 
-
-data PrimPack
- = PrimSumPack    ValType ValType
- | PrimOptionPack ValType
- | PrimStructPack StructType
+data PrimMelt
+ = PrimMeltPack       ValType
+ | PrimMeltUnpack Int ValType
  deriving (Eq, Ord, Show)
-
 
 -- | These correspond directly to the latest buffer primitives in Core.
 data PrimBuf
- = PrimBufMake ValType
- | PrimBufPush ValType
- | PrimBufRead ValType
+ = PrimBufPush Int ValType
+ | PrimBufRead Int ValType
  deriving (Eq, Ord, Show)
 
 
@@ -155,25 +151,15 @@ typeOfPrim p
     PrimArray   (PrimArrayZip a b)
      -> FunT [funOfVal (ArrayT a), funOfVal (ArrayT b)] (ArrayT (PairT a b))
 
-    PrimArray   (PrimArrayUnzip a b)
-     -> FunT [funOfVal (ArrayT (PairT a b))] (PairT (ArrayT a) (ArrayT b))
 
-    PrimArray   (PrimArraySum a b)
-     -> FunT [funOfVal (ArrayT BoolT), funOfVal (ArrayT a), funOfVal (ArrayT b)] (ArrayT (SumT a b))
+    PrimMelt    (PrimMeltPack t)
+     | ts <- meltType t
+     -> FunT (fmap funOfVal ts) t
 
-    PrimArray   (PrimArrayUnsum a b)
-     -> FunT [funOfVal (ArrayT (SumT a b))] (PairT (ArrayT BoolT) (PairT (ArrayT a) (ArrayT b)))
+    PrimMelt    (PrimMeltUnpack ix t)
+     | tg <- typeOfUnpack ix t
+     -> FunT [funOfVal t] tg
 
-
-    PrimPack    (PrimSumPack a b)
-     -> FunT [funOfVal BoolT, funOfVal a, funOfVal b] (SumT a b)
-
-    PrimPack    (PrimOptionPack t)
-     -> FunT [funOfVal BoolT, funOfVal t] (OptionT t)
-
-    PrimPack    (PrimStructPack t@(StructType fs))
-     | ts <- fmap (funOfVal . snd) (Map.toList fs)
-     -> FunT ts (StructT t)
 
     PrimMap    (PrimMapPack k v)
      -> FunT [funOfVal (ArrayT k), funOfVal (ArrayT v)] (MapT k v)
@@ -185,15 +171,52 @@ typeOfPrim p
      -> FunT [funOfVal (MapT k v)] (ArrayT v)
 
 
-    PrimBuf     (PrimBufMake t)
-     -> FunT [funOfVal IntT] (BufT t)
+    PrimBuf     (PrimBufPush i t)
+     -> FunT [funOfVal (BufT i t), funOfVal t] (BufT i t)
 
-    PrimBuf     (PrimBufPush t)
-     -> FunT [funOfVal (BufT t), funOfVal t] (BufT t)
+    PrimBuf     (PrimBufRead i t)
+     -> FunT [funOfVal (BufT i t)] (ArrayT t)
 
-    PrimBuf     (PrimBufRead t)
-     -> FunT [funOfVal (BufT t)] (ArrayT t)
 
+
+meltType :: ValType -> [ValType]
+meltType t
+ = case t of
+    UnitT     -> [t]
+    IntT      -> [t]
+    DoubleT   -> [t]
+    BoolT     -> [t]
+    DateTimeT -> [t]
+    StringT   -> [t]
+    ErrorT    -> [t]
+
+    PairT   a b -> meltType a <> meltType b
+    SumT    a b -> [BoolT] <> meltType a <> meltType b
+    OptionT a   -> [BoolT] <> meltType a
+
+    ArrayT a -> fmap ArrayT   (meltType a)
+    BufT i a -> fmap (BufT i) (meltType a)
+    MapT k v -> meltType (ArrayT k) <> meltType (ArrayT v)
+
+    StructT (StructType fs)
+     | Map.null fs
+     -> [UnitT]
+
+     | otherwise
+     -> concat $ fmap meltType (Map.elems fs)
+
+tryMeltType :: ValType -> Maybe [ValType]
+tryMeltType t
+ = let ts = meltType t
+   in if ts == [t]
+      then Nothing
+      else Just ts
+
+typeOfUnpack :: Int -> ValType -> ValType
+typeOfUnpack ix t
+ = case drop ix (meltType t) of
+     []     -> UnitT
+     (tg:_) -> tg
 
 -- Pretty -------------
 
@@ -231,24 +254,13 @@ instance Pretty Prim where
  pretty (PrimArray (PrimArrayZip a b))
   = annotate (AnnType $ (pretty a) <.> (pretty b)) "Array_zip#"
 
- pretty (PrimArray (PrimArrayUnzip a b))
-  = annotate (AnnType $ (pretty a) <.> (pretty b)) "Array_unzip#"
 
- pretty (PrimArray (PrimArraySum a b))
-  = annotate (AnnType $ (pretty a) <.> (pretty b)) "Array_sum#"
+ pretty (PrimMelt (PrimMeltPack t))
+  = annotate (AnnType t) "Melt_pack#"
 
- pretty (PrimArray (PrimArrayUnsum a b))
-  = annotate (AnnType $ (pretty a) <.> (pretty b)) "Array_unsum#"
+ pretty (PrimMelt (PrimMeltUnpack i t))
+  = annotate (AnnType (typeOfUnpack i t)) ("Melt_unpack" <> int i <> "#")
 
-
- pretty (PrimPack (PrimOptionPack t))
-  = annotate (AnnType t) "Option_pack#"
-
- pretty (PrimPack (PrimSumPack a b))
-  = annotate (AnnType $ (pretty a) <.> (pretty b)) "Sum_pack#"
-
- pretty (PrimPack (PrimStructPack t))
-  = annotate (AnnType (StructT t)) "Struct_pack#"
 
  pretty (PrimMap (PrimMapPack a b))
   = annotate (AnnType $ (pretty a) <+> (pretty b)) "Map_pack#"
@@ -259,11 +271,8 @@ instance Pretty Prim where
   = annotate (AnnType $ (pretty a) <+> (pretty b)) "Map_unpack_values#"
 
 
- pretty (PrimBuf    (PrimBufMake t))
-  = annotate (AnnType t) "Buf_make#"
+ pretty (PrimBuf    (PrimBufPush i t))
+  = annotate (AnnType (BufT i t)) "Buf_push#"
 
- pretty (PrimBuf    (PrimBufPush t))
-  = annotate (AnnType t) "Buf_push#"
-
- pretty (PrimBuf    (PrimBufRead t))
-  = annotate (AnnType t) "Buf_read#"
+ pretty (PrimBuf    (PrimBufRead _ t))
+  = annotate (AnnType (ArrayT t)) "Buf_read#"

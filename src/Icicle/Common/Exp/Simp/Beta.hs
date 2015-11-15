@@ -26,7 +26,7 @@ beta isValue toplevel
        , isValue v
        , Just x' <- substMaybe n v x
        -> go x'
-     
+
       XApp a p q
        -> XApp a (go p) (go q)
 
@@ -40,7 +40,7 @@ beta isValue toplevel
 
       XLet a n v x
        -> XLet a n (go v) (go x)
-  
+
       XValue{}        -> xx
       XVar{}          -> xx
       XPrim{}         -> xx
@@ -56,7 +56,7 @@ betaToLets a_let toplevel
        | (f, x:xs)    <- takeApps xx
        , XLam _ n _ b <- f
        -> XLet a_let n (go x) (go $ makeApps a_let b xs)
-     
+
       XApp a p q
        -> XApp a (go p) (go q)
 
@@ -65,7 +65,7 @@ betaToLets a_let toplevel
 
       XLet a n v x
        -> XLet a n (go v) (go x)
-  
+
       XValue{}        -> xx
       XVar{}          -> xx
       XPrim{}         -> xx

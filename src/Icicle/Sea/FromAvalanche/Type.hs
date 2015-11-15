@@ -42,7 +42,7 @@ prefixOfValType t
      ErrorT    -> "ierror_"
 
      StringT   -> "istring_"
-     BufT   t' -> "ibuf__"   <> prefixOfValType t'
+     BufT _ t' -> "ibuf__"   <> prefixOfValType t'
      ArrayT t' -> "iarray__" <> prefixOfValType t'
      MapT{}    -> nope "maps not implemented"
 
@@ -74,8 +74,8 @@ stringOfValType t
      DateTimeT -> Right "idate_t"
      ErrorT    -> Right "ierror_t"
      StringT   -> Right "istring_t"
-     BufT   t' -> fmap (\x -> "BUF("   <> x <> ")") (stringOfValType t')
-     ArrayT t' -> fmap (\x -> "ARRAY(" <> x <> ")") (stringOfValType t')
+     BufT _ t' -> fmap (\x -> "ibuf_t__"   <> x <> "") (stringOfValType t')
+     ArrayT t' -> fmap (\x -> "iarray_t__" <> x <> "") (stringOfValType t')
 
      MapT{}    -> Left "maps not implemented"
      StructT{} -> Left "structs should have been melted"

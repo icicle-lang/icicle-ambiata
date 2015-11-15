@@ -147,7 +147,8 @@ data Command
 defaultState :: ReplState
 defaultState
   = (ReplState [] demographics (unsafeDateOfYMD 1970 1 1) False False False False False False False False False False False False False False False False)
-    { hasCoreEval = True }
+    { hasCoreEval = True
+    , doCoreSimp  = True }
 
 readCommand :: String -> Maybe Command
 readCommand ss = case words ss of
@@ -344,10 +345,15 @@ handleLine state line = case readCommand line of
            prettyOut hasJava "- Java:" (AJ.programToJava f')
 
            prettyOut hasSeaPreamble "- C preamble:" Sea.seaPreamble
-           prettyOut hasSea         "- C:"          (Sea.seaOfProgram 0 "repl" f')
+
+           when (hasSea state) $ do
+             let seaProgram = Sea.seaOfProgram 0 (Attribute "repl") f'
+             case seaProgram of
+               Left  e -> prettyOut (const True) "- C error:" e
+               Right r -> prettyOut (const True) "- C:" r
 
            when (hasSeaAssembly state) $ do
-             result <- liftIO . runEitherT $ Sea.assemblyOfPrograms [("repl", f')]
+             result <- liftIO . runEitherT $ Sea.assemblyOfPrograms Sea.NoPsv [(Attribute "repl", f')]
              case result of
                Left  e -> prettyOut (const True) "- C assembly error:" e
                Right r -> prettyOut (const True) "- C assembly:" r

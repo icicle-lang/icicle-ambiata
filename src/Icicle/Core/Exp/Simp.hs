@@ -4,6 +4,7 @@ module Icicle.Core.Exp.Simp
      ( simp
      , simpX
      , simpP
+     , deadX
      ) where
 
 import           Icicle.Common.Value
@@ -28,40 +29,55 @@ import qualified Data.Set                       as Set
 --   * ...something exciting???
 --
 simp :: Ord n => a -> (C.Exp a n -> Bool) -> C.Exp a n -> Fresh n (C.Exp a n)
-simp a_fresh isValue = anormal a_fresh . fixp (50 :: Int) (simpX a_fresh isValue)
+simp a_fresh isValue = anormal a_fresh . deadX . fixp (simpX a_fresh isValue)
  where
-  fixp 0 f = f
-  fixp n f = f . fixp (n-1) f
+  fixp f x
+   | Just x' <- f x = fixp f x'
+   | otherwise      = x
 
 
-simpX :: Ord n => a -> (C.Exp a n -> Bool) -> C.Exp a n -> C.Exp a n
-simpX a_fresh isValue = go
+simpX :: Ord n => a -> (C.Exp a n -> Bool) -> C.Exp a n -> Maybe (C.Exp a n)
+simpX a_fresh isValue = go . beta
   where
     beta  = B.beta isValue
-    go xx = case beta xx of
-      -- * constant folding for some primitives
+    -- * constant folding for some primitives
+    go xx = case xx of
       XApp a p q
-        | p' <- go p
-        , q' <- go q
-        , Just (prim, as) <- takePrimApps (XApp a p' q')
-        , Just args       <- mapM (takeValue . go) as
-        -> fromMaybe (XApp a p' q') (simpP a_fresh prim args)
-
+        | mp <- go p
+        , mq <- go q
+        , p' <- fromMaybe p mp
+        , q' <- fromMaybe q mq
+        , x' <- XApp a p' q'
+        , Just (prim, as) <- takePrimApps x'
+        , Just args       <- mapM (takeValue . just go) as
+        -> case simpP a_fresh prim args of
+            Just x''
+             -> return x''
+            Nothing
+             | isJust mp || isJust mq
+             -> return x'
+             | otherwise
+             -> Nothing
       XApp a p q
-        -> XApp a (go p) (go q)
+        | Just p' <- go p, Just q' <- go q -> Just $ XApp a p' q'
+        | Just p' <- go p, Nothing <- go q -> Just $ XApp a p' q
+        | Nothing <- go p, Just q' <- go q -> Just $ XApp a p  q'
+        | otherwise                        -> Nothing
 
       XLam a n t x1
-        -> XLam a n t (go x1)
+        -> XLam a n t <$> go x1
 
-      XLet a n x1 x2
-        | not $ n `Set.member` freevars (go x2)
-        -> go x2
-        | otherwise
-        -> XLet a n (go x1) (go x2)
+      XLet a n p q
+        | Just p' <- go p, Just q' <- go q -> Just $ XLet a n p' q'
+        | Just p' <- go p, Nothing <- go q -> Just $ XLet a n p' q
+        | Nothing <- go p, Just q' <- go q -> Just $ XLet a n p  q'
+        | otherwise                        -> Nothing
 
-      b@(XVar{})   -> b
-      b@(XPrim{})  -> b
-      b@(XValue{}) -> b
+      XVar{}   -> Nothing
+      XPrim{}  -> Nothing
+      XValue{} -> Nothing
+
+    just f x = fromMaybe x (f x)
 
 
 -- | Primitive Simplifier
@@ -78,3 +94,31 @@ simpP a_fresh p vs
      -> Nothing
     Left _
      -> Nothing
+
+
+-- | Dead binding removal
+deadX :: Ord n => C.Exp a n -> C.Exp a n
+deadX = fst . go
+  where
+    go xx = case xx of
+      XApp a p q
+        -> let (px, pf) = go p
+               (qx, qf) = go q
+           in  (XApp a px qx, Set.union pf qf)
+
+      XLam a n t x1
+        -> let (x1', fs) = go x1
+           in  (XLam a n t x1', Set.delete n fs)
+
+      XLet a n x1 x2
+        -> let (x2', f2) = go x2
+               (x1', f1) = go x1
+           in  if   n `Set.member` f2
+               then (XLet a n x1' x2', Set.union f1 f2)
+               else (             x2',              f2)
+
+      b@(XVar _ n) -> (b, Set.singleton n)
+      b@(XPrim{})  -> (b, Set.empty)
+      b@(XValue{}) -> (b, Set.empty)
+
+

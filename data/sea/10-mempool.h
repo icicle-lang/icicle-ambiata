@@ -85,16 +85,16 @@ void * INLINE imempool_alloc (imempool_t *pool, size_t num_bytes)
     return imempool_alloc_block (pool, num_bytes);
 }
 
-void imempool_create (imempool_t *pool)
+imempool_t *imempool_create ()
 {
-    pool->last        = 0;
-    pool->current_ptr = 0;
-    pool->maximum_ptr = 0;
-
+    imempool_t *pool = calloc(1, sizeof(imempool_t));
     imempool_add_block (pool);
+
+    return pool;
 }
 
 void imempool_free (imempool_t *pool)
 {
     iblock_free (pool->last);
+    free(pool);
 }
