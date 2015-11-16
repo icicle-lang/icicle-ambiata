@@ -9,7 +9,6 @@ module Icicle.Avalanche.Simp (
 
 import              Icicle.Common.Exp
 import              Icicle.Common.Fresh
-import              Icicle.Common.Annot
 
 import              Icicle.Avalanche.Prim.Flat
 import              Icicle.Avalanche.Statement.Simp
@@ -37,9 +36,9 @@ simpAvalanche a_fresh p
 
 simpFlattened
   :: (Show n, Ord n, Eq a)
-  => Annot a
-  -> Program (Annot a) n Prim
-  -> Fresh n (Program (Annot a) n Prim)
+  => a
+  -> Program a n Prim
+  -> Fresh n (Program a n Prim)
 simpFlattened a_fresh p
  = do p' <- transformX return (simp a_fresh) p
       let Program i bd s = p'

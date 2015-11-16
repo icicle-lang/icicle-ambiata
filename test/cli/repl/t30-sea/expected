@@ -44,21 +44,21 @@ gen$date = DATE
   load_resumable@{Double} acc$a$conv$70$simp$72;
   load_resumable@{Double} acc$a$conv$70$simp$73;
   load_resumable@{Double} acc$a$conv$70$simp$74;
-  for_facts (gen$fact$simp$315@{Bool},
-             gen$fact$simp$316@{Error},
-             gen$fact$simp$317@{String},
-             gen$fact$simp$318@{Int},
-             gen$fact$simp$319@{DateTime}) in new {
+  for_facts (gen$fact$simp$309@{Bool},
+             gen$fact$simp$310@{Error},
+             gen$fact$simp$311@{String},
+             gen$fact$simp$312@{Int},
+             gen$fact$simp$313@{DateTime}) in new {
     init flat$0$simp$75@{Bool} = False@{Bool};
     init flat$0$simp$76@{Error} = ExceptTombstone@{Error};
     init flat$0$simp$77@{Int} = 0@{Int};
-    if (gen$fact$simp$315) {
+    if (gen$fact$simp$309) {
       write flat$0$simp$75 = True@{Bool};
       write flat$0$simp$76 = ExceptTombstone@{Error};
-      write flat$0$simp$77 = gen$fact$simp$318;
+      write flat$0$simp$77 = gen$fact$simp$312;
     } else {
       write flat$0$simp$75 = False@{Bool};
-      write flat$0$simp$76 = gen$fact$simp$316;
+      write flat$0$simp$76 = gen$fact$simp$310;
       write flat$0$simp$77 = 0@{Int};
     }
     read@{Bool} flat$0$simp$78 = flat$0$simp$75;
@@ -130,13 +130,13 @@ gen$date = DATE
         init flat$14$simp$112@{Error} = ExceptTombstone@{Error};
         init flat$14$simp$113@{Double} = 0.0@{Double};
         if (flat$13$simp$108) {
-          let simp$460 = add#@{Double}
+          let simp$454 = add#@{Double}
                          acc$s$reify$6$conv$13$simp$96
                          (1.0@{Double});
           write flat$14$simp$111 = True@{Bool};
           write flat$14$simp$112 = ExceptTombstone@{Error};
           write flat$14$simp$113 = div#
-                                   flat$13$simp$110 simp$460;
+                                   flat$13$simp$110 simp$454;
         } else {
           write flat$14$simp$111 = False@{Bool};
           write flat$14$simp$112 = flat$13$simp$109;
@@ -256,9 +256,9 @@ gen$date = DATE
     write acc$s$reify$6$conv$13$simp$69 = flat$3$simp$154;
     init flat$25$simp$155@{Bool} = False@{Bool};
     init flat$25$simp$157@{String} = ""@{String};
-    if (gen$fact$simp$315) {
+    if (gen$fact$simp$309) {
       write flat$25$simp$155 = True@{Bool};
-      write flat$25$simp$157 = gen$fact$simp$317;
+      write flat$25$simp$157 = gen$fact$simp$311;
     } else {
       write flat$25$simp$155 = False@{Bool};
       write flat$25$simp$157 = ""@{String};
@@ -290,13 +290,13 @@ gen$date = DATE
       init flat$28$simp$167@{Bool} = False@{Bool};
       init flat$28$simp$168@{Error} = ExceptTombstone@{Error};
       init flat$28$simp$169@{Int} = 0@{Int};
-      if (gen$fact$simp$315) {
+      if (gen$fact$simp$309) {
         write flat$28$simp$167 = True@{Bool};
         write flat$28$simp$168 = ExceptTombstone@{Error};
-        write flat$28$simp$169 = gen$fact$simp$318;
+        write flat$28$simp$169 = gen$fact$simp$312;
       } else {
         write flat$28$simp$167 = False@{Bool};
-        write flat$28$simp$168 = gen$fact$simp$316;
+        write flat$28$simp$168 = gen$fact$simp$310;
         write flat$28$simp$169 = 0@{Int};
       }
       read@{Bool} flat$28$simp$170 = flat$28$simp$167;
@@ -593,11 +593,11 @@ gen$date = DATE
     if (a$conv$70$simp$274) {
       let conv$125 = sub#@{Double}
                      a$conv$70$simp$276 (1.0@{Double});
-      let conv$126 = div#
-                     a$conv$70$simp$278 conv$125;
+      let simp$1128 = div#
+                      a$conv$70$simp$278 conv$125;
       write flat$86$simp$288 = True@{Bool};
       write flat$86$simp$289 = ExceptTombstone@{Error};
-      write flat$86$simp$290 = conv$126;
+      write flat$86$simp$290 = simp$1128;
     } else {
       write flat$86$simp$288 = False@{Bool};
       write flat$86$simp$289 = a$conv$70$simp$275;
@@ -664,11 +664,11 @@ typedef struct {
     /* inputs */
     idate_t          gen_date;
     iint_t           new_count;
-    ibool_t          *new_gen_fact_simp_315;
-    ierror_t         *new_gen_fact_simp_316;
-    istring_t        *new_gen_fact_simp_317;
-    iint_t           *new_gen_fact_simp_318;
-    idate_t          *new_gen_fact_simp_319;
+    ibool_t          *new_gen_fact_simp_309;
+    ierror_t         *new_gen_fact_simp_310;
+    istring_t        *new_gen_fact_simp_311;
+    iint_t           *new_gen_fact_simp_312;
+    idate_t          *new_gen_fact_simp_313;
 
     /* outputs */
     ibool_t          repl_ix_0;
@@ -985,29 +985,29 @@ void iprogram_0(iprogram_0_t *s)
     }
     
     const iint_t          new_count           = s->new_count;
-    const ibool_t         *const new_gen_fact_simp_315 = s->new_gen_fact_simp_315;
-    const ierror_t        *const new_gen_fact_simp_316 = s->new_gen_fact_simp_316;
-    const istring_t       *const new_gen_fact_simp_317 = s->new_gen_fact_simp_317;
-    const iint_t          *const new_gen_fact_simp_318 = s->new_gen_fact_simp_318;
-    const idate_t         *const new_gen_fact_simp_319 = s->new_gen_fact_simp_319;
+    const ibool_t         *const new_gen_fact_simp_309 = s->new_gen_fact_simp_309;
+    const ierror_t        *const new_gen_fact_simp_310 = s->new_gen_fact_simp_310;
+    const istring_t       *const new_gen_fact_simp_311 = s->new_gen_fact_simp_311;
+    const iint_t          *const new_gen_fact_simp_312 = s->new_gen_fact_simp_312;
+    const idate_t         *const new_gen_fact_simp_313 = s->new_gen_fact_simp_313;
     
     for (iint_t i = 0; i < new_count; i++) {
-        ibool_t          gen_fact_simp_315    = new_gen_fact_simp_315[i];
-        ierror_t         gen_fact_simp_316    = new_gen_fact_simp_316[i];
-        istring_t        gen_fact_simp_317    = new_gen_fact_simp_317[i];
-        iint_t           gen_fact_simp_318    = new_gen_fact_simp_318[i];
-        idate_t          gen_fact_simp_319    = new_gen_fact_simp_319[i];
+        ibool_t          gen_fact_simp_309    = new_gen_fact_simp_309[i];
+        ierror_t         gen_fact_simp_310    = new_gen_fact_simp_310[i];
+        istring_t        gen_fact_simp_311    = new_gen_fact_simp_311[i];
+        iint_t           gen_fact_simp_312    = new_gen_fact_simp_312[i];
+        idate_t          gen_fact_simp_313    = new_gen_fact_simp_313[i];
         flat_0_simp_75                        = ifalse;                               /* init */
         flat_0_simp_76                        = ierror_tombstone;                     /* init */
         flat_0_simp_77                        = 0;                                    /* init */
         
-        if (gen_fact_simp_315) {
+        if (gen_fact_simp_309) {
             flat_0_simp_75                    = itrue;                                /* write */
             flat_0_simp_76                    = ierror_tombstone;                     /* write */
-            flat_0_simp_77                    = gen_fact_simp_318;                    /* write */
+            flat_0_simp_77                    = gen_fact_simp_312;                    /* write */
         } else {
             flat_0_simp_75                    = ifalse;                               /* write */
-            flat_0_simp_76                    = gen_fact_simp_316;                    /* write */
+            flat_0_simp_76                    = gen_fact_simp_310;                    /* write */
             flat_0_simp_77                    = 0;                                    /* write */
         }
         
@@ -1086,10 +1086,10 @@ void iprogram_0(iprogram_0_t *s)
                 flat_14_simp_113              = 0.0;                                  /* init */
                 
                 if (flat_13_simp_108) {
-                    idouble_t        simp_460 = idouble_add (acc_s_reify_6_conv_13_simp_96, 1.0); /* let */
+                    idouble_t        simp_454 = idouble_add (acc_s_reify_6_conv_13_simp_96, 1.0); /* let */
                     flat_14_simp_111          = itrue;                                /* write */
                     flat_14_simp_112          = ierror_tombstone;                     /* write */
-                    flat_14_simp_113          = idouble_div (flat_13_simp_110, simp_460); /* write */
+                    flat_14_simp_113          = idouble_div (flat_13_simp_110, simp_454); /* write */
                 } else {
                     flat_14_simp_111          = ifalse;                               /* write */
                     flat_14_simp_112          = flat_13_simp_109;                     /* write */
@@ -1216,9 +1216,9 @@ void iprogram_0(iprogram_0_t *s)
         flat_25_simp_155                      = ifalse;                               /* init */
         flat_25_simp_157                      = "";                                   /* init */
         
-        if (gen_fact_simp_315) {
+        if (gen_fact_simp_309) {
             flat_25_simp_155                  = itrue;                                /* write */
-            flat_25_simp_157                  = gen_fact_simp_317;                    /* write */
+            flat_25_simp_157                  = gen_fact_simp_311;                    /* write */
         } else {
             flat_25_simp_155                  = ifalse;                               /* write */
             flat_25_simp_157                  = "";                                   /* write */
@@ -1254,13 +1254,13 @@ void iprogram_0(iprogram_0_t *s)
             flat_28_simp_168                  = ierror_tombstone;                     /* init */
             flat_28_simp_169                  = 0;                                    /* init */
             
-            if (gen_fact_simp_315) {
+            if (gen_fact_simp_309) {
                 flat_28_simp_167              = itrue;                                /* write */
                 flat_28_simp_168              = ierror_tombstone;                     /* write */
-                flat_28_simp_169              = gen_fact_simp_318;                    /* write */
+                flat_28_simp_169              = gen_fact_simp_312;                    /* write */
             } else {
                 flat_28_simp_167              = ifalse;                               /* write */
-                flat_28_simp_168              = gen_fact_simp_316;                    /* write */
+                flat_28_simp_168              = gen_fact_simp_310;                    /* write */
                 flat_28_simp_169              = 0;                                    /* write */
             }
             
@@ -1593,10 +1593,10 @@ void iprogram_0(iprogram_0_t *s)
         
         if (a_conv_70_simp_274) {
             idouble_t        conv_125         = idouble_sub (a_conv_70_simp_276, 1.0); /* let */
-            idouble_t        conv_126         = idouble_div (a_conv_70_simp_278, conv_125); /* let */
+            idouble_t        simp_1128        = idouble_div (a_conv_70_simp_278, conv_125); /* let */
             flat_86_simp_288                  = itrue;                                /* write */
             flat_86_simp_289                  = ierror_tombstone;                     /* write */
-            flat_86_simp_290                  = conv_126;                             /* write */
+            flat_86_simp_290                  = simp_1128;                            /* write */
         } else {
             flat_86_simp_288                  = ifalse;                               /* write */
             flat_86_simp_289                  = a_conv_70_simp_275;                   /* write */
