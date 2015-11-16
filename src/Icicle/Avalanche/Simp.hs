@@ -22,29 +22,27 @@ import              P
 
 simpAvalanche
   :: (Show n, Show p, Ord n, Eq p)
-  => a
-  -> Program a n p
+  => Program a n p
   -> Fresh n (Program a n p)
-simpAvalanche a_fresh p
- = do p' <- transformX return (simp a_fresh) p
-      s' <- (forwardStmts a_fresh $ pullLets $ statements p')
-         >>= thresher     a_fresh
-         >>= forwardStmts a_fresh
-         >>= nestBlocks   a_fresh
-         >>= thresher     a_fresh
+simpAvalanche p
+ = do p' <- transformX return simp p
+      s' <- forwardStmts (pullLets $ statements p')
+         >>= thresher
+         >>= forwardStmts
+         >>= nestBlocks
+         >>= thresher
 
       return $ p { statements = s' }
 
 simpFlattened
   :: (Show n, Ord n, Eq a)
-  => Annot a
-  -> Program (Annot a) n Prim
+  => Program (Annot a) n Prim
   -> Fresh n (Program (Annot a) n Prim)
-simpFlattened a_fresh p
- = do p' <- transformX return (simp a_fresh) p
+simpFlattened p
+ = do p' <- transformX return simp p
       let Program i bd s = p'
 
-      s' <-  melt a_fresh s
+      s' <-  melt s
          >>= crunchy i bd
 
       return $ p { statements = s' }
@@ -56,10 +54,10 @@ simpFlattened a_fresh p
         else crunchy i bd s'
 
   crunch i bd ss
-   =   constructor  a_fresh (pullLets ss)
-   >>= thresher     a_fresh
-   >>= forwardStmts a_fresh
-   >>= nestBlocks   a_fresh
-   >>= thresher     a_fresh
-   >>= fmap statements . transformX return (simp a_fresh) . Program i bd
+   =   constructor  (pullLets ss)
+   >>= thresher
+   >>= forwardStmts
+   >>= nestBlocks
+   >>= thresher
+   >>= fmap statements . transformX return simp . Program i bd
 

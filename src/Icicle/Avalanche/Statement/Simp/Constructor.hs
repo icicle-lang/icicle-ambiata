@@ -23,11 +23,11 @@ import qualified    Data.Map as Map
 
 -- | Simplify applied primitives.
 --
-constructor :: (Eq a, Ord n) => a -> Statement a n Prim -> Fresh n (Statement a n Prim)
-constructor a_fresh statements
+constructor :: (Eq a, Ord n) => Statement a n Prim -> Fresh n (Statement a n Prim)
+constructor statements
  = transformUDStmt goS emptyExpEnv statements
  where
-  xApp       = XApp   a_fresh
+  xApp x y   = XApp   (annotOfExp x) x y
   xPrim      = XPrim  a_fresh
   xValue     = XValue a_fresh
   xTrue      = xValue BoolT (VBool True)

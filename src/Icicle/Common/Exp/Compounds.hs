@@ -11,6 +11,7 @@ module Icicle.Common.Exp.Compounds (
     , freevars
     , allvars
     , substMaybe
+    , substWithAnnotation
     , subst
     ) where
 
@@ -26,9 +27,9 @@ import qualified    Data.Map    as Map
 
 
 -- | Apply an expression to any number of arguments
-makeApps :: a -> Exp a n p -> [Exp a n p] -> Exp a n p
-makeApps a f args
- = foldl (XApp a) f args
+makeApps :: Exp a n p -> [Exp a n p] -> Exp a n p
+makeApps f args
+ = foldl (XApp $ annotOfExp f) f args
 
 
 -- | Split an expression into its function part and any arguments applied to it.
@@ -52,9 +53,9 @@ takePrimApps xx
 
 
 -- | Prefix an expression with some let bindings
-makeLets :: a -> [(Name n, Exp a n p)] -> Exp a n p -> Exp a n p
-makeLets a bs x
- = foldr (uncurry (XLet a)) x bs
+makeLets :: [(Name n, Exp a n p)] -> Exp a n p -> Exp a n p
+makeLets bs x
+ = foldr (\(n',x') -> XLet (annotOfExp x') n' x') x bs
 
 -- | Pull out the top-level let bindings
 takeLets :: Exp a n p -> ([(Name n, Exp a n p)], Exp a n p)
@@ -162,23 +163,22 @@ substMaybe name payload into
 
 -- | Substitute an expression in,
 -- using fresh names to avoid capture
-subst
+substWithAnnotation
         :: Ord n
-        => a
-        -> Name n
-        -> Exp a n p
+        => Name n
+        -> (a -> Exp a n p)
         -> Exp a n p
         -> Fresh n (Exp a n p)
-subst a_fresh name payload into
+substWithAnnotation name payload into
  = go into
  where
-  payload_free = freevars payload
+  payload_free = freevars $ payload $ annotOfExp into
 
   go xx
    = case xx of
-      XVar _ n
+      XVar a n
        | n == name
-       -> return payload
+       -> return $ payload a
        | otherwise
        -> return xx
       XApp a p q
@@ -193,7 +193,7 @@ subst a_fresh name payload into
        -- If the name clashes, we need to rename n
        | (n `Set.member` payload_free) || n == name
        -> do    n' <- fresh
-                x' <- subst a_fresh n (XVar a_fresh n') x
+                x' <- substWithAnnotation n (\a' -> XVar a' n') x
                 XLam a n' t <$> go x'
 
        -- Name is mentioned and no clashes, so proceed
@@ -205,10 +205,21 @@ subst a_fresh name payload into
        -- we need to rename
        | (n `Set.member` payload_free) || n == name
        -> do    n'  <- fresh
-                x2' <- subst a_fresh n (XVar a_fresh n') x2
+                x2' <- substWithAnnotation n (\a' -> XVar a' n') x2
                 XLet a n' <$> go x1 <*> go x2'
 
        -- Proceed as usual
        | otherwise
        -> XLet a n <$> go x1 <*> go x2
 
+
+-- | Substitute an expression in,
+-- using fresh names to avoid capture
+subst
+        :: Ord n
+        => Name n
+        -> Exp a n p
+        -> Exp a n p
+        -> Fresh n (Exp a n p)
+subst name payload into
+ = substWithAnnotation name (const payload) into

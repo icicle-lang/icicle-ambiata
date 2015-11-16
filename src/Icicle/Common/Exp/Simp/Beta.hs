@@ -46,16 +46,16 @@ beta isValue toplevel
       XPrim{}         -> xx
 
 -- | Total beta: always convert (\n. f) x to  (let n = x in f)
-betaToLets :: a -> Exp a n p -> Exp a n p
-betaToLets a_let toplevel
+betaToLets :: Exp a n p -> Exp a n p
+betaToLets toplevel
  = go toplevel
  where
   go xx
    = case xx of
-      XApp _ _ _
+      XApp a _ _
        | (f, x:xs)    <- takeApps xx
        , XLam _ n _ b <- f
-       -> XLet a_let n (go x) (go $ makeApps a_let b xs)
+       -> XLet a n (go x) (go $ makeApps b xs)
 
       XApp a p q
        -> XApp a (go p) (go q)

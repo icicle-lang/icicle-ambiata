@@ -223,13 +223,13 @@ insertStream namer inputType strs reds (n, strm)
 
        -- Filters become ifs
        CS.STrans (CS.SFilter _) x inp
-        -> If (Beta.betaToLets () (x `xApp` xVar (namerElemPrefix namer inp)))
+        -> If (Beta.betaToLets (x `xApp` xVar (namerElemPrefix namer inp)))
               (allLet $ xVar $ namerElemPrefix namer inp)
                mempty
 
        -- Maps apply given function and then do their children
        CS.STrans (CS.SMap _ _) x inp
-        -> allLet $ Beta.betaToLets () $ xApp x $ xVar $ namerElemPrefix namer inp
+        -> allLet $ Beta.betaToLets $ xApp x $ xVar $ namerElemPrefix namer inp
 
 -- | Avalanche program to obtain the edge date for a window.
 windowEdge
@@ -259,7 +259,7 @@ statementOfReduce namer strs (n,r)
                | otherwise
                = mempty
 
-            x  = Beta.betaToLets () (k `xApp` (xVar n')
+            x  = Beta.betaToLets (k `xApp` (xVar n')
                                        `xApp` (xVar $ namerElemPrefix namer inp))
 
         in  Read n' n' ty (Write n' x <> k')

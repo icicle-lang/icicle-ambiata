@@ -31,51 +31,44 @@ import qualified    Data.Map as Map
 
 ------------------------------------------------------------------------
 
-data MeltOps a n p = MeltOps {
-    xPrim  :: p                      -> Exp a n p
-  , xVar   :: Name n                 -> Exp a n p
-  , xValue :: ValType   -> BaseValue -> Exp a n p
-  , xApp   :: Exp a n p -> Exp a n p -> Exp a n p
+annotOfValType :: ValType -> a -> Annot a
+annotOfValType t a
+ = Annot (funOfVal t) a
 
-  , primPack ::          ValType -> [Name n]  -> Exp a n p
-  , primUnpack :: Int -> ValType -> Exp a n p -> Exp a n p
-  }
+primPack ::   a ->   ValType -> [Name n]  -> Exp (Annot a) n Prim
+primPack   a_fresh  t ns
+ = let a_ret = annotOfValType t a_fresh
+       prim  = XPrim a_ret (PrimMelt (PrimMeltPack t))
+   in foldl
+         (\x (n,t') -> XApp a_ret x (XVar (annotOfValType t' a_fresh) n))
+         prim
+         (ns `List.zip` meltType t)
 
-meltOps :: a -> MeltOps a n Prim
-meltOps a_fresh
- = MeltOps{..}
- where
-  xVar   = XVar   a_fresh
-  xPrim  = XPrim  a_fresh
-  xValue = XValue a_fresh
-  xApp   = XApp   a_fresh
-
-  primPack      t ns = foldl (\x n -> x `xApp` xVar n) (xPrim (PrimMelt (PrimMeltPack t))) ns
-  primUnpack ix t x  = xPrim (PrimMelt (PrimMeltUnpack ix t)) `xApp` x
+primUnpack :: Int -> ValType -> Exp (Annot a) n Prim -> Exp (Annot a) n Prim
+primUnpack ix t x
+ = let a_fresh = annTail $ annotOfExp x
+       a_ret   = annotOfValType (typeOfUnpack ix t) a_fresh
+   in  XApp a_ret (XPrim a_ret (PrimMelt (PrimMeltUnpack ix t))) x
 
 ------------------------------------------------------------------------
 
 melt :: (Show n, Ord n)
-     => Annot a
-     -> Statement (Annot a) n Prim
+     => Statement (Annot a) n Prim
      -> Fresh n (Statement (Annot a) n Prim)
-melt a_fresh ss
- =   meltAccumulators a_fresh ss
- >>= meltBindings     a_fresh
- >>= meltForeachFacts a_fresh
- >>= meltOutputs      a_fresh
+melt ss
+ =   meltAccumulators ss
+ >>= meltBindings
+ >>= meltForeachFacts
+ >>= meltOutputs
 
 ------------------------------------------------------------------------
 
 meltAccumulators :: (Show n, Ord n)
-                 => a
-                 -> Statement a n Prim
-                 -> Fresh n (Statement a n Prim)
-meltAccumulators a_fresh statements
+                 => Statement (Annot a) n Prim
+                 -> Fresh n (Statement (Annot a) n Prim)
+meltAccumulators statements
  = transformUDStmt goStmt Map.empty statements
  where
-  MeltOps{..} = meltOps a_fresh
-
   goStmt env stmt
    = do env' <- updateEnv stmt env
         let go = goStmt env'
@@ -92,7 +85,7 @@ meltAccumulators a_fresh statements
            | Just (tp, ns) <- Map.lookup acc env'
            , Just ts       <- tryMeltType tp
            -> do ns' <- freshes (length ns) na
-                 ss' <- substXinS a_fresh na (primPack tp ns') ss
+                 ss' <- substXinS' na (\a -> primPack (annTail a) tp ns') ss
                  go $ foldr (\(n',n,t) -> Read n' n t) ss' (List.zip3 ns' ns ts)
 
           Write n x
@@ -136,21 +129,18 @@ meltAccumulators a_fresh statements
 --
 meltBindings
   :: (Ord n)
-  => Annot a
-  -> Statement (Annot a) n Prim
+  => Statement (Annot a) n Prim
   -> Fresh n (Statement (Annot a) n Prim)
-meltBindings a_fresh statements
+meltBindings statements
  = transformUDStmt goStmt () statements
  where
-  MeltOps{..} = meltOps a_fresh
-
   goStmt () stmt
    = case stmt of
        Let n x ss
         | vt     <- functionReturns (annType (annotOfExp x))
         , Just _ <- tryMeltType vt
-        -> do (xs, x') <- meltBody a_fresh (n, vt, x)
-              ss'      <- substXinS a_fresh n x' ss
+        -> do (xs, x') <- meltBody (n, vt, x)
+              ss'      <- substXinS n x' ss
               let stmt' = foldr mkLet ss' xs
               return ((), stmt')
 
@@ -161,30 +151,24 @@ meltBindings a_fresh statements
 
 
 meltBody
- :: a
- -> (Name n, ValType, Exp a n Prim)
- -> Fresh n ([(Name n, ValType, Exp a n Prim)], Exp a n Prim)
-meltBody a_fresh (n, vt, x)
+ :: (Name n, ValType, Exp (Annot a) n Prim)
+ -> Fresh n ([(Name n, ValType, Exp (Annot a) n Prim)], Exp (Annot a) n Prim)
+meltBody (n, vt, x)
  = do let ts = meltType vt
       bns <- freshes (length ts) n
       let binds  = fmap (\(bn, bt, ix) -> (bn, bt, primUnpack ix vt x))
                  $ List.zip3 bns ts [0..]
-          unmelt = primPack vt bns
+          unmelt = primPack (annTail $ annotOfExp x) vt bns
       return (binds, unmelt)
- where
-  MeltOps{..} = meltOps a_fresh
 
 ------------------------------------------------------------------------
 
 meltForeachFacts :: forall a n. (Show n, Ord n)
-                 => a
-                 -> Statement a n Prim
-                 -> Fresh n (Statement a n Prim)
-meltForeachFacts a_fresh statements
+                 => Statement (Annot a) n Prim
+                 -> Fresh n (Statement (Annot a) n Prim)
+meltForeachFacts statements
  = transformUDStmt goStmt () statements
  where
-  MeltOps{..} = meltOps a_fresh
-
   goStmt () stmt
    = case stmt of
        ForeachFacts ns vt lt ss
@@ -201,8 +185,8 @@ meltForeachFacts a_fresh statements
 
 
   meltFacts :: [(Name n, ValType)]
-            -> Statement a n Prim
-            -> Fresh n ([(Name n, ValType)], Statement a n Prim)
+            -> Statement (Annot a) n Prim
+            -> Fresh n ([(Name n, ValType)], Statement (Annot a) n Prim)
 
   meltFacts []     ss0 = return ([], ss0)
   meltFacts (n:ns) ss0 = do
@@ -212,13 +196,13 @@ meltForeachFacts a_fresh statements
 
 
   meltFact :: (Name n, ValType)
-           -> Statement a n Prim
-           -> Fresh n ([(Name n, ValType)], Statement a n Prim)
+           -> Statement (Annot a) n Prim
+           -> Fresh n ([(Name n, ValType)], Statement (Annot a) n Prim)
 
   meltFact (n, t) ss
    | Just ts <- tryMeltType t
    = do ns  <- freshes (length ts) n
-        ss' <- substXinS a_fresh n (primPack t ns) ss
+        ss' <- substXinS' n (\a -> primPack (annTail a) t ns) ss
         let nts = List.zip ns ts
         return (nts, ss')
 
@@ -228,31 +212,27 @@ meltForeachFacts a_fresh statements
 ------------------------------------------------------------------------
 
 meltOutputs :: forall a n. (Show n, Ord n)
-            => a
-            -> Statement a n Prim
-            -> Fresh n (Statement a n Prim)
-meltOutputs a_fresh statements
+            => Statement (Annot a) n Prim
+            -> Fresh n (Statement (Annot a) n Prim)
+meltOutputs statements
  = transformUDStmt goStmt () statements
  where
-  MeltOps{..} = meltOps a_fresh
-
   goStmt () stmt
    = case stmt of
        Output n t xts
-        -> return ((), Output n t (meltExps a_fresh xts))
+        -> return ((), Output n t (meltExps xts))
        _
         -> return ((), stmt)
 
-meltExps :: a -> [(Exp a n Prim, ValType)] -> [(Exp a n Prim, ValType)]
-meltExps a_fresh
- = concatMap (\(x,t) -> meltExp a_fresh x t)
+meltExps :: [(Exp (Annot a) n Prim, ValType)] -> [(Exp (Annot a) n Prim, ValType)]
+meltExps
+ = concatMap (\(x,t) -> meltExp x t)
 
-meltExp :: a -> Exp a n Prim -> ValType -> [(Exp a n Prim, ValType)]
-meltExp a_fresh x t
+meltExp :: Exp (Annot a) n Prim -> ValType -> [(Exp (Annot a) n Prim, ValType)]
+meltExp x t
  | Just ts <- tryMeltType t
- = let MeltOps{..} = meltOps a_fresh
-       tis         = List.zip ts [0..]
-       go (tv,ix)  = meltExp a_fresh (primUnpack ix t x) tv
+ = let tis         = List.zip ts [0..]
+       go (tv,ix)  = meltExp (primUnpack ix t x) tv
    in concat (fmap go tis)
 
  | otherwise

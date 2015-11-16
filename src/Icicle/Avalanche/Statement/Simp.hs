@@ -7,6 +7,7 @@ module Icicle.Avalanche.Statement.Simp (
     pullLets
   , forwardStmts
   , substXinS
+  , substXinS'
   , thresher
   , nestBlocks
   ) where
@@ -76,19 +77,23 @@ pullLets statements
 
 
 -- | Let-forwarding on statements
-forwardStmts :: Ord n => a -> Statement a n p -> Fresh n (Statement a n p)
-forwardStmts a_fresh statements
+forwardStmts :: Ord n => Statement a n p -> Fresh n (Statement a n p)
+forwardStmts statements
  = transformUDStmt trans () statements
  where
   trans _ s
    = case s of
       Let n x ss
        | isSimpleValue x
-       -> do    s' <- substXinS a_fresh n x ss
+       -> do    s' <- substXinS n x ss
                 return ((), s')
 
       _ -> return ((), s)
 
+
+substXinS :: Ord n => Name n -> Exp a n p -> Statement a n p -> Fresh n (Statement a n p)
+substXinS name payload statements
+ = substXinS' name (const payload) statements
 
 -- Substitute an expression into a statement.
 --
@@ -108,8 +113,8 @@ forwardStmts a_fresh statements
 -- > in subst monkey := banana
 -- > in (subst banana := banana' in monkey)
 --
-substXinS :: Ord n => a -> Name n -> Exp a n p -> Statement a n p -> Fresh n (Statement a n p)
-substXinS a_fresh name payload statements
+substXinS' :: Ord n => Name n -> (a -> Exp a n p) -> Statement a n p -> Fresh n (Statement a n p)
+substXinS' name payload statements
  = transformUDStmt trans True statements
  where
   -- Do nothing; the variable has been shadowed
@@ -163,7 +168,7 @@ substXinS a_fresh name payload statements
       _
        -> return (True, s)
 
-  sub = subst a_fresh name payload
+  sub = substWithAnnotation name payload
   sub1 x f
    = do x' <- sub x
         return (True, f x')
@@ -179,18 +184,20 @@ substXinS a_fresh name payload statements
 
   freshen n ss f
    = do n' <- fresh
-        ss' <- substXinS a_fresh n (XVar a_fresh n') ss
+        ss' <- substXinS' n (\a -> XVar a n') ss
         trans True (f n' ss')
 
   freshenForeach ns [] x y ss
    = return (True, ForeachFacts ns x y ss)
   freshenForeach ns ((n,t):ns') x y ss
    = do n'  <- fresh
-        ss' <- substXinS a_fresh n (XVar a_fresh n') ss
+        ss' <- substXinS' n (\a -> XVar a n') ss
         freshenForeach (ns <> [(n',t)]) ns' x y ss'
 
-  frees = freevars payload
-
+  -- We can get the annotation of the payload, because the free variables don't need the annotations.
+  -- This is pretty stupid but it probably works.
+  pay'  = payload $ annotOfExp pay'
+  frees = freevars $ pay'
 
 -- | Thresher transform - throw out the chaff.
 -- Three things:
@@ -202,8 +209,8 @@ substXinS a_fresh name payload statements
 --  * Remove some other useless code:
 --      statements that do not update accumulators or return a value are silly.
 --
-thresher :: (Ord n, Eq p) => a -> Statement a n p -> Fresh n (Statement a n p)
-thresher a_fresh statements
+thresher :: (Ord n, Eq p) => Statement a n p -> Fresh n (Statement a n p)
+thresher statements
  = transformUDStmt trans emptyExpEnv statements
  where
   trans env s
@@ -222,7 +229,7 @@ thresher a_fresh statements
       -- Duplicate let: change to refer to existing one
       -- I tried to use simple equality for simpFlattened since expressions cannot contain lambdas, but it was slower. WEIRD.
        | ((n',_):_) <- filter (\(_,x') -> x `alphaEquality` x') $ Map.toList env
-       -> return (env, Let n (XVar a_fresh n') ss)
+       -> return (env, Let n (XVar (annotOfExp x) n') ss)
 
       -- Read that's never used
       Read n _ _ ss
@@ -233,7 +240,7 @@ thresher a_fresh statements
        | usage <- accumulatorUsed n ss
        , not (accRead usage) || not (accWritten usage)
        -> do    n' <- fresh
-                let ss' = Let n' x (killAccumulator n (XVar a_fresh n') ss)
+                let ss' = Let n' x (killAccumulator n (XVar (annotOfExp x) n') ss)
                 return (env, ss')
 
       -- Anything else, we just update environment and recurse
@@ -350,8 +357,8 @@ stmtFreeX statements
 --   
 -- Note that the above example is only one step: nesting would then be
 -- recursively performed etc.
-nestBlocks :: Ord n => a -> Statement a n p -> Fresh n (Statement a n p)
-nestBlocks a_fresh statements
+nestBlocks :: Ord n => Statement a n p -> Fresh n (Statement a n p)
+nestBlocks statements
  = transformUDStmt trans () statements
  where
   trans _ s
@@ -391,7 +398,7 @@ nestBlocks a_fresh statements
   maybeRename n check inner
    | n `Set.member` stmtFreeX check
    = do n'      <- fresh
-        inner'  <- substXinS a_fresh n (XVar a_fresh n') inner
+        inner'  <- substXinS' n (\a -> XVar a n') inner
         return (n', inner')
 
    | otherwise
