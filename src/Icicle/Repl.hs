@@ -3,7 +3,7 @@
 
 module Icicle.Repl (
     ReplError (..)
-  , P.QueryTop', P.QueryTop'T, P.Program'
+  , Var, P.QueryTop', P.QueryTop'T, P.CoreProgram'
   , annotOfError
   , sourceParse
   , sourceDesugar
@@ -28,7 +28,7 @@ import qualified Icicle.Avalanche.Program         as AP
 import qualified Icicle.Avalanche.Prim.Flat       as APF
 
 import qualified Icicle.Common.Base               as CommonBase
-import qualified Icicle.Common.Annot              as CommonAnnotation
+import           Icicle.Common.Annot              (Annot(..))
 import qualified Icicle.Common.Fresh              as Fresh
 import           Icicle.Data
 import qualified Icicle.Dictionary                as D
@@ -59,10 +59,13 @@ import           System.IO
 
 import qualified Text.ParserCombinators.Parsec    as Parsec
 
+
+type Var = P.SourceVar
+
 data ReplError
- = ReplErrorCompileCore      (P.CompileError  Parsec.SourcePos SP.Variable ())
- | ReplErrorCompileAvalanche (P.CompileError  ()               SP.Variable APF.Prim)
- | ReplErrorRuntime          (S.SimulateError ()               SP.Variable)
+ = ReplErrorCompileCore      (P.CompileError  Parsec.SourcePos Var ())
+ | ReplErrorCompileAvalanche (P.CompileError  ()               Var APF.Prim)
+ | ReplErrorRuntime          (S.SimulateError ()               Var)
  | ReplErrorDictionaryLoad   DictionaryToml.DictionaryImportError
  | ReplErrorDecode           S.ParseError
  deriving (Show)
@@ -98,8 +101,6 @@ instance Pretty ReplError where
       -> "Decode error:" <> line
       <> indent 2 (pretty d)
 
-type Var        = SP.Variable
-
 data DictionaryLoadType
  = DictionaryLoadTextV1 FilePath
  | DictionaryLoadToml   FilePath
@@ -109,29 +110,31 @@ data DictionaryLoadType
 
 -- * Check and Convert
 
-sourceParse :: Text -> Either ReplError P.QueryTop'
+sourceParse :: Text -> Either ReplError (P.QueryTop' Var)
 sourceParse = mapLeft ReplErrorCompileCore . P.sourceParseQT "repl"
 
-sourceDesugar :: P.QueryTop' -> Either ReplError P.QueryTop'
+sourceDesugar :: P.QueryTop' Var -> Either ReplError (P.QueryTop' Var)
 sourceDesugar = mapLeft ReplErrorCompileCore . P.sourceDesugarQT
 
-sourceReify :: P.QueryTop'T -> P.QueryTop'T
+sourceReify :: P.QueryTop'T Var -> P.QueryTop'T Var
 sourceReify = P.sourceReifyQT
 
-sourceCheck :: D.Dictionary -> P.QueryTop' -> Either ReplError (P.QueryTop'T, ST.Type Var)
+sourceCheck :: D.Dictionary -> P.QueryTop' Var -> Either ReplError (P.QueryTop'T Var, ST.Type Var)
 sourceCheck d
  = mapLeft ReplErrorCompileCore . P.sourceCheckQT d
 
-sourceConvert :: D.Dictionary -> P.QueryTop'T -> Either ReplError P.Program'
+sourceConvert :: D.Dictionary -> P.QueryTop'T Var -> Either ReplError (P.CoreProgram' Var)
 sourceConvert d
  = mapLeft ReplErrorCompileCore . P.sourceConvert d
 
-coreFlatten :: P.Program' -> Either ReplError (AP.Program () Var APF.Prim)
+coreFlatten
+  :: P.CoreProgram' Var -> Either ReplError (AP.Program () Var APF.Prim)
 coreFlatten
  = mapLeft ReplErrorCompileAvalanche . P.coreFlatten
 
-checkAvalanche :: AP.Program () Var APF.Prim
-               -> Either ReplError (AP.Program (CommonAnnotation.Annot ()) Var APF.Prim)
+checkAvalanche
+  :: AP.Program () Var APF.Prim
+  -> Either ReplError (AP.Program (Annot ()) Var APF.Prim)
 checkAvalanche
  = mapLeft ReplErrorCompileAvalanche . P.checkAvalanche
 

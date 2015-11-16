@@ -123,7 +123,7 @@ fuseCore =
 
 coreOfSource
   :: Dictionary
-  -> (Attribute, QueryTop'T)
+  -> (Attribute, QueryTop'T SourceVar)
   -> Either BenchError (Map Attribute [(S.Variable, C.Program () S.Variable)])
 coreOfSource dict (Attribute attr, virtual) =
   first BenchSourceError $ do

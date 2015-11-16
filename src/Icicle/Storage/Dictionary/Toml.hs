@@ -148,7 +148,7 @@ loadImports parentFuncs parsedImports
 
 checkDefs
   :: Dictionary
-  -> [(Attribute, P.QueryTop')]
+  -> [(Attribute, P.QueryTop' P.SourceVar)]
   -> EitherT DictionaryImportError IO [DictionaryEntry]
 checkDefs d defs
  = hoistEither . mapLeft DictionaryErrorCompilation

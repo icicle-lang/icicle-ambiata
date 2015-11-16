@@ -5,6 +5,8 @@
 module Icicle.Test.Core.Exp.Check where
 
 import           Icicle.Test.Core.Arbitrary
+import           Icicle.Test.Arbitrary
+
 import           Icicle.Common.Exp
 import           Icicle.Common.Type
 import           Icicle.Core.Exp
