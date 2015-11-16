@@ -1,50 +1,50 @@
+{-# LANGUAGE DoAndIfThenElse   #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards     #-}
 {-# LANGUAGE TupleSections     #-}
-{-# LANGUAGE ViewPatterns      #-}
-{-# LANGUAGE DoAndIfThenElse   #-}
-{-# LANGUAGE LambdaCase        #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
+import           Control.Monad.IO.Class
 import           Control.Monad.Trans.Class
 import           Control.Monad.Trans.Either
-import           Control.Monad.IO.Class
-import           Data.Either.Combinators
-import           Data.Monoid
-import           Data.List                            (words, replicate, nubBy)
-import           Data.String                          (String, lines)
-import           Data.Text                            (Text)
-import qualified Data.Text                            as T
-import qualified Data.Text.IO                         as T
-import           System.Console.Haskeline             as HL
-import qualified System.Console.Terminal.Size         as TS
-import qualified System.Console.ANSI                  as ANSI
-import           System.Directory
-import           System.Environment                   (getArgs)
-import           System.IO
-import qualified Text.ParserCombinators.Parsec        as Parsec
 
-import qualified Icicle.Internal.Pretty               as PP
-import qualified Icicle.Avalanche.Prim.Flat           as APF
-import qualified Icicle.Avalanche.Program             as AP
-import qualified Icicle.Avalanche.ToJava              as AJ
-import qualified Icicle.Common.Annot                  as C
-import qualified Icicle.Common.Base                   as CommonBase
-import qualified Icicle.Core.Program.Check            as CP
+import           Data.List                        (nubBy, replicate, words)
+import           Data.Monoid
+import           Data.String                      (String, lines)
+import qualified Data.Text                        as T
+import qualified Data.Text.IO                     as T
+
+import qualified System.Console.ANSI              as ANSI
+import           System.Console.Haskeline         as HL
+import qualified System.Console.Terminal.Size     as TS
+import           System.Directory
+import           System.Environment               (getArgs)
+import           System.IO
+
+import qualified Text.ParserCombinators.Parsec    as Parsec
+
+import qualified Icicle.Pipeline                  as P
+
+import qualified Icicle.Internal.Pretty           as PP
+
+import qualified Icicle.Avalanche.ToJava          as AJ
+
+import qualified Icicle.Core.Program.Check        as CP
+
 import           Icicle.Data
 import           Icicle.Data.DateTime
 import           Icicle.Dictionary
-import           Icicle.Internal.Rename
-import qualified Icicle.Repl                          as SR
-import qualified Icicle.Sea.Eval                      as Sea
-import qualified Icicle.Sea.FromAvalanche.Program     as Sea
-import qualified Icicle.Sea.Preamble                  as Sea
-import qualified Icicle.Simulator                     as S
-import qualified Icicle.Source.Parser                 as SP
-import qualified Icicle.Source.PrettyAnnot            as SPretty
-import qualified Icicle.Source.Query                  as SQ
+
+import qualified Icicle.Repl                      as SR
+
+import qualified Icicle.Sea.Eval                  as Sea
+import qualified Icicle.Sea.FromAvalanche.Program as Sea
+import qualified Icicle.Sea.Preamble              as Sea
+
+import qualified Icicle.Source.PrettyAnnot        as SPretty
 
 
 import           P
@@ -334,7 +334,7 @@ handleLine state line = case readCommand line of
        Right f -> do
         prettyOut hasFlatten "- Flattened:" f
 
-        case avalancheEval (currentDate state) (facts state) finalSource f of
+        case P.avalancheEval (currentDate state) (facts state) finalSource f of
          Left  e -> prettyOut hasAvalancheEval "- Avalanche error:" e
          Right r -> prettyOut hasAvalancheEval "- Avalanche evaluation:" r
 
@@ -359,12 +359,12 @@ handleLine state line = case readCommand line of
                Right r -> prettyOut (const True) "- C assembly:" r
 
            when (hasSeaEval state) $ do
-             result <- liftIO . runEitherT $ seaEval (currentDate state) (facts state) finalSource f'
+             result <- liftIO . runEitherT $ P.seaEval (currentDate state) (facts state) finalSource f'
              case result of
                Left  e -> prettyOut (const True) "- C error:" e
                Right r -> prettyOut (const True) "- C evaluation:" r
 
-      case coreEval (currentDate state) (facts state) finalSource core' of
+      case P.coreEval (currentDate state) (facts state) finalSource core' of
        Left  e -> prettyOut hasCoreEval "- Core error:" e
        Right r -> prettyOut hasCoreEval "- Core evaluation:" r
 
