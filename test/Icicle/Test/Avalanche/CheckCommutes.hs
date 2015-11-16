@@ -5,6 +5,8 @@
 module Icicle.Test.Avalanche.CheckCommutes where
 
 import           Icicle.Test.Core.Arbitrary
+import           Icicle.Test.Arbitrary
+
 import           Icicle.Core.Program.Check
 import           Icicle.Core.Exp (coreFragment)
 

@@ -24,9 +24,9 @@ import qualified System.Console.ANSI                  as ANSI
 import           System.Directory
 import           System.Environment                   (getArgs)
 import           System.IO
-import qualified Icicle.Internal.Pretty               as PP
 import qualified Text.ParserCombinators.Parsec        as Parsec
 
+import qualified Icicle.Internal.Pretty               as PP
 import qualified Icicle.Avalanche.Prim.Flat           as APF
 import qualified Icicle.Avalanche.Program             as AP
 import qualified Icicle.Avalanche.ToJava              as AJ
@@ -465,93 +465,6 @@ handleSetCommand state set
         return $ state { doCoreSimp = b }
 
 --------------------------------------------------------------------------------
-
-newtype Result   = Result (Entity, Value)
-
-instance PP.Pretty Result where
-  pretty (Result (ent, val))
-    = PP.pretty ent <> PP.comma <> PP.space <> PP.pretty val
-
-unVar :: SP.Variable -> Text
-unVar (SP.Variable t)  = t
-
-coreEval
-  :: DateTime -> [AsAt Fact] -> SR.QueryTop'T SR.Var -> SR.CoreProgram' SR.Var
-  -> Either SR.ReplError [Result]
-coreEval d fs (renameQT unVar -> query) prog
- = do let partitions = S.streams fs
-      let feat       = SQ.feature query
-      let results    = fmap (evalP feat) partitions
-
-      res' <- mapLeft SR.ReplErrorRuntime
-            $ sequence results
-
-      return $ concat res'
-
-  where
-    evalP feat (S.Partition ent attr values)
-      | CommonBase.Name feat' <- feat
-      , attr == Attribute feat'
-      = do  (vs',_) <- evalV values
-            return $ fmap (\v -> Result (ent, snd v)) vs'
-
-      | otherwise
-      = return []
-
-    evalV
-      = S.evaluateVirtualValue prog d
-
-avalancheEval
-  :: DateTime -> [AsAt Fact] -> SR.QueryTop'T SR.Var -> AP.Program () SR.Var APF.Prim
-  -> Either SR.ReplError [Result]
-avalancheEval d fs (renameQT unVar -> query) prog
- = do let partitions = S.streams fs
-      let feat       = SQ.feature query
-      let results    = fmap (evalP feat) partitions
-
-      res' <- mapLeft SR.ReplErrorRuntime
-            $ sequence results
-
-      return $ concat res'
-
-  where
-    evalP feat (S.Partition ent attr values)
-      | CommonBase.Name feat' <- feat
-      , attr == Attribute feat'
-      = do  (vs',_) <- evalV values
-            return $ fmap (\v -> Result (ent, snd v)) vs'
-
-      | otherwise
-      = return []
-
-    evalV
-      = S.evaluateVirtualValue' prog d
-
-seaEval :: DateTime
-        -> [AsAt Fact]
-        -> SR.QueryTop'T SR.Var
-        -> AP.Program (C.Annot ()) SP.Variable APF.Prim
-        -> EitherT Sea.SeaError IO [(Entity, Value)]
-seaEval date newFacts (renameQT unVar -> query) program =
-    mconcat <$> sequence results
-  where
-    partitions :: [S.Partition]
-    partitions  = S.streams newFacts
-
-    results :: [EitherT Sea.SeaError IO [(Entity, Value)]]
-    results = fmap (evalP (SQ.feature query)) partitions
-
-    evalP :: CommonBase.Name Text
-          -> S.Partition
-          -> EitherT Sea.SeaError IO [(Entity, Value)]
-    evalP featureName (S.Partition entityName attributeName values)
-      | CommonBase.Name name <- featureName
-      , Attribute name == attributeName
-      = do outputs <- Sea.seaEvalAvalanche program date values
-           return $ fmap (\out -> (entityName, snd out)) outputs
-
-      | otherwise
-      = return []
 
 --------------------------------------------------------------------------------
 

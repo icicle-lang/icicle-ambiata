@@ -5,6 +5,8 @@
 module Icicle.Test.Avalanche.EvalCommutes where
 
 import           Icicle.Test.Core.Arbitrary
+import           Icicle.Test.Arbitrary
+
 import           Icicle.BubbleGum
 import           Icicle.Common.Base
 import           Icicle.Core.Program.Check

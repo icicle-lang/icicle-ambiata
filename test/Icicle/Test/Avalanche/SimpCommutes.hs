@@ -5,6 +5,8 @@
 module Icicle.Test.Avalanche.SimpCommutes where
 
 import           Icicle.Test.Core.Arbitrary
+import           Icicle.Test.Arbitrary
+
 import           Icicle.Core.Program.Check
 import qualified Icicle.Core.Eval.Exp       as XV
 

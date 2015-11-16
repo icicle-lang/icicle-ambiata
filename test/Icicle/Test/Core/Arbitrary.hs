@@ -24,7 +24,7 @@ import           Icicle.Core.Reduce
 import           Icicle.Core.Program.Program    as P
 
 import           Icicle.Test.Arbitrary.Base
-import           Icicle.Test.Arbitrary ()
+import           Icicle.Test.Arbitrary
 import           Disorder.Corpus
 
 import           Test.QuickCheck
@@ -36,15 +36,6 @@ import           Data.Text  as T
 import qualified Data.List  as List
 import qualified Data.Map   as Map
 
-
-data Var
- = Var Text Int
- deriving (Eq,Ord,Show)
-
--- | Generate a fresh variable name that isn't mentioned elsewhere in the program,
--- (assuming that the generated program doesn't mention it)
-fresh :: Int -> Name Var
-fresh = Name . Var "_fresh"
 
 -- | Check if values are equal except for functions/closures
 -- Because closure heaps can differ..

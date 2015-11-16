@@ -6,6 +6,8 @@
 module Icicle.Test.Core.Program.Fusion where
 
 import           Icicle.Test.Core.Arbitrary
+import           Icicle.Test.Arbitrary
+
 import           Icicle.Core.Program.Check
 import           Icicle.Core.Program.Fusion
 import qualified Icicle.Core.Eval.Program   as PV

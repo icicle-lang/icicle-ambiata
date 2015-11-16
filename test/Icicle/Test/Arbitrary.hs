@@ -3,19 +3,39 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Icicle.Test.Arbitrary where
 
-import           Icicle.Common.Base (WindowUnit (..))
+import           Icicle.Common.Base hiding (StructField)
 import           Icicle.Data
 import           Icicle.Data.DateTime
 
 import           Icicle.Test.Arbitrary.Base
+
 import           Disorder.Corpus
 
 import           Test.QuickCheck
 import           Test.QuickCheck.Instances ()
 
 import           P
-import           Data.List (nubBy)
+import qualified Data.List as List
+import qualified Data.Text as T
+import           Data.String
+import           Data.Char
 
+
+-- | Variables used in random Core and Avalanche programs.
+data Var = Var T.Text Int
+ deriving (Eq,Ord,Show)
+
+instance IsString Var where
+  fromString s
+   = let (a,n) = List.partition isAlpha s
+     in  Var (T.pack a) (fromMaybe 0 $ readMaybe n)
+
+-- | Generate a fresh variable name that isn't mentioned elsewhere in the program,
+-- (assuming that the generated program doesn't mention it)
+fresh :: Int -> Name Var
+fresh = Name . Var "_fresh"
+
+--------------------------------------------------------------------------------
 
 instance Arbitrary Entity where
   arbitrary =
@@ -57,7 +77,7 @@ instance Arbitrary Encoding where
           , ListEncoding           <$> arbitrary ]
    where
     nubEq
-     = nubBy ((==) `on` attributeOfStructField)
+     = List.nubBy ((==) `on` attributeOfStructField)
 
 instance Arbitrary StructField where
   arbitrary =
