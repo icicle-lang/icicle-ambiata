@@ -48,11 +48,13 @@ import           System.IO
 import           Test.QuickCheck
 import           Test.QuickCheck.Property
 
+import           X.Control.Monad.Catch (bracketEitherT')
+
 
 prop_psv wt = testIO $ do
   let seaProgram = Map.singleton (Attribute "eval") (wtAvalanche wt)
-  fleet <- runEitherT (S.seaCompile S.Psv seaProgram)
-  case fleet of
+  x <- runEitherT $ bracketEitherT' (S.seaCompile S.Psv seaProgram) S.seaRelease (const (pure ()))
+  case x of
     Right _
      -> pure (property succeeded)
     Left (S.SeaJetskiError (J.CompilerError _ src err))

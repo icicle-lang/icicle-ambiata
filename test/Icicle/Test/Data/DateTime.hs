@@ -15,8 +15,8 @@ import           Control.Exception (finally)
 import           Control.Monad.IO.Class (liftIO)
 import           Control.Monad.Trans.Either
 
-import qualified Data.Text as T
 import           Data.IORef (IORef, newIORef, readIORef, writeIORef)
+import qualified Data.Text as T
 
 import           Disorder.Core.IO
 
@@ -122,6 +122,7 @@ textOfDoc doc = T.pack (PP.displayS (PP.renderPretty 0.8 80 (PP.pretty doc)) "")
 
 libraryRef :: IORef (Maybe (Either JetskiError Library))
 libraryRef = unsafePerformIO (newIORef Nothing)
+{-# NOINLINE libraryRef #-}
 
 readLibraryRef :: EitherT JetskiError IO Library
 readLibraryRef = do

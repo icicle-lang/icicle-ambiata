@@ -73,4 +73,3 @@ main
         , Icicle.Test.Source.Progress.tests
         , Icicle.Test.Source.Convert.tests
         ]
-
