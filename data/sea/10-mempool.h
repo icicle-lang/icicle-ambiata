@@ -78,14 +78,14 @@ static void * NOINLINE imempool_alloc_block (imempool_t *pool, size_t num_bytes)
     exit (1);
 }
 
-void * INLINE imempool_alloc (imempool_t *pool, size_t num_bytes)
+static void * INLINE imempool_alloc (imempool_t *pool, size_t num_bytes)
 {
     TRY_ALLOC (imempool_alloc);
 
     return imempool_alloc_block (pool, num_bytes);
 }
 
-imempool_t *imempool_create ()
+imempool_t * imempool_create ()
 {
     imempool_t *pool = calloc(1, sizeof(imempool_t));
     imempool_add_block (pool);
