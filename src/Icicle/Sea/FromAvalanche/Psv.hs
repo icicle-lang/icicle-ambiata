@@ -92,7 +92,7 @@ seaOfAllocProgram state
                 <> "calloc (psv_max_row_count, sizeof (" <> noPadSeaOfValType t <> "));"
 
    in vsep [ "/* " <> seaOfAttributeDesc (stateAttribute state) <> " */"
-           , ps <> "gen_date = date;"
+           , ps <> pretty (stateDateVar state) <> " = date;"
            , vsep (fmap go (stateInputVars state))
            , ""
            ]
@@ -189,9 +189,6 @@ seaOfReadFact state = do
          <> pretty (nameOfStateType state) <+> "*program,"
         <+> "const char *value_ptr, const size_t value_size, idate_t date)"
     , "{"
-    , "    char *p  = (char *) value_ptr;"
-    , "    char *pe = (char *) value_ptr + value_size;"
-    , ""
     , indent 4 readInput
     , ""
     , "    program->" <> pretty (inputSumBool  input) <> "[program->new_count] = itrue;"
@@ -242,26 +239,68 @@ checkInputType state
 
 seaOfReadInput :: CheckedInput -> Either SeaError Doc
 seaOfReadInput input
- = case inputType input of
-    StructT st -> seaOfReadStruct st (inputVars input)
-    IntT       -> seaOfReadInt       (inputVars input)
-    t          -> Left (SeaUnsupportedInputType t)
+ = case (inputVars input, inputType input) of
+    ([(nx, BoolT)], BoolT)
+     -> pure $ vsep
+        [ ""
+        , "if (value_size == sizeof (\"true\") - 1 &&"
+        , "    memcmp (\"true\", value_ptr, value_size)) {"
+        , "    program->" <> pretty nx <> "[program->new_count] = itrue;"
+        , "} else if (value_size == sizeof (\"false\") - 1 &&"
+        , "           memcmp (\"false\", value_ptr, value_size)) {"
+        , "    program->" <> pretty nx <> "[program->new_count] = ifalse;"
+        , "} else {"
+        , "    return psv_alloc_error (\"not a boolean\", value_ptr, value_size);"
+        , "}"
+        ]
 
-------------------------------------------------------------------------
+    ([(nx, DoubleT)], DoubleT)
+     -> pure $ vsep
+        [ "char *end_ptr;"
+        , "program->" <> pretty nx <> "[program->new_count] = strtod (value_ptr, &end_ptr);"
+        , ""
+        , "if (value_ptr + value_size != end_ptr)"
+        , "  return psv_alloc_error (\"not an number\", value_ptr, value_size);"
+        ]
 
-seaOfReadInt :: [(Text, ValType)] -> Either SeaError Doc
-seaOfReadInt vars
-  = case vars of
-     [(nx, IntT)]
-      -> pure $ vsep
-         [ "char *end_ptr;"
-         , "program->" <> pretty nx <> "[program->new_count] = strtol (p, &end_ptr, 10);"
-         , ""
-         , "if (pe != end_ptr)"
-         , "  return psv_alloc_error (\"not an integer\", p, pe - p);"
-         ]
-     _
-      -> Left (SeaInputTypeMismatch IntT vars)
+    ([(nx, IntT)], IntT)
+     -> pure $ vsep
+        [ "char *end_ptr;"
+        , "program->" <> pretty nx <> "[program->new_count] = strtol (value_ptr, &end_ptr, 10);"
+        , ""
+        , "if (value_ptr + value_size != end_ptr)"
+        , "  return psv_alloc_error (\"not an integer\", value_ptr, value_size);"
+        ]
+
+    ([(nx, DateTimeT)], DateTimeT)
+     -> pure $ vsep
+        [ "psv_error_t " <> seaOfError nx <> " = "
+                         <> "psv_read_date (value_ptr, value_size, "
+                         <> "&program->" <> pretty nx <> "[program->new_count]);"
+        , "if (" <> seaOfError nx <> ") return " <> seaOfError nx <> ";"
+        ]
+
+    ([(nx, StringT)], StringT)
+     -> pure $ vsep
+        [ "size_t copy_size = value_size + 1;"
+        , "char  *copy_ptr  = imempool_alloc (program->mempool, copy_size);"
+        , "memcpy (copy_ptr, value_ptr, value_size);"
+        , "copy_ptr[copy_size] = 0;"
+        , "program->" <> pretty nx <> "[program->new_count] = copy_ptr;"
+        ]
+
+    ([(nx, UnitT)], StructT (StructType fs))
+     | Map.null fs
+     -> pure $ "program->" <> pretty nx <> "[program->new_count] = iunit;"
+
+    (_, StructT st)
+     -> seaOfReadStruct st (inputVars input)
+
+    (_, t)
+     -> Left (SeaUnsupportedInputType t)
+
+seaOfError :: Text -> Doc
+seaOfError suf = "error_" <> pretty suf
 
 ------------------------------------------------------------------------
 
@@ -298,7 +337,10 @@ seaOfReadStruct st@(StructType fields) vars = do
   mappings     <- maybe (Left mismatch) Right (mappingOfFields (Map.toList fields) vars)
   mappings_sea <- traverse seaOfFieldMapping mappings
   pure $ vsep
-    [ "if (*p++ != '{')"
+    [ "char  *p  = (char *) value_ptr;"
+    , "char  *pe = (char *) value_ptr + value_size;"
+    , ""
+    , "if (*p++ != '{')"
     , "    return psv_alloc_error (\"missing {\",  value_ptr, value_size);"
     , ""
     , "for (ibool_t done = ifalse; !done;) {"
@@ -312,8 +354,7 @@ seaOfReadStruct st@(StructType fields) vars = do
 
 seaOfFieldMapping :: FieldMapping -> Either SeaError Doc
 seaOfFieldMapping (FieldMapping fname ftype vars) = do
-  -- TODO Haskell escapes /= C escapes
-  let needle = text (show (fname <> "\""))
+  let needle = seaOfString (fname <> "\"")
   field_sea <- seaOfReadJson ftype vars
   pure $ vsep
     [ "if (memcmp (" <> needle <> ", p, sizeof (" <> needle <> ") - 1) == 0) {"
@@ -327,21 +368,31 @@ seaOfFieldMapping (FieldMapping fname ftype vars) = do
 
 seaOfReadJson :: ValType -> [Text] -> Either SeaError Doc
 seaOfReadJson ftype vars
- = let readJson t n = "psv_error_t error = psv_read_json_" <> t
-                   <> " (program->mempool, &p, pe, &program->" <> pretty n <> "[program->new_count], &done);"
+ = let readJson  n t  = "psv_error_t error = psv_read_json_" <> t
+                     <> " (program->mempool, &p, pe, &program->" <> pretty n <> "[program->new_count], &done);"
+
+       readConst n xx = "program->" <> pretty n <+> "[program->new_count] = " <> xx <> ";"
    in case (ftype, vars) of
        (OptionT t, [nb, nx]) -> do
          val_sea <- seaOfReadJson t [nx]
-         pure $ vsep ["program->" <> pretty nb <+> "= itrue;", val_sea]
+         pure $ vsep
+           [ readConst nb "itrue"
+           , val_sea ]
+
+       (BoolT, [nx]) -> do
+         pure (readJson nx "bool")
 
        (IntT, [nx]) -> do
-         pure (readJson "int" nx)
+         pure (readJson nx "int")
 
-       (StringT, [nx]) -> do
-         pure (readJson "string" nx)
+       (DoubleT, [nx]) -> do
+         pure (readJson nx "double")
 
        (DateTimeT, [nx]) -> do
-         pure (readJson "date" nx)
+         pure (readJson nx "date")
+
+       (StringT, [nx]) -> do
+         pure (readJson nx "string")
 
        _
         -> Left (SeaUnsupportedStructFieldType ftype vars)
@@ -367,7 +418,7 @@ seaOfWriteProgramOutput state = do
   let ps = "p" <> int (stateName state)
 
   let resumeables = fmap (\(n,_) -> ps <> "->" <> pretty (hasPrefix <> n) <+> "= ifalse;") (stateResumables state)
-  outputs <- traverse (\(n,(t,ts)) -> seaOfOutput ps n t ts) (stateOutputs state)
+  outputs <- traverse (\(n,(t,ts)) -> seaOfOutput ps n t ts 0) (stateOutputs state)
 
   pure $ vsep
     [ ""
@@ -380,36 +431,74 @@ seaOfWriteProgramOutput state = do
     , vsep outputs
     ]
 
-seaOfOutput :: Doc -> OutputName -> ValType -> [ValType] -> Either SeaError Doc
-seaOfOutput ps oname@(OutputName name) otype ts
-  = let members     = List.take (length ts) (fmap (\ix -> ps <> "->" <> seaOfNameIx name ix) [0..])
-        attrib      = text (fromMaybe "" (init (drop 1 (show name)))) -- TODO Haskell escapes /= C escapes
-        mismatch    = Left (SeaOutputTypeMismatch oname otype ts)
-        unsupported = Left (SeaUnsupportedOutputType otype)
+seaOfOutput :: Doc -> OutputName -> ValType -> [ValType] -> Int -> Either SeaError Doc
+seaOfOutput ps oname@(OutputName name) otype0 ts0 ixStart
+  = let members     = List.take (length ts0) (fmap (\ix -> ps <> "->" <> seaOfNameIx name ix) [ixStart..])
+        attrib      = seaOfEscaped name
+        mismatch    = Left (SeaOutputTypeMismatch oname otype0 ts0)
+        unsupported = Left (SeaUnsupportedOutputType otype0)
 
-        dprintf fmt n = "dprintf (fd, \"%s|" <> attrib <> "|" <> fmt <> "|%lld-%02lld-%02lldT%02lld:%02lld:%02lld\\n\""
+        dateFmt       = "%lld-%02lld-%02lldT%02lld:%02lld:%02lld"
+        dprintf fmt n = "dprintf (fd, \"%s|" <> attrib <> "|" <> fmt <> "|" <> dateFmt <> "\\n\""
                      <> ", entity, " <> n <> ", year, month, day, hour, minute, second);"
-    in case otype of
-      SumT ErrorT IntT
-       | [BoolT, ErrorT, IntT] <- ts
-       , [_, _, mx]            <- members
+    in case otype0 of
+      SumT ErrorT otype1
+       | (BoolT : ErrorT : ts1) <- ts0
+       , (nb    : _      : _)   <- members
+       -> do doc <- seaOfOutput ps oname otype1 ts1 (ixStart+2)
+             pure ("if (" <> nb <> ")" <+> doc)
+
+       | otherwise
+       -> mismatch
+
+      BoolT
+       | [BoolT] <- ts0
+       , [mx]   <- members
+       -> pure $ vsep
+          [ "if (" <> mx <> ") {"
+          , indent 4 (dprintf "%s" "\"true\"")
+          , "} else {"
+          , indent 4 (dprintf "%s" "\"false\"")
+          , "}"
+          ]
+
+       | otherwise
+       -> mismatch
+
+      IntT
+       | [IntT] <- ts0
+       , [mx]   <- members
        -> pure (dprintf "%lld" mx)
 
        | otherwise
        -> mismatch
 
-      SumT ErrorT DoubleT
-       | [BoolT, ErrorT, DoubleT] <- ts
-       , [_, _, mx]               <- members
+      DoubleT
+       | [DoubleT] <- ts0
+       , [mx]      <- members
        -> pure (dprintf "%f" mx)
 
        | otherwise
        -> mismatch
 
-      SumT ErrorT StringT
-       | [BoolT, ErrorT, StringT] <- ts
-       , [_, _, mx]               <- members
+      StringT
+       | [StringT] <- ts0
+       , [mx]      <- members
        -> pure (dprintf "%s" mx)
+
+       | otherwise
+       -> mismatch
+
+      DateTimeT
+       | [DateTimeT] <- ts0
+       , [mx]        <- members
+       -> pure $ vsep
+          [ "{"
+          , "    iint_t v_year, v_month, v_day, v_hour, v_minute, v_second;"
+          , "    idate_to_gregorian (" <> mx <> ", &v_year, &v_month, &v_day, &v_hour, &v_minute, &v_second);"
+          , indent 4 (dprintf dateFmt "v_year, v_month, v_day, v_hour, v_minute, v_second")
+          , "}"
+          ]
 
        | otherwise
        -> mismatch
@@ -419,9 +508,8 @@ seaOfOutput ps oname@(OutputName name) otype ts
 
 ------------------------------------------------------------------------
 
--- TODO Haskell escapes /= C escapes
 seaOfAttribute :: SeaProgramState -> Doc
-seaOfAttribute = text . show . getAttribute . stateAttribute
+seaOfAttribute = seaOfString . getAttribute . stateAttribute
 
 last :: [a] -> Maybe a
 last []     = Nothing

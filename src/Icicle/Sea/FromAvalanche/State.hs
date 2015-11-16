@@ -46,6 +46,7 @@ import           P
 data SeaProgramState = SeaProgramState {
     stateName       :: Int
   , stateAttribute  :: Attribute
+  , stateDateVar    :: Text
   , stateInputType  :: ValType
   , stateInputVars  :: [(Text, ValType)]
   , stateResumables :: [(Text, ValType)]
@@ -69,6 +70,7 @@ stateOfProgram name attrib program
      -> Right SeaProgramState {
           stateName       = name
         , stateAttribute  = attrib
+        , stateDateVar    = textOfName (binddate program)
         , stateInputType  = factType
         , stateInputVars  = fmap (first textOfName) factVars
         , stateResumables = fmap (first textOfName) (Map.toList (resumablesOfProgram program))
@@ -98,7 +100,7 @@ seaOfState state
  , "    imempool_t      *mempool;"
  , ""
  , "    /* inputs */"
- , "    idate_t          gen_date;"
+ , "    idate_t          " <> pretty (stateDateVar state) <> ";"
  , "    iint_t           new_count;"
  , indent 4 . vsep
             . fmap defOfFactVar

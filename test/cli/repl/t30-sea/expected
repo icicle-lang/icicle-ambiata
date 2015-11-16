@@ -938,6 +938,8 @@ void iprogram_0(iprogram_0_t *s)
     ierror_t         s_reify_6_conv_13_simp_271;
     idouble_t        s_reify_6_conv_13_simp_272;
 
+    idate_t          gen_date                 = s->gen_date;
+
     acc_s_reify_6_conv_13_simp_66             = ifalse;                               /* init */
     acc_s_reify_6_conv_13_simp_67             = ierror_fold1_no_value;                /* init */
     acc_s_reify_6_conv_13_simp_68             = 0.0;                                  /* init */
@@ -1794,6 +1796,8 @@ void iprogram_0(iprogram_0_t *s)
     ibool_t          s_reify_2_conv_5_simp_22;
     ierror_t         s_reify_2_conv_5_simp_23;
     idate_t          s_reify_2_conv_5_simp_24;
+
+    idate_t          gen_date                 = s->gen_date;
 
     acc_s_reify_2_conv_5_simp_4               = ifalse;                               /* init */
     acc_s_reify_2_conv_5_simp_5               = ierror_fold1_no_value;                /* init */

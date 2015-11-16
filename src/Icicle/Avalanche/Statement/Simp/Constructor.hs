@@ -73,7 +73,7 @@ constructor a_fresh statements
   primPack env t xs
    = foldl (\f x -> f `xApp` x) (xPrim (PrimMelt (PrimMeltPack t))) (unpack env xs)
 
-  primRepack  env t skip take x
+  primRepack env t skip take x
    = let start = length (concatMap meltType skip)
          end   = start + length (meltType take) - 1
      in primPack env take (fmap (\ix -> primUnpack ix t x) [start..end])
@@ -146,10 +146,11 @@ constructor a_fresh statements
    | (PrimUnsafe (PrimUnsafeSumGetRight ta tb), [n]) <- prima
    = primRepack env (SumT ta tb) [BoolT, ta] tb n
 
-   | (PrimMinimal (Min.PrimStruct (Min.PrimStructGet f tf ts@(StructType fs))), [n]) <- prima
-   , (pre, _:_) <- List.span (/= f) (Map.keys fs)
-   , tpre       <- List.take (length pre) (Map.elems fs)
-   = primRepack env (StructT ts) tpre tf n
+   | (PrimMinimal (Min.PrimStruct (Min.PrimStructGet f tf (StructType fs))), [n]) <- prima
+   , fs'        <- Map.insert f tf fs
+   , (pre, _:_) <- List.span (/= f)       (Map.keys  fs')
+   , tpre       <- List.take (length pre) (Map.elems fs')
+   = primRepack env (StructT (StructType fs')) tpre tf n
 
    -- repacking const
    | (PrimMinimal (Min.PrimConst (Min.PrimConstPair ta tb)), [na, nb]) <- prima

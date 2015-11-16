@@ -83,9 +83,5 @@ stringOfValType t
      PairT{}   -> Left "pairs should have been melted"
      SumT{}    -> Left "sums should have been melted"
 
-valTypeOfExp :: Exp (Annot a) n p -> Maybe ValType
-valTypeOfExp = unFun . annType . annotOfExp
-  where
-    unFun (FunT [] t) = Just t
-    unFun _           = Nothing
-
+valTypeOfExp :: Exp (Annot a) n p -> ValType
+valTypeOfExp = functionReturns . annType . annotOfExp

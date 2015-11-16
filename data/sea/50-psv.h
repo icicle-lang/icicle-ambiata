@@ -204,6 +204,45 @@ static psv_error_t INLINE psv_read_json_string (imempool_t *pool, char **pp, cha
     return 0;
 }
 
+static psv_error_t INLINE psv_read_json_bool (imempool_t *pool, char **pp, char *pe, ibool_t *output_ptr, ibool_t *done_ptr)
+{
+    char *p = *pp;
+
+    if (*p++ != ':')
+        return psv_alloc_error ("missing ':'",  p, pe - p);
+
+    char *term_ptr;
+    char *comma_ptr = memchr (p, ',', pe - p);
+
+    if (comma_ptr) {
+        term_ptr = comma_ptr;
+    } else {
+        char *brace_ptr = memchr (p, '}', pe - p);
+        if (brace_ptr) {
+            term_ptr  = brace_ptr;
+            *done_ptr = itrue;
+        } else {
+            return psv_alloc_error ("terminator (',' or '}') not found", p, pe - p);
+        }
+    }
+
+    size_t value_size = term_ptr - p - 1;
+
+    if (value_size == sizeof ("true") - 1 &&
+        memcmp ("true", p, value_size)) {
+        *output_ptr = itrue;
+    } else if (value_size == sizeof ("false") - 1 &&
+               memcmp ("false", p, value_size)) {
+        *output_ptr = ifalse;
+    } else {
+        return psv_alloc_error ("was not an boolean", p, pe - p);
+    }
+
+    *pp = term_ptr + 1;
+
+    return 0;
+}
+
 static psv_error_t INLINE psv_read_json_int (imempool_t *pool, char **pp, char *pe, iint_t *output_ptr, ibool_t *done_ptr)
 {
     char *p = *pp;
@@ -228,6 +267,39 @@ static psv_error_t INLINE psv_read_json_int (imempool_t *pool, char **pp, char *
 
     char *end_ptr;
     *output_ptr = strtol (p, &end_ptr, 10);
+
+    if (end_ptr != term_ptr)
+        return psv_alloc_error ("was not an integer", p, pe - p);
+
+    *pp = term_ptr + 1;
+
+    return 0;
+}
+
+static psv_error_t INLINE psv_read_json_double (imempool_t *pool, char **pp, char *pe, idouble_t *output_ptr, ibool_t *done_ptr)
+{
+    char *p = *pp;
+
+    if (*p++ != ':')
+        return psv_alloc_error ("missing ':'",  p, pe - p);
+
+    char *term_ptr;
+    char *comma_ptr = memchr (p, ',', pe - p);
+
+    if (comma_ptr) {
+        term_ptr = comma_ptr;
+    } else {
+        char *brace_ptr = memchr (p, '}', pe - p);
+        if (brace_ptr) {
+            term_ptr  = brace_ptr;
+            *done_ptr = itrue;
+        } else {
+            return psv_alloc_error ("terminator (',' or '}') not found", p, pe - p);
+        }
+    }
+
+    char *end_ptr;
+    *output_ptr = strtod (p, &end_ptr);
 
     if (end_ptr != term_ptr)
         return psv_alloc_error ("was not an integer", p, pe - p);

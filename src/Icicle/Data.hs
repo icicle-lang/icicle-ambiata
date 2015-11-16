@@ -1,5 +1,6 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DeriveFunctor #-}
 module Icicle.Data (
     Entity (..)
   , Namespace (..)
@@ -74,7 +75,7 @@ data AsAt a =
   AsAt {
       fact          :: a
     , time          :: DateTime
-    } deriving (Eq, Show)
+    } deriving (Eq, Show, Functor)
 
 --------------------------------------------------------------------------------
 
