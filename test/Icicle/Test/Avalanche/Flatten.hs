@@ -10,8 +10,8 @@ import qualified Icicle.Core.Eval.Exp       as XV
 import qualified Icicle.Avalanche.Program   as AP
 import qualified Icicle.Avalanche.FromCore  as AC
 import qualified Icicle.Avalanche.Eval      as AE
-import qualified Icicle.Avalanche.Statement.Flatten   as AF
 import qualified Icicle.Avalanche.Prim.Eval as AE
+import qualified Icicle.Avalanche.Statement.Flatten   as AF
 
 import           Icicle.Common.Base
 import qualified Icicle.Common.Fresh                as Fresh
