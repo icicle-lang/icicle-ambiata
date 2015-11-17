@@ -57,8 +57,9 @@ static ibool_t   INLINE istring_ne    (istring_t x, istring_t y) { return strcmp
 
 static istring_t INLINE istring_copy(imempool_t *into, istring_t val)
 {
-    char* alloc = imempool_alloc(into, strlen(val));
-    strcpy(alloc, val);
+    size_t val0_size = strlen (val) + 1;
+    char  *alloc     = imempool_alloc (into, val0_size);
+    memcpy (alloc, val, val0_size);
     return alloc;
 }
 

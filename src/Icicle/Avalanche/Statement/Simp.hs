@@ -260,6 +260,10 @@ hasEffect statements
    = return   ignore
 
   up   ignore r s
+    -- Looping over facts is an effect
+   | ForeachFacts _ _ FactLoopNew _ <- s
+   = return True
+
    -- Writing or pushing is an effect,
    -- unless we're explicitly ignoring this accumulator
    | Write n _ <- s

@@ -11,7 +11,7 @@ import           Icicle.Common.Base (BaseValue, OutputName)
 import           Icicle.Common.Type (ValType, StructType)
 import           Icicle.Data (Attribute(..))
 import qualified Icicle.Data as D
-import           Icicle.Internal.Pretty ((<+>), pretty, text, line)
+import           Icicle.Internal.Pretty ((<+>), pretty, text, vsep)
 import           Icicle.Internal.Pretty (Pretty)
 
 import           Jetski
@@ -59,25 +59,25 @@ instance Pretty SeaError where
      -> text "Unsupported output type " <> pretty t
 
     SeaStructFieldsMismatch st vs
-     -> text "Struct type did not match C struct members:" <> line
-     <> text "  struct type = " <> pretty st
-     <> text "  members     = " <> pretty vs
+     -> vsep [ "Struct type did not match C struct members:"
+             , "  struct type = " <> pretty st
+             , "  members     = " <> pretty vs ]
 
     SeaUnsupportedStructFieldType t ns
-     -> text "Unsupported struct field type" <> line
-     <> text "  field type    = " <> pretty t
-     <> text "  mapping on to = " <> text (show ns)
+     -> vsep [ "Unsupported struct field type"
+             , "  field type    = " <> pretty t
+             , "  mapping on to = " <> text (show ns) ]
 
     SeaInputTypeMismatch t ns
-     -> text "Cannot map input type on its C struct members" <> line
-     <> text "  input type    = " <> pretty t
-     <> text "  mapping on to = " <> text (show ns)
+     -> vsep [ "Cannot map input type on its C struct members"
+             , "  input type    = " <> pretty t
+             , "  mapping on to = " <> text (show ns) ]
 
     SeaOutputTypeMismatch n t ts
-     -> text "Cannot map output type on its C struct members" <> line
-     <> text "  output name   = " <> pretty n
-     <> text "  output type   = " <> pretty t
-     <> text "  mapping on to = " <> text (show ts)
+     -> vsep [ "Cannot map output type on its C struct members"
+             , "  output name   = " <> pretty n
+             , "  output type   = " <> pretty t
+             , "  mapping on to = " <> text (show ts) ]
 
     SeaNoFactLoop
      -> text "No fact loop"

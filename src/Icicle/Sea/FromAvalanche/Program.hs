@@ -58,6 +58,9 @@ seaOfProgram name attrib program = do
                $ accumsOfProgram program `Map.union`
                  readsOfProgram  program
     , ""
+    , indent 4 $ assign (seaOfValType DateTimeT <+> pretty (stateDateVar state))
+                        ("s->" <> pretty (stateDateVar state)) <> ";"
+    , ""
     , indent 4 (seaOfStatement (statements program))
     , "}"
     ]
@@ -83,7 +86,7 @@ seaOfStatement stmt
       <> seaOfStatement (Block ss)
 
      Let n xx stmt'
-      | Just xt <- valTypeOfExp xx
+      | xt <- valTypeOfExp xx
       -> assign (seaOfValType xt <+> seaOfName n) (seaOfExp xx) <> semi <> suffix "let" <> line
       <> seaOfStatement stmt'
 
@@ -113,21 +116,21 @@ seaOfStatement stmt
               , "}"
               ]
 
-     ForeachFacts ns _ lt stmt'
-      | FactLoopNew  <- lt
-      , structAssign <- \(n, t) -> assign ("const " <> seaOfValType t <> "*const" <+> pretty newPrefix <> seaOfName n)
+     ForeachFacts ns _ FactLoopNew stmt'
+      -> let structAssign (n, t) = assign ("const " <> seaOfValType t <> "*const" <+> pretty newPrefix <> seaOfName n)
                                           ("s->" <> pretty newPrefix <> seaOfName n) <> semi
-      , loopAssign   <- \(n, t) -> assign (seaOfValType t <+> seaOfName n)
+             loopAssign   (n, t) = assign (seaOfValType t <+> seaOfName n)
                                           (pretty newPrefix <> seaOfName n <> "[i]") <> semi
-      -> vsep $ [ ""
-                , assign ("const " <> seaOfValType IntT <> "new_count") "s->new_count;"
-                ] <> fmap structAssign ns <>
-                [ ""
-                , "for (iint_t i = 0; i < new_count; i++) {"
-                , indent 4 $ vsep (fmap loopAssign ns) <> line <> seaOfStatement stmt'
-                , "}"
-                , ""
-                ]
+         in vsep $
+            [ ""
+            , assign ("const " <> seaOfValType IntT <> "new_count") "s->new_count;"
+            ] <> fmap structAssign ns <>
+            [ ""
+            , "for (iint_t i = 0; i < new_count; i++) {"
+            , indent 4 $ vsep (fmap loopAssign ns) <> line <> seaOfStatement stmt'
+            , "}"
+            , ""
+            ]
 
      InitAccumulator acc stmt'
       | Accumulator n _ xx <- acc
@@ -155,9 +158,13 @@ seaOfStatement stmt
       | ixAssign <- \ix xx -> assign ("s->" <> seaOfNameIx n ix) (seaOfExp xx) <> semi <> suffix "output"
       -> vsep (List.zipWith ixAssign [0..] (fmap fst xts))
 
-     _
-      -> seaError "seaOfStatement" stmt
+     -- TODO Implement historical facts
 
+     ForeachFacts _ _ FactLoopHistory _
+      -> Pretty.empty
+
+     KeepFactInHistory
+      -> Pretty.empty
 
 ------------------------------------------------------------------------
 
@@ -188,9 +195,7 @@ seaOfXValue v t
      VInt      x     -> int x
      VDouble   x     -> double x
      VDateTime x     -> text ("0x" <> showHex (packedOfDate x) "")
-
-     -- TODO C escapes /= Haskell escapes
-     VString x     -> text (show x)
+     VString   x     -> seaOfString x
 
      VArray vs
       | ArrayT t' <- t

@@ -8,6 +8,7 @@ module Icicle.Sea.FromAvalanche.Analysis (
   , accumsOfProgram
   , outputsOfProgram
   , readsOfProgram
+  , typesOfProgram
   ) where
 
 import           Icicle.Avalanche.Prim.Flat
@@ -16,12 +17,16 @@ import           Icicle.Avalanche.Statement.Statement
 
 import           Icicle.Common.Annot
 import           Icicle.Common.Base
+import           Icicle.Common.Exp
 import           Icicle.Common.Type
 
 import           P
 
 import           Data.Map (Map)
 import qualified Data.Map as Map
+
+import           Data.Set (Set)
+import qualified Data.Set as Set
 
 
 ------------------------------------------------------------------------
@@ -168,3 +173,61 @@ outputsOfStatement stmt
 
      Output n t xts
       -> Map.singleton n (t, fmap snd xts)
+
+------------------------------------------------------------------------
+
+typesOfProgram :: Program (Annot a) n Prim -> Set ValType
+typesOfProgram = typesOfStatement . statements
+
+typesOfStatement :: Statement (Annot a) n Prim -> Set ValType
+typesOfStatement stmt
+ = case stmt of
+     Block []              -> Set.empty
+     Block (s:ss)          -> typesOfStatement s  `Set.union`
+                              typesOfStatement (Block ss)
+     Let _ x ss            -> typesOfExp       x  `Set.union`
+                              typesOfStatement ss
+     If x tt ee            -> typesOfExp       x  `Set.union`
+                              typesOfStatement tt `Set.union`
+                              typesOfStatement ee
+     ForeachInts  _ f t ss -> typesOfExp       f `Set.union`
+                              typesOfExp       t `Set.union`
+                              typesOfStatement ss
+     ForeachFacts _ _ _ ss -> typesOfStatement ss
+     InitAccumulator (Accumulator _ at x) ss
+                           -> Set.singleton    at `Set.union`
+                              typesOfExp       x  `Set.union`
+                              typesOfStatement ss
+
+     Write _ x             -> typesOfExp x
+     LoadResumable _ vt    -> Set.singleton vt
+     SaveResumable _ vt    -> Set.singleton vt
+     Output _ vt xs        -> Set.singleton vt `Set.union`
+                              Set.unions (fmap goOut xs)
+     KeepFactInHistory     -> Set.empty
+
+     Read _ _ vt ss
+      -> Set.singleton vt `Set.union`
+         typesOfStatement ss
+
+ where
+  goOut (x,t)
+   = typesOfExp x `Set.union` Set.singleton t
+
+typesOfExp :: Exp (Annot a) n Prim -> Set ValType
+typesOfExp xx
+ = case xx of
+    XVar a _
+     -> ann a
+    XPrim a _
+     -> ann a
+    XValue _ vt _
+     -> Set.singleton vt
+    XApp a b c
+     -> ann a `Set.union` typesOfExp b `Set.union` typesOfExp c
+    XLam a _ vt b
+     -> ann a `Set.union` Set.singleton vt `Set.union` typesOfExp b
+    XLet a _ b c
+     -> ann a `Set.union` typesOfExp b `Set.union` typesOfExp c
+ where
+  ann a = Set.singleton $ functionReturns $ annType a

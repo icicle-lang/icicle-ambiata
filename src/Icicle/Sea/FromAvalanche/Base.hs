@@ -1,12 +1,14 @@
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards #-}
-
 module Icicle.Sea.FromAvalanche.Base (
     textOfName
   , seaOfName
   , seaOfNameIx
   , seaOfAttributeDesc
+  , seaOfString
+  , seaOfEscaped
   , seaError
   , seaError'
   , assign
@@ -14,9 +16,13 @@ module Icicle.Sea.FromAvalanche.Base (
   , tuple
   ) where
 
-import           Data.Char (isLower, isUpper)
+import qualified Data.ByteString as B
+import           Data.Char (isLower, isUpper, chr)
+import qualified Data.List as List
 import           Data.Text (Text)
 import qualified Data.Text as T
+import qualified Data.Text.Encoding as T
+import           Data.Word (Word8)
 
 import           Icicle.Data
 
@@ -24,8 +30,7 @@ import           Icicle.Internal.Pretty
 
 import           P
 
-import qualified Data.List as List
-
+import           Text.Printf (printf)
 
 ------------------------------------------------------------------------
 
@@ -36,6 +41,7 @@ seaOfName :: Pretty n => n -> Doc
 seaOfName = string . fmap mangle . show . pretty
   where
     mangle '$' = '_'
+    mangle ' ' = '_'
     mangle  c  =  c
 
 seaOfNameIx :: Pretty n => n -> Int -> Doc
@@ -50,8 +56,36 @@ seaOfAttributeDesc (Attribute xs)
 
 ------------------------------------------------------------------------
 
+seaOfString :: Text -> Doc
+seaOfString txt = "\"" <> seaOfEscaped txt <> "\""
+
+seaOfEscaped :: Text -> Doc
+seaOfEscaped = text . escapeWords . B.unpack . T.encodeUtf8
+
+escapeWords :: [Word8] -> [Char]
+escapeWords = \case
+  []        -> []
+  (0x07:xs) -> "\\a"  <> escapeWords xs
+  (0x08:xs) -> "\\b"  <> escapeWords xs
+  (0x09:xs) -> "\\t"  <> escapeWords xs
+  (0x0a:xs) -> "\\r"  <> escapeWords xs
+  (0x0b:xs) -> "\\v"  <> escapeWords xs
+  (0x0c:xs) -> "\\f"  <> escapeWords xs
+  (0x0d:xs) -> "\\n"  <> escapeWords xs
+  (0x5c:xs) -> "\\\\" <> escapeWords xs
+  (0x22:xs) -> "\\\"" <> escapeWords xs
+
+  (x:xs)
+   | x >= 0x1f && x /= 0x7f
+   -> chr (fromIntegral x) : escapeWords xs
+
+   | otherwise
+   -> printf "\\%03od" x <> escapeWords xs
+
+------------------------------------------------------------------------
+
 seaError :: Show a => Doc -> a -> Doc
-seaError subject x = seaError' subject (string (List.take 40 (show x)))
+seaError subject x = seaError' subject (string (List.take 100 (show x)))
 
 seaError' :: Doc -> Doc -> Doc
 seaError' subject msg = line <> "#error Failed during codegen (" <> subject <> ": " <> msg <> "..)" <> line
