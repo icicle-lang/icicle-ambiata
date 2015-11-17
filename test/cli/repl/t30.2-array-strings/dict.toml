@@ -1,0 +1,14 @@
+title = "Halibut dictionary"
+
+version = 1
+
+namespace = """default"""
+
+tombstone = """T"""
+
+[fact.mackerel]
+  encoding = "(common_name:string,size:double)"
+
+[fact.days_catch]
+  encoding = "[string]"
+

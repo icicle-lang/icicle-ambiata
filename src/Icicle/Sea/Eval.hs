@@ -109,14 +109,14 @@ data SeaMVector
   = I64 (IOVector Int64)
   | U64 (IOVector Word64)
   | F64 (IOVector Double)
-  | P64 (IOVector WordPtr)
+  | P64 (IOVector WordPtr) ValType
 
 instance Show SeaMVector where
   showsPrec p sv = showParen (p > 10) $ case sv of
-    I64 v -> showString "I64 " . showsPrec 11 (unsafePerformIO (V.unsafeFreeze v))
-    U64 v -> showString "U64 " . showsPrec 11 (unsafePerformIO (V.unsafeFreeze v))
-    F64 v -> showString "F64 " . showsPrec 11 (unsafePerformIO (V.unsafeFreeze v))
-    P64 v -> showString "P64 " . showsPrec 11 (unsafePerformIO (V.unsafeFreeze v))
+    I64 v   -> showString "I64 " . showsPrec 11 (unsafePerformIO (V.unsafeFreeze v))
+    U64 v   -> showString "U64 " . showsPrec 11 (unsafePerformIO (V.unsafeFreeze v))
+    F64 v   -> showString "F64 " . showsPrec 11 (unsafePerformIO (V.unsafeFreeze v))
+    P64 v t -> showString "P64 " . showsPrec 11 (unsafePerformIO (V.unsafeFreeze v)) . showString " " . showsPrec 11 t
 
 ------------------------------------------------------------------------
 
@@ -312,26 +312,35 @@ textOfDoc doc = T.pack (displayS (renderPretty 0.8 80 (pretty doc)) "")
 
 lengthOfSeaVector :: SeaMVector -> Int
 lengthOfSeaVector = \case
-  I64 v -> MV.length v
-  U64 v -> MV.length v
-  F64 v -> MV.length v
-  P64 v -> MV.length v
+  I64 v   -> MV.length v
+  U64 v   -> MV.length v
+  F64 v   -> MV.length v
+  P64 v _ -> MV.length v
 
 ptrOfSeaVector :: SeaMVector -> ForeignPtr Word64
 ptrOfSeaVector = \case
-  I64 v -> castForeignPtr . fst $ MV.unsafeToForeignPtr0 v
-  U64 v -> castForeignPtr . fst $ MV.unsafeToForeignPtr0 v
-  F64 v -> castForeignPtr . fst $ MV.unsafeToForeignPtr0 v
-  P64 v -> castForeignPtr . fst $ MV.unsafeToForeignPtr0 v
+  I64 v   -> castForeignPtr . fst $ MV.unsafeToForeignPtr0 v
+  U64 v   -> castForeignPtr . fst $ MV.unsafeToForeignPtr0 v
+  F64 v   -> castForeignPtr . fst $ MV.unsafeToForeignPtr0 v
+  P64 v _ -> castForeignPtr . fst $ MV.unsafeToForeignPtr0 v
 
 freeSeaVector :: MonadIO m => SeaMVector -> m ()
 freeSeaVector = \case
   I64 _  -> return ()
   U64 _  -> return ()
   F64 _  -> return ()
-  P64 mv -> do
+  P64 mv t -> do
     v <- liftIO (V.unsafeFreeze mv)
-    V.mapM_ freeWordPtr v
+    liftIO $ V.mapM_ (free' t) v
+ where
+  free' (ArrayT t) x
+   | StringT <- t
+   = do let ptr = wordPtrToPtr x
+        sz <- peekWordOff ptr 0
+        mapM_ (\i -> peekWordOff ptr i >>= free) [1..sz]
+        freeWordPtr x
+  free' _ x
+   = freeWordPtr x
 
 
 withSeaVectors :: MonadIO m
@@ -371,16 +380,12 @@ newSeaVectors sz t =
     BoolT     -> (:[]) . U64 <$> liftIO (MV.new sz)
     DateTimeT -> (:[]) . U64 <$> liftIO (MV.new sz)
     ErrorT    -> (:[]) . U64 <$> liftIO (MV.new sz)
-    StringT   -> (:[]) . P64 <$> liftIO (MV.new sz)
+    StringT   -> (:[]) . flip P64 t <$> liftIO (MV.new sz)
 
     BufT{}    -> left (SeaTypeConversionError t)
 
-    ArrayT tx
-     | StringT <- tx
-     -> left (SeaTypeConversionError t)
-
-     | otherwise
-     -> (:[]) . P64 <$> liftIO (MV.new sz)
+    ArrayT _
+     -> (:[]) . flip P64 t <$> liftIO (MV.new sz)
 
     MapT tk tv
      -> do vk <- newSeaVectors sz (ArrayT tk)
@@ -425,13 +430,13 @@ pokeInput' svs0@(sv:svs) t ix val =
     (U64 v, VDateTime x, DateTimeT) -> pure svs <* liftIO (MV.write v ix (packedOfDate x))
     (U64 v, VError    x, ErrorT)    -> pure svs <* liftIO (MV.write v ix (wordOfError x))
 
-    (P64 v, VString xs, StringT)
+    (P64 v _, VString xs, StringT)
      -> do let str = T.unpack xs
            ptr <- ptrToWordPtr <$> liftIO (newCString str)
            liftIO (MV.write v ix ptr)
            pure svs
 
-    (P64 v, VArray xs, ArrayT tx)
+    (P64 v _, VArray xs, ArrayT tx)
      -> do ptr :: Ptr Word64 <- liftIO (mallocWords (length xs + 1))
            pokeArray ptr tx xs
            liftIO (MV.write v ix (ptrToWordPtr ptr))
@@ -584,6 +589,7 @@ pokeArrayIx ptr t ix v =
     (VDouble   x, DoubleT)   -> liftIO (pokeWordOff ptr ix x)
     (VDateTime x, DateTimeT) -> liftIO (pokeWordOff ptr ix (packedOfDate x))
     (VError    x, ErrorT)    -> liftIO (pokeWordOff ptr ix (wordOfError x))
+    (VString   x, StringT)   -> liftIO (newCString (T.unpack x) >>= pokeWordOff ptr ix)
     _                        -> left (SeaBaseValueConversionError v (Just t))
 
 peekArray :: MonadIO m => Ptr x -> ValType -> EitherT SeaError m [BaseValue]

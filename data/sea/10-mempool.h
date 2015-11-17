@@ -85,6 +85,13 @@ static void * INLINE imempool_alloc (imempool_t *pool, size_t num_bytes)
     return imempool_alloc_block (pool, num_bytes);
 }
 
+/* Non-static functions cannot be inlined because of an old version of gcc
+ * However we also need to be able to call this from Haskell */
+void * imempool_alloc_extern (imempool_t *pool, size_t num_bytes)
+{
+    return imempool_alloc(pool, num_bytes);
+}
+
 imempool_t * imempool_create ()
 {
     imempool_t *pool = calloc(1, sizeof(imempool_t));

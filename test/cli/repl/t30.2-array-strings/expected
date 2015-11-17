@@ -1,0 +1,34 @@
+welcome to iREPL
+ok, loaded 20 functions from data/libs/prelude.icicle
+ok, loaded test/cli/repl/data.psv, 13 rows
+> -- Enable C evaluation
+> ok, c evaluation now on
+                   _________-----_____
+        _____------           __      ----_
+ ___----             ___------              \
+    ----________        ----                 \
+                -----__    |             _____)
+                     __-                /     \
+         _______-----    ___--          \    /)\
+   ------_______      ---____            \__/  /
+                -----__    \ --    _          /\
+                       --__--__     \_____/   \_/\
+                               ----|   /          |
+                                   |  |___________|
+                                   |  | ((_(_)| )_)
+                                   |  \_((_(_)|/(_)
+                                   \             (
+                                    \_____________)
+> > ok, loaded dictionary with 2 features and 0 functions
+> ok, loaded test/cli/repl/t30.2-array-strings/data.psv, 5 rows
+> > - C evaluation:
+[(ID00000000,2)
+,(ID00000001,1)
+,(ID00000002,2)]
+
+- Core evaluation:
+[ID00000000, 2
+,ID00000001, 1
+,ID00000002, 2]
+
+> 
