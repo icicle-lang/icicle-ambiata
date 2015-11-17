@@ -35,7 +35,10 @@ constructor a_fresh statements
   xDefault t = xValue t (defaultOfType t)
 
   primAnd = primLogical  Min.PrimLogicalAnd
+  primOr  = primLogical  Min.PrimLogicalOr
+
   primEq  = primRelation Min.PrimRelationEq
+  primNe  = primRelation Min.PrimRelationNe
 
   primFold1 append xs
    = case xs of
@@ -215,13 +218,17 @@ constructor a_fresh statements
    , Just ts <- tryMeltType t
    , tis     <- List.zip ts [0..]
    = primFold1 primAnd
-   $ fmap (\(tv, i) -> primEq tv (primUnpack i t nx)
-                                 (primUnpack i t ny)) tis
+   $ fmap (\(tv, i) -> primEq tv (primUnpack i t nx) (primUnpack i t ny)) tis
+
+   | (PrimMinimal (Min.PrimRelation Min.PrimRelationNe t), [nx, ny]) <- prima
+   , Just ts <- tryMeltType t
+   , tis     <- List.zip ts [0..]
+   = primFold1 primOr
+   $ fmap (\(tv, i) -> primNe tv (primUnpack i t nx) (primUnpack i t ny)) tis
 
 
    | otherwise
    = x
-
 
   fromPacked ix x
    | XValue _ t v <- x
