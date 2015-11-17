@@ -11,17 +11,7 @@ import qualified Icicle.Core.Program.Check          as C
 
 import qualified Icicle.Sea.Eval                    as S
 
-import qualified Icicle.Avalanche.Check             as AC
 import qualified Icicle.Avalanche.FromCore          as A
-import qualified Icicle.Avalanche.Prim.Flat         as APF
-import qualified Icicle.Avalanche.Program           as AP
-import qualified Icicle.Avalanche.Statement.Flatten as AF
-import qualified Icicle.Avalanche.Simp      as AS
-
-import           Icicle.Common.Base
-import           Icicle.Common.Type
-import           Icicle.Common.Annot
-import qualified Icicle.Common.Fresh                as Fresh
 
 import qualified Icicle.Pipeline as P
 
@@ -30,6 +20,7 @@ import           Icicle.Test.Core.Arbitrary
 
 import           Control.Monad.Trans.Class
 import           Control.Monad.Trans.Either
+import           X.Control.Monad.Catch (bracketEitherT')
 import qualified Data.Map                           as Map
 
 import           P
@@ -51,9 +42,7 @@ prop_seaworthy t
        let flat = join $ fmap P.checkAvalanche $ P.coreFlatten coreProgram
        case flat of
         Right f
-         -> do let attr         = Attribute "eval"
-               let seaProgram   = Map.singleton attr f
-               fleet           <- lift $ runEitherT $ S.seaCompile S.NoPsv seaProgram
+         -> do fleet <- lift $ runEitherT $ go f
                stop $ case fleet of
                 Right _
                  -> property True
@@ -63,6 +52,12 @@ prop_seaworthy t
                     False
         Left _
          -> discard -- not well typed flattened avalanche
+ where
+  go f
+   = do let attr       = Attribute "eval"
+            seaProgram = Map.singleton attr f
+        bracketEitherT' (S.seaCompile S.NoPsv seaProgram) S.seaRelease (const $ return ())
+
 
 return []
 tests :: IO Bool
