@@ -8,6 +8,7 @@
 module Icicle.Sea.Eval (
     MemPool
   , PsvState
+  , PsvStats(..)
   , SeaState
   , SeaFleet(..)
   , SeaProgram(..)
@@ -85,6 +86,11 @@ import           X.Control.Monad.Trans.Either (firstEitherT)
 
 data Psv = NoPsv | Psv PsvConfig
 
+data PsvStats = PsvStats {
+    psvFactsRead    :: Int64
+  , psvEntitiesRead :: Int64
+  } deriving (Eq, Ord, Show)
+
 data MemPool
 data PsvState
 data SeaState
@@ -120,7 +126,7 @@ instance Show SeaMVector where
 
 ------------------------------------------------------------------------
 
-seaPsvSnapshotFilePath :: SeaFleet -> FilePath -> FilePath -> EitherT SeaError IO ()
+seaPsvSnapshotFilePath :: SeaFleet -> FilePath -> FilePath -> EitherT SeaError IO PsvStats
 seaPsvSnapshotFilePath fleet input output = do
   bracketEitherT' (liftIO $ Posix.openFd input Posix.ReadOnly Nothing Posix.defaultFileFlags)
                   (liftIO . Posix.closeFd) $ \ifd -> do
@@ -129,22 +135,28 @@ seaPsvSnapshotFilePath fleet input output = do
   seaPsvSnapshotFd fleet ifd ofd
 
 
-seaPsvSnapshotFd :: SeaFleet -> Posix.Fd -> Posix.Fd -> EitherT SeaError IO ()
+seaPsvSnapshotFd :: SeaFleet -> Posix.Fd -> Posix.Fd -> EitherT SeaError IO PsvStats
 seaPsvSnapshotFd fleet input output =
-  withWords   3      $ \pState  -> do
+  withWords 5 $ \pState -> do
 
   pokeWordOff pState 0 input
   pokeWordOff pState 1 output
 
   liftIO (sfPsvSnapshot fleet pState)
 
-  pError <- peekWordOff pState 2
+  pError       <- peekWordOff pState 2
+  factsRead    <- peekWordOff pState 3
+  entitiesRead <- peekWordOff pState 4
 
   when (pError /= nullPtr) $ do
     msg <- liftIO (peekCString pError)
+    liftIO (free pError)
     left (SeaPsvError (T.pack msg))
 
-  return ()
+  return PsvStats {
+      psvFactsRead = factsRead
+    , psvEntitiesRead = entitiesRead
+    }
 
 ------------------------------------------------------------------------
 

@@ -86,13 +86,14 @@ runTest wt = do
     liftIO (L.writeFile input (LT.encodeUtf8 inputPsv))
 
     result <- liftIO (runEitherT (S.seaPsvSnapshotFilePath fleet input output))
+
     case result of
-      Right _ -> pure ()
-      Left  _ -> do
+      Left err -> do
         liftIO (LT.putStrLn "--- input.psv ---")
         liftIO (LT.putStrLn inputPsv)
-
-    hoistEither result
+        left err
+      Right _ -> do
+        pure ()
 
 textOfFacts :: [Entity] -> Attribute -> [AsAt BaseValue] -> LT.Text
 textOfFacts entities attribute vs =
