@@ -338,7 +338,7 @@ handleLine state line = case readCommand line of
          Left  e -> prettyOut hasAvalancheEval "- Avalanche error:" e
          Right r -> prettyOut hasAvalancheEval "- Avalanche evaluation:" r
 
-        let flatChecked = SR.checkAvalanche (SR.simpAvalanche f)
+        let flatChecked = SR.checkAvalanche f
         case flatChecked of
          Left  e  -> prettyOut (const True) "- Avalanche type error:" e
          Right f' -> do

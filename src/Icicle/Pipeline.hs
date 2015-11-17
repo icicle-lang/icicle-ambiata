@@ -304,9 +304,9 @@ coreAvalanche prog
  $ AC.programFromCore (AC.namerText id) prog
 
 simpAvalanche
-  :: (Eq p, Show p, Ord v, Show v, IsString v)
-  => AvalProgram () v p
-  -> AvalProgram () v p
+  :: (Ord v, Show v, IsString v)
+  => AvalProgram () v Core.Prim
+  -> AvalProgram () v Core.Prim
 simpAvalanche av
  = snd
  $ Fresh.runFresh go (freshNamer "anf")
