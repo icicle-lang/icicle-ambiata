@@ -9,6 +9,7 @@ module Icicle.Sea.FromAvalanche.Base (
   , seaOfAttributeDesc
   , seaOfString
   , seaOfEscaped
+  , seaOfDate
   , seaError
   , seaError'
   , assign
@@ -16,17 +17,17 @@ module Icicle.Sea.FromAvalanche.Base (
   , tuple
   ) where
 
-import qualified Data.ByteString as B
-import           Data.Char (isLower, isUpper, chr)
+import           Data.Char (isLower, isUpper, ord)
 import qualified Data.List as List
 import           Data.Text (Text)
 import qualified Data.Text as T
-import qualified Data.Text.Encoding as T
-import           Data.Word (Word8)
 
 import           Icicle.Data
+import           Icicle.Data.DateTime (packedOfDate)
 
 import           Icicle.Internal.Pretty
+
+import           Numeric (showHex)
 
 import           P
 
@@ -60,27 +61,35 @@ seaOfString :: Text -> Doc
 seaOfString txt = "\"" <> seaOfEscaped txt <> "\""
 
 seaOfEscaped :: Text -> Doc
-seaOfEscaped = text . escapeWords . B.unpack . T.encodeUtf8
+seaOfEscaped = text . escapeChars . T.unpack
 
-escapeWords :: [Word8] -> [Char]
-escapeWords = \case
+escapeChars :: [Char] -> [Char]
+escapeChars = \case
   []        -> []
-  (0x07:xs) -> "\\a"  <> escapeWords xs
-  (0x08:xs) -> "\\b"  <> escapeWords xs
-  (0x09:xs) -> "\\t"  <> escapeWords xs
-  (0x0a:xs) -> "\\r"  <> escapeWords xs
-  (0x0b:xs) -> "\\v"  <> escapeWords xs
-  (0x0c:xs) -> "\\f"  <> escapeWords xs
-  (0x0d:xs) -> "\\n"  <> escapeWords xs
-  (0x5c:xs) -> "\\\\" <> escapeWords xs
-  (0x22:xs) -> "\\\"" <> escapeWords xs
+  ('\a':xs) -> "\\a"  <> escapeChars xs
+  ('\b':xs) -> "\\b"  <> escapeChars xs
+  ('\t':xs) -> "\\t"  <> escapeChars xs
+  ('\r':xs) -> "\\r"  <> escapeChars xs
+  ('\v':xs) -> "\\v"  <> escapeChars xs
+  ('\f':xs) -> "\\f"  <> escapeChars xs
+  ('\n':xs) -> "\\n"  <> escapeChars xs
+  ('\\':xs) -> "\\\\" <> escapeChars xs
+  ('\"':xs) -> "\\\"" <> escapeChars xs
 
   (x:xs)
-   | x >= 0x1f && x /= 0x7f
-   -> chr (fromIntegral x) : escapeWords xs
+   | ord x < 0x20 || ord x >= 0x7f && ord x <= 0xff
+   -> printf "\\%03o" (ord x) <> escapeChars xs
+
+   | ord x < 0x7f
+   -> x : escapeChars xs
 
    | otherwise
-   -> printf "\\%03od" x <> escapeWords xs
+   -> printf "\\U%08x" (ord x) <> escapeChars xs
+
+------------------------------------------------------------------------
+
+seaOfDate :: DateTime -> Doc
+seaOfDate x = text ("0x" <> showHex (packedOfDate x) "")
 
 ------------------------------------------------------------------------
 

@@ -20,7 +20,6 @@ import           Icicle.Common.Exp
 import           Icicle.Common.Type
 
 import           Icicle.Data
-import           Icicle.Data.DateTime
 
 import           Icicle.Internal.Pretty
 import qualified Icicle.Internal.Pretty as Pretty
@@ -36,8 +35,6 @@ import           P
 
 import qualified Data.List as List
 import qualified Data.Map as Map
-
-import           Numeric (showHex)
 
 
 ------------------------------------------------------------------------
@@ -194,7 +191,7 @@ seaOfXValue v t
      VBool     False -> "ifalse"
      VInt      x     -> int x
      VDouble   x     -> double x
-     VDateTime x     -> text ("0x" <> showHex (packedOfDate x) "")
+     VDateTime x     -> seaOfDate x
      VString   x     -> seaOfString x
 
      VArray vs

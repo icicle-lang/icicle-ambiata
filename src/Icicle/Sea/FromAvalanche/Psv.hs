@@ -3,11 +3,15 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards #-}
 module Icicle.Sea.FromAvalanche.Psv (
-    seaOfPsvDriver
+    PsvConfig(..)
+  , seaOfPsvDriver
   ) where
 
 import qualified Data.List as List
+import           Data.Map (Map)
 import qualified Data.Map as Map
+import           Data.Set (Set)
+import qualified Data.Set as Set
 import           Data.Text (Text)
 import qualified Data.Text as T
 
@@ -16,9 +20,10 @@ import           Icicle.Avalanche.Prim.Flat (meltType)
 import           Icicle.Common.Base (OutputName(..))
 import           Icicle.Common.Type (ValType(..), StructType(..), StructField(..))
 
-import           Icicle.Data (Attribute(..))
+import           Icicle.Data (Attribute(..), DateTime)
 
 import           Icicle.Internal.Pretty
+import qualified Icicle.Internal.Pretty as Pretty
 
 import           Icicle.Sea.Error (SeaError(..))
 import           Icicle.Sea.FromAvalanche.Base
@@ -30,13 +35,20 @@ import           P
 
 ------------------------------------------------------------------------
 
-seaOfPsvDriver :: [SeaProgramState] -> Either SeaError Doc
-seaOfPsvDriver states = do
+data PsvConfig = PsvConfig {
+    psvSnapshotDate :: DateTime
+  , psvTombstones   :: Map Attribute (Set Text)
+  } deriving (Eq, Ord, Show)
+
+------------------------------------------------------------------------
+
+seaOfPsvDriver :: [SeaProgramState] -> PsvConfig -> Either SeaError Doc
+seaOfPsvDriver states config = do
   let struct_sea    = seaOfFleetState   states
-      alloc_sea     = seaOfAllocFleet   states
+      alloc_sea     = seaOfAllocFleet   states config
       collect_sea   = seaOfCollectFleet states
-  read_sea  <- seaOfReadAnyFact    states
-  write_sea <- seaOfWriteFleetOutput   states
+  read_sea  <- seaOfReadAnyFact      states config
+  write_sea <- seaOfWriteFleetOutput states
   pure $ vsep
     [ struct_sea
     , ""
@@ -69,13 +81,13 @@ defOfProgramState state
 
 ------------------------------------------------------------------------
 
-seaOfAllocFleet :: [SeaProgramState] -> Doc
-seaOfAllocFleet states
+seaOfAllocFleet :: [SeaProgramState] -> PsvConfig -> Doc
+seaOfAllocFleet states config
  = vsep
  [ "#line 1 \"allocate fleet state\""
  , "static ifleet_t * psv_alloc_fleet ()"
  , "{"
- , "    idate_t date = idate_from_gregorian (2015, 1, 1, 0, 0, 0);"
+ , "    idate_t date = " <> seaOfDate (psvSnapshotDate config) <> ";"
  , ""
  , "    ifleet_t *fleet = calloc (1, sizeof (ifleet_t));"
  , "    fleet->snapshot_date = date;"
@@ -136,9 +148,10 @@ seaOfCollectProgram state
 
 ------------------------------------------------------------------------
 
-seaOfReadAnyFact :: [SeaProgramState] -> Either SeaError Doc
-seaOfReadAnyFact states = do
-  readStates_sea <- traverse seaOfReadFact states
+seaOfReadAnyFact :: [SeaProgramState] -> PsvConfig -> Either SeaError Doc
+seaOfReadAnyFact states config = do
+  let tss = fmap (lookupTombstones config) states
+  readStates_sea <- zipWithM seaOfReadFact states tss
   pure $ vsep
     [ vsep readStates_sea
     , ""
@@ -166,8 +179,7 @@ seaOfReadNamedFact :: SeaProgramState -> Doc
 seaOfReadNamedFact state
  = vsep
  [ ""
- , "if (sizeof (" <> seaOfAttribute state <> ") == attrib0_size &&"
- , "    memcmp (" <> seaOfAttribute state <> ", attrib, attrib_size) == 0) {"
+ , "if (" <> seaOfStringEq (getAttribute (stateAttribute state)) "attrib" "attrib_size" <> ") {"
  , "    return " <> pretty (nameOfReadFact state)
                  <> " (&fleet->" <> pretty (nameOfProgram state) <> ", value, value_size, date);"
  , "}"
@@ -178,8 +190,8 @@ seaOfReadNamedFact state
 nameOfReadFact :: SeaProgramState -> Text
 nameOfReadFact state = T.pack ("psv_read_fact_" <> show (stateName state))
 
-seaOfReadFact :: SeaProgramState -> Either SeaError Doc
-seaOfReadFact state = do
+seaOfReadFact :: SeaProgramState -> Set Text -> Either SeaError Doc
+seaOfReadFact state tombstones = do
   input     <- checkInputType state
   readInput <- seaOfReadInput input
   pure $ vsep
@@ -189,9 +201,11 @@ seaOfReadFact state = do
          <> pretty (nameOfStateType state) <+> "*program,"
         <+> "const char *value_ptr, const size_t value_size, idate_t date)"
     , "{"
-    , indent 4 readInput
+    , "    " <> align (seaOfReadTombstone input (Set.toList tombstones)) <> "{"
+    , "        program->" <> pretty (inputSumBool input) <> "[program->new_count] = itrue;"
+    , indent 8 readInput
+    , "    }"
     , ""
-    , "    program->" <> pretty (inputSumBool  input) <> "[program->new_count] = itrue;"
     , "    program->" <> pretty (inputSumError input) <> "[program->new_count] = ierror_tombstone;"
     , "    program->" <> pretty (inputDate     input) <> "[program->new_count] = date;"
     , "    program->new_count++;"
@@ -207,6 +221,16 @@ seaOfReadFact state = do
     , "}"
     , ""
     ]
+
+------------------------------------------------------------------------
+
+seaOfReadTombstone :: CheckedInput -> [Text] -> Doc
+seaOfReadTombstone input = \case
+  []     -> Pretty.empty
+  (t:ts) -> "if (" <> seaOfStringEq t "value_ptr" "value_size" <> ") {" <> line
+         <> "    program->" <> pretty (inputSumBool input)
+                            <> "[program->new_count] = ifalse;" <> line
+         <> "} else " <> seaOfReadTombstone input ts
 
 ------------------------------------------------------------------------
 
@@ -243,11 +267,9 @@ seaOfReadInput input
     ([(nx, BoolT)], BoolT)
      -> pure $ vsep
         [ ""
-        , "if (value_size == sizeof (\"true\") - 1 &&"
-        , "    memcmp (\"true\", value_ptr, value_size)) {"
+        , "if (" <> seaOfStringEq "true" "value_ptr" "value_size" <> ") {"
         , "    program->" <> pretty nx <> "[program->new_count] = itrue;"
-        , "} else if (value_size == sizeof (\"false\") - 1 &&"
-        , "           memcmp (\"false\", value_ptr, value_size)) {"
+        , "} else if (" <> seaOfStringEq "false" "value_ptr" "value_size" <> ") {"
         , "    program->" <> pretty nx <> "[program->new_count] = ifalse;"
         , "} else {"
         , "    return psv_alloc_error (\"not a boolean\", value_ptr, value_size);"
@@ -359,8 +381,8 @@ seaOfFieldMapping (FieldMapping fname ftype vars) = do
   pure $ vsep
     [ "if (memcmp (" <> needle <> ", p, sizeof (" <> needle <> ") - 1) == 0) {"
     , "    p += sizeof (" <> needle <> ") - 1;"
+    , "    psv_error_t error;"
     , indent 4 field_sea
-    , "    if (error) return error;"
     , "    continue;"
     , "}"
     , ""
@@ -368,16 +390,26 @@ seaOfFieldMapping (FieldMapping fname ftype vars) = do
 
 seaOfReadJson :: ValType -> [Text] -> Either SeaError Doc
 seaOfReadJson ftype vars
- = let readJson  n t  = "psv_error_t error = psv_read_json_" <> t
+ = let readJson  n t  = "error = psv_read_json_" <> t
                      <> " (program->mempool, &p, pe, &program->" <> pretty n <> "[program->new_count], &done);"
+                     <> "if (error) return error;"
 
-       readConst n xx = "program->" <> pretty n <+> "[program->new_count] = " <> xx <> ";"
+       assignConst n xx = "program->" <> pretty n <+> "[program->new_count] = " <> xx <> ";"
+
    in case (ftype, vars) of
        (OptionT t, [nb, nx]) -> do
          val_sea <- seaOfReadJson t [nx]
          pure $ vsep
-           [ readConst nb "itrue"
-           , val_sea ]
+           [ "ibool_t is_null;"
+           , "error = psv_try_read_json_null (&p, pe, &is_null, &done);"
+           , "if (error) return error;"
+           , "if (is_null) {"
+           , indent 4 (assignConst nb "ifalse")
+           , "} else {"
+           , indent 4 (assignConst nb "itrue")
+           , indent 4 val_sea
+           , "}"
+           ]
 
        (BoolT, [nx]) -> do
          pure (readJson nx "bool")
@@ -406,9 +438,6 @@ seaOfWriteFleetOutput states = do
     [ "#line 1 \"write all outputs\""
     , "static void psv_write_outputs (int fd, const char *entity, ifleet_t *fleet)"
     , "{"
-    , "    idate_t snapshot_date = fleet->snapshot_date;"
-    , "    iint_t year, month, day, hour, minute, second;"
-    , "    idate_to_gregorian (snapshot_date, &year, &month, &day, &hour, &minute, &second);"
     , indent 4 (vsep write_sea)
     , "}"
     ]
@@ -439,8 +468,7 @@ seaOfOutput ps oname@(OutputName name) otype0 ts0 ixStart
         unsupported = Left (SeaUnsupportedOutputType otype0)
 
         dateFmt       = "%lld-%02lld-%02lldT%02lld:%02lld:%02lld"
-        dprintf fmt n = "dprintf (fd, \"%s|" <> attrib <> "|" <> fmt <> "|" <> dateFmt <> "\\n\""
-                     <> ", entity, " <> n <> ", year, month, day, hour, minute, second);"
+        dprintf fmt n = "dprintf (fd, \"%s|" <> attrib <> "|" <> fmt <> "\\n\"" <> ", entity, " <> n <> ");"
     in case otype0 of
       SumT ErrorT otype1
        | (BoolT : ErrorT : ts1) <- ts0
@@ -508,8 +536,14 @@ seaOfOutput ps oname@(OutputName name) otype0 ts0 ixStart
 
 ------------------------------------------------------------------------
 
-seaOfAttribute :: SeaProgramState -> Doc
-seaOfAttribute = seaOfString . getAttribute . stateAttribute
+seaOfStringEq :: Text -> Doc -> Doc -> Doc
+seaOfStringEq str ptr size =
+  align $ vsep [ size <+> "==" <+> "sizeof (" <> seaOfString str <> ") - 1 &&"
+               , "memcmp (" <> seaOfString str <> ", " <> ptr <> ", " <> size <> ") == 0" ]
+
+lookupTombstones :: PsvConfig -> SeaProgramState -> Set Text
+lookupTombstones config state =
+  fromMaybe Set.empty (Map.lookup (stateAttribute state) (psvTombstones config))
 
 last :: [a] -> Maybe a
 last []     = Nothing

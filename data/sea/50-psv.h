@@ -146,6 +146,9 @@ static psv_error_t INLINE psv_read_json_date (imempool_t *pool, char **pp, char 
     if (*p++ != ':')
         return psv_alloc_error ("missing ':'",  p, pe - p);
 
+    if (*p++ != '"')
+        return psv_alloc_error ("missing opening quote '\"'",  p, pe - p);
+
     char *quote_ptr = memchr (p, '"', pe - p);
 
     if (!quote_ptr)
@@ -154,7 +157,7 @@ static psv_error_t INLINE psv_read_json_date (imempool_t *pool, char **pp, char 
     char *term_ptr = quote_ptr + 1;
 
     if (*term_ptr != ',' && *term_ptr != '}')
-        return psv_alloc_error ("terminator (',' or '}') not found", p, pe - p);
+        return psv_alloc_error ("terminator ',' or '}' not found", term_ptr, pe - term_ptr);
 
     if (*term_ptr == '}')
         *done_ptr = itrue;
@@ -187,7 +190,7 @@ static psv_error_t INLINE psv_read_json_string (imempool_t *pool, char **pp, cha
     char *term_ptr = quote_ptr + 1;
 
     if (*term_ptr != ',' && *term_ptr != '}')
-        return psv_alloc_error ("terminator (',' or '}') not found", p, pe - p);
+        return psv_alloc_error ("terminator ',' or '}' not found", p, pe - p);
 
     if (*term_ptr == '}')
         *done_ptr = itrue;
@@ -226,16 +229,16 @@ static psv_error_t INLINE psv_read_json_bool (imempool_t *pool, char **pp, char 
         }
     }
 
-    size_t value_size = term_ptr - p - 1;
+    size_t value_size = term_ptr - p;
 
     if (value_size == sizeof ("true") - 1 &&
-        memcmp ("true", p, value_size)) {
+        memcmp ("true", p, value_size) == 0) {
         *output_ptr = itrue;
     } else if (value_size == sizeof ("false") - 1 &&
-               memcmp ("false", p, value_size)) {
+               memcmp ("false", p, value_size) == 0) {
         *output_ptr = ifalse;
     } else {
-        return psv_alloc_error ("was not an boolean", p, pe - p);
+        return psv_alloc_error ("was not a boolean", p, value_size);
     }
 
     *pp = term_ptr + 1;
@@ -269,7 +272,7 @@ static psv_error_t INLINE psv_read_json_int (imempool_t *pool, char **pp, char *
     *output_ptr = strtol (p, &end_ptr, 10);
 
     if (end_ptr != term_ptr)
-        return psv_alloc_error ("was not an integer", p, pe - p);
+        return psv_alloc_error ("was not an integer", p, term_ptr - p);
 
     *pp = term_ptr + 1;
 
@@ -302,7 +305,36 @@ static psv_error_t INLINE psv_read_json_double (imempool_t *pool, char **pp, cha
     *output_ptr = strtod (p, &end_ptr);
 
     if (end_ptr != term_ptr)
-        return psv_alloc_error ("was not an integer", p, pe - p);
+        return psv_alloc_error ("was not an integer", p, term_ptr - p);
+
+    *pp = term_ptr + 1;
+
+    return 0;
+}
+
+static psv_error_t INLINE psv_try_read_json_null (char **pp, char *pe, ibool_t *was_null_ptr, ibool_t *done_ptr)
+{
+    char *p = *pp;
+
+    if (*p++ != ':')
+        return psv_alloc_error ("missing ':'",  p, pe - p);
+
+    const size_t null_size = sizeof ("null") - 1;
+
+    if (memcmp ("null", p, null_size) != 0) {
+        *was_null_ptr = ifalse;
+        return 0;
+    }
+
+    *was_null_ptr = itrue;
+
+    char *term_ptr = p + null_size;
+
+    if (*term_ptr != ',' && *term_ptr != '}')
+        return psv_alloc_error ("terminator ',' or '}' not found", term_ptr, pe - term_ptr);
+
+    if (*term_ptr == '}')
+        *done_ptr = itrue;
 
     *pp = term_ptr + 1;
 
