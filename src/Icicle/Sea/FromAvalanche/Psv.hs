@@ -381,8 +381,8 @@ seaOfFieldMapping (FieldMapping fname ftype vars) = do
   pure $ vsep
     [ "if (memcmp (" <> needle <> ", p, sizeof (" <> needle <> ") - 1) == 0) {"
     , "    p += sizeof (" <> needle <> ") - 1;"
+    , "    psv_error_t error;"
     , indent 4 field_sea
-    , "    if (error) return error;"
     , "    continue;"
     , "}"
     , ""
@@ -390,16 +390,26 @@ seaOfFieldMapping (FieldMapping fname ftype vars) = do
 
 seaOfReadJson :: ValType -> [Text] -> Either SeaError Doc
 seaOfReadJson ftype vars
- = let readJson  n t  = "psv_error_t error = psv_read_json_" <> t
+ = let readJson  n t  = "error = psv_read_json_" <> t
                      <> " (program->mempool, &p, pe, &program->" <> pretty n <> "[program->new_count], &done);"
+                     <> "if (error) return error;"
 
-       readConst n xx = "program->" <> pretty n <+> "[program->new_count] = " <> xx <> ";"
+       assignConst n xx = "program->" <> pretty n <+> "[program->new_count] = " <> xx <> ";"
+
    in case (ftype, vars) of
        (OptionT t, [nb, nx]) -> do
          val_sea <- seaOfReadJson t [nx]
          pure $ vsep
-           [ readConst nb "itrue"
-           , val_sea ]
+           [ "ibool_t is_null;"
+           , "error = psv_try_read_json_null (&p, pe, &is_null, &done);"
+           , "if (error) return error;"
+           , "if (is_null) {"
+           , indent 4 (assignConst nb "ifalse")
+           , "} else {"
+           , indent 4 (assignConst nb "itrue")
+           , indent 4 val_sea
+           , "}"
+           ]
 
        (BoolT, [nx]) -> do
          pure (readJson nx "bool")

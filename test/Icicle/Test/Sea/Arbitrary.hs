@@ -55,14 +55,14 @@ data WellTyped = WellTyped {
   } deriving (Show)
 
 instance Arbitrary InputType where
-  arbitrary = validated $ do
+  arbitrary = validated 100 $ do
     ty <- arbitrary
     if isSupportedInput ty
        then pure . Just . InputType $ SumT ErrorT ty
        else pure Nothing
 
 instance Arbitrary WellTyped where
-  arbitrary = validated $ do
+  arbitrary = validated 10 $ do
     entities       <- List.nub . getNonEmpty <$> arbitrary
     attribute      <- arbitrary
     (InputType ty) <- arbitrary
@@ -109,12 +109,14 @@ instance Arbitrary WellTyped where
 
 ------------------------------------------------------------------------
 
-validated :: Gen (Maybe a) -> Gen a
-validated g = do
-  m <- g
-  case m of
-    Nothing -> validated g
-    Just x  -> pure x
+validated :: Int -> Gen (Maybe a) -> Gen a
+validated n g
+  | n <= 0    = discard
+  | otherwise = do
+      m <- g
+      case m of
+        Nothing -> validated (n-1) g
+        Just x  -> pure x
 
 fromEither :: Either x a -> Maybe a
 fromEither (Left _)  = Nothing
