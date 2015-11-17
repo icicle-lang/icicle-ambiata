@@ -84,7 +84,8 @@ typedef struct
     static ARRAY(t) INLINE ARRAY_FUN(put,pre)                                   \
             (imempool_t *pool, ARRAY(t) x, iint_t ix, t v)                      \
     {                                                                           \
-        iint_t sz_old = next_power_of_two(x->count);                            \
+        iint_t count  = x->count;                                               \
+        iint_t sz_old = next_power_of_two(count);                               \
         if (ix >= sz_old) {                                                     \
             iint_t sz_new    = next_power_of_two(ix);                           \
             size_t bytes_new = ARRAY_SIZE(t, sz_new);                           \
@@ -95,7 +96,7 @@ typedef struct
             arr->count = ix;                                                    \
             x = arr;                                                            \
                                                                                 \
-        } else if (ix >= x->count) {                                            \
+        } else if (ix >= count) {                                               \
             x->count = ix;                                                      \
         }                                                                       \
         ARRAY_PAYLOAD(x,t)[ix] = v;                                             \
