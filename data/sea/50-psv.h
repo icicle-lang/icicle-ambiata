@@ -154,7 +154,7 @@ static psv_error_t INLINE psv_read_json_date (imempool_t *pool, char **pp, char 
     char *term_ptr = quote_ptr + 1;
 
     if (*term_ptr != ',' && *term_ptr != '}')
-        return psv_alloc_error ("terminator (',' or '}') not found", p, pe - p);
+        return psv_alloc_error ("terminator ',' or '}' not found", p, pe - p);
 
     if (*term_ptr == '}')
         *done_ptr = itrue;
@@ -187,7 +187,7 @@ static psv_error_t INLINE psv_read_json_string (imempool_t *pool, char **pp, cha
     char *term_ptr = quote_ptr + 1;
 
     if (*term_ptr != ',' && *term_ptr != '}')
-        return psv_alloc_error ("terminator (',' or '}') not found", p, pe - p);
+        return psv_alloc_error ("terminator ',' or '}' not found", p, pe - p);
 
     if (*term_ptr == '}')
         *done_ptr = itrue;

@@ -135,8 +135,10 @@ renderValue tombstone val
     -> T.pack $ show v
    DoubleValue v
     -> T.pack $ show v
-   BooleanValue v
-    -> T.pack $ show v
+   BooleanValue False
+    -> "false"
+   BooleanValue True
+    -> "true"
    DateValue v
     -> renderDate v
 

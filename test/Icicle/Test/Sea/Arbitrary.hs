@@ -9,8 +9,10 @@ module Icicle.Test.Sea.Arbitrary where
 
 import qualified Data.Map as Map
 import qualified Data.Set as Set
+import qualified Data.List as List
 
-import           Icicle.Data
+import           Icicle.Data (Entity(..), Attribute(..), AsAt(..))
+import           Icicle.Data.DateTime (DateTime)
 
 import qualified Icicle.Core.Program.Program as C
 import qualified Icicle.Core.Program.Check as C
@@ -43,11 +45,13 @@ newtype InputType = InputType {
   } deriving (Show)
 
 data WellTyped = WellTyped {
-    wtStreamType :: ValType
-  , wtFacts      :: [AsAt BaseValue]
-  , wtDateTime   :: DateTime
-  , wtCore       :: C.Program ()         Var
-  , wtAvalanche  :: A.Program (Annot ()) Var A.Prim
+    wtEntities  :: [Entity]
+  , wtAttribute :: Attribute
+  , wtFactType  :: ValType
+  , wtFacts     :: [AsAt BaseValue]
+  , wtDateTime  :: DateTime
+  , wtCore      :: C.Program ()         Var
+  , wtAvalanche :: A.Program (Annot ()) Var A.Prim
   } deriving (Show)
 
 instance Arbitrary InputType where
@@ -59,6 +63,8 @@ instance Arbitrary InputType where
 
 instance Arbitrary WellTyped where
   arbitrary = validated $ do
+    entities       <- List.nub . getNonEmpty <$> arbitrary
+    attribute      <- arbitrary
     (InputType ty) <- arbitrary
     (inputs, date) <- inputsForType ty
     core           <- programForStreamType ty
@@ -82,11 +88,13 @@ instance Arbitrary WellTyped where
         (_:_) -> Nothing
 
       return WellTyped {
-          wtStreamType = ty
-        , wtFacts      = fmap (fmap snd) inputs
-        , wtDateTime   = date
-        , wtCore       = core
-        , wtAvalanche  = simplified
+          wtEntities  = entities
+        , wtAttribute = attribute
+        , wtFactType  = ty
+        , wtFacts     = fmap (fmap snd) inputs
+        , wtDateTime  = date
+        , wtCore      = core
+        , wtAvalanche = simplified
         }
     where
       replaceStmts prog stms = prog { A.statements = stms }
