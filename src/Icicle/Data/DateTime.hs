@@ -5,6 +5,7 @@
 module Icicle.Data.DateTime (
     DateTime(..)
   , renderDate
+  , dateOfText
   , dateOfYMD
   , dateOfDays
   , daysOfDate
@@ -63,6 +64,12 @@ pDate
    where
     dash :: Parser ()
     dash = () <$ char '-'
+
+dateOfText :: Text -> Maybe DateTime
+dateOfText txt =
+  case parseOnly pDate txt of
+    Left  _ -> Nothing
+    Right x -> Just x
 
 unsafeDateOfYMD :: Integer -> Int -> Int -> DateTime
 unsafeDateOfYMD y m d

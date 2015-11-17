@@ -1,13 +1,16 @@
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE PatternGuards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 import           Control.Monad.IO.Class (liftIO)
 
-import           Data.Time (getCurrentTime, diffUTCTime)
 import           Data.Map (Map)
 import qualified Data.Map as Map
+import           Data.Set (Set)
 import           Data.Text (Text)
+import qualified Data.Text as T
 import qualified Data.Text.IO as T
+import           Data.Time (getCurrentTime, diffUTCTime)
 
 import qualified Icicle.Avalanche.Prim.Flat as A
 import qualified Icicle.Avalanche.Program as A
@@ -17,6 +20,7 @@ import           Icicle.Core.Program.Fusion (FusionError)
 import qualified Icicle.Core.Program.Fusion as C
 import qualified Icicle.Core.Program.Program as C
 import           Icicle.Data
+import           Icicle.Data.DateTime (dateOfText)
 import           Icicle.Dictionary
 import           Icicle.Pipeline
 import           Icicle.Internal.Pretty (pretty)
@@ -55,28 +59,32 @@ main :: IO ()
 main = do
   args <- getArgs
   case args of
-    [dict, inp, out, src] -> do
-      xx <- runEitherT (runBench dict inp out src)
+    [datetxt, dict, inp, out, src]
+     | Just date <- dateOfText (T.pack datetxt)
+     -> do
+      xx <- runEitherT (runBench date dict inp out src)
       case xx of
         Left (BenchSeaError err) -> print (pretty err)
         Left err                 -> print err
         Right _                  -> return ()
 
     _ -> do
-      putStrLn "usage: icicle-bench DICTIONARY INPUT_PSV OUTPUT_PSV OUTPUT_C"
+      putStrLn "usage: icicle-bench DATE DICTIONARY INPUT_PSV OUTPUT_PSV OUTPUT_C"
       putStrLn ("invalid args: " <> show args)
 
 ------------------------------------------------------------------------
 
-runBench :: FilePath -> FilePath -> FilePath -> FilePath -> EitherT BenchError IO ()
-runBench dictionaryPath inputPath outputPath sourcePath = do
+runBench :: DateTime -> FilePath -> FilePath -> FilePath -> FilePath -> EitherT BenchError IO ()
+runBench date dictionaryPath inputPath outputPath sourcePath = do
   liftIO (putStrLn "icicle-bench: starting compilation")
   compStart <- liftIO getCurrentTime
 
   dictionary <- firstEitherT BenchDictionaryImportError (loadDictionary dictionaryPath)
   avalanche  <- hoistEither (avalancheOfDictionary dictionary)
 
-  let acquireFleet = firstEitherT BenchSeaError (seaCompile Psv avalanche)
+  let cfg = PsvConfig date (tombstonesOfDictionary dictionary)
+
+  let acquireFleet = firstEitherT BenchSeaError (seaCompile (Psv cfg) avalanche)
       releaseFleet = seaRelease
 
   bracketEitherT' acquireFleet releaseFleet $ \fleet -> do
@@ -98,6 +106,14 @@ runBench dictionaryPath inputPath outputPath sourcePath = do
     let psvSecs = realToFrac (psvEnd `diffUTCTime` psvStart) :: Double
         mbps    = (fromIntegral size / psvSecs) / (1024 * 1024)
     liftIO (printf "icicle-bench: snapshot time = %.2fs (%.2fMB/s)\n" psvSecs mbps)
+
+------------------------------------------------------------------------
+
+tombstonesOfDictionary :: Dictionary -> Map Attribute (Set Text)
+tombstonesOfDictionary dict =
+  let go (DictionaryEntry a (ConcreteDefinition _ ts)) = [(a, ts)]
+      go _                                             = []
+  in Map.fromList (concatMap go (dictionaryEntries dict))
 
 ------------------------------------------------------------------------
 

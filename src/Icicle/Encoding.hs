@@ -16,7 +16,6 @@ module Icicle.Encoding (
   ) where
 
 import           Data.Attoparsec.ByteString
-import qualified Data.Attoparsec.Text   as AT
 import           Data.Text              as T
 import           Data.Text.Read         as T
 import           Data.Text.Encoding     as T
@@ -186,7 +185,7 @@ parseValue e tombstone t
      -> Left err
 
     DateEncoding
-     | Right v <- attoParsed pDate
+     | Just v <- dateOfText t
      -> return $ DateValue v
      | otherwise
      -> Left err
@@ -212,9 +211,6 @@ parseValue e tombstone t
   parsed
    = parseOnly A.json
    $ T.encodeUtf8 t
-
-  attoParsed x
-   = AT.parseOnly x t
 
 -- | Attempt to decode value from JSON
 valueOfJSON :: Encoding -> A.Value -> Either DecodeError Value
@@ -251,7 +247,7 @@ valueOfJSON e v
 
     DateEncoding
      | A.String t <- v
-     , Right d <- AT.parseOnly pDate t
+     , Just d <- dateOfText t
      -> return $ DateValue d
      | otherwise
      -> Left err

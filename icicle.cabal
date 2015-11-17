@@ -282,13 +282,16 @@ test-suite test
                      , ambiata-jetski
                      , ambiata-x-exception
                      , icicle
-                     , text
-                     , aeson                           == 0.8.*
+                     , aeson
+                     , bytestring
+                     , containers
+                     , directory
+                     , either
                      , QuickCheck                      == 2.7.*
                      , quickcheck-instances            == 0.3.*
-                     , containers                      == 0.5.*
-                     , transformers                    >= 0.3        && < 0.5
-                     , either
+                     , temporary
+                     , text
+                     , transformers
 
 test-suite test-io
   type:
