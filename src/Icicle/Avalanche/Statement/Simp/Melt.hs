@@ -21,7 +21,6 @@ import              Icicle.Common.Base
 import              Icicle.Common.Exp
 import              Icicle.Common.Fresh
 import              Icicle.Common.Type
-import              Icicle.Common.Annot
 
 import              P
 
@@ -56,12 +55,11 @@ meltOps a_fresh
 ------------------------------------------------------------------------
 
 melt :: (Show n, Ord n)
-     => Annot a
-     -> Statement (Annot a) n Prim
-     -> Fresh n (Statement (Annot a) n Prim)
+     => a
+     -> Statement a n Prim
+     -> Fresh n (Statement a n Prim)
 melt a_fresh ss
  =   meltAccumulators a_fresh ss
- >>= meltBindings     a_fresh
  >>= meltForeachFacts a_fresh
  >>= meltOutputs      a_fresh
 
@@ -130,51 +128,6 @@ meltAccumulators a_fresh statements
    = return env
 
 --------------------------------------------------------------------------------
-
--- | Melt the body of Let bindings into multiple bindings and substitute the
---   old binding with new ones.
---
-meltBindings
-  :: (Ord n)
-  => Annot a
-  -> Statement (Annot a) n Prim
-  -> Fresh n (Statement (Annot a) n Prim)
-meltBindings a_fresh statements
- = transformUDStmt goStmt () statements
- where
-  MeltOps{..} = meltOps a_fresh
-
-  goStmt () stmt
-   = case stmt of
-       Let n x ss
-        | vt     <- functionReturns (annType (annotOfExp x))
-        , Just _ <- tryMeltType vt
-        -> do (xs, x') <- meltBody a_fresh (n, vt, x)
-              ss'      <- substXinS a_fresh n x' ss
-              let stmt' = foldr mkLet ss' xs
-              return ((), stmt')
-
-       _ -> return ((), stmt)
-
-  mkLet (n,_,x) s
-   = Let n x s
-
-
-meltBody
- :: a
- -> (Name n, ValType, Exp a n Prim)
- -> Fresh n ([(Name n, ValType, Exp a n Prim)], Exp a n Prim)
-meltBody a_fresh (n, vt, x)
- = do let ts = meltType vt
-      bns <- freshes (length ts) n
-      let binds  = fmap (\(bn, bt, ix) -> (bn, bt, primUnpack ix vt x))
-                 $ List.zip3 bns ts [0..]
-          unmelt = primPack vt bns
-      return (binds, unmelt)
- where
-  MeltOps{..} = meltOps a_fresh
-
-------------------------------------------------------------------------
 
 meltForeachFacts :: forall a n. (Show n, Ord n)
                  => a

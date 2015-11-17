@@ -9,7 +9,6 @@ module Icicle.Avalanche.Simp (
 
 import              Icicle.Common.Exp
 import              Icicle.Common.Fresh
-import              Icicle.Common.Annot
 
 import              Icicle.Avalanche.Prim.Flat
 import              Icicle.Avalanche.Statement.Simp
@@ -37,29 +36,35 @@ simpAvalanche a_fresh p
 
 simpFlattened
   :: (Show n, Ord n, Eq a)
-  => Annot a
-  -> Program (Annot a) n Prim
-  -> Fresh n (Program (Annot a) n Prim)
+  => a
+  -> Program a n Prim
+  -> Fresh n (Program a n Prim)
 simpFlattened a_fresh p
- = do p' <- transformX return (simp a_fresh) p
-      let Program i bd s = p'
-
-      s' <-  melt a_fresh s
-         >>= crunchy i bd
+ = do s' <- transformX return (simp a_fresh) (statements p)
+         >>= melt a_fresh
+         >>= crunchy
 
       return $ p { statements = s' }
  where
-  crunchy i bd s
-   = do s' <- crunch i bd s
+  crunchy s
+   = do s' <- crunch s
         if s == s'
         then return s
-        else crunchy i bd s'
+        else crunchy s'
 
-  crunch i bd ss
-   =   constructor  a_fresh (pullLets ss)
+  crunch ss
+   -- Rewrite rules like (fst (a,b) => a
+   =   constructor  a_fresh ss
+   -- Remove unused lets, and remove duplicate bindings
    >>= thresher     a_fresh
+   -- Perform let-forwarding on statements, so that constant lets become free
    >>= forwardStmts a_fresh
+   -- Pull Let statements out of blocks. This just allows thresher to remove more duplicates
    >>= nestBlocks   a_fresh
+   -- Thresh again. Surprisingly, having both threshers makes simpFlattened twice as fast!
    >>= thresher     a_fresh
-   >>= fmap statements . transformX return (simp a_fresh) . Program i bd
+   -- Expression simp: first perform beta reduction, then a-normalise.
+   >>= transformX return (simp a_fresh)
+   -- finish a-normalisation by taking lets from inside expressions to statements.
+   >>= return . pullLets
 
