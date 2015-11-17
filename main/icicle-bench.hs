@@ -98,14 +98,23 @@ runBench date dictionaryPath inputPath outputPath sourcePath = do
     liftIO (putStrLn "icicle-bench: starting snapshot")
 
     psvStart <- liftIO getCurrentTime
-    firstEitherT BenchSeaError (seaPsvSnapshotFilePath fleet inputPath outputPath)
+    stats    <- firstEitherT BenchSeaError (seaPsvSnapshotFilePath fleet inputPath outputPath)
     psvEnd   <- liftIO getCurrentTime
 
     size <- liftIO (withFile inputPath ReadMode hFileSize)
 
+    let facts    = psvFactsRead    stats
+        entities = psvEntitiesRead stats
+
     let psvSecs = realToFrac (psvEnd `diffUTCTime` psvStart) :: Double
         mbps    = (fromIntegral size / psvSecs) / (1024 * 1024)
-    liftIO (printf "icicle-bench: snapshot time = %.2fs (%.2fMB/s)\n" psvSecs mbps)
+        mfps    = (fromIntegral facts / psvSecs) / (1000 * 1000)
+
+    liftIO (printf "icicle-bench: snapshot time   = %.2fs\n"                psvSecs)
+    liftIO (printf "icicle-bench: total entities  = %d\n"                   entities)
+    liftIO (printf "icicle-bench: total facts     = %d\n"                   facts)
+    liftIO (printf "icicle-bench: fact throughput = %.2f million facts/s\n" mfps)
+    liftIO (printf "icicle-bench: byte throughput = %.2f MB/s\n"            mbps)
 
 ------------------------------------------------------------------------
 

@@ -16,6 +16,8 @@ typedef struct {
 
     /* outputs */
     psv_error_t error;
+    iint_t      fact_count;
+    iint_t      entity_count;
 } psv_config_t;
 
 typedef struct {
@@ -23,6 +25,10 @@ typedef struct {
     const char *buffer_ptr;
     size_t      buffer_size;
     size_t      buffer_remaining;
+
+    /* stats */
+    iint_t      fact_count;
+    iint_t      entity_count;
 
     /* current entity */
     char       *entity_cur;      /* invariant: these must point to a block of memory at least */
@@ -55,6 +61,17 @@ static psv_error_t INLINE psv_read_fact
 static const size_t psv_max_row_count = 128;
 static const size_t psv_buffer_size   = 16*1024;
 
+static psv_error_t psv_error_add_line (iint_t line, psv_error_t original)
+{
+    size_t  error_size = 4 * 1024;
+    char   *error_text = calloc (error_size, 1);
+
+    snprintf (error_text, error_size, "line %lld: %s", line, original);
+    free ((char *) original);
+
+    return error_text;
+}
+
 static psv_error_t psv_alloc_error (const char *msg, const char *value_ptr, const size_t value_size)
 {
     size_t  error_size = 4 * 1024;
@@ -64,9 +81,9 @@ static psv_error_t psv_alloc_error (const char *msg, const char *value_ptr, cons
         char value_text[4*1024] = {0};
         memcpy (value_text, value_ptr, MIN (value_size, sizeof (value_text) - 1));
 
-        snprintf (error_text, error_size, "psv_error: %s: %s\n", msg, value_text);
+        snprintf (error_text, error_size, "%s: %s", msg, value_text);
     } else {
-        snprintf (error_text, error_size, "psv_error: %s\n", msg);
+        snprintf (error_text, error_size, "%s", msg);
     }
 
     return error_text;
@@ -99,7 +116,7 @@ static psv_error_t INLINE psv_read_date (const char *time_ptr, const size_t time
         if (year_end  != time_ptr + 4 ||
             month_end != time_ptr + 7 ||
             day_end   != time_ptr + 10)
-            return psv_alloc_error ("expected yyyy-mm-dd", time_ptr, time_size);
+            return psv_alloc_error ("expected 'yyyy-mm-dd'", time_ptr, time_size);
 
         *output_ptr = idate_from_gregorian (year, month, day, 0, 0, 0);
         return 0;
@@ -130,13 +147,13 @@ static psv_error_t INLINE psv_read_date (const char *time_ptr, const size_t time
             hour_end   != time_ptr + 13 ||
             minute_end != time_ptr + 16 ||
             second_end != time_ptr + 19)
-            return psv_alloc_error ("expected yyyy-mm-ddThh:mm:ssZ", time_ptr, time_size);
+            return psv_alloc_error ("expected 'yyyy-mm-ddThh:mm:ssZ'", time_ptr, time_size);
 
         *output_ptr = idate_from_gregorian (year, month, day, hour, minute, second);
         return 0;
     }
 
-    return psv_alloc_error ("expected yyyy-mm-dd or yyyy-mm-ddThh:mm:ssZ but was", time_ptr, time_size);
+    return psv_alloc_error ("expected 'yyyy-mm-dd' or 'yyyy-mm-ddThh:mm:ssZ' but was", time_ptr, time_size);
 }
 
 static psv_error_t INLINE psv_read_json_date (imempool_t *pool, char **pp, char *pe, idate_t *output_ptr, ibool_t *done_ptr)
@@ -345,38 +362,48 @@ static psv_error_t psv_read_buffer (psv_state_t *s)
 {
     psv_error_t error;
 
-    char   *entity_cur      = s->entity_cur;
-    size_t  entity_cur_size = s->entity_cur_size;
-
     const char  *buffer_ptr  = s->buffer_ptr;
     const size_t buffer_size = s->buffer_size;
     const char  *end_ptr     = buffer_ptr + buffer_size;
     const char  *line_ptr    = buffer_ptr;
+
+    iint_t  fact_count      = s->fact_count;
+    iint_t  entity_count    = s->entity_count;
+    char   *entity_cur      = s->entity_cur;
+    size_t  entity_cur_size = s->entity_cur_size;
 
     for (;;) {
         const size_t bytes_remaining = end_ptr - line_ptr;
         const char  *n_ptr           = memchr (line_ptr, '\n', bytes_remaining);
 
         if (n_ptr == 0) {
+            s->fact_count       = fact_count;
+            s->entity_count     = entity_count;
             s->entity_cur       = entity_cur;
             s->entity_cur_size  = entity_cur_size;
             s->buffer_remaining = bytes_remaining;
             return 0;
         }
 
+        fact_count++;
+
         const char  *entity_ptr  = line_ptr;
         const char  *entity_end  = memchr (entity_ptr, '|', n_ptr - entity_ptr);
         const size_t entity_size = entity_end - entity_ptr;
 
-        if (entity_end == 0)
-            return psv_alloc_error ("missing |", entity_ptr, n_ptr - entity_ptr);
+        if (entity_end == 0) {
+            error = psv_alloc_error ("missing |", entity_ptr, n_ptr - entity_ptr);
+            goto on_error;
+        }
 
         const char  *attrib_ptr  = entity_end + 1;
         const char  *attrib_end  = memchr (attrib_ptr, '|', n_ptr - attrib_ptr);
         const size_t attrib_size = attrib_end - attrib_ptr;
 
-        if (attrib_end == 0)
-            return psv_alloc_error ("missing |", attrib_ptr, n_ptr - attrib_ptr);
+        if (attrib_end == 0) {
+            error = psv_alloc_error ("missing |", attrib_ptr, n_ptr - attrib_ptr);
+            goto on_error;
+        }
 
         const char *time_ptr;
         const char *n11_ptr = n_ptr - 11;
@@ -387,7 +414,8 @@ static psv_error_t psv_read_buffer (psv_state_t *s)
         } else if (*n21_ptr == '|') {
             time_ptr = n21_ptr + 1;
         } else {
-            return psv_alloc_error ("expected |", n21_ptr, n_ptr - n21_ptr);
+            error = psv_alloc_error ("expected |", n21_ptr, n_ptr - n21_ptr);
+            goto on_error;
         }
 
         const char  *time_end   = n_ptr;
@@ -402,26 +430,30 @@ static psv_error_t psv_read_buffer (psv_state_t *s)
 
         if (new_entity) {
             if (entity_cur_size != 0) {
-                //psv_debug ("entity", entity_cur, entity_cur_size);
-
-                /* write output */
                 psv_write_outputs (s->output_fd, entity_cur, s->fleet);
             }
 
             memcpy (entity_cur, entity_ptr, entity_size);
             entity_cur[entity_size] = 0;
             entity_cur_size = entity_size;
+
+            entity_count++;
         }
 
         idate_t date;
         error = psv_read_date (time_ptr, time_size, &date);
-        if (error) return error;
+        if (error) goto on_error;
 
         error = psv_read_fact (s->fleet, attrib_ptr, attrib_size, value_ptr, value_size, date);
-        if (error) return error;
+        if (error) goto on_error;
 
         line_ptr = n_ptr + 1;
     }
+
+on_error:
+    s->entity_count = entity_count;
+    s->fact_count   = fact_count;
+    return error;
 }
 
 void psv_snapshot (psv_config_t *cfg)
@@ -456,10 +488,13 @@ void psv_snapshot (psv_config_t *cfg)
 
         if (bytes_read == psv_read_error) {
             cfg->error = "error reading input";
-            return;
+            break;
         }
 
         if (bytes_read == 0) {
+            if (state.entity_cur_size != 0) {
+                psv_write_outputs (state.output_fd, state.entity_cur, state.fleet);
+            }
             break;
         }
 
@@ -469,8 +504,8 @@ void psv_snapshot (psv_config_t *cfg)
         psv_error_t error = psv_read_buffer (&state);
 
         if (error) {
-            cfg->error = error;
-            return;
+            cfg->error = psv_error_add_line (state.fact_count, error);
+            break;
         }
 
         size_t bytes_remaining = state.buffer_remaining;
@@ -481,6 +516,9 @@ void psv_snapshot (psv_config_t *cfg)
 
         buffer_offset = bytes_remaining;
     }
+
+    cfg->fact_count   = state.fact_count;
+    cfg->entity_count = state.entity_count;
 }
 
 #endif
