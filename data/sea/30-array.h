@@ -67,25 +67,43 @@ typedef struct
     { return ARRAY_PAYLOAD(x,t)[ix]; }
 
 
+#define ARRAY_SIZE(t,x) ((sizeof(t) * (x)) + sizeof(iarray_struct))
+
 #define MK_ARRAY_CREATE(t,pre)                                                  \
     static ARRAY(t)  INLINE ARRAY_FUN(create,pre)                               \
                                      (imempool_t *pool, iint_t sz)              \
     {                                                                           \
-        size_t bytes = sizeof(t) * sz + sizeof(iarray_struct);                  \
+        iint_t sz_alloc = next_power_of_two(sz);                                \
+        size_t bytes = ARRAY_SIZE(t,sz_alloc);                                  \
         ARRAY(t) ret = (ARRAY(t))imempool_alloc(pool, bytes);                   \
         ret->count   = sz;                                                      \
         return ret;                                                             \
     }
 
 #define MK_ARRAY_PUT(t,pre)                                                     \
-    static ARRAY(t) INLINE ARRAY_FUN(put,pre)   (ARRAY(t) x, iint_t ix, t v)    \
+    static ARRAY(t) INLINE ARRAY_FUN(put,pre)                                   \
+            (imempool_t *pool, ARRAY(t) x, iint_t ix, t v)                      \
     {                                                                           \
+        iint_t sz_old = next_power_of_two(x->count);                            \
+        if (ix >= sz_old) {                                                     \
+            iint_t sz_new    = next_power_of_two(ix);                           \
+            size_t bytes_new = ARRAY_SIZE(t, sz_new);                           \
+            size_t bytes_old = ARRAY_SIZE(t, sz_old);                           \
+                                                                                \
+            ARRAY(t) arr = (ARRAY(t))imempool_alloc(pool, bytes_new);           \
+            memcpy(arr, x, bytes_old);                                          \
+            arr->count = ix;                                                    \
+            x = arr;                                                            \
+                                                                                \
+        } else if (ix >= x->count) {                                            \
+            x->count = ix;                                                      \
+        }                                                                       \
         ARRAY_PAYLOAD(x,t)[ix] = v;                                             \
         return x;                                                               \
     }
 
-#define MK_ARRAY_COPY(t,pre)                                                     \
-    static ARRAY(t) INLINE ARRAY_FUN(copy,pre)   (imempool_t *into, ARRAY(t) x)    \
+#define MK_ARRAY_COPY(t,pre)                                                    \
+    static ARRAY(t) INLINE ARRAY_FUN(copy,pre)   (imempool_t *into, ARRAY(t) x) \
     {                                                                           \
         ARRAY(t) arr = ARRAY_FUN(create,pre)(into, x->count);                   \
         for (iint_t ix = 0; ix != x->count; ++ix) {                             \
