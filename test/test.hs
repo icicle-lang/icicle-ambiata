@@ -29,7 +29,7 @@ import qualified Icicle.Test.Source.PrettyParse
 import qualified Icicle.Test.Source.Progress
 import qualified Icicle.Test.Source.Convert
 
--- import qualified Icicle.Test.Sea.Seaworthy
+import qualified Icicle.Test.Sea.Seaworthy
 import qualified Icicle.Test.Sea.Psv
 
 import           Disorder.Core.Main
@@ -61,7 +61,7 @@ main
         , Icicle.Test.Avalanche.Scoped.tests
 
         -- todo should eventually pass
-        -- , Icicle.Test.Sea.Seaworthy.tests
+        , Icicle.Test.Sea.Seaworthy.tests
         , Icicle.Test.Sea.Psv.tests
 
         -- , Icicle.Test.Dictionary.Types.tests

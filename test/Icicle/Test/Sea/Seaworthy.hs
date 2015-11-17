@@ -23,6 +23,9 @@ import           Icicle.Common.Type
 import           Icicle.Common.Annot
 import qualified Icicle.Common.Fresh                as Fresh
 
+import qualified Icicle.Pipeline as P
+
+import           Icicle.Test.Arbitrary
 import           Icicle.Test.Core.Arbitrary
 
 import           Control.Monad.Trans.Class
@@ -43,38 +46,23 @@ namer = A.namerText (flip Var 0)
 prop_seaworthy t
  = monadicIO
  $ forAllM (programForStreamType t)
- $ \coreProgram
+ $ \coreProgram 
  -> do pre $ isRight (C.checkProgram coreProgram)
-       let avalProgram  = A.programFromCore namer coreProgram
-           flatStmts    = Fresh.runFreshT (AF.flatten () $ AP.statements avalProgram) counter
-           flatProgram  = fmap ( AC.checkProgram APF.flatFragment
-                               . replaceStmts avalProgram
-                               . snd) flatStmts
-           meltProgram  = fmap (fmap simp) flatProgram
-       case meltProgram of
-         Right (Right f)
-          -> do let attr         = Attribute "eval"
-                let seaProgram   = Map.singleton attr f
-                fleet           <- lift $ runEitherT $ S.seaCompile S.NoPsv seaProgram
-                stop $ case fleet of
-                 Right _
-                  -> property True
-                 Left err
-                  -> counterexample (show $ pretty err)
-                  $  counterexample (show $ pretty coreProgram)
-                     False
-         Left _
-          -> discard -- not well typed flattened avalanche
-         Right (Left _)
-          -> discard -- not well typed avalanche
- where
-  replaceStmts prog stms
-   = prog { AP.statements = stms }
-  simp p
-   = snd $ Fresh.runFresh (AS.simpFlattened dummyAnn p) counter'
-  dummyAnn = Annot (FunT [] ErrorT) ()
-  counter  = Fresh.counterNameState (Name . Var "anf") 0
-  counter' = Fresh.counterNameState (Name . Var "simp") 0
+       let flat = join $ fmap P.checkAvalanche $ P.coreFlatten coreProgram
+       case flat of
+        Right f
+         -> do let attr         = Attribute "eval"
+               let seaProgram   = Map.singleton attr f
+               fleet           <- lift $ runEitherT $ S.seaCompile S.NoPsv seaProgram
+               stop $ case fleet of
+                Right _
+                 -> property True
+                Left err
+                 -> counterexample (show $ pretty err)
+                 $  counterexample (show $ pretty coreProgram)
+                    False
+        Left _
+         -> discard -- not well typed flattened avalanche
 
 return []
 tests :: IO Bool
