@@ -120,6 +120,7 @@ evalPrim p vs
       -> primError
 
 
+     -- XXX: is this returning values even if primitive is under applied?
      PrimMelt (PrimMeltPack t)
       | Just vs' <- traverse unpack vs
       , Just v   <- unmeltValue vs' t

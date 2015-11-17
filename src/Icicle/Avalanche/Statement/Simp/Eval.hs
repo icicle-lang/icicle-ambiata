@@ -81,6 +81,9 @@ simpEvalP   :: Ord n
             -> [Value a n p]
             -> Maybe (Exp a n p)
 simpEvalP ev ty a_fresh p vs
+ -- TODO: evaluation function should not return value for underapplied primitives
+ -- uncomment if you dare
+ | length (functionArguments $ ty p) == length vs
  = case ev p vs of
     Right (VBase b)
      -> Just
@@ -91,4 +94,6 @@ simpEvalP ev ty a_fresh p vs
      -> Nothing
     Left _
      -> Nothing
+ | otherwise
+ = Nothing
 
