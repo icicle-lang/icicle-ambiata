@@ -236,6 +236,10 @@ thresher a_fresh statements
                 let ss' = Let n' x (killAccumulator n (XVar a_fresh n') ss)
                 return (env, ss')
 
+      If (XValue _ _ (VBool b)) t f
+       -> let s' = if b then t else f
+          in  return (updateExpEnv s' env, s')
+
       -- Anything else, we just update environment and recurse
       _
        -> return (updateExpEnv s env, s)
