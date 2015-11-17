@@ -256,8 +256,9 @@ executable             icicle-bench
                      , ambiata-p
                      , ambiata-x-either
                      , ambiata-x-exception
-                     , containers                      == 0.5.*
                      , icicle
+                     , containers                      == 0.5.*
+                     , filepath                        == 1.3.*
                      , parsec                          == 3.1.*
                      , text                            == 1.2.*
                      , time                            == 1.4.*
