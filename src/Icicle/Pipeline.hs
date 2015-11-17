@@ -25,6 +25,7 @@ module Icicle.Pipeline
   , coreFlatten
   , coreAvalanche
 
+  , flattenAvalanche
   , checkAvalanche
   , simpAvalanche
   , simpFlattened
@@ -271,15 +272,20 @@ coreFlatten
   -> Either (CompileError () v APF.Prim) (AvalProgram' v APF.Prim)
 coreFlatten prog
  = mapRight simpFlattened
- . join
+ $ flattenAvalanche (coreAvalanche prog)
+
+flattenAvalanche
+  :: (IsString v, Pretty v, Ord v)
+  => AvalProgram () v Core.Prim
+  -> Either (CompileError () v APF.Prim) (AvalProgram (CA.Annot ()) v APF.Prim)
+flattenAvalanche av
+ = join
  . mapRight snd
  . mapLeft CompileErrorFlatten
  $ Fresh.runFreshT go (freshNamer "flat")
  where
-  av = coreAvalanche prog
-  go
-   = do s' <- AS.flatten () (AP.statements av)
-        return $ checkAvalanche (av { AP.statements = s' })
+  go = do s' <- AS.flatten () (AP.statements av)
+          return $ checkAvalanche (av { AP.statements = s' })
 
 checkAvalanche
   :: Ord v
