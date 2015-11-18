@@ -12,8 +12,8 @@ import              P
 
 data Annot a
  = Annot
- { annType :: Type
- , annTail :: a
+ { annType :: !Type
+ , annTail :: !a
  }
  deriving (Eq, Ord, Show)
 

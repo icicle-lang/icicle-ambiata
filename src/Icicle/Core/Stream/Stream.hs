@@ -23,14 +23,14 @@ import qualified    Data.List   as List
 
 data Stream a n
  = Source
- | SWindow ValType WindowUnit (Maybe WindowUnit) (Name n)
- | STrans StreamTransform (Exp a n) (Name n)
+ | SWindow !ValType !WindowUnit !(Maybe WindowUnit) !(Name n)
+ | STrans !StreamTransform !(Exp a n) !(Name n)
  deriving (Eq,Ord,Show)
 
 -- | Explicitly carrying around the type parameters is annoying, but makes typechecking simpler
 data StreamTransform
- = SFilter ValType
- | SMap    ValType ValType
+ = SFilter !ValType
+ | SMap    !ValType !ValType
  deriving (Eq,Ord,Show)
 
 typeOfStreamTransform :: StreamTransform -> Type

@@ -30,9 +30,9 @@ data Name n =
  deriving (Eq,Ord,Show,Functor)
 
 data WindowUnit
- = Days   Int
- | Months Int
- | Weeks  Int
+ = Days   !Int
+ | Months !Int
+ | Weeks  !Int
  deriving (Show, Eq, Ord)
 
 

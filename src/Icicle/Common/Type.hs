@@ -63,7 +63,7 @@ data ValType
  | PairT   !ValType    !ValType
  | SumT    !ValType    !ValType
  | StructT !StructType
- | BufT    !Int        ValType
+ | BufT    !Int        !ValType
  deriving (Eq,Ord,Show)
 
 
@@ -129,7 +129,7 @@ instance Show StructType where
 -- >        b                   ##  -> b
 --
 data FunType =
- FunT [FunType] ValType
+ FunT ![FunType] !ValType
  deriving (Eq,Ord,Show)
 
 
