@@ -17,6 +17,7 @@ import           Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import           Data.Word (Word8)
+import           Data.Char
 
 import           Icicle.Avalanche.Prim.Flat (Prim(..), PrimUpdate(..))
 import           Icicle.Avalanche.Prim.Flat (meltType)
@@ -614,52 +615,93 @@ seaOfWriteProgramOutput state = do
     ]
 
 seaOfOutput :: Doc -> OutputName -> ValType -> [ValType] -> Int -> Either SeaError Doc
-seaOfOutput ps oname otype0 ts0 ixStart
-  = let dprintf  = "dprintf  (fd, \"%s|\", output_buf);"
-    in  do str  <- strOfOutput ps oname otype0 ts0 ixStart
-           pure $ vsep
-             [ "{"
-             , "char *output_buf = calloc(1, OUTPUT_BUF_SIZE);"
-             , str
-             , dprintf
-             , "free (output_buf);"
-             , "}"
-             ]
+seaOfOutput ps oname@(OutputName name) otype0 ts0 ixStart
+  = let dprintf n   = "dprintf (fd, \"%s|" <> attrib <> "|%s\\n\"" <> ", entity, " <> n <> ");"
+        attrib      = seaOfEscaped name
+        free s      = indent 4 $ "free (" <> s <> ");"
+        calloc  n s = "char *" <> n <> " = calloc(1," <> s <> " );"
+        decli   n   = "int   " <> n <> " = 0;"
+    in  do (str, bufs) <- strOfOutput ps oname otype0 ts0 ixStart
+           case bufs of
+             ((b,_,_):_) -> pure
+                    $ vsep
+                    $    ["{" ]
+                      <> fmap (\(n,s,_) -> indent 4 $ calloc n s) (List.reverse bufs)
+                      <> fmap (\(_,_,i) -> indent 4 $ decli    i) (List.reverse bufs)
+                      <> [ indent 4 $ str
+                         , indent 4 $ dprintf b ]
+                      <> fmap (\(n,_,_) -> free n) bufs
+                      <> ["}"]
+             _     -> pure mempty
 
-strOfOutput :: Doc -> OutputName -> ValType -> [ValType] -> Int -> Either SeaError Doc
+type BufName = Doc
+type BufSize = Doc
+type BufLen  = Doc
+
+strOfOutput
+  :: Doc -> OutputName -> ValType -> [ValType] -> Int
+  -> Either SeaError (Doc, [(BufName, BufSize, BufLen)]) -- name, alloc size and len
+
 strOfOutput ps oname@(OutputName name) otype0 ts0 ixStart
   = let members     = List.take (length ts0) (fmap (\ix -> ps <> "->" <> seaOfNameIx name ix) [ixStart..])
-        attrib      = seaOfEscaped name
         mismatch    = Left (SeaOutputTypeMismatch oname otype0 ts0)
         unsupported = Left (SeaUnsupportedOutputType otype0)
-
-        dateFmt         = "%lld-%02lld-%02lldT%02lld:%02lld:%02lld"
-        snprintf fmt n  = "snprintf (output_buf, OUTPUT_BUF_SIZE, \"%s|" <> attrib <> "|" <> fmt <> "\\n\"" <> ", entity, " <> n <> ");"
     in case otype0 of
          SumT ErrorT otype1
           | (BoolT : ErrorT : ts1) <- ts0
           , (nb    : _      : _)   <- members
-          -> do doc <- strOfOutput ps oname otype1 ts1 (ixStart+2)
-                pure ("if (" <> nb <> ")" <+> doc)
+          -> do (doc, bs) <- strOfOutput ps oname otype1 ts1 (ixStart+2)
+                pure (vsep ["if (" <> nb <> ")", "{", indent 4 doc, "}"], bs)
 
           | otherwise
           -> mismatch
 
+
          OptionT otype1
           | (nb : _) <- members
-          -> do doc  <- strOfOutput ps oname otype1 ts0 (ixStart+1)
-                pure $ "if (" <> nb <> ")" <+> doc
+          -> do (doc, bs) <- strOfOutput ps oname otype1 ts0 (ixStart+1)
+                pure (vsep ["if (" <> nb <> ")", "{", indent 4 doc, "}"], bs)
+
+         PairT otype1 otype2
+          | [ts1, ts2] <- ts0
+          , [n1,  n2]  <- members
+          -> do (doc1, bs1@((buf1,_,buf1len):_)) <- strOfOutput ps oname otype1 [ts1] ixStart
+                (doc2, bs2@((buf2,_,buf2len):_)) <- strOfOutput ps oname otype2 [ts2] (ixStart+1)
+                let buf  = bufn $ n1 <> n2
+                    len  = lenn $ n1 <> n2
+                    size = bufs <> " * 2 + 3"
+                let s = vsep
+                          [ ch buf "["
+                          , len <> "  = 1;"
+                          , memcpy (buf <> "+" <> len) buf1 buf1len
+                          , len <> " += " <> buf1len <> ";"
+
+                          , ch (buf <> "+" <> len) ","
+                          , len <> "++;"
+                          , memcpy (buf <> "+" <> len) buf2 buf2len
+                          , len <> " += " <> buf2len <> ";"
+
+                          , ch (buf <> "+" <> len) "]"
+                          , len <> "++;"
+                          ]
+                pure (  vsep [doc1, doc2, s]
+                     ,  (buf, size, len)
+                     :  (bs1 <> bs2)
+                     )
 
          BoolT
           | [BoolT] <- ts0
-          , [mx]   <- members
-          -> pure $ vsep
-             [ "if (" <> mx <> ") {"
-             , indent 4 (snprintf "%s" "\"true\"")
-             , "} else {"
-             , indent 4 (snprintf "%s" "\"false\"")
-             , "}"
-             ]
+          , [mx]    <- members
+          -> let buf = bufn mx
+                 len = lenn mx
+                 s   = vsep
+                        [ "if (" <> mx <> ") {"
+                        , indent 4 $ snprintf len buf "%s" "\"true\""
+                        , "} else {"
+                        , indent 4 $ snprintf len buf "%s" "\"false\""
+                        , "}"
+                        ]
+             in pure (s, [(buf, bufs, len)])
 
           | otherwise
           -> mismatch
@@ -667,7 +709,9 @@ strOfOutput ps oname@(OutputName name) otype0 ts0 ixStart
          IntT
           | [IntT] <- ts0
           , [mx]   <- members
-          -> pure (snprintf "%lld" mx)
+          -> let buf = bufn mx
+                 len = lenn mx
+             in  pure (vsep [snprintf len buf "%lld" mx], [(buf, bufs, len)])
 
           | otherwise
           -> mismatch
@@ -675,7 +719,9 @@ strOfOutput ps oname@(OutputName name) otype0 ts0 ixStart
          DoubleT
           | [DoubleT] <- ts0
           , [mx]      <- members
-          -> pure (snprintf "%f" mx)
+          -> let buf = bufn mx
+                 len = lenn mx
+             in  pure (vsep [snprintf len buf "%f" mx], [(buf, bufs, len)])
 
           | otherwise
           -> mismatch
@@ -683,7 +729,9 @@ strOfOutput ps oname@(OutputName name) otype0 ts0 ixStart
          StringT
           | [StringT] <- ts0
           , [mx]      <- members
-          -> pure (snprintf "%s" mx)
+          -> let buf = bufn mx
+                 len = lenn mx
+             in  pure (vsep [snprintf len buf "%s" mx], [(buf, bufs, len)])
 
           | otherwise
           -> mismatch
@@ -691,19 +739,36 @@ strOfOutput ps oname@(OutputName name) otype0 ts0 ixStart
          DateTimeT
           | [DateTimeT] <- ts0
           , [mx]        <- members
-          -> pure $ vsep
-             [ "{"
-             , "    iint_t v_year, v_month, v_day, v_hour, v_minute, v_second;"
-             , "    idate_to_gregorian (" <> mx <> ", &v_year, &v_month, &v_day, &v_hour, &v_minute, &v_second);"
-             , indent 4 (snprintf dateFmt "v_year, v_month, v_day, v_hour, v_minute, v_second")
-             , "}"
-             ]
+          -> let buf = bufn mx
+                 len = lenn mx
+                 s   = vsep
+                        [ "iint_t v_year, v_month, v_day, v_hour, v_minute, v_second;"
+                        , "idate_to_gregorian (" <> mx <> ", &v_year, &v_month, &v_day, &v_hour, &v_minute, &v_second);"
+                        , snprintf len buf dateFmt "v_year, v_month, v_day, v_hour, v_minute, v_second"
+                        ]
+             in pure (s, [(buf, bufs, len)])
 
           | otherwise
           -> mismatch
 
          _
           -> unsupported
+  where
+   mkName  = string . filter isAlphaNum . show
+   dateFmt = "%lld-%02lld-%02lldT%02lld:%02lld:%02lld"
+   bufs    = "OUTPUT_BUF_SIZE"
+   bufn n  = "buf_" <> mkName n
+   lenn n  = "len_" <> mkName n
+
+   -- memcpy (dst, src, s);
+   memcpy dst src s = "memcpy (" <> dst <> ", " <> src <> ", " <> s <> ");"
+
+   -- *n = x;
+   ch n x = "*(" <> n <> ") = '" <> x <> "';"
+
+   -- snprintf (buf, OUTPUT_BUF_SIZE, "%fmt", n,);
+   snprintf i buf fmt n = i <> " = snprintf (" <> buf <> ", OUTPUT_BUF_SIZE,\"" <> fmt <> "\", " <> n <> ");"
+
 
 ------------------------------------------------------------------------
 

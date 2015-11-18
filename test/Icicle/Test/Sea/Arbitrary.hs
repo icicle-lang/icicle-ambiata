@@ -195,13 +195,13 @@ isSupportedOutput = \case
   DateTimeT -> True
   StringT   -> True
   OptionT{} -> False
+  PairT a b -> isSupportedOutput a && isSupportedOutput b
 
   UnitT     -> False
   ErrorT    -> False
   ArrayT{}  -> False
   BufT{}    -> False
   MapT{}    -> False
-  PairT{}   -> False
   StructT{} -> False
 
   SumT te tx
