@@ -29,8 +29,6 @@ import qualified Icicle.Source.Parser as S
 import qualified Icicle.Source.Query as S
 import           Icicle.Storage.Dictionary.Toml
 
-import           Jetski
-
 import           P
 
 import           System.Environment (getArgs)
@@ -83,22 +81,23 @@ runBench date dictionaryPath inputPath outputPath sourcePath = do
   dictionary <- firstEitherT BenchDictionaryImportError (loadDictionary dictionaryPath)
   avalanche  <- hoistEither (avalancheOfDictionary dictionary)
 
-  let cfg = PsvConfig date (tombstonesOfDictionary dictionary)
+  let cfg = Psv (PsvConfig date (tombstonesOfDictionary dictionary))
 
-  let acquireFleet = firstEitherT BenchSeaError (seaCompile (Psv cfg) avalanche)
+  let avalancheL = Map.toList avalanche
+
+  code <- firstEitherT BenchSeaError (hoistEither (codeOfPrograms cfg avalancheL))
+  liftIO (T.writeFile sourcePath code)
+
+  asm <- firstEitherT BenchSeaError (assemblyOfPrograms cfg avalancheL)
+  liftIO (T.writeFile (replaceExtension sourcePath ".s") asm)
+
+  let acquireFleet = firstEitherT BenchSeaError (seaCompile cfg avalanche)
       releaseFleet = seaRelease
 
   bracketEitherT' acquireFleet releaseFleet $ \fleet -> do
     compEnd <- liftIO getCurrentTime
     let compSecs = realToFrac (compEnd `diffUTCTime` compStart) :: Double
     liftIO (printf "icicle-bench: compilation time = %.2fs\n" compSecs)
-
-    let src = libSource (sfLibrary fleet)
-    liftIO (T.writeFile sourcePath src)
-
-    asm <- firstEitherT BenchSeaError (assemblyOfPrograms (Psv cfg) (Map.toList avalanche))
-    liftIO (T.writeFile (replaceExtension sourcePath ".s") asm)
-
     liftIO (putStrLn "icicle-bench: starting snapshot")
 
     psvStart <- liftIO getCurrentTime

@@ -2,6 +2,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards #-}
+{-# OPTIONS_GHC -w #-}
 module Icicle.Sea.FromAvalanche.Psv (
     PsvConfig(..)
   , seaOfPsvDriver
@@ -15,10 +16,12 @@ import qualified Data.Set as Set
 import           Data.Text (Text)
 import qualified Data.Text as T
 
+import           Icicle.Avalanche.Prim.Flat (Prim(..), PrimUpdate(..), PrimUnsafe(..))
 import           Icicle.Avalanche.Prim.Flat (meltType)
 
 import           Icicle.Common.Base (OutputName(..))
 import           Icicle.Common.Type (ValType(..), StructType(..), StructField(..))
+import           Icicle.Common.Exp (Exp(..))
 
 import           Icicle.Data (Attribute(..), DateTime)
 
@@ -27,6 +30,7 @@ import qualified Icicle.Internal.Pretty as Pretty
 
 import           Icicle.Sea.Error (SeaError(..))
 import           Icicle.Sea.FromAvalanche.Base
+import           Icicle.Sea.FromAvalanche.Prim
 import           Icicle.Sea.FromAvalanche.State
 import           Icicle.Sea.FromAvalanche.Type
 
@@ -201,26 +205,61 @@ seaOfReadFact state tombstones = do
          <> pretty (nameOfStateType state) <+> "*program,"
         <+> "const char *value_ptr, const size_t value_size, idate_t date)"
     , "{"
+    , "    psv_error_t error;"
+    , ""
+    , "    imempool_t *mempool   = program->mempool;"
+    , "    iint_t      new_count = program->new_count;"
+    , ""
+    , "    char  *p  = (char *) value_ptr;"
+    , "    char  *pe = (char *) value_ptr + value_size;"
+    , ""
+    , "    ibool_t " <> pretty (inputSumBool input) <> ";"
+    , indent 4 . vsep . fmap seaOfDefineInput $ inputVars input
+    , ""
     , "    " <> align (seaOfReadTombstone input (Set.toList tombstones)) <> "{"
-    , "        program->" <> pretty (inputSumBool input) <> "[program->new_count] = itrue;"
+    , "        " <> pretty (inputSumBool input) <> " = itrue;"
+    , ""
     , indent 8 readInput
     , "    }"
     , ""
-    , "    program->" <> pretty (inputSumError input) <> "[program->new_count] = ierror_tombstone;"
-    , "    program->" <> pretty (inputDate     input) <> "[program->new_count] = date;"
-    , "    program->new_count++;"
+    , "    program->" <> pretty (inputSumBool  input) <> "[new_count] = " <> pretty (inputSumBool input) <> ";"
+    , "    program->" <> pretty (inputSumError input) <> "[new_count] = ierror_tombstone;"
+    , indent 4 . vsep . fmap seaOfAssignInput $ inputVars input
+    , "    program->" <> pretty (inputDate     input) <> "[new_count] = date;"
     , ""
-    , "    if (program->new_count == psv_max_row_count) {"
+    , "    new_count++;"
+    , ""
+    , "    if (new_count == psv_max_row_count) {"
     , "        " <> pretty (nameOfProgram state) <> " (program);"
-    , "        program->new_count = 0;"
-    , "    } else if (program->new_count > psv_max_row_count) {"
+    , "        new_count = 0;"
+    , "    } else if (new_count > psv_max_row_count) {"
     , "        return \"" <> pretty (nameOfReadFact state) <> ": new_count > max_count\";"
     , "    }"
+    , ""
+    , "    program->new_count = new_count;"
     , ""
     , "    return 0; /* no error */"
     , "}"
     , ""
     ]
+
+seaOfAssignInput :: (Text, ValType) -> Doc
+seaOfAssignInput (n, _)
+ = "program->" <> pretty n <> "[new_count] = " <> pretty n <> ";"
+
+seaOfDefineInput :: (Text, ValType) -> Doc
+seaOfDefineInput (n, t)
+ = noPadSeaOfValType t <+> pretty n <> initType t
+
+initType :: ValType -> Doc
+initType = \case
+  ArrayT vt -> " =" <+> seaOfArrayCreate vt <> ";"
+  _         -> ";"
+
+seaOfArrayCreate :: ValType -> Doc
+seaOfArrayCreate typ
+ = seaOfPrimDocApps (seaOfXPrim (PrimUnsafe (PrimUnsafeArrayCreate typ)))
+                    [ int 0 ]
 
 ------------------------------------------------------------------------
 
@@ -228,8 +267,7 @@ seaOfReadTombstone :: CheckedInput -> [Text] -> Doc
 seaOfReadTombstone input = \case
   []     -> Pretty.empty
   (t:ts) -> "if (" <> seaOfStringEq t "value_ptr" "value_size" <> ") {" <> line
-         <> "    program->" <> pretty (inputSumBool input)
-                            <> "[program->new_count] = ifalse;" <> line
+         <> "    " <> pretty (inputSumBool input) <> " = ifalse;" <> line
          <> "} else " <> seaOfReadTombstone input ts
 
 ------------------------------------------------------------------------
@@ -266,63 +304,46 @@ seaOfReadInput input
  = case (inputVars input, inputType input) of
     ([(nx, BoolT)], BoolT)
      -> pure $ vsep
-        [ ""
-        , "if (" <> seaOfStringEq "true" "value_ptr" "value_size" <> ") {"
-        , "    program->" <> pretty nx <> "[program->new_count] = itrue;"
-        , "} else if (" <> seaOfStringEq "false" "value_ptr" "value_size" <> ") {"
-        , "    program->" <> pretty nx <> "[program->new_count] = ifalse;"
-        , "} else {"
-        , "    return psv_alloc_error (\"not a boolean\", value_ptr, value_size);"
-        , "}"
+        [ "error = psv_read_bool (&p, pe, &" <> pretty nx <> ");"
+        , "if (error) return error;"
         ]
 
     ([(nx, DoubleT)], DoubleT)
      -> pure $ vsep
-        [ "char *end_ptr;"
-        , "program->" <> pretty nx <> "[program->new_count] = strtod (value_ptr, &end_ptr);"
-        , ""
-        , "if (value_ptr + value_size != end_ptr)"
-        , "  return psv_alloc_error (\"not an number\", value_ptr, value_size);"
+        [ "error = psv_read_double (&p, pe, &" <> pretty nx <> ");"
+        , "if (error) return error;"
         ]
 
     ([(nx, IntT)], IntT)
      -> pure $ vsep
-        [ "char *end_ptr;"
-        , "program->" <> pretty nx <> "[program->new_count] = strtol (value_ptr, &end_ptr, 10);"
-        , ""
-        , "if (value_ptr + value_size != end_ptr)"
-        , "  return psv_alloc_error (\"not an integer\", value_ptr, value_size);"
+        [ "error = psv_read_int (&p, pe, &" <> pretty nx <> ");"
+        , "if (error) return error;"
         ]
 
     ([(nx, DateTimeT)], DateTimeT)
      -> pure $ vsep
-        [ "psv_error_t " <> seaOfError nx <> " = "
-                         <> "psv_read_date (value_ptr, value_size, "
-                         <> "&program->" <> pretty nx <> "[program->new_count]);"
-        , "if (" <> seaOfError nx <> ") return " <> seaOfError nx <> ";"
+        [ "error = psv_read_date (value_ptr, value_size, &" <> pretty nx <> ");"
+        , "if (error) return error;"
         ]
 
     ([(nx, StringT)], StringT)
      -> pure $ vsep
-        [ "size_t copy_size = value_size + 1;"
-        , "char  *copy_ptr  = imempool_alloc (program->mempool, copy_size);"
-        , "memcpy (copy_ptr, value_ptr, value_size);"
-        , "copy_ptr[copy_size] = 0;"
-        , "program->" <> pretty nx <> "[program->new_count] = copy_ptr;"
+        [ "error = psv_read_string (mempool, &p, pe, &" <> pretty nx <> ");"
+        , "if (error) return error;"
         ]
 
     ([(nx, UnitT)], StructT (StructType fs))
      | Map.null fs
-     -> pure $ "program->" <> pretty nx <> "[program->new_count] = iunit;"
+     -> pure $ pretty nx <> " = iunit;"
+
+    (_, ArrayT at)
+     -> seaOfReadJsonList at (fmap fst (inputVars input))
 
     (_, StructT st)
      -> seaOfReadStruct st (inputVars input)
 
     (_, t)
      -> Left (SeaUnsupportedInputType t)
-
-seaOfError :: Text -> Doc
-seaOfError suf = "error_" <> pretty suf
 
 ------------------------------------------------------------------------
 
@@ -359,15 +380,12 @@ seaOfReadStruct st@(StructType fields) vars = do
   mappings     <- maybe (Left mismatch) Right (mappingOfFields (Map.toList fields) vars)
   mappings_sea <- traverse seaOfFieldMapping mappings
   pure $ vsep
-    [ "char  *p  = (char *) value_ptr;"
-    , "char  *pe = (char *) value_ptr + value_size;"
+    [ "if (*p++ != '{')"
+    , "    return psv_alloc_error (\"missing {\",  p, pe - p);"
     , ""
-    , "if (*p++ != '{')"
-    , "    return psv_alloc_error (\"missing {\",  value_ptr, value_size);"
-    , ""
-    , "for (ibool_t done = ifalse; !done;) {"
+    , "for (;;) {"
     , "    if (*p++ != '\"')"
-    , "        return psv_alloc_error (\"missing \\\"\", value_ptr, value_size);"
+    , "        return psv_alloc_error (\"missing \\\"\", p, pe - p);"
     , ""
     , indent 4 (vsep mappings_sea)
     , "    return psv_alloc_error (\"invalid field start\", p, pe - p);"
@@ -377,57 +395,118 @@ seaOfReadStruct st@(StructType fields) vars = do
 seaOfFieldMapping :: FieldMapping -> Either SeaError Doc
 seaOfFieldMapping (FieldMapping fname ftype vars) = do
   let needle = seaOfString (fname <> "\"")
-  field_sea <- seaOfReadJson ftype vars
+  field_sea <- seaOfReadJsonField ftype vars
   pure $ vsep
     [ "if (memcmp (" <> needle <> ", p, sizeof (" <> needle <> ") - 1) == 0) {"
     , "    p += sizeof (" <> needle <> ") - 1;"
-    , "    psv_error_t error;"
+    , ""
     , indent 4 field_sea
+    , ""
     , "    continue;"
     , "}"
     , ""
     ]
 
-seaOfReadJson :: ValType -> [Text] -> Either SeaError Doc
-seaOfReadJson ftype vars
- = let readJson  n t  = "error = psv_read_json_" <> t
-                     <> " (program->mempool, &p, pe, &program->" <> pretty n <> "[program->new_count], &done);"
-                     <> "if (error) return error;"
+seaOfReadJsonField :: ValType -> [Text] -> Either SeaError Doc
+seaOfReadJsonField ftype vars = do
+  value_sea <- seaOfReadJsonValue ftype vars (\n _ x -> pretty n <+> "=" <+> x <> ";")
+  pure $ vsep
+    [ "if (*p++ != ':')"
+    , "    return psv_alloc_error (\"missing ':'\",  p, pe - p);"
+    , ""
+    , value_sea
+    , ""
+    , "char term = *p++;"
+    , "if (term != ',' && term != '}')"
+    , "    return psv_alloc_error (\"terminator ',' or '}' not found\", p, pe - p);"
+    , ""
+    , "if (term == '}')"
+    , "    break;"
+    ]
 
-       assignConst n xx = "program->" <> pretty n <+> "[program->new_count] = " <> xx <> ";"
+------------------------------------------------------------------------
 
-   in case (ftype, vars) of
+seaOfReadJsonList :: ValType -> [Text] -> Either SeaError Doc
+seaOfReadJsonList vtype vars = do
+  value_sea <- seaOfReadJsonValue vtype vars (\n t x -> n <+> "=" <+> seaOfArrayPut n "ix" x t <> ";")
+  pure $ vsep
+    [ "if (*p++ != '[')"
+    , "    return psv_alloc_error (\"missing '['\",  p, pe - p);"
+    , ""
+    , "char term = *p;"
+    , ""
+    , "for (iint_t ix = 0; term != ']'; ix++) {"
+    , indent 4 value_sea
+    , "    "
+    , "    term = *p++;"
+    , "    if (term != ',' && term != ']')"
+    , "        return psv_alloc_error (\"terminator ',' or ']' not found\", p, pe - p);"
+    , "}"
+    ]
+
+meltInputType :: ValType -> [Text] -> Either SeaError [(Text, ValType)]
+meltInputType vt ns
+ = let ts = meltType vt
+   in if length ts == length ns
+      then Right (List.zip ns ts)
+      else Left (SeaInputTypeMismatch' vt ns)
+
+seaOfArrayPut :: Doc -> Doc -> Doc -> ValType -> Doc
+seaOfArrayPut arr ix val typ
+ = seaOfPrimDocApps (seaOfXPrim (PrimUpdate (PrimUpdateArrayPut typ)))
+                    [ arr, ix, val ]
+
+------------------------------------------------------------------------
+
+seaOfReadJsonValue :: ValType -> [Text] -> (Doc -> ValType -> Doc -> Doc) -> Either SeaError Doc
+seaOfReadJsonValue vtype vars assign
+ = let readValueArg arg n vt t = vsep
+         [ noPadSeaOfValType vtype <+> "value;"
+         , "error = psv_read_" <> t <> " (" <> arg <> "&p, pe, &value);"
+         , "if (error) return error;"
+         , assign (pretty n) vt "value"
+         ]
+
+       readValue     = readValueArg ""
+       readValuePool = readValueArg "mempool, "
+
+   in case (vtype, vars) of
        (OptionT t, [nb, nx]) -> do
-         val_sea <- seaOfReadJson t [nx]
+         val_sea <- seaOfReadJsonValue t [nx] assign
          pure $ vsep
            [ "ibool_t is_null;"
-           , "error = psv_try_read_json_null (&p, pe, &is_null, &done);"
+           , "error = psv_try_read_json_null (&p, pe, &is_null);"
            , "if (error) return error;"
+           , ""
            , "if (is_null) {"
-           , indent 4 (assignConst nb "ifalse")
+           , indent 4 (assign (pretty nb) BoolT "ifalse")
            , "} else {"
-           , indent 4 (assignConst nb "itrue")
+           , indent 4 (assign (pretty nb) BoolT "itrue")
+           , ""
            , indent 4 val_sea
            , "}"
            ]
 
        (BoolT, [nx]) -> do
-         pure (readJson nx "bool")
+         pure (readValue nx BoolT "json_bool")
 
        (IntT, [nx]) -> do
-         pure (readJson nx "int")
+         pure (readValue nx IntT "int")
 
        (DoubleT, [nx]) -> do
-         pure (readJson nx "double")
+         pure (readValue nx DoubleT "double")
 
        (DateTimeT, [nx]) -> do
-         pure (readJson nx "date")
+         pure (readValue nx DateTimeT "json_date")
 
        (StringT, [nx]) -> do
-         pure (readJson nx "string")
+         pure (readValuePool nx StringT "json_string")
+
+       (ArrayT t, ns) -> do
+         seaOfReadJsonList t ns
 
        _
-        -> Left (SeaUnsupportedStructFieldType ftype vars)
+        -> Left (SeaInputTypeMismatch' vtype vars)
 
 ------------------------------------------------------------------------
 
