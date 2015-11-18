@@ -61,6 +61,7 @@ simpFlattened a_fresh p
   crunch ss
    -- Rewrite rules like (fst (a,b) => a
    =   constructor  a_fresh ss
+   >>=return .  dead
    -- Remove unused lets, and remove duplicate bindings
    >>= thresher     a_fresh
    -- Perform let-forwarding on statements, so that constant lets become free
