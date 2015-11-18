@@ -24,6 +24,7 @@ module Icicle.Sea.Eval (
 
   , seaEvalAvalanche
 
+  , codeOfPrograms
   , assemblyOfPrograms
   , compilerOptions
   ) where
@@ -290,6 +291,7 @@ compilerOptions =
   , "-march=native" -- 🚀  all optimisations valid for the current CPU (AVX512, etc)
   , "-std=c99"      -- 👹  variable declarations anywhere!
   , "-fPIC"         -- 🌏  position independent code, required on Linux
+  , "-Werror"
   ]
 
 assemblyOfPrograms

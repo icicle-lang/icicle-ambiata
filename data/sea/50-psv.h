@@ -156,12 +156,9 @@ static psv_error_t INLINE psv_read_date (const char *time_ptr, const size_t time
     return psv_alloc_error ("expected 'yyyy-mm-dd' or 'yyyy-mm-ddThh:mm:ssZ' but was", time_ptr, time_size);
 }
 
-static psv_error_t INLINE psv_read_json_date (imempool_t *pool, char **pp, char *pe, idate_t *output_ptr, ibool_t *done_ptr)
+static psv_error_t INLINE psv_read_json_date (char **pp, char *pe, idate_t *output_ptr)
 {
     char *p = *pp;
-
-    if (*p++ != ':')
-        return psv_alloc_error ("missing ':'",  p, pe - p);
 
     if (*p++ != '"')
         return psv_alloc_error ("missing opening quote '\"'",  p, pe - p);
@@ -171,30 +168,35 @@ static psv_error_t INLINE psv_read_json_date (imempool_t *pool, char **pp, char 
     if (!quote_ptr)
         return psv_alloc_error ("missing closing quote '\"'",  p, pe - p);
 
-    char *term_ptr = quote_ptr + 1;
-
-    if (*term_ptr != ',' && *term_ptr != '}')
-        return psv_alloc_error ("terminator ',' or '}' not found", term_ptr, pe - term_ptr);
-
-    if (*term_ptr == '}')
-        *done_ptr = itrue;
-
     size_t date_size = quote_ptr - p;
     psv_error_t error = psv_read_date (p, date_size, output_ptr);
 
     if (error) return error;
 
-    *pp = term_ptr + 1;
+    *pp = quote_ptr + 1;
 
     return 0;
 }
 
-static psv_error_t INLINE psv_read_json_string (imempool_t *pool, char **pp, char *pe, istring_t *output_ptr, ibool_t *done_ptr)
+static psv_error_t INLINE psv_read_string (imempool_t *pool, char **pp, char *pe, istring_t *output_ptr)
 {
     char *p = *pp;
 
-    if (*p++ != ':')
-        return psv_alloc_error ("missing ':'",  p, pe - p);
+    size_t output_size = pe - p + 1;
+    char  *output      = imempool_alloc (pool, output_size);
+
+    output[output_size] = 0;
+    memcpy (output, p, output_size - 1);
+
+    *output_ptr = output;
+    *pp         = p + output_size - 1;
+
+    return 0;
+}
+
+static psv_error_t INLINE psv_read_json_string (imempool_t *pool, char **pp, char *pe, istring_t *output_ptr)
+{
+    char *p = *pp;
 
     if (*p++ != '"')
         return psv_alloc_error ("missing '\"'",  p, pe - p);
@@ -204,14 +206,6 @@ static psv_error_t INLINE psv_read_json_string (imempool_t *pool, char **pp, cha
     if (!quote_ptr)
         return psv_alloc_error ("missing closing quote '\"'",  p, pe - p);
 
-    char *term_ptr = quote_ptr + 1;
-
-    if (*term_ptr != ',' && *term_ptr != '}')
-        return psv_alloc_error ("terminator ',' or '}' not found", p, pe - p);
-
-    if (*term_ptr == '}')
-        *done_ptr = itrue;
-
     size_t output_size = quote_ptr - p + 1;
     char  *output      = imempool_alloc (pool, output_size);
 
@@ -219,142 +213,76 @@ static psv_error_t INLINE psv_read_json_string (imempool_t *pool, char **pp, cha
     memcpy (output, p, output_size - 1);
 
     *output_ptr = output;
-    *pp         = term_ptr + 1;
+    *pp         = quote_ptr + 1;
 
     return 0;
 }
 
-static psv_error_t INLINE psv_read_json_bool (imempool_t *pool, char **pp, char *pe, ibool_t *output_ptr, ibool_t *done_ptr)
+static psv_error_t INLINE psv_try_read_json_null (char **pp, char *pe, ibool_t *was_null_ptr)
 {
+    static const uint32_t null_bits = 0x000000006c6c756e; /* "null" */
+
     char *p = *pp;
 
-    if (*p++ != ':')
-        return psv_alloc_error ("missing ':'",  p, pe - p);
+    uint32_t next4 = *(uint32_t *)p;
 
-    char *term_ptr;
-    char *comma_ptr = memchr (p, ',', pe - p);
-
-    if (comma_ptr) {
-        term_ptr = comma_ptr;
-    } else {
-        char *brace_ptr = memchr (p, '}', pe - p);
-        if (brace_ptr) {
-            term_ptr  = brace_ptr;
-            *done_ptr = itrue;
-        } else {
-            return psv_alloc_error ("terminator (',' or '}') not found", p, pe - p);
-        }
-    }
-
-    size_t value_size = term_ptr - p;
-
-    if (value_size == sizeof ("true") - 1 &&
-        memcmp ("true", p, value_size) == 0) {
-        *output_ptr = itrue;
-    } else if (value_size == sizeof ("false") - 1 &&
-               memcmp ("false", p, value_size) == 0) {
-        *output_ptr = ifalse;
-    } else {
-        return psv_alloc_error ("was not a boolean", p, value_size);
-    }
-
-    *pp = term_ptr + 1;
-
-    return 0;
-}
-
-static psv_error_t INLINE psv_read_json_int (imempool_t *pool, char **pp, char *pe, iint_t *output_ptr, ibool_t *done_ptr)
-{
-    char *p = *pp;
-
-    if (*p++ != ':')
-        return psv_alloc_error ("missing ':'",  p, pe - p);
-
-    char *term_ptr;
-    char *comma_ptr = memchr (p, ',', pe - p);
-
-    if (comma_ptr) {
-        term_ptr = comma_ptr;
-    } else {
-        char *brace_ptr = memchr (p, '}', pe - p);
-        if (brace_ptr) {
-            term_ptr  = brace_ptr;
-            *done_ptr = itrue;
-        } else {
-            return psv_alloc_error ("terminator (',' or '}') not found", p, pe - p);
-        }
-    }
-
-    char *end_ptr;
-    *output_ptr = strtol (p, &end_ptr, 10);
-
-    if (end_ptr != term_ptr)
-        return psv_alloc_error ("was not an integer", p, term_ptr - p);
-
-    *pp = term_ptr + 1;
-
-    return 0;
-}
-
-static psv_error_t INLINE psv_read_json_double (imempool_t *pool, char **pp, char *pe, idouble_t *output_ptr, ibool_t *done_ptr)
-{
-    char *p = *pp;
-
-    if (*p++ != ':')
-        return psv_alloc_error ("missing ':'",  p, pe - p);
-
-    char *term_ptr;
-    char *comma_ptr = memchr (p, ',', pe - p);
-
-    if (comma_ptr) {
-        term_ptr = comma_ptr;
-    } else {
-        char *brace_ptr = memchr (p, '}', pe - p);
-        if (brace_ptr) {
-            term_ptr  = brace_ptr;
-            *done_ptr = itrue;
-        } else {
-            return psv_alloc_error ("terminator (',' or '}') not found", p, pe - p);
-        }
-    }
-
-    char *end_ptr;
-    *output_ptr = strtod (p, &end_ptr);
-
-    if (end_ptr != term_ptr)
-        return psv_alloc_error ("was not an integer", p, term_ptr - p);
-
-    *pp = term_ptr + 1;
-
-    return 0;
-}
-
-static psv_error_t INLINE psv_try_read_json_null (char **pp, char *pe, ibool_t *was_null_ptr, ibool_t *done_ptr)
-{
-    char *p = *pp;
-
-    if (*p++ != ':')
-        return psv_alloc_error ("missing ':'",  p, pe - p);
-
-    const size_t null_size = sizeof ("null") - 1;
-
-    if (memcmp ("null", p, null_size) != 0) {
+    if (next4 != null_bits) {
         *was_null_ptr = ifalse;
         return 0;
     }
 
     *was_null_ptr = itrue;
+    *pp           = p + sizeof ("null") - 1;
 
-    char *term_ptr = p + null_size;
+    return 0;
+}
 
-    if (*term_ptr != ',' && *term_ptr != '}')
-        return psv_alloc_error ("terminator ',' or '}' not found", term_ptr, pe - term_ptr);
+static psv_error_t INLINE psv_read_mask_bool (uint64_t mask, char **pp, char *pe, ibool_t *output_ptr)
+{
+    static const uint64_t true_mask  = 0x00000000ffffffff;
+    static const uint64_t true_bits  = 0x0000000065757274; /* "true" */
+    static const uint64_t false_mask = 0x000000ffffffffff;
+    static const uint64_t false_bits = 0x00000065736c6166; /* "false" */
 
-    if (*term_ptr == '}')
-        *done_ptr = itrue;
+    char *p = *pp;
 
-    *pp = term_ptr + 1;
+    uint64_t next8 = *(uint64_t *)p | mask;
 
+    int is_true  = (next8 & true_mask)  == true_bits;
+    int is_false = (next8 & false_mask) == false_bits;
+
+    if (is_true) {
+        *output_ptr = itrue;
+        *pp         = p + sizeof ("true") - 1;
+    } else if (is_false) {
+        *output_ptr = ifalse;
+        *pp         = p + sizeof ("false") - 1;
+    } else {
+        return psv_alloc_error ("was not a boolean", p, pe - p);
+    }
+
+    return 0;
+}
+static psv_error_t INLINE psv_read_json_bool (char **pp, char *pe, ibool_t *output_ptr)
+{
+    return psv_read_mask_bool (0x0, pp, pe, output_ptr);
+}
+
+static psv_error_t INLINE psv_read_bool (char **pp, char *pe, ibool_t *output_ptr)
+{
+    static const uint64_t to_lower = 0x2020202020202020;
+    return psv_read_mask_bool (to_lower, pp, pe, output_ptr);
+}
+
+static psv_error_t INLINE psv_read_int (char **pp, char *pe, iint_t *output_ptr)
+{
+    *output_ptr = strtol (*pp, pp, 10);
+    return 0;
+}
+
+static psv_error_t INLINE psv_read_double (char **pp, char *pe, idouble_t *output_ptr)
+{
+    *output_ptr = strtod (*pp, pp);
     return 0;
 }
 

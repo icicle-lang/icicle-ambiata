@@ -29,9 +29,9 @@ data SeaError
   | SeaTypeConversionError                   ValType
   | SeaUnsupportedInputType                  ValType
   | SeaInputTypeMismatch                     ValType    [(Text, ValType)]
+  | SeaInputTypeMismatch'                    ValType    [Text]
   | SeaUnsupportedOutputType                 ValType
   | SeaOutputTypeMismatch         OutputName ValType    [ValType]
-  | SeaUnsupportedStructFieldType            ValType    [Text]
   | SeaStructFieldsMismatch                  StructType [(Text, ValType)]
   | SeaNoFactLoop
   | SeaNoOutputs
@@ -63,18 +63,18 @@ instance Pretty SeaError where
              , "  struct type = " <> pretty st
              , "  members     = " <> pretty vs ]
 
-    SeaUnsupportedStructFieldType t ns
-     -> vsep [ "Unsupported struct field type"
-             , "  field type    = " <> pretty t
+    SeaInputTypeMismatch t ns
+     -> vsep [ "Cannot map input type to its C struct members"
+             , "  input type    = " <> pretty t
              , "  mapping on to = " <> text (show ns) ]
 
-    SeaInputTypeMismatch t ns
-     -> vsep [ "Cannot map input type on its C struct members"
+    SeaInputTypeMismatch' t ns
+     -> vsep [ "Cannot map input type to its C struct members"
              , "  input type    = " <> pretty t
              , "  mapping on to = " <> text (show ns) ]
 
     SeaOutputTypeMismatch n t ts
-     -> vsep [ "Cannot map output type on its C struct members"
+     -> vsep [ "Cannot map output type to its C struct members"
              , "  output name   = " <> pretty n
              , "  output type   = " <> pretty t
              , "  mapping on to = " <> text (show ts) ]

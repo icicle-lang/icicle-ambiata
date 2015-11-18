@@ -132,15 +132,35 @@ isSupportedInput = \case
 
   UnitT     -> False
   ErrorT    -> False
-  ArrayT{}  -> False
   BufT{}    -> False
   MapT{}    -> False
   PairT{}   -> False
   SumT{}    -> False
   OptionT{} -> False
 
+  ArrayT t
+   -> isSupportedInputElem t
+
   StructT (StructType fs)
    -> all isSupportedInputField (Map.elems fs)
+
+isSupportedInputElem :: ValType -> Bool
+isSupportedInputElem = \case
+  BoolT     -> True
+  IntT      -> True
+  DoubleT   -> True
+  DateTimeT -> True
+  StringT   -> True
+
+  UnitT     -> False
+  ErrorT    -> False
+  ArrayT{}  -> False
+  BufT{}    -> False
+  MapT{}    -> False
+  PairT{}   -> False
+  SumT{}    -> False
+  OptionT{} -> False
+  StructT{} -> False
 
 isSupportedInputField :: ValType -> Bool
 isSupportedInputField = \case

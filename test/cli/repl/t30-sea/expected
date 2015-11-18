@@ -699,6 +699,8 @@ typedef struct {
 #line 1 "compute function #0 - repl"
 void iprogram_0(iprogram_0_t *s)
 {
+    imempool_t *mempool = s->mempool;
+
     ibool_t          a_conv_70_simp_274;
     ierror_t         a_conv_70_simp_275;
     idouble_t        a_conv_70_simp_276;
@@ -1774,6 +1776,8 @@ typedef struct {
 #line 1 "compute function #0 - repl"
 void iprogram_0(iprogram_0_t *s)
 {
+    imempool_t *mempool = s->mempool;
+
     ibool_t          acc_s_reify_2_conv_5_simp_4;
     ierror_t         acc_s_reify_2_conv_5_simp_5;
     idate_t          acc_s_reify_2_conv_5_simp_6;
