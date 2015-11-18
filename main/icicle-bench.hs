@@ -34,6 +34,7 @@ import           Jetski
 import           P
 
 import           System.Environment (getArgs)
+import           System.FilePath (replaceExtension)
 import           System.IO (IO, FilePath, putStrLn, print)
 import           System.IO (IOMode(..), withFile, hFileSize)
 
@@ -94,6 +95,9 @@ runBench date dictionaryPath inputPath outputPath sourcePath = do
 
     let src = libSource (sfLibrary fleet)
     liftIO (T.writeFile sourcePath src)
+
+    asm <- firstEitherT BenchSeaError (assemblyOfPrograms (Psv cfg) (Map.toList avalanche))
+    liftIO (T.writeFile (replaceExtension sourcePath ".s") asm)
 
     liftIO (putStrLn "icicle-bench: starting snapshot")
 
