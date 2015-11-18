@@ -48,7 +48,7 @@ deadS us statements
             xU       = usageX x
         in (mconcat [tU, fU, xU], If x tS fS)
     Let n x ss
-     -> let (sU, sS) = deadS us ss
+     -> let (sU, sS) = deadS  us ss
             xU       = usageX x
         in  if   usedX n sU
             then (mconcat [xU, sU], Let n x sS)
@@ -119,7 +119,8 @@ deadLoop us ss
  = let (sU, sS) = deadS us ss
    in  if   sU == us
        then (sU, sS)
-       else deadLoop sU sS
+       -- Make sure to use the original statements
+       else deadLoop sU ss
 
 
 usageX :: (Ord n) => Exp a n p -> Usage n

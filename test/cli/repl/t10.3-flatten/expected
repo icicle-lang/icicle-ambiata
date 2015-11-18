@@ -174,12 +174,10 @@ gen$date = DATE
   init acc$conv$2$simp$15@{Array (Buf 2 Bool)} = []@{Array (Buf 2 Bool)};
   init acc$conv$2$simp$16@{Array (Buf 2 Error)} = []@{Array (Buf 2 Error)};
   init acc$conv$2$simp$17@{Array (Buf 2 Int)} = []@{Array (Buf 2 Int)};
-  init acc$conv$2$simp$18@{Array (Buf 2 DateTime)} = []@{Array (Buf 2 DateTime)};
   load_resumable@{Array DateTime} acc$conv$2$simp$14;
   load_resumable@{Array (Buf 2 Bool)} acc$conv$2$simp$15;
   load_resumable@{Array (Buf 2 Error)} acc$conv$2$simp$16;
   load_resumable@{Array (Buf 2 Int)} acc$conv$2$simp$17;
-  load_resumable@{Array (Buf 2 DateTime)} acc$conv$2$simp$18;
   for_facts (gen$fact$simp$103@{Bool},
              gen$fact$simp$104@{Error},
              gen$fact$simp$105@{Int},
@@ -188,21 +186,17 @@ gen$date = DATE
     read@{Array (Buf 2 Bool)} acc$conv$2$simp$20 = acc$conv$2$simp$15;
     read@{Array (Buf 2 Error)} acc$conv$2$simp$21 = acc$conv$2$simp$16;
     read@{Array (Buf 2 Int)} acc$conv$2$simp$22 = acc$conv$2$simp$17;
-    read@{Array (Buf 2 DateTime)} acc$conv$2$simp$23 = acc$conv$2$simp$18;
     let simp$121 = Buf_push#@{Buf 2 Bool}
                    (Buf []@{Buf 2 Bool}) gen$fact$simp$103;
     let simp$124 = Buf_push#@{Buf 2 Error}
                    (Buf []@{Buf 2 Error}) gen$fact$simp$104;
     let simp$127 = Buf_push#@{Buf 2 Int}
                    (Buf []@{Buf 2 Int}) gen$fact$simp$105;
-    let simp$130 = Buf_push#@{Buf 2 DateTime}
-                   (Buf []@{Buf 2 DateTime}) gen$fact$simp$106;
     init flat$1@{Bool} = False@{Bool};
     init flat$2@{Array DateTime} = acc$conv$2$simp$19;
     init flat$3$simp$24@{Array (Buf 2 Bool)} = acc$conv$2$simp$20;
     init flat$3$simp$25@{Array (Buf 2 Error)} = acc$conv$2$simp$21;
     init flat$3$simp$26@{Array (Buf 2 Int)} = acc$conv$2$simp$22;
-    init flat$3$simp$27@{Array (Buf 2 DateTime)} = acc$conv$2$simp$23;
     read@{Array DateTime} flat$2 = flat$2;
     let flat$4 = Array_length#@{DateTime}
                  flat$2;
@@ -211,7 +205,6 @@ gen$date = DATE
       read@{Array (Buf 2 Bool)} flat$3$simp$28 = flat$3$simp$24;
       read@{Array (Buf 2 Error)} flat$3$simp$29 = flat$3$simp$25;
       read@{Array (Buf 2 Int)} flat$3$simp$30 = flat$3$simp$26;
-      read@{Array (Buf 2 DateTime)} flat$3$simp$31 = flat$3$simp$27;
       let simp$155 = unsafe_Array_index#@{DateTime}
                      flat$2 flat$5;
       if (eq#@{DateTime} simp$155
@@ -222,24 +215,18 @@ gen$date = DATE
                        flat$3$simp$29 flat$5;
         let simp$176 = unsafe_Array_index#@{Buf 2 Int}
                        flat$3$simp$30 flat$5;
-        let simp$179 = unsafe_Array_index#@{Buf 2 DateTime}
-                       flat$3$simp$31 flat$5;
         let simp$199 = Buf_push#@{Buf 2 Bool}
                        simp$170 gen$fact$simp$103;
         let simp$203 = Buf_push#@{Buf 2 Error}
                        simp$173 gen$fact$simp$104;
         let simp$207 = Buf_push#@{Buf 2 Int}
                        simp$176 gen$fact$simp$105;
-        let simp$211 = Buf_push#@{Buf 2 DateTime}
-                       simp$179 gen$fact$simp$106;
         write flat$3$simp$24 = Array_put#@{Buf 2 Bool}
                                flat$3$simp$28 flat$5 simp$199;
         write flat$3$simp$25 = Array_put#@{Buf 2 Error}
                                flat$3$simp$29 flat$5 simp$203;
         write flat$3$simp$26 = Array_put#@{Buf 2 Int}
                                flat$3$simp$30 flat$5 simp$207;
-        write flat$3$simp$27 = Array_put#@{Buf 2 DateTime}
-                               flat$3$simp$31 flat$5 simp$211;
         write flat$1 = True@{Bool};
       }
     }
@@ -255,7 +242,6 @@ gen$date = DATE
       read@{Array (Buf 2 Bool)} flat$9$simp$32 = flat$3$simp$24;
       read@{Array (Buf 2 Error)} flat$9$simp$33 = flat$3$simp$25;
       read@{Array (Buf 2 Int)} flat$9$simp$34 = flat$3$simp$26;
-      read@{Array (Buf 2 DateTime)} flat$9$simp$35 = flat$3$simp$27;
       let simp$233 = Array_length#@{Buf 2 Bool}
                      flat$9$simp$32;
       write flat$3$simp$24 = Array_put#@{Buf 2 Bool}
@@ -267,26 +253,20 @@ gen$date = DATE
       write flat$3$simp$26 = Array_put#@{Buf 2 Int}
                              flat$9$simp$34 simp$233
                              simp$127;
-      write flat$3$simp$27 = Array_put#@{Buf 2 DateTime}
-                             flat$9$simp$35 simp$233
-                             simp$130;
     }
     read@{Array DateTime} flat$2 = flat$2;
     read@{Array (Buf 2 Bool)} flat$3$simp$36 = flat$3$simp$24;
     read@{Array (Buf 2 Error)} flat$3$simp$37 = flat$3$simp$25;
     read@{Array (Buf 2 Int)} flat$3$simp$38 = flat$3$simp$26;
-    read@{Array (Buf 2 DateTime)} flat$3$simp$39 = flat$3$simp$27;
     write acc$conv$2$simp$14 = flat$2;
     write acc$conv$2$simp$15 = flat$3$simp$36;
     write acc$conv$2$simp$16 = flat$3$simp$37;
     write acc$conv$2$simp$17 = flat$3$simp$38;
-    write acc$conv$2$simp$18 = flat$3$simp$39;
   }
   save_resumable@{Array DateTime} acc$conv$2$simp$14;
   save_resumable@{Array (Buf 2 Bool)} acc$conv$2$simp$15;
   save_resumable@{Array (Buf 2 Error)} acc$conv$2$simp$16;
   save_resumable@{Array (Buf 2 Int)} acc$conv$2$simp$17;
-  save_resumable@{Array (Buf 2 DateTime)} acc$conv$2$simp$18;
   read@{Array DateTime} conv$2$simp$40 = acc$conv$2$simp$14;
   read@{Array (Buf 2 Bool)} conv$2$simp$41 = acc$conv$2$simp$15;
   read@{Array (Buf 2 Error)} conv$2$simp$42 = acc$conv$2$simp$16;
