@@ -632,6 +632,11 @@ seaOfOutput ps oname@(OutputName name) otype0 ts0 ixStart
        | otherwise
        -> mismatch
 
+      OptionT otype1
+       | (nb : _) <- members
+       -> do doc <- seaOfOutput ps oname otype1 ts0 (ixStart+1)
+             pure $ "if (" <> nb <> ")" <+> doc
+
       BoolT
        | [BoolT] <- ts0
        , [mx]   <- members

@@ -194,6 +194,7 @@ isSupportedOutput = \case
   DoubleT   -> True
   DateTimeT -> True
   StringT   -> True
+  OptionT{} -> False
 
   UnitT     -> False
   ErrorT    -> False
@@ -201,7 +202,6 @@ isSupportedOutput = \case
   BufT{}    -> False
   MapT{}    -> False
   PairT{}   -> False
-  OptionT{} -> False
   StructT{} -> False
 
   SumT te tx
