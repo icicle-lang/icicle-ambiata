@@ -1,5 +1,14 @@
 #include "21-date.h"
 
+static iint_t INLINE array_size(iint_t i)
+{
+    if (i < 4) return 4;
+
+    iint_t bits = 64 - __builtin_clzll (i);
+    iint_t next = 1L << bits;
+    return next;
+}
+
 typedef struct
 {
     iint_t count;
@@ -73,7 +82,7 @@ typedef struct
     static ARRAY(t)  INLINE ARRAY_FUN(create,pre)                               \
                                      (imempool_t *pool, iint_t sz)              \
     {                                                                           \
-        iint_t sz_alloc = next_power_of_two(sz);                                \
+        iint_t sz_alloc = array_size(sz);                                       \
         size_t bytes = ARRAY_SIZE(t,sz_alloc);                                  \
         ARRAY(t) ret = (ARRAY(t))imempool_alloc(pool, bytes);                   \
         ret->count   = sz;                                                      \
@@ -85,9 +94,9 @@ typedef struct
             (imempool_t *pool, ARRAY(t) x, iint_t ix, t v)                      \
     {                                                                           \
         iint_t count  = x->count;                                               \
-        iint_t sz_old = next_power_of_two(count);                               \
+        iint_t sz_old = array_size(count);                                      \
         if (ix >= sz_old) {                                                     \
-            iint_t sz_new    = next_power_of_two(ix);                           \
+            iint_t sz_new    = array_size(ix);                                  \
             size_t bytes_new = ARRAY_SIZE(t, sz_new);                           \
             size_t bytes_old = ARRAY_SIZE(t, sz_old);                           \
                                                                                 \
