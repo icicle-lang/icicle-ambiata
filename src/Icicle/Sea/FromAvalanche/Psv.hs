@@ -2,12 +2,12 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards #-}
-{-# OPTIONS_GHC -w #-}
 module Icicle.Sea.FromAvalanche.Psv (
     PsvConfig(..)
   , seaOfPsvDriver
   ) where
 
+import qualified Data.ByteString as B
 import qualified Data.List as List
 import           Data.Map (Map)
 import qualified Data.Map as Map
@@ -15,13 +15,14 @@ import           Data.Set (Set)
 import qualified Data.Set as Set
 import           Data.Text (Text)
 import qualified Data.Text as T
+import qualified Data.Text.Encoding as T
+import           Data.Word (Word8)
 
 import           Icicle.Avalanche.Prim.Flat (Prim(..), PrimUpdate(..), PrimUnsafe(..))
 import           Icicle.Avalanche.Prim.Flat (meltType)
 
 import           Icicle.Common.Base (OutputName(..))
 import           Icicle.Common.Type (ValType(..), StructType(..), StructField(..))
-import           Icicle.Common.Exp (Exp(..))
 
 import           Icicle.Data (Attribute(..), DateTime)
 
@@ -29,12 +30,15 @@ import           Icicle.Internal.Pretty
 import qualified Icicle.Internal.Pretty as Pretty
 
 import           Icicle.Sea.Error (SeaError(..))
-import           Icicle.Sea.FromAvalanche.Base
+import           Icicle.Sea.FromAvalanche.Base (seaOfDate, seaOfAttributeDesc)
+import           Icicle.Sea.FromAvalanche.Base (seaOfNameIx, seaOfEscaped)
 import           Icicle.Sea.FromAvalanche.Prim
 import           Icicle.Sea.FromAvalanche.State
 import           Icicle.Sea.FromAvalanche.Type
 
 import           P
+
+import           Text.Printf (printf)
 
 
 ------------------------------------------------------------------------
@@ -183,7 +187,7 @@ seaOfReadNamedFact :: SeaProgramState -> Doc
 seaOfReadNamedFact state
  = vsep
  [ ""
- , "if (" <> seaOfStringEq (getAttribute (stateAttribute state)) "attrib" "attrib_size" <> ") {"
+ , "if (" <> seaOfStringEq (getAttribute (stateAttribute state)) "attrib" (Just "attrib_size") <> ") {"
  , "    return " <> pretty (nameOfReadFact state)
                  <> " (&fleet->" <> pretty (nameOfProgram state) <> ", value, value_size, date);"
  , "}"
@@ -266,7 +270,7 @@ seaOfArrayCreate typ
 seaOfReadTombstone :: CheckedInput -> [Text] -> Doc
 seaOfReadTombstone input = \case
   []     -> Pretty.empty
-  (t:ts) -> "if (" <> seaOfStringEq t "value_ptr" "value_size" <> ") {" <> line
+  (t:ts) -> "if (" <> seaOfStringEq t "value_ptr" (Just "value_size") <> ") {" <> line
          <> "    " <> pretty (inputSumBool input) <> " = ifalse;" <> line
          <> "} else " <> seaOfReadTombstone input ts
 
@@ -394,11 +398,12 @@ seaOfReadStruct st@(StructType fields) vars = do
 
 seaOfFieldMapping :: FieldMapping -> Either SeaError Doc
 seaOfFieldMapping (FieldMapping fname ftype vars) = do
-  let needle = seaOfString (fname <> "\"")
+  let needle = fname <> "\""
   field_sea <- seaOfReadJsonField ftype vars
   pure $ vsep
-    [ "if (memcmp (" <> needle <> ", p, sizeof (" <> needle <> ") - 1) == 0) {"
-    , "    p += sizeof (" <> needle <> ") - 1;"
+    [ "/* " <> pretty fname <> " */"
+    , "if (" <> seaOfStringEq needle "p" Nothing <> ") {"
+    , "    p += " <> int (sizeOfString needle) <> ";"
     , ""
     , indent 4 field_sea
     , ""
@@ -443,13 +448,6 @@ seaOfReadJsonList vtype vars = do
     , "        return psv_alloc_error (\"terminator ',' or ']' not found\", p, pe - p);"
     , "}"
     ]
-
-meltInputType :: ValType -> [Text] -> Either SeaError [(Text, ValType)]
-meltInputType vt ns
- = let ts = meltType vt
-   in if length ts == length ns
-      then Right (List.zip ns ts)
-      else Left (SeaInputTypeMismatch' vt ns)
 
 seaOfArrayPut :: Doc -> Doc -> Doc -> ValType -> Doc
 seaOfArrayPut arr ix val typ
@@ -615,10 +613,40 @@ seaOfOutput ps oname@(OutputName name) otype0 ts0 ixStart
 
 ------------------------------------------------------------------------
 
-seaOfStringEq :: Text -> Doc -> Doc -> Doc
-seaOfStringEq str ptr size =
-  align $ vsep [ size <+> "==" <+> "sizeof (" <> seaOfString str <> ") - 1 &&"
-               , "memcmp (" <> seaOfString str <> ", " <> ptr <> ", " <> size <> ") == 0" ]
+sizeOfString :: Text -> Int
+sizeOfString = B.length . T.encodeUtf8
+
+seaOfStringEq :: Text -> Doc -> Maybe Doc -> Doc
+seaOfStringEq str ptr msize
+ | Just size <- msize = align (vsep [szdoc size, cmpdoc])
+ | otherwise          = align cmpdoc
+ where
+   nbytes = length bytes
+   bytes  = B.unpack (T.encodeUtf8 str)
+
+   szdoc size = size <+> "==" <+> int nbytes <+> "&&"
+   cmpdoc     = seaOfBytesEq bytes ptr
+
+seaOfBytesEq :: [Word8] -> Doc -> Doc
+seaOfBytesEq bs ptr
+ = vsep . punctuate " &&" . reverse $ seaOfBytesEq' bs 0 ptr []
+
+seaOfBytesEq' :: [Word8] -> Int -> Doc -> [Doc] -> [Doc]
+seaOfBytesEq' [] _   _   acc = acc
+seaOfBytesEq' bs off ptr acc
+ = seaOfBytesEq' remains (off + 8) ptr (doc : acc)
+ where
+   (bytes, remains) = splitAt 8 bs
+
+   nbytes = length bytes
+
+   nzeros = 8 - nbytes
+   zeros  = List.replicate nzeros 0x00
+
+   mask = text $ "0x" <> concatMap (printf "%02X") (zeros <> List.replicate nbytes 0xff)
+   bits = text $ "0x" <> concatMap (printf "%02X") (zeros <> reverse bytes)
+
+   doc = "(*(uint64_t *)(" <> ptr <+> "+" <+> int off <> ") &" <+> mask <> ") ==" <+> bits
 
 lookupTombstones :: PsvConfig -> SeaProgramState -> Set Text
 lookupTombstones config state =
