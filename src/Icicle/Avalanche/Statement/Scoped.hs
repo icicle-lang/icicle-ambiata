@@ -29,20 +29,20 @@ import              P
 
 
 data Scoped a n p
- = If    (Exp a n p)  (Scoped a n p) (Scoped a n p)
- | ForeachInts  (Name n) (Exp a n p) (Exp a n p) (Scoped a n p)
- | ForeachFacts [(Name n, ValType)] ValType S.FactLoopType (Scoped a n p)
- | Block     [Either (Binding a n p) (Scoped a n p)]
- | Write (Name n)    (Exp a n p)
- | Output OutputName ValType [(Exp a n p, ValType)]
+ = If    !(Exp a n p)  !(Scoped a n p) !(Scoped a n p)
+ | ForeachInts  !(Name n) !(Exp a n p) !(Exp a n p) !(Scoped a n p)
+ | ForeachFacts ![(Name n, ValType)] !ValType !S.FactLoopType !(Scoped a n p)
+ | Block     ![Either (Binding a n p) (Scoped a n p)]
+ | Write !(Name n)    !(Exp a n p)
+ | Output !OutputName !ValType ![(Exp a n p, ValType)]
  | KeepFactInHistory
- | LoadResumable (Name n) ValType
- | SaveResumable (Name n) ValType
+ | LoadResumable !(Name n) !ValType
+ | SaveResumable !(Name n) !ValType
 
 data Binding a n p
- = InitAccumulator (S.Accumulator a n p)
- | Let             (Name n) (Exp  a n p)
- | Read            (Name n) (Name n) ValType
+ = InitAccumulator !(S.Accumulator a n p)
+ | Let             !(Name n) !(Exp  a n p)
+ | Read            !(Name n) !(Name n) !ValType
 
 scopedOfStatement :: S.Statement a n p -> Scoped a n p
 scopedOfStatement s

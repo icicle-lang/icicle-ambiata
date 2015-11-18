@@ -17,25 +17,25 @@ import              P
 -- | Incredibly simple expressions;
 data Exp a n p
  -- | Read a variable from heap
- = XVar a !(Name n)
+ = XVar !a !(Name n)
 
  -- | A predefined primitive
- | XPrim a p
+ | XPrim !a !p
 
  -- | A constant simple value
  -- We need the type here because if this is, say, an empty array,
  -- we would not be able to guess the element type.
- | XValue a ValType BaseValue
+ | XValue !a !ValType !BaseValue
 
  -- | Apply something
- | XApp a (Exp a n p) (Exp a n p)
+ | XApp !a !(Exp a n p) !(Exp a n p)
 
  -- | Lambda abstraction:
  -- This is only really used for arguments passed to primitives such as fold.
- | XLam a !(Name n) ValType (Exp a n p)
+ | XLam !a !(Name n) !ValType !(Exp a n p)
 
  -- | Let binding
- | XLet a !(Name n) (Exp a n p) (Exp a n p)
+ | XLet !a !(Name n) !(Exp a n p) !(Exp a n p)
  deriving (Eq,Ord,Show)
 
 

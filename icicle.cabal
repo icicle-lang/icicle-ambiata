@@ -230,7 +230,7 @@ library
 --                      , x-optparse
 
 executable             icicle-repl
-    ghc-options:       -Wall -threaded -O2
+    ghc-options:       -Wall -threaded -O2 -funbox-strict-fields
     main-is:           main/icicle-repl.hs
     build-depends:     base
                      , ambiata-p
@@ -249,7 +249,7 @@ executable             icicle-repl
                      , parsec
 
 executable             icicle-bench
-    ghc-options:       -Wall -threaded -O2
+    ghc-options:       -Wall -threaded -O2 -funbox-strict-fields
     main-is:           main/icicle-bench.hs
     build-depends:     base
                      , ambiata-jetski
@@ -269,7 +269,7 @@ test-suite test
 
   main-is:             test.hs
 
-  ghc-options:         -Wall -threaded -O2
+  ghc-options:         -Wall -threaded -O2 -funbox-strict-fields
 
   hs-source-dirs:
                        test

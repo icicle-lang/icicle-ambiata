@@ -21,10 +21,10 @@ type Heap a n p
 
 -- | A top-level value can be a function/closure or a base value
 data Value a n p
- = VBase  BaseValue
+ = VBase  !BaseValue
  -- | A function carries its own heap, the name of its argument, and the expression to apply.
  -- Actually - we might want the type of the argument here too, for typeOfValue
- | VFun   (Heap a n p)  (Name n)  (Exp a n p)
+ | VFun   !(Heap a n p)  !(Name n)  !(Exp a n p)
  deriving (Show, Ord, Eq)
 
 

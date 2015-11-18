@@ -18,7 +18,7 @@ import              P
 
 
 data Reduce a n
- = RFold   ValType ValType (Exp a n) (Exp a n) (Name n)
+ = RFold   !ValType !ValType !(Exp a n) !(Exp a n) !(Name n)
  deriving (Eq,Ord,Show)
 
 

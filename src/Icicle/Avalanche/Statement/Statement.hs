@@ -22,46 +22,46 @@ import              P
 data Statement a n p
  -- Branches
  -- | An IF for filters
- = If           (Exp a n p) (Statement a n p) (Statement a n p)
+ = If           !(Exp a n p) !(Statement a n p) !(Statement a n p)
  -- | Local binding, so the name better be unique
- | Let !(Name n) (Exp a n p) (Statement a n p)
+ | Let !(Name n) !(Exp a n p) !(Statement a n p)
 
  -- | A loop over some ints
- | ForeachInts  !(Name n) (Exp a n p) (Exp a n p) (Statement a n p)
+ | ForeachInts  !(Name n) !(Exp a n p) !(Exp a n p) !(Statement a n p)
 
  -- | A loop over all the facts.
  -- This should only occur once in the program, and not inside a loop.
- | ForeachFacts ![(Name n, ValType)] ValType FactLoopType (Statement a n p)
+ | ForeachFacts ![(Name n, ValType)] !ValType !FactLoopType !(Statement a n p)
 
  -- | Execute several statements in a block.
- | Block [Statement a n p]
+ | Block ![Statement a n p]
 
  -- Initialise an accumulator
- | InitAccumulator (Accumulator a n p) (Statement a n p)
+ | InitAccumulator !(Accumulator a n p) !(Statement a n p)
 
  -- | Read from a non-latest accumulator.
  -- First name is what to call it, second is what accumulator.
  -- As let:
  --      Let  local = accumulator,
  --      Read local = accumulator.
- | Read   !(Name n) !(Name n) ValType (Statement a n p)
+ | Read   !(Name n) !(Name n) !ValType !(Statement a n p)
 
  -- Leaf nodes
  -- | Update a resumable or windowed fold accumulator,
  -- with Exp : acc
- | Write  !(Name n) (Exp a n p)
+ | Write  !(Name n) !(Exp a n p)
 
  -- | Emit a value to output
- | Output OutputName ValType [(Exp a n p, ValType)]
+ | Output !OutputName !ValType ![(Exp a n p, ValType)]
 
  -- | Mark the current fact as being historically relevant
  | KeepFactInHistory
 
  -- | Load an accumulator from history. Must be before any fact loops.
- | LoadResumable !(Name n) ValType
+ | LoadResumable !(Name n) !ValType
 
  -- | Save an accumulator to history. Must be after all fact loops.
- | SaveResumable !(Name n) ValType
+ | SaveResumable !(Name n) !ValType
  deriving (Eq, Ord, Show)
 
 instance Monoid (Statement a n p) where
@@ -80,9 +80,9 @@ instance Monoid (Statement a n p) where
 -- | Mutable accumulators
 data Accumulator a n p
  = Accumulator
- { accName      :: Name n
- , accValType   :: ValType
- , accInit      :: Exp a n p
+ { accName      :: !(Name n)
+ , accValType   :: !ValType
+ , accInit      :: !(Exp a n p)
  }
  deriving (Eq, Ord, Show)
 
