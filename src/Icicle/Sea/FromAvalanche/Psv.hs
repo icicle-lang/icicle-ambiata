@@ -614,83 +614,96 @@ seaOfWriteProgramOutput state = do
     ]
 
 seaOfOutput :: Doc -> OutputName -> ValType -> [ValType] -> Int -> Either SeaError Doc
-seaOfOutput ps oname@(OutputName name) otype0 ts0 ixStart
+seaOfOutput ps oname otype0 ts0 ixStart
+  = let dprintf  = "dprintf  (fd, \"%s|\", output_buf);"
+    in  do str  <- strOfOutput ps oname otype0 ts0 ixStart
+           pure $ vsep
+             [ "{"
+             , "char *output_buf = calloc(1, OUTPUT_BUF_SIZE);"
+             , str
+             , dprintf
+             , "free (output_buf);"
+             , "}"
+             ]
+
+strOfOutput :: Doc -> OutputName -> ValType -> [ValType] -> Int -> Either SeaError Doc
+strOfOutput ps oname@(OutputName name) otype0 ts0 ixStart
   = let members     = List.take (length ts0) (fmap (\ix -> ps <> "->" <> seaOfNameIx name ix) [ixStart..])
         attrib      = seaOfEscaped name
         mismatch    = Left (SeaOutputTypeMismatch oname otype0 ts0)
         unsupported = Left (SeaUnsupportedOutputType otype0)
 
-        dateFmt       = "%lld-%02lld-%02lldT%02lld:%02lld:%02lld"
-        dprintf fmt n = "dprintf (fd, \"%s|" <> attrib <> "|" <> fmt <> "\\n\"" <> ", entity, " <> n <> ");"
+        dateFmt         = "%lld-%02lld-%02lldT%02lld:%02lld:%02lld"
+        snprintf fmt n  = "snprintf (output_buf, OUTPUT_BUF_SIZE, \"%s|" <> attrib <> "|" <> fmt <> "\\n\"" <> ", entity, " <> n <> ");"
     in case otype0 of
-      SumT ErrorT otype1
-       | (BoolT : ErrorT : ts1) <- ts0
-       , (nb    : _      : _)   <- members
-       -> do doc <- seaOfOutput ps oname otype1 ts1 (ixStart+2)
-             pure ("if (" <> nb <> ")" <+> doc)
+         SumT ErrorT otype1
+          | (BoolT : ErrorT : ts1) <- ts0
+          , (nb    : _      : _)   <- members
+          -> do doc <- strOfOutput ps oname otype1 ts1 (ixStart+2)
+                pure ("if (" <> nb <> ")" <+> doc)
 
-       | otherwise
-       -> mismatch
+          | otherwise
+          -> mismatch
 
-      OptionT otype1
-       | (nb : _) <- members
-       -> do doc <- seaOfOutput ps oname otype1 ts0 (ixStart+1)
-             pure $ "if (" <> nb <> ")" <+> doc
+         OptionT otype1
+          | (nb : _) <- members
+          -> do doc  <- strOfOutput ps oname otype1 ts0 (ixStart+1)
+                pure $ "if (" <> nb <> ")" <+> doc
 
-      BoolT
-       | [BoolT] <- ts0
-       , [mx]   <- members
-       -> pure $ vsep
-          [ "if (" <> mx <> ") {"
-          , indent 4 (dprintf "%s" "\"true\"")
-          , "} else {"
-          , indent 4 (dprintf "%s" "\"false\"")
-          , "}"
-          ]
+         BoolT
+          | [BoolT] <- ts0
+          , [mx]   <- members
+          -> pure $ vsep
+             [ "if (" <> mx <> ") {"
+             , indent 4 (snprintf "%s" "\"true\"")
+             , "} else {"
+             , indent 4 (snprintf "%s" "\"false\"")
+             , "}"
+             ]
 
-       | otherwise
-       -> mismatch
+          | otherwise
+          -> mismatch
 
-      IntT
-       | [IntT] <- ts0
-       , [mx]   <- members
-       -> pure (dprintf "%lld" mx)
+         IntT
+          | [IntT] <- ts0
+          , [mx]   <- members
+          -> pure (snprintf "%lld" mx)
 
-       | otherwise
-       -> mismatch
+          | otherwise
+          -> mismatch
 
-      DoubleT
-       | [DoubleT] <- ts0
-       , [mx]      <- members
-       -> pure (dprintf "%f" mx)
+         DoubleT
+          | [DoubleT] <- ts0
+          , [mx]      <- members
+          -> pure (snprintf "%f" mx)
 
-       | otherwise
-       -> mismatch
+          | otherwise
+          -> mismatch
 
-      StringT
-       | [StringT] <- ts0
-       , [mx]      <- members
-       -> pure (dprintf "%s" mx)
+         StringT
+          | [StringT] <- ts0
+          , [mx]      <- members
+          -> pure (snprintf "%s" mx)
 
-       | otherwise
-       -> mismatch
+          | otherwise
+          -> mismatch
 
-      DateTimeT
-       | [DateTimeT] <- ts0
-       , [mx]        <- members
-       -> pure $ vsep
-          [ "{"
-          , "    iint_t v_year, v_month, v_day, v_hour, v_minute, v_second;"
-          , "    idate_to_gregorian (" <> mx <> ", &v_year, &v_month, &v_day, &v_hour, &v_minute, &v_second);"
-          , indent 4 (dprintf dateFmt "v_year, v_month, v_day, v_hour, v_minute, v_second")
-          , "}"
-          ]
+         DateTimeT
+          | [DateTimeT] <- ts0
+          , [mx]        <- members
+          -> pure $ vsep
+             [ "{"
+             , "    iint_t v_year, v_month, v_day, v_hour, v_minute, v_second;"
+             , "    idate_to_gregorian (" <> mx <> ", &v_year, &v_month, &v_day, &v_hour, &v_minute, &v_second);"
+             , indent 4 (snprintf dateFmt "v_year, v_month, v_day, v_hour, v_minute, v_second")
+             , "}"
+             ]
 
-       | otherwise
-       -> mismatch
+          | otherwise
+          -> mismatch
 
-      _
-       -> unsupported
+         _
+          -> unsupported
 
 ------------------------------------------------------------------------
 

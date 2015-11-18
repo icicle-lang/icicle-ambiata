@@ -2,6 +2,8 @@
 
 #if !ICICLE_NO_PSV
 
+#define OUTPUT_BUF_SIZE 1024
+
 /* forward declarations for types, implemented by generated code */
 typedef struct ifleet ifleet_t;
 

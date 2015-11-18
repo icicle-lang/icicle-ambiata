@@ -292,7 +292,7 @@ valueOfJSON e v
 -- Render as json. This is as close to Ivory output as
 -- is possible. "No Value" or "Tombstoned" values are
 -- rendered as the json null type.
--- Map and pair values are encoded as a json struct
+-- Map values are encoded as a json struct
 -- with the first items as the json keys. This has the
 -- obvious downside that all encoding are rendered as
 -- strings. The tombstone value from renderValue is
@@ -318,14 +318,12 @@ jsonOfValue t val
     Tombstone
      -> A.Null
     PairValue k v
-      -> A.Object $ pair k v
+     -> A.Array $ V.fromList $ fmap (jsonOfValue t) [k, v]
     MapValue kvs
      -> A.Array $ V.fromList $ fmap (jsonOfValue t . uncurry PairValue) kvs
  where
   insert hm (attr,v)
    = HM.insert (getAttribute attr) (jsonOfValue t v) hm
-  pair k v
-   = HM.singleton (renderValue t k) (jsonOfValue t v)
 
 
 -- | Perform read, only succeed if all input is used
