@@ -96,17 +96,17 @@ typedef struct
         iint_t count  = x->count;                                               \
         iint_t sz_old = iarray_size(count);                                     \
         if (ix >= sz_old) {                                                     \
-            iint_t sz_new    = iarray_size(ix);                                 \
+            iint_t sz_new    = iarray_size(ix+1);                               \
             size_t bytes_new = ARRAY_SIZE(t, sz_new);                           \
             size_t bytes_old = ARRAY_SIZE(t, sz_old);                           \
                                                                                 \
             ARRAY(t) arr = (ARRAY(t))imempool_alloc(pool, bytes_new);           \
             memcpy(arr, x, bytes_old);                                          \
-            arr->count = ix;                                                    \
+            arr->count = ix + 1;                                                \
             x = arr;                                                            \
                                                                                 \
         } else if (ix >= count) {                                               \
-            x->count = ix;                                                      \
+            x->count = ix + 1;                                                  \
         }                                                                       \
         ARRAY_PAYLOAD(x,t)[ix] = v;                                             \
         return x;                                                               \
