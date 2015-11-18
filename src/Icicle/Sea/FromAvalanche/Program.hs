@@ -49,6 +49,8 @@ seaOfProgram name attrib program = do
     , "#line 1 \"compute function" <+> seaOfStateInfo state <> "\""
     , "void " <> pretty (nameOfProgram state) <> "(" <> pretty (nameOfStateType state) <+> "*s)"
     , "{"
+    , "    imempool_t *mempool = s->mempool;"
+    , ""
     , indent 4 . vsep
                . fmap defOfAccumulator
                . Map.toList
