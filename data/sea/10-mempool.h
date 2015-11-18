@@ -105,3 +105,11 @@ void imempool_free (imempool_t *pool)
     iblock_free (pool->last);
     free(pool);
 }
+
+
+static iint_t INLINE next_power_of_two(iint_t i)
+{
+    iint_t bits = 64 - __builtin_clzll (i);
+    iint_t next = 1L << bits;
+    return next;
+}

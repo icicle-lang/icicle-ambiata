@@ -67,7 +67,7 @@ seaOfXPrim p
       -> seaOfPrimUnsafe op
 
      PrimUpdate op
-      -> PDFun $ seaOfPrimUpdate op
+      -> seaOfPrimUpdate op
 
      PrimArray op
       -> PDFun $ seaOfPrimArray op
@@ -148,11 +148,11 @@ seaOfPrimUnsafe p
      _
       -> PDFun   (seaError "seaOfPrimUnsafe" p)
 
-seaOfPrimUpdate :: PrimUpdate -> Doc
+seaOfPrimUpdate :: PrimUpdate -> PrimDoc
 seaOfPrimUpdate p
  = case p of
      PrimUpdateArrayPut t
-      -> prefixOfValType (ArrayT t) <> "put"
+      -> PDAlloc (prefixOfValType (ArrayT t) <> "put")
 
 seaOfPrimArray :: PrimArray -> Doc
 seaOfPrimArray p
