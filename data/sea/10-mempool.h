@@ -75,6 +75,7 @@ static void * NOINLINE imempool_alloc_block (imempool_t *pool, size_t num_bytes)
     /* Couldn't allocate even after adding a new block to the pool, we will
      * never be able to service this request. */
     fprintf (stderr, "oh my, someone's a bit greedy\n");
+    fprintf (stderr, "did you really need %zu bytes\n", num_bytes);
     exit (1);
 }
 
@@ -104,12 +105,4 @@ void imempool_free (imempool_t *pool)
 {
     iblock_free (pool->last);
     free(pool);
-}
-
-
-static iint_t INLINE next_power_of_two(iint_t i)
-{
-    iint_t bits = 64 - __builtin_clzll (i);
-    iint_t next = 1L << bits;
-    return next;
 }
