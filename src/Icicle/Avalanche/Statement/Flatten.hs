@@ -365,8 +365,8 @@ flatX a_fresh xx stm
 
   -- Update an accumulator
   update acc t x
-   = Read acc acc t
-   $ Write acc x
+   = do n'x <- fresh
+        return $ Read n'x acc t $ Write acc $ x $ xVar n'x
 
 
   -- Handle primitive folds
@@ -498,27 +498,9 @@ flatX a_fresh xx stm
   fpOptionGet t = xPrim (Flat.PrimUnsafe (Flat.PrimUnsafeOptionGet t))
 
   pushArray t n'acc push
-   = do n'arr   <- fresh
-        n'from  <- fresh
-        let t'   = ArrayT t
-            from = xVar n'from
-            sz   = fpArrLen t `xApp` from
-            sz'  = xPrim (Flat.PrimMinimal $ Min.PrimArithBinary Min.PrimArithPlus ArithIntT)
-                 `makeApps'` [sz, xValue IntT $ VInt 1]
+   = do let t'   = ArrayT t
+            sz arr = fpArrLen t `xApp` arr
+            put arr i x = fpArrUpd t `makeApps'` [arr, i, x]
 
-            acc  = Accumulator n'arr t' (fpArrNew t `xApp` sz')
-
-            get i   = fpArrIx t  `makeApps'` [from, i]
-            put i x = fpArrUpd t `makeApps'` [xVar n'arr, i, x]
-
-        loop    <- forI sz $ \i
-                -> return  $ update n'arr t' $ put i $ get i
-
-        let put' = update n'arr t'
-                 $ put sz push
-            read = Read n'arr n'arr t'
-                 $ Write n'acc $ xVar n'arr
-
-        return $ Read n'from n'acc t'
-               $ InitAccumulator acc (loop <> put' <> read)
+        update n'acc t' (\arr -> put arr (sz arr) push)
 
