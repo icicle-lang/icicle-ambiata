@@ -1,6 +1,6 @@
 #include "21-date.h"
 
-static iint_t INLINE array_size(iint_t i)
+static iint_t INLINE iarray_size(iint_t i)
 {
     if (i < 4) return 4;
 
@@ -82,7 +82,7 @@ typedef struct
     static ARRAY(t)  INLINE ARRAY_FUN(create,pre)                               \
                                      (imempool_t *pool, iint_t sz)              \
     {                                                                           \
-        iint_t sz_alloc = array_size(sz);                                       \
+        iint_t sz_alloc = iarray_size(sz);                                      \
         size_t bytes = ARRAY_SIZE(t,sz_alloc);                                  \
         ARRAY(t) ret = (ARRAY(t))imempool_alloc(pool, bytes);                   \
         ret->count   = sz;                                                      \
@@ -94,9 +94,9 @@ typedef struct
             (imempool_t *pool, ARRAY(t) x, iint_t ix, t v)                      \
     {                                                                           \
         iint_t count  = x->count;                                               \
-        iint_t sz_old = array_size(count);                                      \
+        iint_t sz_old = iarray_size(count);                                     \
         if (ix >= sz_old) {                                                     \
-            iint_t sz_new    = array_size(ix);                                  \
+            iint_t sz_new    = iarray_size(ix);                                 \
             size_t bytes_new = ARRAY_SIZE(t, sz_new);                           \
             size_t bytes_old = ARRAY_SIZE(t, sz_old);                           \
                                                                                 \
