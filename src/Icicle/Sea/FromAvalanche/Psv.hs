@@ -694,8 +694,8 @@ strOfOutput ps oname@(OutputName name) otype0 ts0 ixStart
            = pure
            ( i + 1
            , sz <+> "+" <+> bufsz
-           , stms <> [ doc
-                     , vsep [ memcpy (ptr <> "+" <> len) buf buflen
+           , stms <> [ vsep [ doc
+                            , memcpy (ptr <> "+" <> len) buf buflen
                             , incAssign len buflen
                             ]
                      ]
@@ -751,7 +751,7 @@ strOfOutput ps oname@(OutputName name) otype0 ts0 ixStart
 
    mkName  = string . filter isAlphaNum . show
    dateFmt = "%lld-%02lld-%02lldT%02lld:%02lld:%02lld"
-   bufs    = "OUTPUT_BUF_SIZE"
+   bufs    = "psv_output_buf_size"
    bufn n  = "buf_" <> mkName n
    lenn n  = "len_" <> mkName n
 
@@ -767,8 +767,8 @@ strOfOutput ps oname@(OutputName name) otype0 ts0 ixStart
    -- *n = x;
    ch n x = "*(" <> n <> ") = '" <> x <> "';"
 
-   -- snprintf (buf, OUTPUT_BUF_SIZE, "%fmt", n,);
-   snprintf i buf fmt n = i <> " = snprintf (" <> buf <> ", OUTPUT_BUF_SIZE,\"" <> fmt <> "\", " <> n <> ");"
+   -- snprintf (buf, psv_output_buf_size, "%fmt", n,);
+   snprintf i buf fmt n = i <> " = snprintf (" <> buf <> ", psv_output_buf_size,\"" <> fmt <> "\", " <> n <> ");"
 
 
 ------------------------------------------------------------------------
