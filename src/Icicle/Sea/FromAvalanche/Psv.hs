@@ -18,11 +18,12 @@ import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import           Data.Word (Word8)
 
-import           Icicle.Avalanche.Prim.Flat (Prim(..), PrimUpdate(..), PrimUnsafe(..))
+import           Icicle.Avalanche.Prim.Flat (Prim(..), PrimUpdate(..))
 import           Icicle.Avalanche.Prim.Flat (meltType)
 
 import           Icicle.Common.Base (OutputName(..))
 import           Icicle.Common.Type (ValType(..), StructType(..), StructField(..))
+import           Icicle.Common.Type (defaultOfType)
 
 import           Icicle.Data (Attribute(..), DateTime)
 
@@ -33,6 +34,7 @@ import           Icicle.Sea.Error (SeaError(..))
 import           Icicle.Sea.FromAvalanche.Base (seaOfDate, seaOfAttributeDesc)
 import           Icicle.Sea.FromAvalanche.Base (seaOfNameIx, seaOfEscaped)
 import           Icicle.Sea.FromAvalanche.Prim
+import           Icicle.Sea.FromAvalanche.Program (seaOfXValue)
 import           Icicle.Sea.FromAvalanche.State
 import           Icicle.Sea.FromAvalanche.Type
 
@@ -302,14 +304,7 @@ seaOfDefineInput (n, t)
  = noPadSeaOfValType t <+> pretty n <> initType t
 
 initType :: ValType -> Doc
-initType = \case
-  ArrayT vt -> " =" <+> seaOfArrayCreate vt <> ";"
-  _         -> ";"
-
-seaOfArrayCreate :: ValType -> Doc
-seaOfArrayCreate typ
- = seaOfPrimDocApps (seaOfXPrim (PrimUnsafe (PrimUnsafeArrayCreate typ)))
-                    [ int 0 ]
+initType vt = " = " <> seaOfXValue (defaultOfType vt) vt <> ";"
 
 ------------------------------------------------------------------------
 

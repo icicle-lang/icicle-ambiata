@@ -4,6 +4,7 @@
 
 module Icicle.Sea.FromAvalanche.Program (
     seaOfProgram
+  , seaOfXValue
   , nameOfProgram
   , nameOfProgram'
   , nameOfStateType
