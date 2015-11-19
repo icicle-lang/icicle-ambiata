@@ -624,17 +624,18 @@ seaOfOutput ps oname@(OutputName name) otype0 ts0 ixStart
         decldt      = "iint_t v_year, v_month, v_day, v_hour, v_minute, v_second;" :: Doc
     in  do (str, bufs) <- strOfOutput ps oname otype0 ts0 ixStart
            case bufs of
-             ((b,_,_):_) -> pure
-                    $ vsep
-                    $    ["{"
-                         , if hasDateTime otype0 then indent 4 decldt else mempty ]
-                      <> fmap (\(n,s,_) -> indent 4 $ calloc n s) (List.reverse bufs)
-                      <> fmap (\(_,_,i) -> indent 4 $ decli    i) (List.reverse bufs)
-                      <> [ indent 4 $ str
-                         , indent 4 $ dprintf b ]
-                      <> fmap (\(n,_,_) -> free n) bufs
-                      <> ["}"]
-             _     -> pure mempty
+             ((final,_,_):_)
+               -> pure
+               $ vsep
+               $    ["{"
+                    , if hasDateTime otype0 then indent 4 decldt else mempty ]
+                 <> fmap (\(n,s,_) -> indent 4 $ calloc n s) (List.reverse bufs)
+                 <> fmap (\(_,_,i) -> indent 4 $ decli    i) (List.reverse bufs)
+                 <> [ indent 4 $ str
+                    , indent 4 $ dprintf final ]
+                 <> fmap (\(n,_,_) -> free n) bufs
+                 <> ["}"]
+             _ -> pure mempty
   where
     hasDateTime DateTimeT   = True
     hasDateTime (ArrayT t)  = hasDateTime t
@@ -643,6 +644,7 @@ seaOfOutput ps oname@(OutputName name) otype0 ts0 ixStart
     hasDateTime (MapT k v)  = hasDateTime k || hasDateTime v
     hasDateTime (PairT a b) = hasDateTime a || hasDateTime b
     hasDateTime (SumT a b)  = hasDateTime a || hasDateTime b
+    hasDateTime (StructT m) = any hasDateTime $ Map.elems $ getStructType m
     hasDateTime _           = False
 
 type BufName = Doc
