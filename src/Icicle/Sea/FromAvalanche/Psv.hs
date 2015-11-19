@@ -667,33 +667,8 @@ strOfOutput ps oname@(OutputName name) otype0 ts0 ixStart
           -> do (doc, bs) <- strOfOutput ps oname otype1 ts0 (ixStart+1)
                 pure (cond nb doc, bs)
 
-         PairT otype1 otype2
-          | [ts1, ts2] <- ts0
-          , [n1,  n2]  <- members
-          -> do (doc1, bs1@((buf1,_,buf1len):_)) <- strOfOutput ps oname otype1 [ts1] ixStart
-                (doc2, bs2@((buf2,_,buf2len):_)) <- strOfOutput ps oname otype2 [ts2] (ixStart+1)
-                let buf  = bufn $ n1 <> n2
-                    len  = lenn $ n1 <> n2
-                    size = bufs <> " * 2 + 3"
-                let s = vsep
-                          [ ch buf "["
-                          , len <> "  = 1;"
-                          , memcpy (buf <> "+" <> len) buf1 buf1len
-                          , len <> " += " <> buf1len <> ";"
-
-                          , ch (buf <> "+" <> len) ","
-                          , len <> "++;"
-                          , memcpy (buf <> "+" <> len) buf2 buf2len
-                          , len <> " += " <> buf2len <> ";"
-
-                          , ch (buf <> "+" <> len) "]"
-                          , len <> "++;"
-                          ]
-                pure (  vsep [doc1, doc2, s]
-                     ,  (buf, size, len)
-                     :  (bs1 <> bs2)
-                     )
-
+         PairT _ _
+          -> goP ts0 members
          _
           | [t]  <- ts0
           , [mx] <- members
@@ -704,6 +679,53 @@ strOfOutput ps oname@(OutputName name) otype0 ts0 ixStart
    mismatch    = Left (SeaOutputTypeMismatch oname otype0 ts0)
    unsupported = Left (SeaUnsupportedOutputType otype0)
 
+   incAssign n i
+    = n <+> "+=" <+> i <> ";"
+   inc n
+    = n <> "++;"
+
+   -- output (nested) pairs as array
+   goP ts ns
+    = let ptr  = bufn $ mconcat ns
+          len  = lenn $ mconcat ns
+          ptr' = ptr <+> "+" <+> len
+          go (i, sz, stms, bs) t
+           | n' <- T.pack (show n)
+           , Right (doc, bb@((buf,bufsz,buflen):_)) <- strOfOutput ps oname t [t] (ixStart + i)
+           = pure
+           ( i + 1
+           , sz <+> "+" <+> bufsz
+           , stms <> [ doc
+                     , vsep [ memcpy (ptr <> "+" <> len) buf buflen
+                            , incAssign len buflen
+                            ]
+                     ]
+           , bb <> bs
+           )
+           | otherwise
+           = mismatch
+          com (a:s:ss)
+           = a
+           : vsep [ ch ptr' ","
+                  , inc len
+                  , s
+                  ]
+           : com ss
+          com ss = ss
+      in  do (i, sz, stms, bs) <- foldM go (0, "2", mempty, mempty) ts
+             let size           = sz <+> "+" <+> pretty i
+                 stms'          = com stms
+                 stms''         = vsep
+                                  $  [ ch ptr  "["
+                                     , inc len
+                                     ]
+                                  <> stms'
+                                  <> [ ch ptr' "]"
+                                     , inc len
+                                     ]
+             pure (stms'', (ptr, size, len) : bs)
+
+   -- output single types
    go1 t mx
     = let buf = bufn mx
           len = lenn mx
