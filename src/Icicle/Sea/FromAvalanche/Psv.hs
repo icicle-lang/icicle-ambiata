@@ -690,8 +690,7 @@ strOfOutput ps oname@(OutputName name) otype0 ts0 ixStart
           len  = lenn $ mconcat ns
           ptr' = ptr <+> "+" <+> len
           go (i, sz, stms, bs) t
-           | n' <- T.pack (show n)
-           , Right (doc, bb@((buf,bufsz,buflen):_)) <- strOfOutput ps oname t [t] (ixStart + i)
+           | Right (doc, bb@((buf,bufsz,buflen):_)) <- strOfOutput ps oname t [t] (ixStart + i)
            = pure
            ( i + 1
            , sz <+> "+" <+> bufsz
