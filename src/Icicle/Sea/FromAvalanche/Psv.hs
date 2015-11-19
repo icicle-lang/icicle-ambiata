@@ -644,23 +644,17 @@ strOfOutput
 
 strOfOutput ps oname@(OutputName name) otype0 ts0 ixStart
   = let members     = List.take (length ts0) (fmap (\ix -> ps <> "->" <> seaOfNameIx name ix) [ixStart..])
-        mismatch    = Left (SeaOutputTypeMismatch oname otype0 ts0)
-        unsupported = Left (SeaUnsupportedOutputType otype0)
     in case otype0 of
          SumT ErrorT otype1
           | (BoolT : ErrorT : ts1) <- ts0
           , (nb    : _      : _)   <- members
           -> do (doc, bs) <- strOfOutput ps oname otype1 ts1 (ixStart+2)
-                pure (vsep ["if (" <> nb <> ")", "{", indent 4 doc, "}"], bs)
-
-          | otherwise
-          -> mismatch
-
+                pure (cond nb doc, bs)
 
          OptionT otype1
           | (nb : _) <- members
           -> do (doc, bs) <- strOfOutput ps oname otype1 ts0 (ixStart+1)
-                pure (vsep ["if (" <> nb <> ")", "{", indent 4 doc, "}"], bs)
+                pure (cond nb doc, bs)
 
          PairT otype1 otype2
           | [ts1, ts2] <- ts0
@@ -689,76 +683,52 @@ strOfOutput ps oname@(OutputName name) otype0 ts0 ixStart
                      :  (bs1 <> bs2)
                      )
 
-         BoolT
-          | [BoolT] <- ts0
-          , [mx]    <- members
-          -> let buf = bufn mx
-                 len = lenn mx
-                 s   = vsep
-                        [ "if (" <> mx <> ") {"
-                        , indent 4 $ snprintf len buf "%s" "\"true\""
-                        , "} else {"
-                        , indent 4 $ snprintf len buf "%s" "\"false\""
-                        , "}"
-                        ]
-             in pure (s, [(buf, bufs, len)])
-
-          | otherwise
-          -> mismatch
-
-         IntT
-          | [IntT] <- ts0
-          , [mx]   <- members
-          -> let buf = bufn mx
-                 len = lenn mx
-             in  pure (vsep [snprintf len buf "%lld" mx], [(buf, bufs, len)])
-
-          | otherwise
-          -> mismatch
-
-         DoubleT
-          | [DoubleT] <- ts0
-          , [mx]      <- members
-          -> let buf = bufn mx
-                 len = lenn mx
-             in  pure (vsep [snprintf len buf "%f" mx], [(buf, bufs, len)])
-
-          | otherwise
-          -> mismatch
-
-         StringT
-          | [StringT] <- ts0
-          , [mx]      <- members
-          -> let buf = bufn mx
-                 len = lenn mx
-             in  pure (vsep [snprintf len buf "%s" mx], [(buf, bufs, len)])
-
-          | otherwise
-          -> mismatch
-
-         DateTimeT
-          | [DateTimeT] <- ts0
-          , [mx]        <- members
-          -> let buf = bufn mx
-                 len = lenn mx
-                 s   = vsep
-                        [ "iint_t v_year, v_month, v_day, v_hour, v_minute, v_second;"
-                        , "idate_to_gregorian (" <> mx <> ", &v_year, &v_month, &v_day, &v_hour, &v_minute, &v_second);"
-                        , snprintf len buf dateFmt "v_year, v_month, v_day, v_hour, v_minute, v_second"
-                        ]
-             in pure (s, [(buf, bufs, len)])
-
-          | otherwise
-          -> mismatch
-
          _
-          -> unsupported
+          | [t]  <- ts0
+          , [mx] <- members
+          -> go1 t mx
+
+         _ -> unsupported
   where
+   mismatch    = Left (SeaOutputTypeMismatch oname otype0 ts0)
+   unsupported = Left (SeaUnsupportedOutputType otype0)
+
+   go1 t mx
+    = let buf = bufn mx
+          len = lenn mx
+          p s = pure (vsep s, [(buf, bufs, len)])
+      in case t of
+          BoolT
+           -> p [ "if (" <> mx <> ") {"
+                , indent 4 $ snprintf len buf "%s" "\"true\""
+                , "} else {"
+                , indent 4 $ snprintf len buf "%s" "\"false\""
+                , "}"
+                ]
+          IntT
+           -> p [snprintf len buf "%lld" mx]
+          DoubleT
+           -> p [snprintf len buf "%f" mx]
+          StringT
+           -> p [snprintf len buf "%s" mx]
+          DateTimeT
+           -> p [ "iint_t v_year, v_month, v_day, v_hour, v_minute, v_second;"
+                , "idate_to_gregorian (" <> mx <> ", &v_year, &v_month, &v_day, &v_hour, &v_minute, &v_second);"
+                , snprintf len buf dateFmt "v_year, v_month, v_day, v_hour, v_minute, v_second"
+                ]
+          _ -> mismatch
+
    mkName  = string . filter isAlphaNum . show
    dateFmt = "%lld-%02lld-%02lldT%02lld:%02lld:%02lld"
    bufs    = "OUTPUT_BUF_SIZE"
    bufn n  = "buf_" <> mkName n
    lenn n  = "len_" <> mkName n
+
+   cond n body
+    = vsep ["if (" <> n <> ")"
+           , "{"
+           , indent 4 body
+           , "}"]
 
    -- memcpy (dst, src, s);
    memcpy dst src s = "memcpy (" <> dst <> ", " <> src <> ", " <> s <> ");"
