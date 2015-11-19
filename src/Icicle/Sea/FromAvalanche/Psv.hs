@@ -17,6 +17,7 @@ import           Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import           Data.Word (Word8)
+import           Data.Char
 
 import           Icicle.Avalanche.Prim.Flat (Prim(..), PrimUpdate(..))
 import           Icicle.Avalanche.Prim.Flat (meltType)
@@ -615,77 +616,162 @@ seaOfWriteProgramOutput state = do
 
 seaOfOutput :: Doc -> OutputName -> ValType -> [ValType] -> Int -> Either SeaError Doc
 seaOfOutput ps oname@(OutputName name) otype0 ts0 ixStart
-  = let members     = List.take (length ts0) (fmap (\ix -> ps <> "->" <> seaOfNameIx name ix) [ixStart..])
+  = let dprintf n   = "dprintf (fd, \"%s|" <> attrib <> "|%s\\n\"" <> ", entity, " <> n <> ");"
         attrib      = seaOfEscaped name
-        mismatch    = Left (SeaOutputTypeMismatch oname otype0 ts0)
-        unsupported = Left (SeaUnsupportedOutputType otype0)
+        free s      = indent 4 $ "free (" <> s <> ");"
+        calloc  n s = "char *" <> n <> " = calloc(1," <> s <> " );"
+        decli   n   = "int   " <> n <> " = 0;"
+        decldt      = "iint_t v_year, v_month, v_day, v_hour, v_minute, v_second;" :: Doc
+    in  do (str, bufs) <- strOfOutput ps oname otype0 ts0 ixStart
+           case bufs of
+             ((final,_,_):_)
+               -> pure
+               $ vsep
+               $    ["{"
+                    , if hasDateTime otype0 then indent 4 decldt else mempty ]
+                 <> fmap (\(n,s,_) -> indent 4 $ calloc n s) (List.reverse bufs)
+                 <> fmap (\(_,_,i) -> indent 4 $ decli    i) (List.reverse bufs)
+                 <> [ indent 4 $ str
+                    , indent 4 $ dprintf final ]
+                 <> fmap (\(n,_,_) -> free n) bufs
+                 <> ["}"]
+             _ -> pure mempty
+  where
+    hasDateTime DateTimeT   = True
+    hasDateTime (ArrayT t)  = hasDateTime t
+    hasDateTime (BufT _ t)  = hasDateTime t
+    hasDateTime (OptionT t) = hasDateTime t
+    hasDateTime (MapT k v)  = hasDateTime k || hasDateTime v
+    hasDateTime (PairT a b) = hasDateTime a || hasDateTime b
+    hasDateTime (SumT a b)  = hasDateTime a || hasDateTime b
+    hasDateTime (StructT m) = any hasDateTime $ Map.elems $ getStructType m
+    hasDateTime _           = False
 
-        dateFmt       = "%lld-%02lld-%02lldT%02lld:%02lld:%02lld"
-        dprintf fmt n = "dprintf (fd, \"%s|" <> attrib <> "|" <> fmt <> "\\n\"" <> ", entity, " <> n <> ");"
+type BufName = Doc
+type BufSize = Doc
+type BufLen  = Doc
+
+strOfOutput
+  :: Doc -> OutputName -> ValType -> [ValType] -> Int
+  -> Either SeaError (Doc, [(BufName, BufSize, BufLen)]) -- name, alloc size and len
+
+strOfOutput ps oname@(OutputName name) otype0 ts0 ixStart
+  = let members     = List.take (length ts0) (fmap (\ix -> ps <> "->" <> seaOfNameIx name ix) [ixStart..])
     in case otype0 of
-      SumT ErrorT otype1
-       | (BoolT : ErrorT : ts1) <- ts0
-       , (nb    : _      : _)   <- members
-       -> do doc <- seaOfOutput ps oname otype1 ts1 (ixStart+2)
-             pure ("if (" <> nb <> ")" <+> doc)
+         SumT ErrorT otype1
+          | (BoolT : ErrorT : ts1) <- ts0
+          , (nb    : _      : _)   <- members
+          -> do (doc, bs) <- strOfOutput ps oname otype1 ts1 (ixStart+2)
+                pure (cond nb doc, bs)
 
-       | otherwise
-       -> mismatch
+         OptionT otype1
+          | (nb : _) <- members
+          -> do (doc, bs) <- strOfOutput ps oname otype1 ts0 (ixStart+1)
+                pure (cond nb doc, bs)
 
-      BoolT
-       | [BoolT] <- ts0
-       , [mx]   <- members
-       -> pure $ vsep
-          [ "if (" <> mx <> ") {"
-          , indent 4 (dprintf "%s" "\"true\"")
-          , "} else {"
-          , indent 4 (dprintf "%s" "\"false\"")
-          , "}"
-          ]
+         PairT _ _
+          -> goP ts0 members
+         _
+          | [t]  <- ts0
+          , [mx] <- members
+          -> go1 t mx
 
-       | otherwise
-       -> mismatch
+         _ -> unsupported
+  where
+   mismatch    = Left (SeaOutputTypeMismatch oname otype0 ts0)
+   unsupported = Left (SeaUnsupportedOutputType otype0)
 
-      IntT
-       | [IntT] <- ts0
-       , [mx]   <- members
-       -> pure (dprintf "%lld" mx)
+   incAssign n i
+    = n <+> "+=" <+> i <> ";"
+   inc n
+    = n <> "++;"
 
-       | otherwise
-       -> mismatch
+   -- output (nested) pairs as array
+   goP ts ns
+    = let ptr  = bufn $ mconcat ns
+          len  = lenn $ mconcat ns
+          ptr' = ptr <+> "+" <+> len
+          go (i, sz, stms, bs) t
+           | Right (doc, bb@((buf,bufsz,buflen):_)) <- strOfOutput ps oname t [t] (ixStart + i)
+           = pure
+           ( i + 1
+           , sz <+> "+" <+> bufsz
+           , stms <> [ vsep [ doc
+                            , memcpy (ptr <> "+" <> len) buf buflen
+                            , incAssign len buflen
+                            ]
+                     ]
+           , bb <> bs
+           )
+           | otherwise
+           = mismatch
+          com (a:s:ss)
+           = a
+           : vsep [ ch ptr' ","
+                  , inc len
+                  , s
+                  ]
+           : com ss
+          com ss = ss
+      in  do (i, sz, stms, bs) <- foldM go (0, "2", mempty, mempty) ts
+             let size           = sz <+> "+" <+> pretty i
+                 stms'          = com stms
+                 stms''         = vsep
+                                  $  [ ch ptr  "["
+                                     , inc len
+                                     ]
+                                  <> stms'
+                                  <> [ ch ptr' "]"
+                                     , inc len
+                                     ]
+             pure (stms'', (ptr, size, len) : bs)
 
-      DoubleT
-       | [DoubleT] <- ts0
-       , [mx]      <- members
-       -> pure (dprintf "%f" mx)
+   -- output single types
+   go1 t mx
+    = let buf = bufn mx
+          len = lenn mx
+          p s = pure (vsep s, [(buf, bufs, len)])
+      in case t of
+          BoolT
+           -> p [ "if (" <> mx <> ") {"
+                , indent 4 $ snprintf len buf "%s" "\"true\""
+                , "} else {"
+                , indent 4 $ snprintf len buf "%s" "\"false\""
+                , "}"
+                ]
+          IntT
+           -> p [snprintf len buf "%lld" mx]
+          DoubleT
+           -> p [snprintf len buf "%f" mx]
+          StringT
+           -> p [snprintf len buf "%s" mx]
+          DateTimeT
+           -> p [ "idate_to_gregorian (" <> mx <> ", &v_year, &v_month, &v_day, &v_hour, &v_minute, &v_second);"
+                , snprintf len buf dateFmt "v_year, v_month, v_day, v_hour, v_minute, v_second"
+                ]
+          _ -> mismatch
 
-       | otherwise
-       -> mismatch
+   mkName  = string . filter isAlphaNum . show
+   dateFmt = "%lld-%02lld-%02lldT%02lld:%02lld:%02lld"
+   bufs    = "psv_output_buf_size"
+   bufn n  = "buf_" <> mkName n
+   lenn n  = "len_" <> mkName n
 
-      StringT
-       | [StringT] <- ts0
-       , [mx]      <- members
-       -> pure (dprintf "%s" mx)
+   cond n body
+    = vsep ["if (" <> n <> ")"
+           , "{"
+           , indent 4 body
+           , "}"]
 
-       | otherwise
-       -> mismatch
+   -- memcpy (dst, src, s);
+   memcpy dst src s = "memcpy (" <> dst <> ", " <> src <> ", " <> s <> ");"
 
-      DateTimeT
-       | [DateTimeT] <- ts0
-       , [mx]        <- members
-       -> pure $ vsep
-          [ "{"
-          , "    iint_t v_year, v_month, v_day, v_hour, v_minute, v_second;"
-          , "    idate_to_gregorian (" <> mx <> ", &v_year, &v_month, &v_day, &v_hour, &v_minute, &v_second);"
-          , indent 4 (dprintf dateFmt "v_year, v_month, v_day, v_hour, v_minute, v_second")
-          , "}"
-          ]
+   -- *n = x;
+   ch n x = "*(" <> n <> ") = '" <> x <> "';"
 
-       | otherwise
-       -> mismatch
+   -- snprintf (buf, psv_output_buf_size, "%fmt", n,);
+   snprintf i buf fmt n = i <> " = snprintf (" <> buf <> ", psv_output_buf_size,\"" <> fmt <> "\", " <> n <> ");"
 
-      _
-       -> unsupported
 
 ------------------------------------------------------------------------
 

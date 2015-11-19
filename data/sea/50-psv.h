@@ -58,8 +58,10 @@ static psv_error_t INLINE psv_read_fact
   , idate_t       date );
 
 /* psv driver */
-static const size_t psv_max_row_count = 128;
-static const size_t psv_buffer_size   = 16*1024;
+static const size_t psv_max_row_count   = 128;
+static const size_t psv_buffer_size     = 16*1024;
+static const size_t psv_output_buf_size = 128;
+
 
 static psv_error_t psv_error_add_line (iint_t line, psv_error_t original)
 {
