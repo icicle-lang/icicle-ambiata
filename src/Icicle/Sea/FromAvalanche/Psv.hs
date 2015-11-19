@@ -621,11 +621,13 @@ seaOfOutput ps oname@(OutputName name) otype0 ts0 ixStart
         free s      = indent 4 $ "free (" <> s <> ");"
         calloc  n s = "char *" <> n <> " = calloc(1," <> s <> " );"
         decli   n   = "int   " <> n <> " = 0;"
+        decldt      = "iint_t v_year, v_month, v_day, v_hour, v_minute, v_second;" :: Doc
     in  do (str, bufs) <- strOfOutput ps oname otype0 ts0 ixStart
            case bufs of
              ((b,_,_):_) -> pure
                     $ vsep
-                    $    ["{" ]
+                    $    ["{"
+                         , if hasDateTime otype0 then indent 4 decldt else mempty ]
                       <> fmap (\(n,s,_) -> indent 4 $ calloc n s) (List.reverse bufs)
                       <> fmap (\(_,_,i) -> indent 4 $ decli    i) (List.reverse bufs)
                       <> [ indent 4 $ str
@@ -633,6 +635,15 @@ seaOfOutput ps oname@(OutputName name) otype0 ts0 ixStart
                       <> fmap (\(n,_,_) -> free n) bufs
                       <> ["}"]
              _     -> pure mempty
+  where
+    hasDateTime DateTimeT   = True
+    hasDateTime (ArrayT t)  = hasDateTime t
+    hasDateTime (BufT _ t)  = hasDateTime t
+    hasDateTime (OptionT t) = hasDateTime t
+    hasDateTime (MapT k v)  = hasDateTime k || hasDateTime v
+    hasDateTime (PairT a b) = hasDateTime a || hasDateTime b
+    hasDateTime (SumT a b)  = hasDateTime a || hasDateTime b
+    hasDateTime _           = False
 
 type BufName = Doc
 type BufSize = Doc
@@ -712,8 +723,7 @@ strOfOutput ps oname@(OutputName name) otype0 ts0 ixStart
           StringT
            -> p [snprintf len buf "%s" mx]
           DateTimeT
-           -> p [ "iint_t v_year, v_month, v_day, v_hour, v_minute, v_second;"
-                , "idate_to_gregorian (" <> mx <> ", &v_year, &v_month, &v_day, &v_hour, &v_minute, &v_second);"
+           -> p [ "idate_to_gregorian (" <> mx <> ", &v_year, &v_month, &v_day, &v_hour, &v_minute, &v_second);"
                 , snprintf len buf dateFmt "v_year, v_month, v_day, v_hour, v_minute, v_second"
                 ]
           _ -> mismatch
