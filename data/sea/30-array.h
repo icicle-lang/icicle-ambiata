@@ -1,11 +1,12 @@
 #include "21-date.h"
 
-static iint_t INLINE iarray_size(iint_t i)
+static iint_t INLINE iarray_size(iint_t count)
 {
-    if (i < 4) return 4;
+    if (count < 4) return 4;
 
-    iint_t bits = 64 - __builtin_clzll (i);
+    iint_t bits = 64 - __builtin_clzll (count - 1);
     iint_t next = 1L << bits;
+
     return next;
 }
 
