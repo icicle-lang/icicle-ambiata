@@ -128,8 +128,6 @@ seaOfCollectFleet states
  , "    imempool_t *into_pool = imempool_create ();"
  , "    imempool_t *last_pool = 0;"
  , ""
- , "    iint_t new_count;"
- , ""
  , indent 4 (vsep (fmap seaOfCollectProgram states))
  , ""
  , "    if (last_pool != 0) {"
@@ -140,33 +138,67 @@ seaOfCollectFleet states
 
 seaOfCollectProgram :: SeaProgramState -> Doc
 seaOfCollectProgram state
- = let ps        = "fleet->" <> pretty (nameOfProgram state) <> "."
-       new n     = ps <> pretty (newPrefix <> n)
-       res n     = ps <> pretty (resPrefix <> n)
+ = let ps    = "fleet->" <> pretty (nameOfProgram state) <> "."
+       new n = ps <> pretty (newPrefix <> n)
+       res n = ps <> pretty (resPrefix <> n)
+
+       copyInputs nts
+        = let docs = concatMap copyInput (stateInputVars state)
+          in if List.null docs
+             then []
+             else [ "iint_t new_count = " <> ps <> "new_count;"
+                  , "for (iint_t ix = 0; ix < new_count; ix++) {"
+                  , indent 4 $ vsep $ concatMap copyInput nts
+                  , "}"
+                  ]
 
        copyInput (n, t)
-        = new n <> "[ix] = " <> prefixOfValType t <> "copy (into_pool, " <> new n <> "[ix]);"
+        | not (needsCopy t)
+        = []
+
+        | otherwise
+        = [ new n <> "[ix] = " <> prefixOfValType t <> "copy (into_pool, " <> new n <> "[ix]);" ]
 
        copyResumable (n, t)
-        = vsep [ "if (" <> ps <> pretty (hasPrefix <> n) <> ") {"
-               , indent 4 (res n <> " = " <> prefixOfValType t <> "copy (into_pool, " <> res n <> ");")
-               , "}"
-               ]
+        | not (needsCopy t)
+        = []
+
+        | otherwise
+        = [ ""
+          , "if (" <> ps <> pretty (hasPrefix <> n) <> ") {"
+          , indent 4 (res n <> " = " <> prefixOfValType t <> "copy (into_pool, " <> res n <> ");")
+          , "}"
+          ]
 
    in vsep [ "/* " <> seaOfAttributeDesc (stateAttribute state) <> " */"
            , "last_pool = " <> ps <> "mempool;"
            , "if (last_pool != 0) {"
-           , "    new_count = " <> ps <> "new_count;"
-           , "    for (iint_t ix = 0; ix < new_count; ix++) {"
-           , indent 8 $ vsep $ fmap copyInput $ stateInputVars state
-           , "    }"
-           , ""
-           , indent 4 $ vsep $ fmap copyResumable $ stateResumables state
+           , indent 4 $ vsep $ copyInputs (stateInputVars state)
+                            <> concatMap copyResumable (stateResumables state)
            , "}"
            , ps <> "mempool = into_pool;"
            , ""
            ]
 
+needsCopy :: ValType -> Bool
+needsCopy = \case
+  StringT   -> True
+  ArrayT{}  -> True
+  BufT{}    -> True
+
+  UnitT     -> False
+  BoolT     -> False
+  IntT      -> False
+  DoubleT   -> False
+  DateTimeT -> False
+  ErrorT    -> False
+
+  -- these should have been melted
+  PairT{}   -> False
+  OptionT{} -> False
+  StructT{} -> False
+  SumT{}    -> False
+  MapT{}    -> False
 
 ------------------------------------------------------------------------
 
