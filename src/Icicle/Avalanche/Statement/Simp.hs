@@ -9,10 +9,12 @@ module Icicle.Avalanche.Statement.Simp (
   , substXinS
   , thresher
   , nestBlocks
+  , dead
   ) where
 
 import              Icicle.Avalanche.Statement.Statement
 import              Icicle.Avalanche.Statement.Simp.ExpEnv
+import              Icicle.Avalanche.Statement.Simp.Dead
 
 import              Icicle.Common.Base
 import              Icicle.Common.Exp
@@ -436,24 +438,3 @@ accumulatorUsed acc statements
    | otherwise
    = return r
 
-killAccumulator :: (Ord n, Eq p) => Name n -> Exp a n p -> Statement a n p -> Statement a n p
-killAccumulator acc xx statements
- = runIdentity
- $ transformUDStmt trans () statements
- where
-  trans _ s
-   | Read n acc' _ ss <- s
-   , acc == acc'
-   = return ((), Let n xx ss)
-   | Write acc' _ <- s
-   , acc == acc'
-   = return ((), mempty)
-   | LoadResumable acc' _ <- s
-   , acc == acc'
-   = return ((), mempty)
-   | SaveResumable acc' _ <- s
-   , acc == acc'
-   = return ((), mempty)
-
-   | otherwise
-   = return ((), s)

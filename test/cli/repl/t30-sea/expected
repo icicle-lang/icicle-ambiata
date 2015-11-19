@@ -130,13 +130,13 @@ gen$date = DATE
         init flat$14$simp$112@{Error} = ExceptTombstone@{Error};
         init flat$14$simp$113@{Double} = 0.0@{Double};
         if (flat$13$simp$108) {
-          let simp$445 = add#@{Double}
-                         acc$s$reify$6$conv$13$simp$96
-                         (1.0@{Double});
           write flat$14$simp$111 = True@{Bool};
           write flat$14$simp$112 = ExceptTombstone@{Error};
+          let simp$453 = add#@{Double}
+                         acc$s$reify$6$conv$13$simp$96
+                         (1.0@{Double});
           write flat$14$simp$113 = div#
-                                   flat$13$simp$110 simp$445;
+                                   flat$13$simp$110 simp$453;
         } else {
           write flat$14$simp$111 = False@{Bool};
           write flat$14$simp$112 = flat$13$simp$109;
@@ -1090,10 +1090,10 @@ void iprogram_0(iprogram_0_t *s)
                 flat_14_simp_113              = 0.0;                                  /* init */
                 
                 if (flat_13_simp_108) {
-                    idouble_t        simp_445 = idouble_add (acc_s_reify_6_conv_13_simp_96, 1.0); /* let */
                     flat_14_simp_111          = itrue;                                /* write */
                     flat_14_simp_112          = ierror_tombstone;                     /* write */
-                    flat_14_simp_113          = idouble_div (flat_13_simp_110, simp_445); /* write */
+                    idouble_t        simp_453 = idouble_add (acc_s_reify_6_conv_13_simp_96, 1.0); /* let */
+                    flat_14_simp_113          = idouble_div (flat_13_simp_110, simp_453); /* write */
                 } else {
                     flat_14_simp_111          = ifalse;                               /* write */
                     flat_14_simp_112          = flat_13_simp_109;                     /* write */
