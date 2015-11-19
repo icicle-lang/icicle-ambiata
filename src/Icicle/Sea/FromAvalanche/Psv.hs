@@ -128,6 +128,8 @@ seaOfCollectFleet states
  , "    imempool_t *into_pool = imempool_create ();"
  , "    imempool_t *last_pool = 0;"
  , ""
+ , "    iint_t new_count;"
+ , ""
  , indent 4 (vsep (fmap seaOfCollectProgram states))
  , ""
  , "    if (last_pool != 0) {"
@@ -139,15 +141,27 @@ seaOfCollectFleet states
 seaOfCollectProgram :: SeaProgramState -> Doc
 seaOfCollectProgram state
  = let ps        = "fleet->" <> pretty (nameOfProgram state) <> "."
+       new n     = ps <> pretty (newPrefix <> n)
        res n     = ps <> pretty (resPrefix <> n)
-       go (n, t) = "if (" <> ps <> pretty (hasPrefix <> n) <> ")"
-                <> line
-                <> indent 4 (res n <> " = " <> prefixOfValType t <> "copy (into_pool, " <> res n <> ");")
+
+       copyInput (n, t)
+        = new n <> "[ix] = " <> prefixOfValType t <> "copy (into_pool, " <> new n <> "[ix]);"
+
+       copyResumable (n, t)
+        = vsep [ "if (" <> ps <> pretty (hasPrefix <> n) <> ") {"
+               , indent 4 (res n <> " = " <> prefixOfValType t <> "copy (into_pool, " <> res n <> ");")
+               , "}"
+               ]
 
    in vsep [ "/* " <> seaOfAttributeDesc (stateAttribute state) <> " */"
            , "last_pool = " <> ps <> "mempool;"
            , "if (last_pool != 0) {"
-           , indent 4 $ vsep $ fmap go $ stateResumables state
+           , "    new_count = " <> ps <> "new_count;"
+           , "    for (iint_t ix = 0; ix < new_count; ix++) {"
+           , indent 8 $ vsep $ fmap copyInput $ stateInputVars state
+           , "    }"
+           , ""
+           , indent 4 $ vsep $ fmap copyResumable $ stateResumables state
            , "}"
            , ps <> "mempool = into_pool;"
            , ""
@@ -336,53 +350,136 @@ seaOfReadInput input
         , "if (error) return error;"
         ]
 
-    ([(nx, UnitT)], StructT (StructType fs))
-     | Map.null fs
-     -> pure $ pretty nx <> " = iunit;"
+    (_, t@(ArrayT _))
+     -> seaOfReadJsonValue assignVar t (inputVars input)
 
-    (_, ArrayT at)
-     -> seaOfReadJsonList at (fmap fst (inputVars input))
-
-    (_, StructT st)
-     -> seaOfReadStruct st (inputVars input)
+    (_, t@(StructT _))
+     -> seaOfReadJsonValue assignVar t (inputVars input)
 
     (_, t)
      -> Left (SeaUnsupportedInputType t)
 
 ------------------------------------------------------------------------
 
-data FieldMapping = FieldMapping {
-    _fieldName :: Text
-  , _fieldType :: ValType
-  , _fieldVars :: [Text]
-  } deriving (Eq, Ord, Show)
+-- Describes how to assign to a C struct member, this changes for arrays
+type Assignment = Doc -> ValType -> Doc -> Doc
 
-mappingOfFields :: [(StructField, ValType)] -> [(Text, ValType)] -> Maybe [FieldMapping]
-mappingOfFields []     []  = pure []
-mappingOfFields []     _   = Nothing
-mappingOfFields (f:fs) vs0 = do
-  (m,  vs1) <- mappingOfField  f  vs0
-  ms        <- mappingOfFields fs vs1
-  pure (m : ms)
+assignVar :: Assignment
+assignVar n _ x = pretty n <+> "=" <+> x <> ";"
 
-mappingOfField :: (StructField, ValType) -> [(Text, ValType)] -> Maybe (FieldMapping, [(Text, ValType)])
-mappingOfField (StructField fname, ftype) vars0 = do
-  let go t (n, t')
-       | t == t'   = Just n
-       | otherwise = Nothing
+assignArray :: Assignment
+assignArray n t x = n <+> "=" <+> seaOfArrayPut n "ix" x t <> ";"
 
-  ns <- zipWithM go (meltType ftype) vars0
+seaOfArrayPut :: Doc -> Doc -> Doc -> ValType -> Doc
+seaOfArrayPut arr ix val typ
+ = seaOfPrimDocApps (seaOfXPrim (PrimUpdate (PrimUpdateArrayPut typ)))
+                    [ arr, ix, val ]
 
-  let mapping = FieldMapping fname ftype ns
-      vars1   = drop (length ns) vars0
+------------------------------------------------------------------------
 
-  return (mapping, vars1)
+seaOfReadJsonValue :: Assignment -> ValType -> [(Text, ValType)] -> Either SeaError Doc
+seaOfReadJsonValue assign vtype vars
+ = let readValueArg arg n vt suf = vsep
+         [ noPadSeaOfValType vtype <+> "value;"
+         , "error = psv_read_" <> suf <> " (" <> arg <> "&p, pe, &value);"
+         , "if (error) return error;"
+         , assign (pretty n) vt "value"
+         ]
 
-seaOfReadStruct :: StructType -> [(Text, ValType)] -> Either SeaError Doc
-seaOfReadStruct st@(StructType fields) vars = do
+       readValue     = readValueArg ""
+       readValuePool = readValueArg "mempool, "
+
+   in case (vars, vtype) of
+       ([(nb, BoolT), nx], OptionT t) -> do
+         val_sea <- seaOfReadJsonValue assign t [nx]
+         pure $ vsep
+           [ "ibool_t is_null;"
+           , "error = psv_try_read_json_null (&p, pe, &is_null);"
+           , "if (error) return error;"
+           , ""
+           , "if (is_null) {"
+           , indent 4 (assign (pretty nb) BoolT "ifalse")
+           , "} else {"
+           , indent 4 (assign (pretty nb) BoolT "itrue")
+           , ""
+           , indent 4 val_sea
+           , "}"
+           ]
+
+       ([(nx, BoolT)], BoolT)
+        -> pure (readValue nx BoolT "json_bool")
+
+       ([(nx, IntT)], IntT)
+        -> pure (readValue nx IntT "int")
+
+       ([(nx, DoubleT)], DoubleT)
+        -> pure (readValue nx DoubleT "double")
+
+       ([(nx, DateTimeT)], DateTimeT)
+        -> pure (readValue nx DateTimeT "json_date")
+
+       ([(nx, StringT)], StringT)
+        -> pure (readValuePool nx StringT "json_string")
+
+       (ns, StructT t)
+        -> seaOfReadJsonObject assign t ns
+
+       (ns, ArrayT t)
+        -> seaOfReadJsonList t ns
+
+       _
+        -> Left (SeaInputTypeMismatch vtype vars)
+
+------------------------------------------------------------------------
+
+seaOfReadJsonList :: ValType -> [(Text, ValType)] -> Either SeaError Doc
+seaOfReadJsonList vtype avars = do
+  vars      <- traverse unArray avars
+  value_sea <- seaOfReadJsonValue assignArray vtype vars
+  pure $ vsep
+    [ "if (*p++ != '[')"
+    , "    return psv_alloc_error (\"missing '['\",  p, pe - p);"
+    , ""
+    , "char term = *p;"
+    , ""
+    , "for (iint_t ix = 0; term != ']'; ix++) {"
+    , indent 4 value_sea
+    , "    "
+    , "    term = *p++;"
+    , "    if (term != ',' && term != ']')"
+    , "        return psv_alloc_error (\"terminator ',' or ']' not found\", p, pe - p);"
+    , "}"
+    ]
+
+unArray :: (Text, ValType) -> Either SeaError (Text, ValType)
+unArray (n, ArrayT t) = Right (n, t)
+unArray (n, t)        = Left (SeaInputTypeMismatch t [(n, t)])
+
+------------------------------------------------------------------------
+
+seaOfReadJsonObject :: Assignment -> StructType -> [(Text, ValType)] -> Either SeaError Doc
+seaOfReadJsonObject assign st@(StructType fs) vars
+ = case vars of
+    [(nx, UnitT)] | Map.null fs -> seaOfReadJsonUnit   assign nx
+    _                           -> seaOfReadJsonStruct assign st vars
+
+seaOfReadJsonUnit :: Assignment -> Text -> Either SeaError Doc
+seaOfReadJsonUnit assign name = do
+  pure $ vsep
+    [ "if (*p++ != '{')"
+    , "    return psv_alloc_error (\"missing {\",  p, pe - p);"
+    , ""
+    , "if (*p++ != '}')"
+    , "    return psv_alloc_error (\"missing }\",  p, pe - p);"
+    , ""
+    , assign (pretty name) UnitT "iunit"
+    ]
+
+seaOfReadJsonStruct :: Assignment -> StructType -> [(Text, ValType)] -> Either SeaError Doc
+seaOfReadJsonStruct assign st@(StructType fields) vars = do
   let mismatch = SeaStructFieldsMismatch st vars
   mappings     <- maybe (Left mismatch) Right (mappingOfFields (Map.toList fields) vars)
-  mappings_sea <- traverse seaOfFieldMapping mappings
+  mappings_sea <- traverse (seaOfFieldMapping assign) mappings
   pure $ vsep
     [ "if (*p++ != '{')"
     , "    return psv_alloc_error (\"missing {\",  p, pe - p);"
@@ -396,10 +493,10 @@ seaOfReadStruct st@(StructType fields) vars = do
     , "}"
     ]
 
-seaOfFieldMapping :: FieldMapping -> Either SeaError Doc
-seaOfFieldMapping (FieldMapping fname ftype vars) = do
+seaOfFieldMapping :: Assignment -> FieldMapping -> Either SeaError Doc
+seaOfFieldMapping assign (FieldMapping fname ftype vars) = do
   let needle = fname <> "\""
-  field_sea <- seaOfReadJsonField ftype vars
+  field_sea <- seaOfReadJsonField assign ftype vars
   pure $ vsep
     [ "/* " <> pretty fname <> " */"
     , "if (" <> seaOfStringEq needle "p" Nothing <> ") {"
@@ -412,9 +509,9 @@ seaOfFieldMapping (FieldMapping fname ftype vars) = do
     , ""
     ]
 
-seaOfReadJsonField :: ValType -> [Text] -> Either SeaError Doc
-seaOfReadJsonField ftype vars = do
-  value_sea <- seaOfReadJsonValue ftype vars (\n _ x -> pretty n <+> "=" <+> x <> ";")
+seaOfReadJsonField :: Assignment -> ValType -> [(Text, ValType)] -> Either SeaError Doc
+seaOfReadJsonField assign ftype vars = do
+  value_sea <- seaOfReadJsonValue assign ftype vars
   pure $ vsep
     [ "if (*p++ != ':')"
     , "    return psv_alloc_error (\"missing ':'\",  p, pe - p);"
@@ -431,80 +528,32 @@ seaOfReadJsonField ftype vars = do
 
 ------------------------------------------------------------------------
 
-seaOfReadJsonList :: ValType -> [Text] -> Either SeaError Doc
-seaOfReadJsonList vtype vars = do
-  value_sea <- seaOfReadJsonValue vtype vars (\n t x -> n <+> "=" <+> seaOfArrayPut n "ix" x t <> ";")
-  pure $ vsep
-    [ "if (*p++ != '[')"
-    , "    return psv_alloc_error (\"missing '['\",  p, pe - p);"
-    , ""
-    , "char term = *p;"
-    , ""
-    , "for (iint_t ix = 0; term != ']'; ix++) {"
-    , indent 4 value_sea
-    , "    "
-    , "    term = *p++;"
-    , "    if (term != ',' && term != ']')"
-    , "        return psv_alloc_error (\"terminator ',' or ']' not found\", p, pe - p);"
-    , "}"
-    ]
+data FieldMapping = FieldMapping {
+    _fieldName :: Text
+  , _fieldType :: ValType
+  , _fieldVars :: [(Text, ValType)]
+  } deriving (Eq, Ord, Show)
 
-seaOfArrayPut :: Doc -> Doc -> Doc -> ValType -> Doc
-seaOfArrayPut arr ix val typ
- = seaOfPrimDocApps (seaOfXPrim (PrimUpdate (PrimUpdateArrayPut typ)))
-                    [ arr, ix, val ]
+mappingOfFields :: [(StructField, ValType)] -> [(Text, ValType)] -> Maybe [FieldMapping]
+mappingOfFields []     []  = pure []
+mappingOfFields []     _   = Nothing
+mappingOfFields (f:fs) vs0 = do
+  (m,  vs1) <- mappingOfField  f  vs0
+  ms        <- mappingOfFields fs vs1
+  pure (m : ms)
 
-------------------------------------------------------------------------
+mappingOfField :: (StructField, ValType) -> [(Text, ValType)] -> Maybe (FieldMapping, [(Text, ValType)])
+mappingOfField (StructField fname, ftype) vars0 = do
+  let go t (n, t')
+       | t == t'   = Just (n, t)
+       | otherwise = Nothing
 
-seaOfReadJsonValue :: ValType -> [Text] -> (Doc -> ValType -> Doc -> Doc) -> Either SeaError Doc
-seaOfReadJsonValue vtype vars assign
- = let readValueArg arg n vt t = vsep
-         [ noPadSeaOfValType vtype <+> "value;"
-         , "error = psv_read_" <> t <> " (" <> arg <> "&p, pe, &value);"
-         , "if (error) return error;"
-         , assign (pretty n) vt "value"
-         ]
+  ns <- zipWithM go (meltType ftype) vars0
 
-       readValue     = readValueArg ""
-       readValuePool = readValueArg "mempool, "
+  let mapping = FieldMapping fname ftype ns
+      vars1   = drop (length ns) vars0
 
-   in case (vtype, vars) of
-       (OptionT t, [nb, nx]) -> do
-         val_sea <- seaOfReadJsonValue t [nx] assign
-         pure $ vsep
-           [ "ibool_t is_null;"
-           , "error = psv_try_read_json_null (&p, pe, &is_null);"
-           , "if (error) return error;"
-           , ""
-           , "if (is_null) {"
-           , indent 4 (assign (pretty nb) BoolT "ifalse")
-           , "} else {"
-           , indent 4 (assign (pretty nb) BoolT "itrue")
-           , ""
-           , indent 4 val_sea
-           , "}"
-           ]
-
-       (BoolT, [nx]) -> do
-         pure (readValue nx BoolT "json_bool")
-
-       (IntT, [nx]) -> do
-         pure (readValue nx IntT "int")
-
-       (DoubleT, [nx]) -> do
-         pure (readValue nx DoubleT "double")
-
-       (DateTimeT, [nx]) -> do
-         pure (readValue nx DateTimeT "json_date")
-
-       (StringT, [nx]) -> do
-         pure (readValuePool nx StringT "json_string")
-
-       (ArrayT t, ns) -> do
-         seaOfReadJsonList t ns
-
-       _
-        -> Left (SeaInputTypeMismatch' vtype vars)
+  return (mapping, vars1)
 
 ------------------------------------------------------------------------
 
