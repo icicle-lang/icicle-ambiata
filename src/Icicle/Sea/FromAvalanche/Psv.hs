@@ -690,15 +690,15 @@ strOfOutput ps oname@(OutputName name) otype0 ts0 ixStart dstbuf
                 pure (cond nb doc, bs)
 
          OptionT otype1
-          | (nb : _) <- members
-          -> do (doc, bs) <- strOfOutput ps oname otype1 ts0 (ixStart+1) dstbuf
+          | (BoolT : ts1) <- ts0
+          , (nb    : _)   <- members
+          -> do (doc, bs) <- strOfOutput ps oname otype1 ts1 (ixStart+1) dstbuf
                 pure (cond nb doc, bs)
 
          PairT _ _
           -> goP ts0 members
 
          ArrayT (SumT ErrorT _)
-          -- | trace ("ARRAYT: otype1=" <> show otype1 <> ", ts0=" <> show ts0 <> ", members=" <> show members) False -> undefined
           | [ArrayT BoolT , ArrayT ErrorT , ArrayT elemT] <- ts0
           , [boolA        , _             , elemA       ] <- members
           -> let prefix   = pretty name
