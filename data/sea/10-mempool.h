@@ -96,6 +96,11 @@ void * imempool_alloc_extern (imempool_t *pool, size_t num_bytes)
 imempool_t * imempool_create ()
 {
     imempool_t *pool = calloc(1, sizeof(imempool_t));
+
+#if ICICLE_DEBUG
+    fprintf (stderr, "imempool_create: %p\n", pool);
+#endif
+
     imempool_add_block (pool);
 
     return pool;
@@ -103,6 +108,10 @@ imempool_t * imempool_create ()
 
 void imempool_free (imempool_t *pool)
 {
+#if ICICLE_DEBUG
+    fprintf (stderr, "imempool_free: %p\n", pool);
+#endif
+
     iblock_free (pool->last);
     free(pool);
 }

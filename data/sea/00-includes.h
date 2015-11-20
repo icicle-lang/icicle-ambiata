@@ -27,7 +27,12 @@ static const iunit_t iunit  = 0x13013;
 static const ibool_t ifalse = 0;
 static const ibool_t itrue  = 1;
 
-#define INLINE   __attribute__((always_inline))
+#if ICICLE_DEBUG
+#   define INLINE __attribute__((noinline))
+#else
+#   define INLINE __attribute__((always_inline))
+#endif
+
 #define NOINLINE __attribute__((noinline))
 
 #define STATIC_ASSERT(cond, msg) typedef char static_assert_##msg[(!!(cond))*2-1];

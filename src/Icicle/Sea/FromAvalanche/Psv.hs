@@ -34,7 +34,7 @@ import           Icicle.Internal.Pretty
 import qualified Icicle.Internal.Pretty as Pretty
 
 import           Icicle.Sea.Error (SeaError(..))
-import           Icicle.Sea.FromAvalanche.Base (seaOfAttributeDesc)
+import           Icicle.Sea.FromAvalanche.Base (seaOfAttributeDesc, seaOfDate)
 import           Icicle.Sea.FromAvalanche.Base (seaOfNameIx, seaOfEscaped)
 import           Icicle.Sea.FromAvalanche.Prim
 import           Icicle.Sea.FromAvalanche.Program (seaOfXValue)
@@ -67,17 +67,20 @@ maxChordsOfMode = \case
 
 seaOfPsvDriver :: [SeaProgramState] -> PsvConfig -> Either SeaError Doc
 seaOfPsvDriver states config = do
-  let struct_sea    = seaOfFleetState   states
-      alloc_sea     = seaOfAllocFleet   (psvMode config) states
-      collect_sea   = seaOfCollectFleet (psvMode config) states
-  read_sea  <- seaOfReadAnyFact      config states
-  write_sea <- seaOfWriteFleetOutput states
+  let struct_sea  = seaOfFleetState                      states
+      alloc_sea   = seaOfAllocFleet     (psvMode config) states
+      collect_sea = seaOfCollectFleet   (psvMode config) states
+      config_sea  = seaOfConfigureFleet (psvMode config) states
+  read_sea  <- seaOfReadAnyFact      config           states
+  write_sea <- seaOfWriteFleetOutput (psvMode config) states
   pure $ vsep
     [ struct_sea
     , ""
     , alloc_sea
     , ""
     , collect_sea
+    , ""
+    , config_sea
     , ""
     , read_sea
     , ""
@@ -88,15 +91,16 @@ seaOfPsvDriver states config = do
 
 seaOfFleetState :: [SeaProgramState] -> Doc
 seaOfFleetState states
- = vsep
- [ "#line 1 \"fleet state\""
- , "struct ifleet {"
- , indent 4 (defOfVar' 1 "imempool_t" "mempool")     <> ";"
- , indent 4 (defOfVar  0 IntT         "chord_count") <> ";"
- , indent 4 (defOfVar  1 DateTimeT    "chord_date")  <> ";"
- , indent 4 (vsep (fmap defOfProgramState states))
- , "};"
- ]
+ = let constDate = "const " <> seaOfValType DateTimeT
+   in vsep
+      [ "#line 1 \"fleet state\""
+      , "struct ifleet {"
+      , indent 4 (defOfVar' 1 "imempool_t" "mempool")     <> ";"
+      , indent 4 (defOfVar  0 IntT         "chord_count") <> ";"
+      , indent 4 (defOfVar' 1 constDate    "chord_dates") <> ";"
+      , indent 4 (vsep (fmap defOfProgramState states))
+      , "};"
+      ]
 
 defOfProgramState :: SeaProgramState -> Doc
 defOfProgramState state
@@ -114,9 +118,6 @@ seaOfAllocFleet mode states
  , "{"
  , "    ifleet_t *fleet = calloc (1, sizeof (ifleet_t));"
  , ""
- , "    fleet->chord_date = calloc (" <> int (maxChordsOfMode mode)
-                                      <> ", sizeof (" <> seaOfValType DateTimeT <> "));"
- , ""
  , indent 4 (vsep (fmap (seaOfAllocProgram mode) states))
  , "    return fleet;"
  , "}"
@@ -129,14 +130,14 @@ seaOfAllocProgram mode state
        stype     = pretty (nameOfStateType state)
        maxChords = int (maxChordsOfMode mode)
 
-       calloc t = "calloc (" <> maxChords <> ", sizeof (" <> t <> "));"
+       calloc n t = "calloc (" <> n <> ", sizeof (" <> t <> "));"
 
        go (n, t) = program <> pretty (newPrefix <> n)
                 <> " = "
-                <> calloc (seaOfValType t)
+                <> calloc "psv_max_row_count" (seaOfValType t)
 
    in vsep [ "/* " <> seaOfAttributeDesc (stateAttribute state) <> " */"
-           , programs <> " = " <> calloc stype
+           , programs <> " = " <> calloc maxChords stype
            , ""
            , "for (iint_t ix = 0; ix < " <> maxChords <> "; ix++) {"
            , indent 4 (vsep (fmap go (stateInputVars state)))
@@ -246,6 +247,56 @@ needsCopy = \case
 
 ------------------------------------------------------------------------
 
+seaOfConfigureFleet :: PsvMode -> [SeaProgramState] -> Doc
+seaOfConfigureFleet mode states
+ = vsep
+ [ "static void psv_configure_fleet (const char *entity, ifleet_t *fleet)"
+ , "{"
+ , "    iint_t         chord_count;"
+ , "    const idate_t *chord_dates;"
+ , ""
+ , case mode of
+     PsvSnapshot date -> indent 4 (seaOfChordDates [date])
+     PsvChord    _    -> indent 4 Pretty.empty
+ , ""
+ , "   fleet->chord_count = chord_count;"
+ , "   fleet->chord_dates = chord_dates;"
+ , ""
+ , indent 4 (vsep (fmap defOfState states))
+ , ""
+ , "    for (iint_t ix = 0; ix < chord_count; ix++) {"
+ , "        idate_t chord_date = chord_dates[ix];"
+ , ""
+ , indent 8 (vsep (fmap seaOfAssignDate states))
+ , "    }"
+ , "}"
+ ]
+
+defOfState :: SeaProgramState -> Doc
+defOfState state
+ = let stype  = pretty (nameOfStateType state)
+       var    = "*p" <> pretty (stateName state)
+       member = "fleet->" <> pretty (nameOfProgram state)
+   in stype <+> var <+> "=" <+> member <> ";"
+
+seaOfAssignDate :: SeaProgramState -> Doc
+seaOfAssignDate state
+ = let pdate = "p" <> pretty (stateName state) <> "[ix]." <> pretty (stateDateVar state)
+   in pdate <+> "=" <+> "chord_date;"
+
+seaOfChordDates :: [DateTime] -> Doc
+seaOfChordDates dates
+ = vsep
+ [ "{"
+ , "    static const idate_t entity_dates[] = { " <> hcat (punctuate ", " (fmap seaOfDate dates)) <> " };"
+ , ""
+ , "    chord_count = " <> int (length dates) <> ";"
+ , "    chord_dates = entity_dates;"
+ , "}"
+ ]
+
+------------------------------------------------------------------------
+
 seaOfReadAnyFact :: PsvConfig -> [SeaProgramState] -> Either SeaError Doc
 seaOfReadAnyFact config states = do
   let tss = fmap (lookupTombstones config) states
@@ -255,19 +306,21 @@ seaOfReadAnyFact config states = do
     , ""
     , "#line 1 \"read any fact\""
     , "static psv_error_t psv_read_fact"
-    , "  ( ifleet_t     *fleet"
-    , "  , const char   *attrib"
+    , "  ( const char   *attrib"
     , "  , const size_t  attrib_size"
     , "  , const char   *value"
     , "  , const size_t  value_size"
-    , "  , idate_t       date )"
+    , "  , idate_t       date"
+    , "  , ifleet_t     *fleet )"
     , "{"
-    , "    /* don't read values after the snapshot date */"
-    , "    if (date > fleet->snapshot_date)"
-    , "        return 0;"
+    , "    iint_t chord_count = fleet->chord_count;"
     , ""
-    , "    const size_t attrib0_size = attrib_size + 1;"
-    , indent 4 (vsep (fmap seaOfReadNamedFact states))
+    , "    for (iint_t chord_ix = 0; chord_ix < chord_count; chord_ix++) {"
+    , "        /* don't read values after the chord date */"
+    , "        if (date > fleet->chord_dates[chord_ix])"
+    , "            continue;"
+    , indent 8 (vsep (fmap seaOfReadNamedFact states))
+    , "    }"
     , ""
     , "    return 0;"
     , "}"
@@ -275,13 +328,18 @@ seaOfReadAnyFact config states = do
 
 seaOfReadNamedFact :: SeaProgramState -> Doc
 seaOfReadNamedFact state
- = vsep
- [ ""
- , "if (" <> seaOfStringEq (getAttribute (stateAttribute state)) "attrib" (Just "attrib_size") <> ") {"
- , "    return " <> pretty (nameOfReadFact state)
-                 <> " (&fleet->" <> pretty (nameOfProgram state) <> ", value, value_size, date);"
- , "}"
- ]
+ = let attrib = getAttribute (stateAttribute state)
+       fun    = pretty (nameOfReadFact state)
+       pname  = pretty (nameOfProgram state)
+   in vsep
+      [ ""
+      , "/* " <> pretty attrib <> " */"
+      , "if (" <> seaOfStringEq attrib "attrib" (Just "attrib_size") <> ") {"
+      , "    psv_error_t error = " <> fun <> " (value, value_size, date, &fleet->" <> pname <> "[chord_ix]);"
+      , "    if (error) return error;"
+      , "    continue;"
+      , "}"
+      ]
 
 ------------------------------------------------------------------------
 
@@ -296,8 +354,8 @@ seaOfReadFact state tombstones = do
     [ "#line 1 \"read fact" <+> seaOfStateInfo state <> "\""
     , "static istring_t INLINE"
         <+> pretty (nameOfReadFact  state) <+> "("
-         <> pretty (nameOfStateType state) <+> "*program,"
-        <+> "const char *value_ptr, const size_t value_size, idate_t date)"
+        <> "const char *value_ptr, const size_t value_size, idate_t date, "
+        <> pretty (nameOfStateType state) <+> "*program)"
     , "{"
     , "    psv_error_t error;"
     , ""
@@ -641,20 +699,42 @@ cond n body
         , indent 4 body
         , "}"]
 
-seaOfWriteFleetOutput :: [SeaProgramState] -> Either SeaError Doc
-seaOfWriteFleetOutput states = do
+seaOfWriteFleetOutput :: PsvMode -> [SeaProgramState] -> Either SeaError Doc
+seaOfWriteFleetOutput mode states = do
   write_sea <- traverse seaOfWriteProgramOutput states
   pure $ vsep
     [ "#line 1 \"write all outputs\""
     , "static void psv_write_outputs (int fd, const char *entity, ifleet_t *fleet)"
     , "{"
-    , indent 4 (vsep write_sea)
+    , "    iint_t         chord_count = fleet->chord_count;"
+    , "    const idate_t *chord_dates = fleet->chord_dates;"
+    , ""
+    , "    for (iint_t chord_ix = 0; chord_ix < chord_count; chord_ix++) {"
+    , indent 8 (seaOfChordDate mode)
+    , ""
+    , indent 8 (vsep write_sea)
+    , "    }"
     , "}"
+    ]
+
+seaOfChordDate :: PsvMode -> Doc
+seaOfChordDate = \case
+  PsvSnapshot _ -> "const char *chord_date = \"\";"
+  PsvChord    _ -> vsep
+    [ "iint_t c_year, c_month, c_day, c_hour, c_minute, c_second;"
+    , "idate_to_gregorian (chord_dates[chord_ix], &c_year, &c_month, &c_day, &c_hour, &c_minute, &c_second);"
+    , ""
+    , "const size_t chord_size = sizeof (\"|yyyy-mm-ddThh:mm:ssZ\");"
+    , "char chord_date[chord_size];"
+    , "snprintf (chord_date, chord_size, \"" <> dateFmt <> "\", "
+             <> "c_year, c_month, c_day, c_hour, c_minute, c_second);"
     ]
 
 seaOfWriteProgramOutput :: SeaProgramState -> Either SeaError Doc
 seaOfWriteProgramOutput state = do
-  let ps = "p" <> int (stateName state)
+  let ps    = "p" <> int (stateName state)
+      stype = pretty (nameOfStateType state)
+      pname = pretty (nameOfProgram state)
 
   let resumeables = fmap (\(n,_) -> ps <> "->" <> pretty (hasPrefix <> n) <+> "= ifalse;") (stateResumables state)
   outputs <- traverse (\(n,(t,ts)) -> seaOfWriteOutput ps n t ts 0) (stateOutputs state)
@@ -662,8 +742,8 @@ seaOfWriteProgramOutput state = do
   pure $ vsep
     [ ""
     , "/* " <> seaOfAttributeDesc (stateAttribute state) <> " */"
-    , pretty (nameOfStateType state) <+> "*" <> ps <+> "=" <+> "&fleet->" <> pretty (nameOfProgram state) <> ";"
-    , pretty (nameOfProgram state) <+> "(" <> ps <> ");"
+    , stype <+> "*" <> ps <+> "=" <+> "&fleet->" <> pname <> "[chord_ix];"
+    , pname <+> "(" <> ps <> ");"
     , ps <> "->new_count = 0;"
     , vsep resumeables
     , ""
@@ -688,7 +768,7 @@ seaOfWriteOutput ps oname@(OutputName name) otype0 ts0 ixStart
 
   where
     attrib      = seaOfEscaped name
-    dprintf n   = "dprintf (fd, \"%s|" <> attrib <> "|%s\\n\"" <> ", entity, " <> n <> ");"
+    dprintf n   = "dprintf (fd, \"%s" <> attrib <> "|%s%s\\n\"" <> ", entity, " <> n <> ", chord_date);"
     free s      = "free (" <> s <> ");"
     calloc  n s = "char *" <> n <> " = calloc(1," <> s <> " );"
     decli   n   = "int   " <> n <> " = 0;"
@@ -859,11 +939,9 @@ seaOfOutput ps oname@(OutputName name) otype0 ts0 ixStart dstbuf
 
           _ -> mismatch
 
-
-   dateFmt = "%lld-%02lld-%02lldT%02lld:%02lld:%02lld"
+   mkName  = string . filter isAlphaNum . show
    bufs    = "psv_output_buf_size"
    lenn n  = "len_" <> mkName n
-   mkName  = string . filter isAlphaNum . show
 
    -- for(size_t i = 0, i < n, i++)
    forstm i n m
@@ -877,6 +955,9 @@ seaOfOutput ps oname@(OutputName name) otype0 ts0 ixStart dstbuf
 
    incAssign n i = n <+> "+=" <+> i <> ";"
    inc n         = n <>  "++;"
+
+dateFmt :: Doc
+dateFmt = "%lld-%02lld-%02lldT%02lld:%02lld:%02lld"
 
 ------------------------------------------------------------------------
 
