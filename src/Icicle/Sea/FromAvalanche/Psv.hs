@@ -681,12 +681,7 @@ strOfOutput ps oname@(OutputName name) otype0 ts0 ixStart
    mismatch    = Left (SeaOutputTypeMismatch oname otype0 ts0)
    unsupported = Left (SeaUnsupportedOutputType otype0)
 
-   incAssign n i
-    = n <+> "+=" <+> i <> ";"
-   inc n
-    = n <> "++;"
-
-   -- output (nested) pairs as array
+   -- Output (nested) pairs as array
    goP ts ns
     = let ptr  = bufn $ mconcat ns
           len  = lenn $ mconcat ns
@@ -705,14 +700,11 @@ strOfOutput ps oname@(OutputName name) otype0 ts0 ixStart
            )
            | otherwise
            = mismatch
-          com (a:s:ss)
-           = a
-           : vsep [ ch ptr' ","
-                  , inc len
-                  , s
-                  ]
-           : com ss
-          com ss = ss
+          com  []       = []
+          com  (s:ss)   = com' s ss
+          com' a []     = [a]
+          com' a (s:ss) = vsep [a, ch ptr' ",", inc len]
+                        : com' s ss
       in  do (i, sz, stms, bs) <- foldM go (0, "2", mempty, mempty) ts
              let size           = sz <+> "+" <+> pretty i
                  stms'          = com stms
@@ -726,7 +718,7 @@ strOfOutput ps oname@(OutputName name) otype0 ts0 ixStart
                                      ]
              pure (stms'', (ptr, size, len) : bs)
 
-   -- output single types
+   -- Output single types
    go1 t mx
     = let buf = bufn mx
           len = lenn mx
@@ -771,6 +763,9 @@ strOfOutput ps oname@(OutputName name) otype0 ts0 ixStart
 
    -- snprintf (buf, psv_output_buf_size, "%fmt", n,);
    snprintf i buf fmt n = i <> " = snprintf (" <> buf <> ", psv_output_buf_size,\"" <> fmt <> "\", " <> n <> ");"
+
+   incAssign n i = n <+> "+=" <+> i <> ";"
+   inc n         = n <>  "++;"
 
 
 ------------------------------------------------------------------------
