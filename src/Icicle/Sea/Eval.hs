@@ -15,6 +15,7 @@ module Icicle.Sea.Eval (
   , SeaError(..)
   , Psv(..)
   , PsvConfig(..)
+  , PsvMode(..)
 
   , seaCompile
   , seaEval
@@ -68,7 +69,7 @@ import           Icicle.Sea.Error (SeaError(..))
 import           Icicle.Sea.FromAvalanche.Analysis (factVarsOfProgram, outputsOfProgram)
 import           Icicle.Sea.FromAvalanche.Program (seaOfProgram, nameOfProgram', stateWordsOfProgram)
 import           Icicle.Sea.FromAvalanche.State (stateOfProgram)
-import           Icicle.Sea.FromAvalanche.Psv (PsvConfig(..), seaOfPsvDriver)
+import           Icicle.Sea.FromAvalanche.Psv (PsvConfig(..), PsvMode(..), seaOfPsvDriver)
 import           Icicle.Sea.Preamble (seaPreamble)
 
 import           Jetski

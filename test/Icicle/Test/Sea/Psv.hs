@@ -70,7 +70,8 @@ prop_psv wt = testIO $ do
 runTest :: WellTyped -> EitherT S.SeaError IO ()
 runTest wt = do
   let programs = Map.singleton (wtAttribute wt) (wtAvalanche wt)
-      config   = S.PsvConfig (wtDateTime wt) (Map.singleton (wtAttribute wt) (Set.singleton tombstone))
+      config   = S.PsvConfig (S.PsvSnapshot (wtDateTime wt))
+                             (Map.singleton (wtAttribute wt) (Set.singleton tombstone))
 
   bracketEitherT' (S.seaCompile (S.Psv config) programs) S.seaRelease $ \fleet -> do
   withSystemTempDirectory "psv-test-" $ \dir -> do
