@@ -657,11 +657,13 @@ seaOfOutput ps oname@(OutputName name) otype0 ts0 ixStart
             $  [ if hasDateTime otype0 then decldt else mempty
                , calloc outbuf sz
                ]
-            <> fmap (decli . snd) (List.reverse bufs)
+            <> fmap decli (List.nubBy same $ fmap snd $ List.reverse bufs)
             <> [ str
                , dprintf outbuf
                , free outbuf
                ]
+
+    same d1 d2 = show d1 == show d2
 
     hasDateTime DateTimeT   = True
     hasDateTime (ArrayT t)  = hasDateTime t
@@ -694,6 +696,20 @@ strOfOutput ps oname@(OutputName name) otype0 ts0 ixStart dstbuf
 
          PairT _ _
           -> goP ts0 members
+
+         ArrayT (SumT ErrorT _)
+          -- | trace ("ARRAYT: otype1=" <> show otype1 <> ", ts0=" <> show ts0 <> ", members=" <> show members) False -> undefined
+          | [ArrayT BoolT , ArrayT ErrorT , ArrayT elemT] <- ts0
+          , [boolA        , _             , elemA       ] <- members
+          -> let prefix   = pretty name
+                 counter  = prefix <> "_i"
+                 seaElemT = noPadSeaOfValType elemT
+                 seaBoolT = noPadSeaOfValType BoolT
+                 len      = "len_" <> prefix -- lies
+             in  do (body, bs) <- go1' elemT (arri elemA seaElemT counter) len
+                    let body'   = cond (arri boolA seaBoolT counter) body
+                    goA body' bs elemA prefix len
+
          _
           | [t]  <- ts0
           , [mx] <- members
@@ -703,6 +719,32 @@ strOfOutput ps oname@(OutputName name) otype0 ts0 ixStart dstbuf
   where
    mismatch    = Left (SeaOutputTypeMismatch oname otype0 ts0)
    unsupported = Left (SeaUnsupportedOutputType otype0)
+
+   -- Output an array with pre-defined bodies
+   goA body bs array prefix len
+    = let counter = prefix <> "_i"
+          limit   = prefix <> "_n"
+          db      = dstbuf <+> "+" <+> len
+          numElems= array <> "->count"
+          b       = case bs of
+                     ((s,_):_)
+                        -- enough space for array elements, commas and backets
+                        -> [("(" <> s <+> "*" <+> numElems <+> ") +" <+> numElems <+> "+ 1"
+                            , len)]
+                     _  -> mempty
+      in  pure
+           (vsep [ ch db "["
+                 , inc len
+                 , forstm1 counter limit numElems
+                 , "{"
+                 , indent 4 $ cond (counter <+> "> 1")  (vsep [ ch db ",", inc len ])
+                 , indent 4 body
+                 , "}"
+                 , ch db "]"
+                 , inc len
+                 ]
+           , b <> bs
+           )
 
    -- Output (nested) pairs as array
    goP ts ns
@@ -740,44 +782,53 @@ strOfOutput ps oname@(OutputName name) otype0 ts0 ixStart dstbuf
              pure (stms'', (size, len) : bs)
 
    -- Output single types
-   go1 t mx
-    = let len = lenn mx
-          p s = pure (vsep s, [(bufs, len)])
+   go1 t val
+    = go1' t val $ lenn val
+
+   go1' t val len
+    = let p s     = pure (vsep s, [(bufs, len)])
+          dstbuf' = dstbuf <+> "+" <+> len
       in case t of
           BoolT
-           -> p [ "if (" <> mx <> ") {"
-                , indent 4 $ snprintf len dstbuf "%s" "\"true\""
+           -> p [ "if (" <> val <> ") {"
+                , indent 4 $ snprintf len dstbuf' "%s" "\"true\""
                 , "} else {"
-                , indent 4 $ snprintf len dstbuf "%s" "\"false\""
+                , indent 4 $ snprintf len dstbuf' "%s" "\"false\""
                 , "}"
                 ]
           IntT
-           -> p [snprintf len dstbuf "%lld" mx]
+           -> p [snprintf len dstbuf' "%lld" val]
           DoubleT
-           -> p [snprintf len dstbuf "%f" mx]
+           -> p [snprintf len dstbuf' "%f" val]
           StringT
-           -> p [snprintf len dstbuf "%s" mx]
+           -> p [snprintf len dstbuf' "%s" val]
           DateTimeT
-           -> p [ "idate_to_gregorian (" <> mx <> ", &v_year, &v_month, &v_day, &v_hour, &v_minute, &v_second);"
-                , snprintf len dstbuf dateFmt "v_year, v_month, v_day, v_hour, v_minute, v_second"
+           -> p [ "idate_to_gregorian (" <> val <> ", &v_year, &v_month, &v_day, &v_hour, &v_minute, &v_second);"
+                , snprintf len dstbuf' dateFmt "v_year, v_month, v_day, v_hour, v_minute, v_second"
                 ]
+
           _ -> mismatch
 
-
-   mkName  = string . filter isAlphaNum . show
    dateFmt = "%lld-%02lld-%02lldT%02lld:%02lld:%02lld"
    bufs    = "psv_output_buf_size"
    lenn n  = "len_" <> mkName n
+   mkName  = string . filter isAlphaNum . show
+
+   arri x t i = "*(ARRAY_PAYLOAD_N(" <> x <> "," <+> t <> "," <+> i <> "))"
+
+   -- for(size_t i = 1, i <= n, i++)
+   -- start at one for arrays, since the first element is the size
+   forstm1 i n m
+    = "for(iint_t" <+> i <+> "= 1," <+> n <+> "=" <+> m <> ";" <+> i <+> "<=" <+> n <> "; ++" <> i <> ")"
 
    -- *n = x;
    ch n x = "*(" <> n <> ") = '" <> x <> "';"
 
    -- snprintf (buf, psv_output_buf_size, "%fmt", n,);
-   snprintf i buf fmt n = i <> " = snprintf (" <> buf <> ", psv_output_buf_size,\"" <> fmt <> "\", " <> n <> ");"
+   snprintf i buf fmt n = i <> " += snprintf (" <> buf <> ", psv_output_buf_size,\"" <> fmt <> "\", " <> n <> ");"
 
    incAssign n i = n <+> "+=" <+> i <> ";"
    inc n         = n <>  "++;"
-
 
 ------------------------------------------------------------------------
 

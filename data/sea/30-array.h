@@ -26,7 +26,8 @@ typedef struct
 // get payload by advancing pointer by size of struct
 // (which should be equivalent to straight after struct fields)
 // then casting to t*
-#define ARRAY_PAYLOAD(x,t) ((t*)(x+1))
+#define ARRAY_PAYLOAD(x,t)     ((t*)(x+1))
+#define ARRAY_PAYLOAD_N(x,t,n) ((t*)(x+n))
 
 
 #define MK_ARRAY_LENGTH(t,pre)                                                  \
