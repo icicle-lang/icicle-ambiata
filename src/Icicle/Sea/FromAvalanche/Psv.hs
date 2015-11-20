@@ -585,6 +585,17 @@ mappingOfField (StructField fname, ftype) vars0 = do
 
 ------------------------------------------------------------------------
 
+type BufName = Doc
+type BufSize = Doc
+type BufLen  = Doc
+
+cond :: Doc -> Doc -> Doc
+cond n body
+ = vsep ["if (" <> n <> ")"
+        , "{"
+        , indent 4 body
+        , "}"]
+
 seaOfWriteFleetOutput :: [SeaProgramState] -> Either SeaError Doc
 seaOfWriteFleetOutput states = do
   write_sea <- traverse seaOfWriteProgramOutput states
@@ -616,27 +627,41 @@ seaOfWriteProgramOutput state = do
 
 seaOfOutput :: Doc -> OutputName -> ValType -> [ValType] -> Int -> Either SeaError Doc
 seaOfOutput ps oname@(OutputName name) otype0 ts0 ixStart
-  = let dprintf n   = "dprintf (fd, \"%s|" <> attrib <> "|%s\\n\"" <> ", entity, " <> n <> ");"
-        attrib      = seaOfEscaped name
-        free s      = indent 4 $ "free (" <> s <> ");"
-        calloc  n s = "char *" <> n <> " = calloc(1," <> s <> " );"
-        decli   n   = "int   " <> n <> " = 0;"
-        decldt      = "iint_t v_year, v_month, v_day, v_hour, v_minute, v_second;" :: Doc
-    in  do (str, bufs) <- strOfOutput ps oname otype0 ts0 ixStart
-           case bufs of
-             ((final,_,_):_)
-               -> pure
-               $ vsep
-               $    ["{"
-                    , if hasDateTime otype0 then indent 4 decldt else mempty ]
-                 <> fmap (\(n,s,_) -> indent 4 $ calloc n s) (List.reverse bufs)
-                 <> fmap (\(_,_,i) -> indent 4 $ decli    i) (List.reverse bufs)
-                 <> [ indent 4 $ str
-                    , indent 4 $ dprintf final ]
-                 <> fmap (\(n,_,_) -> free n) bufs
-                 <> ["}"]
-             _ -> pure mempty
+  = let members = List.take (length ts0) (fmap (\ix -> ps <> "->" <> seaOfNameIx name ix) [ixStart..])
+    in case otype0 of
+         -- Top-level Sum is a special case, to avoid allocating and printing if
+         -- the whole computation is an error (e.g. tombstone)
+         SumT ErrorT otype1
+          | (BoolT : ErrorT : ts1) <- ts0
+          , (nb    : _      : _)   <- members
+          -> do (body, bufs) <- strOfOutput ps oname otype1 ts1 (ixStart+2)
+                body'        <- go body bufs
+                pure $ cond nb body'
+         _
+          -> do (str, bufs) <- strOfOutput ps oname otype0 ts0 ixStart
+                go str bufs
+
   where
+    attrib      = seaOfEscaped name
+    dprintf n   = "dprintf (fd, \"%s|" <> attrib <> "|%s\\n\"" <> ", entity, " <> n <> ");"
+    free s      = "free (" <> s <> ");"
+    calloc  n s = "char *" <> n <> " = calloc(1," <> s <> " );"
+    decli   n   = "int   " <> n <> " = 0;"
+    decldt      = "iint_t v_year, v_month, v_day, v_hour, v_minute, v_second;" :: Doc
+
+    go str bufs
+     = case bufs of
+         ((final,_,_):_)
+           -> pure
+           $ vsep
+           $    [ if hasDateTime otype0 then decldt else mempty ]
+             <> fmap (\(n,s,_) -> calloc n s) (List.reverse bufs)
+             <> fmap (\(_,_,i) -> decli    i) (List.reverse bufs)
+             <> [ str
+                , dprintf final ]
+             <> fmap (\(n,_,_) -> free n) bufs
+         _ -> pure mempty
+
     hasDateTime DateTimeT   = True
     hasDateTime (ArrayT t)  = hasDateTime t
     hasDateTime (BufT _ t)  = hasDateTime t
@@ -647,16 +672,12 @@ seaOfOutput ps oname@(OutputName name) otype0 ts0 ixStart
     hasDateTime (StructT m) = any hasDateTime $ Map.elems $ getStructType m
     hasDateTime _           = False
 
-type BufName = Doc
-type BufSize = Doc
-type BufLen  = Doc
-
 strOfOutput
   :: Doc -> OutputName -> ValType -> [ValType] -> Int
   -> Either SeaError (Doc, [(BufName, BufSize, BufLen)]) -- name, alloc size and len
 
 strOfOutput ps oname@(OutputName name) otype0 ts0 ixStart
-  = let members     = List.take (length ts0) (fmap (\ix -> ps <> "->" <> seaOfNameIx name ix) [ixStart..])
+  = let members = List.take (length ts0) (fmap (\ix -> ps <> "->" <> seaOfNameIx name ix) [ixStart..])
     in case otype0 of
          SumT ErrorT otype1
           | (BoolT : ErrorT : ts1) <- ts0
@@ -743,17 +764,12 @@ strOfOutput ps oname@(OutputName name) otype0 ts0 ixStart
                 ]
           _ -> mismatch
 
+
    mkName  = string . filter isAlphaNum . show
    dateFmt = "%lld-%02lld-%02lldT%02lld:%02lld:%02lld"
    bufs    = "psv_output_buf_size"
    bufn n  = "buf_" <> mkName n
    lenn n  = "len_" <> mkName n
-
-   cond n body
-    = vsep ["if (" <> n <> ")"
-           , "{"
-           , indent 4 body
-           , "}"]
 
    -- memcpy (dst, src, s);
    memcpy dst src s = "memcpy (" <> dst <> ", " <> src <> ", " <> s <> ");"
