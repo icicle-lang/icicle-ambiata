@@ -9,8 +9,3 @@ title = "Demonstration dictionary nested"
   expression="""
     feature salary ~> sd (double value)
   """
-
-[feature.salary_test]
-  expression="""
-    feature salary ~> mean (double value), sd (double value), sum value, max value, min value
-  """
