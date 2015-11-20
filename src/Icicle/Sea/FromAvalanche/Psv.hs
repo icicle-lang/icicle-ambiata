@@ -79,15 +79,15 @@ seaOfFleetState states
  = vsep
  [ "#line 1 \"fleet state\""
  , "struct ifleet {"
- , "    idate_t    snapshot_date;"
+ , indent 4 (defOfVar 0 DateTimeT "snapshot_date;")
  , indent 4 (vsep (fmap defOfProgramState states))
  , "};"
  ]
 
 defOfProgramState :: SeaProgramState -> Doc
 defOfProgramState state
- =   pretty (nameOfStateType state)
- <+> pretty (nameOfProgram   state) <> ";"
+ = defOfVar' 0 (pretty (nameOfStateType state))
+               (pretty (nameOfProgram state)) <> ";"
  <+> "/* " <> seaOfAttributeDesc (stateAttribute state) <> " */"
 
 ------------------------------------------------------------------------
@@ -112,7 +112,7 @@ seaOfAllocProgram :: SeaProgramState -> Doc
 seaOfAllocProgram state
  = let ps        = "fleet->" <> pretty (nameOfProgram state) <> "."
        go (n, t) = ps <> pretty (newPrefix <> n) <> " = "
-                <> "calloc (psv_max_row_count, sizeof (" <> noPadSeaOfValType t <> "));"
+                <> "calloc (psv_max_row_count, sizeof (" <> seaOfValType t <> "));"
 
    in vsep [ "/* " <> seaOfAttributeDesc (stateAttribute state) <> " */"
            , ps <> pretty (stateDateVar state) <> " = date;"
@@ -302,7 +302,7 @@ seaOfAssignInput (n, _)
 
 seaOfDefineInput :: (Text, ValType) -> Doc
 seaOfDefineInput (n, t)
- = noPadSeaOfValType t <+> pretty n <> initType t
+ = seaOfValType t <+> pretty n <> initType t
 
 initType :: ValType -> Doc
 initType vt = " = " <> seaOfXValue (defaultOfType vt) vt <> ";"
@@ -413,7 +413,7 @@ seaOfArrayIndex arr ix typ
 seaOfReadJsonValue :: Assignment -> ValType -> [(Text, ValType)] -> Either SeaError Doc
 seaOfReadJsonValue assign vtype vars
  = let readValueArg arg n vt suf = vsep
-         [ noPadSeaOfValType vtype <+> "value;"
+         [ seaOfValType vtype <+> "value;"
          , "error = psv_read_" <> suf <> " (" <> arg <> "&p, pe, &value);"
          , "if (error) return error;"
          , assign (pretty n) vt "value"

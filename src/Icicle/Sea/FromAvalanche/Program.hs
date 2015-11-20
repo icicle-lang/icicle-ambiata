@@ -50,15 +50,14 @@ seaOfProgram name attrib program = do
     , "#line 1 \"compute function" <+> seaOfStateInfo state <> "\""
     , "void " <> pretty (nameOfProgram state) <> "(" <> pretty (nameOfStateType state) <+> "*s)"
     , "{"
-    , "    imempool_t *mempool = s->mempool;"
-    , ""
     , indent 4 . vsep
                . fmap defOfAccumulator
                . Map.toList
                $ accumsOfProgram program `Map.union`
                  readsOfProgram  program
     , ""
-    , indent 4 $ assign (seaOfValType DateTimeT <+> pretty (stateDateVar state))
+    , indent 4 $ assign (defOfVar' 1 "imempool_t" "mempool") "s->mempool;"
+    , indent 4 $ assign (defOfVar  0 DateTimeT (pretty (stateDateVar state)))
                         ("s->" <> pretty (stateDateVar state)) <> ";"
     , ""
     , indent 4 (seaOfStatement (statements program))
@@ -67,7 +66,7 @@ seaOfProgram name attrib program = do
 
 defOfAccumulator :: (Show n, Pretty n, Ord n) => (Name n, ValType) -> Doc
 defOfAccumulator (n, vt)
- = seaOfValType vt <+> seaOfName n <> semi
+ = defOfVar 0 vt (seaOfName n) <> semi
 
 ------------------------------------------------------------------------
 
@@ -87,7 +86,7 @@ seaOfStatement stmt
 
      Let n xx stmt'
       | xt <- valTypeOfExp xx
-      -> assign (seaOfValType xt <+> seaOfName n) (seaOfExp xx) <> semi <> suffix "let" <> line
+      -> assign (defOfVar 0 xt (seaOfName n)) (seaOfExp xx) <> semi <> suffix "let" <> line
       <> seaOfStatement stmt'
 
      If ii tt (Block [])
@@ -117,13 +116,14 @@ seaOfStatement stmt
               ]
 
      ForeachFacts ns _ FactLoopNew stmt'
-      -> let structAssign (n, t) = assign ("const " <> seaOfValType t <> "*const" <+> pretty newPrefix <> seaOfName n)
+      -> let structAssign (n, t) = assign (defOfVar' 1 ("const" <+> seaOfValType t)
+                                                       ("const" <+> pretty newPrefix <> seaOfName n))
                                           ("s->" <> pretty newPrefix <> seaOfName n) <> semi
-             loopAssign   (n, t) = assign (seaOfValType t <+> seaOfName n)
+             loopAssign   (n, t) = assign (defOfVar 0 t (seaOfName n))
                                           (pretty newPrefix <> seaOfName n <> "[i]") <> semi
          in vsep $
             [ ""
-            , assign ("const " <> seaOfValType IntT <> "new_count") "s->new_count;"
+            , assign (defOfVar' 0 ("const" <+> seaOfValType IntT) "new_count") "s->new_count;"
             ] <> fmap structAssign ns <>
             [ ""
             , "for (iint_t i = 0; i < new_count; i++) {"
