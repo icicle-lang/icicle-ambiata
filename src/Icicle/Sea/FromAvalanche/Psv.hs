@@ -8,6 +8,7 @@ module Icicle.Sea.FromAvalanche.Psv (
   , seaOfPsvDriver
   ) where
 
+import           Data.ByteString (ByteString)
 import qualified Data.ByteString as B
 import           Data.Char
 import           Data.Foldable (maximum)
@@ -249,28 +250,29 @@ needsCopy = \case
 
 seaOfConfigureFleet :: PsvMode -> [SeaProgramState] -> Doc
 seaOfConfigureFleet mode states
- = vsep
- [ "static void psv_configure_fleet (const char *entity, ifleet_t *fleet)"
- , "{"
- , "    iint_t         chord_count;"
- , "    const idate_t *chord_dates;"
- , ""
- , case mode of
-     PsvSnapshot date -> indent 4 (seaOfChordDates [date])
-     PsvChord    _    -> indent 4 Pretty.empty
- , ""
- , "   fleet->chord_count = chord_count;"
- , "   fleet->chord_dates = chord_dates;"
- , ""
- , indent 4 (vsep (fmap defOfState states))
- , ""
- , "    for (iint_t ix = 0; ix < chord_count; ix++) {"
- , "        idate_t chord_date = chord_dates[ix];"
- , ""
- , indent 8 (vsep (fmap seaOfAssignDate states))
- , "    }"
- , "}"
- ]
+ = let encodeEntity (Entity x) = T.encodeUtf8 (x <> "|")
+   in vsep
+      [ "static void psv_configure_fleet (const char *entity, ifleet_t *fleet)"
+      , "{"
+      , "    iint_t         chord_count;"
+      , "    const idate_t *chord_dates;"
+      , ""
+      , case mode of
+          PsvSnapshot date  -> indent 4 (seaOfChordDates [date])
+          PsvChord    dates -> indent 4 (seaOfChordMap (Map.mapKeys encodeEntity dates))
+      , ""
+      , "   fleet->chord_count = chord_count;"
+      , "   fleet->chord_dates = chord_dates;"
+      , ""
+      , indent 4 (vsep (fmap defOfState states))
+      , ""
+      , "    for (iint_t ix = 0; ix < chord_count; ix++) {"
+      , "        idate_t chord_date = chord_dates[ix];"
+      , ""
+      , indent 8 (vsep (fmap seaOfAssignDate states))
+      , "    }"
+      , "}"
+      ]
 
 defOfState :: SeaProgramState -> Doc
 defOfState state
@@ -294,6 +296,23 @@ seaOfChordDates dates
  , "    chord_dates = entity_dates;"
  , "}"
  ]
+
+------------------------------------------------------------------------
+-- This isn't a realistic implementation, just a first pass
+
+seaOfChordMap :: Map ByteString (Set DateTime) -> Doc
+seaOfChordMap xs
+ = vsep
+ [ vsep . punctuate (line <> "else") . fmap (uncurry seaOfChord) $ Map.toList xs
+ , ""
+ , "else"
+ , seaOfChordDates []
+ ]
+
+seaOfChord :: ByteString -> Set DateTime -> Doc
+seaOfChord entity dates
+ = "if (" <> align (seaOfBytesEq (B.unpack entity) "entity") <> ")"
+ <> seaOfChordDates (Set.toList dates)
 
 ------------------------------------------------------------------------
 
@@ -726,7 +745,7 @@ seaOfChordDate = \case
     , ""
     , "const size_t chord_size = sizeof (\"|yyyy-mm-ddThh:mm:ssZ\");"
     , "char chord_date[chord_size];"
-    , "snprintf (chord_date, chord_size, \"" <> dateFmt <> "\", "
+    , "snprintf (chord_date, chord_size, \"|" <> dateFmt <> "\", "
              <> "c_year, c_month, c_day, c_hour, c_minute, c_second);"
     ]
 

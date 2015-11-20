@@ -81,7 +81,8 @@ runBench date dictionaryPath inputPath outputPath sourcePath = do
   dictionary <- firstEitherT BenchDictionaryImportError (loadDictionary dictionaryPath)
   avalanche  <- hoistEither (avalancheOfDictionary dictionary)
 
-  let cfg = Psv (PsvConfig (PsvSnapshot date) (tombstonesOfDictionary dictionary))
+  let cfg = Psv (PsvConfig (PsvSnapshot date)
+                           (tombstonesOfDictionary dictionary))
 
   let avalancheL = Map.toList avalanche
 
