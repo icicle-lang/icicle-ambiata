@@ -27,8 +27,6 @@ typedef struct
 // (which should be equivalent to straight after struct fields)
 // then casting to t*
 #define ARRAY_PAYLOAD(x,t)     ((t*)(x+1))
-#define ARRAY_PAYLOAD_N(x,t,n) ((t*)(x+n))
-
 
 #define MK_ARRAY_LENGTH(t,pre)                                                  \
     static iint_t INLINE ARRAY_FUN(length,pre) (ARRAY(t) arr)                   \

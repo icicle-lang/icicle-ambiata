@@ -19,7 +19,7 @@ import qualified Data.Text.Encoding as T
 import           Data.Word (Word8)
 import           Data.Char
 
-import           Icicle.Avalanche.Prim.Flat (Prim(..), PrimUpdate(..))
+import           Icicle.Avalanche.Prim.Flat (Prim(..), PrimUpdate(..), PrimUnsafe(..))
 import           Icicle.Avalanche.Prim.Flat (meltType)
 
 import           Icicle.Common.Base (OutputName(..))
@@ -403,6 +403,11 @@ seaOfArrayPut arr ix val typ
  = seaOfPrimDocApps (seaOfXPrim (PrimUpdate (PrimUpdateArrayPut typ)))
                     [ arr, ix, val ]
 
+seaOfArrayIndex :: Doc -> Doc -> ValType -> Doc
+seaOfArrayIndex arr ix typ
+ = seaOfPrimDocApps (seaOfXPrim (PrimUnsafe (PrimUnsafeArrayIndex typ)))
+                    [ arr, ix ]
+
 ------------------------------------------------------------------------
 
 seaOfReadJsonValue :: Assignment -> ValType -> [(Text, ValType)] -> Either SeaError Doc
@@ -703,11 +708,9 @@ seaOfOutput ps oname@(OutputName name) otype0 ts0 ixStart dstbuf
           , [boolA        , _             , elemA       ] <- members
           -> let prefix   = pretty name
                  counter  = prefix <> "_i"
-                 seaElemT = noPadSeaOfValType elemT
-                 seaBoolT = noPadSeaOfValType BoolT
                  len      = "len_" <> prefix -- lies
-             in  do (body, bs) <- seaOfOutputBase' elemT (arri elemA seaElemT counter) len
-                    let body'   = cond (arri boolA seaBoolT counter) body
+             in  do (body, bs) <- seaOfOutputBase' elemT (seaOfArrayIndex elemA counter elemT) len
+                    let body'   = cond (seaOfArrayIndex boolA counter BoolT) body
                     seaOfOutputArray body' bs elemA prefix len
 
          _
@@ -737,9 +740,9 @@ seaOfOutput ps oname@(OutputName name) otype0 ts0 ixStart dstbuf
       in  pure
            (vsep [ ch db "["
                  , inc len
-                 , forstm1 counter limit numElems
+                 , forstm counter limit numElems
                  , "{"
-                 , indent 4 $ cond (counter <+> "> 1")  (vsep [ ch db ",", inc len ])
+                 , indent 4 $ cond (counter <+> "> 0")  (vsep [ ch db ",", inc len ])
                  , indent 4 body
                  , "}"
                  , ch db "]"
@@ -821,12 +824,9 @@ seaOfOutput ps oname@(OutputName name) otype0 ts0 ixStart dstbuf
    lenn n  = "len_" <> mkName n
    mkName  = string . filter isAlphaNum . show
 
-   arri x t i = "*(ARRAY_PAYLOAD_N(" <> x <> "," <+> t <> "," <+> i <> "))"
-
-   -- for(size_t i = 1, i <= n, i++)
-   -- start at one for arrays, since the first element is the size
-   forstm1 i n m
-    = "for(iint_t" <+> i <+> "= 1," <+> n <+> "=" <+> m <> ";" <+> i <+> "<=" <+> n <> "; ++" <> i <> ")"
+   -- for(size_t i = 0, i < n, i++)
+   forstm i n m
+    = "for(iint_t" <+> i <+> "= 0," <+> n <+> "=" <+> m <> ";" <+> i <+> "<" <+> n <> "; ++" <> i <> ")"
 
    -- *n = x;
    ch n x = "*(" <> n <> ") = '" <> x <> "';"
