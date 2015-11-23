@@ -5,13 +5,13 @@
 module Icicle.Sea.FromAvalanche.Type (
     prefixOfArithType
   , prefixOfValType
+  , defOfVar
+  , defOfVar'
   , seaOfValType
-  , noPadSeaOfValType
   , valTypeOfExp
   ) where
 
 import qualified Data.List as List
-import           Data.String (String)
 
 import           Icicle.Common.Annot
 import           Icicle.Common.Exp
@@ -53,35 +53,35 @@ prefixOfValType t
 
 ------------------------------------------------------------------------
 
+defOfVar :: Int -> ValType -> Doc -> Doc
+defOfVar nptrs typ var
+ = defOfVar' nptrs (seaOfValType typ) var
+
+defOfVar' :: Int -> Doc -> Doc -> Doc
+defOfVar' nptrs typ var
+ = let tystr   = show typ
+       nspaces = max 1 (17 - length tystr - nptrs)
+   in string (tystr <> List.replicate nspaces ' ' <> List.replicate nptrs '*') <> var
+
 seaOfValType :: ValType -> Doc
 seaOfValType t
- = let nope   = seaError "seaOfValType" . string
-       pad xs = string (xs <> List.replicate (16 - length xs) ' ')
-   in either nope pad (stringOfValType t)
-
-noPadSeaOfValType :: ValType -> Doc
-noPadSeaOfValType t
  = let nope = seaError "seaOfValType" . string
-   in either nope string (stringOfValType t)
+   in case t of
+     UnitT     -> "iunit_t"
+     BoolT     -> "ibool_t"
+     IntT      -> "iint_t"
+     DoubleT   -> "idouble_t"
+     DateTimeT -> "idate_t"
+     ErrorT    -> "ierror_t"
+     StringT   -> "istring_t"
+     BufT _ t' -> "ibuf_t__"   <> seaOfValType t'
+     ArrayT t' -> "iarray_t__" <> seaOfValType t'
 
-stringOfValType :: ValType -> Either String String
-stringOfValType t
- = case t of
-     UnitT     -> Right "iunit_t"
-     BoolT     -> Right "ibool_t"
-     IntT      -> Right "iint_t"
-     DoubleT   -> Right "idouble_t"
-     DateTimeT -> Right "idate_t"
-     ErrorT    -> Right "ierror_t"
-     StringT   -> Right "istring_t"
-     BufT _ t' -> fmap (\x -> "ibuf_t__"   <> x <> "") (stringOfValType t')
-     ArrayT t' -> fmap (\x -> "iarray_t__" <> x <> "") (stringOfValType t')
-
-     MapT{}    -> Left "maps not implemented"
-     StructT{} -> Left "structs should have been melted"
-     OptionT{} -> Left "options should have been melted"
-     PairT{}   -> Left "pairs should have been melted"
-     SumT{}    -> Left "sums should have been melted"
+     MapT{}    -> nope "maps not implemented"
+     StructT{} -> nope "structs should have been melted"
+     OptionT{} -> nope "options should have been melted"
+     PairT{}   -> nope "pairs should have been melted"
+     SumT{}    -> nope "sums should have been melted"
 
 valTypeOfExp :: Exp (Annot a) n p -> ValType
 valTypeOfExp = functionReturns . annType . annotOfExp

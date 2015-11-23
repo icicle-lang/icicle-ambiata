@@ -97,11 +97,11 @@ seaOfState state
  [ "#line 1 \"state definition" <+> seaOfStateInfo state <> "\""
  , "typedef struct {"
  , "    /* runtime */"
- , "    imempool_t      *mempool;"
+ , indent 4 (defOfVar' 1 "imempool_t" "mempool;")
  , ""
  , "    /* inputs */"
- , "    idate_t          " <> pretty (stateDateVar state) <> ";"
- , "    iint_t           new_count;"
+ , indent 4 (defOfVar 0 DateTimeT (pretty (stateDateVar state) <> ";"))
+ , indent 4 (defOfVar 0 IntT      "new_count;")
  , indent 4 . vsep
             . fmap defOfFactVar
             . stateInputVars
@@ -135,12 +135,12 @@ stateWordsOfProgram program
 
 defOfResumable :: (Text, ValType) -> Doc
 defOfResumable (n, t)
- =  seaOfValType BoolT <+> pretty hasPrefix <> pretty n <> semi <> line
- <> seaOfValType t     <+> pretty resPrefix <> pretty n <> semi
+ =  defOfVar 0 BoolT (pretty hasPrefix <> pretty n) <> semi <> line
+ <> defOfVar 0 t     (pretty resPrefix <> pretty n) <> semi
 
 defOfFactVar :: (Text, ValType) -> Doc
 defOfFactVar (n, t)
- = seaOfValType t <+> "*" <> pretty newPrefix <> pretty n <> semi
+ = defOfVar 1 t (pretty newPrefix <> pretty n) <> semi
 
 defsOfOutput :: (OutputName, (ValType, [ValType])) -> [Doc]
 defsOfOutput (n, (_, ts))
@@ -148,7 +148,7 @@ defsOfOutput (n, (_, ts))
 
 defOfOutputIx :: OutputName -> Int -> ValType -> Doc
 defOfOutputIx n ix t
- = seaOfValType t <+> seaOfNameIx n ix <> semi
+ = defOfVar 0 t (seaOfNameIx n ix) <> semi
 
 ------------------------------------------------------------------------
 

@@ -68,7 +68,7 @@ main = do
         Right _                  -> return ()
 
     _ -> do
-      putStrLn "usage: icicle-bench DATE DICTIONARY INPUT_PSV OUTPUT_PSV OUTPUT_C"
+      putStrLn "usage: icicle-bench SNAPSHOT_DATE DICTIONARY INPUT_PSV OUTPUT_PSV OUTPUT_C"
       putStrLn ("invalid args: " <> show args)
 
 ------------------------------------------------------------------------
@@ -81,7 +81,8 @@ runBench date dictionaryPath inputPath outputPath sourcePath = do
   dictionary <- firstEitherT BenchDictionaryImportError (loadDictionary dictionaryPath)
   avalanche  <- hoistEither (avalancheOfDictionary dictionary)
 
-  let cfg = Psv (PsvConfig date (tombstonesOfDictionary dictionary))
+  let cfg = Psv (PsvConfig (PsvSnapshot date)
+                           (tombstonesOfDictionary dictionary))
 
   let avalancheL = Map.toList avalanche
 

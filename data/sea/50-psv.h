@@ -31,8 +31,8 @@ typedef struct {
     iint_t      entity_count;
 
     /* current entity */
-    char       *entity_cur;      /* invariant: these must point to a block of memory at least */
-    size_t      entity_cur_size; /*            as large as the input buffer or we'll overflow */
+    char       *entity_cur; /* invariant: this must point to a block of memory at least */
+                            /*            as large as the input buffer or we'll overflow */
 
     /* fleet state */
     ifleet_t   *fleet;
@@ -47,15 +47,17 @@ static ifleet_t * INLINE psv_alloc_fleet ();
 
 static void INLINE psv_collect_fleet (ifleet_t *fleet);
 
+static void INLINE psv_configure_fleet (const char *entity, ifleet_t *fleet);
+
 static void INLINE psv_write_outputs (int fd, const char *entity, ifleet_t *fleet);
 
 static psv_error_t INLINE psv_read_fact
-  ( ifleet_t     *fleet
-  , const char   *attrib
+  ( const char   *attrib
   , const size_t  attrib_size
   , const char   *value
   , const size_t  value_size
-  , idate_t       date );
+  , idate_t       date
+  , ifleet_t     *fleet );
 
 /* psv driver */
 static const size_t psv_max_row_count   = 128;
@@ -297,10 +299,9 @@ static psv_error_t psv_read_buffer (psv_state_t *s)
     const char  *end_ptr     = buffer_ptr + buffer_size;
     const char  *line_ptr    = buffer_ptr;
 
-    iint_t  fact_count      = s->fact_count;
-    iint_t  entity_count    = s->entity_count;
-    char   *entity_cur      = s->entity_cur;
-    size_t  entity_cur_size = s->entity_cur_size;
+    iint_t  fact_count   = s->fact_count;
+    iint_t  entity_count = s->entity_count;
+    char   *entity_cur   = s->entity_cur;
 
     for (;;) {
         const size_t bytes_remaining = end_ptr - line_ptr;
@@ -310,7 +311,6 @@ static psv_error_t psv_read_buffer (psv_state_t *s)
             s->fact_count       = fact_count;
             s->entity_count     = entity_count;
             s->entity_cur       = entity_cur;
-            s->entity_cur_size  = entity_cur_size;
             s->buffer_remaining = bytes_remaining;
             return 0;
         }
@@ -355,18 +355,19 @@ static psv_error_t psv_read_buffer (psv_state_t *s)
         const char  *value_end  = time_ptr - 1;
         const size_t value_size = value_end - value_ptr;
 
-        const bool new_entity = entity_cur_size != entity_size
-                             || memcmp (entity_cur, entity_ptr, entity_size) != 0;
+        const bool new_entity = memcmp (entity_cur, entity_ptr, entity_size) != 0;
 
         if (new_entity) {
-            if (entity_cur_size != 0) {
+            if (entity_cur[0] != 0) {
                 psv_write_outputs (s->output_fd, entity_cur, s->fleet);
             }
 
-            memcpy (entity_cur, entity_ptr, entity_size);
-            entity_cur[entity_size] = 0;
-            entity_cur_size = entity_size;
+            const size_t entity_pipe_size = entity_size + 1;
 
+            memcpy (entity_cur, entity_ptr, entity_pipe_size);
+            entity_cur[entity_pipe_size] = 0;
+
+            psv_configure_fleet (entity_cur, s->fleet);
             entity_count++;
         }
 
@@ -374,7 +375,7 @@ static psv_error_t psv_read_buffer (psv_state_t *s)
         error = psv_read_date (time_ptr, time_size, &date);
         if (error) goto on_error;
 
-        error = psv_read_fact (s->fleet, attrib_ptr, attrib_size, value_ptr, value_size, date);
+        error = psv_read_fact (attrib_ptr, attrib_size, value_ptr, value_size, date, s->fleet);
         if (error) goto on_error;
 
         line_ptr = n_ptr + 1;
@@ -393,10 +394,10 @@ void psv_snapshot (psv_config_t *cfg)
 
     static const size_t psv_read_error = (size_t) -1;
 
-    char buffer_ptr[psv_buffer_size+1];
-    char entity_cur[psv_buffer_size+1];
-    buffer_ptr[psv_buffer_size] = '\0';
-    entity_cur[psv_buffer_size] = '\0';
+    char buffer_ptr[psv_buffer_size + 1];
+    char entity_cur[psv_buffer_size + 1];
+    memset (buffer_ptr, 0, psv_buffer_size + 1);
+    memset (entity_cur, 0, psv_buffer_size + 1);
 
     ifleet_t *fleet = psv_alloc_fleet ();
 
@@ -410,7 +411,7 @@ void psv_snapshot (psv_config_t *cfg)
     size_t buffer_offset = 0;
 
     for (;;) {
-        psv_collect_fleet(fleet);
+        psv_collect_fleet (fleet);
 
         size_t bytes_read = read ( ifd
                                  , buffer_ptr  + buffer_offset
@@ -422,7 +423,7 @@ void psv_snapshot (psv_config_t *cfg)
         }
 
         if (bytes_read == 0) {
-            if (state.entity_cur_size != 0) {
+            if (state.entity_cur[0] != 0) {
                 psv_write_outputs (state.output_fd, state.entity_cur, state.fleet);
             }
             break;
