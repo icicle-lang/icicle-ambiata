@@ -102,7 +102,7 @@ runBench date dictionaryPath inputPath outputPath sourcePath = do
     liftIO (putStrLn "icicle-bench: starting snapshot")
 
     psvStart <- liftIO getCurrentTime
-    stats    <- firstEitherT BenchSeaError (seaPsvSnapshotFilePath fleet inputPath outputPath)
+    stats    <- firstEitherT BenchSeaError (seaPsvSnapshotFilePath fleet inputPath outputPath Nothing)
     psvEnd   <- liftIO getCurrentTime
 
     size <- liftIO (withFile inputPath ReadMode hFileSize)

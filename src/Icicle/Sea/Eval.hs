@@ -128,27 +128,40 @@ instance Show SeaMVector where
 
 ------------------------------------------------------------------------
 
-seaPsvSnapshotFilePath :: SeaFleet -> FilePath -> FilePath -> EitherT SeaError IO PsvStats
-seaPsvSnapshotFilePath fleet input output = do
+seaPsvSnapshotFilePath :: SeaFleet -> FilePath -> FilePath -> (Maybe FilePath) -> EitherT SeaError IO PsvStats
+seaPsvSnapshotFilePath fleet input output mchords = do
+  let mopen mpath =
+       case mpath of
+         Nothing   -> pure Nothing
+         Just path -> Just <$> Posix.openFd path Posix.ReadOnly Nothing Posix.defaultFileFlags
+
+      mclose mfd =
+        case mfd of
+          Nothing -> pure ()
+          Just fd -> Posix.closeFd fd
+
   bracketEitherT' (liftIO $ Posix.openFd input Posix.ReadOnly Nothing Posix.defaultFileFlags)
                   (liftIO . Posix.closeFd) $ \ifd -> do
   bracketEitherT' (liftIO $ Posix.createFile output (Posix.CMode 0O644))
                   (liftIO . Posix.closeFd) $ \ofd -> do
-  seaPsvSnapshotFd fleet ifd ofd
+  bracketEitherT' (liftIO $ mopen mchords)
+                  (liftIO . mclose) $ \mcfd -> do
+  seaPsvSnapshotFd fleet ifd ofd mcfd
 
 
-seaPsvSnapshotFd :: SeaFleet -> Posix.Fd -> Posix.Fd -> EitherT SeaError IO PsvStats
-seaPsvSnapshotFd fleet input output =
-  withWords 5 $ \pState -> do
+seaPsvSnapshotFd :: SeaFleet -> Posix.Fd -> Posix.Fd -> Maybe Posix.Fd -> EitherT SeaError IO PsvStats
+seaPsvSnapshotFd fleet input output mchords =
+  withWords 6 $ \pState -> do
 
   pokeWordOff pState 0 input
   pokeWordOff pState 1 output
+  pokeWordOff pState 2 (fromMaybe 0 mchords)
 
   liftIO (sfPsvSnapshot fleet pState)
 
-  pError       <- peekWordOff pState 2
-  factsRead    <- peekWordOff pState 3
-  entitiesRead <- peekWordOff pState 4
+  pError       <- peekWordOff pState 3
+  factsRead    <- peekWordOff pState 4
+  entitiesRead <- peekWordOff pState 5
 
   when (pError /= nullPtr) $ do
     msg <- liftIO (peekCString pError)
