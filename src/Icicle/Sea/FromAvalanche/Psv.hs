@@ -861,6 +861,25 @@ seaOfOutput ps oname@(OutputName name) otype0 ts0 ixStart dstbuf
                     let body'   = cond (seaOfArrayIndex boolA counter BoolT) body
                     seaOfOutputArray body' bs elemA prefix len
 
+         MapT _ _
+          | [ArrayT tk, ArrayT tv] <- ts0
+          , [keys,      vals]      <- members
+          -> let prefix   = pretty name
+                 counter  = prefix <> "_i"
+                 len      = "len_" <> prefix
+                 db       = dstbuf <+> "+" <+> len
+             in  do (bk, bsk) <- seaOfOutputBase' tk (seaOfArrayIndex keys counter tk) len
+                    (bv, bsv) <- seaOfOutputBase' tv (seaOfArrayIndex vals counter tv) len
+                    seaOfOutputArray (vsep [ ch db "["
+                                           , inc len
+                                           , bk
+                                           , ch db ","
+                                           , inc len
+                                           , bv
+                                           , ch db "]"
+                                           , inc len ])
+                                     (bsk <> bsv) keys prefix len
+
          _
           | [t]  <- ts0
           , [mx] <- members
