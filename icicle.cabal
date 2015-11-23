@@ -155,6 +155,9 @@ library
                        Icicle.Sea.FromAvalanche.State
                        Icicle.Sea.FromAvalanche.Type
                        Icicle.Sea.Preamble
+                       Icicle.Sea.Chords
+                       Icicle.Sea.Chords.File
+                       Icicle.Sea.Chords.Parse
 
                        Icicle.Source.Eval
                        Icicle.Source.Query
