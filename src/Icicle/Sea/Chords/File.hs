@@ -15,7 +15,7 @@ import qualified Data.Map as Map
 
 import qualified Data.ByteString.Char8   as BSC
 import qualified Data.ByteString.Builder as BS
-import qualified Data.Text as T
+import qualified Data.Text.Encoding as T
 
 import System.IO (IO, Handle)
 
@@ -42,8 +42,8 @@ header chordmap
 
 record :: (D.Entity, [D.DateTime]) -> BS.Builder
 record (ent, dates)
- = let entity       = BSC.pack $ T.unpack $ D.getEntity ent
-       entity_size  = BSC.length entity + 1
+ = let entity       = T.encodeUtf8 $ D.getEntity ent
+       entity_size  = BSC.length entity
        dates_count  = length dates
        dates_build  = mconcat $ fmap (BS.word64LE . D.packedOfDate) dates
    in  mconcat

@@ -13,6 +13,7 @@ import           Icicle.Data.DateTime
 
 import qualified Data.Map as Map
 import qualified Data.Text as T
+import qualified Data.Text.Lazy as TL
 
 import           Data.Either.Combinators
 
@@ -38,9 +39,10 @@ parseChordLine s
 pipe :: Parser ()
 pipe = () <$ char '|'
 
-parseChordFile :: T.Text -> Either ChordParseError (Map.Map Entity [DateTime])
+parseChordFile :: TL.Text -> Either ChordParseError (Map.Map Entity [DateTime])
 parseChordFile file
- = do let lines = T.lines file
+ = do let lines = fmap TL.toStrict
+                $ TL.lines file
       entries <- mapM parseChordLine lines
       return $ Map.fromListWith (<>) entries
 
