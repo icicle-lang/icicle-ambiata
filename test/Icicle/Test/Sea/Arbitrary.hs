@@ -194,12 +194,17 @@ isSupportedOutput = \case
   DoubleT   -> True
   DateTimeT -> True
   StringT   -> True
-  OptionT{} -> False
+  OptionT t -> isSupportedOutput t
   PairT a b -> isSupportedOutput a && isSupportedOutput b
+
+  ArrayT t
+   | SumT ErrorT te <- t
+   -> isSupportedOutput te
+   | otherwise
+   -> False
 
   UnitT     -> False
   ErrorT    -> False
-  ArrayT{}  -> False
   BufT{}    -> False
   MapT{}    -> False
   StructT{} -> False
@@ -207,7 +212,6 @@ isSupportedOutput = \case
   SumT te tx
    | ErrorT <- te
    -> isSupportedOutput tx
-
    | otherwise
    -> False
 

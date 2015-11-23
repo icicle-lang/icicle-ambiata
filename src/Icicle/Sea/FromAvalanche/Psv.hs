@@ -19,7 +19,7 @@ import qualified Data.Text.Encoding as T
 import           Data.Word (Word8)
 import           Data.Char
 
-import           Icicle.Avalanche.Prim.Flat (Prim(..), PrimUpdate(..))
+import           Icicle.Avalanche.Prim.Flat (Prim(..), PrimUpdate(..), PrimUnsafe(..))
 import           Icicle.Avalanche.Prim.Flat (meltType)
 
 import           Icicle.Common.Base (OutputName(..))
@@ -403,6 +403,11 @@ seaOfArrayPut arr ix val typ
  = seaOfPrimDocApps (seaOfXPrim (PrimUpdate (PrimUpdateArrayPut typ)))
                     [ arr, ix, val ]
 
+seaOfArrayIndex :: Doc -> Doc -> ValType -> Doc
+seaOfArrayIndex arr ix typ
+ = seaOfPrimDocApps (seaOfXPrim (PrimUnsafe (PrimUnsafeArrayIndex typ)))
+                    [ arr, ix ]
+
 ------------------------------------------------------------------------
 
 seaOfReadJsonValue :: Assignment -> ValType -> [(Text, ValType)] -> Either SeaError Doc
@@ -611,7 +616,7 @@ seaOfWriteProgramOutput state = do
   let ps = "p" <> int (stateName state)
 
   let resumeables = fmap (\(n,_) -> ps <> "->" <> pretty (hasPrefix <> n) <+> "= ifalse;") (stateResumables state)
-  outputs <- traverse (\(n,(t,ts)) -> seaOfOutput ps n t ts 0) (stateOutputs state)
+  outputs <- traverse (\(n,(t,ts)) -> seaOfWriteOutput ps n t ts 0) (stateOutputs state)
 
   pure $ vsep
     [ ""
@@ -624,8 +629,8 @@ seaOfWriteProgramOutput state = do
     , vsep outputs
     ]
 
-seaOfOutput :: Doc -> OutputName -> ValType -> [ValType] -> Int -> Either SeaError Doc
-seaOfOutput ps oname@(OutputName name) otype0 ts0 ixStart
+seaOfWriteOutput :: Doc -> OutputName -> ValType -> [ValType] -> Int -> Either SeaError Doc
+seaOfWriteOutput ps oname@(OutputName name) otype0 ts0 ixStart
   = let members = List.take (length ts0) (fmap (\ix -> ps <> "->" <> seaOfNameIx name ix) [ixStart..])
     in case otype0 of
          -- Top-level Sum is a special case, to avoid allocating and printing if
@@ -633,11 +638,11 @@ seaOfOutput ps oname@(OutputName name) otype0 ts0 ixStart
          SumT ErrorT otype1
           | (BoolT : ErrorT : ts1) <- ts0
           , (nb    : _      : _)   <- members
-          -> do (body, bufs) <- strOfOutput ps oname otype1 ts1 (ixStart+2) outbuf
+          -> do (body, bufs) <- seaOfOutput ps oname otype1 ts1 (ixStart+2) outbuf
                 body'        <- go body bufs
                 pure $ cond nb body'
          _
-          -> do (str, bufs) <- strOfOutput ps oname otype0 ts0 ixStart outbuf
+          -> do (str, bufs) <- seaOfOutput ps oname otype0 ts0 ixStart outbuf
                 go str bufs
 
   where
@@ -657,11 +662,13 @@ seaOfOutput ps oname@(OutputName name) otype0 ts0 ixStart
             $  [ if hasDateTime otype0 then decldt else mempty
                , calloc outbuf sz
                ]
-            <> fmap (decli . snd) (List.reverse bufs)
+            <> fmap decli (List.nubBy same $ fmap snd $ List.reverse bufs)
             <> [ str
                , dprintf outbuf
                , free outbuf
                ]
+
+    same d1 d2 = show d1 == show d2
 
     hasDateTime DateTimeT   = True
     hasDateTime (ArrayT t)  = hasDateTime t
@@ -673,43 +680,85 @@ seaOfOutput ps oname@(OutputName name) otype0 ts0 ixStart
     hasDateTime (StructT m) = any hasDateTime $ Map.elems $ getStructType m
     hasDateTime _           = False
 
-strOfOutput
+seaOfOutput
   :: Doc -> OutputName -> ValType -> [ValType] -> Int
   -> Doc                                        -- buffer to print to
   -> Either SeaError (Doc, [(BufSize, BufLen)]) -- name, alloc size and len
 
-strOfOutput ps oname@(OutputName name) otype0 ts0 ixStart dstbuf
+seaOfOutput ps oname@(OutputName name) otype0 ts0 ixStart dstbuf
   = let members = List.take (length ts0) (fmap (\ix -> ps <> "->" <> seaOfNameIx name ix) [ixStart..])
     in case otype0 of
          SumT ErrorT otype1
           | (BoolT : ErrorT : ts1) <- ts0
           , (nb    : _      : _)   <- members
-          -> do (doc, bs) <- strOfOutput ps oname otype1 ts1 (ixStart+2) dstbuf
+          -> do (doc, bs) <- seaOfOutput ps oname otype1 ts1 (ixStart+2) dstbuf
                 pure (cond nb doc, bs)
 
          OptionT otype1
-          | (nb : _) <- members
-          -> do (doc, bs) <- strOfOutput ps oname otype1 ts0 (ixStart+1) dstbuf
+          | (BoolT : ts1) <- ts0
+          , (nb    : _)   <- members
+          -> do (doc, bs) <- seaOfOutput ps oname otype1 ts1 (ixStart+1) dstbuf
                 pure (cond nb doc, bs)
 
          PairT _ _
-          -> goP ts0 members
+          -> seaOfOutputPair ts0 members
+
+         ArrayT (SumT ErrorT _)
+          | [ArrayT BoolT , ArrayT ErrorT , ArrayT elemT] <- ts0
+          , [boolA        , _             , elemA       ] <- members
+          -> let prefix   = pretty name
+                 counter  = prefix <> "_i"
+                 len      = "len_" <> prefix -- lies
+             in  do (body, bs) <- seaOfOutputBase' elemT (seaOfArrayIndex elemA counter elemT) len
+                    let body'   = cond (seaOfArrayIndex boolA counter BoolT) body
+                    seaOfOutputArray body' bs elemA prefix len
+
          _
           | [t]  <- ts0
           , [mx] <- members
-          -> go1 t mx
+          -> seaOfOutputBase t mx
 
          _ -> unsupported
   where
    mismatch    = Left (SeaOutputTypeMismatch oname otype0 ts0)
    unsupported = Left (SeaUnsupportedOutputType otype0)
 
+   -- Output an array with pre-defined bodies
+   seaOfOutputArray :: Doc -> [(BufSize, BufLen)] -> Doc -> Doc -> Doc
+                    -> Either SeaError (Doc, [(BufSize, BufLen)])
+   seaOfOutputArray body bs array prefix len
+    = let counter = prefix <> "_i"
+          limit   = prefix <> "_n"
+          db      = dstbuf <+> "+" <+> len
+          numElems= array <> "->count"
+          b       = case bs of
+                     ((s,_):_)
+                        -- enough space for array elements, commas and backets
+                        -> [("(" <> s <+> "*" <+> numElems <+> ") +" <+> numElems <+> "+ 1"
+                            , len)]
+                     _  -> mempty
+      in  pure
+           (vsep [ ch db "["
+                 , inc len
+                 , forstm counter limit numElems
+                 , "{"
+                 , indent 4 $ cond (counter <+> "> 0")  (vsep [ ch db ",", inc len ])
+                 , indent 4 body
+                 , "}"
+                 , ch db "]"
+                 , inc len
+                 ]
+           , b <> bs
+           )
+
    -- Output (nested) pairs as array
-   goP ts ns
+   seaOfOutputPair :: [ValType] -> [Doc]
+                   -> Either SeaError (Doc, [(BufSize, BufLen)])
+   seaOfOutputPair ts ns
     = let len  = lenn $ mconcat ns
           db   = dstbuf <+> "+" <+> len
           go (i, sz, stms, bs) t
-           | Right (doc, bb@((bufsz,buflen):_)) <- strOfOutput ps oname t [t] (ixStart + i) db
+           | Right (doc, bb@((bufsz,buflen):_)) <- seaOfOutput ps oname t [t] (ixStart + i) db
            = pure
            ( i + 1
            , sz <+> "+" <+> bufsz
@@ -740,44 +789,53 @@ strOfOutput ps oname@(OutputName name) otype0 ts0 ixStart dstbuf
              pure (stms'', (size, len) : bs)
 
    -- Output single types
-   go1 t mx
-    = let len = lenn mx
-          p s = pure (vsep s, [(bufs, len)])
+   seaOfOutputBase :: ValType -> Doc -> Either SeaError (Doc, [(BufSize, BufLen)])
+   seaOfOutputBase t val
+    = seaOfOutputBase' t val $ lenn val
+
+   seaOfOutputBase' :: ValType -> Doc -> Doc -> Either SeaError (Doc, [(BufSize, BufLen)])
+   seaOfOutputBase' t val len
+    = let p s     = pure (vsep s, [(bufs, len)])
+          dstbuf' = dstbuf <+> "+" <+> len
       in case t of
           BoolT
-           -> p [ "if (" <> mx <> ") {"
-                , indent 4 $ snprintf len dstbuf "%s" "\"true\""
+           -> p [ "if (" <> val <> ") {"
+                , indent 4 $ snprintf len dstbuf' "%s" "\"true\""
                 , "} else {"
-                , indent 4 $ snprintf len dstbuf "%s" "\"false\""
+                , indent 4 $ snprintf len dstbuf' "%s" "\"false\""
                 , "}"
                 ]
           IntT
-           -> p [snprintf len dstbuf "%lld" mx]
+           -> p [snprintf len dstbuf' "%lld" val]
           DoubleT
-           -> p [snprintf len dstbuf "%f" mx]
+           -> p [snprintf len dstbuf' "%f" val]
           StringT
-           -> p [snprintf len dstbuf "%s" mx]
+           -> p [snprintf len dstbuf' "%s" val]
           DateTimeT
-           -> p [ "idate_to_gregorian (" <> mx <> ", &v_year, &v_month, &v_day, &v_hour, &v_minute, &v_second);"
-                , snprintf len dstbuf dateFmt "v_year, v_month, v_day, v_hour, v_minute, v_second"
+           -> p [ "idate_to_gregorian (" <> val <> ", &v_year, &v_month, &v_day, &v_hour, &v_minute, &v_second);"
+                , snprintf len dstbuf' dateFmt "v_year, v_month, v_day, v_hour, v_minute, v_second"
                 ]
+
           _ -> mismatch
 
 
-   mkName  = string . filter isAlphaNum . show
    dateFmt = "%lld-%02lld-%02lldT%02lld:%02lld:%02lld"
    bufs    = "psv_output_buf_size"
    lenn n  = "len_" <> mkName n
+   mkName  = string . filter isAlphaNum . show
+
+   -- for(size_t i = 0, i < n, i++)
+   forstm i n m
+    = "for(iint_t" <+> i <+> "= 0," <+> n <+> "=" <+> m <> ";" <+> i <+> "<" <+> n <> "; ++" <> i <> ")"
 
    -- *n = x;
    ch n x = "*(" <> n <> ") = '" <> x <> "';"
 
    -- snprintf (buf, psv_output_buf_size, "%fmt", n,);
-   snprintf i buf fmt n = i <> " = snprintf (" <> buf <> ", psv_output_buf_size,\"" <> fmt <> "\", " <> n <> ");"
+   snprintf i buf fmt n = i <> " += snprintf (" <> buf <> ", psv_output_buf_size,\"" <> fmt <> "\", " <> n <> ");"
 
    incAssign n i = n <+> "+=" <+> i <> ";"
    inc n         = n <>  "++;"
-
 
 ------------------------------------------------------------------------
 
