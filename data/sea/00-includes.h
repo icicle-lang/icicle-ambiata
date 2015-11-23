@@ -7,7 +7,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/mman.h>
 #include <sys/param.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 typedef uint64_t ierror_t;

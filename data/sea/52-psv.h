@@ -1,4 +1,4 @@
-#include "21-date.h"
+#include "51-chord.h"
 
 #if !ICICLE_NO_PSV
 
@@ -6,13 +6,12 @@
 typedef struct ifleet ifleet_t;
 
 /* psv types */
-typedef const char * psv_error_t;
-
 typedef struct {
     /* inputs */
     /* these are 32-bit file handles, but storing them as 64-bit in the struct makes it easier to poke from Haskell */
     iint_t input_fd;
     iint_t output_fd;
+    iint_t chord_fd;
 
     /* outputs */
     psv_error_t error;
@@ -26,28 +25,31 @@ typedef struct {
     size_t      buffer_size;
     size_t      buffer_remaining;
 
+    /* input chords */
+    const ichord_t *chord_cur;
+
     /* stats */
-    iint_t      fact_count;
-    iint_t      entity_count;
+    iint_t fact_count;
+    iint_t entity_count;
 
     /* current entity */
-    char       *entity_cur; /* invariant: this must point to a block of memory at least */
-                            /*            as large as the input buffer or we'll overflow */
+    char   *entity_cur;      /* invariant: this must point to a block of memory at least */
+    size_t  entity_cur_size; /*            as large as the input buffer or we'll overflow */
 
     /* fleet state */
-    ifleet_t   *fleet;
+    ifleet_t *fleet;
 
     /* output file descriptor */
-    int         output_fd;
+    int output_fd;
 } psv_state_t;
 
 
 /* forward declarations for functions, implemented by generated code */
-static ifleet_t * INLINE psv_alloc_fleet ();
+static ifleet_t * INLINE psv_alloc_fleet (iint_t max_chord_count);
 
 static void INLINE psv_collect_fleet (ifleet_t *fleet);
 
-static void INLINE psv_configure_fleet (const char *entity, ifleet_t *fleet);
+static psv_error_t INLINE psv_configure_fleet (const char *entity, size_t entity_size, const ichord_t **chord, ifleet_t *fleet);
 
 static void INLINE psv_write_outputs (int fd, const char *entity, ifleet_t *fleet);
 
@@ -63,43 +65,6 @@ static psv_error_t INLINE psv_read_fact
 static const size_t psv_max_row_count   = 128;
 static const size_t psv_buffer_size     = 16*1024;
 static const size_t psv_output_buf_size = 128;
-
-
-static psv_error_t psv_error_add_line (iint_t line, psv_error_t original)
-{
-    size_t  error_size = 4 * 1024;
-    char   *error_text = calloc (error_size, 1);
-
-    snprintf (error_text, error_size, "line %lld: %s", line, original);
-    free ((char *) original);
-
-    return error_text;
-}
-
-static psv_error_t psv_alloc_error (const char *msg, const char *value_ptr, const size_t value_size)
-{
-    size_t  error_size = 4 * 1024;
-    char   *error_text = calloc (error_size, 1);
-
-    if (value_ptr) {
-        char value_text[4*1024] = {0};
-        memcpy (value_text, value_ptr, MIN (value_size, sizeof (value_text) - 1));
-
-        snprintf (error_text, error_size, "%s: %s", msg, value_text);
-    } else {
-        snprintf (error_text, error_size, "%s", msg);
-    }
-
-    return error_text;
-}
-
-static void psv_debug (const char *msg, const char *value_ptr, const size_t value_size)
-{
-    char value_text[4*1024] = {0};
-    memcpy (value_text, value_ptr, MIN (value_size, sizeof (value_text) - 1));
-
-    fprintf (stderr, "psv_debug: %s: %s\n", msg, value_text);
-}
 
 static psv_error_t INLINE psv_read_date (const char *time_ptr, const size_t time_size, idate_t *output_ptr)
 {
@@ -299,9 +264,10 @@ static psv_error_t psv_read_buffer (psv_state_t *s)
     const char  *end_ptr     = buffer_ptr + buffer_size;
     const char  *line_ptr    = buffer_ptr;
 
-    iint_t  fact_count   = s->fact_count;
-    iint_t  entity_count = s->entity_count;
-    char   *entity_cur   = s->entity_cur;
+    iint_t  fact_count      = s->fact_count;
+    iint_t  entity_count    = s->entity_count;
+    char   *entity_cur      = s->entity_cur;
+    size_t  entity_cur_size = s->entity_cur_size;
 
     for (;;) {
         const size_t bytes_remaining = end_ptr - line_ptr;
@@ -311,6 +277,7 @@ static psv_error_t psv_read_buffer (psv_state_t *s)
             s->fact_count       = fact_count;
             s->entity_count     = entity_count;
             s->entity_cur       = entity_cur;
+            s->entity_cur_size  = entity_cur_size;
             s->buffer_remaining = bytes_remaining;
             return 0;
         }
@@ -355,19 +322,21 @@ static psv_error_t psv_read_buffer (psv_state_t *s)
         const char  *value_end  = time_ptr - 1;
         const size_t value_size = value_end - value_ptr;
 
-        const bool new_entity = memcmp (entity_cur, entity_ptr, entity_size) != 0;
+        const bool new_entity = entity_cur_size != entity_size
+                             || memcmp (entity_cur, entity_ptr, entity_size) != 0;
 
         if (new_entity) {
-            if (entity_cur[0] != 0) {
+            if (entity_cur_size != 0) {
                 psv_write_outputs (s->output_fd, entity_cur, s->fleet);
             }
 
-            const size_t entity_pipe_size = entity_size + 1;
+            memcpy (entity_cur, entity_ptr, entity_size);
+            entity_cur[entity_size] = 0;
+            entity_cur_size = entity_size;
 
-            memcpy (entity_cur, entity_ptr, entity_pipe_size);
-            entity_cur[entity_pipe_size] = 0;
+            error = psv_configure_fleet (entity_cur, entity_cur_size, &s->chord_cur, s->fleet);
+            if (error) goto on_error;
 
-            psv_configure_fleet (entity_cur, s->fleet);
             entity_count++;
         }
 
@@ -389,41 +358,52 @@ on_error:
 
 void psv_snapshot (psv_config_t *cfg)
 {
-    int ifd = (int)cfg->input_fd;
-    int ofd = (int)cfg->output_fd;
-
     static const size_t psv_read_error = (size_t) -1;
+
+    int input_fd  = (int)cfg->input_fd;
+    int output_fd = (int)cfg->output_fd;
+    int chord_fd  = (int)cfg->chord_fd;
+
+    ichord_file_t chord_file;
+    psv_error_t chord_mmap_error = ichord_file_mmap (chord_fd, &chord_file);
+    if (chord_mmap_error) {
+        cfg->error        = chord_mmap_error;
+        cfg->fact_count   = 0;
+        cfg->entity_count = 0;
+        return;
+    }
+
+    ifleet_t *fleet = psv_alloc_fleet (chord_file.max_chord_count);
 
     char buffer_ptr[psv_buffer_size + 1];
     char entity_cur[psv_buffer_size + 1];
     memset (buffer_ptr, 0, psv_buffer_size + 1);
     memset (entity_cur, 0, psv_buffer_size + 1);
 
-    ifleet_t *fleet = psv_alloc_fleet ();
-
     static const psv_state_t empty_state;
     psv_state_t state = empty_state;
+    state.chord_cur   = chord_file.chords;
     state.buffer_ptr  = buffer_ptr;
     state.entity_cur  = entity_cur;
     state.fleet       = fleet;
-    state.output_fd   = ofd;
+    state.output_fd   = output_fd;
 
     size_t buffer_offset = 0;
 
     for (;;) {
         psv_collect_fleet (fleet);
 
-        size_t bytes_read = read ( ifd
+        size_t bytes_read = read ( input_fd
                                  , buffer_ptr  + buffer_offset
                                  , psv_buffer_size - buffer_offset );
 
         if (bytes_read == psv_read_error) {
-            cfg->error = "error reading input";
+            cfg->error = psv_alloc_error ("error reading input", 0, 0);
             break;
         }
 
         if (bytes_read == 0) {
-            if (state.entity_cur[0] != 0) {
+            if (state.entity_cur_size != 0) {
                 psv_write_outputs (state.output_fd, state.entity_cur, state.fleet);
             }
             break;
@@ -447,6 +427,10 @@ void psv_snapshot (psv_config_t *cfg)
 
         buffer_offset = bytes_remaining;
     }
+
+    psv_error_t chord_unmap_error = ichord_file_unmap (&chord_file);
+    if (cfg->error == 0)
+        cfg->error = chord_unmap_error;
 
     cfg->fact_count   = state.fact_count;
     cfg->entity_count = state.entity_count;

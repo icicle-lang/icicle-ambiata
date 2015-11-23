@@ -80,13 +80,14 @@ runTest wt = do
         program = dir <> "/program.c"
         input   = dir <> "/input.psv"
         output  = dir <> "/output.psv"
+        chords  = Nothing
 
     liftIO (LT.writeFile program (LT.fromStrict source))
 
     let inputPsv = textOfFacts (wtEntities wt) (wtAttribute wt) (wtFacts wt)
     liftIO (L.writeFile input (LT.encodeUtf8 inputPsv))
 
-    result <- liftIO (runEitherT (S.seaPsvSnapshotFilePath fleet input output))
+    result <- liftIO (runEitherT (S.seaPsvSnapshotFilePath fleet input output chords))
 
     case result of
       Left err -> do
