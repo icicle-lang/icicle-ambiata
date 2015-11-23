@@ -35,25 +35,28 @@ invariantQ ctx (Query (c:cs) xfinal)
      | allowWindowsOrGroups inv
      -> go
      | otherwise
-     -> errNotAllowed "Consider moving the window to the start of the query"
+     -> errBanGroup "Consider moving the window to the start of the query"
     Latest{}
-     -> goNotAllowed
+     | allowLatest inv
+     -> goBanGroup
+     | otherwise
+     -> errBanLatest
     GroupBy _ x
      | allowWindowsOrGroups inv
-     -> goX x >> goNotAllowed
+     -> goX x >> goBanGroup
      | otherwise
-     -> errNotAllowed "Nested groups are not supported"
+     -> errBanGroup "Nested groups are not supported"
     Distinct _ x
      | allowWindowsOrGroups inv
-     -> goX x >> goNotAllowed
+     -> goX x >> goBanGroup
      | otherwise
-     -> errNotAllowed "Nested Distinct are not supported"
+     -> errBanGroup "Nested Distinct are not supported"
 
     GroupFold _ _ _ x
      | allowWindowsOrGroups inv
-     -> goX x >> goNotAllowed
+     -> goX x >> goBanAll
      | otherwise
-     -> errNotAllowed "Nested group folds are not supported"
+     -> errBanGroup "Nested group folds are not supported"
 
     Filter _ x
      -> goX x >> go
@@ -68,12 +71,22 @@ invariantQ ctx (Query (c:cs) xfinal)
   go = invariantQ ctx q'
   goX = invariantX ctx
 
-  goNotAllowed
+  goBanAll
+     = invariantQ
+        (ctx{ checkInvariants = inv{ allowLatest = False, allowWindowsOrGroups = False }})
+        q'
+
+  goBanGroup
      = invariantQ
         (ctx{ checkInvariants = inv{ allowWindowsOrGroups = False }})
         q'
 
-  errNotAllowed sug
+  errBanLatest
+   = errorSuggestions
+      (ErrorContextNotAllowedHere (annotOfContext c) c)
+      [ Suggest "Latest not allowed here" ]
+
+  errBanGroup sug
    = errorSuggestions
       (ErrorContextNotAllowedHere (annotOfContext c) c)
       [ Suggest "Groups, distincts, latests and windows cannot be nested"
