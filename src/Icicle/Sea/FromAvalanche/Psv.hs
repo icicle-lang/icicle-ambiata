@@ -9,7 +9,6 @@ module Icicle.Sea.FromAvalanche.Psv (
   ) where
 
 import qualified Data.ByteString as B
-import           Data.Foldable (maximum)
 import qualified Data.List as List
 import           Data.Map (Map)
 import qualified Data.Map as Map
@@ -716,6 +715,8 @@ mappingOfField (StructField fname, ftype) vars0 = do
 
 ------------------------------------------------------------------------
 
+-- * Output
+
 cond :: Doc -> Doc -> Doc
 cond n body
  = vsep ["if (" <> n <> ")"
@@ -723,21 +724,50 @@ cond n body
         , indent 4 body
         , "}"]
 
+iprintf :: Doc -> Doc -> Doc
+iprintf fmt val
+ = vsep
+ [ "psv_output_error = psv_output_printf (fd, psv_output_buf, psv_output_buf_end, psv_output_buf_ptr,\""
+   <> fmt <> "\"," <+> val <> ");"
+ , outputDie
+ ]
+
+forStmt :: Doc -> Doc -> Doc -> Doc
+forStmt i n m
+ = "for(iint_t" <+> i <+> "= 0," <+> n <+> "=" <+> m <> ";" <+> i <+> "<" <+> n <> "; ++" <> i <> ")"
+
+outputChar :: Doc -> Doc
+outputChar
+ = iprintf "%c"
+
+dateFmt :: Doc
+dateFmt = "%lld-%02lld-%02lldT%02lld:%02lld:%02lld"
+
+outputDie :: Doc
+outputDie = "if (psv_output_error) return psv_output_error;"
+
 seaOfWriteFleetOutput :: PsvMode -> [SeaProgramState] -> Either SeaError Doc
 seaOfWriteFleetOutput mode states = do
   write_sea <- traverse seaOfWriteProgramOutput states
   pure $ vsep
     [ "#line 1 \"write all outputs\""
-    , "static void psv_write_outputs (int fd, const char *entity, ifleet_t *fleet)"
+    , "static psv_error_t psv_write_outputs (int fd, const char *entity, ifleet_t *fleet)"
     , "{"
     , "    iint_t         chord_count = fleet->chord_count;"
     , "    const idate_t *chord_dates = fleet->chord_dates;"
+    , "    psv_error_t    psv_output_error;"
+    , "    char           psv_output_buf[psv_output_buf_size];"
+    , "    char          *psv_output_buf_end = psv_output_buf + psv_output_buf_size - 1;"
+    , "    char          *psv_output_buf_ptr = psv_output_buf;"
+    , ""
+    , "    bzero (psv_output_buf, psv_output_buf_size);"
     , ""
     , "    for (iint_t chord_ix = 0; chord_ix < chord_count; chord_ix++) {"
     , indent 8 (seaOfChordDate mode)
     , ""
     , indent 8 (vsep write_sea)
     , "    }"
+    , "    return 0;"
     , "}"
     ]
 
@@ -790,23 +820,18 @@ seaOfWriteOutput ps oname@(OutputName name) otype0 ts0 ixStart
 
   where
     attrib = seaOfEscaped name
-    before = iprintf ("\"%s" <> attrib <> "|\"") "entity"
-    after  = iprintf "%s\\n"                     "chord_date"
+    before = iprintf ("%s" <> attrib <> "|") "entity"
+    after  = iprintf "%s\\n"                 "chord_date"
 
     decldt = "iint_t v_year, v_month, v_day, v_hour, v_minute, v_second;" :: Doc
-    calloc = "char *psv_output_buf = calloc(1, psv_output_buf_size);"
-    free   = "free (psv_output_buf);"
 
     go str
       = pure
       $ vsep
-      $  [ if hasDateTime otype0 then decldt else mempty
-         , calloc
-         ]
+      $  [ if hasDateTime otype0 then decldt else mempty ]
       <> [ before
          , str
          , after
-         , free
          ]
 
     hasDateTime DateTimeT   = True
@@ -916,11 +941,7 @@ seaOfOutputArray namePrefix body array
               ]
         )
 
-iprintf :: Doc -> Doc -> Doc
-iprintf fmt val
- =   "psv_output_buf_ptr += iprintf(fd, psv_output_buf, psv_output_buf_end - psv_output_buf_ptr,"
- <+> fmt <+> "," <+> val <+> ");"
-
+-- | Output single types
 seaOfOutputBase :: SeaError -> ValType -> Doc -> Either SeaError Doc
 seaOfOutputBase err t val
  = case t of
@@ -946,17 +967,6 @@ seaOfOutputBase err t val
               ]
 
      _ -> Left err
-
-forStmt :: Doc -> Doc -> Doc -> Doc
-forStmt i n m
- = "for(iint_t" <+> i <+> "= 0," <+> n <+> "=" <+> m <> ";" <+> i <+> "<" <+> n <> "; ++" <> i <> ")"
-
-outputChar :: Doc -> Doc
-outputChar c
- = "output_buf_ptr += iprintf (fd, psv_output_buf_end - psv_output_buf_ptr, %c)" <> c
-
-dateFmt :: Doc
-dateFmt = "%lld-%02lld-%02lldT%02lld:%02lld:%02lld"
 
 ------------------------------------------------------------------------
 
