@@ -854,7 +854,62 @@ seaOfWriteOutput ps oname@(OutputName name) otype0 ts0 ixStart
 seaOfOutput :: Doc -> OutputName -> ValType -> [ValType] -> Int -> Either SeaError Doc
 seaOfOutput ps oname@(OutputName name) otype0 ts0 ixStart
   = let members = List.take (length ts0) (fmap (\ix -> ps <> "->" <> seaOfNameIx name ix) [ixStart..])
+        counter = pretty name <> "_i"
     in case otype0 of
+         -- TODO generalise these if possible
+         ArrayT (SumT ErrorT _)
+          | [ArrayT BoolT , ArrayT ErrorT , ArrayT te] <- ts0
+          , [ab           , _             , ae       ] <- members
+          , isBaseType te
+          -> do body      <- seaOfOutputBaseQuoted te (seaOfArrayIndex ae counter te)
+                let body'  = cond (seaOfArrayIndex ab counter BoolT) body
+                seaOfOutputArray body' ae
+
+         ArrayT (PairT _ _)
+          | [ArrayT ta, ArrayT tb] <- ts0
+          , [       aa,        ab] <- members
+          , isBaseType ta && isBaseType tb
+          -> do bodya <- seaOfOutputBaseQuoted ta (seaOfArrayIndex aa counter ta)
+                bodyb <- seaOfOutputBaseQuoted tb (seaOfArrayIndex ab counter tb)
+                seaOfOutputArrayPair aa bodya bodyb
+
+         ArrayT (OptionT _)
+          | [ArrayT BoolT, ArrayT te] <- ts0
+          , [ab,           ae       ] <- members
+          , isBaseType te
+          -> do bodyb <- seaOfOutputBaseQuoted BoolT (seaOfArrayIndex ab counter BoolT)
+                bodye <- seaOfOutputBaseQuoted te (seaOfArrayIndex ae counter te)
+                let body' = cond bodyb bodye
+                seaOfOutputArray body' ab
+
+         ArrayT _
+          | [ArrayT te] <- ts0
+          , [arr]       <- members
+          , isBaseType te
+          -> do body <- seaOfOutputBaseQuoted te (seaOfArrayIndex arr counter te)
+                seaOfOutputArray body arr
+          | otherwise
+          -> Left unsupported
+
+
+         MapT _ (OptionT _)
+          | [ArrayT tk, ArrayT BoolT, ArrayT tv] <- ts0
+          , [ak,        ab          , av       ] <- members
+          -> do bodyk <- seaOfOutputBaseQuoted tk (seaOfArrayIndex ak counter tk)
+                bodyv <- seaOfOutputBaseQuoted tv (seaOfArrayIndex av counter tv)
+                bodyb <- seaOfOutputBaseQuoted BoolT (seaOfArrayIndex ab counter BoolT)
+                let body' = cond bodyb (vsep [ bodyk, bodyv ])
+                seaOfOutputArray body' ak
+
+         MapT _ _
+          | [ArrayT tk, ArrayT tv] <- ts0
+          , [_, _]                 <- members
+          , isBaseType tk && isBaseType tv
+          -> seaOfOutput ps oname (ArrayT (PairT tk tv)) ts0 ixStart --terrible
+          | otherwise
+          -> Left unsupported
+
+
          SumT ErrorT otype1
           | (BoolT : ErrorT : ts1) <- ts0
           , (nb    : _      : _)   <- members
@@ -870,30 +925,6 @@ seaOfOutput ps oname@(OutputName name) otype0 ts0 ixStart
          PairT _ _
           -> seaOfOutputPair ts0
 
-         ArrayT (SumT ErrorT _)
-          | [ArrayT BoolT , ArrayT ErrorT , ArrayT elemT] <- ts0
-          , [boolA        , _             , elemA       ] <- members
-          -> let counter  = pretty name <> "_i"
-             in  do body      <- seaOfOutputBaseQuoted elemT (seaOfArrayIndex elemA counter elemT)
-                    let body'  = cond (seaOfArrayIndex boolA counter BoolT) body
-                    seaOfOutputArray (pretty name) body' elemA
-
-         MapT _ _
-          | [ArrayT tk, ArrayT tv] <- ts0
-          , [keys,      vals]      <- members
-          -> let counter = pretty name <> "_i"
-             in  do bk <- seaOfOutputBaseQuoted tk (seaOfArrayIndex keys counter tk)
-                    bv <- seaOfOutputBaseQuoted tv (seaOfArrayIndex vals counter tv)
-                    seaOfOutputArray
-                      (pretty name)
-                      (vsep [ outputChar "["
-                            , bk
-                            , outputChar ","
-                            , bv
-                            , outputChar "]"
-                            ])
-                      keys
-
          _
           | [t]  <- ts0
           , [mx] <- members
@@ -905,10 +936,40 @@ seaOfOutput ps oname@(OutputName name) otype0 ts0 ixStart
    mismatch    = SeaOutputTypeMismatch oname otype0 ts0
    unsupported = SeaUnsupportedOutputType otype0
 
-   seaOfOutputBaseQuoted
-    = seaOfOutputBase True mismatch
    seaOfOutputBaseNoQuoted
     = seaOfOutputBase False mismatch
+
+   seaOfOutputBaseQuoted
+    = seaOfOutputBase True mismatch
+
+   seaOfOutputArrayPair keys bk bv
+    = seaOfOutputArray
+        (vsep [ outputChar "["
+              , bk
+              , outputChar ","
+              , bv
+              , outputChar "]"
+              ])
+        keys
+
+   -- Output an array with pre-defined bodies
+   seaOfOutputArray body array
+    = let namePrefix = pretty name
+          counter    = namePrefix <> "_i"
+          limit      = namePrefix <> "_n"
+          numElems   = array <> "->count"
+      in  pure
+           (vsep [ outputChar "["
+                 , forStmt counter limit numElems
+                 , "{"
+                 , indent 4
+                     $ cond (counter <+> "> 0")
+                            (outputChar ",")
+                 , indent 4 body
+                 , "}"
+                 , outputChar "]"
+                 ]
+           )
 
    -- Output (nested) pairs as array
    seaOfOutputPair ts
@@ -930,25 +991,6 @@ seaOfOutput ps oname@(OutputName name) otype0 ts0 ixStart
                   <> stms
                   <> [ outputChar "]" ]
 
-
--- | Output an array with pre-defined bodies
-seaOfOutputArray :: Doc -> Doc -> Doc -> Either SeaError Doc
-seaOfOutputArray namePrefix body array
- = let counter = namePrefix <> "_i"
-       limit   = namePrefix <> "_n"
-       numElems= array <> "->count"
-   in  pure
-        (vsep [ outputChar "["
-              , forStmt counter limit numElems
-              , "{"
-              , indent 4
-                  $ cond (counter <+> "> 0")
-                         (outputChar ",")
-              , indent 4 body
-              , "}"
-              , outputChar "]"
-              ]
-        )
 
 -- | Output single types
 seaOfOutputBase :: Bool -> SeaError -> ValType -> Doc -> Either SeaError Doc
@@ -976,7 +1018,17 @@ seaOfOutputBase quoteDate err t val
                   (if quoteDate then dateFmtQuoted else dateFmt) -- uuggghhhh
                   "v_year, v_month, v_day, v_hour, v_minute, v_second"
               ]
+
      _ -> Left err
+
+isBaseType :: ValType -> Bool
+isBaseType BoolT     = True
+isBaseType IntT      = True
+isBaseType DoubleT   = True
+isBaseType StringT   = True
+isBaseType DateTimeT = True
+isBaseType _         = False
+
 
 ------------------------------------------------------------------------
 
