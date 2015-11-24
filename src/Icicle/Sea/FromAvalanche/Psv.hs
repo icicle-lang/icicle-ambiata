@@ -743,9 +743,6 @@ outputChar x
 dateFmt :: Doc
 dateFmt = "%lld-%02lld-%02lldT%02lld:%02lld:%02lld"
 
-dateFmtQuoted :: Doc
-dateFmtQuoted = "\\\"%lld-%02lld-%02lldT%02lld:%02lld:%02lld\\\""
-
 outputDie :: Doc
 outputDie = "if (psv_output_error) return psv_output_error;"
 
@@ -994,7 +991,7 @@ seaOfOutput ps oname@(OutputName name) otype0 ts0 ixStart
 
 -- | Output single types
 seaOfOutputBase :: Bool -> SeaError -> ValType -> Doc -> Either SeaError Doc
-seaOfOutputBase quoteDate err t val
+seaOfOutputBase quoteStrings err t val
  = case t of
      BoolT
       -> pure
@@ -1010,12 +1007,12 @@ seaOfOutputBase quoteDate err t val
      DoubleT
       -> pure $ vsep [iprintf "%f" val]
      StringT
-      -> pure $ vsep [iprintf "%s" val]
+      -> pure $ vsep [iprintf (quotedFormat quoteStrings "%s") val]
      DateTimeT
       -> pure
        $ vsep [ "idate_to_gregorian (" <> val <> ", &v_year, &v_month, &v_day, &v_hour, &v_minute, &v_second);"
               , iprintf
-                  (if quoteDate then dateFmtQuoted else dateFmt) -- uuggghhhh
+                  (quotedFormat quoteStrings dateFmt) -- uuggghhhh
                   "v_year, v_month, v_day, v_hour, v_minute, v_second"
               ]
 
@@ -1029,6 +1026,9 @@ isBaseType StringT   = True
 isBaseType DateTimeT = True
 isBaseType _         = False
 
+quotedFormat :: Bool -> Doc -> Doc
+quotedFormat False fmt = fmt
+quotedFormat True  fmt = "\\\"" <> fmt <> "\\\""
 
 ------------------------------------------------------------------------
 
