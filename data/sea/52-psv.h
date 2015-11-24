@@ -370,6 +370,7 @@ void psv_snapshot (psv_config_t *cfg)
     int output_fd = (int)cfg->output_fd;
     int chord_fd  = (int)cfg->chord_fd;
 
+    /* System.IO.Handles are in non-blocking mode by default */
     psv_set_blocking_mode (input_fd);
     psv_set_blocking_mode (output_fd);
     psv_set_blocking_mode (chord_fd);
