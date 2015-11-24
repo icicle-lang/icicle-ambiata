@@ -436,4 +436,16 @@ void psv_snapshot (psv_config_t *cfg)
     cfg->entity_count = state.entity_count;
 }
 
+// todo handle error when printing
+void psv_iprintf(int fd, char* buf, size_t size, const char* restrict fmt, ...)
+{
+    va_list ap;
+
+    if (size > 0) {
+      snprintf (buf, size, fmt, ap);
+    } else {
+      write (fd, buf, psv_output_buf_size);
+    }
+
+}
 #endif
