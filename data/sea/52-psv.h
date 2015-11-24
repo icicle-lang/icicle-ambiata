@@ -476,7 +476,6 @@ psv_error_t psv_output_vprintf ( int fd, char *buf_start, char *buf_end,  char *
       }
     }
 
-   printf ("needs to flush");
    // can write to buffer after flushing.
    psv_error_t err = psv_output_flush(fd, buf_start, *buf_ptr);
    if (err) {

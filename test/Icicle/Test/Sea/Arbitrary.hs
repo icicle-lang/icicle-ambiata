@@ -189,31 +189,40 @@ isSupportedInputField = \case
 
 isSupportedOutput :: ValType -> Bool
 isSupportedOutput = \case
+  OptionT t              -> isSupportedOutputElem t
+  PairT a b              -> isSupportedOutputElem a && isSupportedOutputElem b
+  SumT ErrorT t          -> isSupportedOutputElem t
+
+  ArrayT (SumT ErrorT t) -> isSupportedOutputElem t
+  MapT k v               -> isSupportedOutputElem k && isSupportedOutputElem v
+
+  t                      -> isSupportedOutputBase t
+
+isSupportedOutputElem :: ValType -> Bool
+isSupportedOutputElem = \case
+  OptionT t              -> isSupportedOutputElem t
+  PairT a b              -> isSupportedOutputElem a && isSupportedOutputElem b
+  SumT ErrorT t          -> isSupportedOutputElem t
+
+  ArrayT _               -> False
+  MapT   _ _             -> False
+
+  t                      -> isSupportedOutputBase t
+
+isSupportedOutputBase :: ValType -> Bool
+isSupportedOutputBase = \case
   BoolT     -> True
   IntT      -> True
   DoubleT   -> True
   DateTimeT -> True
   StringT   -> True
-  OptionT t -> isSupportedOutput t
-  PairT a b -> isSupportedOutput a && isSupportedOutput b
-
-  ArrayT t
-   | SumT ErrorT te <- t
-   -> isSupportedOutput te
-   | otherwise
-   -> False
 
   UnitT     -> False
   ErrorT    -> False
   BufT{}    -> False
-  MapT{}    -> False
   StructT{} -> False
 
-  SumT te tx
-   | ErrorT <- te
-   -> isSupportedOutput tx
-   | otherwise
-   -> False
+  _         -> False
 
 isSupportedType :: ValType -> Bool
 isSupportedType = \case
