@@ -3,7 +3,8 @@
 module Icicle.Sea.Chords.File (
     maximumOfDates
   , chordFile
-  , writeFile
+  , hPutChordFile
+  , writeChordFile
   , header
   , record
   ) where
@@ -17,7 +18,7 @@ import qualified Data.ByteString.Char8   as BSC
 import qualified Data.ByteString.Builder as BS
 import qualified Data.Text.Encoding as T
 
-import System.IO (IO, Handle)
+import System.IO (IO, IOMode(..), Handle, FilePath, withBinaryFile)
 
 import           P
 
@@ -64,6 +65,10 @@ chordFile chordmap
      , BS.int64LE 0, BS.int64LE 0, BS.word8 0 ]
 
 
-writeFile :: ChordMap -> Handle -> IO ()
-writeFile chordmap hnd
+hPutChordFile :: ChordMap -> Handle -> IO ()
+hPutChordFile chordmap hnd
  = BS.hPutBuilder hnd (chordFile chordmap)
+
+writeChordFile :: ChordMap -> FilePath -> IO ()
+writeChordFile chordmap path
+ = withBinaryFile path WriteMode (hPutChordFile chordmap)

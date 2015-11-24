@@ -1,7 +1,8 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Icicle.Sea.Chords.Parse (
-    parseChordLine
+    ChordParseError(..)
+  , parseChordLine
   , parseChordFile
 ) where
 
