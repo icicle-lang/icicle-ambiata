@@ -727,7 +727,7 @@ cond n body
 iprintf :: Doc -> Doc -> Doc
 iprintf fmt val
  = vsep
- [ "psv_output_error = psv_output_printf (fd, psv_output_buf, psv_output_buf_end, psv_output_buf_ptr,\""
+ [ "psv_output_error = psv_output_printf (fd, psv_output_buf, psv_output_buf_end, &psv_output_buf_ptr,\""
    <> fmt <> "\"," <+> val <> ");"
  , outputDie
  ]
@@ -737,11 +737,14 @@ forStmt i n m
  = "for(iint_t" <+> i <+> "= 0," <+> n <+> "=" <+> m <> ";" <+> i <+> "<" <+> n <> "; ++" <> i <> ")"
 
 outputChar :: Doc -> Doc
-outputChar
- = iprintf "%c"
+outputChar x
+ = iprintf "%c" ("'" <> x <> "'")
 
 dateFmt :: Doc
 dateFmt = "%lld-%02lld-%02lldT%02lld:%02lld:%02lld"
+
+dateFmtQuoted :: Doc
+dateFmtQuoted = "\\\"%lld-%02lld-%02lldT%02lld:%02lld:%02lld\\\""
 
 outputDie :: Doc
 outputDie = "if (psv_output_error) return psv_output_error;"
@@ -767,6 +770,10 @@ seaOfWriteFleetOutput mode states = do
     , ""
     , indent 8 (vsep write_sea)
     , "    }"
+    , ""
+    , "    psv_output_error = psv_output_flush (fd, psv_output_buf, psv_output_buf_ptr);"
+    , outputDie
+    , ""
     , "    return 0;"
     , "}"
     ]
@@ -820,7 +827,7 @@ seaOfWriteOutput ps oname@(OutputName name) otype0 ts0 ixStart
 
   where
     attrib = seaOfEscaped name
-    before = iprintf ("%s" <> attrib <> "|") "entity"
+    before = iprintf ("%s|" <> attrib <> "|") "entity"
     after  = iprintf "%s\\n"                 "chord_date"
 
     decldt = "iint_t v_year, v_month, v_day, v_hour, v_minute, v_second;" :: Doc
@@ -867,7 +874,7 @@ seaOfOutput ps oname@(OutputName name) otype0 ts0 ixStart
           | [ArrayT BoolT , ArrayT ErrorT , ArrayT elemT] <- ts0
           , [boolA        , _             , elemA       ] <- members
           -> let counter  = pretty name <> "_i"
-             in  do body      <- seaOfOutputBase' elemT (seaOfArrayIndex elemA counter elemT)
+             in  do body      <- seaOfOutputBaseQuoted elemT (seaOfArrayIndex elemA counter elemT)
                     let body'  = cond (seaOfArrayIndex boolA counter BoolT) body
                     seaOfOutputArray (pretty name) body' elemA
 
@@ -875,8 +882,8 @@ seaOfOutput ps oname@(OutputName name) otype0 ts0 ixStart
           | [ArrayT tk, ArrayT tv] <- ts0
           , [keys,      vals]      <- members
           -> let counter = pretty name <> "_i"
-             in  do bk <- seaOfOutputBase' tk (seaOfArrayIndex keys counter tk)
-                    bv <- seaOfOutputBase' tv (seaOfArrayIndex vals counter tv)
+             in  do bk <- seaOfOutputBaseQuoted tk (seaOfArrayIndex keys counter tk)
+                    bv <- seaOfOutputBaseQuoted tv (seaOfArrayIndex vals counter tv)
                     seaOfOutputArray
                       (pretty name)
                       (vsep [ outputChar "["
@@ -890,7 +897,7 @@ seaOfOutput ps oname@(OutputName name) otype0 ts0 ixStart
          _
           | [t]  <- ts0
           , [mx] <- members
-          -> seaOfOutputBase' t mx
+          -> seaOfOutputBaseNoQuoted t mx
 
          _ -> Left unsupported
 
@@ -898,8 +905,10 @@ seaOfOutput ps oname@(OutputName name) otype0 ts0 ixStart
    mismatch    = SeaOutputTypeMismatch oname otype0 ts0
    unsupported = SeaUnsupportedOutputType otype0
 
-   seaOfOutputBase'
-    = seaOfOutputBase mismatch
+   seaOfOutputBaseQuoted
+    = seaOfOutputBase True mismatch
+   seaOfOutputBaseNoQuoted
+    = seaOfOutputBase False mismatch
 
    -- Output (nested) pairs as array
    seaOfOutputPair ts
@@ -942,8 +951,8 @@ seaOfOutputArray namePrefix body array
         )
 
 -- | Output single types
-seaOfOutputBase :: SeaError -> ValType -> Doc -> Either SeaError Doc
-seaOfOutputBase err t val
+seaOfOutputBase :: Bool -> SeaError -> ValType -> Doc -> Either SeaError Doc
+seaOfOutputBase quoteDate err t val
  = case t of
      BoolT
       -> pure
@@ -963,9 +972,10 @@ seaOfOutputBase err t val
      DateTimeT
       -> pure
        $ vsep [ "idate_to_gregorian (" <> val <> ", &v_year, &v_month, &v_day, &v_hour, &v_minute, &v_second);"
-              , iprintf dateFmt "v_year, v_month, v_day, v_hour, v_minute, v_second"
+              , iprintf
+                  (if quoteDate then dateFmtQuoted else dateFmt) -- uuggghhhh
+                  "v_year, v_month, v_day, v_hour, v_minute, v_second"
               ]
-
      _ -> Left err
 
 ------------------------------------------------------------------------
