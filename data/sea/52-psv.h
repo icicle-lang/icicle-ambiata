@@ -1,4 +1,5 @@
 #include "51-chord.h"
+#include <stdarg.h>
 
 #if !ICICLE_NO_PSV
 
@@ -51,7 +52,7 @@ static void INLINE psv_collect_fleet (ifleet_t *fleet);
 
 static psv_error_t INLINE psv_configure_fleet (const char *entity, size_t entity_size, const ichord_t **chord, ifleet_t *fleet);
 
-static void INLINE psv_write_outputs (int fd, const char *entity, ifleet_t *fleet);
+static psv_error_t INLINE psv_write_outputs (int fd, const char *entity, ifleet_t *fleet);
 
 static psv_error_t INLINE psv_read_fact
   ( const char   *attrib
@@ -64,7 +65,7 @@ static psv_error_t INLINE psv_read_fact
 /* psv driver */
 static const size_t psv_max_row_count   = 128;
 static const size_t psv_buffer_size     = 16*1024;
-static const size_t psv_output_buf_size = 128;
+static const size_t psv_output_buf_size = 1024;
 
 static psv_error_t INLINE psv_read_date (const char *time_ptr, const size_t time_size, idate_t *output_ptr)
 {
@@ -327,7 +328,8 @@ static psv_error_t psv_read_buffer (psv_state_t *s)
 
         if (new_entity) {
             if (entity_cur_size != 0) {
-                psv_write_outputs (s->output_fd, entity_cur, s->fleet);
+                error = psv_write_outputs (s->output_fd, entity_cur, s->fleet);
+                if (error) goto on_error;
             }
 
             memcpy (entity_cur, entity_ptr, entity_size);
@@ -365,6 +367,7 @@ void psv_set_blocking_mode (int fd)
 void psv_snapshot (psv_config_t *cfg)
 {
     static const size_t psv_read_error = (size_t) -1;
+    psv_error_t psv_write_error = 0;
 
     int input_fd  = (int)cfg->input_fd;
     int output_fd = (int)cfg->output_fd;
@@ -415,7 +418,11 @@ void psv_snapshot (psv_config_t *cfg)
 
         if (bytes_read == 0) {
             if (state.entity_cur_size != 0) {
-                psv_write_outputs (state.output_fd, state.entity_cur, state.fleet);
+                psv_write_error = psv_write_outputs (state.output_fd, state.entity_cur, state.fleet);
+                if (psv_write_error != 0) {
+                    cfg->error = psv_write_error;
+                    break;
+                }
             }
             break;
         }
@@ -445,6 +452,59 @@ void psv_snapshot (psv_config_t *cfg)
 
     cfg->fact_count   = state.fact_count;
     cfg->entity_count = state.entity_count;
+}
+
+psv_error_t psv_output_flush (int fd, void *buf, void *end) {
+  size_t f = end - buf;
+  size_t w = write (fd, buf, f);
+
+  if (w < f) {
+    return psv_alloc_error ("cannot write psv output to file", buf, f);
+  }
+
+  bzero (buf, f);
+  return 0;
+}
+
+psv_error_t psv_output_vprintf ( int fd, char *buf_start, char *buf_end,  char **buf_ptr
+                               , const char* restrict fmt, va_list ap )
+{
+    size_t  buf_left = buf_end - *buf_ptr;
+    size_t  len      = 0;
+
+    if (*buf_ptr != buf_end) {
+      len = vsnprintf (*buf_ptr, buf_left, fmt, ap);
+
+      // cannot write to buffer even if it was empty.
+      if (len >= psv_output_buf_size) {
+          return psv_alloc_error("psv output is too large", 0, 0);
+      }
+
+      // success fully written to buffer.
+      if (len < buf_left) {
+          *buf_ptr += len;
+          return 0;
+      }
+    }
+
+   // can write to buffer after flushing.
+   psv_error_t err = psv_output_flush(fd, buf_start, *buf_ptr);
+   if (err) {
+       return err;
+   }
+
+   *buf_ptr = buf_start;
+   return psv_output_vprintf(fd, buf_start, buf_end, buf_ptr, fmt, ap);
+}
+
+psv_error_t psv_output_printf ( int fd, char *buf_start, char *buf_end,  char **buf_ptr
+                              , const char* restrict fmt, ...)
+{
+  va_list ap;
+  va_start(ap, fmt);
+  psv_error_t err = psv_output_vprintf(fd, buf_start, buf_end, buf_ptr, fmt, ap);
+  va_end(ap);
+  return err;
 }
 
 #endif
