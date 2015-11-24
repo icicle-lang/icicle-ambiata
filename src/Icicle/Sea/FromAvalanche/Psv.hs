@@ -1005,7 +1005,7 @@ seaOfOutputBase quoteStrings err t val
      IntT
       -> pure $ vsep [iprintf "%lld" val]
      DoubleT
-      -> pure $ vsep [iprintf "%f" val]
+      -> pure $ vsep [iprintf "%.17g" val]
      StringT
       -> pure $ vsep [iprintf (quotedFormat quoteStrings "%s") val]
      DateTimeT
