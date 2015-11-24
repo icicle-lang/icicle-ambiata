@@ -356,6 +356,12 @@ on_error:
     return error;
 }
 
+void psv_set_blocking_mode (int fd)
+{
+    const int flags = fcntl (fd, F_GETFL, 0);
+    fcntl (fd, F_SETFL, flags & ~O_NONBLOCK);
+}
+
 void psv_snapshot (psv_config_t *cfg)
 {
     static const size_t psv_read_error = (size_t) -1;
@@ -363,6 +369,11 @@ void psv_snapshot (psv_config_t *cfg)
     int input_fd  = (int)cfg->input_fd;
     int output_fd = (int)cfg->output_fd;
     int chord_fd  = (int)cfg->chord_fd;
+
+    /* System.IO.Handles are in non-blocking mode by default */
+    psv_set_blocking_mode (input_fd);
+    psv_set_blocking_mode (output_fd);
+    psv_set_blocking_mode (chord_fd);
 
     ichord_file_t chord_file;
     psv_error_t chord_mmap_error = ichord_file_mmap (chord_fd, &chord_file);
