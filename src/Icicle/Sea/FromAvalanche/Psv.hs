@@ -872,10 +872,13 @@ seaOfOutput
 seaOfOutput q ps oname@(OutputName name) otype0 ts0 ixStart transform
   = case otype0 of
       ArrayT te
-       | tes        <- meltType te
+       | tes@(t':_) <- meltType te
+       , length ts0 == length tes
        , (arr : _)  <- members
-       -> do (body, ix, _) <- seaOfOutput True ps oname te tes ixStart arrayIndex
-             body'         <- seaOfOutputArray body arr
+       -> do (body, ix, _) <- seaOfOutput True ps oname te tes ixStart (arrayIndex...transform)
+             -- Special case for (ArrayT (ArrayT NotArrayThing)) as that is allowed in v0
+             let ac         = arrayCount $ transform (ArrayT t') arr
+             body'         <- seaOfOutputArray body ac
              let ts1        = List.drop (length tes) ts0
              return (body', ix, ts1)
 
@@ -884,11 +887,10 @@ seaOfOutput q ps oname@(OutputName name) otype0 ts0 ixStart transform
        , tvs        <- meltType tv
        , length ts0 == length tks + length tvs
        , (arr: _)   <- members
-       -> do (bk, ixk, _)  <- seaOfOutput True ps oname tk tks ixStart arrayIndex
-             (bv, ixv, ts) <- seaOfOutput True ps oname tv tvs ixk     arrayIndex
-             body'         <- seaOfOutputArray (pair bk bv) arr
+       -> do (bk, ixk, _)   <- seaOfOutput True ps oname tk tks ixStart (arrayIndex...transform)
+             (bv, ixv, ts)  <- seaOfOutput True ps oname tv tvs ixk     (arrayIndex...transform)
+             body'          <- seaOfOutputArray (pair bk bv) (arrayCount arr)
              return (body', ixv, ts)
-
 
       OptionT otype1
        | (BoolT : ts1) <- ts0
@@ -922,26 +924,27 @@ seaOfOutput q ps oname@(OutputName name) otype0 ts0 ixStart transform
    unsupported = SeaUnsupportedOutputType otype0
 
    members = List.take (length ts0) (fmap (\ix -> ps <> "->" <> seaOfNameIx name ix) [ixStart..])
-   counter = pretty name <> "_i"
+
+   counter    = pretty name <> "_" <> pretty ixStart <> "_i"
+   countLimit = pretty name <> "_" <> pretty ixStart <> "_n"
 
    arrayIndex t x
     = seaOfArrayIndex x counter t
+
+   arrayCount x
+    = "(" <> x <> ")" <> "->count"
 
    seaOfOutputBase' b
     = seaOfOutputBase b mismatch
 
    -- Output an array with pre-defined bodies
-   seaOfOutputArray body array
-    = let namePrefix = pretty name
-          i          = namePrefix <> "_i"
-          limit      = namePrefix <> "_n"
-          numElems   = array <> "->count"
-      in  pure
-           (vsep [ outputChar "["
-                 , forStmt i limit numElems
+   seaOfOutputArray body numElems
+    -- = let numElems   = array <> "->count"
+    = pure (vsep [ outputChar "["
+                 , forStmt counter countLimit numElems
                  , "{"
                  , indent 4
-                     $ cond (i <+> "> 0")
+                     $ cond (counter <+> "> 0")
                             (outputChar ",")
                  , indent 4 body
                  , "}"
@@ -1035,3 +1038,6 @@ init :: [a] -> Maybe [a]
 init []     = Nothing
 init (_:[]) = Just []
 init (x:xs) = (x:) <$> init xs
+
+(...) :: (a -> b -> b) -> (a -> b -> b) -> (a -> b -> b)
+f ... g = \x y -> g x (f x y)
