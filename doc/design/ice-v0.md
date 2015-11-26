@@ -34,30 +34,6 @@ C error:
 no such variable "iarray__iarray__iarray__iint_t"; did you mean "iarray__iarray__iint_t"?
 ```
 
-### Not all types can be output to PSV
-The C code generator does not handle outputting all types.
-All simple types are supported, but more exotic types, such as ``(String, Map DateTime String)`` may not be handled.
-If you see an error like the following, it is probably an unsupported output type.
-```
-Unsupported mapping, cannot map output type to its C struct members
-  output name   = fozzy
-  output type   = (String, Map DateTime String)
-  mapping on to = [StringT,ArrayT DateTimeT,ArrayT StringT]
-```
-For complex queries with pair outputs, it may be possible to split them up into multiple queries.
-```
-feature salary
-~> min value, (group date ~> count) 
-```
-could be split into two queries.
-```
-feature salary
-~> min value
-
-feature salary
-~> group date ~> count
-```
-
 ### Missing Array, String and Map primitives
 There are currently no primitives for working on Array, String and Map types.
 Arrays can be created with ``latest`` and Maps with ``group``, but there is no way of indexing into an array, taking its length, or folding over it.
