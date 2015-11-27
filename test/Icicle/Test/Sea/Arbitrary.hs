@@ -193,8 +193,8 @@ isSupportedOutput = \case
   PairT a b              -> isSupportedOutputElem a && isSupportedOutputElem b
   SumT ErrorT t          -> isSupportedOutputElem t
 
-  ArrayT t               -> isSupportedOutputElem t
   ArrayT (ArrayT t)      -> isSupportedOutputElem t
+  ArrayT t               -> isSupportedOutputElem t
   MapT k v               -> isSupportedOutputElem k && isSupportedOutputElem v
 
   t                      -> isSupportedOutputBase t
