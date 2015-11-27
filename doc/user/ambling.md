@@ -19,13 +19,12 @@ welcome to iREPL
 ok, loaded dictionary with 7 features and 6 functions
 
 > -- Load some example data
-
 > :load data/example/demographics.psv
 ok, loaded data/example/demographics.psv, 18 rows
 ```
 
 To find out more information about the newly loaded dictionary, we can use the ``:set`` command.
-The first few lines of internal details have been omitted.
+The first few lines, omitted here, list the internal REPL flags, which can be enabled/disabled with `:set +flag` and `:set -flag`.
 
 ```
 > :set
@@ -99,6 +98,7 @@ Inside queries on simple types such as integers, doubles and strings, we use ``v
 However, inside structures, we refer to each field by its name (``action``, ``location`` and ``severity`` in this case) or ``fields`` to refer to the entire structure.
 
 Now, if we try to find the mean of severity, we would get:
+
 ```
 > feature injury ~> mean severity
 - Result:
@@ -106,6 +106,7 @@ Now, if we try to find the mean of severity, we would get:
 ```
 
 However, finding the mean of location is not so simple: location is a string, but mean only works on numbers such as integers or doubles.
+
 ```
 > feature injury ~> mean location
                     λλλλ
@@ -123,6 +124,7 @@ Newest and oldest
 Other functions don't have the same restrictions on numbers.
 Consider ``newest`` and ``oldest`` which simply return the first and last entries.
 We can join the result of two aggregates with a comma.
+
 ```
 > feature injury ~> newest location, oldest severity
 - Result:
@@ -130,6 +132,7 @@ We can join the result of two aggregates with a comma.
 ```
 
 If we wanted the newest of both location and severity, we could use parentheses to nest the comma inside the argument to ``newest`` like so:
+
 ```
 > feature injury ~> newest (location, severity)
 - Result:
@@ -146,11 +149,13 @@ The source of this data is a single concrete feature.
 We can imagine that ``feature salary`` starts reading all entries from the disk.
 The data is then passed through with the operator ``~>``, pronounced "flows into".
 For example, in the simple query
+
 ```
 feature salary ~> mean value
 ```
 Here, all data is being read, and passed into the ``mean`` aggregate.
 We can introduce new "contexts" between the source and the aggregate, for example if we wanted to find the mean of only positive values:
+
 ```
 > feature salary ~> filter value > 0 ~> mean value
 - Result:
@@ -176,6 +181,7 @@ Of course there are no negative salaries, so a division would cause division by 
 
 This gets a bit messy however, and we may wish to introduce intermediate bindings with ``let``.
 Here I have split the query across multiple lines for exposition, however for now the repl only handles input queries on a single line.
+
 ```
 > feature salary
   ~> let pos = (filter value > 0 ~> count)
@@ -223,6 +229,7 @@ It is often useful to look at just the last few months of data - this is called 
 Before looking at windowing proper, we should look at the dates in the sample data.
 Each fact, along with its ``value`` or struct fields, has a ``date`` attached to it.
 We can view the first and last dates quite easily:
+
 ```
 > feature salary ~> oldest date, newest date
 - Result:
@@ -230,12 +237,14 @@ We can view the first and last dates quite easily:
 ```
 
 Now that we know the most recent entry was 2010, we can set the current snapshot date.
+
 ```
 > :set date 2010 1 1
 ok, date set to 2010-1-1
 ```
 
 If we wish to see the number of salary changes between late 2009 and 2010, we could do this:
+
 ```
 > feature salary ~> windowed 30 days ~> count, sum value
 - Result:
@@ -243,6 +252,7 @@ If we wish to see the number of salary changes between late 2009 and 2010, we co
 ```
 
 We can also look at changes over the last year, but ignoring any made within the current month:
+
 ```
 > feature salary ~> windowed between 1 months and 12 months ~> count, sum value
 - Result:

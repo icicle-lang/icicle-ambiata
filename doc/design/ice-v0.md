@@ -10,7 +10,9 @@ Most of the rough edges should be in the form of confusing error messages rather
 
 Features
 --------
-1. Fast!
+1. Ivory-(mostly)-compatible PSV input/output.
+2. C compilation from all supported Icicle queries.
+3. Fast!
 
 Limitations of V0
 -----------------
@@ -40,3 +42,11 @@ Arrays can be created with ``latest`` and Maps with ``group``, but there is no w
 String primitives such as split, join, isPrefixOf and so on would also be useful.
 
 There are of course far more missing features, but these are the most notable.
+
+### No support for escaped strings in PSV input/output
+
+We do not handle escaped characters at all. The following is illegal and will cause a parse error:
+
+```
+marge|fresh|{"green":"\""}|1858-11-16
+```
