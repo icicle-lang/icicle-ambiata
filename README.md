@@ -7,6 +7,10 @@ icicle
 
 A streaming query language.
 
+Latest release notes:
+
+ * [v0](https://github.com/ambiata/icicle/blob/master/doc/design/ice-v0.md)
+
 purpose
 -------
 
@@ -19,13 +23,13 @@ however the problems being addressed are not unique to ivory, and it
 is plausible that this could be adapted to different contexts. For more
 context on ivory see:
 
- - https://github.com/ambiata/ivory
+ - [https://github.com/ambiata/ivory](https://github.com/ambiata/ivory)
 
- - https://speakerdeck.com/ambiata/ivory-concepts
+ - [https://speakerdeck.com/ambiata/ivory-concepts](https://speakerdeck.com/ambiata/ivory-concepts)
 
- - https://speakerdeck.com/ambiata/ivory-a-data-store-for-data-science
+ - [https://speakerdeck.com/ambiata/ivory-a-data-store-for-data-science](https://speakerdeck.com/ambiata/ivory-a-data-store-for-data-science)
 
- - https://speakerdeck.com/ambiata/ivory-data-modelling
+ - [https://speakerdeck.com/ambiata/ivory-data-modelling](https://speakerdeck.com/ambiata/ivory-data-modelling)
 
 
 facts & values
