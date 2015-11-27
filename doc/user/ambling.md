@@ -293,7 +293,7 @@ As a simple example, let us reimplement sum as a fold.
 
 ```
 > feature salary
-  ~> let fold
+  ~> fold
        my_sum = 0
               : my_sum + value
   ~> my_sum
@@ -313,7 +313,7 @@ With this, we can implement an exponentially rolling average:
 
 ```
 > feature salary
-  ~> let fold1
+  ~> fold1
        roll = double value
             : double value * 0.25 + roll * 0.75
   ~> roll
