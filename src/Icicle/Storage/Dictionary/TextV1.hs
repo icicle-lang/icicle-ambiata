@@ -1,6 +1,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE ViewPatterns      #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE LambdaCase       #-}
+{-# LANGUAGE LambdaCase        #-}
 module Icicle.Storage.Dictionary.TextV1 (
     parseDictionaryLineV1
   , writeDictionaryLineV1
@@ -33,7 +34,7 @@ field = append <$> takeWhile (not . isDelimOrEscape) <*> (concat <$> many (cons 
 
 parseIcicleDictionaryV1 :: Parser DictionaryEntry
 parseIcicleDictionaryV1 = do
-  DictionaryEntry <$> (Attribute <$> field) <* p <*> (ConcreteDefinition <$> parseEncoding <*> pure (Set.singleton "NA"))
+  DictionaryEntry <$> (mkAttribute <$> field) <* p <*> (ConcreteDefinition <$> parseEncoding <*> pure (Set.singleton "NA"))
     where
       p = char '|'
 
@@ -42,7 +43,7 @@ parseDictionaryLineV1 s =
   mapLeft (ParseError . pack) $ parseOnly parseIcicleDictionaryV1 s
 
 writeDictionaryLineV1 :: DictionaryEntry -> Text
-writeDictionaryLineV1 (DictionaryEntry (Attribute a) (ConcreteDefinition e _)) =
+writeDictionaryLineV1 (DictionaryEntry (getAttribute -> a) (ConcreteDefinition e _)) =
   a <> "|" <> prettyConcrete e
 
 writeDictionaryLineV1 (DictionaryEntry _ (VirtualDefinition _)) = "Virtual features not supported in V1"

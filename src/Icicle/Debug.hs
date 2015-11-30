@@ -1,4 +1,5 @@
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE ViewPatterns      #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -111,7 +112,7 @@ coreOfQuery
   :: Dictionary
   -> (Attribute, S.QueryTop (S.Annot SourcePos S.Variable) S.Variable)
   -> Either DebugError (Map Attribute [(S.Variable, C.Program () S.Variable)])
-coreOfQuery dict (Attribute attr, virtual) =
+coreOfQuery dict (getAttribute -> attr, virtual) =
   first DebugSourceError $ do
     let inlined = sourceInline dict virtual
 
@@ -123,7 +124,7 @@ coreOfQuery dict (Attribute attr, virtual) =
     core <- sourceConvert dict reified
     let simplified = coreSimp core
 
-    let baseattr  = (Attribute . unVar . unName) (S.feature virtual)
+    let baseattr  = (mkAttribute . unVar . unName) (S.feature virtual)
 
     pure (Map.singleton baseattr [(S.Variable attr, simplified)])
 
@@ -137,7 +138,7 @@ queryOfSource dict name src =
     parsed       <- sourceParseQT name src
     desugared    <- sourceDesugarQT parsed
     (checked, _) <- sourceCheckQT dict desugared
-    pure (Attribute name, checked)
+    pure (mkAttribute name, checked)
 
 entryOfQuery
   :: Attribute

@@ -1,4 +1,5 @@
-{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE LambdaCase        #-}
+{-# LANGUAGE ViewPatterns      #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards #-}
@@ -49,7 +50,7 @@ seaOfNameIx :: Pretty n => n -> Int -> Doc
 seaOfNameIx n ix = seaOfName (pretty n <> text "$ix$" <> int ix)
 
 seaOfAttributeDesc :: Attribute -> Doc
-seaOfAttributeDesc (Attribute xs)
+seaOfAttributeDesc (getAttribute -> xs)
   | T.null xs = string ""
   | otherwise = pretty (T.filter isLegal xs)
  where

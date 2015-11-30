@@ -43,7 +43,7 @@ instance Arbitrary Entity where
 
 instance Arbitrary Attribute where
   arbitrary =
-    Attribute <$> elements weather
+    mkAttribute <$> elements weather
 
 instance Arbitrary DateTime where
   arbitrary = do

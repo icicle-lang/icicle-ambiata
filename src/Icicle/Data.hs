@@ -4,7 +4,7 @@
 module Icicle.Data (
     Entity (..)
   , Namespace (..)
-  , Attribute (..)
+  , Attribute
   , FeatureId (..)
   , Fact (..)
   , Fact' (..)
@@ -17,6 +17,8 @@ module Icicle.Data (
   , StructField (..)
   , StructFieldType (..)
   , attributeOfStructField
+  , mkAttribute
+  , getAttribute
   ) where
 
 import           Data.Text
@@ -76,6 +78,9 @@ data AsAt a =
       fact          :: a
     , time          :: DateTime
     } deriving (Eq, Show, Functor)
+
+mkAttribute :: Text -> Attribute
+mkAttribute = Attribute . toLower
 
 --------------------------------------------------------------------------------
 

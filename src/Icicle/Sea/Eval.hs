@@ -182,7 +182,7 @@ seaEvalAvalanche
   -> [D.AsAt D.Value]
   -> EitherT SeaError IO [(OutputName, D.Value)]
 seaEvalAvalanche program date values = do
-  let attr = Attribute "eval"
+  let attr = D.mkAttribute "eval"
       ps   = Map.singleton attr program
   bracketEitherT' (seaCompile NoPsv ps) seaRelease (\fleet -> seaEval attr fleet date values)
 

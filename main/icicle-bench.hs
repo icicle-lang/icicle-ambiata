@@ -1,5 +1,6 @@
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE PatternGuards #-}
+{-# LANGUAGE NoImplicitPrelude   #-}
+{-# LANGUAGE ViewPatterns        #-}
+{-# LANGUAGE PatternGuards       #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 import           Control.Monad.IO.Class (liftIO)
@@ -197,7 +198,7 @@ coreOfSource
   :: Dictionary
   -> (Attribute, QueryTop'T SourceVar)
   -> Either BenchError (Map Attribute [(S.Variable, C.Program () S.Variable)])
-coreOfSource dict (Attribute attr, virtual) =
+coreOfSource dict (getAttribute -> attr, virtual) =
   first BenchSourceError $ do
     let inlined = sourceInline dict virtual
 
@@ -209,7 +210,7 @@ coreOfSource dict (Attribute attr, virtual) =
     core <- sourceConvert dict reified
     let simplified = coreSimp core
 
-    let baseattr  = (Attribute . unVar . unName) (S.feature virtual)
+    let baseattr  = (mkAttribute . unVar . unName) (S.feature virtual)
 
     pure (Map.singleton baseattr [(S.Variable attr, simplified)])
 

@@ -99,10 +99,10 @@ featureMapOfDictionary (Dictionary { dictionaryEntries = ds, dictionaryFunctions
  (Map.fromList $ fmap (\(a,(b,_)) -> (a,b)) functions)
  (Just $ var "now")
  where
-  go (DictionaryEntry (Attribute attr) (ConcreteDefinition enc _))
+  go (DictionaryEntry attr (ConcreteDefinition enc _))
    | StructT st@(StructType fs) <- sourceTypeOfEncoding enc
    = let e' = StructT st
-     in [ ( var attr
+     in [ ( var (getAttribute attr)
         , ( baseType $ sumT e'
         , Map.fromList
         $ exps "fields" e'
@@ -114,7 +114,7 @@ featureMapOfDictionary (Dictionary { dictionaryEntries = ds, dictionaryFunctions
 
    | otherwise
    = let e' = sourceTypeOfEncoding enc
-     in [ ( var attr
+     in [ ( var (getAttribute attr)
         , ( baseType $ sumT e'
         , Map.fromList $ exps "value" e'))]
   go _

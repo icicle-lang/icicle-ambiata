@@ -33,7 +33,7 @@ parseEncoding = parsePrimitiveEncoding
       _ <- char ':'
       e <- parsePrimitiveEncoding
       o <- Optional <$ char '*' <|> pure Mandatory
-      pure $ StructField o (Attribute n) e
+      pure $ StructField o (mkAttribute n) e
 
 prettyConcrete :: Encoding -> Text
 prettyConcrete = \case
@@ -46,5 +46,5 @@ prettyConcrete = \case
   StructEncoding s -> "(" <> intercalate "," (prettyStructField <$> s) <> ")"
 
 prettyStructField :: StructField -> Text
-prettyStructField (StructField Mandatory (Attribute n) e) = n <> ":" <> prettyConcrete e
-prettyStructField (StructField Optional (Attribute n) e) = n <> ":" <> prettyConcrete e <> "*"
+prettyStructField (StructField Mandatory n e) = getAttribute n <> ":" <> prettyConcrete e
+prettyStructField (StructField Optional  n e) = getAttribute n <> ":" <> prettyConcrete e <> "*"

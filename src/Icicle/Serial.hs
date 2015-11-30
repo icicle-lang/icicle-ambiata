@@ -54,7 +54,7 @@ eavtParser =
    <$> (Fact'
          <$> (Entity <$> column)
          <* pipe
-         <*> (Attribute <$> column)
+         <*> (mkAttribute <$> column)
          <* pipe
          <*> column
          <* pipe)
