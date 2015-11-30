@@ -1,4 +1,5 @@
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards#-}
@@ -102,7 +103,7 @@ textOfFacts entities attribute vs =
   LT.unlines (fmap (LT.intercalate "|") (fieldsOfFacts entities attribute vs))
 
 fieldsOfFacts :: [Entity] -> Attribute -> [AsAt BaseValue] -> [[LT.Text]]
-fieldsOfFacts entities (Attribute attribute) vs =
+fieldsOfFacts entities (getAttribute -> attribute) vs =
   [ [ LT.fromStrict entity, LT.fromStrict attribute, valueText, timeText ]
   | Entity entity         <- entities
   , (valueText, timeText) <- textsOfValues vs ]

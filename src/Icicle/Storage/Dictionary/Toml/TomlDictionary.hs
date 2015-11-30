@@ -148,7 +148,7 @@ validateFact conf name x =
       tombstone' = (<|> tombstone conf) <$> ((validateText "tombstone") `traverse` (x ^? key "tombstone"))
 
       -- Todo: ensure that there's no extra data lying around. All valid TOML should be used.
-  in DictionaryEntry' (Attribute name) <$> (ConcreteDefinition' <$> namespace' <*> encoding <*> tombstone')
+  in DictionaryEntry' (mkAttribute name) <$> (ConcreteDefinition' <$> namespace' <*> encoding <*> tombstone')
 
 validateEncoding' :: Text -> (Node, Pos.SourcePos) -> AccValidation [DictionaryValidationError] Encoding
 -- We can accept an encoding as a string in the old form.
@@ -163,7 +163,7 @@ validateEncoding' ofFeature (NTable t, _) =
     enc' <- maybe (Left $ [BadType name "string" pos']) (Right . fmap fst) $ enc ^? _NTValue . _VString
     -- Now that we have a string, parse it with attoparsec
     (enc'', fieldType) <- mapLeft (const [EncodingError ofFeature (pack enc') pos']) $ parseOnly ((,) <$> parsePrimitiveEncoding <*> (Optional <$ char '*' <|> pure Mandatory) <* endOfInput) (pack enc')
-    pure $ StructField fieldType (Attribute name) enc''
+    pure $ StructField fieldType (mkAttribute name) enc''
   ) t
 -- But all other values should be failures.
 validateEncoding' ofFeature (_, pos) = AccFailure $ [BadType (ofFeature <> ".encoding") "string" pos]
@@ -190,7 +190,7 @@ validateFeature _ name x = fromEither $ do
   let toks = lexerPositions expression'
   q      <-  mapLeft (pure . ParseError) $ runParser (top $ OutputName name) () "" toks
   -- Todo: ensure that there's no extra data lying around. All valid TOML should be used.
-  pure $ DictionaryEntry' (Attribute name) (VirtualDefinition' (Virtual' q))
+  pure $ DictionaryEntry' (mkAttribute name) (VirtualDefinition' (Virtual' q))
 
 toEither :: AccValidation a b -> Either a b
 toEither = accValidation Left Right

@@ -15,12 +15,12 @@ import qualified Data.Set                           as Set
 demographics :: Dictionary
 demographics =
  Dictionary
- [ DictionaryEntry (Attribute "gender")             (ConcreteDefinition StringEncoding Set.empty)
- , DictionaryEntry (Attribute "age")                (ConcreteDefinition IntEncoding Set.empty)
- , DictionaryEntry (Attribute "state_of_residence") (ConcreteDefinition StringEncoding Set.empty)
- , DictionaryEntry (Attribute "salary")             (ConcreteDefinition IntEncoding Set.empty)
- , DictionaryEntry (Attribute "injury")             (ConcreteDefinition (StructEncoding
-                        [StructField Mandatory (Attribute "location") StringEncoding
-                        ,StructField Mandatory (Attribute "severity") IntEncoding]) Set.empty)
+ [ DictionaryEntry (mkAttribute "gender")             (ConcreteDefinition StringEncoding Set.empty)
+ , DictionaryEntry (mkAttribute "age")                (ConcreteDefinition IntEncoding Set.empty)
+ , DictionaryEntry (mkAttribute "state_of_residence") (ConcreteDefinition StringEncoding Set.empty)
+ , DictionaryEntry (mkAttribute "salary")             (ConcreteDefinition IntEncoding Set.empty)
+ , DictionaryEntry (mkAttribute "injury")             (ConcreteDefinition (StructEncoding
+                        [StructField Mandatory (mkAttribute "location") StringEncoding
+                        ,StructField Mandatory (mkAttribute "severity") IntEncoding]) Set.empty)
  ]
  []

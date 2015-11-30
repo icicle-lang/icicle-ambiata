@@ -347,13 +347,13 @@ handleLine state line = case readCommand line of
            prettyOut hasSeaPreamble "- C preamble:" Sea.seaPreamble
 
            when (hasSea state) $ do
-             let seaProgram = Sea.seaOfProgram 0 (Attribute "repl") f'
+             let seaProgram = Sea.seaOfProgram 0 (mkAttribute "repl") f'
              case seaProgram of
                Left  e -> prettyOut (const True) "- C error:" e
                Right r -> prettyOut (const True) "- C:" r
 
            when (hasSeaAssembly state) $ do
-             result <- liftIO . runEitherT $ Sea.assemblyOfPrograms Sea.NoPsv [(Attribute "repl", f')]
+             result <- liftIO . runEitherT $ Sea.assemblyOfPrograms Sea.NoPsv [(mkAttribute "repl", f')]
              case result of
                Left  e -> prettyOut (const True) "- C assembly error:" e
                Right r -> prettyOut (const True) "- C assembly:" r

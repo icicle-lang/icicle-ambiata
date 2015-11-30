@@ -367,7 +367,7 @@ coreEval d fs (renameQT unVar -> query) prog
   where
     evalP feat (S.Partition ent attr values)
       | CommonBase.Name feat' <- feat
-      , attr == Attribute feat'
+      , attr == mkAttribute feat'
       = do  (vs',_) <- evalV values
             return $ fmap (\v -> Result (ent, snd v)) vs'
 
@@ -395,7 +395,7 @@ avalancheEval d fs (renameQT unVar -> query) prog
   where
     evalP feat (S.Partition ent attr values)
       | CommonBase.Name feat' <- feat
-      , attr == Attribute feat'
+      , attr == mkAttribute feat'
       = do  (vs',_) <- evalV values
             return $ fmap (\v -> Result (ent, snd v)) vs'
 
@@ -424,7 +424,7 @@ seaEval date newFacts (renameQT unVar -> query) program =
           -> EitherT Sea.SeaError IO [(Entity, Value)]
     evalP featureName (S.Partition entityName attributeName values)
       | CommonBase.Name name <- featureName
-      , Attribute name == attributeName
+      , mkAttribute name == attributeName
       = do outputs <- Sea.seaEvalAvalanche program date values
            return $ fmap (\out -> (entityName, snd out)) outputs
 
