@@ -358,7 +358,7 @@ on_error:
     return error;
 }
 
-void psv_set_blocking_mode (int fd)
+static void psv_set_blocking_mode (int fd)
 {
     const int flags = fcntl (fd, F_GETFL, 0);
     fcntl (fd, F_SETFL, flags & ~O_NONBLOCK);
@@ -454,7 +454,7 @@ void psv_snapshot (psv_config_t *cfg)
     cfg->entity_count = state.entity_count;
 }
 
-psv_error_t psv_output_flush (int fd, void *buf, void *end) {
+static psv_error_t psv_output_flush (int fd, void *buf, void *end) {
   size_t f = end - buf;
   size_t w = write (fd, buf, f);
 
@@ -466,8 +466,8 @@ psv_error_t psv_output_flush (int fd, void *buf, void *end) {
   return 0;
 }
 
-psv_error_t psv_output_vprintf ( int fd, char *buf_start, char *buf_end,  char **buf_ptr
-                               , const char* restrict fmt, va_list ap )
+static psv_error_t psv_output_vprintf ( int fd, char *buf_start, char *buf_end,  char **buf_ptr
+                                      , const char* restrict fmt, va_list ap )
 {
     va_list new_ap;
     va_copy (new_ap, ap);
@@ -501,8 +501,8 @@ psv_error_t psv_output_vprintf ( int fd, char *buf_start, char *buf_end,  char *
     return psv_output_vprintf(fd, buf_start, buf_end, buf_ptr, fmt, new_ap);
 }
 
-psv_error_t psv_output_printf ( int fd, char *buf_start, char *buf_end,  char **buf_ptr
-                              , const char* restrict fmt, ...)
+static psv_error_t psv_output_printf ( int fd, char *buf_start, char *buf_end,  char **buf_ptr
+                                      , const char* restrict fmt, ...)
 {
   va_list ap;
   va_start(ap, fmt);
