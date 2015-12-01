@@ -65,7 +65,7 @@ static psv_error_t INLINE psv_read_fact
 /* psv driver */
 static const size_t psv_max_row_count   = 128;
 static const size_t psv_buffer_size     = 16*1024;
-static const size_t psv_output_buf_size = 1024;
+static const size_t psv_output_buf_size = 16*1024;
 
 static psv_error_t INLINE psv_read_date (const char *time_ptr, const size_t time_size, idate_t *output_ptr)
 {
@@ -469,32 +469,36 @@ psv_error_t psv_output_flush (int fd, void *buf, void *end) {
 psv_error_t psv_output_vprintf ( int fd, char *buf_start, char *buf_end,  char **buf_ptr
                                , const char* restrict fmt, va_list ap )
 {
+    va_list new_ap;
+    va_copy (new_ap, ap);
+
     size_t  buf_left = buf_end - *buf_ptr;
     size_t  len      = 0;
 
     if (*buf_ptr != buf_end) {
-      len = vsnprintf (*buf_ptr, buf_left, fmt, ap);
+        len = vsnprintf (*buf_ptr, buf_left, fmt, ap);
 
-      // cannot write to buffer even if it was empty.
-      if (len >= psv_output_buf_size) {
-          return psv_alloc_error("psv output is too large", 0, 0);
-      }
+        // cannot write to buffer even if it was empty.
+        if (len >= psv_output_buf_size) {
+            return psv_alloc_error("psv output is too large", 0, 0);
+        }
 
-      // success fully written to buffer.
-      if (len < buf_left) {
-          *buf_ptr += len;
-          return 0;
-      }
+        // success fully written to buffer.
+        if (len < buf_left) {
+            *buf_ptr += len;
+            return 0;
+        }
     }
 
-   // can write to buffer after flushing.
-   psv_error_t err = psv_output_flush(fd, buf_start, *buf_ptr);
-   if (err) {
-       return err;
-   }
+    // can write to buffer after flushing.
+    psv_error_t err = psv_output_flush(fd, buf_start, *buf_ptr);
+    if (err) {
+        return err;
+    }
 
-   *buf_ptr = buf_start;
-   return psv_output_vprintf(fd, buf_start, buf_end, buf_ptr, fmt, ap);
+    *buf_ptr = buf_start;
+
+    return psv_output_vprintf(fd, buf_start, buf_end, buf_ptr, fmt, new_ap);
 }
 
 psv_error_t psv_output_printf ( int fd, char *buf_start, char *buf_end,  char **buf_ptr
