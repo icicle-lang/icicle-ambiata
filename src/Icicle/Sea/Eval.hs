@@ -302,9 +302,9 @@ seaRelease fleet =
 compilerOptions :: [CompilerOption]
 compilerOptions =
   [ "-O3"           -- 🔨
-  , "-march=native" -- 🚀  all optimisations valid for the current CPU (AVX512, etc)
-  , "-std=c99"      -- 👹  variable declarations anywhere!
-  , "-fPIC"         -- 🌏  position independent code, required on Linux
+  , "-g3"           -- include debug information (3 = as much as possible)
+  , "-march=native" -- all optimisations valid for the current CPU (AVX512, etc)
+  , "-std=c99"      -- variable declarations anywhere!
   ]
 
 assemblyOfPrograms
