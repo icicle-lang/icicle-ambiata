@@ -3,6 +3,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 import           Control.Monad.IO.Class (liftIO)
+import           Control.Parallel.Strategies (withStrategy, parTraversable, rparWith, rseq)
 
 import           Data.Map (Map)
 import qualified Data.Map as Map
@@ -177,9 +178,9 @@ avalancheOfDictionary :: Dictionary -> Either BenchError (Map Attribute (A.Progr
 avalancheOfDictionary dict = do
   let virtuals = fmap (second unVirtual) (getVirtualFeatures dict)
 
-  core      <- traverse (coreOfSource dict) virtuals
-  fused     <- traverse fuseCore (Map.unionsWith (<>) core)
-  avalanche <- traverse avalancheOfCore fused
+  core      <- parTraverse (coreOfSource dict) virtuals
+  fused     <- parTraverse fuseCore (Map.unionsWith (<>) core)
+  avalanche <- parTraverse avalancheOfCore fused
 
   return avalanche
 
@@ -190,8 +191,10 @@ avalancheOfCore core = do
   return checked
 
 fuseCore :: [(S.Variable, C.Program () S.Variable)] -> Either BenchError (C.Program () S.Variable)
-fuseCore =
-  first BenchFusionError . C.fuseMultiple ()
+fuseCore programs =
+  first BenchFusionError $ do
+    fused <- C.fuseMultiple () programs
+    pure (coreSimp fused)
 
 coreOfSource
   :: Dictionary
@@ -219,3 +222,8 @@ unVar (S.Variable x) = x
 unName :: Name a -> a
 unName (Name x)      = x
 unName (NameMod _ x) = unName x
+
+parTraverse  :: Traversable t => (a -> Either e b) -> t a -> Either e (t b)
+parTraverse f = sequenceA . parallel . fmap f
+ where
+  parallel = withStrategy (parTraversable (rparWith rseq))
