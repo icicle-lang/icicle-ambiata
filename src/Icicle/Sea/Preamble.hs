@@ -16,31 +16,32 @@ import qualified Data.Text.Encoding as T
 
 import           Data.FileEmbed
 
-import           Data.List (sortBy)
+import qualified Data.List as List
+
+import           System.IO (FilePath)
 
 seaPreamble :: Doc
 seaPreamble
  = vsep
- $ fmap go files
+ $ fmap (uncurry seaOfExternal) files
  where
   files
-   = sortBy (compare `on` fst)
+   = List.sortBy (compare `on` fst)
    $ $(embedDir "data/sea/")
 
-  go (f,bs)
-   = vsep
-   [ "// " <> text f
-   , "#line 1 \"" <> text f <> "\""
-   , seaOfExternal bs
-   , ""
-   ]
+seaOfExternal :: FilePath -> ByteString -> Doc
+seaOfExternal path bs
+ = vsep
+ [ "// " <> text path
+ , "#line " <> int lineNo <> " \"" <> text path <> "\""
+ , text (T.unpack (T.unlines file))
+ , ""
+ ]
+ where
+  (includes, file)
+   = List.span (T.isPrefixOf "#include \"")
+   . T.lines
+   $ T.decodeUtf8 bs
 
-seaOfExternal :: ByteString -> Doc
-seaOfExternal
- = text
- . T.unpack
- . T.strip
- . T.unlines
- . filter (not . T.isPrefixOf "#include \"")
- . T.lines
- . T.decodeUtf8
+  lineNo
+   = List.length includes + 1
