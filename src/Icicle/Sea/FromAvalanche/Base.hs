@@ -7,6 +7,7 @@ module Icicle.Sea.FromAvalanche.Base (
   , seaOfName
   , seaOfNameIx
   , seaOfAttributeDesc
+  , seaOfChar
   , seaOfString
   , seaOfEscaped
   , seaOfDate
@@ -56,6 +57,9 @@ seaOfAttributeDesc (Attribute xs)
   isLegal c = isLower c || isUpper c || c == ' ' || c == '_'
 
 ------------------------------------------------------------------------
+
+seaOfChar :: Char -> Doc
+seaOfChar c = "'" <> text (escapeChars [c]) <> "'"
 
 seaOfString :: Text -> Doc
 seaOfString txt = "\"" <> seaOfEscaped txt <> "\""

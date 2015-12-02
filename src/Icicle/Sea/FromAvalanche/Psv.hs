@@ -33,7 +33,7 @@ import qualified Icicle.Internal.Pretty as Pretty
 
 import           Icicle.Sea.Error (SeaError(..))
 import           Icicle.Sea.FromAvalanche.Base (seaOfAttributeDesc, seaOfDate)
-import           Icicle.Sea.FromAvalanche.Base (seaOfNameIx, seaOfEscaped)
+import           Icicle.Sea.FromAvalanche.Base (seaOfNameIx, seaOfChar, seaOfString)
 import           Icicle.Sea.FromAvalanche.Prim
 import           Icicle.Sea.FromAvalanche.Program (seaOfXValue)
 import           Icicle.Sea.FromAvalanche.State
@@ -726,50 +726,56 @@ cond n body
 
 pair :: Doc -> Doc -> Doc
 pair x y
- = vsep [ outputChar "["
+ = vsep [ outputChar '['
         , x
-        , outputChar ","
+        , outputChar ','
         , y
-        , outputChar "]"
+        , outputChar ']'
         ]
 
-iprintf :: Doc -> Doc -> Doc
-iprintf fmt val
+outputValue :: Doc -> [Doc] -> Doc
+outputValue typ vals
  = vsep
- [ "psv_output_error = psv_output_printf (fd, psv_output_buf, psv_output_buf_end, &psv_output_buf_ptr,\""
-   <> fmt <> "\"," <+> val <> ");"
+ [ "error = psv_output_" <> typ <> " "
+   <> "(fd, buffer, buffer_end, &buffer_ptr, " <> val <> ");"
  , outputDie
  ]
+ where
+  val = hcat (punctuate ", " vals)
 
 forStmt :: Doc -> Doc -> Doc -> Doc
 forStmt i n m
  = "for(iint_t" <+> i <+> "= 0," <+> n <+> "=" <+> m <> ";" <+> i <+> "<" <+> n <> "; ++" <> i <> ")"
 
-outputChar :: Doc -> Doc
+outputChar :: Char -> Doc
 outputChar x
- = iprintf "%c" ("'" <> x <> "'")
+ = outputValue "char" [seaOfChar x]
+
+outputString :: Text -> Doc
+outputString xs
+ = outputValue "string" [str, "sizeof (" <> str <> ") - 1"]
+ where
+  str = seaOfString xs
 
 dateFmt :: Doc
 dateFmt = "%lld-%02lld-%02lldT%02lld:%02lld:%02lld"
 
 outputDie :: Doc
-outputDie = "if (psv_output_error) return psv_output_error;"
+outputDie = "if (error) return error;"
 
 seaOfWriteFleetOutput :: PsvMode -> [SeaProgramState] -> Either SeaError Doc
 seaOfWriteFleetOutput mode states = do
   write_sea <- traverse seaOfWriteProgramOutput states
   pure $ vsep
     [ "#line 1 \"write all outputs\""
-    , "static psv_error_t psv_write_outputs (int fd, const char *entity, ifleet_t *fleet)"
+    , "static psv_error_t psv_write_outputs (int fd, const char *entity, size_t entity_size, ifleet_t *fleet)"
     , "{"
     , "    iint_t         chord_count = fleet->chord_count;"
     , "    const idate_t *chord_dates = fleet->chord_dates;"
-    , "    psv_error_t    psv_output_error;"
-    , "    char           psv_output_buf[psv_output_buf_size];"
-    , "    char          *psv_output_buf_end = psv_output_buf + psv_output_buf_size - 1;"
-    , "    char          *psv_output_buf_ptr = psv_output_buf;"
-    , ""
-    , "    bzero (psv_output_buf, psv_output_buf_size);"
+    , "    psv_error_t    error;"
+    , "    char           buffer[psv_output_buf_size];"
+    , "    char          *buffer_end = buffer + psv_output_buf_size - 1;"
+    , "    char          *buffer_ptr = buffer;"
     , ""
     , "    for (iint_t chord_ix = 0; chord_ix < chord_count; chord_ix++) {"
     , indent 8 (seaOfChordDate mode)
@@ -777,8 +783,8 @@ seaOfWriteFleetOutput mode states = do
     , indent 8 (vsep write_sea)
     , "    }"
     , ""
-    , "    psv_output_error = psv_output_flush (fd, psv_output_buf, psv_output_buf_ptr);"
-    , outputDie
+    , "    error = psv_output_flush (fd, buffer, &buffer_ptr);"
+    , indent 4 outputDie
     , ""
     , "    return 0;"
     , "}"
@@ -786,7 +792,10 @@ seaOfWriteFleetOutput mode states = do
 
 seaOfChordDate :: PsvMode -> Doc
 seaOfChordDate = \case
-  PsvSnapshot _ -> "const char *chord_date = \"\";"
+  PsvSnapshot _ -> vsep
+    [ "const char  *chord_date = \"\";"
+    , "const size_t chord_size = 0;"
+    ]
   PsvChords     -> vsep
     [ "iint_t c_year, c_month, c_day, c_hour, c_minute, c_second;"
     , "idate_to_gregorian (chord_dates[chord_ix], &c_year, &c_month, &c_day, &c_hour, &c_minute, &c_second);"
@@ -834,9 +843,11 @@ seaOfWriteOutput ps oname@(OutputName name) otype0 ts0 ixStart
                 return $ go body
 
   where
-    attrib = seaOfEscaped name
-    before = iprintf ("%s|" <> attrib <> "|") "entity"
-    after  = iprintf "%s\\n"                 "chord_date"
+    before = vsep [ outputValue  "string" ["entity", "entity_size"]
+                  , outputString ("|" <> name <> "|") ]
+
+    after  = vsep [ outputValue  "string" ["chord_date", "chord_size"]
+                  , outputChar   '\n' ]
 
     decldt = "iint_t v_year, v_month, v_day, v_hour, v_minute, v_second;" :: Doc
 
@@ -939,16 +950,15 @@ seaOfOutput q ps oname@(OutputName name) otype0 ts0 ixStart transform
 
    -- Output an array with pre-defined bodies
    seaOfOutputArray body numElems
-    -- = let numElems   = array <> "->count"
-    = pure (vsep [ outputChar "["
+    = pure (vsep [ outputChar '['
                  , forStmt counter countLimit numElems
                  , "{"
                  , indent 4
                      $ cond (counter <+> "> 0")
-                            (outputChar ",")
+                            (outputChar ',')
                  , indent 4 body
                  , "}"
-                 , outputChar "]"
+                 , outputChar ']'
                  ]
            )
 
@@ -960,30 +970,25 @@ seaOfOutputBase quoteStrings err t val
       -> pure
        $ vsep
            [ "if (" <> val <> ") {"
-           , indent 4 $ iprintf "%s" "\"true\""
+           , indent 4 $ outputString "true"
            , "} else {"
-           , indent 4 $ iprintf "%s" "\"false\""
+           , indent 4 $ outputString "false"
            , "}"
            ]
      IntT
-      -> pure $ vsep [iprintf "%lld" val]
+      -> pure $ outputValue "int" [val]
      DoubleT
-      -> pure $ vsep [iprintf "%.16g" val]
+      -> pure $ outputValue "double" [val]
      StringT
-      -> pure $ vsep [iprintf (quotedFormat quoteStrings "%s") val]
+      -> pure $ quotedOutput quoteStrings (outputValue "string" [val, "strlen(" <> val <> ")"])
      DateTimeT
-      -> pure
-       $ vsep [ "idate_to_gregorian (" <> val <> ", &v_year, &v_month, &v_day, &v_hour, &v_minute, &v_second);"
-              , iprintf
-                  (quotedFormat quoteStrings dateFmt) -- uuggghhhh
-                  "v_year, v_month, v_day, v_hour, v_minute, v_second"
-              ]
+      -> pure $ quotedOutput quoteStrings (outputValue "date" [val])
 
      _ -> Left err
 
-quotedFormat :: Bool -> Doc -> Doc
-quotedFormat False fmt = fmt
-quotedFormat True  fmt = "\\\"" <> fmt <> "\\\""
+quotedOutput :: Bool -> Doc -> Doc
+quotedOutput False out = out
+quotedOutput True  out = vsep [outputChar '"', out, outputChar '"']
 
 ------------------------------------------------------------------------
 

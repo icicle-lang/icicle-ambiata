@@ -1,5 +1,4 @@
 #include "51-chord.h"
-#include <stdarg.h>
 
 #if !ICICLE_NO_PSV
 
@@ -52,7 +51,7 @@ static void INLINE psv_collect_fleet (ifleet_t *fleet);
 
 static psv_error_t INLINE psv_configure_fleet (const char *entity, size_t entity_size, const ichord_t **chord, ifleet_t *fleet);
 
-static psv_error_t INLINE psv_write_outputs (int fd, const char *entity, ifleet_t *fleet);
+static psv_error_t INLINE psv_write_outputs (int fd, const char *entity, size_t entity_size, ifleet_t *fleet);
 
 static psv_error_t INLINE psv_read_fact
   ( const char   *attrib
@@ -69,55 +68,83 @@ static const size_t psv_output_buf_size = 16*1024;
 
 static psv_error_t INLINE psv_read_date (const char *time_ptr, const size_t time_size, idate_t *output_ptr)
 {
+    const char  *p          = time_ptr;
     const size_t time0_size = time_size + 1;
 
-                        /* time_ptr + 0123456789 */
+                               /* p + 0123456789 */
     const size_t date_only = sizeof ("yyyy-mm-dd");
 
     if (date_only == time0_size &&
-        *(time_ptr + 4) == '-'  &&
-        *(time_ptr + 7) == '-') {
+        isdigit (p[0]) &&
+        isdigit (p[1]) &&
+        isdigit (p[2]) &&
+        isdigit (p[3]) &&
+          '-' == p[4]  &&
+        isdigit (p[5]) &&
+        isdigit (p[6]) &&
+          '-' == p[7]  &&
+        isdigit (p[8]) &&
+        isdigit (p[9])) {
 
-        char *year_end, *month_end, *day_end;
-        const iint_t year  = strtol (time_ptr + 0, &year_end,  10);
-        const iint_t month = strtol (time_ptr + 5, &month_end, 10);
-        const iint_t day   = strtol (time_ptr + 8, &day_end,   10);
+        const iint_t year  = p[0] * 1000
+                           + p[1] * 100
+                           + p[2] * 10
+                           + p[3];
 
-        if (year_end  != time_ptr + 4 ||
-            month_end != time_ptr + 7 ||
-            day_end   != time_ptr + 10)
-            return psv_alloc_error ("expected 'yyyy-mm-dd'", time_ptr, time_size);
+        const iint_t month = p[5] * 10
+                           + p[6];
+
+        const iint_t day   = p[8] * 10
+                           + p[9];
 
         *output_ptr = idate_from_gregorian (year, month, day, 0, 0, 0);
         return 0;
     }
 
-                        /* time_ptr + 01234567890123456789 */
+                               /* p + 01234567890123456789 */
     const size_t date_time = sizeof ("yyyy-mm-ddThh:mm:ssZ");
 
     if (date_time == time0_size &&
-        *(time_ptr +  4) == '-' &&
-        *(time_ptr +  7) == '-' &&
-        *(time_ptr + 10) == 'T' &&
-        *(time_ptr + 13) == ':' &&
-        *(time_ptr + 16) == ':' &&
-        *(time_ptr + 19) == 'Z') {
+        isdigit (p[ 0]) &&
+        isdigit (p[ 1]) &&
+        isdigit (p[ 2]) &&
+        isdigit (p[ 3]) &&
+          '-' == p[ 4]  &&
+        isdigit (p[ 5]) &&
+        isdigit (p[ 6]) &&
+          '-' == p[ 7]  &&
+        isdigit (p[ 8]) &&
+        isdigit (p[ 9]) &&
+          'T' == p[10]  &&
+        isdigit (p[11]) &&
+        isdigit (p[12]) &&
+          ':' == p[13]  &&
+        isdigit (p[14]) &&
+        isdigit (p[15]) &&
+          ':' == p[16]  &&
+        isdigit (p[17]) &&
+        isdigit (p[18]) &&
+          'Z' == p[19] ) {
 
-        char *year_end, *month_end, *day_end, *hour_end, *minute_end, *second_end;
-        const iint_t year   = strtol (time_ptr +  0, &year_end,   10);
-        const iint_t month  = strtol (time_ptr +  5, &month_end,  10);
-        const iint_t day    = strtol (time_ptr +  8, &day_end,    10);
-        const iint_t hour   = strtol (time_ptr + 11, &hour_end,   10);
-        const iint_t minute = strtol (time_ptr + 14, &minute_end, 10);
-        const iint_t second = strtol (time_ptr + 17, &second_end, 10);
+        const iint_t year   = p[0] * 1000
+                            + p[1] * 100
+                            + p[2] * 10
+                            + p[3];
 
-        if (year_end   != time_ptr +  4 ||
-            month_end  != time_ptr +  7 ||
-            day_end    != time_ptr + 10 ||
-            hour_end   != time_ptr + 13 ||
-            minute_end != time_ptr + 16 ||
-            second_end != time_ptr + 19)
-            return psv_alloc_error ("expected 'yyyy-mm-ddThh:mm:ssZ'", time_ptr, time_size);
+        const iint_t month  = p[5] * 10
+                            + p[6];
+
+        const iint_t day    = p[8] * 10
+                            + p[9];
+
+        const iint_t hour   = p[11] * 10
+                            + p[12];
+
+        const iint_t minute = p[14] * 10
+                            + p[15];
+
+        const iint_t second = p[17] * 10
+                            + p[18];
 
         *output_ptr = idate_from_gregorian (year, month, day, hour, minute, second);
         return 0;
@@ -328,7 +355,7 @@ static psv_error_t psv_read_buffer (psv_state_t *s)
 
         if (new_entity) {
             if (entity_cur_size != 0) {
-                error = psv_write_outputs (s->output_fd, entity_cur, s->fleet);
+                error = psv_write_outputs (s->output_fd, entity_cur, entity_cur_size, s->fleet);
                 if (error) goto on_error;
             }
 
@@ -418,7 +445,7 @@ void psv_snapshot (psv_config_t *cfg)
 
         if (bytes_read == 0) {
             if (state.entity_cur_size != 0) {
-                psv_write_error = psv_write_outputs (state.output_fd, state.entity_cur, state.fleet);
+                psv_write_error = psv_write_outputs (state.output_fd, state.entity_cur, state.entity_cur_size, state.fleet);
                 if (psv_write_error != 0) {
                     cfg->error = psv_write_error;
                     break;
@@ -439,9 +466,9 @@ void psv_snapshot (psv_config_t *cfg)
 
         size_t bytes_remaining = state.buffer_remaining;
 
-        memcpy ( buffer_ptr
-               , buffer_ptr + bytes_avail - bytes_remaining
-               , bytes_remaining );
+        memmove ( buffer_ptr
+                , buffer_ptr + bytes_avail - bytes_remaining
+                , bytes_remaining );
 
         buffer_offset = bytes_remaining;
     }
@@ -454,61 +481,92 @@ void psv_snapshot (psv_config_t *cfg)
     cfg->entity_count = state.entity_count;
 }
 
-static psv_error_t psv_output_flush (int fd, void *buf, void *end) {
-  size_t f = end - buf;
-  size_t w = write (fd, buf, f);
-
-  if (w < f) {
-    return psv_alloc_error ("cannot write psv output to file", buf, f);
-  }
-
-  bzero (buf, f);
-  return 0;
-}
-
-static psv_error_t psv_output_vprintf ( int fd, char *buf_start, char *buf_end,  char **buf_ptr
-                                      , const char* restrict fmt, va_list ap )
+static psv_error_t INLINE psv_output_flush (int fd, char *ps, char **pp)
 {
-    va_list new_ap;
-    va_copy (new_ap, ap);
+    size_t bytes_avail   = *pp - ps;
+    size_t bytes_written = write (fd, ps, bytes_avail);
 
-    size_t  buf_left = buf_end - *buf_ptr;
-    size_t  len      = 0;
-
-    if (*buf_ptr != buf_end) {
-        len = vsnprintf (*buf_ptr, buf_left, fmt, ap);
-
-        // cannot write to buffer even if it was empty.
-        if (len >= psv_output_buf_size) {
-            return psv_alloc_error("psv output is too large", 0, 0);
-        }
-
-        // success fully written to buffer.
-        if (len < buf_left) {
-            *buf_ptr += len;
-            return 0;
-        }
+    if (bytes_written < bytes_avail) {
+        return psv_alloc_error ("cannot write psv output to file", ps, bytes_avail);
     }
 
-    // can write to buffer after flushing.
-    psv_error_t err = psv_output_flush(fd, buf_start, *buf_ptr);
-    if (err) {
-        return err;
-    }
+    *pp = ps;
 
-    *buf_ptr = buf_start;
-
-    return psv_output_vprintf(fd, buf_start, buf_end, buf_ptr, fmt, new_ap);
+    return 0;
 }
 
-static psv_error_t psv_output_printf ( int fd, char *buf_start, char *buf_end,  char **buf_ptr
-                                      , const char* restrict fmt, ...)
+#define ENSURE_SIZE(bytes_required)                                   \
+    size_t bytes_remaining = pe - *pp;                                \
+    if (bytes_remaining < bytes_required) {                           \
+        psv_error_t error = psv_output_flush (fd, ps, pp);            \
+        if (error) return error;                                      \
+    }
+
+static psv_error_t INLINE psv_output_char
+    (int fd, char *ps, char *pe, char **pp, char value)
 {
-  va_list ap;
-  va_start(ap, fmt);
-  psv_error_t err = psv_output_vprintf(fd, buf_start, buf_end, buf_ptr, fmt, ap);
-  va_end(ap);
-  return err;
+    ENSURE_SIZE (1);
+
+    **pp = value;
+    *pp += 1;
+
+    return 0;
+}
+
+static psv_error_t INLINE psv_output_string
+    (int fd, char *ps, char *pe, char **pp, const char *value_ptr, size_t value_size)
+{
+    ENSURE_SIZE (value_size);
+
+    memcpy (*pp, value_ptr, value_size);
+    *pp += value_size;
+
+    return 0;
+}
+
+static psv_error_t INLINE psv_output_date
+    (int fd, char *ps, char *pe, char **pp, idate_t value)
+{
+    const size_t value_size = sizeof ("yyyy-mm-ddThh:mm:ssZ") - 1;
+    ENSURE_SIZE (value_size);
+
+    iint_t year, month, day, hour, minute, second;
+    idate_to_gregorian (value, &year, &month, &day, &hour, &minute, &second);
+
+    // TODO remove all printfs in output code
+    snprintf ( *pp, value_size
+             , "%lld-%02lld-%02lldT%02lld:%02lld:%02lldZ"
+             , year, month, day, hour, minute, second );
+
+    return 0;
+}
+
+static psv_error_t INLINE psv_output_double
+    (int fd, char *ps, char *pe, char **pp, idouble_t value)
+{
+    const size_t max_value_size = 32;
+    ENSURE_SIZE (max_value_size);
+
+    size_t value_size = grisu2_dtostr (value, *pp);
+    *pp += value_size;
+
+    //size_t value_size = snprintf (*pp, max_value_size, "%.16g", value);
+    //*pp += value_size;
+
+    return 0;
+}
+
+static psv_error_t INLINE psv_output_int
+    (int fd, char *ps, char *pe, char **pp, iint_t value)
+{
+    const size_t max_value_size = 32;
+    ENSURE_SIZE (max_value_size);
+
+    // TODO remove all printfs in output code
+    size_t value_size = snprintf (*pp, max_value_size, "%lld", value);
+    *pp += value_size;
+
+    return 0;
 }
 
 #endif
