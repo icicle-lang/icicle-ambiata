@@ -9,6 +9,7 @@ module Icicle.Avalanche.Simp (
 
 import              Icicle.Common.Exp
 import              Icicle.Common.Fresh
+import              Icicle.Common.FixT
 
 import qualified    Icicle.Core.Exp.Prim as CorePrim
 import qualified    Icicle.Core.Eval.Exp as CorePrim
@@ -23,6 +24,8 @@ import              Icicle.Avalanche.Program
 
 import              P
 
+import              Control.Monad.Trans.Class
+
 
 simpAvalanche
   :: (Show n, Ord n)
@@ -31,11 +34,11 @@ simpAvalanche
   -> Fresh n (Program a n CorePrim.Prim)
 simpAvalanche a_fresh p
  = do p' <- transformX return (simp a_fresh) p
-      s' <- (forwardStmts a_fresh $ pullLets $ statements p')
-         >>= thresher     a_fresh
-         >>= forwardStmts a_fresh
+      s' <- (once $ forwardStmts a_fresh $ pullLets $ statements p')
+         >>= once . thresher     a_fresh
+         >>= once . forwardStmts a_fresh
          >>= nestBlocks   a_fresh
-         >>= thresher     a_fresh
+         >>= once . thresher     a_fresh
          >>= transformX return (return . simpEvalX CorePrim.evalPrim CorePrim.typeOfPrim)
 
       return $ p { statements = s' }
@@ -48,16 +51,10 @@ simpFlattened
 simpFlattened a_fresh p
  = do s' <- transformX return (simp a_fresh) (statements p)
          >>= melt a_fresh
-         >>= crunchy
+         >>= fixpoint crunch
 
       return $ p { statements = s' }
  where
-  crunchy s
-   = do s' <- crunch s
-        if s == s'
-        then return s
-        else crunchy s'
-
   crunch ss
    -- Rewrite rules like (fst (a,b) => a
    =   constructor  a_fresh ss
@@ -69,11 +66,11 @@ simpFlattened a_fresh p
    -- Try to evaluate any exposed primitives
    >>= transformX return (return . simpEvalX Flat.evalPrim Flat.typeOfPrim)
    -- Pull Let statements out of blocks. This just allows thresher to remove more duplicates
-   >>= nestBlocks   a_fresh
+   >>= lift . nestBlocks   a_fresh
    -- Thresh again. Surprisingly, having both threshers makes simpFlattened twice as fast!
    >>= thresher     a_fresh
    -- Expression simp: first perform beta reduction, then a-normalise.
-   >>= transformX return (simp a_fresh)
+   >>= transformX return (lift . simp a_fresh)
    -- finish a-normalisation by taking lets from inside expressions to statements.
    >>= return . pullLets
 

@@ -12,6 +12,7 @@ import qualified    Icicle.Common.Exp.Prim.Minimal as Min
 
 import              Icicle.Common.Base
 import              Icicle.Common.Exp
+import              Icicle.Common.FixT
 import              Icicle.Common.Fresh
 import              Icicle.Common.Type
 
@@ -23,7 +24,7 @@ import qualified    Data.Map as Map
 
 -- | Simplify applied primitives.
 --
-constructor :: (Eq a, Ord n) => a -> Statement a n Prim -> Fresh n (Statement a n Prim)
+constructor :: (Eq a, Ord n) => a -> Statement a n Prim -> FixT (Fresh n) (Statement a n Prim)
 constructor a_fresh statements
  = transformUDStmt goS emptyExpEnv statements
  where
@@ -83,133 +84,139 @@ constructor a_fresh statements
 
   goS env s
    = let env' = updateExpEnv s env
-         go   = goX env'
          ret s' = return (updateExpEnv s' env', s')
+
+         goWith x s'
+          = do x' <- goX env' x
+               ret $ s' x'
+
      in  case s of
           If x t e
-           -> ret $ If (go x) t e
+           -> goWith x $ \x' -> If x' t e
           Let n x ss
-           -> ret $ Let n (go x) ss
+           -> goWith x $ \x' -> Let n x' ss
           ForeachInts n from to ss
-           -> ret $ ForeachInts n (go from) (go to) ss
+           -> do from' <- goX env' from
+                 to'   <- goX env' to
+                 ret $ ForeachInts n from' to' ss
           InitAccumulator (Accumulator n vt x) ss
-           -> ret $ InitAccumulator (Accumulator n vt (go x)) ss
+           -> goWith x $ \x' -> InitAccumulator (Accumulator n vt x') ss
           Write n x
-           -> ret $ Write n (go x)
+           -> goWith x $ \x' -> Write n x'
           Output n t xts
-           | xs <- fmap (go . fst) xts
-           , ts <- fmap snd xts
-           -> ret $ Output n t (List.zip xs ts)
+           -> do xs <- mapM (goX env' . fst) xts
+                 let ts = fmap snd xts
+                 ret $ Output n t (List.zip xs ts)
           _
            -> ret s
 
   goX env x
    | Just prima <- takePrimApps x
-   , x' <- goX' env x prima
-   = x'
+   , Just x' <- goX' env prima
+   = progress x'
    | otherwise
-   = x
+   = return x
 
 
-  goX' env x prima
+  goX' env prima
    | (PrimMelt (PrimMeltPack t), [n]) <- prima
    , Nothing <- tryMeltType t
-   = n
+   = Just n
 
    | (PrimMelt (PrimMeltUnpack ix _), [n]) <- prima
    , Just x' <- resolve env n
    , Just v  <- fromPacked ix x'
-   = v
+   = Just v
 
    -- repacking projections
    | (PrimMinimal (Min.PrimPair (Min.PrimPairFst ta tb)), [n]) <- prima
-   = primRepack env (PairT ta tb) [] ta n
+   = Just $ primRepack env (PairT ta tb) [] ta n
 
    | (PrimMinimal (Min.PrimPair (Min.PrimPairSnd ta tb)), [n]) <- prima
-   = primRepack env (PairT ta tb) [ta] tb n
+   = Just $ primRepack env (PairT ta tb) [ta] tb n
 
    | (PrimMap (PrimMapUnpackKeys tk tv), [n]) <- prima
-   = primRepack env (MapT tk tv) [] (ArrayT tk) n
+   = Just $ primRepack env (MapT tk tv) [] (ArrayT tk) n
 
    | (PrimMap (PrimMapUnpackValues tk tv), [n]) <- prima
-   = primRepack env (MapT tk tv) [ArrayT tk] (ArrayT tv) n
+   = Just $ primRepack env (MapT tk tv) [ArrayT tk] (ArrayT tv) n
 
    | (PrimProject (PrimProjectOptionIsSome tx), [n]) <- prima
-   = primRepack env (OptionT tx) [] BoolT n
+   = Just $ primRepack env (OptionT tx) [] BoolT n
 
    | (PrimUnsafe (PrimUnsafeOptionGet tx), [n]) <- prima
-   = primRepack env (OptionT tx) [BoolT] tx n
+   = Just $ primRepack env (OptionT tx) [BoolT] tx n
 
    | (PrimProject (PrimProjectSumIsRight ta tb), [n]) <- prima
-   = primRepack env (SumT ta tb) [] BoolT n
+   = Just $ primRepack env (SumT ta tb) [] BoolT n
 
    | (PrimUnsafe (PrimUnsafeSumGetLeft ta tb), [n]) <- prima
-   = primRepack env (SumT ta tb) [BoolT] ta n
+   = Just $ primRepack env (SumT ta tb) [BoolT] ta n
 
    | (PrimUnsafe (PrimUnsafeSumGetRight ta tb), [n]) <- prima
-   = primRepack env (SumT ta tb) [BoolT, ta] tb n
+   = Just $ primRepack env (SumT ta tb) [BoolT, ta] tb n
 
    | (PrimMinimal (Min.PrimStruct (Min.PrimStructGet f tf (StructType fs))), [n]) <- prima
    , fs'        <- Map.insert f tf fs
    , (pre, _:_) <- List.span (/= f)       (Map.keys  fs')
    , tpre       <- List.take (length pre) (Map.elems fs')
-   = primRepack env (StructT (StructType fs')) tpre tf n
+   = Just $ primRepack env (StructT (StructType fs')) tpre tf n
 
    -- repacking const
    | (PrimMinimal (Min.PrimConst (Min.PrimConstPair ta tb)), [na, nb]) <- prima
-   = primPack env (PairT ta tb) [na, nb]
+   = Just $ primPack env (PairT ta tb) [na, nb]
 
    | (PrimArray (PrimArrayZip ta tb), [nk, nv]) <- prima
-   = primPack env (ArrayT (PairT ta tb)) [nk, nv]
+   = Just $ primPack env (ArrayT (PairT ta tb)) [nk, nv]
 
    | (PrimMap (PrimMapPack tk tv), [nk, nv]) <- prima
-   = primPack env (MapT tk tv) [nk, nv]
+   = Just $ primPack env (MapT tk tv) [nk, nv]
 
    | (PrimMinimal (Min.PrimConst (Min.PrimConstSome tx)), [n]) <- prima
-   = primPack env (OptionT tx) [xTrue, n]
+   = Just $ primPack env (OptionT tx) [xTrue, n]
 
    | (PrimMinimal (Min.PrimConst (Min.PrimConstLeft ta tb)), [n]) <- prima
-   = primPack env (SumT ta tb) [xFalse, n, xDefault tb]
+   = Just $ primPack env (SumT ta tb) [xFalse, n, xDefault tb]
 
    | (PrimMinimal (Min.PrimConst (Min.PrimConstRight ta tb)), [n]) <- prima
-   = primPack env (SumT ta tb) [xTrue, xDefault ta, n]
+   = Just $ primPack env (SumT ta tb) [xTrue, xDefault ta, n]
 
 
    -- buffers
    | (PrimBuf (PrimBufPush i tx), [nb, nx]) <- prima
    , Just ts <- tryMeltType tx
    , tis     <- List.zip ts [0..]
-   = primPack env (BufT i tx)
+   = Just $ primPack env (BufT i tx)
    $ fmap (\(t, ix) -> primBufPush i t (primUnpack ix (BufT i tx) nb)
                                        (primUnpack ix tx          nx)) tis
 
    | (PrimBuf (PrimBufRead i tx), [n]) <- prima
    , Just ts <- tryMeltType tx
    , tis     <- List.zip ts [0..]
-   = primPack env (ArrayT tx)
+   = Just $ primPack env (ArrayT tx)
    $ fmap (\(t, ix) -> primBufRead i t (primUnpack ix (BufT i tx) n)) tis
 
 
    -- arrays
    | (PrimUnsafe (PrimUnsafeArrayCreate tx), [n]) <- prima
    , Just ts <- tryMeltType tx
-   = primPack env (ArrayT tx)
+   = Just $ primPack env (ArrayT tx)
    $ fmap (primArrayCreate n) ts
 
    | (PrimProject (PrimProjectArrayLength tx), [n]) <- prima
    , Just (t:_) <- tryMeltType tx
-   = primArrayLength t (primUnpack 0 (ArrayT tx) n)
+   = Just $ primArrayLength t (primUnpack 0 (ArrayT tx) n)
 
    | (PrimUnsafe (PrimUnsafeArrayIndex tx), [n, aix]) <- prima
    , Just ts <- tryMeltType tx
    , tis     <- List.zip ts [0..]
-   = primPack env tx
+   = Just $ primPack env tx
    $ fmap (\(t, ix) -> primArrayGet aix t (primUnpack ix (ArrayT tx) n)) tis
 
    | (PrimUpdate (PrimUpdateArrayPut tx), [na, aix, nv]) <- prima
    , Just ts <- tryMeltType tx
    , tis     <- List.zip ts [0..]
-   = primPack env (ArrayT tx)
+   = Just $ primPack env (ArrayT tx)
    $ fmap (\(t, ix) -> primArrayPut aix t (primUnpack ix (ArrayT tx) na)
                                           (primUnpack ix         tx  nv)) tis
 
@@ -217,18 +224,18 @@ constructor a_fresh statements
    | (PrimMinimal (Min.PrimRelation Min.PrimRelationEq t), [nx, ny]) <- prima
    , Just ts <- tryMeltType t
    , tis     <- List.zip ts [0..]
-   = primFold1 primAnd
+   = Just $ primFold1 primAnd
    $ fmap (\(tv, i) -> primEq tv (primUnpack i t nx) (primUnpack i t ny)) tis
 
    | (PrimMinimal (Min.PrimRelation Min.PrimRelationNe t), [nx, ny]) <- prima
    , Just ts <- tryMeltType t
    , tis     <- List.zip ts [0..]
-   = primFold1 primOr
+   = Just $ primFold1 primOr
    $ fmap (\(tv, i) -> primNe tv (primUnpack i t nx) (primUnpack i t ny)) tis
 
 
    | otherwise
-   = x
+   = Nothing
 
   fromPacked ix x
    | XValue _ t v <- x
