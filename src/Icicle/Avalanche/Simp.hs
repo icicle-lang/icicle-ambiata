@@ -52,15 +52,18 @@ simpFlattened a_fresh p
  = do s' <- transformX return (simp a_fresh) (statements p)
          >>= melt a_fresh
          >>= fixpoint crunch
+         -- Finish off with an a-normalisation
+         >>= anormal
 
       return $ p { statements = s' }
  where
   crunch ss
-   -- Rewrite rules like (fst (a,b) => a
-   =   constructor  a_fresh ss
+   -- Start by a-normalising, so it's ready for constructor
+   =   lift (anormal ss)
+   -- Remove some dead code
    >>= return .  dead
-   -- Remove unused lets, and remove duplicate bindings
-   >>= thresher     a_fresh
+   -- Rewrite rules like (fst (a,b) => a
+   >>= constructor  a_fresh
    -- Perform let-forwarding on statements, so that constant lets become free
    >>= forwardStmts a_fresh
    -- Try to evaluate any exposed primitives
@@ -69,8 +72,10 @@ simpFlattened a_fresh p
    >>= lift . nestBlocks   a_fresh
    -- Thresh again. Surprisingly, having both threshers makes simpFlattened twice as fast!
    >>= thresher     a_fresh
+
+  anormal ss
    -- Expression simp: first perform beta reduction, then a-normalise.
-   >>= transformX return (lift . simp a_fresh)
+   =   transformX return (simp a_fresh) ss
    -- finish a-normalisation by taking lets from inside expressions to statements.
    >>= return . pullLets
 
