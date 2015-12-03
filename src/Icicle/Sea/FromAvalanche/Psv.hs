@@ -385,7 +385,7 @@ seaOfReadFact state tombstones = do
     , indent 4 . vsep . fmap seaOfDefineInput $ inputVars input
     , ""
     , "    " <> align (seaOfReadTombstone input (Set.toList tombstones)) <> "{"
-    , "        " <> pretty (inputSumError input) <> " = ierror_tombstone;"
+    , "        " <> pretty (inputSumError input) <> " = ierror_not_an_error;"
     , ""
     , indent 8 readInput
     , "    }"
@@ -437,7 +437,7 @@ seaOfReadTombstone :: CheckedInput -> [Text] -> Doc
 seaOfReadTombstone input = \case
   []     -> Pretty.empty
   (t:ts) -> "if (" <> seaOfStringEq t "value_ptr" (Just "value_size") <> ") {" <> line
-         <> "    " <> pretty (inputSumError input) <> " = ierror_not_an_error;" <> line
+         <> "    " <> pretty (inputSumError input) <> " = ierror_tombstone;" <> line
          <> "} else " <> seaOfReadTombstone input ts
 
 ------------------------------------------------------------------------
@@ -822,7 +822,7 @@ seaOfWriteOutput ps oname@(OutputName name) otype0 ts0 ixStart
          SumT ErrorT otype1
           | (ErrorT : ts1) <- ts0
           , (ne     : _)   <- members
-          -> do (body, _, _) <- seaOfOutput False ps oname otype1 ts1 (ixStart+2) (const id)
+          -> do (body, _, _) <- seaOfOutput False ps oname otype1 ts1 (ixStart+1) (const id)
                 let body'     = go body
                 pure $ cond (ne <> " == ierror_not_an_error") body'
          _
@@ -904,7 +904,7 @@ seaOfOutput q ps oname@(OutputName name) otype0 ts0 ixStart transform
       SumT ErrorT otype1
        | (ErrorT : ts1) <- ts0
        , (ne     : _)   <- members
-       -> do (body, ix, ts) <- seaOfOutput False ps oname otype1 ts1 (ixStart+2) transform
+       -> do (body, ix, ts) <- seaOfOutput False ps oname otype1 ts1 (ixStart+1) transform
              pure (cond (ne <> " == ierror_not_an_error") body, ix, ts)
       _
        | (t  : ts) <- ts0
