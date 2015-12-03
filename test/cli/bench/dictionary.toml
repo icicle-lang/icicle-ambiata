@@ -1,0 +1,15 @@
+namespace=""
+import = [ "../../../data/libs/prelude.icicle" ]
+
+[fact.salary]
+ encoding = "int"
+
+[fact.injury]
+  [fact.injury.encoding]
+    location="string"
+    severity="int"
+    action="string*"
+    admitted="date*"
+
+[feature.mean_salary]
+ expression = "feature salary ~> mean value"
