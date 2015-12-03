@@ -18,7 +18,7 @@ import              Icicle.Common.Type
 import              Icicle.Common.Value
 import qualified    Icicle.Common.Exp as XV
 
-import              Icicle.Data.DateTime
+import              Icicle.Data.Time
 import              Icicle.Data         (AsAt(..))
 
 import              P
@@ -124,7 +124,7 @@ bubbleGumOutputOfAccumulatorHeap acc
 evalProgram
         :: Ord n
         => XV.EvalPrim a n p
-        -> DateTime
+        -> Time
         -> [AsAt (BubbleGumFact, BaseValue)]
         -> Program a n p
         -> Either (RuntimeError a n p) ([BubbleGumOutput n BaseValue], [(OutputName,BaseValue)])
@@ -135,7 +135,7 @@ evalProgram evalPrim now values p
         -- Keep evaluating the same loop for every value
         -- with accumulator and scalar heaps threaded through
         let stmts = statements p
-        let xh    = Map.singleton (binddate p) $ VBase $ VDateTime $ now
+        let xh    = Map.singleton (bindtime p) $ VBase $ VTime $ now
         let ah    = AccumulatorHeap Map.empty []
         (accs',ret) <- evalStmt evalPrim now xh values Nothing ah stmts
 
@@ -169,7 +169,7 @@ initAcc evalPrim env (Accumulator n _ x)
 evalStmt
         :: Ord n
         => XV.EvalPrim a n p
-        -> DateTime
+        -> Time
         -> Heap a n p
         -> [AsAt (BubbleGumFact, BaseValue)]
         -> Maybe BubbleGumFact
@@ -220,11 +220,11 @@ evalStmt evalPrim now xh values bubblegum ah stmt
     ForeachFacts [(n, ty)] ty' FactLoopNew stmts
      | ty == ty'
      -> do  let evalInput ah' inp = do
-                  let v0     = snd (fact inp)
-                      v1     = VDateTime (time inp)
+                  let v0     = snd (atFact inp)
+                      v1     = VTime (atTime inp)
                       vv     = VPair v0 v1
                       input' = Map.insert n (VBase vv) xh
-                      bgf    = Just $ fst $ fact inp
+                      bgf    = Just $ fst $ atFact inp
 
                   fst <$> evalStmt evalPrim now input' [] bgf ah' stmts
 
@@ -233,8 +233,8 @@ evalStmt evalPrim now xh values bubblegum ah stmt
 
     ForeachFacts ns ty FactLoopNew stmts
      -> do  let evalInput ah' inp = do
-                  let v0  = snd (fact inp)
-                      v1  = VDateTime (time inp)
+                  let v0  = snd (atFact inp)
+                      v1  = VTime (atTime inp)
                       vv  = VPair v0 v1
                       mvs = meltValue vv ty
 
@@ -249,7 +249,7 @@ evalStmt evalPrim now xh values bubblegum ah stmt
                      | otherwise
                      , nvs    <- zip (fmap fst ns) vs
                      , input' <- foldr (\(n, v) -> Map.insert n (VBase v)) xh nvs
-                     , bgf    <- Just $ fst $ fact inp
+                     , bgf    <- Just $ fst $ atFact inp
                      -> fst <$> evalStmt evalPrim now input' [] bgf ah' stmts
 
             ahs <- foldM evalInput ah values

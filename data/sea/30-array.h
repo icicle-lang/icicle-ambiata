@@ -1,4 +1,4 @@
-#include "21-date.h"
+#include "21-time.h"
 
 static iint_t INLINE iarray_size(iint_t count)
 {
@@ -139,7 +139,7 @@ MAKE_ARRAY(idouble_t,   idouble_)
 MAKE_ARRAY(iint_t,      iint_)
 MAKE_ARRAY(ierror_t,    ierror_)
 MAKE_ARRAY(ibool_t,     ibool_)
-MAKE_ARRAY(idate_t,     idate_)
+MAKE_ARRAY(itime_t,     itime_)
 MAKE_ARRAY(istring_t,   istring_)
 MAKE_ARRAY(iunit_t,     iunit_)
 
@@ -147,7 +147,7 @@ MAKE_ARRAY(iarray_t__idouble_t,   iarray__idouble_)
 MAKE_ARRAY(iarray_t__iint_t,      iarray__iint_)
 MAKE_ARRAY(iarray_t__ierror_t,    iarray__ierror_)
 MAKE_ARRAY(iarray_t__ibool_t,     iarray__ibool_)
-MAKE_ARRAY(iarray_t__idate_t,     iarray__idate_)
+MAKE_ARRAY(iarray_t__itime_t,     iarray__itime_)
 MAKE_ARRAY(iarray_t__istring_t,   iarray__istring_)
 MAKE_ARRAY(iarray_t__iunit_t,     iarray__iunit_)
 

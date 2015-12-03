@@ -33,7 +33,7 @@ substT ss tt
   go t
    = case t of
       BoolT         -> t
-      DateTimeT     -> t
+      TimeT         -> t
       DoubleT       -> t
       IntT          -> t
       StringT       -> t
@@ -152,7 +152,7 @@ unifyT t1 t2
      -> return $ Map.singleton b t1
 
     BoolT       -> eq
-    DateTimeT   -> eq
+    TimeT       -> eq
     DoubleT     -> eq
     IntT        -> eq
     StringT     -> eq

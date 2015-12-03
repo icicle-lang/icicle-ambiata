@@ -38,7 +38,7 @@ prefixOfValType t
      BoolT     -> "ibool_"
      IntT      -> "iint_"
      DoubleT   -> "idouble_"
-     DateTimeT -> "idate_"
+     TimeT     -> "itime_"
      ErrorT    -> "ierror_"
 
      StringT   -> "istring_"
@@ -71,7 +71,7 @@ seaOfValType t
      BoolT     -> "ibool_t"
      IntT      -> "iint_t"
      DoubleT   -> "idouble_t"
-     DateTimeT -> "idate_t"
+     TimeT     -> "itime_t"
      ErrorT    -> "ierror_t"
      StringT   -> "istring_t"
      BufT _ t' -> "ibuf_t__"   <> seaOfValType t'

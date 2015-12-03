@@ -10,7 +10,7 @@ module Icicle.Sea.FromAvalanche.Base (
   , seaOfChar
   , seaOfString
   , seaOfEscaped
-  , seaOfDate
+  , seaOfTime
   , seaError
   , seaError'
   , assign
@@ -24,7 +24,7 @@ import           Data.Text (Text)
 import qualified Data.Text as T
 
 import           Icicle.Data
-import           Icicle.Data.DateTime (packedOfDate)
+import           Icicle.Data.Time (packedOfTime)
 
 import           Icicle.Internal.Pretty
 
@@ -92,8 +92,8 @@ escapeChars = \case
 
 ------------------------------------------------------------------------
 
-seaOfDate :: DateTime -> Doc
-seaOfDate x = text ("0x" <> showHex (packedOfDate x) "")
+seaOfTime :: Time -> Doc
+seaOfTime x = text ("0x" <> showHex (packedOfTime x) "")
 
 ------------------------------------------------------------------------
 

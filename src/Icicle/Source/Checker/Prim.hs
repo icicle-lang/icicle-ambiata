@@ -42,8 +42,8 @@ primLookup' p
      -> f0 [BoolT] BoolT
     Op (LogicalBinary _)
      -> f0 [BoolT, BoolT] BoolT
-    Op (DateBinary _)
-     -> f0 [IntT, DateTimeT] DateTimeT
+    Op (TimeBinary _)
+     -> f0 [IntT, TimeT] TimeT
 
     Op  TupleComma
      -> do a <- fresh
@@ -58,8 +58,8 @@ primLookup' p
      -> f0 [] DoubleT
     Lit (LitString _)
      -> f0 [] StringT
-    Lit (LitDate _)
-     -> f0 [] DateTimeT
+    Lit (LitTime _)
+     -> f0 [] TimeT
 
     Fun Log
      -> f0 [DoubleT] DoubleT
@@ -72,9 +72,9 @@ primLookup' p
     Fun ToInt
      -> fNum $ \at -> ([at], IntT)
     Fun DaysBetween
-     -> f0 [DateTimeT, DateTimeT] IntT
+     -> f0 [TimeT, TimeT] IntT
     Fun DaysEpoch
-     -> f0 [DateTimeT] IntT
+     -> f0 [TimeT] IntT
     Fun Seq
      -> f2 $ \a at b bt -> FunctionType [a,b] [] [at,bt] bt
 

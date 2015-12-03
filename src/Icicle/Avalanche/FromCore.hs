@@ -47,7 +47,7 @@ namerText :: IsString a => (a -> n) -> Namer n
 namerText f
  = Namer (NameMod (f (fromString "elem")))
          (NameMod (f (fromString "acc")))
-         (NameMod (f (fromString "gen")) $ Name (f (fromString "date")))
+         (NameMod (f (fromString "gen")) $ Name (f (fromString "time")))
          (NameMod (f (fromString "gen")) $ Name (f (fromString "fact")))
 
 
@@ -60,7 +60,7 @@ programFromCore namer p
  = A.Program
  { A.input
     = C.input p
- , A.binddate
+ , A.bindtime
     = namerDate namer
  , A.statements
     = lets (C.precomps p)
@@ -95,13 +95,13 @@ programFromCore namer p
    = factLoop FactLoopNew (C.reduces p)
 
   factLoop loopType reduces
-   = ForeachFacts [(namerFact namer, PairT (C.input p) DateTimeT)]
-                  (PairT (C.input p) DateTimeT) loopType
+   = ForeachFacts [(namerFact namer, PairT (C.input p) TimeT)]
+                  (PairT (C.input p) TimeT) loopType
    $ Let (namerElemPrefix namer $ namerFact namer)
-        (xPrim (PrimMinimal $ Min.PrimPair $ Min.PrimPairFst (C.input p) DateTimeT)
+        (xPrim (PrimMinimal $ Min.PrimPair $ Min.PrimPairFst (C.input p) TimeT)
         `xApp` (xVar $ namerFact namer))
    $ Let (namerElemPrefix namer $ namerDate namer)
-        (xPrim (PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd (C.input p) DateTimeT)
+        (xPrim (PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd (C.input p) TimeT)
         `xApp` (xVar $ namerFact namer))
    $ Block
    $ makeStatements namer (C.input p) (C.streams p) reduces
@@ -192,12 +192,12 @@ insertStream namer inputType strs reds (n, strm)
        CS.SWindow _ newerThan olderThan inp
         -> let
                -- The comparison functions in Icicle.Core.Exp.Combinators compare on IntT,
-               -- so here for convenience I create a set with comparison type DateTimeT.
-               (~>~)  = prim2 (PrimMinimal $ Min.PrimRelation Min.PrimRelationGt DateTimeT)
+               -- so here for convenience I create a set with comparison type TimeT.
+               (~>~)  = prim2 (PrimMinimal $ Min.PrimRelation Min.PrimRelationGt TimeT)
                infix 4 ~>~
-               (~>=~) = prim2 (PrimMinimal $ Min.PrimRelation Min.PrimRelationGe DateTimeT)
+               (~>=~) = prim2 (PrimMinimal $ Min.PrimRelation Min.PrimRelationGe TimeT)
                infix 4 ~>=~
-               (~<=~) = prim2 (PrimMinimal $ Min.PrimRelation Min.PrimRelationLe DateTimeT)
+               (~<=~) = prim2 (PrimMinimal $ Min.PrimRelation Min.PrimRelationLe TimeT)
                infix 4 ~<=~
 
                factDate   = namerElemPrefix namer (namerDate namer)
@@ -236,9 +236,9 @@ windowEdge
         :: Name n
         -> WindowUnit
         -> X.Exp () n
-windowEdge n (Days   d) = xPrim (PrimMinimal $ Min.PrimDateTime Min.PrimDateTimeMinusDays)   @~ xVar n @~ constI d
-windowEdge n (Weeks  w) = xPrim (PrimMinimal $ Min.PrimDateTime Min.PrimDateTimeMinusDays)   @~ xVar n @~ constI (7*w)
-windowEdge n (Months m) = xPrim (PrimMinimal $ Min.PrimDateTime Min.PrimDateTimeMinusMonths) @~ xVar n @~ constI m
+windowEdge n (Days   d) = xPrim (PrimMinimal $ Min.PrimTime Min.PrimTimeMinusDays)   @~ xVar n @~ constI d
+windowEdge n (Weeks  w) = xPrim (PrimMinimal $ Min.PrimTime Min.PrimTimeMinusDays)   @~ xVar n @~ constI (7*w)
+windowEdge n (Months m) = xPrim (PrimMinimal $ Min.PrimTime Min.PrimTimeMinusMonths) @~ xVar n @~ constI m
 
 -- | Get update statement for given reduce
 statementOfReduce

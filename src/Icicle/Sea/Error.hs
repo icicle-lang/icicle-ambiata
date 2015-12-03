@@ -40,7 +40,7 @@ instance Pretty SeaError where
   pretty = \case
     SeaFactConversionError vs t
      -> text "Cannot convert facts "
-     <> pretty (fmap D.fact vs) <+> text ": [" <> pretty t <> text "]"
+     <> pretty (fmap D.atFact vs) <+> text ": [" <> pretty t <> text "]"
 
     SeaBaseValueConversionError v Nothing
      -> text "Cannot convert value " <> pretty v

@@ -9,7 +9,7 @@ import              Icicle.Common.Value
 import              Icicle.Common.Type
 import              Icicle.Common.Exp.Eval
 import              Icicle.Common.Exp.Prim.Minimal
-import qualified    Icicle.Data.DateTime            as DT
+import qualified    Icicle.Data.Time                as Time
 
 import              P
 
@@ -179,28 +179,28 @@ evalPrim p originalP vs
       -> primError
 
 
-     -- Date stuff
-     PrimDateTime PrimDateTimeDaysDifference
-      | [VBase (VDateTime a), VBase (VDateTime b)] <- vs
-      -> return $ VBase $ VInt $ DT.daysDifference a b
+     -- Time stuff
+     PrimTime PrimTimeDaysDifference
+      | [VBase (VTime a), VBase (VTime b)] <- vs
+      -> return $ VBase $ VInt $ Time.daysDifference a b
       | otherwise
       -> primError
 
-     PrimDateTime PrimDateTimeDaysEpoch
-      | [VBase (VDateTime a)] <- vs
-      -> return $ VBase $ VInt $ DT.daysOfDate a
+     PrimTime PrimTimeDaysEpoch
+      | [VBase (VTime a)] <- vs
+      -> return $ VBase $ VInt $ Time.daysOfTime a
       | otherwise
       -> primError
 
-     PrimDateTime PrimDateTimeMinusDays
-      | [VBase (VDateTime a), VBase (VInt b)] <- vs
-      -> return $ VBase $ VDateTime $ DT.minusDays a b
+     PrimTime PrimTimeMinusDays
+      | [VBase (VTime a), VBase (VInt b)] <- vs
+      -> return $ VBase $ VTime $ Time.minusDays a b
       | otherwise
       -> primError
 
-     PrimDateTime PrimDateTimeMinusMonths
-      | [VBase (VDateTime a), VBase (VInt b)] <- vs
-      -> return $ VBase $ VDateTime $ DT.minusMonths a b
+     PrimTime PrimTimeMinusMonths
+      | [VBase (VTime a), VBase (VInt b)] <- vs
+      -> return $ VBase $ VTime $ Time.minusMonths a b
       | otherwise
       -> primError
 

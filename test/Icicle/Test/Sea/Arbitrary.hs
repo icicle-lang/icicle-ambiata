@@ -11,8 +11,8 @@ import qualified Data.Map as Map
 import qualified Data.Set as Set
 import qualified Data.List as List
 
-import           Icicle.Data (Entity(..), Attribute(..), AsAt(..))
-import           Icicle.Data.DateTime (DateTime)
+import           Icicle.Data (Entity(..), Attribute(..), AsAt)
+import           Icicle.Data.Time (Time)
 
 import qualified Icicle.Core.Program.Program as C
 import qualified Icicle.Core.Program.Check as C
@@ -49,7 +49,7 @@ data WellTyped = WellTyped {
   , wtAttribute :: Attribute
   , wtFactType  :: ValType
   , wtFacts     :: [AsAt BaseValue]
-  , wtDateTime  :: DateTime
+  , wtTime      :: Time
   , wtCore      :: C.Program ()         Var
   , wtAvalanche :: A.Program (Annot ()) Var A.Prim
   } deriving (Show)
@@ -66,7 +66,7 @@ instance Arbitrary WellTyped where
     entities       <- List.nub . getNonEmpty <$> arbitrary
     attribute      <- arbitrary
     (InputType ty) <- arbitrary
-    (inputs, date) <- inputsForType ty
+    (inputs, time) <- inputsForType ty
     core           <- programForStreamType ty
     return $ do
       checked <- fromEither (C.checkProgram core)
@@ -92,7 +92,7 @@ instance Arbitrary WellTyped where
         , wtAttribute = attribute
         , wtFactType  = ty
         , wtFacts     = fmap (fmap snd) inputs
-        , wtDateTime  = date
+        , wtTime      = time
         , wtCore      = core
         , wtAvalanche = simplified
         }
@@ -127,7 +127,7 @@ isSupportedInput = \case
   BoolT     -> True
   IntT      -> True
   DoubleT   -> True
-  DateTimeT -> True
+  TimeT     -> True
   StringT   -> True
 
   UnitT     -> False
@@ -149,7 +149,7 @@ isSupportedInputElem = \case
   BoolT     -> True
   IntT      -> True
   DoubleT   -> True
-  DateTimeT -> True
+  TimeT     -> True
   StringT   -> True
 
   UnitT     -> False
@@ -166,16 +166,16 @@ isSupportedInputElem = \case
 
 isSupportedInputField :: ValType -> Bool
 isSupportedInputField = \case
-  BoolT             -> True
-  IntT              -> True
-  DoubleT           -> True
-  DateTimeT         -> True
-  StringT           -> True
-  OptionT BoolT     -> True
-  OptionT IntT      -> True
-  OptionT DoubleT   -> True
-  OptionT DateTimeT -> True
-  OptionT StringT   -> True
+  BoolT           -> True
+  IntT            -> True
+  DoubleT         -> True
+  TimeT           -> True
+  StringT         -> True
+  OptionT BoolT   -> True
+  OptionT IntT    -> True
+  OptionT DoubleT -> True
+  OptionT TimeT   -> True
+  OptionT StringT -> True
 
   UnitT     -> False
   ErrorT    -> False
@@ -215,7 +215,7 @@ isSupportedOutputBase = \case
   BoolT     -> True
   IntT      -> True
   DoubleT   -> True
-  DateTimeT -> True
+  TimeT     -> True
   StringT   -> True
 
   UnitT     -> False
@@ -231,7 +231,7 @@ isSupportedType = \case
   BoolT     -> True
   IntT      -> True
   DoubleT   -> True
-  DateTimeT -> True
+  TimeT     -> True
   StringT   -> True
   ErrorT    -> True
   MapT{}    -> True

@@ -5,7 +5,7 @@ module Icicle.Test.Arbitrary where
 
 import           Icicle.Common.Base hiding (StructField)
 import           Icicle.Data
-import           Icicle.Data.DateTime
+import           Icicle.Data.Time
 
 import           Icicle.Test.Arbitrary.Base
 
@@ -45,9 +45,9 @@ instance Arbitrary Attribute where
   arbitrary =
     Attribute <$> elements weather
 
-instance Arbitrary DateTime where
+instance Arbitrary Time where
   arbitrary = do
-    potential <- dateOfYMD <$> oneof_vals [2000..2050] <*> oneof_vals [1..12] <*> oneof_vals [1..31]
+    potential <- timeOfYMD <$> oneof_vals [2000..2050] <*> oneof_vals [1..12] <*> oneof_vals [1..31]
     case potential of
       Just a  -> pure a
       Nothing -> discard
@@ -72,7 +72,7 @@ instance Arbitrary Encoding where
           , IntEncoding
           , DoubleEncoding
           , BooleanEncoding
-          , DateEncoding ]
+          , TimeEncoding ]
           [ StructEncoding . nubEq <$> listOf1 arbitrary
           , ListEncoding           <$> arbitrary ]
    where
@@ -81,7 +81,7 @@ instance Arbitrary Encoding where
 
 instance Arbitrary StructField where
   arbitrary =
-    StructField <$> arbitrary <*> arbitrary <*> oneof_vals [ StringEncoding, IntEncoding, DoubleEncoding, BooleanEncoding, DateEncoding ]
+    StructField <$> arbitrary <*> arbitrary <*> oneof_vals [ StringEncoding, IntEncoding, DoubleEncoding, BooleanEncoding, TimeEncoding ]
 
 instance Arbitrary StructFieldType where
   arbitrary =
@@ -104,8 +104,8 @@ valueOfEncoding' e
                      <$> (arbitrary :: Gen Int)
     BooleanEncoding
      -> BooleanValue <$> arbitrary
-    DateEncoding
-     -> DateValue    <$> arbitrary
+    TimeEncoding
+     -> TimeValue    <$> arbitrary
 
     StructEncoding sfs
      ->  StructValue . Struct . P.concat

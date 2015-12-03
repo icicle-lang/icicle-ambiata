@@ -14,7 +14,7 @@ module Icicle.Source.Parser.Token (
   , pLitInt
   , pLitDouble
   , pLitString
-  , pLitDate
+  , pLitTime
   , pParenL
   , pParenR
   , pFlowsInto
@@ -22,7 +22,7 @@ module Icicle.Source.Parser.Token (
 
 import qualified        Icicle.Source.Lexer.Token as T
 import                  Icicle.Common.Base
-import                  Icicle.Data.DateTime
+import                  Icicle.Data.Time
 
 import                  P hiding ((<|>))
 
@@ -56,14 +56,19 @@ pKeyword kw
 
 pOperator :: Parser T.Operator
 pOperator
- = pTok get
-   <|> (pKeyword T.Days *> (T.Operator ("days before") <$ pKeyword T.Before <|> T.Operator ("days after") <$ pKeyword T.After))
-   <|> (pKeyword T.Weeks *> (T.Operator ("weeks before") <$ pKeyword T.Before <|> T.Operator ("weeks after") <$ pKeyword T.After))
-   <|> (pKeyword T.Months *> (T.Operator ("months before") <$ pKeyword T.Before <|> T.Operator ("months after") <$ pKeyword T.After))
-   <?> "operator"
+ = pTok get <|> days <|> weeks <|> months <?> "operator"
  where
   get (T.TOperator op) = Just op
   get  _               = Nothing
+
+  days   = pKeyword T.Days *> (T.Operator ("days before") <$ pKeyword T.Before
+                           <|> T.Operator ("days after")  <$ pKeyword T.After)
+
+  weeks  = pKeyword T.Weeks *> (T.Operator ("weeks before") <$ pKeyword T.Before
+                            <|> T.Operator ("weeks after")  <$ pKeyword T.After)
+
+  months = pKeyword T.Months *> (T.Operator ("months before") <$ pKeyword T.Before
+                             <|> T.Operator ("months after")  <$ pKeyword T.After)
 
 
 pVariable :: Parser (Name Var)
@@ -109,11 +114,11 @@ pLitString
   get _
    = Nothing
 
-pLitDate :: Parser DateTime
-pLitDate
- = pTok get <?> "date literal"
+pLitTime :: Parser Time
+pLitTime
+ = pTok get <?> "time literal"
  where
-  get (T.TLiteral (T.LitDate i))
+  get (T.TLiteral (T.LitTime i))
    = Just i
   get _
    = Nothing

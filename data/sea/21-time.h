@@ -1,6 +1,6 @@
 #include "20-simple.h"
 
-static void INLINE idate_to_gregorian (idate_t x, iint_t *y, iint_t *M, iint_t *d, iint_t *h, iint_t *m, iint_t *s)
+static void INLINE itime_to_gregorian (itime_t x, iint_t *y, iint_t *M, iint_t *d, iint_t *h, iint_t *m, iint_t *s)
 {
     *y = (x >> 48);
     *M = (x >> 40) & 0xff;
@@ -12,16 +12,16 @@ static void INLINE idate_to_gregorian (idate_t x, iint_t *y, iint_t *M, iint_t *
     *s = i % 60;
 }
 
-static idate_t INLINE idate_from_gregorian (iint_t y, iint_t M, iint_t d, iint_t h, iint_t m, iint_t s)
+static itime_t INLINE itime_from_gregorian (iint_t y, iint_t M, iint_t d, iint_t h, iint_t m, iint_t s)
 {
     return y << 48 | M << 40 | d << 32 | (3600 * h + 60 * m + s);
 }
 
 /* Number of days since 1600-03-01 (see Ivory DateTime). */
-static iint_t INLINE idate_to_epoch (idate_t x)
+static iint_t INLINE itime_to_epoch (itime_t x)
 {
     int64_t y, m, d, _0, _1, _2;
-    idate_to_gregorian (x, &y, &m, &d, &_0, &_1, &_2);
+    itime_to_gregorian (x, &y, &m, &d, &_0, &_1, &_2);
     y = y - 1600;
 
     m = (m + 9) % 12;
@@ -30,7 +30,7 @@ static iint_t INLINE idate_to_epoch (idate_t x)
     return 365*y + y/4 - y/100 + y/400 + (m*306 + 5)/10 + (d - 1);
 }
 
-static idate_t INLINE idate_from_epoch (iint_t g)
+static itime_t INLINE itime_from_epoch (iint_t g)
 {
     int64_t y = ((10000*g + 14780)/3652425);
     int64_t ddd = g - (365*y + y/4 - y/100 + y/400);
@@ -47,17 +47,17 @@ static idate_t INLINE idate_from_epoch (iint_t g)
 
     int64_t dd = ddd - (mi*306 + 5)/10 + 1;
 
-    return idate_from_gregorian (y + 1600, mm, dd, 0, 0, 0);
+    return itime_from_gregorian (y + 1600, mm, dd, 0, 0, 0);
 }
 
-static iint_t INLINE idate_days_diff (idate_t x, idate_t y)
+static iint_t INLINE itime_days_diff (itime_t x, itime_t y)
 {
-    return idate_to_epoch (y) - idate_to_epoch (x);
+    return itime_to_epoch (y) - itime_to_epoch (x);
 }
 
-static idate_t INLINE idate_minus_days (idate_t x, iint_t y)
+static itime_t INLINE itime_minus_days (itime_t x, iint_t y)
 {
-    return idate_from_epoch (idate_to_epoch(x) - y);
+    return itime_from_epoch (itime_to_epoch(x) - y);
 }
 
 static ibool_t INLINE is_leap_year (int64_t y)
@@ -67,10 +67,10 @@ static ibool_t INLINE is_leap_year (int64_t y)
 
 const int64_t month_lengths[] = {31,28,31,30,31,30,31,31,30,31,30,31};
 
-static idate_t INLINE idate_minus_months (idate_t x, iint_t offset)
+static itime_t INLINE itime_minus_months (itime_t x, iint_t offset)
 {
     int64_t y, M, d, h, m, s;
-    idate_to_gregorian (x, &y, &M, &d, &h, &m, &s);
+    itime_to_gregorian (x, &y, &M, &d, &h, &m, &s);
     y = y - 1600;
 
     ibool_t prev_year = offset > 0 && offset >= M;
@@ -96,5 +96,5 @@ static idate_t INLINE idate_minus_months (idate_t x, iint_t offset)
         }
     }
 
-    return idate_from_gregorian (y + 1600, M, d, h, m, s);
+    return itime_from_gregorian (y + 1600, M, d, h, m, s);
 }

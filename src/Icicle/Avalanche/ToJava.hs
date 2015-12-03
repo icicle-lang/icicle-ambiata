@@ -33,7 +33,7 @@ programToJava p
  <> block
  [ "public void compute(IcicleState" <> angled (maybe "$#@! NO FEATURE LOOP" boxedType $ concreteFeatureType $ statements p) <> " icicle)"
  <> block
-    [ local DateTimeT (binddate p) <> " = icicle.snapshotDate();"
+    [ local TimeT (bindtime p) <> " = icicle.snapshotDate();"
     , ""
     , statementsToJava (scopedOfStatement $ statements p)
     ]
@@ -251,13 +251,13 @@ primTypeOfPrim p
    = Function "Either.left"
   min' (M.PrimConst (M.PrimConstRight _ _))
    = Function "Either.right"
-  min' (M.PrimDateTime M.PrimDateTimeDaysDifference)
+  min' (M.PrimTime M.PrimTimeDaysDifference)
    = Function "icicle.daysDifference"
-  min' (M.PrimDateTime M.PrimDateTimeDaysEpoch)
+  min' (M.PrimTime M.PrimTimeDaysEpoch)
    = Function "icicle.daysEpoch"
-  min' (M.PrimDateTime M.PrimDateTimeMinusDays)
+  min' (M.PrimTime M.PrimTimeMinusDays)
    = Function "icicle.minusDays"
-  min' (M.PrimDateTime M.PrimDateTimeMinusMonths)
+  min' (M.PrimTime M.PrimTimeMinusMonths)
    = Function "icicle.minusMonths"
 
   min' (M.PrimPair (M.PrimPairFst _ _))
@@ -324,7 +324,7 @@ unbox t x
  = case t of
     IntT -> "(" <> x <> ").intValue()"
     DoubleT -> "(" <> x <> ").doubleValue()"
-    DateTimeT -> unbox IntT x
+    TimeT -> unbox IntT x
     _    -> x
 
 box :: ValType -> Doc -> Doc
@@ -332,7 +332,7 @@ box t x
  = case t of
     IntT -> "Integer.valueOf(" <> x <> ")"
     DoubleT -> "Double.valueOf(" <> x <> ")"
-    DateTimeT -> box IntT x
+    TimeT -> box IntT x
     _    -> x
 
 boxyOfPrimReturn :: Prim -> Boxy
@@ -381,7 +381,7 @@ boxedType t
      UnitT      -> "Integer"
      ErrorT     -> "Error"
      BoolT      -> "Boolean"
-     DateTimeT  -> "Integer"
+     TimeT      -> "Integer"
      ArrayT a   -> "ArrayList" <> angled (boxedType a)
      BufT _ a   -> "IcicleBuf" <> angled (boxedType a)
      MapT a b   -> "HashMap" <> angled (commas [boxedType a, boxedType b])
@@ -399,7 +399,7 @@ unboxedType t
      DoubleT    -> "double"
      UnitT      -> "int"
      BoolT      -> "boolean"
-     DateTimeT  -> "int"
+     TimeT      -> "int"
      _    -> boxedType t
 
 

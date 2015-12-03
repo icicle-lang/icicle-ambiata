@@ -9,7 +9,7 @@ module Icicle.Common.Exp.Prim.Minimal (
     , PrimRelation(..)
     , PrimLogical(..)
     , PrimConst(..)
-    , PrimDateTime (..)
+    , PrimTime (..)
     , PrimPair(..)
     , PrimStruct(..)
     , typeOfPrim
@@ -35,7 +35,7 @@ data Prim
  | PrimLogical  PrimLogical
  | PrimConst    PrimConst
  -- | Date primitives
- | PrimDateTime PrimDateTime
+ | PrimTime PrimTime
  | PrimPair     PrimPair
  | PrimStruct   PrimStruct
  deriving (Eq, Ord, Show)
@@ -94,12 +94,12 @@ data PrimConst
  | PrimConstRight ValType ValType
  deriving (Eq, Ord, Show)
 
--- | DateTime primitives
-data PrimDateTime
- = PrimDateTimeDaysDifference
- | PrimDateTimeDaysEpoch
- | PrimDateTimeMinusDays
- | PrimDateTimeMinusMonths
+-- | Time primitives
+data PrimTime
+ = PrimTimeDaysDifference
+ | PrimTimeDaysEpoch
+ | PrimTimeMinusDays
+ | PrimTimeMinusMonths
  deriving (Eq, Ord, Show)
 
 -- | Pair primitives
@@ -162,14 +162,14 @@ typeOfPrim p
     PrimConst (PrimConstRight a b)
      -> FunT [funOfVal b] (SumT a b)
 
-    PrimDateTime PrimDateTimeDaysDifference
-     -> FunT [funOfVal DateTimeT, funOfVal DateTimeT] IntT
-    PrimDateTime PrimDateTimeDaysEpoch
-     -> FunT [funOfVal DateTimeT] IntT
-    PrimDateTime PrimDateTimeMinusDays
-     -> FunT [funOfVal DateTimeT, funOfVal IntT] DateTimeT
-    PrimDateTime PrimDateTimeMinusMonths
-     -> FunT [funOfVal DateTimeT, funOfVal IntT] DateTimeT
+    PrimTime PrimTimeDaysDifference
+     -> FunT [funOfVal TimeT, funOfVal TimeT] IntT
+    PrimTime PrimTimeDaysEpoch
+     -> FunT [funOfVal TimeT] IntT
+    PrimTime PrimTimeMinusDays
+     -> FunT [funOfVal TimeT, funOfVal IntT] TimeT
+    PrimTime PrimTimeMinusMonths
+     -> FunT [funOfVal TimeT, funOfVal IntT] TimeT
 
     PrimPair (PrimPairFst a b)
      -> FunT [funOfVal (PairT a b)] a
@@ -237,10 +237,10 @@ instance Pretty Prim where
  pretty (PrimConst (PrimConstRight a b))
   = annotate (AnnType $ (pretty a) <+> (pretty b)) "right#"
 
- pretty (PrimDateTime PrimDateTimeDaysDifference) = "DateTime_daysDifference#"
- pretty (PrimDateTime PrimDateTimeDaysEpoch)      = "DateTime_daysEpoch#"
- pretty (PrimDateTime PrimDateTimeMinusDays)      = "DateTime_minusDays#"
- pretty (PrimDateTime PrimDateTimeMinusMonths)    = "DateTime_minusMonths#"
+ pretty (PrimTime PrimTimeDaysDifference) = "Time_daysDifference#"
+ pretty (PrimTime PrimTimeDaysEpoch)      = "Time_daysEpoch#"
+ pretty (PrimTime PrimTimeMinusDays)      = "Time_minusDays#"
+ pretty (PrimTime PrimTimeMinusMonths)    = "Time_minusMonths#"
 
  pretty (PrimPair (PrimPairFst a b)) = annotate (AnnType $ (pretty a) <.> (pretty b)) "fst#"
  pretty (PrimPair (PrimPairSnd a b)) = annotate (AnnType $ (pretty a) <.> (pretty b)) "snd#"

@@ -10,7 +10,7 @@ import           Data.Attoparsec.Text as A
 
 import           Control.Applicative
 import           Icicle.Data
-import           Icicle.Data.DateTime
+import           Icicle.Data.Time
 
 import qualified Data.Map as Map
 import qualified Data.Text as T
@@ -25,14 +25,14 @@ data ChordParseError
  deriving (Eq, Ord, Show)
 
 
-parserOfRows :: Parser (Entity, [DateTime])
+parserOfRows :: Parser (Entity, [Time])
 parserOfRows =
   (,) <$> (Entity <$> A.takeWhile (/= '|'))
       <*  pipe
-      <*> (pure <$> pDate)
+      <*> (pure <$> pTime)
       <*  endOfInput
 
-parseChordLine :: T.Text -> Either ChordParseError (Entity, [DateTime])
+parseChordLine :: T.Text -> Either ChordParseError (Entity, [Time])
 parseChordLine s
  = mapLeft (ChordParseError . T.pack)
  $ parseOnly parserOfRows s
@@ -40,7 +40,7 @@ parseChordLine s
 pipe :: Parser ()
 pipe = () <$ char '|'
 
-parseChordFile :: TL.Text -> Either ChordParseError (Map.Map Entity [DateTime])
+parseChordFile :: TL.Text -> Either ChordParseError (Map.Map Entity [Time])
 parseChordFile file
  = do let lines = fmap TL.toStrict
                 $ TL.lines file

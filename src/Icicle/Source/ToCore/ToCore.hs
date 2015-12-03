@@ -78,7 +78,7 @@ convertQueryTop feats qt
         inpTy <- case valTypeOfType ty of
                   Nothing -> lift $ Left $ ConvertErrorCannotConvertType (annAnnot $ annotOfQuery $ query qt) ty
                   Just t' -> return t'
-        let inpTy'dated = T.PairT inpTy T.DateTimeT
+        let inpTy'dated = T.PairT inpTy T.TimeT
 
         (now,bs,ret) <- evalStateT (do
                                        now      <- traverse convertFreshenAdd $ featureNow feats

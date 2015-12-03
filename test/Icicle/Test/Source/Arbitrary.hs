@@ -88,10 +88,10 @@ instance Arbitrary n => Arbitrary (Exp () n) where
         , Op    (Relation Eq)
         , Op    (LogicalBinary And)
         , Op    (LogicalBinary Or)
-        , Op    (DateBinary DaysBefore)
-        , Op    (DateBinary DaysAfter)
-        , Op    (DateBinary MonthsBefore)
-        , Op    (DateBinary MonthsAfter)
+        , Op    (TimeBinary DaysBefore)
+        , Op    (TimeBinary DaysAfter)
+        , Op    (TimeBinary MonthsBefore)
+        , Op    (TimeBinary MonthsAfter)
         , Fun   (DaysBetween)
         , Fun   (DaysEpoch)
         , Fun   (Seq) ]
@@ -107,7 +107,7 @@ instance Arbitrary Prim where
         [ Lit . LitInt    <$> pos
         , Lit . LitDouble <$> pos'
         , Lit . LitString <$> (elements southpark)
-        , Lit . LitDate   <$> arbitrary ]
+        , Lit . LitTime   <$> arbitrary ]
     where
       -- Negative literals get parsed into negative, then a positive literal.
       -- This isn't a problem mathematically, but would break symmetry tests.
@@ -203,7 +203,7 @@ qwfFeatureMap qwf
   xfst tt
    = CE.xApp
    $ CE.xPrim     $ CE.PrimMinimal
-   $ Min.PrimPair $ Min.PrimPairFst tt CT.DateTimeT
+   $ Min.PrimPair $ Min.PrimPairFst tt CT.TimeT
 
 qwfQueryTop :: QueryWithFeature -> QueryTop () T.Variable
 qwfQueryTop qwf

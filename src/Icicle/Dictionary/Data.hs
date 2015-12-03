@@ -78,18 +78,18 @@ parseFact (Dictionary { dictionaryEntries = dict }) fact'
                             (P.find (\(DictionaryEntry attr' _) -> (==) attr attr') dict)
         case def of
          DictionaryEntry _ (ConcreteDefinition enc ts)
-          -> factOf <$> parseValue enc ts (value' fact')
+          -> factOf <$> parseValue enc ts (factValue' fact')
          DictionaryEntry _ (VirtualDefinition _)
           -> Left (DecodeErrorValueForVirtual attr)
 
  where
-  attr = attribute' fact'
+  attr = factAttribute' fact'
 
   factOf v
    = Fact
-    { entity    = entity'    fact'
-    , attribute = attribute' fact'
-    , value     = v
+    { factEntity    = factEntity'    fact'
+    , factAttribute = factAttribute' fact'
+    , factValue     = v
     }
 
 featureMapOfDictionary :: Dictionary -> STC.Features () Variable
@@ -142,22 +142,22 @@ featureMapOfDictionary (Dictionary { dictionaryEntries = ds, dictionaryFunctions
      in xcase
       `xapp` (X.XLam () nErr ErrorT (xleft `xapp` X.XVar () nErr))
       `xapp` (X.XLam () nVal e'     (xright `xapp` (xfld `xapp` X.XVar () nVal)))
-      `xapp` (xfst (SumT ErrorT e') DateTimeT `xapp` x)
+      `xapp` (xfst (SumT ErrorT e') TimeT `xapp` x)
 
   xtomb t1
    = X.XApp () (X.XPrim () (X.PrimMinimal $ X.PrimRelation X.PrimRelationEq $ SumT ErrorT t1))
                (X.XValue () (SumT ErrorT t1) (VLeft $ VError ExceptTombstone))
 
   exps str e'
-   = [ (var str, STC.FeatureVariable (baseType e') (X.XApp () (xfst (sumT e') DateTimeT)) True)
-     , date_as_snd e'
+   = [ (var str, STC.FeatureVariable (baseType e') (X.XApp () (xfst (sumT e') TimeT)) True)
+     , time_as_snd e'
      , true_when_tombstone e' ]
-  date_as_snd e'
-   = ( var "date"
-     , STC.FeatureVariable (baseType DateTimeT) (X.XApp () (xsnd (sumT e') DateTimeT)) False)
+  time_as_snd e'
+   = ( var "time"
+     , STC.FeatureVariable (baseType TimeT) (X.XApp () (xsnd (sumT e') TimeT)) False)
   true_when_tombstone e'
    = (var "tombstone"
-     , STC.FeatureVariable (baseType BoolT) (X.XApp () (xtomb e') . X.XApp () (xfst (sumT e') DateTimeT)) False)
+     , STC.FeatureVariable (baseType BoolT) (X.XApp () (xtomb e') . X.XApp () (xfst (sumT e') TimeT)) False)
 
   var = Name . Variable
 

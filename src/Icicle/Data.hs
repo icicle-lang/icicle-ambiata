@@ -12,7 +12,7 @@ module Icicle.Data (
   , Value (..)
   , Struct (..)
   , List (..)
-  , DateTime
+  , Time
   , Encoding (..)
   , StructField (..)
   , StructFieldType (..)
@@ -22,7 +22,7 @@ module Icicle.Data (
 import           Data.Text
 import           Icicle.Internal.Pretty
 
-import           Icicle.Data.DateTime
+import           Icicle.Data.Time
 
 import           P
 
@@ -57,24 +57,23 @@ instance Pretty Attribute where
 
 data Fact =
   Fact {
-      entity        :: Entity
-    , attribute     :: Attribute
-    , value         :: Value
+      factEntity    :: Entity
+    , factAttribute :: Attribute
+    , factValue     :: Value
     } deriving (Eq, Show)
-
 
 data Fact' =
   Fact' {
-      entity'       :: Entity
-    , attribute'    :: Attribute
-    , value'        :: Text
+      factEntity'    :: Entity
+    , factAttribute' :: Attribute
+    , factValue'     :: Text
     } deriving (Eq, Show)
 
 
 data AsAt a =
   AsAt {
-      fact          :: a
-    , time          :: DateTime
+      atFact :: a
+    , atTime :: Time
     } deriving (Eq, Show, Functor)
 
 --------------------------------------------------------------------------------
@@ -84,7 +83,7 @@ data Value =
   | IntValue        Int
   | DoubleValue     Double
   | BooleanValue    Bool
-  | DateValue       DateTime
+  | TimeValue       Time
   | StructValue     Struct
   | ListValue       List
   | PairValue       Value Value
@@ -98,7 +97,7 @@ instance Pretty Value where
     IntValue     i  -> int i
     DoubleValue  d  -> double d
     BooleanValue b  -> pretty b
-    DateValue    d  -> pretty $ renderDate d
+    TimeValue    d  -> pretty $ renderTime d
     StructValue  s  -> pretty s
     ListValue    l  -> pretty l
     PairValue v1 v2 -> encloseSep lparen rparen comma
@@ -131,7 +130,7 @@ data Encoding =
   | IntEncoding
   | DoubleEncoding
   | BooleanEncoding
-  | DateEncoding
+  | TimeEncoding
   | StructEncoding  [StructField]
   | ListEncoding    Encoding
   deriving (Eq, Show)
@@ -143,7 +142,7 @@ instance Pretty Encoding where
       IntEncoding       -> "Int"
       DoubleEncoding    -> "Double"
       BooleanEncoding   -> "Bool"
-      DateEncoding      -> "Date"
+      TimeEncoding      -> "Time"
       StructEncoding ss -> "Struct" <+> pretty ss
       ListEncoding l    -> "[" <> pretty l <> "]"
 

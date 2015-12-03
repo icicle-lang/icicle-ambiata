@@ -15,7 +15,7 @@ import           Data.Either.Combinators
 import           Data.Text as T
 
 import           Icicle.Data
-import           Icicle.Data.DateTime
+import           Icicle.Data.Time
 import           Icicle.Dictionary
 import           Icicle.Encoding
 
@@ -39,10 +39,10 @@ instance PP.Pretty ParseError where
 
 renderEavt :: AsAt Fact' -> Text
 renderEavt f =
-            (getEntity . entity' . fact) f
-  <> "|" <> (getAttribute . attribute' . fact) f
-  <> "|" <> (value' . fact) f
-  <> "|" <> (renderDate . time) f
+            (getEntity . factEntity' . atFact) f
+  <> "|" <> (getAttribute . factAttribute' . atFact) f
+  <> "|" <> (factValue' . atFact) f
+  <> "|" <> (renderTime . atTime) f
 
 parseEavt :: Text -> Either ParseError (AsAt Fact')
 parseEavt =
@@ -58,7 +58,7 @@ eavtParser =
          <* pipe
          <*> column
          <* pipe)
-   <*> pDate
+   <*> pTime
 
 column :: Parser Text
 column =
@@ -73,6 +73,6 @@ decodeEavt dict t
  = do e  <- parseEavt t
       f' <- mapLeft DecodeError
           $ parseFact dict
-          $ fact e
-      return e { fact = f' }
+          $ atFact e
+      return e { atFact = f' }
 

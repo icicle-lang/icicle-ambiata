@@ -55,7 +55,7 @@ eval reduction_name xh sh r
             -- Evaluate the zero with no arguments
             z' <- evalX z
             -- Perform the fold!
-            v  <- foldM (apply2 k) z' (fmap (V.VBase . snd . fact) $ fst sv)
+            v  <- foldM (apply2 k) z' (fmap (V.VBase . snd . atFact) $ fst sv)
 
             v' <- case v of
                    V.VFun{}   -> Left (SV.RuntimeErrorExpNotBaseType v)
@@ -92,5 +92,5 @@ eval reduction_name xh sh r
 
   -- Get the history of some stream input
   flavoursOfSource
-   = fmap (\(AsAt { fact = (BubbleGumFact f, _)}) -> f)
+   = fmap (\(AsAt { atFact = (BubbleGumFact f, _)}) -> f)
 

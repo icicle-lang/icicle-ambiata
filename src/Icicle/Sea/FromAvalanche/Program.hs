@@ -57,8 +57,8 @@ seaOfProgram name attrib program = do
                  readsOfProgram  program
     , ""
     , indent 4 $ assign (defOfVar' 1 "imempool_t" "mempool") "s->mempool;"
-    , indent 4 $ assign (defOfVar  0 DateTimeT (pretty (stateDateVar state)))
-                        ("s->" <> pretty (stateDateVar state)) <> ";"
+    , indent 4 $ assign (defOfVar  0 TimeT (pretty (stateTimeVar state)))
+                        ("s->" <> pretty (stateTimeVar state)) <> ";"
     , ""
     , indent 4 (seaOfStatement (statements program))
     , "}"
@@ -188,14 +188,14 @@ seaOfExp xx
 seaOfXValue :: BaseValue -> ValType -> Doc
 seaOfXValue v t
  = case v of
-     VError    err   -> seaOfError err
-     VUnit           -> "iunit"
-     VBool     True  -> "itrue"
-     VBool     False -> "ifalse"
-     VInt      x     -> int x
-     VDouble   x     -> double x
-     VDateTime x     -> seaOfDate x
-     VString   x     -> seaOfString x
+     VError  err   -> seaOfError err
+     VUnit         -> "iunit"
+     VBool   True  -> "itrue"
+     VBool   False -> "ifalse"
+     VInt    x     -> int x
+     VDouble x     -> double x
+     VTime   x     -> seaOfTime x
+     VString x     -> seaOfString x
 
      VArray vs
       | ArrayT t' <- t

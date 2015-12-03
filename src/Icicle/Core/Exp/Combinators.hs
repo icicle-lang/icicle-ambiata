@@ -54,7 +54,7 @@ emptyMap tk tv = xValue (MapT tk tv) (VMap Map.empty)
 
 fstOfSource :: ValType -> X.Exp () Text -> X.Exp () Text
 fstOfSource ty p
- = xPrim (PrimMinimal $ Min.PrimPair $ Min.PrimPairFst ty DateTimeT)
+ = xPrim (PrimMinimal $ Min.PrimPair $ Min.PrimPairFst ty TimeT)
     @~ p
 
 

@@ -61,53 +61,53 @@ instance Pretty n => Pretty (SimulateError a n) where
 streams :: [AsAt Fact] -> [Partition]
 streams =
     P.concatMap makePartition
-  . fmap       (sortBy (compare `on` time))
+  . fmap       (sortBy (compare `on` atTime))
   . groupBy    ((==) `on` partitionBy)
   . sortBy     (compare `on` partitionBy)
 
 
 partitionBy :: AsAt Fact -> (Entity, Attribute)
 partitionBy f =
-  (entity . fact $ f, attribute . fact $ f)
+  (factEntity . atFact $ f, factAttribute . atFact $ f)
 
 
 makePartition :: [AsAt Fact] -> [Partition]
 makePartition []
  = []
 makePartition fs@(f:_)
- = [ Partition  (entity    $ fact f)
-                (attribute $ fact f)
-                (fmap (\f' -> AsAt (value $ fact f') (time f')) fs) ]
+ = [ Partition  (factEntity    $ atFact f)
+                (factAttribute $ atFact f)
+                (fmap (\f' -> AsAt (factValue $ atFact f') (atTime f')) fs) ]
 
-evaluateVirtualValue :: Ord n => P.Program a n -> DateTime -> [AsAt Value] -> Result a n
-evaluateVirtualValue p date vs
+evaluateVirtualValue :: Ord n => P.Program a n -> Time -> [AsAt Value] -> Result a n
+evaluateVirtualValue p t vs
  = do   vs' <- zipWithM toCore [1..] vs
 
         xv  <- mapLeft SimulateErrorRuntime
-             $ PV.eval date vs' p
+             $ PV.eval t vs' p
 
         v'  <- traverse (\(k,v) -> (,) <$> pure k <*> valueFromCore' v) (PV.value xv)
         bg' <- traverse (traverse valueFromCore') (PV.history xv)
         return (v', bg')
  where
   toCore n a
-   = do v' <- valueToCore' (fact a) (P.input p)
-        return $ a { fact = (B.BubbleGumFact $ B.Flavour n $ time a, v') }
+   = do v' <- valueToCore' (atFact a) (P.input p)
+        return $ a { atFact = (B.BubbleGumFact $ B.Flavour n $ atTime a, v') }
 
-evaluateVirtualValue' :: Ord n => A.Program a n APF.Prim -> DateTime -> [AsAt Value] -> Result a n
-evaluateVirtualValue' p date vs
+evaluateVirtualValue' :: Ord n => A.Program a n APF.Prim -> Time -> [AsAt Value] -> Result a n
+evaluateVirtualValue' p t vs
  = do   vs' <- zipWithM toCore [1..] vs
 
         xv  <- mapLeft SimulateErrorRuntime'
-             $ AE.evalProgram APF.evalPrim date vs' p
+             $ AE.evalProgram APF.evalPrim t vs' p
 
         v'  <- traverse (\(k,v) -> (,) <$> pure k <*> valueFromCore' v) (snd xv)
         bg' <- traverse (traverse valueFromCore') (fst xv)
         return (v', bg')
  where
   toCore n a
-   = do v' <- valueToCore' (fact a) (A.input p)
-        return $ a { fact = (B.BubbleGumFact $ B.Flavour n $ time a, v') }
+   = do v' <- valueToCore' (atFact a) (A.input p)
+        return $ a { atFact = (B.BubbleGumFact $ B.Flavour n $ atTime a, v') }
 
 valueToCore' :: Value -> ValType -> Either (SimulateError a n) BaseValue
 valueToCore' v vt

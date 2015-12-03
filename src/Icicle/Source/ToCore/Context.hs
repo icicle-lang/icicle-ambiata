@@ -49,4 +49,4 @@ envOfFeatureNow
  = Map.fromList
  . maybeToList
  . fmap
-   (\n -> (n, Temporality TemporalityAggregate $ Possibility PossibilityDefinitely DateTimeT))
+   (\n -> (n, Temporality TemporalityAggregate $ Possibility PossibilityDefinitely TimeT))

@@ -22,7 +22,7 @@ import qualified Icicle.Test.Avalanche.Scoped
 -- Superseded
 -- import qualified Icicle.Test.Dictionary.Types
 
-import qualified Icicle.Test.Data.DateTime
+import qualified Icicle.Test.Data.Time
 import qualified Icicle.Test.Internal.EditDistance
 
 import qualified Icicle.Test.Source.PrettyParse
@@ -66,7 +66,7 @@ main
 
         -- , Icicle.Test.Dictionary.Types.tests
 
-        , Icicle.Test.Data.DateTime.tests
+        , Icicle.Test.Data.Time.tests
         , Icicle.Test.Internal.EditDistance.tests
 
         , Icicle.Test.Source.PrettyParse.tests

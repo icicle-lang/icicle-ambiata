@@ -23,7 +23,7 @@ import           Icicle.Core.Program.Fusion (FusionError)
 import qualified Icicle.Core.Program.Fusion as C
 import qualified Icicle.Core.Program.Program as C
 import           Icicle.Data
-import           Icicle.Data.DateTime (dateOfText)
+import           Icicle.Data.Time (timeOfText)
 import           Icicle.Dictionary
 import           Icicle.Internal.Pretty (pretty)
 import           Icicle.Pipeline
@@ -81,9 +81,9 @@ main = do
 
 modeOfString :: String -> (PsvMode, Maybe FilePath)
 modeOfString str =
-  case dateOfText (T.pack str) of
+  case timeOfText (T.pack str) of
     Nothing   -> (PsvChords, Just str)
-    Just date -> (PsvSnapshot date, Nothing)
+    Just time -> (PsvSnapshot time, Nothing)
 
 ------------------------------------------------------------------------
 

@@ -36,7 +36,7 @@ freeT :: Ord n => Type n -> Set.Set (Name n)
 freeT t
  = case t of
     BoolT                   -> Set.empty
-    DateTimeT               -> Set.empty
+    TimeT                   -> Set.empty
     DoubleT                 -> Set.empty
     IntT                    -> Set.empty
     StringT                 -> Set.empty
@@ -112,7 +112,7 @@ getTemporality :: Type n -> Maybe (Type n, Type n)
 getTemporality tt
  = case tt of
     BoolT         -> Nothing
-    DateTimeT     -> Nothing
+    TimeT         -> Nothing
     DoubleT       -> Nothing
     IntT          -> Nothing
     StringT       -> Nothing
@@ -158,7 +158,7 @@ getPossibility :: Type n -> Maybe (Type n, Type n)
 getPossibility tt
  = case tt of
     BoolT         -> Nothing
-    DateTimeT     -> Nothing
+    TimeT         -> Nothing
     DoubleT       -> Nothing
     IntT          -> Nothing
     StringT       -> Nothing
@@ -203,7 +203,7 @@ getBaseType :: Type n -> Maybe (Type n)
 getBaseType tt
  = case tt of
     BoolT         -> Just tt
-    DateTimeT     -> Just tt
+    TimeT         -> Just tt
     DoubleT       -> Just tt
     IntT          -> Just tt
     StringT       -> Just tt

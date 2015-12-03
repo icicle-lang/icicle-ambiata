@@ -13,7 +13,7 @@ module Icicle.Common.Base (
     ) where
 
 import              Icicle.Internal.Pretty
-import              Icicle.Data.DateTime
+import              Icicle.Data.Time
 
 import              P
 import qualified    Data.Map    as Map
@@ -41,12 +41,12 @@ data WindowUnit
 -- closures, which include expressions.
 -- This is in here to resolve circular dependency.
 data BaseValue
- = VInt      {-# UNPACK #-}!Int
- | VDouble   {-# UNPACK #-}!Double
+ = VInt      !Int
+ | VDouble   !Double
  | VUnit
  | VBool     !Bool
- | VDateTime {-# UNPACK #-}!DateTime
- | VString   {-# UNPACK #-}!T.Text
+ | VTime     !Time
+ | VString   !T.Text
  | VArray    ![BaseValue]
  | VPair     !BaseValue !BaseValue
  | VLeft     !BaseValue
@@ -108,8 +108,8 @@ instance Pretty BaseValue where
       -> text "()"
      VBool b
       -> pretty b
-     VDateTime dt
-      -> text $ T.unpack $ renderDate dt
+     VTime t
+      -> text $ T.unpack $ renderTime t
      VString t
       -> text $ show t
      VArray vs

@@ -37,7 +37,7 @@ module Icicle.Common.Type (
 
 import              Icicle.Internal.Pretty
 import              Icicle.Common.Base
-import              Icicle.Data.DateTime (dateOfDays)
+import              Icicle.Data.Time (timeOfDays)
 
 import              P
 
@@ -51,7 +51,7 @@ import qualified    Data.Text as T
 -- deal with lambda lifting arbitrary functions.
 data ValType
  = BoolT
- | DateTimeT
+ | TimeT
  | DoubleT
  | IntT
  | StringT
@@ -86,7 +86,7 @@ defaultOfType :: ValType -> BaseValue
 defaultOfType typ
  = case typ of
      BoolT     -> VBool False
-     DateTimeT -> VDateTime (dateOfDays 0)
+     TimeT     -> VTime (timeOfDays 0)
      DoubleT   -> VDouble 0
      IntT      -> VInt 0
      StringT   -> VString T.empty
@@ -241,9 +241,9 @@ valueMatchesType v t
     (BoolT, _)
      -> False
 
-    (DateTimeT, VDateTime{})
+    (TimeT, VTime{})
      -> True
-    (DateTimeT, _)
+    (TimeT, _)
      -> False
 
     (StringT, VString _)
@@ -323,7 +323,7 @@ ppValType needParens vt =
     UnitT      -> text "Unit"
     ErrorT     -> text "Error"
     BoolT      -> text "Bool"
-    DateTimeT  -> text "DateTime"
+    TimeT      -> text "Time"
     StringT    -> text "String"
     ArrayT t   -> parens' (text "Array " <>  ppSub t)
     MapT k v   -> parens' (text "Map"    <+> ppSub k <+> ppSub v)

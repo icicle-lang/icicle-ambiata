@@ -130,7 +130,7 @@ library
                        Icicle.Core.Eval.Program
 
                        Icicle.Data
-                       Icicle.Data.DateTime
+                       Icicle.Data.Time
 
                        Icicle.Debug
 
