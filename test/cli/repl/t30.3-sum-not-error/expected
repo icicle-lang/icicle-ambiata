@@ -29,10 +29,9 @@ typedef struct {
     /* inputs */
     idate_t          gen_date;
     iint_t           new_count;
-    ibool_t         *new_gen_fact_simp_23;
-    ierror_t        *new_gen_fact_simp_24;
-    iint_t          *new_gen_fact_simp_25;
-    idate_t         *new_gen_fact_simp_26;
+    ierror_t        *new_gen_fact_simp_23;
+    iint_t          *new_gen_fact_simp_24;
+    idate_t         *new_gen_fact_simp_25;
 
     /* outputs */
     ibool_t          repl_ix_0;
@@ -87,16 +86,14 @@ void iprogram_0(iprogram_0_t *s)
     }
     
     const iint_t     new_count                = s->new_count;
-    const ibool_t   *const new_gen_fact_simp_23 = s->new_gen_fact_simp_23;
-    const ierror_t  *const new_gen_fact_simp_24 = s->new_gen_fact_simp_24;
-    const iint_t    *const new_gen_fact_simp_25 = s->new_gen_fact_simp_25;
-    const idate_t   *const new_gen_fact_simp_26 = s->new_gen_fact_simp_26;
+    const ierror_t  *const new_gen_fact_simp_23 = s->new_gen_fact_simp_23;
+    const iint_t    *const new_gen_fact_simp_24 = s->new_gen_fact_simp_24;
+    const idate_t   *const new_gen_fact_simp_25 = s->new_gen_fact_simp_25;
     
     for (iint_t i = 0; i < new_count; i++) {
-        ibool_t          gen_fact_simp_23     = new_gen_fact_simp_23[i];
-        ierror_t         gen_fact_simp_24     = new_gen_fact_simp_24[i];
-        iint_t           gen_fact_simp_25     = new_gen_fact_simp_25[i];
-        idate_t          gen_fact_simp_26     = new_gen_fact_simp_26[i];
+        ierror_t         gen_fact_simp_23     = new_gen_fact_simp_23[i];
+        iint_t           gen_fact_simp_24     = new_gen_fact_simp_24[i];
+        idate_t          gen_fact_simp_25     = new_gen_fact_simp_25[i];
         acc_perhaps_conv_3_simp_11            = acc_perhaps_conv_3_simp_8;            /* read */
         acc_perhaps_conv_3_simp_12            = acc_perhaps_conv_3_simp_9;            /* read */
         acc_perhaps_conv_3_simp_13            = acc_perhaps_conv_3_simp_10;           /* read */
@@ -105,15 +102,15 @@ void iprogram_0(iprogram_0_t *s)
         flat_0_simp_16                        = 0.0;                                  /* init */
         
         if (acc_perhaps_conv_3_simp_11) {
-            iint_t           simp_32          = idouble_trunc (acc_perhaps_conv_3_simp_13); /* let */
+            iint_t           simp_31          = idouble_trunc (acc_perhaps_conv_3_simp_13); /* let */
             flat_0_simp_14                    = ifalse;                               /* write */
-            flat_0_simp_15                    = iint_add (simp_32, 1);                /* write */
+            flat_0_simp_15                    = iint_add (simp_31, 1);                /* write */
             flat_0_simp_16                    = 0.0;                                  /* write */
         } else {
-            idouble_t        simp_46          = iint_extend (acc_perhaps_conv_3_simp_12); /* let */
+            idouble_t        simp_45          = iint_extend (acc_perhaps_conv_3_simp_12); /* let */
             flat_0_simp_14                    = itrue;                                /* write */
             flat_0_simp_15                    = 0;                                    /* write */
-            flat_0_simp_16                    = idouble_add (simp_46, 1.0);           /* write */
+            flat_0_simp_16                    = idouble_add (simp_45, 1.0);           /* write */
         }
         
         flat_0_simp_17                        = flat_0_simp_14;                       /* read */
