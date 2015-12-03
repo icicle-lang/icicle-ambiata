@@ -91,7 +91,7 @@ defaultOfType typ
      IntT      -> VInt 0
      StringT   -> VString T.empty
      UnitT     -> VUnit
-     ErrorT    -> VError ExceptTombstone
+     ErrorT    -> VError ExceptNotAnError
      ArrayT  _ -> VArray []
      MapT  _ _ -> VMap Map.empty
      OptionT _ -> VNone

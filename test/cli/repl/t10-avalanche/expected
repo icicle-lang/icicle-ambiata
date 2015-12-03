@@ -149,7 +149,7 @@ gen$date = DATE
                                                                       conv$28)
                                                                       v$inline$0$conv$13
                                                        in s$conv$22))
-                                                  ((Left ExceptTombstone, Right 0)@{((Sum Error Int), (Sum Error Int))})
+                                                  ((Left ExceptNotAnError, Right 0)@{((Sum Error Int), (Sum Error Int))})
                                                   conv$6
                                  in 
                                 let conv$31 = snd#@{(Sum Error Int), (Sum Error Int)} conv$11

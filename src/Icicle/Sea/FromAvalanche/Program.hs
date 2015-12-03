@@ -235,6 +235,9 @@ seaOfXValue v t
 seaOfError :: ExceptionInfo -> Doc
 seaOfError e
  = case e of
+     ExceptNotAnError
+      -> "ierror_not_an_error"
+
      ExceptTombstone
       -> "ierror_tombstone"
 

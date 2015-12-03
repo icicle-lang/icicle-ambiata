@@ -26,260 +26,224 @@ ok, c is now on
 > - Flattened:
 gen$date = DATE
 {
-  init acc$s$reify$6$conv$13$simp$66@{Bool} = False@{Bool};
-  init acc$s$reify$6$conv$13$simp$67@{Error} = ExceptFold1NoValue@{Error};
+  init acc$s$reify$6$conv$13$simp$66@{Error} = ExceptFold1NoValue@{Error};
+  init acc$s$reify$6$conv$13$simp$67@{Double} = 0.0@{Double};
   init acc$s$reify$6$conv$13$simp$68@{Double} = 0.0@{Double};
-  init acc$s$reify$6$conv$13$simp$69@{Double} = 0.0@{Double};
-  init acc$a$conv$70$simp$70@{Bool} = True@{Bool};
-  init acc$a$conv$70$simp$71@{Error} = ExceptTombstone@{Error};
+  init acc$a$conv$70$simp$69@{Error} = ExceptNotAnError@{Error};
+  init acc$a$conv$70$simp$70@{Double} = 0.0@{Double};
+  init acc$a$conv$70$simp$71@{Double} = 0.0@{Double};
   init acc$a$conv$70$simp$72@{Double} = 0.0@{Double};
-  init acc$a$conv$70$simp$73@{Double} = 0.0@{Double};
-  init acc$a$conv$70$simp$74@{Double} = 0.0@{Double};
-  load_resumable@{Bool} acc$s$reify$6$conv$13$simp$66;
-  load_resumable@{Error} acc$s$reify$6$conv$13$simp$67;
+  load_resumable@{Error} acc$s$reify$6$conv$13$simp$66;
+  load_resumable@{Double} acc$s$reify$6$conv$13$simp$67;
   load_resumable@{Double} acc$s$reify$6$conv$13$simp$68;
-  load_resumable@{Double} acc$s$reify$6$conv$13$simp$69;
-  load_resumable@{Bool} acc$a$conv$70$simp$70;
-  load_resumable@{Error} acc$a$conv$70$simp$71;
+  load_resumable@{Error} acc$a$conv$70$simp$69;
+  load_resumable@{Double} acc$a$conv$70$simp$70;
+  load_resumable@{Double} acc$a$conv$70$simp$71;
   load_resumable@{Double} acc$a$conv$70$simp$72;
-  load_resumable@{Double} acc$a$conv$70$simp$73;
-  load_resumable@{Double} acc$a$conv$70$simp$74;
-  for_facts (gen$fact$simp$309@{Bool},
-             gen$fact$simp$310@{Error},
-             gen$fact$simp$311@{String},
-             gen$fact$simp$312@{Int},
-             gen$fact$simp$313@{DateTime}) in new {
-    init flat$0$simp$75@{Bool} = False@{Bool};
-    init flat$0$simp$76@{Error} = ExceptTombstone@{Error};
-    init flat$0$simp$77@{Int} = 0@{Int};
-    if (gen$fact$simp$309) {
-      write flat$0$simp$75 = True@{Bool};
-      write flat$0$simp$76 = ExceptTombstone@{Error};
-      write flat$0$simp$77 = gen$fact$simp$312;
+  for_facts (gen$fact$simp$239@{Error},
+             gen$fact$simp$240@{String},
+             gen$fact$simp$241@{Int},
+             gen$fact$simp$242@{DateTime}) in new {
+    init flat$0$simp$73@{Error} = ExceptNotAnError@{Error};
+    init flat$0$simp$74@{Int} = 0@{Int};
+    if (eq#@{Error} gen$fact$simp$239
+        (ExceptNotAnError@{Error})) {
+      write flat$0$simp$73 = ExceptNotAnError@{Error};
+      write flat$0$simp$74 = gen$fact$simp$241;
     } else {
-      write flat$0$simp$75 = False@{Bool};
-      write flat$0$simp$76 = gen$fact$simp$310;
-      write flat$0$simp$77 = 0@{Int};
+      write flat$0$simp$73 = gen$fact$simp$239;
+      write flat$0$simp$74 = 0@{Int};
     }
-    read@{Bool} flat$0$simp$78 = flat$0$simp$75;
-    read@{Error} flat$0$simp$79 = flat$0$simp$76;
-    read@{Int} flat$0$simp$80 = flat$0$simp$77;
-    init flat$1$simp$81@{Bool} = False@{Bool};
-    init flat$1$simp$82@{Error} = ExceptTombstone@{Error};
-    init flat$1$simp$83@{Double} = 0.0@{Double};
-    if (flat$0$simp$78) {
-      write flat$1$simp$81 = True@{Bool};
-      write flat$1$simp$82 = ExceptTombstone@{Error};
-      write flat$1$simp$83 = doubleOfInt#
-                             flat$0$simp$80;
+    read@{Error} flat$0$simp$75 = flat$0$simp$73;
+    read@{Int} flat$0$simp$76 = flat$0$simp$74;
+    init flat$1$simp$77@{Error} = ExceptNotAnError@{Error};
+    init flat$1$simp$78@{Double} = 0.0@{Double};
+    if (eq#@{Error} flat$0$simp$75
+        (ExceptNotAnError@{Error})) {
+      write flat$1$simp$77 = ExceptNotAnError@{Error};
+      write flat$1$simp$78 = doubleOfInt#
+                             flat$0$simp$76;
     } else {
-      write flat$1$simp$81 = False@{Bool};
-      write flat$1$simp$82 = flat$0$simp$79;
-      write flat$1$simp$83 = 0.0@{Double};
+      write flat$1$simp$77 = flat$0$simp$75;
+      write flat$1$simp$78 = 0.0@{Double};
     }
-    read@{Bool} flat$1$simp$84 = flat$1$simp$81;
-    read@{Error} flat$1$simp$85 = flat$1$simp$82;
-    read@{Double} flat$1$simp$86 = flat$1$simp$83;
-    init flat$2$simp$87@{Bool} = False@{Bool};
-    init flat$2$simp$88@{Error} = ExceptTombstone@{Error};
-    init flat$2$simp$89@{Double} = 0.0@{Double};
-    if (flat$1$simp$84) {
-      write flat$2$simp$87 = True@{Bool};
-      write flat$2$simp$88 = ExceptTombstone@{Error};
-      write flat$2$simp$89 = flat$1$simp$86;
+    read@{Error} flat$1$simp$79 = flat$1$simp$77;
+    read@{Double} flat$1$simp$80 = flat$1$simp$78;
+    init flat$2$simp$81@{Error} = ExceptNotAnError@{Error};
+    init flat$2$simp$82@{Double} = 0.0@{Double};
+    if (eq#@{Error} flat$1$simp$79
+        (ExceptNotAnError@{Error})) {
+      write flat$2$simp$81 = ExceptNotAnError@{Error};
+      write flat$2$simp$82 = flat$1$simp$80;
     } else {
-      write flat$2$simp$87 = False@{Bool};
-      write flat$2$simp$88 = flat$1$simp$85;
-      write flat$2$simp$89 = 0.0@{Double};
+      write flat$2$simp$81 = flat$1$simp$79;
+      write flat$2$simp$82 = 0.0@{Double};
     }
-    read@{Bool} flat$2$simp$90 = flat$2$simp$87;
-    read@{Error} flat$2$simp$91 = flat$2$simp$88;
-    read@{Double} flat$2$simp$92 = flat$2$simp$89;
-    read@{Bool} acc$s$reify$6$conv$13$simp$93 = acc$s$reify$6$conv$13$simp$66;
-    read@{Error} acc$s$reify$6$conv$13$simp$94 = acc$s$reify$6$conv$13$simp$67;
-    read@{Double} acc$s$reify$6$conv$13$simp$95 = acc$s$reify$6$conv$13$simp$68;
-    read@{Double} acc$s$reify$6$conv$13$simp$96 = acc$s$reify$6$conv$13$simp$69;
-    init flat$3$simp$97@{Bool} = False@{Bool};
-    init flat$3$simp$98@{Error} = ExceptTombstone@{Error};
-    init flat$3$simp$99@{Double} = 0.0@{Double};
-    init flat$3$simp$100@{Double} = 0.0@{Double};
-    if (acc$s$reify$6$conv$13$simp$93) {
-      init flat$10$simp$101@{Bool} = False@{Bool};
-      init flat$10$simp$102@{Error} = ExceptTombstone@{Error};
-      init flat$10$simp$103@{Double} = 0.0@{Double};
-      init flat$10$simp$104@{Double} = 0.0@{Double};
-      if (acc$s$reify$6$conv$13$simp$93) {
-        init flat$13$simp$105@{Bool} = False@{Bool};
-        init flat$13$simp$106@{Error} = ExceptTombstone@{Error};
-        init flat$13$simp$107@{Double} = 0.0@{Double};
-        if (flat$2$simp$90) {
-          write flat$13$simp$105 = True@{Bool};
-          write flat$13$simp$106 = ExceptTombstone@{Error};
-          write flat$13$simp$107 = sub#@{Double}
-                                   flat$2$simp$92
-                                   acc$s$reify$6$conv$13$simp$95;
+    read@{Error} flat$2$simp$83 = flat$2$simp$81;
+    read@{Double} flat$2$simp$84 = flat$2$simp$82;
+    read@{Error} acc$s$reify$6$conv$13$simp$85 = acc$s$reify$6$conv$13$simp$66;
+    read@{Double} acc$s$reify$6$conv$13$simp$86 = acc$s$reify$6$conv$13$simp$67;
+    read@{Double} acc$s$reify$6$conv$13$simp$87 = acc$s$reify$6$conv$13$simp$68;
+    init flat$3$simp$88@{Error} = ExceptNotAnError@{Error};
+    init flat$3$simp$89@{Double} = 0.0@{Double};
+    init flat$3$simp$90@{Double} = 0.0@{Double};
+    if (eq#@{Error}
+        acc$s$reify$6$conv$13$simp$85
+        (ExceptNotAnError@{Error})) {
+      init flat$10$simp$91@{Error} = ExceptNotAnError@{Error};
+      init flat$10$simp$92@{Double} = 0.0@{Double};
+      init flat$10$simp$93@{Double} = 0.0@{Double};
+      if (eq#@{Error}
+          acc$s$reify$6$conv$13$simp$85
+          (ExceptNotAnError@{Error})) {
+        init flat$13$simp$94@{Error} = ExceptNotAnError@{Error};
+        init flat$13$simp$95@{Double} = 0.0@{Double};
+        if (eq#@{Error} flat$2$simp$83
+            (ExceptNotAnError@{Error})) {
+          write flat$13$simp$94 = ExceptNotAnError@{Error};
+          write flat$13$simp$95 = sub#@{Double}
+                                  flat$2$simp$84
+                                  acc$s$reify$6$conv$13$simp$86;
         } else {
-          write flat$13$simp$105 = False@{Bool};
-          write flat$13$simp$106 = flat$2$simp$91;
-          write flat$13$simp$107 = 0.0@{Double};
+          write flat$13$simp$94 = flat$2$simp$83;
+          write flat$13$simp$95 = 0.0@{Double};
         }
-        read@{Bool} flat$13$simp$108 = flat$13$simp$105;
-        read@{Error} flat$13$simp$109 = flat$13$simp$106;
-        read@{Double} flat$13$simp$110 = flat$13$simp$107;
-        init flat$14$simp$111@{Bool} = False@{Bool};
-        init flat$14$simp$112@{Error} = ExceptTombstone@{Error};
-        init flat$14$simp$113@{Double} = 0.0@{Double};
-        if (flat$13$simp$108) {
-          let simp$391 = add#@{Double}
-                         acc$s$reify$6$conv$13$simp$96
+        read@{Error} flat$13$simp$96 = flat$13$simp$94;
+        read@{Double} flat$13$simp$97 = flat$13$simp$95;
+        init flat$14$simp$98@{Error} = ExceptNotAnError@{Error};
+        init flat$14$simp$99@{Double} = 0.0@{Double};
+        if (eq#@{Error} flat$13$simp$96
+            (ExceptNotAnError@{Error})) {
+          let simp$301 = add#@{Double}
+                         acc$s$reify$6$conv$13$simp$87
                          (1.0@{Double});
-          write flat$14$simp$111 = True@{Bool};
-          write flat$14$simp$112 = ExceptTombstone@{Error};
-          write flat$14$simp$113 = div#
-                                   flat$13$simp$110 simp$391;
+          write flat$14$simp$98 = ExceptNotAnError@{Error};
+          write flat$14$simp$99 = div#
+                                  flat$13$simp$97 simp$301;
         } else {
-          write flat$14$simp$111 = False@{Bool};
-          write flat$14$simp$112 = flat$13$simp$109;
-          write flat$14$simp$113 = 0.0@{Double};
+          write flat$14$simp$98 = flat$13$simp$96;
+          write flat$14$simp$99 = 0.0@{Double};
         }
-        read@{Bool} flat$14$simp$114 = flat$14$simp$111;
-        read@{Error} flat$14$simp$115 = flat$14$simp$112;
-        read@{Double} flat$14$simp$116 = flat$14$simp$113;
-        init flat$15$simp$117@{Bool} = False@{Bool};
-        init flat$15$simp$118@{Error} = ExceptTombstone@{Error};
-        init flat$15$simp$119@{Double} = 0.0@{Double};
-        if (flat$14$simp$114) {
-          write flat$15$simp$117 = True@{Bool};
-          write flat$15$simp$118 = ExceptTombstone@{Error};
-          write flat$15$simp$119 = add#@{Double}
-                                   acc$s$reify$6$conv$13$simp$95
-                                   flat$14$simp$116;
+        read@{Error} flat$14$simp$100 = flat$14$simp$98;
+        read@{Double} flat$14$simp$101 = flat$14$simp$99;
+        init flat$15$simp$102@{Error} = ExceptNotAnError@{Error};
+        init flat$15$simp$103@{Double} = 0.0@{Double};
+        if (eq#@{Error} flat$14$simp$100
+            (ExceptNotAnError@{Error})) {
+          write flat$15$simp$102 = ExceptNotAnError@{Error};
+          write flat$15$simp$103 = add#@{Double}
+                                   acc$s$reify$6$conv$13$simp$86
+                                   flat$14$simp$101;
         } else {
-          write flat$15$simp$117 = False@{Bool};
-          write flat$15$simp$118 = flat$14$simp$115;
-          write flat$15$simp$119 = 0.0@{Double};
+          write flat$15$simp$102 = flat$14$simp$100;
+          write flat$15$simp$103 = 0.0@{Double};
         }
-        read@{Bool} flat$15$simp$120 = flat$15$simp$117;
-        read@{Error} flat$15$simp$121 = flat$15$simp$118;
-        read@{Double} flat$15$simp$122 = flat$15$simp$119;
-        init flat$16$simp$123@{Bool} = False@{Bool};
-        init flat$16$simp$124@{Error} = ExceptTombstone@{Error};
-        init flat$16$simp$125@{Double} = 0.0@{Double};
-        init flat$16$simp$126@{Double} = 0.0@{Double};
-        if (flat$15$simp$120) {
-          write flat$16$simp$123 = True@{Bool};
-          write flat$16$simp$124 = ExceptTombstone@{Error};
-          write flat$16$simp$125 = flat$15$simp$122;
-          write flat$16$simp$126 = add#@{Double}
-                                   acc$s$reify$6$conv$13$simp$96
+        read@{Error} flat$15$simp$104 = flat$15$simp$102;
+        read@{Double} flat$15$simp$105 = flat$15$simp$103;
+        init flat$16$simp$106@{Error} = ExceptNotAnError@{Error};
+        init flat$16$simp$107@{Double} = 0.0@{Double};
+        init flat$16$simp$108@{Double} = 0.0@{Double};
+        if (eq#@{Error} flat$15$simp$104
+            (ExceptNotAnError@{Error})) {
+          write flat$16$simp$106 = ExceptNotAnError@{Error};
+          write flat$16$simp$107 = flat$15$simp$105;
+          write flat$16$simp$108 = add#@{Double}
+                                   acc$s$reify$6$conv$13$simp$87
                                    (1.0@{Double});
         } else {
-          write flat$16$simp$123 = False@{Bool};
-          write flat$16$simp$124 = flat$15$simp$121;
-          write flat$16$simp$125 = 0.0@{Double};
-          write flat$16$simp$126 = 0.0@{Double};
+          write flat$16$simp$106 = flat$15$simp$104;
+          write flat$16$simp$107 = 0.0@{Double};
+          write flat$16$simp$108 = 0.0@{Double};
         }
-        read@{Bool} flat$16$simp$127 = flat$16$simp$123;
-        read@{Error} flat$16$simp$128 = flat$16$simp$124;
-        read@{Double} flat$16$simp$129 = flat$16$simp$125;
-        read@{Double} flat$16$simp$130 = flat$16$simp$126;
-        write flat$10$simp$101 = flat$16$simp$127;
-        write flat$10$simp$102 = flat$16$simp$128;
-        write flat$10$simp$103 = flat$16$simp$129;
-        write flat$10$simp$104 = flat$16$simp$130;
+        read@{Error} flat$16$simp$109 = flat$16$simp$106;
+        read@{Double} flat$16$simp$110 = flat$16$simp$107;
+        read@{Double} flat$16$simp$111 = flat$16$simp$108;
+        write flat$10$simp$91 = flat$16$simp$109;
+        write flat$10$simp$92 = flat$16$simp$110;
+        write flat$10$simp$93 = flat$16$simp$111;
       } else {
-        write flat$10$simp$101 = False@{Bool};
-        write flat$10$simp$102 = acc$s$reify$6$conv$13$simp$94;
-        write flat$10$simp$103 = 0.0@{Double};
-        write flat$10$simp$104 = 0.0@{Double};
+        write flat$10$simp$91 = acc$s$reify$6$conv$13$simp$85;
+        write flat$10$simp$92 = 0.0@{Double};
+        write flat$10$simp$93 = 0.0@{Double};
       }
-      read@{Bool} flat$10$simp$131 = flat$10$simp$101;
-      read@{Error} flat$10$simp$132 = flat$10$simp$102;
-      read@{Double} flat$10$simp$133 = flat$10$simp$103;
-      read@{Double} flat$10$simp$134 = flat$10$simp$104;
-      write flat$3$simp$97 = flat$10$simp$131;
-      write flat$3$simp$98 = flat$10$simp$132;
-      write flat$3$simp$99 = flat$10$simp$133;
-      write flat$3$simp$100 = flat$10$simp$134;
+      read@{Error} flat$10$simp$112 = flat$10$simp$91;
+      read@{Double} flat$10$simp$113 = flat$10$simp$92;
+      read@{Double} flat$10$simp$114 = flat$10$simp$93;
+      write flat$3$simp$88 = flat$10$simp$112;
+      write flat$3$simp$89 = flat$10$simp$113;
+      write flat$3$simp$90 = flat$10$simp$114;
     } else {
-      init flat$6$simp$135@{Bool} = False@{Bool};
-      init flat$6$simp$136@{Error} = ExceptTombstone@{Error};
-      init flat$6$simp$137@{Double} = 0.0@{Double};
-      init flat$6$simp$138@{Double} = 0.0@{Double};
+      init flat$6$simp$115@{Error} = ExceptNotAnError@{Error};
+      init flat$6$simp$116@{Double} = 0.0@{Double};
+      init flat$6$simp$117@{Double} = 0.0@{Double};
       if (eq#@{Error} (ExceptFold1NoValue@{Error})
-          acc$s$reify$6$conv$13$simp$94) {
-        init flat$7$simp$139@{Bool} = False@{Bool};
-        init flat$7$simp$140@{Error} = ExceptTombstone@{Error};
-        init flat$7$simp$141@{Double} = 0.0@{Double};
-        init flat$7$simp$142@{Double} = 0.0@{Double};
-        if (flat$2$simp$90) {
-          write flat$7$simp$139 = True@{Bool};
-          write flat$7$simp$140 = ExceptTombstone@{Error};
-          write flat$7$simp$141 = flat$2$simp$92;
-          write flat$7$simp$142 = 1.0@{Double};
+          acc$s$reify$6$conv$13$simp$85) {
+        init flat$7$simp$118@{Error} = ExceptNotAnError@{Error};
+        init flat$7$simp$119@{Double} = 0.0@{Double};
+        init flat$7$simp$120@{Double} = 0.0@{Double};
+        if (eq#@{Error} flat$2$simp$83
+            (ExceptNotAnError@{Error})) {
+          write flat$7$simp$118 = ExceptNotAnError@{Error};
+          write flat$7$simp$119 = flat$2$simp$84;
+          write flat$7$simp$120 = 1.0@{Double};
         } else {
-          write flat$7$simp$139 = False@{Bool};
-          write flat$7$simp$140 = flat$2$simp$91;
-          write flat$7$simp$141 = 0.0@{Double};
-          write flat$7$simp$142 = 0.0@{Double};
+          write flat$7$simp$118 = flat$2$simp$83;
+          write flat$7$simp$119 = 0.0@{Double};
+          write flat$7$simp$120 = 0.0@{Double};
         }
-        read@{Bool} flat$7$simp$143 = flat$7$simp$139;
-        read@{Error} flat$7$simp$144 = flat$7$simp$140;
-        read@{Double} flat$7$simp$145 = flat$7$simp$141;
-        read@{Double} flat$7$simp$146 = flat$7$simp$142;
-        write flat$6$simp$135 = flat$7$simp$143;
-        write flat$6$simp$136 = flat$7$simp$144;
-        write flat$6$simp$137 = flat$7$simp$145;
-        write flat$6$simp$138 = flat$7$simp$146;
+        read@{Error} flat$7$simp$121 = flat$7$simp$118;
+        read@{Double} flat$7$simp$122 = flat$7$simp$119;
+        read@{Double} flat$7$simp$123 = flat$7$simp$120;
+        write flat$6$simp$115 = flat$7$simp$121;
+        write flat$6$simp$116 = flat$7$simp$122;
+        write flat$6$simp$117 = flat$7$simp$123;
       } else {
-        write flat$6$simp$135 = False@{Bool};
-        write flat$6$simp$136 = acc$s$reify$6$conv$13$simp$94;
-        write flat$6$simp$137 = 0.0@{Double};
-        write flat$6$simp$138 = 0.0@{Double};
+        write flat$6$simp$115 = acc$s$reify$6$conv$13$simp$85;
+        write flat$6$simp$116 = 0.0@{Double};
+        write flat$6$simp$117 = 0.0@{Double};
       }
-      read@{Bool} flat$6$simp$147 = flat$6$simp$135;
-      read@{Error} flat$6$simp$148 = flat$6$simp$136;
-      read@{Double} flat$6$simp$149 = flat$6$simp$137;
-      read@{Double} flat$6$simp$150 = flat$6$simp$138;
-      write flat$3$simp$97 = flat$6$simp$147;
-      write flat$3$simp$98 = flat$6$simp$148;
-      write flat$3$simp$99 = flat$6$simp$149;
-      write flat$3$simp$100 = flat$6$simp$150;
+      read@{Error} flat$6$simp$124 = flat$6$simp$115;
+      read@{Double} flat$6$simp$125 = flat$6$simp$116;
+      read@{Double} flat$6$simp$126 = flat$6$simp$117;
+      write flat$3$simp$88 = flat$6$simp$124;
+      write flat$3$simp$89 = flat$6$simp$125;
+      write flat$3$simp$90 = flat$6$simp$126;
     }
-    read@{Bool} flat$3$simp$151 = flat$3$simp$97;
-    read@{Error} flat$3$simp$152 = flat$3$simp$98;
-    read@{Double} flat$3$simp$153 = flat$3$simp$99;
-    read@{Double} flat$3$simp$154 = flat$3$simp$100;
-    write acc$s$reify$6$conv$13$simp$66 = flat$3$simp$151;
-    write acc$s$reify$6$conv$13$simp$67 = flat$3$simp$152;
-    write acc$s$reify$6$conv$13$simp$68 = flat$3$simp$153;
-    write acc$s$reify$6$conv$13$simp$69 = flat$3$simp$154;
-    init flat$25$simp$155@{Bool} = False@{Bool};
-    init flat$25$simp$157@{String} = ""@{String};
-    if (gen$fact$simp$309) {
-      write flat$25$simp$155 = True@{Bool};
-      write flat$25$simp$157 = gen$fact$simp$311;
+    read@{Error} flat$3$simp$127 = flat$3$simp$88;
+    read@{Double} flat$3$simp$128 = flat$3$simp$89;
+    read@{Double} flat$3$simp$129 = flat$3$simp$90;
+    write acc$s$reify$6$conv$13$simp$66 = flat$3$simp$127;
+    write acc$s$reify$6$conv$13$simp$67 = flat$3$simp$128;
+    write acc$s$reify$6$conv$13$simp$68 = flat$3$simp$129;
+    init flat$25$simp$130@{Error} = ExceptNotAnError@{Error};
+    init flat$25$simp$131@{String} = ""@{String};
+    if (eq#@{Error} gen$fact$simp$239
+        (ExceptNotAnError@{Error})) {
+      write flat$25$simp$130 = ExceptNotAnError@{Error};
+      write flat$25$simp$131 = gen$fact$simp$240;
     } else {
-      write flat$25$simp$155 = False@{Bool};
-      write flat$25$simp$157 = ""@{String};
+      write flat$25$simp$130 = gen$fact$simp$239;
+      write flat$25$simp$131 = ""@{String};
     }
-    read@{Bool} flat$25$simp$158 = flat$25$simp$155;
-    read@{String} flat$25$simp$160 = flat$25$simp$157;
-    init flat$26$simp$161@{Bool} = False@{Bool};
-    init flat$26$simp$163@{Bool} = False@{Bool};
-    if (flat$25$simp$158) {
-      write flat$26$simp$161 = True@{Bool};
-      write flat$26$simp$163 = eq#@{String}
-                               flat$25$simp$160 ("torso"@{String});
+    read@{Error} flat$25$simp$132 = flat$25$simp$130;
+    read@{String} flat$25$simp$133 = flat$25$simp$131;
+    init flat$26$simp$134@{Error} = ExceptNotAnError@{Error};
+    init flat$26$simp$135@{Bool} = False@{Bool};
+    if (eq#@{Error} flat$25$simp$132
+        (ExceptNotAnError@{Error})) {
+      write flat$26$simp$134 = ExceptNotAnError@{Error};
+      write flat$26$simp$135 = eq#@{String}
+                               flat$25$simp$133 ("torso"@{String});
     } else {
-      write flat$26$simp$161 = False@{Bool};
-      write flat$26$simp$163 = False@{Bool};
+      write flat$26$simp$134 = flat$25$simp$132;
+      write flat$26$simp$135 = False@{Bool};
     }
-    read@{Bool} flat$26$simp$164 = flat$26$simp$161;
-    read@{Bool} flat$26$simp$166 = flat$26$simp$163;
+    read@{Error} flat$26$simp$136 = flat$26$simp$134;
+    read@{Bool} flat$26$simp$137 = flat$26$simp$135;
     init flat$27@{Bool} = False@{Bool};
-    if (flat$26$simp$164) {
-      write flat$27 = flat$26$simp$166;
+    if (eq#@{Error} flat$26$simp$136
+        (ExceptNotAnError@{Error})) {
+      write flat$27 = flat$26$simp$137;
     } 
      else {
       write flat$27 = True@{Bool};
@@ -287,372 +251,309 @@ gen$date = DATE
     
     read@{Bool} flat$27 = flat$27;
     if (flat$27) {
-      init flat$28$simp$167@{Bool} = False@{Bool};
-      init flat$28$simp$168@{Error} = ExceptTombstone@{Error};
-      init flat$28$simp$169@{Int} = 0@{Int};
-      if (gen$fact$simp$309) {
-        write flat$28$simp$167 = True@{Bool};
-        write flat$28$simp$168 = ExceptTombstone@{Error};
-        write flat$28$simp$169 = gen$fact$simp$312;
+      init flat$28$simp$138@{Error} = ExceptNotAnError@{Error};
+      init flat$28$simp$139@{Int} = 0@{Int};
+      if (eq#@{Error} gen$fact$simp$239
+          (ExceptNotAnError@{Error})) {
+        write flat$28$simp$138 = ExceptNotAnError@{Error};
+        write flat$28$simp$139 = gen$fact$simp$241;
       } else {
-        write flat$28$simp$167 = False@{Bool};
-        write flat$28$simp$168 = gen$fact$simp$310;
-        write flat$28$simp$169 = 0@{Int};
+        write flat$28$simp$138 = gen$fact$simp$239;
+        write flat$28$simp$139 = 0@{Int};
       }
-      read@{Bool} flat$28$simp$170 = flat$28$simp$167;
-      read@{Error} flat$28$simp$171 = flat$28$simp$168;
-      read@{Int} flat$28$simp$172 = flat$28$simp$169;
-      init flat$29$simp$173@{Bool} = False@{Bool};
-      init flat$29$simp$174@{Error} = ExceptTombstone@{Error};
-      init flat$29$simp$175@{Double} = 0.0@{Double};
-      if (flat$28$simp$170) {
-        write flat$29$simp$173 = True@{Bool};
-        write flat$29$simp$174 = ExceptTombstone@{Error};
-        write flat$29$simp$175 = doubleOfInt#
-                                 flat$28$simp$172;
+      read@{Error} flat$28$simp$140 = flat$28$simp$138;
+      read@{Int} flat$28$simp$141 = flat$28$simp$139;
+      init flat$29$simp$142@{Error} = ExceptNotAnError@{Error};
+      init flat$29$simp$143@{Double} = 0.0@{Double};
+      if (eq#@{Error} flat$28$simp$140
+          (ExceptNotAnError@{Error})) {
+        write flat$29$simp$142 = ExceptNotAnError@{Error};
+        write flat$29$simp$143 = doubleOfInt#
+                                 flat$28$simp$141;
       } else {
-        write flat$29$simp$173 = False@{Bool};
-        write flat$29$simp$174 = flat$28$simp$171;
-        write flat$29$simp$175 = 0.0@{Double};
+        write flat$29$simp$142 = flat$28$simp$140;
+        write flat$29$simp$143 = 0.0@{Double};
       }
-      read@{Bool} flat$29$simp$176 = flat$29$simp$173;
-      read@{Error} flat$29$simp$177 = flat$29$simp$174;
-      read@{Double} flat$29$simp$178 = flat$29$simp$175;
-      read@{Bool} acc$a$conv$70$simp$179 = acc$a$conv$70$simp$70;
-      read@{Error} acc$a$conv$70$simp$180 = acc$a$conv$70$simp$71;
-      read@{Double} acc$a$conv$70$simp$181 = acc$a$conv$70$simp$72;
-      read@{Double} acc$a$conv$70$simp$182 = acc$a$conv$70$simp$73;
-      read@{Double} acc$a$conv$70$simp$183 = acc$a$conv$70$simp$74;
-      init flat$30$simp$184@{Bool} = False@{Bool};
-      init flat$30$simp$185@{Error} = ExceptTombstone@{Error};
-      init flat$30$simp$186@{Double} = 0.0@{Double};
-      init flat$30$simp$187@{Double} = 0.0@{Double};
-      init flat$30$simp$188@{Double} = 0.0@{Double};
-      if (acc$a$conv$70$simp$179) {
+      read@{Error} flat$29$simp$144 = flat$29$simp$142;
+      read@{Double} flat$29$simp$145 = flat$29$simp$143;
+      read@{Error} acc$a$conv$70$simp$146 = acc$a$conv$70$simp$69;
+      read@{Double} acc$a$conv$70$simp$147 = acc$a$conv$70$simp$70;
+      read@{Double} acc$a$conv$70$simp$148 = acc$a$conv$70$simp$71;
+      read@{Double} acc$a$conv$70$simp$149 = acc$a$conv$70$simp$72;
+      init flat$30$simp$150@{Error} = ExceptNotAnError@{Error};
+      init flat$30$simp$151@{Double} = 0.0@{Double};
+      init flat$30$simp$152@{Double} = 0.0@{Double};
+      init flat$30$simp$153@{Double} = 0.0@{Double};
+      if (eq#@{Error} acc$a$conv$70$simp$146
+          (ExceptNotAnError@{Error})) {
         let nn$conv$77 = add#@{Double}
-                         acc$a$conv$70$simp$181 (1.0@{Double});
-        init flat$33$simp$189@{Bool} = False@{Bool};
-        init flat$33$simp$190@{Error} = ExceptTombstone@{Error};
-        init flat$33$simp$191@{Double} = 0.0@{Double};
-        if (flat$29$simp$176) {
-          write flat$33$simp$189 = True@{Bool};
-          write flat$33$simp$190 = ExceptTombstone@{Error};
-          write flat$33$simp$191 = sub#@{Double}
-                                   flat$29$simp$178
-                                   acc$a$conv$70$simp$182;
+                         acc$a$conv$70$simp$147 (1.0@{Double});
+        init flat$33$simp$154@{Error} = ExceptNotAnError@{Error};
+        init flat$33$simp$155@{Double} = 0.0@{Double};
+        if (eq#@{Error} flat$29$simp$144
+            (ExceptNotAnError@{Error})) {
+          write flat$33$simp$154 = ExceptNotAnError@{Error};
+          write flat$33$simp$155 = sub#@{Double}
+                                   flat$29$simp$145
+                                   acc$a$conv$70$simp$148;
         } else {
-          write flat$33$simp$189 = False@{Bool};
-          write flat$33$simp$190 = flat$29$simp$177;
-          write flat$33$simp$191 = 0.0@{Double};
+          write flat$33$simp$154 = flat$29$simp$144;
+          write flat$33$simp$155 = 0.0@{Double};
         }
-        read@{Bool} flat$33$simp$192 = flat$33$simp$189;
-        read@{Error} flat$33$simp$193 = flat$33$simp$190;
-        read@{Double} flat$33$simp$194 = flat$33$simp$191;
-        init flat$34$simp$195@{Bool} = False@{Bool};
-        init flat$34$simp$196@{Error} = ExceptTombstone@{Error};
-        init flat$34$simp$197@{Double} = 0.0@{Double};
-        if (flat$33$simp$192) {
-          write flat$34$simp$195 = True@{Bool};
-          write flat$34$simp$196 = ExceptTombstone@{Error};
-          write flat$34$simp$197 = div#
-                                   flat$33$simp$194 nn$conv$77;
+        read@{Error} flat$33$simp$156 = flat$33$simp$154;
+        read@{Double} flat$33$simp$157 = flat$33$simp$155;
+        init flat$34$simp$158@{Error} = ExceptNotAnError@{Error};
+        init flat$34$simp$159@{Double} = 0.0@{Double};
+        if (eq#@{Error} flat$33$simp$156
+            (ExceptNotAnError@{Error})) {
+          write flat$34$simp$158 = ExceptNotAnError@{Error};
+          write flat$34$simp$159 = div#
+                                   flat$33$simp$157 nn$conv$77;
         } else {
-          write flat$34$simp$195 = False@{Bool};
-          write flat$34$simp$196 = flat$33$simp$193;
-          write flat$34$simp$197 = 0.0@{Double};
+          write flat$34$simp$158 = flat$33$simp$156;
+          write flat$34$simp$159 = 0.0@{Double};
         }
-        read@{Bool} flat$34$simp$198 = flat$34$simp$195;
-        read@{Error} flat$34$simp$199 = flat$34$simp$196;
-        read@{Double} flat$34$simp$200 = flat$34$simp$197;
-        init flat$35$simp$201@{Bool} = False@{Bool};
-        init flat$35$simp$202@{Error} = ExceptTombstone@{Error};
-        init flat$35$simp$203@{Double} = 0.0@{Double};
-        if (flat$34$simp$198) {
-          write flat$35$simp$201 = True@{Bool};
-          write flat$35$simp$202 = ExceptTombstone@{Error};
-          write flat$35$simp$203 = add#@{Double}
-                                   acc$a$conv$70$simp$182
-                                   flat$34$simp$200;
+        read@{Error} flat$34$simp$160 = flat$34$simp$158;
+        read@{Double} flat$34$simp$161 = flat$34$simp$159;
+        init flat$35$simp$162@{Error} = ExceptNotAnError@{Error};
+        init flat$35$simp$163@{Double} = 0.0@{Double};
+        if (eq#@{Error} flat$34$simp$160
+            (ExceptNotAnError@{Error})) {
+          write flat$35$simp$162 = ExceptNotAnError@{Error};
+          write flat$35$simp$163 = add#@{Double}
+                                   acc$a$conv$70$simp$148
+                                   flat$34$simp$161;
         } else {
-          write flat$35$simp$201 = False@{Bool};
-          write flat$35$simp$202 = flat$34$simp$199;
-          write flat$35$simp$203 = 0.0@{Double};
+          write flat$35$simp$162 = flat$34$simp$160;
+          write flat$35$simp$163 = 0.0@{Double};
         }
-        read@{Bool} flat$35$simp$204 = flat$35$simp$201;
-        read@{Error} flat$35$simp$205 = flat$35$simp$202;
-        read@{Double} flat$35$simp$206 = flat$35$simp$203;
-        init flat$36$simp$207@{Bool} = False@{Bool};
-        init flat$36$simp$208@{Error} = ExceptTombstone@{Error};
-        init flat$36$simp$209@{Double} = 0.0@{Double};
-        if (flat$33$simp$192) {
-          init flat$51$simp$210@{Bool} = False@{Bool};
-          init flat$51$simp$211@{Error} = ExceptTombstone@{Error};
-          init flat$51$simp$212@{Double} = 0.0@{Double};
-          if (flat$29$simp$176) {
-            init flat$57$simp$213@{Bool} = False@{Bool};
-            init flat$57$simp$214@{Error} = ExceptTombstone@{Error};
-            init flat$57$simp$215@{Double} = 0.0@{Double};
-            if (flat$35$simp$204) {
-              write flat$57$simp$213 = True@{Bool};
-              write flat$57$simp$214 = ExceptTombstone@{Error};
-              write flat$57$simp$215 = sub#@{Double}
-                                       flat$29$simp$178
-                                       flat$35$simp$206;
+        read@{Error} flat$35$simp$164 = flat$35$simp$162;
+        read@{Double} flat$35$simp$165 = flat$35$simp$163;
+        init flat$36$simp$166@{Error} = ExceptNotAnError@{Error};
+        init flat$36$simp$167@{Double} = 0.0@{Double};
+        if (eq#@{Error} flat$33$simp$156
+            (ExceptNotAnError@{Error})) {
+          init flat$51$simp$168@{Error} = ExceptNotAnError@{Error};
+          init flat$51$simp$169@{Double} = 0.0@{Double};
+          if (eq#@{Error} flat$29$simp$144
+              (ExceptNotAnError@{Error})) {
+            init flat$57$simp$170@{Error} = ExceptNotAnError@{Error};
+            init flat$57$simp$171@{Double} = 0.0@{Double};
+            if (eq#@{Error} flat$35$simp$164
+                (ExceptNotAnError@{Error})) {
+              write flat$57$simp$170 = ExceptNotAnError@{Error};
+              write flat$57$simp$171 = sub#@{Double}
+                                       flat$29$simp$145
+                                       flat$35$simp$165;
             } else {
-              write flat$57$simp$213 = False@{Bool};
-              write flat$57$simp$214 = flat$35$simp$205;
-              write flat$57$simp$215 = 0.0@{Double};
+              write flat$57$simp$170 = flat$35$simp$164;
+              write flat$57$simp$171 = 0.0@{Double};
             }
-            read@{Bool} flat$57$simp$216 = flat$57$simp$213;
-            read@{Error} flat$57$simp$217 = flat$57$simp$214;
-            read@{Double} flat$57$simp$218 = flat$57$simp$215;
-            write flat$51$simp$210 = flat$57$simp$216;
-            write flat$51$simp$211 = flat$57$simp$217;
-            write flat$51$simp$212 = flat$57$simp$218;
+            read@{Error} flat$57$simp$172 = flat$57$simp$170;
+            read@{Double} flat$57$simp$173 = flat$57$simp$171;
+            write flat$51$simp$168 = flat$57$simp$172;
+            write flat$51$simp$169 = flat$57$simp$173;
           } else {
-            write flat$51$simp$210 = False@{Bool};
-            write flat$51$simp$211 = flat$29$simp$177;
-            write flat$51$simp$212 = 0.0@{Double};
+            write flat$51$simp$168 = flat$29$simp$144;
+            write flat$51$simp$169 = 0.0@{Double};
           }
-          read@{Bool} flat$51$simp$219 = flat$51$simp$210;
-          read@{Error} flat$51$simp$220 = flat$51$simp$211;
-          read@{Double} flat$51$simp$221 = flat$51$simp$212;
-          init flat$52$simp$222@{Bool} = False@{Bool};
-          init flat$52$simp$223@{Error} = ExceptTombstone@{Error};
-          init flat$52$simp$224@{Double} = 0.0@{Double};
-          if (flat$51$simp$219) {
-            write flat$52$simp$222 = True@{Bool};
-            write flat$52$simp$223 = ExceptTombstone@{Error};
-            write flat$52$simp$224 = mul#@{Double}
-                                     flat$33$simp$194
-                                     flat$51$simp$221;
+          read@{Error} flat$51$simp$174 = flat$51$simp$168;
+          read@{Double} flat$51$simp$175 = flat$51$simp$169;
+          init flat$52$simp$176@{Error} = ExceptNotAnError@{Error};
+          init flat$52$simp$177@{Double} = 0.0@{Double};
+          if (eq#@{Error} flat$51$simp$174
+              (ExceptNotAnError@{Error})) {
+            write flat$52$simp$176 = ExceptNotAnError@{Error};
+            write flat$52$simp$177 = mul#@{Double}
+                                     flat$33$simp$157
+                                     flat$51$simp$175;
           } else {
-            write flat$52$simp$222 = False@{Bool};
-            write flat$52$simp$223 = flat$51$simp$220;
-            write flat$52$simp$224 = 0.0@{Double};
+            write flat$52$simp$176 = flat$51$simp$174;
+            write flat$52$simp$177 = 0.0@{Double};
           }
-          read@{Bool} flat$52$simp$225 = flat$52$simp$222;
-          read@{Error} flat$52$simp$226 = flat$52$simp$223;
-          read@{Double} flat$52$simp$227 = flat$52$simp$224;
-          write flat$36$simp$207 = flat$52$simp$225;
-          write flat$36$simp$208 = flat$52$simp$226;
-          write flat$36$simp$209 = flat$52$simp$227;
+          read@{Error} flat$52$simp$178 = flat$52$simp$176;
+          read@{Double} flat$52$simp$179 = flat$52$simp$177;
+          write flat$36$simp$166 = flat$52$simp$178;
+          write flat$36$simp$167 = flat$52$simp$179;
         } else {
-          write flat$36$simp$207 = False@{Bool};
-          write flat$36$simp$208 = flat$33$simp$193;
-          write flat$36$simp$209 = 0.0@{Double};
+          write flat$36$simp$166 = flat$33$simp$156;
+          write flat$36$simp$167 = 0.0@{Double};
         }
-        read@{Bool} flat$36$simp$228 = flat$36$simp$207;
-        read@{Error} flat$36$simp$229 = flat$36$simp$208;
-        read@{Double} flat$36$simp$230 = flat$36$simp$209;
-        init flat$37$simp$231@{Bool} = False@{Bool};
-        init flat$37$simp$232@{Error} = ExceptTombstone@{Error};
-        init flat$37$simp$233@{Double} = 0.0@{Double};
-        if (flat$36$simp$228) {
-          write flat$37$simp$231 = True@{Bool};
-          write flat$37$simp$232 = ExceptTombstone@{Error};
-          write flat$37$simp$233 = add#@{Double}
-                                   acc$a$conv$70$simp$183
-                                   flat$36$simp$230;
+        read@{Error} flat$36$simp$180 = flat$36$simp$166;
+        read@{Double} flat$36$simp$181 = flat$36$simp$167;
+        init flat$37$simp$182@{Error} = ExceptNotAnError@{Error};
+        init flat$37$simp$183@{Double} = 0.0@{Double};
+        if (eq#@{Error} flat$36$simp$180
+            (ExceptNotAnError@{Error})) {
+          write flat$37$simp$182 = ExceptNotAnError@{Error};
+          write flat$37$simp$183 = add#@{Double}
+                                   acc$a$conv$70$simp$149
+                                   flat$36$simp$181;
         } else {
-          write flat$37$simp$231 = False@{Bool};
-          write flat$37$simp$232 = flat$36$simp$229;
-          write flat$37$simp$233 = 0.0@{Double};
+          write flat$37$simp$182 = flat$36$simp$180;
+          write flat$37$simp$183 = 0.0@{Double};
         }
-        read@{Bool} flat$37$simp$234 = flat$37$simp$231;
-        read@{Error} flat$37$simp$235 = flat$37$simp$232;
-        read@{Double} flat$37$simp$236 = flat$37$simp$233;
-        init flat$38$simp$237@{Bool} = False@{Bool};
-        init flat$38$simp$238@{Error} = ExceptTombstone@{Error};
-        init flat$38$simp$239@{Double} = 0.0@{Double};
-        init flat$38$simp$240@{Double} = 0.0@{Double};
-        if (flat$35$simp$204) {
-          write flat$38$simp$237 = True@{Bool};
-          write flat$38$simp$238 = ExceptTombstone@{Error};
-          write flat$38$simp$239 = add#@{Double}
-                                   acc$a$conv$70$simp$181 (1.0@{Double});
-          write flat$38$simp$240 = flat$35$simp$206;
+        read@{Error} flat$37$simp$184 = flat$37$simp$182;
+        read@{Double} flat$37$simp$185 = flat$37$simp$183;
+        init flat$38$simp$186@{Error} = ExceptNotAnError@{Error};
+        init flat$38$simp$187@{Double} = 0.0@{Double};
+        init flat$38$simp$188@{Double} = 0.0@{Double};
+        if (eq#@{Error} flat$35$simp$164
+            (ExceptNotAnError@{Error})) {
+          write flat$38$simp$186 = ExceptNotAnError@{Error};
+          write flat$38$simp$187 = add#@{Double}
+                                   acc$a$conv$70$simp$147 (1.0@{Double});
+          write flat$38$simp$188 = flat$35$simp$165;
         } else {
-          write flat$38$simp$237 = False@{Bool};
-          write flat$38$simp$238 = flat$35$simp$205;
-          write flat$38$simp$239 = 0.0@{Double};
-          write flat$38$simp$240 = 0.0@{Double};
+          write flat$38$simp$186 = flat$35$simp$164;
+          write flat$38$simp$187 = 0.0@{Double};
+          write flat$38$simp$188 = 0.0@{Double};
         }
-        read@{Bool} flat$38$simp$241 = flat$38$simp$237;
-        read@{Error} flat$38$simp$242 = flat$38$simp$238;
-        read@{Double} flat$38$simp$243 = flat$38$simp$239;
-        read@{Double} flat$38$simp$244 = flat$38$simp$240;
-        init flat$39$simp$245@{Bool} = False@{Bool};
-        init flat$39$simp$246@{Error} = ExceptTombstone@{Error};
-        init flat$39$simp$247@{Double} = 0.0@{Double};
-        init flat$39$simp$248@{Double} = 0.0@{Double};
-        init flat$39$simp$249@{Double} = 0.0@{Double};
-        if (flat$38$simp$241) {
-          init flat$42$simp$250@{Bool} = False@{Bool};
-          init flat$42$simp$251@{Error} = ExceptTombstone@{Error};
-          init flat$42$simp$252@{Double} = 0.0@{Double};
-          init flat$42$simp$253@{Double} = 0.0@{Double};
-          init flat$42$simp$254@{Double} = 0.0@{Double};
-          if (flat$37$simp$234) {
-            write flat$42$simp$250 = True@{Bool};
-            write flat$42$simp$251 = ExceptTombstone@{Error};
-            write flat$42$simp$252 = flat$38$simp$243;
-            write flat$42$simp$253 = flat$38$simp$244;
-            write flat$42$simp$254 = flat$37$simp$236;
+        read@{Error} flat$38$simp$189 = flat$38$simp$186;
+        read@{Double} flat$38$simp$190 = flat$38$simp$187;
+        read@{Double} flat$38$simp$191 = flat$38$simp$188;
+        init flat$39$simp$192@{Error} = ExceptNotAnError@{Error};
+        init flat$39$simp$193@{Double} = 0.0@{Double};
+        init flat$39$simp$194@{Double} = 0.0@{Double};
+        init flat$39$simp$195@{Double} = 0.0@{Double};
+        if (eq#@{Error} flat$38$simp$189
+            (ExceptNotAnError@{Error})) {
+          init flat$42$simp$196@{Error} = ExceptNotAnError@{Error};
+          init flat$42$simp$197@{Double} = 0.0@{Double};
+          init flat$42$simp$198@{Double} = 0.0@{Double};
+          init flat$42$simp$199@{Double} = 0.0@{Double};
+          if (eq#@{Error} flat$37$simp$184
+              (ExceptNotAnError@{Error})) {
+            write flat$42$simp$196 = ExceptNotAnError@{Error};
+            write flat$42$simp$197 = flat$38$simp$190;
+            write flat$42$simp$198 = flat$38$simp$191;
+            write flat$42$simp$199 = flat$37$simp$185;
           } else {
-            write flat$42$simp$250 = False@{Bool};
-            write flat$42$simp$251 = flat$37$simp$235;
-            write flat$42$simp$252 = 0.0@{Double};
-            write flat$42$simp$253 = 0.0@{Double};
-            write flat$42$simp$254 = 0.0@{Double};
+            write flat$42$simp$196 = flat$37$simp$184;
+            write flat$42$simp$197 = 0.0@{Double};
+            write flat$42$simp$198 = 0.0@{Double};
+            write flat$42$simp$199 = 0.0@{Double};
           }
-          read@{Bool} flat$42$simp$255 = flat$42$simp$250;
-          read@{Error} flat$42$simp$256 = flat$42$simp$251;
-          read@{Double} flat$42$simp$257 = flat$42$simp$252;
-          read@{Double} flat$42$simp$258 = flat$42$simp$253;
-          read@{Double} flat$42$simp$259 = flat$42$simp$254;
-          write flat$39$simp$245 = flat$42$simp$255;
-          write flat$39$simp$246 = flat$42$simp$256;
-          write flat$39$simp$247 = flat$42$simp$257;
-          write flat$39$simp$248 = flat$42$simp$258;
-          write flat$39$simp$249 = flat$42$simp$259;
+          read@{Error} flat$42$simp$200 = flat$42$simp$196;
+          read@{Double} flat$42$simp$201 = flat$42$simp$197;
+          read@{Double} flat$42$simp$202 = flat$42$simp$198;
+          read@{Double} flat$42$simp$203 = flat$42$simp$199;
+          write flat$39$simp$192 = flat$42$simp$200;
+          write flat$39$simp$193 = flat$42$simp$201;
+          write flat$39$simp$194 = flat$42$simp$202;
+          write flat$39$simp$195 = flat$42$simp$203;
         } else {
-          write flat$39$simp$245 = False@{Bool};
-          write flat$39$simp$246 = flat$38$simp$242;
-          write flat$39$simp$247 = 0.0@{Double};
-          write flat$39$simp$248 = 0.0@{Double};
-          write flat$39$simp$249 = 0.0@{Double};
+          write flat$39$simp$192 = flat$38$simp$189;
+          write flat$39$simp$193 = 0.0@{Double};
+          write flat$39$simp$194 = 0.0@{Double};
+          write flat$39$simp$195 = 0.0@{Double};
         }
-        read@{Bool} flat$39$simp$260 = flat$39$simp$245;
-        read@{Error} flat$39$simp$261 = flat$39$simp$246;
-        read@{Double} flat$39$simp$262 = flat$39$simp$247;
-        read@{Double} flat$39$simp$263 = flat$39$simp$248;
-        read@{Double} flat$39$simp$264 = flat$39$simp$249;
-        write flat$30$simp$184 = flat$39$simp$260;
-        write flat$30$simp$185 = flat$39$simp$261;
-        write flat$30$simp$186 = flat$39$simp$262;
-        write flat$30$simp$187 = flat$39$simp$263;
-        write flat$30$simp$188 = flat$39$simp$264;
+        read@{Error} flat$39$simp$204 = flat$39$simp$192;
+        read@{Double} flat$39$simp$205 = flat$39$simp$193;
+        read@{Double} flat$39$simp$206 = flat$39$simp$194;
+        read@{Double} flat$39$simp$207 = flat$39$simp$195;
+        write flat$30$simp$150 = flat$39$simp$204;
+        write flat$30$simp$151 = flat$39$simp$205;
+        write flat$30$simp$152 = flat$39$simp$206;
+        write flat$30$simp$153 = flat$39$simp$207;
       } else {
-        write flat$30$simp$184 = False@{Bool};
-        write flat$30$simp$185 = acc$a$conv$70$simp$180;
-        write flat$30$simp$186 = 0.0@{Double};
-        write flat$30$simp$187 = 0.0@{Double};
-        write flat$30$simp$188 = 0.0@{Double};
+        write flat$30$simp$150 = acc$a$conv$70$simp$146;
+        write flat$30$simp$151 = 0.0@{Double};
+        write flat$30$simp$152 = 0.0@{Double};
+        write flat$30$simp$153 = 0.0@{Double};
       }
-      read@{Bool} flat$30$simp$265 = flat$30$simp$184;
-      read@{Error} flat$30$simp$266 = flat$30$simp$185;
-      read@{Double} flat$30$simp$267 = flat$30$simp$186;
-      read@{Double} flat$30$simp$268 = flat$30$simp$187;
-      read@{Double} flat$30$simp$269 = flat$30$simp$188;
-      write acc$a$conv$70$simp$70 = flat$30$simp$265;
-      write acc$a$conv$70$simp$71 = flat$30$simp$266;
-      write acc$a$conv$70$simp$72 = flat$30$simp$267;
-      write acc$a$conv$70$simp$73 = flat$30$simp$268;
-      write acc$a$conv$70$simp$74 = flat$30$simp$269;
+      read@{Error} flat$30$simp$208 = flat$30$simp$150;
+      read@{Double} flat$30$simp$209 = flat$30$simp$151;
+      read@{Double} flat$30$simp$210 = flat$30$simp$152;
+      read@{Double} flat$30$simp$211 = flat$30$simp$153;
+      write acc$a$conv$70$simp$69 = flat$30$simp$208;
+      write acc$a$conv$70$simp$70 = flat$30$simp$209;
+      write acc$a$conv$70$simp$71 = flat$30$simp$210;
+      write acc$a$conv$70$simp$72 = flat$30$simp$211;
     }
   }
-  save_resumable@{Bool} acc$s$reify$6$conv$13$simp$66;
-  save_resumable@{Error} acc$s$reify$6$conv$13$simp$67;
+  save_resumable@{Error} acc$s$reify$6$conv$13$simp$66;
+  save_resumable@{Double} acc$s$reify$6$conv$13$simp$67;
   save_resumable@{Double} acc$s$reify$6$conv$13$simp$68;
-  save_resumable@{Double} acc$s$reify$6$conv$13$simp$69;
-  save_resumable@{Bool} acc$a$conv$70$simp$70;
-  save_resumable@{Error} acc$a$conv$70$simp$71;
+  save_resumable@{Error} acc$a$conv$70$simp$69;
+  save_resumable@{Double} acc$a$conv$70$simp$70;
+  save_resumable@{Double} acc$a$conv$70$simp$71;
   save_resumable@{Double} acc$a$conv$70$simp$72;
-  save_resumable@{Double} acc$a$conv$70$simp$73;
-  save_resumable@{Double} acc$a$conv$70$simp$74;
-  read@{Bool} s$reify$6$conv$13$simp$270 = acc$s$reify$6$conv$13$simp$66;
-  read@{Error} s$reify$6$conv$13$simp$271 = acc$s$reify$6$conv$13$simp$67;
-  read@{Double} s$reify$6$conv$13$simp$272 = acc$s$reify$6$conv$13$simp$68;
-  read@{Bool} a$conv$70$simp$274 = acc$a$conv$70$simp$70;
-  read@{Error} a$conv$70$simp$275 = acc$a$conv$70$simp$71;
-  read@{Double} a$conv$70$simp$276 = acc$a$conv$70$simp$72;
-  read@{Double} a$conv$70$simp$278 = acc$a$conv$70$simp$74;
-  init flat$82$simp$279@{Bool} = False@{Bool};
-  init flat$82$simp$280@{Error} = ExceptTombstone@{Error};
-  init flat$82$simp$281@{Double} = 0.0@{Double};
-  if (s$reify$6$conv$13$simp$270) {
-    write flat$82$simp$279 = True@{Bool};
-    write flat$82$simp$280 = ExceptTombstone@{Error};
-    write flat$82$simp$281 = s$reify$6$conv$13$simp$272;
+  read@{Error} s$reify$6$conv$13$simp$212 = acc$s$reify$6$conv$13$simp$66;
+  read@{Double} s$reify$6$conv$13$simp$213 = acc$s$reify$6$conv$13$simp$67;
+  read@{Error} a$conv$70$simp$215 = acc$a$conv$70$simp$69;
+  read@{Double} a$conv$70$simp$216 = acc$a$conv$70$simp$70;
+  read@{Double} a$conv$70$simp$218 = acc$a$conv$70$simp$72;
+  init flat$82$simp$219@{Error} = ExceptNotAnError@{Error};
+  init flat$82$simp$220@{Double} = 0.0@{Double};
+  if (eq#@{Error}
+      s$reify$6$conv$13$simp$212
+      (ExceptNotAnError@{Error})) {
+    write flat$82$simp$219 = ExceptNotAnError@{Error};
+    write flat$82$simp$220 = s$reify$6$conv$13$simp$213;
   } else {
-    write flat$82$simp$279 = False@{Bool};
-    write flat$82$simp$280 = s$reify$6$conv$13$simp$271;
-    write flat$82$simp$281 = 0.0@{Double};
+    write flat$82$simp$219 = s$reify$6$conv$13$simp$212;
+    write flat$82$simp$220 = 0.0@{Double};
   }
-  read@{Bool} flat$82$simp$282 = flat$82$simp$279;
-  read@{Error} flat$82$simp$283 = flat$82$simp$280;
-  read@{Double} flat$82$simp$284 = flat$82$simp$281;
-  init flat$83$simp$285@{Bool} = False@{Bool};
-  init flat$83$simp$286@{Error} = ExceptTombstone@{Error};
-  init flat$83$simp$287@{Double} = 0.0@{Double};
-  if (flat$82$simp$282) {
-    init flat$86$simp$288@{Bool} = False@{Bool};
-    init flat$86$simp$289@{Error} = ExceptTombstone@{Error};
-    init flat$86$simp$290@{Double} = 0.0@{Double};
-    if (a$conv$70$simp$274) {
+  read@{Error} flat$82$simp$221 = flat$82$simp$219;
+  read@{Double} flat$82$simp$222 = flat$82$simp$220;
+  init flat$83$simp$223@{Error} = ExceptNotAnError@{Error};
+  init flat$83$simp$224@{Double} = 0.0@{Double};
+  if (eq#@{Error} flat$82$simp$221
+      (ExceptNotAnError@{Error})) {
+    init flat$86$simp$225@{Error} = ExceptNotAnError@{Error};
+    init flat$86$simp$226@{Double} = 0.0@{Double};
+    if (eq#@{Error} a$conv$70$simp$215
+        (ExceptNotAnError@{Error})) {
       let conv$125 = sub#@{Double}
-                     a$conv$70$simp$276 (1.0@{Double});
-      let simp$1288 = div#
-                      a$conv$70$simp$278 conv$125;
-      write flat$86$simp$288 = True@{Bool};
-      write flat$86$simp$289 = ExceptTombstone@{Error};
-      write flat$86$simp$290 = simp$1288;
+                     a$conv$70$simp$216 (1.0@{Double});
+      let simp$1080 = div#
+                      a$conv$70$simp$218 conv$125;
+      write flat$86$simp$225 = ExceptNotAnError@{Error};
+      write flat$86$simp$226 = simp$1080;
     } else {
-      write flat$86$simp$288 = False@{Bool};
-      write flat$86$simp$289 = a$conv$70$simp$275;
-      write flat$86$simp$290 = 0.0@{Double};
+      write flat$86$simp$225 = a$conv$70$simp$215;
+      write flat$86$simp$226 = 0.0@{Double};
     }
-    read@{Bool} flat$86$simp$291 = flat$86$simp$288;
-    read@{Error} flat$86$simp$292 = flat$86$simp$289;
-    read@{Double} flat$86$simp$293 = flat$86$simp$290;
-    init flat$87$simp$294@{Bool} = False@{Bool};
-    init flat$87$simp$295@{Error} = ExceptTombstone@{Error};
-    init flat$87$simp$296@{Double} = 0.0@{Double};
-    if (flat$86$simp$291) {
-      write flat$87$simp$294 = True@{Bool};
-      write flat$87$simp$295 = ExceptTombstone@{Error};
-      write flat$87$simp$296 = pow#@{Double}
-                               flat$86$simp$293 (0.5@{Double});
+    read@{Error} flat$86$simp$227 = flat$86$simp$225;
+    read@{Double} flat$86$simp$228 = flat$86$simp$226;
+    init flat$87$simp$229@{Error} = ExceptNotAnError@{Error};
+    init flat$87$simp$230@{Double} = 0.0@{Double};
+    if (eq#@{Error} flat$86$simp$227
+        (ExceptNotAnError@{Error})) {
+      write flat$87$simp$229 = ExceptNotAnError@{Error};
+      write flat$87$simp$230 = pow#@{Double}
+                               flat$86$simp$228 (0.5@{Double});
     } else {
-      write flat$87$simp$294 = False@{Bool};
-      write flat$87$simp$295 = flat$86$simp$292;
-      write flat$87$simp$296 = 0.0@{Double};
+      write flat$87$simp$229 = flat$86$simp$227;
+      write flat$87$simp$230 = 0.0@{Double};
     }
-    read@{Bool} flat$87$simp$297 = flat$87$simp$294;
-    read@{Error} flat$87$simp$298 = flat$87$simp$295;
-    read@{Double} flat$87$simp$299 = flat$87$simp$296;
-    init flat$88$simp$300@{Bool} = False@{Bool};
-    init flat$88$simp$301@{Error} = ExceptTombstone@{Error};
-    init flat$88$simp$302@{Double} = 0.0@{Double};
-    if (flat$87$simp$297) {
-      write flat$88$simp$300 = True@{Bool};
-      write flat$88$simp$301 = ExceptTombstone@{Error};
-      write flat$88$simp$302 = mul#@{Double}
-                               flat$82$simp$284
-                               flat$87$simp$299;
+    read@{Error} flat$87$simp$231 = flat$87$simp$229;
+    read@{Double} flat$87$simp$232 = flat$87$simp$230;
+    init flat$88$simp$233@{Error} = ExceptNotAnError@{Error};
+    init flat$88$simp$234@{Double} = 0.0@{Double};
+    if (eq#@{Error} flat$87$simp$231
+        (ExceptNotAnError@{Error})) {
+      write flat$88$simp$233 = ExceptNotAnError@{Error};
+      write flat$88$simp$234 = mul#@{Double}
+                               flat$82$simp$222
+                               flat$87$simp$232;
     } else {
-      write flat$88$simp$300 = False@{Bool};
-      write flat$88$simp$301 = flat$87$simp$298;
-      write flat$88$simp$302 = 0.0@{Double};
+      write flat$88$simp$233 = flat$87$simp$231;
+      write flat$88$simp$234 = 0.0@{Double};
     }
-    read@{Bool} flat$88$simp$303 = flat$88$simp$300;
-    read@{Error} flat$88$simp$304 = flat$88$simp$301;
-    read@{Double} flat$88$simp$305 = flat$88$simp$302;
-    write flat$83$simp$285 = flat$88$simp$303;
-    write flat$83$simp$286 = flat$88$simp$304;
-    write flat$83$simp$287 = flat$88$simp$305;
+    read@{Error} flat$88$simp$235 = flat$88$simp$233;
+    read@{Double} flat$88$simp$236 = flat$88$simp$234;
+    write flat$83$simp$223 = flat$88$simp$235;
+    write flat$83$simp$224 = flat$88$simp$236;
   } else {
-    write flat$83$simp$285 = False@{Bool};
-    write flat$83$simp$286 = flat$82$simp$283;
-    write flat$83$simp$287 = 0.0@{Double};
+    write flat$83$simp$223 = flat$82$simp$221;
+    write flat$83$simp$224 = 0.0@{Double};
   }
-  read@{Bool} flat$83$simp$306 = flat$83$simp$285;
-  read@{Error} flat$83$simp$307 = flat$83$simp$286;
-  read@{Double} flat$83$simp$308 = flat$83$simp$287;
-  output@{(Sum Error Double)} repl (flat$83$simp$306@{Bool},
-               flat$83$simp$307@{Error},
-               flat$83$simp$308@{Double});
+  read@{Error} flat$83$simp$237 = flat$83$simp$223;
+  read@{Double} flat$83$simp$238 = flat$83$simp$224;
+  output@{(Sum Error Double)} repl (flat$83$simp$237@{Error},
+               flat$83$simp$238@{Double});
 }
 
 - C:
@@ -664,292 +565,218 @@ typedef struct {
     /* inputs */
     idate_t          gen_date;
     iint_t           new_count;
-    ibool_t         *new_gen_fact_simp_309;
-    ierror_t        *new_gen_fact_simp_310;
-    istring_t       *new_gen_fact_simp_311;
-    iint_t          *new_gen_fact_simp_312;
-    idate_t         *new_gen_fact_simp_313;
+    ierror_t        *new_gen_fact_simp_239;
+    istring_t       *new_gen_fact_simp_240;
+    iint_t          *new_gen_fact_simp_241;
+    idate_t         *new_gen_fact_simp_242;
 
     /* outputs */
-    ibool_t          repl_ix_0;
-    ierror_t         repl_ix_1;
-    idouble_t        repl_ix_2;
+    ierror_t         repl_ix_0;
+    idouble_t        repl_ix_1;
 
     /* resumables */
+    ibool_t          has_acc_a_conv_70_simp_69;
+    ierror_t         res_acc_a_conv_70_simp_69;
     ibool_t          has_acc_a_conv_70_simp_70;
-    ibool_t          res_acc_a_conv_70_simp_70;
+    idouble_t        res_acc_a_conv_70_simp_70;
     ibool_t          has_acc_a_conv_70_simp_71;
-    ierror_t         res_acc_a_conv_70_simp_71;
+    idouble_t        res_acc_a_conv_70_simp_71;
     ibool_t          has_acc_a_conv_70_simp_72;
     idouble_t        res_acc_a_conv_70_simp_72;
-    ibool_t          has_acc_a_conv_70_simp_73;
-    idouble_t        res_acc_a_conv_70_simp_73;
-    ibool_t          has_acc_a_conv_70_simp_74;
-    idouble_t        res_acc_a_conv_70_simp_74;
     ibool_t          has_acc_s_reify_6_conv_13_simp_66;
-    ibool_t          res_acc_s_reify_6_conv_13_simp_66;
+    ierror_t         res_acc_s_reify_6_conv_13_simp_66;
     ibool_t          has_acc_s_reify_6_conv_13_simp_67;
-    ierror_t         res_acc_s_reify_6_conv_13_simp_67;
+    idouble_t        res_acc_s_reify_6_conv_13_simp_67;
     ibool_t          has_acc_s_reify_6_conv_13_simp_68;
     idouble_t        res_acc_s_reify_6_conv_13_simp_68;
-    ibool_t          has_acc_s_reify_6_conv_13_simp_69;
-    idouble_t        res_acc_s_reify_6_conv_13_simp_69;
 } iprogram_0_t;
 
 #line 1 "compute function #0 - repl"
 void iprogram_0(iprogram_0_t *s)
 {
-    ibool_t          a_conv_70_simp_274;
-    ierror_t         a_conv_70_simp_275;
-    idouble_t        a_conv_70_simp_276;
-    idouble_t        a_conv_70_simp_278;
-    ibool_t          acc_a_conv_70_simp_179;
-    ierror_t         acc_a_conv_70_simp_180;
-    idouble_t        acc_a_conv_70_simp_181;
-    idouble_t        acc_a_conv_70_simp_182;
-    idouble_t        acc_a_conv_70_simp_183;
-    ibool_t          acc_a_conv_70_simp_70;
-    ierror_t         acc_a_conv_70_simp_71;
+    ierror_t         a_conv_70_simp_215;
+    idouble_t        a_conv_70_simp_216;
+    idouble_t        a_conv_70_simp_218;
+    ierror_t         acc_a_conv_70_simp_146;
+    idouble_t        acc_a_conv_70_simp_147;
+    idouble_t        acc_a_conv_70_simp_148;
+    idouble_t        acc_a_conv_70_simp_149;
+    ierror_t         acc_a_conv_70_simp_69;
+    idouble_t        acc_a_conv_70_simp_70;
+    idouble_t        acc_a_conv_70_simp_71;
     idouble_t        acc_a_conv_70_simp_72;
-    idouble_t        acc_a_conv_70_simp_73;
-    idouble_t        acc_a_conv_70_simp_74;
-    ibool_t          acc_s_reify_6_conv_13_simp_66;
-    ierror_t         acc_s_reify_6_conv_13_simp_67;
+    ierror_t         acc_s_reify_6_conv_13_simp_66;
+    idouble_t        acc_s_reify_6_conv_13_simp_67;
     idouble_t        acc_s_reify_6_conv_13_simp_68;
-    idouble_t        acc_s_reify_6_conv_13_simp_69;
-    ibool_t          acc_s_reify_6_conv_13_simp_93;
-    ierror_t         acc_s_reify_6_conv_13_simp_94;
-    idouble_t        acc_s_reify_6_conv_13_simp_95;
-    idouble_t        acc_s_reify_6_conv_13_simp_96;
+    ierror_t         acc_s_reify_6_conv_13_simp_85;
+    idouble_t        acc_s_reify_6_conv_13_simp_86;
+    idouble_t        acc_s_reify_6_conv_13_simp_87;
     ibool_t          flat_27;
-    ibool_t          flat_0_simp_75;
-    ierror_t         flat_0_simp_76;
-    iint_t           flat_0_simp_77;
-    ibool_t          flat_0_simp_78;
-    ierror_t         flat_0_simp_79;
-    iint_t           flat_0_simp_80;
-    ibool_t          flat_1_simp_81;
-    ierror_t         flat_1_simp_82;
-    idouble_t        flat_1_simp_83;
-    ibool_t          flat_1_simp_84;
-    ierror_t         flat_1_simp_85;
-    idouble_t        flat_1_simp_86;
-    ibool_t          flat_10_simp_101;
-    ierror_t         flat_10_simp_102;
-    idouble_t        flat_10_simp_103;
-    idouble_t        flat_10_simp_104;
-    ibool_t          flat_10_simp_131;
-    ierror_t         flat_10_simp_132;
-    idouble_t        flat_10_simp_133;
-    idouble_t        flat_10_simp_134;
-    ibool_t          flat_13_simp_105;
-    ierror_t         flat_13_simp_106;
-    idouble_t        flat_13_simp_107;
-    ibool_t          flat_13_simp_108;
-    ierror_t         flat_13_simp_109;
-    idouble_t        flat_13_simp_110;
-    ibool_t          flat_14_simp_111;
-    ierror_t         flat_14_simp_112;
-    idouble_t        flat_14_simp_113;
-    ibool_t          flat_14_simp_114;
-    ierror_t         flat_14_simp_115;
-    idouble_t        flat_14_simp_116;
-    ibool_t          flat_15_simp_117;
-    ierror_t         flat_15_simp_118;
-    idouble_t        flat_15_simp_119;
-    ibool_t          flat_15_simp_120;
-    ierror_t         flat_15_simp_121;
-    idouble_t        flat_15_simp_122;
-    ibool_t          flat_16_simp_123;
-    ierror_t         flat_16_simp_124;
-    idouble_t        flat_16_simp_125;
-    idouble_t        flat_16_simp_126;
-    ibool_t          flat_16_simp_127;
-    ierror_t         flat_16_simp_128;
-    idouble_t        flat_16_simp_129;
-    idouble_t        flat_16_simp_130;
-    ibool_t          flat_2_simp_87;
-    ierror_t         flat_2_simp_88;
-    idouble_t        flat_2_simp_89;
-    ibool_t          flat_2_simp_90;
-    ierror_t         flat_2_simp_91;
-    idouble_t        flat_2_simp_92;
-    ibool_t          flat_25_simp_155;
-    istring_t        flat_25_simp_157;
-    ibool_t          flat_25_simp_158;
-    istring_t        flat_25_simp_160;
-    ibool_t          flat_26_simp_161;
-    ibool_t          flat_26_simp_163;
-    ibool_t          flat_26_simp_164;
-    ibool_t          flat_26_simp_166;
-    ibool_t          flat_28_simp_167;
-    ierror_t         flat_28_simp_168;
-    iint_t           flat_28_simp_169;
-    ibool_t          flat_28_simp_170;
-    ierror_t         flat_28_simp_171;
-    iint_t           flat_28_simp_172;
-    ibool_t          flat_29_simp_173;
-    ierror_t         flat_29_simp_174;
-    idouble_t        flat_29_simp_175;
-    ibool_t          flat_29_simp_176;
-    ierror_t         flat_29_simp_177;
-    idouble_t        flat_29_simp_178;
-    idouble_t        flat_3_simp_100;
-    ibool_t          flat_3_simp_151;
-    ierror_t         flat_3_simp_152;
-    idouble_t        flat_3_simp_153;
-    idouble_t        flat_3_simp_154;
-    ibool_t          flat_3_simp_97;
-    ierror_t         flat_3_simp_98;
-    idouble_t        flat_3_simp_99;
-    ibool_t          flat_30_simp_184;
-    ierror_t         flat_30_simp_185;
-    idouble_t        flat_30_simp_186;
-    idouble_t        flat_30_simp_187;
-    idouble_t        flat_30_simp_188;
-    ibool_t          flat_30_simp_265;
-    ierror_t         flat_30_simp_266;
-    idouble_t        flat_30_simp_267;
-    idouble_t        flat_30_simp_268;
-    idouble_t        flat_30_simp_269;
-    ibool_t          flat_33_simp_189;
-    ierror_t         flat_33_simp_190;
-    idouble_t        flat_33_simp_191;
-    ibool_t          flat_33_simp_192;
-    ierror_t         flat_33_simp_193;
-    idouble_t        flat_33_simp_194;
-    ibool_t          flat_34_simp_195;
-    ierror_t         flat_34_simp_196;
-    idouble_t        flat_34_simp_197;
-    ibool_t          flat_34_simp_198;
-    ierror_t         flat_34_simp_199;
-    idouble_t        flat_34_simp_200;
-    ibool_t          flat_35_simp_201;
-    ierror_t         flat_35_simp_202;
-    idouble_t        flat_35_simp_203;
-    ibool_t          flat_35_simp_204;
-    ierror_t         flat_35_simp_205;
-    idouble_t        flat_35_simp_206;
-    ibool_t          flat_36_simp_207;
-    ierror_t         flat_36_simp_208;
-    idouble_t        flat_36_simp_209;
-    ibool_t          flat_36_simp_228;
-    ierror_t         flat_36_simp_229;
-    idouble_t        flat_36_simp_230;
-    ibool_t          flat_37_simp_231;
-    ierror_t         flat_37_simp_232;
-    idouble_t        flat_37_simp_233;
-    ibool_t          flat_37_simp_234;
-    ierror_t         flat_37_simp_235;
-    idouble_t        flat_37_simp_236;
-    ibool_t          flat_38_simp_237;
-    ierror_t         flat_38_simp_238;
-    idouble_t        flat_38_simp_239;
-    idouble_t        flat_38_simp_240;
-    ibool_t          flat_38_simp_241;
-    ierror_t         flat_38_simp_242;
-    idouble_t        flat_38_simp_243;
-    idouble_t        flat_38_simp_244;
-    ibool_t          flat_39_simp_245;
-    ierror_t         flat_39_simp_246;
-    idouble_t        flat_39_simp_247;
-    idouble_t        flat_39_simp_248;
-    idouble_t        flat_39_simp_249;
-    ibool_t          flat_39_simp_260;
-    ierror_t         flat_39_simp_261;
-    idouble_t        flat_39_simp_262;
-    idouble_t        flat_39_simp_263;
-    idouble_t        flat_39_simp_264;
-    ibool_t          flat_42_simp_250;
-    ierror_t         flat_42_simp_251;
-    idouble_t        flat_42_simp_252;
-    idouble_t        flat_42_simp_253;
-    idouble_t        flat_42_simp_254;
-    ibool_t          flat_42_simp_255;
-    ierror_t         flat_42_simp_256;
-    idouble_t        flat_42_simp_257;
-    idouble_t        flat_42_simp_258;
-    idouble_t        flat_42_simp_259;
-    ibool_t          flat_51_simp_210;
-    ierror_t         flat_51_simp_211;
-    idouble_t        flat_51_simp_212;
-    ibool_t          flat_51_simp_219;
-    ierror_t         flat_51_simp_220;
-    idouble_t        flat_51_simp_221;
-    ibool_t          flat_52_simp_222;
-    ierror_t         flat_52_simp_223;
-    idouble_t        flat_52_simp_224;
-    ibool_t          flat_52_simp_225;
-    ierror_t         flat_52_simp_226;
-    idouble_t        flat_52_simp_227;
-    ibool_t          flat_57_simp_213;
-    ierror_t         flat_57_simp_214;
-    idouble_t        flat_57_simp_215;
-    ibool_t          flat_57_simp_216;
-    ierror_t         flat_57_simp_217;
-    idouble_t        flat_57_simp_218;
-    ibool_t          flat_6_simp_135;
-    ierror_t         flat_6_simp_136;
-    idouble_t        flat_6_simp_137;
-    idouble_t        flat_6_simp_138;
-    ibool_t          flat_6_simp_147;
-    ierror_t         flat_6_simp_148;
-    idouble_t        flat_6_simp_149;
-    idouble_t        flat_6_simp_150;
-    ibool_t          flat_7_simp_139;
-    ierror_t         flat_7_simp_140;
-    idouble_t        flat_7_simp_141;
-    idouble_t        flat_7_simp_142;
-    ibool_t          flat_7_simp_143;
-    ierror_t         flat_7_simp_144;
-    idouble_t        flat_7_simp_145;
-    idouble_t        flat_7_simp_146;
-    ibool_t          flat_82_simp_279;
-    ierror_t         flat_82_simp_280;
-    idouble_t        flat_82_simp_281;
-    ibool_t          flat_82_simp_282;
-    ierror_t         flat_82_simp_283;
-    idouble_t        flat_82_simp_284;
-    ibool_t          flat_83_simp_285;
-    ierror_t         flat_83_simp_286;
-    idouble_t        flat_83_simp_287;
-    ibool_t          flat_83_simp_306;
-    ierror_t         flat_83_simp_307;
-    idouble_t        flat_83_simp_308;
-    ibool_t          flat_86_simp_288;
-    ierror_t         flat_86_simp_289;
-    idouble_t        flat_86_simp_290;
-    ibool_t          flat_86_simp_291;
-    ierror_t         flat_86_simp_292;
-    idouble_t        flat_86_simp_293;
-    ibool_t          flat_87_simp_294;
-    ierror_t         flat_87_simp_295;
-    idouble_t        flat_87_simp_296;
-    ibool_t          flat_87_simp_297;
-    ierror_t         flat_87_simp_298;
-    idouble_t        flat_87_simp_299;
-    ibool_t          flat_88_simp_300;
-    ierror_t         flat_88_simp_301;
-    idouble_t        flat_88_simp_302;
-    ibool_t          flat_88_simp_303;
-    ierror_t         flat_88_simp_304;
-    idouble_t        flat_88_simp_305;
-    ibool_t          s_reify_6_conv_13_simp_270;
-    ierror_t         s_reify_6_conv_13_simp_271;
-    idouble_t        s_reify_6_conv_13_simp_272;
+    ierror_t         flat_0_simp_73;
+    iint_t           flat_0_simp_74;
+    ierror_t         flat_0_simp_75;
+    iint_t           flat_0_simp_76;
+    ierror_t         flat_1_simp_77;
+    idouble_t        flat_1_simp_78;
+    ierror_t         flat_1_simp_79;
+    idouble_t        flat_1_simp_80;
+    ierror_t         flat_10_simp_112;
+    idouble_t        flat_10_simp_113;
+    idouble_t        flat_10_simp_114;
+    ierror_t         flat_10_simp_91;
+    idouble_t        flat_10_simp_92;
+    idouble_t        flat_10_simp_93;
+    ierror_t         flat_13_simp_94;
+    idouble_t        flat_13_simp_95;
+    ierror_t         flat_13_simp_96;
+    idouble_t        flat_13_simp_97;
+    ierror_t         flat_14_simp_100;
+    idouble_t        flat_14_simp_101;
+    ierror_t         flat_14_simp_98;
+    idouble_t        flat_14_simp_99;
+    ierror_t         flat_15_simp_102;
+    idouble_t        flat_15_simp_103;
+    ierror_t         flat_15_simp_104;
+    idouble_t        flat_15_simp_105;
+    ierror_t         flat_16_simp_106;
+    idouble_t        flat_16_simp_107;
+    idouble_t        flat_16_simp_108;
+    ierror_t         flat_16_simp_109;
+    idouble_t        flat_16_simp_110;
+    idouble_t        flat_16_simp_111;
+    ierror_t         flat_2_simp_81;
+    idouble_t        flat_2_simp_82;
+    ierror_t         flat_2_simp_83;
+    idouble_t        flat_2_simp_84;
+    ierror_t         flat_25_simp_130;
+    istring_t        flat_25_simp_131;
+    ierror_t         flat_25_simp_132;
+    istring_t        flat_25_simp_133;
+    ierror_t         flat_26_simp_134;
+    ibool_t          flat_26_simp_135;
+    ierror_t         flat_26_simp_136;
+    ibool_t          flat_26_simp_137;
+    ierror_t         flat_28_simp_138;
+    iint_t           flat_28_simp_139;
+    ierror_t         flat_28_simp_140;
+    iint_t           flat_28_simp_141;
+    ierror_t         flat_29_simp_142;
+    idouble_t        flat_29_simp_143;
+    ierror_t         flat_29_simp_144;
+    idouble_t        flat_29_simp_145;
+    ierror_t         flat_3_simp_127;
+    idouble_t        flat_3_simp_128;
+    idouble_t        flat_3_simp_129;
+    ierror_t         flat_3_simp_88;
+    idouble_t        flat_3_simp_89;
+    idouble_t        flat_3_simp_90;
+    ierror_t         flat_30_simp_150;
+    idouble_t        flat_30_simp_151;
+    idouble_t        flat_30_simp_152;
+    idouble_t        flat_30_simp_153;
+    ierror_t         flat_30_simp_208;
+    idouble_t        flat_30_simp_209;
+    idouble_t        flat_30_simp_210;
+    idouble_t        flat_30_simp_211;
+    ierror_t         flat_33_simp_154;
+    idouble_t        flat_33_simp_155;
+    ierror_t         flat_33_simp_156;
+    idouble_t        flat_33_simp_157;
+    ierror_t         flat_34_simp_158;
+    idouble_t        flat_34_simp_159;
+    ierror_t         flat_34_simp_160;
+    idouble_t        flat_34_simp_161;
+    ierror_t         flat_35_simp_162;
+    idouble_t        flat_35_simp_163;
+    ierror_t         flat_35_simp_164;
+    idouble_t        flat_35_simp_165;
+    ierror_t         flat_36_simp_166;
+    idouble_t        flat_36_simp_167;
+    ierror_t         flat_36_simp_180;
+    idouble_t        flat_36_simp_181;
+    ierror_t         flat_37_simp_182;
+    idouble_t        flat_37_simp_183;
+    ierror_t         flat_37_simp_184;
+    idouble_t        flat_37_simp_185;
+    ierror_t         flat_38_simp_186;
+    idouble_t        flat_38_simp_187;
+    idouble_t        flat_38_simp_188;
+    ierror_t         flat_38_simp_189;
+    idouble_t        flat_38_simp_190;
+    idouble_t        flat_38_simp_191;
+    ierror_t         flat_39_simp_192;
+    idouble_t        flat_39_simp_193;
+    idouble_t        flat_39_simp_194;
+    idouble_t        flat_39_simp_195;
+    ierror_t         flat_39_simp_204;
+    idouble_t        flat_39_simp_205;
+    idouble_t        flat_39_simp_206;
+    idouble_t        flat_39_simp_207;
+    ierror_t         flat_42_simp_196;
+    idouble_t        flat_42_simp_197;
+    idouble_t        flat_42_simp_198;
+    idouble_t        flat_42_simp_199;
+    ierror_t         flat_42_simp_200;
+    idouble_t        flat_42_simp_201;
+    idouble_t        flat_42_simp_202;
+    idouble_t        flat_42_simp_203;
+    ierror_t         flat_51_simp_168;
+    idouble_t        flat_51_simp_169;
+    ierror_t         flat_51_simp_174;
+    idouble_t        flat_51_simp_175;
+    ierror_t         flat_52_simp_176;
+    idouble_t        flat_52_simp_177;
+    ierror_t         flat_52_simp_178;
+    idouble_t        flat_52_simp_179;
+    ierror_t         flat_57_simp_170;
+    idouble_t        flat_57_simp_171;
+    ierror_t         flat_57_simp_172;
+    idouble_t        flat_57_simp_173;
+    ierror_t         flat_6_simp_115;
+    idouble_t        flat_6_simp_116;
+    idouble_t        flat_6_simp_117;
+    ierror_t         flat_6_simp_124;
+    idouble_t        flat_6_simp_125;
+    idouble_t        flat_6_simp_126;
+    ierror_t         flat_7_simp_118;
+    idouble_t        flat_7_simp_119;
+    idouble_t        flat_7_simp_120;
+    ierror_t         flat_7_simp_121;
+    idouble_t        flat_7_simp_122;
+    idouble_t        flat_7_simp_123;
+    ierror_t         flat_82_simp_219;
+    idouble_t        flat_82_simp_220;
+    ierror_t         flat_82_simp_221;
+    idouble_t        flat_82_simp_222;
+    ierror_t         flat_83_simp_223;
+    idouble_t        flat_83_simp_224;
+    ierror_t         flat_83_simp_237;
+    idouble_t        flat_83_simp_238;
+    ierror_t         flat_86_simp_225;
+    idouble_t        flat_86_simp_226;
+    ierror_t         flat_86_simp_227;
+    idouble_t        flat_86_simp_228;
+    ierror_t         flat_87_simp_229;
+    idouble_t        flat_87_simp_230;
+    ierror_t         flat_87_simp_231;
+    idouble_t        flat_87_simp_232;
+    ierror_t         flat_88_simp_233;
+    idouble_t        flat_88_simp_234;
+    ierror_t         flat_88_simp_235;
+    idouble_t        flat_88_simp_236;
+    ierror_t         s_reify_6_conv_13_simp_212;
+    idouble_t        s_reify_6_conv_13_simp_213;
 
     imempool_t      *mempool                  = s->mempool;
     idate_t          gen_date                 = s->gen_date;
 
-    acc_s_reify_6_conv_13_simp_66             = ifalse;                               /* init */
-    acc_s_reify_6_conv_13_simp_67             = ierror_fold1_no_value;                /* init */
+    acc_s_reify_6_conv_13_simp_66             = ierror_fold1_no_value;                /* init */
+    acc_s_reify_6_conv_13_simp_67             = 0.0;                                  /* init */
     acc_s_reify_6_conv_13_simp_68             = 0.0;                                  /* init */
-    acc_s_reify_6_conv_13_simp_69             = 0.0;                                  /* init */
-    acc_a_conv_70_simp_70                     = itrue;                                /* init */
-    acc_a_conv_70_simp_71                     = ierror_tombstone;                     /* init */
+    acc_a_conv_70_simp_69                     = ierror_not_an_error;                  /* init */
+    acc_a_conv_70_simp_70                     = 0.0;                                  /* init */
+    acc_a_conv_70_simp_71                     = 0.0;                                  /* init */
     acc_a_conv_70_simp_72                     = 0.0;                                  /* init */
-    acc_a_conv_70_simp_73                     = 0.0;                                  /* init */
-    acc_a_conv_70_simp_74                     = 0.0;                                  /* init */
     
     if (s->has_acc_s_reify_6_conv_13_simp_66) {
         acc_s_reify_6_conv_13_simp_66         = s->res_acc_s_reify_6_conv_13_simp_66; /* load */
@@ -963,8 +790,8 @@ void iprogram_0(iprogram_0_t *s)
         acc_s_reify_6_conv_13_simp_68         = s->res_acc_s_reify_6_conv_13_simp_68; /* load */
     }
     
-    if (s->has_acc_s_reify_6_conv_13_simp_69) {
-        acc_s_reify_6_conv_13_simp_69         = s->res_acc_s_reify_6_conv_13_simp_69; /* load */
+    if (s->has_acc_a_conv_70_simp_69) {
+        acc_a_conv_70_simp_69                 = s->res_acc_a_conv_70_simp_69;         /* load */
     }
     
     if (s->has_acc_a_conv_70_simp_70) {
@@ -979,273 +806,217 @@ void iprogram_0(iprogram_0_t *s)
         acc_a_conv_70_simp_72                 = s->res_acc_a_conv_70_simp_72;         /* load */
     }
     
-    if (s->has_acc_a_conv_70_simp_73) {
-        acc_a_conv_70_simp_73                 = s->res_acc_a_conv_70_simp_73;         /* load */
-    }
-    
-    if (s->has_acc_a_conv_70_simp_74) {
-        acc_a_conv_70_simp_74                 = s->res_acc_a_conv_70_simp_74;         /* load */
-    }
-    
     const iint_t     new_count                = s->new_count;
-    const ibool_t   *const new_gen_fact_simp_309 = s->new_gen_fact_simp_309;
-    const ierror_t  *const new_gen_fact_simp_310 = s->new_gen_fact_simp_310;
-    const istring_t *const new_gen_fact_simp_311 = s->new_gen_fact_simp_311;
-    const iint_t    *const new_gen_fact_simp_312 = s->new_gen_fact_simp_312;
-    const idate_t   *const new_gen_fact_simp_313 = s->new_gen_fact_simp_313;
+    const ierror_t  *const new_gen_fact_simp_239 = s->new_gen_fact_simp_239;
+    const istring_t *const new_gen_fact_simp_240 = s->new_gen_fact_simp_240;
+    const iint_t    *const new_gen_fact_simp_241 = s->new_gen_fact_simp_241;
+    const idate_t   *const new_gen_fact_simp_242 = s->new_gen_fact_simp_242;
     
     for (iint_t i = 0; i < new_count; i++) {
-        ibool_t          gen_fact_simp_309    = new_gen_fact_simp_309[i];
-        ierror_t         gen_fact_simp_310    = new_gen_fact_simp_310[i];
-        istring_t        gen_fact_simp_311    = new_gen_fact_simp_311[i];
-        iint_t           gen_fact_simp_312    = new_gen_fact_simp_312[i];
-        idate_t          gen_fact_simp_313    = new_gen_fact_simp_313[i];
-        flat_0_simp_75                        = ifalse;                               /* init */
-        flat_0_simp_76                        = ierror_tombstone;                     /* init */
-        flat_0_simp_77                        = 0;                                    /* init */
+        ierror_t         gen_fact_simp_239    = new_gen_fact_simp_239[i];
+        istring_t        gen_fact_simp_240    = new_gen_fact_simp_240[i];
+        iint_t           gen_fact_simp_241    = new_gen_fact_simp_241[i];
+        idate_t          gen_fact_simp_242    = new_gen_fact_simp_242[i];
+        flat_0_simp_73                        = ierror_not_an_error;                  /* init */
+        flat_0_simp_74                        = 0;                                    /* init */
         
-        if (gen_fact_simp_309) {
-            flat_0_simp_75                    = itrue;                                /* write */
-            flat_0_simp_76                    = ierror_tombstone;                     /* write */
-            flat_0_simp_77                    = gen_fact_simp_312;                    /* write */
+        if (ierror_eq (gen_fact_simp_239, ierror_not_an_error)) {
+            flat_0_simp_73                    = ierror_not_an_error;                  /* write */
+            flat_0_simp_74                    = gen_fact_simp_241;                    /* write */
         } else {
-            flat_0_simp_75                    = ifalse;                               /* write */
-            flat_0_simp_76                    = gen_fact_simp_310;                    /* write */
-            flat_0_simp_77                    = 0;                                    /* write */
+            flat_0_simp_73                    = gen_fact_simp_239;                    /* write */
+            flat_0_simp_74                    = 0;                                    /* write */
         }
         
-        flat_0_simp_78                        = flat_0_simp_75;                       /* read */
-        flat_0_simp_79                        = flat_0_simp_76;                       /* read */
-        flat_0_simp_80                        = flat_0_simp_77;                       /* read */
-        flat_1_simp_81                        = ifalse;                               /* init */
-        flat_1_simp_82                        = ierror_tombstone;                     /* init */
-        flat_1_simp_83                        = 0.0;                                  /* init */
+        flat_0_simp_75                        = flat_0_simp_73;                       /* read */
+        flat_0_simp_76                        = flat_0_simp_74;                       /* read */
+        flat_1_simp_77                        = ierror_not_an_error;                  /* init */
+        flat_1_simp_78                        = 0.0;                                  /* init */
         
-        if (flat_0_simp_78) {
-            flat_1_simp_81                    = itrue;                                /* write */
-            flat_1_simp_82                    = ierror_tombstone;                     /* write */
-            flat_1_simp_83                    = iint_extend (flat_0_simp_80);         /* write */
+        if (ierror_eq (flat_0_simp_75, ierror_not_an_error)) {
+            flat_1_simp_77                    = ierror_not_an_error;                  /* write */
+            flat_1_simp_78                    = iint_extend (flat_0_simp_76);         /* write */
         } else {
-            flat_1_simp_81                    = ifalse;                               /* write */
-            flat_1_simp_82                    = flat_0_simp_79;                       /* write */
-            flat_1_simp_83                    = 0.0;                                  /* write */
+            flat_1_simp_77                    = flat_0_simp_75;                       /* write */
+            flat_1_simp_78                    = 0.0;                                  /* write */
         }
         
-        flat_1_simp_84                        = flat_1_simp_81;                       /* read */
-        flat_1_simp_85                        = flat_1_simp_82;                       /* read */
-        flat_1_simp_86                        = flat_1_simp_83;                       /* read */
-        flat_2_simp_87                        = ifalse;                               /* init */
-        flat_2_simp_88                        = ierror_tombstone;                     /* init */
-        flat_2_simp_89                        = 0.0;                                  /* init */
+        flat_1_simp_79                        = flat_1_simp_77;                       /* read */
+        flat_1_simp_80                        = flat_1_simp_78;                       /* read */
+        flat_2_simp_81                        = ierror_not_an_error;                  /* init */
+        flat_2_simp_82                        = 0.0;                                  /* init */
         
-        if (flat_1_simp_84) {
-            flat_2_simp_87                    = itrue;                                /* write */
-            flat_2_simp_88                    = ierror_tombstone;                     /* write */
-            flat_2_simp_89                    = flat_1_simp_86;                       /* write */
+        if (ierror_eq (flat_1_simp_79, ierror_not_an_error)) {
+            flat_2_simp_81                    = ierror_not_an_error;                  /* write */
+            flat_2_simp_82                    = flat_1_simp_80;                       /* write */
         } else {
-            flat_2_simp_87                    = ifalse;                               /* write */
-            flat_2_simp_88                    = flat_1_simp_85;                       /* write */
-            flat_2_simp_89                    = 0.0;                                  /* write */
+            flat_2_simp_81                    = flat_1_simp_79;                       /* write */
+            flat_2_simp_82                    = 0.0;                                  /* write */
         }
         
-        flat_2_simp_90                        = flat_2_simp_87;                       /* read */
-        flat_2_simp_91                        = flat_2_simp_88;                       /* read */
-        flat_2_simp_92                        = flat_2_simp_89;                       /* read */
-        acc_s_reify_6_conv_13_simp_93         = acc_s_reify_6_conv_13_simp_66;        /* read */
-        acc_s_reify_6_conv_13_simp_94         = acc_s_reify_6_conv_13_simp_67;        /* read */
-        acc_s_reify_6_conv_13_simp_95         = acc_s_reify_6_conv_13_simp_68;        /* read */
-        acc_s_reify_6_conv_13_simp_96         = acc_s_reify_6_conv_13_simp_69;        /* read */
-        flat_3_simp_97                        = ifalse;                               /* init */
-        flat_3_simp_98                        = ierror_tombstone;                     /* init */
-        flat_3_simp_99                        = 0.0;                                  /* init */
-        flat_3_simp_100                       = 0.0;                                  /* init */
+        flat_2_simp_83                        = flat_2_simp_81;                       /* read */
+        flat_2_simp_84                        = flat_2_simp_82;                       /* read */
+        acc_s_reify_6_conv_13_simp_85         = acc_s_reify_6_conv_13_simp_66;        /* read */
+        acc_s_reify_6_conv_13_simp_86         = acc_s_reify_6_conv_13_simp_67;        /* read */
+        acc_s_reify_6_conv_13_simp_87         = acc_s_reify_6_conv_13_simp_68;        /* read */
+        flat_3_simp_88                        = ierror_not_an_error;                  /* init */
+        flat_3_simp_89                        = 0.0;                                  /* init */
+        flat_3_simp_90                        = 0.0;                                  /* init */
         
-        if (acc_s_reify_6_conv_13_simp_93) {
-            flat_10_simp_101                  = ifalse;                               /* init */
-            flat_10_simp_102                  = ierror_tombstone;                     /* init */
-            flat_10_simp_103                  = 0.0;                                  /* init */
-            flat_10_simp_104                  = 0.0;                                  /* init */
+        if (ierror_eq (acc_s_reify_6_conv_13_simp_85, ierror_not_an_error)) {
+            flat_10_simp_91                   = ierror_not_an_error;                  /* init */
+            flat_10_simp_92                   = 0.0;                                  /* init */
+            flat_10_simp_93                   = 0.0;                                  /* init */
             
-            if (acc_s_reify_6_conv_13_simp_93) {
-                flat_13_simp_105              = ifalse;                               /* init */
-                flat_13_simp_106              = ierror_tombstone;                     /* init */
-                flat_13_simp_107              = 0.0;                                  /* init */
+            if (ierror_eq (acc_s_reify_6_conv_13_simp_85, ierror_not_an_error)) {
+                flat_13_simp_94               = ierror_not_an_error;                  /* init */
+                flat_13_simp_95               = 0.0;                                  /* init */
                 
-                if (flat_2_simp_90) {
-                    flat_13_simp_105          = itrue;                                /* write */
-                    flat_13_simp_106          = ierror_tombstone;                     /* write */
-                    flat_13_simp_107          = idouble_sub (flat_2_simp_92, acc_s_reify_6_conv_13_simp_95); /* write */
+                if (ierror_eq (flat_2_simp_83, ierror_not_an_error)) {
+                    flat_13_simp_94           = ierror_not_an_error;                  /* write */
+                    flat_13_simp_95           = idouble_sub (flat_2_simp_84, acc_s_reify_6_conv_13_simp_86); /* write */
                 } else {
-                    flat_13_simp_105          = ifalse;                               /* write */
-                    flat_13_simp_106          = flat_2_simp_91;                       /* write */
-                    flat_13_simp_107          = 0.0;                                  /* write */
+                    flat_13_simp_94           = flat_2_simp_83;                       /* write */
+                    flat_13_simp_95           = 0.0;                                  /* write */
                 }
                 
-                flat_13_simp_108              = flat_13_simp_105;                     /* read */
-                flat_13_simp_109              = flat_13_simp_106;                     /* read */
-                flat_13_simp_110              = flat_13_simp_107;                     /* read */
-                flat_14_simp_111              = ifalse;                               /* init */
-                flat_14_simp_112              = ierror_tombstone;                     /* init */
-                flat_14_simp_113              = 0.0;                                  /* init */
+                flat_13_simp_96               = flat_13_simp_94;                      /* read */
+                flat_13_simp_97               = flat_13_simp_95;                      /* read */
+                flat_14_simp_98               = ierror_not_an_error;                  /* init */
+                flat_14_simp_99               = 0.0;                                  /* init */
                 
-                if (flat_13_simp_108) {
-                    idouble_t        simp_391 = idouble_add (acc_s_reify_6_conv_13_simp_96, 1.0); /* let */
-                    flat_14_simp_111          = itrue;                                /* write */
-                    flat_14_simp_112          = ierror_tombstone;                     /* write */
-                    flat_14_simp_113          = idouble_div (flat_13_simp_110, simp_391); /* write */
+                if (ierror_eq (flat_13_simp_96, ierror_not_an_error)) {
+                    idouble_t        simp_301 = idouble_add (acc_s_reify_6_conv_13_simp_87, 1.0); /* let */
+                    flat_14_simp_98           = ierror_not_an_error;                  /* write */
+                    flat_14_simp_99           = idouble_div (flat_13_simp_97, simp_301); /* write */
                 } else {
-                    flat_14_simp_111          = ifalse;                               /* write */
-                    flat_14_simp_112          = flat_13_simp_109;                     /* write */
-                    flat_14_simp_113          = 0.0;                                  /* write */
+                    flat_14_simp_98           = flat_13_simp_96;                      /* write */
+                    flat_14_simp_99           = 0.0;                                  /* write */
                 }
                 
-                flat_14_simp_114              = flat_14_simp_111;                     /* read */
-                flat_14_simp_115              = flat_14_simp_112;                     /* read */
-                flat_14_simp_116              = flat_14_simp_113;                     /* read */
-                flat_15_simp_117              = ifalse;                               /* init */
-                flat_15_simp_118              = ierror_tombstone;                     /* init */
-                flat_15_simp_119              = 0.0;                                  /* init */
+                flat_14_simp_100              = flat_14_simp_98;                      /* read */
+                flat_14_simp_101              = flat_14_simp_99;                      /* read */
+                flat_15_simp_102              = ierror_not_an_error;                  /* init */
+                flat_15_simp_103              = 0.0;                                  /* init */
                 
-                if (flat_14_simp_114) {
-                    flat_15_simp_117          = itrue;                                /* write */
-                    flat_15_simp_118          = ierror_tombstone;                     /* write */
-                    flat_15_simp_119          = idouble_add (acc_s_reify_6_conv_13_simp_95, flat_14_simp_116); /* write */
+                if (ierror_eq (flat_14_simp_100, ierror_not_an_error)) {
+                    flat_15_simp_102          = ierror_not_an_error;                  /* write */
+                    flat_15_simp_103          = idouble_add (acc_s_reify_6_conv_13_simp_86, flat_14_simp_101); /* write */
                 } else {
-                    flat_15_simp_117          = ifalse;                               /* write */
-                    flat_15_simp_118          = flat_14_simp_115;                     /* write */
-                    flat_15_simp_119          = 0.0;                                  /* write */
+                    flat_15_simp_102          = flat_14_simp_100;                     /* write */
+                    flat_15_simp_103          = 0.0;                                  /* write */
                 }
                 
-                flat_15_simp_120              = flat_15_simp_117;                     /* read */
-                flat_15_simp_121              = flat_15_simp_118;                     /* read */
-                flat_15_simp_122              = flat_15_simp_119;                     /* read */
-                flat_16_simp_123              = ifalse;                               /* init */
-                flat_16_simp_124              = ierror_tombstone;                     /* init */
-                flat_16_simp_125              = 0.0;                                  /* init */
-                flat_16_simp_126              = 0.0;                                  /* init */
+                flat_15_simp_104              = flat_15_simp_102;                     /* read */
+                flat_15_simp_105              = flat_15_simp_103;                     /* read */
+                flat_16_simp_106              = ierror_not_an_error;                  /* init */
+                flat_16_simp_107              = 0.0;                                  /* init */
+                flat_16_simp_108              = 0.0;                                  /* init */
                 
-                if (flat_15_simp_120) {
-                    flat_16_simp_123          = itrue;                                /* write */
-                    flat_16_simp_124          = ierror_tombstone;                     /* write */
-                    flat_16_simp_125          = flat_15_simp_122;                     /* write */
-                    flat_16_simp_126          = idouble_add (acc_s_reify_6_conv_13_simp_96, 1.0); /* write */
+                if (ierror_eq (flat_15_simp_104, ierror_not_an_error)) {
+                    flat_16_simp_106          = ierror_not_an_error;                  /* write */
+                    flat_16_simp_107          = flat_15_simp_105;                     /* write */
+                    flat_16_simp_108          = idouble_add (acc_s_reify_6_conv_13_simp_87, 1.0); /* write */
                 } else {
-                    flat_16_simp_123          = ifalse;                               /* write */
-                    flat_16_simp_124          = flat_15_simp_121;                     /* write */
-                    flat_16_simp_125          = 0.0;                                  /* write */
-                    flat_16_simp_126          = 0.0;                                  /* write */
+                    flat_16_simp_106          = flat_15_simp_104;                     /* write */
+                    flat_16_simp_107          = 0.0;                                  /* write */
+                    flat_16_simp_108          = 0.0;                                  /* write */
                 }
                 
-                flat_16_simp_127              = flat_16_simp_123;                     /* read */
-                flat_16_simp_128              = flat_16_simp_124;                     /* read */
-                flat_16_simp_129              = flat_16_simp_125;                     /* read */
-                flat_16_simp_130              = flat_16_simp_126;                     /* read */
-                flat_10_simp_101              = flat_16_simp_127;                     /* write */
-                flat_10_simp_102              = flat_16_simp_128;                     /* write */
-                flat_10_simp_103              = flat_16_simp_129;                     /* write */
-                flat_10_simp_104              = flat_16_simp_130;                     /* write */
+                flat_16_simp_109              = flat_16_simp_106;                     /* read */
+                flat_16_simp_110              = flat_16_simp_107;                     /* read */
+                flat_16_simp_111              = flat_16_simp_108;                     /* read */
+                flat_10_simp_91               = flat_16_simp_109;                     /* write */
+                flat_10_simp_92               = flat_16_simp_110;                     /* write */
+                flat_10_simp_93               = flat_16_simp_111;                     /* write */
             } else {
-                flat_10_simp_101              = ifalse;                               /* write */
-                flat_10_simp_102              = acc_s_reify_6_conv_13_simp_94;        /* write */
-                flat_10_simp_103              = 0.0;                                  /* write */
-                flat_10_simp_104              = 0.0;                                  /* write */
+                flat_10_simp_91               = acc_s_reify_6_conv_13_simp_85;        /* write */
+                flat_10_simp_92               = 0.0;                                  /* write */
+                flat_10_simp_93               = 0.0;                                  /* write */
             }
             
-            flat_10_simp_131                  = flat_10_simp_101;                     /* read */
-            flat_10_simp_132                  = flat_10_simp_102;                     /* read */
-            flat_10_simp_133                  = flat_10_simp_103;                     /* read */
-            flat_10_simp_134                  = flat_10_simp_104;                     /* read */
-            flat_3_simp_97                    = flat_10_simp_131;                     /* write */
-            flat_3_simp_98                    = flat_10_simp_132;                     /* write */
-            flat_3_simp_99                    = flat_10_simp_133;                     /* write */
-            flat_3_simp_100                   = flat_10_simp_134;                     /* write */
+            flat_10_simp_112                  = flat_10_simp_91;                      /* read */
+            flat_10_simp_113                  = flat_10_simp_92;                      /* read */
+            flat_10_simp_114                  = flat_10_simp_93;                      /* read */
+            flat_3_simp_88                    = flat_10_simp_112;                     /* write */
+            flat_3_simp_89                    = flat_10_simp_113;                     /* write */
+            flat_3_simp_90                    = flat_10_simp_114;                     /* write */
         } else {
-            flat_6_simp_135                   = ifalse;                               /* init */
-            flat_6_simp_136                   = ierror_tombstone;                     /* init */
-            flat_6_simp_137                   = 0.0;                                  /* init */
-            flat_6_simp_138                   = 0.0;                                  /* init */
+            flat_6_simp_115                   = ierror_not_an_error;                  /* init */
+            flat_6_simp_116                   = 0.0;                                  /* init */
+            flat_6_simp_117                   = 0.0;                                  /* init */
             
-            if (ierror_eq (ierror_fold1_no_value, acc_s_reify_6_conv_13_simp_94)) {
-                flat_7_simp_139               = ifalse;                               /* init */
-                flat_7_simp_140               = ierror_tombstone;                     /* init */
-                flat_7_simp_141               = 0.0;                                  /* init */
-                flat_7_simp_142               = 0.0;                                  /* init */
+            if (ierror_eq (ierror_fold1_no_value, acc_s_reify_6_conv_13_simp_85)) {
+                flat_7_simp_118               = ierror_not_an_error;                  /* init */
+                flat_7_simp_119               = 0.0;                                  /* init */
+                flat_7_simp_120               = 0.0;                                  /* init */
                 
-                if (flat_2_simp_90) {
-                    flat_7_simp_139           = itrue;                                /* write */
-                    flat_7_simp_140           = ierror_tombstone;                     /* write */
-                    flat_7_simp_141           = flat_2_simp_92;                       /* write */
-                    flat_7_simp_142           = 1.0;                                  /* write */
+                if (ierror_eq (flat_2_simp_83, ierror_not_an_error)) {
+                    flat_7_simp_118           = ierror_not_an_error;                  /* write */
+                    flat_7_simp_119           = flat_2_simp_84;                       /* write */
+                    flat_7_simp_120           = 1.0;                                  /* write */
                 } else {
-                    flat_7_simp_139           = ifalse;                               /* write */
-                    flat_7_simp_140           = flat_2_simp_91;                       /* write */
-                    flat_7_simp_141           = 0.0;                                  /* write */
-                    flat_7_simp_142           = 0.0;                                  /* write */
+                    flat_7_simp_118           = flat_2_simp_83;                       /* write */
+                    flat_7_simp_119           = 0.0;                                  /* write */
+                    flat_7_simp_120           = 0.0;                                  /* write */
                 }
                 
-                flat_7_simp_143               = flat_7_simp_139;                      /* read */
-                flat_7_simp_144               = flat_7_simp_140;                      /* read */
-                flat_7_simp_145               = flat_7_simp_141;                      /* read */
-                flat_7_simp_146               = flat_7_simp_142;                      /* read */
-                flat_6_simp_135               = flat_7_simp_143;                      /* write */
-                flat_6_simp_136               = flat_7_simp_144;                      /* write */
-                flat_6_simp_137               = flat_7_simp_145;                      /* write */
-                flat_6_simp_138               = flat_7_simp_146;                      /* write */
+                flat_7_simp_121               = flat_7_simp_118;                      /* read */
+                flat_7_simp_122               = flat_7_simp_119;                      /* read */
+                flat_7_simp_123               = flat_7_simp_120;                      /* read */
+                flat_6_simp_115               = flat_7_simp_121;                      /* write */
+                flat_6_simp_116               = flat_7_simp_122;                      /* write */
+                flat_6_simp_117               = flat_7_simp_123;                      /* write */
             } else {
-                flat_6_simp_135               = ifalse;                               /* write */
-                flat_6_simp_136               = acc_s_reify_6_conv_13_simp_94;        /* write */
-                flat_6_simp_137               = 0.0;                                  /* write */
-                flat_6_simp_138               = 0.0;                                  /* write */
+                flat_6_simp_115               = acc_s_reify_6_conv_13_simp_85;        /* write */
+                flat_6_simp_116               = 0.0;                                  /* write */
+                flat_6_simp_117               = 0.0;                                  /* write */
             }
             
-            flat_6_simp_147                   = flat_6_simp_135;                      /* read */
-            flat_6_simp_148                   = flat_6_simp_136;                      /* read */
-            flat_6_simp_149                   = flat_6_simp_137;                      /* read */
-            flat_6_simp_150                   = flat_6_simp_138;                      /* read */
-            flat_3_simp_97                    = flat_6_simp_147;                      /* write */
-            flat_3_simp_98                    = flat_6_simp_148;                      /* write */
-            flat_3_simp_99                    = flat_6_simp_149;                      /* write */
-            flat_3_simp_100                   = flat_6_simp_150;                      /* write */
+            flat_6_simp_124                   = flat_6_simp_115;                      /* read */
+            flat_6_simp_125                   = flat_6_simp_116;                      /* read */
+            flat_6_simp_126                   = flat_6_simp_117;                      /* read */
+            flat_3_simp_88                    = flat_6_simp_124;                      /* write */
+            flat_3_simp_89                    = flat_6_simp_125;                      /* write */
+            flat_3_simp_90                    = flat_6_simp_126;                      /* write */
         }
         
-        flat_3_simp_151                       = flat_3_simp_97;                       /* read */
-        flat_3_simp_152                       = flat_3_simp_98;                       /* read */
-        flat_3_simp_153                       = flat_3_simp_99;                       /* read */
-        flat_3_simp_154                       = flat_3_simp_100;                      /* read */
-        acc_s_reify_6_conv_13_simp_66         = flat_3_simp_151;                      /* write */
-        acc_s_reify_6_conv_13_simp_67         = flat_3_simp_152;                      /* write */
-        acc_s_reify_6_conv_13_simp_68         = flat_3_simp_153;                      /* write */
-        acc_s_reify_6_conv_13_simp_69         = flat_3_simp_154;                      /* write */
-        flat_25_simp_155                      = ifalse;                               /* init */
-        flat_25_simp_157                      = "";                                   /* init */
+        flat_3_simp_127                       = flat_3_simp_88;                       /* read */
+        flat_3_simp_128                       = flat_3_simp_89;                       /* read */
+        flat_3_simp_129                       = flat_3_simp_90;                       /* read */
+        acc_s_reify_6_conv_13_simp_66         = flat_3_simp_127;                      /* write */
+        acc_s_reify_6_conv_13_simp_67         = flat_3_simp_128;                      /* write */
+        acc_s_reify_6_conv_13_simp_68         = flat_3_simp_129;                      /* write */
+        flat_25_simp_130                      = ierror_not_an_error;                  /* init */
+        flat_25_simp_131                      = "";                                   /* init */
         
-        if (gen_fact_simp_309) {
-            flat_25_simp_155                  = itrue;                                /* write */
-            flat_25_simp_157                  = gen_fact_simp_311;                    /* write */
+        if (ierror_eq (gen_fact_simp_239, ierror_not_an_error)) {
+            flat_25_simp_130                  = ierror_not_an_error;                  /* write */
+            flat_25_simp_131                  = gen_fact_simp_240;                    /* write */
         } else {
-            flat_25_simp_155                  = ifalse;                               /* write */
-            flat_25_simp_157                  = "";                                   /* write */
+            flat_25_simp_130                  = gen_fact_simp_239;                    /* write */
+            flat_25_simp_131                  = "";                                   /* write */
         }
         
-        flat_25_simp_158                      = flat_25_simp_155;                     /* read */
-        flat_25_simp_160                      = flat_25_simp_157;                     /* read */
-        flat_26_simp_161                      = ifalse;                               /* init */
-        flat_26_simp_163                      = ifalse;                               /* init */
+        flat_25_simp_132                      = flat_25_simp_130;                     /* read */
+        flat_25_simp_133                      = flat_25_simp_131;                     /* read */
+        flat_26_simp_134                      = ierror_not_an_error;                  /* init */
+        flat_26_simp_135                      = ifalse;                               /* init */
         
-        if (flat_25_simp_158) {
-            flat_26_simp_161                  = itrue;                                /* write */
-            flat_26_simp_163                  = istring_eq (flat_25_simp_160, "torso"); /* write */
+        if (ierror_eq (flat_25_simp_132, ierror_not_an_error)) {
+            flat_26_simp_134                  = ierror_not_an_error;                  /* write */
+            flat_26_simp_135                  = istring_eq (flat_25_simp_133, "torso"); /* write */
         } else {
-            flat_26_simp_161                  = ifalse;                               /* write */
-            flat_26_simp_163                  = ifalse;                               /* write */
+            flat_26_simp_134                  = flat_25_simp_132;                     /* write */
+            flat_26_simp_135                  = ifalse;                               /* write */
         }
         
-        flat_26_simp_164                      = flat_26_simp_161;                     /* read */
-        flat_26_simp_166                      = flat_26_simp_163;                     /* read */
+        flat_26_simp_136                      = flat_26_simp_134;                     /* read */
+        flat_26_simp_137                      = flat_26_simp_135;                     /* read */
         flat_27                               = ifalse;                               /* init */
         
-        if (flat_26_simp_164) {
-            flat_27                           = flat_26_simp_166;                     /* write */
+        if (ierror_eq (flat_26_simp_136, ierror_not_an_error)) {
+            flat_27                           = flat_26_simp_137;                     /* write */
         } else {
             flat_27                           = itrue;                                /* write */
         }
@@ -1253,283 +1024,225 @@ void iprogram_0(iprogram_0_t *s)
         flat_27                               = flat_27;                              /* read */
         
         if (flat_27) {
-            flat_28_simp_167                  = ifalse;                               /* init */
-            flat_28_simp_168                  = ierror_tombstone;                     /* init */
-            flat_28_simp_169                  = 0;                                    /* init */
+            flat_28_simp_138                  = ierror_not_an_error;                  /* init */
+            flat_28_simp_139                  = 0;                                    /* init */
             
-            if (gen_fact_simp_309) {
-                flat_28_simp_167              = itrue;                                /* write */
-                flat_28_simp_168              = ierror_tombstone;                     /* write */
-                flat_28_simp_169              = gen_fact_simp_312;                    /* write */
+            if (ierror_eq (gen_fact_simp_239, ierror_not_an_error)) {
+                flat_28_simp_138              = ierror_not_an_error;                  /* write */
+                flat_28_simp_139              = gen_fact_simp_241;                    /* write */
             } else {
-                flat_28_simp_167              = ifalse;                               /* write */
-                flat_28_simp_168              = gen_fact_simp_310;                    /* write */
-                flat_28_simp_169              = 0;                                    /* write */
+                flat_28_simp_138              = gen_fact_simp_239;                    /* write */
+                flat_28_simp_139              = 0;                                    /* write */
             }
             
-            flat_28_simp_170                  = flat_28_simp_167;                     /* read */
-            flat_28_simp_171                  = flat_28_simp_168;                     /* read */
-            flat_28_simp_172                  = flat_28_simp_169;                     /* read */
-            flat_29_simp_173                  = ifalse;                               /* init */
-            flat_29_simp_174                  = ierror_tombstone;                     /* init */
-            flat_29_simp_175                  = 0.0;                                  /* init */
+            flat_28_simp_140                  = flat_28_simp_138;                     /* read */
+            flat_28_simp_141                  = flat_28_simp_139;                     /* read */
+            flat_29_simp_142                  = ierror_not_an_error;                  /* init */
+            flat_29_simp_143                  = 0.0;                                  /* init */
             
-            if (flat_28_simp_170) {
-                flat_29_simp_173              = itrue;                                /* write */
-                flat_29_simp_174              = ierror_tombstone;                     /* write */
-                flat_29_simp_175              = iint_extend (flat_28_simp_172);       /* write */
+            if (ierror_eq (flat_28_simp_140, ierror_not_an_error)) {
+                flat_29_simp_142              = ierror_not_an_error;                  /* write */
+                flat_29_simp_143              = iint_extend (flat_28_simp_141);       /* write */
             } else {
-                flat_29_simp_173              = ifalse;                               /* write */
-                flat_29_simp_174              = flat_28_simp_171;                     /* write */
-                flat_29_simp_175              = 0.0;                                  /* write */
+                flat_29_simp_142              = flat_28_simp_140;                     /* write */
+                flat_29_simp_143              = 0.0;                                  /* write */
             }
             
-            flat_29_simp_176                  = flat_29_simp_173;                     /* read */
-            flat_29_simp_177                  = flat_29_simp_174;                     /* read */
-            flat_29_simp_178                  = flat_29_simp_175;                     /* read */
-            acc_a_conv_70_simp_179            = acc_a_conv_70_simp_70;                /* read */
-            acc_a_conv_70_simp_180            = acc_a_conv_70_simp_71;                /* read */
-            acc_a_conv_70_simp_181            = acc_a_conv_70_simp_72;                /* read */
-            acc_a_conv_70_simp_182            = acc_a_conv_70_simp_73;                /* read */
-            acc_a_conv_70_simp_183            = acc_a_conv_70_simp_74;                /* read */
-            flat_30_simp_184                  = ifalse;                               /* init */
-            flat_30_simp_185                  = ierror_tombstone;                     /* init */
-            flat_30_simp_186                  = 0.0;                                  /* init */
-            flat_30_simp_187                  = 0.0;                                  /* init */
-            flat_30_simp_188                  = 0.0;                                  /* init */
+            flat_29_simp_144                  = flat_29_simp_142;                     /* read */
+            flat_29_simp_145                  = flat_29_simp_143;                     /* read */
+            acc_a_conv_70_simp_146            = acc_a_conv_70_simp_69;                /* read */
+            acc_a_conv_70_simp_147            = acc_a_conv_70_simp_70;                /* read */
+            acc_a_conv_70_simp_148            = acc_a_conv_70_simp_71;                /* read */
+            acc_a_conv_70_simp_149            = acc_a_conv_70_simp_72;                /* read */
+            flat_30_simp_150                  = ierror_not_an_error;                  /* init */
+            flat_30_simp_151                  = 0.0;                                  /* init */
+            flat_30_simp_152                  = 0.0;                                  /* init */
+            flat_30_simp_153                  = 0.0;                                  /* init */
             
-            if (acc_a_conv_70_simp_179) {
-                idouble_t        nn_conv_77   = idouble_add (acc_a_conv_70_simp_181, 1.0); /* let */
-                flat_33_simp_189              = ifalse;                               /* init */
-                flat_33_simp_190              = ierror_tombstone;                     /* init */
-                flat_33_simp_191              = 0.0;                                  /* init */
+            if (ierror_eq (acc_a_conv_70_simp_146, ierror_not_an_error)) {
+                idouble_t        nn_conv_77   = idouble_add (acc_a_conv_70_simp_147, 1.0); /* let */
+                flat_33_simp_154              = ierror_not_an_error;                  /* init */
+                flat_33_simp_155              = 0.0;                                  /* init */
                 
-                if (flat_29_simp_176) {
-                    flat_33_simp_189          = itrue;                                /* write */
-                    flat_33_simp_190          = ierror_tombstone;                     /* write */
-                    flat_33_simp_191          = idouble_sub (flat_29_simp_178, acc_a_conv_70_simp_182); /* write */
+                if (ierror_eq (flat_29_simp_144, ierror_not_an_error)) {
+                    flat_33_simp_154          = ierror_not_an_error;                  /* write */
+                    flat_33_simp_155          = idouble_sub (flat_29_simp_145, acc_a_conv_70_simp_148); /* write */
                 } else {
-                    flat_33_simp_189          = ifalse;                               /* write */
-                    flat_33_simp_190          = flat_29_simp_177;                     /* write */
-                    flat_33_simp_191          = 0.0;                                  /* write */
+                    flat_33_simp_154          = flat_29_simp_144;                     /* write */
+                    flat_33_simp_155          = 0.0;                                  /* write */
                 }
                 
-                flat_33_simp_192              = flat_33_simp_189;                     /* read */
-                flat_33_simp_193              = flat_33_simp_190;                     /* read */
-                flat_33_simp_194              = flat_33_simp_191;                     /* read */
-                flat_34_simp_195              = ifalse;                               /* init */
-                flat_34_simp_196              = ierror_tombstone;                     /* init */
-                flat_34_simp_197              = 0.0;                                  /* init */
+                flat_33_simp_156              = flat_33_simp_154;                     /* read */
+                flat_33_simp_157              = flat_33_simp_155;                     /* read */
+                flat_34_simp_158              = ierror_not_an_error;                  /* init */
+                flat_34_simp_159              = 0.0;                                  /* init */
                 
-                if (flat_33_simp_192) {
-                    flat_34_simp_195          = itrue;                                /* write */
-                    flat_34_simp_196          = ierror_tombstone;                     /* write */
-                    flat_34_simp_197          = idouble_div (flat_33_simp_194, nn_conv_77); /* write */
+                if (ierror_eq (flat_33_simp_156, ierror_not_an_error)) {
+                    flat_34_simp_158          = ierror_not_an_error;                  /* write */
+                    flat_34_simp_159          = idouble_div (flat_33_simp_157, nn_conv_77); /* write */
                 } else {
-                    flat_34_simp_195          = ifalse;                               /* write */
-                    flat_34_simp_196          = flat_33_simp_193;                     /* write */
-                    flat_34_simp_197          = 0.0;                                  /* write */
+                    flat_34_simp_158          = flat_33_simp_156;                     /* write */
+                    flat_34_simp_159          = 0.0;                                  /* write */
                 }
                 
-                flat_34_simp_198              = flat_34_simp_195;                     /* read */
-                flat_34_simp_199              = flat_34_simp_196;                     /* read */
-                flat_34_simp_200              = flat_34_simp_197;                     /* read */
-                flat_35_simp_201              = ifalse;                               /* init */
-                flat_35_simp_202              = ierror_tombstone;                     /* init */
-                flat_35_simp_203              = 0.0;                                  /* init */
+                flat_34_simp_160              = flat_34_simp_158;                     /* read */
+                flat_34_simp_161              = flat_34_simp_159;                     /* read */
+                flat_35_simp_162              = ierror_not_an_error;                  /* init */
+                flat_35_simp_163              = 0.0;                                  /* init */
                 
-                if (flat_34_simp_198) {
-                    flat_35_simp_201          = itrue;                                /* write */
-                    flat_35_simp_202          = ierror_tombstone;                     /* write */
-                    flat_35_simp_203          = idouble_add (acc_a_conv_70_simp_182, flat_34_simp_200); /* write */
+                if (ierror_eq (flat_34_simp_160, ierror_not_an_error)) {
+                    flat_35_simp_162          = ierror_not_an_error;                  /* write */
+                    flat_35_simp_163          = idouble_add (acc_a_conv_70_simp_148, flat_34_simp_161); /* write */
                 } else {
-                    flat_35_simp_201          = ifalse;                               /* write */
-                    flat_35_simp_202          = flat_34_simp_199;                     /* write */
-                    flat_35_simp_203          = 0.0;                                  /* write */
+                    flat_35_simp_162          = flat_34_simp_160;                     /* write */
+                    flat_35_simp_163          = 0.0;                                  /* write */
                 }
                 
-                flat_35_simp_204              = flat_35_simp_201;                     /* read */
-                flat_35_simp_205              = flat_35_simp_202;                     /* read */
-                flat_35_simp_206              = flat_35_simp_203;                     /* read */
-                flat_36_simp_207              = ifalse;                               /* init */
-                flat_36_simp_208              = ierror_tombstone;                     /* init */
-                flat_36_simp_209              = 0.0;                                  /* init */
+                flat_35_simp_164              = flat_35_simp_162;                     /* read */
+                flat_35_simp_165              = flat_35_simp_163;                     /* read */
+                flat_36_simp_166              = ierror_not_an_error;                  /* init */
+                flat_36_simp_167              = 0.0;                                  /* init */
                 
-                if (flat_33_simp_192) {
-                    flat_51_simp_210          = ifalse;                               /* init */
-                    flat_51_simp_211          = ierror_tombstone;                     /* init */
-                    flat_51_simp_212          = 0.0;                                  /* init */
+                if (ierror_eq (flat_33_simp_156, ierror_not_an_error)) {
+                    flat_51_simp_168          = ierror_not_an_error;                  /* init */
+                    flat_51_simp_169          = 0.0;                                  /* init */
                     
-                    if (flat_29_simp_176) {
-                        flat_57_simp_213      = ifalse;                               /* init */
-                        flat_57_simp_214      = ierror_tombstone;                     /* init */
-                        flat_57_simp_215      = 0.0;                                  /* init */
+                    if (ierror_eq (flat_29_simp_144, ierror_not_an_error)) {
+                        flat_57_simp_170      = ierror_not_an_error;                  /* init */
+                        flat_57_simp_171      = 0.0;                                  /* init */
                         
-                        if (flat_35_simp_204) {
-                            flat_57_simp_213  = itrue;                                /* write */
-                            flat_57_simp_214  = ierror_tombstone;                     /* write */
-                            flat_57_simp_215  = idouble_sub (flat_29_simp_178, flat_35_simp_206); /* write */
+                        if (ierror_eq (flat_35_simp_164, ierror_not_an_error)) {
+                            flat_57_simp_170  = ierror_not_an_error;                  /* write */
+                            flat_57_simp_171  = idouble_sub (flat_29_simp_145, flat_35_simp_165); /* write */
                         } else {
-                            flat_57_simp_213  = ifalse;                               /* write */
-                            flat_57_simp_214  = flat_35_simp_205;                     /* write */
-                            flat_57_simp_215  = 0.0;                                  /* write */
+                            flat_57_simp_170  = flat_35_simp_164;                     /* write */
+                            flat_57_simp_171  = 0.0;                                  /* write */
                         }
                         
-                        flat_57_simp_216      = flat_57_simp_213;                     /* read */
-                        flat_57_simp_217      = flat_57_simp_214;                     /* read */
-                        flat_57_simp_218      = flat_57_simp_215;                     /* read */
-                        flat_51_simp_210      = flat_57_simp_216;                     /* write */
-                        flat_51_simp_211      = flat_57_simp_217;                     /* write */
-                        flat_51_simp_212      = flat_57_simp_218;                     /* write */
+                        flat_57_simp_172      = flat_57_simp_170;                     /* read */
+                        flat_57_simp_173      = flat_57_simp_171;                     /* read */
+                        flat_51_simp_168      = flat_57_simp_172;                     /* write */
+                        flat_51_simp_169      = flat_57_simp_173;                     /* write */
                     } else {
-                        flat_51_simp_210      = ifalse;                               /* write */
-                        flat_51_simp_211      = flat_29_simp_177;                     /* write */
-                        flat_51_simp_212      = 0.0;                                  /* write */
+                        flat_51_simp_168      = flat_29_simp_144;                     /* write */
+                        flat_51_simp_169      = 0.0;                                  /* write */
                     }
                     
-                    flat_51_simp_219          = flat_51_simp_210;                     /* read */
-                    flat_51_simp_220          = flat_51_simp_211;                     /* read */
-                    flat_51_simp_221          = flat_51_simp_212;                     /* read */
-                    flat_52_simp_222          = ifalse;                               /* init */
-                    flat_52_simp_223          = ierror_tombstone;                     /* init */
-                    flat_52_simp_224          = 0.0;                                  /* init */
+                    flat_51_simp_174          = flat_51_simp_168;                     /* read */
+                    flat_51_simp_175          = flat_51_simp_169;                     /* read */
+                    flat_52_simp_176          = ierror_not_an_error;                  /* init */
+                    flat_52_simp_177          = 0.0;                                  /* init */
                     
-                    if (flat_51_simp_219) {
-                        flat_52_simp_222      = itrue;                                /* write */
-                        flat_52_simp_223      = ierror_tombstone;                     /* write */
-                        flat_52_simp_224      = idouble_mul (flat_33_simp_194, flat_51_simp_221); /* write */
+                    if (ierror_eq (flat_51_simp_174, ierror_not_an_error)) {
+                        flat_52_simp_176      = ierror_not_an_error;                  /* write */
+                        flat_52_simp_177      = idouble_mul (flat_33_simp_157, flat_51_simp_175); /* write */
                     } else {
-                        flat_52_simp_222      = ifalse;                               /* write */
-                        flat_52_simp_223      = flat_51_simp_220;                     /* write */
-                        flat_52_simp_224      = 0.0;                                  /* write */
+                        flat_52_simp_176      = flat_51_simp_174;                     /* write */
+                        flat_52_simp_177      = 0.0;                                  /* write */
                     }
                     
-                    flat_52_simp_225          = flat_52_simp_222;                     /* read */
-                    flat_52_simp_226          = flat_52_simp_223;                     /* read */
-                    flat_52_simp_227          = flat_52_simp_224;                     /* read */
-                    flat_36_simp_207          = flat_52_simp_225;                     /* write */
-                    flat_36_simp_208          = flat_52_simp_226;                     /* write */
-                    flat_36_simp_209          = flat_52_simp_227;                     /* write */
+                    flat_52_simp_178          = flat_52_simp_176;                     /* read */
+                    flat_52_simp_179          = flat_52_simp_177;                     /* read */
+                    flat_36_simp_166          = flat_52_simp_178;                     /* write */
+                    flat_36_simp_167          = flat_52_simp_179;                     /* write */
                 } else {
-                    flat_36_simp_207          = ifalse;                               /* write */
-                    flat_36_simp_208          = flat_33_simp_193;                     /* write */
-                    flat_36_simp_209          = 0.0;                                  /* write */
+                    flat_36_simp_166          = flat_33_simp_156;                     /* write */
+                    flat_36_simp_167          = 0.0;                                  /* write */
                 }
                 
-                flat_36_simp_228              = flat_36_simp_207;                     /* read */
-                flat_36_simp_229              = flat_36_simp_208;                     /* read */
-                flat_36_simp_230              = flat_36_simp_209;                     /* read */
-                flat_37_simp_231              = ifalse;                               /* init */
-                flat_37_simp_232              = ierror_tombstone;                     /* init */
-                flat_37_simp_233              = 0.0;                                  /* init */
+                flat_36_simp_180              = flat_36_simp_166;                     /* read */
+                flat_36_simp_181              = flat_36_simp_167;                     /* read */
+                flat_37_simp_182              = ierror_not_an_error;                  /* init */
+                flat_37_simp_183              = 0.0;                                  /* init */
                 
-                if (flat_36_simp_228) {
-                    flat_37_simp_231          = itrue;                                /* write */
-                    flat_37_simp_232          = ierror_tombstone;                     /* write */
-                    flat_37_simp_233          = idouble_add (acc_a_conv_70_simp_183, flat_36_simp_230); /* write */
+                if (ierror_eq (flat_36_simp_180, ierror_not_an_error)) {
+                    flat_37_simp_182          = ierror_not_an_error;                  /* write */
+                    flat_37_simp_183          = idouble_add (acc_a_conv_70_simp_149, flat_36_simp_181); /* write */
                 } else {
-                    flat_37_simp_231          = ifalse;                               /* write */
-                    flat_37_simp_232          = flat_36_simp_229;                     /* write */
-                    flat_37_simp_233          = 0.0;                                  /* write */
+                    flat_37_simp_182          = flat_36_simp_180;                     /* write */
+                    flat_37_simp_183          = 0.0;                                  /* write */
                 }
                 
-                flat_37_simp_234              = flat_37_simp_231;                     /* read */
-                flat_37_simp_235              = flat_37_simp_232;                     /* read */
-                flat_37_simp_236              = flat_37_simp_233;                     /* read */
-                flat_38_simp_237              = ifalse;                               /* init */
-                flat_38_simp_238              = ierror_tombstone;                     /* init */
-                flat_38_simp_239              = 0.0;                                  /* init */
-                flat_38_simp_240              = 0.0;                                  /* init */
+                flat_37_simp_184              = flat_37_simp_182;                     /* read */
+                flat_37_simp_185              = flat_37_simp_183;                     /* read */
+                flat_38_simp_186              = ierror_not_an_error;                  /* init */
+                flat_38_simp_187              = 0.0;                                  /* init */
+                flat_38_simp_188              = 0.0;                                  /* init */
                 
-                if (flat_35_simp_204) {
-                    flat_38_simp_237          = itrue;                                /* write */
-                    flat_38_simp_238          = ierror_tombstone;                     /* write */
-                    flat_38_simp_239          = idouble_add (acc_a_conv_70_simp_181, 1.0); /* write */
-                    flat_38_simp_240          = flat_35_simp_206;                     /* write */
+                if (ierror_eq (flat_35_simp_164, ierror_not_an_error)) {
+                    flat_38_simp_186          = ierror_not_an_error;                  /* write */
+                    flat_38_simp_187          = idouble_add (acc_a_conv_70_simp_147, 1.0); /* write */
+                    flat_38_simp_188          = flat_35_simp_165;                     /* write */
                 } else {
-                    flat_38_simp_237          = ifalse;                               /* write */
-                    flat_38_simp_238          = flat_35_simp_205;                     /* write */
-                    flat_38_simp_239          = 0.0;                                  /* write */
-                    flat_38_simp_240          = 0.0;                                  /* write */
+                    flat_38_simp_186          = flat_35_simp_164;                     /* write */
+                    flat_38_simp_187          = 0.0;                                  /* write */
+                    flat_38_simp_188          = 0.0;                                  /* write */
                 }
                 
-                flat_38_simp_241              = flat_38_simp_237;                     /* read */
-                flat_38_simp_242              = flat_38_simp_238;                     /* read */
-                flat_38_simp_243              = flat_38_simp_239;                     /* read */
-                flat_38_simp_244              = flat_38_simp_240;                     /* read */
-                flat_39_simp_245              = ifalse;                               /* init */
-                flat_39_simp_246              = ierror_tombstone;                     /* init */
-                flat_39_simp_247              = 0.0;                                  /* init */
-                flat_39_simp_248              = 0.0;                                  /* init */
-                flat_39_simp_249              = 0.0;                                  /* init */
+                flat_38_simp_189              = flat_38_simp_186;                     /* read */
+                flat_38_simp_190              = flat_38_simp_187;                     /* read */
+                flat_38_simp_191              = flat_38_simp_188;                     /* read */
+                flat_39_simp_192              = ierror_not_an_error;                  /* init */
+                flat_39_simp_193              = 0.0;                                  /* init */
+                flat_39_simp_194              = 0.0;                                  /* init */
+                flat_39_simp_195              = 0.0;                                  /* init */
                 
-                if (flat_38_simp_241) {
-                    flat_42_simp_250          = ifalse;                               /* init */
-                    flat_42_simp_251          = ierror_tombstone;                     /* init */
-                    flat_42_simp_252          = 0.0;                                  /* init */
-                    flat_42_simp_253          = 0.0;                                  /* init */
-                    flat_42_simp_254          = 0.0;                                  /* init */
+                if (ierror_eq (flat_38_simp_189, ierror_not_an_error)) {
+                    flat_42_simp_196          = ierror_not_an_error;                  /* init */
+                    flat_42_simp_197          = 0.0;                                  /* init */
+                    flat_42_simp_198          = 0.0;                                  /* init */
+                    flat_42_simp_199          = 0.0;                                  /* init */
                     
-                    if (flat_37_simp_234) {
-                        flat_42_simp_250      = itrue;                                /* write */
-                        flat_42_simp_251      = ierror_tombstone;                     /* write */
-                        flat_42_simp_252      = flat_38_simp_243;                     /* write */
-                        flat_42_simp_253      = flat_38_simp_244;                     /* write */
-                        flat_42_simp_254      = flat_37_simp_236;                     /* write */
+                    if (ierror_eq (flat_37_simp_184, ierror_not_an_error)) {
+                        flat_42_simp_196      = ierror_not_an_error;                  /* write */
+                        flat_42_simp_197      = flat_38_simp_190;                     /* write */
+                        flat_42_simp_198      = flat_38_simp_191;                     /* write */
+                        flat_42_simp_199      = flat_37_simp_185;                     /* write */
                     } else {
-                        flat_42_simp_250      = ifalse;                               /* write */
-                        flat_42_simp_251      = flat_37_simp_235;                     /* write */
-                        flat_42_simp_252      = 0.0;                                  /* write */
-                        flat_42_simp_253      = 0.0;                                  /* write */
-                        flat_42_simp_254      = 0.0;                                  /* write */
+                        flat_42_simp_196      = flat_37_simp_184;                     /* write */
+                        flat_42_simp_197      = 0.0;                                  /* write */
+                        flat_42_simp_198      = 0.0;                                  /* write */
+                        flat_42_simp_199      = 0.0;                                  /* write */
                     }
                     
-                    flat_42_simp_255          = flat_42_simp_250;                     /* read */
-                    flat_42_simp_256          = flat_42_simp_251;                     /* read */
-                    flat_42_simp_257          = flat_42_simp_252;                     /* read */
-                    flat_42_simp_258          = flat_42_simp_253;                     /* read */
-                    flat_42_simp_259          = flat_42_simp_254;                     /* read */
-                    flat_39_simp_245          = flat_42_simp_255;                     /* write */
-                    flat_39_simp_246          = flat_42_simp_256;                     /* write */
-                    flat_39_simp_247          = flat_42_simp_257;                     /* write */
-                    flat_39_simp_248          = flat_42_simp_258;                     /* write */
-                    flat_39_simp_249          = flat_42_simp_259;                     /* write */
+                    flat_42_simp_200          = flat_42_simp_196;                     /* read */
+                    flat_42_simp_201          = flat_42_simp_197;                     /* read */
+                    flat_42_simp_202          = flat_42_simp_198;                     /* read */
+                    flat_42_simp_203          = flat_42_simp_199;                     /* read */
+                    flat_39_simp_192          = flat_42_simp_200;                     /* write */
+                    flat_39_simp_193          = flat_42_simp_201;                     /* write */
+                    flat_39_simp_194          = flat_42_simp_202;                     /* write */
+                    flat_39_simp_195          = flat_42_simp_203;                     /* write */
                 } else {
-                    flat_39_simp_245          = ifalse;                               /* write */
-                    flat_39_simp_246          = flat_38_simp_242;                     /* write */
-                    flat_39_simp_247          = 0.0;                                  /* write */
-                    flat_39_simp_248          = 0.0;                                  /* write */
-                    flat_39_simp_249          = 0.0;                                  /* write */
+                    flat_39_simp_192          = flat_38_simp_189;                     /* write */
+                    flat_39_simp_193          = 0.0;                                  /* write */
+                    flat_39_simp_194          = 0.0;                                  /* write */
+                    flat_39_simp_195          = 0.0;                                  /* write */
                 }
                 
-                flat_39_simp_260              = flat_39_simp_245;                     /* read */
-                flat_39_simp_261              = flat_39_simp_246;                     /* read */
-                flat_39_simp_262              = flat_39_simp_247;                     /* read */
-                flat_39_simp_263              = flat_39_simp_248;                     /* read */
-                flat_39_simp_264              = flat_39_simp_249;                     /* read */
-                flat_30_simp_184              = flat_39_simp_260;                     /* write */
-                flat_30_simp_185              = flat_39_simp_261;                     /* write */
-                flat_30_simp_186              = flat_39_simp_262;                     /* write */
-                flat_30_simp_187              = flat_39_simp_263;                     /* write */
-                flat_30_simp_188              = flat_39_simp_264;                     /* write */
+                flat_39_simp_204              = flat_39_simp_192;                     /* read */
+                flat_39_simp_205              = flat_39_simp_193;                     /* read */
+                flat_39_simp_206              = flat_39_simp_194;                     /* read */
+                flat_39_simp_207              = flat_39_simp_195;                     /* read */
+                flat_30_simp_150              = flat_39_simp_204;                     /* write */
+                flat_30_simp_151              = flat_39_simp_205;                     /* write */
+                flat_30_simp_152              = flat_39_simp_206;                     /* write */
+                flat_30_simp_153              = flat_39_simp_207;                     /* write */
             } else {
-                flat_30_simp_184              = ifalse;                               /* write */
-                flat_30_simp_185              = acc_a_conv_70_simp_180;               /* write */
-                flat_30_simp_186              = 0.0;                                  /* write */
-                flat_30_simp_187              = 0.0;                                  /* write */
-                flat_30_simp_188              = 0.0;                                  /* write */
+                flat_30_simp_150              = acc_a_conv_70_simp_146;               /* write */
+                flat_30_simp_151              = 0.0;                                  /* write */
+                flat_30_simp_152              = 0.0;                                  /* write */
+                flat_30_simp_153              = 0.0;                                  /* write */
             }
             
-            flat_30_simp_265                  = flat_30_simp_184;                     /* read */
-            flat_30_simp_266                  = flat_30_simp_185;                     /* read */
-            flat_30_simp_267                  = flat_30_simp_186;                     /* read */
-            flat_30_simp_268                  = flat_30_simp_187;                     /* read */
-            flat_30_simp_269                  = flat_30_simp_188;                     /* read */
-            acc_a_conv_70_simp_70             = flat_30_simp_265;                     /* write */
-            acc_a_conv_70_simp_71             = flat_30_simp_266;                     /* write */
-            acc_a_conv_70_simp_72             = flat_30_simp_267;                     /* write */
-            acc_a_conv_70_simp_73             = flat_30_simp_268;                     /* write */
-            acc_a_conv_70_simp_74             = flat_30_simp_269;                     /* write */
+            flat_30_simp_208                  = flat_30_simp_150;                     /* read */
+            flat_30_simp_209                  = flat_30_simp_151;                     /* read */
+            flat_30_simp_210                  = flat_30_simp_152;                     /* read */
+            flat_30_simp_211                  = flat_30_simp_153;                     /* read */
+            acc_a_conv_70_simp_69             = flat_30_simp_208;                     /* write */
+            acc_a_conv_70_simp_70             = flat_30_simp_209;                     /* write */
+            acc_a_conv_70_simp_71             = flat_30_simp_210;                     /* write */
+            acc_a_conv_70_simp_72             = flat_30_simp_211;                     /* write */
         }
         
     }
@@ -1543,8 +1256,8 @@ void iprogram_0(iprogram_0_t *s)
     s->has_acc_s_reify_6_conv_13_simp_68      = itrue;                                /* save */
     s->res_acc_s_reify_6_conv_13_simp_68      = acc_s_reify_6_conv_13_simp_68;        /* save */
     
-    s->has_acc_s_reify_6_conv_13_simp_69      = itrue;                                /* save */
-    s->res_acc_s_reify_6_conv_13_simp_69      = acc_s_reify_6_conv_13_simp_69;        /* save */
+    s->has_acc_a_conv_70_simp_69              = itrue;                                /* save */
+    s->res_acc_a_conv_70_simp_69              = acc_a_conv_70_simp_69;                /* save */
     
     s->has_acc_a_conv_70_simp_70              = itrue;                                /* save */
     s->res_acc_a_conv_70_simp_70              = acc_a_conv_70_simp_70;                /* save */
@@ -1555,109 +1268,80 @@ void iprogram_0(iprogram_0_t *s)
     s->has_acc_a_conv_70_simp_72              = itrue;                                /* save */
     s->res_acc_a_conv_70_simp_72              = acc_a_conv_70_simp_72;                /* save */
     
-    s->has_acc_a_conv_70_simp_73              = itrue;                                /* save */
-    s->res_acc_a_conv_70_simp_73              = acc_a_conv_70_simp_73;                /* save */
+    s_reify_6_conv_13_simp_212                = acc_s_reify_6_conv_13_simp_66;        /* read */
+    s_reify_6_conv_13_simp_213                = acc_s_reify_6_conv_13_simp_67;        /* read */
+    a_conv_70_simp_215                        = acc_a_conv_70_simp_69;                /* read */
+    a_conv_70_simp_216                        = acc_a_conv_70_simp_70;                /* read */
+    a_conv_70_simp_218                        = acc_a_conv_70_simp_72;                /* read */
+    flat_82_simp_219                          = ierror_not_an_error;                  /* init */
+    flat_82_simp_220                          = 0.0;                                  /* init */
     
-    s->has_acc_a_conv_70_simp_74              = itrue;                                /* save */
-    s->res_acc_a_conv_70_simp_74              = acc_a_conv_70_simp_74;                /* save */
-    
-    s_reify_6_conv_13_simp_270                = acc_s_reify_6_conv_13_simp_66;        /* read */
-    s_reify_6_conv_13_simp_271                = acc_s_reify_6_conv_13_simp_67;        /* read */
-    s_reify_6_conv_13_simp_272                = acc_s_reify_6_conv_13_simp_68;        /* read */
-    a_conv_70_simp_274                        = acc_a_conv_70_simp_70;                /* read */
-    a_conv_70_simp_275                        = acc_a_conv_70_simp_71;                /* read */
-    a_conv_70_simp_276                        = acc_a_conv_70_simp_72;                /* read */
-    a_conv_70_simp_278                        = acc_a_conv_70_simp_74;                /* read */
-    flat_82_simp_279                          = ifalse;                               /* init */
-    flat_82_simp_280                          = ierror_tombstone;                     /* init */
-    flat_82_simp_281                          = 0.0;                                  /* init */
-    
-    if (s_reify_6_conv_13_simp_270) {
-        flat_82_simp_279                      = itrue;                                /* write */
-        flat_82_simp_280                      = ierror_tombstone;                     /* write */
-        flat_82_simp_281                      = s_reify_6_conv_13_simp_272;           /* write */
+    if (ierror_eq (s_reify_6_conv_13_simp_212, ierror_not_an_error)) {
+        flat_82_simp_219                      = ierror_not_an_error;                  /* write */
+        flat_82_simp_220                      = s_reify_6_conv_13_simp_213;           /* write */
     } else {
-        flat_82_simp_279                      = ifalse;                               /* write */
-        flat_82_simp_280                      = s_reify_6_conv_13_simp_271;           /* write */
-        flat_82_simp_281                      = 0.0;                                  /* write */
+        flat_82_simp_219                      = s_reify_6_conv_13_simp_212;           /* write */
+        flat_82_simp_220                      = 0.0;                                  /* write */
     }
     
-    flat_82_simp_282                          = flat_82_simp_279;                     /* read */
-    flat_82_simp_283                          = flat_82_simp_280;                     /* read */
-    flat_82_simp_284                          = flat_82_simp_281;                     /* read */
-    flat_83_simp_285                          = ifalse;                               /* init */
-    flat_83_simp_286                          = ierror_tombstone;                     /* init */
-    flat_83_simp_287                          = 0.0;                                  /* init */
+    flat_82_simp_221                          = flat_82_simp_219;                     /* read */
+    flat_82_simp_222                          = flat_82_simp_220;                     /* read */
+    flat_83_simp_223                          = ierror_not_an_error;                  /* init */
+    flat_83_simp_224                          = 0.0;                                  /* init */
     
-    if (flat_82_simp_282) {
-        flat_86_simp_288                      = ifalse;                               /* init */
-        flat_86_simp_289                      = ierror_tombstone;                     /* init */
-        flat_86_simp_290                      = 0.0;                                  /* init */
+    if (ierror_eq (flat_82_simp_221, ierror_not_an_error)) {
+        flat_86_simp_225                      = ierror_not_an_error;                  /* init */
+        flat_86_simp_226                      = 0.0;                                  /* init */
         
-        if (a_conv_70_simp_274) {
-            idouble_t        conv_125         = idouble_sub (a_conv_70_simp_276, 1.0); /* let */
-            idouble_t        simp_1288        = idouble_div (a_conv_70_simp_278, conv_125); /* let */
-            flat_86_simp_288                  = itrue;                                /* write */
-            flat_86_simp_289                  = ierror_tombstone;                     /* write */
-            flat_86_simp_290                  = simp_1288;                            /* write */
+        if (ierror_eq (a_conv_70_simp_215, ierror_not_an_error)) {
+            idouble_t        conv_125         = idouble_sub (a_conv_70_simp_216, 1.0); /* let */
+            idouble_t        simp_1080        = idouble_div (a_conv_70_simp_218, conv_125); /* let */
+            flat_86_simp_225                  = ierror_not_an_error;                  /* write */
+            flat_86_simp_226                  = simp_1080;                            /* write */
         } else {
-            flat_86_simp_288                  = ifalse;                               /* write */
-            flat_86_simp_289                  = a_conv_70_simp_275;                   /* write */
-            flat_86_simp_290                  = 0.0;                                  /* write */
+            flat_86_simp_225                  = a_conv_70_simp_215;                   /* write */
+            flat_86_simp_226                  = 0.0;                                  /* write */
         }
         
-        flat_86_simp_291                      = flat_86_simp_288;                     /* read */
-        flat_86_simp_292                      = flat_86_simp_289;                     /* read */
-        flat_86_simp_293                      = flat_86_simp_290;                     /* read */
-        flat_87_simp_294                      = ifalse;                               /* init */
-        flat_87_simp_295                      = ierror_tombstone;                     /* init */
-        flat_87_simp_296                      = 0.0;                                  /* init */
+        flat_86_simp_227                      = flat_86_simp_225;                     /* read */
+        flat_86_simp_228                      = flat_86_simp_226;                     /* read */
+        flat_87_simp_229                      = ierror_not_an_error;                  /* init */
+        flat_87_simp_230                      = 0.0;                                  /* init */
         
-        if (flat_86_simp_291) {
-            flat_87_simp_294                  = itrue;                                /* write */
-            flat_87_simp_295                  = ierror_tombstone;                     /* write */
-            flat_87_simp_296                  = idouble_pow (flat_86_simp_293, 0.5);  /* write */
+        if (ierror_eq (flat_86_simp_227, ierror_not_an_error)) {
+            flat_87_simp_229                  = ierror_not_an_error;                  /* write */
+            flat_87_simp_230                  = idouble_pow (flat_86_simp_228, 0.5);  /* write */
         } else {
-            flat_87_simp_294                  = ifalse;                               /* write */
-            flat_87_simp_295                  = flat_86_simp_292;                     /* write */
-            flat_87_simp_296                  = 0.0;                                  /* write */
+            flat_87_simp_229                  = flat_86_simp_227;                     /* write */
+            flat_87_simp_230                  = 0.0;                                  /* write */
         }
         
-        flat_87_simp_297                      = flat_87_simp_294;                     /* read */
-        flat_87_simp_298                      = flat_87_simp_295;                     /* read */
-        flat_87_simp_299                      = flat_87_simp_296;                     /* read */
-        flat_88_simp_300                      = ifalse;                               /* init */
-        flat_88_simp_301                      = ierror_tombstone;                     /* init */
-        flat_88_simp_302                      = 0.0;                                  /* init */
+        flat_87_simp_231                      = flat_87_simp_229;                     /* read */
+        flat_87_simp_232                      = flat_87_simp_230;                     /* read */
+        flat_88_simp_233                      = ierror_not_an_error;                  /* init */
+        flat_88_simp_234                      = 0.0;                                  /* init */
         
-        if (flat_87_simp_297) {
-            flat_88_simp_300                  = itrue;                                /* write */
-            flat_88_simp_301                  = ierror_tombstone;                     /* write */
-            flat_88_simp_302                  = idouble_mul (flat_82_simp_284, flat_87_simp_299); /* write */
+        if (ierror_eq (flat_87_simp_231, ierror_not_an_error)) {
+            flat_88_simp_233                  = ierror_not_an_error;                  /* write */
+            flat_88_simp_234                  = idouble_mul (flat_82_simp_222, flat_87_simp_232); /* write */
         } else {
-            flat_88_simp_300                  = ifalse;                               /* write */
-            flat_88_simp_301                  = flat_87_simp_298;                     /* write */
-            flat_88_simp_302                  = 0.0;                                  /* write */
+            flat_88_simp_233                  = flat_87_simp_231;                     /* write */
+            flat_88_simp_234                  = 0.0;                                  /* write */
         }
         
-        flat_88_simp_303                      = flat_88_simp_300;                     /* read */
-        flat_88_simp_304                      = flat_88_simp_301;                     /* read */
-        flat_88_simp_305                      = flat_88_simp_302;                     /* read */
-        flat_83_simp_285                      = flat_88_simp_303;                     /* write */
-        flat_83_simp_286                      = flat_88_simp_304;                     /* write */
-        flat_83_simp_287                      = flat_88_simp_305;                     /* write */
+        flat_88_simp_235                      = flat_88_simp_233;                     /* read */
+        flat_88_simp_236                      = flat_88_simp_234;                     /* read */
+        flat_83_simp_223                      = flat_88_simp_235;                     /* write */
+        flat_83_simp_224                      = flat_88_simp_236;                     /* write */
     } else {
-        flat_83_simp_285                      = ifalse;                               /* write */
-        flat_83_simp_286                      = flat_82_simp_283;                     /* write */
-        flat_83_simp_287                      = 0.0;                                  /* write */
+        flat_83_simp_223                      = flat_82_simp_221;                     /* write */
+        flat_83_simp_224                      = 0.0;                                  /* write */
     }
     
-    flat_83_simp_306                          = flat_83_simp_285;                     /* read */
-    flat_83_simp_307                          = flat_83_simp_286;                     /* read */
-    flat_83_simp_308                          = flat_83_simp_287;                     /* read */
-    s->repl_ix_0                              = flat_83_simp_306;                     /* output */
-    s->repl_ix_1                              = flat_83_simp_307;                     /* output */
-    s->repl_ix_2                              = flat_83_simp_308;                     /* output */
+    flat_83_simp_237                          = flat_83_simp_223;                     /* read */
+    flat_83_simp_238                          = flat_83_simp_224;                     /* read */
+    s->repl_ix_0                              = flat_83_simp_237;                     /* output */
+    s->repl_ix_1                              = flat_83_simp_238;                     /* output */
 }
 
 - C evaluation:
@@ -1670,78 +1354,64 @@ void iprogram_0(iprogram_0_t *s)
 > - Flattened:
 gen$date = DATE
 {
-  init acc$s$reify$2$conv$5$simp$4@{Bool} = False@{Bool};
-  init acc$s$reify$2$conv$5$simp$5@{Error} = ExceptFold1NoValue@{Error};
-  init acc$s$reify$2$conv$5$simp$6@{DateTime} = 1858-11-17@{DateTime};
-  load_resumable@{Bool} acc$s$reify$2$conv$5$simp$4;
-  load_resumable@{Error} acc$s$reify$2$conv$5$simp$5;
-  load_resumable@{DateTime} acc$s$reify$2$conv$5$simp$6;
-  for_facts (gen$fact$simp$25@{Bool},
-             gen$fact$simp$26@{Error},
-             gen$fact$simp$27@{Int},
-             gen$fact$simp$28@{DateTime}) in new {
+  init acc$s$reify$2$conv$5$simp$4@{Error} = ExceptFold1NoValue@{Error};
+  init acc$s$reify$2$conv$5$simp$5@{DateTime} = 1858-11-17@{DateTime};
+  load_resumable@{Error} acc$s$reify$2$conv$5$simp$4;
+  load_resumable@{DateTime} acc$s$reify$2$conv$5$simp$5;
+  for_facts (gen$fact$simp$18@{Error},
+             gen$fact$simp$19@{Int},
+             gen$fact$simp$20@{DateTime}) in new {
     let anf$5 = DateTime_daysDifference#
-                (1980-01-06@{DateTime}) gen$fact$simp$28;
+                (1980-01-06@{DateTime}) gen$fact$simp$20;
     let anf$6 = negate#@{Int} anf$5;
-    let simp$82 = DateTime_minusDays#
+    let simp$61 = DateTime_minusDays#
                   (2000-01-01@{DateTime}) anf$6;
-    read@{Bool} acc$s$reify$2$conv$5$simp$7 = acc$s$reify$2$conv$5$simp$4;
-    read@{Error} acc$s$reify$2$conv$5$simp$8 = acc$s$reify$2$conv$5$simp$5;
-    read@{DateTime} acc$s$reify$2$conv$5$simp$9 = acc$s$reify$2$conv$5$simp$6;
-    init flat$0$simp$10@{Bool} = False@{Bool};
-    init flat$0$simp$11@{Error} = ExceptTombstone@{Error};
-    init flat$0$simp$12@{DateTime} = 1858-11-17@{DateTime};
-    if (acc$s$reify$2$conv$5$simp$7) {
+    read@{Error} acc$s$reify$2$conv$5$simp$6 = acc$s$reify$2$conv$5$simp$4;
+    read@{DateTime} acc$s$reify$2$conv$5$simp$7 = acc$s$reify$2$conv$5$simp$5;
+    init flat$0$simp$8@{Error} = ExceptNotAnError@{Error};
+    init flat$0$simp$9@{DateTime} = 1858-11-17@{DateTime};
+    if (eq#@{Error}
+        acc$s$reify$2$conv$5$simp$6
+        (ExceptNotAnError@{Error})) {
       init flat$4@{DateTime} = 1858-11-17@{DateTime};
-      if (gt#@{DateTime} simp$82
-          acc$s$reify$2$conv$5$simp$9) {
-        write flat$4 = simp$82;
+      if (gt#@{DateTime} simp$61
+          acc$s$reify$2$conv$5$simp$7) {
+        write flat$4 = simp$61;
       } 
        else {
-        write flat$4 = acc$s$reify$2$conv$5$simp$9;
+        write flat$4 = acc$s$reify$2$conv$5$simp$7;
       } 
       
       read@{DateTime} flat$4 = flat$4;
-      write flat$0$simp$10 = True@{Bool};
-      write flat$0$simp$11 = ExceptTombstone@{Error};
-      write flat$0$simp$12 = flat$4;
+      write flat$0$simp$8 = ExceptNotAnError@{Error};
+      write flat$0$simp$9 = flat$4;
     } else {
-      init flat$3$simp$13@{Bool} = False@{Bool};
-      init flat$3$simp$14@{Error} = ExceptTombstone@{Error};
-      init flat$3$simp$15@{DateTime} = 1858-11-17@{DateTime};
+      init flat$3$simp$10@{Error} = ExceptNotAnError@{Error};
+      init flat$3$simp$11@{DateTime} = 1858-11-17@{DateTime};
       if (eq#@{Error} (ExceptFold1NoValue@{Error})
-          acc$s$reify$2$conv$5$simp$8) {
-        write flat$3$simp$13 = True@{Bool};
-        write flat$3$simp$14 = ExceptTombstone@{Error};
-        write flat$3$simp$15 = simp$82;
+          acc$s$reify$2$conv$5$simp$6) {
+        write flat$3$simp$10 = ExceptNotAnError@{Error};
+        write flat$3$simp$11 = simp$61;
       } else {
-        write flat$3$simp$13 = False@{Bool};
-        write flat$3$simp$14 = acc$s$reify$2$conv$5$simp$8;
-        write flat$3$simp$15 = 1858-11-17@{DateTime};
+        write flat$3$simp$10 = acc$s$reify$2$conv$5$simp$6;
+        write flat$3$simp$11 = 1858-11-17@{DateTime};
       }
-      read@{Bool} flat$3$simp$16 = flat$3$simp$13;
-      read@{Error} flat$3$simp$17 = flat$3$simp$14;
-      read@{DateTime} flat$3$simp$18 = flat$3$simp$15;
-      write flat$0$simp$10 = flat$3$simp$16;
-      write flat$0$simp$11 = flat$3$simp$17;
-      write flat$0$simp$12 = flat$3$simp$18;
+      read@{Error} flat$3$simp$12 = flat$3$simp$10;
+      read@{DateTime} flat$3$simp$13 = flat$3$simp$11;
+      write flat$0$simp$8 = flat$3$simp$12;
+      write flat$0$simp$9 = flat$3$simp$13;
     }
-    read@{Bool} flat$0$simp$19 = flat$0$simp$10;
-    read@{Error} flat$0$simp$20 = flat$0$simp$11;
-    read@{DateTime} flat$0$simp$21 = flat$0$simp$12;
-    write acc$s$reify$2$conv$5$simp$4 = flat$0$simp$19;
-    write acc$s$reify$2$conv$5$simp$5 = flat$0$simp$20;
-    write acc$s$reify$2$conv$5$simp$6 = flat$0$simp$21;
+    read@{Error} flat$0$simp$14 = flat$0$simp$8;
+    read@{DateTime} flat$0$simp$15 = flat$0$simp$9;
+    write acc$s$reify$2$conv$5$simp$4 = flat$0$simp$14;
+    write acc$s$reify$2$conv$5$simp$5 = flat$0$simp$15;
   }
-  save_resumable@{Bool} acc$s$reify$2$conv$5$simp$4;
-  save_resumable@{Error} acc$s$reify$2$conv$5$simp$5;
-  save_resumable@{DateTime} acc$s$reify$2$conv$5$simp$6;
-  read@{Bool} s$reify$2$conv$5$simp$22 = acc$s$reify$2$conv$5$simp$4;
-  read@{Error} s$reify$2$conv$5$simp$23 = acc$s$reify$2$conv$5$simp$5;
-  read@{DateTime} s$reify$2$conv$5$simp$24 = acc$s$reify$2$conv$5$simp$6;
-  output@{(Sum Error DateTime)} repl (s$reify$2$conv$5$simp$22@{Bool},
-               s$reify$2$conv$5$simp$23@{Error},
-               s$reify$2$conv$5$simp$24@{DateTime});
+  save_resumable@{Error} acc$s$reify$2$conv$5$simp$4;
+  save_resumable@{DateTime} acc$s$reify$2$conv$5$simp$5;
+  read@{Error} s$reify$2$conv$5$simp$16 = acc$s$reify$2$conv$5$simp$4;
+  read@{DateTime} s$reify$2$conv$5$simp$17 = acc$s$reify$2$conv$5$simp$5;
+  output@{(Sum Error DateTime)} repl (s$reify$2$conv$5$simp$16@{Error},
+               s$reify$2$conv$5$simp$17@{DateTime});
 }
 
 - C:
@@ -1753,57 +1423,45 @@ typedef struct {
     /* inputs */
     idate_t          gen_date;
     iint_t           new_count;
-    ibool_t         *new_gen_fact_simp_25;
-    ierror_t        *new_gen_fact_simp_26;
-    iint_t          *new_gen_fact_simp_27;
-    idate_t         *new_gen_fact_simp_28;
+    ierror_t        *new_gen_fact_simp_18;
+    iint_t          *new_gen_fact_simp_19;
+    idate_t         *new_gen_fact_simp_20;
 
     /* outputs */
-    ibool_t          repl_ix_0;
-    ierror_t         repl_ix_1;
-    idate_t          repl_ix_2;
+    ierror_t         repl_ix_0;
+    idate_t          repl_ix_1;
 
     /* resumables */
     ibool_t          has_acc_s_reify_2_conv_5_simp_4;
-    ibool_t          res_acc_s_reify_2_conv_5_simp_4;
+    ierror_t         res_acc_s_reify_2_conv_5_simp_4;
     ibool_t          has_acc_s_reify_2_conv_5_simp_5;
-    ierror_t         res_acc_s_reify_2_conv_5_simp_5;
-    ibool_t          has_acc_s_reify_2_conv_5_simp_6;
-    idate_t          res_acc_s_reify_2_conv_5_simp_6;
+    idate_t          res_acc_s_reify_2_conv_5_simp_5;
 } iprogram_0_t;
 
 #line 1 "compute function #0 - repl"
 void iprogram_0(iprogram_0_t *s)
 {
-    ibool_t          acc_s_reify_2_conv_5_simp_4;
-    ierror_t         acc_s_reify_2_conv_5_simp_5;
-    idate_t          acc_s_reify_2_conv_5_simp_6;
-    ibool_t          acc_s_reify_2_conv_5_simp_7;
-    ierror_t         acc_s_reify_2_conv_5_simp_8;
-    idate_t          acc_s_reify_2_conv_5_simp_9;
+    ierror_t         acc_s_reify_2_conv_5_simp_4;
+    idate_t          acc_s_reify_2_conv_5_simp_5;
+    ierror_t         acc_s_reify_2_conv_5_simp_6;
+    idate_t          acc_s_reify_2_conv_5_simp_7;
     idate_t          flat_4;
-    ibool_t          flat_0_simp_10;
-    ierror_t         flat_0_simp_11;
-    idate_t          flat_0_simp_12;
-    ibool_t          flat_0_simp_19;
-    ierror_t         flat_0_simp_20;
-    idate_t          flat_0_simp_21;
-    ibool_t          flat_3_simp_13;
-    ierror_t         flat_3_simp_14;
-    idate_t          flat_3_simp_15;
-    ibool_t          flat_3_simp_16;
-    ierror_t         flat_3_simp_17;
-    idate_t          flat_3_simp_18;
-    ibool_t          s_reify_2_conv_5_simp_22;
-    ierror_t         s_reify_2_conv_5_simp_23;
-    idate_t          s_reify_2_conv_5_simp_24;
+    ierror_t         flat_0_simp_14;
+    idate_t          flat_0_simp_15;
+    ierror_t         flat_0_simp_8;
+    idate_t          flat_0_simp_9;
+    ierror_t         flat_3_simp_10;
+    idate_t          flat_3_simp_11;
+    ierror_t         flat_3_simp_12;
+    idate_t          flat_3_simp_13;
+    ierror_t         s_reify_2_conv_5_simp_16;
+    idate_t          s_reify_2_conv_5_simp_17;
 
     imempool_t      *mempool                  = s->mempool;
     idate_t          gen_date                 = s->gen_date;
 
-    acc_s_reify_2_conv_5_simp_4               = ifalse;                               /* init */
-    acc_s_reify_2_conv_5_simp_5               = ierror_fold1_no_value;                /* init */
-    acc_s_reify_2_conv_5_simp_6               = 0x7420b1100000000;                    /* init */
+    acc_s_reify_2_conv_5_simp_4               = ierror_fold1_no_value;                /* init */
+    acc_s_reify_2_conv_5_simp_5               = 0x7420b1100000000;                    /* init */
     
     if (s->has_acc_s_reify_2_conv_5_simp_4) {
         acc_s_reify_2_conv_5_simp_4           = s->res_acc_s_reify_2_conv_5_simp_4;   /* load */
@@ -1813,73 +1471,57 @@ void iprogram_0(iprogram_0_t *s)
         acc_s_reify_2_conv_5_simp_5           = s->res_acc_s_reify_2_conv_5_simp_5;   /* load */
     }
     
-    if (s->has_acc_s_reify_2_conv_5_simp_6) {
-        acc_s_reify_2_conv_5_simp_6           = s->res_acc_s_reify_2_conv_5_simp_6;   /* load */
-    }
-    
     const iint_t     new_count                = s->new_count;
-    const ibool_t   *const new_gen_fact_simp_25 = s->new_gen_fact_simp_25;
-    const ierror_t  *const new_gen_fact_simp_26 = s->new_gen_fact_simp_26;
-    const iint_t    *const new_gen_fact_simp_27 = s->new_gen_fact_simp_27;
-    const idate_t   *const new_gen_fact_simp_28 = s->new_gen_fact_simp_28;
+    const ierror_t  *const new_gen_fact_simp_18 = s->new_gen_fact_simp_18;
+    const iint_t    *const new_gen_fact_simp_19 = s->new_gen_fact_simp_19;
+    const idate_t   *const new_gen_fact_simp_20 = s->new_gen_fact_simp_20;
     
     for (iint_t i = 0; i < new_count; i++) {
-        ibool_t          gen_fact_simp_25     = new_gen_fact_simp_25[i];
-        ierror_t         gen_fact_simp_26     = new_gen_fact_simp_26[i];
-        iint_t           gen_fact_simp_27     = new_gen_fact_simp_27[i];
-        idate_t          gen_fact_simp_28     = new_gen_fact_simp_28[i];
-        iint_t           anf_5                = idate_days_diff (0x7bc010600000000, gen_fact_simp_28); /* let */
+        ierror_t         gen_fact_simp_18     = new_gen_fact_simp_18[i];
+        iint_t           gen_fact_simp_19     = new_gen_fact_simp_19[i];
+        idate_t          gen_fact_simp_20     = new_gen_fact_simp_20[i];
+        iint_t           anf_5                = idate_days_diff (0x7bc010600000000, gen_fact_simp_20); /* let */
         iint_t           anf_6                = iint_neg (anf_5);                     /* let */
-        idate_t          simp_82              = idate_minus_days (0x7d0010100000000, anf_6); /* let */
-        acc_s_reify_2_conv_5_simp_7           = acc_s_reify_2_conv_5_simp_4;          /* read */
-        acc_s_reify_2_conv_5_simp_8           = acc_s_reify_2_conv_5_simp_5;          /* read */
-        acc_s_reify_2_conv_5_simp_9           = acc_s_reify_2_conv_5_simp_6;          /* read */
-        flat_0_simp_10                        = ifalse;                               /* init */
-        flat_0_simp_11                        = ierror_tombstone;                     /* init */
-        flat_0_simp_12                        = 0x7420b1100000000;                    /* init */
+        idate_t          simp_61              = idate_minus_days (0x7d0010100000000, anf_6); /* let */
+        acc_s_reify_2_conv_5_simp_6           = acc_s_reify_2_conv_5_simp_4;          /* read */
+        acc_s_reify_2_conv_5_simp_7           = acc_s_reify_2_conv_5_simp_5;          /* read */
+        flat_0_simp_8                         = ierror_not_an_error;                  /* init */
+        flat_0_simp_9                         = 0x7420b1100000000;                    /* init */
         
-        if (acc_s_reify_2_conv_5_simp_7) {
+        if (ierror_eq (acc_s_reify_2_conv_5_simp_6, ierror_not_an_error)) {
             flat_4                            = 0x7420b1100000000;                    /* init */
             
-            if (idate_gt (simp_82, acc_s_reify_2_conv_5_simp_9)) {
-                flat_4                        = simp_82;                              /* write */
+            if (idate_gt (simp_61, acc_s_reify_2_conv_5_simp_7)) {
+                flat_4                        = simp_61;                              /* write */
             } else {
-                flat_4                        = acc_s_reify_2_conv_5_simp_9;          /* write */
+                flat_4                        = acc_s_reify_2_conv_5_simp_7;          /* write */
             }
             
             flat_4                            = flat_4;                               /* read */
-            flat_0_simp_10                    = itrue;                                /* write */
-            flat_0_simp_11                    = ierror_tombstone;                     /* write */
-            flat_0_simp_12                    = flat_4;                               /* write */
+            flat_0_simp_8                     = ierror_not_an_error;                  /* write */
+            flat_0_simp_9                     = flat_4;                               /* write */
         } else {
-            flat_3_simp_13                    = ifalse;                               /* init */
-            flat_3_simp_14                    = ierror_tombstone;                     /* init */
-            flat_3_simp_15                    = 0x7420b1100000000;                    /* init */
+            flat_3_simp_10                    = ierror_not_an_error;                  /* init */
+            flat_3_simp_11                    = 0x7420b1100000000;                    /* init */
             
-            if (ierror_eq (ierror_fold1_no_value, acc_s_reify_2_conv_5_simp_8)) {
-                flat_3_simp_13                = itrue;                                /* write */
-                flat_3_simp_14                = ierror_tombstone;                     /* write */
-                flat_3_simp_15                = simp_82;                              /* write */
+            if (ierror_eq (ierror_fold1_no_value, acc_s_reify_2_conv_5_simp_6)) {
+                flat_3_simp_10                = ierror_not_an_error;                  /* write */
+                flat_3_simp_11                = simp_61;                              /* write */
             } else {
-                flat_3_simp_13                = ifalse;                               /* write */
-                flat_3_simp_14                = acc_s_reify_2_conv_5_simp_8;          /* write */
-                flat_3_simp_15                = 0x7420b1100000000;                    /* write */
+                flat_3_simp_10                = acc_s_reify_2_conv_5_simp_6;          /* write */
+                flat_3_simp_11                = 0x7420b1100000000;                    /* write */
             }
             
-            flat_3_simp_16                    = flat_3_simp_13;                       /* read */
-            flat_3_simp_17                    = flat_3_simp_14;                       /* read */
-            flat_3_simp_18                    = flat_3_simp_15;                       /* read */
-            flat_0_simp_10                    = flat_3_simp_16;                       /* write */
-            flat_0_simp_11                    = flat_3_simp_17;                       /* write */
-            flat_0_simp_12                    = flat_3_simp_18;                       /* write */
+            flat_3_simp_12                    = flat_3_simp_10;                       /* read */
+            flat_3_simp_13                    = flat_3_simp_11;                       /* read */
+            flat_0_simp_8                     = flat_3_simp_12;                       /* write */
+            flat_0_simp_9                     = flat_3_simp_13;                       /* write */
         }
         
-        flat_0_simp_19                        = flat_0_simp_10;                       /* read */
-        flat_0_simp_20                        = flat_0_simp_11;                       /* read */
-        flat_0_simp_21                        = flat_0_simp_12;                       /* read */
-        acc_s_reify_2_conv_5_simp_4           = flat_0_simp_19;                       /* write */
-        acc_s_reify_2_conv_5_simp_5           = flat_0_simp_20;                       /* write */
-        acc_s_reify_2_conv_5_simp_6           = flat_0_simp_21;                       /* write */
+        flat_0_simp_14                        = flat_0_simp_8;                        /* read */
+        flat_0_simp_15                        = flat_0_simp_9;                        /* read */
+        acc_s_reify_2_conv_5_simp_4           = flat_0_simp_14;                       /* write */
+        acc_s_reify_2_conv_5_simp_5           = flat_0_simp_15;                       /* write */
     }
     
     s->has_acc_s_reify_2_conv_5_simp_4        = itrue;                                /* save */
@@ -1888,15 +1530,10 @@ void iprogram_0(iprogram_0_t *s)
     s->has_acc_s_reify_2_conv_5_simp_5        = itrue;                                /* save */
     s->res_acc_s_reify_2_conv_5_simp_5        = acc_s_reify_2_conv_5_simp_5;          /* save */
     
-    s->has_acc_s_reify_2_conv_5_simp_6        = itrue;                                /* save */
-    s->res_acc_s_reify_2_conv_5_simp_6        = acc_s_reify_2_conv_5_simp_6;          /* save */
-    
-    s_reify_2_conv_5_simp_22                  = acc_s_reify_2_conv_5_simp_4;          /* read */
-    s_reify_2_conv_5_simp_23                  = acc_s_reify_2_conv_5_simp_5;          /* read */
-    s_reify_2_conv_5_simp_24                  = acc_s_reify_2_conv_5_simp_6;          /* read */
-    s->repl_ix_0                              = s_reify_2_conv_5_simp_22;             /* output */
-    s->repl_ix_1                              = s_reify_2_conv_5_simp_23;             /* output */
-    s->repl_ix_2                              = s_reify_2_conv_5_simp_24;             /* output */
+    s_reify_2_conv_5_simp_16                  = acc_s_reify_2_conv_5_simp_4;          /* read */
+    s_reify_2_conv_5_simp_17                  = acc_s_reify_2_conv_5_simp_5;          /* read */
+    s->repl_ix_0                              = s_reify_2_conv_5_simp_16;             /* output */
+    s->repl_ix_1                              = s_reify_2_conv_5_simp_17;             /* output */
 }
 
 - C evaluation:

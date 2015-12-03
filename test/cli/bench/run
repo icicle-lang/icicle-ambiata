@@ -1,0 +1,12 @@
+#!/bin/sh -eu
+
+out_c=`mktemp -t icicle-bench-XXXXXX`
+out_psv=`mktemp -t icicle-bench-XXXXXX`
+
+dist/build/icicle-bench/icicle-bench test/cli/bench/dictionary.toml test/cli/bench/in.psv $out_psv $out_c 2010-01-01
+
+diff test/cli/bench/expected.psv $out_psv
+
+rm $out_c
+rm $out_psv
+
