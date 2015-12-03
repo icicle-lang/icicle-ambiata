@@ -231,12 +231,20 @@ meltValue v t
 
      VLeft a
       | SumT ta tb <- t
+      , ErrorT     <- ta
+      -> meltValue a ta `apcat` meltValue (defaultOfType tb) tb
+
+      | SumT ta tb <- t
       -> pure [VBool False] `apcat` meltValue a ta `apcat` meltValue (defaultOfType tb) tb
 
       | otherwise
       -> Nothing
 
      VRight b
+      | SumT ta tb <- t
+      , ErrorT     <- ta
+      -> meltValue (defaultOfType ta) ta `apcat` meltValue b tb
+
       | SumT ta tb <- t
       -> pure [VBool True] `apcat` meltValue (defaultOfType ta) ta `apcat` meltValue b tb
 
@@ -334,6 +342,14 @@ unmeltValue' vs0 t
       -> do (a, vs1) <- unmeltValue' vs0 ta
             (b, vs2) <- unmeltValue' vs1 tb
             Just (VPair a b, vs2)
+
+     (_, SumT ErrorT tb)
+      -> do (i, vs1) <- unmeltValue' vs0 ErrorT
+            (b, vs2) <- unmeltValue' vs1 tb
+            case i of
+              VError ExceptNotAnError -> Just (VRight b, vs2)
+              VError _                -> Just (VLeft  i, vs2)
+              _                       -> Nothing
 
      (_, SumT ta tb)
       -> do (i, vs1) <- unmeltValue' vs0 BoolT

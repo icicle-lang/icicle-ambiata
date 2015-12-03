@@ -191,7 +191,13 @@ meltType t
     ErrorT    -> [t]
 
     PairT   a b -> meltType a <> meltType b
-    SumT    a b -> [BoolT] <> meltType a <> meltType b
+
+    SumT    a b
+     | ErrorT <- a
+     -> [ErrorT]               <> meltType b
+     | otherwise
+     -> [BoolT]  <> meltType a <> meltType b
+
     OptionT a   -> [BoolT] <> meltType a
 
     ArrayT a -> fmap ArrayT   (meltType a)

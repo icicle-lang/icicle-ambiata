@@ -424,6 +424,11 @@ newSeaVectors sz t =
            vb <- newSeaVectors sz tb
            pure (va <> vb)
 
+    SumT ErrorT tb
+     -> do va <- newSeaVectors sz ErrorT
+           vb <- newSeaVectors sz tb
+           pure (va <> vb)
+
     SumT ta tb
      -> do vi <- newSeaVectors sz BoolT
            va <- newSeaVectors sz ta
@@ -490,10 +495,22 @@ pokeInput' svs0@(sv:svs) t ix val =
            pure svs2
 
     (_, VLeft a, SumT ta tb)
+     | ErrorT <- ta
+     -> do svs1 <- pokeInput' svs0 ta    ix a
+           svs2 <- pokeInput' svs1 tb    ix (defaultOfType tb)
+           pure svs2
+
+    (_, VLeft a, SumT ta tb)
      -> do svs1 <- pokeInput' svs0 BoolT ix (VBool False)
            svs2 <- pokeInput' svs1 ta    ix a
            svs3 <- pokeInput' svs2 tb    ix (defaultOfType tb)
            pure svs3
+
+    (_, VRight b, SumT ta tb)
+     | ErrorT <- ta
+     -> do svs1 <- pokeInput' svs0 ta    ix (VError ExceptNotAnError)
+           svs2 <- pokeInput' svs1 tb    ix b
+           pure svs2
 
     (_, VRight b, SumT ta tb)
      -> do svs1 <- pokeInput' svs0 BoolT ix (VBool True)
@@ -587,6 +604,11 @@ peekOutput ptr ix0 t =
      -> do (ix1, va) <- peekOutput ptr ix0 ta
            (ix2, vb) <- peekOutput ptr ix1 tb
            pure (ix2, VPair va vb)
+
+    SumT ErrorT tb
+     -> do (ix1, vi) <- peekOutput ptr ix0 ErrorT
+           (ix2, vb) <- peekOutput ptr ix1 tb
+           pure (ix2, if vi == VError ExceptNotAnError then VRight vb else VLeft vi)
 
     SumT ta tb
      -> do (ix1, vi) <- peekOutput ptr ix0 BoolT
@@ -686,13 +708,15 @@ fromInt64 = fromIntegral
 
 wordOfError :: ExceptionInfo -> Word64
 wordOfError = \case
-  ExceptTombstone                  -> 0
-  ExceptFold1NoValue               -> 1
-  ExceptScalarVariableNotAvailable -> 2
+  ExceptNotAnError                 -> 0
+  ExceptTombstone                  -> 1
+  ExceptFold1NoValue               -> 2
+  ExceptScalarVariableNotAvailable -> 3
 
 errorOfWord :: Word64 -> ExceptionInfo
 errorOfWord = \case
-  0 -> ExceptTombstone
-  1 -> ExceptFold1NoValue
-  2 -> ExceptScalarVariableNotAvailable
+  0 -> ExceptNotAnError
+  1 -> ExceptTombstone
+  2 -> ExceptFold1NoValue
+  3 -> ExceptScalarVariableNotAvailable
   _ -> ExceptTombstone

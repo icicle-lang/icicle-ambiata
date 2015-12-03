@@ -148,10 +148,25 @@ constructor a_fresh statements
    = Just $ primRepack env (OptionT tx) [BoolT] tx n
 
    | (PrimProject (PrimProjectSumIsRight ta tb), [n]) <- prima
+   , ErrorT <- ta
+   = let err   = primRepack env (SumT ta tb) [] BoolT n
+         valOk = xValue ErrorT $ VError ExceptNotAnError
+         eq    = xPrim $ PrimMinimal $ Min.PrimRelation Min.PrimRelationEq ErrorT
+     in  Just (eq `xApp` err `xApp` valOk)
+
+   | (PrimProject (PrimProjectSumIsRight ta tb), [n]) <- prima
    = Just $ primRepack env (SumT ta tb) [] BoolT n
 
    | (PrimUnsafe (PrimUnsafeSumGetLeft ta tb), [n]) <- prima
+   , ErrorT <- ta
+   = Just $ primRepack env (SumT ta tb) [] ta n
+
+   | (PrimUnsafe (PrimUnsafeSumGetLeft ta tb), [n]) <- prima
    = Just $ primRepack env (SumT ta tb) [BoolT] ta n
+
+   | (PrimUnsafe (PrimUnsafeSumGetRight ta tb), [n]) <- prima
+   , ErrorT <- ta
+   = Just $ primRepack env (SumT ta tb) [ta] tb n
 
    | (PrimUnsafe (PrimUnsafeSumGetRight ta tb), [n]) <- prima
    = Just $ primRepack env (SumT ta tb) [BoolT, ta] tb n
@@ -176,7 +191,15 @@ constructor a_fresh statements
    = Just $ primPack env (OptionT tx) [xTrue, n]
 
    | (PrimMinimal (Min.PrimConst (Min.PrimConstLeft ta tb)), [n]) <- prima
+   , ErrorT <- ta
+   = Just $ primPack env (SumT ta tb) [n, xDefault tb]
+
+   | (PrimMinimal (Min.PrimConst (Min.PrimConstLeft ta tb)), [n]) <- prima
    = Just $ primPack env (SumT ta tb) [xFalse, n, xDefault tb]
+
+   | (PrimMinimal (Min.PrimConst (Min.PrimConstRight ta tb)), [n]) <- prima
+   , ErrorT <- ta
+   = Just $ primPack env (SumT ta tb) [xDefault ta, n]
 
    | (PrimMinimal (Min.PrimConst (Min.PrimConstRight ta tb)), [n]) <- prima
    = Just $ primPack env (SumT ta tb) [xTrue, xDefault ta, n]

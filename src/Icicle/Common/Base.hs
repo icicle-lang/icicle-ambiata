@@ -63,7 +63,9 @@ data BaseValue
 -- because they aren't really errors,
 -- but they aren't really good values either..
 data ExceptionInfo
- = ExceptTombstone
+ -- | This particular exception is for packing (SumT ErrorT a) together into (ErrorT, a)
+ = ExceptNotAnError
+ | ExceptTombstone
  | ExceptFold1NoValue
  | ExceptScalarVariableNotAvailable
  deriving (Show, Ord, Eq)
