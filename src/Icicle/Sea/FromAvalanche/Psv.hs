@@ -381,11 +381,11 @@ seaOfReadFact state tombstones = do
     , "    char *p  = (char *) value_ptr;"
     , "    char *pe = (char *) value_ptr + value_size;"
     , ""
-    , "    ibool_t " <> pretty (inputSumBool input) <> ";"
+    , "    ierror_t " <> pretty (inputSumError input) <> ";"
     , indent 4 . vsep . fmap seaOfDefineInput $ inputVars input
     , ""
     , "    " <> align (seaOfReadTombstone input (Set.toList tombstones)) <> "{"
-    , "        " <> pretty (inputSumBool input) <> " = itrue;"
+    , "        " <> pretty (inputSumError input) <> " = ierror_tombstone;"
     , ""
     , indent 8 readInput
     , "    }"
@@ -399,8 +399,7 @@ seaOfReadFact state tombstones = do
     , ""
     , "        iint_t new_count = program->new_count;"
     , ""
-    , "        program->" <> pretty (inputSumBool  input) <> "[new_count] = " <> pretty (inputSumBool input) <> ";"
-    , "        program->" <> pretty (inputSumError input) <> "[new_count] = ierror_tombstone;"
+    , "        program->" <> pretty (inputSumError  input) <> "[new_count] = " <> pretty (inputSumError input) <> ";"
     , indent 8 . vsep . fmap seaOfAssignInput $ inputVars input
     , "        program->" <> pretty (inputDate     input) <> "[new_count] = date;"
     , ""
@@ -438,14 +437,13 @@ seaOfReadTombstone :: CheckedInput -> [Text] -> Doc
 seaOfReadTombstone input = \case
   []     -> Pretty.empty
   (t:ts) -> "if (" <> seaOfStringEq t "value_ptr" (Just "value_size") <> ") {" <> line
-         <> "    " <> pretty (inputSumBool input) <> " = ifalse;" <> line
+         <> "    " <> pretty (inputSumError input) <> " = ierror_not_an_error;" <> line
          <> "} else " <> seaOfReadTombstone input ts
 
 ------------------------------------------------------------------------
 
 data CheckedInput = CheckedInput {
-    inputSumBool  :: Text
-  , inputSumError :: Text
+    inputSumError :: Text
   , inputDate     :: Text
   , inputType     :: ValType
   , inputVars     :: [(Text, ValType)]
@@ -455,13 +453,11 @@ checkInputType :: SeaProgramState -> Either SeaError CheckedInput
 checkInputType state
  = case stateInputType state of
      PairT (SumT ErrorT t) DateTimeT
-      | (sumBool,  BoolT)  : xs0 <- stateInputVars state
-      , (sumError, ErrorT) : xs1 <- xs0
-      , Just vars                <- init xs1
-      , Just (date, DateTimeT)   <- last xs1
+      | (sumError, ErrorT) : xs0 <- stateInputVars state
+      , Just vars                <- init xs0
+      , Just (date, DateTimeT)   <- last xs0
       -> Right CheckedInput {
-             inputSumBool  = newPrefix <> sumBool
-           , inputSumError = newPrefix <> sumError
+             inputSumError = newPrefix <> sumError
            , inputDate     = newPrefix <> date
            , inputType     = t
            , inputVars     = fmap (first (newPrefix <>)) vars
@@ -824,11 +820,11 @@ seaOfWriteOutput ps oname@(OutputName name) otype0 ts0 ixStart
          -- Top-level Sum is a special case, to avoid allocating and printing if
          -- the whole computation is an error (e.g. tombstone)
          SumT ErrorT otype1
-          | (BoolT : ErrorT : ts1) <- ts0
-          , (nb    : _      : _)   <- members
+          | (ErrorT : ts1) <- ts0
+          , (ne     : _)   <- members
           -> do (body, _, _) <- seaOfOutput False ps oname otype1 ts1 (ixStart+2) (const id)
                 let body'     = go body
-                pure $ cond nb body'
+                pure $ cond (ne <> " == ierror_not_an_error") body'
          _
           -> do (body, _, _) <- seaOfOutput False ps oname otype0 ts0 ixStart (const id)
                 return $ go body
@@ -906,10 +902,10 @@ seaOfOutput q ps oname@(OutputName name) otype0 ts0 ixStart transform
              return (pair ba bb, ixb, ts)
 
       SumT ErrorT otype1
-       | (BoolT : ErrorT : ts1) <- ts0
-       , (nb    : _      : _)   <- members
+       | (ErrorT : ts1) <- ts0
+       , (ne     : _)   <- members
        -> do (body, ix, ts) <- seaOfOutput False ps oname otype1 ts1 (ixStart+2) transform
-             pure (cond nb body, ix, ts)
+             pure (cond (ne <> " == ierror_not_an_error") body, ix, ts)
       _
        | (t  : ts) <- ts0
        , (mx : _)  <- members
