@@ -1,0 +1,150 @@
+welcome to iREPL
+ok, loaded 20 functions from data/libs/prelude.icicle
+ok, loaded test/cli/repl/data.psv, 13 rows
+> -- Enable C evaluation
+> ok, c evaluation now on
+                   _________-----_____
+        _____------           __      ----_
+ ___----             ___------              \
+    ----________        ----                 \
+                -----__    |             _____)
+                     __-                /     \
+         _______-----    ___--          \    /)\
+   ------_______      ---____            \__/  /
+                -----__    \ --    _          /\
+                       --__--__     \_____/   \_/\
+                               ----|   /          |
+                                   |  |___________|
+                                   |  | ((_(_)| )_)
+                                   |  \_((_(_)|/(_)
+                                   \             (
+                                    \_____________)
+> ok, c is now on
+> > - C:
+#line 1 "state definition #0 - repl"
+typedef struct {
+    /* runtime */
+    imempool_t      *mempool;
+
+    /* inputs */
+    idate_t          gen_date;
+    iint_t           new_count;
+    ibool_t         *new_gen_fact_simp_23;
+    ierror_t        *new_gen_fact_simp_24;
+    iint_t          *new_gen_fact_simp_25;
+    idate_t         *new_gen_fact_simp_26;
+
+    /* outputs */
+    ibool_t          repl_ix_0;
+    iint_t           repl_ix_1;
+    idouble_t        repl_ix_2;
+
+    /* resumables */
+    ibool_t          has_acc_perhaps_conv_3_simp_10;
+    idouble_t        res_acc_perhaps_conv_3_simp_10;
+    ibool_t          has_acc_perhaps_conv_3_simp_8;
+    ibool_t          res_acc_perhaps_conv_3_simp_8;
+    ibool_t          has_acc_perhaps_conv_3_simp_9;
+    iint_t           res_acc_perhaps_conv_3_simp_9;
+} iprogram_0_t;
+
+#line 1 "compute function #0 - repl"
+void iprogram_0(iprogram_0_t *s)
+{
+    idouble_t        acc_perhaps_conv_3_simp_10;
+    ibool_t          acc_perhaps_conv_3_simp_11;
+    iint_t           acc_perhaps_conv_3_simp_12;
+    idouble_t        acc_perhaps_conv_3_simp_13;
+    ibool_t          acc_perhaps_conv_3_simp_8;
+    iint_t           acc_perhaps_conv_3_simp_9;
+    ibool_t          flat_0_simp_14;
+    iint_t           flat_0_simp_15;
+    idouble_t        flat_0_simp_16;
+    ibool_t          flat_0_simp_17;
+    iint_t           flat_0_simp_18;
+    idouble_t        flat_0_simp_19;
+    ibool_t          perhaps_conv_3_simp_20;
+    iint_t           perhaps_conv_3_simp_21;
+    idouble_t        perhaps_conv_3_simp_22;
+
+    imempool_t      *mempool                  = s->mempool;
+    idate_t          gen_date                 = s->gen_date;
+
+    acc_perhaps_conv_3_simp_8                 = ifalse;                               /* init */
+    acc_perhaps_conv_3_simp_9                 = 0;                                    /* init */
+    acc_perhaps_conv_3_simp_10                = 0.0;                                  /* init */
+    
+    if (s->has_acc_perhaps_conv_3_simp_8) {
+        acc_perhaps_conv_3_simp_8             = s->res_acc_perhaps_conv_3_simp_8;     /* load */
+    }
+    
+    if (s->has_acc_perhaps_conv_3_simp_9) {
+        acc_perhaps_conv_3_simp_9             = s->res_acc_perhaps_conv_3_simp_9;     /* load */
+    }
+    
+    if (s->has_acc_perhaps_conv_3_simp_10) {
+        acc_perhaps_conv_3_simp_10            = s->res_acc_perhaps_conv_3_simp_10;    /* load */
+    }
+    
+    const iint_t     new_count                = s->new_count;
+    const ibool_t   *const new_gen_fact_simp_23 = s->new_gen_fact_simp_23;
+    const ierror_t  *const new_gen_fact_simp_24 = s->new_gen_fact_simp_24;
+    const iint_t    *const new_gen_fact_simp_25 = s->new_gen_fact_simp_25;
+    const idate_t   *const new_gen_fact_simp_26 = s->new_gen_fact_simp_26;
+    
+    for (iint_t i = 0; i < new_count; i++) {
+        ibool_t          gen_fact_simp_23     = new_gen_fact_simp_23[i];
+        ierror_t         gen_fact_simp_24     = new_gen_fact_simp_24[i];
+        iint_t           gen_fact_simp_25     = new_gen_fact_simp_25[i];
+        idate_t          gen_fact_simp_26     = new_gen_fact_simp_26[i];
+        acc_perhaps_conv_3_simp_11            = acc_perhaps_conv_3_simp_8;            /* read */
+        acc_perhaps_conv_3_simp_12            = acc_perhaps_conv_3_simp_9;            /* read */
+        acc_perhaps_conv_3_simp_13            = acc_perhaps_conv_3_simp_10;           /* read */
+        flat_0_simp_14                        = ifalse;                               /* init */
+        flat_0_simp_15                        = 0;                                    /* init */
+        flat_0_simp_16                        = 0.0;                                  /* init */
+        
+        if (acc_perhaps_conv_3_simp_11) {
+            iint_t           simp_32          = idouble_trunc (acc_perhaps_conv_3_simp_13); /* let */
+            flat_0_simp_14                    = ifalse;                               /* write */
+            flat_0_simp_15                    = iint_add (simp_32, 1);                /* write */
+            flat_0_simp_16                    = 0.0;                                  /* write */
+        } else {
+            idouble_t        simp_46          = iint_extend (acc_perhaps_conv_3_simp_12); /* let */
+            flat_0_simp_14                    = itrue;                                /* write */
+            flat_0_simp_15                    = 0;                                    /* write */
+            flat_0_simp_16                    = idouble_add (simp_46, 1.0);           /* write */
+        }
+        
+        flat_0_simp_17                        = flat_0_simp_14;                       /* read */
+        flat_0_simp_18                        = flat_0_simp_15;                       /* read */
+        flat_0_simp_19                        = flat_0_simp_16;                       /* read */
+        acc_perhaps_conv_3_simp_8             = flat_0_simp_17;                       /* write */
+        acc_perhaps_conv_3_simp_9             = flat_0_simp_18;                       /* write */
+        acc_perhaps_conv_3_simp_10            = flat_0_simp_19;                       /* write */
+    }
+    
+    s->has_acc_perhaps_conv_3_simp_8          = itrue;                                /* save */
+    s->res_acc_perhaps_conv_3_simp_8          = acc_perhaps_conv_3_simp_8;            /* save */
+    
+    s->has_acc_perhaps_conv_3_simp_9          = itrue;                                /* save */
+    s->res_acc_perhaps_conv_3_simp_9          = acc_perhaps_conv_3_simp_9;            /* save */
+    
+    s->has_acc_perhaps_conv_3_simp_10         = itrue;                                /* save */
+    s->res_acc_perhaps_conv_3_simp_10         = acc_perhaps_conv_3_simp_10;           /* save */
+    
+    perhaps_conv_3_simp_20                    = acc_perhaps_conv_3_simp_8;            /* read */
+    perhaps_conv_3_simp_21                    = acc_perhaps_conv_3_simp_9;            /* read */
+    perhaps_conv_3_simp_22                    = acc_perhaps_conv_3_simp_10;           /* read */
+    s->repl_ix_0                              = perhaps_conv_3_simp_20;               /* output */
+    s->repl_ix_1                              = perhaps_conv_3_simp_21;               /* output */
+    s->repl_ix_2                              = perhaps_conv_3_simp_22;               /* output */
+}
+
+- C evaluation:
+[(homer,5.0),(marge,3.0)]
+
+- Core evaluation:
+[homer, 5.0,marge, 3.0]
+
+> > 
