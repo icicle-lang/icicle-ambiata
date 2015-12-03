@@ -1,5 +1,7 @@
 #define _GNU_SOURCE 1
 
+#include <assert.h>
+#include <ctype.h>
 #include <fcntl.h>
 #include <math.h>
 #include <stdbool.h>
@@ -11,6 +13,11 @@
 #include <sys/param.h>
 #include <sys/stat.h>
 #include <unistd.h>
+
+#pragma GCC diagnostic ignored "-Wunused-function"
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wunused-variable"
+#pragma GCC diagnostic ignored "-Wundefined-internal"
 
 typedef uint64_t ierror_t;
 typedef uint64_t iunit_t;
