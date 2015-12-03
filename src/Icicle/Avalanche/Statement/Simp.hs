@@ -19,6 +19,7 @@ import              Icicle.Avalanche.Statement.Simp.Dead
 import              Icicle.Common.Base
 import              Icicle.Common.Exp
 import              Icicle.Common.Exp.Simp.Beta
+import              Icicle.Common.FixT
 import              Icicle.Common.Fresh
 
 import              P
@@ -27,6 +28,8 @@ import              Data.Functor.Identity
 import qualified    Data.Set as Set
 import qualified    Data.Map as Map
 import qualified    Data.List as List
+
+import              Control.Monad.Trans.Class
 
 
 
@@ -78,7 +81,7 @@ pullLets statements
 
 
 -- | Let-forwarding on statements
-forwardStmts :: Ord n => a -> Statement a n p -> Fresh n (Statement a n p)
+forwardStmts :: Ord n => a -> Statement a n p -> FixT (Fresh n) (Statement a n p)
 forwardStmts a_fresh statements
  = transformUDStmt trans () statements
  where
@@ -86,8 +89,8 @@ forwardStmts a_fresh statements
    = case s of
       Let n x ss
        | isSimpleValue x
-       -> do    s' <- substXinS a_fresh n x ss
-                return ((), s')
+       -> do    s' <- lift $ substXinS a_fresh n x ss
+                progress ((), s')
 
       _ -> return ((), s)
 
@@ -204,7 +207,7 @@ substXinS a_fresh name payload statements
 --  * Remove some other useless code:
 --      statements that do not update accumulators or return a value are silly.
 --
-thresher :: (Ord n, Eq p) => a -> Statement a n p -> Fresh n (Statement a n p)
+thresher :: (Ord n, Eq p) => a -> Statement a n p -> FixT (Fresh n) (Statement a n p)
 thresher a_fresh statements
  = transformUDStmt trans emptyExpEnv statements
  where
@@ -213,7 +216,10 @@ thresher a_fresh statements
    -- updates accumulators, returns a value, etc.
    -- If it doesn't, we might as well return a nop
    | not $ hasEffect s
-   = return (env, mempty)
+   = case s of
+      -- Don't count it as progress if it is already a nop
+      Block [] -> return   (env, mempty)
+      _        -> progress (env, mempty)
 
    | otherwise
    = case s of
@@ -224,23 +230,23 @@ thresher a_fresh statements
       -- Duplicate let: change to refer to existing one
       -- I tried to use simple equality for simpFlattened since expressions cannot contain lambdas, but it was slower. WEIRD.
        | ((n',_):_) <- filter (\(_,x') -> x `alphaEquality` x') $ Map.toList env
-       -> return (env, Let n (XVar a_fresh n') ss)
+       -> progress (env, Let n (XVar a_fresh n') ss)
 
       -- Read that's never used
       Read n _ _ ss
        | not $ Set.member n $ stmtFreeX ss
-       -> return (env, ss)
+       -> progress (env, ss)
 
       InitAccumulator (Accumulator n _ x) ss
        | usage <- accumulatorUsed n ss
        , not (accRead usage) || not (accWritten usage)
-       -> do    n' <- fresh
+       -> do    n' <- lift $ fresh
                 let ss' = Let n' x (killAccumulator n (XVar a_fresh n') ss)
-                return (env, ss')
+                progress (env, ss')
 
       If (XValue _ _ (VBool b)) t f
        -> let s' = if b then t else f
-          in  return (updateExpEnv s' env, s')
+          in  progress (updateExpEnv s' env, s')
 
       -- Anything else, we just update environment and recurse
       _

@@ -86,6 +86,7 @@ library
                        Icicle.Common.Base
                        Icicle.Common.Data
                        Icicle.Common.Fresh
+                       Icicle.Common.FixT
                        Icicle.Common.Exp
                        Icicle.Common.Exp.Alpha
                        Icicle.Common.Exp.Check

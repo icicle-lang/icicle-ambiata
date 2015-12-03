@@ -9,6 +9,7 @@ module Icicle.Avalanche.Simp (
 
 import              Icicle.Common.Exp
 import              Icicle.Common.Fresh
+import              Icicle.Common.FixT
 
 import qualified    Icicle.Core.Exp.Prim as CorePrim
 import qualified    Icicle.Core.Eval.Exp as CorePrim
@@ -23,6 +24,8 @@ import              Icicle.Avalanche.Program
 
 import              P
 
+import              Control.Monad.Trans.Class
+
 
 simpAvalanche
   :: (Show n, Ord n)
@@ -31,11 +34,11 @@ simpAvalanche
   -> Fresh n (Program a n CorePrim.Prim)
 simpAvalanche a_fresh p
  = do p' <- transformX return (simp a_fresh) p
-      s' <- (forwardStmts a_fresh $ pullLets $ statements p')
-         >>= thresher     a_fresh
-         >>= forwardStmts a_fresh
+      s' <- (once $ forwardStmts a_fresh $ pullLets $ statements p')
+         >>= once . thresher     a_fresh
+         >>= once . forwardStmts a_fresh
          >>= nestBlocks   a_fresh
-         >>= thresher     a_fresh
+         >>= once . thresher     a_fresh
          >>= transformX return (return . simpEvalX CorePrim.evalPrim CorePrim.typeOfPrim)
 
       return $ p { statements = s' }
@@ -48,32 +51,31 @@ simpFlattened
 simpFlattened a_fresh p
  = do s' <- transformX return (simp a_fresh) (statements p)
          >>= melt a_fresh
-         >>= crunchy
+         >>= fixpoint crunch
+         -- Finish off with an a-normalisation
+         >>= anormal
 
       return $ p { statements = s' }
  where
-  crunchy s
-   = do s' <- crunch s
-        if s == s'
-        then return s
-        else crunchy s'
-
   crunch ss
-   -- Rewrite rules like (fst (a,b) => a
-   =   constructor  a_fresh ss
+   -- Start by a-normalising, so it's ready for constructor
+   =   lift (anormal ss)
+   -- Remove some dead code
    >>= return .  dead
-   -- Remove unused lets, and remove duplicate bindings
-   >>= thresher     a_fresh
+   -- Rewrite rules like (fst (a,b) => a
+   >>= constructor  a_fresh
    -- Perform let-forwarding on statements, so that constant lets become free
    >>= forwardStmts a_fresh
    -- Try to evaluate any exposed primitives
    >>= transformX return (return . simpEvalX Flat.evalPrim Flat.typeOfPrim)
    -- Pull Let statements out of blocks. This just allows thresher to remove more duplicates
-   >>= nestBlocks   a_fresh
+   >>= lift . nestBlocks   a_fresh
    -- Thresh again. Surprisingly, having both threshers makes simpFlattened twice as fast!
    >>= thresher     a_fresh
+
+  anormal ss
    -- Expression simp: first perform beta reduction, then a-normalise.
-   >>= transformX return (simp a_fresh)
+   =   transformX return (simp a_fresh) ss
    -- finish a-normalisation by taking lets from inside expressions to statements.
    >>= return . pullLets
 

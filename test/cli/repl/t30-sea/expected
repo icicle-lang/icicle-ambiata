@@ -130,13 +130,13 @@ gen$date = DATE
         init flat$14$simp$112@{Error} = ExceptTombstone@{Error};
         init flat$14$simp$113@{Double} = 0.0@{Double};
         if (flat$13$simp$108) {
-          write flat$14$simp$111 = True@{Bool};
-          write flat$14$simp$112 = ExceptTombstone@{Error};
-          let simp$453 = add#@{Double}
+          let simp$391 = add#@{Double}
                          acc$s$reify$6$conv$13$simp$96
                          (1.0@{Double});
+          write flat$14$simp$111 = True@{Bool};
+          write flat$14$simp$112 = ExceptTombstone@{Error};
           write flat$14$simp$113 = div#
-                                   flat$13$simp$110 simp$453;
+                                   flat$13$simp$110 simp$391;
         } else {
           write flat$14$simp$111 = False@{Bool};
           write flat$14$simp$112 = flat$13$simp$109;
@@ -593,11 +593,11 @@ gen$date = DATE
     if (a$conv$70$simp$274) {
       let conv$125 = sub#@{Double}
                      a$conv$70$simp$276 (1.0@{Double});
-      let simp$1098 = div#
+      let simp$1288 = div#
                       a$conv$70$simp$278 conv$125;
       write flat$86$simp$288 = True@{Bool};
       write flat$86$simp$289 = ExceptTombstone@{Error};
-      write flat$86$simp$290 = simp$1098;
+      write flat$86$simp$290 = simp$1288;
     } else {
       write flat$86$simp$288 = False@{Bool};
       write flat$86$simp$289 = a$conv$70$simp$275;
@@ -1089,10 +1089,10 @@ void iprogram_0(iprogram_0_t *s)
                 flat_14_simp_113              = 0.0;                                  /* init */
                 
                 if (flat_13_simp_108) {
+                    idouble_t        simp_391 = idouble_add (acc_s_reify_6_conv_13_simp_96, 1.0); /* let */
                     flat_14_simp_111          = itrue;                                /* write */
                     flat_14_simp_112          = ierror_tombstone;                     /* write */
-                    idouble_t        simp_453 = idouble_add (acc_s_reify_6_conv_13_simp_96, 1.0); /* let */
-                    flat_14_simp_113          = idouble_div (flat_13_simp_110, simp_453); /* write */
+                    flat_14_simp_113          = idouble_div (flat_13_simp_110, simp_391); /* write */
                 } else {
                     flat_14_simp_111          = ifalse;                               /* write */
                     flat_14_simp_112          = flat_13_simp_109;                     /* write */
@@ -1596,10 +1596,10 @@ void iprogram_0(iprogram_0_t *s)
         
         if (a_conv_70_simp_274) {
             idouble_t        conv_125         = idouble_sub (a_conv_70_simp_276, 1.0); /* let */
-            idouble_t        simp_1098        = idouble_div (a_conv_70_simp_278, conv_125); /* let */
+            idouble_t        simp_1288        = idouble_div (a_conv_70_simp_278, conv_125); /* let */
             flat_86_simp_288                  = itrue;                                /* write */
             flat_86_simp_289                  = ierror_tombstone;                     /* write */
-            flat_86_simp_290                  = simp_1098;                            /* write */
+            flat_86_simp_290                  = simp_1288;                            /* write */
         } else {
             flat_86_simp_288                  = ifalse;                               /* write */
             flat_86_simp_289                  = a_conv_70_simp_275;                   /* write */
@@ -1683,7 +1683,7 @@ gen$date = DATE
     let anf$5 = DateTime_daysDifference#
                 (1980-01-06@{DateTime}) gen$fact$simp$28;
     let anf$6 = negate#@{Int} anf$5;
-    let simp$34 = DateTime_minusDays#
+    let simp$82 = DateTime_minusDays#
                   (2000-01-01@{DateTime}) anf$6;
     read@{Bool} acc$s$reify$2$conv$5$simp$7 = acc$s$reify$2$conv$5$simp$4;
     read@{Error} acc$s$reify$2$conv$5$simp$8 = acc$s$reify$2$conv$5$simp$5;
@@ -1693,9 +1693,9 @@ gen$date = DATE
     init flat$0$simp$12@{DateTime} = 1858-11-17@{DateTime};
     if (acc$s$reify$2$conv$5$simp$7) {
       init flat$4@{DateTime} = 1858-11-17@{DateTime};
-      if (gt#@{DateTime} simp$34
+      if (gt#@{DateTime} simp$82
           acc$s$reify$2$conv$5$simp$9) {
-        write flat$4 = simp$34;
+        write flat$4 = simp$82;
       } 
        else {
         write flat$4 = acc$s$reify$2$conv$5$simp$9;
@@ -1713,7 +1713,7 @@ gen$date = DATE
           acc$s$reify$2$conv$5$simp$8) {
         write flat$3$simp$13 = True@{Bool};
         write flat$3$simp$14 = ExceptTombstone@{Error};
-        write flat$3$simp$15 = simp$34;
+        write flat$3$simp$15 = simp$82;
       } else {
         write flat$3$simp$13 = False@{Bool};
         write flat$3$simp$14 = acc$s$reify$2$conv$5$simp$8;
@@ -1830,7 +1830,7 @@ void iprogram_0(iprogram_0_t *s)
         idate_t          gen_fact_simp_28     = new_gen_fact_simp_28[i];
         iint_t           anf_5                = idate_days_diff (0x7bc010600000000, gen_fact_simp_28); /* let */
         iint_t           anf_6                = iint_neg (anf_5);                     /* let */
-        idate_t          simp_34              = idate_minus_days (0x7d0010100000000, anf_6); /* let */
+        idate_t          simp_82              = idate_minus_days (0x7d0010100000000, anf_6); /* let */
         acc_s_reify_2_conv_5_simp_7           = acc_s_reify_2_conv_5_simp_4;          /* read */
         acc_s_reify_2_conv_5_simp_8           = acc_s_reify_2_conv_5_simp_5;          /* read */
         acc_s_reify_2_conv_5_simp_9           = acc_s_reify_2_conv_5_simp_6;          /* read */
@@ -1841,8 +1841,8 @@ void iprogram_0(iprogram_0_t *s)
         if (acc_s_reify_2_conv_5_simp_7) {
             flat_4                            = 0x7420b1100000000;                    /* init */
             
-            if (idate_gt (simp_34, acc_s_reify_2_conv_5_simp_9)) {
-                flat_4                        = simp_34;                              /* write */
+            if (idate_gt (simp_82, acc_s_reify_2_conv_5_simp_9)) {
+                flat_4                        = simp_82;                              /* write */
             } else {
                 flat_4                        = acc_s_reify_2_conv_5_simp_9;          /* write */
             }
@@ -1859,7 +1859,7 @@ void iprogram_0(iprogram_0_t *s)
             if (ierror_eq (ierror_fold1_no_value, acc_s_reify_2_conv_5_simp_8)) {
                 flat_3_simp_13                = itrue;                                /* write */
                 flat_3_simp_14                = ierror_tombstone;                     /* write */
-                flat_3_simp_15                = simp_34;                              /* write */
+                flat_3_simp_15                = simp_82;                              /* write */
             } else {
                 flat_3_simp_13                = ifalse;                               /* write */
                 flat_3_simp_14                = acc_s_reify_2_conv_5_simp_8;          /* write */
