@@ -94,9 +94,10 @@ seaOfPrimArithBinary p
 seaOfPrimDouble :: M.PrimDouble -> Doc
 seaOfPrimDouble p
  = case p of
-     M.PrimDoubleDiv -> "div"
-     M.PrimDoubleLog -> "log"
-     M.PrimDoubleExp -> "exp"
+     M.PrimDoubleDiv  -> "div"
+     M.PrimDoubleLog  -> "log"
+     M.PrimDoubleExp  -> "exp"
+     M.PrimDoubleSqrt -> "sqrt"
 
 seaOfPrimDateTime :: M.PrimDateTime -> Doc
 seaOfPrimDateTime p

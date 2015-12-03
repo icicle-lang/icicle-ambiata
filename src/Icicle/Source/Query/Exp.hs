@@ -87,6 +87,7 @@ data Lit
 data Fun
  = Log
  | Exp
+ | Sqrt
  | ToDouble
  | ToInt
  | DaysBetween
@@ -218,6 +219,7 @@ instance Pretty Lit where
 instance Pretty Fun where
  pretty Log         = "log"
  pretty Exp         = "exp"
+ pretty Sqrt        = "sqrt"
  pretty ToDouble    = "double"
  pretty ToInt       = "int"
  pretty DaysBetween = "days between"

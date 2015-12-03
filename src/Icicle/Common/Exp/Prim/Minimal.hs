@@ -58,6 +58,7 @@ data PrimDouble
  = PrimDoubleDiv
  | PrimDoubleLog
  | PrimDoubleExp
+ | PrimDoubleSqrt
  deriving (Eq, Ord, Show)
 
 -- | Casts between types
@@ -126,6 +127,8 @@ typeOfPrim p
     PrimDouble PrimDoubleLog
      -> FunT [funOfVal DoubleT] DoubleT
     PrimDouble PrimDoubleExp
+     -> FunT [funOfVal DoubleT] DoubleT
+    PrimDouble PrimDoubleSqrt
      -> FunT [funOfVal DoubleT] DoubleT
 
     PrimCast PrimCastDoubleOfInt
@@ -198,9 +201,10 @@ instance Pretty Prim where
 
  pretty (PrimDouble p)
   = case p of
-     PrimDoubleDiv -> "div#"
-     PrimDoubleLog -> "log#"
-     PrimDoubleExp -> "exp#"
+     PrimDoubleDiv  -> "div#"
+     PrimDoubleLog  -> "log#"
+     PrimDoubleExp  -> "exp#"
+     PrimDoubleSqrt -> "sqrt#"
 
  pretty (PrimCast p)
   = case p of

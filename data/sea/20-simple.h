@@ -44,6 +44,7 @@ static idouble_t INLINE idouble_pow   (idouble_t x, idouble_t y) { return pow(x,
 static idouble_t INLINE idouble_div   (idouble_t x, idouble_t y) { return x / y; }
 static idouble_t INLINE idouble_log   (idouble_t x)              { return log(x); }
 static idouble_t INLINE idouble_exp   (idouble_t x)              { return exp(x); }
+static idouble_t INLINE idouble_sqrt  (idouble_t x)              { return sqrt(x); }
 
 MK_SIMPLE_CMPS(idouble_t, idouble_)
 MK_SIMPLE_COPY(idouble_t, idouble_)

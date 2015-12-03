@@ -242,6 +242,10 @@ evalP ann p xs vs env
               | [VDouble i] <- args
               -> return $ VDouble $ exp i
               | otherwise -> err
+             Sqrt
+              | [VDouble i] <- args
+              -> return $ VDouble $ sqrt i
+              | otherwise -> err
              -- Use Doubles as only number representation.
              -- See Note: Numbers
              ToDouble
