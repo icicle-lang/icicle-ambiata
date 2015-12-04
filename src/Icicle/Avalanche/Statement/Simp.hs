@@ -6,6 +6,7 @@
 module Icicle.Avalanche.Statement.Simp (
     pullLets
   , forwardStmts
+  , renameReads
   , substXinS
   , thresher
   , nestBlocks
@@ -93,6 +94,36 @@ forwardStmts a_fresh statements
                 progress ((), s')
 
       _ -> return ((), s)
+
+
+-- | Funky renaming for C
+renameReads :: Ord n => a -> Statement a n p -> Fresh n (Statement a n p)
+renameReads a_fresh statements
+ = transformUDStmt trans () statements
+ where
+  trans _ s
+   = case s of
+      Read nm acc vt ss
+       | Just (pre, post) <- splitWrite acc mempty ss
+       , not $ Set.member nm $ stmtFreeX post
+       -> do    pre' <- substXinS a_fresh nm (XVar a_fresh acc) pre
+                return ((), Read acc acc vt (pre' <> post))
+      _ -> return ((), s)
+
+  splitWrite acc seen (Write acc' xx)
+   | acc == acc'
+   = Just (seen <> Write acc xx, mempty)
+
+  splitWrite acc seen (Block (ss:rest))
+   | Just (pre,post) <- splitWrite acc seen ss
+   = Just (seen <> pre, post <> Block rest)
+
+  splitWrite acc seen (Block (ss:rest))
+   | Nothing <- splitWrite acc seen ss
+   = splitWrite acc (seen <> ss) (Block rest)
+
+  splitWrite _ _ _
+   = Nothing
 
 
 -- Substitute an expression into a statement.
