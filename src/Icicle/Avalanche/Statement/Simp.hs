@@ -97,6 +97,19 @@ forwardStmts a_fresh statements
 
 
 -- | Funky renaming for C
+-- Rename reads from accumulators to refer to the accumulator name.
+-- This is an awful hack, but means that instead of outputting in the C version
+--
+-- > read     = acc$read                /* Read */
+-- > acc$read = buf_push(read, ...)     /* Write */
+--
+-- we should end up with
+--
+-- > acc$read = acc$read                /* Read */
+-- > acc$read = buf_push(acc$read, ...) /* Write */
+--
+-- and the C compiler should be able to get rid of the first, etc.
+--
 renameReads :: Ord n => a -> Statement a n p -> Fresh n (Statement a n p)
 renameReads a_fresh statements
  = transformUDStmt trans () statements
