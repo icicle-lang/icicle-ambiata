@@ -132,6 +132,12 @@ renameReads a_fresh statements
    | Just (pre,post) <- splitWrite acc seen ss
    = Just (pre, post <> Block rest)
 
+  splitWrite acc seen (Read nm' acc' vt' ss')
+   | acc /= acc'
+   , Just (pre,post) <- splitWrite acc seen ss'
+   , not $ Set.member nm' $ stmtFreeX pre
+   = Just (pre, Read nm' acc' vt' post)
+
   splitWrite acc seen (Block (ss:rest))
    | Nothing <- splitWrite acc seen ss
    = splitWrite acc (seen <> ss) (Block rest)

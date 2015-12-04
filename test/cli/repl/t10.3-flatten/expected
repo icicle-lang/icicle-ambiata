@@ -19,11 +19,11 @@ gen$time = TIME
   for_facts (gen$fact$simp$40@{Error},
              gen$fact$simp$41@{Int},
              gen$fact$simp$42@{Time}) in new {
-    read@{Buf 3 Error} acc$conv$30$simp$8 = acc$conv$30$simp$6;
-    read@{Buf 3 Int} acc$conv$30$simp$7 = acc$conv$30$simp$7;
+    read@{Buf 3 Error} acc$conv$30$simp$6 = acc$conv$30$simp$6;
     write acc$conv$30$simp$6 = Buf_push#@{Buf 3 Error}
-                               acc$conv$30$simp$8
+                               acc$conv$30$simp$6
                                gen$fact$simp$40;
+    read@{Buf 3 Int} acc$conv$30$simp$7 = acc$conv$30$simp$7;
     write acc$conv$30$simp$7 = Buf_push#@{Buf 3 Int}
                                acc$conv$30$simp$7
                                gen$fact$simp$41;
