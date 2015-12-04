@@ -129,7 +129,7 @@ renameReads a_fresh statements
 
   splitWrite acc seen (Block (ss:rest))
    | Just (pre,post) <- splitWrite acc seen ss
-   = Just (seen <> pre, post <> Block rest)
+   = Just (pre, post <> Block rest)
 
   splitWrite acc seen (Block (ss:rest))
    | Nothing <- splitWrite acc seen ss
