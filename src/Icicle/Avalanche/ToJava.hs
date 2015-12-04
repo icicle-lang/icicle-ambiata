@@ -278,6 +278,7 @@ primTypeOfPrim p
   dble     M.PrimDoubleDiv  = Infix "/"
   dble     M.PrimDoubleLog  = Function "Math.log"
   dble     M.PrimDoubleExp  = Function "Math.exp"
+  dble     M.PrimDoubleSqrt = Function "Math.sqrt"
 
   cast      M.PrimCastIntOfDouble = Function "(int)"
   cast      M.PrimCastDoubleOfInt = Function "(double)"

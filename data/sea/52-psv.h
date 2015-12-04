@@ -66,6 +66,11 @@ static const size_t psv_max_row_count   = 128;
 static const size_t psv_buffer_size     = 16*1024;
 static const size_t psv_output_buf_size = 16*1024;
 
+static bool INLINE psv_is_digit (char c)
+{
+    return c - '0' < 10;
+}
+
 static psv_error_t INLINE psv_read_date (const char *time_ptr, const size_t time_size, idate_t *output_ptr)
 {
     const char  *p          = time_ptr;
@@ -75,16 +80,16 @@ static psv_error_t INLINE psv_read_date (const char *time_ptr, const size_t time
     const size_t date_only = sizeof ("yyyy-mm-dd");
 
     if (date_only == time0_size &&
-        isdigit (p[0]) &&
-        isdigit (p[1]) &&
-        isdigit (p[2]) &&
-        isdigit (p[3]) &&
-          '-' == p[4]  &&
-        isdigit (p[5]) &&
-        isdigit (p[6]) &&
-          '-' == p[7]  &&
-        isdigit (p[8]) &&
-        isdigit (p[9])) {
+        psv_is_digit (p[0]) &&
+        psv_is_digit (p[1]) &&
+        psv_is_digit (p[2]) &&
+        psv_is_digit (p[3]) &&
+               '-' == p[4]  &&
+        psv_is_digit (p[5]) &&
+        psv_is_digit (p[6]) &&
+               '-' == p[7]  &&
+        psv_is_digit (p[8]) &&
+        psv_is_digit (p[9])) {
 
         const iint_t year  = p[0] * 1000
                            + p[1] * 100
@@ -105,26 +110,26 @@ static psv_error_t INLINE psv_read_date (const char *time_ptr, const size_t time
     const size_t date_time = sizeof ("yyyy-mm-ddThh:mm:ssZ");
 
     if (date_time == time0_size &&
-        isdigit (p[ 0]) &&
-        isdigit (p[ 1]) &&
-        isdigit (p[ 2]) &&
-        isdigit (p[ 3]) &&
-          '-' == p[ 4]  &&
-        isdigit (p[ 5]) &&
-        isdigit (p[ 6]) &&
-          '-' == p[ 7]  &&
-        isdigit (p[ 8]) &&
-        isdigit (p[ 9]) &&
-          'T' == p[10]  &&
-        isdigit (p[11]) &&
-        isdigit (p[12]) &&
-          ':' == p[13]  &&
-        isdigit (p[14]) &&
-        isdigit (p[15]) &&
-          ':' == p[16]  &&
-        isdigit (p[17]) &&
-        isdigit (p[18]) &&
-          'Z' == p[19] ) {
+        psv_is_digit (p[ 0]) &&
+        psv_is_digit (p[ 1]) &&
+        psv_is_digit (p[ 2]) &&
+        psv_is_digit (p[ 3]) &&
+               '-' == p[ 4]  &&
+        psv_is_digit (p[ 5]) &&
+        psv_is_digit (p[ 6]) &&
+               '-' == p[ 7]  &&
+        psv_is_digit (p[ 8]) &&
+        psv_is_digit (p[ 9]) &&
+               'T' == p[10]  &&
+        psv_is_digit (p[11]) &&
+        psv_is_digit (p[12]) &&
+               ':' == p[13]  &&
+        psv_is_digit (p[14]) &&
+        psv_is_digit (p[15]) &&
+               ':' == p[16]  &&
+        psv_is_digit (p[17]) &&
+        psv_is_digit (p[18]) &&
+               'Z' == p[19] ) {
 
         const iint_t year   = p[0] * 1000
                             + p[1] * 100

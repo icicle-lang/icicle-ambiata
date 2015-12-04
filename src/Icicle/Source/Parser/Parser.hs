@@ -188,6 +188,7 @@ primitives :: [(T.Keyword, Q.Prim)]
 primitives
  = [(T.Log,     Q.Fun Q.Log)
    ,(T.Exp,     Q.Fun Q.Exp)
+   ,(T.Sqrt,    Q.Fun Q.Sqrt)
    ,(T.Double,  Q.Fun Q.ToDouble)
    ,(T.Int,     Q.Fun Q.ToInt)
    ,(T.Seq,     Q.Fun Q.Seq)

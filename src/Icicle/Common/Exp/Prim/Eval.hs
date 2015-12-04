@@ -90,6 +90,11 @@ evalPrim p originalP vs
       -> return $ VBase $ VDouble $ exp i
       | otherwise
       -> primError
+     PrimDouble PrimDoubleSqrt
+      | [VBase (VDouble i)] <- vs
+      -> return $ VBase $ VDouble $ sqrt i
+      | otherwise
+      -> primError
 
      PrimCast PrimCastDoubleOfInt
       | [VBase (VInt i)] <- vs

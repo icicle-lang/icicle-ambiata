@@ -88,6 +88,7 @@ data Keyword
  | Windowed
  | Log
  | Exp
+ | Sqrt
  | Double
  | Int
  | Seq

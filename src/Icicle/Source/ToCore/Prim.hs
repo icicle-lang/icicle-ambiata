@@ -178,6 +178,8 @@ convertPrim p ann resT xts
    = return $ primmin $ Min.PrimDouble Min.PrimDoubleLog
   gofun Exp
    = return $ primmin $ Min.PrimDouble Min.PrimDoubleExp
+  gofun Sqrt
+   = return $ primmin $ Min.PrimDouble Min.PrimDoubleSqrt
   gofun ToDouble
    = case xts of
       ((xx,tt):_)

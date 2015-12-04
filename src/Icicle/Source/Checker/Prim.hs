@@ -65,6 +65,8 @@ primLookup' p
      -> f0 [DoubleT] DoubleT
     Fun Exp
      -> f0 [DoubleT] DoubleT
+    Fun Sqrt
+     -> f0 [DoubleT] DoubleT
     Fun ToDouble
      -> fNum $ \at -> ([at], DoubleT)
     Fun ToInt
