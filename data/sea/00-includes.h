@@ -60,3 +60,6 @@ STATIC_ASSERT(sizeof (void *) == sizeof (uint64_t), icicle_only_supports_systems
 #else
 #   define ICICLE_WHEN_DEBUG(code)
 #endif
+
+#define CONCAT0(x, y) x ## y
+#define CONCAT(x, y)  CONCAT0(x, y)
