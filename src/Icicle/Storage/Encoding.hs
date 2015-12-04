@@ -18,9 +18,10 @@ parsePrimitiveEncoding :: Parser Encoding
 parsePrimitiveEncoding =
            StringEncoding  <$ string "string"
        <|> IntEncoding     <$ string "int"
-       <|> IntEncoding     <$ string "long" -- Todo, change this once Longs are a thing
+       <|> IntEncoding     <$ string "long"
        <|> DoubleEncoding  <$ string "double"
-       <|> DateEncoding    <$ string "date"
+       <|> TimeEncoding    <$ string "time"
+       <|> TimeEncoding    <$ string "date"
        <|> BooleanEncoding <$ string "boolean"
 
 parseEncoding :: Parser Encoding
@@ -40,7 +41,7 @@ prettyConcrete = \case
   StringEncoding   -> "string"
   IntEncoding      -> "int"
   DoubleEncoding   -> "double"
-  DateEncoding     -> "date"
+  TimeEncoding     -> "time"
   BooleanEncoding  -> "boolean"
   ListEncoding le  -> "[" <> prettyConcrete le <> "]"
   StructEncoding s -> "(" <> intercalate "," (prettyStructField <$> s) <> ")"

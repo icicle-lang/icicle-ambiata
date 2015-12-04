@@ -27,11 +27,11 @@ typedef struct {
     imempool_t      *mempool;
 
     /* inputs */
-    idate_t          gen_date;
+    itime_t          gen_time;
     iint_t           new_count;
     ierror_t        *new_gen_fact_simp_23;
     iint_t          *new_gen_fact_simp_24;
-    idate_t         *new_gen_fact_simp_25;
+    itime_t         *new_gen_fact_simp_25;
 
     /* outputs */
     ibool_t          repl_ix_0;
@@ -67,7 +67,7 @@ void iprogram_0(iprogram_0_t *s)
     idouble_t        perhaps_conv_3_simp_22;
 
     imempool_t      *mempool                  = s->mempool;
-    idate_t          gen_date                 = s->gen_date;
+    itime_t          gen_time                 = s->gen_time;
 
     acc_perhaps_conv_3_simp_8                 = ifalse;                               /* init */
     acc_perhaps_conv_3_simp_9                 = 0;                                    /* init */
@@ -88,12 +88,12 @@ void iprogram_0(iprogram_0_t *s)
     const iint_t     new_count                = s->new_count;
     const ierror_t  *const new_gen_fact_simp_23 = s->new_gen_fact_simp_23;
     const iint_t    *const new_gen_fact_simp_24 = s->new_gen_fact_simp_24;
-    const idate_t   *const new_gen_fact_simp_25 = s->new_gen_fact_simp_25;
+    const itime_t   *const new_gen_fact_simp_25 = s->new_gen_fact_simp_25;
     
     for (iint_t i = 0; i < new_count; i++) {
         ierror_t         gen_fact_simp_23     = new_gen_fact_simp_23[i];
         iint_t           gen_fact_simp_24     = new_gen_fact_simp_24[i];
-        idate_t          gen_fact_simp_25     = new_gen_fact_simp_25[i];
+        itime_t          gen_fact_simp_25     = new_gen_fact_simp_25[i];
         acc_perhaps_conv_3_simp_11            = acc_perhaps_conv_3_simp_8;            /* read */
         acc_perhaps_conv_3_simp_12            = acc_perhaps_conv_3_simp_9;            /* read */
         acc_perhaps_conv_3_simp_13            = acc_perhaps_conv_3_simp_10;           /* read */

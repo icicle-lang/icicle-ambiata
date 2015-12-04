@@ -18,7 +18,7 @@ import           P
 
 asAtValueToCore :: D.AsAt D.Value -> C.ValType -> Maybe C.BaseValue
 asAtValueToCore x t
- = valueToCore (D.PairValue (D.fact x) (D.DateValue (D.time x))) t
+ = valueToCore (D.PairValue (D.atFact x) (D.TimeValue (D.atTime x))) t
 
 valueToCore :: D.Value -> C.ValType -> Maybe C.BaseValue
 valueToCore dv vt
@@ -27,12 +27,12 @@ valueToCore dv vt
      (_, C.OptionT C.OptionT{}) -> Nothing
      (_, C.OptionT C.SumT{})    -> Nothing
 
-     (D.IntValue     x, C.IntT{})      -> Just (C.VInt x)
-     (D.DoubleValue  x, C.DoubleT{})   -> Just (C.VDouble x)
-     (D.BooleanValue x, C.BoolT{})     -> Just (C.VBool x)
-     (D.StringValue  x, C.StringT{})   -> Just (C.VString x)
-     (D.DateValue    x, C.DateTimeT{}) -> Just (C.VDateTime x)
-     (D.Tombstone,      C.ErrorT{})    -> Just (C.VError C.ExceptTombstone)
+     (D.IntValue     x, C.IntT{})    -> Just (C.VInt x)
+     (D.DoubleValue  x, C.DoubleT{}) -> Just (C.VDouble x)
+     (D.BooleanValue x, C.BoolT{})   -> Just (C.VBool x)
+     (D.StringValue  x, C.StringT{}) -> Just (C.VString x)
+     (D.TimeValue    x, C.TimeT{})   -> Just (C.VTime x)
+     (D.Tombstone,      C.ErrorT{})  -> Just (C.VError C.ExceptTombstone)
 
      (D.PairValue a b, C.PairT ta tb)
       -> C.VPair <$> valueToCore a ta <*> valueToCore b tb
@@ -70,25 +70,25 @@ valueToCore dv vt
 
 valueFromCore :: C.BaseValue -> Maybe D.Value
 valueFromCore = \case
-  C.VBool     x -> Just (D.BooleanValue x)
-  C.VInt      x -> Just (D.IntValue x)
-  C.VDouble   x -> Just (D.DoubleValue x)
-  C.VDateTime x -> Just (D.DateValue x)
-  C.VString   x -> Just (D.StringValue x)
-  C.VUnit       -> Just (D.IntValue 13013)
-  C.VError    _ -> Just D.Tombstone
-  C.VLeft     x -> valueFromCore x
-  C.VRight    x -> valueFromCore x
-  C.VNone       -> Just D.Tombstone
-  C.VSome     x -> valueFromCore x
-  C.VPair   x y -> D.PairValue <$> valueFromCore x <*> valueFromCore y
-  C.VArray   xs -> D.ListValue . D.List <$> traverse valueFromCore xs
-  C.VBuf     xs -> D.ListValue . D.List <$> traverse valueFromCore xs
+  C.VBool   x -> Just (D.BooleanValue x)
+  C.VInt    x -> Just (D.IntValue x)
+  C.VDouble x -> Just (D.DoubleValue x)
+  C.VTime   x -> Just (D.TimeValue x)
+  C.VString x -> Just (D.StringValue x)
+  C.VUnit     -> Just (D.IntValue 13013)
+  C.VError  _ -> Just D.Tombstone
+  C.VLeft   x -> valueFromCore x
+  C.VRight  x -> valueFromCore x
+  C.VNone     -> Just D.Tombstone
+  C.VSome   x -> valueFromCore x
+  C.VPair x y -> D.PairValue <$> valueFromCore x <*> valueFromCore y
+  C.VArray xs -> D.ListValue . D.List <$> traverse valueFromCore xs
+  C.VBuf   xs -> D.ListValue . D.List <$> traverse valueFromCore xs
 
   C.VMap kvs
    -> let go (k,v) = (,) <$> valueFromCore k <*> valueFromCore v
       in D.MapValue <$> traverse go (Map.toList kvs)
 
-  C.VStruct  xs
+  C.VStruct xs
    -> let go (C.StructField k, v) = (,) <$> pure (D.Attribute k) <*> valueFromCore v
       in D.StructValue . D.Struct <$> traverse go (Map.toList xs)

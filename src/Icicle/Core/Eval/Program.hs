@@ -22,7 +22,7 @@ import qualified    Icicle.Core.Eval.Exp    as XV
 import qualified    Icicle.Core.Eval.Stream as SV
 import qualified    Icicle.Core.Eval.Reduce as RV
 
-import              Icicle.Data.DateTime
+import              Icicle.Data.Time
 
 import              Icicle.Internal.Pretty
 
@@ -79,7 +79,7 @@ data ProgramValue n =
 -- | Evaluate a program.
 -- We take no environments, but do take the concrete feature values.
 eval    :: Ord n
-        => DateTime
+        => Time
         -> SV.InitialStreamValue
         -> P.Program a n
         -> Either (RuntimeError a n) (ProgramValue n)
@@ -96,7 +96,7 @@ eval d sv p
         -- Insert date into environment if necessary
         let reds' = case P.postdate p of
                     Nothing -> reds
-                    Just nm -> Map.insert nm (VBase $ VDateTime d) reds
+                    Just nm -> Map.insert nm (VBase $ VTime d) reds
 
         post    <- mapLeft RuntimeErrorPost
                  $ XV.evalExps XV.evalPrim  reds'       (P.postcomps    p)
@@ -116,7 +116,7 @@ eval d sv p
 evalStms
         :: Ord n
         => V.Heap a n Prim
-        -> DateTime
+        -> Time
         -> SV.InitialStreamValue
         -> SV.StreamHeap  n
         -> [(Name n, Stream a n)]

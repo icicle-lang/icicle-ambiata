@@ -1,7 +1,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Icicle.Sea.Chords.File (
-    maximumOfDates
+    maximumOfTimes
   , chordFile
   , hPutChordFile
   , writeChordFile
@@ -10,7 +10,7 @@ module Icicle.Sea.Chords.File (
   ) where
 
 import qualified Icicle.Data as D
-import qualified Icicle.Data.DateTime as D
+import qualified Icicle.Data.Time as D
 
 import qualified Data.Map as Map
 
@@ -24,10 +24,10 @@ import           P
 
 ------------------------------------------------------------------------
 
-type ChordMap = Map.Map D.Entity [D.DateTime]
+type ChordMap = Map.Map D.Entity [D.Time]
 
-maximumOfDates :: ChordMap -> Int
-maximumOfDates
+maximumOfTimes :: ChordMap -> Int
+maximumOfTimes
  = Map.fold max 0
  . Map.map length
 
@@ -35,24 +35,24 @@ header :: ChordMap -> BS.Builder
 header chordmap
  = let magic   = "CHORDATA"
        version = 1
-       dates   = maximumOfDates chordmap
+       times   = maximumOfTimes chordmap
    in  mconcat
      [ BS.string8 magic
      , BS.int64LE version
-     , BS.int64LE $ fromIntegral dates ]
+     , BS.int64LE $ fromIntegral times ]
 
-record :: (D.Entity, [D.DateTime]) -> BS.Builder
-record (ent, dates)
+record :: (D.Entity, [D.Time]) -> BS.Builder
+record (ent, times)
  = let entity       = T.encodeUtf8 $ D.getEntity ent
        entity_size  = BSC.length entity
-       dates_count  = length dates
-       dates_build  = mconcat $ fmap (BS.word64LE . D.packedOfDate) dates
+       times_count  = length times
+       times_build  = mconcat $ fmap (BS.word64LE . D.packedOfTime) times
    in  mconcat
      [ BS.int64LE $ fromIntegral entity_size
-     , BS.int64LE $ fromIntegral dates_count
+     , BS.int64LE $ fromIntegral times_count
      , BS.byteString entity
      , BS.word8 0
-     , dates_build ]
+     , times_build ]
 
 
 chordFile :: ChordMap -> BS.Builder

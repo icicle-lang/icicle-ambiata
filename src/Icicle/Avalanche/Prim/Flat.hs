@@ -182,13 +182,13 @@ typeOfPrim p
 meltType :: ValType -> [ValType]
 meltType t
  = case t of
-    UnitT     -> [t]
-    IntT      -> [t]
-    DoubleT   -> [t]
-    BoolT     -> [t]
-    DateTimeT -> [t]
-    StringT   -> [t]
-    ErrorT    -> [t]
+    UnitT   -> [t]
+    IntT    -> [t]
+    DoubleT -> [t]
+    BoolT   -> [t]
+    TimeT   -> [t]
+    StringT -> [t]
+    ErrorT  -> [t]
 
     PairT   a b -> meltType a <> meltType b
 

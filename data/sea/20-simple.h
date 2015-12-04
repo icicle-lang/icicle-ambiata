@@ -14,7 +14,7 @@
 
 MK_SIMPLE_CMPS(ierror_t, ierror_)
 MK_SIMPLE_CMPS(ibool_t,  ibool_)
-MK_SIMPLE_CMPS(idate_t,  idate_)
+MK_SIMPLE_CMPS(itime_t,  itime_)
 MK_SIMPLE_CMPS(iunit_t,  iunit_)
 
 #define MK_SIMPLE_COPY(t,pre)                                                   \
@@ -22,7 +22,7 @@ MK_SIMPLE_CMPS(iunit_t,  iunit_)
 
 MK_SIMPLE_COPY(ierror_t, ierror_)
 MK_SIMPLE_COPY(ibool_t,  ibool_)
-MK_SIMPLE_COPY(idate_t,  idate_)
+MK_SIMPLE_COPY(itime_t,  itime_)
 MK_SIMPLE_COPY(iunit_t,  iunit_)
 
 

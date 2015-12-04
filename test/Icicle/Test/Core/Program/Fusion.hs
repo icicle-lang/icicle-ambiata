@@ -12,7 +12,7 @@ import           Icicle.Core.Program.Check
 import           Icicle.Core.Program.Fusion
 import qualified Icicle.Core.Eval.Program   as PV
 
-import           Icicle.Data.DateTime
+import           Icicle.Data.Time
 
 import           P
 
@@ -22,8 +22,8 @@ import           Test.QuickCheck
 
 
 -- Just choose some date; it doesn't matter
-someDate = unsafeDateOfYMD 2015 1 1
-eval = PV.eval someDate []
+someTime = unsafeTimeOfYMD 2015 1 1
+eval = PV.eval someTime []
 
 left = Var "left" 0
 right = Var "right" 0

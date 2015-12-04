@@ -2,21 +2,21 @@
 -- TODO support times as well
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
-module Icicle.Data.DateTime (
-    DateTime(..)
-  , renderDate
-  , dateOfText
-  , dateOfYMD
-  , dateOfDays
-  , daysOfDate
+module Icicle.Data.Time (
+    Time(..)
+  , renderTime
+  , timeOfText
+  , timeOfYMD
+  , timeOfDays
+  , daysOfTime
   , withinWindow
   , daysDifference
   , minusMonths
   , minusDays
-  , unsafeDateOfYMD
-  , pDate
-  , packedOfDate
-  , dateOfPacked
+  , unsafeTimeOfYMD
+  , pTime
+  , packedOfTime
+  , timeOfPacked
   ) where
 import           Data.Attoparsec.Text
 
@@ -29,15 +29,15 @@ import           Data.Bits
 
 import           P
 
-newtype DateTime =
-  DateTime {
+newtype Time =
+  Time {
       getDateTime :: D.DateTime
     } deriving (Eq, Ord)
 
-instance Show DateTime where
- showsPrec p (DateTime x)
+instance Show Time where
+ showsPrec p (Time x)
   = showParen (p > 10)
-  $ showString "DateTime (D.DateTime "
+  $ showString "Time (D.DateTime "
   . showsPrec 11 (D.year x)
   . showString " "
   . showsPrec 11 (D.month x)
@@ -52,94 +52,94 @@ instance Show DateTime where
   . showString ")"
 
 
-renderDate  :: DateTime -> Text
-renderDate
+renderTime  :: Time -> Text
+renderTime
  = -- if   D.hour d + D.minute d + D.second d == 0
    -- then T.pack (show (D.year d) <> "-" <>
    T.pack . C.showGregorian . D.dateTimeToDay . getDateTime
 
-pDate :: Parser DateTime
-pDate
- = (maybe (fail "Invalid date") pure) =<< dateOfYMD <$> decimal <* dash <*> decimal <* dash <*> decimal
+pTime :: Parser Time
+pTime
+ = (maybe (fail "Invalid time") pure) =<< timeOfYMD <$> decimal <* dash <*> decimal <* dash <*> decimal
    where
     dash :: Parser ()
     dash = () <$ char '-'
 
-dateOfText :: Text -> Maybe DateTime
-dateOfText txt =
-  case parseOnly pDate txt of
+timeOfText :: Text -> Maybe Time
+timeOfText txt =
+  case parseOnly pTime txt of
     Left  _ -> Nothing
     Right x -> Just x
 
-unsafeDateOfYMD :: Integer -> Int -> Int -> DateTime
-unsafeDateOfYMD y m d
- = DateTime
+unsafeTimeOfYMD :: Integer -> Int -> Int -> Time
+unsafeTimeOfYMD y m d
+ = Time
  $ D.dayToDateTime
  $ C.fromGregorian y m d
 
-dateOfYMD :: Integer -> Int -> Int -> Maybe DateTime
-dateOfYMD y m d
- =   DateTime
+timeOfYMD :: Integer -> Int -> Int -> Maybe Time
+timeOfYMD y m d
+ =   Time
   .  D.dayToDateTime
  <$> C.fromGregorianValid y m d
 
-dateOfDays :: Int -> DateTime
-dateOfDays d
- = DateTime
+timeOfDays :: Int -> Time
+timeOfDays d
+ = Time
  $ D.dayToDateTime
  $ C.ModifiedJulianDay
  $ toInteger d
 
-daysOfDate :: DateTime -> Int
-daysOfDate d
+daysOfTime :: Time -> Int
+daysOfTime d
  = fromInteger
  $ C.toModifiedJulianDay
  $ D.dateTimeToDay
  $ getDateTime d
 
--- | Check whether two given dates are within a days window
-withinWindow :: DateTime -> DateTime -> Int -> Bool
+-- | Check whether two given times are within a days window
+withinWindow :: Time -> Time -> Int -> Bool
 withinWindow fact now window
  = let diff =  daysDifference fact now
    in  diff <= window
 
--- | Find number of days between to dates
-daysDifference :: DateTime -> DateTime -> Int
+-- | Find number of days between to tiems
+daysDifference :: Time -> Time -> Int
 daysDifference fact now
- = daysOfDate now - daysOfDate fact
+ = daysOfTime now - daysOfTime fact
 
-minusDays :: DateTime -> Int -> DateTime
+minusDays :: Time -> Int -> Time
 minusDays d i
- = DateTime
+ = Time
  $ D.dayToDateTime
  $ C.addDays (negate $ toInteger i)
  $ D.dateTimeToDay
  $ getDateTime d
 
-minusMonths :: DateTime -> Int -> DateTime
+minusMonths :: Time -> Int -> Time
 minusMonths d i
- = DateTime
+ = Time
  $ D.dayToDateTime
  $ C.addGregorianMonthsClip (negate $ toInteger i)
  $ D.dateTimeToDay
  $ getDateTime d
 
--- Pack into Ivory's DateTime (for use in Sea evaluation).
+-- Pack into Ivory's date/time format (for use in Sea evaluation).
 -- A packed long
 --   16 bits: year represented as a short
 --   8 bits:  month represented as a byte
 --   8 bits:  day represented as a byte
 --   32 bits: seconds since start of day
-packedOfDate :: DateTime -> Word64
-packedOfDate (DateTime d)
+packedOfTime :: Time -> Word64
+packedOfTime (Time d)
   =  shift (fromIntegral (D.year  d)) 48
  .|. shift (fromIntegral (D.month d)) 40
  .|. shift (fromIntegral (D.day d))   32
  .|. (fromIntegral (3600 * D.hour d + 60 * D.minute d + D.second d))
 
--- Unpack the word into an icicle DateTime
-dateOfPacked :: Word64 -> DateTime
-dateOfPacked d
+-- Unpack the word into an icicle Time
+timeOfPacked :: Word64 -> Time
+timeOfPacked d
  = let y  = shift (fromIntegral d) (-48)
        m  = shift (fromIntegral d) (-40) .&. 0xff
        d' = shift (fromIntegral d) (-32) .&. 0xff
@@ -147,4 +147,4 @@ dateOfPacked d
        h  = i `quot` 3600
        m' = i `rem`  3600 `quot` 60
        s  = i `rem`  60
-   in DateTime $ D.DateTime y m d' h m' s
+   in Time $ D.DateTime y m d' h m' s

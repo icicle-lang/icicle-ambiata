@@ -8,5 +8,5 @@ feature salary ~> fold xsum = 0 : xsum + value ~> xsum
 feature salary ~> fold1 xnew = value : value ~> fold1 xold = value : xold ~> (xnew, xold)
 
 -- Inside a group
-feature salary ~> group date ~> fold1 xnew = value : value ~> fold1 xold = value : xold ~> (xnew, xold)
+feature salary ~> group time ~> fold1 xnew = value : value ~> fold1 xold = value : xold ~> (xnew, xold)
 

@@ -7,7 +7,7 @@ module Icicle.Source.Lexer.Lexer (
   ) where
 
 import Icicle.Source.Lexer.Token
-import Icicle.Data.DateTime
+import Icicle.Data.Time
 
 import                  P
 
@@ -89,11 +89,11 @@ lexerPositions ts
       Left tok
        -> [(tok, pos)]
 
-   -- Date literals are marked with backticks. A date is 10 chars long, plus a '`', so take 11 chars.
+   -- Time literals are marked with backticks. A date is 10 chars long, plus a '`', so take 11 chars.
    | c == '`'
-   = case A.parseOnly (pDate <* A.char '`' <* A.endOfInput) (T.pack $ fmap fst $ L.take 11 t') of
+   = case A.parseOnly (pTime <* A.char '`' <* A.endOfInput) (T.pack $ fmap fst $ L.take 11 t') of
     Right r
-     -> (TLiteral $ LitDate r, pos) : lexerPositions (L.drop 11 t')
+     -> (TLiteral $ LitTime r, pos) : lexerPositions (L.drop 11 t')
     Left _
      -> [(TUnexpected "Invalid date", pos)]
 

@@ -55,8 +55,8 @@ convertPrim p ann resT xts
    = return $ CE.XValue () T.DoubleT (V.VDouble i)
   go (Lit (LitString i))
    = return $ CE.XValue () T.StringT (V.VString i)
-  go (Lit (LitDate i))
-   = return $ CE.XValue () T.DateTimeT (V.VDateTime i)
+  go (Lit (LitTime i))
+   = return $ CE.XValue () T.TimeT (V.VTime i)
 
   go (PrimCon ConSome)
    = primmin <$> (Min.PrimConst <$> (Min.PrimConstSome <$> t1 1))
@@ -115,39 +115,39 @@ convertPrim p ann resT xts
    = return $ primmin $ Min.PrimLogical Min.PrimLogicalAnd
   goop (LogicalBinary Or)
    = return $ primmin $ Min.PrimLogical Min.PrimLogicalOr
-  goop (DateBinary DaysBefore)
+  goop (TimeBinary DaysBefore)
    | [(a,_),(b,_)] <- xts
-   = return (CE.xPrim (C.PrimMinimal $ Min.PrimDateTime Min.PrimDateTimeMinusDays) CE.@~ b CE.@~ a)
+   = return (CE.xPrim (C.PrimMinimal $ Min.PrimTime Min.PrimTimeMinusDays) CE.@~ b CE.@~ a)
    | otherwise
    = convertError
    $ ConvertErrorPrimNoArguments ann 2 p
-  goop (DateBinary WeeksBefore)
+  goop (TimeBinary WeeksBefore)
    | [(a,_),(b,_)] <- xts
-   = return (CE.xPrim (C.PrimMinimal $ Min.PrimDateTime Min.PrimDateTimeMinusDays) CE.@~ b CE.@~ (CE.constI 7 CE.*~ a))
+   = return (CE.xPrim (C.PrimMinimal $ Min.PrimTime Min.PrimTimeMinusDays) CE.@~ b CE.@~ (CE.constI 7 CE.*~ a))
    | otherwise
    = convertError
    $ ConvertErrorPrimNoArguments ann 2 p
-  goop (DateBinary MonthsBefore)
+  goop (TimeBinary MonthsBefore)
    | [(a,_),(b,_)] <- xts
-   = return (CE.xPrim (C.PrimMinimal $ Min.PrimDateTime Min.PrimDateTimeMinusMonths) CE.@~ b CE.@~ a)
+   = return (CE.xPrim (C.PrimMinimal $ Min.PrimTime Min.PrimTimeMinusMonths) CE.@~ b CE.@~ a)
    | otherwise
    = convertError
    $ ConvertErrorPrimNoArguments ann 2 p
-  goop (DateBinary DaysAfter)
+  goop (TimeBinary DaysAfter)
    | [(a,_),(b,_)] <- xts
-   = return (CE.xPrim (C.PrimMinimal $ Min.PrimDateTime Min.PrimDateTimeMinusDays) CE.@~ b CE.@~ (CE.negate a))
+   = return (CE.xPrim (C.PrimMinimal $ Min.PrimTime Min.PrimTimeMinusDays) CE.@~ b CE.@~ (CE.negate a))
    | otherwise
    = convertError
    $ ConvertErrorPrimNoArguments ann 2 p
-  goop (DateBinary WeeksAfter)
+  goop (TimeBinary WeeksAfter)
    | [(a,_),(b,_)] <- xts
-   = return (CE.xPrim (C.PrimMinimal $ Min.PrimDateTime Min.PrimDateTimeMinusDays) CE.@~ b CE.@~ (CE.negate (CE.constI 7 CE.*~ a)))
+   = return (CE.xPrim (C.PrimMinimal $ Min.PrimTime Min.PrimTimeMinusDays) CE.@~ b CE.@~ (CE.negate (CE.constI 7 CE.*~ a)))
    | otherwise
    = convertError
    $ ConvertErrorPrimNoArguments ann 2 p
-  goop (DateBinary MonthsAfter)
+  goop (TimeBinary MonthsAfter)
    | [(a,_),(b,_)] <- xts
-   = return (CE.xPrim (C.PrimMinimal $ Min.PrimDateTime Min.PrimDateTimeMinusMonths) CE.@~ b CE.@~ (CE.negate a))
+   = return (CE.xPrim (C.PrimMinimal $ Min.PrimTime Min.PrimTimeMinusMonths) CE.@~ b CE.@~ (CE.negate a))
    | otherwise
    = convertError
    $ ConvertErrorPrimNoArguments ann 2 p
@@ -195,9 +195,9 @@ convertPrim p ann resT xts
       _
        -> return $ primmin $ Min.PrimCast Min.PrimCastIntOfDouble
   gofun DaysBetween
-   = return $ primmin $ Min.PrimDateTime Min.PrimDateTimeDaysDifference
+   = return $ primmin $ Min.PrimTime Min.PrimTimeDaysDifference
   gofun DaysEpoch
-   = return $ primmin $ Min.PrimDateTime Min.PrimDateTimeDaysEpoch
+   = return $ primmin $ Min.PrimTime Min.PrimTimeDaysEpoch
 
   -- This looks pointless, but actually isn't. Reify possibilities takes care of sequencing both
   -- of the possiblities of this function, so although we don't check that the first tuple is

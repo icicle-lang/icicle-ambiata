@@ -27,7 +27,7 @@ import qualified        Data.Map as Map
 
 data Type n
  = BoolT
- | DateTimeT
+ | TimeT
  | DoubleT
  | IntT
  | StringT
@@ -57,7 +57,7 @@ typeOfValType :: CT.ValType -> Type n
 typeOfValType vt
  = case vt of
     CT.BoolT        -> BoolT
-    CT.DateTimeT    -> DateTimeT
+    CT.TimeT        -> TimeT
     CT.DoubleT      -> DoubleT
     CT.IntT         -> IntT
     CT.StringT      -> StringT
@@ -77,7 +77,7 @@ valTypeOfType :: Type n -> Maybe CT.ValType
 valTypeOfType bt
  = case bt of
     BoolT        -> return CT.BoolT
-    DateTimeT    -> return CT.DateTimeT
+    TimeT        -> return CT.TimeT
     DoubleT      -> return CT.DoubleT
     IntT         -> return CT.IntT
     StringT      -> return CT.StringT
@@ -148,7 +148,7 @@ instance Pretty n => Pretty (Type n) where
  pretty UnitT           = text "Unit"
  pretty ErrorT          = text "ErrorT"
  pretty BoolT           = text "Bool"
- pretty DateTimeT       = text "DateTime"
+ pretty TimeT           = text "Time"
  pretty StringT         = text "String"
  pretty (ArrayT t)      = parens (text "Array " <> pretty t)
  pretty (GroupT k v)    = parens (text "Group" <+> pretty k <+> pretty v)

@@ -350,12 +350,12 @@ unVar :: SourceVar -> Text
 unVar (SP.Variable t) = t
 
 coreEval
-  :: DateTime
+  :: Time
   -> [AsAt Fact]
   -> QueryTop'T SourceVar
   -> CoreProgram' SourceVar
   -> Either SimError [Result]
-coreEval d fs (renameQT unVar -> query) prog
+coreEval t fs (renameQT unVar -> query) prog
  = do let partitions = S.streams fs
       let feat       = SQ.feature query
       let results    = fmap (evalP feat) partitions
@@ -375,15 +375,15 @@ coreEval d fs (renameQT unVar -> query) prog
       = return []
 
     evalV
-      = S.evaluateVirtualValue prog d
+      = S.evaluateVirtualValue prog t
 
 avalancheEval
-  :: DateTime
+  :: Time
   -> [AsAt Fact]
   -> QueryTop'T SourceVar
   -> AP.Program () SourceVar APF.Prim
   -> Either SimError [Result]
-avalancheEval d fs (renameQT unVar -> query) prog
+avalancheEval t fs (renameQT unVar -> query) prog
  = do let partitions = S.streams fs
       let feat       = SQ.feature query
       let results    = fmap (evalP feat) partitions
@@ -403,14 +403,14 @@ avalancheEval d fs (renameQT unVar -> query) prog
       = return []
 
     evalV
-      = S.evaluateVirtualValue' prog d
+      = S.evaluateVirtualValue' prog t
 
-seaEval :: DateTime
+seaEval :: Time
         -> [AsAt Fact]
         -> QueryTop'T SourceVar
         -> AP.Program (CA.Annot ()) SP.Variable APF.Prim
         -> EitherT Sea.SeaError IO [(Entity, Value)]
-seaEval date newFacts (renameQT unVar -> query) program =
+seaEval t newFacts (renameQT unVar -> query) program =
     mconcat <$> sequence results
   where
     partitions :: [S.Partition]
@@ -425,7 +425,7 @@ seaEval date newFacts (renameQT unVar -> query) program =
     evalP featureName (S.Partition entityName attributeName values)
       | CommonBase.Name name <- featureName
       , Attribute name == attributeName
-      = do outputs <- Sea.seaEvalAvalanche program date values
+      = do outputs <- Sea.seaEvalAvalanche program t values
            return $ fmap (\out -> (entityName, snd out)) outputs
 
       | otherwise

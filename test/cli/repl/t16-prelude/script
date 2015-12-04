@@ -17,10 +17,10 @@ feature injury ~> maxby severity location , max severity
 feature salary ~> sd value
 
 -- Gradient example
-feature salary ~> gradient value (double (days date) / 365)
+feature salary ~> gradient value (double (days time) / 365)
 
 -- Pearsons correlation example
-feature salary ~> correlation value (double (days date) / 365)
+feature salary ~> correlation value (double (days time) / 365)
 
 -- Newest example
 feature injury ~> newest fields

@@ -38,7 +38,7 @@ data Context n
 initialContext :: Ord n => Program a n p -> Context n
 initialContext p
  = Context
- { ctxExp = Map.singleton (binddate p) (FunT [] DateTimeT)
+ { ctxExp = Map.singleton (bindtime p) (FunT [] TimeT)
  , ctxAcc = Map.empty }
 
 -- TODO:

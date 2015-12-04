@@ -37,7 +37,7 @@ checkStream
 checkStream se s
  = case s of
     Source
-     -> return $ PairT (concrete se) DateTimeT
+     -> return $ PairT (concrete se) TimeT
     SWindow t _ _ _
      -> do
             return t

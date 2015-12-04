@@ -15,7 +15,7 @@ module Icicle.Source.Lexer.Token (
   ) where
 
 import Icicle.Internal.Pretty
-import Icicle.Data.DateTime
+import Icicle.Data.Time
 
 import                  P
 
@@ -39,10 +39,10 @@ data Token
  -- | Ints, strings, whatever
  | TLiteral  !Literal
  -- | Function operators like (+) (>)
- | TOperator    {-# UNPACK #-}!Operator
+ | TOperator    !Operator
  -- | Names. I dunno
- | TVariable    {-# UNPACK #-}!Variable
- | TConstructor {-# UNPACK #-}!Variable
+ | TVariable    !Variable
+ | TConstructor !Variable
 
  -- | '('
  | TParenL
@@ -64,7 +64,7 @@ data Token
  | TAlternative
 
  -- | An error
- | TUnexpected {-# UNPACK #-}!Text
+ | TUnexpected !Text
  deriving (Eq, Ord, Show)
 
 data Keyword
@@ -96,12 +96,11 @@ data Keyword
 
 
 
--- TODO: Strings, floats
 data Literal
- = LitInt    {-# UNPACK #-}!Int
- | LitDouble {-# UNPACK #-}!Double
- | LitString {-# UNPACK #-}!Text
- | LitDate   {-# UNPACK #-}!DateTime
+ = LitInt    !Int
+ | LitDouble !Double
+ | LitString !Text
+ | LitTime   !Time
  deriving (Eq, Ord, Show)
 
 newtype Operator

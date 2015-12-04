@@ -8,7 +8,7 @@ module Icicle.Source.Query.Operators (
   , Relation      (..)
   , LogicalBinary (..)
   , LogicalUnary  (..)
-  , DateBinary    (..)
+  , TimeBinary    (..)
   , Fixity        (..)
   , Infixity      (..)
   , Assoc         (..)
@@ -34,7 +34,7 @@ data Op
  | Relation      Relation
  | LogicalUnary  LogicalUnary
  | LogicalBinary LogicalBinary
- | DateBinary    DateBinary
+ | TimeBinary    TimeBinary
 
  | TupleComma
  deriving (Show, Eq, Ord)
@@ -72,7 +72,7 @@ data LogicalBinary
  | Or
  deriving (Show, Eq, Ord)
 
-data DateBinary
+data TimeBinary
  = DaysBefore
  | DaysAfter
  | WeeksBefore
@@ -123,7 +123,7 @@ fixity o
     LogicalBinary Or
      -> FInfix $ Infix AssocLeft 2
 
-    DateBinary _
+    TimeBinary _
      -> FInfix $ Infix AssocLeft 6
 
     TupleComma
@@ -157,12 +157,12 @@ symbol s
     "&&"-> inf $ LogicalBinary  And
     "||"-> inf $ LogicalBinary  Or
 
-    "days before" -> inf $ DateBinary DaysBefore
-    "days after" -> inf $ DateBinary DaysAfter
-    "weeks before" -> inf $ DateBinary WeeksBefore
-    "weeks after" -> inf $ DateBinary WeeksAfter
-    "months before" -> inf $ DateBinary MonthsBefore
-    "months after" -> inf $ DateBinary MonthsAfter
+    "days before"   -> inf $ TimeBinary DaysBefore
+    "days after"    -> inf $ TimeBinary DaysAfter
+    "weeks before"  -> inf $ TimeBinary WeeksBefore
+    "weeks after"   -> inf $ TimeBinary WeeksAfter
+    "months before" -> inf $ TimeBinary MonthsBefore
+    "months after"  -> inf $ TimeBinary MonthsAfter
 
     "," -> inf TupleComma
 
@@ -207,12 +207,12 @@ instance Pretty Op where
  pretty (LogicalBinary And)     = "&&"
  pretty (LogicalBinary Or)      = "||"
 
- pretty (DateBinary DaysAfter)  = "days after"
- pretty (DateBinary DaysBefore) = "days before"
- pretty (DateBinary WeeksAfter)  = "weeks after"
- pretty (DateBinary WeeksBefore) = "weeks before"
- pretty (DateBinary MonthsAfter)  = "months after"
- pretty (DateBinary MonthsBefore)  = "months before"
+ pretty (TimeBinary DaysAfter)    = "days after"
+ pretty (TimeBinary DaysBefore)   = "days before"
+ pretty (TimeBinary WeeksAfter)   = "weeks after"
+ pretty (TimeBinary WeeksBefore)  = "weeks before"
+ pretty (TimeBinary MonthsAfter)  = "months after"
+ pretty (TimeBinary MonthsBefore) = "months before"
 
  pretty TupleComma              = ","
 

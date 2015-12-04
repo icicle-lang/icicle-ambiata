@@ -24,7 +24,7 @@ typedef uint64_t iunit_t;
 typedef uint64_t ibool_t;
 typedef  int64_t iint_t;
 typedef   double idouble_t;
-typedef  int64_t idate_t;
+typedef  int64_t itime_t;
 
 typedef const char *istring_t;
 

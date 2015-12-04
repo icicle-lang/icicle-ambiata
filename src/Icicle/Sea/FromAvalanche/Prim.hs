@@ -45,9 +45,9 @@ seaOfXPrim p
       -> PDFun
        ( prefixOfValType DoubleT <> seaOfPrimDouble op )
 
-     PrimMinimal (M.PrimDateTime op)
+     PrimMinimal (M.PrimTime op)
       -> PDFun
-       ( prefixOfValType DateTimeT <> seaOfPrimDateTime op )
+       ( prefixOfValType TimeT <> seaOfPrimTime op )
 
      PrimMinimal (M.PrimCast op)
       -> PDFun $ seaOfPrimCast op
@@ -99,13 +99,13 @@ seaOfPrimDouble p
      M.PrimDoubleExp  -> "exp"
      M.PrimDoubleSqrt -> "sqrt"
 
-seaOfPrimDateTime :: M.PrimDateTime -> Doc
-seaOfPrimDateTime p
+seaOfPrimTime :: M.PrimTime -> Doc
+seaOfPrimTime p
  = case p of
-     M.PrimDateTimeDaysDifference -> "days_diff"
-     M.PrimDateTimeDaysEpoch      -> "to_epoch"
-     M.PrimDateTimeMinusDays      -> "minus_days"
-     M.PrimDateTimeMinusMonths    -> "minus_months"
+     M.PrimTimeDaysDifference -> "days_diff"
+     M.PrimTimeDaysEpoch      -> "to_epoch"
+     M.PrimTimeMinusDays      -> "minus_days"
+     M.PrimTimeMinusMonths    -> "minus_months"
 
 seaOfPrimCast :: M.PrimCast -> Doc
 seaOfPrimCast p

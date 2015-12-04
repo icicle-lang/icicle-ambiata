@@ -7,7 +7,7 @@ typedef struct {
     const iint_t  count;
     const char    entity[0];
 /*  const char    entity[entity_size + 1]; */
-/*  const idate_t dates[count];            */
+/*  const itime_t times[count];            */
 } ichord_t;
 
 typedef struct {
@@ -84,32 +84,32 @@ static psv_error_t ichord_file_unmap (const ichord_file_t *file)
     return 0;
 }
 
-static const idate_t * INLINE ichord_dates (const ichord_t *chord)
+static const itime_t * INLINE ichord_times (const ichord_t *chord)
 {
     size_t      entity0_size = (size_t) chord->entity_size + 1;
     const char* entity_end   = chord->entity + entity0_size;
 
-    return (const idate_t *)entity_end;
+    return (const itime_t *)entity_end;
 }
 
 static const ichord_t * INLINE ichord_next (const ichord_t *chord)
 {
-    const idate_t  *date_end = ichord_dates (chord) + chord->count;
-    const ichord_t *next     = (const ichord_t *)date_end;
+    const itime_t  *time_end = ichord_times (chord) + chord->count;
+    const ichord_t *next     = (const ichord_t *)time_end;
 
     return next->entity_size == 0 ? 0 : next;
 }
 
-static const ichord_t * INLINE ichord_scan (const ichord_t *chord, const char *entity, size_t entity_size, iint_t *chord_count, const idate_t **chord_dates)
+static const ichord_t * INLINE ichord_scan (const ichord_t *chord, const char *entity, size_t entity_size, iint_t *chord_count, const itime_t **chord_times)
 {
     while (chord != 0) {
         size_t cmp_size = 1 + MIN (entity_size, (size_t)chord->entity_size);
         int    cmp      = memcmp (entity, chord->entity, cmp_size);
 
-        /* current chord record matches this entity, extract the dates and move to the next chord */
+        /* current chord record matches this entity, extract the times and move to the next chord */
         if (cmp == 0) {
             *chord_count = chord->count;
-            *chord_dates = ichord_dates (chord);
+            *chord_times = ichord_times (chord);
 
             return ichord_next (chord);
         }
@@ -126,7 +126,7 @@ static const ichord_t * INLINE ichord_scan (const ichord_t *chord, const char *e
     }
 
     *chord_count = 0;
-    *chord_dates = 0;
+    *chord_times = 0;
     return chord;
 }
 

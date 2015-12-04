@@ -58,7 +58,7 @@ static psv_error_t INLINE psv_read_fact
   , const size_t  attrib_size
   , const char   *value
   , const size_t  value_size
-  , idate_t       date
+  , itime_t       time
   , ifleet_t     *fleet );
 
 /* psv driver */
@@ -71,7 +71,7 @@ static bool INLINE psv_is_digit (char c)
     return c - '0' < 10;
 }
 
-static psv_error_t INLINE psv_read_date (const char *time_ptr, const size_t time_size, idate_t *output_ptr)
+static psv_error_t INLINE psv_read_time (const char *time_ptr, const size_t time_size, itime_t *output_ptr)
 {
     const char  *p          = time_ptr;
     const size_t time0_size = time_size + 1;
@@ -102,7 +102,7 @@ static psv_error_t INLINE psv_read_date (const char *time_ptr, const size_t time
         const iint_t day   = p[8] * 10
                            + p[9];
 
-        *output_ptr = idate_from_gregorian (year, month, day, 0, 0, 0);
+        *output_ptr = itime_from_gregorian (year, month, day, 0, 0, 0);
         return 0;
     }
 
@@ -151,14 +151,14 @@ static psv_error_t INLINE psv_read_date (const char *time_ptr, const size_t time
         const iint_t second = p[17] * 10
                             + p[18];
 
-        *output_ptr = idate_from_gregorian (year, month, day, hour, minute, second);
+        *output_ptr = itime_from_gregorian (year, month, day, hour, minute, second);
         return 0;
     }
 
     return psv_alloc_error ("expected 'yyyy-mm-dd' or 'yyyy-mm-ddThh:mm:ssZ' but was", time_ptr, time_size);
 }
 
-static psv_error_t INLINE psv_read_json_date (char **pp, char *pe, idate_t *output_ptr)
+static psv_error_t INLINE psv_read_json_time (char **pp, char *pe, itime_t *output_ptr)
 {
     char *p = *pp;
 
@@ -170,8 +170,8 @@ static psv_error_t INLINE psv_read_json_date (char **pp, char *pe, idate_t *outp
     if (!quote_ptr)
         return psv_alloc_error ("missing closing quote '\"'",  p, pe - p);
 
-    size_t date_size = quote_ptr - p;
-    psv_error_t error = psv_read_date (p, date_size, output_ptr);
+    size_t time_size = quote_ptr - p;
+    psv_error_t error = psv_read_time (p, time_size, output_ptr);
 
     if (error) return error;
 
@@ -374,11 +374,11 @@ static psv_error_t psv_read_buffer (psv_state_t *s)
             entity_count++;
         }
 
-        idate_t date;
-        error = psv_read_date (time_ptr, time_size, &date);
+        itime_t time;
+        error = psv_read_time (time_ptr, time_size, &time);
         if (error) goto on_error;
 
-        error = psv_read_fact (attrib_ptr, attrib_size, value_ptr, value_size, date, s->fleet);
+        error = psv_read_fact (attrib_ptr, attrib_size, value_ptr, value_size, time, s->fleet);
         if (error) goto on_error;
 
         line_ptr = n_ptr + 1;
@@ -529,14 +529,14 @@ static psv_error_t INLINE psv_output_string
     return 0;
 }
 
-static psv_error_t INLINE psv_output_date
-    (int fd, char *ps, char *pe, char **pp, idate_t value)
+static psv_error_t INLINE psv_output_time
+    (int fd, char *ps, char *pe, char **pp, itime_t value)
 {
     const size_t value_size = sizeof ("yyyy-mm-ddThh:mm:ssZ") - 1;
     ENSURE_SIZE (value_size);
 
     iint_t year, month, day, hour, minute, second;
-    idate_to_gregorian (value, &year, &month, &day, &hour, &minute, &second);
+    itime_to_gregorian (value, &year, &month, &day, &hour, &minute, &second);
 
     // TODO remove all printfs in output code
     snprintf ( *pp, value_size

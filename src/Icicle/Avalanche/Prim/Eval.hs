@@ -175,13 +175,13 @@ meltValue :: BaseValue -> ValType -> Maybe [BaseValue]
 meltValue v t
  = let apcat x y = (<>) <$> x <*> y
    in case v of
-     VUnit{}     -> Just [v]
-     VInt{}      -> Just [v]
-     VDouble{}   -> Just [v]
-     VBool{}     -> Just [v]
-     VDateTime{} -> Just [v]
-     VString{}   -> Just [v]
-     VError{}    -> Just [v]
+     VUnit{}   -> Just [v]
+     VInt{}    -> Just [v]
+     VDouble{} -> Just [v]
+     VBool{}   -> Just [v]
+     VTime{}   -> Just [v]
+     VString{} -> Just [v]
+     VError{}  -> Just [v]
 
      VArray vs
       | Nothing <- tryMeltType t
@@ -303,13 +303,13 @@ unmeltValue' vs0 t
      (VRight{}:_,  _) -> Nothing
      (VStruct{}:_, _) -> Nothing
 
-     (v:vs, UnitT{})     -> Just (v, vs)
-     (v:vs, IntT{})      -> Just (v, vs)
-     (v:vs, DoubleT{})   -> Just (v, vs)
-     (v:vs, BoolT{})     -> Just (v, vs)
-     (v:vs, DateTimeT{}) -> Just (v, vs)
-     (v:vs, StringT{})   -> Just (v, vs)
-     (v:vs, ErrorT{})    -> Just (v, vs)
+     (v:vs, UnitT{})   -> Just (v, vs)
+     (v:vs, IntT{})    -> Just (v, vs)
+     (v:vs, DoubleT{}) -> Just (v, vs)
+     (v:vs, BoolT{})   -> Just (v, vs)
+     (v:vs, TimeT{})   -> Just (v, vs)
+     (v:vs, StringT{}) -> Just (v, vs)
+     (v:vs, ErrorT{})  -> Just (v, vs)
 
      (v:vs, ArrayT ta)
       | Just ts <- tryMeltType ta

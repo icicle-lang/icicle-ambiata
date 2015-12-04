@@ -147,7 +147,7 @@ exp1
    <|> ((Q.Lit . Q.LitInt)    <$> pLitInt)
    <|> ((Q.Lit . Q.LitDouble) <$> pLitDouble)
    <|> ((Q.Lit . Q.LitString) <$> pLitString)
-   <|> ((Q.Lit . Q.LitDate)   <$> pLitDate)
+   <|> ((Q.Lit . Q.LitTime)   <$> pLitTime)
    <|> (Q.PrimCon             <$> constructor)
    <?> "primitive"
 

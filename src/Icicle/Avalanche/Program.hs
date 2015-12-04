@@ -18,19 +18,19 @@ import              P
 data Program a n p =
   Program
   { input       :: ValType
-  , binddate    :: Name n
+  , bindtime    :: Name n
   , statements  :: Statement a n p
   }
  deriving (Eq, Ord, Show)
 
 instance TransformX Program where
  transformX names exps p
-  = do  binddate'   <-      names                  $ binddate   p
+  = do  bindtime'   <-      names                  $ bindtime   p
         statements' <-      transformX names exps  $ statements p
 
         return $ Program 
                { input      = input p
-               , binddate   = binddate'
+               , bindtime   = bindtime'
                , statements = statements'
                }
 
@@ -38,7 +38,7 @@ instance TransformX Program where
 
 instance (Pretty n, Pretty p) => Pretty (Program a n p) where
  pretty p
-  =   pretty (binddate   p) <> text " = DATE" <> line
+  =   pretty (bindtime   p) <> text " = TIME" <> line
   <>  pretty (Scoped.scopedOfStatement $ statements p)
 
 

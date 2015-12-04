@@ -35,7 +35,7 @@ import qualified Icicle.Avalanche.ToJava          as AJ
 import qualified Icicle.Core.Program.Check        as CP
 
 import           Icicle.Data
-import           Icicle.Data.DateTime
+import           Icicle.Data.Time
 import           Icicle.Dictionary
 
 import qualified Icicle.Repl                      as SR
@@ -92,7 +92,7 @@ data ReplState
    = ReplState
    { facts            :: [AsAt Fact]
    , dictionary       :: Dictionary
-   , currentDate      :: DateTime
+   , currentTime      :: Time
    , hasType          :: Bool
    , hasAnnotated     :: Bool
    , hasInlined       :: Bool
@@ -127,7 +127,7 @@ data Set
    | ShowSea            Bool
    | ShowSeaAssembly    Bool
    | ShowSeaEval        Bool
-   | CurrentDate        DateTime
+   | CurrentTime        Time
    | PerformCoreSimp    Bool
 
 -- | REPL commands
@@ -146,7 +146,7 @@ data Command
 
 defaultState :: ReplState
 defaultState
-  = (ReplState [] demographics (unsafeDateOfYMD 1970 1 1) False False False False False False False False False False False False False False False False)
+  = (ReplState [] demographics (unsafeTimeOfYMD 1970 1 1) False False False False False False False False False False False False False False False False)
     { hasCoreEval = True
     , doCoreSimp  = True }
 
@@ -216,12 +216,12 @@ readSetCommands ss
     ("+c-eval":rest)       -> (:) (ShowSeaEval     True)  <$> readSetCommands rest
     ("-c-eval":rest)       -> (:) (ShowSeaEval     False) <$> readSetCommands rest
 
-    ("date" : y : m : d : rest)
+    ("time" : y : m : d : rest)
        | Just y' <- readMaybe y
        , Just m' <- readMaybe m
        , Just d' <- readMaybe d
-       , Just x' <- dateOfYMD y' m' d'
-       -> (:) (CurrentDate x') <$> readSetCommands rest
+       , Just x' <- timeOfYMD y' m' d'
+       -> (:) (CurrentTime x') <$> readSetCommands rest
 
     [] -> Just []
     _  -> Nothing
@@ -334,7 +334,7 @@ handleLine state line = case readCommand line of
        Right f -> do
         prettyOut hasFlatten "- Flattened:" f
 
-        case P.avalancheEval (currentDate state) (facts state) finalSource f of
+        case P.avalancheEval (currentTime state) (facts state) finalSource f of
          Left  e -> prettyOut hasAvalancheEval "- Avalanche error:" e
          Right r -> prettyOut hasAvalancheEval "- Avalanche evaluation:" r
 
@@ -359,12 +359,12 @@ handleLine state line = case readCommand line of
                Right r -> prettyOut (const True) "- C assembly:" r
 
            when (hasSeaEval state) $ do
-             result <- liftIO . runEitherT $ P.seaEval (currentDate state) (facts state) finalSource f'
+             result <- liftIO . runEitherT $ P.seaEval (currentTime state) (facts state) finalSource f'
              case result of
                Left  e -> prettyOut (const True) "- C error:" e
                Right r -> prettyOut (const True) "- C evaluation:" r
 
-      case P.coreEval (currentDate state) (facts state) finalSource core' of
+      case P.coreEval (currentTime state) (facts state) finalSource core' of
        Left  e -> prettyOut hasCoreEval "- Core error:" e
        Right r -> prettyOut hasCoreEval "- Core evaluation:" r
 
@@ -456,9 +456,9 @@ handleSetCommand state set
           HL.outputStrLn "                                    \\_____________)"
         return $ state { hasSeaEval = b }
 
-    CurrentDate d -> do
-        HL.outputStrLn $ "ok, date set to " <> T.unpack (renderDate d)
-        return $ state { currentDate = d }
+    CurrentTime d -> do
+        HL.outputStrLn $ "ok, time set to " <> T.unpack (renderTime d)
+        return $ state { currentTime = d }
 
     PerformCoreSimp b -> do
         HL.outputStrLn $ "ok, core-simp is now " <> showFlag b
@@ -529,7 +529,7 @@ showState state
     , flag "c:            " hasSea
     , flag "c-assembly:   " hasSeaAssembly
     , flag "c-eval:       " hasSeaEval
-    ,      "now:          " <> T.unpack (renderDate $ currentDate state)
+    ,      "now:          " <> T.unpack (renderTime $ currentTime state)
     ,      "data:         " <> show (length $ facts state) <> " rows"
     ,      "dictionary:   " <> show (prettyDictionarySummary (dictionary state))
     ]

@@ -61,7 +61,7 @@ import           Icicle.Common.Data (asAtValueToCore, valueFromCore)
 import           Icicle.Common.Type (ValType(..), StructType(..), defaultOfType)
 import           Icicle.Data (Attribute(..))
 import qualified Icicle.Data as D
-import           Icicle.Data.DateTime (packedOfDate, dateOfPacked)
+import           Icicle.Data.Time (packedOfTime, timeOfPacked)
 import           Icicle.Internal.Pretty (pretty, vsep)
 import           Icicle.Internal.Pretty (Doc, Pretty, displayS, renderPretty)
 
@@ -178,38 +178,38 @@ seaPsvSnapshotFd fleet input output mchords =
 seaEvalAvalanche
   :: (Show a, Show n, Pretty n, Ord n)
   => Program (Annot a) n Prim
-  -> D.DateTime
+  -> D.Time
   -> [D.AsAt D.Value]
   -> EitherT SeaError IO [(OutputName, D.Value)]
-seaEvalAvalanche program date values = do
+seaEvalAvalanche program time values = do
   let attr = Attribute "eval"
       ps   = Map.singleton attr program
-  bracketEitherT' (seaCompile NoPsv ps) seaRelease (\fleet -> seaEval attr fleet date values)
+  bracketEitherT' (seaCompile NoPsv ps) seaRelease (\fleet -> seaEval attr fleet time values)
 
 seaEval
   :: (MonadIO m, MonadMask m)
   => Attribute
   -> SeaFleet
-  -> D.DateTime
+  -> D.Time
   -> [D.AsAt D.Value]
   -> EitherT SeaError m [(OutputName, D.Value)]
-seaEval attribute fleet date values =
+seaEval attribute fleet time values =
   case Map.lookup attribute (sfPrograms fleet) of
     Nothing      -> left (SeaProgramNotFound attribute)
     Just program -> do
       let create  = liftIO $ sfCreatePool  fleet
           release = liftIO . sfReleasePool fleet
-      seaEval' program create release date values
+      seaEval' program create release time values
 
 seaEval'
   :: (MonadIO m, MonadMask m)
   => SeaProgram
   -> (EitherT SeaError m (Ptr MemPool))
   -> (Ptr MemPool -> EitherT SeaError m ())
-  -> D.DateTime
+  -> D.Time
   -> [D.AsAt D.Value]
   -> EitherT SeaError m [(OutputName, D.Value)]
-seaEval' program createPool releasePool date values = do
+seaEval' program createPool releasePool time values = do
   let words              = spStateWords program
       acquireFacts       = vectorsOfFacts values (spFactType program)
       releaseFacts facts = traverse_ freeSeaVector facts
@@ -224,7 +224,7 @@ seaEval' program createPool releasePool date values = do
         factsIx    = 3
         outputsIx  = 3 + length psFacts
 
-    pokeWordOff pState dateIx  (packedOfDate date)
+    pokeWordOff pState dateIx  (packedOfTime time)
     pokeWordOff pState countIx (fromIntegral count :: Int64)
 
     zipWithM_ (pokeWordOff pState) [factsIx..] psFacts
@@ -401,13 +401,13 @@ vectorsOfFacts vs t = do
 newSeaVectors :: MonadIO m => Int -> ValType -> EitherT SeaError m [SeaMVector]
 newSeaVectors sz t =
   case t of
-    IntT      -> (:[]) . I64 <$> liftIO (MV.new sz)
-    DoubleT   -> (:[]) . F64 <$> liftIO (MV.new sz)
-    UnitT     -> (:[]) . U64 <$> liftIO (MV.new sz)
-    BoolT     -> (:[]) . U64 <$> liftIO (MV.new sz)
-    DateTimeT -> (:[]) . U64 <$> liftIO (MV.new sz)
-    ErrorT    -> (:[]) . U64 <$> liftIO (MV.new sz)
-    StringT   -> (:[]) . flip P64 t <$> liftIO (MV.new sz)
+    IntT    -> (:[]) . I64 <$> liftIO (MV.new sz)
+    DoubleT -> (:[]) . F64 <$> liftIO (MV.new sz)
+    UnitT   -> (:[]) . U64 <$> liftIO (MV.new sz)
+    BoolT   -> (:[]) . U64 <$> liftIO (MV.new sz)
+    TimeT   -> (:[]) . U64 <$> liftIO (MV.new sz)
+    ErrorT  -> (:[]) . U64 <$> liftIO (MV.new sz)
+    StringT -> (:[]) . flip P64 t <$> liftIO (MV.new sz)
 
     BufT{}    -> left (SeaTypeConversionError t)
 
@@ -455,12 +455,12 @@ pokeInput' :: MonadIO m => [SeaMVector] -> ValType -> Int -> BaseValue -> Either
 pokeInput' []            t _  val = left (SeaBaseValueConversionError val (Just t))
 pokeInput' svs0@(sv:svs) t ix val =
   case (sv, val, t) of
-    (U64 v, VBool False, BoolT)     -> pure svs <* liftIO (MV.write v ix 0)
-    (U64 v, VBool  True, BoolT)     -> pure svs <* liftIO (MV.write v ix 1)
-    (I64 v, VInt      x, IntT)      -> pure svs <* liftIO (MV.write v ix (fromIntegral x))
-    (F64 v, VDouble   x, DoubleT)   -> pure svs <* liftIO (MV.write v ix x)
-    (U64 v, VDateTime x, DateTimeT) -> pure svs <* liftIO (MV.write v ix (packedOfDate x))
-    (U64 v, VError    x, ErrorT)    -> pure svs <* liftIO (MV.write v ix (wordOfError x))
+    (U64 v, VBool False, BoolT)   -> pure svs <* liftIO (MV.write v ix 0)
+    (U64 v, VBool  True, BoolT)   -> pure svs <* liftIO (MV.write v ix 1)
+    (I64 v, VInt      x, IntT)    -> pure svs <* liftIO (MV.write v ix (fromIntegral x))
+    (F64 v, VDouble   x, DoubleT) -> pure svs <* liftIO (MV.write v ix x)
+    (U64 v, VTime     x, TimeT)   -> pure svs <* liftIO (MV.write v ix (packedOfTime x))
+    (U64 v, VError    x, ErrorT)  -> pure svs <* liftIO (MV.write v ix (wordOfError x))
 
     (P64 v _, VString xs, StringT)
      -> do let str = T.unpack xs
@@ -562,11 +562,11 @@ peekOutputs ptr ix0 (t : ts) = do
 peekOutput :: MonadIO m => Ptr a -> Int -> ValType -> EitherT SeaError m (Int, BaseValue)
 peekOutput ptr ix0 t =
   case t of
-    UnitT     -> (ix0+1,)                            <$> pure VUnit
-    IntT      -> (ix0+1,) . VInt      . fromInt64    <$> peekWordOff ptr ix0
-    DoubleT   -> (ix0+1,) . VDouble                  <$> peekWordOff ptr ix0
-    DateTimeT -> (ix0+1,) . VDateTime . dateOfPacked <$> peekWordOff ptr ix0
-    ErrorT    -> (ix0+1,) . VError    . errorOfWord  <$> peekWordOff ptr ix0
+    UnitT   -> (ix0+1,)                          <$> pure VUnit
+    IntT    -> (ix0+1,) . VInt    . fromInt64    <$> peekWordOff ptr ix0
+    DoubleT -> (ix0+1,) . VDouble                <$> peekWordOff ptr ix0
+    TimeT   -> (ix0+1,) . VTime   . timeOfPacked <$> peekWordOff ptr ix0
+    ErrorT  -> (ix0+1,) . VError  . errorOfWord  <$> peekWordOff ptr ix0
 
     StructT{} -> left (SeaTypeConversionError t)
     BufT{}    -> left (SeaTypeConversionError t)
@@ -632,14 +632,14 @@ pokeArray ptr t vs = do
 pokeArrayIx :: MonadIO m => Ptr x -> ValType -> Int -> BaseValue -> EitherT SeaError m ()
 pokeArrayIx ptr t ix v =
   case (v, t) of
-    (VBool False, BoolT)     -> liftIO (pokeWordOff ptr ix (0 :: Word64))
-    (VBool  True, BoolT)     -> liftIO (pokeWordOff ptr ix (1 :: Word64))
-    (VInt      x, IntT)      -> liftIO (pokeWordOff ptr ix (fromIntegral x :: Int64))
-    (VDouble   x, DoubleT)   -> liftIO (pokeWordOff ptr ix x)
-    (VDateTime x, DateTimeT) -> liftIO (pokeWordOff ptr ix (packedOfDate x))
-    (VError    x, ErrorT)    -> liftIO (pokeWordOff ptr ix (wordOfError x))
-    (VString   x, StringT)   -> liftIO (newCString (T.unpack x) >>= pokeWordOff ptr ix)
-    _                        -> left (SeaBaseValueConversionError v (Just t))
+    (VBool False, BoolT)   -> liftIO (pokeWordOff ptr ix (0 :: Word64))
+    (VBool  True, BoolT)   -> liftIO (pokeWordOff ptr ix (1 :: Word64))
+    (VInt      x, IntT)    -> liftIO (pokeWordOff ptr ix (fromIntegral x :: Int64))
+    (VDouble   x, DoubleT) -> liftIO (pokeWordOff ptr ix x)
+    (VTime     x, TimeT)   -> liftIO (pokeWordOff ptr ix (packedOfTime x))
+    (VError    x, ErrorT)  -> liftIO (pokeWordOff ptr ix (wordOfError x))
+    (VString   x, StringT) -> liftIO (newCString (T.unpack x) >>= pokeWordOff ptr ix)
+    _                      -> left (SeaBaseValueConversionError v (Just t))
 
 peekArray :: MonadIO m => Ptr x -> ValType -> EitherT SeaError m [BaseValue]
 peekArray ptr t = do
@@ -649,10 +649,10 @@ peekArray ptr t = do
 peekArrayIx :: MonadIO m => Ptr x -> ValType -> Int -> EitherT SeaError m BaseValue
 peekArrayIx ptr t ix =
   case t of
-    IntT      -> VInt      . fromInt64    <$> peekWordOff ptr ix
-    DoubleT   -> VDouble                  <$> peekWordOff ptr ix
-    DateTimeT -> VDateTime . dateOfPacked <$> peekWordOff ptr ix
-    ErrorT    -> VError    . errorOfWord  <$> peekWordOff ptr ix
+    IntT    -> VInt    . fromInt64    <$> peekWordOff ptr ix
+    DoubleT -> VDouble                <$> peekWordOff ptr ix
+    TimeT   -> VTime   . timeOfPacked <$> peekWordOff ptr ix
+    ErrorT  -> VError  . errorOfWord  <$> peekWordOff ptr ix
 
     BoolT
      -> do b <- peekWordOff ptr ix

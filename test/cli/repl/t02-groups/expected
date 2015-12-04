@@ -10,7 +10,7 @@ ok, loaded test/cli/repl/data.psv, 13 rows
         ,(500,1)]
 ,marge, [(0,1),(10,1),(20,1)]]
 
-> > -- Grouping by the date
+> > -- Grouping by the time
 > - Core evaluation:
 [homer, [(1989-12-17,1)
         ,(1990-01-01,1)

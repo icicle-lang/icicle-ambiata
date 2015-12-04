@@ -29,9 +29,9 @@ import qualified Data.Map               as Map
 import qualified Data.Set               as Set
 import qualified Data.Vector            as V
 
-import           Icicle.Data
 import qualified Icicle.Common.Type     as IT
-import           Icicle.Data.DateTime
+import           Icicle.Data
+import           Icicle.Data.Time
 
 import           P
 
@@ -62,7 +62,7 @@ primitiveEncoding e
    IntEncoding      -> True
    DoubleEncoding   -> True
    BooleanEncoding  -> True
-   DateEncoding     -> True
+   TimeEncoding     -> True
    StructEncoding _ -> False
    ListEncoding   _ -> False
 
@@ -80,8 +80,8 @@ valueSatisfiesEncoding val enc
      -> enc == DoubleEncoding
     BooleanValue _
      -> enc == BooleanEncoding
-    DateValue    _
-     -> enc == DateEncoding
+    TimeValue    _
+     -> enc == TimeEncoding
 
     StructValue  (Struct vals)
      | StructEncoding fields <- enc
@@ -138,8 +138,8 @@ renderValue tombstone val
     -> "false"
    BooleanValue True
     -> "true"
-   DateValue v
-    -> renderDate v
+   TimeValue v
+    -> renderTime v
 
    StructValue _
     -> json
@@ -184,9 +184,9 @@ parseValue e tombstone t
      | otherwise
      -> Left err
 
-    DateEncoding
-     | Just v <- dateOfText t
-     -> return $ DateValue v
+    TimeEncoding
+     | Just v <- timeOfText t
+     -> return $ TimeValue v
      | otherwise
      -> Left err
 
@@ -245,10 +245,10 @@ valueOfJSON e v
      | otherwise
      -> Left err
 
-    DateEncoding
+    TimeEncoding
      | A.String t <- v
-     , Just d <- dateOfText t
-     -> return $ DateValue d
+     , Just d <- timeOfText t
+     -> return $ TimeValue d
      | otherwise
      -> Left err
 
@@ -309,8 +309,8 @@ jsonOfValue t val
      -> A.Number $ S.fromFloatDigits v
     BooleanValue v
      -> A.Bool   v
-    DateValue    v
-     -> A.String $ renderDate v
+    TimeValue    v
+     -> A.String $ renderTime v
     StructValue (Struct sfs)
      -> A.Object $ P.foldl insert HM.empty sfs
     ListValue (List l)
@@ -349,8 +349,8 @@ sourceTypeOfEncoding e
      -> IT.DoubleT
     BooleanEncoding
      -> IT.BoolT
-    DateEncoding
-     -> IT.DateTimeT
+    TimeEncoding
+     -> IT.TimeT
     StructEncoding fs
      -> IT.StructT
       $ IT.StructType

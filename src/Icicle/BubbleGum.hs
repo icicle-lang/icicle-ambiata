@@ -23,13 +23,13 @@ import           P
 import           Data.List (nub, sort)
 
 
--- | Each flavour has a unique id, and a date.
--- I don't think the date is strictly necessary,
+-- | Each flavour has a unique id, and a time.
+-- I don't think the time is strictly necessary,
 -- but suspect it will make visual debugging easier.
 data Flavour =
   Flavour
-  { id      :: Int
-  , date    :: DateTime
+  { flavourId   :: Int
+  , flavourTime :: Time
   }
  deriving (Show, Eq, Ord)
 

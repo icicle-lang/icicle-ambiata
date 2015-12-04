@@ -23,7 +23,7 @@ module Icicle.Source.Eval (
 
 import                  Icicle.Common.Base
 import                  Icicle.Source.Query
-import qualified        Icicle.Data.DateTime            as DT
+import qualified        Icicle.Data.Time                as DT
 
 import                  P
 import                  Data.List (zip, nubBy, groupBy, take)
@@ -194,8 +194,8 @@ evalP ann p xs vs env
     Lit (LitString i)
      -> return (VString i)
 
-    Lit (LitDate i)
-     -> return (VDateTime i)
+    Lit (LitTime i)
+     -> return (VTime i)
 
     PrimCon con
      -> do  args <- mapM (\x' -> evalX x' vs env) xs
@@ -257,12 +257,12 @@ evalP ann p xs vs env
               -> return $ VDouble $ fromIntegral (truncate i :: Int)
               | otherwise -> err
              DaysBetween
-              | [VDateTime i, VDateTime j] <- args
+              | [VTime i, VTime j] <- args
               -> return $ VDouble $ fromIntegral $ DT.daysDifference i j
               | otherwise -> err
              DaysEpoch
-              | [VDateTime i] <- args
-              -> return $ VDouble $ fromIntegral $ DT.daysOfDate i
+              | [VTime i] <- args
+              -> return $ VDouble $ fromIntegral $ DT.daysOfTime i
               | otherwise -> err
              Seq
               | [VError e,_] <- args
@@ -376,39 +376,39 @@ evalP ann p xs vs env
               | otherwise
               -> err
 
-             DateBinary DaysBefore
-              | [VDouble i, VDateTime j] <- args
-              -> return $ VDateTime $ DT.minusDays j $ truncate i
+             TimeBinary DaysBefore
+              | [VDouble i, VTime j] <- args
+              -> return $ VTime $ DT.minusDays j $ truncate i
               | otherwise
               -> err
 
-             DateBinary DaysAfter
-              | [VDouble i, VDateTime j] <- args
-              -> return $ VDateTime $ DT.minusDays j $ negate $ truncate i
+             TimeBinary DaysAfter
+              | [VDouble i, VTime j] <- args
+              -> return $ VTime $ DT.minusDays j $ negate $ truncate i
               | otherwise
               -> err
 
-             DateBinary WeeksBefore
-              | [VDouble i, VDateTime j] <- args
-              -> return $ VDateTime $ DT.minusDays j (7 * truncate i)
+             TimeBinary WeeksBefore
+              | [VDouble i, VTime j] <- args
+              -> return $ VTime $ DT.minusDays j (7 * truncate i)
               | otherwise
               -> err
 
-             DateBinary WeeksAfter
-              | [VDouble i, VDateTime j] <- args
-              -> return $ VDateTime $ DT.minusDays j $ negate (7 * truncate i)
+             TimeBinary WeeksAfter
+              | [VDouble i, VTime j] <- args
+              -> return $ VTime $ DT.minusDays j $ negate (7 * truncate i)
               | otherwise
               -> err
 
-             DateBinary MonthsBefore
-              | [VDouble i, VDateTime j] <- args
-              -> return $ VDateTime $ DT.minusMonths j $ truncate i
+             TimeBinary MonthsBefore
+              | [VDouble i, VTime j] <- args
+              -> return $ VTime $ DT.minusMonths j $ truncate i
               | otherwise
               -> err
 
-             DateBinary MonthsAfter
-              | [VDouble i, VDateTime j] <- args
-              -> return $ VDateTime $ DT.minusMonths j $ negate $ truncate i
+             TimeBinary MonthsAfter
+              | [VDouble i, VTime j] <- args
+              -> return $ VTime $ DT.minusMonths j $ negate $ truncate i
               | otherwise
               -> err
 

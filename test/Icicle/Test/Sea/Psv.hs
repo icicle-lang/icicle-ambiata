@@ -22,7 +22,7 @@ import qualified Data.Text.Lazy.IO as LT
 import           Disorder.Core.IO
 
 import           Icicle.Data (Entity(..), Attribute(..), AsAt(..), Value(..))
-import           Icicle.Data.DateTime (DateTime, renderDate)
+import           Icicle.Data.Time (Time, renderTime)
 import           Icicle.Encoding (renderValue)
 import           Icicle.Internal.Pretty
 
@@ -70,7 +70,7 @@ prop_psv wt = testIO $ do
 runTest :: WellTyped -> EitherT S.SeaError IO ()
 runTest wt = do
   let programs = Map.singleton (wtAttribute wt) (wtAvalanche wt)
-      config   = S.PsvConfig (S.PsvSnapshot (wtDateTime wt))
+      config   = S.PsvConfig (S.PsvSnapshot (wtTime wt))
                              (Map.singleton (wtAttribute wt) (Set.singleton tombstone))
 
   bracketEitherT' (S.seaCompile (S.Psv config) programs) S.seaRelease $ \fleet -> do
@@ -109,8 +109,8 @@ fieldsOfFacts entities (Attribute attribute) vs =
 
 textsOfValues :: [AsAt BaseValue] -> [(LT.Text, LT.Text)]
 textsOfValues vs =
-  List.zip (fmap (\v -> textOfValue (fact v)) vs)
-           (fmap (\v -> textOfTime  (time v)) vs)
+  List.zip (fmap (\v -> textOfValue (atFact v)) vs)
+           (fmap (\v -> textOfTime  (atTime v)) vs)
 
 textOfValue :: BaseValue -> LT.Text
 textOfValue
@@ -120,8 +120,8 @@ textOfValue
  . fromMaybe Tombstone
  . valueFromCore
 
-textOfTime :: DateTime -> LT.Text
-textOfTime = LT.fromStrict . renderDate
+textOfTime :: Time -> LT.Text
+textOfTime = LT.fromStrict . renderTime
 
 tombstone :: Text
 tombstone = "💀"

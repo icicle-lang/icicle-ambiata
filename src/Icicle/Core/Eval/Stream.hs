@@ -23,7 +23,7 @@ import qualified    Icicle.Core.Eval.Exp    as XV -- eXpression eVal
 import              Icicle.Core.Exp.Prim
 
 import              Icicle.Data
-import              Icicle.Data.DateTime
+import              Icicle.Data.Time
 
 import              Icicle.Internal.Pretty
 
@@ -110,7 +110,7 @@ data EvalResult
 -- We take the precomputation environment, the stream of concrete values,
 -- and the heap with all preceding streams stored.
 eval    :: Ord n
-        => DateTime             -- ^ Snapshot date for checking against windows
+        => Time                 -- ^ Snapshot date for checking against windows
         -> V.Heap    a n Prim   -- ^ The expression heap with precomputations
         -> InitialStreamValue   -- ^ Concrete inputs start with dates attached
         -> StreamHeap       n   -- ^ Any streams that have already been evaluated
@@ -154,11 +154,11 @@ eval window_check xh concreteValues sh s
             let windowBy p p'history =
                  return $
                   EvalResult
-                        ( filter (\v -> p $ time v)
+                        ( filter (\v -> p $ atTime v)
                         $ fst sv
                         , Windowed newerThan)
-                        ( fmap (fst . fact)
-                        $ filter (\v -> p'history $ time v)
+                        ( fmap (fst . atFact)
+                        $ filter (\v -> p'history $ atTime v)
                         $ fst sv)
 
             case (newer, older) of
@@ -168,7 +168,7 @@ eval window_check xh concreteValues sh s
               -> windowBy (\d -> d >= newer' && d <= older') (> older')
 
           where
-            windowEdge :: WindowUnit -> DateTime
+            windowEdge :: WindowUnit -> Time
             windowEdge (Days   d) = minusDays window_check d
             windowEdge (Weeks  w) = minusDays window_check $ 7 * w
             windowEdge (Months m) = minusMonths window_check m
@@ -185,7 +185,7 @@ eval window_check xh concreteValues sh s
      -> do  -- First get the input source of the transformer
             sv  <- getInput n
             -- Filter according to the actual value, not the date or other junk
-            sv' <- filterM (evalFilt x . snd . fact) (fst sv)
+            sv' <- filterM (evalFilt x . snd . atFact) (fst sv)
             -- Transformers preserve windows
             return $ EvalResult (sv', snd sv) []
 
@@ -204,7 +204,7 @@ eval window_check xh concreteValues sh s
 
 
   streamvalue v
-   = v { fact = (fst $ fact v, VPair (snd $ fact v) (VDateTime $ time v)) }
+   = v { atFact = (fst $ atFact v, VPair (snd $ atFact v) (VTime $ atTime v)) }
 
   -- Apply x to arg, if it's a bool we know whether to filter
   evalFilt x arg
@@ -231,8 +231,8 @@ eval window_check xh concreteValues sh s
 
   -- Apply an expression to a stream value, keeping the bubblegum intact
   applySnd fX f
-   = do v' <- applyX fX $ snd $ fact f
+   = do v' <- applyX fX $ snd $ atFact f
         case v' of
-         V.VBase v'' -> return (f { fact = (fst $ fact f, v'') })
+         V.VBase v'' -> return (f { atFact = (fst $ atFact f, v'') })
          V.VFun{}    -> Left (RuntimeErrorExpNotBaseType v')
 

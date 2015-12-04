@@ -26,13 +26,13 @@ import           Icicle.Common.Base (OutputName(..))
 import           Icicle.Common.Type (ValType(..), StructType(..), StructField(..))
 import           Icicle.Common.Type (defaultOfType)
 
-import           Icicle.Data (Attribute(..), DateTime)
+import           Icicle.Data (Attribute(..), Time)
 
 import           Icicle.Internal.Pretty
 import qualified Icicle.Internal.Pretty as Pretty
 
 import           Icicle.Sea.Error (SeaError(..))
-import           Icicle.Sea.FromAvalanche.Base (seaOfAttributeDesc, seaOfDate)
+import           Icicle.Sea.FromAvalanche.Base (seaOfAttributeDesc, seaOfTime)
 import           Icicle.Sea.FromAvalanche.Base (seaOfNameIx, seaOfChar, seaOfString)
 import           Icicle.Sea.FromAvalanche.Prim
 import           Icicle.Sea.FromAvalanche.Program (seaOfXValue)
@@ -47,7 +47,7 @@ import           Text.Printf (printf)
 ------------------------------------------------------------------------
 
 data PsvMode
-  = PsvSnapshot DateTime
+  = PsvSnapshot Time
   | PsvChords
   deriving (Eq, Ord, Show)
 
@@ -84,14 +84,14 @@ seaOfPsvDriver states config = do
 
 seaOfFleetState :: [SeaProgramState] -> Doc
 seaOfFleetState states
- = let constDate = "const " <> seaOfValType DateTimeT
+ = let constTime = "const " <> seaOfValType TimeT
    in vsep
       [ "#line 1 \"fleet state\""
       , "struct ifleet {"
       , indent 4 (defOfVar' 1 "imempool_t" "mempool")         <> ";"
       , indent 4 (defOfVar  0 IntT         "max_chord_count") <> ";"
       , indent 4 (defOfVar  0 IntT         "chord_count")     <> ";"
-      , indent 4 (defOfVar' 1 constDate    "chord_dates")     <> ";"
+      , indent 4 (defOfVar' 1 constTime    "chord_times")     <> ";"
       , indent 4 (vsep (fmap defOfProgramState states))
       , "};"
       ]
@@ -231,7 +231,7 @@ needsCopy = \case
   BoolT     -> False
   IntT      -> False
   DoubleT   -> False
-  DateTimeT -> False
+  TimeT     -> False
   ErrorT    -> False
 
   -- these should have been melted
@@ -252,10 +252,10 @@ seaOfConfigureFleet mode states
  , "    iint_t max_chord_count = fleet->max_chord_count;"
  , ""
  , "    iint_t         chord_count;"
- , "    const idate_t *chord_dates;"
+ , "    const itime_t *chord_times;"
  , ""
  , case mode of
-     PsvSnapshot date -> indent 4 (seaOfChordDates [date])
+     PsvSnapshot time -> indent 4 (seaOfChordTimes [time])
      PsvChords        -> indent 4 seaOfChordScan
  , ""
  , "    if (chord_count > max_chord_count) {"
@@ -270,14 +270,14 @@ seaOfConfigureFleet mode states
  , "    }"
  , ""
  , "    fleet->chord_count = chord_count;"
- , "    fleet->chord_dates = chord_dates;"
+ , "    fleet->chord_times = chord_times;"
  , ""
  , indent 4 (vsep (fmap defOfState states))
  , ""
  , "    for (iint_t ix = 0; ix < chord_count; ix++) {"
- , "        idate_t chord_date = chord_dates[ix];"
+ , "        itime_t chord_time = chord_times[ix];"
  , ""
- , indent 8 (vsep (fmap seaOfAssignDate states))
+ , indent 8 (vsep (fmap seaOfAssignTime states))
  , "    }"
  , ""
  , "    return 0;"
@@ -291,23 +291,23 @@ defOfState state
        member = "fleet->" <> pretty (nameOfProgram state)
    in stype <+> var <+> "=" <+> member <> ";"
 
-seaOfAssignDate :: SeaProgramState -> Doc
-seaOfAssignDate state
- = let pdate = "p" <> pretty (stateName state) <> "[ix]." <> pretty (stateDateVar state)
-   in pdate <+> "=" <+> "chord_date;"
+seaOfAssignTime :: SeaProgramState -> Doc
+seaOfAssignTime state
+ = let ptime = "p" <> pretty (stateName state) <> "[ix]." <> pretty (stateTimeVar state)
+   in ptime <+> "=" <+> "chord_time;"
 
-seaOfChordDates :: [DateTime] -> Doc
-seaOfChordDates dates
+seaOfChordTimes :: [Time] -> Doc
+seaOfChordTimes times
  = vsep
- [ "static const idate_t entity_dates[] = { " <> hcat (punctuate ", " (fmap seaOfDate dates)) <> " };"
+ [ "static const itime_t entity_times[] = { " <> hcat (punctuate ", " (fmap seaOfTime times)) <> " };"
  , ""
- , "chord_count = " <> int (length dates) <> ";"
- , "chord_dates = entity_dates;"
+ , "chord_count = " <> int (length times) <> ";"
+ , "chord_times = entity_times;"
  ]
 
 seaOfChordScan :: Doc
 seaOfChordScan
- = "*chord = ichord_scan (*chord, entity, entity_size, &chord_count, &chord_dates);"
+ = "*chord = ichord_scan (*chord, entity, entity_size, &chord_count, &chord_times);"
 
 ------------------------------------------------------------------------
 
@@ -324,22 +324,22 @@ seaOfReadAnyFact config states = do
     , "  , const size_t  attrib_size"
     , "  , const char   *value"
     , "  , const size_t  value_size"
-    , "  , idate_t       date"
+    , "  , itime_t       time"
     , "  , ifleet_t     *fleet )"
     , "{"
-    , "    ibool_t        ignore_date = itrue;"
+    , "    ibool_t        ignore_time = itrue;"
     , "    iint_t         chord_count = fleet->chord_count;"
-    , "    const idate_t *chord_dates = fleet->chord_dates;"
+    , "    const itime_t *chord_times = fleet->chord_times;"
     , ""
-    , "    /* ignore this date if it comes after all the chord dates */"
+    , "    /* ignore this time if it comes after all the chord times */"
     , "    for (iint_t chord_ix = 0; chord_ix < chord_count; chord_ix++) {"
-    , "        if (chord_dates[chord_ix] > date) {"
-    , "            ignore_date = ifalse;"
+    , "        if (chord_times[chord_ix] > time) {"
+    , "            ignore_time = ifalse;"
     , "            break;"
     , "        }"
     , "    }"
     , ""
-    , "    if (ignore_date) return 0;"
+    , "    if (ignore_time) return 0;"
     , ""
     , indent 4 (vsep (fmap seaOfReadNamedFact states))
     , "    return 0;"
@@ -354,7 +354,7 @@ seaOfReadNamedFact state
    in vsep
       [ "/* " <> pretty attrib <> " */"
       , "if (" <> seaOfStringEq attrib "attrib" (Just "attrib_size") <> ") {"
-      , "    return " <> fun <> " (value, value_size, date, fleet->mempool, chord_count, fleet->" <> pname <> ");"
+      , "    return " <> fun <> " (value, value_size, time, fleet->mempool, chord_count, fleet->" <> pname <> ");"
       , "}"
       , ""
       ]
@@ -372,7 +372,7 @@ seaOfReadFact state tombstones = do
     [ "#line 1 \"read fact" <+> seaOfStateInfo state <> "\""
     , "static psv_error_t INLINE"
         <+> pretty (nameOfReadFact state) <+> "("
-        <> "const char *value_ptr, const size_t value_size, idate_t date, "
+        <> "const char *value_ptr, const size_t value_size, itime_t time, "
         <> "imempool_t *mempool, iint_t chord_count, "
         <> pretty (nameOfStateType state) <+> "*programs)"
     , "{"
@@ -393,15 +393,15 @@ seaOfReadFact state tombstones = do
     , "    for (iint_t chord_ix = 0; chord_ix < chord_count; chord_ix++) {"
     , "        " <> pretty (nameOfStateType state) <+> "*program = &programs[chord_ix];"
     , ""
-    , "        /* don't read values after the chord date */"
-    , "        if (date > program->" <> pretty (stateDateVar state) <> ")"
+    , "        /* don't read values after the chord time */"
+    , "        if (time > program->" <> pretty (stateTimeVar state) <> ")"
     , "            continue;"
     , ""
     , "        iint_t new_count = program->new_count;"
     , ""
     , "        program->" <> pretty (inputSumError  input) <> "[new_count] = " <> pretty (inputSumError input) <> ";"
     , indent 8 . vsep . fmap seaOfAssignInput $ inputVars input
-    , "        program->" <> pretty (inputDate     input) <> "[new_count] = date;"
+    , "        program->" <> pretty (inputTime     input) <> "[new_count] = time;"
     , ""
     , "        new_count++;"
     , ""
@@ -444,7 +444,7 @@ seaOfReadTombstone input = \case
 
 data CheckedInput = CheckedInput {
     inputSumError :: Text
-  , inputDate     :: Text
+  , inputTime     :: Text
   , inputType     :: ValType
   , inputVars     :: [(Text, ValType)]
   } deriving (Eq, Ord, Show)
@@ -452,13 +452,13 @@ data CheckedInput = CheckedInput {
 checkInputType :: SeaProgramState -> Either SeaError CheckedInput
 checkInputType state
  = case stateInputType state of
-     PairT (SumT ErrorT t) DateTimeT
+     PairT (SumT ErrorT t) TimeT
       | (sumError, ErrorT) : xs0 <- stateInputVars state
       , Just vars                <- init xs0
-      , Just (date, DateTimeT)   <- last xs0
+      , Just (time, TimeT)       <- last xs0
       -> Right CheckedInput {
              inputSumError = newPrefix <> sumError
-           , inputDate     = newPrefix <> date
+           , inputTime     = newPrefix <> time
            , inputType     = t
            , inputVars     = fmap (first (newPrefix <>)) vars
            }
@@ -487,9 +487,9 @@ seaOfReadInput input
         , "if (error) return error;"
         ]
 
-    ([(nx, DateTimeT)], DateTimeT)
+    ([(nx, TimeT)], TimeT)
      -> pure $ vsep
-        [ "error = psv_read_date (value_ptr, value_size, &" <> pretty nx <> ");"
+        [ "error = psv_read_time (value_ptr, value_size, &" <> pretty nx <> ");"
         , "if (error) return error;"
         ]
 
@@ -569,8 +569,8 @@ seaOfReadJsonValue assign vtype vars
        ([(nx, DoubleT)], DoubleT)
         -> pure (readValue nx DoubleT "double")
 
-       ([(nx, DateTimeT)], DateTimeT)
-        -> pure (readValue nx DateTimeT "json_date")
+       ([(nx, TimeT)], TimeT)
+        -> pure (readValue nx TimeT "json_time")
 
        ([(nx, StringT)], StringT)
         -> pure (readValuePool nx StringT "json_string")
@@ -753,8 +753,8 @@ outputString xs
  where
   str = seaOfString xs
 
-dateFmt :: Doc
-dateFmt = "%lld-%02lld-%02lldT%02lld:%02lld:%02lld"
+timeFmt :: Doc
+timeFmt = "%lld-%02lld-%02lldT%02lld:%02lld:%02lld"
 
 outputDie :: Doc
 outputDie = "if (error) return error;"
@@ -767,14 +767,14 @@ seaOfWriteFleetOutput mode states = do
     , "static psv_error_t psv_write_outputs (int fd, const char *entity, size_t entity_size, ifleet_t *fleet)"
     , "{"
     , "    iint_t         chord_count = fleet->chord_count;"
-    , "    const idate_t *chord_dates = fleet->chord_dates;"
+    , "    const itime_t *chord_times = fleet->chord_times;"
     , "    psv_error_t    error;"
     , "    char           buffer[psv_output_buf_size];"
     , "    char          *buffer_end = buffer + psv_output_buf_size - 1;"
     , "    char          *buffer_ptr = buffer;"
     , ""
     , "    for (iint_t chord_ix = 0; chord_ix < chord_count; chord_ix++) {"
-    , indent 8 (seaOfChordDate mode)
+    , indent 8 (seaOfChordTime mode)
     , ""
     , indent 8 (vsep write_sea)
     , "    }"
@@ -786,19 +786,19 @@ seaOfWriteFleetOutput mode states = do
     , "}"
     ]
 
-seaOfChordDate :: PsvMode -> Doc
-seaOfChordDate = \case
+seaOfChordTime :: PsvMode -> Doc
+seaOfChordTime = \case
   PsvSnapshot _ -> vsep
-    [ "const char  *chord_date = \"\";"
+    [ "const char  *chord_time = \"\";"
     , "const size_t chord_size = 0;"
     ]
   PsvChords     -> vsep
     [ "iint_t c_year, c_month, c_day, c_hour, c_minute, c_second;"
-    , "idate_to_gregorian (chord_dates[chord_ix], &c_year, &c_month, &c_day, &c_hour, &c_minute, &c_second);"
+    , "itime_to_gregorian (chord_times[chord_ix], &c_year, &c_month, &c_day, &c_hour, &c_minute, &c_second);"
     , ""
     , "const size_t chord_size = sizeof (\"|yyyy-mm-ddThh:mm:ssZ\");"
-    , "char chord_date[chord_size];"
-    , "snprintf (chord_date, chord_size, \"|" <> dateFmt <> "\", "
+    , "char chord_time[chord_size];"
+    , "snprintf (chord_time, chord_size, \"|" <> timeFmt <> "\", "
              <> "c_year, c_month, c_day, c_hour, c_minute, c_second);"
     ]
 
@@ -842,31 +842,13 @@ seaOfWriteOutput ps oname@(OutputName name) otype0 ts0 ixStart
     before = vsep [ outputValue  "string" ["entity", "entity_size"]
                   , outputString ("|" <> name <> "|") ]
 
-    after  = vsep [ outputValue  "string" ["chord_date", "chord_size"]
+    after  = vsep [ outputValue  "string" ["chord_time", "chord_size"]
                   , outputChar   '\n' ]
 
-    decldt = "iint_t v_year, v_month, v_day, v_hour, v_minute, v_second;" :: Doc
-
-    go str
-      =  vsep
-      $  [ if hasDateTime otype0 then decldt else mempty ]
-      <> [ before
-         , str
-         , after
-         ]
-
-    hasDateTime DateTimeT   = True
-    hasDateTime (ArrayT t)  = hasDateTime t
-    hasDateTime (BufT _ t)  = hasDateTime t
-    hasDateTime (OptionT t) = hasDateTime t
-    hasDateTime (MapT k v)  = hasDateTime k || hasDateTime v
-    hasDateTime (PairT a b) = hasDateTime a || hasDateTime b
-    hasDateTime (SumT a b)  = hasDateTime a || hasDateTime b
-    hasDateTime (StructT m) = any hasDateTime $ Map.elems $ getStructType m
-    hasDateTime _           = False
+    go str = vsep [before, str, after]
 
 seaOfOutput
-  :: Bool                          -- ^ whether to quote date (MASSIVE HACK)
+  :: Bool                          -- ^ whether to quote strings (MASSIVE HACK)
   -> Doc                           -- ^ struct
   -> OutputName
   -> ValType                       -- ^ output type
@@ -977,8 +959,8 @@ seaOfOutputBase quoteStrings err t val
       -> pure $ outputValue "double" [val]
      StringT
       -> pure $ quotedOutput quoteStrings (outputValue "string" [val, "strlen(" <> val <> ")"])
-     DateTimeT
-      -> pure $ quotedOutput quoteStrings (outputValue "date" [val])
+     TimeT
+      -> pure $ quotedOutput quoteStrings (outputValue "time" [val])
 
      _ -> Left err
 

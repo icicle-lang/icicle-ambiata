@@ -8,7 +8,7 @@ import qualified Icicle.Internal.Pretty as PP
 
 import           Icicle.BubbleGum
 import           Icicle.Data            (AsAt(..))
-import           Icicle.Data.DateTime
+import           Icicle.Data.Time
 
 import           Icicle.Common.Base
 import           Icicle.Common.Exp
@@ -85,10 +85,10 @@ instance Arbitrary PM.Prim where
           , return $ PM.PrimRelation PM.PrimRelationGe IntT
           , return $ PM.PrimLogical  PM.PrimLogicalNot
           , return $ PM.PrimLogical  PM.PrimLogicalAnd
-          , return $ PM.PrimDateTime PM.PrimDateTimeDaysDifference
-          , return $ PM.PrimDateTime PM.PrimDateTimeDaysEpoch
-          , return $ PM.PrimDateTime PM.PrimDateTimeMinusDays
-          , return $ PM.PrimDateTime PM.PrimDateTimeMinusMonths
+          , return $ PM.PrimTime PM.PrimTimeDaysDifference
+          , return $ PM.PrimTime PM.PrimTimeDaysEpoch
+          , return $ PM.PrimTime PM.PrimTimeMinusDays
+          , return $ PM.PrimTime PM.PrimTimeMinusMonths
           , PM.PrimConst <$> (PM.PrimConstPair <$> arbitrary <*> arbitrary)
           , PM.PrimConst . PM.PrimConstSome <$> arbitrary
           , PM.PrimConst <$> (PM.PrimConstLeft <$> arbitrary <*> arbitrary)
@@ -122,7 +122,7 @@ instance Arbitrary ValType where
          [ IntT
          , UnitT
          , BoolT
-         , DateTimeT
+         , TimeT
          , StringT ]
          [ ArrayT  <$> arbitrary
          , BufT    <$> (getNonNegative <$> arbitrary) <*> arbitrary
@@ -345,7 +345,7 @@ programForStreamType streamType
                       , Just <$> freshInEnv rE ]
         let rE' = case dat of
                   Nothing -> rE
-                  Just nm -> Map.insert nm (FunT [] DateTimeT) rE
+                  Just nm -> Map.insert nm (FunT [] TimeT) rE
 
 
         -- Postcomputations with access to the reduction values
@@ -418,7 +418,7 @@ programForStreamType streamType
   streamSource
    = return (sourceType, Source)
 
-  sourceType = PairT streamType DateTimeT
+  sourceType = PairT streamType TimeT
 
   -- Transformer: filter or map
   streamTransformer :: Env Var ValType -> Env Var Type -> Gen (ValType, Stream () Var)
@@ -484,8 +484,8 @@ baseValueForType t
      -> return $ VError ExceptTombstone
     BoolT
      -> VBool <$> arbitrary
-    DateTimeT
-     -> VDateTime <$> arbitrary
+    TimeT
+     -> VTime <$> arbitrary
     ArrayT t'
      -> smaller (VArray <$> listOf (baseValueForType t'))
     BufT n t'
@@ -511,7 +511,7 @@ baseValueForType t
       (VStruct <$> traverse baseValueForType fs)
 
 
-inputsForType :: ValType -> Gen ([AsAt (BubbleGumFact, BaseValue)], DateTime)
+inputsForType :: ValType -> Gen ([AsAt (BubbleGumFact, BaseValue)], Time)
 inputsForType t
  = sized
  $ \s -> do start   <- arbitrary
@@ -519,10 +519,10 @@ inputsForType t
             go num [] start
  where
   go 0 acc d
-   = return (acc, dateOfDays d)
+   = return (acc, timeOfDays d)
   go n acc d
    = do val <- baseValueForType t
-        let d'  = dateOfDays d
+        let d'  = timeOfDays d
         let entry = AsAt (BubbleGumFact (Flavour d d'), val) d'
 
         -- relatively small date increments
