@@ -12,6 +12,7 @@ module Icicle.Sea.FromAvalanche.Type (
   , valTypeOfExp
   ) where
 
+import           Data.Set (Set)
 import qualified Data.Set as Set
 import qualified Data.List as List
 
@@ -32,14 +33,18 @@ import           P
 ------------------------------------------------------------------------
 
 seaOfDefinitions :: [Program (Annot a) n Prim] -> Doc
-seaOfDefinitions
+seaOfDefinitions programs
  = vsep
- . ("":)
- . ("#line 1 \"definitions\"":)
- . mapMaybe seaOfDefinition
- . Set.toList
- . Set.unions
- . fmap typesOfProgram
+ [ "#line 1 \"type definitions\""
+ , vsep . mapMaybe seaOfDefinition
+        . List.sortBy (comparing defDepth)
+        . Set.toList
+        . Set.unions
+        . fmap expandedTypesOfProgram
+        $ programs
+ , ""
+ , ""
+ ]
 
 seaOfDefinition :: ValType -> Maybe Doc
 seaOfDefinition t
@@ -47,6 +52,27 @@ seaOfDefinition t
      BufT n t' -> Just ("MAKE_BUF   (" <> int n <> ", " <> baseOfValType t' <> ")")
      ArrayT t' -> Just ("MAKE_ARRAY ("                  <> baseOfValType t' <> ")")
      _         -> Nothing
+
+defDepth :: ValType -> Int
+defDepth t
+ = case t of
+     BufT _ t' -> 1 + defDepth t'
+     ArrayT t' -> 1 + defDepth t'
+     _         -> 1
+
+expandType :: ValType -> [ValType]
+expandType t
+ = case t of
+     BufT  _ t' -> t : expandType t'
+     ArrayT  t' -> t : expandType t'
+     _          -> [t]
+
+expandedTypesOfProgram :: Program (Annot a) n Prim -> Set ValType
+expandedTypesOfProgram
+ = Set.fromList
+ . concatMap expandType
+ . Set.toList
+ . typesOfProgram
 
 ------------------------------------------------------------------------
 

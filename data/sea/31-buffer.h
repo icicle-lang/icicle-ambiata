@@ -70,23 +70,21 @@ Push(buf, val)
 */
 #define MK_BUF_PUSH(n,t)                                                        \
                                                                                 \
-static BUF_T(n,t) INLINE BUF_FUN(n,t,push) (BUF_T(n,t) buf, t##_t val)          \
+static BUF_T(n,t) INLINE BUF_FUN(n,t,push) (BUF_T(n,t) *buf, t##_t val)         \
 {                                                                               \
-    iint_t head_new  = (buf.size < n)                                           \
-                     ?  buf.head                                                \
-                     : (buf.head+1) % n;                                        \
+    iint_t size       = buf->size;                                              \
+    iint_t head       = buf->head;                                              \
                                                                                 \
-    iint_t size_new  = (buf.size < n)                                           \
-                     ?  buf.size + 1                                            \
-                     :  n;                                                      \
+    iint_t head_new   = size < n ? head : (head+1) % n;                         \
+    iint_t size_new   = size < n ? size + 1 : n;                                \
                                                                                 \
-    iint_t update    = (buf.head + buf.size) % n;                               \
+    iint_t update     = (head + size) % n;                                      \
                                                                                 \
-    buf.vals[update] = val;                                                     \
-    buf.head         = head_new;                                                \
-    buf.size         = size_new;                                                \
+    buf->head         = head_new;                                               \
+    buf->size         = size_new;                                               \
+    buf->vals[update] = val;                                                    \
                                                                                 \
-    return buf;                                                                 \
+    return *buf;                                                                \
 }
 
 
@@ -100,14 +98,18 @@ Read(buf)
 
 #define MK_BUF_READ(n,t)                                                        \
                                                                                 \
-static ARRAY(t##_t) INLINE BUF_FUN(n,t,read) (imempool_t *pool, BUF_T(n,t) buf) \
+static ARRAY(t##_t) INLINE BUF_FUN(n,t,read) (imempool_t *pool, BUF_T(n,t) *buf)\
 {                                                                               \
-    ARRAY_T(t) out = ARRAY_FUN(t,create)(pool, buf.size);                       \
+    iint_t size = buf->size;                                                    \
+    iint_t head = buf->head;                                                    \
+    t##_t *vals = buf->vals;                                                    \
                                                                                 \
-    for (iint_t ix = 0; ix != buf.size; ++ix)                                   \
+    ARRAY_T(t) out = ARRAY_FUN(t,create)(pool, size);                           \
+                                                                                \
+    for (iint_t ix = 0; ix != size; ++ix)                                       \
     {                                                                           \
-        iint_t in = (buf.head + ix) % n;                                        \
-        ARRAY_PAYLOAD(t,out)[ix] = buf.vals[in];                                \
+        iint_t in = (head + ix) % n;                                            \
+        ARRAY_PAYLOAD(t,out)[ix] = vals[in];                                    \
     }                                                                           \
                                                                                 \
     return out;                                                                 \
