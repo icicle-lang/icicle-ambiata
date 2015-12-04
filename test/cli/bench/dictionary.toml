@@ -9,7 +9,7 @@ import = [ "../../../data/libs/prelude.icicle" ]
     location="string"
     severity="int"
     action="string*"
-    admitted="date*"
+    admitted="time*"
 
 [feature.mean_salary]
  expression = "feature salary ~> mean value"

@@ -1,11 +1,11 @@
--- Count unique dates, this is equivalent to `distinct date ~> count`
-feature salary ~> group fold (k, v) = (group date ~> count value) ~> count v
+-- Count unique times, this is equivalent to `distinct time ~> count`
+feature salary ~> group fold (k, v) = (group time ~> count value) ~> count v
 
 -- Sum of count of values, this is equivalent to counting the number of salary facts
-feature salary ~> group fold (k, v) = (group date ~> count value) ~> sum v
+feature salary ~> group fold (k, v) = (group time ~> count value) ~> sum v
 
 -- Max of count of values
-feature salary ~> group fold (k, v) = (group date ~> count value) ~> max v
+feature salary ~> group fold (k, v) = (group time ~> count value) ~> max v
 
 -- Fold over oldests. Not really that meaningful but a useful test
-feature salary ~> group fold (k, v) = (group date ~> oldest value) ~> max v
+feature salary ~> group fold (k, v) = (group time ~> oldest value) ~> max v

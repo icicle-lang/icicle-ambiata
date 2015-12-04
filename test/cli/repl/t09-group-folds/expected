@@ -1,7 +1,7 @@
 welcome to iREPL
 ok, loaded 20 functions from data/libs/prelude.icicle
 ok, loaded test/cli/repl/data.psv, 13 rows
-> -- Count unique dates, this is equivalent to `distinct date ~> count`
+> -- Count unique times, this is equivalent to `distinct time ~> count`
 > - Core evaluation:
 [homer, 5,marge, 1]
 

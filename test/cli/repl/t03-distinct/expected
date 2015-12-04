@@ -5,11 +5,11 @@ ok, loaded test/cli/repl/data.psv, 13 rows
 > - Core evaluation:
 [homer, 5,marge, 3]
 
-> > -- Distinct by date. Expect 5 and 1
+> > -- Distinct by time. Expect 5 and 1
 > - Core evaluation:
 [homer, 5,marge, 1]
 
-> > -- Average of distincts. That is, find the *last* for each date, and average all lasts
+> > -- Average of distincts. That is, find the *last* for each time, and average all lasts
 > - Core evaluation:
 [homer, 300.0,marge, 20.0]
 

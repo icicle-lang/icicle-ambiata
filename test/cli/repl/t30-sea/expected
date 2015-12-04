@@ -24,7 +24,7 @@ ok, c is now on
                                     \_____________)
 > > -- An interesting expression with structs and strings
 > - Flattened:
-gen$date = DATE
+gen$time = TIME
 {
   init acc$s$reify$6$conv$13$simp$66@{Error} = ExceptFold1NoValue@{Error};
   init acc$s$reify$6$conv$13$simp$67@{Double} = 0.0@{Double};
@@ -43,7 +43,7 @@ gen$date = DATE
   for_facts (gen$fact$simp$239@{Error},
              gen$fact$simp$240@{String},
              gen$fact$simp$241@{Int},
-             gen$fact$simp$242@{DateTime}) in new {
+             gen$fact$simp$242@{Time}) in new {
     init flat$0$simp$73@{Error} = ExceptNotAnError@{Error};
     init flat$0$simp$74@{Int} = 0@{Int};
     if (eq#@{Error} gen$fact$simp$239
@@ -563,12 +563,12 @@ typedef struct {
     imempool_t      *mempool;
 
     /* inputs */
-    idate_t          gen_date;
+    itime_t          gen_time;
     iint_t           new_count;
     ierror_t        *new_gen_fact_simp_239;
     istring_t       *new_gen_fact_simp_240;
     iint_t          *new_gen_fact_simp_241;
-    idate_t         *new_gen_fact_simp_242;
+    itime_t         *new_gen_fact_simp_242;
 
     /* outputs */
     ierror_t         repl_ix_0;
@@ -768,7 +768,7 @@ void iprogram_0(iprogram_0_t *s)
     idouble_t        s_reify_6_conv_13_simp_213;
 
     imempool_t      *mempool                  = s->mempool;
-    idate_t          gen_date                 = s->gen_date;
+    itime_t          gen_time                 = s->gen_time;
 
     acc_s_reify_6_conv_13_simp_66             = ierror_fold1_no_value;                /* init */
     acc_s_reify_6_conv_13_simp_67             = 0.0;                                  /* init */
@@ -810,13 +810,13 @@ void iprogram_0(iprogram_0_t *s)
     const ierror_t  *const new_gen_fact_simp_239 = s->new_gen_fact_simp_239;
     const istring_t *const new_gen_fact_simp_240 = s->new_gen_fact_simp_240;
     const iint_t    *const new_gen_fact_simp_241 = s->new_gen_fact_simp_241;
-    const idate_t   *const new_gen_fact_simp_242 = s->new_gen_fact_simp_242;
+    const itime_t   *const new_gen_fact_simp_242 = s->new_gen_fact_simp_242;
     
     for (iint_t i = 0; i < new_count; i++) {
         ierror_t         gen_fact_simp_239    = new_gen_fact_simp_239[i];
         istring_t        gen_fact_simp_240    = new_gen_fact_simp_240[i];
         iint_t           gen_fact_simp_241    = new_gen_fact_simp_241[i];
-        idate_t          gen_fact_simp_242    = new_gen_fact_simp_242[i];
+        itime_t          gen_fact_simp_242    = new_gen_fact_simp_242[i];
         flat_0_simp_73                        = ierror_not_an_error;                  /* init */
         flat_0_simp_74                        = 0;                                    /* init */
         
@@ -1350,31 +1350,31 @@ void iprogram_0(iprogram_0_t *s)
 - Core evaluation:
 [homer, 3.1112698372208096]
 
-> > -- Dates
+> > -- Times
 > - Flattened:
-gen$date = DATE
+gen$time = TIME
 {
   init acc$s$reify$2$conv$5$simp$4@{Error} = ExceptFold1NoValue@{Error};
-  init acc$s$reify$2$conv$5$simp$5@{DateTime} = 1858-11-17@{DateTime};
+  init acc$s$reify$2$conv$5$simp$5@{Time} = 1858-11-17@{Time};
   load_resumable@{Error} acc$s$reify$2$conv$5$simp$4;
-  load_resumable@{DateTime} acc$s$reify$2$conv$5$simp$5;
+  load_resumable@{Time} acc$s$reify$2$conv$5$simp$5;
   for_facts (gen$fact$simp$18@{Error},
              gen$fact$simp$19@{Int},
-             gen$fact$simp$20@{DateTime}) in new {
-    let anf$5 = DateTime_daysDifference#
-                (1980-01-06@{DateTime}) gen$fact$simp$20;
+             gen$fact$simp$20@{Time}) in new {
+    let anf$5 = Time_daysDifference#
+                (1980-01-06@{Time}) gen$fact$simp$20;
     let anf$6 = negate#@{Int} anf$5;
-    let simp$61 = DateTime_minusDays#
-                  (2000-01-01@{DateTime}) anf$6;
+    let simp$61 = Time_minusDays#
+                  (2000-01-01@{Time}) anf$6;
     read@{Error} acc$s$reify$2$conv$5$simp$6 = acc$s$reify$2$conv$5$simp$4;
-    read@{DateTime} acc$s$reify$2$conv$5$simp$7 = acc$s$reify$2$conv$5$simp$5;
+    read@{Time} acc$s$reify$2$conv$5$simp$7 = acc$s$reify$2$conv$5$simp$5;
     init flat$0$simp$8@{Error} = ExceptNotAnError@{Error};
-    init flat$0$simp$9@{DateTime} = 1858-11-17@{DateTime};
+    init flat$0$simp$9@{Time} = 1858-11-17@{Time};
     if (eq#@{Error}
         acc$s$reify$2$conv$5$simp$6
         (ExceptNotAnError@{Error})) {
-      init flat$4@{DateTime} = 1858-11-17@{DateTime};
-      if (gt#@{DateTime} simp$61
+      init flat$4@{Time} = 1858-11-17@{Time};
+      if (gt#@{Time} simp$61
           acc$s$reify$2$conv$5$simp$7) {
         write flat$4 = simp$61;
       } 
@@ -1382,36 +1382,36 @@ gen$date = DATE
         write flat$4 = acc$s$reify$2$conv$5$simp$7;
       } 
       
-      read@{DateTime} flat$4 = flat$4;
+      read@{Time} flat$4 = flat$4;
       write flat$0$simp$8 = ExceptNotAnError@{Error};
       write flat$0$simp$9 = flat$4;
     } else {
       init flat$3$simp$10@{Error} = ExceptNotAnError@{Error};
-      init flat$3$simp$11@{DateTime} = 1858-11-17@{DateTime};
+      init flat$3$simp$11@{Time} = 1858-11-17@{Time};
       if (eq#@{Error} (ExceptFold1NoValue@{Error})
           acc$s$reify$2$conv$5$simp$6) {
         write flat$3$simp$10 = ExceptNotAnError@{Error};
         write flat$3$simp$11 = simp$61;
       } else {
         write flat$3$simp$10 = acc$s$reify$2$conv$5$simp$6;
-        write flat$3$simp$11 = 1858-11-17@{DateTime};
+        write flat$3$simp$11 = 1858-11-17@{Time};
       }
       read@{Error} flat$3$simp$12 = flat$3$simp$10;
-      read@{DateTime} flat$3$simp$13 = flat$3$simp$11;
+      read@{Time} flat$3$simp$13 = flat$3$simp$11;
       write flat$0$simp$8 = flat$3$simp$12;
       write flat$0$simp$9 = flat$3$simp$13;
     }
     read@{Error} flat$0$simp$14 = flat$0$simp$8;
-    read@{DateTime} flat$0$simp$15 = flat$0$simp$9;
+    read@{Time} flat$0$simp$15 = flat$0$simp$9;
     write acc$s$reify$2$conv$5$simp$4 = flat$0$simp$14;
     write acc$s$reify$2$conv$5$simp$5 = flat$0$simp$15;
   }
   save_resumable@{Error} acc$s$reify$2$conv$5$simp$4;
-  save_resumable@{DateTime} acc$s$reify$2$conv$5$simp$5;
+  save_resumable@{Time} acc$s$reify$2$conv$5$simp$5;
   read@{Error} s$reify$2$conv$5$simp$16 = acc$s$reify$2$conv$5$simp$4;
-  read@{DateTime} s$reify$2$conv$5$simp$17 = acc$s$reify$2$conv$5$simp$5;
-  output@{(Sum Error DateTime)} repl (s$reify$2$conv$5$simp$16@{Error},
-               s$reify$2$conv$5$simp$17@{DateTime});
+  read@{Time} s$reify$2$conv$5$simp$17 = acc$s$reify$2$conv$5$simp$5;
+  output@{(Sum Error Time)} repl (s$reify$2$conv$5$simp$16@{Error},
+               s$reify$2$conv$5$simp$17@{Time});
 }
 
 - C:
@@ -1421,44 +1421,44 @@ typedef struct {
     imempool_t      *mempool;
 
     /* inputs */
-    idate_t          gen_date;
+    itime_t          gen_time;
     iint_t           new_count;
     ierror_t        *new_gen_fact_simp_18;
     iint_t          *new_gen_fact_simp_19;
-    idate_t         *new_gen_fact_simp_20;
+    itime_t         *new_gen_fact_simp_20;
 
     /* outputs */
     ierror_t         repl_ix_0;
-    idate_t          repl_ix_1;
+    itime_t          repl_ix_1;
 
     /* resumables */
     ibool_t          has_acc_s_reify_2_conv_5_simp_4;
     ierror_t         res_acc_s_reify_2_conv_5_simp_4;
     ibool_t          has_acc_s_reify_2_conv_5_simp_5;
-    idate_t          res_acc_s_reify_2_conv_5_simp_5;
+    itime_t          res_acc_s_reify_2_conv_5_simp_5;
 } iprogram_0_t;
 
 #line 1 "compute function #0 - repl"
 void iprogram_0(iprogram_0_t *s)
 {
     ierror_t         acc_s_reify_2_conv_5_simp_4;
-    idate_t          acc_s_reify_2_conv_5_simp_5;
+    itime_t          acc_s_reify_2_conv_5_simp_5;
     ierror_t         acc_s_reify_2_conv_5_simp_6;
-    idate_t          acc_s_reify_2_conv_5_simp_7;
-    idate_t          flat_4;
+    itime_t          acc_s_reify_2_conv_5_simp_7;
+    itime_t          flat_4;
     ierror_t         flat_0_simp_14;
-    idate_t          flat_0_simp_15;
+    itime_t          flat_0_simp_15;
     ierror_t         flat_0_simp_8;
-    idate_t          flat_0_simp_9;
+    itime_t          flat_0_simp_9;
     ierror_t         flat_3_simp_10;
-    idate_t          flat_3_simp_11;
+    itime_t          flat_3_simp_11;
     ierror_t         flat_3_simp_12;
-    idate_t          flat_3_simp_13;
+    itime_t          flat_3_simp_13;
     ierror_t         s_reify_2_conv_5_simp_16;
-    idate_t          s_reify_2_conv_5_simp_17;
+    itime_t          s_reify_2_conv_5_simp_17;
 
     imempool_t      *mempool                  = s->mempool;
-    idate_t          gen_date                 = s->gen_date;
+    itime_t          gen_time                 = s->gen_time;
 
     acc_s_reify_2_conv_5_simp_4               = ierror_fold1_no_value;                /* init */
     acc_s_reify_2_conv_5_simp_5               = 0x7420b1100000000;                    /* init */
@@ -1474,15 +1474,15 @@ void iprogram_0(iprogram_0_t *s)
     const iint_t     new_count                = s->new_count;
     const ierror_t  *const new_gen_fact_simp_18 = s->new_gen_fact_simp_18;
     const iint_t    *const new_gen_fact_simp_19 = s->new_gen_fact_simp_19;
-    const idate_t   *const new_gen_fact_simp_20 = s->new_gen_fact_simp_20;
+    const itime_t   *const new_gen_fact_simp_20 = s->new_gen_fact_simp_20;
     
     for (iint_t i = 0; i < new_count; i++) {
         ierror_t         gen_fact_simp_18     = new_gen_fact_simp_18[i];
         iint_t           gen_fact_simp_19     = new_gen_fact_simp_19[i];
-        idate_t          gen_fact_simp_20     = new_gen_fact_simp_20[i];
-        iint_t           anf_5                = idate_days_diff (0x7bc010600000000, gen_fact_simp_20); /* let */
+        itime_t          gen_fact_simp_20     = new_gen_fact_simp_20[i];
+        iint_t           anf_5                = itime_days_diff (0x7bc010600000000, gen_fact_simp_20); /* let */
         iint_t           anf_6                = iint_neg (anf_5);                     /* let */
-        idate_t          simp_61              = idate_minus_days (0x7d0010100000000, anf_6); /* let */
+        itime_t          simp_61              = itime_minus_days (0x7d0010100000000, anf_6); /* let */
         acc_s_reify_2_conv_5_simp_6           = acc_s_reify_2_conv_5_simp_4;          /* read */
         acc_s_reify_2_conv_5_simp_7           = acc_s_reify_2_conv_5_simp_5;          /* read */
         flat_0_simp_8                         = ierror_not_an_error;                  /* init */
@@ -1491,7 +1491,7 @@ void iprogram_0(iprogram_0_t *s)
         if (ierror_eq (acc_s_reify_2_conv_5_simp_6, ierror_not_an_error)) {
             flat_4                            = 0x7420b1100000000;                    /* init */
             
-            if (idate_gt (simp_61, acc_s_reify_2_conv_5_simp_7)) {
+            if (itime_gt (simp_61, acc_s_reify_2_conv_5_simp_7)) {
                 flat_4                        = simp_61;                              /* write */
             } else {
                 flat_4                        = acc_s_reify_2_conv_5_simp_7;          /* write */

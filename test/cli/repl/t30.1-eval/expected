@@ -63,7 +63,7 @@ ok, loaded test/cli/repl/data.psv, 13 rows
 - Core evaluation:
 [homer, "torso"]
 
-> > -- Dates
+> > -- Times
 > - C evaluation:
 [(homer,10953),(marge,3633)]
 

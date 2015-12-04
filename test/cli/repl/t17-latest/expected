@@ -4,7 +4,7 @@ ok, loaded test/cli/repl/data.psv, 13 rows
 > ok, type is now on
 > > -- Latests of groups
 > - Type:
-Aggregate Definitely (Group DateTime (Array (Sum ErrorT Int)))
+Aggregate Definitely (Group Time (Array (Sum ErrorT Int)))
 
 - Core evaluation:
 [homer, [(1989-12-17,[100])
@@ -16,7 +16,7 @@ Aggregate Definitely (Group DateTime (Array (Sum ErrorT Int)))
 
 > > -- Aggregates of latests in groups
 > - Type:
-Aggregate Possibly (Group DateTime Int)
+Aggregate Possibly (Group Time Int)
 
 - Core evaluation:
 [homer, [(1989-12-17,100)
@@ -28,7 +28,7 @@ Aggregate Possibly (Group DateTime Int)
 
 > > -- Something complicated
 > - Type:
-Aggregate Possibly (Group DateTime (Int, Int))
+Aggregate Possibly (Group Time (Int, Int))
 
 - Core evaluation:
 [homer, [(1989-12-17,(1500,0))
