@@ -52,6 +52,7 @@ simpFlattened a_fresh p
  = do s' <- transformX return (simp a_fresh) (statements p)
          >>= melt a_fresh
          >>= fixpoint crunch
+         >>= renameReads a_fresh
          -- Finish off with an a-normalisation
          >>= anormal
 

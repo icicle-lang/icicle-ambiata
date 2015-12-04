@@ -20,12 +20,15 @@ gen$time = TIME
              gen$fact$simp$41@{Int},
              gen$fact$simp$42@{Time}) in new {
     read@{Buf 3 Error} acc$conv$30$simp$8 = acc$conv$30$simp$6;
-    read@{Buf 3 Int} acc$conv$30$simp$9 = acc$conv$30$simp$7;
+    read@{Buf 3 Int} acc$conv$30$simp$7 = acc$conv$30$simp$7;
+    write acc$conv$30$simp$6 = Buf_push#@{Buf 3 Error}
+                               acc$conv$30$simp$8
+                               gen$fact$simp$40;
     write acc$conv$30$simp$6 = Buf_push#@{Buf 3 Error}
                                acc$conv$30$simp$8
                                gen$fact$simp$40;
     write acc$conv$30$simp$7 = Buf_push#@{Buf 3 Int}
-                               acc$conv$30$simp$9
+                               acc$conv$30$simp$7
                                gen$fact$simp$41;
     init flat$1$simp$10@{Error} = ExceptNotAnError@{Error};
     init flat$1$simp$11@{Bool} = False@{Bool};
