@@ -110,7 +110,7 @@ forwardStmts a_fresh statements
 --
 -- and the C compiler should be able to get rid of the first, etc.
 --
-renameReads :: Ord n => a -> Statement a n p -> Fresh n (Statement a n p)
+renameReads :: Ord n => a -> Statement a n p -> FixT (Fresh n) (Statement a n p)
 renameReads a_fresh statements
  = transformUDStmt trans () statements
  where
@@ -118,9 +118,10 @@ renameReads a_fresh statements
    = case s of
       Read nm acc vt ss
        | Just (pre, post) <- splitWrite acc mempty ss
+       , nm /= acc
        , not $ Set.member nm $ stmtFreeX post
-       -> do    pre' <- substXinS a_fresh nm (XVar a_fresh acc) pre
-                return ((), Read acc acc vt (pre' <> post))
+       -> do    pre' <- lift $ substXinS a_fresh nm (XVar a_fresh acc) pre
+                progress ((), Read acc acc vt (pre' <> post))
       _ -> return ((), s)
 
   splitWrite acc seen (Write acc' xx)

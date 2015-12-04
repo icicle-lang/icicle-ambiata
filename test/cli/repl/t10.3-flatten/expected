@@ -24,9 +24,6 @@ gen$time = TIME
     write acc$conv$30$simp$6 = Buf_push#@{Buf 3 Error}
                                acc$conv$30$simp$8
                                gen$fact$simp$40;
-    write acc$conv$30$simp$6 = Buf_push#@{Buf 3 Error}
-                               acc$conv$30$simp$8
-                               gen$fact$simp$40;
     write acc$conv$30$simp$7 = Buf_push#@{Buf 3 Int}
                                acc$conv$30$simp$7
                                gen$fact$simp$41;
