@@ -33,7 +33,7 @@ import qualified Icicle.Internal.Pretty as Pretty
 
 import           Icicle.Sea.Error (SeaError(..))
 import           Icicle.Sea.FromAvalanche.Base (seaOfAttributeDesc, seaOfTime)
-import           Icicle.Sea.FromAvalanche.Base (seaOfNameIx, seaOfChar, seaOfString)
+import           Icicle.Sea.FromAvalanche.Base (seaOfNameIx, seaOfChar)
 import           Icicle.Sea.FromAvalanche.Prim
 import           Icicle.Sea.FromAvalanche.Program (seaOfXValue)
 import           Icicle.Sea.FromAvalanche.State
@@ -749,9 +749,20 @@ outputChar x
 
 outputString :: Text -> Doc
 outputString xs
- = outputValue "string" [str, "sizeof (" <> str <> ") - 1"]
+ = vsep
+ [ "if (buffer_end - buffer_ptr < " <> int rounded <> ") {"
+ , "    error = psv_output_flush (fd, buffer, &buffer_ptr);"
+ , indent 4 outputDie
+ , "}"
+ , vsep (fmap mkdoc swords)
+ , "buffer_ptr += " <> int size <> ";"
+ ]
  where
-  str = seaOfString xs
+  swords = wordsOfString xs
+
+  rounded  = length swords * 8
+  size     = sum (fmap swSize swords)
+  mkdoc sw = "*(uint64_t *)(buffer_ptr + " <> int (swOffset sw) <> ") = " <> swBits sw <> ";"
 
 timeFmt :: Doc
 timeFmt = "%lld-%02lld-%02lldT%02lld:%02lld:%02lld"
@@ -986,24 +997,46 @@ seaOfStringEq str ptr msize
 
 seaOfBytesEq :: [Word8] -> Doc -> Doc
 seaOfBytesEq bs ptr
- = vsep . punctuate " &&" . reverse $ seaOfBytesEq' bs 0 ptr []
-
-seaOfBytesEq' :: [Word8] -> Int -> Doc -> [Doc] -> [Doc]
-seaOfBytesEq' [] _   _   acc = acc
-seaOfBytesEq' bs off ptr acc
- = seaOfBytesEq' remains (off + 8) ptr (doc : acc)
+ = vsep . punctuate " &&" . fmap go $ wordsOfBytes bs
  where
-   (bytes, remains) = splitAt 8 bs
+   go (StringWord off _ mask bits)
+    = "(*(uint64_t *)(" <> ptr <+> "+" <+> int off <> ") &" <+> mask <> ") ==" <+> bits
 
-   nbytes = length bytes
+------------------------------------------------------------------------
 
-   nzeros = 8 - nbytes
-   zeros  = List.replicate nzeros 0x00
+data StringWord = StringWord {
+    swOffset :: Int
+  , swSize   :: Int
+  , swMask   :: Doc
+  , swBits   :: Doc
+  }
 
-   mask = text $ "0x" <> concatMap (printf "%02X") (zeros <> List.replicate nbytes 0xff)
-   bits = text $ "0x" <> concatMap (printf "%02X") (zeros <> reverse bytes)
+wordsOfString :: Text -> [StringWord]
+wordsOfString
+ = wordsOfBytes . B.unpack . T.encodeUtf8
 
-   doc = "(*(uint64_t *)(" <> ptr <+> "+" <+> int off <> ") &" <+> mask <> ") ==" <+> bits
+wordsOfBytes :: [Word8] -> [StringWord]
+wordsOfBytes bs
+ = reverse (wordsOfBytes' bs 0 [])
+
+wordsOfBytes' :: [Word8] -> Int -> [StringWord] -> [StringWord]
+wordsOfBytes' [] _   acc = acc
+wordsOfBytes' bs off acc
+ = wordsOfBytes' remains (off + 8) (sw : acc)
+ where
+  sw = StringWord { swOffset = off, swSize = nbytes, swMask = mask, swBits = bits }
+
+  (bytes, remains) = splitAt 8 bs
+
+  nbytes = length bytes
+
+  nzeros = 8 - nbytes
+  zeros  = List.replicate nzeros 0x00
+
+  mask = text $ "0x" <> concatMap (printf "%02X") (zeros <> List.replicate nbytes 0xff)
+  bits = text $ "0x" <> concatMap (printf "%02X") (zeros <> reverse bytes)
+
+------------------------------------------------------------------------
 
 lookupTombstones :: PsvConfig -> SeaProgramState -> Set Text
 lookupTombstones config state =

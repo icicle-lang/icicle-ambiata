@@ -35,7 +35,8 @@ import           P
 seaOfDefinitions :: [Program (Annot a) n Prim] -> Doc
 seaOfDefinitions programs
  = vsep
- [ "#line 1 \"type definitions\""
+ [ ""
+ , "#line 1 \"type definitions\""
  , vsep . mapMaybe seaOfDefinition
         . List.sortBy (comparing defDepth)
         . Set.toList
