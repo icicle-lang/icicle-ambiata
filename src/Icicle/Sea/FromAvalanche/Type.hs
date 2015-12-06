@@ -61,6 +61,9 @@ defDepth t
      ArrayT t' -> 1 + defDepth t'
      _         -> 1
 
+-- If we have a program that has an empty 'ArrayT (ArrayT a)' but it is never
+-- used then the type 'ArrayT a' may not be mentioned anywhere in the program,
+-- even though its definition is required to construct an 'ArrayT (ArrayT a)'.
 expandType :: ValType -> [ValType]
 expandType t
  = case t of
