@@ -1,27 +1,25 @@
 #include "30-array.h"
 
-typedef struct
-{
-    iint_t max_size;
-    iint_t cur_size;
-    iint_t head;
-} ibuf_struct;
+#define BUF(n,t)         ibuf_ ## n ## _ ## t
+#define BUF_FUN(n,t,fun) CONCAT(BUF(n,t), _ ## fun)
+#define BUF_T(n,t)       CONCAT(BUF(n,t), _t)
+
 /*
  Invariants
-  0 <= cur_size <= max_size
-  0 <= head     <  max_size
+  0 <= size <= n
+  0 <= head <  n
 
-  read = ARRAY[ head..(head+cur_size) % max_size )
+  read = vals[ head..(head+size) % n )
 
 */
+#define MK_BUF_STRUCT(n,t)                                                      \
+                                                                                \
+typedef struct {                                                                \
+    iint_t size;                                                                \
+    iint_t head;                                                                \
+    t##_t  vals[n];                                                             \
+} BUF_T(n,t);
 
-#define BUF(t)         ibuf_t__##t
-#define BUF_FUN(f,pre) ibuf__##pre##f
-#define BUF_PRE(pre)   ibuf__##pre
-
-#define MK_BUF_STRUCT(t) typedef ibuf_struct* BUF(t);
-
-#define BUF_PAYLOAD(x,t) ((t*)(x+1))
 
 /*
 Make
@@ -29,82 +27,65 @@ Make
   0 <= sz
 
  Post
-  cur_size' = 0
-  head'     = 0
-  max_size' = sz
-  ARRAY'    = [??...]
+  size' = 0
+  head' = 0
+  vals' = [??...]
 
-  read'     = ARRAY'[head'..head'+cur_size')
-            = ARRAY'[0..0)
-            = []
+  read' = vals'[head'..head'+size')
+        = vals'[0..0)
+        = []
 
   (invariants hold)
 
 */
-#define MK_BUF_MAKE(t,pre)                                                      \
-    static BUF(t) INLINE BUF_FUN(make,pre)                                      \
-                     (imempool_t *pool, iint_t sz)                              \
-    {                                                                           \
-        size_t bytes  = sizeof(t) * sz + sizeof(ibuf_struct);                   \
-        BUF(t) ret    = (BUF(t))imempool_alloc(pool, bytes);                    \
-        ret->max_size = sz;                                                     \
-        ret->cur_size = 0;                                                      \
-        ret->head     = 0;                                                      \
-        return ret;                                                             \
-    }
-
-/*
-Push(buf, val)
- Pre
-  (buf invariants hold)
- Post
-  cur_size' = min max_size (cur_size+1)
-  read'     = (take (max_size - 1) read) ++ [val]
-
-*/
+#define MK_BUF_MAKE(n,t)                                                        \
+                                                                                \
+static BUF_T(n,t) INLINE BUF_FUN(n,t,make) ()                                   \
+{                                                                               \
+    const static BUF_T(n,t) empty;                                              \
+    return empty;                                                               \
+}
 
 /*
 Push(buf, val)
   {buf invariants hold}
   ...
   {
-  head'     = if cur_size < max_size
-              then head
-              else (head+1) % max_size
+  head'  = if size < n
+           then head
+           else (head+1) % size
 
-  cur_size' = min max_size (cur_size+1)
+  size'  = min n (size+1)
 
-  ARRAY'    = ARRAY[update]:=val
-  read'     = ARRAY[head'..(head'+cur_size') % max_size)
-  update    = (head + cur_size) % max_size
+  vals'  = vals[update]:=val
+  read'  = vals[head'..(head'+size') % n)
+  update = (head + size) % n
   }
   ==>
   {
-  cur_size' = min max_size (cur_size+1)
-  read'     = (take (max_size - 1) read) ++ [val]
+  size'  = min n (size+1)
+  read'  = (take (n - 1) read) ++ [val]
   }
 
 */
-
-#define MK_BUF_PUSH(t,pre)                                                      \
-    static BUF(t) INLINE BUF_FUN(push,pre) (BUF(t) buf, t val)                  \
-    {                                                                           \
-        iint_t head_new = (buf->cur_size < buf->max_size)                       \
-                        ?  buf->head                                            \
-                        : (buf->head+1) % buf->max_size;                        \
+#define MK_BUF_PUSH(n,t)                                                        \
                                                                                 \
-        iint_t size_new = (buf->cur_size < buf->max_size)                       \
-                        ?  buf->cur_size + 1                                    \
-                        :  buf->max_size;                                       \
+static BUF_T(n,t) INLINE BUF_FUN(n,t,push) (BUF_T(n,t) *buf, t##_t val)         \
+{                                                                               \
+    iint_t size       = buf->size;                                              \
+    iint_t head       = buf->head;                                              \
                                                                                 \
-        iint_t update   = (buf->head + buf->cur_size) % buf->max_size;          \
+    iint_t head_new   = size < n ? head : (head+1) % n;                         \
+    iint_t size_new   = size < n ? size + 1 : n;                                \
                                                                                 \
-        BUF_PAYLOAD(buf,t)[update] = val;                                       \
+    iint_t update     = (head + size) % n;                                      \
                                                                                 \
-        buf->head     = head_new;                                               \
-        buf->cur_size = size_new;                                               \
-        return buf;                                                             \
-    }
+    buf->head         = head_new;                                               \
+    buf->size         = size_new;                                               \
+    buf->vals[update] = val;                                                    \
+                                                                                \
+    return *buf;                                                                \
+}
 
 
 /*
@@ -112,101 +93,135 @@ Read(buf)
  Pre
   (buf invariants hold)
  Post
-  out       = read
+  out = read
 */
 
-#define MK_BUF_READ(t,pre)                                                      \
-    static ARRAY(t) INLINE BUF_FUN(read,pre)                                    \
-                    (imempool_t *pool, BUF(t) buf)                              \
-    {                                                                           \
-        ARRAY(t) out = ARRAY_FUN(create,pre)(pool, buf->cur_size);              \
+#define MK_BUF_READ(n,t)                                                        \
                                                                                 \
-        for (iint_t ix = 0; ix != buf->cur_size; ++ix)                          \
-        {                                                                       \
-            iint_t in = (buf->head + ix) % buf->max_size;                       \
-            ARRAY_PAYLOAD(out,t)[ix] = BUF_PAYLOAD(buf,t)[in];                  \
-        }                                                                       \
+static ARRAY(t##_t) INLINE BUF_FUN(n,t,read) (imempool_t *pool, BUF_T(n,t) *buf)\
+{                                                                               \
+    iint_t size = buf->size;                                                    \
+    iint_t head = buf->head;                                                    \
+    t##_t *vals = buf->vals;                                                    \
                                                                                 \
-        return out;                                                             \
-    }
-
-#define MK_BUF_COPY(t,pre)                                                      \
-    static BUF(t) INLINE BUF_FUN(copy,pre)   (imempool_t *into, BUF(t) x)       \
+    ARRAY_T(t) out = ARRAY_FUN(t,create)(pool, size);                           \
+                                                                                \
+    for (iint_t ix = 0; ix != size; ++ix)                                       \
     {                                                                           \
-        BUF(t) arr = BUF_FUN(make,pre)(into, x->max_size);                      \
-        arr->cur_size = x->cur_size;                                            \
-        arr->head     = x->head;                                                \
-        for (iint_t ix = 0; ix != x->max_size; ++ix) {                          \
-            t cp = BUF_PAYLOAD(x,t)[ix];                                        \
-            BUF_PAYLOAD(arr,t)[ix] = pre##copy(into, cp);                       \
-        }                                                                       \
-        return arr;                                                             \
-    }
+        iint_t in = (head + ix) % n;                                            \
+        ARRAY_PAYLOAD(t,out)[ix] = vals[in];                                    \
+    }                                                                           \
+                                                                                \
+    return out;                                                                 \
+}
 
 
-#define MK_BUF_EQ(t,pre)                                                        \
-    static ibool_t INLINE BUF_FUN(eq,pre) (BUF(t) x, BUF(t) y)                  \
-    {                                                                           \
-        if (x->cur_size != y->cur_size) return ifalse;                          \
-        for (iint_t ix = 0; ix != x->cur_size; ++ix) {                          \
-            iint_t x_ix = (ix + x->head) % x->max_size;                         \
-            iint_t y_ix = (ix + y->head) % y->max_size;                         \
-            if (!pre##eq(BUF_PAYLOAD(x,t)[x_ix], BUF_PAYLOAD(y,t)[y_ix]))       \
-                return ifalse;                                                  \
-        }                                                                       \
-        return itrue;                                                           \
-    }
+/*
+Copy(buf)
+*/
 
-#define MK_BUF_LT(t,pre)                                                        \
-    static ibool_t INLINE BUF_FUN(lt,pre) (BUF(t) x, BUF(t) y)                  \
-    {                                                                           \
-        iint_t min = (x->cur_size < y->cur_size) ? x->cur_size : y->cur_size;   \
-        for (iint_t ix = 0; ix != min; ++ix) {                                  \
-            iint_t x_ix = (ix + x->head) % x->max_size;                         \
-            iint_t y_ix = (ix + y->head) % y->max_size;                         \
-            if (!pre##lt(BUF_PAYLOAD(x,t)[x_ix], BUF_PAYLOAD(y,t)[y_ix]))       \
-                return ifalse;                                                  \
-        }                                                                       \
-        if (x->cur_size < y->cur_size)                                          \
-            return itrue;                                                       \
-        else                                                                    \
+#define MK_BUF_COPY(n,t)                                                        \
+                                                                                \
+static BUF_T(n,t) INLINE BUF_FUN(n,t,copy) (imempool_t *into, BUF_T(n,t) x)     \
+{                                                                               \
+    for (iint_t ix = 0; ix != n; ++ix) {                                        \
+        t##_t cp   = x.vals[ix];                                                \
+        x.vals[ix] = t##_copy(into, cp);                                        \
+    }                                                                           \
+                                                                                \
+    return x;                                                                   \
+}
+
+
+/*
+Eq(buf_x, buf_y)
+Ne(buf_x, buf_y)
+*/
+
+#define MK_BUF_EQ(n,t)                                                          \
+                                                                                \
+static ibool_t INLINE BUF_FUN(n,t,eq) (BUF_T(n,t) x, BUF_T(n,t) y)              \
+{                                                                               \
+    if (x.size != y.size) return ifalse;                                        \
+                                                                                \
+    for (iint_t ix = 0; ix != x.size; ++ix) {                                   \
+        iint_t x_ix = (ix + x.head) % n;                                        \
+        iint_t y_ix = (ix + y.head) % n;                                        \
+                                                                                \
+        if (!t##_eq(x.vals[x_ix], y.vals[y_ix]))                                \
             return ifalse;                                                      \
-    }
-
-#define MK_BUF_CMP(t,pre,op,ret)                                                \
-    static ibool_t INLINE BUF_FUN(op,pre) (BUF(t) x, BUF(t) y)                  \
-    { return ret ; }
-
-#define MK_BUF_CMPS(t,pre)                                                      \
-    MK_BUF_EQ(t,pre)                                                            \
-    MK_BUF_LT(t,pre)                                                            \
-    MK_BUF_CMP(t,pre,ne, !BUF_FUN(eq,pre) (x,y))                                \
-    MK_BUF_CMP(t,pre,le,  BUF_FUN(lt,pre) (x,y) || BUF_FUN(eq,pre) (x,y))       \
-    MK_BUF_CMP(t,pre,ge, !BUF_FUN(lt,pre) (x,y))                                \
-    MK_BUF_CMP(t,pre,gt, !BUF_FUN(le,pre) (x,y))
+    }                                                                           \
+                                                                                \
+    return itrue;                                                               \
+}                                                                               \
+                                                                                \
+static ibool_t INLINE BUF_FUN(n,t,ne) (BUF_T(n,t) x, BUF_T(n,t) y)              \
+{                                                                               \
+    return !BUF_FUN(n,t,eq)(x, y);                                              \
+}
 
 
+/*
+Lt(buf_x, buf_y)
+Le(buf_x, buf_y)
+Ge(buf_x, buf_y)
+Gt(buf_x, buf_y)
+*/
 
-#define MAKE_BUF(t,pre)                                                         \
-    MK_BUF_STRUCT (t)                                                           \
-    MK_BUF_MAKE   (t,pre)                                                       \
-    MK_BUF_CMPS   (t,pre)                                                       \
-    MK_BUF_PUSH   (t,pre)                                                       \
-    MK_BUF_READ   (t,pre)                                                       \
-    MK_BUF_COPY   (t,pre)
+#define MK_BUF_CMP(n,t,op)                                                      \
+                                                                                \
+static ibool_t INLINE BUF_FUN(n,t,op) (BUF_T(n,t) x, BUF_T(n,t) y)              \
+{                                                                               \
+    iint_t min = (x.size < y.size) ? x.size : y.size;                           \
+                                                                                \
+    for (iint_t ix = 0; ix != min; ++ix) {                                      \
+        iint_t x_ix = (ix + x.head) % n;                                        \
+        iint_t y_ix = (ix + y.head) % n;                                        \
+                                                                                \
+        if (!t##_##op(x.vals[x_ix], y.vals[y_ix]))                              \
+            return ifalse;                                                      \
+    }                                                                           \
+                                                                                \
+    return iint_##op(x.size, y.size);                                           \
+}
 
-MAKE_BUF(idouble_t,   idouble_)
-MAKE_BUF(iint_t,      iint_)
-MAKE_BUF(ierror_t,    ierror_)
-MAKE_BUF(ibool_t,     ibool_)
-MAKE_BUF(itime_t,     itime_)
-MAKE_BUF(iunit_t,     iunit_)
-MAKE_BUF(istring_t,   istring_)
 
-MAKE_ARRAY(ibuf_t__idouble_t,   ibuf__idouble_)
-MAKE_ARRAY(ibuf_t__iint_t,      ibuf__iint_)
-MAKE_ARRAY(ibuf_t__ierror_t,    ibuf__ierror_)
-MAKE_ARRAY(ibuf_t__ibool_t,     ibuf__ibool_)
-MAKE_ARRAY(ibuf_t__itime_t,     ibuf__itime_)
-MAKE_ARRAY(ibuf_t__iunit_t,     ibuf__iunit_)
-MAKE_ARRAY(ibuf_t__istring_t,   ibuf__istring_)
+#define MK_BUF_CMPS(n,t)                                                        \
+    MK_BUF_EQ(n,t)                                                              \
+    MK_BUF_CMP(n,t,lt)                                                          \
+    MK_BUF_CMP(n,t,le)                                                          \
+    MK_BUF_CMP(n,t,gt)                                                          \
+    MK_BUF_CMP(n,t,ge)
+
+
+/*
+Define a buffer
+*/
+
+#define MAKE_BUF(n,t)                                                           \
+    MK_BUF_STRUCT (n,t)                                                         \
+    MK_BUF_MAKE   (n,t)                                                         \
+    MK_BUF_CMPS   (n,t)                                                         \
+    MK_BUF_PUSH   (n,t)                                                         \
+    MK_BUF_READ   (n,t)                                                         \
+    MK_BUF_COPY   (n,t)
+
+
+// enable if you need to resolve compiler errors in the macros above
+#if 0
+MAKE_BUF(5, idouble)
+MAKE_BUF(5, iint)
+MAKE_BUF(5, ierror)
+MAKE_BUF(5, ibool)
+MAKE_BUF(5, itime)
+MAKE_BUF(5, iunit)
+MAKE_BUF(5, istring)
+
+MAKE_ARRAY(BUF(5, idouble))
+MAKE_ARRAY(BUF(5, iint))
+MAKE_ARRAY(BUF(5, ierror))
+MAKE_ARRAY(BUF(5, ibool))
+MAKE_ARRAY(BUF(5, itime))
+MAKE_ARRAY(BUF(5, iunit))
+MAKE_ARRAY(BUF(5, istring))
+#endif

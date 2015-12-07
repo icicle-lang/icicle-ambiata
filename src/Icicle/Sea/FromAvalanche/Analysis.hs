@@ -193,22 +193,31 @@ typesOfStatement stmt
      ForeachInts  _ f t ss -> typesOfExp       f `Set.union`
                               typesOfExp       t `Set.union`
                               typesOfStatement ss
-     ForeachFacts _ _ _ ss -> typesOfStatement ss
-     InitAccumulator (Accumulator _ at x) ss
-                           -> Set.singleton    at `Set.union`
-                              typesOfExp       x  `Set.union`
-                              typesOfStatement ss
-
      Write _ x             -> typesOfExp x
-     LoadResumable _ vt    -> Set.singleton vt
-     SaveResumable _ vt    -> Set.singleton vt
-     Output _ vt xs        -> Set.singleton vt `Set.union`
-                              Set.unions (fmap goOut xs)
      KeepFactInHistory     -> Set.empty
+
+     ForeachFacts nts _ _ ss
+      -> Set.fromList (fmap snd nts) `Set.union`
+         typesOfStatement ss
+
+     InitAccumulator (Accumulator _ at x) ss
+      -> Set.singleton    at `Set.union`
+         typesOfExp       x  `Set.union`
+         typesOfStatement ss
 
      Read _ _ vt ss
       -> Set.singleton vt `Set.union`
          typesOfStatement ss
+
+     LoadResumable _ vt
+      -> Set.singleton vt
+
+     SaveResumable _ vt
+      -> Set.singleton vt
+
+     -- vt is the unmelted type, which is not actually part of the program
+     Output _ _vt xs
+      -> Set.unions (fmap goOut xs)
 
  where
   goOut (x,t)

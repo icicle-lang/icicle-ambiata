@@ -68,8 +68,9 @@ import           Icicle.Internal.Pretty (Doc, Pretty, displayS, renderPretty)
 import           Icicle.Sea.Error (SeaError(..))
 import           Icicle.Sea.FromAvalanche.Analysis (factVarsOfProgram, outputsOfProgram)
 import           Icicle.Sea.FromAvalanche.Program (seaOfProgram, nameOfProgram', stateWordsOfProgram)
-import           Icicle.Sea.FromAvalanche.State (stateOfProgram)
 import           Icicle.Sea.FromAvalanche.Psv (PsvConfig(..), PsvMode(..), seaOfPsvDriver)
+import           Icicle.Sea.FromAvalanche.State (stateOfProgram)
+import           Icicle.Sea.FromAvalanche.Type (seaOfDefinitions)
 import           Icicle.Sea.Preamble (seaPreamble)
 
 import           Jetski
@@ -322,15 +323,17 @@ codeOfPrograms
   -> [(Attribute, Program (Annot a) n Prim)]
   -> Either SeaError Text
 codeOfPrograms psv programs = do
-  docs    <- zipWithM (\ix (a, p) -> seaOfProgram   ix a p) [0..] programs
+  let defs = seaOfDefinitions (fmap snd programs)
+
+  progs   <- zipWithM (\ix (a, p) -> seaOfProgram   ix a p) [0..] programs
   states  <- zipWithM (\ix (a, p) -> stateOfProgram ix a p) [0..] programs
 
   case psv of
     NoPsv -> do
-      pure . textOfDoc . vsep $ ["#define ICICLE_NO_PSV 1", seaPreamble] <> docs
+      pure . textOfDoc . vsep $ ["#define ICICLE_NO_PSV 1", seaPreamble, defs] <> progs
     Psv cfg -> do
       psv_doc <- seaOfPsvDriver states cfg
-      pure . textOfDoc . vsep $ [seaPreamble] <> docs <> ["", psv_doc]
+      pure . textOfDoc . vsep $ [seaPreamble, defs] <> progs <> ["", psv_doc]
 
 textOfDoc :: Doc -> Text
 textOfDoc doc = T.pack (displayS (renderPretty 0.8 80 (pretty doc)) "")

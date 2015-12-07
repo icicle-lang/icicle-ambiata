@@ -32,7 +32,7 @@ import           Icicle.Sea.FromAvalanche.Prim
 import           Icicle.Sea.FromAvalanche.State
 import           Icicle.Sea.FromAvalanche.Type
 
-import           P
+import           P hiding (head)
 
 import qualified Data.List as List
 import qualified Data.Map as Map
@@ -218,8 +218,8 @@ seaOfXValue v t
                      [buf, seaOfXValue v' t']
              init
               = seaOfPrimDocApps
-                     (PDAlloc (prefixOfValType t <> "make"))
-                     [int len]
+                     (PDFun (prefixOfValType t <> "make") Nothing)
+                     []
         in  foldl writes init vs
       | otherwise
       -> seaError "seaOfXValue: buffer of wrong type" (v,t)
