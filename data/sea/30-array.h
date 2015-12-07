@@ -176,6 +176,8 @@ Copy(arr)
                                                                                 \
 static ARRAY_T(t) INLINE ARRAY_FUN(t,copy) (imempool_t *into, ARRAY_T(t) x)     \
 {                                                                               \
+    if (x == 0) return 0;                                                       \
+                                                                                \
     ARRAY_T(t) arr = ARRAY_FUN(t,create)(into, x->count);                       \
                                                                                 \
     for (iint_t ix = 0; ix != x->count; ++ix) {                                 \
