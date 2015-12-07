@@ -135,6 +135,7 @@ static BUF_T(n,t) INLINE BUF_FUN(n,t,copy) (imempool_t *into, BUF_T(n,t) x)     
 
 /*
 Eq(buf_x, buf_y)
+Ne(buf_x, buf_y)
 */
 
 #define MK_BUF_EQ(n,t)                                                          \
@@ -152,16 +153,24 @@ static ibool_t INLINE BUF_FUN(n,t,eq) (BUF_T(n,t) x, BUF_T(n,t) y)              
     }                                                                           \
                                                                                 \
     return itrue;                                                               \
+}                                                                               \
+                                                                                \
+static ibool_t INLINE BUF_FUN(n,t,ne) (BUF_T(n,t) x, BUF_T(n,t) y)              \
+{                                                                               \
+    return !BUF_FUN(n,t,eq)(x, y);                                              \
 }
 
 
 /*
 Lt(buf_x, buf_y)
+Le(buf_x, buf_y)
+Ge(buf_x, buf_y)
+Gt(buf_x, buf_y)
 */
 
-#define MK_BUF_LT(n,t)                                                          \
+#define MK_BUF_CMP(n,t,op)                                                      \
                                                                                 \
-static ibool_t INLINE BUF_FUN(n,t,lt) (BUF_T(n,t) x, BUF_T(n,t) y)              \
+static ibool_t INLINE BUF_FUN(n,t,op) (BUF_T(n,t) x, BUF_T(n,t) y)              \
 {                                                                               \
     iint_t min = (x.size < y.size) ? x.size : y.size;                           \
                                                                                 \
@@ -169,35 +178,20 @@ static ibool_t INLINE BUF_FUN(n,t,lt) (BUF_T(n,t) x, BUF_T(n,t) y)              
         iint_t x_ix = (ix + x.head) % n;                                        \
         iint_t y_ix = (ix + y.head) % n;                                        \
                                                                                 \
-        if (!t##_lt(x.vals[x_ix], y.vals[y_ix]))                                \
+        if (!t##_##op(x.vals[x_ix], y.vals[y_ix]))                              \
             return ifalse;                                                      \
     }                                                                           \
                                                                                 \
-    return x.size < y.size;                                                     \
+    return iint_##op(x.size, y.size);                                           \
 }
 
-
-/*
-Ne(buf_x, buf_y)
-Le(buf_x, buf_y)
-Ge(buf_x, buf_y)
-Gt(buf_x, buf_y)
-*/
-
-#define MK_BUF_CMP(n,t,op,ret)                                                  \
-                                                                                \
-static ibool_t INLINE BUF_FUN(n,t,op) (BUF_T(n,t) x, BUF_T(n,t) y)              \
-{                                                                               \
-    return ret;                                                                 \
-}
 
 #define MK_BUF_CMPS(n,t)                                                        \
     MK_BUF_EQ(n,t)                                                              \
-    MK_BUF_LT(n,t)                                                              \
-    MK_BUF_CMP(n,t,ne, !BUF_FUN(n,t,eq) (x,y))                                  \
-    MK_BUF_CMP(n,t,le,  BUF_FUN(n,t,lt) (x,y) || BUF_FUN(n,t,eq) (x,y))         \
-    MK_BUF_CMP(n,t,ge, !BUF_FUN(n,t,lt) (x,y))                                  \
-    MK_BUF_CMP(n,t,gt, !BUF_FUN(n,t,le) (x,y))
+    MK_BUF_CMP(n,t,lt)                                                          \
+    MK_BUF_CMP(n,t,le)                                                          \
+    MK_BUF_CMP(n,t,gt)                                                          \
+    MK_BUF_CMP(n,t,ge)
 
 
 /*

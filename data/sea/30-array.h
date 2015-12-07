@@ -46,6 +46,7 @@ static iint_t INLINE ARRAY_FUN(t,length) (ARRAY_T(t) arr)                       
 
 /*
 Eq(arr_x, arr_y)
+Ne(arr_x, arr_y)
 */
 
 #define MK_ARRAY_EQ(t)                                                          \
@@ -60,51 +61,44 @@ static ibool_t INLINE ARRAY_FUN(t,eq) (ARRAY_T(t) x, ARRAY_T(t) y)              
     }                                                                           \
                                                                                 \
     return itrue;                                                               \
+}                                                                               \
+                                                                                \
+static ibool_t INLINE ARRAY_FUN(t,ne) (ARRAY_T(t) x, ARRAY_T(t) y)              \
+{                                                                               \
+    return !ARRAY_FUN(t,eq)(x, y);                                              \
 }
 
 
 /*
 Lt(arr_x, arr_y)
+Le(arr_x, arr_y)
+Ge(arr_x, arr_y)
+Gt(arr_x, arr_y)
 */
 
-#define MK_ARRAY_LT(t)                                                          \
+#define MK_ARRAY_CMP(t,op)                                                      \
                                                                                 \
-static ibool_t INLINE ARRAY_FUN(t,lt) (ARRAY_T(t) x, ARRAY_T(t) y)              \
+static ibool_t INLINE ARRAY_FUN(t,op) (ARRAY_T(t) x, ARRAY_T(t) y)              \
 {                                                                               \
     iint_t x_count = x->count;                                                  \
     iint_t y_count = y->count;                                                  \
     iint_t min     = x_count < y_count ? x_count : y_count;                     \
                                                                                 \
     for (iint_t ix = 0; ix != min; ++ix) {                                      \
-        if (!t##_lt(ARRAY_PAYLOAD(t,x)[ix], ARRAY_PAYLOAD(t,y)[ix]))            \
+        if (!t##_##op(ARRAY_PAYLOAD(t,x)[ix], ARRAY_PAYLOAD(t,y)[ix]))          \
             return ifalse;                                                      \
     }                                                                           \
                                                                                 \
-    return x_count < y_count;                                                   \
+    return iint_##op(x_count, y_count);                                         \
 }
 
-
-/*
-Ne(arr_x, arr_y)
-Le(arr_x, arr_y)
-Ge(arr_x, arr_y)
-Gt(arr_x, arr_y)
-*/
-
-#define MK_ARRAY_CMP(t,op,ret)                                                  \
-                                                                                \
-static ibool_t INLINE ARRAY_FUN(t,op) (ARRAY_T(t) x, ARRAY_T(t) y)              \
-{                                                                               \
-    return ret;                                                                 \
-}
 
 #define MK_ARRAY_CMPS(t)                                                        \
     MK_ARRAY_EQ(t)                                                              \
-    MK_ARRAY_LT(t)                                                              \
-    MK_ARRAY_CMP(t,ne, !ARRAY_FUN(t,eq) (x,y))                                  \
-    MK_ARRAY_CMP(t,le,  ARRAY_FUN(t,lt) (x,y) || ARRAY_FUN(t,eq) (x,y))         \
-    MK_ARRAY_CMP(t,ge, !ARRAY_FUN(t,lt) (x,y))                                  \
-    MK_ARRAY_CMP(t,gt, !ARRAY_FUN(t,le) (x,y))
+    MK_ARRAY_CMP(t,lt)                                                          \
+    MK_ARRAY_CMP(t,le)                                                          \
+    MK_ARRAY_CMP(t,gt)                                                          \
+    MK_ARRAY_CMP(t,ge)                        
 
 
 /*
