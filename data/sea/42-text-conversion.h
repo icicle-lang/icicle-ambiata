@@ -18,56 +18,59 @@ static const size_t text_iint_max_size = 20; /* 64-bit integer = 19 digits + sig
 
 static ierror_msg_t INLINE text_read_iint (char **pp, char *pe, iint_t *output_ptr)
 {
-    char *p            = *pp;
+    char  *p           = *pp;
     size_t buffer_size = pe - p;
 
-    size_t n = 0;
-    while (n < buffer_size) {
-        if (!text_is_digit (p[n]))
-            break;
-        n++;
+    /* handle negative */
+    int sign      = 1;
+    int sign_size = 0;
+    if (buffer_size > 0 && p[0] == '-') {
+        sign      = -1;
+        sign_size = 1;
+        p++;
+        buffer_size--;
     }
 
-    if (n == 0)
-        return ierror_msg_alloc ("not an integer", p, buffer_size);
+    /* validate digits */
+    size_t digits = 0;
+    while (digits < buffer_size) {
+        if (!text_is_digit (p[digits]))
+            break;
+        digits++;
+    }
+
+    if (digits == 0)
+        return ierror_msg_alloc ("not an integer", *pp, pe - *pp);
 
     iint_t value = 0;
 
-    /* handle negative */
-    int sign = 1;
-    if (p[0] == '-') {
-        sign = -1;
-        ++p;
-        --n;
-    }
-
     /* handle up to 19 digits, assume we're 64-bit */
-    switch (n) {
-        case 19:  value += (p[n-19] - '0') * 1000000000000000000;
-        case 18:  value += (p[n-18] - '0') * 100000000000000000;
-        case 17:  value += (p[n-17] - '0') * 10000000000000000;
-        case 16:  value += (p[n-16] - '0') * 1000000000000000;
-        case 15:  value += (p[n-15] - '0') * 100000000000000;
-        case 14:  value += (p[n-14] - '0') * 10000000000000;
-        case 13:  value += (p[n-13] - '0') * 1000000000000;
-        case 12:  value += (p[n-12] - '0') * 100000000000;
-        case 11:  value += (p[n-11] - '0') * 10000000000;
-        case 10:  value += (p[n-10] - '0') * 1000000000;
-        case  9:  value += (p[n- 9] - '0') * 100000000;
-        case  8:  value += (p[n- 8] - '0') * 10000000;
-        case  7:  value += (p[n- 7] - '0') * 1000000;
-        case  6:  value += (p[n- 6] - '0') * 100000;
-        case  5:  value += (p[n- 5] - '0') * 10000;
-        case  4:  value += (p[n- 4] - '0') * 1000;
-        case  3:  value += (p[n- 3] - '0') * 100;
-        case  2:  value += (p[n- 2] - '0') * 10;
-        case  1:  value += (p[n- 1] - '0');
+    switch (digits) {
+        case 19:  value += (p[digits-19] - '0') * 1000000000000000000;
+        case 18:  value += (p[digits-18] - '0') * 100000000000000000;
+        case 17:  value += (p[digits-17] - '0') * 10000000000000000;
+        case 16:  value += (p[digits-16] - '0') * 1000000000000000;
+        case 15:  value += (p[digits-15] - '0') * 100000000000000;
+        case 14:  value += (p[digits-14] - '0') * 10000000000000;
+        case 13:  value += (p[digits-13] - '0') * 1000000000000;
+        case 12:  value += (p[digits-12] - '0') * 100000000000;
+        case 11:  value += (p[digits-11] - '0') * 10000000000;
+        case 10:  value += (p[digits-10] - '0') * 1000000000;
+        case  9:  value += (p[digits- 9] - '0') * 100000000;
+        case  8:  value += (p[digits- 8] - '0') * 10000000;
+        case  7:  value += (p[digits- 7] - '0') * 1000000;
+        case  6:  value += (p[digits- 6] - '0') * 100000;
+        case  5:  value += (p[digits- 5] - '0') * 10000;
+        case  4:  value += (p[digits- 4] - '0') * 1000;
+        case  3:  value += (p[digits- 3] - '0') * 100;
+        case  2:  value += (p[digits- 2] - '0') * 10;
+        case  1:  value += (p[digits- 1] - '0');
                   value *= sign;
                   *output_ptr = value;
-                  *pp += n;
+                  *pp += digits + sign_size;
                   return 0;
 
-        default:  return ierror_msg_alloc ("integer too big", p, n);
+        default:  return ierror_msg_alloc ("integer too big", *pp, digits + sign_size);
     }
 }
 
