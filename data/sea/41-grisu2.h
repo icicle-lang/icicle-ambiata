@@ -1,7 +1,5 @@
 #include "40-grisu2-powers.h"
 
-#if !ICICLE_NO_PSV
-
 /*
 Copyright (c) 2009 Florian Loitsch
 
@@ -306,7 +304,7 @@ static int INLINE grisu2_prettify (char* buffer, int from_pos, int end_pos, int 
     }
 }
 
-static int NOINLINE grisu2_dtostr (double v, char* buffer)
+static int NOINLINE grisu2_double_to_string (double v, char* buffer)
 {
     if (isnan (v)) {
         buffer[0] = 'n';
@@ -355,5 +353,3 @@ static int NOINLINE grisu2_dtostr (double v, char* buffer)
 
     return final_length + sign_length;
 }
-
-#endif

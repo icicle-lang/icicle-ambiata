@@ -247,7 +247,7 @@ seaOfConfigureFleet :: PsvMode -> [SeaProgramState] -> Doc
 seaOfConfigureFleet mode states
  = vsep
  [ "#line 1 \"configure fleet state\""
- , "static psv_error_t psv_configure_fleet (const char *entity, size_t entity_size, const ichord_t **chord, ifleet_t *fleet)"
+ , "static ierror_msg_t psv_configure_fleet (const char *entity, size_t entity_size, const ichord_t **chord, ifleet_t *fleet)"
  , "{"
  , "    iint_t max_chord_count = fleet->max_chord_count;"
  , ""
@@ -266,7 +266,7 @@ seaOfConfigureFleet mode states
  , "                 , chord_count"
  , "                 , max_chord_count);"
  , ""
- , "        return psv_alloc_error (msg, 0, 0);"
+ , "        return ierror_msg_alloc (msg, 0, 0);"
  , "    }"
  , ""
  , "    fleet->chord_count = chord_count;"
@@ -319,7 +319,7 @@ seaOfReadAnyFact config states = do
     [ vsep readStates_sea
     , ""
     , "#line 1 \"read any fact\""
-    , "static psv_error_t psv_read_fact"
+    , "static ierror_msg_t psv_read_fact"
     , "  ( const char   *attrib"
     , "  , const size_t  attrib_size"
     , "  , const char   *value"
@@ -370,13 +370,13 @@ seaOfReadFact state tombstones = do
   readInput <- seaOfReadInput input
   pure $ vsep
     [ "#line 1 \"read fact" <+> seaOfStateInfo state <> "\""
-    , "static psv_error_t INLINE"
+    , "static ierror_msg_t INLINE"
         <+> pretty (nameOfReadFact state) <+> "("
         <> "const char *value_ptr, const size_t value_size, itime_t time, "
         <> "imempool_t *mempool, iint_t chord_count, "
         <> pretty (nameOfStateType state) <+> "*programs)"
     , "{"
-    , "    psv_error_t error;"
+    , "    ierror_msg_t error;"
     , ""
     , "    char *p  = (char *) value_ptr;"
     , "    char *pe = (char *) value_ptr + value_size;"
@@ -409,7 +409,7 @@ seaOfReadFact state tombstones = do
     , "             " <> pretty (nameOfProgram state) <> " (program);"
     , "             new_count = 0;"
     , "        } else if (new_count > psv_max_row_count) {"
-    , "             return psv_alloc_error (\"" <> pretty (nameOfReadFact state) <> ": new_count > max_count\", 0, 0);"
+    , "             return ierror_msg_alloc (\"" <> pretty (nameOfReadFact state) <> ": new_count > max_count\", 0, 0);"
     , "        }"
     , ""
     , "        program->new_count = new_count;"
@@ -470,34 +470,19 @@ seaOfReadInput :: CheckedInput -> Either SeaError Doc
 seaOfReadInput input
  = case (inputVars input, inputType input) of
     ([(nx, BoolT)], BoolT)
-     -> pure $ vsep
-        [ "error = psv_read_bool (&p, pe, &" <> pretty nx <> ");"
-        , "if (error) return error;"
-        ]
+     -> pure (readValue "text" assignVar nx BoolT)
 
     ([(nx, DoubleT)], DoubleT)
-     -> pure $ vsep
-        [ "error = psv_read_double (&p, pe, &" <> pretty nx <> ");"
-        , "if (error) return error;"
-        ]
+     -> pure (readValue "text" assignVar nx DoubleT)
 
     ([(nx, IntT)], IntT)
-     -> pure $ vsep
-        [ "error = psv_read_int (&p, pe, &" <> pretty nx <> ");"
-        , "if (error) return error;"
-        ]
+     -> pure (readValue "text" assignVar nx IntT)
 
     ([(nx, TimeT)], TimeT)
-     -> pure $ vsep
-        [ "error = psv_read_time (value_ptr, value_size, &" <> pretty nx <> ");"
-        , "if (error) return error;"
-        ]
+     -> pure (readValue "text" assignVar nx TimeT)
 
     ([(nx, StringT)], StringT)
-     -> pure $ vsep
-        [ "error = psv_read_string (mempool, &p, pe, &" <> pretty nx <> ");"
-        , "if (error) return error;"
-        ]
+     -> pure (readValuePool "text" assignVar nx StringT)
 
     (_, t@(ArrayT _))
      -> seaOfReadJsonValue assignVar t (inputVars input)
@@ -533,56 +518,65 @@ seaOfArrayIndex arr ix typ
 
 seaOfReadJsonValue :: Assignment -> ValType -> [(Text, ValType)] -> Either SeaError Doc
 seaOfReadJsonValue assign vtype vars
- = let readValueArg arg n vt suf = vsep
-         [ seaOfValType vtype <+> "value;"
-         , "error = psv_read_" <> suf <> " (" <> arg <> "&p, pe, &value);"
+ = case (vars, vtype) of
+     ([(nb, BoolT), nx], OptionT t) -> do
+       val_sea <- seaOfReadJsonValue assign t [nx]
+       pure $ vsep
+         [ "ibool_t is_null;"
+         , "error = json_try_read_null (&p, pe, &is_null);"
          , "if (error) return error;"
-         , assign (pretty n) vt "value"
+         , ""
+         , "if (is_null) {"
+         , indent 4 (assign (pretty nb) BoolT "ifalse")
+         , "} else {"
+         , indent 4 (assign (pretty nb) BoolT "itrue")
+         , ""
+         , indent 4 val_sea
+         , "}"
          ]
 
-       readValue     = readValueArg ""
-       readValuePool = readValueArg "mempool, "
+     ([(nx, BoolT)], BoolT)
+      -> pure (readValue "json" assign nx BoolT)
 
-   in case (vars, vtype) of
-       ([(nb, BoolT), nx], OptionT t) -> do
-         val_sea <- seaOfReadJsonValue assign t [nx]
-         pure $ vsep
-           [ "ibool_t is_null;"
-           , "error = psv_try_read_json_null (&p, pe, &is_null);"
-           , "if (error) return error;"
-           , ""
-           , "if (is_null) {"
-           , indent 4 (assign (pretty nb) BoolT "ifalse")
-           , "} else {"
-           , indent 4 (assign (pretty nb) BoolT "itrue")
-           , ""
-           , indent 4 val_sea
-           , "}"
-           ]
+     ([(nx, IntT)], IntT)
+      -> pure (readValue "json" assign nx IntT)
 
-       ([(nx, BoolT)], BoolT)
-        -> pure (readValue nx BoolT "json_bool")
+     ([(nx, DoubleT)], DoubleT)
+      -> pure (readValue "json" assign nx DoubleT)
 
-       ([(nx, IntT)], IntT)
-        -> pure (readValue nx IntT "int")
+     ([(nx, TimeT)], TimeT)
+      -> pure (readValue "json" assign nx TimeT)
 
-       ([(nx, DoubleT)], DoubleT)
-        -> pure (readValue nx DoubleT "double")
+     ([(nx, StringT)], StringT)
+      -> pure (readValuePool "json" assign nx StringT)
 
-       ([(nx, TimeT)], TimeT)
-        -> pure (readValue nx TimeT "json_time")
+     (ns, StructT t)
+      -> seaOfReadJsonObject assign t ns
 
-       ([(nx, StringT)], StringT)
-        -> pure (readValuePool nx StringT "json_string")
+     (ns, ArrayT t)
+      -> seaOfReadJsonList t ns
 
-       (ns, StructT t)
-        -> seaOfReadJsonObject assign t ns
+     _
+      -> Left (SeaInputTypeMismatch vtype vars)
 
-       (ns, ArrayT t)
-        -> seaOfReadJsonList t ns
+------------------------------------------------------------------------
 
-       _
-        -> Left (SeaInputTypeMismatch vtype vars)
+readValue :: Doc -> Assignment -> Text -> ValType -> Doc
+readValue
+ = readValueArg ""
+
+readValuePool :: Doc -> Assignment -> Text -> ValType -> Doc
+readValuePool
+ = readValueArg "mempool, "
+
+readValueArg :: Doc -> Doc -> Assignment -> Text -> ValType -> Doc
+readValueArg arg fmt assign n vt
+ = vsep
+ [ seaOfValType vt <+> "value;"
+ , "error = " <> fmt <> "_read_" <> baseOfValType vt <> " (" <> arg <> "&p, pe, &value);"
+ , "if (error) return error;"
+ , assign (pretty n) vt "value"
+ ]
 
 ------------------------------------------------------------------------
 
@@ -592,7 +586,7 @@ seaOfReadJsonList vtype avars = do
   value_sea <- seaOfReadJsonValue assignArray vtype vars
   pure $ vsep
     [ "if (*p++ != '[')"
-    , "    return psv_alloc_error (\"missing '['\",  p, pe - p);"
+    , "    return ierror_msg_alloc (\"missing '['\",  p, pe - p);"
     , ""
     , "char term = *p;"
     , ""
@@ -601,7 +595,7 @@ seaOfReadJsonList vtype avars = do
     , "    "
     , "    term = *p++;"
     , "    if (term != ',' && term != ']')"
-    , "        return psv_alloc_error (\"terminator ',' or ']' not found\", p, pe - p);"
+    , "        return ierror_msg_alloc (\"terminator ',' or ']' not found\", p, pe - p);"
     , "}"
     ]
 
@@ -621,10 +615,10 @@ seaOfReadJsonUnit :: Assignment -> Text -> Either SeaError Doc
 seaOfReadJsonUnit assign name = do
   pure $ vsep
     [ "if (*p++ != '{')"
-    , "    return psv_alloc_error (\"missing {\",  p, pe - p);"
+    , "    return ierror_msg_alloc (\"missing {\",  p, pe - p);"
     , ""
     , "if (*p++ != '}')"
-    , "    return psv_alloc_error (\"missing }\",  p, pe - p);"
+    , "    return ierror_msg_alloc (\"missing }\",  p, pe - p);"
     , ""
     , assign (pretty name) UnitT "iunit"
     ]
@@ -636,14 +630,14 @@ seaOfReadJsonStruct assign st@(StructType fields) vars = do
   mappings_sea <- traverse (seaOfFieldMapping assign) mappings
   pure $ vsep
     [ "if (*p++ != '{')"
-    , "    return psv_alloc_error (\"missing {\",  p, pe - p);"
+    , "    return ierror_msg_alloc (\"missing {\",  p, pe - p);"
     , ""
     , "for (;;) {"
     , "    if (*p++ != '\"')"
-    , "        return psv_alloc_error (\"missing \\\"\", p, pe - p);"
+    , "        return ierror_msg_alloc (\"missing \\\"\", p, pe - p);"
     , ""
     , indent 4 (vsep mappings_sea)
-    , "    return psv_alloc_error (\"invalid field start\", p, pe - p);"
+    , "    return ierror_msg_alloc (\"invalid field start\", p, pe - p);"
     , "}"
     ]
 
@@ -668,13 +662,13 @@ seaOfReadJsonField assign ftype vars = do
   value_sea <- seaOfReadJsonValue assign ftype vars
   pure $ vsep
     [ "if (*p++ != ':')"
-    , "    return psv_alloc_error (\"missing ':'\",  p, pe - p);"
+    , "    return ierror_msg_alloc (\"missing ':'\",  p, pe - p);"
     , ""
     , value_sea
     , ""
     , "char term = *p++;"
     , "if (term != ',' && term != '}')"
-    , "    return psv_alloc_error (\"terminator ',' or '}' not found\", p, pe - p);"
+    , "    return ierror_msg_alloc (\"terminator ',' or '}' not found\", p, pe - p);"
     , ""
     , "if (term == '}')"
     , "    break;"
@@ -775,11 +769,11 @@ seaOfWriteFleetOutput mode states = do
   write_sea <- traverse seaOfWriteProgramOutput states
   pure $ vsep
     [ "#line 1 \"write all outputs\""
-    , "static psv_error_t psv_write_outputs (int fd, const char *entity, size_t entity_size, ifleet_t *fleet)"
+    , "static ierror_msg_t psv_write_outputs (int fd, const char *entity, size_t entity_size, ifleet_t *fleet)"
     , "{"
     , "    iint_t         chord_count = fleet->chord_count;"
     , "    const itime_t *chord_times = fleet->chord_times;"
-    , "    psv_error_t    error;"
+    , "    ierror_msg_t   error;"
     , "    char           buffer[psv_output_buf_size];"
     , "    char          *buffer_end = buffer + psv_output_buf_size - 1;"
     , "    char          *buffer_ptr = buffer;"

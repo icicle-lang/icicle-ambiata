@@ -1,4 +1,4 @@
-#include "50-psv-error.h"
+#include "42-text-conversion.h"
 
 #if !ICICLE_NO_PSV
 
@@ -24,7 +24,7 @@ typedef struct {
     const ichord_t *chords;
 } ichord_file_t;
 
-static psv_error_t ichord_file_mmap (int fd, ichord_file_t *file)
+static ierror_msg_t ichord_file_mmap (int fd, ichord_file_t *file)
 {
     static ichord_file_t empty;
     *file = empty;
@@ -38,13 +38,13 @@ static psv_error_t ichord_file_mmap (int fd, ichord_file_t *file)
     int stat_error = fstat (fd, &stat);
 
     if (stat_error != 0)
-        return psv_alloc_error ("failed to stat chord file", 0, 0);
+        return ierror_msg_alloc ("failed to stat chord file", 0, 0);
 
     size_t mapped_size = stat.st_size;
     void  *mapped_ptr  = mmap (0, mapped_size, PROT_READ, MAP_PRIVATE, fd, 0);
 
     if (mapped_ptr == MAP_FAILED)
-        return psv_alloc_error ("failed to memory map chord file", 0, 0);
+        return ierror_msg_alloc ("failed to memory map chord file", 0, 0);
 
     file->mapped_ptr  = mapped_ptr;
     file->mapped_size = mapped_size;
@@ -60,10 +60,10 @@ static psv_error_t ichord_file_mmap (int fd, ichord_file_t *file)
 #endif
 
     if (hdr->magic != 0x41544144524f4843 /* CHORDATA */)
-        return psv_alloc_error ("invalid magic number in chord file", 0, 0);
+        return ierror_msg_alloc ("invalid magic number in chord file", 0, 0);
 
     if (hdr->version != 1)
-        return psv_alloc_error ("only version 1 chord files are supported", 0, 0);
+        return ierror_msg_alloc ("only version 1 chord files are supported", 0, 0);
 
     file->max_chord_count = hdr->max_chord_count;
     file->chords          = hdr->chords;
@@ -71,7 +71,7 @@ static psv_error_t ichord_file_mmap (int fd, ichord_file_t *file)
     return 0;
 }
 
-static psv_error_t ichord_file_unmap (const ichord_file_t *file)
+static ierror_msg_t ichord_file_unmap (const ichord_file_t *file)
 {
     if (file->mapped_ptr == 0)
         return 0;
@@ -79,7 +79,7 @@ static psv_error_t ichord_file_unmap (const ichord_file_t *file)
     int error = munmap ((void *)file->mapped_ptr, file->mapped_size);
 
     if (error != 0)
-        return psv_alloc_error ("failed to unmap chord file", 0, 0);
+        return ierror_msg_alloc ("failed to unmap chord file", 0, 0);
 
     return 0;
 }

@@ -1,6 +1,4 @@
-#include "21-date.h"
-
-#if !ICICLE_NO_PSV
+#include "21-time.h"
 
 static const uint64_t powers_ten[] = {
     0xbf29dcaba82fdeae, 0xeef453d6923bd65a, 0x9558b4661b6565f8, 0xbaaee17fa23ebf76, 0xe95a99df8ace6f54
@@ -214,5 +212,3 @@ static const int powers_ten_e[] = {
   , 1023,  1026,  1029,  1033,  1036,  1039,  1043,  1046,  1049,  1053
   , 1056,  1059,  1063,  1066,  1069,  1073,  1076
   };
-
-#endif

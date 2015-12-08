@@ -14,9 +14,9 @@ typedef struct {
     iint_t chord_fd;
 
     /* outputs */
-    psv_error_t error;
-    iint_t      fact_count;
-    iint_t      entity_count;
+    ierror_msg_t error;
+    iint_t       fact_count;
+    iint_t       entity_count;
 } psv_config_t;
 
 typedef struct {
@@ -49,11 +49,11 @@ static ifleet_t * INLINE psv_alloc_fleet (iint_t max_chord_count);
 
 static void INLINE psv_collect_fleet (ifleet_t *fleet);
 
-static psv_error_t INLINE psv_configure_fleet (const char *entity, size_t entity_size, const ichord_t **chord, ifleet_t *fleet);
+static ierror_msg_t INLINE psv_configure_fleet (const char *entity, size_t entity_size, const ichord_t **chord, ifleet_t *fleet);
 
-static psv_error_t INLINE psv_write_outputs (int fd, const char *entity, size_t entity_size, ifleet_t *fleet);
+static ierror_msg_t INLINE psv_write_outputs (int fd, const char *entity, size_t entity_size, ifleet_t *fleet);
 
-static psv_error_t INLINE psv_read_fact
+static ierror_msg_t INLINE psv_read_fact
   ( const char   *attrib
   , const size_t  attrib_size
   , const char   *value
@@ -66,231 +66,9 @@ static const size_t psv_max_row_count   = 128;
 static const size_t psv_buffer_size     = 16*1024;
 static const size_t psv_output_buf_size = 16*1024;
 
-static bool INLINE psv_is_digit (char c)
+static ierror_msg_t psv_read_buffer (psv_state_t *s)
 {
-    return c - '0' < 10;
-}
-
-static psv_error_t INLINE psv_read_time (const char *time_ptr, const size_t time_size, itime_t *output_ptr)
-{
-    const char  *p          = time_ptr;
-    const size_t time0_size = time_size + 1;
-
-                               /* p + 0123456789 */
-    const size_t date_only = sizeof ("yyyy-mm-dd");
-
-    if (date_only == time0_size &&
-        psv_is_digit (p[0]) &&
-        psv_is_digit (p[1]) &&
-        psv_is_digit (p[2]) &&
-        psv_is_digit (p[3]) &&
-               '-' == p[4]  &&
-        psv_is_digit (p[5]) &&
-        psv_is_digit (p[6]) &&
-               '-' == p[7]  &&
-        psv_is_digit (p[8]) &&
-        psv_is_digit (p[9])) {
-
-        const iint_t year  = p[0] * 1000
-                           + p[1] * 100
-                           + p[2] * 10
-                           + p[3];
-
-        const iint_t month = p[5] * 10
-                           + p[6];
-
-        const iint_t day   = p[8] * 10
-                           + p[9];
-
-        *output_ptr = itime_from_gregorian (year, month, day, 0, 0, 0);
-        return 0;
-    }
-
-                               /* p + 01234567890123456789 */
-    const size_t date_time = sizeof ("yyyy-mm-ddThh:mm:ssZ");
-
-    if (date_time == time0_size &&
-        psv_is_digit (p[ 0]) &&
-        psv_is_digit (p[ 1]) &&
-        psv_is_digit (p[ 2]) &&
-        psv_is_digit (p[ 3]) &&
-               '-' == p[ 4]  &&
-        psv_is_digit (p[ 5]) &&
-        psv_is_digit (p[ 6]) &&
-               '-' == p[ 7]  &&
-        psv_is_digit (p[ 8]) &&
-        psv_is_digit (p[ 9]) &&
-               'T' == p[10]  &&
-        psv_is_digit (p[11]) &&
-        psv_is_digit (p[12]) &&
-               ':' == p[13]  &&
-        psv_is_digit (p[14]) &&
-        psv_is_digit (p[15]) &&
-               ':' == p[16]  &&
-        psv_is_digit (p[17]) &&
-        psv_is_digit (p[18]) &&
-               'Z' == p[19] ) {
-
-        const iint_t year   = p[0] * 1000
-                            + p[1] * 100
-                            + p[2] * 10
-                            + p[3];
-
-        const iint_t month  = p[5] * 10
-                            + p[6];
-
-        const iint_t day    = p[8] * 10
-                            + p[9];
-
-        const iint_t hour   = p[11] * 10
-                            + p[12];
-
-        const iint_t minute = p[14] * 10
-                            + p[15];
-
-        const iint_t second = p[17] * 10
-                            + p[18];
-
-        *output_ptr = itime_from_gregorian (year, month, day, hour, minute, second);
-        return 0;
-    }
-
-    return psv_alloc_error ("expected 'yyyy-mm-dd' or 'yyyy-mm-ddThh:mm:ssZ' but was", time_ptr, time_size);
-}
-
-static psv_error_t INLINE psv_read_json_time (char **pp, char *pe, itime_t *output_ptr)
-{
-    char *p = *pp;
-
-    if (*p++ != '"')
-        return psv_alloc_error ("missing opening quote '\"'",  p, pe - p);
-
-    char *quote_ptr = memchr (p, '"', pe - p);
-
-    if (!quote_ptr)
-        return psv_alloc_error ("missing closing quote '\"'",  p, pe - p);
-
-    size_t time_size = quote_ptr - p;
-    psv_error_t error = psv_read_time (p, time_size, output_ptr);
-
-    if (error) return error;
-
-    *pp = quote_ptr + 1;
-
-    return 0;
-}
-
-static psv_error_t INLINE psv_read_string (imempool_t *pool, char **pp, char *pe, istring_t *output_ptr)
-{
-    char *p = *pp;
-
-    size_t output_size = pe - p + 1;
-    char  *output      = imempool_alloc (pool, output_size);
-
-    output[output_size] = 0;
-    memcpy (output, p, output_size - 1);
-
-    *output_ptr = output;
-    *pp         = p + output_size - 1;
-
-    return 0;
-}
-
-static psv_error_t INLINE psv_read_json_string (imempool_t *pool, char **pp, char *pe, istring_t *output_ptr)
-{
-    char *p = *pp;
-
-    if (*p++ != '"')
-        return psv_alloc_error ("missing '\"'",  p, pe - p);
-
-    char *quote_ptr = memchr (p, '"', pe - p);
-
-    if (!quote_ptr)
-        return psv_alloc_error ("missing closing quote '\"'",  p, pe - p);
-
-    size_t output_size = quote_ptr - p + 1;
-    char  *output      = imempool_alloc (pool, output_size);
-
-    output[output_size] = 0;
-    memcpy (output, p, output_size - 1);
-
-    *output_ptr = output;
-    *pp         = quote_ptr + 1;
-
-    return 0;
-}
-
-static psv_error_t INLINE psv_try_read_json_null (char **pp, char *pe, ibool_t *was_null_ptr)
-{
-    static const uint32_t null_bits = 0x000000006c6c756e; /* "null" */
-
-    char *p = *pp;
-
-    uint32_t next4 = *(uint32_t *)p;
-
-    if (next4 != null_bits) {
-        *was_null_ptr = ifalse;
-        return 0;
-    }
-
-    *was_null_ptr = itrue;
-    *pp           = p + sizeof ("null") - 1;
-
-    return 0;
-}
-
-static psv_error_t INLINE psv_read_mask_bool (uint64_t mask, char **pp, char *pe, ibool_t *output_ptr)
-{
-    static const uint64_t true_mask  = 0x00000000ffffffff;
-    static const uint64_t true_bits  = 0x0000000065757274; /* "true" */
-    static const uint64_t false_mask = 0x000000ffffffffff;
-    static const uint64_t false_bits = 0x00000065736c6166; /* "false" */
-
-    char *p = *pp;
-
-    uint64_t next8 = *(uint64_t *)p | mask;
-
-    int is_true  = (next8 & true_mask)  == true_bits;
-    int is_false = (next8 & false_mask) == false_bits;
-
-    if (is_true) {
-        *output_ptr = itrue;
-        *pp         = p + sizeof ("true") - 1;
-    } else if (is_false) {
-        *output_ptr = ifalse;
-        *pp         = p + sizeof ("false") - 1;
-    } else {
-        return psv_alloc_error ("was not a boolean", p, pe - p);
-    }
-
-    return 0;
-}
-static psv_error_t INLINE psv_read_json_bool (char **pp, char *pe, ibool_t *output_ptr)
-{
-    return psv_read_mask_bool (0x0, pp, pe, output_ptr);
-}
-
-static psv_error_t INLINE psv_read_bool (char **pp, char *pe, ibool_t *output_ptr)
-{
-    static const uint64_t to_lower = 0x2020202020202020;
-    return psv_read_mask_bool (to_lower, pp, pe, output_ptr);
-}
-
-static psv_error_t INLINE psv_read_int (char **pp, char *pe, iint_t *output_ptr)
-{
-    *output_ptr = strtol (*pp, pp, 10);
-    return 0;
-}
-
-static psv_error_t INLINE psv_read_double (char **pp, char *pe, idouble_t *output_ptr)
-{
-    *output_ptr = strtod (*pp, pp);
-    return 0;
-}
-
-static psv_error_t psv_read_buffer (psv_state_t *s)
-{
-    psv_error_t error;
+    ierror_msg_t error;
 
     const char  *buffer_ptr  = s->buffer_ptr;
     const size_t buffer_size = s->buffer_size;
@@ -322,7 +100,7 @@ static psv_error_t psv_read_buffer (psv_state_t *s)
         const size_t entity_size = entity_end - entity_ptr;
 
         if (entity_end == 0) {
-            error = psv_alloc_error ("missing |", entity_ptr, n_ptr - entity_ptr);
+            error = ierror_msg_alloc ("missing |", entity_ptr, n_ptr - entity_ptr);
             goto on_error;
         }
 
@@ -331,7 +109,7 @@ static psv_error_t psv_read_buffer (psv_state_t *s)
         const size_t attrib_size = attrib_end - attrib_ptr;
 
         if (attrib_end == 0) {
-            error = psv_alloc_error ("missing |", attrib_ptr, n_ptr - attrib_ptr);
+            error = ierror_msg_alloc ("missing |", attrib_ptr, n_ptr - attrib_ptr);
             goto on_error;
         }
 
@@ -344,7 +122,7 @@ static psv_error_t psv_read_buffer (psv_state_t *s)
         } else if (*n21_ptr == '|') {
             time_ptr = n21_ptr + 1;
         } else {
-            error = psv_alloc_error ("expected |", n21_ptr, n_ptr - n21_ptr);
+            error = ierror_msg_alloc ("expected |", n21_ptr, n_ptr - n21_ptr);
             goto on_error;
         }
 
@@ -375,7 +153,7 @@ static psv_error_t psv_read_buffer (psv_state_t *s)
         }
 
         itime_t time;
-        error = psv_read_time (time_ptr, time_size, &time);
+        error = fixed_read_itime (time_ptr, time_size, &time);
         if (error) goto on_error;
 
         error = psv_read_fact (attrib_ptr, attrib_size, value_ptr, value_size, time, s->fleet);
@@ -399,7 +177,7 @@ static void psv_set_blocking_mode (int fd)
 void psv_snapshot (psv_config_t *cfg)
 {
     static const size_t psv_read_error = (size_t) -1;
-    psv_error_t psv_write_error = 0;
+    ierror_msg_t psv_write_error = 0;
 
     int input_fd  = (int)cfg->input_fd;
     int output_fd = (int)cfg->output_fd;
@@ -411,7 +189,7 @@ void psv_snapshot (psv_config_t *cfg)
     psv_set_blocking_mode (chord_fd);
 
     ichord_file_t chord_file;
-    psv_error_t chord_mmap_error = ichord_file_mmap (chord_fd, &chord_file);
+    ierror_msg_t chord_mmap_error = ichord_file_mmap (chord_fd, &chord_file);
     if (chord_mmap_error) {
         cfg->error        = chord_mmap_error;
         cfg->fact_count   = 0;
@@ -444,7 +222,7 @@ void psv_snapshot (psv_config_t *cfg)
                                  , psv_buffer_size - buffer_offset );
 
         if (bytes_read == psv_read_error) {
-            cfg->error = psv_alloc_error ("error reading input", 0, 0);
+            cfg->error = ierror_msg_alloc ("error reading input", 0, 0);
             break;
         }
 
@@ -462,10 +240,10 @@ void psv_snapshot (psv_config_t *cfg)
         size_t bytes_avail = buffer_offset + bytes_read;
         state.buffer_size  = bytes_avail;
 
-        psv_error_t error = psv_read_buffer (&state);
+        ierror_msg_t error = psv_read_buffer (&state);
 
         if (error) {
-            cfg->error = psv_error_add_line (state.fact_count, error);
+            cfg->error = ierror_msg_add_line (state.fact_count, error);
             break;
         }
 
@@ -478,7 +256,7 @@ void psv_snapshot (psv_config_t *cfg)
         buffer_offset = bytes_remaining;
     }
 
-    psv_error_t chord_unmap_error = ichord_file_unmap (&chord_file);
+    ierror_msg_t chord_unmap_error = ichord_file_unmap (&chord_file);
     if (cfg->error == 0)
         cfg->error = chord_unmap_error;
 
@@ -486,13 +264,13 @@ void psv_snapshot (psv_config_t *cfg)
     cfg->entity_count = state.entity_count;
 }
 
-static psv_error_t INLINE psv_output_flush (int fd, char *ps, char **pp)
+static ierror_msg_t INLINE psv_output_flush (int fd, char *ps, char **pp)
 {
     size_t bytes_avail   = *pp - ps;
     size_t bytes_written = write (fd, ps, bytes_avail);
 
     if (bytes_written < bytes_avail) {
-        return psv_alloc_error ("cannot write psv output to file", ps, bytes_avail);
+        return ierror_msg_alloc ("cannot write psv output to file", ps, bytes_avail);
     }
 
     *pp = ps;
@@ -503,11 +281,11 @@ static psv_error_t INLINE psv_output_flush (int fd, char *ps, char **pp)
 #define ENSURE_SIZE(bytes_required)                                   \
     size_t bytes_remaining = pe - *pp;                                \
     if (bytes_remaining < bytes_required) {                           \
-        psv_error_t error = psv_output_flush (fd, ps, pp);            \
+        ierror_msg_t error = psv_output_flush (fd, ps, pp);            \
         if (error) return error;                                      \
     }
 
-static psv_error_t INLINE psv_output_char
+static ierror_msg_t INLINE psv_output_char
     (int fd, char *ps, char *pe, char **pp, char value)
 {
     ENSURE_SIZE (1);
@@ -518,7 +296,7 @@ static psv_error_t INLINE psv_output_char
     return 0;
 }
 
-static psv_error_t INLINE psv_output_string
+static ierror_msg_t INLINE psv_output_string
     (int fd, char *ps, char *pe, char **pp, const char *value_ptr, size_t value_size)
 {
     ENSURE_SIZE (value_size);
@@ -529,46 +307,34 @@ static psv_error_t INLINE psv_output_string
     return 0;
 }
 
-static psv_error_t INLINE psv_output_time
+static ierror_msg_t INLINE psv_output_time
     (int fd, char *ps, char *pe, char **pp, itime_t value)
 {
-    const size_t value_size = sizeof ("yyyy-mm-ddThh:mm:ssZ") - 1;
-    ENSURE_SIZE (value_size);
+    ENSURE_SIZE (text_itime_max_size);
 
-    iint_t year, month, day, hour, minute, second;
-    itime_to_gregorian (value, &year, &month, &day, &hour, &minute, &second);
-
-    // TODO remove all printfs in output code
-    snprintf ( *pp, value_size
-             , "%lld-%02lld-%02lldT%02lld:%02lld:%02lldZ"
-             , year, month, day, hour, minute, second );
-
-    return 0;
-}
-
-static psv_error_t INLINE psv_output_double
-    (int fd, char *ps, char *pe, char **pp, idouble_t value)
-{
-    const size_t max_value_size = 32;
-    ENSURE_SIZE (max_value_size);
-
-    size_t value_size = grisu2_dtostr (value, *pp);
+    size_t value_size = text_write_itime (value, *pp);
     *pp += value_size;
 
-    //size_t value_size = snprintf (*pp, max_value_size, "%.16g", value);
-    //*pp += value_size;
+    return 0;
+}
+
+static ierror_msg_t INLINE psv_output_double
+    (int fd, char *ps, char *pe, char **pp, idouble_t value)
+{
+    ENSURE_SIZE (text_idouble_max_size);
+
+    size_t value_size = text_write_idouble (value, *pp);
+    *pp += value_size;
 
     return 0;
 }
 
-static psv_error_t INLINE psv_output_int
+static ierror_msg_t INLINE psv_output_int
     (int fd, char *ps, char *pe, char **pp, iint_t value)
 {
-    const size_t max_value_size = 32;
-    ENSURE_SIZE (max_value_size);
+    ENSURE_SIZE (text_iint_max_size);
 
-    // TODO remove all printfs in output code
-    size_t value_size = snprintf (*pp, max_value_size, "%lld", value);
+    size_t value_size = text_write_iint (value, *pp);
     *pp += value_size;
 
     return 0;

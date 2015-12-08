@@ -6,6 +6,7 @@ module Icicle.Sea.FromAvalanche.Type (
     seaOfDefinitions
   , prefixOfArithType
   , prefixOfValType
+  , baseOfValType
   , defOfVar
   , defOfVar'
   , seaOfValType
