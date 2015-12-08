@@ -1,7 +1,9 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE PatternGuards #-}
-{-# OPTIONS -fno-warn-orphans #-}
+{-# LANGUAGE PatternGuards     #-}
+{-# LANGUAGE FlexibleContexts  #-}
+{-# LANGUAGE CPP               #-}
+{-# OPTIONS -fno-warn-orphans  #-}
 module Icicle.Source.Lexer.Token (
     TOK
   , Token    (..)
@@ -26,7 +28,9 @@ import                  Data.Text (Text)
 import                  Data.List (lookup)
 
 -- Bounded hack for getting names of all keywords
+#if (__GLASGOW_HASKELL__ < 710)
 import                  Prelude (Enum(..), Bounded(..), minBound,maxBound)
+#endif
 
 -- Export source position type
 import                  Text.Parsec (SourcePos, sourceLine, sourceColumn, sourceName)

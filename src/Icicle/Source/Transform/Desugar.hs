@@ -6,6 +6,7 @@
 {-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE DeriveFoldable    #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE FlexibleContexts  #-}
 module Icicle.Source.Transform.Desugar
   ( DesugarError(..)
   , annotOfError
@@ -322,7 +323,10 @@ data Tree a n x
          [(Constructor, Tree a n x)] (Tree a n x)
  deriving (Functor, Foldable, Traversable, Show)
 
-
+instance Applicative (Tree a n) where
+  pure = return
+  (<*>) = ap
+  
 instance Monad (Tree a n) where
   return  = Done
   a >>= b = joinT (fmap b a)
