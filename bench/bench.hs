@@ -4,6 +4,7 @@
 import           Control.Monad.IO.Class (liftIO)
 
 import           Criterion.Main
+import           Criterion.Types (Config(..))
 
 import qualified Data.Map as Map
 import           Data.Text (Text)
@@ -40,13 +41,20 @@ main =
     putStrLn "Compiling"
     _ <- runEitherT . bracketEitherT' (createBenchmark base) I.releaseBenchmark $ \b -> do
       liftIO $ putStrLn "Running benchmarks"
-      liftIO $ defaultMain
+      liftIO $ defaultMainWith benchConfig
         [ bgroup "entities=10"
           [ group "years=2" b
           ]
         ]
 
     return ()
+
+benchConfig :: Config
+benchConfig =
+  defaultConfig {
+      reportFile = Just "dist/build/icicle/icicle-bench.html"
+    , csvFile    = Just "dist/build/icicle/icicle-bench.csv"
+    }
 
 ------------------------------------------------------------------------
 
