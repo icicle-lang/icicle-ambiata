@@ -83,8 +83,8 @@ checkF' fun env
       -- an unadorned, or pure, a.
       --
       -- However, removing these 'free modes' has a few small advantages:
-      -- * Aesthetically the type "Int" is nicer than "forall t. t Int"
-      -- * We don't need to perform let-generalisation on modes in the rest of the typechecker
+      -- - Aesthetically the type "Int" is nicer than "forall t. t Int"
+      -- - We don't need to perform let-generalisation on modes in the rest of the typechecker
       --
       -- To illustrate the second point, consider:
       -- > let x = ( 1 + 2          : forall t a. Num a => t a )

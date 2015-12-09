@@ -97,9 +97,9 @@ instance (Pretty n) => Pretty (RuntimeError a n) where
 -- However, "older than" windows are a special case, because something not required today
 -- will be old enough in a later run.
 data EvalResult
- = EvalResult
+ = EvalResult {
  -- | The actual stream result
- { evalStreamValue      :: StreamValue
+   evalStreamValue      :: StreamValue
  -- | Any leftovers that have been filtered out,
  -- but may be required in a later run
  , evalMarkAsRequired   :: [BubbleGumFact]
