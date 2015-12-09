@@ -4,7 +4,12 @@
 
 module Icicle.Benchmark (
     BenchError(..)
-  , runBench
+  , Benchmark(..)
+  , BenchmarkResult(..)
+  , createBenchmark
+  , releaseBenchmark
+  , runBenchmark
+  , withChords
   ) where
 
 import           Control.Monad.IO.Class (liftIO)
@@ -14,9 +19,8 @@ import           Data.Map (Map)
 import qualified Data.Map as Map
 import           Data.Set (Set)
 import           Data.Text (Text)
-import qualified Data.Text.IO as T
 import qualified Data.Text.Lazy.IO as TL
-import           Data.Time (getCurrentTime, diffUTCTime)
+import           Data.Time (NominalDiffTime, getCurrentTime, diffUTCTime)
 
 import qualified Icicle.Avalanche.Prim.Flat as A
 import qualified Icicle.Avalanche.Program as A
@@ -37,13 +41,12 @@ import           Icicle.Storage.Dictionary.Toml
 
 import           P
 
-import           System.Directory (getTemporaryDirectory, removeDirectoryRecursive)
-import           System.FilePath (FilePath, replaceExtension)
-import           System.IO (IO, IOMode(..), withFile, hFileSize, putStrLn)
+import           System.FilePath (FilePath)
+import           System.IO (IO, IOMode(..), withFile, hFileSize)
 import           System.IO.Temp (createTempDirectory)
+import           System.Directory (getTemporaryDirectory, removeDirectoryRecursive)
 
 import           Text.ParserCombinators.Parsec (SourcePos)
-import           Text.Printf (printf)
 
 import           X.Control.Monad.Trans.Either
 import           X.Control.Monad.Catch
@@ -61,90 +64,86 @@ data BenchError =
 
 ------------------------------------------------------------------------
 
-runBench
+data Benchmark = Benchmark {
+    benchSource          :: Text
+  , benchAssembly        :: Text
+  , benchFleet           :: SeaFleet
+  , benchInputPath       :: FilePath
+  , benchOutputPath      :: FilePath
+  , benchChordPath       :: Maybe FilePath
+  , benchCompilationTime :: NominalDiffTime
+  }
+
+data BenchmarkResult = BenchmarkResult {
+    benchTime     :: NominalDiffTime
+  , benchEntities :: Int64
+  , benchFacts    :: Int64
+  , benchBytes    :: Int64
+  } deriving (Eq, Ord, Show)
+
+createBenchmark
   :: PsvMode
   -> FilePath
   -> FilePath
   -> FilePath
-  -> FilePath
   -> Maybe FilePath
-  -> EitherT BenchError IO ()
+  -> EitherT BenchError IO Benchmark
 
-runBench mode dictionaryPath inputPath outputPath sourcePath chordPath =
-  withChords chordPath $ \packedChordPath -> do
-    liftIO (putStrLn "icicle-bench: starting compilation")
-    compStart <- liftIO getCurrentTime
+createBenchmark mode dictionaryPath inputPath outputPath packedChordPath = do
+  start <- liftIO getCurrentTime
 
-    dictionary <- firstEitherT BenchDictionaryImportError (loadDictionary dictionaryPath)
-    avalanche  <- hoistEither (avalancheOfDictionary dictionary)
+  dictionary <- firstEitherT BenchDictionaryImportError (loadDictionary dictionaryPath)
+  avalanche  <- hoistEither (avalancheOfDictionary dictionary)
 
-    let cfg = Psv (PsvConfig mode (tombstonesOfDictionary dictionary))
+  let cfg = Psv (PsvConfig mode (tombstonesOfDictionary dictionary))
 
-    let avalancheL = Map.toList avalanche
+  let avalancheL = Map.toList avalanche
 
-    code <- firstEitherT BenchSeaError (hoistEither (codeOfPrograms cfg avalancheL))
-    liftIO (T.writeFile sourcePath code)
+  code  <- firstEitherT BenchSeaError (hoistEither (codeOfPrograms cfg avalancheL))
+  asm   <- firstEitherT BenchSeaError (assemblyOfPrograms cfg avalancheL)
+  fleet <- firstEitherT BenchSeaError (seaCompile cfg avalanche)
 
-    asm <- firstEitherT BenchSeaError (assemblyOfPrograms cfg avalancheL)
-    liftIO (T.writeFile (replaceExtension sourcePath ".s") asm)
+  end <- liftIO getCurrentTime
 
-    let acquireFleet = firstEitherT BenchSeaError (seaCompile cfg avalanche)
-        releaseFleet = seaRelease
+  return Benchmark {
+      benchSource          = code
+    , benchAssembly        = asm
+    , benchFleet           = fleet
+    , benchInputPath       = inputPath
+    , benchOutputPath      = outputPath
+    , benchChordPath       = packedChordPath
+    , benchCompilationTime = end `diffUTCTime` start
+    }
 
-    bracketEitherT' acquireFleet releaseFleet $ \fleet -> do
-      compEnd <- liftIO getCurrentTime
-      let compSecs = realToFrac (compEnd `diffUTCTime` compStart) :: Double
-      liftIO (printf "icicle-bench: compilation time = %.2fs\n" compSecs)
-      liftIO (putStrLn "icicle-bench: starting snapshot")
+releaseBenchmark :: Benchmark -> EitherT BenchError IO ()
+releaseBenchmark b =
+  seaRelease (benchFleet b)
 
-      psvStart <- liftIO getCurrentTime
-      stats    <- firstEitherT BenchSeaError (seaPsvSnapshotFilePath fleet inputPath outputPath packedChordPath)
-      psvEnd   <- liftIO getCurrentTime
+runBenchmark :: Benchmark -> EitherT BenchError IO BenchmarkResult
+runBenchmark b = do
+  let fleet      = benchFleet      b
+      inputPath  = benchInputPath  b
+      outputPath = benchOutputPath b
+      chordPath  = benchChordPath  b
 
-      size <- liftIO (withFile inputPath ReadMode hFileSize)
+  start <- liftIO getCurrentTime
+  stats <- firstEitherT BenchSeaError (seaPsvSnapshotFilePath fleet inputPath outputPath chordPath)
+  end   <- liftIO getCurrentTime
 
-      let facts    = psvFactsRead    stats
-          entities = psvEntitiesRead stats
+  size <- liftIO (withFile inputPath ReadMode hFileSize)
 
-      let psvSecs = realToFrac (psvEnd `diffUTCTime` psvStart) :: Double
-          mbps    = (fromIntegral size / psvSecs) / (1024 * 1024)
-          mfps    = (fromIntegral facts / psvSecs) / (1000 * 1000)
-
-      liftIO (printf "icicle-bench: snapshot time   = %.2fs\n"                psvSecs)
-      liftIO (printf "icicle-bench: total entities  = %d\n"                   entities)
-      liftIO (printf "icicle-bench: total facts     = %d\n"                   facts)
-      liftIO (printf "icicle-bench: fact throughput = %.2f million facts/s\n" mfps)
-      liftIO (printf "icicle-bench: byte throughput = %.2f MB/s\n"            mbps)
-
-------------------------------------------------------------------------
+  return BenchmarkResult {
+      benchTime     = end `diffUTCTime` start
+    , benchFacts    = psvFactsRead    stats
+    , benchEntities = psvEntitiesRead stats
+    , benchBytes    = fromIntegral size
+    }
 
 tombstonesOfDictionary :: Dictionary -> Map Attribute (Set Text)
 tombstonesOfDictionary dict =
   let go (DictionaryEntry a (ConcreteDefinition _ ts)) = [(a, ts)]
       go _                                             = []
   in Map.fromList (concatMap go (dictionaryEntries dict))
-
-withChords :: Maybe FilePath -> (Maybe FilePath -> EitherT BenchError IO a) -> EitherT BenchError IO a
-withChords Nothing     io = io Nothing
-withChords (Just path) io = do
-  let acquire = liftIO (getTemporaryDirectory >>= \tmp -> createTempDirectory tmp "icicle-bench")
-      release = liftIO . removeDirectoryRecursive
-  bracketEitherT' acquire release $ \dir -> do
-
-    liftIO (putStrLn "icicle-bench: preparing chords")
-    chordStart <- liftIO getCurrentTime
-
-    chordFile <- liftIO (TL.readFile path)
-    chordMap  <- firstEitherT BenchChordParseError . hoistEither $ parseChordFile chordFile
-
-    let packedChords = dir <> "/chords"
-    liftIO (writeChordFile chordMap packedChords)
-
-    chordEnd <- liftIO getCurrentTime
-    let chordSecs = realToFrac (chordEnd `diffUTCTime` chordStart) :: Double
-    liftIO (printf "icicle-bench: chord preparation time = %.2fs\n" chordSecs)
-
-    io (Just packedChords)
 
 ------------------------------------------------------------------------
 
@@ -201,3 +200,20 @@ parTraverse  :: Traversable t => (a -> Either e b) -> t a -> Either e (t b)
 parTraverse f = sequenceA . parallel . fmap f
  where
   parallel = withStrategy (parTraversable (rparWith rseq))
+
+------------------------------------------------------------------------
+
+withChords :: Maybe FilePath -> (Maybe FilePath -> EitherT BenchError IO a) -> EitherT BenchError IO a
+withChords Nothing     io = io Nothing
+withChords (Just path) io = do
+  let acquire = liftIO (getTemporaryDirectory >>= \tmp -> createTempDirectory tmp "icicle-chords-")
+      release = liftIO . removeDirectoryRecursive
+  bracketEitherT' acquire release $ \dir -> do
+
+    chordFile <- liftIO (TL.readFile path)
+    chordMap  <- firstEitherT BenchChordParseError . hoistEither $ parseChordFile chordFile
+
+    let packedChords = dir <> "/chords"
+    liftIO (writeChordFile chordMap packedChords)
+
+    io (Just packedChords)
