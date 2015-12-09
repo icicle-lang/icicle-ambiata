@@ -50,9 +50,9 @@ import qualified Data.Map                    as Map
 -- | Type checking environment.
 -- Keep track of all the things we need to know
 data CheckEnv a n
- = CheckEnv
+ = CheckEnv {
  -- | Mapping from variable names to whole types
- { checkEnvironment :: Map.Map (Name n) (FunctionType n)
+   checkEnvironment :: Map.Map (Name n) (FunctionType n)
  -- | Function bodies
  , checkBodies      :: Map.Map (Name n) (Function a n)
  , checkInvariants  :: Invariants
@@ -62,11 +62,11 @@ data CheckEnv a n
 --   i.e. unimplemented things.
 --
 data Invariants
- = Invariants
+ = Invariants {
  -- | We can't have windows or other group-like things inside groups.
  -- This is actually treating all of latests, distincts and groups as "group-like"
  -- because they all require compilation to a single fold.
- { allowWindowsOrGroups :: Bool
+   allowWindowsOrGroups :: Bool
  -- | Latest is good now
  , allowLatest :: Bool
  }

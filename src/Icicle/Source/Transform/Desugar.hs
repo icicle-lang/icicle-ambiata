@@ -313,13 +313,13 @@ casesForTy ann scrut ty
 --
 data Tree a n x
  = Done  x                         -- ^ just use the pattern/alternative/thing.
- | TCase (Exp' (Query a n) a n)    -- ^ do a case statement
-         [(Pattern n, Tree a n x)]
- | TLet  (Name n)                  -- ^ insert a let because we cannot generate pattern variables.
+ | TCase (Exp' (Query a n) a n)
+         [(Pattern n, Tree a n x)] -- ^ do a case statement
+ | TLet  (Name n)
          (Exp' (Query a n) a n)
-         (Tree a n x)
- | TLits (Exp' (Query a n) a n)    -- ^ special case for literals
-         [(Constructor, Tree a n x)] (Tree a n x)
+         (Tree a n x)              -- ^ insert a let because we cannot generate pattern variables.
+ | TLits (Exp' (Query a n) a n)
+         [(Constructor, Tree a n x)] (Tree a n x) -- ^ special case for literals
  deriving (Functor, Foldable, Traversable, Show)
 
 

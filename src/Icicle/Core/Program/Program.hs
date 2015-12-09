@@ -18,9 +18,9 @@ import              P
 
 -- | Core program composed of different stages of bindings
 data Program a n =
- Program
+ Program {
  -- | The type of the input/concrete feature
- { input        :: ValType
+   input        :: ValType
 
  -- | All precomputations, made before starting to read from feature source
  , precomps     :: [(Name n, Exp a n)]

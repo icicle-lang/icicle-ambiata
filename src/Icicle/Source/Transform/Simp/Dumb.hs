@@ -1,7 +1,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 
--- * Simplify dumb roundabout bindings.
---   e.g. `let x = y in body` or `case x | y -> body`
+-- | * Simplify dumb roundabout bindings.
+--     e.g. `let x = y in body` or `case x | y -> body`
 --
 module Icicle.Source.Transform.Simp.Dumb
   ( dumbSimpTransform
