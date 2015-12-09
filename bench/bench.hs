@@ -20,7 +20,7 @@ import qualified Icicle.Sea.Eval as I
 
 import           P
 
-import           System.Directory (copyFile)
+import           System.Directory (copyFile, createDirectory)
 import           System.Exit (ExitCode(..))
 import           System.FilePath (FilePath, (</>))
 import           System.IO (IO, putStrLn)
@@ -41,6 +41,7 @@ main =
     putStrLn "Compiling"
     _ <- runEitherT . bracketEitherT' (createBenchmark base) I.releaseBenchmark $ \b -> do
       liftIO $ putStrLn "Running benchmarks"
+      liftIO $ createDirectory "dist/build/icicle"
       liftIO $ defaultMainWith benchConfig
         [ bgroup "entities=10"
           [ group "years=2" b

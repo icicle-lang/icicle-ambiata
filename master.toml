@@ -7,10 +7,12 @@
   HADDOCK="true"
 
 [build.dist-bench]
+  TEST="false"
   BENCH="true"
   PUBLISH_BENCH="icicle"  
 
 [build.branches]
 
 [build.branches-bench]
+  TEST="false"
   BENCH="true"
