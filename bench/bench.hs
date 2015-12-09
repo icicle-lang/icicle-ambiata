@@ -20,7 +20,7 @@ import qualified Icicle.Sea.Eval as I
 
 import           P
 
-import           System.Directory (copyFile, createDirectory)
+import           System.Directory (copyFile)
 import           System.Exit (ExitCode(..))
 import           System.FilePath (FilePath, (</>))
 import           System.IO (IO, putStrLn)
@@ -41,7 +41,6 @@ main =
     putStrLn "Compiling"
     _ <- runEitherT . bracketEitherT' (createBenchmark base) I.releaseBenchmark $ \b -> do
       liftIO $ putStrLn "Running benchmarks"
-      liftIO $ createDirectory "dist/build/icicle"
       liftIO $ defaultMainWith benchConfig
         [ bgroup "entities=10"
           [ group "years=2" b
@@ -53,8 +52,8 @@ main =
 benchConfig :: Config
 benchConfig =
   defaultConfig {
-      reportFile = Just "dist/build/icicle/icicle-bench.html"
-    , csvFile    = Just "dist/build/icicle/icicle-bench.csv"
+      reportFile = Just "dist/build/icicle-bench.html"
+    , csvFile    = Just "dist/build/icicle-bench.csv"
     }
 
 ------------------------------------------------------------------------
@@ -68,25 +67,25 @@ group name b = do
     , bench "wc"     $ nfIO (wc  (I.benchInputPath b))
     ]
 
+icicle :: I.Benchmark -> IO ()
+icicle b = do
+  Right stats <- runEitherT (I.runBenchmark b)
+  putStrLn ("  " <> show stats)
+
 cat :: FilePath -> IO ()
 cat path = do
   ExitSuccess <- system ("cat " <> path <> " >/dev/null")
   return ()
 
-wc :: FilePath -> IO ()
-wc path = do
-  ExitSuccess <- system ("wc " <> path)
-  return ()
-
 wcl :: FilePath -> IO ()
 wcl path = do
-  ExitSuccess <- system ("wc -l " <> path)
+  ExitSuccess <- system ("LANG=C LC_ALL=C wc -l " <> path)
   return ()
 
-icicle :: I.Benchmark -> IO ()
-icicle b = do
-  Right stats <- runEitherT (I.runBenchmark b)
-  putStrLn ("  " <> show stats)
+wc :: FilePath -> IO ()
+wc path = do
+  ExitSuccess <- system ("LANG=C LC_ALL=C wc " <> path)
+  return ()
 
 ------------------------------------------------------------------------
 

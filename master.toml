@@ -1,7 +1,7 @@
 [master]
-  runner = "s3://ambiata-dist/master-ambiata/master-haskell-library-0.0.1-20151209014434-1f7be60"
+  runner = "s3://ambiata-dist/master-ambiata/master-haskell-library-0.0.1-20151209065455-431f7fe"
   version = 1
-  sha1 = "5f5a783de1b5fc36e14dea1a017aa5c37af03ca2"
+  sha1 = "5a89a62ecfc4b66300436840c53c7f643ffec707"
 
 [build.dist]
   HADDOCK="true"
