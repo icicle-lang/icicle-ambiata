@@ -2,8 +2,10 @@
 
 #include <assert.h>
 #include <ctype.h>
+#include <execinfo.h>
 #include <fcntl.h>
 #include <math.h>
+#include <signal.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -38,7 +40,7 @@ static const iunit_t iunit  = 0x13013;
 static const ibool_t ifalse = 0;
 static const ibool_t itrue  = 1;
 
-#if ICICLE_DEBUG
+#if ICICLE_NOINLINE || ICICLE_DEBUG
 #   define INLINE __attribute__((noinline))
 #else
 #   define INLINE __attribute__((always_inline))
