@@ -11,7 +11,7 @@ import qualified Data.Map as Map
 import qualified Data.Set as Set
 import qualified Data.List as List
 
-import           Icicle.Data (Entity(..), Attribute(..), AsAt)
+import           Icicle.Data (Entity(..), Attribute(..), AsAt(..))
 import           Icicle.Data.Time (Time)
 
 import qualified Icicle.Core.Program.Program as C
@@ -63,10 +63,10 @@ instance Arbitrary InputType where
 
 instance Arbitrary WellTyped where
   arbitrary = validated 10 $ do
-    entities       <- List.nub . getNonEmpty <$> arbitrary
+    entities       <- List.sort . List.nub . getNonEmpty <$> arbitrary
     attribute      <- arbitrary
     (InputType ty) <- arbitrary
-    (inputs, time) <- inputsForType ty
+    (inputs, time) <- first (List.nubBy ((==) `on` atTime)) <$> inputsForType ty
     core           <- programForStreamType ty
     return $ do
       checked <- fromEither (C.checkProgram core)
