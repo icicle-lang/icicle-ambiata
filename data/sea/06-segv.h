@@ -2,8 +2,8 @@
 
 /* this global is pretty nasty, don't know how else we can get
  * information in a signal handler though */
-static const size_t segv_user_data_size = 1024*1024;
-static char segv_user_data[segv_user_data_size];
+#define SEGV_USER_DATA_SIZE (1024*1024)
+static char segv_user_data[SEGV_USER_DATA_SIZE];
 
 static void segv_handler (int sig)
 {
@@ -19,7 +19,7 @@ static void segv_handler (int sig)
 
 void segv_install_handler (const char *user_data, size_t user_data_size)
 {
-    size_t size = MIN (user_data_size, segv_user_data_size-1);
+    size_t size = MIN (user_data_size, SEGV_USER_DATA_SIZE-1);
     memcpy (segv_user_data, user_data, size);
     segv_user_data[size] = '\0';
 
