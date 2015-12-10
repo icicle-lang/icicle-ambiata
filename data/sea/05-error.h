@@ -1,6 +1,21 @@
 #include "00-includes.h"
 
-static ierror_msg_t ierror_msg_alloc (const char *msg, const char *value_ptr, const size_t value_size)
+static ierror_msg_t NOINLINE ierror_msg_format (const char *fmt, ...)
+{
+    va_list args;
+    va_start (args, fmt);
+
+    size_t  error_size = 4 * 1024;
+    char   *error_text = calloc (error_size, 1);
+
+    vsnprintf (error_text, error_size, fmt, args);
+
+    va_end (args);
+
+    return error_text;
+}
+
+static ierror_msg_t NOINLINE ierror_msg_alloc (const char *msg, const char *value_ptr, const size_t value_size)
 {
     size_t  error_size = 4 * 1024;
     char   *error_text = calloc (error_size, 1);
@@ -17,7 +32,7 @@ static ierror_msg_t ierror_msg_alloc (const char *msg, const char *value_ptr, co
     return error_text;
 }
 
-static ierror_msg_t ierror_msg_add_line (iint_t line, ierror_msg_t original)
+static ierror_msg_t NOINLINE ierror_msg_add_line (iint_t line, ierror_msg_t original)
 {
     size_t  error_size = 4 * 1024;
     char   *error_text = calloc (error_size, 1);
@@ -28,7 +43,7 @@ static ierror_msg_t ierror_msg_add_line (iint_t line, ierror_msg_t original)
     return error_text;
 }
 
-static void idebug (const char *msg, const char *value_ptr, const size_t value_size)
+static void NOINLINE idebug (const char *msg, const char *value_ptr, const size_t value_size)
 {
     char value_text[4*1024] = {0};
     memcpy (value_text, value_ptr, MIN (value_size, sizeof (value_text) - 1));
