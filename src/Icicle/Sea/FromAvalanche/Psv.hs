@@ -759,7 +759,7 @@ outputString xs
   mkdoc sw = "*(uint64_t *)(buffer_ptr + " <> int (swOffset sw) <> ") = " <> swBits sw <> ";"
 
 timeFmt :: Doc
-timeFmt = "%lld-%02lld-%02lldT%02lld:%02lld:%02lld"
+timeFmt = "%04lld-%02lld-%02lldT%02lld:%02lld:%02lld"
 
 outputDie :: Doc
 outputDie = "if (error) return error;"
