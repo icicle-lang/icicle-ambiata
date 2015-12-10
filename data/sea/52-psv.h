@@ -76,6 +76,17 @@ static const size_t psv_output_buf_size = 16*1024;
 Input
 */
 
+static int INLINE psv_compare (const char *xs, size_t xs_size, const char *ys, size_t ys_size)
+{
+    size_t min = MIN (xs_size, ys_size);
+    int    cmp = memcmp (xs, ys, min);
+
+    if (cmp != 0)
+        return cmp;
+
+    return xs_size - ys_size;
+}
+
 static ierror_msg_t psv_read_buffer (psv_state_t *s)
 {
     ierror_msg_t error;
@@ -148,7 +159,7 @@ static ierror_msg_t psv_read_buffer (psv_state_t *s)
         const char  *value_end  = time_ptr - 1;
         const size_t value_size = value_end - value_ptr;
 
-        const int new_entity = memcmp (entity_cur, entity_ptr, entity_size);
+        const int new_entity = psv_compare (entity_cur, entity_cur_size, entity_ptr, entity_size);
 
         if (new_entity < 0) {
             if (entity_cur_size != 0) {
