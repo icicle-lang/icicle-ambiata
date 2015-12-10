@@ -4,8 +4,9 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# OPTIONS_GHC -w #-}
 module Icicle.Benchmark.Generator (
-    FileSpec(..)
+    Generator(..)
   , AttributeType(..)
+  , Frequency(..)
   , Seed
   , Year
   , generateSparse
@@ -56,35 +57,43 @@ import           Text.Printf (printf)
 type Seed = Int
 type Year = Int
 
+data Frequency =
+    PerMonth
+  | PerDay
+  | PerHour
+  | PerMinute
+  deriving (Eq, Ord, Show)
+
 data AttributeType = Double | Int
   deriving (Eq, Ord, Show)
 
-data FileSpec = FileSpec {
-    specSeed         :: Seed
-  , specEntityCount  :: Int32
-  , specAttributes   :: Map ByteString AttributeType
-  , specStart        :: Year
-  , specEnd          :: Year
+data Generator = Generator {
+    genSeed         :: Seed
+  , genEntityCount  :: Int32
+  , genAttributes   :: Map ByteString AttributeType
+  , genStart        :: Year
+  , genEnd          :: Year
+  , genFrequency    :: Frequency
   } deriving (Eq, Ord, Show)
 
 ------------------------------------------------------------------------
 
-generateSparse :: FileSpec -> FilePath -> IO ()
-generateSparse spec path = do
+generateSparse :: Generator -> FilePath -> IO ()
+generateSparse gen path = do
   let (leap, nonLeap) =
-        generate (specSeed spec) $
-        (,) <$> createTemplate spec Leap
-            <*> createTemplate spec NonLeap
+        generate (genSeed gen) $
+        (,) <$> createTemplate gen Leap
+            <*> createTemplate gen NonLeap
 
   withBinaryFile path WriteMode $ \h -> do
     hSetBuffering h (BlockBuffering (Just (4*1024*1024)))
 
-    for_ [0..specEntityCount spec - 1] $ \entity -> do
+    for_ [0..genEntityCount gen - 1] $ \entity -> do
       eLeap    <- replaceEntity entity leap
       eNonLeap <- replaceEntity entity nonLeap
-      for_ [specStart spec..specEnd spec] $ \year -> do
+      for_ [genStart gen..genEnd gen] $ \year -> do
         bs  <- replaceYear year (eLeap, eNonLeap)
-        -- bs' <- addCorruption (specSeed spec) 10000 bs
+        -- bs' <- addCorruption (genSeed gen) 10000 bs
         C.hPut h bs
 
 replaceEntity :: Int32 -> (U.Vector Int, U.Vector Int, ByteString) -> IO (U.Vector Int, ByteString)
@@ -109,9 +118,9 @@ generate seed (MkGen g) =
 
 ------------------------------------------------------------------------
 
-createTemplate :: FileSpec -> IsLeap -> Gen (U.Vector Int, U.Vector Int, ByteString)
-createTemplate spec leap = do
-  records <- templateOfLeap spec leap
+createTemplate :: Generator -> IsLeap -> Gen (U.Vector Int, U.Vector Int, ByteString)
+createTemplate gen leap = do
+  records <- templateOfLeap gen leap
 
   let template = C.concat (V.toList records)
 
@@ -123,25 +132,32 @@ createTemplate spec leap = do
 
   return (startIxs, yearIxs, template)
 
-templateOfLeap :: FileSpec -> IsLeap -> Gen (V.Vector ByteString)
-templateOfLeap spec leap = do
-  let times = timesOfYear leap
+templateOfLeap :: Generator -> IsLeap -> Gen (V.Vector ByteString)
+templateOfLeap gen leap = do
+  let times = timesOfYear (genFrequency gen) leap
       n     = V.length times
 
-  eavs <- V.fromListN n <$> QC.vectorOf n (genEAV spec)
+  eavs <- V.fromListN n <$> QC.vectorOf n (genEAV gen)
 
   return . V.map (L.toStrict . B.toLazyByteString)
          $ V.zipWith (<>) eavs times
 
-timesOfYear :: IsLeap -> V.Vector Builder
-timesOfYear leap =
-  V.concatMap timeOfYear' (V.zip (V.enumFromTo 1 12) (daysInMonths leap))
+timesOfYear :: Frequency -> IsLeap -> V.Vector Builder
+timesOfYear freq leap =
+  V.concatMap (timeOfYear' freq) $
+  V.zip (V.enumFromTo 1 12) (daysInMonths leap)
 
-timeOfYear' :: (Int8, Int8) -> V.Vector Builder
-timeOfYear' (month, ndays) = do
-  day     <- V.enumFromTo 1 ndays
-  hour    <- V.enumFromTo 0 23
-  minute  <- V.enumFromTo 0 59
+timeOfYear' :: Frequency -> (Int8, Int8) -> V.Vector Builder
+timeOfYear' freq (month, ndays) = do
+  let atLeast trigger def vec =
+        if freq >= trigger
+        then vec
+        else V.singleton def
+
+  day    <- atLeast PerDay    ndays (V.enumFromTo 1 ndays)
+  hour   <- atLeast PerHour   0     (V.enumFromTo 0 23)
+  minute <- atLeast PerMinute 0     (V.enumFromTo 0 59)
+
   return $ "YYYY-"
         <> bInt8Dec2 month  <> "-"
         <> bInt8Dec2 day    <> "T"
@@ -152,13 +168,13 @@ bInt8Dec2 :: Int8 -> Builder
 bInt8Dec2 x | x > 9     = ""  <> B.int8Dec x
             | otherwise = "0" <> B.int8Dec x
 
-genEAV :: FileSpec -> Gen Builder
-genEAV spec = do
+genEAV :: Generator -> Gen Builder
+genEAV gen = do
   let genDouble = QC.arbitrarySizedFractional :: Gen Double
       genInt    = QC.arbitrarySizedIntegral   :: Gen Int
 
-  e      <- QC.choose (0, specEntityCount spec - 1)
-  (a, t) <- QC.elements (Map.toList (specAttributes spec))
+  e      <- QC.choose (0, genEntityCount gen - 1)
+  (a, t) <- QC.elements (Map.toList (genAttributes gen))
   v      <- case t of
               Double -> B.string7 . show <$> genDouble
               Int    -> B.intDec <$> genInt
