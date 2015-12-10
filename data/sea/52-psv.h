@@ -61,10 +61,19 @@ static ierror_msg_t INLINE psv_read_fact
   , itime_t       time
   , ifleet_t     *fleet );
 
-/* psv driver */
+
+/*
+Constants
+*/
+
 static const size_t psv_max_row_count   = 128;
 static const size_t psv_buffer_size     = 16*1024;
 static const size_t psv_output_buf_size = 16*1024;
+
+
+/*
+Input
+*/
 
 static ierror_msg_t psv_read_buffer (psv_state_t *s)
 {
@@ -168,6 +177,92 @@ on_error:
     return error;
 }
 
+
+/*
+Output
+*/
+
+static ierror_msg_t INLINE psv_output_flush (int fd, char *ps, char **pp)
+{
+    size_t bytes_avail   = *pp - ps;
+    size_t bytes_written = write (fd, ps, bytes_avail);
+
+    if (bytes_written < bytes_avail) {
+        return ierror_msg_alloc ("cannot write psv output to file", ps, bytes_avail);
+    }
+
+    *pp = ps;
+
+    return 0;
+}
+
+#define ENSURE_SIZE(bytes_required)                                   \
+    size_t bytes_remaining = pe - *pp;                                \
+    if (bytes_remaining < bytes_required) {                           \
+        ierror_msg_t error = psv_output_flush (fd, ps, pp);            \
+        if (error) return error;                                      \
+    }
+
+static ierror_msg_t INLINE psv_output_char
+    (int fd, char *ps, char *pe, char **pp, char value)
+{
+    ENSURE_SIZE (1);
+
+    **pp = value;
+    *pp += 1;
+
+    return 0;
+}
+
+static ierror_msg_t INLINE psv_output_string
+    (int fd, char *ps, char *pe, char **pp, const char *value_ptr, size_t value_size)
+{
+    ENSURE_SIZE (value_size);
+
+    memcpy (*pp, value_ptr, value_size);
+    *pp += value_size;
+
+    return 0;
+}
+
+static ierror_msg_t INLINE psv_output_time
+    (int fd, char *ps, char *pe, char **pp, itime_t value)
+{
+    ENSURE_SIZE (text_itime_max_size);
+
+    size_t value_size = text_write_itime (value, *pp);
+    *pp += value_size;
+
+    return 0;
+}
+
+static ierror_msg_t INLINE psv_output_double
+    (int fd, char *ps, char *pe, char **pp, idouble_t value)
+{
+    ENSURE_SIZE (text_idouble_max_size);
+
+    size_t value_size = text_write_idouble (value, *pp);
+    *pp += value_size;
+
+    return 0;
+}
+
+static ierror_msg_t INLINE psv_output_int
+    (int fd, char *ps, char *pe, char **pp, iint_t value)
+{
+    ENSURE_SIZE (text_iint_max_size);
+
+    size_t value_size = text_write_iint (value, *pp);
+    *pp += value_size;
+
+    return 0;
+}
+
+
+/*
+Main Loop
+*/
+
 static void psv_set_blocking_mode (int fd)
 {
     const int flags = fcntl (fd, F_GETFL, 0);
@@ -262,82 +357,6 @@ void psv_snapshot (psv_config_t *cfg)
 
     cfg->fact_count   = state.fact_count;
     cfg->entity_count = state.entity_count;
-}
-
-static ierror_msg_t INLINE psv_output_flush (int fd, char *ps, char **pp)
-{
-    size_t bytes_avail   = *pp - ps;
-    size_t bytes_written = write (fd, ps, bytes_avail);
-
-    if (bytes_written < bytes_avail) {
-        return ierror_msg_alloc ("cannot write psv output to file", ps, bytes_avail);
-    }
-
-    *pp = ps;
-
-    return 0;
-}
-
-#define ENSURE_SIZE(bytes_required)                                   \
-    size_t bytes_remaining = pe - *pp;                                \
-    if (bytes_remaining < bytes_required) {                           \
-        ierror_msg_t error = psv_output_flush (fd, ps, pp);            \
-        if (error) return error;                                      \
-    }
-
-static ierror_msg_t INLINE psv_output_char
-    (int fd, char *ps, char *pe, char **pp, char value)
-{
-    ENSURE_SIZE (1);
-
-    **pp = value;
-    *pp += 1;
-
-    return 0;
-}
-
-static ierror_msg_t INLINE psv_output_string
-    (int fd, char *ps, char *pe, char **pp, const char *value_ptr, size_t value_size)
-{
-    ENSURE_SIZE (value_size);
-
-    memcpy (*pp, value_ptr, value_size);
-    *pp += value_size;
-
-    return 0;
-}
-
-static ierror_msg_t INLINE psv_output_time
-    (int fd, char *ps, char *pe, char **pp, itime_t value)
-{
-    ENSURE_SIZE (text_itime_max_size);
-
-    size_t value_size = text_write_itime (value, *pp);
-    *pp += value_size;
-
-    return 0;
-}
-
-static ierror_msg_t INLINE psv_output_double
-    (int fd, char *ps, char *pe, char **pp, idouble_t value)
-{
-    ENSURE_SIZE (text_idouble_max_size);
-
-    size_t value_size = text_write_idouble (value, *pp);
-    *pp += value_size;
-
-    return 0;
-}
-
-static ierror_msg_t INLINE psv_output_int
-    (int fd, char *ps, char *pe, char **pp, iint_t value)
-{
-    ENSURE_SIZE (text_iint_max_size);
-
-    size_t value_size = text_write_iint (value, *pp);
-    *pp += value_size;
-
-    return 0;
 }
 
 #endif

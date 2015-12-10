@@ -18,6 +18,7 @@ module Icicle.Sea.Eval (
   , PsvMode(..)
 
   , seaCompile
+  , seaCompile'
   , seaEval
   , seaPsvSnapshotFilePath
   , seaPsvSnapshotFd
@@ -37,6 +38,7 @@ import           Control.Monad.Trans.Either (EitherT(..), hoistEither, left)
 import qualified Data.List as List
 import           Data.Map (Map)
 import qualified Data.Map as Map
+import           Data.String (String)
 import           Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Vector.Storable as V
@@ -44,7 +46,7 @@ import           Data.Vector.Storable.Mutable (IOVector)
 import qualified Data.Vector.Storable.Mutable as MV
 import           Data.Word (Word64)
 
-import           Foreign.C.String (newCString, peekCString)
+import           Foreign.C.String (newCString, peekCString, withCStringLen)
 import           Foreign.ForeignPtr (ForeignPtr, touchForeignPtr, castForeignPtr)
 import           Foreign.ForeignPtr.Unsafe (unsafeForeignPtrToPtr)
 import           Foreign.Marshal (mallocBytes, free)
@@ -104,6 +106,8 @@ data SeaFleet = SeaFleet {
   , sfCreatePool  :: IO (Ptr MemPool)
   , sfReleasePool :: Ptr MemPool  -> IO ()
   , sfPsvSnapshot :: Ptr PsvState -> IO ()
+  , sfSegvInstall :: String       -> IO ()
+  , sfSegvRemove  :: IO ()
   }
 
 data SeaProgram = SeaProgram {
@@ -248,12 +252,24 @@ seaCompile
   => Psv
   -> Map Attribute (Program (Annot a) n Prim)
   -> EitherT SeaError m SeaFleet
-seaCompile psv programs = do
+seaCompile =
+  seaCompile' compilerOptions
+
+seaCompile'
+  :: (MonadIO m, MonadMask m, Functor m)
+  => (Show a, Show n, Pretty n, Ord n)
+  => [CompilerOption]
+  -> Psv
+  -> Map Attribute (Program (Annot a) n Prim)
+  -> EitherT SeaError m SeaFleet
+seaCompile' options psv programs = do
   code <- hoistEither (codeOfPrograms psv (Map.toList programs))
 
-  lib             <- firstEitherT SeaJetskiError (compileLibrary compilerOptions code)
-  imempool_create <- firstEitherT SeaJetskiError (function lib "imempool_create" (retPtr retVoid))
-  imempool_free   <- firstEitherT SeaJetskiError (function lib "imempool_free"   retVoid)
+  lib                  <- firstEitherT SeaJetskiError (compileLibrary options code)
+  imempool_create      <- firstEitherT SeaJetskiError (function lib "imempool_create"      (retPtr retVoid))
+  imempool_free        <- firstEitherT SeaJetskiError (function lib "imempool_free"        retVoid)
+  segv_install_handler <- firstEitherT SeaJetskiError (function lib "segv_install_handler" retVoid)
+  segv_remove_handler  <- firstEitherT SeaJetskiError (function lib "segv_remove_handler"  retVoid)
 
   psv_snapshot <- case psv of
     NoPsv -> do
@@ -268,8 +284,11 @@ seaCompile psv programs = do
       sfLibrary     = lib
     , sfPrograms    = Map.fromList (List.zip (Map.keys programs) compiled)
     , sfCreatePool  = castPtr <$> imempool_create []
-    , sfReleasePool = \ptr -> imempool_free   [argPtr ptr]
+    , sfReleasePool = \ptr -> imempool_free [argPtr ptr]
     , sfPsvSnapshot = psv_snapshot
+    , sfSegvInstall = \str -> withCStringLen str $ \(ptr, len) ->
+                      segv_install_handler [argPtr ptr, argCSize (fromIntegral len)]
+    , sfSegvRemove  = segv_remove_handler  []
     }
 
 mkSeaProgram

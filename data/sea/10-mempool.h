@@ -1,4 +1,4 @@
-#include "05-error.h"
+#include "06-segv.h"
 
 const size_t iblock_size = 1 * 1024 * 1024;
 

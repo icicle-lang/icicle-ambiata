@@ -41,7 +41,6 @@ import           System.IO
 import           System.IO.Temp (createTempDirectory)
 import           System.Directory (getTemporaryDirectory, removeDirectoryRecursive)
 
-
 import           Test.QuickCheck hiding (output)
 import           Test.QuickCheck.Property hiding (result)
 
@@ -69,13 +68,20 @@ prop_psv wt = testIO $ do
 
 runTest :: WellTyped -> EitherT S.SeaError IO ()
 runTest wt = do
-  let programs = Map.singleton (wtAttribute wt) (wtAvalanche wt)
+  let options  = S.compilerOptions <> ["-O0", "-DICICLE_NOINLINE=1"]
+      programs = Map.singleton (wtAttribute wt) (wtAvalanche wt)
       config   = S.PsvConfig (S.PsvSnapshot (wtTime wt))
                              (Map.singleton (wtAttribute wt) (Set.singleton tombstone))
 
-  bracketEitherT' (S.seaCompile (S.Psv config) programs) S.seaRelease $ \fleet -> do
-  withSystemTempDirectory "psv-test-" $ \dir -> do
+  let compile  = S.seaCompile' options (S.Psv config) programs
+      release  = S.seaRelease
+  bracketEitherT' compile release $ \fleet -> do
 
+  let install  = liftIO (S.sfSegvInstall fleet (show wt))
+      remove _ = liftIO (S.sfSegvRemove  fleet)
+  bracketEitherT' install remove  $ \() -> do
+
+  withSystemTempDirectory "psv-test-" $ \dir -> do
     let source  = J.libSource (S.sfLibrary fleet)
         program = dir <> "/program.c"
         input   = dir <> "/input.psv"
