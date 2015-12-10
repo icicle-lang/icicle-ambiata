@@ -5,8 +5,21 @@
 #define SEGV_USER_DATA_SIZE (1024*1024)
 static char segv_user_data[SEGV_USER_DATA_SIZE];
 
+void segv_remove_handler ()
+{
+    struct sigaction act;
+
+    sigemptyset (&act.sa_mask);
+    act.sa_flags   = 0;
+    act.sa_handler = SIG_DFL;
+
+    sigaction (SIGSEGV, &act, NULL);
+}
+
 static void segv_handler (int sig)
 {
+    segv_remove_handler ();
+
     void *frames[50];
     size_t n_frames = backtrace (frames, sizeof(frames));
 
@@ -28,17 +41,6 @@ void segv_install_handler (const char *user_data, size_t user_data_size)
     sigemptyset (&act.sa_mask);
     act.sa_flags   = 0;
     act.sa_handler = segv_handler;
-
-    sigaction (SIGSEGV, &act, NULL);
-}
-
-void segv_remove_handler ()
-{
-    struct sigaction act;
-
-    sigemptyset (&act.sa_mask);
-    act.sa_flags   = 0;
-    act.sa_handler = SIG_DFL;
 
     sigaction (SIGSEGV, &act, NULL);
 }
