@@ -224,8 +224,6 @@ static ierror_msg_t INLINE json_read_istring (imempool_t *pool, char **pp, char 
 time read/write
 */
 
-const size_t text_itime_max_size = sizeof ("yyyy-mm-ddThh:mm:ssZ") - 1;
-
 static ierror_msg_t INLINE fixed_read_itime (const char *p, const size_t size, itime_t *output_ptr)
 {
     const size_t size0 = size + 1;
@@ -245,16 +243,16 @@ static ierror_msg_t INLINE fixed_read_itime (const char *p, const size_t size, i
         text_is_digit (p[8]) &&
         text_is_digit (p[9])) {
 
-        const iint_t year  = p[0] * 1000
-                           + p[1] * 100
-                           + p[2] * 10
-                           + p[3];
+        const iint_t year  = (p[0] - '0') * 1000
+                           + (p[1] - '0') * 100
+                           + (p[2] - '0') * 10
+                           + (p[3] - '0');
 
-        const iint_t month = p[5] * 10
-                           + p[6];
+        const iint_t month = (p[5] - '0') * 10
+                           + (p[6] - '0');
 
-        const iint_t day   = p[8] * 10
-                           + p[9];
+        const iint_t day   = (p[8] - '0') * 10
+                           + (p[9] - '0');
 
         *output_ptr = itime_from_gregorian (year, month, day, 0, 0, 0);
         return 0;
@@ -285,25 +283,25 @@ static ierror_msg_t INLINE fixed_read_itime (const char *p, const size_t size, i
         text_is_digit (p[18]) &&
                 'Z' == p[19] ) {
 
-        const iint_t year   = p[0] * 1000
-                            + p[1] * 100
-                            + p[2] * 10
-                            + p[3];
+        const iint_t year   = (p[ 0] - '0') * 1000
+                            + (p[ 1] - '0') * 100
+                            + (p[ 2] - '0') * 10
+                            + (p[ 3] - '0');
 
-        const iint_t month  = p[5] * 10
-                            + p[6];
+        const iint_t month  = (p[ 5] - '0') * 10
+                            + (p[ 6] - '0');
 
-        const iint_t day    = p[8] * 10
-                            + p[9];
+        const iint_t day    = (p[ 8] - '0') * 10
+                            + (p[ 9] - '0');
 
-        const iint_t hour   = p[11] * 10
-                            + p[12];
+        const iint_t hour   = (p[11] - '0') * 10
+                            + (p[12] - '0');
 
-        const iint_t minute = p[14] * 10
-                            + p[15];
+        const iint_t minute = (p[14] - '0') * 10
+                            + (p[15] - '0');
 
-        const iint_t second = p[17] * 10
-                            + p[18];
+        const iint_t second = (p[17] - '0') * 10
+                            + (p[18] - '0');
 
         *output_ptr = itime_from_gregorian (year, month, day, hour, minute, second);
         return 0;
@@ -347,14 +345,17 @@ static ierror_msg_t INLINE json_read_itime (char **pp, char *pe, itime_t *output
     return 0;
 }
 
+const size_t text_itime_max_size = sizeof ("yyyy-mm-ddThh:mm:ssZ");
+
 static size_t INLINE text_write_itime (itime_t value, char *p)
 {
     iint_t year, month, day, hour, minute, second;
     itime_to_gregorian (value, &year, &month, &day, &hour, &minute, &second);
 
     snprintf ( p, text_itime_max_size
-             , "%lld-%02lld-%02lldT%02lld:%02lld:%02lldZ"
+             , "%04lld-%02lld-%02lldT%02lld:%02lld:%02lldZ"
              , year, month, day, hour, minute, second );
 
-    return text_itime_max_size;
+    /* don't include the null-termination as part of the written size */
+    return text_itime_max_size - 1;
 }

@@ -93,6 +93,7 @@ seaOfFleetState states
       , indent 4 (defOfVar  0 IntT         "chord_count")     <> ";"
       , indent 4 (defOfVar' 1 constTime    "chord_times")     <> ";"
       , indent 4 (vsep (fmap defOfProgramState states))
+      , indent 4 (vsep (fmap defOfProgramTime  states))
       , "};"
       ]
 
@@ -101,6 +102,14 @@ defOfProgramState state
  = defOfVar' 1 (pretty (nameOfStateType state))
                (pretty (nameOfProgram state)) <> ";"
  <+> "/* " <> seaOfAttributeDesc (stateAttribute state) <> " */"
+
+defOfProgramTime :: SeaProgramState -> Doc
+defOfProgramTime state
+ = defOfVar 0 TimeT (pretty (nameOfLastTime state)) <> ";"
+ <+> "/* " <> seaOfAttributeDesc (stateAttribute state) <> " */"
+
+nameOfLastTime :: SeaProgramState -> Text
+nameOfLastTime state = "last_time_" <> T.pack (show (stateName state))
 
 ------------------------------------------------------------------------
 
@@ -264,7 +273,7 @@ seaOfConfigureFleet mode states
  , "        snprintf ( msg, sizeof (msg)"
  , "                 , \"exceeded maximum number of chords per entity (chord_count = %lld, max_chord_count = %lld)\""
  , "                 , chord_count"
- , "                 , max_chord_count);"
+ , "                 , max_chord_count );"
  , ""
  , "        return ierror_msg_alloc (msg, 0, 0);"
  , "    }"
@@ -280,6 +289,8 @@ seaOfConfigureFleet mode states
  , indent 8 (vsep (fmap seaOfAssignTime states))
  , "    }"
  , ""
+ , indent 4 (vsep (fmap defOfLastTime states))
+ , ""
  , "    return 0;"
  , "}"
  ]
@@ -290,6 +301,10 @@ defOfState state
        var    = "*p" <> pretty (stateName state)
        member = "fleet->" <> pretty (nameOfProgram state)
    in stype <+> var <+> "=" <+> member <> ";"
+
+defOfLastTime :: SeaProgramState -> Doc
+defOfLastTime state
+ = "fleet->" <> pretty (nameOfLastTime state) <+> "= 0;"
 
 seaOfAssignTime :: SeaProgramState -> Doc
 seaOfAssignTime state
@@ -320,27 +335,14 @@ seaOfReadAnyFact config states = do
     , ""
     , "#line 1 \"read any fact\""
     , "static ierror_msg_t psv_read_fact"
-    , "  ( const char   *attrib"
+    , "  ( const char   *attrib_ptr"
     , "  , const size_t  attrib_size"
-    , "  , const char   *value"
+    , "  , const char   *value_ptr"
     , "  , const size_t  value_size"
-    , "  , itime_t       time"
+    , "  , const char   *time_ptr"
+    , "  , const size_t  time_size"
     , "  , ifleet_t     *fleet )"
     , "{"
-    , "    ibool_t        ignore_time = itrue;"
-    , "    iint_t         chord_count = fleet->chord_count;"
-    , "    const itime_t *chord_times = fleet->chord_times;"
-    , ""
-    , "    /* ignore this time if it comes after all the chord times */"
-    , "    for (iint_t chord_ix = 0; chord_ix < chord_count; chord_ix++) {"
-    , "        if (chord_times[chord_ix] > time) {"
-    , "            ignore_time = ifalse;"
-    , "            break;"
-    , "        }"
-    , "    }"
-    , ""
-    , "    if (ignore_time) return 0;"
-    , ""
     , indent 4 (vsep (fmap seaOfReadNamedFact states))
     , "    return 0;"
     , "}"
@@ -350,11 +352,51 @@ seaOfReadNamedFact :: SeaProgramState -> Doc
 seaOfReadNamedFact state
  = let attrib = getAttribute (stateAttribute state)
        fun    = pretty (nameOfReadFact state)
-       pname  = pretty (nameOfProgram state)
+       pname  = pretty (nameOfProgram  state)
+       tname  = pretty (nameOfLastTime state)
    in vsep
       [ "/* " <> pretty attrib <> " */"
-      , "if (" <> seaOfStringEq attrib "attrib" (Just "attrib_size") <> ") {"
-      , "    return " <> fun <> " (value, value_size, time, fleet->mempool, chord_count, fleet->" <> pname <> ");"
+      , "if (" <> seaOfStringEq attrib "attrib_ptr" (Just "attrib_size") <> ") {"
+      , "    itime_t time;"
+      , "    ierror_msg_t error = fixed_read_itime (time_ptr, time_size, &time);"
+      , "    if (error) return error;"
+      , ""
+      , "    ibool_t        ignore_time = itrue;"
+      , "    iint_t         chord_count = fleet->chord_count;"
+      , "    const itime_t *chord_times = fleet->chord_times;"
+      , ""
+      , "    /* ignore this time if it comes after all the chord times */"
+      , "    for (iint_t chord_ix = 0; chord_ix < chord_count; chord_ix++) {"
+      , "        if (chord_times[chord_ix] >= time) {"
+      , "            ignore_time = ifalse;"
+      , "            break;"
+      , "        }"
+      , "    }"
+      , ""
+      , "    if (ignore_time) return 0;"
+      , ""
+      , "    itime_t last_time = fleet->" <> tname <> ";"
+      , ""
+      , "    if (time <= last_time) {"
+      , "        char curr_time_ptr[text_itime_max_size];"
+      , "        size_t curr_time_size = text_write_itime (time, curr_time_ptr);"
+      , ""
+      , "        char last_time_ptr[text_itime_max_size];"
+      , "        size_t last_time_size = text_write_itime (last_time, last_time_ptr);"
+      , ""
+      , "        return ierror_msg_format"
+      , "           ( \"%.*s: time is out of order: %.*s must be later than %.*s\""
+      , "           , attrib_size"
+      , "           , attrib_ptr"
+      , "           , curr_time_size"
+      , "           , curr_time_ptr"
+      , "           , last_time_size"
+      , "           , last_time_ptr );"
+      , "    }"
+      , ""
+      , "    fleet->" <> tname <> " = time;"
+      , ""
+      , "    return " <> fun <> " (value_ptr, value_size, time, fleet->mempool, chord_count, fleet->" <> pname <> ");"
       , "}"
       , ""
       ]
@@ -759,7 +801,7 @@ outputString xs
   mkdoc sw = "*(uint64_t *)(buffer_ptr + " <> int (swOffset sw) <> ") = " <> swBits sw <> ";"
 
 timeFmt :: Doc
-timeFmt = "%lld-%02lld-%02lldT%02lld:%02lld:%02lld"
+timeFmt = "%04lld-%02lld-%02lldT%02lld:%02lld:%02lld"
 
 outputDie :: Doc
 outputDie = "if (error) return error;"
