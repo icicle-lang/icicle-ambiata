@@ -15,6 +15,7 @@ import qualified Data.List as List
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import           Data.Text (Text)
+import qualified Data.Text as T
 import qualified Data.Text.Lazy as LT
 import qualified Data.Text.Lazy.Encoding as LT
 import qualified Data.Text.Lazy.IO as LT
@@ -48,26 +49,69 @@ import           X.Control.Monad.Catch (bracketEitherT')
 
 
 prop_psv wt = testIO $ do
-  x <- runEitherT (runTest wt)
+  x <- runEitherT (runTest ShowDataOnError wt)
   case x of
-    Right ()
-     -> pure (property succeeded)
-    Left (S.SeaJetskiError (J.CompilerError _ src err))
-     -> pure
-      $ counterexample (show $ pretty src)
-      $ counterexample (show $ pretty err)
-      $ counterexample (show $ pretty (wtCore wt))
-      $ failed
-    Left err
-     -> pure
-      $ counterexample (show $ pretty err)
-      $ counterexample (show $ pretty (wtCore wt))
-      $ failed
+    Left err -> failWithError wt err
+    Right () -> pure (property succeeded)
+
+prop_entity_out_of_order wt =
+  List.length (wtEntities wt) > 1 ==>
+  List.length (wtFacts    wt) > 0 ==>
+  testIO $ do
+    let wt' = wt { wtEntities = List.reverse (wtEntities wt) }
+    x <- runEitherT (runTest ShowDataOnSuccess wt')
+    expectPsvError wt' x
+
+prop_time_out_of_order wt =
+  List.length (wtEntities wt) > 0 ==>
+  List.length (wtFacts    wt) > 1 ==>
+  testIO $ do
+    let wt' = wt { wtFacts = List.reverse (wtFacts wt) }
+    x <- runEitherT (runTest ShowDataOnSuccess wt')
+    expectPsvError wt' x
+
+expectPsvError :: WellTyped -> Either S.SeaError () -> IO Property
+expectPsvError wt = \case
+  Left (S.SeaPsvError msg)
+   | "out of order" `T.isInfixOf` msg
+   -> pure (property succeeded)
+
+   | otherwise
+   -> pure
+    $ counterexample "expected error containing 'out of order'"
+    $ counterexample ("error was <" <> T.unpack msg <> ">")
+    $ failed
+
+  Left err
+   -> failWithError wt err
+
+  Right ()
+   -> pure
+    $ counterexample "data was out of order, but icicle did not give an error"
+    $ failed
+
+failWithError :: WellTyped -> S.SeaError -> IO Property
+failWithError wt = \case
+  S.SeaJetskiError (J.CompilerError _ src err)
+   -> pure
+    $ counterexample (show (pretty src))
+    $ counterexample (show (pretty err))
+    $ counterexample (show (pretty (wtCore wt)))
+    $ failed
+
+  err
+   -> pure
+    $ counterexample (show (pretty err))
+    $ counterexample (show (pretty (wtCore wt)))
+    $ failed
 
 ------------------------------------------------------------------------
 
-runTest :: WellTyped -> EitherT S.SeaError IO ()
-runTest wt = do
+data ShowData = ShowDataOnError | ShowDataOnSuccess
+  deriving (Eq)
+
+runTest :: ShowData -> WellTyped -> EitherT S.SeaError IO ()
+runTest showData wt = do
   let options  = S.compilerOptions <> ["-O0", "-DICICLE_NOINLINE=1"]
       programs = Map.singleton (wtAttribute wt) (wtAvalanche wt)
       config   = S.PsvConfig (S.PsvSnapshot (wtTime wt))
@@ -97,10 +141,14 @@ runTest wt = do
 
     case result of
       Left err -> do
-        liftIO (LT.putStrLn "--- input.psv ---")
-        liftIO (LT.putStrLn inputPsv)
+        when (showData == ShowDataOnError) $ do
+          liftIO (LT.putStrLn "--- input.psv ---")
+          liftIO (LT.putStrLn inputPsv)
         left err
       Right _ -> do
+        when (showData == ShowDataOnSuccess) $ do
+          liftIO (LT.putStrLn "--- input.psv ---")
+          liftIO (LT.putStrLn inputPsv)
         pure ()
 
 textOfFacts :: [Entity] -> Attribute -> [AsAt BaseValue] -> LT.Text
