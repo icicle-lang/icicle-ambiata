@@ -385,7 +385,7 @@ seaOfReadNamedFact state
       , "        size_t last_time_size = text_write_itime (last_time, last_time_ptr);"
       , ""
       , "        return ierror_msg_format"
-      , "           ( \"%.*s: time is out of order: %.*s is earlier than %.*s\""
+      , "           ( \"%.*s: time is out of order: %.*s must be later than %.*s\""
       , "           , attrib_size"
       , "           , attrib_ptr"
       , "           , curr_time_size"
