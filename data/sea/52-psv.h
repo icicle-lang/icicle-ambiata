@@ -14,7 +14,7 @@ typedef struct {
     iint_t chord_fd;
 
     /* outputs */
-    ierror_msg_t error;
+    const char  *error;
     iint_t       fact_count;
     iint_t       entity_count;
 } psv_config_t;
@@ -49,11 +49,11 @@ static ifleet_t * INLINE psv_alloc_fleet (iint_t max_chord_count);
 
 static void INLINE psv_collect_fleet (ifleet_t *fleet);
 
-static ierror_msg_t INLINE psv_configure_fleet (const char *entity, size_t entity_size, const ichord_t **chord, ifleet_t *fleet);
+static ierror_loc_t INLINE psv_configure_fleet (const char *entity, size_t entity_size, const ichord_t **chord, ifleet_t *fleet);
 
 static ierror_msg_t INLINE psv_write_outputs (int fd, const char *entity, size_t entity_size, ifleet_t *fleet);
 
-static ierror_msg_t INLINE psv_read_fact
+static ierror_loc_t INLINE psv_read_fact
   ( const char   *attrib_ptr
   , const size_t  attrib_size
   , const char   *value_ptr
@@ -87,14 +87,15 @@ static int INLINE psv_compare (const char *xs, size_t xs_size, const char *ys, s
     return xs_size - ys_size;
 }
 
-static ierror_msg_t psv_read_buffer (psv_state_t *s)
+static ierror_loc_t psv_read_buffer (psv_state_t *s)
 {
-    ierror_msg_t error;
+    ierror_loc_t error;
 
     const char  *buffer_ptr  = s->buffer_ptr;
     const size_t buffer_size = s->buffer_size;
     const char  *end_ptr     = buffer_ptr + buffer_size;
     const char  *line_ptr    = buffer_ptr;
+    const char  *n_ptr       = 0;
 
     iint_t  fact_count      = s->fact_count;
     iint_t  entity_count    = s->entity_count;
@@ -103,7 +104,8 @@ static ierror_msg_t psv_read_buffer (psv_state_t *s)
 
     for (;;) {
         const size_t bytes_remaining = end_ptr - line_ptr;
-        const char  *n_ptr           = memchr (line_ptr, '\n', bytes_remaining);
+
+        n_ptr = memchr (line_ptr, '\n', bytes_remaining);
 
         if (n_ptr == 0) {
             s->fact_count       = fact_count;
@@ -121,12 +123,12 @@ static ierror_msg_t psv_read_buffer (psv_state_t *s)
         const size_t entity_size = entity_end - entity_ptr;
 
         if (entity_end == 0) {
-            error = ierror_msg_alloc ("missing |", entity_ptr, n_ptr - entity_ptr);
+            error = ierror_loc_format (entity_ptr, n_ptr, "missing '|' after entity");
             goto on_error;
         }
 
         if (entity_size == 0) {
-            error = ierror_msg_alloc ("entity was empty", 0, 0);
+            error = ierror_loc_format (entity_ptr, entity_ptr, "entity was empty");
             goto on_error;
         }
 
@@ -135,7 +137,7 @@ static ierror_msg_t psv_read_buffer (psv_state_t *s)
         const size_t attrib_size = attrib_end - attrib_ptr;
 
         if (attrib_end == 0) {
-            error = ierror_msg_alloc ("missing |", attrib_ptr, n_ptr - attrib_ptr);
+            error = ierror_loc_format (attrib_ptr, n_ptr, "missing '|' after attribute");
             goto on_error;
         }
 
@@ -148,7 +150,7 @@ static ierror_msg_t psv_read_buffer (psv_state_t *s)
         } else if (*n21_ptr == '|') {
             time_ptr = n21_ptr + 1;
         } else {
-            error = ierror_msg_alloc ("expected |", n21_ptr, n_ptr - n21_ptr);
+            error = ierror_loc_format (0, 0, "time must be in the format 'yyyy-mm-dd' or 'yyyy-mm-ddThh:mm:ssZ'");
             goto on_error;
         }
 
@@ -163,8 +165,11 @@ static ierror_msg_t psv_read_buffer (psv_state_t *s)
 
         if (new_entity < 0) {
             if (entity_cur_size != 0) {
-                error = psv_write_outputs (s->output_fd, entity_cur, entity_cur_size, s->fleet);
-                if (error) goto on_error;
+                ierror_msg_t msg = psv_write_outputs (s->output_fd, entity_cur, entity_cur_size, s->fleet);
+                if (error) {
+                    error = ierror_loc_format (0, 0, "%s", msg);
+                    goto on_error;
+                }
             }
 
             memcpy (entity_cur, entity_ptr, entity_size);
@@ -176,8 +181,10 @@ static ierror_msg_t psv_read_buffer (psv_state_t *s)
 
             entity_count++;
         } else if (new_entity > 0 && entity_cur_size != 0) {
-            error = ierror_msg_format
-                ( "entity out of order: <%.*s> should be before <%.*s>"
+            error = ierror_loc_format
+                ( entity_end
+                , entity_ptr
+                , "entity out of order: <%.*s> should be before <%.*s>"
                 , entity_size
                 , entity_ptr
                 , entity_cur_size
@@ -186,7 +193,8 @@ static ierror_msg_t psv_read_buffer (psv_state_t *s)
         }
 
         error = psv_read_fact (attrib_ptr, attrib_size, value_ptr, value_size, time_ptr, time_size, s->fleet);
-        if (error) goto on_error;
+        if (error)
+            goto on_error;
 
         line_ptr = n_ptr + 1;
     }
@@ -194,6 +202,10 @@ static ierror_msg_t psv_read_buffer (psv_state_t *s)
 on_error:
     s->entity_count = entity_count;
     s->fact_count   = fact_count;
+
+    error->line_start = line_ptr;
+    error->line_end   = n_ptr;
+
     return error;
 }
 
@@ -219,7 +231,7 @@ static ierror_msg_t INLINE psv_output_flush (int fd, char *ps, char **pp)
 #define ENSURE_SIZE(bytes_required)                                   \
     size_t bytes_remaining = pe - *pp;                                \
     if (bytes_remaining < bytes_required) {                           \
-        ierror_msg_t error = psv_output_flush (fd, ps, pp);            \
+        ierror_msg_t error = psv_output_flush (fd, ps, pp);           \
         if (error) return error;                                      \
     }
 
@@ -355,10 +367,10 @@ void psv_snapshot (psv_config_t *cfg)
         size_t bytes_avail = buffer_offset + bytes_read;
         state.buffer_size  = bytes_avail;
 
-        ierror_msg_t error = psv_read_buffer (&state);
+        ierror_loc_t error = psv_read_buffer (&state);
 
         if (error) {
-            cfg->error = ierror_msg_add_line (state.fact_count, error);
+            cfg->error = ierror_loc_pretty (error, state.fact_count);
             break;
         }
 
