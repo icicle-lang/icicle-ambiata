@@ -16,7 +16,7 @@ iint_t read/write
 
 static const size_t text_iint_max_size = 20; /* 64-bit integer = 19 digits + sign */
 
-static ierror_msg_t INLINE text_read_iint (char **pp, char *pe, iint_t *output_ptr)
+static ierror_loc_t INLINE text_read_iint (char **pp, char *pe, iint_t *output_ptr)
 {
     char  *p           = *pp;
     size_t buffer_size = pe - p;
@@ -40,7 +40,7 @@ static ierror_msg_t INLINE text_read_iint (char **pp, char *pe, iint_t *output_p
     }
 
     if (digits == 0)
-        return ierror_msg_alloc ("not an integer", *pp, pe - *pp);
+        return ierror_loc_format (*pp, *pp, "not an integer");
 
     iint_t value = 0;
 
@@ -65,16 +65,18 @@ static ierror_msg_t INLINE text_read_iint (char **pp, char *pe, iint_t *output_p
         case  3:  value += (p[digits- 3] - '0') * 100LL;
         case  2:  value += (p[digits- 2] - '0') * 10LL;
         case  1:  value += (p[digits- 1] - '0');
-                  value *= sign;
-                  *output_ptr = value;
-                  *pp += digits + sign_size;
-                  return 0;
+        /* ^ fall through */
+            value *= sign;
+            *output_ptr = value;
+            *pp += digits + sign_size;
+            return 0;
 
-        default:  return ierror_msg_alloc ("integer too big", *pp, digits + sign_size);
+        default:
+            return ierror_loc_format (*pp + digits + sign_size - 1, *pp, "integer too big, only 64-bits supported");
     }
 }
 
-static ierror_msg_t INLINE json_read_iint (char **pp, char *pe, iint_t *output_ptr)
+static ierror_loc_t INLINE json_read_iint (char **pp, char *pe, iint_t *output_ptr)
 {
     return text_read_iint (pp, pe, output_ptr);
 }
@@ -91,13 +93,13 @@ idouble_t read/write
 
 static const size_t text_idouble_max_size = 32;
 
-static ierror_msg_t INLINE text_read_idouble (char **pp, char *pe, idouble_t *output_ptr)
+static ierror_loc_t INLINE text_read_idouble (char **pp, char *pe, idouble_t *output_ptr)
 {
     *output_ptr = strtod (*pp, pp);
     return 0;
 }
 
-static ierror_msg_t INLINE json_read_idouble (char **pp, char *pe, idouble_t *output_ptr)
+static ierror_loc_t INLINE json_read_idouble (char **pp, char *pe, idouble_t *output_ptr)
 {
     return text_read_idouble (pp, pe, output_ptr);
 }
@@ -112,7 +114,7 @@ static size_t INLINE text_write_idouble (idouble_t value, char *p)
 ibool_t read
 */
 
-static ierror_msg_t INLINE mask_read_ibool (uint64_t mask, char **pp, char *pe, ibool_t *output_ptr)
+static ierror_loc_t INLINE mask_read_ibool (uint64_t mask, char **pp, char *pe, ibool_t *output_ptr)
 {
     static const uint64_t true_mask  = 0x00000000ffffffff;
     static const uint64_t true_bits  = 0x0000000065757274; /* "true" */
@@ -133,19 +135,19 @@ static ierror_msg_t INLINE mask_read_ibool (uint64_t mask, char **pp, char *pe, 
         *output_ptr = ifalse;
         *pp         = p + sizeof ("false") - 1;
     } else {
-        return ierror_msg_alloc ("was not a boolean", p, pe - p);
+        return ierror_loc_format (p, p, "not a boolean");
     }
 
     return 0;
 }
 
-static ierror_msg_t INLINE text_read_ibool (char **pp, char *pe, ibool_t *output_ptr)
+static ierror_loc_t INLINE text_read_ibool (char **pp, char *pe, ibool_t *output_ptr)
 {
     static const uint64_t to_lower = 0x2020202020202020;
     return mask_read_ibool (to_lower, pp, pe, output_ptr);
 }
 
-static ierror_msg_t INLINE json_read_ibool (char **pp, char *pe, ibool_t *output_ptr)
+static ierror_loc_t INLINE json_read_ibool (char **pp, char *pe, ibool_t *output_ptr)
 {
     return mask_read_ibool (0x0, pp, pe, output_ptr);
 }
@@ -155,7 +157,7 @@ static ierror_msg_t INLINE json_read_ibool (char **pp, char *pe, ibool_t *output
 json null read
 */
 
-static ierror_msg_t INLINE json_try_read_null (char **pp, char *pe, ibool_t *was_null_ptr)
+static ierror_loc_t INLINE json_try_read_null (char **pp, char *pe, ibool_t *was_null_ptr)
 {
     static const uint32_t null_bits = 0x000000006c6c756e; /* "null" */
 
@@ -179,7 +181,7 @@ static ierror_msg_t INLINE json_try_read_null (char **pp, char *pe, ibool_t *was
 string read/write
 */
 
-static ierror_msg_t INLINE text_read_istring (imempool_t *pool, char **pp, char *pe, istring_t *output_ptr)
+static ierror_loc_t INLINE text_read_istring (imempool_t *pool, char **pp, char *pe, istring_t *output_ptr)
 {
     char *p = *pp;
 
@@ -195,17 +197,17 @@ static ierror_msg_t INLINE text_read_istring (imempool_t *pool, char **pp, char 
     return 0;
 }
 
-static ierror_msg_t INLINE json_read_istring (imempool_t *pool, char **pp, char *pe, istring_t *output_ptr)
+static ierror_loc_t INLINE json_read_istring (imempool_t *pool, char **pp, char *pe, istring_t *output_ptr)
 {
     char *p = *pp;
 
     if (*p++ != '"')
-        return ierror_msg_alloc ("missing '\"'",  p, pe - p);
+        return ierror_loc_format (*pp, *pp, "string missing opening quote");
 
     char *quote_ptr = memchr (p, '"', pe - p);
 
     if (!quote_ptr)
-        return ierror_msg_alloc ("missing closing quote '\"'",  p, pe - p);
+        return ierror_loc_format (p, pe, "string missing closing quote");
 
     size_t output_size = quote_ptr - p + 1;
     char  *output      = imempool_alloc (pool, output_size);
@@ -224,7 +226,7 @@ static ierror_msg_t INLINE json_read_istring (imempool_t *pool, char **pp, char 
 time read/write
 */
 
-static ierror_msg_t INLINE fixed_read_itime (const char *p, const size_t size, itime_t *output_ptr)
+static ierror_loc_t INLINE fixed_read_itime (const char *p, const size_t size, itime_t *output_ptr)
 {
     const size_t size0 = size + 1;
 
@@ -307,15 +309,15 @@ static ierror_msg_t INLINE fixed_read_itime (const char *p, const size_t size, i
         return 0;
     }
 
-    return ierror_msg_alloc ("expected 'yyyy-mm-dd' or 'yyyy-mm-ddThh:mm:ssZ' but was", p, size);
+    return ierror_loc_format (p + size - 1, p, "unknown time format, must be \"yyyy-mm-dd\" or \"yyyy-mm-ddThh:mm:ssZ\"");
 }
 
-static ierror_msg_t INLINE text_read_itime (char **pp, char *pe, itime_t *output_ptr)
+static ierror_loc_t INLINE text_read_itime (char **pp, char *pe, itime_t *output_ptr)
 {
     char  *p    = *pp;
     size_t size = pe - p;
 
-    ierror_msg_t error = fixed_read_itime (p, size, output_ptr);
+    ierror_loc_t error = fixed_read_itime (p, size, output_ptr);
     if (error) return error;
 
     *pp = pe;
@@ -323,21 +325,21 @@ static ierror_msg_t INLINE text_read_itime (char **pp, char *pe, itime_t *output
     return 0;
 }
 
-static ierror_msg_t INLINE json_read_itime (char **pp, char *pe, itime_t *output_ptr)
+static ierror_loc_t INLINE json_read_itime (char **pp, char *pe, itime_t *output_ptr)
 {
     char *p = *pp;
 
     if (*p++ != '"')
-        return ierror_msg_alloc ("missing opening quote '\"'",  p, pe - p);
+        return ierror_loc_format (*pp, *pp, "time missing opening quote");
 
     char *quote_ptr = memchr (p, '"', pe - p);
 
     if (!quote_ptr)
-        return ierror_msg_alloc ("missing closing quote '\"'",  p, pe - p);
+        return ierror_loc_format (p, pe, "time missing closing quote");
 
     size_t size = quote_ptr - p;
 
-    ierror_msg_t error = fixed_read_itime (p, size, output_ptr);
+    ierror_loc_t error = fixed_read_itime (p, size, output_ptr);
     if (error) return error;
 
     *pp = quote_ptr + 1;

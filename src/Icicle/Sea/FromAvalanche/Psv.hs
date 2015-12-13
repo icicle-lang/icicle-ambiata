@@ -256,7 +256,7 @@ seaOfConfigureFleet :: PsvMode -> [SeaProgramState] -> Doc
 seaOfConfigureFleet mode states
  = vsep
  [ "#line 1 \"configure fleet state\""
- , "static ierror_msg_t psv_configure_fleet (const char *entity, size_t entity_size, const ichord_t **chord, ifleet_t *fleet)"
+ , "static ierror_loc_t psv_configure_fleet (const char *entity, size_t entity_size, const ichord_t **chord, ifleet_t *fleet)"
  , "{"
  , "    iint_t max_chord_count = fleet->max_chord_count;"
  , ""
@@ -268,14 +268,11 @@ seaOfConfigureFleet mode states
      PsvChords        -> indent 4 seaOfChordScan
  , ""
  , "    if (chord_count > max_chord_count) {"
- , "        char msg[1024] = {0};"
- , ""
- , "        snprintf ( msg, sizeof (msg)"
- , "                 , \"exceeded maximum number of chords per entity (chord_count = %lld, max_chord_count = %lld)\""
- , "                 , chord_count"
- , "                 , max_chord_count );"
- , ""
- , "        return ierror_msg_alloc (msg, 0, 0);"
+ , "        return ierror_loc_format"
+ , "            ( 0, 0"
+ , "            , \"exceeded maximum number of chords per entity (chord_count = %lld, max_chord_count = %lld)\""
+ , "            , chord_count"
+ , "            , max_chord_count );"
  , "    }"
  , ""
  , "    fleet->chord_count = chord_count;"
@@ -334,7 +331,7 @@ seaOfReadAnyFact config states = do
     [ vsep readStates_sea
     , ""
     , "#line 1 \"read any fact\""
-    , "static ierror_msg_t psv_read_fact"
+    , "static ierror_loc_t psv_read_fact"
     , "  ( const char   *attrib_ptr"
     , "  , const size_t  attrib_size"
     , "  , const char   *value_ptr"
@@ -358,7 +355,7 @@ seaOfReadNamedFact state
       [ "/* " <> pretty attrib <> " */"
       , "if (" <> seaOfStringEq attrib "attrib_ptr" (Just "attrib_size") <> ") {"
       , "    itime_t time;"
-      , "    ierror_msg_t error = fixed_read_itime (time_ptr, time_size, &time);"
+      , "    ierror_loc_t error = fixed_read_itime (time_ptr, time_size, &time);"
       , "    if (error) return error;"
       , ""
       , "    ibool_t        ignore_time = itrue;"
@@ -384,8 +381,10 @@ seaOfReadNamedFact state
       , "        char last_time_ptr[text_itime_max_size];"
       , "        size_t last_time_size = text_write_itime (last_time, last_time_ptr);"
       , ""
-      , "        return ierror_msg_format"
-      , "           ( \"%.*s: time is out of order: %.*s must be later than %.*s\""
+      , "        return ierror_loc_format"
+      , "           ( time_ptr + time_size"
+      , "           , time_ptr"
+      , "           , \"%.*s: time is out of order: %.*s must be later than %.*s\""
       , "           , attrib_size"
       , "           , attrib_ptr"
       , "           , curr_time_size"
@@ -412,13 +411,13 @@ seaOfReadFact state tombstones = do
   readInput <- seaOfReadInput input
   pure $ vsep
     [ "#line 1 \"read fact" <+> seaOfStateInfo state <> "\""
-    , "static ierror_msg_t INLINE"
+    , "static ierror_loc_t INLINE"
         <+> pretty (nameOfReadFact state) <+> "("
         <> "const char *value_ptr, const size_t value_size, itime_t time, "
         <> "imempool_t *mempool, iint_t chord_count, "
         <> pretty (nameOfStateType state) <+> "*programs)"
     , "{"
-    , "    ierror_msg_t error;"
+    , "    ierror_loc_t error;"
     , ""
     , "    char *p  = (char *) value_ptr;"
     , "    char *pe = (char *) value_ptr + value_size;"
@@ -451,7 +450,7 @@ seaOfReadFact state tombstones = do
     , "             " <> pretty (nameOfProgram state) <> " (program);"
     , "             new_count = 0;"
     , "        } else if (new_count > psv_max_row_count) {"
-    , "             return ierror_msg_alloc (\"" <> pretty (nameOfReadFact state) <> ": new_count > max_count\", 0, 0);"
+    , "             return ierror_loc_format (0, 0, \"" <> pretty (nameOfReadFact state) <> ": new_count > max_count\");"
     , "        }"
     , ""
     , "        program->new_count = new_count;"
@@ -628,7 +627,7 @@ seaOfReadJsonList vtype avars = do
   value_sea <- seaOfReadJsonValue assignArray vtype vars
   pure $ vsep
     [ "if (*p++ != '[')"
-    , "    return ierror_msg_alloc (\"missing '['\",  p, pe - p);"
+    , "    return ierror_loc_format (p-1, p-1, \"array missing '['\");"
     , ""
     , "char term = *p;"
     , ""
@@ -637,7 +636,7 @@ seaOfReadJsonList vtype avars = do
     , "    "
     , "    term = *p++;"
     , "    if (term != ',' && term != ']')"
-    , "        return ierror_msg_alloc (\"terminator ',' or ']' not found\", p, pe - p);"
+    , "        return ierror_loc_format (p-1, p-1, \"array separator ',' or terminator ']' not found\");"
     , "}"
     ]
 
@@ -657,10 +656,10 @@ seaOfReadJsonUnit :: Assignment -> Text -> Either SeaError Doc
 seaOfReadJsonUnit assign name = do
   pure $ vsep
     [ "if (*p++ != '{')"
-    , "    return ierror_msg_alloc (\"missing {\",  p, pe - p);"
+    , "    return ierror_loc_format (p-1, p-1, \"unit missing '{'\");"
     , ""
     , "if (*p++ != '}')"
-    , "    return ierror_msg_alloc (\"missing }\",  p, pe - p);"
+    , "    return ierror_loc_format (p-1, p-1, \"unit missing '}'\");"
     , ""
     , assign (pretty name) UnitT "iunit"
     ]
@@ -672,14 +671,14 @@ seaOfReadJsonStruct assign st@(StructType fields) vars = do
   mappings_sea <- traverse (seaOfFieldMapping assign) mappings
   pure $ vsep
     [ "if (*p++ != '{')"
-    , "    return ierror_msg_alloc (\"missing {\",  p, pe - p);"
+    , "    return ierror_loc_format (p-1, p-1, \"struct missing '{'\");"
     , ""
     , "for (;;) {"
     , "    if (*p++ != '\"')"
-    , "        return ierror_msg_alloc (\"missing \\\"\", p, pe - p);"
+    , "        return ierror_loc_format (p-1, p-1, \"field name missing opening quote\");"
     , ""
     , indent 4 (vsep mappings_sea)
-    , "    return ierror_msg_alloc (\"invalid field start\", p, pe - p);"
+    , "    return ierror_loc_format (p-1, p-1, \"invalid field start\");"
     , "}"
     ]
 
@@ -704,13 +703,13 @@ seaOfReadJsonField assign ftype vars = do
   value_sea <- seaOfReadJsonValue assign ftype vars
   pure $ vsep
     [ "if (*p++ != ':')"
-    , "    return ierror_msg_alloc (\"missing ':'\",  p, pe - p);"
+    , "    return ierror_loc_format (p-1, p-1, \"field missing ':'\");"
     , ""
     , value_sea
     , ""
     , "char term = *p++;"
     , "if (term != ',' && term != '}')"
-    , "    return ierror_msg_alloc (\"terminator ',' or '}' not found\", p, pe - p);"
+    , "    return ierror_loc_format (p-1, p-1, \"field separator ',' or terminator '}' not found\");"
     , ""
     , "if (term == '}')"
     , "    break;"

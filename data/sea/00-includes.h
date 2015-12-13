@@ -21,6 +21,7 @@
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #pragma GCC diagnostic ignored "-Wunused-variable"
 #pragma GCC diagnostic ignored "-Wundefined-internal"
+#pragma GCC diagnostic ignored "-Wself-assign"
 
 typedef uint64_t ierror_t;
 typedef uint64_t iunit_t;
@@ -30,7 +31,6 @@ typedef   double idouble_t;
 typedef  int64_t itime_t;
 
 typedef const char *istring_t;
-typedef const char *ierror_msg_t;
 
 static const ierror_t ierror_not_an_error           = 0;
 static const ierror_t ierror_tombstone              = 1;
