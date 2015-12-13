@@ -1,6 +1,8 @@
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TupleSections     #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TupleSections #-}
 
 module Icicle.Storage.Dictionary.Toml (
     DictionaryImportError (..)
@@ -18,21 +20,25 @@ import qualified Icicle.Source.Type                            as ST
 import           Icicle.Storage.Dictionary.Toml.Toml
 import           Icicle.Storage.Dictionary.Toml.TomlDictionary
 
-import qualified Control.Arrow                                 as A
 import qualified Control.Exception                             as E
-import           Control.Monad.Trans.Either
+
+import           Data.FileEmbed (embedFile)
 
 import           System.FilePath
 import           System.IO
 
 import           Data.Either.Combinators
-import qualified Data.Set                                      as S
+import qualified Data.Set                                      as Set
+import           Data.Text                                     (Text)
 import qualified Data.Text                                     as T
+import qualified Data.Text.Encoding                            as T
 import qualified Data.Text.IO                                  as T
 
 import qualified Text.Parsec                                   as Parsec
 
 import           P
+
+import           X.Control.Monad.Trans.Either
 
 
 data DictionaryImportError
@@ -49,8 +55,7 @@ type FunEnvT = [ ( Name SP.Variable
 
 
 -- Top level IO function which loads all dictionaries and imports
-loadDictionary :: FilePath
-  -> EitherT DictionaryImportError IO Dictionary
+loadDictionary :: FilePath -> EitherT DictionaryImportError IO Dictionary
 loadDictionary dictionary
  = loadDictionary' [] mempty [] dictionary
 
@@ -60,25 +65,17 @@ loadDictionary'
   -> [DictionaryEntry]
   -> FilePath
   -> EitherT DictionaryImportError IO Dictionary
-loadDictionary' parentFuncs parentConf parentConcrete fp
+loadDictionary' parentFuncs parentConf parentConcrete dictPath
  = do
-  inputText
-    <- EitherT
-     $ (A.left DictionaryErrorIO)
-     <$> (E.try (readFile fp))
+  inputText <- firstEitherT DictionaryErrorIO . EitherT $ E.try (readFile dictPath)
+  rawToml   <- firstEitherT DictionaryErrorParsecTOML . hoistEither $ Parsec.parse tomlDoc dictPath inputText
 
-  rawToml
-    <- hoistEither
-     $ (A.left DictionaryErrorParsecTOML)
-     $ Parsec.parse tomlDoc fp inputText
+  (conf, definitions') <- firstEitherT DictionaryErrorParse . hoistEither . toEither $ tomlDict parentConf rawToml
 
-  (conf, definitions')
-    <- hoistEither
-     $ (A.left DictionaryErrorParse)
-     $ toEither
-     $ tomlDict parentConf rawToml
+  let repoPath = takeDirectory dictPath
 
-  parsedImports     <- parseImports conf rp
+  rawImports        <- traverse (readImport repoPath) (fmap T.unpack (imports conf))
+  parsedImports     <- hoistEither $ traverse (uncurry parseImport) (prelude <> rawImports)
   importedFunctions <- loadImports parentFuncs parsedImports
 
   -- Functions available for virtual features, and visible in sub-dictionaries.
@@ -91,49 +88,52 @@ loadDictionary' parentFuncs parentConf parentConcrete fp
 
   virtualDefinitions <- checkDefs d' virtualDefinitions'
 
-  loadedChapters
-    <- (\fp' ->
-         loadDictionary' availableFunctions conf concreteDefinitions (rp </> (T.unpack fp'))
-       ) `traverse` (chapter conf)
+  let loadChapter fp' = loadDictionary' availableFunctions conf concreteDefinitions (repoPath </> T.unpack fp')
 
-  -- Dictionaries loaded after one another can see the functions of previous dictionaries. So sub-dictionaries imports can use
-  -- prelude functions. Export the dictionaries loaded here, and in sub dictionaries (but not parent functions, as the parent
-  -- already knows about those).
+  loadedChapters <- traverse loadChapter (chapter conf)
+
+  -- Dictionaries loaded after one another can see the functions of previous
+  -- dictionaries. So sub-dictionaries imports can use prelude functions.
+  -- Export the dictionaries loaded here, and in sub dictionaries (but not
+  -- parent functions, as the parent already knows about those).
   let functions = join $ [importedFunctions] <> (dictionaryFunctions <$> loadedChapters)
   let totaldefinitions = concreteDefinitions <> virtualDefinitions <> (join $ dictionaryEntries <$> loadedChapters)
 
   pure $ Dictionary totaldefinitions functions
 
     where
-      rp = (takeDirectory fp)
 
-      remakeConcrete (DictionaryEntry' a (ConcreteDefinition' _ e t)) cds = (DictionaryEntry a (ConcreteDefinition e $ S.fromList $ toList t)) : cds
-      remakeConcrete _ cds = cds
+remakeConcrete :: DictionaryEntry' -> [DictionaryEntry] -> [DictionaryEntry]
+remakeConcrete de cds
+ = case de of
+    DictionaryEntry' a (ConcreteDefinition' _ e t)
+     -> DictionaryEntry a (ConcreteDefinition e (Set.fromList (toList t))) : cds
+    _
+     -> cds
 
-      remakeVirtuals (DictionaryEntry' a (VirtualDefinition' (Virtual' v))) vds = (a, v) : vds
-      remakeVirtuals _ vds = vds
+remakeVirtuals
+  :: DictionaryEntry'
+  -> [(Attribute, SQ.QueryTop Parsec.SourcePos SP.Variable)]
+  -> [(Attribute, SQ.QueryTop Parsec.SourcePos SP.Variable)]
+remakeVirtuals de vds
+ = case de of
+     DictionaryEntry' a (VirtualDefinition' (Virtual' v))
+      -> (a, v) : vds
+     _
+      -> vds
 
-parseImports
-  :: DictionaryConfig
-  -> FilePath
-  -> EitherT DictionaryImportError IO [Funs Parsec.SourcePos]
-parseImports conf rp
- = go `traverse` imports conf
- where
-  go fp
-   = do let fp'' = T.unpack fp
-        importsText
-          <- EitherT
-           $ A.left DictionaryErrorIO
-          <$> E.try (T.readFile (rp </> fp''))
-        hoistEither
-           $ A.left DictionaryErrorCompilation
-           $ P.sourceParseF fp'' importsText
+readImport :: FilePath -> FilePath -> EitherT DictionaryImportError IO (FilePath, Text)
+readImport repoPath fileRel
+ = firstEitherT DictionaryErrorIO . EitherT . E.try $ do
+     let fileAbs = repoPath </> fileRel
+     src <- T.readFile fileAbs
+     return (fileRel, src)
 
-loadImports
-  :: FunEnvT
-  -> [Funs Parsec.SourcePos]
-  -> EitherT DictionaryImportError IO FunEnvT
+parseImport :: FilePath -> Text -> Either DictionaryImportError (Funs Parsec.SourcePos)
+parseImport path src
+ = first DictionaryErrorCompilation (P.sourceParseF path src)
+
+loadImports :: FunEnvT -> [Funs Parsec.SourcePos] -> EitherT DictionaryImportError IO FunEnvT
 loadImports parentFuncs parsedImports
  = hoistEither . mapLeft DictionaryErrorCompilation
  $ foldlM (go parentFuncs) [] parsedImports
@@ -164,12 +164,14 @@ checkDefs d defs
 
 
 instance Pretty DictionaryImportError where
-  pretty (DictionaryErrorIO e)
-   = "IO Exception:" <+> (text . show) e
-  pretty (DictionaryErrorParsecTOML e)
-   = "TOML parse error:" <+> (text . show) e
-  pretty (DictionaryErrorCompilation e)
-   = pretty e
-  pretty (DictionaryErrorParse es)
-   = "Validation error:" <+> align (vcat (pretty <$> es))
+  pretty = \case
+    DictionaryErrorIO          e  -> "IO Exception:" <+> (text . show) e
+    DictionaryErrorParsecTOML  e  -> "TOML parse error:" <+> (text . show) e
+    DictionaryErrorCompilation e  -> pretty e
+    DictionaryErrorParse       es -> "Validation error:" <+> align (vcat (pretty <$> es))
 
+------------------------------------------------------------------------
+
+prelude :: [(FilePath, Text)]
+prelude
+ = [("prelude.icicle", T.decodeUtf8 $(embedFile "data/libs/prelude.icicle"))]
