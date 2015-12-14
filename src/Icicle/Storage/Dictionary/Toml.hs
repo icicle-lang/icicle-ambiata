@@ -6,6 +6,7 @@
 
 module Icicle.Storage.Dictionary.Toml (
     DictionaryImportError (..)
+  , ImplicitPrelude (..)
   , loadDictionary
   ) where
 
@@ -53,19 +54,22 @@ type FunEnvT = [ ( Name SP.Variable
                  , ( ST.FunctionType SP.Variable
                    , SQ.Function (ST.Annot Parsec.SourcePos SP.Variable) SP.Variable ) ) ]
 
+data ImplicitPrelude = ImplicitPrelude | NoImplicitPrelude
+  deriving (Eq, Ord, Show)
 
 -- Top level IO function which loads all dictionaries and imports
-loadDictionary :: FilePath -> EitherT DictionaryImportError IO Dictionary
-loadDictionary dictionary
- = loadDictionary' [] mempty [] dictionary
+loadDictionary :: ImplicitPrelude -> FilePath -> EitherT DictionaryImportError IO Dictionary
+loadDictionary impPrelude dictionary
+ = loadDictionary' impPrelude [] mempty [] dictionary
 
 loadDictionary'
-  :: FunEnvT
+  :: ImplicitPrelude
+  -> FunEnvT
   -> DictionaryConfig
   -> [DictionaryEntry]
   -> FilePath
   -> EitherT DictionaryImportError IO Dictionary
-loadDictionary' parentFuncs parentConf parentConcrete dictPath
+loadDictionary' impPrelude parentFuncs parentConf parentConcrete dictPath
  = do
   inputText <- firstEitherT DictionaryErrorIO . EitherT $ E.try (readFile dictPath)
   rawToml   <- firstEitherT DictionaryErrorParsecTOML . hoistEither $ Parsec.parse tomlDoc dictPath inputText
@@ -75,7 +79,8 @@ loadDictionary' parentFuncs parentConf parentConcrete dictPath
   let repoPath = takeDirectory dictPath
 
   rawImports        <- traverse (readImport repoPath) (fmap T.unpack (imports conf))
-  parsedImports     <- hoistEither $ traverse (uncurry parseImport) (prelude <> rawImports)
+  let prelude'      =  if impPrelude == ImplicitPrelude then prelude else []
+  parsedImports     <- hoistEither $ traverse (uncurry parseImport) (prelude' <> rawImports)
   importedFunctions <- loadImports parentFuncs parsedImports
 
   -- Functions available for virtual features, and visible in sub-dictionaries.
@@ -88,7 +93,11 @@ loadDictionary' parentFuncs parentConf parentConcrete dictPath
 
   virtualDefinitions <- checkDefs d' virtualDefinitions'
 
-  let loadChapter fp' = loadDictionary' availableFunctions conf concreteDefinitions (repoPath </> T.unpack fp')
+  let loadChapter fp' = loadDictionary' NoImplicitPrelude
+                                        availableFunctions
+                                        conf
+                                        concreteDefinitions
+                                        (repoPath </> T.unpack fp')
 
   loadedChapters <- traverse loadChapter (chapter conf)
 
@@ -100,8 +109,6 @@ loadDictionary' parentFuncs parentConf parentConcrete dictPath
   let totaldefinitions = concreteDefinitions <> virtualDefinitions <> (join $ dictionaryEntries <$> loadedChapters)
 
   pure $ Dictionary totaldefinitions functions
-
-    where
 
 remakeConcrete :: DictionaryEntry' -> [DictionaryEntry] -> [DictionaryEntry]
 remakeConcrete de cds

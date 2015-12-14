@@ -1,6 +1,7 @@
 -- | Typecheck and generalise functions
-{-# LANGUAGE PatternGuards #-}
+{-# LANGUAGE DoAndIfThenElse #-}
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE PatternGuards #-}
 module Icicle.Source.Checker.Function (
     checkF
   , checkFs
@@ -37,13 +38,14 @@ checkFs :: Ord n
                    (FunEnvT a n)
 
 checkFs env functions
- = foldlM (\env' -> \(name,fun) -> do
-            (annotfun, funtype) <- checkF (fst <$> (Map.fromList env')) fun
-            if (isJust $ List.lookup (snd name) env')
-              then hoistEither $ Left $ CheckError (ErrorDuplicateFunctionNames (fst name) (snd name)) []
-                else
-                  pure (env' <> [(snd name , (funtype, annotfun))]))
-          env functions
+ = foldlM go env functions
+ where
+  go env' (name,fun)
+   = do
+    (annotfun, funtype) <- checkF (fst <$> Map.fromList env') fun
+    if List.elem (snd name) (fmap fst env')
+    then hoistEither $ Left $ CheckError (ErrorDuplicateFunctionNames (fst name) (snd name)) []
+    else pure (env' <> [(snd name , (funtype, annotfun))])
 
 checkF  :: Ord n
         => Map.Map (Name n) (FunctionType n)

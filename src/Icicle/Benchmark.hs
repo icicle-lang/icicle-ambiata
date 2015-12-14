@@ -92,7 +92,7 @@ createBenchmark
 createBenchmark mode dictionaryPath inputPath outputPath packedChordPath = do
   start <- liftIO getCurrentTime
 
-  dictionary <- firstEitherT BenchDictionaryImportError (loadDictionary dictionaryPath)
+  dictionary <- firstEitherT BenchDictionaryImportError (loadDictionary ImplicitPrelude dictionaryPath)
   avalanche  <- hoistEither (avalancheOfDictionary dictionary)
 
   let cfg = Psv (PsvConfig mode (tombstonesOfDictionary dictionary))

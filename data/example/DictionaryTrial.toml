@@ -6,9 +6,7 @@ version = 1
 namespace="demographics"
 
 # imports an array of icicle libs, search path of libs dir, then std libs dir.
-import = [
-  "../libs/prelude.icicle", # not sure about the extension yet.
-]
+import = []
 
 # Optionally, import addition dictionary files, specifying sub dictionaries.
 # Should help namespace separation. A Master dictionary could contain just this, title, and version.
