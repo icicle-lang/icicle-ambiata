@@ -1,6 +1,6 @@
 title = "Test dictionary"
 version = 1
-import = [ "numflips.icicle" ]
+import = []
 
 namespace = "test"
 

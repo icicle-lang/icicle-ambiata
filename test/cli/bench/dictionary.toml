@@ -1,5 +1,5 @@
 namespace=""
-import = [ "../../../data/libs/prelude.icicle" ]
+import = []
 
 [fact.salary]
  encoding = "int"

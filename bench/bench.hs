@@ -22,7 +22,7 @@ import qualified Icicle.Sea.Eval as I
 
 import           P
 
-import           System.Directory (createDirectoryIfMissing, copyFile)
+import           System.Directory (createDirectoryIfMissing)
 import           System.Exit (ExitCode(..))
 import           System.FilePath (FilePath, (</>))
 import           System.IO (IO, hPutStrLn, stderr)
@@ -123,7 +123,6 @@ generateRepo root (freq, ys, es) = do
   generateSparse generator (path </> "data.psv")
 
   T.writeFile (path </> "dictionary.toml") dictionary
-  copyFile "data/libs/prelude.icicle" (path </> "prelude.icicle")
 
   return (name, path)
 
@@ -149,8 +148,8 @@ dictionary = T.unlines
   [ "title     = \"bench\""
   , "version   = 1"
   , "namespace = \"bench\""
-  , "import    = [ \"prelude.icicle\" ]"
-  , "chapter   = [ ]"
+  , "import    = []"
+  , "chapter   = []"
   , "tombstone = \"NA\""
   , ""
   , "[fact.wibble]"

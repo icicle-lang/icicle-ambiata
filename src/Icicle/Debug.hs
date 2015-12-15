@@ -76,7 +76,7 @@ avalancheFrom
   -> [(Text, Text)]
   -> EitherT DebugError IO (Map Attribute (A.Program (Annot ()) S.Variable A.Prim))
 avalancheFrom dictionaryPath sources = do
-  dictionary <- firstEitherT DebugDictionaryImportError (loadDictionary dictionaryPath)
+  dictionary <- firstEitherT DebugDictionaryImportError (loadDictionary ImplicitPrelude dictionaryPath)
   queries    <- hoistEither (traverse (uncurry (queryOfSource dictionary)) sources)
 
   let dictionary' = dictionary { dictionaryEntries = filter concrete (dictionaryEntries dictionary)

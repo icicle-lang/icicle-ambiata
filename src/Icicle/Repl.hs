@@ -156,7 +156,7 @@ loadDictionary load
             return $ D.Dictionary ds []
 
     DictionaryLoadToml fp
-     -> firstEitherT ReplErrorDictionaryLoad $ DictionaryToml.loadDictionary fp
+     -> firstEitherT ReplErrorDictionaryLoad $ DictionaryToml.loadDictionary DictionaryToml.ImplicitPrelude fp
 
 readIcicleLibrary
     :: Parsec.SourceName
