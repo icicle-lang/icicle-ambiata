@@ -28,7 +28,6 @@ import           Data.FileEmbed (embedFile)
 import           System.FilePath
 import           System.IO
 
-import           Data.Either.Combinators
 import qualified Data.Set                                      as Set
 import           Data.Text                                     (Text)
 import qualified Data.Text                                     as T
@@ -142,7 +141,7 @@ parseImport path src
 
 loadImports :: FunEnvT -> [Funs Parsec.SourcePos] -> EitherT DictionaryImportError IO FunEnvT
 loadImports parentFuncs parsedImports
- = hoistEither . mapLeft DictionaryErrorCompilation
+ = hoistEither . first DictionaryErrorCompilation
  $ foldlM (go parentFuncs) [] parsedImports
  where
   go env acc f
@@ -158,7 +157,7 @@ checkDefs
   -> [(Attribute, P.QueryTop' P.SourceVar)]
   -> EitherT DictionaryImportError IO [DictionaryEntry]
 checkDefs d defs
- = hoistEither . mapLeft DictionaryErrorCompilation
+ = hoistEither . first DictionaryErrorCompilation
  $ go `traverse` defs
  where
   go (a, q)

@@ -10,7 +10,6 @@ import           Icicle.Test.Sea.Utils
 import           Icicle.Test.Arbitrary ()
 
 import           Control.Monad.IO.Class (liftIO)
-import           Control.Monad.Trans.Either
 
 import           Disorder.Core.IO
 
@@ -22,6 +21,8 @@ import           System.IO
 
 import           Test.QuickCheck
 import           Test.QuickCheck.Property
+
+import           X.Control.Monad.Trans.Either
 
 prop_packed_symmetry :: Time -> Property
 prop_packed_symmetry d =

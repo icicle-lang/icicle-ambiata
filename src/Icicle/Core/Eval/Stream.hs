@@ -29,7 +29,6 @@ import              Icicle.Internal.Pretty
 
 import              P
 
-import              Data.Either.Combinators
 import qualified    Data.Map as Map
 
 
@@ -218,7 +217,7 @@ eval window_check xh concreteValues sh s
   -- Evaluate expression with environment,
   -- raise to a stream error if it fails
   evalX
-   = mapLeft RuntimeErrorExp
+   = first RuntimeErrorExp
    . XV.eval XV.evalPrim xh
 
   -- Apply an expression to a value.
@@ -226,7 +225,7 @@ eval window_check xh concreteValues sh s
   -- then we can use XV.applyValues
   applyX fX argV
    = do fV <- evalX fX
-        mapLeft RuntimeErrorExp
+        first RuntimeErrorExp
             $ XV.applyValues XV.evalPrim fV (V.VBase argV)
 
   -- Apply an expression to a stream value, keeping the bubblegum intact

@@ -4,35 +4,36 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE FlexibleInstances #-}
-
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Icicle.Test.IO.IO where
 
 import           Control.Monad.Trans.Class
-import           Control.Monad.Trans.Either
 
-import           System.IO
-import           System.IO.Temp
-import           System.FilePath.Posix
-import           P
+import           Data.List (nubBy)
+import qualified Data.Set                           as Set
+
 import           Disorder.Core.IO
 import           Disorder.Corpus
 
-import           Data.List (nubBy)
-
 import           Icicle.Data
 import           Icicle.Dictionary.Data
+import qualified Icicle.Internal.Pretty as PP
 import           Icicle.Storage.Dictionary.Toml
 import           Icicle.Storage.Dictionary.Toml.Persist
 import           Icicle.Test.Arbitrary ()
 import           Icicle.Test.Source.Arbitrary ()
 
+import           P
+
+import           System.IO
+import           System.IO.Temp
+import           System.FilePath.Posix
+
 import           Test.QuickCheck
 import           Test.QuickCheck.Instances ()
 import           Test.QuickCheck.Property
-import qualified Data.Set                           as Set
 
-import qualified Icicle.Internal.Pretty as PP
+import           X.Control.Monad.Trans.Either
 
 prop_toml_dictionary_symmetry :: Dictionary -> Property
 prop_toml_dictionary_symmetry x

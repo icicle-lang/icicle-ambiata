@@ -46,10 +46,7 @@ import qualified Icicle.Storage.Dictionary.Toml   as DictionaryToml
 import           P
 
 import           Control.Monad.Trans.Class
-import           Control.Monad.Trans.Either
-import           X.Control.Monad.Trans.Either
 
-import           Data.Either.Combinators
 import           Data.Text                        (Text)
 import qualified Data.Text                        as T
 import qualified Data.Text.IO                     as T
@@ -58,6 +55,8 @@ import qualified Data.Traversable                 as TR
 import           System.IO
 
 import qualified Text.ParserCombinators.Parsec    as Parsec
+
+import           X.Control.Monad.Trans.Either
 
 
 type Var = P.SourceVar
@@ -111,36 +110,36 @@ data DictionaryLoadType
 -- * Check and Convert
 
 sourceParse :: Text -> Either ReplError (P.QueryTop' Var)
-sourceParse = mapLeft ReplErrorCompileCore . P.sourceParseQT "repl"
+sourceParse = first ReplErrorCompileCore . P.sourceParseQT "repl"
 
 sourceDesugar :: P.QueryTop' Var -> Either ReplError (P.QueryTop' Var)
-sourceDesugar = mapLeft ReplErrorCompileCore . P.sourceDesugarQT
+sourceDesugar = first ReplErrorCompileCore . P.sourceDesugarQT
 
 sourceReify :: P.QueryTop'T Var -> P.QueryTop'T Var
 sourceReify = P.sourceReifyQT
 
 sourceCheck :: D.Dictionary -> P.QueryTop' Var -> Either ReplError (P.QueryTop'T Var, ST.Type Var)
 sourceCheck d
- = mapLeft ReplErrorCompileCore . P.sourceCheckQT d
+ = first ReplErrorCompileCore . P.sourceCheckQT d
 
 sourceConvert :: D.Dictionary -> P.QueryTop'T Var -> Either ReplError (P.CoreProgram' Var)
 sourceConvert d
- = mapLeft ReplErrorCompileCore . P.sourceConvert d
+ = first ReplErrorCompileCore . P.sourceConvert d
 
 coreFlatten
   :: P.CoreProgram' Var -> Either ReplError (AP.Program () Var APF.Prim)
 coreFlatten
- = mapLeft ReplErrorCompileAvalanche . P.coreFlatten
+ = first ReplErrorCompileAvalanche . P.coreFlatten
 
 checkAvalanche
   :: AP.Program () Var APF.Prim
   -> Either ReplError (AP.Program (Annot ()) Var APF.Prim)
 checkAvalanche
- = mapLeft ReplErrorCompileAvalanche . P.checkAvalanche
+ = first ReplErrorCompileAvalanche . P.checkAvalanche
 
 readFacts :: D.Dictionary -> Text -> Either ReplError [AsAt Fact]
 readFacts dict raw
-  = mapLeft ReplErrorDecode
+  = first ReplErrorDecode
   $ TR.traverse (S.decodeEavt dict) $ T.lines raw
 
 loadDictionary :: DictionaryLoadType -> EitherT ReplError IO D.Dictionary
@@ -166,8 +165,8 @@ readIcicleLibrary
             , ( ST.FunctionType Var
               , SQ.Function (ST.Annot Parsec.SourcePos Var) Var)) ]
 readIcicleLibrary source input
- = do input' <- mapLeft (ReplErrorCompileCore . P.CompileErrorParse) $ SP.parseFunctions source input
-      mapLeft (ReplErrorCompileCore . P.CompileErrorCheck)
+ = do input' <- first (ReplErrorCompileCore . P.CompileErrorParse) $ SP.parseFunctions source input
+      first (ReplErrorCompileCore . P.CompileErrorCheck)
              $ snd
              $ flip Fresh.runFresh (P.freshNamer "repl")
              $ runEitherT

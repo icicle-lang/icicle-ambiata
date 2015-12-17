@@ -13,7 +13,6 @@ import           P hiding (concat, intercalate)
 
 import           Data.Attoparsec.Text
 
-import           Data.Either.Combinators
 import           Data.Text hiding (takeWhile)
 import qualified Data.Set as Set
 
@@ -39,7 +38,7 @@ parseIcicleDictionaryV1 = do
 
 parseDictionaryLineV1 :: Text -> Either ParseError DictionaryEntry
 parseDictionaryLineV1 s =
-  mapLeft (ParseError . pack) $ parseOnly parseIcicleDictionaryV1 s
+  first (ParseError . pack) $ parseOnly parseIcicleDictionaryV1 s
 
 writeDictionaryLineV1 :: DictionaryEntry -> Text
 writeDictionaryLineV1 (DictionaryEntry (Attribute a) (ConcreteDefinition e _)) =

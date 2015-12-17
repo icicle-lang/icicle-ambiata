@@ -22,10 +22,10 @@ import qualified        Icicle.Common.Fresh     as Fresh
 
 import                  P
 
-import                  Control.Monad.Trans.Either
-
 import                  Data.List (zip,unzip,unzip3)
 import qualified        Data.Map                as Map
+
+import                  X.Control.Monad.Trans.Either
 
 
 

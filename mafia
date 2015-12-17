@@ -57,7 +57,7 @@ exec_mafia () {
       mv "${MAFIA_PATH}.tmp" "$MAFIA_PATH"
     }
 
-    exec $MAFIA_PATH $@
+    exec $MAFIA_PATH "$@"
   fi
 }
 
@@ -75,4 +75,4 @@ case "$MODE" in
 upgrade) shift; run_$MODE "$@" ;;
 *) exec_mafia "$@"
 esac
-# Version: 5aa165770a67027b9e2dcab4f2189e5954f3af2b
+# Version: 3c266ebb9d3ead73c54af2268e0412f62a50981c

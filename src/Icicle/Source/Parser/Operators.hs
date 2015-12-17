@@ -15,7 +15,6 @@ import                  P
 
 import                  Data.String (String)
 import                  Data.Text (Text, unpack)
-import                  Data.Either.Combinators
 
 data DefixError n
  = ErrorNoSuchPrefixOperator          Text
@@ -50,7 +49,7 @@ data Ops
 defix :: [Either (Q.Exp T.SourcePos n) (T.Operator, T.SourcePos)] -> Either (DefixError n) (Q.Exp T.SourcePos n)
 defix inps
  = shuntX [] []
- $ fmap (mapRight get) inps
+ $ fmap (second get) inps
  where
   -- Look up operators by symbol.
   -- There can be multiple operators for a given symbol,

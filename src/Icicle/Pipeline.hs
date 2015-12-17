@@ -76,9 +76,6 @@ import qualified Icicle.Sea.Eval                          as Sea
 import qualified Icicle.Simulator                         as S
 
 
-import           Control.Monad.Trans.Either
-
-import           Data.Either.Combinators
 import           Data.Functor.Identity
 import qualified Data.Map                                 as M
 import           Data.Monoid
@@ -91,6 +88,8 @@ import qualified Text.ParserCombinators.Parsec            as Parsec
 
 import           P
 import           System.IO                                (IO)
+
+import           X.Control.Monad.Trans.Either
 
 --------------------------------------------------------------------------------
 
@@ -170,14 +169,14 @@ sourceParseQT
  :: Text -> Text
  -> Either (CompileError SourcePos SourceVar ()) (QueryTop' SourceVar)
 sourceParseQT base t
- = mapLeft CompileErrorParse
+ = first CompileErrorParse
  $ SP.parseQueryTop (CommonBase.OutputName base) t
 
 sourceParseF
   :: Parsec.SourceName -> Text
   -> Either (CompileError SourcePos SourceVar ()) (Funs SourcePos SourceVar)
 sourceParseF env t
- = mapLeft CompileErrorParse
+ = first CompileErrorParse
  $ SP.parseFunctions env t
 
 sourceDesugarQT
@@ -209,7 +208,7 @@ sourceCheckQT
  -> Either (CompileError SourcePos SourceVar ()) (QueryTop'T SourceVar, ST.Type SourceVar)
 sourceCheckQT d q
  = let d' = D.featureMapOfDictionary d
-   in  mapLeft CompileErrorCheck
+   in  first CompileErrorCheck
      $ snd
      $ flip Fresh.runFresh (freshNamer "check")
      $ runEitherT
@@ -220,7 +219,7 @@ sourceCheckF
  -> Funs a SourceVar
  -> Either (CompileError a SourceVar ()) (FunEnvT a SourceVar)
 sourceCheckF env parsedImport
- = mapLeft CompileErrorCheck
+ = first CompileErrorCheck
  $ snd
  $ flip Fresh.runFresh (freshNamer "check")
  $ runEitherT
@@ -249,8 +248,8 @@ sourceConvert
   -> QueryTop'T SourceVar
   -> Either (CompileError SourcePos SourceVar ()) (CoreProgram' SourceVar)
 sourceConvert d q
- = mapRight snd
- $ mapLeft CompileErrorConvert conv
+ = second snd
+ $ first CompileErrorConvert conv
  where
   d'        = D.featureMapOfDictionary d
   conv      = Fresh.runFreshT
@@ -271,7 +270,7 @@ coreFlatten
   => CoreProgram' v
   -> Either (CompileError () v APF.Prim) (AvalProgram' v APF.Prim)
 coreFlatten prog
- = mapRight simpFlattened
+ = second simpFlattened
  $ flattenAvalanche (coreAvalanche prog)
 
 flattenAvalanche
@@ -280,8 +279,8 @@ flattenAvalanche
   -> Either (CompileError () v APF.Prim) (AvalProgram (CA.Annot ()) v APF.Prim)
 flattenAvalanche av
  = join
- . mapRight snd
- . mapLeft CompileErrorFlatten
+ . second snd
+ . first CompileErrorFlatten
  $ Fresh.runFreshT go (freshNamer "flat")
  where
   go = do s' <- AS.flatten () (AP.statements av)
@@ -292,7 +291,7 @@ checkAvalanche
   => AvalProgram' v APF.Prim
   -> Either (CompileError () v APF.Prim) (AvalProgram (CA.Annot ()) v APF.Prim)
 checkAvalanche prog
- = mapLeft CompileErrorProgram
+ = first CompileErrorProgram
  $ AC.checkProgram APF.flatFragment prog
 
 coreAvalanche

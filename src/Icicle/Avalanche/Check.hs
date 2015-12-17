@@ -16,7 +16,6 @@ import              Icicle.Common.Exp
 
 import              P
 
-import              Data.Either.Combinators
 import qualified    Data.List   as List
 import qualified    Data.Map    as Map
 
@@ -66,7 +65,7 @@ checkStatement frag ctx stmt
       let go = checkStatement frag ctx'
       case stmt of
         If x stmts elses
-         -> do x' <- mapLeft ProgramErrorExp
+         -> do x' <- first ProgramErrorExp
                    $ checkExp frag (ctxExp ctx) x
 
                let t = annType (annotOfExp x')
@@ -77,14 +76,14 @@ checkStatement frag ctx stmt
                      <*> go elses
 
         Let n x stmts
-         -> do x' <- mapLeft ProgramErrorExp
+         -> do x' <- first ProgramErrorExp
                    $ checkExp frag (ctxExp ctx) x
                Let n x' <$> go stmts
 
         ForeachInts n from to stmts
-         -> do from' <- mapLeft ProgramErrorExp
+         -> do from' <- first ProgramErrorExp
                       $ checkExp frag (ctxExp ctx) from
-               to'   <- mapLeft ProgramErrorExp
+               to'   <- first ProgramErrorExp
                       $ checkExp frag (ctxExp ctx) to
 
                let tf = annType (annotOfExp from')
@@ -111,7 +110,7 @@ checkStatement frag ctx stmt
          -> Read n acc vt <$> go stmts
 
         Write n x
-         -> do x'   <- mapLeft ProgramErrorExp
+         -> do x'   <- first ProgramErrorExp
                      $ checkExp frag (ctxExp ctx) x
 
                vt   <- maybeToRight (ProgramErrorNoSuchAccumulator n)
@@ -126,7 +125,7 @@ checkStatement frag ctx stmt
          -> do let xs = fmap fst xts
                    ts = fmap snd xts
 
-               xs' <- mapLeft ProgramErrorExp
+               xs' <- first ProgramErrorExp
                     $ traverse (checkExp frag (ctxExp ctx)) xs
 
                let xts' = List.zip xs' ts
@@ -158,7 +157,7 @@ checkAccumulator
         -> Accumulator a n p
         -> Either (ProgramError a n p) (Accumulator (Annot a) n p)
 checkAccumulator frag ctx (Accumulator n ty x)
- = do x' <- mapLeft ProgramErrorExp
+ = do x' <- first ProgramErrorExp
           $ checkExp frag (ctxExp ctx) x
 
       let t = annType (annotOfExp x')
@@ -179,7 +178,7 @@ statementContext frag ctx stmt
      -> return ctx
 
     Let n x _
-     -> do t <- mapLeft ProgramErrorExp
+     -> do t <- first ProgramErrorExp
               $ typeExp frag (ctxExp ctx) x
            return (ctx { ctxExp = Map.insert n t $ ctxExp ctx })
 

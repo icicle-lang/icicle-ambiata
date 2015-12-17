@@ -41,10 +41,11 @@ import qualified Icicle.Common.Fresh         as Fresh
 import           P
 
 import           Control.Monad.Trans.Class
-import           Control.Monad.Trans.Either
-import           Data.Functor.Identity
 
+import           Data.Functor.Identity
 import qualified Data.Map                    as Map
+
+import           X.Control.Monad.Trans.Either
 
 
 -- | Type checking environment.

@@ -49,7 +49,6 @@ import           System.Directory (getTemporaryDirectory, removeDirectoryRecursi
 import           Text.ParserCombinators.Parsec (SourcePos)
 
 import           X.Control.Monad.Trans.Either
-import           X.Control.Monad.Catch
 
 ------------------------------------------------------------------------
 

@@ -23,8 +23,6 @@ import qualified Icicle.Pipeline as P
 import           Icicle.Test.Arbitrary
 import           Icicle.Test.Core.Arbitrary
 
-import           Data.Either.Combinators
-
 import           P
 
 import           System.IO
@@ -59,7 +57,7 @@ prop_flatten_commutes_value t =
          Right (_, s')
           -> counterexample (show $ pretty p')
            $ counterexample (show $ pretty s')
-             (mapLeft show (eval XV.evalPrim p') === mapLeft show (eval AE.evalPrim p' { AP.statements = s'}))
+             (first show (eval XV.evalPrim p') === first show (eval AE.evalPrim p' { AP.statements = s'}))
 
 
 
@@ -93,8 +91,8 @@ flatten_simp_commutes_value p (vs, d) =
  where
   eval xp  = AE.evalProgram xp d vs
   compareEvalResult xv yv =
-    let xv' = mapRight snd (mapLeft show xv)
-        yv' = mapRight snd (mapLeft show yv)
+    let xv' = second snd (first show xv)
+        yv' = second snd (first show yv)
     in either (counterexample . show . pretty) (const id) xv $
        either (counterexample . show . pretty) (const id) yv $
        if xv' == yv'
