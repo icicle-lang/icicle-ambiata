@@ -17,7 +17,6 @@ import           P
 import           Control.Lens
 
 import qualified Control.Applicative as CA ((<|>))
-import           Data.Either.Combinators
 import           Data.Text
 import           Data.Validation
 import qualified Data.HashMap.Strict as M
@@ -162,7 +161,7 @@ validateEncoding' ofFeature (NTable t, _) =
     -- Using a monad instance here, as the encoding should be a string, and then it should parse correctly.
     enc' <- maybe (Left $ [BadType name "string" pos']) (Right . fmap fst) $ enc ^? _NTValue . _VString
     -- Now that we have a string, parse it with attoparsec
-    (enc'', fieldType) <- mapLeft (const [EncodingError ofFeature (pack enc') pos']) $ parseOnly ((,) <$> parsePrimitiveEncoding <*> (Optional <$ char '*' <|> pure Mandatory) <* endOfInput) (pack enc')
+    (enc'', fieldType) <- first (const [EncodingError ofFeature (pack enc') pos']) $ parseOnly ((,) <$> parsePrimitiveEncoding <*> (Optional <$ char '*' <|> pure Mandatory) <* endOfInput) (pack enc')
     pure $ StructField fieldType (Attribute name) enc''
   ) t
 -- But all other values should be failures.
@@ -188,7 +187,7 @@ validateFeature _ name x = fromEither $ do
   expression  <- maybe (Left [MissingRequired ("feature." <> name) "expression"]) Right $ x ^? key "expression"
   expression' <- maybe (Left [BadType ("feature." <> name <> ".expression") "string" (expression ^. _2)]) Right $ expression ^? _1 . _NTValue . _VString
   let toks = lexerPositions expression'
-  q      <-  mapLeft (pure . ParseError) $ runParser (top $ OutputName name) () "" toks
+  q      <-  first (pure . ParseError) $ runParser (top $ OutputName name) () "" toks
   -- Todo: ensure that there's no extra data lying around. All valid TOML should be used.
   pure $ DictionaryEntry' (Attribute name) (VirtualDefinition' (Virtual' q))
 

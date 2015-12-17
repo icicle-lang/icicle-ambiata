@@ -9,7 +9,6 @@
 
 import           Control.Monad.IO.Class
 import           Control.Monad.Trans.Class
-import           Control.Monad.Trans.Either
 
 import           Data.List                        (nubBy, replicate, words)
 import           Data.Monoid
@@ -46,9 +45,9 @@ import qualified Icicle.Sea.Preamble              as Sea
 
 import qualified Icicle.Source.PrettyAnnot        as SPretty
 
-
 import           P
 
+import           X.Control.Monad.Trans.Either
 
 
 main :: IO ()

@@ -24,10 +24,11 @@ import           Icicle.Internal.Pretty
 
 import           Data.Functor.Identity
 
-import           Control.Monad.Trans.Either
 import           Control.Monad.Trans.Class
 
 import           P
+
+import           X.Control.Monad.Trans.Either
 
 
 data DesugarError a n

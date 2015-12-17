@@ -16,8 +16,6 @@ import qualified Data.Map as Map
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
 
-import           Data.Either.Combinators
-
 import           P
 
 data ChordParseError
@@ -34,7 +32,7 @@ parserOfRows =
 
 parseChordLine :: T.Text -> Either ChordParseError (Entity, [Time])
 parseChordLine s
- = mapLeft (ChordParseError . T.pack)
+ = first (ChordParseError . T.pack)
  $ parseOnly parserOfRows s
 
 pipe :: Parser ()

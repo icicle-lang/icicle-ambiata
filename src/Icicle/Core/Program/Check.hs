@@ -15,7 +15,6 @@ import              Icicle.Core.Program.Error
 
 import              P
 
-import              Data.Either.Combinators
 import qualified    Data.Map as Map
 
 
@@ -43,7 +42,7 @@ checkProgram p
 
         -- Finally, check the returns against the postcomputation environment
         let checkRet (n,x)
-                = do t' <- mapLeft ProgramErrorReturn
+                = do t' <- first ProgramErrorReturn
                          $ typeExp coreFragment post x
                      case t' of
                       FunT [] _
@@ -67,7 +66,7 @@ checkExps _ env []
  = return env
 
 checkExps err env ((n,x):bs)
- = do   t    <- mapLeft err
+ = do   t    <- first err
               $ typeExp coreFragment env x
         env' <- insertOrDie ProgramErrorNameNotUnique env n t
         checkExps err env' bs
@@ -83,7 +82,7 @@ checkStreams env []
  = return env
 
 checkStreams env ((n,s):bs)
- = do   t   <- mapLeft ProgramErrorStream
+ = do   t   <- first ProgramErrorStream
              $ checkStream env s
         se' <- insertOrDie ProgramErrorNameNotUnique (S.streams env) n t
         checkStreams (env { S.streams = se' }) bs
@@ -104,7 +103,7 @@ checkReduces env []
  = return (scalars env)
 
 checkReduces env ((n,r):bs)
- = do   t   <- mapLeft ProgramErrorReduce
+ = do   t   <- first ProgramErrorReduce
              $ checkReduce env r
 
         -- Now check the rest with the original environment

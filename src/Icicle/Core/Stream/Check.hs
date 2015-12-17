@@ -15,7 +15,6 @@ import              Icicle.Core.Stream.Error
 import              P
 
 import qualified    Data.Map as Map
-import              Data.Either.Combinators
 
 
 data StreamEnv n =
@@ -44,7 +43,7 @@ checkStream se s
 
     STrans st f n
      -> do  inp <- lookupOrDie StreamErrorVarNotInEnv (streams se) n
-            fty <- mapLeft     StreamErrorExp $ typeExp coreFragmentWorkerFun (scalars se) f
+            fty <- first       StreamErrorExp $ typeExp coreFragmentWorkerFun (scalars se) f
 
             requireSame (StreamErrorTypeError f)
                         (funOfVal $ inputOfStreamTransform st) (funOfVal inp)

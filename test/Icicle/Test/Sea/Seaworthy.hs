@@ -14,10 +14,6 @@ import qualified Icicle.Avalanche.FromCore          as A
 import           Icicle.Test.Arbitrary
 import           Icicle.Test.Sea.Arbitrary
 
-import           Control.Monad.Trans.Either
-
-import           X.Control.Monad.Catch (bracketEitherT')
-
 import qualified Data.Map                           as Map
 
 import           P
@@ -28,6 +24,9 @@ import           Disorder.Core.IO
 
 import           Test.QuickCheck
 import           Test.QuickCheck.Property
+
+import           X.Control.Monad.Trans.Either
+
 
 namer = A.namerText (flip Var 0)
 

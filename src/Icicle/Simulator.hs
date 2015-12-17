@@ -10,7 +10,6 @@ module Icicle.Simulator (
   ) where
 
 import           Data.List
-import           Data.Either.Combinators
 
 import qualified Icicle.BubbleGum   as B
 import           Icicle.Common.Base
@@ -83,7 +82,7 @@ evaluateVirtualValue :: Ord n => P.Program a n -> Time -> [AsAt Value] -> Result
 evaluateVirtualValue p t vs
  = do   vs' <- zipWithM toCore [1..] vs
 
-        xv  <- mapLeft SimulateErrorRuntime
+        xv  <- first SimulateErrorRuntime
              $ PV.eval t vs' p
 
         v'  <- traverse (\(k,v) -> (,) <$> pure k <*> valueFromCore' v) (PV.value xv)
@@ -98,7 +97,7 @@ evaluateVirtualValue' :: Ord n => A.Program a n APF.Prim -> Time -> [AsAt Value]
 evaluateVirtualValue' p t vs
  = do   vs' <- zipWithM toCore [1..] vs
 
-        xv  <- mapLeft SimulateErrorRuntime'
+        xv  <- first SimulateErrorRuntime'
              $ AE.evalProgram APF.evalPrim t vs' p
 
         v'  <- traverse (\(k,v) -> (,) <$> pure k <*> valueFromCore' v) (snd xv)

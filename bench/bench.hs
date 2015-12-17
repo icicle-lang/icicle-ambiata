@@ -30,7 +30,6 @@ import           System.IO.Temp (withSystemTempDirectory)
 import           System.Process (system)
 
 import           X.Control.Monad.Trans.Either
-import           X.Control.Monad.Catch
 
 ------------------------------------------------------------------------
 

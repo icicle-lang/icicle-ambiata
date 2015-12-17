@@ -25,9 +25,6 @@ import qualified        Data.Text as T
 import                  Data.Text (Text)
 import                  Data.List (lookup)
 
--- Bounded hack for getting names of all keywords
-import                  Prelude (Enum(..), Bounded(..), minBound,maxBound)
-
 -- Export source position type
 import                  Text.Parsec (SourcePos, sourceLine, sourceColumn, sourceName)
 

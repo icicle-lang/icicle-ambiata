@@ -22,7 +22,6 @@ import           System.IO (IO, FilePath, putStrLn, print)
 
 import           Text.Printf (printf)
 
-import           X.Control.Monad.Catch
 import           X.Control.Monad.Trans.Either
 
 ------------------------------------------------------------------------

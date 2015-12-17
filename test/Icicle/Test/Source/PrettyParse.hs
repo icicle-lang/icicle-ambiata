@@ -14,8 +14,6 @@ import           P
 
 import qualified Data.Text as T
 
-import           Data.Either.Combinators
-
 import           System.IO
 
 import           Test.QuickCheck
@@ -35,7 +33,7 @@ prop_parse_pretty_same q
   t  = T.pack pp
 
   parsed = parseQueryTop (queryName q) t
-  parsed' = mapRight (reannotQT (const ())) parsed
+  parsed' = second (reannotQT (const ())) parsed
 
   pp'  = case parsed of
           Left e -> show e

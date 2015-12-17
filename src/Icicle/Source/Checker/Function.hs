@@ -19,11 +19,11 @@ import qualified        Icicle.Common.Fresh     as Fresh
 
 import                  P
 
-import                  Control.Monad.Trans.Either
-
 import qualified        Data.Map                as Map
 import qualified        Data.Set                as Set
 import qualified        Data.List               as List
+
+import                  X.Control.Monad.Trans.Either
 
 type Funs a n = [((a, Name n), Function a n)]
 type FunEnvT a n = [ ( Name n

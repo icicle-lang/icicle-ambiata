@@ -28,7 +28,6 @@ import              Icicle.Internal.Pretty
 
 import              P
 
-import              Data.Either.Combinators
 import qualified    Data.Map as Map
 
 
@@ -84,7 +83,7 @@ eval    :: Ord n
         -> P.Program a n
         -> Either (RuntimeError a n) (ProgramValue n)
 eval d sv p
- = do   pres    <- mapLeft RuntimeErrorPre
+ = do   pres    <- first RuntimeErrorPre
                  $ XV.evalExps XV.evalPrim  Map.empty   (P.precomps     p)
         (stms,bgleftovers) <- evalStms pres d sv       Map.empty   (P.streams      p)
 
@@ -98,11 +97,11 @@ eval d sv p
                     Nothing -> reds
                     Just nm -> Map.insert nm (VBase $ VTime d) reds
 
-        post    <- mapLeft RuntimeErrorPost
+        post    <- first RuntimeErrorPost
                  $ XV.evalExps XV.evalPrim  reds'       (P.postcomps    p)
 
         let evalReturn (n,x)
-                 = do ret   <- mapLeft RuntimeErrorReturn
+                 = do ret   <- first RuntimeErrorReturn
                              $ XV.eval XV.evalPrim post x
                       ret'  <- V.getBaseValue (RuntimeErrorReturnNotBaseType ret) ret
                       return (n, ret')
@@ -126,7 +125,7 @@ evalStms _ _ _ sh []
  = return (sh, [])
 
 evalStms xh d svs sh ((n,strm):bs)
- = do   v   <- mapLeft RuntimeErrorStream
+ = do   v   <- first RuntimeErrorStream
              $ SV.eval d xh svs sh strm
         sh' <- insertUnique sh n $ SV.evalStreamValue v
 
@@ -151,7 +150,7 @@ evalReds xh _ []
 
 evalReds xh sh ((n,red):bs)
  = do   (bg,v)
-            <- mapLeft RuntimeErrorReduce
+            <- first RuntimeErrorReduce
              $ RV.eval n xh sh red
         -- Evaluate the remaining reductions before inserting into heap
         -- This shouldn't affect the semantics since names are unique.

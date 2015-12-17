@@ -6,7 +6,7 @@ module Icicle.Storage.Dictionary.Toml.Toml
   ( tomlDoc ) where
 
 import           P                   hiding (concat, (<|>), many, optional, join, count)
-import           Prelude             (read, fromEnum, toEnum, maxBound)
+import           Prelude             (read, fromEnum, toEnum)
 
 import qualified Data.HashMap.Strict as M
 import qualified Data.List           as L

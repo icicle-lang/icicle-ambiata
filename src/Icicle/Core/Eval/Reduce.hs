@@ -20,7 +20,6 @@ import              Icicle.Data
 
 import              P
 
-import              Data.Either.Combinators
 import qualified    Data.Map as Map
 
 
@@ -76,7 +75,7 @@ eval reduction_name xh sh r
   -- Evaluate expression with environment,
   -- raise to a stream error if it fails
   evalX
-   = mapLeft SV.RuntimeErrorExp
+   = first SV.RuntimeErrorExp
    . XV.eval XV.evalPrim xh
 
   -- Apply expression to two value arguments.
@@ -87,7 +86,7 @@ eval reduction_name xh sh r
         return fab
 
   appV f a
-   = mapLeft SV.RuntimeErrorExp
+   = first SV.RuntimeErrorExp
    $ XV.applyValues XV.evalPrim f a
 
   -- Get the history of some stream input

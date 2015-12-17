@@ -8,7 +8,6 @@
 module Icicle.Test.Sea.Psv where
 
 import           Control.Monad.IO.Class (liftIO)
-import           Control.Monad.Trans.Either
 
 import qualified Data.ByteString.Lazy as L
 import qualified Data.List as List
@@ -45,7 +44,8 @@ import           System.Directory (getTemporaryDirectory, removeDirectoryRecursi
 import           Test.QuickCheck hiding (output)
 import           Test.QuickCheck.Property hiding (result)
 
-import           X.Control.Monad.Catch (bracketEitherT')
+import           X.Control.Monad.Trans.Either (EitherT, runEitherT)
+import           X.Control.Monad.Trans.Either (bracketEitherT', left)
 
 
 prop_psv wt = testIO $ do

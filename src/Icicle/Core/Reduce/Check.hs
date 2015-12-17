@@ -12,8 +12,6 @@ import              Icicle.Core.Stream.Check
 
 import              P
 
-import              Data.Either.Combinators
-
 
 checkReduce
         :: Ord n
@@ -38,5 +36,5 @@ checkReduce se r
 
  where
   checkX
-   = mapLeft ReduceErrorExp . typeExp coreFragmentWorkerFun (scalars se)
+   = first ReduceErrorExp . typeExp coreFragmentWorkerFun (scalars se)
 

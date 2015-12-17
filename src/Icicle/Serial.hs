@@ -11,7 +11,6 @@ module Icicle.Serial (
 
 import           Data.Attoparsec.Text
 import           Data.Bifunctor
-import           Data.Either.Combinators
 import           Data.Text as T
 
 import           Icicle.Data
@@ -71,7 +70,7 @@ pipe =
 decodeEavt :: Dictionary -> Text -> Either ParseError (AsAt Fact)
 decodeEavt dict t
  = do e  <- parseEavt t
-      f' <- mapLeft DecodeError
+      f' <- first DecodeError
           $ parseFact dict
           $ atFact e
       return e { atFact = f' }

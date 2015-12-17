@@ -23,7 +23,6 @@ import              Icicle.Data         (AsAt(..))
 
 import              P
 
-import              Data.Either.Combinators
 import              Data.List   (zip)
 import qualified    Data.Map    as Map
 
@@ -158,7 +157,7 @@ initAcc evalPrim env (Accumulator n _ x)
       return (n, ([], av))
  where
   ev
-   = do v <- mapLeft RuntimeErrorAccumulator
+   = do v <- first RuntimeErrorAccumulator
            $ XV.eval evalPrim env x
         baseValue v
 
@@ -327,6 +326,6 @@ evalStmt evalPrim now xh values bubblegum ah stmt
   go' = go xh ah
 
   -- Raise Exp error to Avalanche
-  eval = mapLeft RuntimeErrorLoop
+  eval = first RuntimeErrorLoop
        . XV.eval evalPrim xh
 

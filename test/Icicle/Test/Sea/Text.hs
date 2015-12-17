@@ -12,7 +12,6 @@ import           Icicle.Test.Sea.Utils
 import           Icicle.Test.Arbitrary ()
 
 import           Control.Monad.IO.Class (liftIO)
-import           Control.Monad.Trans.Either
 
 import           Data.String (String)
 import           Data.Word (Word64)
@@ -27,7 +26,6 @@ import           Foreign.Storable
 import           Jetski
 
 import           P
-import           Prelude (minBound, maxBound)
 
 import           System.IO (IO)
 import           System.IO.Unsafe (unsafePerformIO)
@@ -36,7 +34,8 @@ import           Test.QuickCheck (forAllProperties, quickCheckWithResult, stdArg
 import           Test.QuickCheck (maxSuccess, forAll, choose)
 import           Test.QuickCheck.Property (Property, (===), counterexample, failed, property)
 
-import           X.Control.Monad.Trans.Either (firstEitherT)
+import           X.Control.Monad.Trans.Either (EitherT, runEitherT)
+import           X.Control.Monad.Trans.Either (firstEitherT, hoistEither)
 
 
 prop_text_read_int :: Int64 -> Property

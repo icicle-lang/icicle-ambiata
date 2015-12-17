@@ -37,7 +37,6 @@ import           Test.QuickCheck.Instances ()
 
 import           P
 
-import           Control.Monad.Trans.Either
 import qualified Data.Text as Text
 import qualified Data.List as List
 import qualified Data.Map as Map
@@ -45,7 +44,7 @@ import           Data.Functor.Identity
 
 import           Data.String (String)
 
-import           Data.Either.Combinators
+import           X.Control.Monad.Trans.Either
 
 
 instance Arbitrary T.Variable where
@@ -238,12 +237,12 @@ data CheckErr
 qwfCheck :: QueryWithFeature -> Either CheckErr (QueryTop (Annot () T.Variable) T.Variable)
 qwfCheck qwf
  = do qd' <- qwfDesugar qwf
-      (qt',_) <- mapLeft CheckErrTC $ freshcheck "check" $ checkQT (qwfFeatureMap qwf) qd'
+      (qt',_) <- first CheckErrTC $ freshcheck "check" $ checkQT (qwfFeatureMap qwf) qd'
       return qt'
 
 qwfDesugar :: QueryWithFeature -> Either CheckErr (QueryTop () T.Variable)
 qwfDesugar qwf
- = mapLeft CheckErrDS
+ = first CheckErrDS
  $ runDesugar (freshnamer "desugar")
  $ desugarQT
  $ qwfQueryTop qwf
