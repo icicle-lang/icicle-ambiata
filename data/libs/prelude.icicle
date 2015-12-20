@@ -32,7 +32,7 @@ variance v =
                   ) end
      ~> case a | ((x,_),y)  -> y / (x - 1) end.
 
-sd v = (variance v) ^ 0.5.
+sd v = sqrt (variance v).
 
 # Numerically stable covariance
 covariance a b =
