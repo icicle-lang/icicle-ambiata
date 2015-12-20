@@ -29,6 +29,8 @@ typedef struct {
     const ichord_t *chord_cur;
 
     /* output buffer */
+    char *output_start;
+    char *output_end;
     char *output_ptr;
 
     /* stats */
@@ -56,7 +58,9 @@ static ierror_loc_t INLINE psv_configure_fleet (const char *entity, size_t entit
 
 static ierror_msg_t INLINE psv_write_outputs
   ( int fd
-  , char *output_ptr
+  , char  *output_start
+  , char  *output_end
+  , char **output_ptr
   , const char *entity
   , size_t entity_size
   , ifleet_t *fleet );
@@ -76,8 +80,8 @@ Constants
 */
 
 static const size_t psv_max_row_count      = 128;
-static const size_t psv_input_buffer_size  = 1024*1024;
-static const size_t psv_output_buffer_size = 1024*1024;
+static const size_t psv_input_buffer_size  = 256*1024;
+static const size_t psv_output_buffer_size = 256*1024;
 
 
 /*
@@ -175,7 +179,9 @@ static ierror_loc_t psv_read_buffer (psv_state_t *s)
             if (entity_cur_size != 0) {
                 ierror_msg_t msg = psv_write_outputs
                     ( s->output_fd
-                    , s->output_ptr
+                    , s->output_start
+                    , s->output_end
+                    , &s->output_ptr
                     , entity_cur
                     , entity_cur_size
                     , s->fleet );
@@ -347,12 +353,14 @@ void psv_snapshot (psv_config_t *cfg)
     static const psv_state_t empty_state;
     psv_state_t state = empty_state;
 
-    state.chord_cur  = chord_file.chords;
-    state.input_ptr  = input_ptr;
-    state.entity_cur = entity_cur;
-    state.output_ptr = output_ptr;
-    state.fleet      = fleet;
-    state.output_fd  = output_fd;
+    state.chord_cur    = chord_file.chords;
+    state.input_ptr    = input_ptr;
+    state.entity_cur   = entity_cur;
+    state.output_start = output_ptr;
+    state.output_end   = output_ptr + psv_output_buffer_size - 1;
+    state.output_ptr   = output_ptr;
+    state.fleet        = fleet;
+    state.output_fd    = output_fd;
 
     size_t input_offset = 0;
 
@@ -372,7 +380,9 @@ void psv_snapshot (psv_config_t *cfg)
             if (state.entity_cur_size != 0) {
                 psv_write_error = psv_write_outputs
                     ( state.output_fd
-                    , state.output_ptr
+                    , state.output_start
+                    , state.output_end
+                    , &state.output_ptr
                     , state.entity_cur
                     , state.entity_cur_size
                     , state.fleet );
@@ -402,6 +412,10 @@ void psv_snapshot (psv_config_t *cfg)
                 , input_remaining );
 
         input_offset = input_remaining;
+    }
+
+    if (!cfg->error) {
+        cfg->error = psv_output_flush (state.output_fd, state.output_start, &state.output_ptr);
     }
 
     ierror_msg_t chord_unmap_error = ichord_file_unmap (&chord_file);

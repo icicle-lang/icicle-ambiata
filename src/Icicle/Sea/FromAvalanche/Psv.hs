@@ -810,22 +810,27 @@ seaOfWriteFleetOutput mode states = do
   write_sea <- traverse seaOfWriteProgramOutput states
   pure $ vsep
     [ "#line 1 \"write all outputs\""
-    , "static ierror_msg_t psv_write_outputs (int fd, char *buffer, const char *entity, size_t entity_size, ifleet_t *fleet)"
+    , "static ierror_msg_t psv_write_outputs"
+    , "    ( int fd"
+    , "    , char  *buffer"
+    , "    , char  *buffer_end"
+    , "    , char **buffer_ptr_ptr"
+    , "    , const char *entity"
+    , "    , size_t entity_size"
+    , "    , ifleet_t *fleet )"
     , "{"
     , "    iint_t         chord_count = fleet->chord_count;"
     , "    const itime_t *chord_times = fleet->chord_times;"
     , "    ierror_msg_t   error;"
-    , "    char          *buffer_end = buffer + psv_output_buffer_size - 1;"
-    , "    char          *buffer_ptr = buffer;"
+    , ""
+    , "    char *buffer_ptr = *buffer_ptr_ptr;"
     , ""
     , "    for (iint_t chord_ix = 0; chord_ix < chord_count; chord_ix++) {"
     , indent 8 (seaOfChordTime mode)
-    , ""
     , indent 8 (vsep write_sea)
     , "    }"
     , ""
-    , "    error = psv_output_flush (fd, buffer, &buffer_ptr);"
-    , indent 4 outputDie
+    , "    *buffer_ptr_ptr = buffer_ptr;"
     , ""
     , "    return 0;"
     , "}"
