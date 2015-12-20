@@ -522,8 +522,8 @@ gen$time = TIME
     if (eq#@{Error} flat$86$simp$227
         (ExceptNotAnError@{Error})) {
       write flat$87$simp$229 = ExceptNotAnError@{Error};
-      write flat$87$simp$230 = pow#@{Double}
-                               flat$86$simp$228 (0.5@{Double});
+      write flat$87$simp$230 = sqrt#
+                               flat$86$simp$228;
     } else {
       write flat$87$simp$229 = flat$86$simp$227;
       write flat$87$simp$230 = 0.0@{Double};
@@ -1310,7 +1310,7 @@ void iprogram_0(iprogram_0_t *s)
         
         if (ierror_eq (flat_86_simp_227, ierror_not_an_error)) {
             flat_87_simp_229                  = ierror_not_an_error;                  /* write */
-            flat_87_simp_230                  = idouble_pow (flat_86_simp_228, 0.5);  /* write */
+            flat_87_simp_230                  = idouble_sqrt (flat_86_simp_228);      /* write */
         } else {
             flat_87_simp_229                  = flat_86_simp_227;                     /* write */
             flat_87_simp_230                  = 0.0;                                  /* write */
