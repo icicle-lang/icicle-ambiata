@@ -11,6 +11,7 @@ module Icicle.Core.Exp.Prim (
     ) where
 
 import              Icicle.Internal.Pretty
+import              Icicle.Common.Base
 import              Icicle.Common.Type
 import qualified    Icicle.Common.Exp.Prim.Minimal as Min
 
@@ -30,6 +31,7 @@ data Prim
  | PrimMap      PrimMap
  -- | Circular buffer for latest
  | PrimLatest   PrimLatest
+ | PrimWindow   WindowUnit (Maybe WindowUnit)
  deriving (Eq, Ord, Show)
 
 
@@ -99,6 +101,9 @@ typeOfPrim p
     PrimLatest (PrimLatestRead i t)
      -> FunT [funOfVal (BufT i t)] (ArrayT t)
 
+    PrimWindow _ _
+     -> FunT [funOfVal TimeT, funOfVal TimeT] BoolT
+
 
 -- Pretty -------------
 
@@ -133,4 +138,7 @@ instance Pretty Prim where
 
  pretty (PrimLatest (PrimLatestRead _ t))
   = annotate (AnnType (ArrayT t)) "Latest_read#"
+
+ pretty (PrimWindow newer older)
+  = annotate (AnnType BoolT) ("window# " <> pretty newer <> pretty older)
 

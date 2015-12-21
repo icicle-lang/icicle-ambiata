@@ -9,6 +9,7 @@ import           Icicle.Test.Core.Arbitrary
 import           Icicle.Core.Program.Check
 -- import qualified Icicle.Core.Eval.Exp       as XV
 import qualified Icicle.Core.Eval.Program   as PV
+import           Icicle.Internal.Pretty
 
 import           Icicle.Data.Time
 
@@ -28,7 +29,10 @@ someTime = unsafeTimeOfYMD 2015 1 1
 prop_progress t =
  forAll (programForStreamType t)
  $ \p ->
-    isRight     (checkProgram p) ==> isRight (PV.eval someTime [] p)
+    let ev = PV.eval someTime [] p
+    in counterexample (show $ pretty p)
+     $ counterexample (show ev)
+     $ isRight     (checkProgram p) ==> isRight ev
 
 
 -- Evaluate on actual input
@@ -37,7 +41,10 @@ prop_progress_values t =
  $ \p ->
  forAll (inputsForType t)
  $ \(vs,d) ->
-    isRight     (checkProgram p) ==> isRight (PV.eval d vs p)
+    let ev = PV.eval d vs p
+    in counterexample (show $ pretty p)
+     $ counterexample (show ev)
+     $ isRight     (checkProgram p) ==> isRight ev
 
 
 -- Also, try the inverse: if it has a runtime error, it can't be type safe.
@@ -49,5 +56,5 @@ prop_progress_inverse x =
 
 return []
 tests :: IO Bool
-tests = $quickCheckAll
--- tests = $forAllProperties $ quickCheckWithResult (stdArgs {maxSuccess = 1000, maxSize = 10, maxDiscardRatio = 10000})
+-- tests = $quickCheckAll
+tests = $forAllProperties $ quickCheckWithResult (stdArgs {maxSuccess = 100, maxSize = 10, maxDiscardRatio = 10000})

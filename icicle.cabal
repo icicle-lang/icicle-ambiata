@@ -120,10 +120,6 @@ library
                        Icicle.Core.Stream.Error
                        Icicle.Core.Stream.Check
                        Icicle.Core.Stream
-                       Icicle.Core.Reduce.Reduce
-                       Icicle.Core.Reduce.Error
-                       Icicle.Core.Reduce.Check
-                       Icicle.Core.Reduce
                        Icicle.Core.Program.Program
                        Icicle.Core.Program.Check
                        Icicle.Core.Program.Condense
@@ -133,7 +129,6 @@ library
 
                        Icicle.Core.Eval.Exp
                        Icicle.Core.Eval.Stream
-                       Icicle.Core.Eval.Reduce
                        Icicle.Core.Eval.Program
 
                        Icicle.Data

@@ -9,6 +9,7 @@ module Icicle.Core.Program.Fusion (
 
 import Icicle.Common.Base
 import Icicle.Common.Type
+import Icicle.Core.Stream
 import Icicle.Core.Program.Program
 import qualified Icicle.Common.Exp.Exp as X
 
@@ -33,38 +34,27 @@ fusePrograms a_fresh ln lp rn rp
 -- | Fuse programs together, assuming they already have no name clashes.
 fuseProgramsDistinctNames :: Ord n => a -> Program a n -> Program a n -> Either (FusionError n) (Program a n)
 fuseProgramsDistinctNames a_fresh lp rp
- | input lp /= input rp
+ | inputType lp /= inputType rp
  = Left
- $ FusionErrorNotSameType (input lp) (input rp)
+ $ FusionErrorNotSameType (inputType lp) (inputType rp)
  | otherwise
  = return
  $ Program
- { input     = input lp
+ { inputName = inputName lp
+ , inputType = inputType lp
+ , snaptimeName = snaptimeName lp
  , precomps  = precomps  lp <> precomps  rp
- , streams   = streams   lp <> streams   rp
- , reduces   = reduces   lp <> reduces   rp
- , postdate  = postdate'
- , postcomps = postdate'bind <> postcomps lp <> postcomps rp
+ , streams   = inpbinds <> streams   lp <> streams   rp
+ , postcomps = postcomps lp <> postcomps rp
  , returns   = returns   lp <> returns   rp
  }
  where
-  -- Get new date binding for use in postcomputation.
-  (postdate', postdate'bind)
-  -- If both use the date, we need to bind both values
-   | Just ld <- postdate lp
-   , Just rd <- postdate rp
-   = (Just ld, [(rd, X.XVar a_fresh ld)])
-
-   -- Only one uses the date
-   | Just ld <- postdate lp
-   = (Just ld, [])
-
-   | Just rd <- postdate rp
-   = (Just rd, [])
-
-   -- Neither use the date
-   | otherwise
-   = (Nothing, [])
+  var n    = X.XVar a_fresh n
+  inpType' = PairT (inputType lp) TimeT
+  val      = X.XValue a_fresh inpType' $ defaultOfType inpType'
+  inpbinds
+   = [ SFold (inputName    rp) inpType'  val                     (var $ inputName    lp)
+     , SFold (snaptimeName rp) TimeT    (var $snaptimeName   lp) (var $ snaptimeName lp) ]
 
 
 -- | Fuse a list of programs together, prefixing each with its name

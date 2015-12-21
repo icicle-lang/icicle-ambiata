@@ -50,6 +50,6 @@ prop_simp_commutes_value t =
 
 return []
 tests :: IO Bool
-tests = $quickCheckAll
--- tests = $forAllProperties $ quickCheckWithResult (stdArgs {maxSuccess = 10000})
+-- tests = $quickCheckAll
+tests = $forAllProperties $ quickCheckWithResult (stdArgs {maxSuccess = 100, maxSize = 10, maxDiscardRatio = 10000})
 

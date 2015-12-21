@@ -43,5 +43,5 @@ prop_condense_eval t =
 
 return []
 tests :: IO Bool
-tests = $quickCheckAll
--- tests = $forAllProperties $ quickCheckWithResult (stdArgs {maxSuccess = 100, maxSize = 5, maxDiscardRatio = 10000})
+-- tests = $quickCheckAll
+tests = $forAllProperties $ quickCheckWithResult (stdArgs {maxSuccess = 100, maxSize = 10, maxDiscardRatio = 10000})

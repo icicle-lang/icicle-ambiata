@@ -8,7 +8,6 @@ import              Icicle.Common.Base
 import              Icicle.Common.Type
 import              Icicle.Core.Exp             as X
 import              Icicle.Core.Stream          as S
-import              Icicle.Core.Reduce          as R
 
 import              Icicle.Core.Program.Program as P
 import              Icicle.Core.Program.Error
@@ -25,20 +24,15 @@ checkProgram
         -> Either (ProgramError a n) [(OutputName, Type)]
 checkProgram p
  = do   -- Check precomputations, starting with an empty environment
-        pres    <- checkExps ProgramErrorPre Map.empty    (P.precomps     p)
+        let env0 = Map.singleton (snaptimeName p) (funOfVal $ TimeT)
+        pres    <- checkExps ProgramErrorPre env0 (P.precomps     p)
+        pres'   <- insertOrDie ProgramErrorNameNotUnique pres (inputName    p) (funOfVal $ PairT (inputType p) TimeT)
 
         -- Check stream computations with precomputations in environment
-        stms    <- checkStreams (streamEnv pres (input p)) (P.streams      p)
+        stms    <- checkStreams pres' (P.streams      p)
 
-        -- Check reduces against streams and pres
-        reds    <- checkReduces stms                      (P.reduces      p)
-
-        -- Insert date if necessary
-        let reds' = case P.postdate p of
-                    Nothing -> reds
-                    Just nm -> Map.insert nm (FunT [] TimeT) reds
         -- Check postcomputations with precomputations and reduces
-        post    <- checkExps ProgramErrorPost reds'       (P.postcomps    p)
+        post    <- checkExps ProgramErrorPost stms       (P.postcomps    p)
 
         -- Finally, check the returns against the postcomputation environment
         let checkRet (n,x)
@@ -75,42 +69,14 @@ checkExps err env ((n,x):bs)
 -- | Check stream bindings, collecting up environment
 checkStreams
         :: Ord n
-        => StreamEnv n
-        -> [(Name n, Stream a n)]
-        -> Either (ProgramError a n) (StreamEnv n)
+        => Env n Type
+        -> [Stream a n]
+        -> Either (ProgramError a n) (Env n Type)
 checkStreams env []
  = return env
 
-checkStreams env ((n,s):bs)
- = do   t   <- first ProgramErrorStream
-             $ checkStream env s
-        se' <- insertOrDie ProgramErrorNameNotUnique (S.streams env) n t
-        checkStreams (env { S.streams = se' }) bs
-
-
--- | Check reduce bindings.
--- Here, we must be careful: the result of reductions is *not* available in later reductions
--- (as this would require multiple iterations).
--- So, collect all reductions and only add them at the end.
--- We also throw away the stream environment, as it will not be used again.
-checkReduces
-        :: Ord n
-        => StreamEnv n
-        -> [(Name n, Reduce a n)]
-        -> Either (ProgramError a n) (Env n Type)
-
-checkReduces env []
- = return (scalars env)
-
-checkReduces env ((n,r):bs)
- = do   t   <- first ProgramErrorReduce
-             $ checkReduce env r
-
-        -- Now check the rest with the original environment
-        env'  <- checkReduces env bs
-        -- then insert into the environment
-        env'' <- insertOrDie ProgramErrorNameNotUnique env' n (funOfVal t)
-
-        -- And we're done
-        return env''
+checkStreams env (b:bs)
+ = do   e'  <- first ProgramErrorStream
+             $ checkStream env b
+        checkStreams e' bs
 

@@ -6,5 +6,4 @@ module Icicle.Core (
 
 import              Icicle.Core.Exp             as C
 import              Icicle.Core.Program.Program as C
-import              Icicle.Core.Reduce.Reduce   as C
 import              Icicle.Core.Stream.Stream   as C

@@ -13,6 +13,7 @@ import           Icicle.Core.Program.Fusion
 import qualified Icicle.Core.Eval.Program   as PV
 
 import           Icicle.Data.Time
+import           Icicle.Internal.Pretty
 
 import           P
 
@@ -44,7 +45,11 @@ prop_fuseself_eval t =
    case (fusePrograms () left p right p) of
     Right p'
      | Right v  <- eval p
-     -> case eval p' of
+     -> counterexample ("Eval original: " <> show v)
+      $ counterexample ("Eval fused:    " <> (show $ eval p'))
+      $ counterexample ("Original:      " <> (show $ pretty p))
+      $ counterexample ("Fused:         " <> (show $ pretty p'))
+      $ case eval p' of
         -- An evaluation error - this is bad
         Left _
          -> property False
@@ -113,4 +118,4 @@ return []
 tests :: IO Bool
 -- tests = $quickCheckAll
 -- try harder to generate well-typed programs, since many tests require more than one
-tests = $forAllProperties $ quickCheckWithResult (stdArgs {maxSuccess = 100, maxSize = 5, maxDiscardRatio = 1000000})
+tests = $forAllProperties $ quickCheckWithResult (stdArgs {maxSuccess = 100, maxSize = 10, maxDiscardRatio = 1000000})

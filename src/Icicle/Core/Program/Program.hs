@@ -1,5 +1,6 @@
 -- | An entire core program
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
 module Icicle.Core.Program.Program (
       Program (..)
     , renameProgram
@@ -11,7 +12,6 @@ import              Icicle.Common.Type
 import              Icicle.Common.Exp.Exp (renameExp)
 import              Icicle.Core.Exp
 import              Icicle.Core.Stream.Stream
-import              Icicle.Core.Reduce.Reduce
 
 import              P
 
@@ -20,28 +20,20 @@ import              P
 data Program a n =
  Program {
  -- | The type of the input/concrete feature
-   input        :: ValType
+   inputType    :: ValType
+ , inputName    :: Name n
+ , snaptimeName :: Name n
 
  -- | All precomputations, made before starting to read from feature source
  , precomps     :: [(Name n, Exp a n)]
 
- -- | Stream transformers that work on feature source
- , streams      :: [(Name n, Stream a n)]
+ -- | Stream things
+ , streams      :: [Stream a n]
 
- -- | Reductions over streams.
- -- There can be no dependencies between these:
- -- a fold worker function cannot mention the result of another fold,
- -- as that would require two passes!
- , reduces      :: [(Name n, Reduce a n)]
-
- -- | Whether the snapshot date is available in the postcomputations.
- -- If so, the name of variable to use.
- , postdate     :: Maybe (Name n)
-
- -- | Postcomputations with access to precomputations and reduces
+ -- | Postcomputations with access to last value of all streams
  , postcomps    :: [(Name n, Exp a n)]
 
- -- | The single return value
+ -- | The return values
  , returns      :: [(OutputName, Exp a n)]
  }
  deriving (Show, Eq, Ord)
@@ -50,10 +42,10 @@ data Program a n =
 renameProgram :: (Name n -> Name n') -> Program a n -> Program a n'
 renameProgram f p
   = p
-  { precomps    = binds  renameExp      (precomps   p)
-  , streams     = binds  renameStream   (streams    p)
-  , reduces     = binds  renameReduce   (reduces    p)
-  , postdate    =        fmap f         (postdate   p)
+  { inputName   = f $ inputName p
+  , snaptimeName= f $ snaptimeName p
+  , precomps    = binds  renameExp      (precomps   p)
+  , streams     = fmap  (renameStream f)(streams    p)
   , postcomps   = binds  renameExp      (postcomps  p)
   -- Now, we actually do not want to modify the names of the outputs.
   -- They should stay the same over the entire life of the program.
@@ -62,18 +54,21 @@ renameProgram f p
   where
    binds r = fmap (\(a,b) -> (f a, r f b))
 
+
+
 -- Pretty printing -------------
 
 instance Pretty n => Pretty (Program a n) where
  pretty p
-  =     text "Program (source : Stream " <> pretty (input p) <> text ")" <> line
+  =     text "Program ("
+  <> pretty (inputName p) <> " : Stream " <> pretty (inputType p) <> text ", "
+  <> pretty (snaptimeName p) <> " : SNAPSHOT_TIME)" <> line
+
   <>    text "Precomputations:"                        <> line
   <>    ppbinds (precomps p)                           <> line
-  <>    text "Stream transformers:"                    <> line
-  <>    ppbinds (streams p)                            <> line
-  <>    text "Reductions:"                             <> line
-  <>    ppbinds (reduces p)                            <> line
-  <>    text "Postcomputations" <> ppdate              <> line
+  <>    text "Streams:"                                <> line
+  <>    vcat (fmap pretty (streams p))                 <> line
+  <>    text "Postcomputations"                        <> line
   <>    ppbinds (postcomps p)                          <> line
   <>    text "Returning:"                              <> line
   <>    ppbinds (returns   p)                          <> line
@@ -82,10 +77,9 @@ instance Pretty n => Pretty (Program a n) where
    ppbinds :: (Pretty a, Pretty b) => [(a,b)] -> Doc
    ppbinds
     = vcat
-    . fmap (\(a,b) -> pretty a <+> text "=" <> line <> indent 4 (pretty b))
+    . fmap prettyNamed
 
-   ppdate
-    = case postdate p of
-       Nothing -> text ":"
-       Just n  -> text " with date as " <> pretty n <> text ":"
+   prettyNamed (nm,bind)
+    = padDoc 20 (pretty nm) <> " = " <> indent 0 (pretty bind)
+
 

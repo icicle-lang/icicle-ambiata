@@ -187,6 +187,7 @@ data QueryWithFeature
  , qwfOutput    :: CB.OutputName
  , qwfFeatureT  :: CT.ValType
  , qwfFeatureN  :: CB.Name T.Variable
+ , qwfTimeName  :: CB.Name T.Variable
  }
  deriving Show
 
@@ -194,15 +195,28 @@ data QueryWithFeature
 qwfFeatureMap :: QueryWithFeature -> Features () T.Variable
 qwfFeatureMap qwf
  = Features
-    (Map.singleton (qwfFeatureN qwf) (typeOfValType (qwfFeatureT qwf), Map.singleton (qwfFeatureN qwf) (FeatureVariable (typeOfValType (qwfFeatureT qwf)) (xfst (qwfFeatureT qwf)) False)))
+    (Map.singleton (qwfFeatureN qwf) (typeOfValType (qwfFeatureT qwf), featureCtx))
      Map.empty
      (qwfNow qwf)
 
  where
+  featureCtx
+   = FeatureContext featureMap (qwfTimeName qwf)
+  featureMap
+   = Map.fromList
+   [ (qwfFeatureN qwf, FeatureVariable (typeOfValType (qwfFeatureT qwf)) (xfst (qwfFeatureT qwf)) False)
+   , (qwfTimeName qwf, FeatureVariable (typeOfValType CT.TimeT)          (xsnd (qwfFeatureT qwf)) False) ]
+
   xfst tt
    = CE.xApp
    $ CE.xPrim     $ CE.PrimMinimal
    $ Min.PrimPair $ Min.PrimPairFst tt CT.TimeT
+
+  xsnd tt
+   = CE.xApp
+   $ CE.xPrim     $ CE.PrimMinimal
+   $ Min.PrimPair $ Min.PrimPairSnd tt CT.TimeT
+
 
 qwfQueryTop :: QueryWithFeature -> QueryTop () T.Variable
 qwfQueryTop qwf
@@ -222,7 +236,8 @@ instance Arbitrary QueryWithFeature where
        -- part was using the Source-converted type with Arrays.
        Just t <- (valTypeOfType . typeOfValType) <$> arbitrary
        nm  <- arbitrary `suchThat` (\n -> Just n /= now)
-       return $ QueryWithFeature q now o t nm
+       tm  <- arbitrary `suchThat` (\n -> Just n /= now)
+       return $ QueryWithFeature q now o t nm tm
 
 qwfPretty :: QueryWithFeature -> String
 qwfPretty qwf

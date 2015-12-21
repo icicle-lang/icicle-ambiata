@@ -6,75 +6,87 @@ ok, loaded test/cli/repl/data.psv, 13 rows
 ok, avalanche is now on
 > > -- A rather complicated feature to convert to Avalanche
 > - Avalanche:
-gen$time = TIME
+conv$1 = TIME
 {
-  init acc$c$conv$13@{(Sum Error Int)} = Right 0@{(Sum Error Int)};
-  init acc$conv$30@{Buf 3 (Sum Error Int)} = Buf []@{Buf 3 (Sum Error Int)};
-  load_resumable@{(Sum Error Int)} acc$c$conv$13;
-  load_resumable@{Buf 3 (Sum Error Int)} acc$conv$30;
-  for_facts (gen$fact@{((Sum Error Int), Time)}) in new {
-    read@{Buf 3 (Sum Error Int)} acc$conv$30 = acc$conv$30;
-    let anf$3 = fst#@{(Sum Error Int), Time} gen$fact;
-    write acc$conv$30 = Latest_push#@{Buf 3 (Sum Error Int)}
-                        acc$conv$30 anf$3;
-    let anf$4 = anf$3;
-    let anf$5 = Sum_fold#@{(Error
+  init acc$conv$0@{((Sum Error Int), Time)} = (Left ExceptNotAnError, 1858-11-17)@{((Sum Error Int), Time)};
+  init acc$conv$24@{Buf 3 (Sum Error Int)} = Buf []@{Buf 3 (Sum Error Int)};
+  init acc$c$conv$9@{(Sum Error Int)} = Left ExceptNotAnError@{(Sum Error Int)};
+  init acc$conv$8@{((Sum Error Int), ((Sum Error Int), Time))} = (Left ExceptNotAnError, (Left ExceptNotAnError, 1858-11-17))@{((Sum Error Int), ((Sum Error Int), Time))};
+  read@{((Sum Error Int), Time)} anf$6 = acc$conv$0;
+  let anf$0 = fst#@{(Sum Error Int), Time} anf$6;
+  write acc$conv$8 = pair#@{(Sum Error Int) ((Sum Error Int), Time)} anf$0
+                     anf$6;
+  write acc$c$conv$9 = Right 0@{(Sum Error Int)};
+  load_resumable@{((Sum Error Int), Time)} acc$conv$0;
+  load_resumable@{Buf 3 (Sum Error Int)} acc$conv$24;
+  load_resumable@{(Sum Error Int)} acc$c$conv$9;
+  load_resumable@{((Sum Error Int), ((Sum Error Int), Time))} acc$conv$8;
+  for_facts (conv$0@{((Sum Error Int), Time)}) in new {
+    write acc$conv$0 = conv$0;
+    let anf$1 = fst#@{(Sum Error Int), Time} conv$0;
+    let anf$2 = Sum_fold#@{(Error
 ,Int)}@{(Sum Error Bool)} (
-                \reify$0$conv$4@{Error} left#@{Error Bool}
-                                reify$0$conv$4) (
-                \reify$1$conv$5@{Int} right#@{Error Bool} (gt#@{Int}
-                                        reify$1$conv$5 (10@{Int}))) anf$4;
+                \reify$0$conv$2@{Error} left#@{Error Bool}
+                                reify$0$conv$2) (
+                \reify$1$conv$3@{Int} right#@{Error Bool} (gt#@{Int}
+                                        reify$1$conv$3 (10@{Int}))) anf$1;
     if (Sum_fold#@{(Error
 ,Bool)}@{Bool} (
-        \reify$2$conv$7@{Error} True@{Bool}) (
-        \reify$3$conv$8@{Bool} reify$3$conv$8)
-        anf$5) {
-      let elem$conv$11 = pair#@{(Sum Error Int) ((Sum Error Int), Time)} anf$4
-                         gen$fact;
-      read@{(Sum Error Int)} acc$c$conv$13 = acc$c$conv$13;
-      let anf$7 = fst#@{(Sum Error Int), ((Sum Error Int), Time)} elem$conv$11;
-      write acc$c$conv$13 = Sum_fold#@{(Error
-,Int)}@{(Sum Error Int)}
-                            (
-                            \reify$6$conv$14@{Error} left#@{Error Int}
-                                             reify$6$conv$14) (
-                            \reify$7$conv$15@{Int} Sum_fold#@{(Error
+        \reify$2$conv$5@{Error} True@{Bool}) (
+        \reify$3$conv$6@{Bool} reify$3$conv$6)
+        anf$2) {
+      let anf$3 = anf$1;
+      write acc$conv$8 = pair#@{(Sum Error Int) ((Sum Error Int), Time)} anf$3
+                         conv$0;
+      read@{((Sum Error Int), ((Sum Error Int), Time))} conv$8 = acc$conv$8;
+      read@{(Sum Error Int)} c$conv$9 = acc$c$conv$9;
+      let anf$4 = fst#@{(Sum Error Int), ((Sum Error Int), Time)} conv$8;
+      write acc$c$conv$9 = Sum_fold#@{(Error
 ,Int)}@{(Sum Error Int)} (
-                                             \reify$8$conv$19@{Error} left#@{Error Int}
-                                                              reify$8$conv$19) (
-                                             \reify$9$conv$20@{Int} right#@{Error Int}
-                                                              reify$9$conv$20)
-                                             (Sum_fold#@{(Error
+                           \reify$6$conv$10@{Error} left#@{Error Int}
+                                            reify$6$conv$10) (
+                           \reify$7$conv$11@{Int} Sum_fold#@{(Error
 ,Int)}@{(Sum Error Int)} (
-                                              \reify$4$conv$16@{Error} left#@{Error Int}
-                                                               reify$4$conv$16)
-                                              (
-                                              \reify$5$conv$17@{Int} right#@{Error Int} (add#@{Int}
-                                                                       reify$5$conv$17
-                                                                       (1@{Int})))
-                                              acc$c$conv$13)) anf$7;
+                                            \reify$8$conv$15@{Error} left#@{Error Int}
+                                                             reify$8$conv$15) (
+                                            \reify$9$conv$16@{Int} right#@{Error Int}
+                                                             reify$9$conv$16)
+                                            (Sum_fold#@{(Error
+,Int)}@{(Sum Error Int)} (
+                                             \reify$4$conv$12@{Error} left#@{Error Int}
+                                                              reify$4$conv$12) (
+                                             \reify$5$conv$13@{Int} right#@{Error Int} (add#@{Int}
+                                                                      reify$5$conv$13
+                                                                      (1@{Int})))
+                                             c$conv$9)) anf$4;
     }
+    read@{Buf 3 (Sum Error Int)} conv$24 = acc$conv$24;
+    let anf$5 = anf$1;
+    write acc$conv$24 = Latest_push#@{Buf 3 (Sum Error Int)}
+                        conv$24 anf$5;
   }
-  save_resumable@{(Sum Error Int)} acc$c$conv$13;
-  save_resumable@{Buf 3 (Sum Error Int)} acc$conv$30;
-  read@{(Sum Error Int)} c$conv$13 = acc$c$conv$13;
-  read@{Buf 3 (Sum Error Int)} conv$30 = acc$conv$30;
-  let conv$35 = Sum_fold#@{(Error
+  save_resumable@{((Sum Error Int), Time)} acc$conv$0;
+  save_resumable@{Buf 3 (Sum Error Int)} acc$conv$24;
+  save_resumable@{(Sum Error Int)} acc$c$conv$9;
+  save_resumable@{((Sum Error Int), ((Sum Error Int), Time))} acc$conv$8;
+  read@{Buf 3 (Sum Error Int)} conv$24 = acc$conv$24;
+  read@{(Sum Error Int)} c$conv$9 = acc$c$conv$9;
+  let conv$29 = Sum_fold#@{(Error
 ,Int)}@{(Sum Error (Int, Array (Sum Error Int)))} (
-                \reify$10$conv$23@{Error} 
-                let conv$24 = left#@{Error (Int, Array (Sum Error Int))}
-                              reify$10$conv$23
-                 in conv$24) (
-                \reify$11$conv$25@{Int} 
-                let conv$31 = Latest_read#@{Array (Sum Error Int)}
-                              conv$30
+                \reify$10$conv$19@{Error} 
+                let conv$20 = left#@{Error (Int, Array (Sum Error Int))}
+                              reify$10$conv$19
+                 in conv$20) (
+                \reify$11$conv$21@{Int} 
+                let conv$25 = Latest_read#@{Array (Sum Error Int)}
+                              conv$24
                  in 
-                let conv$32 = pair#@{Int Array (Sum Error Int)}
-                              reify$11$conv$25 conv$31
+                let conv$26 = pair#@{Int Array (Sum Error Int)}
+                              reify$11$conv$21 conv$25
                  in 
-                let conv$33 = right#@{Error (Int, Array (Sum Error Int))} conv$32
-                 in conv$33) c$conv$13;
-  output@{(Sum Error (Int, Array (Sum Error Int)))} repl (conv$35@{(Sum Error (Int, Array (Sum Error Int)))});
+                let conv$27 = right#@{Error (Int, Array (Sum Error Int))} conv$26
+                 in conv$27) c$conv$9;
+  output@{(Sum Error (Int, Array (Sum Error Int)))} repl (conv$29@{(Sum Error (Int, Array (Sum Error Int)))});
 }
 
 - Core evaluation:
@@ -83,79 +95,81 @@ gen$time = TIME
 
 > > -- Something involves the abstract buffer type
 > - Avalanche:
-gen$time = TIME
+conv$1 = TIME
 {
+  let anf$2 = (Left ExceptNotAnError, 1858-11-17)@{((Sum Error Int), Time)};
   init acc$conv$2@{Map Time (Buf 2 ((Sum Error Int), Time))} = Map []@{Map Time (Buf 2 ((Sum Error Int), Time))};
   load_resumable@{Map Time (Buf 2 ((Sum Error Int), Time))} acc$conv$2;
-  for_facts (gen$fact@{((Sum Error Int), Time)}) in new {
-    read@{Map Time (Buf 2 ((Sum Error Int), Time))} acc$conv$2 = acc$conv$2;
+  for_facts (conv$0@{((Sum Error Int), Time)}) in new {
+    read@{Map Time (Buf 2 ((Sum Error Int), Time))} conv$2 = acc$conv$2;
     let anf$0 = Latest_push#@{Buf 2 ((Sum Error Int), Time)}
-                (Buf []@{Buf 2 ((Sum Error Int), Time)}) gen$fact;
-    let anf$1 = snd#@{(Sum Error Int), Time} gen$fact;
+                (Buf []@{Buf 2 ((Sum Error Int), Time)}) conv$0;
+    let anf$1 = snd#@{(Sum Error Int), Time} conv$0;
     write acc$conv$2 = Map_insertOrUpdate#@{(Time
 ,Buf 2 ((Sum Error Int), Time))}
                        (
-                       \conv$7@{Buf 2 ((Sum Error Int), Time)} Latest_push#@{Buf 2 ((Sum Error Int), Time)} conv$7
-                               gen$fact) anf$0 anf$1
-                       acc$conv$2;
+                       \conv$4@{Buf 2 ((Sum Error Int), Time)} Latest_push#@{Buf 2 ((Sum Error Int), Time)} conv$4
+                               conv$0) anf$0 anf$1 conv$2;
   }
   save_resumable@{Map Time (Buf 2 ((Sum Error Int), Time))} acc$conv$2;
   read@{Map Time (Buf 2 ((Sum Error Int), Time))} conv$2 = acc$conv$2;
-  let conv$3 = Map_fold#@{(Time
+  let conv$37 = Map_fold#@{(Time
 ,Buf 2 ((Sum Error Int), Time))}@{(Sum Error (Map Time Int))} (
-               \conv$4@{(Sum Error (Map Time Int))} 
-               \conv$32@{Time} 
-               \conv$5@{Buf 2 ((Sum Error Int), Time)} Sum_fold#@{(Error
+                \conv$34@{(Sum Error (Map Time Int))} 
+                \conv$29@{Time} 
+                \conv$31@{Buf 2 ((Sum Error Int), Time)} Sum_fold#@{(Error
 ,Map Time Int)}@{(Sum Error (Map Time Int))} (
-                       \conv$37@{Error} left#@{Error Map Time Int} conv$37) (
-                       \conv$36@{Map Time Int} Sum_fold#@{(Error
+                         \conv$36@{Error} left#@{Error Map Time Int} conv$36) (
+                         \conv$35@{Map Time Int} Sum_fold#@{(Error
 ,Int)}@{(Sum Error (Map Time Int))} (
-                                \conv$37@{Error} left#@{Error Map Time Int} conv$37) (
-                                \conv$34@{Int} right#@{Error Map Time Int}
-                                         (Map_insertOrUpdate#@{(Time
+                                  \conv$36@{Error} left#@{Error Map Time Int} conv$36) (
+                                  \conv$32@{Int} right#@{Error Map Time Int}
+                                           (Map_insertOrUpdate#@{(Time
 ,Int)} (
-                                          \conv$35@{Int} conv$35) conv$34
-                                          conv$32 conv$36)) (
-                                let conv$11 = 
-                                              let conv$6 = Latest_read#@{Array ((Sum Error Int), Time)} conv$5
-                                               in Array_fold#@{((Sum Error Int), Time)}@{((Sum Error Int), (Sum Error Int))} (
-                                                  \conv$10@{((Sum Error Int), (Sum Error Int))} 
-                                                  \conv$9@{((Sum Error Int), Time)} 
-                                                  let conv$28 = snd#@{(Sum Error Int), (Sum Error Int)} conv$10
-                                                   in 
-                                                  let v$inline$0$conv$13 = fst#@{(Sum Error Int), Time}
-                                                                           conv$9
-                                                   in pair#@{(Sum Error Int) (Sum Error Int)} v$inline$0$conv$13 (
-                                                      let s$conv$22 = Sum_fold#@{(Error
+                                            \conv$33@{Int} conv$33) conv$32
+                                            conv$29 conv$35)) (
+                                  let conv$8 = 
+                                               let conv$3 = Latest_read#@{Array ((Sum Error Int), Time)}
+                                                            conv$31
+                                                in Array_fold#@{((Sum Error Int), Time)}@{((Sum Error Int), (Sum Error Int))} (
+                                                   \conv$7@{((Sum Error Int), (Sum Error Int))} 
+                                                   \conv$6@{((Sum Error Int), Time)} 
+                                                   let conv$25 = snd#@{(Sum Error Int), (Sum Error Int)} conv$7
+                                                    in 
+                                                   let v$inline$0$conv$10 = fst#@{(Sum Error Int), Time}
+                                                                            conv$6
+                                                    in pair#@{(Sum Error Int) (Sum Error Int)} v$inline$0$conv$10
+                                                       (
+                                                       let s$conv$19 = Sum_fold#@{(Error
 ,Int)}@{(Sum Error Int)}
-                                                                      (
-                                                                      \reify$0$conv$15@{Error}
-                                                                      left#@{Error Int}
-                                                                      reify$0$conv$15)
-                                                                      (
-                                                                      \reify$1$conv$16@{Int}
-                                                                      Sum_fold#@{(Error
+                                                                       (
+                                                                       \reify$0$conv$12@{Error}
+                                                                       left#@{Error Int}
+                                                                       reify$0$conv$12)
+                                                                       (
+                                                                       \reify$1$conv$13@{Int}
+                                                                       Sum_fold#@{(Error
 ,Int)}@{(Sum Error Int)}
-                                                                      (
-                                                                      \reify$2$conv$17@{Error}
-                                                                      left#@{Error Int}
-                                                                      reify$2$conv$17)
-                                                                      (
-                                                                      \reify$3$conv$18@{Int}
-                                                                      right#@{Error Int}
-                                                                      (add#@{Int}
-                                                                       reify$1$conv$16
-                                                                       reify$3$conv$18))
-                                                                      conv$28)
-                                                                      v$inline$0$conv$13
-                                                       in s$conv$22))
-                                                  ((Left ExceptNotAnError, Right 0)@{((Sum Error Int), (Sum Error Int))})
-                                                  conv$6
-                                 in 
-                                let conv$31 = snd#@{(Sum Error Int), (Sum Error Int)} conv$11
-                                 in conv$31)) conv$4)
-               (Right Map []@{(Sum Error (Map Time Int))}) conv$2;
-  output@{(Sum Error (Map Time Int))} repl (conv$3@{(Sum Error (Map Time Int))});
+                                                                       (
+                                                                       \reify$2$conv$14@{Error}
+                                                                       left#@{Error Int}
+                                                                       reify$2$conv$14)
+                                                                       (
+                                                                       \reify$3$conv$15@{Int}
+                                                                       right#@{Error Int}
+                                                                       (add#@{Int}
+                                                                        reify$1$conv$13
+                                                                        reify$3$conv$15))
+                                                                       conv$25)
+                                                                       v$inline$0$conv$10
+                                                        in s$conv$19))
+                                                   ((Left ExceptNotAnError, Right 0)@{((Sum Error Int), (Sum Error Int))})
+                                                   conv$3
+                                   in 
+                                  let conv$28 = snd#@{(Sum Error Int), (Sum Error Int)} conv$8
+                                   in conv$28)) conv$34)
+                (Right Map []@{(Sum Error (Map Time Int))}) conv$2;
+  output@{(Sum Error (Map Time Int))} repl (conv$37@{(Sum Error (Map Time Int))});
 }
 
 - Core evaluation:

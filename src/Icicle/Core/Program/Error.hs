@@ -10,7 +10,6 @@ import              Icicle.Common.Base
 import              Icicle.Common.Type
 import              Icicle.Core.Exp
 import              Icicle.Core.Stream
-import              Icicle.Core.Reduce
 
 import              P
 
@@ -19,7 +18,6 @@ import              P
 data ProgramError a n
  = ProgramErrorPre      (ExpError    a n Prim)
  | ProgramErrorStream   (StreamError a n)
- | ProgramErrorReduce   (ReduceError a n)
  | ProgramErrorPost     (ExpError    a n Prim)
  | ProgramErrorReturn   (ExpError    a n Prim)
  | ProgramErrorNameNotUnique (Name n)
@@ -34,8 +32,6 @@ instance (Pretty n) => Pretty (ProgramError a n) where
      -> text "Pre error: " <> ind (pretty err)
     ProgramErrorStream err
      -> text "Stream error: " <> ind (pretty err)
-    ProgramErrorReduce err
-     -> text "Reduce error: " <> ind (pretty err)
     ProgramErrorPost err
      -> text "Post error: " <> ind (pretty err)
     ProgramErrorReturn err

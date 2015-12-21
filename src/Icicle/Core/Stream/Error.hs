@@ -12,7 +12,7 @@ import              P
 
 data StreamError a n
  -- No such stream variable
- = StreamErrorVarNotInEnv   (Name n)
+ = StreamErrorNameNotUnique   (Name n)
  -- Worker function doesn't type check
  | StreamErrorExp           (ExpError a n Prim)
  -- can't do something with worker function
@@ -22,8 +22,8 @@ data StreamError a n
 instance (Pretty n) => Pretty (StreamError a n) where
  pretty e
   = case e of
-    StreamErrorVarNotInEnv n
-     -> text "Stream variable not bound: " <> pretty n
+    StreamErrorNameNotUnique n
+     -> text "Stream variable not unique: " <> pretty n
 
     StreamErrorExp err
      ->  text "Worker function type error: "

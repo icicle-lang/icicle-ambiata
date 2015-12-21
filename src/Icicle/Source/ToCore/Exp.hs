@@ -50,13 +50,16 @@ convertExp
 convertExp x
  = case x of
     Var ann n
-     -> do  fs <- convertFeatures
-            case Map.lookup n fs of
+     -> do  bound <- convertFreshenLookupMaybe n
+            fs <- featureContextVariables <$> convertFeatures
+            case bound of
              Just fv
+              -> return $ CE.XVar () fv
+             _ 
+              | Just fv <- Map.lookup n fs
               -> (featureVariableExp fv . CE.XVar ()) <$> convertInputName
-             -- Variable must be bound as a precomputation
-             Nothing
-              -> CE.XVar () <$> convertFreshenLookup (annAnnot ann) n
+              | otherwise
+              -> convertError $ ConvertErrorExpNoSuchVariable (annAnnot ann) n
 
 
     Nested _ q

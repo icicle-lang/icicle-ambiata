@@ -90,7 +90,7 @@ evaluateVirtualValue p t vs
         return (v', bg')
  where
   toCore n a
-   = do v' <- valueToCore' (atFact a) (P.input p)
+   = do v' <- valueToCore' (atFact a) (P.inputType p)
         return $ a { atFact = (B.BubbleGumFact $ B.Flavour n $ atTime a, v') }
 
 evaluateVirtualValue' :: Ord n => A.Program a n APF.Prim -> Time -> [AsAt Value] -> Result a n
