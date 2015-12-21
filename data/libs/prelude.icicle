@@ -5,7 +5,7 @@ count v = fold c = 0 : seq v (c + 1) ~> c.
 
 # Numerically stable mean
 mean v = let v_ = double v
-      ~> fold1 s = (v_, 1) : case s | (m, n) -> (m + (v_ - m) / (n + 1), n + 1) end
+      ~> fold1 s = (v_, 1) : case s | (m, n) -> (m + (v_ - m) / n, n + 1) end
       ~> case s | (m, _) -> m end.
 
 max v = fold1 s = v : case v > s | True -> v | False -> s end ~> s.
