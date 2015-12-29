@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE RankNTypes #-}
 module Icicle.Source.Checker.Error (
     CheckError(..)
   , ErrorInfo(..)
@@ -13,6 +14,7 @@ import           Icicle.Source.Query
 import           Icicle.Source.Type
 
 import           Icicle.Common.Base
+import qualified Icicle.Common.Fresh                as Fresh
 import           Icicle.Internal.EditDistance
 import           Icicle.Internal.Pretty
 
@@ -156,8 +158,9 @@ instance (IsString n, Ord n, Pretty a, Pretty n) => Pretty (ErrorSuggestion a n)
             <> indent 2 (vcat $ fmap pretty_ty bs')
 
      AvailableBindings n' bs
-      -> let bs' = take 5
-                 $ flip sortBy bs
+      -> let inb = grabInbuilt <$> listOfAllFuns
+             bs' = take 5
+                 $ flip sortBy (bs <> inb)
                  $ on compare
                  $ (editDistance $ pretty n') . pretty . fst
          in "Suggested bindings are:"
@@ -170,3 +173,14 @@ instance (IsString n, Ord n, Pretty a, Pretty n) => Pretty (ErrorSuggestion a n)
   where
     pretty_ty     (k,t) = padDoc 20 (pretty k) <+> ":" <+> pretty t
     pretty_fun_ty (k,t) = padDoc 20 (pretty k) <+> ":" <+> prettyFunFromStrings t
+
+    grabInbuilt f       = (Name . fromString . (flip displayS "") . renderCompact . pretty . Fun $ f, prettyInbuiltType f)
+
+    prettyInbuiltType
+     = snd
+     . flip Fresh.runFresh freshNamer
+     . primLookup'
+     . Fun
+       where
+         freshNamer
+          = Fresh.counterPrefixNameState (fromString . show) "inbuilt"

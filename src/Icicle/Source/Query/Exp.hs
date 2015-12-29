@@ -18,6 +18,7 @@ module Icicle.Source.Query.Exp (
   , annotOfExp
   , mkApp
   , precedenceOfX
+  , listOfAllFuns
   ) where
 
 import                  Icicle.Source.Query.Constructor
@@ -93,8 +94,10 @@ data Fun
  | DaysBetween
  | DaysEpoch
  | Seq
- deriving (Show, Eq, Ord)
+ deriving (Show, Eq, Ord, Enum, Bounded)
 
+listOfAllFuns :: [Fun]
+listOfAllFuns = [minBound..maxBound]
 
 instance (Pretty n, Pretty q) => Pretty (Exp' q a n) where
  pretty xx
