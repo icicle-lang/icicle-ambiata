@@ -308,6 +308,7 @@ primTypeOfPrim p
 
   upda (PrimUpdateArrayPut _)      = Function "Array.put"
 
+  buf (PrimBufMake _ _) = Method "make"
   buf (PrimBufPush _ _) = Method "push"
   buf (PrimBufRead _ _) = Method "read"
 

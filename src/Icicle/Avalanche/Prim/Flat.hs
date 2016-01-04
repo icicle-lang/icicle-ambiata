@@ -106,7 +106,8 @@ data PrimMelt
 
 -- | These correspond directly to the latest buffer primitives in Core.
 data PrimBuf
- = PrimBufPush Int ValType
+ = PrimBufMake Int ValType
+ | PrimBufPush Int ValType
  | PrimBufRead Int ValType
  deriving (Eq, Ord, Show)
 
@@ -170,6 +171,9 @@ typeOfPrim p
     PrimMap    (PrimMapUnpackValues k v)
      -> FunT [funOfVal (MapT k v)] (ArrayT v)
 
+
+    PrimBuf     (PrimBufMake i t)
+     -> FunT [funOfVal UnitT] (BufT i t)
 
     PrimBuf     (PrimBufPush i t)
      -> FunT [funOfVal (BufT i t), funOfVal t] (BufT i t)
@@ -276,6 +280,9 @@ instance Pretty Prim where
  pretty (PrimMap (PrimMapUnpackValues a b))
   = annotate (AnnType $ (pretty a) <+> (pretty b)) "Map_unpack_values#"
 
+
+ pretty (PrimBuf    (PrimBufMake i t))
+  = annotate (AnnType (BufT i t)) "Buf_make#"
 
  pretty (PrimBuf    (PrimBufPush i t))
   = annotate (AnnType (BufT i t)) "Buf_push#"

@@ -48,6 +48,13 @@ evalPrim p vs
       | otherwise
       -> primError
 
+
+     PrimBuf (PrimBufMake _ _)
+      | [VBase VUnit] <- vs
+      -> return . VBase . VBuf $ []
+      | otherwise
+      -> primError
+
      PrimBuf (PrimBufPush i _)
       | [VBase (VBuf as), VBase e] <- vs
       -> return . VBase . VBuf

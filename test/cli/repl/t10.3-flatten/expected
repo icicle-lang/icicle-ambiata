@@ -150,10 +150,12 @@ gen$time = TIME
     read@{Array Time} acc$conv$2$simp$18 = acc$conv$2$simp$14;
     read@{Array (Buf 2 Error)} acc$conv$2$simp$19 = acc$conv$2$simp$15;
     read@{Array (Buf 2 Int)} acc$conv$2$simp$20 = acc$conv$2$simp$16;
+    let simp$407 = Buf_make#@{Buf 2 Error} (()@{Unit});
     let simp$219 = Buf_push#@{Buf 2 Error}
-                   (Buf []@{Buf 2 Error}) gen$fact$simp$79;
+                   simp$407 gen$fact$simp$79;
+    let simp$409 = Buf_make#@{Buf 2 Int} (()@{Unit});
     let simp$221 = Buf_push#@{Buf 2 Int}
-                   (Buf []@{Buf 2 Int}) gen$fact$simp$80;
+                   simp$409 gen$fact$simp$80;
     init flat$1@{Bool} = False@{Bool};
     init flat$2@{Array Time} = acc$conv$2$simp$18;
     init flat$3$simp$22@{Array (Buf 2 Error)} = acc$conv$2$simp$19;

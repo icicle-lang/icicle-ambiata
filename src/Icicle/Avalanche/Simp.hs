@@ -54,6 +54,8 @@ simpFlattened a_fresh p
          >>= fixpoint crunch
          -- Rename reads from accumulators
          >>= fixpoint (renameReads a_fresh)
+         -- Convert values to primitive constructors
+         >>= return . convertValues a_fresh
          -- Finish off with an a-normalisation
          >>= anormal
 
