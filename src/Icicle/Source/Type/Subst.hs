@@ -95,9 +95,12 @@ substC ss cc
 substFT :: Ord n => SubstT n -> FunctionType n -> FunctionType n
 substFT ss ff
  = ff
- { functionConstraints  = fmap (substC ss) (functionConstraints ff)
- , functionArguments    = fmap (substT ss) (functionArguments   ff)
- , functionReturn       =       substT ss  (functionReturn      ff) }
+ { functionConstraints  = fmap (substC ss') (functionConstraints ff)
+ , functionArguments    = fmap (substT ss') (functionArguments   ff)
+ , functionReturn       =       substT ss'  (functionReturn      ff) }
+ where
+  ss' = foldl (flip Map.delete) ss
+      $ functionForalls ff
 
 
 -- | Compose two substitutions together, in order.
