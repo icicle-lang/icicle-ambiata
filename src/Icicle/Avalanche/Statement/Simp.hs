@@ -70,7 +70,7 @@ convertValues a_fresh statements
 
   goP xx n t v
    = case v of
-       VBuf buf -> bufPrim n t buf
+       VBuf buf -> bufPrim n t (reverse buf)
        _        -> xx
 
   bufPrim n t b
