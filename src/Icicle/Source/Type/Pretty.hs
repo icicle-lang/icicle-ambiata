@@ -41,7 +41,7 @@ prettyFunWithNames names fun
     = Map.fromList
     (functionForalls fun `zip` fmap TypeVar names)
 
-   fun' = substFT sub fun
+   fun' = substFT sub (fun { functionForalls = [] })
 
    constrs []
     = ""
