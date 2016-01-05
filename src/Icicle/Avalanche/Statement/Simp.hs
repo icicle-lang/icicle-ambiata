@@ -5,6 +5,7 @@
 
 module Icicle.Avalanche.Statement.Simp (
     pullLets
+  , convertValues
   , forwardStmts
   , renameReads
   , substXinS
@@ -16,12 +17,14 @@ module Icicle.Avalanche.Statement.Simp (
 import              Icicle.Avalanche.Statement.Statement
 import              Icicle.Avalanche.Statement.Simp.ExpEnv
 import              Icicle.Avalanche.Statement.Simp.Dead
+import              Icicle.Avalanche.Prim.Flat
 
 import              Icicle.Common.Base
 import              Icicle.Common.Exp
 import              Icicle.Common.Exp.Simp.Beta
 import              Icicle.Common.FixT
 import              Icicle.Common.Fresh
+import              Icicle.Common.Type
 
 import              P
 
@@ -32,6 +35,56 @@ import qualified    Data.List as List
 
 import              Control.Monad.Trans.Class
 
+
+convertValues :: a -> Statement a n Prim -> Statement a n Prim
+convertValues a_fresh statements
+ = runIdentity
+ $ transformUDStmt trans () statements
+ where
+  trans _ s
+   = case s of
+      If  x subs elses
+       -> go $ If (goX x) subs elses
+      Let n x subs
+       -> go $ Let n (goX x) subs
+      ForeachInts n from to subs
+       -> go $ ForeachInts n (goX from) (goX to) subs
+      Write n x
+       -> go $ Write n (goX x)
+      _ -> return ((), s)
+
+  go x
+    = return ((), x)
+
+  goX xx
+   = case xx of
+       XValue _ (BufT n t) v
+        -> goP xx n t v
+       XApp a x1 x2
+        -> XApp a (goX x1) (goX x2)
+       XLam a n t x
+        -> XLam a n t (goX x)
+       XLet a n x1 x2
+        -> XLet a n (goX x1) (goX x2)
+       _ -> xx
+
+  goP xx n t v
+   = case v of
+       VBuf buf -> bufPrim n t (reverse buf)
+       _        -> xx
+
+  bufPrim n t b
+   = case b of
+       []
+         -> XPrim a_fresh (PrimBuf (PrimBufMake n t))
+              `xApp`  XValue a_fresh UnitT VUnit
+       (x : xs)
+         -> XPrim a_fresh (PrimBuf (PrimBufPush n t))
+              `xApp` bufPrim n t xs
+              `xApp` XValue a_fresh t x
+
+  xApp
+   = XApp a_fresh
 
 
 pullLets :: Statement a n p -> Statement a n p

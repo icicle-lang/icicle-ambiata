@@ -180,6 +180,9 @@ seaOfPrimArray p
 seaOfPrimBuf :: PrimBuf -> PrimDoc
 seaOfPrimBuf p
  = case p of
+     PrimBufMake i t
+      -> PDFun   (prefixOfValType (BufT i t) <> "make")
+                 (Just [])
      PrimBufPush i t
       -> PDFun   (prefixOfValType (BufT i t) <> "push")
                  (Just [ArgRef, ArgVal])
