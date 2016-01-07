@@ -13,10 +13,6 @@ typedef struct {
     void     *maximum_ptr;
 } imempool_t;
 
-// If the size of imempool_t changes, be sure to update the `seaEval` and
-// `stateWordsOfProgram` functions.
-ASSERT_SIZE (imempool_t, 3)
-
 static iblock_t * iblock_create (iblock_t *prev)
 {
     void     *ptr = malloc (iblock_size);

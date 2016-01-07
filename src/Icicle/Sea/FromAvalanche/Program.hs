@@ -8,7 +8,6 @@ module Icicle.Sea.FromAvalanche.Program (
   , nameOfProgram
   , nameOfProgram'
   , nameOfStateType
-  , stateWordsOfProgram
   ) where
 
 import           Icicle.Avalanche.Prim.Flat

@@ -68,9 +68,9 @@ import           Icicle.Internal.Pretty (Doc, Pretty, displayS, renderPretty)
 
 import           Icicle.Sea.Error (SeaError(..))
 import           Icicle.Sea.FromAvalanche.Analysis (factVarsOfProgram, outputsOfProgram)
-import           Icicle.Sea.FromAvalanche.Program (seaOfProgram, nameOfProgram', stateWordsOfProgram)
+import           Icicle.Sea.FromAvalanche.Program (seaOfProgram, nameOfProgram')
 import           Icicle.Sea.FromAvalanche.Psv (PsvConfig(..), PsvMode(..), seaOfPsvDriver)
-import           Icicle.Sea.FromAvalanche.State (stateOfProgram)
+import           Icicle.Sea.FromAvalanche.State (stateOfProgram, nameOfStateSize')
 import           Icicle.Sea.FromAvalanche.Type (seaOfDefinitions)
 import           Icicle.Sea.Preamble (seaPreamble)
 
@@ -298,14 +298,15 @@ mkSeaProgram
   -> Program (Annot a) n Prim
   -> EitherT SeaError m SeaProgram
 mkSeaProgram lib name program = do
-  let words   = stateWordsOfProgram program
-      outputs = outputsOfProgram program
+  let outputs = outputsOfProgram program
 
   factType <- case factVarsOfProgram FactLoopNew program of
                 Nothing     -> left SeaNoFactLoop
                 Just (t, _) -> return t
 
-  compute <- firstEitherT SeaJetskiError (function lib (nameOfProgram' name) retVoid)
+  size_of_state <- firstEitherT SeaJetskiError (function lib (nameOfStateSize' name) retInt)
+  words         <- liftIO (size_of_state [])
+  compute       <- firstEitherT SeaJetskiError (function lib (nameOfProgram' name) retVoid)
 
   return SeaProgram {
       spName       = name
