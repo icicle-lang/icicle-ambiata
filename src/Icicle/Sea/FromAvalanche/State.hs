@@ -9,7 +9,8 @@ module Icicle.Sea.FromAvalanche.State (
   , seaOfState
   , seaOfStateInfo
   , nameOfStateType
-  , stateWordsOfProgram
+  , nameOfStateSize
+  , nameOfStateSize'
 
   -- * Prefixes for facts/resumables.
   , hasPrefix
@@ -88,6 +89,13 @@ nameOfProgram' name = "iprogram_" <> T.pack (show name)
 nameOfStateType :: SeaProgramState -> Text
 nameOfStateType state = nameOfProgram state <> "_t"
 
+nameOfStateSize' :: Int -> Text
+nameOfStateSize' name = "size_of_state_" <> nameOfProgram' name
+
+nameOfStateSize :: SeaProgramState -> Text
+nameOfStateSize state = nameOfStateSize' (stateName state)
+
+
 seaOfStateInfo :: SeaProgramState -> Doc
 seaOfStateInfo state = "#" <> int (stateName state) <+> "-" <+> seaOfAttributeDesc (stateAttribute state)
 
@@ -120,18 +128,14 @@ seaOfState state
             . stateResumables
             $ state
  , "}" <+> pretty (nameOfStateType state) <> ";"
+ , ""
+ , "iint_t " <> pretty (nameOfStateSize state) <+> "()"
+ , "{"
+ , "    return sizeof (" <> pretty (nameOfStateType state) <> ");"
+ , "}"
  ]
 
 ------------------------------------------------------------------------
-
-stateWordsOfProgram :: Ord n => Program (Annot a) n Prim -> Int
-stateWordsOfProgram program
- = 1 -- mempool*
- + 1 -- gen_date
- + 1 -- new_count
- + length (maybe [] snd (factVarsOfProgram FactLoopNew program))
- + sum (fmap (length . snd . snd) (outputsOfProgram program))
- + 2 * Map.size (resumablesOfProgram program)
 
 defOfResumable :: (Text, ValType) -> Doc
 defOfResumable (n, t)

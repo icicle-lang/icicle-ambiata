@@ -4,7 +4,6 @@
 
 module Icicle.Sea.FromAvalanche (
     seaOfProgram
-  , stateWordsOfProgram
   , factVarsOfProgram
   , accumsOfProgram
   , outputsOfProgram
