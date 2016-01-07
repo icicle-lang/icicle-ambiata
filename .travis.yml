@@ -28,9 +28,9 @@ before_install:
 
 install:
   # install ghc
-  - if [ -d "$HOME/ghc" ]; then travis_retry wget https://www.haskell.org/ghc/dist/7.8.4/ghc-7.8.4-x86_64-unknown-linux-deb7.tar.xz; fi
-  - if [ -d "$HOME/ghc" ]; then tar xf ghc-7.8.4-x86_64-unknown-linux-deb7.tar.xz; fi
-  - if [ -d "$HOME/ghc" ]; then (cd ghc-7.8.4 && ./configure --prefix $HOME/ghc && make install); fi
+  - if [ ! -d "$HOME/ghc/bin" ]; then travis_retry wget https://www.haskell.org/ghc/dist/7.8.4/ghc-7.8.4-x86_64-unknown-linux-deb7.tar.xz; fi
+  - if [ ! -d "$HOME/ghc/bin" ]; then tar xf ghc-7.8.4-x86_64-unknown-linux-deb7.tar.xz; fi
+  - if [ ! -d "$HOME/ghc/bin" ]; then (cd ghc-7.8.4 && ./configure --prefix $HOME/ghc && make install); fi
 
   # Fetch the latest package list from hackage
   - travis_retry cabal update
