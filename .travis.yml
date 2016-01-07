@@ -17,6 +17,7 @@ addons:
     sources:
       - hvr-ghc
     packages:
+      - libgmp-dev
       - cabal-install-1.22
       - alex-3.1.4
       - happy-1.19.5
