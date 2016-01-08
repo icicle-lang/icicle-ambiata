@@ -177,7 +177,19 @@ outputsOfStatement stmt
 ------------------------------------------------------------------------
 
 typesOfProgram :: Program (Annot a) n Prim -> Set ValType
-typesOfProgram = typesOfStatement . statements
+typesOfProgram = fixupTypeSet . typesOfStatement . statements
+ where
+  fixupTypeSet
+   = Set.fromList . concatMap fixup . Set.toList
+
+  -- The call to MAKE_BUF(t) requires MAKE_ARRAY(t)
+  -- Any occurrence of a buffer will usually also have a "read", which returns an array.
+  -- However, in some very silly cases this read will not be used, but the buffer is.
+  -- Just to be safe, add the array as well
+  fixup (BufT n t)
+   = [BufT n t, ArrayT t]
+  fixup t
+   = [t]
 
 typesOfStatement :: Statement (Annot a) n Prim -> Set ValType
 typesOfStatement stmt

@@ -185,14 +185,14 @@ static ierror_loc_t INLINE text_read_istring (imempool_t *pool, char **pp, char 
 {
     char *p = *pp;
 
-    size_t output_size = pe - p + 1;
-    char  *output      = imempool_alloc (pool, output_size);
+    size_t output_size = pe - p;
+    char  *output      = imempool_alloc (pool, output_size + 1);
 
     output[output_size] = 0;
-    memcpy (output, p, output_size - 1);
+    memcpy (output, p, output_size);
 
     *output_ptr = output;
-    *pp         = p + output_size - 1;
+    *pp         = p + output_size;
 
     return 0;
 }
@@ -209,11 +209,11 @@ static ierror_loc_t INLINE json_read_istring (imempool_t *pool, char **pp, char 
     if (!quote_ptr)
         return ierror_loc_format (p, pe, "string missing closing quote");
 
-    size_t output_size = quote_ptr - p + 1;
-    char  *output      = imempool_alloc (pool, output_size);
+    size_t output_size = quote_ptr - p;
+    char  *output      = imempool_alloc (pool, output_size + 1);
 
     output[output_size] = 0;
-    memcpy (output, p, output_size - 1);
+    memcpy (output, p, output_size);
 
     *output_ptr = output;
     *pp         = quote_ptr + 1;
