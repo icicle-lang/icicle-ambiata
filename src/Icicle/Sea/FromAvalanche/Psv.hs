@@ -935,7 +935,8 @@ seaOfOutput q ps oname@(OutputName name) otype0 ts0 ixStart transform
        | (BoolT : ts1) <- ts0
        , (nb    : _)   <- members
        -> do (body, ix, ts) <- seaOfOutput q ps oname otype1 ts1 (ixStart+1) transform
-             pure (cond nb body, ix, ts)
+             let nb' = transform otype1 nb
+             pure (cond nb' body, ix, ts)
 
       PairT ta tb
        | tas <- meltType ta
@@ -948,7 +949,8 @@ seaOfOutput q ps oname@(OutputName name) otype0 ts0 ixStart transform
        | (ErrorT : ts1) <- ts0
        , (ne     : _)   <- members
        -> do (body, ix, ts) <- seaOfOutput False ps oname otype1 ts1 (ixStart+1) transform
-             pure (cond (ne <> " == ierror_not_an_error") body, ix, ts)
+             let ne' = transform otype1 ne
+             pure (cond (ne' <> " == ierror_not_an_error") body, ix, ts)
       _
        | (t  : ts) <- ts0
        , (mx : _)  <- members
