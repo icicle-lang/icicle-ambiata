@@ -126,6 +126,7 @@ library
                        Icicle.Core.Program.Error
                        Icicle.Core.Program.Simp
                        Icicle.Core.Program.Fusion
+                       Icicle.Core.Program.Subst
 
                        Icicle.Core.Eval.Exp
                        Icicle.Core.Eval.Stream

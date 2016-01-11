@@ -139,8 +139,10 @@ substMaybe name payload into
        -> return xx
 
       XLam a n t x
+       | n == name
+       -> return xx
        -- If the name clashes, we can't do anything
-       | (n `Set.member` payload_free) || n == name
+       | n `Set.member` payload_free
        -> Nothing
 
        -- Name is mentioned and no clashes, so proceed
@@ -148,11 +150,13 @@ substMaybe name payload into
        -> XLam a n t <$> go x
 
       XLet a n x1 x2
+       | n == name
+       -> XLet a n <$> go x1 <*> return x2
        -- If the let's name clashes with the substitution we're trying to make
        -- and the *body* of the let needs to be substituted into,
        -- we cannot proceed.
        -- (It doesn't matter if the definition, x1, mentions name because "n" is not bound there)
-       | (n `Set.member` payload_free) || n == name
+       | (n `Set.member` payload_free)
        -> Nothing
 
        -- Proceed as usual

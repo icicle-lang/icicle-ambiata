@@ -11,6 +11,7 @@ import Icicle.Common.Base
 import Icicle.Common.Type
 import Icicle.Core.Stream
 import Icicle.Core.Program.Program
+import Icicle.Core.Program.Subst
 import qualified Icicle.Common.Exp.Exp as X
 
 import              P
@@ -43,18 +44,22 @@ fuseProgramsDistinctNames a_fresh lp rp
  { inputName = inputName lp
  , inputType = inputType lp
  , snaptimeName = snaptimeName lp
- , precomps  = precomps  lp <> precomps  rp
- , streams   = inpbinds <> streams   lp <> streams   rp
- , postcomps = postcomps lp <> postcomps rp
- , returns   = returns   lp <> returns   rp
+ , precomps  = precomps  lp <> substSnds (precomps  rp)
+ , streams   = streams   lp <> substStms (streams   rp)
+ , postcomps = postcomps lp <> substSnds (postcomps rp)
+ , returns   = returns   lp <> substSnds (returns   rp)
  }
  where
   var n    = X.XVar a_fresh n
   inpType' = PairT (inputType lp) TimeT
   val      = X.XValue a_fresh inpType' $ defaultOfType inpType'
-  inpbinds
-   = [ SFold (inputName    rp) inpType'  val                     (var $ inputName    lp)
-     , SFold (snaptimeName rp) TimeT    (var $snaptimeName   lp) (var $ snaptimeName lp) ]
+
+  substSnds = unsafeSubstSnds    inpsubst
+  substStms = unsafeSubstStreams inpsubst
+
+  inpsubst
+   = [ (inputName    rp, inputName    lp)
+     , (snaptimeName rp, snaptimeName lp) ]
 
 
 -- | Fuse a list of programs together, prefixing each with its name

@@ -66,10 +66,13 @@ instance Pretty n => Pretty (Program a n) where
 
   <>    text "Precomputations:"                        <> line
   <>    ppbinds (precomps p)                           <> line
+                                                       <> line
   <>    text "Streams:"                                <> line
   <>    vcat (fmap pretty (streams p))                 <> line
+                                                       <> line
   <>    text "Postcomputations"                        <> line
   <>    ppbinds (postcomps p)                          <> line
+                                                       <> line
   <>    text "Returning:"                              <> line
   <>    ppbinds (returns   p)                          <> line
 
@@ -80,6 +83,6 @@ instance Pretty n => Pretty (Program a n) where
     . fmap prettyNamed
 
    prettyNamed (nm,bind)
-    = padDoc 20 (pretty nm) <> " = " <> indent 0 (pretty bind)
+    = indent 2 (padDoc 20 (pretty nm) <> " = " <> indent 0 (pretty bind))
 
 
