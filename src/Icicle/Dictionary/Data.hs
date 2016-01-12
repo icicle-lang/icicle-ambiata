@@ -16,6 +16,7 @@ import           Icicle.Data
 
 import qualified Icicle.Common.Exp.Prim.Minimal     as X
 import qualified Icicle.Common.Exp                  as X
+import qualified Icicle.Common.Fresh                as Fresh
 import qualified Icicle.Core                        as X
 import           Icicle.Common.Base
 import           Icicle.Common.Type
@@ -34,6 +35,7 @@ import           Icicle.Internal.Pretty
 
 import qualified Data.Map                           as Map
 import qualified Data.Set                           as Set
+import           Data.String
 import           Data.Text (Text)
 
 import           P
@@ -166,7 +168,7 @@ prettyDictionarySummary dict
  = "Dictionary" <> line
  <> indent 2
  (  "Functions" <> line
- <> indent 2 (vcat $ fmap pprFun $ dictionaryFunctions dict)
+ <> indent 2 (vcat $ (pprInbuilt <$> listOfAllFuns) <> (pprFun <$> dictionaryFunctions dict))
  <> line
  <> "Features" <> line
  <> indent 2 (vcat $ fmap pprEntry $ dictionaryEntries dict))
@@ -178,6 +180,19 @@ prettyDictionarySummary dict
 
   pprFun (f,(t,_))
    = padDoc 20 (pretty f) <> " : " <> ST.prettyFunWithLetters t
+
+  pprInbuilt f
+   = padDoc 20 (annotate AnnVariable $ pretty f) <> " : " <> (prettyInbuiltType f)
+
+  prettyInbuiltType
+   = ST.prettyFunWithLetters
+   . snd
+   . flip Fresh.runFresh freshNamer
+   . primLookup'
+   . Fun
+     where
+       freshNamer
+        = Fresh.counterPrefixNameState (fromString . show) "inbuilt"
 
 instance Pretty Virtual where
  pretty = pretty . unVirtual

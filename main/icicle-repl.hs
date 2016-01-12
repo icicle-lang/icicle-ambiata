@@ -512,7 +512,8 @@ showFlag False = "off"
 
 showState :: ReplState -> HL.InputT IO ()
 showState state
- = mapM_ HL.outputStrLn
+ = do
+ mapM_ HL.outputStrLn
     [ flag "type:         " hasType
     , flag "annotated:    " hasAnnotated
     , flag "inlined:      " hasInlined
@@ -530,8 +531,8 @@ showState state
     , flag "c-eval:       " hasSeaEval
     ,      "now:          " <> T.unpack (renderTime $ currentTime state)
     ,      "data:         " <> show (length $ facts state) <> " rows"
-    ,      "dictionary:   " <> show (prettyDictionarySummary (dictionary state))
     ]
+ prettyHL $ prettyDictionarySummary (dictionary state)
  where
   flag nm setting
    = nm <> showFlag (setting state)

@@ -28,9 +28,9 @@ Check error:
     Suggested bindings are:
       max                  : Element a -> Aggregate Possibly a
       mean                 : (Num a) => Element a -> Aggregate Possibly Double
+      exp                  : Double -> Double
       min                  : Element a -> Aggregate Possibly a
       not                  : Bool -> Bool
-      now                  : Aggregate Definitely Time
 
 > > -- Expect a parse error on unterminated string
 >                  λλλλ
