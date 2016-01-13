@@ -59,7 +59,9 @@ convertValues a_fresh statements
   goX xx
    = case xx of
        XValue _ (BufT n t) v
-        -> goP xx n t v
+        -> goB xx n t v
+       XValue _ (ArrayT t) v
+        -> goA xx t v
        XApp a x1 x2
         -> XApp a (goX x1) (goX x2)
        XLam a n t x
@@ -68,10 +70,17 @@ convertValues a_fresh statements
         -> XLet a n (goX x1) (goX x2)
        _ -> xx
 
-  goP xx n t v
+  goB xx n t v
    = case v of
-       VBuf buf -> bufPrim n t (reverse buf)
-       _        -> xx
+       VBuf buf
+         -> bufPrim n t (reverse buf)
+       _ -> xx
+
+  goA xx t v
+   = case v of
+       VArray arr
+         -> arrPrim 0 (XPrim a_fresh (PrimProject (PrimProjectArrayLength t)) `xApp` xx) t arr
+       _ -> xx
 
   bufPrim n t b
    = case b of
@@ -82,6 +91,17 @@ convertValues a_fresh statements
          -> XPrim a_fresh (PrimBuf (PrimBufPush n t))
               `xApp` bufPrim n t xs
               `xApp` XValue a_fresh t x
+
+  arrPrim i n t a
+    = case a of
+         []
+           -> XPrim a_fresh (PrimUnsafe (PrimUnsafeArrayCreate t))
+               `xApp` n
+         (x : xs)
+           -> XPrim a_fresh (PrimUpdate (PrimUpdateArrayPut t))
+                `xApp` arrPrim (i + 1) n t xs
+                `xApp` (XValue a_fresh IntT (VInt i))
+                `xApp` XValue a_fresh t x
 
   xApp
    = XApp a_fresh
