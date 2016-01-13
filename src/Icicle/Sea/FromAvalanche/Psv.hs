@@ -748,6 +748,14 @@ mappingOfField (StructField fname, ftype) vars0 = do
 
 -- * Output
 
+-- | A hack to tell whether or not strings should be quoted.
+--   If in JSON, quote. If not, don't.
+--   At any stage during output, if the elements should be JSON, pass @InJSON@,
+--   e.g. when outputting arrays, we should specify that the elements be output
+--        as JSON.
+--
+data IsInJSON = InJSON | NotInJSON
+
 conditional :: Doc -> Doc -> Doc
 conditional n body
  = vsep ["if (" <> n <> ")"
@@ -881,12 +889,12 @@ seaOfWriteOutput ps oname@(OutputName name) otype0 ts0 ixStart
          SumT ErrorT otype1
           | (ErrorT : ts1) <- ts0
           , (ne     : _)   <- members
-          -> do (m, body, _, _) <- seaOfOutput False ps oname otype1 ts1 (ixStart+1) (const id)
+          -> do (m, body, _, _) <- seaOfOutput NotInJSON ps oname otype1 ts1 (ixStart+1) (const id)
                 let body'        = seaOfOutputCond m body
                 let body''       = go body'
                 pure $ conditional (ne <> " == ierror_not_an_error") body''
          _
-          -> do (m, body, _, _) <- seaOfOutput False ps oname otype0 ts0 ixStart (const id)
+          -> do (m, body, _, _) <- seaOfOutput NotInJSON ps oname otype0 ts0 ixStart (const id)
                 let body'        = seaOfOutputCond m body
                 return $ go body'
 
@@ -900,7 +908,7 @@ seaOfWriteOutput ps oname@(OutputName name) otype0 ts0 ixStart
     go str = vsep [before, str, after]
 
 seaOfOutput
-  :: Bool                          -- ^ whether to quote strings (MASSIVE HACK)
+  :: IsInJSON                      -- ^ whether to quote strings
   -> Doc                           -- ^ struct
   -> OutputName
   -> ValType                       -- ^ output type
@@ -917,7 +925,7 @@ seaOfOutput q ps oname@(OutputName name) otype0 ts0 ixStart transform
        | tes@(t':_) <- meltType te
        , length ts0 == length tes
        , (arr : _)  <- members
-       -> do (mcond, body, ix, _) <- seaOfOutput True ps oname te tes ixStart (arrayIndex...transform)
+       -> do (mcond, body, ix, _) <- seaOfOutput InJSON ps oname te tes ixStart (arrayIndex...transform)
 
              -- End the body with a comma, if applicable
              let body' = seaOfOutputCond mcond
@@ -937,18 +945,12 @@ seaOfOutput q ps oname@(OutputName name) otype0 ts0 ixStart transform
        , tvs        <- meltType tv
        , length ts0 == length tks + length tvs
        , (arr: _)   <- members
-       -> do (mcondk, bk, ixk, _)  <- seaOfOutput True ps oname tk tks ixStart (arrayIndex...transform)
-             (mcondv, bv, ixv, ts) <- seaOfOutput True ps oname tv tvs ixk     (arrayIndex...transform)
+       -> do (mcond, bk, ixk, _)  <- seaOfOutput InJSON ps oname tk tks ixStart (arrayIndex...transform)
+             (_    , bv, ixv, ts) <- seaOfOutput InJSON ps oname tv tvs ixk     (arrayIndex...transform)
 
              let p  = pair bk bv
-             p'    <- case (mcondk, mcondv) of
-                        (Nothing, Nothing)
-                          -> pure p
-                        (Just cond, Just _)
-                          -> pure
-                           $ conditional cond
-                           $ vsep [seaOfOutputArraySep, p]
-                        _ -> Left mismatch
+             let p' = seaOfOutputCond mcond
+                    $ vsep [seaOfOutputArraySep, p]
 
              body  <- seaOfOutputArray p' (arrayCount arr)
              return (Nothing, body, ixv, ts)
@@ -956,8 +958,8 @@ seaOfOutput q ps oname@(OutputName name) otype0 ts0 ixStart transform
       PairT ta tb
        | tas <- meltType ta
        , tbs <- meltType tb
-       -> do (mconda, ba, ixa, _)  <- seaOfOutput True ps oname ta tas ixStart transform
-             (mcondb, bb, ixb, ts) <- seaOfOutput True ps oname tb tbs ixa     transform
+       -> do (mconda, ba, ixa, _)  <- seaOfOutput InJSON ps oname ta tas ixStart transform
+             (mcondb, bb, ixb, ts) <- seaOfOutput InJSON ps oname tb tbs ixa     transform
 
              let p  = pair ba bb
              p'    <- case (mconda, mcondb) of
@@ -984,7 +986,7 @@ seaOfOutput q ps oname@(OutputName name) otype0 ts0 ixStart transform
       SumT ErrorT otype1
        | (ErrorT : ts1) <- ts0
        , (ne     : _)   <- members
-       -> do (mcond, body, ix, ts) <- seaOfOutput False ps oname otype1 ts1 (ixStart+1) transform
+       -> do (mcond, body, ix, ts) <- seaOfOutput q ps oname otype1 ts1 (ixStart+1) transform
 
              let body' = seaOfOutputCond mcond body
              let ne'   = transform otype1 ne
@@ -1041,7 +1043,7 @@ seaOfOutputCond mcond body
         -> conditional cond body
 
 -- | Output single types
-seaOfOutputBase :: Bool -> SeaError -> ValType -> Doc -> Either SeaError Doc
+seaOfOutputBase :: IsInJSON -> SeaError -> ValType -> Doc -> Either SeaError Doc
 seaOfOutputBase quoteStrings err t val
  = case t of
      BoolT
@@ -1064,9 +1066,9 @@ seaOfOutputBase quoteStrings err t val
 
      _ -> Left err
 
-quotedOutput :: Bool -> Doc -> Doc
-quotedOutput False out = out
-quotedOutput True  out = vsep [outputChar '"', out, outputChar '"']
+quotedOutput :: IsInJSON -> Doc -> Doc
+quotedOutput NotInJSON out = out
+quotedOutput InJSON    out = vsep [outputChar '"', out, outputChar '"']
 
 ------------------------------------------------------------------------
 
