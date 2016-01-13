@@ -117,8 +117,10 @@ gen$time = TIME
   } else {
     write flat$16$simp$32 = c$conv$13$simp$28;
     write flat$16$simp$33 = 0@{Int};
-    write flat$16$simp$34 = []@{Array Error};
-    write flat$16$simp$35 = []@{Array Int};
+    write flat$16$simp$34 = unsafe_Array_create#@{Error}
+                            (0@{Int});
+    write flat$16$simp$35 = unsafe_Array_create#@{Int}
+                            (0@{Int});
   }
   read@{Error} flat$16$simp$36 = flat$16$simp$32;
   read@{Int} flat$16$simp$37 = flat$16$simp$33;
@@ -329,8 +331,10 @@ gen$time = TIME
         write flat$24$simp$69 = flat$29;
       } else {
         write flat$24$simp$67 = flat$23$simp$65;
-        write flat$24$simp$68 = []@{Array Time};
-        write flat$24$simp$69 = []@{Array Int};
+        write flat$24$simp$68 = unsafe_Array_create#@{Time}
+                                (0@{Int});
+        write flat$24$simp$69 = unsafe_Array_create#@{Int}
+                                (0@{Int});
       }
       read@{Error} flat$24$simp$70 = flat$24$simp$67;
       read@{Array Time} flat$24$simp$71 = flat$24$simp$68;
@@ -340,8 +344,10 @@ gen$time = TIME
       write flat$19$simp$46 = flat$24$simp$72;
     } else {
       write flat$19$simp$44 = flat$16$simp$41;
-      write flat$19$simp$45 = []@{Array Time};
-      write flat$19$simp$46 = []@{Array Int};
+      write flat$19$simp$45 = unsafe_Array_create#@{Time}
+                              (0@{Int});
+      write flat$19$simp$46 = unsafe_Array_create#@{Int}
+                              (0@{Int});
     }
     read@{Error} flat$19$simp$73 = flat$19$simp$44;
     read@{Array Time} flat$19$simp$74 = flat$19$simp$45;

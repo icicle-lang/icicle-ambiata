@@ -748,8 +748,16 @@ mappingOfField (StructField fname, ftype) vars0 = do
 
 -- * Output
 
-cond :: Doc -> Doc -> Doc
-cond n body
+-- | A hack to tell whether or not strings should be quoted.
+--   If in JSON, quote. If not, don't.
+--   At any stage during output, if the elements should be JSON, pass @InJSON@,
+--   e.g. when outputting arrays, we should specify that the elements be output
+--        as JSON.
+--
+data IsInJSON = InJSON | NotInJSON
+
+conditional :: Doc -> Doc -> Doc
+conditional n body
  = vsep ["if (" <> n <> ")"
         , "{"
         , indent 4 body
@@ -881,12 +889,14 @@ seaOfWriteOutput ps oname@(OutputName name) otype0 ts0 ixStart
          SumT ErrorT otype1
           | (ErrorT : ts1) <- ts0
           , (ne     : _)   <- members
-          -> do (body, _, _) <- seaOfOutput False ps oname otype1 ts1 (ixStart+1) (const id)
-                let body'     = go body
-                pure $ cond (ne <> " == ierror_not_an_error") body'
+          -> do (m, body, _, _) <- seaOfOutput NotInJSON ps oname otype1 ts1 (ixStart+1) (const id)
+                let body'        = seaOfOutputCond m body
+                let body''       = go body'
+                pure $ conditional (ne <> " == ierror_not_an_error") body''
          _
-          -> do (body, _, _) <- seaOfOutput False ps oname otype0 ts0 ixStart (const id)
-                return $ go body
+          -> do (m, body, _, _) <- seaOfOutput NotInJSON ps oname otype0 ts0 ixStart (const id)
+                let body'        = seaOfOutputCond m body
+                return $ go body'
 
   where
     before = vsep [ outputValue  "string" ["entity", "entity_size"]
@@ -898,14 +908,15 @@ seaOfWriteOutput ps oname@(OutputName name) otype0 ts0 ixStart
     go str = vsep [before, str, after]
 
 seaOfOutput
-  :: Bool                          -- ^ whether to quote strings (MASSIVE HACK)
+  :: IsInJSON                      -- ^ whether to quote strings
   -> Doc                           -- ^ struct
   -> OutputName
   -> ValType                       -- ^ output type
   -> [ValType]                     -- ^ types of arguments
   -> Int                           -- ^ struct index
   -> (ValType -> Doc -> Doc)       -- ^ apply this to struct members
-  -> Either SeaError ( Doc         -- output statements for consumed arguments
+  -> Either SeaError ( Maybe Doc   -- top level condition for the output statement
+                     , Doc         -- the output statement
                      , Int         -- where it's up to
                      , [ValType] ) -- unconsumed arguments
 seaOfOutput q ps oname@(OutputName name) otype0 ts0 ixStart transform
@@ -914,49 +925,76 @@ seaOfOutput q ps oname@(OutputName name) otype0 ts0 ixStart transform
        | tes@(t':_) <- meltType te
        , length ts0 == length tes
        , (arr : _)  <- members
-       -> do (body, ix, _) <- seaOfOutput True ps oname te tes ixStart (arrayIndex...transform)
+       -> do (mcond, body, ix, _) <- seaOfOutput InJSON ps oname te tes ixStart (arrayIndex...transform)
+
+             -- End the body with a comma, if applicable
+             let body' = seaOfOutputCond mcond
+                       $ vsep [seaOfOutputArraySep counter, body]
+
              -- Special case for (ArrayT (ArrayT NotArrayThing)) as that is allowed in v0
              let ac         = arrayCount $ transform (ArrayT t') arr
-             body'         <- seaOfOutputArray body ac
+
+             -- Wrap the body in a for loop
+             body''        <- seaOfOutputArray body' ac
+
              let ts1        = List.drop (length tes) ts0
-             return (body', ix, ts1)
+             return (Nothing, body'', ix, ts1)
 
       MapT tk tv
        | tks        <- meltType tk
        , tvs        <- meltType tv
        , length ts0 == length tks + length tvs
        , (arr: _)   <- members
-       -> do (bk, ixk, _)   <- seaOfOutput True ps oname tk tks ixStart (arrayIndex...transform)
-             (bv, ixv, ts)  <- seaOfOutput True ps oname tv tvs ixk     (arrayIndex...transform)
-             body'          <- seaOfOutputArray (pair bk bv) (arrayCount arr)
-             return (body', ixv, ts)
+       -> do (mcondk, bk, ixk, _)  <- seaOfOutput InJSON ps oname tk tks ixStart (arrayIndex...transform)
+             (mcondv, bv, ixv, ts) <- seaOfOutput InJSON ps oname tv tvs ixk     (arrayIndex...transform)
 
-      OptionT otype1
-       | (BoolT : ts1) <- ts0
-       , (nb    : _)   <- members
-       -> do (body, ix, ts) <- seaOfOutput q ps oname otype1 ts1 (ixStart+1) transform
-             let nb' = transform otype1 nb
-             pure (cond nb' body, ix, ts)
+             let p  = pair bk bv
+             let p' = seaOfOutputCond mcondk
+                    $ seaOfOutputCond mcondv
+                    $ vsep [seaOfOutputArraySep counter, p]
+
+             body  <- seaOfOutputArray p' (arrayCount arr)
+             return (Nothing, body, ixv, ts)
 
       PairT ta tb
        | tas <- meltType ta
        , tbs <- meltType tb
-       -> do (ba, ixa, _)  <- seaOfOutput True ps oname ta tas ixStart transform
-             (bb, ixb, ts) <- seaOfOutput True ps oname tb tbs ixa     transform
-             return (pair ba bb, ixb, ts)
+       -> do (mcondk, ba, ixa, _)  <- seaOfOutput InJSON ps oname ta tas ixStart transform
+             (mcondv, bb, ixb, ts) <- seaOfOutput InJSON ps oname tb tbs ixa     transform
+
+             let p  = pair ba bb
+             let p' = seaOfOutputCond mcondk
+                    $ seaOfOutputCond mcondv
+                    $ vsep [seaOfOutputSep, p]
+
+             return (Nothing, p', ixb, ts)
+
+      -- Conditionals
+      OptionT otype1
+       | (BoolT : ts1) <- ts0
+       , (nb    : _)   <- members
+       -> do (mcond, body, ix, ts) <- seaOfOutput q ps oname otype1 ts1 (ixStart+1) transform
+
+             let body' = seaOfOutputCond mcond body
+             let nb' = transform otype1 nb
+             pure (Just nb', body', ix, ts)
 
       SumT ErrorT otype1
        | (ErrorT : ts1) <- ts0
        , (ne     : _)   <- members
-       -> do (body, ix, ts) <- seaOfOutput False ps oname otype1 ts1 (ixStart+1) transform
-             let ne' = transform otype1 ne
-             pure (cond (ne' <> " == ierror_not_an_error") body, ix, ts)
+       -> do (mcond, body, ix, ts) <- seaOfOutput q ps oname otype1 ts1 (ixStart+1) transform
+
+             let body' = seaOfOutputCond mcond body
+             let ne'   = transform otype1 ne
+             pure (Just (ne' <> " == ierror_not_an_error"), body', ix, ts)
+
+      -- Base
       _
        | (t  : ts) <- ts0
        , (mx : _)  <- members
        , mx'  <- transform t mx
        -> do d <- seaOfOutputBase' q t mx'
-             pure (d, ixStart + 1, ts)
+             pure (Nothing, d, ixStart + 1, ts)
 
       _ -> Left unsupported
 
@@ -983,17 +1021,28 @@ seaOfOutput q ps oname@(OutputName name) otype0 ts0 ixStart transform
     = pure (vsep [ outputChar '['
                  , forStmt counter countLimit numElems
                  , "{"
-                 , indent 4
-                     $ cond (counter <+> "> 0")
-                            (outputChar ',')
                  , indent 4 body
                  , "}"
                  , outputChar ']'
                  ]
            )
 
+   seaOfOutputArraySep c
+     = conditional (c <+> "> 0") seaOfOutputSep
+
+   seaOfOutputSep
+     = outputChar ','
+
+seaOfOutputCond :: Maybe Doc -> Doc -> Doc
+seaOfOutputCond mcond body
+  = case mcond of
+      Nothing
+        -> body
+      Just cond
+        -> conditional cond body
+
 -- | Output single types
-seaOfOutputBase :: Bool -> SeaError -> ValType -> Doc -> Either SeaError Doc
+seaOfOutputBase :: IsInJSON -> SeaError -> ValType -> Doc -> Either SeaError Doc
 seaOfOutputBase quoteStrings err t val
  = case t of
      BoolT
@@ -1016,9 +1065,9 @@ seaOfOutputBase quoteStrings err t val
 
      _ -> Left err
 
-quotedOutput :: Bool -> Doc -> Doc
-quotedOutput False out = out
-quotedOutput True  out = vsep [outputChar '"', out, outputChar '"']
+quotedOutput :: IsInJSON -> Doc -> Doc
+quotedOutput NotInJSON out = out
+quotedOutput InJSON    out = vsep [outputChar '"', out, outputChar '"']
 
 ------------------------------------------------------------------------
 
