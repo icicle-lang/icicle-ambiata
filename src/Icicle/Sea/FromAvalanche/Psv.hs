@@ -929,7 +929,7 @@ seaOfOutput q ps oname@(OutputName name) otype0 ts0 ixStart transform
 
              -- End the body with a comma, if applicable
              let body' = seaOfOutputCond mcond
-                       $ vsep [seaOfOutputArraySep, body]
+                       $ vsep [seaOfOutputArraySep counter, body]
 
              -- Special case for (ArrayT (ArrayT NotArrayThing)) as that is allowed in v0
              let ac         = arrayCount $ transform (ArrayT t') arr
@@ -945,12 +945,13 @@ seaOfOutput q ps oname@(OutputName name) otype0 ts0 ixStart transform
        , tvs        <- meltType tv
        , length ts0 == length tks + length tvs
        , (arr: _)   <- members
-       -> do (mcond, bk, ixk, _)  <- seaOfOutput InJSON ps oname tk tks ixStart (arrayIndex...transform)
-             (_    , bv, ixv, ts) <- seaOfOutput InJSON ps oname tv tvs ixk     (arrayIndex...transform)
+       -> do (mcondk, bk, ixk, _)  <- seaOfOutput InJSON ps oname tk tks ixStart (arrayIndex...transform)
+             (mcondv, bv, ixv, ts) <- seaOfOutput InJSON ps oname tv tvs ixk     (arrayIndex...transform)
 
              let p  = pair bk bv
-             let p' = seaOfOutputCond mcond
-                    $ vsep [seaOfOutputArraySep, p]
+             let p' = seaOfOutputCond mcondk
+                    $ seaOfOutputCond mcondv
+                    $ vsep [seaOfOutputArraySep counter, p]
 
              body  <- seaOfOutputArray p' (arrayCount arr)
              return (Nothing, body, ixv, ts)
@@ -958,18 +959,13 @@ seaOfOutput q ps oname@(OutputName name) otype0 ts0 ixStart transform
       PairT ta tb
        | tas <- meltType ta
        , tbs <- meltType tb
-       -> do (mconda, ba, ixa, _)  <- seaOfOutput InJSON ps oname ta tas ixStart transform
-             (mcondb, bb, ixb, ts) <- seaOfOutput InJSON ps oname tb tbs ixa     transform
+       -> do (mcondk, ba, ixa, _)  <- seaOfOutput InJSON ps oname ta tas ixStart transform
+             (mcondv, bb, ixb, ts) <- seaOfOutput InJSON ps oname tb tbs ixa     transform
 
              let p  = pair ba bb
-             p'    <- case (mconda, mcondb) of
-                        (Nothing, Nothing)
-                           -> pure p
-                        (Just cond, Just _)
-                           -> pure
-                            $ conditional cond
-                            $ vsep [seaOfOutputArraySep, p]
-                        _ -> Left mismatch
+             let p' = seaOfOutputCond mcondk
+                    $ seaOfOutputCond mcondv
+                    $ vsep [seaOfOutputSep, p]
 
              return (Nothing, p', ixb, ts)
 
@@ -1031,8 +1027,11 @@ seaOfOutput q ps oname@(OutputName name) otype0 ts0 ixStart transform
                  ]
            )
 
-   seaOfOutputArraySep
-     = conditional (counter <+> "> 0") (outputChar ',')
+   seaOfOutputArraySep c
+     = conditional (c <+> "> 0") seaOfOutputSep
+
+   seaOfOutputSep
+     = outputChar ','
 
 seaOfOutputCond :: Maybe Doc -> Doc -> Doc
 seaOfOutputCond mcond body
