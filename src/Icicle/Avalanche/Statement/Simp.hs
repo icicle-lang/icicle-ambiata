@@ -79,7 +79,7 @@ convertValues a_fresh statements
   goA xx t v
    = case v of
        VArray arr
-         -> arrPrim 0 (XPrim a_fresh (PrimProject (PrimProjectArrayLength t)) `xApp` xx) t arr
+         -> arrPrim 0 (XValue a_fresh IntT (VInt (length arr))) t arr
        _ -> xx
 
   bufPrim n t b
