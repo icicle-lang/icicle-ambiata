@@ -976,8 +976,7 @@ seaOfOutput q ps oname@(OutputName name) otype0 ts0 ixStart transform
        -> do (mcond, body, ix, ts) <- seaOfOutput q ps oname otype1 ts1 (ixStart+1) transform
 
              let body' = seaOfOutputCond mcond body
-             let nb' = transform otype1 nb
-             pure (Just nb', body', ix, ts)
+             pure (Just nb, body', ix, ts)
 
       SumT ErrorT otype1
        | (ErrorT : ts1) <- ts0
