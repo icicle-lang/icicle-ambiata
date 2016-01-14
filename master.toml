@@ -1,7 +1,7 @@
 [master]
-  runner = "s3://ambiata-dist/master-ambiata/master-haskell-library-0.0.1-20151209065455-431f7fe"
+  runner = "s3://ambiata-dispensary-v2/dist/master/master-ambiata/master-haskell-library-0.0.1-20160114232634-a8a6f45"
   version = 1
-  sha1 = "5a89a62ecfc4b66300436840c53c7f643ffec707"
+  sha1 = "31b3c32d3377b776145ca1c1ab25ccdb05d8cb8d"
 
 [build.dist]
   HADDOCK="true"
@@ -16,3 +16,10 @@
 [build.branches-bench]
   TEST="false"
   BENCH="true"
+
+[build.appshop]
+  PUBLISH_APPSHOP="icicle-repl"
+
+[build.appshop.master]
+  runner = "s3://ambiata-dispensary-v2/dist/master/master-ambiata/master-haskell-appshop-0.0.1-20160114232634-a8a6f45"
+  sha1 = "7890c390e5088c5b38264341d2451bd2f54de184"
