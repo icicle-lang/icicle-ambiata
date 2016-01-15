@@ -505,7 +505,7 @@ baseValueForType t
      <$> listOf ((,) <$> baseValueForType k <*> baseValueForType v))
 
     StringT
-     -> VString <$> arbitrary
+     -> VString <$> elements simpsons
     StructT (StructType fs)
      -> smaller
       (VStruct <$> traverse baseValueForType fs)

@@ -40,6 +40,7 @@ import           Icicle.Sea.FromAvalanche.State
 import           Icicle.Sea.FromAvalanche.Type
 
 import           P
+import           Prelude (String)
 
 import           Text.Printf (printf)
 
@@ -889,12 +890,14 @@ seaOfWriteOutput ps oname@(OutputName name) otype0 ts0 ixStart
          SumT ErrorT otype1
           | (ErrorT : ts1) <- ts0
           , (ne     : _)   <- members
-          -> do (m, body, _, _) <- seaOfOutput NotInJSON ps oname otype1 ts1 (ixStart+1) (const id)
+          -> do (m, body, _, _) <- seaOfOutput NotInJSON ps (ixStart + 1)
+                                               oname Map.empty otype1 ts1 id
                 let body'        = seaOfOutputCond m body
                 let body''       = go body'
                 pure $ conditional (ne <> " == ierror_not_an_error") body''
          _
-          -> do (m, body, _, _) <- seaOfOutput NotInJSON ps oname otype0 ts0 ixStart (const id)
+          -> do (m, body, _, _) <- seaOfOutput NotInJSON ps ixStart
+                                               oname Map.empty otype0 ts0 id
                 let body'        = seaOfOutputCond m body
                 return $ go body'
 
@@ -907,107 +910,142 @@ seaOfWriteOutput ps oname@(OutputName name) otype0 ts0 ixStart
 
     go str = vsep [before, str, after]
 
+--------------------------------------------------------------------------------
+
+-- | A mapping of C name prefixes in use to the number of times they are used.
+--   e.g. if @x_0@ and @x_1@ have been used, the environment must contain @(x, 2)@
+--
+type NameEnv = Map String Int
+
+newName :: Doc -> NameEnv -> (Doc, NameEnv)
+newName doc env
+  = let n = show doc
+    in  case Map.lookup n env of
+          Nothing
+            -> (pretty (0 :: Int), Map.insert n 1 env)
+          Just i
+            -> (pretty i, Map.insert n (i + 1) env)
+
 seaOfOutput
-  :: IsInJSON                      -- ^ whether to quote strings
-  -> Doc                           -- ^ struct
-  -> OutputName
-  -> ValType                       -- ^ output type
-  -> [ValType]                     -- ^ types of arguments
-  -> Int                           -- ^ struct index
-  -> (ValType -> Doc -> Doc)       -- ^ apply this to struct members
-  -> Either SeaError ( Maybe Doc   -- top level condition for the output statement
-                     , Doc         -- the output statement
-                     , Int         -- where it's up to
-                     , [ValType] ) -- unconsumed arguments
-seaOfOutput q ps oname@(OutputName name) otype0 ts0 ixStart transform
-  = case otype0 of
-      ArrayT te
-       | tes@(t':_) <- meltType te
-       , length ts0 == length tes
-       , (arr : _)  <- members
-       -> do (mcond, body, ix, _) <- seaOfOutput InJSON ps oname te tes ixStart (arrayIndex...transform)
+  :: IsInJSON                      -- ^ Indicates whether to quote strings
+  -> Doc                           -- ^ Struct of values to output
+  -> Int                           -- ^ Current index into the struct of values
+  -> OutputName                    -- ^ Use the output name as seed for generated C names
+  -> NameEnv                       -- ^ C names in use
+  -> ValType                       -- ^ Output type
+  -> [ValType]                     -- ^ Types of arguments
+  -> (Doc -> Doc)                  -- ^ Transformation to be applied to this struct member, e.g. index
+  -> Either SeaError ( Maybe Doc   -- Top level condition for the output statement
+                     , Doc         -- The output statement
+                     , Int         -- Where it's up to
+                     , [ValType] ) -- Unconsumed arguments
+--seaOfOutput q ps oname@(OutputName name) otype0 ts0 ixStart transform
+seaOfOutput isJSON struct structIndex outName@(OutputName name) env outType argTypes transform
+ = let prefixi         = pretty name <> "_" <> pretty structIndex <> "_i"
+       (suffixi, env'')= newName prefixi env
+       counter         = prefixi <> suffixi
 
-             -- End the body with a comma, if applicable
-             let body' = seaOfOutputCond mcond
-                       $ vsep [seaOfOutputArraySep counter, body]
+       prefixn         = pretty name <> "_" <> pretty structIndex <> "_n"
+       (suffixn, env') = newName prefixn env''
+       countLimit      = prefixn <> suffixn
 
-             -- Special case for (ArrayT (ArrayT NotArrayThing)) as that is allowed in v0
-             let ac         = arrayCount $ transform (ArrayT t') arr
+       arrayIndex t x  = seaOfArrayIndex x counter t
 
-             -- Wrap the body in a for loop
-             body''        <- seaOfOutputArray body' ac
+   in case outType of
+       ArrayT te
+        | tes@(arg0:_) <- meltType te
+        , (arr  : _)   <- members
+        -> do (mcond, body, ix, ts1) <- seaOfOutput InJSON struct structIndex
+                                                    outName env' te tes
+                                                    (arrayIndex arg0 . transform)
 
-             let ts1        = List.drop (length tes) ts0
-             return (Nothing, body'', ix, ts1)
+              -- End the body with a comma, if applicable
+              let body' = seaOfOutputCond mcond
+                        $ vsep [seaOfOutputArraySep counter, body]
 
-      MapT tk tv
-       | tks        <- meltType tk
-       , tvs        <- meltType tv
-       , length ts0 == length tks + length tvs
-       , (arr: _)   <- members
-       -> do (mcondk, bk, ixk, _)  <- seaOfOutput InJSON ps oname tk tks ixStart (arrayIndex...transform)
-             (mcondv, bv, ixv, ts) <- seaOfOutput InJSON ps oname tv tvs ixk     (arrayIndex...transform)
+              -- Array of arrays is allowed, so we apply the transform here
+              let arr'  = transform arr
 
-             let p  = pair bk bv
-             let p' = seaOfOutputCond mcondk
-                    $ seaOfOutputCond mcondv
-                    $ vsep [seaOfOutputArraySep counter, p]
+              -- Wrap the body in a for loop
+              let numElems  = arrayCount arr'
+              body''       <- seaOfOutputArray body' numElems counter countLimit
 
-             body  <- seaOfOutputArray p' (arrayCount arr)
-             return (Nothing, body, ixv, ts)
+              return (Nothing, body'', ix, ts1)
 
-      PairT ta tb
-       | tas <- meltType ta
-       , tbs <- meltType tb
-       -> do (mcondk, ba, ixa, _)  <- seaOfOutput InJSON ps oname ta tas ixStart transform
-             (mcondv, bb, ixb, ts) <- seaOfOutput InJSON ps oname tb tbs ixa     transform
 
-             let p  = pair ba bb
-             let p' = seaOfOutputCond mcondk
-                    $ seaOfOutputCond mcondv
-                    $ vsep [seaOfOutputSep, p]
+       MapT tk tv
+        | tks@(argk0 : _) <- meltType tk
+        , tvs@(argv0 : _) <- meltType tv
+        , (arr : _)       <- members
+        -> do (mcondk, bk, ixk, _)  <- seaOfOutput InJSON struct structIndex
+                                                   outName env' tk tks
+                                                   (arrayIndex argk0 . transform)
+              (mcondv, bv, ixv, ts) <- seaOfOutput InJSON struct ixk
+                                                   outName env' tv tvs
+                                                   (arrayIndex argv0 . transform)
 
-             return (Nothing, p', ixb, ts)
+              let p  = pair bk bv
+              let p' = seaOfOutputCond mcondk
+                     $ seaOfOutputCond mcondv
+                     $ vsep [seaOfOutputArraySep counter, p]
 
-      -- Conditionals
-      OptionT otype1
-       | (BoolT : ts1) <- ts0
-       , (nb    : _)   <- members
-       -> do (mcond, body, ix, ts) <- seaOfOutput q ps oname otype1 ts1 (ixStart+1) transform
+              let numElems  = arrayCount arr
+              body         <- seaOfOutputArray p' numElems counter countLimit
+              return (Nothing, body, ixv, ts)
 
-             let body' = seaOfOutputCond mcond body
-             pure (Just nb, body', ix, ts)
 
-      SumT ErrorT otype1
-       | (ErrorT : ts1) <- ts0
-       , (ne     : _)   <- members
-       -> do (mcond, body, ix, ts) <- seaOfOutput q ps oname otype1 ts1 (ixStart+1) transform
+       PairT ta tb
+        | tas <- meltType ta
+        , tbs <- meltType tb
+        -> do (mcondk, ba, ixa, _)  <- seaOfOutput InJSON struct structIndex
+                                                   outName env' ta tas transform
+              (mcondv, bb, ixb, ts) <- seaOfOutput InJSON struct ixa
+                                                   outName env' tb tbs transform
 
-             let body' = seaOfOutputCond mcond body
-             let ne'   = transform otype1 ne
-             pure (Just (ne' <> " == ierror_not_an_error"), body', ix, ts)
+              let p  = pair ba bb
+              let p' = seaOfOutputCond mcondk
+                     $ seaOfOutputCond mcondv
+                     $ vsep [seaOfOutputSep, p]
 
-      -- Base
-      _
-       | (t  : ts) <- ts0
-       , (mx : _)  <- members
-       , mx'  <- transform t mx
-       -> do d <- seaOfOutputBase' q t mx'
-             pure (Nothing, d, ixStart + 1, ts)
+              return (Nothing, p', ixb, ts)
 
-      _ -> Left unsupported
+       -- Conditionals
+       OptionT otype1
+        | (BoolT : ts1) <- argTypes
+        , (nb    : _)   <- members
+        -> do (mcond, body, ix, ts) <- seaOfOutput isJSON struct (structIndex + 1)
+                                                   outName env' otype1 ts1 transform
+
+              let body' = seaOfOutputCond mcond body
+              let nb'   = transform nb
+              pure (Just nb', body', ix, ts)
+
+       SumT ErrorT otype1
+        | (ErrorT : ts1) <- argTypes
+        , (ne     : _)   <- members
+        -> do (mcond, body, ix, ts) <- seaOfOutput isJSON struct (structIndex + 1)
+                                                   outName env' otype1 ts1 transform
+
+              let body' = seaOfOutputCond mcond body
+              let ne'   = transform ne
+              pure (Just (ne' <> " == ierror_not_an_error"), body', ix, ts)
+
+       -- Base
+       _
+        | (t  : ts) <- argTypes
+        , (mx : _)  <- members
+        , mx'       <- transform mx
+        -> do d <- seaOfOutputBase' isJSON t mx'
+              pure (Nothing, d, structIndex + 1, ts)
+
+       _ -> Left unsupported
 
   where
-   mismatch    = SeaOutputTypeMismatch oname otype0 ts0
-   unsupported = SeaUnsupportedOutputType otype0
+   mismatch    = SeaOutputTypeMismatch    outName outType argTypes
+   unsupported = SeaUnsupportedOutputType outType
 
-   members = List.take (length ts0) (fmap (\ix -> ps <> "->" <> seaOfNameIx name ix) [ixStart..])
-
-   counter    = pretty name <> "_" <> pretty ixStart <> "_i"
-   countLimit = pretty name <> "_" <> pretty ixStart <> "_n"
-
-   arrayIndex t x
-    = seaOfArrayIndex x counter t
+   members    = List.take (length argTypes)
+              $ fmap (\ix -> struct <> "->" <> seaOfNameIx name ix) [structIndex..]
 
    arrayCount x
     = "(" <> x <> ")" <> "->count"
@@ -1015,23 +1053,27 @@ seaOfOutput q ps oname@(OutputName name) otype0 ts0 ixStart transform
    seaOfOutputBase' b
     = seaOfOutputBase b mismatch
 
-   -- Output an array with pre-defined bodies
-   seaOfOutputArray body numElems
-    = pure (vsep [ outputChar '['
-                 , forStmt counter countLimit numElems
-                 , "{"
-                 , indent 4 body
-                 , "}"
-                 , outputChar ']'
-                 ]
-           )
-
    seaOfOutputArraySep c
      = conditional (c <+> "> 0") seaOfOutputSep
 
    seaOfOutputSep
      = outputChar ','
 
+--------------------------------------------------------------------------------
+
+-- | Output an array with pre-defined bodies
+seaOfOutputArray :: Applicative f => Doc -> Doc -> Doc -> Doc -> f Doc
+seaOfOutputArray body numElems counter countLimit
+ = pure (vsep [ outputChar '['
+              , forStmt counter countLimit numElems
+              , "{"
+              , indent 4 body
+              , "}"
+              , outputChar ']'
+              ]
+        )
+
+-- | Output an if statement
 seaOfOutputCond :: Maybe Doc -> Doc -> Doc
 seaOfOutputCond mcond body
   = case mcond of
@@ -1064,11 +1106,11 @@ seaOfOutputBase quoteStrings err t val
 
      _ -> Left err
 
+------------------------------------------------------------------------
+
 quotedOutput :: IsInJSON -> Doc -> Doc
 quotedOutput NotInJSON out = out
 quotedOutput InJSON    out = vsep [outputChar '"', out, outputChar '"']
-
-------------------------------------------------------------------------
 
 sizeOfString :: Text -> Int
 sizeOfString = B.length . T.encodeUtf8
@@ -1143,6 +1185,3 @@ init :: [a] -> Maybe [a]
 init []     = Nothing
 init (_:[]) = Just []
 init (x:xs) = (x:) <$> init xs
-
-(...) :: (a -> b -> b) -> (a -> b -> b) -> (a -> b -> b)
-f ... g = \x y -> g x (f x y)
