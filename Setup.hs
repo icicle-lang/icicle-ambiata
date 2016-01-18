@@ -1,40 +1,50 @@
 #!/usr/bin/env runhaskell
 
-import           Data.Time (formatTime, getCurrentTime)
+import           Data.Char (isDigit)
 import           Data.List (intercalate)
+import           Data.Monoid ((<>))
 import           Data.Version (showVersion)
 
 import           Distribution.PackageDescription
 import           Distribution.Verbosity
 import           Distribution.Simple
-import           Distribution.Simple.Setup (BuildFlags(..), fromFlag)
+import           Distribution.Simple.Setup (BuildFlags(..), ReplFlags(..), TestFlags(..), fromFlag)
 import           Distribution.Simple.LocalBuildInfo
 import           Distribution.Simple.BuildPaths (autogenModulesDir)
 import           Distribution.Simple.Utils (createDirectoryIfMissingVerbose, rewriteFile)
 
 import           System.FilePath ((</>), (<.>))
-import           System.Locale (defaultTimeLocale)
 import           System.Process (readProcess)
 
 main :: IO ()
 main =
   let hooks = simpleUserHooks
-   in defaultMainWithHooks hooks { buildHook = withGenBuildInfo hooks }
+   in defaultMainWithHooks hooks {
+     preConf = \args flags -> do
+       createDirectoryIfMissingVerbose silent True "gen"
+       (preConf hooks) args flags
+   , sDistHook  = \pd mlbi uh flags -> do
+       genBuildInfo silent pd
+       (sDistHook hooks) pd mlbi uh flags
+   , buildHook = \pd lbi uh flags -> do
+       genBuildInfo (fromFlag $ buildVerbosity flags) pd
+       (buildHook hooks) pd lbi uh flags
+   , replHook = \pd lbi uh flags args -> do
+       genBuildInfo (fromFlag $ replVerbosity flags) pd
+       (replHook hooks) pd lbi uh flags args
+   , testHook = \args pd lbi uh flags -> do
+       genBuildInfo (fromFlag $ testVerbosity flags) pd
+       (testHook hooks) args pd lbi uh flags
+   }
 
-withGenBuildInfo :: UserHooks -> PackageDescription -> LocalBuildInfo -> UserHooks -> BuildFlags -> IO ()
-withGenBuildInfo old pkg info hooks flags = do
-  let verbosity = fromFlag (buildVerbosity flags)
-  genBuildInfo verbosity pkg info
-  (buildHook old) pkg info hooks flags
-
-genBuildInfo :: Verbosity -> PackageDescription -> LocalBuildInfo -> IO ()
-genBuildInfo verbosity pkg info = do
-  createDirectoryIfMissingVerbose verbosity True (autogenModulesDir info)
+genBuildInfo :: Verbosity -> PackageDescription -> IO ()
+genBuildInfo verbosity pkg = do
+  createDirectoryIfMissingVerbose verbosity True "gen"
   let (PackageName pname) = pkgName . package $ pkg
       version = pkgVersion . package $ pkg
       name = "BuildInfo_" ++ (map (\c -> if c == '-' then '_' else c) pname)
-      targetHs = autogenModulesDir info </> name <.> "hs"
-      targetText = autogenModulesDir info </> "version.txt"
+      targetHs = "gen" </> name <.> "hs"
+      targetText = "gen" </> "version.txt"
   t <- timestamp
   gv <- gitVersion
   let v = showVersion version
@@ -50,12 +60,19 @@ genBuildInfo verbosity pkg info = do
     ]
   rewriteFile targetText buildVersion
 
-timestamp :: IO String
-timestamp =
-  formatTime defaultTimeLocale "%Y%m%d%H%M%S" `fmap` getCurrentTime
-
 gitVersion :: IO String
 gitVersion = do
   ver <- readProcess "git" ["log", "--pretty=format:%h", "-n", "1"] ""
   notModified <- ((>) 1 . length) `fmap` readProcess "git" ["status", "--porcelain"] ""
   return $ ver ++ if notModified then "" else "-M"
+
+timestamp :: IO String
+timestamp =
+  readProcess "date" ["+%Y%m%d%H%M%S"] "" >>= \s ->
+    case splitAt 14 s of
+      (d, n : []) ->
+        if (length d == 14 && filter isDigit d == d)
+          then return d
+          else fail $ "date has failed to produce the correct format [" <> s <> "]."
+      _ ->
+        fail $ "date has failed to produce a date long enough [" <> s <> "]."

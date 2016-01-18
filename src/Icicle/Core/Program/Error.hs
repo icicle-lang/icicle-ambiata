@@ -1,4 +1,5 @@
 -- | Typechecking errors for a core program
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Core.Program.Error (
       ProgramError (..)

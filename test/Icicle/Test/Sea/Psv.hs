@@ -41,8 +41,9 @@ import           System.IO
 import           System.IO.Temp (createTempDirectory)
 import           System.Directory (getTemporaryDirectory, removeDirectoryRecursive)
 
-import           Test.QuickCheck hiding (output)
-import           Test.QuickCheck.Property hiding (result)
+import           Test.QuickCheck (Args(..), forAllProperties, quickCheckWithResult, stdArgs)
+import           Test.QuickCheck (Property, (==>), property, counterexample)
+import           Test.QuickCheck.Property (succeeded, failed)
 
 import           X.Control.Monad.Trans.Either (EitherT, runEitherT)
 import           X.Control.Monad.Trans.Either (bracketEitherT', left)
