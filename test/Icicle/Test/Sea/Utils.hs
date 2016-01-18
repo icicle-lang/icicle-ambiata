@@ -9,7 +9,7 @@ module Icicle.Test.Sea.Utils (
   ) where
 
 import qualified Icicle.Internal.Pretty as PP
-import           Icicle.Sea.Eval (compilerOptions)
+import           Icicle.Sea.Eval (getCompilerOptions)
 import           Icicle.Sea.Preamble (seaPreamble)
 import           Icicle.Test.Arbitrary ()
 
@@ -48,7 +48,8 @@ readLibrary code = do
   case mlib of
     Just elib -> hoistEither elib
     Nothing   -> do
-      elib <- liftIO (runEitherT (compileLibrary compilerOptions code))
+      opts <- getCompilerOptions
+      elib <- liftIO (runEitherT (compileLibrary opts code))
       liftIO (writeIORef libraryRef (Just elib))
       hoistEither elib
 
