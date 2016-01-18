@@ -20,7 +20,6 @@ import qualified Icicle.Core.Exp                as X
 import           Icicle.Core.Exp.Combinators
 import           Icicle.Core.Exp.Prim
 import           Icicle.Core.Stream
-import           Icicle.Core.Reduce
 import           Icicle.Core.Program.Program    as P
 
 import           Icicle.Test.Arbitrary.Base
@@ -164,16 +163,9 @@ instance (Arbitrary a, Arbitrary n, Arbitrary p) => Arbitrary (Exp a n p) where
 
 instance (Arbitrary a, Arbitrary n) => Arbitrary (Stream a n) where
  arbitrary =
-   oneof_sized_vals
-         [ Source ]
-         [ STrans <$> st <*> arbitrary <*> arbitrary ]
-  where
-   st = oneof [ SFilter <$> arbitrary
-              , SMap    <$> arbitrary <*> arbitrary ]
-
-instance (Arbitrary a, Arbitrary n) => Arbitrary (Reduce a n) where
- arbitrary =
-   RFold   <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+   oneof_sized
+         [ SFold <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary ]
+         [ SFilter <$> arbitrary <*> arbitrary ]
 
 instance (Arbitrary a, Arbitrary n) => Arbitrary (Program a n) where
  arbitrary =
@@ -326,42 +318,44 @@ withTypedExp prop
 -- Again, no promises.
 programForStreamType :: ValType -> Gen (Program () Var)
 programForStreamType streamType
- = do   -- Generate a few precomputation expressions
-        npres       <- choose (0,2) :: Gen Int
-        (pE, pres)  <- gen_exps Map.empty npres
+ = sized
+ $ \s -> resize (sqrt' s) (programForStreamType' streamType)
+ where
+  sqrt' = truncate . (sqrt :: Double -> Double) . fromIntegral
+
+programForStreamType' :: ValType -> Gen (Program () Var)
+programForStreamType' streamType
+ = do   ninput      <- arbitrary
+        ndate       <- freshInEnv (Map.singleton ninput streamType)
+        let avoid = Map.fromList [ ( ninput, FunT [] (PairT streamType TimeT))
+                                 , ( ndate,  FunT [] TimeT) ]
+
+        -- Generate a few precomputation expressions
+        Positive npres       <- arbitrary :: Gen (Positive Int)
+        (pE, pres)  <- gen_exps Map.empty avoid npres
+
+        let pE' = Map.union avoid pE
 
         -- We need at least one stream
         -- otherwise there isn't much point to the program,
         -- it'd just be a constant computation
-        nstrs       <- choose (1,3) :: Gen Int
-        (sE,strs)   <- gen_streams Map.empty pE nstrs
-
-        -- And at least one reduction
-        nreds       <- choose (1,3) :: Gen Int
-        (rE,reds)   <- gen_reduces sE pE nreds
-
-        -- Do we want a date?
-        dat <- oneof  [ return Nothing
-                      , Just <$> freshInEnv rE ]
-        let rE' = case dat of
-                  Nothing -> rE
-                  Just nm -> Map.insert nm (FunT [] TimeT) rE
-
+        Positive nstrs       <- arbitrary :: Gen (Positive Int)
+        (sE,strs)   <- gen_streams pE' nstrs
 
         -- Postcomputations with access to the reduction values
-        nposts      <- choose (0,2) :: Gen Int
-        (eE, posts) <- gen_exps rE' nposts
+        Positive nposts      <- arbitrary :: Gen (Positive Int)
+        (eE, posts) <- gen_exps sE Map.empty nposts
 
         -- Finally, everything is wrapped up into one return value
         retName     <- arbitrary
         (ret, _)    <- gen_exp eE
 
         return Program
-               { P.input        = streamType
+               { P.inputType    = streamType
+               , P.inputName    = ninput
+               , P.snaptimeName = ndate
                , P.precomps     = pres
                , P.streams      = strs
-               , P.reduces      = reds
-               , P.postdate     = dat
                , P.postcomps    = posts
                , P.returns      = [(retName, ret)]
                }
@@ -382,84 +376,41 @@ programForStreamType streamType
          Nothing -> arbitrary
 
   -- Generate a bunch of expressions, collecting up the environment
-  gen_exps env 0
+  gen_exps env _ 0
    = return (env, [])
-  gen_exps env n
+  gen_exps env avoid n
    = do (x,t)       <- gen_exp env
-        nm          <- freshInEnv env
+        nm          <- freshInEnv (Map.union env avoid)
         let env'     = Map.insert nm t env
-        (env'', xs) <- gen_exps env' (n-1)
+        (env'', xs) <- gen_exps env' avoid (n-1)
         return (env'', (nm, x) : xs)
 
   -- Generate some streams
-  gen_streams :: Env Var ValType -> Env Var Type -> Int -> Gen (Env Var ValType, [(Name Var, Stream () Var)])
-  gen_streams sE _pE 0
+  gen_streams :: Env Var Type -> Int -> Gen (Env Var Type, [Stream () Var])
+  gen_streams sE 0
    = return (sE, [])
-  gen_streams sE pE n
-   = do (t,str) <- gen_stream sE pE
-        nm      <- freshInEnv (sE :: Env Var ValType) :: Gen (Name Var)
-        (env', ss) <- gen_streams (Map.insert nm t sE) pE (n-1)
-        return (env', (nm, str) : ss)
+  gen_streams sE n
+   = do (e',s') <- oneof [ gen_fold sE
+                    , gen_filt sE (n-1) ]
+        (env', ss) <- gen_streams e' (n-1)
+        return (env', s' : ss)
 
+  gen_fold :: Env Var Type -> Gen (Env Var Type, Stream () Var)
+  gen_fold sE
+   = do n     <- freshInEnv sE
+        (z,t) <- gen_exp sE
+        let sE' = Map.insert n t sE
+        k     <- gen_exp_for_type t sE'
+        case t of
+         FunT [] t' -> return (sE', SFold n t' z k) 
+         _          -> gen_fold sE
 
-  -- Generate a single stream.
-  -- If the stream environment is empty, we need to take from the source.
-  -- If there's something in there already, we could do either
-  gen_stream :: Env Var ValType -> Env Var Type -> Gen (ValType, Stream () Var)
-  gen_stream s_env pre_env
-   | Map.null s_env
-   = streamSource
-   | otherwise
-   = oneof [ streamSource
-           , streamWindow      s_env
-           , streamTransformer s_env pre_env ]
-
-  -- Raw source or windowed
-  streamSource
-   = return (sourceType, Source)
-
-  sourceType = PairT streamType TimeT
-
-  -- Transformer: filter or map
-  streamTransformer :: Env Var ValType -> Env Var Type -> Gen (ValType, Stream () Var)
-  streamTransformer s_env pre_env
-   = do (i,t) <- oneof $ fmap return $ Map.toList s_env
-
-        st <- oneof [ return $ SFilter t
-                    , SMap t <$> arbitrary ]
-
-        let ty = typeOfStreamTransform st
-        let ot = outputOfStreamTransform st
-        (,) ot <$> (STrans <$> return st <*> gen_exp_for_type ty pre_env <*> return i)
-
-  -- Window
-  streamWindow :: Env Var ValType -> Gen (ValType, Stream () Var)
-  streamWindow s_env
-   = do (i,t) <- oneof $ fmap return $ Map.toList s_env
-
-        newer <- arbitrary
-        older <- arbitrary
-
-        return (t, SWindow t newer older i)
-
-  -- Generate some reductions using given stream environment
-  gen_reduces :: Env Var ValType -> Env Var Type -> Int -> Gen (Env Var Type, [(Name Var, Reduce () Var)])
-  gen_reduces _sE pE 0
-   = return (pE, [])
-  gen_reduces sE pE n
-   = do (t,red)    <- gen_reduce sE pE
-        nm         <- freshInEnv pE
-        (env', rs) <- gen_reduces sE (Map.insert nm t pE) (n-1)
-        return (env', (nm, red) : rs)
-
-  -- A reduction is a fold
-  gen_reduce :: Env Var ValType -> Env Var Type -> Gen (Type, Reduce () Var)
-  gen_reduce sE pE
-   = do (i,t)    <- oneof $ fmap return $ Map.toList sE
-        (zx, at) <- gen_exp pE
-        let a     = functionReturns at
-        kx       <- gen_exp_for_type (FunT [at, FunT [] t] a) pE
-        return (at, RFold t a kx zx i)
+  gen_filt :: Env Var Type -> Int -> Gen (Env Var Type, Stream () Var)
+  gen_filt sE num
+   = do num' <- choose (0, num)
+        pred      <- gen_exp_for_type (FunT [] BoolT) sE
+        (e', ss') <- gen_streams sE num'
+        return (e', SFilter pred ss')
 
 
 

@@ -2,8 +2,6 @@
 {-# LANGUAGE PatternGuards #-}
 module Icicle.Core.Stream.Check (
       checkStream
-    , StreamEnv (..)
-    , streamEnv
     ) where
 
 import              Icicle.Common.Type
@@ -14,41 +12,32 @@ import              Icicle.Core.Stream.Error
 
 import              P
 
-import qualified    Data.Map as Map
-
-
-data StreamEnv n =
- StreamEnv
- { scalars  :: Env n Type
- , streams  :: Env n ValType
- , concrete :: ValType
- }
-
-streamEnv :: Env n Type -> ValType -> StreamEnv n
-streamEnv pre conc
- = StreamEnv pre Map.empty conc
 
 
 checkStream
         :: Ord n
-        => StreamEnv n -> Stream a n
-        -> Either (StreamError a n) ValType
+        => Env n Type
+        -> Stream a n
+        -> Either (StreamError a n) (Env n Type)
 checkStream se s
  = case s of
-    Source
-     -> return $ PairT (concrete se) TimeT
-    SWindow t _ _ _
-     -> do
-            return t
+    SFold nm t z k
+     -> do  tz <- checkX se z
+            se'<- insertOrDie StreamErrorNameNotUnique se nm (funOfVal t)
+            tk <- checkX se' k
+            requireSame (StreamErrorTypeError z)
+                        (funOfVal t) tz
+            requireSame (StreamErrorTypeError k)
+                        (funOfVal t) tk
+            return se'
 
-    STrans st f n
-     -> do  inp <- lookupOrDie StreamErrorVarNotInEnv (streams se) n
-            fty <- first       StreamErrorExp $ typeExp coreFragmentWorkerFun (scalars se) f
+    SFilter x ss
+     -> do  tx <- checkX se x
+            requireSame (StreamErrorTypeError x)
+                        (funOfVal BoolT) tx
 
-            requireSame (StreamErrorTypeError f)
-                        (funOfVal $ inputOfStreamTransform st) (funOfVal inp)
-            requireSame (StreamErrorTypeError f)
-                        (typeOfStreamTransform st)              fty
-
-            return (outputOfStreamTransform st)
+            foldM       checkStream se  ss
+ where
+  checkX env x
+   = first StreamErrorExp $ typeExp coreFragmentWorkerFun env x
 

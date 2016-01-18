@@ -6,130 +6,138 @@ ok, loaded test/cli/repl/data.psv, 13 rows
 ok, flatten is now on
 > > -- A rather complicated feature to convert to Avalanche
 > - Flattened:
-gen$time = TIME
+conv$1 = TIME
 {
-  init acc$c$conv$13$simp$4@{Error} = ExceptNotAnError@{Error};
-  init acc$c$conv$13$simp$5@{Int} = 0@{Int};
-  init acc$conv$30$simp$6@{Buf 3 Error} = Buf []@{Buf 3 Error};
-  init acc$conv$30$simp$7@{Buf 3 Int} = Buf []@{Buf 3 Int};
-  load_resumable@{Error} acc$c$conv$13$simp$4;
-  load_resumable@{Int} acc$c$conv$13$simp$5;
-  load_resumable@{Buf 3 Error} acc$conv$30$simp$6;
-  load_resumable@{Buf 3 Int} acc$conv$30$simp$7;
-  for_facts (gen$fact$simp$40@{Error},
-             gen$fact$simp$41@{Int},
-             gen$fact$simp$42@{Time}) in new {
-    read@{Buf 3 Error} acc$conv$30$simp$6 = acc$conv$30$simp$6;
-    write acc$conv$30$simp$6 = Buf_push#@{Buf 3 Error}
-                               acc$conv$30$simp$6
-                               gen$fact$simp$40;
-    read@{Buf 3 Int} acc$conv$30$simp$7 = acc$conv$30$simp$7;
-    write acc$conv$30$simp$7 = Buf_push#@{Buf 3 Int}
-                               acc$conv$30$simp$7
-                               gen$fact$simp$41;
-    init flat$1$simp$10@{Error} = ExceptNotAnError@{Error};
-    init flat$1$simp$11@{Bool} = False@{Bool};
-    if (eq#@{Error} gen$fact$simp$40
+  init acc$conv$24$simp$7@{Buf 3 Error} = Buf []@{Buf 3 Error};
+  init acc$conv$24$simp$8@{Buf 3 Int} = Buf []@{Buf 3 Int};
+  init acc$c$conv$9$simp$9@{Error} = ExceptNotAnError@{Error};
+  init acc$c$conv$9$simp$10@{Int} = 0@{Int};
+  init acc$conv$8$simp$11@{Error} = ExceptNotAnError@{Error};
+  write acc$conv$8$simp$11 = ExceptNotAnError@{Error};
+  write acc$c$conv$9$simp$9 = ExceptNotAnError@{Error};
+  write acc$c$conv$9$simp$10 = 0@{Int};
+  load_resumable@{Buf 3 Error} acc$conv$24$simp$7;
+  load_resumable@{Buf 3 Int} acc$conv$24$simp$8;
+  load_resumable@{Error} acc$c$conv$9$simp$9;
+  load_resumable@{Int} acc$c$conv$9$simp$10;
+  load_resumable@{Error} acc$conv$8$simp$11;
+  for_facts (conv$0$simp$56@{Error},
+             conv$0$simp$57@{Int},
+             conv$0$simp$58@{Time}) in new {
+    init flat$0$simp$19@{Error} = ExceptNotAnError@{Error};
+    init flat$0$simp$20@{Bool} = False@{Bool};
+    if (eq#@{Error} conv$0$simp$56
         (ExceptNotAnError@{Error})) {
-      write flat$1$simp$10 = ExceptNotAnError@{Error};
-      write flat$1$simp$11 = gt#@{Int}
-                             gen$fact$simp$41 (10@{Int});
+      write flat$0$simp$19 = ExceptNotAnError@{Error};
+      write flat$0$simp$20 = gt#@{Int}
+                             conv$0$simp$57 (10@{Int});
     } else {
-      write flat$1$simp$10 = gen$fact$simp$40;
-      write flat$1$simp$11 = False@{Bool};
+      write flat$0$simp$19 = conv$0$simp$56;
+      write flat$0$simp$20 = False@{Bool};
     }
-    read@{Error} flat$1$simp$12 = flat$1$simp$10;
-    read@{Bool} flat$1$simp$13 = flat$1$simp$11;
-    init flat$2@{Bool} = False@{Bool};
-    if (eq#@{Error} flat$1$simp$12
+    read@{Error} flat$0$simp$21 = flat$0$simp$19;
+    read@{Bool} flat$0$simp$22 = flat$0$simp$20;
+    init flat$1@{Bool} = False@{Bool};
+    if (eq#@{Error} flat$0$simp$21
         (ExceptNotAnError@{Error})) {
-      write flat$2 = flat$1$simp$13;
+      write flat$1 = flat$0$simp$22;
     } 
      else {
-      write flat$2 = True@{Bool};
+      write flat$1 = True@{Bool};
     } 
     
-    read@{Bool} flat$2 = flat$2;
-    if (flat$2) {
-      read@{Error} acc$c$conv$13$simp$14 = acc$c$conv$13$simp$4;
-      read@{Int} acc$c$conv$13$simp$15 = acc$c$conv$13$simp$5;
-      init flat$3$simp$16@{Error} = ExceptNotAnError@{Error};
-      init flat$3$simp$17@{Int} = 0@{Int};
-      if (eq#@{Error} gen$fact$simp$40
+    read@{Bool} flat$1 = flat$1;
+    if (flat$1) {
+      write acc$conv$8$simp$11 = conv$0$simp$56;
+      read@{Error} conv$8$simp$23 = acc$conv$8$simp$11;
+      read@{Error} c$conv$9$simp$28 = acc$c$conv$9$simp$9;
+      read@{Int} c$conv$9$simp$29 = acc$c$conv$9$simp$10;
+      init flat$2$simp$30@{Error} = ExceptNotAnError@{Error};
+      init flat$2$simp$31@{Int} = 0@{Int};
+      if (eq#@{Error} conv$8$simp$23
           (ExceptNotAnError@{Error})) {
-        init flat$6$simp$18@{Error} = ExceptNotAnError@{Error};
-        init flat$6$simp$19@{Int} = 0@{Int};
-        if (eq#@{Error} acc$c$conv$13$simp$14
+        init flat$5$simp$32@{Error} = ExceptNotAnError@{Error};
+        init flat$5$simp$33@{Int} = 0@{Int};
+        if (eq#@{Error} c$conv$9$simp$28
             (ExceptNotAnError@{Error})) {
-          write flat$6$simp$18 = ExceptNotAnError@{Error};
-          write flat$6$simp$19 = add#@{Int}
-                                 acc$c$conv$13$simp$15 (1@{Int});
+          write flat$5$simp$32 = ExceptNotAnError@{Error};
+          write flat$5$simp$33 = add#@{Int}
+                                 c$conv$9$simp$29 (1@{Int});
         } else {
-          write flat$6$simp$18 = acc$c$conv$13$simp$14;
-          write flat$6$simp$19 = 0@{Int};
+          write flat$5$simp$32 = c$conv$9$simp$28;
+          write flat$5$simp$33 = 0@{Int};
         }
-        read@{Error} flat$6$simp$20 = flat$6$simp$18;
-        read@{Int} flat$6$simp$21 = flat$6$simp$19;
-        init flat$7$simp$22@{Error} = ExceptNotAnError@{Error};
-        init flat$7$simp$23@{Int} = 0@{Int};
-        if (eq#@{Error} flat$6$simp$20
+        read@{Error} flat$5$simp$34 = flat$5$simp$32;
+        read@{Int} flat$5$simp$35 = flat$5$simp$33;
+        init flat$6$simp$36@{Error} = ExceptNotAnError@{Error};
+        init flat$6$simp$37@{Int} = 0@{Int};
+        if (eq#@{Error} flat$5$simp$34
             (ExceptNotAnError@{Error})) {
-          write flat$7$simp$22 = ExceptNotAnError@{Error};
-          write flat$7$simp$23 = flat$6$simp$21;
+          write flat$6$simp$36 = ExceptNotAnError@{Error};
+          write flat$6$simp$37 = flat$5$simp$35;
         } else {
-          write flat$7$simp$22 = flat$6$simp$20;
-          write flat$7$simp$23 = 0@{Int};
+          write flat$6$simp$36 = flat$5$simp$34;
+          write flat$6$simp$37 = 0@{Int};
         }
-        read@{Error} flat$7$simp$24 = flat$7$simp$22;
-        read@{Int} flat$7$simp$25 = flat$7$simp$23;
-        write flat$3$simp$16 = flat$7$simp$24;
-        write flat$3$simp$17 = flat$7$simp$25;
+        read@{Error} flat$6$simp$38 = flat$6$simp$36;
+        read@{Int} flat$6$simp$39 = flat$6$simp$37;
+        write flat$2$simp$30 = flat$6$simp$38;
+        write flat$2$simp$31 = flat$6$simp$39;
       } else {
-        write flat$3$simp$16 = gen$fact$simp$40;
-        write flat$3$simp$17 = 0@{Int};
+        write flat$2$simp$30 = conv$8$simp$23;
+        write flat$2$simp$31 = 0@{Int};
       }
-      read@{Error} flat$3$simp$26 = flat$3$simp$16;
-      read@{Int} flat$3$simp$27 = flat$3$simp$17;
-      write acc$c$conv$13$simp$4 = flat$3$simp$26;
-      write acc$c$conv$13$simp$5 = flat$3$simp$27;
+      read@{Error} flat$2$simp$40 = flat$2$simp$30;
+      read@{Int} flat$2$simp$41 = flat$2$simp$31;
+      write acc$c$conv$9$simp$9 = flat$2$simp$40;
+      write acc$c$conv$9$simp$10 = flat$2$simp$41;
     }
+    read@{Buf 3 Error} acc$conv$24$simp$7 = acc$conv$24$simp$7;
+    write acc$conv$24$simp$7 = Buf_push#@{Buf 3 Error}
+                               acc$conv$24$simp$7
+                               conv$0$simp$56;
+    read@{Buf 3 Int} acc$conv$24$simp$8 = acc$conv$24$simp$8;
+    write acc$conv$24$simp$8 = Buf_push#@{Buf 3 Int}
+                               acc$conv$24$simp$8
+                               conv$0$simp$57;
   }
-  save_resumable@{Error} acc$c$conv$13$simp$4;
-  save_resumable@{Int} acc$c$conv$13$simp$5;
-  save_resumable@{Buf 3 Error} acc$conv$30$simp$6;
-  save_resumable@{Buf 3 Int} acc$conv$30$simp$7;
-  read@{Error} c$conv$13$simp$28 = acc$c$conv$13$simp$4;
-  read@{Int} c$conv$13$simp$29 = acc$c$conv$13$simp$5;
-  read@{Buf 3 Error} conv$30$simp$30 = acc$conv$30$simp$6;
-  read@{Buf 3 Int} conv$30$simp$31 = acc$conv$30$simp$7;
-  init flat$16$simp$32@{Error} = ExceptNotAnError@{Error};
-  init flat$16$simp$33@{Int} = 0@{Int};
-  init flat$16$simp$34@{Array Error} = []@{Array Error};
-  init flat$16$simp$35@{Array Int} = []@{Array Int};
-  if (eq#@{Error} c$conv$13$simp$28
+  save_resumable@{Buf 3 Error} acc$conv$24$simp$7;
+  save_resumable@{Buf 3 Int} acc$conv$24$simp$8;
+  save_resumable@{Error} acc$c$conv$9$simp$9;
+  save_resumable@{Int} acc$c$conv$9$simp$10;
+  save_resumable@{Error} acc$conv$8$simp$11;
+  read@{Buf 3 Error} conv$24$simp$44 = acc$conv$24$simp$7;
+  read@{Buf 3 Int} conv$24$simp$45 = acc$conv$24$simp$8;
+  read@{Error} c$conv$9$simp$46 = acc$c$conv$9$simp$9;
+  read@{Int} c$conv$9$simp$47 = acc$c$conv$9$simp$10;
+  init flat$16$simp$48@{Error} = ExceptNotAnError@{Error};
+  init flat$16$simp$49@{Int} = 0@{Int};
+  init flat$16$simp$50@{Array Error} = []@{Array Error};
+  init flat$16$simp$51@{Array Int} = []@{Array Int};
+  if (eq#@{Error} c$conv$9$simp$46
       (ExceptNotAnError@{Error})) {
-    write flat$16$simp$32 = ExceptNotAnError@{Error};
-    write flat$16$simp$33 = c$conv$13$simp$29;
-    write flat$16$simp$34 = Buf_read#@{Array Error}
-                            conv$30$simp$30;
-    write flat$16$simp$35 = Buf_read#@{Array Int}
-                            conv$30$simp$31;
+    write flat$16$simp$48 = ExceptNotAnError@{Error};
+    write flat$16$simp$49 = c$conv$9$simp$47;
+    write flat$16$simp$50 = Buf_read#@{Array Error}
+                            conv$24$simp$44;
+    write flat$16$simp$51 = Buf_read#@{Array Int}
+                            conv$24$simp$45;
   } else {
-    write flat$16$simp$32 = c$conv$13$simp$28;
-    write flat$16$simp$33 = 0@{Int};
-    write flat$16$simp$34 = unsafe_Array_create#@{Error}
+    write flat$16$simp$48 = c$conv$9$simp$46;
+    write flat$16$simp$49 = 0@{Int};
+    write flat$16$simp$50 = unsafe_Array_create#@{Error}
                             (0@{Int});
-    write flat$16$simp$35 = unsafe_Array_create#@{Int}
+    write flat$16$simp$51 = unsafe_Array_create#@{Int}
                             (0@{Int});
   }
-  read@{Error} flat$16$simp$36 = flat$16$simp$32;
-  read@{Int} flat$16$simp$37 = flat$16$simp$33;
-  read@{Array Error} flat$16$simp$38 = flat$16$simp$34;
-  read@{Array Int} flat$16$simp$39 = flat$16$simp$35;
-  output@{(Sum Error (Int, Array (Sum Error Int)))} repl (flat$16$simp$36@{Error},
-               flat$16$simp$37@{Int},
-               flat$16$simp$38@{Array Error},
-               flat$16$simp$39@{Array Int});
+  read@{Error} flat$16$simp$52 = flat$16$simp$48;
+  read@{Int} flat$16$simp$53 = flat$16$simp$49;
+  read@{Array Error} flat$16$simp$54 = flat$16$simp$50;
+  read@{Array Int} flat$16$simp$55 = flat$16$simp$51;
+  output@{(Sum Error (Int, Array (Sum Error Int)))} repl (flat$16$simp$52@{Error},
+               flat$16$simp$53@{Int},
+               flat$16$simp$54@{Array Error},
+               flat$16$simp$55@{Array Int});
 }
 
 - Core evaluation:
@@ -138,7 +146,7 @@ gen$time = TIME
 
 > > -- Something involves the abstract buffer type
 > - Flattened:
-gen$time = TIME
+conv$1 = TIME
 {
   init acc$conv$2$simp$14@{Array Time} = []@{Array Time};
   init acc$conv$2$simp$15@{Array (Buf 2 Error)} = []@{Array (Buf 2 Error)};
@@ -146,22 +154,22 @@ gen$time = TIME
   load_resumable@{Array Time} acc$conv$2$simp$14;
   load_resumable@{Array (Buf 2 Error)} acc$conv$2$simp$15;
   load_resumable@{Array (Buf 2 Int)} acc$conv$2$simp$16;
-  for_facts (gen$fact$simp$79@{Error},
-             gen$fact$simp$80@{Int},
-             gen$fact$simp$81@{Time}) in new {
-    read@{Array Time} acc$conv$2$simp$18 = acc$conv$2$simp$14;
-    read@{Array (Buf 2 Error)} acc$conv$2$simp$19 = acc$conv$2$simp$15;
-    read@{Array (Buf 2 Int)} acc$conv$2$simp$20 = acc$conv$2$simp$16;
+  for_facts (conv$0$simp$79@{Error},
+             conv$0$simp$80@{Int},
+             conv$0$simp$81@{Time}) in new {
+    read@{Array Time} conv$2$simp$18 = acc$conv$2$simp$14;
+    read@{Array (Buf 2 Error)} conv$2$simp$19 = acc$conv$2$simp$15;
+    read@{Array (Buf 2 Int)} conv$2$simp$20 = acc$conv$2$simp$16;
     let simp$407 = Buf_make#@{Buf 2 Error} (()@{Unit});
     let simp$219 = Buf_push#@{Buf 2 Error}
-                   simp$407 gen$fact$simp$79;
+                   simp$407 conv$0$simp$79;
     let simp$409 = Buf_make#@{Buf 2 Int} (()@{Unit});
     let simp$221 = Buf_push#@{Buf 2 Int}
-                   simp$409 gen$fact$simp$80;
+                   simp$409 conv$0$simp$80;
     init flat$1@{Bool} = False@{Bool};
-    init flat$2@{Array Time} = acc$conv$2$simp$18;
-    init flat$3$simp$22@{Array (Buf 2 Error)} = acc$conv$2$simp$19;
-    init flat$3$simp$23@{Array (Buf 2 Int)} = acc$conv$2$simp$20;
+    init flat$2@{Array Time} = conv$2$simp$18;
+    init flat$3$simp$22@{Array (Buf 2 Error)} = conv$2$simp$19;
+    init flat$3$simp$23@{Array (Buf 2 Int)} = conv$2$simp$20;
     read@{Array Time} flat$2 = flat$2;
     let flat$4 = Array_length#@{Time}
                  flat$2;
@@ -172,15 +180,15 @@ gen$time = TIME
       let simp$100 = unsafe_Array_index#@{Time}
                      flat$2 flat$5;
       if (eq#@{Time} simp$100
-          gen$fact$simp$81) {
+          conv$0$simp$81) {
         let simp$235 = unsafe_Array_index#@{Buf 2 Error}
                        flat$3$simp$25 flat$5;
         let simp$237 = unsafe_Array_index#@{Buf 2 Int}
                        flat$3$simp$26 flat$5;
         let simp$251 = Buf_push#@{Buf 2 Error}
-                       simp$235 gen$fact$simp$79;
+                       simp$235 conv$0$simp$79;
         let simp$254 = Buf_push#@{Buf 2 Int}
-                       simp$237 gen$fact$simp$80;
+                       simp$237 conv$0$simp$80;
         write flat$3$simp$22 = Array_put#@{Buf 2 Error}
                                flat$3$simp$25 flat$5 simp$251;
         write flat$3$simp$23 = Array_put#@{Buf 2 Int}
@@ -196,7 +204,7 @@ gen$time = TIME
       let simp$117 = Array_length#@{Time}
                      flat$8;
       write flat$2 = Array_put#@{Time} flat$8
-                     simp$117 gen$fact$simp$81;
+                     simp$117 conv$0$simp$81;
       read@{Array (Buf 2 Error)} flat$9$simp$28 = flat$3$simp$22;
       read@{Array (Buf 2 Int)} flat$9$simp$29 = flat$3$simp$23;
       let simp$122 = Array_length#@{Buf 2 Error}

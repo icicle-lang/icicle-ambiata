@@ -71,6 +71,7 @@ convertQueryTop
         -> FreshT n (Either (ConvertError a n)) (C.Program () n)
 convertQueryTop feats qt
  = do   inp <- fresh
+        now <- fresh
         (ty,fs) <- lift
                  $ maybeToRight (ConvertErrorNoSuchFeature (feature qt))
                  $ Map.lookup (feature qt) (featuresConcretes feats)
@@ -80,13 +81,11 @@ convertQueryTop feats qt
                   Just t' -> return t'
         let inpTy'dated = T.PairT inpTy T.TimeT
 
-        (now,bs,ret) <- evalStateT (do
-                                       now      <- traverse convertFreshenAdd $ featureNow feats
-                                       (bs,ret) <- convertQuery $ query qt
-                                       pure (now, bs, ret))
-                                   (ConvertState inp inpTy'dated fs Map.empty)
-        let bs'   = strm inp C.Source <> bs
-        return (programOfBinds (queryName qt) inpTy bs' now () ret)
+        (bs,ret) <- evalStateT (do
+                                       maybe (return ()) (flip convertFreshenAddAs now) $ featureNow feats
+                                       convertQuery $ query qt)
+                                   (ConvertState inp inpTy'dated now fs Map.empty)
+        return (programOfBinds (queryName qt) inpTy inp now bs () ret)
 
 
 -- | Convert a Query to Core
@@ -115,15 +114,9 @@ convertQuery q
     -- We convert the rest of the query and pass through the fresh filter binding's name,
     -- as that is what the data is operating on.
     (Filter _ e : _)
-     -> do  n'      <- lift fresh
-            nv      <- lift fresh
-            e'      <- convertWithInputName nv $ convertExp e
-
-            (bs, b) <- convertWithInputName n' $ convertQuery q'
-            (inpstream, inpty) <- convertInput
-
-            let bs'  = strm n' (C.STrans (C.SFilter inpty) (CE.xLam nv inpty e') inpstream) <> bs
-
+     -> do  e'      <- convertExp e
+            (bs, b) <- convertQuery q'
+            let bs' = filt e' (streams bs) <> bs { streams = [] }
             return (bs', b)
 
 
@@ -139,15 +132,20 @@ convertQuery q
     -- We could support "older than" by storing reduce result of the end of window and
     -- storing all corresponding newer thans in the snapshot, so if this ends up being an issue
     -- we can address it.
-    (Windowed _ newerThan olderThan : _)
-     -> do  n'      <- lift fresh
-            (bs, b) <- convertWithInputName n' $ convertQuery q'
+    (Windowed ann newerThan olderThan : _)
+     -> do  (bs, b) <- convertQuery q'
+            now <- convertDateName
+            (inp,_) <- convertInput
 
-            let newerThan' = newerThan
-            let olderThan' = olderThan
+            fs <- convertFeatures
+            let f = featureContextFactTime fs
+            fact <- case Map.lookup f (featureContextVariables fs) of
+                        Just f' -> return $ featureVariableExp f' $ CE.xVar inp
+                        Nothing -> convertError $ ConvertErrorExpNoSuchVariable (annAnnot ann) f
 
-            (inpstream, inpty) <- convertInput
-            let bs'  = strm n' (C.SWindow inpty newerThan' olderThan' inpstream) <> bs
+            let e'  = CE.makeApps () (CE.xPrim $ C.PrimWindow newerThan olderThan)
+                    [ CE.xVar now, fact ]
+            let bs' = filt e' (streams bs) <> bs { streams = [] }
             return (bs', b)
 
 
@@ -164,21 +162,14 @@ convertQuery q
     (Latest _ _ : _)
      -> do  -- We can cheat!
             -- Convert the entire latest query as a fold.
-            (inpstream,inpty) <- convertInput
-
-            n'inp      <- lift fresh
-            n'acc      <- lift fresh
-            res        <- convertWithInputName n'inp $ convertFold q
+            res        <- convertFold q
             n'red      <- lift fresh
             n'ret      <- lift fresh
 
             let k'      = beta
-                        $ CE.xLam n'acc (typeFold res)
-                        $ CE.xLam n'inp inpty
-                        ( foldKons res CE.@~ CE.xVar n'acc)
+                        ( foldKons res CE.@~ CE.xVar n'red)
 
-            let b'red   = red  n'red
-                        $ C.RFold inpty (typeFold res) k' (foldZero res) inpstream
+            let b'red   = sfold  n'red (typeFold res) (foldZero res) k'
             let b'ret   = post n'ret $ beta (mapExtract res CE.@~ CE.xVar n'red)
 
             return (b'red <> b'ret, n'ret)
@@ -193,26 +184,21 @@ convertQuery q
     --
     (GroupBy (Annot { annAnnot = ann, annResult = retty }) e : _)
      -> do  n'      <- lift fresh
-            n''     <- lift fresh
-            nmap    <- lift fresh
-            nval    <- lift fresh
 
             -- Convert the rest of the query into a fold.
             -- We have the "k"onstructor, the "z"ero, and the e"x"tract,
             -- as well as the intermediate result type before extraction.
             -- See convertFold.
-            res     <- convertWithInputName nval $ convertFold q'
+            res     <- convertFold q'
 
             tK      <- convertValType' $ annResult $ annotOfExp e
             let tV   = typeFold res
 
             -- Convert the "by" to a simple expression.
             -- This becomes the map insertion key.
-            e'      <- convertWithInputName nval $ convertExp e
+            e'      <- convertExp e
 
             let mapt = T.MapT tK tV
-
-            (inpstream, inpty) <- convertInput
 
             -- For each input element, we use the group by as the key, and insert into a map.
             --
@@ -226,24 +212,18 @@ convertQuery q
                     = C.PrimMapInsertOrUpdate tK tV
 
             let insertOrUpdate
-                    = CE.makeApps () (CE.xPrim $ C.PrimMap $ priminsert)
+                    = beta
+                    $ CE.makeApps () (CE.xPrim $ C.PrimMap $ priminsert)
                     [ foldKons res
                     , foldKons res `CE.xApp` foldZero res
                     , e'
-                    , CE.xVar nmap]
-
-            let insertOrUpdate'
-                    = beta
-                    $ CE.xLam nmap mapt
-                    $ CE.xLam nval inpty
-                    $ insertOrUpdate
+                    , CE.xVar n']
 
             let emptyMap
                     = CE.emptyMap tK tV
 
             -- Perform the map fold
-            let r = red n'
-                  $ C.RFold inpty mapt insertOrUpdate' emptyMap inpstream
+            let r = sfold n' mapt emptyMap insertOrUpdate
 
             -- After all the elements have been seen, we go through the map and perform
             -- the "extract" on each value.
@@ -264,8 +244,10 @@ convertQuery q
 
             nkey    <- lift fresh
             nkey'   <- lift fresh
+            nval    <- lift fresh
             nval'   <- lift fresh
             nval''  <- lift fresh
+            nmap    <- lift fresh
             nmap'   <- lift fresh
 
             nErr    <- lift fresh
@@ -297,6 +279,7 @@ convertQuery q
                     CE.@~ emptyResult
                     CE.@~ CE.xVar n'
 
+            n''     <- lift fresh
             let p   = post n'' mapResult
 
             return (r <> p, n'')
@@ -318,9 +301,7 @@ convertQuery q
             (bs, nm) <- convertReduce e
 
             -- The key and value will be available after the fold
-            convertModifyFeatures (Map.delete k)
             k' <- convertFreshenAdd k
-            convertModifyFeatures (Map.delete v)
             v' <- convertFreshenAdd v
 
             -- Convert the rest of the query into a map fold.
@@ -353,7 +334,6 @@ convertQuery q
 
             n'      <- lift fresh
             n''     <- lift fresh
-            nmap    <- lift fresh
             nacc    <- lift fresh
             nval    <- lift fresh
             n'ignore<- lift fresh
@@ -367,7 +347,7 @@ convertQuery q
 
             -- Convert the "by" to a simple expression.
             -- This becomes the map insertion key.
-            e'      <- convertWithInputName nval $ convertExp e
+            e'      <- convertExp e
 
             let mapt = T.MapT tkey tval
 
@@ -376,21 +356,19 @@ convertQuery q
             -- Just put each element in the map, potentially overwriting the last one.
             let insertOrUpdate
                   = beta
-                  $ CE.xLam nmap mapt
-                  $ CE.xLam nval inpty
                   ( CE.xPrim (C.PrimMap $ C.PrimMapInsertOrUpdate tkey tval)
-                    CE.@~ (CE.xLam n'ignore inpty $ CE.xVar nval)
-                    CE.@~ (CE.xVar nval)
+                    CE.@~ (CE.xLam n'ignore inpty $ CE.xVar inpstream )
+                    CE.@~ (CE.xVar inpstream)
                     CE.@~  e'
-                    CE.@~ CE.xVar nmap )
+                    CE.@~ CE.xVar n' )
 
             -- Perform the map fold
-            let r = red n'
-                  $ C.RFold inpty mapt insertOrUpdate
-                  ( CE.emptyMap tkey tval)
-                    inpstream
+            let r = sfold n' mapt (CE.emptyMap tkey tval) insertOrUpdate
 
             -- Perform a fold over that map
+            --
+            -- TODO: we should be able to rewrite this to have an intermediate fold result and map of key to boolean.
+            -- Then we apply the fold if key is not in map and throw map away at end
             let p = post n''
                   $ beta
                   ( mapExtract res CE.@~
@@ -412,31 +390,27 @@ convertQuery q
                 (inpstream, inpty) <- convertInput
                 let inpty' = T.PairT t' inpty
 
-                n'e     <- lift fresh
-
-                e'      <- convertWithInputName n'e $ convertExp def
+                e'      <- convertExp def
 
                 let xfst = CE.xApp
                          $ CE.xPrim $ C.PrimMinimal $ Min.PrimPair $ Min.PrimPairFst t' inpty
                 let xsnd = CE.xApp
                          $ CE.xPrim $ C.PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd t' inpty
 
-                convertModifyFeatures (Map.insert b (FeatureVariable (annResult $ annotOfExp def) xfst False) . Map.map (\fv -> fv { featureVariableExp = featureVariableExp fv . xsnd }))
+                convertModifyFeaturesMap (Map.insert b (FeatureVariable (annResult $ annotOfExp def) xfst False) . Map.map (\fv -> fv { featureVariableExp = featureVariableExp fv . xsnd }))
 
                 let pair = (CE.xPrim $ C.PrimMinimal $ Min.PrimConst $ Min.PrimConstPair t' inpty)
-                         CE.@~ e' CE.@~ CE.xVar n'e
+                         CE.@~ e' CE.@~ CE.xVar inpstream
 
 
                 n'r     <- lift fresh
-                let bs   = strm n'r
-                         $ C.STrans (C.SMap inpty inpty') (CE.xLam n'e inpty pair) inpstream
+                let bs   = sfold n'r inpty' pair pair
                 (bs', n'') <- convertWithInput n'r inpty' $ convertQuery q'
 
                 return (bs <> bs', n'')
 
          TemporalityPure
           -> do e'      <- convertExp def
-                convertModifyFeatures (Map.delete b)
                 b'      <- convertFreshenAdd b
                 let bs   = pre b' e'
                 (bs', n') <- convertQuery q'
@@ -444,7 +418,6 @@ convertQuery q
 
          TemporalityAggregate
           -> do (bs,n')      <- convertReduce    def
-                convertModifyFeatures (Map.delete b)
                 b'           <- convertFreshenAdd b
                 (bs',n'')    <- convertQuery     q'
                 return (bs <> post b' (CE.xVar n') <> bs', n'')
@@ -472,26 +445,15 @@ convertQuery q
      -> do  -- Type helpers
             tU <- convertValType' $ annResult $ annotOfExp $ foldWork f
 
-            -- Generate fresh names
-            -- Element of the stream
-            -- :                input type
-            n'elem <- lift fresh
-
-            z   <- convertWithInputName n'elem $ convertExp (foldInit f)
+            z   <- convertExp (foldInit f)
             -- Current accumulator is only available in worker
             -- Remove binding before converting init and work expressions,
             -- just in case the same name has been used elsewhere
-            convertModifyFeatures (Map.delete (foldBind f))
             n'a <- convertFreshenAdd $ foldBind f
-            k   <- convertWithInputName n'elem $ convertExp (foldWork f)
-
-            (inpstream, inpty) <- convertInput
-            -- Worker function of the fold
-            let go  = CE.xLam n'a tU
-                    $ CE.xLam n'elem inpty k
+            k   <- convertExp (foldWork f)
 
             -- Bind the fold to the original name
-            let bs = red n'a (C.RFold inpty tU go z inpstream)
+            let bs = sfold n'a tU z k
 
             (bs', n'')      <- convertQuery q'
 

@@ -8,7 +8,6 @@ import Icicle.Common.Fresh
 import qualified Icicle.Common.Exp.Simp.Beta as B
 import Icicle.Core.Program.Program
 import Icicle.Core.Stream.Stream
-import Icicle.Core.Reduce.Reduce
 import qualified Icicle.Core.Exp.Simp as S
 import qualified Icicle.Core.Exp.Exp as C
 
@@ -31,12 +30,10 @@ simpProgram :: Ord n => a -> Program a n -> Fresh n (Program a n)
 simpProgram a_fresh p
   = do pres <- forall simp       (precomps  p)
        poss <- forall simp       (postcomps p)
-       ss   <- forall simpStream (streams   p)
-       rs   <- forall simpReduce (reduces   p)
+       ss   <- mapM (simpStream a_fresh) (streams   p)
        rets <- forall simp       (returns   p)
        return p { precomps  = pres
                 , streams   = ss
-                , reduces   = rs
                 , postcomps = poss
                 , returns   = rets }
   where forall f = sequenceA . fmap (sequenceA . fmap (f a_fresh))
@@ -45,21 +42,10 @@ simpProgram a_fresh p
 -- | Simp the exps in stream
 --
 simpStream :: Ord n => a -> Stream a n -> Fresh n (Stream a n)
-simpStream a_fresh ss = case ss of
-  Source
-    ->    return ss
-  SWindow t x mx n
-    -> return (SWindow t x mx n)
-  STrans t x n
-    -> do x'  <- simp a_fresh x
-          return (STrans t x' n)
+simpStream a_fresh ss
+ = case ss of
+  SFold n t z k
+   -> SFold n t <$> simp a_fresh z <*> simp a_fresh k
+  SFilter x ss'
+   -> SFilter <$> simp a_fresh x <*> mapM (simpStream a_fresh) ss'
 
-
--- | Simp the exps in reduce, perhaps we can do something better
---
-simpReduce :: Ord n => a -> Reduce a n -> Fresh n (Reduce a n)
-simpReduce a_fresh ss = case ss of
-  RFold t1 t2 x1 x2 n
-    -> do y1 <- simp a_fresh x1
-          y2 <- simp a_fresh x2
-          return $ RFold t1 t2 y1 y2 n

@@ -340,6 +340,26 @@ flatX a_fresh xx stm
        | otherwise
        -> lift $ Left $ FlattenErrorPrimBadArgs p xs
 
+      -- TODO: PrimWindow should probably be a Min primitive, or perhaps Flat primitive as well. This should keep fact in history if it is greater than newer than, but not less than older than.
+      Core.PrimWindow newerThan olderThan
+       | [now, fact] <- xs
+       -> flatX' now
+       $  \now'
+       -> flatX' fact
+       $  \fact'
+       -> let  ge   = xPrim $ Flat.PrimMinimal $ Min.PrimRelation Min.PrimRelationGe TimeT
+               andb = xPrim $ Flat.PrimMinimal $ Min.PrimLogical  Min.PrimLogicalAnd
+          in case olderThan of
+              Just olderThan'
+               -> stm (andb `makeApps'`
+                        [ ge `makeApps'` [fact', windowEdge now' newerThan]
+                        , ge `makeApps'` [windowEdge now' olderThan', fact']])
+              Nothing
+               -> stm (ge `makeApps'` [fact', windowEdge now' newerThan])
+
+       | otherwise
+       -> lift $ Left $ FlattenErrorPrimBadArgs p xs
+
 
   -- Convert arguments to a simple primitive.
   -- conv is what we've already converted
@@ -503,4 +523,8 @@ flatX a_fresh xx stm
             put arr i x = fpArrUpd t `makeApps'` [arr, i, x]
 
         update n'acc t' (\arr -> put arr (sz arr) push)
+
+  windowEdge x (Days   d) = xPrim (Flat.PrimMinimal $ Min.PrimTime Min.PrimTimeMinusDays)   `makeApps'` [x, xValue IntT $ VInt d]
+  windowEdge x (Weeks  w) = xPrim (Flat.PrimMinimal $ Min.PrimTime Min.PrimTimeMinusDays)   `makeApps'` [x, xValue IntT $ VInt (7*w)]
+  windowEdge x (Months m) = xPrim (Flat.PrimMinimal $ Min.PrimTime Min.PrimTimeMinusMonths) `makeApps'` [x, xValue IntT $ VInt m]
 

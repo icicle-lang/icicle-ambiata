@@ -10,7 +10,7 @@ module Icicle.Core.Program.Fusion (
 import Icicle.Common.Base
 import Icicle.Common.Type
 import Icicle.Core.Program.Program
-import qualified Icicle.Common.Exp.Exp as X
+import Icicle.Core.Program.Subst
 
 import              P
 
@@ -32,39 +32,28 @@ fusePrograms a_fresh ln lp rn rp
 
 -- | Fuse programs together, assuming they already have no name clashes.
 fuseProgramsDistinctNames :: Ord n => a -> Program a n -> Program a n -> Either (FusionError n) (Program a n)
-fuseProgramsDistinctNames a_fresh lp rp
- | input lp /= input rp
+fuseProgramsDistinctNames _ lp rp
+ | inputType lp /= inputType rp
  = Left
- $ FusionErrorNotSameType (input lp) (input rp)
+ $ FusionErrorNotSameType (inputType lp) (inputType rp)
  | otherwise
  = return
  $ Program
- { input     = input lp
- , precomps  = precomps  lp <> precomps  rp
- , streams   = streams   lp <> streams   rp
- , reduces   = reduces   lp <> reduces   rp
- , postdate  = postdate'
- , postcomps = postdate'bind <> postcomps lp <> postcomps rp
- , returns   = returns   lp <> returns   rp
+ { inputName = inputName lp
+ , inputType = inputType lp
+ , snaptimeName = snaptimeName lp
+ , precomps  = precomps  lp <> substSnds (precomps  rp)
+ , streams   = streams   lp <> substStms (streams   rp)
+ , postcomps = postcomps lp <> substSnds (postcomps rp)
+ , returns   = returns   lp <> substSnds (returns   rp)
  }
  where
-  -- Get new date binding for use in postcomputation.
-  (postdate', postdate'bind)
-  -- If both use the date, we need to bind both values
-   | Just ld <- postdate lp
-   , Just rd <- postdate rp
-   = (Just ld, [(rd, X.XVar a_fresh ld)])
+  substSnds = unsafeSubstSnds    inpsubst
+  substStms = unsafeSubstStreams inpsubst
 
-   -- Only one uses the date
-   | Just ld <- postdate lp
-   = (Just ld, [])
-
-   | Just rd <- postdate rp
-   = (Just rd, [])
-
-   -- Neither use the date
-   | otherwise
-   = (Nothing, [])
+  inpsubst
+   = [ (inputName    rp, inputName    lp)
+     , (snaptimeName rp, snaptimeName lp) ]
 
 
 -- | Fuse a list of programs together, prefixing each with its name

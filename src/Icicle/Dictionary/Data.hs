@@ -97,10 +97,15 @@ parseFact (Dictionary { dictionaryEntries = dict }) fact'
 featureMapOfDictionary :: Dictionary -> STC.Features () Variable
 featureMapOfDictionary (Dictionary { dictionaryEntries = ds, dictionaryFunctions = functions })
  = STC.Features
- (Map.fromList $ concatMap go ds)
+ (Map.fromList $ concatMap mkFeatureContext ds)
  (Map.fromList $ fmap (\(a,(b,_)) -> (a,b)) functions)
  (Just $ var "now")
  where
+
+  mkFeatureContext d
+   = let mm = go d
+     in  fmap (\(k,(t,m)) -> (k, (t, STC.FeatureContext m (var "time")))) mm
+
   go (DictionaryEntry (Attribute attr) (ConcreteDefinition enc _))
    | StructT st@(StructType fs) <- sourceTypeOfEncoding enc
    = let e' = StructT st

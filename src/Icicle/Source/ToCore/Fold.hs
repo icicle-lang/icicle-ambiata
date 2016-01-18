@@ -112,7 +112,7 @@ convertFold q
      -- Variable lookup.
      | Var (Annot { annAnnot = ann, annResult = retty }) v <- final q
       -> do bound <- convertFreshenLookupMaybe v
-            fs <- convertFeatures
+            fs <- featureContextVariables <$> convertFeatures
             -- Check if it is a scalar variable or postcomputation
             case bound of
              Just v'

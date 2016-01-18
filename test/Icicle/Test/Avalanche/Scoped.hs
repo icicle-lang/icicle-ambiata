@@ -48,6 +48,7 @@ prop_scoped_and_back t =
 
 return []
 tests :: IO Bool
-tests = $quickCheckAll
+-- tests = $quickCheckAll
 -- tests = $forAllProperties $ quickCheckWithResult (stdArgs {maxSuccess = 10000})
 
+tests = $forAllProperties $ quickCheckWithResult (stdArgs {maxSuccess = 100, maxSize = 10, maxDiscardRatio = 10000})

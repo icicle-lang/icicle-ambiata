@@ -1,7 +1,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Source.ToCore.Context (
     Features (..)
-  , FeatureContext
+  , FeatureContext (..)
   , FeatureVariable (..)
 
   , envOfFeatureContext
@@ -24,8 +24,10 @@ data Features a n
  , featureNow        :: Maybe (Name n)
  }
 
-type FeatureContext a n
- = Map.Map (Name n) (FeatureVariable a n)
+data FeatureContext a n
+ = FeatureContext
+ { featureContextVariables :: Map.Map (Name n) (FeatureVariable a n)
+ , featureContextFactTime  :: Name n }
 
 data FeatureVariable a n
  = FeatureVariable
@@ -36,7 +38,8 @@ data FeatureVariable a n
 
 envOfFeatureContext :: FeatureContext a n -> Map.Map (Name n) (Type n)
 envOfFeatureContext ff
- = Map.map typeOfFeatureVariable ff
+ = Map.map typeOfFeatureVariable
+ $ featureContextVariables ff
 
 typeOfFeatureVariable :: FeatureVariable a n -> Type n
 typeOfFeatureVariable fv

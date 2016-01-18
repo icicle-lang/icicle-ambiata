@@ -1,6 +1,7 @@
 -- | Evaluate an entire program
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PatternGuards #-}
 module Icicle.Core.Eval.Program (
       RuntimeError (..)
     , ProgramValue (..)
@@ -14,15 +15,13 @@ import              Icicle.Common.Type
 import              Icicle.Common.Value as V
 import              Icicle.Core.Exp
 import              Icicle.Core.Stream
-import              Icicle.Core.Reduce
 
 import qualified    Icicle.Core.Program.Program as P
 import qualified    Icicle.Common.Exp.Eval  as XV
 import qualified    Icicle.Core.Eval.Exp    as XV
 import qualified    Icicle.Core.Eval.Stream as SV
-import qualified    Icicle.Core.Eval.Reduce as RV
 
-import              Icicle.Data.Time
+import              Icicle.Data
 
 import              Icicle.Internal.Pretty
 
@@ -35,7 +34,6 @@ import qualified    Data.Map as Map
 data RuntimeError a n
  = RuntimeErrorPre      (XV.RuntimeError a n Prim)
  | RuntimeErrorStream   (SV.RuntimeError a n)
- | RuntimeErrorReduce   (RV.RuntimeError a n)
  | RuntimeErrorPost     (XV.RuntimeError a n Prim)
  | RuntimeErrorReturn   (XV.RuntimeError a n Prim)
  | RuntimeErrorVarNotUnique (Name n)
@@ -48,9 +46,6 @@ instance (Pretty n) => Pretty (RuntimeError a n) where
   <> indent 2 (pretty p)
  pretty (RuntimeErrorStream p)
   = "Stream error:" <> line
-  <> indent 2 (pretty p)
- pretty (RuntimeErrorReduce p)
-  = "Reduce error:" <> line
   <> indent 2 (pretty p)
  pretty (RuntimeErrorPost p)
   = "Postcomputation error:" <> line
@@ -83,22 +78,26 @@ eval    :: Ord n
         -> P.Program a n
         -> Either (RuntimeError a n) (ProgramValue n)
 eval d sv p
- = do   pres    <- first RuntimeErrorPre
-                 $ XV.evalExps XV.evalPrim  Map.empty   (P.precomps     p)
-        (stms,bgleftovers) <- evalStms pres d sv       Map.empty   (P.streams      p)
+ = do   let env0 = Map.singleton (P.snaptimeName p) (VBase $ VTime d)
+        pres    <- first RuntimeErrorPre
+                 $ XV.evalExps XV.evalPrim  env0   (P.precomps     p)
 
-        -- Get the history and results of reductions.
-        -- The history is returned as-is but values are used in further computations
-        (bgs,reds)
-                <- evalReds pres            stms        (P.reduces      p)
+        let valueOfInput at = VPair (snd $ atFact at) (VTime $ atTime at)
+        let sv' = fmap valueOfInput sv
+        let streamInput = SV.StreamValue sv' $ defaultOfType $ PairT (P.inputType p) TimeT
+        let inputHeap = Map.singleton (P.inputName p) streamInput
+        (stms,bgs) <- evalStms pres inputHeap (P.streams      p)
 
-        -- Insert date into environment if necessary
-        let reds' = case P.postdate p of
-                    Nothing -> reds
-                    Just nm -> Map.insert nm (VBase $ VTime d) reds
+        let lastSV svals | (v:_) <- reverse $ SV.streamValues svals
+                         = v
+                         | otherwise
+                         = SV.streamZero svals
+
+        -- Get the final value of each stream, or any precomputations. Streams take precedence
+        let stms' = Map.union (Map.map (VBase . lastSV) stms) pres
 
         post    <- first RuntimeErrorPost
-                 $ XV.evalExps XV.evalPrim  reds'       (P.postcomps    p)
+                 $ XV.evalExps XV.evalPrim  stms'       (P.postcomps    p)
 
         let evalReturn (n,x)
                  = do ret   <- first RuntimeErrorReturn
@@ -108,67 +107,24 @@ eval d sv p
 
         rets <- mapM evalReturn (P.returns p)
 
-        return $ ProgramValue rets $ bubbleGumNubOutputs (bgs <> bgleftovers)
+        return $ ProgramValue rets $ bubbleGumNubOutputs bgs
 
 
 -- | Evaluate all stream bindings, collecting up stream heap as we go
 evalStms
         :: Ord n
         => V.Heap a n Prim
-        -> Time
-        -> SV.InitialStreamValue
         -> SV.StreamHeap  n
-        -> [(Name n, Stream a n)]
+        -> [Stream a n]
         -> Either (RuntimeError a n) (SV.StreamHeap n, [BubbleGumOutput n BaseValue])
 
-evalStms _ _ _ sh []
+evalStms _ sh []
  = return (sh, [])
 
-evalStms xh d svs sh ((n,strm):bs)
- = do   v   <- first RuntimeErrorStream
-             $ SV.eval d xh svs sh strm
-        sh' <- insertUnique sh n $ SV.evalStreamValue v
+evalStms xh sh (strm:bs)
+ = do   sh'   <- first RuntimeErrorStream
+               $ SV.eval xh sh strm
 
-        let out = bubbleGumOutputOfFacts
-                $ SV.evalMarkAsRequired v
-
-        (sh'', outs) <- evalStms xh d svs sh' bs
-        return (sh'', out : outs)
-
-
--- | Evaluate all reduction bindings, inserting to expression heap as we go
--- return expression heap at the end, throwing away streams
-evalReds
-        :: Ord n
-        => V.Heap a n Prim
-        -> SV.StreamHeap  n
-        -> [(Name n, Reduce a n)]
-        -> Either (RuntimeError a n) ([BubbleGumOutput n BaseValue], V.Heap a n Prim)
-
-evalReds xh _ []
- = return ([], xh)
-
-evalReds xh sh ((n,red):bs)
- = do   (bg,v)
-            <- first RuntimeErrorReduce
-             $ RV.eval n xh sh red
-        -- Evaluate the remaining reductions before inserting into heap
-        -- This shouldn't affect the semantics since names are unique.
-        (bgs, xh')
-            <- evalReds xh sh bs
-        xh''
-            <- insertUnique xh' n (V.VBase v)
-        return (bg:bgs, xh'')
-
-
--- Return an error if name already has a value
-insertUnique
-        :: Ord n
-        => Map.Map (Name n) v
-        -> Name n
-        -> v
-        -> Either (RuntimeError a n) (Map.Map (Name n) v)
-
-insertUnique
- = insertOrDie RuntimeErrorVarNotUnique
+        (sh'', _) <- evalStms xh sh' bs
+        return (sh'', [])
 

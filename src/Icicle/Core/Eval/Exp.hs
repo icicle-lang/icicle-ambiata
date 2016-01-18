@@ -9,6 +9,7 @@ import Icicle.Common.Base
 import Icicle.Common.Value
 import Icicle.Common.Exp.Eval
 import Icicle.Core.Exp.Prim
+import Icicle.Data.Time
 
 import              P
 
@@ -99,6 +100,16 @@ evalPrim p vs
       | otherwise
       -> primError
 
+     PrimWindow newerThan olderThan
+      | [VBase (VTime now), VBase (VTime fact)] <- vs
+      -> let newer = windowEdge now     newerThan 
+             older = windowEdge now <$> olderThan
+             range = fact >= newer && maybe True (fact <=) older
+         in  return . VBase . VBool $ range
+      | otherwise
+      -> primError
+
+
  where
   applies' = applies evalPrim
 
@@ -116,3 +127,8 @@ evalPrim p vs
    = xs <> [x]
    | otherwise
    = List.drop 1 (xs <> [x])
+
+  windowEdge now (Days   d) = minusDays   now d
+  windowEdge now (Weeks  w) = minusDays   now $ 7 * w
+  windowEdge now (Months m) = minusMonths now m
+

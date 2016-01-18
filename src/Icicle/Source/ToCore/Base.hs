@@ -10,18 +10,21 @@ module Icicle.Source.ToCore.Base (
   , convertInput
   , convertInputName
   , convertInputType
+  , convertDateName
   , convertWithInput
   , convertWithInputName
   , convertError
   , convertFeatures
   , convertModifyFeatures
+  , convertModifyFeaturesMap
   , convertFreshenAdd
+  , convertFreshenAddAs
   , convertFreshenLookup
   , convertFreshenLookupMaybe
   , convertValType
   , convertContext
 
-  , pre, strm, red, post
+  , pre, filt, sfold, post
   , programOfBinds
   , pullPosts
   ) where
@@ -49,27 +52,27 @@ import qualified        Data.Map as Map
 data CoreBinds a n
  = CoreBinds
  { precomps     :: [(Name n, C.Exp    a n)]
- , streams      :: [(Name n, C.Stream a n)]
- , reduces      :: [(Name n, C.Reduce a n)]
+ , streams      :: [C.Stream a n]
  , postcomps    :: [(Name n, C.Exp    a n)]
  }
 
 programOfBinds
     :: OutputName
     -> ValType
+    -> Name n
+    -> Name n
     -> CoreBinds a n
-    -> Maybe (Name n)
     -> a
     -> Name n
     -> C.Program a n
-programOfBinds outputName inpType binds postdate a_ret ret
+programOfBinds outputName inpType inpName postDate binds a_ret ret
  = C.Program
- { C.input      = inpType
+ { C.inputType  = inpType
+ , C.inputName  = inpName
+ , C.snaptimeName = postDate
  , C.precomps   = precomps  binds
  , C.streams    = streams   binds
- , C.reduces    = reduces   binds
  , C.postcomps  = postcomps binds
- , C.postdate   = postdate
  , C.returns    = [(outputName, X.XVar a_ret ret)]
  }
 
@@ -87,19 +90,20 @@ pullPosts a (bs,ret)
 
 
 instance Monoid (CoreBinds a n) where
- mempty = CoreBinds [] [] [] []
- mappend (CoreBinds a b c d) (CoreBinds f g h i)
-  = CoreBinds (a<>f) (b<>g) (c<>h) (d<>i)
+ mempty = CoreBinds [] [] []
+ mappend (CoreBinds a b c) (CoreBinds d e f)
+  = CoreBinds (a<>d) (b<>e) (c<>f)
 
 
 pre :: Name n -> C.Exp a n -> CoreBinds a n
 pre n x = mempty { precomps = [(n,x)] }
 
-strm :: Name n -> C.Stream a n -> CoreBinds a n
-strm n x = mempty { streams = [(n,x)] }
+filt :: C.Exp a n -> [C.Stream a n] -> CoreBinds a n
+filt p s
+ = mempty { streams = [C.SFilter p s] }
 
-red :: Name n -> C.Reduce a n -> CoreBinds a n
-red n x = mempty { reduces = [(n,x)] }
+sfold :: Name n -> ValType -> C.Exp a n -> C.Exp a n -> CoreBinds a n
+sfold n t z k = mempty { streams = [C.SFold n t z k] }
 
 post :: Name n -> C.Exp a n -> CoreBinds a n
 post n x = mempty { postcomps = [(n,x)] }
@@ -159,6 +163,7 @@ data ConvertState n
  = ConvertState
  { csInputName  :: Name n
  , csInputType  :: ValType
+ , csDateName   :: Name n
  , csFeatures   :: FeatureContext () n
  , csFreshen    :: Map.Map (Name n) (Name n)
  }
@@ -174,6 +179,10 @@ convertInputName
 convertInputType :: ConvertM a n ValType
 convertInputType
  = csInputType <$> get
+
+convertDateName :: ConvertM a n (Name n)
+convertDateName
+ = csDateName <$> get
 
 convertFeatures :: ConvertM a n (FeatureContext () n)
 convertFeatures
@@ -209,13 +218,27 @@ convertModifyFeatures f
  = do   o <- get
         put (o { csFeatures = f $ csFeatures o })
 
+convertModifyFeaturesMap
+        :: (Map.Map (Name n) (FeatureVariable () n) -> Map.Map (Name n) (FeatureVariable () n))
+        -> ConvertM a n ()
+convertModifyFeaturesMap f
+ = do   o <- get
+        let fs = csFeatures o
+        let fv = featureContextVariables fs
+        put (o { csFeatures = fs { featureContextVariables = f fv } })
+
+
 convertFreshenAdd :: Ord n => Name n -> ConvertM a n (Name n)
 convertFreshenAdd prefix
  = do   n <- lift $ freshPrefix' prefix
-        o <- get
-        put $ o { csFreshen  = Map.insert prefix n $ csFreshen  o
-                , csFeatures = Map.delete prefix   $ csFeatures o }
+        convertFreshenAddAs prefix n
         return n
+
+convertFreshenAddAs :: Ord n => Name n -> Name n -> ConvertM a n ()
+convertFreshenAddAs from to
+ = do   o <- get
+        put $ o { csFreshen  = Map.insert from to $ csFreshen  o }
+
 
 convertFreshenLookup :: Ord n => a -> Name n -> ConvertM a n (Name n)
 convertFreshenLookup ann n
@@ -264,8 +287,7 @@ instance (Pretty a, Pretty n) => Pretty (ConvertError a n) where
      ConvertErrorGroupFoldNotOnGroup a x
       -> pretty a <> ": group fold is not on a group; expected group but got " <> pretty x
 
-     ConvertErrorContextNotAllowedInGroupBy a q
-      -> pretty a <> ": only filters and aggregates are allowed in group by (the rest are TODO): " <> pretty q
+     ConvertErrorContextNotAllowedInGroupBy a q -> pretty a <> ": only filters and aggregates are allowed in group by (the rest are TODO): " <> pretty q
 
      ConvertErrorExpNoSuchVariable a n
       -> pretty a <> ": no such variable " <> pretty n

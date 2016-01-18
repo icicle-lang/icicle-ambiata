@@ -10,24 +10,21 @@ module Icicle.Avalanche.FromCore (
 
 import              Icicle.Common.Base
 import              Icicle.Common.Type
-import qualified    Icicle.Common.Exp.Simp.Beta as Beta
+import qualified    Icicle.Common.Exp as X
 
-import qualified    Icicle.Core.Exp.Exp     as X
 import              Icicle.Core.Exp.Prim
-import              Icicle.Core.Exp.Combinators
-
-import qualified    Icicle.Common.Exp.Prim.Minimal as Min
 
 import              Icicle.Avalanche.Statement.Statement as A
 import              Icicle.Avalanche.Program    as A
 import qualified    Icicle.Core.Program.Program as C
 import qualified    Icicle.Core.Program.Check   as C
-import qualified    Icicle.Core.Reduce          as CR
 import qualified    Icicle.Core.Stream          as CS
 
 import              P
 import              Data.String
 import qualified    Data.Map as Map
+
+import              Data.Functor.Identity
 
 
 data Namer n
@@ -39,16 +36,12 @@ data Namer n
  -- Suggest "element" or something.
  , namerAccPrefix  :: Name n -> Name n
  -- ^ As above, this is the "accumulator" prefix.
- , namerDate       :: Name n
- , namerFact       :: Name n
  }
 
 namerText :: IsString a => (a -> n) -> Namer n
 namerText f
  = Namer (NameMod (f (fromString "elem")))
          (NameMod (f (fromString "acc")))
-         (NameMod (f (fromString "gen")) $ Name (f (fromString "time")))
-         (NameMod (f (fromString "gen")) $ Name (f (fromString "fact")))
 
 
 -- | Convert an entire program to Avalanche
@@ -59,52 +52,62 @@ programFromCore :: Ord n
 programFromCore namer p
  = A.Program
  { A.input
-    = C.input p
+    = C.inputType p
  , A.bindtime
-    = namerDate namer
+    = C.snaptimeName p
  , A.statements
     = lets (C.precomps p)
-    $ accums (filter (readFromHistory.snd) $ C.reduces p)
-    ( factLoopHistory    <>
-    ( accums resumables
-    ( mconcat (fmap loadResumables resumables) <>
-      factLoopNew               <>
-      mconcat (fmap saveResumables resumables) <>
+    -- $ accums (filter (readFromHistory.snd) $ C.reduces p)
+    -- ( factLoopHistory    <>
+    ( createAccums
+    ( readaccum (C.inputName p, inputType') (initAccums (C.streams p)) <>
+      mconcat (fmap loadResumables accNames) <>
+      factLoopNew                            <>
+      mconcat (fmap saveResumables accNames) <>
       readaccums
-    ( lets (makepostdate <> C.postcomps p) outputs) )))
+    ( lets (C.postcomps p) outputs) ))
  }
  where
-  resumables = filter (not.readFromHistory.snd) $ C.reduces p
+  -- TODO: currently ignoring resumables and KeepFactInHistory
+  -- resumables = filter (not.readFromHistory.snd) $ C.reduces p
 
   lets stmts inner
    = foldr (\(n,x) a -> Let n x a) inner stmts
 
-  accums reds inner
-   = foldr (\ac s -> InitAccumulator (accum ac) s)
-            inner
-           reds
+  -- Fold accumulator
+  initAccum (CS.SFold n ty z _) inner
+   = let write | z /= X.XValue () ty (defaultOfType ty)
+               = Write (namerAccPrefix namer n) z
+               | otherwise
+               = mempty
 
-  factLoopHistory
-   = factLoop FactLoopHistory (filter (readFromHistory.snd) $ C.reduces p)
+         sub   = runIdentity $ X.transformX return (return . X.renameExp ren) inner
+         ren n'= if n == n' then namerElemPrefix namer n else n'
 
-  readFromHistory (CR.RFold _ _ _ _ inp)
-   = CS.isStreamWindowed (C.streams p) inp
+     in write <> Read (namerElemPrefix namer n) (namerAccPrefix namer n) ty sub
+  initAccum (CS.SFilter _ ss) inner
+   = foldr initAccum inner ss
+  initAccums ss
+   = foldr initAccum mempty ss
+
+  createAccums inner
+   = foldr createAccumMkInit inner accNames
+  createAccumMkInit (n,ty)
+   = InitAccumulator $ A.Accumulator (namerAccPrefix namer n) ty
+   $ X.XValue () ty (defaultOfType ty)
 
   -- Nest the streams into a single loop
   factLoopNew
-   = factLoop FactLoopNew (C.reduces p)
+   = factLoop FactLoopNew
 
-  factLoop loopType reduces
-   = ForeachFacts [(namerFact namer, PairT (C.input p) TimeT)]
-                  (PairT (C.input p) TimeT) loopType
-   $ Let (namerElemPrefix namer $ namerFact namer)
-        (xPrim (PrimMinimal $ Min.PrimPair $ Min.PrimPairFst (C.input p) TimeT)
-        `xApp` (xVar $ namerFact namer))
-   $ Let (namerElemPrefix namer $ namerDate namer)
-        (xPrim (PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd (C.input p) TimeT)
-        `xApp` (xVar $ namerFact namer))
-   $ Block
-   $ makeStatements namer (C.input p) (C.streams p) reduces
+  factLoop loopType
+   = ForeachFacts [(C.inputName p, inputType')] inputType' loopType
+   $ Block factStmts
+
+  inputType' = PairT (C.inputType p) TimeT
+
+  (accNames, factStmts)
+   = makeStatements p namer (C.streams p)
 
   outputExps
    = Map.fromList (C.returns p)
@@ -122,145 +125,49 @@ programFromCore namer p
    $ Map.elems
    $ Map.intersectionWithKey (\n x t -> A.Output n t [(x, t)]) outputExps outputTypes
 
-  -- Fold accumulator
-  accum (n, CR.RFold _ ty _ x _)
-   = A.Accumulator (namerAccPrefix namer n) ty x
-
-  loadResumables (n, CR.RFold _ ty _ _ _)
+  loadResumables (n, ty)
    = LoadResumable (namerAccPrefix namer n) ty
 
-  saveResumables (n, CR.RFold _ ty _ _ _)
+  saveResumables (n, ty)
    = SaveResumable (namerAccPrefix namer n) ty
 
-  readaccum (n, CR.RFold _ ty _ _ _)
+  readaccum (n, ty)
    = Read n (namerAccPrefix namer n) ty
 
   readaccums inner
-   = foldr readaccum inner (C.reduces p)
-
-
-  makepostdate
-   = case C.postdate p of
-      Nothing -> []
-      Just nm -> [(nm, xVar $ namerDate namer)]
+   = foldr readaccum inner accNames
 
 
 -- | Starting from an empty list of statements,
 -- repeatedly insert each stream into the statements wherever it fits
 makeStatements
         :: Ord n
-        => Namer n
-        -> ValType
-        -> [(Name n, CS.Stream () n)]
-        -> [(Name n, CR.Reduce () n)]
-        -> [Statement () n Prim]
-makeStatements namer inputType strs reds
- = let sources = filter ((==Nothing) . CS.inputOfStream . snd) strs
-   in  fmap (insertStream namer inputType strs reds) sources
+        => C.Program () n
+        -> Namer n
+        -> [CS.Stream () n]
+        -> ([(Name n, ValType)], [Statement () n Prim])
+makeStatements p namer streams
+ = let (nms,stms) = go [] streams
+   in  ((C.inputName p, PairT (C.inputType p) TimeT) : nms, Write (namerAccPrefix namer $ C.inputName p) (X.XVar () $ C.inputName p) : stms)
+ where
+  go nms []
+   = (nms, [])
+  go nms (s:strs)
+   = let (nms', s') = makeStatement nms s
+         (nms'',ss') = go nms' strs
+     in  (nms'', s' : ss')
 
+  makeStatement nms strm
+   = case strm of
+      CS.SFold n t _ k
+       -> let nms' = (n,t) : nms
+          in  (nms', mkReads nms' (Write (namerAccPrefix namer n) k))
+      CS.SFilter x ss
+       -> let (nms', ss') = go nms ss
+          in  (nms', mkReads nms $ If x (Block ss') mempty)
 
--- | Create statements for given stream, its child streams, and its reduces
-insertStream
-        :: Ord n
-        => Namer n
-        -> ValType
-        -> [(Name n, CS.Stream () n)]
-        -> [(Name n, CR.Reduce () n)]
-        ->  (Name n, CS.Stream () n)
-        -> Statement () n Prim
-insertStream namer inputType strs reds (n, strm)
-       -- Get the reduces and their updates
- = let reds' = filter ((==n) . CR.inputOfReduce . snd) reds
-       upds  = fmap (statementOfReduce namer strs) reds'
-
-       -- Get all streams that use this directly as input
-       strs' = filter ((==Just n) . CS.inputOfStream . snd) strs
-       subs  = fmap   (insertStream namer inputType strs reds)     strs'
-
-       -- All statements together
-       alls     = Block (upds <> subs)
-
-       -- Bind some element
-       allLet x = Let (namerElemPrefix namer n) x     alls
-
-   in case strm of
-       -- Sources just bind the input and do their children
-       CS.Source
-        -> allLet $ xVar $ namerFact namer
-
-       -- If within i days
-       CS.SWindow _ newerThan olderThan inp
-        -> let
-               -- The comparison functions in Icicle.Core.Exp.Combinators compare on IntT,
-               -- so here for convenience I create a set with comparison type TimeT.
-               (~>~)  = prim2 (PrimMinimal $ Min.PrimRelation Min.PrimRelationGt TimeT)
-               infix 4 ~>~
-               (~>=~) = prim2 (PrimMinimal $ Min.PrimRelation Min.PrimRelationGe TimeT)
-               infix 4 ~>=~
-               (~<=~) = prim2 (PrimMinimal $ Min.PrimRelation Min.PrimRelationLe TimeT)
-               infix 4 ~<=~
-
-               factDate   = namerElemPrefix namer (namerDate namer)
-               nowDate    = namerDate namer
-
-               check  | Just olderThan' <- olderThan
-                      =   xVar factDate ~>=~ windowEdge nowDate newerThan
-                      &&~ xVar factDate ~<=~ windowEdge nowDate olderThan'
-
-                      | otherwise
-                      = xVar factDate   ~>=~ windowEdge nowDate newerThan
-
-               else_  | Just olderThan' <- olderThan
-                      = If (xVar factDate ~>~ windowEdge nowDate olderThan')
-                           KeepFactInHistory
-                           mempty
-
-                      | otherwise
-                      = mempty
-
-           in If check (allLet $ xVar $ namerElemPrefix namer inp)
-                         else_
-
-       -- Filters become ifs
-       CS.STrans (CS.SFilter _) x inp
-        -> If (Beta.betaToLets () (x `xApp` xVar (namerElemPrefix namer inp)))
-              (allLet $ xVar $ namerElemPrefix namer inp)
-               mempty
-
-       -- Maps apply given function and then do their children
-       CS.STrans (CS.SMap _ _) x inp
-        -> allLet $ Beta.betaToLets () $ xApp x $ xVar $ namerElemPrefix namer inp
-
--- | Avalanche program to obtain the edge date for a window.
-windowEdge
-        :: Name n
-        -> WindowUnit
-        -> X.Exp () n
-windowEdge n (Days   d) = xPrim (PrimMinimal $ Min.PrimTime Min.PrimTimeMinusDays)   @~ xVar n @~ constI d
-windowEdge n (Weeks  w) = xPrim (PrimMinimal $ Min.PrimTime Min.PrimTimeMinusDays)   @~ xVar n @~ constI (7*w)
-windowEdge n (Months m) = xPrim (PrimMinimal $ Min.PrimTime Min.PrimTimeMinusMonths) @~ xVar n @~ constI m
-
--- | Get update statement for given reduce
-statementOfReduce
-        :: Ord n
-        => Namer n
-        -> [(Name n, CS.Stream () n)]
-        ->  (Name n, CR.Reduce () n)
-        -> Statement () n Prim
-statementOfReduce namer strs (n,r)
- = case r of
-    -- Apply fold's konstrukt to current accumulator value and input value
-    CR.RFold _ ty k _ inp
-     -> let n' = namerAccPrefix namer n
-
-            -- If it's windowed, note that we will need this fact in the next snapshot
-            k' | CS.isStreamWindowed strs inp
-               = KeepFactInHistory
-               | otherwise
-               = mempty
-
-            x  = Beta.betaToLets () (k `xApp` (xVar n')
-                                       `xApp` (xVar $ namerElemPrefix namer inp))
-
-        in  Read n' n' ty (Write n' x <> k')
+  mkReads [] inner
+   = inner
+  mkReads ((n,t):ns) inner
+   = mkReads ns (Read n (namerAccPrefix namer n) t inner)
 

@@ -26,6 +26,7 @@ data ProgramError a n p
  | ProgramErrorWrongAccumulatorType (Name n)
  | ProgramErrorWrongValType         (Name n) ValType ValType
  | ProgramErrorMultipleFactLops
+ | ProgramErrorNameNotUnique (Name n)
  deriving (Show, Eq, Ord)
 
 data Context n
@@ -180,23 +181,29 @@ statementContext frag ctx stmt
     Let n x _
      -> do t <- first ProgramErrorExp
               $ typeExp frag (ctxExp ctx) x
-           return (ctx { ctxExp = Map.insert n t $ ctxExp ctx })
+           ctxX' <- insert (ctxExp ctx) n t
+           return (ctx { ctxExp = ctxX' })
 
     ForeachInts n _ _ _
-     -> return (ctx { ctxExp = Map.insert n (FunT [] IntT) (ctxExp ctx) })
+     -> do ctxX' <- insert (ctxExp ctx) n (FunT [] IntT)
+           return (ctx { ctxExp = ctxX' })
 
     ForeachFacts ns _ _ _
-     -> return (ctx { ctxExp = foldr (\(n, ty) m -> Map.insert n (FunT [] ty) m) (ctxExp ctx) ns })
+     -> do let inserts m (n,ty) = insert m n (FunT [] ty)
+           ctxX' <- foldM inserts (ctxExp ctx) ns
+           return (ctx { ctxExp = ctxX' })
 
     Block _
      -> return ctx
 
     InitAccumulator acc _
      -> do (n, avt) <- checkAcc acc
-           return (ctx { ctxAcc = Map.insert n avt $ ctxAcc ctx })
+           ctxA' <- insert (ctxAcc ctx) n avt
+           return (ctx { ctxAcc = ctxA' })
 
     Read n _ vt _
-     -> return (ctx { ctxExp = Map.insert n (FunT [] vt) $ ctxExp ctx })
+     -> do ctxX' <- insert (ctxExp ctx) n (FunT [] vt)
+           return (ctx { ctxExp = ctxX' })
 
     Write _ _
      -> return ctx
@@ -217,5 +224,8 @@ statementContext frag ctx stmt
   checkAcc acc@(Accumulator n ty _)
    = do _ <- checkAccumulator frag ctx acc
         return (n, ty)
+
+  -- insert = insertOrDie ProgramErrorNameNotUnique
+  insert m n t = return $ Map.insert n t m
 
 
