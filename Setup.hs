@@ -11,10 +11,7 @@ import           Distribution.Simple
 import           Distribution.Simple.Setup (BuildFlags(..), ReplFlags(..), TestFlags(..), fromFlag)
 import           Distribution.Simple.LocalBuildInfo
 import           Distribution.Simple.BuildPaths (autogenModulesDir)
-import           Distribution.Simple.Utils (createDirectoryIfMissingVerbose, rewriteFile)
-
-import           System.FilePath ((</>), (<.>))
-import           System.Process (readProcess)
+import           Distribution.Simple.Utils (createDirectoryIfMissingVerbose, rewriteFile, rawSystemStdout)
 
 main :: IO ()
 main =
@@ -43,10 +40,10 @@ genBuildInfo verbosity pkg = do
   let (PackageName pname) = pkgName . package $ pkg
       version = pkgVersion . package $ pkg
       name = "BuildInfo_" ++ (map (\c -> if c == '-' then '_' else c) pname)
-      targetHs = "gen" </> name <.> "hs"
-      targetText = "gen" </> "version.txt"
-  t <- timestamp
-  gv <- gitVersion
+      targetHs = "gen/" ++ name ++ ".hs"
+      targetText = "gen/version.txt"
+  t <- timestamp verbosity
+  gv <- gitVersion verbosity
   let v = showVersion version
   let buildVersion = intercalate "-" [v, t, gv]
   rewriteFile targetHs $ unlines [
@@ -60,15 +57,15 @@ genBuildInfo verbosity pkg = do
     ]
   rewriteFile targetText buildVersion
 
-gitVersion :: IO String
-gitVersion = do
-  ver <- readProcess "git" ["log", "--pretty=format:%h", "-n", "1"] ""
-  notModified <- ((>) 1 . length) `fmap` readProcess "git" ["status", "--porcelain"] ""
+gitVersion :: Verbosity -> IO String
+gitVersion verbosity = do
+  ver <- rawSystemStdout verbosity "git" ["log", "--pretty=format:%h", "-n", "1"]
+  notModified <- ((>) 1 . length) `fmap` rawSystemStdout verbosity "git" ["status", "--porcelain"]
   return $ ver ++ if notModified then "" else "-M"
 
-timestamp :: IO String
-timestamp =
-  readProcess "date" ["+%Y%m%d%H%M%S"] "" >>= \s ->
+timestamp :: Verbosity -> IO String
+timestamp verbosity =
+  rawSystemStdout verbosity "date" ["+%Y%m%d%H%M%S"] >>= \s ->
     case splitAt 14 s of
       (d, n : []) ->
         if (length d == 14 && filter isDigit d == d)
