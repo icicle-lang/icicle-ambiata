@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveFunctor     #-}
+{-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE PatternSynonyms   #-}
 {-# LANGUAGE PatternGuards     #-}
@@ -324,8 +325,12 @@ data Tree a n x
  deriving (Functor, Foldable, Traversable, Show)
 
 
+instance Applicative (Tree a n) where
+  pure  = Done
+  (<*>) = ap
+
 instance Monad (Tree a n) where
-  return  = Done
+  return  = pure
   a >>= b = joinT (fmap b a)
    where
     joinT (Done x)     = x

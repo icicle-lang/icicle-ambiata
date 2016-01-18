@@ -13,8 +13,8 @@ import qualified Data.List           as L
 import qualified Data.Set            as S
 import           Data.Text           (Text, pack, unpack)
 
-import           Data.Time.Format    (parseTime)
-import           System.Locale       (defaultTimeLocale, iso8601DateFormat)
+import           Data.Time.Format    (parseTimeM)
+import           Data.Time.Locale.Compat (defaultTimeLocale, iso8601DateFormat)
 
 import           Numeric             (readHex)
 import           Text.Parsec
@@ -172,7 +172,7 @@ multiLiteralStr = VString <$> (openSQuote3 *> (manyTill (flip (,) <$> getPositio
 datetime :: Parser TValue
 datetime = do
     d <- manyTill anyChar (try $ char 'Z')
-    let  mt = parseTime defaultTimeLocale (iso8601DateFormat $ Just "%X") d
+    let  mt = parseTimeM True defaultTimeLocale (iso8601DateFormat $ Just "%X") d
     case mt of Just t  -> return $ VDatetime t
                Nothing -> fail "parsing datetime failed"
 
