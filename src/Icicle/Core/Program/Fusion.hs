@@ -9,10 +9,8 @@ module Icicle.Core.Program.Fusion (
 
 import Icicle.Common.Base
 import Icicle.Common.Type
-import Icicle.Core.Stream
 import Icicle.Core.Program.Program
 import Icicle.Core.Program.Subst
-import qualified Icicle.Common.Exp.Exp as X
 
 import              P
 
@@ -34,7 +32,7 @@ fusePrograms a_fresh ln lp rn rp
 
 -- | Fuse programs together, assuming they already have no name clashes.
 fuseProgramsDistinctNames :: Ord n => a -> Program a n -> Program a n -> Either (FusionError n) (Program a n)
-fuseProgramsDistinctNames a_fresh lp rp
+fuseProgramsDistinctNames _ lp rp
  | inputType lp /= inputType rp
  = Left
  $ FusionErrorNotSameType (inputType lp) (inputType rp)
@@ -50,10 +48,6 @@ fuseProgramsDistinctNames a_fresh lp rp
  , returns   = returns   lp <> substSnds (returns   rp)
  }
  where
-  var n    = X.XVar a_fresh n
-  inpType' = PairT (inputType lp) TimeT
-  val      = X.XValue a_fresh inpType' $ defaultOfType inpType'
-
   substSnds = unsafeSubstSnds    inpsubst
   substStms = unsafeSubstStreams inpsubst
 
