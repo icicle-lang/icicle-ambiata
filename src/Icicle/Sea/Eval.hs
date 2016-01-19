@@ -28,7 +28,7 @@ module Icicle.Sea.Eval (
 
   , codeOfPrograms
   , assemblyOfPrograms
-  , compilerOptions
+  , getCompilerOptions
   ) where
 
 import           Control.Monad.Catch (MonadMask(..))
@@ -78,10 +78,10 @@ import           Jetski
 
 import           P hiding (count)
 
+import           System.Environment (lookupEnv)
 import           System.IO (IO, FilePath)
 import           System.IO.Unsafe (unsafePerformIO)
-
-import qualified System.Posix    as Posix
+import qualified System.Posix as Posix
 
 import           X.Control.Monad.Trans.Either (EitherT)
 import           X.Control.Monad.Trans.Either (bracketEitherT')
@@ -252,8 +252,9 @@ seaCompile
   => Psv
   -> Map Attribute (Program (Annot a) n Prim)
   -> EitherT SeaError m SeaFleet
-seaCompile =
-  seaCompile' compilerOptions
+seaCompile psv programs = do
+  options <- getCompilerOptions
+  seaCompile' options psv programs
 
 seaCompile'
   :: (MonadIO m, MonadMask m, Functor m)
@@ -320,8 +321,15 @@ seaRelease :: MonadIO m => SeaFleet -> m ()
 seaRelease fleet =
   releaseLibrary (sfLibrary fleet)
 
-compilerOptions :: [CompilerOption]
-compilerOptions =
+getCompilerOptions :: MonadIO m => m [CompilerOption]
+getCompilerOptions = do
+  menv <- liftIO $ lookupEnv "ICICLE_CC_OPTIONS"
+  case menv of
+    Nothing  -> return $ defaultCompilerOptions
+    Just env -> return $ defaultCompilerOptions <> T.splitOn " " (T.pack env)
+
+defaultCompilerOptions :: [CompilerOption]
+defaultCompilerOptions =
   [ "-O3"           -- 🔨
   , "-g3"           -- include debug information (3 = as much as possible)
   , "-march=native" -- all optimisations valid for the current CPU (AVX512, etc)
@@ -334,8 +342,9 @@ assemblyOfPrograms
   -> [(Attribute, Program (Annot a) n Prim)]
   -> EitherT SeaError IO Text
 assemblyOfPrograms psv programs = do
-  code <- hoistEither (codeOfPrograms psv programs)
-  firstEitherT SeaJetskiError (compileAssembly compilerOptions code)
+  code    <- hoistEither (codeOfPrograms psv programs)
+  options <- getCompilerOptions
+  firstEitherT SeaJetskiError (compileAssembly options code)
 
 codeOfPrograms
   :: (Show a, Show n, Pretty n, Ord n)

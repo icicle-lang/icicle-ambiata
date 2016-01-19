@@ -113,7 +113,9 @@ data ShowData = ShowDataOnError | ShowDataOnSuccess
 
 runTest :: ShowData -> WellTyped -> EitherT S.SeaError IO ()
 runTest showData wt = do
-  let options  = S.compilerOptions <> ["-O0", "-DICICLE_NOINLINE=1"]
+  options0 <- S.getCompilerOptions
+
+  let options  = options0 <> ["-O0", "-DICICLE_NOINLINE=1"]
       programs = Map.singleton (wtAttribute wt) (wtAvalanche wt)
       config   = S.PsvConfig (S.PsvSnapshot (wtTime wt))
                              (Map.singleton (wtAttribute wt) (Set.singleton tombstone))
