@@ -939,7 +939,6 @@ seaOfOutput
                      , Doc         -- The output statement
                      , Int         -- Where it's up to
                      , [ValType] ) -- Unconsumed arguments
---seaOfOutput q ps oname@(OutputName name) otype0 ts0 ixStart transform
 seaOfOutput isJSON struct structIndex outName@(OutputName name) env outType argTypes transform
  = let prefixi         = pretty name <> "_" <> pretty structIndex <> "_i"
        (suffixi, env'')= newName prefixi env
@@ -1005,7 +1004,7 @@ seaOfOutput isJSON struct structIndex outName@(OutputName name) env outType argT
               let p  = pair ba bb
               let p' = seaOfOutputCond mcondk
                      $ seaOfOutputCond mcondv
-                     $ vsep [seaOfOutputSep, p]
+                     $ p
 
               return (Nothing, p', ixb, ts)
 

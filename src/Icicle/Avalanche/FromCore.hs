@@ -57,7 +57,7 @@ programFromCore namer p
     = C.snaptimeName p
  , A.statements
     = lets (C.precomps p)
-    -- $ accums (filter (readFromHistory.snd) $ C.reduces p)
+    -- accums (filter (readFromHistory.snd) $ C.reduces p)
     -- ( factLoopHistory    <>
     ( createAccums
     ( readaccum (C.inputName p, inputType') (initAccums (C.streams p)) <>
