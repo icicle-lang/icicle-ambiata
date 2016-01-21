@@ -86,8 +86,12 @@ data Keyword
  | Log
  | Exp
  | Sqrt
+ | Abs
  | Double
- | Int
+ | Floor
+ | Ceil
+ | Round
+ | Trunc
  | Seq
  deriving (Eq, Ord, Show, Enum, Bounded)
 

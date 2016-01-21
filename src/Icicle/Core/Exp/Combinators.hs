@@ -109,13 +109,25 @@ infix 3 &&~
 (||~) = prim2 (PrimMinimal $ Min.PrimLogical Min.PrimLogicalOr)
 infix 2 ||~
 
-doubleOfInt :: X.Exp () n -> X.Exp () n
-doubleOfInt x
- = xPrim (PrimMinimal $ Min.PrimCast Min.PrimCastDoubleOfInt) @~ x
+primDoubleOfInt :: X.Exp () n -> X.Exp () n
+primDoubleOfInt x
+ = xPrim (PrimMinimal $ Min.PrimToDouble Min.PrimToDoubleFromInt) @~ x
 
-intOfDouble :: X.Exp () n -> X.Exp () n
-intOfDouble x
- = xPrim (PrimMinimal $ Min.PrimCast Min.PrimCastIntOfDouble) @~ x
+primFloor :: X.Exp () n -> X.Exp () n
+primFloor x
+ = xPrim (PrimMinimal $ Min.PrimToInt Min.PrimToIntFloor) @~ x
+
+primCeiling :: X.Exp () n -> X.Exp () n
+primCeiling x
+ = xPrim (PrimMinimal $ Min.PrimToInt Min.PrimToIntCeiling) @~ x
+
+primRound :: X.Exp () n -> X.Exp () n
+primRound x
+ = xPrim (PrimMinimal $ Min.PrimToInt Min.PrimToIntRound) @~ x
+
+primTruncate :: X.Exp () n -> X.Exp () n
+primTruncate x
+ = xPrim (PrimMinimal $ Min.PrimToInt Min.PrimToIntTruncate) @~ x
 
 lam :: ValType -> (X.Exp () Text -> X.Exp () Text) -> X.Exp () Text
 lam t f

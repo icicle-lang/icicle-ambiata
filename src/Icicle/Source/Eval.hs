@@ -246,16 +246,35 @@ evalP ann p xs vs env
               | [VDouble i] <- args
               -> return $ VDouble $ sqrt i
               | otherwise -> err
+
              -- Use Doubles as only number representation.
              -- See Note: Numbers
              ToDouble
               | [VDouble i] <- args
               -> return $ VDouble i
               | otherwise -> err
-             ToInt
+
+             Abs
+              | [VDouble i] <- args
+              -> return $ VDouble $ abs i
+              | otherwise -> err
+             Floor
+              | [VDouble i] <- args
+              -> return $ VDouble $ fromIntegral (floor i :: Int)
+              | otherwise -> err
+             Ceiling
+              | [VDouble i] <- args
+              -> return $ VDouble $ fromIntegral (ceiling i :: Int)
+              | otherwise -> err
+             Round
+              | [VDouble i] <- args
+              -> return $ VDouble $ fromIntegral (round i :: Int)
+              | otherwise -> err
+             Truncate
               | [VDouble i] <- args
               -> return $ VDouble $ fromIntegral (truncate i :: Int)
               | otherwise -> err
+
              DaysBetween
               | [VTime i, VTime j] <- args
               -> return $ VDouble $ fromIntegral $ DT.daysDifference i j

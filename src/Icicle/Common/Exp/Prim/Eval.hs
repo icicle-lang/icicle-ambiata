@@ -41,6 +41,13 @@ evalPrim p originalP vs
       | otherwise
       -> primError
 
+     PrimArithUnary PrimArithAbsolute _
+      | [VBase (VDouble i)] <- vs
+      -> return $ VBase $ VDouble $ abs i
+      | [VBase (VInt i)] <- vs
+      -> return $ VBase $ VInt $ abs i
+      | otherwise
+      -> primError
 
      PrimArithBinary PrimArithPlus _
       | [VBase (VDouble i), VBase (VDouble j)] <- vs
@@ -96,22 +103,39 @@ evalPrim p originalP vs
       | otherwise
       -> primError
 
-     PrimCast PrimCastDoubleOfInt
-      | [VBase (VInt i)] <- vs
-      -> return $ VBase $ VDouble $ fromIntegral i
+     PrimToInt  PrimToIntFloor
+      | [VBase (VDouble i)] <- vs
+      -> return $ VBase $ VInt $ floor i
       | otherwise
       -> primError
-     PrimCast PrimCastIntOfDouble
+     PrimToInt  PrimToIntCeiling
+      | [VBase (VDouble i)] <- vs
+      -> return $ VBase $ VInt $ ceiling i
+      | otherwise
+      -> primError
+     PrimToInt  PrimToIntRound
+      | [VBase (VDouble i)] <- vs
+      -> return $ VBase $ VInt $ round i
+      | otherwise
+      -> primError
+     PrimToInt  PrimToIntTruncate
       | [VBase (VDouble i)] <- vs
       -> return $ VBase $ VInt $ truncate i
       | otherwise
       -> primError
-     PrimCast PrimCastStringOfInt
+
+     PrimToDouble PrimToDoubleFromInt
+      | [VBase (VInt i)] <- vs
+      -> return $ VBase $ VDouble $ fromIntegral i
+      | otherwise
+      -> primError
+
+     PrimToString PrimToStringFromInt
       | [VBase (VInt i)] <- vs
       -> return $ VBase $ VString $ T.pack $ show i
       | otherwise
       -> primError
-     PrimCast PrimCastStringOfDouble
+     PrimToString PrimToStringFromDouble
       | [VBase (VDouble i)] <- vs
       -> return $ VBase $ VString $ T.pack $ show i
       | otherwise

@@ -186,11 +186,15 @@ windowUnit
 
 primitives :: [(T.Keyword, Q.Prim)]
 primitives
- = [(T.Log,     Q.Fun Q.Log)
-   ,(T.Exp,     Q.Fun Q.Exp)
-   ,(T.Sqrt,    Q.Fun Q.Sqrt)
-   ,(T.Double,  Q.Fun Q.ToDouble)
-   ,(T.Int,     Q.Fun Q.ToInt)
-   ,(T.Seq,     Q.Fun Q.Seq)
+ = [(T.Log,      Q.Fun Q.Log)
+   ,(T.Exp,      Q.Fun Q.Exp)
+   ,(T.Sqrt,     Q.Fun Q.Sqrt)
+   ,(T.Abs,      Q.Fun Q.Abs)
+   ,(T.Double,   Q.Fun Q.ToDouble)
+   ,(T.Floor,    Q.Fun Q.Floor)
+   ,(T.Ceil,     Q.Fun Q.Ceiling)
+   ,(T.Round,    Q.Fun Q.Truncate)
+   ,(T.Trunc,    Q.Fun Q.Truncate)
+   ,(T.Seq,      Q.Fun Q.Seq)
    ]
 
