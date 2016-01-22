@@ -2,5 +2,5 @@
 :set +c-eval
 :set +c
 
-feature salary ~> fold perhaps = Left 0 : case perhaps | Left i -> Right (double i+1) | Right j -> Left (int j+1) end ~> perhaps
+feature salary ~> fold perhaps = Left 0 : case perhaps | Left i -> Right (double i+1) | Right j -> Left (trunc j+1) end ~> perhaps
 

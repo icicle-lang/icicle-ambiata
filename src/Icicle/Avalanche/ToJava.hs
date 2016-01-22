@@ -236,12 +236,14 @@ primTypeOfPrim p
      -> buf pb
 
  where
-  min' (M.PrimArithUnary ar _) = unary ar
+  min' (M.PrimArithUnary ar _)  = unary ar
   min' (M.PrimArithBinary ar _) = binary ar
-  min' (M.PrimDouble ar) = dble   ar
-  min' (M.PrimCast ar) = cast ar
-  min' (M.PrimRelation re _) = rel re
-  min' (M.PrimLogical lo) = logic lo
+  min' (M.PrimDouble ar)        = dble   ar
+  min' (M.PrimToInt  ar)        = toInt ar
+  min' (M.PrimToDouble ar)      = toDouble ar
+  min' (M.PrimToString ar)      = toString ar
+  min' (M.PrimRelation re _)    = rel re
+  min' (M.PrimLogical lo)       = logic lo
 
   min' (M.PrimConst (M.PrimConstPair _ _))
    = Function "Pair.create"
@@ -268,7 +270,8 @@ primTypeOfPrim p
   min' (M.PrimStruct (M.PrimStructGet f t _))
    = Special1 $ \a -> a <> "." <> angled (boxedType t) <> "getField" <> "(" <> stringy f <> ")"
 
-  unary   M.PrimArithNegate = Prefix    "-"
+  unary   M.PrimArithNegate   = Prefix    "-"
+  unary   M.PrimArithAbsolute = Function  "Math.abs"
 
   binary   M.PrimArithPlus   = Infix     "+"
   binary   M.PrimArithMinus  = Infix     "-"
@@ -280,10 +283,15 @@ primTypeOfPrim p
   dble     M.PrimDoubleExp  = Function "Math.exp"
   dble     M.PrimDoubleSqrt = Function "Math.sqrt"
 
-  cast      M.PrimCastIntOfDouble = Function "(int)"
-  cast      M.PrimCastDoubleOfInt = Function "(double)"
-  cast      M.PrimCastStringOfInt = Function "Integer.toString"
-  cast      M.PrimCastStringOfDouble = Function "Double.toString"
+  toInt    M.PrimToIntFloor      = Function "Math.floor"
+  toInt    M.PrimToIntCeiling    = Function "Math.ceil"
+  toInt    M.PrimToIntRound      = Function "Math.round"
+  toInt    M.PrimToIntTruncate   = Function "Math.trunc"
+
+  toDouble M.PrimToDoubleFromInt = Function "(double)"
+
+  toString M.PrimToStringFromInt    = Function "Integer.toString"
+  toString M.PrimToStringFromDouble = Function "Double.toString"
 
   rel   M.PrimRelationGt  = Infix     ">"
   rel   M.PrimRelationGe  = Infix     ">="

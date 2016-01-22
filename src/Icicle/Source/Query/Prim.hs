@@ -61,7 +61,15 @@ primLookup' p
      -> f0 [DoubleT] DoubleT
     Fun ToDouble
      -> fNum $ \at -> ([at], DoubleT)
-    Fun ToInt
+    Fun Abs
+     -> fNum $ \at -> ([at], at)
+    Fun Floor
+     -> fNum $ \at -> ([at], IntT)
+    Fun Ceiling
+     -> fNum $ \at -> ([at], IntT)
+    Fun Round
+     -> fNum $ \at -> ([at], IntT)
+    Fun Truncate
      -> fNum $ \at -> ([at], IntT)
     Fun DaysBetween
      -> f0 [TimeT, TimeT] IntT

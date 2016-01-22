@@ -65,8 +65,11 @@ seaOfXPrim p
       -> PDFun
        ( prefixOfValType TimeT <> seaOfPrimTime op ) Nothing
 
-     PrimMinimal (M.PrimCast op)
-      -> PDFun (seaOfPrimCast op) Nothing
+     PrimMinimal (M.PrimToDouble op)
+      -> PDFun (seaOfPrimToDouble op) Nothing
+
+     PrimMinimal (M.PrimToInt op)
+      -> PDFun (seaOfPrimToInt op) Nothing
 
      PrimMinimal (M.PrimRelation op t)
       -> PDFun
@@ -97,7 +100,8 @@ seaOfXPrim p
 seaOfPrimArithUnary :: M.PrimArithUnary -> Doc
 seaOfPrimArithUnary p
  = case p of
-     M.PrimArithNegate -> "neg"
+     M.PrimArithNegate   -> "neg"
+     M.PrimArithAbsolute -> "abs"
 
 seaOfPrimArithBinary :: M.PrimArithBinary -> Doc
 seaOfPrimArithBinary p
@@ -123,12 +127,18 @@ seaOfPrimTime p
      M.PrimTimeMinusDays      -> "minus_days"
      M.PrimTimeMinusMonths    -> "minus_months"
 
-seaOfPrimCast :: M.PrimCast -> Doc
-seaOfPrimCast p
+seaOfPrimToDouble :: M.PrimToDouble -> Doc
+seaOfPrimToDouble p
  = case p of
-     M.PrimCastDoubleOfInt -> "iint_extend"
-     M.PrimCastIntOfDouble -> "idouble_trunc"
-     _                     -> seaError "seaOfPrimCast" p
+     M.PrimToDoubleFromInt -> "iint_extend"
+
+seaOfPrimToInt :: M.PrimToInt -> Doc
+seaOfPrimToInt p
+ = case p of
+     M.PrimToIntFloor    -> "idouble_floor"
+     M.PrimToIntCeiling  -> "idouble_ceil"
+     M.PrimToIntRound    -> "idouble_round"
+     M.PrimToIntTruncate -> "idouble_trunc"
 
 seaOfPrimRelation :: M.PrimRelation -> Doc
 seaOfPrimRelation p

@@ -180,20 +180,53 @@ convertPrim p ann resT xts
    = return $ primmin $ Min.PrimDouble Min.PrimDoubleExp
   gofun Sqrt
    = return $ primmin $ Min.PrimDouble Min.PrimDoubleSqrt
+
+  gofun Abs
+   = case xts of
+      ((_,tt):_)
+       | (_, _, DoubleT) <- decomposeT tt
+       -> return $ primmin $ Min.PrimArithUnary Min.PrimArithAbsolute T.ArithDoubleT
+      ((_,tt):_)
+       | (_, _, IntT) <- decomposeT tt
+       -> return $ primmin $ Min.PrimArithUnary Min.PrimArithAbsolute T.ArithIntT
+      _
+       -> convertError $ ConvertErrorPrimNoArguments ann 1 p
   gofun ToDouble
    = case xts of
       ((xx,tt):_)
        | (_, _, DoubleT) <- decomposeT tt
        -> return xx
       _
-       -> return $ primmin $ Min.PrimCast Min.PrimCastDoubleOfInt
-  gofun ToInt
+       -> return $ primmin $ Min.PrimToDouble Min.PrimToDoubleFromInt
+  gofun Floor
    = case xts of
       ((xx,tt):_)
        | (_, _, IntT) <- decomposeT tt
        -> return xx
       _
-       -> return $ primmin $ Min.PrimCast Min.PrimCastIntOfDouble
+       -> return $ primmin $ Min.PrimToInt Min.PrimToIntFloor
+  gofun Ceiling
+   = case xts of
+      ((xx,tt):_)
+       | (_, _, IntT) <- decomposeT tt
+       -> return xx
+      _
+       -> return $ primmin $ Min.PrimToInt Min.PrimToIntCeiling
+  gofun Round
+   = case xts of
+      ((xx,tt):_)
+       | (_, _, IntT) <- decomposeT tt
+       -> return xx
+      _
+       -> return $ primmin $ Min.PrimToInt Min.PrimToIntRound
+  gofun Truncate
+   = case xts of
+      ((xx,tt):_)
+       | (_, _, IntT) <- decomposeT tt
+       -> return xx
+      _
+       -> return $ primmin $ Min.PrimToInt Min.PrimToIntTruncate
+
   gofun DaysBetween
    = return $ primmin $ Min.PrimTime Min.PrimTimeDaysDifference
   gofun DaysEpoch

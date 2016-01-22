@@ -85,12 +85,17 @@ data Lit
  | LitTime Time
  deriving (Show, Eq, Ord)
 
+-- | Built-in Source functions
 data Fun
  = Log
  | Exp
  | Sqrt
+ | Abs
  | ToDouble
- | ToInt
+ | Floor
+ | Ceiling
+ | Round
+ | Truncate
  | DaysBetween
  | DaysEpoch
  | Seq
@@ -224,7 +229,11 @@ instance Pretty Fun where
  pretty Exp         = "exp"
  pretty Sqrt        = "sqrt"
  pretty ToDouble    = "double"
- pretty ToInt       = "int"
+ pretty Abs         = "abs"
+ pretty Floor       = "floor"
+ pretty Ceiling     = "ceil"
+ pretty Round       = "round"
+ pretty Truncate    = "trunc"
  pretty DaysBetween = "days between"
  pretty DaysEpoch   = "days"
  pretty Seq         = "seq"

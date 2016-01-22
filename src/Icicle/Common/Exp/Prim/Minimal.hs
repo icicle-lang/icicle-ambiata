@@ -5,7 +5,9 @@ module Icicle.Common.Exp.Prim.Minimal (
     , PrimArithUnary(..)
     , PrimArithBinary(..)
     , PrimDouble(..)
-    , PrimCast(..)
+    , PrimToInt(..)
+    , PrimToDouble(..)
+    , PrimToString(..)
     , PrimRelation(..)
     , PrimLogical(..)
     , PrimConst(..)
@@ -23,33 +25,54 @@ import              P
 import qualified    Data.Map as Map
 
 
--- | Top-level primitive
--- Pretty empty for now.
+-- | Common primitives in all language fragements.
+--
 data Prim
- = PrimArithUnary       PrimArithUnary ArithType
- | PrimArithBinary      PrimArithBinary ArithType
- | PrimDouble   PrimDouble
- | PrimCast     PrimCast
- -- | Relation prims like less than, equal etc work for a bunch of different types
- | PrimRelation PrimRelation ValType
- | PrimLogical  PrimLogical
- | PrimConst    PrimConst
- -- | Date primitives
- | PrimTime PrimTime
- | PrimPair     PrimPair
- | PrimStruct   PrimStruct
+ = PrimArithUnary  PrimArithUnary  ArithType  -- ^ "Polymorphic" (double or int) unary operators
+ | PrimArithBinary PrimArithBinary ArithType  -- ^ "Polymorphic" (double or int) binary operators
+ | PrimDouble      PrimDouble                 -- ^ Arithmetic operators only defined for doubles
+ | PrimToInt       PrimToInt                  -- ^ Conversion to int
+ | PrimToDouble    PrimToDouble               -- ^ Conversion to double
+ | PrimToString    PrimToString               -- ^ Conversion to string
+ | PrimRelation    PrimRelation    ValType    -- ^ "Polymorphic" relation operators
+ | PrimLogical     PrimLogical                -- ^ Logical operators
+ | PrimConst       PrimConst                  -- ^ Literal value constructors
+ | PrimPair        PrimPair                   -- ^ Pair projections
+ | PrimStruct      PrimStruct                 -- ^ Struct projections
+ | PrimTime        PrimTime                   -- ^ Time/date primitives
  deriving (Eq, Ord, Show)
 
--- | Arithmetic primitives, common to all number-like things
+-- | Unary arithmetic primitives common to all numeric types.
+--   Must be closed under the set of the input.
 data PrimArithUnary
  = PrimArithNegate
+ | PrimArithAbsolute
  deriving (Eq, Ord, Show)
 
+-- | Binary arithmetic primitives common to all numeric types.
+--   Must be closed under the set of the input.
 data PrimArithBinary
  = PrimArithPlus
  | PrimArithMinus
  | PrimArithMul
  | PrimArithPow
+ deriving (Eq, Ord, Show)
+
+-- | Primitives that converts numeric types to ints.
+data PrimToInt
+ = PrimToIntCeiling
+ | PrimToIntFloor
+ | PrimToIntTruncate
+ | PrimToIntRound
+ deriving (Eq, Ord, Show)
+
+data PrimToDouble
+ = PrimToDoubleFromInt
+ deriving (Eq, Ord, Show)
+
+data PrimToString
+ = PrimToStringFromInt
+ | PrimToStringFromDouble
  deriving (Eq, Ord, Show)
 
 -- | Specific Double things.
@@ -59,14 +82,6 @@ data PrimDouble
  | PrimDoubleLog
  | PrimDoubleExp
  | PrimDoubleSqrt
- deriving (Eq, Ord, Show)
-
--- | Casts between types
-data PrimCast
- = PrimCastDoubleOfInt
- | PrimCastIntOfDouble
- | PrimCastStringOfInt
- | PrimCastStringOfDouble
  deriving (Eq, Ord, Show)
 
 -- | Predicates like >=
@@ -131,13 +146,21 @@ typeOfPrim p
     PrimDouble PrimDoubleSqrt
      -> FunT [funOfVal DoubleT] DoubleT
 
-    PrimCast PrimCastDoubleOfInt
-     -> FunT [funOfVal IntT] DoubleT
-    PrimCast PrimCastIntOfDouble
+    PrimToInt    PrimToIntFloor
      -> FunT [funOfVal DoubleT] IntT
-    PrimCast PrimCastStringOfInt
+    PrimToInt    PrimToIntCeiling
+     -> FunT [funOfVal DoubleT] IntT
+    PrimToInt    PrimToIntTruncate
+     -> FunT [funOfVal DoubleT] IntT
+    PrimToInt    PrimToIntRound
+     -> FunT [funOfVal DoubleT] IntT
+
+    PrimToDouble PrimToDoubleFromInt
+     -> FunT [funOfVal IntT] DoubleT
+
+    PrimToString PrimToStringFromInt
      -> FunT [funOfVal IntT] StringT
-    PrimCast PrimCastStringOfDouble
+    PrimToString PrimToStringFromDouble
      -> FunT [funOfVal DoubleT] StringT
 
     -- All relations are binary to bool
@@ -187,7 +210,8 @@ instance Pretty Prim where
   where
    p'
     = case p of
-       PrimArithNegate -> "negate#"
+       PrimArithNegate   -> "negate#"
+       PrimArithAbsolute -> "abs#"
 
  pretty (PrimArithBinary p t)
   = annotate (AnnType $ valTypeOfArithType t) p'
@@ -206,12 +230,21 @@ instance Pretty Prim where
      PrimDoubleExp  -> "exp#"
      PrimDoubleSqrt -> "sqrt#"
 
- pretty (PrimCast p)
+ pretty (PrimToInt p)
   = case p of
-     PrimCastDoubleOfInt -> "doubleOfInt#"
-     PrimCastIntOfDouble -> "intOfDouble#"
-     PrimCastStringOfInt -> "stringOfInt#"
-     PrimCastStringOfDouble -> "stringOfDouble#"
+     PrimToIntFloor    -> "floor#"
+     PrimToIntCeiling  -> "ceil#"
+     PrimToIntRound    -> "round#"
+     PrimToIntTruncate -> "trunc#"
+
+ pretty (PrimToDouble p)
+  = case p of
+     PrimToDoubleFromInt -> "doubleOfInt#"
+
+ pretty (PrimToString p)
+  = case p of
+     PrimToStringFromInt    -> "stringOfInt#"
+     PrimToStringFromDouble -> "stringOfDouble#"
 
 
  pretty (PrimRelation rel t)
