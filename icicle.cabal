@@ -155,13 +155,16 @@ library
                        Icicle.Sea.FromAvalanche.Base
                        Icicle.Sea.FromAvalanche.Prim
                        Icicle.Sea.FromAvalanche.Program
-                       Icicle.Sea.FromAvalanche.Psv
                        Icicle.Sea.FromAvalanche.State
                        Icicle.Sea.FromAvalanche.Type
                        Icicle.Sea.Preamble
                        Icicle.Sea.Chords
                        Icicle.Sea.Chords.File
                        Icicle.Sea.Chords.Parse
+                       Icicle.Sea.Psv
+                       Icicle.Sea.Psv.Base
+                       Icicle.Sea.Psv.Input
+                       Icicle.Sea.Psv.Output
 
                        Icicle.Source.Eval
                        Icicle.Source.Query

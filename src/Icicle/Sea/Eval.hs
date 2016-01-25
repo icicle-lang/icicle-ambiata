@@ -69,10 +69,10 @@ import           Icicle.Internal.Pretty (Doc, Pretty, displayS, renderPretty)
 import           Icicle.Sea.Error (SeaError(..))
 import           Icicle.Sea.FromAvalanche.Analysis (factVarsOfProgram, outputsOfProgram)
 import           Icicle.Sea.FromAvalanche.Program (seaOfProgram, nameOfProgram')
-import           Icicle.Sea.FromAvalanche.Psv (PsvConfig(..), PsvMode(..), seaOfPsvDriver)
 import           Icicle.Sea.FromAvalanche.State (stateOfProgram, nameOfStateSize')
 import           Icicle.Sea.FromAvalanche.Type (seaOfDefinitions)
 import           Icicle.Sea.Preamble (seaPreamble)
+import           Icicle.Sea.Psv (PsvConfig(..), PsvMode(..), seaOfPsvDriver)
 
 import           Jetski
 
