@@ -80,7 +80,7 @@ valueFromCore = \case
   C.VTime   x -> Just (D.TimeValue x)
   -- Fact identifiers only exist internally, but can be expressed as times
   C.VFactIdentifier x
-              -> Just (D.TimeValue $ getFactIdentifierTimestamp x)
+              -> Just (D.TimeValue $ C.getFactIdentifierTimestamp x)
   C.VString x -> Just (D.StringValue x)
   C.VUnit     -> Just (D.IntValue 13013)
   C.VError  _ -> Just D.Tombstone

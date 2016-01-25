@@ -83,10 +83,13 @@ eval d sv p
         pres    <- first RuntimeErrorPre
                  $ XV.evalExps XV.evalPrim  env0   (P.precomps     p)
 
+        let mkstream f t = SV.StreamValue (fmap f sv) (defaultOfType t)
         let valueOfInput at = VPair (snd $ atFact at) (VTime $ atTime at)
-        let sv' = fmap valueOfInput sv
-        let streamInput = SV.StreamValue sv' $ defaultOfType $ PairT (P.inputType p) TimeT
-        let inputHeap = Map.singleton (P.inputName p) streamInput
+
+        let inputHeap = Map.fromList 
+                      [(P.factValName  p, mkstream valueOfInput (PairT (P.inputType p) TimeT))
+                      ,(P.factIdName   p, mkstream (VFactIdentifier . FactIdentifier . atTime) FactIdentifierT)
+                      ,(P.factTimeName p, mkstream (VTime . atTime) TimeT)]
         (stms,bgs) <- evalStms pres inputHeap (P.streams      p)
 
         let lastSV svals | (v:_) <- reverse $ SV.streamValues svals

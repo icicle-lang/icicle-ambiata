@@ -27,8 +27,11 @@ checkProgram p
  = do   -- Check precomputations, starting with an empty environment
         let env0 = Map.singleton (snaptimeName p) (funOfVal $ TimeT)
         pres    <- checkExps ProgramErrorPre env0 (P.precomps     p)
-        pres'   <- insertOrDie ProgramErrorNameNotUnique pres (inputName    p) (funOfVal $ PairT (inputType p) TimeT)
-               >>= insertOrDie ProgramErrorNameNotUnique pres (factIdName   p) (funOfVal $ FactIdentifierT)
+
+        let ins k v env = insertOrDie ProgramErrorNameNotUnique env k v
+        pres'   <- ins (factValName  p) (funOfVal $ PairT (inputType p) TimeT) pres
+               >>= ins (factIdName   p) (funOfVal $ FactIdentifierT)
+               >>= ins (factTimeName p) (funOfVal $ TimeT)
 
         -- Check stream computations with precomputations in environment
         stms    <- checkStreams pres' (P.streams      p)

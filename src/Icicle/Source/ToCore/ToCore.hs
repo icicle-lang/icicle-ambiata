@@ -71,8 +71,10 @@ convertQueryTop
         -> QueryTop (Annot a n) n
         -> FreshT n (Either (ConvertError a n)) (C.Program () n)
 convertQueryTop feats qt
- = do   inp <- fresh
-        now <- fresh
+ = do   inp         <- fresh
+        factid      <- fresh
+        facttime    <- fresh
+        now         <- fresh
         (ty,fs) <- lift
                  $ maybeToRight (ConvertErrorNoSuchFeature (feature qt))
                  $ Map.lookup (feature qt) (featuresConcretes feats)
@@ -85,8 +87,8 @@ convertQueryTop feats qt
         (bs,ret) <- evalStateT (do
                                        maybe (return ()) (flip convertFreshenAddAs now) $ featureNow feats
                                        convertQuery $ query qt)
-                                   (ConvertState inp inpTy'dated now fs Map.empty)
-        return (programOfBinds (queryName qt) inpTy inp now bs () ret)
+                                   (ConvertState inp inpTy'dated factid facttime now fs Map.empty)
+        return (programOfBinds (queryName qt) inpTy inp factid facttime now bs () ret)
 
 
 -- | Convert a Query to Core
@@ -133,19 +135,13 @@ convertQuery q
     -- We could support "older than" by storing reduce result of the end of window and
     -- storing all corresponding newer thans in the snapshot, so if this ends up being an issue
     -- we can address it.
-    (Windowed ann newerThan olderThan : _)
+    (Windowed _ newerThan olderThan : _)
      -> do  (bs, b) <- convertQuery q'
-            now <- convertDateName
-            (inp,_) <- convertInput
-
-            fs <- convertFeatures
-            let f = featureContextFactTime fs
-            fact <- case Map.lookup f (featureContextVariables fs) of
-                        Just f' -> return $ featureVariableExp f' $ CE.xVar inp
-                        Nothing -> convertError $ ConvertErrorExpNoSuchVariable (annAnnot ann) f
+            now  <- convertDateName
+            time <- convertFactTimeName
 
             let e'  = CE.makeApps () (CE.xPrim $ C.PrimWindow newerThan olderThan)
-                    [ CE.xVar now, fact ]
+                    [ CE.xVar now, CE.xVar time ]
             let bs' = filt e' (streams bs) <> bs { streams = [] }
             return (bs', b)
 
