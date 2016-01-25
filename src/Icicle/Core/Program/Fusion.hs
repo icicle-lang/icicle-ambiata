@@ -44,6 +44,7 @@ fuseProgramsDistinctNames _ lp rp
  $ Program
  { inputName = inputName lp
  , inputType = inputType lp
+ , factIdName= factIdName lp
  , snaptimeName = snaptimeName lp
  , precomps  = precomps  lp <> substSnds (precomps  rp)
  , streams   = streams   lp <> substStms (streams   rp)
@@ -56,6 +57,7 @@ fuseProgramsDistinctNames _ lp rp
 
   inpsubst
    = [ (inputName    rp, inputName    lp)
+     , (factIdName   rp, factIdName   lp)
      , (snaptimeName rp, snaptimeName lp) ]
 
 
