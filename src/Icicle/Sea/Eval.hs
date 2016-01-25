@@ -450,6 +450,8 @@ newSeaVectors sz t =
     BoolT   -> (:[]) . U64 <$> liftIO (MV.new sz)
     TimeT   -> (:[]) . U64 <$> liftIO (MV.new sz)
     ErrorT  -> (:[]) . U64 <$> liftIO (MV.new sz)
+    FactIdentifierT
+            -> (:[]) . U64 <$> liftIO (MV.new sz)
     StringT -> (:[]) . flip P64 t <$> liftIO (MV.new sz)
 
     BufT{}    -> left (SeaTypeConversionError t)
@@ -504,6 +506,9 @@ pokeInput' svs0@(sv:svs) t ix val =
     (F64 v, VDouble   x, DoubleT) -> pure svs <* liftIO (MV.write v ix x)
     (U64 v, VTime     x, TimeT)   -> pure svs <* liftIO (MV.write v ix (packedOfTime x))
     (U64 v, VError    x, ErrorT)  -> pure svs <* liftIO (MV.write v ix (wordOfError x))
+
+    (U64 v, VFactIdentifier x, FactIdentifierT)
+                                  -> pure svs <* liftIO (MV.write v ix (packedOfTime $ getFactIdentifierTimestamp x))
 
     (P64 v _, VString xs, StringT)
      -> do let str = T.unpack xs
@@ -610,6 +615,8 @@ peekOutput ptr ix0 t =
     DoubleT -> (ix0+1,) . VDouble                <$> peekWordOff ptr ix0
     TimeT   -> (ix0+1,) . VTime   . timeOfPacked <$> peekWordOff ptr ix0
     ErrorT  -> (ix0+1,) . VError  . errorOfWord  <$> peekWordOff ptr ix0
+    FactIdentifierT
+            -> (ix0+1,) . VFactIdentifier . FactIdentifier . timeOfPacked <$> peekWordOff ptr ix0
 
     StructT{} -> left (SeaTypeConversionError t)
     BufT{}    -> left (SeaTypeConversionError t)
@@ -680,6 +687,8 @@ pokeArrayIx ptr t ix v =
     (VInt      x, IntT)    -> liftIO (pokeWordOff ptr ix (fromIntegral x :: Int64))
     (VDouble   x, DoubleT) -> liftIO (pokeWordOff ptr ix x)
     (VTime     x, TimeT)   -> liftIO (pokeWordOff ptr ix (packedOfTime x))
+    (VFactIdentifier x, FactIdentifierT)
+                           -> liftIO (pokeWordOff ptr ix (packedOfTime $ getFactIdentifierTimestamp x))
     (VError    x, ErrorT)  -> liftIO (pokeWordOff ptr ix (wordOfError x))
     (VString   x, StringT) -> liftIO (newCString (T.unpack x) >>= pokeWordOff ptr ix)
     _                      -> left (SeaBaseValueConversionError v (Just t))
@@ -695,6 +704,8 @@ peekArrayIx ptr t ix =
     IntT    -> VInt    . fromInt64    <$> peekWordOff ptr ix
     DoubleT -> VDouble                <$> peekWordOff ptr ix
     TimeT   -> VTime   . timeOfPacked <$> peekWordOff ptr ix
+    FactIdentifierT
+            -> VFactIdentifier . FactIdentifier . timeOfPacked <$> peekWordOff ptr ix
     ErrorT  -> VError  . errorOfWord  <$> peekWordOff ptr ix
 
     BoolT

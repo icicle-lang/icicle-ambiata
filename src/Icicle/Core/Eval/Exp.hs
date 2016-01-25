@@ -89,15 +89,15 @@ evalPrim p vs
       -> primError
 
      PrimLatest (PrimLatestPush i _)
-      | [VBase (VBuf as), VBase e] <- vs
+      | [VBase (VBuf as), VBase factid, VBase e] <- vs
       -> return . VBase . VBuf
-      $  circ i e as
+      $  circ i (VPair factid e) as
       | otherwise
       -> primError
 
      PrimLatest (PrimLatestRead _ _)
       | [VBase (VBuf as)] <- vs
-      -> return . VBase . VArray $ as
+      -> return . VBase . VArray $ fmap getSnd as
       | otherwise
       -> primError
 
@@ -127,6 +127,9 @@ evalPrim p vs
    = xs <> [x]
    | otherwise
    = List.drop 1 (xs <> [x])
+
+  getSnd (VPair _ b) = b
+  getSnd v           = v
 
   windowEdge now (Days   d) = minusDays   now d
   windowEdge now (Weeks  w) = minusDays   now $ 7 * w

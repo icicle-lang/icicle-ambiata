@@ -122,6 +122,8 @@ baseOfValType t
      DoubleT   -> "idouble"
      TimeT     -> "itime"
      ErrorT    -> "ierror"
+     FactIdentifierT
+                -> "itime"
 
      StringT   -> "istring"
      BufT n t' -> "ibuf_" <> int n <> "_" <> baseOfValType t'

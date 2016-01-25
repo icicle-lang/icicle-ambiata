@@ -13,6 +13,7 @@ module Icicle.Common.Base (
     , ExceptionInfo (..)
     , OutputName (..)
     , WindowUnit(..)
+    , FactIdentifier (..)
     ) where
 
 import              Icicle.Internal.Pretty
@@ -88,7 +89,13 @@ data BaseValue
  | VStruct   !(Map.Map StructField  BaseValue)
  | VBuf      ![BaseValue]
  | VError    !ExceptionInfo
+ | VFactIdentifier !FactIdentifier
  deriving (Show, Ord, Eq)
+
+newtype FactIdentifier
+ = FactIdentifier
+ { getFactIdentifierTimestamp :: Time }
+ deriving (Eq, Ord, Show)
 
 -- | Called "exceptions"
 -- because they aren't really errors,
@@ -164,8 +171,13 @@ instance Pretty BaseValue where
       -> text "Struct" <+> pretty (Map.toList mv)
      VError e
       -> pretty e
+     VFactIdentifier f
+      -> pretty f
      VBuf vs
       -> text "Buf" <+> pretty vs
+
+instance Pretty FactIdentifier where
+ pretty f = text "FactIdentifier" <+> (text $ T.unpack $ renderTime $ getFactIdentifierTimestamp f)
 
 instance Pretty StructField where
  pretty = text . T.unpack . nameOfStructField

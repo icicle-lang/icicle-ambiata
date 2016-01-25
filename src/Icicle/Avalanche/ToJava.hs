@@ -391,6 +391,8 @@ boxedType t
      ErrorT     -> "Error"
      BoolT      -> "Boolean"
      TimeT      -> "Integer"
+     FactIdentifierT
+                -> "Integer"
      ArrayT a   -> "ArrayList" <> angled (boxedType a)
      BufT _ a   -> "IcicleBuf" <> angled (boxedType a)
      MapT a b   -> "HashMap" <> angled (commas [boxedType a, boxedType b])

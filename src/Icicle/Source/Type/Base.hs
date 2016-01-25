@@ -63,6 +63,12 @@ typeOfValType vt
     CT.StringT      -> StringT
     CT.UnitT        -> UnitT
     CT.ErrorT       -> ErrorT
+
+    -- Fact identifiers are represented as timestamps.
+    -- However they should not really need to be displayed as Source types
+    CT.FactIdentifierT
+                    -> TimeT
+
     CT.ArrayT a     -> ArrayT (go a)
     CT.BufT  _ a    -> ArrayT (go a)
     CT.MapT  k v    -> GroupT (go k) (go v)

@@ -445,6 +445,8 @@ baseValueForType t
      -> VBool <$> arbitrary
     TimeT
      -> VTime <$> arbitrary
+    FactIdentifierT
+     -> VFactIdentifier . FactIdentifier <$> arbitrary
     ArrayT t'
      -> smaller (VArray <$> listOf (baseValueForType t'))
     BufT n t'

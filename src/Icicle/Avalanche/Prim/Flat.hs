@@ -193,6 +193,8 @@ meltType t
     TimeT   -> [t]
     StringT -> [t]
     ErrorT  -> [t]
+    FactIdentifierT
+            -> [t]
 
     PairT   a b -> meltType a <> meltType b
 
@@ -214,6 +216,7 @@ meltType t
 
      | otherwise
      -> concat $ fmap meltType (Map.elems fs)
+
 
 tryMeltType :: ValType -> Maybe [ValType]
 tryMeltType t
