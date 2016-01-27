@@ -3,8 +3,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards #-}
 module Icicle.Sea.Psv.Base (
-    PsvConfig(..)
-  , PsvMode(..)
+    PsvMode(..)
+  , PsvFormat(..)
   , StringWord(..)
   , wordsOfString
   , wordsOfBytes
@@ -14,14 +14,11 @@ module Icicle.Sea.Psv.Base (
 
 import qualified Data.ByteString as B
 import qualified Data.List as List
-import           Data.Map (Map)
-import           Data.Set (Set)
 import           Data.Text (Text)
 import qualified Data.Text.Encoding as T
 import           Data.Word (Word8)
 
-import           Icicle.Data (Attribute(..), Time)
-
+import           Icicle.Data (Time)
 import           Icicle.Internal.Pretty
 
 import           P
@@ -29,17 +26,15 @@ import           P
 import           Text.Printf (printf)
 
 
-------------------------------------------------------------------------
-
 data PsvMode
   = PsvSnapshot Time
   | PsvChords
   deriving (Eq, Ord, Show)
 
-data PsvConfig = PsvConfig {
-    psvMode       :: PsvMode
-  , psvTombstones :: Map Attribute (Set Text)
-  } deriving (Eq, Ord, Show)
+data PsvFormat
+  = PsvSparse
+  | PsvDense
+  deriving (Eq, Ord, Show)
 
 --------------------------------------------------------------------------------
 
@@ -74,5 +69,3 @@ wordsOfBytes' bs off acc
 
   mask = text $ "0x" <> concatMap (printf "%02X") (zeros <> List.replicate nbytes 0xff)
   bits = text $ "0x" <> concatMap (printf "%02X") (zeros <> reverse bytes)
-
-------------------------------------------------------------------------

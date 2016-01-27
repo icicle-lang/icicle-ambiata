@@ -3,8 +3,10 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards #-}
 module Icicle.Sea.Psv (
-    PsvConfig(..)
+    PsvInputConfig(..)
+  , PsvOutputConfig(..)
   , PsvMode(..)
+  , PsvFormat(..)
   , seaOfPsvDriver
   ) where
 
@@ -28,16 +30,19 @@ import           Icicle.Sea.Psv.Output
 import           P
 
 
-------------------------------------------------------------------------
 
-seaOfPsvDriver :: [SeaProgramState] -> PsvConfig -> Either SeaError Doc
-seaOfPsvDriver states config = do
-  let struct_sea  = seaOfFleetState                      states
-      alloc_sea   = seaOfAllocFleet                      states
-      collect_sea = seaOfCollectFleet                    states
-      config_sea  = seaOfConfigureFleet (psvMode config) states
-  read_sea  <- seaOfReadAnyFact      config           states
-  write_sea <- seaOfWriteFleetOutput (psvMode config) states
+seaOfPsvDriver
+  :: [SeaProgramState]
+  -> PsvInputConfig
+  -> PsvOutputConfig
+  -> Either SeaError Doc
+seaOfPsvDriver states inputConfig outputConfig = do
+  let struct_sea  = seaOfFleetState      states
+      alloc_sea   = seaOfAllocFleet      states
+      collect_sea = seaOfCollectFleet    states
+      config_sea  = seaOfConfigureFleet (inputPsvMode inputConfig) states
+  read_sea  <- seaOfReadAnyFact      inputConfig  states
+  write_sea <- seaOfWriteFleetOutput outputConfig states
   pure $ vsep
     [ struct_sea
     , ""

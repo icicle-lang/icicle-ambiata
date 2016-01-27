@@ -29,78 +29,16 @@ import           P
 import           Prelude (String)
 
 
+data PsvOutputConfig = PsvOutputConfig {
+    outputPsvMode   :: PsvMode
+  , outputPsvFormat :: PsvFormat
+  } deriving (Eq, Ord, Show)
+
 ------------------------------------------------------------------------
 
--- * Output
-
--- | A hack to tell whether or not strings should be quoted.
---   If in JSON, quote. If not, don't.
---   At any stage during output, if the elements should be JSON, pass @InJSON@,
---   e.g. when outputting arrays, we should specify that the elements be output
---        as JSON.
---
-data IsInJSON = InJSON | NotInJSON
-
-conditional :: Doc -> Doc -> Doc
-conditional n body
- = vsep ["if (" <> n <> ")"
-        , "{"
-        , indent 4 body
-        , "}"]
-
-pair :: Doc -> Doc -> Doc
-pair x y
- = vsep [ outputChar '['
-        , x
-        , outputChar ','
-        , y
-        , outputChar ']'
-        ]
-
-outputValue :: Doc -> [Doc] -> Doc
-outputValue typ vals
- = vsep
- [ "error = psv_output_" <> typ <> " "
-   <> "(fd, buffer, buffer_end, &buffer_ptr, " <> val <> ");"
- , outputDie
- ]
- where
-  val = hcat (punctuate ", " vals)
-
-forStmt :: Doc -> Doc -> Doc -> Doc
-forStmt i n m
- = "for(iint_t" <+> i <+> "= 0," <+> n <+> "=" <+> m <> ";" <+> i <+> "<" <+> n <> "; ++" <> i <> ")"
-
-outputChar :: Char -> Doc
-outputChar x
- = outputValue "char" [seaOfChar x]
-
-outputString :: Text -> Doc
-outputString xs
- = vsep
- [ "if (buffer_end - buffer_ptr < " <> int rounded <> ") {"
- , "    error = psv_output_flush (fd, buffer, &buffer_ptr);"
- , indent 4 outputDie
- , "}"
- , vsep (fmap mkdoc swords)
- , "buffer_ptr += " <> int size <> ";"
- ]
- where
-  swords = wordsOfString xs
-
-  rounded  = length swords * 8
-  size     = sum (fmap swSize swords)
-  mkdoc sw = "*(uint64_t *)(buffer_ptr + " <> int (swOffset sw) <> ") = " <> swBits sw <> ";"
-
-timeFmt :: Doc
-timeFmt = "%04lld-%02lld-%02lldT%02lld:%02lld:%02lld"
-
-outputDie :: Doc
-outputDie = "if (error) return error;"
-
-seaOfWriteFleetOutput :: PsvMode -> [SeaProgramState] -> Either SeaError Doc
-seaOfWriteFleetOutput mode states = do
-  write_sea <- traverse seaOfWriteProgramOutput states
+seaOfWriteFleetOutput :: PsvOutputConfig -> [SeaProgramState] -> Either SeaError Doc
+seaOfWriteFleetOutput config states = do
+  write_sea <- traverse (seaOfWriteProgramOutput config) states
   pure $ vsep
     [ "#line 1 \"write all outputs\""
     , "static ierror_msg_t psv_write_outputs"
@@ -118,16 +56,27 @@ seaOfWriteFleetOutput mode states = do
     , ""
     , "    char *buffer_ptr = *buffer_ptr_ptr;"
     , ""
+    , beforeChord
     , "    for (iint_t chord_ix = 0; chord_ix < chord_count; chord_ix++) {"
-    , indent 8 (seaOfChordTime mode)
+    , indent 8 (seaOfChordTime $ outputPsvMode config)
     , indent 8 (vsep write_sea)
     , "    }"
+    , afterChord
     , ""
     , "    *buffer_ptr_ptr = buffer_ptr;"
     , ""
     , "    return 0;"
     , "}"
     ]
+  where
+    beforeChord
+      = case outputPsvFormat config  of
+          PsvDense  -> outputEntity
+          PsvSparse -> ""
+    afterChord
+      = case outputPsvFormat config of
+          PsvDense -> outputChar '\n'
+          PsvSparse -> ""
 
 seaOfChordTime :: PsvMode -> Doc
 seaOfChordTime = \case
@@ -146,14 +95,24 @@ seaOfChordTime = \case
     ]
 
 
-seaOfWriteProgramOutput :: SeaProgramState -> Either SeaError Doc
-seaOfWriteProgramOutput state = do
+seaOfWriteProgramOutput :: PsvOutputConfig -> SeaProgramState -> Either SeaError Doc
+seaOfWriteProgramOutput config state = do
   let ps    = "p" <> int (stateName state)
       stype = pretty (nameOfStateType state)
       pname = pretty (nameOfProgram state)
 
-  let resumeables = fmap (\(n,_) -> ps <> "->" <> pretty (hasPrefix <> n) <+> "= ifalse;") (stateResumables state)
-  outputs <- traverse (\(n,(t,ts)) -> seaOfWriteOutput ps n t ts 0) (stateOutputs state)
+  let outputState (name, (ty, tys))
+        = case outputPsvFormat config of
+            PsvSparse
+              -> seaOfWriteOutputSparse ps 0 name ty tys
+            PsvDense
+              -> seaOfWriteOutputDense  ps 0 name ty tys
+
+  let outputRes   name
+        = ps <> "->" <> pretty (hasPrefix <> name) <+> "= ifalse;"
+
+  let resumeables  = fmap (outputRes . fst) (stateResumables state)
+  outputs         <- traverse outputState (stateOutputs state)
 
   pure $ vsep
     [ ""
@@ -166,34 +125,85 @@ seaOfWriteProgramOutput state = do
     , vsep outputs
     ]
 
-seaOfWriteOutput :: Doc -> OutputName -> ValType -> [ValType] -> Int -> Either SeaError Doc
-seaOfWriteOutput ps oname@(OutputName name) otype0 ts0 ixStart
-  = let members = List.take (length ts0) (fmap (\ix -> ps <> "->" <> seaOfNameIx name ix) [ixStart..])
-    in case otype0 of
+seaOfWriteOutputSparse :: Doc -> Int -> OutputName -> ValType -> [ValType] -> Either SeaError Doc
+seaOfWriteOutputSparse struct structIndex outName@(OutputName name) outType argTypes
+  = let members = structMembers struct name argTypes structIndex
+    in case outType of
          -- Top-level Sum is a special case, to avoid allocating and printing if
          -- the whole computation is an error (e.g. tombstone)
-         SumT ErrorT otype1
-          | (ErrorT : ts1) <- ts0
-          , (ne     : _)   <- members
-          -> do (m, body, _, _) <- seaOfOutput NotInJSON ps (ixStart + 1)
-                                               oname Map.empty otype1 ts1 id
+         SumT ErrorT outType'
+          | (ErrorT : argTypes') <- argTypes
+          , (ne     : _)         <- members
+          -> do (m, body, _, _) <- seaOfOutput NotInJSON struct (structIndex + 1)
+                                               outName Map.empty outType' argTypes' id
                 let body'        = seaOfOutputCond m body
                 let body''       = go body'
-                pure $ conditional (ne <> " == ierror_not_an_error") body''
+                pure $ conditionalNotError' ne body''
          _
-          -> do (m, body, _, _) <- seaOfOutput NotInJSON ps ixStart
-                                               oname Map.empty otype0 ts0 id
+          -> do (m, body, _, _) <- seaOfOutput NotInJSON struct structIndex
+                                               outName Map.empty outType argTypes id
                 let body'        = seaOfOutputCond m body
                 return $ go body'
 
   where
-    before = vsep [ outputValue  "string" ["entity", "entity_size"]
-                  , outputString ("|" <> name <> "|") ]
+    go str = vsep [ outputEntity
+                  , outputChar '|'
+                  , outputAttr name
+                  , outputChar '|'
+                  , str
+                  , outputChord ]
 
-    after  = vsep [ outputValue  "string" ["chord_time", "chord_size"]
-                  , outputChar   '\n' ]
+seaOfWriteOutputDense :: Doc -> Int -> OutputName -> ValType -> [ValType] -> Either SeaError Doc
+seaOfWriteOutputDense struct structIndex outName@(OutputName name) outType argTypes
+  = let members = structMembers struct name argTypes structIndex
+    in  case outType of
+         SumT ErrorT outType'
+          | (ErrorT : argTypes') <- argTypes
+          , (ne     : _)         <- members
+          -> do (m, body, _, _) <- seaOfOutput NotInJSON struct (structIndex + 1)
+                                               outName Map.empty outType' argTypes' id
+                let body'        = seaOfOutputCond m body
+                go $ conditionalNotError ne body' bodyNA
+         _
+          -> do (m, body, _, _) <- seaOfOutput NotInJSON struct structIndex
+                                               outName Map.empty outType argTypes id
+                let body'        = seaOfOutputCond m body
+                go body'
+  where
+    -- NA needs to be unquoted
+    bodyNA
+      = outputValue "string" ["\"NA\"", "2"]
 
-    go str = vsep [before, str, after]
+    go body
+      = pure
+     $ vsep [ outputChar '|', body ]
+
+-- | Construct the struct member names for the output arguments.
+--
+structMembers :: Doc -> Text -> [ValType] -> Int -> [Doc]
+structMembers struct name argTypes structIndex
+  = List.take (length argTypes)
+  $ fmap (\ix -> struct <> "->" <> seaOfNameIx name ix)
+         [structIndex..]
+
+-- | Output the entity, e.g "homer|"
+--
+outputEntity :: Doc
+outputEntity
+  = outputValue  "string" ["entity", "entity_size"]
+
+-- | Output the attribute, e.g "salary|"
+--
+outputAttr :: Text -> Doc
+outputAttr = outputString
+
+-- | Output the chord and end of line, e.g. "20151231\n"
+--
+outputChord :: Doc
+outputChord
+  = vsep [ outputValue "string" ["chord_time", "chord_size"]
+         , outputChar  '\n' ]
+
 
 --------------------------------------------------------------------------------
 
@@ -293,7 +303,7 @@ seaOfOutput isJSON struct structIndex outName@(OutputName name) env outType argT
 
               return (Nothing, p', ixb, ts)
 
-       -- Conditionals
+       -- Conditional's
        OptionT otype1
         | (BoolT : ts1) <- argTypes
         , (nb    : _)   <- members
@@ -338,7 +348,7 @@ seaOfOutput isJSON struct structIndex outName@(OutputName name) env outType argT
     = seaOfOutputBase b mismatch
 
    seaOfOutputArraySep c
-     = conditional (c <+> "> 0") seaOfOutputSep
+     = conditional' (c <+> "> 0") seaOfOutputSep
 
    seaOfOutputSep
      = outputChar ','
@@ -369,7 +379,7 @@ seaOfOutputCond mcond body
       Nothing
         -> body
       Just cond
-        -> conditional cond body
+        -> conditional' cond body
 
 -- | Output single types
 seaOfOutputBase :: IsInJSON -> SeaError -> ValType -> Doc -> Either SeaError Doc
@@ -396,6 +406,88 @@ seaOfOutputBase quoteStrings err t val
      _ -> Left err
 
 ------------------------------------------------------------------------
+
+-- | A hack to tell whether or not strings should be quoted.
+--   If in JSON, quote. If not, don't.
+--   At any stage during output, if the elements should be JSON, pass @InJSON@,
+--   e.g. when outputting arrays, we should specify that the elements be output
+--        as JSON.
+--
+data IsInJSON = InJSON | NotInJSON
+
+conditional' :: Doc -> Doc -> Doc
+conditional' n body
+ = vsep ["if (" <> n <> ")"
+        , "{"
+        , indent 4 body
+        , "}"]
+
+conditional :: Doc -> Doc -> Doc -> Doc
+conditional n body1 body2
+ = vsep ["if (" <> n <> ")"
+        , "{"
+        , indent 4 body1
+        , "} else {"
+        , indent 4 body2
+        , "}"]
+
+conditionalNotError' :: Doc -> Doc -> Doc
+conditionalNotError' n body
+ = conditional' (n <> " == ierror_not_an_error") body
+
+conditionalNotError :: Doc -> Doc -> Doc -> Doc
+conditionalNotError n body1 body2
+ = conditional (n <> " == ierror_not_an_error") body1 body2
+
+pair :: Doc -> Doc -> Doc
+pair x y
+ = vsep [ outputChar '['
+        , x
+        , outputChar ','
+        , y
+        , outputChar ']'
+        ]
+
+outputValue :: Doc -> [Doc] -> Doc
+outputValue typ vals
+ = vsep
+ [ "error = psv_output_" <> typ <> " "
+   <> "(fd, buffer, buffer_end, &buffer_ptr, " <> val <> ");"
+ , outputDie
+ ]
+ where
+  val = hcat (punctuate ", " vals)
+
+forStmt :: Doc -> Doc -> Doc -> Doc
+forStmt i n m
+ = "for(iint_t" <+> i <+> "= 0," <+> n <+> "=" <+> m <> ";" <+> i <+> "<" <+> n <> "; ++" <> i <> ")"
+
+outputChar :: Char -> Doc
+outputChar x
+ = outputValue "char" [seaOfChar x]
+
+outputString :: Text -> Doc
+outputString xs
+ = vsep
+ [ "if (buffer_end - buffer_ptr < " <> int rounded <> ") {"
+ , "    error = psv_output_flush (fd, buffer, &buffer_ptr);"
+ , indent 4 outputDie
+ , "}"
+ , vsep (fmap mkdoc swords)
+ , "buffer_ptr += " <> int size <> ";"
+ ]
+ where
+  swords = wordsOfString xs
+
+  rounded  = length swords * 8
+  size     = sum (fmap swSize swords)
+  mkdoc sw = "*(uint64_t *)(buffer_ptr + " <> int (swOffset sw) <> ") = " <> swBits sw <> ";"
+
+timeFmt :: Doc
+timeFmt = "%04lld-%02lld-%02lldT%02lld:%02lld:%02lld"
+
+outputDie :: Doc
+outputDie = "if (error) return error;"
 
 quotedOutput :: IsInJSON -> Doc -> Doc
 quotedOutput NotInJSON out = out

@@ -6,6 +6,7 @@ module Icicle.Sea.Psv.Input where
 
 
 import qualified Data.ByteString as B
+import           Data.Map (Map)
 import qualified Data.Map as Map
 import           Data.Set (Set)
 import qualified Data.Set as Set
@@ -30,12 +31,19 @@ import           Icicle.Sea.FromAvalanche.Prim
 import           Icicle.Sea.FromAvalanche.Program (seaOfXValue)
 import           Icicle.Sea.FromAvalanche.State
 import           Icicle.Sea.FromAvalanche.Type
-import Icicle.Sea.Psv.Base
+import           Icicle.Sea.Psv.Base
 
 import           P
 
 
-seaOfReadAnyFact :: PsvConfig -> [SeaProgramState] -> Either SeaError Doc
+data PsvInputConfig = PsvInputConfig {
+    inputPsvMode       :: PsvMode
+  , inputPsvTombstones :: Map Attribute (Set Text)
+  } deriving (Eq, Ord, Show)
+
+--------------------------------------------------------------------------------
+
+seaOfReadAnyFact :: PsvInputConfig -> [SeaProgramState] -> Either SeaError Doc
 seaOfReadAnyFact config states = do
   let tss = fmap (lookupTombstones config) states
   readStates_sea <- zipWithM seaOfReadFact states tss
@@ -471,9 +479,9 @@ mappingOfField (StructField fname, ftype) vars0 = do
 
 ------------------------------------------------------------------------
 
-lookupTombstones :: PsvConfig -> SeaProgramState -> Set Text
+lookupTombstones :: PsvInputConfig -> SeaProgramState -> Set Text
 lookupTombstones config state =
-  fromMaybe Set.empty (Map.lookup (stateAttribute state) (psvTombstones config))
+  fromMaybe Set.empty (Map.lookup (stateAttribute state) (inputPsvTombstones config))
 
 nameOfLastTime :: SeaProgramState -> Text
 nameOfLastTime state = "last_time_" <> T.pack (show (stateName state))
