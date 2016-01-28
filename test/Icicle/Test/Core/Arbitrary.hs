@@ -333,11 +333,12 @@ programForStreamType streamType
 
 programForStreamType' :: ValType -> Gen (Program () Var)
 programForStreamType' streamType
- = do   ninput      <- arbitrary
-        let gen_not_input = freshInEnv (Map.singleton ninput streamType)
-        nid         <- gen_not_input
-        ntime       <- gen_not_input
-        ndate       <- gen_not_input
+ = do   Var fresh_name _ <- arbitrary
+        let freshN i = Name $ Var fresh_name i
+        let ninput = freshN 0
+        let nid    = freshN 1
+        let ntime  = freshN 2
+        let ndate  = freshN 3
 
         let avoid = Map.fromList [ ( ninput, FunT [] (PairT streamType TimeT))
                                  , ( nid,    FunT [] FactIdentifierT)

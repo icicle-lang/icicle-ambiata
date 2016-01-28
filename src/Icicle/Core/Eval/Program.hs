@@ -29,6 +29,7 @@ import              P
 
 import qualified    Data.Map as Map
 import              Data.Hashable (Hashable)
+import              Data.List (zipWith)
 
 
 -- | Things that can go wrong for program evaluation
@@ -84,11 +85,12 @@ eval d sv p
                  $ XV.evalExps XV.evalPrim  env0   (P.precomps     p)
 
         let mkstream f t = SV.StreamValue (fmap f sv) (defaultOfType t)
+        let idStream = SV.StreamValue (zipWith (\_ i -> VFactIdentifier $ FactIdentifier i) sv [0..]) (defaultOfType FactIdentifierT)
         let valueOfInput at = VPair (snd $ atFact at) (VTime $ atTime at)
 
         let inputHeap = Map.fromList 
                       [(P.factValName  p, mkstream valueOfInput (PairT (P.inputType p) TimeT))
-                      ,(P.factIdName   p, mkstream (VFactIdentifier . FactIdentifier . atTime) FactIdentifierT)
+                      ,(P.factIdName   p, idStream)
                       ,(P.factTimeName p, mkstream (VTime . atTime) TimeT)]
         (stms,bgs) <- evalStms pres inputHeap (P.streams      p)
 

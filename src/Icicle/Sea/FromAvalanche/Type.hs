@@ -123,7 +123,7 @@ baseOfValType t
      TimeT     -> "itime"
      ErrorT    -> "ierror"
      FactIdentifierT
-                -> "itime"
+                -> "iint"
 
      StringT   -> "istring"
      BufT n t' -> "ibuf_" <> int n <> "_" <> baseOfValType t'

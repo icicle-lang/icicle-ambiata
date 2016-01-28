@@ -80,7 +80,10 @@ prop_fuseeval2 t =
  case (eval p1, eval p2, fusePrograms () left p1 right p2) of
   (Right v1, Right v2, Right p')
       -- Evaluate the fused program
-   -> case eval p' of
+   ->counterexample ("Left:          " <> (show $ pretty p1))
+   $ counterexample ("Right:         " <> (show $ pretty p2))
+   $ counterexample ("Fused:         " <> (show $ pretty p'))
+   $  case eval p' of
        -- It should not be an error
        Left  _  -> property False
        -- It evaluated fine, so the values should match
@@ -118,4 +121,4 @@ return []
 tests :: IO Bool
 -- tests = $quickCheckAll
 -- try harder to generate well-typed programs, since many tests require more than one
-tests = $forAllProperties $ quickCheckWithResult (stdArgs {maxSuccess = 100, maxSize = 10, maxDiscardRatio = 1000000})
+tests = $forAllProperties $ quickCheckWithResult (stdArgs {maxSuccess = 1000, maxSize = 100, maxDiscardRatio = 1000000})

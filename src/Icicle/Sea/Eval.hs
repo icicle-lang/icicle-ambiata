@@ -451,7 +451,7 @@ newSeaVectors sz t =
     TimeT   -> (:[]) . U64 <$> liftIO (MV.new sz)
     ErrorT  -> (:[]) . U64 <$> liftIO (MV.new sz)
     FactIdentifierT
-            -> (:[]) . U64 <$> liftIO (MV.new sz)
+            -> (:[]) . I64 <$> liftIO (MV.new sz)
     StringT -> (:[]) . flip P64 t <$> liftIO (MV.new sz)
 
     BufT{}    -> left (SeaTypeConversionError t)
@@ -507,8 +507,8 @@ pokeInput' svs0@(sv:svs) t ix val =
     (U64 v, VTime     x, TimeT)   -> pure svs <* liftIO (MV.write v ix (packedOfTime x))
     (U64 v, VError    x, ErrorT)  -> pure svs <* liftIO (MV.write v ix (wordOfError x))
 
-    (U64 v, VFactIdentifier x, FactIdentifierT)
-                                  -> pure svs <* liftIO (MV.write v ix (packedOfTime $ getFactIdentifierTimestamp x))
+    (I64 v, VFactIdentifier x, FactIdentifierT)
+                                  -> pure svs <* liftIO (MV.write v ix $ fromIntegral $ getFactIdentifierIndex x)
 
     (P64 v _, VString xs, StringT)
      -> do let str = T.unpack xs
@@ -616,7 +616,7 @@ peekOutput ptr ix0 t =
     TimeT   -> (ix0+1,) . VTime   . timeOfPacked <$> peekWordOff ptr ix0
     ErrorT  -> (ix0+1,) . VError  . errorOfWord  <$> peekWordOff ptr ix0
     FactIdentifierT
-            -> (ix0+1,) . VFactIdentifier . FactIdentifier . timeOfPacked <$> peekWordOff ptr ix0
+            -> (ix0+1,) . VFactIdentifier . FactIdentifier . fromInt64 <$> peekWordOff ptr ix0
 
     StructT{} -> left (SeaTypeConversionError t)
     BufT{}    -> left (SeaTypeConversionError t)
@@ -688,7 +688,7 @@ pokeArrayIx ptr t ix v =
     (VDouble   x, DoubleT) -> liftIO (pokeWordOff ptr ix x)
     (VTime     x, TimeT)   -> liftIO (pokeWordOff ptr ix (packedOfTime x))
     (VFactIdentifier x, FactIdentifierT)
-                           -> liftIO (pokeWordOff ptr ix (packedOfTime $ getFactIdentifierTimestamp x))
+                           -> liftIO (pokeWordOff ptr ix (fromIntegral (getFactIdentifierIndex x) :: Int64))
     (VError    x, ErrorT)  -> liftIO (pokeWordOff ptr ix (wordOfError x))
     (VString   x, StringT) -> liftIO (newCString (T.unpack x) >>= pokeWordOff ptr ix)
     _                      -> left (SeaBaseValueConversionError v (Just t))
@@ -705,7 +705,7 @@ peekArrayIx ptr t ix =
     DoubleT -> VDouble                <$> peekWordOff ptr ix
     TimeT   -> VTime   . timeOfPacked <$> peekWordOff ptr ix
     FactIdentifierT
-            -> VFactIdentifier . FactIdentifier . timeOfPacked <$> peekWordOff ptr ix
+            -> VFactIdentifier . FactIdentifier . fromInt64 <$> peekWordOff ptr ix
     ErrorT  -> VError  . errorOfWord  <$> peekWordOff ptr ix
 
     BoolT

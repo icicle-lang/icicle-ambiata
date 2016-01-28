@@ -32,9 +32,8 @@ valueToCore dv vt
      (D.BooleanValue x, C.BoolT{})   -> Just (C.VBool x)
      (D.StringValue  x, C.StringT{}) -> Just (C.VString x)
      (D.TimeValue    x, C.TimeT{})   -> Just (C.VTime x)
-     -- fact identifiers only exist internally, but can be represented as times
-     (D.TimeValue    x, C.FactIdentifierT)
-                                     -> Just (C.VFactIdentifier $ C.FactIdentifier x)
+     -- fact identifiers only exist internally
+     (_, C.FactIdentifierT)          -> Nothing
 
      (D.Tombstone,      C.ErrorT{})  -> Just (C.VError C.ExceptTombstone)
 
@@ -78,9 +77,9 @@ valueFromCore = \case
   C.VInt    x -> Just (D.IntValue x)
   C.VDouble x -> Just (D.DoubleValue x)
   C.VTime   x -> Just (D.TimeValue x)
-  -- Fact identifiers only exist internally, but can be expressed as times
-  C.VFactIdentifier x
-              -> Just (D.TimeValue $ C.getFactIdentifierTimestamp x)
+  -- Fact identifiers only exist internally
+  C.VFactIdentifier _
+              -> Nothing
   C.VString x -> Just (D.StringValue x)
   C.VUnit     -> Just (D.IntValue 13013)
   C.VError  _ -> Just D.Tombstone

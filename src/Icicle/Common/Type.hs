@@ -95,7 +95,7 @@ defaultOfType typ
      UnitT     -> VUnit
      ErrorT    -> VError ExceptNotAnError
      FactIdentifierT
-               -> VFactIdentifier (FactIdentifier $ timeOfDays 0)
+               -> VFactIdentifier (FactIdentifier 0)
      ArrayT  _ -> VArray []
      MapT  _ _ -> VMap Map.empty
      OptionT _ -> VNone

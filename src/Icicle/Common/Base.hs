@@ -92,9 +92,13 @@ data BaseValue
  | VFactIdentifier !FactIdentifier
  deriving (Show, Ord, Eq)
 
+-- | Fact identifiers are represented as indices into the input stream for
+-- Core and Avalanche evaluators, but for a real streaming model such as C
+-- we need to convert this as a unique (and consistent) identifier across runs.
+-- Perhaps a pair of timestamp and index
 newtype FactIdentifier
  = FactIdentifier
- { getFactIdentifierTimestamp :: Time }
+ { getFactIdentifierIndex :: Int }
  deriving (Eq, Ord, Show)
 
 -- | Called "exceptions"
@@ -177,7 +181,7 @@ instance Pretty BaseValue where
       -> text "Buf" <+> pretty vs
 
 instance Pretty FactIdentifier where
- pretty f = text "FactIdentifier" <+> (text $ T.unpack $ renderTime $ getFactIdentifierTimestamp f)
+ pretty f = text "FactIdentifier" <+> (pretty $ getFactIdentifierIndex f)
 
 instance Pretty StructField where
  pretty = text . T.unpack . nameOfStructField
