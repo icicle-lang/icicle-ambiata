@@ -117,10 +117,11 @@ runTest showData wt = do
 
   let options  = options0 <> ["-O0", "-DICICLE_NOINLINE=1"]
       programs = Map.singleton (wtAttribute wt) (wtAvalanche wt)
-      config   = S.PsvConfig (S.PsvSnapshot (wtTime wt))
-                             (Map.singleton (wtAttribute wt) (Set.singleton tombstone))
+      iconfig  = S.PsvInputConfig  (S.PsvSnapshot (wtTime wt))
+                                   (Map.singleton (wtAttribute wt) (Set.singleton tombstone))
+      oconfig  = S.PsvOutputConfig (S.PsvSnapshot (wtTime wt)) S.PsvSparse
 
-  let compile  = S.seaCompile' options (S.Psv config) programs
+  let compile  = S.seaCompile' options (S.Psv iconfig oconfig) programs
       release  = S.seaRelease
   bracketEitherT' compile release $ \fleet -> do
 
@@ -193,5 +194,5 @@ withSystemTempDirectory template action = do
 
 return []
 tests :: IO Bool
-tests = $forAllProperties $ quickCheckWithResult (stdArgs {maxSuccess = 1000, maxSize = 10, maxDiscardRatio = 10000})
+tests = $forAllProperties $ quickCheckWithResult (stdArgs {maxSuccess = 500, maxSize = 10, maxDiscardRatio = 10000})
 -- tests = $forAllProperties $ quickCheckWithResult (stdArgs {maxSuccess = 1000, maxSize = 10, maxDiscardRatio = 10000})

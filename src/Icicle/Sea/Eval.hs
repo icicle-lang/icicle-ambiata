@@ -14,8 +14,10 @@ module Icicle.Sea.Eval (
   , SeaProgram(..)
   , SeaError(..)
   , Psv(..)
-  , PsvConfig(..)
+  , PsvInputConfig(..)
+  , PsvOutputConfig(..)
   , PsvMode(..)
+  , PsvFormat(..)
 
   , seaCompile
   , seaCompile'
@@ -69,10 +71,10 @@ import           Icicle.Internal.Pretty (Doc, Pretty, displayS, renderPretty)
 import           Icicle.Sea.Error (SeaError(..))
 import           Icicle.Sea.FromAvalanche.Analysis (factVarsOfProgram, outputsOfProgram)
 import           Icicle.Sea.FromAvalanche.Program (seaOfProgram, nameOfProgram')
-import           Icicle.Sea.FromAvalanche.Psv (PsvConfig(..), PsvMode(..), seaOfPsvDriver)
 import           Icicle.Sea.FromAvalanche.State (stateOfProgram, nameOfStateSize')
 import           Icicle.Sea.FromAvalanche.Type (seaOfDefinitions)
 import           Icicle.Sea.Preamble (seaPreamble)
+import           Icicle.Sea.Psv (PsvInputConfig(..), PsvOutputConfig(..), PsvMode(..), PsvFormat(..), seaOfPsvDriver)
 
 import           Jetski
 
@@ -89,7 +91,7 @@ import           X.Control.Monad.Trans.Either (firstEitherT, hoistEither, left)
 
 ------------------------------------------------------------------------
 
-data Psv = NoPsv | Psv PsvConfig
+data Psv = NoPsv | Psv PsvInputConfig PsvOutputConfig
 
 data PsvStats = PsvStats {
     psvFactsRead    :: Int64
@@ -275,7 +277,7 @@ seaCompile' options psv programs = do
   psv_snapshot <- case psv of
     NoPsv -> do
       return (\_ -> return ())
-    Psv _ -> do
+    Psv _ _ -> do
       fn <- firstEitherT SeaJetskiError (function lib "psv_snapshot" retVoid)
       return (\ptr -> fn [argPtr ptr])
 
@@ -360,8 +362,8 @@ codeOfPrograms psv programs = do
   case psv of
     NoPsv -> do
       pure . textOfDoc . vsep $ ["#define ICICLE_NO_PSV 1", seaPreamble, defs] <> progs
-    Psv cfg -> do
-      psv_doc <- seaOfPsvDriver states cfg
+    Psv icfg ocfg -> do
+      psv_doc <- seaOfPsvDriver states icfg ocfg
       pure . textOfDoc . vsep $ [seaPreamble, defs] <> progs <> ["", psv_doc]
 
 textOfDoc :: Doc -> Text
