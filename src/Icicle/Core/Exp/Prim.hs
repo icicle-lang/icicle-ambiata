@@ -55,6 +55,7 @@ data PrimArray
 data PrimMap
  = PrimMapInsertOrUpdate ValType ValType
  | PrimMapMapValues ValType ValType ValType
+ | PrimMapLookup ValType ValType
  deriving (Eq, Ord, Show)
 
 
@@ -94,6 +95,8 @@ typeOfPrim p
      -> FunT [FunT [funOfVal v] v, funOfVal v, funOfVal k, funOfVal (MapT k v)] (MapT k v)
     PrimMap (PrimMapMapValues k v v')
      -> FunT [FunT [funOfVal v] v', funOfVal (MapT k v)] (MapT k v')
+    PrimMap (PrimMapLookup k v)
+     -> FunT [funOfVal (MapT k v), funOfVal k] (OptionT v)
 
     -- Latest buffer primitives
     PrimLatest (PrimLatestPush i t)
@@ -132,6 +135,9 @@ instance Pretty Prim where
 
  pretty (PrimMap (PrimMapMapValues k v v'))
   = annotate (AnnType (k , v , v')) "Map_mapValues#"
+
+ pretty (PrimMap (PrimMapLookup k v))
+  = annotate (AnnType (k , v)) "Map_lookup#"
 
  pretty (PrimLatest (PrimLatestPush i t))
   = annotate (AnnType (BufT i t)) "Latest_push#"
