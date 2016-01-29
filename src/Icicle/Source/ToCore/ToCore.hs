@@ -385,7 +385,7 @@ convertQuery q
             let r = sfold n' pairt (pair (CE.emptyMap tkey T.UnitT) (foldZero res)) (beta kons)
 
             -- Perform a fold over that map
-            let p = post n'' $ xsnd $ CE.xVar n'
+            let p = post n'' $ beta (mapExtract res CE.@~ xsnd (CE.xVar n'))
 
             return (r <> p, n'')
 
