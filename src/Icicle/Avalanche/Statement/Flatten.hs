@@ -284,6 +284,42 @@ flatX a_fresh xx stm
        | otherwise
        -> lift $ Left $ FlattenErrorPrimBadArgs p xs
 
+      -- Map: lookup by key
+      Core.PrimMap (Core.PrimMapLookup tk tv)
+       | [map, key]   <- xs
+       -> flatX' map
+       $ \map'
+       -> flatX' key
+       $ \key'
+       -> do n'res       <- fresh
+             let acc'res  = Accumulator n'res (OptionT tv) $ xValue (OptionT tv) VNone
+
+                 read'r   = Read n'res n'res (OptionT tv)
+
+                 eq       = xPrim $ Flat.PrimMinimal $ Min.PrimRelation Min.PrimRelationEq tk
+                 get t ar i = fpArrIx  t `makeApps'` [ar, i]
+                 upd' x   = Write n'res ((xPrim $ Flat.PrimMinimal $ Min.PrimConst $ Min.PrimConstSome tv) `xApp` x)
+
+             loop1       <- slet (fpMapKeys tk tv `xApp` map')  $ \map'k
+                         -> slet (fpMapVals tk tv `xApp` map')  $ \map'v
+                         -> slet (fpArrLen  tk    `xApp` map'k) $ \sz
+                         -> forI sz  $ \i
+                         -> return
+                            (If (eq `makeApps'` [get tk map'k i, key'])
+                               (upd' $ get tv map'v i)
+                               mempty)
+
+             stm'        <- stm $ xVar n'res
+
+             let ss       = InitAccumulator acc'res
+                          ( loop1 <> read'r stm' )
+
+             return ss
+
+       -- Map with wrong arguments
+       | otherwise
+       -> lift $ Left $ FlattenErrorPrimBadArgs p xs
+
 
       -- Map over array: create new empty array, for each element, etc
       Core.PrimArray (Core.PrimArrayMap ta tb)

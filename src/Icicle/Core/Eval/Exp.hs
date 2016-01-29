@@ -88,6 +88,18 @@ evalPrim p vs
       | otherwise
       -> primError
 
+     PrimMap (PrimMapLookup _ _)
+      | [VBase (VMap mm), VBase key] <- vs
+      -> case Map.lookup key mm of
+          Nothing
+           -> return $ VBase $ VNone
+          Just v
+           -> return $ VBase $ VSome v
+
+      | otherwise
+      -> primError
+
+
      PrimLatest (PrimLatestPush i _)
       | [VBase (VBuf as), VBase factid, VBase e] <- vs
       -> return . VBase . VBuf
