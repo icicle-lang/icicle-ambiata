@@ -326,19 +326,17 @@ convertQuery q
     -- for each group.
     (Distinct _ e : _)
      -> do  tkey <- convertValType' $ annResult $ annotOfExp e
-            (inpstream, inpty) <- convertInput
-            let tval = inpty
 
             n'      <- lift fresh
             n''     <- lift fresh
-            nacc    <- lift fresh
-            nval    <- lift fresh
+            n'key   <- lift fresh
             n'ignore<- lift fresh
+            n'ignore2<- lift fresh
 
             -- Convert the rest of the query into a fold.
             -- This is executed as a Map fold at the end, rather than
             -- as a stream fold.
-            res     <- convertWithInputName nval $ convertFold q'
+            res     <- convertFold q'
 
             let tV'  = typeFold res
 
@@ -346,37 +344,48 @@ convertQuery q
             -- This becomes the map insertion key.
             e'      <- convertExp e
 
-            let mapt = T.MapT tkey tval
+            let mapt    = T.MapT tkey T.UnitT
+            let pairt   = T.PairT mapt tV'
+
+            let xfst    = CE.xApp
+                        $ CE.xPrim $ C.PrimMinimal $ Min.PrimPair $ Min.PrimPairFst mapt tV'
+            let xsnd    = CE.xApp
+                        $ CE.xPrim $ C.PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd mapt tV'
+
+            let pair x y= (CE.xPrim $ C.PrimMinimal $ Min.PrimConst $ Min.PrimConstPair mapt tV')
+                        CE.@~ x CE.@~ y
 
             -- This is a little bit silly -
             -- this "insertOrUpdate" should really just be an insert.
             -- Just put each element in the map, potentially overwriting the last one.
-            let insertOrUpdate
-                  = beta
-                  ( CE.xPrim (C.PrimMap $ C.PrimMapInsertOrUpdate tkey tval)
-                    CE.@~ (CE.xLam n'ignore inpty $ CE.xVar inpstream )
-                    CE.@~ (CE.xVar inpstream)
-                    CE.@~  e'
-                    CE.@~ CE.xVar n' )
+            let insert_map mm kk vv
+                  = CE.xPrim (C.PrimMap $ C.PrimMapInsertOrUpdate tkey T.UnitT)
+                    CE.@~ (CE.xLam n'ignore T.UnitT $ vv)
+                    CE.@~ vv
+                    CE.@~ kk
+                    CE.@~ mm
+
+            let update_step
+                        = pair
+                        ( insert_map (xfst $ CE.xVar n') (CE.xVar n'key) (CE.xValue T.UnitT VUnit) )
+                        ( foldKons res CE.@~ xsnd (CE.xVar n') )
+
+            let check_if_exists
+                        = CE.xPrim (C.PrimMap (C.PrimMapLookup tkey T.UnitT))
+                        CE.@~ xfst (CE.xVar n')
+                        CE.@~ CE.xVar n'key
+
+            let kons    = CE.xLet n'key e'
+                        ( CE.xPrim (C.PrimFold (C.PrimFoldOption T.UnitT) pairt)
+                        CE.@~ CE.xLam n'ignore2 T.UnitT update_step
+                        CE.@~ CE.xVar n'
+                        CE.@~ check_if_exists )
 
             -- Perform the map fold
-            let r = sfold n' mapt (CE.emptyMap tkey tval) insertOrUpdate
+            let r = sfold n' pairt (pair (CE.emptyMap tkey T.UnitT) (foldZero res)) (beta kons)
 
             -- Perform a fold over that map
-            --
-            -- TODO: we should be able to rewrite this to have an intermediate fold result and map of key to boolean.
-            -- Then we apply the fold if key is not in map and throw map away at end
-            let p = post n''
-                  $ beta
-                  ( mapExtract res CE.@~
-                  ( CE.xPrim
-                        (C.PrimFold (C.PrimFoldMap tkey tval) tV')
-                    CE.@~ (CE.xLam nacc     tV'
-                         $ CE.xLam n'ignore tkey
-                         $ CE.xLam nval     tval
-                         ( foldKons res CE.@~ CE.xVar nacc ))
-                    CE.@~ foldZero res
-                    CE.@~ CE.xVar n'))
+            let p = post n'' $ xsnd $ CE.xVar n'
 
             return (r <> p, n'')
 

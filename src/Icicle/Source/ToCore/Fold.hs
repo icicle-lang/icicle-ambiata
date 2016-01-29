@@ -274,9 +274,12 @@ convertFold q
            let t'x    = typeFold res
            let t'r    = typeExtract res
 
+           factid    <- convertFactIdName
+
            let kons  = CE.xLam n'acc t'buf
                      ( CE.pushBuf i t'e
                          CE.@~ CE.xVar n'acc
+                         CE.@~ CE.xVar factid
                          CE.@~ CE.xVar inp )
            let zero  = CE.emptyBuf i t'e
 
