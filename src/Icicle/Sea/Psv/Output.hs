@@ -2,7 +2,11 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards #-}
-module Icicle.Sea.Psv.Output where
+module Icicle.Sea.Psv.Output
+  ( PsvOutputConfig(..)
+  , seaOfWriteFleetOutput
+  , seaOutputDict
+  ) where
 
 import qualified Data.List as List
 import           Data.Map (Map)
@@ -24,6 +28,7 @@ import           Icicle.Sea.FromAvalanche.Prim
 import           Icicle.Sea.FromAvalanche.State
 
 import           Icicle.Sea.Psv.Base
+import           Icicle.Sea.Psv.Output.Dictionary
 
 import           P
 import           Prelude (String)
@@ -33,6 +38,7 @@ data PsvOutputConfig = PsvOutputConfig {
     outputPsvMode   :: PsvMode
   , outputPsvFormat :: PsvFormat
   } deriving (Eq, Ord, Show)
+
 
 ------------------------------------------------------------------------
 
@@ -71,12 +77,12 @@ seaOfWriteFleetOutput config states = do
   where
     beforeChord
       = case outputPsvFormat config  of
-          PsvDense  -> outputEntity
-          PsvSparse -> ""
+          PsvDense  _ -> outputEntity
+          PsvSparse   -> ""
     afterChord
       = case outputPsvFormat config of
-          PsvDense -> outputChar '\n'
-          PsvSparse -> ""
+          PsvDense _ -> outputChar '\n'
+          PsvSparse  -> ""
 
 seaOfChordTime :: PsvMode -> Doc
 seaOfChordTime = \case
@@ -105,8 +111,8 @@ seaOfWriteProgramOutput config state = do
         = case outputPsvFormat config of
             PsvSparse
               -> seaOfWriteOutputSparse ps 0 name ty tys
-            PsvDense
-              -> seaOfWriteOutputDense  ps 0 name ty tys
+            PsvDense missingValue
+              -> seaOfWriteOutputDense  ps 0 name ty tys missingValue
 
   let outputRes   name
         = ps <> "->" <> pretty (hasPrefix <> name) <+> "= ifalse;"
@@ -153,8 +159,10 @@ seaOfWriteOutputSparse struct structIndex outName@(OutputName name) outType argT
                   , str
                   , outputChord ]
 
-seaOfWriteOutputDense :: Doc -> Int -> OutputName -> ValType -> [ValType] -> Either SeaError Doc
-seaOfWriteOutputDense struct structIndex outName@(OutputName name) outType argTypes
+seaOfWriteOutputDense
+  :: Doc -> Int -> OutputName -> ValType -> [ValType] -> MissingValue
+  -> Either SeaError Doc
+seaOfWriteOutputDense struct structIndex outName@(OutputName name) outType argTypes missingValue
   = let members = structMembers struct name argTypes structIndex
     in  case outType of
          SumT ErrorT outType'
@@ -163,20 +171,20 @@ seaOfWriteOutputDense struct structIndex outName@(OutputName name) outType argTy
           -> do (m, body, _, _) <- seaOfOutput NotInJSON struct (structIndex + 1)
                                                outName Map.empty outType' argTypes' id
                 let body'        = seaOfOutputCond m body
-                go $ conditionalNotError ne body' bodyNA
+                go $ conditionalNotError ne body' bodyMissingValue
          _
           -> do (m, body, _, _) <- seaOfOutput NotInJSON struct structIndex
                                                outName Map.empty outType argTypes id
                 let body'        = seaOfOutputCond m body
                 go body'
   where
-    -- NA needs to be unquoted
-    bodyNA
-      = outputValue "string" ["\"NA\"", "2"]
+    -- Missing value needs to be unquoted
+    bodyMissingValue
+      = outputValue "string" ["\"" <> pretty missingValue <> "\"", "2"]
 
     go body
       = pure
-     $ vsep [ outputChar '|', body ]
+      $ vsep [ outputChar '|', body ]
 
 -- | Construct the struct member names for the output arguments.
 --

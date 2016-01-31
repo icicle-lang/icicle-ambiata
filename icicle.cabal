@@ -17,6 +17,7 @@ library
                      , ambiata-jetski
                      , ambiata-p
                      , ambiata-x-eithert
+                     , ambiata-formation
                      , aeson                           == 0.8.*
                      , annotated-wl-pprint             == 0.7.*
                      , bifunctors                      == 4.2.*
@@ -165,6 +166,7 @@ library
                        Icicle.Sea.Psv.Base
                        Icicle.Sea.Psv.Input
                        Icicle.Sea.Psv.Output
+                       Icicle.Sea.Psv.Output.Dictionary
 
                        Icicle.Source.Eval
                        Icicle.Source.Query
