@@ -12,6 +12,7 @@ import qualified Data.List as List
 import           Data.Map (Map)
 import qualified Data.Map as Map
 import           Data.Text (Text)
+import qualified Data.Text as T
 
 import           Icicle.Avalanche.Prim.Flat (Prim(..), PrimUnsafe(..))
 import           Icicle.Avalanche.Prim.Flat (meltType)
@@ -180,7 +181,7 @@ seaOfWriteOutputDense struct structIndex outName@(OutputName name) outType argTy
   where
     -- Missing value needs to be unquoted
     bodyMissingValue
-      = outputValue "string" ["\"" <> pretty missingValue <> "\"", "2"]
+      = outputValue "string" ["\"" <> pretty missingValue <> "\"", pretty (T.length missingValue)]
 
     go body
       = pure
