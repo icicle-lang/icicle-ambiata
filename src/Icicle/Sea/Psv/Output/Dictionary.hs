@@ -6,17 +6,15 @@ module Icicle.Sea.Psv.Output.Dictionary
   ( seaOutputDict
   ) where
 
-import           Control.Monad.IO.Class (MonadIO(..))
 
 import           Data.Aeson
 import           Data.Aeson.Types
-import           Data.ByteString.Lazy (writeFile)
+import           Data.ByteString.Lazy (ByteString)
 import           Data.Text (Text)
 import           Data.Map  (Map)
 import qualified Data.List           as List
 import qualified Data.Map            as Map
 import qualified Data.Vector         as Vector
-import           System.IO (IO, FilePath)
 
 import           Icicle.Avalanche.Program (Program)
 import           Icicle.Avalanche.Prim.Flat (Prim)
@@ -27,8 +25,6 @@ import           Icicle.Data (Attribute(..))
 import           Icicle.Sea.FromAvalanche.State
 import           Icicle.Sea.Error (SeaError(..))
 import           Icicle.Internal.Pretty (Pretty)
-
-import           X.Control.Monad.Trans.Either (EitherT, hoistEither)
 
 import           Formation
 
@@ -53,15 +49,12 @@ encodingVersion = EncodingVersion "1"
 
 seaOutputDict
   :: (Ord n, Pretty n)
-  => FilePath
-  -> Text
+  => Text
   -> [(Attribute, Program (Annot a) n Prim)]
-  -> EitherT SeaError IO ()
-seaOutputDict filepath tombstone programs
-  = do states  <- hoistEither
-                $ zipWithM (\ix (a, p) -> stateOfProgram ix a p) [0..] programs
-       let dict = encode (seaOutputSchema tombstone states)
-       liftIO $ writeFile filepath dict
+  -> Either SeaError ByteString
+seaOutputDict tombstone programs
+  = do states  <- zipWithM (\ix (a, p) -> stateOfProgram ix a p) [0..] programs
+       pure $ encode $ seaOutputSchema tombstone states
 
 seaOutputSchema :: Text -> [SeaProgramState] -> Value
 seaOutputSchema t st

@@ -266,6 +266,7 @@ static ierror_msg_t INLINE psv_output_char
     return 0;
 }
 
+/* Assuming value_size does not include the null terminator */
 static ierror_msg_t INLINE psv_output_string
     (int fd, char *ps, char *pe, char **pp, const char *value_ptr, size_t value_size)
 {
