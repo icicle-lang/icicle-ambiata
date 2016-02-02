@@ -8,7 +8,6 @@ module Icicle.Sea.Psv.Output.Dictionary
 
 
 import           Data.Aeson
-import           Data.Aeson.Types
 import           Data.ByteString.Lazy (ByteString)
 import           Data.Text (Text)
 import           Data.Map  (Map)
@@ -90,56 +89,87 @@ outputs states
 
 --------------------------------------------------------------------------------
 
-encodeAttributes :: Map Output ValType -> [Value]
-encodeAttributes = fmap encodeAttribute . Map.elems
+type FormationAttr = AttributeSchema FormationEncoding
 
-encodeAttribute :: ValType -> Value
-encodeAttribute = encodeType
+data FormationEncoding
+  = Primitive Primitive
+  | ListOf    FormationEncoding
+  | PairOf    FormationEncoding FormationEncoding
+  | Struct    [FormationAttr]
 
--- | Translate an Icicle output type to JSON.
---
-encodeType :: ValType -> Value
+data Primitive
+  = PBool
+  | PInt
+  | PDouble
+  | PString
+  | PTime
+  | PNull
+
+encodingToJSON :: FormationEncoding -> Value
+encodingToJSON en = case en of
+  Primitive p
+    -> object [ "primitive" .= go p ]
+  ListOf a
+    -> object [ "listof" .= encodingToJSON a ]
+  PairOf a b
+    -> object [ "pairof" .= array [encodingToJSON a, encodingToJSON b] ]
+  Struct as
+    -> array $ fmap (attributeSchemaToJson (const encodingToJSON) encodingVersion) as
+  where
+    go :: Primitive -> Value
+    go PBool   = "bool"
+    go PInt    = "int"
+    go PDouble = "double"
+    go PString = "string"
+    go PTime   = "time"
+    go PNull   = "null"
+
+    array = Array . Vector.fromList
+
+encodeType :: ValType -> FormationEncoding
 encodeType ty = case ty of
-  BoolT     -> Bool False
-  TimeT     -> String ""
-  DoubleT   -> Number 0
-  IntT      -> Number 0
-  StringT   -> String ""
-  UnitT     -> emptyObject
-  ErrorT    -> Null
+  BoolT     -> Primitive PBool
+  TimeT     -> Primitive PTime
+  DoubleT   -> Primitive PDouble
+  IntT      -> Primitive PInt
+  StringT   -> Primitive PString
+  UnitT     -> Primitive PNull
+  ErrorT    -> Primitive PNull
 
   ArrayT a
-   -> array [encodeType a]
+   -> ListOf $ encodeType a
 
-  -- In Sea:
-  -- Map is an array of size-two-arrays.
+  -- Map is just an array of size-two-array
   MapT k v
-   -> array [array [encodeType k, encodeType v]]
+   -> ListOf $ PairOf (encodeType k) (encodeType v)
 
   -- None becomes missing_value, Some is just the value
   OptionT a -> encodeType a
 
-  -- Pair is actually a size-two-array
   PairT a b
-   -> array [encodeType a, encodeType b]
+   -> PairOf (encodeType a) (encodeType b)
 
   -- In dense PSV, an error is always missing_value
   SumT ErrorT v
     -> encodeType v
   -- Sum with anything else is not currently supported in C codegen, but is a valid type
-  SumT a b
-    -> array [array [encodeType a, encodeType b]]
+  -- We don't do anything with it for now.
+  SumT _ _
+    -> Primitive PNull
 
-  -- Struct is just an array of size-two-arrays (field name and value)
   StructT s
-    -> array $ encodeStruct s
+    -> Struct
+     . List.zipWith encodeStruct [0..]
+     . Map.toList
+     . Map.mapKeys nameOfStructField
+     . getStructType $ s
 
   BufT _ a
-   -> array [encodeType a]
+    -> ListOf $ encodeType a
 
   where
-    array = Array . Vector.fromList
+    encodeStruct i (k, v)
+      = AttributeSchema k i (encodeType v)
 
-    encodeStruct
-      = encodeAttributes . Map.mapKeys nameOfStructField . getStructType
-
+encodeAttribute :: ValType -> Value
+encodeAttribute = encodingToJSON . encodeType
