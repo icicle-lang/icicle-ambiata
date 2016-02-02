@@ -10,7 +10,6 @@ module Icicle.Sea.Psv.Output.Dictionary
 import           Data.Aeson
 import           Data.ByteString.Lazy (ByteString)
 import           Data.Text (Text)
-import           Data.Map  (Map)
 import qualified Data.List           as List
 import qualified Data.Map            as Map
 import qualified Data.Vector         as Vector
@@ -52,7 +51,8 @@ seaOutputDict
   -> [(Attribute, Program (Annot a) n Prim)]
   -> Either SeaError ByteString
 seaOutputDict tombstone programs
-  = do states  <- zipWithM (\ix (a, p) -> stateOfProgram ix a p) [0..] programs
+  = do -- Start at 1 because top-level formation attribuets start at 1
+       states  <- zipWithM (\ix (a, p) -> stateOfProgram ix a p) [1..] programs
        pure $ encode $ seaOutputSchema tombstone states
 
 seaOutputSchema :: Text -> [SeaProgramState] -> Value
@@ -66,7 +66,7 @@ seaOutputSchema t st
 
 --------------------------------------------------------------------------------
 
-outputsToSchema :: Text -> Map Output ValType -> Schema GlobalProps ValType
+outputsToSchema :: Text -> [(Output, ValType)] -> Schema GlobalProps ValType
 outputsToSchema tombstone attrs
   = Schema
       formationVersion
@@ -75,17 +75,16 @@ outputsToSchema tombstone attrs
       (GlobalProps tombstone)
       (outputsToAttributeSchema attrs)
 
-outputsToAttributeSchema :: Map Output ValType -> [AttributeSchema ValType]
+outputsToAttributeSchema :: [(Output, ValType)] -> [AttributeSchema ValType]
 outputsToAttributeSchema attrs
-  = let names       = Map.toList attrs
-        go i (k, v) = AttributeSchema k i v
-    in  List.zipWith go [0..] names
+  = let go i (k, v) = AttributeSchema k i v
+    in  List.zipWith go [0..] attrs
 
-outputs :: [SeaProgramState] -> Map Output ValType
+outputs :: [SeaProgramState] -> [(Output, ValType)]
 outputs states
   = let attrs = List.concatMap (fmap (unOutputName . fst) . stateOutputs) states
         types = List.concatMap (fmap (fst          . snd) . stateOutputs) states
-    in  Map.fromList (List.zip attrs types)
+    in  List.zip attrs types
 
 --------------------------------------------------------------------------------
 
