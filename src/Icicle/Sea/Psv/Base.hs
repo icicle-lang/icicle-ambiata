@@ -6,6 +6,8 @@ module Icicle.Sea.Psv.Base (
     PsvMode(..)
   , PsvFormat(..)
   , StringWord(..)
+  , MissingValue
+  , defaultMissingValue
   , wordsOfString
   , wordsOfBytes
   , wordsOfBytes'
@@ -33,8 +35,13 @@ data PsvMode
 
 data PsvFormat
   = PsvSparse
-  | PsvDense
+  | PsvDense MissingValue
   deriving (Eq, Ord, Show)
+
+type MissingValue = Text
+
+defaultMissingValue :: Text
+defaultMissingValue = "NA"
 
 --------------------------------------------------------------------------------
 

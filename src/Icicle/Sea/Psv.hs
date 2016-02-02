@@ -8,6 +8,7 @@ module Icicle.Sea.Psv (
   , PsvMode(..)
   , PsvFormat(..)
   , seaOfPsvDriver
+  , defaultMissingValue
   ) where
 
 import qualified Data.List as List
