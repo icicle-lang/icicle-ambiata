@@ -7,7 +7,9 @@ module Icicle.Sea.Psv (
   , PsvOutputConfig(..)
   , PsvMode(..)
   , PsvFormat(..)
+  , defaultMissingValue
   , seaOfPsvDriver
+  , seaOutputDict
   ) where
 
 import qualified Data.List as List
@@ -28,7 +30,6 @@ import           Icicle.Sea.Psv.Input
 import           Icicle.Sea.Psv.Output
 
 import           P
-
 
 
 seaOfPsvDriver

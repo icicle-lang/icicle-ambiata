@@ -2,12 +2,17 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards #-}
-module Icicle.Sea.Psv.Output where
+module Icicle.Sea.Psv.Output
+  ( PsvOutputConfig(..)
+  , seaOfWriteFleetOutput
+  , seaOutputDict
+  ) where
 
 import qualified Data.List as List
 import           Data.Map (Map)
 import qualified Data.Map as Map
 import           Data.Text (Text)
+import qualified Data.Text as T
 
 import           Icicle.Avalanche.Prim.Flat (Prim(..), PrimUnsafe(..))
 import           Icicle.Avalanche.Prim.Flat (meltType)
@@ -24,6 +29,7 @@ import           Icicle.Sea.FromAvalanche.Prim
 import           Icicle.Sea.FromAvalanche.State
 
 import           Icicle.Sea.Psv.Base
+import           Icicle.Sea.Psv.Output.Dictionary
 
 import           P
 import           Prelude (String)
@@ -34,11 +40,18 @@ data PsvOutputConfig = PsvOutputConfig {
   , outputPsvFormat :: PsvFormat
   } deriving (Eq, Ord, Show)
 
+
 ------------------------------------------------------------------------
 
 seaOfWriteFleetOutput :: PsvOutputConfig -> [SeaProgramState] -> Either SeaError Doc
 seaOfWriteFleetOutput config states = do
   write_sea <- traverse (seaOfWriteProgramOutput config) states
+  let (beforeChord, inChord, afterChord)
+         = case outputPsvFormat config of
+             PsvDense _
+              -> (outputEntity, outputChord, outputChar '\n')
+             PsvSparse
+              -> ("", "", "")
   pure $ vsep
     [ "#line 1 \"write all outputs\""
     , "static ierror_msg_t psv_write_outputs"
@@ -56,43 +69,38 @@ seaOfWriteFleetOutput config states = do
     , ""
     , "    char *buffer_ptr = *buffer_ptr_ptr;"
     , ""
-    , beforeChord
+    , indent 4 beforeChord
     , "    for (iint_t chord_ix = 0; chord_ix < chord_count; chord_ix++) {"
     , indent 8 (seaOfChordTime $ outputPsvMode config)
     , indent 8 (vsep write_sea)
+    , indent 8 inChord
     , "    }"
-    , afterChord
+    , indent 4 afterChord
     , ""
     , "    *buffer_ptr_ptr = buffer_ptr;"
     , ""
     , "    return 0;"
     , "}"
     ]
-  where
-    beforeChord
-      = case outputPsvFormat config  of
-          PsvDense  -> outputEntity
-          PsvSparse -> ""
-    afterChord
-      = case outputPsvFormat config of
-          PsvDense -> outputChar '\n'
-          PsvSparse -> ""
 
 seaOfChordTime :: PsvMode -> Doc
 seaOfChordTime = \case
   PsvSnapshot _ -> vsep
     [ "const char  *chord_time = \"\";"
-    , "const size_t chord_size = 0;"
+    , "const size_t chord_size = 1; // Include null terminator"
     ]
   PsvChords     -> vsep
     [ "iint_t c_year, c_month, c_day, c_hour, c_minute, c_second;"
     , "itime_to_gregorian (chord_times[chord_ix], &c_year, &c_month, &c_day, &c_hour, &c_minute, &c_second);"
     , ""
-    , "const size_t chord_size = sizeof (\"|yyyy-mm-ddThh:mm:ssZ\");"
+    , "const size_t chord_size = sizeof(\"|yyyy-mm-ddThh:mm:ssZ\");"
     , "char chord_time[chord_size];"
-    , "snprintf (chord_time, chord_size, \"|" <> timeFmt <> "\", "
+    , "memset(chord_time, \'\\0\', sizeof(chord_time));"
+    , "snprintf (chord_time, chord_size, \"|" <> timeFmt <> "Z\", "
              <> "c_year, c_month, c_day, c_hour, c_minute, c_second);"
     ]
+  where
+    timeFmt = "%04lld-%02lld-%02lldT%02lld:%02lld:%02lld"
 
 
 seaOfWriteProgramOutput :: PsvOutputConfig -> SeaProgramState -> Either SeaError Doc
@@ -105,8 +113,8 @@ seaOfWriteProgramOutput config state = do
         = case outputPsvFormat config of
             PsvSparse
               -> seaOfWriteOutputSparse ps 0 name ty tys
-            PsvDense
-              -> seaOfWriteOutputDense  ps 0 name ty tys
+            PsvDense missingValue
+              -> seaOfWriteOutputDense  ps 0 name ty tys missingValue
 
   let outputRes   name
         = ps <> "->" <> pretty (hasPrefix <> name) <+> "= ifalse;"
@@ -151,10 +159,13 @@ seaOfWriteOutputSparse struct structIndex outName@(OutputName name) outType argT
                   , outputAttr name
                   , outputChar '|'
                   , str
-                  , outputChord ]
+                  , outputChord
+                  , outputChar '\n' ]
 
-seaOfWriteOutputDense :: Doc -> Int -> OutputName -> ValType -> [ValType] -> Either SeaError Doc
-seaOfWriteOutputDense struct structIndex outName@(OutputName name) outType argTypes
+seaOfWriteOutputDense
+  :: Doc -> Int -> OutputName -> ValType -> [ValType] -> MissingValue
+  -> Either SeaError Doc
+seaOfWriteOutputDense struct structIndex outName@(OutputName name) outType argTypes missingValue
   = let members = structMembers struct name argTypes structIndex
     in  case outType of
          SumT ErrorT outType'
@@ -163,20 +174,20 @@ seaOfWriteOutputDense struct structIndex outName@(OutputName name) outType argTy
           -> do (m, body, _, _) <- seaOfOutput NotInJSON struct (structIndex + 1)
                                                outName Map.empty outType' argTypes' id
                 let body'        = seaOfOutputCond m body
-                go $ conditionalNotError ne body' bodyNA
+                go $ conditionalNotError ne body' bodyMissingValue
          _
           -> do (m, body, _, _) <- seaOfOutput NotInJSON struct structIndex
                                                outName Map.empty outType argTypes id
                 let body'        = seaOfOutputCond m body
                 go body'
   where
-    -- NA needs to be unquoted
-    bodyNA
-      = outputValue "string" ["\"NA\"", "2"]
+    -- Missing value needs to be unquoted
+    bodyMissingValue
+      = outputValue "string" ["\"" <> pretty missingValue <> "\"", pretty (T.length missingValue)]
 
     go body
       = pure
-     $ vsep [ outputChar '|', body ]
+      $ vsep [ outputChar '|', body ]
 
 -- | Construct the struct member names for the output arguments.
 --
@@ -197,12 +208,11 @@ outputEntity
 outputAttr :: Text -> Doc
 outputAttr = outputString
 
--- | Output the chord and end of line, e.g. "20151231\n"
+-- | Output the chord and end of line, e.g. "|2015-12-31T00:00:00\n"
 --
 outputChord :: Doc
 outputChord
-  = vsep [ outputValue "string" ["chord_time", "chord_size"]
-         , outputChar  '\n' ]
+  = outputValue "string" ["chord_time", "chord_size - 1"]
 
 
 --------------------------------------------------------------------------------
@@ -482,9 +492,6 @@ outputString xs
   rounded  = length swords * 8
   size     = sum (fmap swSize swords)
   mkdoc sw = "*(uint64_t *)(buffer_ptr + " <> int (swOffset sw) <> ") = " <> swBits sw <> ";"
-
-timeFmt :: Doc
-timeFmt = "%04lld-%02lld-%02lldT%02lld:%02lld:%02lld"
 
 outputDie :: Doc
 outputDie = "if (error) return error;"

@@ -10,3 +10,6 @@
 [submodule "lib/jetski"]
 	path = lib/jetski
 	url = https://github.com/ambiata/jetski
+[submodule "lib/formation"]
+	path = lib/formation
+	url = https://github.com/ambiata/formation.hs
