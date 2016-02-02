@@ -88,8 +88,8 @@ seaOfChordTime = \case
     [ "iint_t c_year, c_month, c_day, c_hour, c_minute, c_second;"
     , "itime_to_gregorian (chord_times[chord_ix], &c_year, &c_month, &c_day, &c_hour, &c_minute, &c_second);"
     , ""
-    , "const size_t chord_size = sizeof (\"|yyyy-mm-ddThh:mm:ssZ\");"
-    , "char chord_time[chord_size];"
+    , "const size_t chord_size = sizeof (\"|yyyy-mm-ddThh:mm:ssZ\") - 1;"
+    , "char chord_time[chord_size + 1];"
     , "snprintf (chord_time, chord_size, \"|" <> timeFmt <> "\", "
              <> "c_year, c_month, c_day, c_hour, c_minute, c_second);"
     ]
