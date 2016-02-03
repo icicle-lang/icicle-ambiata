@@ -90,9 +90,13 @@ seaOfChordTime = \case
     , ""
     , "const size_t chord_size = sizeof (\"|yyyy-mm-ddThh:mm:ssZ\") - 1;"
     , "char chord_time[chord_size + 1];"
-    , "snprintf (chord_time, chord_size, \"|" <> timeFmt <> "\", "
+    , "snprintf (chord_time, chord_size + 1, \"|" <> timeFmt <> "Z\", "
              <> "c_year, c_month, c_day, c_hour, c_minute, c_second);"
     ]
+
+outputChord :: Doc
+outputChord
+  = outputValue "string" ["chord_time", "chord_size"]
 
 
 seaOfWriteProgramOutput :: PsvOutputConfig -> SeaProgramState -> Either SeaError Doc
@@ -151,7 +155,9 @@ seaOfWriteOutputSparse struct structIndex outName@(OutputName name) outType argT
                   , outputAttr name
                   , outputChar '|'
                   , str
-                  , outputChord ]
+                  , outputChord
+                  , outputChar '\n'
+                  ]
 
 seaOfWriteOutputDense :: Doc -> Int -> OutputName -> ValType -> [ValType] -> MissingValue -> Either SeaError Doc
 seaOfWriteOutputDense struct structIndex outName@(OutputName name) outType argTypes missingValue
@@ -196,13 +202,6 @@ outputEntity
 --
 outputAttr :: Text -> Doc
 outputAttr = outputString
-
--- | Output the chord and end of line, e.g. "20151231\n"
---
-outputChord :: Doc
-outputChord
-  = vsep [ outputValue "string" ["chord_time", "chord_size"]
-         , outputChar  '\n' ]
 
 
 --------------------------------------------------------------------------------
