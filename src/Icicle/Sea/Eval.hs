@@ -17,7 +17,9 @@ module Icicle.Sea.Eval (
   , PsvInputConfig(..)
   , PsvOutputConfig(..)
   , PsvMode(..)
-  , PsvFormat(..)
+  , PsvOutputFormat(..)
+  , PsvInputFormat(..)
+  , PsvInputDenseDict(..)
 
   , seaCompile
   , seaCompile'
@@ -74,7 +76,9 @@ import           Icicle.Sea.FromAvalanche.Program (seaOfProgram, nameOfProgram')
 import           Icicle.Sea.FromAvalanche.State (stateOfProgram, nameOfStateSize')
 import           Icicle.Sea.FromAvalanche.Type (seaOfDefinitions)
 import           Icicle.Sea.Preamble (seaPreamble)
-import           Icicle.Sea.Psv (PsvInputConfig(..), PsvOutputConfig(..), PsvMode(..), PsvFormat(..), seaOfPsvDriver)
+import           Icicle.Sea.Psv ( PsvInputConfig(..), PsvOutputConfig(..), PsvMode(..)
+                                , PsvInputFormat(..), PsvOutputFormat (..) , PsvInputDenseDict (..)
+                                , seaOfPsvDriver)
 
 import           Jetski
 

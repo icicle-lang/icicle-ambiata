@@ -6,7 +6,9 @@ module Icicle.Sea.Psv (
     PsvInputConfig(..)
   , PsvOutputConfig(..)
   , PsvMode(..)
-  , PsvFormat(..)
+  , PsvOutputFormat(..)
+  , PsvInputFormat(..)
+  , PsvInputDenseDict(..)
   , seaOfPsvDriver
   , defaultMissingValue
   ) where

@@ -119,7 +119,9 @@ runTest showData wt = do
       programs = Map.singleton (wtAttribute wt) (wtAvalanche wt)
       iconfig  = S.PsvInputConfig  (S.PsvSnapshot (wtTime wt))
                                    (Map.singleton (wtAttribute wt) (Set.singleton tombstone))
-      oconfig  = S.PsvOutputConfig (S.PsvSnapshot (wtTime wt)) S.PsvSparse
+                                   (S.PsvInputSparse)
+      oconfig  = S.PsvOutputConfig (S.PsvSnapshot (wtTime wt))
+                                   (S.PsvOutputSparse)
 
   let compile  = S.seaCompile' options (S.Psv iconfig oconfig) programs
       release  = S.seaRelease

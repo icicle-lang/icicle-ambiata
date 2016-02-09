@@ -39,31 +39,104 @@ import           P
 data PsvInputConfig = PsvInputConfig {
     inputPsvMode       :: PsvMode
   , inputPsvTombstones :: Map Attribute (Set Text)
+  , inputPsvFormat     :: PsvInputFormat
   } deriving (Eq, Ord, Show)
 
---------------------------------------------------------------------------------
+data PsvInputFormat
+  = PsvInputSparse
+  | PsvInputDense  PsvInputDenseDict
+  deriving (Eq, Ord, Show)
+
+newtype PsvInputDenseDict
+  = PsvInputDenseDict { inputPsvDenseFields :: [(Text, ValType)] }
+  deriving (Eq, Ord, Show)
+
 
 seaOfReadAnyFact :: PsvInputConfig -> [SeaProgramState] -> Either SeaError Doc
 seaOfReadAnyFact config states = do
-  let tss = fmap (lookupTombstones config) states
-  readStates_sea <- zipWithM seaOfReadFact states tss
+  let tss  = fmap (lookupTombstones config) states
+  case inputPsvFormat config of
+    PsvInputSparse
+      -> do readStates_sea <- zipWithM seaOfReadSparseFact states tss
+            pure $ vsep
+              [ vsep readStates_sea
+              , ""
+              , "#line 1 \"read any fact\""
+              , "static ierror_loc_t psv_read_fact"
+              , "  ( const char   *attrib_ptr"
+              , "  , const size_t  attrib_size"
+              , "  , const char   *value_ptr"
+              , "  , const size_t  value_size"
+              , "  , const char   *time_ptr"
+              , "  , const size_t  time_size"
+              , "  , ifleet_t     *fleet )"
+              , "{"
+              , indent 4 (vsep (fmap seaOfReadNamedFact states))
+              , "    return 0;"
+              , "}"
+              ]
+    PsvInputDense dict
+      -> do readStates_sea <- zipWithM (seaOfReadDenseFact dict) states tss
+            pure $ vsep
+              [ vsep readStates_sea
+              , ""
+              , "#line 1 \"read any fact\""
+              , "static ierror_loc_t psv_read_fact_dense"
+              , "  ( const char   *value_ptr"
+              , "  , const size_t  value_size"
+              , "  , const char   *time_ptr"
+              , "  , const size_t  time_size"
+              , "  , ifleet_t     *fleet )"
+              , "{"
+              , indent 4 (vsep (fmap seaOfReadNamedFact states))
+              , "    return 0;"
+              , "}"
+              ]
+
+--------------------------------------------------------------------------------
+
+seaOfReadDenseFact :: PsvInputDenseDict -> SeaProgramState -> Set Text -> Either SeaError Doc
+seaOfReadDenseFact dict state tombstones = do
+  input <- checkInputType state
+  readInput <- seaOfReadDenseValue dict (inputVars input)
+  pure $ seaOfReadFact state tombstones input readInput
+
+seaOfReadDenseValue :: PsvInputDenseDict -> [(Text, ValType)] -> Either SeaError Doc
+seaOfReadDenseValue dict@(PsvInputDenseDict fields) vars = do
+  let mismatch = SeaDenseFieldsMismatch fields vars
+  mappings     <- maybe (Left mismatch) Right (mappingOfDenseFields dict vars)
+  mappings_sea <- traverse seaOfDenseFieldMapping mappings
   pure $ vsep
-    [ vsep readStates_sea
+    [ "for (;;) {"
+    , "    if (*p++ != '\"')"
+    , "        return ierror_loc_format (p-1, p-1, \"field name missing opening quote\");"
     , ""
-    , "#line 1 \"read any fact\""
-    , "static ierror_loc_t psv_read_fact"
-    , "  ( const char   *attrib_ptr"
-    , "  , const size_t  attrib_size"
-    , "  , const char   *value_ptr"
-    , "  , const size_t  value_size"
-    , "  , const char   *time_ptr"
-    , "  , const size_t  time_size"
-    , "  , ifleet_t     *fleet )"
-    , "{"
-    , indent 4 (vsep (fmap seaOfReadNamedFact states))
-    , "    return 0;"
+    , indent 4 (vsep mappings_sea)
+    , "    return ierror_loc_format (p-1, p-1, \"invalid field start\");"
     , "}"
     ]
+
+seaOfDenseFieldMapping :: FieldMapping -> Either SeaError Doc
+seaOfDenseFieldMapping (FieldMapping fname ftype vars) = do
+  readFieldSea <- seaOfReadInput ftype vars
+  pure $ vsep
+    [ "/* " <> pretty fname <> " */"
+    , readFieldSea
+    , ""
+    , "char *term_ptr = p++;"
+    , "if (*term_ptr != '\n')"
+    , "    return ierror_loc_format (p-1, p-1, \"field separator '|'\");"
+    , ""
+    , "if (term_ptr == pe)"
+    , "    break;"
+    , ""
+    ]
+
+mappingOfDenseFields :: PsvInputDenseDict -> [(Text, ValType)] -> Maybe [FieldMapping]
+mappingOfDenseFields dict varsoup
+  = mappingOfFields (fmap (first StructField) $ inputPsvDenseFields dict) varsoup
+
+--------------------------------------------------------------------------------
 
 seaOfReadNamedFact :: SeaProgramState -> Doc
 seaOfReadNamedFact state
@@ -125,11 +198,15 @@ seaOfReadNamedFact state
 nameOfReadFact :: SeaProgramState -> Text
 nameOfReadFact state = T.pack ("psv_read_fact_" <> show (stateName state))
 
-seaOfReadFact :: SeaProgramState -> Set Text -> Either SeaError Doc
-seaOfReadFact state tombstones = do
+seaOfReadSparseFact :: SeaProgramState -> Set Text -> Either SeaError Doc
+seaOfReadSparseFact state tombstones = do
   input     <- checkInputType state
-  readInput <- seaOfReadInput input
-  pure $ vsep
+  readInput <- seaOfReadInput (inputType input) (inputVars input)
+  pure $ seaOfReadFact state tombstones input readInput
+
+seaOfReadFact :: SeaProgramState -> Set Text -> CheckedInput -> Doc -> Doc
+seaOfReadFact state tombstones input readInput =
+  vsep
     [ "#line 1 \"read fact" <+> seaOfStateInfo state <> "\""
     , "static ierror_loc_t INLINE"
         <+> pretty (nameOfReadFact state) <+> "("
@@ -227,9 +304,9 @@ checkInputType state
      t
       -> Left (SeaUnsupportedInputType t)
 
-seaOfReadInput :: CheckedInput -> Either SeaError Doc
-seaOfReadInput input
- = case (inputVars input, inputType input) of
+seaOfReadInput :: ValType -> [(Text, ValType)] -> Either SeaError Doc
+seaOfReadInput inType inVars
+ = case (inVars, inType) of
     ([(nx, BoolT)], BoolT)
      -> pure (readValue "text" assignVar nx BoolT)
 
@@ -246,10 +323,10 @@ seaOfReadInput input
      -> pure (readValuePool "text" assignVar nx StringT)
 
     (_, t@(ArrayT _))
-     -> seaOfReadJsonValue assignVar t (inputVars input)
+     -> seaOfReadJsonValue assignVar t inVars
 
     (_, t@(StructT _))
-     -> seaOfReadJsonValue assignVar t (inputVars input)
+     -> seaOfReadJsonValue assignVar t inVars
 
     (_, t)
      -> Left (SeaUnsupportedInputType t)

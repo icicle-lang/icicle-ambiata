@@ -32,6 +32,7 @@ data SeaError
   | SeaUnsupportedOutputType                 ValType
   | SeaOutputTypeMismatch         OutputName ValType    [ValType]
   | SeaStructFieldsMismatch                  StructType [(Text, ValType)]
+  | SeaDenseFieldsMismatch        [(Text, ValType)] [(Text, ValType)]
   | SeaNoFactLoop
   | SeaNoOutputs
   deriving (Eq, Show)
@@ -61,6 +62,11 @@ instance Pretty SeaError where
      -> vsep [ "Struct type did not match C struct members:"
              , "  struct type = " <> pretty st
              , "  members     = " <> pretty vs ]
+
+    SeaDenseFieldsMismatch st vs
+     -> vsep [ "Dense fields did not match C struct members:"
+             , "  dense fields = " <> pretty st
+             , "  members      = " <> pretty vs ]
 
     SeaInputTypeMismatch t ns
      -> vsep [ "Unsupported mapping, cannot map input type to its C struct members"

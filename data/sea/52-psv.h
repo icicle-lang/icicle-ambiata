@@ -65,10 +65,17 @@ static ierror_msg_t INLINE psv_write_outputs
   , size_t entity_size
   , ifleet_t *fleet );
 
-static ierror_loc_t INLINE psv_read_fact
+static ierror_loc_t INLINE psv_read_fact_sparse
   ( const char   *attrib_ptr
   , const size_t  attrib_size
   , const char   *value_ptr
+  , const size_t  value_size
+  , const char   *time_ptr
+  , const size_t  time_size
+  , ifleet_t     *fleet );
+
+static ierror_loc_t INLINE psv_read_fact_dense
+  ( const char   *value_ptr
   , const size_t  value_size
   , const char   *time_ptr
   , const size_t  time_size
@@ -144,6 +151,7 @@ static ierror_loc_t psv_read_buffer (psv_state_t *s)
             goto on_error;
         }
 
+#if ICICLE_PSV_INPUT_DENSE
         const char  *attrib_ptr  = entity_end + 1;
         const char  *attrib_end  = memchr (attrib_ptr, '|', n_ptr - attrib_ptr);
         const size_t attrib_size = attrib_end - attrib_ptr;
@@ -152,6 +160,7 @@ static ierror_loc_t psv_read_buffer (psv_state_t *s)
             error = ierror_loc_format (attrib_ptr, n_ptr, "missing '|' after attribute");
             goto on_error;
         }
+#endif
 
         const char *time_ptr;
         const char *n11_ptr = n_ptr - 11;
@@ -169,7 +178,12 @@ static ierror_loc_t psv_read_buffer (psv_state_t *s)
         const char  *time_end   = n_ptr;
         const size_t time_size  = time_end - time_ptr;
 
+#if ICICLE_PSV_INPUT_DENSE
         const char  *value_ptr  = attrib_end + 1;
+#else
+        const char  *value_ptr  = entity_end + 1;
+#endif
+
         const char  *value_end  = time_ptr - 1;
         const size_t value_size = value_end - value_ptr;
 
@@ -212,9 +226,15 @@ static ierror_loc_t psv_read_buffer (psv_state_t *s)
             goto on_error;
         }
 
-        error = psv_read_fact (attrib_ptr, attrib_size, value_ptr, value_size, time_ptr, time_size, s->fleet);
+#if ICICLE_PSV_INPUT_SPARSE
+        error = psv_read_fact_sparse (attrib_ptr, attrib_size, value_ptr, value_size, time_ptr, time_size, s->fleet);
         if (error)
             goto on_error;
+#else
+        error = psv_read_fact_dense (value_ptr, value_size, time_ptr, time_size, s->fleet);
+        if (error)
+          goto on_error;
+#endif
 
         line_ptr = n_ptr + 1;
     }

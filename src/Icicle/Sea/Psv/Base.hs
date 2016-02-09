@@ -4,10 +4,7 @@
 {-# LANGUAGE PatternGuards #-}
 module Icicle.Sea.Psv.Base (
     PsvMode(..)
-  , PsvFormat(..)
   , StringWord(..)
-  , MissingValue
-  , defaultMissingValue
   , wordsOfString
   , wordsOfBytes
   , wordsOfBytes'
@@ -32,16 +29,6 @@ data PsvMode
   = PsvSnapshot Time
   | PsvChords
   deriving (Eq, Ord, Show)
-
-data PsvFormat
-  = PsvSparse
-  | PsvDense MissingValue
-  deriving (Eq, Ord, Show)
-
-type MissingValue = Text
-
-defaultMissingValue :: Text
-defaultMissingValue = "NA"
 
 --------------------------------------------------------------------------------
 
