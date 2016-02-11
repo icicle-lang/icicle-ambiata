@@ -2,7 +2,13 @@
 {-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards     #-}
-module Icicle.Sea.Psv.Input where
+module Icicle.Sea.Psv.Input
+  ( seaOfReadAnyFact
+  , nameOfLastTime
+  , PsvInputDenseDict (..)
+  , PsvInputFormat (..)
+  , PsvInputConfig (..)
+  ) where
 
 
 import qualified Data.ByteString as B
@@ -22,6 +28,8 @@ import           Icicle.Common.Type (ValType(..), StructType(..), StructField(..
 import           Icicle.Common.Type (defaultOfType)
 
 import           Icicle.Data (Attribute(..))
+
+import           Icicle.Storage.Dictionary.Toml.Dense (PsvInputDenseDict(..))
 
 import           Icicle.Internal.Pretty
 import qualified Icicle.Internal.Pretty as Pretty
@@ -47,11 +55,6 @@ data PsvInputFormat
   | PsvInputDense  PsvInputDenseDict
   deriving (Eq, Ord, Show)
 
-newtype PsvInputDenseDict
-  = PsvInputDenseDict { inputPsvDenseFields :: [(Text, ValType)] }
-  deriving (Eq, Ord, Show)
-
-
 seaOfReadAnyFact :: PsvInputConfig -> [SeaProgramState] -> Either SeaError Doc
 seaOfReadAnyFact config states = do
   let tss  = fmap (lookupTombstones config) states
@@ -61,7 +64,7 @@ seaOfReadAnyFact config states = do
             pure $ vsep
               [ vsep readStates_sea
               , ""
-              , "#line 1 \"read any fact\""
+              , "#line 1 \"read any sparse fact\""
               , "static ierror_loc_t psv_read_fact"
               , "  ( const char   *attrib_ptr"
               , "  , const size_t  attrib_size"
@@ -80,8 +83,8 @@ seaOfReadAnyFact config states = do
             pure $ vsep
               [ vsep readStates_sea
               , ""
-              , "#line 1 \"read any fact\""
-              , "static ierror_loc_t psv_read_fact_dense"
+              , "#line 1 \"read any dense fact\""
+              , "static ierror_loc_t psv_read_fact"
               , "  ( const char   *value_ptr"
               , "  , const size_t  value_size"
               , "  , const char   *time_ptr"
@@ -97,14 +100,18 @@ seaOfReadAnyFact config states = do
 
 seaOfReadDenseFact :: PsvInputDenseDict -> SeaProgramState -> Set Text -> Either SeaError Doc
 seaOfReadDenseFact dict state tombstones = do
-  input <- checkInputType state
-  readInput <- seaOfReadDenseValue dict (inputVars input)
+  let feeds  = denseDict dict
+  let attr   = getAttribute $ stateAttribute state
+  fields    <- maybeToRight (SeaDenseFeedNotDefined attr feeds)
+             $ Map.lookup attr feeds
+  input     <- checkInputType state
+  readInput <- seaOfReadDenseValue fields (inputVars input)
   pure $ seaOfReadFact state tombstones input readInput
 
-seaOfReadDenseValue :: PsvInputDenseDict -> [(Text, ValType)] -> Either SeaError Doc
-seaOfReadDenseValue dict@(PsvInputDenseDict fields) vars = do
+seaOfReadDenseValue :: [(Text, ValType)] -> [(Text, ValType)] -> Either SeaError Doc
+seaOfReadDenseValue fields vars = do
   let mismatch = SeaDenseFieldsMismatch fields vars
-  mappings     <- maybe (Left mismatch) Right (mappingOfDenseFields dict vars)
+  mappings     <- maybe (Left mismatch) Right (mappingOfDenseFields fields vars)
   mappings_sea <- traverse seaOfDenseFieldMapping mappings
   pure $ vsep
     [ "for (;;) {"
@@ -132,9 +139,9 @@ seaOfDenseFieldMapping (FieldMapping fname ftype vars) = do
     , ""
     ]
 
-mappingOfDenseFields :: PsvInputDenseDict -> [(Text, ValType)] -> Maybe [FieldMapping]
-mappingOfDenseFields dict varsoup
-  = mappingOfFields (fmap (first StructField) $ inputPsvDenseFields dict) varsoup
+mappingOfDenseFields :: [(Text, ValType)] -> [(Text, ValType)] -> Maybe [FieldMapping]
+mappingOfDenseFields fields varsoup
+  = mappingOfFields (fmap (first StructField) fields) varsoup
 
 --------------------------------------------------------------------------------
 

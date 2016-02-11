@@ -368,7 +368,11 @@ codeOfPrograms psv programs = do
       pure . textOfDoc . vsep $ ["#define ICICLE_NO_PSV 1", seaPreamble, defs] <> progs
     Psv icfg ocfg -> do
       psv_doc <- seaOfPsvDriver states icfg ocfg
-      pure . textOfDoc . vsep $ [seaPreamble, defs] <> progs <> ["", psv_doc]
+      let def  = case inputPsvFormat icfg of
+                   PsvInputSparse -> "#define ICICLE_PSV_INPUT_SPARSE 1"
+                   _              -> ""
+
+      pure . textOfDoc . vsep $ [def, seaPreamble, defs] <> progs <> ["", psv_doc]
 
 textOfDoc :: Doc -> Text
 textOfDoc doc = T.pack (displayS (renderPretty 0.8 80 (pretty doc)) "")

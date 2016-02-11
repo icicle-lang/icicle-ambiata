@@ -65,7 +65,8 @@ static ierror_msg_t INLINE psv_write_outputs
   , size_t entity_size
   , ifleet_t *fleet );
 
-static ierror_loc_t INLINE psv_read_fact_sparse
+#if ICICLE_PSV_INPUT_SPARSE
+static ierror_loc_t INLINE psv_read_fact
   ( const char   *attrib_ptr
   , const size_t  attrib_size
   , const char   *value_ptr
@@ -73,14 +74,14 @@ static ierror_loc_t INLINE psv_read_fact_sparse
   , const char   *time_ptr
   , const size_t  time_size
   , ifleet_t     *fleet );
-
-static ierror_loc_t INLINE psv_read_fact_dense
+#else
+static ierror_loc_t INLINE psv_read_fact
   ( const char   *value_ptr
   , const size_t  value_size
   , const char   *time_ptr
   , const size_t  time_size
   , ifleet_t     *fleet );
-
+#endif
 
 /*
 Constants
@@ -151,7 +152,7 @@ static ierror_loc_t psv_read_buffer (psv_state_t *s)
             goto on_error;
         }
 
-#if ICICLE_PSV_INPUT_DENSE
+#if ICICLE_PSV_INPUT_SPARSE
         const char  *attrib_ptr  = entity_end + 1;
         const char  *attrib_end  = memchr (attrib_ptr, '|', n_ptr - attrib_ptr);
         const size_t attrib_size = attrib_end - attrib_ptr;
@@ -178,7 +179,7 @@ static ierror_loc_t psv_read_buffer (psv_state_t *s)
         const char  *time_end   = n_ptr;
         const size_t time_size  = time_end - time_ptr;
 
-#if ICICLE_PSV_INPUT_DENSE
+#if ICICLE_PSV_INPUT_SPARSE
         const char  *value_ptr  = attrib_end + 1;
 #else
         const char  *value_ptr  = entity_end + 1;
@@ -227,11 +228,11 @@ static ierror_loc_t psv_read_buffer (psv_state_t *s)
         }
 
 #if ICICLE_PSV_INPUT_SPARSE
-        error = psv_read_fact_sparse (attrib_ptr, attrib_size, value_ptr, value_size, time_ptr, time_size, s->fleet);
+        error = psv_read_fact(attrib_ptr, attrib_size, value_ptr, value_size, time_ptr, time_size, s->fleet);
         if (error)
             goto on_error;
 #else
-        error = psv_read_fact_dense (value_ptr, value_size, time_ptr, time_size, s->fleet);
+        error = psv_read_fact(value_ptr, value_size, time_ptr, time_size, s->fleet);
         if (error)
           goto on_error;
 #endif

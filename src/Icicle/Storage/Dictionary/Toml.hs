@@ -8,6 +8,7 @@ module Icicle.Storage.Dictionary.Toml (
     DictionaryImportError (..)
   , ImplicitPrelude (..)
   , loadDictionary
+  , loadDenseDictionary
   ) where
 
 import           Icicle.Common.Base
@@ -18,8 +19,10 @@ import qualified Icicle.Pipeline                               as P
 import qualified Icicle.Source.Parser                          as SP
 import qualified Icicle.Source.Query                           as SQ
 import qualified Icicle.Source.Type                            as ST
+import           Icicle.Storage.Dictionary.Toml.Dense
 import           Icicle.Storage.Dictionary.Toml.Toml
 import           Icicle.Storage.Dictionary.Toml.TomlDictionary
+import           Icicle.Storage.Dictionary.Toml.Types
 
 import qualified Control.Exception                             as E
 
@@ -46,6 +49,7 @@ data DictionaryImportError
   | DictionaryErrorParsecTOML  Parsec.ParseError
   | DictionaryErrorCompilation (P.CompileError Parsec.SourcePos SP.Variable ())
   | DictionaryErrorParse       [DictionaryValidationError]
+  | DictionaryErrorDense       DictionaryDenseError
   deriving (Show)
 
 type Funs a  = [((a, Name SP.Variable), SQ.Function a SP.Variable)]
@@ -61,6 +65,16 @@ loadDictionary :: ImplicitPrelude -> FilePath -> EitherT DictionaryImportError I
 loadDictionary impPrelude dictionary
  = loadDictionary' impPrelude [] mempty [] dictionary
 
+loadDenseDictionary
+  :: ImplicitPrelude
+  -> FilePath
+  -> EitherT DictionaryImportError IO (Dictionary, PsvInputDenseDict)
+loadDenseDictionary impPrelude dictionary
+  = do d    <- loadDictionary impPrelude dictionary
+       toml <- parseTOML dictionary
+       dd   <- firstEitherT DictionaryErrorDense $ hoistEither $ denseFeeds d toml
+       return (d, dd)
+
 loadDictionary'
   :: ImplicitPrelude
   -> FunEnvT
@@ -70,8 +84,7 @@ loadDictionary'
   -> EitherT DictionaryImportError IO Dictionary
 loadDictionary' impPrelude parentFuncs parentConf parentConcrete dictPath
  = do
-  inputText <- firstEitherT DictionaryErrorIO . EitherT $ E.try (readFile dictPath)
-  rawToml   <- firstEitherT DictionaryErrorParsecTOML . hoistEither $ Parsec.parse tomlDoc dictPath inputText
+  rawToml <- parseTOML dictPath
 
   (conf, definitions') <- firstEitherT DictionaryErrorParse . hoistEither . toEither $ tomlDict parentConf rawToml
 
@@ -108,6 +121,12 @@ loadDictionary' impPrelude parentFuncs parentConf parentConcrete dictPath
   let totaldefinitions = concreteDefinitions <> virtualDefinitions <> (join $ dictionaryEntries <$> loadedChapters)
 
   pure $ Dictionary totaldefinitions functions
+
+parseTOML :: FilePath -> EitherT DictionaryImportError IO Table
+parseTOML dictPath = do
+  inputText <- firstEitherT DictionaryErrorIO . EitherT $ E.try (readFile dictPath)
+  rawToml   <- firstEitherT DictionaryErrorParsecTOML . hoistEither $ Parsec.parse tomlDoc dictPath inputText
+  return rawToml
 
 remakeConcrete :: DictionaryEntry' -> [DictionaryEntry] -> [DictionaryEntry]
 remakeConcrete de cds
@@ -175,6 +194,7 @@ instance Pretty DictionaryImportError where
     DictionaryErrorParsecTOML  e  -> "TOML parse error:" <+> (text . show) e
     DictionaryErrorCompilation e  -> pretty e
     DictionaryErrorParse       es -> "Validation error:" <+> align (vcat (pretty <$> es))
+    DictionaryErrorDense       e  -> "Parse dense feeds error:" <+> (text . show) e
 
 ------------------------------------------------------------------------
 
