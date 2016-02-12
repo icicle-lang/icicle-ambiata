@@ -74,7 +74,7 @@ seaOfReadAnyFact config states = do
               , "  , const size_t  time_size"
               , "  , ifleet_t     *fleet )"
               , "{"
-              , indent 4 (vsep (fmap seaOfReadNamedFact states))
+              , indent 4 (vsep (fmap seaOfReadNamedFactSparse states))
               , "    return 0;"
               , "}"
               ]
@@ -91,7 +91,7 @@ seaOfReadAnyFact config states = do
               , "  , const size_t  time_size"
               , "  , ifleet_t     *fleet )"
               , "{"
-              , indent 4 (vsep (fmap seaOfReadNamedFact states))
+              , indent 4 (vsep (fmap seaOfReadNamedFactDense states))
               , "    return 0;"
               , "}"
               ]
@@ -115,9 +115,6 @@ seaOfReadDenseValue fields vars = do
   mappings_sea <- traverse seaOfDenseFieldMapping mappings
   pure $ vsep
     [ "for (;;) {"
-    , "    if (*p++ != '\"')"
-    , "        return ierror_loc_format (p-1, p-1, \"field name missing opening quote\");"
-    , ""
     , indent 4 (vsep mappings_sea)
     , "    return ierror_loc_format (p-1, p-1, \"invalid field start\");"
     , "}"
@@ -126,13 +123,13 @@ seaOfReadDenseValue fields vars = do
 seaOfDenseFieldMapping :: FieldMapping -> Either SeaError Doc
 seaOfDenseFieldMapping (FieldMapping fname ftype vars) = do
   readFieldSea <- seaOfReadInput ftype vars
-  pure $ vsep
+  pure $ wrapInBlock $ vsep
     [ "/* " <> pretty fname <> " */"
     , readFieldSea
     , ""
     , "char *term_ptr = p++;"
-    , "if (*term_ptr != '\n')"
-    , "    return ierror_loc_format (p-1, p-1, \"field separator '|'\");"
+    , "if (*term_ptr != '|')"
+    , "    return ierror_loc_format (p-1, p-1, \"expect field separator '|'\");"
     , ""
     , "if (term_ptr == pe)"
     , "    break;"
@@ -145,15 +142,53 @@ mappingOfDenseFields fields varsoup
 
 --------------------------------------------------------------------------------
 
-seaOfReadNamedFact :: SeaProgramState -> Doc
-seaOfReadNamedFact state
+seaOfReadNamedFactSparse :: SeaProgramState -> Doc
+seaOfReadNamedFactSparse state
  = let attrib = getAttribute (stateAttribute state)
-       fun    = pretty (nameOfReadFact state)
+       err    = vsep
+                [ "        return ierror_loc_format"
+                , "           ( time_ptr + time_size"
+                , "           , time_ptr"
+                , "           , \"%.*s: time is out of order: %.*s must be later than %.*s\""
+                , "           , attrib_size"
+                , "           , attrib_ptr"
+                , "           , curr_time_size"
+                , "           , curr_time_ptr"
+                , "           , last_time_size"
+                , "           , last_time_ptr );"
+                ]
+   in vsep
+      [ "/* " <> pretty attrib <> " */"
+      , "if (" <> seaOfStringEq attrib "attrib_ptr" (Just "attrib_size") <> ")"
+      , seaOfReadNamedFact state err
+      ]
+
+seaOfReadNamedFactDense :: SeaProgramState -> Doc
+seaOfReadNamedFactDense state
+ = let attrib = getAttribute (stateAttribute state)
+       err    = vsep
+                [ "        return ierror_loc_format"
+                , "           ( time_ptr + time_size"
+                , "           , time_ptr"
+                , "           , \"%s: time is out of order: %.*s must be later than %.*s\""
+                , "           , \"" <> pretty attrib <> "\""
+                , "           , curr_time_size"
+                , "           , curr_time_ptr"
+                , "           , last_time_size"
+                , "           , last_time_ptr );"
+                ]
+   in vsep
+      [ "/* " <> pretty attrib <> " */"
+      , seaOfReadNamedFact state err
+      ]
+
+seaOfReadNamedFact :: SeaProgramState -> Doc -> Doc
+seaOfReadNamedFact state err
+ = let fun    = pretty (nameOfReadFact state)
        pname  = pretty (nameOfProgram  state)
        tname  = pretty (nameOfLastTime state)
    in vsep
-      [ "/* " <> pretty attrib <> " */"
-      , "if (" <> seaOfStringEq attrib "attrib_ptr" (Just "attrib_size") <> ") {"
+      [ "{"
       , "    itime_t time;"
       , "    ierror_loc_t error = fixed_read_itime (time_ptr, time_size, &time);"
       , "    if (error) return error;"
@@ -181,16 +216,7 @@ seaOfReadNamedFact state
       , "        char last_time_ptr[text_itime_max_size];"
       , "        size_t last_time_size = text_write_itime (last_time, last_time_ptr);"
       , ""
-      , "        return ierror_loc_format"
-      , "           ( time_ptr + time_size"
-      , "           , time_ptr"
-      , "           , \"%.*s: time is out of order: %.*s must be later than %.*s\""
-      , "           , attrib_size"
-      , "           , attrib_ptr"
-      , "           , curr_time_size"
-      , "           , curr_time_ptr"
-      , "           , last_time_size"
-      , "           , last_time_ptr );"
+      , err
       , "    }"
       , ""
       , "    fleet->" <> tname <> " = time;"
@@ -411,12 +437,17 @@ readValuePool
 
 readValueArg :: Doc -> Doc -> Assignment -> Text -> ValType -> Doc
 readValueArg arg fmt assign n vt
- = vsep
+ = wrapInBlock
+ $ vsep
  [ seaOfValType vt <+> "value;"
  , "error = " <> fmt <> "_read_" <> baseOfValType vt <> " (" <> arg <> "&p, pe, &value);"
  , "if (error) return error;"
  , assign (pretty n) vt "value"
  ]
+
+wrapInBlock :: Doc -> Doc
+wrapInBlock x
+  = vsep ["{", indent 4 x, "}"]
 
 ------------------------------------------------------------------------
 

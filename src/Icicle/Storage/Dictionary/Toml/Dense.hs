@@ -49,7 +49,8 @@ data DenseStructEncoding
   , structFields :: Map Text Encoding }
 
 data DictionaryDenseError
-  = UndefinedFeed Text
+  = UndefinedFeed    Text
+  | UndefinedField   Text (Map Text Encoding)
   | InvalidFeedTable Text
   deriving (Eq, Show)
 
@@ -88,7 +89,7 @@ orderFields ordering fields
     go acc f
       = case Map.lookup f fields of
           Just e  -> pure $ acc <> [(f, e)]
-          Nothing -> Left $ UndefinedFeed f
+          Nothing -> Left $ UndefinedField f fields
 
 denseEncodings :: Table -> Either DictionaryDenseError [FeedTable]
 denseEncodings toml = do
@@ -97,10 +98,13 @@ denseEncodings toml = do
   foldM go [] $ HashMap.toList feeds
   where
     go acc (k, (v, _))
-      = case join (fmap (sequence . fmap (^? _VString)) (v ^? _NTValue . _VArray)) of
-          Just fieldNames
-            -> pure $ FeedTable k (fmap (Text.pack . fmap fst) fieldNames) : acc
-          _ -> Left $ InvalidFeedTable k
+      = let x = join
+              $ fmap (sequence . fmap (^? _VString))
+              $ v ^? _NTable . key "columns" . _1 . _NTValue . _VArray
+        in case x of
+             Just fieldNames
+               -> pure $ FeedTable k (fmap (Text.pack . fmap fst) fieldNames) : acc
+             _ -> Left $ InvalidFeedTable k
 
 concreteStructs :: Dictionary -> [DenseStructEncoding]
 concreteStructs dict

@@ -1,6 +1,8 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE DeriveTraversable #-}
+{-# LANGUAGE DeriveFoldable #-}
 module Icicle.Data (
     Entity (..)
   , Namespace (..)
@@ -74,7 +76,7 @@ data AsAt a =
   AsAt {
       atFact :: a
     , atTime :: Time
-    } deriving (Eq, Show, Functor)
+    } deriving (Eq, Show, Functor, Foldable, Traversable)
 
 --------------------------------------------------------------------------------
 
