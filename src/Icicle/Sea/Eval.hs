@@ -17,7 +17,9 @@ module Icicle.Sea.Eval (
   , PsvInputConfig(..)
   , PsvOutputConfig(..)
   , PsvMode(..)
-  , PsvFormat(..)
+  , PsvOutputFormat(..)
+  , PsvInputFormat(..)
+  , PsvInputDenseDict(..)
 
   , seaCompile
   , seaCompile'
@@ -74,7 +76,9 @@ import           Icicle.Sea.FromAvalanche.Program (seaOfProgram, nameOfProgram')
 import           Icicle.Sea.FromAvalanche.State (stateOfProgram, nameOfStateSize')
 import           Icicle.Sea.FromAvalanche.Type (seaOfDefinitions)
 import           Icicle.Sea.Preamble (seaPreamble)
-import           Icicle.Sea.Psv (PsvInputConfig(..), PsvOutputConfig(..), PsvMode(..), PsvFormat(..), seaOfPsvDriver)
+import           Icicle.Sea.Psv ( PsvInputConfig(..), PsvOutputConfig(..), PsvMode(..)
+                                , PsvInputFormat(..), PsvOutputFormat (..) , PsvInputDenseDict (..)
+                                , seaOfPsvDriver)
 
 import           Jetski
 
@@ -364,7 +368,11 @@ codeOfPrograms psv programs = do
       pure . textOfDoc . vsep $ ["#define ICICLE_NO_PSV 1", seaPreamble, defs] <> progs
     Psv icfg ocfg -> do
       psv_doc <- seaOfPsvDriver states icfg ocfg
-      pure . textOfDoc . vsep $ [seaPreamble, defs] <> progs <> ["", psv_doc]
+      let def  = case inputPsvFormat icfg of
+                   PsvInputSparse -> "#define ICICLE_PSV_INPUT_SPARSE 1"
+                   _              -> ""
+
+      pure . textOfDoc . vsep $ [def, seaPreamble, defs] <> progs <> ["", psv_doc]
 
 textOfDoc :: Doc -> Text
 textOfDoc doc = T.pack (displayS (renderPretty 0.8 80 (pretty doc)) "")

@@ -28,6 +28,7 @@ import           Icicle.Internal.Pretty
 
 import           Icicle.Common.Data
 import           Icicle.Common.Base
+import           Icicle.Common.Type
 
 import qualified Icicle.Sea.Eval as S
 
@@ -41,16 +42,17 @@ import           System.IO
 import           System.IO.Temp (createTempDirectory)
 import           System.Directory (getTemporaryDirectory, removeDirectoryRecursive)
 
-import           Test.QuickCheck (Args(..), forAllProperties, quickCheckWithResult, stdArgs)
+import           Test.QuickCheck (Args(..), Gen, forAllProperties, quickCheckWithResult
+                                 ,stdArgs, arbitrary)
 import           Test.QuickCheck (Property, (==>), property, counterexample)
 import           Test.QuickCheck.Property (succeeded, failed)
+import           Test.QuickCheck.Monadic
 
 import           X.Control.Monad.Trans.Either (EitherT, runEitherT)
 import           X.Control.Monad.Trans.Either (bracketEitherT', left)
 
-
 prop_psv wt = testIO $ do
-  x <- runEitherT (runTest ShowDataOnError wt)
+  x <- runEitherT (runTest (TestOpts ShowInputOnError ShowOutputOnError S.PsvInputSparse) wt)
   case x of
     Left err -> failWithError wt err
     Right () -> pure (property succeeded)
@@ -60,7 +62,7 @@ prop_entity_out_of_order wt =
   List.length (wtFacts    wt) > 0 ==>
   testIO $ do
     let wt' = wt { wtEntities = List.reverse (wtEntities wt) }
-    x <- runEitherT (runTest ShowDataOnSuccess wt')
+    x <- runEitherT (runTest (TestOpts ShowInputOnSuccess ShowOutputOnSuccess S.PsvInputSparse) wt')
     expectPsvError wt' x
 
 prop_time_out_of_order wt =
@@ -68,8 +70,28 @@ prop_time_out_of_order wt =
   List.length (wtFacts    wt) > 1 ==>
   testIO $ do
     let wt' = wt { wtFacts = List.reverse (wtFacts wt) }
-    x <- runEitherT (runTest ShowDataOnSuccess wt')
+    x <- runEitherT (runTest (TestOpts ShowInputOnSuccess ShowOutputOnSuccess S.PsvInputSparse) wt')
     expectPsvError wt' x
+
+prop_sparse_dense_both_compile
+  = monadicIO
+  $ do wt <- pick genWellTypedWithStruct
+       case denseDictionary (wtAttribute wt) (wtFactType wt) of
+         Nothing -> pure
+                  $ counterexample ("Cannot create dense dictionary for:")
+                  $ counterexample (show (wtFactType wt))
+                  $ failed
+         Just d  -> do
+           e <- liftIO $ runEitherT (runTest (TestOpts ShowInputOnError ShowOutputOnError (S.PsvInputDense d)) wt)
+           s <- liftIO $ runEitherT (runTest (TestOpts ShowInputOnError ShowOutputOnError S.PsvInputSparse) wt)
+           case (s, e) of
+             (Right _, Right _) -> pure (property succeeded)
+             (Left err, _)      -> liftIO
+                                 $ failWithError'
+                                   (counterexample ("==* sparse failed!")) wt err
+             (_, Left err)      -> liftIO
+                                 $ failWithError'
+                                   (counterexample ("==* dense failed!")) wt err
 
 expectPsvError :: WellTyped -> Either S.SeaError () -> IO Property
 expectPsvError wt = \case
@@ -92,9 +114,13 @@ expectPsvError wt = \case
     $ failed
 
 failWithError :: WellTyped -> S.SeaError -> IO Property
-failWithError wt = \case
+failWithError = failWithError' id
+
+failWithError' :: (Property -> Property) -> WellTyped -> S.SeaError -> IO Property
+failWithError' prints wt = \case
   S.SeaJetskiError (J.CompilerError _ src err)
    -> pure
+    $ prints
     $ counterexample (show (pretty src))
     $ counterexample (show (pretty err))
     $ counterexample (show (pretty (wtCore wt)))
@@ -102,24 +128,35 @@ failWithError wt = \case
 
   err
    -> pure
+    $ prints
     $ counterexample (show (pretty err))
     $ counterexample (show (pretty (wtCore wt)))
     $ failed
 
 ------------------------------------------------------------------------
 
-data ShowData = ShowDataOnError | ShowDataOnSuccess
+data ShowInput = ShowInputOnError | ShowInputOnSuccess
   deriving (Eq)
 
-runTest :: ShowData -> WellTyped -> EitherT S.SeaError IO ()
-runTest showData wt = do
+data ShowOutput = ShowOutputOnError | ShowOutputOnSuccess
+  deriving (Eq)
+
+
+data TestOpts = TestOpts ShowInput ShowOutput S.PsvInputFormat
+
+runTest :: TestOpts -> WellTyped -> EitherT S.SeaError IO ()
+runTest (TestOpts showInput showOutput inputFormat) wt = do
   options0 <- S.getCompilerOptions
 
   let options  = options0 <> ["-O0", "-DICICLE_NOINLINE=1"]
       programs = Map.singleton (wtAttribute wt) (wtAvalanche wt)
-      iconfig  = S.PsvInputConfig  (S.PsvSnapshot (wtTime wt))
-                                   (Map.singleton (wtAttribute wt) (Set.singleton tombstone))
-      oconfig  = S.PsvOutputConfig (S.PsvSnapshot (wtTime wt)) S.PsvSparse
+      iconfig  = S.PsvInputConfig
+                (S.PsvSnapshot (wtTime wt))
+                (Map.singleton (wtAttribute wt) (Set.singleton tombstone))
+                 inputFormat
+      oconfig  = S.PsvOutputConfig
+                (S.PsvSnapshot (wtTime wt))
+                (S.PsvOutputSparse)
 
   let compile  = S.seaCompile' options (S.Psv iconfig oconfig) programs
       release  = S.seaRelease
@@ -145,14 +182,22 @@ runTest showData wt = do
 
     case result of
       Left err -> do
-        when (showData == ShowDataOnError) $ do
+        when (showInput == ShowInputOnError) $ do
           liftIO (LT.putStrLn "--- input.psv ---")
           liftIO (LT.putStrLn inputPsv)
+        when (showOutput == ShowOutputOnError) $ do
+          outputPsv <- liftIO $ LT.readFile output
+          liftIO (LT.putStrLn "--- output.psv ---")
+          liftIO (LT.putStrLn outputPsv)
         left err
       Right _ -> do
-        when (showData == ShowDataOnSuccess) $ do
+        when (showInput == ShowInputOnSuccess) $ do
           liftIO (LT.putStrLn "--- input.psv ---")
           liftIO (LT.putStrLn inputPsv)
+        when (showOutput == ShowOutputOnSuccess) $ do
+          outputPsv <- liftIO $ LT.readFile output
+          liftIO (LT.putStrLn "--- output.psv ---")
+          liftIO (LT.putStrLn outputPsv)
         pure ()
 
 textOfFacts :: [Entity] -> Attribute -> [AsAt BaseValue] -> LT.Text
@@ -189,6 +234,53 @@ withSystemTempDirectory template action = do
   let acquire = liftIO (getTemporaryDirectory >>= \tmp -> createTempDirectory tmp template)
       release = liftIO . removeDirectoryRecursive
   bracketEitherT' acquire release action
+
+
+-- If the input are structs, we can pretend it's a dense value
+-- We can't treat other values as a single-field dense struct because the
+-- generated programs do not treat them as such.
+
+genWellTypedWithStruct :: Gen WellTyped
+genWellTypedWithStruct = validated 10 $ do
+  st <- arbitrary :: Gen StructType
+  tryGenWellTypedWith (StructT st)
+
+denseTextOfFacts :: [Entity] -> [AsAt BaseValue] -> LT.Text
+denseTextOfFacts entities vs =
+  LT.unlines (fmap (LT.intercalate "|") (denseFieldsOfFacts entities vs))
+
+denseFieldsOfFacts :: [Entity] -> [AsAt BaseValue] -> [[LT.Text]]
+denseFieldsOfFacts entities vs
+  | Just (AsAt v t) <- sequence' vs
+  , Just fs  <- sequence $ fmap (sequence . flip AsAt t . structValues) v
+  =  [ [ LT.fromStrict entity, valueText, timeText ]
+     | Entity entity         <- entities
+     , (valueText, timeText) <- denseTextsOfValues fs ]
+  | otherwise
+  =  [ [ LT.fromStrict entity, valueText, timeText ]
+     | Entity entity         <- entities
+     , (valueText, timeText) <- textsOfValues vs ]
+  where
+    sequence' [] = Nothing
+    sequence' (AsAt x t : xs) = Just $ AsAt (x : fmap atFact xs) t
+    structValues
+      = \case VStruct m -> Just (Map.elems m)
+              _         -> Nothing
+
+denseTextsOfValues :: [AsAt [BaseValue]] -> [(LT.Text, LT.Text)]
+denseTextsOfValues vs =
+  List.zip
+    (fmap (LT.intercalate "|" . fmap textOfValue . atFact) vs)
+    (fmap (textOfTime . atTime) vs)
+
+denseDictionary :: Attribute -> ValType -> Maybe S.PsvInputDenseDict
+denseDictionary denseName (StructT (StructType m))
+  = Just
+  $ S.PsvInputDenseDict
+  $ Map.singleton (getAttribute denseName)
+  $ Map.toList
+  $ Map.mapKeys nameOfStructField m
+denseDictionary _ _ = Nothing
 
 ------------------------------------------------------------------------
 

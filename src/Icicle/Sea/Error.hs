@@ -5,6 +5,8 @@ module Icicle.Sea.Error (
     SeaError(..)
   ) where
 
+import           Data.Map  (Map)
+import qualified Data.Map as Map
 import           Data.Text (Text)
 
 import           Icicle.Common.Base (BaseValue, OutputName)
@@ -32,6 +34,8 @@ data SeaError
   | SeaUnsupportedOutputType                 ValType
   | SeaOutputTypeMismatch         OutputName ValType    [ValType]
   | SeaStructFieldsMismatch                  StructType [(Text, ValType)]
+  | SeaDenseFieldsMismatch        [(Text, ValType)] [(Text, ValType)]
+  | SeaDenseFeedNotDefined        Text (Map Text [(Text, ValType)])
   | SeaNoFactLoop
   | SeaNoOutputs
   deriving (Eq, Show)
@@ -62,6 +66,16 @@ instance Pretty SeaError where
              , "  struct type = " <> pretty st
              , "  members     = " <> pretty vs ]
 
+    SeaDenseFieldsMismatch st vs
+     -> vsep [ "Dense fields did not match C struct members:"
+             , "  dense fields = " <> pretty st
+             , "  members      = " <> pretty vs ]
+
+    SeaDenseFeedNotDefined attr fs
+     -> vsep [ "Dense feed not defined in dictionary:"
+             , "  dense feeds = " <> pretty (Map.toList fs)
+             , "  looking for = " <> pretty attr
+             ]
     SeaInputTypeMismatch t ns
      -> vsep [ "Unsupported mapping, cannot map input type to its C struct members"
              , "  input type    = " <> pretty t

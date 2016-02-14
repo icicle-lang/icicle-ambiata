@@ -32,8 +32,18 @@ import           Prelude (String)
 
 data PsvOutputConfig = PsvOutputConfig {
     outputPsvMode   :: PsvMode
-  , outputPsvFormat :: PsvFormat
+  , outputPsvFormat :: PsvOutputFormat
   } deriving (Eq, Ord, Show)
+
+data PsvOutputFormat
+  = PsvOutputSparse
+  | PsvOutputDense MissingValue
+  deriving (Eq, Ord, Show)
+
+type MissingValue = Text
+
+defaultMissingValue :: Text
+defaultMissingValue = "NA"
 
 ------------------------------------------------------------------------
 
@@ -42,9 +52,9 @@ seaOfWriteFleetOutput config states = do
   write_sea <- traverse (seaOfWriteProgramOutput config) states
   let (beforeChord, inChord, afterChord)
          = case outputPsvFormat config of
-             PsvDense _
+             PsvOutputDense _
               -> (outputEntity, outputChord, outputChar '\n')
-             PsvSparse
+             PsvOutputSparse
               -> ("", "", "")
 
   pure $ vsep
@@ -107,9 +117,9 @@ seaOfWriteProgramOutput config state = do
 
   let outputState (name, (ty, tys))
         = case outputPsvFormat config of
-            PsvSparse
+            PsvOutputSparse
               -> seaOfWriteOutputSparse ps 0 name ty tys
-            PsvDense missingValue
+            PsvOutputDense missingValue
               -> seaOfWriteOutputDense  ps 0 name ty tys missingValue
 
   let outputRes   name

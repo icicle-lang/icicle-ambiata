@@ -63,9 +63,13 @@ instance Arbitrary InputType where
 
 instance Arbitrary WellTyped where
   arbitrary = validated 10 $ do
+    (InputType ty) <- arbitrary
+    tryGenWellTypedWith ty
+
+tryGenWellTypedWith :: ValType -> Gen (Maybe WellTyped)
+tryGenWellTypedWith ty = do
     entities       <- List.sort . List.nub . getNonEmpty <$> arbitrary
     attribute      <- arbitrary
-    (InputType ty) <- arbitrary
     (inputs, time) <- first (List.nubBy ((==) `on` atTime)) <$> inputsForType ty
     core           <- programForStreamType ty
     return $ do
@@ -106,6 +110,7 @@ instance Arbitrary WellTyped where
 
       supportedOutput t | isSupportedOutput t = Just t
       supportedOutput _                       = Nothing
+
 
 ------------------------------------------------------------------------
 
