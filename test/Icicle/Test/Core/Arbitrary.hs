@@ -455,7 +455,7 @@ baseValueForType t
     TimeT
      -> VTime <$> arbitrary
     FactIdentifierT
-     -> VFactIdentifier . FactIdentifier <$> arbitrary
+     -> discard
     ArrayT t'
      -> smaller (VArray <$> listOf (baseValueForType t'))
     BufT n t'
