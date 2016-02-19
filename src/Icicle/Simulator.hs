@@ -31,6 +31,9 @@ import qualified Icicle.Avalanche.Prim.Eval  as APF
 import qualified Icicle.Avalanche.Prim.Flat  as APF
 import qualified Icicle.Avalanche.Eval    as AE
 
+import qualified Data.Set as Set
+
+
 data Partition =
   Partition
     Entity
@@ -38,7 +41,7 @@ data Partition =
     [AsAt Value]
   deriving (Eq,Show)
 
-type Result a n = Either (SimulateError a n) ([(OutputName, Value)], [B.BubbleGumOutput n Value])
+type Result a n = Either (SimulateError a n) ([(OutputName, Value)], Set.Set FactIdentifier)
 
 data SimulateError a n
  = SimulateErrorRuntime (PV.RuntimeError a n)
@@ -87,8 +90,7 @@ evaluateVirtualValue p t vs
              $ PV.eval t vs' p
 
         v'  <- traverse (\(k,v) -> (,) <$> pure k <*> valueFromCore' v) (PV.value xv)
-        bg' <- traverse (traverse valueFromCore') (PV.history xv)
-        return (v', bg')
+        return (v', PV.history xv)
  where
   toCore n a
    = do v' <- valueToCore' (atFact a) (P.inputType p)
@@ -102,8 +104,8 @@ evaluateVirtualValue' p t vs
              $ AE.evalProgram APF.evalPrim t vs' p
 
         v'  <- traverse (\(k,v) -> (,) <$> pure k <*> valueFromCore' v) (snd xv)
-        bg' <- traverse (traverse valueFromCore') (fst xv)
-        return (v', bg')
+        -- bg' <- traverse (traverse valueFromCore') (fst xv)
+        return (v', Set.empty)
  where
   toCore n a
    = do v' <- valueToCore' (atFact a) (A.input p)

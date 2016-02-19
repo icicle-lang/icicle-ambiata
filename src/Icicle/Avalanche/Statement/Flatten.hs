@@ -378,8 +378,9 @@ flatX a_fresh xx stm
        -> lift $ Left $ FlattenErrorPrimBadArgs p xs
 
       -- TODO: PrimWindow should probably be a Min primitive, or perhaps Flat primitive as well. This should keep fact in history if it is greater than newer than, but not less than older than.
+      -- TODO: or perhaps just add an if and call KeepFactInHistory.
       Core.PrimWindow newerThan olderThan
-       | [now, fact] <- xs
+       | [now, fact, _] <- xs
        -> flatX' now
        $  \now'
        -> flatX' fact

@@ -114,7 +114,7 @@ evalPrim p vs
       -> primError
 
      PrimWindow newerThan olderThan
-      | [VBase (VTime now), VBase (VTime fact)] <- vs
+      | [VBase (VTime now), VBase (VTime fact), _] <- vs
       -> let newer = windowEdge now     newerThan 
              older = windowEdge now <$> olderThan
              range = fact >= newer && maybe True (fact <=) older

@@ -139,9 +139,10 @@ convertQuery q
      -> do  (bs, b) <- convertQuery q'
             now  <- convertDateName
             time <- convertFactTimeName
+            fact <- convertFactIdName
 
             let e'  = CE.makeApps () (CE.xPrim $ C.PrimWindow newerThan olderThan)
-                    [ CE.xVar now, CE.xVar time ]
+                    [ CE.xVar now, CE.xVar time, CE.xVar fact ]
             let bs' = filt e' (streams bs) <> bs { streams = [] }
             return (bs', b)
 

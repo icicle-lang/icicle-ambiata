@@ -105,7 +105,7 @@ typeOfPrim p
      -> FunT [funOfVal (BufT i t)] (ArrayT t)
 
     PrimWindow _ _
-     -> FunT [funOfVal TimeT, funOfVal TimeT] BoolT
+     -> FunT [funOfVal TimeT, funOfVal TimeT, funOfVal FactIdentifierT] BoolT
 
 
 -- Pretty -------------

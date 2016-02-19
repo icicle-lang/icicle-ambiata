@@ -5,29 +5,26 @@
 {-# OPTIONS_GHC -Wwarn #-}
 module Icicle.Core.Eval.Stream (
       StreamValue  (..)
-    , InitialStreamValue
     , StreamHeap
     , RuntimeError (..)
     , eval
     ) where
-
-import              Icicle.BubbleGum
 
 import              Icicle.Common.Base
 import              Icicle.Common.Type
 import              Icicle.Common.Value as V
 import              Icicle.Core.Stream
 import qualified    Icicle.Common.Exp.Eval  as XV -- eXpression eVal
+import qualified    Icicle.Common.Exp.Compounds  as XC -- eXpression Compounds
 import qualified    Icicle.Core.Eval.Exp    as XV -- eXpression eVal
 import              Icicle.Core.Exp.Prim
-
-import              Icicle.Data
 
 import              Icicle.Internal.Pretty
 
 import              P
 
 import qualified    Data.Map as Map
+import qualified    Data.Set as Set
 import              Data.List (zip, transpose)
 import              Data.Hashable (Hashable)
 
@@ -47,12 +44,6 @@ data StreamValue
      streamValues :: [BaseValue]
    , streamZero   :: BaseValue
  }
-
--- | Right at the start, we need dates on the stream values.
--- These can be used by windowing functions or ignored.
--- Afterwards they are thrown away, but could still be included in the value itself.
-type InitialStreamValue
- = [AsAt (BubbleGumFact, BaseValue)]
 
 
 -- | A stream heap maps from names to stream values
@@ -92,7 +83,7 @@ eval    :: (Hashable n, Eq n)
         => V.Heap    a n Prim   -- ^ The expression heap with precomputations
         -> StreamHeap       n   -- ^ Any streams that have already been evaluated
         -> Stream         a n   -- ^ Stream to evaluate
-        -> Either (RuntimeError a n) (StreamHeap n)
+        -> Either (RuntimeError a n) (StreamHeap n, Set.Set FactIdentifier)
 eval xh sh s
  = case s of
     SFold n _ z k
@@ -100,15 +91,24 @@ eval xh sh s
             vz <- evalX xhZ z
             vz' <- V.getBaseValue (RuntimeErrorExpNotBaseType vz) vz
             vs <- foldGo n k vz inputHeaps
-            return $ Map.insert n (StreamValue vs vz') sh
+            return (Map.insert n (StreamValue vs vz') sh, Set.empty)
 
+    -- TODO check if p is windowing primitive, if so mark these ones as used
     SFilter p ss
-     -> do bs <- mapM (evalF p) inputHeaps
-           sh' <- foldM (eval xh) (filterHeap bs sh) ss
-           return $ Map.union sh $ unfilterHeap bs sh'
+     -> do filts <- mapM (evalF p) inputHeaps
+           let bs = fmap fst filts
+           let facts = Set.unions $ fmap snd filts
+
+           (sh',facts') <- foldM goEvals (filterHeap bs sh, facts) ss
+           return (Map.union sh $ unfilterHeap bs sh', facts')
 
 
  where
+  goEvals (sh', facts) s'
+   = do (sh'', facts') <- eval xh sh' s'
+        return (sh'', Set.union facts facts')
+    
+
   foldGo _ _ _ []
    = return []
   foldGo n k vz (h:hs)
@@ -120,9 +120,19 @@ eval xh sh s
     
 
   evalF p h
-   = do v <- evalX (Map.union h xh) p
+   = do let evalX' = evalX (Map.union h xh)
+        v <- evalX' p
         v' <- V.getBaseValue (RuntimeErrorExpNotBaseType v) v
-        return (v' == VBool True)
+
+        facts <- case (XC.takePrimApps p) of
+                    Just (PrimWindow _ _, [_, _, factid])
+                      -> extractFactId <$> evalX' factid
+                    _ -> return Set.empty
+
+        return (v' == VBool True, facts)
+
+  extractFactId (VBase (VFactIdentifier factid)) = Set.singleton factid
+  extractFactId _ = Set.empty
 
   filterHeap bs sheep
    = Map.map (\v -> v { streamValues = fmap snd $ filter fst $ zip bs $ streamValues v }) sheep
