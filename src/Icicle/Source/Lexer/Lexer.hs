@@ -39,8 +39,18 @@ lexerString file inp
 lexerPositions :: [(Char, Pos.SourcePos)] -> [TOK]
 lexerPositions ts
  -- Throw away whitespace before looking at it
- = go $ L.dropWhile (C.isSpace . fst) ts
+ = go' $ L.dropWhile (C.isSpace . fst) ts
  where
+   -- Look at the first two characters
+  go' ((c1, _) : t'@((c2, _) : _))
+   -- Nested struct projections start with a "." but must be followed by a variable
+   | c1 == '.'
+   , isVarStart c2
+   , (TVariable   v, p) : toks <- go t'
+   = (TProjection v, p) : toks
+  go' t
+   = go t
+
   -- The end
   go []
    = []

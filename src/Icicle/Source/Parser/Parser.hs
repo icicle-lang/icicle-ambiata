@@ -137,7 +137,7 @@ exp1
  <?> "expression"
  where
   var
-   = pVariable
+   = try pProjections <|> pVariable
 
   -- TODO: this should be a lookup rather than asum
   prims

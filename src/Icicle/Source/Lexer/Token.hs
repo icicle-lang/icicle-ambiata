@@ -40,6 +40,8 @@ data Token
  -- | Names. I dunno
  | TVariable    !Variable
  | TConstructor !Variable
+ -- | Nested struct projections
+ | TProjection  !Variable
 
  -- | '('
  | TParenL
