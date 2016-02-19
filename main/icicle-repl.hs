@@ -491,7 +491,7 @@ prettyHL x
         HL.outputStrLn $ PP.displayDecorated withColour (PP.renderPretty 0.4 width' $ PP.pretty x)
     where
       withColour a'@(PP.AnnVariable) str = sgrAttr a' <> str <> sgrReset
-      withColour a'@(PP.AnnType a)   str = str <> sgrAttr a' <> "@{" <> (PP.display . PP.renderCompact . PP.pretty) a <> "}" <> sgrReset
+      withColour a'@(PP.AnnType a)   str = str <> sgrAttr a' <> (concat . lines . PP.display . PP.renderCompact $ ("@" <> PP.braces (PP.pretty a))) <> sgrReset
 
       sgrReset = ANSI.setSGRCode [ANSI.Reset]
 

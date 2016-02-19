@@ -18,8 +18,8 @@ import qualified Icicle.Common.Exp.Prim.Minimal     as X
 import qualified Icicle.Common.Exp                  as X
 import qualified Icicle.Common.Fresh                as Fresh
 import qualified Icicle.Core                        as X
-import           Icicle.Common.Base
-import           Icicle.Common.Type
+import           Icicle.Common.Base (Name(..), nameOfStructField, BaseValue(..), ExceptionInfo(..))
+import           Icicle.Common.Type (ValType(..), StructType(..))
 
 import           Icicle.Source.Query
 import           Icicle.Source.Lexer.Token
@@ -103,29 +103,42 @@ featureMapOfDictionary (Dictionary { dictionaryEntries = ds, dictionaryFunctions
  where
 
   mkFeatureContext d
-   = let mm = go d
-     in  fmap (\(k,(t,m)) -> (k, (t, STC.FeatureContext m (var "time")))) mm
+   = let mm              = go d
+         context (k,t,m) = (k, (t, STC.FeatureContext m (var "time")))
+     in  fmap context mm
 
   go (DictionaryEntry (Attribute attr) (ConcreteDefinition enc _))
-   | StructT st@(StructType fs) <- sourceTypeOfEncoding enc
-   = let e' = StructT st
-     in [ ( var attr
-        , ( baseType $ sumT e'
-        , Map.fromList
-        $ exps "fields" e'
-        <> (fmap (\(k,t)
-        -> ( var $ nameOfStructField k
-           , STC.FeatureVariable (baseType t) (xgetsum k t st)  True)
-        )
-        $ Map.toList fs)))]
+   | en@(StructT st@(StructType fs)) <- sourceTypeOfEncoding enc
+   = [ ( var attr
+       , baseType     $  sumT en
+       , Map.fromList $  exps "fields" en
+                      <> concatMap (go' Nothing st) (Map.toList fs)
+       )
+     ]
 
    | otherwise
    = let e' = sourceTypeOfEncoding enc
      in [ ( var attr
-        , ( baseType $ sumT e'
-        , Map.fromList $ exps "value" e'))]
+          , baseType $ sumT e'
+          , Map.fromList $ exps "value" e' ) ]
+
   go _
    = []
+
+  go' get parent f@(fn, ft)
+   = let get' b = xgetsum b fn ft parent
+         get''  = case get of
+                   Nothing -> get' True
+                   Just g  -> get' False . g
+         this   = varOfField get'' f
+     in case ft of
+          StructT st@(StructType fs)
+            ->   this : concatMap (go' (Just (get' True)) st) (Map.toList fs)
+          _ -> [ this ]
+
+  varOfField get (fn, ft)
+   = ( var (nameOfStructField fn)
+     , STC.FeatureVariable (baseType ft) get True)
 
   sumT ty  = SumT ErrorT ty
   baseType = ST.typeOfValType
@@ -137,23 +150,28 @@ featureMapOfDictionary (Dictionary { dictionaryEntries = ds, dictionaryFunctions
 
   xget f t fs
    = X.XPrim () (X.PrimMinimal $ X.PrimStruct $ X.PrimStructGet f t fs)
-  xgetsum f t fs x
+  xgetsum hasTime f t fs x
    = let e'     = StructT fs
          nVal   = var "_val"
          nErr   = var "_err"
+         xval   = X.XVar () nVal
          xcase  = X.XPrim () $ X.PrimFold (X.PrimFoldSum ErrorT e') (SumT ErrorT t)
          xleft  = X.XPrim () $ X.PrimMinimal $ X.PrimConst $ X.PrimConstLeft  ErrorT t
          xright = X.XPrim () $ X.PrimMinimal $ X.PrimConst $ X.PrimConstRight ErrorT t
          xfld   = xget f t fs
-         xapp   = X.XApp ()
+         xend   = if hasTime
+                  then xfst (SumT ErrorT e') TimeT `xapp` x
+                  else x
      in xcase
       `xapp` (X.XLam () nErr ErrorT (xleft `xapp` X.XVar () nErr))
-      `xapp` (X.XLam () nVal e'     (xright `xapp` (xfld `xapp` X.XVar () nVal)))
-      `xapp` (xfst (SumT ErrorT e') TimeT `xapp` x)
+      `xapp` (X.XLam () nVal e'     (xright `xapp` (xfld `xapp` xval)))
+      `xapp` xend
 
   xtomb t1
    = X.XApp () (X.XPrim () (X.PrimMinimal $ X.PrimRelation X.PrimRelationEq $ SumT ErrorT t1))
                (X.XValue () (SumT ErrorT t1) (VLeft $ VError ExceptTombstone))
+
+  xapp = X.XApp ()
 
   exps str e'
    = [ (var str, STC.FeatureVariable (baseType e') (X.XApp () (xfst (sumT e') TimeT)) True)
