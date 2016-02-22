@@ -32,7 +32,7 @@ parseEncoding = parsePrimitiveEncoding
     structField = do
       n <- takeWhile (/= ':')
       _ <- char ':'
-      e <- parsePrimitiveEncoding
+      e <- parseEncoding
       o <- Optional <$ char '*' <|> pure Mandatory
       pure $ StructField o (Attribute n) e
 

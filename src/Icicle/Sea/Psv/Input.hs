@@ -2,6 +2,7 @@
 {-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards     #-}
+{-# LANGUAGE TupleSections     #-}
 module Icicle.Sea.Psv.Input
   ( seaOfReadAnyFact
   , nameOfLastTime
@@ -12,6 +13,7 @@ module Icicle.Sea.Psv.Input
 
 
 import qualified Data.ByteString as B
+import qualified Data.List as List
 import           Data.Map (Map)
 import qualified Data.Map as Map
 import           Data.Set (Set)
@@ -110,22 +112,45 @@ seaOfReadDenseFact dict state tombstones = do
 
 seaOfReadDenseValue :: [(Text, ValType)] -> [(Text, ValType)] -> Either SeaError Doc
 seaOfReadDenseValue fields vars = do
-  let mismatch = SeaDenseFieldsMismatch fields vars
-  mappings     <- maybe (Left mismatch) Right (mappingOfDenseFields fields vars)
+  -- Input variables are ordered lexicographically by field names, we need to re-order them
+  -- to fit the dense format.
+  --
+  -- e.g. a struct with fields @(f2:int,f3:string,f1:(x:string,y:double))@ (in that order)
+  -- will have input variable types @string,double,int,string@, we need to re-order this to
+  -- @int,string,string,double@.
+  --
+  let mismatch  = SeaDenseFieldsMismatch fields vars
+  vars'        <- maybe (Left mismatch) Right (reorder fields vars)
+  mappings     <- maybe (Left mismatch) Right (mappingOfDenseFields fields vars')
   mappings_sea <- traverse seaOfDenseFieldMapping mappings
   pure $ vsep
     [ "for (;;) {"
     , indent 4 (vsep mappings_sea)
-    , "    return ierror_loc_format (p-1, p-1, \"invalid field start\");"
+    , "    return ierror_loc_format (p-1, p-1, \"invalid dense field start\");"
     , "}"
     ]
+  where
+    reorder keys xs
+      = do let melted = fmap (second meltType) keys
+               flat   = concatMap (\(k,ts) -> fmap (k,) ts) melted
+               sorted = List.sortBy (comparing fst) flat
+           ixes <- sequence $ fmap (flip List.elemIndex flat) sorted
+           return $ fmap (xs List.!!) ixes
 
 seaOfDenseFieldMapping :: FieldMapping -> Either SeaError Doc
 seaOfDenseFieldMapping (FieldMapping fname ftype vars) = do
-  readFieldSea <- seaOfReadInput ftype vars
+  fieldSea <- seaOfReadInput ftype vars
+  let sea   = wrapInBlock
+            $ vsep [ "char *ent_pe = pe;"
+                   , "char *pe     = p;"
+                   , "while (pe != ent_pe && *pe != '|')"
+                   , "    pe++;"
+                   , ""
+                   , fieldSea ]
+
   pure $ wrapInBlock $ vsep
     [ "/* " <> pretty fname <> " */"
-    , readFieldSea
+    , sea
     , ""
     , "char *term_ptr = p++;"
     , "if (*term_ptr != '|')"
@@ -302,8 +327,6 @@ seaOfDefineInput (n, t)
 initType :: ValType -> Doc
 initType vt = " = " <> seaOfXValue (defaultOfType vt) vt <> ";"
 
-------------------------------------------------------------------------
-
 seaOfReadTombstone :: CheckedInput -> [Text] -> Doc
 seaOfReadTombstone input = \case
   []     -> Pretty.empty
@@ -417,7 +440,7 @@ seaOfReadJsonValue assign vtype vars
       -> pure (readValuePool "json" assign nx StringT)
 
      (ns, StructT t)
-      -> seaOfReadJsonObject assign t ns
+       -> seaOfReadJsonObject assign t ns
 
      (ns, ArrayT t)
       -> seaOfReadJsonList t ns
@@ -437,8 +460,7 @@ readValuePool
 
 readValueArg :: Doc -> Doc -> Assignment -> Text -> ValType -> Doc
 readValueArg arg fmt assign n vt
- = wrapInBlock
- $ vsep
+ = vsep
  [ seaOfValType vt <+> "value;"
  , "error = " <> fmt <> "_read_" <> baseOfValType vt <> " (" <> arg <> "&p, pe, &value);"
  , "if (error) return error;"
@@ -508,7 +530,7 @@ seaOfReadJsonStruct assign st@(StructType fields) vars = do
     , "        return ierror_loc_format (p-1, p-1, \"field name missing opening quote\");"
     , ""
     , indent 4 (vsep mappings_sea)
-    , "    return ierror_loc_format (p-1, p-1, \"invalid field start\");"
+    , "    return ierror_loc_format (p-1, p-1, \"invalid json field start\");"
     , "}"
     ]
 

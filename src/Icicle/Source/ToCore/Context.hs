@@ -27,7 +27,8 @@ data Features a n
 data FeatureContext a n
  = FeatureContext
  { featureContextVariables :: Map.Map (Name n) (FeatureVariable a n)
- , featureContextFactTime  :: Name n }
+ , featureContextFactTime  :: Name n
+ }
 
 data FeatureVariable a n
  = FeatureVariable

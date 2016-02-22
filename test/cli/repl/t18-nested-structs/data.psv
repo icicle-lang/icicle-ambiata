@@ -1,0 +1,4 @@
+homer|person|{"age":35,"misery":1.5,"injury":{"location":{"area":"head","depth":0.5},"severity":1}}|2000-01-01
+homer|person|{"age":35,"misery":5.5,"injury":{"location":{"area":"leg","depth":1.5},"severity":2}}|2000-01-02
+homer|person|{"age":35,"misery":7.5,"injury":{"location":{"area":"leg","depth":1.5},"severity":2}}|2000-01-03
+marge|person|{"age":31,"misery":2.5,"injury":{"location":{"area":"leg","depth":1.5},"severity":2}}|2000-01-03

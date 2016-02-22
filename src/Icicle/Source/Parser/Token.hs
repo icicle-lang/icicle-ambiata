@@ -10,6 +10,7 @@ module Icicle.Source.Parser.Token (
   , pKeyword
   , pConstructor
   , pVariable
+  , pProjections
   , pOperator
   , pLitInt
   , pLitDouble
@@ -28,6 +29,7 @@ import                  P hiding ((<|>))
 
 import                  Text.Parsec
 import                  Data.Text (Text)
+import qualified        Data.Text as Text
 
 type Parser a
  = Parsec [T.TOK] () a
@@ -85,6 +87,16 @@ pConstructor
   get (T.TConstructor v) = Just v
   get  _                 = Nothing
 
+pProjections :: Parser (Name Var)
+pProjections
+  = do v  <-        pTok var <?> "variable"
+       ps <- many1 (pTok proj <?> "nested struct projections")
+       return $ Name $ T.Variable $ Text.intercalate "." (v:ps)
+ where
+  var  (T.TVariable (T.Variable v))   = Just v
+  var  _                              = Nothing
+  proj (T.TProjection (T.Variable p)) = Just p
+  proj _                              = Nothing
 
 
 pLitInt :: Parser Int
