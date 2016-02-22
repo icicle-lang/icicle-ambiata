@@ -190,7 +190,9 @@ isSupportedInputField = \case
   PairT{}   -> False
   SumT{}    -> False
   OptionT{} -> False
-  StructT{} -> False
+
+  StructT (StructType fs)
+   -> all isSupportedInputField (Map.elems fs)
 
 isSupportedOutput :: ValType -> Bool
 isSupportedOutput = \case

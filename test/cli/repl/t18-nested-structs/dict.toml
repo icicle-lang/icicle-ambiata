@@ -1,0 +1,13 @@
+title = "nested structs dictionary"
+
+version = 1
+
+namespace = """default"""
+
+tombstone = """T"""
+
+[fact.person]
+  [fact.person.encoding]
+     age="int"
+     misery="double"
+     injury="(location:(area:string,depth:double),severity:int)"
