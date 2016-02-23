@@ -153,9 +153,7 @@ seaOfDenseFieldMapping m (FieldMapping fname ftype vars) = do
   fieldSea <- seaOfReadDenseInput m ftype vars
   let sea   = wrapInBlock
             $ vsep [ "char *ent_pe = pe;"
-                   , "char *pe     = p;"
-                   , "while (pe != ent_pe && *pe != '|')"
-                   , "    pe++;"
+                   , "char *pe     = memchr(p, '|', ent_pe - p);"
                    , ""
                    , fieldSea ]
 
