@@ -9,6 +9,7 @@ module Icicle.Sea.Psv.Input
   , PsvInputDenseDict (..)
   , PsvInputFormat (..)
   , PsvInputConfig (..)
+  , PsvInputAllowDupTime (..)
   ) where
 
 
@@ -47,9 +48,10 @@ import           P
 
 
 data PsvInputConfig = PsvInputConfig {
-    inputPsvMode       :: PsvMode
-  , inputPsvTombstones :: Map Attribute (Set Text)
-  , inputPsvFormat     :: PsvInputFormat
+    inputPsvMode        :: PsvMode
+  , inputPsvTombstones  :: Map Attribute (Set Text)
+  , inputPsvFormat      :: PsvInputFormat
+  , inputPsvDupTime     :: PsvInputAllowDupTime
   } deriving (Eq, Ord, Show)
 
 data PsvInputFormat
@@ -57,6 +59,11 @@ data PsvInputFormat
   | PsvInputDense  PsvInputDenseDict
   deriving (Eq, Ord, Show)
 
+-- | Whether fact times must be unique for an entity.
+--
+data PsvInputAllowDupTime
+  = AllowDupTime | DoNotAllowDupTime
+  deriving (Eq, Ord, Show)
 
 seaOfReadAnyFact :: PsvInputConfig -> [SeaProgramState] -> Either SeaError Doc
 seaOfReadAnyFact config states = do
@@ -77,7 +84,7 @@ seaOfReadAnyFact config states = do
               , "  , const size_t  time_size"
               , "  , ifleet_t     *fleet )"
               , "{"
-              , indent 4 (vsep (fmap seaOfReadNamedFactSparse states))
+              , indent 4 (vsep (fmap (seaOfReadNamedFactSparse (inputPsvDupTime config)) states))
               , "    return 0;"
               , "}"
               ]
@@ -94,7 +101,7 @@ seaOfReadAnyFact config states = do
               , "  , const size_t  time_size"
               , "  , ifleet_t     *fleet )"
               , "{"
-              , indent 4 (vsep (fmap seaOfReadNamedFactDense states))
+              , indent 4 (vsep (fmap (seaOfReadNamedFactDense (inputPsvDupTime config)) states))
               , "    return 0;"
               , "}"
               ]
@@ -178,8 +185,8 @@ mappingOfDenseFields fields varsoup
 
 --------------------------------------------------------------------------------
 
-seaOfReadNamedFactSparse :: SeaProgramState -> Doc
-seaOfReadNamedFactSparse state
+seaOfReadNamedFactSparse :: PsvInputAllowDupTime -> SeaProgramState -> Doc
+seaOfReadNamedFactSparse allowDupTime state
  = let attrib = getAttribute (stateAttribute state)
        err    = vsep
                 [ "        return ierror_loc_format"
@@ -196,11 +203,11 @@ seaOfReadNamedFactSparse state
    in vsep
       [ "/* " <> pretty attrib <> " */"
       , "if (" <> seaOfStringEq attrib "attrib_ptr" (Just "attrib_size") <> ")"
-      , seaOfReadNamedFact state err
+      , seaOfReadNamedFact allowDupTime state err
       ]
 
-seaOfReadNamedFactDense :: SeaProgramState -> Doc
-seaOfReadNamedFactDense state
+seaOfReadNamedFactDense :: PsvInputAllowDupTime -> SeaProgramState -> Doc
+seaOfReadNamedFactDense allowDupTime state
  = let attrib = getAttribute (stateAttribute state)
        err    = vsep
                 [ "        return ierror_loc_format"
@@ -215,14 +222,17 @@ seaOfReadNamedFactDense state
                 ]
    in vsep
       [ "/* " <> pretty attrib <> " */"
-      , seaOfReadNamedFact state err
+      , seaOfReadNamedFact allowDupTime state err
       ]
 
-seaOfReadNamedFact :: SeaProgramState -> Doc -> Doc
-seaOfReadNamedFact state err
+seaOfReadNamedFact :: PsvInputAllowDupTime -> SeaProgramState -> Doc -> Doc
+seaOfReadNamedFact allowDupTime state err
  = let fun    = pretty (nameOfReadFact state)
        pname  = pretty (nameOfProgram  state)
        tname  = pretty (nameOfLastTime state)
+       tcond  = if   allowDupTime == AllowDupTime
+                then "    if (time < last_time)"
+                else "    if (time <= last_time)"
    in vsep
       [ "{"
       , "    itime_t time;"
@@ -245,7 +255,8 @@ seaOfReadNamedFact state err
       , ""
       , "    itime_t last_time = fleet->" <> tname <> ";"
       , ""
-      , "    if (time <= last_time) {"
+      , tcond
+      , "    {"
       , "        char curr_time_ptr[text_itime_max_size];"
       , "        size_t curr_time_size = text_write_itime (time, curr_time_ptr);"
       , ""

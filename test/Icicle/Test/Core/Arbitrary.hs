@@ -133,8 +133,15 @@ instance Arbitrary ValType where
          ]
 
 instance Arbitrary StructType where
-  arbitrary =
-   StructType <$> arbitrary
+  -- Structs have at most five fields, to prevent them from being too large.
+  -- Field types are much more likely to be "primimtives", so that they are not too deep.
+  arbitrary
+   = StructType . Map.fromList . List.take 10 <$> listOf genField
+   where
+    genField
+      = (,) <$> arbitrary <*> genFieldType
+    genFieldType
+      = oneof_sized (fmap pure [IntT, UnitT, BoolT, TimeT, StringT]) [arbitrary]
 
 instance Arbitrary StructField where
   arbitrary =

@@ -31,6 +31,7 @@ import           Icicle.Common.Annot
 import qualified Icicle.Common.Fresh as Fresh
 
 import qualified Icicle.Sea.FromAvalanche.Analysis as S
+import qualified Icicle.Sea.Eval as S
 
 import           Icicle.Test.Arbitrary
 import           Icicle.Test.Core.Arbitrary
@@ -58,19 +59,25 @@ instance Arbitrary InputType where
   arbitrary = validated 100 $ do
     ty <- arbitrary
     if isSupportedInput ty
-       then pure . Just . InputType $ SumT ErrorT ty
+       then pure . Just . inputTypeOf $ ty
        else pure Nothing
 
-instance Arbitrary WellTyped where
-  arbitrary = validated 10 $ do
-    (InputType ty) <- arbitrary
-    tryGenWellTypedWith ty
+inputTypeOf :: ValType -> InputType
+inputTypeOf ty
+    = InputType $ SumT ErrorT ty
 
-tryGenWellTypedWith :: ValType -> Gen (Maybe WellTyped)
-tryGenWellTypedWith ty = do
+instance Arbitrary WellTyped where
+  arbitrary = validated 10 (tryGenWellTypedWith S.DoNotAllowDupTime =<< arbitrary)
+
+tryGenWellTypedWith :: S.PsvInputAllowDupTime -> InputType -> Gen (Maybe WellTyped)
+tryGenWellTypedWith allowDupTime (InputType ty) = do
     entities       <- List.sort . List.nub . getNonEmpty <$> arbitrary
     attribute      <- arbitrary
-    (inputs, time) <- first (List.nubBy ((==) `on` atTime)) <$> inputsForType ty
+    (inputs, time) <- case allowDupTime of
+                        S.AllowDupTime
+                          -> inputsForType ty
+                        S.DoNotAllowDupTime
+                          -> first (List.nubBy ((==) `on` atTime)) <$> inputsForType ty
     core           <- programForStreamType ty
     return $ do
       checked <- fromEither (C.checkProgram core)
@@ -112,6 +119,18 @@ tryGenWellTypedWith ty = do
       supportedOutput _                       = Nothing
 
 
+genWellTypedWithDuplicateTimes :: Gen WellTyped
+genWellTypedWithDuplicateTimes
+ = validated 10 (tryGenWellTypedWith S.AllowDupTime =<< arbitrary)
+
+-- If the input are structs, we can pretend it's a dense value
+-- We can't treat other values as a single-field dense struct because the
+-- generated programs do not treat them as such.
+genWellTypedWithStruct :: S.PsvInputAllowDupTime -> Gen WellTyped
+genWellTypedWithStruct allowDupTime = validated 10 $ do
+  st <- arbitrary :: Gen StructType
+  tryGenWellTypedWith allowDupTime (inputTypeOf $ StructT st)
+
 ------------------------------------------------------------------------
 
 validated :: Int -> Gen (Maybe a) -> Gen a
@@ -147,6 +166,9 @@ isSupportedInput = \case
    -> isSupportedInputElem t
 
   StructT (StructType fs)
+   | Map.null fs
+   -> False
+   | otherwise
    -> all isSupportedInputField (Map.elems fs)
 
 isSupportedInputElem :: ValType -> Bool
