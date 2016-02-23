@@ -154,6 +154,8 @@ seaOfDenseFieldMapping m (FieldMapping fname ftype vars) = do
   let sea   = wrapInBlock
             $ vsep [ "char *ent_pe = pe;"
                    , "char *pe     = memchr(p, '|', ent_pe - p);"
+                   , "if (pe == NULL)"
+                   , "    pe = ent_pe;"
                    , ""
                    , fieldSea ]
 
@@ -406,11 +408,10 @@ seaOfReadDenseInput missing inType inVars
                                    , val_sea ]
                  body_false = indent 4
                             $ assignVar (pretty nb) BoolT "false"
-                 strncmp s  = "strncmp(p, \"" <> pretty s <> "\", pe - p)"
              case missing of
                Just m
                  -> pure $ vsep
-                     [ "if (" <> strncmp m <> " == 0) {"
+                     [ "if (" <> seaOfStringEq m "p" (Just "pe - p") <> ") {"
                      , "    p = pe;"
                      , body_false
                      , "} else {"
