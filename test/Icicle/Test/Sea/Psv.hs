@@ -4,6 +4,7 @@
 {-# LANGUAGE PatternGuards#-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell#-}
+{-# LANGUAGE TupleSections #-}
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 module Icicle.Test.Sea.Psv where
 
@@ -43,7 +44,7 @@ import           System.IO.Temp (createTempDirectory)
 import           System.Directory (getTemporaryDirectory, removeDirectoryRecursive)
 
 import           Test.QuickCheck (Args(..), Gen, forAllProperties, quickCheckWithResult
-                                 ,stdArgs, arbitrary)
+                                 ,stdArgs, arbitrary, elements)
 import           Test.QuickCheck (Property, (==>), property, counterexample)
 import           Test.QuickCheck.Property (succeeded, failed)
 import           Test.QuickCheck.Monadic
@@ -75,8 +76,9 @@ prop_time_out_of_order wt =
 
 prop_sparse_dense_both_compile
   = monadicIO
-  $ do wt <- pick genWellTypedWithStruct
-       case denseDictionary (wtAttribute wt) (wtFactType wt) of
+  $ do wt   <- pick genWellTypedWithStruct
+       dict <- pick (denseDictionary (wtAttribute wt) (wtFactType wt))
+       case dict of
          Nothing -> pure
                   $ counterexample ("Cannot create dense dictionary for:")
                   $ counterexample (show (wtFactType wt))
@@ -273,14 +275,20 @@ denseTextsOfValues vs =
     (fmap (LT.intercalate "|" . fmap textOfValue . atFact) vs)
     (fmap (textOfTime . atTime) vs)
 
-denseDictionary :: Attribute -> ValType -> Maybe S.PsvInputDenseDict
+denseDictionary :: Attribute -> ValType -> Gen (Maybe S.PsvInputDenseDict)
 denseDictionary denseName (StructT (StructType m))
-  = Just
-  $ S.PsvInputDenseDict
-  $ Map.singleton (getAttribute denseName)
-  $ Map.toList
-  $ Map.mapKeys nameOfStructField m
-denseDictionary _ _ = Nothing
+  = do missingValue <- genMissingValue
+       let n         = getAttribute denseName
+       fs           <- mapM (\(t,v) -> pure . (t,) . (,v) =<< arbitrary)
+                            (Map.toList $ Map.mapKeys nameOfStructField m)
+       return $ Just
+              $ S.PsvInputDenseDict
+                  (Map.singleton (getAttribute denseName) fs)
+                  (maybe Map.empty (Map.singleton n) missingValue)
+denseDictionary _ _ = return Nothing
+
+genMissingValue :: Gen (Maybe Text)
+genMissingValue = elements [Nothing, Just "NA", Just ""]
 
 ------------------------------------------------------------------------
 

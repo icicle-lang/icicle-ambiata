@@ -16,6 +16,7 @@
 module Icicle.Storage.Dictionary.Toml.Dense
   ( PsvInputDenseDict (..)
   , DictionaryDenseError (..)
+  , MissingValue
   , denseFeeds
   ) where
 
@@ -30,7 +31,7 @@ import Data.Text (Text)
 
 import P
 
-import Icicle.Common.Type (ValType)
+import Icicle.Common.Type (ValType(..))
 import Icicle.Data
 import Icicle.Encoding
 import Icicle.Dictionary.Data
@@ -38,39 +39,48 @@ import Icicle.Storage.Dictionary.Toml.Types
 import Icicle.Storage.Dictionary.Toml.Prisms
 
 
+type StructName   = Text
+type FieldName    = Text
+type MissingValue = Text
+
 data FeedTable
   = FeedTable
-  { feedName   :: Text
-  , feedFields :: [Text] }
+  { feedName         :: StructName
+  , feedFields       :: [FieldName]
+  , feedMissingValue :: Maybe MissingValue
+  }
 
 data DenseStructEncoding
   = DenseStructEncoding
-  { structName :: Text
-  , structFields :: Map Text Encoding }
+  { structName   :: StructName
+  , structFields :: Map FieldName (StructFieldType, Encoding) }
 
 data DictionaryDenseError
-  = UndefinedFeed    Text
-  | UndefinedField   Text (Map Text Encoding)
-  | InvalidFeedTable Text
+  = UndefinedFeed    StructName
+  | UndefinedField   FieldName   (Map FieldName Encoding)
+  | InvalidFeedTable StructName
   deriving (Eq, Show)
 
-newtype PsvInputDenseDict
+data PsvInputDenseDict
   = PsvInputDenseDict
-  { denseDict :: Map Text [(Text, ValType)] }
+  { denseDict         :: Map StructName [(FieldName, (StructFieldType, ValType))]
+  , denseMissingValue :: Map StructName MissingValue }
   deriving (Eq, Ord, Show)
 
 
 denseFeeds :: Dictionary -> Table -> Either DictionaryDenseError PsvInputDenseDict
 denseFeeds dict toml
-  = do ffs    <- denseEncodings toml
-       let ss  = concreteStructs dict
-       ss'    <- orderStructs ss ffs
-       feeds  <- zipWithM go (fmap feedFields ffs) ss'
-       pure $ PsvInputDenseDict $ Map.fromList $ feeds
+  = do es       <- denseEncodings toml
+       let ts    = fmap (\x -> (feedName x, feedMissingValue x)) es
+       let ss    = concreteStructs dict
+       ss'      <- orderStructs ss es
+       feeds    <- zipWithM go (fmap feedFields es) ss'
+       pure $ PsvInputDenseDict (Map.fromList feeds)
+                                (Map.fromList $ catMaybes $ fmap sequence $ ts)
   where
     go fieldNames s
       = do fields  <- orderFields fieldNames (structFields s)
-           let fs   = fmap (second sourceTypeOfEncoding) fields
+           let fs   = fmap (second (second sourceTypeOfEncoding)) fields
            pure $ (structName s, fs)
 
 orderStructs :: [DenseStructEncoding] -> [FeedTable] -> Either DictionaryDenseError [DenseStructEncoding]
@@ -82,14 +92,14 @@ orderStructs ss ffs
           Just s  -> pure $ acc <> [s]
           Nothing -> Left $ UndefinedFeed f
 
-orderFields :: [Text] -> Map Text Encoding -> Either DictionaryDenseError [(Text, Encoding)]
+orderFields :: [Text] -> Map FieldName (StructFieldType, Encoding) -> Either DictionaryDenseError [(Text, (StructFieldType, Encoding))]
 orderFields ordering fields
   = foldM go [] ordering
   where
     go acc f
       = case Map.lookup f fields of
           Just e  -> pure $ acc <> [(f, e)]
-          Nothing -> Left $ UndefinedField f fields
+          Nothing -> Left $ UndefinedField f $ fmap snd fields
 
 denseEncodings :: Table -> Either DictionaryDenseError [FeedTable]
 denseEncodings toml = do
@@ -101,9 +111,13 @@ denseEncodings toml = do
       = let x = join
               $ fmap (sequence . fmap (^? _VString))
               $ v ^? _NTable . key "columns" . _1 . _NTValue . _VArray
+            y = fmap (Text.pack . fmap fst)
+              $ join
+              $ sequence . fmap (^? _VString)
+              $ v ^? _NTable . key "missing" . _1 . _NTValue
         in case x of
              Just fieldNames
-               -> pure $ FeedTable k (fmap (Text.pack . fmap fst) fieldNames) : acc
+               -> pure $ FeedTable k (fmap (Text.pack . fmap fst) fieldNames) y : acc
              _ -> Left $ InvalidFeedTable k
 
 concreteStructs :: Dictionary -> [DenseStructEncoding]
@@ -118,4 +132,4 @@ concreteStructs dict
     mappingOfStructs (fname, fs)
       = DenseStructEncoding (getAttribute fname)
       $ Map.fromList
-      $ fmap (\(StructField _ a e) -> (getAttribute a,e)) fs
+      $ fmap (\(StructField t a e) -> (getAttribute a, (t,e))) fs
