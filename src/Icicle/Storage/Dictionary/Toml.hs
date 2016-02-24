@@ -68,11 +68,12 @@ loadDictionary impPrelude dictionary
 loadDenseDictionary
   :: ImplicitPrelude
   -> FilePath
+  -> Maybe PsvInputDenseFeedName
   -> EitherT DictionaryImportError IO (Dictionary, PsvInputDenseDict)
-loadDenseDictionary impPrelude dictionary
+loadDenseDictionary impPrelude dictionary feed
   = do d    <- loadDictionary impPrelude dictionary
        toml <- parseTOML dictionary
-       dd   <- firstEitherT DictionaryErrorDense $ hoistEither $ denseFeeds d toml
+       dd   <- firstEitherT DictionaryErrorDense $ hoistEither $ denseFeeds d toml feed
        return (d, dd)
 
 loadDictionary'

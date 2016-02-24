@@ -15,6 +15,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Icicle.Storage.Dictionary.Toml.Dense
   ( PsvInputDenseDict (..)
+  , PsvInputDenseFeedName
   , DictionaryDenseError (..)
   , MissingValue
   , denseFeeds
@@ -39,44 +40,63 @@ import Icicle.Storage.Dictionary.Toml.Types
 import Icicle.Storage.Dictionary.Toml.Prisms
 
 
-type StructName   = Text
-type FieldName    = Text
-type MissingValue = Text
+type PsvInputDenseFeedName = Text
+type FieldName             = Text
+type MissingValue          = Text
+
 
 data FeedTable
   = FeedTable
-  { feedName         :: StructName
+  { feedName         :: PsvInputDenseFeedName
   , feedFields       :: [FieldName]
   , feedMissingValue :: Maybe MissingValue
   }
 
 data DenseStructEncoding
   = DenseStructEncoding
-  { structName   :: StructName
+  { structName   :: PsvInputDenseFeedName
   , structFields :: Map FieldName (StructFieldType, Encoding) }
 
 data DictionaryDenseError
-  = UndefinedFeed    StructName
+  = UndefinedFeed    PsvInputDenseFeedName
   | UndefinedField   FieldName   (Map FieldName Encoding)
-  | InvalidFeedTable StructName
+  | AmbiguousFeed    [PsvInputDenseFeedName]
+  | InvalidFeedTable PsvInputDenseFeedName
   deriving (Eq, Show)
 
 data PsvInputDenseDict
   = PsvInputDenseDict
-  { denseDict         :: Map StructName [(FieldName, (StructFieldType, ValType))]
-  , denseMissingValue :: Map StructName MissingValue }
+  { denseDict         :: Map PsvInputDenseFeedName [(FieldName, (StructFieldType, ValType))]
+  , denseMissingValue :: Map PsvInputDenseFeedName MissingValue
+  , denseSelectedFeed :: PsvInputDenseFeedName }
   deriving (Eq, Ord, Show)
 
 
-denseFeeds :: Dictionary -> Table -> Either DictionaryDenseError PsvInputDenseDict
-denseFeeds dict toml
+denseFeeds
+  :: Dictionary
+  -> Table
+  -> Maybe PsvInputDenseFeedName
+  -> Either DictionaryDenseError PsvInputDenseDict
+denseFeeds dict toml mfeed
   = do es       <- denseEncodings toml
-       let ts    = fmap (\x -> (feedName x, feedMissingValue x)) es
+       let ts    = catMaybes
+                 $ fmap sequence
+                 $ fmap (\x -> (feedName x, feedMissingValue x)) es
        let ss    = concreteStructs dict
        ss'      <- orderStructs ss es
        feeds    <- zipWithM go (fmap feedFields es) ss'
-       pure $ PsvInputDenseDict (Map.fromList feeds)
-                                (Map.fromList $ catMaybes $ fmap sequence $ ts)
+       let ddict = PsvInputDenseDict (Map.fromList feeds) (Map.fromList ts)
+       case mfeed of
+         Nothing
+           -> case feeds of
+                [(f,_)]
+                  -> pure $ ddict f
+                _ -> Left $ AmbiguousFeed (fmap fst feeds)
+         Just feed
+           -> case List.lookup feed feeds of
+                Just _
+                  -> pure $ ddict feed
+                _ -> Left $ UndefinedFeed feed
   where
     go fieldNames s
       = do fields  <- orderFields fieldNames (structFields s)

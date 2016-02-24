@@ -41,12 +41,18 @@ seaOfPsvDriver
   -> PsvOutputConfig
   -> Either SeaError Doc
 seaOfPsvDriver states inputConfig outputConfig = do
+  let outputList  = case inputPsvFormat inputConfig of
+                      PsvInputSparse
+                        -> Nothing
+                      PsvInputDense _ feed
+                        -> Just [feed]
+
   let struct_sea  = seaOfFleetState      states
       alloc_sea   = seaOfAllocFleet      states
       collect_sea = seaOfCollectFleet    states
       config_sea  = seaOfConfigureFleet (inputPsvMode inputConfig) states
   read_sea  <- seaOfReadAnyFact      inputConfig  states
-  write_sea <- seaOfWriteFleetOutput outputConfig states
+  write_sea <- seaOfWriteFleetOutput outputConfig outputList states
   pure $ vsep
     [ struct_sea
     , ""

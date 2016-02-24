@@ -32,7 +32,7 @@ import           Icicle.Common.Type (defaultOfType)
 
 import           Icicle.Data (Attribute(..), StructFieldType(..))
 
-import           Icicle.Storage.Dictionary.Toml.Dense (PsvInputDenseDict(..), MissingValue)
+import           Icicle.Storage.Dictionary.Toml.Dense (PsvInputDenseDict(..), MissingValue, PsvInputDenseFeedName)
 
 import           Icicle.Internal.Pretty
 import qualified Icicle.Internal.Pretty as Pretty
@@ -56,7 +56,7 @@ data PsvInputConfig = PsvInputConfig {
 
 data PsvInputFormat
   = PsvInputSparse
-  | PsvInputDense  PsvInputDenseDict
+  | PsvInputDense  PsvInputDenseDict PsvInputDenseFeedName
   deriving (Eq, Ord, Show)
 
 -- | Whether fact times must be unique for an entity.
@@ -65,12 +65,13 @@ data PsvInputAllowDupTime
   = AllowDupTime | DoNotAllowDupTime
   deriving (Eq, Ord, Show)
 
+
 seaOfReadAnyFact :: PsvInputConfig -> [SeaProgramState] -> Either SeaError Doc
 seaOfReadAnyFact config states = do
-  let tss  = fmap (lookupTombstones config) states
   case inputPsvFormat config of
     PsvInputSparse
-      -> do readStates_sea <- zipWithM seaOfReadSparseFact states tss
+      -> do let tss  = fmap (lookupTombstones config) states
+            readStates_sea <- zipWithM seaOfReadSparseFact states tss
             pure $ vsep
               [ vsep readStates_sea
               , ""
@@ -88,10 +89,14 @@ seaOfReadAnyFact config states = do
               , "    return 0;"
               , "}"
               ]
-    PsvInputDense dict
-      -> do readStates_sea <- zipWithM (seaOfReadDenseFact dict) states tss
+    PsvInputDense dict feed
+      -> do let feeds  = denseDict dict
+            state     <- maybeToRight (SeaDenseFeedNotDefined feed (fmap (fmap (second snd)) feeds))
+                       $ List.find ((==) feed . getAttribute . stateAttribute) states
+            let ts     = lookupTombstones config state
+            read_sea  <- seaOfReadDenseFact dict state ts
             pure $ vsep
-              [ vsep readStates_sea
+              [ read_sea
               , ""
               , "#line 1 \"read any dense fact\""
               , "static ierror_loc_t psv_read_fact"
@@ -101,7 +106,7 @@ seaOfReadAnyFact config states = do
               , "  , const size_t  time_size"
               , "  , ifleet_t     *fleet )"
               , "{"
-              , indent 4 (vsep (fmap (seaOfReadNamedFactDense (inputPsvDupTime config)) states))
+              , indent 4 (seaOfReadNamedFactDense (inputPsvDupTime config) state)
               , "    return 0;"
               , "}"
               ]

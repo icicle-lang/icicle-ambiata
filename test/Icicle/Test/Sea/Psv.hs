@@ -111,11 +111,17 @@ prop_sparse_dense_both_compile
            e <- liftIO
               $ runEitherT
               $ runTest wt
-              $ TestOpts ShowInputOnError ShowOutputOnError (S.PsvInputDense d) S.DoNotAllowDupTime
+              $ TestOpts ShowInputOnError
+                         ShowOutputOnError
+                         (S.PsvInputDense d (getAttribute (wtAttribute wt)))
+                         S.DoNotAllowDupTime
            s <- liftIO
               $ runEitherT
               $ runTest wt
-              $ TestOpts ShowInputOnError ShowOutputOnError S.PsvInputSparse S.DoNotAllowDupTime
+              $ TestOpts ShowInputOnError
+                         ShowOutputOnError
+                         S.PsvInputSparse
+                         S.DoNotAllowDupTime
            case (s, e) of
              (Right _, Right _) -> pure (property succeeded)
              (Left err, _)      -> stop
@@ -309,6 +315,7 @@ denseDictionary denseName (StructT (StructType m))
               $ S.PsvInputDenseDict
                   (Map.singleton (getAttribute denseName) fs)
                   (maybe Map.empty (Map.singleton n) missingValue)
+                  n
 denseDictionary _ _ = return Nothing
 
 genMissingValue :: Gen (Maybe Text)
