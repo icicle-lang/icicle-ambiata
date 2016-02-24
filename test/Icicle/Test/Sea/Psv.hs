@@ -44,7 +44,7 @@ import           System.IO.Temp (createTempDirectory)
 import           System.Directory (getTemporaryDirectory, removeDirectoryRecursive)
 
 import           Test.QuickCheck (Args(..), Gen, forAllProperties, quickCheckWithResult
-                                 ,stdArgs, arbitrary, elements)
+                                 ,stdArgs, arbitrary, elements, suchThat)
 import           Test.QuickCheck (Property, (==>), property, counterexample)
 import           Test.QuickCheck.Property (succeeded, failed)
 import           Test.QuickCheck.Monadic
@@ -53,7 +53,9 @@ import           X.Control.Monad.Trans.Either (EitherT, runEitherT)
 import           X.Control.Monad.Trans.Either (bracketEitherT', left)
 
 prop_psv wt = testIO $ do
-  x <- runEitherT (runTest (TestOpts ShowInputOnError ShowOutputOnError S.PsvInputSparse) wt)
+  x <- runEitherT
+     $ runTest wt
+     $ TestOpts ShowInputOnError ShowOutputOnError S.PsvInputSparse S.DoNotAllowDupTime
   case x of
     Left err -> failWithError wt err
     Right () -> pure (property succeeded)
@@ -63,7 +65,9 @@ prop_entity_out_of_order wt =
   List.length (wtFacts    wt) > 0 ==>
   testIO $ do
     let wt' = wt { wtEntities = List.reverse (wtEntities wt) }
-    x <- runEitherT (runTest (TestOpts ShowInputOnSuccess ShowOutputOnSuccess S.PsvInputSparse) wt')
+    x <- runEitherT
+        $ runTest wt'
+        $ TestOpts ShowInputOnSuccess ShowOutputOnSuccess S.PsvInputSparse S.DoNotAllowDupTime
     expectPsvError wt' x
 
 prop_time_out_of_order wt =
@@ -71,12 +75,32 @@ prop_time_out_of_order wt =
   List.length (wtFacts    wt) > 1 ==>
   testIO $ do
     let wt' = wt { wtFacts = List.reverse (wtFacts wt) }
-    x <- runEitherT (runTest (TestOpts ShowInputOnSuccess ShowOutputOnSuccess S.PsvInputSparse) wt')
+    x <- runEitherT
+       $ runTest wt'
+       $ TestOpts ShowInputOnSuccess ShowOutputOnSuccess S.PsvInputSparse S.DoNotAllowDupTime
     expectPsvError wt' x
+
+prop_dup_time
+  = monadicIO
+  $ do wt <- pick $ genWellTypedWithDuplicateTimes
+                      `suchThat` (\x -> List.length (wtEntities x) > 0
+                                     && List.length (wtFacts    x) > 1 )
+       let wt' = wt { wtFacts = List.head (wtFacts wt) : wtFacts wt }
+       a  <- liftIO
+           $ runEitherT
+           $ runTest wt'
+           $ TestOpts ShowInputOnError ShowOutputOnError S.PsvInputSparse S.AllowDupTime
+       b  <- liftIO
+           $ runEitherT
+           $ runTest wt'
+           $ TestOpts ShowInputOnSuccess ShowOutputOnSuccess S.PsvInputSparse S.DoNotAllowDupTime
+       case a of
+         Left err -> stop $ testIO $ failWithError wt' err
+         Right _  -> stop $ testIO $ expectPsvError wt' b
 
 prop_sparse_dense_both_compile
   = monadicIO
-  $ do wt   <- pick genWellTypedWithStruct
+  $ do wt <- pick $ genWellTypedWithStruct S.DoNotAllowDupTime
        dict <- pick (denseDictionary (wtAttribute wt) (wtFactType wt))
        case dict of
          Nothing -> pure
@@ -84,14 +108,22 @@ prop_sparse_dense_both_compile
                   $ counterexample (show (wtFactType wt))
                   $ failed
          Just d  -> do
-           e <- liftIO $ runEitherT (runTest (TestOpts ShowInputOnError ShowOutputOnError (S.PsvInputDense d)) wt)
-           s <- liftIO $ runEitherT (runTest (TestOpts ShowInputOnError ShowOutputOnError S.PsvInputSparse) wt)
+           e <- liftIO
+              $ runEitherT
+              $ runTest wt
+              $ TestOpts ShowInputOnError ShowOutputOnError (S.PsvInputDense d) S.DoNotAllowDupTime
+           s <- liftIO
+              $ runEitherT
+              $ runTest wt
+              $ TestOpts ShowInputOnError ShowOutputOnError S.PsvInputSparse S.DoNotAllowDupTime
            case (s, e) of
              (Right _, Right _) -> pure (property succeeded)
-             (Left err, _)      -> liftIO
+             (Left err, _)      -> stop
+                                 $ testIO
                                  $ failWithError'
                                    (counterexample ("==* sparse failed!")) wt err
-             (_, Left err)      -> liftIO
+             (_, Left err)      -> stop
+                                 $ testIO
                                  $ failWithError'
                                    (counterexample ("==* dense failed!")) wt err
 
@@ -144,10 +176,10 @@ data ShowOutput = ShowOutputOnError | ShowOutputOnSuccess
   deriving (Eq)
 
 
-data TestOpts = TestOpts ShowInput ShowOutput S.PsvInputFormat
+data TestOpts = TestOpts ShowInput ShowOutput S.PsvInputFormat S.PsvInputAllowDupTime
 
-runTest :: TestOpts -> WellTyped -> EitherT S.SeaError IO ()
-runTest (TestOpts showInput showOutput inputFormat) wt = do
+runTest :: WellTyped -> TestOpts -> EitherT S.SeaError IO ()
+runTest wt (TestOpts showInput showOutput inputFormat allowDupTime) = do
   options0 <- S.getCompilerOptions
 
   let options  = options0 <> ["-O0", "-DICICLE_NOINLINE=1"]
@@ -156,6 +188,7 @@ runTest (TestOpts showInput showOutput inputFormat) wt = do
                 (S.PsvSnapshot (wtTime wt))
                 (Map.singleton (wtAttribute wt) (Set.singleton tombstone))
                  inputFormat
+                 allowDupTime
       oconfig  = S.PsvOutputConfig
                 (S.PsvSnapshot (wtTime wt))
                 (S.PsvOutputSparse)
@@ -237,15 +270,6 @@ withSystemTempDirectory template action = do
       release = liftIO . removeDirectoryRecursive
   bracketEitherT' acquire release action
 
-
--- If the input are structs, we can pretend it's a dense value
--- We can't treat other values as a single-field dense struct because the
--- generated programs do not treat them as such.
-
-genWellTypedWithStruct :: Gen WellTyped
-genWellTypedWithStruct = validated 10 $ do
-  st <- arbitrary :: Gen StructType
-  tryGenWellTypedWith (StructT st)
 
 denseTextOfFacts :: [Entity] -> [AsAt BaseValue] -> LT.Text
 denseTextOfFacts entities vs =

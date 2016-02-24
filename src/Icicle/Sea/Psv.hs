@@ -8,6 +8,7 @@ module Icicle.Sea.Psv (
   , PsvMode(..)
   , PsvOutputFormat(..)
   , PsvInputFormat(..)
+  , PsvInputAllowDupTime(..)
   , PsvInputDenseDict(..)
   , seaOfPsvDriver
   , defaultMissingValue

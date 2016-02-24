@@ -94,7 +94,7 @@ createBenchmark mode dictionaryPath inputPath outputPath packedChordPath = do
   dictionary <- firstEitherT BenchDictionaryImportError (loadDictionary ImplicitPrelude dictionaryPath)
   avalanche  <- hoistEither (avalancheOfDictionary dictionary)
 
-  let cfg = Psv (PsvInputConfig  mode (tombstonesOfDictionary dictionary) PsvInputSparse)
+  let cfg = Psv (PsvInputConfig  mode (tombstonesOfDictionary dictionary) PsvInputSparse AllowDupTime)
                 (PsvOutputConfig mode PsvOutputSparse)
 
   let avalancheL = Map.toList avalanche
