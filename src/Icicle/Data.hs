@@ -167,4 +167,4 @@ attributeOfStructField (StructField _ attr _)
 data StructFieldType =
     Mandatory
   | Optional
-  deriving (Eq, Show)
+  deriving (Eq, Ord, Show)

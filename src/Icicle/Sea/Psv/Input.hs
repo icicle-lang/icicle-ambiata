@@ -29,9 +29,9 @@ import           Icicle.Avalanche.Prim.Flat (meltType)
 import           Icicle.Common.Type (ValType(..), StructType(..), StructField(..))
 import           Icicle.Common.Type (defaultOfType)
 
-import           Icicle.Data (Attribute(..))
+import           Icicle.Data (Attribute(..), StructFieldType(..))
 
-import           Icicle.Storage.Dictionary.Toml.Dense (PsvInputDenseDict(..))
+import           Icicle.Storage.Dictionary.Toml.Dense (PsvInputDenseDict(..), MissingValue)
 
 import           Icicle.Internal.Pretty
 import qualified Icicle.Internal.Pretty as Pretty
@@ -56,6 +56,7 @@ data PsvInputFormat
   = PsvInputSparse
   | PsvInputDense  PsvInputDenseDict
   deriving (Eq, Ord, Show)
+
 
 seaOfReadAnyFact :: PsvInputConfig -> [SeaProgramState] -> Either SeaError Doc
 seaOfReadAnyFact config states = do
@@ -104,14 +105,19 @@ seaOfReadDenseFact :: PsvInputDenseDict -> SeaProgramState -> Set Text -> Either
 seaOfReadDenseFact dict state tombstones = do
   let feeds  = denseDict dict
   let attr   = getAttribute $ stateAttribute state
-  fields    <- maybeToRight (SeaDenseFeedNotDefined attr feeds)
+  fields    <- maybeToRight (SeaDenseFeedNotDefined attr $ fmap (fmap (second snd)) feeds)
              $ Map.lookup attr feeds
   input     <- checkInputType state
-  readInput <- seaOfReadDenseValue fields (inputVars input)
+  let mv     = Map.lookup attr (denseMissingValue dict)
+  readInput <- seaOfReadDenseValue mv fields (inputVars input)
   pure $ seaOfReadFact state tombstones input readInput
 
-seaOfReadDenseValue :: [(Text, ValType)] -> [(Text, ValType)] -> Either SeaError Doc
-seaOfReadDenseValue fields vars = do
+seaOfReadDenseValue
+  :: Maybe MissingValue
+  -> [(Text, (StructFieldType, ValType))]
+  -> [(Text, ValType)]
+  -> Either SeaError Doc
+seaOfReadDenseValue m fields vars = do
   -- Input variables are ordered lexicographically by field names, we need to re-order them
   -- to fit the dense format.
   --
@@ -119,10 +125,11 @@ seaOfReadDenseValue fields vars = do
   -- will have input variable types @string,double,int,string@, we need to re-order this to
   -- @int,string,string,double@.
   --
-  let mismatch  = SeaDenseFieldsMismatch fields vars
-  vars'        <- maybe (Left mismatch) Right (reorder fields vars)
-  mappings     <- maybe (Left mismatch) Right (mappingOfDenseFields fields vars')
-  mappings_sea <- traverse seaOfDenseFieldMapping mappings
+  let mismatch  = SeaDenseFieldsMismatch (fmap (second snd) fields) vars
+      fields'   = fmap expandOptional fields
+  vars'        <- maybe (Left mismatch) Right (reorder fields' vars)
+  mappings     <- maybe (Left mismatch) Right (mappingOfDenseFields fields' vars')
+  mappings_sea <- traverse (seaOfDenseFieldMapping m) mappings
   pure $ vsep
     [ "for (;;) {"
     , indent 4 (vsep mappings_sea)
@@ -130,6 +137,10 @@ seaOfReadDenseValue fields vars = do
     , "}"
     ]
   where
+    expandOptional (n, (op, t))
+      = case op of
+          Optional  -> (n,OptionT t)
+          Mandatory -> (n,t)
     reorder keys xs
       = do let melted = fmap (second meltType) keys
                flat   = concatMap (\(k,ts) -> fmap (k,) ts) melted
@@ -137,14 +148,14 @@ seaOfReadDenseValue fields vars = do
            ixes <- sequence $ fmap (flip List.elemIndex flat) sorted
            return $ fmap (xs List.!!) ixes
 
-seaOfDenseFieldMapping :: FieldMapping -> Either SeaError Doc
-seaOfDenseFieldMapping (FieldMapping fname ftype vars) = do
-  fieldSea <- seaOfReadInput ftype vars
+seaOfDenseFieldMapping :: Maybe MissingValue -> FieldMapping -> Either SeaError Doc
+seaOfDenseFieldMapping m (FieldMapping fname ftype vars) = do
+  fieldSea <- seaOfReadDenseInput m ftype vars
   let sea   = wrapInBlock
             $ vsep [ "char *ent_pe = pe;"
-                   , "char *pe     = p;"
-                   , "while (pe != ent_pe && *pe != '|')"
-                   , "    pe++;"
+                   , "char *pe     = memchr(p, '|', ent_pe - p);"
+                   , "if (pe == NULL)"
+                   , "    pe = ent_pe;"
                    , ""
                    , fieldSea ]
 
@@ -386,6 +397,36 @@ seaOfReadInput inType inVars
 
     (_, t)
      -> Left (SeaUnsupportedInputType t)
+
+seaOfReadDenseInput :: Maybe MissingValue -> ValType -> [(Text, ValType)] -> Either SeaError Doc
+seaOfReadDenseInput missing inType inVars
+  = case (inVars, inType) of
+     ((nb, BoolT) : nx, OptionT t)
+       -> do val_sea <- seaOfReadInput t nx
+             let body_true  = indent 4
+                            $ vsep [ assignVar (pretty nb) BoolT "true"
+                                   , val_sea ]
+                 body_false = indent 4
+                            $ assignVar (pretty nb) BoolT "false"
+             case missing of
+               Just m
+                 -> pure $ vsep
+                     [ "if (" <> seaOfStringEq m "p" (Just "pe - p") <> ") {"
+                     , "    p = pe;"
+                     , body_false
+                     , "} else {"
+                     , body_true
+                     , "}"
+                     ]
+               Nothing
+                 -> pure $ vsep
+                     [ "if (*p != '|') {"
+                     , body_true
+                     , "} else {"
+                     , body_false
+                     , "}"
+                     ]
+     _ -> seaOfReadInput inType inVars
 
 ------------------------------------------------------------------------
 
