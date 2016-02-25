@@ -14,6 +14,7 @@ import              Icicle.Common.Base
 import              Icicle.Common.Type
 import              Icicle.Common.Value as V
 import              Icicle.Core.Stream
+import qualified    Icicle.Common.Exp.Exp   as XX
 import qualified    Icicle.Common.Exp.Eval  as XV -- eXpression eVal
 import qualified    Icicle.Common.Exp.Compounds  as XC -- eXpression Compounds
 import qualified    Icicle.Core.Eval.Exp    as XV -- eXpression eVal
@@ -93,7 +94,6 @@ eval xh sh s
             vs <- foldGo n k vz inputHeaps
             return (Map.insert n (StreamValue vs vz') sh, Set.empty)
 
-    -- TODO check if p is windowing primitive, if so mark these ones as used
     SFilter p ss
      -> do filts <- mapM (evalF p) inputHeaps
            let bs = fmap fst filts
@@ -119,19 +119,40 @@ eval xh sh s
         return (vk' : vs)
     
 
+  -- Evaluate a filter, and count facts as "used" if they are inside a window
   evalF p h
-   = do let evalX' = evalX (Map.union h xh)
+   = do let evalX' x
+             = do   res <- evalX (Map.union h xh) x
+                    V.getBaseValue (RuntimeErrorExpNotBaseType res) res
+        let isTrue = (== VBool True)
+
         v <- evalX' p
-        v' <- V.getBaseValue (RuntimeErrorExpNotBaseType v) v
 
-        facts <- case (XC.takePrimApps p) of
-                    Just (PrimWindow _ _, [_, _, factid])
-                      -> extractFactId <$> evalX' factid
-                    _ -> return Set.empty
+        -- Check if it's a windowing filter
+        -- This is very dodgy
+        -- The ideal solution would be to modify the expression evaluator to track bubblegum
+        -- all the way through expression evaluation,
+        -- but that would require rewriting the expression evaluator for relatively little gain right now
+        let checkWindow
+             | Just (PrimWindow before _, [v1, v2, factid]) <- XC.takePrimApps p
+             , ann     <- XX.annotOfExp p
+             , window' <- PrimWindow before Nothing
+             , prim'   <- XX.XPrim ann window'
+             , p'      <- XC.makeApps ann prim' [v1, v2, factid]
+             -- If so, evaluate the window with no "and earlier than" part
+             = do   inWindow  <- evalX' p'
+                    fid <- extractFactId <$> evalX' factid
 
-        return (v' == VBool True, facts)
+                    -- If it is in the window, this fact must go in bubblegum
+                    return (if isTrue inWindow then fid else Set.empty)
 
-  extractFactId (VBase (VFactIdentifier factid)) = Set.singleton factid
+             | otherwise
+             = return Set.empty
+        facts <- checkWindow
+
+        return (isTrue v, facts)
+
+  extractFactId (VFactIdentifier factid) = Set.singleton factid
   extractFactId _ = Set.empty
 
   filterHeap bs sheep
