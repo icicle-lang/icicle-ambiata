@@ -16,6 +16,8 @@ import           Icicle.Avalanche.Prim.Flat (meltType)
 import           Icicle.Common.Base (OutputName(..))
 import           Icicle.Common.Type (ValType(..))
 
+import           Icicle.Data (Attribute(..))
+
 import           Icicle.Internal.Pretty
 
 import           Icicle.Sea.Error (SeaError(..))
@@ -42,14 +44,19 @@ data PsvOutputFormat
 
 type MissingValue = Text
 
+type PsvOutputWhiteList = Maybe [Text]
+
 defaultMissingValue :: Text
 defaultMissingValue = "NA"
 
 ------------------------------------------------------------------------
 
-seaOfWriteFleetOutput :: PsvOutputConfig -> [SeaProgramState] -> Either SeaError Doc
-seaOfWriteFleetOutput config states = do
-  write_sea <- traverse (seaOfWriteProgramOutput config) states
+seaOfWriteFleetOutput :: PsvOutputConfig -> PsvOutputWhiteList -> [SeaProgramState] -> Either SeaError Doc
+seaOfWriteFleetOutput config whitelist states = do
+  let states' = case whitelist of
+                  Nothing -> states
+                  Just as -> filter (flip List.elem as . getAttribute . stateAttribute) states
+  write_sea  <- traverse (seaOfWriteProgramOutput config) states'
   let (beforeChord, inChord, afterChord)
          = case outputPsvFormat config of
              PsvOutputDense _
