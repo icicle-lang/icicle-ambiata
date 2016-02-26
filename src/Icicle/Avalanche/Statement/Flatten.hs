@@ -63,8 +63,8 @@ flatten a_fresh s
      $ \to'
      -> ForeachInts n from' to' <$> flatten a_fresh ss
 
-    ForeachFacts ns vt lo ss
-     -> ForeachFacts ns vt lo <$> flatten a_fresh ss
+    ForeachFacts binds vt lo ss
+     -> ForeachFacts binds vt lo <$> flatten a_fresh ss
 
     Block ss
      -> Block <$> mapM (flatten a_fresh) ss
@@ -377,23 +377,21 @@ flatX a_fresh xx stm
        | otherwise
        -> lift $ Left $ FlattenErrorPrimBadArgs p xs
 
-      -- TODO: PrimWindow should probably be a Min primitive, or perhaps Flat primitive as well. This should keep fact in history if it is greater than newer than, but not less than older than.
-      -- TODO: or perhaps just add an if and call KeepFactInHistory.
       Core.PrimWindow newerThan olderThan
        | [now, fact, _factid] <- xs
        -> flatX' now
        $  \now'
        -> flatX' fact
        $  \fact'
-       -> let  ge   = xPrim $ Flat.PrimMinimal $ Min.PrimRelation Min.PrimRelationGe TimeT
-               andb = xPrim $ Flat.PrimMinimal $ Min.PrimLogical  Min.PrimLogicalAnd
-          in case olderThan of
-              Just olderThan'
-               -> stm (andb `makeApps'`
-                        [ ge `makeApps'` [fact', windowEdge now' newerThan]
-                        , ge `makeApps'` [windowEdge now' olderThan', fact']])
-              Nothing
-               -> stm (ge `makeApps'` [fact', windowEdge now' newerThan])
+       -> let  ge    = xPrim $ Flat.PrimMinimal $ Min.PrimRelation Min.PrimRelationGe TimeT
+               andb  = xPrim $ Flat.PrimMinimal $ Min.PrimLogical  Min.PrimLogicalAnd
+               newer = ge `makeApps'` [fact', windowEdge now' newerThan]
+               both  | Just olderThan' <- olderThan
+                     = andb `makeApps'` [ newer, ge `makeApps'` [windowEdge now' olderThan', fact']]
+                     | otherwise
+                     = newer
+          in do stm' <- stm both
+                return (If newer KeepFactInHistory mempty <> stm')
 
        | otherwise
        -> lift $ Left $ FlattenErrorPrimBadArgs p xs

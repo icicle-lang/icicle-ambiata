@@ -31,7 +31,7 @@ import              P
 data Scoped a n p
  = If    !(Exp a n p)  !(Scoped a n p) !(Scoped a n p)
  | ForeachInts  !(Name n) !(Exp a n p) !(Exp a n p) !(Scoped a n p)
- | ForeachFacts ![(Name n, ValType)] !ValType !S.FactLoopType !(Scoped a n p)
+ | ForeachFacts !(S.FactBinds n) !ValType !S.FactLoopType !(Scoped a n p)
  | Block     ![Either (Binding a n p) (Scoped a n p)]
  | Write !(Name n)    !(Exp a n p)
  | Output !OutputName !ValType ![(Exp a n p, ValType)]
@@ -57,8 +57,8 @@ bindsOfStatement s
      -> [Right $ If x (scopedOfStatement ss) (scopedOfStatement es)]
     S.ForeachInts n from to ss
      -> [Right $ ForeachInts n from to (scopedOfStatement ss)]
-    S.ForeachFacts ns vt lo ss
-     -> [Right $ ForeachFacts ns vt lo (scopedOfStatement ss)]
+    S.ForeachFacts binds vt lo ss
+     -> [Right $ ForeachFacts binds vt lo (scopedOfStatement ss)]
     S.Block ss
      -- -> fmap (Right . scopedOfStatement) ss
      -> concatMap bindsOfStatement ss
@@ -90,8 +90,8 @@ statementOfScoped s
      -> S.If x (statementOfScoped ss) (statementOfScoped es)
     ForeachInts n from to ss
      -> S.ForeachInts n from to (statementOfScoped ss)
-    ForeachFacts ns vt lo ss
-     -> S.ForeachFacts ns vt lo (statementOfScoped ss)
+    ForeachFacts binds vt lo ss
+     -> S.ForeachFacts binds vt lo (statementOfScoped ss)
     Block []
      -> S.Block []
     Block bs@(Right _ : _)
@@ -158,9 +158,9 @@ instance (Pretty n, Pretty p) => Pretty (Scoped a n p) where
       <> text ") "
       <> inner ss
 
-     ForeachFacts ns _ lo ss
+     ForeachFacts binds _ lo ss
       -> text "for_facts "
-      <> prettyFactParts ns
+      <> prettyFactParts (S.factBindsAll binds)
       <> text " in "
       <> pretty lo
       <> text " "

@@ -81,7 +81,7 @@ statementsToJava ss
              S.FactLoopNew     -> "icicle.startNew();")
            <> line
            <> "while (icicle.nextRow())"
-           <> block (fmap readVar ns <> [statementsToJava s])
+           <> block (fmap readVar (S.factBindsAll ns) <> [statementsToJava s])
     Block blocks
      -> vcat (fmap (either bindingToJava statementsToJava) blocks)
 

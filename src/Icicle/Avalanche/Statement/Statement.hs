@@ -4,9 +4,11 @@
 module Icicle.Avalanche.Statement.Statement (
     Statement       (..)
   , Accumulator     (..)
+  , FactBinds       (..)
   , FactLoopType    (..)
   , transformUDStmt
   , foldStmt
+  , factBindsAll
   ) where
 
 import              Icicle.Common.Base
@@ -31,7 +33,7 @@ data Statement a n p
 
  -- | A loop over all the facts.
  -- This should only occur once in the program, and not inside a loop.
- | ForeachFacts ![(Name n, ValType)] !ValType !FactLoopType !(Statement a n p)
+ | ForeachFacts !(FactBinds n) !ValType !FactLoopType !(Statement a n p)
 
  -- | Execute several statements in a block.
  | Block ![Statement a n p]
@@ -76,6 +78,17 @@ instance Monoid (Statement a n p) where
  mappend p q
         = Block [p, q]
 
+data FactBinds n
+ = FactBinds {
+    factBindTime    :: Name n
+  , factBindId      :: Name n
+  , factBindValue   :: [(Name n, ValType)]
+ }
+ deriving (Eq, Ord, Show)
+
+factBindsAll :: FactBinds n -> [(Name n, ValType)]
+factBindsAll (FactBinds ntime nid nvalue)
+ = (ntime, TimeT) : (nid, FactIdentifierT) : nvalue
 
 -- | Mutable accumulators
 data Accumulator a n p
@@ -133,8 +146,8 @@ transformUDStmt fun env statements
            -> Let n x <$> go e' ss
           ForeachInts n from to ss
            -> ForeachInts n from to <$> go e' ss
-          ForeachFacts ns ty lo ss
-           -> ForeachFacts ns ty lo <$> go e' ss
+          ForeachFacts binds ty lo ss
+           -> ForeachFacts binds ty lo <$> go e' ss
           Block ss
            -> Block <$> mapM (go e') ss
           InitAccumulator acc ss
@@ -214,9 +227,9 @@ instance TransformX Statement where
      ForeachInts n from to ss
       -> ForeachInts <$> names n <*> exps from <*> exps to <*> go ss
 
-     ForeachFacts ns v lo ss
+     ForeachFacts (FactBinds ntime nfid ns) v lo ss
       -> let name_go (n, t) = (,) <$> names n <*> pure t
-         in ForeachFacts <$> traverse name_go ns <*> return v <*> return lo <*> go ss
+         in ForeachFacts <$> (FactBinds <$> names ntime <*> names nfid <*> traverse name_go ns) <*> return v <*> return lo <*> go ss
 
      Block ss
       -> Block <$> gos ss
@@ -278,8 +291,8 @@ instance (Pretty n, Pretty p) => Pretty (Statement a n p) where
       -> text "for" <+> pretty n <+> text "in" <+> pretty from <+> text ".." <+> pretty to <> line
       <> semis stmts
 
-     ForeachFacts ns t lo stmts
-      -> text "for facts : [" <> pretty t <> text "] as" <+> prettyFactParts ns <+> text "in" <+> pretty lo <> line
+     ForeachFacts binds t lo stmts
+      -> "for facts : [" <> pretty t <> "] as" <+> prettyFactParts (factBindsAll binds) <+> "in" <+> pretty lo <> line
       <> semis stmts
 
      Block stmts

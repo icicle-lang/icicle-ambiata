@@ -102,7 +102,7 @@ programFromCore namer p
    = factLoop FactLoopNew
 
   factLoop loopType
-   = ForeachFacts [(C.factValName p, inputType')] inputType' loopType
+   = ForeachFacts (FactBinds (C.factTimeName p) (C.factIdName p) [(C.factValName p, inputType')]) inputType' loopType
    $ Block factStmts
 
   inputType' = PairT (C.inputType p) TimeT
