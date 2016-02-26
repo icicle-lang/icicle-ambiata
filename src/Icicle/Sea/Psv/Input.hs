@@ -90,8 +90,7 @@ seaOfReadAnyFact config states = do
               , "}"
               ]
     PsvInputDense dict feed
-      -> do let feeds  = denseDict dict
-            state     <- maybeToRight (SeaDenseFeedNotDefined feed (fmap (fmap (second snd)) feeds))
+      -> do state     <- maybeToRight (SeaDenseFeedNotUsed feed)
                        $ List.find ((==) feed . getAttribute . stateAttribute) states
             let ts     = lookupTombstones config state
             read_sea  <- seaOfReadDenseFact dict state ts
