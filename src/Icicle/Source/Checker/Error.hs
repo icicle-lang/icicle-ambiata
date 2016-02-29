@@ -26,7 +26,7 @@ import           Data.Hashable (Hashable)
 
 data CheckError a n
  = CheckError (ErrorInfo a n) [ErrorSuggestion a n]
- deriving (Show, Eq, Ord)
+ deriving (Show, Eq)
 
 data ErrorInfo a n
  = ErrorNoSuchVariable a (Name n)
@@ -40,7 +40,7 @@ data ErrorInfo a n
  | ErrorDuplicateFunctionNames a (Name n)
  | ErrorEmptyCase a (Exp a n)
  | ErrorCaseBadPattern a (Pattern n)
- deriving (Show, Eq, Ord)
+ deriving (Show, Eq)
 
 annotOfError :: CheckError a n -> Maybe a
 annotOfError (CheckError e _)
@@ -73,7 +73,7 @@ data ErrorSuggestion a n
  = AvailableFeatures (Name n) [(Name n, Type n)]
  | AvailableBindings (Name n) [(Name n, FunctionType n)]
  | Suggest String
- deriving (Show, Eq, Ord)
+ deriving (Show, Eq)
 
 
 -- Helpers ------------
@@ -87,7 +87,7 @@ errorSuggestions info sugs
 
 -- Pretties ----------
 
-instance (IsString n, Ord n, Pretty a, Pretty n, Hashable n) => Pretty (CheckError a n) where
+instance (IsString n, Pretty a, Pretty n, Hashable n, Eq n) => Pretty (CheckError a n) where
  pretty (CheckError info [])
   = pretty info
  pretty (CheckError info sugs)
@@ -146,7 +146,7 @@ instance (Pretty a, Pretty n) => Pretty (ErrorInfo a n) where
     inp x = indent 0 (pretty x)
 
 
-instance (IsString n, Ord n, Pretty a, Pretty n, Hashable n) => Pretty (ErrorSuggestion a n) where
+instance (IsString n, Pretty a, Pretty n, Hashable n, Eq n) => Pretty (ErrorSuggestion a n) where
  pretty e
   = case e of
      AvailableFeatures n' bs

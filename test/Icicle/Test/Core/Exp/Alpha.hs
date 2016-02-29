@@ -9,7 +9,7 @@ import           Icicle.Core.Eval.Exp
 import           Icicle.Common.Base
 import           Icicle.Common.Exp
 
-import qualified Data.Set as Set
+import qualified Data.HashSet as HashSet
 
 import           P
 
@@ -27,7 +27,7 @@ prop_alpha_self x =
 -- Any CLOSED expression is alpha equivalent to itself after prefixing
 -- =====================
 prop_alpha_self_prefix_closed x =
- Set.null (freevars x) ==>
+ HashSet.null (freevars x) ==>
      x `alphaEquality` renameExp (modName 0) x
 
 -- We can rename anything that isn't free
@@ -36,7 +36,7 @@ prop_alpha_self_prefix x =
 
  let fv    = freevars x
 
-     ren n = if   Set.member n fv
+     ren n = if   HashSet.member n fv
              then n
              else modName 0 n
 

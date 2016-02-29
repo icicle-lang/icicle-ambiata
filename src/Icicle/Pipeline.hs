@@ -135,7 +135,7 @@ annotOfError e
     CompileErrorProgram _
      -> Nothing
 
-instance (Hashable b, IsString b, Ord b, Pretty a, Pretty b, Show a, Show b, Show c) => Pretty (CompileError a b c) where
+instance (Hashable b, Eq b, IsString b, Pretty a, Pretty b, Show a, Show b, Show c) => Pretty (CompileError a b c) where
  pretty e
   = case e of
      CompileErrorParse p

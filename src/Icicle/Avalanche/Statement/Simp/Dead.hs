@@ -14,8 +14,8 @@ import              Icicle.Common.Exp
 import              P
 
 import              Data.Functor.Identity
-import              Data.Set (Set)
-import qualified    Data.Set as Set
+import              Data.HashSet (HashSet)
+import qualified    Data.HashSet as HashSet
 import              Data.Hashable (Hashable)
 
 
@@ -27,17 +27,17 @@ dead
 
 data Usage n
  = Usage
- { usageAcc :: Set (Name n)
- , usageExp :: Set (Name n)
+ { usageAcc :: HashSet (Name n)
+ , usageExp :: HashSet (Name n)
  }
  deriving Eq
 
 instance Eq n => Monoid (Usage n) where
- mempty = Usage Set.empty Set.empty
+ mempty = Usage HashSet.empty HashSet.empty
  mappend a b
   = Usage
-  { usageAcc = Set.union (usageAcc a) (usageAcc b)
-  , usageExp = Set.union (usageExp a) (usageExp b)
+  { usageAcc = HashSet.union (usageAcc a) (usageAcc b)
+  , usageExp = HashSet.union (usageExp a) (usageExp b)
   }
 
 
@@ -129,13 +129,13 @@ usageX :: (Hashable n, Eq n) => Exp a n p -> Usage n
 usageX x = Usage mempty (freevars x)
 
 usedX :: (Hashable n, Eq n) => Name n -> Usage n -> Bool
-usedX n us = Set.member n (usageExp us)
+usedX n us = HashSet.member n (usageExp us)
 
 usageA :: (Hashable n, Eq n) => Name n -> Usage n
-usageA n = Usage (Set.singleton n) mempty
+usageA n = Usage (HashSet.singleton n) mempty
 
 usedA :: (Hashable n, Eq n) => Name n -> Usage n -> Bool
-usedA n us = Set.member n (usageAcc us)
+usedA n us = HashSet.member n (usageAcc us)
 
 
 killAccumulator :: (Hashable n, Eq n) => Name n -> Exp a n p -> Statement a n p -> Statement a n p

@@ -1,6 +1,7 @@
 -- | Some useful things to do with expressions
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE PatternGuards #-}
+{-# LANGUAGE BangPatterns  #-}
 module Icicle.Common.Exp.Compounds (
       makeApps
     , takeApps
@@ -21,15 +22,16 @@ import              Icicle.Common.Value
 
 import              P
 
-import qualified    Data.Set    as Set
-import qualified    Data.Map    as Map
+import qualified    Data.HashSet as HashSet
+import qualified    Data.Set     as Set
+import qualified    Data.Map     as Map
 import              Data.Hashable
 
 
 -- | Apply an expression to any number of arguments
 makeApps :: a -> Exp a n p -> [Exp a n p] -> Exp a n p
 makeApps a f args
- = foldl (XApp a) f args
+ = foldl' (XApp a) f args
 
 
 -- | Split an expression into its function part and any arguments applied to it.
@@ -83,15 +85,15 @@ takeValue  _             = Nothing
 -- i.e. those that are not bound by lets or lambdas.
 freevars :: (Hashable n, Eq n)
          => Exp a n p
-         -> Set.Set (Name n)
+         -> HashSet.HashSet (Name n)
 freevars xx
  = case xx of
-    XVar _ n     -> Set.singleton n
-    XPrim{}      -> Set.empty
-    XValue{}     -> Set.empty
-    XApp _ p q   -> freevars p <> freevars q
-    XLam _ n _ x -> Set.delete n (freevars x)
-    XLet _ n x y -> freevars x <> Set.delete n (freevars y)
+    XVar _ n     -> HashSet.singleton n
+    XPrim{}      -> HashSet.empty
+    XValue{}     -> HashSet.empty
+    XApp _ p q   -> let !x = freevars p <> freevars q in x
+    XLam _ n _ x -> HashSet.delete n (freevars x)
+    XLet _ n x y -> let !a = freevars x <> HashSet.delete n (freevars y) in a
 
 
 -- | Collect all variable names in an expression:
@@ -140,7 +142,7 @@ substMaybe name payload into
        | n == name
        -> return xx
        -- If the name clashes, we can't do anything
-       | n `Set.member` payload_free
+       | n `HashSet.member` payload_free
        -> Nothing
 
        -- Name is mentioned and no clashes, so proceed
@@ -154,7 +156,7 @@ substMaybe name payload into
        -- and the *body* of the let needs to be substituted into,
        -- we cannot proceed.
        -- (It doesn't matter if the definition, x1, mentions name because "n" is not bound there)
-       | (n `Set.member` payload_free)
+       | (n `HashSet.member` payload_free)
        -> Nothing
 
        -- Proceed as usual
@@ -192,7 +194,7 @@ subst a_fresh name payload into
 
       XLam a n t x
        -- If the name clashes, we need to rename n
-       | (n `Set.member` payload_free) || n == name
+       | (n `HashSet.member` payload_free) || n == name
        -> do    n' <- fresh
                 x' <- subst a_fresh n (XVar a_fresh n') x
                 XLam a n' t <$> go x'
@@ -204,7 +206,7 @@ subst a_fresh name payload into
       XLet a n x1 x2
        -- If the let's name clashes with the substitution we're trying to make,
        -- we need to rename
-       | (n `Set.member` payload_free) || n == name
+       | (n `HashSet.member` payload_free) || n == name
        -> do    n'  <- fresh
                 x2' <- subst a_fresh n (XVar a_fresh n') x2
                 XLet a n' <$> go x1 <*> go x2'

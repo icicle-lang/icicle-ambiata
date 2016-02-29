@@ -304,6 +304,7 @@ test-suite test
                      , containers
                      , directory
                      , hashable                        == 1.2.*
+                     , unordered-containers            == 0.2.*
                      , QuickCheck                      == 2.8.*
                      , quickcheck-instances            == 0.3.*
                      , temporary

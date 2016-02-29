@@ -29,7 +29,7 @@ import              Icicle.Common.Type
 import              P
 
 import              Data.Functor.Identity
-import qualified    Data.Set as Set
+import qualified    Data.HashSet as HashSet
 import qualified    Data.Map as Map
 import qualified    Data.List as List
 import              Data.Hashable (Hashable)
@@ -193,7 +193,7 @@ renameReads a_fresh statements
       Read nm acc vt ss
        | Just (pre, post) <- splitWrite acc mempty ss
        , nm /= acc
-       , not $ Set.member nm $ stmtFreeX post
+       , not $ HashSet.member nm $ stmtFreeX post
        -> do    pre' <- lift $ substXinS a_fresh nm (XVar a_fresh acc) pre
                 progress ((), Read acc acc vt (pre' <> post))
       _ -> return ((), s)
@@ -209,7 +209,7 @@ renameReads a_fresh statements
   splitWrite acc seen (Read nm' acc' vt' ss')
    | acc /= acc'
    , Just (pre,post) <- splitWrite acc seen ss'
-   , not $ Set.member nm' $ stmtFreeX pre
+   , not $ HashSet.member nm' $ stmtFreeX pre
    = Just (pre, Read nm' acc' vt' post)
 
   splitWrite acc seen (Block (ss:rest))
@@ -254,7 +254,7 @@ substXinS a_fresh name payload statements
        | n == name
        -> do x' <- sub x
              finished (Let n x' ss)
-       | Set.member n frees
+       | HashSet.member n frees
        -> freshen n ss $ \n' ss' -> Let n' x ss'
        | otherwise
        -> sub1 x $ \x' -> Let n x' ss
@@ -262,7 +262,7 @@ substXinS a_fresh name payload statements
       ForeachInts n from to ss
        | n == name
        -> finished s
-       | Set.member n frees
+       | HashSet.member n frees
        -> freshen n ss $ \n' ss' -> ForeachInts n' from to ss'
        | otherwise
        -> do    from' <- sub from
@@ -281,13 +281,13 @@ substXinS a_fresh name payload statements
       Read n x z ss
        | n == name
        -> finished s
-       | Set.member n frees
+       | HashSet.member n frees
        -> freshen n ss $ \n' ss' -> Read n' x z ss'
 
       ForeachFacts ns x y ss
        | name `elem` fmap fst ns
        -> finished s
-       | any (flip Set.member frees . fst) ns
+       | any (flip HashSet.member frees . fst) ns
        -> freshenForeach [] ns x y ss
 
       _
@@ -350,7 +350,7 @@ thresher a_fresh statements
    = case s of
       -- Unmentioned let - just return the substatement
       Let n x ss
-       | not $ Set.member n $ stmtFreeX ss
+       | not $ HashSet.member n $ stmtFreeX ss
        -> return (env, ss)
       -- Duplicate let: change to refer to existing one
       -- I tried to use simple equality for simpFlattened since expressions cannot contain lambdas, but it was slower. WEIRD.
@@ -359,7 +359,7 @@ thresher a_fresh statements
 
       -- Read that's never used
       Read n _ _ ss
-       | not $ Set.member n $ stmtFreeX ss
+       | not $ HashSet.member n $ stmtFreeX ss
        -> progress (env, ss)
 
       InitAccumulator (Accumulator n _ x) ss
@@ -385,14 +385,14 @@ thresher a_fresh statements
 hasEffect :: (Hashable n, Eq n) => Statement a n p -> Bool
 hasEffect statements
  = runIdentity
- $ foldStmt down up (||) Set.empty False statements
+ $ foldStmt down up (||) HashSet.empty False statements
  where
   down ignore   s
    -- We can ignore the newly created var
    -- because any changes will go out of scope:
    -- externally any updates are pure.
    | InitAccumulator acc _ <- s
-   = return $ Set.insert (accName acc) ignore
+   = return $ HashSet.insert (accName acc) ignore
    | otherwise
    = return   ignore
 
@@ -404,7 +404,7 @@ hasEffect statements
    -- Writing or pushing is an effect,
    -- unless we're explicitly ignoring this accumulator
    | Write n _ <- s
-   = return $ not $ Set.member n ignore
+   = return $ not $ HashSet.member n ignore
 
     -- Outputting is an effect
    | Output _ _ _       <- s
@@ -427,16 +427,16 @@ hasEffect statements
 
 -- | Find free *expression* variables in statements.
 -- Note that this ignores accumulators, as they are a different scope.
-stmtFreeX :: (Hashable n, Eq n) => Statement a n p -> Set.Set (Name n)
+stmtFreeX :: (Hashable n, Eq n) => Statement a n p -> HashSet.HashSet (Name n)
 stmtFreeX statements
  = runIdentity
- $ foldStmt down up Set.union () Set.empty statements
+ $ foldStmt down up HashSet.union () HashSet.empty statements
  where
   down _ _
    = return ()
 
   up _ subvars s
-   = let ret x = return (freevars x `Set.union` subvars)
+   = let ret x = return (freevars x `HashSet.union` subvars)
      in  case s of
           -- Simply recursion for most cases
           If x _ _
@@ -445,9 +445,9 @@ stmtFreeX statements
           -- but need to hide "n" from the free variables of ss:
           -- n is not free in there any more.
           Let n x _
-           -> return (freevars x `Set.union` Set.delete n subvars)
+           -> return (freevars x `HashSet.union` HashSet.delete n subvars)
           ForeachInts n x y _
-           -> return (freevars x `Set.union` freevars y `Set.union` Set.delete n subvars)
+           -> return (freevars x `HashSet.union` freevars y `HashSet.union` HashSet.delete n subvars)
 
           -- Accumulators are in a different scope,
           -- so the binding doesn't hide anything.
@@ -459,14 +459,14 @@ stmtFreeX statements
           -- The accumulator doesn't matter - but we need to hide n from
           -- the substatement's free variables.
           Read n _ _ _
-           -> return (Set.delete n subvars)
+           -> return (HashSet.delete n subvars)
 
           -- Leaves that use expressions.
           -- Here, the name is an accumulator variable, so doesn't affect expressions.
           Write _ x
            -> ret x
           Output _ _ xs
-           -> return (Set.unions (fmap (freevars . fst) xs) `Set.union` subvars)
+           -> return (HashSet.unions (fmap (freevars . fst) xs) `HashSet.union` subvars)
 
           -- Leftovers: just the union of the under bits
           _
@@ -530,7 +530,7 @@ nestBlocks a_fresh statements
 
   -- Check if we need to rename the let binding - and do it
   maybeRename n check inner
-   | n `Set.member` stmtFreeX check
+   | n `HashSet.member` stmtFreeX check
    = do n'      <- fresh
         inner'  <- substXinS a_fresh n (XVar a_fresh n') inner
         return (n', inner')
