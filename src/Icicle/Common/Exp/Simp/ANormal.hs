@@ -29,12 +29,13 @@ import Icicle.Common.Fresh
 
 import P
 import Data.List (unzip)
+import Data.Hashable (Hashable)
 
 import qualified    Data.Set    as Set
 
 -- | A-normalise an expression.
 -- We need a fresh name supply.
-anormal :: Ord n => a -> Exp a n p -> Fresh n (Exp a n p)
+anormal :: (Hashable n, Eq n) => a -> Exp a n p -> Fresh n (Exp a n p)
 anormal a_fresh xx
  = do   (bs, x)  <- anormal' a_fresh xx
         (bs',x') <- renames bs [] x
@@ -56,7 +57,7 @@ anormal a_fresh xx
 
   renames ((n,b):bs) seen x
    -- Check if n is used anywhere else
-   | n `Set.member` allvars (makeLets a_fresh bs x)
+   |  n `Set.member` allvars (makeLets a_fresh bs x)
    = do n' <- fresh
         -- Lets are non-recursive, so "b" will not change.
 
@@ -82,7 +83,7 @@ anormal a_fresh xx
 
 
 -- | Recursively pull out sub-expressions to be bound
-anormal' :: Ord n => a -> Exp a n p -> Fresh n ([(Name n, Exp a n p)], Exp a n p)
+anormal' :: (Hashable n, Eq n) => a -> Exp a n p -> Fresh n ([(Name n, Exp a n p)], Exp a n p)
 anormal' a_fresh xx
  = case xx of
     -- Values and other simple expressions can be left alone.
@@ -126,7 +127,7 @@ anormal' a_fresh xx
 -- | Extract bindings for part of an application expression.
 -- If it's simple, just give it back.
 -- If it's interesting, anormalise it and bind it to a fresh name
-extractBinding :: Ord n => a -> Exp a n p -> Fresh n ([(Name n, Exp a n p)], Exp a n p)
+extractBinding :: (Hashable n, Eq n) => a -> Exp a n p -> Fresh n ([(Name n, Exp a n p)], Exp a n p)
 extractBinding a_fresh xx
  | isNormal xx
  = return ([], xx)

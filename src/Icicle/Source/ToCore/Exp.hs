@@ -36,15 +36,15 @@ import                  P
 import                  Control.Monad.Trans.Class
 
 import                  Data.List (zip)
-
 import qualified        Data.Map as Map
+import                  Data.Hashable (Hashable)
 
 
 
 -- | Convert an element-level expression.
 -- These are worker functions for folds, filters and so on.
 convertExp
-        :: Ord n
+        :: (Hashable n, Eq n)
         => Exp (Annot a n) n
         -> ConvertM a n (C.Exp () n)
 convertExp x
@@ -99,7 +99,7 @@ convertExp x
 
 
 convertExpQ
-        :: Ord n
+        :: (Hashable n, Eq n)
         => Query (Annot a n) n
         -> ConvertM a n (C.Exp () n)
 convertExpQ q
@@ -121,7 +121,7 @@ convertExpQ q
 
 -- | Enfreshinate the variables in a case pattern and add them to the convert environment.
 --
-convertCaseFreshenPat :: Ord n => Pattern n -> ConvertM a n (Pattern n)
+convertCaseFreshenPat :: (Hashable n, Eq n) => Pattern n -> ConvertM a n (Pattern n)
 convertCaseFreshenPat p
  = case p of
     PatCon c ps
@@ -133,7 +133,7 @@ convertCaseFreshenPat p
 
 
 convertCase
-        :: Ord n
+        :: (Hashable n, Eq n)
         => Exp (Annot a n) n
         -> C.Exp () n
         -> [(Pattern n, C.Exp () n)]

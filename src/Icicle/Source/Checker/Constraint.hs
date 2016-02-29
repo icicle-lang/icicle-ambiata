@@ -23,6 +23,7 @@ import qualified        Icicle.Common.Fresh     as Fresh
 import                  P
 
 import                  Data.List (zip,unzip,unzip3)
+import                  Data.Hashable (Hashable)
 import qualified        Data.Map                as Map
 
 import                  X.Control.Monad.Trans.Either
@@ -38,7 +39,7 @@ import                  X.Control.Monad.Trans.Either
 -- We should really also default anything else to unit.
 -- However, because defaulting only applies to the query, where the input stream must be concrete,
 -- there should be no type variables left at the end except Nums.
-defaults :: Ord n
+defaults :: (Hashable n, Eq n)
          => Query'C a n
          -> Query'C a n
 defaults q
@@ -77,7 +78,7 @@ defaults q
 -- | Generate constraints for an entire query.
 --   We take the map of types of all imported functions.
 constraintsQ
-  :: Ord n
+  :: (Hashable n, Eq n)
   => Map.Map (Name n) (FunctionType n)
   -> Query a n
   -> EitherT (CheckError a n) (Fresh.Fresh n) (Query'C a n)
@@ -107,7 +108,7 @@ constraintsQ env q
 -- nested subexpressions and so on.
 --
 generateQ
-  :: Ord n
+  :: (Hashable n, Eq n)
   => Query a n
   -> GenEnv n
   -> Gen a n (Query'C a n, SubstT n, GenConstraintSet a n)
@@ -434,7 +435,7 @@ generateQ qq@(Query (c:_) _) env
 
 -- | Generate constraints for expression
 generateX
-  :: Ord n
+  :: (Hashable n, Eq n)
   => Exp a n
   -> GenEnv n
   -> Gen a n (Exp'C a n, SubstT n, GenConstraintSet a n)
@@ -569,7 +570,7 @@ generateX x env
 
 
 generateP
-  :: Ord n
+  :: (Hashable n, Eq n)
   => a
   -> Type n                 -- ^ scrutinee type
   -> Type n                 -- ^ result base type

@@ -26,13 +26,14 @@ import                  P
 import                  Data.List (zipWith, zip)
 import qualified        Data.Map as Map
 import qualified        Data.Set as Set
+import                  Data.Hashable (Hashable)
 
 
 function0 :: Type n -> FunctionType n
 function0 u
  = FunctionType [] [] [] u
 
-freeT :: Ord n => Type n -> Set.Set (Name n)
+freeT :: (Hashable n, Eq n) => Type n -> Set.Set (Name n)
 freeT t
  = case t of
     BoolT                   -> Set.empty
@@ -64,7 +65,7 @@ freeT t
     TypeVar n               -> Set.singleton n
 
 
-freeC :: Ord n => Constraint n -> Set.Set (Name n)
+freeC :: (Hashable n, Eq n) => Constraint n -> Set.Set (Name n)
 freeC c
  = case c of
     CEquals p q             -> Set.union (freeT p) (freeT q)

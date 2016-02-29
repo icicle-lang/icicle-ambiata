@@ -6,13 +6,12 @@ module Icicle.Source.Transform.SubstX (
   ) where
 
 import Icicle.Source.Query
-
 import Icicle.Common.Base
 
 import P
 
-
 import qualified Data.Map as Map
+import           Data.Hashable (Hashable)
 
 
 -- | This is unsafe in the sense that it does not avoid capture of the payload.
@@ -21,7 +20,7 @@ import qualified Data.Map as Map
 -- because we know there can be no mention of "fresh" in the target.
 
 unsafeSubstX
-    :: Ord n
+    :: (Hashable n, Eq n)
     => (Map.Map (Name n) (Exp a n))
     -> Exp a n
     -> Exp a n
@@ -58,7 +57,7 @@ unsafeSubstX s x
 
 
 unsafeSubstQ
-    :: Ord n
+    :: (Hashable n, Eq n)
     => (Map.Map (Name n) (Exp a n))
     -> Query a n
     -> Query a n

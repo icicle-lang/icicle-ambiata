@@ -1,7 +1,9 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE PatternGuards #-}
-{-# OPTIONS -fno-warn-orphans #-}
+{-# LANGUAGE PatternGuards     #-}
+{-# LANGUAGE DeriveGeneric     #-}
+{-# OPTIONS -fno-warn-orphans  #-}
+
 module Icicle.Source.Lexer.Token (
     TOK
   , Token    (..)
@@ -24,6 +26,9 @@ import                  Data.String
 import qualified        Data.Text as T
 import                  Data.Text (Text)
 import                  Data.List (lookup)
+import                  Data.Hashable (Hashable)
+
+import                  GHC.Generics
 
 -- Export source position type
 import                  Text.Parsec (SourcePos, sourceLine, sourceColumn, sourceName)
@@ -112,8 +117,9 @@ newtype Operator
 
 newtype Variable
  = Variable Text
- deriving (Eq, Ord, Show)
+ deriving (Eq, Ord, Show, Generic)
 
+instance Hashable Variable
 
 -- | Each keyword with their name
 keywords :: [(Text, Keyword)]

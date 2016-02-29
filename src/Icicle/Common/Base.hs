@@ -1,10 +1,13 @@
 -- | Base definitions common across all languages.
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE DeriveFunctor     #-}
+{-# LANGUAGE DeriveGeneric     #-}
 
 module Icicle.Common.Base (
-      Name   (..)
+      Name
+    , nameOf, nameHash, nameBase, modName
+    , NameBase (..)
     , BaseValue (..)
     , StructField (..)
     , ExceptionInfo (..)
@@ -16,18 +19,42 @@ import              Icicle.Internal.Pretty
 import              Icicle.Data.Time
 
 import              P
+
 import qualified    Data.Map    as Map
 import qualified    Data.Text   as T
+import              Data.Hashable
+import              GHC.Generics (Generic)
 
+
+data Name n = Name {
+    nameHash :: {-# UNPACK #-} !Int
+  , nameBase :: !(NameBase n)
+  } deriving (Show)
+
+instance Eq n => Eq  (Name n) where
+  (==) x y = (nameHash x == nameHash y) && (nameBase x == nameBase y)
+
+instance Eq n => Ord (Name n) where
+  compare x y = compare (nameHash x) (nameHash y)
 
 -- | User defined names.
-data Name n =
+data NameBase n =
  -- | Raw name
-   Name     !n
+   NameBase !n
  -- | Prefix a name.
  -- Very useful for generating fresh(ish) readable names.
- | NameMod  !n !(Name n)
- deriving (Eq,Ord,Show,Functor)
+ | NameMod  !n !(NameBase n)
+ deriving (Eq, Ord, Show, Functor, Generic)
+
+instance Hashable n => Hashable (NameBase n)
+
+nameOf :: Hashable n => NameBase n -> Name n
+nameOf n = Name (hash n) n
+
+modName :: Hashable n => n -> Name n -> Name n
+modName prefix = nameOf . NameMod prefix . nameBase
+
+--------------------------------------------------------------------------------
 
 data WindowUnit
  = Days   !Int
@@ -94,8 +121,11 @@ instance Show OutputName where
 -- Pretty printing ---------------
 
 instance Pretty n => Pretty (Name n) where
- pretty (Name n)        = pretty n
- pretty (NameMod p n)   = pretty p <> text "$" <> pretty n
+ pretty (Name _ n) = pretty n
+
+instance Pretty n => Pretty (NameBase n) where
+ pretty (NameBase n)   = pretty n
+ pretty (NameMod  p n) = pretty p <> text "$" <> pretty n
 
 instance Pretty BaseValue where
  pretty v

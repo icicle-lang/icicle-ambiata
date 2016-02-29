@@ -11,15 +11,18 @@ module Icicle.Common.Fresh (
     , counterNameState
     , counterPrefixNameState
     , fresh
+    , freshBase
     , freshPrefix
-    , freshPrefix'
+    , freshPrefixBase
     ) where
 
 import              Icicle.Common.Base
+
 import              P
 
 import              Control.Monad.Trans.Class
 import              Data.Functor.Identity
+import              Data.Hashable
 
 newtype FreshT n m a
  = FreshT
@@ -38,46 +41,45 @@ runFreshIdentity f
  = FreshT
  $ \ns -> return $ runFresh f ns
 
-data NameState n
- = forall s.
- NameState (s -> (Name n, s))
-            s
+--------------------------------------------------------------------------------
 
-mkNameState :: (s -> (Name n, s)) -> s -> NameState n
+data NameState n
+ = forall s. NameState (s -> (NameBase n, s)) s
+
+mkNameState :: (s -> (NameBase n, s)) -> s -> NameState n
 mkNameState = NameState
 
-counterNameState :: (Int -> Name n) -> Int -> NameState n
+counterNameState :: (Int -> NameBase n) -> Int -> NameState n
 counterNameState f i
  = mkNameState (\i' -> (f i', i'+1)) i
 
 counterPrefixNameState :: (Int -> n) -> n -> NameState n
-counterPrefixNameState show' prefix
- = counterNameState (\i -> NameMod prefix $ Name $ show' i) 0
+counterPrefixNameState print prefix
+ = counterNameState (NameMod prefix . NameBase . print) 0
 
-fresh :: Monad m => FreshT n m (Name n)
-fresh
+fresh :: (Hashable n, Monad m) => FreshT n m (Name n)
+fresh = freshBase >>= return . nameOf
+
+freshBase :: Monad m => FreshT n m (NameBase n)
+freshBase
  = FreshT
- $ \ns ->
-   case ns of
-    NameState f s
-     -> let (n,s') = f s
-        in  return (NameState f s', n)
+ $ \(NameState step state)
+ -> let (n, s) = step state
+    in  return (NameState step s, n)
 
-freshPrefix :: Monad m => n -> FreshT n m (Name n)
+freshPrefix :: (Hashable n, Monad m) => n -> FreshT n m (Name n)
 freshPrefix pre
- = freshPrefix' (Name pre)
+ = freshPrefixBase (NameBase pre)
 
-freshPrefix' :: Monad m => Name n -> FreshT n m (Name n)
-freshPrefix' pre
- = do   n <- fresh
-        return $ go pre n
+freshPrefixBase :: (Hashable n, Monad m) => NameBase n -> FreshT n m (Name n)
+freshPrefixBase pre
+ = do n <- freshBase
+      return $ nameOf $ prefix pre n
  where
-  go (Name a) b
-   = NameMod a b
-  go (NameMod a b) c
-   = NameMod a (go b c)
+  prefix (NameBase a)   b = NameMod a b
+  prefix (NameMod  a b) c = NameMod a (prefix b c)
 
-
+--------------------------------------------------------------------------------
 
 instance Monad m => Monad (FreshT n m) where
  (>>=) p q

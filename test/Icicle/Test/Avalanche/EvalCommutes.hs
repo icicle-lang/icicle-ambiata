@@ -74,7 +74,7 @@ zprop_eval_commutes_history t =
 
 
 prefixBubbleGum (BubbleGumReduction n v)
- = BubbleGumReduction (NameMod (Var "acc" 0) n) v
+ = BubbleGumReduction (modName (Var "acc" 0) n) v
 prefixBubbleGum bg
  = bg
 

@@ -13,12 +13,14 @@ import Icicle.Common.Exp hiding (Exp)
 import Icicle.Core.Exp
 import Icicle.Core.Stream.Stream
 
-import              P hiding (error)
-import              Prelude (error)
+import P hiding (error)
+
+import Prelude (error)
+import Data.Hashable (Hashable)
 
 
 unsafeSubstStreams
-    :: Ord n
+    :: (Hashable n, Eq n)
     => [(Name n, Name n)]
     -> [Stream a n]
     -> [Stream a n]
@@ -27,7 +29,7 @@ unsafeSubstStreams sub ts
 
 -- | Rename all uses of stream to another name
 unsafeSubstStreams'
-    :: Ord n
+    :: (Hashable n, Eq n)
     => Name n
     -> Name n
     -> [Stream a n]
@@ -47,7 +49,7 @@ unsafeSubstStreams' from to ss
 
 
 unsafeSubstSnds
-    :: Ord n
+    :: (Hashable n, Eq n)
     => [(Name n, Name n)]
     -> [(b, Exp a n)]
     -> [(b, Exp a n)]
@@ -57,7 +59,7 @@ unsafeSubstSnds sub
   onSnd f (a,b) = (a, f b)
 
 unsafeSubstExp
-    :: Ord n
+    :: (Hashable n, Eq n)
     => [(Name n, Name n)]
     -> Exp a n
     -> Exp a n
@@ -67,7 +69,7 @@ unsafeSubstExp sub x
 
 -- | Unsafe substitution that assumes the name "to" is never shadowed.
 -- This should be the case for any well formed Core program.
-unsafeSubstExp' :: Ord n => Name n -> Name n -> Exp a n -> Exp a n
+unsafeSubstExp' :: (Hashable n, Eq n) => Name n -> Name n -> Exp a n -> Exp a n
 unsafeSubstExp' from to x
  = let ann     = annotOfExp x
    in  case substMaybe from (XVar ann to) x of

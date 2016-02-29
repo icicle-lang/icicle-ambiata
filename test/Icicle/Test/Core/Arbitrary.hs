@@ -34,6 +34,7 @@ import           P
 import           Data.Text  as T
 import qualified Data.List  as List
 import qualified Data.Map   as Map
+import           Data.Hashable (Hashable)
 
 
 -- | Check if values are equal except for functions/closures
@@ -71,9 +72,9 @@ instance Arbitrary Var where
 instance Arbitrary OutputName where
   arbitrary = OutputName <$> elements muppets
 
-instance Arbitrary n => Arbitrary (Name n) where
+instance (Hashable n, Arbitrary n) => Arbitrary (Name n) where
   arbitrary =
-    Name <$> arbitrary
+    nameOf . NameBase <$> arbitrary
 
 instance Arbitrary PM.Prim where
  arbitrary
@@ -153,7 +154,7 @@ instance Arbitrary FunType where
 
 -- Totally arbitrary expressions.
 -- These *probably* won't type check, but sometimes you get lucky.
-instance (Arbitrary a, Arbitrary n, Arbitrary p) => Arbitrary (Exp a n p) where
+instance (Arbitrary a, Arbitrary n, Arbitrary p, Hashable n) => Arbitrary (Exp a n p) where
   arbitrary =
     oneof_sized
           [ XVar  <$> arbitrary <*> arbitrary
@@ -168,13 +169,13 @@ instance (Arbitrary a, Arbitrary n, Arbitrary p) => Arbitrary (Exp a n p) where
           , XLet  <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
           ]
 
-instance (Arbitrary a, Arbitrary n) => Arbitrary (Stream a n) where
+instance (Arbitrary a, Arbitrary n, Hashable n) => Arbitrary (Stream a n) where
  arbitrary =
    oneof_sized
          [ SFold <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary ]
          [ SFilter <$> arbitrary <*> arbitrary ]
 
-instance (Arbitrary a, Arbitrary n) => Arbitrary (Program a n) where
+instance (Arbitrary a, Arbitrary n, Hashable n) => Arbitrary (Program a n) where
  arbitrary =
    Program <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
 

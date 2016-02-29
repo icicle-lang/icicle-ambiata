@@ -4,17 +4,19 @@ module Icicle.Core.Program.Simp
      ) where
 
 
-import Icicle.Common.Fresh
+import           Icicle.Common.Fresh
 import qualified Icicle.Common.Exp.Simp.Beta as B
-import Icicle.Core.Program.Program
-import Icicle.Core.Stream.Stream
+import           Icicle.Core.Program.Program
+import           Icicle.Core.Stream.Stream
 import qualified Icicle.Core.Exp.Simp as S
 import qualified Icicle.Core.Exp.Exp as C
 
-import P
+import           P
+
+import           Data.Hashable (Hashable)
 
 
-simp :: Ord n => a -> C.Exp a n -> Fresh n (C.Exp a n)
+simp :: (Hashable n, Eq n) => a -> C.Exp a n -> Fresh n (C.Exp a n)
 simp a_fresh = S.simp a_fresh B.isSimpleValue
 
 -- | Simplifies individual exps in the Core prorgam.
@@ -26,7 +28,7 @@ simp a_fresh = S.simp a_fresh B.isSimpleValue
 --         but maybe we do want to simplify z?
 --         --tranma
 --
-simpProgram :: Ord n => a -> Program a n -> Fresh n (Program a n)
+simpProgram :: (Hashable n, Eq n) => a -> Program a n -> Fresh n (Program a n)
 simpProgram a_fresh p
   = do pres <- forall simp       (precomps  p)
        poss <- forall simp       (postcomps p)
@@ -41,7 +43,7 @@ simpProgram a_fresh p
 
 -- | Simp the exps in stream
 --
-simpStream :: Ord n => a -> Stream a n -> Fresh n (Stream a n)
+simpStream :: (Hashable n, Eq n) => a -> Stream a n -> Fresh n (Stream a n)
 simpStream a_fresh ss
  = case ss of
   SFold n t z k

@@ -12,15 +12,16 @@ import Icicle.Common.Exp.Eval
 import Icicle.Common.Type
 import Icicle.Common.Value
 import Icicle.Avalanche.Prim.Flat
-
-import              P
-import              Data.List (lookup, zip, zipWith)
-
-import qualified    Data.List as List
-import qualified    Data.Map  as Map
 import qualified    Icicle.Common.Exp.Prim.Eval as Min
 
-evalPrim :: Ord n => EvalPrim a n Prim
+import              P
+
+import              Data.List (lookup, zip, zipWith)
+import qualified    Data.List as List
+import qualified    Data.Map  as Map
+import              Data.Hashable (Hashable)
+
+evalPrim :: (Hashable n, Eq n) => EvalPrim a n Prim
 evalPrim p vs
  = case p of
      PrimMinimal m

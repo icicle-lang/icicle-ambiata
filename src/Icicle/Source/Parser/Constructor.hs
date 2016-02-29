@@ -58,7 +58,7 @@ pattern
 
   patVar
    = do v <- pVariable
-        return $ if   v == Name (T.Variable "_")
+        return $ if   nameBase v == NameBase (T.Variable "_")
                  then Q.PatDefault
                  else Q.PatVariable v
 

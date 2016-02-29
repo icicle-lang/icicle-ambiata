@@ -24,6 +24,7 @@ import                  Data.String
 import                  Data.List (zip)
 import qualified        Data.Map as Map
 import qualified        Data.Text as T
+import                  Data.Hashable (Hashable)
 
 
 -- | This is a rather dodgy trick.
@@ -31,7 +32,7 @@ import qualified        Data.Text as T
 -- however fresh variable names are quite ugly.
 -- Instead of actually using nice names, we will clean them up
 -- just before pretty printing.
-prettyFunWithNames :: (Ord n, Pretty n) => [Name n] -> FunctionType n -> Doc
+prettyFunWithNames :: (Pretty n, Hashable n, Eq n) => [Name n] -> FunctionType n -> Doc
 prettyFunWithNames names fun
   =  constrs (functionConstraints   fun')
   <> args    (functionArguments     fun')
@@ -51,19 +52,20 @@ prettyFunWithNames names fun
    args xs
     = hsep (fmap (\x -> pretty x <+> "-> ") xs)
 
-prettyFunFromStrings :: (IsString n, Pretty n, Ord n) => FunctionType n -> Doc
+-- We make them actual names (with the hash code) because they will be used
+-- for substituations.
+prettyFunFromStrings :: (IsString n, Pretty n, Hashable n, Eq n) => FunctionType n -> Doc
 prettyFunFromStrings
  = prettyFunWithNames
- $ fmap (Name . fromString) letterNames
+ $ fmap (nameOf . NameBase . fromString) letterNames
 
 prettyFunWithLetters :: FunctionType Variable -> Doc
 prettyFunWithLetters
  = prettyFunWithNames
- $ fmap (Name . Variable . T.pack) letterNames
+ $ fmap (nameOf . NameBase . Variable . T.pack) letterNames
 
 letterNames :: [String]
 letterNames
  =  fmap (\c -> [c]) ['a'..'z']
  <> concatMap (\prefix -> fmap (\c -> prefix <> [c]) ['a'..'z']) letterNames
-
 

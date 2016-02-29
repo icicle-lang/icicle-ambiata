@@ -29,6 +29,7 @@ import              P
 
 import qualified    Data.Map as Map
 import              Data.List (zip, transpose)
+import              Data.Hashable (Hashable)
 
 
 
@@ -87,7 +88,7 @@ instance (Pretty n) => Pretty (RuntimeError a n) where
 -- and the heap with all preceding streams stored.
 --
 -- TODO: this should handle bubblegum
-eval    :: Ord n
+eval    :: (Hashable n, Eq n)
         => V.Heap    a n Prim   -- ^ The expression heap with precomputations
         -> StreamHeap       n   -- ^ Any streams that have already been evaluated
         -> Stream         a n   -- ^ Stream to evaluate

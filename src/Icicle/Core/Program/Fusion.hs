@@ -12,7 +12,10 @@ import Icicle.Common.Type
 import Icicle.Core.Program.Program
 import Icicle.Core.Program.Subst
 
-import              P
+import P
+
+import Data.Hashable (Hashable)
+
 
 data FusionError n
  = FusionErrorNotSameType ValType ValType
@@ -23,15 +26,15 @@ data FusionError n
 -- | Fuse programs together, prefixing each with its name to ensure that the
 -- generated program has no name clashes.
 -- The two names must be distinct.
-fusePrograms :: Ord n => a -> n -> Program a n -> n -> Program a n -> Either (FusionError n) (Program a n)
+fusePrograms :: (Hashable n, Eq n) => a -> n -> Program a n -> n -> Program a n -> Either (FusionError n) (Program a n)
 fusePrograms a_fresh ln lp rn rp
  = fuseProgramsDistinctNames a_fresh (prefix ln lp) (prefix rn rp)
  where
-  prefix n = renameProgram (NameMod n)
-
+  prefix n = renameProgram (modName n)
+  
 
 -- | Fuse programs together, assuming they already have no name clashes.
-fuseProgramsDistinctNames :: Ord n => a -> Program a n -> Program a n -> Either (FusionError n) (Program a n)
+fuseProgramsDistinctNames :: (Hashable n, Eq n) => a -> Program a n -> Program a n -> Either (FusionError n) (Program a n)
 fuseProgramsDistinctNames _ lp rp
  | inputType lp /= inputType rp
  = Left
@@ -57,9 +60,9 @@ fuseProgramsDistinctNames _ lp rp
 
 
 -- | Fuse a list of programs together, prefixing each with its name
-fuseMultiple :: Ord n => a -> [(n, Program a n)] -> Either (FusionError n) (Program a n)
+fuseMultiple :: (Hashable n, Eq n) => a -> [(n, Program a n)] -> Either (FusionError n) (Program a n)
 fuseMultiple a_fresh ps
- = let ps' = fmap (\(n,p) -> renameProgram (NameMod n) p) ps
+ = let ps' = fmap (\(n,p) -> renameProgram (modName n) p) ps
    in  case ps' of
         [] -> Left FusionErrorNothingToFuse
         (f:fs) -> foldM (fuseProgramsDistinctNames a_fresh) f fs

@@ -22,6 +22,7 @@ import Icicle.Internal.Pretty
 import              P
 
 import qualified    Data.Map as Map
+import              Data.Hashable (Hashable)
 
 
 -- | Things that can go wrong (but shouldn't!)
@@ -48,11 +49,12 @@ type EvalPrim a n p = p -> [Value a n p] -> Either (RuntimeError a n p) (Value a
 
 -- | Big step evaluation of a closed expression
 -- Start with an empty heap.
-eval0 :: Ord n => EvalPrim a n p -> Exp a n p -> Either (RuntimeError a n p) (Value a n p)
+eval0 :: (Hashable n, Eq n)
+      => EvalPrim a n p -> Exp a n p -> Either (RuntimeError a n p) (Value a n p)
 eval0 evalPrim = eval evalPrim Map.empty
 
 -- | Big step evaluation with given heap
-eval :: Ord n
+eval :: (Hashable n, Eq n)
      => EvalPrim a n p
      -> Heap a n p
      -> Exp a n p
@@ -129,7 +131,7 @@ eval evalPrim h xx
 -- and needs to apply them to Exps.
 --
 applyValues
-        :: Ord n
+        :: (Hashable n, Eq n)
         => EvalPrim a n p
         -> Value a n p
         -> Value a n p
@@ -144,8 +146,7 @@ applyValues evalPrim f arg
 
 
 -- | Apply a value to a bunch of arguments
-applies
-        :: Ord n
+applies :: (Hashable n, Eq n)
         => EvalPrim a n p
         -> Value a n p
         -> [Value a n p]
@@ -154,7 +155,7 @@ applies evalPrim = foldM (applyValues evalPrim)
 
 -- | Evaluate all expression bindings, collecting up expression heap as we go
 evalExps
-        :: Ord n
+        :: (Hashable n, Eq n)
         => EvalPrim a n p
         -> Heap     a n p
         -> [(Name n, Exp a n p)]

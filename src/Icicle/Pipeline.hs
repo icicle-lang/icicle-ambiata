@@ -81,6 +81,7 @@ import qualified Data.Map                                 as M
 import           Data.Monoid
 import           Data.String
 import           Data.Text                                (Text)
+import           Data.Hashable                            (Hashable)
 
 
 import           Text.ParserCombinators.Parsec            (SourcePos)
@@ -120,7 +121,7 @@ annotOfError e
     CompileErrorProgram _
      -> Nothing
 
-instance (IsString b, Ord b, Pretty a, Pretty b, Show a, Show b, Show c) => Pretty (CompileError a b c) where
+instance (Hashable b, IsString b, Ord b, Pretty a, Pretty b, Show a, Show b, Show c) => Pretty (CompileError a b c) where
  pretty e
   = case e of
      CompileErrorParse p
@@ -257,7 +258,7 @@ sourceConvert d q
                 (freshNamer "conv")
 
 coreSimp
- :: (Ord v, IsString v)
+ :: (Hashable v, Eq v, IsString v)
  => CoreProgram' v
  -> CoreProgram' v
 coreSimp p
@@ -266,7 +267,7 @@ coreSimp p
  $ Fresh.runFresh (Core.simpProgram () p) (freshNamer "simp")
 
 coreFlatten
-  :: (Ord v, IsString v, Pretty v, Show v)
+  :: (Hashable v, Eq v, IsString v, Pretty v, Show v)
   => CoreProgram' v
   -> Either (CompileError () v APF.Prim) (AvalProgram' v APF.Prim)
 coreFlatten prog
@@ -274,7 +275,7 @@ coreFlatten prog
  $ flattenAvalanche (coreAvalanche prog)
 
 flattenAvalanche
-  :: (IsString v, Pretty v, Ord v)
+  :: (IsString v, Pretty v, Hashable v, Eq v)
   => AvalProgram () v Core.Prim
   -> Either (CompileError () v APF.Prim) (AvalProgram (CA.Annot ()) v APF.Prim)
 flattenAvalanche av
@@ -287,7 +288,7 @@ flattenAvalanche av
           return $ checkAvalanche (av { AP.statements = s' })
 
 checkAvalanche
-  :: Ord v
+  :: (Hashable v, Eq v)
   => AvalProgram' v APF.Prim
   -> Either (CompileError () v APF.Prim) (AvalProgram (CA.Annot ()) v APF.Prim)
 checkAvalanche prog
@@ -295,7 +296,7 @@ checkAvalanche prog
  $ AC.checkProgram APF.flatFragment prog
 
 coreAvalanche
-  :: (Ord v, Show v, IsString v)
+  :: (Eq v, Hashable v, Show v, IsString v)
   => CoreProgram' v
   -> AvalProgram () v Core.Prim
 coreAvalanche prog
@@ -303,7 +304,7 @@ coreAvalanche prog
  $ AC.programFromCore (AC.namerText id) prog
 
 simpAvalanche
-  :: (Ord v, Show v, IsString v)
+  :: (Eq v, Hashable v, Show v, IsString v)
   => AvalProgram () v Core.Prim
   -> AvalProgram () v Core.Prim
 simpAvalanche av
@@ -313,7 +314,7 @@ simpAvalanche av
   go = AS.simpAvalanche () av
 
 simpFlattened
-  :: (Ord v, Show v, IsString v)
+  :: (Eq v, Hashable v, Show v, IsString v)
   => AvalProgram (CA.Annot ()) v APF.Prim
   -> AvalProgram' v APF.Prim
 simpFlattened av
@@ -365,7 +366,7 @@ coreEval t fs (renameQT unVar -> query) prog
 
   where
     evalP feat (S.Partition ent attr values)
-      | CommonBase.Name feat' <- feat
+      | CommonBase.NameBase feat' <- CommonBase.nameBase feat
       , attr == Attribute feat'
       = do  (vs',_) <- evalV values
             return $ fmap (\v -> Result (ent, snd v)) vs'
@@ -393,7 +394,7 @@ avalancheEval t fs (renameQT unVar -> query) prog
 
   where
     evalP feat (S.Partition ent attr values)
-      | CommonBase.Name feat' <- feat
+      | CommonBase.NameBase feat' <- CommonBase.nameBase feat
       , attr == Attribute feat'
       = do  (vs',_) <- evalV values
             return $ fmap (\v -> Result (ent, snd v)) vs'
@@ -422,7 +423,7 @@ seaEval t newFacts (renameQT unVar -> query) program =
           -> S.Partition
           -> EitherT Sea.SeaError IO [(Entity, Value)]
     evalP featureName (S.Partition entityName attributeName values)
-      | CommonBase.Name name <- featureName
+      | CommonBase.NameBase name <- CommonBase.nameBase featureName
       , Attribute name == attributeName
       = do outputs <- Sea.seaEvalAvalanche program t values
            return $ fmap (\out -> (entityName, snd out)) outputs

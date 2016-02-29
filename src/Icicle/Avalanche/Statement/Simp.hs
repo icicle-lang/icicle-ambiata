@@ -32,6 +32,7 @@ import              Data.Functor.Identity
 import qualified    Data.Set as Set
 import qualified    Data.Map as Map
 import qualified    Data.List as List
+import              Data.Hashable (Hashable)
 
 import              Control.Monad.Trans.Class
 
@@ -155,7 +156,7 @@ pullLets statements
 
 
 -- | Let-forwarding on statements
-forwardStmts :: Ord n => a -> Statement a n p -> FixT (Fresh n) (Statement a n p)
+forwardStmts :: (Hashable n, Eq n) => a -> Statement a n p -> FixT (Fresh n) (Statement a n p)
 forwardStmts a_fresh statements
  = transformUDStmt trans () statements
  where
@@ -183,7 +184,7 @@ forwardStmts a_fresh statements
 --
 -- and the C compiler should be able to get rid of the first, etc.
 --
-renameReads :: Ord n => a -> Statement a n p -> FixT (Fresh n) (Statement a n p)
+renameReads :: (Hashable n, Eq n) => a -> Statement a n p -> FixT (Fresh n) (Statement a n p)
 renameReads a_fresh statements
  = transformUDStmt trans () statements
  where
@@ -237,7 +238,7 @@ renameReads a_fresh statements
 -- > in subst monkey := banana
 -- > in (subst banana := banana' in monkey)
 --
-substXinS :: Ord n => a -> Name n -> Exp a n p -> Statement a n p -> Fresh n (Statement a n p)
+substXinS :: (Hashable n, Eq n) => a -> Name n -> Exp a n p -> Statement a n p -> Fresh n (Statement a n p)
 substXinS a_fresh name payload statements
  = transformUDStmt trans True statements
  where
@@ -331,7 +332,7 @@ substXinS a_fresh name payload statements
 --  * Remove some other useless code:
 --      statements that do not update accumulators or return a value are silly.
 --
-thresher :: (Ord n, Eq p) => a -> Statement a n p -> FixT (Fresh n) (Statement a n p)
+thresher :: (Hashable n, Eq n, Eq p) => a -> Statement a n p -> FixT (Fresh n) (Statement a n p)
 thresher a_fresh statements
  = transformUDStmt trans emptyExpEnv statements
  where
@@ -381,7 +382,7 @@ thresher a_fresh statements
 -- If it does not update or return, it is probably dead code.
 --
 -- The first argument is a set of accumulators to ignore.
-hasEffect :: Ord n => Statement a n p -> Bool
+hasEffect :: (Hashable n, Eq n) => Statement a n p -> Bool
 hasEffect statements
  = runIdentity
  $ foldStmt down up (||) Set.empty False statements
@@ -426,7 +427,7 @@ hasEffect statements
 
 -- | Find free *expression* variables in statements.
 -- Note that this ignores accumulators, as they are a different scope.
-stmtFreeX :: Ord n => Statement a n p -> Set.Set (Name n)
+stmtFreeX :: (Hashable n, Eq n) => Statement a n p -> Set.Set (Name n)
 stmtFreeX statements
  = runIdentity
  $ foldStmt down up Set.union () Set.empty statements
@@ -490,7 +491,7 @@ stmtFreeX statements
 --   
 -- Note that the above example is only one step: nesting would then be
 -- recursively performed etc.
-nestBlocks :: Ord n => a -> Statement a n p -> Fresh n (Statement a n p)
+nestBlocks :: (Hashable n, Eq n) => a -> Statement a n p -> Fresh n (Statement a n p)
 nestBlocks a_fresh statements
  = transformUDStmt trans () statements
  where
@@ -545,7 +546,7 @@ data AccumulatorUsage
  , accWritten :: Bool }
 
 -- | Check whether statement uses this accumulator
-accumulatorUsed :: Ord n => Name n -> Statement a n p -> AccumulatorUsage
+accumulatorUsed :: (Hashable n, Eq n) => Name n -> Statement a n p -> AccumulatorUsage
 accumulatorUsed acc statements
  = runIdentity
  $ foldStmt down up ors () (AccumulatorUsage False False) statements

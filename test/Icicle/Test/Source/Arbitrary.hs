@@ -42,7 +42,8 @@ import qualified Data.List as List
 import qualified Data.Map as Map
 import           Data.Functor.Identity
 
-import           Data.String (String)
+import           Data.String   (String)
+import           Data.Hashable (Hashable)
 
 import           X.Control.Monad.Trans.Either
 
@@ -51,7 +52,7 @@ instance Arbitrary T.Variable where
  arbitrary
   = T.Variable <$> elements muppets
 
-instance Arbitrary n => Arbitrary (Exp () n) where
+instance (Arbitrary n, Hashable n) => Arbitrary (Exp () n) where
  arbitrary
   = oneof_sized
         [ Var    () <$> arbitrary
@@ -117,7 +118,7 @@ instance Arbitrary Constructor where
  arbitrary
   = oneof_vals [ ConSome, ConNone, ConTuple, ConTrue, ConFalse, ConLeft, ConRight ]
 
-instance Arbitrary n => Arbitrary (Pattern n) where
+instance (Arbitrary n, Hashable n) => Arbitrary (Pattern n) where
  arbitrary
   = oneof_sized [ return PatDefault, PatVariable <$> arbitrary ]
                 [ patcon ]
@@ -128,7 +129,7 @@ instance Arbitrary n => Arbitrary (Pattern n) where
          return (PatCon con args)
 
 
-instance Arbitrary n => Arbitrary (Context () n) where
+instance (Arbitrary n, Hashable n) => Arbitrary (Context () n) where
  arbitrary
   = oneof_sized
         [ Windowed () <$> arbitrary <*> arbitrary
@@ -150,7 +151,7 @@ instance Arbitrary n => Arbitrary (Context () n) where
     | otherwise = False
 
 
-instance Arbitrary n => Arbitrary (Fold (Query () n) () n) where
+instance (Arbitrary n, Hashable n) => Arbitrary (Fold (Query () n) () n) where
  arbitrary
   = Fold <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
 
@@ -161,11 +162,11 @@ instance Arbitrary FoldType where
         , return FoldTypeFoldl ]
 
 
-instance Arbitrary n => Arbitrary (Query () n) where
+instance (Arbitrary n, Hashable n) => Arbitrary (Query () n) where
  arbitrary
   = Query <$> arbitrary <*> arbitrary
 
-instance Arbitrary n => Arbitrary (QueryTop () n) where
+instance (Arbitrary n, Hashable n) => Arbitrary (QueryTop () n) where
  arbitrary
   = QueryTop <$> arbitrary <*> arbitrary <*> arbitrary
 

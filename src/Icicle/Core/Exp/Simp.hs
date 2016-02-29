@@ -20,6 +20,7 @@ import qualified Icicle.Core.Eval.Exp           as CE
 import           P
 
 import qualified Data.Set                       as Set
+import           Data.Hashable                  (Hashable)
 
 
 -- | Core Simplifier:
@@ -28,7 +29,7 @@ import qualified Data.Set                       as Set
 --   * constant folding for some primitives
 --   * ...something exciting???
 --
-simp :: Ord n => a -> (C.Exp a n -> Bool) -> C.Exp a n -> Fresh n (C.Exp a n)
+simp :: (Hashable n, Eq n) => a -> (C.Exp a n -> Bool) -> C.Exp a n -> Fresh n (C.Exp a n)
 simp a_fresh isValue = anormal a_fresh . deadX . fixp (simpX a_fresh isValue)
  where
   fixp f x
@@ -36,7 +37,7 @@ simp a_fresh isValue = anormal a_fresh . deadX . fixp (simpX a_fresh isValue)
    | otherwise      = x
 
 
-simpX :: Ord n => a -> (C.Exp a n -> Bool) -> C.Exp a n -> Maybe (C.Exp a n)
+simpX :: (Hashable n, Eq n)=> a -> (C.Exp a n -> Bool) -> C.Exp a n -> Maybe (C.Exp a n)
 simpX a_fresh isValue = go . beta
   where
     beta  = B.beta isValue
@@ -82,7 +83,7 @@ simpX a_fresh isValue = go . beta
 
 -- | Primitive Simplifier
 --
-simpP :: Ord n => a -> Prim -> [Value a n Prim] -> Maybe (C.Exp a n)
+simpP :: (Hashable n, Eq n) => a -> Prim -> [Value a n Prim] -> Maybe (C.Exp a n)
 simpP a_fresh p vs
  = case CE.evalPrim p vs of
     Right (VBase b)
@@ -97,7 +98,7 @@ simpP a_fresh p vs
 
 
 -- | Dead binding removal
-deadX :: Ord n => C.Exp a n -> C.Exp a n
+deadX :: (Hashable n, Eq n) => C.Exp a n -> C.Exp a n
 deadX = fst . go
   where
     go xx = case xx of

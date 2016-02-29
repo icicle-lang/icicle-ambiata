@@ -19,15 +19,17 @@ import Icicle.Core.Program.Subst
 
 import P
 
+import Data.Hashable (Hashable)
+
 -- | Condense streams then reductions
-condenseProgram :: Ord n => a -> Program a n -> Program a n
+condenseProgram :: (Hashable n, Eq n) => a -> Program a n -> Program a n
 condenseProgram a_fresh p
  = let pre'  = condensePrecomps  a_fresh p
        strm' = condenseStreams   a_fresh pre'
        post' = condensePostcomps a_fresh strm'
    in  post'
 
-condensePrecomps :: Ord n => a -> Program a n -> Program a n
+condensePrecomps :: (Hashable n, Eq n) => a -> Program a n -> Program a n
 condensePrecomps a_fresh p
  = let (sub, pres') = condenseBinds a_fresh (precomps p)
    in  p { precomps  = pres'
@@ -36,14 +38,14 @@ condensePrecomps a_fresh p
          , returns   = unsafeSubstSnds     sub (returns   p)
          }
 
-condensePostcomps :: Ord n => a -> Program a n -> Program a n
+condensePostcomps :: (Hashable n, Eq n) => a -> Program a n -> Program a n
 condensePostcomps a_fresh p
  = let (sub, post') = condenseBinds a_fresh (postcomps p)
    in  p { postcomps = post'
          , returns   = unsafeSubstSnds     sub (returns   p)
          }
 
-condenseBinds :: Ord n => a -> [(Name n, Exp a n)] -> ([(Name n, Name n)], [(Name n, Exp a n)])
+condenseBinds :: (Hashable n, Eq n) => a -> [(Name n, Exp a n)] -> ([(Name n, Name n)], [(Name n, Exp a n)])
 condenseBinds _ binds
  = go [] binds
  where
@@ -59,7 +61,7 @@ condenseBinds _ binds
    = go (seen <> [(n,x)]) bs
 
 -- | Condense the stream operations together
-condenseStreams :: Ord n => a -> Program a n -> Program a n
+condenseStreams :: (Hashable n, Eq n) => a -> Program a n -> Program a n
 condenseStreams a_fresh p
  = let (ss, sub) = go [] (streams p) []
    in  p { streams = ss
@@ -79,7 +81,7 @@ condenseStreams a_fresh p
 -- Returns any remaining part of the insertion stream,
 -- and successful insertions as a substitution list
 tryInsert
-        :: Ord n
+        :: (Hashable n, Eq n)
         => a
         -> [Stream a n]
         -> Stream a n
@@ -123,7 +125,7 @@ tryInsert a_fresh seen t
 
 -- | Check if two streams are equivalent fold, or filter with same predicate.
 -- For filter, ignore streams.
-streamSimilar :: Ord n => a -> Stream a n -> Stream a n -> Bool
+streamSimilar :: (Hashable n, Eq n) => a -> Stream a n -> Stream a n -> Bool
 streamSimilar a_fresh s s'
 
  | SFold n  st  z  k     <- s

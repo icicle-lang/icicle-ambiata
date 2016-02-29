@@ -28,7 +28,7 @@ prop_alpha_self x =
 -- =====================
 prop_alpha_self_prefix_closed x =
  Set.null (freevars x) ==>
-     x `alphaEquality` renameExp (NameMod 0) x
+     x `alphaEquality` renameExp (modName 0) x
 
 -- We can rename anything that isn't free
 -- =====================
@@ -38,7 +38,7 @@ prop_alpha_self_prefix x =
 
      ren n = if   Set.member n fv
              then n
-             else NameMod 0 n
+             else modName 0 n
 
      x'    = renameExp ren x
 

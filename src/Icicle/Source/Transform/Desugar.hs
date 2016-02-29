@@ -23,8 +23,8 @@ import           Icicle.Source.Query
 import           Icicle.Source.Transform.Simp
 import           Icicle.Internal.Pretty
 
+import           Data.Hashable (Hashable)
 import           Data.Functor.Identity
-
 import           Control.Monad.Trans.Class
 
 import           P
@@ -58,7 +58,7 @@ runDesugar :: NameState n -> DesugarM a n x -> Either (DesugarError a n) x
 runDesugar n m = runIdentity . runEitherT . bimapEitherT id snd $ runFreshT m n
 
 desugarFun
-  :: (Eq n)
+  :: (Hashable n, Eq n)
   => Function a n
   -> DesugarM a n (Function a n)
 desugarFun f
@@ -66,7 +66,7 @@ desugarFun f
        return $ f { body = b'}
 
 desugarQT
-  :: (Eq n)
+  :: (Hashable n, Eq n)
   => QueryTop a n
   -> DesugarM a n (QueryTop a n)
 desugarQT qt
@@ -74,7 +74,7 @@ desugarQT qt
        return $ qt { query = qq' }
 
 desugarQ
-  :: (Eq n)
+  :: (Hashable n, Eq n)
   => Query a n
   -> DesugarM a n (Query a n)
 desugarQ qq
@@ -83,7 +83,7 @@ desugarQ qq
        return $ Query cs f
 
 desugarC
-  :: (Eq n)
+  :: (Hashable n, Eq n)
   => Context a n
   -> DesugarM a n (Context a n)
 desugarC cc
@@ -98,7 +98,7 @@ desugarC cc
     Latest{}          -> return cc
 
 desugarF
-  :: (Eq n)
+  :: (Hashable n, Eq n)
   => Fold (Query a n) a n
   -> DesugarM a n (Fold (Query a n) a n)
 desugarF ff
@@ -107,7 +107,7 @@ desugarF ff
        return $ ff { foldInit = fi', foldWork = fw'}
 
 desugarX
-  :: (Eq n)
+  :: (Hashable n, Eq n)
   => Exp a n
   -> DesugarM a n (Exp a n)
 desugarX xx
@@ -250,7 +250,8 @@ addToTy _ (PatVariable _) ty    = return ty
 
 
 casesForTy
-  :: a
+  :: (Hashable n)
+  => a
   -> Exp' (Query a n) a n
   -> Ty
   -> DesugarM a n (Tree a n (Pattern n))
@@ -424,5 +425,5 @@ checkOverlapping ann userpats genpats
           else left (DesugarOverlappingPattern ann up)
 
 
-freshes :: Monad m => Int -> FreshT n m [Name n]
+freshes :: (Monad m, Hashable n) => Int -> FreshT n m [Name n]
 freshes n = replicateM n fresh

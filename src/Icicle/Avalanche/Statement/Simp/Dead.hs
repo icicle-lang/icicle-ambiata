@@ -14,23 +14,25 @@ import              Icicle.Common.Exp
 import              P
 
 import              Data.Functor.Identity
+import              Data.Set (Set)
 import qualified    Data.Set as Set
+import              Data.Hashable (Hashable)
 
 
 -- | Remove accumulators that don't contribute to output
 --
-dead :: (Ord n) => Statement a n p -> Statement a n p
+dead :: (Hashable n, Eq n) => Statement a n p -> Statement a n p
 dead
  = snd . deadS mempty
 
 data Usage n
  = Usage
- { usageAcc :: Set.Set (Name n)
- , usageExp :: Set.Set (Name n)
+ { usageAcc :: Set (Name n)
+ , usageExp :: Set (Name n)
  }
  deriving Eq
 
-instance Ord n => Monoid (Usage n) where
+instance Eq n => Monoid (Usage n) where
  mempty = Usage Set.empty Set.empty
  mappend a b
   = Usage
@@ -39,7 +41,7 @@ instance Ord n => Monoid (Usage n) where
   }
 
 
-deadS :: (Ord n) => Usage n -> Statement a n p -> (Usage n, Statement a n p)
+deadS :: (Hashable n, Eq n) => Usage n -> Statement a n p -> (Usage n, Statement a n p)
 deadS us statements
  = case statements of
     If x ts fs
@@ -114,7 +116,7 @@ deadS us statements
 --
 -- And assuming there are a finite number of variables in ss,
 -- the worst case is that the usage is all variables in ss.
-deadLoop :: (Ord n) => Usage n -> Statement a n p -> (Usage n, Statement a n p)
+deadLoop :: (Hashable n, Eq n) => Usage n -> Statement a n p -> (Usage n, Statement a n p)
 deadLoop us ss
  = let (sU, sS) = deadS us ss
    in  if   sU == us
@@ -123,20 +125,20 @@ deadLoop us ss
        else deadLoop sU ss
 
 
-usageX :: (Ord n) => Exp a n p -> Usage n
+usageX :: (Hashable n, Eq n) => Exp a n p -> Usage n
 usageX x = Usage mempty (freevars x)
 
-usedX :: (Ord n) => Name n -> Usage n -> Bool
+usedX :: (Hashable n, Eq n) => Name n -> Usage n -> Bool
 usedX n us = Set.member n (usageExp us)
 
-usageA :: (Ord n) => Name n -> Usage n
+usageA :: (Hashable n, Eq n) => Name n -> Usage n
 usageA n = Usage (Set.singleton n) mempty
 
-usedA :: (Ord n) => Name n -> Usage n -> Bool
+usedA :: (Hashable n, Eq n) => Name n -> Usage n -> Bool
 usedA n us = Set.member n (usageAcc us)
 
 
-killAccumulator :: (Ord n) => Name n -> Exp a n p -> Statement a n p -> Statement a n p
+killAccumulator :: (Hashable n, Eq n) => Name n -> Exp a n p -> Statement a n p -> Statement a n p
 killAccumulator acc xx statements
  = runIdentity
  $ transformUDStmt trans () statements

@@ -41,7 +41,7 @@ prop_simp_commutes_value t =
          simp = snd
               $ Fresh.runFresh
                         (AS.simpAvalanche () p')
-                        (Fresh.counterNameState (Name . Var "anf") 0)
+                        (Fresh.counterNameState (NameBase . Var "anf") 0)
          eval = AE.evalProgram XV.evalPrim d vs
      in counterexample (show $ pretty p')
       $ counterexample (show $ pretty simp)

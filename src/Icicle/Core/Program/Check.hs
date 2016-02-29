@@ -15,11 +15,12 @@ import              Icicle.Core.Program.Error
 import              P
 
 import qualified    Data.Map as Map
+import              Data.Hashable (Hashable)
 
 
 -- | Check the entire program
 checkProgram
-        :: Ord n
+        :: (Hashable n, Eq n)
         => Program a n
         -> Either (ProgramError a n) [(OutputName, Type)]
 checkProgram p
@@ -50,7 +51,7 @@ checkProgram p
 
 -- | Check all expression bindings, collecting up environment as we go
 checkExps
-        :: Ord n
+        :: (Hashable n, Eq n)
         => (ExpError a n Prim -> ProgramError a n)
         -> Env n Type
         -> [(Name n, Exp a n)]
@@ -68,7 +69,7 @@ checkExps err env ((n,x):bs)
 
 -- | Check stream bindings, collecting up environment
 checkStreams
-        :: Ord n
+        :: (Hashable n, Eq n)
         => Env n Type
         -> [Stream a n]
         -> Either (ProgramError a n) (Env n Type)

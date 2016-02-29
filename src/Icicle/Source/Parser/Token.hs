@@ -77,7 +77,7 @@ pVariable :: Parser (Name Var)
 pVariable
  = pTok get <?> "variable"
  where
-  get (T.TVariable v) = Just (Name v)
+  get (T.TVariable v) = Just (nameOf (NameBase v))
   get  _              = Nothing
 
 pConstructor :: Parser Var
@@ -89,9 +89,10 @@ pConstructor
 
 pProjections :: Parser (Name Var)
 pProjections
-  = do v  <-        pTok var <?> "variable"
-       ps <- many1 (pTok proj <?> "nested struct projections")
-       return $ Name $ T.Variable $ Text.intercalate "." (v:ps)
+  = do v     <-        pTok var <?> "variable"
+       ps    <- many1 (pTok proj <?> "nested struct projections")
+       let n  = NameBase $ T.Variable $ Text.intercalate "." (v:ps)
+       return $ nameOf n
  where
   var  (T.TVariable (T.Variable v))   = Just v
   var  _                              = Nothing

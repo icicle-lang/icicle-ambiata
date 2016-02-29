@@ -10,6 +10,9 @@ module Icicle.Simulator (
   ) where
 
 import           Data.List
+import           Data.Hashable (Hashable)
+
+import           P
 
 import qualified Icicle.BubbleGum   as B
 import           Icicle.Common.Base
@@ -18,8 +21,6 @@ import           Icicle.Common.Data (valueToCore, valueFromCore)
 import           Icicle.Data
 
 import           Icicle.Internal.Pretty
-
-import           P
 
 import qualified Icicle.Common.Base       as V
 import qualified Icicle.Core.Eval.Program as PV
@@ -78,7 +79,7 @@ makePartition fs@(f:_)
                 (factAttribute $ atFact f)
                 (fmap (\f' -> AsAt (factValue $ atFact f') (atTime f')) fs) ]
 
-evaluateVirtualValue :: Ord n => P.Program a n -> Time -> [AsAt Value] -> Result a n
+evaluateVirtualValue :: (Hashable n, Eq n) => P.Program a n -> Time -> [AsAt Value] -> Result a n
 evaluateVirtualValue p t vs
  = do   vs' <- zipWithM toCore [1..] vs
 
@@ -93,7 +94,7 @@ evaluateVirtualValue p t vs
    = do v' <- valueToCore' (atFact a) (P.inputType p)
         return $ a { atFact = (B.BubbleGumFact $ B.Flavour n $ atTime a, v') }
 
-evaluateVirtualValue' :: Ord n => A.Program a n APF.Prim -> Time -> [AsAt Value] -> Result a n
+evaluateVirtualValue' :: (Hashable n, Eq n) => A.Program a n APF.Prim -> Time -> [AsAt Value] -> Result a n
 evaluateVirtualValue' p t vs
  = do   vs' <- zipWithM toCore [1..] vs
 

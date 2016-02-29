@@ -27,6 +27,7 @@ import           P
 
 import           Control.Monad.Trans.Class
 import           Data.List                      (zip, replicate)
+import           Data.Hashable                  (Hashable)
 import qualified Data.Map                       as Map
 
 
@@ -66,7 +67,7 @@ data ConvertFoldResult n
 --
 --
 convertFold
-        :: Ord n
+        :: (Hashable n, Eq n)
         => Query (Annot a n) n
         -> ConvertM a n (ConvertFoldResult n)
 convertFold q

@@ -25,6 +25,7 @@ import              P
 
 import              Data.List   (zip)
 import qualified    Data.Map    as Map
+import              Data.Hashable (Hashable)
 
 import              Icicle.Internal.Pretty
 
@@ -93,7 +94,7 @@ baseValue v
 
 -- | Update accumulator value, taking care of history
 updateOrPush
-        :: Ord n
+        :: (Hashable n, Eq n)
         => AccumulatorHeap n
         -> Name n
         -> BaseValue
@@ -112,7 +113,7 @@ updateOrPush heap n v
 
 -- | For each accumulator value, get the history information
 bubbleGumOutputOfAccumulatorHeap
-        :: Ord n
+        :: (Hashable n, Eq n)
         => AccumulatorHeap n
         -> [BubbleGumOutput n (BaseValue)]
 bubbleGumOutputOfAccumulatorHeap acc
@@ -121,7 +122,7 @@ bubbleGumOutputOfAccumulatorHeap acc
 -- | Evaluate an entire program
 -- with given primitive evaluator and values
 evalProgram
-        :: Ord n
+        :: (Hashable n, Eq n)
         => XV.EvalPrim a n p
         -> Time
         -> [AsAt (BubbleGumFact, BaseValue)]
@@ -145,7 +146,7 @@ evalProgram evalPrim now values p
 
 
 -- | Initialise an accumulator
-initAcc :: Ord n
+initAcc :: (Hashable n, Eq n)
         => XV.EvalPrim a n p
         -> Heap a n p
         -> Accumulator a n p
@@ -166,7 +167,7 @@ initAcc evalPrim env (Accumulator n _ x)
 
 -- | Evaluate a single statement for a single value
 evalStmt
-        :: Ord n
+        :: (Hashable n, Eq n)
         => XV.EvalPrim a n p
         -> Time
         -> Heap a n p

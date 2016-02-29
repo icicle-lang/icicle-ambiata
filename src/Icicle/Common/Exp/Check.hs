@@ -23,20 +23,21 @@ import              Icicle.Common.Fragment
 import              P
 
 import qualified    Data.Map as Map
+import              Data.Hashable (Hashable)
 
 
 -- | Perform all checks with an empty environment and return the type.
-typeExp0 :: (Ord n) => Fragment p -> Exp a n p -> Either (ExpError a n p) Type
+typeExp0 :: (Hashable n, Eq n) => Fragment p -> Exp a n p -> Either (ExpError a n p) Type
 typeExp0 frag x = typeExp frag Map.empty x
 
 
 -- | Perform all checks and return the type.
-typeExp :: (Ord n) => Fragment p -> Env n Type -> Exp a n p -> Either (ExpError a n p) Type
+typeExp :: (Hashable n, Eq n) => Fragment p -> Env n Type -> Exp a n p -> Either (ExpError a n p) Type
 typeExp frag env x = fmap (annType . annotOfExp) (checkExp frag env x)
 
 
 -- | Perform type checking and invariant checking with empty environment
-checkExp0 :: (Ord n) => Fragment p -> Exp a n p -> Either (ExpError a n p) (Exp (Annot a) n p)
+checkExp0 :: (Hashable n, Eq n) => Fragment p -> Exp a n p -> Either (ExpError a n p) (Exp (Annot a) n p)
 checkExp0 frag x = checkExp frag Map.empty x
 
 
@@ -48,7 +49,7 @@ checkExp0 frag x = checkExp frag Map.empty x
 --
 -- If successful, returns type of expression
 --
-checkExp :: (Ord n) => Fragment p -> Env n Type -> Exp a n p -> Either (ExpError a n p) (Exp (Annot a) n p)
+checkExp :: (Hashable n, Eq n) => Fragment p -> Env n Type -> Exp a n p -> Either (ExpError a n p) (Exp (Annot a) n p)
 checkExp frag env x
  = do   -- Perform normal type checking first
         t <- typecheck frag env x
@@ -70,7 +71,7 @@ checkExp frag env x
 
 -- | Typecheck expression, returning type if successful.
 -- Also checks name uniqueness invariant while building up environment.
-typecheck :: (Ord n) => Fragment p -> Env n Type -> Exp a n p -> Either (ExpError a n p) (Exp (Annot a) n p)
+typecheck :: (Hashable n, Eq n) => Fragment p -> Env n Type -> Exp a n p -> Either (ExpError a n p) (Exp (Annot a) n p)
 typecheck frag env xx
  = case xx of
     -- Variable must exist
@@ -132,7 +133,7 @@ typecheck frag env xx
 
 -- | Check if all primitives are fully applied.
 -- Only checks the number of arguments; the types are handled above.
-checkPrimsFullyApplied :: (Ord n) => Fragment p -> Exp a n p -> Either (ExpError a n p) ()
+checkPrimsFullyApplied :: (Hashable n, Eq n) => Fragment p -> Exp a n p -> Either (ExpError a n p) ()
 checkPrimsFullyApplied frag xx
  = case xx of
     -- Variables are ok
@@ -184,7 +185,7 @@ checkPrimsFullyApplied frag xx
 
 
 -- | Check if lambdas are only in allowed placed
-checkLambdasAllowed :: (Ord n) => Bool -> Exp a n p -> Either (ExpError a n p) ()
+checkLambdasAllowed :: (Hashable n, Eq n) => Bool -> Exp a n p -> Either (ExpError a n p) ()
 checkLambdasAllowed allowedHere xx
  = case xx of
     -- Variables are ok

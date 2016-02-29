@@ -156,5 +156,7 @@ unVar :: S.Variable -> Text
 unVar (S.Variable x) = x
 
 unName :: Name a -> a
-unName (Name x)      = x
-unName (NameMod _ x) = unName x
+unName = go . nameBase
+  where
+   go (NameBase  x) = x
+   go (NameMod _ x) = go x

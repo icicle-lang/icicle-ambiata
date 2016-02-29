@@ -23,6 +23,7 @@ import              P
 
 import qualified    Data.Set    as Set
 import qualified    Data.Map    as Map
+import              Data.Hashable
 
 
 -- | Apply an expression to any number of arguments
@@ -80,10 +81,9 @@ takeValue  _             = Nothing
 
 -- | Collect all free variables in an expression
 -- i.e. those that are not bound by lets or lambdas.
-freevars
-        :: Ord n
-        => Exp a n p
-        -> Set.Set (Name n)
+freevars :: (Hashable n, Eq n)
+         => Exp a n p
+         -> Set.Set (Name n)
 freevars xx
  = case xx of
     XVar _ n     -> Set.singleton n
@@ -96,8 +96,7 @@ freevars xx
 
 -- | Collect all variable names in an expression:
 -- free and bound
-allvars
-        :: Ord n
+allvars :: (Hashable n, Eq n)
         => Exp a n p
         -> Set.Set (Name n)
 allvars xx
@@ -112,12 +111,11 @@ allvars xx
 
 -- | Substitute an expression in, but if it would require renaming
 -- just give up and return Nothing
-substMaybe
-        :: Ord n
-        => Name n
-        -> Exp a n p
-        -> Exp a n p
-        -> Maybe (Exp a n p)
+substMaybe :: (Hashable n, Eq n)
+           => Name n
+           -> Exp a n p
+           -> Exp a n p
+           -> Maybe (Exp a n p)
 substMaybe name payload into
  = go into
  where
@@ -166,13 +164,12 @@ substMaybe name payload into
 
 -- | Substitute an expression in,
 -- using fresh names to avoid capture
-subst
-        :: Ord n
-        => a
-        -> Name n
-        -> Exp a n p
-        -> Exp a n p
-        -> Fresh n (Exp a n p)
+subst :: (Hashable n, Eq n)
+      => a
+      -> Name n
+      -> Exp a n p
+      -> Exp a n p
+      -> Fresh n (Exp a n p)
 subst a_fresh name payload into
  = go into
  where

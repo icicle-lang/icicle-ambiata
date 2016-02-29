@@ -22,6 +22,7 @@ import           P
 
 import           Data.List (sortBy, take)
 import           Data.String
+import           Data.Hashable (Hashable)
 
 data CheckError a n
  = CheckError (ErrorInfo a n) [ErrorSuggestion a n]
@@ -86,7 +87,7 @@ errorSuggestions info sugs
 
 -- Pretties ----------
 
-instance (IsString n, Ord n, Pretty a, Pretty n) => Pretty (CheckError a n) where
+instance (IsString n, Ord n, Pretty a, Pretty n, Hashable n) => Pretty (CheckError a n) where
  pretty (CheckError info [])
   = pretty info
  pretty (CheckError info sugs)
@@ -145,7 +146,7 @@ instance (Pretty a, Pretty n) => Pretty (ErrorInfo a n) where
     inp x = indent 0 (pretty x)
 
 
-instance (IsString n, Ord n, Pretty a, Pretty n) => Pretty (ErrorSuggestion a n) where
+instance (IsString n, Ord n, Pretty a, Pretty n, Hashable n) => Pretty (ErrorSuggestion a n) where
  pretty e
   = case e of
      AvailableFeatures n' bs
@@ -160,7 +161,7 @@ instance (IsString n, Ord n, Pretty a, Pretty n) => Pretty (ErrorSuggestion a n)
      AvailableBindings n' bs
       -> let inb = grabInbuilt <$> listOfAllFuns
              bs' = take 5
-                 $ flip sortBy (bs <> inb)
+                 $ flip sortBy (fmap (first nameBase) bs <> inb)
                  $ on compare
                  $ (editDistance $ pretty n') . pretty . fst
          in "Suggested bindings are:"
@@ -174,7 +175,7 @@ instance (IsString n, Ord n, Pretty a, Pretty n) => Pretty (ErrorSuggestion a n)
     pretty_ty     (k,t) = padDoc 20 (pretty k) <+> ":" <+> pretty t
     pretty_fun_ty (k,t) = padDoc 20 (pretty k) <+> ":" <+> prettyFunFromStrings t
 
-    grabInbuilt f       = (Name . fromString . (flip displayS "") . renderCompact . pretty . Fun $ f, prettyInbuiltType f)
+    grabInbuilt f       = (NameBase . fromString . (flip displayS "") . renderCompact . pretty . Fun $ f, prettyInbuiltType f)
 
     prettyInbuiltType
      = snd

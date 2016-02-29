@@ -25,10 +25,10 @@ import                  Text.Parsec (many1, parserFail, getPosition, eof, (<?>),
 
 top :: OutputName -> Parser (Q.QueryTop T.SourcePos Var)
 top name
- = do   pKeyword T.Feature                                  <?> "feature start"
-        v <- pVariable <|> (Name <$> pConstructor)          <?> "concrete feature name"
+ = do   pKeyword T.Feature                                      <?> "feature start"
+        v <- pVariable <|> (nameOf . NameBase <$> pConstructor) <?> "concrete feature name"
         pFlowsInto
-        q <- query                                          <?> "query"
+        q <- query                                              <?> "query"
         eof
         return $ Q.QueryTop v name q
 

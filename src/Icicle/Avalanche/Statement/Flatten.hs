@@ -25,6 +25,7 @@ import              P
 import              Control.Monad.Trans.Class
 
 import qualified    Data.List                      as List
+import              Data.Hashable                  (Hashable)
 
 
 data FlattenError a n
@@ -39,7 +40,7 @@ type FlatM a n
 
 -- | Flatten the primitives in a statement.
 -- This just calls @flatX@ for every expression, wrapping the statement.
-flatten :: (Ord n, Pretty n)
+flatten :: (Pretty n, Hashable n, Eq n)
         => a
         -> Statement a n Core.Prim
         -> FlatM a n
@@ -97,7 +98,7 @@ flatten a_fresh s
      -> return $ SaveResumable n t
 
 
-flatXS  :: (Ord n, Pretty n)
+flatXS  :: (Pretty n, Hashable n, Eq n)
         => a
         -> [Exp a n Core.Prim]
         -> [Exp a n Flat.Prim]
@@ -113,7 +114,7 @@ flatXS a_fresh (x:xs) ys stm
 
 -- | Flatten an expression, wrapping the statement with any lets or loops or other bindings
 -- The statement function takes the new expression.
-flatX   :: (Ord n, Pretty n)
+flatX   :: (Pretty n, Hashable n, Eq n)
         => a
         -> Exp a n Core.Prim
         -> (Exp a n Flat.Prim -> FlatM a n)
