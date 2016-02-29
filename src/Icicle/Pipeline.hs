@@ -33,6 +33,9 @@ module Icicle.Pipeline
   , coreEval
   , avalancheEval
   , seaEval
+
+  , unName
+  , unVar
   ) where
 
 import qualified Icicle.Avalanche.Annot                   as AA
@@ -91,6 +94,17 @@ import           P
 import           System.IO                                (IO)
 
 import           X.Control.Monad.Trans.Either
+
+
+
+unVar :: SP.Variable -> Text
+unVar (SP.Variable x) = x
+
+unName :: Name a -> a
+unName = go . CommonBase.nameBase
+  where
+   go (CommonBase.NameBase  x) = x
+   go (CommonBase.NameMod _ x) = go x
 
 --------------------------------------------------------------------------------
 
@@ -345,9 +359,6 @@ newtype Result   = Result (Entity, Value)
 instance Pretty Result where
   pretty (Result (ent, val))
     = pretty ent <> comma <> space <> pretty val
-
-unVar :: SourceVar -> Text
-unVar (SP.Variable t) = t
 
 coreEval
   :: Time

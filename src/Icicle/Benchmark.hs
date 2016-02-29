@@ -25,7 +25,6 @@ import           Data.Time (NominalDiffTime, getCurrentTime, diffUTCTime)
 import qualified Icicle.Avalanche.Prim.Flat as A
 import qualified Icicle.Avalanche.Program as A
 import           Icicle.Common.Annot (Annot)
-import           Icicle.Common.Base
 import           Icicle.Core.Program.Fusion (FusionError)
 import qualified Icicle.Core.Program.Fusion as C
 import qualified Icicle.Core.Program.Program as C
@@ -188,15 +187,6 @@ coreOfSource dict (Attribute attr, virtual) =
     let baseattr  = (Attribute . unVar . unName) (S.feature virtual)
 
     pure (Map.singleton baseattr [(S.Variable attr, simplified)])
-
-unVar :: S.Variable -> Text
-unVar (S.Variable x) = x
-
-unName :: Name a -> a
-unName = go . nameBase
-  where
-   go (NameBase  x) = x
-   go (NameMod _ x) = go x
 
 parTraverse  :: Traversable t => (a -> Either e b) -> t a -> Either e (t b)
 parTraverse f = sequenceA . parallel . fmap f
