@@ -34,6 +34,7 @@ data SeaError
   | SeaUnsupportedOutputType                 ValType
   | SeaOutputTypeMismatch         OutputName ValType    [ValType]
   | SeaStructFieldsMismatch                  StructType [(Text, ValType)]
+  | SeaDenseFieldNotDefined      Text              [Text]
   | SeaDenseFieldsMismatch        [(Text, ValType)] [(Text, ValType)]
   | SeaDenseFeedNotDefined        Text (Map Text [(Text, ValType)])
   | SeaNoFactLoop
@@ -65,6 +66,11 @@ instance Pretty SeaError where
      -> vsep [ "Struct type did not match C struct members:"
              , "  struct type = " <> pretty st
              , "  members     = " <> pretty vs ]
+
+    SeaDenseFieldNotDefined s ss
+     -> vsep [ "Dense field does not exist:"
+             , "  dense field   = " <> pretty s
+             , "  struct fields = " <> pretty ss ]
 
     SeaDenseFieldsMismatch st vs
      -> vsep [ "Dense fields did not match C struct members:"

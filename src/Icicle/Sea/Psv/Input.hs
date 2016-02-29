@@ -139,9 +139,15 @@ seaOfReadDenseValue m fields vars = do
   --
   let mismatch  = SeaDenseFieldsMismatch (fmap (second snd) fields) vars
       fields'   = fmap expandOptional fields
-  vars'        <- maybe (Left mismatch) Right (reorder fields' vars)
-  mappings     <- maybe (Left mismatch) Right (mappingOfDenseFields fields' vars')
-  mappings_sea <- traverse (seaOfDenseFieldMapping m) mappings
+
+  -- Get the mapping from the struct encoding in map order
+  let mapOrder  = Map.toList $ Map.fromList fields'
+      userOrder = fmap fst fields'
+  mappings     <- maybe (Left mismatch) Right (mappingOfDenseFields mapOrder vars)
+
+  -- Generate C code for fields in user order
+  mappings_sea <- traverse (seaOfDenseFieldMapping m mappings) userOrder
+
   pure $ vsep
     [ "for (;;) {"
     , indent 4 (vsep mappings_sea)
@@ -153,15 +159,12 @@ seaOfReadDenseValue m fields vars = do
       = case op of
           Optional  -> (n,OptionT t)
           Mandatory -> (n,t)
-    reorder keys xs
-      = do let melted = fmap (second meltType) keys
-               flat   = concatMap (\(k,ts) -> fmap (k,) ts) melted
-               sorted = List.sortBy (comparing fst) flat
-           ixes <- sequence $ fmap (flip List.elemIndex flat) sorted
-           return $ fmap (xs List.!!) ixes
 
-seaOfDenseFieldMapping :: Maybe MissingValue -> FieldMapping -> Either SeaError Doc
-seaOfDenseFieldMapping m (FieldMapping fname ftype vars) = do
+seaOfDenseFieldMapping :: Maybe MissingValue -> [FieldMapping] -> Text -> Either SeaError Doc
+seaOfDenseFieldMapping m mappings field = do
+  FieldMapping fname ftype vars <- maybeToRight
+                                   (SeaDenseFieldNotDefined field (fmap _fieldName mappings))
+                                   (List.find ((== field) . _fieldName) mappings)
   fieldSea <- seaOfReadDenseInput m ftype vars
   let sea   = wrapInBlock
             $ vsep [ "char *ent_pe = pe;"
