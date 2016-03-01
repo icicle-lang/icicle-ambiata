@@ -18,6 +18,7 @@ import              Icicle.Avalanche.Statement.Statement
 import              Icicle.Avalanche.Statement.Simp.ExpEnv
 import              Icicle.Avalanche.Statement.Simp.Dead
 import              Icicle.Avalanche.Prim.Flat
+import              Icicle.Avalanche.Annot
 
 import              Icicle.Common.Base
 import              Icicle.Common.Exp
@@ -29,6 +30,7 @@ import              Icicle.Common.Type
 import              P
 
 import              Data.Functor.Identity
+import              Data.HashSet (HashSet)
 import qualified    Data.HashSet as HashSet
 import qualified    Data.Map as Map
 import qualified    Data.List as List
@@ -334,8 +336,9 @@ substXinS a_fresh name payload statements
 --
 thresher :: (Hashable n, Eq n, Eq p) => a -> Statement a n p -> FixT (Fresh n) (Statement a n p)
 thresher a_fresh statements
- = transformUDStmt trans emptyExpEnv statements
+ = fmap (reannotS fst) $ transformUDStmt trans emptyExpEnv $ freevarsStmt statements
  where
+  a_fresh' = (a_fresh, HashSet.empty)
   trans env s
    -- Check if it actually does anything:
    -- updates accumulators, returns a value, etc.
@@ -350,23 +353,23 @@ thresher a_fresh statements
    = case s of
       -- Unmentioned let - just return the substatement
       Let n x ss
-       | not $ HashSet.member n $ stmtFreeX ss
+       | not $ HashSet.member n $ stmtFreeX' ss
        -> return (env, ss)
       -- Duplicate let: change to refer to existing one
       -- I tried to use simple equality for simpFlattened since expressions cannot contain lambdas, but it was slower. WEIRD.
        | ((n',_):_) <- filter (\(_,x') -> x `alphaEquality` x') $ Map.toList env
-       -> progress (env, Let n (XVar a_fresh n') ss)
+       -> progress (env, Let n (XVar a_fresh' n') ss)
 
       -- Read that's never used
       Read n _ _ ss
-       | not $ HashSet.member n $ stmtFreeX ss
+       | not $ HashSet.member n $ stmtFreeX' ss
        -> progress (env, ss)
 
       InitAccumulator (Accumulator n _ x) ss
        | usage <- accumulatorUsed n ss
        , not (accRead usage) || not (accWritten usage)
        -> do    n' <- lift $ fresh
-                let ss' = Let n' x (killAccumulator n (XVar a_fresh n') ss)
+                let ss' = Let n' x (killAccumulator n (XVar a_fresh' n') ss)
                 progress (env, ss')
 
       If (XValue _ _ (VBool b)) t f
@@ -376,6 +379,36 @@ thresher a_fresh statements
       -- Anything else, we just update environment and recurse
       _
        -> return (updateExpEnv s env, s)
+
+freevarsStmt
+  :: (Hashable n, Eq n)
+  => Statement a n p
+  -> Statement (a, HashSet (Name n)) n p
+freevarsStmt = go
+ where
+  go xx
+   = case xx of
+       If x s1 s2              -> If (freevarsExp x) (go s1) (go s2)
+       Let n x  s              -> Let n (freevarsExp x) (go s)
+       ForeachInts  n  x1 x2 s -> ForeachInts n (freevarsExp x1) (freevarsExp x2) (go s)
+       ForeachFacts ns t  f  s -> ForeachFacts ns t f (go s)
+       Block ss                -> Block $ fmap go ss
+       InitAccumulator acc s   -> InitAccumulator (freevarsAcc acc) (freevarsStmt s)
+       Read n1 n2 t s          -> Read n1 n2 t (freevarsStmt s)
+       Write n x               -> Write n (freevarsExp x)
+
+       -- Anything else, we don't care, the transforms don't touch them
+       Output n t xs     -> Output n t (fmap (first freevarsExp) xs)
+       KeepFactInHistory -> KeepFactInHistory
+       LoadResumable n t -> LoadResumable n t
+       SaveResumable n t -> SaveResumable n t
+
+freevarsAcc
+  :: (Hashable n, Eq n)
+  => Accumulator a n p
+  -> Accumulator (a, HashSet (Name n)) n p
+freevarsAcc acc
+  = acc { accInit = freevarsExp (accInit acc) }
 
 
 -- | Check whether a statement writes to any accumulators or returns a value.
@@ -427,8 +460,18 @@ hasEffect statements
 
 -- | Find free *expression* variables in statements.
 -- Note that this ignores accumulators, as they are a different scope.
-stmtFreeX :: (Hashable n, Eq n) => Statement a n p -> HashSet.HashSet (Name n)
-stmtFreeX statements
+stmtFreeX :: (Hashable n, Eq n) => Statement a n p -> HashSet (Name n)
+stmtFreeX = stmtFreeX_ freevars
+
+stmtFreeX' :: (Hashable n, Eq n) => Statement (a, HashSet (Name n)) n p -> HashSet (Name n)
+stmtFreeX' = stmtFreeX_ (snd . annotOfExp)
+
+stmtFreeX_
+ :: (Hashable n, Eq n)
+ => (Exp a n p -> HashSet (Name n))
+ -> Statement a n p
+ -> HashSet (Name n)
+stmtFreeX_ frees statements
  = runIdentity
  $ foldStmt down up HashSet.union () HashSet.empty statements
  where
@@ -436,7 +479,7 @@ stmtFreeX statements
    = return ()
 
   up _ subvars s
-   = let ret x = return (freevars x `HashSet.union` subvars)
+   = let ret x = return (frees x `HashSet.union` subvars)
      in  case s of
           -- Simply recursion for most cases
           If x _ _
@@ -445,9 +488,9 @@ stmtFreeX statements
           -- but need to hide "n" from the free variables of ss:
           -- n is not free in there any more.
           Let n x _
-           -> return (freevars x `HashSet.union` HashSet.delete n subvars)
+           -> return (frees x `HashSet.union` HashSet.delete n subvars)
           ForeachInts n x y _
-           -> return (freevars x `HashSet.union` freevars y `HashSet.union` HashSet.delete n subvars)
+           -> return (frees x `HashSet.union` frees y `HashSet.union` HashSet.delete n subvars)
 
           -- Accumulators are in a different scope,
           -- so the binding doesn't hide anything.
@@ -466,7 +509,7 @@ stmtFreeX statements
           Write _ x
            -> ret x
           Output _ _ xs
-           -> return (HashSet.unions (fmap (freevars . fst) xs) `HashSet.union` subvars)
+           -> return (HashSet.unions (fmap (frees . fst) xs) `HashSet.union` subvars)
 
           -- Leftovers: just the union of the under bits
           _

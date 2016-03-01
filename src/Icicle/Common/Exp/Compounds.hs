@@ -10,6 +10,7 @@ module Icicle.Common.Exp.Compounds (
     , makeLets
     , takeLets
     , freevars
+    , freevarsExp
     , allvars
     , substMaybe
     , subst
@@ -22,6 +23,7 @@ import              Icicle.Common.Value
 
 import              P
 
+import              Data.HashSet (HashSet)
 import qualified    Data.HashSet as HashSet
 import qualified    Data.Set     as Set
 import qualified    Data.Map     as Map
@@ -80,12 +82,35 @@ takeValue (XLam _ n _ x) = Just (VFun Map.empty n x)
 -- I promise this is exhaustive.
 takeValue  _             = Nothing
 
+--------------------------------------------------------------------------------
+
+freevarsExp
+  :: (Hashable n, Eq n)
+  => Exp a n p
+  -> Exp (a, HashSet (Name n)) n p
+freevarsExp xx
+ = case xx of
+    XVar   a n     -> XVar   (a, HashSet.singleton n) n
+    XPrim  a p     -> XPrim  (a, HashSet.empty)       p
+    XValue a t v   -> XValue (a, HashSet.empty)       t v
+    XApp   a p q   -> let !p' = freevarsExp p
+                          !q' = freevarsExp q
+                          !a' = ann p' <> ann q'
+                      in  XApp (a, a') p' q'
+    XLam   a n t x -> let !x' = freevarsExp x
+                          !a' = HashSet.delete n (ann x')
+                      in  XLam (a, a') n t x'
+    XLet   a n x y -> let !x' = freevarsExp x
+                          !y' = freevarsExp y
+                          !a' = ann x' <> HashSet.delete n (ann y')
+                      in  XLet (a, a') n x' y'
+  where ann = snd . annotOfExp
 
 -- | Collect all free variables in an expression
 -- i.e. those that are not bound by lets or lambdas.
 freevars :: (Hashable n, Eq n)
          => Exp a n p
-         -> HashSet.HashSet (Name n)
+         -> HashSet (Name n)
 freevars xx
  = case xx of
     XVar _ n     -> HashSet.singleton n
@@ -110,6 +135,7 @@ allvars xx
     XLam _ n _ x -> Set.singleton n <> allvars x
     XLet _ n x y -> Set.singleton n <> allvars x <> allvars y
 
+--------------------------------------------------------------------------------
 
 -- | Substitute an expression in, but if it would require renaming
 -- just give up and return Nothing
