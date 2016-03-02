@@ -23,8 +23,7 @@ import              Icicle.Common.Value
 
 import              P
 
-import              Data.HashSet (HashSet)
-import qualified    Data.HashSet as HashSet
+import              Data.Set (Set)
 import qualified    Data.Set     as Set
 import qualified    Data.Map     as Map
 import              Data.Hashable
@@ -87,22 +86,22 @@ takeValue  _             = Nothing
 freevarsExp
   :: (Hashable n, Eq n)
   => Exp a n p
-  -> Exp (a, HashSet (Name n)) n p
+  -> Exp (a, Set (Name n)) n p
 freevarsExp xx
  = case xx of
-    XVar   a n     -> XVar   (a, HashSet.singleton n) n
-    XPrim  a p     -> XPrim  (a, HashSet.empty)       p
-    XValue a t v   -> XValue (a, HashSet.empty)       t v
+    XVar   a n     -> XVar   (a, Set.singleton n) n
+    XPrim  a p     -> XPrim  (a, Set.empty)       p
+    XValue a t v   -> XValue (a, Set.empty)       t v
     XApp   a p q   -> let !p' = freevarsExp p
                           !q' = freevarsExp q
                           !a' = ann p' <> ann q'
                       in  XApp (a, a') p' q'
     XLam   a n t x -> let !x' = freevarsExp x
-                          !a' = HashSet.delete n (ann x')
+                          !a' = Set.delete n (ann x')
                       in  XLam (a, a') n t x'
     XLet   a n x y -> let !x' = freevarsExp x
                           !y' = freevarsExp y
-                          !a' = ann x' <> HashSet.delete n (ann y')
+                          !a' = ann x' <> Set.delete n (ann y')
                       in  XLet (a, a') n x' y'
   where ann = snd . annotOfExp
 
@@ -110,15 +109,15 @@ freevarsExp xx
 -- i.e. those that are not bound by lets or lambdas.
 freevars :: (Hashable n, Eq n)
          => Exp a n p
-         -> HashSet (Name n)
+         -> Set (Name n)
 freevars xx
  = case xx of
-    XVar _ n     -> HashSet.singleton n
-    XPrim{}      -> HashSet.empty
-    XValue{}     -> HashSet.empty
+    XVar _ n     -> Set.singleton n
+    XPrim{}      -> Set.empty
+    XValue{}     -> Set.empty
     XApp _ p q   -> let !x = freevars p <> freevars q in x
-    XLam _ n _ x -> HashSet.delete n (freevars x)
-    XLet _ n x y -> let !a = freevars x <> HashSet.delete n (freevars y) in a
+    XLam _ n _ x -> Set.delete n (freevars x)
+    XLet _ n x y -> let !a = freevars x <> Set.delete n (freevars y) in a
 
 
 -- | Collect all variable names in an expression:
@@ -168,7 +167,7 @@ substMaybe name payload into
        | n == name
        -> return xx
        -- If the name clashes, we can't do anything
-       | n `HashSet.member` payload_free
+       | n `Set.member` payload_free
        -> Nothing
 
        -- Name is mentioned and no clashes, so proceed
@@ -182,7 +181,7 @@ substMaybe name payload into
        -- and the *body* of the let needs to be substituted into,
        -- we cannot proceed.
        -- (It doesn't matter if the definition, x1, mentions name because "n" is not bound there)
-       | (n `HashSet.member` payload_free)
+       | (n `Set.member` payload_free)
        -> Nothing
 
        -- Proceed as usual
@@ -220,7 +219,7 @@ subst a_fresh name payload into
 
       XLam a n t x
        -- If the name clashes, we need to rename n
-       | (n `HashSet.member` payload_free) || n == name
+       | (n `Set.member` payload_free) || n == name
        -> do    n' <- fresh
                 x' <- subst a_fresh n (XVar a_fresh n') x
                 XLam a n' t <$> go x'
@@ -232,7 +231,7 @@ subst a_fresh name payload into
       XLet a n x1 x2
        -- If the let's name clashes with the substitution we're trying to make,
        -- we need to rename
-       | (n `HashSet.member` payload_free) || n == name
+       | (n `Set.member` payload_free) || n == name
        -> do    n'  <- fresh
                 x2' <- subst a_fresh n (XVar a_fresh n') x2
                 XLet a n' <$> go x1 <*> go x2'
