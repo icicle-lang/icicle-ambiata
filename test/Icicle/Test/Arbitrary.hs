@@ -1,5 +1,6 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DeriveGeneric     #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Icicle.Test.Arbitrary where
 
@@ -15,15 +16,21 @@ import           Test.QuickCheck
 import           Test.QuickCheck.Instances ()
 
 import           P
+
+import           GHC.Generics
+
 import qualified Data.List as List
 import qualified Data.Text as T
 import           Data.String
 import           Data.Char
+import           Data.Hashable (Hashable)
 
 
 -- | Variables used in random Core and Avalanche programs.
 data Var = Var T.Text Int
- deriving (Eq,Ord,Show)
+ deriving (Eq,Ord,Show,Generic)
+
+instance Hashable Var
 
 instance IsString Var where
   fromString s
@@ -33,7 +40,7 @@ instance IsString Var where
 -- | Generate a fresh variable name that isn't mentioned elsewhere in the program,
 -- (assuming that the generated program doesn't mention it)
 fresh :: Int -> Name Var
-fresh = Name . Var "_fresh"
+fresh = nameOf . NameBase . Var "_fresh"
 
 --------------------------------------------------------------------------------
 

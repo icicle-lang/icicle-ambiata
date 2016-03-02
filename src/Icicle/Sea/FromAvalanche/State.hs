@@ -57,7 +57,7 @@ data SeaProgramState = SeaProgramState {
 ------------------------------------------------------------------------
 
 stateOfProgram
-  :: (Pretty n, Ord n)
+  :: (Pretty n, Eq n)
   => Int
   -> Attribute
   -> Program (Annot a) n Prim

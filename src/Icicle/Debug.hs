@@ -151,10 +151,3 @@ entryOfQuery attr query =
 concrete :: DictionaryEntry -> Bool
 concrete (DictionaryEntry _ (ConcreteDefinition _ _)) = True
 concrete (DictionaryEntry _ (VirtualDefinition  _))   = False
-
-unVar :: S.Variable -> Text
-unVar (S.Variable x) = x
-
-unName :: Name a -> a
-unName (Name x)      = x
-unName (NameMod _ x) = unName x

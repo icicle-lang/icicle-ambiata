@@ -48,7 +48,7 @@ prop_flatten_commutes_value t =
 
          simp = Fresh.runFreshT
                         (AF.flatten () $ AP.statements p')
-                        (Fresh.counterNameState (Name . Var "anf") 0)
+                        (Fresh.counterNameState (NameBase . Var "anf") 0)
      in case simp of
          Left e
           -> counterexample (show e)

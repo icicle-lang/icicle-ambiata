@@ -15,6 +15,7 @@ import qualified        Icicle.Core as C
 
 import                  P
 import qualified        Data.Map as Map
+import                  Data.Hashable (Hashable)
 
 
 data Features a n
@@ -48,7 +49,7 @@ typeOfFeatureVariable fv
  $ Possibility (if featureVariablePossibly fv then PossibilityPossibly else PossibilityDefinitely)
  $ featureVariableType fv
 
-envOfFeatureNow :: Ord n => Maybe (Name n) -> Map.Map (Name n) (Type n)
+envOfFeatureNow :: (Hashable n, Eq n) => Maybe (Name n) -> Map.Map (Name n) (Type n)
 envOfFeatureNow
  = Map.fromList
  . maybeToList

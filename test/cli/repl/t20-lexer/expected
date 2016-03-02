@@ -29,7 +29,7 @@ Check error:
       max                  : Element a -> Aggregate Possibly a
       mean                 : (Num a) => Element a -> Aggregate Possibly Double
       exp                  : Double -> Double
-      min                  : Element a -> Aggregate Possibly a
+      now                  : Aggregate Definitely Time
       not                  : Bool -> Bool
 
 > > -- Expect a parse error on unterminated string

@@ -112,8 +112,8 @@ tryGenWellTypedWith allowDupTime (InputType ty) = do
 
       namer       = A.namerText (flip Var 0)
       dummyAnn    = Annot (FunT [] UnitT) ()
-      anfCounter  = Fresh.counterNameState (Name . Var "anf")  0
-      simpCounter = Fresh.counterNameState (Name . Var "simp") 0
+      anfCounter  = Fresh.counterNameState (NameBase . Var "anf")  0
+      simpCounter = Fresh.counterNameState (NameBase . Var "simp") 0
 
       supportedOutput t | isSupportedOutput t = Just t
       supportedOutput _                       = Nothing

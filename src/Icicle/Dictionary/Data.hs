@@ -18,7 +18,7 @@ import qualified Icicle.Common.Exp.Prim.Minimal     as X
 import qualified Icicle.Common.Exp                  as X
 import qualified Icicle.Common.Fresh                as Fresh
 import qualified Icicle.Core                        as X
-import           Icicle.Common.Base (Name(..), nameOfStructField, BaseValue(..), ExceptionInfo(..))
+import           Icicle.Common.Base
 import           Icicle.Common.Type (ValType(..), StructType(..))
 
 import           Icicle.Source.Query
@@ -184,7 +184,7 @@ featureMapOfDictionary (Dictionary { dictionaryEntries = ds, dictionaryFunctions
    = (var "tombstone"
      , STC.FeatureVariable (baseType BoolT) (X.XApp () (xtomb e') . X.XApp () (xfst (sumT e') TimeT)) False)
 
-  var = Name . Variable
+  var = nameOf . NameBase . Variable
 
 prettyDictionarySummary :: Dictionary -> Doc
 prettyDictionarySummary dict

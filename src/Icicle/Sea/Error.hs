@@ -37,6 +37,7 @@ data SeaError
   | SeaDenseFieldNotDefined      Text              [Text]
   | SeaDenseFieldsMismatch        [(Text, ValType)] [(Text, ValType)]
   | SeaDenseFeedNotDefined        Text (Map Text [(Text, ValType)])
+  | SeaDenseFeedNotUsed           Text
   | SeaNoFactLoop
   | SeaNoOutputs
   deriving (Eq, Show)
@@ -82,6 +83,9 @@ instance Pretty SeaError where
              , "  dense feeds = " <> pretty (Map.toList fs)
              , "  looking for = " <> pretty attr
              ]
+    SeaDenseFeedNotUsed attr
+     -> "Dense feed \"" <+> pretty attr <+> "\" is not used in Icicle expressions, nothing to do."
+
     SeaInputTypeMismatch t ns
      -> vsep [ "Unsupported mapping, cannot map input type to its C struct members"
              , "  input type    = " <> pretty t

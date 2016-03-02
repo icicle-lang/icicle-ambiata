@@ -15,6 +15,7 @@ import                  P
 
 
 import                  Data.List (zip)
+import                  Data.Hashable (Hashable)
 import qualified        Data.Map as Map
 
 
@@ -22,7 +23,7 @@ import qualified        Data.Map as Map
 type Result a n = Either (CheckError a n) ()
 
 invariantQ
-        :: Ord        n
+        :: (Hashable n, Eq n)
         => CheckEnv a n
         -> Query    a n
         -> Result   a n
@@ -94,7 +95,7 @@ invariantQ ctx (Query (c:cs) xfinal)
 
 
 invariantX
-        :: Ord        n
+        :: (Hashable n, Eq n)
         => CheckEnv a n
         -> Exp      a n
         -> Result   a n

@@ -12,10 +12,11 @@ import              Icicle.Core.Stream.Error
 
 import              P
 
+import              Data.Hashable (Hashable)
 
 
 checkStream
-        :: Ord n
+        :: (Hashable n, Eq n)
         => Env n Type
         -> Stream a n
         -> Either (StreamError a n) (Env n Type)

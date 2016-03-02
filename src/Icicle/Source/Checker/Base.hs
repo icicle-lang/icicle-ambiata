@@ -44,6 +44,7 @@ import           Control.Monad.Trans.Class
 
 import           Data.Functor.Identity
 import qualified Data.Map                    as Map
+import           Data.Hashable (Hashable)
 
 import           X.Control.Monad.Trans.Either
 
@@ -111,7 +112,7 @@ require a c = [(a,c)]
 -- | Discharge the constraints in some context after applying some type substitutions.
 --
 discharge
-  :: Ord n
+  :: (Hashable n, Eq n)
   => (q -> a)
   -> (SubstT n -> q -> q)
   -> (q, SubstT n, GenConstraintSet a n)
@@ -127,14 +128,14 @@ discharge annotOf sub (q, s, conset)
               --let e' = fmap (substFT s'') env
               return (sub s'' q, s'', cs')
 
-fresh :: Gen a n (Name n)
+fresh :: Hashable n => Gen a n (Name n)
 fresh
  = Gen . lift $ Fresh.fresh
 
 -- | Freshen function type by applying introduction rules to foralls.
 --
 introForalls
-  :: Ord n
+  :: (Hashable n, Eq n)
   => a
   -> FunctionType n
   -> Gen a n (FunctionType n, [Type n], Type n, GenConstraintSet a n)
@@ -158,7 +159,7 @@ introForalls ann f
 --   types and return type where forall-quantified variables have been freshen'd.
 --
 lookup
-  :: Ord n
+  :: (Hashable n, Eq n)
   => a
   -> Name n
   -> GenEnv n
@@ -173,13 +174,13 @@ lookup ann n env
                            [AvailableBindings n $ Map.toList env]
 
 -- | Bind a new to a type in the given context.
-bind :: Ord n => Name n -> Type n -> GenEnv n -> GenEnv n
+bind :: (Hashable n, Eq n) => Name n -> Type n -> GenEnv n -> GenEnv n
 bind n t
  = Map.insert n (function0 t)
 
 -- | Temporarily add the binding to a context, then do something.
 withBind
-  :: Ord n
+  :: (Hashable n, Eq n)
   => Name n
   -> Type n
   -> GenEnv n
@@ -188,7 +189,7 @@ withBind
 withBind n t old gen
  = gen (bind n t old)
 
-removeElementBinds :: Ord n => GenEnv n -> GenEnv n
+removeElementBinds :: (Hashable n, Eq n) => GenEnv n -> GenEnv n
 removeElementBinds env
  = let elts  = Map.keys $ Map.filter isElementTemporality env
    in  foldr Map.delete env elts
@@ -197,19 +198,19 @@ removeElementBinds env
    = getTemporalityOrPure (functionReturn ft) == TemporalityElement
 
 
-substE :: Ord n => SubstT n -> GenEnv n -> GenEnv n
+substE :: (Hashable n, Eq n) => SubstT n -> GenEnv n -> GenEnv n
 substE s
  = fmap (substFT s)
 
-substTQ :: Ord n => SubstT n -> Query'C a n -> Query'C a n
+substTQ :: (Hashable n, Eq n) => SubstT n -> Query'C a n -> Query'C a n
 substTQ s
  = reannotQ (substAnnot s)
 
-substTX :: Ord n => SubstT n -> Exp'C a n -> Exp'C a n
+substTX :: (Hashable n, Eq n) => SubstT n -> Exp'C a n -> Exp'C a n
 substTX s
  = reannotX (substAnnot s)
 
-substAnnot :: Ord n => SubstT n -> Annot a n -> Annot a n
+substAnnot :: (Hashable n, Eq n) => SubstT n -> Annot a n -> Annot a n
 substAnnot s ann
  = ann
  { annResult = substT s $ annResult ann

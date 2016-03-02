@@ -17,11 +17,11 @@ import P
 
 import              Data.List (zip)
 import qualified    Data.Map as Map
-
+import              Data.Hashable (Hashable)
 
 
 inlineTransform
-        :: Ord n
+        :: (Hashable n, Eq n)
         => Map.Map (Name n) (Function a n)
         -> Transform (Fresh n) () a n
 inlineTransform funs
@@ -38,7 +38,7 @@ inlineTransform funs
    , length args == length (arguments fun)
    = do let argNames
                     = fmap snd $ arguments fun
-        ns         <- mapM freshPrefix' argNames
+        ns         <- mapM (freshPrefixBase . nameBase) argNames
 
         let sub     = Map.fromList
                     $ argNames `zip` fmap (Var a) ns
@@ -64,7 +64,7 @@ inlineTransform funs
    = Query (cs <> cs') xx
 
 
-inlineQT :: Ord n
+inlineQT :: (Hashable n, Eq n)
         => Map.Map (Name n) (Function a n)
         -> QueryTop a n
         -> Fresh n (QueryTop a n)
@@ -72,7 +72,7 @@ inlineQT funs qt
  = simplifyNestedQT <$> transformQT (inlineTransform funs) qt
 
 
-inlineQ :: Ord n
+inlineQ :: (Hashable n, Eq n)
         => Map.Map (Name n) (Function a n)
         -> Query a n
         -> Fresh n (Query a n)

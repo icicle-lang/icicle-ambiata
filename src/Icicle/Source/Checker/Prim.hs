@@ -14,11 +14,12 @@ import                  Icicle.Source.Query
 import                  Icicle.Source.Type
 
 import                  Control.Monad.Trans.Class
+import                  Data.Hashable (Hashable)
 
 import                  P
 
 primLookup
- :: Ord n
+ :: (Hashable n, Eq n)
  => a -> Prim
  -> Gen a n (FunctionType n, [Type n], Type n, GenConstraintSet a n)
 primLookup ann p

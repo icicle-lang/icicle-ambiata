@@ -19,6 +19,7 @@ import qualified        Icicle.Common.Fresh     as Fresh
 import                  P
 
 import qualified        Data.Map as Map
+import                  Data.Hashable (Hashable)
 
 import                  X.Control.Monad.Trans.Either
 
@@ -28,7 +29,7 @@ type Result r a n = EitherT (CheckError a n) (Fresh.Fresh n) (r, Type n)
 
 
 -- | Check a top-level Query, returning the query with type annotations and casts inserted.
-checkQT :: Ord n
+checkQT :: (Hashable n, Eq n)
         => Features () n
         -> QueryTop a n
         -> Result (QueryTop (Annot a n) n) a n
@@ -55,7 +56,7 @@ checkQT features qt
    $ featuresConcretes features
 
 
-checkQ  :: Ord        n
+checkQ  :: (Hashable n, Eq n)
         => CheckEnv a n
         -> Query    a n
         -> Result (Query (Annot a n) n) a n

@@ -1,6 +1,7 @@
 -- | Some useful things to do with expressions
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE PatternGuards #-}
+{-# LANGUAGE BangPatterns  #-}
 module Icicle.Common.Exp.Compounds (
       makeApps
     , takeApps
@@ -9,6 +10,7 @@ module Icicle.Common.Exp.Compounds (
     , makeLets
     , takeLets
     , freevars
+    , freevarsExp
     , allvars
     , substMaybe
     , subst
@@ -21,14 +23,16 @@ import              Icicle.Common.Value
 
 import              P
 
-import qualified    Data.Set    as Set
-import qualified    Data.Map    as Map
+import              Data.Set (Set)
+import qualified    Data.Set     as Set
+import qualified    Data.Map     as Map
+import              Data.Hashable
 
 
 -- | Apply an expression to any number of arguments
 makeApps :: a -> Exp a n p -> [Exp a n p] -> Exp a n p
 makeApps a f args
- = foldl (XApp a) f args
+ = foldl' (XApp a) f args
 
 
 -- | Split an expression into its function part and any arguments applied to it.
@@ -77,27 +81,48 @@ takeValue (XLam _ n _ x) = Just (VFun Map.empty n x)
 -- I promise this is exhaustive.
 takeValue  _             = Nothing
 
+--------------------------------------------------------------------------------
+
+freevarsExp
+  :: (Hashable n, Eq n)
+  => Exp a n p
+  -> Exp (a, Set (Name n)) n p
+freevarsExp xx
+ = case xx of
+    XVar   a n     -> XVar   (a, Set.singleton n) n
+    XPrim  a p     -> XPrim  (a, Set.empty)       p
+    XValue a t v   -> XValue (a, Set.empty)       t v
+    XApp   a p q   -> let !p' = freevarsExp p
+                          !q' = freevarsExp q
+                          !a' = ann p' <> ann q'
+                      in  XApp (a, a') p' q'
+    XLam   a n t x -> let !x' = freevarsExp x
+                          !a' = Set.delete n (ann x')
+                      in  XLam (a, a') n t x'
+    XLet   a n x y -> let !x' = freevarsExp x
+                          !y' = freevarsExp y
+                          !a' = ann x' <> Set.delete n (ann y')
+                      in  XLet (a, a') n x' y'
+  where ann = snd . annotOfExp
 
 -- | Collect all free variables in an expression
 -- i.e. those that are not bound by lets or lambdas.
-freevars
-        :: Ord n
-        => Exp a n p
-        -> Set.Set (Name n)
+freevars :: (Hashable n, Eq n)
+         => Exp a n p
+         -> Set (Name n)
 freevars xx
  = case xx of
     XVar _ n     -> Set.singleton n
     XPrim{}      -> Set.empty
     XValue{}     -> Set.empty
-    XApp _ p q   -> freevars p <> freevars q
+    XApp _ p q   -> let !x = freevars p <> freevars q in x
     XLam _ n _ x -> Set.delete n (freevars x)
-    XLet _ n x y -> freevars x <> Set.delete n (freevars y)
+    XLet _ n x y -> let !a = freevars x <> Set.delete n (freevars y) in a
 
 
 -- | Collect all variable names in an expression:
 -- free and bound
-allvars
-        :: Ord n
+allvars :: (Hashable n, Eq n)
         => Exp a n p
         -> Set.Set (Name n)
 allvars xx
@@ -109,15 +134,15 @@ allvars xx
     XLam _ n _ x -> Set.singleton n <> allvars x
     XLet _ n x y -> Set.singleton n <> allvars x <> allvars y
 
+--------------------------------------------------------------------------------
 
 -- | Substitute an expression in, but if it would require renaming
 -- just give up and return Nothing
-substMaybe
-        :: Ord n
-        => Name n
-        -> Exp a n p
-        -> Exp a n p
-        -> Maybe (Exp a n p)
+substMaybe :: (Hashable n, Eq n)
+           => Name n
+           -> Exp a n p
+           -> Exp a n p
+           -> Maybe (Exp a n p)
 substMaybe name payload into
  = go into
  where
@@ -166,13 +191,12 @@ substMaybe name payload into
 
 -- | Substitute an expression in,
 -- using fresh names to avoid capture
-subst
-        :: Ord n
-        => a
-        -> Name n
-        -> Exp a n p
-        -> Exp a n p
-        -> Fresh n (Exp a n p)
+subst :: (Hashable n, Eq n)
+      => a
+      -> Name n
+      -> Exp a n p
+      -> Exp a n p
+      -> Fresh n (Exp a n p)
 subst a_fresh name payload into
  = go into
  where

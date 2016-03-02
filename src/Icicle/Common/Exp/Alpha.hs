@@ -11,12 +11,13 @@ import              Icicle.Common.Exp.Exp
 import              P
 
 import qualified    Data.Map                as Map
+import              Data.Hashable           (Hashable)
 
 
 -- | Check whether two expressions are syntactically equal,
 -- but allow locally bound names to differ.
 alphaEquality
-        :: (Ord n, Eq p)
+        :: (Hashable n, Eq n, Eq p)
         => Exp a n p -> Exp a n p
         -> Bool
 alphaEquality = alphaEquality' emptyCtx
@@ -25,7 +26,7 @@ alphaEquality = alphaEquality' emptyCtx
 -- | Check alpha equality with bijection of names bound in left expression to
 -- their equivalent in right
 alphaEquality'
-        :: (Ord n, Eq p)
+        :: (Hashable n, Eq n, Eq p)
         => Ctx n
         -> Exp a n p -> Exp a n p
         -> Bool
@@ -82,7 +83,7 @@ emptyCtx = (Map.empty, Map.empty)
 -- | Insert l=r into bijection map.
 -- If there is already a binding that mentions l, it will be overwritten by the Map.insert.
 -- If there is already a binding that mentions r, we must find its matching left and remove it.
-insertBoth :: Ord n => Ctx n -> (Name n, Name n) -> Ctx n
+insertBoth :: (Hashable n, Eq n) => Ctx n -> (Name n, Name n) -> Ctx n
 insertBoth (ml,mr) (l,r)
  = (Map.insert l r ml, Map.insert r l mr)
 
@@ -90,7 +91,7 @@ insertBoth (ml,mr) (l,r)
 -- If they both occur in the bijection map, check that they both match.
 -- If neither occur in the map they are free variables, and must be equal.
 -- Otherwise one is bound and the other isn't, which means they cannot be equal.
-lookupBoth :: Ord n => Ctx n -> (Name n, Name n) -> Bool
+lookupBoth :: (Hashable n, Eq n) => Ctx n -> (Name n, Name n) -> Bool
 lookupBoth (ml,mr) (l,r)
  = case (Map.lookup l ml, Map.lookup r mr) of
     (Just r', Just l')

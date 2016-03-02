@@ -20,11 +20,14 @@ import              P
 
 import qualified    Data.List as List
 import qualified    Data.Map as Map
+import              Data.Hashable (Hashable)
 
 
 -- | Simplify applied primitives.
 --
-constructor :: (Eq a, Ord n) => a -> Statement a n Prim -> FixT (Fresh n) (Statement a n Prim)
+constructor
+  :: (Eq a, Eq n, Hashable n)
+  => a -> Statement a n Prim -> FixT (Fresh n) (Statement a n Prim)
 constructor a_fresh statements
  = transformUDStmt goS emptyExpEnv statements
  where

@@ -39,7 +39,7 @@ import qualified Data.Map as Map
 
 ------------------------------------------------------------------------
 
-seaOfProgram :: (Show a, Show n, Pretty n, Ord n)
+seaOfProgram :: (Show a, Show n, Pretty n, Eq n)
              => Int -> Attribute -> Program (Annot a) n Prim -> Either SeaError Doc
 seaOfProgram name attrib program = do
   state <- stateOfProgram name attrib program
@@ -63,13 +63,13 @@ seaOfProgram name attrib program = do
     , "}"
     ]
 
-defOfAccumulator :: (Show n, Pretty n, Ord n) => (Name n, ValType) -> Doc
+defOfAccumulator :: (Show n, Pretty n) => (Name n, ValType) -> Doc
 defOfAccumulator (n, vt)
  = defOfVar 0 vt (seaOfName n) <> semi
 
 ------------------------------------------------------------------------
 
-seaOfStatement :: (Show a, Show n, Pretty n, Ord n)
+seaOfStatement :: (Show a, Show n, Pretty n, Eq n)
                => Statement (Annot a) n Prim -> Doc
 seaOfStatement stmt
  = case stmt of
@@ -167,7 +167,7 @@ seaOfStatement stmt
 
 ------------------------------------------------------------------------
 
-seaOfExp :: (Show a, Show n, Pretty n, Ord n)
+seaOfExp :: (Show a, Show n, Pretty n, Eq n)
          => Exp (Annot a) n Prim -> Doc
 seaOfExp xx
  = case xx of

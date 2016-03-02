@@ -23,6 +23,7 @@ import                  P hiding (join)
 
 import                  Data.List (nubBy)
 import qualified        Data.Map as Map
+import                  Data.Hashable (Hashable)
 
 
 -- | Result of discharging a single constraint
@@ -64,7 +65,7 @@ instance Pretty n => Pretty (DischargeError n) where
   <> pretty a <> " with " <> pretty b
 
 -- | Discharge a single constraint
-dischargeC :: Ord n => Constraint n -> Either (DischargeError n) (DischargeResult n)
+dischargeC :: (Hashable n, Eq n) => Constraint n -> Either (DischargeError n) (DischargeResult n)
 dischargeC c
  = case c of
     CIsNum IntT
@@ -218,7 +219,7 @@ dischargeC c
 -- "Element =: TemporalityJoin b Element",
 -- it is really the same as just requiring "b" to be element.
 dischargeC'toplevel
-        :: Ord n
+        :: (Hashable n, Eq n)
         => Constraint n
         -> Either (DischargeError n) (DischargeResult n)
 dischargeC'toplevel cons
@@ -242,7 +243,7 @@ dischargeC'toplevel cons
 
 
 dischargeCS
-        :: Ord n
+        :: (Hashable n, Eq n)
         => [(a, Constraint n)]
         -> Either [(a, DischargeError n)] (SubstT n, [(a, Constraint n)])
 dischargeCS = dischargeCS' dischargeC
@@ -251,7 +252,7 @@ dischargeCS = dischargeCS' dischargeC
 -- | Attempt to discharge a set of constraints
 -- Return a list of errors, or the substitution and any leftover constraints
 dischargeCS'
-        :: Ord n
+        :: (Hashable n, Eq n)
         => (Constraint n -> Either (DischargeError n) (DischargeResult n))
         -> [(a, Constraint n)]
         -> Either [(a, DischargeError n)] (SubstT n, [(a, Constraint n)])
@@ -296,7 +297,7 @@ dischargeCS' solver
 
 
 nubConstraints
-    :: Ord n
+    :: (Hashable n, Eq n)
     => [(a, Constraint n)]
     -> [(a, Constraint n)]
 nubConstraints cs

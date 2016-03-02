@@ -32,7 +32,7 @@ import qualified Data.Set as Set
 ------------------------------------------------------------------------
 -- Analysis
 
-factVarsOfProgram :: Ord n
+factVarsOfProgram :: Eq n
                   => FactLoopType
                   -> Program (Annot a) n Prim
                   -> Maybe (ValType, [(Name n, ValType)])
@@ -40,7 +40,7 @@ factVarsOfProgram :: Ord n
 factVarsOfProgram loopType = factVarsOfStatement loopType . statements
 
 
-factVarsOfStatement :: Ord n
+factVarsOfStatement :: Eq n
                     => FactLoopType
                     -> Statement (Annot a) n Prim
                     -> Maybe (ValType, [(Name n, ValType)])
@@ -71,10 +71,10 @@ factVarsOfStatement loopType stmt
 
 ------------------------------------------------------------------------
 
-resumablesOfProgram :: Ord n => Program (Annot a) n Prim -> Map (Name n) ValType
+resumablesOfProgram :: Eq n => Program (Annot a) n Prim -> Map (Name n) ValType
 resumablesOfProgram = resumablesOfStatement . statements
 
-resumablesOfStatement :: Ord n => Statement (Annot a) n Prim -> Map (Name n) ValType
+resumablesOfStatement :: Eq n => Statement (Annot a) n Prim -> Map (Name n) ValType
 resumablesOfStatement stmt
  = case stmt of
      Block []              -> Map.empty
@@ -96,10 +96,10 @@ resumablesOfStatement stmt
 
 ------------------------------------------------------------------------
 
-accumsOfProgram :: Ord n => Program (Annot a) n Prim -> Map (Name n) (ValType)
+accumsOfProgram :: Eq n => Program (Annot a) n Prim -> Map (Name n) (ValType)
 accumsOfProgram = accumsOfStatement . statements
 
-accumsOfStatement :: Ord n => Statement (Annot a) n Prim -> Map (Name n) (ValType)
+accumsOfStatement :: Eq n => Statement (Annot a) n Prim -> Map (Name n) (ValType)
 accumsOfStatement stmt
  = case stmt of
      Block []              -> Map.empty
@@ -123,10 +123,10 @@ accumsOfStatement stmt
 
 ------------------------------------------------------------------------
 
-readsOfProgram :: Ord n => Program (Annot a) n Prim -> Map (Name n) (ValType)
+readsOfProgram :: Eq n => Program (Annot a) n Prim -> Map (Name n) (ValType)
 readsOfProgram = readsOfStatement . statements
 
-readsOfStatement :: Ord n => Statement (Annot a) n Prim -> Map (Name n) (ValType)
+readsOfStatement :: Eq n => Statement (Annot a) n Prim -> Map (Name n) (ValType)
 readsOfStatement stmt
  = case stmt of
      Block []              -> Map.empty

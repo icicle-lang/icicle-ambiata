@@ -79,7 +79,7 @@ prop_anormal_form_evaluation
  -> eval0 evalPrim x === eval0 evalPrim
    ( snd
    $ Fresh.runFresh (ANormal.anormal () x)
-                    (Fresh.counterNameState (Name . Var "anf") 0))
+                    (Fresh.counterNameState (NameBase . Var "anf") 0))
 
 
 -- Converting to a-normal form preserves type
@@ -88,7 +88,7 @@ prop_anormal_form_type
  $ \x _
  -> let x' = snd
            $ Fresh.runFresh (ANormal.anormal () x)
-                            (Fresh.counterNameState (Name . Var "anf") 0)
+                            (Fresh.counterNameState (NameBase . Var "anf") 0)
     in  counterexample (show $ pretty x)
       $ counterexample (show $ pretty x')
       ( typeExp0 coreFragment x === typeExp0 coreFragment x')
@@ -99,7 +99,7 @@ prop_core_simp_type
   $ \x _
   -> let simple = snd
                 $ Fresh.runFresh (CoreSimp.simp () Beta.isSimpleValue x)
-                                 (Fresh.counterNameState (Name . Var "anf") 0)
+                                 (Fresh.counterNameState (NameBase . Var "anf") 0)
      in  counterexample (show . pretty $ x)
        $ counterexample (show . pretty $ simple)
        ( typeExp0 coreFragment x == typeExp0 coreFragment simple)
@@ -111,7 +111,7 @@ prop_core_simp_eval
  -> eval0 evalPrim x === eval0 evalPrim
    ( snd
    $ Fresh.runFresh (CoreSimp.simp () Beta.isSimpleValue x)
-                    (Fresh.counterNameState (Name . Var "anf") 0))
+                    (Fresh.counterNameState (NameBase . Var "anf") 0))
 
 
 return []

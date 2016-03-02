@@ -12,9 +12,10 @@ import Icicle.Common.Exp.Compounds
 
 import P
 
+import Data.Hashable (Hashable)
 
 -- | Beta and let reduction
-beta :: (Ord n) => (Exp a n p -> Bool) -> Exp a n p -> Exp a n p
+beta :: (Hashable n, Eq n) => (Exp a n p -> Bool) -> Exp a n p -> Exp a n p
 beta isValue toplevel
  = go toplevel
  where

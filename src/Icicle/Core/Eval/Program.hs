@@ -28,6 +28,7 @@ import              Icicle.Internal.Pretty
 import              P
 
 import qualified    Data.Map as Map
+import              Data.Hashable (Hashable)
 
 
 -- | Things that can go wrong for program evaluation
@@ -72,7 +73,7 @@ data ProgramValue n =
 
 -- | Evaluate a program.
 -- We take no environments, but do take the concrete feature values.
-eval    :: Ord n
+eval    :: (Hashable n, Eq n)
         => Time
         -> SV.InitialStreamValue
         -> P.Program a n
@@ -112,7 +113,7 @@ eval d sv p
 
 -- | Evaluate all stream bindings, collecting up stream heap as we go
 evalStms
-        :: Ord n
+        :: (Hashable n, Eq n)
         => V.Heap a n Prim
         -> SV.StreamHeap  n
         -> [Stream a n]

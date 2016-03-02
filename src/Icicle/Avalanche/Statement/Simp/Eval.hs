@@ -11,8 +11,9 @@ import           Icicle.Common.Type
 
 import           P
 
+import           Data.Hashable (Hashable)
 
-simpEvalX   :: Ord n
+simpEvalX   :: (Hashable n, Eq n)
             => EvalPrim a n p
             -> (p -> Type)
             -> Exp a n p
@@ -24,7 +25,7 @@ simpEvalX ev ty = fixp (simpEvalX' ev ty)
    | otherwise      = x
 
 
-simpEvalX'  :: Ord n
+simpEvalX'  :: (Hashable n, Eq n)
             => EvalPrim a n p
             -> (p -> Type)
             -> Exp a n p
@@ -73,7 +74,7 @@ simpEvalX' ev ty = go
 
 -- | Primitive Simplifier
 --
-simpEvalP   :: Ord n
+simpEvalP   :: (Hashable n, Eq n)
             => EvalPrim a n p
             -> (p -> Type)
             -> a

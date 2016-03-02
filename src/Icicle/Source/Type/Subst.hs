@@ -21,10 +21,11 @@ import                  Icicle.Source.Type.Compounds
 import                  P
 
 import qualified        Data.Map as Map
+import                  Data.Hashable (Hashable)
 
 type SubstT n = Map.Map (Name n) (Type n)
 
-substT :: Ord n => SubstT n -> Type n -> Type n
+substT :: (Hashable n, Eq n) => SubstT n -> Type n -> Type n
 substT ss tt
  = canonT
  $ go tt
@@ -63,7 +64,7 @@ substT ss tt
        -> t
 
 
-substC :: Ord n => SubstT n -> Constraint n -> Constraint n
+substC :: (Hashable n, Eq n) => SubstT n -> Constraint n -> Constraint n
 substC ss cc
  = case cc of
     CEquals p q
@@ -92,7 +93,7 @@ substC ss cc
 --
 -- Perhaps this should actually be called "unsafeSubstFT" because none of these
 -- invariants are checked.
-substFT :: Ord n => SubstT n -> FunctionType n -> FunctionType n
+substFT :: (Hashable n, Eq n) => SubstT n -> FunctionType n -> FunctionType n
 substFT ss ff
  = ff
  { functionConstraints  = fmap (substC ss') (functionConstraints ff)
@@ -127,7 +128,7 @@ substFT ss ff
 -- > fv s1  \cap fv s1 == {}
 -- > ==> compose s1 s2 == compose s2 s1
 --
-compose :: Ord n => SubstT n -> SubstT n -> SubstT n
+compose :: (Hashable n, Eq n) => SubstT n -> SubstT n -> SubstT n
 compose s1 s2
  = Map.map (substT s2) s1
   `Map.union` s2
@@ -141,7 +142,7 @@ compose s1 s2
 -- >     unifyT t1 t2 == Nothing
 -- > ==>           t1 /= t2
 --
-unifyT :: Ord n => Type n -> Type n -> Maybe (SubstT n)
+unifyT :: (Hashable n, Eq n) => Type n -> Type n -> Maybe (SubstT n)
 unifyT t1 t2
  = case t1 of
     TypeVar a

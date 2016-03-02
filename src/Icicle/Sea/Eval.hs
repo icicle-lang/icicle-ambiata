@@ -188,7 +188,7 @@ seaPsvSnapshotFd fleet input output mchords =
 ------------------------------------------------------------------------
 
 seaEvalAvalanche
-  :: (Show a, Show n, Pretty n, Ord n)
+  :: (Show a, Show n, Pretty n, Eq n)
   => Program (Annot a) n Prim
   -> D.Time
   -> [D.AsAt D.Value]
@@ -255,7 +255,7 @@ valueFromCore' v =
 
 seaCompile
   :: (MonadIO m, MonadMask m, Functor m)
-  => (Show a, Show n, Pretty n, Ord n)
+  => (Show a, Show n, Pretty n, Eq n)
   => Psv
   -> Map Attribute (Program (Annot a) n Prim)
   -> EitherT SeaError m SeaFleet
@@ -265,7 +265,7 @@ seaCompile psv programs = do
 
 seaCompile'
   :: (MonadIO m, MonadMask m, Functor m)
-  => (Show a, Show n, Pretty n, Ord n)
+  => (Show a, Show n, Pretty n, Eq n)
   => [CompilerOption]
   -> Psv
   -> Map Attribute (Program (Annot a) n Prim)
@@ -300,7 +300,7 @@ seaCompile' options psv programs = do
     }
 
 mkSeaProgram
-  :: (MonadIO m, MonadMask m, Functor m, Ord n)
+  :: (MonadIO m, MonadMask m, Functor m, Eq n)
   => Library
   -> Int
   -> Program (Annot a) n Prim
@@ -344,7 +344,7 @@ defaultCompilerOptions =
   ]
 
 assemblyOfPrograms
-  :: (Show a, Show n, Pretty n, Ord n)
+  :: (Show a, Show n, Pretty n, Eq n)
   => Psv
   -> [(Attribute, Program (Annot a) n Prim)]
   -> EitherT SeaError IO Text
@@ -354,7 +354,7 @@ assemblyOfPrograms psv programs = do
   firstEitherT SeaJetskiError (compileAssembly options code)
 
 codeOfPrograms
-  :: (Show a, Show n, Pretty n, Ord n)
+  :: (Show a, Show n, Pretty n, Eq n)
   => Psv
   -> [(Attribute, Program (Annot a) n Prim)]
   -> Either SeaError Text

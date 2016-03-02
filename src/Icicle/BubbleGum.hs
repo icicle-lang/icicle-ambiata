@@ -21,6 +21,7 @@ import           Icicle.Data
 import           P
 
 import           Data.List (nub, sort)
+import           Data.Hashable (Hashable)
 
 
 -- | Each flavour has a unique id, and a time.
@@ -64,7 +65,7 @@ bubbleGumOutputOfFacts fs
   flav (BubbleGumFact f) = f
 
 
-bubbleGumNubOutputs :: (Ord n, Ord v) => [BubbleGumOutput n v] -> [BubbleGumOutput n v]
+bubbleGumNubOutputs :: (Hashable n, Eq n, Ord v) => [BubbleGumOutput n v] -> [BubbleGumOutput n v]
 bubbleGumNubOutputs os
  = let rs = concatMap reds  os
        fs = concatMap facts os

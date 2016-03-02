@@ -17,6 +17,7 @@ import qualified    Data.Text   as T
 import              Data.Text   (Text)
 import qualified    Data.Set    as Set
 import qualified    Data.Map    as Map
+import              Data.Hashable
 
 import              Prelude (error)
 
@@ -31,8 +32,8 @@ infixr 0 $~
 infixl 0 @~
 
 
-var  :: n -> X.Exp () n
-var = xVar . Name
+var  :: Hashable n => n -> X.Exp () n
+var = xVar . nameOf . NameBase
 
 
 constI :: Int -> X.Exp () n
@@ -133,7 +134,7 @@ lam :: ValType -> (X.Exp () Text -> X.Exp () Text) -> X.Exp () Text
 lam t f
  = let -- Try with a bad name - this won't necessarily be fresh,
        -- but it will allow us to get the variables in the expression
-       init = f (xVar $ Name "$$$")
+       init = f (xVar $ nameOf $ NameBase "$$$")
        vars = allvars init
 
        -- Look through all the numbers, and find one that isn't already
@@ -157,7 +158,7 @@ lam t f
   -- Convert an int to a variable name
   varOfInt :: Int -> Name Text
   varOfInt i
-   = NameMod "_" $ Name $ T.pack $ show i
+   = nameOf $ NameMod "_" $ NameBase $ T.pack $ show i
 
 emptyBuf :: Int -> ValType -> X.Exp () n
 emptyBuf i t = xValue (BufT i t) (VBuf [])

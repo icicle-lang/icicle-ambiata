@@ -17,7 +17,10 @@ import qualified        Icicle.Common.Fresh         as Fresh
 
 import                  P
 
-primLookup' :: Prim -> Fresh.Fresh n (FunctionType n)
+import                  Data.Hashable (Hashable)
+
+
+primLookup' :: Hashable n => Prim -> Fresh.Fresh n (FunctionType n)
 primLookup' p
  = case p of
     Op (ArithUnary _)

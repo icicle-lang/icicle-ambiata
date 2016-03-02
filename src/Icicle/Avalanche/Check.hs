@@ -18,6 +18,8 @@ import              P
 
 import qualified    Data.List   as List
 import qualified    Data.Map    as Map
+import              Data.Hashable (Hashable)
+
 
 data ProgramError a n p
  = ProgramErrorExp  (ExpError a n p)
@@ -35,7 +37,7 @@ data Context n
  , ctxAcc :: Env n ValType }
  deriving (Show, Eq, Ord)
 
-initialContext :: Ord n => Program a n p -> Context n
+initialContext :: (Hashable n, Eq n) => Program a n p -> Context n
 initialContext p
  = Context
  { ctxExp = Map.singleton (bindtime p) (FunT [] TimeT)
@@ -45,7 +47,7 @@ initialContext p
 --  - check that there is only one fact loop, and it is not inside another loop
 --  - unique names: proper unique
 checkProgram
-        :: Ord n
+        :: (Hashable n, Eq n)
         => Fragment p
         -> Program a n p
         -> Either (ProgramError a n p) (Program (Annot a) n p)
@@ -56,7 +58,7 @@ checkProgram frag p
 
 
 checkStatement
-        :: Ord n
+        :: (Hashable n, Eq n)
         => Fragment p
         -> Context n
         -> Statement a n p
@@ -152,7 +154,7 @@ checkStatement frag ctx stmt
 
 
 checkAccumulator
-        :: Ord n
+        :: (Hashable n, Eq n)
         => Fragment p
         -> Context n
         -> Accumulator a n p
@@ -168,7 +170,7 @@ checkAccumulator frag ctx (Accumulator n ty x)
 
 
 statementContext
-        :: Ord n
+        :: (Hashable n, Eq n)
         => Fragment p
         -> Context n
         -> Statement a n p

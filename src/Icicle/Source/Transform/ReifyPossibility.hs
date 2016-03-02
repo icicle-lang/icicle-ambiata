@@ -16,9 +16,11 @@ import Icicle.Common.Fresh
 import P
 
 import qualified Data.Map as Map
+import           Data.Hashable (Hashable)
+
 
 reifyPossibilityQT
-        :: Ord n
+        :: (Hashable n, Eq n)
         => QueryTop (Annot a n) n
         -> Fresh n (QueryTop (Annot a n) n)
 reifyPossibilityQT qt
@@ -26,7 +28,7 @@ reifyPossibilityQT qt
         return $ qt { query = q' }
 
 reifyPossibilityX
-        :: Ord n
+        :: (Hashable n, Eq n)
         => Exp (Annot a n) n
         -> Fresh n (Exp (Annot a n) n)
 reifyPossibilityX x
@@ -79,7 +81,7 @@ reifyPossibilityX x
 
 
 reifyPossibilityQ
-        :: Ord n
+        :: (Hashable n, Eq n)
         => Query (Annot a n) n
         -> Fresh n (Query (Annot a n) n)
 reifyPossibilityQ (Query [] x)
@@ -92,7 +94,7 @@ reifyPossibilityQ (Query (c:cs) final_x)
             nValue <- fresh
             -- We need to give the fold a new name, because moving the "z" into the "k" means
             -- the binding is available under "z" now, which potentially shadows an existing binding.
-            nBind  <- freshPrefix'      $ foldBind f
+            nBind  <- freshPrefixBase   $ nameBase $ foldBind f
 
             k      <- reifyPossibilityX $ foldWork f
             z      <- reifyPossibilityX $ foldInit f
@@ -208,7 +210,8 @@ reifyPossibilityQ (Query (c:cs) final_x)
 -- XXX this is ignoring the possibility of functions that return differing modes.
 -- This is true of all current primitives, and at this stage we can only have primitives.
 makeApps
-        :: Annot a n
+        :: Hashable n
+        => Annot a n
         ->  Exp (Annot a n) n
         -> [Exp (Annot a n) n]
         -> Bool
@@ -318,7 +321,7 @@ conRight x
    in con1 (ann { annResult = canonT $ SumT ErrorT t } ) ConRight x
 
 substIntoIfDefinitely
-        :: Ord n
+        :: (Hashable n, Eq n)
         => Name n
         -> Exp (Annot a n) n
         -> Exp (Annot a n) n
@@ -331,7 +334,7 @@ substIntoIfDefinitely var payload into
 
 
 substInto
-        :: Ord n
+        :: (Hashable n, Eq n)
         => Name n
         -> Exp (Annot a n) n
         -> Exp (Annot a n) n

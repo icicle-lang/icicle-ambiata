@@ -25,6 +25,7 @@ import              Data.String
 import qualified    Data.Map as Map
 
 import              Data.Functor.Identity
+import              Data.Hashable (Hashable)
 
 
 data Namer n
@@ -38,14 +39,14 @@ data Namer n
  -- ^ As above, this is the "accumulator" prefix.
  }
 
-namerText :: IsString a => (a -> n) -> Namer n
+namerText :: (IsString a, Hashable n) => (a -> n) -> Namer n
 namerText f
- = Namer (NameMod (f (fromString "elem")))
-         (NameMod (f (fromString "acc")))
+ = Namer (modName (f (fromString "elem")))
+         (modName (f (fromString "acc")))
 
 
 -- | Convert an entire program to Avalanche
-programFromCore :: Ord n
+programFromCore :: (Hashable n, Eq n)
                 => Namer n
                 -> C.Program () n
                 -> A.Program () n Prim
@@ -141,7 +142,7 @@ programFromCore namer p
 -- | Starting from an empty list of statements,
 -- repeatedly insert each stream into the statements wherever it fits
 makeStatements
-        :: Ord n
+        :: (Hashable n, Eq n)
         => C.Program () n
         -> Namer n
         -> [CS.Stream () n]

@@ -47,6 +47,7 @@ import                  Control.Monad.Trans.State.Lazy
 import                  Control.Monad.Trans.Class
 
 import qualified        Data.Map as Map
+import                  Data.Hashable (Hashable)
 
 
 data CoreBinds a n
@@ -228,19 +229,19 @@ convertModifyFeaturesMap f
         put (o { csFeatures = fs { featureContextVariables = f fv } })
 
 
-convertFreshenAdd :: Ord n => Name n -> ConvertM a n (Name n)
+convertFreshenAdd :: (Hashable n, Eq n) => Name n -> ConvertM a n (Name n)
 convertFreshenAdd prefix
- = do   n <- lift $ freshPrefix' prefix
+ = do   n <- lift $ freshPrefixBase $ nameBase prefix
         convertFreshenAddAs prefix n
         return n
 
-convertFreshenAddAs :: Ord n => Name n -> Name n -> ConvertM a n ()
+convertFreshenAddAs :: (Hashable n, Eq n) => Name n -> Name n -> ConvertM a n ()
 convertFreshenAddAs from to
  = do   o <- get
         put $ o { csFreshen  = Map.insert from to $ csFreshen  o }
 
 
-convertFreshenLookup :: Ord n => a -> Name n -> ConvertM a n (Name n)
+convertFreshenLookup :: (Hashable n, Eq n) => a -> Name n -> ConvertM a n (Name n)
 convertFreshenLookup ann n
  = do   o <- get
         case Map.lookup n $ csFreshen o of
@@ -249,7 +250,7 @@ convertFreshenLookup ann n
          Just n'
           -> return n'
 
-convertFreshenLookupMaybe :: Ord n => Name n -> ConvertM a n (Maybe (Name n))
+convertFreshenLookupMaybe :: (Hashable n, Eq n) => Name n -> ConvertM a n (Maybe (Name n))
 convertFreshenLookupMaybe n
  = do   o <- get
         return $ Map.lookup n $ csFreshen o

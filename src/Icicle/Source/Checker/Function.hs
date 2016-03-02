@@ -22,6 +22,7 @@ import                  P
 import qualified        Data.Map                as Map
 import qualified        Data.Set                as Set
 import qualified        Data.List               as List
+import                  Data.Hashable           (Hashable)
 
 import                  X.Control.Monad.Trans.Either
 
@@ -31,7 +32,7 @@ type FunEnvT a n = [ ( Name n
                      , Function (Annot a n) n ) ) ]
 
 
-checkFs :: Ord n
+checkFs :: (Hashable n, Eq n)
         => FunEnvT a n
         -> Funs a n
         -> EitherT (CheckError a n) (Fresh.Fresh n)
@@ -47,7 +48,7 @@ checkFs env functions
     then hoistEither $ Left $ CheckError (ErrorDuplicateFunctionNames (fst name) (snd name)) []
     else pure (env' <> [(snd name , (funtype, annotfun))])
 
-checkF  :: Ord n
+checkF  :: (Hashable n, Eq n)
         => Map.Map (Name n) (FunctionType n)
         -> Function a n
         -> EitherT (CheckError a n) (Fresh.Fresh n)
@@ -58,7 +59,7 @@ checkF env fun
 
 
 -- | Typecheck a function definition, generalising types and pulling out constraints
-checkF' :: Ord n
+checkF' :: (Hashable n, Eq n)
         => Function a n
         -> GenEnv n
         -> Gen a n (Function (Annot a n) n, FunctionType n)
@@ -160,7 +161,7 @@ checkF' fun env
         return (Annot a (substT subs t) [], n)
 
 
-dischargeF :: Ord n => a -> SubstT n -> [(a, Constraint n)] -> Gen a n (SubstT n, [(a, Constraint n)])
+dischargeF :: (Hashable n, Eq n) => a -> SubstT n -> [(a, Constraint n)] -> Gen a n (SubstT n, [(a, Constraint n)])
 dischargeF ann sub cons
  = case dischargeCS' dischargeC'toplevel cons of
     Left errs

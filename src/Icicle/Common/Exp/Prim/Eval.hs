@@ -14,8 +14,8 @@ import qualified    Icicle.Data.Time                as Time
 import              P
 
 import qualified    Data.Map                        as Map
-
 import qualified    Data.Text                       as T
+import              Data.Hashable                   (Hashable)
 
 
 -- | Evaluate a primitive, given list of argument values
@@ -26,7 +26,7 @@ import qualified    Data.Text                       as T
 -- Since values can be closures (though they shouldn't be for
 -- these primitives), the values need to be parameterised by
 -- the primitive type.
-evalPrim    :: Ord n
+evalPrim    :: (Hashable n, Eq n)
             => Prim
             -> EvalPrim a n p
 evalPrim p originalP vs

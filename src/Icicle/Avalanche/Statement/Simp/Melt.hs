@@ -26,6 +26,7 @@ import              P
 
 import qualified    Data.List as List
 import qualified    Data.Map as Map
+import              Data.Hashable (Hashable)
 
 
 ------------------------------------------------------------------------
@@ -54,7 +55,7 @@ meltOps a_fresh
 
 ------------------------------------------------------------------------
 
-melt :: (Show n, Ord n)
+melt :: (Show n, Hashable n, Eq n)
      => a
      -> Statement a n Prim
      -> Fresh n (Statement a n Prim)
@@ -65,7 +66,7 @@ melt a_fresh ss
 
 ------------------------------------------------------------------------
 
-meltAccumulators :: (Show n, Ord n)
+meltAccumulators :: (Show n, Hashable n, Eq n)
                  => a
                  -> Statement a n Prim
                  -> Fresh n (Statement a n Prim)
@@ -121,7 +122,7 @@ meltAccumulators a_fresh statements
   updateEnv s env
    | InitAccumulator (Accumulator n tp _) _ <- s
    , Just ts                                <- tryMeltType tp
-   = do ns <- replicateM (length ts) (freshPrefix' n)
+   = do ns <- replicateM (length ts) (freshPrefixBase (nameBase n))
         return (Map.insert n (tp, ns) env)
 
    | otherwise
@@ -129,7 +130,7 @@ meltAccumulators a_fresh statements
 
 --------------------------------------------------------------------------------
 
-meltForeachFacts :: forall a n. (Show n, Ord n)
+meltForeachFacts :: forall a n. (Show n, Hashable n, Eq n)
                  => a
                  -> Statement a n Prim
                  -> Fresh n (Statement a n Prim)
@@ -180,7 +181,7 @@ meltForeachFacts a_fresh statements
 
 ------------------------------------------------------------------------
 
-meltOutputs :: forall a n. (Show n, Ord n)
+meltOutputs :: forall a n. (Show n, Hashable n, Eq n)
             => a
             -> Statement a n Prim
             -> Fresh n (Statement a n Prim)
@@ -211,6 +212,6 @@ meltExp a_fresh x t
  | otherwise
  = [(x, t)]
 
-freshes :: Int -> Name n -> Fresh n [Name n]
+freshes :: Hashable n => Int -> Name n -> Fresh n [Name n]
 freshes i n
- = replicateM i $ freshPrefix' n
+ = replicateM i $ freshPrefixBase $ nameBase n

@@ -151,6 +151,8 @@ transformUDStmt fun env statements
            -> return $ LoadResumable n t
           SaveResumable n t
            -> return $ SaveResumable n t
+{-# INLINE transformUDStmt #-}
+
 
 foldStmt
         :: (Applicative m, Functor m, Monad m)
@@ -198,7 +200,7 @@ foldStmt down up rjoin env res statements
            -> up e' res s
           SaveResumable{}
            -> up e' res s
-
+{-# INLINE foldStmt #-}
 
 
 instance TransformX Statement where

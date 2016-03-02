@@ -49,6 +49,7 @@ import                  Control.Monad.Trans.State.Lazy
 import                  Data.List (zip, unzip)
 
 import qualified        Data.Map as Map
+import                  Data.Hashable (Hashable)
 
 
 -- | Convert a top-level Query to Core.
@@ -65,7 +66,7 @@ import qualified        Data.Map as Map
 -- "AggU" or "Group" computations can be reductions on streams, or postcomputations.
 --
 convertQueryTop
-        :: Ord n
+        :: (Hashable n, Eq n)
         => Features () n
         -> QueryTop (Annot a n) n
         -> FreshT n (Either (ConvertError a n)) (C.Program () n)
@@ -94,7 +95,7 @@ convertQueryTop feats qt
 -- It returns a list of program bindings, as well as the name of the binding
 -- that is being "returned" in the program - essentially the last added binding.
 convertQuery
-        :: Ord n
+        :: (Hashable n, Eq n)
         => Query (Annot a n) n
         -> ConvertM a n (CoreBinds () n, Name n)
 convertQuery q
@@ -494,7 +495,7 @@ convertQuery q
 -- This must be an aggregate, some primitive applied to at least one aggregate expression,
 -- or a nested query.
 convertReduce
-        :: Ord n
+        :: (Hashable n, Eq n)
         => Exp (Annot a n) n
         -> ConvertM a n (CoreBinds () n, Name n)
 convertReduce xx

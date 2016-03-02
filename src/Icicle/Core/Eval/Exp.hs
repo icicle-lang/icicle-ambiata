@@ -10,16 +10,17 @@ import Icicle.Common.Value
 import Icicle.Common.Exp.Eval
 import Icicle.Core.Exp.Prim
 import Icicle.Data.Time
+import qualified    Icicle.Common.Exp.Prim.Eval as Min
 
 import              P
 
 import qualified    Data.Map  as Map
 import qualified    Data.List as List
-import qualified    Icicle.Common.Exp.Prim.Eval as Min
+import              Data.Hashable (Hashable)
 
 
 -- | Evaluate a primitive, given list of argument values
-evalPrim :: Ord n => EvalPrim a n Prim
+evalPrim :: (Hashable n, Eq n) => EvalPrim a n Prim
 evalPrim p vs
  = case p of
      PrimMinimal m
@@ -108,7 +109,6 @@ evalPrim p vs
          in  return . VBase . VBool $ range
       | otherwise
       -> primError
-
 
  where
   applies' = applies evalPrim

@@ -25,10 +25,11 @@ import              Icicle.Avalanche.Program
 import              P
 
 import              Control.Monad.Trans.Class
+import              Data.Hashable (Hashable)
 
 
 simpAvalanche
-  :: (Show n, Ord n)
+  :: (Show n, Hashable n, Eq n)
   => a
   -> Program a n CorePrim.Prim
   -> Fresh n (Program a n CorePrim.Prim)
@@ -44,7 +45,7 @@ simpAvalanche a_fresh p
       return $ p { statements = s' }
 
 simpFlattened
-  :: (Show n, Ord n, Eq a)
+  :: (Show n, Eq a, Hashable n, Eq n)
   => a
   -> Program a n Flat.Prim
   -> Fresh n (Program a n Flat.Prim)
