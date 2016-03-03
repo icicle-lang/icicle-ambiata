@@ -334,7 +334,7 @@ programForStreamType streamType
 programForStreamType' :: ValType -> Gen (Program () Var)
 programForStreamType' streamType
  = do   Var fresh_name _ <- arbitrary
-        let freshN i = Name $ Var fresh_name i
+        let freshN i = nameOf $ NameBase $ Var fresh_name i
         let ninput = freshN 0
         let nid    = freshN 1
         let ntime  = freshN 2

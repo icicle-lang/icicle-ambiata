@@ -349,7 +349,7 @@ flatX a_fresh xx stm
 
 
       Core.PrimLatest (Core.PrimLatestPush i t)
-       | [buf, e, _factid]    <- xs
+       | [buf, _factid, e]    <- xs
        -> flatX' e
        $  \e'
        -> flatX' buf

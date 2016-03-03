@@ -28,7 +28,7 @@ checkStream zenv kenv s
     SFold nm t z k
      -> do  tz <- checkX zenv z
             zenv' <- insertOrDie StreamErrorNameNotUnique zenv nm (funOfVal t)
-            tk <- checkX (Map.union zenv kenv)  k
+            tk <- checkX (Map.union zenv' kenv)  k
             requireSame (StreamErrorTypeError z)
                         (funOfVal t) tz
             requireSame (StreamErrorTypeError k)

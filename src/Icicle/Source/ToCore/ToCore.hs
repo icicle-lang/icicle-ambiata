@@ -406,12 +406,16 @@ convertQuery q
 
                 convertModifyFeaturesMap (Map.insert b (FeatureVariable (annResult $ annotOfExp def) xfst False) . Map.map (\fv -> fv { featureVariableExp = featureVariableExp fv . xsnd }))
 
-                let pair = (CE.xPrim $ C.PrimMinimal $ Min.PrimConst $ Min.PrimConstPair t' inpty)
-                         CE.@~ e' CE.@~ CE.xVar inpstream
+                let pairC l r
+                     = (CE.xPrim $ C.PrimMinimal $ Min.PrimConst $ Min.PrimConstPair t' inpty)
+                         CE.@~ l CE.@~ r
+                let pair = pairC e' (CE.xVar inpstream)
+                let defT ty = CE.xValue ty (T.defaultOfType ty)
+                let pairD= pairC (defT t') (defT inpty)
 
 
                 n'r     <- lift fresh
-                let bs   = sfold n'r inpty' pair pair
+                let bs   = sfold n'r inpty' pairD pair
                 (bs', n'') <- convertWithInput n'r inpty' $ convertQuery q'
 
                 return (bs <> bs', n'')
