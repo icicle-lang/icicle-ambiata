@@ -9,8 +9,8 @@ ok, loaded test/cli/repl/data.psv, 13 rows
 > - Core evaluation:
 [homer, 5,marge, 1]
 
-> > -- Average of distincts. That is, find the *last* for each time, and average all lasts
+> > -- Average of distincts. That is, find the *first* for each time, and average all lasts
 > - Core evaluation:
-[homer, 300.0,marge, 20.0]
+[homer, 300.0,marge, 0.0]
 
 > 
