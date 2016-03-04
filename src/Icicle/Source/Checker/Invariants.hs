@@ -39,7 +39,10 @@ invariantQ ctx (Query (c:cs) xfinal)
      -> errBanGroup "Consider moving the window to the start of the query"
     Latest{}
      | allowLatest inv
-     -> goBanGroup
+     -- | XXX: ban latest inside latests.
+     -- This is because latest needs access to the current fact identifier, but this isn't captured in the latest buffer.
+     -- This is a bug in the code generator and should be fixed.
+     -> goBanAll
      | otherwise
      -> errBanLatest
     GroupBy _ x
@@ -85,7 +88,9 @@ invariantQ ctx (Query (c:cs) xfinal)
   errBanLatest
    = errorSuggestions
       (ErrorContextNotAllowedHere (annotOfContext c) c)
-      [ Suggest "Latest not allowed here" ]
+      [ Suggest "Latest is not allowed inside group-fold or another latest."
+      , Suggest "If you are using latest inside a latest, you should be able to rewrite your query to use a single latest."
+      , Suggest "Note that 'newest' is implemented using latest, but if you have `latest 5 ~> newest value` you might be able to just use `newest value`."]
 
   errBanGroup sug
    = errorSuggestions

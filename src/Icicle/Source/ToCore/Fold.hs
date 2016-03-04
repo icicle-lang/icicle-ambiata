@@ -229,7 +229,6 @@ convertFold q
                      CE.@~ (foldKons res CE.@~ prev') CE.@~ prev' CE.@~ e' )
             return (res { foldKons = k' })
 
-    -- If latest is being used in this position, it must be after a group.
     (Latest _ i : _)
      | case getTemporalityOrPure $ annResult $ annotOfQuery q' of
         TemporalityElement  -> True
