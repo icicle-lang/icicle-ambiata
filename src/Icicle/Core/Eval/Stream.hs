@@ -5,29 +5,27 @@
 {-# OPTIONS_GHC -Wwarn #-}
 module Icicle.Core.Eval.Stream (
       StreamValue  (..)
-    , InitialStreamValue
     , StreamHeap
     , RuntimeError (..)
     , eval
     ) where
 
-import              Icicle.BubbleGum
-
 import              Icicle.Common.Base
 import              Icicle.Common.Type
 import              Icicle.Common.Value as V
 import              Icicle.Core.Stream
+import qualified    Icicle.Common.Exp.Exp   as XX
 import qualified    Icicle.Common.Exp.Eval  as XV -- eXpression eVal
+import qualified    Icicle.Common.Exp.Compounds  as XC -- eXpression Compounds
 import qualified    Icicle.Core.Eval.Exp    as XV -- eXpression eVal
 import              Icicle.Core.Exp.Prim
-
-import              Icicle.Data
 
 import              Icicle.Internal.Pretty
 
 import              P
 
 import qualified    Data.Map as Map
+import qualified    Data.Set as Set
 import              Data.List (zip, transpose)
 import              Data.Hashable (Hashable)
 
@@ -47,12 +45,6 @@ data StreamValue
      streamValues :: [BaseValue]
    , streamZero   :: BaseValue
  }
-
--- | Right at the start, we need dates on the stream values.
--- These can be used by windowing functions or ignored.
--- Afterwards they are thrown away, but could still be included in the value itself.
-type InitialStreamValue
- = [AsAt (BubbleGumFact, BaseValue)]
 
 
 -- | A stream heap maps from names to stream values
@@ -92,7 +84,7 @@ eval    :: (Hashable n, Eq n)
         => V.Heap    a n Prim   -- ^ The expression heap with precomputations
         -> StreamHeap       n   -- ^ Any streams that have already been evaluated
         -> Stream         a n   -- ^ Stream to evaluate
-        -> Either (RuntimeError a n) (StreamHeap n)
+        -> Either (RuntimeError a n) (StreamHeap n, Set.Set FactIdentifier)
 eval xh sh s
  = case s of
     SFold n _ z k
@@ -100,15 +92,23 @@ eval xh sh s
             vz <- evalX xhZ z
             vz' <- V.getBaseValue (RuntimeErrorExpNotBaseType vz) vz
             vs <- foldGo n k vz inputHeaps
-            return $ Map.insert n (StreamValue vs vz') sh
+            return (Map.insert n (StreamValue vs vz') sh, Set.empty)
 
     SFilter p ss
-     -> do bs <- mapM (evalF p) inputHeaps
-           sh' <- foldM (eval xh) (filterHeap bs sh) ss
-           return $ Map.union sh $ unfilterHeap bs sh'
+     -> do filts <- mapM (evalF p) inputHeaps
+           let bs = fmap fst filts
+           let facts = Set.unions $ fmap snd filts
+
+           (sh',facts') <- foldM goEvals (filterHeap bs sh, facts) ss
+           return (Map.union sh $ unfilterHeap bs sh', facts')
 
 
  where
+  goEvals (sh', facts) s'
+   = do (sh'', facts') <- eval xh sh' s'
+        return (sh'', Set.union facts facts')
+    
+
   foldGo _ _ _ []
    = return []
   foldGo n k vz (h:hs)
@@ -119,10 +119,41 @@ eval xh sh s
         return (vk' : vs)
     
 
+  -- Evaluate a filter, and count facts as "used" if they are inside a window
   evalF p h
-   = do v <- evalX (Map.union h xh) p
-        v' <- V.getBaseValue (RuntimeErrorExpNotBaseType v) v
-        return (v' == VBool True)
+   = do let evalX' x
+             = do   res <- evalX (Map.union h xh) x
+                    V.getBaseValue (RuntimeErrorExpNotBaseType res) res
+        let isTrue = (== VBool True)
+
+        v <- evalX' p
+
+        -- Check if it's a windowing filter
+        -- This is very dodgy
+        -- The ideal solution would be to modify the expression evaluator to track bubblegum
+        -- all the way through expression evaluation,
+        -- but that would require rewriting the expression evaluator for relatively little gain right now
+        let checkWindow
+             | Just (PrimWindow before _, [v1, v2, factid]) <- XC.takePrimApps p
+             , ann     <- XX.annotOfExp p
+             , window' <- PrimWindow before Nothing
+             , prim'   <- XX.XPrim ann window'
+             , p'      <- XC.makeApps ann prim' [v1, v2, factid]
+             -- If so, evaluate the window with no "and earlier than" part
+             = do   inWindow  <- evalX' p'
+                    fid <- extractFactId <$> evalX' factid
+
+                    -- If it is in the window, this fact must go in bubblegum
+                    return (if isTrue inWindow then fid else Set.empty)
+
+             | otherwise
+             = return Set.empty
+        facts <- checkWindow
+
+        return (isTrue v, facts)
+
+  extractFactId (VFactIdentifier factid) = Set.singleton factid
+  extractFactId _ = Set.empty
 
   filterHeap bs sheep
    = Map.map (\v -> v { streamValues = fmap snd $ filter fst $ zip bs $ streamValues v }) sheep

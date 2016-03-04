@@ -7,8 +7,6 @@ module Icicle.Test.Avalanche.EvalCommutes where
 import           Icicle.Test.Core.Arbitrary
 import           Icicle.Test.Arbitrary
 
-import           Icicle.BubbleGum
-import           Icicle.Common.Base
 import           Icicle.Core.Program.Check
 import qualified Icicle.Core.Eval.Exp       as XV
 import qualified Icicle.Core.Eval.Program   as PV
@@ -23,7 +21,6 @@ import           P
 import           System.IO
 
 import           Test.QuickCheck
-import           Data.List (sort)
 
 -- We need a way to differentiate stream variables from scalars
 namer = AC.namerText (flip Var 0)
@@ -58,6 +55,7 @@ prop_eval_commutes_value t =
 -- going to Avalanche doesn't affect history
 --
 -- TODO: this is disabled because the Core evaluator currently ignores bubblegum
+{-
 zprop_eval_commutes_history t =
  forAll (programForStreamType t)
  $ \p ->
@@ -72,11 +70,11 @@ zprop_eval_commutes_history t =
       _
        -> property False
 
-
 prefixBubbleGum (BubbleGumReduction n v)
  = BubbleGumReduction (modName (Var "acc" 0) n) v
 prefixBubbleGum bg
  = bg
+-}
 
 
 

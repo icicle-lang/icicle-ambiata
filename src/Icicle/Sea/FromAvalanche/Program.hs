@@ -114,18 +114,23 @@ seaOfStatement stmt
               , "}"
               ]
 
-     ForeachFacts ns _ FactLoopNew stmt'
+     ForeachFacts (FactBinds ntime nfid ns) _ FactLoopNew stmt'
       -> let structAssign (n, t) = assign (defOfVar' 1 ("const" <+> seaOfValType t)
                                                        ("const" <+> pretty newPrefix <> seaOfName n))
                                           ("s->" <> pretty newPrefix <> seaOfName n) <> semi
              loopAssign   (n, t) = assign (defOfVar 0 t (seaOfName n))
                                           (pretty newPrefix <> seaOfName n <> "[i]") <> semi
+             factTime = case reverse ns of
+                         [] -> seaError "seaOfStatement: no facts" ()
+                         ((n,_):_) -> pretty newPrefix <> seaOfName n <> "[i]"
          in vsep $
             [ ""
             , assign (defOfVar' 0 ("const" <+> seaOfValType IntT) "new_count") "s->new_count;"
             ] <> fmap structAssign ns <>
             [ ""
             , "for (iint_t i = 0; i < new_count; i++) {"
+            , indent 4 $ assign (defOfVar 0 FactIdentifierT (seaOfName nfid))  "i"      <> semi
+            , indent 4 $ assign (defOfVar 0 TimeT           (seaOfName ntime)) factTime <> semi
             , indent 4 $ vsep (fmap loopAssign ns) <> line <> seaOfStatement stmt'
             , "}"
             , ""

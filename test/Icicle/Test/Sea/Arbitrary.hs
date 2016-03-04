@@ -152,6 +152,8 @@ isSupportedInput = \case
   IntT      -> True
   DoubleT   -> True
   TimeT     -> True
+  FactIdentifierT
+            -> True
   StringT   -> True
 
   UnitT     -> False
@@ -177,6 +179,8 @@ isSupportedInputElem = \case
   IntT      -> True
   DoubleT   -> True
   TimeT     -> True
+  FactIdentifierT
+            -> True
   StringT   -> True
 
   UnitT     -> False
@@ -197,6 +201,7 @@ isSupportedInputField = \case
   IntT            -> True
   DoubleT         -> True
   TimeT           -> True
+  FactIdentifierT -> True
   StringT         -> True
   OptionT BoolT   -> True
   OptionT IntT    -> True
@@ -245,6 +250,8 @@ isSupportedOutputBase = \case
   IntT      -> True
   DoubleT   -> True
   TimeT     -> True
+  FactIdentifierT
+            -> True
   StringT   -> True
 
   UnitT     -> False
@@ -261,6 +268,8 @@ isSupportedType = \case
   IntT      -> True
   DoubleT   -> True
   TimeT     -> True
+  FactIdentifierT
+            -> True
   StringT   -> True
   ErrorT    -> True
   MapT{}    -> True

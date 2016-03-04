@@ -213,30 +213,35 @@ evalStmt evalPrim now xh values bubblegum ah stmt
     ForeachFacts _ _ FactLoopHistory _
      -> return (ah, [])
 
-    -- TODO: ignoring outputs inside loops.
 
     -- Allow unmelted foreach
     -- (i.e. where ty == ty' and we only have a singleton list of bindings)
-    ForeachFacts [(n, ty)] ty' FactLoopNew stmts
+    ForeachFacts (FactBinds ntime nfid [(n, ty)]) ty' FactLoopNew stmts
      | ty == ty'
-     -> do  let evalInput ah' inp = do
+     -> do  let evalInput ah' (inp,ix) = do
                   let v0     = snd (atFact inp)
                       v1     = VTime (atTime inp)
                       vv     = VPair v0 v1
-                      input' = Map.insert n (VBase vv) xh
+                      input' = Map.insert n     (VBase vv)
+                             $ Map.insert ntime (VBase v1)
+                             $ Map.insert nfid  (VBase ix) xh
                       bgf    = Just $ fst $ atFact inp
 
                   fst <$> evalStmt evalPrim now input' [] bgf ah' stmts
 
-            ahs <- foldM evalInput ah values
+                indices = fmap (VFactIdentifier . FactIdentifier) [0..]
+
+            ahs <- foldM evalInput ah (values `zip` indices)
             return (ahs, [])
 
-    ForeachFacts ns ty FactLoopNew stmts
-     -> do  let evalInput ah' inp = do
+    ForeachFacts (FactBinds ntime nfid ns) ty FactLoopNew stmts
+     -> do  let evalInput ah' (inp,ix) = do
                   let v0  = snd (atFact inp)
                       v1  = VTime (atTime inp)
                       vv  = VPair v0 v1
                       mvs = meltValue vv ty
+                      input1 = Map.insert ntime (VBase v1)
+                             $ Map.insert nfid  (VBase ix) xh
 
                   case mvs of
                     Nothing
@@ -248,11 +253,13 @@ evalStmt evalPrim now xh values bubblegum ah stmt
 
                      | otherwise
                      , nvs    <- zip (fmap fst ns) vs
-                     , input' <- foldr (\(n, v) -> Map.insert n (VBase v)) xh nvs
+                     , input' <- foldr (\(n, v) -> Map.insert n (VBase v)) input1 nvs
                      , bgf    <- Just $ fst $ atFact inp
                      -> fst <$> evalStmt evalPrim now input' [] bgf ah' stmts
 
-            ahs <- foldM evalInput ah values
+                indices = fmap (VFactIdentifier . FactIdentifier) [0..]
+
+            ahs <- foldM evalInput ah (values `zip` indices)
             return (ahs, [])
 
     Block []

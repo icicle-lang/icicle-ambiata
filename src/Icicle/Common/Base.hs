@@ -13,6 +13,7 @@ module Icicle.Common.Base (
     , ExceptionInfo (..)
     , OutputName (..)
     , WindowUnit(..)
+    , FactIdentifier (..)
     ) where
 
 import              Icicle.Internal.Pretty
@@ -88,7 +89,17 @@ data BaseValue
  | VStruct   !(Map.Map StructField  BaseValue)
  | VBuf      ![BaseValue]
  | VError    !ExceptionInfo
+ | VFactIdentifier !FactIdentifier
  deriving (Show, Ord, Eq)
+
+-- | Fact identifiers are represented as indices into the input stream for
+-- Core and Avalanche evaluators, but for a real streaming model such as C
+-- we need to convert this as a unique (and consistent) identifier across runs.
+-- Perhaps a pair of timestamp and index
+newtype FactIdentifier
+ = FactIdentifier
+ { getFactIdentifierIndex :: Int }
+ deriving (Eq, Ord, Show)
 
 -- | Called "exceptions"
 -- because they aren't really errors,
@@ -164,8 +175,13 @@ instance Pretty BaseValue where
       -> text "Struct" <+> pretty (Map.toList mv)
      VError e
       -> pretty e
+     VFactIdentifier f
+      -> pretty f
      VBuf vs
       -> text "Buf" <+> pretty vs
+
+instance Pretty FactIdentifier where
+ pretty f = text "FactIdentifier" <+> (pretty $ getFactIdentifierIndex f)
 
 instance Pretty StructField where
  pretty = text . T.unpack . nameOfStructField

@@ -27,13 +27,19 @@ checkProgram p
  = do   -- Check precomputations, starting with an empty environment
         let env0 = Map.singleton (snaptimeName p) (funOfVal $ TimeT)
         pres    <- checkExps ProgramErrorPre env0 (P.precomps     p)
-        pres'   <- insertOrDie ProgramErrorNameNotUnique pres (inputName    p) (funOfVal $ PairT (inputType p) TimeT)
+
+        let ins k v env = insertOrDie ProgramErrorNameNotUnique env k v
+        
+        -- "Kons" environment: only available in kons of folds
+        kenv    <- ins (factValName  p) (funOfVal $ PairT (inputType p) TimeT) Map.empty
+               >>= ins (factIdName   p) (funOfVal $ FactIdentifierT)
+               >>= ins (factTimeName p) (funOfVal $ TimeT)
 
         -- Check stream computations with precomputations in environment
-        stms    <- checkStreams pres' (P.streams      p)
+        stms    <- checkStreams pres kenv (P.streams      p)
 
         -- Check postcomputations with precomputations and reduces
-        post    <- checkExps ProgramErrorPost stms       (P.postcomps    p)
+        post    <- checkExps ProgramErrorPost stms      (P.postcomps    p)
 
         -- Finally, check the returns against the postcomputation environment
         let checkRet (n,x)
@@ -71,13 +77,14 @@ checkExps err env ((n,x):bs)
 checkStreams
         :: (Hashable n, Eq n)
         => Env n Type
+        -> Env n Type
         -> [Stream a n]
         -> Either (ProgramError a n) (Env n Type)
-checkStreams env []
- = return env
+checkStreams zenv _ []
+ = return zenv
 
-checkStreams env (b:bs)
+checkStreams zenv kenv (b:bs)
  = do   e'  <- first ProgramErrorStream
-             $ checkStream env b
-        checkStreams e' bs
+             $ checkStream zenv kenv b
+        checkStreams e' kenv bs
 

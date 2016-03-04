@@ -62,9 +62,9 @@ factVarsOfStatement loopType stmt
      Output _ _ _          -> Nothing
      KeepFactInHistory     -> Nothing
 
-     ForeachFacts ns vt lt ss
+     ForeachFacts binds vt lt ss
       | lt == loopType
-      -> Just (vt, ns)
+      -> Just (vt, factBindValue binds)
 
       | otherwise
       -> factVarsOfStatement loopType ss
@@ -208,8 +208,8 @@ typesOfStatement stmt
      Write _ x             -> typesOfExp x
      KeepFactInHistory     -> Set.empty
 
-     ForeachFacts nts _ _ ss
-      -> Set.fromList (fmap snd nts) `Set.union`
+     ForeachFacts binds _ _ ss
+      -> Set.fromList (fmap snd $ factBindsAll binds) `Set.union`
          typesOfStatement ss
 
      InitAccumulator (Accumulator _ at x) ss

@@ -287,11 +287,15 @@ substXinS a_fresh name payload statements
        | Set.member n frees
        -> freshen n ss $ \n' ss' -> Read n' x z ss'
 
-      ForeachFacts ns x y ss
-       | name `elem` fmap fst ns
+      ForeachFacts binds@(FactBinds ntime nfid ns) x y ss
+       | name `elem` fmap fst (factBindsAll binds)
        -> finished s
-       | any (flip Set.member frees . fst) ns
-       -> freshenForeach [] ns x y ss
+       | any (flip Set.member frees . fst) (factBindsAll binds)
+       -> do ntime'  <- fresh
+             nfid'   <- fresh
+             let subF n n' = substXinS a_fresh n (XVar a_fresh n')
+             ss'     <- subF ntime  ntime' ss >>= subF nfid   nfid'
+             freshenForeach ntime'  nfid' [] ns x y ss'
 
       _
        -> return (True, s)
@@ -315,12 +319,12 @@ substXinS a_fresh name payload statements
         ss' <- substXinS a_fresh n (XVar a_fresh n') ss
         trans True (f n' ss')
 
-  freshenForeach ns [] x y ss
-   = return (True, ForeachFacts ns x y ss)
-  freshenForeach ns ((n,t):ns') x y ss
+  freshenForeach ntime nfid ns [] x y ss
+   = return (True, ForeachFacts (FactBinds ntime nfid ns) x y ss)
+  freshenForeach ntime nfid ns ((n,t):ns') x y ss
    = do n'  <- fresh
         ss' <- substXinS a_fresh n (XVar a_fresh n') ss
-        freshenForeach (ns <> [(n',t)]) ns' x y ss'
+        freshenForeach ntime nfid (ns <> [(n',t)]) ns' x y ss'
 
   frees = freevars payload
 

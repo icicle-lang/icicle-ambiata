@@ -81,7 +81,7 @@ statementsToJava ss
              S.FactLoopNew     -> "icicle.startNew();")
            <> line
            <> "while (icicle.nextRow())"
-           <> block (fmap readVar ns <> [statementsToJava s])
+           <> block (fmap readVar (S.factBindsAll ns) <> [statementsToJava s])
     Block blocks
      -> vcat (fmap (either bindingToJava statementsToJava) blocks)
 
@@ -391,6 +391,8 @@ boxedType t
      ErrorT     -> "Error"
      BoolT      -> "Boolean"
      TimeT      -> "Integer"
+     FactIdentifierT
+                -> "Integer"
      ArrayT a   -> "ArrayList" <> angled (boxedType a)
      BufT _ a   -> "IcicleBuf" <> angled (boxedType a)
      MapT a b   -> "HashMap" <> angled (commas [boxedType a, boxedType b])

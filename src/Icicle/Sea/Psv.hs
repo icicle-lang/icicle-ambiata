@@ -226,6 +226,7 @@ needsCopy = \case
   DoubleT   -> False
   TimeT     -> False
   ErrorT    -> False
+  FactIdentifierT -> False
 
   -- these should have been melted
   PairT{}   -> False

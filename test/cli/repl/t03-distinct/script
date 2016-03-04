@@ -4,5 +4,5 @@ feature salary ~> distinct value ~> count value
 -- Distinct by time. Expect 5 and 1
 feature salary ~> distinct time ~> count value
 
--- Average of distincts. That is, find the *last* for each time, and average all lasts
+-- Average of distincts. That is, find the *first* for each time, and average all lasts
 feature salary ~> distinct time ~> mean value

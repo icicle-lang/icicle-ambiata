@@ -177,7 +177,7 @@ instance (Arbitrary a, Arbitrary n, Hashable n) => Arbitrary (Stream a n) where
 
 instance (Arbitrary a, Arbitrary n, Hashable n) => Arbitrary (Program a n) where
  arbitrary =
-   Program <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+   Program <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
 
 
 -- | Make an effort to generate a well typed expression that has some given type.
@@ -333,9 +333,16 @@ programForStreamType streamType
 
 programForStreamType' :: ValType -> Gen (Program () Var)
 programForStreamType' streamType
- = do   ninput      <- arbitrary
-        ndate       <- freshInEnv (Map.singleton ninput streamType)
+ = do   Var fresh_name _ <- arbitrary
+        let freshN i = nameOf $ NameBase $ Var fresh_name i
+        let ninput = freshN 0
+        let nid    = freshN 1
+        let ntime  = freshN 2
+        let ndate  = freshN 3
+
         let avoid = Map.fromList [ ( ninput, FunT [] (PairT streamType TimeT))
+                                 , ( nid,    FunT [] FactIdentifierT)
+                                 , ( ntime,  FunT [] TimeT)
                                  , ( ndate,  FunT [] TimeT) ]
 
         -- Generate a few precomputation expressions
@@ -360,7 +367,9 @@ programForStreamType' streamType
 
         return Program
                { P.inputType    = streamType
-               , P.inputName    = ninput
+               , P.factValName  = ninput
+               , P.factIdName   = nid
+               , P.factTimeName = ntime
                , P.snaptimeName = ndate
                , P.precomps     = pres
                , P.streams      = strs
@@ -445,6 +454,8 @@ baseValueForType t
      -> VBool <$> arbitrary
     TimeT
      -> VTime <$> arbitrary
+    FactIdentifierT
+     -> discard
     ArrayT t'
      -> smaller (VArray <$> listOf (baseValueForType t'))
     BufT n t'

@@ -1,14 +1,17 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PatternGuards #-}
 module Icicle.Core.Stream.Stream (
       Stream          (..)
     , renameStream
     , isStreamWindowed
+    , isPredicateWindowed
     ) where
 
 import              Icicle.Internal.Pretty
 import              Icicle.Common.Base
 import              Icicle.Common.Type
+import              Icicle.Common.Exp.Compounds
 import              Icicle.Core.Exp
 import              Icicle.Common.Exp.Exp (renameExp)
 
@@ -28,11 +31,40 @@ renameStream f (SFilter x ss)         = SFilter (renameExp f x) (fmap (renameStr
 
 
 -- | Check if given stream originates from a windowed or not
-isStreamWindowed :: Eq n => [(Name n, Stream a n)] -> Name n -> Bool
-isStreamWindowed _ss _nm
- -- XXX TODO: fix this
- = False
+-- This only checks against the exact windows that Source.ToCore generates.
+-- This will need to be changed once the "scan" primitive is added to Source.
+isStreamWindowed :: Eq n => [Stream a n] -> Name n -> Bool
+isStreamWindowed ss nm
+ = go ss
+ where
+  go [] = False
+  go (SFilter x ss' : rest)
+   | isPredicateWindowed x
+   , containsName ss'
+   = True
+   | not $ isPredicateWindowed x
+   , go ss'
+   = True
+   | otherwise
+   = go rest
+  go (SFold{} : rest)
+   = go rest
 
+  containsName []
+   = False
+  containsName (SFilter _ ss' : rest)
+   = containsName ss' || containsName rest
+  containsName (SFold n _ _ _ : rest)
+   = n == nm || containsName rest
+
+
+-- | Check if filter predicate is a window
+isPredicateWindowed :: Exp a n -> Bool
+isPredicateWindowed x
+ | Just (PrimWindow{}, _) <- takePrimApps x
+ = True
+ | otherwise
+ = False
 
 -- Pretty printing ---------------
 

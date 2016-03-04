@@ -11,6 +11,8 @@ module Icicle.Source.ToCore.Base (
   , convertInputName
   , convertInputType
   , convertDateName
+  , convertFactIdName
+  , convertFactTimeName
   , convertWithInput
   , convertWithInputName
   , convertError
@@ -62,19 +64,23 @@ programOfBinds
     -> ValType
     -> Name n
     -> Name n
+    -> Name n
+    -> Name n
     -> CoreBinds a n
     -> a
     -> Name n
     -> C.Program a n
-programOfBinds outputName inpType inpName postDate binds a_ret ret
+programOfBinds outputName inpType factValName factIdName factTimeName postDate binds a_ret ret
  = C.Program
- { C.inputType  = inpType
- , C.inputName  = inpName
+ { C.inputType    = inpType
+ , C.factValName  = factValName
+ , C.factIdName   = factIdName
+ , C.factTimeName = factTimeName
  , C.snaptimeName = postDate
- , C.precomps   = precomps  binds
- , C.streams    = streams   binds
- , C.postcomps  = postcomps binds
- , C.returns    = [(outputName, X.XVar a_ret ret)]
+ , C.precomps     = precomps  binds
+ , C.streams      = streams   binds
+ , C.postcomps    = postcomps binds
+ , C.returns      = [(outputName, X.XVar a_ret ret)]
  }
 
 
@@ -162,11 +168,13 @@ type ConvertM a n r
 
 data ConvertState n
  = ConvertState
- { csInputName  :: Name n
- , csInputType  :: ValType
- , csDateName   :: Name n
- , csFeatures   :: FeatureContext () n
- , csFreshen    :: Map.Map (Name n) (Name n)
+ { csInputName    :: Name n
+ , csInputType    :: ValType
+ , csFactIdName   :: Name n
+ , csFactTimeName :: Name n
+ , csDateName     :: Name n
+ , csFeatures     :: FeatureContext () n
+ , csFreshen      :: Map.Map (Name n) (Name n)
  }
 
 convertInput :: ConvertM a n (Name n, ValType)
@@ -180,6 +188,15 @@ convertInputName
 convertInputType :: ConvertM a n ValType
 convertInputType
  = csInputType <$> get
+
+convertFactIdName :: ConvertM a n (Name n)
+convertFactIdName
+ = csFactIdName <$> get
+
+convertFactTimeName :: ConvertM a n (Name n)
+convertFactTimeName
+ = csFactTimeName <$> get
+
 
 convertDateName :: ConvertM a n (Name n)
 convertDateName

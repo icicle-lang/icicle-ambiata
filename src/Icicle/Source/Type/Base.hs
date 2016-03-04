@@ -63,6 +63,11 @@ typeOfValType vt
     CT.StringT      -> StringT
     CT.UnitT        -> UnitT
     CT.ErrorT       -> ErrorT
+
+    -- Fact identifiers are represented as integers.
+    CT.FactIdentifierT
+                    -> IntT
+
     CT.ArrayT a     -> ArrayT (go a)
     CT.BufT  _ a    -> ArrayT (go a)
     CT.MapT  k v    -> GroupT (go k) (go v)

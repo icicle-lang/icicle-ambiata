@@ -80,7 +80,10 @@ prop_fuseeval2 t =
  case (eval p1, eval p2, fusePrograms () left p1 right p2) of
   (Right v1, Right v2, Right p')
       -- Evaluate the fused program
-   -> case eval p' of
+   ->counterexample ("Left:          " <> (show $ pretty p1))
+   $ counterexample ("Right:         " <> (show $ pretty p2))
+   $ counterexample ("Fused:         " <> (show $ pretty p'))
+   $  case eval p' of
        -- It should not be an error
        Left  _  -> property False
        -- It evaluated fine, so the values should match

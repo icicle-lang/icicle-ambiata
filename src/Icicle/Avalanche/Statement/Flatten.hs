@@ -63,8 +63,8 @@ flatten a_fresh s
      $ \to'
      -> ForeachInts n from' to' <$> flatten a_fresh ss
 
-    ForeachFacts ns vt lo ss
-     -> ForeachFacts ns vt lo <$> flatten a_fresh ss
+    ForeachFacts binds vt lo ss
+     -> ForeachFacts binds vt lo <$> flatten a_fresh ss
 
     Block ss
      -> Block <$> mapM (flatten a_fresh) ss
@@ -284,6 +284,42 @@ flatX a_fresh xx stm
        | otherwise
        -> lift $ Left $ FlattenErrorPrimBadArgs p xs
 
+      -- Map: lookup by key
+      Core.PrimMap (Core.PrimMapLookup tk tv)
+       | [map, key]   <- xs
+       -> flatX' map
+       $ \map'
+       -> flatX' key
+       $ \key'
+       -> do n'res       <- fresh
+             let acc'res  = Accumulator n'res (OptionT tv) $ xValue (OptionT tv) VNone
+
+                 read'r   = Read n'res n'res (OptionT tv)
+
+                 eq       = xPrim $ Flat.PrimMinimal $ Min.PrimRelation Min.PrimRelationEq tk
+                 get t ar i = fpArrIx  t `makeApps'` [ar, i]
+                 upd' x   = Write n'res ((xPrim $ Flat.PrimMinimal $ Min.PrimConst $ Min.PrimConstSome tv) `xApp` x)
+
+             loop1       <- slet (fpMapKeys tk tv `xApp` map')  $ \map'k
+                         -> slet (fpMapVals tk tv `xApp` map')  $ \map'v
+                         -> slet (fpArrLen  tk    `xApp` map'k) $ \sz
+                         -> forI sz  $ \i
+                         -> return
+                            (If (eq `makeApps'` [get tk map'k i, key'])
+                               (upd' $ get tv map'v i)
+                               mempty)
+
+             stm'        <- stm $ xVar n'res
+
+             let ss       = InitAccumulator acc'res
+                          ( loop1 <> read'r stm' )
+
+             return ss
+
+       -- Map with wrong arguments
+       | otherwise
+       -> lift $ Left $ FlattenErrorPrimBadArgs p xs
+
 
       -- Map over array: create new empty array, for each element, etc
       Core.PrimArray (Core.PrimArrayMap ta tb)
@@ -313,7 +349,7 @@ flatX a_fresh xx stm
 
 
       Core.PrimLatest (Core.PrimLatestPush i t)
-       | [buf, e]    <- xs
+       | [buf, _factid, e]    <- xs
        -> flatX' e
        $  \e'
        -> flatX' buf
@@ -341,22 +377,21 @@ flatX a_fresh xx stm
        | otherwise
        -> lift $ Left $ FlattenErrorPrimBadArgs p xs
 
-      -- TODO: PrimWindow should probably be a Min primitive, or perhaps Flat primitive as well. This should keep fact in history if it is greater than newer than, but not less than older than.
       Core.PrimWindow newerThan olderThan
-       | [now, fact] <- xs
+       | [now, fact, _factid] <- xs
        -> flatX' now
        $  \now'
        -> flatX' fact
        $  \fact'
-       -> let  ge   = xPrim $ Flat.PrimMinimal $ Min.PrimRelation Min.PrimRelationGe TimeT
-               andb = xPrim $ Flat.PrimMinimal $ Min.PrimLogical  Min.PrimLogicalAnd
-          in case olderThan of
-              Just olderThan'
-               -> stm (andb `makeApps'`
-                        [ ge `makeApps'` [fact', windowEdge now' newerThan]
-                        , ge `makeApps'` [windowEdge now' olderThan', fact']])
-              Nothing
-               -> stm (ge `makeApps'` [fact', windowEdge now' newerThan])
+       -> let  ge    = xPrim $ Flat.PrimMinimal $ Min.PrimRelation Min.PrimRelationGe TimeT
+               andb  = xPrim $ Flat.PrimMinimal $ Min.PrimLogical  Min.PrimLogicalAnd
+               newer = ge `makeApps'` [fact', windowEdge now' newerThan]
+               both  | Just olderThan' <- olderThan
+                     = andb `makeApps'` [ newer, ge `makeApps'` [windowEdge now' olderThan', fact']]
+                     | otherwise
+                     = newer
+          in do stm' <- stm both
+                return (If newer KeepFactInHistory mempty <> stm')
 
        | otherwise
        -> lift $ Left $ FlattenErrorPrimBadArgs p xs

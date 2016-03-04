@@ -21,7 +21,9 @@ data Program a n =
  Program {
  -- | The type of the input/concrete feature
    inputType    :: ValType
- , inputName    :: Name n
+ , factValName  :: Name n
+ , factIdName   :: Name n
+ , factTimeName :: Name n
  , snaptimeName :: Name n
 
  -- | All precomputations, made before starting to read from feature source
@@ -42,7 +44,9 @@ data Program a n =
 renameProgram :: (Name n -> Name n') -> Program a n -> Program a n'
 renameProgram f p
   = p
-  { inputName   = f $ inputName p
+  { factValName = f $ factValName    p
+  , factIdName  = f $ factIdName   p
+  , factTimeName= f $ factTimeName p
   , snaptimeName= f $ snaptimeName p
   , precomps    = binds  renameExp      (precomps   p)
   , streams     = fmap  (renameStream f)(streams    p)
@@ -61,7 +65,9 @@ renameProgram f p
 instance Pretty n => Pretty (Program a n) where
  pretty p
   =     text "Program ("
-  <> pretty (inputName p) <> " : Stream " <> pretty (inputType p) <> text ", "
+  <> pretty (factValName  p) <> " : " <> pretty (inputType p) <> text ", "
+  <> pretty (factIdName   p) <> " : FactIdentifier, "
+  <> pretty (factTimeName p) <> " : Time, "
   <> pretty (snaptimeName p) <> " : SNAPSHOT_TIME)" <> line
 
   <>    text "Precomputations:"                        <> line

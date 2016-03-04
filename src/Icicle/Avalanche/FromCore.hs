@@ -61,7 +61,7 @@ programFromCore namer p
     -- accums (filter (readFromHistory.snd) $ C.reduces p)
     -- ( factLoopHistory    <>
     ( createAccums
-    ( readaccum (C.inputName p, inputType') (initAccums (C.streams p)) <>
+    ( readaccum (C.factValName p, inputType') (initAccums (C.streams p)) <>
       mconcat (fmap loadResumables accNames) <>
       factLoopNew                            <>
       mconcat (fmap saveResumables accNames) <>
@@ -102,7 +102,7 @@ programFromCore namer p
    = factLoop FactLoopNew
 
   factLoop loopType
-   = ForeachFacts [(C.inputName p, inputType')] inputType' loopType
+   = ForeachFacts (FactBinds (C.factTimeName p) (C.factIdName p) [(C.factValName p, inputType')]) inputType' loopType
    $ Block factStmts
 
   inputType' = PairT (C.inputType p) TimeT
@@ -149,7 +149,7 @@ makeStatements
         -> ([(Name n, ValType)], [Statement () n Prim])
 makeStatements p namer streams
  = let (nms,stms) = go [] streams
-   in  ((C.inputName p, PairT (C.inputType p) TimeT) : nms, Write (namerAccPrefix namer $ C.inputName p) (X.XVar () $ C.inputName p) : stms)
+   in  ((C.factValName p, PairT (C.inputType p) TimeT) : nms, Write (namerAccPrefix namer $ C.factValName p) (X.XVar () $ C.factValName p) : stms)
  where
   go nms []
    = (nms, [])

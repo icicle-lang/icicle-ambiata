@@ -42,8 +42,10 @@ fuseProgramsDistinctNames _ lp rp
  | otherwise
  = return
  $ Program
- { inputName = inputName lp
- , inputType = inputType lp
+ { inputType = inputType lp
+ , factValName = factValName lp
+ , factIdName= factIdName lp
+ , factTimeName = factTimeName lp
  , snaptimeName = snaptimeName lp
  , precomps  = precomps  lp <> substSnds (precomps  rp)
  , streams   = streams   lp <> substStms (streams   rp)
@@ -55,7 +57,9 @@ fuseProgramsDistinctNames _ lp rp
   substStms = unsafeSubstStreams inpsubst
 
   inpsubst
-   = [ (inputName    rp, inputName    lp)
+   = [ (factValName  rp, factValName  lp)
+     , (factIdName   rp, factIdName   lp)
+     , (factTimeName rp, factTimeName lp)
      , (snaptimeName rp, snaptimeName lp) ]
 
 

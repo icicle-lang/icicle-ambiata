@@ -29,6 +29,8 @@ import              P
 
 import qualified    Data.Map as Map
 import              Data.Hashable (Hashable)
+import qualified    Data.Set as Set
+import              Data.List (zipWith)
 
 
 -- | Things that can go wrong for program evaluation
@@ -67,15 +69,22 @@ instance (Pretty n) => Pretty (RuntimeError a n) where
 data ProgramValue n =
  ProgramValue {
     value   :: [(OutputName, BaseValue)]
- ,  history :: [BubbleGumOutput n BaseValue]
+ ,  history :: Set.Set FactIdentifier
  }
  deriving (Show, Eq)
+
+-- | Right at the start, we need dates on the stream values.
+-- These can be used by windowing functions or ignored.
+-- Afterwards they are thrown away, but could still be included in the value itself.
+type InitialStreamValue
+ = [AsAt (BubbleGumFact, BaseValue)]
+
 
 -- | Evaluate a program.
 -- We take no environments, but do take the concrete feature values.
 eval    :: (Hashable n, Eq n)
         => Time
-        -> SV.InitialStreamValue
+        -> InitialStreamValue
         -> P.Program a n
         -> Either (RuntimeError a n) (ProgramValue n)
 eval d sv p
@@ -83,11 +92,15 @@ eval d sv p
         pres    <- first RuntimeErrorPre
                  $ XV.evalExps XV.evalPrim  env0   (P.precomps     p)
 
+        let mkstream f t = SV.StreamValue (fmap f sv) (defaultOfType t)
+        let idStream = SV.StreamValue (zipWith (\_ i -> VFactIdentifier $ FactIdentifier i) sv [0..]) (defaultOfType FactIdentifierT)
         let valueOfInput at = VPair (snd $ atFact at) (VTime $ atTime at)
-        let sv' = fmap valueOfInput sv
-        let streamInput = SV.StreamValue sv' $ defaultOfType $ PairT (P.inputType p) TimeT
-        let inputHeap = Map.singleton (P.inputName p) streamInput
-        (stms,bgs) <- evalStms pres inputHeap (P.streams      p)
+
+        let inputHeap = Map.fromList 
+                      [(P.factValName  p, mkstream valueOfInput (PairT (P.inputType p) TimeT))
+                      ,(P.factIdName   p, idStream)
+                      ,(P.factTimeName p, mkstream (VTime . atTime) TimeT)]
+        (stms,facts) <- evalStms pres inputHeap (P.streams      p)
 
         let lastSV svals | (v:_) <- reverse $ SV.streamValues svals
                          = v
@@ -108,7 +121,11 @@ eval d sv p
 
         rets <- mapM evalReturn (P.returns p)
 
-        return $ ProgramValue rets $ bubbleGumNubOutputs bgs
+        let facts' = Set.unions
+                   $ fmap V.collectFactIdentifiersFromBufs
+                   $ Map.elems stms'
+
+        return $ ProgramValue rets (Set.union facts facts')
 
 
 -- | Evaluate all stream bindings, collecting up stream heap as we go
@@ -117,15 +134,15 @@ evalStms
         => V.Heap a n Prim
         -> SV.StreamHeap  n
         -> [Stream a n]
-        -> Either (RuntimeError a n) (SV.StreamHeap n, [BubbleGumOutput n BaseValue])
+        -> Either (RuntimeError a n) (SV.StreamHeap n, Set.Set FactIdentifier)
 
 evalStms _ sh []
- = return (sh, [])
+ = return (sh, Set.empty)
 
 evalStms xh sh (strm:bs)
- = do   sh'   <- first RuntimeErrorStream
-               $ SV.eval xh sh strm
+ = do   (sh',facts)     <- first RuntimeErrorStream
+                         $ SV.eval xh sh strm
 
-        (sh'', _) <- evalStms xh sh' bs
-        return (sh'', [])
+        (sh'', facts')  <- evalStms xh sh' bs
+        return (sh'', Set.union facts facts')
 

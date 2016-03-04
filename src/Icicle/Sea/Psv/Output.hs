@@ -418,6 +418,8 @@ seaOfOutputBase quoteStrings err t val
       -> pure $ quotedOutput quoteStrings (outputValue "string" [val, "strlen(" <> val <> ")"])
      TimeT
       -> pure $ quotedOutput quoteStrings (outputValue "time" [val])
+     FactIdentifierT
+      -> pure $ outputValue "int" [val]
 
      _ -> Left err
 
