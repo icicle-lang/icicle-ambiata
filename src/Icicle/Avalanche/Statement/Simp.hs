@@ -290,7 +290,7 @@ substXinS a_fresh name payload statements
       ForeachFacts binds@(FactBinds ntime nfid ns) x y ss
        | name `elem` fmap fst (factBindsAll binds)
        -> finished s
-       | any (flip Set.member frees . fst) ns
+       | any (flip Set.member frees . fst) (factBindsAll binds)
        -> do ntime'  <- fresh
              nfid'   <- fresh
              let subF n n' = substXinS a_fresh n (XVar a_fresh n')
