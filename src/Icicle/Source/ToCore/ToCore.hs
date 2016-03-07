@@ -379,7 +379,7 @@ convertQuery q
             let kons    = CE.xLet n'key e'
                         ( CE.xPrim (C.PrimFold (C.PrimFoldOption T.UnitT) pairt)
                         CE.@~ CE.xLam n'ignore2 T.UnitT (CE.xVar n')
-                        CE.@~ update_step
+                        CE.@~ CE.xLam n'ignore2 T.UnitT update_step
                         CE.@~ check_if_exists )
 
             -- Perform the map fold

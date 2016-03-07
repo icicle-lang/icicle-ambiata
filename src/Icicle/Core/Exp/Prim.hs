@@ -80,7 +80,7 @@ typeOfPrim p
     PrimFold (PrimFoldArray a) ret
      -> FunT [FunT [funOfVal ret, funOfVal a] ret, funOfVal ret, funOfVal (ArrayT a)] ret
     PrimFold (PrimFoldOption a) ret
-     -> FunT [FunT [funOfVal a] ret, funOfVal ret, funOfVal (OptionT a)] ret
+     -> FunT [FunT [funOfVal a] ret, FunT [funOfVal UnitT] ret, funOfVal (OptionT a)] ret
     PrimFold (PrimFoldSum    a b) ret
      -> FunT [FunT [funOfVal a] ret, FunT [funOfVal b] ret, funOfVal (SumT a b)] ret
     PrimFold (PrimFoldMap k v) ret

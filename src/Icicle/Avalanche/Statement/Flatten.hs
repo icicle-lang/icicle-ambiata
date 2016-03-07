@@ -498,8 +498,9 @@ flatX a_fresh xx stm
       acc  <- fresh
       stm' <- stm (xVar acc)
       tmp  <- fresh
+      let vunit = xValue UnitT VUnit
       ssome <- flatX' (xsome `xApp` (xVar tmp)) $ (return . Write acc)
-      snone <- flatX' xnone $ (return . Write acc)
+      snone <- flatX' (xnone `xApp` vunit)  $ (return . Write acc)
       let if_   = If (fpIsSome ta `xApp` opt') (Let tmp (fpOptionGet ta `xApp` opt') ssome) snone
           -- After if, read back result from accumulator and then go do the rest of the statements
           read_ = Read acc acc valT stm'

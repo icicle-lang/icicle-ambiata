@@ -45,7 +45,7 @@ evalPrim p vs
       | [s, _, VBase (VSome v)] <- vs
       -> applies' s [VBase v]
       | [_, n, VBase (VNone)] <- vs
-      -> return n
+      -> applies' n [VBase VUnit]
       | otherwise
       -> primError
 
