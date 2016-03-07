@@ -149,7 +149,7 @@ convertCase x scrut pats scrutT resT
           , Just ([],non)  <- Map.lookup ConNone    m
 
           -> return ((CE.xPrim $ C.PrimFold (C.PrimFoldOption ta) resT)
-                     CE.@~ (CE.xLam n ta som) CE.@~ non
+                     CE.@~ (CE.xLam n ta som) CE.@~ (CE.xLam sn T.UnitT non)
                      CE.@~ scrut)
 
          T.BoolT
