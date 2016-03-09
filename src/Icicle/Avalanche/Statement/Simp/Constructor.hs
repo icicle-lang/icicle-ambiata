@@ -252,26 +252,14 @@ constructor a_fresh statements
    $ fmap (\(t, ix) -> primArrayPut aix t (primUnpack ix (ArrayT tx) na)
                                           (primUnpack ix         tx  nv)) tis
 
-   -- equality
-   | (PrimMinimal (Min.PrimRelation Min.PrimRelationEq t), [nx, ny]) <- prima
-   , Just tis <- withIndex tryMeltType t
-   = Just
-   $ primFold1 primAnd
-   $ fmap (withPrim primEq t nx ny) tis
-
-   | (PrimMinimal (Min.PrimRelation Min.PrimRelationNe t), [nx, ny]) <- prima
-   , Just tis <- withIndex tryMeltType t
-   = Just
-   $ primFold1 primOr
-   $ fmap (withPrim primNe t nx ny) tis
-
    -- comparison
    | (PrimMinimal (Min.PrimRelation op t), [nx, ny]) <- prima
    , Just tis   <- withIndex tryMeltType t
-   , Just prim  <- relationPrim op
+   , prim       <- relationPrim op
    , ps         <- meltWith prim t
+   , conn       <- connectivePrim op
    = Just
-   $ primFold1 primAnd
+   $ primFold1 conn
    $ fmap (\(p, tvi) -> withPrim p t nx ny tvi) (List.zip ps tis)
 
    | otherwise
@@ -284,12 +272,23 @@ constructor a_fresh statements
    = fmap (flip List.zip [0..]) (f t)
 
   relationPrim p = case p of
-    Min.PrimRelationGt -> Just primGt
-    Min.PrimRelationGe -> Just primGe
-    Min.PrimRelationLt -> Just primLt
-    Min.PrimRelationLe -> Just primLe
-    _                  -> Nothing
+    Min.PrimRelationGt -> primGt
+    Min.PrimRelationGe -> primGe
+    Min.PrimRelationLt -> primLt
+    Min.PrimRelationLe -> primLe
+    Min.PrimRelationEq -> primEq
+    Min.PrimRelationNe -> primNe
 
+  connectivePrim p = case p of
+    Min.PrimRelationGt -> primAnd
+    Min.PrimRelationGe -> primAnd
+    Min.PrimRelationLt -> primAnd
+    Min.PrimRelationLe -> primAnd
+    Min.PrimRelationEq -> primAnd
+    Min.PrimRelationNe -> primOr
+
+
+  -- | For a relation prim applied to t, melt prim to match members of melted t
   meltWith prim t = case t of
     UnitT            -> [prim]
     IntT             -> [prim]
