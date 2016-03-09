@@ -29,8 +29,6 @@ import qualified Icicle.Pipeline                  as P
 
 import qualified Icicle.Internal.Pretty           as PP
 
-import qualified Icicle.Avalanche.ToJava          as AJ
-
 import qualified Icicle.Core.Program.Check        as CP
 
 import           Icicle.Data
@@ -102,7 +100,6 @@ data ReplState
    , hasAvalanche     :: Bool
    , hasAvalancheEval :: Bool
    , hasFlatten       :: Bool
-   , hasJava          :: Bool
    , hasSeaPreamble   :: Bool
    , hasSea           :: Bool
    , hasSeaAssembly   :: Bool
@@ -121,7 +118,6 @@ data Set
    | ShowAvalanche      Bool
    | ShowAvalancheEval  Bool
    | ShowFlatten        Bool
-   | ShowJava           Bool
    | ShowSeaPreamble    Bool
    | ShowSea            Bool
    | ShowSeaAssembly    Bool
@@ -145,7 +141,7 @@ data Command
 
 defaultState :: ReplState
 defaultState
-  = (ReplState [] demographics (unsafeTimeOfYMD 1970 1 1) False False False False False False False False False False False False False False False False)
+  = (ReplState [] demographics (unsafeTimeOfYMD 1970 1 1) False False False False False False False False False False False False False False False)
     { hasCoreEval = True
     , doCoreSimp  = True }
 
@@ -199,9 +195,6 @@ readSetCommands ss
 
     ("+flatten":rest)      -> (:) (ShowFlatten   True)     <$> readSetCommands rest
     ("-flatten":rest)      -> (:) (ShowFlatten   False)    <$> readSetCommands rest
-
-    ("+java":rest)         -> (:) (ShowJava      True)     <$> readSetCommands rest
-    ("-java":rest)         -> (:) (ShowJava      False)    <$> readSetCommands rest
 
     ("+c-preamble":rest)   -> (:) (ShowSeaPreamble True)  <$> readSetCommands rest
     ("-c-preamble":rest)   -> (:) (ShowSeaPreamble False) <$> readSetCommands rest
@@ -341,8 +334,6 @@ handleLine state line = case readCommand line of
         case flatChecked of
          Left  e  -> prettyOut (const True) "- Avalanche type error:" e
          Right f' -> do
-           prettyOut hasJava "- Java:" (AJ.programToJava f')
-
            prettyOut hasSeaPreamble "- C preamble:" Sea.seaPreamble
 
            when (hasSea state) $ do
@@ -417,10 +408,6 @@ handleSetCommand state set
     ShowFlatten b -> do
         HL.outputStrLn $ "ok, flatten is now " <> showFlag b
         return $ state { hasFlatten = b }
-
-    ShowJava b -> do
-        HL.outputStrLn $ "ok, java is now " <> showFlag b
-        return $ state { hasJava = b }
 
     ShowSeaPreamble b -> do
         HL.outputStrLn $ "ok, c preamble is now " <> showFlag b
@@ -524,7 +511,6 @@ showState state
     , flag "core-eval:    " hasCoreEval
     , flag "avalanche:    " hasAvalanche
     , flag "flatten:      " hasFlatten
-    , flag "java:         " hasJava
     , flag "c-preamble:   " hasSeaPreamble
     , flag "c:            " hasSea
     , flag "c-assembly:   " hasSeaAssembly
@@ -555,7 +541,6 @@ usage
       , ":set  +/-core-eval    -- whether to show the result (using Core evaluation)"
       , ":set  +/-avalanche    -- whether to show the Avalanche conversion"
       , ":set  +/-flatten      -- whether to show flattened Avalanche conversion"
-      , ":set  +/-java         -- whether to show the Java result"
       , ":set  +/-c-preamble   -- whether to show the C preamble"
       , ":set  +/-c            -- whether to show the C conversion"
       , ":set  +/-c-assembly   -- whether to show the C assembly"

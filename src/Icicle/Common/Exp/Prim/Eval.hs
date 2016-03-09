@@ -82,49 +82,47 @@ evalPrim p originalP vs
       -> primError
 
 
-     PrimDouble PrimDoubleDiv
+     PrimBuiltinFun (PrimBuiltinMath PrimBuiltinDiv)
       | [VBase (VDouble i), VBase (VDouble j)] <- vs
       -> return $ VBase $ VDouble $ i / j
       | otherwise
       -> primError
-     PrimDouble PrimDoubleLog
+     PrimBuiltinFun (PrimBuiltinMath PrimBuiltinLog)
       | [VBase (VDouble i)] <- vs
       -> return $ VBase $ VDouble $ log i
       | otherwise
       -> primError
-     PrimDouble PrimDoubleExp
+     PrimBuiltinFun (PrimBuiltinMath PrimBuiltinExp)
       | [VBase (VDouble i)] <- vs
       -> return $ VBase $ VDouble $ exp i
       | otherwise
       -> primError
-     PrimDouble PrimDoubleSqrt
+     PrimBuiltinFun (PrimBuiltinMath PrimBuiltinSqrt)
       | [VBase (VDouble i)] <- vs
       -> return $ VBase $ VDouble $ sqrt i
       | otherwise
       -> primError
-
-     PrimToInt  PrimToIntFloor
+     PrimBuiltinFun (PrimBuiltinMath  PrimBuiltinFloor)
       | [VBase (VDouble i)] <- vs
       -> return $ VBase $ VInt $ floor i
       | otherwise
       -> primError
-     PrimToInt  PrimToIntCeiling
+     PrimBuiltinFun (PrimBuiltinMath  PrimBuiltinCeiling)
       | [VBase (VDouble i)] <- vs
       -> return $ VBase $ VInt $ ceiling i
       | otherwise
       -> primError
-     PrimToInt  PrimToIntRound
+     PrimBuiltinFun (PrimBuiltinMath  PrimBuiltinRound)
       | [VBase (VDouble i)] <- vs
       -> return $ VBase $ VInt $ round i
       | otherwise
       -> primError
-     PrimToInt  PrimToIntTruncate
+     PrimBuiltinFun (PrimBuiltinMath  PrimBuiltinTruncate)
       | [VBase (VDouble i)] <- vs
       -> return $ VBase $ VInt $ truncate i
       | otherwise
       -> primError
-
-     PrimToDouble PrimToDoubleFromInt
+     PrimBuiltinFun (PrimBuiltinMath PrimBuiltinToDoubleFromInt)
       | [VBase (VInt i)] <- vs
       -> return $ VBase $ VDouble $ fromIntegral i
       | otherwise

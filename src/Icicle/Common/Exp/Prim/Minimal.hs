@@ -4,9 +4,6 @@ module Icicle.Common.Exp.Prim.Minimal (
       Prim   (..)
     , PrimArithUnary(..)
     , PrimArithBinary(..)
-    , PrimDouble(..)
-    , PrimToInt(..)
-    , PrimToDouble(..)
     , PrimToString(..)
     , PrimRelation(..)
     , PrimLogical(..)
@@ -14,6 +11,8 @@ module Icicle.Common.Exp.Prim.Minimal (
     , PrimTime (..)
     , PrimPair(..)
     , PrimStruct(..)
+    , PrimBuiltinFun(..)
+    , PrimBuiltinMath(..)
     , typeOfPrim
     ) where
 
@@ -30,9 +29,6 @@ import qualified    Data.Map as Map
 data Prim
  = PrimArithUnary  PrimArithUnary  ArithType  -- ^ "Polymorphic" (double or int) unary operators
  | PrimArithBinary PrimArithBinary ArithType  -- ^ "Polymorphic" (double or int) binary operators
- | PrimDouble      PrimDouble                 -- ^ Arithmetic operators only defined for doubles
- | PrimToInt       PrimToInt                  -- ^ Conversion to int
- | PrimToDouble    PrimToDouble               -- ^ Conversion to double
  | PrimToString    PrimToString               -- ^ Conversion to string
  | PrimRelation    PrimRelation    ValType    -- ^ "Polymorphic" relation operators
  | PrimLogical     PrimLogical                -- ^ Logical operators
@@ -40,6 +36,7 @@ data Prim
  | PrimPair        PrimPair                   -- ^ Pair projections
  | PrimStruct      PrimStruct                 -- ^ Struct projections
  | PrimTime        PrimTime                   -- ^ Time/date primitives
+ | PrimBuiltinFun  PrimBuiltinFun
  deriving (Eq, Ord, Show)
 
 -- | Unary arithmetic primitives common to all numeric types.
@@ -58,30 +55,10 @@ data PrimArithBinary
  | PrimArithPow
  deriving (Eq, Ord, Show)
 
--- | Primitives that converts numeric types to ints.
-data PrimToInt
- = PrimToIntCeiling
- | PrimToIntFloor
- | PrimToIntTruncate
- | PrimToIntRound
- deriving (Eq, Ord, Show)
-
-data PrimToDouble
- = PrimToDoubleFromInt
- deriving (Eq, Ord, Show)
 
 data PrimToString
  = PrimToStringFromInt
  | PrimToStringFromDouble
- deriving (Eq, Ord, Show)
-
--- | Specific Double things.
--- Division doesn't really apply to Ints.
-data PrimDouble
- = PrimDoubleDiv
- | PrimDoubleLog
- | PrimDoubleExp
- | PrimDoubleSqrt
  deriving (Eq, Ord, Show)
 
 -- | Predicates like >=
@@ -127,6 +104,28 @@ data PrimStruct
  = PrimStructGet StructField ValType StructType
  deriving (Eq, Ord, Show)
 
+--------------------------------------------------------------------------------
+
+-- | Built-in functions, baked-in with direct C implementation.
+data PrimBuiltinFun
+  = PrimBuiltinMath   PrimBuiltinMath
+ deriving (Eq, Ord, Show)
+
+-- | Built-in math functions
+data PrimBuiltinMath
+ = PrimBuiltinCeiling
+ | PrimBuiltinFloor
+ | PrimBuiltinTruncate
+ | PrimBuiltinRound
+ | PrimBuiltinToDoubleFromInt
+ | PrimBuiltinDiv
+ | PrimBuiltinLog
+ | PrimBuiltinExp
+ | PrimBuiltinSqrt
+ deriving (Eq, Ord, Show, Enum, Bounded)
+
+--------------------------------------------------------------------------------
+
 -- | A primitive always has a well-defined type
 typeOfPrim :: Prim -> Type
 typeOfPrim p
@@ -137,25 +136,24 @@ typeOfPrim p
     PrimArithBinary _ t
      -> FunT [funOfVal (valTypeOfArithType t), funOfVal (valTypeOfArithType t)] (valTypeOfArithType t)
 
-    PrimDouble PrimDoubleDiv
+    -- Built-in functions
+    PrimBuiltinFun    (PrimBuiltinMath PrimBuiltinFloor)
+     -> FunT [funOfVal DoubleT] IntT
+    PrimBuiltinFun    (PrimBuiltinMath PrimBuiltinCeiling)
+     -> FunT [funOfVal DoubleT] IntT
+    PrimBuiltinFun    (PrimBuiltinMath PrimBuiltinTruncate)
+     -> FunT [funOfVal DoubleT] IntT
+    PrimBuiltinFun    (PrimBuiltinMath PrimBuiltinRound)
+     -> FunT [funOfVal DoubleT] IntT
+    PrimBuiltinFun    (PrimBuiltinMath PrimBuiltinDiv)
      -> FunT [funOfVal DoubleT, funOfVal DoubleT] DoubleT
-    PrimDouble PrimDoubleLog
+    PrimBuiltinFun    (PrimBuiltinMath PrimBuiltinLog)
      -> FunT [funOfVal DoubleT] DoubleT
-    PrimDouble PrimDoubleExp
+    PrimBuiltinFun    (PrimBuiltinMath PrimBuiltinExp)
      -> FunT [funOfVal DoubleT] DoubleT
-    PrimDouble PrimDoubleSqrt
+    PrimBuiltinFun    (PrimBuiltinMath PrimBuiltinSqrt)
      -> FunT [funOfVal DoubleT] DoubleT
-
-    PrimToInt    PrimToIntFloor
-     -> FunT [funOfVal DoubleT] IntT
-    PrimToInt    PrimToIntCeiling
-     -> FunT [funOfVal DoubleT] IntT
-    PrimToInt    PrimToIntTruncate
-     -> FunT [funOfVal DoubleT] IntT
-    PrimToInt    PrimToIntRound
-     -> FunT [funOfVal DoubleT] IntT
-
-    PrimToDouble PrimToDoubleFromInt
+    PrimBuiltinFun    (PrimBuiltinMath PrimBuiltinToDoubleFromInt)
      -> FunT [funOfVal IntT] DoubleT
 
     PrimToString PrimToStringFromInt
@@ -204,6 +202,21 @@ typeOfPrim p
 
 -- Pretty -------------
 
+instance Pretty PrimBuiltinFun where
+ pretty (PrimBuiltinMath   p) = pretty p
+
+instance Pretty PrimBuiltinMath where
+ pretty p = case p of
+   PrimBuiltinDiv  -> "div#"
+   PrimBuiltinLog  -> "log#"
+   PrimBuiltinExp  -> "exp#"
+   PrimBuiltinSqrt -> "sqrt#"
+   PrimBuiltinFloor    -> "floor#"
+   PrimBuiltinCeiling  -> "ceil#"
+   PrimBuiltinRound    -> "round#"
+   PrimBuiltinTruncate -> "trunc#"
+   PrimBuiltinToDoubleFromInt -> "doubleOfInt#"
+
 instance Pretty Prim where
  pretty (PrimArithUnary p t)
   = annotate (AnnType $ valTypeOfArithType t) p'
@@ -223,29 +236,14 @@ instance Pretty Prim where
        PrimArithMul     -> "mul#"
        PrimArithPow     -> "pow#"
 
- pretty (PrimDouble p)
-  = case p of
-     PrimDoubleDiv  -> "div#"
-     PrimDoubleLog  -> "log#"
-     PrimDoubleExp  -> "exp#"
-     PrimDoubleSqrt -> "sqrt#"
-
- pretty (PrimToInt p)
-  = case p of
-     PrimToIntFloor    -> "floor#"
-     PrimToIntCeiling  -> "ceil#"
-     PrimToIntRound    -> "round#"
-     PrimToIntTruncate -> "trunc#"
-
- pretty (PrimToDouble p)
-  = case p of
-     PrimToDoubleFromInt -> "doubleOfInt#"
 
  pretty (PrimToString p)
   = case p of
      PrimToStringFromInt    -> "stringOfInt#"
      PrimToStringFromDouble -> "stringOfDouble#"
 
+ pretty (PrimBuiltinFun p)
+  = pretty p
 
  pretty (PrimRelation rel t)
   = annotate (AnnType t) prel

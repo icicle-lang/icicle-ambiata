@@ -44,7 +44,8 @@ convertPrim p ann resT xts
   args = fmap fst xts
   applies p' = CE.makeApps () p' args
 
-  primmin p' = applies $ CE.XPrim () $ C.PrimMinimal p'
+  primmin p'  = applies $ CE.XPrim () $ C.PrimMinimal p'
+  primbuiltin = primmin . Min.PrimBuiltinFun
 
   go (Lit (LitInt i))
    | (_, _, DoubleT) <- decomposeT resT
@@ -106,7 +107,7 @@ convertPrim p ann resT xts
    = primmin <$> (Min.PrimArithBinary Min.PrimArithPow <$> tArithArg 2)
 
   goop (ArithDouble Div)
-   = return $ primmin $ Min.PrimDouble Min.PrimDoubleDiv
+   = return $ primbuiltin $ Min.PrimBuiltinMath Min.PrimBuiltinDiv
 
   goop (LogicalUnary Not)
    = return $ primmin $ Min.PrimLogical Min.PrimLogicalNot
@@ -175,11 +176,11 @@ convertPrim p ann resT xts
    $ ConvertErrorPrimNoArguments ann 2 p
 
   gofun Log
-   = return $ primmin $ Min.PrimDouble Min.PrimDoubleLog
+   = return $ primbuiltin $ Min.PrimBuiltinMath Min.PrimBuiltinLog
   gofun Exp
-   = return $ primmin $ Min.PrimDouble Min.PrimDoubleExp
+   = return $ primbuiltin $ Min.PrimBuiltinMath Min.PrimBuiltinExp
   gofun Sqrt
-   = return $ primmin $ Min.PrimDouble Min.PrimDoubleSqrt
+   = return $ primbuiltin $ Min.PrimBuiltinMath Min.PrimBuiltinSqrt
 
   gofun Abs
    = case xts of
@@ -197,35 +198,35 @@ convertPrim p ann resT xts
        | (_, _, DoubleT) <- decomposeT tt
        -> return xx
       _
-       -> return $ primmin $ Min.PrimToDouble Min.PrimToDoubleFromInt
+       -> return $ primbuiltin $ Min.PrimBuiltinMath Min.PrimBuiltinToDoubleFromInt
   gofun Floor
    = case xts of
       ((xx,tt):_)
        | (_, _, IntT) <- decomposeT tt
        -> return xx
       _
-       -> return $ primmin $ Min.PrimToInt Min.PrimToIntFloor
+       -> return $ primbuiltin $ Min.PrimBuiltinMath Min.PrimBuiltinFloor
   gofun Ceiling
    = case xts of
       ((xx,tt):_)
        | (_, _, IntT) <- decomposeT tt
        -> return xx
       _
-       -> return $ primmin $ Min.PrimToInt Min.PrimToIntCeiling
+       -> return $ primbuiltin $ Min.PrimBuiltinMath Min.PrimBuiltinCeiling
   gofun Round
    = case xts of
       ((xx,tt):_)
        | (_, _, IntT) <- decomposeT tt
        -> return xx
       _
-       -> return $ primmin $ Min.PrimToInt Min.PrimToIntRound
+       -> return $ primbuiltin $ Min.PrimBuiltinMath Min.PrimBuiltinRound
   gofun Truncate
    = case xts of
       ((xx,tt):_)
        | (_, _, IntT) <- decomposeT tt
        -> return xx
       _
-       -> return $ primmin $ Min.PrimToInt Min.PrimToIntTruncate
+       -> return $ primbuiltin $ Min.PrimBuiltinMath Min.PrimBuiltinTruncate
 
   gofun DaysBetween
    = return $ primmin $ Min.PrimTime Min.PrimTimeDaysDifference
