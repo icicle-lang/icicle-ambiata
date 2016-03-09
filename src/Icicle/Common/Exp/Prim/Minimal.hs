@@ -44,7 +44,7 @@ data Prim
 data PrimArithUnary
  = PrimArithNegate
  | PrimArithAbsolute
- deriving (Eq, Ord, Show)
+ deriving (Eq, Ord, Show, Enum, Bounded)
 
 -- | Binary arithmetic primitives common to all numeric types.
 --   Must be closed under the set of the input.
@@ -53,13 +53,12 @@ data PrimArithBinary
  | PrimArithMinus
  | PrimArithMul
  | PrimArithPow
- deriving (Eq, Ord, Show)
-
+ deriving (Eq, Ord, Show, Enum, Bounded)
 
 data PrimToString
  = PrimToStringFromInt
  | PrimToStringFromDouble
- deriving (Eq, Ord, Show)
+ deriving (Eq, Ord, Show, Enum, Bounded)
 
 -- | Predicates like >=
 data PrimRelation
@@ -69,14 +68,14 @@ data PrimRelation
  | PrimRelationLe
  | PrimRelationEq
  | PrimRelationNe
- deriving (Eq, Ord, Show)
+ deriving (Eq, Ord, Show, Enum, Bounded)
 
 -- | Logical relations like &&, not
 data PrimLogical
  = PrimLogicalNot
  | PrimLogicalAnd
  | PrimLogicalOr
- deriving (Eq, Ord, Show)
+ deriving (Eq, Ord, Show, Enum, Bounded)
 
 -- | Constructors
 data PrimConst
@@ -92,7 +91,7 @@ data PrimTime
  | PrimTimeDaysEpoch
  | PrimTimeMinusDays
  | PrimTimeMinusMonths
- deriving (Eq, Ord, Show)
+ deriving (Eq, Ord, Show, Enum, Bounded)
 
 -- | Pair primitives
 data PrimPair
