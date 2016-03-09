@@ -86,7 +86,7 @@ instance (Pretty n, Pretty p) => Pretty (Exp a n p) where
        XLet{} -> parens $ pretty i
        _      ->          pretty i
 
- pretty (XLam _ b t x) = line <> annotate (AnnType t) ("\\" <> pretty b) <+> pretty x
+ pretty (XLam _ b t x) = annotate (AnnType t) ("\\" <> pretty b) <+> pretty x
 
  pretty (XLet _ b x i) = line
                       <> indent 2 ("let " <> pretty b <> " = "  <> pretty x) <> line
