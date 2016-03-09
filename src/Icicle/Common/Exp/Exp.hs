@@ -1,5 +1,6 @@
 -- | Definition of expressions
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
 module Icicle.Common.Exp.Exp (
       Exp     (..)
     , renameExp
@@ -70,7 +71,7 @@ instance (Pretty n, Pretty p) => Pretty (Exp a n p) where
  pretty (XPrim _ p)   = pretty p
  pretty (XValue _ t v)= annotate (AnnType t) (pretty v)
 
- pretty (XApp _ p q)  = align (inner' p </> inner q)
+ pretty (XApp _ p q)  = inner' p <+> inner q
   where
    inner i
     = case i of
@@ -85,13 +86,11 @@ instance (Pretty n, Pretty p) => Pretty (Exp a n p) where
        XLet{} -> parens $ pretty i
        _      ->          pretty i
 
- pretty (XLam _ b t x) = line <> annotate (AnnType t) (text "\\" <> pretty b) </> pretty x
+ pretty (XLam _ b t x) = line <> annotate (AnnType t) ("\\" <> pretty b) <+> pretty x
 
  pretty (XLet _ b x i) = line
-                      <> text "let " <> pretty b
-                      <> text " = "  <> align (pretty x)
-                      <> line
-                      <> text " in " <> pretty i
+                      <> indent 2 ("let " <> pretty b <> " = "  <> pretty x) <> line
+                      <> indent 2 (" in " <> pretty i)
 
 
 

@@ -17,7 +17,6 @@ import qualified Icicle.Test.Avalanche.CheckCommutes
 import qualified Icicle.Test.Avalanche.SimpCommutes
 import qualified Icicle.Test.Avalanche.Flatten
 import qualified Icicle.Test.Avalanche.Melt
-import qualified Icicle.Test.Avalanche.Scoped
 
 -- Superseded
 -- import qualified Icicle.Test.Dictionary.Types
@@ -59,7 +58,6 @@ main
         , Icicle.Test.Avalanche.SimpCommutes.tests
         , Icicle.Test.Avalanche.Flatten.tests
         , Icicle.Test.Avalanche.Melt.tests
-        , Icicle.Test.Avalanche.Scoped.tests
 
         , Icicle.Test.Sea.Psv.tests
         , Icicle.Test.Sea.Seaworthy.tests

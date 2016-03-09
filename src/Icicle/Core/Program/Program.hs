@@ -64,22 +64,22 @@ renameProgram f p
 
 instance Pretty n => Pretty (Program a n) where
  pretty p
-  =     text "Program ("
-  <> pretty (factValName  p) <> " : " <> pretty (inputType p) <> text ", "
+  =  "Program ("
+  <> pretty (factValName  p) <> " : " <> pretty (inputType p) <> ", "
   <> pretty (factIdName   p) <> " : FactIdentifier, "
   <> pretty (factTimeName p) <> " : Time, "
   <> pretty (snaptimeName p) <> " : SNAPSHOT_TIME)" <> line
 
-  <>    text "Precomputations:"                        <> line
+  <>    "Precomputations:"                             <> line
   <>    ppbinds (precomps p)                           <> line
                                                        <> line
-  <>    text "Streams:"                                <> line
+  <>    "Streams:"                                     <> line
   <>    vcat (fmap pretty (streams p))                 <> line
                                                        <> line
-  <>    text "Postcomputations"                        <> line
+  <>    "Postcomputations:"                            <> line
   <>    ppbinds (postcomps p)                          <> line
                                                        <> line
-  <>    text "Returning:"                              <> line
+  <>    "Returning:"                                   <> line
   <>    ppbinds (returns   p)                          <> line
 
   where

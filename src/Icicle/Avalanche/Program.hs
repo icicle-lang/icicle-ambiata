@@ -5,7 +5,6 @@ module Icicle.Avalanche.Program (
   ) where
 
 import              Icicle.Avalanche.Statement.Statement
-import qualified    Icicle.Avalanche.Statement.Scoped as Scoped
 import              Icicle.Common.Base
 import              Icicle.Common.Exp
 import              Icicle.Common.Type
@@ -39,6 +38,6 @@ instance TransformX Program where
 instance (Pretty n, Pretty p) => Pretty (Program a n p) where
  pretty p
   =   pretty (bindtime   p) <> text " = TIME" <> line
-  <>  pretty (Scoped.scopedOfStatement $ statements p)
+  <>  pretty (statements p)
 
 

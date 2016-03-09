@@ -25,595 +25,620 @@ ok, c is now on
 > > -- An interesting expression with structs and strings
 > - Flattened:
 conv$3 = TIME
+init acc$a$conv$63$simp$66@{Error} = ExceptNotAnError@{Error};
+init acc$a$conv$63$simp$67@{Double} = 0.0@{Double};
+init acc$a$conv$63$simp$68@{Double} = 0.0@{Double};
+init acc$a$conv$63$simp$69@{Double} = 0.0@{Double};
+init acc$conv$62$simp$70@{Error} = ExceptNotAnError@{Error};
+init acc$conv$62$simp$71@{Double} = 0.0@{Double};
+init acc$conv$58$simp$80@{Error} = ExceptNotAnError@{Error};
+init acc$conv$58$simp$81@{Int} = 0@{Int};
+init acc$conv$57$simp$88@{Error} = ExceptNotAnError@{Error};
+init acc$conv$57$simp$89@{Int} = 0@{Int};
+init acc$s$reify$6$conv$12$simp$94@{Error} = ExceptNotAnError@{Error};
+init acc$s$reify$6$conv$12$simp$95@{Double} = 0.0@{Double};
+init acc$s$reify$6$conv$12$simp$96@{Double} = 0.0@{Double};
+init acc$conv$11$simp$97@{Error} = ExceptNotAnError@{Error};
+init acc$conv$11$simp$98@{Double} = 0.0@{Double};
+init acc$conv$7$simp$105@{Error} = ExceptNotAnError@{Error};
+init acc$conv$7$simp$106@{Double} = 0.0@{Double};
+write acc$s$reify$6$conv$12$simp$94 = ExceptFold1NoValue@{Error};
+write acc$s$reify$6$conv$12$simp$95 = 0.0@{Double};
+write acc$s$reify$6$conv$12$simp$96 = 0.0@{Double};
+write acc$a$conv$63$simp$66 = ExceptNotAnError@{Error};
+write acc$a$conv$63$simp$67 = 0.0@{Double};
+write acc$a$conv$63$simp$68 = 0.0@{Double};
+write acc$a$conv$63$simp$69 = 0.0@{Double};
+load_resumable@{Error} acc$a$conv$63$simp$66;
+load_resumable@{Double} acc$a$conv$63$simp$67;
+load_resumable@{Double} acc$a$conv$63$simp$68;
+load_resumable@{Double} acc$a$conv$63$simp$69;
+load_resumable@{Error} acc$conv$62$simp$70;
+load_resumable@{Double} acc$conv$62$simp$71;
+load_resumable@{Error} acc$conv$58$simp$80;
+load_resumable@{Int} acc$conv$58$simp$81;
+load_resumable@{Error} acc$conv$57$simp$88;
+load_resumable@{Int} acc$conv$57$simp$89;
+load_resumable@{Error} acc$s$reify$6$conv$12$simp$94;
+load_resumable@{Double} acc$s$reify$6$conv$12$simp$95;
+load_resumable@{Double} acc$s$reify$6$conv$12$simp$96;
+load_resumable@{Error} acc$conv$11$simp$97;
+load_resumable@{Double} acc$conv$11$simp$98;
+load_resumable@{Error} acc$conv$7$simp$105;
+load_resumable@{Double} acc$conv$7$simp$106;
+for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0$simp$333@{Error}, conv$0$simp$334@{String}, conv$0$simp$335@{Int}, conv$0$simp$336@{Time}) in new
 {
-  init acc$a$conv$63$simp$66@{Error} = ExceptNotAnError@{Error};
-  init acc$a$conv$63$simp$67@{Double} = 0.0@{Double};
-  init acc$a$conv$63$simp$68@{Double} = 0.0@{Double};
-  init acc$a$conv$63$simp$69@{Double} = 0.0@{Double};
-  init acc$conv$62$simp$70@{Error} = ExceptNotAnError@{Error};
-  init acc$conv$62$simp$71@{Double} = 0.0@{Double};
-  init acc$conv$58$simp$80@{Error} = ExceptNotAnError@{Error};
-  init acc$conv$58$simp$81@{Int} = 0@{Int};
-  init acc$conv$57$simp$88@{Error} = ExceptNotAnError@{Error};
-  init acc$conv$57$simp$89@{Int} = 0@{Int};
-  init acc$s$reify$6$conv$12$simp$94@{Error} = ExceptNotAnError@{Error};
-  init acc$s$reify$6$conv$12$simp$95@{Double} = 0.0@{Double};
-  init acc$s$reify$6$conv$12$simp$96@{Double} = 0.0@{Double};
-  init acc$conv$11$simp$97@{Error} = ExceptNotAnError@{Error};
-  init acc$conv$11$simp$98@{Double} = 0.0@{Double};
-  init acc$conv$7$simp$105@{Error} = ExceptNotAnError@{Error};
-  init acc$conv$7$simp$106@{Double} = 0.0@{Double};
-  write acc$s$reify$6$conv$12$simp$94 = ExceptFold1NoValue@{Error};
-  write acc$s$reify$6$conv$12$simp$95 = 0.0@{Double};
-  write acc$s$reify$6$conv$12$simp$96 = 0.0@{Double};
-  write acc$a$conv$63$simp$66 = ExceptNotAnError@{Error};
-  write acc$a$conv$63$simp$67 = 0.0@{Double};
-  write acc$a$conv$63$simp$68 = 0.0@{Double};
-  write acc$a$conv$63$simp$69 = 0.0@{Double};
-  load_resumable@{Error} acc$a$conv$63$simp$66;
-  load_resumable@{Double} acc$a$conv$63$simp$67;
-  load_resumable@{Double} acc$a$conv$63$simp$68;
-  load_resumable@{Double} acc$a$conv$63$simp$69;
-  load_resumable@{Error} acc$conv$62$simp$70;
-  load_resumable@{Double} acc$conv$62$simp$71;
-  load_resumable@{Error} acc$conv$58$simp$80;
-  load_resumable@{Int} acc$conv$58$simp$81;
-  load_resumable@{Error} acc$conv$57$simp$88;
-  load_resumable@{Int} acc$conv$57$simp$89;
-  load_resumable@{Error} acc$s$reify$6$conv$12$simp$94;
-  load_resumable@{Double} acc$s$reify$6$conv$12$simp$95;
-  load_resumable@{Double} acc$s$reify$6$conv$12$simp$96;
-  load_resumable@{Error} acc$conv$11$simp$97;
-  load_resumable@{Double} acc$conv$11$simp$98;
-  load_resumable@{Error} acc$conv$7$simp$105;
-  load_resumable@{Double} acc$conv$7$simp$106;
-  for_facts (conv$2@{Time},
-             conv$1@{FactIdentifier},
-             conv$0$simp$333@{Error},
-             conv$0$simp$334@{String},
-             conv$0$simp$335@{Int},
-             conv$0$simp$336@{Time}) in new {
-    init flat$0$simp$111@{Error} = ExceptNotAnError@{Error};
-    init flat$0$simp$112@{Int} = 0@{Int};
-    if (eq#@{Error} conv$0$simp$333
-        (ExceptNotAnError@{Error})) {
-      write flat$0$simp$111 = ExceptNotAnError@{Error};
-      write flat$0$simp$112 = conv$0$simp$335;
-    } else {
-      write flat$0$simp$111 = conv$0$simp$333;
-      write flat$0$simp$112 = 0@{Int};
-    }
-    read@{Error} flat$0$simp$113 = flat$0$simp$111;
-    read@{Int} flat$0$simp$114 = flat$0$simp$112;
-    init flat$1$simp$115@{Error} = ExceptNotAnError@{Error};
-    init flat$1$simp$116@{Double} = 0.0@{Double};
-    if (eq#@{Error} flat$0$simp$113
-        (ExceptNotAnError@{Error})) {
-      write flat$1$simp$115 = ExceptNotAnError@{Error};
-      write flat$1$simp$116 = doubleOfInt#
-                              flat$0$simp$114;
-    } else {
-      write flat$1$simp$115 = flat$0$simp$113;
-      write flat$1$simp$116 = 0.0@{Double};
-    }
-    read@{Error} flat$1$simp$117 = flat$1$simp$115;
-    read@{Double} flat$1$simp$118 = flat$1$simp$116;
-    write acc$conv$7$simp$105 = flat$1$simp$117;
-    write acc$conv$7$simp$106 = flat$1$simp$118;
-    read@{Error} conv$7$simp$119 = acc$conv$7$simp$105;
-    read@{Double} conv$7$simp$120 = acc$conv$7$simp$106;
-    init flat$2$simp$125@{Error} = ExceptNotAnError@{Error};
-    init flat$2$simp$126@{Double} = 0.0@{Double};
-    if (eq#@{Error} conv$7$simp$119
-        (ExceptNotAnError@{Error})) {
-      write flat$2$simp$125 = ExceptNotAnError@{Error};
-      write flat$2$simp$126 = conv$7$simp$120;
-    } else {
-      write flat$2$simp$125 = conv$7$simp$119;
-      write flat$2$simp$126 = 0.0@{Double};
-    }
-    read@{Error} flat$2$simp$127 = flat$2$simp$125;
-    read@{Double} flat$2$simp$128 = flat$2$simp$126;
-    write acc$conv$11$simp$97 = flat$2$simp$127;
-    write acc$conv$11$simp$98 = flat$2$simp$128;
-    read@{Error} conv$11$simp$129 = acc$conv$11$simp$97;
-    read@{Double} conv$11$simp$130 = acc$conv$11$simp$98;
-    read@{Error} s$reify$6$conv$12$simp$137 = acc$s$reify$6$conv$12$simp$94;
-    read@{Double} s$reify$6$conv$12$simp$138 = acc$s$reify$6$conv$12$simp$95;
-    read@{Double} s$reify$6$conv$12$simp$139 = acc$s$reify$6$conv$12$simp$96;
-    init flat$3$simp$140@{Error} = ExceptNotAnError@{Error};
-    init flat$3$simp$141@{Double} = 0.0@{Double};
-    init flat$3$simp$142@{Double} = 0.0@{Double};
-    if (eq#@{Error}
-        s$reify$6$conv$12$simp$137
-        (ExceptNotAnError@{Error})) {
-      init flat$10$simp$143@{Error} = ExceptNotAnError@{Error};
-      init flat$10$simp$144@{Double} = 0.0@{Double};
-      init flat$10$simp$145@{Double} = 0.0@{Double};
-      if (eq#@{Error}
-          s$reify$6$conv$12$simp$137
-          (ExceptNotAnError@{Error})) {
-        init flat$13$simp$146@{Error} = ExceptNotAnError@{Error};
-        init flat$13$simp$147@{Double} = 0.0@{Double};
-        if (eq#@{Error} conv$11$simp$129
-            (ExceptNotAnError@{Error})) {
-          write flat$13$simp$146 = ExceptNotAnError@{Error};
-          write flat$13$simp$147 = sub#@{Double}
-                                   conv$11$simp$130
-                                   s$reify$6$conv$12$simp$138;
-        } else {
-          write flat$13$simp$146 = conv$11$simp$129;
-          write flat$13$simp$147 = 0.0@{Double};
-        }
-        read@{Error} flat$13$simp$148 = flat$13$simp$146;
-        read@{Double} flat$13$simp$149 = flat$13$simp$147;
-        init flat$14$simp$150@{Error} = ExceptNotAnError@{Error};
-        init flat$14$simp$151@{Double} = 0.0@{Double};
-        if (eq#@{Error} flat$13$simp$148
-            (ExceptNotAnError@{Error})) {
-          let simp$457 = add#@{Double}
-                         s$reify$6$conv$12$simp$139
-                         (1.0@{Double});
-          write flat$14$simp$150 = ExceptNotAnError@{Error};
-          write flat$14$simp$151 = div#
-                                   flat$13$simp$149 simp$457;
-        } else {
-          write flat$14$simp$150 = flat$13$simp$148;
-          write flat$14$simp$151 = 0.0@{Double};
-        }
-        read@{Error} flat$14$simp$152 = flat$14$simp$150;
-        read@{Double} flat$14$simp$153 = flat$14$simp$151;
-        init flat$15$simp$154@{Error} = ExceptNotAnError@{Error};
-        init flat$15$simp$155@{Double} = 0.0@{Double};
-        if (eq#@{Error} flat$14$simp$152
-            (ExceptNotAnError@{Error})) {
-          write flat$15$simp$154 = ExceptNotAnError@{Error};
-          write flat$15$simp$155 = add#@{Double}
-                                   s$reify$6$conv$12$simp$138
-                                   flat$14$simp$153;
-        } else {
-          write flat$15$simp$154 = flat$14$simp$152;
-          write flat$15$simp$155 = 0.0@{Double};
-        }
-        read@{Error} flat$15$simp$156 = flat$15$simp$154;
-        read@{Double} flat$15$simp$157 = flat$15$simp$155;
-        init flat$16$simp$158@{Error} = ExceptNotAnError@{Error};
-        init flat$16$simp$159@{Double} = 0.0@{Double};
-        init flat$16$simp$160@{Double} = 0.0@{Double};
-        if (eq#@{Error} flat$15$simp$156
-            (ExceptNotAnError@{Error})) {
-          write flat$16$simp$158 = ExceptNotAnError@{Error};
-          write flat$16$simp$159 = flat$15$simp$157;
-          write flat$16$simp$160 = add#@{Double}
-                                   s$reify$6$conv$12$simp$139
-                                   (1.0@{Double});
-        } else {
-          write flat$16$simp$158 = flat$15$simp$156;
-          write flat$16$simp$159 = 0.0@{Double};
-          write flat$16$simp$160 = 0.0@{Double};
-        }
-        read@{Error} flat$16$simp$161 = flat$16$simp$158;
-        read@{Double} flat$16$simp$162 = flat$16$simp$159;
-        read@{Double} flat$16$simp$163 = flat$16$simp$160;
-        write flat$10$simp$143 = flat$16$simp$161;
-        write flat$10$simp$144 = flat$16$simp$162;
-        write flat$10$simp$145 = flat$16$simp$163;
-      } else {
-        write flat$10$simp$143 = s$reify$6$conv$12$simp$137;
-        write flat$10$simp$144 = 0.0@{Double};
-        write flat$10$simp$145 = 0.0@{Double};
-      }
-      read@{Error} flat$10$simp$164 = flat$10$simp$143;
-      read@{Double} flat$10$simp$165 = flat$10$simp$144;
-      read@{Double} flat$10$simp$166 = flat$10$simp$145;
-      write flat$3$simp$140 = flat$10$simp$164;
-      write flat$3$simp$141 = flat$10$simp$165;
-      write flat$3$simp$142 = flat$10$simp$166;
-    } else {
-      init flat$6$simp$167@{Error} = ExceptNotAnError@{Error};
-      init flat$6$simp$168@{Double} = 0.0@{Double};
-      init flat$6$simp$169@{Double} = 0.0@{Double};
-      if (eq#@{Error} (ExceptFold1NoValue@{Error})
-          s$reify$6$conv$12$simp$137) {
-        init flat$7$simp$170@{Error} = ExceptNotAnError@{Error};
-        init flat$7$simp$171@{Double} = 0.0@{Double};
-        init flat$7$simp$172@{Double} = 0.0@{Double};
-        if (eq#@{Error} conv$11$simp$129
-            (ExceptNotAnError@{Error})) {
-          write flat$7$simp$170 = ExceptNotAnError@{Error};
-          write flat$7$simp$171 = conv$11$simp$130;
-          write flat$7$simp$172 = 1.0@{Double};
-        } else {
-          write flat$7$simp$170 = conv$11$simp$129;
-          write flat$7$simp$171 = 0.0@{Double};
-          write flat$7$simp$172 = 0.0@{Double};
-        }
-        read@{Error} flat$7$simp$173 = flat$7$simp$170;
-        read@{Double} flat$7$simp$174 = flat$7$simp$171;
-        read@{Double} flat$7$simp$175 = flat$7$simp$172;
-        write flat$6$simp$167 = flat$7$simp$173;
-        write flat$6$simp$168 = flat$7$simp$174;
-        write flat$6$simp$169 = flat$7$simp$175;
-      } else {
-        write flat$6$simp$167 = s$reify$6$conv$12$simp$137;
-        write flat$6$simp$168 = 0.0@{Double};
-        write flat$6$simp$169 = 0.0@{Double};
-      }
-      read@{Error} flat$6$simp$176 = flat$6$simp$167;
-      read@{Double} flat$6$simp$177 = flat$6$simp$168;
-      read@{Double} flat$6$simp$178 = flat$6$simp$169;
-      write flat$3$simp$140 = flat$6$simp$176;
-      write flat$3$simp$141 = flat$6$simp$177;
-      write flat$3$simp$142 = flat$6$simp$178;
-    }
-    read@{Error} flat$3$simp$179 = flat$3$simp$140;
-    read@{Double} flat$3$simp$180 = flat$3$simp$141;
-    read@{Double} flat$3$simp$181 = flat$3$simp$142;
-    write acc$s$reify$6$conv$12$simp$94 = flat$3$simp$179;
-    write acc$s$reify$6$conv$12$simp$95 = flat$3$simp$180;
-    write acc$s$reify$6$conv$12$simp$96 = flat$3$simp$181;
-    init flat$25$simp$182@{Error} = ExceptNotAnError@{Error};
-    init flat$25$simp$183@{String} = ""@{String};
-    if (eq#@{Error} conv$0$simp$333
-        (ExceptNotAnError@{Error})) {
-      write flat$25$simp$182 = ExceptNotAnError@{Error};
-      write flat$25$simp$183 = conv$0$simp$334;
-    } else {
-      write flat$25$simp$182 = conv$0$simp$333;
-      write flat$25$simp$183 = ""@{String};
-    }
-    read@{Error} flat$25$simp$184 = flat$25$simp$182;
-    read@{String} flat$25$simp$185 = flat$25$simp$183;
-    init flat$26$simp$186@{Error} = ExceptNotAnError@{Error};
-    init flat$26$simp$187@{Bool} = False@{Bool};
-    if (eq#@{Error} flat$25$simp$184
-        (ExceptNotAnError@{Error})) {
-      write flat$26$simp$186 = ExceptNotAnError@{Error};
-      write flat$26$simp$187 = eq#@{String}
-                               flat$25$simp$185 ("torso"@{String});
-    } else {
-      write flat$26$simp$186 = flat$25$simp$184;
-      write flat$26$simp$187 = False@{Bool};
-    }
-    read@{Error} flat$26$simp$188 = flat$26$simp$186;
-    read@{Bool} flat$26$simp$189 = flat$26$simp$187;
-    init flat$27@{Bool} = False@{Bool};
-    if (eq#@{Error} flat$26$simp$188
-        (ExceptNotAnError@{Error})) {
-      write flat$27 = flat$26$simp$189;
-    } 
-     else {
-      write flat$27 = True@{Bool};
-    } 
-    
-    read@{Bool} flat$27 = flat$27;
-    if (flat$27) {
-      init flat$28$simp$196@{Error} = ExceptNotAnError@{Error};
-      init flat$28$simp$197@{Int} = 0@{Int};
-      if (eq#@{Error} conv$0$simp$333
-          (ExceptNotAnError@{Error})) {
-        write flat$28$simp$196 = ExceptNotAnError@{Error};
-        write flat$28$simp$197 = conv$0$simp$335;
-      } else {
-        write flat$28$simp$196 = conv$0$simp$333;
-        write flat$28$simp$197 = 0@{Int};
-      }
-      read@{Error} flat$28$simp$198 = flat$28$simp$196;
-      read@{Int} flat$28$simp$199 = flat$28$simp$197;
-      write acc$conv$57$simp$88 = flat$28$simp$198;
-      write acc$conv$57$simp$89 = flat$28$simp$199;
-      read@{Error} conv$57$simp$200 = acc$conv$57$simp$88;
-      read@{Int} conv$57$simp$201 = acc$conv$57$simp$89;
-      write acc$conv$58$simp$80 = conv$57$simp$200;
-      write acc$conv$58$simp$81 = conv$57$simp$201;
-      read@{Error} conv$58$simp$212 = acc$conv$58$simp$80;
-      read@{Int} conv$58$simp$213 = acc$conv$58$simp$81;
-      init flat$29$simp$220@{Error} = ExceptNotAnError@{Error};
-      init flat$29$simp$221@{Double} = 0.0@{Double};
-      if (eq#@{Error} conv$58$simp$212
-          (ExceptNotAnError@{Error})) {
-        write flat$29$simp$220 = ExceptNotAnError@{Error};
-        write flat$29$simp$221 = doubleOfInt#
-                                 conv$58$simp$213;
-      } else {
-        write flat$29$simp$220 = conv$58$simp$212;
-        write flat$29$simp$221 = 0.0@{Double};
-      }
-      read@{Error} flat$29$simp$222 = flat$29$simp$220;
-      read@{Double} flat$29$simp$223 = flat$29$simp$221;
-      write acc$conv$62$simp$70 = flat$29$simp$222;
-      write acc$conv$62$simp$71 = flat$29$simp$223;
-      read@{Error} conv$62$simp$230 = acc$conv$62$simp$70;
-      read@{Double} conv$62$simp$231 = acc$conv$62$simp$71;
-      read@{Error} a$conv$63$simp$240 = acc$a$conv$63$simp$66;
-      read@{Double} a$conv$63$simp$241 = acc$a$conv$63$simp$67;
-      read@{Double} a$conv$63$simp$242 = acc$a$conv$63$simp$68;
-      read@{Double} a$conv$63$simp$243 = acc$a$conv$63$simp$69;
-      init flat$30$simp$244@{Error} = ExceptNotAnError@{Error};
-      init flat$30$simp$245@{Double} = 0.0@{Double};
-      init flat$30$simp$246@{Double} = 0.0@{Double};
-      init flat$30$simp$247@{Double} = 0.0@{Double};
-      if (eq#@{Error} a$conv$63$simp$240
-          (ExceptNotAnError@{Error})) {
-        let nn$conv$70 = add#@{Double}
-                         a$conv$63$simp$241 (1.0@{Double});
-        init flat$33$simp$248@{Error} = ExceptNotAnError@{Error};
-        init flat$33$simp$249@{Double} = 0.0@{Double};
-        if (eq#@{Error} conv$62$simp$230
-            (ExceptNotAnError@{Error})) {
-          write flat$33$simp$248 = ExceptNotAnError@{Error};
-          write flat$33$simp$249 = sub#@{Double}
-                                   conv$62$simp$231
-                                   a$conv$63$simp$242;
-        } else {
-          write flat$33$simp$248 = conv$62$simp$230;
-          write flat$33$simp$249 = 0.0@{Double};
-        }
-        read@{Error} flat$33$simp$250 = flat$33$simp$248;
-        read@{Double} flat$33$simp$251 = flat$33$simp$249;
-        init flat$34$simp$252@{Error} = ExceptNotAnError@{Error};
-        init flat$34$simp$253@{Double} = 0.0@{Double};
-        if (eq#@{Error} flat$33$simp$250
-            (ExceptNotAnError@{Error})) {
-          write flat$34$simp$252 = ExceptNotAnError@{Error};
-          write flat$34$simp$253 = div#
-                                   flat$33$simp$251 nn$conv$70;
-        } else {
-          write flat$34$simp$252 = flat$33$simp$250;
-          write flat$34$simp$253 = 0.0@{Double};
-        }
-        read@{Error} flat$34$simp$254 = flat$34$simp$252;
-        read@{Double} flat$34$simp$255 = flat$34$simp$253;
-        init flat$35$simp$256@{Error} = ExceptNotAnError@{Error};
-        init flat$35$simp$257@{Double} = 0.0@{Double};
-        if (eq#@{Error} flat$34$simp$254
-            (ExceptNotAnError@{Error})) {
-          write flat$35$simp$256 = ExceptNotAnError@{Error};
-          write flat$35$simp$257 = add#@{Double}
-                                   a$conv$63$simp$242
-                                   flat$34$simp$255;
-        } else {
-          write flat$35$simp$256 = flat$34$simp$254;
-          write flat$35$simp$257 = 0.0@{Double};
-        }
-        read@{Error} flat$35$simp$258 = flat$35$simp$256;
-        read@{Double} flat$35$simp$259 = flat$35$simp$257;
-        init flat$36$simp$260@{Error} = ExceptNotAnError@{Error};
-        init flat$36$simp$261@{Double} = 0.0@{Double};
-        if (eq#@{Error} flat$33$simp$250
-            (ExceptNotAnError@{Error})) {
-          init flat$51$simp$262@{Error} = ExceptNotAnError@{Error};
-          init flat$51$simp$263@{Double} = 0.0@{Double};
-          if (eq#@{Error} conv$62$simp$230
-              (ExceptNotAnError@{Error})) {
-            init flat$57$simp$264@{Error} = ExceptNotAnError@{Error};
-            init flat$57$simp$265@{Double} = 0.0@{Double};
-            if (eq#@{Error} flat$35$simp$258
-                (ExceptNotAnError@{Error})) {
-              write flat$57$simp$264 = ExceptNotAnError@{Error};
-              write flat$57$simp$265 = sub#@{Double}
-                                       conv$62$simp$231
-                                       flat$35$simp$259;
-            } else {
-              write flat$57$simp$264 = flat$35$simp$258;
-              write flat$57$simp$265 = 0.0@{Double};
-            }
-            read@{Error} flat$57$simp$266 = flat$57$simp$264;
-            read@{Double} flat$57$simp$267 = flat$57$simp$265;
-            write flat$51$simp$262 = flat$57$simp$266;
-            write flat$51$simp$263 = flat$57$simp$267;
-          } else {
-            write flat$51$simp$262 = conv$62$simp$230;
-            write flat$51$simp$263 = 0.0@{Double};
-          }
-          read@{Error} flat$51$simp$268 = flat$51$simp$262;
-          read@{Double} flat$51$simp$269 = flat$51$simp$263;
-          init flat$52$simp$270@{Error} = ExceptNotAnError@{Error};
-          init flat$52$simp$271@{Double} = 0.0@{Double};
-          if (eq#@{Error} flat$51$simp$268
-              (ExceptNotAnError@{Error})) {
-            write flat$52$simp$270 = ExceptNotAnError@{Error};
-            write flat$52$simp$271 = mul#@{Double}
-                                     flat$33$simp$251
-                                     flat$51$simp$269;
-          } else {
-            write flat$52$simp$270 = flat$51$simp$268;
-            write flat$52$simp$271 = 0.0@{Double};
-          }
-          read@{Error} flat$52$simp$272 = flat$52$simp$270;
-          read@{Double} flat$52$simp$273 = flat$52$simp$271;
-          write flat$36$simp$260 = flat$52$simp$272;
-          write flat$36$simp$261 = flat$52$simp$273;
-        } else {
-          write flat$36$simp$260 = flat$33$simp$250;
-          write flat$36$simp$261 = 0.0@{Double};
-        }
-        read@{Error} flat$36$simp$274 = flat$36$simp$260;
-        read@{Double} flat$36$simp$275 = flat$36$simp$261;
-        init flat$37$simp$276@{Error} = ExceptNotAnError@{Error};
-        init flat$37$simp$277@{Double} = 0.0@{Double};
-        if (eq#@{Error} flat$36$simp$274
-            (ExceptNotAnError@{Error})) {
-          write flat$37$simp$276 = ExceptNotAnError@{Error};
-          write flat$37$simp$277 = add#@{Double}
-                                   a$conv$63$simp$243
-                                   flat$36$simp$275;
-        } else {
-          write flat$37$simp$276 = flat$36$simp$274;
-          write flat$37$simp$277 = 0.0@{Double};
-        }
-        read@{Error} flat$37$simp$278 = flat$37$simp$276;
-        read@{Double} flat$37$simp$279 = flat$37$simp$277;
-        init flat$38$simp$280@{Error} = ExceptNotAnError@{Error};
-        init flat$38$simp$281@{Double} = 0.0@{Double};
-        init flat$38$simp$282@{Double} = 0.0@{Double};
-        if (eq#@{Error} flat$35$simp$258
-            (ExceptNotAnError@{Error})) {
-          write flat$38$simp$280 = ExceptNotAnError@{Error};
-          write flat$38$simp$281 = add#@{Double}
-                                   a$conv$63$simp$241 (1.0@{Double});
-          write flat$38$simp$282 = flat$35$simp$259;
-        } else {
-          write flat$38$simp$280 = flat$35$simp$258;
-          write flat$38$simp$281 = 0.0@{Double};
-          write flat$38$simp$282 = 0.0@{Double};
-        }
-        read@{Error} flat$38$simp$283 = flat$38$simp$280;
-        read@{Double} flat$38$simp$284 = flat$38$simp$281;
-        read@{Double} flat$38$simp$285 = flat$38$simp$282;
-        init flat$39$simp$286@{Error} = ExceptNotAnError@{Error};
-        init flat$39$simp$287@{Double} = 0.0@{Double};
-        init flat$39$simp$288@{Double} = 0.0@{Double};
-        init flat$39$simp$289@{Double} = 0.0@{Double};
-        if (eq#@{Error} flat$38$simp$283
-            (ExceptNotAnError@{Error})) {
-          init flat$42$simp$290@{Error} = ExceptNotAnError@{Error};
-          init flat$42$simp$291@{Double} = 0.0@{Double};
-          init flat$42$simp$292@{Double} = 0.0@{Double};
-          init flat$42$simp$293@{Double} = 0.0@{Double};
-          if (eq#@{Error} flat$37$simp$278
-              (ExceptNotAnError@{Error})) {
-            write flat$42$simp$290 = ExceptNotAnError@{Error};
-            write flat$42$simp$291 = flat$38$simp$284;
-            write flat$42$simp$292 = flat$38$simp$285;
-            write flat$42$simp$293 = flat$37$simp$279;
-          } else {
-            write flat$42$simp$290 = flat$37$simp$278;
-            write flat$42$simp$291 = 0.0@{Double};
-            write flat$42$simp$292 = 0.0@{Double};
-            write flat$42$simp$293 = 0.0@{Double};
-          }
-          read@{Error} flat$42$simp$294 = flat$42$simp$290;
-          read@{Double} flat$42$simp$295 = flat$42$simp$291;
-          read@{Double} flat$42$simp$296 = flat$42$simp$292;
-          read@{Double} flat$42$simp$297 = flat$42$simp$293;
-          write flat$39$simp$286 = flat$42$simp$294;
-          write flat$39$simp$287 = flat$42$simp$295;
-          write flat$39$simp$288 = flat$42$simp$296;
-          write flat$39$simp$289 = flat$42$simp$297;
-        } else {
-          write flat$39$simp$286 = flat$38$simp$283;
-          write flat$39$simp$287 = 0.0@{Double};
-          write flat$39$simp$288 = 0.0@{Double};
-          write flat$39$simp$289 = 0.0@{Double};
-        }
-        read@{Error} flat$39$simp$298 = flat$39$simp$286;
-        read@{Double} flat$39$simp$299 = flat$39$simp$287;
-        read@{Double} flat$39$simp$300 = flat$39$simp$288;
-        read@{Double} flat$39$simp$301 = flat$39$simp$289;
-        write flat$30$simp$244 = flat$39$simp$298;
-        write flat$30$simp$245 = flat$39$simp$299;
-        write flat$30$simp$246 = flat$39$simp$300;
-        write flat$30$simp$247 = flat$39$simp$301;
-      } else {
-        write flat$30$simp$244 = a$conv$63$simp$240;
-        write flat$30$simp$245 = 0.0@{Double};
-        write flat$30$simp$246 = 0.0@{Double};
-        write flat$30$simp$247 = 0.0@{Double};
-      }
-      read@{Error} flat$30$simp$302 = flat$30$simp$244;
-      read@{Double} flat$30$simp$303 = flat$30$simp$245;
-      read@{Double} flat$30$simp$304 = flat$30$simp$246;
-      read@{Double} flat$30$simp$305 = flat$30$simp$247;
-      write acc$a$conv$63$simp$66 = flat$30$simp$302;
-      write acc$a$conv$63$simp$67 = flat$30$simp$303;
-      write acc$a$conv$63$simp$68 = flat$30$simp$304;
-      write acc$a$conv$63$simp$69 = flat$30$simp$305;
-    }
+  init flat$0$simp$111@{Error} = ExceptNotAnError@{Error};
+  init flat$0$simp$112@{Int} = 0@{Int};
+  if (eq#@{Error} conv$0$simp$333 (ExceptNotAnError@{Error}))
+  {
+    write flat$0$simp$111 = ExceptNotAnError@{Error};
+    write flat$0$simp$112 = conv$0$simp$335;
   }
-  save_resumable@{Error} acc$a$conv$63$simp$66;
-  save_resumable@{Double} acc$a$conv$63$simp$67;
-  save_resumable@{Double} acc$a$conv$63$simp$68;
-  save_resumable@{Double} acc$a$conv$63$simp$69;
-  save_resumable@{Error} acc$conv$62$simp$70;
-  save_resumable@{Double} acc$conv$62$simp$71;
-  save_resumable@{Error} acc$conv$58$simp$80;
-  save_resumable@{Int} acc$conv$58$simp$81;
-  save_resumable@{Error} acc$conv$57$simp$88;
-  save_resumable@{Int} acc$conv$57$simp$89;
-  save_resumable@{Error} acc$s$reify$6$conv$12$simp$94;
-  save_resumable@{Double} acc$s$reify$6$conv$12$simp$95;
-  save_resumable@{Double} acc$s$reify$6$conv$12$simp$96;
-  save_resumable@{Error} acc$conv$11$simp$97;
-  save_resumable@{Double} acc$conv$11$simp$98;
-  save_resumable@{Error} acc$conv$7$simp$105;
-  save_resumable@{Double} acc$conv$7$simp$106;
-  read@{Error} a$conv$63$simp$306 = acc$a$conv$63$simp$66;
-  read@{Double} a$conv$63$simp$307 = acc$a$conv$63$simp$67;
-  read@{Double} a$conv$63$simp$309 = acc$a$conv$63$simp$69;
-  read@{Error} s$reify$6$conv$12$simp$310 = acc$s$reify$6$conv$12$simp$94;
-  read@{Double} s$reify$6$conv$12$simp$311 = acc$s$reify$6$conv$12$simp$95;
-  init flat$82$simp$313@{Error} = ExceptNotAnError@{Error};
-  init flat$82$simp$314@{Double} = 0.0@{Double};
-  if (eq#@{Error}
-      s$reify$6$conv$12$simp$310
-      (ExceptNotAnError@{Error})) {
-    write flat$82$simp$313 = ExceptNotAnError@{Error};
-    write flat$82$simp$314 = s$reify$6$conv$12$simp$311;
-  } else {
-    write flat$82$simp$313 = s$reify$6$conv$12$simp$310;
-    write flat$82$simp$314 = 0.0@{Double};
+  else
+  {
+    write flat$0$simp$111 = conv$0$simp$333;
+    write flat$0$simp$112 = 0@{Int};
   }
-  read@{Error} flat$82$simp$315 = flat$82$simp$313;
-  read@{Double} flat$82$simp$316 = flat$82$simp$314;
-  init flat$83$simp$317@{Error} = ExceptNotAnError@{Error};
-  init flat$83$simp$318@{Double} = 0.0@{Double};
-  if (eq#@{Error} flat$82$simp$315
-      (ExceptNotAnError@{Error})) {
-    init flat$86$simp$319@{Error} = ExceptNotAnError@{Error};
-    init flat$86$simp$320@{Double} = 0.0@{Double};
-    if (eq#@{Error} a$conv$63$simp$306
-        (ExceptNotAnError@{Error})) {
-      let conv$118 = sub#@{Double}
-                     a$conv$63$simp$307 (1.0@{Double});
-      let simp$1408 = div#
-                      a$conv$63$simp$309 conv$118;
-      write flat$86$simp$319 = ExceptNotAnError@{Error};
-      write flat$86$simp$320 = simp$1408;
-    } else {
-      write flat$86$simp$319 = a$conv$63$simp$306;
-      write flat$86$simp$320 = 0.0@{Double};
-    }
-    read@{Error} flat$86$simp$321 = flat$86$simp$319;
-    read@{Double} flat$86$simp$322 = flat$86$simp$320;
-    init flat$87$simp$323@{Error} = ExceptNotAnError@{Error};
-    init flat$87$simp$324@{Double} = 0.0@{Double};
-    if (eq#@{Error} flat$86$simp$321
-        (ExceptNotAnError@{Error})) {
-      write flat$87$simp$323 = ExceptNotAnError@{Error};
-      write flat$87$simp$324 = sqrt#
-                               flat$86$simp$322;
-    } else {
-      write flat$87$simp$323 = flat$86$simp$321;
-      write flat$87$simp$324 = 0.0@{Double};
-    }
-    read@{Error} flat$87$simp$325 = flat$87$simp$323;
-    read@{Double} flat$87$simp$326 = flat$87$simp$324;
-    init flat$88$simp$327@{Error} = ExceptNotAnError@{Error};
-    init flat$88$simp$328@{Double} = 0.0@{Double};
-    if (eq#@{Error} flat$87$simp$325
-        (ExceptNotAnError@{Error})) {
-      write flat$88$simp$327 = ExceptNotAnError@{Error};
-      write flat$88$simp$328 = mul#@{Double}
-                               flat$82$simp$316
-                               flat$87$simp$326;
-    } else {
-      write flat$88$simp$327 = flat$87$simp$325;
-      write flat$88$simp$328 = 0.0@{Double};
-    }
-    read@{Error} flat$88$simp$329 = flat$88$simp$327;
-    read@{Double} flat$88$simp$330 = flat$88$simp$328;
-    write flat$83$simp$317 = flat$88$simp$329;
-    write flat$83$simp$318 = flat$88$simp$330;
-  } else {
-    write flat$83$simp$317 = flat$82$simp$315;
-    write flat$83$simp$318 = 0.0@{Double};
+  read flat$0$simp$113 = flat$0$simp$111 [Error];
+  read flat$0$simp$114 = flat$0$simp$112 [Int];
+  init flat$1$simp$115@{Error} = ExceptNotAnError@{Error};
+  init flat$1$simp$116@{Double} = 0.0@{Double};
+  if (eq#@{Error} flat$0$simp$113 (ExceptNotAnError@{Error}))
+  {
+    write flat$1$simp$115 = ExceptNotAnError@{Error};
+    write flat$1$simp$116 = doubleOfInt# flat$0$simp$114;
   }
-  read@{Error} flat$83$simp$331 = flat$83$simp$317;
-  read@{Double} flat$83$simp$332 = flat$83$simp$318;
-  output@{(Sum Error Double)} repl (flat$83$simp$331@{Error},
-               flat$83$simp$332@{Double});
+  else
+  {
+    write flat$1$simp$115 = flat$0$simp$113;
+    write flat$1$simp$116 = 0.0@{Double};
+  }
+  read flat$1$simp$117 = flat$1$simp$115 [Error];
+  read flat$1$simp$118 = flat$1$simp$116 [Double];
+  write acc$conv$7$simp$105 = flat$1$simp$117;
+  write acc$conv$7$simp$106 = flat$1$simp$118;
+  read conv$7$simp$119 = acc$conv$7$simp$105 [Error];
+  read conv$7$simp$120 = acc$conv$7$simp$106 [Double];
+  init flat$2$simp$125@{Error} = ExceptNotAnError@{Error};
+  init flat$2$simp$126@{Double} = 0.0@{Double};
+  if (eq#@{Error} conv$7$simp$119 (ExceptNotAnError@{Error}))
+  {
+    write flat$2$simp$125 = ExceptNotAnError@{Error};
+    write flat$2$simp$126 = conv$7$simp$120;
+  }
+  else
+  {
+    write flat$2$simp$125 = conv$7$simp$119;
+    write flat$2$simp$126 = 0.0@{Double};
+  }
+  read flat$2$simp$127 = flat$2$simp$125 [Error];
+  read flat$2$simp$128 = flat$2$simp$126 [Double];
+  write acc$conv$11$simp$97 = flat$2$simp$127;
+  write acc$conv$11$simp$98 = flat$2$simp$128;
+  read conv$11$simp$129 = acc$conv$11$simp$97 [Error];
+  read conv$11$simp$130 = acc$conv$11$simp$98 [Double];
+  read s$reify$6$conv$12$simp$137 = acc$s$reify$6$conv$12$simp$94 [Error];
+  read s$reify$6$conv$12$simp$138 = acc$s$reify$6$conv$12$simp$95 [Double];
+  read s$reify$6$conv$12$simp$139 = acc$s$reify$6$conv$12$simp$96 [Double];
+  init flat$3$simp$140@{Error} = ExceptNotAnError@{Error};
+  init flat$3$simp$141@{Double} = 0.0@{Double};
+  init flat$3$simp$142@{Double} = 0.0@{Double};
+  if (eq#@{Error} s$reify$6$conv$12$simp$137 (ExceptNotAnError@{Error}))
+  {
+    init flat$10$simp$143@{Error} = ExceptNotAnError@{Error};
+    init flat$10$simp$144@{Double} = 0.0@{Double};
+    init flat$10$simp$145@{Double} = 0.0@{Double};
+    if (eq#@{Error} s$reify$6$conv$12$simp$137 (ExceptNotAnError@{Error}))
+    {
+      init flat$13$simp$146@{Error} = ExceptNotAnError@{Error};
+      init flat$13$simp$147@{Double} = 0.0@{Double};
+      if (eq#@{Error} conv$11$simp$129 (ExceptNotAnError@{Error}))
+      {
+        write flat$13$simp$146 = ExceptNotAnError@{Error};
+        write flat$13$simp$147 = sub#@{Double} conv$11$simp$130 s$reify$6$conv$12$simp$138;
+      }
+      else
+      {
+        write flat$13$simp$146 = conv$11$simp$129;
+        write flat$13$simp$147 = 0.0@{Double};
+      }
+      read flat$13$simp$148 = flat$13$simp$146 [Error];
+      read flat$13$simp$149 = flat$13$simp$147 [Double];
+      init flat$14$simp$150@{Error} = ExceptNotAnError@{Error};
+      init flat$14$simp$151@{Double} = 0.0@{Double};
+      if (eq#@{Error} flat$13$simp$148 (ExceptNotAnError@{Error}))
+      {
+        let simp$457 = add#@{Double} s$reify$6$conv$12$simp$139 (1.0@{Double});
+        write flat$14$simp$150 = ExceptNotAnError@{Error};
+        write flat$14$simp$151 = div# flat$13$simp$149 simp$457;
+      }
+      else
+      {
+        write flat$14$simp$150 = flat$13$simp$148;
+        write flat$14$simp$151 = 0.0@{Double};
+      }
+      read flat$14$simp$152 = flat$14$simp$150 [Error];
+      read flat$14$simp$153 = flat$14$simp$151 [Double];
+      init flat$15$simp$154@{Error} = ExceptNotAnError@{Error};
+      init flat$15$simp$155@{Double} = 0.0@{Double};
+      if (eq#@{Error} flat$14$simp$152 (ExceptNotAnError@{Error}))
+      {
+        write flat$15$simp$154 = ExceptNotAnError@{Error};
+        write flat$15$simp$155 = add#@{Double} s$reify$6$conv$12$simp$138 flat$14$simp$153;
+      }
+      else
+      {
+        write flat$15$simp$154 = flat$14$simp$152;
+        write flat$15$simp$155 = 0.0@{Double};
+      }
+      read flat$15$simp$156 = flat$15$simp$154 [Error];
+      read flat$15$simp$157 = flat$15$simp$155 [Double];
+      init flat$16$simp$158@{Error} = ExceptNotAnError@{Error};
+      init flat$16$simp$159@{Double} = 0.0@{Double};
+      init flat$16$simp$160@{Double} = 0.0@{Double};
+      if (eq#@{Error} flat$15$simp$156 (ExceptNotAnError@{Error}))
+      {
+        write flat$16$simp$158 = ExceptNotAnError@{Error};
+        write flat$16$simp$159 = flat$15$simp$157;
+        write flat$16$simp$160 = add#@{Double} s$reify$6$conv$12$simp$139 (1.0@{Double});
+      }
+      else
+      {
+        write flat$16$simp$158 = flat$15$simp$156;
+        write flat$16$simp$159 = 0.0@{Double};
+        write flat$16$simp$160 = 0.0@{Double};
+      }
+      read flat$16$simp$161 = flat$16$simp$158 [Error];
+      read flat$16$simp$162 = flat$16$simp$159 [Double];
+      read flat$16$simp$163 = flat$16$simp$160 [Double];
+      write flat$10$simp$143 = flat$16$simp$161;
+      write flat$10$simp$144 = flat$16$simp$162;
+      write flat$10$simp$145 = flat$16$simp$163;
+    }
+    else
+    {
+      write flat$10$simp$143 = s$reify$6$conv$12$simp$137;
+      write flat$10$simp$144 = 0.0@{Double};
+      write flat$10$simp$145 = 0.0@{Double};
+    }
+    read flat$10$simp$164 = flat$10$simp$143 [Error];
+    read flat$10$simp$165 = flat$10$simp$144 [Double];
+    read flat$10$simp$166 = flat$10$simp$145 [Double];
+    write flat$3$simp$140 = flat$10$simp$164;
+    write flat$3$simp$141 = flat$10$simp$165;
+    write flat$3$simp$142 = flat$10$simp$166;
+  }
+  else
+  {
+    init flat$6$simp$167@{Error} = ExceptNotAnError@{Error};
+    init flat$6$simp$168@{Double} = 0.0@{Double};
+    init flat$6$simp$169@{Double} = 0.0@{Double};
+    if (eq#@{Error} (ExceptFold1NoValue@{Error}) s$reify$6$conv$12$simp$137)
+    {
+      init flat$7$simp$170@{Error} = ExceptNotAnError@{Error};
+      init flat$7$simp$171@{Double} = 0.0@{Double};
+      init flat$7$simp$172@{Double} = 0.0@{Double};
+      if (eq#@{Error} conv$11$simp$129 (ExceptNotAnError@{Error}))
+      {
+        write flat$7$simp$170 = ExceptNotAnError@{Error};
+        write flat$7$simp$171 = conv$11$simp$130;
+        write flat$7$simp$172 = 1.0@{Double};
+      }
+      else
+      {
+        write flat$7$simp$170 = conv$11$simp$129;
+        write flat$7$simp$171 = 0.0@{Double};
+        write flat$7$simp$172 = 0.0@{Double};
+      }
+      read flat$7$simp$173 = flat$7$simp$170 [Error];
+      read flat$7$simp$174 = flat$7$simp$171 [Double];
+      read flat$7$simp$175 = flat$7$simp$172 [Double];
+      write flat$6$simp$167 = flat$7$simp$173;
+      write flat$6$simp$168 = flat$7$simp$174;
+      write flat$6$simp$169 = flat$7$simp$175;
+    }
+    else
+    {
+      write flat$6$simp$167 = s$reify$6$conv$12$simp$137;
+      write flat$6$simp$168 = 0.0@{Double};
+      write flat$6$simp$169 = 0.0@{Double};
+    }
+    read flat$6$simp$176 = flat$6$simp$167 [Error];
+    read flat$6$simp$177 = flat$6$simp$168 [Double];
+    read flat$6$simp$178 = flat$6$simp$169 [Double];
+    write flat$3$simp$140 = flat$6$simp$176;
+    write flat$3$simp$141 = flat$6$simp$177;
+    write flat$3$simp$142 = flat$6$simp$178;
+  }
+  read flat$3$simp$179 = flat$3$simp$140 [Error];
+  read flat$3$simp$180 = flat$3$simp$141 [Double];
+  read flat$3$simp$181 = flat$3$simp$142 [Double];
+  write acc$s$reify$6$conv$12$simp$94 = flat$3$simp$179;
+  write acc$s$reify$6$conv$12$simp$95 = flat$3$simp$180;
+  write acc$s$reify$6$conv$12$simp$96 = flat$3$simp$181;
+  init flat$25$simp$182@{Error} = ExceptNotAnError@{Error};
+  init flat$25$simp$183@{String} = ""@{String};
+  if (eq#@{Error} conv$0$simp$333 (ExceptNotAnError@{Error}))
+  {
+    write flat$25$simp$182 = ExceptNotAnError@{Error};
+    write flat$25$simp$183 = conv$0$simp$334;
+  }
+  else
+  {
+    write flat$25$simp$182 = conv$0$simp$333;
+    write flat$25$simp$183 = ""@{String};
+  }
+  read flat$25$simp$184 = flat$25$simp$182 [Error];
+  read flat$25$simp$185 = flat$25$simp$183 [String];
+  init flat$26$simp$186@{Error} = ExceptNotAnError@{Error};
+  init flat$26$simp$187@{Bool} = False@{Bool};
+  if (eq#@{Error} flat$25$simp$184 (ExceptNotAnError@{Error}))
+  {
+    write flat$26$simp$186 = ExceptNotAnError@{Error};
+    write flat$26$simp$187 = eq#@{String} flat$25$simp$185 ("torso"@{String});
+  }
+  else
+  {
+    write flat$26$simp$186 = flat$25$simp$184;
+    write flat$26$simp$187 = False@{Bool};
+  }
+  read flat$26$simp$188 = flat$26$simp$186 [Error];
+  read flat$26$simp$189 = flat$26$simp$187 [Bool];
+  init flat$27@{Bool} = False@{Bool};
+  if (eq#@{Error} flat$26$simp$188 (ExceptNotAnError@{Error}))
+  {
+    write flat$27 = flat$26$simp$189;
+  }
+  else
+  {
+    write flat$27 = True@{Bool};
+  }
+  read flat$27 = flat$27 [Bool];
+  if (flat$27)
+  {
+    init flat$28$simp$196@{Error} = ExceptNotAnError@{Error};
+    init flat$28$simp$197@{Int} = 0@{Int};
+    if (eq#@{Error} conv$0$simp$333 (ExceptNotAnError@{Error}))
+    {
+      write flat$28$simp$196 = ExceptNotAnError@{Error};
+      write flat$28$simp$197 = conv$0$simp$335;
+    }
+    else
+    {
+      write flat$28$simp$196 = conv$0$simp$333;
+      write flat$28$simp$197 = 0@{Int};
+    }
+    read flat$28$simp$198 = flat$28$simp$196 [Error];
+    read flat$28$simp$199 = flat$28$simp$197 [Int];
+    write acc$conv$57$simp$88 = flat$28$simp$198;
+    write acc$conv$57$simp$89 = flat$28$simp$199;
+    read conv$57$simp$200 = acc$conv$57$simp$88 [Error];
+    read conv$57$simp$201 = acc$conv$57$simp$89 [Int];
+    write acc$conv$58$simp$80 = conv$57$simp$200;
+    write acc$conv$58$simp$81 = conv$57$simp$201;
+    read conv$58$simp$212 = acc$conv$58$simp$80 [Error];
+    read conv$58$simp$213 = acc$conv$58$simp$81 [Int];
+    init flat$29$simp$220@{Error} = ExceptNotAnError@{Error};
+    init flat$29$simp$221@{Double} = 0.0@{Double};
+    if (eq#@{Error} conv$58$simp$212 (ExceptNotAnError@{Error}))
+    {
+      write flat$29$simp$220 = ExceptNotAnError@{Error};
+      write flat$29$simp$221 = doubleOfInt# conv$58$simp$213;
+    }
+    else
+    {
+      write flat$29$simp$220 = conv$58$simp$212;
+      write flat$29$simp$221 = 0.0@{Double};
+    }
+    read flat$29$simp$222 = flat$29$simp$220 [Error];
+    read flat$29$simp$223 = flat$29$simp$221 [Double];
+    write acc$conv$62$simp$70 = flat$29$simp$222;
+    write acc$conv$62$simp$71 = flat$29$simp$223;
+    read conv$62$simp$230 = acc$conv$62$simp$70 [Error];
+    read conv$62$simp$231 = acc$conv$62$simp$71 [Double];
+    read a$conv$63$simp$240 = acc$a$conv$63$simp$66 [Error];
+    read a$conv$63$simp$241 = acc$a$conv$63$simp$67 [Double];
+    read a$conv$63$simp$242 = acc$a$conv$63$simp$68 [Double];
+    read a$conv$63$simp$243 = acc$a$conv$63$simp$69 [Double];
+    init flat$30$simp$244@{Error} = ExceptNotAnError@{Error};
+    init flat$30$simp$245@{Double} = 0.0@{Double};
+    init flat$30$simp$246@{Double} = 0.0@{Double};
+    init flat$30$simp$247@{Double} = 0.0@{Double};
+    if (eq#@{Error} a$conv$63$simp$240 (ExceptNotAnError@{Error}))
+    {
+      let nn$conv$70 = add#@{Double} a$conv$63$simp$241 (1.0@{Double});
+      init flat$33$simp$248@{Error} = ExceptNotAnError@{Error};
+      init flat$33$simp$249@{Double} = 0.0@{Double};
+      if (eq#@{Error} conv$62$simp$230 (ExceptNotAnError@{Error}))
+      {
+        write flat$33$simp$248 = ExceptNotAnError@{Error};
+        write flat$33$simp$249 = sub#@{Double} conv$62$simp$231 a$conv$63$simp$242;
+      }
+      else
+      {
+        write flat$33$simp$248 = conv$62$simp$230;
+        write flat$33$simp$249 = 0.0@{Double};
+      }
+      read flat$33$simp$250 = flat$33$simp$248 [Error];
+      read flat$33$simp$251 = flat$33$simp$249 [Double];
+      init flat$34$simp$252@{Error} = ExceptNotAnError@{Error};
+      init flat$34$simp$253@{Double} = 0.0@{Double};
+      if (eq#@{Error} flat$33$simp$250 (ExceptNotAnError@{Error}))
+      {
+        write flat$34$simp$252 = ExceptNotAnError@{Error};
+        write flat$34$simp$253 = div# flat$33$simp$251 nn$conv$70;
+      }
+      else
+      {
+        write flat$34$simp$252 = flat$33$simp$250;
+        write flat$34$simp$253 = 0.0@{Double};
+      }
+      read flat$34$simp$254 = flat$34$simp$252 [Error];
+      read flat$34$simp$255 = flat$34$simp$253 [Double];
+      init flat$35$simp$256@{Error} = ExceptNotAnError@{Error};
+      init flat$35$simp$257@{Double} = 0.0@{Double};
+      if (eq#@{Error} flat$34$simp$254 (ExceptNotAnError@{Error}))
+      {
+        write flat$35$simp$256 = ExceptNotAnError@{Error};
+        write flat$35$simp$257 = add#@{Double} a$conv$63$simp$242 flat$34$simp$255;
+      }
+      else
+      {
+        write flat$35$simp$256 = flat$34$simp$254;
+        write flat$35$simp$257 = 0.0@{Double};
+      }
+      read flat$35$simp$258 = flat$35$simp$256 [Error];
+      read flat$35$simp$259 = flat$35$simp$257 [Double];
+      init flat$36$simp$260@{Error} = ExceptNotAnError@{Error};
+      init flat$36$simp$261@{Double} = 0.0@{Double};
+      if (eq#@{Error} flat$33$simp$250 (ExceptNotAnError@{Error}))
+      {
+        init flat$51$simp$262@{Error} = ExceptNotAnError@{Error};
+        init flat$51$simp$263@{Double} = 0.0@{Double};
+        if (eq#@{Error} conv$62$simp$230 (ExceptNotAnError@{Error}))
+        {
+          init flat$57$simp$264@{Error} = ExceptNotAnError@{Error};
+          init flat$57$simp$265@{Double} = 0.0@{Double};
+          if (eq#@{Error} flat$35$simp$258 (ExceptNotAnError@{Error}))
+          {
+            write flat$57$simp$264 = ExceptNotAnError@{Error};
+            write flat$57$simp$265 = sub#@{Double} conv$62$simp$231 flat$35$simp$259;
+          }
+          else
+          {
+            write flat$57$simp$264 = flat$35$simp$258;
+            write flat$57$simp$265 = 0.0@{Double};
+          }
+          read flat$57$simp$266 = flat$57$simp$264 [Error];
+          read flat$57$simp$267 = flat$57$simp$265 [Double];
+          write flat$51$simp$262 = flat$57$simp$266;
+          write flat$51$simp$263 = flat$57$simp$267;
+        }
+        else
+        {
+          write flat$51$simp$262 = conv$62$simp$230;
+          write flat$51$simp$263 = 0.0@{Double};
+        }
+        read flat$51$simp$268 = flat$51$simp$262 [Error];
+        read flat$51$simp$269 = flat$51$simp$263 [Double];
+        init flat$52$simp$270@{Error} = ExceptNotAnError@{Error};
+        init flat$52$simp$271@{Double} = 0.0@{Double};
+        if (eq#@{Error} flat$51$simp$268 (ExceptNotAnError@{Error}))
+        {
+          write flat$52$simp$270 = ExceptNotAnError@{Error};
+          write flat$52$simp$271 = mul#@{Double} flat$33$simp$251 flat$51$simp$269;
+        }
+        else
+        {
+          write flat$52$simp$270 = flat$51$simp$268;
+          write flat$52$simp$271 = 0.0@{Double};
+        }
+        read flat$52$simp$272 = flat$52$simp$270 [Error];
+        read flat$52$simp$273 = flat$52$simp$271 [Double];
+        write flat$36$simp$260 = flat$52$simp$272;
+        write flat$36$simp$261 = flat$52$simp$273;
+      }
+      else
+      {
+        write flat$36$simp$260 = flat$33$simp$250;
+        write flat$36$simp$261 = 0.0@{Double};
+      }
+      read flat$36$simp$274 = flat$36$simp$260 [Error];
+      read flat$36$simp$275 = flat$36$simp$261 [Double];
+      init flat$37$simp$276@{Error} = ExceptNotAnError@{Error};
+      init flat$37$simp$277@{Double} = 0.0@{Double};
+      if (eq#@{Error} flat$36$simp$274 (ExceptNotAnError@{Error}))
+      {
+        write flat$37$simp$276 = ExceptNotAnError@{Error};
+        write flat$37$simp$277 = add#@{Double} a$conv$63$simp$243 flat$36$simp$275;
+      }
+      else
+      {
+        write flat$37$simp$276 = flat$36$simp$274;
+        write flat$37$simp$277 = 0.0@{Double};
+      }
+      read flat$37$simp$278 = flat$37$simp$276 [Error];
+      read flat$37$simp$279 = flat$37$simp$277 [Double];
+      init flat$38$simp$280@{Error} = ExceptNotAnError@{Error};
+      init flat$38$simp$281@{Double} = 0.0@{Double};
+      init flat$38$simp$282@{Double} = 0.0@{Double};
+      if (eq#@{Error} flat$35$simp$258 (ExceptNotAnError@{Error}))
+      {
+        write flat$38$simp$280 = ExceptNotAnError@{Error};
+        write flat$38$simp$281 = add#@{Double} a$conv$63$simp$241 (1.0@{Double});
+        write flat$38$simp$282 = flat$35$simp$259;
+      }
+      else
+      {
+        write flat$38$simp$280 = flat$35$simp$258;
+        write flat$38$simp$281 = 0.0@{Double};
+        write flat$38$simp$282 = 0.0@{Double};
+      }
+      read flat$38$simp$283 = flat$38$simp$280 [Error];
+      read flat$38$simp$284 = flat$38$simp$281 [Double];
+      read flat$38$simp$285 = flat$38$simp$282 [Double];
+      init flat$39$simp$286@{Error} = ExceptNotAnError@{Error};
+      init flat$39$simp$287@{Double} = 0.0@{Double};
+      init flat$39$simp$288@{Double} = 0.0@{Double};
+      init flat$39$simp$289@{Double} = 0.0@{Double};
+      if (eq#@{Error} flat$38$simp$283 (ExceptNotAnError@{Error}))
+      {
+        init flat$42$simp$290@{Error} = ExceptNotAnError@{Error};
+        init flat$42$simp$291@{Double} = 0.0@{Double};
+        init flat$42$simp$292@{Double} = 0.0@{Double};
+        init flat$42$simp$293@{Double} = 0.0@{Double};
+        if (eq#@{Error} flat$37$simp$278 (ExceptNotAnError@{Error}))
+        {
+          write flat$42$simp$290 = ExceptNotAnError@{Error};
+          write flat$42$simp$291 = flat$38$simp$284;
+          write flat$42$simp$292 = flat$38$simp$285;
+          write flat$42$simp$293 = flat$37$simp$279;
+        }
+        else
+        {
+          write flat$42$simp$290 = flat$37$simp$278;
+          write flat$42$simp$291 = 0.0@{Double};
+          write flat$42$simp$292 = 0.0@{Double};
+          write flat$42$simp$293 = 0.0@{Double};
+        }
+        read flat$42$simp$294 = flat$42$simp$290 [Error];
+        read flat$42$simp$295 = flat$42$simp$291 [Double];
+        read flat$42$simp$296 = flat$42$simp$292 [Double];
+        read flat$42$simp$297 = flat$42$simp$293 [Double];
+        write flat$39$simp$286 = flat$42$simp$294;
+        write flat$39$simp$287 = flat$42$simp$295;
+        write flat$39$simp$288 = flat$42$simp$296;
+        write flat$39$simp$289 = flat$42$simp$297;
+      }
+      else
+      {
+        write flat$39$simp$286 = flat$38$simp$283;
+        write flat$39$simp$287 = 0.0@{Double};
+        write flat$39$simp$288 = 0.0@{Double};
+        write flat$39$simp$289 = 0.0@{Double};
+      }
+      read flat$39$simp$298 = flat$39$simp$286 [Error];
+      read flat$39$simp$299 = flat$39$simp$287 [Double];
+      read flat$39$simp$300 = flat$39$simp$288 [Double];
+      read flat$39$simp$301 = flat$39$simp$289 [Double];
+      write flat$30$simp$244 = flat$39$simp$298;
+      write flat$30$simp$245 = flat$39$simp$299;
+      write flat$30$simp$246 = flat$39$simp$300;
+      write flat$30$simp$247 = flat$39$simp$301;
+    }
+    else
+    {
+      write flat$30$simp$244 = a$conv$63$simp$240;
+      write flat$30$simp$245 = 0.0@{Double};
+      write flat$30$simp$246 = 0.0@{Double};
+      write flat$30$simp$247 = 0.0@{Double};
+    }
+    read flat$30$simp$302 = flat$30$simp$244 [Error];
+    read flat$30$simp$303 = flat$30$simp$245 [Double];
+    read flat$30$simp$304 = flat$30$simp$246 [Double];
+    read flat$30$simp$305 = flat$30$simp$247 [Double];
+    write acc$a$conv$63$simp$66 = flat$30$simp$302;
+    write acc$a$conv$63$simp$67 = flat$30$simp$303;
+    write acc$a$conv$63$simp$68 = flat$30$simp$304;
+    write acc$a$conv$63$simp$69 = flat$30$simp$305;
+  }
 }
+save_resumable@{Error} acc$a$conv$63$simp$66;
+save_resumable@{Double} acc$a$conv$63$simp$67;
+save_resumable@{Double} acc$a$conv$63$simp$68;
+save_resumable@{Double} acc$a$conv$63$simp$69;
+save_resumable@{Error} acc$conv$62$simp$70;
+save_resumable@{Double} acc$conv$62$simp$71;
+save_resumable@{Error} acc$conv$58$simp$80;
+save_resumable@{Int} acc$conv$58$simp$81;
+save_resumable@{Error} acc$conv$57$simp$88;
+save_resumable@{Int} acc$conv$57$simp$89;
+save_resumable@{Error} acc$s$reify$6$conv$12$simp$94;
+save_resumable@{Double} acc$s$reify$6$conv$12$simp$95;
+save_resumable@{Double} acc$s$reify$6$conv$12$simp$96;
+save_resumable@{Error} acc$conv$11$simp$97;
+save_resumable@{Double} acc$conv$11$simp$98;
+save_resumable@{Error} acc$conv$7$simp$105;
+save_resumable@{Double} acc$conv$7$simp$106;
+read a$conv$63$simp$306 = acc$a$conv$63$simp$66 [Error];
+read a$conv$63$simp$307 = acc$a$conv$63$simp$67 [Double];
+read a$conv$63$simp$309 = acc$a$conv$63$simp$69 [Double];
+read s$reify$6$conv$12$simp$310 = acc$s$reify$6$conv$12$simp$94 [Error];
+read s$reify$6$conv$12$simp$311 = acc$s$reify$6$conv$12$simp$95 [Double];
+init flat$82$simp$313@{Error} = ExceptNotAnError@{Error};
+init flat$82$simp$314@{Double} = 0.0@{Double};
+if (eq#@{Error} s$reify$6$conv$12$simp$310 (ExceptNotAnError@{Error}))
+{
+  write flat$82$simp$313 = ExceptNotAnError@{Error};
+  write flat$82$simp$314 = s$reify$6$conv$12$simp$311;
+}
+else
+{
+  write flat$82$simp$313 = s$reify$6$conv$12$simp$310;
+  write flat$82$simp$314 = 0.0@{Double};
+}
+read flat$82$simp$315 = flat$82$simp$313 [Error];
+read flat$82$simp$316 = flat$82$simp$314 [Double];
+init flat$83$simp$317@{Error} = ExceptNotAnError@{Error};
+init flat$83$simp$318@{Double} = 0.0@{Double};
+if (eq#@{Error} flat$82$simp$315 (ExceptNotAnError@{Error}))
+{
+  init flat$86$simp$319@{Error} = ExceptNotAnError@{Error};
+  init flat$86$simp$320@{Double} = 0.0@{Double};
+  if (eq#@{Error} a$conv$63$simp$306 (ExceptNotAnError@{Error}))
+  {
+    let conv$118 = sub#@{Double} a$conv$63$simp$307 (1.0@{Double});
+    let simp$1408 = div# a$conv$63$simp$309 conv$118;
+    write flat$86$simp$319 = ExceptNotAnError@{Error};
+    write flat$86$simp$320 = simp$1408;
+  }
+  else
+  {
+    write flat$86$simp$319 = a$conv$63$simp$306;
+    write flat$86$simp$320 = 0.0@{Double};
+  }
+  read flat$86$simp$321 = flat$86$simp$319 [Error];
+  read flat$86$simp$322 = flat$86$simp$320 [Double];
+  init flat$87$simp$323@{Error} = ExceptNotAnError@{Error};
+  init flat$87$simp$324@{Double} = 0.0@{Double};
+  if (eq#@{Error} flat$86$simp$321 (ExceptNotAnError@{Error}))
+  {
+    write flat$87$simp$323 = ExceptNotAnError@{Error};
+    write flat$87$simp$324 = sqrt# flat$86$simp$322;
+  }
+  else
+  {
+    write flat$87$simp$323 = flat$86$simp$321;
+    write flat$87$simp$324 = 0.0@{Double};
+  }
+  read flat$87$simp$325 = flat$87$simp$323 [Error];
+  read flat$87$simp$326 = flat$87$simp$324 [Double];
+  init flat$88$simp$327@{Error} = ExceptNotAnError@{Error};
+  init flat$88$simp$328@{Double} = 0.0@{Double};
+  if (eq#@{Error} flat$87$simp$325 (ExceptNotAnError@{Error}))
+  {
+    write flat$88$simp$327 = ExceptNotAnError@{Error};
+    write flat$88$simp$328 = mul#@{Double} flat$82$simp$316 flat$87$simp$326;
+  }
+  else
+  {
+    write flat$88$simp$327 = flat$87$simp$325;
+    write flat$88$simp$328 = 0.0@{Double};
+  }
+  read flat$88$simp$329 = flat$88$simp$327 [Error];
+  read flat$88$simp$330 = flat$88$simp$328 [Double];
+  write flat$83$simp$317 = flat$88$simp$329;
+  write flat$83$simp$318 = flat$88$simp$330;
+}
+else
+{
+  write flat$83$simp$317 = flat$82$simp$315;
+  write flat$83$simp$318 = 0.0@{Double};
+}
+read flat$83$simp$331 = flat$83$simp$317 [Error];
+read flat$83$simp$332 = flat$83$simp$318 [Double];
+output@{(Sum Error Double)} repl (flat$83$simp$331@{Error}, flat$83$simp$332@{Double});
 
 - C:
 #line 1 "state definition #0 - repl"
@@ -1566,73 +1591,69 @@ void iprogram_0(iprogram_0_t *s)
 > > -- Times
 > - Flattened:
 conv$3 = TIME
+init acc$s$reify$2$conv$5$simp$4@{Error} = ExceptNotAnError@{Error};
+init acc$s$reify$2$conv$5$simp$5@{Time} = 1858-11-17@{Time};
+init acc$conv$4$simp$6@{Time} = 1858-11-17@{Time};
+write acc$s$reify$2$conv$5$simp$4 = ExceptFold1NoValue@{Error};
+write acc$s$reify$2$conv$5$simp$5 = 1858-11-17@{Time};
+load_resumable@{Error} acc$s$reify$2$conv$5$simp$4;
+load_resumable@{Time} acc$s$reify$2$conv$5$simp$5;
+load_resumable@{Time} acc$conv$4$simp$6;
+for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0$simp$26@{Error}, conv$0$simp$27@{Int}, conv$0$simp$28@{Time}) in new
 {
-  init acc$s$reify$2$conv$5$simp$4@{Error} = ExceptNotAnError@{Error};
-  init acc$s$reify$2$conv$5$simp$5@{Time} = 1858-11-17@{Time};
-  init acc$conv$4$simp$6@{Time} = 1858-11-17@{Time};
-  write acc$s$reify$2$conv$5$simp$4 = ExceptFold1NoValue@{Error};
-  write acc$s$reify$2$conv$5$simp$5 = 1858-11-17@{Time};
-  load_resumable@{Error} acc$s$reify$2$conv$5$simp$4;
-  load_resumable@{Time} acc$s$reify$2$conv$5$simp$5;
-  load_resumable@{Time} acc$conv$4$simp$6;
-  for_facts (conv$2@{Time},
-             conv$1@{FactIdentifier},
-             conv$0$simp$26@{Error},
-             conv$0$simp$27@{Int},
-             conv$0$simp$28@{Time}) in new {
-    let anf$1 = Time_daysDifference#
-                (1980-01-06@{Time}) conv$0$simp$28;
-    let anf$2 = negate#@{Int} anf$1;
-    write acc$conv$4$simp$6 = Time_minusDays#
-                              (2000-01-01@{Time}) anf$2;
-    read@{Time} conv$4$simp$10 = acc$conv$4$simp$6;
-    read@{Error} s$reify$2$conv$5$simp$14 = acc$s$reify$2$conv$5$simp$4;
-    read@{Time} s$reify$2$conv$5$simp$15 = acc$s$reify$2$conv$5$simp$5;
-    init flat$0$simp$16@{Error} = ExceptNotAnError@{Error};
-    init flat$0$simp$17@{Time} = 1858-11-17@{Time};
-    if (eq#@{Error} s$reify$2$conv$5$simp$14
-        (ExceptNotAnError@{Error})) {
-      init flat$4@{Time} = 1858-11-17@{Time};
-      if (gt#@{Time} conv$4$simp$10
-          s$reify$2$conv$5$simp$15) {
-        write flat$4 = conv$4$simp$10;
-      } 
-       else {
-        write flat$4 = s$reify$2$conv$5$simp$15;
-      } 
-      
-      read@{Time} flat$4 = flat$4;
-      write flat$0$simp$16 = ExceptNotAnError@{Error};
-      write flat$0$simp$17 = flat$4;
-    } else {
-      init flat$3$simp$18@{Error} = ExceptNotAnError@{Error};
-      init flat$3$simp$19@{Time} = 1858-11-17@{Time};
-      if (eq#@{Error} (ExceptFold1NoValue@{Error})
-          s$reify$2$conv$5$simp$14) {
-        write flat$3$simp$18 = ExceptNotAnError@{Error};
-        write flat$3$simp$19 = conv$4$simp$10;
-      } else {
-        write flat$3$simp$18 = s$reify$2$conv$5$simp$14;
-        write flat$3$simp$19 = 1858-11-17@{Time};
-      }
-      read@{Error} flat$3$simp$20 = flat$3$simp$18;
-      read@{Time} flat$3$simp$21 = flat$3$simp$19;
-      write flat$0$simp$16 = flat$3$simp$20;
-      write flat$0$simp$17 = flat$3$simp$21;
+  let anf$1 = Time_daysDifference# (1980-01-06@{Time}) conv$0$simp$28;
+  let anf$2 = negate#@{Int} anf$1;
+  write acc$conv$4$simp$6 = Time_minusDays# (2000-01-01@{Time}) anf$2;
+  read conv$4$simp$10 = acc$conv$4$simp$6 [Time];
+  read s$reify$2$conv$5$simp$14 = acc$s$reify$2$conv$5$simp$4 [Error];
+  read s$reify$2$conv$5$simp$15 = acc$s$reify$2$conv$5$simp$5 [Time];
+  init flat$0$simp$16@{Error} = ExceptNotAnError@{Error};
+  init flat$0$simp$17@{Time} = 1858-11-17@{Time};
+  if (eq#@{Error} s$reify$2$conv$5$simp$14 (ExceptNotAnError@{Error}))
+  {
+    init flat$4@{Time} = 1858-11-17@{Time};
+    if (gt#@{Time} conv$4$simp$10 s$reify$2$conv$5$simp$15)
+    {
+      write flat$4 = conv$4$simp$10;
     }
-    read@{Error} flat$0$simp$22 = flat$0$simp$16;
-    read@{Time} flat$0$simp$23 = flat$0$simp$17;
-    write acc$s$reify$2$conv$5$simp$4 = flat$0$simp$22;
-    write acc$s$reify$2$conv$5$simp$5 = flat$0$simp$23;
+    else
+    {
+      write flat$4 = s$reify$2$conv$5$simp$15;
+    }
+    read flat$4 = flat$4 [Time];
+    write flat$0$simp$16 = ExceptNotAnError@{Error};
+    write flat$0$simp$17 = flat$4;
   }
-  save_resumable@{Error} acc$s$reify$2$conv$5$simp$4;
-  save_resumable@{Time} acc$s$reify$2$conv$5$simp$5;
-  save_resumable@{Time} acc$conv$4$simp$6;
-  read@{Error} s$reify$2$conv$5$simp$24 = acc$s$reify$2$conv$5$simp$4;
-  read@{Time} s$reify$2$conv$5$simp$25 = acc$s$reify$2$conv$5$simp$5;
-  output@{(Sum Error Time)} repl (s$reify$2$conv$5$simp$24@{Error},
-               s$reify$2$conv$5$simp$25@{Time});
+  else
+  {
+    init flat$3$simp$18@{Error} = ExceptNotAnError@{Error};
+    init flat$3$simp$19@{Time} = 1858-11-17@{Time};
+    if (eq#@{Error} (ExceptFold1NoValue@{Error}) s$reify$2$conv$5$simp$14)
+    {
+      write flat$3$simp$18 = ExceptNotAnError@{Error};
+      write flat$3$simp$19 = conv$4$simp$10;
+    }
+    else
+    {
+      write flat$3$simp$18 = s$reify$2$conv$5$simp$14;
+      write flat$3$simp$19 = 1858-11-17@{Time};
+    }
+    read flat$3$simp$20 = flat$3$simp$18 [Error];
+    read flat$3$simp$21 = flat$3$simp$19 [Time];
+    write flat$0$simp$16 = flat$3$simp$20;
+    write flat$0$simp$17 = flat$3$simp$21;
+  }
+  read flat$0$simp$22 = flat$0$simp$16 [Error];
+  read flat$0$simp$23 = flat$0$simp$17 [Time];
+  write acc$s$reify$2$conv$5$simp$4 = flat$0$simp$22;
+  write acc$s$reify$2$conv$5$simp$5 = flat$0$simp$23;
 }
+save_resumable@{Error} acc$s$reify$2$conv$5$simp$4;
+save_resumable@{Time} acc$s$reify$2$conv$5$simp$5;
+save_resumable@{Time} acc$conv$4$simp$6;
+read s$reify$2$conv$5$simp$24 = acc$s$reify$2$conv$5$simp$4 [Error];
+read s$reify$2$conv$5$simp$25 = acc$s$reify$2$conv$5$simp$5 [Time];
+output@{(Sum Error Time)} repl (s$reify$2$conv$5$simp$24@{Error}, s$reify$2$conv$5$simp$25@{Time});
 
 - C:
 #line 1 "state definition #0 - repl"

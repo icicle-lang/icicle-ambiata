@@ -272,28 +272,28 @@ instance (Pretty n, Pretty p) => Pretty (Statement a n p) where
  pretty s
   = case s of
      If x stmts elses
-      -> text "if (" <> pretty x <> text "):" <> line
-      <> semis stmts
+      -> "if (" <> pretty x <> ")" <> line
+      <> subscope stmts
       <> case elses of
-          Block [] -> text ""
-          _        -> line <> text "else" <> line <> semis elses
+          Block [] -> ""
+          _        -> line <> "else" <> line <> subscope elses
 
      Let n x stmts
-      -> pretty n <+> text "=" <+> pretty x <> line
-      <> semisScope stmts
+      -> "let" <+> pretty n <+> "=" <+> pretty x <> semiline
+      <> nosubscope stmts
 
      Read n acc vt stmts
-      -> text "read" <+> pretty n <+> text "=" <+> pretty acc
-                                               <+> brackets (pretty vt) <> line
-      <> semisScope stmts
+      -> "read" <+> pretty n <+> "=" <+> pretty acc
+                                     <+> brackets (pretty vt) <> semiline
+      <> nosubscope stmts
 
      ForeachInts n from to stmts
-      -> text "for" <+> pretty n <+> text "in" <+> pretty from <+> text ".." <+> pretty to <> line
-      <> semis stmts
+      -> "foreach (" <> pretty n <+> "in" <+> pretty from <+> text ".." <+> pretty to <> ")" <> line
+      <> subscope stmts
 
-     ForeachFacts binds t lo stmts
-      -> "for facts : [" <> pretty t <> "] as" <+> prettyFactParts (factBindsAll binds) <+> "in" <+> pretty lo <> line
-      <> semis stmts
+     ForeachFacts binds _ lo stmts
+      -> "for_facts" <+> prettyFactParts (factBindsAll binds) <+> "in" <+> pretty lo <> line
+      <> subscope stmts
 
      Block stmts
       -- We don't actually need to indent here,
@@ -301,38 +301,42 @@ instance (Pretty n, Pretty p) => Pretty (Statement a n p) where
       -> vcat $ fmap pretty stmts
 
      InitAccumulator acc stmts
-      -> text "init" <+> pretty acc <> line
-      <> semisScope stmts
+      -> "init" <+> pretty acc <> semiline
+      <> nosubscope stmts
 
      Write n x
-      -> text "write" <+> pretty n <+> text "=" <+> pretty x <> line
+      -> "write" <+> pretty n <+> "=" <+> pretty x <> semi
 
      Output n t xs
-      -> text "output" <+> pretty n <+> pretty t <+> pretty xs
+      -> annotate (AnnType t) "output" <+> pretty n <+> prettyFactParts xs <> semi
 
      KeepFactInHistory
-      -> text "keep_fact_in_history"
+      -> "keep_fact_in_history" <> semi
 
      LoadResumable n t
-      -> annotate (AnnType t) "load_resumable" <+> pretty n
+      -> annotate (AnnType t) "load_resumable" <+> pretty n <> semi
      SaveResumable n t
-      -> annotate (AnnType t) "save_resumable" <+> pretty n
+      -> annotate (AnnType t) "save_resumable" <+> pretty n <> semi
 
 
   where
-   semis stmt
-    = indent 2 $ pretty stmt
+   semiline = ";" <> line
+
+   subscope stmt
+    = vcat
+    [ "{"
+    , indent 2 (pretty stmt)
+    , "}"]
 
    -- We don't want to indent for every let or read just for aesthetic reasons:
    -- it gets messy very quickly
-   semisScope stmt
-    = indent (inde stmt) $ pretty stmt
+   --nosubscope stmt@(Block{})
+   -- = subscope stmt
+   nosubscope stmt
+    = pretty stmt
 
-   inde Block{} = 2
-   inde _       = 0
-
-   prettyFactPart (nf, tf) = pretty nf <+> text ":" <+> pretty tf
-   prettyFactParts         = parens . align . cat . punctuate comma . fmap prettyFactPart
+   prettyFactPart (nf, tf) = annotate (AnnType tf) (pretty nf)
+   prettyFactParts xs      = parens $ align $ hcat $ punctuate (comma <> " ") $ fmap prettyFactPart xs
 
 
 instance (Pretty n, Pretty p) => Pretty (Accumulator a n p) where
