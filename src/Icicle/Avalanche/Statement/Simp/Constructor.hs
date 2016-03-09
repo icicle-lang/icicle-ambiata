@@ -1,5 +1,6 @@
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE PatternGuards #-}
+{-# LANGUAGE NoImplicitPrelude   #-}
+{-# LANGUAGE PatternGuards       #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 module Icicle.Avalanche.Statement.Simp.Constructor (
     constructor
   ) where
@@ -26,7 +27,7 @@ import              Data.Hashable (Hashable)
 -- | Simplify applied primitives.
 --
 constructor
-  :: (Eq a, Eq n, Hashable n)
+  :: forall a n . (Eq a, Eq n, Hashable n)
   => a -> Statement a n Prim -> FixT (Fresh n) (Statement a n Prim)
 constructor a_fresh statements
  = transformUDStmt goS emptyExpEnv statements
@@ -43,6 +44,10 @@ constructor a_fresh statements
 
   primEq  = primRelation Min.PrimRelationEq
   primNe  = primRelation Min.PrimRelationNe
+  primGt  = primRelation Min.PrimRelationGt
+  primGe  = primRelation Min.PrimRelationGe
+  primLt  = primRelation Min.PrimRelationLt
+  primLe  = primRelation Min.PrimRelationLe
 
   primFold1 append xs
    = case xs of
@@ -85,6 +90,8 @@ constructor a_fresh statements
          end   = start + length (meltType take) - 1
      in primPack env take (fmap (\ix -> primUnpack ix t x) [start..end])
 
+
+  -- | Melt constructors in statements
   goS env s
    = let env' = updateExpEnv s env
          ret s' = return (updateExpEnv s' env', s')
@@ -113,14 +120,17 @@ constructor a_fresh statements
           _
            -> ret s
 
+
+  -- | Melt constructors in expressions
+  goX :: Monad m => ExpEnv a n Prim -> Exp a n Prim -> FixT m (Exp a n Prim)
   goX env x
    | Just prima <- takePrimApps x
-   , Just x' <- goX' env prima
+   , Just x'    <- goX' env prima
    = progress x'
    | otherwise
    = return x
 
-
+  goX' :: ExpEnv a n Prim -> (Prim, [Exp a n Prim]) -> Maybe (Exp a n Prim)
   goX' env prima
    | (PrimMelt (PrimMeltPack t), [n]) <- prima
    , Nothing <- tryMeltType t
@@ -210,15 +220,13 @@ constructor a_fresh statements
 
    -- buffers
    | (PrimBuf (PrimBufPush i tx), [nb, nx]) <- prima
-   , Just ts <- tryMeltType tx
-   , tis     <- List.zip ts [0..]
+   , Just tis <- withIndex tryMeltType tx
    = Just $ primPack env (BufT i tx)
    $ fmap (\(t, ix) -> primBufPush i t (primUnpack ix (BufT i tx) nb)
                                        (primUnpack ix tx          nx)) tis
 
    | (PrimBuf (PrimBufRead i tx), [n]) <- prima
-   , Just ts <- tryMeltType tx
-   , tis     <- List.zip ts [0..]
+   , Just tis <- withIndex tryMeltType tx
    = Just $ primPack env (ArrayT tx)
    $ fmap (\(t, ix) -> primBufRead i t (primUnpack ix (BufT i tx) n)) tis
 
@@ -234,35 +242,75 @@ constructor a_fresh statements
    = Just $ primArrayLength t (primUnpack 0 (ArrayT tx) n)
 
    | (PrimUnsafe (PrimUnsafeArrayIndex tx), [n, aix]) <- prima
-   , Just ts <- tryMeltType tx
-   , tis     <- List.zip ts [0..]
+   , Just tis <- withIndex tryMeltType tx
    = Just $ primPack env tx
    $ fmap (\(t, ix) -> primArrayGet aix t (primUnpack ix (ArrayT tx) n)) tis
 
    | (PrimUpdate (PrimUpdateArrayPut tx), [na, aix, nv]) <- prima
-   , Just ts <- tryMeltType tx
-   , tis     <- List.zip ts [0..]
+   , Just tis <- withIndex tryMeltType tx
    = Just $ primPack env (ArrayT tx)
    $ fmap (\(t, ix) -> primArrayPut aix t (primUnpack ix (ArrayT tx) na)
                                           (primUnpack ix         tx  nv)) tis
 
-   -- comparison
+   -- equality
    | (PrimMinimal (Min.PrimRelation Min.PrimRelationEq t), [nx, ny]) <- prima
-   , Just ts <- tryMeltType t
-   , tis     <- List.zip ts [0..]
-   = Just $ primFold1 primAnd
-   $ fmap (\(tv, i) -> primEq tv (primUnpack i t nx) (primUnpack i t ny)) tis
+   , Just tis <- withIndex tryMeltType t
+   = Just
+   $ primFold1 primAnd
+   $ fmap (withPrim primEq t nx ny) tis
 
    | (PrimMinimal (Min.PrimRelation Min.PrimRelationNe t), [nx, ny]) <- prima
-   , Just ts <- tryMeltType t
-   , tis     <- List.zip ts [0..]
-   = Just $ primFold1 primOr
-   $ fmap (\(tv, i) -> primNe tv (primUnpack i t nx) (primUnpack i t ny)) tis
+   , Just tis <- withIndex tryMeltType t
+   = Just
+   $ primFold1 primOr
+   $ fmap (withPrim primNe t nx ny) tis
 
+   -- comparison
+   | (PrimMinimal (Min.PrimRelation op t), [nx, ny]) <- prima
+   , Just tis   <- withIndex tryMeltType t
+   , Just prim  <- relationPrim op
+   , ps         <- meltWith prim t
+   = Just
+   $ primFold1 primAnd
+   $ fmap (\(p, tvi) -> withPrim p t nx ny tvi) (List.zip ps tis)
 
    | otherwise
    = Nothing
 
+  withPrim p t x y (tv, i)
+   = p tv (primUnpack i t x) (primUnpack i t y)
+
+  withIndex f t
+   = fmap (flip List.zip [0..]) (f t)
+
+  relationPrim p = case p of
+    Min.PrimRelationGt -> Just primGt
+    Min.PrimRelationGe -> Just primGe
+    Min.PrimRelationLt -> Just primLt
+    Min.PrimRelationLe -> Just primLe
+    _                  -> Nothing
+
+  meltWith prim t = case t of
+    UnitT            -> [prim]
+    IntT             -> [prim]
+    DoubleT          -> [prim]
+    BoolT            -> [prim]
+    TimeT            -> [prim]
+    StringT          -> [prim]
+    ErrorT           -> [prim]
+    FactIdentifierT  -> [prim]
+    PairT   a      b -> meltWith prim a <> meltWith prim b
+    SumT    ErrorT b -> [primEq] <> meltWith prim b
+    SumT    a      b -> [primEq] <> meltWith prim a <> meltWith prim b
+    OptionT a        -> [primEq] <> meltWith prim a
+    ArrayT  a        -> meltWith prim a
+    BufT    _      a -> meltWith prim a
+    MapT    k      v -> meltWith prim k <> meltWith prim v
+    StructT (StructType fs)
+     -> concatMap (meltWith prim) (Map.elems fs)
+
+
+  -- | Unpack a packed value
   fromPacked ix x
    | XValue _ t v <- x
    , ts           <- meltType t
@@ -271,17 +319,19 @@ constructor a_fresh statements
    = Just (xValue t' v')
 
    | Just (PrimMelt (PrimMeltPack _), xs) <- takePrimApps x
-   , (xx:_)                              <- drop ix xs
+   , (xx:_)                               <- drop ix xs
    = Just xx
 
    | otherwise
    = Nothing
 
 
+  -- | Unpack values
   unpack env xs
-   = concatMap (unpack' env) xs
+   = concatMap (unpack1 env) xs
 
-  unpack' env x
+  -- | Unpack a value
+  unpack1 env x
    | XValue _ t v <- x
    , Just ts      <- tryMeltType t
    , Just vs      <- meltValue v t
@@ -289,17 +339,22 @@ constructor a_fresh statements
 
    | XVar _ n <- x
    , Just x'  <- getFromEnv env n
-   = unpack' env x'
+   = unpack1 env x'
 
    | Just (PrimMelt (PrimMeltPack _), ns) <- takePrimApps x
-   = concatMap (unpack' env) ns
+   = concatMap (unpack1 env) ns
 
    | otherwise
    = [x]
 
 
-  -- Either lookup a name, or just return the value if it's already a constant.
-  resolve env    (XVar   _ n)   = getFromEnv env n
-  resolve _   xx@(XValue _ _ _) = Just xx
-  resolve _       _             = Nothing
+-- Either lookup a name, or just return the value if it's already a constant.
+resolve
+  :: (Hashable n, Eq n)
+  => ExpEnv a n p
+  -> Exp    a n p
+  -> Maybe (Exp a n p)
+resolve env    (XVar   _ n)   = getFromEnv env n
+resolve _   xx@(XValue _ _ _) = Just xx
+resolve _       _             = Nothing
 
