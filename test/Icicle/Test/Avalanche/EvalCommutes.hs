@@ -44,7 +44,7 @@ prop_eval_commutes_value t =
  $ \(vs,d) -> counterexample (show $ pretty p) $
     isRight     (checkProgram p) ==>
      case (AE.evalProgram XV.evalPrim d vs $ testFresh "fromCore" $ AC.programFromCore namer p, PV.eval d vs p) of
-      (Right (_, aval), Right cres)
+      (Right (aval, _), Right cres)
        ->   aval === PV.value   cres
       (_, Left _)
        -> counterexample "Impossible: Core evaluation or type check must be wrong" False
