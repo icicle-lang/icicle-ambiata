@@ -78,9 +78,7 @@ flatten a_fresh s
      -> Read n m vt <$> flatten a_fresh ss
 
     Write n x
-     -> flatX a_fresh x
-     $ \x'
-     -> return $ Write n x'
+     -> flatX a_fresh x (return . Write n)
 
     Output n t xts
      | xs <- fmap fst xts
@@ -89,8 +87,8 @@ flatten a_fresh s
      $ \xs'
      -> return $ Output n t (List.zip xs' ts)
 
-    KeepFactInHistory
-     -> return $ KeepFactInHistory
+    KeepFactInHistory x
+     -> flatX a_fresh x (return . KeepFactInHistory)
 
     LoadResumable n t
      -> return $ LoadResumable n t
@@ -378,11 +376,13 @@ flatX a_fresh xx stm
        -> lift $ Left $ FlattenErrorPrimBadArgs p xs
 
       Core.PrimWindow newerThan olderThan
-       | [now, fact, _factid] <- xs
+       | [now, fact, factid] <- xs
        -> flatX' now
        $  \now'
        -> flatX' fact
        $  \fact'
+       -> flatX' factid
+       $  \factid'
        -> let  ge    = xPrim $ Flat.PrimMinimal $ Min.PrimRelation Min.PrimRelationGe TimeT
                andb  = xPrim $ Flat.PrimMinimal $ Min.PrimLogical  Min.PrimLogicalAnd
                newer = ge `makeApps'` [fact', windowEdge now' newerThan]
@@ -391,7 +391,7 @@ flatX a_fresh xx stm
                      | otherwise
                      = newer
           in do stm' <- stm both
-                return (If newer KeepFactInHistory mempty <> stm')
+                return (If newer (KeepFactInHistory factid') mempty <> stm')
 
        | otherwise
        -> lift $ Left $ FlattenErrorPrimBadArgs p xs

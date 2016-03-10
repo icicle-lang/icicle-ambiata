@@ -387,10 +387,10 @@ freevarsStmt = go
        InitAccumulator acc s   -> InitAccumulator (freevarsAcc acc) (freevarsStmt s)
        Read n1 n2 t s          -> Read n1 n2 t (freevarsStmt s)
        Write n x               -> Write n (freevarsExp x)
+       KeepFactInHistory x     -> KeepFactInHistory (freevarsExp x)
 
        -- Anything else, we don't care, the transforms don't touch them
        Output n t xs     -> Output n t (fmap (first freevarsExp) xs)
-       KeepFactInHistory -> KeepFactInHistory
        LoadResumable n t -> LoadResumable n t
        SaveResumable n t -> SaveResumable n t
 
@@ -435,7 +435,7 @@ hasEffect statements
    = return True
 
     -- Marking a fact as used is an effect.
-   | KeepFactInHistory  <- s
+   | KeepFactInHistory _ <- s
    = return True
 
    | LoadResumable _ _  <- s

@@ -167,7 +167,7 @@ seaOfStatement stmt
      ForeachFacts _ _ FactLoopHistory _
       -> Pretty.empty
 
-     KeepFactInHistory
+     KeepFactInHistory _
       -> Pretty.empty
 
 ------------------------------------------------------------------------

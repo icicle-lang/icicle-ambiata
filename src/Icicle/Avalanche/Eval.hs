@@ -311,7 +311,8 @@ evalStmt evalPrim now xh values bubblegum ah stmt
               (_,    Nothing) -> Left (RuntimeErrorOutputTypeMismatch n t vs)
 
     -- Keep this fact in history
-    KeepFactInHistory
+    -- TODO: FIX THIS UP WITH REAL DEAL
+    KeepFactInHistory _
      | Just (BubbleGumFact bg) <- bubblegum
      -> return (ah { accumulatorHeapMarked = BubbleGumFacts [bg] : accumulatorHeapMarked ah }, [])
      | otherwise

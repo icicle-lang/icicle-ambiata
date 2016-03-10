@@ -135,8 +135,11 @@ checkStatement frag ctx stmt
 
                return (Output n t xts')
 
-        KeepFactInHistory
-         -> return KeepFactInHistory
+        KeepFactInHistory x
+         -> do x'   <- first ProgramErrorExp
+                     $ checkExp frag (ctxExp ctx) x
+               requireSame (ProgramErrorWrongType x) (annType $ annotOfExp x') (FunT [] FactIdentifierT)
+               return $ KeepFactInHistory x'
 
         LoadResumable n t
          -> do t' <- maybeToRight (ProgramErrorNoSuchAccumulator n)
@@ -213,7 +216,7 @@ statementContext frag ctx stmt
     Output _ _ _
      -> return ctx
 
-    KeepFactInHistory
+    KeepFactInHistory _
      -> return ctx
 
     LoadResumable _ _

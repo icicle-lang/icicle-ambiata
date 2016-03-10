@@ -57,7 +57,7 @@ data Statement a n p
  | Output !OutputName !ValType ![(Exp a n p, ValType)]
 
  -- | Mark the current fact as being historically relevant
- | KeepFactInHistory
+ | KeepFactInHistory (Exp a n p)
 
  -- | Load an accumulator from history. Must be before any fact loops.
  | LoadResumable !(Name n) !ValType
@@ -158,8 +158,8 @@ transformUDStmt fun env statements
            -> return $ Write n x
           Output n t xs
            -> return $ Output n t xs
-          KeepFactInHistory
-           -> return $ KeepFactInHistory
+          KeepFactInHistory x
+           -> return $ KeepFactInHistory x
           LoadResumable n t
            -> return $ LoadResumable n t
           SaveResumable n t
@@ -207,7 +207,7 @@ foldStmt down up rjoin env res statements
            -> up e' res s
           Output{}
            -> up e' res s
-          KeepFactInHistory
+          KeepFactInHistory{}
            -> up e' res s
           LoadResumable{}
            -> up e' res s
@@ -245,8 +245,8 @@ instance TransformX Statement where
      Output n ty xs
       -> Output n ty <$> traverse (\(x,t) -> (,) <$> exps x <*> pure t) xs
 
-     KeepFactInHistory
-      -> return KeepFactInHistory
+     KeepFactInHistory x
+      -> KeepFactInHistory <$> exps x
 
      LoadResumable n t
       -> LoadResumable <$> names n <*> pure t
@@ -310,8 +310,8 @@ instance (Pretty n, Pretty p) => Pretty (Statement a n p) where
      Output n t xs
       -> annotate (AnnType t) "output" <+> pretty n <+> prettyFactParts xs <> semi
 
-     KeepFactInHistory
-      -> "keep_fact_in_history" <> semi
+     KeepFactInHistory x
+      -> "keep_fact_in_history" <+> pretty x <> semi
 
      LoadResumable n t
       -> annotate (AnnType t) "load_resumable" <+> pretty n <> semi

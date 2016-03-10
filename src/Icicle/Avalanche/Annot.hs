@@ -56,7 +56,9 @@ reannotS f ss
     Output n vt xs
      -> Output n vt (fmap (first (reannotX f)) xs)
 
-    KeepFactInHistory  -> KeepFactInHistory
+    KeepFactInHistory x
+     -> KeepFactInHistory (reannotX f x)
+
     LoadResumable n vt -> LoadResumable n vt
     SaveResumable n vt -> SaveResumable n vt
 
