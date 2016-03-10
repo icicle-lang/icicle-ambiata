@@ -76,7 +76,7 @@ instance (Pretty n, Pretty p) => Pretty (Exp a n p) where
    inner i
     = case i of
        XApp{}   -> parens $ pretty i
-       XLam{}   -> parens $ pretty i
+       XLam{}   -> line <> indent 2 (parens $ pretty i)
        XValue{} -> parens $ pretty i
        XLet{}   -> parens $ pretty i
        _        ->          pretty i
@@ -89,8 +89,10 @@ instance (Pretty n, Pretty p) => Pretty (Exp a n p) where
  pretty (XLam _ b t x) = annotate (AnnType t) ("\\" <> pretty b) <+> pretty x
 
  pretty (XLet _ b x i) = line
-                      <> indent 2 ("let " <> pretty b <> " = "  <> pretty x) <> line
-                      <> indent 2 (" in " <> pretty i)
-
+                      <> indent 2 ("let " <> pretty b <> " = "  <> pretty x)
+                      <> rest i
+  where
+   rest (XLet{}) = pretty i
+   rest _        = line <> indent 2 (" in " <> pretty i)
 
 

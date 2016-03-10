@@ -74,7 +74,7 @@ instance Pretty n => Pretty (Program a n) where
   <>    ppbinds (precomps p)                           <> line
                                                        <> line
   <>    "Streams:"                                     <> line
-  <>    vcat (fmap pretty (streams p))                 <> line
+  <>    indent 2 (vcat (fmap pretty (streams p)))      <> line
                                                        <> line
   <>    "Postcomputations:"                            <> line
   <>    ppbinds (postcomps p)                          <> line
