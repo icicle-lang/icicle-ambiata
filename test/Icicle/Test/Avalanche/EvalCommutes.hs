@@ -54,8 +54,6 @@ prop_eval_commutes_value t =
 
 -- going to Avalanche doesn't affect history
 --
--- TODO: this is disabled because the Core evaluator currently ignores bubblegum
-{-
 zprop_eval_commutes_history t =
  forAll (programForStreamType t)
  $ \p ->
@@ -63,19 +61,10 @@ zprop_eval_commutes_history t =
  $ \(vs,d) -> counterexample (show $ pretty p) $
     isRight     (checkProgram p) ==>
      case (AE.evalProgram XV.evalPrim d vs $ testFresh "fromCore" $ AC.programFromCore namer p, PV.eval d vs p) of
-      (Right (abg, _), Right cres)
-       ->  let abg' = sort abg
-               cres'= fmap prefixBubbleGum $ sort $ PV.history cres
-           in  abg' === cres'
+      (Right (_, abg), Right cres)
+       ->  abg === PV.history cres
       _
        -> property False
-
-prefixBubbleGum (BubbleGumReduction n v)
- = BubbleGumReduction (modName (Var "acc" 0) n) v
-prefixBubbleGum bg
- = bg
--}
-
 
 
 

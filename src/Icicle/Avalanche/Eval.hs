@@ -47,7 +47,7 @@ data RuntimeError a n p
  | RuntimeErrorForeachTypeMismatch [(Name n, ValType)] ValType BaseValue
  | RuntimeErrorOutputTypeMismatch  OutputName ValType [BaseValue]
  | RuntimeErrorNotBaseValue  (Value a n p)
- | RuntimeErrorKeepFactNotInFactLoop
+ | RuntimeErrorKeepFactTypeMismatch BaseValue
  | RuntimeErrorAccumulatorLatestNotInt  BaseValue
  deriving (Eq, Show)
 
@@ -74,8 +74,8 @@ instance (Pretty n, Pretty p) => Pretty (RuntimeError a n p) where
     "                   values = " <+> align (vsep (fmap pretty vs))
  pretty (RuntimeErrorNotBaseValue p)
   = "Value isn't a base value:" <+> (pretty p)
- pretty (RuntimeErrorKeepFactNotInFactLoop)
-  = "Tried to keep a value in the history which doesn't have bubblegum"
+ pretty (RuntimeErrorKeepFactTypeMismatch v)
+  = "KeepFact type error: expected a FactIdentifer, but got " <> pretty v
  pretty (RuntimeErrorAccumulatorLatestNotInt p)
   = "Accumulator Latest needs an integer, got" <+> pretty p
 
@@ -259,8 +259,7 @@ evalStmt evalPrim now xh values bubblegum ah stmt
             VFactIdentifier fid
              -> return (ah, mempty, Set.singleton fid)
             _
-             -- TODO fix error here
-             -> Left RuntimeErrorKeepFactNotInFactLoop
+             -> Left (RuntimeErrorKeepFactTypeMismatch v)
 
     LoadResumable _ _
      -> returnHeap ah
