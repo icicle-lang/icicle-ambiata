@@ -74,7 +74,6 @@ library
                        Icicle.Avalanche.Simp
                        Icicle.Avalanche.Annot
                        Icicle.Avalanche.Statement.Statement
-                       Icicle.Avalanche.Statement.Scoped
                        Icicle.Avalanche.Statement.Simp
                        Icicle.Avalanche.Statement.Simp.Dead
                        Icicle.Avalanche.Statement.Simp.Eval

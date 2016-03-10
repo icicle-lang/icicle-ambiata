@@ -71,9 +71,17 @@ isPredicateWindowed x
 
 instance (Pretty n) => Pretty (Stream a n) where
  pretty (SFold n t z k)
-  = padDoc 20 (pretty n)
-  <> " = "
-  <> "sfold [" <> pretty t <> "] (" <> pretty z <> ") then (" <> pretty k <> ")"
- pretty (SFilter x ss) = "sfilter " <> pretty x <> line
-                      <> indent 2 (vsep $ fmap pretty ss)
+  = "STREAM_FOLD (" <> pretty n <> " : " <> pretty t <> ")" <> line
+  <> indent 2 "INIT:" <> line
+  <> indent 4 (pretty z) <> line
+  <> indent 2 "KONS:" <> line
+  <> indent 4 (pretty k)
+  <> line
+ pretty (SFilter x ss)
+  = line
+  <> "STREAM_FILTER" <> line
+  <> indent 2 "PREDICATE: " <> line
+  <> indent 4 (pretty x) <> line
+  <> indent 2 "STREAMS:" <> line
+  <> indent 4 (vsep $ fmap pretty ss)
 

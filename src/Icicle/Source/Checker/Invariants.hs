@@ -39,7 +39,7 @@ invariantQ ctx (Query (c:cs) xfinal)
      -> errBanGroup "Consider moving the window to the start of the query"
     Latest{}
      | allowLatest inv
-     -- | XXX: ban latest inside latests.
+     -- XXX: ban latest inside latests.
      -- This is because latest needs access to the current fact identifier, but this isn't captured in the latest buffer.
      -- This is a bug in the code generator and should be fixed.
      -> goBanAll
