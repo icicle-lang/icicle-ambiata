@@ -37,6 +37,34 @@ data FlattenError a n
 type FlatM a n
  = FreshT n (Either (FlattenError a n)) (Statement a n Flat.Prim)
 
+-- Extracting FactIdentifiers from Buffers:
+--
+-- Need to make flatten go through and change types too:
+--      Buf t -> (Buf FactIdentifier, Buf t)
+-- We need a tuple of Bufs rather than Buf of tuple here, to implement LatestRead (easily) 
+-- 
+-- Expression rewrites:
+--      LatestPush b f v -> (BufPush (fst b) f, BufPush (snd b) v)
+--      LatestRead b     -> BufRead (snd b)
+-- 
+-- We also need to modify literal XValue Bufs:
+--      Buf []           -> (Buf [], Buf [])
+--
+--
+-- Finally, after the end of the ForeachFacts loop, we need to go through the FactIdentifier buffers and
+-- call KeepFactInHistory for each FactIdentifier.
+-- This is a bit trickier than you might think:
+--  1. Bufs might be nested inside other places, like inside Maps or inside tuples
+--  2. We won't necessarily read from all the bufs, but bufs we don't read might be important next time
+--    (Imagine we have a Map of Bufs, and we choose one entry to read the values from and return.
+--     The next time we run, we might not choose the same entry, so we need to make sure all the Bufs are saved)
+--
+-- So, we need to modify flatten to keep track of all Accumulators in scope (or perhaps only accumulators with nested Buf types).
+-- For each accumulator, we need to generate code for traversing the structure and finding the nested Bufs.
+-- When we find the Buf, we can read the fact identifiers and mark them as necessary.
+--
+-- (It might be worth storing each accumulator's original type, rather than the modified/tupled type,
+-- as searching for a Buf is probably easier than searching for the first element in tuple of two bufs)
 
 -- | Flatten the primitives in a statement.
 -- This just calls @flatX@ for every expression, wrapping the statement.

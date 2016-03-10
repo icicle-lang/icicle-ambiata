@@ -54,7 +54,11 @@ prop_eval_commutes_value t =
 
 -- going to Avalanche doesn't affect history
 --
-zprop_eval_commutes_history t =
+-- Oh no! This should be failing, but it isn't.
+-- I suspect that's because the Core generator isn't making interesting windowed and latest programs.
+-- It is probably a good idea to make this go all the way from Source.
+-- This also requires flattening, because buffer history isn't dealt with in fromCore.
+prop_eval_commutes_history t =
  forAll (programForStreamType t)
  $ \p ->
  forAll (inputsForType t)
@@ -71,5 +75,5 @@ zprop_eval_commutes_history t =
 return []
 tests :: IO Bool
 -- tests = $quickCheckAll
-tests = $forAllProperties $ quickCheckWithResult (stdArgs {maxSuccess = 100, maxSize = 10, maxDiscardRatio = 10000})
+tests = $forAllProperties $ quickCheckWithResult (stdArgs {maxSuccess = 1000, maxSize = 100, maxDiscardRatio = 10000})
 
