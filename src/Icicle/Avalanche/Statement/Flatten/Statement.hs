@@ -8,6 +8,7 @@ module Icicle.Avalanche.Statement.Flatten.Statement (
 
 import              Icicle.Avalanche.Statement.Flatten.Base
 import              Icicle.Avalanche.Statement.Flatten.Exp
+import              Icicle.Avalanche.Statement.Flatten.Type
 
 import              Icicle.Avalanche.Statement.Statement
 
@@ -76,7 +77,8 @@ flatten a_fresh s
      -> ForeachInts n from' to' <$> flatten a_fresh ss
 
     ForeachFacts binds vt lo ss
-     -> ForeachFacts binds vt lo <$> flatten a_fresh ss
+     -- Input binds cannot contain Buffers, so no need to flatten the types
+     -> ForeachFacts binds (flatT vt) lo <$> flatten a_fresh ss
 
     Block ss
      -> Block <$> mapM (flatten a_fresh) ss
@@ -84,10 +86,13 @@ flatten a_fresh s
     InitAccumulator acc ss
      -> flatX a_fresh (accInit acc)
      $ \x'
-     -> InitAccumulator (acc { accInit = x' }) <$> flatten a_fresh ss
+     -> InitAccumulator
+       (acc { accInit = x'
+            , accValType = flatT (accValType acc)})
+     <$> flatten a_fresh ss
 
     Read n m vt ss
-     -> Read n m vt <$> flatten a_fresh ss
+     -> Read n m (flatT vt) <$> flatten a_fresh ss
 
     Write n x
      -> flatX a_fresh x (return . Write n)
@@ -97,7 +102,7 @@ flatten a_fresh s
      , ts <- fmap snd xts
      -> flatXS a_fresh xs []
      $ \xs'
-     -> return $ Output n t (List.zip xs' ts)
+     -> return $ Output n (flatT t) (List.zip xs' ts)
 
     KeepFactInHistory x
      -> flatX a_fresh x (return . KeepFactInHistory)
