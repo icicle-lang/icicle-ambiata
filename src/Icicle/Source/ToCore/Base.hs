@@ -118,6 +118,7 @@ post n x = mempty { postcomps = [(n,x)] }
 data ConvertError a n
  = ConvertErrorNoSuchFeature (Name n)
  | ConvertErrorPrimNoArguments a Int Prim
+ | ConvertErrorPrimAggregate   a Prim
  | ConvertErrorGroupByHasNonGroupResult a (Type n)
  | ConvertErrorGroupFoldNotOnGroup a (Exp (Annot a n) n)
  | ConvertErrorContextNotAllowedInGroupBy a (Query (Annot a n) n)
@@ -137,6 +138,8 @@ annotOfError e
     ConvertErrorNoSuchFeature _
      -> Nothing
     ConvertErrorPrimNoArguments a _ _
+     -> Just a
+    ConvertErrorPrimAggregate a _
      -> Just a
     ConvertErrorGroupByHasNonGroupResult a _
      -> Just a
@@ -299,6 +302,8 @@ instance (Pretty a, Pretty n) => Pretty (ConvertError a n) where
      ConvertErrorPrimNoArguments a num_args p
       -> pretty a <> ": primitive " <> pretty p <> " expects " <> pretty num_args <> " arguments but got none"
 
+     ConvertErrorPrimAggregate a p
+      -> pretty a <> ": primitive " <> pretty p <> " is an aggregate. It should have been handled earlier."
      ConvertErrorGroupByHasNonGroupResult a ut
       -> pretty a <> ": group by has wrong return type; should be a group but got " <> pretty ut
 

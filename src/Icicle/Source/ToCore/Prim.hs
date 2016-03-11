@@ -37,16 +37,28 @@ convertPrim
         -> Type n
         -> [(C.Exp () n, Type n)]
         -> ConvertM a n (C.Exp () n)
-convertPrim p ann resT xts
- = go p
+convertPrim p ann resT xts = go p
  where
-
-  args = fmap fst xts
+  args       = fmap fst xts
   applies p' = CE.makeApps () p' args
 
   primmin p'  = applies $ CE.XPrim () $ C.PrimMinimal p'
   primbuiltin = primmin . Min.PrimBuiltinFun
 
+  t1 num_args
+   = case xts of
+      ((_,tt):_) -> convertValType ann tt
+      []         -> convertError
+                  $ ConvertErrorPrimNoArguments ann num_args p
+
+  tArithArg num_args
+   = do t' <- t1 num_args
+        case T.arithTypeOfValType t' of
+         Nothing -> convertError $ ConvertErrorPrimNoArguments ann num_args p
+         Just a' -> return a'
+
+
+  -- Literals
   go (Lit (LitInt i))
    | (_, _, DoubleT) <- decomposeT resT
    = return $ CE.XValue () T.DoubleT (V.VDouble $ fromIntegral i)
@@ -59,6 +71,7 @@ convertPrim p ann resT xts
   go (Lit (LitTime i))
    = return $ CE.XValue () T.TimeT (V.VTime i)
 
+  -- Constructors
   go (PrimCon ConSome)
    = primmin <$> (Min.PrimConst <$> (Min.PrimConstSome <$> t1 1))
   go (PrimCon ConNone)
@@ -88,15 +101,21 @@ convertPrim p ann resT xts
   go (PrimCon (ConError err))
    = return $ CE.XValue () T.ErrorT $ V.VError err
 
-
-  go (Fun f)
-   = gofun f
+  go (Fun (BuiltinMath f))
+   = gomath f
+  go (Fun (BuiltinTime f))
+   = gotime f
+  go (Fun (BuiltinData f))
+   = godata f
+  go (Fun (BuiltinMap f))
+   = gomap f
   go (Op o)
    = goop o
 
+
+  -- Arithmetic
   goop (ArithUnary Negate)
    = primmin <$> (Min.PrimArithUnary Min.PrimArithNegate <$> tArithArg 1)
-
   goop (ArithBinary Add)
    = primmin <$> (Min.PrimArithBinary Min.PrimArithPlus <$> tArithArg 2)
   goop (ArithBinary Sub)
@@ -105,17 +124,18 @@ convertPrim p ann resT xts
    = primmin <$> (Min.PrimArithBinary Min.PrimArithMul <$> tArithArg 2)
   goop (ArithBinary Pow)
    = primmin <$> (Min.PrimArithBinary Min.PrimArithPow <$> tArithArg 2)
-
   goop (ArithDouble Div)
    = return $ primbuiltin $ Min.PrimBuiltinMath Min.PrimBuiltinDiv
 
+  -- Logic
   goop (LogicalUnary Not)
    = return $ primmin $ Min.PrimLogical Min.PrimLogicalNot
-
   goop (LogicalBinary And)
    = return $ primmin $ Min.PrimLogical Min.PrimLogicalAnd
   goop (LogicalBinary Or)
    = return $ primmin $ Min.PrimLogical Min.PrimLogicalOr
+
+  -- Time
   goop (TimeBinary DaysBefore)
    | [(a,_),(b,_)] <- xts
    = return (CE.xPrim (C.PrimMinimal $ Min.PrimTime Min.PrimTimeMinusDays) CE.@~ b CE.@~ a)
@@ -152,6 +172,8 @@ convertPrim p ann resT xts
    | otherwise
    = convertError
    $ ConvertErrorPrimNoArguments ann 2 p
+
+  -- Relation
   goop (Relation Gt)
    = primmin <$> (Min.PrimRelation Min.PrimRelationGt <$> t1 2)
   goop (Relation Ge)
@@ -175,14 +197,32 @@ convertPrim p ann resT xts
    = convertError
    $ ConvertErrorPrimNoArguments ann 2 p
 
-  gofun Log
+
+  -- Source built-in primitives supported by other language fragments
+  gotime DaysBetween
+   = return $ primmin $ Min.PrimTime Min.PrimTimeDaysDifference
+  gotime DaysEpoch
+   = return $ primmin $ Min.PrimTime Min.PrimTimeDaysEpoch
+  -- This looks pointless, but actually isn't. Reify possibilities takes care of sequencing both
+  -- of the possiblities of this function, so although we don't check that the first tuple is
+  -- not a tombstone here, it is now assured to not be.
+  godata Seq
+   | [_,(xb,_)] <- xts
+   = return xb
+   | otherwise
+   = convertError
+   $ ConvertErrorPrimNoArguments ann 2 p
+
+
+  -- Source built-in primitives that map to common built-ins.
+  gomath Log
    = return $ primbuiltin $ Min.PrimBuiltinMath Min.PrimBuiltinLog
-  gofun Exp
+  gomath Exp
    = return $ primbuiltin $ Min.PrimBuiltinMath Min.PrimBuiltinExp
-  gofun Sqrt
+  gomath Sqrt
    = return $ primbuiltin $ Min.PrimBuiltinMath Min.PrimBuiltinSqrt
 
-  gofun Abs
+  gomath Abs
    = case xts of
       ((_,tt):_)
        | (_, _, DoubleT) <- decomposeT tt
@@ -192,35 +232,35 @@ convertPrim p ann resT xts
        -> return $ primmin $ Min.PrimArithUnary Min.PrimArithAbsolute T.ArithIntT
       _
        -> convertError $ ConvertErrorPrimNoArguments ann 1 p
-  gofun ToDouble
+  gomath ToDouble
    = case xts of
       ((xx,tt):_)
        | (_, _, DoubleT) <- decomposeT tt
        -> return xx
       _
        -> return $ primbuiltin $ Min.PrimBuiltinMath Min.PrimBuiltinToDoubleFromInt
-  gofun Floor
+  gomath Floor
    = case xts of
       ((xx,tt):_)
        | (_, _, IntT) <- decomposeT tt
        -> return xx
       _
        -> return $ primbuiltin $ Min.PrimBuiltinMath Min.PrimBuiltinFloor
-  gofun Ceiling
+  gomath Ceiling
    = case xts of
       ((xx,tt):_)
        | (_, _, IntT) <- decomposeT tt
        -> return xx
       _
        -> return $ primbuiltin $ Min.PrimBuiltinMath Min.PrimBuiltinCeiling
-  gofun Round
+  gomath Round
    = case xts of
       ((xx,tt):_)
        | (_, _, IntT) <- decomposeT tt
        -> return xx
       _
        -> return $ primbuiltin $ Min.PrimBuiltinMath Min.PrimBuiltinRound
-  gofun Truncate
+  gomath Truncate
    = case xts of
       ((xx,tt):_)
        | (_, _, IntT) <- decomposeT tt
@@ -228,30 +268,15 @@ convertPrim p ann resT xts
       _
        -> return $ primbuiltin $ Min.PrimBuiltinMath Min.PrimBuiltinTruncate
 
-  gofun DaysBetween
-   = return $ primmin $ Min.PrimTime Min.PrimTimeDaysDifference
-  gofun DaysEpoch
-   = return $ primmin $ Min.PrimTime Min.PrimTimeDaysEpoch
+  gomap prim
+   | ((_, tt) : _) <- xts = gomap' tt prim
+   | otherwise            = convertError $ ConvertErrorPrimNoArguments ann 1 p
 
-  -- This looks pointless, but actually isn't. Reify possibilities takes care of sequencing both
-  -- of the possiblities of this function, so although we don't check that the first tuple is
-  -- not a tombstone here, it is now assured to not be.
-  gofun Seq
-   | [_,(xb,_)] <- xts
-   = return xb
+  gomap' tt prim
+   | Just (T.MapT k v) <- valTypeOfType tt
+   = return
+   $ case prim of
+       MapKeys   -> primbuiltin $ Min.PrimBuiltinMap $ Min.PrimBuiltinKeys k v
+       MapValues -> primbuiltin $ Min.PrimBuiltinMap $ Min.PrimBuiltinVals k v
    | otherwise
-   = convertError
-   $ ConvertErrorPrimNoArguments ann 2 p
-
-  t1 num_args
-   = case xts of
-      ((_,tt):_) -> convertValType ann tt
-      []         -> convertError
-                  $ ConvertErrorPrimNoArguments ann num_args p
-
-  tArithArg num_args
-   = do t' <- t1 num_args
-        case T.arithTypeOfValType t' of
-         Nothing -> convertError $ ConvertErrorPrimNoArguments ann num_args p
-         Just a' -> return a'
-
+   = convertError $ ConvertErrorCannotConvertType ann tt

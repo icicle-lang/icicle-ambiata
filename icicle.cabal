@@ -101,6 +101,7 @@ library
                        Icicle.Common.Exp.Exp
                        Icicle.Common.Exp.Eval
                        Icicle.Common.Exp.Prim.Minimal
+                       Icicle.Common.Exp.Prim.Builtin
                        Icicle.Common.Exp.Prim.Eval
                        Icicle.Common.Exp.Simp
                        Icicle.Common.Exp.Simp.Beta
@@ -168,6 +169,7 @@ library
                        Icicle.Source.Eval
                        Icicle.Source.Query
                        Icicle.Source.Query.Query
+                       Icicle.Source.Query.Builtin
                        Icicle.Source.Query.Constructor
                        Icicle.Source.Query.Context
                        Icicle.Source.Query.Exp

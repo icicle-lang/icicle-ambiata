@@ -191,7 +191,7 @@ prettyDictionarySummary dict
  = "Dictionary" <> line
  <> indent 2
  (  "Functions" <> line
- <> indent 2 (vcat $ (pprInbuilt <$> listOfAllFuns) <> (pprFun <$> dictionaryFunctions dict))
+ <> indent 2 (vcat $ (pprInbuilt <$> listOfBuiltinFuns) <> (pprFun <$> dictionaryFunctions dict))
  <> line
  <> "Features" <> line
  <> indent 2 (vcat $ fmap pprEntry $ dictionaryEntries dict))

@@ -33,6 +33,7 @@ evalPrim p originalP vs
  = let primError = Left $ RuntimeErrorPrimBadArgs originalP vs
    in case p of
 
+     -- Unary
      PrimArithUnary PrimArithNegate _
       | [VBase (VDouble i)] <- vs
       -> return $ VBase $ VDouble $ negate i
@@ -49,6 +50,8 @@ evalPrim p originalP vs
       | otherwise
       -> primError
 
+
+     -- Binary
      PrimArithBinary PrimArithPlus _
       | [VBase (VDouble i), VBase (VDouble j)] <- vs
       -> return $ VBase $ VDouble $ i + j
@@ -82,52 +85,75 @@ evalPrim p originalP vs
       -> primError
 
 
+     -- Builtin
      PrimBuiltinFun (PrimBuiltinMath PrimBuiltinDiv)
       | [VBase (VDouble i), VBase (VDouble j)] <- vs
       -> return $ VBase $ VDouble $ i / j
       | otherwise
       -> primError
+
      PrimBuiltinFun (PrimBuiltinMath PrimBuiltinLog)
       | [VBase (VDouble i)] <- vs
       -> return $ VBase $ VDouble $ log i
       | otherwise
       -> primError
+
      PrimBuiltinFun (PrimBuiltinMath PrimBuiltinExp)
       | [VBase (VDouble i)] <- vs
       -> return $ VBase $ VDouble $ exp i
       | otherwise
       -> primError
+
      PrimBuiltinFun (PrimBuiltinMath PrimBuiltinSqrt)
       | [VBase (VDouble i)] <- vs
       -> return $ VBase $ VDouble $ sqrt i
       | otherwise
       -> primError
+
      PrimBuiltinFun (PrimBuiltinMath  PrimBuiltinFloor)
       | [VBase (VDouble i)] <- vs
       -> return $ VBase $ VInt $ floor i
       | otherwise
       -> primError
+
      PrimBuiltinFun (PrimBuiltinMath  PrimBuiltinCeiling)
       | [VBase (VDouble i)] <- vs
       -> return $ VBase $ VInt $ ceiling i
       | otherwise
       -> primError
+
      PrimBuiltinFun (PrimBuiltinMath  PrimBuiltinRound)
       | [VBase (VDouble i)] <- vs
       -> return $ VBase $ VInt $ round i
       | otherwise
       -> primError
+
      PrimBuiltinFun (PrimBuiltinMath  PrimBuiltinTruncate)
       | [VBase (VDouble i)] <- vs
       -> return $ VBase $ VInt $ truncate i
       | otherwise
       -> primError
+
      PrimBuiltinFun (PrimBuiltinMath PrimBuiltinToDoubleFromInt)
       | [VBase (VInt i)] <- vs
       -> return $ VBase $ VDouble $ fromIntegral i
       | otherwise
       -> primError
 
+     PrimBuiltinFun (PrimBuiltinMap (PrimBuiltinKeys _ _))
+      | [VBase (VMap m)] <- vs
+      -> return $ VBase $ VArray $ Map.keys m
+      | otherwise
+      -> primError
+
+     PrimBuiltinFun (PrimBuiltinMap (PrimBuiltinVals _ _))
+      | [VBase (VMap m)] <- vs
+      -> return $ VBase $ VArray $ Map.elems m
+      | otherwise
+      -> primError
+
+
+     -- To string
      PrimToString PrimToStringFromInt
       | [VBase (VInt i)] <- vs
       -> return $ VBase $ VString $ T.pack $ show i
@@ -140,6 +166,7 @@ evalPrim p originalP vs
       -> primError
 
 
+     -- Relation
      PrimRelation rel _
       -- It is safe to assume they are of the same value type
       -- and "ordable", if we assume that it typechecks.
@@ -157,6 +184,8 @@ evalPrim p originalP vs
       | otherwise
       -> primError
 
+
+     -- Logical
      PrimLogical  PrimLogicalNot
       | [VBase (VBool u)] <- vs
       -> return $ VBase $ VBool $ not u
@@ -176,6 +205,7 @@ evalPrim p originalP vs
       -> primError
 
 
+     -- Constructors
      PrimConst (PrimConstPair _ _)
       | [VBase x,VBase y] <- vs
       -> return $ VBase $ VPair x y
@@ -226,6 +256,8 @@ evalPrim p originalP vs
       | otherwise
       -> primError
 
+
+     -- Projections
      PrimPair (PrimPairFst _ _)
       | [VBase (VPair x _)] <- vs
       -> return $ VBase $ x
@@ -238,6 +270,8 @@ evalPrim p originalP vs
       | otherwise
       -> primError
 
+
+     -- Struct
      PrimStruct (PrimStructGet f (OptionT _) _)
       | [VBase (VStruct fs)] <- vs
       , Just v' <- Map.lookup f fs

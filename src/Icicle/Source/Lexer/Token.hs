@@ -71,13 +71,19 @@ data Token
  | TUnexpected !Text
  deriving (Eq, Ord, Show)
 
-data Keyword
- = And
+data Keyword =
+ -- Date
+   And
  | After
  | Before
  | Between
- | Case
  | Days
+ | Months
+ | Weeks
+ | Windowed
+
+ -- Syntax
+ | Case
  | Distinct
  | End
  | Feature
@@ -87,9 +93,9 @@ data Keyword
  | Group
  | Latest
  | Let
- | Months
- | Weeks
- | Windowed
+ | Seq
+
+ -- Builtin
  | Log
  | Exp
  | Sqrt
@@ -99,7 +105,8 @@ data Keyword
  | Ceil
  | Round
  | Trunc
- | Seq
+ | Keys
+ | Vals
  deriving (Eq, Ord, Show, Enum, Bounded)
 
 

@@ -76,26 +76,10 @@ instance (Hashable n, Arbitrary n) => Arbitrary (Name n) where
   arbitrary =
     nameOf . NameBase <$> arbitrary
 
-instance Arbitrary PM.PrimArithUnary where
- arbitrary = arbitraryBoundedEnum
+--------------------------------------------------------------------------------
 
-instance Arbitrary PM.PrimArithBinary where
- arbitrary = arbitraryBoundedEnum
-
-instance Arbitrary PM.PrimRelation where
- arbitrary = arbitraryBoundedEnum
-
-instance Arbitrary PM.PrimLogical where
- arbitrary = arbitraryBoundedEnum
-
-instance Arbitrary PM.PrimTime where
- arbitrary = arbitraryBoundedEnum
-
-instance Arbitrary PM.PrimBuiltinFun where
- arbitrary = PM.PrimBuiltinMath <$> arbitrary
-
-instance Arbitrary PM.PrimBuiltinMath where
- arbitrary = arbitraryBoundedEnum
+-- We restrict the space of some arbitrary primitives, so we never get invalid
+-- applications such as applying pow to negative exponents.
 
 instance Arbitrary PM.Prim where
  arbitrary
@@ -119,6 +103,34 @@ instance Arbitrary PM.Prim where
      , PM.PrimBuiltinFun <$> arbitrary
      ]
 
+instance Arbitrary PM.PrimArithUnary where
+ arbitrary = arbitraryBoundedEnum
+
+instance Arbitrary PM.PrimArithBinary where
+ arbitrary = oneof_vals
+   [ PM.PrimArithPlus
+   , PM.PrimArithMinus
+   , PM.PrimArithMul ]
+
+instance Arbitrary PM.PrimRelation where
+ arbitrary = arbitraryBoundedEnum
+
+instance Arbitrary PM.PrimLogical where
+ arbitrary = arbitraryBoundedEnum
+
+instance Arbitrary PM.PrimTime where
+ arbitrary = arbitraryBoundedEnum
+
+instance Arbitrary PM.PrimBuiltinFun where
+ arbitrary = oneof_sized
+   [ PM.PrimBuiltinMath <$> arbitrary ]
+   [ PM.PrimBuiltinMap  <$> arbitrary ]
+
+instance Arbitrary PM.PrimBuiltinMap where
+  arbitrary = oneof
+    [ PM.PrimBuiltinKeys <$> arbitrary <*> arbitrary
+    , PM.PrimBuiltinVals <$> arbitrary <*> arbitrary ]
+
 instance Arbitrary Prim where
   arbitrary =
     oneof_sized
@@ -134,6 +146,16 @@ instance Arbitrary Prim where
           , PrimMap <$> (PrimMapMapValues      <$> arbitrary <*> arbitrary <*> arbitrary)
           , PrimArray <$> (PrimArrayMap      <$> arbitrary <*> arbitrary)
           ]
+
+instance Arbitrary PM.PrimBuiltinMath where
+  arbitrary = oneof_vals
+    [ PM.PrimBuiltinCeiling
+    , PM.PrimBuiltinFloor
+    , PM.PrimBuiltinTruncate
+    , PM.PrimBuiltinRound
+    , PM.PrimBuiltinToDoubleFromInt ]
+
+--------------------------------------------------------------------------------
 
 instance Arbitrary ValType where
   arbitrary =

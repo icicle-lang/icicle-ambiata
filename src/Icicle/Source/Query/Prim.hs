@@ -56,30 +56,34 @@ primLookup' p
     Lit (LitTime _)
      -> f0 [] TimeT
 
-    Fun Log
+    Fun (BuiltinMath Log)
      -> f0 [DoubleT] DoubleT
-    Fun Exp
+    Fun (BuiltinMath Exp)
      -> f0 [DoubleT] DoubleT
-    Fun Sqrt
+    Fun (BuiltinMath Sqrt)
      -> f0 [DoubleT] DoubleT
-    Fun ToDouble
+    Fun (BuiltinMath ToDouble)
      -> fNum $ \at -> ([at], DoubleT)
-    Fun Abs
+    Fun (BuiltinMath Abs)
      -> fNum $ \at -> ([at], at)
-    Fun Floor
+    Fun (BuiltinMath Floor)
      -> fNum $ \at -> ([at], IntT)
-    Fun Ceiling
+    Fun (BuiltinMath Ceiling)
      -> fNum $ \at -> ([at], IntT)
-    Fun Round
+    Fun (BuiltinMath Round)
      -> fNum $ \at -> ([at], IntT)
-    Fun Truncate
+    Fun (BuiltinMath Truncate)
      -> fNum $ \at -> ([at], IntT)
-    Fun DaysBetween
+    Fun (BuiltinTime DaysBetween)
      -> f0 [TimeT, TimeT] IntT
-    Fun DaysEpoch
+    Fun (BuiltinTime DaysEpoch)
      -> f0 [TimeT] IntT
-    Fun Seq
+    Fun (BuiltinData Seq)
      -> f2 $ \a at b bt -> FunctionType [a,b] [] [at,bt] bt
+    Fun (BuiltinMap MapKeys)
+     -> f2 $ \a at b bt -> FunctionType [a,b] [] [GroupT at bt] (ArrayT at)
+    Fun (BuiltinMap MapValues)
+     -> f2 $ \a at b bt -> FunctionType [a,b] [] [GroupT at bt] (ArrayT bt)
 
     PrimCon ConSome
      -> f1 $ \a at -> FunctionType [a] [] [at] (OptionT at)

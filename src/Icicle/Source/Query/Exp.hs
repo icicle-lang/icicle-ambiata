@@ -11,16 +11,22 @@ module Icicle.Source.Query.Exp (
   , Prim      (..)
   , Lit       (..)
   , Op        (..)
-  , Fun       (..)
+  , Fun
+  , BuiltinFun  (..)
+  , BuiltinMath (..)
+  , BuiltinTime (..)
+  , BuiltinData (..)
+  , BuiltinMap  (..)
 
   , takeApps
   , takePrimApps
   , annotOfExp
   , mkApp
   , precedenceOfX
-  , listOfAllFuns
+  , listOfBuiltinFuns
   ) where
 
+import                  Icicle.Source.Query.Builtin
 import                  Icicle.Source.Query.Constructor
 import                  Icicle.Source.Query.Operators
 import                  Icicle.Data.Time
@@ -86,23 +92,7 @@ data Lit
  deriving (Show, Eq, Ord)
 
 -- | Built-in Source functions
-data Fun
- = Log
- | Exp
- | Sqrt
- | Abs
- | ToDouble
- | Floor
- | Ceiling
- | Round
- | Truncate
- | DaysBetween
- | DaysEpoch
- | Seq
- deriving (Show, Eq, Ord, Enum, Bounded)
-
-listOfAllFuns :: [Fun]
-listOfAllFuns = [minBound..maxBound]
+type Fun = BuiltinFun
 
 instance (Pretty n, Pretty q) => Pretty (Exp' q a n) where
  pretty xx
@@ -223,17 +213,3 @@ instance Pretty Lit where
  pretty (LitDouble i) = text $ show i
  pretty (LitString i) = text $ show i
  pretty (LitTime i) = "`" <> (text $ unpack $ renderTime i) <> "`"
-
-instance Pretty Fun where
- pretty Log         = "log"
- pretty Exp         = "exp"
- pretty Sqrt        = "sqrt"
- pretty ToDouble    = "double"
- pretty Abs         = "abs"
- pretty Floor       = "floor"
- pretty Ceiling     = "ceil"
- pretty Round       = "round"
- pretty Truncate    = "trunc"
- pretty DaysBetween = "days between"
- pretty DaysEpoch   = "days"
- pretty Seq         = "seq"
