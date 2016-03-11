@@ -5,6 +5,7 @@
 
 [build.dist]
   HADDOCK="true"
+  PUBLISH="icicle-repl"
 
 [build.dist-bench]
   TEST="false"
