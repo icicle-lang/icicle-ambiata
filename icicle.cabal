@@ -81,6 +81,10 @@ library
                        Icicle.Avalanche.Statement.Simp.Constructor
                        Icicle.Avalanche.Statement.Simp.Melt
                        Icicle.Avalanche.Statement.Flatten
+                       Icicle.Avalanche.Statement.Flatten.Base
+                       Icicle.Avalanche.Statement.Flatten.Statement
+                       Icicle.Avalanche.Statement.Flatten.Type
+                       Icicle.Avalanche.Statement.Flatten.Exp
                        Icicle.Avalanche.Prim.Flat
                        Icicle.Avalanche.Prim.Eval
 

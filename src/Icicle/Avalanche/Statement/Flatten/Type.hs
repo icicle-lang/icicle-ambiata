@@ -2,11 +2,16 @@
 -- The input statements must be in A-normal form.
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE PatternGuards #-}
-module Icicle.Avalanche.Statement.Flatten (
-    flatten
-  , FlattenError(..)
+module Icicle.Avalanche.Statement.Flatten.Type (
+    flatT
   ) where
 
-import Icicle.Avalanche.Statement.Flatten.Base
-import Icicle.Avalanche.Statement.Flatten.Statement
+import              Icicle.Common.Type
+
+-- import              P
+
+
+flatT   :: Type
+        -> Type
+flatT t = t
 
