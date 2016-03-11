@@ -1,5 +1,5 @@
 welcome to iREPL
-ok, loaded 20 functions from data/libs/prelude.icicle
+ok, loaded 24 functions from data/libs/prelude.icicle
 ok, loaded test/cli/repl/data.psv, 13 rows
 > -- The ratio of > 300 to all?
 > - Core evaluation:
