@@ -493,6 +493,27 @@ freshInEnv env
  = arbitrary `suchThat` (not . flip Map.member env)
 
 
+genInputType :: Gen ValType
+genInputType
+ = oneof_sized_vals
+         [ IntT
+         , UnitT
+         , BoolT
+         , TimeT
+         , StringT ]
+         [ ArrayT  <$> genInputType
+         , PairT   <$> genInputType <*> genInputType
+         , SumT    <$> genInputType <*> genInputType
+         , MapT    <$> genInputType <*> genInputType
+         , OptionT <$> genInputType
+         , (StructT . StructType . Map.fromList) <$> listOf genField
+         ]
+ where
+  genField
+    = (,) <$> arbitrary <*> genInputType
+
+
+
 -- | Generate a value for given value type
 baseValueForType :: ValType -> Gen BaseValue
 baseValueForType t

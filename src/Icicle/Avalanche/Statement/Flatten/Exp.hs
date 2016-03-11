@@ -78,7 +78,7 @@ flatX a_fresh xx stm
       XVar a n
        -> stm $ XVar a n
       XValue a vt bv
-       -> stm $ XValue a (flatT vt) bv
+       -> stm $ XValue a (flatT vt) (flatV bv)
 
       XApp{}
        -- Primitive applications are where it gets interesting.
@@ -288,30 +288,46 @@ flatX a_fresh xx stm
        -> lift $ Left $ FlattenErrorPrimBadArgs p xs
 
 
+      -- LatestPush b f v -> (BufPush (fst b) f, BufPush (snd b) v)
       Core.PrimLatest (Core.PrimLatestPush i tOld)
-       | [buf, _factid, e]    <- xs
+       | [buf, factid, e]    <- xs
        , t <- flatT tOld
        -> flatX' e
        $  \e'
+       -> flatX' factid
+       $  \factid'
        -> flatX' buf
        $  \buf'
        -> do   tmpN      <- fresh
-               let fpPush = xPrim (Flat.PrimBuf $ Flat.PrimBufPush i t) `xApp` buf' `xApp` e'
+               let tb1 = BufT i FactIdentifierT 
+               let tb2 = BufT i t
+               let proj' ix = projFlat ix tb1 tb2 buf'
+               let fpPush t' b v = xPrim (Flat.PrimBuf $ Flat.PrimBufPush i t') `xApp` b `xApp` v
+               let fpPair a b = xPrim (Flat.PrimMinimal $ Min.PrimConst $ Min.PrimConstPair tb1 tb2) `xApp` a `xApp` b
+
+               let pushed = fpPair
+                       (fpPush FactIdentifierT (proj' False) factid')
+                       (fpPush t (proj' True) e')
+
                stm'      <- stm (xVar tmpN)
                return
-                 $ Let tmpN fpPush stm'
+                 $ Let tmpN pushed stm'
 
        | otherwise
        -> lift $ Left $ FlattenErrorPrimBadArgs p xs
 
 
+      -- LatestRead b     -> BufRead (snd b)
       Core.PrimLatest (Core.PrimLatestRead i tOld)
        | [buf] <- xs
        , t <- flatT tOld
        -> flatX' buf
        $  \buf'
        -> do   tmpN       <- fresh
-               let fpRead  = xPrim (Flat.PrimBuf $ Flat.PrimBufRead i t) `xApp` buf'
+               let tb1 = BufT i FactIdentifierT 
+               let tb2 = BufT i t
+               let proj' ix = projFlat ix tb1 tb2 buf'
+               let fpRead  = xPrim (Flat.PrimBuf $ Flat.PrimBufRead i t) `xApp` (proj' True)
                stm'       <- stm (xVar tmpN)
                return
                  $ Let tmpN fpRead stm'
@@ -423,8 +439,8 @@ flatX a_fresh xx stm
          let k'   = XLam a_fresh n'ac  valT
                   $ XLam a_fresh n'kv (PairT tk tv)
                   ( k `makeApps'` [ xVar n'ac
-                                  , proj False tk tv $ xVar n'kv
-                                  , proj True  tk tv $ xVar n'kv ])
+                                  , projCore False tk tv $ xVar n'kv
+                                  , projCore True  tk tv $ xVar n'kv ])
 
          res     <- flatX'
                   ( xPrim (Core.PrimFold (Core.PrimFoldArray (PairT tk tv)) valT)
@@ -482,12 +498,14 @@ flatX a_fresh xx stm
    = lift $ Left $ FlattenErrorPrimBadArgs (Core.PrimFold pf rt) xs
 
   -- Create a fst# or snd#
-  proj t ta tb e
+  proj pmin t ta tb e
    = let pm | not t
             = Min.PrimPairFst ta tb
             | otherwise
             = Min.PrimPairSnd ta tb
-     in (xPrim $ Core.PrimMinimal $ Min.PrimPair $ pm) `xApp` e
+     in (xPrim $ pmin $ Min.PrimPair $ pm) `xApp` e
+  projCore = proj Core.PrimMinimal
+  projFlat = proj Flat.PrimMinimal
 
 
   fpArrLen t = xPrim (Flat.PrimProject $ Flat.PrimProjectArrayLength t)

@@ -24,19 +24,8 @@ import              Data.Hashable                  (Hashable)
 
 -- Extracting FactIdentifiers from Buffers:
 --
--- Need to make flatten go through and change types too:
---      Buf t -> (Buf FactIdentifier, Buf t)
--- We need a tuple of Bufs rather than Buf of tuple here, to implement LatestRead (easily) 
--- 
--- Expression rewrites:
---      LatestPush b f v -> (BufPush (fst b) f, BufPush (snd b) v)
---      LatestRead b     -> BufRead (snd b)
--- 
--- We also need to modify literal XValue Bufs:
---      Buf []           -> (Buf [], Buf [])
 --
---
--- Finally, after the end of the ForeachFacts loop, we need to go through the FactIdentifier buffers and
+-- After the end of the ForeachFacts loop, we need to go through the FactIdentifier buffers and
 -- call KeepFactInHistory for each FactIdentifier.
 -- This is a bit trickier than you might think:
 --  1. Bufs might be nested inside other places, like inside Maps or inside tuples
@@ -108,8 +97,8 @@ flatten a_fresh s
      -> flatX a_fresh x (return . KeepFactInHistory)
 
     LoadResumable n t
-     -> return $ LoadResumable n t
+     -> return $ LoadResumable n (flatT t)
     SaveResumable n t
-     -> return $ SaveResumable n t
+     -> return $ SaveResumable n (flatT t)
 
 

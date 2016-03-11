@@ -1,13 +1,21 @@
--- | Turn Core primitives into Flat - removing the folds
--- The input statements must be in A-normal form.
+-- | Converting types for flattening
+-- Flatten converts buffers to store their fact id too:
+--      Buf t -> (Buf FactIdentifier, Buf t)
+-- We need a tuple of Bufs rather than Buf of tuple here, to implement LatestRead (easily) 
+-- 
+-- We also modify Bufs inside literal XValues:
+--      Buf []           -> (Buf [], Buf [])
+--
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE LambdaCase #-}
 module Icicle.Avalanche.Statement.Flatten.Type (
     flatT
   , flatFT
   , flatPrimMinimal
+  , flatV
   ) where
 
+import              Icicle.Common.Base
 import              Icicle.Common.Type
 import              Icicle.Common.Exp.Prim.Minimal
 
@@ -24,6 +32,14 @@ flatT   :: ValType
         -> ValType
 flatT ot
  = case ot of
+    -- Don't double flatten!
+    PairT (BufT a FactIdentifierT)
+          (BufT b t)
+     -> PairT (BufT a FactIdentifierT)
+              (BufT b $ flatT t)
+
+    BufT a t -> PairT (BufT a FactIdentifierT) (BufT a $ flatT t)
+
     BoolT       -> ot
     TimeT       -> ot
     DoubleT     -> ot
@@ -40,7 +56,6 @@ flatT ot
     SumT  t u   -> SumT  (flatT t) (flatT u)
     StructT ss  -> StructT $ flatTS ss
 
-    BufT a t -> PairT (BufT a FactIdentifierT) (BufT a $ flatT t)
 
 flatTS :: StructType -> StructType
 flatTS = StructType . Map.map flatT . getStructType
@@ -66,3 +81,22 @@ flatPrimMinimal prim
   primStruct(PrimStructGet f t st)
                                  = PrimStructGet f (flatT t) (flatTS st)
 
+
+flatV :: BaseValue -> BaseValue
+flatV v
+ = case v of
+    VArray vs  -> VArray $ fmap flatV vs
+    VPair  a b -> VPair  (flatV a) (flatV b)
+    VLeft  a   -> VLeft  (flatV a)
+    VRight a   -> VRight (flatV a)
+    VSome  a   -> VSome  (flatV a)
+    VNone      -> VNone
+    VMap m     -> VMap
+                $ Map.fromList
+                $ fmap (\(a,b) -> (flatV a, flatV b))
+                $ Map.toList m
+    VStruct m  -> VStruct
+                $ Map.map flatV m
+    VBuf vs    -> VPair (VBuf []) (VBuf $ fmap flatV vs)
+
+    _          -> v
