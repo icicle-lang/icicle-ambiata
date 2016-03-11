@@ -234,61 +234,70 @@ evalP ann p xs vs env
      -> do  args <- mapM (\x' -> evalX x' vs env) xs
             let err = Left $ EvalErrorPrimBadArgs ann p args
             case f of
-             Log
+             BuiltinMath Log
               | [VDouble i] <- args
               -> return $ VDouble $ log i
               | otherwise -> err
-             Exp
+             BuiltinMath Exp
               | [VDouble i] <- args
               -> return $ VDouble $ exp i
               | otherwise -> err
-             Sqrt
+             BuiltinMath Sqrt
               | [VDouble i] <- args
               -> return $ VDouble $ sqrt i
               | otherwise -> err
-
              -- Use Doubles as only number representation.
              -- See Note: Numbers
-             ToDouble
+             BuiltinMath ToDouble
               | [VDouble i] <- args
               -> return $ VDouble i
               | otherwise -> err
-
-             Abs
+             BuiltinMath Abs
               | [VDouble i] <- args
               -> return $ VDouble $ abs i
               | otherwise -> err
-             Floor
+             BuiltinMath Floor
               | [VDouble i] <- args
               -> return $ VDouble $ fromIntegral (floor i :: Int)
               | otherwise -> err
-             Ceiling
+             BuiltinMath Ceiling
               | [VDouble i] <- args
               -> return $ VDouble $ fromIntegral (ceiling i :: Int)
               | otherwise -> err
-             Round
+             BuiltinMath Round
               | [VDouble i] <- args
               -> return $ VDouble $ fromIntegral (round i :: Int)
               | otherwise -> err
-             Truncate
+             BuiltinMath Truncate
               | [VDouble i] <- args
               -> return $ VDouble $ fromIntegral (truncate i :: Int)
               | otherwise -> err
 
-             DaysBetween
+             BuiltinTime DaysBetween
               | [VTime i, VTime j] <- args
               -> return $ VDouble $ fromIntegral $ DT.daysDifference i j
               | otherwise -> err
-             DaysEpoch
+             BuiltinTime DaysEpoch
               | [VTime i] <- args
               -> return $ VDouble $ fromIntegral $ DT.daysOfTime i
               | otherwise -> err
-             Seq
+
+             BuiltinData Seq
               | [VError e,_] <- args
               -> return $ VError e
               | [_,i] <- args
               -> return i
               | otherwise -> err
+
+             BuiltinMap MapKeys
+              | [VMap m] <- args
+              -> return $ VArray $ Map.keys m
+              | otherwise -> err
+             BuiltinMap MapValues
+              | [VMap m] <- args
+              -> return $ VArray $ Map.elems m
+              | otherwise -> err
+
     Op o
      -> do  args <- mapM (\x' -> evalX x' vs env) xs
             let err = Left $ EvalErrorPrimBadArgs ann p args

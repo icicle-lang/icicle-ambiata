@@ -76,27 +76,60 @@ instance (Hashable n, Arbitrary n) => Arbitrary (Name n) where
   arbitrary =
     nameOf . NameBase <$> arbitrary
 
+--------------------------------------------------------------------------------
+
+-- We restrict the space of some arbitrary primitives, so we never get invalid
+-- applications such as applying pow to negative exponents.
+
 instance Arbitrary PM.Prim where
  arbitrary
   = oneof
-          [ return $ PM.PrimArithBinary PM.PrimArithMinus ArithIntT
-          , return $ PM.PrimArithBinary PM.PrimArithPlus  ArithIntT
-          , return $ PM.PrimRelation PM.PrimRelationGt IntT
-          , return $ PM.PrimRelation PM.PrimRelationGe IntT
-          , return $ PM.PrimLogical  PM.PrimLogicalNot
-          , return $ PM.PrimLogical  PM.PrimLogicalAnd
-          , return $ PM.PrimTime PM.PrimTimeDaysDifference
-          , return $ PM.PrimTime PM.PrimTimeDaysEpoch
-          , return $ PM.PrimTime PM.PrimTimeMinusDays
-          , return $ PM.PrimTime PM.PrimTimeMinusMonths
-          , PM.PrimConst <$> (PM.PrimConstPair <$> arbitrary <*> arbitrary)
-          , PM.PrimConst . PM.PrimConstSome <$> arbitrary
-          , PM.PrimConst <$> (PM.PrimConstLeft <$> arbitrary <*> arbitrary)
-          , PM.PrimConst <$> (PM.PrimConstRight <$> arbitrary <*> arbitrary)
-          , PM.PrimPair <$> (PM.PrimPairFst <$> arbitrary <*> arbitrary)
-          , PM.PrimPair <$> (PM.PrimPairSnd <$> arbitrary <*> arbitrary)
-          , PM.PrimStruct <$> (PM.PrimStructGet <$> arbitrary <*> arbitrary <*> arbitrary)
-          ]
+     [ PM.PrimArithUnary  <$> arbitrary <*> pure ArithIntT
+     , PM.PrimArithBinary <$> arbitrary <*> pure ArithIntT
+     , PM.PrimRelation    <$> arbitrary <*> pure IntT
+     , PM.PrimLogical     <$> arbitrary
+     , PM.PrimTime        <$> arbitrary
+
+     , PM.PrimConst <$> (PM.PrimConstPair  <$> arbitrary <*> arbitrary)
+     , PM.PrimConst  .   PM.PrimConstSome  <$> arbitrary
+     , PM.PrimConst <$> (PM.PrimConstLeft  <$> arbitrary <*> arbitrary)
+     , PM.PrimConst <$> (PM.PrimConstRight <$> arbitrary <*> arbitrary)
+
+     , PM.PrimPair   <$> (PM.PrimPairFst <$> arbitrary <*> arbitrary)
+     , PM.PrimPair   <$> (PM.PrimPairSnd <$> arbitrary <*> arbitrary)
+
+     , PM.PrimStruct <$> (PM.PrimStructGet <$> arbitrary <*> arbitrary <*> arbitrary)
+
+     , PM.PrimBuiltinFun <$> arbitrary
+     ]
+
+instance Arbitrary PM.PrimArithUnary where
+ arbitrary = arbitraryBoundedEnum
+
+instance Arbitrary PM.PrimArithBinary where
+ arbitrary = oneof_vals
+   [ PM.PrimArithPlus
+   , PM.PrimArithMinus
+   , PM.PrimArithMul ]
+
+instance Arbitrary PM.PrimRelation where
+ arbitrary = arbitraryBoundedEnum
+
+instance Arbitrary PM.PrimLogical where
+ arbitrary = arbitraryBoundedEnum
+
+instance Arbitrary PM.PrimTime where
+ arbitrary = arbitraryBoundedEnum
+
+instance Arbitrary PM.PrimBuiltinFun where
+ arbitrary = oneof_sized
+   [ PM.PrimBuiltinMath <$> arbitrary ]
+   [ PM.PrimBuiltinMap  <$> arbitrary ]
+
+instance Arbitrary PM.PrimBuiltinMap where
+  arbitrary = oneof
+    [ PM.PrimBuiltinKeys <$> arbitrary <*> arbitrary
+    , PM.PrimBuiltinVals <$> arbitrary <*> arbitrary ]
 
 instance Arbitrary Prim where
   arbitrary =
@@ -113,6 +146,16 @@ instance Arbitrary Prim where
           , PrimMap <$> (PrimMapMapValues      <$> arbitrary <*> arbitrary <*> arbitrary)
           , PrimArray <$> (PrimArrayMap      <$> arbitrary <*> arbitrary)
           ]
+
+instance Arbitrary PM.PrimBuiltinMath where
+  arbitrary = oneof_vals
+    [ PM.PrimBuiltinCeiling
+    , PM.PrimBuiltinFloor
+    , PM.PrimBuiltinTruncate
+    , PM.PrimBuiltinRound
+    , PM.PrimBuiltinToDoubleFromInt ]
+
+--------------------------------------------------------------------------------
 
 instance Arbitrary ValType where
   arbitrary =

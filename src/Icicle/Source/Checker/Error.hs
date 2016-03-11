@@ -159,7 +159,7 @@ instance (IsString n, Pretty a, Pretty n, Hashable n, Eq n) => Pretty (ErrorSugg
             <> indent 2 (vcat $ fmap pretty_ty bs')
 
      AvailableBindings n' bs
-      -> let inb = grabInbuilt <$> listOfAllFuns
+      -> let inb = grabInbuilt <$> listOfBuiltinFuns
              bs' = take 5
                  $ flip sortBy (fmap (first nameBase) bs <> inb)
                  $ on compare

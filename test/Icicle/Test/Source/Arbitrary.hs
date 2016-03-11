@@ -62,7 +62,9 @@ instance (Arbitrary n, Hashable n) => Arbitrary (Exp () n) where
         , Case   () <$> arbitrary
                     <*> arbitrary `suchThat` (not . null)
         , preop
-        , inop ]
+        , inop
+        , builtins
+        ]
 
   where
    preop
@@ -92,14 +94,21 @@ instance (Arbitrary n, Hashable n) => Arbitrary (Exp () n) where
         , Op    (TimeBinary DaysAfter)
         , Op    (TimeBinary MonthsBefore)
         , Op    (TimeBinary MonthsAfter)
-        , Fun   (DaysBetween)
-        , Fun   (DaysEpoch)
-        , Fun   (Seq) ]
+        , Fun   (BuiltinTime DaysBetween)
+        , Fun   (BuiltinTime DaysEpoch)
+        , Fun   (BuiltinData Seq) ]
 
    operator_pre
     = oneof_vals
         [ Op (ArithUnary Negate)
         , Op (LogicalUnary Not)]
+
+   builtins
+    =   App ()
+    <$> (Prim () <$> oneof_vals
+          [ Fun (BuiltinMap MapKeys)
+          , Fun (BuiltinMap MapValues) ])
+    <*> arbitrary
 
 instance Arbitrary Prim where
  arbitrary

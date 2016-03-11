@@ -75,7 +75,7 @@ infixl 6 -~
 infixl 7 *~
 
 (/~) :: X.Exp () n -> X.Exp () n -> X.Exp () n
-(/~) = prim2 (PrimMinimal $ Min.PrimDouble Min.PrimDoubleDiv)
+(/~) = prim2 (PrimMinimal $ Min.PrimBuiltinFun $ Min.PrimBuiltinMath Min.PrimBuiltinDiv)
 infixl 7 /~
 
 (>~) :: X.Exp () n -> X.Exp () n -> X.Exp () n
@@ -112,23 +112,23 @@ infix 2 ||~
 
 primDoubleOfInt :: X.Exp () n -> X.Exp () n
 primDoubleOfInt x
- = xPrim (PrimMinimal $ Min.PrimToDouble Min.PrimToDoubleFromInt) @~ x
+ = xPrim (PrimMinimal $ Min.PrimBuiltinFun $ Min.PrimBuiltinMath Min.PrimBuiltinToDoubleFromInt) @~ x
 
 primFloor :: X.Exp () n -> X.Exp () n
 primFloor x
- = xPrim (PrimMinimal $ Min.PrimToInt Min.PrimToIntFloor) @~ x
+ = xPrim (PrimMinimal $ Min.PrimBuiltinFun $ Min.PrimBuiltinMath Min.PrimBuiltinFloor) @~ x
 
 primCeiling :: X.Exp () n -> X.Exp () n
 primCeiling x
- = xPrim (PrimMinimal $ Min.PrimToInt Min.PrimToIntCeiling) @~ x
+ = xPrim (PrimMinimal $ Min.PrimBuiltinFun $ Min.PrimBuiltinMath Min.PrimBuiltinCeiling) @~ x
 
 primRound :: X.Exp () n -> X.Exp () n
 primRound x
- = xPrim (PrimMinimal $ Min.PrimToInt Min.PrimToIntRound) @~ x
+ = xPrim (PrimMinimal $ Min.PrimBuiltinFun $ Min.PrimBuiltinMath Min.PrimBuiltinRound) @~ x
 
 primTruncate :: X.Exp () n -> X.Exp () n
 primTruncate x
- = xPrim (PrimMinimal $ Min.PrimToInt Min.PrimToIntTruncate) @~ x
+ = xPrim (PrimMinimal $ Min.PrimBuiltinFun $ Min.PrimBuiltinMath Min.PrimBuiltinTruncate) @~ x
 
 lam :: ValType -> (X.Exp () Text -> X.Exp () Text) -> X.Exp () Text
 lam t f

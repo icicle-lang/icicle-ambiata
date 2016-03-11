@@ -154,6 +154,12 @@ constructor a_fresh statements
    | (PrimMap (PrimMapUnpackValues tk tv), [n]) <- prima
    = Just $ primRepack env (MapT tk tv) [ArrayT tk] (ArrayT tv) n
 
+   | (PrimMinimal (Min.PrimBuiltinFun (Min.PrimBuiltinMap (Min.PrimBuiltinKeys tk tv))), [n]) <- prima
+   = Just $ primRepack env (MapT tk tv) [] (ArrayT tk) n
+
+   | (PrimMinimal (Min.PrimBuiltinFun (Min.PrimBuiltinMap (Min.PrimBuiltinVals tk tv))), [n]) <- prima
+   = Just $ primRepack env (MapT tk tv) [ArrayT tk] (ArrayT tv) n
+
    | (PrimProject (PrimProjectOptionIsSome tx), [n]) <- prima
    = Just $ primRepack env (OptionT tx) [] BoolT n
 

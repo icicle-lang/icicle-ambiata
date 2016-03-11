@@ -8,6 +8,7 @@
 -- and everything simpler.
 --
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Common.Type (
       ValType (..)
     , FunType (..)
@@ -32,7 +33,6 @@ module Icicle.Common.Type (
     , requireSame
 
     , valueMatchesType
-
     ) where
 
 import              Icicle.Internal.Pretty

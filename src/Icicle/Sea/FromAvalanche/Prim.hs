@@ -57,19 +57,12 @@ seaOfXPrim p
       -> PDFun
        ( prefixOfArithType t <> seaOfPrimArithBinary op ) Nothing
 
-     PrimMinimal (M.PrimDouble op)
-      -> PDFun
-       ( prefixOfValType DoubleT <> seaOfPrimDouble op ) Nothing
+     PrimMinimal (M.PrimBuiltinFun (M.PrimBuiltinMath fun))
+      -> PDFun (seaOfPrimBuiltinMath fun) Nothing
 
      PrimMinimal (M.PrimTime op)
       -> PDFun
        ( prefixOfValType TimeT <> seaOfPrimTime op ) Nothing
-
-     PrimMinimal (M.PrimToDouble op)
-      -> PDFun (seaOfPrimToDouble op) Nothing
-
-     PrimMinimal (M.PrimToInt op)
-      -> PDFun (seaOfPrimToInt op) Nothing
 
      PrimMinimal (M.PrimRelation op t)
       -> PDFun
@@ -111,14 +104,6 @@ seaOfPrimArithBinary p
      M.PrimArithMul   -> "mul"
      M.PrimArithPow   -> "pow"
 
-seaOfPrimDouble :: M.PrimDouble -> Doc
-seaOfPrimDouble p
- = case p of
-     M.PrimDoubleDiv  -> "div"
-     M.PrimDoubleLog  -> "log"
-     M.PrimDoubleExp  -> "exp"
-     M.PrimDoubleSqrt -> "sqrt"
-
 seaOfPrimTime :: M.PrimTime -> Doc
 seaOfPrimTime p
  = case p of
@@ -127,18 +112,17 @@ seaOfPrimTime p
      M.PrimTimeMinusDays      -> "minus_days"
      M.PrimTimeMinusMonths    -> "minus_months"
 
-seaOfPrimToDouble :: M.PrimToDouble -> Doc
-seaOfPrimToDouble p
- = case p of
-     M.PrimToDoubleFromInt -> "iint_extend"
-
-seaOfPrimToInt :: M.PrimToInt -> Doc
-seaOfPrimToInt p
- = case p of
-     M.PrimToIntFloor    -> "idouble_floor"
-     M.PrimToIntCeiling  -> "idouble_ceil"
-     M.PrimToIntRound    -> "idouble_round"
-     M.PrimToIntTruncate -> "idouble_trunc"
+seaOfPrimBuiltinMath :: M.PrimBuiltinMath -> Doc
+seaOfPrimBuiltinMath p = case p of
+  M.PrimBuiltinDiv             -> idouble <> "div"
+  M.PrimBuiltinLog             -> idouble <> "log"
+  M.PrimBuiltinExp             -> idouble <> "exp"
+  M.PrimBuiltinSqrt            -> idouble <> "sqrt"
+  M.PrimBuiltinFloor           -> "idouble_floor"
+  M.PrimBuiltinCeiling         -> "idouble_ceil"
+  M.PrimBuiltinRound           -> "idouble_round"
+  M.PrimBuiltinTruncate        -> "idouble_trunc"
+  M.PrimBuiltinToDoubleFromInt -> "iint_extend"
 
 seaOfPrimRelation :: M.PrimRelation -> Doc
 seaOfPrimRelation p
@@ -199,5 +183,10 @@ seaOfPrimBuf p
      PrimBufRead i t
       -> PDAlloc (prefixOfValType (BufT i t) <> "read")
                  (Just [ArgRef])
+
+--------------------------------------------------------------------------------
+
+idouble :: Doc
+idouble = prefixOfValType DoubleT
 
 

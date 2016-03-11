@@ -130,26 +130,14 @@ exp
 
 exp1 :: Parser (Q.Exp T.SourcePos Var)
 exp1
- =   (flip Q.Var     <$> var    <*> getPosition)
- <|> (flip Q.Prim    <$> prims  <*> getPosition)
- <|> (flip simpNested<$> parens <*> getPosition)
+ =   (flip Q.Var     <$> var        <*> getPosition)
+ <|> (flip Q.Prim    <$> primitives <*> getPosition)
+ <|> (flip simpNested<$> parens     <*> getPosition)
  <|> parseCase
  <?> "expression"
  where
   var
    = try pProjections <|> pVariable
-
-  -- TODO: this should be a lookup rather than asum
-  prims
-   =  asum (fmap (\(k,q) -> pKeyword k *> return q) primitives)
-   <|> try ((Q.Fun Q.DaysBetween) <$  pKeyword T.Days <* pKeyword T.Between)
-   <|> try ((Q.Fun Q.DaysEpoch) <$  pKeyword T.Days <* notFollowedBy (pKeyword T.Before <|> pKeyword T.After))
-   <|> ((Q.Lit . Q.LitInt)    <$> pLitInt)
-   <|> ((Q.Lit . Q.LitDouble) <$> pLitDouble)
-   <|> ((Q.Lit . Q.LitString) <$> pLitString)
-   <|> ((Q.Lit . Q.LitTime)   <$> pLitTime)
-   <|> (Q.PrimCon             <$> constructor)
-   <?> "primitive"
 
   simpNested _ (Q.Query [] x)
    = x
@@ -157,7 +145,7 @@ exp1
    = Q.Nested p q
 
   parens
-   =   pParenL *> query <* pParenR                          <?> "sub-expression or nested query"
+   = pParenL *> query <* pParenR  <?> "sub-expression or nested query"
 
   parseCase
    = do pEq $ T.TKeyword T.Case
@@ -174,27 +162,51 @@ exp1
         xx  <- exp
         return (pat, xx)
 
+--------------------------------------------------------------------------------
 
 windowUnit :: Parser B.WindowUnit
 windowUnit
- = do   i <- pLitInt                                        <?> "window amount"
-        unit T.Days (B.Days i) <|> unit T.Months (B.Months i) <|> unit T.Weeks (B.Weeks i)
+ = do i <- pLitInt <?> "window amount"
+      unit T.Days (B.Days i) <|> unit T.Months (B.Months i) <|> unit T.Weeks (B.Weeks i)
  where
   unit kw q
    = pKeyword kw *> return q
 
-
-primitives :: [(T.Keyword, Q.Prim)]
+primitives :: Parser Q.Prim
 primitives
- = [(T.Log,      Q.Fun Q.Log)
-   ,(T.Exp,      Q.Fun Q.Exp)
-   ,(T.Sqrt,     Q.Fun Q.Sqrt)
-   ,(T.Abs,      Q.Fun Q.Abs)
-   ,(T.Double,   Q.Fun Q.ToDouble)
-   ,(T.Floor,    Q.Fun Q.Floor)
-   ,(T.Ceil,     Q.Fun Q.Ceiling)
-   ,(T.Round,    Q.Fun Q.Truncate)
-   ,(T.Trunc,    Q.Fun Q.Truncate)
-   ,(T.Seq,      Q.Fun Q.Seq)
+ =   builtins
+ <|> ((Q.Lit . Q.LitInt)    <$> pLitInt)
+ <|> ((Q.Lit . Q.LitDouble) <$> pLitDouble)
+ <|> ((Q.Lit . Q.LitString) <$> pLitString)
+ <|> ((Q.Lit . Q.LitTime)   <$> pLitTime)
+ <|> (Q.PrimCon             <$> constructor)
+ <?> "primitive"
+
+builtins :: Parser Q.Prim
+builtins
+ =   asum (fmap (\(k,q) -> pKeyword k *> return q) simpleBuiltins)
+ <|> try  (Q.Fun (Q.BuiltinTime Q.DaysBetween)
+            <$  pKeyword T.Days
+            <* pKeyword T.Between)
+ <|> try  (Q.Fun (Q.BuiltinTime Q.DaysEpoch)
+             <$  pKeyword T.Days
+             <* notFollowedBy (pKeyword T.Before <|> pKeyword T.After))
+
+simpleBuiltins :: [(T.Keyword, Q.Prim)]
+simpleBuiltins
+ = [ (T.Log,      Q.Fun (Q.BuiltinMath Q.Log      ))
+   , (T.Exp,      Q.Fun (Q.BuiltinMath Q.Exp      ))
+   , (T.Sqrt,     Q.Fun (Q.BuiltinMath Q.Sqrt     ))
+   , (T.Abs,      Q.Fun (Q.BuiltinMath Q.Abs      ))
+   , (T.Double,   Q.Fun (Q.BuiltinMath Q.ToDouble ))
+   , (T.Floor,    Q.Fun (Q.BuiltinMath Q.Floor    ))
+   , (T.Ceil,     Q.Fun (Q.BuiltinMath Q.Ceiling  ))
+   , (T.Round,    Q.Fun (Q.BuiltinMath Q.Round    ))
+   , (T.Trunc,    Q.Fun (Q.BuiltinMath Q.Truncate ))
+
+   , (T.Seq,      Q.Fun (Q.BuiltinData Q.Seq      ))
+
+   , (T.Keys,     Q.Fun (Q.BuiltinMap Q.MapKeys   ))
+   , (T.Vals,     Q.Fun (Q.BuiltinMap Q.MapValues ))
    ]
 

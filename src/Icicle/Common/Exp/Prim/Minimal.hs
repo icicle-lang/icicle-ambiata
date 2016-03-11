@@ -4,9 +4,6 @@ module Icicle.Common.Exp.Prim.Minimal (
       Prim   (..)
     , PrimArithUnary(..)
     , PrimArithBinary(..)
-    , PrimDouble(..)
-    , PrimToInt(..)
-    , PrimToDouble(..)
     , PrimToString(..)
     , PrimRelation(..)
     , PrimLogical(..)
@@ -14,11 +11,15 @@ module Icicle.Common.Exp.Prim.Minimal (
     , PrimTime (..)
     , PrimPair(..)
     , PrimStruct(..)
+    , PrimBuiltinFun(..)
+    , PrimBuiltinMath(..)
+    , PrimBuiltinMap(..)
     , typeOfPrim
     ) where
 
 import              Icicle.Internal.Pretty
 import              Icicle.Common.Type
+import              Icicle.Common.Exp.Prim.Builtin
 
 import              P
 
@@ -30,9 +31,6 @@ import qualified    Data.Map as Map
 data Prim
  = PrimArithUnary  PrimArithUnary  ArithType  -- ^ "Polymorphic" (double or int) unary operators
  | PrimArithBinary PrimArithBinary ArithType  -- ^ "Polymorphic" (double or int) binary operators
- | PrimDouble      PrimDouble                 -- ^ Arithmetic operators only defined for doubles
- | PrimToInt       PrimToInt                  -- ^ Conversion to int
- | PrimToDouble    PrimToDouble               -- ^ Conversion to double
  | PrimToString    PrimToString               -- ^ Conversion to string
  | PrimRelation    PrimRelation    ValType    -- ^ "Polymorphic" relation operators
  | PrimLogical     PrimLogical                -- ^ Logical operators
@@ -40,6 +38,7 @@ data Prim
  | PrimPair        PrimPair                   -- ^ Pair projections
  | PrimStruct      PrimStruct                 -- ^ Struct projections
  | PrimTime        PrimTime                   -- ^ Time/date primitives
+ | PrimBuiltinFun  PrimBuiltinFun
  deriving (Eq, Ord, Show)
 
 -- | Unary arithmetic primitives common to all numeric types.
@@ -47,7 +46,7 @@ data Prim
 data PrimArithUnary
  = PrimArithNegate
  | PrimArithAbsolute
- deriving (Eq, Ord, Show)
+ deriving (Eq, Ord, Show, Enum, Bounded)
 
 -- | Binary arithmetic primitives common to all numeric types.
 --   Must be closed under the set of the input.
@@ -56,33 +55,12 @@ data PrimArithBinary
  | PrimArithMinus
  | PrimArithMul
  | PrimArithPow
- deriving (Eq, Ord, Show)
-
--- | Primitives that converts numeric types to ints.
-data PrimToInt
- = PrimToIntCeiling
- | PrimToIntFloor
- | PrimToIntTruncate
- | PrimToIntRound
- deriving (Eq, Ord, Show)
-
-data PrimToDouble
- = PrimToDoubleFromInt
- deriving (Eq, Ord, Show)
+ deriving (Eq, Ord, Show, Enum, Bounded)
 
 data PrimToString
  = PrimToStringFromInt
  | PrimToStringFromDouble
- deriving (Eq, Ord, Show)
-
--- | Specific Double things.
--- Division doesn't really apply to Ints.
-data PrimDouble
- = PrimDoubleDiv
- | PrimDoubleLog
- | PrimDoubleExp
- | PrimDoubleSqrt
- deriving (Eq, Ord, Show)
+ deriving (Eq, Ord, Show, Enum, Bounded)
 
 -- | Predicates like >=
 data PrimRelation
@@ -92,14 +70,14 @@ data PrimRelation
  | PrimRelationLe
  | PrimRelationEq
  | PrimRelationNe
- deriving (Eq, Ord, Show)
+ deriving (Eq, Ord, Show, Enum, Bounded)
 
 -- | Logical relations like &&, not
 data PrimLogical
  = PrimLogicalNot
  | PrimLogicalAnd
  | PrimLogicalOr
- deriving (Eq, Ord, Show)
+ deriving (Eq, Ord, Show, Enum, Bounded)
 
 -- | Constructors
 data PrimConst
@@ -115,7 +93,7 @@ data PrimTime
  | PrimTimeDaysEpoch
  | PrimTimeMinusDays
  | PrimTimeMinusMonths
- deriving (Eq, Ord, Show)
+ deriving (Eq, Ord, Show, Enum, Bounded)
 
 -- | Pair primitives
 data PrimPair
@@ -127,6 +105,8 @@ data PrimStruct
  = PrimStructGet StructField ValType StructType
  deriving (Eq, Ord, Show)
 
+--------------------------------------------------------------------------------
+
 -- | A primitive always has a well-defined type
 typeOfPrim :: Prim -> Type
 typeOfPrim p
@@ -137,26 +117,30 @@ typeOfPrim p
     PrimArithBinary _ t
      -> FunT [funOfVal (valTypeOfArithType t), funOfVal (valTypeOfArithType t)] (valTypeOfArithType t)
 
-    PrimDouble PrimDoubleDiv
+    -- Built-in functions
+    PrimBuiltinFun    (PrimBuiltinMath PrimBuiltinFloor)
+     -> FunT [funOfVal DoubleT] IntT
+    PrimBuiltinFun    (PrimBuiltinMath PrimBuiltinCeiling)
+     -> FunT [funOfVal DoubleT] IntT
+    PrimBuiltinFun    (PrimBuiltinMath PrimBuiltinTruncate)
+     -> FunT [funOfVal DoubleT] IntT
+    PrimBuiltinFun    (PrimBuiltinMath PrimBuiltinRound)
+     -> FunT [funOfVal DoubleT] IntT
+    PrimBuiltinFun    (PrimBuiltinMath PrimBuiltinDiv)
      -> FunT [funOfVal DoubleT, funOfVal DoubleT] DoubleT
-    PrimDouble PrimDoubleLog
+    PrimBuiltinFun    (PrimBuiltinMath PrimBuiltinLog)
      -> FunT [funOfVal DoubleT] DoubleT
-    PrimDouble PrimDoubleExp
+    PrimBuiltinFun    (PrimBuiltinMath PrimBuiltinExp)
      -> FunT [funOfVal DoubleT] DoubleT
-    PrimDouble PrimDoubleSqrt
+    PrimBuiltinFun    (PrimBuiltinMath PrimBuiltinSqrt)
      -> FunT [funOfVal DoubleT] DoubleT
-
-    PrimToInt    PrimToIntFloor
-     -> FunT [funOfVal DoubleT] IntT
-    PrimToInt    PrimToIntCeiling
-     -> FunT [funOfVal DoubleT] IntT
-    PrimToInt    PrimToIntTruncate
-     -> FunT [funOfVal DoubleT] IntT
-    PrimToInt    PrimToIntRound
-     -> FunT [funOfVal DoubleT] IntT
-
-    PrimToDouble PrimToDoubleFromInt
+    PrimBuiltinFun    (PrimBuiltinMath PrimBuiltinToDoubleFromInt)
      -> FunT [funOfVal IntT] DoubleT
+
+    PrimBuiltinFun    (PrimBuiltinMap (PrimBuiltinKeys k v))
+     -> FunT [funOfVal (MapT k v)] (ArrayT k)
+    PrimBuiltinFun    (PrimBuiltinMap (PrimBuiltinVals k v))
+     -> FunT [funOfVal (MapT k v)] (ArrayT v)
 
     PrimToString PrimToStringFromInt
      -> FunT [funOfVal IntT] StringT
@@ -205,78 +189,44 @@ typeOfPrim p
 -- Pretty -------------
 
 instance Pretty Prim where
- pretty (PrimArithUnary p t)
-  = annotate (AnnType $ valTypeOfArithType t) p'
-  where
-   p'
-    = case p of
-       PrimArithNegate   -> "negate#"
-       PrimArithAbsolute -> "abs#"
+ pretty (PrimArithUnary PrimArithNegate   t) = annotateArithType t "negate#"
+ pretty (PrimArithUnary PrimArithAbsolute t) = annotateArithType t "abs#"
 
- pretty (PrimArithBinary p t)
-  = annotate (AnnType $ valTypeOfArithType t) p'
-  where
-   p'
-    = case p of
-       PrimArithPlus    -> "add#"
-       PrimArithMinus   -> "sub#"
-       PrimArithMul     -> "mul#"
-       PrimArithPow     -> "pow#"
+ pretty (PrimArithBinary PrimArithPlus  t) = annotateArithType t "add#"
+ pretty (PrimArithBinary PrimArithMinus t) = annotateArithType t "sub#"
+ pretty (PrimArithBinary PrimArithMul   t) = annotateArithType t "mul#"
+ pretty (PrimArithBinary PrimArithPow   t) = annotateArithType t "pow#"
 
- pretty (PrimDouble p)
-  = case p of
-     PrimDoubleDiv  -> "div#"
-     PrimDoubleLog  -> "log#"
-     PrimDoubleExp  -> "exp#"
-     PrimDoubleSqrt -> "sqrt#"
+ pretty (PrimRelation PrimRelationGt t) = annotateTypeArgs [t] "gt#"
+ pretty (PrimRelation PrimRelationGe t) = annotateTypeArgs [t] "ge#"
+ pretty (PrimRelation PrimRelationLt t) = annotateTypeArgs [t] "lt#"
+ pretty (PrimRelation PrimRelationLe t) = annotateTypeArgs [t] "le#"
+ pretty (PrimRelation PrimRelationEq t) = annotateTypeArgs [t] "eq#"
+ pretty (PrimRelation PrimRelationNe t) = annotateTypeArgs [t] "ne#"
 
- pretty (PrimToInt p)
-  = case p of
-     PrimToIntFloor    -> "floor#"
-     PrimToIntCeiling  -> "ceil#"
-     PrimToIntRound    -> "round#"
-     PrimToIntTruncate -> "trunc#"
-
- pretty (PrimToDouble p)
-  = case p of
-     PrimToDoubleFromInt -> "doubleOfInt#"
-
- pretty (PrimToString p)
-  = case p of
-     PrimToStringFromInt    -> "stringOfInt#"
-     PrimToStringFromDouble -> "stringOfDouble#"
-
-
- pretty (PrimRelation rel t)
-  = annotate (AnnType t) prel
-  where
-   prel
-    = case rel of
-       PrimRelationGt -> "gt#"
-       PrimRelationGe -> "ge#"
-       PrimRelationLt -> "lt#"
-       PrimRelationLe -> "le#"
-       PrimRelationEq -> "eq#"
-       PrimRelationNe -> "ne#"
+ pretty (PrimToString PrimToStringFromInt)    = "stringOfInt#"
+ pretty (PrimToString PrimToStringFromDouble) = "stringOfDouble#"
 
  pretty (PrimLogical  PrimLogicalNot)   = "not#"
  pretty (PrimLogical  PrimLogicalAnd)   = "and#"
  pretty (PrimLogical  PrimLogicalOr)    = "or#"
 
- pretty (PrimConst (PrimConstPair a b)) = annotate (AnnType $ (pretty a) <+> (pretty b)) "pair#"
- pretty (PrimConst (PrimConstSome t))   = annotate (AnnType t)  "some#"
- pretty (PrimConst (PrimConstLeft  a b))
-  = annotate (AnnType $ (pretty a) <+> (pretty b)) "left#"
- pretty (PrimConst (PrimConstRight a b))
-  = annotate (AnnType $ (pretty a) <+> (pretty b)) "right#"
+ pretty (PrimConst (PrimConstPair a b))  = annotateTypeArgs [a,b] "pair#"
+ pretty (PrimConst (PrimConstSome t))    = annotate (AnnType t)   "some#"
+ pretty (PrimConst (PrimConstLeft  a b)) = annotateTypeArgs [a,b] "left#"
+ pretty (PrimConst (PrimConstRight a b)) = annotateTypeArgs [a,b] "right#"
 
  pretty (PrimTime PrimTimeDaysDifference) = "Time_daysDifference#"
  pretty (PrimTime PrimTimeDaysEpoch)      = "Time_daysEpoch#"
  pretty (PrimTime PrimTimeMinusDays)      = "Time_minusDays#"
  pretty (PrimTime PrimTimeMinusMonths)    = "Time_minusMonths#"
 
- pretty (PrimPair (PrimPairFst a b)) = annotate (AnnType $ (pretty a) <.> (pretty b)) "fst#"
- pretty (PrimPair (PrimPairSnd a b)) = annotate (AnnType $ (pretty a) <.> (pretty b)) "snd#"
+ pretty (PrimPair (PrimPairFst a b)) = annotateTypeArgs [a,b] "fst#"
+ pretty (PrimPair (PrimPairSnd a b)) = annotateTypeArgs [a,b] "snd#"
 
- pretty (PrimStruct (PrimStructGet f t fs)) = annotate (AnnType $ (pretty f) <+> (pretty t) <+> (pretty fs)) "get#"
+ pretty (PrimStruct (PrimStructGet f t fs)) = annotateTypeArgs [pretty f, pretty t, pretty fs] "get#"
 
+ pretty (PrimBuiltinFun p) = pretty p
+
+annotateArithType :: ArithType -> Doc -> Doc
+annotateArithType t = annotate (AnnType (valTypeOfArithType t))

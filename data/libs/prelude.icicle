@@ -1,5 +1,29 @@
+############
+### Base ###
+############
 
-# Basic statistics
+# Time statements
+newest v = latest 1 ~> fold1 s = v : v ~> s.
+oldest v = fold1 s = v : s ~> s.
+
+# Boolean statements
+not a = case a | True -> False | False -> True end.
+
+isSome a = case a | Some a' -> True  | None -> False end.
+isNone a = case a | Some a' -> False | None -> True  end.
+
+getOrElse default a  = case a | Some a' -> a' | None -> default end.
+
+fst x = case x | (a,b) -> a end.
+snd x = case x | (a,b) -> b end.
+
+group_keys k     = keys (group k ~> 0).
+group_values k v = vals (group k ~> v).
+
+##################
+### Statistics ###
+##################
+
 sum v = fold s = 0 : v + s ~> s.
 count v = fold c = 0 : seq v (c + 1) ~> c.
 
@@ -56,13 +80,6 @@ correlation a b = covariance a b / (sd a * sd b).
 # Gradient with units y/x.
 gradient a b = covariance a b / variance b.
 
-# Time statements
-newest v = latest 1 ~> fold1 s = v : v ~> s.
-oldest v = fold1 s = v : s ~> s.
-
-# Boolean statements
-not a = case a | True -> False | False -> True end.
-
 # Version of num flips which should fail upon finding a tombstone value.
 numflips v = fold1 s = (v,0) : case s | (s0,i) -> (case (s0 == v) | True -> (v,i) | False -> (v,i+1) end) end ~> case s | (s0,i) -> i end.
 
@@ -79,8 +96,3 @@ numflips' v t
                                end )
           end
  ~> case s | (s0,i) -> i end.
-
-isSome a = case a | Some a' -> True  | None -> False end.
-isNone a = case a | Some a' -> False | None -> True  end.
-
-getOrElse default a  = case a | Some a' -> a' | None -> default end.

@@ -21,6 +21,9 @@ module Icicle.Internal.Pretty (
     , Pretty (..)
     , Doc
     , Annotation (..)
+    , annSepByComma
+    , annTypeArgs
+    , annotateTypeArgs
     ) where
 
 -- The one we want to export without <> or <$>
@@ -40,6 +43,21 @@ data Annotation
  -- Type annotations.
  -- Why aren't these specific? This module is first to import, and all types export Pretty.
  | forall a. Pretty a => AnnType a
+
+annSepByComma :: [Doc] -> Annotation
+annSepByComma = AnnType . go . fmap pretty
+  where
+    go []     = ""
+    go [x]    = x
+    go (x:xs) = x <.> go xs
+
+-- | Annotate with the type of arguments.
+--
+annTypeArgs :: Pretty a => [a] -> Annotation
+annTypeArgs = annSepByComma . fmap pretty
+
+annotateTypeArgs :: Pretty a => [a] -> Doc -> Doc
+annotateTypeArgs ts = annotate (annTypeArgs ts)
 
 instance Monoid Doc where
  mempty  =  PJOIN.empty
