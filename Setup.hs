@@ -8,7 +8,7 @@ import           Data.Version (showVersion)
 import           Distribution.PackageDescription
 import           Distribution.Verbosity
 import           Distribution.Simple
-import           Distribution.Simple.Setup (BuildFlags(..), ReplFlags(..), TestFlags(..), fromFlag)
+import           Distribution.Simple.Setup (BuildFlags(..), ReplFlags(..), TestFlags(..), fromFlag, defaultBuildFlags)
 import           Distribution.Simple.LocalBuildInfo
 import           Distribution.Simple.BuildPaths (autogenModulesDir)
 import           Distribution.Simple.Utils (createDirectoryIfMissingVerbose, rewriteFile, rawSystemStdout)
@@ -31,6 +31,7 @@ main =
        (replHook hooks) pd lbi uh flags args
    , testHook = \args pd lbi uh flags -> do
        genBuildInfo (fromFlag $ testVerbosity flags) pd
+       (buildHook hooks) pd lbi uh defaultBuildFlags { buildArgs = ["icicle-repl"] }
        (testHook hooks) args pd lbi uh flags
    }
 
