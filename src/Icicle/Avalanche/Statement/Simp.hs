@@ -526,7 +526,7 @@ stmtFreeX_ frees statements
 -- Note that the above example is only one step: nesting would then be
 -- recursively performed etc.
 nestBlocks :: (Hashable n, Eq n) => a -> Statement a n p -> Fresh n (Statement a n p)
-nestBlocks a_fresh statements
+nestBlocks _ statements
  = transformUDStmt trans () statements
  where
   trans _ s
@@ -542,15 +542,13 @@ nestBlocks a_fresh statements
    = return ((), Block $ reverse pres)
 
   goBlock (Let n x inner : baloney : ls) pres
-   = do (n',inner') <- maybeRename n baloney inner
-        goBlock (Let n' x (inner' <> baloney) : ls) pres
+   = goBlock (Let n x (inner <> baloney) : ls) pres
 
   goBlock (InitAccumulator acc inner : baloney : ls) pres
-   = do goBlock (InitAccumulator acc (inner <> baloney) : ls) pres
+   = goBlock (InitAccumulator acc (inner <> baloney) : ls) pres
 
   goBlock (Read nx nacc vt inner : baloney : ls) pres
-   = do (nx',inner') <- maybeRename nx baloney inner
-        goBlock (Read nx' nacc vt (inner' <> baloney) : ls) pres
+   = goBlock (Read nx nacc vt (inner <> baloney) : ls) pres
 
   goBlock (skip : ls) pres
    = goBlock ls (skip : pres)
@@ -561,15 +559,4 @@ nestBlocks a_fresh statements
    = bs
   catBlock b
    = [b]
-
-  -- Check if we need to rename the let binding - and do it
-  maybeRename n check inner
-   | n `Set.member` stmtFreeX check
-   = do n'      <- fresh
-        inner'  <- substXinS a_fresh n (XVar a_fresh n') inner
-        return (n', inner')
-
-   | otherwise
-   =    return (n, inner)
-
 
