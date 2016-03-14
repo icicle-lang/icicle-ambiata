@@ -7,7 +7,6 @@ ok, avalanche is now on
 > > -- A rather complicated feature to convert to Avalanche
 > - Avalanche:
 conv$3 = TIME
-let anf$5 = (Left ExceptNotAnError, 1858-11-17)@{((Sum Error Int), Time)};
 init acc$conv$26@{Buf 3 (Sum Error Int)} = Buf []@{Buf 3 (Sum Error Int)};
 init acc$c$conv$11@{(Sum Error Int)} = Left ExceptNotAnError@{(Sum Error Int)};
 init acc$conv$10@{((Sum Error Int), ((Sum Error Int), Time))} = (Left ExceptNotAnError, (Left ExceptNotAnError, 1858-11-17))@{((Sum Error Int), ((Sum Error Int), Time))};
@@ -68,7 +67,6 @@ output@{(Sum Error (Int, Array (Sum Error Int)))} repl (conv$31@{(Sum Error (Int
 > > -- Something involves the abstract buffer type
 > - Avalanche:
 conv$3 = TIME
-let anf$2 = (Left ExceptNotAnError, 1858-11-17)@{((Sum Error Int), Time)};
 init acc$conv$4@{Map Time (Buf 2 ((Sum Error Int), Time))} = Map []@{Map Time (Buf 2 ((Sum Error Int), Time))};
 
 load_resumable@{Map Time (Buf 2 ((Sum Error Int), Time))} acc$conv$4;

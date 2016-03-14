@@ -41,6 +41,7 @@ simpAvalanche a_fresh p
          >>= nestBlocks   a_fresh
          >>= once . thresher     a_fresh
          >>= transformX return (return . simpEvalX CorePrim.evalPrim CorePrim.typeOfPrim)
+         >>= return .  dead
 
       return $ p { statements = s' }
 
