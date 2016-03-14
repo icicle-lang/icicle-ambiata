@@ -28,7 +28,6 @@ import qualified Icicle.Avalanche.Statement.Flatten as A
 import           Icicle.Common.Base
 import           Icicle.Common.Type
 import           Icicle.Common.Annot
-import qualified Icicle.Common.Fresh as Fresh
 
 import qualified Icicle.Sea.FromAvalanche.Analysis as S
 import qualified Icicle.Sea.Eval as S
@@ -83,13 +82,13 @@ tryGenWellTypedWith allowDupTime (InputType ty) = do
       checked <- fromEither (C.checkProgram core)
       _       <- traverse (supportedOutput . functionReturns . snd) checked
 
-      let avalanche = A.programFromCore namer core
+      let avalanche = testFresh "fromCore" $ A.programFromCore namer core
 
-      (_, flatStmts) <- fromEither (Fresh.runFreshT (A.flatten () (A.statements avalanche)) anfCounter)
+      flatStmts <- fromEither (testFreshT "anf" $ A.flatten () (A.statements avalanche))
 
       flattened <- fromEither (A.checkProgram A.flatFragment (replaceStmts avalanche flatStmts))
 
-      let (_, unchecked) = Fresh.runFresh (A.simpFlattened dummyAnn flattened) simpCounter
+      let unchecked = testFresh "simp" $ A.simpFlattened dummyAnn flattened
 
       simplified <- fromEither (A.checkProgram A.flatFragment (A.eraseAnnotP unchecked))
 
@@ -112,8 +111,6 @@ tryGenWellTypedWith allowDupTime (InputType ty) = do
 
       namer       = A.namerText (flip Var 0)
       dummyAnn    = Annot (FunT [] UnitT) ()
-      anfCounter  = Fresh.counterNameState (NameBase . Var "anf")  0
-      simpCounter = Fresh.counterNameState (NameBase . Var "simp") 0
 
       supportedOutput t | isSupportedOutput t = Just t
       supportedOutput _                       = Nothing

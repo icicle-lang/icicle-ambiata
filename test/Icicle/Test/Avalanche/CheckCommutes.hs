@@ -29,7 +29,7 @@ prop_check_commutes t =
  forAll (programForStreamType t)
  $ \p ->
     isRight     (checkProgram p) ==>
-     let conv = Convert.programFromCore namer p in
+     let conv = testFresh "fromCore" $ Convert.programFromCore namer p in
      case Check.checkProgram coreFragment conv of
       Right _
        -> property True

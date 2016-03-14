@@ -11,6 +11,7 @@ module Icicle.Avalanche.FromCore (
 import              Icicle.Common.Base
 import              Icicle.Common.Type
 import qualified    Icicle.Common.Exp as X
+import              Icicle.Common.Fresh
 
 import              Icicle.Core.Exp.Prim
 
@@ -23,8 +24,8 @@ import qualified    Icicle.Core.Stream          as CS
 import              P
 import              Data.String
 import qualified    Data.Map as Map
+import qualified    Data.Set as Set
 
-import              Data.Functor.Identity
 import              Data.Hashable (Hashable)
 
 
@@ -49,25 +50,29 @@ namerText f
 programFromCore :: (Hashable n, Eq n)
                 => Namer n
                 -> C.Program () n
-                -> A.Program () n Prim
+                -> Fresh n (A.Program () n Prim)
 programFromCore namer p
- = A.Program
- { A.input
-    = C.inputType p
- , A.bindtime
-    = C.snaptimeName p
- , A.statements
-    = lets (C.precomps p)
-    -- accums (filter (readFromHistory.snd) $ C.reduces p)
-    -- ( factLoopHistory    <>
-    ( createAccums
-    ( readaccum (C.factValName p, inputType') (initAccums (C.streams p)) <>
-      mconcat (fmap loadResumables accNames) <>
-      factLoopNew                            <>
-      mconcat (fmap saveResumables accNames) <>
-      readaccums
-    ( lets (C.postcomps p) outputs) ))
- }
+ = do   (accNames, factStmts) <- makeStatements p namer (C.streams p)
+
+        let inputType'  = PairT (C.inputType p) TimeT
+        let factBinds   = FactBinds (C.factTimeName p) (C.factIdName p) [(C.factValName p, inputType')]
+        let factLoopNew = ForeachFacts factBinds inputType' FactLoopNew
+                        $ Block factStmts
+        let inner       = mconcat (fmap loadResumables accNames) <>
+                          factLoopNew                            <>
+                          mconcat (fmap saveResumables accNames) <>
+                          readaccums accNames (lets (C.postcomps p) outputs)
+                -- accums (filter (readFromHistory.snd) $ C.reduces p)
+                -- ( factLoopHistory    <>
+
+        accs <- createAccums [] (C.streams p) inner
+        let stmts       = lets (C.precomps p) accs
+
+        return (A.Program
+                { A.input       = C.inputType p
+                , A.bindtime    = C.snaptimeName p
+                , A.statements  = stmts })
+
  where
   -- TODO: currently ignoring resumables and KeepFactInHistory
   -- resumables = filter (not.readFromHistory.snd) $ C.reduces p
@@ -75,40 +80,19 @@ programFromCore namer p
   lets stmts inner
    = foldr (\(n,x) a -> Let n x a) inner stmts
 
-  -- Fold accumulator
-  initAccum (CS.SFold n ty z _) inner
-   = let write | z /= X.XValue () ty (defaultOfType ty)
-               = Write (namerAccPrefix namer n) z
-               | otherwise
-               = mempty
+  createAccums _ [] inner
+   = return inner
+  createAccums subst (CS.SFold n ty z _ : ss) inner
+   = do  z' <- doSubst subst z
+         let subst' = (n,z') : subst
+         rest <- createAccums subst' ss inner
+         return $ InitAccumulator ( A.Accumulator (namerAccPrefix namer n) ty z' ) rest
+  createAccums subst (CS.SFilter _ ss : ss') inner
+   = createAccums subst (ss <> ss') inner
 
-         sub   = runIdentity $ X.transformX return (return . X.renameExp ren) inner
-         ren n'= if n == n' then namerElemPrefix namer n else n'
+  doSubst subs z
+   = foldM (\z' (n,x) -> X.subst () n x z') z subs
 
-     in write <> Read (namerElemPrefix namer n) (namerAccPrefix namer n) ty sub
-  initAccum (CS.SFilter _ ss) inner
-   = foldr initAccum inner ss
-  initAccums ss
-   = foldr initAccum mempty ss
-
-  createAccums inner
-   = foldr createAccumMkInit inner accNames
-  createAccumMkInit (n,ty)
-   = InitAccumulator $ A.Accumulator (namerAccPrefix namer n) ty
-   $ X.XValue () ty (defaultOfType ty)
-
-  -- Nest the streams into a single loop
-  factLoopNew
-   = factLoop FactLoopNew
-
-  factLoop loopType
-   = ForeachFacts (FactBinds (C.factTimeName p) (C.factIdName p) [(C.factValName p, inputType')]) inputType' loopType
-   $ Block factStmts
-
-  inputType' = PairT (C.inputType p) TimeT
-
-  (accNames, factStmts)
-   = makeStatements p namer (C.streams p)
 
   outputExps
    = Map.fromList (C.returns p)
@@ -135,7 +119,7 @@ programFromCore namer p
   readaccum (n, ty)
    = Read n (namerAccPrefix namer n) ty
 
-  readaccums inner
+  readaccums accNames inner
    = foldr readaccum inner accNames
 
 
@@ -146,29 +130,41 @@ makeStatements
         => C.Program () n
         -> Namer n
         -> [CS.Stream () n]
-        -> ([(Name n, ValType)], [Statement () n Prim])
-makeStatements p namer streams
- = let (nms,stms) = go [] streams
-   in  ((C.factValName p, PairT (C.inputType p) TimeT) : nms, Write (namerAccPrefix namer $ C.factValName p) (X.XVar () $ C.factValName p) : stms)
+        -> Fresh n ([(Name n, ValType)], [Statement () n Prim])
+makeStatements _p namer streams
+ = go [] streams
  where
   go nms []
-   = (nms, [])
+   = return (nms, [])
   go nms (s:strs)
-   = let (nms', s') = makeStatement nms s
-         (nms'',ss') = go nms' strs
-     in  (nms'', s' : ss')
+   = do (nms', s') <- makeStatement nms s
+        (nms'',ss') <- go nms' strs
+        return (nms'', s' : ss')
 
   makeStatement nms strm
    = case strm of
       CS.SFold n t _ k
-       -> let nms' = (n,t) : nms
-          in  (nms', mkReads nms' (Write (namerAccPrefix namer n) k))
+       -> do let nms' = (n,t) : nms
+             s <- mkReads nms' (Write (namerAccPrefix namer n)) k
+             return (nms', s)
       CS.SFilter x ss
-       -> let (nms', ss') = go nms ss
-          in  (nms', mkReads nms $ If x (Block ss') mempty)
+       -> do (nms', ss') <- go nms ss
+             -- Substatements are not bound in predicate, so use nms instead of nms'
+             s <- mkReads nms (\x' -> If x' (Block ss') mempty) x
+             return  (nms', s)
 
-  mkReads [] inner
-   = inner
-  mkReads ((n,t):ns) inner
-   = mkReads ns (Read n (namerAccPrefix namer n) t inner)
+  mkReads nms inner k
+   = mkReads' nms inner k (X.freevars k)
+
+  mkReads' [] inner k _
+   = return $ inner k
+
+  mkReads' ((n,t):ns) inner k fvs
+   | Set.member n fvs
+   = do n' <- fresh
+        k' <- X.subst () n (X.XVar () n') k
+        let acc = namerAccPrefix namer n
+        mkReads' ns (\x -> Read n' acc t (inner x)) k' fvs
+   | otherwise
+   = mkReads' ns inner k fvs
 
