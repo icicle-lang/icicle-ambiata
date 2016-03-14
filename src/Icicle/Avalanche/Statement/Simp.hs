@@ -13,6 +13,7 @@ module Icicle.Avalanche.Statement.Simp (
   , thresher
   , nestBlocks
   , dead
+  , stmtFreeX, stmtFreeX'
   ) where
 
 import              Icicle.Avalanche.Statement.Statement
@@ -330,14 +331,12 @@ substXinS a_fresh name payload statements
 
 
 -- | Thresher transform - throw out the chaff.
--- Three things:
 --  * Find let bindings that have already been bound:
 --      keep an environment of previously bound expressions,
 --      at each let binding check if it's already been seen.
---  * Remove let bindings that are not mentioned:
---      check freevariables of free statement.
 --  * Remove some other useless code:
---      statements that do not update accumulators or return a value are silly.
+--      statements that do not have any external effect are silly
+--  * Constant folding for ifs
 --
 thresher :: (Hashable n, Eq n, Eq p) => a -> Statement a n p -> FixT (Fresh n) (Statement a n p)
 thresher a_fresh statements
@@ -358,26 +357,11 @@ thresher a_fresh statements
 
    | otherwise
    = case s of
-      -- Unmentioned let - just return the substatement
       Let n x ss
-       | not $ Set.member n $ stmtFreeX' ss
-       -> return (env, ss)
       -- Duplicate let: change to refer to existing one
       -- I tried to use simple equality for simpFlattened since expressions cannot contain lambdas, but it was slower. WEIRD.
        | ((n',_):_) <- filter (\(_,x') -> x `alphaEquality` x') $ Map.toList env
        -> progress (env, Let n (XVar a_fresh' n') ss)
-
-      -- Read that's never used
-      Read n _ _ ss
-       | not $ Set.member n $ stmtFreeX' ss
-       -> progress (env, ss)
-
-      InitAccumulator (Accumulator n _ x) ss
-       | usage <- accumulatorUsed n ss
-       , not (accRead usage) || not (accWritten usage)
-       -> do    n' <- lift $ fresh
-                let ss' = Let n' x (killAccumulator n (XVar a_fresh' n') ss)
-                progress (env, ss')
 
       If (XValue _ _ (VBool b)) t f
        -> let s' = if b then t else f
@@ -588,34 +572,4 @@ nestBlocks a_fresh statements
    | otherwise
    =    return (n, inner)
 
-
-
-data AccumulatorUsage
- = AccumulatorUsage
- { accRead    :: !Bool
- , accWritten :: !Bool }
-
--- | Check whether statement uses this accumulator
-accumulatorUsed :: (Hashable n, Eq n) => Name n -> Statement a n p -> AccumulatorUsage
-accumulatorUsed acc statements
- = runIdentity
- $ foldStmt down up ors () (AccumulatorUsage False False) statements
- where
-  ors (AccumulatorUsage a b) (AccumulatorUsage c d) = AccumulatorUsage (a || c) (b || d)
-
-  down _ _ = return ()
-
-  up _ r s
-   -- Writing or pushing is an effect,
-   -- unless we're explicitly ignoring this accumulator
-   | Write n _ <- s
-   , n == acc
-   = return (AccumulatorUsage True False)
-
-   | Read _ n _ _ <- s
-   , n == acc
-   = return (ors r (AccumulatorUsage False True))
-
-   | otherwise
-   = return r
 
