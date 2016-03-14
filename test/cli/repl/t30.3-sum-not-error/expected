@@ -109,15 +109,15 @@ void iprogram_0(iprogram_0_t *s)
         flat_0_simp_16                        = 0.0;                                  /* init */
         
         if (perhaps_conv_4_simp_11) {
-            iint_t           simp_31          = idouble_trunc (perhaps_conv_4_simp_13); /* let */
             flat_0_simp_14                    = ifalse;                               /* write */
-            flat_0_simp_15                    = iint_add (simp_31, 1);                /* write */
+            iint_t           simp_35          = idouble_trunc (perhaps_conv_4_simp_13); /* let */
+            flat_0_simp_15                    = iint_add (simp_35, 1);                /* write */
             flat_0_simp_16                    = 0.0;                                  /* write */
         } else {
-            idouble_t        simp_45          = iint_extend (perhaps_conv_4_simp_12); /* let */
             flat_0_simp_14                    = itrue;                                /* write */
             flat_0_simp_15                    = 0;                                    /* write */
-            flat_0_simp_16                    = idouble_add (simp_45, 1.0);           /* write */
+            idouble_t        simp_53          = iint_extend (perhaps_conv_4_simp_12); /* let */
+            flat_0_simp_16                    = idouble_add (simp_53, 1.0);           /* write */
         }
         
         flat_0_simp_17                        = flat_0_simp_14;                       /* read */

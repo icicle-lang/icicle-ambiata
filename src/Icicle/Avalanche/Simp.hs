@@ -65,17 +65,28 @@ simpFlattened a_fresh p
   crunch ss
    -- Start by a-normalising, so it's ready for constructor
    =   lift (anormal ss)
-   -- Remove some dead code
-   >>= return .  dead
    -- Rewrite rules like (fst (a,b) => a
    >>= constructor  a_fresh
+
+   -- Remove some dead code.
+   -- Doing this straight after constructor seems to be ideal, because
+   -- constructor performs some local inlining.
+   -- For example,
+   -- > let x = (u, v)
+   -- > let y = fst x
+   -- becomes
+   -- > let x = (u, v)
+   -- > let y = u
+   -- and now "x" is no longer mentioned, so can be removed.
+   -- Doing this straight away means a smaller program for later passes.
+   >>= return .  dead
    -- Perform let-forwarding on statements, so that constant lets become free
    >>= forwardStmts a_fresh
    -- Try to evaluate any exposed primitives
    >>= transformX return (return . simpEvalX Flat.evalPrim Flat.typeOfPrim)
    -- Pull Let statements out of blocks. This just allows thresher to remove more duplicates
    >>= lift . nestBlocks   a_fresh
-   -- Thresh again. Surprisingly, having both threshers makes simpFlattened twice as fast!
+   -- Thresh to remove duplicate expressions
    >>= thresher     a_fresh
 
   anormal ss

@@ -152,10 +152,10 @@ for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0$simp$79@{Error}, conv$
   read conv$4$simp$18 = acc$conv$4$simp$14 [Array Time];
   read conv$4$simp$19 = acc$conv$4$simp$15 [Array (Buf 2 Error)];
   read conv$4$simp$20 = acc$conv$4$simp$16 [Array (Buf 2 Int)];
-  let simp$407 = Buf_make#@{Buf 2 Error} (()@{Unit});
-  let simp$219 = Buf_push#@{Buf 2 Error} simp$407 conv$0$simp$79;
-  let simp$409 = Buf_make#@{Buf 2 Int} (()@{Unit});
-  let simp$221 = Buf_push#@{Buf 2 Int} simp$409 conv$0$simp$80;
+  let simp$391 = Buf_make#@{Buf 2 Error} (()@{Unit});
+  let simp$219 = Buf_push#@{Buf 2 Error} simp$391 conv$0$simp$79;
+  let simp$393 = Buf_make#@{Buf 2 Int} (()@{Unit});
+  let simp$221 = Buf_push#@{Buf 2 Int} simp$393 conv$0$simp$80;
   init flat$1@{Bool} = False@{Bool};
   init flat$2@{Array Time} = conv$4$simp$18;
   init flat$3$simp$22@{Array (Buf 2 Error)} = conv$4$simp$19;

@@ -149,9 +149,9 @@ for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0$simp$333@{Error}, conv
       init flat$14$simp$151@{Double} = 0.0@{Double};
       if (eq#@{Error} flat$13$simp$148 (ExceptNotAnError@{Error}))
       {
-        let simp$457 = add#@{Double} s$reify$6$conv$12$simp$139 (1.0@{Double});
         write flat$14$simp$150 = ExceptNotAnError@{Error};
-        write flat$14$simp$151 = div# flat$13$simp$149 simp$457;
+        let simp$461 = add#@{Double} s$reify$6$conv$12$simp$139 (1.0@{Double});
+        write flat$14$simp$151 = div# flat$13$simp$149 simp$461;
       }
       else
       {
@@ -589,9 +589,9 @@ if (eq#@{Error} flat$82$simp$315 (ExceptNotAnError@{Error}))
   if (eq#@{Error} a$conv$63$simp$306 (ExceptNotAnError@{Error}))
   {
     let conv$118 = sub#@{Double} a$conv$63$simp$307 (1.0@{Double});
-    let simp$1408 = div# a$conv$63$simp$309 conv$118;
+    let simp$1212 = div# a$conv$63$simp$309 conv$118;
     write flat$86$simp$319 = ExceptNotAnError@{Error};
-    write flat$86$simp$320 = simp$1408;
+    write flat$86$simp$320 = simp$1212;
   }
   else
   {
@@ -1082,9 +1082,9 @@ void iprogram_0(iprogram_0_t *s)
                 flat_14_simp_151              = 0.0;                                  /* init */
                 
                 if (ierror_eq (flat_13_simp_148, ierror_not_an_error)) {
-                    idouble_t        simp_457 = idouble_add (s_reify_6_conv_12_simp_139, 1.0); /* let */
                     flat_14_simp_150          = ierror_not_an_error;                  /* write */
-                    flat_14_simp_151          = idouble_div (flat_13_simp_149, simp_457); /* write */
+                    idouble_t        simp_461 = idouble_add (s_reify_6_conv_12_simp_139, 1.0); /* let */
+                    flat_14_simp_151          = idouble_div (flat_13_simp_149, simp_461); /* write */
                 } else {
                     flat_14_simp_150          = flat_13_simp_148;                     /* write */
                     flat_14_simp_151          = 0.0;                                  /* write */
@@ -1533,9 +1533,9 @@ void iprogram_0(iprogram_0_t *s)
         
         if (ierror_eq (a_conv_63_simp_306, ierror_not_an_error)) {
             idouble_t        conv_118         = idouble_sub (a_conv_63_simp_307, 1.0); /* let */
-            idouble_t        simp_1408        = idouble_div (a_conv_63_simp_309, conv_118); /* let */
+            idouble_t        simp_1212        = idouble_div (a_conv_63_simp_309, conv_118); /* let */
             flat_86_simp_319                  = ierror_not_an_error;                  /* write */
-            flat_86_simp_320                  = simp_1408;                            /* write */
+            flat_86_simp_320                  = simp_1212;                            /* write */
         } else {
             flat_86_simp_319                  = a_conv_63_simp_306;                   /* write */
             flat_86_simp_320                  = 0.0;                                  /* write */
