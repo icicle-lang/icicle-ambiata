@@ -73,11 +73,13 @@ evalQ q vs env
                 GroupBy _ g
                  -> do  gs <- mapM (evalX g []) vs
 
-                        let vgs  = gs `zip` vs
-                        let vgs' = groupBy ((==) `on` fst) vgs
-                        let vvs' = fmap (fmap snd) vgs'
+                        let vgs   = gs `zip` vs
+                        let vgs'  = groupBy ((==) `on` fst) vgs
+                        let ks    = fmap fst vgs
+                        vvs'     <- mapM (\vs' -> evalQ q' vs' env)
+                                  $ fmap (fmap snd) vgs'
 
-                        VArray <$> mapM (\vs' -> evalQ q' vs' env) vvs'
+                        return . VMap . Map.fromList $ zip ks vvs'
 
                 GroupFold _ _ _ g
                  -> do  gs <- mapM (evalX g []) vs
@@ -292,10 +294,14 @@ evalP ann p xs vs env
              BuiltinMap MapKeys
               | [VMap m] <- args
               -> return $ VArray $ Map.keys m
+              | [VError e] <- args
+              -> return $ VError e
               | otherwise -> err
              BuiltinMap MapValues
               | [VMap m] <- args
               -> return $ VArray $ Map.elems m
+              | [VError e] <- args
+              -> return $ VError e
               | otherwise -> err
 
     Op o
