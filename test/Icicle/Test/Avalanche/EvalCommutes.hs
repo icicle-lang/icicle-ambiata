@@ -33,7 +33,7 @@ prop_eval_right t =
  forAll (inputsForType t)
  $ \(vs,d) ->
     isRight     (checkProgram p) ==>
-     isRight $ AE.evalProgram XV.evalPrim d vs $ AC.programFromCore namer p
+     isRight $ AE.evalProgram XV.evalPrim d vs $ testFresh "fromCore" $ AC.programFromCore namer p
 
 
 -- going to core doesn't affect value
@@ -43,7 +43,7 @@ prop_eval_commutes_value t =
  forAll (inputsForType t)
  $ \(vs,d) -> counterexample (show $ pretty p) $
     isRight     (checkProgram p) ==>
-     case (AE.evalProgram XV.evalPrim d vs $ AC.programFromCore namer p, PV.eval d vs p) of
+     case (AE.evalProgram XV.evalPrim d vs $ testFresh "fromCore" $ AC.programFromCore namer p, PV.eval d vs p) of
       (Right (_, aval), Right cres)
        ->   aval === PV.value   cres
       (_, Left _)
@@ -62,7 +62,7 @@ zprop_eval_commutes_history t =
  forAll (inputsForType t)
  $ \(vs,d) -> counterexample (show $ pretty p) $
     isRight     (checkProgram p) ==>
-     case (AE.evalProgram XV.evalPrim d vs $ AC.programFromCore namer p, PV.eval d vs p) of
+     case (AE.evalProgram XV.evalPrim d vs $ testFresh "fromCore" $ AC.programFromCore namer p, PV.eval d vs p) of
       (Right (abg, _), Right cres)
        ->  let abg' = sort abg
                cres'= fmap prefixBubbleGum $ sort $ PV.history cres

@@ -7,18 +7,14 @@ ok, avalanche is now on
 > > -- A rather complicated feature to convert to Avalanche
 > - Avalanche:
 conv$3 = TIME
-let anf$5 = (Left ExceptNotAnError, 1858-11-17)@{((Sum Error Int), Time)};
-init acc$conv$26@{Buf 3 (Sum Error Int)} = Buf []@{Buf 3 (Sum Error Int)};
-init acc$c$conv$11@{(Sum Error Int)} = Left ExceptNotAnError@{(Sum Error Int)};
 init acc$conv$10@{((Sum Error Int), ((Sum Error Int), Time))} = (Left ExceptNotAnError, (Left ExceptNotAnError, 1858-11-17))@{((Sum Error Int), ((Sum Error Int), Time))};
-write acc$c$conv$11 = Right 0@{(Sum Error Int)};
-
+init acc$c$conv$11@{(Sum Error Int)} = Right 0@{(Sum Error Int)};
+init acc$conv$26@{Buf 3 (Sum Error Int)} = Buf []@{Buf 3 (Sum Error Int)};
 load_resumable@{Buf 3 (Sum Error Int)} acc$conv$26;
 load_resumable@{(Sum Error Int)} acc$c$conv$11;
 load_resumable@{((Sum Error Int), ((Sum Error Int), Time))} acc$conv$10;
 for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0@{((Sum Error Int), Time)}) in new
 {
-  
   let anf$0 = fst#@{(Sum Error Int), Time} conv$0;
   let anf$1 = Sum_fold#@{(Error,Int)}@{(Sum Error Bool)} 
     (\reify$0$conv$4@{Error} left#@{Error, Bool} reify$0$conv$4) 
@@ -27,24 +23,22 @@ for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0@{((Sum Error Int), Tim
     (\reify$2$conv$7@{Error} True@{Bool}) 
     (\reify$3$conv$8@{Bool} reify$3$conv$8) anf$1)
   {
-    let anf$2 = anf$0;
-    write acc$conv$10 = pair#@{(Sum Error Int), ((Sum Error Int), Time)} anf$2 conv$0;
-    read conv$10 = acc$conv$10 [((Sum Error Int), ((Sum Error Int), Time))];
-    read c$conv$11 = acc$c$conv$11 [(Sum Error Int)];
-    let anf$3 = fst#@{(Sum Error Int), ((Sum Error Int), Time)} conv$10;
+    write acc$conv$10 = pair#@{(Sum Error Int), ((Sum Error Int), Time)} anf$0 conv$0;
+    read aval$1 = acc$conv$10 [((Sum Error Int), ((Sum Error Int), Time))];
+    read aval$0 = acc$c$conv$11 [(Sum Error Int)];
+    let anf$3 = fst#@{(Sum Error Int), ((Sum Error Int), Time)} aval$1;
     write acc$c$conv$11 = Sum_fold#@{(Error,Int)}@{(Sum Error Int)} 
       (\reify$6$conv$12@{Error} left#@{Error, Int} reify$6$conv$12) 
       (\reify$7$conv$13@{Int} Sum_fold#@{(Error,Int)}@{(Sum Error Int)} 
         (\reify$8$conv$17@{Error} left#@{Error, Int} reify$8$conv$17) 
         (\reify$9$conv$18@{Int} right#@{Error, Int} reify$9$conv$18) (Sum_fold#@{(Error,Int)}@{(Sum Error Int)} 
         (\reify$4$conv$14@{Error} left#@{Error, Int} reify$4$conv$14) 
-        (\reify$5$conv$15@{Int} right#@{Error, Int} (add#@{Int} reify$5$conv$15 (1@{Int}))) c$conv$11)) anf$3;
+        (\reify$5$conv$15@{Int} right#@{Error, Int} (add#@{Int} reify$5$conv$15 (1@{Int}))) aval$0)) anf$3;
   }
-  read conv$26 = acc$conv$26 [Buf 3 (Sum Error Int)];
+  read aval$2 = acc$conv$26 [Buf 3 (Sum Error Int)];
   let anf$4 = anf$0;
-  write acc$conv$26 = Latest_push#@{Buf 3 (Sum Error Int)} conv$26 conv$1 anf$4;
+  write acc$conv$26 = Latest_push#@{Buf 3 (Sum Error Int)} aval$2 conv$1 anf$4;
 }
-
 save_resumable@{Buf 3 (Sum Error Int)} acc$conv$26;
 save_resumable@{(Sum Error Int)} acc$c$conv$11;
 save_resumable@{((Sum Error Int), ((Sum Error Int), Time))} acc$conv$10;
@@ -68,20 +62,16 @@ output@{(Sum Error (Int, Array (Sum Error Int)))} repl (conv$31@{(Sum Error (Int
 > > -- Something involves the abstract buffer type
 > - Avalanche:
 conv$3 = TIME
-let anf$2 = (Left ExceptNotAnError, 1858-11-17)@{((Sum Error Int), Time)};
 init acc$conv$4@{Map Time (Buf 2 ((Sum Error Int), Time))} = Map []@{Map Time (Buf 2 ((Sum Error Int), Time))};
-
 load_resumable@{Map Time (Buf 2 ((Sum Error Int), Time))} acc$conv$4;
 for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0@{((Sum Error Int), Time)}) in new
 {
-  
-  read conv$4 = acc$conv$4 [Map Time (Buf 2 ((Sum Error Int), Time))];
+  read aval$0 = acc$conv$4 [Map Time (Buf 2 ((Sum Error Int), Time))];
   let anf$0 = Latest_push#@{Buf 2 ((Sum Error Int), Time)} (Buf []@{Buf 2 ((Sum Error Int), Time)}) conv$1 conv$0;
   let anf$1 = snd#@{(Sum Error Int), Time} conv$0;
   write acc$conv$4 = Map_insertOrUpdate#@{(Time,Buf 2 ((Sum Error Int), Time))} 
-    (\conv$6@{Buf 2 ((Sum Error Int), Time)} Latest_push#@{Buf 2 ((Sum Error Int), Time)} conv$6 conv$1 conv$0) anf$0 anf$1 conv$4;
+    (\conv$6@{Buf 2 ((Sum Error Int), Time)} Latest_push#@{Buf 2 ((Sum Error Int), Time)} conv$6 conv$1 conv$0) anf$0 anf$1 aval$0;
 }
-
 save_resumable@{Map Time (Buf 2 ((Sum Error Int), Time))} acc$conv$4;
 read conv$4 = acc$conv$4 [Map Time (Buf 2 ((Sum Error Int), Time))];
 let conv$39 = Map_fold#@{(Time,Buf 2 ((Sum Error Int), Time))}@{(Sum Error (Map Time Int))} 

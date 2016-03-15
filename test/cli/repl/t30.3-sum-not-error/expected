@@ -56,6 +56,9 @@ iint_t size_of_state_iprogram_0 ()
 void iprogram_0(iprogram_0_t *s)
 {
     idouble_t        acc_perhaps_conv_4_simp_10;
+    iint_t           aval_0_simp_12;
+    idouble_t        aval_0_simp_13;
+    ibool_t          aval_0_simp_11;
     ibool_t          acc_perhaps_conv_4_simp_8;
     iint_t           acc_perhaps_conv_4_simp_9;
     ibool_t          flat_0_simp_14;
@@ -64,9 +67,6 @@ void iprogram_0(iprogram_0_t *s)
     iint_t           flat_0_simp_18;
     idouble_t        flat_0_simp_19;
     idouble_t        flat_0_simp_16;
-    idouble_t        perhaps_conv_4_simp_13;
-    ibool_t          perhaps_conv_4_simp_11;
-    iint_t           perhaps_conv_4_simp_12;
     idouble_t        perhaps_conv_4_simp_22;
     iint_t           perhaps_conv_4_simp_21;
     ibool_t          perhaps_conv_4_simp_20;
@@ -101,23 +101,23 @@ void iprogram_0(iprogram_0_t *s)
         ierror_t         conv_0_simp_23       = new_conv_0_simp_23[i];
         iint_t           conv_0_simp_24       = new_conv_0_simp_24[i];
         itime_t          conv_0_simp_25       = new_conv_0_simp_25[i];
-        perhaps_conv_4_simp_11                = acc_perhaps_conv_4_simp_8;            /* read */
-        perhaps_conv_4_simp_12                = acc_perhaps_conv_4_simp_9;            /* read */
-        perhaps_conv_4_simp_13                = acc_perhaps_conv_4_simp_10;           /* read */
+        aval_0_simp_11                        = acc_perhaps_conv_4_simp_8;            /* read */
+        aval_0_simp_12                        = acc_perhaps_conv_4_simp_9;            /* read */
+        aval_0_simp_13                        = acc_perhaps_conv_4_simp_10;           /* read */
         flat_0_simp_14                        = ifalse;                               /* init */
         flat_0_simp_15                        = 0;                                    /* init */
         flat_0_simp_16                        = 0.0;                                  /* init */
         
-        if (perhaps_conv_4_simp_11) {
-            iint_t           simp_31          = idouble_trunc (perhaps_conv_4_simp_13); /* let */
+        if (aval_0_simp_11) {
             flat_0_simp_14                    = ifalse;                               /* write */
-            flat_0_simp_15                    = iint_add (simp_31, 1);                /* write */
+            iint_t           simp_35          = idouble_trunc (aval_0_simp_13);       /* let */
+            flat_0_simp_15                    = iint_add (simp_35, 1);                /* write */
             flat_0_simp_16                    = 0.0;                                  /* write */
         } else {
-            idouble_t        simp_45          = iint_extend (perhaps_conv_4_simp_12); /* let */
             flat_0_simp_14                    = itrue;                                /* write */
             flat_0_simp_15                    = 0;                                    /* write */
-            flat_0_simp_16                    = idouble_add (simp_45, 1.0);           /* write */
+            idouble_t        simp_53          = iint_extend (aval_0_simp_12);         /* let */
+            flat_0_simp_16                    = idouble_add (simp_53, 1.0);           /* write */
         }
         
         flat_0_simp_17                        = flat_0_simp_14;                       /* read */

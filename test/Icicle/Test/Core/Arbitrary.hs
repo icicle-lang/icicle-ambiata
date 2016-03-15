@@ -15,6 +15,7 @@ import           Icicle.Common.Exp
 import           Icicle.Common.Type
 import           Icicle.Common.Value
 import qualified Icicle.Common.Exp.Prim.Minimal as PM
+import qualified Icicle.Common.Fresh                as Fresh
 
 import qualified Icicle.Core.Exp                as X
 import           Icicle.Core.Exp.Combinators
@@ -36,6 +37,17 @@ import qualified Data.List  as List
 import qualified Data.Map   as Map
 import           Data.Hashable (Hashable)
 
+testFreshT :: Functor m => Text -> Fresh.FreshT Var m a -> m a
+testFreshT desc prog
+ = fmap snd
+ $ Fresh.runFreshT prog
+ $ Fresh.counterNameState (NameBase . Var desc) 0
+
+testFresh :: Text -> Fresh.Fresh Var a -> a
+testFresh desc prog
+ = snd
+ $ Fresh.runFresh prog
+ $ Fresh.counterNameState (NameBase . Var desc) 0
 
 -- | Check if values are equal except for functions/closures
 -- Because closure heaps can differ..

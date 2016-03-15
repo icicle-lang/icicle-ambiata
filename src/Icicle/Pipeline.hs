@@ -315,7 +315,8 @@ coreAvalanche
   -> AvalProgram () v Core.Prim
 coreAvalanche prog
  = simpAvalanche
- $ AC.programFromCore (AC.namerText id) prog
+ $ snd
+ $ Fresh.runFresh (AC.programFromCore (AC.namerText id) prog) (freshNamer "aval")
 
 simpAvalanche
   :: (Eq v, Hashable v, Show v, IsString v)

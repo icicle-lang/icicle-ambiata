@@ -14,9 +14,6 @@ import qualified Icicle.Avalanche.FromCore  as AC
 import qualified Icicle.Avalanche.Eval      as AE
 import qualified Icicle.Avalanche.Simp      as AS
 
-import           Icicle.Common.Base
-import qualified Icicle.Common.Fresh                as Fresh
-
 import           Icicle.Internal.Pretty
 
 import           P
@@ -36,12 +33,9 @@ prop_simp_commutes_value t =
  forAll (inputsForType t)
  $ \(vs,d) ->
     isRight     (checkProgram p) ==>
-     let p' = AC.programFromCore namer p
+     let p' = testFresh "fromCore" $ AC.programFromCore namer p
 
-         simp = snd
-              $ Fresh.runFresh
-                        (AS.simpAvalanche () p')
-                        (Fresh.counterNameState (NameBase . Var "anf") 0)
+         simp = testFresh "anf" $ AS.simpAvalanche () p'
          eval = AE.evalProgram XV.evalPrim d vs
      in counterexample (show $ pretty p')
       $ counterexample (show $ pretty simp)
