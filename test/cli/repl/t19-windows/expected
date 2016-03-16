@@ -1,0 +1,25 @@
+welcome to iREPL
+ok, loaded 24 functions from data/libs/prelude.icicle
+ok, loaded test/cli/repl/data.psv, 13 rows
+> -- Set to last month of year
+> ok, time set to 1970-12-01
+> > -- Load the data with one entry per month
+> ok, loaded test/cli/repl/t19-windows/data.psv, 12 rows
+> > -- Get latest ten, but only for the last 3 months.
+> -- 1970-09-01 should be in the result
+> - Core evaluation:
+[homer, [9,10,11,12]]
+
+> > -- Older-than window
+> - Core evaluation:
+[homer, [9,10,11]]
+
+> > -- Do the same, one day later. 1970-09-01 should no longer be in result.
+> ok, time set to 1970-12-02
+> - Core evaluation:
+[homer, [10,11,12]]
+
+> - Core evaluation:
+[homer, [10,11]]
+
+> > 
