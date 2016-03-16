@@ -100,12 +100,13 @@ evaluateVirtualValue' :: (Hashable n, Eq n) => A.Program a n APF.Prim -> Time ->
 evaluateVirtualValue' p t vs
  = do   vs' <- zipWithM toCore [1..] vs
 
-        xv  <- first SimulateErrorRuntime'
+        (outs,bgs)
+            <- first SimulateErrorRuntime'
              $ AE.evalProgram APF.evalPrim t vs' p
 
-        v'  <- traverse (\(k,v) -> (,) <$> pure k <*> valueFromCore' v) (snd xv)
+        v'  <- traverse (\(k,v) -> (,) <$> pure k <*> valueFromCore' v) outs
         -- bg' <- traverse (traverse valueFromCore') (fst xv)
-        return (v', Set.empty)
+        return (v', bgs)
  where
   toCore n a
    = do v' <- valueToCore' (atFact a) (A.input p)

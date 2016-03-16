@@ -95,8 +95,8 @@ deadS us statements
      -> let xsU = fmap (usageX.fst) xts
         in  (mconcat (us : xsU), Output n t xts)
 
-    KeepFactInHistory
-     -> (us, KeepFactInHistory)
+    KeepFactInHistory x
+     -> (us <> usageX x, KeepFactInHistory x)
     -- Load and save resumables are very special.
     -- They themselves do not count as "using" the accumulator,
     -- but on the other hand we cannot get rid of them?

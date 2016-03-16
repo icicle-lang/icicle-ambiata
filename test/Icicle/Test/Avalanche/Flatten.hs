@@ -33,7 +33,9 @@ namer = AC.namerText (flip Var 0)
 
 
 -- Flattening - removing all folds keeps value same
-prop_flatten_commutes_value t =
+prop_flatten_commutes_value =
+ forAll genInputType
+ $ \t ->
  forAll (programForStreamType t)
  $ \p ->
  forAll (inputsForType t)
@@ -56,7 +58,9 @@ prop_flatten_commutes_value t =
 
 
 
-prop_flatten_simp_commutes_value t =
+prop_flatten_simp_commutes_value =
+ forAll genInputType
+ $ \t ->
  forAll (programForStreamType t)
  $ \p ->
  forAll (inputsForType t)

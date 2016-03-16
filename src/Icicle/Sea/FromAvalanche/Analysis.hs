@@ -60,7 +60,7 @@ factVarsOfStatement loopType stmt
      LoadResumable _ _     -> Nothing
      SaveResumable _ _     -> Nothing
      Output _ _ _          -> Nothing
-     KeepFactInHistory     -> Nothing
+     KeepFactInHistory _   -> Nothing
 
      ForeachFacts binds vt lt ss
       | lt == loopType
@@ -89,7 +89,7 @@ resumablesOfStatement stmt
      Read _ _ _ ss         -> resumablesOfStatement ss
      Write _ _             -> Map.empty
      Output _ _ _          -> Map.empty
-     KeepFactInHistory     -> Map.empty
+     KeepFactInHistory _   -> Map.empty
 
      LoadResumable n t     -> Map.singleton n t
      SaveResumable n t     -> Map.singleton n t
@@ -115,7 +115,7 @@ accumsOfStatement stmt
      LoadResumable _ _     -> Map.empty
      SaveResumable _ _     -> Map.empty
      Output _ _ _          -> Map.empty
-     KeepFactInHistory     -> Map.empty
+     KeepFactInHistory _   -> Map.empty
 
      InitAccumulator (Accumulator n avt _) ss
       -> Map.singleton n avt `Map.union`
@@ -142,7 +142,7 @@ readsOfStatement stmt
      LoadResumable _ _     -> Map.empty
      SaveResumable _ _     -> Map.empty
      Output _ _ _          -> Map.empty
-     KeepFactInHistory     -> Map.empty
+     KeepFactInHistory _   -> Map.empty
 
      Read n _ vt ss
       -> Map.singleton n vt `Map.union`
@@ -169,7 +169,7 @@ outputsOfStatement stmt
      Write _ _             -> Map.empty
      LoadResumable _ _     -> Map.empty
      SaveResumable _ _     -> Map.empty
-     KeepFactInHistory     -> Map.empty
+     KeepFactInHistory _   -> Map.empty
 
      Output n t xts
       -> Map.singleton n (t, fmap snd xts)
@@ -206,7 +206,7 @@ typesOfStatement stmt
                               typesOfExp       t `Set.union`
                               typesOfStatement ss
      Write _ x             -> typesOfExp x
-     KeepFactInHistory     -> Set.empty
+     KeepFactInHistory _   -> Set.singleton FactIdentifierT
 
      ForeachFacts binds _ _ ss
       -> Set.fromList (fmap snd $ factBindsAll binds) `Set.union`

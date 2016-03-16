@@ -44,7 +44,7 @@ prop_eval_commutes_value t =
  $ \(vs,d) -> counterexample (show $ pretty p) $
     isRight     (checkProgram p) ==>
      case (AE.evalProgram XV.evalPrim d vs $ testFresh "fromCore" $ AC.programFromCore namer p, PV.eval d vs p) of
-      (Right (_, aval), Right cres)
+      (Right (aval, _), Right cres)
        ->   aval === PV.value   cres
       (_, Left _)
        -> counterexample "Impossible: Core evaluation or type check must be wrong" False
@@ -54,33 +54,26 @@ prop_eval_commutes_value t =
 
 -- going to Avalanche doesn't affect history
 --
--- TODO: this is disabled because the Core evaluator currently ignores bubblegum
-{-
-zprop_eval_commutes_history t =
+-- Oh no! This should be failing, but it isn't.
+-- I suspect that's because the Core generator isn't making interesting windowed and latest programs.
+-- It is probably a good idea to make this go all the way from Source.
+-- This also requires flattening, because buffer history isn't dealt with in fromCore.
+prop_eval_commutes_history t =
  forAll (programForStreamType t)
  $ \p ->
  forAll (inputsForType t)
  $ \(vs,d) -> counterexample (show $ pretty p) $
     isRight     (checkProgram p) ==>
      case (AE.evalProgram XV.evalPrim d vs $ testFresh "fromCore" $ AC.programFromCore namer p, PV.eval d vs p) of
-      (Right (abg, _), Right cres)
-       ->  let abg' = sort abg
-               cres'= fmap prefixBubbleGum $ sort $ PV.history cres
-           in  abg' === cres'
+      (Right (_, abg), Right cres)
+       ->  abg === PV.history cres
       _
        -> property False
-
-prefixBubbleGum (BubbleGumReduction n v)
- = BubbleGumReduction (modName (Var "acc" 0) n) v
-prefixBubbleGum bg
- = bg
--}
-
 
 
 
 return []
 tests :: IO Bool
 -- tests = $quickCheckAll
-tests = $forAllProperties $ quickCheckWithResult (stdArgs {maxSuccess = 100, maxSize = 10, maxDiscardRatio = 10000})
+tests = $forAllProperties $ quickCheckWithResult (stdArgs {maxSuccess = 1000, maxSize = 100, maxDiscardRatio = 10000})
 
