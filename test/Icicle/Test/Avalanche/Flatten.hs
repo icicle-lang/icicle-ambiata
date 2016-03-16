@@ -12,6 +12,7 @@ import qualified Icicle.Avalanche.FromCore  as AC
 import qualified Icicle.Avalanche.Eval      as AE
 import qualified Icicle.Avalanche.Prim.Eval as AE
 import qualified Icicle.Avalanche.Statement.Flatten   as AF
+import qualified Icicle.Avalanche.Statement.Flatten.Type as AF
 
 import           Icicle.Internal.Pretty
 
@@ -54,7 +55,20 @@ prop_flatten_commutes_value =
          Right s'
           -> counterexample (show $ pretty p')
            $ counterexample (show $ pretty s')
-             (first show (eval XV.evalPrim p') === first show (eval AE.evalPrim p' { AP.statements = s'}))
+           $ let xv' = flatOuts (eval XV.evalPrim p')
+                 fv' = eval AE.evalPrim p' { AP.statements = s'}
+             in (first show xv' === first show fv')
+ where
+  -- We might need to fix up some outputs after the flattening.
+  -- Flattening changes buffers to pairs of buffers (for fact identifiers),
+  -- so any buffers in the output will have changed values.
+  -- However, this will not occur in a "real program" as they cannot return buffers,
+  -- only arrays that are read from buffers.
+  -- That means it is fine to do the transform afterwards, here.
+  flatOuts (Right (outs,bgs))
+   = Right (fmap (second AF.flatV) outs, bgs)
+
+  flatOuts other = other
 
 
 
@@ -107,5 +121,5 @@ tests :: IO Bool
 -- tests = $forAllProperties $ quickCheckWithResult (stdArgs {maxSuccess = 10000, maxSize = 10})
 -- tests = $forAllProperties $ quickCheckWithResult (stdArgs {maxDiscardRatio = 10000})
 -- Need a larger discard ratio sometimes
-tests = $forAllProperties $ quickCheckWithResult (stdArgs {maxSuccess = 100, maxSize = 10, maxDiscardRatio = 10000})
+tests = $forAllProperties $ quickCheckWithResult (stdArgs {maxSuccess = 1000, maxSize = 100, maxDiscardRatio = 10000})
 

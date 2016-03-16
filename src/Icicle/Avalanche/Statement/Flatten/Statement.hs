@@ -88,7 +88,7 @@ flatten a_fresh s
 
     Output n t xts
      | xs <- fmap fst xts
-     , ts <- fmap snd xts
+     , ts <- fmap (flatT.snd) xts
      -> flatXS a_fresh xs []
      $ \xs'
      -> return $ Output n (flatT t) (List.zip xs' ts)
