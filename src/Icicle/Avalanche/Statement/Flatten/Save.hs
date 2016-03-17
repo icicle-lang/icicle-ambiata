@@ -56,7 +56,10 @@ flattenSave' a_fresh xx ty
     ErrorT      -> no
     FactIdentifierT-> no
     -- Maps will not appear at this late stage
-    MapT _ _ -> no
+    MapT t u
+     -> do s1 <- forArr (fpMapKeys t u `xApp` xx) t (go t)
+           s2 <- forArr (fpMapVals t u `xApp` xx) u (go u)
+           return (s1 <> s2)
 
     -- A buffer! Look inside and mark them as necessary.
     BufT n t 
@@ -147,4 +150,7 @@ flattenSave' a_fresh xx ty
 
   fpStructGet f t st
     = xPrim (Flat.PrimMinimal $ Min.PrimStruct $ Min.PrimStructGet f t st)
+
+  fpMapKeys k v = xPrim (Flat.PrimMap (Flat.PrimMapUnpackKeys   k v))
+  fpMapVals k v = xPrim (Flat.PrimMap (Flat.PrimMapUnpackValues k v))
 
