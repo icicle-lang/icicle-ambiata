@@ -39,12 +39,12 @@ makeApps a f args
 -- If it's not an application, arguments will be empty.
 takeApps :: Exp a n p -> (Exp a n p, [Exp a n p])
 takeApps xx
- = case xx of
-    XApp _ p q
-     -> let (f,as) = takeApps p
-        in  (f, as <> [q])
-    _
-     -> (xx, [])
+ = go xx []
+ where
+  go (XApp _ p q) args
+   = go p (q : args)
+  go f args
+   = (f, args)
 
 
 -- | Check if an expression is a primitive application
