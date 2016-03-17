@@ -161,7 +161,7 @@ makeStatements _p namer streams
 
   mkReads' ((n,t):ns) inner k fvs
    | Set.member n fvs
-   = do n' <- fresh
+   = do n' <- freshPrefixBase $ nameBase n
         k' <- X.subst () n (X.XVar () n') k
         let acc = namerAccPrefix namer n
         mkReads' ns (\x -> Read n' acc t (inner x)) k' fvs

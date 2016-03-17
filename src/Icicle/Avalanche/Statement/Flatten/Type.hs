@@ -48,7 +48,7 @@ flatT ot
     UnitT       -> ot
     ErrorT      -> ot
     FactIdentifierT-> ot
-    
+
     ArrayT t    -> ArrayT $ flatT t
     MapT t u    -> MapT  (flatT t) (flatT u)
     OptionT t   -> OptionT $ flatT t
