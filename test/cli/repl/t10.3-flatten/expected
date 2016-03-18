@@ -10,9 +10,9 @@ conv$3 = TIME
 init acc$conv$10$simp$16@{Error} = ExceptNotAnError@{Error};
 init acc$c$conv$11$simp$21@{Error} = ExceptNotAnError@{Error};
 init acc$c$conv$11$simp$22@{Int} = 0@{Int};
-init acc$conv$26$simp$23@{Buf 3 FactIdentifier} = Buf []@{Buf 3 FactIdentifier};
-init acc$conv$26$simp$24@{Buf 3 Error} = Buf []@{Buf 3 Error};
-init acc$conv$26$simp$25@{Buf 3 Int} = Buf []@{Buf 3 Int};
+init acc$conv$26$simp$23@{Buf 3 FactIdentifier} = Buf_make#@{Buf 3 FactIdentifier} (()@{Unit});
+init acc$conv$26$simp$24@{Buf 3 Error} = Buf_make#@{Buf 3 Error} (()@{Unit});
+init acc$conv$26$simp$25@{Buf 3 Int} = Buf_make#@{Buf 3 Int} (()@{Unit});
 load_resumable@{Buf 3 FactIdentifier} acc$conv$26$simp$23;
 load_resumable@{Buf 3 Error} acc$conv$26$simp$24;
 load_resumable@{Buf 3 Int} acc$conv$26$simp$25;
@@ -121,8 +121,8 @@ read c$conv$11$simp$58 = acc$c$conv$11$simp$21 [Error];
 read c$conv$11$simp$59 = acc$c$conv$11$simp$22 [Int];
 init flat$23$simp$60@{Error} = ExceptNotAnError@{Error};
 init flat$23$simp$61@{Int} = 0@{Int};
-init flat$23$simp$62@{Array Error} = []@{Array Error};
-init flat$23$simp$63@{Array Int} = []@{Array Int};
+init flat$23$simp$62@{Array Error} = unsafe_Array_create#@{Error} (0@{Int});
+init flat$23$simp$63@{Array Int} = unsafe_Array_create#@{Int} (0@{Int});
 if (eq#@{Error} c$conv$11$simp$58 (ExceptNotAnError@{Error}))
 {
   write flat$23$simp$60 = ExceptNotAnError@{Error};
@@ -150,10 +150,10 @@ output@{(Sum Error (Int, Array (Sum Error Int)))} repl (flat$23$simp$64@{Error},
 > > -- Something involves the abstract buffer type
 > - Flattened:
 conv$3 = TIME
-init acc$conv$4$simp$40@{Array Time} = []@{Array Time};
-init acc$conv$4$simp$41@{Array (Buf 2 FactIdentifier)} = []@{Array (Buf 2 FactIdentifier)};
-init acc$conv$4$simp$42@{Array (Buf 2 Error)} = []@{Array (Buf 2 Error)};
-init acc$conv$4$simp$43@{Array (Buf 2 Int)} = []@{Array (Buf 2 Int)};
+init acc$conv$4$simp$40@{Array Time} = unsafe_Array_create#@{Time} (0@{Int});
+init acc$conv$4$simp$41@{Array (Buf 2 FactIdentifier)} = unsafe_Array_create#@{Buf 2 FactIdentifier} (0@{Int});
+init acc$conv$4$simp$42@{Array (Buf 2 Error)} = unsafe_Array_create#@{Buf 2 Error} (0@{Int});
+init acc$conv$4$simp$43@{Array (Buf 2 Int)} = unsafe_Array_create#@{Buf 2 Int} (0@{Int});
 load_resumable@{Array Time} acc$conv$4$simp$40;
 load_resumable@{Array (Buf 2 FactIdentifier)} acc$conv$4$simp$41;
 load_resumable@{Array (Buf 2 Error)} acc$conv$4$simp$42;
@@ -243,8 +243,8 @@ read conv$4$simp$71 = acc$conv$4$simp$40 [Array Time];
 read conv$4$simp$73 = acc$conv$4$simp$42 [Array (Buf 2 Error)];
 read conv$4$simp$74 = acc$conv$4$simp$43 [Array (Buf 2 Int)];
 init flat$23$simp$76@{Error} = ExceptNotAnError@{Error};
-init flat$23$simp$77@{Array Time} = []@{Array Time};
-init flat$23$simp$78@{Array Int} = []@{Array Int};
+init flat$23$simp$77@{Array Time} = unsafe_Array_create#@{Time} (0@{Int});
+init flat$23$simp$78@{Array Int} = unsafe_Array_create#@{Int} (0@{Int});
 foreach (flat$24 in 0@{Int} .. Array_length#@{Time} conv$4$simp$71)
 {
   read flat$23$simp$79 = flat$23$simp$76 [Error];
@@ -254,8 +254,8 @@ foreach (flat$24 in 0@{Int} .. Array_length#@{Time} conv$4$simp$71)
   let simp$453 = unsafe_Array_index#@{Buf 2 Error} conv$4$simp$73 flat$24;
   let simp$455 = unsafe_Array_index#@{Buf 2 Int} conv$4$simp$74 flat$24;
   init flat$26$simp$82@{Error} = ExceptNotAnError@{Error};
-  init flat$26$simp$83@{Array Time} = []@{Array Time};
-  init flat$26$simp$84@{Array Int} = []@{Array Int};
+  init flat$26$simp$83@{Array Time} = unsafe_Array_create#@{Time} (0@{Int});
+  init flat$26$simp$84@{Array Int} = unsafe_Array_create#@{Int} (0@{Int});
   if (eq#@{Error} flat$23$simp$79 (ExceptNotAnError@{Error}))
   {
     let simp$489 = Buf_read#@{Array Error} simp$453;
@@ -302,8 +302,8 @@ foreach (flat$24 in 0@{Int} .. Array_length#@{Time} conv$4$simp$71)
     read flat$30$simp$103 = flat$30$simp$87 [Error];
     read flat$30$simp$104 = flat$30$simp$88 [Int];
     init flat$31$simp$105@{Error} = ExceptNotAnError@{Error};
-    init flat$31$simp$106@{Array Time} = []@{Array Time};
-    init flat$31$simp$107@{Array Int} = []@{Array Int};
+    init flat$31$simp$106@{Array Time} = unsafe_Array_create#@{Time} (0@{Int});
+    init flat$31$simp$107@{Array Int} = unsafe_Array_create#@{Int} (0@{Int});
     if (eq#@{Error} flat$30$simp$103 (ExceptNotAnError@{Error}))
     {
       init flat$34@{Bool} = False@{Bool};

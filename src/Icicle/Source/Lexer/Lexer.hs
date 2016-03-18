@@ -142,8 +142,12 @@ lexerPositions ts
    = C.isAlphaNum c || c == '_' || c == '$' || c == '\''
 
   isOperator c
+   = elem c ("/*+^-<>=!&|," :: [Char])
+   {-
    =  not (isVarRest c)
    && not (C.isSpace c)
    && c /= '(' && c /= ')'
+   && c /= '"' && c /= '`'
+   -}
 
 

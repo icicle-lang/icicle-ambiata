@@ -215,18 +215,12 @@ seaOfXValue v t
       | otherwise
       -> seaError "seaOfXValue: array of wrong type" (v,t)
 
-     VBuf vs
-      | BufT len t' <- t
-      -> let writes buf v'
-              = prim (PrimBuf $ PrimBufPush len t')
-                     [buf, seaOfXValue v' t']
-             init
-              = seaOfPrimDocApps
+     VBuf []
+      -> seaOfPrimDocApps
                      (PDFun (prefixOfValType t <> "make") Nothing)
                      []
-        in  foldl writes init vs
-      | otherwise
-      -> seaError "seaOfXValue: buffer of wrong type" (v,t)
+     VBuf _
+      -> seaError "seaOfXValue: buffer elements should be converted to pushes by convertValues " (v,t)
 
      VMap _
       -> seaError "seaOfXValue: maps should be removed by flatten" v
