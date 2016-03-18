@@ -2,23 +2,37 @@
 ### Base ###
 ############
 
+# mod, relying on rounding.
+mod x y
+  = x - (trunc (double x / double y) * y).
+
 # Time statements
 newest v = latest 1 ~> fold1 s = v : v ~> s.
 oldest v = fold1 s = v : s ~> s.
 
+# check if a day is a weekend.
+is_weekend v
+  =  let day = mod (days v) 7
+  ~> day == 3 || day == 4.
+
+# starting at epoch 1600/01/03, identify the week that containing this day.
+week_of_day d
+  = trunc (double (days d) / 7).
+
 # Boolean statements
 not a = case a | True -> False | False -> True end.
 
-isSome a = case a | Some a' -> True  | None -> False end.
-isNone a = case a | Some a' -> False | None -> True  end.
+is_some a = case a | Some a' -> True  | None -> False end.
+is_none a = case a | Some a' -> False | None -> True  end.
 
-getOrElse default a  = case a | Some a' -> a' | None -> default end.
+get_or_else default a  = case a | Some a' -> a' | None -> default end.
 
 fst x = case x | (a,b) -> a end.
 snd x = case x | (a,b) -> b end.
 
-group_keys k     = keys (group k ~> 0).
-group_values k v = vals (group k ~> v).
+group_keys k = keys (group k ~> 0).
+
+return v = newest v.
 
 ##################
 ### Statistics ###
@@ -35,11 +49,12 @@ mean v = let v_ = double v
 max v = fold1 s = v : case v > s | True -> v | False -> s end ~> s.
 min v = fold1 s = v : case v < s | True -> v | False -> s end ~> s.
 
-minby a b = fold1 s = (a, b)
+
+min_by a b = fold1 s = (a, b)
    :  case s | (a1, b1) -> (case a < a1 | True -> (a,b) | False -> (a1,b1) end) end
    ~> case s | (a1, b1) -> b1 end.
 
-maxby a b = fold1 s = (a, b)
+max_by a b = fold1 s = (a, b)
    :  case s | (a1, b1) -> (case a > a1 | True -> (a,b) | False -> (a1,b1) end) end
    ~> case s | (a1, b1) -> b1 end.
 
@@ -96,3 +111,15 @@ numflips' v t
                                end )
           end
  ~> case s | (s0,i) -> i end.
+
+###############################
+### Backwards Compatibility ###
+###############################
+
+isSome a = is_some a.
+isNone a = is_none a.
+
+getOrElse d a = get_or_else d a.
+
+minby a b = min_by a b.
+maxby a b = max_by a b.

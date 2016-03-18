@@ -1,5 +1,5 @@
 welcome to iREPL
-ok, loaded 24 functions from data/libs/prelude.icicle
+ok, loaded 32 functions from data/libs/prelude.icicle
 ok, loaded test/cli/repl/data.psv, 13 rows
 > -- Enable C evaluation
 > ok, c evaluation now on
@@ -19,7 +19,7 @@ ok, loaded test/cli/repl/data.psv, 13 rows
                                    |  \_((_(_)|/(_)
                                    \             (
                                     \_____________)
-> > ok, loaded dictionary with 2 features and 24 functions
+> > ok, loaded dictionary with 2 features and 32 functions
 > ok, loaded test/cli/repl/t30.2-array-strings/data.psv, 5 rows
 > > - C evaluation:
 [(ID00000000,2)
