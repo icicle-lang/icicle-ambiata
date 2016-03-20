@@ -88,6 +88,7 @@ library
                        Icicle.Avalanche.Statement.Flatten.Exp
                        Icicle.Avalanche.Prim.Flat
                        Icicle.Avalanche.Prim.Eval
+                       Icicle.Avalanche.Prim.Compounds
 
                        Icicle.Benchmark
                        Icicle.Benchmark.Generator
