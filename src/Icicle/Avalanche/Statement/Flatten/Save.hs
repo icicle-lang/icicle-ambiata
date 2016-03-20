@@ -2,6 +2,7 @@
 -- and calling KeepFactInHistory
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE PatternGuards #-}
+{-# LANGUAGE RecordWildCards #-}
 module Icicle.Avalanche.Statement.Flatten.Save (
     flattenSaveAccumulator
   ) where
@@ -10,7 +11,7 @@ import              Icicle.Avalanche.Statement.Flatten.Base
 
 import              Icicle.Avalanche.Statement.Statement
 import qualified    Icicle.Avalanche.Prim.Flat     as Flat
-import qualified    Icicle.Common.Exp.Prim.Minimal as Min
+import qualified    Icicle.Avalanche.Prim.Compounds as Flat
 
 import              Icicle.Common.Base
 import              Icicle.Common.Type
@@ -57,8 +58,8 @@ flattenSave' a_fresh xx ty
     FactIdentifierT-> no
     -- Maps will not appear at this late stage
     MapT t u
-     -> do s1 <- forArr (fpMapKeys t u `xApp` xx) t (go t)
-           s2 <- forArr (fpMapVals t u `xApp` xx) u (go u)
+     -> do s1 <- forArr (mapKeys t u xx) t (go t)
+           s2 <- forArr (mapVals t u xx) u (go u)
            return (s1 <> s2)
 
     -- A buffer! Look inside and mark them as necessary.
@@ -75,31 +76,31 @@ flattenSave' a_fresh xx ty
 
     -- The Option may contain a nested Buf FactIdentifierT, so try it
     OptionT t
-     -> do s <- go t (fpOptionGet t `xApp` xx)
+     -> do s <- go t (optionGet t xx)
            case s of
             -- If there is no nested buf, we must be very careful to return Nothing
             -- Otherwise we might loop through this stuff for no reason.
             Nothing -> no
-            Just s' -> yes $ If (fpIsSome t `xApp` xx) s' mempty
+            Just s' -> yes $ If (isSome t xx) s' mempty
 
     PairT t u
-     -> do s1 <- go t (fpFst t u `xApp` xx)
-           s2 <- go u (fpSnd t u `xApp` xx)
+     -> do s1 <- go t (fstF t u xx)
+           s2 <- go u (sndF t u xx)
            -- If either side contains something, this is something
            return (s1 <> s2)
 
     SumT t u
-     -> do s1 <- go t (fpSumLeft  t u `xApp` xx)
-           s2 <- go u (fpSumRight t u `xApp` xx)
+     -> do s1 <- go t (left  t u xx)
+           s2 <- go u (right t u xx)
            case (s1 <> s2) of
             Nothing
              -> no
             Just _ 
              -> yes
-              $ If (fpIsRight t u `xApp` xx) (stmtOf s2) (stmtOf s1)
+              $ If (isRightF t u xx) (stmtOf s2) (stmtOf s1)
 
     StructT st
-     -> mconcat <$> mapM (\(nm,t) -> go t (fpStructGet nm t st `xApp` xx))
+     -> mconcat <$> mapM (\(nm,t) -> go t (structGet nm t st xx))
                     (Map.toList (getStructType st))
 
 
@@ -116,41 +117,24 @@ flattenSave' a_fresh xx ty
         case s of
          Nothing -> no
          Just s' -> yes
-                  $ Let nm' (xPrim (Flat.PrimBuf $ Flat.PrimBufRead n t) `xApp` x) s'
+                  $ Let nm' (bufRead n t x) s'
 
   forArr x t f
    = do nm' <- fresh
-        let ix = xPrim (Flat.PrimUnsafe $ Flat.PrimUnsafeArrayIndex t) `makeApps'` [x, xVar nm']
+        let ix = arrIx t x (xVar nm')
         f'  <- f ix
         case f' of
          Nothing -> no
          Just s -> yes
-                 $ ForeachInts nm' xZero (xPrim (Flat.PrimProject $ Flat.PrimProjectArrayLength t) `xApp` x) s
+                 $ ForeachInts nm' xZero (arrLen t x) s
 
   stmtOf = fromMaybe mempty
 
   -- Annotation plumbing
-  makeApps' = makeApps a_fresh
   xVar      = XVar     a_fresh
-  xPrim     = XPrim    a_fresh
   xValue    = XValue   a_fresh
-  xApp      = XApp     a_fresh
-
   xZero     = xValue IntT (VInt 0)
 
-  fpIsSome    t = xPrim (Flat.PrimProject (Flat.PrimProjectOptionIsSome t))
-  fpOptionGet t = xPrim (Flat.PrimUnsafe (Flat.PrimUnsafeOptionGet t))
+  Flat.FlatOps{..} = Flat.flatOps a_fresh
 
-  fpIsRight  t u = xPrim (Flat.PrimProject (Flat.PrimProjectSumIsRight t u))
-  fpSumLeft  t u = xPrim (Flat.PrimUnsafe (Flat.PrimUnsafeSumGetLeft  t u))
-  fpSumRight t u = xPrim (Flat.PrimUnsafe (Flat.PrimUnsafeSumGetRight t u))
-
-  fpFst t u     = xPrim (Flat.PrimMinimal $ Min.PrimPair $ Min.PrimPairFst t u)
-  fpSnd t u     = xPrim (Flat.PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd t u)
-
-  fpStructGet f t st
-    = xPrim (Flat.PrimMinimal $ Min.PrimStruct $ Min.PrimStructGet f t st)
-
-  fpMapKeys k v = xPrim (Flat.PrimMap (Flat.PrimMapUnpackKeys   k v))
-  fpMapVals k v = xPrim (Flat.PrimMap (Flat.PrimMapUnpackValues k v))
 

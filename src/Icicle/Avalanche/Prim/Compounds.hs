@@ -41,6 +41,9 @@ data FlatOps a n = FlatOps {
   , sndF     :: ValType -> ValType -> X a n -> X a n
   , pair     :: ValType -> ValType -> X a n -> X a n -> X a n
 
+  , structGet:: StructField -> ValType -> StructType
+             -> X a n -> X a n
+
   , relEq    :: ValType -> X a n -> X a n -> X a n
 
   }
@@ -81,6 +84,9 @@ flatOps a_fresh
   fstF   t u    = p1 (PrimMinimal $ Min.PrimPair $ Min.PrimPairFst t u)
   sndF   t u    = p1 (PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd t u)
   pair   t u    = p2 (PrimMinimal $ Min.PrimConst $ Min.PrimConstPair t u)
+
+  structGet f t st
+                = p1 (PrimMinimal $ Min.PrimStruct $ Min.PrimStructGet f t st)
 
   relEq     t   = p2 (PrimMinimal $ Min.PrimRelation Min.PrimRelationEq t)
 
