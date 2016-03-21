@@ -1,5 +1,5 @@
 welcome to iREPL
-ok, loaded 24 functions from data/libs/prelude.icicle
+ok, loaded 32 functions from data/libs/prelude.icicle
 ok, loaded test/cli/repl/data.psv, 13 rows
 > ok, core evaluation is now on
 > ok, c evaluation now on
@@ -24,11 +24,5 @@ ok, loaded test/cli/repl/data.psv, 13 rows
 
 - Core evaluation:
 [homer, ["arm","head","torso"]]
-
-> > - C evaluation:
-[(homer,[1,1,1])]
-
-- Core evaluation:
-[homer, [1,1,1]]
 
 > 

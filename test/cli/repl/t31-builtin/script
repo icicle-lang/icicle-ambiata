@@ -2,5 +2,3 @@
 :set +c-eval
 
 feature injury ~> group_keys location
-
-feature injury ~> group_values location (newest severity)
