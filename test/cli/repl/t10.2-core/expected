@@ -16,43 +16,43 @@ Streams:
   STREAM_FILTER
     PREDICATE: 
       
-        let simp$2 = fst#@{(Sum Error Int), Time} conv$0
-        let simp$3 = Sum_fold#@{(Error,Int)}@{(Sum Error Bool)} 
+        let simp$0 = fst#@{(Sum Error Int), Time} conv$0
+        let simp$1 = Sum_fold#@{(Error,Int)}@{(Sum Error Bool)} 
           (\reify$0$conv$4@{Error} left#@{Error, Bool} reify$0$conv$4) 
-          (\reify$1$conv$5@{Int} right#@{Error, Bool} (gt#@{Int} reify$1$conv$5 (10@{Int}))) simp$2
+          (\reify$1$conv$5@{Int} right#@{Error, Bool} (gt#@{Int} reify$1$conv$5 (10@{Int}))) simp$0
          in Sum_fold#@{(Error,Bool)}@{Bool} 
           (\reify$2$conv$7@{Error} True@{Bool}) 
-          (\reify$3$conv$8@{Bool} reify$3$conv$8) simp$3
+          (\reify$3$conv$8@{Bool} reify$3$conv$8) simp$1
     STREAMS:
       STREAM_FOLD (conv$10 : ((Sum Error Int), ((Sum Error Int), Time)))
         INIT:
           (Left ExceptNotAnError, (Left ExceptNotAnError, 1858-11-17))@{((Sum Error Int), ((Sum Error Int), Time))}
         KONS:
           
-            let simp$5 = fst#@{(Sum Error Int), Time} conv$0
-             in pair#@{(Sum Error Int), ((Sum Error Int), Time)} simp$5 conv$0
+            let simp$2 = fst#@{(Sum Error Int), Time} conv$0
+             in pair#@{(Sum Error Int), ((Sum Error Int), Time)} simp$2 conv$0
       
       STREAM_FOLD (c$conv$11 : (Sum Error Int))
         INIT:
           Right 0@{(Sum Error Int)}
         KONS:
           
-            let simp$7 = fst#@{(Sum Error Int), ((Sum Error Int), Time)} conv$10
+            let simp$3 = fst#@{(Sum Error Int), ((Sum Error Int), Time)} conv$10
              in Sum_fold#@{(Error,Int)}@{(Sum Error Int)} 
               (\reify$6$conv$12@{Error} left#@{Error, Int} reify$6$conv$12) 
               (\reify$7$conv$13@{Int} Sum_fold#@{(Error,Int)}@{(Sum Error Int)} 
                 (\reify$8$conv$17@{Error} left#@{Error, Int} reify$8$conv$17) 
                 (\reify$9$conv$18@{Int} right#@{Error, Int} reify$9$conv$18) (Sum_fold#@{(Error,Int)}@{(Sum Error Int)} 
                 (\reify$4$conv$14@{Error} left#@{Error, Int} reify$4$conv$14) 
-                (\reify$5$conv$15@{Int} right#@{Error, Int} (add#@{Int} reify$5$conv$15 (1@{Int}))) c$conv$11)) simp$7
+                (\reify$5$conv$15@{Int} right#@{Error, Int} (add#@{Int} reify$5$conv$15 (1@{Int}))) c$conv$11)) simp$3
       
   STREAM_FOLD (conv$26 : Buf 3 (Sum Error Int))
     INIT:
       Buf []@{Buf 3 (Sum Error Int)}
     KONS:
       
-        let simp$9 = fst#@{(Sum Error Int), Time} conv$0
-         in Latest_push#@{Buf 3 (Sum Error Int)} conv$26 conv$1 simp$9
+        let simp$4 = fst#@{(Sum Error Int), Time} conv$0
+         in Latest_push#@{Buf 3 (Sum Error Int)} conv$26 conv$1 simp$4
   
 
 Postcomputations:
@@ -90,10 +90,10 @@ Streams:
       Map []@{Map Time (Buf 2 ((Sum Error Int), Time))}
     KONS:
       
-        let simp$2 = Latest_push#@{Buf 2 ((Sum Error Int), Time)} (Buf []@{Buf 2 ((Sum Error Int), Time)}) conv$1 conv$0
-        let simp$3 = snd#@{(Sum Error Int), Time} conv$0
+        let simp$0 = Latest_push#@{Buf 2 ((Sum Error Int), Time)} (Buf []@{Buf 2 ((Sum Error Int), Time)}) conv$1 conv$0
+        let simp$1 = snd#@{(Sum Error Int), Time} conv$0
          in Map_insertOrUpdate#@{(Time,Buf 2 ((Sum Error Int), Time))} 
-          (\conv$6@{Buf 2 ((Sum Error Int), Time)} Latest_push#@{Buf 2 ((Sum Error Int), Time)} conv$6 conv$1 conv$0) simp$2 simp$3 conv$4
+          (\conv$6@{Buf 2 ((Sum Error Int), Time)} Latest_push#@{Buf 2 ((Sum Error Int), Time)} conv$6 conv$1 conv$0) simp$0 simp$1 conv$4
   
 
 Postcomputations:

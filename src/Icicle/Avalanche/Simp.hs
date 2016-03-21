@@ -29,24 +29,24 @@ import              Data.Hashable (Hashable)
 
 
 simpAvalanche
-  :: (Show n, Hashable n, Eq n)
+  :: (Show n, Hashable n, Eq n, Ord a)
   => a
   -> Program a n CorePrim.Prim
   -> Fresh n (Program a n CorePrim.Prim)
 simpAvalanche a_fresh p
  = do p' <- transformX return (simp a_fresh) p
       s' <- (once $ forwardStmts a_fresh $ pullLets $ statements p')
-         >>= once . thresher     a_fresh
+         >>= once . thresherWithAlpha     a_fresh
          >>= once . forwardStmts a_fresh
          >>= nestBlocks   a_fresh
-         >>= once . thresher     a_fresh
+         >>= once . thresherWithAlpha     a_fresh
          >>= transformX return (return . simpEvalX CorePrim.evalPrim CorePrim.typeOfPrim)
          >>= return .  dead
 
       return $ p { statements = s' }
 
 simpFlattened
-  :: (Show n, Eq a, Hashable n, Eq n)
+  :: (Show n, Eq a, Hashable n, Eq n, Ord a)
   => a
   -> Program a n Flat.Prim
   -> Fresh n (Program a n Flat.Prim)
@@ -88,7 +88,7 @@ simpFlattened a_fresh p
    -- Pull Let statements out of blocks. This just allows thresher to remove more duplicates
    >>= lift . nestBlocks   a_fresh
    -- Thresh to remove duplicate expressions
-   >>= thresher     a_fresh
+   >>= thresherNoAlpha     a_fresh
 
   anormal ss
    -- Expression simp: first perform beta reduction, then a-normalise.

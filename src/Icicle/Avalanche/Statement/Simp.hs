@@ -10,17 +10,17 @@ module Icicle.Avalanche.Statement.Simp (
   , forwardStmts
   , renameReads
   , substXinS
-  , thresher
+  , thresherWithAlpha, thresherNoAlpha
   , nestBlocks
   , dead
   , stmtFreeX, stmtFreeX'
+  , freevarsStmt
   ) where
 
 import              Icicle.Avalanche.Statement.Statement
-import              Icicle.Avalanche.Statement.Simp.ExpEnv
 import              Icicle.Avalanche.Statement.Simp.Dead
+import              Icicle.Avalanche.Statement.Simp.ExpEnv
 import              Icicle.Avalanche.Prim.Flat
-import              Icicle.Avalanche.Annot
 
 import              Icicle.Common.Base
 import              Icicle.Common.Exp
@@ -351,13 +351,42 @@ substXinS a_fresh name payload statements
 --      statements that do not have any external effect are silly
 --  * Constant folding for ifs
 --
-thresher :: (Hashable n, Eq n, Eq p) => a -> Statement a n p -> FixT (Fresh n) (Statement a n p)
-thresher a_fresh statements
- = fmap (reannotS fst)
- $ transformUDStmt trans emptyExpEnv
- $ freevarsStmt statements
+thresherNoAlpha :: (Hashable n, Eq n, Ord p, Ord a) => a -> Statement a n p -> FixT (Fresh n) (Statement a n p)
+thresherNoAlpha a_fresh statements
+ = transformUDStmt trans Map.empty statements
  where
-  a_fresh' = (a_fresh, Set.empty)
+  trans env s
+   -- Check if it actually does anything:
+   -- updates accumulators, returns a value, etc.
+   -- If it doesn't, we might as well return a nop
+   | not $ hasEffect s
+   = case s of
+      -- Don't count it as progress if it is already a nop
+      Block [] -> return   (env, mempty)
+      _        -> progress (env, mempty)
+
+   | otherwise
+   = case s of
+      Let n x ss
+      -- Duplicate let: change to refer to existing one
+       | Just n' <- Map.lookup x env
+       -> progress (env, Let n (XVar a_fresh n') ss)
+       | otherwise
+       -> return (Map.insert x n env, s)
+
+      If (XValue _ _ (VBool b)) t f
+       -> let s' = if b then t else f
+          in  progress (env, s')
+
+      -- Anything else, we just recurse
+      _
+       -> return (env, s)
+
+
+thresherWithAlpha :: (Hashable n, Eq n, Ord p) => a -> Statement a n p -> FixT (Fresh n) (Statement a n p)
+thresherWithAlpha a_fresh statements
+ = transformUDStmt trans emptyExpEnv statements
+ where
   trans env s
    -- Check if it actually does anything:
    -- updates accumulators, returns a value, etc.
@@ -374,7 +403,7 @@ thresher a_fresh statements
       -- Duplicate let: change to refer to existing one
       -- I tried to use simple equality for simpFlattened since expressions cannot contain lambdas, but it was slower. WEIRD.
        | ((n',_):_) <- filter (\(_,x') -> x `alphaEquality` x') $ Map.toList env
-       -> progress (env, Let n (XVar a_fresh' n') ss)
+       -> progress (env, Let n (XVar a_fresh n') ss)
 
       If (XValue _ _ (VBool b)) t f
        -> let s' = if b then t else f
@@ -383,6 +412,7 @@ thresher a_fresh statements
       -- Anything else, we just update environment and recurse
       _
        -> return (updateExpEnv s env, s)
+
 
 freevarsStmt
   :: (Hashable n, Eq n)

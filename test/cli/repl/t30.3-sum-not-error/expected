@@ -29,9 +29,9 @@ typedef struct {
     /* inputs */
     itime_t          conv_3;
     iint_t           new_count;
-    ierror_t        *new_conv_0_simp_23;
-    iint_t          *new_conv_0_simp_24;
-    itime_t         *new_conv_0_simp_25;
+    ierror_t        *new_conv_0_simp_19;
+    iint_t          *new_conv_0_simp_20;
+    itime_t         *new_conv_0_simp_21;
 
     /* outputs */
     ibool_t          repl_ix_0;
@@ -39,12 +39,12 @@ typedef struct {
     idouble_t        repl_ix_2;
 
     /* resumables */
-    ibool_t          has_acc_perhaps_conv_4_simp_10;
-    idouble_t        res_acc_perhaps_conv_4_simp_10;
-    ibool_t          has_acc_perhaps_conv_4_simp_8;
-    ibool_t          res_acc_perhaps_conv_4_simp_8;
-    ibool_t          has_acc_perhaps_conv_4_simp_9;
-    iint_t           res_acc_perhaps_conv_4_simp_9;
+    ibool_t          has_acc_perhaps_conv_4_simp_6;
+    idouble_t        res_acc_perhaps_conv_4_simp_6;
+    ibool_t          has_acc_perhaps_conv_4_simp_4;
+    ibool_t          res_acc_perhaps_conv_4_simp_4;
+    ibool_t          has_acc_perhaps_conv_4_simp_5;
+    iint_t           res_acc_perhaps_conv_4_simp_5;
 } iprogram_0_t;
 
 iint_t size_of_state_iprogram_0 ()
@@ -55,94 +55,94 @@ iint_t size_of_state_iprogram_0 ()
 #line 1 "compute function #0 - repl"
 void iprogram_0(iprogram_0_t *s)
 {
-    idouble_t        acc_perhaps_conv_4_simp_10;
-    idouble_t        perhaps_conv_4_aval_0_simp_13;
-    ibool_t          perhaps_conv_4_aval_0_simp_11;
-    iint_t           perhaps_conv_4_aval_0_simp_12;
-    ibool_t          acc_perhaps_conv_4_simp_8;
-    iint_t           acc_perhaps_conv_4_simp_9;
-    ibool_t          flat_0_simp_14;
-    ibool_t          flat_0_simp_17;
-    iint_t           flat_0_simp_15;
-    iint_t           flat_0_simp_18;
-    idouble_t        flat_0_simp_19;
-    idouble_t        flat_0_simp_16;
-    idouble_t        perhaps_conv_4_simp_22;
-    iint_t           perhaps_conv_4_simp_21;
-    ibool_t          perhaps_conv_4_simp_20;
+    ibool_t          perhaps_conv_4_aval_0_simp_7;
+    iint_t           perhaps_conv_4_aval_0_simp_8;
+    idouble_t        perhaps_conv_4_aval_0_simp_9;
+    idouble_t        acc_perhaps_conv_4_simp_6;
+    ibool_t          acc_perhaps_conv_4_simp_4;
+    iint_t           acc_perhaps_conv_4_simp_5;
+    ibool_t          flat_0_simp_10;
+    ibool_t          flat_0_simp_13;
+    iint_t           flat_0_simp_11;
+    iint_t           flat_0_simp_14;
+    idouble_t        flat_0_simp_12;
+    idouble_t        flat_0_simp_15;
+    ibool_t          perhaps_conv_4_simp_16;
+    idouble_t        perhaps_conv_4_simp_18;
+    iint_t           perhaps_conv_4_simp_17;
 
     imempool_t      *mempool                  = s->mempool;
     itime_t          conv_3                   = s->conv_3;
 
-    acc_perhaps_conv_4_simp_8                 = ifalse;                               /* init */
-    acc_perhaps_conv_4_simp_9                 = 0;                                    /* init */
-    acc_perhaps_conv_4_simp_10                = 0.0;                                  /* init */
+    acc_perhaps_conv_4_simp_4                 = ifalse;                               /* init */
+    acc_perhaps_conv_4_simp_5                 = 0;                                    /* init */
+    acc_perhaps_conv_4_simp_6                 = 0.0;                                  /* init */
     
-    if (s->has_acc_perhaps_conv_4_simp_8) {
-        acc_perhaps_conv_4_simp_8             = s->res_acc_perhaps_conv_4_simp_8;     /* load */
+    if (s->has_acc_perhaps_conv_4_simp_4) {
+        acc_perhaps_conv_4_simp_4             = s->res_acc_perhaps_conv_4_simp_4;     /* load */
     }
     
-    if (s->has_acc_perhaps_conv_4_simp_9) {
-        acc_perhaps_conv_4_simp_9             = s->res_acc_perhaps_conv_4_simp_9;     /* load */
+    if (s->has_acc_perhaps_conv_4_simp_5) {
+        acc_perhaps_conv_4_simp_5             = s->res_acc_perhaps_conv_4_simp_5;     /* load */
     }
     
-    if (s->has_acc_perhaps_conv_4_simp_10) {
-        acc_perhaps_conv_4_simp_10            = s->res_acc_perhaps_conv_4_simp_10;    /* load */
+    if (s->has_acc_perhaps_conv_4_simp_6) {
+        acc_perhaps_conv_4_simp_6             = s->res_acc_perhaps_conv_4_simp_6;     /* load */
     }
     
     const iint_t     new_count                = s->new_count;
-    const ierror_t  *const new_conv_0_simp_23 = s->new_conv_0_simp_23;
-    const iint_t    *const new_conv_0_simp_24 = s->new_conv_0_simp_24;
-    const itime_t   *const new_conv_0_simp_25 = s->new_conv_0_simp_25;
+    const ierror_t  *const new_conv_0_simp_19 = s->new_conv_0_simp_19;
+    const iint_t    *const new_conv_0_simp_20 = s->new_conv_0_simp_20;
+    const itime_t   *const new_conv_0_simp_21 = s->new_conv_0_simp_21;
     
     for (iint_t i = 0; i < new_count; i++) {
         ifactid_t        conv_1               = i;
-        itime_t          conv_2               = new_conv_0_simp_25[i];
-        ierror_t         conv_0_simp_23       = new_conv_0_simp_23[i];
-        iint_t           conv_0_simp_24       = new_conv_0_simp_24[i];
-        itime_t          conv_0_simp_25       = new_conv_0_simp_25[i];
-        perhaps_conv_4_aval_0_simp_11         = acc_perhaps_conv_4_simp_8;            /* read */
-        perhaps_conv_4_aval_0_simp_12         = acc_perhaps_conv_4_simp_9;            /* read */
-        perhaps_conv_4_aval_0_simp_13         = acc_perhaps_conv_4_simp_10;           /* read */
-        flat_0_simp_14                        = ifalse;                               /* init */
-        flat_0_simp_15                        = 0;                                    /* init */
-        flat_0_simp_16                        = 0.0;                                  /* init */
+        itime_t          conv_2               = new_conv_0_simp_21[i];
+        ierror_t         conv_0_simp_19       = new_conv_0_simp_19[i];
+        iint_t           conv_0_simp_20       = new_conv_0_simp_20[i];
+        itime_t          conv_0_simp_21       = new_conv_0_simp_21[i];
+        perhaps_conv_4_aval_0_simp_7          = acc_perhaps_conv_4_simp_4;            /* read */
+        perhaps_conv_4_aval_0_simp_8          = acc_perhaps_conv_4_simp_5;            /* read */
+        perhaps_conv_4_aval_0_simp_9          = acc_perhaps_conv_4_simp_6;            /* read */
+        flat_0_simp_10                        = ifalse;                               /* init */
+        flat_0_simp_11                        = 0;                                    /* init */
+        flat_0_simp_12                        = 0.0;                                  /* init */
         
-        if (perhaps_conv_4_aval_0_simp_11) {
-            flat_0_simp_14                    = ifalse;                               /* write */
-            iint_t           simp_35          = idouble_trunc (perhaps_conv_4_aval_0_simp_13); /* let */
-            flat_0_simp_15                    = iint_add (simp_35, 1);                /* write */
-            flat_0_simp_16                    = 0.0;                                  /* write */
+        if (perhaps_conv_4_aval_0_simp_7) {
+            flat_0_simp_10                    = ifalse;                               /* write */
+            iint_t           simp_28          = idouble_trunc (perhaps_conv_4_aval_0_simp_9); /* let */
+            flat_0_simp_11                    = iint_add (simp_28, 1);                /* write */
+            flat_0_simp_12                    = 0.0;                                  /* write */
         } else {
-            flat_0_simp_14                    = itrue;                                /* write */
-            flat_0_simp_15                    = 0;                                    /* write */
-            idouble_t        simp_53          = iint_extend (perhaps_conv_4_aval_0_simp_12); /* let */
-            flat_0_simp_16                    = idouble_add (simp_53, 1.0);           /* write */
+            flat_0_simp_10                    = itrue;                                /* write */
+            flat_0_simp_11                    = 0;                                    /* write */
+            idouble_t        simp_41          = iint_extend (perhaps_conv_4_aval_0_simp_8); /* let */
+            flat_0_simp_12                    = idouble_add (simp_41, 1.0);           /* write */
         }
         
-        flat_0_simp_17                        = flat_0_simp_14;                       /* read */
-        flat_0_simp_18                        = flat_0_simp_15;                       /* read */
-        flat_0_simp_19                        = flat_0_simp_16;                       /* read */
-        acc_perhaps_conv_4_simp_8             = flat_0_simp_17;                       /* write */
-        acc_perhaps_conv_4_simp_9             = flat_0_simp_18;                       /* write */
-        acc_perhaps_conv_4_simp_10            = flat_0_simp_19;                       /* write */
+        flat_0_simp_13                        = flat_0_simp_10;                       /* read */
+        flat_0_simp_14                        = flat_0_simp_11;                       /* read */
+        flat_0_simp_15                        = flat_0_simp_12;                       /* read */
+        acc_perhaps_conv_4_simp_4             = flat_0_simp_13;                       /* write */
+        acc_perhaps_conv_4_simp_5             = flat_0_simp_14;                       /* write */
+        acc_perhaps_conv_4_simp_6             = flat_0_simp_15;                       /* write */
     }
     
-    s->has_acc_perhaps_conv_4_simp_8          = itrue;                                /* save */
-    s->res_acc_perhaps_conv_4_simp_8          = acc_perhaps_conv_4_simp_8;            /* save */
+    s->has_acc_perhaps_conv_4_simp_4          = itrue;                                /* save */
+    s->res_acc_perhaps_conv_4_simp_4          = acc_perhaps_conv_4_simp_4;            /* save */
     
-    s->has_acc_perhaps_conv_4_simp_9          = itrue;                                /* save */
-    s->res_acc_perhaps_conv_4_simp_9          = acc_perhaps_conv_4_simp_9;            /* save */
+    s->has_acc_perhaps_conv_4_simp_5          = itrue;                                /* save */
+    s->res_acc_perhaps_conv_4_simp_5          = acc_perhaps_conv_4_simp_5;            /* save */
     
-    s->has_acc_perhaps_conv_4_simp_10         = itrue;                                /* save */
-    s->res_acc_perhaps_conv_4_simp_10         = acc_perhaps_conv_4_simp_10;           /* save */
+    s->has_acc_perhaps_conv_4_simp_6          = itrue;                                /* save */
+    s->res_acc_perhaps_conv_4_simp_6          = acc_perhaps_conv_4_simp_6;            /* save */
     
-    perhaps_conv_4_simp_20                    = acc_perhaps_conv_4_simp_8;            /* read */
-    perhaps_conv_4_simp_21                    = acc_perhaps_conv_4_simp_9;            /* read */
-    perhaps_conv_4_simp_22                    = acc_perhaps_conv_4_simp_10;           /* read */
-    s->repl_ix_0                              = perhaps_conv_4_simp_20;               /* output */
-    s->repl_ix_1                              = perhaps_conv_4_simp_21;               /* output */
-    s->repl_ix_2                              = perhaps_conv_4_simp_22;               /* output */
+    perhaps_conv_4_simp_16                    = acc_perhaps_conv_4_simp_4;            /* read */
+    perhaps_conv_4_simp_17                    = acc_perhaps_conv_4_simp_5;            /* read */
+    perhaps_conv_4_simp_18                    = acc_perhaps_conv_4_simp_6;            /* read */
+    s->repl_ix_0                              = perhaps_conv_4_simp_16;               /* output */
+    s->repl_ix_1                              = perhaps_conv_4_simp_17;               /* output */
+    s->repl_ix_2                              = perhaps_conv_4_simp_18;               /* output */
 }
 
 - C evaluation:
