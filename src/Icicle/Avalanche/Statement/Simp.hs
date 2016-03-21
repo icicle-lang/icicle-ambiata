@@ -54,8 +54,14 @@ convertValues a_fresh statements
        -> go $ Let n (goX x) subs
       ForeachInts n from to subs
        -> go $ ForeachInts n (goX from) (goX to) subs
+      InitAccumulator acc subs
+       -> go $ InitAccumulator (acc { accInit = goX $ accInit acc }) subs
       Write n x
        -> go $ Write n (goX x)
+      Output n t xts
+       -> go $ Output n t (fmap (first goX) xts)
+      KeepFactInHistory x
+       -> go $ KeepFactInHistory (goX x)
       _ -> return ((), s)
 
   go x
@@ -81,6 +87,12 @@ convertValues a_fresh statements
          -> bufPrim n t (reverse buf)
        _ -> xx
 
+  goB' t v
+   | BufT n t' <- t
+   = goB (XValue a_fresh t v) n t' v
+   | otherwise
+   = XValue a_fresh t v
+
   goA xx t v
    = case v of
        VArray arr
@@ -95,7 +107,8 @@ convertValues a_fresh statements
        (x : xs)
          -> XPrim a_fresh (PrimBuf (PrimBufPush n t))
               `xApp` bufPrim n t xs
-              `xApp` XValue a_fresh t x
+              -- Allow for nested buffers
+              `xApp` goB' t x
 
   arrPrim i n t a
     = case a of
@@ -106,7 +119,7 @@ convertValues a_fresh statements
            -> XPrim a_fresh (PrimUpdate (PrimUpdateArrayPut t))
                 `xApp` arrPrim (i + 1) n t xs
                 `xApp` (XValue a_fresh IntT (VInt i))
-                `xApp` XValue a_fresh t x
+                `xApp` goB' t x
 
   xApp
    = XApp a_fresh

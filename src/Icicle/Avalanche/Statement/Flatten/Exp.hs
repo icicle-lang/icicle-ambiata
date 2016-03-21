@@ -2,6 +2,7 @@
 -- The input statements must be in A-normal form.
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE PatternGuards #-}
+{-# LANGUAGE RecordWildCards #-}
 module Icicle.Avalanche.Statement.Flatten.Exp (
     flatX, flatXS
   ) where
@@ -10,7 +11,8 @@ import              Icicle.Avalanche.Statement.Flatten.Base
 import              Icicle.Avalanche.Statement.Flatten.Type
 
 import              Icicle.Avalanche.Statement.Statement
-import qualified    Icicle.Avalanche.Prim.Flat     as Flat
+import qualified    Icicle.Avalanche.Prim.Flat      as Flat
+import qualified    Icicle.Avalanche.Prim.Compounds as Flat
 
 import qualified    Icicle.Core.Exp.Prim           as Core
 import qualified    Icicle.Common.Exp.Prim.Minimal as Min
@@ -63,12 +65,14 @@ flatX a_fresh xx stm
      $ betaToLets a_fresh xx
 
   -- Annotation plumbing
-  flatX'    = flatX    a_fresh
-  makeApps' = makeApps a_fresh
-  xVar      = XVar     a_fresh
-  xPrim     = XPrim    a_fresh
-  xValue    = XValue   a_fresh
-  xApp      = XApp     a_fresh
+  flatX'           = flatX        a_fresh
+  Flat.FlatOps{..} = Flat.flatOps a_fresh
+  makeApps'        = makeApps a_fresh
+  xVar          = XVar   a_fresh
+  xPrim         = XPrim  a_fresh
+  xValue        = XValue a_fresh
+  xApp          = XApp   a_fresh
+
 
   -- Convert the simplified expression.
   convX
@@ -139,8 +143,8 @@ flatX a_fresh xx stm
              n'map'v     <- fresh
              n'map'sz    <- fresh
              let acc'done = Accumulator n'done  BoolT $ xValue BoolT $ VBool False
-                 acc'map'k= Accumulator n'map'k (ArrayT tk) (fpMapKeys tk tv `xApp` map')
-                 acc'map'v= Accumulator n'map'v (ArrayT tv) (fpMapVals tk tv `xApp` map')
+                 acc'map'k= Accumulator n'map'k (ArrayT tk) (mapKeys tk tv map')
+                 acc'map'v= Accumulator n'map'v (ArrayT tv) (mapVals tk tv map')
 
                  x'done   = xVar n'done
                  x'map'k  = xVar n'map'k
@@ -149,11 +153,10 @@ flatX a_fresh xx stm
                  read'k   = Read n'map'k n'map'k (ArrayT tk)
                  read'v   = Read n'map'v n'map'v (ArrayT tv)
 
-                 sz       = xVar n'map'sz -- fpArrLen tk `xApp` x'map'k
-                 eq       = xPrim $ Flat.PrimMinimal $ Min.PrimRelation Min.PrimRelationEq tk
-                 get'k i  = fpArrIx  tk `makeApps'` [x'map'k, i]
-                 get'v i  = fpArrIx  tv `makeApps'` [x'map'v, i]
-                 put'v i x= fpArrUpd tv `makeApps'` [x'map'v, i, x]
+                 sz       = xVar n'map'sz
+                 get'k i  = arrIx  tk x'map'k i
+                 get'v i  = arrIx  tv x'map'v i
+                 put'v i x= arrUpd tv x'map'v i x
 
                  upd' i   = slet (get'v i)
                           $ \v    -> flatX' (upd `xApp` v)
@@ -162,7 +165,7 @@ flatX a_fresh xx stm
              loop1       <- forI sz  $ \i
                          ->  (read'k
                          <$> (read'v
-                         <$> (If (eq `makeApps'` [get'k i, key'])
+                         <$> (If (relEq tk (get'k i) key')
                                <$> upd' i
                                <*> return mempty)))
 
@@ -180,14 +183,14 @@ flatX a_fresh xx stm
 
                  stm''    = read'k
                           $ read'v
-                          $ Let n'map' (fpMapPack tk tv `makeApps'` [x'map'k, x'map'v])
+                          $ Let n'map' (mapPack tk tv x'map'k x'map'v)
                           $ stm'
 
                  ss       = InitAccumulator acc'done
                           $ InitAccumulator acc'map'k
                           $ InitAccumulator acc'map'v
                           $ read'k
-                          $ Let n'map'sz (fpArrLen tk `xApp` x'map'k)
+                          $ Let n'map'sz (arrLen tk x'map'k)
                           ( loop1 <> if_ins <> stm'' )
 
              return ss
@@ -210,10 +213,10 @@ flatX a_fresh xx stm
              stm'   <- flatX'
                      ( xPrim (Core.PrimArray $ Core.PrimArrayMap tv tv')
                        `makeApps'` [upd, xVar n'vals] )
-                     (\v -> stm (fpMapPack tk tv `makeApps'` [xVar n'keys, v]))
+                     (\v -> stm (mapPack tk tv (xVar n'keys) v))
 
-             return  $ Let n'vals (fpMapVals tk tv `xApp` map')
-                     $ Let n'keys (fpMapKeys tk tv `xApp` map')
+             return  $ Let n'vals (mapVals tk tv map')
+                     $ Let n'keys (mapKeys tk tv map')
                      $ stm'
 
        -- Map with wrong arguments
@@ -231,20 +234,16 @@ flatX a_fresh xx stm
        $ \key'
        -> do n'res       <- fresh
              let acc'res  = Accumulator n'res (OptionT tv) $ xValue (OptionT tv) VNone
-
                  read'r   = Read n'res n'res (OptionT tv)
+                 upd' x   = Write n'res (someF tv x)
 
-                 eq       = xPrim $ Flat.PrimMinimal $ Min.PrimRelation Min.PrimRelationEq tk
-                 get t ar i = fpArrIx  t `makeApps'` [ar, i]
-                 upd' x   = Write n'res ((xPrim $ Flat.PrimMinimal $ Min.PrimConst $ Min.PrimConstSome tv) `xApp` x)
-
-             loop1       <- slet (fpMapKeys tk tv `xApp` map')  $ \map'k
-                         -> slet (fpMapVals tk tv `xApp` map')  $ \map'v
-                         -> slet (fpArrLen  tk    `xApp` map'k) $ \sz
+             loop1       <- slet (mapKeys tk tv map')  $ \map'k
+                         -> slet (mapVals tk tv map')  $ \map'v
+                         -> slet (arrLen  tk    map'k) $ \sz
                          -> forI sz  $ \i
                          -> return
-                            (If (eq `makeApps'` [get tk map'k i, key'])
-                               (upd' $ get tv map'v i)
+                            (If (relEq tk (arrIx tk map'k i) key')
+                               (upd' $ arrIx tv map'v i)
                                mempty)
 
              stm'        <- stm $ xVar n'res
@@ -271,15 +270,15 @@ flatX a_fresh xx stm
 
                 let arrT = ArrayT tb
 
-                loop <- forI (fpArrLen ta `xApp` arr')                 $ \iter
+                loop <- forI    (arrLen ta arr')                  $ \iter
                      -> fmap    (Read accN accN arrT)                  $
-                        slet    (fpArrIx ta `makeApps'` [arr', iter])  $ \elm
-                     -> flatX'  (upd `xApp` elm)                    $ \elm'
-                     -> slet    (fpArrUpd tb `makeApps'` [xVar accN, iter, elm']) $ \arr''
+                        slet    (arrIx ta arr' iter)              $ \elm
+                     -> flatX'  (upd `xApp` elm)                       $ \elm'
+                     -> slet    (arrUpd tb (xVar accN) iter elm') $ \arr''
                      -> return  (Write accN arr'')
 
                 return $ InitAccumulator
-                            (Accumulator accN arrT (fpArrNew tb `xApp` (fpArrLen ta `xApp` arr')))
+                            (Accumulator accN arrT (arrNew tb (arrLen ta arr')))
                             (loop <> Read accN accN arrT stm')
 
 
@@ -301,13 +300,10 @@ flatX a_fresh xx stm
        -> do   tmpN      <- fresh
                let tb1 = BufT i FactIdentifierT 
                let tb2 = BufT i t
-               let proj' ix = projFlat ix tb1 tb2 buf'
-               let fpPush t' b v = xPrim (Flat.PrimBuf $ Flat.PrimBufPush i t') `xApp` b `xApp` v
-               let fpPair a b = xPrim (Flat.PrimMinimal $ Min.PrimConst $ Min.PrimConstPair tb1 tb2) `xApp` a `xApp` b
 
-               let pushed = fpPair
-                       (fpPush FactIdentifierT (proj' False) factid')
-                       (fpPush t (proj' True) e')
+               let pushed = pair tb1 tb2
+                       (bufPush i FactIdentifierT (fstF tb1 tb2 buf') factid')
+                       (bufPush i t               (sndF tb1 tb2 buf') e')
 
                stm'      <- stm (xVar tmpN)
                return
@@ -326,8 +322,7 @@ flatX a_fresh xx stm
        -> do   tmpN       <- fresh
                let tb1 = BufT i FactIdentifierT 
                let tb2 = BufT i t
-               let proj' ix = projFlat ix tb1 tb2 buf'
-               let fpRead  = xPrim (Flat.PrimBuf $ Flat.PrimBufRead i t) `xApp` (proj' True)
+               let fpRead  = bufRead i t (sndF tb1 tb2 buf')
                stm'       <- stm (xVar tmpN)
                return
                  $ Let tmpN fpRead stm'
@@ -412,9 +407,9 @@ flatX a_fresh xx stm
 
         -- Loop body updates accumulator with k function
         loop <-  flatX' arr                                       $ \arr'
-             ->  forI   (fpArrLen telem `xApp` arr')              $ \iter
+             ->  forI   (arrLen telem  arr')                 $ \iter
              ->  fmap   (Read accN accN valT)                     $
-                 slet   (fpArrIx  telem `makeApps'` [arr', iter]) $ \elm
+                 slet   (arrIx  telem arr' iter)             $ \elm
              ->  flatX' (makeApps' k [xVar accN, elm])            $ \x
              ->  return (Write accN x)
 
@@ -446,9 +441,9 @@ flatX a_fresh xx stm
                   ( xPrim (Core.PrimFold (Core.PrimFoldArray (PairT tk tv)) valT)
                      `makeApps'` [k', z, xVar n'zips] ) stm
 
-         return   $ Let n'keys (fpMapKeys tk tv `xApp` mmm')
-                  $ Let n'vals (fpMapVals tk tv `xApp` mmm')
-                  $ Let n'zips (fpArrZip  tk tv `makeApps'` [xVar n'keys, xVar n'vals])
+         return   $ Let n'keys (mapKeys tk tv mmm')
+                  $ Let n'vals (mapVals tk tv mmm')
+                  $ Let n'zips (arrZip  tk tv (xVar n'keys) (xVar n'vals))
                   $ res
 
 
@@ -465,7 +460,7 @@ flatX a_fresh xx stm
       let vunit = xValue UnitT VUnit
       ssome <- flatX' (xsome `xApp` (xVar tmp)) $ (return . Write acc)
       snone <- flatX' (xnone `xApp` vunit)  $ (return . Write acc)
-      let if_   = If (fpIsSome ta `xApp` opt') (Let tmp (fpOptionGet ta `xApp` opt') ssome) snone
+      let if_   = If (isSome ta opt') (Let tmp (optionGet ta opt') ssome) snone
           -- After if, read back result from accumulator and then go do the rest of the statements
           read_ = Read acc acc valT stm'
       return (InitAccumulator (Accumulator acc valT $ xValue valT $ defaultOfType valT) (if_ <> read_))
@@ -474,9 +469,6 @@ flatX a_fresh xx stm
   flatFold (Core.PrimFoldSum taOld tbOld) valT [xleft, xright, scrut]
    = let ta          = flatT taOld
          tb          = flatT tbOld
-         fpIsRight   = xPrim (Flat.PrimProject  (Flat.PrimProjectSumIsRight ta tb))
-         fpLeft      = xPrim (Flat.PrimUnsafe   (Flat.PrimUnsafeSumGetLeft  ta tb))
-         fpRight     = xPrim (Flat.PrimUnsafe   (Flat.PrimUnsafeSumGetRight ta tb))
      in  flatX' scrut
       $ \scrut'
       -> do
@@ -487,7 +479,9 @@ flatX a_fresh xx stm
          sleft   <- flatX' (xleft  `xApp` (xVar tmp )) $ (return . Write acc)
          sright  <- flatX' (xright `xApp` (xVar tmp')) $ (return . Write acc)
 
-         let if_   = If (fpIsRight `xApp` scrut') (Let tmp' (fpRight `xApp` scrut') sright) (Let tmp (fpLeft `xApp` scrut') sleft)
+         let if_   = If (isRightF ta tb scrut')
+                        (Let tmp' (right ta tb scrut') sright)
+                        (Let tmp  (left  ta tb scrut') sleft)
            -- After if, read back result from accumulator and then go do the rest of the statements
              read_ = Read acc acc valT stm'
          return (InitAccumulator (Accumulator acc valT $ xValue valT $ defaultOfType valT) (if_ <> read_))
@@ -505,27 +499,12 @@ flatX a_fresh xx stm
             = Min.PrimPairSnd ta tb
      in (xPrim $ pmin $ Min.PrimPair $ pm) `xApp` e
   projCore = proj Core.PrimMinimal
-  projFlat = proj Flat.PrimMinimal
 
-
-  fpArrLen t = xPrim (Flat.PrimProject $ Flat.PrimProjectArrayLength t)
-  fpArrIx  t = xPrim (Flat.PrimUnsafe  $ Flat.PrimUnsafeArrayIndex   t)
-  fpArrNew t = xPrim (Flat.PrimUnsafe  $ Flat.PrimUnsafeArrayCreate  t)
-  fpArrUpd t = xPrim (Flat.PrimUpdate  $ Flat.PrimUpdateArrayPut     t)
-  fpArrZip k v = xPrim (Flat.PrimArray $ Flat.PrimArrayZip           k v)
-
-
-  fpMapPack k v = xPrim (Flat.PrimMap (Flat.PrimMapPack         k v))
-  fpMapKeys k v = xPrim (Flat.PrimMap (Flat.PrimMapUnpackKeys   k v))
-  fpMapVals k v = xPrim (Flat.PrimMap (Flat.PrimMapUnpackValues k v))
-
-  fpIsSome    t = xPrim (Flat.PrimProject (Flat.PrimProjectOptionIsSome t))
-  fpOptionGet t = xPrim (Flat.PrimUnsafe (Flat.PrimUnsafeOptionGet t))
 
   pushArray t n'acc push
    = do let t'   = ArrayT t
-            sz arr = fpArrLen t `xApp` arr
-            put arr i x = fpArrUpd t `makeApps'` [arr, i, x]
+            sz arr = arrLen t arr
+            put arr i x = arrUpd t arr i x
 
         update n'acc t' (\arr -> put arr (sz arr) push)
 

@@ -42,6 +42,7 @@ prop_seaworthy wt
        Left err
         -> counterexample (show $ pretty err)
         $  counterexample (show $ pretty (wtCore wt))
+        $  counterexample (show $ pretty (wtAvalanche wt))
         $  failed
  where
   go p

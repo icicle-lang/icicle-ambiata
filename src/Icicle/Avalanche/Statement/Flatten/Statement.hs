@@ -9,8 +9,11 @@ module Icicle.Avalanche.Statement.Flatten.Statement (
 import              Icicle.Avalanche.Statement.Flatten.Base
 import              Icicle.Avalanche.Statement.Flatten.Exp
 import              Icicle.Avalanche.Statement.Flatten.Type
+import              Icicle.Avalanche.Statement.Flatten.Save
+
 
 import              Icicle.Avalanche.Statement.Statement
+import qualified    Icicle.Avalanche.Prim.Flat     as Flat
 
 import qualified    Icicle.Core.Exp.Prim           as Core
 
@@ -21,6 +24,11 @@ import              P
 import qualified    Data.List                      as List
 import              Data.Hashable                  (Hashable)
 
+flatten :: (Pretty n, Hashable n, Eq n)
+        => a
+        -> Statement a n Core.Prim
+        -> FlatM a n
+flatten a_fresh s = flattenS a_fresh [] s
 
 -- Extracting FactIdentifiers from Buffers:
 --
@@ -42,53 +50,58 @@ import              Data.Hashable                  (Hashable)
 
 -- | Flatten the primitives in a statement.
 -- This just calls @flatX@ for every expression, wrapping the statement.
-flatten :: (Pretty n, Hashable n, Eq n)
+flattenS :: (Pretty n, Hashable n, Eq n)
         => a
+        -> [Accumulator a n Flat.Prim]
         -> Statement a n Core.Prim
         -> FlatM a n
-flatten a_fresh s
+flattenS a_fresh accums s
  = case s of
     If x ts es
      -> flatX a_fresh x
      $ \x'
-     -> If x' <$> flatten a_fresh ts <*> flatten a_fresh es
+     -> If x' <$> flattenS a_fresh accums ts <*> flattenS a_fresh accums es
 
     Let n x ss
      -> flatX a_fresh x
      $ \x'
-     -> Let n x' <$> flatten a_fresh ss
+     -> Let n x' <$> flattenS a_fresh accums ss
 
     ForeachInts n from to ss
      -> flatX a_fresh from
      $ \from'
      -> flatX a_fresh to
      $ \to'
-     -> ForeachInts n from' to' <$> flatten a_fresh ss
+     -> ForeachInts n from' to' <$> flattenS a_fresh accums ss
 
     ForeachFacts binds vt lo ss
      -- Input binds cannot contain Buffers, so no need to flatten the types
-     -> ForeachFacts binds (flatT vt) lo <$> flatten a_fresh ss
+     -> do  loop  <- ForeachFacts binds (flatT vt) lo <$> flattenS a_fresh accums ss
+            -- Run through all the accumulators and save the buffers
+            save  <- mapM (flattenSaveAccumulator a_fresh) accums
+            return $ mconcat (loop : save)
 
     Block ss
-     -> Block <$> mapM (flatten a_fresh) ss
+     -> Block <$> mapM (flattenS a_fresh accums) ss
 
     InitAccumulator acc ss
      -> flatX a_fresh (accInit acc)
      $ \x'
-     -> InitAccumulator
-       (acc { accInit = x'
-            , accValType = flatT (accValType acc)})
-     <$> flatten a_fresh ss
+     -> let acc' = acc
+                 { accInit = x'
+                 , accValType = flatT (accValType acc)}
+        in InitAccumulator acc'
+        <$> flattenS a_fresh (acc':accums) ss
 
     Read n m vt ss
-     -> Read n m (flatT vt) <$> flatten a_fresh ss
+     -> Read n m (flatT vt) <$> flattenS a_fresh accums ss
 
     Write n x
      -> flatX a_fresh x (return . Write n)
 
     Output n t xts
      | xs <- fmap fst xts
-     , ts <- fmap snd xts
+     , ts <- fmap (flatT.snd) xts
      -> flatXS a_fresh xs []
      $ \xs'
      -> return $ Output n (flatT t) (List.zip xs' ts)
