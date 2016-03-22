@@ -8,7 +8,8 @@ module Icicle.Avalanche.Annot
 
 import Icicle.Avalanche.Program
 import Icicle.Avalanche.Statement.Statement
-import Icicle.Common.Exp
+-- Re-exported as well as used
+import Icicle.Common.Exp.Compounds (reannotX, eraseAnnotX)
 
 import P
 
@@ -18,9 +19,6 @@ eraseAnnotP = reannotP (const ())
 
 eraseAnnotS :: Statement a n p -> Statement () n p
 eraseAnnotS = reannotS (const ())
-
-eraseAnnotX :: Exp a n p -> Exp () n p
-eraseAnnotX = reannotX (const ())
 
 reannotP :: (a -> a') -> Program a n p -> Program a' n p
 reannotP f p
@@ -62,16 +60,6 @@ reannotS f ss
     LoadResumable n vt -> LoadResumable n vt
     SaveResumable n vt -> SaveResumable n vt
 
-
-reannotX :: (a -> a') -> Exp a n p -> Exp a' n  p
-reannotX f xx
- = case xx of
-    XVar    a n     -> XVar   (f a) n
-    XPrim   a p     -> XPrim  (f a) p
-    XValue  a t v   -> XValue (f a) t v
-    XApp    a x1 x2 -> XApp   (f a) (reannotX f x1) (reannotX f x2)
-    XLam    a n t x -> XLam   (f a) n t (reannotX f x)
-    XLet    a n b x -> XLet   (f a) n (reannotX f b) (reannotX f x)
 
 
 reannotA :: (a -> a') -> Accumulator a n p -> Accumulator a' n p

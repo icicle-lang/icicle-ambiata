@@ -12,8 +12,11 @@ module Icicle.Common.Exp.Compounds (
     , freevars
     , freevarsExp
     , allvars
+    , allvarsExp
     , substMaybe
     , subst
+    , reannotX
+    , eraseAnnotX
     ) where
 
 import              Icicle.Common.Base
@@ -119,6 +122,28 @@ freevars xx
     XLam _ n _ x -> Set.delete n (freevars x)
     XLet _ n x y -> let !a = freevars x <> Set.delete n (freevars y) in a
 
+
+allvarsExp
+  :: (Hashable n, Eq n)
+  => Exp a n p
+  -> Exp (a, Set (Name n)) n p
+allvarsExp xx
+ = case xx of
+    XVar   a n     -> XVar   (a, Set.singleton n) n
+    XPrim  a p     -> XPrim  (a, Set.empty)       p
+    XValue a t v   -> XValue (a, Set.empty)       t v
+    XApp   a p q   -> let !p' = allvarsExp p
+                          !q' = allvarsExp q
+                          !a' = ann p' <> ann q'
+                      in  XApp (a, a') p' q'
+    XLam   a n t x -> let !x' = allvarsExp x
+                          !a' = Set.singleton n <> ann x'
+                      in  XLam (a, a') n t x'
+    XLet   a n x y -> let !x' = allvarsExp x
+                          !y' = allvarsExp y
+                          !a' = Set.singleton n <> ann x' <> ann y'
+                      in  XLet (a, a') n x' y'
+  where ann = snd . annotOfExp
 
 -- | Collect all variable names in an expression:
 -- free and bound
@@ -239,4 +264,18 @@ subst a_fresh name payload into
        -- Proceed as usual
        | otherwise
        -> XLet a n <$> go x1 <*> go x2
+
+
+reannotX :: (a -> a') -> Exp a n p -> Exp a' n  p
+reannotX f xx
+ = case xx of
+    XVar    a n     -> XVar   (f a) n
+    XPrim   a p     -> XPrim  (f a) p
+    XValue  a t v   -> XValue (f a) t v
+    XApp    a x1 x2 -> XApp   (f a) (reannotX f x1) (reannotX f x2)
+    XLam    a n t x -> XLam   (f a) n t (reannotX f x)
+    XLet    a n b x -> XLet   (f a) n (reannotX f b) (reannotX f x)
+
+eraseAnnotX :: Exp a n p -> Exp () n p
+eraseAnnotX = reannotX (const ())
 

@@ -20,6 +20,7 @@
 {-# LANGUAGE PatternGuards #-}
 module Icicle.Common.Exp.Simp.ANormal (
       anormal
+    , anormalAllVars
     ) where
 
 import Icicle.Common.Base
@@ -32,15 +33,45 @@ import Data.List (unzip)
 import Data.Hashable (Hashable)
 
 import qualified    Data.Set    as Set
+import              Data.Set     ( Set )
 
 -- | A-normalise an expression.
 -- We need a fresh name supply.
 anormal :: (Hashable n, Eq n) => a -> Exp a n p -> Fresh n (Exp a n p)
 anormal a_fresh xx
- = do   (bs, x)  <- anormal' a_fresh xx
-        (bs',x') <- renames bs [] x
-        return $ makeLets a_fresh bs' x'
+ -- Annotate each expression with all the variables underneath it,
+ -- then perform a-normalisation, then throw away the annotations
+ = reannotX fst <$> (anormalAllVars a_fresh $ allvarsExp xx)
+
+
+-- | A-normalise an expression, annotated with all the mentioned variables.
+-- Computing the variable set once and reusing it is much faster than recomputing it each time.
+-- However, it does complicate constructing new expressions.
+-- We need to be careful when constructing expressions to return,
+-- as their variable set may be used by a parent recursive call.
+-- We can cheat a little with the variable set though:
+-- * a superset is allowed, as it will just make renaming more pessimistic
+-- * new fresh variables don't need to be mentioned, as they will not appear elsewhere as binders or mentioned
+--
+anormalAllVars :: (Hashable n, Eq n) => a -> Exp (a, Set (Name n)) n p -> Fresh n (Exp (a, Set (Name n)) n p)
+anormalAllVars a_fresh xx
+ = do   (bs, x)  <- pullSubExps a_fresh xx
+        -- Get the union of all the variables
+        let allNames = varsOfLets bs x
+        -- and rename the outside binds if they are used
+        (bs',x') <- renames allNames bs [] x
+
+        -- Tag the result with the union of the original bindings (bs)
+        -- as well as the new names of the bindings.
+        let allNames' = allNames <> Set.fromList (fmap fst bs')
+        return $ makeLets (a_fresh, allNames') bs' x'
+
  where
+  -- All the variables inside the bindings
+  varsOfLets bs x
+   = Set.unions
+   $ fmap (snd.annotOfExp)
+   $ x : fmap snd bs
 
   -- The sub-expressions of x might already have let bindings, and we're
   -- going to pull those out.
@@ -52,12 +83,12 @@ anormal a_fresh xx
   -- outlawed by the type checker.
   --
   -- So, we look at each binding, and if it would shadow something, we rename it.
-  renames [] seen  x
+  renames _ [] seen  x
    = return (seen, x)
 
-  renames ((n,b):bs) seen x
-   -- Check if n is used anywhere else
-   |  n `Set.member` allvars (makeLets a_fresh bs x)
+  renames allNames ((n,b):bs) seen x
+   -- Check if n is used anywhere else, including as a later binding name
+   |  n `Set.member` (allNames <> Set.fromList (fmap fst bs))
    = do n' <- fresh
         -- Lets are non-recursive, so "b" will not change.
 
@@ -66,25 +97,27 @@ anormal a_fresh xx
         --
         -- Note that mapping subst over (fmap snd bs) wouldn't work - because we'd lose
         -- valuable shadowing information from the names in (fmap fst bs).
-        let lets = makeLets a_fresh bs x
+        -- (that is, if one of bs is also named "n")
+        let a_fresh' = (a_fresh, allNames)
+        let lets = makeLets a_fresh' bs x
         -- Substitute with the new name
-        lets' <- subst a_fresh n (XVar a_fresh n') lets
+        lets' <- subst a_fresh' n (XVar a_fresh' n') lets
 
         -- It's silly, but we need to pull back out to a list of bindings again.
         -- We could save some work by going backwards, but this way seems simpler for now.
         let (bs',x') = takeLets lets'
 
         -- Proceed.
-        renames bs' (seen <> [(n', b)]) x'
+        renames allNames bs' (seen <> [(n', b)]) x'
 
-   -- The name isn't used elsewhere, so we can skip it
+   -- The name isn't used elsewhere, so we don't need to rename it. Add it unchanged
    | otherwise
-   = renames bs (seen <> [(n,b)]) x
+   = renames allNames bs (seen <> [(n,b)]) x
 
 
 -- | Recursively pull out sub-expressions to be bound
-anormal' :: (Hashable n, Eq n) => a -> Exp a n p -> Fresh n ([(Name n, Exp a n p)], Exp a n p)
-anormal' a_fresh xx
+pullSubExps :: (Hashable n, Eq n) => a -> Exp (a, Set (Name n)) n p -> Fresh n ([(Name n, Exp (a, Set (Name n)) n p)], Exp (a, Set (Name n)) n p)
+pullSubExps a_fresh xx
  = case xx of
     -- Values and other simple expressions can be left alone.
     XVar{}
@@ -103,19 +136,24 @@ anormal' a_fresh xx
             -- And with the arguments
             (bs, xs)    <- unzip <$> mapM (extractBinding a_fresh) args
 
-            -- Push all the bindings together, then reconstruct the new application
-            return (concat (bf:bs), makeApps a_fresh xf xs)
+            -- Reconstruct the new application, using the non-binding bits.
+            -- Its variable set is really the union of all the non-binding bits,
+            -- but the original expressions' variable set is a good approximation.
+            let vars' = snd $ annotOfExp xx
+            let app'  = makeApps (a_fresh, vars') xf xs
+            -- Push all the bindings together
+            return (concat (bf:bs), app')
 
     -- Lambdas are barriers.
     -- We don't want to pull anything out.
     XLam a n v x
-     -> do  x' <- anormal a_fresh x
+     -> do  x' <- anormalAllVars a_fresh x
             return ([], XLam a n v x')
 
     -- Just recurse over lets
     XLet _ n x y
-     -> do  (bx, x')    <- anormal' a_fresh x
-            (by, y')    <- anormal' a_fresh y
+     -> do  (bx, x')    <- pullSubExps a_fresh x
+            (by, y')    <- pullSubExps a_fresh y
 
             return (bx <> [(n, x')] <> by, y')
 
@@ -127,14 +165,17 @@ anormal' a_fresh xx
 -- | Extract bindings for part of an application expression.
 -- If it's simple, just give it back.
 -- If it's interesting, anormalise it and bind it to a fresh name
-extractBinding :: (Hashable n, Eq n) => a -> Exp a n p -> Fresh n ([(Name n, Exp a n p)], Exp a n p)
+extractBinding :: (Hashable n, Eq n) => a -> Exp (a, Set (Name n)) n p -> Fresh n ([(Name n, Exp (a, Set (Name n)) n p)], Exp (a, Set (Name n)) n p)
 extractBinding a_fresh xx
  | isNormal xx
  = return ([], xx)
  | otherwise
- = do   (bs,x') <- anormal' a_fresh xx
+ = do   (bs,x') <- pullSubExps a_fresh xx
         n       <- fresh
-        return (bs <> [(n,x')], XVar a_fresh n)
+        -- The annotation here should strictly be singleton of n,
+        -- however since it is fresh it won't conflict with other bindings.
+        -- Empty might be faster.
+        return (bs <> [(n,x')], XVar (a_fresh, Set.empty) n)
 
 
 -- | Check whether expression is worth extracting
