@@ -239,6 +239,8 @@ convertModifyFeatures f
  = do   o <- get
         put (o { csFeatures = f $ csFeatures o })
 
+-- | When adding a variable binding, you need to modify the existing things, and then add something new.
+-- The variable you're adding also needs to be cleared from any other environments, for shadowing to work
 convertModifyFeaturesMap
         :: (Hashable n, Eq n)
         => (Map.Map (Name n) (FeatureVariable () n) -> Map.Map (Name n) (FeatureVariable () n))
@@ -249,6 +251,7 @@ convertModifyFeaturesMap f clearName
         let fs = csFeatures o
         let fv = featureContextVariables fs
         put (o { csFeatures = fs { featureContextVariables = f fv }
+               -- Remove this from the freshen environment as the features map version shadows it
                , csFreshen  = Map.delete clearName $ csFreshen o })
 
 
