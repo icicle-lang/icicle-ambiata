@@ -240,13 +240,16 @@ convertModifyFeatures f
         put (o { csFeatures = f $ csFeatures o })
 
 convertModifyFeaturesMap
-        :: (Map.Map (Name n) (FeatureVariable () n) -> Map.Map (Name n) (FeatureVariable () n))
+        :: (Hashable n, Eq n)
+        => (Map.Map (Name n) (FeatureVariable () n) -> Map.Map (Name n) (FeatureVariable () n))
+        -> Name n
         -> ConvertM a n ()
-convertModifyFeaturesMap f
+convertModifyFeaturesMap f clearName
  = do   o <- get
         let fs = csFeatures o
         let fv = featureContextVariables fs
-        put (o { csFeatures = fs { featureContextVariables = f fv } })
+        put (o { csFeatures = fs { featureContextVariables = f fv }
+               , csFreshen  = Map.delete clearName $ csFreshen o })
 
 
 convertFreshenAdd :: (Hashable n, Eq n) => Name n -> ConvertM a n (Name n)
