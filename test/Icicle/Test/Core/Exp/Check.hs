@@ -55,4 +55,4 @@ prop_genExpForType2 t =
 
 return []
 tests :: IO Bool
-tests = $quickCheckAll
+tests = $checkAll

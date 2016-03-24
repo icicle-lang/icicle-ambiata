@@ -38,5 +38,4 @@ prop_text_roundtrip e =
 
 return []
 tests :: IO Bool
-tests = $quickCheckAll
-
+tests = $checkAll

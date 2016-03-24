@@ -74,6 +74,4 @@ prop_eval_commutes_history t =
 
 return []
 tests :: IO Bool
--- tests = $quickCheckAll
-tests = $forAllProperties $ quickCheckWithResult (stdArgs {maxSuccess = 1000, maxSize = 100, maxDiscardRatio = 10000})
-
+tests = $checkAllWith TestRunMore checkArgs

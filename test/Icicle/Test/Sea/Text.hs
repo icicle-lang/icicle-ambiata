@@ -9,7 +9,7 @@ module Icicle.Test.Sea.Text where
 
 import qualified Icicle.Internal.Pretty as PP
 import           Icicle.Test.Sea.Utils
-import           Icicle.Test.Arbitrary ()
+import           Icicle.Test.Arbitrary
 
 import           Control.Monad.IO.Class (liftIO)
 
@@ -30,8 +30,7 @@ import           P
 import           System.IO (IO)
 import           System.IO.Unsafe (unsafePerformIO)
 
-import           Test.QuickCheck (forAllProperties, quickCheckWithResult, stdArgs)
-import           Test.QuickCheck (maxSuccess, forAll, choose)
+import           Test.QuickCheck (forAll, choose)
 import           Test.QuickCheck.Property (Property, (===), counterexample, failed, property)
 
 import           X.Control.Monad.Trans.Either (EitherT, runEitherT)
@@ -126,5 +125,4 @@ fromWord64 w64 =
 return []
 tests :: IO Bool
 tests = releaseLibraryAfterTests $ do
-  -- $quickCheckAll
-  $forAllProperties $ quickCheckWithResult (stdArgs { maxSuccess = 10000 })
+  $checkAllWith TestRunMore checkArgs

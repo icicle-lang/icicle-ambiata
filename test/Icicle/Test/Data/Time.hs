@@ -7,7 +7,7 @@ module Icicle.Test.Data.Time where
 import           Icicle.Data.Time
 import qualified Icicle.Internal.Pretty as PP
 import           Icicle.Test.Sea.Utils
-import           Icicle.Test.Arbitrary ()
+import           Icicle.Test.Arbitrary
 
 import           Control.Monad.IO.Class (liftIO)
 
@@ -109,5 +109,4 @@ seaTestables = codeOfDoc $ PP.vsep
 return []
 tests :: IO Bool
 tests = releaseLibraryAfterTests $ do
-  -- $quickCheckAll
-  $forAllProperties $ quickCheckWithResult (stdArgs { maxSuccess = 1000 })
+  $checkAllWith TestRunMore checkArgs

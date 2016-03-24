@@ -5,6 +5,7 @@
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 module Icicle.Test.Source.Progress where
 
+import           Icicle.Test.Arbitrary
 import           Icicle.Internal.Pretty
 import           Icicle.Source.Checker.Base
 import           Icicle.Source.Checker.Checker
@@ -51,5 +52,4 @@ prop_progress_no_values f q
 
 return []
 tests :: IO Bool
--- tests = $quickCheckAll
-tests = $forAllProperties $ quickCheckWithResult (stdArgs { {- maxSuccess = 5000, -} maxSize = 10,  maxDiscardRatio = 10000})
+tests = $checkAllWith TestRunMore (checkArgsSized 10)

@@ -1,14 +1,21 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveGeneric     #-}
+{-# LANGUAGE TemplateHaskell     #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-module Icicle.Test.Arbitrary where
+module Icicle.Test.Arbitrary (
+    Var(..)
+  , fresh
+  , valueOfEncoding
+  , module Run
+  ) where
 
 import           Icicle.Common.Base hiding (StructField)
 import           Icicle.Data
 import           Icicle.Data.Time
 
 import           Icicle.Test.Arbitrary.Base
+import           Icicle.Test.Arbitrary.Run as Run
 
 import           Disorder.Corpus
 
@@ -24,7 +31,6 @@ import qualified Data.Text as T
 import           Data.String
 import           Data.Char
 import           Data.Hashable (Hashable)
-
 
 -- | Variables used in random Core and Avalanche programs.
 data Var = Var T.Text Int

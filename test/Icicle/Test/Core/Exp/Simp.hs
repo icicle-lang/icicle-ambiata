@@ -116,4 +116,4 @@ prop_core_simp_eval
 
 return []
 tests :: IO Bool
-tests = $quickCheckAll
+tests = $checkAll

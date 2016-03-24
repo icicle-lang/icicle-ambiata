@@ -4,6 +4,7 @@
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 module Icicle.Test.Core.Exp.Alpha where
 
+import           Icicle.Test.Arbitrary
 import           Icicle.Test.Core.Arbitrary
 import           Icicle.Core.Eval.Exp
 import           Icicle.Common.Base
@@ -71,5 +72,4 @@ prop_wt_different_type__not_alpha =
 
 return []
 tests :: IO Bool
--- tests = $quickCheckAll
-tests = $forAllProperties $ quickCheckWithResult (stdArgs { maxDiscardRatio = 10000})
+tests = $checkAll
