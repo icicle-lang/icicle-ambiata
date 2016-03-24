@@ -119,6 +119,4 @@ prop_fuseeval2_values t =
 
 return []
 tests :: IO Bool
--- tests = $quickCheckAll
--- try harder to generate well-typed programs, since many tests require more than one
-tests = $forAllProperties $ quickCheckWithResult (stdArgs {maxSuccess = 100, maxSize = 10, maxDiscardRatio = 1000000})
+tests = $checkAllWith TestRunNormal (checkArgsSized 10)

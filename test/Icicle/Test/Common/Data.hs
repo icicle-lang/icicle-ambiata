@@ -4,6 +4,7 @@
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 module Icicle.Test.Common.Data where
 
+import           Icicle.Test.Arbitrary
 import           Icicle.Test.Core.Arbitrary
 
 import           Icicle.Common.Data
@@ -28,6 +29,5 @@ prop_roundtrip_valueToCore t =
 
 return []
 tests :: IO Bool
--- tests = $quickCheckAll
-tests = $forAllProperties $ quickCheckWithResult (stdArgs {maxSuccess = 10000, maxSize = 10})
+tests = $checkAllWith TestRunMore (checkArgsSized 10)
 

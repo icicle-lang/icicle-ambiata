@@ -46,5 +46,4 @@ prop_dictionary_symmetry attr encoding =
 
 return []
 tests :: IO Bool
-tests = $quickCheckAll
-
+tests = $checkAll

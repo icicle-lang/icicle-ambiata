@@ -20,7 +20,7 @@ import           Icicle.Dictionary.Data
 import qualified Icicle.Internal.Pretty as PP
 import           Icicle.Storage.Dictionary.Toml
 import           Icicle.Storage.Dictionary.Toml.Persist
-import           Icicle.Test.Arbitrary ()
+import           Icicle.Test.Arbitrary
 import           Icicle.Test.Source.Arbitrary ()
 
 import           P
@@ -82,4 +82,4 @@ sortD (Dictionary es fs) =
 
 return []
 tests :: IO Bool
-tests = $forAllProperties $ quickCheckWithResult (stdArgs { maxSuccess = 20 })
+tests = $checkAllWith TestRunFewer checkArgs

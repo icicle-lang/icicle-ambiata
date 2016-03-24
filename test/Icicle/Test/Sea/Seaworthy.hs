@@ -51,4 +51,4 @@ prop_seaworthy wt
 
 return []
 tests :: IO Bool
-tests = $forAllProperties $ quickCheckWithResult (stdArgs {maxSuccess = 100, maxSize = 50, maxDiscardRatio = 10000})
+tests = $checkAllWith TestRunNormal (checkArgsSized 10)

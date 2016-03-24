@@ -33,6 +33,7 @@ import           Icicle.Common.Type
 
 import qualified Icicle.Sea.Eval as S
 
+import           Icicle.Test.Arbitrary
 import           Icicle.Test.Sea.Arbitrary
 
 import qualified Jetski as J
@@ -43,8 +44,7 @@ import           System.IO
 import           System.IO.Temp (createTempDirectory)
 import           System.Directory (getTemporaryDirectory, removeDirectoryRecursive)
 
-import           Test.QuickCheck (Args(..), Gen, forAllProperties, quickCheckWithResult
-                                 ,stdArgs, arbitrary, elements, suchThat)
+import           Test.QuickCheck (Gen,arbitrary, elements, suchThat)
 import           Test.QuickCheck (Property, (==>), property, counterexample)
 import           Test.QuickCheck.Property (succeeded, failed)
 import           Test.QuickCheck.Monadic
@@ -325,5 +325,4 @@ genMissingValue = elements [Nothing, Just "NA", Just ""]
 
 return []
 tests :: IO Bool
-tests = $forAllProperties $ quickCheckWithResult (stdArgs {maxSuccess = 500, maxSize = 10, maxDiscardRatio = 10000})
--- tests = $forAllProperties $ quickCheckWithResult (stdArgs {maxSuccess = 1000, maxSize = 10, maxDiscardRatio = 10000})
+tests = $checkAllWith TestRunNormal (checkArgsSized 10)

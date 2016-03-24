@@ -5,6 +5,7 @@
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 module Icicle.Test.Source.Convert where
 
+import           Icicle.Test.Arbitrary
 import           Icicle.Internal.Pretty
 import qualified Icicle.Core.Program.Check      as CCheck
 
@@ -48,5 +49,4 @@ prop_convert_is_well_typed qwf
 
 return []
 tests :: IO Bool
--- tests = $quickCheckAll
-tests = $forAllProperties $ quickCheckWithResult (stdArgs { {- maxSuccess = 5000, -} maxSize = 10, maxDiscardRatio = 10000})
+tests = $checkAllWith TestRunMore (checkArgsSized 10)

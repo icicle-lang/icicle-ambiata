@@ -5,6 +5,7 @@
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 module Icicle.Test.Internal.EditDistance where
 
+import           Icicle.Test.Arbitrary
 import           Icicle.Internal.EditDistance
 import           Icicle.Internal.Pretty
 
@@ -35,5 +36,4 @@ prop_edit_flip_middle as bs a b = a /= b ==>
 
 return []
 tests :: IO Bool
--- tests = $quickCheckAll
-tests = $forAllProperties $ quickCheckWithResult (stdArgs { {- maxSuccess = 5000, -} maxSize = 10,  maxDiscardRatio = 10000})
+tests = $checkAllWith TestRunNormal (checkArgsSized 10)

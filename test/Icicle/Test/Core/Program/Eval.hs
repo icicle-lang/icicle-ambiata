@@ -4,6 +4,7 @@
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 module Icicle.Test.Core.Program.Eval where
 
+import           Icicle.Test.Arbitrary
 import           Icicle.Test.Core.Arbitrary
 -- import           Icicle.Core.Program.Program
 import           Icicle.Core.Program.Check
@@ -56,5 +57,4 @@ prop_progress_inverse x =
 
 return []
 tests :: IO Bool
--- tests = $quickCheckAll
-tests = $forAllProperties $ quickCheckWithResult (stdArgs {maxSuccess = 100, maxSize = 10, maxDiscardRatio = 10000})
+tests = $checkAllWith TestRunNormal (checkArgsSized 10)

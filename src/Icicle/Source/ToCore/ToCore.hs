@@ -404,7 +404,7 @@ convertQuery q
                 let xsnd = CE.xApp
                          $ CE.xPrim $ C.PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd t' inpty
 
-                convertModifyFeaturesMap (Map.insert b (FeatureVariable (annResult $ annotOfExp def) xfst False) . Map.map (\fv -> fv { featureVariableExp = featureVariableExp fv . xsnd }))
+                convertModifyFeaturesMap (Map.insert b (FeatureVariable (annResult $ annotOfExp def) xfst False) . Map.map (\fv -> fv { featureVariableExp = featureVariableExp fv . xsnd })) b
 
                 let pairC l r
                      = (CE.xPrim $ C.PrimMinimal $ Min.PrimConst $ Min.PrimConstPair t' inpty)

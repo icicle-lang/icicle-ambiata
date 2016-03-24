@@ -57,4 +57,4 @@ prop_constprefix i =
 
 return []
 tests :: IO Bool
-tests = $quickCheckAll
+tests = $checkAll

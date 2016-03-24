@@ -4,6 +4,7 @@
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 module Icicle.Test.Avalanche.Melt where
 
+import           Icicle.Test.Arbitrary
 import           Icicle.Test.Core.Arbitrary
 
 import qualified Icicle.Avalanche.Annot               as AA
@@ -114,5 +115,4 @@ prop_melt_total t
 
 return []
 tests :: IO Bool
--- tests = $quickCheckAll
-tests = $forAllProperties $ quickCheckWithResult (stdArgs {maxSuccess = 1000, maxSize = 10})
+tests = $checkAllWith TestRunMore (checkArgsSized 10)

@@ -5,6 +5,7 @@
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 module Icicle.Test.Source.PrettyParse where
 
+import           Icicle.Test.Arbitrary
 import           Icicle.Internal.Pretty
 import           Icicle.Source.Parser
 
@@ -60,6 +61,4 @@ prop_annotated_query_prints_well qwf
 
 return []
 tests :: IO Bool
--- tests = $quickCheckAll
--- Seems like the generator is making too big values
-tests = $forAllProperties $ quickCheckWithResult (stdArgs { maxSize = 10, maxDiscardRatio = 10000})
+tests = $checkAllWith TestRunNormal (checkArgsSized 10)
