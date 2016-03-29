@@ -206,6 +206,7 @@ library
                        Icicle.Source.Checker.Function
                        Icicle.Source.Checker.Invariants
                        Icicle.Source.Checker.Prim
+                       Icicle.Source.Checker.Resumable
 
                        Icicle.Source.ToCore.Base
                        Icicle.Source.ToCore.Context

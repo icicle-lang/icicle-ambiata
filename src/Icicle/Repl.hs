@@ -118,9 +118,9 @@ sourceDesugar = first ReplErrorCompileCore . P.sourceDesugarQT
 sourceReify :: P.QueryTop'T Var -> P.QueryTop'T Var
 sourceReify = P.sourceReifyQT
 
-sourceCheck :: D.Dictionary -> P.QueryTop' Var -> Either ReplError (P.QueryTop'T Var, ST.Type Var)
-sourceCheck d
- = first ReplErrorCompileCore . P.sourceCheckQT d
+sourceCheck :: SC.CheckOptions -> D.Dictionary -> P.QueryTop' Var -> Either ReplError (P.QueryTop'T Var, ST.Type Var)
+sourceCheck opts d
+ = first ReplErrorCompileCore . P.sourceCheckQT opts d
 
 sourceConvert :: D.Dictionary -> P.QueryTop'T Var -> Either ReplError (P.CoreProgram' Var)
 sourceConvert d
@@ -142,8 +142,8 @@ readFacts dict raw
   = first ReplErrorDecode
   $ TR.traverse (S.decodeEavt dict) $ T.lines raw
 
-loadDictionary :: DictionaryLoadType -> EitherT ReplError IO D.Dictionary
-loadDictionary load
+loadDictionary :: SC.CheckOptions -> DictionaryLoadType -> EitherT ReplError IO D.Dictionary
+loadDictionary checkOpts load
  = case load of
     DictionaryLoadTextV1 fp
      -> do  raw <- lift $ T.readFile fp
@@ -155,7 +155,7 @@ loadDictionary load
             return $ D.Dictionary ds []
 
     DictionaryLoadToml fp
-     -> firstEitherT ReplErrorDictionaryLoad $ DictionaryToml.loadDictionary DictionaryToml.ImplicitPrelude fp
+     -> firstEitherT ReplErrorDictionaryLoad $ DictionaryToml.loadDictionary checkOpts DictionaryToml.ImplicitPrelude fp
 
 readIcicleLibrary
     :: Parsec.SourceName

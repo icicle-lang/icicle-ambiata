@@ -22,6 +22,7 @@ import           Icicle.Storage.Dictionary.Toml
 import           Icicle.Storage.Dictionary.Toml.Persist
 import           Icicle.Test.Arbitrary
 import           Icicle.Test.Source.Arbitrary ()
+import           Icicle.Source.Checker.Base (optionSmallData)
 
 import           P
 
@@ -44,7 +45,7 @@ prop_toml_dictionary_symmetry x
    let i = dir </> "normalised_imports.icicle"
    writeFile p $ PP.display (PP.renderPretty 0.4 80 $ normalisedTomlDictionary x)
    writeFile i $ PP.display (PP.renderPretty 0.4 80 $ normalisedFunctions x)
-   runEitherT  $ (\x' -> sortD x' === sortD x )    <$> loadDictionary NoImplicitPrelude p
+   runEitherT  $ (\x' -> sortD x' === sortD x )    <$> loadDictionary optionSmallData NoImplicitPrelude p
 
 prop_toml_dictionary_example :: Property
 prop_toml_dictionary_example
@@ -52,12 +53,12 @@ prop_toml_dictionary_example
  $ testIO
  $ withSystemTempDirectory "foodictionary"
  $ \dir -> runEitherT $ do
-   x  <- loadDictionary ImplicitPrelude "data/example/DictionaryTrial.toml"
+   x  <- loadDictionary optionSmallData ImplicitPrelude "data/example/DictionaryTrial.toml"
    let p = dir </> "d.toml"
    let i = dir </> "normalised_imports.icicle"
    lift $ writeFile p $ PP.display (PP.renderPretty 0.4 80 $ normalisedTomlDictionary x)
    lift $ writeFile i $ PP.display (PP.renderPretty 0.4 80 $ normalisedFunctions x)
-   x' <- loadDictionary NoImplicitPrelude p
+   x' <- loadDictionary optionSmallData NoImplicitPrelude p
    -- I run pretty here because nameMod is written with a $, but we read as a Name with a $ (it's a bit ugly).
    pure $ (PP.display $ PP.renderCompact $ prettyDictionarySummary $ sortD x') === (PP.display $ PP.renderCompact $ prettyDictionarySummary $ sortD x)
 

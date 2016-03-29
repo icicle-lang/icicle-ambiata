@@ -1,0 +1,39 @@
+-- Test "big data" mode where all queries must be windowed or latest
+:set +check-resumable
+
+-- Some simple good ones
+feature salary ~> windowed 1 months ~> fold x = 0 : 1 ~> x
+
+feature salary ~> windowed 1 months ~> sum value
+
+feature salary ~> windowed between 1 months and 2 months ~> sum value
+
+feature salary ~> latest 10 ~> sum value
+
+
+-- Some obviously bad ones
+feature salary ~> fold x = 0 : 1 ~> x
+
+feature salary ~> sum value
+
+feature salary ~> sum value + count value
+
+-- Part good, part bad
+feature salary ~> sum value + (latest 10 ~> count value)
+
+
+-- More good ones
+feature salary ~> latest 10 ~> sum value * count value
+
+feature salary ~> (latest 10 ~> sum value) * (latest 10 ~> count value)
+
+
+-- Some good let bindings
+feature salary ~> latest 10 ~> let x = value ~> sum x
+
+feature salary ~> let x = value ~> latest 10 ~> sum x
+
+-- Some bad let bindings
+feature salary ~> let x = sum value ~> x
+
+feature salary ~> let x = value ~> sum x

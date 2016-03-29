@@ -40,6 +40,7 @@ data ErrorInfo a n
  | ErrorDuplicateFunctionNames a (Name n)
  | ErrorEmptyCase a (Exp a n)
  | ErrorCaseBadPattern a (Pattern n)
+ | ErrorResumableFoldNotAllowedHere a (Query a n)
  deriving (Show, Eq)
 
 annotOfError :: CheckError a n -> Maybe a
@@ -66,6 +67,8 @@ annotOfError (CheckError e _)
     ErrorEmptyCase          a _
      -> Just a
     ErrorCaseBadPattern          a _
+     -> Just a
+    ErrorResumableFoldNotAllowedHere a _
      -> Just a
 
 
@@ -140,6 +143,10 @@ instance (Pretty a, Pretty n) => Pretty (ErrorInfo a n) where
      ErrorCaseBadPattern a p
       -> "Case expression has ill-formed pattern at" <+> pretty a <> line
       <> "Pattern: " <> inp p
+
+     ErrorResumableFoldNotAllowedHere a q
+      -> "For resumable queries, folds must be inside windowed or latest at" <+> pretty a <> line
+      <> "Fold: " <> inp q
 
 
    where

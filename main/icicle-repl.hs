@@ -1,11 +1,9 @@
 {-# LANGUAGE DoAndIfThenElse   #-}
-{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards     #-}
 {-# LANGUAGE TupleSections     #-}
-{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 import           Control.Monad.IO.Class
 import           Control.Monad.Trans.Class
@@ -42,6 +40,7 @@ import qualified Icicle.Sea.FromAvalanche.Program as Sea
 import qualified Icicle.Sea.Preamble              as Sea
 
 import qualified Icicle.Source.PrettyAnnot        as SPretty
+import qualified Icicle.Source.Checker            as SCheck
 
 import           P
 
@@ -91,6 +90,7 @@ data ReplState
    , dictionary       :: Dictionary
    , currentTime      :: Time
    , hasType          :: Bool
+   , hasCheckResumable:: Bool
    , hasAnnotated     :: Bool
    , hasInlined       :: Bool
    , hasDesugar       :: Bool
@@ -109,6 +109,7 @@ data ReplState
 -- | Settable REPL states
 data Set
    = ShowType           Bool
+   | ShowCheckResumable Bool
    | ShowAnnotated      Bool
    | ShowInlined        Bool
    | ShowDesugar        Bool
@@ -141,7 +142,7 @@ data Command
 
 defaultState :: ReplState
 defaultState
-  = (ReplState [] demographics (unsafeTimeOfYMD 1970 1 1) False False False False False False False False False False False False False False False)
+  = (ReplState [] demographics (unsafeTimeOfYMD 1970 1 1) False False False False False False False False False False False False False False False False)
     { hasCoreEval = True
     , doCoreSimp  = True }
 
@@ -165,6 +166,9 @@ readSetCommands ss
  = case ss of
     ("+type":rest)         -> (:) (ShowType True)          <$> readSetCommands rest
     ("-type":rest)         -> (:) (ShowType False)         <$> readSetCommands rest
+
+    ("+check-resumable":rest)-> (:) (ShowCheckResumable True)  <$> readSetCommands rest
+    ("-check-resumable":rest)-> (:) (ShowCheckResumable False) <$> readSetCommands rest
 
     ("+annotated":rest)    -> (:) (ShowAnnotated True)     <$> readSetCommands rest
     ("-annotated":rest)    -> (:) (ShowAnnotated False)    <$> readSetCommands rest
@@ -246,7 +250,7 @@ handleLine state line = case readCommand line of
         return $ state { facts = fs }
 
   Just (CommandLoadDictionary load) -> do
-    s  <- liftIO $ runEitherT $ SR.loadDictionary load
+    s  <- liftIO $ runEitherT $ SR.loadDictionary checkOpts load
     case s of
       Left e   -> prettyHL e >> return state
       Right d -> do
@@ -279,11 +283,10 @@ handleLine state line = case readCommand line of
             $ do    HL.outputStrLn heading
                     prettyHL p
                     nl
-
     checked <- runEitherT $ do
       parsed    <- hoist $ SR.sourceParse (T.pack line)
       (annot, typ)
-                <- hoist $ SR.sourceCheck (dictionary state) parsed
+                <- hoist $ SR.sourceCheck checkOpts (dictionary state) parsed
 
       prettyOut hasType "- Type:" typ
 
@@ -296,7 +299,7 @@ handleLine state line = case readCommand line of
       prettyOut hasInlined "- Inlined:" inlined
       prettyOut hasDesugar "- Desugar:" blanded
 
-      (annobland, _) <- hoist $ SR.sourceCheck (dictionary state) blanded
+      (annobland, _) <- hoist $ SR.sourceCheck checkOpts (dictionary state) blanded
       prettyOut hasInlined "- Annotated desugar:" (SPretty.PrettyAnnot annobland)
 
 
@@ -365,6 +368,12 @@ handleLine state line = case readCommand line of
       Right _ -> return ()
 
     return state
+ where
+   checkOpts
+    = if   hasCheckResumable state
+      then SCheck.optionBigData
+      else SCheck.optionSmallData
+
 
 handleSetCommand :: ReplState -> Set -> HL.InputT IO ReplState
 handleSetCommand state set
@@ -372,6 +381,10 @@ handleSetCommand state set
     ShowType b -> do
         HL.outputStrLn $ "ok, type is now " <> showFlag b
         return $ state { hasType = b }
+
+    ShowCheckResumable b -> do
+        HL.outputStrLn $ "ok, check-resumable is now " <> showFlag b
+        return $ state { hasCheckResumable = b }
 
     ShowAnnotated b -> do
         HL.outputStrLn $ "ok, annotated is now " <> showFlag b

@@ -219,15 +219,15 @@ sourceReifyQT q
      (freshNamer "reify")
 
 sourceCheckQT
- :: D.Dictionary -> QueryTop' SourceVar
+ :: SC.CheckOptions -> D.Dictionary -> QueryTop' SourceVar
  -> Either (CompileError SourcePos SourceVar ()) (QueryTop'T SourceVar, ST.Type SourceVar)
-sourceCheckQT d q
+sourceCheckQT opts d q
  = let d' = D.featureMapOfDictionary d
    in  first CompileErrorCheck
      $ snd
      $ flip Fresh.runFresh (freshNamer "check")
      $ runEitherT
-     $ SC.checkQT d' q
+     $ SC.checkQT opts d' q
 
 sourceCheckF
  :: FunEnvT a SourceVar

@@ -10,6 +10,7 @@ import                  Icicle.Source.Checker.Base
 import                  Icicle.Source.Checker.Error
 import                  Icicle.Source.Checker.Constraint
 import                  Icicle.Source.Checker.Invariants
+import                  Icicle.Source.Checker.Resumable
 import                  Icicle.Source.ToCore.Context
 import                  Icicle.Source.Query
 import                  Icicle.Source.Type
@@ -30,17 +31,18 @@ type Result r a n = EitherT (CheckError a n) (Fresh.Fresh n) (r, Type n)
 
 -- | Check a top-level Query, returning the query with type annotations and casts inserted.
 checkQT :: (Hashable n, Eq n)
-        => Features () n
+        => CheckOptions
+        -> Features () n
         -> QueryTop a n
         -> Result (QueryTop (Annot a n) n) a n
-checkQT features qt
+checkQT opts features qt
  = case Map.lookup (feature qt) (featuresConcretes features) of
     Just (_,f)
      -> do  let env = Map.unions
                       [ fmap function0 (envOfFeatureContext f)
                       , featuresFunctions features
                       , fmap function0 (envOfFeatureNow  (featureNow features)) ]
-            (q,t) <- checkQ (emptyCheckEnv { checkEnvironment = env }) (query qt)
+            (q,t) <- checkQ opts (emptyCheckEnv { checkEnvironment = env }) (query qt)
             return (qt { query = q }, t)
 
     Nothing
@@ -57,10 +59,11 @@ checkQT features qt
 
 
 checkQ  :: (Hashable n, Eq n)
-        => CheckEnv a n
+        => CheckOptions
+        -> CheckEnv a n
         -> Query    a n
         -> Result (Query (Annot a n) n) a n
-checkQ ctx q
+checkQ opts ctx q
  = do q'  <- defaults <$> constraintsQ (checkEnvironment ctx) q
 
       let t = annResult $ annotOfQuery q'
@@ -71,6 +74,9 @@ checkQ ctx q
                              [Suggest "The return must be an aggregate, otherwise the result could be quite large"]
 
       hoistEither $ invariantQ ctx q
+
+      when (checkOptionRequireResumable opts) $
+        hoistEither $ checkResumableQ ctx q
 
       return (q', t)
 

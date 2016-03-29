@@ -16,6 +16,7 @@ import           Icicle.Data                                   (Attribute)
 import           Icicle.Dictionary.Data
 import           Icicle.Internal.Pretty                        hiding ((</>))
 import qualified Icicle.Pipeline                               as P
+import qualified Icicle.Source.Checker                         as SC
 import qualified Icicle.Source.Parser                          as SP
 import qualified Icicle.Source.Query                           as SQ
 import qualified Icicle.Source.Type                            as ST
@@ -61,29 +62,31 @@ data ImplicitPrelude = ImplicitPrelude | NoImplicitPrelude
   deriving (Eq, Ord, Show)
 
 -- Top level IO function which loads all dictionaries and imports
-loadDictionary :: ImplicitPrelude -> FilePath -> EitherT DictionaryImportError IO Dictionary
-loadDictionary impPrelude dictionary
- = loadDictionary' impPrelude [] mempty [] dictionary
+loadDictionary :: SC.CheckOptions -> ImplicitPrelude -> FilePath -> EitherT DictionaryImportError IO Dictionary
+loadDictionary checkOpts impPrelude dictionary
+ = loadDictionary' checkOpts impPrelude [] mempty [] dictionary
 
 loadDenseDictionary
-  :: ImplicitPrelude
+  :: SC.CheckOptions
+  -> ImplicitPrelude
   -> FilePath
   -> Maybe PsvInputDenseFeedName
   -> EitherT DictionaryImportError IO (Dictionary, PsvInputDenseDict)
-loadDenseDictionary impPrelude dictionary feed
-  = do d    <- loadDictionary impPrelude dictionary
+loadDenseDictionary checkOpts impPrelude dictionary feed
+  = do d    <- loadDictionary checkOpts impPrelude dictionary
        toml <- parseTOML dictionary
        dd   <- firstEitherT DictionaryErrorDense $ hoistEither $ denseFeeds d toml feed
        return (d, dd)
 
 loadDictionary'
-  :: ImplicitPrelude
+  :: SC.CheckOptions
+  -> ImplicitPrelude
   -> FunEnvT
   -> DictionaryConfig
   -> [DictionaryEntry]
   -> FilePath
   -> EitherT DictionaryImportError IO Dictionary
-loadDictionary' impPrelude parentFuncs parentConf parentConcrete dictPath
+loadDictionary' checkOpts impPrelude parentFuncs parentConf parentConcrete dictPath
  = do
   rawToml <- parseTOML dictPath
 
@@ -104,9 +107,10 @@ loadDictionary' impPrelude parentFuncs parentConf parentConcrete dictPath
 
   let d' = Dictionary (concreteDefinitions <> parentConcrete) availableFunctions
 
-  virtualDefinitions <- checkDefs d' virtualDefinitions'
+  virtualDefinitions <- checkDefs checkOpts d' virtualDefinitions'
 
-  let loadChapter fp' = loadDictionary' NoImplicitPrelude
+  let loadChapter fp' = loadDictionary' checkOpts
+                                        NoImplicitPrelude
                                         availableFunctions
                                         conf
                                         concreteDefinitions
@@ -173,10 +177,11 @@ loadImports parentFuncs parsedImports
         return $ acc <> f'
 
 checkDefs
-  :: Dictionary
+  :: SC.CheckOptions
+  -> Dictionary
   -> [(Attribute, P.QueryTop' P.SourceVar)]
   -> EitherT DictionaryImportError IO [DictionaryEntry]
-checkDefs d defs
+checkDefs checkOpts d defs
  = hoistEither . first DictionaryErrorCompilation
  $ go `traverse` defs
  where
@@ -184,7 +189,7 @@ checkDefs d defs
    = do  -- Run desugar to ensure pattern matches are complete.
          _             <- P.sourceDesugarQT q
          -- Type check the virtual definition.
-         (checked, _)  <- P.sourceCheckQT d q
+         (checked, _)  <- P.sourceCheckQT checkOpts d q
          pure $ DictionaryEntry a (VirtualDefinition (Virtual checked))
 
 
