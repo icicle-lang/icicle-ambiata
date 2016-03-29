@@ -8,6 +8,8 @@ module Icicle.Source.Checker.Error (
   , annotOfError
   , errorNoSuggestions
   , errorSuggestions
+  , errorInFunction
+  , errorInFunctionEither
   ) where
 
 import           Icicle.Source.Query
@@ -41,6 +43,7 @@ data ErrorInfo a n
  | ErrorEmptyCase a (Exp a n)
  | ErrorCaseBadPattern a (Pattern n)
  | ErrorResumableFoldNotAllowedHere a (Query a n)
+ | ErrorInFunctionCall a (Name n) (ErrorInfo a n)
  deriving (Show, Eq)
 
 annotOfError :: CheckError a n -> Maybe a
@@ -70,6 +73,8 @@ annotOfError (CheckError e _)
      -> Just a
     ErrorResumableFoldNotAllowedHere a _
      -> Just a
+    ErrorInFunctionCall a _ _
+     -> Just a
 
 
 data ErrorSuggestion a n
@@ -87,6 +92,14 @@ errorNoSuggestions info
 errorSuggestions :: ErrorInfo a n -> [ErrorSuggestion a n] -> Either (CheckError a n) r
 errorSuggestions info sugs
  = Left $ CheckError info sugs
+
+errorInFunction :: a -> Name n -> CheckError a n -> CheckError a n
+errorInFunction ann nm (CheckError err sugs)
+ = CheckError (ErrorInFunctionCall ann nm err) sugs
+
+errorInFunctionEither :: a -> Name n -> Either (CheckError a n) r -> Either (CheckError a n) r
+errorInFunctionEither a n e
+ = first (errorInFunction a n) e
 
 -- Pretties ----------
 
@@ -147,6 +160,10 @@ instance (Pretty a, Pretty n) => Pretty (ErrorInfo a n) where
      ErrorResumableFoldNotAllowedHere a q
       -> "For resumable queries, folds must be inside windowed or latest at" <+> pretty a <> line
       <> "Fold: " <> inp q
+
+     ErrorInFunctionCall a n e'
+      -> "In call to" <+> pretty n <+> "at" <+> pretty a <> ":" <> line
+      <> pretty e'
 
 
    where

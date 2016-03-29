@@ -74,7 +74,7 @@ checkResumableQ ctx q@(Query (c:cs) xfinal)
      -> errorSuggestions
          (ErrorResumableFoldNotAllowedHere a q)
          [ Suggest "For very large data, we cannot perform folds over all the data"
-         , Suggest "For this reason, we require all folds to be in a windowed or latest " ]
+         , Suggest "For this reason, we require all folds to be in a windowed or latest" ]
 
  where
   q' = Query cs xfinal
@@ -89,9 +89,9 @@ checkResumableX
         -> Result   a n
 checkResumableX ctx x
  = case x of
-    Var _ n
+    Var a n
      | Just fun <- Map.lookup n $ checkBodies ctx
-     -> checkResumableQ ctx $ body fun
+     -> errorInFunctionEither a n $ checkResumableQ ctx $ body fun
      | otherwise
      -> return ()
     Nested _ q

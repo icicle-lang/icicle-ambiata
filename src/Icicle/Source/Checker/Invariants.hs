@@ -106,14 +106,14 @@ invariantX
         -> Result   a n
 invariantX ctx x
  = case x of
-    Var _ n
-     -> goFun n []
+    Var a n
+     -> goFun a n []
     Nested _ q
      -> invariantQ ctx q
     App{}
      | (f,xs) <- takeApps x
-     , Var _ n <- f
-     -> goFun n xs
+     , Var a n <- f
+     -> goFun a n xs
     App _ p q
      -> invariantX ctx p >> invariantX ctx q
     Prim{}
@@ -122,11 +122,11 @@ invariantX ctx x
      -> invariantX ctx s >> mapM_ (invariantX ctx . snd) ps
 
  where
-  goFun n args
+  goFun a n args
    | Just fun <- Map.lookup n $ checkBodies ctx
    = let ctx' = foldl bindArg ctx (arguments fun `zip` args)
-     -- TODO: wrap error in function information
-     in  invariantQ ctx' $ body fun
+     in  errorInFunctionEither a n
+       $ invariantQ ctx' $ body fun
    | otherwise
    = mapM_ (invariantX ctx) args
 

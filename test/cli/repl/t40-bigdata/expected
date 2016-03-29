@@ -2,7 +2,7 @@ welcome to iREPL
 ok, loaded 32 functions from data/libs/prelude.icicle
 ok, loaded test/cli/repl/data.psv, 13 rows
 > -- Test "big data" mode where all queries must be windowed or latest
-> ok, check-resumable is now on
+> ok, big-data is now on
 > > -- Some simple good ones
 > - Core evaluation:
 [homer, 1,marge, 1]
@@ -24,7 +24,7 @@ Check error:
   Fold: fold x = 0 : 1 ~> x
   Extra information:
     For very large data, we cannot perform folds over all the data
-    For this reason, we require all folds to be in a windowed or latest 
+    For this reason, we require all folds to be in a windowed or latest
 
 > >           λλλλ
 REPL Error:
@@ -35,7 +35,7 @@ Check error:
         ~> s
   Extra information:
     For very large data, we cannot perform folds over all the data
-    For this reason, we require all folds to be in a windowed or latest 
+    For this reason, we require all folds to be in a windowed or latest
 
 > >           λλλλ
 REPL Error:
@@ -46,7 +46,7 @@ Check error:
         ~> s
   Extra information:
     For very large data, we cannot perform folds over all the data
-    For this reason, we require all folds to be in a windowed or latest 
+    For this reason, we require all folds to be in a windowed or latest
 
 > > -- Part good, part bad
 >           λλλλ
@@ -58,7 +58,7 @@ Check error:
         ~> s
   Extra information:
     For very large data, we cannot perform folds over all the data
-    For this reason, we require all folds to be in a windowed or latest 
+    For this reason, we require all folds to be in a windowed or latest
 
 > > > -- More good ones
 > - Core evaluation:
@@ -84,7 +84,7 @@ Check error:
         ~> s
   Extra information:
     For very large data, we cannot perform folds over all the data
-    For this reason, we require all folds to be in a windowed or latest 
+    For this reason, we require all folds to be in a windowed or latest
 
 > >           λλλλ
 REPL Error:
@@ -95,6 +95,6 @@ Check error:
         ~> s
   Extra information:
     For very large data, we cannot perform folds over all the data
-    For this reason, we require all folds to be in a windowed or latest 
+    For this reason, we require all folds to be in a windowed or latest
 
 > 
