@@ -1,11 +1,9 @@
 {-# LANGUAGE DoAndIfThenElse   #-}
-{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards     #-}
 {-# LANGUAGE TupleSections     #-}
-{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 import           Control.Monad.IO.Class
 import           Control.Monad.Trans.Class
@@ -42,6 +40,7 @@ import qualified Icicle.Sea.FromAvalanche.Program as Sea
 import qualified Icicle.Sea.Preamble              as Sea
 
 import qualified Icicle.Source.PrettyAnnot        as SPretty
+import qualified Icicle.Source.Checker            as SCheck
 
 import           P
 
@@ -91,9 +90,11 @@ data ReplState
    , dictionary       :: Dictionary
    , currentTime      :: Time
    , hasType          :: Bool
+   , hasBigData       :: Bool
    , hasAnnotated     :: Bool
    , hasInlined       :: Bool
    , hasDesugar       :: Bool
+   , hasReified       :: Bool
    , hasCore          :: Bool
    , hasCoreType      :: Bool
    , hasCoreEval      :: Bool
@@ -109,9 +110,11 @@ data ReplState
 -- | Settable REPL states
 data Set
    = ShowType           Bool
+   | ShowBigData        Bool
    | ShowAnnotated      Bool
    | ShowInlined        Bool
    | ShowDesugar        Bool
+   | ShowReified        Bool
    | ShowCore           Bool
    | ShowCoreType       Bool
    | ShowCoreEval       Bool
@@ -141,7 +144,7 @@ data Command
 
 defaultState :: ReplState
 defaultState
-  = (ReplState [] demographics (unsafeTimeOfYMD 1970 1 1) False False False False False False False False False False False False False False False)
+  = (ReplState [] demographics (unsafeTimeOfYMD 1970 1 1) False False False False False False False False False False False False False False False False False)
     { hasCoreEval = True
     , doCoreSimp  = True }
 
@@ -166,6 +169,9 @@ readSetCommands ss
     ("+type":rest)         -> (:) (ShowType True)          <$> readSetCommands rest
     ("-type":rest)         -> (:) (ShowType False)         <$> readSetCommands rest
 
+    ("+big-data":rest)     -> (:) (ShowBigData True)       <$> readSetCommands rest
+    ("-big-data":rest)     -> (:) (ShowBigData False)      <$> readSetCommands rest
+
     ("+annotated":rest)    -> (:) (ShowAnnotated True)     <$> readSetCommands rest
     ("-annotated":rest)    -> (:) (ShowAnnotated False)    <$> readSetCommands rest
 
@@ -174,6 +180,9 @@ readSetCommands ss
 
     ("+desugar":rest)      -> (:) (ShowDesugar   True)     <$> readSetCommands rest
     ("-desugar":rest)      -> (:) (ShowDesugar   False)    <$> readSetCommands rest
+
+    ("+reified":rest)      -> (:) (ShowReified   True)     <$> readSetCommands rest
+    ("-reified":rest)      -> (:) (ShowReified   False)    <$> readSetCommands rest
 
     ("+core":rest)         -> (:) (ShowCore True)          <$> readSetCommands rest
     ("-core":rest)         -> (:) (ShowCore False)         <$> readSetCommands rest
@@ -246,7 +255,7 @@ handleLine state line = case readCommand line of
         return $ state { facts = fs }
 
   Just (CommandLoadDictionary load) -> do
-    s  <- liftIO $ runEitherT $ SR.loadDictionary load
+    s  <- liftIO $ runEitherT $ SR.loadDictionary checkOpts load
     case s of
       Left e   -> prettyHL e >> return state
       Right d -> do
@@ -279,11 +288,10 @@ handleLine state line = case readCommand line of
             $ do    HL.outputStrLn heading
                     prettyHL p
                     nl
-
     checked <- runEitherT $ do
       parsed    <- hoist $ SR.sourceParse (T.pack line)
       (annot, typ)
-                <- hoist $ SR.sourceCheck (dictionary state) parsed
+                <- hoist $ SR.sourceCheck checkOpts (dictionary state) parsed
 
       prettyOut hasType "- Type:" typ
 
@@ -296,13 +304,13 @@ handleLine state line = case readCommand line of
       prettyOut hasInlined "- Inlined:" inlined
       prettyOut hasDesugar "- Desugar:" blanded
 
-      (annobland, _) <- hoist $ SR.sourceCheck (dictionary state) blanded
+      (annobland, _) <- hoist $ SR.sourceCheck checkOpts (dictionary state) blanded
       prettyOut hasInlined "- Annotated desugar:" (SPretty.PrettyAnnot annobland)
 
 
       let reified       = SR.sourceReify annobland
-      prettyOut hasInlined "- Reified:"                      reified
-      prettyOut hasInlined "- Reified:" (SPretty.PrettyAnnot reified)
+      prettyOut hasReified "- Reified:"                      reified
+      prettyOut hasReified "- Reified annotated:" (SPretty.PrettyAnnot reified)
       let finalSource   = reified
 
 
@@ -365,6 +373,12 @@ handleLine state line = case readCommand line of
       Right _ -> return ()
 
     return state
+ where
+   checkOpts
+    = if   hasBigData state
+      then SCheck.optionBigData
+      else SCheck.optionSmallData
+
 
 handleSetCommand :: ReplState -> Set -> HL.InputT IO ReplState
 handleSetCommand state set
@@ -372,6 +386,10 @@ handleSetCommand state set
     ShowType b -> do
         HL.outputStrLn $ "ok, type is now " <> showFlag b
         return $ state { hasType = b }
+
+    ShowBigData b -> do
+        HL.outputStrLn $ "ok, big-data is now " <> showFlag b
+        return $ state { hasBigData = b }
 
     ShowAnnotated b -> do
         HL.outputStrLn $ "ok, annotated is now " <> showFlag b
@@ -384,6 +402,10 @@ handleSetCommand state set
     ShowDesugar b -> do
         HL.outputStrLn $ "ok, desugar is now " <> showFlag b
         return $ state { hasDesugar = b }
+
+    ShowReified b -> do
+        HL.outputStrLn $ "ok, reified is now " <> showFlag b
+        return $ state { hasReified = b }
 
     ShowCore b -> do
         HL.outputStrLn $ "ok, core is now " <> showFlag b
@@ -502,9 +524,11 @@ showState state
  = do
  mapM_ HL.outputStrLn
     [ flag "type:         " hasType
+    , flag "big-data:     " hasBigData
     , flag "annotated:    " hasAnnotated
     , flag "inlined:      " hasInlined
     , flag "desugar:      " hasDesugar
+    , flag "reified:      " hasReified
     , flag "core:         " hasCore
     , flag "core-type:    " hasCoreType
     , flag "core-simp:    " doCoreSimp
@@ -534,15 +558,19 @@ usage
       , ":dictionary <path>    -- loads a dictionary"
       , ":import <filepath>    -- imports functions from a file"
       , ":set  +/-type         -- whether to show the checked expression type"
-      , ":set  +/-desugar      -- whether to show the desugar-ed Source"
-      , ":set  +/-core         -- whether to show the Core conversion"
-      , ":set  +/-core-type    -- whether to show the Core conversion's type"
-      , ":set  +/-core-simp    -- whether to simplify the result of Core conversion"
-      , ":set  +/-core-eval    -- whether to show the result (using Core evaluation)"
-      , ":set  +/-avalanche    -- whether to show the Avalanche conversion"
-      , ":set  +/-flatten      -- whether to show flattened Avalanche conversion"
-      , ":set  +/-c-preamble   -- whether to show the C preamble"
-      , ":set  +/-c            -- whether to show the C conversion"
-      , ":set  +/-c-assembly   -- whether to show the C assembly"
-      , ":set  +/-c-eval       -- whether to show the result (using C evaluation)" ]
+      , ":set  +/-big-data     -- ... perform the big data check (only windows & latests allowed)"
+      , ":set  +/-annotated    -- ... show the Source with inferred types as annotations"
+      , ":set  +/-inlined      -- ... show the Source after inlining functions"
+      , ":set  +/-desugar      -- ... show the Source after desugaring case expressions"
+      , ":set  +/-reified      -- ... show the Source after reifying possibilities"
+      , ":set  +/-core         -- ... show the Core conversion"
+      , ":set  +/-core-type    -- ... show the Core conversion's type"
+      , ":set  +/-core-simp    -- ... simplify the result of Core conversion"
+      , ":set  +/-core-eval    -- ... show the result (using Core evaluation)"
+      , ":set  +/-avalanche    -- ... show the Avalanche conversion"
+      , ":set  +/-flatten      -- ... show flattened Avalanche conversion"
+      , ":set  +/-c-preamble   -- ... show the C preamble"
+      , ":set  +/-c            -- ... show the C conversion"
+      , ":set  +/-c-assembly   -- ... show the C assembly"
+      , ":set  +/-c-eval       -- ... show the result (using C evaluation)" ]
 

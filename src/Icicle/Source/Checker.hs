@@ -11,4 +11,5 @@ import Icicle.Source.Checker.Error      as X
 import Icicle.Source.Checker.Function   as X
 import Icicle.Source.Checker.Invariants as X
 import Icicle.Source.Checker.Prim       as X
+import Icicle.Source.Checker.Resumable  as X
 

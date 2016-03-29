@@ -36,6 +36,7 @@ import           Icicle.Sea.Chords.Parse (ChordParseError(..), parseChordFile)
 import           Icicle.Sea.Eval
 import qualified Icicle.Source.Parser as S
 import qualified Icicle.Source.Query as S
+import qualified Icicle.Source.Checker as SC
 import           Icicle.Storage.Dictionary.Toml
 
 import           P
@@ -90,7 +91,7 @@ createBenchmark
 createBenchmark mode dictionaryPath inputPath outputPath packedChordPath = do
   start <- liftIO getCurrentTime
 
-  dictionary <- firstEitherT BenchDictionaryImportError (loadDictionary ImplicitPrelude dictionaryPath)
+  dictionary <- firstEitherT BenchDictionaryImportError (loadDictionary SC.optionSmallData ImplicitPrelude dictionaryPath)
   avalanche  <- hoistEither (avalancheOfDictionary dictionary)
 
   let cfg = Psv (PsvInputConfig  mode (tombstonesOfDictionary dictionary) PsvInputSparse AllowDupTime)
@@ -177,7 +178,7 @@ coreOfSource dict (Attribute attr, virtual) =
     let inlined = sourceInline dict virtual
 
     desugared    <- sourceDesugarQT inlined
-    (checked, _) <- sourceCheckQT dict desugared
+    (checked, _) <- sourceCheckQT SC.optionSmallData dict desugared
 
     let reified = sourceReifyQT checked
 

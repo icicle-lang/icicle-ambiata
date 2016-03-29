@@ -8,6 +8,10 @@ module Icicle.Source.Checker.Base (
   , emptyCheckEnv
   , emptyInvariants
 
+  , CheckOptions (..)
+  , optionBigData
+  , optionSmallData
+
   , GenEnv, GenConstraintSet
   , Gen(..)
   , Query'C
@@ -82,6 +86,22 @@ emptyInvariants :: Invariants
 emptyInvariants = Invariants True True
 
 --------------------------------------------------------------------------------
+
+
+data CheckOptions
+ = CheckOptions
+ { checkOptionRequireResumable :: Bool
+ } deriving (Show, Eq, Ord)
+
+optionBigData :: CheckOptions
+optionBigData = CheckOptions True
+
+optionSmallData :: CheckOptions
+optionSmallData = CheckOptions False
+
+
+--------------------------------------------------------------------------------
+
 
 type GenEnv n             = Map.Map (Name n) (FunctionType n)
 type GenConstraintSet a n = [(a, Constraint n)]

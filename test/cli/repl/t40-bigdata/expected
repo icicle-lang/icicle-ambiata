@@ -1,0 +1,100 @@
+welcome to iREPL
+ok, loaded 32 functions from data/libs/prelude.icicle
+ok, loaded test/cli/repl/data.psv, 13 rows
+> -- Test "big data" mode where all queries must be windowed or latest
+> ok, big-data is now on
+> > -- Some simple good ones
+> - Core evaluation:
+[homer, 1,marge, 1]
+
+> > - Core evaluation:
+[homer, 1500,marge, 30]
+
+> > - Core evaluation:
+[homer, 0,marge, 0]
+
+> > - Core evaluation:
+[homer, 1500,marge, 30]
+
+> > > -- Some obviously bad ones
+>                     λλλλ
+REPL Error:
+Check error:
+  For resumable queries, folds must be inside windowed or latest at 1:19
+  Fold: fold x = 0 : 1 ~> x
+  Extra information:
+    For very large data, we cannot perform folds over all the data
+    For this reason, we require all folds to be in a windowed or latest
+
+> >           λλλλ
+REPL Error:
+Check error:
+  For resumable queries, folds must be inside windowed or latest at 41:9:data/libs/prelude.icicle
+  Fold: fold s = 0 : v$inline$0
+        + s
+        ~> s
+  Extra information:
+    For very large data, we cannot perform folds over all the data
+    For this reason, we require all folds to be in a windowed or latest
+
+> >           λλλλ
+REPL Error:
+Check error:
+  For resumable queries, folds must be inside windowed or latest at 41:9:data/libs/prelude.icicle
+  Fold: fold s = 0 : v$inline$0
+        + s
+        ~> s
+  Extra information:
+    For very large data, we cannot perform folds over all the data
+    For this reason, we require all folds to be in a windowed or latest
+
+> > -- Part good, part bad
+>           λλλλ
+REPL Error:
+Check error:
+  For resumable queries, folds must be inside windowed or latest at 41:9:data/libs/prelude.icicle
+  Fold: fold s = 0 : v$inline$0
+        + s
+        ~> s
+  Extra information:
+    For very large data, we cannot perform folds over all the data
+    For this reason, we require all folds to be in a windowed or latest
+
+> > > -- More good ones
+> - Core evaluation:
+[homer, 7500,marge, 90]
+
+> > - Core evaluation:
+[homer, 7500,marge, 90]
+
+> > > -- Some good let bindings
+> - Core evaluation:
+[homer, 1500,marge, 30]
+
+> > - Core evaluation:
+[homer, 1500,marge, 30]
+
+> > -- Some bad let bindings
+>           λλλλ
+REPL Error:
+Check error:
+  For resumable queries, folds must be inside windowed or latest at 41:9:data/libs/prelude.icicle
+  Fold: fold s = 0 : v$inline$0
+        + s
+        ~> s
+  Extra information:
+    For very large data, we cannot perform folds over all the data
+    For this reason, we require all folds to be in a windowed or latest
+
+> >           λλλλ
+REPL Error:
+Check error:
+  For resumable queries, folds must be inside windowed or latest at 41:9:data/libs/prelude.icicle
+  Fold: fold s = 0 : v$inline$0
+        + s
+        ~> s
+  Extra information:
+    For very large data, we cannot perform folds over all the data
+    For this reason, we require all folds to be in a windowed or latest
+
+> 

@@ -36,7 +36,7 @@ mkElems m = emptyCheckEnv { checkEnvironment = Map.map (function0 . Temporality 
 prop_progress_no_values :: Map.Map (CB.Name T.Variable) CT.ValType -> Query () T.Variable -> Property
 prop_progress_no_values f q
  | Right bland <- runDesugar (freshnamer "desugar") (desugarQ q)
- , typ         <- freshcheck "check" $ checkQ (mkElems f) bland
+ , typ         <- freshcheck "check" $ checkQ optionSmallData (mkElems f) bland
  , pp          <- show $ pretty bland
  = counterexample pp
  $ counterexample (show typ)
