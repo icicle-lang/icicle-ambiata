@@ -203,10 +203,9 @@ simpleBuiltins
    , (T.Ceil,     Q.Fun (Q.BuiltinMath Q.Ceiling  ))
    , (T.Round,    Q.Fun (Q.BuiltinMath Q.Round    ))
    , (T.Trunc,    Q.Fun (Q.BuiltinMath Q.Truncate ))
-
    , (T.Seq,      Q.Fun (Q.BuiltinData Q.Seq      ))
-
-   , (T.Keys,     Q.Fun (Q.BuiltinMap Q.MapKeys   ))
-   , (T.Vals,     Q.Fun (Q.BuiltinMap Q.MapValues ))
+   , (T.Box,      Q.Fun (Q.BuiltinData Q.Box      ))
+   , (T.Keys,     Q.Fun (Q.BuiltinMap  Q.MapKeys   ))
+   , (T.Vals,     Q.Fun (Q.BuiltinMap  Q.MapValues ))
    ]
 

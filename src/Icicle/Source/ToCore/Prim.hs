@@ -212,6 +212,13 @@ convertPrim p ann resT xts = go p
    | otherwise
    = convertError
    $ ConvertErrorPrimNoArguments ann 2 p
+  -- Similarly this is not a tombstone.
+  godata Box
+   | [(x,_)] <- xts
+   = return x
+   | otherwise
+   = convertError
+   $ ConvertErrorPrimNoArguments ann 1 p
 
 
   -- Source built-in primitives that map to common built-ins.
