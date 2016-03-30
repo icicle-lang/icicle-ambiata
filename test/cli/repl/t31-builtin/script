@@ -1,4 +1,8 @@
+:dictionary data/example/DictionaryTrial.toml
+:load data/example/demographics.psv
 :set +core-eval
 :set +c-eval
 
 feature injury ~> group_keys location
+
+feature injury ~> days between (newest (box admitted)) now

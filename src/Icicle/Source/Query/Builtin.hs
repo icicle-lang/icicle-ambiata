@@ -42,6 +42,7 @@ data BuiltinTime
 
 data BuiltinData
  = Seq
+ | Box
  deriving (Show, Eq, Ord, Enum, Bounded)
 
 data BuiltinMap
@@ -74,6 +75,7 @@ instance Pretty BuiltinTime where
 
 instance Pretty BuiltinData where
  pretty Seq         = "seq"
+ pretty Box         = "box"
 
 instance Pretty BuiltinMap where
  pretty MapKeys   = "keys"

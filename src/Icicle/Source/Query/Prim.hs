@@ -74,12 +74,17 @@ primLookup' p
      -> fNum $ \at -> ([at], IntT)
     Fun (BuiltinMath Truncate)
      -> fNum $ \at -> ([at], IntT)
+
     Fun (BuiltinTime DaysBetween)
      -> f0 [TimeT, TimeT] IntT
     Fun (BuiltinTime DaysEpoch)
      -> f0 [TimeT] IntT
+
     Fun (BuiltinData Seq)
      -> f2 $ \a at b bt -> FunctionType [a,b] [] [at,bt] bt
+    Fun (BuiltinData Box)
+     -> f1 $ \a at -> FunctionType [a] [] [OptionT at] (Possibility PossibilityPossibly at)
+
     Fun (BuiltinMap MapKeys)
      -> f2 $ \a at b bt -> FunctionType [a,b] [] [GroupT at bt] (ArrayT at)
     Fun (BuiltinMap MapValues)

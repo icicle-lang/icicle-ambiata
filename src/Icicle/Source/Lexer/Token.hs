@@ -93,7 +93,6 @@ data Keyword =
  | Group
  | Latest
  | Let
- | Seq
 
  -- Builtin
  | Log
@@ -107,6 +106,8 @@ data Keyword =
  | Trunc
  | Keys
  | Vals
+ | Seq
+ | Box
  deriving (Eq, Ord, Show, Enum, Bounded)
 
 

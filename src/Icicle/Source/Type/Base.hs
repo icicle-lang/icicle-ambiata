@@ -110,7 +110,6 @@ valTypeOfType bt
   go = valTypeOfType
 
 
-
 data Constraint n
  = CEquals (Type n) (Type n)
  | CIsNum (Type n)

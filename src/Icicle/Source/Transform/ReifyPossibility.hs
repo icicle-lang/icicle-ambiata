@@ -29,21 +29,39 @@ reifyPossibilityQT qt
 
 reifyPossibilityX
         :: (Hashable n, Eq n)
-        => Exp (Annot a n) n
+        => (Annot a n -> Exp (Annot a n) n -> Exp (Annot a n) n)
+        -> Exp (Annot a n) n
         -> Fresh n (Exp (Annot a n) n)
-reifyPossibilityX x
+reifyPossibilityX wrap x
    = case x of
       Var a n
        -> return $ Var (wrapAnnot a) n
       Nested a q
        -> Nested (wrapAnnot a) <$> reifyPossibilityQ q
+
+      -- If an explicit box is used, we do a case distinction on the argument
       App a _ _
+       | Just (p, _, [arg])   <- takePrimApps x
+       , Fun (BuiltinData Box) <- p
+       -> do nValue     <- fresh
+             let aValue  = definiteAnnot a
+             let aError  = typeAnnot aValue ErrorT
+             let vValue  = Var  aValue nValue
+             let vError  = Prim aError (PrimCon (ConError ExceptTombstone))
+             reifyPossibilityX wrapAsSum
+               $ Case a arg
+                   [ ( PatCon ConSome [PatVariable nValue], vValue)
+                   , ( PatCon ConNone [],                   vError) ]
+
+       | otherwise
        -> do let (fun,args) = takeApps x
-             fun'  <-      reifyPossibilityX fun
-             args' <- mapM reifyPossibilityX args
+             fun'  <-       reifyPossibilityX wrap fun
+             args' <- mapM (reifyPossibilityX wrap) args
              makeApps a fun' args' False
+
       Prim a p
        -> return $ Prim (wrapAnnot a) p
+
       -- If the scrutinee is possibly, we need to unwrap it before performing the case:
       -- > case scrut | alt -> ...
       -- ==>
@@ -55,7 +73,7 @@ reifyPossibilityX x
        , PossibilityPossibly <- getPossibilityOrDefinitely t
        -> do  nError <- fresh
               nValue <- fresh
-              scrut' <- reifyPossibilityX scrut
+              scrut' <- reifyPossibilityX wrap scrut
               let a'  = wrapAnnot a
                   a'E = typeAnnot a ErrorT
                   a'D = definiteAnnot $ annotOfExp scrut
@@ -63,7 +81,7 @@ reifyPossibilityX x
                   vError = Var a'E nError
                   vValue = Var a'D nValue
 
-              alts'  <- mapM (\(p,xx) -> (,) p <$> (wrapRightIfAnnot a <$> reifyPossibilityX xx)) alts
+              alts'  <- mapM (\(p,xx) -> (,) p <$> (wrap a <$> reifyPossibilityX wrap xx)) alts
 
               return $ Case (wrapAnnot a) scrut'
                             [ ( PatCon ConLeft  [ PatVariable nError ]
@@ -73,10 +91,10 @@ reifyPossibilityX x
 
        -- Scrutinee is definite
        | otherwise
-       -> do  scrut' <-      reifyPossibilityX scrut
+       -> do  scrut' <-      reifyPossibilityX wrap scrut
               -- If the return of the case is a Possibly, then at least one of the alternatives must be possibly.
               -- For the non-possibly alternatives, wrap them as a Right.
-              alts'  <- mapM (\(p,xx) -> (,) p <$> (wrapRightIfAnnot a <$> reifyPossibilityX xx)) alts
+              alts'  <- mapM (\(p,xx) -> (,) p <$> (wrapRightIfAnnot a <$> reifyPossibilityX wrap xx)) alts
               return $ Case  (wrapAnnot a) scrut' alts'
 
 
@@ -85,7 +103,7 @@ reifyPossibilityQ
         => Query (Annot a n) n
         -> Fresh n (Query (Annot a n) n)
 reifyPossibilityQ (Query [] x)
- = Query [] <$> reifyPossibilityX x
+ = Query [] <$> reifyPossibilityX wrapRightIfAnnot x
 reifyPossibilityQ (Query (c:cs) final_x)
  = case c of
     LetFold a f
@@ -96,8 +114,8 @@ reifyPossibilityQ (Query (c:cs) final_x)
             -- the binding is available under "z" now, which potentially shadows an existing binding.
             nBind  <- freshPrefixBase   $ nameBase $ foldBind f
 
-            k      <- reifyPossibilityX $ foldWork f
-            z      <- reifyPossibilityX $ foldInit f
+            k      <- reifyPossibilityX wrapRightIfAnnot $ foldWork f
+            z      <- reifyPossibilityX wrapRightIfAnnot $ foldInit f
             let a'B = typeAnnot a BoolT
                 a'E = typeAnnot a ErrorT
                 a'D = aggAnnot $ wrapAnnotReally $ annotOfExp $ foldWork f
@@ -135,8 +153,8 @@ reifyPossibilityQ (Query (c:cs) final_x)
             return $ ins (LetFold (wrapAnnot a) f') rsub
 
      | otherwise
-     -> do  z' <- wrapRightIfAnnot (annotOfExp $ foldWork f) <$> reifyPossibilityX (foldInit f)
-            k' <- wrapRightIfAnnot (annotOfExp $ foldInit f) <$> reifyPossibilityX (foldWork f)
+     -> do  z' <- wrapRightIfAnnot (annotOfExp $ foldWork f) <$> reifyPossibilityX wrapRightIfAnnot (foldInit f)
+            k' <- wrapRightIfAnnot (annotOfExp $ foldInit f) <$> reifyPossibilityX wrapRightIfAnnot (foldWork f)
 
             let f' = f { foldInit = z'
                        , foldWork = k' }
@@ -148,13 +166,13 @@ reifyPossibilityQ (Query (c:cs) final_x)
     Latest a i
      -> add $ Latest    (wrapAnnot a) i
     GroupBy a x
-     -> add' (GroupBy   (wrapAnnot a)     <$> reifyPossibilityX x)
+     -> add' (GroupBy   (wrapAnnot a)     <$> reifyPossibilityX wrapRightIfAnnot x)
     Distinct a x
-     -> add' (Distinct  (wrapAnnot a)     <$> reifyPossibilityX x)
+     -> add' (Distinct  (wrapAnnot a)     <$> reifyPossibilityX wrapRightIfAnnot x)
     Filter a x
      | preda               <- annotOfExp x
      , PossibilityPossibly <- getPossibilityOrDefinitely $ annResult preda
-     -> do  x'     <- reifyPossibilityX x
+     -> do  x'     <- reifyPossibilityX wrapRightIfAnnot x
             nError <- fresh
             nValue <- fresh
             let vValue  = Var preda nValue
@@ -165,15 +183,15 @@ reifyPossibilityQ (Query (c:cs) final_x)
             rest'    <- rest
             return $ ins (Filter (wrapAnnot a) pred') (Query [] $ wrapRight $ Nested (annotOfQuery rest') rest')
      | otherwise
-     -> add' (Filter    (wrapAnnot a)     <$> reifyPossibilityX x)
+     -> add' (Filter    (wrapAnnot a)     <$> reifyPossibilityX wrapRightIfAnnot x)
     Let a n x
-     -> add' (Let       (wrapAnnot a) n   <$> reifyPossibilityX x)
+     -> add' (Let       (wrapAnnot a) n   <$> reifyPossibilityX wrapRightIfAnnot x)
     GroupFold a k v grp
      | grpa                <- annotOfExp grp
      , PossibilityPossibly <- getPossibilityOrDefinitely $ annResult grpa
      -> do  nError <- fresh
             nValue <- fresh
-            grp'   <- reifyPossibilityX grp
+            grp'   <- reifyPossibilityX wrapRightIfAnnot grp
             let a'  = wrapAnnot a
                 a'E = typeAnnot a ErrorT
 
@@ -194,7 +212,7 @@ reifyPossibilityQ (Query (c:cs) final_x)
             return (Query [] xx)
 
      | otherwise
-     -> add' (GroupFold (wrapAnnot a) k v <$> reifyPossibilityX grp)
+     -> add' (GroupFold (wrapAnnot a) k v <$> reifyPossibilityX wrapRightIfAnnot grp)
 
  where
   rest
@@ -296,7 +314,6 @@ typeAnnot ann t
        t'            = recomposeT (tmpq, posq, t)
    in ann { annResult = t' }
 
-
 wrapRightIfAnnot :: Annot a n -> Exp (Annot a n) n -> Exp (Annot a n) n
 wrapRightIfAnnot ann x
  | t                   <- annResult ann
@@ -307,8 +324,8 @@ wrapRightIfAnnot ann x
 
 wrapRight :: Exp (Annot a n) n -> Exp (Annot a n) n
 wrapRight x
- | ann        <- annotOfExp x
- , t          <- annResult  ann
+ | ann <- annotOfExp x
+ , t   <- annResult  ann
  , PossibilityDefinitely <- getPossibilityOrDefinitely t
  = conRight x
  | otherwise
@@ -319,6 +336,17 @@ conRight x
  = let ann = annotOfExp x
        t   = annResult  ann
    in con1 (ann { annResult = canonT $ SumT ErrorT t } ) ConRight x
+
+wrapAsSum :: Annot a n -> Exp (Annot a n) n -> Exp (Annot a n) n
+wrapAsSum v x
+  = case decomposeT (annResult (annotOfExp x)) of
+      (_,_,ErrorT) -> conLeft v x
+      _            -> conRight x
+
+conLeft :: Annot a n -> Exp (Annot a n) n -> Exp (Annot a n) n
+conLeft ann x
+  = let t   = annResult ann
+    in  con1 (ann { annResult = canonT $ SumT ErrorT t } ) ConLeft x
 
 substIntoIfDefinitely
         :: (Hashable n, Eq n)

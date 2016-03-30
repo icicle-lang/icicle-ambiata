@@ -290,6 +290,12 @@ evalP ann p xs vs env
               | [_,i] <- args
               -> return i
               | otherwise -> err
+             BuiltinData Box
+              | [VNone] <- args
+              -> return $ VError ExceptTombstone
+              | [VSome a] <- args
+              -> return a
+              | otherwise -> err
 
              BuiltinMap MapKeys
               | [VMap m] <- args
