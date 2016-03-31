@@ -46,6 +46,11 @@ tombstone = "NA"
     action="string*"
     admitted="date*"
 
+[feature.is_head]
+  expression = """
+    feature injury ~> newest (location == "head")
+  """
+
 [deprecated.mean_salary]
   source="salary"
   expression="mean"
