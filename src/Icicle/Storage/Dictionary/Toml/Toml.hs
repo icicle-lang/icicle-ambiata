@@ -142,7 +142,7 @@ basicStr = VString <$> between dQuote dQuote (many (flip (,) <$> getPosition <*>
 
 
 multiBasicStr :: Parser TValue
-multiBasicStr = VString <$> (openDQuote3 *> (manyTill (flip (,) <$> getPosition <*> strChar) dQuote3))
+multiBasicStr = VString <$> (openDQuote3 *> (manyTill (flip (,) <$> getPosition <*> strChar) (try dQuote3)))
   where
     -- | Parse the a tripple-double quote, with possibly a newline attached
     openDQuote3 = try (dQuote3 <* char '\n') <|> try dQuote3
