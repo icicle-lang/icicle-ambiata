@@ -24,7 +24,7 @@ import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import           Data.Word (Word8)
 
-import           Icicle.Avalanche.Prim.Flat (Prim(..), PrimUpdate(..))
+import           Icicle.Avalanche.Prim.Flat (Prim(..), PrimArray(..))
 import           Icicle.Avalanche.Prim.Flat (meltType)
 
 import           Icicle.Common.Type (ValType(..), StructType(..), StructField(..))
@@ -454,12 +454,12 @@ type Assignment = Doc -> ValType -> Doc -> Doc
 assignVar :: Assignment
 assignVar n _ x = pretty n <+> "=" <+> x <> ";"
 
-assignArray :: Assignment
-assignArray n t x = n <+> "=" <+> seaOfArrayPut n "ix" x t <> ";"
+assignArrayMutable :: Assignment
+assignArrayMutable n t x = n <+> "=" <+> seaOfArrayPutMutable n "ix" x t <> ";"
 
-seaOfArrayPut :: Doc -> Doc -> Doc -> ValType -> Doc
-seaOfArrayPut arr ix val typ
- = seaOfPrimDocApps (seaOfXPrim (PrimUpdate (PrimUpdateArrayPut typ)))
+seaOfArrayPutMutable :: Doc -> Doc -> Doc -> ValType -> Doc
+seaOfArrayPutMutable arr ix val typ
+ = seaOfPrimDocApps (seaOfXPrim (PrimArray (PrimArrayPutMutable typ)))
                     [ arr, ix, val ]
 
 ------------------------------------------------------------------------
@@ -535,7 +535,7 @@ wrapInBlock x
 seaOfReadJsonList :: ValType -> [(Text, ValType)] -> Either SeaError Doc
 seaOfReadJsonList vtype avars = do
   vars      <- traverse unArray avars
-  value_sea <- seaOfReadJsonValue assignArray vtype vars
+  value_sea <- seaOfReadJsonValue assignArrayMutable vtype vars
   pure $ vsep
     [ "if (*p++ != '[')"
     , "    return ierror_loc_format (p-1, p-1, \"array missing '['\");"

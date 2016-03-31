@@ -78,11 +78,8 @@ seaOfXPrim p
      PrimUnsafe op
       -> seaOfPrimUnsafe op
 
-     PrimUpdate op
-      -> seaOfPrimUpdate op
-
      PrimArray op
-      -> PDFun (seaOfPrimArray op) Nothing
+      -> seaOfPrimArray op
 
      PrimBuf   op
       -> seaOfPrimBuf op
@@ -159,17 +156,15 @@ seaOfPrimUnsafe p
      _
       -> PDFun   (seaError "seaOfPrimUnsafe" p) Nothing
 
-seaOfPrimUpdate :: PrimUpdate -> PrimDoc
-seaOfPrimUpdate p
- = case p of
-     PrimUpdateArrayPut t
-      -> PDAlloc (prefixOfValType (ArrayT t) <> "put") Nothing
-
-seaOfPrimArray :: PrimArray -> Doc
+seaOfPrimArray :: PrimArray -> PrimDoc
 seaOfPrimArray p
  = case p of
-     _
-      -> seaError "seaOfPrimArray" p
+     PrimArrayPutMutable t
+      -> PDAlloc (prefixOfValType (ArrayT t) <> "put_mutable") Nothing
+     PrimArrayPutImmutable t
+      -> PDAlloc (prefixOfValType (ArrayT t) <> "put_immutable") Nothing
+     PrimArrayZip _ _
+      -> PDFun (seaError "seaOfPrimArray" p) Nothing
 
 seaOfPrimBuf :: PrimBuf -> PrimDoc
 seaOfPrimBuf p

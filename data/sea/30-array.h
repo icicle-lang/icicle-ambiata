@@ -114,7 +114,7 @@ static t##_t INLINE ARRAY_FUN(t,index) (ARRAY_T(t) x, iint_t ix)                
 
 
 /*
-Put(size)
+Create(size)
 */
 
 #define MK_ARRAY_CREATE(t)                                                      \
@@ -128,37 +128,6 @@ static ARRAY_T(t) INLINE ARRAY_FUN(t,create) (imempool_t *pool, iint_t sz)      
     ret->count      = sz;                                                       \
                                                                                 \
     return ret;                                                                 \
-}
-
-
-/*
-Put(arr, ix, val)
-*/
-
-#define MK_ARRAY_PUT(t)                                                         \
-                                                                                \
-static ARRAY_T(t) INLINE ARRAY_FUN(t,put)                                       \
-                  (imempool_t *pool, ARRAY_T(t) x, iint_t ix, t##_t v)          \
-{                                                                               \
-    iint_t count  = x->count;                                                   \
-    iint_t sz_old = iarray_size(count);                                         \
-                                                                                \
-    if (ix >= sz_old) {                                                         \
-        iint_t sz_new    = iarray_size(ix+1);                                   \
-        size_t bytes_new = ARRAY_SIZE(t, sz_new);                               \
-        size_t bytes_old = ARRAY_SIZE(t, sz_old);                               \
-                                                                                \
-        ARRAY_T(t) arr = (ARRAY_T(t))imempool_alloc(pool, bytes_new);           \
-        memcpy(arr, x, bytes_old);                                              \
-        x = arr;                                                                \
-                                                                                \
-        x->count = ix + 1;                                                      \
-    } else if (ix >= count) {                                                   \
-        x->count = ix + 1;                                                      \
-    }                                                                           \
-                                                                                \
-    ARRAY_PAYLOAD(t,x)[ix] = v;                                                 \
-    return x;                                                                   \
 }
 
 
@@ -184,17 +153,83 @@ static ARRAY_T(t) INLINE ARRAY_FUN(t,copy) (imempool_t *into, ARRAY_T(t) x)     
 
 
 /*
+Put(arr, ix, val)
+*/
+
+#define MK_ARRAY_PUT_MUTABLE(t)                                                 \
+                                                                                \
+static ARRAY_T(t) INLINE ARRAY_FUN(t,put_mutable)                               \
+                  (imempool_t *pool, ARRAY_T(t) x, iint_t ix, t##_t v)          \
+{                                                                               \
+    iint_t count  = x->count;                                                   \
+    iint_t sz_old = iarray_size(count);                                         \
+                                                                                \
+    if (ix >= sz_old) {                                                         \
+        iint_t sz_new    = iarray_size(ix+1);                                   \
+        size_t bytes_new = ARRAY_SIZE(t, sz_new);                               \
+        size_t bytes_old = ARRAY_SIZE(t, sz_old);                               \
+                                                                                \
+        ARRAY_T(t) arr = (ARRAY_T(t))imempool_alloc(pool, bytes_new);           \
+        memcpy(arr, x, bytes_old);                                              \
+        x = arr;                                                                \
+                                                                                \
+        x->count = ix + 1;                                                      \
+    } else if (ix >= count) {                                                   \
+        x->count = ix + 1;                                                      \
+    }                                                                           \
+                                                                                \
+    ARRAY_PAYLOAD(t,x)[ix] = v;                                                 \
+    return x;                                                                   \
+}
+
+
+/*
+Immutable_put(arr, ix, val)
+*/
+
+#define MK_ARRAY_PUT_IMMUTABLE(t)                                               \
+                                                                                \
+static ARRAY_T(t) INLINE ARRAY_FUN(t,put_immutable)                             \
+                  (imempool_t *pool, ARRAY_T(t) x, iint_t ix, t##_t v)          \
+{                                                                               \
+    iint_t count  = x->count;                                                   \
+    iint_t sz_old = iarray_size(count);                                         \
+    size_t bytes_old = ARRAY_SIZE(t, sz_old);                                   \
+                                                                                \
+    if (ix >= sz_old) {                                                         \
+        iint_t sz_new    = iarray_size(ix+1);                                   \
+        size_t bytes_new = ARRAY_SIZE(t, sz_new);                               \
+                                                                                \
+        ARRAY_T(t) arr = (ARRAY_T(t))imempool_alloc(pool, bytes_new);           \
+        memcpy(arr, x, bytes_old);                                              \
+        x = arr;                                                                \
+                                                                                \
+    } else if (ix >= count) {                                                   \
+      ARRAY_T(t) arr = (ARRAY_T(t))imempool_alloc(pool, bytes_old);             \
+      memcpy(arr, x, bytes_old);                                                \
+      x = arr;                                                                  \
+                                                                                \
+    }                                                                           \
+                                                                                \
+    x->count = ix + 1;                                                          \
+    ARRAY_PAYLOAD(t,x)[ix] = v;                                                 \
+    return x;                                                                   \
+}
+
+
+/*
 Define an array
 */
 
 #define MAKE_ARRAY(t)                                                           \
-    MK_ARRAY_STRUCT (t)                                                         \
-    MK_ARRAY_LENGTH (t)                                                         \
-    MK_ARRAY_CMPS   (t)                                                         \
-    MK_ARRAY_INDEX  (t)                                                         \
-    MK_ARRAY_CREATE (t)                                                         \
-    MK_ARRAY_PUT    (t)                                                         \
-    MK_ARRAY_COPY   (t)                                                         \
+    MK_ARRAY_STRUCT         (t)                                                 \
+    MK_ARRAY_LENGTH         (t)                                                 \
+    MK_ARRAY_CMPS           (t)                                                 \
+    MK_ARRAY_INDEX          (t)                                                 \
+    MK_ARRAY_CREATE         (t)                                                 \
+    MK_ARRAY_COPY           (t)                                                 \
+    MK_ARRAY_PUT_MUTABLE    (t)                                                 \
+    MK_ARRAY_PUT_IMMUTABLE  (t)                                                 \
 
 
 // enable if you need to resolve compiler errors in the macros above

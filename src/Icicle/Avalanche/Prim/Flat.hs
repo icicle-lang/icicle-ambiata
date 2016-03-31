@@ -6,7 +6,6 @@ module Icicle.Avalanche.Prim.Flat (
       Prim        (..)
     , PrimProject (..)
     , PrimUnsafe  (..)
-    , PrimUpdate  (..)
     , PrimArray   (..)
     , PrimMelt    (..)
     , PrimBuf     (..)
@@ -49,9 +48,6 @@ data Prim
  -- | Unsafe projections
  | PrimUnsafe          PrimUnsafe
 
- -- | Safe updates
- | PrimUpdate          PrimUpdate
-
  -- | Array prims
  | PrimArray           PrimArray
 
@@ -74,23 +70,18 @@ data PrimProject
 
 
 data PrimUnsafe
- = PrimUnsafeArrayIndex ValType
- -- | Create a new, uninitialised array.
- -- This is unsafe because it's uninitialised:
- -- you need to promise me that you'll initialise it before reading from it.
- | PrimUnsafeArrayCreate ValType
- | PrimUnsafeSumGetLeft  ValType ValType
- | PrimUnsafeSumGetRight ValType ValType
- | PrimUnsafeOptionGet   ValType
+ = PrimUnsafeArrayIndex  ValType         -- ^ Unchecked array index
+ | PrimUnsafeArrayCreate ValType         -- ^ Create a new, uninitialised array. Not safe to read.
+ | PrimUnsafeSumGetLeft  ValType ValType -- ^ Get the Left value, which may be garbage
+ | PrimUnsafeSumGetRight ValType ValType -- ^ Get the Right value, which maybe be garbage
+ | PrimUnsafeOptionGet   ValType         -- ^ Get the Some value, which maybe be garbage
  deriving (Eq, Ord, Show)
 
-
-data PrimUpdate
- = PrimUpdateArrayPut  ValType
- deriving (Eq, Ord, Show)
 
 data PrimArray
- = PrimArrayZip ValType ValType -- ^ zip two arrays into one
+ = PrimArrayPutMutable   ValType         -- ^ In-place update
+ | PrimArrayPutImmutable ValType         -- ^ Copy then update
+ | PrimArrayZip          ValType ValType -- ^ Zip two arrays into one
  deriving (Eq, Ord, Show)
 
 data PrimMap
@@ -145,12 +136,13 @@ typeOfPrim p
     PrimUnsafe  (PrimUnsafeSumGetRight a b)
      -> FunT [funOfVal (SumT a b)] b
 
-    PrimUpdate  (PrimUpdateArrayPut a)
-     -> FunT [funOfVal (ArrayT a), funOfVal IntT, funOfVal a] (ArrayT a)
-
 
     PrimArray   (PrimArrayZip a b)
      -> FunT [funOfVal (ArrayT a), funOfVal (ArrayT b)] (ArrayT (PairT a b))
+    PrimArray   (PrimArrayPutMutable a)
+     -> FunT [funOfVal (ArrayT a), funOfVal IntT, funOfVal a] (ArrayT a)
+    PrimArray   (PrimArrayPutImmutable a)
+     -> FunT [funOfVal (ArrayT a), funOfVal IntT, funOfVal a] (ArrayT a)
 
 
     PrimMelt    (PrimMeltPack t)
@@ -260,12 +252,12 @@ instance Pretty Prim where
   = annotate (AnnType $ (pretty a) <.> (pretty b)) "unsafe_Sum_right#"
 
 
- pretty (PrimUpdate (PrimUpdateArrayPut a))
-  = annotate (AnnType a) "Array_put#"
-
-
  pretty (PrimArray (PrimArrayZip a b))
   = annotate (AnnType $ (pretty a) <.> (pretty b)) "Array_zip#"
+ pretty (PrimArray (PrimArrayPutMutable a))
+  = annotate (AnnType a) "Array_put_mutable#"
+ pretty (PrimArray (PrimArrayPutImmutable a))
+  = annotate (AnnType a) "Array_put_immutable#"
 
 
  pretty (PrimMelt (PrimMeltPack t))

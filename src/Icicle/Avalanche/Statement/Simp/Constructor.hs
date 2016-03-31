@@ -77,7 +77,7 @@ constructor a_fresh statements
    = xPrim (PrimUnsafe (PrimUnsafeArrayIndex t)) `xApp` a `xApp` i
 
   primArrayPut i t a v
-   = xPrim (PrimUpdate (PrimUpdateArrayPut t)) `xApp` a `xApp` i `xApp` v
+   = xPrim (PrimArray (PrimArrayPutImmutable t)) `xApp` a `xApp` i `xApp` v
 
   primUnpack ix t x
    = xPrim (PrimMelt (PrimMeltUnpack ix t)) `xApp` x
@@ -252,7 +252,7 @@ constructor a_fresh statements
    = Just $ primPack env tx
    $ fmap (\(t, ix) -> primArrayGet aix t (primUnpack ix (ArrayT tx) n)) tis
 
-   | (PrimUpdate (PrimUpdateArrayPut tx), [na, aix, nv]) <- prima
+   | (PrimArray (PrimArrayPutImmutable tx), [na, aix, nv]) <- prima
    , Just tis <- withIndex tryMeltType tx
    = Just $ primPack env (ArrayT tx)
    $ fmap (\(t, ix) -> primArrayPut aix t (primUnpack ix (ArrayT tx) na)
