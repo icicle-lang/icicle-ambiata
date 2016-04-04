@@ -88,7 +88,7 @@ exec_mafia () {
         bin/bootstrap ) || exit $?
 
       cp "$MAFIA_TEMP/mafia/.cabal-sandbox/bin/mafia" "$MAFIA_PATH_TEMP"
-      chmod +x "$MAFIA_PATH_TEMP"
+      chmod 755 "$MAFIA_PATH_TEMP"
       mv "$MAFIA_PATH_TEMP" "$MAFIA_PATH"
     }
 
@@ -110,4 +110,4 @@ case "$MODE" in
 upgrade) shift; run_upgrade "$@" ;;
 *) exec_mafia "$@"
 esac
-# Version: 92881411b204a00b11d8a26117bd9244fdb8e4d4
+# Version: ad2fd53ea2625c786e3822f51687411a878bdb78
