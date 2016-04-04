@@ -150,12 +150,20 @@ livevarsStmt ss = case ss of
 
 livevarsExp :: (Eq n) => Exp a n p -> Set (Name n)
 livevarsExp xx = case xx of
-  XVar _ n       -> Set.singleton n
-  XPrim{}        -> Set.empty
-  XValue{}       -> Set.empty
+  -- a mention of the variable means it's live at this point.
+  XVar _ n
+    -> Set.singleton n
+
+  -- all the bindings in p and q are required, so they are all live.
   XApp _ p q     -> livevarsExp p <> livevarsExp q
+
+  -- the binder is not live yet, but the rest of the bindings in the
+  -- body have to be live.
   XLam _ _ _ x   -> livevarsExp x
   XLet _ _ x1 x2 -> livevarsExp x1 <> livevarsExp x2
+
+  XPrim{}        -> Set.empty
+  XValue{}       -> Set.empty
 
 
 livevarsFactBinds :: (Eq n) => FactBinds n -> Set (Name n)
