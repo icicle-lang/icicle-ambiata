@@ -58,6 +58,15 @@ evalCore ts vs
  = CV.eval (tsTime ts) vs (tsCore ts)
 
 extractFacts inps fids
+ -- Temporary hack:
+ -- if there is no recorded history, it might be a group with no folds inside.
+ -- If so, we need at least one fact to work over - the last one is fine.
+ | Set.null fids
+ , x:_ <- reverse inps
+ = [x] 
+
+ -- Otherwise just be careful to keep facts in same order
+ | otherwise
  = fmap snd
  $ filter (\(ix,_) -> FactIdentifier ix `Set.member` fids)
  $ zip [0..] inps
@@ -72,7 +81,7 @@ prop_check_history ts
         , hist      <- CV.history pv
         , inps'     <- extractFacts (tsInputs ts) hist
         , Right pv' <- evalCore ts inps'
-        = ( CV.history pv === CV.history pv' .&&.
+        = ( Set.size (CV.history pv) === Set.size (CV.history pv') .&&.
             CV.value   pv === CV.value   pv' )
         | otherwise
         = discard
