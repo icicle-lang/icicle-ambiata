@@ -48,48 +48,8 @@ import           Data.String   (String)
 import           X.Control.Monad.Trans.Either
 
 
-instance Arbitrary T.Variable where
- arbitrary
-  = T.Variable <$> elements muppets
-
-instance Arbitrary (Exp () T.Variable) where
- arbitrary
-  = do tt <- arbitrary
-       genExp $ TypedGenInfo Map.empty tt
-
-instance Arbitrary Prim where
- arbitrary
-  = oneof
-        [ Lit . LitInt    <$> pos
-        , Lit . LitDouble <$> pos'
-        , Lit . LitString <$> (elements southpark)
-        , Lit . LitTime   <$> arbitrary ]
-    where
-      -- Negative literals get parsed into negative, then a positive literal.
-      -- This isn't a problem mathematically, but would break symmetry tests.
-      pos  = abs <$> arbitrary
-      pos' = abs <$> arbitrary
-
-instance Arbitrary Constructor where
- arbitrary
-  = oneof_vals [ ConSome, ConNone, ConTuple, ConTrue, ConFalse, ConLeft, ConRight ]
-
-instance Arbitrary FoldType where
- arbitrary
-  = oneof
-        [ return FoldTypeFoldl1
-        , return FoldTypeFoldl ]
-
-
-instance Arbitrary (Query () T.Variable) where
- arbitrary
-  = do tt <- arbitrary
-       genQuery $ TypedGenInfo Map.empty tt
-
-instance Arbitrary (QueryTop () T.Variable) where
- arbitrary
-  = QueryTop <$> arbitrary <*> arbitrary <*> arbitrary
-
+-- Fresh name helpers ---------------
+--
 freshnamer t = counterPrefixNameState (T.Variable . Text.pack . show) (T.Variable t)
 
 freshtest t p
@@ -100,6 +60,9 @@ freshcheck t
  . flip runFresh (freshnamer t)
  . runEitherT
 
+
+-- Query and related typechecker options --------
+-- All the stuff needed to typecheck, convert a query and so on
 data QueryWithFeature
  = QueryWithFeature
  { qwfQuery     :: Query    () T.Variable
@@ -111,7 +74,7 @@ data QueryWithFeature
  }
  deriving Show
 
-
+-- | Generate feature map for typechecking and conversion to Core.
 qwfFeatureMap :: QueryWithFeature -> Features () T.Variable
 qwfFeatureMap qwf
  = Features
@@ -137,16 +100,15 @@ qwfFeatureMap qwf
    $ CE.xPrim     $ CE.PrimMinimal
    $ Min.PrimPair $ Min.PrimPairSnd tt CT.TimeT
 
-
 qwfQueryTop :: QueryWithFeature -> QueryTop () T.Variable
 qwfQueryTop qwf
  = QueryTop (qwfFeatureN qwf) (qwfOutput qwf) (qwfQuery qwf)
 
-instance Arbitrary QueryWithFeature where
- arbitrary = genQueryWithFeatureTypedGen
-
-genQueryWithFeatureTypedGen :: Gen QueryWithFeature
-genQueryWithFeatureTypedGen
+-- | Try to generate a well-typed query.
+-- The argument defines how likely it is to "table flip" and generate crazy expressions.
+-- The crazy expressions are less likely to typecheck, but may cover more corner cases.
+genQueryWithFeatureTypedGen :: Int -> Gen QueryWithFeature
+genQueryWithFeatureTypedGen tableflipPercent
  = do namebase <- elements muppets
       let make f = CB.nameOf $ CB.NameBase $ T.Variable (namebase <> f)
       let now = make "now"
@@ -154,7 +116,8 @@ genQueryWithFeatureTypedGen
       let tm  = make "timename"
       let tgi = TypedGenInfo
               { tgiVars = Map.fromList [(now, TTAgg), (nm, TTElt), (tm, TTElt)]
-              , tgiTemp = TTAgg }
+              , tgiTemp = TTAgg
+              , tgiTableflipPercent = tableflipPercent }
       q   <- genQuery tgi
 
       o   <- arbitrary
@@ -169,6 +132,8 @@ genQueryWithFeatureTypedGen
       Just t <- (valTypeOfType . typeOfValType) <$> arbitrary
       return $ QueryWithFeature q (Just now) o t nm tm
 
+-- | Use arbitrary instance to generate query.
+-- Less likely to typecheck, but more likely to cover crazy corner cases.
 genQueryWithFeatureArbitrary :: Gen QueryWithFeature
 genQueryWithFeatureArbitrary
  = do namebase <- elements muppets
@@ -183,7 +148,7 @@ genQueryWithFeatureArbitrary
       return $ QueryWithFeature q (Just now) o t nm tm
 
 
-
+-- | Pretty-print the query and stuff
 qwfPretty :: QueryWithFeature -> String
 qwfPretty qwf
  = show $ pretty $ qwfQueryTop qwf
@@ -213,14 +178,38 @@ qwfConvertToCore qwf qt
 
 
 
--- Generate well-formed
+-- Generating well-formed queries ---------
+-- Actually generating well-typed queries is going to be very hard, but we can
+-- at least make a token effort.
+-- We keep track of the bound variables, and whether they are available as
+-- pure expressions, element, or aggregates.
+-- Depending on the sort of expression we want to create, we can choose only that
+-- sort of variable.
 type Var = CB.Name T.Variable
 
+-- | State of generator
 data TypedGenInfo
- = TypedGenInfo
- { tgiVars :: Map.Map Var TestTemporality
- , tgiTemp :: TestTemporality }
+ = TypedGenInfo {
+   -- | Variables that are currently bound
+   tgiVars :: Map.Map Var TestTemporality,
+   -- | The sort of expression to try to produce
+   tgiTemp :: TestTemporality,
+   -- | How likely we are to generate a crazy expression
+   tgiTableflipPercent :: Int
+ }
 
+-- | By default, why not tableflip 30% of the time?
+-- Seems high, but also seems fast enough
+tgiDefaultTableflip :: Int
+tgiDefaultTableflip = 30
+
+-- | Decide whether to tableflip: run second generator if so, otherwise first generator
+genTableflip :: TypedGenInfo -> Gen a -> Gen a -> Gen a
+genTableflip tgi good bad
+ = do i <- choose (0,100)
+      if i < tgiTableflipPercent tgi then bad else good
+
+-- | Temporality information with nothing else attached
 data TestTemporality
  = TTPure | TTElt | TTAgg
  deriving Eq
@@ -228,6 +217,8 @@ data TestTemporality
 instance Arbitrary TestTemporality where
  arbitrary = elements [ TTPure, TTElt, TTAgg ]
 
+-- | Check if a variable is available for expression we are trying to generate.
+-- Pure expressions are available anywhere
 availableTT :: TypedGenInfo -> TestTemporality -> Bool
 availableTT tgi tt
  =  tt == TTPure
@@ -235,65 +226,87 @@ availableTT tgi tt
 
 genVar :: TypedGenInfo -> Gen Var
 genVar tgi
- = if   Map.null found
-   then arbitrary
-   else oneof_vals $ Map.keys found
+ = genTableflip tgi goodvar arbitrary
  where
+  goodvar
+   = if   Map.null found
+     then arbitrary
+     else oneof_vals $ Map.keys found
   found
    = Map.filter (availableTT tgi)
    $ tgiVars tgi
 
+-- | Generate an expression
 genExp :: TypedGenInfo -> Gen (Exp () T.Variable)
 genExp tgi
- = oneof_sized
-    [ Var    () <$> genVar tgi
-    , Prim   () <$> arbitrary ]
-    [ (simplifyNestedX . Nested ()) <$> genQuery tgi
-    , App    () <$> genExp tgi <*> genExp tgi
-    , Case   () <$> genExp tgi
-                <*> listOf1 (genCase tgi)
-    , unop
-    , binop
-    ]
+ = genTableflip tgi good bad
+ where
+  -- Good case, we just want:
+  good
+   = oneof_sized
+      -- in-scope variables
+      [ Var    () <$> genVar tgi
+      -- literal primitives only
+      , Prim   () <$> arbitrary ]
+      -- sub-queries
+      [ (simplifyNestedX . Nested ()) <$> genQuery tgi
+      -- case statements
+      , Case   () <$> genExp tgi
+                  <*> listOf1 (genCase tgi)
+      -- well-formed applications to primitives
+      , unop
+      , binop
+      ]
 
-  where
-   unop
-    = App ()
-    <$> (Prim () <$> operator_unary)
-    <*> genExp tgi
+  -- In the bad case:
+  bad
+   = oneof_sized
+      -- Unapplied primitives!
+      [ Prim   () <$> operator_bin
+      , Prim   () <$> operator_unary ]
+      -- Applications whose lhs might not be a function/primitive
+      [ App    () <$> genExp tgi <*> genExp tgi
+      -- Randomly changing the temporality
+      , arbitrary >>= \tt -> genExp tgi { tgiTemp = tt }
+      ]
 
-   binop
-    = App ()
-    <$> (App ()
-            <$> (Prim () <$> operator_bin)
-            <*> genExp tgi)
-    <*> genExp tgi
+  unop
+   = App ()
+   <$> (Prim () <$> operator_unary)
+   <*> genExp tgi
 
-   operator_bin
-    = oneof_vals
-        [ Op    (ArithDouble Div)
-        , Op    (ArithBinary Mul)
-        , Op    (ArithBinary Add)
-        , Op    (ArithBinary Sub)
-        , Op    (ArithBinary Pow)
-        , Op    (Relation Gt)
-        , Op    (Relation Eq)
-        , Op    (LogicalBinary And)
-        , Op    (LogicalBinary Or)
-        , Op    (TimeBinary DaysBefore)
-        , Op    (TimeBinary DaysAfter)
-        , Op    (TimeBinary MonthsBefore)
-        , Op    (TimeBinary MonthsAfter)
-        , Fun   (BuiltinTime DaysBetween)
-        , Fun   (BuiltinTime DaysEpoch)
-        , Fun   (BuiltinData Seq) ]
+  binop
+   = App ()
+   <$> (App ()
+           <$> (Prim () <$> operator_bin)
+           <*> genExp tgi)
+   <*> genExp tgi
 
-   operator_unary
-    = oneof_vals
-        [ Op (ArithUnary Negate)
-        , Op (LogicalUnary Not)
-        , Fun (BuiltinMap MapKeys)
-        , Fun (BuiltinMap MapValues) ]
+  operator_bin
+   = oneof_vals
+       [ Op    (ArithDouble Div)
+       , Op    (ArithBinary Mul)
+       , Op    (ArithBinary Add)
+       , Op    (ArithBinary Sub)
+       , Op    (ArithBinary Pow)
+       , Op    (Relation Gt)
+       , Op    (Relation Eq)
+       , Op    (LogicalBinary And)
+       , Op    (LogicalBinary Or)
+       , Op    (TimeBinary DaysBefore)
+       , Op    (TimeBinary DaysAfter)
+       , Op    (TimeBinary MonthsBefore)
+       , Op    (TimeBinary MonthsAfter)
+       , Fun   (BuiltinTime DaysBetween)
+       , Fun   (BuiltinTime DaysEpoch)
+       , Fun   (BuiltinData Seq) ]
+
+  operator_unary
+   = oneof_vals
+       [ Op (ArithUnary Negate)
+       , Op (LogicalUnary Not)
+       , Fun (BuiltinMap MapKeys)
+       , Fun (BuiltinMap MapValues) ]
 
 
 genCase :: TypedGenInfo -> Gen (Pattern T.Variable, Exp () T.Variable)
@@ -392,4 +405,54 @@ genTemporality tgi
     TTPure -> return TTPure
     TTElt  -> elements [TTPure, TTElt]
     TTAgg  -> elements [TTPure, TTElt, TTAgg]
+
+
+
+-- Boring arbitrary instances ---
+-- These are all quite simple, and just use the above functions when they aren't
+
+instance Arbitrary T.Variable where
+ arbitrary
+  = T.Variable <$> elements muppets
+
+instance Arbitrary (Exp () T.Variable) where
+ arbitrary
+  = do tt <- arbitrary
+       genExp $ TypedGenInfo Map.empty tt tgiDefaultTableflip
+
+instance Arbitrary Prim where
+ arbitrary
+  = oneof
+        [ Lit . LitInt    <$> pos
+        , Lit . LitDouble <$> pos'
+        , Lit . LitString <$> (elements southpark)
+        , Lit . LitTime   <$> arbitrary ]
+    where
+      -- Negative literals get parsed into negative, then a positive literal.
+      -- This isn't a problem mathematically, but would break symmetry tests.
+      pos  = abs <$> arbitrary
+      pos' = abs <$> arbitrary
+
+instance Arbitrary Constructor where
+ arbitrary
+  = oneof_vals [ ConSome, ConNone, ConTuple, ConTrue, ConFalse, ConLeft, ConRight ]
+
+instance Arbitrary FoldType where
+ arbitrary
+  = oneof
+        [ return FoldTypeFoldl1
+        , return FoldTypeFoldl ]
+
+
+instance Arbitrary (Query () T.Variable) where
+ arbitrary
+  = do tt <- arbitrary
+       genQuery $ TypedGenInfo Map.empty tt tgiDefaultTableflip
+
+instance Arbitrary (QueryTop () T.Variable) where
+ arbitrary
+  = QueryTop <$> arbitrary <*> arbitrary <*> arbitrary
+
+instance Arbitrary QueryWithFeature where
+ arbitrary = genQueryWithFeatureTypedGen tgiDefaultTableflip
 

@@ -44,4 +44,4 @@ prop_convert_is_well_typed qwf
 
 return []
 tests :: IO Bool
-tests = $checkAllWith TestRunMore (checkArgsSized 10)
+tests = $checkAllWith TestRunMore (checkArgsSized 100)

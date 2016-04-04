@@ -49,4 +49,4 @@ prop_progress_no_values f q
 
 return []
 tests :: IO Bool
-tests = $checkAllWith TestRunMore (checkArgsSized 10)
+tests = $checkAllWith TestRunMore (checkArgsSized 100)
