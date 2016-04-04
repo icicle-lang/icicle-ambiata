@@ -207,7 +207,7 @@ for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0$simp$97@{Error}, conv$
   {
     read flat$8 = flat$2 [Array Time];
     let simp$130 = Array_length#@{Time} flat$8;
-    write flat$2 = Array_put_immutable#@{Time} flat$8 simp$130 conv$0$simp$99;
+    write flat$2 = Array_put_mutable#@{Time} flat$8 simp$130 conv$0$simp$99;
     read flat$9$simp$38 = flat$3$simp$30 [Array (Buf 2 FactIdentifier)];
     read flat$9$simp$39 = flat$3$simp$31 [Array (Buf 2 Error)];
     read flat$9$simp$40 = flat$3$simp$32 [Array (Buf 2 Int)];
@@ -319,7 +319,7 @@ foreach (flat$24 in 0@{Int} .. Array_length#@{Time} conv$4$simp$51)
         if (eq#@{Time} simp$174 simp$272)
         {
           let flat$39 = unsafe_Array_index#@{Int} flat$36 flat$38;
-          write flat$36 = Array_put_immutable#@{Int} flat$36 flat$38 flat$39;
+          write flat$36 = Array_put_mutable#@{Int} flat$36 flat$38 flat$39;
           write flat$34 = True@{Bool};
         }
       }
@@ -332,10 +332,10 @@ foreach (flat$24 in 0@{Int} .. Array_length#@{Time} conv$4$simp$51)
       {
         read flat$40 = flat$35 [Array Time];
         let simp$175 = Array_length#@{Time} flat$40;
-        write flat$35 = Array_put_immutable#@{Time} flat$40 simp$175 simp$272;
+        write flat$35 = Array_put_mutable#@{Time} flat$40 simp$175 simp$272;
         read flat$41 = flat$36 [Array Int];
         let simp$176 = Array_length#@{Int} flat$41;
-        write flat$36 = Array_put_immutable#@{Int} flat$41 simp$176 flat$30$simp$84;
+        write flat$36 = Array_put_mutable#@{Int} flat$41 simp$176 flat$30$simp$84;
       }
       read flat$35 = flat$35 [Array Time];
       read flat$36 = flat$36 [Array Int];

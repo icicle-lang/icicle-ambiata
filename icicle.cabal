@@ -80,6 +80,7 @@ library
                        Icicle.Avalanche.Statement.Simp.ExpEnv
                        Icicle.Avalanche.Statement.Simp.Constructor
                        Icicle.Avalanche.Statement.Simp.Melt
+                       Icicle.Avalanche.Statement.Simp.Mutate
                        Icicle.Avalanche.Statement.Flatten
                        Icicle.Avalanche.Statement.Flatten.Base
                        Icicle.Avalanche.Statement.Flatten.Save

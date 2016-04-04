@@ -20,6 +20,7 @@ import              Icicle.Avalanche.Statement.Simp
 import              Icicle.Avalanche.Statement.Simp.Eval
 import              Icicle.Avalanche.Statement.Simp.Constructor
 import              Icicle.Avalanche.Statement.Simp.Melt
+import              Icicle.Avalanche.Statement.Simp.Mutate
 import              Icicle.Avalanche.Program
 
 import              P
@@ -52,6 +53,7 @@ simpFlattened
   -> Fresh n (Program a n Flat.Prim)
 simpFlattened a_fresh p
  = do s' <- transformX return (simp a_fresh) (statements p)
+         >>= return . mutate
          >>= melt a_fresh
          >>= fixpoint crunch
          -- Rename reads from accumulators
