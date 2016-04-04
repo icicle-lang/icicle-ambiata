@@ -9,7 +9,7 @@
 module Icicle.Test.Arbitrary.Source where
 
 import           Icicle.Internal.Pretty
-import           Icicle.Source.Checker.Base (optionSmallData)
+import           Icicle.Source.Checker.Base (optionSmallData,optionBigData)
 import           Icicle.Source.Checker.Checker
 import           Icicle.Source.Checker.Error
 import           Icicle.Source.Query
@@ -164,6 +164,13 @@ qwfCheck qwf
  = do qd' <- qwfDesugar qwf
       (qt',_) <- first CheckErrTC $ freshcheck "check" $ checkQT optionSmallData (qwfFeatureMap qwf) qd'
       return qt'
+
+qwfCheckBigData :: QueryWithFeature -> Either CheckErr (QueryTop (Annot () T.Variable) T.Variable)
+qwfCheckBigData qwf
+ = do qd' <- qwfDesugar qwf
+      (qt',_) <- first CheckErrTC $ freshcheck "check" $ checkQT optionBigData (qwfFeatureMap qwf) qd'
+      return qt'
+
 
 qwfDesugar :: QueryWithFeature -> Either CheckErr (QueryTop () T.Variable)
 qwfDesugar qwf
