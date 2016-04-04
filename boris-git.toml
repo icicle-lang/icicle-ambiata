@@ -1,0 +1,14 @@
+[boris]
+  version = 1
+
+[build.dist]
+  git = "refs/heads/master"
+
+[build.dist-bench]
+  git = "refs/heads/master"
+
+[build.branches]
+  git = "refs/heads/topic/*"
+
+[build.branches-bench]
+  git = "refs/heads/topic/*"
