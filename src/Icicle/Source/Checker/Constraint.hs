@@ -556,7 +556,7 @@ generateX x env
            let t'    = canonT
                      $ Temporality returnTemp'
                      $ Possibility returnPoss' returnType
-           let subst = Map.unions (sub : subs)
+           let subst = foldl' compose sub subs
            let cons' = concat [consS, consTj, consPs, consA]
 
            let x' = annotate cons' t'
