@@ -34,7 +34,6 @@ import           Icicle.Common.Type
 import qualified Icicle.Sea.Eval as S
 
 import           Icicle.Test.Arbitrary
-import           Icicle.Test.Sea.Arbitrary
 
 import qualified Jetski as J
 
@@ -189,7 +188,7 @@ runTest wt (TestOpts showInput showOutput inputFormat allowDupTime) = do
   options0 <- S.getCompilerOptions
 
   let options  = options0 <> ["-O0", "-DICICLE_NOINLINE=1"]
-      programs = Map.singleton (wtAttribute wt) (wtAvalanche wt)
+      programs = Map.singleton (wtAttribute wt) (wtAvalancheFlat wt)
       iconfig  = S.PsvInputConfig
                 (S.PsvSnapshot (wtTime wt))
                 (Map.singleton (wtAttribute wt) (Set.singleton tombstone))

@@ -9,11 +9,6 @@ import           Icicle.Test.Arbitrary
 import           Icicle.Internal.Pretty
 import qualified Icicle.Core.Program.Check      as CCheck
 
-
-
-import           Icicle.Test.Source.Arbitrary
-import           Icicle.Test.Core.Arbitrary ()
-
 import           P
 
 import           System.IO

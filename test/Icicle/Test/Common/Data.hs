@@ -5,7 +5,6 @@
 module Icicle.Test.Common.Data where
 
 import           Icicle.Test.Arbitrary
-import           Icicle.Test.Core.Arbitrary
 
 import           Icicle.Common.Data
 

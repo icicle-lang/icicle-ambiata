@@ -5,7 +5,6 @@
 module Icicle.Test.Core.Program.Eval where
 
 import           Icicle.Test.Arbitrary
-import           Icicle.Test.Core.Arbitrary
 -- import           Icicle.Core.Program.Program
 import           Icicle.Core.Program.Check
 -- import qualified Icicle.Core.Eval.Exp       as XV

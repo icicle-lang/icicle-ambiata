@@ -4,7 +4,6 @@
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 module Icicle.Test.Avalanche.EvalCommutes where
 
-import           Icicle.Test.Core.Arbitrary
 import           Icicle.Test.Arbitrary
 
 import           Icicle.Core.Program.Check

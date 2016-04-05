@@ -2,7 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-module Icicle.Test.Core.Arbitrary where
+module Icicle.Test.Arbitrary.Core where
 
 import qualified Icicle.Internal.Pretty as PP
 
@@ -24,7 +24,7 @@ import           Icicle.Core.Stream
 import           Icicle.Core.Program.Program    as P
 
 import           Icicle.Test.Arbitrary.Base
-import           Icicle.Test.Arbitrary
+import           Icicle.Test.Arbitrary.Data
 import           Disorder.Corpus
 
 import           Test.QuickCheck
