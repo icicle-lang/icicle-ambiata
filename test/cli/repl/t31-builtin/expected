@@ -22,13 +22,13 @@ ok, loaded test/cli/repl/data.psv, 13 rows
                                    \             (
                                     \_____________)
 > > - C evaluation:
-[(homer,["head","arm","torso"])]
+[homer, ["head","arm","torso"]]
 
 - Core evaluation:
 [homer, ["arm","head","torso"]]
 
 > > - C evaluation:
-[(homer,-14611)]
+[homer, -14611]
 
 - Core evaluation:
 [homer, -14611]

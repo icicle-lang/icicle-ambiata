@@ -146,7 +146,7 @@ void iprogram_0(iprogram_0_t *s)
 }
 
 - C evaluation:
-[(homer,5.0),(marge,3.0)]
+[homer, 5.0,marge, 3.0]
 
 - Core evaluation:
 [homer, 5.0,marge, 3.0]
