@@ -306,11 +306,13 @@ test-suite test
                      , ambiata-p
                      , ambiata-jetski
                      , ambiata-x-eithert
+                     , bifunctors                      == 4.2.*
                      , icicle
                      , aeson
                      , bytestring
                      , containers
                      , directory
+                     , parsec
                      , hashable                        == 1.2.*
                      , unordered-containers            == 0.2.*
                      , QuickCheck                      == 2.8.*

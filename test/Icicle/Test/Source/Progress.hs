@@ -18,8 +18,6 @@ import           Icicle.Source.Transform.Desugar
 import qualified Icicle.Common.Base          as CB
 import qualified Icicle.Common.Type          as CT
 
-import           Icicle.Test.Arbitrary
-
 import           P
 
 import           System.IO

@@ -146,6 +146,8 @@ fromEither :: Either x a -> Maybe a
 fromEither (Left _)  = Nothing
 fromEither (Right x) = Just x
 
+------------------------------------------------------------------------
+
 isSupportedInput :: ValType -> Bool
 isSupportedInput = \case
   BoolT     -> True

@@ -50,7 +50,7 @@ mutateStmt livevars ss
 
          Block stmts
            -> let f (st:sts) = mutateStmt (livevars <> Set.unions (fmap livevarsStmt sts)) st
-                              : fmap go sts
+                              : f sts
                   f []       = []
               in  Block $ f stmts
 
