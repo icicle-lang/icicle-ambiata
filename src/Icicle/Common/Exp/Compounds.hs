@@ -234,6 +234,9 @@ subst :: (Hashable n, Eq n)
       -> Exp a n p
       -> Fresh n (Exp a n p)
 subst a_fresh env into
+ | Map.null env
+ = return into
+ | otherwise
  = subst' a_fresh env (Set.unions $ Map.elems $ Map.map freevars env) into
 
 subst'  :: (Hashable n, Eq n)
