@@ -76,8 +76,11 @@ constructor a_fresh statements
   primArrayGet i t a
    = xPrim (PrimUnsafe (PrimUnsafeArrayIndex t)) `xApp` a `xApp` i
 
-  primArrayPut i t a v
-   = xPrim (PrimUpdate (PrimUpdateArrayPut t)) `xApp` a `xApp` i `xApp` v
+  primArrayPutImmutable i t a v
+   = xPrim (PrimArray (PrimArrayPutImmutable t)) `xApp` a `xApp` i `xApp` v
+
+  primArrayPutMutable i t a v
+   = xPrim (PrimArray (PrimArrayPutMutable t)) `xApp` a `xApp` i `xApp` v
 
   primUnpack ix t x
    = xPrim (PrimMelt (PrimMeltUnpack ix t)) `xApp` x
@@ -252,11 +255,17 @@ constructor a_fresh statements
    = Just $ primPack env tx
    $ fmap (\(t, ix) -> primArrayGet aix t (primUnpack ix (ArrayT tx) n)) tis
 
-   | (PrimUpdate (PrimUpdateArrayPut tx), [na, aix, nv]) <- prima
+   | (PrimArray (PrimArrayPutImmutable tx), [na, aix, nv]) <- prima
    , Just tis <- withIndex tryMeltType tx
    = Just $ primPack env (ArrayT tx)
-   $ fmap (\(t, ix) -> primArrayPut aix t (primUnpack ix (ArrayT tx) na)
-                                          (primUnpack ix         tx  nv)) tis
+   $ fmap (\(t, ix) -> primArrayPutImmutable aix t (primUnpack ix (ArrayT tx) na)
+                                                   (primUnpack ix         tx  nv)) tis
+
+   | (PrimArray (PrimArrayPutMutable tx), [na, aix, nv]) <- prima
+   , Just tis <- withIndex tryMeltType tx
+   = Just $ primPack env (ArrayT tx)
+   $ fmap (\(t, ix) -> primArrayPutMutable aix t (primUnpack ix (ArrayT tx) na)
+                                                 (primUnpack ix         tx  nv)) tis
 
    -- comparison
    | (PrimMinimal (Min.PrimRelation op t), [nx, ny]) <- prima

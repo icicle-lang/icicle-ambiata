@@ -12,7 +12,6 @@ import qualified Icicle.Sea.Eval                    as S
 import qualified Icicle.Avalanche.FromCore          as A
 
 import           Icicle.Test.Arbitrary
-import           Icicle.Test.Sea.Arbitrary
 
 import qualified Data.Map                           as Map
 
@@ -34,7 +33,7 @@ namer = A.namerText (flip Var 0)
 --   Like prop_psv, but without psv.
 prop_seaworthy wt
  = testIO
- $ do let seaProgram = Map.singleton (Attribute "eval") (wtAvalanche wt)
+ $ do let seaProgram = Map.singleton (Attribute "eval") (wtAvalancheFlat wt)
       x <- runEitherT $ go seaProgram
       return $ case x of
        Right _
@@ -42,7 +41,7 @@ prop_seaworthy wt
        Left err
         -> counterexample (show $ pretty err)
         $  counterexample (show $ pretty (wtCore wt))
-        $  counterexample (show $ pretty (wtAvalanche wt))
+        $  counterexample (show $ pretty (wtAvalancheFlat wt))
         $  failed
  where
   go p

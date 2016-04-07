@@ -356,6 +356,7 @@ freshNamer prefix
 type SimError = S.SimulateError () SourceVar
 
 newtype Result   = Result (Entity, Value)
+  deriving (Eq, Show)
 
 instance Pretty Result where
   pretty (Result (ent, val))
@@ -421,9 +422,9 @@ seaEval :: Time
         -> [AsAt Fact]
         -> QueryTop'T SourceVar
         -> AP.Program (CA.Annot ()) SP.Variable APF.Prim
-        -> EitherT Sea.SeaError IO [(Entity, Value)]
+        -> EitherT Sea.SeaError IO [Result]
 seaEval t newFacts (renameQT unVar -> query) program =
-    mconcat <$> sequence results
+  fmap Result . mconcat <$> sequence results
   where
     partitions :: [S.Partition]
     partitions  = S.streams newFacts

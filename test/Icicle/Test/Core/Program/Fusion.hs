@@ -5,7 +5,6 @@
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 module Icicle.Test.Core.Program.Fusion where
 
-import           Icicle.Test.Core.Arbitrary
 import           Icicle.Test.Arbitrary
 
 import           Icicle.Core.Program.Check

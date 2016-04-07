@@ -9,8 +9,6 @@ import           Icicle.Test.Arbitrary
 import           Icicle.Internal.Pretty
 import           Icicle.Source.Parser
 
-import           Icicle.Test.Source.Arbitrary
-
 import           P
 
 import qualified Data.Text as T

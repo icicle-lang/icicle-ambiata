@@ -1569,7 +1569,7 @@ void iprogram_0(iprogram_0_t *s)
 }
 
 - C evaluation:
-[(homer,3.1112698372208096)]
+[homer, 3.1112698372208096]
 
 - Core evaluation:
 [homer, 3.1112698372208096]
@@ -1782,8 +1782,8 @@ void iprogram_0(iprogram_0_t *s)
 }
 
 - C evaluation:
-[(homer,2029-12-27)
-,(marge,2009-12-12)]
+[homer, 2029-12-27
+,marge, 2009-12-12]
 
 - Core evaluation:
 [homer, 2029-12-27

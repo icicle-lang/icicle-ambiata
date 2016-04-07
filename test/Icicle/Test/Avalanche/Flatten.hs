@@ -19,7 +19,6 @@ import           Icicle.Internal.Pretty
 import qualified Icicle.Pipeline as P
 
 import           Icicle.Test.Arbitrary
-import           Icicle.Test.Core.Arbitrary
 
 import           P
 

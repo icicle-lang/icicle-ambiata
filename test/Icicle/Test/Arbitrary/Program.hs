@@ -5,7 +5,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell#-}
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
-module Icicle.Test.Sea.Arbitrary where
+module Icicle.Test.Arbitrary.Program where
 
 import qualified Data.Map as Map
 import qualified Data.Set as Set
@@ -16,6 +16,7 @@ import           Icicle.Data.Time (Time)
 
 import qualified Icicle.Core.Program.Program as C
 import qualified Icicle.Core.Program.Check as C
+import qualified Icicle.Core.Exp.Prim      as C
 
 import qualified Icicle.Avalanche.Annot as A
 import qualified Icicle.Avalanche.Check as A
@@ -32,8 +33,8 @@ import           Icicle.Common.Annot
 import qualified Icicle.Sea.FromAvalanche.Analysis as S
 import qualified Icicle.Sea.Eval as S
 
-import           Icicle.Test.Arbitrary
-import           Icicle.Test.Core.Arbitrary
+import           Icicle.Test.Arbitrary.Data
+import           Icicle.Test.Arbitrary.Core
 
 import           P
 
@@ -45,13 +46,14 @@ newtype InputType = InputType {
   } deriving (Show)
 
 data WellTyped = WellTyped {
-    wtEntities  :: [Entity]
-  , wtAttribute :: Attribute
-  , wtFactType  :: ValType
-  , wtFacts     :: [AsAt BaseValue]
-  , wtTime      :: Time
-  , wtCore      :: C.Program ()         Var
-  , wtAvalanche :: A.Program (Annot ()) Var A.Prim
+    wtEntities      :: [Entity]
+  , wtAttribute     :: Attribute
+  , wtFactType      :: ValType
+  , wtFacts         :: [AsAt BaseValue]
+  , wtTime          :: Time
+  , wtCore          :: C.Program ()         Var
+  , wtAvalanche     :: A.Program ()         Var C.Prim
+  , wtAvalancheFlat :: A.Program (Annot ()) Var A.Prim
   } deriving (Show)
 
 instance Arbitrary InputType where
@@ -98,13 +100,14 @@ tryGenWellTypedWith allowDupTime (InputType ty) = do
         (_:_) -> Nothing
 
       return WellTyped {
-          wtEntities  = entities
-        , wtAttribute = attribute
-        , wtFactType  = ty
-        , wtFacts     = fmap (fmap snd) inputs
-        , wtTime      = time
-        , wtCore      = core
-        , wtAvalanche = simplified
+          wtEntities      = entities
+        , wtAttribute     = attribute
+        , wtFactType      = ty
+        , wtFacts         = fmap (fmap snd) inputs
+        , wtTime          = time
+        , wtCore          = core
+        , wtAvalanche     = avalanche
+        , wtAvalancheFlat = simplified
         }
     where
       replaceStmts prog stms = prog { A.statements = stms }
@@ -142,6 +145,8 @@ validated n g
 fromEither :: Either x a -> Maybe a
 fromEither (Left _)  = Nothing
 fromEither (Right x) = Just x
+
+------------------------------------------------------------------------
 
 isSupportedInput :: ValType -> Bool
 isSupportedInput = \case

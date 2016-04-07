@@ -5,7 +5,6 @@
 module Icicle.Test.Avalanche.Melt where
 
 import           Icicle.Test.Arbitrary
-import           Icicle.Test.Core.Arbitrary
 
 import qualified Icicle.Avalanche.Annot               as AA
 import qualified Icicle.Avalanche.Program             as AP

@@ -1,5 +1,6 @@
 import qualified Icicle.Test.Encoding
 import qualified Icicle.Test.Serial
+import qualified Icicle.Test.Language
 
 import qualified Icicle.Test.Common.Data
 
@@ -40,6 +41,7 @@ main
  = disorderMain
         [ Icicle.Test.Encoding.tests
         , Icicle.Test.Serial.tests
+        , Icicle.Test.Language.tests
 
         , Icicle.Test.Common.Data.tests
 

@@ -21,7 +21,6 @@ import qualified Icicle.Internal.Pretty as PP
 import           Icicle.Storage.Dictionary.Toml
 import           Icicle.Storage.Dictionary.Toml.Persist
 import           Icicle.Test.Arbitrary
-import           Icicle.Test.Source.Arbitrary ()
 import           Icicle.Source.Checker.Base (optionSmallData)
 
 import           P

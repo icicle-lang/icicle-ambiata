@@ -111,7 +111,7 @@ evalPrim p vs
       -> primError
 
 
-     PrimUpdate (PrimUpdateArrayPut t)
+     PrimArray (PrimArrayPutMutable t)
       | [VBase (VArray varr), VBase (VInt ix), VBase v]  <- vs
       , len <- length varr
       , ix >= len
@@ -124,6 +124,18 @@ evalPrim p vs
       | otherwise
       -> primError
 
+     PrimArray (PrimArrayPutImmutable t)
+      | [VBase (VArray varr), VBase (VInt ix), VBase v]  <- vs
+      , len <- length varr
+      , ix >= len
+      -> return $ VBase
+       $ VArray (varr <> List.replicate (ix - len) (defaultOfType t) <> [v])
+      | [VBase (VArray varr), VBase (VInt ix), VBase v]  <- vs
+      -> return $ VBase
+       $ VArray [ if i == ix then v else u
+                | (i,u) <- zip [0..] varr ]
+      | otherwise
+      -> primError
 
      PrimArray (PrimArrayZip _ _)
       | [VBase (VArray arr1), VBase (VArray arr2)]  <- vs

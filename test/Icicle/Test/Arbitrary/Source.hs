@@ -6,7 +6,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
-module Icicle.Test.Source.Arbitrary where
+module Icicle.Test.Arbitrary.Source where
 
 import           Icicle.Internal.Pretty
 import           Icicle.Source.Checker.Base (optionSmallData)
@@ -30,7 +30,7 @@ import           Icicle.Source.Transform.Desugar
 import           Icicle.Source.Transform.ReifyPossibility
 
 import           Icicle.Test.Arbitrary.Base
-import           Icicle.Test.Core.Arbitrary ()
+import           Icicle.Test.Arbitrary.Core ()
 import           Disorder.Corpus
 
 import           Test.QuickCheck

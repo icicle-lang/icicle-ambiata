@@ -62,7 +62,7 @@ flatOps a_fresh
   arrLen t      = p1 (PrimProject $ PrimProjectArrayLength t)
   arrIx  t      = p2 (PrimUnsafe  $ PrimUnsafeArrayIndex   t)
   arrNew t      = p1 (PrimUnsafe  $ PrimUnsafeArrayCreate  t)
-  arrUpd t      = p3 (PrimUpdate  $ PrimUpdateArrayPut     t)
+  arrUpd t      = p3 (PrimArray   $ PrimArrayPutImmutable  t)
   arrZip k v    = p2 (PrimArray   $ PrimArrayZip           k v)
 
 

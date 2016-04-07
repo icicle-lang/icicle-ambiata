@@ -116,7 +116,8 @@ convertValues a_fresh statements
            -> XPrim a_fresh (PrimUnsafe (PrimUnsafeArrayCreate t))
                `xApp` n
          (x : xs)
-           -> XPrim a_fresh (PrimUpdate (PrimUpdateArrayPut t))
+           -- This can mutate since it's on a newly created array
+           -> XPrim a_fresh (PrimArray  (PrimArrayPutMutable t))
                 `xApp` arrPrim (i + 1) n t xs
                 `xApp` (XValue a_fresh IntT (VInt i))
                 `xApp` goB' t x

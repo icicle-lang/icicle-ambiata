@@ -5,7 +5,6 @@
 module Icicle.Test.Core.Exp.Alpha where
 
 import           Icicle.Test.Arbitrary
-import           Icicle.Test.Core.Arbitrary
 import           Icicle.Core.Eval.Exp
 import           Icicle.Common.Base
 import           Icicle.Common.Exp

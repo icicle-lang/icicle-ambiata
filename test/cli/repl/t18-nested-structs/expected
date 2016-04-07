@@ -22,17 +22,17 @@ ok, loaded test/cli/repl/data.psv, 13 rows
 > > ok, loaded dictionary with 1 features and 32 functions
 > ok, loaded test/cli/repl/t18-nested-structs/data.psv, 4 rows
 > > - C evaluation:
-[(homer,[(1,1.5),(2,6.5)])
-,(marge,[(2,2.5)])]
+[homer, [(1,1.5),(2,6.5)]
+,marge, [(2,2.5)]]
 
 - Core evaluation:
 [homer, [(1,1.5),(2,6.5)]
 ,marge, [(2,2.5)]]
 
 > > - C evaluation:
-[(homer
- ,[("head",1.5),("leg",6.5)])
-,(marge,[("leg",2.5)])]
+[homer, [("head",1.5)
+        ,("leg",6.5)]
+,marge, [("leg",2.5)]]
 
 - Core evaluation:
 [homer, [("head",1.5)

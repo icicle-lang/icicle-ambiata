@@ -4,7 +4,6 @@
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 module Icicle.Test.Core.Exp.Eval where
 
-import           Icicle.Test.Core.Arbitrary
 import           Icicle.Test.Arbitrary
 
 import qualified Icicle.Core.Exp    as X
