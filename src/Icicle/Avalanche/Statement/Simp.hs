@@ -176,17 +176,55 @@ pullLets statements
 -- | Let-forwarding on statements
 forwardStmts :: (Hashable n, Eq n) => a -> Statement a n p -> FixT (Fresh n) (Statement a n p)
 forwardStmts a_fresh statements
- = transformUDStmt trans () statements
+ = transformUDStmt trans Map.empty statements
  where
-  trans _ s
+  sub e x = lift $ subst a_fresh e x
+  subS e x f 
+   = do x' <- sub e x
+        return (e, f x')
+
+  trans e s
    = case s of
       Let n x ss
        | isSimpleValue x
-       -> do    s' <- lift $ substXinS a_fresh n x ss
-                progress ((), s')
+       -> do  x' <- sub e x
+              progress (Map.insert n x' e, Block [ss])
+       | otherwise
+       -> do  x' <- sub e x
+              return (Map.delete n e, Let n x' ss)
 
-      _ -> return ((), s)
+      If x ss es
+       -> subS e x $ \x' -> If x' ss es
 
+      ForeachInts n from to ss
+       -> do from' <- sub e from
+             to'   <- sub e to
+             let e' = Map.delete n e
+             return (e', ForeachInts n from' to' ss)
+
+      InitAccumulator (Accumulator n vt x) ss
+       -> subS e x $ \x' -> InitAccumulator (Accumulator n vt x') ss
+
+      Write n x
+       -> subS e x $ Write n
+
+      Output n t xs
+       -> do let subF (x,t') = (,t') <$> sub e x
+             xs' <- mapM subF xs
+             return (e, Output n t xs')
+
+      Read n _acc _t _ss
+       -> return (Map.delete n e, s)
+      ForeachFacts ns _t  _f _ss
+       -> return (foldl (flip Map.delete) e (fmap fst $ factBindsAll ns), s)
+      Block{}
+       -> return (e,s)
+      KeepFactInHistory{}
+       -> return (e,s)
+      LoadResumable{}
+       -> return (e,s)
+      SaveResumable{}
+       -> return (e,s)
 
 -- | Funky renaming for C
 -- Rename reads from accumulators to refer to the accumulator name.
