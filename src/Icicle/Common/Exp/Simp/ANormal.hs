@@ -101,7 +101,7 @@ anormalAllVars a_fresh xx
         let a_fresh' = (a_fresh, allNames)
         let lets = makeLets a_fresh' bs x
         -- Substitute with the new name
-        lets' <- subst a_fresh' n (XVar a_fresh' n') lets
+        lets' <- subst1 a_fresh' n (XVar a_fresh' n') lets
 
         -- It's silly, but we need to pull back out to a list of bindings again.
         -- We could save some work by going backwards, but this way seems simpler for now.

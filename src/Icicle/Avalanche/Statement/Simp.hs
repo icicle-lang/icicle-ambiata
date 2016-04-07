@@ -315,7 +315,7 @@ substXinS a_fresh name payload statements
       _
        -> return (True, s)
 
-  sub = subst a_fresh name payload
+  sub = subst a_fresh (Map.singleton name payload)
   sub1 x f
    = do x' <- sub x
         return (True, f x')

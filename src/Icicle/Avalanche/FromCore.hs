@@ -65,7 +65,7 @@ programFromCore namer p
                 -- accums (filter (readFromHistory.snd) $ C.reduces p)
                 -- ( factLoopHistory    <>
 
-        accs <- createAccums [] (C.streams p) inner
+        accs <- createAccums Map.empty (C.streams p) inner
         let stmts       = lets (C.precomps p) accs
 
         return (A.Program
@@ -83,15 +83,12 @@ programFromCore namer p
   createAccums _ [] inner
    = return inner
   createAccums subst (CS.SFold n ty z _ : ss) inner
-   = do  z' <- doSubst subst z
-         let subst' = (n,z') : subst
+   = do  z' <- X.subst () subst z
+         let subst' = Map.insert n z' subst
          rest <- createAccums subst' ss inner
          return $ InitAccumulator ( A.Accumulator (namerAccPrefix namer n) ty z' ) rest
   createAccums subst (CS.SFilter _ ss : ss') inner
    = createAccums subst (ss <> ss') inner
-
-  doSubst subs z
-   = foldM (\z' (n,x) -> X.subst () n x z') z subs
 
 
   outputExps
@@ -154,17 +151,18 @@ makeStatements _p namer streams
              return  (nms', s)
 
   mkReads nms inner k
-   = mkReads' nms inner k (X.freevars k)
+   = mkReads' nms inner k Map.empty (X.freevars k)
 
-  mkReads' [] inner k _
-   = return $ inner k
+  mkReads' [] inner k subs _
+   = do k' <- X.subst () subs k
+        return $ inner $ k'
 
-  mkReads' ((n,t):ns) inner k fvs
+  mkReads' ((n,t):ns) inner k subs fvs
    | Set.member n fvs
    = do n' <- freshPrefixBase $ nameBase n
-        k' <- X.subst () n (X.XVar () n') k
+        let subs' = Map.insert n (X.XVar () n') subs
         let acc = namerAccPrefix namer n
-        mkReads' ns (\x -> Read n' acc t (inner x)) k' fvs
+        mkReads' ns (\x -> Read n' acc t (inner x)) k subs' fvs
    | otherwise
-   = mkReads' ns inner k fvs
+   = mkReads' ns inner k subs fvs
 
