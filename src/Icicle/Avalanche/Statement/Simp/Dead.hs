@@ -30,7 +30,6 @@ data Usage n
  { usageAcc :: Set (Name n)
  , usageExp :: Set (Name n)
  }
- deriving Eq
 
 instance Eq n => Monoid (Usage n) where
  mempty = Usage Set.empty Set.empty
@@ -119,10 +118,17 @@ deadS us statements
 deadLoop :: (Hashable n, Eq n) => Usage n -> Statement a n p -> (Usage n, Statement a n p)
 deadLoop us ss
  = let (sU, sS) = deadS us ss
-   in  if   sU == us
+   in  if   sU `eqUsage` us
        then (sU, sS)
        -- Make sure to use the original statements
        else deadLoop sU ss
+ where
+  -- We can cheat when checking 'equality' of the usage sets:
+  -- if they are the same size, they must contain the same elements.
+  -- (Because one is obtained by only inserting elements to the other)
+  eqUsage a b
+   =  Set.size (usageAcc a) == Set.size (usageAcc b)
+   && Set.size (usageExp a) == Set.size (usageExp b)
 
 
 usageX :: (Hashable n, Eq n) => Exp a n p -> Usage n
