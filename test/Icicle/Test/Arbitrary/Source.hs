@@ -192,13 +192,12 @@ qwfConvertToCore qwf qt
 -- pure expressions, element, or aggregates.
 -- Depending on the sort of expression we want to create, we can choose only that
 -- sort of variable.
-type Var = CB.Name T.Variable
 
 -- | State of generator
 data TypedGenInfo
  = TypedGenInfo {
    -- | Variables that are currently bound
-   tgiVars :: Map.Map Var TestTemporality,
+   tgiVars :: Map.Map (CB.Name T.Variable) TestTemporality,
    -- | The sort of expression to try to produce
    tgiTemp :: TestTemporality,
    -- | How likely we are to generate a crazy expression
@@ -231,7 +230,7 @@ availableTT tgi tt
  =  tt == TTPure
  || tt == tgiTemp tgi
 
-genVar :: TypedGenInfo -> Gen Var
+genVar :: TypedGenInfo -> Gen (CB.Name T.Variable)
 genVar tgi
  = genTableflip tgi goodvar arbitrary
  where
@@ -381,19 +380,19 @@ genQuery toptgi
         return (Windowed () pre post, tgi)
 
   genFold tgi
-   = do v <- arbitrary :: Gen Var
+   = do v <- arbitrary :: Gen (CB.Name T.Variable)
         f <- Fold v <$> genExp tgi { tgiTemp = TTPure } <*> genExp tgi { tgiTemp = TTElt, tgiVars = Map.insert v TTElt $ tgiVars tgi } <*> arbitrary
         let tgi' = tgi { tgiVars = Map.insert v TTAgg $ tgiVars tgi }
         return (LetFold () f, tgi')
   genLet tgi
-   = do v <- arbitrary :: Gen Var
+   = do v <- arbitrary :: Gen (CB.Name T.Variable)
         tt' <- genTemporality tgi
         l <- Let () v <$> genExp tgi { tgiTemp = tt' }
         let tgi' = tgi { tgiVars = Map.insert v tt' $ tgiVars tgi }
         return (l,tgi')
   genGroupFold tgi
-   = do k <- arbitrary :: Gen Var
-        v <- arbitrary :: Gen Var
+   = do k <- arbitrary :: Gen (CB.Name T.Variable)
+        v <- arbitrary :: Gen (CB.Name T.Variable)
         let tgi' = tgi { tgiVars = Map.insert k TTElt $ Map.insert v TTElt $ tgiVars tgi }
 
         (Query ctxs x) <- genQuery tgi
