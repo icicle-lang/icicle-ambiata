@@ -1,9 +1,10 @@
 {-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE PatternGuards #-}
+{-# LANGUAGE PatternGuards     #-}
+{-# LANGUAGE BangPatterns      #-}
 -- Remove accumulators that don't contribute to an Output
 module Icicle.Avalanche.Statement.Simp.Dead (
     dead
-  , killAccumulator
+  , killAccumulators
   ) where
 
 import              Icicle.Avalanche.Statement.Statement
@@ -16,14 +17,17 @@ import              P
 import              Data.Functor.Identity
 import              Data.Set (Set)
 import qualified    Data.Set as Set
+import              Data.Map.Strict (Map)
+import qualified    Data.Map.Strict as Map
 import              Data.Hashable (Hashable)
 
 
 -- | Remove accumulators that don't contribute to output
 --
 dead :: (Hashable n, Eq n) => Statement a n p -> Statement a n p
-dead
- = snd . deadS mempty
+dead ss
+ = let !(_,kills,ss') = deadS mempty ss
+   in  killAccumulators kills ss'
 
 data Usage n
  = Usage
@@ -39,70 +43,71 @@ instance Eq n => Monoid (Usage n) where
   , usageExp = Set.union (usageExp a) (usageExp b)
   }
 
+type Kill a n p = Map (Name n) (Exp a n p)
 
-deadS :: (Hashable n, Eq n) => Usage n -> Statement a n p -> (Usage n, Statement a n p)
+deadS :: (Hashable n, Eq n) => Usage n -> Statement a n p -> (Usage n, Kill a n p, Statement a n p)
 deadS us statements
  = case statements of
     If x ts fs
-     -> let (tU, tS) = deadS  us ts
-            (fU, fS) = deadS  us fs
-            xU       = usageX x
-        in (mconcat [tU, fU, xU], If x tS fS)
+     -> let (tU, tK, tS) = deadS  us ts
+            (fU, fK, fS) = deadS  us fs
+            xU           = usageX x
+        in (mconcat [tU, fU, xU], mconcat [tK, fK], If x tS fS)
     Let n x ss
-     -> let (sU, sS) = deadS  us ss
-            xU       = usageX x
+     -> let (sU, sK, sS) = deadS  us ss
+            xU           = usageX x
         in  if   usedX n sU
-            then (mconcat [xU, sU], Let n x sS)
-            else (sU, sS)
+            then (mconcat [xU, sU], sK, Let n x sS)
+            else (sU, sK, sS)
     ForeachInts n from to ss
-     -> let (sU, sS) = deadLoop us ss
-            fU       = usageX from
-            tU       = usageX to
-        in (mconcat [sU, fU, tU], ForeachInts n from to sS)
+     -> let (sU, sK, sS) = deadLoop us ss
+            fU           = usageX from
+            tU           = usageX to
+        in (mconcat [sU, fU, tU], sK, ForeachInts n from to sS)
     ForeachFacts binds vt ty ss
-     -> let (sU, sS) = deadLoop us ss
-        in  (sU, ForeachFacts binds vt ty sS)
+     -> let (sU, sK, sS) = deadLoop us ss
+        in  (sU, sK, ForeachFacts binds vt ty sS)
 
     Block []
-     -> (us, statements)
+     -> (us, mempty, statements)
     Block (t:rs)
-     -> let (rU, rS) = deadS us (Block rs)
-            (tU, tS) = deadS rU t
+     -> let (rU, rK, rS) = deadS us (Block rs)
+            (tU, tK, tS) = deadS rU t
         in  case rS of
-             Block rS' -> (tU, Block (tS : rS'))
-             _         -> (tU, Block [tS, rS])
+             Block rS' -> (tU, mconcat [rK, tK], Block (tS : rS'))
+             _         -> (tU, mconcat [rK, tK], Block [tS, rS])
 
     InitAccumulator acc@(Accumulator n _ x) ss
-     -> let (sU, sS) = deadS us ss
-            xU       = usageX x
+     -> let (sU, sK, sS) = deadS us ss
+            xU           = usageX x
         in  if   usedA n sU
-            then (mconcat [xU, sU], InitAccumulator acc sS)
-            else (sU, killAccumulator n x sS)
+            then (mconcat [xU, sU],  sK, InitAccumulator acc sS)
+            else (sU, Map.insert n x sK, sS)
 
     Read nx na t ss
-     -> let (sU, sS) = deadS us ss
+     -> let (sU, sK, sS) = deadS us ss
         in  if   usedX nx sU
-            then (mconcat [sU, usageA na], Read nx na t sS)
-            else (sU, sS)
+            then (mconcat [sU, usageA na], sK, Read nx na t sS)
+            else (sU, sK, sS)
 
     Write na x
      ->     if   usedA na us
-            then (mconcat [us, usageX x], Write na x)
-            else (us, mempty)
+            then (mconcat [us, usageX x], mempty, Write na x)
+            else (us, mempty, mempty)
 
     Output n t xts
      -> let xsU = fmap (usageX.fst) xts
-        in  (mconcat (us : xsU), Output n t xts)
+        in  (mconcat (us : xsU), mempty, Output n t xts)
 
     KeepFactInHistory x
-     -> (us <> usageX x, KeepFactInHistory x)
+     -> (us <> usageX x, mempty, KeepFactInHistory x)
     -- Load and save resumables are very special.
     -- They themselves do not count as "using" the accumulator,
     -- but on the other hand we cannot get rid of them?
     LoadResumable n t
-     -> (us, LoadResumable n t)
+     -> (us, mempty, LoadResumable n t)
     SaveResumable n t
-     -> (us, SaveResumable n t)
+     -> (us, mempty, SaveResumable n t)
 
 
 -- | Find fixpoint of loop usage
@@ -115,11 +120,11 @@ deadS us statements
 --
 -- And assuming there are a finite number of variables in ss,
 -- the worst case is that the usage is all variables in ss.
-deadLoop :: (Hashable n, Eq n) => Usage n -> Statement a n p -> (Usage n, Statement a n p)
+deadLoop :: (Hashable n, Eq n) => Usage n -> Statement a n p -> (Usage n, Kill a n p, Statement a n p)
 deadLoop us ss
- = let (sU, sS) = deadS us ss
+ = let (sU, sK, sS) = deadS us ss
    in  if   sU `eqUsage` us
-       then (sU, sS)
+       then (sU, sK, sS)
        -- Make sure to use the original statements
        else deadLoop sU ss
  where
@@ -143,25 +148,25 @@ usageA n = Usage (Set.singleton n) mempty
 usedA :: (Hashable n, Eq n) => Name n -> Usage n -> Bool
 usedA n us = Set.member n (usageAcc us)
 
-
-killAccumulator :: (Hashable n, Eq n) => Name n -> Exp a n p -> Statement a n p -> Statement a n p
-killAccumulator acc xx statements
+killAccumulators :: (Hashable n, Eq n) => Kill a n p -> Statement a n p -> Statement a n p
+killAccumulators accs statements
  = runIdentity
  $ transformUDStmt trans () statements
  where
   trans _ s
-   | Read n acc' _ ss <- s
-   , acc == acc'
+   | Read n acc _ ss <- s
+   , Just xx         <- Map.lookup acc accs
    = return ((), Let n xx ss)
-   | Write acc' _ <- s
-   , acc == acc'
+   | Write acc _ <- s
+   , Map.member acc accs
    = return ((), mempty)
-   | LoadResumable acc' _ <- s
-   , acc == acc'
+   | LoadResumable acc _ <- s
+   , Map.member acc accs
    = return ((), mempty)
-   | SaveResumable acc' _ <- s
-   , acc == acc'
+   | SaveResumable acc _ <- s
+   , Map.member acc accs
    = return ((), mempty)
 
    | otherwise
    = return ((), s)
+{-# INLINE killAccumulators #-}
