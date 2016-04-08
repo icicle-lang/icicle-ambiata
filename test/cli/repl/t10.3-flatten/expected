@@ -97,11 +97,20 @@ for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0$simp$60@{Error}, conv$
     write acc$c$conv$11$simp$14 = flat$2$simp$40;
   }
   read acc$conv$26$simp$15 = acc$conv$26$simp$15 [Buf 3 FactIdentifier];
+  
   write acc$conv$26$simp$15 = Buf_push#@{Buf 3 FactIdentifier} acc$conv$26$simp$15 conv$1;
   read acc$conv$26$simp$16 = acc$conv$26$simp$16 [Buf 3 Error];
+  
+  
   write acc$conv$26$simp$16 = Buf_push#@{Buf 3 Error} acc$conv$26$simp$16 conv$0$simp$60;
   read acc$conv$26$simp$17 = acc$conv$26$simp$17 [Buf 3 Int];
+  
+  
   write acc$conv$26$simp$17 = Buf_push#@{Buf 3 Int} acc$conv$26$simp$17 conv$0$simp$61;
+  
+  
+  
+  
 }
 read acc$conv$26$flat$16$simp$44 = acc$conv$26$simp$15 [Buf 3 FactIdentifier];
 let flat$17 = Buf_read#@{Array FactIdentifier} acc$conv$26$flat$16$simp$44;
@@ -109,6 +118,7 @@ foreach (flat$18 in 0@{Int} .. Array_length#@{FactIdentifier} flat$17)
 {
   keep_fact_in_history unsafe_Array_index#@{FactIdentifier} flat$17 flat$18;
 }
+
 save_resumable@{Buf 3 FactIdentifier} acc$conv$26$simp$15;
 save_resumable@{Buf 3 Error} acc$conv$26$simp$16;
 save_resumable@{Buf 3 Int} acc$conv$26$simp$17;

@@ -20,6 +20,7 @@ module Icicle.Avalanche.Statement.Simp (
 import              Icicle.Avalanche.Statement.Statement
 import              Icicle.Avalanche.Statement.Simp.Dead
 import              Icicle.Avalanche.Statement.Simp.ExpEnv
+import              Icicle.Avalanche.Statement.Simp.ThreshOrd
 import              Icicle.Avalanche.Prim.Flat
 
 import              Icicle.Common.Base
@@ -176,17 +177,55 @@ pullLets statements
 -- | Let-forwarding on statements
 forwardStmts :: (Hashable n, Eq n) => a -> Statement a n p -> FixT (Fresh n) (Statement a n p)
 forwardStmts a_fresh statements
- = transformUDStmt trans () statements
+ = transformUDStmt trans Map.empty statements
  where
-  trans _ s
+  sub e x = lift $ subst a_fresh e x
+  subS e x f 
+   = do x' <- sub e x
+        return (e, f x')
+
+  trans e s
    = case s of
       Let n x ss
        | isSimpleValue x
-       -> do    s' <- lift $ substXinS a_fresh n x ss
-                progress ((), s')
+       -> do  x' <- sub e x
+              progress (Map.insert n x' e, Block [ss])
+       | otherwise
+       -> do  x' <- sub e x
+              return (Map.delete n e, Let n x' ss)
 
-      _ -> return ((), s)
+      If x ss es
+       -> subS e x $ \x' -> If x' ss es
 
+      ForeachInts n from to ss
+       -> do from' <- sub e from
+             to'   <- sub e to
+             let e' = Map.delete n e
+             return (e', ForeachInts n from' to' ss)
+
+      InitAccumulator (Accumulator n vt x) ss
+       -> subS e x $ \x' -> InitAccumulator (Accumulator n vt x') ss
+
+      Write n x
+       -> subS e x $ Write n
+
+      Output n t xs
+       -> do let subF (x,t') = (,t') <$> sub e x
+             xs' <- mapM subF xs
+             return (e, Output n t xs')
+
+      Read n _acc _t _ss
+       -> return (Map.delete n e, s)
+      ForeachFacts ns _t  _f _ss
+       -> return (foldl (flip Map.delete) e (fmap fst $ factBindsAll ns), s)
+      Block{}
+       -> return (e,s)
+      KeepFactInHistory{}
+       -> return (e,s)
+      LoadResumable{}
+       -> return (e,s)
+      SaveResumable{}
+       -> return (e,s)
 
 -- | Funky renaming for C
 -- Rename reads from accumulators to refer to the accumulator name.
@@ -315,7 +354,7 @@ substXinS a_fresh name payload statements
       _
        -> return (True, s)
 
-  sub = subst a_fresh name payload
+  sub = subst a_fresh (Map.singleton name payload)
   sub1 x f
    = do x' <- sub x
         return (True, f x')
@@ -352,7 +391,7 @@ substXinS a_fresh name payload statements
 --      statements that do not have any external effect are silly
 --  * Constant folding for ifs
 --
-thresherNoAlpha :: (Hashable n, Eq n, Ord p, Ord a) => a -> Statement a n p -> FixT (Fresh n) (Statement a n p)
+thresherNoAlpha :: (Hashable n, Eq n, Ord a) => a -> Statement a n Prim -> FixT (Fresh n) (Statement a n Prim)
 thresherNoAlpha a_fresh statements
  = transformUDStmt trans Map.empty statements
  where
@@ -370,10 +409,10 @@ thresherNoAlpha a_fresh statements
    = case s of
       Let n x ss
       -- Duplicate let: change to refer to existing one
-       | Just n' <- Map.lookup x env
+       | Just n' <- Map.lookup (ThreshMapOrd x) env
        -> progress (env, Let n (XVar a_fresh n') ss)
        | otherwise
-       -> return (Map.insert x n env, s)
+       -> return (Map.insert (ThreshMapOrd x) n env, s)
 
       If (XValue _ _ (VBool b)) t f
        -> let s' = if b then t else f
@@ -382,7 +421,6 @@ thresherNoAlpha a_fresh statements
       -- Anything else, we just recurse
       _
        -> return (env, s)
-
 
 thresherWithAlpha :: (Hashable n, Eq n, Ord p) => a -> Statement a n p -> FixT (Fresh n) (Statement a n p)
 thresherWithAlpha a_fresh statements

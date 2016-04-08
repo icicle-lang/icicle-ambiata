@@ -13,6 +13,7 @@ init acc$conv$26@{Buf 3 (Sum Error Int)} = Buf []@{Buf 3 (Sum Error Int)};
 load_resumable@{Buf 3 (Sum Error Int)} acc$conv$26;
 load_resumable@{(Sum Error Int)} acc$c$conv$11;
 load_resumable@{((Sum Error Int), ((Sum Error Int), Time))} acc$conv$10;
+
 for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0@{((Sum Error Int), Time)}) in new
 {
   let anf$0 = fst#@{(Sum Error Int), Time} conv$0;
@@ -42,6 +43,7 @@ for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0@{((Sum Error Int), Tim
 save_resumable@{Buf 3 (Sum Error Int)} acc$conv$26;
 save_resumable@{(Sum Error Int)} acc$c$conv$11;
 save_resumable@{((Sum Error Int), ((Sum Error Int), Time))} acc$conv$10;
+
 read conv$26 = acc$conv$26 [Buf 3 (Sum Error Int)];
 read c$conv$11 = acc$c$conv$11 [(Sum Error Int)];
 let conv$31 = Sum_fold#@{(Error,Int)}@{(Sum Error (Int, Array (Sum Error Int)))} 
@@ -64,6 +66,7 @@ output@{(Sum Error (Int, Array (Sum Error Int)))} repl (conv$31@{(Sum Error (Int
 conv$3 = TIME
 init acc$conv$4@{Map Time (Buf 2 ((Sum Error Int), Time))} = Map []@{Map Time (Buf 2 ((Sum Error Int), Time))};
 load_resumable@{Map Time (Buf 2 ((Sum Error Int), Time))} acc$conv$4;
+
 for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0@{((Sum Error Int), Time)}) in new
 {
   read conv$4$aval$0 = acc$conv$4 [Map Time (Buf 2 ((Sum Error Int), Time))];
@@ -73,6 +76,7 @@ for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0@{((Sum Error Int), Tim
     (\conv$6@{Buf 2 ((Sum Error Int), Time)} Latest_push#@{Buf 2 ((Sum Error Int), Time)} conv$6 conv$1 conv$0) anf$0 anf$1 conv$4$aval$0;
 }
 save_resumable@{Map Time (Buf 2 ((Sum Error Int), Time))} acc$conv$4;
+
 read conv$4 = acc$conv$4 [Map Time (Buf 2 ((Sum Error Int), Time))];
 let conv$39 = Map_fold#@{(Time,Buf 2 ((Sum Error Int), Time))}@{(Sum Error (Map Time Int))} 
   (\conv$36@{(Sum Error (Map Time Int))} \conv$31@{Time} \conv$33@{Buf 2 ((Sum Error Int), Time)} Sum_fold#@{(Error,Map Time Int)}@{(Sum Error (Map Time Int))} 

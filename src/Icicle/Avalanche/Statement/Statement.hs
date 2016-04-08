@@ -68,13 +68,6 @@ data Statement a n p
 
 instance Monoid (Statement a n p) where
  mempty = Block []
-
- mappend (Block ps) (Block qs)
-        = Block (ps <> qs)
- mappend (Block ps) q
-        = Block (ps <> [q])
- mappend p (Block qs)
-        = Block (p : qs)
  mappend p q
         = Block [p, q]
 

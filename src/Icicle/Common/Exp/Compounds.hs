@@ -14,6 +14,7 @@ module Icicle.Common.Exp.Compounds (
     , allvars
     , allvarsExp
     , substMaybe
+    , subst1
     , subst
     , reannotX
     , eraseAnnotX
@@ -216,21 +217,41 @@ substMaybe name payload into
 
 -- | Substitute an expression in,
 -- using fresh names to avoid capture
-subst :: (Hashable n, Eq n)
+subst1 :: (Hashable n, Eq n)
       => a
       -> Name n
       -> Exp a n p
       -> Exp a n p
       -> Fresh n (Exp a n p)
-subst a_fresh name payload into
+subst1 a_fresh name payload into
+ = subst a_fresh (Map.singleton name payload) into
+
+-- | Substitute an expression in,
+-- using fresh names to avoid capture
+subst :: (Hashable n, Eq n)
+      => a
+      -> Map.Map (Name n) (Exp a n p)
+      -> Exp a n p
+      -> Fresh n (Exp a n p)
+subst a_fresh env into
+ | Map.null env
+ = return into
+ | otherwise
+ = subst' a_fresh env (Set.unions $ Map.elems $ Map.map freevars env) into
+
+subst'  :: (Hashable n, Eq n)
+        => a
+        -> Map.Map (Name n) (Exp a n p)
+        -> Set.Set (Name n)
+        -> Exp a n p
+        -> Fresh n (Exp a n p)
+subst' a_fresh env frees into
  = go into
  where
-  payload_free = freevars payload
-
   go xx
    = case xx of
       XVar _ n
-       | n == name
+       | Just payload <- Map.lookup n env
        -> return payload
        | otherwise
        -> return xx
@@ -243,28 +264,30 @@ subst a_fresh name payload into
        -> return xx
 
       XLam a n t x
-       -- If the name clashes, we need to rename n
-       | (n `Set.member` payload_free) || n == name
-       -> do    n' <- fresh
-                x' <- subst a_fresh n (XVar a_fresh n') x
-                XLam a n' t <$> go x'
+       -- If the name is in the free set of all payloads or it *has* a payload,
+       -- might as well rename it.
+       | n `Set.member` frees || n `Map.member` env
+       -> do  -- Generate fresh name and add to environment
+              -- We do not actually need to insert n' into the free set
+              -- because it is fresh, and cannot occur in the expression.
+              n' <- fresh
+              let env' = Map.insert n (XVar a_fresh n') env
+              XLam a n' t <$> subst' a_fresh env' frees x
 
        -- Name is mentioned and no clashes, so proceed
        | otherwise
        -> XLam a n t <$> go x
 
       XLet a n x1 x2
-       -- If the let's name clashes with the substitution we're trying to make,
-       -- we need to rename
-       | (n `Set.member` payload_free) || n == name
-       -> do    n'  <- fresh
-                x2' <- subst a_fresh n (XVar a_fresh n') x2
-                XLet a n' <$> go x1 <*> go x2'
+       -- As with lambda
+       | n `Set.member` frees || n `Map.member` env
+       -> do  n'  <- fresh
+              let env' = Map.insert n (XVar a_fresh n') env
+              XLet a n' <$> go x1 <*> subst' a_fresh env' frees x2
 
        -- Proceed as usual
        | otherwise
        -> XLet a n <$> go x1 <*> go x2
-
 
 reannotX :: (a -> a') -> Exp a n p -> Exp a' n  p
 reannotX f xx
