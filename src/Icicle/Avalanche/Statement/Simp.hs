@@ -20,6 +20,7 @@ module Icicle.Avalanche.Statement.Simp (
 import              Icicle.Avalanche.Statement.Statement
 import              Icicle.Avalanche.Statement.Simp.Dead
 import              Icicle.Avalanche.Statement.Simp.ExpEnv
+import              Icicle.Avalanche.Statement.Simp.ThreshOrd
 import              Icicle.Avalanche.Prim.Flat
 
 import              Icicle.Common.Base
@@ -390,7 +391,7 @@ substXinS a_fresh name payload statements
 --      statements that do not have any external effect are silly
 --  * Constant folding for ifs
 --
-thresherNoAlpha :: (Hashable n, Eq n, Ord p, Ord a) => a -> Statement a n p -> FixT (Fresh n) (Statement a n p)
+thresherNoAlpha :: (Hashable n, Eq n, Ord a) => a -> Statement a n Prim -> FixT (Fresh n) (Statement a n Prim)
 thresherNoAlpha a_fresh statements
  = transformUDStmt trans Map.empty statements
  where
@@ -408,10 +409,10 @@ thresherNoAlpha a_fresh statements
    = case s of
       Let n x ss
       -- Duplicate let: change to refer to existing one
-       | Just n' <- Map.lookup x env
+       | Just n' <- Map.lookup (ThreshMapOrd x) env
        -> progress (env, Let n (XVar a_fresh n') ss)
        | otherwise
-       -> return (Map.insert x n env, s)
+       -> return (Map.insert (ThreshMapOrd x) n env, s)
 
       If (XValue _ _ (VBool b)) t f
        -> let s' = if b then t else f
@@ -420,7 +421,6 @@ thresherNoAlpha a_fresh statements
       -- Anything else, we just recurse
       _
        -> return (env, s)
-
 
 thresherWithAlpha :: (Hashable n, Eq n, Ord p) => a -> Statement a n p -> FixT (Fresh n) (Statement a n p)
 thresherWithAlpha a_fresh statements
