@@ -1,10 +1,10 @@
-{-# LANGUAGE DoAndIfThenElse #-}
-{-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE PatternGuards #-}
-{-# LANGUAGE PatternSynonyms #-}
-{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE DoAndIfThenElse     #-}
+{-# LANGUAGE LambdaCase          #-}
+{-# LANGUAGE NoImplicitPrelude   #-}
+{-# LANGUAGE OverloadedStrings   #-}
+{-# LANGUAGE PatternGuards       #-}
+{-# LANGUAGE PatternSynonyms     #-}
+{-# LANGUAGE RecordWildCards     #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 module Icicle.Avalanche.Statement.Simp.Melt (
     melt
@@ -12,32 +12,32 @@ module Icicle.Avalanche.Statement.Simp.Melt (
   , unmeltValue
   ) where
 
-import              Icicle.Avalanche.Prim.Flat
-import              Icicle.Avalanche.Prim.Eval
-import              Icicle.Avalanche.Statement.Simp
-import              Icicle.Avalanche.Statement.Statement
+import           Icicle.Avalanche.Prim.Eval
+import           Icicle.Avalanche.Prim.Flat
+import           Icicle.Avalanche.Statement.Simp
+import           Icicle.Avalanche.Statement.Statement
 
-import              Icicle.Common.Base
-import              Icicle.Common.Exp
-import              Icicle.Common.Fresh
-import              Icicle.Common.Type
+import           Icicle.Common.Base
+import           Icicle.Common.Exp
+import           Icicle.Common.Fresh
+import           Icicle.Common.Type
 
-import              P
+import           P
 
-import qualified    Data.List as List
-import qualified    Data.Map as Map
-import              Data.Hashable (Hashable)
+import           Data.Hashable                        (Hashable)
+import qualified Data.List                            as List
+import qualified Data.Map                             as Map
 
 
 ------------------------------------------------------------------------
 
 data MeltOps a n p = MeltOps {
-    xPrim  :: p                      -> Exp a n p
-  , xVar   :: Name n                 -> Exp a n p
-  , xValue :: ValType   -> BaseValue -> Exp a n p
-  , xApp   :: Exp a n p -> Exp a n p -> Exp a n p
+    xPrim      :: p                      -> Exp a n p
+  , xVar       :: Name n                 -> Exp a n p
+  , xValue     :: ValType   -> BaseValue -> Exp a n p
+  , xApp       :: Exp a n p -> Exp a n p -> Exp a n p
 
-  , primPack ::          ValType -> [Name n]  -> Exp a n p
+  , primPack   ::          ValType -> [Name n]  -> Exp a n p
   , primUnpack :: Int -> ValType -> Exp a n p -> Exp a n p
   }
 
@@ -91,7 +91,7 @@ meltAccumulators a_fresh statements
            | Just (tp, ns) <- Map.lookup acc env'
            , Just ts       <- tryMeltType tp
            -> do ns' <- freshes (length ns) na
-                 ss' <- substXinS a_fresh na (primPack tp ns') ss
+                 ss' <- substXinS' a_fresh na (primPack tp ns') ss
                  go $ foldr (\(n',n,t) -> Read n' n t) ss' (List.zip3 ns' ns ts)
 
           Write n x
@@ -173,7 +173,7 @@ meltForeachFacts a_fresh statements
   meltFact (n, t) ss
    | Just ts <- tryMeltType t
    = do ns  <- freshes (length ts) n
-        ss' <- substXinS a_fresh n (primPack t ns) ss
+        ss' <- substXinS' a_fresh n (primPack t ns) ss
         let nts = List.zip ns ts
         return (nts, ss')
 

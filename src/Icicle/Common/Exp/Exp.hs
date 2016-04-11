@@ -3,6 +3,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Icicle.Common.Exp.Exp (
       Exp     (..)
+    , Ann
     , renameExp
     , annotOfExp
     , TransformX (..)
@@ -13,6 +14,8 @@ import              Icicle.Common.Base
 import              Icicle.Common.Type
 
 import              P
+
+import              Data.Set (Set)
 
 
 -- | Incredibly simple expressions;
@@ -63,6 +66,10 @@ class TransformX x where
             => (Name  n   -> m (Name   n'))
             -> (Exp a n p -> m (Exp a' n' p'))
             ->    x a n p -> m (x   a' n' p')
+
+type Ann a n = (a, Set (Name n))
+
+
 
 -- Pretty printing ---------------
 
