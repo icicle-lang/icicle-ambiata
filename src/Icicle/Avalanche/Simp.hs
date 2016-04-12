@@ -88,6 +88,8 @@ simpFlattened a_fresh p
    -- and now "x" is no longer mentioned, so can be removed.
    -- Doing this straight away means a smaller program for later passes.
    >>= return .  dead
+   -- Kill off statements that have no observable effect (no write to accumulators, etc.)
+   >>= return . killNoEffect
    -- Perform let-forwarding on statements, so that constant lets become free
    >>= forwardStmts a_fresh
    -- Try to evaluate any exposed primitives

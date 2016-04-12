@@ -15,6 +15,7 @@ module Icicle.Avalanche.Statement.Simp (
   , thresherWithAlpha, thresherNoAlpha
   , nestBlocks
   , dead
+  , killNoEffect
   , stmtFreeX, stmtFreeX'
   , freevarsStmt
   ) where
@@ -441,16 +442,6 @@ thresherNoAlpha a_fresh statements
   xVar n
    = XVar (a_fresh, Set.singleton n) n
   trans env s
-   -- Check if it actually does anything:
-   -- updates accumulators, returns a value, etc.
-   -- If it doesn't, we might as well return a nop
-   | not $ hasEffect s
-   = case s of
-      -- Don't count it as progress if it is already a nop
-      Block [] -> return   (env, mempty)
-      _        -> progress (env, mempty)
-
-   | otherwise
    = case s of
       Let n x ss
       -- Duplicate let: change to refer to existing one
@@ -478,16 +469,6 @@ thresherWithAlpha a_fresh statements
   xVar n
    = XVar (a_fresh, Set.singleton n) n
   trans env s
-   -- Check if it actually does anything:
-   -- updates accumulators, returns a value, etc.
-   -- If it doesn't, we might as well return a nop
-   | not $ hasEffect s
-   = case s of
-      -- Don't count it as progress if it is already a nop
-      Block [] -> return   (env, mempty)
-      _        -> progress (env, mempty)
-
-   | otherwise
    = case s of
       Let n x ss
       -- Duplicate let: change to refer to existing one
@@ -539,47 +520,68 @@ freevarsAcc acc
 -- If it does not update or return, it is probably dead code.
 --
 -- The first argument is a set of accumulators to ignore.
-hasEffect :: (Hashable n, Eq n) => Statement a n p -> Bool
-hasEffect statements
- = runIdentity
- $ foldStmt down up (||) Set.empty False statements
- where
-  down ignore   s
-   -- We can ignore the newly created var
-   -- because any changes will go out of scope:
-   -- externally any updates are pure.
-   | InitAccumulator acc _ <- s
-   = return $ Set.insert (accName acc) ignore
-   | otherwise
-   = return   ignore
+killNoEffect :: (Hashable n, Eq n) => Statement a n p -> Statement a n p
+killNoEffect = fst . go Set.empty
+  where
+   go ignore ss
+     = let subStmt s
+             | !(_, hasEffect) <- go ignore s
+             , ss'              <- if hasEffect then ss else mempty
+             = (ss', hasEffect)
+       in case ss of
+         -- Looping over facts is an effect
+         ForeachFacts _ _ FactLoopNew _
+           -> (ss, True)
+         -- Writing or pushing is an effect,
+         -- unless we're explicitly ignoring this accumulator
+         Write n _
+           | Set.member n ignore
+           -> (ss, False)
+           | otherwise
+           -> (ss, True)
+         Output _ _ _
+           -> (ss, True)
+         -- Marking a fact as used is an effect.
+         KeepFactInHistory _
+           -> (ss, True)
+         LoadResumable _ _
+           -> (ss, True)
+         SaveResumable _ _
+           -> (ss, True)
 
-  up   ignore r s
-    -- Looping over facts is an effect
-   | ForeachFacts _ _ FactLoopNew _ <- s
-   = return True
+         -- We can ignore the newly created var
+         -- because any changes will go out of scope:
+         -- externally any updates are pure.
+         InitAccumulator n s
+           -> let !ignore'         = Set.insert (accName n) ignore
+                  !(s', hasEffect) = go ignore' s
+                  ss'              = if hasEffect then ss else InitAccumulator n s'
+              in (ss', hasEffect)
 
-   -- Writing or pushing is an effect,
-   -- unless we're explicitly ignoring this accumulator
-   | Write n _ <- s
-   = return $ not $ Set.member n ignore
+         -- If any substatements have an effect, the superstatement does.
+         If x s1 s2
+           -> let !(s1', hasEffect1) = go ignore s1
+                  !(s2', hasEffect2) = go ignore s2
 
-    -- Outputting is an effect
-   | Output _ _ _       <- s
-   = return True
-
-    -- Marking a fact as used is an effect.
-   | KeepFactInHistory _ <- s
-   = return True
-
-   | LoadResumable _ _  <- s
-   = return True
-   | SaveResumable _ _  <- s
-   = return True
-
-
-   -- If any substatements have an effect, the superstatement does.
-   | otherwise
-   = return r
+                  hasEffect = hasEffect1 || hasEffect2
+                  ss'       = case (hasEffect1, hasEffect2) of
+                                (True, True)   -> ss
+                                (False, False) -> mempty
+                                _              -> If x s1' s2'
+              in (ss', hasEffect)
+         Let _ _ s
+           -> subStmt s
+         ForeachInts _ _ _ s
+           -> subStmt s
+         Block s
+           -> let s'        = fmap (go ignore) s
+                  hasEffect = List.or (fmap snd s')
+                  ss'       = if hasEffect then Block (fmap fst s') else mempty
+              in (ss', hasEffect)
+         Read _ _ _ s
+          -> subStmt s
+         ForeachFacts _ _ FactLoopHistory s
+          -> subStmt s
 
 
 -- | Find free *expression* variables in statements.
