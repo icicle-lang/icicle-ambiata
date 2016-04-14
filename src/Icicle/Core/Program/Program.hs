@@ -1,6 +1,7 @@
 -- | An entire core program
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DeriveGeneric     #-}
 module Icicle.Core.Program.Program (
       Program (..)
     , renameProgram
@@ -14,6 +15,8 @@ import              Icicle.Core.Exp
 import              Icicle.Core.Stream.Stream
 
 import              P
+
+import              GHC.Generics (Generic)
 
 
 -- | Core program composed of different stages of bindings
@@ -38,8 +41,9 @@ data Program a n =
  -- | The return values
  , returns      :: [(OutputName, Exp a n)]
  }
- deriving (Show, Eq, Ord)
+ deriving (Show, Eq, Ord, Generic)
 
+instance (NFData a, NFData n) => NFData (Program a n)
 
 renameProgram :: (Name n -> Name n') -> Program a n -> Program a n'
 renameProgram f p

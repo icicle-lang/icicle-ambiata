@@ -1,6 +1,7 @@
 -- | Primitive functions, constant values and so on
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DeriveGeneric     #-}
 module Icicle.Core.Exp.Prim (
       Prim          (..)
     , PrimFold      (..)
@@ -17,6 +18,8 @@ import qualified    Icicle.Common.Exp.Prim.Minimal as Min
 
 import              P
 
+import              GHC.Generics (Generic)
+
 
 -- | Top-level primitive for Core expressions
 -- Includes folds etc that won't be present in Avalanche
@@ -32,7 +35,7 @@ data Prim
  -- | Circular buffer for latest
  | PrimLatest   PrimLatest
  | PrimWindow   WindowUnit (Maybe WindowUnit)
- deriving (Eq, Ord, Show)
+ deriving (Eq, Ord, Show, Generic)
 
 
 -- | Folds and destructing things
@@ -42,13 +45,13 @@ data PrimFold
  | PrimFoldOption ValType
  | PrimFoldSum    ValType ValType
  | PrimFoldMap    ValType ValType
- deriving (Eq, Ord, Show)
+ deriving (Eq, Ord, Show, Generic)
 
 
 -- | Array primitives
 data PrimArray
  = PrimArrayMap ValType ValType
- deriving (Eq, Ord, Show)
+ deriving (Eq, Ord, Show, Generic)
 
 
 -- | Map primitives
@@ -56,14 +59,20 @@ data PrimMap
  = PrimMapInsertOrUpdate ValType ValType
  | PrimMapMapValues ValType ValType ValType
  | PrimMapLookup ValType ValType
- deriving (Eq, Ord, Show)
+ deriving (Eq, Ord, Show, Generic)
 
 
 -- | Latest buffer primitives
 data PrimLatest
  = PrimLatestPush Int ValType
  | PrimLatestRead Int ValType
- deriving (Eq, Ord, Show)
+ deriving (Eq, Ord, Show, Generic)
+
+instance NFData Prim
+instance NFData PrimFold
+instance NFData PrimArray
+instance NFData PrimMap
+instance NFData PrimLatest
 
 
 -- | A primitive always has a well-defined type

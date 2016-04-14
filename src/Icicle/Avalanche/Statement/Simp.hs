@@ -1,8 +1,9 @@
 -- | Simplifying and transforming statements
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE PatternGuards     #-}
-{-# LANGUAGE TupleSections     #-}
-{-# LANGUAGE BangPatterns      #-}
+{-# LANGUAGE NoImplicitPrelude   #-}
+{-# LANGUAGE PatternGuards       #-}
+{-# LANGUAGE TupleSections       #-}
+{-# LANGUAGE BangPatterns        #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Icicle.Avalanche.Statement.Simp (
     pullLets
@@ -10,9 +11,11 @@ module Icicle.Avalanche.Statement.Simp (
   , forwardStmts
   , renameReads
   , substXinS
+  , substXinS'
   , thresherWithAlpha, thresherNoAlpha
   , nestBlocks
   , dead
+  , killNoEffect
   , stmtFreeX, stmtFreeX'
   , freevarsStmt
   ) where
@@ -42,7 +45,7 @@ import              Data.Hashable (Hashable)
 import              Control.Monad.Trans.Class
 
 
-convertValues :: a -> Statement a n Prim -> Statement a n Prim
+convertValues :: (Eq n) => a -> Statement (Ann a n) n Prim -> Statement (Ann a n) n Prim
 convertValues a_fresh statements
  = runIdentity
  $ transformUDStmt trans () statements
@@ -90,23 +93,23 @@ convertValues a_fresh statements
 
   goB' t v
    | BufT n t' <- t
-   = goB (XValue a_fresh t v) n t' v
+   = goB (xValue t v) n t' v
    | otherwise
-   = XValue a_fresh t v
+   = xValue t v
 
   goA xx t v
    = case v of
        VArray arr
-         -> arrPrim 0 (XValue a_fresh IntT (VInt (length arr))) t arr
+         -> arrPrim 0 (xValue IntT (VInt (length arr))) t arr
        _ -> xx
 
   bufPrim n t b
    = case b of
        []
-         -> XPrim a_fresh (PrimBuf (PrimBufMake n t))
-              `xApp`  XValue a_fresh UnitT VUnit
+         -> xPrim (PrimBuf (PrimBufMake n t))
+              `xApp`  xValue UnitT VUnit
        (x : xs)
-         -> XPrim a_fresh (PrimBuf (PrimBufPush n t))
+         -> xPrim (PrimBuf (PrimBufPush n t))
               `xApp` bufPrim n t xs
               -- Allow for nested buffers
               `xApp` goB' t x
@@ -114,20 +117,24 @@ convertValues a_fresh statements
   arrPrim i n t a
     = case a of
          []
-           -> XPrim a_fresh (PrimUnsafe (PrimUnsafeArrayCreate t))
+           -> xPrim (PrimUnsafe (PrimUnsafeArrayCreate t))
                `xApp` n
          (x : xs)
            -- This can mutate since it's on a newly created array
-           -> XPrim a_fresh (PrimArray  (PrimArrayPutMutable t))
+           -> xPrim (PrimArray  (PrimArrayPutMutable t))
                 `xApp` arrPrim (i + 1) n t xs
-                `xApp` (XValue a_fresh IntT (VInt i))
+                `xApp` (xValue IntT (VInt i))
                 `xApp` goB' t x
 
-  xApp
-   = XApp a_fresh
+  xApp x1 x2
+   = XApp (a_fresh, snd (annotOfExp x1) <> snd (annotOfExp x2)) x1 x2
+  xPrim
+   = XPrim (a_fresh, Set.empty)
+  xValue
+   = XValue (a_fresh, Set.empty)
 
 
-pullLets :: Statement a n p -> Statement a n p
+pullLets :: Statement (Ann a n) n p -> Statement (Ann a n) n p
 pullLets statements
  = runIdentity
  $ transformUDStmt trans () statements
@@ -175,12 +182,18 @@ pullLets statements
 
 
 -- | Let-forwarding on statements
-forwardStmts :: (Hashable n, Eq n) => a -> Statement a n p -> FixT (Fresh n) (Statement a n p)
+forwardStmts
+  :: forall a n p. (Hashable n, Eq n)
+  => a
+  -> Statement (Ann a n) n p
+  -> FixT (Fresh n) (Statement (Ann a n) n p)
 forwardStmts a_fresh statements
  = transformUDStmt trans Map.empty statements
  where
-  sub e x = lift $ subst a_fresh e x
-  subS e x f 
+  sub e x
+   = lift $ substAnn a_fresh e x
+
+  subS e x f
    = do x' <- sub e x
         return (e, f x')
 
@@ -241,17 +254,23 @@ forwardStmts a_fresh statements
 --
 -- and the C compiler should be able to get rid of the first, etc.
 --
-renameReads :: (Hashable n, Eq n) => a -> Statement a n p -> FixT (Fresh n) (Statement a n p)
+renameReads
+ :: (Hashable n, Eq n)
+ => a
+ -> Statement (Ann a n) n p
+ -> FixT (Fresh n) (Statement (Ann a n) n p)
 renameReads a_fresh statements
  = transformUDStmt trans () statements
  where
+  xVar n
+   = XVar (a_fresh, Set.singleton n) n
   trans _ s
    = case s of
       Read nm acc vt ss
        | Just (pre, post) <- splitWrite acc mempty ss
        , nm /= acc
        , not $ Set.member nm $ stmtFreeX post
-       -> do    pre' <- lift $ substXinS a_fresh nm (XVar a_fresh acc) pre
+       -> do    pre' <- lift $ substXinS a_fresh nm (xVar acc) pre
                 progress ((), Read acc acc vt (pre' <> post))
       _ -> return ((), s)
 
@@ -295,10 +314,18 @@ renameReads a_fresh statements
 -- > in subst monkey := banana
 -- > in (subst banana := banana' in monkey)
 --
-substXinS :: (Hashable n, Eq n) => a -> Name n -> Exp a n p -> Statement a n p -> Fresh n (Statement a n p)
+substXinS
+ :: (Hashable n, Eq n)
+ => a
+ -> Name n
+ -> Exp (Ann a n) n p
+ -> Statement (Ann a n) n p
+ -> Fresh n (Statement (Ann a n) n p)
 substXinS a_fresh name payload statements
  = transformUDStmt trans True statements
  where
+  xVar n
+   = XVar (a_fresh, Set.singleton n) n
   -- Do nothing; the variable has been shadowed
   trans False s
    = return (False, s)
@@ -347,14 +374,14 @@ substXinS a_fresh name payload statements
        | any (flip Set.member frees . fst) (factBindsAll binds)
        -> do ntime'  <- fresh
              nfid'   <- fresh
-             let subF n n' = substXinS a_fresh n (XVar a_fresh n')
+             let subF n n' = substXinS a_fresh n (xVar n')
              ss'     <- subF ntime  ntime' ss >>= subF nfid   nfid'
              freshenForeach ntime'  nfid' [] ns x y ss'
 
       _
        -> return (True, s)
 
-  sub = subst a_fresh (Map.singleton name payload)
+  sub = substAnn a_fresh (Map.singleton name payload)
   sub1 x f
    = do x' <- sub x
         return (True, f x')
@@ -370,18 +397,31 @@ substXinS a_fresh name payload statements
 
   freshen n ss f
    = do n' <- fresh
-        ss' <- substXinS a_fresh n (XVar a_fresh n') ss
+        ss' <- substXinS a_fresh n (xVar n') ss
         trans True (f n' ss')
 
   freshenForeach ntime nfid ns [] x y ss
    = return (True, ForeachFacts (FactBinds ntime nfid ns) x y ss)
   freshenForeach ntime nfid ns ((n,t):ns') x y ss
    = do n'  <- fresh
-        ss' <- substXinS a_fresh n (XVar a_fresh n') ss
+        ss' <- substXinS a_fresh n (xVar n') ss
         freshenForeach ntime nfid (ns <> [(n',t)]) ns' x y ss'
 
   frees = freevars payload
 
+-- | Like above, but the set of variables in the annotation isn't important.
+substXinS'
+ :: (Hashable n, Eq n)
+ => a
+ -> Name n
+ -> Exp a n p
+ -> Statement a n p
+ -> Fresh n (Statement a n p)
+substXinS' a_fresh name payload statements
+  =   transformX return (return . reannotX ann) statements
+  >>= substXinS a_fresh name (reannotX ann payload)
+  >>= transformX return (return . reannotX fst)
+  where ann a = (a, Set.empty)
 
 -- | Thresher transform - throw out the chaff.
 --  * Find let bindings that have already been bound:
@@ -391,26 +431,22 @@ substXinS a_fresh name payload statements
 --      statements that do not have any external effect are silly
 --  * Constant folding for ifs
 --
-thresherNoAlpha :: (Hashable n, Eq n, Ord a) => a -> Statement a n Prim -> FixT (Fresh n) (Statement a n Prim)
+thresherNoAlpha
+ :: (Hashable n, Eq n, Ord a)
+ => a
+ -> Statement (Ann a n) n Prim
+ -> FixT (Fresh n) (Statement (Ann a n) n Prim)
 thresherNoAlpha a_fresh statements
  = transformUDStmt trans Map.empty statements
  where
+  xVar n
+   = XVar (a_fresh, Set.singleton n) n
   trans env s
-   -- Check if it actually does anything:
-   -- updates accumulators, returns a value, etc.
-   -- If it doesn't, we might as well return a nop
-   | not $ hasEffect s
-   = case s of
-      -- Don't count it as progress if it is already a nop
-      Block [] -> return   (env, mempty)
-      _        -> progress (env, mempty)
-
-   | otherwise
    = case s of
       Let n x ss
       -- Duplicate let: change to refer to existing one
        | Just n' <- Map.lookup (ThreshMapOrd x) env
-       -> progress (env, Let n (XVar a_fresh n') ss)
+       -> progress (env, Let n (xVar n') ss)
        | otherwise
        -> return (Map.insert (ThreshMapOrd x) n env, s)
 
@@ -422,27 +458,23 @@ thresherNoAlpha a_fresh statements
       _
        -> return (env, s)
 
-thresherWithAlpha :: (Hashable n, Eq n, Ord p) => a -> Statement a n p -> FixT (Fresh n) (Statement a n p)
+thresherWithAlpha
+ :: (Hashable n, Eq n, Ord p)
+ => a
+ -> Statement (Ann a n) n p
+ -> FixT (Fresh n) (Statement (Ann a n) n p)
 thresherWithAlpha a_fresh statements
  = transformUDStmt trans emptyExpEnv statements
  where
+  xVar n
+   = XVar (a_fresh, Set.singleton n) n
   trans env s
-   -- Check if it actually does anything:
-   -- updates accumulators, returns a value, etc.
-   -- If it doesn't, we might as well return a nop
-   | not $ hasEffect s
-   = case s of
-      -- Don't count it as progress if it is already a nop
-      Block [] -> return   (env, mempty)
-      _        -> progress (env, mempty)
-
-   | otherwise
    = case s of
       Let n x ss
       -- Duplicate let: change to refer to existing one
       -- I tried to use simple equality for simpFlattened since expressions cannot contain lambdas, but it was slower. WEIRD.
        | ((n',_):_) <- filter (\(_,x') -> x `alphaEquality` x') $ Map.toList env
-       -> progress (env, Let n (XVar a_fresh n') ss)
+       -> progress (env, Let n (xVar n') ss)
 
       If (XValue _ _ (VBool b)) t f
        -> let s' = if b then t else f
@@ -488,47 +520,68 @@ freevarsAcc acc
 -- If it does not update or return, it is probably dead code.
 --
 -- The first argument is a set of accumulators to ignore.
-hasEffect :: (Hashable n, Eq n) => Statement a n p -> Bool
-hasEffect statements
- = runIdentity
- $ foldStmt down up (||) Set.empty False statements
- where
-  down ignore   s
-   -- We can ignore the newly created var
-   -- because any changes will go out of scope:
-   -- externally any updates are pure.
-   | InitAccumulator acc _ <- s
-   = return $ Set.insert (accName acc) ignore
-   | otherwise
-   = return   ignore
+killNoEffect :: (Hashable n, Eq n) => Statement a n p -> Statement a n p
+killNoEffect = fst . go Set.empty
+  where
+   go ignore ss
+     = let subStmt s
+             | !(_, hasEffect) <- go ignore s
+             , ss'              <- if hasEffect then ss else mempty
+             = (ss', hasEffect)
+       in case ss of
+         -- Looping over facts is an effect
+         ForeachFacts _ _ FactLoopNew _
+           -> (ss, True)
+         -- Writing or pushing is an effect,
+         -- unless we're explicitly ignoring this accumulator
+         Write n _
+           | Set.member n ignore
+           -> (ss, False)
+           | otherwise
+           -> (ss, True)
+         Output _ _ _
+           -> (ss, True)
+         -- Marking a fact as used is an effect.
+         KeepFactInHistory _
+           -> (ss, True)
+         LoadResumable _ _
+           -> (ss, True)
+         SaveResumable _ _
+           -> (ss, True)
 
-  up   ignore r s
-    -- Looping over facts is an effect
-   | ForeachFacts _ _ FactLoopNew _ <- s
-   = return True
+         -- We can ignore the newly created var
+         -- because any changes will go out of scope:
+         -- externally any updates are pure.
+         InitAccumulator n s
+           -> let !ignore'         = Set.insert (accName n) ignore
+                  !(s', hasEffect) = go ignore' s
+                  ss'              = if hasEffect then ss else InitAccumulator n s'
+              in (ss', hasEffect)
 
-   -- Writing or pushing is an effect,
-   -- unless we're explicitly ignoring this accumulator
-   | Write n _ <- s
-   = return $ not $ Set.member n ignore
+         -- If any substatements have an effect, the superstatement does.
+         If x s1 s2
+           -> let !(s1', hasEffect1) = go ignore s1
+                  !(s2', hasEffect2) = go ignore s2
 
-    -- Outputting is an effect
-   | Output _ _ _       <- s
-   = return True
-
-    -- Marking a fact as used is an effect.
-   | KeepFactInHistory _ <- s
-   = return True
-
-   | LoadResumable _ _  <- s
-   = return True
-   | SaveResumable _ _  <- s
-   = return True
-
-
-   -- If any substatements have an effect, the superstatement does.
-   | otherwise
-   = return r
+                  hasEffect = hasEffect1 || hasEffect2
+                  ss'       = case (hasEffect1, hasEffect2) of
+                                (True, True)   -> ss
+                                (False, False) -> mempty
+                                _              -> If x s1' s2'
+              in (ss', hasEffect)
+         Let _ _ s
+           -> subStmt s
+         ForeachInts _ _ _ s
+           -> subStmt s
+         Block s
+           -> let s'        = fmap (go ignore) s
+                  hasEffect = List.or (fmap snd s')
+                  ss'       = if hasEffect then Block (fmap fst s') else mempty
+              in (ss', hasEffect)
+         Read _ _ _ s
+          -> subStmt s
+         ForeachFacts _ _ FactLoopHistory s
+          -> subStmt s
 
 
 -- | Find free *expression* variables in statements.
@@ -600,14 +653,18 @@ stmtFreeX_ frees statements
 -- > Let x $
 -- > Block [ Let y ...
 -- >       , baloney ]
--- 
+--
 -- this does not affect semantics so long as x isn't free in baloney.
 -- In fact, it doesn't do anything except allowing thresher to
 -- remove more duplicates.
---   
+--
 -- Note that the above example is only one step: nesting would then be
 -- recursively performed etc.
-nestBlocks :: (Hashable n, Eq n) => a -> Statement a n p -> Fresh n (Statement a n p)
+nestBlocks
+ :: (Hashable n, Eq n)
+ => a
+ -> Statement (Ann a n) n p
+ -> Fresh n (Statement (Ann a n) n p)
 nestBlocks _ statements
  = transformUDStmt trans () statements
  where

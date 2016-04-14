@@ -1,6 +1,7 @@
 {-# LANGUAGE NoImplicitPrelude   #-}
 {-# LANGUAGE PatternGuards       #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE BangPatterns        #-}
 module Icicle.Avalanche.Statement.Simp.Constructor (
     constructor
   ) where
@@ -20,7 +21,8 @@ import              Icicle.Common.Type
 import              P
 
 import qualified    Data.List as List
-import qualified    Data.Map as Map
+import qualified    Data.Set  as Set
+import qualified    Data.Map  as Map
 import              Data.Hashable (Hashable)
 
 
@@ -28,16 +30,21 @@ import              Data.Hashable (Hashable)
 --
 constructor
   :: forall a n . (Eq a, Eq n, Hashable n)
-  => a -> Statement a n Prim -> FixT (Fresh n) (Statement a n Prim)
+  => a
+  -> Statement (Ann a n) n Prim
+  -> FixT (Fresh n) (Statement (Ann a n) n Prim)
 constructor a_fresh statements
  = transformUDStmt goS emptyExpEnv statements
  where
-  xApp       = XApp   a_fresh
-  xPrim      = XPrim  a_fresh
-  xValue     = XValue a_fresh
+  xPrim      = XPrim  (a_fresh, Set.empty)
+  xValue     = XValue (a_fresh, Set.empty)
   xTrue      = xValue BoolT (VBool True)
   xFalse     = xValue BoolT (VBool False)
   xDefault t = xValue t (defaultOfType t)
+  xApp x1 x2
+    = let vars1 = snd $ annotOfExp x1
+          vars2 = snd $ annotOfExp x2
+      in  XApp (a_fresh, vars1 <> vars2) x1 x2
 
   primAnd = primLogical  Min.PrimLogicalAnd
   primOr  = primLogical  Min.PrimLogicalOr
@@ -95,13 +102,17 @@ constructor a_fresh statements
 
 
   -- | Melt constructors in statements
+  goS :: ExpEnv (Ann a n) n Prim
+      -> Statement (Ann a n) n Prim
+      -> FixT (Fresh n) ( ExpEnv    (Ann a n) n Prim
+                        , Statement (Ann a n) n Prim )
   goS env s
-   = let env' = updateExpEnv s env
+   = let !env'  = updateExpEnv s env
          ret s' = return (updateExpEnv s' env', s')
 
          goWith x s'
           = do x' <- goX env' x
-               ret $ s' x'
+               ret $! s' x'
 
      in  case s of
           If x t e
@@ -125,7 +136,10 @@ constructor a_fresh statements
 
 
   -- | Melt constructors in expressions
-  goX :: Monad m => ExpEnv a n Prim -> Exp a n Prim -> FixT m (Exp a n Prim)
+  goX :: Monad m
+      => ExpEnv (Ann a n) n Prim
+      -> Exp    (Ann a n) n Prim
+      -> FixT m (Exp (Ann a n) n Prim)
   goX env x
    | Just prima <- takePrimApps x
    , Just x'    <- goX' env prima
@@ -133,7 +147,9 @@ constructor a_fresh statements
    | otherwise
    = return x
 
-  goX' :: ExpEnv a n Prim -> (Prim, [Exp a n Prim]) -> Maybe (Exp a n Prim)
+  goX' :: ExpEnv (Ann a n) n Prim
+       -> (Prim, [Exp (Ann a n) n Prim])
+       -> Maybe (Exp (Ann a n) n Prim)
   goX' env prima
    | (PrimMelt (PrimMeltPack t), [n]) <- prima
    , Nothing <- tryMeltType t
@@ -325,6 +341,7 @@ constructor a_fresh statements
 
 
   -- | Unpack a packed value
+  fromPacked :: Int -> Exp (Ann a n) n Prim -> Maybe (Exp (Ann a n) n Prim)
   fromPacked ix x
    | XValue _ t v <- x
    , ts           <- meltType t

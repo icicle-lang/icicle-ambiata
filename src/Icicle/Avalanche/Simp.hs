@@ -1,32 +1,34 @@
 -- | Convert Core programs to Avalanche
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE DoAndIfThenElse   #-}
+{-# LANGUAGE DoAndIfThenElse     #-}
+{-# LANGUAGE NoImplicitPrelude   #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 module Icicle.Avalanche.Simp (
     simpAvalanche
   , simpFlattened
   , pullLets
   ) where
 
-import              Icicle.Common.Exp
-import              Icicle.Common.Fresh
-import              Icicle.Common.FixT
+import           Icicle.Common.Exp
+import           Icicle.Common.FixT
+import           Icicle.Common.Fresh
 
-import qualified    Icicle.Core.Exp.Prim as CorePrim
-import qualified    Icicle.Core.Eval.Exp as CorePrim
+import qualified Icicle.Core.Eval.Exp                        as CorePrim
+import qualified Icicle.Core.Exp.Prim                        as CorePrim
 
-import qualified    Icicle.Avalanche.Prim.Eval as Flat
-import qualified    Icicle.Avalanche.Prim.Flat as Flat
-import              Icicle.Avalanche.Statement.Simp
-import              Icicle.Avalanche.Statement.Simp.Eval
-import              Icicle.Avalanche.Statement.Simp.Constructor
-import              Icicle.Avalanche.Statement.Simp.Melt
-import              Icicle.Avalanche.Statement.Simp.Mutate
-import              Icicle.Avalanche.Program
+import qualified Icicle.Avalanche.Prim.Eval                  as Flat
+import qualified Icicle.Avalanche.Prim.Flat                  as Flat
+import           Icicle.Avalanche.Program
+import           Icicle.Avalanche.Statement.Simp
+import           Icicle.Avalanche.Statement.Simp.Constructor
+import           Icicle.Avalanche.Statement.Simp.Eval
+import           Icicle.Avalanche.Statement.Simp.Melt
+import           Icicle.Avalanche.Statement.Simp.Mutate
+import           Icicle.Avalanche.Statement.Statement
 
-import              P
+import           P
 
-import              Control.Monad.Trans.Class
-import              Data.Hashable (Hashable)
+import           Control.Monad.Trans.Class
+import           Data.Hashable                               (Hashable)
 
 
 simpAvalanche
@@ -35,7 +37,7 @@ simpAvalanche
   -> Program a n CorePrim.Prim
   -> Fresh n (Program a n CorePrim.Prim)
 simpAvalanche a_fresh p
- = do p' <- transformX return (simp a_fresh) p
+ = do p' <- transformX return (simpAnn a_fresh) p
       s' <- (once $ forwardStmts a_fresh $ pullLets $ statements p')
          >>= once . thresherWithAlpha     a_fresh
          >>= once . forwardStmts a_fresh
@@ -43,11 +45,11 @@ simpAvalanche a_fresh p
          >>= once . thresherWithAlpha     a_fresh
          >>= transformX return (return . simpEvalX CorePrim.evalPrim CorePrim.typeOfPrim)
          >>= return .  dead
-
-      return $ p { statements = s' }
+      s'' <- transformX return (return . reannotX fst) s'
+      return $ p { statements = s'' }
 
 simpFlattened
-  :: (Show n, Eq a, Hashable n, Eq n, Ord a)
+  :: forall a n . (Show n, Eq a, Hashable n, Eq n, Ord a)
   => a
   -> Program a n Flat.Prim
   -> Fresh n (Program a n Flat.Prim)
@@ -55,6 +57,7 @@ simpFlattened a_fresh p
  = do s' <- transformX return (simp a_fresh) (statements p)
          >>= return . mutate
          >>= melt a_fresh
+         >>= transformX return (simpAnn a_fresh)
          >>= fixpoint crunch
          -- Rename reads from accumulators
          >>= fixpoint (renameReads a_fresh)
@@ -62,9 +65,11 @@ simpFlattened a_fresh p
          >>= return . convertValues a_fresh
          -- Finish off with an a-normalisation
          >>= anormal
-
-      return $ p { statements = s' }
+      s'' <- transformX return (return . reannotX fst) s'
+      return $ p { statements = s'' }
  where
+  crunch :: Statement (Ann a n) n Flat.Prim
+         -> FixT (Fresh n) (Statement (Ann a n) n Flat.Prim)
   crunch ss
    -- Start by a-normalising, so it's ready for constructor
    =   lift (anormal ss)
@@ -83,6 +88,8 @@ simpFlattened a_fresh p
    -- and now "x" is no longer mentioned, so can be removed.
    -- Doing this straight away means a smaller program for later passes.
    >>= return .  dead
+   -- Kill off statements that have no observable effect (no write to accumulators, etc.)
+   >>= return . killNoEffect
    -- Perform let-forwarding on statements, so that constant lets become free
    >>= forwardStmts a_fresh
    -- Try to evaluate any exposed primitives
@@ -92,9 +99,11 @@ simpFlattened a_fresh p
    -- Thresh to remove duplicate expressions
    >>= thresherNoAlpha     a_fresh
 
+  anormal :: Statement (Ann a n) n Flat.Prim
+          -> Fresh n (Statement (Ann a n) n Flat.Prim)
   anormal ss
    -- Expression simp: first perform beta reduction, then a-normalise.
-   =   transformX return (simp a_fresh) ss
+   =   transformX return (simpKeepAnn a_fresh) ss
    -- finish a-normalisation by taking lets from inside expressions to statements.
    >>= return . pullLets
 

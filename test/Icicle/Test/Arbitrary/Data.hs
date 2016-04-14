@@ -37,6 +37,7 @@ data Var = Var T.Text Int
  deriving (Eq,Ord,Show,Generic)
 
 instance Hashable Var
+instance NFData Var
 
 instance IsString Var where
   fromString s

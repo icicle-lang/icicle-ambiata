@@ -17,7 +17,8 @@
 -- Conversion to a-normal form is not a benefit in itself, but simplifies
 -- later transformations.
 {-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE PatternGuards #-}
+{-# LANGUAGE PatternGuards     #-}
+{-# LANGUAGE BangPatterns      #-}
 module Icicle.Common.Exp.Simp.ANormal (
       anormal
     , anormalAllVars
@@ -33,7 +34,6 @@ import Data.List (unzip)
 import Data.Hashable (Hashable)
 
 import qualified    Data.Set    as Set
-import              Data.Set     ( Set )
 
 -- | A-normalise an expression.
 -- We need a fresh name supply.
@@ -41,7 +41,10 @@ anormal :: (Hashable n, Eq n) => a -> Exp a n p -> Fresh n (Exp a n p)
 anormal a_fresh xx
  -- Annotate each expression with all the variables underneath it,
  -- then perform a-normalisation, then throw away the annotations
- = reannotX fst <$> (anormalAllVars a_fresh $ allvarsExp xx)
+ = do let !x  = allvarsExp xx
+      !y     <- anormalAllVars a_fresh x
+      let !z  = reannotX fst y
+      return z
 
 
 -- | A-normalise an expression, annotated with all the mentioned variables.
@@ -53,18 +56,19 @@ anormal a_fresh xx
 -- * a superset is allowed, as it will just make renaming more pessimistic
 -- * new fresh variables don't need to be mentioned, as they will not appear elsewhere as binders or mentioned
 --
-anormalAllVars :: (Hashable n, Eq n) => a -> Exp (a, Set (Name n)) n p -> Fresh n (Exp (a, Set (Name n)) n p)
+anormalAllVars :: (Hashable n, Eq n) => a -> Exp (Ann a n) n p -> Fresh n (Exp (Ann a n) n p)
 anormalAllVars a_fresh xx
  = do   (bs, x)  <- pullSubExps a_fresh xx
         -- Get the union of all the variables
-        let allNames = varsOfLets bs x
+        let !allNames = varsOfLets bs x
         -- and rename the outside binds if they are used
         (bs',x') <- renames allNames bs [] x
 
         -- Tag the result with the union of the original bindings (bs)
         -- as well as the new names of the bindings.
-        let allNames' = allNames <> Set.fromList (fmap fst bs')
-        return $ makeLets (a_fresh, allNames') bs' x'
+        let !allNames' = allNames <> Set.fromList (fmap fst bs')
+        let !ret       = makeLets (a_fresh, allNames') bs' x'
+        return ret
 
  where
   -- All the variables inside the bindings
@@ -116,7 +120,7 @@ anormalAllVars a_fresh xx
 
 
 -- | Recursively pull out sub-expressions to be bound
-pullSubExps :: (Hashable n, Eq n) => a -> Exp (a, Set (Name n)) n p -> Fresh n ([(Name n, Exp (a, Set (Name n)) n p)], Exp (a, Set (Name n)) n p)
+pullSubExps :: (Hashable n, Eq n) => a -> Exp (Ann a n) n p -> Fresh n ([(Name n, Exp (Ann a n) n p)], Exp (Ann a n) n p)
 pullSubExps a_fresh xx
  = case xx of
     -- Values and other simple expressions can be left alone.
@@ -165,7 +169,7 @@ pullSubExps a_fresh xx
 -- | Extract bindings for part of an application expression.
 -- If it's simple, just give it back.
 -- If it's interesting, anormalise it and bind it to a fresh name
-extractBinding :: (Hashable n, Eq n) => a -> Exp (a, Set (Name n)) n p -> Fresh n ([(Name n, Exp (a, Set (Name n)) n p)], Exp (a, Set (Name n)) n p)
+extractBinding :: (Hashable n, Eq n) => a -> Exp (Ann a n) n p -> Fresh n ([(Name n, Exp (Ann a n) n p)], Exp (Ann a n) n p)
 extractBinding a_fresh xx
  | isNormal xx
  = return ([], xx)
