@@ -81,13 +81,13 @@ seaOfWriteFleetOutput config whitelist states = do
     , ""
     , "    char *buffer_ptr = *buffer_ptr_ptr;"
     , ""
-    , indent 4 beforeChord
     , "    for (iint_t chord_ix = 0; chord_ix < chord_count; chord_ix++) {"
+    , indent 8 beforeChord
     , indent 8 (seaOfChordTime $ outputPsvMode config)
     , indent 8 (vsep write_sea)
     , indent 8 inChord
+    , indent 8 afterChord
     , "    }"
-    , indent 4 afterChord
     , ""
     , "    *buffer_ptr_ptr = buffer_ptr;"
     , ""
