@@ -41,10 +41,9 @@ anormal :: (Hashable n, Eq n) => a -> Exp a n p -> Fresh n (Exp a n p)
 anormal a_fresh xx
  -- Annotate each expression with all the variables underneath it,
  -- then perform a-normalisation, then throw away the annotations
- -- = reannotX fst <$> (anormalAllVars a_fresh $ allvarsExp xx)
- = do let !x = {-# SCC anormal_ann #-} allvarsExp xx
-      !y <- {-# SCC anormal_actual #-} anormalAllVars a_fresh x
-      let !z = {-# SCC anormal_reannot #-} reannotX fst y
+ = do let !x  = allvarsExp xx
+      !y     <- anormalAllVars a_fresh x
+      let !z  = reannotX fst y
       return z
 
 
@@ -59,16 +58,16 @@ anormal a_fresh xx
 --
 anormalAllVars :: (Hashable n, Eq n) => a -> Exp (Ann a n) n p -> Fresh n (Exp (Ann a n) n p)
 anormalAllVars a_fresh xx
- = do   (bs, x)  <- {-# SCC anormal_pullsubexps #-}pullSubExps a_fresh xx
+ = do   (bs, x)  <- pullSubExps a_fresh xx
         -- Get the union of all the variables
-        let !allNames = {-# SCC anormal_varOfLets #-}varsOfLets bs x
+        let !allNames = varsOfLets bs x
         -- and rename the outside binds if they are used
-        (bs',x') <- {-# SCC anormal_renames #-}renames allNames bs [] x
+        (bs',x') <- renames allNames bs [] x
 
         -- Tag the result with the union of the original bindings (bs)
         -- as well as the new names of the bindings.
-        let !allNames' = {-# SCC anormal_allnames #-} allNames <> Set.fromList (fmap fst bs')
-        let !ret = {-# SCC anormal_mklets#-}makeLets (a_fresh, allNames') bs' x'
+        let !allNames' = allNames <> Set.fromList (fmap fst bs')
+        let !ret       = makeLets (a_fresh, allNames') bs' x'
         return ret
 
  where

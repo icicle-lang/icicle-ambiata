@@ -30,7 +30,7 @@ import              GHC.Generics (Generic)
 data Name n = Name {
     nameHash :: {-# UNPACK #-} !Int
   , nameBase :: !(NameBase n)
-  } deriving (Show)
+  } deriving (Show, Generic)
 
 instance Hashable (Name n) where
   hash           (Name h _) = h
@@ -42,6 +42,8 @@ instance Eq n => Eq  (Name n) where
 instance Eq n => Ord (Name n) where
   compare x y = compare (nameHash x) (nameHash y)
 
+instance NFData (Name n)
+
 -- | User defined names.
 data NameBase n =
  -- | Raw name
@@ -52,6 +54,8 @@ data NameBase n =
  deriving (Eq, Ord, Show, Functor, Generic)
 
 instance Hashable n => Hashable (NameBase n)
+
+instance NFData (NameBase n)
 
 nameOf :: Hashable n => NameBase n -> Name n
 nameOf n = Name (hash n) n

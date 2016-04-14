@@ -1,7 +1,8 @@
 -- | Flat primitives - after the folds are removed
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE PatternGuards #-}
+{-# LANGUAGE PatternGuards     #-}
+{-# LANGUAGE DeriveGeneric     #-}
 module Icicle.Avalanche.Prim.Flat (
       Prim        (..)
     , PrimProject (..)
@@ -26,6 +27,8 @@ import qualified    Icicle.Common.Fragment         as Frag
 import              P
 
 import qualified    Data.Map as Map
+
+import              GHC.Generics (Generic)
 
 
 flatFragment :: Frag.Fragment Prim
@@ -59,14 +62,14 @@ data Prim
 
  -- | Abstract circular buffer prims
  | PrimBuf             PrimBuf
- deriving (Eq, Ord, Show)
+ deriving (Eq, Ord, Show, Generic)
 
 
 data PrimProject
  = PrimProjectArrayLength ValType
  | PrimProjectOptionIsSome ValType
  | PrimProjectSumIsRight   ValType ValType
- deriving (Eq, Ord, Show)
+ deriving (Eq, Ord, Show, Generic)
 
 
 data PrimUnsafe
@@ -75,32 +78,41 @@ data PrimUnsafe
  | PrimUnsafeSumGetLeft  ValType ValType -- ^ Get the Left value, which may be garbage
  | PrimUnsafeSumGetRight ValType ValType -- ^ Get the Right value, which maybe be garbage
  | PrimUnsafeOptionGet   ValType         -- ^ Get the Some value, which maybe be garbage
- deriving (Eq, Ord, Show)
+ deriving (Eq, Ord, Show, Generic)
 
 
 data PrimArray
  = PrimArrayPutMutable   ValType         -- ^ In-place update
  | PrimArrayPutImmutable ValType         -- ^ Copy then update
  | PrimArrayZip          ValType ValType -- ^ Zip two arrays into one
- deriving (Eq, Ord, Show)
+ deriving (Eq, Ord, Show, Generic)
 
 data PrimMap
  = PrimMapPack         ValType ValType
  | PrimMapUnpackKeys   ValType ValType
  | PrimMapUnpackValues ValType ValType
- deriving (Eq, Ord, Show)
+ deriving (Eq, Ord, Show, Generic)
 
 data PrimMelt
  = PrimMeltPack       ValType
  | PrimMeltUnpack Int ValType
- deriving (Eq, Ord, Show)
+ deriving (Eq, Ord, Show, Generic)
 
 -- | These correspond directly to the latest buffer primitives in Core.
 data PrimBuf
  = PrimBufMake Int ValType
  | PrimBufPush Int ValType
  | PrimBufRead Int ValType
- deriving (Eq, Ord, Show)
+ deriving (Eq, Ord, Show, Generic)
+
+
+instance NFData Prim
+instance NFData PrimProject
+instance NFData PrimUnsafe
+instance NFData PrimArray
+instance NFData PrimMap
+instance NFData PrimMelt
+instance NFData PrimBuf
 
 
 -- | A primitive always has a well-defined type

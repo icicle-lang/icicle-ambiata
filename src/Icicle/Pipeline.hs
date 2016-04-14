@@ -2,6 +2,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards     #-}
 {-# LANGUAGE ViewPatterns      #-}
+{-# LANGUAGE BangPatterns      #-}
+{-# LANGUAGE DeriveGeneric     #-}
 module Icicle.Pipeline
   ( CompileError(..)
   , SourceVar
@@ -90,11 +92,13 @@ import           Data.Hashable                            (Hashable)
 import           Text.ParserCombinators.Parsec            (SourcePos)
 import qualified Text.ParserCombinators.Parsec            as Parsec
 
+import           GHC.Generics                             (Generic)
+
 import           P
+
 import           System.IO                                (IO)
 
 import           X.Control.Monad.Trans.Either
-
 
 
 unVar :: SP.Variable -> Text
@@ -115,7 +119,9 @@ data CompileError a b c
  | CompileErrorConvert (STC.ConvertError a b)
  | CompileErrorFlatten (AS.FlattenError a b)
  | CompileErrorProgram (AC.ProgramError a b c)
- deriving (Show)
+ deriving (Show, Generic)
+
+instance (NFData a, NFData b, NFData c) => NFData (CompileError a b c)
 
 
 annotOfError :: CompileError SourcePos b c -> Maybe SourcePos
@@ -272,34 +278,35 @@ sourceConvert d q
                 (freshNamer "conv")
 
 coreSimp
- :: (Hashable v, Eq v, IsString v)
+ :: (Hashable v, Eq v, IsString v, NFData v)
  => CoreProgram' v
  -> CoreProgram' v
 coreSimp p
  = Core.condenseProgram ()
- $ snd
- $ Fresh.runFresh (Core.simpProgram () p) (freshNamer "simp")
+ $!! snd
+ $!! Fresh.runFresh (Core.simpProgram () p) (freshNamer "simp")
 
 coreFlatten
-  :: (Hashable v, Eq v, IsString v, Pretty v, Show v)
+  :: (Hashable v, Eq v, IsString v, Pretty v, Show v, NFData v)
   => CoreProgram' v
   -> Either (CompileError () v APF.Prim) (AvalProgram' v APF.Prim)
 coreFlatten prog
- = second simpFlattened
- $ flattenAvalanche (coreAvalanche prog)
+ =   second simpFlattened
+ $!! flattenAvalanche
+ $!! coreAvalanche prog
 
 flattenAvalanche
-  :: (IsString v, Pretty v, Hashable v, Eq v)
+  :: (IsString v, Pretty v, Hashable v, Eq v, NFData v)
   => AvalProgram () v Core.Prim
   -> Either (CompileError () v APF.Prim) (AvalProgram (CA.Annot ()) v APF.Prim)
 flattenAvalanche av
  = join
  . second snd
  . first CompileErrorFlatten
- $ Fresh.runFreshT go (freshNamer "flat")
+ $!! Fresh.runFreshT go (freshNamer "flat")
  where
   go = do s' <- AS.flatten () (AP.statements av)
-          return $ checkAvalanche (av { AP.statements = s' })
+          return $ checkAvalanche (av { AP.statements = force s' })
 
 checkAvalanche
   :: (Hashable v, Eq v)

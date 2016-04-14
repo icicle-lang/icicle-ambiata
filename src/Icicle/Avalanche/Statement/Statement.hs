@@ -1,6 +1,7 @@
 -- | Statements and mutable accumulators (variables) for Avalanche
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DeriveGeneric     #-}
 module Icicle.Avalanche.Statement.Statement (
     Statement       (..)
   , Accumulator     (..)
@@ -18,6 +19,8 @@ import              Icicle.Common.Exp
 import              Icicle.Internal.Pretty
 
 import              P
+
+import              GHC.Generics (Generic)
 
 
 -- | Part of a loop
@@ -64,7 +67,9 @@ data Statement a n p
 
  -- | Save an accumulator to history. Must be after all fact loops.
  | SaveResumable !(Name n) !ValType
- deriving (Eq, Ord, Show)
+ deriving (Eq, Ord, Show, Generic)
+
+instance (NFData a, NFData n, NFData p) => NFData (Statement a n p)
 
 instance Monoid (Statement a n p) where
  mempty = Block []
@@ -77,7 +82,9 @@ data FactBinds n
   , factBindId      :: Name n
   , factBindValue   :: [(Name n, ValType)]
  }
- deriving (Eq, Ord, Show)
+ deriving (Eq, Ord, Show, Generic)
+
+instance NFData n => NFData (FactBinds n)
 
 factBindsAll :: FactBinds n -> [(Name n, ValType)]
 factBindsAll (FactBinds ntime nid nvalue)
@@ -90,7 +97,9 @@ data Accumulator a n p
  , accValType   :: !ValType
  , accInit      :: !(Exp a n p)
  }
- deriving (Eq, Ord, Show)
+ deriving (Eq, Ord, Show, Generic)
+
+instance (NFData a, NFData n, NFData p) => NFData (Accumulator a n p)
 
 
 -- | When executing the feature, we also keep track of what data

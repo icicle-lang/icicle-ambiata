@@ -1,5 +1,6 @@
 -- | Avalanche programs
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE DeriveGeneric     #-}
 module Icicle.Avalanche.Program (
     Program         (..)
   , renameProgram
@@ -12,6 +13,8 @@ import              Icicle.Common.Type
 
 import              Icicle.Internal.Pretty
 
+import              GHC.Generics (Generic)
+
 import              P
 
 -- | An entire Avalanche program
@@ -21,7 +24,9 @@ data Program a n p =
   , bindtime    :: Name n
   , statements  :: Statement a n p
   }
- deriving (Eq, Ord, Show)
+ deriving (Eq, Ord, Show, Generic)
+
+instance (NFData a, NFData n, NFData p) => NFData (Program a n p)
 
 instance TransformX Program where
  transformX names exps p

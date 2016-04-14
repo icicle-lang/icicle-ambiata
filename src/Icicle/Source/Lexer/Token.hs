@@ -128,6 +128,7 @@ newtype Variable
  deriving (Eq, Ord, Show, Generic)
 
 instance Hashable Variable
+instance NFData Variable
 
 -- | Each keyword with their name
 keywords :: [(Text, Keyword)]

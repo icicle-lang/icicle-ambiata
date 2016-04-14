@@ -1,5 +1,6 @@
 -- | Evaluate Avalanche programs
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE DeriveGeneric     #-}
 module Icicle.Avalanche.Check (
     checkProgram
   , ProgramError(..)
@@ -20,6 +21,8 @@ import qualified    Data.List   as List
 import qualified    Data.Map    as Map
 import              Data.Hashable (Hashable)
 
+import              GHC.Generics (Generic)
+
 
 data ProgramError a n p
  = ProgramErrorExp  (ExpError a n p)
@@ -29,13 +32,15 @@ data ProgramError a n p
  | ProgramErrorWrongValType         (Name n) ValType ValType
  | ProgramErrorMultipleFactLops
  | ProgramErrorNameNotUnique (Name n)
- deriving (Show, Eq, Ord)
+ deriving (Show, Eq, Ord, Generic)
 
 data Context n
  = Context
  { ctxExp :: Env n Type
  , ctxAcc :: Env n ValType }
  deriving (Show, Eq, Ord)
+
+instance (NFData a, NFData n, NFData p) => NFData (ProgramError a n p)
 
 initialContext :: (Hashable n, Eq n) => Program a n p -> Context n
 initialContext p
