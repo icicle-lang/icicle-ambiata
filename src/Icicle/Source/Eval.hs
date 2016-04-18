@@ -186,276 +186,271 @@ evalP   :: Ord n
         -> Record n
         -> Either (EvalError a n) BaseValue
 evalP ann p xs vs env
- = case p of
-    Lit (LitInt i)
-     -> return (VDouble $ fromIntegral i)
+ = do args <- mapM (\x' -> evalX x' vs env) xs
+      let err = Left $ EvalErrorPrimBadArgs ann p args
+      case p of
+       _
+        -- Propagation of errors.
+        | (xcept:_) <- filter isExcept args
+        -> return xcept
 
-    Lit (LitDouble i)
-     -> return (VDouble i)
+       Lit (LitInt i)
+        -> return (VDouble $ fromIntegral i)
 
-    Lit (LitString i)
-     -> return (VString i)
+       Lit (LitDouble i)
+        -> return (VDouble i)
 
-    Lit (LitTime i)
-     -> return (VTime i)
+       Lit (LitString i)
+        -> return (VString i)
 
-    PrimCon con
-     -> do  args <- mapM (\x' -> evalX x' vs env) xs
-            let err = Left $ EvalErrorPrimBadArgs ann p args
-            case con of
-             ConNone
-              -> return VNone
-             ConSome
-              | [va] <- args
-              -> return $ VSome va
-              | otherwise
-              -> err
-             ConTuple
-              | [va,vb] <- args
-              -> return $ VPair va vb
-              | otherwise
-              -> err
-             ConTrue
-              -> return $ VBool True
-             ConFalse
-              -> return $ VBool False
-             ConLeft
-              | [va] <- args
-              -> return $ VLeft va
-              | otherwise
-              -> err
-             ConRight
-              | [va] <- args
-              -> return $ VRight va
-              | otherwise
-              -> err
-             ConError ex
-              -> return $ VError ex
+       Lit (LitTime i)
+        -> return (VTime i)
 
-    Fun f
-     -> do  args <- mapM (\x' -> evalX x' vs env) xs
-            let err = Left $ EvalErrorPrimBadArgs ann p args
-            case f of
-             BuiltinMath Log
-              | [VDouble i] <- args
-              -> return $ VDouble $ log i
-              | otherwise -> err
-             BuiltinMath Exp
-              | [VDouble i] <- args
-              -> return $ VDouble $ exp i
-              | otherwise -> err
-             BuiltinMath Sqrt
-              | [VDouble i] <- args
-              -> return $ VDouble $ sqrt i
-              | otherwise -> err
-             -- Use Doubles as only number representation.
-             -- See Note: Numbers
-             BuiltinMath ToDouble
-              | [VDouble i] <- args
-              -> return $ VDouble i
-              | otherwise -> err
-             BuiltinMath Abs
-              | [VDouble i] <- args
-              -> return $ VDouble $ abs i
-              | otherwise -> err
-             BuiltinMath Floor
-              | [VDouble i] <- args
-              -> return $ VDouble $ fromIntegral (floor i :: Int)
-              | otherwise -> err
-             BuiltinMath Ceiling
-              | [VDouble i] <- args
-              -> return $ VDouble $ fromIntegral (ceiling i :: Int)
-              | otherwise -> err
-             BuiltinMath Round
-              | [VDouble i] <- args
-              -> return $ VDouble $ fromIntegral (round i :: Int)
-              | otherwise -> err
-             BuiltinMath Truncate
-              | [VDouble i] <- args
-              -> return $ VDouble $ fromIntegral (truncate i :: Int)
-              | otherwise -> err
+       PrimCon con
+        -> case con of
+            ConNone
+             -> return VNone
+            ConSome
+             | [va] <- args
+             -> return $ VSome va
+             | otherwise
+             -> err
+            ConTuple
+             | [va,vb] <- args
+             -> return $ VPair va vb
+             | otherwise
+             -> err
+            ConTrue
+             -> return $ VBool True
+            ConFalse
+             -> return $ VBool False
+            ConLeft
+             | [va] <- args
+             -> return $ VLeft va
+             | otherwise
+             -> err
+            ConRight
+             | [va] <- args
+             -> return $ VRight va
+             | otherwise
+             -> err
+            ConError ex
+             -> return $ VError ex
 
-             BuiltinTime DaysBetween
-              | [VTime i, VTime j] <- args
-              -> return $ VDouble $ fromIntegral $ DT.daysDifference i j
-              | otherwise -> err
-             BuiltinTime DaysEpoch
-              | [VTime i] <- args
-              -> return $ VDouble $ fromIntegral $ DT.daysOfTime i
-              | otherwise -> err
+       Fun f
+        -> case f of
+            BuiltinMath Log
+             | [VDouble i] <- args
+             -> return $ VDouble $ log i
+             | otherwise -> err
+            BuiltinMath Exp
+             | [VDouble i] <- args
+             -> return $ VDouble $ exp i
+             | otherwise -> err
+            BuiltinMath Sqrt
+             | [VDouble i] <- args
+             -> return $ VDouble $ sqrt i
+             | otherwise -> err
+            -- Use Doubles as only number representation.
+            -- See Note: Numbers
+            BuiltinMath ToDouble
+             | [VDouble i] <- args
+             -> return $ VDouble i
+             | otherwise -> err
+            BuiltinMath Abs
+             | [VDouble i] <- args
+             -> return $ VDouble $ abs i
+             | otherwise -> err
+            BuiltinMath Floor
+             | [VDouble i] <- args
+             -> return $ VDouble $ fromIntegral (floor i :: Int)
+             | otherwise -> err
+            BuiltinMath Ceiling
+             | [VDouble i] <- args
+             -> return $ VDouble $ fromIntegral (ceiling i :: Int)
+             | otherwise -> err
+            BuiltinMath Round
+             | [VDouble i] <- args
+             -> return $ VDouble $ fromIntegral (round i :: Int)
+             | otherwise -> err
+            BuiltinMath Truncate
+             | [VDouble i] <- args
+             -> return $ VDouble $ fromIntegral (truncate i :: Int)
+             | otherwise -> err
 
-             BuiltinData Seq
-              | [VError e,_] <- args
-              -> return $ VError e
-              | [_,i] <- args
-              -> return i
-              | otherwise -> err
-             BuiltinData Box
-              | [VNone] <- args
-              -> return $ VError ExceptTombstone
-              | [VSome a] <- args
-              -> return a
-              | otherwise -> err
+            BuiltinTime DaysBetween
+             | [VTime i, VTime j] <- args
+             -> return $ VDouble $ fromIntegral $ DT.daysDifference i j
+             | otherwise -> err
+            BuiltinTime DaysEpoch
+             | [VTime i] <- args
+             -> return $ VDouble $ fromIntegral $ DT.daysOfTime i
+             | otherwise -> err
 
-             BuiltinMap MapKeys
-              | [VMap m] <- args
-              -> return $ VArray $ Map.keys m
-              | [VError e] <- args
-              -> return $ VError e
-              | otherwise -> err
-             BuiltinMap MapValues
-              | [VMap m] <- args
-              -> return $ VArray $ Map.elems m
-              | [VError e] <- args
-              -> return $ VError e
-              | otherwise -> err
+            BuiltinData Seq
+             | [_,i] <- args
+             -> return i
+             | otherwise -> err
+            BuiltinData Box
+             | [VNone] <- args
+             -> return $ VError ExceptTombstone
+             | [VSome a] <- args
+             -> return a
+             | otherwise -> err
 
-    Op o
-     -> do  args <- mapM (\x' -> evalX x' vs env) xs
-            let err = Left $ EvalErrorPrimBadArgs ann p args
-            let isExcept v
-                    | VError _ <- v
-                    = True
-                    | otherwise
-                    = False
-            case o of
-             _
-              -- Propagation of errors.
-              | (xcept:_) <- filter isExcept args
-              -> return xcept
+            BuiltinMap MapKeys
+             | [VMap m] <- args
+             -> return $ VArray $ Map.keys m
+             | [VError e] <- args
+             -> return $ VError e
+             | otherwise -> err
+            BuiltinMap MapValues
+             | [VMap m] <- args
+             -> return $ VArray $ Map.elems m
+             | [VError e] <- args
+             -> return $ VError e
+             | otherwise -> err
 
-             ArithDouble Div
-              | [VDouble i, VDouble j] <- args
-              -> return $ VDouble (i / j)
-              | otherwise
-              -> err
+       Op o
+        -> case o of
+            ArithDouble Div
+             | [VDouble i, VDouble j] <- args
+             -> return $ VDouble (i / j)
+             | otherwise
+             -> err
 
-             ArithUnary Negate
-              | [VDouble i] <- args
-              -> return $ VDouble $ negate i
-              | otherwise
-              -> err
+            ArithUnary Negate
+             | [VDouble i] <- args
+             -> return $ VDouble $ negate i
+             | otherwise
+             -> err
 
-             ArithBinary Mul
-              | [VDouble i, VDouble j] <- args
-              -> return $ VDouble (i * j)
-              | otherwise
-              -> err
+            ArithBinary Mul
+             | [VDouble i, VDouble j] <- args
+             -> return $ VDouble (i * j)
+             | otherwise
+             -> err
 
-             ArithBinary Add
-              | [VDouble i, VDouble j] <- args
-              -> return $ VDouble (i + j)
-              | otherwise
-              -> err
+            ArithBinary Add
+             | [VDouble i, VDouble j] <- args
+             -> return $ VDouble (i + j)
+             | otherwise
+             -> err
 
 
-             ArithBinary Sub
-              | [VDouble i, VDouble j] <- args
-              -> return $ VDouble (i - j)
-              | otherwise
-              -> err
+            ArithBinary Sub
+             | [VDouble i, VDouble j] <- args
+             -> return $ VDouble (i - j)
+             | otherwise
+             -> err
 
-             ArithBinary Pow
-              | [VDouble i, VDouble j] <- args
-              -> return $ VDouble (i ** j)
-              | otherwise
-              -> err
-
-
-             Relation Lt
-              | [i, j] <- args
-              -> return $ VBool $ i < j
-              | otherwise
-              -> err
-
-             Relation Le
-              | [i, j] <- args
-              -> return $ VBool $ i <= j
-              | otherwise
-              -> err
-
-             Relation Gt
-              | [i, j] <- args
-              -> return $ VBool $ i > j
-              | otherwise
-              -> err
-
-             Relation Ge
-              | [i, j] <- args
-              -> return $ VBool $ i >= j
-              | otherwise
-              -> err
-
-             Relation Eq
-              | [i, j] <- args
-              -> return $ VBool $ i == j
-              | otherwise
-              -> err
-
-             Relation Ne
-              | [i, j] <- args
-              -> return $ VBool $ i /= j
-              | otherwise
-              -> err
-
-             LogicalUnary Not
-              | [VBool i] <- args
-              -> return $ VBool $ not i
-              | otherwise
-              -> err
-
-             LogicalBinary And
-              | [VBool i, VBool j] <- args
-              -> return $ VBool $ i && j
-              | otherwise
-              -> err
-
-             LogicalBinary Or
-              | [VBool i, VBool j] <- args
-              -> return $ VBool $ i || j
-              | otherwise
-              -> err
-
-             TimeBinary DaysBefore
-              | [VDouble i, VTime j] <- args
-              -> return $ VTime $ DT.minusDays j $ truncate i
-              | otherwise
-              -> err
-
-             TimeBinary DaysAfter
-              | [VDouble i, VTime j] <- args
-              -> return $ VTime $ DT.minusDays j $ negate $ truncate i
-              | otherwise
-              -> err
-
-             TimeBinary WeeksBefore
-              | [VDouble i, VTime j] <- args
-              -> return $ VTime $ DT.minusDays j (7 * truncate i)
-              | otherwise
-              -> err
-
-             TimeBinary WeeksAfter
-              | [VDouble i, VTime j] <- args
-              -> return $ VTime $ DT.minusDays j $ negate (7 * truncate i)
-              | otherwise
-              -> err
-
-             TimeBinary MonthsBefore
-              | [VDouble i, VTime j] <- args
-              -> return $ VTime $ DT.minusMonths j $ truncate i
-              | otherwise
-              -> err
-
-             TimeBinary MonthsAfter
-              | [VDouble i, VTime j] <- args
-              -> return $ VTime $ DT.minusMonths j $ negate $ truncate i
-              | otherwise
-              -> err
-
-             TupleComma
-              | [a, b] <- args
-              -> return $ VPair a b
-              | otherwise
-              -> err
+            ArithBinary Pow
+             | [VDouble i, VDouble j] <- args
+             -> return $ VDouble (i ** j)
+             | otherwise
+             -> err
 
 
+            Relation Lt
+             | [i, j] <- args
+             -> return $ VBool $ i < j
+             | otherwise
+             -> err
+
+            Relation Le
+             | [i, j] <- args
+             -> return $ VBool $ i <= j
+             | otherwise
+             -> err
+
+            Relation Gt
+             | [i, j] <- args
+             -> return $ VBool $ i > j
+             | otherwise
+             -> err
+
+            Relation Ge
+             | [i, j] <- args
+             -> return $ VBool $ i >= j
+             | otherwise
+             -> err
+
+            Relation Eq
+             | [i, j] <- args
+             -> return $ VBool $ i == j
+             | otherwise
+             -> err
+
+            Relation Ne
+             | [i, j] <- args
+             -> return $ VBool $ i /= j
+             | otherwise
+             -> err
+
+            LogicalUnary Not
+             | [VBool i] <- args
+             -> return $ VBool $ not i
+             | otherwise
+             -> err
+
+            LogicalBinary And
+             | [VBool i, VBool j] <- args
+             -> return $ VBool $ i && j
+             | otherwise
+             -> err
+
+            LogicalBinary Or
+             | [VBool i, VBool j] <- args
+             -> return $ VBool $ i || j
+             | otherwise
+             -> err
+
+            TimeBinary DaysBefore
+             | [VDouble i, VTime j] <- args
+             -> return $ VTime $ DT.minusDays j $ truncate i
+             | otherwise
+             -> err
+
+            TimeBinary DaysAfter
+             | [VDouble i, VTime j] <- args
+             -> return $ VTime $ DT.minusDays j $ negate $ truncate i
+             | otherwise
+             -> err
+
+            TimeBinary WeeksBefore
+             | [VDouble i, VTime j] <- args
+             -> return $ VTime $ DT.minusDays j (7 * truncate i)
+             | otherwise
+             -> err
+
+            TimeBinary WeeksAfter
+             | [VDouble i, VTime j] <- args
+             -> return $ VTime $ DT.minusDays j $ negate (7 * truncate i)
+             | otherwise
+             -> err
+
+            TimeBinary MonthsBefore
+             | [VDouble i, VTime j] <- args
+             -> return $ VTime $ DT.minusMonths j $ truncate i
+             | otherwise
+             -> err
+
+            TimeBinary MonthsAfter
+             | [VDouble i, VTime j] <- args
+             -> return $ VTime $ DT.minusMonths j $ negate $ truncate i
+             | otherwise
+             -> err
+
+            TupleComma
+             | [a, b] <- args
+             -> return $ VPair a b
+             | otherwise
+             -> err
+
+ where
+  isExcept v
+   | VError _ <- v
+   = True
+   | otherwise
+   = False
+  

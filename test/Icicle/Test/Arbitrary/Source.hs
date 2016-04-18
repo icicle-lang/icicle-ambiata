@@ -253,7 +253,7 @@ genExp tgi
       -- in-scope variables
       [ Var    () <$> genVar tgi
       -- literal primitives only
-      , Prim   () <$> arbitrary ]
+      , Prim   () <$> genLitPrim ]
       -- sub-queries
       [ (simplifyNestedX . Nested ()) <$> genQuery tgi
       -- case statements
