@@ -20,31 +20,34 @@ ok, loaded test/cli/repl/data.psv, 13 rows
 >                     λλλλ
 REPL Error:
 Check error:
-  For resumable queries, folds must be inside windowed or latest at 1:19
+  For resumable queries, folds, groups and distincts must be inside windowed or latest at 1:19
   Fold: fold x = 0 : 1 ~> x
   Extra information:
+    You are in 'big data mode', which restricts the queries you can perform.
     For very large data, we cannot perform folds over all the data
     For this reason, we require all folds to be in a windowed or latest
 
 > >           λλλλ
 REPL Error:
 Check error:
-  For resumable queries, folds must be inside windowed or latest at 41:9:data/libs/prelude.icicle
+  For resumable queries, folds, groups and distincts must be inside windowed or latest at 41:9:data/libs/prelude.icicle
   Fold: fold s = 0 : v$inline$0
         + s
         ~> s
   Extra information:
+    You are in 'big data mode', which restricts the queries you can perform.
     For very large data, we cannot perform folds over all the data
     For this reason, we require all folds to be in a windowed or latest
 
 > >           λλλλ
 REPL Error:
 Check error:
-  For resumable queries, folds must be inside windowed or latest at 41:9:data/libs/prelude.icicle
+  For resumable queries, folds, groups and distincts must be inside windowed or latest at 41:9:data/libs/prelude.icicle
   Fold: fold s = 0 : v$inline$0
         + s
         ~> s
   Extra information:
+    You are in 'big data mode', which restricts the queries you can perform.
     For very large data, we cannot perform folds over all the data
     For this reason, we require all folds to be in a windowed or latest
 
@@ -52,11 +55,12 @@ Check error:
 >           λλλλ
 REPL Error:
 Check error:
-  For resumable queries, folds must be inside windowed or latest at 41:9:data/libs/prelude.icicle
+  For resumable queries, folds, groups and distincts must be inside windowed or latest at 41:9:data/libs/prelude.icicle
   Fold: fold s = 0 : v$inline$0
         + s
         ~> s
   Extra information:
+    You are in 'big data mode', which restricts the queries you can perform.
     For very large data, we cannot perform folds over all the data
     For this reason, we require all folds to be in a windowed or latest
 
@@ -78,23 +82,43 @@ Check error:
 >           λλλλ
 REPL Error:
 Check error:
-  For resumable queries, folds must be inside windowed or latest at 41:9:data/libs/prelude.icicle
+  For resumable queries, folds, groups and distincts must be inside windowed or latest at 41:9:data/libs/prelude.icicle
   Fold: fold s = 0 : v$inline$0
         + s
         ~> s
   Extra information:
+    You are in 'big data mode', which restricts the queries you can perform.
     For very large data, we cannot perform folds over all the data
     For this reason, we require all folds to be in a windowed or latest
 
 > >           λλλλ
 REPL Error:
 Check error:
-  For resumable queries, folds must be inside windowed or latest at 41:9:data/libs/prelude.icicle
+  For resumable queries, folds, groups and distincts must be inside windowed or latest at 41:9:data/libs/prelude.icicle
   Fold: fold s = 0 : v$inline$0
         + s
         ~> s
   Extra information:
+    You are in 'big data mode', which restricts the queries you can perform.
     For very large data, we cannot perform folds over all the data
     For this reason, we require all folds to be in a windowed or latest
+
+> > -- A bad group
+>                           λλλλ
+REPL Error:
+Check error:
+  For resumable queries, folds, groups and distincts must be inside windowed or latest at 1:25
+  Fold: group location
+        ~> sum severity
+  Extra information:
+    You are in 'big data mode', which restricts the queries you can perform.
+    In big data mode, groups must be inside windowed or latests.
+    You should be able to wrap the entire group inside a window.
+
+> > -- A good group
+> - Core evaluation:
+[homer, [("arm",4)
+        ,("head",3)
+        ,("torso",4)]]
 
 > 

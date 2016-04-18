@@ -48,11 +48,20 @@ checkResumableQ ctx q@(Query (c:cs) xfinal)
     -- We needn't check the key: it is an Element
     -- (This will change if/when we implement Scans)
     -- (It wouldn't hurt if we *did* check the expression)
-    GroupBy{}
-     -> go
+    GroupBy a _
+     -> errorSuggestions
+         (ErrorResumableFoldNotAllowedHere a q)
+         [ errBigDataSuggestion
+         , Suggest "In big data mode, groups must be inside windowed or latests."
+         , Suggest "You should be able to wrap the entire group inside a window."]
+
     -- As above
-    Distinct{}
-     -> go
+    Distinct a _
+     -> errorSuggestions
+         (ErrorResumableFoldNotAllowedHere a q)
+         [ errBigDataSuggestion
+         , Suggest "In big data mode, distincts must be inside windowed or latests." 
+         , Suggest "You should be able to wrap the entire distinct inside a window."]
 
     -- For group-fold, the expression is the actual group:
     -- this expression needs to be checked.
@@ -73,13 +82,17 @@ checkResumableQ ctx q@(Query (c:cs) xfinal)
     LetFold a _
      -> errorSuggestions
          (ErrorResumableFoldNotAllowedHere a q)
-         [ Suggest "For very large data, we cannot perform folds over all the data"
+         [ errBigDataSuggestion
+         , Suggest "For very large data, we cannot perform folds over all the data"
          , Suggest "For this reason, we require all folds to be in a windowed or latest" ]
 
  where
   q' = Query cs xfinal
   go = checkResumableQ ctx q'
   goX = checkResumableX ctx
+
+  errBigDataSuggestion
+   = Suggest "You are in 'big data mode', which restricts the queries you can perform."
 
 
 checkResumableX

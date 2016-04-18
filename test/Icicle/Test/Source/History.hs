@@ -47,7 +47,7 @@ data TestStuff
 instance Arbitrary TestStuff where
  arbitrary
   = do  -- we can be conservative with these expressions
-        qwf       <- genQueryWithFeatureTypedGen 1
+        qwf       <- genQueryWithFeatureTypedGen 10
         (vs,d)    <- inputsForType $ qwfFeatureT qwf
         let ret
               | Right qt' <- qwfCheckBigData qwf

@@ -37,3 +37,9 @@ feature salary ~> let x = value ~> latest 10 ~> sum x
 feature salary ~> let x = sum value ~> x
 
 feature salary ~> let x = value ~> sum x
+
+-- A bad group
+feature injury ~> group location ~> sum severity
+
+-- A good group
+feature injury ~> windowed 1 months ~> group location ~> sum severity
