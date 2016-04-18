@@ -158,7 +158,7 @@ instance (Pretty a, Pretty n) => Pretty (ErrorInfo a n) where
       <> "Pattern: " <> inp p
 
      ErrorResumableFoldNotAllowedHere a q
-      -> "For resumable queries, folds must be inside windowed or latest at" <+> pretty a <> line
+      -> "For resumable queries, folds, groups and distincts must be inside windowed or latest at" <+> pretty a <> line
       <> "Fold: " <> inp q
 
      ErrorInFunctionCall a n e'

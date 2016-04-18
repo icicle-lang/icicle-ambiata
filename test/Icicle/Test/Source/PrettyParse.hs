@@ -17,17 +17,25 @@ import           System.IO
 
 import           Test.QuickCheck
 
-import qualified Icicle.Source.Lexer.Token as T
 import           Icicle.Source.Query
 
 import           Icicle.Source.PrettyAnnot
 
-prop_parse_pretty_same :: QueryTop () T.Variable -> Property
-prop_parse_pretty_same q
+prop_parse_pretty_same :: Property
+prop_parse_pretty_same
+ -- Ill-typed programs will be printed/parsed incorrectly if they have operators
+ -- with the wrong number of arguments - for example (!) applied to no arguments.
+ -- However, by setting the tableflip ratio to 0,
+ -- it will generate only the correct number of arguments
+ = forAll (genQueryWithFeatureTypedGen 0) check_pretty
+
+check_pretty :: QueryWithFeature -> Property
+check_pretty qwf
  = counterexample pp
  $ counterexample pp'
  $ parsed' === Right q
  where
+  q  = qwfQueryTop qwf
   pp = show $ pretty q
   t  = T.pack pp
 
@@ -59,4 +67,4 @@ prop_annotated_query_prints_well qwf
 
 return []
 tests :: IO Bool
-tests = $checkAllWith TestRunNormal (checkArgsSized 10)
+tests = $checkAllWith TestRunMore (checkArgsSized 100)

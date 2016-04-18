@@ -33,4 +33,17 @@ ok, loaded test/cli/repl/data.psv, 13 rows
 - Core evaluation:
 [homer, -14611]
 
+> > -- These were errors picked up by QuickCheck
+> - C evaluation:
+[homer, 1970-01-01]
+
+- Core evaluation:
+[homer, 1970-01-01]
+
+> - C evaluation:
+[homer, tombstone]
+
+- Core evaluation:
+[homer, tombstone]
+
 > 

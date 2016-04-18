@@ -41,8 +41,12 @@ reifyPossibilityX wrap x
 
       -- If an explicit box is used, we do a case distinction on the argument
       App a _ _
-       | Just (p, _, [arg])   <- takePrimApps x
-       , Fun (BuiltinData Box) <- p
+       -- Box of a Possibly is a bit more complicated,
+       -- because we need to unwrap it first
+       | Just (p, _, [arg])     <- takePrimApps x
+       , Fun (BuiltinData Box)  <- p
+       , t                      <- annResult $ annotOfExp arg
+       , PossibilityPossibly    <- getPossibilityOrDefinitely t
        -> do nValue     <- fresh
              let aValue  = definiteAnnot a
              let aError  = typeAnnot aValue ErrorT
@@ -52,6 +56,22 @@ reifyPossibilityX wrap x
                $ Case a arg
                    [ ( PatCon ConSome [PatVariable nValue], vValue)
                    , ( PatCon ConNone [],                   vError) ]
+
+       -- Box of a definitely can just wrap in the left/right immediately
+       | Just (p, _, [arg])   <- takePrimApps x
+       , Fun (BuiltinData Box) <- p
+       -> do arg'       <- reifyPossibilityX wrap arg
+             nValue     <- fresh
+             let a'  = wrapAnnot a
+             let aValue  = definiteAnnot a
+             let aError  = typeAnnot a' ErrorT
+             let vValue  = Var  aValue nValue
+             let vError  = Prim aError (PrimCon (ConError ExceptTombstone))
+             return
+               $ Case a' arg'
+                   [ ( PatCon ConSome [PatVariable nValue], con1 a' ConRight $ vValue)
+                   , ( PatCon ConNone [],                   con1 a' ConLeft $ vError ) ]
+
 
        | otherwise
        -> do let (fun,args) = takeApps x

@@ -28,6 +28,7 @@ import qualified Icicle.Test.Internal.EditDistance
 import qualified Icicle.Test.Source.PrettyParse
 import qualified Icicle.Test.Source.Progress
 import qualified Icicle.Test.Source.Convert
+import qualified Icicle.Test.Source.History
 
 import qualified Icicle.Test.Sea.Psv
 import qualified Icicle.Test.Sea.Seaworthy
@@ -73,4 +74,5 @@ main
         , Icicle.Test.Source.PrettyParse.tests
         , Icicle.Test.Source.Progress.tests
         , Icicle.Test.Source.Convert.tests
+        , Icicle.Test.Source.History.tests
         ]

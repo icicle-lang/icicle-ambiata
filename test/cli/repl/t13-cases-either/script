@@ -5,3 +5,6 @@ feature salary ~> fold perhaps = Left 0 : case perhaps | Right i -> Left (trunc 
 
 feature salary ~> fold perhaps = Left 0 : case perhaps | Left i -> Right i | Right j -> Left j end ~> perhaps
 feature salary ~> fold perhaps = Left 0 : case perhaps | Right i -> Left i | Left j -> Right j end ~> perhaps
+
+-- Cases can be strange
+feature salary ~> windowed 1 days ~> case None | Some a -> Some a | None -> Some 0 end

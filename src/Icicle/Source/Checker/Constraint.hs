@@ -25,6 +25,7 @@ import                  P
 import                  Data.List (zip,unzip,unzip3)
 import                  Data.Hashable (Hashable)
 import qualified        Data.Map                as Map
+import qualified        Data.Set                as Set
 
 import                  X.Control.Monad.Trans.Either
 
@@ -36,21 +37,42 @@ import                  X.Control.Monad.Trans.Either
 -- this actually has type "forall a. Num a => a"
 -- and we could safely use any number type.
 --
--- We should really also default anything else to unit.
--- However, because defaulting only applies to the query, where the input stream must be concrete,
--- there should be no type variables left at the end except Nums.
+-- Anything else can be converted to unit:
+-- > feature salary ~> Right ""
+-- This has type "forall a. Sum a String".
+-- We could choose anything at all for the "a".
+-- When converting the rest to unit, we must also descend all the way down
+-- into the query.
+-- All unsolved constraints bubble up, but un-defaulted types won't necessarily.
+-- For example, the return type for the following is String,
+-- but what is the type of the case scrutinee?
+-- > case Right () | Left _ -> "left" | Right _ -> "right"
+--
 defaults :: (Hashable n, Eq n)
          => Query'C a n
          -> Query'C a n
-defaults q
- -- Find all Num constraints and map them to Int
- = let cm = Map.fromList
-          $ concatMap (defaultOfConstraint . snd)
-          $ annConstraints
-          $ annotOfQuery q
-   -- Just substitute the type vars in
-   in substTQ cm q
+defaults topq
+  -- Just substitute the type vars in
+  = substTQ defaultRest topq
  where
+  -- Convert remaining type variables to units
+  defaultRest
+   = let go s v
+            | Nothing <- Map.lookup v s
+            = Map.insert v UnitT s
+            | otherwise
+            = s
+     in  foldl go defaultNums (freeOfAllQ topq)
+
+  -- Convert numeric constraints to Ints
+  defaultNums
+   = Map.fromList
+   $ concatMap (defaultOfConstraint . snd)
+   $ annConstraints
+   $ annotOfQuery topq
+
+
+
   defaultOfConstraint (CIsNum t)
    -- It must be a type variable - if it isn't it either already has a concrete
    -- Num type such as Int, or it is a type error
@@ -73,6 +95,40 @@ defaults q
   defaultOfConstraint (CTemporalityJoin _ _ _)
    = []
 
+  freeOfAllQ (Query cs x)
+   = Set.unions
+   ( freeOfAllX x : fmap freeOfAllC cs )
+
+  freeOfAllC c
+   = let fa   = freeOfAllA (annotOfContext c)
+         fv x = fa <> freeOfAllX x
+     in case c of
+          Let _ _ x -> fv x
+          LetFold _ f
+           -> fa                      <>
+              freeOfAllX (foldInit f) <>
+              freeOfAllX (foldWork f)
+          Windowed{} -> fa
+          Latest{} -> fa
+          GroupBy _ x -> fv x
+          GroupFold _ _ _ x -> fv x
+          Distinct _ x -> fv x
+          Filter _ x -> fv x
+
+  freeOfAllX x
+   = let fa   = freeOfAllA (annotOfExp x)
+     in  case x of
+           Var{} -> fa
+           Nested _ q -> fa <> freeOfAllQ q
+           App _ p q -> fa <> freeOfAllX p <> freeOfAllX q
+           Prim{} -> fa
+           Case _ s pats
+            ->  fa <> freeOfAllX s <> 
+               (Set.unions $ fmap (freeOfAllX . snd) pats)
+
+
+  freeOfAllA a
+   = freeT $ annResult a
 
 
 -- | Generate constraints for an entire query.

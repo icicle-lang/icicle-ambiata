@@ -6,3 +6,7 @@
 feature injury ~> group_keys location
 
 feature injury ~> days between (newest (box admitted)) now
+
+-- These were errors picked up by QuickCheck
+feature injury ~> box (Some now)
+feature injury ~> newest (box None)
