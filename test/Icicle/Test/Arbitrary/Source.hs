@@ -30,7 +30,7 @@ import           Icicle.Source.Transform.Desugar
 import           Icicle.Source.Transform.ReifyPossibility
 
 import           Icicle.Test.Arbitrary.Base
-import           Icicle.Test.Arbitrary.Core ()
+import           Icicle.Test.Arbitrary.Core (testFresh)
 import           Disorder.Corpus
 
 import           Test.QuickCheck
@@ -260,59 +260,26 @@ genExp tgi
       , Case   () <$> genExp tgi
                   <*> listOf1 (genCase tgi)
       -- well-formed applications to primitives
-      , unop
-      , binop
+      , primApps
       ]
 
   -- In the bad case:
   bad
    = oneof_sized
       -- Unapplied primitives!
-      [ Prim   () <$> operator_bin
-      , Prim   () <$> operator_unary ]
+      [ Prim   () <$> arbitrary ]
       -- Applications whose lhs might not be a function/primitive
       [ App    () <$> genExp tgi <*> genExp tgi
       -- Randomly changing the temporality
       , arbitrary >>= \tt -> genExp tgi { tgiTemp = tt }
       ]
 
-  unop
-   = App ()
-   <$> (Prim () <$> operator_unary)
-   <*> genExp tgi
-
-  binop
-   = App ()
-   <$> (App ()
-           <$> (Prim () <$> operator_bin)
-           <*> genExp tgi)
-   <*> genExp tgi
-
-  operator_bin
-   = oneof_vals
-       [ Op    (ArithDouble Div)
-       , Op    (ArithBinary Mul)
-       , Op    (ArithBinary Add)
-       , Op    (ArithBinary Sub)
-       , Op    (ArithBinary Pow)
-       , Op    (Relation Gt)
-       , Op    (Relation Eq)
-       , Op    (LogicalBinary And)
-       , Op    (LogicalBinary Or)
-       , Op    (TimeBinary DaysBefore)
-       , Op    (TimeBinary DaysAfter)
-       , Op    (TimeBinary MonthsBefore)
-       , Op    (TimeBinary MonthsAfter)
-       , Fun   (BuiltinTime DaysBetween)
-       , Fun   (BuiltinTime DaysEpoch)
-       , Fun   (BuiltinData Seq) ]
-
-  operator_unary
-   = oneof_vals
-       [ Op (ArithUnary Negate)
-       , Op (LogicalUnary Not)
-       , Fun (BuiltinMap MapKeys)
-       , Fun (BuiltinMap MapValues) ]
+  primApps
+   = do p <- arbitrary
+        let ft = testFresh "" $ primLookup' p
+        let num = length $ functionArguments ft
+        xs <- vectorOf num (genExp tgi)
+        return $ foldl (App ()) (Prim () p) xs
 
 
 genCase :: TypedGenInfo -> Gen (Pattern T.Variable, Exp () T.Variable)
@@ -413,6 +380,19 @@ genTemporality tgi
     TTAgg  -> elements [TTPure, TTElt, TTAgg]
 
 
+genLitPrim :: Gen Prim
+genLitPrim
+ = oneof
+       [ Lit . LitInt    <$> pos
+       , Lit . LitDouble <$> pos'
+       , Lit . LitString <$> (elements southpark)
+       , Lit . LitTime   <$> arbitrary ]
+   where
+     -- Negative literals get parsed into negative, then a positive literal.
+     -- This isn't a problem mathematically, but would break symmetry tests.
+     pos  = abs <$> arbitrary
+     pos' = abs <$> arbitrary
+
 
 -- Boring arbitrary instances ---
 -- These are all quite simple, and just use the above functions when they aren't
@@ -429,15 +409,60 @@ instance Arbitrary (Exp () T.Variable) where
 instance Arbitrary Prim where
  arbitrary
   = oneof
-        [ Lit . LitInt    <$> pos
-        , Lit . LitDouble <$> pos'
-        , Lit . LitString <$> (elements southpark)
-        , Lit . LitTime   <$> arbitrary ]
-    where
-      -- Negative literals get parsed into negative, then a positive literal.
-      -- This isn't a problem mathematically, but would break symmetry tests.
-      pos  = abs <$> arbitrary
-      pos' = abs <$> arbitrary
+      [ oneof_vals ops
+      , oneof_vals funs
+      , oneof_vals cons
+      , genLitPrim ]
+
+  where
+   ops
+    = fmap Op
+        [ ArithUnary Negate
+        , ArithBinary Mul
+        , ArithBinary Add
+        , ArithBinary Sub
+        , ArithBinary Pow
+        , ArithDouble Div
+        , Relation Lt
+        , Relation Le
+        , Relation Gt
+        , Relation Ge
+        , Relation Eq
+        , Relation Ne
+        , LogicalUnary Not
+        , LogicalBinary And
+        , LogicalBinary Or
+        , TimeBinary DaysBefore
+        , TimeBinary DaysAfter
+        , TimeBinary WeeksBefore
+        , TimeBinary WeeksAfter
+        , TimeBinary MonthsBefore
+        , TimeBinary MonthsAfter
+        , TupleComma
+        ]
+
+   funs
+    = fmap Fun
+        [ BuiltinMath Log
+        , BuiltinMath Exp
+        , BuiltinMath Sqrt
+        , BuiltinMath ToDouble
+        , BuiltinMath Abs
+        , BuiltinMath Floor
+        , BuiltinMath Ceiling
+        , BuiltinMath Round
+        , BuiltinMath Truncate
+        , BuiltinTime DaysBetween
+        , BuiltinTime DaysEpoch
+        , BuiltinData Seq
+        , BuiltinData Box
+        , BuiltinMap MapKeys
+        , BuiltinMap MapValues ]
+
+   cons
+    = fmap PrimCon
+    [ ConSome, ConNone, ConTrue, ConFalse, ConLeft, ConRight ]
+
 
 instance Arbitrary Constructor where
  arbitrary
