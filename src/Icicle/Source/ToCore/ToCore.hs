@@ -502,13 +502,20 @@ convertQuery q
 
 
 -- | Convert an Aggregate computation at the end of a query.
--- This must be an aggregate, some primitive applied to at least one aggregate expression,
+-- This should be an aggregate, some primitive applied to at least one aggregate expression,
 -- or a nested query.
+-- If not, it must be pure, so we can just bind it as a precomputation.
 convertReduce
         :: (Hashable n, Eq n)
         => Exp (Annot a n) n
         -> ConvertM a n (CoreBinds () n, Name n)
 convertReduce xx
+ -- If it is Pure, just bind it as a precomputation
+ | TemporalityPure <- getTemporalityOrPure $ annResult $ annotOfExp xx
+ = do   x' <- convertExp xx
+        nm <- lift fresh
+        return (pre nm x', nm)
+
  | Just (p, Annot { annResult = ty }, args) <- takePrimApps xx
  -- For any primitives:
  --   recurse into its arguments and get bindings for them

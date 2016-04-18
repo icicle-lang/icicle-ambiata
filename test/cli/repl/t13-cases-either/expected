@@ -26,4 +26,11 @@ Aggregate Definitely (Sum Int Int)
 - Core evaluation:
 [homer, 0,marge, 0]
 
+> > -- Cases can be strange
+> - Type:
+Aggregate Definitely (Option Int)
+
+- Core evaluation:
+[homer, 0,marge, 0]
+
 > 
