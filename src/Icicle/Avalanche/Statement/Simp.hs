@@ -25,6 +25,7 @@ import              Icicle.Avalanche.Statement.Simp.Dead
 import              Icicle.Avalanche.Statement.Simp.ExpEnv
 import              Icicle.Avalanche.Statement.Simp.ThreshOrd
 import              Icicle.Avalanche.Prim.Flat
+import              Icicle.Avalanche.Annot
 
 import              Icicle.Common.Base
 import              Icicle.Common.Exp
@@ -56,8 +57,8 @@ convertValues a_fresh statements
        -> go $ If (goX x) subs elses
       Let n x subs
        -> go $ Let n (goX x) subs
-      ForeachInts n from to subs
-       -> go $ ForeachInts n (goX from) (goX to) subs
+      ForeachInts t n from to subs
+       -> go $ ForeachInts t n (goX from) (goX to) subs
       InitAccumulator acc subs
        -> go $ InitAccumulator (acc { accInit = goX $ accInit acc }) subs
       Write n x
@@ -146,8 +147,8 @@ pullLets statements
       Let n x subs
        -> pres x $ \x' -> Let n x' subs
 
-      ForeachInts n from to subs
-       -> pres2 from to $ \from' to' -> ForeachInts n from' to' subs
+      ForeachInts t n from to subs
+       -> pres2 from to $ \from' to' -> ForeachInts t n from' to' subs
 
       InitAccumulator (Accumulator n vt x) subs
        -> pres x $ \x' -> InitAccumulator (Accumulator n vt x') subs
@@ -210,11 +211,16 @@ forwardStmts a_fresh statements
       If x ss es
        -> subS e x $ \x' -> If x' ss es
 
-      ForeachInts n from to ss
+      While t n end ss
+       -> do end'  <- sub e end
+             let e' = Map.delete n e
+             return (e', While t n end' ss)
+
+      ForeachInts t n from to ss
        -> do from' <- sub e from
              to'   <- sub e to
              let e' = Map.delete n e
-             return (e', ForeachInts n from' to' ss)
+             return (e', ForeachInts t n from' to' ss)
 
       InitAccumulator (Accumulator n vt x) ss
        -> subS e x $ \x' -> InitAccumulator (Accumulator n vt x') ss
@@ -343,15 +349,15 @@ substXinS a_fresh name payload statements
        | otherwise
        -> sub1 x $ \x' -> Let n x' ss
 
-      ForeachInts n from to ss
+      ForeachInts t n from to ss
        | n == name
        -> finished s
        | Set.member n frees
-       -> freshen n ss $ \n' ss' -> ForeachInts n' from to ss'
+       -> freshen n ss $ \n' ss' -> ForeachInts t n' from to ss'
        | otherwise
        -> do    from' <- sub from
                 to'   <- sub to
-                return (True, ForeachInts n from' to' ss)
+                return (True, ForeachInts t n from' to' ss)
 
       InitAccumulator (Accumulator n vt x) ss
        -> sub1 x $ \x' -> InitAccumulator (Accumulator n vt x') ss
@@ -491,17 +497,30 @@ freevarsStmt
   -> Statement (a, Set (Name n)) n p
 freevarsStmt = go
  where
+  rmS n s
+   = reannotS (\(a, set) -> (a, Set.delete n set)) s
   go xx
    = case xx of
-       If x s1 s2              -> If (freevarsExp x) (go s1) (go s2)
-       Let n x  s              -> Let n (freevarsExp x) (go s)
-       ForeachInts  n  x1 x2 s -> ForeachInts n (freevarsExp x1) (freevarsExp x2) (go s)
-       ForeachFacts ns t  f  s -> ForeachFacts ns t f (go s)
-       Block ss                -> Block $ fmap go ss
-       InitAccumulator acc s   -> InitAccumulator (freevarsAcc acc) (freevarsStmt s)
-       Read n1 n2 t s          -> Read n1 n2 t (freevarsStmt s)
-       Write n x               -> Write n (freevarsExp x)
-       KeepFactInHistory x     -> KeepFactInHistory (freevarsExp x)
+       If x s1 s2
+         -> If (freevarsExp x) (go s1) (go s2)
+       Let n x s
+         -> Let n (freevarsExp x) (rmS n $ go s)
+       While t n x s
+         -> While t n (freevarsExp x) (rmS n $ go s)
+       ForeachInts t n x1 x2 s
+         -> ForeachInts t n (freevarsExp x1) (freevarsExp x2) (rmS n $ go s)
+       ForeachFacts ns t  f  s
+         -> ForeachFacts ns t f (go s)
+       Block ss
+         -> Block $ fmap go ss
+       InitAccumulator acc s
+         -> InitAccumulator (freevarsAcc acc) (freevarsStmt s)
+       Read n1 n2 t s
+         -> Read n1 n2 t (rmS n1 $ freevarsStmt s)
+       Write n x
+         -> Write n (freevarsExp x)
+       KeepFactInHistory x
+         -> KeepFactInHistory (freevarsExp x)
 
        -- Anything else, we don't care, the transforms don't touch them
        Output n t xs     -> Output n t (fmap (first freevarsExp) xs)
@@ -571,7 +590,9 @@ killNoEffect = fst . go Set.empty
               in (ss', hasEffect)
          Let _ _ s
            -> subStmt s
-         ForeachInts _ _ _ s
+         While _ _ _ s
+           -> subStmt s
+         ForeachInts _ _ _ _ s
            -> subStmt s
          Block s
            -> let s'        = fmap (go ignore) s
@@ -615,7 +636,9 @@ stmtFreeX_ frees statements
           -- n is not free in there any more.
           Let n x _
            -> return (frees x `Set.union` Set.delete n subvars)
-          ForeachInts n x y _
+          While _ n x _
+           -> return (frees x `Set.union` Set.delete n subvars)
+          ForeachInts _ n x y _
            -> return (frees x `Set.union` frees y `Set.union` Set.delete n subvars)
 
           -- Accumulators are in a different scope,

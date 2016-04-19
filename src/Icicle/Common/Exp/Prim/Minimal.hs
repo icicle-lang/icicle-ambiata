@@ -14,6 +14,8 @@ module Icicle.Common.Exp.Prim.Minimal (
     , PrimBuiltinFun  (..)
     , PrimBuiltinMath (..)
     , PrimBuiltinMap  (..)
+    , PrimBuiltinArray(..)
+    , ArithType       (..)
     , typeOfPrim
     ) where
 
@@ -153,6 +155,9 @@ typeOfPrim p
     PrimBuiltinFun    (PrimBuiltinMap (PrimBuiltinVals k v))
      -> FunT [funOfVal (MapT k v)] (ArrayT v)
 
+    PrimBuiltinFun    (PrimBuiltinArray (PrimBuiltinSort t))
+     -> FunT [funOfVal (ArrayT t)] (ArrayT t)
+
     PrimToString PrimToStringFromInt
      -> FunT [funOfVal IntT] StringT
     PrimToString PrimToStringFromDouble
@@ -199,45 +204,63 @@ typeOfPrim p
 
 -- Pretty -------------
 
+instance Pretty PrimArithUnary where
+ pretty PrimArithNegate   = "negate#"
+ pretty PrimArithAbsolute = "abs#"
+
+instance Pretty PrimArithBinary where
+ pretty PrimArithPlus  = "add#"
+ pretty PrimArithMinus = "sub#"
+ pretty PrimArithMul   = "mul#"
+ pretty PrimArithPow   = "pow#"
+
+instance Pretty PrimRelation where
+ pretty PrimRelationGt = "gt#"
+ pretty PrimRelationGe = "ge#"
+ pretty PrimRelationLt = "lt#"
+ pretty PrimRelationLe = "le#"
+ pretty PrimRelationEq = "eq#"
+ pretty PrimRelationNe = "ne#"
+
+instance Pretty PrimToString where
+ pretty PrimToStringFromInt    = "stringOfInt#"
+ pretty PrimToStringFromDouble = "stringOfDouble#"
+
+instance Pretty PrimLogical where
+ pretty PrimLogicalNot   = "not#"
+ pretty PrimLogicalAnd   = "and#"
+ pretty PrimLogicalOr    = "or#"
+
+instance Pretty PrimConst where
+ pretty (PrimConstPair a b)  = annotateTypeArgs [a,b] "pair#"
+ pretty (PrimConstSome t)    = annotate (AnnType t)   "some#"
+ pretty (PrimConstLeft  a b) = annotateTypeArgs [a,b] "left#"
+ pretty (PrimConstRight a b) = annotateTypeArgs [a,b] "right#"
+
+instance Pretty PrimTime where
+ pretty PrimTimeDaysDifference = "Time_daysDifference#"
+ pretty PrimTimeDaysEpoch      = "Time_daysEpoch#"
+ pretty PrimTimeMinusDays      = "Time_minusDays#"
+ pretty PrimTimeMinusMonths    = "Time_minusMonths#"
+
+instance Pretty PrimPair where
+ pretty (PrimPairFst a b) = annotateTypeArgs [a,b] "fst#"
+ pretty (PrimPairSnd a b) = annotateTypeArgs [a,b] "snd#"
+
+instance Pretty PrimStruct where
+ pretty (PrimStructGet f t fs) = annotateTypeArgs [pretty f, pretty t, pretty fs] "get#"
+
 instance Pretty Prim where
- pretty (PrimArithUnary PrimArithNegate   t) = annotateArithType t "negate#"
- pretty (PrimArithUnary PrimArithAbsolute t) = annotateArithType t "abs#"
-
- pretty (PrimArithBinary PrimArithPlus  t) = annotateArithType t "add#"
- pretty (PrimArithBinary PrimArithMinus t) = annotateArithType t "sub#"
- pretty (PrimArithBinary PrimArithMul   t) = annotateArithType t "mul#"
- pretty (PrimArithBinary PrimArithPow   t) = annotateArithType t "pow#"
-
- pretty (PrimRelation PrimRelationGt t) = annotateTypeArgs [t] "gt#"
- pretty (PrimRelation PrimRelationGe t) = annotateTypeArgs [t] "ge#"
- pretty (PrimRelation PrimRelationLt t) = annotateTypeArgs [t] "lt#"
- pretty (PrimRelation PrimRelationLe t) = annotateTypeArgs [t] "le#"
- pretty (PrimRelation PrimRelationEq t) = annotateTypeArgs [t] "eq#"
- pretty (PrimRelation PrimRelationNe t) = annotateTypeArgs [t] "ne#"
-
- pretty (PrimToString PrimToStringFromInt)    = "stringOfInt#"
- pretty (PrimToString PrimToStringFromDouble) = "stringOfDouble#"
-
- pretty (PrimLogical  PrimLogicalNot)   = "not#"
- pretty (PrimLogical  PrimLogicalAnd)   = "and#"
- pretty (PrimLogical  PrimLogicalOr)    = "or#"
-
- pretty (PrimConst (PrimConstPair a b))  = annotateTypeArgs [a,b] "pair#"
- pretty (PrimConst (PrimConstSome t))    = annotate (AnnType t)   "some#"
- pretty (PrimConst (PrimConstLeft  a b)) = annotateTypeArgs [a,b] "left#"
- pretty (PrimConst (PrimConstRight a b)) = annotateTypeArgs [a,b] "right#"
-
- pretty (PrimTime PrimTimeDaysDifference) = "Time_daysDifference#"
- pretty (PrimTime PrimTimeDaysEpoch)      = "Time_daysEpoch#"
- pretty (PrimTime PrimTimeMinusDays)      = "Time_minusDays#"
- pretty (PrimTime PrimTimeMinusMonths)    = "Time_minusMonths#"
-
- pretty (PrimPair (PrimPairFst a b)) = annotateTypeArgs [a,b] "fst#"
- pretty (PrimPair (PrimPairSnd a b)) = annotateTypeArgs [a,b] "snd#"
-
- pretty (PrimStruct (PrimStructGet f t fs)) = annotateTypeArgs [pretty f, pretty t, pretty fs] "get#"
-
- pretty (PrimBuiltinFun p) = pretty p
+ pretty (PrimArithUnary  p t) = annotateArithType t  $ pretty p
+ pretty (PrimArithBinary p t) = annotateArithType t  $ pretty p
+ pretty (PrimRelation    p t) = annotateTypeArgs [t] $ pretty p
+ pretty (PrimToString    p)   = pretty p
+ pretty (PrimLogical     p)   = pretty p
+ pretty (PrimConst       p)   = pretty p
+ pretty (PrimTime        p)   = pretty p
+ pretty (PrimPair        p)   = pretty p
+ pretty (PrimStruct      p)   = pretty p
+ pretty (PrimBuiltinFun  p)   = pretty p
 
 annotateArithType :: ArithType -> Doc -> Doc
 annotateArithType t = annotate (AnnType (valTypeOfArithType t))

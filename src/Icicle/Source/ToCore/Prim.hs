@@ -109,6 +109,9 @@ convertPrim p ann resT xts = go p
    = godata f
   go (Fun (BuiltinMap f))
    = gomap f
+  go (Fun (BuiltinArray f))
+   = goarray f
+
   go (Op o)
    = goop o
 
@@ -285,5 +288,15 @@ convertPrim p ann resT xts = go p
    $ case prim of
        MapKeys   -> primbuiltin $ Min.PrimBuiltinMap $ Min.PrimBuiltinKeys k v
        MapValues -> primbuiltin $ Min.PrimBuiltinMap $ Min.PrimBuiltinVals k v
+   | otherwise
+   = convertError $ ConvertErrorCannotConvertType ann tt
+
+  goarray prim
+   | ((_, tt) : _) <- xts = goarray' tt prim
+   | otherwise            = convertError $ ConvertErrorPrimNoArguments ann 1 p
+
+  goarray' tt ArraySort
+   | Just (T.ArrayT t) <- valTypeOfType tt
+   = return $ primbuiltin $ Min.PrimBuiltinArray $ Min.PrimBuiltinSort t
    | otherwise
    = convertError $ ConvertErrorCannotConvertType ann tt

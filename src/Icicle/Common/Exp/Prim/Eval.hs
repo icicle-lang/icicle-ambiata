@@ -14,6 +14,7 @@ import qualified    Icicle.Data.Time                as Time
 import              P
 
 import qualified    Data.Map                        as Map
+import qualified    Data.List                       as List
 import qualified    Data.Text                       as T
 import              Data.Hashable                   (Hashable)
 
@@ -152,6 +153,11 @@ evalPrim p originalP vs
       | otherwise
       -> primError
 
+     PrimBuiltinFun (PrimBuiltinArray (PrimBuiltinSort _))
+      | [VBase (VArray a)] <- vs
+      -> return $ VBase $ VArray $ List.sort a
+      | otherwise
+      -> primError
 
      -- To string
      PrimToString PrimToStringFromInt

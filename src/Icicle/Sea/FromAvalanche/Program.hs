@@ -106,10 +106,15 @@ seaOfStatement stmt
               , ""
               ]
 
-     ForeachInts n start end stmt'
+     While t n end stmt'
+      -> vsep [ "while (" <> seaOfName n <+> seaOfWhileType t <+> seaOfExp end <> ") {"
+              , indent 4 $ seaOfStatement stmt'
+              , "}"
+              ]
+     ForeachInts t n start end stmt'
       -> vsep [ "for (iint_t" <+> seaOfName n <+> "=" <+> seaOfExp start <> ";"
-                              <+> seaOfName n <+> "<" <+> seaOfExp end   <> ";"
-                              <+> seaOfName n <>  "++) {"
+                              <+> seaOfName n <+> seaOfForeachCompare t  <+> seaOfExp end <> ";"
+                              <+> seaOfName n <>  seaOfForeachStep t     <> ") {"
               , indent 4 $ seaOfStatement stmt'
               , "}"
               ]
@@ -169,6 +174,18 @@ seaOfStatement stmt
 
      KeepFactInHistory _
       -> Pretty.empty
+
+seaOfForeachCompare :: ForeachType -> Doc
+seaOfForeachCompare ForeachStepUp   = "<"
+seaOfForeachCompare ForeachStepDown = ">"
+
+seaOfForeachStep :: ForeachType -> Doc
+seaOfForeachStep ForeachStepUp   = "++"
+seaOfForeachStep ForeachStepDown = "--"
+
+seaOfWhileType :: WhileType -> Doc
+seaOfWhileType WhileEq = "=="
+seaOfWhileType WhileNe = "!="
 
 ------------------------------------------------------------------------
 

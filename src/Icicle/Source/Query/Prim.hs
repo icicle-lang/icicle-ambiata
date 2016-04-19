@@ -90,6 +90,9 @@ primLookup' p
     Fun (BuiltinMap MapValues)
      -> f2 $ \a at b bt -> FunctionType [a,b] [] [GroupT at bt] (ArrayT bt)
 
+    Fun (BuiltinArray ArraySort)
+     -> f1 $ \a at -> FunctionType [a] [] [ArrayT at] (ArrayT at)
+
     PrimCon ConSome
      -> f1 $ \a at -> FunctionType [a] [] [at] (OptionT at)
 

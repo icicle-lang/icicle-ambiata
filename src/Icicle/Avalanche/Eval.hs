@@ -1,7 +1,8 @@
 -- | Evaluate Avalanche programs
 {-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE PatternGuards #-}
+{-# LANGUAGE PatternGuards     #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DoAndIfThenElse   #-}
 module Icicle.Avalanche.Eval (
     evalProgram
   , RuntimeError
@@ -49,6 +50,7 @@ data RuntimeError a n p
  | RuntimeErrorNotBaseValue  (Value a n p)
  | RuntimeErrorKeepFactTypeMismatch BaseValue
  | RuntimeErrorAccumulatorLatestNotInt  BaseValue
+ | RuntimeErrorOutOfScope (Name n)
  deriving (Eq, Show)
 
 instance (Pretty n, Pretty p) => Pretty (RuntimeError a n p) where
@@ -78,6 +80,8 @@ instance (Pretty n, Pretty p) => Pretty (RuntimeError a n p) where
   = "KeepFact type error: expected a FactIdentifer, but got " <> pretty v
  pretty (RuntimeErrorAccumulatorLatestNotInt p)
   = "Accumulator Latest needs an integer, got" <+> pretty p
+ pretty (RuntimeErrorOutOfScope n)
+  = "Name went out of scope unexpectedly:" <+> pretty n
 
 
 -- | Extract base value; return an error if it's a closure
@@ -138,11 +142,26 @@ evalStmt evalPrim now xh values bubblegum ah stmt
      -> do  v <- eval x
             go (Map.insert n v xh) ah stmts
 
-    ForeachInts n from to stmts
+    While t n to stmts
+     -> do  tov <- eval to >>= baseValue
+            let check WhileEq = (==)
+                check WhileNe = (/=)
+            let evalLoop (ah',out,bg) end
+                 = do ret@(ah'', _, _) <-  appendOutputs out bg
+                                       <$> go xh ah' stmts
+                      i <- maybeToRight (RuntimeErrorOutOfScope n)
+                         $ Map.lookup n ah''
+                      if check t i end
+                      then return ret
+                      else evalLoop ret end
+            evalLoop (ah, mempty, mempty) tov
+
+    ForeachInts _ n from to stmts
      -> do  fromv <- eval from >>= baseValue
             tov   <- eval to   >>= baseValue
             let evalLoop (ah',out,bg) index
-                 = appendOutputs out bg <$> go (Map.insert n (VBase $ VInt index) xh) ah' stmts
+                 = appendOutputs out bg
+                 <$> go (Map.insert n (VBase $ VInt index) xh) ah' stmts
 
             case (fromv, tov) of
              (VInt fromi, VInt toi)

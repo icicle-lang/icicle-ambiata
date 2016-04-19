@@ -137,6 +137,25 @@ evalPrim p vs
       | otherwise
       -> primError
 
+     PrimArray (PrimArraySwap _)
+      | [VBase (VArray varr), VBase (VInt ix1), VBase (VInt ix2)] <- vs
+      , len <- length varr
+      , ix1 >= 0 && ix1 < len && ix2 >= 0 && ix2 < len
+      -> return
+       $ VBase
+       $ VArray
+       $ let low   = min ix1 ix2
+             high  = min ix2 ix2
+             xl    = varr List.!! low
+             xh    = varr List.!! high
+             varr1 = List.take (low - 1) varr
+             varr3 = List.drop high      varr
+             varr2 = List.drop low
+                   $ List.take (high - 1) varr
+         in varr1 <> [xl] <> varr2 <> [xh] <> varr3
+      | otherwise
+      -> primError
+
      PrimArray (PrimArrayZip _ _)
       | [VBase (VArray arr1), VBase (VArray arr2)]  <- vs
       -> return $ VBase

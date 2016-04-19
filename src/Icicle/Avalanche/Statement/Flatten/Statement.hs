@@ -23,8 +23,9 @@ import              P
 
 import qualified    Data.List                      as List
 import              Data.Hashable                  (Hashable)
+import              Data.String                    (IsString)
 
-flatten :: (Pretty n, Hashable n, Eq n)
+flatten :: (Pretty n, Hashable n, Eq n, IsString n)
         => a
         -> Statement a n Core.Prim
         -> FlatM a n
@@ -50,7 +51,7 @@ flatten a_fresh s = flattenS a_fresh [] s
 
 -- | Flatten the primitives in a statement.
 -- This just calls @flatX@ for every expression, wrapping the statement.
-flattenS :: (Pretty n, Hashable n, Eq n)
+flattenS :: (Pretty n, Hashable n, Eq n, IsString n)
         => a
         -> [Accumulator a n Flat.Prim]
         -> Statement a n Core.Prim
@@ -67,12 +68,17 @@ flattenS a_fresh accums s
      $ \x'
      -> Let n x' <$> flattenS a_fresh accums ss
 
-    ForeachInts n from to ss
+    While t n to ss
+     -> flatX a_fresh to
+     $ \to'
+     -> While t n to' <$> flattenS a_fresh accums ss
+
+    ForeachInts t n from to ss
      -> flatX a_fresh from
      $ \from'
      -> flatX a_fresh to
      $ \to'
-     -> ForeachInts n from' to' <$> flattenS a_fresh accums ss
+     -> ForeachInts t n from' to' <$> flattenS a_fresh accums ss
 
     ForeachFacts binds vt lo ss
      -- Input binds cannot contain Buffers, so no need to flatten the types

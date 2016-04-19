@@ -53,7 +53,6 @@ factVarsOfStatement loopType stmt
      Let _ _ ss            -> factVarsOfStatement loopType ss
      If _ tt ee            -> factVarsOfStatement loopType tt <|>
                               factVarsOfStatement loopType ee
-     ForeachInts  _ _ _ ss -> factVarsOfStatement loopType ss
      InitAccumulator _ ss  -> factVarsOfStatement loopType ss
      Read _ _ _ ss         -> factVarsOfStatement loopType ss
      Write _ _             -> Nothing
@@ -61,6 +60,8 @@ factVarsOfStatement loopType stmt
      SaveResumable _ _     -> Nothing
      Output _ _ _          -> Nothing
      KeepFactInHistory _   -> Nothing
+     While       _ _ _ ss  -> factVarsOfStatement loopType ss
+     ForeachInts _ _ _ _ ss-> factVarsOfStatement loopType ss
 
      ForeachFacts binds vt lt ss
       | lt == loopType
@@ -77,16 +78,18 @@ resumablesOfProgram = resumablesOfStatement . statements
 resumablesOfStatement :: Eq n => Statement (Annot a) n Prim -> Map (Name n) ValType
 resumablesOfStatement stmt
  = case stmt of
-     Block []              -> Map.empty
-     Block (s:ss)          -> resumablesOfStatement s `Map.union`
-                              resumablesOfStatement (Block ss)
-     Let _ _ ss            -> resumablesOfStatement ss
-     If _ tt ee            -> resumablesOfStatement tt `Map.union`
-                              resumablesOfStatement ee
-     ForeachInts  _ _ _ ss -> resumablesOfStatement ss
-     ForeachFacts _ _ _ ss -> resumablesOfStatement ss
-     InitAccumulator  _ ss -> resumablesOfStatement ss
-     Read _ _ _ ss         -> resumablesOfStatement ss
+     Block []                -> Map.empty
+     Block (s:ss)            -> resumablesOfStatement s `Map.union`
+                                resumablesOfStatement (Block ss)
+     Let _ _ ss              -> resumablesOfStatement ss
+     If _ tt ee              -> resumablesOfStatement tt `Map.union`
+                                resumablesOfStatement ee
+     ForeachInts  _ _ _ _ ss -> resumablesOfStatement ss
+     While          _ _ _ ss -> resumablesOfStatement ss
+     ForeachFacts _ _ _ ss   -> resumablesOfStatement ss
+     InitAccumulator  _ ss   -> resumablesOfStatement ss
+     Read _ _ _ ss           -> resumablesOfStatement ss
+
      Write _ _             -> Map.empty
      Output _ _ _          -> Map.empty
      KeepFactInHistory _   -> Map.empty
@@ -102,20 +105,21 @@ accumsOfProgram = accumsOfStatement . statements
 accumsOfStatement :: Eq n => Statement (Annot a) n Prim -> Map (Name n) (ValType)
 accumsOfStatement stmt
  = case stmt of
-     Block []              -> Map.empty
-     Block (s:ss)          -> accumsOfStatement s `Map.union`
-                              accumsOfStatement (Block ss)
-     Let _ _ ss            -> accumsOfStatement ss
-     If _ tt ee            -> accumsOfStatement tt `Map.union`
-                              accumsOfStatement ee
-     ForeachInts  _ _ _ ss -> accumsOfStatement ss
-     ForeachFacts _ _ _ ss -> accumsOfStatement ss
-     Read _ _ _ ss         -> accumsOfStatement ss
-     Write _ _             -> Map.empty
-     LoadResumable _ _     -> Map.empty
-     SaveResumable _ _     -> Map.empty
-     Output _ _ _          -> Map.empty
-     KeepFactInHistory _   -> Map.empty
+     Block []                -> Map.empty
+     Block (s:ss)            -> accumsOfStatement s `Map.union`
+                                accumsOfStatement (Block ss)
+     Let _ _ ss              -> accumsOfStatement ss
+     If _ tt ee              -> accumsOfStatement tt `Map.union`
+                                accumsOfStatement ee
+     While          _ _ _ ss -> accumsOfStatement ss
+     ForeachInts  _ _ _ _ ss -> accumsOfStatement ss
+     ForeachFacts _ _ _ ss   -> accumsOfStatement ss
+     Read _ _ _ ss           -> accumsOfStatement ss
+     Write _ _               -> Map.empty
+     LoadResumable _ _       -> Map.empty
+     SaveResumable _ _       -> Map.empty
+     Output _ _ _            -> Map.empty
+     KeepFactInHistory _     -> Map.empty
 
      InitAccumulator (Accumulator n avt _) ss
       -> Map.singleton n avt `Map.union`
@@ -129,20 +133,21 @@ readsOfProgram = readsOfStatement . statements
 readsOfStatement :: Eq n => Statement (Annot a) n Prim -> Map (Name n) (ValType)
 readsOfStatement stmt
  = case stmt of
-     Block []              -> Map.empty
-     Block (s:ss)          -> readsOfStatement s `Map.union`
-                              readsOfStatement (Block ss)
-     Let _ _ ss            -> readsOfStatement ss
-     If _ tt ee            -> readsOfStatement tt `Map.union`
-                              readsOfStatement ee
-     ForeachInts  _ _ _ ss -> readsOfStatement ss
-     ForeachFacts _ _ _ ss -> readsOfStatement ss
-     InitAccumulator _ ss  -> readsOfStatement ss
-     Write _ _             -> Map.empty
-     LoadResumable _ _     -> Map.empty
-     SaveResumable _ _     -> Map.empty
-     Output _ _ _          -> Map.empty
-     KeepFactInHistory _   -> Map.empty
+     Block []                -> Map.empty
+     Block (s:ss)            -> readsOfStatement s `Map.union`
+                                readsOfStatement (Block ss)
+     Let _ _ ss              -> readsOfStatement ss
+     If _ tt ee              -> readsOfStatement tt `Map.union`
+                                readsOfStatement ee
+     While          _ _ _ ss -> readsOfStatement ss
+     ForeachInts  _ _ _ _ ss -> readsOfStatement ss
+     ForeachFacts _ _ _ ss   -> readsOfStatement ss
+     InitAccumulator _ ss    -> readsOfStatement ss
+     Write _ _               -> Map.empty
+     LoadResumable _ _       -> Map.empty
+     SaveResumable _ _       -> Map.empty
+     Output _ _ _            -> Map.empty
+     KeepFactInHistory _     -> Map.empty
 
      Read n _ vt ss
       -> Map.singleton n vt `Map.union`
@@ -156,20 +161,21 @@ outputsOfProgram = Map.toList . outputsOfStatement . statements
 outputsOfStatement :: Statement (Annot a) n Prim -> Map OutputName (ValType, [ValType])
 outputsOfStatement stmt
  = case stmt of
-     Block []              -> Map.empty
-     Block (s:ss)          -> outputsOfStatement s `Map.union`
-                              outputsOfStatement (Block ss)
-     Let _ _ ss            -> outputsOfStatement ss
-     If _ tt ee            -> outputsOfStatement tt `Map.union`
-                              outputsOfStatement ee
-     ForeachInts  _ _ _ ss -> outputsOfStatement ss
-     ForeachFacts _ _ _ ss -> outputsOfStatement ss
-     InitAccumulator _ ss  -> outputsOfStatement ss
-     Read _ _ _ ss         -> outputsOfStatement ss
-     Write _ _             -> Map.empty
-     LoadResumable _ _     -> Map.empty
-     SaveResumable _ _     -> Map.empty
-     KeepFactInHistory _   -> Map.empty
+     Block []                -> Map.empty
+     Block (s:ss)            -> outputsOfStatement s `Map.union`
+                                outputsOfStatement (Block ss)
+     Let _ _ ss              -> outputsOfStatement ss
+     If _ tt ee              -> outputsOfStatement tt `Map.union`
+                                outputsOfStatement ee
+     While          _ _ _ ss -> outputsOfStatement ss
+     ForeachInts  _ _ _ _ ss -> outputsOfStatement ss
+     ForeachFacts _ _ _ ss   -> outputsOfStatement ss
+     InitAccumulator _ ss    -> outputsOfStatement ss
+     Read _ _ _ ss           -> outputsOfStatement ss
+     Write _ _               -> Map.empty
+     LoadResumable _ _       -> Map.empty
+     SaveResumable _ _       -> Map.empty
+     KeepFactInHistory _     -> Map.empty
 
      Output n t xts
       -> Map.singleton n (t, fmap snd xts)
@@ -202,9 +208,11 @@ typesOfStatement stmt
      If x tt ee            -> typesOfExp       x  `Set.union`
                               typesOfStatement tt `Set.union`
                               typesOfStatement ee
-     ForeachInts  _ f t ss -> typesOfExp       f `Set.union`
+     While       _  _ t s  -> typesOfExp       t `Set.union`
+                              typesOfStatement s
+     ForeachInts _  _ f t s-> typesOfExp       f `Set.union`
                               typesOfExp       t `Set.union`
-                              typesOfStatement ss
+                              typesOfStatement s
      Write _ x             -> typesOfExp x
      KeepFactInHistory _   -> Set.singleton FactIdentifierT
 
