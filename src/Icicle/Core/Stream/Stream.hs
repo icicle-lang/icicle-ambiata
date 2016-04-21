@@ -1,6 +1,6 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE PatternGuards #-}
+{-# LANGUAGE PatternGuards     #-}
 module Icicle.Core.Stream.Stream (
       Stream          (..)
     , renameStream
@@ -19,11 +19,12 @@ import              P
 
 
 data Stream a n
- = SFold    !(Name n) !ValType !(Exp a n) !(Exp a n)
- | SFilter           !(Exp a n) [Stream a n]
+ = SFold    !(Name n)  !ValType !(Exp a n) !(Exp a n)
+ | SFilter  !(Exp a n) ![Stream a n]
  -- SWindow !ValType !WindowUnit !(Maybe WindowUnit) !(Name n)
- deriving (Eq,Ord,Show)
+ deriving (Eq, Ord, Show)
 
+instance NFData (Stream a n) where rnf x = seq x ()
 
 renameStream :: (Name n -> Name n') -> Stream a n -> Stream a n'
 renameStream f (SFold n t x y)        = SFold (f n) t (renameExp f x) (renameExp f y)

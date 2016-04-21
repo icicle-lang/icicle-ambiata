@@ -113,15 +113,17 @@ unName = go . CommonBase.nameBase
 --------------------------------------------------------------------------------
 
 data CompileError a b c
- = CompileErrorParse   Parsec.ParseError
- | CompileErrorDesugar (STD.DesugarError a b)
- | CompileErrorCheck   (SC.CheckError a b)
- | CompileErrorConvert (STC.ConvertError a b)
- | CompileErrorFlatten (AS.FlattenError a b)
- | CompileErrorProgram (AC.ProgramError a b c)
+ = CompileErrorParse   !Parsec.ParseError
+ | CompileErrorDesugar !(STD.DesugarError a b)
+ | CompileErrorCheck   !(SC.CheckError a b)
+ | CompileErrorConvert !(STC.ConvertError a b)
+ | CompileErrorFlatten !(AS.FlattenError a b)
+ | CompileErrorProgram !(AC.ProgramError a b c)
  deriving (Show, Generic)
 
-instance (NFData a, NFData b, NFData c) => NFData (CompileError a b c)
+-- deepseq stops here, we don't really care about sequencing the error
+-- just need this to make sure the return type (with an AST) is sequenced.
+instance NFData (CompileError a b c) where rnf _ = ()
 
 
 annotOfError :: CompileError SourcePos b c -> Maybe SourcePos

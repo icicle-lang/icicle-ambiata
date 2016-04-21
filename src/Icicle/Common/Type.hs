@@ -8,7 +8,6 @@
 -- and everything simpler.
 --
 {-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Common.Type (
       ValType (..)
     , FunType (..)
@@ -68,11 +67,14 @@ data ValType
  | BufT    !Int        !ValType
  deriving (Eq,Ord,Show)
 
+instance NFData ValType where rnf x = seq x ()
 
 data ArithType
  = ArithIntT
  | ArithDoubleT
- deriving (Eq, Ord, Show)
+ deriving (Eq,Ord,Show)
+
+instance NFData ArithType where rnf x = seq x ()
 
 valTypeOfArithType :: ArithType -> ValType
 valTypeOfArithType ArithIntT    = IntT
@@ -111,6 +113,8 @@ newtype StructType
  { getStructType :: Map.Map StructField ValType }
  deriving (Eq, Ord)
 
+instance NFData StructType where rnf x = seq x ()
+
 instance Show StructType where
  showsPrec p (StructType x)
   = showParen (p > 10) (showString "StructType " . showsPrec 11 x)
@@ -136,6 +140,7 @@ data FunType =
  FunT ![FunType] !ValType
  deriving (Eq,Ord,Show)
 
+instance NFData FunType where rnf x = seq x ()
 
 -- | The top-level type of an expression can be a function type.
 type Type = FunType

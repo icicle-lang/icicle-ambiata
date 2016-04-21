@@ -7,13 +7,12 @@ import            Icicle.Common.Type
 
 import            P
 
-
 -- | Built-in functions. These are available in all language fragments and
 --   supported in C directly.
 --
 data PrimBuiltinFun
-  = PrimBuiltinMath   PrimBuiltinMath
-  | PrimBuiltinMap    PrimBuiltinMap
+  = PrimBuiltinMath   !PrimBuiltinMath
+  | PrimBuiltinMap    !PrimBuiltinMap
  deriving (Eq, Ord, Show)
 
 -- | Built-in math functions
@@ -31,9 +30,13 @@ data PrimBuiltinMath
 
 -- | Built-in map functions
 data PrimBuiltinMap
- = PrimBuiltinKeys ValType ValType -- ^ Get the keys in a map
- | PrimBuiltinVals ValType ValType -- ^ Get the values in a map
+ = PrimBuiltinKeys !ValType !ValType -- ^ Get the keys in a map
+ | PrimBuiltinVals !ValType !ValType -- ^ Get the values in a map
  deriving (Eq, Ord, Show)
+
+instance NFData PrimBuiltinFun  where rnf x = seq x ()
+instance NFData PrimBuiltinMath where rnf x = seq x ()
+instance NFData PrimBuiltinMap  where rnf x = seq x ()
 
 --------------------------------------------------------------------------------
 

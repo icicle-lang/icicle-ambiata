@@ -9,10 +9,10 @@ import P
 
 
 data BuiltinFun
- = BuiltinMath BuiltinMath
- | BuiltinTime BuiltinTime
- | BuiltinData BuiltinData
- | BuiltinMap  BuiltinMap
+ = BuiltinMath !BuiltinMath
+ | BuiltinTime !BuiltinTime
+ | BuiltinData !BuiltinData
+ | BuiltinMap  !BuiltinMap
  deriving (Show, Eq, Ord)
 
 listOfBuiltinFuns :: [BuiltinFun]
@@ -49,6 +49,12 @@ data BuiltinMap
  = MapKeys
  | MapValues
  deriving (Show, Eq, Ord, Enum, Bounded)
+
+instance NFData BuiltinFun  where rnf x = seq x ()
+instance NFData BuiltinMath where rnf x = seq x ()
+instance NFData BuiltinTime where rnf x = seq x ()
+instance NFData BuiltinData where rnf x = seq x ()
+instance NFData BuiltinMap  where rnf x = seq x ()
 
 --------------------------------------------------------------------------------
 

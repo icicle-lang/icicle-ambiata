@@ -1,7 +1,6 @@
 -- | Definition of expressions
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE DeriveGeneric     #-}
 module Icicle.Common.Exp.Exp (
       Exp     (..)
     , Ann
@@ -17,7 +16,6 @@ import              Icicle.Common.Type
 import              P
 
 import              Data.Set (Set)
-import              GHC.Generics (Generic)
 
 
 -- | Incredibly simple expressions;
@@ -42,11 +40,11 @@ data Exp a n p
 
  -- | Let binding
  | XLet !a !(Name n) !(Exp a n p) !(Exp a n p)
- deriving (Eq, Ord, Show, Generic)
+ deriving (Eq, Ord, Show)
 
 -- Turns out making the whole AST strict has a massive impact
 -- on compilation performance.
-instance NFData (Exp a n p)
+instance NFData (Exp a n p) where rnf x = seq x ()
 
 renameExp :: (Name n -> Name n') -> Exp a n p -> Exp a n' p
 renameExp f (XVar a n)     = XVar a (f n)

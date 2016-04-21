@@ -37,9 +37,9 @@ type TOK = (Token, SourcePos)
 
 data Token
  -- | Primitive keywords
- = TKeyword  !Keyword
+ = TKeyword     !Keyword
  -- | Ints, strings, whatever
- | TLiteral  !Literal
+ | TLiteral     !Literal
  -- | Function operators like (+) (>)
  | TOperator    !Operator
  -- | Names. I dunno
@@ -128,7 +128,7 @@ newtype Variable
  deriving (Eq, Ord, Show, Generic)
 
 instance Hashable Variable
-instance NFData Variable
+instance NFData Variable where rnf x = seq x ()
 
 -- | Each keyword with their name
 keywords :: [(Text, Keyword)]

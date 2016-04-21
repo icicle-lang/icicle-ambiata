@@ -24,13 +24,14 @@ import              P
 import qualified    Data.Map    as Map
 import qualified    Data.Text   as T
 import              Data.Hashable
+
 import              GHC.Generics (Generic)
 
 
 data Name n = Name {
     nameHash :: {-# UNPACK #-} !Int
-  , nameBase :: !(NameBase n)
-  } deriving (Show, Generic)
+  , nameBase ::                !(NameBase n)
+  } deriving (Show)
 
 instance Hashable (Name n) where
   hash           (Name h _) = h
@@ -41,8 +42,6 @@ instance Eq n => Eq  (Name n) where
 
 instance Eq n => Ord (Name n) where
   compare x y = compare (nameHash x) (nameHash y)
-
-instance NFData (Name n)
 
 -- | User defined names.
 data NameBase n =
@@ -55,13 +54,15 @@ data NameBase n =
 
 instance Hashable n => Hashable (NameBase n)
 
-instance NFData (NameBase n)
-
 nameOf :: Hashable n => NameBase n -> Name n
 nameOf n = Name (hash n) n
 
 modName :: Hashable n => n -> Name n -> Name n
 modName prefix = nameOf . NameMod prefix . nameBase
+
+
+instance NFData (NameBase n) where rnf x = seq x ()
+instance NFData (Name n)     where rnf x = seq x ()
 
 --------------------------------------------------------------------------------
 
@@ -71,6 +72,7 @@ data WindowUnit
  | Weeks  !Int
  deriving (Show, Eq, Ord)
 
+instance NFData WindowUnit where rnf x = seq x ()
 
 -- | Base values - real values that can be serialised and whatnot
 -- These are used in the expressions, but actual values can be
@@ -96,6 +98,8 @@ data BaseValue
  | VFactIdentifier !FactIdentifier
  deriving (Show, Ord, Eq)
 
+instance NFData BaseValue where rnf x = seq x ()
+
 -- | Fact identifiers are represented as indices into the input stream for
 -- Core and Avalanche evaluators, but for a real streaming model such as C
 -- we need to convert this as a unique (and consistent) identifier across runs.
@@ -104,6 +108,8 @@ newtype FactIdentifier
  = FactIdentifier
  { getFactIdentifierIndex :: Int }
  deriving (Eq, Ord, Show)
+
+instance NFData FactIdentifier where rnf x = seq x ()
 
 -- | Called "exceptions"
 -- because they aren't really errors,
@@ -116,6 +122,7 @@ data ExceptionInfo
  | ExceptScalarVariableNotAvailable
  deriving (Show, Ord, Eq)
 
+instance NFData ExceptionInfo where rnf x = seq x ()
 
 newtype StructField
  = StructField
@@ -123,11 +130,14 @@ newtype StructField
  }
  deriving (Ord, Eq)
 
+instance NFData StructField where rnf x = seq x ()
 
 newtype OutputName
  = OutputName
  { unOutputName :: T.Text }
- deriving (Eq, Ord)
+ deriving (Eq, Ord, Generic)
+
+instance NFData OutputName
 
 instance Show StructField where
  showsPrec p (StructField x)
