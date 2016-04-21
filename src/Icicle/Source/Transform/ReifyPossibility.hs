@@ -79,8 +79,10 @@ reifyPossibilityX wrap x
              args' <- mapM (reifyPossibilityX wrap) args
              makeApps a fun' args' False
 
+      -- Primitives do not need their annotation to be wrapped:
+      -- if they are Possiblies, their outer use will be wrapped in a Right.
       Prim a p
-       -> return $ Prim (wrapAnnot a) p
+       -> return $ Prim a p
 
       -- If the scrutinee is possibly, we need to unwrap it before performing the case:
       -- > case scrut | alt -> ...
