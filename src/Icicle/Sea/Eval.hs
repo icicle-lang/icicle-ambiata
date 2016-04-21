@@ -33,6 +33,7 @@ module Icicle.Sea.Eval (
 
   , codeOfPrograms
   , assemblyOfPrograms
+  , irOfPrograms
   , getCompilerOptions
   ) where
 
@@ -352,6 +353,16 @@ assemblyOfPrograms psv programs = do
   code    <- hoistEither (codeOfPrograms psv programs)
   options <- getCompilerOptions
   firstEitherT SeaJetskiError (compileAssembly options code)
+
+irOfPrograms
+  :: (Show a, Show n, Pretty n, Eq n)
+  => Psv
+  -> [(Attribute, Program (Annot a) n Prim)]
+  -> EitherT SeaError IO Text
+irOfPrograms psv programs = do
+  code    <- hoistEither (codeOfPrograms psv programs)
+  options <- getCompilerOptions
+  firstEitherT SeaJetskiError (compileIR options code)
 
 codeOfPrograms
   :: (Show a, Show n, Pretty n, Eq n)

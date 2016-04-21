@@ -10,3 +10,8 @@ feature injury ~> days between (newest (box admitted)) now
 -- These were errors picked up by QuickCheck
 feature injury ~> box (Some now)
 feature injury ~> newest (box None)
+
+feature salary ~> let x = (latest 3 ~> value) ~> sort x
+
+feature injury ~> let x = group_keys location ~> sort x
+
