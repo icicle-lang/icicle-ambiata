@@ -16,3 +16,6 @@ feature salary ~> (newest (double value) / 5, oldest (double value / 5), sum val
 
 -- This was causing an issue with nested possibility cases before
 feature salary ~> latest 1 ~> case (0,sum value) | (z,s) -> s end
+
+-- Constructing a Right of a Possibility was causing an issue before
+feature salary ~> fold x = 0 : value ~> Right x
