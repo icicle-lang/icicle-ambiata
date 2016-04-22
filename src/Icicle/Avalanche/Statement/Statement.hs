@@ -9,6 +9,7 @@ module Icicle.Avalanche.Statement.Statement (
   , FactLoopType    (..)
   , ForeachType     (..)
   , WhileType       (..)
+  , nestedIfs
   , transformUDStmt
   , foldStmt
   , factBindsAll
@@ -78,6 +79,15 @@ instance Monoid (Statement a n p) where
  mempty = Block []
  mappend p q
         = Block [p, q]
+
+-- | Construct nested ifs. Use this instead of "If (x && y)", since
+--   A-normalisation will get rid of the short-circuit.
+--
+nestedIfs :: [Exp a n p] -> Statement a n p -> Statement a n p -> Statement a n p
+nestedIfs [] _ _
+ = mempty
+nestedIfs conds true false
+ = foldr (\cond st -> If cond st false) true conds
 
 data FactBinds n
  = FactBinds {

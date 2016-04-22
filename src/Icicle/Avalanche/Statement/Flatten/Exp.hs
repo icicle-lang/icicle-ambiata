@@ -80,9 +80,7 @@ flatX a_fresh xx stm
   xMin    = xPrim . Flat.PrimMinimal
   xMath   = xMin  . Min.PrimBuiltinFun . Min.PrimBuiltinMath
   xArith  = xMin  . flip Min.PrimArithBinary Min.ArithIntT
-  xAnd    = xMin  $ Min.PrimLogical Min.PrimLogicalAnd
   xRel  t = xMin  . flip Min.PrimRelation t
-
 
   -- Convert the simplified expression.
   convX
@@ -179,18 +177,18 @@ flatX a_fresh xx stm
                      `xApp` heapSize
                  -- left < heap_size && arr[left] > arr[i]
                  xHeapLeft arr heapSize l i
-                  = xAnd
-                     `xApp` xHeapSize l heapSize
-                     `xApp` (xRel t Min.PrimRelationGt
-                              `xApp` xIndex arr l
-                              `xApp` xIndex arr i)
+                  = [ xHeapSize l heapSize
+                    , xRel t Min.PrimRelationGt
+                       `xApp` xIndex arr l
+                       `xApp` xIndex arr i
+                    ]
                  -- right < heap_size && arr[right] > arr[largest]
-                 xHeapRight arr heapSize r largest 
-                  = xAnd
-                     `xApp` xHeapSize r heapSize
-                     `xApp` (xRel t Min.PrimRelationGt
-                              `xApp` xIndex arr r
-                              `xApp` xIndex arr largest )
+                 xHeapRight arr heapSize r largest
+                  = [ xHeapSize r heapSize
+                    , xRel t Min.PrimRelationGt
+                        `xApp` xIndex arr r
+                        `xApp` xIndex arr largest
+                    ]
                  -- largest  /= i
                  xHeap i largest
                   = xRel IntT Min.PrimRelationNe
@@ -250,17 +248,19 @@ flatX a_fresh xx stm
                            $ readInt n_loc_right    n_acc_right
                            $ Block
                              -- if left < heap_size && array[left] > array[i]
-                             [ If (xHeapLeft  v_arr v_heapSize v_left  v_index)
-                                  -- then largest  = left
-                                  (Write n_acc_largest  v_left)
-                                  -- else largest  = i
-                                  (Write n_acc_largest  v_index)
+                             [ nestedIfs
+                                 (xHeapLeft  v_arr v_heapSize v_left  v_index)
+                                 -- then largest  = left
+                                 (Write n_acc_largest  v_left)
+                                 -- else largest  = i
+                                 (Write n_acc_largest  v_index)
                              -- if right < heap_size && array[right] > array[largest ]
                              , readInt n_loc_largest  n_acc_largest
-                             $ If (xHeapRight v_arr v_heapSize v_right v_largest )
-                                  -- then largest  = right
-                                  (Write n_acc_largest  v_right)
-                                  mempty
+                             $ nestedIfs
+                                 (xHeapRight v_arr v_heapSize v_right v_largest )
+                                 -- then largest  = right
+                                 (Write n_acc_largest  v_right)
+                                 mempty
                              -- if largest  /= i
                              , readInt n_loc_largest   n_acc_largest 
                              $ If (xHeap v_largest  v_index)
