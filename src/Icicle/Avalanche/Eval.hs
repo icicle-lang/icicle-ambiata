@@ -142,21 +142,21 @@ evalStmt evalPrim now xh values bubblegum ah stmt
      -> do  v <- eval x
             go (Map.insert n v xh) ah stmts
 
-    While t n to stmts
+    While t acc to stmts
      -> do  tov <- eval to >>= baseValue
             let check WhileEq = (==)
                 check WhileNe = (/=)
-            let evalLoop (ah',out,bg) end
-                 = do ret@(ah'', _, _) <-  appendOutputs out bg
-                                       <$> go xh ah' stmts
-                      i <- maybeToRight (RuntimeErrorOutOfScope n)
-                         $ Map.lookup n ah''
-                      if check t i end
-                      then return ret
-                      else evalLoop ret end
+            let evalLoop curr@(ah',out,bg) end
+                 = do accv <- maybeToRight (RuntimeErrorLoopAccumulatorBad acc)
+                            $ Map.lookup acc ah'
+                      if check t accv end
+                      then do next <-  appendOutputs out bg
+                                   <$> go xh ah' stmts
+                              evalLoop next end
+                      else return curr
             evalLoop (ah, mempty, mempty) tov
 
-    ForeachInts _ n from to stmts
+    ForeachInts t n from to stmts
      -> do  fromv <- eval from >>= baseValue
             tov   <- eval to   >>= baseValue
             let evalLoop (ah',out,bg) index
@@ -169,7 +169,9 @@ evalStmt evalPrim now xh values bubblegum ah stmt
                  -- ie "foreach i in 0 to 0" does not run
                  foldM evalLoop
                        (ah, mempty, mempty)
-                       [fromi .. toi-1]
+                       (case t of
+                          ForeachStepUp   -> [fromi, fromi + 1 .. toi-1]
+                          ForeachStepDown -> [fromi, fromi - 1 .. toi+1])
              _
               -> Left $ RuntimeErrorForeachNotInt fromv tov
 
