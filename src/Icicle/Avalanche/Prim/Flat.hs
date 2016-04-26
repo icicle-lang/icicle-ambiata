@@ -79,9 +79,10 @@ data PrimUnsafe
 
 
 data PrimArray
- = PrimArrayPutMutable   !ValType         -- ^ In-place update
- | PrimArrayPutImmutable !ValType         -- ^ Copy then update
+ = PrimArrayPutMutable   !ValType          -- ^ In-place update
+ | PrimArrayPutImmutable !ValType          -- ^ Copy then update
  | PrimArrayZip          !ValType !ValType -- ^ Zip two arrays into one
+ | PrimArraySwap         !ValType          -- ^ Swap two elements
  deriving (Eq, Ord, Show)
 
 data PrimMap
@@ -142,16 +143,22 @@ typeOfPrim p
 
     PrimUnsafe  (PrimUnsafeSumGetLeft a b)
      -> FunT [funOfVal (SumT a b)] a
+
     PrimUnsafe  (PrimUnsafeSumGetRight a b)
      -> FunT [funOfVal (SumT a b)] b
 
 
     PrimArray   (PrimArrayZip a b)
      -> FunT [funOfVal (ArrayT a), funOfVal (ArrayT b)] (ArrayT (PairT a b))
+
     PrimArray   (PrimArrayPutMutable a)
      -> FunT [funOfVal (ArrayT a), funOfVal IntT, funOfVal a] (ArrayT a)
+
     PrimArray   (PrimArrayPutImmutable a)
      -> FunT [funOfVal (ArrayT a), funOfVal IntT, funOfVal a] (ArrayT a)
+
+    PrimArray   (PrimArraySwap a)
+     -> FunT [funOfVal (ArrayT a), funOfVal IntT, funOfVal IntT] (ArrayT a)
 
 
     PrimMelt    (PrimMeltPack t)
@@ -263,10 +270,15 @@ instance Pretty Prim where
 
  pretty (PrimArray (PrimArrayZip a b))
   = annotate (AnnType $ (pretty a) <.> (pretty b)) "Array_zip#"
+
  pretty (PrimArray (PrimArrayPutMutable a))
   = annotate (AnnType a) "Array_put_mutable#"
+
  pretty (PrimArray (PrimArrayPutImmutable a))
   = annotate (AnnType a) "Array_put_immutable#"
+
+ pretty (PrimArray (PrimArraySwap a))
+  = annotate (AnnType a) "Array_elem_swap#"
 
 
  pretty (PrimMelt (PrimMeltPack t))

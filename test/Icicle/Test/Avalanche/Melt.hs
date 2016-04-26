@@ -81,7 +81,7 @@ prop_melt_total t
       Let _ x s
        | notAllowed (getType x) -> Just stm
        | otherwise              -> unmelted s
-      ForeachInts _ x1 x2 s
+      ForeachInts _ _ x1 x2 s
        | notAllowed (getType x1) -> Just stm
        | notAllowed (getType x2) -> Just stm
        | otherwise               -> unmelted s

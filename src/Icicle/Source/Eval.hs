@@ -27,7 +27,8 @@ import qualified        Icicle.Data.Time                as DT
 
 import                  P
 import                  Data.List (zip, nubBy, groupBy, take)
-import qualified        Data.Map as Map
+import qualified        Data.List as List
+import qualified        Data.Map  as Map
 
 data EvalError a n
  = EvalErrorNoSuchVariable   a (Name n)
@@ -307,6 +308,13 @@ evalP ann p xs vs env
             BuiltinMap MapValues
              | [VMap m] <- args
              -> return $ VArray $ Map.elems m
+             | [VError e] <- args
+             -> return $ VError e
+             | otherwise -> err
+
+            BuiltinArray ArraySort
+             | [VArray a] <- args
+             -> return $ VArray $ List.sort a
              | [VError e] <- args
              -> return $ VError e
              | otherwise -> err

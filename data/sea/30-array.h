@@ -218,6 +218,22 @@ static ARRAY_T(t) INLINE ARRAY_FUN(t,put_immutable)                             
 
 
 /*
+Swap(arr, ix1, ix2)
+*/
+
+#define MK_ARRAY_SWAP(t)                                                        \
+                                                                                \
+static ARRAY_T(t) INLINE ARRAY_FUN(t,swap)                                      \
+                  (ARRAY_T(t) x, iint_t ix1, iint_t ix2)                        \
+{                                                                               \
+    t##_t tmp = ARRAY_PAYLOAD(t,x)[ix1];                                        \
+    ARRAY_PAYLOAD(t,x)[ix1] = ARRAY_PAYLOAD(t,x)[ix2];                          \
+    ARRAY_PAYLOAD(t,x)[ix2] = tmp;                                              \
+    return x;                                                                   \
+}
+
+
+/*
 Define an array
 */
 
@@ -230,6 +246,7 @@ Define an array
     MK_ARRAY_COPY           (t)                                                 \
     MK_ARRAY_PUT_MUTABLE    (t)                                                 \
     MK_ARRAY_PUT_IMMUTABLE  (t)                                                 \
+    MK_ARRAY_SWAP           (t)                                                 \
 
 
 // enable if you need to resolve compiler errors in the macros above

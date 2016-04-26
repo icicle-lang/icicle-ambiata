@@ -108,6 +108,7 @@ data Keyword =
  | Vals
  | Seq
  | Box
+ | Sort
  deriving (Eq, Ord, Show, Enum, Bounded)
 
 

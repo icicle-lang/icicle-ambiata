@@ -85,7 +85,20 @@ checkStatement frag ctx stmt
                    $ checkExp frag (ctxExp ctx) x
                Let n x' <$> go stmts
 
-        ForeachInts n from to stmts
+        While t n to stmts
+         -> do to'  <- first ProgramErrorExp
+                     $ checkExp frag (ctxExp ctx) to
+               vt   <- maybeToRight (ProgramErrorNoSuchAccumulator n)
+                     $ Map.lookup n $ ctxAcc ctx
+
+               let tt = annType (annotOfExp to')
+
+               requireSame (ProgramErrorWrongType to) tt (FunT [] vt)
+
+               While t n to' <$> go stmts
+
+
+        ForeachInts t n from to stmts
          -> do from' <- first ProgramErrorExp
                       $ checkExp frag (ctxExp ctx) from
                to'   <- first ProgramErrorExp
@@ -97,7 +110,7 @@ checkStatement frag ctx stmt
                requireSame (ProgramErrorWrongType from) tf (FunT [] IntT)
                requireSame (ProgramErrorWrongType to)   tt (FunT [] IntT)
 
-               ForeachInts n from' to' <$> go stmts
+               ForeachInts t n from' to' <$> go stmts
 
         ForeachFacts binds vt lo stmts
          -> ForeachFacts binds vt lo <$> go stmts
@@ -191,7 +204,10 @@ statementContext frag ctx stmt
            ctxX' <- insert (ctxExp ctx) n t
            return (ctx { ctxExp = ctxX' })
 
-    ForeachInts n _ _ _
+    While {}
+     -> return ctx
+
+    ForeachInts _ n _ _ _
      -> do ctxX' <- insert (ctxExp ctx) n (FunT [] IntT)
            return (ctx { ctxExp = ctxX' })
 

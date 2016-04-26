@@ -104,6 +104,7 @@ data ReplState
    , hasSeaPreamble   :: Bool
    , hasSea           :: Bool
    , hasSeaAssembly   :: Bool
+   , hasSeaLLVMIR     :: Bool
    , hasSeaEval       :: Bool
    , doCoreSimp       :: Bool }
 
@@ -124,6 +125,7 @@ data Set
    | ShowSeaPreamble    Bool
    | ShowSea            Bool
    | ShowSeaAssembly    Bool
+   | ShowSeaLLVMIR      Bool
    | ShowSeaEval        Bool
    | CurrentTime        Time
    | PerformCoreSimp    Bool
@@ -144,7 +146,7 @@ data Command
 
 defaultState :: ReplState
 defaultState
-  = (ReplState [] demographics (unsafeTimeOfYMD 1970 1 1) False False False False False False False False False False False False False False False False False)
+  = (ReplState [] demographics (unsafeTimeOfYMD 1970 1 1) False False False False False False False False False False False False False False False False False False)
     { hasCoreEval = True
     , doCoreSimp  = True }
 
@@ -213,6 +215,9 @@ readSetCommands ss
 
     ("+c-assembly":rest)   -> (:) (ShowSeaAssembly True)  <$> readSetCommands rest
     ("-c-assembly":rest)   -> (:) (ShowSeaAssembly False) <$> readSetCommands rest
+
+    ("+c-llvm-ir":rest)   -> (:) (ShowSeaLLVMIR True)  <$> readSetCommands rest
+    ("-c-llvm-ir":rest)   -> (:) (ShowSeaLLVMIR False) <$> readSetCommands rest
 
     ("+c-eval":rest)       -> (:) (ShowSeaEval     True)  <$> readSetCommands rest
     ("-c-eval":rest)       -> (:) (ShowSeaEval     False) <$> readSetCommands rest
@@ -356,6 +361,12 @@ handleLine state line = case readCommand line of
                Left  e -> prettyOut (const True) "- C assembly error:" e
                Right r -> prettyOut (const True) "- C assembly:" r
 
+           when (hasSeaLLVMIR state) $ do
+             result <- liftIO . runEitherT $ Sea.irOfPrograms Sea.NoPsv [(Attribute "repl", f')]
+             case result of
+               Left  e -> prettyOut (const True) "- C LLVM IR error:" e
+               Right r -> prettyOut (const True) "- C LLVM IR:" r
+
            when (hasSeaEval state) $ do
              result <- liftIO . runEitherT $ P.seaEval (currentTime state) (facts state) finalSource f'
              case result of
@@ -442,6 +453,10 @@ handleSetCommand state set
     ShowSeaAssembly b -> do
         HL.outputStrLn $ "ok, c assembly is now " <> showFlag b
         return $ state { hasSeaAssembly = b }
+
+    ShowSeaLLVMIR b -> do
+        HL.outputStrLn $ "ok, c llvm ir is now " <> showFlag b
+        return $ state { hasSeaLLVMIR = b }
 
     ShowSeaEval b -> do
         HL.outputStrLn $ "ok, c evaluation now " <> showFlag b
@@ -538,6 +553,7 @@ showState state
     , flag "c-preamble:   " hasSeaPreamble
     , flag "c:            " hasSea
     , flag "c-assembly:   " hasSeaAssembly
+    , flag "c-llvm-ir:    " hasSeaLLVMIR
     , flag "c-eval:       " hasSeaEval
     ,      "now:          " <> T.unpack (renderTime $ currentTime state)
     ,      "data:         " <> show (length $ facts state) <> " rows"

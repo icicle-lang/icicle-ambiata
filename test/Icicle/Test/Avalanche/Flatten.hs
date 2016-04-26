@@ -52,8 +52,8 @@ prop_flatten_commutes_value =
            $ counterexample (show $ pretty p')
              False
          Right s'
-          -> counterexample (show $ pretty p')
-           $ counterexample (show $ pretty s')
+          -> counterexample ("Avalanche:\n" <> show (pretty p'))
+           $ counterexample ("Flat:\n" <> show (pretty s'))
            $ let xv' = flatOuts (eval XV.evalPrim p')
                  fv' = eval AE.evalPrim p' { AP.statements = s'}
              in (first show xv' === first show fv')

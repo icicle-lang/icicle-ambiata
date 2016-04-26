@@ -135,13 +135,18 @@ instance Arbitrary PM.PrimTime where
 
 instance Arbitrary PM.PrimBuiltinFun where
  arbitrary = oneof_sized
-   [ PM.PrimBuiltinMath <$> arbitrary ]
-   [ PM.PrimBuiltinMap  <$> arbitrary ]
+   [ PM.PrimBuiltinMath  <$> arbitrary ]
+   [ PM.PrimBuiltinMap   <$> arbitrary
+   , PM.PrimBuiltinArray <$> arbitrary ]
 
 instance Arbitrary PM.PrimBuiltinMap where
   arbitrary = oneof
     [ PM.PrimBuiltinKeys <$> arbitrary <*> arbitrary
     , PM.PrimBuiltinVals <$> arbitrary <*> arbitrary ]
+
+instance Arbitrary PM.PrimBuiltinArray where
+  arbitrary = oneof
+    [ PM.PrimBuiltinSort <$> arbitrary ]
 
 instance Arbitrary Prim where
   arbitrary =

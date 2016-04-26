@@ -1,4 +1,5 @@
 -- | Statements and mutable accumulators (variables) for Avalanche
+
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Icicle.Avalanche.Statement.Statement (
@@ -6,6 +7,9 @@ module Icicle.Avalanche.Statement.Statement (
   , Accumulator     (..)
   , FactBinds       (..)
   , FactLoopType    (..)
+  , ForeachType     (..)
+  , WhileType       (..)
+  , nestedIfs
   , transformUDStmt
   , foldStmt
   , factBindsAll
@@ -28,8 +32,11 @@ data Statement a n p
  -- | Local binding, so the name better be unique
  | Let !(Name n) !(Exp a n p) !(Statement a n p)
 
+ -- | A loop with some condition on an accumulator.
+ | While        !WhileType   !(Name n) !(Exp a n p) !(Statement a n p)
+
  -- | A loop over some ints
- | ForeachInts  !(Name n) !(Exp a n p) !(Exp a n p) !(Statement a n p)
+ | ForeachInts  !ForeachType !(Name n) !(Exp a n p) !(Exp a n p) !(Statement a n p)
 
  -- | A loop over all the facts.
  -- This should only occur once in the program, and not inside a loop.
@@ -72,6 +79,15 @@ instance Monoid (Statement a n p) where
  mempty = Block []
  mappend p q
         = Block [p, q]
+
+-- | Construct nested ifs. Use this instead of "If (x && y)", since
+--   A-normalisation will get rid of the short-circuit.
+--
+nestedIfs :: [Exp a n p] -> Statement a n p -> Statement a n p -> Statement a n p
+nestedIfs [] _ _
+ = mempty
+nestedIfs conds true false
+ = foldr (\cond st -> If cond st false) true conds
 
 data FactBinds n
  = FactBinds {
@@ -126,6 +142,15 @@ data FactLoopType
 
 instance NFData FactLoopType where rnf x = seq x ()
 
+data ForeachType
+ = ForeachStepUp
+ | ForeachStepDown
+ deriving (Eq, Ord, Show)
+
+data WhileType
+ = WhileEq
+ | WhileNe
+ deriving (Eq, Ord, Show)
 
 -- Transforming -------------
 
@@ -145,8 +170,10 @@ transformUDStmt fun env statements
            -> If x <$> go e' ss <*> go e' es
           Let n x ss
            -> Let n x <$> go e' ss
-          ForeachInts n from to ss
-           -> ForeachInts n from to <$> go e' ss
+          While t n end ss
+           -> While t n end <$> go e' ss
+          ForeachInts t n from to ss
+           -> ForeachInts t n from to <$> go e' ss
           ForeachFacts binds ty lo ss
            -> ForeachFacts binds ty lo <$> go e' ss
           Block ss
@@ -192,7 +219,9 @@ foldStmt down up rjoin env res statements
                     up e' r' s
           Let _ _ ss
            -> sub1 ss
-          ForeachInts _ _ _ ss
+          While _ _ _ ss
+           -> sub1 ss
+          ForeachInts _ _ _ _ ss
            -> sub1 ss
           ForeachFacts _ _ _ ss
            -> sub1 ss
@@ -225,8 +254,10 @@ instance TransformX Statement where
      Let n x ss
       -> Let <$> names n <*> exps x <*> go ss
 
-     ForeachInts n from to ss
-      -> ForeachInts <$> names n <*> exps from <*> exps to <*> go ss
+     While t n end ss
+      -> While t <$> names n <*> exps end <*> go ss
+     ForeachInts t n from to ss
+      -> ForeachInts t <$> names n <*> exps from <*> exps to <*> go ss
 
      ForeachFacts (FactBinds ntime nfid ns) v lo ss
       -> let name_go (n, t) = (,) <$> names n <*> pure t
@@ -288,7 +319,11 @@ instance (Pretty n, Pretty p) => Pretty (Statement a n p) where
                                      <+> brackets (pretty vt) <> semiline
       <> nosubscope stmts
 
-     ForeachInts n from to stmts
+     While t n end stmts
+      -> "while (" <> pretty n <+> pretty t <+> pretty end <> ")"
+      <> subscope stmts
+
+     ForeachInts _ n from to stmts
       -> "foreach (" <> pretty n <+> "in" <+> pretty from <+> text ".." <+> pretty to <> ")" <> line
       <> subscope stmts
 
@@ -339,6 +374,9 @@ instance (Pretty n, Pretty p) => Pretty (Statement a n p) where
    prettyFactPart (nf, tf) = annotate (AnnType tf) (pretty nf)
    prettyFactParts xs      = parens $ align $ hcat $ punctuate (comma <> " ") $ fmap prettyFactPart xs
 
+instance Pretty WhileType where
+ pretty WhileEq = "=="
+ pretty WhileNe = "!="
 
 instance (Pretty n, Pretty p) => Pretty (Accumulator a n p) where
  pretty (Accumulator n vt x)

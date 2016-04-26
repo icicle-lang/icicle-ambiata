@@ -89,6 +89,9 @@ constructor a_fresh statements
   primArrayPutMutable i t a v
    = xPrim (PrimArray (PrimArrayPutMutable t)) `xApp` a `xApp` i `xApp` v
 
+  primArraySwap ix1 ix2 t a
+   = xPrim (PrimArray (PrimArraySwap t)) `xApp` a `xApp` ix1 `xApp` ix2
+
   primUnpack ix t x
    = xPrim (PrimMelt (PrimMeltUnpack ix t)) `xApp` x
 
@@ -119,10 +122,13 @@ constructor a_fresh statements
            -> goWith x $ \x' -> If x' t e
           Let n x ss
            -> goWith x $ \x' -> Let n x' ss
-          ForeachInts n from to ss
+          ForeachInts t n from to ss
            -> do from' <- goX env' from
                  to'   <- goX env' to
-                 ret $ ForeachInts n from' to' ss
+                 ret $ ForeachInts t n from' to' ss
+          While t n end ss
+           -> do end'  <- goX env' end
+                 ret $ While t n end' ss
           InitAccumulator (Accumulator n vt x) ss
            -> goWith x $ \x' -> InitAccumulator (Accumulator n vt x') ss
           Write n x
@@ -282,6 +288,12 @@ constructor a_fresh statements
    = Just $ primPack env (ArrayT tx)
    $ fmap (\(t, ix) -> primArrayPutMutable aix t (primUnpack ix (ArrayT tx) na)
                                                  (primUnpack ix         tx  nv)) tis
+
+   | (PrimArray (PrimArraySwap tx), [na, ix1, ix2]) <- prima
+   , Just tis <- withIndex tryMeltType tx
+   = Just $ primPack env (ArrayT tx)
+   $ fmap (\(t, ix) -> primArraySwap ix1 ix2 t (primUnpack ix (ArrayT tx) na))
+     tis
 
    -- comparison
    | (PrimMinimal (Min.PrimRelation op t), [nx, ny]) <- prima

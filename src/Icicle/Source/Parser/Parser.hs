@@ -194,18 +194,19 @@ builtins
 
 simpleBuiltins :: [(T.Keyword, Q.Prim)]
 simpleBuiltins
- = [ (T.Log,      Q.Fun (Q.BuiltinMath Q.Log      ))
-   , (T.Exp,      Q.Fun (Q.BuiltinMath Q.Exp      ))
-   , (T.Sqrt,     Q.Fun (Q.BuiltinMath Q.Sqrt     ))
-   , (T.Abs,      Q.Fun (Q.BuiltinMath Q.Abs      ))
-   , (T.Double,   Q.Fun (Q.BuiltinMath Q.ToDouble ))
-   , (T.Floor,    Q.Fun (Q.BuiltinMath Q.Floor    ))
-   , (T.Ceil,     Q.Fun (Q.BuiltinMath Q.Ceiling  ))
-   , (T.Round,    Q.Fun (Q.BuiltinMath Q.Round    ))
-   , (T.Trunc,    Q.Fun (Q.BuiltinMath Q.Truncate ))
-   , (T.Seq,      Q.Fun (Q.BuiltinData Q.Seq      ))
-   , (T.Box,      Q.Fun (Q.BuiltinData Q.Box      ))
-   , (T.Keys,     Q.Fun (Q.BuiltinMap  Q.MapKeys   ))
-   , (T.Vals,     Q.Fun (Q.BuiltinMap  Q.MapValues ))
+ = [ (T.Log,    Q.Fun (Q.BuiltinMath  Q.Log       ))
+   , (T.Exp,    Q.Fun (Q.BuiltinMath  Q.Exp       ))
+   , (T.Sqrt,   Q.Fun (Q.BuiltinMath  Q.Sqrt      ))
+   , (T.Abs,    Q.Fun (Q.BuiltinMath  Q.Abs       ))
+   , (T.Double, Q.Fun (Q.BuiltinMath  Q.ToDouble  ))
+   , (T.Floor,  Q.Fun (Q.BuiltinMath  Q.Floor     ))
+   , (T.Ceil,   Q.Fun (Q.BuiltinMath  Q.Ceiling   ))
+   , (T.Round,  Q.Fun (Q.BuiltinMath  Q.Round     ))
+   , (T.Trunc,  Q.Fun (Q.BuiltinMath  Q.Truncate  ))
+   , (T.Seq,    Q.Fun (Q.BuiltinData  Q.Seq       ))
+   , (T.Box,    Q.Fun (Q.BuiltinData  Q.Box       ))
+   , (T.Keys,   Q.Fun (Q.BuiltinMap   Q.MapKeys   ))
+   , (T.Vals,   Q.Fun (Q.BuiltinMap   Q.MapValues ))
+   , (T.Sort,   Q.Fun (Q.BuiltinArray Q.ArraySort ))
    ]
 

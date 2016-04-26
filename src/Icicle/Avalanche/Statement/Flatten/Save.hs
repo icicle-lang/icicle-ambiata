@@ -126,7 +126,7 @@ flattenSave' a_fresh xx ty
         case f' of
          Nothing -> no
          Just s -> yes
-                 $ ForeachInts nm' xZero (arrLen t x) s
+                 $ ForeachInts ForeachStepUp nm' xZero (arrLen t x) s
 
   stmtOf = fromMaybe mempty
 

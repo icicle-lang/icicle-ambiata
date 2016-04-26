@@ -39,11 +39,14 @@ mutateStmt livevars ss
               in  Let n (mutateExp lvs x)
                         (go s)
 
-         ForeachInts n x y s
-           -> let lvs = livevars <> livevarsStmt s
-              in  ForeachInts n (mutateExp livevars x)
-                                (mutateExp lvs y)
-                                (go s)
+         While t n x s
+           -> While t n (mutateExp livevars x)
+                        (go s)
+
+         ForeachInts t n x y s
+           -> ForeachInts t n (mutateExp livevars x)
+                              (mutateExp livevars y)
+                              (go s)
 
          ForeachFacts fs vt ft s
            -> ForeachFacts fs vt ft (go s)
@@ -111,8 +114,11 @@ livevarsStmt ss = case ss of
   Let _ x s
    -> livevarsExp x <> livevarsStmt s
 
-  -- loop counter is live at the beginning and inside the loop.
-  ForeachInts n _ end body
+  -- loop counter is live after it is assigned the initial value,
+  -- and live inside the loop.
+  While _ n end body
+   -> Set.insert n (livevarsExp end <> livevarsStmt body)
+  ForeachInts _ n _ end body
    -> Set.insert n (livevarsExp end <> livevarsStmt body)
 
   -- fact bind is live at the beginning and inside the loop.

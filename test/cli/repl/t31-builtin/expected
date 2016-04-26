@@ -46,4 +46,18 @@ ok, loaded test/cli/repl/data.psv, 13 rows
 - Core evaluation:
 [homer, tombstone]
 
-> 
+> > - C evaluation:
+[homer, [70000,81000,90100]
+,marge, [0]]
+
+- Core evaluation:
+[homer, [70000,81000,90100]
+,marge, [0]]
+
+> > - C evaluation:
+[homer, ["arm","head","torso"]]
+
+- Core evaluation:
+[homer, ["arm","head","torso"]]
+
+> > 

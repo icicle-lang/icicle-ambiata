@@ -9,18 +9,20 @@ import P
 
 
 data BuiltinFun
- = BuiltinMath !BuiltinMath
- | BuiltinTime !BuiltinTime
- | BuiltinData !BuiltinData
- | BuiltinMap  !BuiltinMap
+ = BuiltinMath  !BuiltinMath
+ | BuiltinTime  !BuiltinTime
+ | BuiltinData  !BuiltinData
+ | BuiltinMap   !BuiltinMap
+ | BuiltinArray !BuiltinArray
  deriving (Show, Eq, Ord)
 
 listOfBuiltinFuns :: [BuiltinFun]
 listOfBuiltinFuns = concat
-  [ fmap BuiltinMath [minBound..maxBound]
-  , fmap BuiltinTime [minBound..maxBound]
-  , fmap BuiltinData [minBound..maxBound]
-  , fmap BuiltinMap  [minBound..maxBound]
+  [ fmap BuiltinMath  [minBound..maxBound]
+  , fmap BuiltinTime  [minBound..maxBound]
+  , fmap BuiltinData  [minBound..maxBound]
+  , fmap BuiltinMap   [minBound..maxBound]
+  , fmap BuiltinArray [minBound..maxBound]
   ]
 
 data BuiltinMath
@@ -50,19 +52,25 @@ data BuiltinMap
  | MapValues
  deriving (Show, Eq, Ord, Enum, Bounded)
 
-instance NFData BuiltinFun  where rnf x = seq x ()
-instance NFData BuiltinMath where rnf x = seq x ()
-instance NFData BuiltinTime where rnf x = seq x ()
-instance NFData BuiltinData where rnf x = seq x ()
-instance NFData BuiltinMap  where rnf x = seq x ()
+data BuiltinArray
+ = ArraySort
+ deriving (Show, Eq, Ord, Enum, Bounded)
+
+instance NFData BuiltinFun   where rnf x = seq x ()
+instance NFData BuiltinMath  where rnf x = seq x ()
+instance NFData BuiltinTime  where rnf x = seq x ()
+instance NFData BuiltinData  where rnf x = seq x ()
+instance NFData BuiltinMap   where rnf x = seq x ()
+instance NFData BuiltinArray where rnf x = seq x ()
 
 --------------------------------------------------------------------------------
 
 instance Pretty BuiltinFun where
- pretty (BuiltinMath b) = pretty b
- pretty (BuiltinTime b) = pretty b
- pretty (BuiltinData b) = pretty b
- pretty (BuiltinMap  b) = pretty b
+ pretty (BuiltinMath  b) = pretty b
+ pretty (BuiltinTime  b) = pretty b
+ pretty (BuiltinData  b) = pretty b
+ pretty (BuiltinMap   b) = pretty b
+ pretty (BuiltinArray b) = pretty b
 
 instance Pretty BuiltinMath where
  pretty Log         = "log"
@@ -86,3 +94,6 @@ instance Pretty BuiltinData where
 instance Pretty BuiltinMap where
  pretty MapKeys   = "keys"
  pretty MapValues = "vals"
+
+instance Pretty BuiltinArray where
+ pretty ArraySort = "sort"

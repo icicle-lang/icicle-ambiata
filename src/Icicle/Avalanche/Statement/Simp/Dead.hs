@@ -59,11 +59,15 @@ deadS us statements
         in  if   usedX n sU
             then (mconcat [xU, sU], sK, Let n x sS)
             else (sU, sK, sS)
-    ForeachInts n from to ss
+    While t n end ss
+     -> let (sU, sK, sS) = deadLoop us ss
+            eU           = usageX end
+        in (mconcat [sU, eU, usageA n], sK, While t n end sS)
+    ForeachInts t n from to ss
      -> let (sU, sK, sS) = deadLoop us ss
             fU           = usageX from
             tU           = usageX to
-        in (mconcat [sU, fU, tU], sK, ForeachInts n from to sS)
+        in (mconcat [sU, fU, tU], sK, ForeachInts t n from to sS)
     ForeachFacts binds vt ty ss
      -> let (sU, sK, sS) = deadLoop us ss
         in  (sU, sK, ForeachFacts binds vt ty sS)

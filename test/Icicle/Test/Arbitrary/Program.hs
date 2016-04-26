@@ -30,6 +30,8 @@ import           Icicle.Common.Base
 import           Icicle.Common.Type
 import           Icicle.Common.Annot
 
+import           Icicle.Internal.Pretty
+
 import qualified Icicle.Sea.FromAvalanche.Analysis as S
 import qualified Icicle.Sea.Eval as S
 
@@ -54,7 +56,25 @@ data WellTyped = WellTyped {
   , wtCore          :: C.Program ()         Var
   , wtAvalanche     :: A.Program ()         Var C.Prim
   , wtAvalancheFlat :: A.Program (Annot ()) Var A.Prim
-  } deriving (Show)
+  }
+
+instance Show WellTyped where
+  show wt
+    = show
+    $ vsep
+    [ "well-typed:"
+    , "  entities  = " <> pretty (       wtEntities  wt)
+    , "  attribute = " <> pretty (       wtAttribute wt)
+    , "  fact type = " <> pretty (       wtFactType  wt)
+    , "  facts     = " <> text   (show $ wtFacts     wt)
+    , "  time      = " <> text   (show $ wtTime      wt)
+    , "  core      ="
+    , indent 4 $ pretty (wtCore      wt)
+    , "  avalanche ="
+    , indent 4 $ pretty (wtAvalanche wt)
+    , "  flat      ="
+    , indent 4 $ pretty (wtAvalancheFlat wt)
+    ]
 
 instance Arbitrary InputType where
   arbitrary = validated 100 $ do

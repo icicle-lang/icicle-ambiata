@@ -163,6 +163,8 @@ seaOfPrimArray p
       -> PDAlloc (prefixOfValType (ArrayT t) <> "put_mutable") Nothing
      PrimArrayPutImmutable t
       -> PDAlloc (prefixOfValType (ArrayT t) <> "put_immutable") Nothing
+     PrimArraySwap t
+      -> PDFun   (prefixOfValType (ArrayT t) <> "swap") Nothing
      PrimArrayZip _ _
       -> PDFun (seaError "seaOfPrimArray" p) Nothing
 

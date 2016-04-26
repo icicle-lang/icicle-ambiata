@@ -12,11 +12,12 @@ module Icicle.Source.Query.Exp (
   , Lit       (..)
   , Op        (..)
   , Fun
-  , BuiltinFun  (..)
-  , BuiltinMath (..)
-  , BuiltinTime (..)
-  , BuiltinData (..)
-  , BuiltinMap  (..)
+  , BuiltinFun   (..)
+  , BuiltinMath  (..)
+  , BuiltinTime  (..)
+  , BuiltinData  (..)
+  , BuiltinMap   (..)
+  , BuiltinArray (..)
 
   , takeApps
   , takePrimApps
