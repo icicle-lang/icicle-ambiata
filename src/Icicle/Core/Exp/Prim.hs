@@ -1,7 +1,6 @@
 -- | Primitive functions, constant values and so on
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE DeriveGeneric     #-}
 module Icicle.Core.Exp.Prim (
       Prim          (..)
     , PrimFold      (..)
@@ -18,61 +17,59 @@ import qualified    Icicle.Common.Exp.Prim.Minimal as Min
 
 import              P
 
-import              GHC.Generics (Generic)
-
 
 -- | Top-level primitive for Core expressions
 -- Includes folds etc that won't be present in Avalanche
 data Prim
  -- | Include a bunch of basic things common across languages
- = PrimMinimal  Min.Prim
+ = PrimMinimal  !Min.Prim
  -- | Fold and return type
- | PrimFold     PrimFold ValType
+ | PrimFold     !PrimFold !ValType
  -- | Array primitives
- | PrimArray    PrimArray
+ | PrimArray    !PrimArray
  -- | Map primitives
- | PrimMap      PrimMap
+ | PrimMap      !PrimMap
  -- | Circular buffer for latest
- | PrimLatest   PrimLatest
- | PrimWindow   WindowUnit (Maybe WindowUnit)
- deriving (Eq, Ord, Show, Generic)
+ | PrimLatest   !PrimLatest
+ | PrimWindow   !WindowUnit !(Maybe WindowUnit)
+ deriving (Eq, Ord, Show)
 
 
 -- | Folds and destructing things
 data PrimFold
  = PrimFoldBool
- | PrimFoldArray  ValType
- | PrimFoldOption ValType
- | PrimFoldSum    ValType ValType
- | PrimFoldMap    ValType ValType
- deriving (Eq, Ord, Show, Generic)
+ | PrimFoldArray  !ValType
+ | PrimFoldOption !ValType
+ | PrimFoldSum    !ValType !ValType
+ | PrimFoldMap    !ValType !ValType
+ deriving (Eq, Ord, Show)
 
 
 -- | Array primitives
 data PrimArray
- = PrimArrayMap ValType ValType
- deriving (Eq, Ord, Show, Generic)
+ = PrimArrayMap !ValType !ValType
+ deriving (Eq, Ord, Show)
 
 
 -- | Map primitives
 data PrimMap
- = PrimMapInsertOrUpdate ValType ValType
- | PrimMapMapValues ValType ValType ValType
- | PrimMapLookup ValType ValType
- deriving (Eq, Ord, Show, Generic)
+ = PrimMapInsertOrUpdate !ValType !ValType
+ | PrimMapMapValues      !ValType !ValType !ValType
+ | PrimMapLookup         !ValType !ValType
+ deriving (Eq, Ord, Show)
 
 
 -- | Latest buffer primitives
 data PrimLatest
- = PrimLatestPush Int ValType
- | PrimLatestRead Int ValType
- deriving (Eq, Ord, Show, Generic)
+ = PrimLatestPush !Int !ValType
+ | PrimLatestRead !Int !ValType
+ deriving (Eq, Ord, Show)
 
-instance NFData Prim
-instance NFData PrimFold
-instance NFData PrimArray
-instance NFData PrimMap
-instance NFData PrimLatest
+instance NFData Prim       where rnf x = seq x ()
+instance NFData PrimFold   where rnf x = seq x ()
+instance NFData PrimArray  where rnf x = seq x ()
+instance NFData PrimMap    where rnf x = seq x ()
+instance NFData PrimLatest where rnf x = seq x ()
 
 
 -- | A primitive always has a well-defined type

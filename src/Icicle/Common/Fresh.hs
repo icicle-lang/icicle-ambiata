@@ -1,7 +1,6 @@
 -- | Generating Fresh names
 {-# LANGUAGE NoImplicitPrelude         #-}
 {-# LANGUAGE ExistentialQuantification #-}
-{-# LANGUAGE DeriveGeneric             #-}
 module Icicle.Common.Fresh (
       FreshT   (..)
     , Fresh
@@ -47,7 +46,10 @@ runFreshIdentity f
 data NameState n
  = forall s. NameState (s -> (NameBase n, s)) s
 
-instance NFData (NameState n)
+-- we don't care about sequencing the name state, just need this for
+-- functions of type FreshT n m a. The `a` is the only thing we care
+-- about.
+instance NFData (NameState n) where rnf _ = ()
 
 mkNameState :: (s -> (NameBase n, s)) -> s -> NameState n
 mkNameState = NameState

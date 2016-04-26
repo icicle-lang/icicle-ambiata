@@ -34,6 +34,10 @@ newtype Time =
       getDateTime :: D.DateTime
     } deriving (Eq, Ord)
 
+-- deepseq stops here, it shouldn't matter too much, we don't particularly
+-- care about values
+instance NFData Time where rnf _ = ()
+
 instance Show Time where
  showsPrec p (Time x)
   = showParen (p > 10)
@@ -80,7 +84,7 @@ unsafeTimeOfYMD y m d
 timeOfYMD :: Integer -> Int -> Int -> Maybe Time
 timeOfYMD y m d
  =   Time
-  .  D.dayToDateTime
+ .   D.dayToDateTime
  <$> C.fromGregorianValid y m d
 
 timeOfDays :: Int -> Time

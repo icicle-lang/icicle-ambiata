@@ -1,6 +1,5 @@
 -- | Evaluate Avalanche programs
 {-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE DeriveGeneric     #-}
 module Icicle.Avalanche.Check (
     checkProgram
   , ProgramError(..)
@@ -21,18 +20,16 @@ import qualified    Data.List   as List
 import qualified    Data.Map    as Map
 import              Data.Hashable (Hashable)
 
-import              GHC.Generics (Generic)
-
 
 data ProgramError a n p
- = ProgramErrorExp  (ExpError a n p)
- | ProgramErrorWrongType (Exp a n p) Type Type
- | ProgramErrorNoSuchAccumulator    (Name n)
- | ProgramErrorWrongAccumulatorType (Name n)
- | ProgramErrorWrongValType         (Name n) ValType ValType
+ = ProgramErrorExp                  !(ExpError a n p)
+ | ProgramErrorWrongType            !(Exp a n p) !Type !Type
+ | ProgramErrorNoSuchAccumulator    !(Name n)
+ | ProgramErrorWrongAccumulatorType !(Name n)
+ | ProgramErrorWrongValType         !(Name n) !ValType !ValType
  | ProgramErrorMultipleFactLops
- | ProgramErrorNameNotUnique (Name n)
- deriving (Show, Eq, Ord, Generic)
+ | ProgramErrorNameNotUnique        !(Name n)
+ deriving (Show, Eq, Ord)
 
 data Context n
  = Context
@@ -40,7 +37,7 @@ data Context n
  , ctxAcc :: Env n ValType }
  deriving (Show, Eq, Ord)
 
-instance (NFData a, NFData n, NFData p) => NFData (ProgramError a n p)
+instance NFData (ProgramError a n p) where rnf x = seq x ()
 
 initialContext :: (Hashable n, Eq n) => Program a n p -> Context n
 initialContext p

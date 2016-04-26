@@ -2,7 +2,6 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards     #-}
-{-# LANGUAGE DeriveGeneric     #-}
 module Icicle.Avalanche.Prim.Flat (
       Prim        (..)
     , PrimProject (..)
@@ -28,8 +27,6 @@ import              P
 
 import qualified    Data.Map as Map
 
-import              GHC.Generics (Generic)
-
 
 flatFragment :: Frag.Fragment Prim
 flatFragment
@@ -43,76 +40,76 @@ flatFragment
 -- Folds are converted to imperative accessors, loops and so on.
 data Prim
  -- | Include a bunch of basic things common across languages
- = PrimMinimal         Min.Prim
+ = PrimMinimal !Min.Prim
 
  -- | Safe projections
- | PrimProject         PrimProject
+ | PrimProject !PrimProject
 
  -- | Unsafe projections
- | PrimUnsafe          PrimUnsafe
+ | PrimUnsafe  !PrimUnsafe
 
  -- | Array prims
- | PrimArray           PrimArray
+ | PrimArray   !PrimArray
 
  -- | Packing/unpacking prims
- | PrimMelt            PrimMelt
+ | PrimMelt    !PrimMelt
 
  -- | Packing and unpacking maps
- | PrimMap             PrimMap
+ | PrimMap     !PrimMap
 
  -- | Abstract circular buffer prims
- | PrimBuf             PrimBuf
- deriving (Eq, Ord, Show, Generic)
+ | PrimBuf     !PrimBuf
+ deriving (Eq, Ord, Show)
 
 
 data PrimProject
- = PrimProjectArrayLength ValType
- | PrimProjectOptionIsSome ValType
- | PrimProjectSumIsRight   ValType ValType
- deriving (Eq, Ord, Show, Generic)
+ = PrimProjectArrayLength  !ValType
+ | PrimProjectOptionIsSome !ValType
+ | PrimProjectSumIsRight   !ValType !ValType
+ deriving (Eq, Ord, Show)
 
 
 data PrimUnsafe
- = PrimUnsafeArrayIndex  ValType         -- ^ Unchecked array index
- | PrimUnsafeArrayCreate ValType         -- ^ Create a new, uninitialised array. Not safe to read.
- | PrimUnsafeSumGetLeft  ValType ValType -- ^ Get the Left value, which may be garbage
- | PrimUnsafeSumGetRight ValType ValType -- ^ Get the Right value, which maybe be garbage
- | PrimUnsafeOptionGet   ValType         -- ^ Get the Some value, which maybe be garbage
- deriving (Eq, Ord, Show, Generic)
+ = PrimUnsafeArrayIndex  !ValType         -- ^ Unchecked array index
+ | PrimUnsafeArrayCreate !ValType         -- ^ Create a new, uninitialised array. Not safe to read.
+ | PrimUnsafeSumGetLeft  !ValType !ValType -- ^ Get the Left value, which may be garbage
+ | PrimUnsafeSumGetRight !ValType !ValType -- ^ Get the Right value, which maybe be garbage
+ | PrimUnsafeOptionGet   !ValType         -- ^ Get the Some value, which maybe be garbage
+ deriving (Eq, Ord, Show)
 
 
 data PrimArray
- = PrimArrayPutMutable   ValType         -- ^ In-place update
- | PrimArrayPutImmutable ValType         -- ^ Copy then update
- | PrimArrayZip          ValType ValType -- ^ Zip two arrays into one
- deriving (Eq, Ord, Show, Generic)
+ = PrimArrayPutMutable   !ValType         -- ^ In-place update
+ | PrimArrayPutImmutable !ValType         -- ^ Copy then update
+ | PrimArrayZip          !ValType !ValType -- ^ Zip two arrays into one
+ deriving (Eq, Ord, Show)
 
 data PrimMap
- = PrimMapPack         ValType ValType
- | PrimMapUnpackKeys   ValType ValType
- | PrimMapUnpackValues ValType ValType
- deriving (Eq, Ord, Show, Generic)
+ = PrimMapPack         !ValType !ValType
+ | PrimMapUnpackKeys   !ValType !ValType
+ | PrimMapUnpackValues !ValType !ValType
+ deriving (Eq, Ord, Show)
 
 data PrimMelt
- = PrimMeltPack       ValType
- | PrimMeltUnpack Int ValType
- deriving (Eq, Ord, Show, Generic)
+ = PrimMeltPack        !ValType
+ | PrimMeltUnpack !Int !ValType
+ deriving (Eq, Ord, Show)
 
 -- | These correspond directly to the latest buffer primitives in Core.
 data PrimBuf
- = PrimBufMake Int ValType
- | PrimBufPush Int ValType
- | PrimBufRead Int ValType
- deriving (Eq, Ord, Show, Generic)
+ = PrimBufMake !Int !ValType
+ | PrimBufPush !Int !ValType
+ | PrimBufRead !Int !ValType
+ deriving (Eq, Ord, Show)
 
 
-instance NFData Prim
-instance NFData PrimProject
-instance NFData PrimUnsafe
-instance NFData PrimArray
-instance NFData PrimMap
-instance NFData PrimMelt
-instance NFData PrimBuf
+instance NFData Prim        where rnf x = seq x ()
+instance NFData PrimProject where rnf x = seq x ()
+instance NFData PrimUnsafe  where rnf x = seq x ()
+instance NFData PrimArray   where rnf x = seq x ()
+instance NFData PrimMap     where rnf x = seq x ()
+instance NFData PrimMelt    where rnf x = seq x ()
+instance NFData PrimBuf     where rnf x = seq x ()
 
 
 -- | A primitive always has a well-defined type

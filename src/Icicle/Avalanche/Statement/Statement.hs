@@ -1,7 +1,6 @@
 -- | Statements and mutable accumulators (variables) for Avalanche
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE DeriveGeneric     #-}
 module Icicle.Avalanche.Statement.Statement (
     Statement       (..)
   , Accumulator     (..)
@@ -19,8 +18,6 @@ import              Icicle.Common.Exp
 import              Icicle.Internal.Pretty
 
 import              P
-
-import              GHC.Generics (Generic)
 
 
 -- | Part of a loop
@@ -67,9 +64,9 @@ data Statement a n p
 
  -- | Save an accumulator to history. Must be after all fact loops.
  | SaveResumable !(Name n) !ValType
- deriving (Eq, Ord, Show, Generic)
+ deriving (Eq, Ord, Show)
 
-instance (NFData a, NFData n, NFData p) => NFData (Statement a n p)
+instance NFData (Statement a n p) where rnf x = seq x ()
 
 instance Monoid (Statement a n p) where
  mempty = Block []
@@ -78,13 +75,13 @@ instance Monoid (Statement a n p) where
 
 data FactBinds n
  = FactBinds {
-    factBindTime    :: Name n
-  , factBindId      :: Name n
-  , factBindValue   :: [(Name n, ValType)]
+    factBindTime    :: !(Name n)
+  , factBindId      :: !(Name n)
+  , factBindValue   :: ![(Name n, ValType)]
  }
- deriving (Eq, Ord, Show, Generic)
+ deriving (Eq, Ord, Show)
 
-instance NFData n => NFData (FactBinds n)
+instance NFData (FactBinds n) where rnf x = seq x ()
 
 factBindsAll :: FactBinds n -> [(Name n, ValType)]
 factBindsAll (FactBinds ntime nid nvalue)
@@ -97,9 +94,9 @@ data Accumulator a n p
  , accValType   :: !ValType
  , accInit      :: !(Exp a n p)
  }
- deriving (Eq, Ord, Show, Generic)
+ deriving (Eq, Ord, Show)
 
-instance (NFData a, NFData n, NFData p) => NFData (Accumulator a n p)
+instance NFData (Accumulator a n p) where rnf x = seq x ()
 
 
 -- | When executing the feature, we also keep track of what data
@@ -126,6 +123,8 @@ data FactLoopType
  -- | Loop over newly added facts since the last snapshot
  | FactLoopNew
  deriving (Eq, Ord, Show)
+
+instance NFData FactLoopType where rnf x = seq x ()
 
 
 -- Transforming -------------

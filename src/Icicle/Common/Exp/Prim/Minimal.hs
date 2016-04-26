@@ -1,19 +1,19 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Icicle.Common.Exp.Prim.Minimal (
-      Prim   (..)
-    , PrimArithUnary(..)
-    , PrimArithBinary(..)
-    , PrimToString(..)
-    , PrimRelation(..)
-    , PrimLogical(..)
-    , PrimConst(..)
-    , PrimTime (..)
-    , PrimPair(..)
-    , PrimStruct(..)
-    , PrimBuiltinFun(..)
-    , PrimBuiltinMath(..)
-    , PrimBuiltinMap(..)
+      Prim            (..)
+    , PrimArithUnary  (..)
+    , PrimArithBinary (..)
+    , PrimToString    (..)
+    , PrimRelation    (..)
+    , PrimLogical     (..)
+    , PrimConst       (..)
+    , PrimTime        (..)
+    , PrimPair        (..)
+    , PrimStruct      (..)
+    , PrimBuiltinFun  (..)
+    , PrimBuiltinMath (..)
+    , PrimBuiltinMap  (..)
     , typeOfPrim
     ) where
 
@@ -29,16 +29,16 @@ import qualified    Data.Map as Map
 -- | Common primitives in all language fragements.
 --
 data Prim
- = PrimArithUnary  PrimArithUnary  ArithType  -- ^ "Polymorphic" (double or int) unary operators
- | PrimArithBinary PrimArithBinary ArithType  -- ^ "Polymorphic" (double or int) binary operators
- | PrimToString    PrimToString               -- ^ Conversion to string
- | PrimRelation    PrimRelation    ValType    -- ^ "Polymorphic" relation operators
- | PrimLogical     PrimLogical                -- ^ Logical operators
- | PrimConst       PrimConst                  -- ^ Literal value constructors
- | PrimPair        PrimPair                   -- ^ Pair projections
- | PrimStruct      PrimStruct                 -- ^ Struct projections
- | PrimTime        PrimTime                   -- ^ Time/date primitives
- | PrimBuiltinFun  PrimBuiltinFun
+ = PrimArithUnary  !PrimArithUnary  !ArithType  -- ^ "Polymorphic" (double or int) unary operators
+ | PrimArithBinary !PrimArithBinary !ArithType  -- ^ "Polymorphic" (double or int) binary operators
+ | PrimToString    !PrimToString                -- ^ Conversion to string
+ | PrimRelation    !PrimRelation    !ValType    -- ^ "Polymorphic" relation operators
+ | PrimLogical     !PrimLogical                 -- ^ Logical operators
+ | PrimConst       !PrimConst                   -- ^ Literal value constructors
+ | PrimPair        !PrimPair                    -- ^ Pair projections
+ | PrimStruct      !PrimStruct                  -- ^ Struct projections
+ | PrimTime        !PrimTime                    -- ^ Time/date primitives
+ | PrimBuiltinFun  !PrimBuiltinFun
  deriving (Eq, Ord, Show)
 
 -- | Unary arithmetic primitives common to all numeric types.
@@ -81,10 +81,10 @@ data PrimLogical
 
 -- | Constructors
 data PrimConst
- = PrimConstPair  ValType ValType
- | PrimConstSome  ValType
- | PrimConstLeft  ValType ValType
- | PrimConstRight ValType ValType
+ = PrimConstPair  !ValType !ValType
+ | PrimConstSome  !ValType
+ | PrimConstLeft  !ValType !ValType
+ | PrimConstRight !ValType !ValType
  deriving (Eq, Ord, Show)
 
 -- | Time primitives
@@ -97,13 +97,24 @@ data PrimTime
 
 -- | Pair primitives
 data PrimPair
- = PrimPairFst ValType ValType
- | PrimPairSnd ValType ValType
+ = PrimPairFst !ValType !ValType
+ | PrimPairSnd !ValType !ValType
  deriving (Eq, Ord, Show)
 
 data PrimStruct
- = PrimStructGet StructField ValType StructType
+ = PrimStructGet !StructField !ValType !StructType
  deriving (Eq, Ord, Show)
+
+instance NFData PrimPair        where rnf x = seq x ()
+instance NFData PrimArithUnary  where rnf x = seq x ()
+instance NFData PrimArithBinary where rnf x = seq x ()
+instance NFData PrimToString    where rnf x = seq x ()
+instance NFData PrimRelation    where rnf x = seq x ()
+instance NFData PrimLogical     where rnf x = seq x ()
+instance NFData PrimConst       where rnf x = seq x ()
+instance NFData PrimTime        where rnf x = seq x ()
+instance NFData PrimStruct      where rnf x = seq x ()
+instance NFData Prim            where rnf x = seq x ()
 
 --------------------------------------------------------------------------------
 

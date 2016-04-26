@@ -1,11 +1,10 @@
 -- | An entire core program
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE DeriveGeneric     #-}
 module Icicle.Core.Program.Program (
-      Program (..)
-    , renameProgram
-    ) where
+       Program (..)
+     , renameProgram
+     ) where
 
 import              Icicle.Internal.Pretty
 import              Icicle.Common.Base
@@ -16,52 +15,49 @@ import              Icicle.Core.Stream.Stream
 
 import              P
 
-import              GHC.Generics (Generic)
-
 
 -- | Core program composed of different stages of bindings
 data Program a n =
  Program {
  -- | The type of the input/concrete feature
-   inputType    :: ValType
- , factValName  :: Name n
- , factIdName   :: Name n
- , factTimeName :: Name n
- , snaptimeName :: Name n
+   inputType    :: !ValType
+ , factValName  :: !(Name n)
+ , factIdName   :: !(Name n)
+ , factTimeName :: !(Name n)
+ , snaptimeName :: !(Name n)
 
  -- | All precomputations, made before starting to read from feature source
- , precomps     :: [(Name n, Exp a n)]
+ , precomps     :: ![(Name n, Exp a n)]
 
  -- | Stream things
- , streams      :: [Stream a n]
+ , streams      :: ![Stream a n]
 
  -- | Postcomputations with access to last value of all streams
- , postcomps    :: [(Name n, Exp a n)]
+ , postcomps    :: ![(Name n, Exp a n)]
 
  -- | The return values
- , returns      :: [(OutputName, Exp a n)]
+ , returns      :: ![(OutputName, Exp a n)]
  }
- deriving (Show, Eq, Ord, Generic)
+ deriving (Show, Eq, Ord)
 
-instance (NFData a, NFData n) => NFData (Program a n)
+instance NFData (Program a n) where rnf x = seq x ()
 
 renameProgram :: (Name n -> Name n') -> Program a n -> Program a n'
 renameProgram f p
   = p
-  { factValName = f $ factValName    p
-  , factIdName  = f $ factIdName   p
-  , factTimeName= f $ factTimeName p
-  , snaptimeName= f $ snaptimeName p
-  , precomps    = binds  renameExp      (precomps   p)
-  , streams     = fmap  (renameStream f)(streams    p)
-  , postcomps   = binds  renameExp      (postcomps  p)
+  { factValName  = f $ factValName    p
+  , factIdName   = f $ factIdName   p
+  , factTimeName = f $ factTimeName p
+  , snaptimeName = f $ snaptimeName p
+  , precomps     = binds  renameExp      (precomps   p)
+  , streams      = fmap  (renameStream f)(streams    p)
+  , postcomps    = binds  renameExp      (postcomps  p)
   -- Now, we actually do not want to modify the names of the outputs.
   -- They should stay the same over the entire life of the program.
-  , returns     = fmap (\(a,b) -> (a, renameExp f b)) (returns    p)
+  , returns      = fmap (\(a,b) -> (a, renameExp f b)) (returns    p)
   }
   where
    binds r = fmap (\(a,b) -> (f a, r f b))
-
 
 
 -- Pretty printing -------------
