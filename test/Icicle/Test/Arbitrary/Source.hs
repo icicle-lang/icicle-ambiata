@@ -457,7 +457,8 @@ instance Arbitrary Prim where
         , BuiltinData Seq
         , BuiltinData Box
         , BuiltinMap MapKeys
-        , BuiltinMap MapValues ]
+        , BuiltinMap MapValues
+        , BuiltinArray ArraySort ]
 
    cons
     = fmap PrimCon

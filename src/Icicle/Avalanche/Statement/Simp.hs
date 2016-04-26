@@ -213,8 +213,7 @@ forwardStmts a_fresh statements
 
       While t n end ss
        -> do end'  <- sub e end
-             let e' = Map.delete n e
-             return (e', While t n end' ss)
+             return (e, While t n end' ss)
 
       ForeachInts t n from to ss
        -> do from' <- sub e from

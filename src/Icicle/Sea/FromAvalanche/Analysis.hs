@@ -139,6 +139,9 @@ readsOfStatement stmt
      Let _ _ ss              -> readsOfStatement ss
      If _ tt ee              -> readsOfStatement tt `Map.union`
                                 readsOfStatement ee
+     -- This technically counts as a read accumulator, so perhaps
+     -- we need to insert the accumulator name here. We need to make
+     -- While carry around the ValType though.
      While          _ _ _ ss -> readsOfStatement ss
      ForeachInts  _ _ _ _ ss -> readsOfStatement ss
      ForeachFacts _ _ _ ss   -> readsOfStatement ss

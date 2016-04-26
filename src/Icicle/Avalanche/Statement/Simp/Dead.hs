@@ -62,7 +62,7 @@ deadS us statements
     While t n end ss
      -> let (sU, sK, sS) = deadLoop us ss
             eU           = usageX end
-        in (addUsedA n $ mconcat [sU, eU], sK, While t n end sS)
+        in (mconcat [sU, eU, usageA n], sK, While t n end sS)
     ForeachInts t n from to ss
      -> let (sU, sK, sS) = deadLoop us ss
             fU           = usageX from
@@ -151,9 +151,6 @@ usageA n = Usage (Set.singleton n) mempty
 
 usedA :: (Hashable n, Eq n) => Name n -> Usage n -> Bool
 usedA n us = Set.member n (usageAcc us)
-
-addUsedA :: (Hashable n, Eq n) => Name n -> Usage n -> Usage n
-addUsedA n us = us { usageAcc = Set.insert n (usageAcc us) }
 
 killAccumulators :: (Hashable n, Eq n) => Kill a n p -> Statement a n p -> Statement a n p
 killAccumulators accs statements
