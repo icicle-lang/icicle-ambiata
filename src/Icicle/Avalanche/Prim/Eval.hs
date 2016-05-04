@@ -156,6 +156,18 @@ evalPrim p vs
       | otherwise
       -> primError
 
+     PrimArray (PrimArrayDel _)
+      | [VBase (VArray varr), VBase (VInt ix)] <- vs
+      , ix >= 0 && ix < length varr
+      -> return
+      $  VBase
+      $  VArray
+      $  let (low, rest) = List.splitAt ix varr
+             high        = List.drop 1 rest
+         in  low <> high
+      | otherwise
+      -> primError
+
      PrimArray (PrimArrayZip _ _)
       | [VBase (VArray arr1), VBase (VArray arr2)]  <- vs
       -> return $ VBase

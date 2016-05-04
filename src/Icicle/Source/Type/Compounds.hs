@@ -45,6 +45,7 @@ freeT t
     ErrorT                  -> Set.empty
 
     ArrayT      a           -> freeT a
+    MapT        a b         -> Set.union (freeT a) (freeT b)
     GroupT      a b         -> Set.union (freeT a) (freeT b)
     OptionT     a           -> freeT a
     PairT       a b         -> Set.union (freeT a) (freeT b)
@@ -120,9 +121,10 @@ getTemporality tt
     UnitT         -> Nothing
     ErrorT        -> Nothing
 
-    ArrayT  a     -> wrap go ArrayT  a
+    ArrayT  a     -> wrap  go ArrayT  a
+    MapT    a b   -> wrap2 go MapT   a b
     GroupT  a b   -> wrap2 go GroupT a b
-    OptionT a     -> wrap go OptionT a
+    OptionT a     -> wrap  go OptionT a
     PairT   a b   -> wrap2 go PairT  a b
     SumT    a b   -> wrap2 go SumT   a b
     StructT fs    -> let fs' = Map.toList fs
@@ -166,9 +168,10 @@ getPossibility tt
     UnitT         -> Nothing
     ErrorT        -> Nothing
 
-    ArrayT  a     -> wrap go ArrayT  a
+    ArrayT  a     -> wrap  go ArrayT a
+    MapT    a b   -> wrap2 go MapT   a b
     GroupT  a b   -> wrap2 go GroupT a b
-    OptionT a     -> wrap go OptionT a
+    OptionT a     -> wrap  go OptionT a
     PairT   a b   -> wrap2 go PairT  a b
     SumT    a b   -> wrap2 go SumT   a b
     StructT fs    -> let fs' = Map.toList fs
@@ -211,6 +214,7 @@ getBaseType tt
     UnitT         -> Just tt
     ErrorT        -> Just tt
     ArrayT  _     -> Just tt
+    MapT    _ _   -> Just tt
     GroupT  _ _   -> Just tt
     OptionT _     -> Just tt
     PairT   _ _   -> Just tt

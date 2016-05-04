@@ -112,6 +112,50 @@ numflips' v t
           end
  ~> case s | (s0,i) -> i end.
 
+# Quantiles from sample, same as in R.
+# quantile_on_sorted_buckets k q array
+#  =  let len          = length array
+#  ~> let actual       = (double k) / (q * double (len - 1))
+#  ~> let actual_ceil  = ceil  actual
+#  ~> let actual_floor = floor actual
+#  ~> let floor_weight = double actual_ceil - actual
+#  ~> let val_floor    = index array actual_floor
+#  ~> let val_ceil     = index array actual_ceil
+#  ~> double val_floor + double val_ceil * double (1 - floor_weight).
+
+#######################
+### Example queries ###
+#######################
+
+days_in x
+ = fold ds
+    = ((None, 0), map_create)
+    : case ds
+       |  ((None,             nv),     m)
+       -> ((Some (x, time), nv + 1), m)
+       |  ((Some (v, tv),     nv),     m)
+       -> (  let tx = time
+          ~> let nx = days between tv tx
+          ~> let n  = nv + nx
+          ~> case v == x
+              | True
+              -> ((Some (x, tx), nv + nx), m)
+              | False
+              -> (  let m' = (  let nv_ = map_lookup v m
+                             ~> case nv_
+                                 | None
+                                 -> map_insert v n m
+                                 | Some nv'
+                                 -> map_insert v (nv' + n) m
+                                end
+                              )
+                 ~> (Some (x, tx), 0, m')
+                 )
+             end
+          )
+      end
+ ~> snd ds.
+
 ###############################
 ### Backwards Compatibility ###
 ###############################

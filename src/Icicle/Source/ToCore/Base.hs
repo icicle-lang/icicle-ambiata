@@ -117,18 +117,18 @@ post n x = mempty { postcomps = [(n,x)] }
 
 data ConvertError a n
  = ConvertErrorNoSuchFeature (Name n)
- | ConvertErrorPrimNoArguments a Int Prim
- | ConvertErrorPrimAggregate   a Prim
- | ConvertErrorGroupByHasNonGroupResult a (Type n)
- | ConvertErrorGroupFoldNotOnGroup a (Exp (Annot a n) n)
- | ConvertErrorContextNotAllowedInGroupBy a (Query (Annot a n) n)
- | ConvertErrorExpNoSuchVariable a (Name n)
- | ConvertErrorExpNestedQueryNotAllowedHere a (Query (Annot a n) n)
- | ConvertErrorExpApplicationOfNonPrimitive a (Exp (Annot a n) n)
- | ConvertErrorReduceAggregateBadArguments a (Exp (Annot a n) n)
- | ConvertErrorCannotConvertType a (Type n)
- | ConvertErrorBadCaseNoDefault a (Exp (Annot a n) n)
- | ConvertErrorBadCaseNestedConstructors a (Exp (Annot a n) n)
+ | ConvertErrorPrimNoArguments               a Int Prim
+ | ConvertErrorPrimAggregate                 a Prim
+ | ConvertErrorGroupByHasNonGroupResult      a (Type n)
+ | ConvertErrorGroupFoldNotOnGroup           a (Exp (Annot a n) n)
+ | ConvertErrorContextNotAllowedInGroupBy    a (Query (Annot a n) n)
+ | ConvertErrorExpNoSuchVariable             a (Name n)
+ | ConvertErrorExpNestedQueryNotAllowedHere  a (Query (Annot a n) n)
+ | ConvertErrorExpApplicationOfNonPrimitive  a (Exp (Annot a n) n)
+ | ConvertErrorReduceAggregateBadArguments   a (Exp (Annot a n) n)
+ | ConvertErrorCannotConvertType             a (Type n)
+ | ConvertErrorBadCaseNoDefault              a (Exp (Annot a n) n)
+ | ConvertErrorBadCaseNestedConstructors     a (Exp (Annot a n) n)
  | ConvertErrorImpossibleFold1 a
  deriving (Show, Eq, Ord)
 
@@ -310,6 +310,7 @@ instance (Pretty a, Pretty n) => Pretty (ConvertError a n) where
 
      ConvertErrorPrimAggregate a p
       -> pretty a <> ": primitive " <> pretty p <> " is an aggregate. It should have been handled earlier."
+
      ConvertErrorGroupByHasNonGroupResult a ut
       -> pretty a <> ": group by has wrong return type; should be a group but got " <> pretty ut
 

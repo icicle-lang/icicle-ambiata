@@ -157,6 +157,10 @@ typeOfPrim p
 
     PrimBuiltinFun    (PrimBuiltinArray (PrimBuiltinSort t))
      -> FunT [funOfVal (ArrayT t)] (ArrayT t)
+    PrimBuiltinFun    (PrimBuiltinArray (PrimBuiltinLength t))
+     -> FunT [funOfVal (ArrayT t)] IntT
+    PrimBuiltinFun    (PrimBuiltinArray (PrimBuiltinIndex t))
+     -> FunT [funOfVal (ArrayT t), funOfVal IntT] t
 
     PrimToString PrimToStringFromInt
      -> FunT [funOfVal IntT] StringT

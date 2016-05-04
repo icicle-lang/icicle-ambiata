@@ -16,8 +16,9 @@ module Icicle.Source.Query.Exp (
   , BuiltinMath  (..)
   , BuiltinTime  (..)
   , BuiltinData  (..)
-  , BuiltinMap   (..)
+  , BuiltinGroup (..)
   , BuiltinArray (..)
+  , BuiltinMap   (..)
 
   , takeApps
   , takePrimApps

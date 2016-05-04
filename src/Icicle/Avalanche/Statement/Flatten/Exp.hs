@@ -130,6 +130,13 @@ flatX a_fresh xx stm
   flatPrim p xs
    = case p of
       -- Built-in functions that are supported differently in Source/Core vs. in Avalanche/Sea
+
+      -- User arrays
+      Core.PrimMinimal (Min.PrimBuiltinFun (Min.PrimBuiltinArray (Min.PrimBuiltinLength t)))
+       -> primApps (Flat.PrimProject $ Flat.PrimProjectArrayLength t) xs []
+      Core.PrimMinimal (Min.PrimBuiltinFun (Min.PrimBuiltinArray (Min.PrimBuiltinIndex t)))
+       -> primApps (Flat.PrimUnsafe $ Flat.PrimUnsafeArrayIndex t) xs []
+
       -- Implement heap sort in Avalanche so that it can be melted.
       Core.PrimMinimal (Min.PrimBuiltinFun (Min.PrimBuiltinArray (Min.PrimBuiltinSort t)))
        | [array] <- xs
@@ -391,7 +398,7 @@ flatX a_fresh xx stm
                  put'v i x= arrUpd tv x'map'v i x
 
                  upd' i   = slet (get'v i)
-                          $ \v    -> flatX' (upd `xApp` v)
+                          $ \v  -> flatX' (upd `xApp` v)
                           $ \u' -> return (Write n'map'v (put'v i u') <> Write n'done (xValue BoolT $ VBool True))
 
              loop1       <- forI sz  $ \i
@@ -424,6 +431,64 @@ flatX a_fresh xx stm
                           $ read'k
                           $ Let n'map'sz (arrLen tk x'map'k)
                           ( loop1 <> if_ins <> stm'' )
+
+             return ss
+
+       -- Map with wrong arguments
+       | otherwise
+       -> lift $ Left $ FlattenErrorPrimBadArgs p xs
+
+      -- Map : delete a value
+      Core.PrimMap (Core.PrimMapDelete tkOld tvOld)
+       | [key, map]   <- xs
+       , tk <- flatT tkOld
+       , tv <- flatT tvOld
+       -> flatX' key
+       $ \key'
+       -> flatX' map
+       $ \map'
+       -> do n'map'k     <- fresh
+             n'map'v     <- fresh
+             n'map'sz    <- fresh
+             let acc'map'k= Accumulator n'map'k (ArrayT tk) (mapKeys tk tv map')
+                 acc'map'v= Accumulator n'map'v (ArrayT tv) (mapVals tk tv map')
+
+                 x'map'k  = xVar n'map'k
+                 x'map'v  = xVar n'map'v
+
+                 read'k   = Read n'map'k n'map'k (ArrayT tk)
+                 read'v   = Read n'map'v n'map'v (ArrayT tv)
+
+                 sz       = xVar n'map'sz
+                 get'k i  = arrIx  tk x'map'k i
+
+                 del'k i  = arrDel tv x'map'k i
+                 del'v i  = arrDel tv x'map'v i
+
+                 del'  i  = Block
+                           [ Write n'map'k (del'k i)
+                           , Write n'map'v (del'v i)
+                           ]
+
+             loop1       <- forI sz
+                          $ \i
+                         ->  (read'k
+                         <$> (read'v
+                         <$> pure (If (relEq tk (get'k i) key') (del' i) mempty)))
+
+             n'map'      <- fresh
+             stm'        <- stm $ xVar n'map'
+
+             let stm''    = read'k
+                          $ read'v
+                          $ Let n'map' (mapPack tk tv x'map'k x'map'v)
+                          $ stm'
+
+                 ss       = InitAccumulator acc'map'k
+                          $ InitAccumulator acc'map'v
+                          $ read'k
+                          $ Let n'map'sz (arrLen tk x'map'k)
+                          ( loop1 <> stm'' )
 
              return ss
 

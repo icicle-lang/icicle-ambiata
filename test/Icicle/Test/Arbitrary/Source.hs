@@ -443,21 +443,23 @@ instance Arbitrary Prim where
 
    funs
     = fmap Fun
-        [ BuiltinMath Log
-        , BuiltinMath Exp
-        , BuiltinMath Sqrt
-        , BuiltinMath ToDouble
-        , BuiltinMath Abs
-        , BuiltinMath Floor
-        , BuiltinMath Ceiling
-        , BuiltinMath Round
-        , BuiltinMath Truncate
-        , BuiltinTime DaysBetween
-        , BuiltinTime DaysEpoch
-        , BuiltinData Seq
-        , BuiltinData Box
-        , BuiltinMap MapKeys
-        , BuiltinMap MapValues
+        [ BuiltinMath  Log
+        , BuiltinMath  Exp
+        , BuiltinMath  Sqrt
+        , BuiltinMath  ToDouble
+        , BuiltinMath  Abs
+        , BuiltinMath  Floor
+        , BuiltinMath  Ceiling
+        , BuiltinMath  Round
+        , BuiltinMath  Truncate
+        , BuiltinTime  DaysBetween
+        , BuiltinTime  DaysEpoch
+        , BuiltinData  Seq
+        , BuiltinData  Box
+        , BuiltinGroup GroupKeys
+        , BuiltinGroup GroupValues
+        , BuiltinMap   MapInsert
+        , BuiltinMap   MapDelete
         , BuiltinArray ArraySort ]
 
    cons

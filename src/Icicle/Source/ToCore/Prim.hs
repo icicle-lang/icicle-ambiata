@@ -14,10 +14,14 @@ import qualified        Icicle.Core.Exp.Combinators as CE
 import qualified        Icicle.Common.Base          as V
 import qualified        Icicle.Common.Exp           as CE
 import qualified        Icicle.Common.Type          as T
+import qualified        Icicle.Common.Fresh         as F
 
 import qualified        Icicle.Common.Exp.Prim.Minimal as Min
 
 import                  P
+
+import                  Control.Monad.Trans.Class
+import                  Data.Hashable
 
 
 -- | Convert a primitive application.
@@ -33,7 +37,8 @@ import                  P
 --
 -- is ill typed.
 convertPrim
-        :: Prim -> a
+        :: (Hashable n)
+        => Prim -> a
         -> Type n
         -> [(C.Exp () n, Type n)]
         -> ConvertM a n (C.Exp () n)
@@ -107,6 +112,8 @@ convertPrim p ann resT xts = go p
    = gotime f
   go (Fun (BuiltinData f))
    = godata f
+  go (Fun (BuiltinGroup f))
+   = gogroup f
   go (Fun (BuiltinMap f))
    = gomap f
   go (Fun (BuiltinArray f))
@@ -278,25 +285,65 @@ convertPrim p ann resT xts = go p
       _
        -> return $ primbuiltin $ Min.PrimBuiltinMath Min.PrimBuiltinTruncate
 
-  gomap prim
-   | ((_, tt) : _) <- xts = gomap' tt prim
+  gogroup prim
+   | ((_, tt) : _) <- xts = gogroup' tt prim
    | otherwise            = convertError $ ConvertErrorPrimNoArguments ann 1 p
 
-  gomap' tt prim
+  gogroup' tt prim
    | Just (T.MapT k v) <- valTypeOfType tt
    = return
    $ case prim of
-       MapKeys   -> primbuiltin $ Min.PrimBuiltinMap $ Min.PrimBuiltinKeys k v
-       MapValues -> primbuiltin $ Min.PrimBuiltinMap $ Min.PrimBuiltinVals k v
+       GroupKeys   -> primbuiltin $ Min.PrimBuiltinMap $ Min.PrimBuiltinKeys k v
+       GroupValues -> primbuiltin $ Min.PrimBuiltinMap $ Min.PrimBuiltinVals k v
    | otherwise
    = convertError $ ConvertErrorCannotConvertType ann tt
 
-  goarray prim
-   | ((_, tt) : _) <- xts = goarray' tt prim
-   | otherwise            = convertError $ ConvertErrorPrimNoArguments ann 1 p
+  gomap MapCreate
+   | Just (T.MapT tk tv) <- valTypeOfType resT
+   = return $ CE.emptyMap tk tv
+   | otherwise
+   = convertError $ ConvertErrorCannotConvertType ann resT
+  gomap MapInsert
+   | ((xk, _) : (xv, _) : (xm, tm) : _) <- xts
+   , Just (T.MapT tk tv)                <- valTypeOfType tm
+   = do n <- lift F.fresh
+        return $ CE.makeApps ()
+                 (CE.XPrim () . C.PrimMap $ C.PrimMapInsertOrUpdate tk tv)
+                 [CE.XLam () n tv xv, xv, xk, xm]
+   | otherwise
+   = convertError $ ConvertErrorPrimNoArguments ann 3 p
+  gomap MapDelete
+   | (_ : _ : (_, tm) : _) <- xts
+   , Just (T.MapT tk tv)   <- valTypeOfType tm
+   = return $ applies $ CE.XPrim () $ C.PrimMap $ C.PrimMapDelete tk tv
+   | otherwise
+   = convertError $ ConvertErrorPrimNoArguments ann 2 p
+  gomap MapLookup
+   | ((k, _) : (m, tm) : as) <- xts
+   , Just (T.MapT tk tv)     <- valTypeOfType tm
+   = return $ CE.makeApps () (CE.XPrim () $ C.PrimMap $ C.PrimMapLookup tk tv)
+                             (m : k : fmap fst as)
+   | otherwise
+   = convertError $ ConvertErrorPrimNoArguments ann 2 p
 
-  goarray' tt ArraySort
+  goarray ArraySort
+   | ((_, ta) : _) <- xts
+   = goarray' ta Min.PrimBuiltinSort
+   | otherwise
+   = convertError $ ConvertErrorPrimNoArguments ann 1 p
+  goarray ArrayLength
+   | ((_, ta) : _) <- xts
+   = goarray' ta Min.PrimBuiltinLength
+   | otherwise
+   = convertError $ ConvertErrorPrimNoArguments ann 1 p
+  goarray ArrayIndex
+   | ((_, ta) : _ : _) <- xts
+   = goarray' ta Min.PrimBuiltinIndex
+   | otherwise
+   = convertError $ ConvertErrorPrimNoArguments ann 2 p
+
+  goarray' tt prim
    | Just (T.ArrayT t) <- valTypeOfType tt
-   = return $ primbuiltin $ Min.PrimBuiltinArray $ Min.PrimBuiltinSort t
+   = return $ primbuiltin $ Min.PrimBuiltinArray $ prim t
    | otherwise
    = convertError $ ConvertErrorCannotConvertType ann tt
