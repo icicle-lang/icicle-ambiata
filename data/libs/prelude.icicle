@@ -128,34 +128,43 @@ quantile_on_sorted_buckets k q array
 #######################
 
 # Count the days that an entity has spent in different states.
-# e.g. days_in state time = [("NSW", 20), ("QLD", 1)]
-days_in x tx
- = fold ds
-    = ((None, 0), map_create)
-    : case ds
-       |  ((None,         nv),     m)
-       -> ((Some (x, tx), nv + 1), m)
-       |  ((Some (v, tv), nv),     m)
-       -> (  let nx = days between tv tx
-          ~> let n  = nv + nx
-          ~> case v == x
-              | True
-              -> ((Some (x, tx), nv + nx), m)
-              | False
-              -> (  let m' = (  let nv_ = map_lookup v m
-                             ~> case nv_
-                                 | None
-                                 -> map_insert v n m
-                                 | Some nv'
-                                 -> map_insert v (nv' + n) m
-                                end
-                              )
-                 ~> (Some (x, tx), 0, m')
-                 )
-             end
-          )
-      end
- ~> snd ds.
+# e.g. days_in state time now = [("NSW", 20), ("QLD", 1)]
+days_in x tx now
+ =  let x'  = newest x
+ ~> let tx' = newest tx
+ ~> let nx' = days between tx' now
+ ~> fold ds
+      = ((None, 0), map_create)
+      : case ds
+         |  ((None        , _     ), m)
+         -> ((Some (x, tx), 1     ), m)
+         |  ((Some (v, tv), nv    ), m)
+         -> (  let nx = days between tv tx
+            ~> let n  = nv + nx
+            ~> case v == x
+                | True
+                -> ((Some (x, tx), nv + nx), m)
+                | False
+                -> (  let m' = (  let nv_ = map_lookup v m
+                               ~> case nv_
+                                   | None
+                                   -> map_insert v n m
+                                   | Some nv'
+                                   -> map_insert v (n + nv') m
+                                  end
+                                )
+                   ~> (Some (x, tx), 0, m')
+                   )
+               end
+            )
+        end
+ ~> let m   = snd ds
+ ~> case map_lookup x' m
+     | None
+     -> map_insert x'  nx'     m
+     | Some n
+     -> map_insert x' (nx'+ n) m
+    end.
 
 ###############################
 ### Backwards Compatibility ###

@@ -64,14 +64,15 @@ ok, loaded test/cli/repl/data.psv, 13 rows
 > > ok, time set to 2016-01-01
 > ok, loaded dictionary with 1 features and 34 functions
 > ok, loaded test/cli/repl/t31-builtin/data.psv, 4 rows
-> > - C evaluation:
+> > -- NY should be 1.5 years, CA should be 3 years, OR should be 0.5 years
+> - C evaluation:
 [homer, [("CA",1461)
-        ,("NY",366)
+        ,("NY",579)
         ,("OR",151)]]
 
 - Core evaluation:
 [homer, [("CA",1461)
-        ,("NY",366)
+        ,("NY",579)
         ,("OR",151)]]
 
 > 

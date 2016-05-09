@@ -21,4 +21,5 @@ feature injury ~> let x = group_keys location ~> sort x
 :dictionary test/cli/repl/t31-builtin/dict.toml
 :load test/cli/repl/t31-builtin/data.psv
 
-feature state ~> days_in value time
+-- NY should be 1.5 years, CA should be 3 years, OR should be 0.5 years
+feature state ~> days_in value time now

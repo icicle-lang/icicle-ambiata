@@ -234,7 +234,7 @@ static ARRAY_T(t) INLINE ARRAY_FUN(t,swap)                                      
 
 
 /*
-Delete (arr, ix)
+Immutable Delete (arr, ix)
 */
 
 #define MK_ARRAY_DELETE(t)                                                      \
