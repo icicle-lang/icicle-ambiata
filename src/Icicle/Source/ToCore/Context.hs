@@ -10,6 +10,7 @@ module Icicle.Source.ToCore.Context (
   ) where
 
 import                  Icicle.Source.Type
+import                  Icicle.Source.Checker.Base
 import                  Icicle.Common.Base
 import qualified        Icicle.Core as C
 
@@ -49,9 +50,13 @@ typeOfFeatureVariable fv
  $ Possibility (if featureVariablePossibly fv then PossibilityPossibly else PossibilityDefinitely)
  $ featureVariableType fv
 
-envOfFeatureNow :: (Hashable n, Eq n) => Maybe (Name n) -> Map.Map (Name n) (Type n)
-envOfFeatureNow
+envOfFeatureNow :: (Hashable n, Eq n) => CheckOptions -> Maybe (Name n) -> Map.Map (Name n) (Type n)
+envOfFeatureNow opts
  = Map.fromList
  . maybeToList
  . fmap
-   (\n -> (n, Temporality TemporalityAggregate $ Possibility PossibilityDefinitely TimeT))
+   (\n -> (n, Temporality tmp $ Possibility PossibilityDefinitely TimeT))
+ where
+   tmp
+    | checkOptionNowPure opts = TemporalityPure
+    | otherwise               = TemporalityAggregate

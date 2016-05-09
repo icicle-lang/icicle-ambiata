@@ -91,13 +91,14 @@ emptyInvariants = Invariants True True
 data CheckOptions
  = CheckOptions
  { checkOptionRequireResumable :: Bool
+ , checkOptionNowPure          :: Bool
  } deriving (Show, Eq, Ord)
 
 optionBigData :: CheckOptions
-optionBigData = CheckOptions True
+optionBigData = CheckOptions True True
 
 optionSmallData :: CheckOptions
-optionSmallData = CheckOptions False
+optionSmallData = CheckOptions False True
 
 
 --------------------------------------------------------------------------------

@@ -146,7 +146,7 @@ data Command
 
 defaultState :: ReplState
 defaultState
-  = (ReplState [] demographics (unsafeTimeOfYMD 1970 1 1) False False False False False False False False False False False False False False False False False False)
+  = (ReplState [] demographics (unsafeTimeOfYMD 2016 1 1) False False False False False False False False False False False False False False False False False False)
     { hasCoreEval = True
     , doCoreSimp  = True }
 

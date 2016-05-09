@@ -458,8 +458,10 @@ instance Arbitrary Prim where
         , BuiltinData  Box
         , BuiltinGroup GroupKeys
         , BuiltinGroup GroupValues
+        , BuiltinMap   MapCreate
         , BuiltinMap   MapInsert
         , BuiltinMap   MapDelete
+        , BuiltinMap   MapLookup
         , BuiltinArray ArraySort ]
 
    cons

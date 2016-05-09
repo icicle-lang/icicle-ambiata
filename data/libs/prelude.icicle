@@ -113,28 +113,30 @@ numflips' v t
  ~> case s | (s0,i) -> i end.
 
 # Quantiles from sample, same as in R.
-# quantile_on_sorted_buckets k q array
-#  =  let len          = length array
-#  ~> let actual       = (double k) / (q * double (len - 1))
-#  ~> let actual_ceil  = ceil  actual
-#  ~> let actual_floor = floor actual
-#  ~> let floor_weight = double actual_ceil - actual
-#  ~> let val_floor    = index array actual_floor
-#  ~> let val_ceil     = index array actual_ceil
-#  ~> double val_floor + double val_ceil * double (1 - floor_weight).
+quantile_on_sorted_buckets k q array
+ =  let len          = length array
+ ~> let actual       = (double k) / (q * double (len - 1))
+ ~> let actual_ceil  = ceil  actual
+ ~> let actual_floor = floor actual
+ ~> let floor_weight = double actual_ceil - actual
+ ~> let val_floor    = index array actual_floor
+ ~> let val_ceil     = index array actual_ceil
+ ~> double val_floor + double val_ceil * double (1 - floor_weight).
 
 #######################
 ### Example queries ###
 #######################
 
-days_in x
+# Count the days that an entity has spent in different states.
+# e.g. days_in state time = [("NSW", 20), ("QLD", 1)]
+days_in x t
  = fold ds
     = ((None, 0), map_create)
     : case ds
-       |  ((None,             nv),     m)
-       -> ((Some (x, time), nv + 1), m)
-       |  ((Some (v, tv),     nv),     m)
-       -> (  let tx = time
+       |  ((None,         nv),     m)
+       -> ((Some (x, t),  nv + 1), m)
+       |  ((Some (v, tv), nv),     m)
+       -> (  let tx = t
           ~> let nx = days between tv tx
           ~> let n  = nv + nx
           ~> case v == x
