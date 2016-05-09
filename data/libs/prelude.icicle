@@ -112,8 +112,14 @@ numflips' v t
           end
  ~> case s | (s0,i) -> i end.
 
-# Quantiles from sample, same as in R.
-quantile_on_sorted_buckets k q array
+#######################
+### Example queries ###
+#######################
+
+# Quantiles from a sorted array of ints, same as in R.
+# TODO safe array_index in Source that maps to unsafe index in Avalanche
+# (might need a function unbox :: Sum Error a -> Option a)
+quantile_on_sorted k q array
  =  let len          = length array
  ~> let actual       = (double k) / (q * double (len - 1))
  ~> let actual_ceil  = ceil  actual
@@ -122,10 +128,6 @@ quantile_on_sorted_buckets k q array
  ~> let val_floor    = index array actual_floor
  ~> let val_ceil     = index array actual_ceil
  ~> double val_floor + double val_ceil * double (1 - floor_weight).
-
-#######################
-### Example queries ###
-#######################
 
 # Count the days that an entity has spent in different states.
 # e.g. days_in state time now = [("NSW", 20), ("QLD", 1)]

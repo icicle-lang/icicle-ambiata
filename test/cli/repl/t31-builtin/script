@@ -18,6 +18,9 @@ feature injury ~> let x = group_keys location ~> sort x
 -- Baked-in maps and arrays
 
 :set time 2016 1 1
+
+feature injury ~> let x = (latest 4 ~> days between now time) ~> quantile_on_sorted 1 2 (sort x)
+
 :dictionary test/cli/repl/t31-builtin/dict.toml
 :load test/cli/repl/t31-builtin/data.psv
 
