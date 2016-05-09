@@ -68,10 +68,15 @@ checkQ opts ctx q
 
       let t = annResult $ annotOfQuery q'
       case getTemporalityOrPure t of
-       TemporalityAggregate -> return ()
-       _ -> hoistEither
-          $ errorSuggestions (ErrorReturnNotAggregate (annotOfQuery $ q) t)
-                             [Suggest "The return must be an aggregate, otherwise the result could be quite large"]
+       TemporalityAggregate
+         -> return ()
+       TemporalityPure
+         -> return ()
+       _
+         -> hoistEither
+          $ errorSuggestions
+              (ErrorReturnNotAggregate (annotOfQuery $ q) t)
+              [Suggest "The return must be an aggregate, otherwise the result could be quite large"]
 
       hoistEither $ invariantQ ctx q
 

@@ -1,7 +1,7 @@
 welcome to iREPL
-ok, loaded 32 functions from data/libs/prelude.icicle
+ok, loaded 34 functions from data/libs/prelude.icicle
 ok, loaded test/cli/repl/data.psv, 13 rows
-> ok, loaded dictionary with 1 features and 32 functions
+> ok, loaded dictionary with 1 features and 34 functions
 > ok, loaded test/cli/repl/t15-tombstones/data.psv, 5 rows
 > > - Core evaluation:
 [gonzo, [("a",False)
