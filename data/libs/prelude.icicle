@@ -129,15 +129,14 @@ quantile_on_sorted_buckets k q array
 
 # Count the days that an entity has spent in different states.
 # e.g. days_in state time = [("NSW", 20), ("QLD", 1)]
-days_in x t
+days_in x tx
  = fold ds
     = ((None, 0), map_create)
     : case ds
        |  ((None,         nv),     m)
-       -> ((Some (x, t),  nv + 1), m)
+       -> ((Some (x, tx), nv + 1), m)
        |  ((Some (v, tv), nv),     m)
-       -> (  let tx = t
-          ~> let nx = days between tv tx
+       -> (  let nx = days between tv tx
           ~> let n  = nv + nx
           ~> case v == x
               | True

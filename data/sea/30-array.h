@@ -234,6 +234,30 @@ static ARRAY_T(t) INLINE ARRAY_FUN(t,swap)                                      
 
 
 /*
+Delete (arr, ix)
+*/
+
+#define MK_ARRAY_DELETE(t)                                                      \
+                                                                                \
+static ARRAY_T(t) INLINE ARRAY_FUN(t,delete)                                    \
+                  (imempool_t *pool, ARRAY_T(t) x, iint_t ix, t##_t v)          \
+{                                                                               \
+    iint_t count          = x->count;                                           \
+    iint_t sz         = iarray_size(count);                                     \
+    size_t bytes_head = ARRAY_SIZE(t, ix);                                      \
+    size_t bytes_tail = ARRAY_SIZE(t, sz - ix);                                 \
+                                                                                \
+    ARRAY_T(t) arr = (ARRAY_T(t))imempool_alloc(pool, bytes_old);               \
+    memcpy(arr, x,                      bytes_head_old);                        \
+    memcpy(arr, x + bytes_head_old + 1, bytes_tail_old);                        \
+    x = arr;                                                                    \
+                                                                                \
+    x->count = ix - 1;                                                          \
+    return x;                                                                   \
+}
+
+
+/*
 Define an array
 */
 
