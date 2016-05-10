@@ -170,7 +170,7 @@ evalPrim p originalP vs
       , i >= 0 && i < length a
       -> return $ VBase $ a List.!! i
       | otherwise
-      -> primError
+      -> return $ VBase $ VError ExceptTombstone
 
      -- To string
      PrimToString PrimToStringFromInt

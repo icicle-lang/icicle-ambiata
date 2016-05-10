@@ -6,6 +6,10 @@
 mod x y
   = x - (trunc (double x / double y) * y).
 
+# integer division
+int_div x y
+  = trunc (double x / double y).
+
 # Time statements
 newest v = latest 1 ~> fold1 s = v : v ~> s.
 oldest v = fold1 s = v : s ~> s.
@@ -121,13 +125,21 @@ numflips' v t
 # (might need a function unbox :: Sum Error a -> Option a)
 quantile_on_sorted k q array
  =  let len          = length array
- ~> let actual       = (double k) / (q * double (len - 1))
+ ~> let actual       = (double k / double q) * (double (len - 1))
  ~> let actual_ceil  = ceil  actual
  ~> let actual_floor = floor actual
  ~> let floor_weight = double actual_ceil - actual
- ~> let val_floor    = index array actual_floor
- ~> let val_ceil     = index array actual_ceil
- ~> double val_floor + double val_ceil * double (1 - floor_weight).
+ ~> case (actual_floor >= 0 && actual_floor < len && actual_ceil >= 0 && actual_ceil < len)
+     | True
+     -> (  let val_floor    = index array actual_floor
+        ~> let val_ceil     = index array actual_ceil
+        ~> let x            = double val_floor * floor_weight
+        ~> let y            = double val_ceil  * double (1 - floor_weight)
+        ~> Some (x + y)
+        )
+     | False
+     -> None
+    end.
 
 # Count the days that an entity has spent in different states.
 # e.g. days_in state time now = [("NSW", 20), ("QLD", 1)]

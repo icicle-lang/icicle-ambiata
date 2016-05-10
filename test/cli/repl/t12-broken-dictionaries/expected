@@ -1,5 +1,5 @@
 welcome to iREPL
-ok, loaded 34 functions from data/libs/prelude.icicle
+ok, loaded 35 functions from data/libs/prelude.icicle
 ok, loaded test/cli/repl/data.psv, 13 rows
 > -- Load dictionary
 > Dictionary load error:
