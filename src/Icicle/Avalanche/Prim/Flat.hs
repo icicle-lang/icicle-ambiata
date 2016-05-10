@@ -83,6 +83,7 @@ data PrimArray
  | PrimArrayPutImmutable !ValType          -- ^ Copy then update
  | PrimArrayZip          !ValType !ValType -- ^ Zip two arrays into one
  | PrimArraySwap         !ValType          -- ^ Swap two elements
+ | PrimArrayDel          !ValType          -- ^ Delete a value
  deriving (Eq, Ord, Show)
 
 data PrimMap
@@ -159,6 +160,9 @@ typeOfPrim p
 
     PrimArray   (PrimArraySwap a)
      -> FunT [funOfVal (ArrayT a), funOfVal IntT, funOfVal IntT] (ArrayT a)
+
+    PrimArray   (PrimArrayDel a)
+     -> FunT [funOfVal (ArrayT a), funOfVal IntT] (ArrayT a)
 
 
     PrimMelt    (PrimMeltPack t)
@@ -279,6 +283,9 @@ instance Pretty Prim where
 
  pretty (PrimArray (PrimArraySwap a))
   = annotate (AnnType a) "Array_elem_swap#"
+
+ pretty (PrimArray (PrimArrayDel a))
+  = annotate (AnnType a) "Array_elem_delete#"
 
 
  pretty (PrimMelt (PrimMeltPack t))

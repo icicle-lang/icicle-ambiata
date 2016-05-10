@@ -42,6 +42,7 @@ substT ss tt
       ErrorT        -> t
 
       ArrayT  a     -> ArrayT  (go a)
+      MapT    a b   -> MapT    (go a) (go b)
       GroupT  a b   -> GroupT  (go a) (go b)
       OptionT a     -> OptionT (go a)
       PairT   a b   -> PairT   (go a) (go b)
@@ -166,6 +167,12 @@ unifyT t1 t2
     ArrayT a
      | ArrayT b <- t2
      -> unifyT a b
+     | otherwise
+     -> Nothing
+
+    MapT ak av
+     | MapT bk bv <- t2
+     -> compose <$> unifyT ak bk <*> unifyT av bv
      | otherwise
      -> Nothing
 

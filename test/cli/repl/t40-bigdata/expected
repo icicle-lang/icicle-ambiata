@@ -1,5 +1,5 @@
 welcome to iREPL
-ok, loaded 32 functions from data/libs/prelude.icicle
+ok, loaded 35 functions from data/libs/prelude.icicle
 ok, loaded test/cli/repl/data.psv, 13 rows
 > -- Test "big data" mode where all queries must be windowed or latest
 > ok, big-data is now on
@@ -30,7 +30,7 @@ Check error:
 > >           λλλλ
 REPL Error:
 Check error:
-  For resumable queries, folds, groups and distincts must be inside windowed or latest at 41:9:data/libs/prelude.icicle
+  For resumable queries, folds, groups and distincts must be inside windowed or latest at 45:9:data/libs/prelude.icicle
   Fold: fold s = 0 : v$inline$0
         + s
         ~> s
@@ -42,7 +42,7 @@ Check error:
 > >           λλλλ
 REPL Error:
 Check error:
-  For resumable queries, folds, groups and distincts must be inside windowed or latest at 41:9:data/libs/prelude.icicle
+  For resumable queries, folds, groups and distincts must be inside windowed or latest at 45:9:data/libs/prelude.icicle
   Fold: fold s = 0 : v$inline$0
         + s
         ~> s
@@ -55,7 +55,7 @@ Check error:
 >           λλλλ
 REPL Error:
 Check error:
-  For resumable queries, folds, groups and distincts must be inside windowed or latest at 41:9:data/libs/prelude.icicle
+  For resumable queries, folds, groups and distincts must be inside windowed or latest at 45:9:data/libs/prelude.icicle
   Fold: fold s = 0 : v$inline$0
         + s
         ~> s
@@ -82,7 +82,7 @@ Check error:
 >           λλλλ
 REPL Error:
 Check error:
-  For resumable queries, folds, groups and distincts must be inside windowed or latest at 41:9:data/libs/prelude.icicle
+  For resumable queries, folds, groups and distincts must be inside windowed or latest at 45:9:data/libs/prelude.icicle
   Fold: fold s = 0 : v$inline$0
         + s
         ~> s
@@ -94,7 +94,7 @@ Check error:
 > >           λλλλ
 REPL Error:
 Check error:
-  For resumable queries, folds, groups and distincts must be inside windowed or latest at 41:9:data/libs/prelude.icicle
+  For resumable queries, folds, groups and distincts must be inside windowed or latest at 45:9:data/libs/prelude.icicle
   Fold: fold s = 0 : v$inline$0
         + s
         ~> s

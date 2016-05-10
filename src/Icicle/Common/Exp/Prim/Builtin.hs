@@ -31,12 +31,14 @@ data PrimBuiltinMath
 
 -- | Built-in map functions
 data PrimBuiltinMap
- = PrimBuiltinKeys !ValType !ValType -- ^ Get the keys in a map
- | PrimBuiltinVals !ValType !ValType -- ^ Get the values in a map
+ = PrimBuiltinKeys   !ValType !ValType -- ^ Get the keys in a map
+ | PrimBuiltinVals   !ValType !ValType -- ^ Get the values in a map
  deriving (Eq, Ord, Show)
 
 data PrimBuiltinArray
- = PrimBuiltinSort ValType
+ = PrimBuiltinSort   !ValType
+ | PrimBuiltinLength !ValType
+ | PrimBuiltinIndex  !ValType
  deriving (Eq, Ord, Show)
 
 instance NFData PrimBuiltinFun   where rnf x = seq x ()
@@ -65,9 +67,11 @@ instance Pretty PrimBuiltinMath where
 
 instance Pretty PrimBuiltinMap where
  pretty p = case p of
-   PrimBuiltinKeys k v -> annotateTypeArgs [MapT k v] "keys#"
-   PrimBuiltinVals k v -> annotateTypeArgs [MapT k v] "vals#"
+   PrimBuiltinKeys   k v -> annotateTypeArgs [MapT k v] "keys#"
+   PrimBuiltinVals   k v -> annotateTypeArgs [MapT k v] "vals#"
 
 instance Pretty PrimBuiltinArray where
  pretty p = case p of
-   PrimBuiltinSort t -> annotateTypeArgs [ArrayT t] "sort#"
+   PrimBuiltinSort   t -> annotateTypeArgs [ArrayT t] "sort#"
+   PrimBuiltinLength t -> annotateTypeArgs [ArrayT t] "length#"
+   PrimBuiltinIndex  t -> annotateTypeArgs [ArrayT t] "index#"

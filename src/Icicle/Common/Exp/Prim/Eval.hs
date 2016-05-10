@@ -159,6 +159,19 @@ evalPrim p originalP vs
       | otherwise
       -> primError
 
+     PrimBuiltinFun (PrimBuiltinArray (PrimBuiltinLength _))
+      | [VBase (VArray a)] <- vs
+      -> return $ VBase $ VInt $ List.length a
+      | otherwise
+      -> primError
+
+     PrimBuiltinFun (PrimBuiltinArray (PrimBuiltinIndex _))
+      | [VBase (VArray a), VBase (VInt i)] <- vs
+      , i >= 0 && i < length a
+      -> return $ VBase $ a List.!! i
+      | otherwise
+      -> return $ VBase $ VError ExceptTombstone
+
      -- To string
      PrimToString PrimToStringFromInt
       | [VBase (VInt i)] <- vs

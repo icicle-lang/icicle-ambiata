@@ -299,15 +299,43 @@ evalP ann p xs vs env
              -> return a
              | otherwise -> err
 
-            BuiltinMap MapKeys
+            BuiltinGroup GroupKeys
              | [VMap m] <- args
              -> return $ VArray $ Map.keys m
              | [VError e] <- args
              -> return $ VError e
              | otherwise -> err
-            BuiltinMap MapValues
+            BuiltinGroup GroupValues
              | [VMap m] <- args
              -> return $ VArray $ Map.elems m
+             | [VError e] <- args
+             -> return $ VError e
+             | otherwise -> err
+
+            BuiltinMap MapCreate
+             | [] <- args
+             -> return $ VMap $ Map.empty
+             | [VError e] <- args
+             -> return $ VError e
+             | otherwise -> err
+            BuiltinMap MapInsert
+             | [k, v, VMap m] <- args
+             -> return $ VMap $ Map.insert k v m
+             | [VError e] <- args
+             -> return $ VError e
+             | otherwise -> err
+            BuiltinMap MapDelete
+             | [k, VMap m] <- args
+             -> return $ VMap $ Map.delete k m
+             | [VError e] <- args
+             -> return $ VError e
+             | otherwise -> err
+            BuiltinMap MapLookup
+             | [k, VMap m] <- args
+             -> return
+             $  case Map.lookup k m of
+                  Nothing -> VNone
+                  Just x  -> VSome x
              | [VError e] <- args
              -> return $ VError e
              | otherwise -> err
@@ -315,6 +343,18 @@ evalP ann p xs vs env
             BuiltinArray ArraySort
              | [VArray a] <- args
              -> return $ VArray $ List.sort a
+             | [VError e] <- args
+             -> return $ VError e
+             | otherwise -> err
+            BuiltinArray ArrayLength
+             | [VArray a] <- args
+             -> return $ VInt $ List.length a
+             | [VError e] <- args
+             -> return $ VError e
+             | otherwise -> err
+            BuiltinArray ArrayIndex
+             | [VArray a, VInt i] <- args
+             -> return $ a List.!! i
              | [VError e] <- args
              -> return $ VError e
              | otherwise -> err

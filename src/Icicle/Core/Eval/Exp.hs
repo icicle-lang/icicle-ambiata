@@ -78,7 +78,12 @@ evalPrim p vs
           Just v
            -> do    v' <- applyBase upd v
                     return $ VBase $ VMap $ Map.insert key v' mm
+      | otherwise
+      -> primError
 
+     PrimMap (PrimMapDelete _ _)
+      | [VBase key, VBase (VMap mm)] <- vs
+      -> return $ VBase $ VMap $ Map.delete key mm
       | otherwise
       -> primError
 

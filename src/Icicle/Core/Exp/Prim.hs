@@ -54,6 +54,7 @@ data PrimArray
 -- | Map primitives
 data PrimMap
  = PrimMapInsertOrUpdate !ValType !ValType
+ | PrimMapDelete         !ValType !ValType
  | PrimMapMapValues      !ValType !ValType !ValType
  | PrimMapLookup         !ValType !ValType
  deriving (Eq, Ord, Show)
@@ -99,6 +100,8 @@ typeOfPrim p
     -- Map primitives
     PrimMap (PrimMapInsertOrUpdate k v)
      -> FunT [FunT [funOfVal v] v, funOfVal v, funOfVal k, funOfVal (MapT k v)] (MapT k v)
+    PrimMap (PrimMapDelete k v)
+     -> FunT [funOfVal k, funOfVal (MapT k v)] (MapT k v)
     PrimMap (PrimMapMapValues k v v')
      -> FunT [FunT [funOfVal v] v', funOfVal (MapT k v)] (MapT k v')
     PrimMap (PrimMapLookup k v)
@@ -138,6 +141,9 @@ instance Pretty Prim where
 
  pretty (PrimMap (PrimMapInsertOrUpdate k v))
   = annotate (AnnType (k , v)) "Map_insertOrUpdate#"
+
+ pretty (PrimMap (PrimMapDelete k v))
+  = annotate (AnnType (k , v)) "Map_delete#"
 
  pretty (PrimMap (PrimMapMapValues k v v'))
   = annotate (AnnType (k , v , v')) "Map_mapValues#"

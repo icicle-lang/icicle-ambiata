@@ -15,3 +15,17 @@ feature salary ~> let x = (latest 3 ~> value) ~> sort x
 
 feature injury ~> let x = group_keys location ~> sort x
 
+-- Baked-in maps and arrays
+
+:set time 2016 1 1
+
+feature injury ~> let x = (latest 4 ~> days between time now) ~> quantile_on_sorted 0.5 (sort x), x
+
+-- Invaild quantile arguments
+feature injury ~> let x = (latest 4 ~> days between time now) ~> quantile_on_sorted 5.0 (sort x), x
+
+:dictionary test/cli/repl/t31-builtin/dict.toml
+:load test/cli/repl/t31-builtin/data.psv
+
+-- NY should be 1.5 years, CA should be 3 years, OR should be 0.5 years
+feature state ~> days_in value time now

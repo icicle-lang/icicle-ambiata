@@ -1,5 +1,5 @@
 welcome to iREPL
-ok, loaded 32 functions from data/libs/prelude.icicle
+ok, loaded 35 functions from data/libs/prelude.icicle
 ok, loaded test/cli/repl/data.psv, 13 rows
 > ok, core evaluation is now on
 > ok, c evaluation now on
@@ -19,7 +19,7 @@ ok, loaded test/cli/repl/data.psv, 13 rows
                                    |  \_((_(_)|/(_)
                                    \             (
                                     \_____________)
-> > ok, loaded dictionary with 1 features and 32 functions
+> > ok, loaded dictionary with 1 features and 35 functions
 > ok, loaded test/cli/repl/t18-nested-structs/data.psv, 4 rows
 > > - C evaluation:
 [homer, [(1,1.5),(2,6.5)]

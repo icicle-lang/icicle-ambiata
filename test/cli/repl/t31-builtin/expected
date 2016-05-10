@@ -1,7 +1,7 @@
 welcome to iREPL
-ok, loaded 32 functions from data/libs/prelude.icicle
+ok, loaded 35 functions from data/libs/prelude.icicle
 ok, loaded test/cli/repl/data.psv, 13 rows
-> ok, loaded dictionary with 8 features and 32 functions
+> ok, loaded dictionary with 8 features and 35 functions
 > ok, loaded data/example/demographics.psv, 24 rows
 > ok, core evaluation is now on
 > ok, c evaluation now on
@@ -60,4 +60,36 @@ ok, loaded test/cli/repl/data.psv, 13 rows
 - Core evaluation:
 [homer, ["arm","head","torso"]]
 
-> > 
+> > -- Baked-in maps and arrays
+> > ok, time set to 2016-01-01
+> > - C evaluation:
+[homer, (7122.0
+        ,[9496,8035,6209,2191])]
+
+- Core evaluation:
+[homer, (7122.0
+        ,[9496,8035,6209,2191])]
+
+> > -- Invaild quantile arguments
+> - C evaluation:
+[homer, (tombstone
+        ,[9496,8035,6209,2191])]
+
+- Core evaluation:
+[homer, (tombstone
+        ,[9496,8035,6209,2191])]
+
+> > ok, loaded dictionary with 1 features and 35 functions
+> ok, loaded test/cli/repl/t31-builtin/data.psv, 4 rows
+> > -- NY should be 1.5 years, CA should be 3 years, OR should be 0.5 years
+> - C evaluation:
+[homer, [("CA",1461)
+        ,("NY",580)
+        ,("OR",151)]]
+
+- Core evaluation:
+[homer, [("CA",1461)
+        ,("NY",580)
+        ,("OR",151)]]
+
+> 

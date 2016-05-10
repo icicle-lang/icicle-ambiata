@@ -41,7 +41,7 @@ checkQT opts features qt
      -> do  let env = Map.unions
                       [ fmap function0 (envOfFeatureContext f)
                       , featuresFunctions features
-                      , fmap function0 (envOfFeatureNow  (featureNow features)) ]
+                      , fmap function0 (envOfFeatureNow opts (featureNow features)) ]
             (q,t) <- checkQ opts (emptyCheckEnv { checkEnvironment = env }) (query qt)
             return (qt { query = q }, t)
 
@@ -68,10 +68,15 @@ checkQ opts ctx q
 
       let t = annResult $ annotOfQuery q'
       case getTemporalityOrPure t of
-       TemporalityAggregate -> return ()
-       _ -> hoistEither
-          $ errorSuggestions (ErrorReturnNotAggregate (annotOfQuery $ q) t)
-                             [Suggest "The return must be an aggregate, otherwise the result could be quite large"]
+       TemporalityAggregate
+         -> return ()
+       TemporalityPure
+         -> return ()
+       _
+         -> hoistEither
+          $ errorSuggestions
+              (ErrorReturnNotAggregate (annotOfQuery $ q) t)
+              [Suggest "The return must be an aggregate, otherwise the result could be quite large"]
 
       hoistEither $ invariantQ ctx q
 

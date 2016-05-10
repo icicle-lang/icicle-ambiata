@@ -95,6 +95,7 @@ data Keyword =
  | Let
 
  -- Builtin
+ -- math
  | Log
  | Exp
  | Sqrt
@@ -104,11 +105,21 @@ data Keyword =
  | Ceil
  | Round
  | Trunc
- | Keys
- | Vals
+ -- data
  | Seq
  | Box
+ -- grouping
+ | Keys
+ | Vals
+ -- arrays
  | Sort
+ | Length
+ | Index
+ -- user maps
+ | Map_Create
+ | Map_Insert
+ | Map_Delete
+ | Map_Lookup
  deriving (Eq, Ord, Show, Enum, Bounded)
 
 
