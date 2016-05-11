@@ -85,11 +85,6 @@ primLookup' p
     Fun (BuiltinData Box)
      -> f1 $ \a at -> FunctionType [a] [] [OptionT at] (Possibility PossibilityPossibly at)
 
-    Fun (BuiltinGroup GroupKeys)
-     -> f2 $ \a at b bt -> FunctionType [a,b] [] [GroupT at bt] (ArrayT at)
-    Fun (BuiltinGroup GroupValues)
-     -> f2 $ \a at b bt -> FunctionType [a,b] [] [GroupT at bt] (ArrayT bt)
-
     Fun (BuiltinArray ArraySort)
      -> f1 $ \a at -> FunctionType [a] [] [ArrayT at] (ArrayT at)
     Fun (BuiltinArray ArrayLength)
@@ -97,14 +92,18 @@ primLookup' p
     Fun (BuiltinArray ArrayIndex)
      -> f1 $ \a at -> FunctionType [a] [] [ArrayT at, IntT] at
 
+    Fun (BuiltinMap MapKeys)
+     -> f2 $ \a at b bt -> FunctionType [a,b] [] [GroupT at bt] (ArrayT at)
+    Fun (BuiltinMap MapValues)
+     -> f2 $ \a at b bt -> FunctionType [a,b] [] [GroupT at bt] (ArrayT bt)
     Fun (BuiltinMap MapCreate)
-     -> f2 $ \k kt v vt -> FunctionType [k, v] [] [] (MapT kt vt)
+     -> f2 $ \k kt v vt -> FunctionType [k, v] [] [] (GroupT kt vt)
     Fun (BuiltinMap MapInsert)
-     -> f2 $ \k kt v vt -> FunctionType [k, v] [] [kt, vt, MapT kt vt] (MapT kt vt)
+     -> f2 $ \k kt v vt -> FunctionType [k, v] [] [kt, vt, GroupT kt vt] (GroupT kt vt)
     Fun (BuiltinMap MapDelete)
-     -> f2 $ \k kt v vt -> FunctionType [k, v] [] [kt, MapT kt vt] (MapT kt vt)
+     -> f2 $ \k kt v vt -> FunctionType [k, v] [] [kt, GroupT kt vt] (GroupT kt vt)
     Fun (BuiltinMap MapLookup)
-     -> f2 $ \k kt v vt -> FunctionType [k, v] [] [kt, MapT kt vt] (OptionT vt)
+     -> f2 $ \k kt v vt -> FunctionType [k, v] [] [kt, GroupT kt vt] (OptionT vt)
 
     PrimCon ConSome
      -> f1 $ \a at -> FunctionType [a] [] [at] (OptionT at)

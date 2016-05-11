@@ -299,19 +299,18 @@ evalP ann p xs vs env
              -> return a
              | otherwise -> err
 
-            BuiltinGroup GroupKeys
+            BuiltinMap MapKeys
              | [VMap m] <- args
              -> return $ VArray $ Map.keys m
              | [VError e] <- args
              -> return $ VError e
              | otherwise -> err
-            BuiltinGroup GroupValues
+            BuiltinMap MapValues
              | [VMap m] <- args
              -> return $ VArray $ Map.elems m
              | [VError e] <- args
              -> return $ VError e
              | otherwise -> err
-
             BuiltinMap MapCreate
              | [] <- args
              -> return $ VMap $ Map.empty

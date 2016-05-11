@@ -12,7 +12,6 @@ data BuiltinFun
  = BuiltinMath  !BuiltinMath
  | BuiltinTime  !BuiltinTime
  | BuiltinData  !BuiltinData
- | BuiltinGroup !BuiltinGroup
  | BuiltinArray !BuiltinArray
  | BuiltinMap   !BuiltinMap
  deriving (Show, Eq, Ord)
@@ -22,7 +21,6 @@ listOfBuiltinFuns = concat
   [ fmap BuiltinMath    [minBound..maxBound]
   , fmap BuiltinTime    [minBound..maxBound]
   , fmap BuiltinData    [minBound..maxBound]
-  , fmap BuiltinGroup   [minBound..maxBound]
   , fmap BuiltinArray   [minBound..maxBound]
   , fmap BuiltinMap     [minBound..maxBound]
   ]
@@ -49,9 +47,13 @@ data BuiltinData
  | Box
  deriving (Show, Eq, Ord, Enum, Bounded)
 
-data BuiltinGroup
- = GroupKeys
- | GroupValues
+data BuiltinMap
+ = MapKeys
+ | MapValues
+ | MapCreate
+ | MapInsert
+ | MapDelete
+ | MapLookup
  deriving (Show, Eq, Ord, Enum, Bounded)
 
 data BuiltinArray
@@ -60,18 +62,10 @@ data BuiltinArray
  | ArrayIndex
  deriving (Show, Eq, Ord, Enum, Bounded)
 
-data BuiltinMap
- = MapCreate
- | MapInsert
- | MapDelete
- | MapLookup
- deriving (Show, Eq, Ord, Enum, Bounded)
-
 instance NFData BuiltinFun   where rnf x = seq x ()
 instance NFData BuiltinMath  where rnf x = seq x ()
 instance NFData BuiltinTime  where rnf x = seq x ()
 instance NFData BuiltinData  where rnf x = seq x ()
-instance NFData BuiltinGroup where rnf x = seq x ()
 instance NFData BuiltinMap   where rnf x = seq x ()
 instance NFData BuiltinArray where rnf x = seq x ()
 
@@ -81,7 +75,6 @@ instance Pretty BuiltinFun where
  pretty (BuiltinMath  b) = pretty b
  pretty (BuiltinTime  b) = pretty b
  pretty (BuiltinData  b) = pretty b
- pretty (BuiltinGroup b) = pretty b
  pretty (BuiltinArray b) = pretty b
  pretty (BuiltinMap   b) = pretty b
 
@@ -104,16 +97,14 @@ instance Pretty BuiltinData where
  pretty Seq         = "seq"
  pretty Box         = "box"
 
-instance Pretty BuiltinGroup where
- pretty GroupKeys   = "keys"
- pretty GroupValues = "vals"
-
 instance Pretty BuiltinArray where
  pretty ArraySort   = "sort"
  pretty ArrayLength = "length"
  pretty ArrayIndex  = "index"
 
 instance Pretty BuiltinMap where
+ pretty MapKeys   = "keys"
+ pretty MapValues = "vals"
  pretty MapCreate = "map_create"
  pretty MapInsert = "map_insert"
  pretty MapDelete = "map_delete"
