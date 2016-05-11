@@ -1,3 +1,6 @@
+:set +core-eval
+:set +c-eval
+
 -- Sum example
 feature salary ~> sum value
 

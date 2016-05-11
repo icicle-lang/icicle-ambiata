@@ -1,6 +1,6 @@
 welcome to iREPL
-ok, loaded 35 functions from data/libs/prelude.icicle
+ok, loaded 37 functions from data/libs/prelude.icicle
 ok, loaded test/cli/repl/data.psv, 13 rows
 > -- Load dictionary
-> ok, loaded dictionary with 8 features and 35 functions
+> ok, loaded dictionary with 8 features and 37 functions
 > 

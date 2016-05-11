@@ -629,7 +629,13 @@ peekOutput ptr ix0 t =
     FactIdentifierT
             -> (ix0+1,) . VFactIdentifier . FactIdentifier . fromInt64 <$> peekWordOff ptr ix0
 
-    StructT{} -> left (SeaTypeConversionError t)
+    StructT _
+     | Just ts <- tryMeltType t
+     -> do (ix1, oss) <- peekOutputs ptr ix0 ts
+           v <- unmeltValueE (SeaTypeConversionError t) oss t
+           pure (ix1, v)
+     | otherwise -> left (SeaTypeConversionError t)
+
     BufT{}    -> left (SeaTypeConversionError t)
 
     StringT
