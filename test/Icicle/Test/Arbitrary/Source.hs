@@ -456,8 +456,8 @@ instance Arbitrary Prim where
         , BuiltinTime  DaysEpoch
         , BuiltinData  Seq
         , BuiltinData  Box
-        , BuiltinGroup GroupKeys
-        , BuiltinGroup GroupValues
+        , BuiltinMap   MapKeys
+        , BuiltinMap   MapValues
         , BuiltinMap   MapCreate
         , BuiltinMap   MapInsert
         , BuiltinMap   MapDelete

@@ -179,6 +179,26 @@ days_in x tx now
      -> map_insert x' (nx'+ n) m
     end.
 
+# The offsets (in days) of facts.
+date_offset_days time
+ =  fold1 offsets
+     = (map_insert 0 0 map_create, time)
+     : (  let begin = snd offsets
+       ~> let map   = fst offsets
+       ~> let ds    = days between begin time
+       ~> (map_insert ds 0 map, begin))
+ ~> keys (fst offsets).
+
+# The offsets (in weeks) of facts.
+date_offset_weeks time
+ =  fold1 offsets
+     = (map_insert 0 0 map_create, time)
+     : (  let begin = snd offsets
+       ~> let map   = fst offsets
+       ~> let ds    = round (double (days between begin time) / 7)
+       ~> (map_insert ds 0 map, begin))
+ ~> keys (fst offsets).
+
 ###############################
 ### Backwards Compatibility ###
 ###############################

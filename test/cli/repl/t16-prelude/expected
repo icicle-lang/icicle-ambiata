@@ -1,68 +1,136 @@
 welcome to iREPL
-ok, loaded 35 functions from data/libs/prelude.icicle
+ok, loaded 37 functions from data/libs/prelude.icicle
 ok, loaded test/cli/repl/data.psv, 13 rows
-> -- Sum example
-> - Core evaluation:
+> ok, core evaluation is now on
+> ok, c evaluation now on
+                   _________-----_____
+        _____------           __      ----_
+ ___----             ___------              \
+    ----________        ----                 \
+                -----__    |             _____)
+                     __-                /     \
+         _______-----    ___--          \    /)\
+   ------_______      ---____            \__/  /
+                -----__    \ --    _          /\
+                       --__--__     \_____/   \_/\
+                               ----|   /          |
+                                   |  |___________|
+                                   |  | ((_(_)| )_)
+                                   |  \_((_(_)|/(_)
+                                   \             (
+                                    \_____________)
+> > -- Sum example
+> - C evaluation:
+[homer, 1500,marge, 30]
+
+- Core evaluation:
 [homer, 1500,marge, 30]
 
 > > -- Count example
-> - Core evaluation:
+> - C evaluation:
+[homer, 5,marge, 3]
+
+- Core evaluation:
 [homer, 5,marge, 3]
 
 > > -- Mean example
-> - Core evaluation:
+> - C evaluation:
+[homer, 300.0,marge, 10.0]
+
+- Core evaluation:
 [homer, 300.0,marge, 10.0]
 
 > > -- minby / min example
-> - Core evaluation:
+> - C evaluation:
+[homer, ("head",1)]
+
+- Core evaluation:
 [homer, ("head",1)]
 
 > > -- maxby / max example
-> - Core evaluation:
+> - C evaluation:
+[homer, ("arm",4)]
+
+- Core evaluation:
 [homer, ("arm",4)]
 
 > > -- Standard deviation example
-> - Core evaluation:
+> - C evaluation:
+[homer, 158.11388300841898
+,marge, 10.0]
+
+- Core evaluation:
 [homer, 158.11388300841898
 ,marge, 10.0]
 
 > > -- Gradient example
-> - Core evaluation:
+> - C evaluation:
+[homer, 17.53336340594424
+,marge, NaN]
+
+- Core evaluation:
 [homer, 17.533363405944193
 ,marge, NaN]
 
 > > -- Pearsons correlation example
-> - Core evaluation:
+> - C evaluation:
+[homer, 0.9279829441311143
+,marge, NaN]
+
+- Core evaluation:
 [homer, 0.927982944131114
 ,marge, NaN]
 
 > > -- Newest example
-> - Core evaluation:
+> - C evaluation:
+[homer, [(location,"torso")
+        ,(severity,1)]]
+
+- Core evaluation:
 [homer, [(location,"torso")
         ,(severity,1)]]
 
 > > -- Oldest example
-> - Core evaluation:
+> - C evaluation:
+[homer, [(location,"head")
+        ,(severity,2)]]
+
+- Core evaluation:
 [homer, [(location,"head")
         ,(severity,2)]]
 
 > > -- Numflips example
-> - Core evaluation:
+> - C evaluation:
 [homer, 2]
 
-> - Core evaluation:
+- Core evaluation:
+[homer, 2]
+
+> - C evaluation:
+[homer, 2]
+
+- Core evaluation:
 [homer, 2]
 
 > > -- IsSome
-> - Core evaluation:
+> - C evaluation:
+[homer, [True],marge, [True]]
+
+- Core evaluation:
 [homer, [True],marge, [True]]
 
 > -- IsNone
-> - Core evaluation:
+> - C evaluation:
+[homer, [False],marge, [False]]
+
+- Core evaluation:
 [homer, [False],marge, [False]]
 
 > > --GetOrElse example
-> - Core evaluation:
+> - C evaluation:
+[homer, 500,marge, 20]
+
+- Core evaluation:
 [homer, 500,marge, 20]
 
 > 

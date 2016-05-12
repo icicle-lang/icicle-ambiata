@@ -16,7 +16,6 @@ module Icicle.Source.Query.Exp (
   , BuiltinMath  (..)
   , BuiltinTime  (..)
   , BuiltinData  (..)
-  , BuiltinGroup (..)
   , BuiltinArray (..)
   , BuiltinMap   (..)
 

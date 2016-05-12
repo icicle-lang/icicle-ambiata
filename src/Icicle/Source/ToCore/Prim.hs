@@ -112,8 +112,6 @@ convertPrim p ann resT xts = go p
    = gotime f
   go (Fun (BuiltinData f))
    = godata f
-  go (Fun (BuiltinGroup f))
-   = gogroup f
   go (Fun (BuiltinMap f))
    = gomap f
   go (Fun (BuiltinArray f))
@@ -285,19 +283,22 @@ convertPrim p ann resT xts = go p
       _
        -> return $ primbuiltin $ Min.PrimBuiltinMath Min.PrimBuiltinTruncate
 
-  gogroup prim
-   | ((_, tt) : _) <- xts = gogroup' tt prim
-   | otherwise            = convertError $ ConvertErrorPrimNoArguments ann 1 p
-
-  gogroup' tt prim
-   | Just (T.MapT k v) <- valTypeOfType tt
-   = return
-   $ case prim of
-       GroupKeys   -> primbuiltin $ Min.PrimBuiltinMap $ Min.PrimBuiltinKeys k v
-       GroupValues -> primbuiltin $ Min.PrimBuiltinMap $ Min.PrimBuiltinVals k v
+  gomap MapKeys
+   | ((_, tm) : _) <- xts
+   = case valTypeOfType tm of
+       Just (T.MapT k v)
+         -> return $ primbuiltin $ Min.PrimBuiltinMap $ Min.PrimBuiltinKeys k v
+       _ -> convertError $ ConvertErrorCannotConvertType ann tm
    | otherwise
-   = convertError $ ConvertErrorCannotConvertType ann tt
-
+   = convertError $ ConvertErrorPrimNoArguments ann 1 p
+  gomap MapValues
+   | ((_, tm) : _) <- xts
+   = case valTypeOfType tm of
+       Just (T.MapT k v)
+         -> return $ primbuiltin $ Min.PrimBuiltinMap $ Min.PrimBuiltinVals k v
+       _ -> convertError $ ConvertErrorCannotConvertType ann tm
+   | otherwise
+   = convertError $ ConvertErrorPrimNoArguments ann 1 p
   gomap MapCreate
    | Just (T.MapT tk tv) <- valTypeOfType resT
    = return $ CE.emptyMap tk tv
@@ -305,24 +306,31 @@ convertPrim p ann resT xts = go p
    = convertError $ ConvertErrorCannotConvertType ann resT
   gomap MapInsert
    | ((xk, _) : (xv, _) : (xm, tm) : _) <- xts
-   , Just (T.MapT tk tv)                <- valTypeOfType tm
-   = do n <- lift F.fresh
-        return $ CE.makeApps ()
-                 (CE.XPrim () . C.PrimMap $ C.PrimMapInsertOrUpdate tk tv)
-                 [CE.XLam () n tv xv, xv, xk, xm]
+   = case valTypeOfType tm of
+       Just (T.MapT tk tv)
+         -> do n <- lift F.fresh
+               return $ CE.makeApps ()
+                        (CE.XPrim () . C.PrimMap $ C.PrimMapInsertOrUpdate tk tv)
+                        [CE.XLam () n tv xv, xv, xk, xm]
+       _ -> convertError $ ConvertErrorCannotConvertType ann tm
    | otherwise
    = convertError $ ConvertErrorPrimNoArguments ann 3 p
   gomap MapDelete
    | (_ : _ : (_, tm) : _) <- xts
-   , Just (T.MapT tk tv)   <- valTypeOfType tm
-   = return $ applies $ CE.XPrim () $ C.PrimMap $ C.PrimMapDelete tk tv
+   = case valTypeOfType tm of
+       Just (T.MapT tk tv)
+         -> return $ applies $ CE.XPrim () $ C.PrimMap $ C.PrimMapDelete tk tv
+       _ -> convertError $ ConvertErrorCannotConvertType ann tm
    | otherwise
    = convertError $ ConvertErrorPrimNoArguments ann 2 p
   gomap MapLookup
    | ((k, _) : (m, tm) : as) <- xts
-   , Just (T.MapT tk tv)     <- valTypeOfType tm
-   = return $ CE.makeApps () (CE.XPrim () $ C.PrimMap $ C.PrimMapLookup tk tv)
-                             (m : k : fmap fst as)
+   = case valTypeOfType tm  of
+       Just (T.MapT tk tv)
+         -> return
+          $ CE.makeApps () (CE.XPrim () $ C.PrimMap $ C.PrimMapLookup tk tv)
+                           (m : k : fmap fst as)
+       _ -> convertError $ ConvertErrorCannotConvertType ann tm
    | otherwise
    = convertError $ ConvertErrorPrimNoArguments ann 2 p
 

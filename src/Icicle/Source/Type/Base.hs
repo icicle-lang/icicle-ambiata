@@ -35,7 +35,6 @@ data Type n
  | ErrorT
 
  | ArrayT   (Type n)
- | MapT     (Type n) (Type n) -- User maps (can be inside groups)
  | GroupT   (Type n) (Type n)
  | OptionT  (Type n)
  | PairT    (Type n) (Type n)
@@ -90,7 +89,6 @@ valTypeOfType bt
     UnitT        -> return CT.UnitT
     ErrorT       -> return CT.ErrorT
     ArrayT a     -> CT.ArrayT  <$> go a
-    MapT   k v   -> CT.MapT    <$> go k <*> go v
     GroupT k v   -> CT.MapT    <$> go k <*> go v
     OptionT a    -> CT.OptionT <$> go a
     PairT a b    -> CT.PairT   <$> go a <*> go b
@@ -157,7 +155,6 @@ instance Pretty n => Pretty (Type n) where
  pretty TimeT           = text "Time"
  pretty StringT         = text "String"
  pretty (ArrayT t)      = parens (text "Array"  <+> pretty t)
- pretty (MapT   k v)    = parens (text "Map"    <+> pretty k <+> pretty v)
  pretty (GroupT k v)    = parens (text "Group"  <+> pretty k <+> pretty v)
  pretty (OptionT a)     = parens (text "Option" <+> pretty a)
  pretty (PairT a b)     = text "(" <> pretty a <> text ", " <> pretty b <> text ")"
