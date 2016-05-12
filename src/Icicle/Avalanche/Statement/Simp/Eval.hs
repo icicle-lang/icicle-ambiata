@@ -39,18 +39,15 @@ simpEvalX' ev ty = go
         , p' <- fromMaybe p mp
         , q' <- fromMaybe q mq
         , x' <- XApp a p' q'
-        , Just (prim, as) <- takePrimApps x'
-        , Just args       <- mapM (takeValue . just go) as
-        -> case simpEvalP ev ty a prim args of
-            Just x''
-             -> return x''
-            Nothing
-             | isJust mp || isJust mq
-             -> return x'
-             | otherwise
-             -> Nothing
+        -> case takePrimApps x' of
+             Just (prim, as)
+               | Just args <- mapM takeValue as
+               -> case simpEvalP ev ty a prim args of
+                   Just x''
+                     -> return x''
+                   _ -> XApp a <$> mp <*> mq
+             _ -> XApp a <$> mp <*> mq
 
-      XApp a p q
         | Just p' <- go p, Just q' <- go q -> Just $ XApp a p' q'
         | Just p' <- go p, Nothing <- go q -> Just $ XApp a p' q
         | Nothing <- go p, Just q' <- go q -> Just $ XApp a p  q'
@@ -68,8 +65,6 @@ simpEvalX' ev ty = go
       XVar{}   -> Nothing
       XPrim{}  -> Nothing
       XValue{} -> Nothing
-
-    just f x = fromMaybe x (f x)
 
 
 -- | Primitive Simplifier
