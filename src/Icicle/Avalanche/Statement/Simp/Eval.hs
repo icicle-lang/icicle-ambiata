@@ -32,6 +32,11 @@ simpEvalX'  :: (Hashable n, Eq n)
             -> Maybe (Exp a n p)
 simpEvalX' ev ty = go
   where
+    both _ _ _ Nothing  Nothing  = Nothing
+    both f _ _ (Just a) (Just b) = Just $ f a b
+    both f x _ Nothing (Just b)  = Just $ f x b
+    both f _ y (Just a) Nothing  = Just $ f a y
+
     go xx = case xx of
       XApp a p q
         | mp <- go p
@@ -45,22 +50,16 @@ simpEvalX' ev ty = go
                -> case simpEvalP ev ty a prim args of
                    Just x''
                      -> return x''
-                   _ -> XApp a <$> mp <*> mq
-             _ -> XApp a <$> mp <*> mq
-
-        | Just p' <- go p, Just q' <- go q -> Just $ XApp a p' q'
-        | Just p' <- go p, Nothing <- go q -> Just $ XApp a p' q
-        | Nothing <- go p, Just q' <- go q -> Just $ XApp a p  q'
-        | otherwise                        -> Nothing
+                   _ -> both (XApp a) p q mp mq
+             _ -> both (XApp a) p q mp mq
 
       XLam a n t x1
         -> XLam a n t <$> go x1
 
       XLet a n p q
-        | Just p' <- go p, Just q' <- go q -> Just $ XLet a n p' q'
-        | Just p' <- go p, Nothing <- go q -> Just $ XLet a n p' q
-        | Nothing <- go p, Just q' <- go q -> Just $ XLet a n p  q'
-        | otherwise                        -> Nothing
+        | mp <- go p
+        , mq <- go q
+        -> both (XLet a n) p q mp mq
 
       XVar{}   -> Nothing
       XPrim{}  -> Nothing
