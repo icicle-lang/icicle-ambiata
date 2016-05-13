@@ -316,7 +316,7 @@ convertPrim p ann resT xts = go p
    | otherwise
    = convertError $ ConvertErrorPrimNoArguments ann 3 p
   gomap MapDelete
-   | (_ : _ : (_, tm) : _) <- xts
+   | (_ : (_, tm) : _) <- xts
    = case valTypeOfType tm of
        Just (T.MapT tk tv)
          -> return $ applies $ CE.XPrim () $ C.PrimMap $ C.PrimMapDelete tk tv
