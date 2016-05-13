@@ -8,62 +8,52 @@ module Icicle.Avalanche.Statement.Simp.Eval
 import           Icicle.Common.Value
 import           Icicle.Common.Exp
 import           Icicle.Common.Type
+import           Icicle.Common.FixT
 
 import           P
 
 import           Data.Hashable (Hashable)
+import           Data.Functor.Identity
 
 simpEvalX   :: (Hashable n, Eq n)
             => EvalPrim a n p
             -> (p -> Type)
             -> Exp a n p
             -> Exp a n p
-simpEvalX ev ty = fixp (simpEvalX' ev ty)
- where
-  fixp f x
-   | Just x' <- f x = fixp f x'
-   | otherwise      = x
+simpEvalX ev ty xx
+ = runIdentity $ once (simpEvalX' ev ty xx)
 
 
-simpEvalX'  :: (Hashable n, Eq n)
+simpEvalX'  :: (Monad m, Hashable n, Eq n)
             => EvalPrim a n p
             -> (p -> Type)
             -> Exp a n p
-            -> Maybe (Exp a n p)
+            -> FixT m (Exp a n p)
 simpEvalX' ev ty = go
   where
-    both _ _ _ Nothing  Nothing  = Nothing
-    both f _ _ (Just a) (Just b) = Just $ f a b
-    both f x _ Nothing (Just b)  = Just $ f x b
-    both f _ y (Just a) Nothing  = Just $ f a y
-
     go xx = case xx of
       XApp a p q
-        | mp <- go p
-        , mq <- go q
-        , p' <- fromMaybe p mp
-        , q' <- fromMaybe q mq
-        , x' <- XApp a p' q'
-        -> case takePrimApps x' of
-             Just (prim, as)
-               | Just args <- mapM takeValue as
-               -> case simpEvalP ev ty a prim args of
-                   Just x''
-                     -> return x''
-                   _ -> both (XApp a) p q mp mq
-             _ -> both (XApp a) p q mp mq
+       -> do p' <- go p
+             q' <- go q
+             let x' = XApp a p' q'
+             case takePrimApps x' of
+               Just (prim, as)
+                 | Just args <- mapM takeValue as
+                 -> case simpEvalP ev ty a prim args of
+                     Just x''
+                       -> progress x''
+                     _ -> return x'
+               _ -> return x'
 
       XLam a n t x1
         -> XLam a n t <$> go x1
 
       XLet a n p q
-        | mp <- go p
-        , mq <- go q
-        -> both (XLet a n) p q mp mq
+        -> XLet a n <$> go p <*> go q
 
-      XVar{}   -> Nothing
-      XPrim{}  -> Nothing
-      XValue{} -> Nothing
+      XVar{}   -> return xx
+      XPrim{}  -> return xx
+      XValue{} -> return xx
 
 
 -- | Primitive Simplifier
