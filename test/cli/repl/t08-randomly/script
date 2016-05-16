@@ -8,3 +8,5 @@ feature salary ~> latest 2 ~> let chef = 2 ~> 1 / chef
 -- Expect error.
 feature salary ~> latest 4 ~> let kermit = -count value ~> value
 
+-- This is a type error because it is a recursive type
+feature salary ~> fold gonzo = Left 0 : Right gonzo ~> gonzo

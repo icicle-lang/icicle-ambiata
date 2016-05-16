@@ -21,4 +21,14 @@ Check error:
           This kind of let isn't allowed because its definition could never be used.
           The definition is a Aggregate, while the body is a Element.
 
-> > 
+> > -- This is a type error because it is a recursive type
+>                     λλλλ
+REPL Error:
+Check error:
+  Cannot discharge constraints at 1:19
+  Constraints: 
+    1:19  Cannot unify: (Sum check$5 check$3)
+          With type:    (Sum check$9 (Sum check$5 check$3))
+          These types were required to be equal, but are not.
+
+> 
