@@ -2,7 +2,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards #-}
-module Icicle.Sea.Psv (
+module Icicle.Sea.IO.Psv (
     PsvInputConfig(..)
   , PsvOutputConfig(..)
   , PsvMode(..)
@@ -27,9 +27,9 @@ import           Icicle.Sea.FromAvalanche.Base (seaOfAttributeDesc, seaOfTime)
 import           Icicle.Sea.FromAvalanche.State
 import           Icicle.Sea.FromAvalanche.Type
 
-import           Icicle.Sea.Psv.Base
-import           Icicle.Sea.Psv.Input
-import           Icicle.Sea.Psv.Output
+import           Icicle.Sea.IO.Psv.Base
+import           Icicle.Sea.IO.Psv.Input
+import           Icicle.Sea.IO.Psv.Output
 
 import           P
 

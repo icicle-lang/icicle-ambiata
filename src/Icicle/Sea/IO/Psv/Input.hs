@@ -3,7 +3,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards     #-}
 {-# LANGUAGE TupleSections     #-}
-module Icicle.Sea.Psv.Input
+module Icicle.Sea.IO.Psv.Input
   ( seaOfReadAnyFact
   , nameOfLastTime
   , PsvInputDenseDict (..)
@@ -42,7 +42,7 @@ import           Icicle.Sea.FromAvalanche.Prim
 import           Icicle.Sea.FromAvalanche.Program (seaOfXValue)
 import           Icicle.Sea.FromAvalanche.State
 import           Icicle.Sea.FromAvalanche.Type
-import           Icicle.Sea.Psv.Base
+import           Icicle.Sea.IO.Psv.Base
 
 import           P
 

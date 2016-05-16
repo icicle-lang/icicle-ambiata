@@ -170,10 +170,10 @@ library
                        Icicle.Sea.Chords
                        Icicle.Sea.Chords.File
                        Icicle.Sea.Chords.Parse
-                       Icicle.Sea.Psv
-                       Icicle.Sea.Psv.Base
-                       Icicle.Sea.Psv.Input
-                       Icicle.Sea.Psv.Output
+                       Icicle.Sea.IO.Psv
+                       Icicle.Sea.IO.Psv.Base
+                       Icicle.Sea.IO.Psv.Input
+                       Icicle.Sea.IO.Psv.Output
 
                        Icicle.Source.Eval
                        Icicle.Source.Query

@@ -78,9 +78,9 @@ import           Icicle.Sea.FromAvalanche.Program (seaOfProgram, nameOfProgram')
 import           Icicle.Sea.FromAvalanche.State (stateOfProgram, nameOfStateSize')
 import           Icicle.Sea.FromAvalanche.Type (seaOfDefinitions)
 import           Icicle.Sea.Preamble (seaPreamble)
-import           Icicle.Sea.Psv ( PsvInputConfig(..), PsvOutputConfig(..), PsvMode(..)
-                                , PsvInputFormat(..), PsvOutputFormat (..) , PsvInputDenseDict (..)
-                                , PsvInputAllowDupTime(..), seaOfPsvDriver)
+import           Icicle.Sea.IO.Psv ( PsvInputConfig(..), PsvOutputConfig(..), PsvMode(..)
+                                   , PsvInputFormat(..), PsvOutputFormat (..) , PsvInputDenseDict (..)
+                                   , PsvInputAllowDupTime(..), seaOfPsvDriver)
 
 import           Jetski
 

@@ -2,7 +2,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards #-}
-module Icicle.Sea.Psv.Base (
+module Icicle.Sea.IO.Psv.Base (
     PsvMode(..)
   , StringWord(..)
   , wordsOfString
