@@ -453,7 +453,9 @@ instance Arbitrary Prim where
         , BuiltinMath  Round
         , BuiltinMath  Truncate
         , BuiltinTime  DaysBetween
-        , BuiltinTime  DaysEpoch
+        , BuiltinTime  DaysJulianEpoch
+        , BuiltinTime  SecondsBetween
+        , BuiltinTime  SecondsJulianEpoch
         , BuiltinData  Seq
         , BuiltinData  Box
         , BuiltinMap   MapKeys

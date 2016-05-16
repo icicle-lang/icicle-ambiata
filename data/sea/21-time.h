@@ -18,7 +18,7 @@ static itime_t INLINE itime_from_gregorian (iint_t y, iint_t M, iint_t d, iint_t
 }
 
 /* Number of days since 1600-03-01 (see Ivory DateTime). */
-static iint_t INLINE itime_to_epoch (itime_t x)
+static iint_t INLINE itime_to_epoch_days (itime_t x)
 {
     int64_t y, m, d, _0, _1, _2;
     itime_to_gregorian (x, &y, &m, &d, &_0, &_1, &_2);
@@ -30,7 +30,20 @@ static iint_t INLINE itime_to_epoch (itime_t x)
     return 365*y + y/4 - y/100 + y/400 + (m*306 + 5)/10 + (d - 1);
 }
 
-static itime_t INLINE itime_from_epoch (iint_t g)
+/* Number of seconds since 1600-03-01 (see Ivory DateTime). */
+static iint_t INLINE itime_to_epoch_seconds (itime_t x)
+{
+  int64_t y, m, d, h, n, s;
+  itime_to_gregorian (x, &y, &m, &d, &h, &n, &s);
+  y = y - 1600;
+
+  m = (m + 9) % 12;
+  y = y - m/10;
+
+  return s + 60*n + 3600*h + (365*y + y/4 - y/100 + y/400 + (m*306 + 5)/10 + (d - 1)) * 86400;
+}
+
+static itime_t INLINE itime_from_epoch_days (iint_t g)
 {
     int64_t y = ((10000*g + 14780)/3652425);
     int64_t ddd = g - (365*y + y/4 - y/100 + y/400);
@@ -50,14 +63,51 @@ static itime_t INLINE itime_from_epoch (iint_t g)
     return itime_from_gregorian (y + 1600, mm, dd, 0, 0, 0);
 }
 
+static itime_t INLINE itime_from_epoch_seconds (iint_t s)
+{
+  int64_t g = s / 86400;
+  int64_t r = s % 86400;
+
+  int64_t y = ((10000*g + 14780)/3652425);
+  int64_t ddd = g - (365*y + y/4 - y/100 + y/400);
+
+  if (ddd < 0) {
+    y = y - 1;
+    ddd = g - (365*y + y/4 - y/100 + y/400);
+  }
+
+  int64_t mi = (100*ddd + 52)/3060;
+  int64_t mm = (mi + 2)%12 + 1;
+
+  y = y + (mi + 2)/12;
+
+  int64_t dd = ddd - (mi*306 + 5)/10 + 1;
+
+  int64_t hh =  r / 3600;
+  int64_t nn = (r - hh*3600) / 60;
+  int64_t ss =  r - hh*3600 - nn*60;
+
+  return itime_from_gregorian (y + 1600, mm, dd, hh, nn, ss);
+}
+
 static iint_t INLINE itime_days_diff (itime_t x, itime_t y)
 {
-    return itime_to_epoch (y) - itime_to_epoch (x);
+    return itime_to_epoch_days (y) - itime_to_epoch_days (x);
+}
+
+static iint_t INLINE itime_seconds_diff (itime_t x, itime_t y)
+{
+  return itime_to_epoch_seconds (y) - itime_to_epoch_seconds (x);
 }
 
 static itime_t INLINE itime_minus_days (itime_t x, iint_t y)
 {
-    return itime_from_epoch (itime_to_epoch(x) - y);
+    return itime_from_epoch_days (itime_to_epoch_days(x) - y);
+}
+
+static itime_t INLINE itime_minus_seconds (itime_t x, iint_t y)
+{
+  return itime_from_epoch_seconds (itime_to_epoch_seconds(x) - y);
 }
 
 static ibool_t INLINE is_leap_year (int64_t y)

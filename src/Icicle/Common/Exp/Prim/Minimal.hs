@@ -92,8 +92,11 @@ data PrimConst
 -- | Time primitives
 data PrimTime
  = PrimTimeDaysDifference
- | PrimTimeDaysEpoch
+ | PrimTimeSecondsDifference
+ | PrimTimeDaysJulianEpoch
+ | PrimTimeSecondsJulianEpoch
  | PrimTimeMinusDays
+ | PrimTimeMinusSeconds
  | PrimTimeMinusMonths
  deriving (Eq, Ord, Show, Enum, Bounded)
 
@@ -191,8 +194,14 @@ typeOfPrim p
 
     PrimTime PrimTimeDaysDifference
      -> FunT [funOfVal TimeT, funOfVal TimeT] IntT
-    PrimTime PrimTimeDaysEpoch
+    PrimTime PrimTimeDaysJulianEpoch
      -> FunT [funOfVal TimeT] IntT
+    PrimTime PrimTimeSecondsDifference
+     -> FunT [funOfVal TimeT, funOfVal TimeT] IntT
+    PrimTime PrimTimeSecondsJulianEpoch
+     -> FunT [funOfVal TimeT] IntT
+    PrimTime PrimTimeMinusSeconds
+     -> FunT [funOfVal TimeT, funOfVal IntT] TimeT
     PrimTime PrimTimeMinusDays
      -> FunT [funOfVal TimeT, funOfVal IntT] TimeT
     PrimTime PrimTimeMinusMonths
@@ -242,10 +251,13 @@ instance Pretty PrimConst where
  pretty (PrimConstRight a b) = annotateTypeArgs [a,b] "right#"
 
 instance Pretty PrimTime where
- pretty PrimTimeDaysDifference = "Time_daysDifference#"
- pretty PrimTimeDaysEpoch      = "Time_daysEpoch#"
- pretty PrimTimeMinusDays      = "Time_minusDays#"
- pretty PrimTimeMinusMonths    = "Time_minusMonths#"
+ pretty PrimTimeDaysDifference     = "Time_daysDifference#"
+ pretty PrimTimeDaysJulianEpoch    = "Time_daysJulianEpoch#"
+ pretty PrimTimeSecondsDifference  = "Time_secondsDifference#"
+ pretty PrimTimeSecondsJulianEpoch = "Time_secondsJulianEpoch#"
+ pretty PrimTimeMinusSeconds       = "Time_minusSeconds#"
+ pretty PrimTimeMinusDays          = "Time_minusDays#"
+ pretty PrimTimeMinusMonths        = "Time_minusMonths#"
 
 instance Pretty PrimPair where
  pretty (PrimPairFst a b) = annotateTypeArgs [a,b] "fst#"
