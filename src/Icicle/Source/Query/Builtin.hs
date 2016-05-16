@@ -39,7 +39,9 @@ data BuiltinMath
 
 data BuiltinTime
  = DaysBetween
- | DaysEpoch
+ | DaysJulianEpoch
+ | SecondsBetween
+ | SecondsJulianEpoch
  deriving (Show, Eq, Ord, Enum, Bounded)
 
 data BuiltinData
@@ -90,8 +92,10 @@ instance Pretty BuiltinMath where
  pretty Truncate    = "trunc"
 
 instance Pretty BuiltinTime where
- pretty DaysBetween = "days between"
- pretty DaysEpoch   = "days"
+ pretty DaysBetween        = "days between"
+ pretty DaysJulianEpoch    = "days"
+ pretty SecondsBetween     = "seconds between"
+ pretty SecondsJulianEpoch = "seconds"
 
 instance Pretty BuiltinData where
  pretty Seq         = "seq"

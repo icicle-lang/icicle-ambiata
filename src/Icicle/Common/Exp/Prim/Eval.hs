@@ -257,9 +257,27 @@ evalPrim p originalP vs
       | otherwise
       -> primError
 
-     PrimTime PrimTimeDaysEpoch
+     PrimTime PrimTimeDaysJulianEpoch
       | [VBase (VTime a)] <- vs
-      -> return $ VBase $ VInt $ Time.daysOfTime a
+      -> return $ VBase $ VInt $ Time.daysCountJulian a
+      | otherwise
+      -> primError
+
+     PrimTime PrimTimeSecondsDifference
+      | [VBase (VTime a), VBase (VTime b)] <- vs
+      -> return $ VBase $ VInt $ Time.secondsDifference a b
+      | otherwise
+      -> primError
+
+     PrimTime PrimTimeSecondsJulianEpoch
+      | [VBase (VTime a)] <- vs
+      -> return $ VBase $ VInt $ Time.secondsCountJulian a
+      | otherwise
+      -> primError
+
+     PrimTime PrimTimeMinusSeconds
+      | [VBase (VTime a), VBase (VInt b)] <- vs
+      -> return $ VBase $ VTime $ Time.minusSeconds a b
       | otherwise
       -> primError
 

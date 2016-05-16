@@ -188,8 +188,14 @@ builtins
  <|> try  (Q.Fun (Q.BuiltinTime Q.DaysBetween)
             <$  pKeyword T.Days
             <* pKeyword T.Between)
- <|> try  (Q.Fun (Q.BuiltinTime Q.DaysEpoch)
+ <|> try  (Q.Fun (Q.BuiltinTime Q.DaysJulianEpoch)
              <$  pKeyword T.Days
+             <* notFollowedBy (pKeyword T.Before <|> pKeyword T.After))
+ <|> try  (Q.Fun (Q.BuiltinTime Q.SecondsBetween)
+            <$  pKeyword T.Seconds
+            <* pKeyword T.Between)
+ <|> try  (Q.Fun (Q.BuiltinTime Q.SecondsJulianEpoch)
+             <$  pKeyword T.Seconds
              <* notFollowedBy (pKeyword T.Before <|> pKeyword T.After))
 
 simpleBuiltins :: [(T.Keyword, Q.Prim)]

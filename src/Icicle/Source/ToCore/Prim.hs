@@ -209,8 +209,12 @@ convertPrim p ann resT xts = go p
   -- Source built-in primitives supported by other language fragments
   gotime DaysBetween
    = return $ primmin $ Min.PrimTime Min.PrimTimeDaysDifference
-  gotime DaysEpoch
-   = return $ primmin $ Min.PrimTime Min.PrimTimeDaysEpoch
+  gotime DaysJulianEpoch
+   = return $ primmin $ Min.PrimTime Min.PrimTimeDaysJulianEpoch
+  gotime SecondsBetween
+   = return $ primmin $ Min.PrimTime Min.PrimTimeSecondsDifference
+  gotime SecondsJulianEpoch
+   = return $ primmin $ Min.PrimTime Min.PrimTimeSecondsJulianEpoch
   -- This looks pointless, but actually isn't. Reify possibilities takes care of sequencing both
   -- of the possiblities of this function, so although we don't check that the first tuple is
   -- not a tombstone here, it is now assured to not be.

@@ -37,6 +37,7 @@ library
                      , semigroups                      == 0.16.*
                      , temporary                       == 1.2.*
                      , text                            == 1.2.*
+                     , thyme                           == 0.3.*
                      , time                            == 1.5.*
                      , time-locale-compat              == 0.1.*
                      , transformers                    >= 0.3        && < 0.5
@@ -44,6 +45,7 @@ library
                      , unordered-containers            == 0.2.*
                      , validation                      == 0.5.*
                      , vector                          == 0.10.*
+                     , vector-space                    == 0.10.*
 
                      -- Used for benchmark data generation
                      , QuickCheck                      == 2.8.*

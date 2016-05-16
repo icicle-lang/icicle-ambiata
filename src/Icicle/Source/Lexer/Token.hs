@@ -80,6 +80,9 @@ data Keyword =
  | Days
  | Months
  | Weeks
+ | Hours
+ | Minutes
+ | Seconds
  | Windowed
 
  -- Syntax

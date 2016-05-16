@@ -77,7 +77,11 @@ primLookup' p
 
     Fun (BuiltinTime DaysBetween)
      -> f0 [TimeT, TimeT] IntT
-    Fun (BuiltinTime DaysEpoch)
+    Fun (BuiltinTime DaysJulianEpoch)
+     -> f0 [TimeT] IntT
+    Fun (BuiltinTime SecondsBetween)
+     -> f0 [TimeT, TimeT] IntT
+    Fun (BuiltinTime SecondsJulianEpoch)
      -> f0 [TimeT] IntT
 
     Fun (BuiltinData Seq)

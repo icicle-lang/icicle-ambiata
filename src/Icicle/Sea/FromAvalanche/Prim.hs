@@ -104,10 +104,13 @@ seaOfPrimArithBinary p
 seaOfPrimTime :: M.PrimTime -> Doc
 seaOfPrimTime p
  = case p of
-     M.PrimTimeDaysDifference -> "days_diff"
-     M.PrimTimeDaysEpoch      -> "to_epoch"
-     M.PrimTimeMinusDays      -> "minus_days"
-     M.PrimTimeMinusMonths    -> "minus_months"
+     M.PrimTimeDaysDifference     -> "days_diff"
+     M.PrimTimeSecondsDifference  -> "seconds_diff"
+     M.PrimTimeDaysJulianEpoch    -> "to_epoch_days"
+     M.PrimTimeSecondsJulianEpoch -> "to_epoch_seconds"
+     M.PrimTimeMinusSeconds       -> "minus_seconds"
+     M.PrimTimeMinusDays          -> "minus_days"
+     M.PrimTimeMinusMonths        -> "minus_months"
 
 seaOfPrimBuiltinMath :: M.PrimBuiltinMath -> Doc
 seaOfPrimBuiltinMath p = case p of

@@ -283,9 +283,17 @@ evalP ann p xs vs env
              | [VTime i, VTime j] <- args
              -> return $ VDouble $ fromIntegral $ DT.daysDifference i j
              | otherwise -> err
-            BuiltinTime DaysEpoch
+            BuiltinTime DaysJulianEpoch
              | [VTime i] <- args
-             -> return $ VDouble $ fromIntegral $ DT.daysOfTime i
+             -> return $ VDouble $ fromIntegral $ DT.daysCountJulian i
+             | otherwise -> err
+            BuiltinTime SecondsBetween
+             | [VTime i, VTime j] <- args
+             -> return $ VDouble $ fromIntegral $ DT.secondsDifference i j
+             | otherwise -> err
+            BuiltinTime SecondsJulianEpoch
+             | [VTime i] <- args
+             -> return $ VDouble $ fromIntegral $ DT.secondsCountJulian i
              | otherwise -> err
 
             BuiltinData Seq
