@@ -21,6 +21,7 @@ import                  Icicle.Source.Type.Compounds
 import                  P
 
 import qualified        Data.Map as Map
+import qualified        Data.Set as Set
 import                  Data.Hashable (Hashable)
 
 type SubstT n = Map.Map (Name n) (Type n)
@@ -149,9 +150,20 @@ unifyT t1 t2
      | TypeVar b <- t2
      , a == b
      -> return $ Map.empty
+
     TypeVar a
+     -- Occurs check.
+     -- TODO: it would be nice to have a better error message than just
+     -- "Could not unify".
+     -- Something specifically about recursive types would be ideal.
+     | a `Set.member` freeT t2
+     -> Nothing
+     | otherwise
      -> return $ Map.singleton a t2
     _
+     | TypeVar b <- t2
+     , b `Set.member` freeT t1
+     -> Nothing
      | TypeVar b <- t2
      -> return $ Map.singleton b t1
 
