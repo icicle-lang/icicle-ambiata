@@ -4,31 +4,21 @@
 {-# LANGUAGE PatternGuards     #-}
 {-# LANGUAGE TupleSections     #-}
 module Icicle.Sea.IO.Psv.Input
-  ( seaOfReadAnyFact
-  , nameOfLastTime
+  ( seaOfReadAnyFactPsv
+  , seaInputPsv
   , PsvInputDenseDict (..)
   , PsvInputFormat (..)
   , PsvInputConfig (..)
-  , PsvInputAllowDupTime (..)
   ) where
 
 
-import qualified Data.ByteString as B
 import qualified Data.List as List
-import           Data.Map (Map)
 import qualified Data.Map as Map
 import           Data.Set (Set)
 import qualified Data.Set as Set
 import           Data.Text (Text)
-import qualified Data.Text as T
-import qualified Data.Text.Encoding as T
-import           Data.Word (Word8)
-
-import           Icicle.Avalanche.Prim.Flat (Prim(..), PrimArray(..))
-import           Icicle.Avalanche.Prim.Flat (meltType)
 
 import           Icicle.Common.Type (ValType(..), StructType(..), StructField(..))
-import           Icicle.Common.Type (defaultOfType)
 
 import           Icicle.Data (Attribute(..), StructFieldType(..))
 
@@ -38,20 +28,17 @@ import           Icicle.Internal.Pretty
 import qualified Icicle.Internal.Pretty as Pretty
 
 import           Icicle.Sea.Error (SeaError(..))
-import           Icicle.Sea.FromAvalanche.Prim
-import           Icicle.Sea.FromAvalanche.Program (seaOfXValue)
 import           Icicle.Sea.FromAvalanche.State
 import           Icicle.Sea.FromAvalanche.Type
 import           Icicle.Sea.IO.Psv.Base
+import qualified Icicle.Sea.IO.Base.Input as Base
 
 import           P
 
 
 data PsvInputConfig = PsvInputConfig {
     inputPsvMode        :: PsvMode
-  , inputPsvTombstones  :: Map Attribute (Set Text)
   , inputPsvFormat      :: PsvInputFormat
-  , inputPsvDupTime     :: PsvInputAllowDupTime
   } deriving (Eq, Ord, Show)
 
 data PsvInputFormat
@@ -59,19 +46,69 @@ data PsvInputFormat
   | PsvInputDense  PsvInputDenseDict PsvInputDenseFeedName
   deriving (Eq, Ord, Show)
 
--- | Whether fact times must be unique for an entity.
---
-data PsvInputAllowDupTime
-  = AllowDupTime | DoNotAllowDupTime
-  deriving (Eq, Ord, Show)
+--------------------------------------------------------------------------------
+
+-- * Psv input "interface"
+
+seaInputPsv :: Base.SeaInput
+seaInputPsv = Base.SeaInput
+  { Base.cstmtReadInput    = seaOfReadInput
+  , Base.cstmtReadTime     = seaOfReadTime
+  , Base.cfunReadTombstone = seaOfReadTombstone
+  }
+  where
+    seaOfReadTime :: Base.CBlock
+    seaOfReadTime
+      = vsep
+      [ "ierror_loc_t error = fixed_read_itime (time_ptr, time_size, &time);"
+      , "if (error) return error;"
+      ]
+
+    seaOfReadInput :: ValType -> [(Text, ValType)] -> Either SeaError Base.CStmt
+    seaOfReadInput inType inVars
+     = case (inVars, inType) of
+        ([(nx, BoolT)], BoolT)
+         -> pure (readValue "text" Base.assignVar nx BoolT)
+
+        ([(nx, DoubleT)], DoubleT)
+         -> pure (readValue "text" Base.assignVar nx DoubleT)
+
+        ([(nx, IntT)], IntT)
+         -> pure (readValue "text" Base.assignVar nx IntT)
+
+        ([(nx, TimeT)], TimeT)
+         -> pure (readValue "text" Base.assignVar nx TimeT)
+
+        ([(nx, StringT)], StringT)
+         -> pure (readValuePool "text" Base.assignVar nx StringT)
+
+        (_, t@(ArrayT _))
+         -> seaOfReadJsonValue Base.assignVar t inVars
+
+        (_, t@(StructT _))
+         -> seaOfReadJsonValue Base.assignVar t inVars
+
+        (_, t)
+         -> Left (SeaUnsupportedInputType t)
+
+    seaOfReadTombstone :: Base.CheckedInput -> [Text] -> Doc
+    seaOfReadTombstone input = \case
+      []     -> Pretty.empty
+      (t:ts) -> "if (" <> Base.seaOfStringEq t "value_ptr" (Just "value_size") <> ") {" <> line
+             <> "    " <> pretty (Base.inputSumError input) <> " = ierror_tombstone;" <> line
+             <> "} else " <> seaOfReadTombstone input ts
 
 
-seaOfReadAnyFact :: PsvInputConfig -> [SeaProgramState] -> Either SeaError Doc
-seaOfReadAnyFact config states = do
+seaOfReadAnyFactPsv
+  :: Base.InputOpts
+  -> PsvInputConfig
+  -> [SeaProgramState]
+  -> Either SeaError Doc
+seaOfReadAnyFactPsv opts config states = do
   case inputPsvFormat config of
     PsvInputSparse
-      -> do let tss  = fmap (lookupTombstones config) states
-            readStates_sea <- zipWithM seaOfReadSparseFact states tss
+      -> do let tss  = fmap (lookupTombstones opts) states
+            readStates_sea <- zipWithM seaOfReadFactSparse states tss
             pure $ vsep
               [ vsep readStates_sea
               , ""
@@ -85,15 +122,15 @@ seaOfReadAnyFact config states = do
               , "  , const size_t  time_size"
               , "  , ifleet_t     *fleet )"
               , "{"
-              , indent 4 (vsep (fmap (seaOfReadNamedFactSparse (inputPsvDupTime config)) states))
+              , indent 4 (vsep (fmap (seaOfReadNamedFactSparse opts) states))
               , "    return 0;"
               , "}"
               ]
     PsvInputDense dict feed
       -> do state     <- maybeToRight (SeaDenseFeedNotUsed feed)
                        $ List.find ((==) feed . getAttribute . stateAttribute) states
-            let ts     = lookupTombstones config state
-            read_sea  <- seaOfReadDenseFact dict state ts
+            let ts     = lookupTombstones opts state
+            read_sea  <- seaOfReadFactDense dict state ts
             pure $ vsep
               [ read_sea
               , ""
@@ -105,30 +142,51 @@ seaOfReadAnyFact config states = do
               , "  , const size_t  time_size"
               , "  , ifleet_t     *fleet )"
               , "{"
-              , indent 4 (seaOfReadNamedFactDense (inputPsvDupTime config) state)
+              , indent 4 (seaOfReadNamedFactDense opts state)
               , "    return 0;"
               , "}"
               ]
 
 --------------------------------------------------------------------------------
 
-seaOfReadDenseFact :: PsvInputDenseDict -> SeaProgramState -> Set Text -> Either SeaError Doc
-seaOfReadDenseFact dict state tombstones = do
+-- * Dense PSV
+
+seaOfReadNamedFactDense :: Base.InputOpts -> SeaProgramState -> Doc
+seaOfReadNamedFactDense opts state
+ = let attrib = getAttribute (stateAttribute state)
+       err    = vsep
+                [ "        return ierror_loc_format"
+                , "           ( time_ptr + time_size"
+                , "           , time_ptr"
+                , "           , \"%s: time is out of order: %.*s must be later than %.*s\""
+                , "           , \"" <> pretty attrib <> "\""
+                , "           , curr_time_size"
+                , "           , curr_time_ptr"
+                , "           , last_time_size"
+                , "           , last_time_ptr );"
+                ]
+   in vsep
+      [ "/* " <> pretty attrib <> " */"
+      , Base.seaOfReadNamedFact seaInputPsv (Base.inputAllowDupTime opts) state err
+      ]
+
+seaOfReadFactDense :: PsvInputDenseDict -> SeaProgramState -> Set Text -> Either SeaError Doc
+seaOfReadFactDense dict state tombstones = do
   let feeds  = denseDict dict
   let attr   = getAttribute $ stateAttribute state
   fields    <- maybeToRight (SeaDenseFeedNotDefined attr $ fmap (fmap (second snd)) feeds)
              $ Map.lookup attr feeds
-  input     <- checkInputType state
+  input     <- Base.checkInputType state
   let mv     = Map.lookup attr (denseMissingValue dict)
-  readInput <- seaOfReadDenseValue mv fields (inputVars input)
-  pure $ seaOfReadFact state tombstones input readInput
+  readInput <- seaOfReadFactValueDense mv fields (Base.inputVars input)
+  pure $ Base.seaOfReadFact seaInputPsv state tombstones input readInput (seaOfCheckCount state)
 
-seaOfReadDenseValue
+seaOfReadFactValueDense
   :: Maybe MissingValue
   -> [(Text, (StructFieldType, ValType))]
   -> [(Text, ValType)]
   -> Either SeaError Doc
-seaOfReadDenseValue m fields vars = do
+seaOfReadFactValueDense m fields vars = do
   -- Input variables are ordered lexicographically by field names, we need to re-order them
   -- to fit the dense format.
   --
@@ -159,13 +217,47 @@ seaOfReadDenseValue m fields vars = do
           Optional  -> (n,OptionT t)
           Mandatory -> (n,t)
 
-seaOfDenseFieldMapping :: Maybe MissingValue -> [FieldMapping] -> Text -> Either SeaError Doc
+seaOfReadDenseInput
+ :: Maybe MissingValue
+ -> ValType
+ -> [(Text, ValType)]
+ -> Either SeaError Doc
+seaOfReadDenseInput missing inType inVars
+  = case (inVars, inType) of
+     ((nb, BoolT) : nx, OptionT t)
+       -> do val_sea <- Base.cstmtReadInput seaInputPsv t nx
+             let body_true  = indent 4
+                            $ vsep [ Base.assignVar (pretty nb) BoolT "true"
+                                   , val_sea ]
+                 body_false = indent 4
+                            $ Base.assignVar (pretty nb) BoolT "false"
+             case missing of
+               Just m
+                 -> pure $ vsep
+                     [ "if (" <> Base.seaOfStringEq m "p" (Just "pe - p") <> ") {"
+                     , "    p = pe;"
+                     , body_false
+                     , "} else {"
+                     , body_true
+                     , "}"
+                     ]
+               Nothing
+                 -> pure $ vsep
+                     [ "if (*p != '|') {"
+                     , body_true
+                     , "} else {"
+                     , body_false
+                     , "}"
+                     ]
+     _ -> Base.cstmtReadInput seaInputPsv inType inVars
+
+seaOfDenseFieldMapping :: Maybe MissingValue -> [Base.FieldMapping] -> Text -> Either SeaError Doc
 seaOfDenseFieldMapping m mappings field = do
-  FieldMapping fname ftype vars <- maybeToRight
-                                   (SeaDenseFieldNotDefined field (fmap _fieldName mappings))
-                                   (List.find ((== field) . _fieldName) mappings)
+  Base.FieldMapping fname ftype vars
+    <- maybeToRight (SeaDenseFieldNotDefined field (fmap Base._fieldName mappings))
+                    (List.find ((== field) . Base._fieldName) mappings)
   fieldSea <- seaOfReadDenseInput m ftype vars
-  let sea   = wrapInBlock
+  let sea   = Base.wrapInBlock
             $ vsep [ "char *ent_pe = pe;"
                    , "char *pe     = memchr(p, '|', ent_pe - p);"
                    , "if (pe == NULL)"
@@ -173,7 +265,7 @@ seaOfDenseFieldMapping m mappings field = do
                    , ""
                    , fieldSea ]
 
-  pure $ wrapInBlock $ vsep
+  pure $ Base.wrapInBlock $ vsep
     [ "/* " <> pretty fname <> " */"
     , sea
     , ""
@@ -186,14 +278,16 @@ seaOfDenseFieldMapping m mappings field = do
     , ""
     ]
 
-mappingOfDenseFields :: [(Text, ValType)] -> [(Text, ValType)] -> Maybe [FieldMapping]
+mappingOfDenseFields :: [(Text, ValType)] -> [(Text, ValType)] -> Maybe [Base.FieldMapping]
 mappingOfDenseFields fields varsoup
-  = mappingOfFields (fmap (first StructField) fields) varsoup
+  = Base.mappingOfFields (fmap (first StructField) fields) varsoup
 
 --------------------------------------------------------------------------------
 
-seaOfReadNamedFactSparse :: PsvInputAllowDupTime -> SeaProgramState -> Doc
-seaOfReadNamedFactSparse allowDupTime state
+-- * Sparse PSV
+
+seaOfReadNamedFactSparse :: Base.InputOpts -> SeaProgramState -> Doc
+seaOfReadNamedFactSparse opts state
  = let attrib = getAttribute (stateAttribute state)
        err    = vsep
                 [ "        return ierror_loc_format"
@@ -209,262 +303,34 @@ seaOfReadNamedFactSparse allowDupTime state
                 ]
    in vsep
       [ "/* " <> pretty attrib <> " */"
-      , "if (" <> seaOfStringEq attrib "attrib_ptr" (Just "attrib_size") <> ")"
-      , seaOfReadNamedFact allowDupTime state err
+      , "if (" <> Base.seaOfStringEq attrib "attrib_ptr" (Just "attrib_size") <> ")"
+      , Base.seaOfReadNamedFact seaInputPsv (Base.inputAllowDupTime opts) state err
       ]
 
-seaOfReadNamedFactDense :: PsvInputAllowDupTime -> SeaProgramState -> Doc
-seaOfReadNamedFactDense allowDupTime state
- = let attrib = getAttribute (stateAttribute state)
-       err    = vsep
-                [ "        return ierror_loc_format"
-                , "           ( time_ptr + time_size"
-                , "           , time_ptr"
-                , "           , \"%s: time is out of order: %.*s must be later than %.*s\""
-                , "           , \"" <> pretty attrib <> "\""
-                , "           , curr_time_size"
-                , "           , curr_time_ptr"
-                , "           , last_time_size"
-                , "           , last_time_ptr );"
-                ]
-   in vsep
-      [ "/* " <> pretty attrib <> " */"
-      , seaOfReadNamedFact allowDupTime state err
-      ]
-
-seaOfReadNamedFact :: PsvInputAllowDupTime -> SeaProgramState -> Doc -> Doc
-seaOfReadNamedFact allowDupTime state err
- = let fun    = pretty (nameOfReadFact state)
-       pname  = pretty (nameOfProgram  state)
-       tname  = pretty (nameOfLastTime state)
-       tcond  = if   allowDupTime == AllowDupTime
-                then "    if (time < last_time)"
-                else "    if (time <= last_time)"
-   in vsep
-      [ "{"
-      , "    itime_t time;"
-      , "    ierror_loc_t error = fixed_read_itime (time_ptr, time_size, &time);"
-      , "    if (error) return error;"
-      , ""
-      , "    ibool_t        ignore_time = itrue;"
-      , "    iint_t         chord_count = fleet->chord_count;"
-      , "    const itime_t *chord_times = fleet->chord_times;"
-      , ""
-      , "    /* ignore this time if it comes after all the chord times */"
-      , "    for (iint_t chord_ix = 0; chord_ix < chord_count; chord_ix++) {"
-      , "        if (chord_times[chord_ix] >= time) {"
-      , "            ignore_time = ifalse;"
-      , "            break;"
-      , "        }"
-      , "    }"
-      , ""
-      , "    if (ignore_time) return 0;"
-      , ""
-      , "    itime_t last_time = fleet->" <> tname <> ";"
-      , ""
-      , tcond
-      , "    {"
-      , "        char curr_time_ptr[text_itime_max_size];"
-      , "        size_t curr_time_size = text_write_itime (time, curr_time_ptr);"
-      , ""
-      , "        char last_time_ptr[text_itime_max_size];"
-      , "        size_t last_time_size = text_write_itime (last_time, last_time_ptr);"
-      , ""
-      , err
-      , "    }"
-      , ""
-      , "    fleet->" <> tname <> " = time;"
-      , ""
-      , "    return " <> fun <> " (value_ptr, value_size, time, fleet->mempool, chord_count, fleet->" <> pname <> ");"
-      , "}"
-      , ""
-      ]
+seaOfReadFactSparse
+  :: SeaProgramState
+  -> Set Text
+  -> Either SeaError Doc
+seaOfReadFactSparse state tombstones = do
+  input     <- Base.checkInputType state
+  readInput <- Base.cstmtReadInput seaInputPsv (Base.inputType input) (Base.inputVars input)
+  pure $ Base.seaOfReadFact seaInputPsv state tombstones input readInput (seaOfCheckCount state)
 
 ------------------------------------------------------------------------
 
-nameOfReadFact :: SeaProgramState -> Text
-nameOfReadFact state = T.pack ("psv_read_fact_" <> show (stateName state))
+-- * Generic reading of JSON and stuff in PSV
 
-seaOfReadSparseFact :: SeaProgramState -> Set Text -> Either SeaError Doc
-seaOfReadSparseFact state tombstones = do
-  input     <- checkInputType state
-  readInput <- seaOfReadInput (inputType input) (inputVars input)
-  pure $ seaOfReadFact state tombstones input readInput
+seaOfCheckCount :: SeaProgramState -> Base.CStmt
+seaOfCheckCount state = vsep
+  [ "if (new_count == psv_max_row_count) {"
+  , "     " <> pretty (nameOfProgram state) <> " (program);"
+  , "     new_count = 0;"
+  , "} else if (new_count > psv_max_row_count) {"
+  , "     return ierror_loc_format (0, 0, \"" <> pretty (Base.nameOfReadFact state) <> ": new_count > max_count\");"
+  , "}"
+  ]
 
-seaOfReadFact :: SeaProgramState -> Set Text -> CheckedInput -> Doc -> Doc
-seaOfReadFact state tombstones input readInput =
-  vsep
-    [ "#line 1 \"read fact" <+> seaOfStateInfo state <> "\""
-    , "static ierror_loc_t INLINE"
-        <+> pretty (nameOfReadFact state) <+> "("
-        <> "const char *value_ptr, const size_t value_size, itime_t time, "
-        <> "imempool_t *mempool, iint_t chord_count, "
-        <> pretty (nameOfStateType state) <+> "*programs)"
-    , "{"
-    , "    ierror_loc_t error;"
-    , ""
-    , "    char *p  = (char *) value_ptr;"
-    , "    char *pe = (char *) value_ptr + value_size;"
-    , ""
-    , "    ierror_t " <> pretty (inputSumError input) <> ";"
-    , indent 4 . vsep . fmap seaOfDefineInput $ inputVars input
-    , ""
-    , "    " <> align (seaOfReadTombstone input (Set.toList tombstones)) <> "{"
-    , "        " <> pretty (inputSumError input) <> " = ierror_not_an_error;"
-    , ""
-    , indent 8 readInput
-    , "    }"
-    , ""
-    , "    for (iint_t chord_ix = 0; chord_ix < chord_count; chord_ix++) {"
-    , "        " <> pretty (nameOfStateType state) <+> "*program = &programs[chord_ix];"
-    , ""
-    , "        /* don't read values after the chord time */"
-    , "        if (time > program->" <> pretty (stateTimeVar state) <> ")"
-    , "            continue;"
-    , ""
-    , "        iint_t new_count = program->new_count;"
-    , ""
-    , "        program->" <> pretty (inputSumError  input) <> "[new_count] = " <> pretty (inputSumError input) <> ";"
-    , indent 8 . vsep . fmap seaOfAssignInput $ inputVars input
-    , "        program->" <> pretty (inputTime     input) <> "[new_count] = time;"
-    , ""
-    , "        new_count++;"
-    , ""
-    , "        if (new_count == psv_max_row_count) {"
-    , "             " <> pretty (nameOfProgram state) <> " (program);"
-    , "             new_count = 0;"
-    , "        } else if (new_count > psv_max_row_count) {"
-    , "             return ierror_loc_format (0, 0, \"" <> pretty (nameOfReadFact state) <> ": new_count > max_count\");"
-    , "        }"
-    , ""
-    , "        program->new_count = new_count;"
-    , "    }"
-    , ""
-    , "    return 0; /* no error */"
-    , "}"
-    , ""
-    ]
-
-seaOfAssignInput :: (Text, ValType) -> Doc
-seaOfAssignInput (n, _)
- = "program->" <> pretty n <> "[new_count] = " <> pretty n <> ";"
-
-seaOfDefineInput :: (Text, ValType) -> Doc
-seaOfDefineInput (n, t)
- = seaOfValType t <+> pretty n <> initType t
-
-initType :: ValType -> Doc
-initType vt = " = " <> seaOfXValue (defaultOfType vt) vt <> ";"
-
-seaOfReadTombstone :: CheckedInput -> [Text] -> Doc
-seaOfReadTombstone input = \case
-  []     -> Pretty.empty
-  (t:ts) -> "if (" <> seaOfStringEq t "value_ptr" (Just "value_size") <> ") {" <> line
-         <> "    " <> pretty (inputSumError input) <> " = ierror_tombstone;" <> line
-         <> "} else " <> seaOfReadTombstone input ts
-
-------------------------------------------------------------------------
-
-data CheckedInput = CheckedInput {
-    inputSumError :: Text
-  , inputTime     :: Text
-  , inputType     :: ValType
-  , inputVars     :: [(Text, ValType)]
-  } deriving (Eq, Ord, Show)
-
-checkInputType :: SeaProgramState -> Either SeaError CheckedInput
-checkInputType state
- = case stateInputType state of
-     PairT (SumT ErrorT t) TimeT
-      | (sumError, ErrorT) : xs0 <- stateInputVars state
-      , Just vars                <- init xs0
-      , Just (time, TimeT)       <- last xs0
-      -> Right CheckedInput {
-             inputSumError = newPrefix <> sumError
-           , inputTime     = newPrefix <> time
-           , inputType     = t
-           , inputVars     = fmap (first (newPrefix <>)) vars
-           }
-
-     t
-      -> Left (SeaUnsupportedInputType t)
-
-seaOfReadInput :: ValType -> [(Text, ValType)] -> Either SeaError Doc
-seaOfReadInput inType inVars
- = case (inVars, inType) of
-    ([(nx, BoolT)], BoolT)
-     -> pure (readValue "text" assignVar nx BoolT)
-
-    ([(nx, DoubleT)], DoubleT)
-     -> pure (readValue "text" assignVar nx DoubleT)
-
-    ([(nx, IntT)], IntT)
-     -> pure (readValue "text" assignVar nx IntT)
-
-    ([(nx, TimeT)], TimeT)
-     -> pure (readValue "text" assignVar nx TimeT)
-
-    ([(nx, StringT)], StringT)
-     -> pure (readValuePool "text" assignVar nx StringT)
-
-    (_, t@(ArrayT _))
-     -> seaOfReadJsonValue assignVar t inVars
-
-    (_, t@(StructT _))
-     -> seaOfReadJsonValue assignVar t inVars
-
-    (_, t)
-     -> Left (SeaUnsupportedInputType t)
-
-seaOfReadDenseInput :: Maybe MissingValue -> ValType -> [(Text, ValType)] -> Either SeaError Doc
-seaOfReadDenseInput missing inType inVars
-  = case (inVars, inType) of
-     ((nb, BoolT) : nx, OptionT t)
-       -> do val_sea <- seaOfReadInput t nx
-             let body_true  = indent 4
-                            $ vsep [ assignVar (pretty nb) BoolT "true"
-                                   , val_sea ]
-                 body_false = indent 4
-                            $ assignVar (pretty nb) BoolT "false"
-             case missing of
-               Just m
-                 -> pure $ vsep
-                     [ "if (" <> seaOfStringEq m "p" (Just "pe - p") <> ") {"
-                     , "    p = pe;"
-                     , body_false
-                     , "} else {"
-                     , body_true
-                     , "}"
-                     ]
-               Nothing
-                 -> pure $ vsep
-                     [ "if (*p != '|') {"
-                     , body_true
-                     , "} else {"
-                     , body_false
-                     , "}"
-                     ]
-     _ -> seaOfReadInput inType inVars
-
-------------------------------------------------------------------------
-
--- Describes how to assign to a C struct member, this changes for arrays
-type Assignment = Doc -> ValType -> Doc -> Doc
-
-assignVar :: Assignment
-assignVar n _ x = pretty n <+> "=" <+> x <> ";"
-
-assignArrayMutable :: Assignment
-assignArrayMutable n t x = n <+> "=" <+> seaOfArrayPutMutable n "ix" x t <> ";"
-
-seaOfArrayPutMutable :: Doc -> Doc -> Doc -> ValType -> Doc
-seaOfArrayPutMutable arr ix val typ
- = seaOfPrimDocApps (seaOfXPrim (PrimArray (PrimArrayPutMutable typ)))
-                    [ arr, ix, val ]
-
-------------------------------------------------------------------------
-
-seaOfReadJsonValue :: Assignment -> ValType -> [(Text, ValType)] -> Either SeaError Doc
+seaOfReadJsonValue :: Base.Assignment -> ValType -> [(Text, ValType)] -> Either SeaError Doc
 seaOfReadJsonValue assign vtype vars
  = case (vars, vtype) of
      ([(nb, BoolT), nx], OptionT t) -> do
@@ -507,17 +373,15 @@ seaOfReadJsonValue assign vtype vars
      _
       -> Left (SeaInputTypeMismatch vtype vars)
 
-------------------------------------------------------------------------
-
-readValue :: Doc -> Assignment -> Text -> ValType -> Doc
+readValue :: Doc -> Base.Assignment -> Text -> ValType -> Doc
 readValue
  = readValueArg ""
 
-readValuePool :: Doc -> Assignment -> Text -> ValType -> Doc
+readValuePool :: Doc -> Base.Assignment -> Text -> ValType -> Doc
 readValuePool
  = readValueArg "mempool, "
 
-readValueArg :: Doc -> Doc -> Assignment -> Text -> ValType -> Doc
+readValueArg :: Doc -> Doc -> Base.Assignment -> Text -> ValType -> Doc
 readValueArg arg fmt assign n vt
  = vsep
  [ seaOfValType vt <+> "value;"
@@ -526,16 +390,10 @@ readValueArg arg fmt assign n vt
  , assign (pretty n) vt "value"
  ]
 
-wrapInBlock :: Doc -> Doc
-wrapInBlock x
-  = vsep ["{", indent 4 x, "}"]
-
-------------------------------------------------------------------------
-
 seaOfReadJsonList :: ValType -> [(Text, ValType)] -> Either SeaError Doc
 seaOfReadJsonList vtype avars = do
-  vars      <- traverse unArray avars
-  value_sea <- seaOfReadJsonValue assignArrayMutable vtype vars
+  vars      <- traverse Base.unArray avars
+  value_sea <- seaOfReadJsonValue Base.assignArrayMutable vtype vars
   pure $ vsep
     [ "if (*p++ != '[')"
     , "    return ierror_loc_format (p-1, p-1, \"array missing '['\");"
@@ -551,19 +409,13 @@ seaOfReadJsonList vtype avars = do
     , "}"
     ]
 
-unArray :: (Text, ValType) -> Either SeaError (Text, ValType)
-unArray (n, ArrayT t) = Right (n, t)
-unArray (n, t)        = Left (SeaInputTypeMismatch t [(n, t)])
-
-------------------------------------------------------------------------
-
-seaOfReadJsonObject :: Assignment -> StructType -> [(Text, ValType)] -> Either SeaError Doc
+seaOfReadJsonObject :: Base.Assignment -> StructType -> [(Text, ValType)] -> Either SeaError Doc
 seaOfReadJsonObject assign st@(StructType fs) vars
  = case vars of
     [(nx, UnitT)] | Map.null fs -> seaOfReadJsonUnit   assign nx
     _                           -> seaOfReadJsonStruct assign st vars
 
-seaOfReadJsonUnit :: Assignment -> Text -> Either SeaError Doc
+seaOfReadJsonUnit :: Base.Assignment -> Text -> Either SeaError Doc
 seaOfReadJsonUnit assign name = do
   pure $ vsep
     [ "if (*p++ != '{')"
@@ -575,10 +427,10 @@ seaOfReadJsonUnit assign name = do
     , assign (pretty name) UnitT "iunit"
     ]
 
-seaOfReadJsonStruct :: Assignment -> StructType -> [(Text, ValType)] -> Either SeaError Doc
+seaOfReadJsonStruct :: Base.Assignment -> StructType -> [(Text, ValType)] -> Either SeaError Doc
 seaOfReadJsonStruct assign st@(StructType fields) vars = do
   let mismatch = SeaStructFieldsMismatch st vars
-  mappings     <- maybe (Left mismatch) Right (mappingOfFields (Map.toList fields) vars)
+  mappings     <- maybe (Left mismatch) Right (Base.mappingOfFields (Map.toList fields) vars)
   mappings_sea <- traverse (seaOfFieldMapping assign) mappings
   pure $ vsep
     [ "if (*p++ != '{')"
@@ -593,14 +445,14 @@ seaOfReadJsonStruct assign st@(StructType fields) vars = do
     , "}"
     ]
 
-seaOfFieldMapping :: Assignment -> FieldMapping -> Either SeaError Doc
-seaOfFieldMapping assign (FieldMapping fname ftype vars) = do
+seaOfFieldMapping :: Base.Assignment -> Base.FieldMapping -> Either SeaError Doc
+seaOfFieldMapping assign (Base.FieldMapping fname ftype vars) = do
   let needle = fname <> "\""
   field_sea <- seaOfReadJsonField assign ftype vars
   pure $ vsep
     [ "/* " <> pretty fname <> " */"
-    , "if (" <> seaOfStringEq needle "p" Nothing <> ") {"
-    , "    p += " <> int (sizeOfString needle) <> ";"
+    , "if (" <> Base.seaOfStringEq needle "p" Nothing <> ") {"
+    , "    p += " <> int (Base.sizeOfString needle) <> ";"
     , ""
     , indent 4 field_sea
     , ""
@@ -609,7 +461,7 @@ seaOfFieldMapping assign (FieldMapping fname ftype vars) = do
     , ""
     ]
 
-seaOfReadJsonField :: Assignment -> ValType -> [(Text, ValType)] -> Either SeaError Doc
+seaOfReadJsonField :: Base.Assignment -> ValType -> [(Text, ValType)] -> Either SeaError Doc
 seaOfReadJsonField assign ftype vars = do
   value_sea <- seaOfReadJsonValue assign ftype vars
   pure $ vsep
@@ -626,74 +478,7 @@ seaOfReadJsonField assign ftype vars = do
     , "    break;"
     ]
 
-seaOfStringEq :: Text -> Doc -> Maybe Doc -> Doc
-seaOfStringEq str ptr msize
- | Just size <- msize = align (vsep [szdoc size, cmpdoc])
- | otherwise          = align cmpdoc
- where
-   nbytes = length bytes
-   bytes  = B.unpack (T.encodeUtf8 str)
+lookupTombstones :: Base.InputOpts -> SeaProgramState -> Set Text
+lookupTombstones opts state =
+  fromMaybe Set.empty (Map.lookup (stateAttribute state) (Base.inputTombstones opts))
 
-   szdoc size = size <+> "==" <+> int nbytes <+> "&&"
-   cmpdoc     = seaOfBytesEq bytes ptr
-
-seaOfBytesEq :: [Word8] -> Doc -> Doc
-seaOfBytesEq bs ptr
- = vsep . punctuate " &&" . fmap go $ wordsOfBytes bs
- where
-   go (StringWord off _ mask bits)
-    = "(*(uint64_t *)(" <> ptr <+> "+" <+> int off <> ") &" <+> mask <> ") ==" <+> bits
-
-------------------------------------------------------------------------
-
-data FieldMapping = FieldMapping {
-    _fieldName :: Text
-  , _fieldType :: ValType
-  , _fieldVars :: [(Text, ValType)]
-  } deriving (Eq, Ord, Show)
-
-mappingOfFields :: [(StructField, ValType)] -> [(Text, ValType)] -> Maybe [FieldMapping]
-mappingOfFields []     []  = pure []
-mappingOfFields []     _   = Nothing
-mappingOfFields (f:fs) vs0 = do
-  (m,  vs1) <- mappingOfField  f  vs0
-  ms        <- mappingOfFields fs vs1
-  pure (m : ms)
-
-mappingOfField :: (StructField, ValType) -> [(Text, ValType)] -> Maybe (FieldMapping, [(Text, ValType)])
-mappingOfField (StructField fname, ftype) vars0 = do
-  let go t (n, t')
-       | t == t'   = Just (n, t)
-       | otherwise = Nothing
-
-  ns <- zipWithM go (meltType ftype) vars0
-
-  let mapping = FieldMapping fname ftype ns
-      vars1   = drop (length ns) vars0
-
-  return (mapping, vars1)
-
-------------------------------------------------------------------------
-
-lookupTombstones :: PsvInputConfig -> SeaProgramState -> Set Text
-lookupTombstones config state =
-  fromMaybe Set.empty (Map.lookup (stateAttribute state) (inputPsvTombstones config))
-
-nameOfLastTime :: SeaProgramState -> Text
-nameOfLastTime state = "last_time_" <> T.pack (show (stateName state))
-
-sizeOfString :: Text -> Int
-sizeOfString = B.length . T.encodeUtf8
-
-------------------------------------------------------------------------
--- Should be in P?
-
-last :: [a] -> Maybe a
-last []     = Nothing
-last (x:[]) = Just x
-last (_:xs) = last xs
-
-init :: [a] -> Maybe [a]
-init []     = Nothing
-init (_:[]) = Just []
-init (x:xs) = (x:) <$> init xs

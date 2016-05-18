@@ -1,6 +1,6 @@
 #include "51-chord.h"
 
-#if !ICICLE_NO_PSV
+#if !ICICLE_NO_INPUT
 
 /* forward declarations for types, implemented by generated code */
 typedef struct ifleet ifleet_t;

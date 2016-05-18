@@ -90,7 +90,7 @@ inputTypeOf ty
 instance Arbitrary WellTyped where
   arbitrary = validated 10 (tryGenWellTypedWith S.DoNotAllowDupTime =<< arbitrary)
 
-tryGenWellTypedWith :: S.PsvInputAllowDupTime -> InputType -> Gen (Maybe WellTyped)
+tryGenWellTypedWith :: S.InputAllowDupTime -> InputType -> Gen (Maybe WellTyped)
 tryGenWellTypedWith allowDupTime (InputType ty) = do
     entities       <- List.sort . List.nub . getNonEmpty <$> arbitrary
     attribute      <- arbitrary
@@ -146,7 +146,7 @@ genWellTypedWithDuplicateTimes
 -- If the input are structs, we can pretend it's a dense value
 -- We can't treat other values as a single-field dense struct because the
 -- generated programs do not treat them as such.
-genWellTypedWithStruct :: S.PsvInputAllowDupTime -> Gen WellTyped
+genWellTypedWithStruct :: S.InputAllowDupTime -> Gen WellTyped
 genWellTypedWithStruct allowDupTime = validated 10 $ do
   st <- arbitrary :: Gen StructType
   tryGenWellTypedWith allowDupTime (inputTypeOf $ StructT st)

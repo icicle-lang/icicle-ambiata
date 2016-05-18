@@ -8,7 +8,6 @@ module Icicle.Sea.IO.Psv (
   , PsvMode(..)
   , PsvOutputFormat(..)
   , PsvInputFormat(..)
-  , PsvInputAllowDupTime(..)
   , PsvInputDenseDict(..)
   , seaOfPsvDriver
   , defaultMissingValue
@@ -27,6 +26,7 @@ import           Icicle.Sea.FromAvalanche.Base (seaOfAttributeDesc, seaOfTime)
 import           Icicle.Sea.FromAvalanche.State
 import           Icicle.Sea.FromAvalanche.Type
 
+import qualified Icicle.Sea.IO.Base as Base
 import           Icicle.Sea.IO.Psv.Base
 import           Icicle.Sea.IO.Psv.Input
 import           Icicle.Sea.IO.Psv.Output
@@ -34,13 +34,13 @@ import           Icicle.Sea.IO.Psv.Output
 import           P
 
 
-
 seaOfPsvDriver
-  :: [SeaProgramState]
+  :: Base.InputOpts
   -> PsvInputConfig
   -> PsvOutputConfig
+  -> [SeaProgramState]
   -> Either SeaError Doc
-seaOfPsvDriver states inputConfig outputConfig = do
+seaOfPsvDriver opts inputConfig outputConfig states = do
   let outputList  = case inputPsvFormat inputConfig of
                       PsvInputSparse
                         -> Nothing
@@ -51,8 +51,8 @@ seaOfPsvDriver states inputConfig outputConfig = do
       alloc_sea   = seaOfAllocFleet      states
       collect_sea = seaOfCollectFleet    states
       config_sea  = seaOfConfigureFleet (inputPsvMode inputConfig) states
-  read_sea  <- seaOfReadAnyFact      inputConfig  states
-  write_sea <- seaOfWriteFleetOutput outputConfig outputList states
+  read_sea  <- seaOfReadAnyFactPsv   opts inputConfig  states
+  write_sea <- seaOfWriteFleetOutput      outputConfig outputList states
   pure $ vsep
     [ struct_sea
     , ""
@@ -92,7 +92,7 @@ defOfProgramState state
 
 defOfProgramTime :: SeaProgramState -> Doc
 defOfProgramTime state
- = defOfVar 0 TimeT (pretty (nameOfLastTime state)) <> ";"
+ = defOfVar 0 TimeT (pretty (Base.nameOfLastTime state)) <> ";"
  <+> "/* " <> seaOfAttributeDesc (stateAttribute state) <> " */"
 
 ------------------------------------------------------------------------
@@ -286,7 +286,7 @@ defOfState state
 
 defOfLastTime :: SeaProgramState -> Doc
 defOfLastTime state
- = "fleet->" <> pretty (nameOfLastTime state) <+> "= 0;"
+ = "fleet->" <> pretty (Base.nameOfLastTime state) <+> "= 0;"
 
 seaOfAssignTime :: SeaProgramState -> Doc
 seaOfAssignTime state

@@ -181,7 +181,7 @@ data ShowOutput = ShowOutputOnError | ShowOutputOnSuccess
   deriving (Eq)
 
 
-data TestOpts = TestOpts ShowInput ShowOutput S.PsvInputFormat S.PsvInputAllowDupTime
+data TestOpts = TestOpts ShowInput ShowOutput S.PsvInputFormat S.InputAllowDupTime
 
 runTest :: WellTyped -> TestOpts -> EitherT S.SeaError IO ()
 runTest wt (TestOpts showInput showOutput inputFormat allowDupTime) = do
@@ -191,14 +191,14 @@ runTest wt (TestOpts showInput showOutput inputFormat allowDupTime) = do
       programs = Map.singleton (wtAttribute wt) (wtAvalancheFlat wt)
       iconfig  = S.PsvInputConfig
                 (S.PsvSnapshot (wtTime wt))
-                (Map.singleton (wtAttribute wt) (Set.singleton tombstone))
                  inputFormat
-                 allowDupTime
       oconfig  = S.PsvOutputConfig
                 (S.PsvSnapshot (wtTime wt))
                 (S.PsvOutputSparse)
+      iformat  = S.InputPsv iconfig oconfig
+      iopts    = S.InputOpts allowDupTime (Map.singleton (wtAttribute wt) (Set.singleton tombstone))
 
-  let compile  = S.seaCompile' options (S.Psv iconfig oconfig) programs
+  let compile  = S.seaCompile' options (S.HasInput iformat iopts) programs
       release  = S.seaRelease
   bracketEitherT' compile release $ \fleet -> do
 
