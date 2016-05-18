@@ -7,7 +7,7 @@
 module Icicle.Sea.IO
   ( seaOfDriver
   , Psv.defaultMissingValue
-  , InputFormat (..)
+  , IOFormat (..)
   , InputOpts (..)
   , InputAllowDupTime (..)
   , Psv.PsvInputConfig(..)
@@ -28,13 +28,13 @@ import qualified Icicle.Sea.IO.Psv as Psv
 import           P
 
 
-data InputFormat
-  = InputPsv Psv.PsvInputConfig Psv.PsvOutputConfig
-  | InputEnterprise
+data IOFormat
+  = FormatPsv Psv.PsvInputConfig Psv.PsvOutputConfig
+  | FormatEnterprise
 
-seaOfDriver :: InputFormat -> InputOpts -> [SeaProgramState] -> Either SeaError Doc
+seaOfDriver :: IOFormat -> InputOpts -> [SeaProgramState] -> Either SeaError Doc
 seaOfDriver format opts states
   = case format of
-      InputPsv inputConfig outputConfig
+      FormatPsv inputConfig outputConfig
         -> Psv.seaOfPsvDriver opts inputConfig outputConfig states
-      InputEnterprise -> Right "" -- todo
+      FormatEnterprise -> Right "" -- todo

@@ -99,7 +99,7 @@ import           X.Control.Monad.Trans.Either (firstEitherT, hoistEither, left)
 
 data Input
   = NoInput
-  | HasInput InputFormat InputOpts
+  | HasInput IOFormat InputOpts
 
 data MemPool
 data SeaState
@@ -232,7 +232,7 @@ seaCompile' options input programs = do
   take_snapshot <- case input of
     NoInput -> do
       return (\_ -> return ())
-    HasInput (InputPsv _ _) _ -> do
+    HasInput (FormatPsv _ _) _ -> do
       fn <- firstEitherT SeaJetskiError (function lib "psv_snapshot" retVoid)
       return (\ptr -> fn [argPtr ptr])
     _ -> return (\_ -> return ()) --todo
@@ -331,7 +331,7 @@ codeOfPrograms input programs = do
     HasInput format opts -> do
       doc <- seaOfDriver format opts states
       let def  = case format of
-                   InputPsv icfg _
+                   FormatPsv icfg _
                      | inputPsvFormat icfg == PsvInputSparse
                      -> "#define ICICLE_PSV_INPUT_SPARSE 1"
                    _ -> ""

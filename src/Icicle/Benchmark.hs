@@ -95,8 +95,8 @@ createBenchmark mode dictionaryPath inputPath outputPath packedChordPath = do
   avalanche  <- hoistEither (avalancheOfDictionary dictionary)
 
   let cfg = HasInput
-          ( InputPsv (PsvInputConfig  mode PsvInputSparse)
-                     (PsvOutputConfig mode PsvOutputSparse))
+          ( FormatPsv (PsvInputConfig  mode PsvInputSparse)
+                      (PsvOutputConfig mode PsvOutputSparse))
           ( InputOpts AllowDupTime
                      (tombstonesOfDictionary dictionary))
 
