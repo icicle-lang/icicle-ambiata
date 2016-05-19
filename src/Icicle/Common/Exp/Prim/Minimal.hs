@@ -98,6 +98,9 @@ data PrimTime
  | PrimTimeMinusDays
  | PrimTimeMinusSeconds
  | PrimTimeMinusMonths
+ | PrimTimeProjectDay
+ | PrimTimeProjectMonth
+ | PrimTimeProjectYear
  deriving (Eq, Ord, Show, Enum, Bounded)
 
 -- | Pair primitives
@@ -206,6 +209,12 @@ typeOfPrim p
      -> FunT [funOfVal TimeT, funOfVal IntT] TimeT
     PrimTime PrimTimeMinusMonths
      -> FunT [funOfVal TimeT, funOfVal IntT] TimeT
+    PrimTime PrimTimeProjectDay
+     -> FunT [funOfVal TimeT] IntT
+    PrimTime PrimTimeProjectMonth
+     -> FunT [funOfVal TimeT] IntT
+    PrimTime PrimTimeProjectYear
+     -> FunT [funOfVal TimeT] IntT
 
     PrimPair (PrimPairFst a b)
      -> FunT [funOfVal (PairT a b)] a
@@ -258,6 +267,9 @@ instance Pretty PrimTime where
  pretty PrimTimeMinusSeconds       = "Time_minusSeconds#"
  pretty PrimTimeMinusDays          = "Time_minusDays#"
  pretty PrimTimeMinusMonths        = "Time_minusMonths#"
+ pretty PrimTimeProjectDay         = "Time_projectDay"
+ pretty PrimTimeProjectMonth       = "Time_projectMonth"
+ pretty PrimTimeProjectYear        = "Time_projectYear"
 
 instance Pretty PrimPair where
  pretty (PrimPairFst a b) = annotateTypeArgs [a,b] "fst#"

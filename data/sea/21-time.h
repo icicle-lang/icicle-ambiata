@@ -17,6 +17,30 @@ static itime_t INLINE itime_from_gregorian (iint_t y, iint_t M, iint_t d, iint_t
     return y << 48 | M << 40 | d << 32 | (3600 * h + 60 * m + s);
 }
 
+static iint_t INLINE itime_year_of (itime_t x)
+{
+    int64_t y, _0, _1, _2, _3, _4;
+    itime_to_gregorian (x, &y, &_0, &_1, &_2, &_3, &_4);
+
+    return y;
+}
+
+static iint_t INLINE itime_month_of (itime_t x)
+{
+  int64_t _0, m, _1, _2, _3, _4;
+  itime_to_gregorian (x, &_0, &m, &_1, &_2, &_3, &_4);
+
+  return m;
+}
+
+static iint_t INLINE itime_day_of (itime_t x)
+{
+  int64_t _0, _1, d, _2, _3, _4;
+  itime_to_gregorian (x, &_0, &_1, &d, &_2, &_3, &_4);
+
+  return d;
+}
+
 /* Number of days since 1600-03-01 (see Ivory DateTime). */
 static iint_t INLINE itime_to_epoch_days (itime_t x)
 {

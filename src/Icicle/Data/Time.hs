@@ -17,6 +17,9 @@ module Icicle.Data.Time (
   , timeOfDays
   , withinWindow
   , unsafeTimeOfYMD
+  , dayOf
+  , monthOf
+  , yearOf
 
   -- * Operations
   , daysDifference
@@ -90,6 +93,15 @@ diffTime x
 timeOfDay :: Time -> Thyme.TimeOfDay
 timeOfDay x
   = diffTime x ^. Thyme.timeOfDay
+
+dayOf :: Time -> Int
+dayOf x = gregorianDay x ^. Thyme._ymdDay
+
+monthOf :: Time -> Int
+monthOf x = gregorianDay x ^. Thyme._ymdMonth
+
+yearOf :: Time -> Int
+yearOf x = gregorianDay x ^. Thyme._ymdYear
 
 localHour :: Time -> Int
 localHour x = timeOfDay x ^. Thyme._todHour

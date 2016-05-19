@@ -295,6 +295,18 @@ evalP ann p xs vs env
              | [VTime i] <- args
              -> return $ VDouble $ fromIntegral $ DT.secondsCountJulian i
              | otherwise -> err
+            BuiltinTime ProjectDay
+             | [VTime i] <- args
+             -> return $ VDouble $ fromIntegral $ DT.dayOf i
+             | otherwise -> err
+            BuiltinTime ProjectMonth
+             | [VTime i] <- args
+             -> return $ VDouble $ fromIntegral $ DT.monthOf i
+             | otherwise -> err
+            BuiltinTime ProjectYear
+             | [VTime i] <- args
+             -> return $ VDouble $ fromIntegral $ DT.yearOf i
+             | otherwise -> err
 
             BuiltinData Seq
              | [_,i] <- args

@@ -211,8 +211,8 @@ simpleBuiltins
    , (T.Trunc,       Q.Fun (Q.BuiltinMath  Q.Truncate   ))
    , (T.Seq,         Q.Fun (Q.BuiltinData  Q.Seq        ))
    , (T.Box,         Q.Fun (Q.BuiltinData  Q.Box        ))
-   , (T.Keys,        Q.Fun (Q.BuiltinMap   Q.MapKeys  ))
-   , (T.Vals,        Q.Fun (Q.BuiltinMap   Q.MapValues))
+   , (T.Keys,        Q.Fun (Q.BuiltinMap   Q.MapKeys    ))
+   , (T.Vals,        Q.Fun (Q.BuiltinMap   Q.MapValues  ))
    , (T.Sort,        Q.Fun (Q.BuiltinArray Q.ArraySort  ))
    , (T.Length,      Q.Fun (Q.BuiltinArray Q.ArrayLength))
    , (T.Index,       Q.Fun (Q.BuiltinArray Q.ArrayIndex ))
@@ -220,5 +220,8 @@ simpleBuiltins
    , (T.Map_Insert,  Q.Fun (Q.BuiltinMap   Q.MapInsert  ))
    , (T.Map_Delete,  Q.Fun (Q.BuiltinMap   Q.MapDelete  ))
    , (T.Map_Lookup,  Q.Fun (Q.BuiltinMap   Q.MapLookup  ))
+   , (T.Day_Of,      Q.Fun (Q.BuiltinTime  Q.ProjectDay ))
+   , (T.Month_Of,    Q.Fun (Q.BuiltinTime  Q.ProjectMonth ))
+   , (T.Year_Of,     Q.Fun (Q.BuiltinTime  Q.ProjectYear ))
    ]
 

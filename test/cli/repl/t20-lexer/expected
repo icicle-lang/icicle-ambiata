@@ -29,8 +29,8 @@ Check error:
       max                  : Element a -> Aggregate Possibly a
       mean                 : (Num a) => Element a -> Aggregate Possibly Double
       exp                  : Double -> Double
-      fst                  : (b, a) -> b
-      snd                  : (a, b) -> b
+      day                  : Time -> Int
+      year                 : Time -> Int
 
 > > -- Expect a parse error on unterminated string
 >                  λλλλ
