@@ -215,6 +215,12 @@ convertPrim p ann resT xts = go p
    = return $ primmin $ Min.PrimTime Min.PrimTimeSecondsDifference
   gotime SecondsJulianEpoch
    = return $ primmin $ Min.PrimTime Min.PrimTimeSecondsJulianEpoch
+  gotime ProjectDay
+   = return $ primmin $ Min.PrimTime Min.PrimTimeProjectDay
+  gotime ProjectMonth
+   = return $ primmin $ Min.PrimTime Min.PrimTimeProjectMonth
+  gotime ProjectYear
+   = return $ primmin $ Min.PrimTime Min.PrimTimeProjectYear
   -- This looks pointless, but actually isn't. Reify possibilities takes care of sequencing both
   -- of the possiblities of this function, so although we don't check that the first tuple is
   -- not a tombstone here, it is now assured to not be.

@@ -42,6 +42,9 @@ data BuiltinTime
  | DaysJulianEpoch
  | SecondsBetween
  | SecondsJulianEpoch
+ | ProjectDay
+ | ProjectMonth
+ | ProjectYear
  deriving (Show, Eq, Ord, Enum, Bounded)
 
 data BuiltinData
@@ -96,6 +99,9 @@ instance Pretty BuiltinTime where
  pretty DaysJulianEpoch    = "days"
  pretty SecondsBetween     = "seconds between"
  pretty SecondsJulianEpoch = "seconds"
+ pretty ProjectDay         = "day"
+ pretty ProjectMonth       = "month"
+ pretty ProjectYear        = "year"
 
 instance Pretty BuiltinData where
  pretty Seq         = "seq"

@@ -293,6 +293,24 @@ evalPrim p originalP vs
       | otherwise
       -> primError
 
+     PrimTime PrimTimeProjectDay
+      | [VBase (VTime a)] <- vs
+      -> return $ VBase $ VInt $ Time.dayOf a
+      | otherwise
+      -> primError
+
+     PrimTime PrimTimeProjectMonth
+      | [VBase (VTime a)] <- vs
+      -> return $ VBase $ VInt $ Time.monthOf a
+      | otherwise
+      -> primError
+
+     PrimTime PrimTimeProjectYear
+      | [VBase (VTime a)] <- vs
+      -> return $ VBase $ VInt $ Time.yearOf a
+      | otherwise
+      -> primError
+
 
      -- Projections
      PrimPair (PrimPairFst _ _)

@@ -111,6 +111,9 @@ seaOfPrimTime p
      M.PrimTimeMinusSeconds       -> "minus_seconds"
      M.PrimTimeMinusDays          -> "minus_days"
      M.PrimTimeMinusMonths        -> "minus_months"
+     M.PrimTimeProjectDay         -> "day_of"
+     M.PrimTimeProjectMonth       -> "month_of"
+     M.PrimTimeProjectYear        -> "year_of"
 
 seaOfPrimBuiltinMath :: M.PrimBuiltinMath -> Doc
 seaOfPrimBuiltinMath p = case p of

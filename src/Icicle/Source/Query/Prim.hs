@@ -83,6 +83,12 @@ primLookup' p
      -> f0 [TimeT, TimeT] IntT
     Fun (BuiltinTime SecondsJulianEpoch)
      -> f0 [TimeT] IntT
+    Fun (BuiltinTime ProjectDay)
+     -> f0 [TimeT] IntT
+    Fun (BuiltinTime ProjectMonth)
+     -> f0 [TimeT] IntT
+    Fun (BuiltinTime ProjectYear)
+     -> f0 [TimeT] IntT
 
     Fun (BuiltinData Seq)
      -> f2 $ \a at b bt -> FunctionType [a,b] [] [at,bt] bt

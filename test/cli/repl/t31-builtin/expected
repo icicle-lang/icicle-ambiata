@@ -60,8 +60,20 @@ ok, loaded test/cli/repl/data.psv, 13 rows
 - Core evaluation:
 [homer, ["arm","head","torso"]]
 
-> > -- Baked-in maps and arrays
+> > - C evaluation:
+[homer, 1970,marge, 1970]
+
+- Core evaluation:
+[homer, 1970,marge, 1970]
+
 > > ok, time set to 2016-01-01
+> > - C evaluation:
+[homer, 2016,marge, 2016]
+
+- Core evaluation:
+[homer, 2016,marge, 2016]
+
+> > -- Baked-in maps and arrays
 > > - C evaluation:
 [homer, (7122.0
         ,[9496,8035,6209,2191])]
