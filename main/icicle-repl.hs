@@ -356,13 +356,13 @@ handleLine state line = case readCommand line of
                Right r -> prettyOut (const True) "- C:" r
 
            when (hasSeaAssembly state) $ do
-             result <- liftIO . runEitherT $ Sea.assemblyOfPrograms Sea.NoPsv [(Attribute "repl", f')]
+             result <- liftIO . runEitherT $ Sea.assemblyOfPrograms Sea.NoInput [(Attribute "repl", f')]
              case result of
                Left  e -> prettyOut (const True) "- C assembly error:" e
                Right r -> prettyOut (const True) "- C assembly:" r
 
            when (hasSeaLLVMIR state) $ do
-             result <- liftIO . runEitherT $ Sea.irOfPrograms Sea.NoPsv [(Attribute "repl", f')]
+             result <- liftIO . runEitherT $ Sea.irOfPrograms Sea.NoInput [(Attribute "repl", f')]
              case result of
                Left  e -> prettyOut (const True) "- C LLVM IR error:" e
                Right r -> prettyOut (const True) "- C LLVM IR:" r

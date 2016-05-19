@@ -2,7 +2,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards #-}
-module Icicle.Sea.Psv.Output where
+module Icicle.Sea.IO.Psv.Output where
 
 import qualified Data.List as List
 import           Data.Map (Map)
@@ -26,7 +26,7 @@ import           Icicle.Sea.FromAvalanche.Base (seaOfNameIx, seaOfChar)
 import           Icicle.Sea.FromAvalanche.Prim
 import           Icicle.Sea.FromAvalanche.State
 
-import           Icicle.Sea.Psv.Base
+import           Icicle.Sea.IO.Psv.Base
 
 import           P
 import           Prelude (String)

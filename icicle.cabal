@@ -160,7 +160,6 @@ library
                        Icicle.Simulator
 
                        Icicle.Sea.Error
-                       Icicle.Sea.Eval
                        Icicle.Sea.FromAvalanche
                        Icicle.Sea.FromAvalanche.Analysis
                        Icicle.Sea.FromAvalanche.Base
@@ -172,10 +171,16 @@ library
                        Icicle.Sea.Chords
                        Icicle.Sea.Chords.File
                        Icicle.Sea.Chords.Parse
-                       Icicle.Sea.Psv
-                       Icicle.Sea.Psv.Base
-                       Icicle.Sea.Psv.Input
-                       Icicle.Sea.Psv.Output
+                       Icicle.Sea.Eval
+                       Icicle.Sea.Eval.Base
+                       Icicle.Sea.Eval.Psv
+                       Icicle.Sea.IO
+                       Icicle.Sea.IO.Base
+                       Icicle.Sea.IO.Base.Input
+                       Icicle.Sea.IO.Psv
+                       Icicle.Sea.IO.Psv.Base
+                       Icicle.Sea.IO.Psv.Input
+                       Icicle.Sea.IO.Psv.Output
 
                        Icicle.Source.Eval
                        Icicle.Source.Query

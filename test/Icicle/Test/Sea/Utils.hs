@@ -31,7 +31,7 @@ import           X.Control.Monad.Trans.Either
 ------------------------------------------------------------------------
 
 codeOfDoc :: PP.Doc -> SourceCode
-codeOfDoc code = textOfDoc (PP.vsep ["#define ICICLE_NO_PSV 1", seaPreamble, code])
+codeOfDoc code = textOfDoc (PP.vsep ["#define ICICLE_NO_INPUT 1", seaPreamble, code])
 
 textOfDoc :: PP.Doc -> T.Text
 textOfDoc doc = T.pack (PP.displayS (PP.renderPretty 0.8 80 (PP.pretty doc)) "")

@@ -1,6 +1,6 @@
 #include "42-text-conversion.h"
 
-#if !ICICLE_NO_PSV
+#if !ICICLE_NO_INPUT
 
 typedef struct {
     const iint_t  entity_size;

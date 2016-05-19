@@ -66,7 +66,7 @@ data BenchError =
 data Benchmark = Benchmark {
     benchSource          :: Text
   , benchAssembly        :: Text
-  , benchFleet           :: SeaFleet
+  , benchFleet           :: SeaFleet PsvState
   , benchInputPath       :: FilePath
   , benchOutputPath      :: FilePath
   , benchChordPath       :: Maybe FilePath
@@ -94,8 +94,11 @@ createBenchmark mode dictionaryPath inputPath outputPath packedChordPath = do
   dictionary <- firstEitherT BenchDictionaryImportError (loadDictionary SC.optionSmallData ImplicitPrelude dictionaryPath)
   avalanche  <- hoistEither (avalancheOfDictionary dictionary)
 
-  let cfg = Psv (PsvInputConfig  mode (tombstonesOfDictionary dictionary) PsvInputSparse AllowDupTime)
-                (PsvOutputConfig mode PsvOutputSparse)
+  let cfg = HasInput
+          ( FormatPsv (PsvInputConfig  mode PsvInputSparse)
+                      (PsvOutputConfig mode PsvOutputSparse))
+          ( InputOpts AllowDupTime
+                     (tombstonesOfDictionary dictionary))
 
   let avalancheL = Map.toList avalanche
 
