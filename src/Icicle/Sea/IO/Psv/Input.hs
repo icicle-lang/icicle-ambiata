@@ -55,8 +55,12 @@ seaInputPsv = Base.SeaInput
   { Base.cstmtReadInput    = seaOfReadInput
   , Base.cstmtReadTime     = seaOfReadTime
   , Base.cfunReadTombstone = seaOfReadTombstone
+  , Base.cnameFunReadFact  = nameOfReadFact
   }
   where
+    nameOfReadFact :: SeaProgramState -> Base.CName
+    nameOfReadFact state = pretty ("psv_read_fact_" <> show (stateName state))
+
     seaOfReadTime :: Base.CBlock
     seaOfReadTime
       = vsep
@@ -326,7 +330,7 @@ seaOfCheckCount state = vsep
   , "     " <> pretty (nameOfProgram state) <> " (program);"
   , "     new_count = 0;"
   , "} else if (new_count > psv_max_row_count) {"
-  , "     return ierror_loc_format (0, 0, \"" <> pretty (Base.nameOfReadFact state) <> ": new_count > max_count\");"
+  , "     return ierror_loc_format (0, 0, \"" <> pretty (Base.cnameFunReadFact seaInputPsv state) <> ": new_count > max_count\");"
   , "}"
   ]
 

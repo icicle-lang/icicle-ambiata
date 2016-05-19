@@ -16,7 +16,6 @@ module Icicle.Sea.IO.Base.Input
 
   , InputOpts (..)
   , InputAllowDupTime (..)
-  , nameOfReadFact
   , nameOfLastTime
   , seaOfAssignInput
   , seaOfDefineInput
@@ -126,6 +125,8 @@ data SeaInput = SeaInput
   -- ^ Generate C code to read the current fact time.
   , cfunReadTombstone :: CheckedInput -> [Tombstone] -> CStmt
   -- ^ Generate C code to read the tombstone of this input.
+  , cnameFunReadFact :: SeaProgramState -> CName
+  -- ^ Name of the read_fact function. e.g. psv_read_fact_0
   }
 
 seaOfReadNamedFact
@@ -135,7 +136,7 @@ seaOfReadNamedFact
   -> CStmt -- ^ error case statement
   -> CStmt
 seaOfReadNamedFact funs allowDupTime state err
- = let fun    = pretty (nameOfReadFact state)
+ = let fun    = cnameFunReadFact funs  state
        pname  = pretty (nameOfProgram  state)
        tname  = pretty (nameOfLastTime state)
        tcond  = if allowDupTime == AllowDupTime
@@ -192,7 +193,7 @@ seaOfReadFact funs state tombstones input readInput checkCount =
   vsep
     [ "#line 1 \"read fact" <+> seaOfStateInfo state <> "\""
     , "static ierror_loc_t INLINE"
-        <+> pretty (nameOfReadFact state) <+> "("
+        <+> pretty (cnameFunReadFact funs state) <+> "("
         <> "const char *value_ptr, const size_t value_size, itime_t time, "
         <> "imempool_t *mempool, iint_t chord_count, "
         <> pretty (nameOfStateType state) <+> "*programs)"
@@ -247,9 +248,6 @@ seaOfDefineInput (n, t)
 
 initType :: ValType -> Doc
 initType vt = " = " <> seaOfXValue (defaultOfType vt) vt <> ";"
-
-nameOfReadFact :: SeaProgramState -> Text
-nameOfReadFact state = T.pack ("input_read_fact_" <> show (stateName state))
 
 nameOfLastTime :: SeaProgramState -> Text
 nameOfLastTime state = "last_time_" <> T.pack (show (stateName state))
