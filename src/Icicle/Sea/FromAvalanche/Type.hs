@@ -1,7 +1,6 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE PatternGuards #-}
-
+{-# LANGUAGE PatternGuards     #-}
 module Icicle.Sea.FromAvalanche.Type (
     seaOfDefinitions
   , prefixOfArithType
@@ -9,13 +8,14 @@ module Icicle.Sea.FromAvalanche.Type (
   , baseOfValType
   , defOfVar
   , defOfVar'
+  , defOfVar_
   , seaOfValType
   , valTypeOfExp
   ) where
 
 import           Data.Set (Set)
-import qualified Data.Set as Set
-import qualified Data.List as List
+import qualified Data.Set           as Set
+import qualified Data.List          as List
 
 import           Icicle.Avalanche.Prim.Flat
 import           Icicle.Avalanche.Program
@@ -96,6 +96,10 @@ prefixOfValType t
 defOfVar :: Int -> ValType -> Doc -> Doc
 defOfVar nptrs typ var
  = defOfVar' nptrs (seaOfValType typ) var
+
+defOfVar_ :: Int -> Doc -> Doc -> Doc
+defOfVar_ nptrs typ var
+ = defOfVar' nptrs typ var
 
 defOfVar' :: Int -> Doc -> Doc -> Doc
 defOfVar' nptrs typ var

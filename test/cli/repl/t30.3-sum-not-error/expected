@@ -21,7 +21,15 @@ ok, loaded test/cli/repl/data.psv, 13 rows
                                     \_____________)
 > ok, c is now on
 > > - C:
-#line 1 "state definition #0 - repl"
+#line 1 "state and input definition #0 - repl"
+
+typedef struct {
+            ierror_t *new_conv_0_simp_19;
+            iint_t *new_conv_0_simp_20;
+            itime_t *new_conv_0_simp_21;
+        }
+input_repl_t;
+
 typedef struct {
     /* runtime */
     imempool_t      *mempool;
@@ -29,9 +37,7 @@ typedef struct {
     /* inputs */
     itime_t          conv_3;
     iint_t           new_count;
-    ierror_t        *new_conv_0_simp_19;
-    iint_t          *new_conv_0_simp_20;
-    itime_t         *new_conv_0_simp_21;
+    input_repl_t     input;
 
     /* outputs */
     ibool_t          repl_ix_0;
@@ -91,9 +97,9 @@ void iprogram_0(iprogram_0_t *s)
     }
     
     const iint_t     new_count                = s->new_count;
-    const ierror_t  *const new_conv_0_simp_19 = s->new_conv_0_simp_19;
-    const iint_t    *const new_conv_0_simp_20 = s->new_conv_0_simp_20;
-    const itime_t   *const new_conv_0_simp_21 = s->new_conv_0_simp_21;
+    const ierror_t  *const new_conv_0_simp_19 = s->input.new_conv_0_simp_19;
+    const iint_t    *const new_conv_0_simp_20 = s->input.new_conv_0_simp_20;
+    const itime_t   *const new_conv_0_simp_21 = s->input.new_conv_0_simp_21;
     
     for (iint_t i = 0; i < new_count; i++) {
         ifactid_t        conv_1               = i;

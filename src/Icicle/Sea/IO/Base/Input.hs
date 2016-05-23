@@ -5,20 +5,19 @@
 {-# LANGUAGE TupleSections     #-}
 {-# LANGUAGE NamedFieldPuns    #-}
 module Icicle.Sea.IO.Base.Input
-  ( CStmt
+  ( -- * Input options
+    InputOpts (..)
+  , InputAllowDupTime (..)
+
+    -- * C gen
+  , CStmt
   , CBlock
   , CName
   , CFun
   , Tombstones
   , SeaInput (..)
   , seaOfReadNamedFact
-  , seaOfReadFact
-
-  , InputOpts (..)
-  , InputAllowDupTime (..)
   , nameOfLastTime
-  , seaOfAssignInput
-  , seaOfDefineInput
   , initType
   , Assignment
   , assignVar
@@ -26,12 +25,12 @@ module Icicle.Sea.IO.Base.Input
   , seaOfArrayPutMutable
   , seaOfStringEq
   , seaOfBytesEq
-
   , CheckedInput (..)
   , checkInputType
   , FieldMapping (..)
   , mappingOfFields
 
+    -- * Helpers
   , last
   , init
   , sizeOfString
@@ -39,34 +38,34 @@ module Icicle.Sea.IO.Base.Input
   , unArray
   ) where
 
-import qualified Data.ByteString as B
-import           Data.Map (Map)
-import           Data.Set (Set)
-import qualified Data.Set as Set
-import           Data.Text (Text)
-import qualified Data.Text as T
-import qualified Data.Text.Encoding as T
-import           Data.Word (Word8)
+import qualified Data.ByteString                  as B
+import           Data.Map                         (Map)
+import           Data.Set                         (Set)
+import           Data.Text                        (Text)
+import qualified Data.Text                        as T
+import qualified Data.Text.Encoding               as T
+import           Data.Word                        (Word8)
 
-import           Icicle.Avalanche.Prim.Flat (Prim(..), PrimArray(..))
-import           Icicle.Avalanche.Prim.Flat (meltType)
+import           Icicle.Avalanche.Prim.Flat       (Prim(..), PrimArray(..))
+import           Icicle.Avalanche.Prim.Flat       (meltType)
 
-import           Icicle.Common.Type (ValType(..), StructField(..))
-import           Icicle.Common.Type (defaultOfType)
+import           Icicle.Common.Type               (ValType(..), StructField(..))
+import           Icicle.Common.Type               (defaultOfType)
 
-import           Icicle.Data (Attribute(..))
+import           Icicle.Data                      (Attribute(..))
 
 import           Icicle.Internal.Pretty
 
-import           Icicle.Sea.Error (SeaError(..))
+import           Icicle.Sea.Error                 (SeaError(..))
 import           Icicle.Sea.FromAvalanche.Prim
 import           Icicle.Sea.FromAvalanche.Program (seaOfXValue)
 import           Icicle.Sea.FromAvalanche.State
-import           Icicle.Sea.FromAvalanche.Type
 import           Icicle.Sea.IO.Psv.Base
 
 import           P
 
+
+type Name = Text
 
 data InputOpts = InputOpts
   { inputAllowDupTime :: InputAllowDupTime
@@ -81,8 +80,6 @@ data InputAllowDupTime
 
 --------------------------------------------------------------------------------
 
-type InputVar   = (Name, ValType)
-type Name       = Text
 type Tombstone  = Text
 type Tombstones = Set Tombstone
 
@@ -90,7 +87,7 @@ data CheckedInput = CheckedInput {
     inputSumError :: Name
   , inputTime     :: Name
   , inputType     :: ValType
-  , inputVars     :: [InputVar]
+  , inputVars     :: [(Name, ValType)]
   } deriving (Eq, Ord, Show)
 
 checkInputType :: SeaProgramState -> Either SeaError CheckedInput
@@ -118,15 +115,14 @@ type CFun   = Doc
 type CName  = Doc
 
 data SeaInput = SeaInput
-  { cstmtReadInput :: ValType -> [InputVar] -> Either SeaError CStmt
-  -- ^ Generate C code to define and populate the variables for a
-  --   given input type.
-  , cstmtReadTime :: CStmt
+  { cstmtReadFact :: SeaProgramState -> Tombstones -> CheckedInput -> CStmt -> CStmt -> CFun
+  -- ^ Generate C code to read input into the `program->input` struct.
+  , cstmtReadTime     :: CStmt
   -- ^ Generate C code to read the current fact time.
   , cfunReadTombstone :: CheckedInput -> [Tombstone] -> CStmt
   -- ^ Generate C code to read the tombstone of this input.
-  , cnameFunReadFact :: SeaProgramState -> CName
-  -- ^ Name of the read_fact function. e.g. psv_read_fact_0
+  , cnameFunReadFact  :: SeaProgramState -> CName
+  -- ^ Name of the read_fact function. e.g. psv_read_fact_0.
   }
 
 seaOfReadNamedFact
@@ -181,70 +177,7 @@ seaOfReadNamedFact funs allowDupTime state err
       , ""
       ]
 
-seaOfReadFact
-  :: SeaInput
-  -> SeaProgramState
-  -> Tombstones
-  -> CheckedInput
-  -> CStmt -- C block that reads the input value
-  -> CStmt -- C block that performs some check after reading
-  -> CFun
-seaOfReadFact funs state tombstones input readInput checkCount =
-  vsep
-    [ "#line 1 \"read fact" <+> seaOfStateInfo state <> "\""
-    , "static ierror_loc_t INLINE"
-        <+> pretty (cnameFunReadFact funs state) <+> "("
-        <> "const char *value_ptr, const size_t value_size, itime_t time, "
-        <> "imempool_t *mempool, iint_t chord_count, "
-        <> pretty (nameOfStateType state) <+> "*programs)"
-    , "{"
-    , "    ierror_loc_t error;"
-    , ""
-    , "    char *p  = (char *) value_ptr;"
-    , "    char *pe = (char *) value_ptr + value_size;"
-    , ""
-    , "    ierror_t " <> pretty (inputSumError input) <> ";"
-    , indent 4 . vsep . fmap seaOfDefineInput $ inputVars input
-    , ""
-    , "    " <> align (cfunReadTombstone funs input (Set.toList tombstones)) <> "{"
-    , "        " <> pretty (inputSumError input) <> " = ierror_not_an_error;"
-    , ""
-    , indent 8 readInput
-    , "    }"
-    , ""
-    , "    for (iint_t chord_ix = 0; chord_ix < chord_count; chord_ix++) {"
-    , "        " <> pretty (nameOfStateType state) <+> "*program = &programs[chord_ix];"
-    , ""
-    , "        /* don't read values after the chord time */"
-    , "        if (time > program->" <> pretty (stateTimeVar state) <> ")"
-    , "            continue;"
-    , ""
-    , "        iint_t new_count = program->new_count;"
-    , ""
-    , "        program->" <> pretty (inputSumError input) <> "[new_count] = " <> pretty (inputSumError input) <> ";"
-    , indent 8 . vsep . fmap seaOfAssignInput $ inputVars input
-    , "        program->" <> pretty (inputTime input) <> "[new_count] = time;"
-    , ""
-    , "        new_count++;"
-    , ""
-    , indent 4 checkCount
-    , ""
-    , "        program->new_count = new_count;"
-    , "    }"
-    , ""
-    , "    return 0; /* no error */"
-    , "}"
-    , ""
-    ]
-
-
-seaOfAssignInput :: (Text, ValType) -> Doc
-seaOfAssignInput (n, _)
- = "program->" <> pretty n <> "[new_count] = " <> pretty n <> ";"
-
-seaOfDefineInput :: (Text, ValType) -> Doc
-seaOfDefineInput (n, t)
- = seaOfValType t <+> pretty n <> initType t
+--------------------------------------------------------------------------------
 
 initType :: ValType -> Doc
 initType vt = " = " <> seaOfXValue (defaultOfType vt) vt <> ";"

@@ -120,7 +120,8 @@ seaOfAllocProgram state
 
        calloc n t = "calloc (" <> n <> ", sizeof (" <> t <> "));"
 
-       go (n, t) = program <> pretty (newPrefix <> n)
+       go (n, t) = program
+                <> stateInputNew (pretty n)
                 <> " = "
                 <> calloc "psv_max_row_count" (seaOfValType t)
 

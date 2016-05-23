@@ -634,7 +634,16 @@ read flat$90$simp$281 = flat$90$simp$267 [Double];
 output@{(Sum Error Double)} repl (flat$90$simp$280@{Error}, flat$90$simp$281@{Double});
 
 - C:
-#line 1 "state definition #0 - repl"
+#line 1 "state and input definition #0 - repl"
+
+typedef struct {
+            ierror_t *new_conv_0_simp_282;
+            istring_t *new_conv_0_simp_283;
+            iint_t *new_conv_0_simp_284;
+            itime_t *new_conv_0_simp_285;
+        }
+input_repl_t;
+
 typedef struct {
     /* runtime */
     imempool_t      *mempool;
@@ -642,10 +651,7 @@ typedef struct {
     /* inputs */
     itime_t          conv_3;
     iint_t           new_count;
-    ierror_t        *new_conv_0_simp_282;
-    istring_t       *new_conv_0_simp_283;
-    iint_t          *new_conv_0_simp_284;
-    itime_t         *new_conv_0_simp_285;
+    input_repl_t     input;
 
     /* outputs */
     ierror_t         repl_ix_0;
@@ -979,10 +985,10 @@ void iprogram_0(iprogram_0_t *s)
     }
     
     const iint_t     new_count                = s->new_count;
-    const ierror_t  *const new_conv_0_simp_282 = s->new_conv_0_simp_282;
-    const istring_t *const new_conv_0_simp_283 = s->new_conv_0_simp_283;
-    const iint_t    *const new_conv_0_simp_284 = s->new_conv_0_simp_284;
-    const itime_t   *const new_conv_0_simp_285 = s->new_conv_0_simp_285;
+    const ierror_t  *const new_conv_0_simp_282 = s->input.new_conv_0_simp_282;
+    const istring_t *const new_conv_0_simp_283 = s->input.new_conv_0_simp_283;
+    const iint_t    *const new_conv_0_simp_284 = s->input.new_conv_0_simp_284;
+    const itime_t   *const new_conv_0_simp_285 = s->input.new_conv_0_simp_285;
     
     for (iint_t i = 0; i < new_count; i++) {
         ifactid_t        conv_1               = i;
@@ -1640,7 +1646,15 @@ read s$reify$2$conv$5$simp$23 = acc$s$reify$2$conv$5$simp$7 [Time];
 output@{(Sum Error Time)} repl (s$reify$2$conv$5$simp$22@{Error}, s$reify$2$conv$5$simp$23@{Time});
 
 - C:
-#line 1 "state definition #0 - repl"
+#line 1 "state and input definition #0 - repl"
+
+typedef struct {
+            ierror_t *new_conv_0_simp_24;
+            iint_t *new_conv_0_simp_25;
+            itime_t *new_conv_0_simp_26;
+        }
+input_repl_t;
+
 typedef struct {
     /* runtime */
     imempool_t      *mempool;
@@ -1648,9 +1662,7 @@ typedef struct {
     /* inputs */
     itime_t          conv_3;
     iint_t           new_count;
-    ierror_t        *new_conv_0_simp_24;
-    iint_t          *new_conv_0_simp_25;
-    itime_t         *new_conv_0_simp_26;
+    input_repl_t     input;
 
     /* outputs */
     ierror_t         repl_ix_0;
@@ -1711,9 +1723,9 @@ void iprogram_0(iprogram_0_t *s)
     }
     
     const iint_t     new_count                = s->new_count;
-    const ierror_t  *const new_conv_0_simp_24 = s->new_conv_0_simp_24;
-    const iint_t    *const new_conv_0_simp_25 = s->new_conv_0_simp_25;
-    const itime_t   *const new_conv_0_simp_26 = s->new_conv_0_simp_26;
+    const ierror_t  *const new_conv_0_simp_24 = s->input.new_conv_0_simp_24;
+    const iint_t    *const new_conv_0_simp_25 = s->input.new_conv_0_simp_25;
+    const itime_t   *const new_conv_0_simp_26 = s->input.new_conv_0_simp_26;
     
     for (iint_t i = 0; i < new_count; i++) {
         ifactid_t        conv_1               = i;

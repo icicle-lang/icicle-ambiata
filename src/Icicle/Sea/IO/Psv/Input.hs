@@ -52,55 +52,119 @@ data PsvInputFormat
 
 seaInputPsv :: Base.SeaInput
 seaInputPsv = Base.SeaInput
-  { Base.cstmtReadInput    = seaOfReadInput
+  { Base.cstmtReadFact     = seaOfReadFact
   , Base.cstmtReadTime     = seaOfReadTime
   , Base.cfunReadTombstone = seaOfReadTombstone
   , Base.cnameFunReadFact  = nameOfReadFact
   }
-  where
-    nameOfReadFact :: SeaProgramState -> Base.CName
-    nameOfReadFact state = pretty ("psv_read_fact_" <> show (stateName state))
 
-    seaOfReadTime :: Base.CBlock
-    seaOfReadTime
-      = vsep
-      [ "ierror_loc_t error = fixed_read_itime (time_ptr, time_size, &time);"
-      , "if (error) return error;"
-      ]
+nameOfReadFact :: SeaProgramState -> Base.CName
+nameOfReadFact state = pretty ("psv_read_fact_" <> show (stateName state))
 
-    seaOfReadInput :: ValType -> [(Text, ValType)] -> Either SeaError Base.CStmt
-    seaOfReadInput inType inVars
-     = case (inVars, inType) of
-        ([(nx, BoolT)], BoolT)
-         -> pure (readValue "text" Base.assignVar nx BoolT)
+seaOfReadTime :: Base.CBlock
+seaOfReadTime
+  = vsep
+  [ "ierror_loc_t error = fixed_read_itime (time_ptr, time_size, &time);"
+  , "if (error) return error;"
+  ]
 
-        ([(nx, DoubleT)], DoubleT)
-         -> pure (readValue "text" Base.assignVar nx DoubleT)
+seaOfReadInputFields :: ValType -> [(Text, ValType)] -> Either SeaError Base.CStmt
+seaOfReadInputFields inType inVars
+ = case (inVars, inType) of
+    ([(nx, BoolT)], BoolT)
+     -> pure (readValue "text" Base.assignVar nx BoolT)
 
-        ([(nx, IntT)], IntT)
-         -> pure (readValue "text" Base.assignVar nx IntT)
+    ([(nx, DoubleT)], DoubleT)
+     -> pure (readValue "text" Base.assignVar nx DoubleT)
 
-        ([(nx, TimeT)], TimeT)
-         -> pure (readValue "text" Base.assignVar nx TimeT)
+    ([(nx, IntT)], IntT)
+     -> pure (readValue "text" Base.assignVar nx IntT)
 
-        ([(nx, StringT)], StringT)
-         -> pure (readValuePool "text" Base.assignVar nx StringT)
+    ([(nx, TimeT)], TimeT)
+     -> pure (readValue "text" Base.assignVar nx TimeT)
 
-        (_, t@(ArrayT _))
-         -> seaOfReadJsonValue Base.assignVar t inVars
+    ([(nx, StringT)], StringT)
+     -> pure (readValuePool "text" Base.assignVar nx StringT)
 
-        (_, t@(StructT _))
-         -> seaOfReadJsonValue Base.assignVar t inVars
+    (_, t@(ArrayT _))
+     -> seaOfReadJsonValue Base.assignVar t inVars
 
-        (_, t)
-         -> Left (SeaUnsupportedInputType t)
+    (_, t@(StructT _))
+     -> seaOfReadJsonValue Base.assignVar t inVars
 
-    seaOfReadTombstone :: Base.CheckedInput -> [Text] -> Doc
-    seaOfReadTombstone input = \case
-      []     -> Pretty.empty
-      (t:ts) -> "if (" <> Base.seaOfStringEq t "value_ptr" (Just "value_size") <> ") {" <> line
-             <> "    " <> pretty (Base.inputSumError input) <> " = ierror_tombstone;" <> line
-             <> "} else " <> seaOfReadTombstone input ts
+    (_, t)
+     -> Left (SeaUnsupportedInputType t)
+
+seaOfReadTombstone :: Base.CheckedInput -> [Text] -> Doc
+seaOfReadTombstone input = \case
+  []     -> Pretty.empty
+  (t:ts) -> "if (" <> Base.seaOfStringEq t "value_ptr" (Just "value_size") <> ") {" <> line
+         <> "    " <> pretty (Base.inputSumError input) <> " = ierror_tombstone;" <> line
+         <> "} else " <> seaOfReadTombstone input ts
+
+seaOfReadFact
+  :: SeaProgramState
+  -> Base.Tombstones
+  -> Base.CheckedInput
+  -> Base.CStmt -- C block that reads the input value
+  -> Base.CStmt -- C block that performs some check after reading
+  -> Base.CFun
+seaOfReadFact state tombstones input readInput checkCount =
+  vsep
+    [ "#line 1 \"read fact" <+> seaOfStateInfo state <> "\""
+    , "static ierror_loc_t INLINE"
+        <+> pretty (nameOfReadFact state) <+> "("
+        <> "const char *value_ptr, const size_t value_size, itime_t time, "
+        <> "imempool_t *mempool, iint_t chord_count, "
+        <> pretty (nameOfStateType state) <+> "*programs)"
+    , "{"
+    , "    ierror_loc_t error;"
+    , ""
+    , "    char *p  = (char *) value_ptr;"
+    , "    char *pe = (char *) value_ptr + value_size;"
+    , ""
+    , "    ierror_t " <> pretty (Base.inputSumError input) <> ";"
+    , indent 4 . vsep . fmap seaOfDefineInput $ Base.inputVars input
+    , ""
+    , "    " <> align (seaOfReadTombstone input (Set.toList tombstones)) <> "{"
+    , "        " <> pretty (Base.inputSumError input) <> " = ierror_not_an_error;"
+    , ""
+    , indent 8 readInput
+    , "    }"
+    , ""
+    , "    for (iint_t chord_ix = 0; chord_ix < chord_count; chord_ix++) {"
+    , "        " <> pretty (nameOfStateType state) <+> "*program = &programs[chord_ix];"
+    , ""
+    , "        /* don't read values after the chord time */"
+    , "        if (time > program->" <> pretty (stateTimeVar state) <> ")"
+    , "            continue;"
+    , ""
+    , "        iint_t new_count = program->new_count;"
+    , ""
+    , "        program->input." <> pretty (Base.inputSumError input) <> "[new_count] = " <> pretty (Base.inputSumError input) <> ";"
+    , indent 8 . vsep . fmap seaOfAssignInput $ Base.inputVars input
+    , "        program->input." <> pretty (Base.inputTime input) <> "[new_count] = time;"
+    , ""
+    , "        new_count++;"
+    , ""
+    , indent 4 checkCount
+    , ""
+    , "        program->new_count = new_count;"
+    , "    }"
+    , ""
+    , "    return 0; /* no error */"
+    , "}"
+    , ""
+    ]
+
+
+seaOfAssignInput :: (Text, ValType) -> Doc
+seaOfAssignInput (n, _)
+ = "program->input." <> pretty n <> "[new_count] = " <> pretty n <> ";"
+
+seaOfDefineInput :: (Text, ValType) -> Doc
+seaOfDefineInput (n, t)
+ = seaOfValType t <+> pretty n <> Base.initType t
 
 
 seaOfReadAnyFactPsv
@@ -183,7 +247,7 @@ seaOfReadFactDense dict state tombstones = do
   input     <- Base.checkInputType state
   let mv     = Map.lookup attr (denseMissingValue dict)
   readInput <- seaOfReadFactValueDense mv fields (Base.inputVars input)
-  pure $ Base.seaOfReadFact seaInputPsv state tombstones input readInput (seaOfCheckCount state)
+  pure $ Base.cstmtReadFact seaInputPsv state tombstones input readInput (seaOfCheckCount state)
 
 seaOfReadFactValueDense
   :: Maybe MissingValue
@@ -229,7 +293,7 @@ seaOfReadDenseInput
 seaOfReadDenseInput missing inType inVars
   = case (inVars, inType) of
      ((nb, BoolT) : nx, OptionT t)
-       -> do val_sea <- Base.cstmtReadInput seaInputPsv t nx
+       -> do val_sea <- seaOfReadInputFields t nx
              let body_true  = indent 4
                             $ vsep [ Base.assignVar (pretty nb) BoolT "true"
                                    , val_sea ]
@@ -253,7 +317,7 @@ seaOfReadDenseInput missing inType inVars
                      , body_false
                      , "}"
                      ]
-     _ -> Base.cstmtReadInput seaInputPsv inType inVars
+     _ -> seaOfReadInputFields inType inVars
 
 seaOfDenseFieldMapping :: Maybe MissingValue -> [Base.FieldMapping] -> Text -> Either SeaError Doc
 seaOfDenseFieldMapping m mappings field = do
@@ -317,8 +381,8 @@ seaOfReadFactSparse
   -> Either SeaError Doc
 seaOfReadFactSparse state tombstones = do
   input     <- Base.checkInputType state
-  readInput <- Base.cstmtReadInput seaInputPsv (Base.inputType input) (Base.inputVars input)
-  pure $ Base.seaOfReadFact seaInputPsv state tombstones input readInput (seaOfCheckCount state)
+  readInput <- seaOfReadInputFields (Base.inputType input) (Base.inputVars input)
+  pure $ Base.cstmtReadFact seaInputPsv state tombstones input readInput (seaOfCheckCount state)
 
 ------------------------------------------------------------------------
 
