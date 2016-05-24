@@ -637,12 +637,11 @@ output@{(Sum Error Double)} repl (flat$90$simp$280@{Error}, flat$90$simp$281@{Do
 #line 1 "state and input definition #0 - repl"
 
 typedef struct {
-            ierror_t *new_conv_0_simp_282;
-            istring_t *new_conv_0_simp_283;
-            iint_t *new_conv_0_simp_284;
-            itime_t *new_conv_0_simp_285;
-        }
-input_repl_t;
+    ierror_t         *new_conv_0_simp_282;
+    istring_t        *new_conv_0_simp_283;
+    iint_t           *new_conv_0_simp_284;
+    itime_t          *new_conv_0_simp_285;
+} input_repl_t;
 
 typedef struct {
     /* runtime */
@@ -1649,11 +1648,10 @@ output@{(Sum Error Time)} repl (s$reify$2$conv$5$simp$22@{Error}, s$reify$2$conv
 #line 1 "state and input definition #0 - repl"
 
 typedef struct {
-            ierror_t *new_conv_0_simp_24;
-            iint_t *new_conv_0_simp_25;
-            itime_t *new_conv_0_simp_26;
-        }
-input_repl_t;
+    ierror_t         *new_conv_0_simp_24;
+    iint_t           *new_conv_0_simp_25;
+    itime_t          *new_conv_0_simp_26;
+} input_repl_t;
 
 typedef struct {
     /* runtime */

@@ -31,8 +31,6 @@ import qualified Data.List          as List
 import qualified Data.Map           as Map
 import           Data.Text (Text)
 import qualified Data.Text          as T
-import qualified Language.C.Syntax  as C
-import           Language.C.Quote.C
 
 import           Icicle.Avalanche.Prim.Flat
 import           Icicle.Avalanche.Program
@@ -115,7 +113,7 @@ seaOfState state
  = vsep
  [ "#line 1 \"state and input definition" <+> seaOfStateInfo state <> "\""
  , ""
- , ppm (defFactStruct (stateInputTypeName state) (stateInputVars state))
+ , defOfFactStruct (stateInputTypeName state) (stateInputVars state)
  , ""
  , "typedef struct {"
  , "    /* runtime */"
@@ -150,17 +148,24 @@ seaOfState state
 
 -- | Define a struct where the fields are the melted types.
 --
-defFactStruct :: Text -> [(Text, ValType)] -> C.Definition
-defFactStruct typename fields
-  = let fs = fmap defFactField fields
-        t  = T.unpack typename
-    in  [cedecl|typedef struct { $sdecls:fs } $id:t;|]
+defOfFactStruct :: Text -> [(Text, ValType)] -> Doc
+defOfFactStruct typename fields
+  = vsep [ "typedef struct {"
+         , indent 4 $ vsep (fmap defOfFactField fields)
+         , "}" <+> pretty typename <> ";"
+         ]
+-- TODO use language-c-quote after fixing their savage pretty printer
+--  = let fs = fmap defFactField fields
+--        t  = T.unpack typename
+--    in  [cedecl|typedef struct { $sdecls:fs } $id:t;|]
 
-defFactField :: (Text, ValType) -> C.FieldGroup
-defFactField (name, ty)
-  = let t = show     (seaOfValType ty)
-        n = T.unpack ("*" <> newPrefix <> name)
-    in  [csdecl|typename $id:t $id:n;|]
+defOfFactField :: (Text, ValType) -> Doc
+defOfFactField (name, ty)
+  = defOfVar_ 0 (seaOfValType ty) (pretty ("*" <> newPrefix <> name <> ";"))
+-- TODO use language-c-quote after fixing their savage pretty printer
+--  = let t = show     (seaOfValType ty)
+--        n = T.unpack ("*" <> newPrefix <> name)
+--    in  [csdecl|typename $id:t $id:n;|]
 
 ------------------------------------------------------------------------
 
