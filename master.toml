@@ -4,23 +4,35 @@
   sha1 = "b89ee2ce5fc08b8f1ec5d92c6199b5fda9484783"
 
 [build.dist]
+  MAFIA_ALEX = "true"
+  MAFIA_HAPPY = "true"
   HADDOCK="true"
   PUBLISH="icicle-repl"
 
 [build.dist-bench]
+  MAFIA_ALEX = "true"
+  MAFIA_HAPPY = "true"
   TEST="false"
   BENCH="true"
   PUBLISH_BENCH="icicle"  
 
 [build.branches]
+  MAFIA_ALEX = "true"
+  MAFIA_HAPPY = "true"
 
 [build.branches-bench]
+  MAFIA_ALEX = "true"
+  MAFIA_HAPPY = "true"
   TEST="false"
   BENCH="true"
 
 [build.appshop]
+  MAFIA_ALEX = "true"
+  MAFIA_HAPPY = "true"
   PUBLISH_APPSHOP="icicle-repl"
 
 [build.appshop.master]
+  MAFIA_ALEX = "true"
+  MAFIA_HAPPY = "true"
   runner = "s3://ambiata-dispensary-v2/dist/master/master-ambiata/master-haskell-appshop-0.0.1-20160114232634-a8a6f45"
   sha1 = "7890c390e5088c5b38264341d2451bd2f54de184"

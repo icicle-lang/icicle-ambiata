@@ -57,7 +57,7 @@ seaOfProgram name attrib program = do
     , ""
     , indent 4 $ assign (defOfVar' 1 "imempool_t" "mempool") "s->mempool;"
     , indent 4 $ assign (defOfVar  0 TimeT (pretty (stateTimeVar state)))
-                        ("s->" <> pretty (stateTimeVar state)) <> ";"
+                        ("s->" <> stateInputTime state) <> ";"
     , ""
     , indent 4 (seaOfStatement (statements program))
     , "}"
@@ -122,7 +122,7 @@ seaOfStatement stmt
      ForeachFacts (FactBinds ntime nfid ns) _ FactLoopNew stmt'
       -> let structAssign (n, t) = assign (defOfVar' 1 ("const" <+> seaOfValType t)
                                                        ("const" <+> pretty newPrefix <> seaOfName n))
-                                          ("s->" <> pretty newPrefix <> seaOfName n) <> semi
+                                          (stNew n) <> semi
              loopAssign   (n, t) = assign (defOfVar 0 t (seaOfName n))
                                           (pretty newPrefix <> seaOfName n <> "[i]") <> semi
              factTime = case reverse ns of
@@ -130,7 +130,7 @@ seaOfStatement stmt
                          ((n,_):_) -> pretty newPrefix <> seaOfName n <> "[i]"
          in vsep $
             [ ""
-            , assign (defOfVar' 0 ("const" <+> seaOfValType IntT) "new_count") "s->new_count;"
+            , assign (defOfVar' 0 ("const" <+> seaOfValType IntT) "new_count") (stCount <> ";")
             ] <> fmap structAssign ns <>
             [ ""
             , "for (iint_t i = 0; i < new_count; i++) {"
@@ -155,13 +155,13 @@ seaOfStatement stmt
 
      LoadResumable n _
       -> vsep [ ""
-              , "if (s->" <> pretty hasPrefix <> seaOfName n <> ") {"
-              , indent 4 $ assign (seaOfName n) ("s->" <> pretty resPrefix <> seaOfName n) <> semi <> suffix "load"
+              , "if (" <> stHas n <> ") {"
+              , indent 4 $ assign (seaOfName n) (stRes n) <> semi <> suffix "load"
               , "}" ]
 
      SaveResumable n _
-      -> assign ("s->" <> pretty hasPrefix <> seaOfName n) "itrue"       <> semi <> suffix "save" <> line
-      <> assign ("s->" <> pretty resPrefix <> seaOfName n) (seaOfName n) <> semi <> suffix "save" <> line
+      -> assign (stHas n) "itrue"       <> semi <> suffix "save" <> line
+      <> assign (stRes n) (seaOfName n) <> semi <> suffix "save" <> line
 
      Output n _ xts
       | ixAssign <- \ix xx -> assign ("s->" <> seaOfNameIx n ix) (seaOfExp xx) <> semi <> suffix "output"
@@ -174,6 +174,12 @@ seaOfStatement stmt
 
      KeepFactInHistory _
       -> Pretty.empty
+  where
+   stNew   n = "s->" <> stateInputNew (seaOfName n)
+   stRes   n = "s->" <> stateInputRes (seaOfName n)
+   stHas   n = "s->" <> stateInputHas (seaOfName n)
+   stCount   = "s->" <> stateNewCount
+
 
 seaOfForeachCompare :: ForeachType -> Doc
 seaOfForeachCompare ForeachStepUp   = "<"

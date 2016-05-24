@@ -140,7 +140,7 @@ seaOfWriteProgramOutput config state = do
     , "/* " <> seaOfAttributeDesc (stateAttribute state) <> " */"
     , stype <+> "*" <> ps <+> "=" <+> "&fleet->" <> pname <> "[chord_ix];"
     , pname <+> "(" <> ps <> ");"
-    , ps <> "->new_count = 0;"
+    , ps <> "->input.new_count = 0;"
     , vsep resumeables
     , ""
     , vsep outputs

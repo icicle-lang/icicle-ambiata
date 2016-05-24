@@ -22,19 +22,22 @@ import           Icicle.Internal.Pretty
 
 import           Icicle.Sea.Error (SeaError(..))
 import           Icicle.Sea.FromAvalanche.State
+
 import           Icicle.Sea.IO.Base
-import qualified Icicle.Sea.IO.Psv as Psv
+import qualified Icicle.Sea.IO.Psv   as Psv
+import qualified Icicle.Sea.IO.Zebra as Zebra
 
 import           P
 
 
 data IOFormat
   = FormatPsv Psv.PsvInputConfig Psv.PsvOutputConfig
-  | FormatEnterprise
+  | FormatZebra
 
 seaOfDriver :: IOFormat -> InputOpts -> [SeaProgramState] -> Either SeaError Doc
 seaOfDriver format opts states
   = case format of
       FormatPsv inputConfig outputConfig
         -> Psv.seaOfPsvDriver opts inputConfig outputConfig states
-      FormatEnterprise -> Right "" -- todo
+      FormatZebra
+        -> Zebra.seaOfZebraDriver -- todo

@@ -1,6 +1,9 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE PatternGuards #-}
+{-# LANGUAGE PatternGuards     #-}
+{-# LANGUAGE TemplateHaskell   #-}
+{-# LANGUAGE QuasiQuotes       #-}
+
 module Icicle.Sea.FromAvalanche.State (
     SeaProgramState(..)
   , nameOfProgram
@@ -11,6 +14,14 @@ module Icicle.Sea.FromAvalanche.State (
   , nameOfStateType
   , nameOfStateSize
   , nameOfStateSize'
+  , stateInputTypeName
+  , stateInputName
+  , stateInput
+  , stateInputNew
+  , stateInputTime
+  , stateNewCount
+  , stateInputRes
+  , stateInputHas
 
   -- * Prefixes for facts/resumables.
   , hasPrefix
@@ -18,10 +29,10 @@ module Icicle.Sea.FromAvalanche.State (
   , newPrefix
   ) where
 
-import qualified Data.List as List
-import qualified Data.Map as Map
+import qualified Data.List          as List
+import qualified Data.Map           as Map
 import           Data.Text (Text)
-import qualified Data.Text as T
+import qualified Data.Text          as T
 
 import           Icicle.Avalanche.Prim.Flat
 import           Icicle.Avalanche.Program
@@ -102,18 +113,16 @@ seaOfStateInfo state = "#" <> int (stateName state) <+> "-" <+> seaOfAttributeDe
 seaOfState :: SeaProgramState -> Doc
 seaOfState state
  = vsep
- [ "#line 1 \"state definition" <+> seaOfStateInfo state <> "\""
+ [ "#line 1 \"state and input definition" <+> seaOfStateInfo state <> "\""
+ , ""
+ , defOfFactStruct state
+ , ""
  , "typedef struct {"
  , "    /* runtime */"
  , indent 4 (defOfVar' 1 "imempool_t" "mempool;")
  , ""
  , "    /* inputs */"
- , indent 4 (defOfVar 0 TimeT (pretty (stateTimeVar state) <> ";"))
- , indent 4 (defOfVar 0 IntT  "new_count;")
- , indent 4 . vsep
-            . fmap defOfFactVar
-            . stateInputVars
-            $ state
+ , indent 4 (defOfVar_ 0 (pretty (stateInputTypeName state)) "input;")
  , ""
  , "    /* outputs */"
  , indent 4 . vsep
@@ -137,14 +146,37 @@ seaOfState state
 
 ------------------------------------------------------------------------
 
+-- | Define a struct where the fields are the melted types.
+--
+defOfFactStruct :: SeaProgramState -> Doc
+defOfFactStruct state
+  = vsep
+  [ "typedef struct {"
+  , indent 4 (defOfVar  0 TimeT (pretty (stateTimeVar state) <> ";"))
+  , indent 4 (defOfVar  0 IntT  "new_count;")
+  , indent 4 (vsep (fmap defOfFactField (stateInputVars state)))
+  , "}" <+> pretty (stateInputTypeName state) <> ";"
+  ]
+
+-- TODO use language-c-quote after fixing their savage pretty printer
+--  = let fs = fmap defFactField fields
+--        t  = T.unpack typename
+--    in  [cedecl|typedef struct { $sdecls:fs } $id:t;|]
+
+defOfFactField :: (Text, ValType) -> Doc
+defOfFactField (name, ty)
+  = defOfVar_ 0 (seaOfValType ty) (pretty ("*" <> newPrefix <> name <> ";"))
+-- TODO use language-c-quote after fixing their savage pretty printer
+--  = let t = show     (seaOfValType ty)
+--        n = T.unpack ("*" <> newPrefix <> name)
+--    in  [csdecl|typename $id:t $id:n;|]
+
+------------------------------------------------------------------------
+
 defOfResumable :: (Text, ValType) -> Doc
 defOfResumable (n, t)
  =  defOfVar 0 BoolT (pretty hasPrefix <> pretty n) <> semi <> line
  <> defOfVar 0 t     (pretty resPrefix <> pretty n) <> semi
-
-defOfFactVar :: (Text, ValType) -> Doc
-defOfFactVar (n, t)
- = defOfVar 1 t (pretty newPrefix <> pretty n) <> semi
 
 defsOfOutput :: (OutputName, (ValType, [ValType])) -> [Doc]
 defsOfOutput (n, (_, ts))
@@ -168,3 +200,31 @@ resPrefix = "res_"
 -- | Prefix for new facts.
 newPrefix :: Text
 newPrefix = "new_"
+
+stateInputName :: Text
+stateInputName
+ = "input"
+
+stateInputTypeName :: SeaProgramState -> Text
+stateInputTypeName state
+ = "input_" <> getAttribute (stateAttribute state) <> "_t"
+
+stateInput :: Doc
+stateInput = pretty stateInputName
+
+stateInputNew :: Doc -> Doc
+stateInputNew n = pretty stateInputName <> "." <> pretty newPrefix <> n
+
+stateInputTime :: SeaProgramState -> Doc
+stateInputTime state = pretty stateInputName <> "." <> pretty (stateTimeVar state)
+
+stateNewCount :: Doc
+stateNewCount = "input.new_count"
+
+-- Resumables are not in the input struct for now.
+
+stateInputRes :: Doc -> Doc
+stateInputRes n = pretty resPrefix <> n
+
+stateInputHas :: Doc -> Doc
+stateInputHas n = pretty hasPrefix <> n
