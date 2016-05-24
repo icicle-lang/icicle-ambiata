@@ -170,7 +170,7 @@ seaOfCollectProgram :: SeaProgramState -> Doc
 seaOfCollectProgram state
  = let pname = pretty (nameOfProgram state)
        stype = pretty (nameOfStateType state)
-       pvar  = "program->"
+       pvar  = "program->input."
 
        new n = pvar <> pretty (newPrefix <> n)
        res n = pvar <> pretty (resPrefix <> n)
