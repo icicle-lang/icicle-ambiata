@@ -18,6 +18,8 @@ module Icicle.Sea.FromAvalanche.State (
   , stateInputName
   , stateInput
   , stateInputNew
+  , stateInputTime
+  , stateNewCount
   , stateInputRes
   , stateInputHas
 
@@ -113,15 +115,13 @@ seaOfState state
  = vsep
  [ "#line 1 \"state and input definition" <+> seaOfStateInfo state <> "\""
  , ""
- , defOfFactStruct (stateInputTypeName state) (stateInputVars state)
+ , defOfFactStruct state
  , ""
  , "typedef struct {"
  , "    /* runtime */"
  , indent 4 (defOfVar' 1 "imempool_t" "mempool;")
  , ""
  , "    /* inputs */"
- , indent 4 (defOfVar  0 TimeT (pretty (stateTimeVar state) <> ";"))
- , indent 4 (defOfVar  0 IntT  "new_count;")
  , indent 4 (defOfVar_ 0 (pretty (stateInputTypeName state)) "input;")
  , ""
  , "    /* outputs */"
@@ -148,12 +148,16 @@ seaOfState state
 
 -- | Define a struct where the fields are the melted types.
 --
-defOfFactStruct :: Text -> [(Text, ValType)] -> Doc
-defOfFactStruct typename fields
-  = vsep [ "typedef struct {"
-         , indent 4 $ vsep (fmap defOfFactField fields)
-         , "}" <+> pretty typename <> ";"
-         ]
+defOfFactStruct :: SeaProgramState -> Doc
+defOfFactStruct state
+  = vsep
+  [ "typedef struct {"
+  , indent 4 (defOfVar  0 TimeT (pretty (stateTimeVar state) <> ";"))
+  , indent 4 (defOfVar  0 IntT  "new_count;")
+  , indent 4 (vsep (fmap defOfFactField (stateInputVars state)))
+  , "}" <+> pretty (stateInputTypeName state) <> ";"
+  ]
+
 -- TODO use language-c-quote after fixing their savage pretty printer
 --  = let fs = fmap defFactField fields
 --        t  = T.unpack typename
@@ -211,9 +215,16 @@ stateInput = pretty stateInputName
 stateInputNew :: Doc -> Doc
 stateInputNew n = pretty stateInputName <> "." <> pretty newPrefix <> n
 
+stateInputTime :: SeaProgramState -> Doc
+stateInputTime state = pretty stateInputName <> "." <> pretty (stateTimeVar state)
+
+stateNewCount :: Doc
+stateNewCount = "input.new_count"
+
+-- Resumables are not in the input struct for now.
+
 stateInputRes :: Doc -> Doc
 stateInputRes n = pretty resPrefix <> n
 
 stateInputHas :: Doc -> Doc
 stateInputHas n = pretty hasPrefix <> n
-

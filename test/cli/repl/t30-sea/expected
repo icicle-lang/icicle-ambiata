@@ -637,6 +637,8 @@ output@{(Sum Error Double)} repl (flat$90$simp$280@{Error}, flat$90$simp$281@{Do
 #line 1 "state and input definition #0 - repl"
 
 typedef struct {
+    itime_t          conv_3;
+    iint_t           new_count;
     ierror_t         *new_conv_0_simp_282;
     istring_t        *new_conv_0_simp_283;
     iint_t           *new_conv_0_simp_284;
@@ -648,8 +650,6 @@ typedef struct {
     imempool_t      *mempool;
 
     /* inputs */
-    itime_t          conv_3;
-    iint_t           new_count;
     input_repl_t     input;
 
     /* outputs */
@@ -895,7 +895,7 @@ void iprogram_0(iprogram_0_t *s)
     idouble_t        flat_58_simp_220;
 
     imempool_t      *mempool                  = s->mempool;
-    itime_t          conv_3                   = s->conv_3;
+    itime_t          conv_3                   = s->input.conv_3;
 
     acc_conv_7_simp_33                        = ierror_not_an_error;                  /* init */
     acc_conv_7_simp_34                        = 0.0;                                  /* init */
@@ -983,7 +983,7 @@ void iprogram_0(iprogram_0_t *s)
         acc_conv_7_simp_34                    = s->res_acc_conv_7_simp_34;            /* load */
     }
     
-    const iint_t     new_count                = s->new_count;
+    const iint_t     new_count                = s->input.new_count;
     const ierror_t  *const new_conv_0_simp_282 = s->input.new_conv_0_simp_282;
     const istring_t *const new_conv_0_simp_283 = s->input.new_conv_0_simp_283;
     const iint_t    *const new_conv_0_simp_284 = s->input.new_conv_0_simp_284;
@@ -1648,6 +1648,8 @@ output@{(Sum Error Time)} repl (s$reify$2$conv$5$simp$22@{Error}, s$reify$2$conv
 #line 1 "state and input definition #0 - repl"
 
 typedef struct {
+    itime_t          conv_3;
+    iint_t           new_count;
     ierror_t         *new_conv_0_simp_24;
     iint_t           *new_conv_0_simp_25;
     itime_t          *new_conv_0_simp_26;
@@ -1658,8 +1660,6 @@ typedef struct {
     imempool_t      *mempool;
 
     /* inputs */
-    itime_t          conv_3;
-    iint_t           new_count;
     input_repl_t     input;
 
     /* outputs */
@@ -1702,7 +1702,7 @@ void iprogram_0(iprogram_0_t *s)
     itime_t          acc_conv_4_simp_2;
 
     imempool_t      *mempool                  = s->mempool;
-    itime_t          conv_3                   = s->conv_3;
+    itime_t          conv_3                   = s->input.conv_3;
 
     acc_conv_4_simp_2                         = 0x7420b1100000000;                    /* init */
     acc_s_reify_2_conv_5_simp_6               = ierror_fold1_no_value;                /* init */
@@ -1720,7 +1720,7 @@ void iprogram_0(iprogram_0_t *s)
         acc_conv_4_simp_2                     = s->res_acc_conv_4_simp_2;             /* load */
     }
     
-    const iint_t     new_count                = s->new_count;
+    const iint_t     new_count                = s->input.new_count;
     const ierror_t  *const new_conv_0_simp_24 = s->input.new_conv_0_simp_24;
     const iint_t    *const new_conv_0_simp_25 = s->input.new_conv_0_simp_25;
     const itime_t   *const new_conv_0_simp_26 = s->input.new_conv_0_simp_26;

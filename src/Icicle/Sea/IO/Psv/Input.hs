@@ -136,10 +136,10 @@ seaOfReadFact state tombstones input readInput checkCount =
     , "        " <> pretty (nameOfStateType state) <+> "*program = &programs[chord_ix];"
     , ""
     , "        /* don't read values after the chord time */"
-    , "        if (time > program->" <> pretty (stateTimeVar state) <> ")"
+    , "        if (time > program->input." <> pretty (stateTimeVar state) <> ")"
     , "            continue;"
     , ""
-    , "        iint_t new_count = program->new_count;"
+    , "        iint_t new_count = program->input.new_count;"
     , ""
     , "        program->input." <> pretty (Base.inputSumError input) <> "[new_count] = " <> pretty (Base.inputSumError input) <> ";"
     , indent 8 . vsep . fmap seaOfAssignInput $ Base.inputVars input
@@ -149,7 +149,7 @@ seaOfReadFact state tombstones input readInput checkCount =
     , ""
     , indent 4 checkCount
     , ""
-    , "        program->new_count = new_count;"
+    , "        program->input.new_count = new_count;"
     , "    }"
     , ""
     , "    return 0; /* no error */"

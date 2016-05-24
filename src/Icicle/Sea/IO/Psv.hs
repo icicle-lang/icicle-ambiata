@@ -170,16 +170,17 @@ seaOfCollectProgram :: SeaProgramState -> Doc
 seaOfCollectProgram state
  = let pname = pretty (nameOfProgram state)
        stype = pretty (nameOfStateType state)
-       pvar  = "program->input."
+       pvar  = "program->"
+       pvari = pvar <> "input."
 
-       new n = pvar <> pretty (newPrefix <> n)
-       res n = pvar <> pretty (resPrefix <> n)
+       new n = pvari <> pretty (newPrefix <> n)
+       res n = pvar  <> pretty (resPrefix <> n)
 
        copyInputs nts
         = let docs = concatMap copyInput (stateInputVars state)
           in if List.null docs
              then []
-             else [ "iint_t new_count = " <> pvar <> "new_count;"
+             else [ "iint_t new_count = " <> pvari <> "new_count;"
                   , ""
                   , "for (iint_t ix = 0; ix < new_count; ix++) {"
                   , indent 4 $ vsep $ concatMap copyInput nts
@@ -291,8 +292,8 @@ defOfLastTime state
 
 seaOfAssignTime :: SeaProgramState -> Doc
 seaOfAssignTime state
- = let ptime = "p" <> pretty (stateName state) <> "[ix]." <> pretty (stateTimeVar state)
-   in ptime <+> "=" <+> "chord_time;"
+ = let ptime = "p" <> pretty (stateName state) <> "[ix].input." <> pretty (stateTimeVar state)
+   in  ptime <+> "=" <+> "chord_time;"
 
 seaOfChordTimes :: [Time] -> Doc
 seaOfChordTimes times

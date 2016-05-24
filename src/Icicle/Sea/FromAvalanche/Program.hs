@@ -57,7 +57,7 @@ seaOfProgram name attrib program = do
     , ""
     , indent 4 $ assign (defOfVar' 1 "imempool_t" "mempool") "s->mempool;"
     , indent 4 $ assign (defOfVar  0 TimeT (pretty (stateTimeVar state)))
-                        ("s->" <> pretty (stateTimeVar state)) <> ";"
+                        ("s->" <> stateInputTime state) <> ";"
     , ""
     , indent 4 (seaOfStatement (statements program))
     , "}"
@@ -130,7 +130,7 @@ seaOfStatement stmt
                          ((n,_):_) -> pretty newPrefix <> seaOfName n <> "[i]"
          in vsep $
             [ ""
-            , assign (defOfVar' 0 ("const" <+> seaOfValType IntT) "new_count") "s->new_count;"
+            , assign (defOfVar' 0 ("const" <+> seaOfValType IntT) "new_count") (stCount <> ";")
             ] <> fmap structAssign ns <>
             [ ""
             , "for (iint_t i = 0; i < new_count; i++) {"
@@ -175,9 +175,10 @@ seaOfStatement stmt
      KeepFactInHistory _
       -> Pretty.empty
   where
-   stNew n = "s->" <> stateInputNew (seaOfName n)
-   stRes n = "s->" <> stateInputRes (seaOfName n)
-   stHas n = "s->" <> stateInputHas (seaOfName n)
+   stNew   n = "s->" <> stateInputNew (seaOfName n)
+   stRes   n = "s->" <> stateInputRes (seaOfName n)
+   stHas   n = "s->" <> stateInputHas (seaOfName n)
+   stCount   = "s->" <> stateNewCount
 
 
 seaOfForeachCompare :: ForeachType -> Doc
