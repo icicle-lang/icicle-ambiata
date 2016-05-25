@@ -138,7 +138,7 @@ queryOfSource
   -> Either DebugError (Attribute, S.QueryTop (S.Annot SourcePos S.Variable) S.Variable)
 queryOfSource checkOpts dict name src =
   first DebugSourceError $ do
-    parsed       <- sourceParseQT name src
+    parsed       <- sourceParseQT name (Namespace "namespace-debug") src
     desugared    <- sourceDesugarQT parsed
     (checked, _) <- sourceCheckQT checkOpts dict desugared
     pure (Attribute name, checked)
@@ -148,10 +148,10 @@ entryOfQuery
   -> S.QueryTop (S.Annot SourcePos S.Variable) S.Variable
   -> DictionaryEntry
 entryOfQuery attr query =
-  DictionaryEntry attr (VirtualDefinition (Virtual query))
+  DictionaryEntry attr (VirtualDefinition (Virtual query)) (Namespace "namespace-debug")
 
 ------------------------------------------------------------------------
 
 concrete :: DictionaryEntry -> Bool
-concrete (DictionaryEntry _ (ConcreteDefinition _ _)) = True
-concrete (DictionaryEntry _ (VirtualDefinition  _))   = False
+concrete (DictionaryEntry _ (ConcreteDefinition _ _) _) = True
+concrete (DictionaryEntry _ (VirtualDefinition  _)   _) = False

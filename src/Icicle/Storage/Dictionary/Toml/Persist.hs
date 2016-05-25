@@ -39,12 +39,12 @@ normalisedTomlDictionary dictionary
   <> vcat (normalisedTomlDictionaryEntry <$> dictionaryEntries dictionary)
 
 normalisedTomlDictionaryEntry :: DictionaryEntry -> Doc
-normalisedTomlDictionaryEntry (DictionaryEntry attr (ConcreteDefinition enc ts)) =
+normalisedTomlDictionaryEntry (DictionaryEntry attr (ConcreteDefinition enc ts) namespace) =
   brackets ("fact." <> (text $ T.unpack $ getAttribute attr))
   <> line
   <> indent 2 ("encoding" <+> "=" <+> tquotes (text $ T.unpack $ prettyConcrete enc))
   <> line
-  <> indent 2 ("namespace" <+> "=" <+> tquotes "default")
+  <> indent 2 ("namespace" <+> "=" <+> tquotes (pretty namespace))
   <> line
   <> tombstoneDoc
     where
@@ -53,7 +53,7 @@ normalisedTomlDictionaryEntry (DictionaryEntry attr (ConcreteDefinition enc ts))
                    | otherwise
                    = empty
 
-normalisedTomlDictionaryEntry (DictionaryEntry attr (VirtualDefinition virtual)) =
+normalisedTomlDictionaryEntry (DictionaryEntry attr (VirtualDefinition virtual) _) =
   brackets ("feature." <> (text $ T.unpack $ getAttribute attr))
   <> line
   <> indent 2  "expression" <+> "=" <+> tquotes (pretty virtual)

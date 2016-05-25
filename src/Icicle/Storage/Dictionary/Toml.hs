@@ -12,7 +12,7 @@ module Icicle.Storage.Dictionary.Toml (
   ) where
 
 import           Icicle.Common.Base
-import           Icicle.Data                                   (Attribute)
+import           Icicle.Data                                   (Attribute, Namespace(..))
 import           Icicle.Dictionary.Data
 import           Icicle.Internal.Pretty                        hiding ((</>))
 import qualified Icicle.Pipeline                               as P
@@ -86,11 +86,10 @@ loadDictionary'
   -> [DictionaryEntry]
   -> FilePath
   -> EitherT DictionaryImportError IO Dictionary
-loadDictionary' checkOpts impPrelude parentFuncs parentConf parentConcrete dictPath
- = do
-  rawToml <- parseTOML dictPath
-
-  (conf, definitions') <- firstEitherT DictionaryErrorParse . hoistEither . toEither $ tomlDict parentConf rawToml
+loadDictionary' checkOpts impPrelude parentFuncs parentConf parentConcrete dictPath = do
+  rawToml              <- parseTOML dictPath
+  (conf, definitions') <- firstEitherT DictionaryErrorParse . hoistEither . toEither
+                        $ tomlDict parentConf rawToml
 
   let repoPath = takeDirectory dictPath
 
@@ -133,22 +132,26 @@ parseTOML dictPath = do
   rawToml   <- firstEitherT DictionaryErrorParsecTOML . hoistEither $ Parsec.parse tomlDoc dictPath inputText
   return rawToml
 
-remakeConcrete :: DictionaryEntry' -> [DictionaryEntry] -> [DictionaryEntry]
+remakeConcrete
+  :: DictionaryEntry'
+  -> [DictionaryEntry]
+  -> [DictionaryEntry]
 remakeConcrete de cds
  = case de of
-    DictionaryEntry' a (ConcreteDefinition' _ e t)
-     -> DictionaryEntry a (ConcreteDefinition e (Set.fromList (toList t))) : cds
+    DictionaryEntry' a (ConcreteDefinition' e t) nsp
+     -> DictionaryEntry a (ConcreteDefinition e (Set.fromList (toList t))) nsp
+      : cds
     _
      -> cds
 
 remakeVirtuals
   :: DictionaryEntry'
-  -> [(Attribute, SQ.QueryTop Parsec.SourcePos SP.Variable)]
-  -> [(Attribute, SQ.QueryTop Parsec.SourcePos SP.Variable)]
+  -> [(Namespace, Attribute, SQ.QueryTop Parsec.SourcePos SP.Variable)]
+  -> [(Namespace, Attribute, SQ.QueryTop Parsec.SourcePos SP.Variable)]
 remakeVirtuals de vds
  = case de of
-     DictionaryEntry' a (VirtualDefinition' (Virtual' v))
-      -> (a, v) : vds
+     DictionaryEntry' a (VirtualDefinition' (Virtual' v)) nsp
+      -> (nsp, a, v) : vds
      _
       -> vds
 
@@ -179,18 +182,18 @@ loadImports parentFuncs parsedImports
 checkDefs
   :: SC.CheckOptions
   -> Dictionary
-  -> [(Attribute, P.QueryTop' P.SourceVar)]
+  -> [(Namespace, Attribute, P.QueryTop' P.SourceVar)]
   -> EitherT DictionaryImportError IO [DictionaryEntry]
 checkDefs checkOpts d defs
  = hoistEither . first DictionaryErrorCompilation
  $ go `traverse` defs
  where
-  go (a, q)
+  go (n, a, q)
    = do  -- Run desugar to ensure pattern matches are complete.
          _             <- P.sourceDesugarQT q
          -- Type check the virtual definition.
          (checked, _)  <- P.sourceCheckQT checkOpts d q
-         pure $ DictionaryEntry a (VirtualDefinition (Virtual checked))
+         pure $ DictionaryEntry a (VirtualDefinition (Virtual checked)) n
 
 
 

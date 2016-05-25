@@ -147,7 +147,7 @@ seaOfWriteProgramOutput config state = do
     ]
 
 seaOfWriteOutputSparse :: Doc -> Int -> OutputName -> ValType -> [ValType] -> Either SeaError Doc
-seaOfWriteOutputSparse struct structIndex outName@(OutputName name) outType argTypes
+seaOfWriteOutputSparse struct structIndex outName@(OutputName name _) outType argTypes
   = let members = structMembers struct name argTypes structIndex
     in case outType of
          -- Top-level Sum is a special case, to avoid allocating and printing if
@@ -177,7 +177,7 @@ seaOfWriteOutputSparse struct structIndex outName@(OutputName name) outType argT
                   ]
 
 seaOfWriteOutputDense :: Doc -> Int -> OutputName -> ValType -> [ValType] -> MissingValue -> Either SeaError Doc
-seaOfWriteOutputDense struct structIndex outName@(OutputName name) outType argTypes missingValue
+seaOfWriteOutputDense struct structIndex outName@(OutputName name _) outType argTypes missingValue
   = let members = structMembers struct name argTypes structIndex
     in  case outType of
          SumT ErrorT outType'
@@ -250,7 +250,7 @@ seaOfOutput
                      , Doc         -- The output statement
                      , Int         -- Where it's up to
                      , [ValType] ) -- Unconsumed arguments
-seaOfOutput isJSON struct structIndex outName@(OutputName name) env outType argTypes transform
+seaOfOutput isJSON struct structIndex outName@(OutputName name _) env outType argTypes transform
  = let prefixi         = pretty name <> "_" <> pretty structIndex <> "_i"
        (suffixi, env'')= newName prefixi env
        counter         = prefixi <> suffixi

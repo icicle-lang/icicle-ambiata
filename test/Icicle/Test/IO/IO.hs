@@ -67,14 +67,17 @@ instance Arbitrary Dictionary where
 
 instance Arbitrary DictionaryEntry where
  arbitrary
-  = DictionaryEntry <$> arbitrary <*> (ConcreteDefinition <$> arbitrary <*> (Set.singleton <$> elements viruses))
+  =   DictionaryEntry
+  <$> arbitrary
+  <*> (ConcreteDefinition <$> arbitrary <*> (Set.singleton <$> elements viruses))
+  <*> (Namespace <$> elements simpsons)
 
 instance Show a => Testable (Either a Property) where
   property (Right x) = x
   property (Left  x) = (counterexample . show) x $ failed
 
 getAttr :: DictionaryEntry -> Attribute
-getAttr (DictionaryEntry a _) = a
+getAttr (DictionaryEntry a _ _) = a
 
 sortD :: Dictionary -> Dictionary
 sortD (Dictionary es fs) =

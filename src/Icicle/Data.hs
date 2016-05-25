@@ -42,6 +42,9 @@ newtype Namespace =
       getNamespace  :: Text
     } deriving (Eq, Ord, Show)
 
+instance Pretty Namespace where
+  pretty (Namespace x) = text (unpack x)
+
 newtype Attribute =
   Attribute {
       getAttribute  :: Text

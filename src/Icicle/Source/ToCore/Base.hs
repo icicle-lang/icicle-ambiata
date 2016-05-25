@@ -70,7 +70,7 @@ programOfBinds
     -> a
     -> Name n
     -> C.Program a n
-programOfBinds outputName inpType factValName factIdName factTimeName postDate binds a_ret ret
+programOfBinds output inpType factValName factIdName factTimeName postDate binds a_ret ret
  = C.Program
  { C.inputType    = inpType
  , C.factValName  = factValName
@@ -80,7 +80,7 @@ programOfBinds outputName inpType factValName factIdName factTimeName postDate b
  , C.precomps     = precomps  binds
  , C.streams      = streams   binds
  , C.postcomps    = postcomps binds
- , C.returns      = [(outputName, X.XVar a_ret ret)]
+ , C.returns      = [(output, X.XVar a_ret ret)]
  }
 
 

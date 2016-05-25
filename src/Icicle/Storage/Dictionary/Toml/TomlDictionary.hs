@@ -67,11 +67,13 @@ instance Monoid DictionaryConfig where
 -- Intermediate states so that parsing can be pure.
 -- Will need to typecheck once flow through and imports are done.
 data DictionaryEntry' =
-  DictionaryEntry' Attribute Definition'
+  DictionaryEntry' Attribute Definition' Namespace
   deriving (Eq, Show)
 
+type Tombstone = Text
+
 data Definition' =
-    ConcreteDefinition' Namespace Encoding (Maybe Text)
+    ConcreteDefinition' Encoding (Maybe Tombstone)
   | VirtualDefinition'  Virtual'
   deriving (Eq, Show)
 
@@ -119,6 +121,8 @@ instance Pretty DictionaryValidationError where
               , indent 2 $ (text . show) p
               ]
 
+type Name = Text
+
 --------------------------------------------------------------------------------
 
 tomlDict
@@ -143,51 +147,103 @@ tomlDict parentConf x = fromEither $ do
   -- Parse the facts, again, getting the Monad version at the ends.
   facts    <-  toEither
             $  maybe [] id
-           <$> traverse (validateTableWith validateFact "fact" config'') (x ^? key "fact")
+           <$> traverse (validateTableWith validateFact "fact" config'')
+                        (x ^? key "fact")
 
   -- Parse features (without typechecking).
   features <-  toEither
             $  maybe [] id
-           <$> traverse (validateTableWith validateFeature "feature" config'') (x ^? key "feature")
+           <$> traverse (validateTableWith validateFeature "feature" config'')
+                        (x ^? key "feature")
 
   -- Todo: ensure that there's no extra data lying around. All valid TOML should be used.
   pure (config'', facts <> features)
 
 
+-- | If a namespace is given, it must be validated. If not, it must have a parent value.
+validateNamespace
+  :: DictionaryConfig
+  -> Text
+  -> Table
+  -> AccValidation [DictionaryValidationError] Namespace
+validateNamespace conf name x =
+  let valParent n
+        = maybe (AccFailure [MissingRequired ("fact." <> name) n])
+                AccSuccess
+                (namespace conf)
+      valFeatureOrParent n
+        = maybe (valParent n)
+                (validateText n)
+                (x ^? key n)
+  in Namespace <$> valFeatureOrParent "namespace"
+
 -- | Validate a TOML node is a fact.
 --
 validateFact
   :: DictionaryConfig
-  -> Text
+  -> Name
   -> Table
   -> AccValidation [DictionaryValidationError] DictionaryEntry'
 validateFact conf name x =
-  let fname = "fact." <> name
+  let fname
+        = "fact." <> name
 
       -- Every fact needs an encoding, which can't be inherited from it's parent.
-      encoding   = maybe (AccFailure [MissingRequired fname "encoding"])
-                         (validateEncoding' fname)
-                         (M.lookup "encoding" x)
+      encoding
+        = maybe (AccFailure [MissingRequired fname "encoding"])
+                (validateEncoding' fname)
+                (M.lookup "encoding" x)
 
-      -- If a name space is given, it must be validated. If not, it must have a parent value.
-      valFeatureOrParent n
-        = maybe (maybe (AccFailure [MissingRequired ("fact." <> name) n])
-                        AccSuccess
-                       (namespace conf))
-                (validateText n)
-                (x ^? key n)
-      namespace' = Namespace <$> valFeatureOrParent "namespace"
+      -- If a namespace is given, it must be validated. If not, it must have a parent value.
+      namespace'
+        = validateNamespace conf name x
 
       -- Tombstones are not mandatory, but can be inherited.
-      tombstone' =   (<|> tombstone conf)
-                 <$> (validateText "tombstone") `traverse` (x ^? key "tombstone")
+      tombstone'
+        =   (<|> tombstone conf)
+        <$> (validateText "tombstone") `traverse` (x ^? key "tombstone")
 
       -- Todo: ensure that there's no extra data lying around. All valid TOML should be used.
-  in DictionaryEntry' (Attribute name) <$> (    ConcreteDefinition'
-                                            <$> namespace'
-                                            <*> encoding
-                                            <*> tombstone' )
+  in DictionaryEntry'
+       <$> pure (Attribute name)
+       <*> (   ConcreteDefinition'
+           <$> encoding
+           <*> tombstone' )
+       <*> namespace'
 
+-- | Validate a TOML node is a feature.
+--   e.g.
+--     [feature.mean_age]
+--        expression = "feature person ~> mean age"
+--
+validateFeature
+  :: DictionaryConfig
+  -> Name
+  -> Table
+  -> AccValidation [DictionaryValidationError] DictionaryEntry'
+validateFeature conf name x = fromEither $ do
+  let fname     = "feature." <> name
+      fexp      = fname <> ".expression"
+
+  -- If a namespace is specified, validate it. Otherwise inherit the parent value.
+  nsp         <- toEither $ validateNamespace conf name x
+
+
+  -- A feature must specify an expression
+  expression  <- maybeToRight [MissingRequired fname "expression"]
+               $ x ^? key "expression"
+
+  -- The expression must be a string
+  expression' <- maybeToRight [BadType fexp "string" (expression ^. _2)]
+               $ expression ^? _1 . _NTValue . _VString
+
+  -- Run the icicle expression parser
+  let toks     = lexerPositions expression'
+  q           <- first (pure . ParseError)
+               $ runParser (top $ OutputName name nsp) () "" toks
+
+  -- Todo: ensure that there's no extra data lying around. All valid TOML should be used.
+  pure $ DictionaryEntry' (Attribute name) (VirtualDefinition' (Virtual' q)) nsp
 
 -- | Validate a TOML node is a fact encoding.
 --
@@ -236,37 +292,15 @@ validateEncoding' ofFeature (_, pos) =
   AccFailure $ [BadType (ofFeature <> ".encoding") "string" pos]
 
 
--- | Validate a TOML node is a feature.
---   e.g.
---     [feature.mean_age]
---        expression = "feature person ~> mean age"
---
-validateFeature
-  :: DictionaryConfig
-  -> Text
-  -> Table
-  -> AccValidation [DictionaryValidationError] DictionaryEntry'
-validateFeature _ name x = fromEither $ do
-  let fname    = "feature." <> name
-  let fexp     = fname <> ".expression"
-  -- A feature must specify an expression
-  expression  <- maybeToRight [MissingRequired fname "expression"]
-               $ x ^? key "expression"
-  -- The expression must be a string
-  expression' <- maybeToRight [BadType fexp "string" (expression ^. _2)]
-               $ expression ^? _1 . _NTValue . _VString
-  -- Run the icicle expression parser
-  let toks     = lexerPositions expression'
-  q           <- first (pure . ParseError) $ runParser (top $ OutputName name) () "" toks
-  -- Todo: ensure that there's no extra data lying around. All valid TOML should be used.
-  pure $ DictionaryEntry' (Attribute name) (VirtualDefinition' (Virtual' q))
-
 --------------------------------------------------------------------------------
 
 -- | Validate a table, using a validator for each element.
 --
 validateTableWith
-  :: (DictionaryConfig -> Text -> Table -> AccValidation [DictionaryValidationError] a)
+  :: (   DictionaryConfig
+      -> Text
+      -> Table
+      -> AccValidation [DictionaryValidationError] a )
   -> Text
   -> DictionaryConfig
   -> (Node, Pos.SourcePos)
