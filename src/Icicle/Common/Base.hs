@@ -135,11 +135,11 @@ instance NFData StructField where rnf x = seq x ()
 
 data OutputName
  = OutputName
- { outputName     :: T.Text
- , outputNamspace :: Namespace
+ { outputName      :: !T.Text
+ , outputNamespace :: !Namespace
  } deriving (Eq, Ord, Generic)
 
-instance NFData OutputName
+instance NFData OutputName where rnf x = seq x ()
 
 instance Show StructField where
  showsPrec p (StructField x)
