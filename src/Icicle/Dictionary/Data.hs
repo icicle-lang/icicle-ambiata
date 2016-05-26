@@ -40,6 +40,7 @@ import           Data.Text (Text)
 
 import           P
 
+
 data Dictionary =
   Dictionary
   { dictionaryEntries   :: [DictionaryEntry]
@@ -49,7 +50,7 @@ data Dictionary =
   deriving (Eq, Show)
 
 data DictionaryEntry =
-  DictionaryEntry Attribute Definition
+  DictionaryEntry Attribute Definition Namespace
   deriving (Eq, Show)
 
 data Definition =
@@ -69,19 +70,20 @@ getVirtualFeatures :: Dictionary -> [(Attribute, Virtual)]
 getVirtualFeatures (Dictionary { dictionaryEntries = fs })
  = P.concatMap getV fs
  where
-  getV (DictionaryEntry a (VirtualDefinition v))
+  getV (DictionaryEntry a (VirtualDefinition v) _)
    = [(a,v)]
   getV _
    = []
 
 parseFact :: Dictionary -> Fact' -> Either DecodeError Fact
 parseFact (Dictionary { dictionaryEntries = dict }) fact'
- = do   def <- maybeToRight (DecodeErrorNotInDictionary attr)
-                            (P.find (\(DictionaryEntry attr' _) -> (==) attr attr') dict)
+ = do   def <- maybeToRight
+                 (DecodeErrorNotInDictionary attr)
+                 (P.find (\(DictionaryEntry attr' _ _) -> (==) attr attr') dict)
         case def of
-         DictionaryEntry _ (ConcreteDefinition enc ts)
+         DictionaryEntry _ (ConcreteDefinition enc ts) _
           -> factOf <$> parseValue enc ts (factValue' fact')
-         DictionaryEntry _ (VirtualDefinition _)
+         DictionaryEntry _ (VirtualDefinition _) _
           -> Left (DecodeErrorValueForVirtual attr)
 
  where
@@ -107,7 +109,7 @@ featureMapOfDictionary (Dictionary { dictionaryEntries = ds, dictionaryFunctions
          context (k,t,m) = (k, (t, STC.FeatureContext m (var "time")))
      in  fmap context mm
 
-  go (DictionaryEntry (Attribute attr) (ConcreteDefinition enc _))
+  go (DictionaryEntry (Attribute attr) (ConcreteDefinition enc _) _)
    | en@(StructT st@(StructType fs)) <- sourceTypeOfEncoding enc
    = [ ( var attr
        , baseType     $  sumT en
@@ -196,9 +198,9 @@ prettyDictionarySummary dict
  <> "Features" <> line
  <> indent 2 (vcat $ fmap pprEntry $ dictionaryEntries dict))
  where
-  pprEntry (DictionaryEntry attr (ConcreteDefinition enc _))
+  pprEntry (DictionaryEntry attr (ConcreteDefinition enc _) _)
    = padDoc 20 (pretty attr) <> " : " <> pretty enc
-  pprEntry (DictionaryEntry attr (VirtualDefinition virt))
+  pprEntry (DictionaryEntry attr (VirtualDefinition virt) _)
    = padDoc 20 (pretty attr) <> " = " <> indent 0 (pretty virt)
 
   pprFun (f,(t,_))

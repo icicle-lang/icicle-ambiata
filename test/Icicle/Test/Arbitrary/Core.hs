@@ -7,7 +7,7 @@ module Icicle.Test.Arbitrary.Core where
 import qualified Icicle.Internal.Pretty as PP
 
 import           Icicle.BubbleGum
-import           Icicle.Data            (AsAt(..))
+import           Icicle.Data            (AsAt(..), Namespace(..))
 import           Icicle.Data.Time
 
 import           Icicle.Common.Base
@@ -82,7 +82,7 @@ instance Arbitrary Var where
     Var <$> elements viruses <*> choose (0, size)
 
 instance Arbitrary OutputName where
-  arbitrary = OutputName <$> elements muppets
+  arbitrary = OutputName <$> elements muppets <*> (Namespace <$> elements simpsons)
 
 instance (Hashable n, Arbitrary n) => Arbitrary (Name n) where
   arbitrary =

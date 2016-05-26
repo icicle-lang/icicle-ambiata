@@ -110,7 +110,7 @@ data DictionaryLoadType
 -- * Check and Convert
 
 sourceParse :: Text -> Either ReplError (P.QueryTop' Var)
-sourceParse = first ReplErrorCompileCore . P.sourceParseQT "repl"
+sourceParse = first ReplErrorCompileCore . P.sourceParseQT "repl" (Namespace "namespace-repl")
 
 sourceDesugar :: P.QueryTop' Var -> Either ReplError (P.QueryTop' Var)
 sourceDesugar = first ReplErrorCompileCore . P.sourceDesugarQT

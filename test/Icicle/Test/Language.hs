@@ -108,7 +108,7 @@ mkDummyQuery wt
         pos = Parsec.initialPos "dummy"
     in  S.QueryTop
           (nameOf $ NameBase $ SP.Variable $ D.getAttribute $ wtAttribute wt)
-          (OutputName $ D.getAttribute $ wtAttribute wt)
+          (OutputName (D.getAttribute $ wtAttribute wt) (D.Namespace "dummy"))
           (S.Query [] $ S.Var (S.Annot pos S.UnitT []) x)
 
 factFromCoreValue :: BaseValue -> Maybe D.Value

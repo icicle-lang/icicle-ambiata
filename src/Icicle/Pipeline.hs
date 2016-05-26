@@ -189,11 +189,13 @@ type FunEnvT a b = [ ( Name b
 -- * source
 
 sourceParseQT
- :: Text -> Text
+ :: Text
+ -> Namespace
+ -> Text
  -> Either (CompileError SourcePos SourceVar ()) (QueryTop' SourceVar)
-sourceParseQT base t
+sourceParseQT base namespace t
  = first CompileErrorParse
- $ SP.parseQueryTop (CommonBase.OutputName base) t
+ $ SP.parseQueryTop (CommonBase.OutputName base namespace) t
 
 sourceParseF
   :: Parsec.SourceName -> Text

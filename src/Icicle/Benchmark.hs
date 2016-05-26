@@ -144,8 +144,8 @@ runBenchmark b = do
 
 tombstonesOfDictionary :: Dictionary -> Map Attribute (Set Text)
 tombstonesOfDictionary dict =
-  let go (DictionaryEntry a (ConcreteDefinition _ ts)) = [(a, ts)]
-      go _                                             = []
+  let go (DictionaryEntry a (ConcreteDefinition _ ts) _) = [(a, ts)]
+      go _                                               = []
   in Map.fromList (concatMap go (dictionaryEntries dict))
 
 ------------------------------------------------------------------------

@@ -17,6 +17,7 @@ module Icicle.Common.Base (
     ) where
 
 import              Icicle.Internal.Pretty
+import              Icicle.Data (Namespace(..))
 import              Icicle.Data.Time
 
 import              P
@@ -132,19 +133,20 @@ newtype StructField
 
 instance NFData StructField where rnf x = seq x ()
 
-newtype OutputName
+data OutputName
  = OutputName
- { unOutputName :: T.Text }
- deriving (Eq, Ord, Generic)
+ { outputName      :: !T.Text
+ , outputNamespace :: !Namespace
+ } deriving (Eq, Ord, Generic)
 
-instance NFData OutputName
+instance NFData OutputName where rnf x = seq x ()
 
 instance Show StructField where
  showsPrec p (StructField x)
   = showParen (p > 10) (showString "StructField " . showsPrec 11 x)
 
 instance Show OutputName where
- showsPrec p (OutputName x)
+ showsPrec p (OutputName x _)
   = showParen (p > 10) (showString "OutputName " . showsPrec 11 x)
 
 -- Pretty printing ---------------
@@ -204,7 +206,7 @@ instance Pretty ExceptionInfo where
  pretty = text . show
 
 instance Pretty OutputName where
- pretty = pretty . unOutputName
+ pretty = pretty . outputName
 
 instance Pretty WindowUnit where
  pretty wu

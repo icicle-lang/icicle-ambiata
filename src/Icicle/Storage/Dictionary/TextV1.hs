@@ -31,8 +31,13 @@ field = append <$> takeWhile (not . isDelimOrEscape) <*> (concat <$> many (cons 
     repEscape _    = mempty -- Unreachable
 
 parseIcicleDictionaryV1 :: Parser DictionaryEntry
-parseIcicleDictionaryV1 = do
-  DictionaryEntry <$> (Attribute <$> field) <* p <*> (ConcreteDefinition <$> parseEncoding <*> pure (Set.singleton "NA"))
+parseIcicleDictionaryV1
+ = DictionaryEntry
+ <$> (Attribute <$> field)
+ <*   p
+ <*> (ConcreteDefinition <$> parseEncoding <*> pure (Set.singleton "NA"))
+ -- No namespace in this legacy dictionary
+ <*> pure (Namespace "default")
     where
       p = char '|'
 
@@ -41,7 +46,7 @@ parseDictionaryLineV1 s =
   first (ParseError . pack) $ parseOnly parseIcicleDictionaryV1 s
 
 writeDictionaryLineV1 :: DictionaryEntry -> Text
-writeDictionaryLineV1 (DictionaryEntry (Attribute a) (ConcreteDefinition e _)) =
-  a <> "|" <> prettyConcrete e
-
-writeDictionaryLineV1 (DictionaryEntry _ (VirtualDefinition _)) = "Virtual features not supported in V1"
+writeDictionaryLineV1 (DictionaryEntry (Attribute a) (ConcreteDefinition e _) _)
+  = a <> "|" <> prettyConcrete e
+writeDictionaryLineV1 (DictionaryEntry _ (VirtualDefinition _) _)
+  = "Virtual features not supported in V1"
