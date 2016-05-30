@@ -1,0 +1,8 @@
+welcome to iREPL
+ok, loaded 37 functions from data/libs/prelude.icicle
+ok, loaded test/cli/repl/data.psv, 13 rows
+> ok, loaded test/cli/repl/t50-psv-many-rows/data.psv, 408 rows
+> - Core evaluation:
+[E, 408]
+
+> 

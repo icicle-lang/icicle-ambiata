@@ -1,0 +1,2 @@
+:load test/cli/repl/t50-psv-many-rows/data.psv
+feature salary ~> count value
