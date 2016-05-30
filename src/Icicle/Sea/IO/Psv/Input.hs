@@ -147,9 +147,11 @@ seaOfReadFact state tombstones input readInput checkCount =
     , ""
     , "        new_count++;"
     , ""
-    , indent 4 checkCount
-    , ""
+    , indent 8 checkCount
+               -- checkCount sets the program count if it needs to execute,
+               -- but otherwise we still need to update it to the incremented value
     , "        program->input.new_count = new_count;"
+    , ""
     , "    }"
     , ""
     , "    return 0; /* no error */"
@@ -391,6 +393,9 @@ seaOfReadFactSparse state tombstones = do
 seaOfCheckCount :: SeaProgramState -> Base.CStmt
 seaOfCheckCount state = vsep
   [ "if (new_count == psv_max_row_count) {"
+  -- We need to set the program count before executing it.
+  -- Otherwise, it won't evaluate the last row
+  , "     program->input.new_count = new_count;"
   , "     " <> pretty (nameOfProgram state) <> " (program);"
   , "     new_count = 0;"
   , "} else if (new_count > psv_max_row_count) {"
