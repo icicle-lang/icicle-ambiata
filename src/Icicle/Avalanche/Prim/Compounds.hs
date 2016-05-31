@@ -1,18 +1,25 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE RecordWildCards #-}
 module Icicle.Avalanche.Prim.Compounds (
-    FlatOps(..)
+    X, S, A
+  , FlatOps(..)
   , flatOps
+  , FlatCons(..)
+  , flatCons
   ) where
 
+import              Icicle.Common.Base
 import              Icicle.Common.Type
 import              Icicle.Common.Exp
 import qualified    Icicle.Common.Exp.Prim.Minimal as Min
 import              Icicle.Avalanche.Prim.Flat
+import              Icicle.Avalanche.Statement.Statement
 
 import              P
 
 type X a n = Exp a n Prim
+type S a n = Statement a n Prim
+type A a n = Accumulator a n Prim
 
 data FlatOps a n = FlatOps {
     arrLen  :: ValType -> X a n -> X a n
@@ -92,3 +99,31 @@ flatOps a_fresh
 
   relEq     t   = p2 (PrimMinimal $ Min.PrimRelation Min.PrimRelationEq t)
 
+--------------------------------------------------------------------------------
+
+
+data FlatCons a n = FlatCons {
+    xVar   :: Name n -> X a n
+  , xPrim  :: Prim -> X a n
+  , xValue :: ValType -> BaseValue -> X a n
+  , xApp   :: X a n -> X a n -> X a n
+
+  , xMin   :: Min.Prim -> X a n
+  , xMath  :: Min.PrimBuiltinMath -> X a n
+  , xArith :: Min.PrimArithBinary -> X a n
+  , xRel   :: ValType -> Min.PrimRelation -> X a n
+  }
+
+flatCons :: a -> FlatCons a n
+flatCons a_fresh
+  = FlatCons{..}
+  where
+    xVar   = XVar   a_fresh
+    xPrim  = XPrim  a_fresh
+    xValue = XValue a_fresh
+    xApp   = XApp   a_fresh
+
+    xMin     = xPrim . PrimMinimal
+    xMath    = xMin  . Min.PrimBuiltinFun . Min.PrimBuiltinMath
+    xArith   = xMin  . flip Min.PrimArithBinary Min.ArithIntT
+    xRel  ty = xMin  . flip Min.PrimRelation ty

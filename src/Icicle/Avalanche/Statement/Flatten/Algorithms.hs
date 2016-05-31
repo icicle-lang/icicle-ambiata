@@ -10,9 +10,11 @@
 module Icicle.Avalanche.Statement.Flatten.Algorithms where
 
 import              Icicle.Avalanche.Statement.Flatten.Base
+import              Icicle.Avalanche.Statement.Flatten.Type
 
 import              Icicle.Avalanche.Statement.Statement
 import qualified    Icicle.Avalanche.Prim.Flat      as Flat
+import qualified    Icicle.Avalanche.Prim.Compounds as Flat
 
 import qualified    Icicle.Core.Exp.Prim           as Core
 import qualified    Icicle.Common.Exp.Prim.Minimal as Min
@@ -20,11 +22,13 @@ import qualified    Icicle.Common.Exp.Prim.Minimal as Min
 import              Icicle.Common.Base
 import              Icicle.Common.Type
 import              Icicle.Common.Exp
+import              Icicle.Common.Exp.Simp.Beta
 import              Icicle.Common.Fresh
 
 import              Icicle.Internal.Pretty
 
 import              P
+import              Control.Monad.Trans.Class
 
 import              Data.Hashable                  (Hashable)
 import              Data.String                    (IsString)
@@ -55,6 +59,58 @@ initBool :: Name n -> Exp a n p -> Statement a n p -> Statement a n  p
 initBool acc init
   = InitAccumulator (Accumulator acc BoolT init)
 
+
+-- Create a let binding with a fresh name
+slet
+  :: (Hashable n, Monad m)
+  => a
+  -> Exp a n p
+  -> (Exp a n p' -> FreshT n m (Statement a n p))
+  -> FreshT n m (Statement a n p)
+slet a_fresh x ss
+ = do n  <- fresh
+      Let n x <$> ss (XVar a_fresh n)
+
+-- For loop with fresh name for iterator
+forI
+  :: (Hashable n, Monad m)
+  => a
+  -> Exp a n p
+  -> (Exp a n p -> FreshT n m (Statement a n p))
+  -> FreshT n m (Statement a n p)
+forI a_fresh to ss
+ = do n  <- fresh
+      ForeachInts ForeachStepUp n (XValue a_fresh IntT (VInt 0)) to <$> ss (XVar a_fresh n)
+
+-- Update an accumulator
+update
+  :: (Hashable n, Monad m)
+  => a
+  -> Name n
+  -> ValType
+  -> (Exp a n p -> Exp a n p)
+  -> FreshT n m (Statement a n p)
+update a_fresh acc t x
+ = do n'x <- fresh
+      return $ Read n'x acc t $ Write acc $ x $ XVar a_fresh n'x
+
+pushArray
+  :: (Hashable n, Monad m)
+  => a
+  -> ValType
+  -> Name n
+  -> Flat.X a n
+  -> FreshT n m (Flat.S a n)
+pushArray a_fresh t n'acc push
+ = do let t'          = ArrayT t
+          sz  arr     = arrLen t arr
+          put arr i x = arrUpd t arr i x
+
+      update a_fresh n'acc t' (\arr -> put arr (sz arr) push)
+ where
+  Flat.FlatOps  {..} = Flat.flatOps a_fresh
+
+
 --------------------------------------------------------------------------------
 
 avalancheHeapSort
@@ -81,16 +137,7 @@ avalancheHeapSort a_fresh stm flatX t array
         ]
 
   where
-
-    xVar   = XVar   a_fresh
-    xPrim  = XPrim  a_fresh
-    xValue = XValue a_fresh
-    xApp   = XApp   a_fresh
-
-    xMin     = xPrim . Flat.PrimMinimal
-    xMath    = xMin  . Min.PrimBuiltinFun . Min.PrimBuiltinMath
-    xArith   = xMin  . flip Min.PrimArithBinary Min.ArithIntT
-    xRel  ty = xMin  . flip Min.PrimRelation ty
+    Flat.FlatCons{..} = Flat.flatCons a_fresh
 
     xIndex arr i
      = xPrim (Flat.PrimUnsafe (Flat.PrimUnsafeArrayIndex t))
@@ -295,3 +342,197 @@ avalancheHeapSort a_fresh stm flatX t array
              $ readArr t n_loc_arr n_acc_arr
              $ initInt   n_acc_heapSize (xLen v_arr)
              $ Block [ body1, body2 ]
+
+--------------------------------------------------------------------------------
+
+avalancheMapInsertUpdate
+  :: (Hashable n)
+  => a
+  -> StmtX a n
+  -> FlatX a n
+  -> ValType
+  -> ValType
+  -> Exp a n Core.Prim
+  -> Exp a n Core.Prim
+  -> Exp a n Core.Prim
+  -> Exp a n Core.Prim
+  -> FlatM a n
+avalancheMapInsertUpdate a_fresh stm flatX tk tv upd ins key map
+  = flatX a_fresh key $ \key' -> flatX a_fresh map $ \map' -> do
+      n'done      <- fresh
+      n'map'k     <- fresh
+      n'map'v     <- fresh
+      n'map'sz    <- fresh
+      let acc'done = Accumulator n'done  BoolT $ xValue BoolT $ VBool False
+          acc'map'k= Accumulator n'map'k (ArrayT tk) (mapKeys tk tv map')
+          acc'map'v= Accumulator n'map'v (ArrayT tv) (mapVals tk tv map')
+
+          x'done   = xVar n'done
+          x'map'k  = xVar n'map'k
+          x'map'v  = xVar n'map'v
+
+          read'k   = Read n'map'k n'map'k (ArrayT tk)
+          read'v   = Read n'map'v n'map'v (ArrayT tv)
+
+          sz       = xVar n'map'sz
+          get'k i  = arrIx  tk x'map'k i
+          get'v i  = arrIx  tv x'map'v i
+          put'v i x= arrUpd tv x'map'v i x
+
+          upd' i   = slet' (get'v i)
+                   $ \v  -> flatX' (upd `xApp` v)
+                   $ \u' -> return (   Write n'map'v (put'v i u')
+                                    <> Write n'done (xValue BoolT $ VBool True))
+
+      loop1       <- forI' sz  $ \i
+                  ->  (read'k
+                  <$> (read'v
+                  <$> (If (relEq tk (get'k i) key')
+                        <$> upd' i
+                        <*> return mempty)))
+
+      loop2       <- pushArray' tk n'map'k key'
+      loop3       <- flatX' ins
+                   $ pushArray' tv n'map'v
+
+      -- XX can't read with same name twice I think
+      -- n'map'rr    <- fresh
+      n'map'      <- fresh
+      stm'        <- stm $ xVar n'map'
+
+      let if_ins   = Read n'done n'done BoolT
+                   $ If x'done mempty (loop2 <> loop3)
+
+          stm''    = read'k
+                   $ read'v
+                   $ Let n'map' (mapPack tk tv x'map'k x'map'v)
+                   $ stm'
+
+          ss       = InitAccumulator acc'done
+                   $ InitAccumulator acc'map'k
+                   $ InitAccumulator acc'map'v
+                   $ read'k
+                   $ Let n'map'sz (arrLen tk x'map'k)
+                   ( loop1 <> if_ins <> stm'' )
+
+      return ss
+  where
+    flatX'     = flatX     a_fresh
+    slet'      = slet      a_fresh
+    forI'      = forI      a_fresh
+    pushArray' = pushArray a_fresh
+
+    xVar   = XVar   a_fresh
+    xValue = XValue a_fresh
+    xApp   = XApp   a_fresh
+
+    Flat.FlatOps  {..} = Flat.flatOps  a_fresh
+
+--------------------------------------------------------------------------------
+
+avalancheMapDelete
+  :: (Hashable n)
+  => a
+  -> StmtX a n
+  -> FlatX a n
+  -> ValType
+  -> ValType
+  -> Exp a n Core.Prim
+  -> Exp a n Core.Prim
+  -> FlatM a n
+avalancheMapDelete a_fresh stm flatX tk tv key map
+  = flatX' key $ \key' -> flatX' map $ \map' -> do
+      n'map'k     <- fresh
+      n'map'v     <- fresh
+      n'map'sz    <- fresh
+      let acc'map'k= Accumulator n'map'k (ArrayT tk) (mapKeys tk tv map')
+          acc'map'v= Accumulator n'map'v (ArrayT tv) (mapVals tk tv map')
+
+          x'map'k  = xVar n'map'k
+          x'map'v  = xVar n'map'v
+
+          read'k   = Read n'map'k n'map'k (ArrayT tk)
+          read'v   = Read n'map'v n'map'v (ArrayT tv)
+
+          sz       = xVar n'map'sz
+          get'k i  = arrIx  tk x'map'k i
+
+          del'k i  = arrDel tv x'map'k i
+          del'v i  = arrDel tv x'map'v i
+
+          del'  i  = Block
+                    [ Write n'map'k (del'k i)
+                    , Write n'map'v (del'v i)
+                    ]
+
+      loop1       <- forI' sz
+                   $ \i
+                  ->  (read'k
+                  <$> (read'v
+                  <$> pure (If (relEq tk (get'k i) key') (del' i) mempty)))
+
+      n'map'      <- fresh
+      stm'        <- stm $ xVar n'map'
+
+      let stm''    = read'k
+                   $ read'v
+                   $ Let n'map' (mapPack tk tv x'map'k x'map'v)
+                   $ stm'
+
+          ss       = InitAccumulator acc'map'k
+                   $ InitAccumulator acc'map'v
+                   $ read'k
+                   $ Let n'map'sz (arrLen tk x'map'k)
+                   ( loop1 <> stm'' )
+
+      return ss
+
+  where
+    flatX'= flatX a_fresh
+    forI' = forI  a_fresh
+
+    Flat.FlatCons {..} = Flat.flatCons a_fresh
+    Flat.FlatOps  {..} = Flat.flatOps  a_fresh
+
+--------------------------------------------------------------------------------
+
+avalancheMapLookup
+  :: (Hashable n)
+  => a
+  -> StmtX a n
+  -> FlatX a n
+  -> ValType
+  -> ValType
+  -> Exp a n Core.Prim
+  -> Exp a n Core.Prim
+  -> FlatM a n
+avalancheMapLookup a_fresh stm flatX tk tv key map
+  = flatX' map $ \map' -> flatX' key $ \key' -> do
+      n'res       <- fresh
+      let acc'res  = Accumulator n'res (OptionT tv) $ xValue (OptionT tv) VNone
+          read'r   = Read n'res n'res (OptionT tv)
+          upd' x   = Write n'res (someF tv x)
+
+      loop1       <- slet' (mapKeys tk tv map')  $ \map'k
+                  -> slet' (mapVals tk tv map')  $ \map'v
+                  -> slet' (arrLen  tk    map'k) $ \sz
+                  -> forI' sz  $ \i
+                  -> return
+                     (If (relEq tk (arrIx tk map'k i) key')
+                        (upd' $ arrIx tv map'v i)
+                        mempty)
+
+      stm'        <- stm $ xVar n'res
+
+      let ss       = InitAccumulator acc'res
+                   ( loop1 <> read'r stm' )
+
+      return ss
+
+  where
+    flatX' = flatX a_fresh
+    slet'  = slet  a_fresh
+    forI'  = forI  a_fresh
+
+    Flat.FlatCons {..} = Flat.flatCons a_fresh
+    Flat.FlatOps  {..} = Flat.flatOps  a_fresh
