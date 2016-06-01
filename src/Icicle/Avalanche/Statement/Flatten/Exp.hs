@@ -136,7 +136,7 @@ flatX a_fresh xx stm
       -- Implement heap sort in Avalanche so that it can be melted.
       Core.PrimMinimal (Min.PrimBuiltinFun (Min.PrimBuiltinArray (Min.PrimBuiltinSort t)))
        | [array] <- xs
-       -> avalancheHeapSort a_fresh stm flatX t array
+       -> avalancheHeapSortArray a_fresh stm flatX t array
 
       -- Arithmetic and simple stuff are easy, just move it over
       Core.PrimMinimal pm

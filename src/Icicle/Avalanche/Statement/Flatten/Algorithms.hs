@@ -251,10 +251,9 @@ avalancheBinarySearch a_fresh flatX t key array result
     xTrue  = xValue BoolT (VBool True)
     xFalse = xValue BoolT (VBool False)
 
+--------------------------------------------------------------------------------
 
--- | Avalanche program that sorts an array of unflattened types.
---
-avalancheHeapSort
+avalancheHeapSortArray
   :: forall a n . (Pretty n, Hashable n, Eq n, IsString n)
   => a
   -> StmtX a n
@@ -262,20 +261,48 @@ avalancheHeapSort
   -> ValType
   -> Exp a n Core.Prim
   -> FlatM a n
-
-avalancheHeapSort a_fresh stm flatX t array
+avalancheHeapSortArray a_fresh stm flatX t array
   = flatX a_fresh array $ \array' -> do
-      n_loc_arr      <- freshPrefix "sort_array"
-      n_acc_arr      <- freshPrefix "sort_acc_array"
-      n_acc_heapSize <- freshPrefix "sort_acc_heap_size"
-      sort   <- heapSort n_acc_arr n_acc_heapSize
-      sorted <- stm (xVar n_loc_arr)
+      n_acc_arr <- freshPrefix "sort_acc_array"
+      n_loc_arr <- freshPrefix "sort_loc_array"
+
+      body         <- avalancheHeapSort_ a_fresh t n_acc_arr Nothing
+      array_sorted <- stm (xVar n_loc_arr)
+
       return
-        $ initArr t n_acc_arr array'
-        $ Block
-        [ sort
-        , readArr t n_loc_arr n_acc_arr sorted
-        ]
+        $ Block [ initArr t n_acc_arr array' body
+                , readArr t n_loc_arr n_acc_arr array_sorted ]
+  where
+    Flat.FlatCons{..} = Flat.flatCons a_fresh
+
+
+avalancheHeapSortMap
+  :: forall a n . (Pretty n, Hashable n, Eq n, IsString n)
+  => a
+  -> StmtX a n
+  -> FlatX a n
+  -> ValType
+  -> ValType
+  -> Name n
+  -> Name n
+  -> FlatM a n
+avalancheHeapSortMap a_fresh _ _ tk tv ak av
+  = avalancheHeapSort_ a_fresh tk ak (Just (tv, av))
+
+avalancheHeapSort_
+  :: forall a n . (Pretty n, Hashable n, Eq n, IsString n)
+  => a
+  -> ValType
+  -> Name n
+  -> Maybe (ValType, Name n)
+  -> FlatM a n
+
+avalancheHeapSort_ a_fresh t array extras = do
+  n_acc_heapSize <- freshPrefix "sort_acc_heap_size"
+
+  heapSort array n_acc_heapSize
+           (fmap snd extras)
+           (fmap fst extras)
 
   where
     Flat.FlatCons{..} = Flat.flatCons a_fresh
@@ -340,11 +367,13 @@ avalancheHeapSort a_fresh stm flatX t array
         `xApp` largest
         `xApp` i
     -- swap (A[i], A[largest])
-    xSwap arr i largest 
-     = xPrim (Flat.PrimArray (Flat.PrimArraySwap t))
+    xSwap ty arr i largest 
+     = xPrim (Flat.PrimArray (Flat.PrimArraySwap ty))
         `xApp` arr
         `xApp` i
-        `xApp` largest 
+        `xApp` largest
+    xSwap' Nothing   arr _ _       = arr
+    xSwap' (Just ty) arr i largest = xSwap ty arr i largest
 
     -- max_heap(array, heap_size, i):
     --   left  = 2 * i + 1
@@ -358,7 +387,7 @@ avalancheHeapSort a_fresh stm flatX t array
     --   if largest  /= i
     --     swap (array[i], array[largest ])
     --     max_heap (array, heap_size, largest )
-    maxHeap n_acc_arr n_acc_heapSize n_acc_index
+    maxHeap n_acc_arr n_acc_heapSize n_acc_index n_acc_av tv
      = do n_acc_left      <- freshPrefix "max_heap_acc_left"
           n_acc_right     <- freshPrefix "max_heap_acc_right"
           n_acc_largest   <- freshPrefix "max_heap_acc_largest "
@@ -367,23 +396,28 @@ avalancheHeapSort a_fresh stm flatX t array
           n_loc_right     <- freshPrefix "max_heap_right"
           n_loc_largest   <- freshPrefix "max_heap_largest "
           n_loc_arr       <- freshPrefix "max_heap_array"
+          n_loc_av        <- freshPrefix "max_heap_av"
           n_loc_heapSize  <- freshPrefix "max_heap_size"
           n_loc_index     <- freshPrefix "max_heap_index"
+
           let v_left      = xVar n_loc_left
               v_right     = xVar n_loc_right
               v_largest   = xVar n_loc_largest
               v_arr       = xVar n_loc_arr
+              v_av        = xVar n_loc_av
               v_heapSize  = xVar n_loc_heapSize
               v_index     = xVar n_loc_index
+
           return
             $ initInt  n_acc_left     xMinusOne
             $ initInt  n_acc_right    xMinusOne
             $ initInt  n_acc_largest  xMinusOne
             $ initBool n_acc_end      xFalse
             $ While WhileEq n_acc_end xFalse
-            $ readInt   n_loc_index    n_acc_index
-            $ readArr t n_loc_arr      n_acc_arr
-            $ readInt   n_loc_heapSize n_acc_heapSize
+            $ readInt     n_loc_index   n_acc_index
+            $ readArr  t  n_loc_arr     n_acc_arr
+            $ readArr' tv n_loc_av      n_acc_av
+            $ readInt     n_loc_heapSize n_acc_heapSize
             $ Block
               -- left  = 2 * i + 1
               [ Write n_acc_left  (xLeft  v_index)
@@ -411,8 +445,9 @@ avalancheHeapSort a_fresh stm flatX t array
                 $ If (xHeap v_largest  v_index)
                      -- then swap (array[i], array[largest ])
                      (Block
-                       [ Write n_acc_arr (xSwap v_arr v_index v_largest )
-                       , Write n_acc_index v_largest 
+                       [ Write  n_acc_arr   (xSwap  t  v_arr v_index v_largest )
+                       , write' n_acc_av    (xSwap' tv v_av  v_index v_largest )
+                       , Write  n_acc_index v_largest
                        ])
                      (Write n_acc_end xTrue)
                 ]
@@ -422,13 +457,16 @@ avalancheHeapSort a_fresh stm flatX t array
     --   heap_size = length (array)
     --   for (i = floor (length (array) / 2); i >= 0; i--)
     --     array = max_heap (array, heap_size, i)
-    buildMaxHeap n_acc_arr n_acc_heapSize
+    buildMaxHeap n_acc_arr n_acc_heapSize n_acc_av tv
      = do n_acc_index    <- freshPrefix "build_max_heap_acc_index"
           n_loc_index    <- freshPrefix "build_max_heap_index"
           n_loc_arr      <- freshPrefix "build_max_heap_array"
+
           let v_index     = xVar n_loc_index
               v_arr       = xVar n_loc_arr
-          body           <- maxHeap n_acc_arr n_acc_heapSize n_acc_index
+
+          body           <- maxHeap n_acc_arr n_acc_heapSize n_acc_index n_acc_av tv
+
           return
             $ readArr t n_loc_arr n_acc_arr
             $ Block
@@ -450,24 +488,31 @@ avalancheHeapSort a_fresh stm flatX t array
     --     array = swap (array[0], array[i])
     --     heap_size = heap_size - 1
     --     array = max_heap (array, heap_size, 0)
-    heapSort n_acc_arr n_acc_heapSize
+    heapSort n_acc_arr n_acc_heapSize n_acc_av tv
       = do n_acc_index    <- freshPrefix "heap_sort_acc_index"
            n_loc_index    <- freshPrefix "heap_sort_index"
            n_loc_heapSize <- freshPrefix "heap_sort_heapSize"
            n_loc_arr      <- freshPrefix "heap_sort_arr"
+           n_loc_av       <- freshPrefix "heap_sort_av"
+
            let v_index     = xVar n_loc_index
                v_heapSize  = xVar n_loc_heapSize
                v_arr       = xVar n_loc_arr
-           body1 <- buildMaxHeap n_acc_arr n_acc_heapSize
-           body3 <- maxHeap      n_acc_arr n_acc_heapSize n_acc_index
+               v_av        = xVar n_loc_av
+
+           body1 <- buildMaxHeap n_acc_arr n_acc_heapSize             n_acc_av tv
+           body3 <- maxHeap      n_acc_arr n_acc_heapSize n_acc_index n_acc_av tv
+
            let body2
-                = readArr t n_loc_arr n_acc_arr
+                = readArr  t  n_loc_arr n_acc_arr
+                $ readArr' tv n_loc_av  n_acc_av
                 $ Block
                   -- for (i = length array - 1; i > 0; i --)
                   [ ForeachInts ForeachStepDown n_loc_index (xMinus (xLen v_arr) xOne) xNil
                     $ Block
                       [ -- array = swap (array[0], array[i])
-                        Write   n_acc_arr (xSwap v_arr xNil v_index)
+                        Write   n_acc_arr (xSwap  t  v_arr xNil v_index)
+                      , write'  n_acc_av  (xSwap' tv v_av  xNil v_index)
                       , readInt n_loc_heapSize n_acc_heapSize
                       $ Block
                         -- heap_size = heap_size - 1
@@ -478,16 +523,24 @@ avalancheHeapSort a_fresh stm flatX t array
                         ]
                       ]
                   ]
+
            return
              $ initInt   n_acc_index xMinusOne
              $ readArr t n_loc_arr n_acc_arr
              $ initInt   n_acc_heapSize (xLen v_arr)
              $ Block [ body1, body2 ]
 
+    readArr' (Just ty) n (Just acc) stmt = readArr ty n acc stmt
+    readArr'  _        _  _         stmt = stmt
+
+    write' Nothing  _ = mempty
+    write' (Just n) x = Write n x
+
+
 --------------------------------------------------------------------------------
 
 avalancheMapInsertUpdate
-  :: (Hashable n)
+  :: (Hashable n, IsString n, Pretty n, Eq n)
   => a
   -> StmtX a n
   -> FlatX a n
@@ -499,75 +552,66 @@ avalancheMapInsertUpdate
   -> Exp a n Core.Prim
   -> FlatM a n
 avalancheMapInsertUpdate a_fresh stm flatX tk tv upd ins key map
-  = flatX a_fresh key $ \key' -> flatX a_fresh map $ \map' -> do
-      n'done      <- fresh
-      n'map'k     <- fresh
-      n'map'v     <- fresh
-      n'map'sz    <- fresh
-      let acc'done = Accumulator n'done  BoolT $ xValue BoolT $ VBool False
-          acc'map'k= Accumulator n'map'k (ArrayT tk) (mapKeys tk tv map')
-          acc'map'v= Accumulator n'map'v (ArrayT tv) (mapVals tk tv map')
+  = flatX' map $ \map' -> do
+      n_acc_keys <- freshPrefix "map_insert_acc_keys"
+      n_acc_vals <- freshPrefix "map_insert_acc_vals"
+      n_acc_idx  <- freshPrefix "map_insert_acc_bs_index"
+      n_loc_keys <- freshPrefix "map_insert_loc_keys"
+      n_loc_vals <- freshPrefix "map_insert_loc_vals"
+      n_loc_idx  <- freshPrefix "map_insert_loc_bs_index"
+      n_loc_old  <- freshPrefix "map_insert_loc_old_val"
 
-          x'done   = xVar n'done
-          x'map'k  = xVar n'map'k
-          x'map'v  = xVar n'map'v
+      let v_keys' = xVar' n_loc_keys
+          v_vals  = xVar  n_loc_vals
+          v_idx   = xVar  n_loc_idx
+          v_old'  = xVar' n_loc_old
 
-          read'k   = Read n'map'k n'map'k (ArrayT tk)
-          read'v   = Read n'map'v n'map'v (ArrayT tv)
+      let acc_idx  = Accumulator n_acc_idx  (OptionT IntT) $ xNothing IntT
+          acc_keys = Accumulator n_acc_keys (ArrayT  tk)   $ mapKeys tk tv map'
+          acc_vals = Accumulator n_acc_vals (ArrayT  tv)   $ mapVals tk tv map'
 
-          sz       = xVar n'map'sz
-          get'k i  = arrIx  tk x'map'k i
-          get'v i  = arrIx  tv x'map'v i
-          put'v i x= arrUpd tv x'map'v i x
+      -- Look up the key.
+      sLookup <- avalancheBinarySearch a_fresh flatX tk key v_keys' n_acc_idx
 
-          upd' i   = slet' (get'v i)
-                   $ \v  -> flatX' (upd `xApp` v)
-                   $ \u' -> return (   Write n'map'v (put'v i u')
-                                    <> Write n'done (xValue BoolT $ VBool True))
+      -- If it exists, update.
+      let idx1   = optionGet tv v_idx
+          sUpd   = flatX' (xApp' upd v_old')
+                 $ \val -> pure
+                 $ Let   n_loc_old  (arrIx  tv v_vals idx1)
+                 $ Write n_acc_vals (arrUpd tv v_vals idx1 val)
 
-      loop1       <- forI' sz  $ \i
-                  ->  (read'k
-                  <$> (read'v
-                  <$> (If (relEq tk (get'k i) key')
-                        <$> upd' i
-                        <*> return mempty)))
+      -- Otherwise, insert at the end then sort.
+      sort <- avalancheHeapSortMap a_fresh stm flatX tk tv n_acc_keys n_acc_vals
+      let idx2  = arrLen tv v_vals
+          sIns  = flatX' ins
+                $ \val -> pure
+                $ Block [ Write n_acc_vals $ arrUpd tv v_vals idx2 val
+                        , sort ]
 
-      loop2       <- pushArray' tk n'map'k key'
-      loop3       <- flatX' ins
-                   $ pushArray' tv n'map'v
+      let keyExists    = xEq (OptionT IntT) v_idx (xNothing IntT)
+      sInsertOrUpdate <- If keyExists <$> sIns <*> sUpd
 
-      -- XX can't read with same name twice I think
-      -- n'map'rr    <- fresh
-      n'map'      <- fresh
-      stm'        <- stm $ xVar n'map'
+      return
+        $ InitAccumulator acc_keys
+        $ InitAccumulator acc_vals
+        $ InitAccumulator acc_idx
+        $ readArr tk n_loc_keys n_acc_keys
+        $ readArr tv n_loc_vals n_acc_vals
+        $ Read       n_loc_idx  n_acc_idx  (OptionT IntT)
+        $ Block
+          [ sLookup
+          , sInsertOrUpdate ]
 
-      let if_ins   = Read n'done n'done BoolT
-                   $ If x'done mempty (loop2 <> loop3)
-
-          stm''    = read'k
-                   $ read'v
-                   $ Let n'map' (mapPack tk tv x'map'k x'map'v)
-                   $ stm'
-
-          ss       = InitAccumulator acc'done
-                   $ InitAccumulator acc'map'k
-                   $ InitAccumulator acc'map'v
-                   $ read'k
-                   $ Let n'map'sz (arrLen tk x'map'k)
-                   ( loop1 <> if_ins <> stm'' )
-
-      return ss
   where
-    flatX'     = flatX     a_fresh
-    slet'      = slet      a_fresh
-    forI'      = forI      a_fresh
-    pushArray' = pushArray a_fresh
+    flatX' = flatX a_fresh
 
-    xVar   = XVar   a_fresh
-    xValue = XValue a_fresh
-    xApp   = XApp   a_fresh
+    xVar'        = XVar   a_fresh
+    xApp'        = XApp   a_fresh
+    xNothing t   = xValue (OptionT t) VNone
+    xEq t x k    = xRel t Min.PrimRelationEq `xApp` x `xApp` k
 
     Flat.FlatOps  {..} = Flat.flatOps  a_fresh
+    Flat.FlatCons {..} = Flat.flatCons a_fresh
 
 --------------------------------------------------------------------------------
 
@@ -665,7 +709,8 @@ avalancheMapLookup a_fresh stm flatX tk tv key map
       stmNotFound <- stm $ xNothing tv
       stmFound    <- stm $ xJust    tv $ arrIx tv v_vals $ optionGet IntT v_idx
 
-      let res      = If (xEq (OptionT IntT) v_idx (xNothing IntT)) stmNotFound stmFound
+      let keyExists = xEq (OptionT IntT) v_idx (xNothing IntT)
+          res       = If keyExists stmNotFound stmFound
 
       return
         $ Let   n_keys (mapKeys tk tv map')
