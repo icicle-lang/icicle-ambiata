@@ -10,7 +10,6 @@
 module Icicle.Avalanche.Statement.Flatten.Algorithms where
 
 import              Icicle.Avalanche.Statement.Flatten.Base
-import              Icicle.Avalanche.Statement.Flatten.Type
 
 import              Icicle.Avalanche.Statement.Statement
 import qualified    Icicle.Avalanche.Prim.Flat      as Flat
@@ -22,13 +21,11 @@ import qualified    Icicle.Common.Exp.Prim.Minimal as Min
 import              Icicle.Common.Base
 import              Icicle.Common.Type
 import              Icicle.Common.Exp
-import              Icicle.Common.Exp.Simp.Beta
 import              Icicle.Common.Fresh
 
 import              Icicle.Internal.Pretty
 
 import              P
-import              Control.Monad.Trans.Class
 
 import              Data.Hashable                  (Hashable)
 import              Data.String                    (IsString)
@@ -59,6 +56,9 @@ initBool :: Name n -> Exp a n p -> Statement a n p -> Statement a n  p
 initBool acc init
   = InitAccumulator (Accumulator acc BoolT init)
 
+readBool :: Name n -> Name n -> Statement a n p -> Statement a n  p
+readBool local acc
+  = Read local acc BoolT
 
 -- Create a let binding with a fresh name
 slet
@@ -113,6 +113,147 @@ pushArray a_fresh t n'acc push
 
 --------------------------------------------------------------------------------
 
+-- | Avalanche program that uses binary search to find and return the index
+--   of a key in a sorted array.
+--
+-- binary_search key array
+--   found = false
+--   m = -1
+--
+--   low  = 0
+--   high = size array - 1
+--   end = false
+--
+--   while end == false
+--     m = floor ((high + low) / 2)
+--     x = array[m]
+--     if x == key
+--       end = true
+--       found = true
+--     else
+--       if x < key
+--         low = m + 1
+--       else
+--         high = m - 1
+--     if low > high
+--       end = true
+--
+avalancheBinarySearch
+  :: (Hashable n, IsString n)
+  => a
+  -> FlatX a n
+  -> ValType
+  -> Exp a n Core.Prim
+  -> Exp a n Core.Prim
+  -> Name n
+  -> FlatM a n
+avalancheBinarySearch a_fresh flatX t key array result
+  = flatX a_fresh key $ \key' -> flatX a_fresh array $ \array' -> do
+      n_loc_key   <- freshPrefix "bs_loc_key"
+      n_loc_array <- freshPrefix "bs_loc_array"
+      n_loc_found <- freshPrefix "bs_loc_found"
+      n_loc_mid   <- freshPrefix "bs_loc_mid"
+      n_acc_mid   <- freshPrefix "bs_acc_mid"
+      n_acc_found <- freshPrefix "bs_acc_found"
+
+      let v_mid   = xVar n_loc_mid
+          v_found = xVar n_loc_found
+
+      loop <- bsLoop n_loc_key n_loc_array n_acc_mid n_acc_found
+
+      let ifFound
+            = readBool n_loc_found n_acc_found
+            $ readInt  n_loc_mid   n_acc_mid
+            $ If (xEq BoolT v_found xTrue)
+                 (Write result (xJust v_mid))
+                 (Write result xNothing)
+
+      return
+        $ Block
+          [ Let n_loc_key   key'
+          $ Let n_loc_array array'
+          $ initInt  n_acc_mid   (xValue IntT (VInt (-1)))
+          $ initBool n_acc_found xFalse
+            loop
+          , ifFound
+          ]
+
+  where
+    Flat.FlatOps  {..} = Flat.flatOps a_fresh
+    Flat.FlatCons {..} = Flat.flatCons a_fresh
+
+    bsLoop n_loc_key n_loc_array n_acc_mid n_acc_found
+      = do n_loc_mid   <- freshPrefix "bs_loc_mid"
+           n_loc_x     <- freshPrefix "bs_loc_x"
+           n_loc_low   <- freshPrefix "bs_loc_low"
+           n_loc_high  <- freshPrefix "bs_loc_high"
+           n_acc_low   <- freshPrefix "bs_acc_low"
+           n_acc_high  <- freshPrefix "bs_acc_high"
+           n_acc_end   <- freshPrefix "bs_acc_end"
+
+           let v_low   = xVar n_loc_low
+               v_high  = xVar n_loc_high
+               v_array = xVar n_loc_array
+               v_key   = xVar n_loc_key
+               v_mid   = xVar n_loc_mid
+               v_x     = xVar n_loc_x
+
+           return
+             $ initInt  n_acc_low   (xValue IntT (VInt 0))
+             $ initInt  n_acc_high  (xHigh  v_array)
+             $ initBool n_acc_end   xFalse
+             $ While WhileEq n_acc_end xFalse
+             $ readInt n_loc_low  n_acc_low
+             $ readInt n_loc_high n_acc_high
+             $ Block
+               [ Write n_acc_mid (xMid v_low v_high)
+               , readInt n_loc_mid n_acc_mid
+               $ Let n_loc_x (xIndex v_array v_mid)
+               $ If ( xGt IntT v_low v_high )
+                    ( Write n_acc_end xTrue )
+               $ If (xEq t v_x v_key)
+                    (Block [ Write n_acc_end xTrue, Write n_acc_found xTrue ])
+               $ If (xLt t v_x v_key)
+                    (Write n_acc_low  (xPlusOne  v_mid))
+                    (Write n_acc_high (xMinusOne v_mid))
+               ]
+
+    xJust x
+     = xMin (Min.PrimConst (Min.PrimConstSome IntT)) `xApp` x
+    xNothing
+     = xValue (OptionT IntT) VNone
+
+    xGt ty x k
+     = xRel ty Min.PrimRelationGt `xApp` x `xApp` k
+    xLt ty x k
+     = xRel ty Min.PrimRelationLt `xApp` x `xApp` k
+    xEq ty x k
+     = xRel ty Min.PrimRelationEq `xApp` x `xApp` k
+
+    xPlusOne m
+      = xArith Min.PrimArithPlus `xApp` m `xApp` xValue IntT (VInt 1)
+    xMinusOne m
+      = xArith Min.PrimArithMinus `xApp` m `xApp` xValue IntT (VInt 1)
+
+    xHigh arr
+     = xMinusOne (xPrim (Flat.PrimProject (Flat.PrimProjectArrayLength t)) `xApp` arr)
+
+    xIndex arr i
+     = xPrim (Flat.PrimUnsafe (Flat.PrimUnsafeArrayIndex t)) `xApp` arr `xApp` i
+
+    xMid low high
+      = xMath Min.PrimBuiltinFloor
+         `xApp` (xMath Min.PrimBuiltinDiv
+                  `xApp` (xMath Min.PrimBuiltinToDoubleFromInt
+                           `xApp` (xArith Min.PrimArithPlus `xApp` low `xApp` high))
+                  `xApp` xValue DoubleT (VDouble 2.0))
+
+    xTrue  = xValue BoolT (VBool True)
+    xFalse = xValue BoolT (VBool False)
+
+
+-- | Avalanche program that sorts an array of unflattened types.
+--
 avalancheHeapSort
   :: forall a n . (Pretty n, Hashable n, Eq n, IsString n)
   => a
@@ -497,7 +638,7 @@ avalancheMapDelete a_fresh stm flatX tk tv key map
 --------------------------------------------------------------------------------
 
 avalancheMapLookup
-  :: (Hashable n)
+  :: (Hashable n, IsString n)
   => a
   -> StmtX a n
   -> FlatX a n
@@ -507,32 +648,43 @@ avalancheMapLookup
   -> Exp a n Core.Prim
   -> FlatM a n
 avalancheMapLookup a_fresh stm flatX tk tv key map
-  = flatX' map $ \map' -> flatX' key $ \key' -> do
-      n'res       <- fresh
-      let acc'res  = Accumulator n'res (OptionT tv) $ xValue (OptionT tv) VNone
-          read'r   = Read n'res n'res (OptionT tv)
-          upd' x   = Write n'res (someF tv x)
+  = flatX' map $ \map' -> do
+      n_keys <- freshPrefix "map_lookup_keys"
+      n_vals <- freshPrefix "map_lookup_vals"
+      n_res  <- freshPrefix "map_lookup_res"
+      n_idx  <- freshPrefix "map_lookup_bs_index"
 
-      loop1       <- slet' (mapKeys tk tv map')  $ \map'k
-                  -> slet' (mapVals tk tv map')  $ \map'v
-                  -> slet' (arrLen  tk    map'k) $ \sz
-                  -> forI' sz  $ \i
-                  -> return
-                     (If (relEq tk (arrIx tk map'k i) key')
-                        (upd' $ arrIx tv map'v i)
-                        mempty)
+      let v_keys = xVar' n_keys
+          v_vals = xVar  n_vals
+          v_idx  = xVar  n_idx
 
-      stm'        <- stm $ xVar n'res
+      let acc_res = Accumulator n_res (OptionT tv)   $ xNothing tv
+          acc_idx = Accumulator n_idx (OptionT IntT) $ xNothing IntT
 
-      let ss       = InitAccumulator acc'res
-                   ( loop1 <> read'r stm' )
+      search      <- avalancheBinarySearch a_fresh flatX tk key v_keys n_idx
+      stmNotFound <- stm $ xNothing tv
+      stmFound    <- stm $ xJust    tv $ arrIx tv v_vals $ optionGet IntT v_idx
 
-      return ss
+      let res      = If (xEq (OptionT IntT) v_idx (xNothing IntT)) stmNotFound stmFound
+
+      return
+        $ Let   n_keys (mapKeys tk tv map')
+        $ Let   n_vals (mapVals tk tv map')
+        $ InitAccumulator acc_res
+        $ InitAccumulator acc_idx
+        $ Block [ search
+                , Read n_idx n_idx (OptionT IntT) res ]
 
   where
-    flatX' = flatX a_fresh
-    slet'  = slet  a_fresh
-    forI'  = forI  a_fresh
+    xEq t x k
+     = xRel t Min.PrimRelationEq `xApp` x `xApp` k
 
+    xJust t x
+     = xMin (Min.PrimConst (Min.PrimConstSome t)) `xApp` x
+    xNothing t
+     = xValue (OptionT t) VNone
+
+    flatX'             = flatX a_fresh
+    xVar'              = XVar a_fresh
     Flat.FlatCons {..} = Flat.flatCons a_fresh
     Flat.FlatOps  {..} = Flat.flatOps  a_fresh
