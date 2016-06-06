@@ -6,6 +6,7 @@ module Icicle.Avalanche.Prim.Compounds (
   , flatOps
   , FlatCons(..)
   , flatCons
+  , writeThen
   ) where
 
 import              Icicle.Common.Base
@@ -131,3 +132,8 @@ flatCons a_fresh
     xMath    = xMin  . Min.PrimBuiltinFun . Min.PrimBuiltinMath
     xArith   = xMin  . flip Min.PrimArithBinary Min.ArithIntT
     xRel  ty = xMin  . flip Min.PrimRelation ty
+
+--------------------------------------------------------------------------------
+
+writeThen :: Name n -> Exp a n p -> Statement a n p -> Statement a n p
+writeThen n x s = Write n x <> s

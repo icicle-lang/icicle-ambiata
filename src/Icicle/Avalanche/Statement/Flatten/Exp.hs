@@ -35,7 +35,7 @@ import              Data.Hashable                  (Hashable)
 import              Data.String                    (IsString)
 
 
-flatXS  :: (Pretty n, Hashable n, Eq n, IsString n)
+flatXS  :: (Pretty n, Hashable n, Eq n, IsString n, Show n, Show a)
         => a
         -> [Exp a n Core.Prim]
         -> [Exp a n Flat.Prim]
@@ -51,7 +51,7 @@ flatXS a_fresh (x:xs) ys stm
 
 -- | Flatten an expression, wrapping the statement with any lets or loops or other bindings
 -- The statement function takes the new expression.
-flatX   :: forall a n . (Pretty n, Hashable n, Eq n, IsString n)
+flatX   :: forall a n . (Pretty n, Hashable n, Eq n, IsString n, Show n, Show a)
         => a
         -> Exp a n Core.Prim
         -> (Exp a n Flat.Prim -> FlatM a n)
@@ -78,8 +78,16 @@ flatX a_fresh xx stm
   xValue = XValue a_fresh
   xApp   = XApp   a_fresh
 
-  -- Convert the simplified expression.
+  -- Convert the expression. We need to handle variables here, since they might
+  -- refer to already flattened expressions.
   convX
+   = case xx of
+      XVar a n
+        -> stm $ XVar a n
+      _ -> convX'
+
+  -- Convert the simplified expression.
+  convX'
    = case x' of
       -- If it doesn't do anything interesting, we can just call the statement
       -- with the original expression

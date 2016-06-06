@@ -12,7 +12,9 @@ module Icicle.Repl (
   , sourceConvert
   , checkAvalanche
   , P.coreAvalanche
+  , P.flattenAvalanche
   , coreFlatten
+  , coreFlatten_
   , P.simpAvalanche
   , P.simpFlattened
   , P.sourceInline
@@ -130,6 +132,9 @@ coreFlatten
   :: P.CoreProgram' Var -> Either ReplError (AP.Program () Var APF.Prim)
 coreFlatten
  = first ReplErrorCompileAvalanche . P.coreFlatten
+
+coreFlatten_ opts
+ = first ReplErrorCompileAvalanche . P.coreFlatten_ opts
 
 checkAvalanche
   :: AP.Program () Var APF.Prim

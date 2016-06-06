@@ -61,52 +61,64 @@ readBool local acc
   = Read local acc BoolT
 
 -- Create a let binding with a fresh name
-slet
+slet_
   :: (Hashable n, Monad m)
   => a
+  -> Maybe n
   -> Exp a n p
   -> (Exp a n p' -> FreshT n m (Statement a n p))
   -> FreshT n m (Statement a n p)
-slet a_fresh x ss
- = do n  <- fresh
+slet_ a_fresh prefix x ss
+ = do n  <- maybe fresh freshPrefix prefix
       Let n x <$> ss (XVar a_fresh n)
+
+slet
+  :: (Hashable n, Monad m) => a -> Exp a n p -> (Exp a n p' -> FreshT n m (Statement a n p))
+  -> FreshT n m (Statement a n p)
+slet a = slet_ a Nothing
+
+sletPrefix
+  :: (Hashable n, Monad m)
+  => a -> n -> Exp a n p -> (Exp a n p' -> FreshT n m (Statement a n p))
+  -> FreshT n m (Statement a n p)
+sletPrefix a n = slet_ a (Just n)
 
 -- For loop with fresh name for iterator
 forI
-  :: (Hashable n, Monad m)
+  :: (Hashable n, Monad m, IsString n)
   => a
   -> Exp a n p
   -> (Exp a n p -> FreshT n m (Statement a n p))
   -> FreshT n m (Statement a n p)
 forI a_fresh to ss
- = do n  <- fresh
+ = do n  <- freshPrefix "for_counter"
       ForeachInts ForeachStepUp n (XValue a_fresh IntT (VInt 0)) to <$> ss (XVar a_fresh n)
 
 -- Update an accumulator
-update
-  :: (Hashable n, Monad m)
+updateAcc
+  :: (Hashable n, Monad m, IsString n)
   => a
   -> Name n
   -> ValType
   -> (Exp a n p -> Exp a n p)
   -> FreshT n m (Statement a n p)
-update a_fresh acc t x
- = do n'x <- fresh
+updateAcc a_fresh acc t x
+ = do n'x <- freshPrefix "update_acc"
       return $ Read n'x acc t $ Write acc $ x $ XVar a_fresh n'x
 
-pushArray
-  :: (Hashable n, Monad m)
+pushArrayAcc
+  :: (Hashable n, Monad m, IsString n)
   => a
   -> ValType
   -> Name n
   -> Flat.X a n
   -> FreshT n m (Flat.S a n)
-pushArray a_fresh t n'acc push
+pushArrayAcc a_fresh t n'acc push
  = do let t'          = ArrayT t
           sz  arr     = arrLen t arr
           put arr i x = arrUpd t arr i x
 
-      update a_fresh n'acc t' (\arr -> put arr (sz arr) push)
+      updateAcc a_fresh n'acc t' (\arr -> put arr (sz arr) push)
  where
   Flat.FlatOps  {..} = Flat.flatOps a_fresh
 
@@ -141,15 +153,13 @@ pushArray a_fresh t n'acc push
 avalancheBinarySearch
   :: (Hashable n, IsString n)
   => a
-  -> FlatX a n
-  -> ValType
-  -> Exp a n Core.Prim
-  -> Exp a n Core.Prim
-  -> Name n
+  -> ValType            -- ^ type of array element
+  -> Exp a n Flat.Prim  -- ^ key
+  -> Exp a n Flat.Prim  -- ^ array
+  -> Name n             -- ^ put result in this accumulator
   -> FlatM a n
-avalancheBinarySearch a_fresh flatX t key array result
-  = flatX a_fresh key $ \key' -> flatX a_fresh array $ \array' -> do
-      n_loc_key   <- freshPrefix "bs_loc_key"
+avalancheBinarySearch a_fresh t key array result
+ = do n_loc_key   <- freshPrefix "bs_loc_key"
       n_loc_array <- freshPrefix "bs_loc_array"
       n_loc_found <- freshPrefix "bs_loc_found"
       n_loc_mid   <- freshPrefix "bs_loc_mid"
@@ -170,8 +180,8 @@ avalancheBinarySearch a_fresh flatX t key array result
 
       return
         $ Block
-          [ Let n_loc_key   key'
-          $ Let n_loc_array array'
+          [ Let n_loc_key   key
+          $ Let n_loc_array array
           $ initInt  n_acc_mid   (xValue IntT (VInt (-1)))
           $ initBool n_acc_found xFalse
             loop
@@ -264,14 +274,16 @@ avalancheHeapSortArray
 avalancheHeapSortArray a_fresh stm flatX t array
   = flatX a_fresh array $ \array' -> do
       n_acc_arr <- freshPrefix "sort_acc_array"
-      n_loc_arr <- freshPrefix "sort_loc_array"
+      n_loc_arr <- freshPrefix "sort_array_result"
 
-      body         <- avalancheHeapSort_ a_fresh t n_acc_arr Nothing
+      sort         <- avalancheHeapSort_ a_fresh t n_acc_arr Nothing
       array_sorted <- stm (xVar n_loc_arr)
 
       return
-        $ Block [ initArr t n_acc_arr array' body
-                , readArr t n_loc_arr n_acc_arr array_sorted ]
+        $ initArr t n_acc_arr array'
+        $ Block
+        [ sort
+        , readArr t n_loc_arr n_acc_arr array_sorted ]
   where
     Flat.FlatCons{..} = Flat.flatCons a_fresh
 
@@ -279,15 +291,18 @@ avalancheHeapSortArray a_fresh stm flatX t array
 avalancheHeapSortMap
   :: forall a n . (Pretty n, Hashable n, Eq n, IsString n)
   => a
-  -> StmtX a n
-  -> FlatX a n
   -> ValType
   -> ValType
   -> Name n
   -> Name n
   -> FlatM a n
-avalancheHeapSortMap a_fresh _ _ tk tv ak av
-  = avalancheHeapSort_ a_fresh tk ak (Just (tv, av))
+avalancheHeapSortMap a_fresh tk tv n_acc_keys n_acc_vals =
+  avalancheHeapSort_ a_fresh tk n_acc_keys (Just (tv, n_acc_vals))
+
+  where
+    Flat.FlatCons{..} = Flat.flatCons a_fresh
+    Flat.FlatOps {..} = Flat.flatOps  a_fresh
+
 
 avalancheHeapSort_
   :: forall a n . (Pretty n, Hashable n, Eq n, IsString n)
@@ -300,9 +315,7 @@ avalancheHeapSort_
 avalancheHeapSort_ a_fresh t array extras = do
   n_acc_heapSize <- freshPrefix "sort_acc_heap_size"
 
-  heapSort array n_acc_heapSize
-           (fmap snd extras)
-           (fmap fst extras)
+  heapSort array n_acc_heapSize (fmap snd extras) (fmap fst extras)
 
   where
     Flat.FlatCons{..} = Flat.flatCons a_fresh
@@ -540,7 +553,7 @@ avalancheHeapSort_ a_fresh t array extras = do
 --------------------------------------------------------------------------------
 
 avalancheMapInsertUpdate
-  :: (Hashable n, IsString n, Pretty n, Eq n)
+  :: (Hashable n, IsString n, Pretty n, Eq n, Show n, Show a)
   => a
   -> StmtX a n
   -> FlatX a n
@@ -552,63 +565,72 @@ avalancheMapInsertUpdate
   -> Exp a n Core.Prim
   -> FlatM a n
 avalancheMapInsertUpdate a_fresh stm flatX tk tv upd ins key map
-  = flatX' map $ \map' -> do
+  = flatX' map $ \map' -> flatX' key $ \key' -> do
       n_acc_keys <- freshPrefix "map_insert_acc_keys"
       n_acc_vals <- freshPrefix "map_insert_acc_vals"
       n_acc_idx  <- freshPrefix "map_insert_acc_bs_index"
       n_loc_keys <- freshPrefix "map_insert_loc_keys"
       n_loc_vals <- freshPrefix "map_insert_loc_vals"
       n_loc_idx  <- freshPrefix "map_insert_loc_bs_index"
-      n_loc_old  <- freshPrefix "map_insert_loc_old_val"
+      --n_loc_new  <- freshPrefix "map_insert_loc_new"
+      n_res      <- freshPrefix "map_insert_result"
 
-      let v_keys' = xVar' n_loc_keys
+      let v_keys  = xVar  n_loc_keys
           v_vals  = xVar  n_loc_vals
           v_idx   = xVar  n_loc_idx
-          v_old'  = xVar' n_loc_old
+          --v_new   = xVar  n_loc_new
+          v_res   = xVar  n_res
 
       let acc_idx  = Accumulator n_acc_idx  (OptionT IntT) $ xNothing IntT
           acc_keys = Accumulator n_acc_keys (ArrayT  tk)   $ mapKeys tk tv map'
           acc_vals = Accumulator n_acc_vals (ArrayT  tv)   $ mapVals tk tv map'
 
+      let readk  = readArr tk n_loc_keys n_acc_keys
+          readv  = readArr tv n_loc_vals n_acc_vals
+          readix = Read       n_loc_idx  n_acc_idx  (OptionT IntT)
+
+      let get_v i   = arrIx  tv v_vals i
+          put_v i x = arrUpd tv v_vals i x
+
       -- Look up the key.
-      sLookup <- avalancheBinarySearch a_fresh flatX tk key v_keys' n_acc_idx
+      sLookup <- avalancheBinarySearch a_fresh tk key' v_keys n_acc_idx
 
       -- If it exists, update.
-      let idx1   = optionGet tv v_idx
-          sUpd   = flatX' (xApp' upd v_old')
-                 $ \val -> pure
-                 $ Let   n_loc_old  (arrIx  tv v_vals idx1)
-                 $ Write n_acc_vals (arrUpd tv v_vals idx1 val)
+      let idx   = optionGet IntT v_idx
+      -- sUpd    <- trace ("***** UPDATE!!!! tv=" <> show tv) $ sletPrefix a_fresh "map_insert_loc_old" (get_v idx)
+      --          $ \v  -> trace ("flatX: v:\n" <> show (v) <> "\nflatX: input\n" <> show (pretty (xApp' upd v)) ) $ flatX' (upd `xApp'` v)
+      --          $ \v' -> trace ("flatX: result:\n" <> show (pretty v') <> "\n")
+      --                            $ return $ Write n_acc_vals (put_v idx v')
+      -- traceM $ "sUpd:\n" <> show (pretty sUpd)
+      sUpd    <- sletPrefix a_fresh "map_insert_loc_old" (get_v idx)
+               $ \v  -> flatX' (upd `xApp'` v)
+               $ \v' -> return $ Write n_acc_vals (put_v idx v')
 
-      -- Otherwise, insert at the end then sort.
-      sort <- avalancheHeapSortMap a_fresh stm flatX tk tv n_acc_keys n_acc_vals
-      let idx2  = arrLen tv v_vals
-          sIns  = flatX' ins
-                $ \val -> pure
-                $ Block [ Write n_acc_vals $ arrUpd tv v_vals idx2 val
-                        , sort ]
+      -- Otherwise, insert at the end then sort (by key).
+      sortByKey <- avalancheHeapSortMap a_fresh tk tv n_acc_keys n_acc_vals
+      pushKey   <- pushArrayAcc a_fresh tk n_acc_keys key'
+      pushVal   <- flatX' ins
+                 $ pushArrayAcc a_fresh tv n_acc_vals
+      let sIns   = pushKey <> pushVal <> readk (readv sortByKey)
 
-      let keyExists    = xEq (OptionT IntT) v_idx (xNothing IntT)
-      sInsertOrUpdate <- If keyExists <$> sIns <*> sUpd
+      let keyInMap        = isSome IntT v_idx
+      let sInsertOrUpdate = If keyInMap sUpd sIns
 
-      return
-        $ InitAccumulator acc_keys
-        $ InitAccumulator acc_vals
-        $ InitAccumulator acc_idx
-        $ readArr tk n_loc_keys n_acc_keys
-        $ readArr tv n_loc_vals n_acc_vals
-        $ Read       n_loc_idx  n_acc_idx  (OptionT IntT)
-        $ Block
-          [ sLookup
-          , sInsertOrUpdate ]
+      stm'    <- stm v_res
+      let res  = Let n_res (mapPack tk tv v_keys v_vals) stm'
+          ss   = InitAccumulator acc_keys
+               $ InitAccumulator acc_vals
+               $ InitAccumulator acc_idx
+               $ readk . readv . readix
+               $ sLookup <> (readix (sInsertOrUpdate <> readk (readv res)))
+
+      return ss
 
   where
     flatX' = flatX a_fresh
 
-    xVar'        = XVar   a_fresh
     xApp'        = XApp   a_fresh
     xNothing t   = xValue (OptionT t) VNone
-    xEq t x k    = xRel t Min.PrimRelationEq `xApp` x `xApp` k
 
     Flat.FlatOps  {..} = Flat.flatOps  a_fresh
     Flat.FlatCons {..} = Flat.flatCons a_fresh
@@ -616,7 +638,7 @@ avalancheMapInsertUpdate a_fresh stm flatX tk tv upd ins key map
 --------------------------------------------------------------------------------
 
 avalancheMapDelete
-  :: (Hashable n)
+  :: (Hashable n, IsString n)
   => a
   -> StmtX a n
   -> FlatX a n
@@ -692,7 +714,7 @@ avalancheMapLookup
   -> Exp a n Core.Prim
   -> FlatM a n
 avalancheMapLookup a_fresh stm flatX tk tv key map
-  = flatX' map $ \map' -> do
+  = flatX' map $ \map' -> flatX' key $ \key' -> do
       n_keys <- freshPrefix "map_lookup_keys"
       n_vals <- freshPrefix "map_lookup_vals"
       n_res  <- freshPrefix "map_lookup_res"
@@ -705,12 +727,12 @@ avalancheMapLookup a_fresh stm flatX tk tv key map
       let acc_res = Accumulator n_res (OptionT tv)   $ xNothing tv
           acc_idx = Accumulator n_idx (OptionT IntT) $ xNothing IntT
 
-      search      <- avalancheBinarySearch a_fresh flatX tk key v_keys n_idx
+      search      <- avalancheBinarySearch a_fresh tk key' v_keys n_idx
       stmNotFound <- stm $ xNothing tv
       stmFound    <- stm $ xJust    tv $ arrIx tv v_vals $ optionGet IntT v_idx
 
-      let keyExists = xEq (OptionT IntT) v_idx (xNothing IntT)
-          res       = If keyExists stmNotFound stmFound
+      let keyInMap  = isSome IntT v_idx
+          res       = If keyInMap stmNotFound stmFound
 
       return
         $ Let   n_keys (mapKeys tk tv map')
@@ -721,9 +743,6 @@ avalancheMapLookup a_fresh stm flatX tk tv key map
                 , Read n_idx n_idx (OptionT IntT) res ]
 
   where
-    xEq t x k
-     = xRel t Min.PrimRelationEq `xApp` x `xApp` k
-
     xJust t x
      = xMin (Min.PrimConst (Min.PrimConstSome t)) `xApp` x
     xNothing t

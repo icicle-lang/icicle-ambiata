@@ -25,7 +25,7 @@ import qualified    Data.List                      as List
 import              Data.Hashable                  (Hashable)
 import              Data.String                    (IsString)
 
-flatten :: (Pretty n, Hashable n, Eq n, IsString n)
+flatten :: (Pretty n, Hashable n, Eq n, IsString n, Show n, Show a)
         => a
         -> Statement a n Core.Prim
         -> FlatM a n
@@ -51,7 +51,7 @@ flatten a_fresh s = flattenS a_fresh [] s
 
 -- | Flatten the primitives in a statement.
 -- This just calls @flatX@ for every expression, wrapping the statement.
-flattenS :: (Pretty n, Hashable n, Eq n, IsString n)
+flattenS :: (Pretty n, Hashable n, Eq n, IsString n, Show n, Show a)
         => a
         -> [Accumulator a n Flat.Prim]
         -> Statement a n Core.Prim

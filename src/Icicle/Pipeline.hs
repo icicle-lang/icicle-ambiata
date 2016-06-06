@@ -25,6 +25,7 @@ module Icicle.Pipeline
 
   , coreSimp
   , coreFlatten
+  , coreFlatten_
   , coreAvalanche
 
   , flattenAvalanche
@@ -113,12 +114,13 @@ unName = go . CommonBase.nameBase
 --------------------------------------------------------------------------------
 
 data CompileError a b c
- = CompileErrorParse   !Parsec.ParseError
- | CompileErrorDesugar !(STD.DesugarError a b)
- | CompileErrorCheck   !(SC.CheckError a b)
- | CompileErrorConvert !(STC.ConvertError a b)
- | CompileErrorFlatten !(AS.FlattenError a b)
- | CompileErrorProgram !(AC.ProgramError a b c)
+ = CompileErrorParse       !Parsec.ParseError
+ | CompileErrorDesugar     !(STD.DesugarError a b)
+ | CompileErrorCheck       !(SC.CheckError a b)
+ | CompileErrorConvert     !(STC.ConvertError a b)
+ | CompileErrorFlatten     !(AS.FlattenError a b)
+ | CompileErrorFlattenSimp !(AS.SimpError a b c)
+ | CompileErrorProgram     !(AC.ProgramError a b c)
  deriving (Show, Generic)
 
 -- deepseq stops here, we don't really care about sequencing the error
@@ -140,6 +142,8 @@ annotOfError e
      -> STC.annotOfError e'
     CompileErrorFlatten _
      -> Nothing
+    CompileErrorFlattenSimp _
+     -> Nothing
     CompileErrorProgram _
      -> Nothing
 
@@ -160,6 +164,9 @@ instance (Hashable b, Eq b, IsString b, Pretty a, Pretty b, Show a, Show b, Show
       <> indent 2 (pretty ce)
      CompileErrorFlatten d
       -> "Flatten error:" <> line
+      <> indent 2 (text $ show d)
+     CompileErrorFlattenSimp d
+      -> "Flatten simplify error:" <> line
       <> indent 2 (text $ show d)
      CompileErrorProgram d
       -> "Program error:" <> line
@@ -294,13 +301,21 @@ coreFlatten
   :: (Hashable v, Eq v, IsString v, Pretty v, Show v, NFData v)
   => CoreProgram' v
   -> Either (CompileError () v APF.Prim) (AvalProgram' v APF.Prim)
-coreFlatten prog
- =   second simpFlattened
+coreFlatten = coreFlatten_ AS.defaultSimpOpts
+
+coreFlatten_
+  :: (Hashable v, Eq v, IsString v, Pretty v, Show v, NFData v)
+  => AS.SimpOpts
+  -> CoreProgram' v
+  -> Either (CompileError () v APF.Prim) (AvalProgram' v APF.Prim)
+coreFlatten_ opts prog
+ =   join
+ $!! fmap (simpFlattened opts)
  $!! flattenAvalanche
  $!! coreAvalanche prog
 
 flattenAvalanche
-  :: (IsString v, Pretty v, Hashable v, Eq v, NFData v)
+  :: (IsString v, Pretty v, Hashable v, Eq v, NFData v, Show v)
   => AvalProgram () v Core.Prim
   -> Either (CompileError () v APF.Prim) (AvalProgram (CA.Annot ()) v APF.Prim)
 flattenAvalanche av
@@ -340,19 +355,16 @@ simpAvalanche av
   go = AS.simpAvalanche () av
 
 simpFlattened
-  :: (Eq v, Hashable v, Show v, IsString v)
-  => AvalProgram (CA.Annot ()) v APF.Prim
-  -> AvalProgram' v APF.Prim
-simpFlattened av
- = AA.eraseAnnotP
- $ snd
- $ Fresh.runFresh go' (freshNamer "simp")
+  :: (Eq v, Hashable v, Show v, IsString v, Pretty v)
+  => AS.SimpOpts
+  -> AvalProgram (CA.Annot ()) v APF.Prim
+  -> Either (CompileError () v APF.Prim) (AvalProgram' v APF.Prim)
+simpFlattened opts av
+ = first CompileErrorFlattenSimp . second AA.eraseAnnotP . snd
+ $ Fresh.runFresh (go av) (freshNamer "simp_flat")
  where
-  go'
-   = go av
   -- Thread through a dummy annotation
-  go
-   = AS.simpFlattened (CA.Annot (CT.FunT [] CT.ErrorT) ())
+  go = AS.simpFlattened (CA.Annot (CT.FunT [] CT.ErrorT) ()) opts
 
 
 freshNamer :: IsString v => v -> Fresh.NameState v

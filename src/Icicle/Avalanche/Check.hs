@@ -2,6 +2,9 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Avalanche.Check (
     checkProgram
+  , checkStatement
+  , initialContext
+  , Context (..)
   , ProgramError(..)
   ) where
 

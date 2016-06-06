@@ -23,6 +23,9 @@ import           System.IO
 
 import qualified Text.ParserCombinators.Parsec    as Parsec
 
+import qualified Icicle.Avalanche.Annot           as AA
+import qualified Icicle.Avalanche.Simp            as AS
+
 import qualified Icicle.Pipeline                  as P
 
 import qualified Icicle.Internal.Pretty           as PP
@@ -86,49 +89,53 @@ runRepl inits
 
 data ReplState
    = ReplState
-   { facts            :: [AsAt Fact]
-   , dictionary       :: Dictionary
-   , currentTime      :: Time
-   , hasType          :: Bool
-   , hasBigData       :: Bool
-   , hasAnnotated     :: Bool
-   , hasInlined       :: Bool
-   , hasDesugar       :: Bool
-   , hasReified       :: Bool
-   , hasCore          :: Bool
-   , hasCoreType      :: Bool
-   , hasCoreEval      :: Bool
-   , hasAvalanche     :: Bool
-   , hasAvalancheEval :: Bool
-   , hasFlatten       :: Bool
-   , hasSeaPreamble   :: Bool
-   , hasSea           :: Bool
-   , hasSeaAssembly   :: Bool
-   , hasSeaLLVMIR     :: Bool
-   , hasSeaEval       :: Bool
-   , doCoreSimp       :: Bool }
+   { facts              :: [AsAt Fact]
+   , dictionary         :: Dictionary
+   , currentTime        :: Time
+   , hasType            :: Bool
+   , hasBigData         :: Bool
+   , hasAnnotated       :: Bool
+   , hasInlined         :: Bool
+   , hasDesugar         :: Bool
+   , hasReified         :: Bool
+   , hasCore            :: Bool
+   , hasCoreType        :: Bool
+   , hasCoreEval        :: Bool
+   , hasAvalanche       :: Bool
+   , hasAvalancheEval   :: Bool
+   , hasFlattenSimp     :: Bool
+   , hasFlattenNoSimp   :: Bool
+   , hasSeaPreamble     :: Bool
+   , hasSea             :: Bool
+   , hasSeaAssembly     :: Bool
+   , hasSeaLLVMIR       :: Bool
+   , hasSeaEval         :: Bool
+   , doFlattenSimpCheck :: Bool
+   , doCoreSimp         :: Bool }
 
 -- | Settable REPL states
 data Set
-   = ShowType           Bool
-   | ShowBigData        Bool
-   | ShowAnnotated      Bool
-   | ShowInlined        Bool
-   | ShowDesugar        Bool
-   | ShowReified        Bool
-   | ShowCore           Bool
-   | ShowCoreType       Bool
-   | ShowCoreEval       Bool
-   | ShowAvalanche      Bool
-   | ShowAvalancheEval  Bool
-   | ShowFlatten        Bool
-   | ShowSeaPreamble    Bool
-   | ShowSea            Bool
-   | ShowSeaAssembly    Bool
-   | ShowSeaLLVMIR      Bool
-   | ShowSeaEval        Bool
-   | CurrentTime        Time
-   | PerformCoreSimp    Bool
+   = ShowType                Bool
+   | ShowBigData             Bool
+   | ShowAnnotated           Bool
+   | ShowInlined             Bool
+   | ShowDesugar             Bool
+   | ShowReified             Bool
+   | ShowCore                Bool
+   | ShowCoreType            Bool
+   | ShowCoreEval            Bool
+   | ShowAvalanche           Bool
+   | ShowAvalancheEval       Bool
+   | ShowFlattenSimp         Bool
+   | ShowFlattenNoSimp       Bool
+   | ShowSeaPreamble         Bool
+   | ShowSea                 Bool
+   | ShowSeaAssembly         Bool
+   | ShowSeaLLVMIR           Bool
+   | ShowSeaEval             Bool
+   | CurrentTime             Time
+   | PerformCoreSimp         Bool
+   | PerformFlattenSimpCheck Bool
 
 -- | REPL commands
 data Command
@@ -146,7 +153,7 @@ data Command
 
 defaultState :: ReplState
 defaultState
-  = (ReplState [] demographics (unsafeTimeOfYMD 1970 1 1) False False False False False False False False False False False False False False False False False False)
+  = (ReplState [] demographics (unsafeTimeOfYMD 1970 1 1) False False False False False False False False False False False False False False False False False False False False)
     { hasCoreEval = True
     , doCoreSimp  = True }
 
@@ -168,59 +175,65 @@ readCommand ss = case words ss of
 readSetCommands :: [String] -> Maybe [Set]
 readSetCommands ss
  = case ss of
-    ("+type":rest)         -> (:) (ShowType True)          <$> readSetCommands rest
-    ("-type":rest)         -> (:) (ShowType False)         <$> readSetCommands rest
+    ("+type":rest)               -> (:) (ShowType                True)  <$> readSetCommands rest
+    ("-type":rest)               -> (:) (ShowType                False) <$> readSetCommands rest
 
-    ("+big-data":rest)     -> (:) (ShowBigData True)       <$> readSetCommands rest
-    ("-big-data":rest)     -> (:) (ShowBigData False)      <$> readSetCommands rest
+    ("+big-data":rest)           -> (:) (ShowBigData             True)  <$> readSetCommands rest
+    ("-big-data":rest)           -> (:) (ShowBigData             False) <$> readSetCommands rest
 
-    ("+annotated":rest)    -> (:) (ShowAnnotated True)     <$> readSetCommands rest
-    ("-annotated":rest)    -> (:) (ShowAnnotated False)    <$> readSetCommands rest
+    ("+annotated":rest)          -> (:) (ShowAnnotated           True)  <$> readSetCommands rest
+    ("-annotated":rest)          -> (:) (ShowAnnotated           False) <$> readSetCommands rest
 
-    ("+inlined":rest)      -> (:) (ShowInlined   True)     <$> readSetCommands rest
-    ("-inlined":rest)      -> (:) (ShowInlined   False)    <$> readSetCommands rest
+    ("+inlined":rest)            -> (:) (ShowInlined             True)  <$> readSetCommands rest
+    ("-inlined":rest)            -> (:) (ShowInlined             False) <$> readSetCommands rest
 
-    ("+desugar":rest)      -> (:) (ShowDesugar   True)     <$> readSetCommands rest
-    ("-desugar":rest)      -> (:) (ShowDesugar   False)    <$> readSetCommands rest
+    ("+desugar":rest)            -> (:) (ShowDesugar             True)  <$> readSetCommands rest
+    ("-desugar":rest)            -> (:) (ShowDesugar             False) <$> readSetCommands rest
 
-    ("+reified":rest)      -> (:) (ShowReified   True)     <$> readSetCommands rest
-    ("-reified":rest)      -> (:) (ShowReified   False)    <$> readSetCommands rest
+    ("+reified":rest)            -> (:) (ShowReified             True)  <$> readSetCommands rest
+    ("-reified":rest)            -> (:) (ShowReified             False) <$> readSetCommands rest
 
-    ("+core":rest)         -> (:) (ShowCore True)          <$> readSetCommands rest
-    ("-core":rest)         -> (:) (ShowCore False)         <$> readSetCommands rest
+    ("+core":rest)               -> (:) (ShowCore                True)  <$> readSetCommands rest
+    ("-core":rest)               -> (:) (ShowCore                False) <$> readSetCommands rest
 
-    ("+core-type":rest)    -> (:) (ShowCoreType True)      <$> readSetCommands rest
-    ("-core-type":rest)    -> (:) (ShowCoreType False)     <$> readSetCommands rest
+    ("+core-type":rest)          -> (:) (ShowCoreType            True)  <$> readSetCommands rest
+    ("-core-type":rest)          -> (:) (ShowCoreType            False) <$> readSetCommands rest
 
-    ("+core-simp":rest)    -> (:) (PerformCoreSimp True)   <$> readSetCommands rest
-    ("-core-simp":rest)    -> (:) (PerformCoreSimp False)  <$> readSetCommands rest
+    ("+core-simp":rest)          -> (:) (PerformCoreSimp         True)  <$> readSetCommands rest
+    ("-core-simp":rest)          -> (:) (PerformCoreSimp         False) <$> readSetCommands rest
 
-    ("+core-eval":rest)    -> (:) (ShowCoreEval    True)  <$> readSetCommands rest
-    ("-core-eval":rest)    -> (:) (ShowCoreEval    False) <$> readSetCommands rest
+    ("+core-eval":rest)          -> (:) (ShowCoreEval            True)  <$> readSetCommands rest
+    ("-core-eval":rest)          -> (:) (ShowCoreEval            False) <$> readSetCommands rest
 
-    ("+avalanche":rest)    -> (:) (ShowAvalanche True)     <$> readSetCommands rest
-    ("-avalanche":rest)    -> (:) (ShowAvalanche False)    <$> readSetCommands rest
+    ("+avalanche":rest)          -> (:) (ShowAvalanche           True)  <$> readSetCommands rest
+    ("-avalanche":rest)          -> (:) (ShowAvalanche           False) <$> readSetCommands rest
 
-    ("+avalanche-eval":rest) -> (:) (ShowAvalancheEval True)  <$> readSetCommands rest
-    ("-avalanche-eval":rest) -> (:) (ShowAvalancheEval False) <$> readSetCommands rest
+    ("+avalanche-eval":rest)     -> (:) (ShowAvalancheEval       True)  <$> readSetCommands rest
+    ("-avalanche-eval":rest)     -> (:) (ShowAvalancheEval       False) <$> readSetCommands rest
 
-    ("+flatten":rest)      -> (:) (ShowFlatten   True)     <$> readSetCommands rest
-    ("-flatten":rest)      -> (:) (ShowFlatten   False)    <$> readSetCommands rest
+    ("+flatten-no-simp":rest)    -> (:) (ShowFlattenNoSimp       True)  <$> readSetCommands rest
+    ("-flatten-no-simp":rest)    -> (:) (ShowFlattenNoSimp       False) <$> readSetCommands rest
 
-    ("+c-preamble":rest)   -> (:) (ShowSeaPreamble True)  <$> readSetCommands rest
-    ("-c-preamble":rest)   -> (:) (ShowSeaPreamble False) <$> readSetCommands rest
+    ("+flatten-simp":rest)       -> (:) (ShowFlattenSimp         True)  <$> readSetCommands rest
+    ("-flatten-simp":rest)       -> (:) (ShowFlattenSimp         False) <$> readSetCommands rest
 
-    ("+c":rest)            -> (:) (ShowSea         True)  <$> readSetCommands rest
-    ("-c":rest)            -> (:) (ShowSea         False) <$> readSetCommands rest
+    ("+flatten-simp-check":rest) -> (:) (PerformFlattenSimpCheck True)  <$> readSetCommands rest
+    ("-flatten-simp-check":rest) -> (:) (PerformFlattenSimpCheck False) <$> readSetCommands rest
 
-    ("+c-assembly":rest)   -> (:) (ShowSeaAssembly True)  <$> readSetCommands rest
-    ("-c-assembly":rest)   -> (:) (ShowSeaAssembly False) <$> readSetCommands rest
+    ("+c-preamble":rest)         -> (:) (ShowSeaPreamble         True)  <$> readSetCommands rest
+    ("-c-preamble":rest)         -> (:) (ShowSeaPreamble         False) <$> readSetCommands rest
 
-    ("+c-llvm-ir":rest)   -> (:) (ShowSeaLLVMIR True)  <$> readSetCommands rest
-    ("-c-llvm-ir":rest)   -> (:) (ShowSeaLLVMIR False) <$> readSetCommands rest
+    ("+c":rest)                  -> (:) (ShowSea                 True)  <$> readSetCommands rest
+    ("-c":rest)                  -> (:) (ShowSea                 False) <$> readSetCommands rest
 
-    ("+c-eval":rest)       -> (:) (ShowSeaEval     True)  <$> readSetCommands rest
-    ("-c-eval":rest)       -> (:) (ShowSeaEval     False) <$> readSetCommands rest
+    ("+c-assembly":rest)         -> (:) (ShowSeaAssembly         True)  <$> readSetCommands rest
+    ("-c-assembly":rest)         -> (:) (ShowSeaAssembly         False) <$> readSetCommands rest
+
+    ("+c-llvm-ir":rest)          -> (:) (ShowSeaLLVMIR           True)  <$> readSetCommands rest
+    ("-c-llvm-ir":rest)          -> (:) (ShowSeaLLVMIR           False) <$> readSetCommands rest
+
+    ("+c-eval":rest)             -> (:) (ShowSeaEval             True)  <$> readSetCommands rest
+    ("-c-eval":rest)             -> (:) (ShowSeaEval             False) <$> readSetCommands rest
 
     ("time" : y : m : d : rest)
        | Just y' <- readMaybe y
@@ -293,6 +306,7 @@ handleLine state line = case readCommand line of
             $ do    HL.outputStrLn heading
                     prettyHL p
                     nl
+
     checked <- runEitherT $ do
       parsed    <- hoist $ SR.sourceParse (T.pack line)
       (annot, typ)
@@ -319,34 +333,70 @@ handleLine state line = case readCommand line of
       let finalSource   = reified
 
 
-      core      <- hoist $ SR.sourceConvert (dictionary state) finalSource
-      let core'  | doCoreSimp state
-                 = SR.coreSimp core
-                 | otherwise
-                 = core
+      -- Core, simplified and unsimplified.
 
-      prettyOut hasCore "- Core:" core'
+      coreUnsimped <- hoist $ SR.sourceConvert (dictionary state) finalSource
 
-      case CP.checkProgram core' of
+      let core  | doCoreSimp state = SR.coreSimp coreUnsimped
+                | otherwise        = coreUnsimped
+
+      if doCoreSimp state
+      then prettyOut hasCore "- Core (simplified):" core
+      else prettyOut hasCore "- Core (not simplified):" core
+
+      case CP.checkProgram core of
        Left  e -> prettyOut (const True) "- Core type error:" e
        Right t -> prettyOut hasCoreType "- Core type:" t
 
-      prettyOut hasAvalanche "- Avalanche:" (SR.coreAvalanche core')
 
-      let flat = SR.coreFlatten core'
-      case flat of
-       Left  e -> prettyOut (const True) "- Flatten error:" e
+      -- Avalanche, simplified.
+
+      let avalancheSimped = SR.coreAvalanche core
+      prettyOut hasAvalanche "- Avalanche (simplified):" avalancheSimped
+
+      -- Flatten Avalanche, not simplified.
+
+      let  avalancheFlatUnsimped = SR.flattenAvalanche avalancheSimped
+      case avalancheFlatUnsimped of
+       Left  e -> prettyOut (const True) "- Flatten Avalanche (not simplified) error:" e
        Right f -> do
-        prettyOut hasFlatten "- Flattened:" f
 
-        case P.avalancheEval (currentTime state) (facts state) finalSource f of
-         Left  e -> prettyOut hasAvalancheEval "- Avalanche error:" e
-         Right r -> prettyOut hasAvalancheEval "- Avalanche evaluation:" r
+      -- Flattened Avalanche, not simplified, check.
 
-        let flatChecked = SR.checkAvalanche f
+         let  flatUnsimpedChecked = SR.checkAvalanche $ AA.eraseAnnotP f
+         case flatUnsimpedChecked of
+          Left  e  -> prettyOut (const True) "- Flattened Avalanche (not simplified) type error:" e
+          Right f' -> prettyOut hasFlattenNoSimp "- Flattened Avalanche (not simplified), typechecked:" f'
+
+      -- Flattened Avalanche, simplified.
+
+      let  avalancheFlatSimped
+              | doFlattenSimpCheck state
+              = SR.coreFlatten_ (AS.SimpOpts True False) core
+              | otherwise
+              = SR.coreFlatten core
+      case avalancheFlatSimped of
+       Left  e          -> prettyOut (const True) "- Flatten Avalanche (simplified) error:" e
+       Right flatSimped -> do
+
+        prettyOut hasFlattenSimp "- Flattened (simplified), not typechecked:" flatSimped
+
+      -- Flattened Avalanche, simplified, eval.
+
+        case P.avalancheEval (currentTime state) (facts state) finalSource flatSimped of
+         Left  e -> prettyOut hasAvalancheEval "- Flattened Avalanche (simplified) evalutation error:" e
+         Right r -> prettyOut hasAvalancheEval "- Flattened Avalanche (simplified) evaluation:" r
+
+      -- Flattened Avalanche, simplified, check.
+
+        let  flatChecked = SR.checkAvalanche flatSimped
         case flatChecked of
-         Left  e  -> prettyOut (const True) "- Avalanche type error:" e
+         Left  e  -> prettyOut (const True) "- Flattened Avalanche (simplified) type error:" e
          Right f' -> do
+           prettyOut hasFlattenSimp "- Flattened Avalanche (not simplified), typechecked:" f'
+
+      -- Sea
+
            prettyOut hasSeaPreamble "- C preamble:" Sea.seaPreamble
 
            when (hasSea state) $ do
@@ -373,7 +423,7 @@ handleLine state line = case readCommand line of
                Left  e -> prettyOut (const True) "- C error:" e
                Right r -> prettyOut (const True) "- C evaluation:" r
 
-      case P.coreEval (currentTime state) (facts state) finalSource core' of
+      case P.coreEval (currentTime state) (facts state) finalSource core of
        Left  e -> prettyOut hasCoreEval "- Core error:" e
        Right r -> prettyOut hasCoreEval "- Core evaluation:" r
 
@@ -438,9 +488,13 @@ handleSetCommand state set
         HL.outputStrLn $ "ok, avalanche eval is now " <> showFlag b
         return $ state { hasAvalancheEval = b }
 
-    ShowFlatten b -> do
-        HL.outputStrLn $ "ok, flatten is now " <> showFlag b
-        return $ state { hasFlatten = b }
+    ShowFlattenNoSimp b -> do
+        HL.outputStrLn $ "ok, flatten (not simplified) is now " <> showFlag b
+        return $ state { hasFlattenNoSimp = b }
+
+    ShowFlattenSimp b -> do
+        HL.outputStrLn $ "ok, flatten (simplified) is now " <> showFlag b
+        return $ state { hasFlattenSimp = b }
 
     ShowSeaPreamble b -> do
         HL.outputStrLn $ "ok, c preamble is now " <> showFlag b
@@ -487,7 +541,9 @@ handleSetCommand state set
         HL.outputStrLn $ "ok, core-simp is now " <> showFlag b
         return $ state { doCoreSimp = b }
 
---------------------------------------------------------------------------------
+    PerformFlattenSimpCheck b -> do
+        HL.outputStrLn $ "ok, flatten-simp-check is now " <> showFlag b
+        return $ state { doFlattenSimpCheck = b }
 
 --------------------------------------------------------------------------------
 
@@ -538,25 +594,26 @@ showState :: ReplState -> HL.InputT IO ()
 showState state
  = do
  mapM_ HL.outputStrLn
-    [ flag "type:         " hasType
-    , flag "big-data:     " hasBigData
-    , flag "annotated:    " hasAnnotated
-    , flag "inlined:      " hasInlined
-    , flag "desugar:      " hasDesugar
-    , flag "reified:      " hasReified
-    , flag "core:         " hasCore
-    , flag "core-type:    " hasCoreType
-    , flag "core-simp:    " doCoreSimp
-    , flag "core-eval:    " hasCoreEval
-    , flag "avalanche:    " hasAvalanche
-    , flag "flatten:      " hasFlatten
-    , flag "c-preamble:   " hasSeaPreamble
-    , flag "c:            " hasSea
-    , flag "c-assembly:   " hasSeaAssembly
-    , flag "c-llvm-ir:    " hasSeaLLVMIR
-    , flag "c-eval:       " hasSeaEval
-    ,      "now:          " <> T.unpack (renderTime $ currentTime state)
-    ,      "data:         " <> show (length $ facts state) <> " rows"
+    [ flag "type:            " hasType
+    , flag "big-data:        " hasBigData
+    , flag "annotated:       " hasAnnotated
+    , flag "inlined:         " hasInlined
+    , flag "desugar:         " hasDesugar
+    , flag "reified:         " hasReified
+    , flag "core:            " hasCore
+    , flag "core-type:       " hasCoreType
+    , flag "core-simp:       " doCoreSimp
+    , flag "core-eval:       " hasCoreEval
+    , flag "avalanche:       " hasAvalanche
+    , flag "flatten-no-simp: " hasFlattenNoSimp
+    , flag "flatten-simp:    " hasFlattenSimp
+    , flag "c-preamble:      " hasSeaPreamble
+    , flag "c:               " hasSea
+    , flag "c-assembly:      " hasSeaAssembly
+    , flag "c-llvm-ir:       " hasSeaLLVMIR
+    , flag "c-eval:          " hasSeaEval
+    ,      "now:             " <> T.unpack (renderTime $ currentTime state)
+    ,      "data:            " <> show (length $ facts state) <> " rows"
     ]
  prettyHL $ prettyDictionarySummary (dictionary state)
  where
