@@ -211,6 +211,9 @@ readSetCommands ss
     ("+avalanche-eval":rest)     -> (:) (ShowAvalancheEval       True)  <$> readSetCommands rest
     ("-avalanche-eval":rest)     -> (:) (ShowAvalancheEval       False) <$> readSetCommands rest
 
+    ("+flatten":rest)            -> (:) (ShowFlattenSimp         True)  <$> readSetCommands rest
+    ("-flatten":rest)            -> (:) (ShowFlattenSimp         False) <$> readSetCommands rest
+
     ("+flatten-no-simp":rest)    -> (:) (ShowFlattenNoSimp       True)  <$> readSetCommands rest
     ("-flatten-no-simp":rest)    -> (:) (ShowFlattenNoSimp       False) <$> readSetCommands rest
 

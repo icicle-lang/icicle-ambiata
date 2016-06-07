@@ -27,6 +27,7 @@ module Icicle.Repl (
   ) where
 
 import qualified Icicle.Avalanche.Program         as AP
+import qualified Icicle.Avalanche.Simp            as AS
 import qualified Icicle.Avalanche.Prim.Flat       as APF
 
 import qualified Icicle.Common.Base               as CommonBase
@@ -133,6 +134,8 @@ coreFlatten
 coreFlatten
  = first ReplErrorCompileAvalanche . P.coreFlatten
 
+coreFlatten_
+  :: AS.SimpOpts -> P.CoreProgram' Var -> Either ReplError (AP.Program () Var APF.Prim)
 coreFlatten_ opts
  = first ReplErrorCompileAvalanche . P.coreFlatten_ opts
 

@@ -179,14 +179,11 @@ avalancheBinarySearch a_fresh t key array result
                  (Write result xNothing)
 
       return
-        $ Block
-          [ Let n_loc_key   key
-          $ Let n_loc_array array
-          $ initInt  n_acc_mid   (xValue IntT (VInt 0))
-          $ initBool n_acc_found xFalse
-            loop
-          , ifFound
-          ]
+        $ Let n_loc_key   key
+        $ Let n_loc_array array
+        $ initBool n_acc_found xFalse
+        $ initInt  n_acc_mid   (xValue IntT (VInt (-1)))
+        $ loop <> ifFound
 
   where
     Flat.FlatOps  {..} = Flat.flatOps a_fresh

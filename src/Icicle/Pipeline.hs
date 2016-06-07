@@ -361,7 +361,7 @@ simpFlattened
   -> Either (CompileError () v APF.Prim) (AvalProgram' v APF.Prim)
 simpFlattened opts av
  = first CompileErrorFlattenSimp . second AA.eraseAnnotP . snd
- $ Fresh.runFresh (go av) (freshNamer "simp")
+ $ Fresh.runFresh (go av) (freshNamer "simpflat")
  where
   -- Thread through a dummy annotation
   go = AS.simpFlattened (CA.Annot (CT.FunT [] CT.ErrorT) ()) opts

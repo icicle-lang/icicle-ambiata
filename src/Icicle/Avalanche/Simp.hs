@@ -58,6 +58,9 @@ optCheck doCheck ctx ss
        return ss
   | otherwise
   = Right ss
+{-# INLINE optCheck #-}
+-- this inline is necessary, otherwise the simp passes wouldn't fuse and will
+-- run out of memory.
 
 --------------------------------------------------------------------------------
 
@@ -80,7 +83,7 @@ check chk transformName transform val
         x'    <- transform x
         let y  = chk x'
         case y of
-          Left  e' -> trace (show $ pretty x') $ return $ Left $ SimpError transformName e'
+          Left  e' -> return $ Left $ SimpError transformName e'
           Right y' -> return $ Right y'
 
 pass :: (Monad m)
