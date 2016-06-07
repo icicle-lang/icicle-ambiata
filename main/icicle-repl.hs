@@ -372,7 +372,7 @@ handleLine state line = case readCommand line of
 
       let  avalancheFlatSimped
               | doFlattenSimpCheck state
-              = SR.coreFlatten_ (AS.SimpOpts True False) core
+              = SR.coreFlatten_ (AS.SimpOpts True True) core
               | otherwise
               = SR.coreFlatten core
       case avalancheFlatSimped of

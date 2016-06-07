@@ -182,7 +182,7 @@ avalancheBinarySearch a_fresh t key array result
         $ Block
           [ Let n_loc_key   key
           $ Let n_loc_array array
-          $ initInt  n_acc_mid   (xValue IntT (VInt (-1)))
+          $ initInt  n_acc_mid   (xValue IntT (VInt 0))
           $ initBool n_acc_found xFalse
             loop
           , ifFound
@@ -216,16 +216,17 @@ avalancheBinarySearch a_fresh t key array result
              $ readInt n_loc_low  n_acc_low
              $ readInt n_loc_high n_acc_high
              $ Block
-               [ Write n_acc_mid (xMid v_low v_high)
-               , readInt n_loc_mid n_acc_mid
-               $ Let n_loc_x (xIndex v_array v_mid)
+               [ Write   n_acc_mid (xMid v_low v_high)
+               , readInt n_loc_mid  n_acc_mid
                $ If ( xGt IntT v_low v_high )
                     ( Write n_acc_end xTrue )
-               $ If (xEq t v_x v_key)
-                    (Block [ Write n_acc_end xTrue, Write n_acc_found xTrue ])
-               $ If (xLt t v_x v_key)
-                    (Write n_acc_low  (xPlusOne  v_mid))
-                    (Write n_acc_high (xMinusOne v_mid))
+               $ Let  n_loc_x   (xIndex v_array v_mid)
+               $ If ( xEq t v_x v_key       )
+                    ( Block [ Write n_acc_end   xTrue
+                            , Write n_acc_found xTrue ])
+               $ If ( xLt t v_x v_key )
+                    ( Write n_acc_low  (xPlusOne  v_mid) )
+                    ( Write n_acc_high (xMinusOne v_mid) )
                ]
 
     xJust x
@@ -597,14 +598,9 @@ avalancheMapInsertUpdate a_fresh stm flatX tk tv upd ins key map
 
       -- If it exists, update.
       let idx   = optionGet IntT v_idx
-      -- sUpd    <- trace ("***** UPDATE!!!! tv=" <> show tv) $ sletPrefix a_fresh "map_insert_loc_old" (get_v idx)
-      --          $ \v  -> trace ("flatX: v:\n" <> show (v) <> "\nflatX: input\n" <> show (pretty (xApp' upd v)) ) $ flatX' (upd `xApp'` v)
-      --          $ \v' -> trace ("flatX: result:\n" <> show (pretty v') <> "\n")
-      --                            $ return $ Write n_acc_vals (put_v idx v')
-      -- traceM $ "sUpd:\n" <> show (pretty sUpd)
-      sUpd    <- sletPrefix a_fresh "map_insert_loc_old" (get_v idx)
-               $ \v  -> flatX' (upd `xApp'` v)
-               $ \v' -> return $ Write n_acc_vals (put_v idx v')
+      sUpd     <- sletPrefix a_fresh "map_insert_loc_old" (get_v idx)
+                $ \v  -> flatX' (upd `xApp'` v)
+                $ \v' -> return $ Write n_acc_vals (put_v idx v')
 
       -- Otherwise, insert at the end then sort (by key).
       sortByKey <- avalancheHeapSortMap a_fresh tk tv n_acc_keys n_acc_vals
