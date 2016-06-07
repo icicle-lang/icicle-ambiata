@@ -126,7 +126,7 @@ simpAvalanche a_fresh p
 
 
 simpFlattened
-  :: forall a n . (Show n, Hashable n, Pretty n, Eq n, Eq a, Ord a)
+  :: forall a n . (Show n, Hashable n, Pretty n, Eq n, Eq a, Ord a, Show a)
   => a
   -> SimpOpts
   -> Program a n Flat.Prim
@@ -146,6 +146,7 @@ simpFlattened a_fresh opts p
          >>= pass                     anormal
          >>= pass                    (transformX return (return . reannotX fst))
       ret p s'
+
  where
   crunch :: Statement (Ann a n) n Flat.Prim
          -> FixT (Fresh n) (Either (SimpError () n Flat.Prim) (Statement (Ann a n) n Flat.Prim))

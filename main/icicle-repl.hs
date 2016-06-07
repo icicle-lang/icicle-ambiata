@@ -384,19 +384,19 @@ handleLine state line = case readCommand line of
 
         prettyOut hasFlattenSimp "- Flattened (simplified), not typechecked:" flatSimped
 
-      -- Flattened Avalanche, simplified, eval.
-
-        case P.avalancheEval (currentTime state) (facts state) finalSource flatSimped of
-         Left  e -> prettyOut hasAvalancheEval "- Flattened Avalanche (simplified) evalutation error:" e
-         Right r -> prettyOut hasAvalancheEval "- Flattened Avalanche (simplified) evaluation:" r
-
       -- Flattened Avalanche, simplified, check.
 
         let  flatChecked = SR.checkAvalanche flatSimped
         case flatChecked of
          Left  e  -> prettyOut (const True) "- Flattened Avalanche (simplified) type error:" e
          Right f' -> do
-           prettyOut hasFlattenSimp "- Flattened Avalanche (not simplified), typechecked:" f'
+           prettyOut hasFlattenSimp "- Flattened Avalanche (simplified), typechecked:" f'
+
+      -- Flattened Avalanche, simplified, eval.
+
+           case P.avalancheEval (currentTime state) (facts state) finalSource flatSimped of
+            Left  e -> prettyOut hasAvalancheEval "- Flattened Avalanche (simplified) evalutation error:" e
+            Right r -> prettyOut hasAvalancheEval "- Flattened Avalanche (simplified) evaluation:" r
 
       -- Sea
 

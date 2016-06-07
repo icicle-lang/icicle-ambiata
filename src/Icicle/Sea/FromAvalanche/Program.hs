@@ -106,7 +106,7 @@ seaOfStatement stmt
               , ""
               ]
 
-     While t n end stmt'
+     While t n _ end stmt'
       -> vsep [ "while (" <> seaOfName n <+> seaOfWhileType t <+> seaOfExp end <> ") {"
               , indent 4 $ seaOfStatement stmt'
               , "}"

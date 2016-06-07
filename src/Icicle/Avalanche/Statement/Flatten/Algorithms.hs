@@ -174,7 +174,7 @@ avalancheBinarySearch a_fresh t key array result
       let ifFound
             = readBool n_loc_found n_acc_found
             $ readInt  n_loc_mid   n_acc_mid
-            $ If (xEq BoolT v_found xTrue)
+            $ If (relEq BoolT v_found xTrue)
                  (Write result (xJust v_mid))
                  (Write result xNothing)
 
@@ -183,7 +183,9 @@ avalancheBinarySearch a_fresh t key array result
         $ Let n_loc_array array
         $ initBool n_acc_found xFalse
         $ initInt  n_acc_mid   (xValue IntT (VInt (-1)))
-        $ loop <> ifFound
+        $ Block
+        [ loop
+        , ifFound ]
 
   where
     Flat.FlatOps  {..} = Flat.flatOps a_fresh
@@ -209,19 +211,19 @@ avalancheBinarySearch a_fresh t key array result
              $ initInt  n_acc_low   (xValue IntT (VInt 0))
              $ initInt  n_acc_high  (xHigh  v_array)
              $ initBool n_acc_end   xFalse
-             $ While WhileEq n_acc_end xFalse
+             $ While WhileEq n_acc_end BoolT xFalse
              $ readInt n_loc_low  n_acc_low
              $ readInt n_loc_high n_acc_high
+             $ If ( relGt IntT v_low v_high )
+                  ( Write n_acc_end xTrue )
              $ Block
                [ Write   n_acc_mid (xMid v_low v_high)
                , readInt n_loc_mid  n_acc_mid
-               $ If ( xGt IntT v_low v_high )
-                    ( Write n_acc_end xTrue )
                $ Let  n_loc_x   (xIndex v_array v_mid)
-               $ If ( xEq t v_x v_key       )
+               $ If ( relEq t v_x v_key       )
                     ( Block [ Write n_acc_end   xTrue
                             , Write n_acc_found xTrue ])
-               $ If ( xLt t v_x v_key )
+               $ If ( relLt t v_x v_key )
                     ( Write n_acc_low  (xPlusOne  v_mid) )
                     ( Write n_acc_high (xMinusOne v_mid) )
                ]
@@ -230,13 +232,6 @@ avalancheBinarySearch a_fresh t key array result
      = xMin (Min.PrimConst (Min.PrimConstSome IntT)) `xApp` x
     xNothing
      = xValue (OptionT IntT) VNone
-
-    xGt ty x k
-     = xRel ty Min.PrimRelationGt `xApp` x `xApp` k
-    xLt ty x k
-     = xRel ty Min.PrimRelationLt `xApp` x `xApp` k
-    xEq ty x k
-     = xRel ty Min.PrimRelationEq `xApp` x `xApp` k
 
     xPlusOne m
       = xArith Min.PrimArithPlus `xApp` m `xApp` xValue IntT (VInt 1)
@@ -424,7 +419,7 @@ avalancheHeapSort_ a_fresh t array extras = do
             $ initInt  n_acc_right    xMinusOne
             $ initInt  n_acc_largest  xMinusOne
             $ initBool n_acc_end      xFalse
-            $ While WhileEq n_acc_end xFalse
+            $ While WhileEq n_acc_end BoolT xFalse
             $ readInt     n_loc_index   n_acc_index
             $ readArr  t  n_loc_arr     n_acc_arr
             $ readArr' tv n_loc_av      n_acc_av
@@ -716,16 +711,19 @@ avalancheMapLookup a_fresh stm flatX tk tv key map
       let v_keys = xVar' n_keys
           v_vals = xVar  n_vals
           v_idx  = xVar  n_idx
+          v_res  = xVar  n_res
 
       let acc_res = Accumulator n_res (OptionT tv)   $ xNothing tv
           acc_idx = Accumulator n_idx (OptionT IntT) $ xNothing IntT
 
       search      <- avalancheBinarySearch a_fresh tk key' v_keys n_idx
-      stmNotFound <- stm $ xNothing tv
-      stmFound    <- stm $ xJust    tv $ arrIx tv v_vals $ optionGet IntT v_idx
 
       let keyInMap  = isSome IntT v_idx
-          res       = If keyInMap stmNotFound stmFound
+          notFound  = Write n_res $ xNothing tv
+          found     = Write n_res $ xJust    tv $ arrIx tv v_vals $ optionGet IntT v_idx
+          ss        = If keyInMap found notFound
+
+      res <- stm $ v_res
 
       return
         $ Let   n_keys (mapKeys tk tv map')
@@ -733,7 +731,9 @@ avalancheMapLookup a_fresh stm flatX tk tv key map
         $ InitAccumulator acc_res
         $ InitAccumulator acc_idx
         $ Block [ search
-                , Read n_idx n_idx (OptionT IntT) res ]
+                , Read n_idx n_idx (OptionT IntT) ss
+                , Read n_res n_res (OptionT tv)   res
+                ]
 
   where
     xJust t x

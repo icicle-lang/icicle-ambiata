@@ -68,10 +68,10 @@ flattenS a_fresh accums s
      $ \x'
      -> Let n x' <$> flattenS a_fresh accums ss
 
-    While t n to ss
+    While t n nt to ss
      -> flatX a_fresh to
      $ \to'
-     -> While t n to' <$> flattenS a_fresh accums ss
+     -> While t n nt to' <$> flattenS a_fresh accums ss
 
     ForeachInts t n from to ss
      -> flatX a_fresh from

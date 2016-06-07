@@ -126,9 +126,9 @@ constructor a_fresh statements
            -> do from' <- goX env' from
                  to'   <- goX env' to
                  ret $ ForeachInts t n from' to' ss
-          While t n end ss
+          While t n nt end ss
            -> do end'  <- goX env' end
-                 ret $ While t n end' ss
+                 ret $ While t n nt end' ss
           InitAccumulator (Accumulator n vt x) ss
            -> goWith x $ \x' -> InitAccumulator (Accumulator n vt x') ss
           Write n x

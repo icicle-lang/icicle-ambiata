@@ -211,9 +211,9 @@ forwardStmts a_fresh statements
       If x ss es
        -> subS e x $ \x' -> If x' ss es
 
-      While t n end ss
+      While t n nt end ss
        -> do end'  <- sub e end
-             return (e, While t n end' ss)
+             return (e, While t n nt end' ss)
 
       ForeachInts t n from to ss
        -> do from' <- sub e from
@@ -504,8 +504,8 @@ freevarsStmt = go
          -> If (freevarsExp x) (go s1) (go s2)
        Let n x s
          -> Let n (freevarsExp x) (rmS n $ go s)
-       While t n x s
-         -> While t n (freevarsExp x) (rmS n $ go s)
+       While t n nt x s
+         -> While t n nt (freevarsExp x) (rmS n $ go s)
        ForeachInts t n x1 x2 s
          -> ForeachInts t n (freevarsExp x1) (freevarsExp x2) (rmS n $ go s)
        ForeachFacts ns t  f  s
@@ -589,7 +589,7 @@ killNoEffect = fst . go Set.empty
               in (ss', hasEffect)
          Let _ _ s
            -> subStmt s
-         While _ _ _ s
+         While _ _ _ _ s
            -> subStmt s
          ForeachInts _ _ _ _ s
            -> subStmt s
@@ -635,7 +635,7 @@ stmtFreeX_ frees statements
           -- n is not free in there any more.
           Let n x _
            -> return (frees x `Set.union` Set.delete n subvars)
-          While _ n x _
+          While _ n _ x _
            -> return (frees x `Set.union` Set.delete n subvars)
           ForeachInts _ n x y _
            -> return (frees x `Set.union` frees y `Set.union` Set.delete n subvars)

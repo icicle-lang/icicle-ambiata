@@ -55,6 +55,11 @@ data FlatOps a n = FlatOps {
              -> X a n -> X a n
 
   , relEq    :: ValType -> X a n -> X a n -> X a n
+  , relNe    :: ValType -> X a n -> X a n -> X a n
+  , relGt    :: ValType -> X a n -> X a n -> X a n
+  , relGe    :: ValType -> X a n -> X a n -> X a n
+  , relLt    :: ValType -> X a n -> X a n -> X a n
+  , relLe    :: ValType -> X a n -> X a n -> X a n
 
   }
 
@@ -101,6 +106,11 @@ flatOps a_fresh
                 = p1 (PrimMinimal $ Min.PrimStruct $ Min.PrimStructGet f t st)
 
   relEq     t   = p2 (PrimMinimal $ Min.PrimRelation Min.PrimRelationEq t)
+  relNe     t   = p2 (PrimMinimal $ Min.PrimRelation Min.PrimRelationNe t)
+  relGt     t   = p2 (PrimMinimal $ Min.PrimRelation Min.PrimRelationGt t)
+  relGe     t   = p2 (PrimMinimal $ Min.PrimRelation Min.PrimRelationGe t)
+  relLt     t   = p2 (PrimMinimal $ Min.PrimRelation Min.PrimRelationLt t)
+  relLe     t   = p2 (PrimMinimal $ Min.PrimRelation Min.PrimRelationLe t)
 
 --------------------------------------------------------------------------------
 

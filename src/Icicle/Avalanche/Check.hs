@@ -88,7 +88,7 @@ checkStatement frag ctx stmt
                    $ checkExp frag (ctxExp ctx) x
                Let n x' <$> go stmts
 
-        While t n to stmts
+        While t n nt to stmts
          -> do to'  <- first ProgramErrorExp
                      $ checkExp frag (ctxExp ctx) to
                vt   <- maybeToRight (ProgramErrorNoSuchAccumulator n)
@@ -98,7 +98,7 @@ checkStatement frag ctx stmt
 
                requireSame (ProgramErrorWrongType to) tt (FunT [] vt)
 
-               While t n to' <$> go stmts
+               While t n nt to' <$> go stmts
 
 
         ForeachInts t n from to stmts

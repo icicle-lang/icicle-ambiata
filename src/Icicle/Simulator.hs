@@ -96,7 +96,7 @@ evaluateVirtualValue p t vs
    = do v' <- valueToCore' (atFact a) (P.inputType p)
         return $ a { atFact = (B.BubbleGumFact $ B.Flavour n $ atTime a, v') }
 
-evaluateVirtualValue' :: (Hashable n, Eq n) => A.Program a n APF.Prim -> Time -> [AsAt Value] -> Result a n
+evaluateVirtualValue' :: (Hashable n, Eq n, Show n, Show a) => A.Program a n APF.Prim -> Time -> [AsAt Value] -> Result a n
 evaluateVirtualValue' p t vs
  = do   vs' <- zipWithM toCore [1..] vs
 
