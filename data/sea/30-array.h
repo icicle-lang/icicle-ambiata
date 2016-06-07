@@ -192,28 +192,9 @@ Immutable_put(arr, ix, val)
 static ARRAY_T(t) INLINE ARRAY_FUN(t,put_immutable)                             \
                   (imempool_t *pool, ARRAY_T(t) x, iint_t ix, t##_t v)          \
 {                                                                               \
-    iint_t count  = x->count;                                                   \
-    iint_t sz_old = iarray_size(count);                                         \
-    size_t bytes_old = ARRAY_SIZE(t, sz_old);                                   \
-                                                                                \
-    if (ix >= sz_old) {                                                         \
-        iint_t sz_new    = iarray_size(ix+1);                                   \
-        size_t bytes_new = ARRAY_SIZE(t, sz_new);                               \
-                                                                                \
-        ARRAY_T(t) arr = (ARRAY_T(t))imempool_alloc(pool, bytes_new);           \
-        memcpy(arr, x, bytes_old);                                              \
-        x = arr;                                                                \
-                                                                                \
-    } else if (ix >= count) {                                                   \
-      ARRAY_T(t) arr = (ARRAY_T(t))imempool_alloc(pool, bytes_old);             \
-      memcpy(arr, x, bytes_old);                                                \
-      x = arr;                                                                  \
-                                                                                \
-    }                                                                           \
-                                                                                \
-    x->count = ix + 1;                                                          \
-    ARRAY_PAYLOAD(t,x)[ix] = v;                                                 \
-    return x;                                                                   \
+    ARRAY_T(t) arr = ARRAY_FUN(t,copy)(pool, x);                                \
+    arr = ARRAY_FUN(t,put_mutable)(pool, arr, ix, v);                           \
+    return arr;                                                                 \
 }
 
 

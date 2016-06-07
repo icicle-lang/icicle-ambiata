@@ -5,7 +5,7 @@ ok, loaded test/cli/repl/data.psv, 13 rows
 > ok, core-simp is now on
 ok, avalanche is now on
 > > -- A rather complicated feature to convert to Avalanche
-> - Avalanche:
+> - Avalanche (simplified):
 conv$3 = TIME
 init acc$conv$10@{((Sum Error Int), ((Sum Error Int), Time))} = (Left ExceptNotAnError, (Left ExceptNotAnError, 1858-11-17))@{((Sum Error Int), ((Sum Error Int), Time))};
 init acc$c$conv$11@{(Sum Error Int)} = Right 0@{(Sum Error Int)};
@@ -62,7 +62,7 @@ output@{(Sum Error (Int, Array (Sum Error Int)))} repl (conv$31@{(Sum Error (Int
 ,marge, (1,[0,10,20])]
 
 > > -- Something involves the abstract buffer type
-> - Avalanche:
+> - Avalanche (simplified):
 conv$3 = TIME
 init acc$conv$4@{Map Time (Buf 2 ((Sum Error Int), Time))} = Map []@{Map Time (Buf 2 ((Sum Error Int), Time))};
 load_resumable@{Map Time (Buf 2 ((Sum Error Int), Time))} acc$conv$4;

@@ -565,13 +565,11 @@ avalancheMapInsertUpdate a_fresh stm flatX tk tv upd ins key map
       n_loc_keys <- freshPrefix "map_insert_loc_keys"
       n_loc_vals <- freshPrefix "map_insert_loc_vals"
       n_loc_idx  <- freshPrefix "map_insert_loc_bs_index"
-      --n_loc_new  <- freshPrefix "map_insert_loc_new"
       n_res      <- freshPrefix "map_insert_result"
 
       let v_keys  = xVar  n_loc_keys
           v_vals  = xVar  n_loc_vals
           v_idx   = xVar  n_loc_idx
-          --v_new   = xVar  n_loc_new
           v_res   = xVar  n_res
 
       let acc_idx  = Accumulator n_acc_idx  (OptionT IntT) $ xNothing IntT
