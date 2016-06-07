@@ -145,14 +145,17 @@ evalPrim p vs
        $ VBase
        $ VArray
        $ let low   = min ix1 ix2
-             high  = min ix2 ix2
+             high  = max ix1 ix2
              xl    = varr List.!! low
              xh    = varr List.!! high
-             varr1 = List.take (low - 1) varr
-             varr3 = List.drop high      varr
-             varr2 = List.drop low
-                   $ List.take (high - 1) varr
-         in varr1 <> [xl] <> varr2 <> [xh] <> varr3
+             -- varr1 xl varr2 xh varr3
+             -- swap xl xh
+             -- varr1 xh varr2 xl varr3
+             -- e.g swap 1 3: 0 low 2 high ..
+             varr1 = List.take  low                        varr
+             varr2 = List.drop (low  + 1) $ List.take high varr
+             varr3 = List.drop (high + 1)                  varr
+         in varr1 <> [xh] <> varr2 <> [xl] <> varr3
       | otherwise
       -> primError
 
