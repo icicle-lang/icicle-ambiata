@@ -94,6 +94,7 @@ library
                        Icicle.Avalanche.Statement.Flatten.Statement
                        Icicle.Avalanche.Statement.Flatten.Type
                        Icicle.Avalanche.Statement.Flatten.Exp
+                       Icicle.Avalanche.Statement.Edsl
                        Icicle.Avalanche.Prim.Flat
                        Icicle.Avalanche.Prim.Eval
                        Icicle.Avalanche.Prim.Compounds
