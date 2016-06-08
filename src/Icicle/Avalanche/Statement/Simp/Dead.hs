@@ -173,9 +173,6 @@ killAccumulators accs statements
    | SaveResumable acc _ <- s
    , Map.member acc accs
    = return ((), mempty)
-   -- | While _ acc _ _ _ <- s
-   -- , Map.member acc accs
-   -- = error "cannot kill while loop condition"
 
    | otherwise
    = return ((), s)
