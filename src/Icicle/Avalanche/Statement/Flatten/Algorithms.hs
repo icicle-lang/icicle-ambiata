@@ -61,58 +61,42 @@ readBool local acc
   = Read local acc BoolT
 
 -- Create a let binding with a fresh name
-slet_
-  :: (Hashable n, Monad m)
-  => a
-  -> Maybe n
-  -> Exp a n p
-  -> (Exp a n p' -> FreshT n m (Statement a n p))
-  -> FreshT n m (Statement a n p)
+slet_ :: (Hashable n, Monad m)
+      => a -> Maybe n -> Exp a n p -> (Exp a n p' -> FreshT n m (Statement a n p))
+      -> FreshT n m (Statement a n p)
 slet_ a_fresh prefix x ss
  = do n  <- maybe fresh freshPrefix prefix
       Let n x <$> ss (XVar a_fresh n)
 
-slet
-  :: (Hashable n, Monad m) => a -> Exp a n p -> (Exp a n p' -> FreshT n m (Statement a n p))
-  -> FreshT n m (Statement a n p)
+slet :: (Hashable n, Monad m)
+     => a -> Exp a n p -> (Exp a n p' -> FreshT n m (Statement a n p))
+     -> FreshT n m (Statement a n p)
 slet a = slet_ a Nothing
 
-sletPrefix
-  :: (Hashable n, Monad m)
-  => a -> n -> Exp a n p -> (Exp a n p' -> FreshT n m (Statement a n p))
-  -> FreshT n m (Statement a n p)
+sletPrefix :: (Hashable n, Monad m)
+           => a -> n -> Exp a n p -> (Exp a n p' -> FreshT n m (Statement a n p))
+           -> FreshT n m (Statement a n p)
 sletPrefix a n = slet_ a (Just n)
 
 -- For loop with fresh name for iterator
-forI
-  :: (Hashable n, Monad m, IsString n)
-  => a
-  -> Exp a n p
-  -> (Exp a n p -> FreshT n m (Statement a n p))
-  -> FreshT n m (Statement a n p)
+forI :: (Hashable n, Monad m, IsString n)
+     => a -> Exp a n p -> (Exp a n p -> FreshT n m (Statement a n p))
+     -> FreshT n m (Statement a n p)
 forI a_fresh to ss
  = do n  <- freshPrefix "for_counter"
       ForeachInts ForeachStepUp n (XValue a_fresh IntT (VInt 0)) to <$> ss (XVar a_fresh n)
 
 -- Update an accumulator
-updateAcc
-  :: (Hashable n, Monad m, IsString n)
-  => a
-  -> Name n
-  -> ValType
-  -> (Exp a n p -> Exp a n p)
-  -> FreshT n m (Statement a n p)
+updateAcc :: (Hashable n, Monad m, IsString n)
+          => a -> Name n -> ValType -> (Exp a n p -> Exp a n p)
+          -> FreshT n m (Statement a n p)
 updateAcc a_fresh acc t x
  = do n'x <- freshPrefix "update_acc"
       return $ Read n'x acc t $ Write acc $ x $ XVar a_fresh n'x
 
-pushArrayAcc
-  :: (Hashable n, Monad m, IsString n)
-  => a
-  -> ValType
-  -> Name n
-  -> Flat.X a n
-  -> FreshT n m (Flat.S a n)
+pushArrayAcc :: (Hashable n, Monad m, IsString n)
+             => a -> ValType -> Name n -> Flat.X a n
+             -> FreshT n m (Flat.S a n)
 pushArrayAcc a_fresh t n'acc push
  = do let t'          = ArrayT t
           sz  arr     = arrLen t arr
