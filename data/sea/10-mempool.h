@@ -37,7 +37,9 @@ static void iblock_free (const iblock_t *block)
 #endif
 
     free (block->ptr);
-    iblock_free (block->prev);
+    const iblock_t *prev = block->prev;
+    free (block);
+    iblock_free (prev);
 }
 
 static void imempool_add_block (imempool_t *pool)
@@ -102,10 +104,24 @@ imempool_t * imempool_create ()
     return pool;
 }
 
+void imempool_debug_block_usage (imempool_t *pool)
+{
+    iblock_t *block = pool->last;
+    uint64_t size = 0;
+    uint64_t blocks = 0;
+    while (block != 0) {
+      size += iblock_size;
+      blocks++;
+      block = block->prev;
+    }
+    fprintf (stderr, "imempool_debug_block_usage: %llu blocks, %llu bytes\n", blocks, size);
+}
+
 void imempool_free (imempool_t *pool)
 {
 #if ICICLE_DEBUG
     fprintf (stderr, "imempool_free: %p\n", pool);
+    imempool_debug_block_usage (pool);
 #endif
 
     iblock_free (pool->last);
