@@ -39,9 +39,8 @@ mutateStmt livevars ss
               in  Let n (mutateExp lvs x)
                         (go s)
 
-         While t n x s
-           -> While t n (mutateExp livevars x)
-                        (go s)
+         While t n nt x s
+           -> While t n nt (mutateExp livevars x) (go s)
 
          ForeachInts t n x y s
            -> ForeachInts t n (mutateExp livevars x)
@@ -116,7 +115,7 @@ livevarsStmt ss = case ss of
 
   -- loop counter is live after it is assigned the initial value,
   -- and live inside the loop.
-  While _ n end body
+  While _ n _ end body
    -> Set.insert n (livevarsExp end <> livevarsStmt body)
   ForeachInts _ n _ end body
    -> Set.insert n (livevarsExp end <> livevarsStmt body)

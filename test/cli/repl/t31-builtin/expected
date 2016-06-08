@@ -22,7 +22,7 @@ ok, loaded test/cli/repl/data.psv, 13 rows
                                    \             (
                                     \_____________)
 > > - C evaluation:
-[homer, ["head","arm","torso"]]
+[homer, ["arm","head","torso"]]
 
 - Core evaluation:
 [homer, ["arm","head","torso"]]

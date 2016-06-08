@@ -110,7 +110,7 @@ tryGenWellTypedWith allowDupTime (InputType ty) = do
 
       flattened <- fromEither (A.checkProgram A.flatFragment (replaceStmts avalanche flatStmts))
 
-      let unchecked = testFresh "simp" $ A.simpFlattened dummyAnn flattened
+      unchecked <- fromEither (testFresh "simp" $ A.simpFlattened dummyAnn A.defaultSimpOpts flattened)
 
       simplified <- fromEither (A.checkProgram A.flatFragment (A.eraseAnnotP unchecked))
 

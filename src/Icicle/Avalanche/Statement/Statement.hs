@@ -33,7 +33,7 @@ data Statement a n p
  | Let !(Name n) !(Exp a n p) !(Statement a n p)
 
  -- | A loop with some condition on an accumulator.
- | While        !WhileType   !(Name n) !(Exp a n p) !(Statement a n p)
+ | While        !WhileType   !(Name n) !ValType !(Exp a n p) !(Statement a n p)
 
  -- | A loop over some ints
  | ForeachInts  !ForeachType !(Name n) !(Exp a n p) !(Exp a n p) !(Statement a n p)
@@ -170,8 +170,8 @@ transformUDStmt fun env statements
            -> If x <$> go e' ss <*> go e' es
           Let n x ss
            -> Let n x <$> go e' ss
-          While t n end ss
-           -> While t n end <$> go e' ss
+          While t n vt end ss
+           -> While t n vt end <$> go e' ss
           ForeachInts t n from to ss
            -> ForeachInts t n from to <$> go e' ss
           ForeachFacts binds ty lo ss
@@ -219,7 +219,7 @@ foldStmt down up rjoin env res statements
                     up e' r' s
           Let _ _ ss
            -> sub1 ss
-          While _ _ _ ss
+          While _ _ _ _ ss
            -> sub1 ss
           ForeachInts _ _ _ _ ss
            -> sub1 ss
@@ -254,8 +254,8 @@ instance TransformX Statement where
      Let n x ss
       -> Let <$> names n <*> exps x <*> go ss
 
-     While t n end ss
-      -> While t <$> names n <*> exps end <*> go ss
+     While t n vt end ss
+      -> While t <$> names n <*> pure vt <*> exps end <*> go ss
      ForeachInts t n from to ss
       -> ForeachInts t <$> names n <*> exps from <*> exps to <*> go ss
 
@@ -319,7 +319,7 @@ instance (Pretty n, Pretty p) => Pretty (Statement a n p) where
                                      <+> brackets (pretty vt) <> semiline
       <> nosubscope stmts
 
-     While t n end stmts
+     While t n _ end stmts
       -> "while (" <> pretty n <+> pretty t <+> pretty end <> ")"
       <> subscope stmts
 

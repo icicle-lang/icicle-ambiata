@@ -53,8 +53,8 @@ renameProgram f p
         -> If (renameExp f x) (renameStmt s1) (renameStmt s2)
       Let n x s
         -> Let (f n) (renameExp f x) (renameStmt s)
-      While t n x s
-        -> While t (f n) (renameExp f x) (renameStmt s)
+      While t n nt x s
+        -> While t (f n) nt (renameExp f x) (renameStmt s)
       ForeachInts t n x1 x2 s
         -> ForeachInts t (f n) (renameExp f x1) (renameExp f x2) (renameStmt s)
       ForeachFacts bs vt ft s

@@ -60,7 +60,7 @@ factVarsOfStatement loopType stmt
      SaveResumable _ _     -> Nothing
      Output _ _ _          -> Nothing
      KeepFactInHistory _   -> Nothing
-     While       _ _ _ ss  -> factVarsOfStatement loopType ss
+     While     _ _ _ _ ss  -> factVarsOfStatement loopType ss
      ForeachInts _ _ _ _ ss-> factVarsOfStatement loopType ss
 
      ForeachFacts binds vt lt ss
@@ -85,7 +85,7 @@ resumablesOfStatement stmt
      If _ tt ee              -> resumablesOfStatement tt `Map.union`
                                 resumablesOfStatement ee
      ForeachInts  _ _ _ _ ss -> resumablesOfStatement ss
-     While          _ _ _ ss -> resumablesOfStatement ss
+     While        _ _ _ _ ss -> resumablesOfStatement ss
      ForeachFacts _ _ _ ss   -> resumablesOfStatement ss
      InitAccumulator  _ ss   -> resumablesOfStatement ss
      Read _ _ _ ss           -> resumablesOfStatement ss
@@ -111,7 +111,7 @@ accumsOfStatement stmt
      Let _ _ ss              -> accumsOfStatement ss
      If _ tt ee              -> accumsOfStatement tt `Map.union`
                                 accumsOfStatement ee
-     While          _ _ _ ss -> accumsOfStatement ss
+     While        _ _ _ _ ss -> accumsOfStatement ss
      ForeachInts  _ _ _ _ ss -> accumsOfStatement ss
      ForeachFacts _ _ _ ss   -> accumsOfStatement ss
      Read _ _ _ ss           -> accumsOfStatement ss
@@ -139,10 +139,7 @@ readsOfStatement stmt
      Let _ _ ss              -> readsOfStatement ss
      If _ tt ee              -> readsOfStatement tt `Map.union`
                                 readsOfStatement ee
-     -- This technically counts as a read accumulator, so perhaps
-     -- we need to insert the accumulator name here. We need to make
-     -- While carry around the ValType though.
-     While          _ _ _ ss -> readsOfStatement ss
+     While        _ n t _ ss -> Map.singleton n t `Map.union` readsOfStatement ss
      ForeachInts  _ _ _ _ ss -> readsOfStatement ss
      ForeachFacts _ _ _ ss   -> readsOfStatement ss
      InitAccumulator _ ss    -> readsOfStatement ss
@@ -170,7 +167,7 @@ outputsOfStatement stmt
      Let _ _ ss              -> outputsOfStatement ss
      If _ tt ee              -> outputsOfStatement tt `Map.union`
                                 outputsOfStatement ee
-     While          _ _ _ ss -> outputsOfStatement ss
+     While        _ _ _ _ ss -> outputsOfStatement ss
      ForeachInts  _ _ _ _ ss -> outputsOfStatement ss
      ForeachFacts _ _ _ ss   -> outputsOfStatement ss
      InitAccumulator _ ss    -> outputsOfStatement ss
@@ -211,7 +208,8 @@ typesOfStatement stmt
      If x tt ee            -> typesOfExp       x  `Set.union`
                               typesOfStatement tt `Set.union`
                               typesOfStatement ee
-     While       _  _ t s  -> typesOfExp       t `Set.union`
+     While     _ _ nt t s  -> Set.singleton   nt `Set.union`
+                              typesOfExp       t `Set.union`
                               typesOfStatement s
      ForeachInts _  _ f t s-> typesOfExp       f `Set.union`
                               typesOfExp       t `Set.union`

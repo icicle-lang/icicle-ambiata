@@ -93,7 +93,7 @@ baseValue v
 -- | Evaluate an entire program
 -- with given primitive evaluator and values
 evalProgram
-        :: (Hashable n, Eq n)
+        :: (Hashable n, Eq n, Show n, Show p, Show a)
         => XV.EvalPrim a n p
         -> Time
         -> [AsAt (BubbleGumFact, BaseValue)]
@@ -115,7 +115,7 @@ evalProgram evalPrim now values p
 
 -- | Evaluate a single statement for a single value
 evalStmt
-        :: (Hashable n, Eq n)
+        :: (Hashable n, Eq n, Show n, Show p, Show a)
         => XV.EvalPrim a n p
         -> Time
         -> Heap a n p
@@ -142,7 +142,7 @@ evalStmt evalPrim now xh values bubblegum ah stmt
      -> do  v <- eval x
             go (Map.insert n v xh) ah stmts
 
-    While t acc to stmts
+    While t acc _ to stmts
      -> do  tov <- eval to >>= baseValue
             let check WhileEq = (==)
                 check WhileNe = (/=)

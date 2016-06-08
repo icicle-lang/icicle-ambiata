@@ -9,6 +9,7 @@ module Icicle.Avalanche.Statement.Flatten.Exp (
     flatX, flatXS
   ) where
 
+import              Icicle.Avalanche.Statement.Flatten.Algorithms
 import              Icicle.Avalanche.Statement.Flatten.Base
 import              Icicle.Avalanche.Statement.Flatten.Type
 
@@ -34,7 +35,7 @@ import              Data.Hashable                  (Hashable)
 import              Data.String                    (IsString)
 
 
-flatXS  :: (Pretty n, Hashable n, Eq n, IsString n)
+flatXS  :: (Pretty n, Hashable n, Eq n, IsString n, Show n, Show a)
         => a
         -> [Exp a n Core.Prim]
         -> [Exp a n Flat.Prim]
@@ -50,7 +51,7 @@ flatXS a_fresh (x:xs) ys stm
 
 -- | Flatten an expression, wrapping the statement with any lets or loops or other bindings
 -- The statement function takes the new expression.
-flatX   :: forall a n . (Pretty n, Hashable n, Eq n, IsString n)
+flatX   :: forall a n . (Pretty n, Hashable n, Eq n, IsString n, Show n, Show a)
         => a
         -> Exp a n Core.Prim
         -> (Exp a n Flat.Prim -> FlatM a n)
@@ -77,13 +78,16 @@ flatX a_fresh xx stm
   xValue = XValue a_fresh
   xApp   = XApp   a_fresh
 
-  xMin    = xPrim . Flat.PrimMinimal
-  xMath   = xMin  . Min.PrimBuiltinFun . Min.PrimBuiltinMath
-  xArith  = xMin  . flip Min.PrimArithBinary Min.ArithIntT
-  xRel  t = xMin  . flip Min.PrimRelation t
+  -- Convert the expression. We need to handle variables here, since they might
+  -- refer to already flattened expressions.
+  convX
+   = case xx of
+      XVar a n
+        -> stm $ XVar a n
+      _ -> convX'
 
   -- Convert the simplified expression.
-  convX
+  convX'
    = case x' of
       -- If it doesn't do anything interesting, we can just call the statement
       -- with the original expression
@@ -140,224 +144,7 @@ flatX a_fresh xx stm
       -- Implement heap sort in Avalanche so that it can be melted.
       Core.PrimMinimal (Min.PrimBuiltinFun (Min.PrimBuiltinArray (Min.PrimBuiltinSort t)))
        | [array] <- xs
-       -> flatX' array
-       $ \array'
-       -> do let xIndex arr i
-                  = xPrim (Flat.PrimUnsafe (Flat.PrimUnsafeArrayIndex t))
-                     `xApp` arr
-                     `xApp` i
-                 xLen arr
-                  = xPrim (Flat.PrimProject (Flat.PrimProjectArrayLength t))
-                     `xApp` arr
-                 xNil      = xValue IntT (VInt 0)
-                 xOne      = xValue IntT (VInt 1)
-                 xTwo      = xValue IntT (VInt 2)
-                 xMinusOne = xValue IntT (VInt (-1))
-                 xTrue     = xValue BoolT (VBool True)
-                 xFalse    = xValue BoolT (VBool False)
-                 xMinus x y
-                  = xArith Min.PrimArithMinus `xApp` x `xApp` y
-                 xHalf i
-                  = xMath Min.PrimBuiltinFloor
-                     `xApp` (xMath Min.PrimBuiltinDiv
-                              `xApp` (xMath Min.PrimBuiltinToDoubleFromInt
-                                       `xApp` i)
-                              `xApp` xValue DoubleT (VDouble 2.0))
-                 xTimesTwo i
-                  = xArith Min.PrimArithMul
-                     `xApp` i
-                     `xApp` xTwo
-                 -- left i = 2 * i + 1
-                 xLeft i
-                  = xArith Min.PrimArithPlus
-                     `xApp` xTimesTwo i
-                     `xApp` xOne
-                 -- right i = 2 * i + 2
-                 xRight i
-                  = xArith Min.PrimArithPlus
-                     `xApp` xTimesTwo i
-                     `xApp` xTwo
-                 -- i < heap_size
-                 xHeapSize i heapSize
-                  = xRel IntT Min.PrimRelationLt
-                     `xApp` i
-                     `xApp` heapSize
-                 -- left < heap_size && arr[left] > arr[i]
-                 xHeapLeft arr heapSize l i
-                  = [ xHeapSize l heapSize
-                    , xRel t Min.PrimRelationGt
-                       `xApp` xIndex arr l
-                       `xApp` xIndex arr i
-                    ]
-                 -- right < heap_size && arr[right] > arr[largest]
-                 xHeapRight arr heapSize r largest
-                  = [ xHeapSize r heapSize
-                    , xRel t Min.PrimRelationGt
-                        `xApp` xIndex arr r
-                        `xApp` xIndex arr largest
-                    ]
-                 -- largest  /= i
-                 xHeap i largest
-                  = xRel IntT Min.PrimRelationNe
-                     `xApp` largest
-                     `xApp` i
-                 -- swap (A[i], A[largest])
-                 xSwap arr i largest 
-                  = xPrim (Flat.PrimArray (Flat.PrimArraySwap t))
-                     `xApp` arr
-                     `xApp` i
-                     `xApp` largest 
-
-                 -- max_heap(array, heap_size, i):
-                 --   left  = 2 * i + 1
-                 --   right = 2 * i + 2
-                 --   if left < heap_size && array[left] > array[i]
-                 --     largest  = left
-                 --   else
-                 --     largest  = i
-                 --   if right < heap_size && array[right] > array[largest ]
-                 --     largest  = right
-                 --   if largest  /= i
-                 --     swap (array[i], array[largest ])
-                 --     max_heap (array, heap_size, largest )
-                 maxHeap n_acc_arr n_acc_heapSize n_acc_index
-                  = do n_acc_left      <- freshPrefix "max_heap_acc_left"
-                       n_acc_right     <- freshPrefix "max_heap_acc_right"
-                       n_acc_largest   <- freshPrefix "max_heap_acc_largest "
-                       n_acc_end       <- freshPrefix "max_heap_acc_end"
-                       n_loc_left      <- freshPrefix "max_heap_left"
-                       n_loc_right     <- freshPrefix "max_heap_right"
-                       n_loc_largest   <- freshPrefix "max_heap_largest "
-                       n_loc_arr       <- freshPrefix "max_heap_array"
-                       n_loc_heapSize  <- freshPrefix "max_heap_size"
-                       n_loc_index     <- freshPrefix "max_heap_index"
-                       let v_left      = xVar n_loc_left
-                           v_right     = xVar n_loc_right
-                           v_largest   = xVar n_loc_largest
-                           v_arr       = xVar n_loc_arr
-                           v_heapSize  = xVar n_loc_heapSize
-                           v_index     = xVar n_loc_index
-                       return
-                         $ initInt  n_acc_left     xMinusOne
-                         $ initInt  n_acc_right    xMinusOne
-                         $ initInt  n_acc_largest  xMinusOne
-                         $ initBool n_acc_end      xFalse
-                         $ While WhileEq n_acc_end xFalse
-                         $ readInt   n_loc_index    n_acc_index
-                         $ readArr t n_loc_arr      n_acc_arr
-                         $ readInt   n_loc_heapSize n_acc_heapSize
-                         $ Block
-                           -- left  = 2 * i + 1
-                           [ Write n_acc_left  (xLeft  v_index)
-                           -- right = 2 * i + 2
-                           , Write n_acc_right (xRight v_index)
-                           , readInt n_loc_left     n_acc_left
-                           $ readInt n_loc_right    n_acc_right
-                           $ Block
-                             -- if left < heap_size && array[left] > array[i]
-                             [ nestedIfs
-                                 (xHeapLeft  v_arr v_heapSize v_left  v_index)
-                                 -- then largest  = left
-                                 (Write n_acc_largest  v_left)
-                                 -- else largest  = i
-                                 (Write n_acc_largest  v_index)
-                             -- if right < heap_size && array[right] > array[largest ]
-                             , readInt n_loc_largest  n_acc_largest
-                             $ nestedIfs
-                                 (xHeapRight v_arr v_heapSize v_right v_largest )
-                                 -- then largest  = right
-                                 (Write n_acc_largest  v_right)
-                                 mempty
-                             -- if largest  /= i
-                             , readInt n_loc_largest   n_acc_largest 
-                             $ If (xHeap v_largest  v_index)
-                                  -- then swap (array[i], array[largest ])
-                                  (Block
-                                    [ Write n_acc_arr (xSwap v_arr v_index v_largest )
-                                    , Write n_acc_index v_largest 
-                                    ])
-                                  (Write n_acc_end xTrue)
-                             ]
-                           ]
-
-                 -- build_max_heap (array):
-                 --   heap_size = length (array)
-                 --   for (i = floor (length (array) / 2); i >= 0; i--)
-                 --     array = max_heap (array, heap_size, i)
-                 buildMaxHeap n_acc_arr n_acc_heapSize
-                  = do n_acc_index    <- freshPrefix "build_max_heap_acc_index"
-                       n_loc_index    <- freshPrefix "build_max_heap_index"
-                       n_loc_arr      <- freshPrefix "build_max_heap_array"
-                       let v_index     = xVar n_loc_index
-                           v_arr       = xVar n_loc_arr
-                       body           <- maxHeap n_acc_arr n_acc_heapSize n_acc_index
-                       return
-                         $ readArr t n_loc_arr n_acc_arr
-                         $ Block
-                           -- heap_size = length (array)
-                           [ Write   n_acc_heapSize (xLen v_arr)
-                           , initInt n_acc_index    xMinusOne
-                           -- for (i = floor (length (array) / 2); i > -1; i--)
-                           $ ForeachInts ForeachStepDown n_loc_index (xHalf (xLen v_arr)) xMinusOne
-                           $ Block
-                             [ Write n_acc_index v_index
-                             -- array = max_heap (array, heap_size, i)
-                             , body
-                             ]
-                           ]
-
-                 -- heap_sort (array):
-                 --   array = build_max_heap (array)
-                 --   for (i = length array - 1; i >= 2; i--)
-                 --     array = swap (array[0], array[i])
-                 --     heap_size = heap_size - 1
-                 --     array = max_heap (array, heap_size, 0)
-                 heapSort n_acc_arr n_acc_heapSize
-                   = do n_acc_index    <- freshPrefix "heap_sort_acc_index"
-                        n_loc_index    <- freshPrefix "heap_sort_index"
-                        n_loc_heapSize <- freshPrefix "heap_sort_heapSize"
-                        n_loc_arr      <- freshPrefix "heap_sort_arr"
-                        let v_index     = xVar n_loc_index
-                            v_heapSize  = xVar n_loc_heapSize
-                            v_arr       = xVar n_loc_arr
-                        body1 <- buildMaxHeap n_acc_arr n_acc_heapSize
-                        body3 <- maxHeap      n_acc_arr n_acc_heapSize n_acc_index
-                        let body2
-                             = readArr t n_loc_arr n_acc_arr
-                             $ Block
-                               -- for (i = length array - 1; i > 0; i --)
-                               [ ForeachInts ForeachStepDown n_loc_index (xMinus (xLen v_arr) xOne) xNil
-                                 $ Block
-                                   [ -- array = swap (array[0], array[i])
-                                     Write   n_acc_arr (xSwap v_arr xNil v_index)
-                                   , readInt n_loc_heapSize n_acc_heapSize
-                                   $ Block
-                                     -- heap_size = heap_size - 1
-                                     [ Write n_acc_heapSize (xMinus v_heapSize xOne)
-                                     , Write n_acc_index    xNil
-                                     -- array = max_heap (array, heap_size, 0)
-                                     , body3
-                                     ]
-                                   ]
-                               ]
-                        return
-                          $ initInt   n_acc_index xMinusOne
-                          $ readArr t n_loc_arr n_acc_arr
-                          $ initInt   n_acc_heapSize (xLen v_arr)
-                          $ Block [ body1, body2 ]
-
-             n_loc_arr      <- freshPrefix "sort_array"
-             n_acc_arr      <- freshPrefix "sort_acc_array"
-             n_acc_heapSize <- freshPrefix "sort_acc_heap_size"
-             sort   <- heapSort n_acc_arr n_acc_heapSize
-             sorted <- stm (xVar n_loc_arr)
-             return
-               $ initArr t n_acc_arr array'
-               $ Block
-               [ sort
-               , readArr t n_loc_arr n_acc_arr sorted
-               ]
-
+       -> avalancheHeapSortArray a_fresh stm flatX t array
 
       -- Arithmetic and simple stuff are easy, just move it over
       Core.PrimMinimal pm
@@ -367,73 +154,14 @@ flatX a_fresh xx stm
       Core.PrimFold pf ta
        -> flatFold pf (flatT ta) xs
 
+
       -- Map: insert value into map, or if key already exists,
       -- apply update function to existing value
       Core.PrimMap (Core.PrimMapInsertOrUpdate tkOld tvOld)
        | [upd, ins, key, map]   <- xs
        , tk <- flatT tkOld
        , tv <- flatT tvOld
-       -> flatX' key
-       $ \key'
-       -> flatX' map
-       $ \map'
-       -> do n'done      <- fresh
-             n'map'k     <- fresh
-             n'map'v     <- fresh
-             n'map'sz    <- fresh
-             let acc'done = Accumulator n'done  BoolT $ xValue BoolT $ VBool False
-                 acc'map'k= Accumulator n'map'k (ArrayT tk) (mapKeys tk tv map')
-                 acc'map'v= Accumulator n'map'v (ArrayT tv) (mapVals tk tv map')
-
-                 x'done   = xVar n'done
-                 x'map'k  = xVar n'map'k
-                 x'map'v  = xVar n'map'v
-
-                 read'k   = Read n'map'k n'map'k (ArrayT tk)
-                 read'v   = Read n'map'v n'map'v (ArrayT tv)
-
-                 sz       = xVar n'map'sz
-                 get'k i  = arrIx  tk x'map'k i
-                 get'v i  = arrIx  tv x'map'v i
-                 put'v i x= arrUpd tv x'map'v i x
-
-                 upd' i   = slet (get'v i)
-                          $ \v  -> flatX' (upd `xApp` v)
-                          $ \u' -> return (Write n'map'v (put'v i u') <> Write n'done (xValue BoolT $ VBool True))
-
-             loop1       <- forI sz  $ \i
-                         ->  (read'k
-                         <$> (read'v
-                         <$> (If (relEq tk (get'k i) key')
-                               <$> upd' i
-                               <*> return mempty)))
-
-             loop2       <- pushArray tk n'map'k key'
-             loop3       <- flatX' ins
-                          $ pushArray tv n'map'v
-
-             -- XX can't read with same name twice I think
-             -- n'map'rr    <- fresh
-             n'map'      <- fresh
-             stm'        <- stm $ xVar n'map'
-
-             let if_ins   = Read n'done n'done BoolT
-                          $ If x'done mempty (loop2 <> loop3)
-
-                 stm''    = read'k
-                          $ read'v
-                          $ Let n'map' (mapPack tk tv x'map'k x'map'v)
-                          $ stm'
-
-                 ss       = InitAccumulator acc'done
-                          $ InitAccumulator acc'map'k
-                          $ InitAccumulator acc'map'v
-                          $ read'k
-                          $ Let n'map'sz (arrLen tk x'map'k)
-                          ( loop1 <> if_ins <> stm'' )
-
-             return ss
-
+       -> avalancheMapInsertUpdate a_fresh stm flatX tk tv upd ins key map
        -- Map with wrong arguments
        | otherwise
        -> lift $ Left $ FlattenErrorPrimBadArgs p xs
@@ -443,58 +171,21 @@ flatX a_fresh xx stm
        | [key, map]   <- xs
        , tk <- flatT tkOld
        , tv <- flatT tvOld
-       -> flatX' key
-       $ \key'
-       -> flatX' map
-       $ \map'
-       -> do n'map'k     <- fresh
-             n'map'v     <- fresh
-             n'map'sz    <- fresh
-             let acc'map'k= Accumulator n'map'k (ArrayT tk) (mapKeys tk tv map')
-                 acc'map'v= Accumulator n'map'v (ArrayT tv) (mapVals tk tv map')
-
-                 x'map'k  = xVar n'map'k
-                 x'map'v  = xVar n'map'v
-
-                 read'k   = Read n'map'k n'map'k (ArrayT tk)
-                 read'v   = Read n'map'v n'map'v (ArrayT tv)
-
-                 sz       = xVar n'map'sz
-                 get'k i  = arrIx  tk x'map'k i
-
-                 del'k i  = arrDel tv x'map'k i
-                 del'v i  = arrDel tv x'map'v i
-
-                 del'  i  = Block
-                           [ Write n'map'k (del'k i)
-                           , Write n'map'v (del'v i)
-                           ]
-
-             loop1       <- forI sz
-                          $ \i
-                         ->  (read'k
-                         <$> (read'v
-                         <$> pure (If (relEq tk (get'k i) key') (del' i) mempty)))
-
-             n'map'      <- fresh
-             stm'        <- stm $ xVar n'map'
-
-             let stm''    = read'k
-                          $ read'v
-                          $ Let n'map' (mapPack tk tv x'map'k x'map'v)
-                          $ stm'
-
-                 ss       = InitAccumulator acc'map'k
-                          $ InitAccumulator acc'map'v
-                          $ read'k
-                          $ Let n'map'sz (arrLen tk x'map'k)
-                          ( loop1 <> stm'' )
-
-             return ss
-
+       -> avalancheMapDelete a_fresh stm flatX tk tv key map
        -- Map with wrong arguments
        | otherwise
        -> lift $ Left $ FlattenErrorPrimBadArgs p xs
+
+      -- Map: lookup by key
+      Core.PrimMap (Core.PrimMapLookup tkOld tvOld)
+       | [map, key]   <- xs
+       , tk <- flatT tkOld
+       , tv <- flatT tvOld
+       -> avalancheMapLookup a_fresh stm flatX tk tv key map
+       -- Map with wrong arguments
+       | otherwise
+       -> lift $ Left $ FlattenErrorPrimBadArgs p xs
+
 
       -- Map: create new empty map, for each element, etc
       Core.PrimMap (Core.PrimMapMapValues tkOld tvOld tvOld')
@@ -520,40 +211,6 @@ flatX a_fresh xx stm
        | otherwise
        -> lift $ Left $ FlattenErrorPrimBadArgs p xs
 
-      -- Map: lookup by key
-      Core.PrimMap (Core.PrimMapLookup tkOld tvOld)
-       | [map, key]   <- xs
-       , tk <- flatT tkOld
-       , tv <- flatT tvOld
-       -> flatX' map
-       $ \map'
-       -> flatX' key
-       $ \key'
-       -> do n'res       <- fresh
-             let acc'res  = Accumulator n'res (OptionT tv) $ xValue (OptionT tv) VNone
-                 read'r   = Read n'res n'res (OptionT tv)
-                 upd' x   = Write n'res (someF tv x)
-
-             loop1       <- slet (mapKeys tk tv map')  $ \map'k
-                         -> slet (mapVals tk tv map')  $ \map'v
-                         -> slet (arrLen  tk    map'k) $ \sz
-                         -> forI sz  $ \i
-                         -> return
-                            (If (relEq tk (arrIx tk map'k i) key')
-                               (upd' $ arrIx tv map'v i)
-                               mempty)
-
-             stm'        <- stm $ xVar n'res
-
-             let ss       = InitAccumulator acc'res
-                          ( loop1 <> read'r stm' )
-
-             return ss
-
-       -- Map with wrong arguments
-       | otherwise
-       -> lift $ Left $ FlattenErrorPrimBadArgs p xs
-
 
       -- Map over array: create new empty array, for each element, etc
       Core.PrimArray (Core.PrimArrayMap taOld tbOld)
@@ -567,11 +224,11 @@ flatX a_fresh xx stm
 
                 let arrT = ArrayT tb
 
-                loop <- forI    (arrLen ta arr')                  $ \iter
-                     -> fmap    (Read accN accN arrT)                  $
-                        slet    (arrIx ta arr' iter)              $ \elm
-                     -> flatX'  (upd `xApp` elm)                       $ \elm'
-                     -> slet    (arrUpd tb (xVar accN) iter elm') $ \arr''
+                loop <- forI'   (arrLen ta arr')                  $ \iter
+                     -> fmap    (Read accN accN arrT)             $
+                        slet'   (arrIx ta arr' iter)              $ \elm
+                     -> flatX'  (upd `xApp` elm)                  $ \elm'
+                     -> slet'   (arrUpd tb (xVar accN) iter elm') $ \arr''
                      -> return  (Write accN arr'')
 
                 return $ InitAccumulator
@@ -661,22 +318,6 @@ flatX a_fresh xx stm
    $ \a'
    -> primApps p as (a' : conv)
 
-  -- Create a let binding with a fresh name
-  slet x ss
-   = do n  <- fresh
-        Let n x <$> ss (xVar n)
-
-  -- For loop with fresh name for iterator
-  forI to ss
-   = do n  <- fresh
-        ForeachInts ForeachStepUp n (xValue IntT (VInt 0)) to <$> ss (xVar n)
-
-  -- Update an accumulator
-  update acc t x
-   = do n'x <- fresh
-        return $ Read n'x acc t $ Write acc $ x $ xVar n'x
-
-
   -- Handle primitive folds
   --
   -- Bool is just an if
@@ -703,11 +344,11 @@ flatX a_fresh xx stm
         let telem = flatT telemOld
 
         -- Loop body updates accumulator with k function
-        loop <-  flatX' arr                                       $ \arr'
-             ->  forI   (arrLen telem  arr')                 $ \iter
-             ->  fmap   (Read accN accN valT)                     $
-                 slet   (arrIx  telem arr' iter)             $ \elm
-             ->  flatX' (makeApps' k [xVar accN, elm])            $ \x
+        loop <-  flatX' arr                             $ \arr'
+             ->  forI'   (arrLen telem  arr')           $ \iter
+             ->  fmap    (Read accN accN valT)          $
+                 slet'   (arrIx  telem arr' iter)       $ \elm
+             ->  flatX'  (makeApps' k [xVar accN, elm]) $ \x
              ->  return (Write accN x)
 
         -- Initialise accumulator with value z, execute loop, read from accumulator
@@ -798,24 +439,9 @@ flatX a_fresh xx stm
   projCore = proj Core.PrimMinimal
 
 
-  pushArray t n'acc push
-   = do let t'   = ArrayT t
-            sz arr = arrLen t arr
-            put arr i x = arrUpd t arr i x
-
-        update n'acc t' (\arr -> put arr (sz arr) push)
-
   windowEdge x (Days   d) = xPrim (Flat.PrimMinimal $ Min.PrimTime Min.PrimTimeMinusDays)   `makeApps'` [x, xValue IntT $ VInt d]
   windowEdge x (Weeks  w) = xPrim (Flat.PrimMinimal $ Min.PrimTime Min.PrimTimeMinusDays)   `makeApps'` [x, xValue IntT $ VInt (7*w)]
   windowEdge x (Months m) = xPrim (Flat.PrimMinimal $ Min.PrimTime Min.PrimTimeMinusMonths) `makeApps'` [x, xValue IntT $ VInt m]
 
-  initInt acc init
-    = InitAccumulator (Accumulator acc IntT init)
-  readInt local acc
-    = Read local acc IntT
-  initArr t acc init
-    = InitAccumulator (Accumulator acc (ArrayT t) init)
-  readArr t local acc
-    = Read local acc (ArrayT t)
-  initBool acc init
-    = InitAccumulator (Accumulator acc BoolT init)
+  slet'      = slet a_fresh
+  forI'      = forI a_fresh

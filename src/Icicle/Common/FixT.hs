@@ -5,8 +5,10 @@ module Icicle.Common.FixT (
       FixT   (..)
     , Progress (..)
     , fixpoint
+    , fixpointEither
     , once
     , fixOfMaybe
+    , fixOfEither
     , progress
     ) where
 
@@ -36,6 +38,26 @@ once f
  = do (r,_) <- runFixT f
       return r
 {-# INLINE once #-}
+
+fixpointEither :: Monad m => (a -> FixT m (Either e a)) -> a -> m (Either e a)
+fixpointEither f a
+ = do (a',prog) <- runFixT $! f a
+      case a' of
+        Left _
+          -> return a'
+        Right a''
+          -> case prog of
+               RunAgain   -> fixpointEither f a''
+               NoProgress -> return a'
+{-# INLINE fixpointEither #-}
+
+fixOfEither :: Monad m => (a -> m (Either e a)) -> a -> FixT m a
+fixOfEither f a
+ = do a' <- lift $ f $! a
+      case a' of
+       Right a''-> progress a''
+       Left _   -> return a
+{-# INLINE fixOfEither #-}
 
 fixOfMaybe :: Monad m => (a -> m (Maybe a)) -> a -> FixT m a
 fixOfMaybe f a

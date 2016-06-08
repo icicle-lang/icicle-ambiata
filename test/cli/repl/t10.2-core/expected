@@ -6,7 +6,7 @@ ok, loaded test/cli/repl/data.psv, 13 rows
 ok, core-type is now on
 ok, core-simp is now on
 > > -- A rather complicated feature to convert to Avalanche
-> - Core:
+> - Core (simplified):
 Program (conv$0 : (Sum Error Int), conv$1 : FactIdentifier, conv$2 : Time, conv$3 : SNAPSHOT_TIME)
 Precomputations:
 
@@ -79,7 +79,7 @@ Returning:
 ,marge, (1,[0,10,20])]
 
 > > -- Something involves the abstract buffer type
-> - Core:
+> - Core (simplified):
 Program (conv$0 : (Sum Error Int), conv$1 : FactIdentifier, conv$2 : Time, conv$3 : SNAPSHOT_TIME)
 Precomputations:
 

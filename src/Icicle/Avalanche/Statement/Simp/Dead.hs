@@ -59,10 +59,13 @@ deadS us statements
         in  if   usedX n sU
             then (mconcat [xU, sU], sK, Let n x sS)
             else (sU, sK, sS)
-    While t n end ss
-     -> let (sU, sK, sS) = deadLoop us ss
+    While t n nt end ss
+     -- While is a bit special. We must ensure writes to the while condition are not removed,
+     -- even if there appears to be no use in the body.
+     -> let useN         = usageA n
+            (sU, sK, sS) = deadLoop (us <> useN) ss
             eU           = usageX end
-        in (mconcat [sU, eU, usageA n], sK, While t n end sS)
+        in (mconcat [sU, eU, usageA n], Map.delete n sK, While t n nt end sS)
     ForeachInts t n from to ss
      -> let (sU, sK, sS) = deadLoop us ss
             fU           = usageX from
@@ -170,6 +173,9 @@ killAccumulators accs statements
    | SaveResumable acc _ <- s
    , Map.member acc accs
    = return ((), mempty)
+   -- | While _ acc _ _ _ <- s
+   -- , Map.member acc accs
+   -- = error "cannot kill while loop condition"
 
    | otherwise
    = return ((), s)

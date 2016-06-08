@@ -126,9 +126,9 @@ constructor a_fresh statements
            -> do from' <- goX env' from
                  to'   <- goX env' to
                  ret $ ForeachInts t n from' to' ss
-          While t n end ss
+          While t n nt end ss
            -> do end'  <- goX env' end
-                 ret $ While t n end' ss
+                 ret $ While t n nt end' ss
           InitAccumulator (Accumulator n vt x) ss
            -> goWith x $ \x' -> InitAccumulator (Accumulator n vt x') ss
           Write n x
@@ -193,7 +193,7 @@ constructor a_fresh statements
 
    | (PrimProject (PrimProjectSumIsRight ta tb), [n]) <- prima
    , ErrorT <- ta
-   = let err   = primRepack env (SumT ta tb) [] BoolT n
+   = let err   = primRepack env (SumT ta tb) [] ErrorT n
          valOk = xValue ErrorT $ VError ExceptNotAnError
          eq    = xPrim $ PrimMinimal $ Min.PrimRelation Min.PrimRelationEq ErrorT
      in  Just (eq `xApp` err `xApp` valOk)
@@ -370,10 +370,12 @@ constructor a_fresh statements
 
 
   -- | Unpack values
+  unpack :: ExpEnv (Ann a n) n Prim -> [Exp (Ann a n) n Prim] -> [Exp (Ann a n) n Prim]
   unpack env xs
    = concatMap (unpack1 env) xs
 
   -- | Unpack a value
+  unpack1 :: ExpEnv (Ann a n) n Prim -> Exp (Ann a n) n Prim -> [Exp (Ann a n) n Prim]
   unpack1 env x
    | XValue _ t v <- x
    , Just ts      <- tryMeltType t

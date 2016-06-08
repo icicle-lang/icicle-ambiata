@@ -21,7 +21,7 @@ import qualified    Data.List as List
 import qualified    Data.Map  as Map
 import              Data.Hashable (Hashable)
 
-evalPrim :: (Hashable n, Eq n) => EvalPrim a n Prim
+evalPrim :: (Hashable n, Eq n, Show n, Show a) => EvalPrim a n Prim
 evalPrim p vs
  = case p of
      PrimMinimal m
@@ -145,14 +145,18 @@ evalPrim p vs
        $ VBase
        $ VArray
        $ let low   = min ix1 ix2
-             high  = min ix2 ix2
+             high  = max ix1 ix2
              xl    = varr List.!! low
              xh    = varr List.!! high
-             varr1 = List.take (low - 1) varr
-             varr3 = List.drop high      varr
-             varr2 = List.drop low
-                   $ List.take (high - 1) varr
-         in varr1 <> [xl] <> varr2 <> [xh] <> varr3
+             -- varr1 xl varr2 xh varr3
+             -- swap xl xh
+             -- varr1 xh varr2 xl varr3
+             -- e.g swap 1 3: 0 low 2 high ..
+             varr1 = List.take  low                        varr
+             varr2 = List.drop (low  + 1) $ List.take high varr
+             varr3 = List.drop (high + 1)                  varr
+             ret   = varr1 <> [xh] <> varr2 <> [xl] <> varr3
+         in  ret
       | otherwise
       -> primError
 
