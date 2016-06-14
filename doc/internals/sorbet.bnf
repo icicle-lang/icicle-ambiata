@@ -159,7 +159,6 @@
                     |  fold1
                     |  window
                     |  group
-                    |  fold
                     |  distinct
                     |  filter
                     |  latest
@@ -294,7 +293,7 @@
 <alt-else-opt>   ::= <alt-else>
                   |  ε
 
-<guards>         ::= <guards> , <guards>
+<guards>         ::= <guards> , <guard>
                   |  <guard>
 
 <guard>          ::= <pat> <- <exp>
