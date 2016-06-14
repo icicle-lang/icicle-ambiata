@@ -8,12 +8,14 @@ module Icicle.Sea.FromAvalanche.State (
     SeaProgramState(..)
   , nameOfProgram
   , nameOfProgram'
+  , nameOfCount
   , stateOfProgram
   , seaOfState
   , seaOfStateInfo
   , nameOfStateType
   , nameOfStateSize
   , nameOfStateSize'
+  , nameOfLastTime
   , stateInputTypeName
   , stateInputName
   , stateInput
@@ -90,11 +92,17 @@ stateOfProgram name attrib program
 
 ------------------------------------------------------------------------
 
+nameOfLastTime :: SeaProgramState -> Text
+nameOfLastTime state = "last_time_" <> T.pack (show (stateName state))
+
 nameOfProgram :: SeaProgramState -> Text
 nameOfProgram state = nameOfProgram' (stateName state)
 
 nameOfProgram' :: Int -> Text
 nameOfProgram' name = "iprogram_" <> T.pack (show name)
+
+nameOfCount :: SeaProgramState -> Text
+nameOfCount state = "icount_" <> T.pack (show (stateName state))
 
 nameOfStateType :: SeaProgramState -> Text
 nameOfStateType state = nameOfProgram state <> "_t"

@@ -67,7 +67,9 @@ static ierror_msg_t INLINE psv_write_outputs
 
 #if ICICLE_PSV_INPUT_SPARSE
 static ierror_loc_t INLINE psv_read_fact
-  ( const char   *attrib_ptr
+  ( const char   *entity_ptr
+  , const size_t  entity_size
+  , const char   *attrib_ptr
   , const size_t  attrib_size
   , const char   *value_ptr
   , const size_t  value_size
@@ -76,7 +78,9 @@ static ierror_loc_t INLINE psv_read_fact
   , ifleet_t     *fleet );
 #else
 static ierror_loc_t INLINE psv_read_fact
-  ( const char   *value_ptr
+  ( const char   *entity_ptr
+  , const size_t  entity_size
+  , const char   *value_ptr
   , const size_t  value_size
   , const char   *time_ptr
   , const size_t  time_size
@@ -88,9 +92,9 @@ Constants
 */
 
 static const size_t psv_max_row_count      = 128;
+static const size_t psv_max_ent_attr_count = 1;
 static const size_t psv_input_buffer_size  = 256*1024;
 static const size_t psv_output_buffer_size = 256*1024;
-
 
 /*
 Input
@@ -228,11 +232,11 @@ static ierror_loc_t psv_read_buffer (psv_state_t *s)
         }
 
 #if ICICLE_PSV_INPUT_SPARSE
-        error = psv_read_fact(attrib_ptr, attrib_size, value_ptr, value_size, time_ptr, time_size, s->fleet);
+        error = psv_read_fact (entity_ptr, entity_size, attrib_ptr, attrib_size, value_ptr, value_size, time_ptr, time_size, s->fleet);
         if (error)
             goto on_error;
 #else
-        error = psv_read_fact(value_ptr, value_size, time_ptr, time_size, s->fleet);
+        error = psv_read_fact (entity_ptr, entity_size, value_ptr, value_size, time_ptr, time_size, s->fleet);
         if (error)
           goto on_error;
 #endif

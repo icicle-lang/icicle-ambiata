@@ -47,6 +47,7 @@ data PsvInputFormat
 
 --------------------------------------------------------------------------------
 
+
 -- * Psv input "interface"
 
 seaInputPsv :: Base.SeaInput
@@ -183,7 +184,9 @@ seaOfReadAnyFactPsv opts config states = do
               , ""
               , "#line 1 \"read any sparse fact\""
               , "static ierror_loc_t psv_read_fact"
-              , "  ( const char   *attrib_ptr"
+              , "  ( const char   *entity_ptr"
+              , "  , const size_t  entity_size"
+              , "  , const char   *attrib_ptr"
               , "  , const size_t  attrib_size"
               , "  , const char   *value_ptr"
               , "  , const size_t  value_size"
@@ -205,7 +208,9 @@ seaOfReadAnyFactPsv opts config states = do
               , ""
               , "#line 1 \"read any dense fact\""
               , "static ierror_loc_t psv_read_fact"
-              , "  ( const char   *value_ptr"
+              , "  ( const char   *entity_ptr"
+              , "  , const size_t  entity_size"
+              , "  , const char   *value_ptr"
               , "  , const size_t  value_size"
               , "  , const char   *time_ptr"
               , "  , const size_t  time_size"
@@ -223,20 +228,31 @@ seaOfReadAnyFactPsv opts config states = do
 seaOfReadNamedFactDense :: Base.InputOpts -> SeaProgramState -> Doc
 seaOfReadNamedFactDense opts state
  = let attrib = getAttribute (stateAttribute state)
-       err    = vsep
-                [ "        return ierror_loc_format"
-                , "           ( time_ptr + time_size"
-                , "           , time_ptr"
-                , "           , \"%s: time is out of order: %.*s must be later than %.*s\""
-                , "           , \"" <> pretty attrib <> "\""
-                , "           , curr_time_size"
-                , "           , curr_time_ptr"
-                , "           , last_time_size"
-                , "           , last_time_ptr );"
-                ]
+       errs   = Base.SeaInputError
+                ( vsep
+                [ "return ierror_loc_format"
+                , "   ( time_ptr + time_size"
+                , "   , time_ptr"
+                , "   , \"%s: time is out of order: %.*s must be later than %.*s\""
+                , "   , \"" <> pretty attrib <> "\""
+                , "   , curr_time_size"
+                , "   , curr_time_ptr"
+                , "   , last_time_size"
+                , "   , last_time_ptr );"
+                ])
+                ( vsep
+                [ "return ierror_loc_format"
+                , "   ( entity_ptr + entity_size"
+                , "   , entity_ptr"
+                , "   , \"%s: greedy entity exceeds limit: %.*s exceeds %lld rows\""
+                , "   , \"" <> pretty attrib <> "\""
+                , "   , entity_size"
+                , "   , entity_ptr"
+                , "   , psv_max_ent_attr_count );"
+                ])
    in vsep
       [ "/* " <> pretty attrib <> " */"
-      , Base.seaOfReadNamedFact seaInputPsv (Base.inputAllowDupTime opts) state err
+      , Base.seaOfReadNamedFact seaInputPsv errs (Base.inputAllowDupTime opts) state
       ]
 
 seaOfReadFactDense :: PsvInputDenseDict -> SeaProgramState -> Set Text -> Either SeaError Doc
@@ -358,22 +374,34 @@ mappingOfDenseFields fields varsoup
 seaOfReadNamedFactSparse :: Base.InputOpts -> SeaProgramState -> Doc
 seaOfReadNamedFactSparse opts state
  = let attrib = getAttribute (stateAttribute state)
-       err    = vsep
-                [ "        return ierror_loc_format"
-                , "           ( time_ptr + time_size"
-                , "           , time_ptr"
-                , "           , \"%.*s: time is out of order: %.*s must be later than %.*s\""
-                , "           , attrib_size"
-                , "           , attrib_ptr"
-                , "           , curr_time_size"
-                , "           , curr_time_ptr"
-                , "           , last_time_size"
-                , "           , last_time_ptr );"
-                ]
+       errs   = Base.SeaInputError
+                ( vsep
+                [ "return ierror_loc_format"
+                , "   ( time_ptr + time_size"
+                , "   , time_ptr"
+                , "   , \"%.*s: time is out of order: %.*s must be later than %.*s\""
+                , "   , attrib_size"
+                , "   , attrib_ptr"
+                , "   , curr_time_size"
+                , "   , curr_time_ptr"
+                , "   , last_time_size"
+                , "   , last_time_ptr );"
+                ])
+                ( vsep
+                [ "return ierror_loc_format"
+                , "   ( entity_ptr + entity_size"
+                , "   , entity_ptr"
+                , "   , \"%.*s: greedy entity exceeds limit: %.*s exceeds %lld rows\""
+                , "   , attrib_size"
+                , "   , attrib_ptr"
+                , "   , entity_size"
+                , "   , entity_ptr"
+                , "   , psv_max_ent_attr_count );"
+                ])
    in vsep
       [ "/* " <> pretty attrib <> " */"
       , "if (" <> Base.seaOfStringEq attrib "attrib_ptr" (Just "attrib_size") <> ")"
-      , Base.seaOfReadNamedFact seaInputPsv (Base.inputAllowDupTime opts) state err
+      , Base.seaOfReadNamedFact seaInputPsv errs (Base.inputAllowDupTime opts) state
       ]
 
 seaOfReadFactSparse
