@@ -11,12 +11,17 @@ typedef struct {
     /* these are 32-bit file handles, but storing them as 64-bit in the struct makes it easier to poke from Haskell */
     iint_t input_fd;
     iint_t output_fd;
+    iint_t drop_fd;
     iint_t chord_fd;
 
     /* outputs */
     const char  *error;
     iint_t       fact_count;
     iint_t       entity_count;
+
+    /* stuff */
+    const size_t psv_max_ent_attr_count;
+
 } psv_config_t;
 
 typedef struct {
@@ -46,6 +51,12 @@ typedef struct {
 
     /* output file descriptor */
     int output_fd;
+
+    /* entities that exceed the entity-attribute count limit
+       and were partially dropped */
+    char   *entity_dropped;
+    size_t  entity_dropped_size;
+
 } psv_state_t;
 
 
@@ -75,7 +86,8 @@ static ierror_loc_t INLINE psv_read_fact
   , const size_t  value_size
   , const char   *time_ptr
   , const size_t  time_size
-  , ifleet_t     *fleet );
+  , ifleet_t     *fleet
+  , const size_t  max_ent_attr_count);
 #else
 static ierror_loc_t INLINE psv_read_fact
   ( const char   *entity_ptr
@@ -84,7 +96,8 @@ static ierror_loc_t INLINE psv_read_fact
   , const size_t  value_size
   , const char   *time_ptr
   , const size_t  time_size
-  , ifleet_t     *fleet );
+  , ifleet_t     *fleet
+  , const size_t  max_ent_attr_count);
 #endif
 
 /*
@@ -92,7 +105,6 @@ Constants
 */
 
 static const size_t psv_max_row_count      = 128;
-static const size_t psv_max_ent_attr_count = 2;
 static const size_t psv_input_buffer_size  = 256*1024;
 static const size_t psv_output_buffer_size = 256*1024;
 
@@ -114,8 +126,6 @@ static int INLINE psv_compare (const char *xs, size_t xs_size, const char *ys, s
 /* Seek to a line where the entity changes, or EOF */
 static int INLINE psv_skip_to_next_entity (psv_state_t *s)
 {
-    ierror_loc_t error;
-
     const char  *end_ptr    = s->input_ptr + s->input_size;
     const char  *line_ptr   = s->input_ptr;
     const char  *n_ptr      = 0;
@@ -124,7 +134,6 @@ static int INLINE psv_skip_to_next_entity (psv_state_t *s)
     size_t  entity_cur_size = s->entity_cur_size;
 
     iint_t  fact_count      = s->fact_count;
-    iint_t  entity_count    = s->entity_count;
 
     for (;;) {
         const size_t bytes_remaining = end_ptr - line_ptr;
@@ -133,7 +142,7 @@ static int INLINE psv_skip_to_next_entity (psv_state_t *s)
 
         if (n_ptr == 0) {
             s->input_remaining = bytes_remaining;
-            return 0;
+            return 1;
         }
 
         const char  *entity_ptr = line_ptr;
@@ -143,31 +152,43 @@ static int INLINE psv_skip_to_next_entity (psv_state_t *s)
             const char  *entity_end  = memchr (entity_ptr, '|', n_ptr - entity_ptr);
             const size_t entity_size = entity_end - entity_ptr;
 
-            if (entity_end == 0) {
-              error = ierror_loc_format (entity_ptr, n_ptr, "missing '|' after entity");
-              goto on_error;
-            }
-
-            if (entity_size == 0) {
-              error = ierror_loc_format (entity_ptr, entity_ptr, "entity was empty");
-              goto on_error;
-            }
-
-            s->entity_cur      =(char*) entity_ptr;
+            memcpy (entity_cur, entity_ptr, entity_size);
             s->entity_cur_size = entity_size;
             s->input_remaining = bytes_remaining;
 
-            return 0;
+            return 1;
+        } else {
+            fact_count++;
         }
 
         line_ptr = n_ptr + 1;
     }
 
-on_error:
-    return 1;
+    s->fact_count = fact_count;
+
+    return 0;
 }
 
-static ierror_loc_t psv_read_buffer (psv_state_t *s)
+/* Record entity-attributes that were dropped */
+static ierror_loc_t psv_drop_entity (psv_state_t *s, const int drop_fd, const ierror_loc_t error)
+{
+    const int is_same = psv_compare (s->entity_cur, s->entity_cur_size, s->entity_dropped, s->entity_dropped_size);
+
+    if (!is_same) {
+        ierror_msg_t msg           = ierror_loc_pretty (error, s->fact_count);
+        size_t       bytes_written = write (drop_fd, msg, error_msg_size);
+
+        if (bytes_written == 0)
+          return error;
+
+        memcpy (s->entity_dropped, s->entity_cur, s->entity_cur_size);
+        s->entity_dropped_size = s->entity_cur_size;
+    }
+
+    return 0;
+}
+
+static ierror_loc_t psv_read_buffer (psv_state_t *s, const size_t max_ent_attr_count)
 {
     ierror_loc_t error;
 
@@ -288,11 +309,11 @@ static ierror_loc_t psv_read_buffer (psv_state_t *s)
         }
 
 #if ICICLE_PSV_INPUT_SPARSE
-        error = psv_read_fact (entity_ptr, entity_size, attrib_ptr, attrib_size, value_ptr, value_size, time_ptr, time_size, s->fleet);
+        error = psv_read_fact (entity_ptr, entity_size, attrib_ptr, attrib_size, value_ptr, value_size, time_ptr, time_size, s->fleet, max_ent_attr_count);
         if (error)
             goto on_error;
 #else
-        error = psv_read_fact (entity_ptr, entity_size, value_ptr, value_size, time_ptr, time_size, s->fleet);
+        error = psv_read_fact (entity_ptr, entity_size, value_ptr, value_size, time_ptr, time_size, s->fleet, max_ent_attr_count);
         if (error)
           goto on_error;
 #endif
@@ -479,12 +500,19 @@ void psv_snapshot (psv_config_t *cfg)
         size_t input_avail = input_offset + bytes_read;
         state.input_size = input_avail;
 
-        ierror_loc_t error = psv_read_buffer (&state);
+        ierror_loc_t error = psv_read_buffer (&state, cfg->psv_max_ent_attr_count);
 
         if (error) {
+            /* try to skip to the next entity, if there is no new entity
+               in the buffer, this error will be triggered again. */
             if (error->tag == IERROR_LIMIT_EXCEEDED) {
-                /* try to skip to the next entity, if there is no new entity
-                   in the buffer, this error will be triggered again. */
+                const int line = state.fact_count;
+                error = psv_drop_entity (&state, cfg->drop_fd, error);
+                if (error) {
+                    const char *error_pretty = ierror_loc_pretty (error, line);
+                    const char *error_msg    = strncat ("failed to drop entity:\n", error_pretty, error_msg_size);
+                    cfg->error = ierror_msg_alloc (error_msg, 0, 0);
+                }
                 psv_skip_to_next_entity (&state);
             } else {
                 cfg->error = ierror_loc_pretty (error, state.fact_count);

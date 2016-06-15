@@ -192,7 +192,8 @@ seaOfReadAnyFactPsv opts config states = do
               , "  , const size_t  value_size"
               , "  , const char   *time_ptr"
               , "  , const size_t  time_size"
-              , "  , ifleet_t     *fleet )"
+              , "  , ifleet_t     *fleet"
+              , "  , const size_t  max_ent_attr_count )"
               , "{"
               , indent 4 (vsep (fmap (seaOfReadNamedFactSparse opts) states))
               , "    return 0;"
@@ -214,7 +215,8 @@ seaOfReadAnyFactPsv opts config states = do
               , "  , const size_t  value_size"
               , "  , const char   *time_ptr"
               , "  , const size_t  time_size"
-              , "  , ifleet_t     *fleet )"
+              , "  , ifleet_t     *fleet"
+              , "  , const size_t  max_ent_attr_count )"
               , "{"
               , indent 4 (seaOfReadNamedFactDense opts state)
               , "    return 0;"
@@ -245,11 +247,10 @@ seaOfReadNamedFactDense opts state
                 , "   ( IERROR_LIMIT_EXCEEDED"
                 , "   , entity_ptr + entity_size"
                 , "   , entity_ptr"
-                , "   , \"%s: greedy entity exceeds limit: %.*s exceeds %lld rows\""
-                , "   , \"" <> pretty attrib <> "\""
+                , "   , \"%.*s - %.*s facts were dropped starting from here\\n\""
                 , "   , entity_size"
                 , "   , entity_ptr"
-                , "   , psv_max_ent_attr_count );"
+                , "   , \"" <> pretty attrib <> "\");"
                 ])
    in vsep
       [ "/* " <> pretty attrib <> " */"
@@ -393,13 +394,13 @@ seaOfReadNamedFactSparse opts state
                 , "   ( IERROR_LIMIT_EXCEEDED"
                 , "   , entity_ptr + entity_size"
                 , "   , entity_ptr"
-                , "   , \"%.*s: greedy entity exceeds limit: %.*s exceeds %lld rows\""
-                , "   , attrib_size"
-                , "   , attrib_ptr"
+                , "   , \"%.*s - %.*s facts were dropped starting from here\\n\""
                 , "   , entity_size"
                 , "   , entity_ptr"
-                , "   , psv_max_ent_attr_count );"
+                , "   , attrib_size"
+                , "   , attrib_ptr );"
                 ])
+
    in vsep
       [ "/* " <> pretty attrib <> " */"
       , "if (" <> Base.seaOfStringEq attrib "attrib_ptr" (Just "attrib_size") <> ")"

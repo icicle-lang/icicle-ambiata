@@ -6,6 +6,8 @@ Error messages
 
 typedef const char *ierror_msg_t;
 
+static const size_t error_msg_size = 8 * 1024;
+
 static ierror_msg_t NOINLINE ierror_msg_format (const char *fmt, ...)
 {
     va_list args;
@@ -112,7 +114,7 @@ static ierror_loc_t NOINLINE ierror_loc_format (const char *start, const char *e
 
 static ierror_msg_t NOINLINE ierror_loc_pretty (ierror_loc_t loc, iint_t line)
 {
-    size_t  msg_size = 8 * 1024;
+    size_t  msg_size = error_msg_size;
     char   *msg_text = calloc (msg_size, 1);
 
     char *p  = msg_text;

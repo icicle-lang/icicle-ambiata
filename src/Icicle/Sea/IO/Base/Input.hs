@@ -182,7 +182,7 @@ seaOfReadNamedFact funs errs allowDupTime state
       , ""
       , "    fleet->" <> cname <> " += 1;"
       , ""
-      , "    if (fleet->" <> cname <> " > psv_max_ent_attr_count)"
+      , "    if (fleet->" <> cname <> " > max_ent_attr_count)"
       , "    {"
       , indent 8 $ seaInputErrorCountExceedLimit errs
       , "    }"

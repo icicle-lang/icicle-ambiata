@@ -32,7 +32,8 @@ main = do
   case args of
     [dict, inp, out, src, modestr] -> do
       let (mode, mchords) = modeOfString modestr
-      xx <- runEitherT (runBench mode dict inp out src mchords)
+      let dr              = out <> "_dropped.txt"
+      xx <- runEitherT (runBench mode dict inp out dr src mchords)
       case xx of
         Left (BenchSeaError err) -> print (pretty err)
         Left err                 -> print err
@@ -57,10 +58,11 @@ runBench
   -> FilePath
   -> FilePath
   -> FilePath
+  -> FilePath
   -> Maybe FilePath
   -> EitherT BenchError IO ()
 
-runBench mode dictionaryPath inputPath outputPath sourcePath chordPath = do
+runBench mode dictionaryPath inputPath outputPath dropPath sourcePath chordPath = do
   chordStart <- liftIO getCurrentTime
   when (isJust chordPath) $
     liftIO (putStrLn "icicle-bench: preparing chords")
@@ -76,6 +78,7 @@ runBench mode dictionaryPath inputPath outputPath sourcePath chordPath = do
                                  dictionaryPath
                                  inputPath
                                  outputPath
+                                 dropPath
                                  packedChordPath
 
     liftIO (putStrLn "icicle-bench: starting compilation")
