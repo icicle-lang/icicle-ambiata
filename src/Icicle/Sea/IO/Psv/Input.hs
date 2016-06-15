@@ -241,8 +241,9 @@ seaOfReadNamedFactDense opts state
                 , "   , last_time_ptr );"
                 ])
                 ( vsep
-                [ "return ierror_loc_format"
-                , "   ( entity_ptr + entity_size"
+                [ "return ierror_loc_tag_format"
+                , "   ( IERROR_LIMIT_EXCEEDED"
+                , "   , entity_ptr + entity_size"
                 , "   , entity_ptr"
                 , "   , \"%s: greedy entity exceeds limit: %.*s exceeds %lld rows\""
                 , "   , \"" <> pretty attrib <> "\""
@@ -388,8 +389,9 @@ seaOfReadNamedFactSparse opts state
                 , "   , last_time_ptr );"
                 ])
                 ( vsep
-                [ "return ierror_loc_format"
-                , "   ( entity_ptr + entity_size"
+                [ "return ierror_loc_tag_format"
+                , "   ( IERROR_LIMIT_EXCEEDED"
+                , "   , entity_ptr + entity_size"
                 , "   , entity_ptr"
                 , "   , \"%.*s: greedy entity exceeds limit: %.*s exceeds %lld rows\""
                 , "   , attrib_size"

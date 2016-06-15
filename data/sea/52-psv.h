@@ -92,7 +92,7 @@ Constants
 */
 
 static const size_t psv_max_row_count      = 128;
-static const size_t psv_max_ent_attr_count = 1;
+static const size_t psv_max_ent_attr_count = 2;
 static const size_t psv_input_buffer_size  = 256*1024;
 static const size_t psv_output_buffer_size = 256*1024;
 
@@ -109,6 +109,62 @@ static int INLINE psv_compare (const char *xs, size_t xs_size, const char *ys, s
         return cmp;
 
     return xs_size - ys_size;
+}
+
+/* Seek to a line where the entity changes, or EOF */
+static int INLINE psv_skip_to_next_entity (psv_state_t *s)
+{
+    ierror_loc_t error;
+
+    const char  *end_ptr    = s->input_ptr + s->input_size;
+    const char  *line_ptr   = s->input_ptr;
+    const char  *n_ptr      = 0;
+
+    char   *entity_cur      = s->entity_cur;
+    size_t  entity_cur_size = s->entity_cur_size;
+
+    iint_t  fact_count      = s->fact_count;
+    iint_t  entity_count    = s->entity_count;
+
+    for (;;) {
+        const size_t bytes_remaining = end_ptr - line_ptr;
+
+        n_ptr = memchr (line_ptr, '\n', bytes_remaining);
+
+        if (n_ptr == 0) {
+            s->input_remaining = bytes_remaining;
+            return 0;
+        }
+
+        const char  *entity_ptr = line_ptr;
+        const int    new_entity = psv_compare (entity_cur, entity_cur_size, entity_ptr, bytes_remaining);
+
+        if (new_entity != 0) {
+            const char  *entity_end  = memchr (entity_ptr, '|', n_ptr - entity_ptr);
+            const size_t entity_size = entity_end - entity_ptr;
+
+            if (entity_end == 0) {
+              error = ierror_loc_format (entity_ptr, n_ptr, "missing '|' after entity");
+              goto on_error;
+            }
+
+            if (entity_size == 0) {
+              error = ierror_loc_format (entity_ptr, entity_ptr, "entity was empty");
+              goto on_error;
+            }
+
+            s->entity_cur      =(char*) entity_ptr;
+            s->entity_cur_size = entity_size;
+            s->input_remaining = bytes_remaining;
+
+            return 0;
+        }
+
+        line_ptr = n_ptr + 1;
+    }
+
+on_error:
+    return 1;
 }
 
 static ierror_loc_t psv_read_buffer (psv_state_t *s)
@@ -426,8 +482,14 @@ void psv_snapshot (psv_config_t *cfg)
         ierror_loc_t error = psv_read_buffer (&state);
 
         if (error) {
-            cfg->error = ierror_loc_pretty (error, state.fact_count);
-            break;
+            if (error->tag == IERROR_LIMIT_EXCEEDED) {
+                /* try to skip to the next entity, if there is no new entity
+                   in the buffer, this error will be triggered again. */
+                psv_skip_to_next_entity (&state);
+            } else {
+                cfg->error = ierror_loc_pretty (error, state.fact_count);
+                break;
+            }
         }
 
         size_t input_remaining = state.input_remaining;

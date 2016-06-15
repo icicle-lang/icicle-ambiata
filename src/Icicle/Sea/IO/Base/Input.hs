@@ -188,13 +188,10 @@ seaOfReadNamedFact funs errs allowDupTime state
       , "    }"
       , ""
       , "    return " <> fun <> " (value_ptr, value_size, time, fleet->mempool, chord_count, fleet->" <> pname <> ");"
+      , ""
       , "}"
       , ""
       ]
-
---seaOfGiveUp :: SeaInput -> SeaInputError -> CStmt
---seaOfGiveUp = _
-
 
 --------------------------------------------------------------------------------
 
