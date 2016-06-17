@@ -24,17 +24,12 @@ module Icicle.Internal.Pretty (
     , annSepByComma
     , annTypeArgs
     , annotateTypeArgs
-
-    , ppm
-    , ppmDoc
     ) where
 
 -- The one we want to export without <> or <$>
 import              Text.PrettyPrint.Annotated.Leijen as PP hiding ((<>), (<$>), Doc)
 -- The one with <>
 import qualified    Text.PrettyPrint.Annotated.Leijen as PJOIN
--- Compatibility with mainland-pretty for codegen purposes
-import qualified    Text.PrettyPrint.Mainland as Mainland
 
 import              P
 
@@ -138,12 +133,3 @@ padDoc wid doc
    in  if w <= wid
        then doc P.<> mconcat (replicate (wid - w) (text " "))
        else doc P.<> line P.<> mconcat (replicate wid (text " "))
-
---------------------------------------------------------------------------------
-
-ppmDoc :: Mainland.Doc -> Doc
-ppmDoc = text . Mainland.pretty 0
-
--- To avoid importing it and create confusion with our Pretty
-ppm :: Mainland.Pretty a => a -> Doc
-ppm = ppmDoc . Mainland.ppr

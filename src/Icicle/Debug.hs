@@ -10,7 +10,6 @@ module Icicle.Debug (
 
 import           Data.Map (Map)
 import qualified Data.Map as Map
-import           Data.Text (Text)
 
 import qualified Icicle.Avalanche.Prim.Flat as A
 import qualified Icicle.Avalanche.Program as A

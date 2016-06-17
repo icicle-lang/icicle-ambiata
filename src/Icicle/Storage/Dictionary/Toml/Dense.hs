@@ -28,7 +28,6 @@ import qualified Data.Text as Text
 import qualified Data.List as List
 import qualified Data.Map  as Map
 import Data.Map  (Map)
-import Data.Text (Text)
 
 import P
 

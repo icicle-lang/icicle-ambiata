@@ -13,7 +13,6 @@ module Icicle.Sea.IO.Psv.Base (
 
 import qualified Data.ByteString as B
 import qualified Data.List as List
-import           Data.Text (Text)
 import qualified Data.Text.Encoding as T
 import           Data.Word (Word8)
 

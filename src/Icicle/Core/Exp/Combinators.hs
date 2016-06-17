@@ -14,7 +14,6 @@ import qualified    Icicle.Common.Exp.Prim.Minimal as Min
 
 import              P hiding (error)
 import qualified    Data.Text   as T
-import              Data.Text   (Text)
 import qualified    Data.Set    as Set
 import qualified    Data.Map    as Map
 import              Data.Hashable

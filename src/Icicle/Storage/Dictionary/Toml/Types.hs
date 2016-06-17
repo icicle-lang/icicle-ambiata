@@ -8,7 +8,6 @@ import           P
 
 import qualified Data.HashMap.Strict as M
 import           Data.List           (intersect)
-import           Data.Text           (Text)
 import qualified Data.Text           as T
 import           Data.Time.Clock     (UTCTime)
 import           Data.Time.Format    ()

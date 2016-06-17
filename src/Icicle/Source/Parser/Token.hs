@@ -28,7 +28,6 @@ import                  Icicle.Data.Time
 import                  P hiding ((<|>))
 
 import                  Text.Parsec
-import                  Data.Text (Text)
 import qualified        Data.Text as Text
 
 type Parser a

@@ -7,7 +7,6 @@ module Icicle.Sea.IO.Psv.Output where
 import qualified Data.List as List
 import           Data.Map (Map)
 import qualified Data.Map as Map
-import           Data.Text (Text)
 import qualified Data.Text as T
 
 import           Icicle.Avalanche.Prim.Flat (Prim(..), PrimUnsafe(..))

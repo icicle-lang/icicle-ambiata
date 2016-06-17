@@ -20,7 +20,6 @@ module Icicle.Sea.FromAvalanche.Base (
 
 import           Data.Char (isLower, isUpper, ord)
 import qualified Data.List as List
-import           Data.Text (Text)
 import qualified Data.Text as T
 
 import           Icicle.Data

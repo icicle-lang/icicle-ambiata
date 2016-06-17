@@ -33,7 +33,6 @@ import           System.FilePath
 import           System.IO
 
 import qualified Data.Set                                      as Set
-import           Data.Text                                     (Text)
 import qualified Data.Text                                     as T
 import qualified Data.Text.Encoding                            as T
 import qualified Data.Text.IO                                  as T

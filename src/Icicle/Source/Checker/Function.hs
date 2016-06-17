@@ -149,7 +149,7 @@ checkF' fun env
  where
   bindArg cx (_,n)
    = do t <- freshType
-        return (bind n t cx)
+        return (bindT n t cx)
 
   freshType
    =    Temporality <$> (TypeVar <$> fresh)

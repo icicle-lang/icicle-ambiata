@@ -14,7 +14,6 @@ import                  Icicle.Common.Base
 
 import                  P hiding (exp)
 
-import                  Data.Text (Text)
 import                  Data.List (lookup)
 
 import                  Text.Parsec (parserFail)

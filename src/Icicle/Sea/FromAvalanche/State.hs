@@ -31,7 +31,6 @@ module Icicle.Sea.FromAvalanche.State (
 
 import qualified Data.List          as List
 import qualified Data.Map           as Map
-import           Data.Text (Text)
 import qualified Data.Text          as T
 
 import           Icicle.Avalanche.Prim.Flat

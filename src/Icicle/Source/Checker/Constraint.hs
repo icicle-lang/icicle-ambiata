@@ -290,8 +290,8 @@ generateQ qq@(Query (c:_) _) env
             let env' = removeElementBinds $ substE sx env
             (q', sq, t', consr)
                 <- rest
-                 $ bind k retk
-                 $ bind v retv env'
+                 $ bindT k retk
+                 $ bindT v retv env'
 
             consT  <-  requireAgg  t'
             consgt <-  requireAgg  tgroup
@@ -373,7 +373,7 @@ generateQ qq@(Query (c:_) _) env
 
             let env' = substE si env
             (w,sw, csw) <- generateX (foldWork f)
-                         $ bind (foldBind f) ti env'
+                         $ bindT (foldBind f) ti env'
 
             let bindType
                  | FoldTypeFoldl1 <- foldType f
@@ -685,7 +685,7 @@ generateP ann scrutTy resTy resTm resPs ((pat, alt):rest) env
         datV              <- TypeVar <$> fresh
         -- The bound variable is actually Definite, because the case will only succeed
         -- if the scrutinee is an actual value.
-        let env'           = bind n (recomposeT (tmpS, Nothing, datV)) e
+        let env'           = bindT n (recomposeT (tmpS, Nothing, datV)) e
         return (datV, env')
 
   goPat (PatCon ConSome  [p]) e

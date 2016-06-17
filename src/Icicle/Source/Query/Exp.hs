@@ -36,7 +36,7 @@ import                  Icicle.Common.Base
 
 import                  P
 
-import                  Data.Text (Text, unpack)
+import                  Data.Text (unpack)
 
 
 data Exp' q a n
