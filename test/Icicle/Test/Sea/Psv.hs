@@ -14,7 +14,6 @@ import qualified Data.ByteString.Lazy as L
 import qualified Data.List as List
 import qualified Data.Map as Map
 import qualified Data.Set as Set
-import           Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as LT
 import qualified Data.Text.Lazy.Encoding as LT

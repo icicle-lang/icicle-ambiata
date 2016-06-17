@@ -36,7 +36,6 @@ import           Icicle.Internal.Pretty
 import qualified Data.Map                           as Map
 import qualified Data.Set                           as Set
 import           Data.String
-import           Data.Text (Text)
 
 import           P
 

@@ -86,7 +86,6 @@ import           Data.Functor.Identity
 import qualified Data.Map                                 as M
 import           Data.Monoid
 import           Data.String
-import           Data.Text                                (Text)
 import           Data.Hashable                            (Hashable)
 
 

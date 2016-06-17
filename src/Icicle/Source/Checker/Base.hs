@@ -23,7 +23,7 @@ module Icicle.Source.Checker.Base (
   , fresh
   , introForalls
   , lookup
-  , bind
+  , bindT
   , withBind
   , removeElementBinds
 
@@ -195,8 +195,8 @@ lookup ann n env
                            [AvailableBindings n $ Map.toList env]
 
 -- | Bind a new to a type in the given context.
-bind :: (Hashable n, Eq n) => Name n -> Type n -> GenEnv n -> GenEnv n
-bind n t
+bindT :: (Hashable n, Eq n) => Name n -> Type n -> GenEnv n -> GenEnv n
+bindT n t
  = Map.insert n (function0 t)
 
 -- | Temporarily add the binding to a context, then do something.
@@ -208,7 +208,7 @@ withBind
   -> (GenEnv n -> Gen a n r)
   -> Gen a n r
 withBind n t old gen
- = gen (bind n t old)
+ = gen (bindT n t old)
 
 removeElementBinds :: (Hashable n, Eq n) => GenEnv n -> GenEnv n
 removeElementBinds env

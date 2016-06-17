@@ -18,7 +18,6 @@ import           Control.Parallel.Strategies (withStrategy, parTraversable, rpar
 import           Data.Map (Map)
 import qualified Data.Map as Map
 import           Data.Set (Set)
-import           Data.Text (Text)
 import qualified Data.Text.Lazy.IO as TL
 import           Data.Time (NominalDiffTime, getCurrentTime, diffUTCTime)
 

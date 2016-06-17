@@ -11,7 +11,7 @@ import           Prelude             (read, fromEnum, toEnum)
 import qualified Data.HashMap.Strict as M
 import qualified Data.List           as L
 import qualified Data.Set            as S
-import           Data.Text           (Text, pack, unpack)
+import           Data.Text           (pack, unpack)
 
 import           Data.Time.Format    (parseTimeM)
 import           Data.Time.Locale.Compat (defaultTimeLocale, iso8601DateFormat)

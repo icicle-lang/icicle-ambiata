@@ -24,7 +24,6 @@ import                  P
 import qualified        Data.Char as C
 import                  Data.String
 import qualified        Data.Text as T
-import                  Data.Text (Text)
 import                  Data.List (lookup)
 import                  Data.Hashable (Hashable)
 

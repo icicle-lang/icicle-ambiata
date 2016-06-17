@@ -25,8 +25,6 @@ import                  Icicle.Internal.Pretty
 
 import                  P
 
-import                  Data.Text
-
 data Op
  = ArithUnary    ArithUnary
  | ArithBinary   ArithBinary

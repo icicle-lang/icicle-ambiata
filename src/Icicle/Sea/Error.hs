@@ -7,7 +7,6 @@ module Icicle.Sea.Error (
 
 import           Data.Map  (Map)
 import qualified Data.Map as Map
-import           Data.Text (Text)
 
 import           Icicle.Common.Base (BaseValue, OutputName)
 import           Icicle.Common.Type (ValType, StructType)

@@ -88,7 +88,7 @@ instance Pretty n => Pretty (Program a n) where
     = vcat
     . fmap prettyNamed
 
-   prettyNamed (nm,bind)
-    = indent 2 (padDoc 20 (pretty nm) <> " = " <> indent 0 (pretty bind))
+   prettyNamed (nm, bind')
+    = indent 2 (padDoc 20 (pretty nm) <> " = " <> indent 0 (pretty bind'))
 
 

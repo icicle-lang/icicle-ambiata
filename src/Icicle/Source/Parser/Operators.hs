@@ -14,7 +14,7 @@ import                  Icicle.Source.Query.Operators
 import                  P
 
 import                  Data.String (String)
-import                  Data.Text (Text, unpack)
+import                  Data.Text (unpack)
 
 data DefixError n
  = ErrorNoSuchPrefixOperator          Text

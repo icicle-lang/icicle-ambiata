@@ -35,7 +35,6 @@ import           P
 
 import           Control.Monad.Trans.Class
 import           Data.Hashable                               (Hashable)
-import           Data.Text                                   (Text)
 
 import Icicle.Internal.Pretty
 

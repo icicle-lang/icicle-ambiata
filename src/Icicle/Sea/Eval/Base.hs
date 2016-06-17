@@ -44,7 +44,6 @@ import qualified Data.List as List
 import           Data.Map (Map)
 import qualified Data.Map as Map
 import           Data.String (String)
-import           Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Vector.Storable as V
 import           Data.Vector.Storable.Mutable (IOVector)

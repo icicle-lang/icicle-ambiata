@@ -41,7 +41,6 @@ module Icicle.Sea.IO.Base.Input
 import qualified Data.ByteString                  as B
 import           Data.Map                         (Map)
 import           Data.Set                         (Set)
-import           Data.Text                        (Text)
 import qualified Data.Text                        as T
 import qualified Data.Text.Encoding               as T
 import           Data.Word                        (Word8)
