@@ -41,7 +41,6 @@ module Icicle.Sea.IO.Base.Input
 import qualified Data.ByteString                  as B
 import           Data.Map                         (Map)
 import           Data.Set                         (Set)
-import qualified Data.Text                        as T
 import qualified Data.Text.Encoding               as T
 import           Data.Word                        (Word8)
 
@@ -180,9 +179,9 @@ seaOfReadNamedFact funs errs allowDupTime state
       , ""
       , "    fleet->" <> tname <> " = time;"
       , ""
-      , "    fleet->" <> cname <> " += 1;"
+      , "    fleet->" <> cname <> " ++;"
       , ""
-      , "    if (fleet->" <> cname <> " > max_ent_attr_count)"
+      , "    if (fleet->" <> cname <> " > facts_limit)"
       , "    {"
       , indent 8 $ seaInputErrorCountExceedLimit errs
       , "    }"

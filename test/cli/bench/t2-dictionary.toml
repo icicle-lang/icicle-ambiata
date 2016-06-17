@@ -1,0 +1,15 @@
+namespace=""
+import = []
+
+[fact.salary]
+ encoding = "int"
+
+[fact.injury]
+  [fact.injury.encoding]
+    location="string"
+    severity="int"
+    action="string*"
+    admitted="time*"
+
+[feature.newest_salary]
+ expression = "feature salary ~> newest value"

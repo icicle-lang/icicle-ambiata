@@ -193,7 +193,7 @@ seaOfReadAnyFactPsv opts config states = do
               , "  , const char   *time_ptr"
               , "  , const size_t  time_size"
               , "  , ifleet_t     *fleet"
-              , "  , const size_t  max_ent_attr_count )"
+              , "  , const size_t  facts_limit)"
               , "{"
               , indent 4 (vsep (fmap (seaOfReadNamedFactSparse opts) states))
               , "    return 0;"
@@ -216,7 +216,7 @@ seaOfReadAnyFactPsv opts config states = do
               , "  , const char   *time_ptr"
               , "  , const size_t  time_size"
               , "  , ifleet_t     *fleet"
-              , "  , const size_t  max_ent_attr_count )"
+              , "  , const size_t  facts_limit)"
               , "{"
               , indent 4 (seaOfReadNamedFactDense opts state)
               , "    return 0;"
@@ -247,7 +247,7 @@ seaOfReadNamedFactDense opts state
                 , "   ( IERROR_LIMIT_EXCEEDED"
                 , "   , entity_ptr + entity_size"
                 , "   , entity_ptr"
-                , "   , \"%.*s - %.*s facts were dropped starting from here\\n\""
+                , "   , \"%.*s had too many %.*s facts, they have been dropped starting from here\\n\""
                 , "   , entity_size"
                 , "   , entity_ptr"
                 , "   , \"" <> pretty attrib <> "\");"
@@ -256,6 +256,7 @@ seaOfReadNamedFactDense opts state
       [ "/* " <> pretty attrib <> " */"
       , Base.seaOfReadNamedFact seaInputPsv errs (Base.inputAllowDupTime opts) state
       ]
+
 
 seaOfReadFactDense :: PsvInputDenseDict -> SeaProgramState -> Set Text -> Either SeaError Doc
 seaOfReadFactDense dict state tombstones = do
@@ -394,7 +395,7 @@ seaOfReadNamedFactSparse opts state
                 , "   ( IERROR_LIMIT_EXCEEDED"
                 , "   , entity_ptr + entity_size"
                 , "   , entity_ptr"
-                , "   , \"%.*s - %.*s facts were dropped starting from here\\n\""
+                , "   , \"entity %.*s had too many %.*s facts, they have been dropped starting from here\\n\""
                 , "   , entity_size"
                 , "   , entity_ptr"
                 , "   , attrib_size"

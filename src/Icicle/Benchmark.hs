@@ -71,6 +71,7 @@ data Benchmark = Benchmark {
   , benchDropPath        :: FilePath
   , benchChordPath       :: Maybe FilePath
   , benchCompilationTime :: NominalDiffTime
+  , benchFactsLimit      :: Int
   }
 
 data BenchmarkResult = BenchmarkResult {
@@ -87,9 +88,10 @@ createBenchmark
   -> FilePath
   -> FilePath
   -> Maybe FilePath
+  -> Maybe Int
   -> EitherT BenchError IO Benchmark
 
-createBenchmark mode dictionaryPath inputPath outputPath dropPath packedChordPath = do
+createBenchmark mode dictionaryPath inputPath outputPath dropPath packedChordPath limit = do
   start <- liftIO getCurrentTime
 
   dictionary <- firstEitherT BenchDictionaryImportError (loadDictionary SC.optionSmallData ImplicitPrelude dictionaryPath)
@@ -118,6 +120,7 @@ createBenchmark mode dictionaryPath inputPath outputPath dropPath packedChordPat
     , benchDropPath        = dropPath
     , benchChordPath       = packedChordPath
     , benchCompilationTime = end `diffUTCTime` start
+    , benchFactsLimit      = fromMaybe (1024*1024) limit
     }
 
 releaseBenchmark :: Benchmark -> EitherT BenchError IO ()
@@ -131,10 +134,11 @@ runBenchmark b = do
       outputPath = benchOutputPath b
       dropPath   = benchDropPath   b
       chordPath  = benchChordPath  b
-      maxEntAttr = 1024*1024
+      limit      = benchFactsLimit b
 
   start <- liftIO getCurrentTime
-  stats <- firstEitherT BenchSeaError (seaPsvSnapshotFilePath fleet inputPath outputPath dropPath chordPath maxEntAttr)
+  stats <- firstEitherT BenchSeaError
+         $ seaPsvSnapshotFilePath fleet inputPath outputPath dropPath chordPath limit
   end   <- liftIO getCurrentTime
 
   size <- liftIO (withFile inputPath ReadMode hFileSize)

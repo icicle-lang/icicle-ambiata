@@ -24,25 +24,29 @@ import           Text.Printf (printf)
 
 import           X.Control.Monad.Trans.Either
 
+import           Prelude (read)
+
 ------------------------------------------------------------------------
 
 main :: IO ()
 main = do
   args <- getArgs
   case args of
-    [dict, inp, out, src, modestr] -> do
-      let (mode, mchords) = modeOfString modestr
-      let dr              = out <> "_dropped.txt"
-      xx <- runEitherT (runBench mode dict inp out dr src mchords)
-      case xx of
-        Left (BenchSeaError err) -> print (pretty err)
-        Left err                 -> print err
-        Right _                  -> return ()
-
+    [d, i, o, s, m, l] -> go d i o s m (Just (read l))
+    [d, i, o, s, m]    -> go d i o s m Nothing
     _ -> do
-      putStrLn "usage: icicle-bench DICTIONARY INPUT_PSV OUTPUT_PSV OUTPUT_C SNAPSHOT_DATE"
-      putStrLn "  -or- icicle-bench DICTIONARY INPUT_PSV OUTPUT_PSV OUTPUT_C CHORD_PSV"
+      putStrLn "usage: icicle-bench DICTIONARY INPUT_PSV OUTPUT_PSV OUTPUT_C SNAPSHOT_DATE FACTS_LIMIT"
+      putStrLn "  -or- icicle-bench DICTIONARY INPUT_PSV OUTPUT_PSV OUTPUT_C CHORD_PSV FACTS_LIMIT"
       putStrLn ("invalid args: " <> show args)
+  where
+    go dict inp out src modestr limit = do
+     let (mode, mchords) = modeOfString modestr
+     let dr              = out <> "_dropped.txt"
+     xx <- runEitherT (runBench mode dict inp out dr src mchords limit)
+     case xx of
+       Left (BenchSeaError err) -> print (pretty err)
+       Left err                 -> print err
+       Right _                  -> return ()
 
 modeOfString :: String -> (PsvMode, Maybe FilePath)
 modeOfString str =
@@ -60,9 +64,10 @@ runBench
   -> FilePath
   -> FilePath
   -> Maybe FilePath
+  -> Maybe Int
   -> EitherT BenchError IO ()
 
-runBench mode dictionaryPath inputPath outputPath dropPath sourcePath chordPath = do
+runBench mode dictionaryPath inputPath outputPath dropPath sourcePath chordPath limit = do
   chordStart <- liftIO getCurrentTime
   when (isJust chordPath) $
     liftIO (putStrLn "icicle-bench: preparing chords")
@@ -80,6 +85,7 @@ runBench mode dictionaryPath inputPath outputPath dropPath sourcePath chordPath 
                                  outputPath
                                  dropPath
                                  packedChordPath
+                                 limit
 
     liftIO (putStrLn "icicle-bench: starting compilation")
     bracketEitherT' create releaseBenchmark $ \bench -> do
