@@ -95,6 +95,7 @@ defaults topq
   defaultOfConstraint (CTemporalityJoin _ _ _)
    = []
 
+  -- Compute free *type* variables of queries and expressions
   freeOfAllQ (Query cs x)
    = Set.unions
    ( freeOfAllX x : fmap freeOfAllC cs )

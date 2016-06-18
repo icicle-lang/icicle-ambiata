@@ -43,8 +43,7 @@ inlineTransform funs
         let sub     = Map.fromList
                     $ argNames `zip` fmap (Var a) ns
 
-        let body'   = unsafeSubstQ sub
-                    $ body fun
+        body'      <- substQ sub $ body fun
 
         let lets = fmap (mkLet a) (ns `zip` args)
         return ((), Nested a (prefixContexts lets body'))

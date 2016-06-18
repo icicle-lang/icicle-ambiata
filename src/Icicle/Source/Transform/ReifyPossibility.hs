@@ -151,8 +151,11 @@ reifyPossibilityQ (Query (c:cs) final_x)
                 eqError = App a'B
                               (App a'B (Prim a'B $ Op $ Relation Eq) (con0 a'E $ ConError ExceptFold1NoValue))
                               vError
+             
+            kS    <- substInto (foldBind f) vBind k
+            kS'   <- substIntoIfDefinitely nBind vValue kS
 
-                k' = Case a'D vBind
+            let k' = Case a'D vBind
                    [ ( PatCon ConLeft  [ PatVariable nError ]
                      , Case a'D eqError
                           [ ( PatCon ConTrue []
@@ -160,10 +163,7 @@ reifyPossibilityQ (Query (c:cs) final_x)
                           , ( PatCon ConFalse []
                             , con1 a'D ConLeft $ vError ) ] )
                    , ( PatCon ConRight [ PatVariable nValue ]
-                     , wrapRight
-                     $ substIntoIfDefinitely nBind vValue
-                     $ substInto (foldBind f) vBind
-                     $ k ) ]
+                     , wrapRight kS') ]
 
                 f' = f { foldType = FoldTypeFoldl
                        , foldBind = nBind
@@ -171,7 +171,7 @@ reifyPossibilityQ (Query (c:cs) final_x)
                        , foldWork = k' }
 
             rest' <- rest
-            let rsub = unsafeSubstQ (Map.singleton (foldBind f) vBind) rest'
+            rsub  <- substQ (Map.singleton (foldBind f) vBind) rest'
             return $ ins (LetFold (wrapAnnot a) f') rsub
 
      | otherwise
@@ -375,12 +375,12 @@ substIntoIfDefinitely
         => Name n
         -> Exp (Annot a n) n
         -> Exp (Annot a n) n
-        -> Exp (Annot a n) n
+        -> Fresh n (Exp (Annot a n) n)
 substIntoIfDefinitely var payload into
  | PossibilityDefinitely <- getPossibilityOrDefinitely $ annResult $ annotOfExp into
  = substInto var payload into
  | otherwise
- = into
+ = return into
 
 
 substInto
@@ -388,9 +388,9 @@ substInto
         => Name n
         -> Exp (Annot a n) n
         -> Exp (Annot a n) n
-        -> Exp (Annot a n) n
+        -> Fresh n (Exp (Annot a n) n)
 substInto var payload into
    -- This unsafe subst transform is safe as long as the payload only mentions fresh variable names
- = unsafeSubstX (Map.singleton var payload)
+ = substX (Map.singleton var payload)
    into
 

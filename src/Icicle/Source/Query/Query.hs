@@ -18,12 +18,16 @@ module Icicle.Source.Query.Query (
   , reannotC
   , reannotX
   , annotOfQuery
+
+  , allvarsX, allvarsC, allvarsQ
   ) where
 
+import                  Icicle.Source.Query.Constructor
 import                  Icicle.Source.Query.Context
 import                  Icicle.Source.Query.Exp
 import                  Icicle.Internal.Pretty
 import                  Icicle.Common.Base
+import qualified        Data.Set                as Set
 
 import                  P
 
@@ -153,4 +157,125 @@ annotOfQuery q
  = case contexts q of
     []    -> annotOfExp $ final q
     (c:_) -> annotOfContext c
+
+
+-- | Compute set of all value variables of queries
+-- (As opposed to type variables; for that see freeOfAllQ in Checker/Constraint)
+allvarsQ :: Eq n => Query a n -> Query (a, Set.Set (Name n)) n
+allvarsQ (Query cs x)
+ = let x'  = allvarsX x
+       cs' = goCs x'
+   in  Query cs' x'
+ where
+  goCs x'
+   = reverse
+   $ goCs' (snd $ annotOfExp x')
+   $ reverse cs
+
+  goCs' _ [] = []
+  goCs' ns (c:cs')
+   = let c'  = allvarsC ns c
+         ns' = Set.union ns (snd $ annotOfContext c')
+     in  c' : goCs' ns' cs'
+
+-- | Compute set of value variables of context
+-- Because the context isn't a thing on its own, it needs the set of variables
+-- used in the rest of the query.
+allvarsC :: Eq n => Set.Set (Name n) -> Context a n -> Context (a, Set.Set (Name n)) n
+allvarsC ns c
+ = case c of
+    Windowed a w1 w2
+     -> Windowed (a,ns) w1 w2
+    Latest a w1
+     -> Latest (a,ns) w1
+
+    Let a n x
+     -> let x'  = allvarsX x
+            ns' = Set.unions
+                [ ns, sgl n, annX x' ]
+        in  Let (a, ns') n x'
+
+    LetFold a f
+     -> let z'  = allvarsX (foldInit f)
+            k'  = allvarsX (foldWork f)
+            ns' = Set.unions
+                [ ns, sgl (foldBind f)
+                , annX z', annX k' ]
+            f'  = f { foldInit = z', foldWork = k' }
+        in  LetFold (a,ns') f'
+
+    GroupBy a x
+     -> let x'  = allvarsX x
+            ns' = Set.union ns (annX x')
+        in  GroupBy (a,ns') x'
+
+    GroupFold a nk nv x
+     -> let x'  = allvarsX x
+            ns' = Set.unions
+                [ ns, sgl nk, sgl nv, annX x' ]
+        in  GroupFold (a,ns') nk nv x'
+
+    Distinct a x
+     -> let x'  = allvarsX x
+            ns' = Set.union ns (annX x')
+        in  Distinct (a,ns') x'
+
+    Filter a x
+     -> let x'  = allvarsX x
+            ns' = Set.union ns (annX x')
+        in  Filter (a,ns') x'
+
+ where
+  annX = snd . annotOfExp
+  sgl  = Set.singleton
+
+
+-- | Compute set of value variables of expression
+allvarsX :: Eq n => Exp a n -> Exp (a, Set.Set (Name n)) n
+allvarsX x
+ = case x of
+    Var a n
+     -> Var (a, sgl n) n
+    Nested a q
+     -> let q' = allvarsQ q
+        in  Nested (a, snd $ annotOfQuery q') q'
+    App a p q
+     -> let p' = allvarsX p
+            q' = allvarsX q
+        in  App (a, Set.union (annX p') (annX q')) p' q'
+    Prim a p
+     -> Prim (a, Set.empty) p
+    Case a s ps
+     -> let s'        = allvarsX s
+            (ps',ns') = goPatXs ps
+        in  Case (a, Set.union (annX s') ns') s' ps'
+ where
+  annX = snd . annotOfExp
+  sgl  = Set.singleton
+
+  goPatXs []
+   = ([], Set.empty)
+  goPatXs ((p,xx):ps)
+   = let (ps',ns') = goPatXs  ps
+         (p',np')  = goPat    p
+         xx'       = allvarsX xx
+         ns''      = Set.unions [ns', np', annX xx']
+     in  ((p',xx') : ps', ns'')
+
+  goPat p
+   = case p of
+      PatCon c ps
+       -> let (ps',ns') = goPats ps
+          in  (PatCon c ps', ns')
+      PatDefault
+       -> (PatDefault, Set.empty)
+      PatVariable n
+       -> (PatVariable n, sgl n)
+
+  goPats []
+   = ([], Set.empty)
+  goPats (p:ps)
+   = let (p',n')   = goPat p
+         (ps',ns') = goPats ps
+     in (p' : ps', n' `Set.union` ns')
 
