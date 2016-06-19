@@ -1,100 +1,152 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE PatternGuards #-}
 module Icicle.Source.Transform.SubstX (
-    unsafeSubstX
-  , unsafeSubstQ
+    substX
+  , substQ
   ) where
 
 import Icicle.Source.Query
 import Icicle.Common.Base
+import Icicle.Common.Fresh
 
 import P
 
 import qualified Data.Map as Map
+import qualified Data.Set as Set
 import           Data.Hashable (Hashable)
 
 
--- | This is unsafe in the sense that it does not avoid capture of the payload.
--- It is fine if the only variables in the payload are fresh:
--- eg 'subst x := (5 + fresh) in x + x'
--- because we know there can be no mention of "fresh" in the target.
+substX :: (Hashable n, Eq n)
+       => (Map.Map (Name n) (Exp a n))
+       -> Exp a n
+       -> Fresh n (Exp a n)
+substX ms x
+ = reannotX fst
+ <$> substX' (fmap allvarsX ms) (allvarsX x)
 
-unsafeSubstX
+substQ :: (Hashable n, Eq n)
+       => (Map.Map (Name n) (Exp a n))
+       -> Query a n
+       -> Fresh n (Query a n)
+substQ ms q
+ = reannotQ fst
+ <$> substQ' (fmap allvarsX ms) (allvarsQ q)
+
+--------------
+-- Where the actual magic happens
+-- These could be exposed, except the variable set is not updated,
+-- so it will be wrong after applying.
+-- This is not a problem since the functions above throw it away.
+
+substX'
     :: (Hashable n, Eq n)
-    => (Map.Map (Name n) (Exp a n))
-    -> Exp a n
-    -> Exp a n
+    => (Map.Map (Name n) (Exp (a, Set.Set (Name n)) n))
+    -> Exp (a, Set.Set (Name n)) n
+    -> Fresh n (Exp (a, Set.Set (Name n)) n)
 
-unsafeSubstX s x
+substX' s x
  = case x of
     Var _ n
      | Just x' <- Map.lookup n s
-     -> x'
+     -> return x'
      | otherwise
-     -> x
+     -> return x
     Nested a q
-     -> Nested a $ unsafeSubstQ s q
+     -> Nested a <$> substQ' s q
     App a p q
-     -> App a (unsafeSubstX s p) (unsafeSubstX s q)
+     -> App a <$> substX' s p <*> substX' s q
     Prim{}
-     -> x
+     -> return x
     Case a scrut pats
-     -> Case a (unsafeSubstX s scrut) (fmap goPat pats)
+     -> Case a <$> substX' s scrut <*> mapM goPat pats
 
  where
-
   goPat (p,alt)
-   = (p, unsafeSubstX (rempatbinds s p) alt)
+   = do (s',p') <- rempatbind s p
+        alt'    <- substX' s' alt
+        return (p',alt')
 
-  rempatbinds m p
+  rempatbinds m [] ret
+   = return (m, reverse ret)
+  rempatbinds m (p:ps) ret
+   = do (m',p') <- rempatbind m p
+        rempatbinds m' ps (p' : ret)
+
+  rempatbind m p
    = case p of
-      PatCon _ ps
-       -> foldl rempatbinds m ps
+      PatCon c ps
+       -> do (m',ps') <- rempatbinds m ps []
+             return (m', PatCon c ps')
       PatDefault
-       -> m
+       -> return (m, p)
       PatVariable n
-       -> Map.delete n m
+       -> do (m',n') <- freshIfNecessary m n (fst $ annotOfExp x)
+             return (m', PatVariable n')
 
 
-unsafeSubstQ
-    :: (Hashable n, Eq n)
-    => (Map.Map (Name n) (Exp a n))
-    -> Query a n
-    -> Query a n
+substQ' :: (Hashable n, Eq n)
+        => (Map.Map (Name n) (Exp (a, Set.Set (Name n)) n))
+        -> Query (a, Set.Set (Name n)) n
+        -> Fresh n (Query (a, Set.Set (Name n)) n)
 
-unsafeSubstQ s (Query [] x)
- = Query [] (unsafeSubstX s x)
+substQ' s (Query [] x)
+ = Query [] <$> substX' s x
 
-unsafeSubstQ s (Query (c:rest_cs) rest_x)
+substQ' s (Query (c:rest_cs) rest_x)
  = case c of
-    -- To make this safe, we would need to
-    -- look through the free vars of the map's values (the payloads)
-    -- and rename this binding if any payloads
-    -- refer to a variable with the same name
     Let a n x
-     -> ins (Let a n (unsafeSubstX s x)) (unsafeSubstQ (Map.delete n s) q)
+     -> do x'       <- substX' s x
+           (s', n') <- freshIfNecessary s n (fst a)
+           rest s' (Let a n' x')
     LetFold a f
-     -> let s' = Map.delete (foldBind f) s
-            z' = unsafeSubstX s  (foldInit f)
-            k' = unsafeSubstX s' (foldWork f)
-            f' = f { foldInit = z', foldWork = k' }
-        in  ins (LetFold a f') (unsafeSubstQ s' q)
+     -> do z'       <- substX' s  (foldInit f)
+           (s', n') <- freshIfNecessary s (foldBind f) (fst a)
+           k'       <- substX' s' (foldWork f)
+           let f'    = f { foldBind = n', foldInit = z', foldWork = k' }
+           rest s' (LetFold a f')
     Windowed{}
-     -> ins c q'
+     -> rest s  c
     Latest{}
-     -> ins c q'
+     -> rest s c
     GroupBy a x
-     -> ins (GroupBy a (unsafeSubstX s x)) q'
+     -> do x'       <- substX s x
+           rest s (GroupBy a x')
     GroupFold a k v x
-     -> ins (GroupFold a k v (unsafeSubstX s x)) (unsafeSubstQ (Map.delete k $ Map.delete v s) q)
+     -> do x'       <- substX s x
+           (s', k') <- freshIfNecessary s  k (fst a)
+           (s'',v') <- freshIfNecessary s' v (fst a)
+           rest s'' (GroupFold a k' v' x')
     Distinct a x
-     -> ins (Distinct a (unsafeSubstX s x)) q'
+     -> do x'       <- substX s x
+           rest s (Distinct a x')
     Filter a x
-     -> ins (Filter a   (unsafeSubstX s x)) q'
+     -> do x'       <- substX s x
+           rest s (Filter a x')
  where
-  q = Query rest_cs rest_x
-  q' = unsafeSubstQ s q
+  ins cx' (Query cs' x') = Query (cx' : cs') x'
+  q                      = Query rest_cs rest_x
+  rest s' cx'            = ins cx' <$> substQ' s' q
 
-  ins cx' (Query cs' x')
-   = Query (cx' : cs') x'
+
+freshIfNecessary :: (Hashable n, Eq n)
+      => (Map.Map (Name n) (Exp (a, Set.Set (Name n)) n))
+      -> Name n
+      -> a
+      -> Fresh n (Map.Map (Name n) (Exp (a, Set.Set (Name n)) n), Name n)
+freshIfNecessary m n a_fresh
+ = case Map.lookup n m of
+    Nothing
+     -> if    Set.member n allvars
+        then  freshen
+        else  return (m,n)
+    Just _
+     -> return (Map.delete n m, n)
+ where
+  allvars
+   = Set.unions $ Map.elems $ fmap (snd . annotOfExp) m
+
+  freshen
+   = do n' <- freshPrefixBase $ nameBase n
+        let x = Var (a_fresh, Set.singleton n') n'
+        return (Map.insert n x m, n')
 
