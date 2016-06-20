@@ -81,6 +81,7 @@ seaOfFleetState states
       , indent 4 (defOfVar' 1 constTime    "chord_times")     <> ";"
       , indent 4 (vsep (fmap defOfProgramState states))
       , indent 4 (vsep (fmap defOfProgramTime  states))
+      , indent 4 (vsep (fmap defOfProgramCount states))
       , "};"
       ]
 
@@ -92,8 +93,13 @@ defOfProgramState state
 
 defOfProgramTime :: SeaProgramState -> Doc
 defOfProgramTime state
- = defOfVar 0 TimeT (pretty (Base.nameOfLastTime state)) <> ";"
+ = defOfVar 0 TimeT (pretty (nameOfLastTime state)) <> ";"
  <+> "/* " <> seaOfAttributeDesc (stateAttribute state) <> " */"
+
+defOfProgramCount :: SeaProgramState -> Doc
+defOfProgramCount state
+  = defOfVar 0 IntT (pretty (nameOfCount state)) <> ";"
+  <+> "/* " <> seaOfAttributeDesc (stateAttribute state) <> " */"
 
 ------------------------------------------------------------------------
 
@@ -275,6 +281,8 @@ seaOfConfigureFleet mode states
  , ""
  , indent 4 (vsep (fmap defOfLastTime states))
  , ""
+ , indent 4 (vsep (fmap defOfCount states))
+ , ""
  , "    return 0;"
  , "}"
  ]
@@ -288,7 +296,11 @@ defOfState state
 
 defOfLastTime :: SeaProgramState -> Doc
 defOfLastTime state
- = "fleet->" <> pretty (Base.nameOfLastTime state) <+> "= 0;"
+ = "fleet->" <> pretty (nameOfLastTime state) <+> "= 0;"
+
+defOfCount :: SeaProgramState -> Doc
+defOfCount state
+ = "fleet->" <> pretty (nameOfCount state) <+> "= 0;"
 
 seaOfAssignTime :: SeaProgramState -> Doc
 seaOfAssignTime state

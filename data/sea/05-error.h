@@ -6,6 +6,8 @@ Error messages
 
 typedef const char *ierror_msg_t;
 
+static const size_t error_msg_size = 8 * 1024;
+
 static ierror_msg_t NOINLINE ierror_msg_format (const char *fmt, ...)
 {
     va_list args;
@@ -53,35 +55,66 @@ static ierror_msg_t NOINLINE ierror_msg_add_line (iint_t line, ierror_msg_t orig
 Location-based errors
 */
 
+typedef enum ierror_tag {
+  IERROR_LIMIT_EXCEEDED,
+  IERROR_DISASTER
+} ierror_tag_t;
+
 typedef struct ierror_loc {
-    const char *line_start;
-    const char *line_end;
-    const char *span_start;
-    const char *span_end;
-    char        message[0];
+    const char   *line_start;
+    const char   *line_end;
+    const char   *span_start;
+    const char   *span_end;
+    ierror_tag_t  tag;
+    char          message[0];
 } *ierror_loc_t;
 
-static ierror_loc_t NOINLINE ierror_loc_format (const char *start, const char *end, const char *fmt, ...)
+static ierror_loc_t NOINLINE v_ierror_loc_tag_format (const ierror_tag_t tag, const char *start, const char *end, const char *fmt, va_list args)
 {
-    const size_t message_size = 4 * 1024;
+  const  size_t message_size = 4 * 1024;
+  struct ierror_loc *error  = calloc (sizeof (struct ierror_loc) + message_size, 1);
 
+  vsnprintf (error->message, message_size, fmt, args);
+
+  error->span_start = start;
+  error->span_end   = end;
+  error->tag        = tag;
+
+  return error;
+}
+
+static ierror_loc_t NOINLINE ierror_loc_tag_format (const ierror_tag_t tag, const char *start, const char *end, const char *fmt, ...)
+{
     va_list args;
     va_start (args, fmt);
 
-    struct ierror_loc *error = calloc (sizeof (struct ierror_loc) + message_size, 1);
+    struct ierror_loc *error = v_ierror_loc_tag_format (tag, start, end, fmt, args);
 
-    vsnprintf (error->message, message_size, fmt, args);
     va_end (args);
 
-    error->span_start = start;
-    error->span_end   = end;
+    return error;
+}
+
+static ierror_loc_t NOINLINE v_ierror_loc_format (const char *start, const char *end, const char *fmt, va_list args)
+{
+    return v_ierror_loc_tag_format (IERROR_DISASTER, start, end, fmt, args);
+}
+
+static ierror_loc_t NOINLINE ierror_loc_format (const char *start, const char *end, const char *fmt, ...)
+{
+    va_list args;
+    va_start (args, fmt);
+
+    struct ierror_loc *error = v_ierror_loc_format (start, end, fmt, args);
+
+    va_end (args);
 
     return error;
 }
 
 static ierror_msg_t NOINLINE ierror_loc_pretty (ierror_loc_t loc, iint_t line)
 {
-    size_t  msg_size = 8 * 1024;
+    size_t  msg_size = error_msg_size;
     char   *msg_text = calloc (msg_size, 1);
 
     char *p  = msg_text;

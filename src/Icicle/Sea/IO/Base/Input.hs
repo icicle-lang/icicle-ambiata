@@ -16,8 +16,8 @@ module Icicle.Sea.IO.Base.Input
   , CFun
   , Tombstones
   , SeaInput (..)
+  , SeaInputError (..)
   , seaOfReadNamedFact
-  , nameOfLastTime
   , initType
   , Assignment
   , assignVar
@@ -41,7 +41,6 @@ module Icicle.Sea.IO.Base.Input
 import qualified Data.ByteString                  as B
 import           Data.Map                         (Map)
 import           Data.Set                         (Set)
-import qualified Data.Text                        as T
 import qualified Data.Text.Encoding               as T
 import           Data.Word                        (Word8)
 
@@ -113,8 +112,17 @@ type CBlock = Doc
 type CFun   = Doc
 type CName  = Doc
 
+-- Common input errors, for both PSV and Zebra
+data SeaInputError = SeaInputError
+  { seaInputErrorTimeOutOfOrder   :: CStmt
+    -- ^ what to do when time is out of order
+  , seaInputErrorCountExceedLimit :: CStmt
+    -- ^ what to do when ent-attr count exceeds limit
+  }
+
+-- Common input statements, for both PSV and Zebra
 data SeaInput = SeaInput
-  { cstmtReadFact :: SeaProgramState -> Tombstones -> CheckedInput -> CStmt -> CStmt -> CFun
+  { cstmtReadFact     :: SeaProgramState -> Tombstones -> CheckedInput -> CStmt -> CStmt -> CFun
   -- ^ Generate C code to read input into the `program->input` struct.
   , cstmtReadTime     :: CStmt
   -- ^ Generate C code to read the current fact time.
@@ -124,19 +132,19 @@ data SeaInput = SeaInput
   -- ^ Name of the read_fact function. e.g. psv_read_fact_0.
   }
 
-seaOfReadNamedFact
-  :: SeaInput
-  -> InputAllowDupTime
-  -> SeaProgramState
-  -> CStmt -- ^ error case statement
-  -> CStmt
-seaOfReadNamedFact funs allowDupTime state err
+seaOfReadNamedFact :: SeaInput
+                   -> SeaInputError
+                   -> InputAllowDupTime
+                   -> SeaProgramState
+                   -> CStmt
+seaOfReadNamedFact funs errs allowDupTime state
  = let fun    = cnameFunReadFact funs  state
        pname  = pretty (nameOfProgram  state)
        tname  = pretty (nameOfLastTime state)
+       cname  = pretty (nameOfCount    state)
        tcond  = if allowDupTime == AllowDupTime
-                then "    if (time < last_time)"
-                else "    if (time <= last_time)"
+                then "if (time < last_time)"
+                else "if (time <= last_time)"
    in vsep
       [ "{"
       , "    itime_t time;"
@@ -158,7 +166,7 @@ seaOfReadNamedFact funs allowDupTime state err
       , ""
       , "    itime_t last_time = fleet->" <> tname <> ";"
       , ""
-      , tcond
+      , indent 4 tcond
       , "    {"
       , "        char curr_time_ptr[text_itime_max_size];"
       , "        size_t curr_time_size = text_write_itime (time, curr_time_ptr);"
@@ -166,12 +174,20 @@ seaOfReadNamedFact funs allowDupTime state err
       , "        char last_time_ptr[text_itime_max_size];"
       , "        size_t last_time_size = text_write_itime (last_time, last_time_ptr);"
       , ""
-      , err
+      , indent 8 $ seaInputErrorTimeOutOfOrder errs
       , "    }"
       , ""
       , "    fleet->" <> tname <> " = time;"
       , ""
+      , "    fleet->" <> cname <> " ++;"
+      , ""
+      , "    if (fleet->" <> cname <> " > facts_limit)"
+      , "    {"
+      , indent 8 $ seaInputErrorCountExceedLimit errs
+      , "    }"
+      , ""
       , "    return " <> fun <> " (value_ptr, value_size, time, fleet->mempool, chord_count, fleet->" <> pname <> ");"
+      , ""
       , "}"
       , ""
       ]
@@ -180,9 +196,6 @@ seaOfReadNamedFact funs allowDupTime state err
 
 initType :: ValType -> Doc
 initType vt = " = " <> seaOfXValue (defaultOfType vt) vt <> ";"
-
-nameOfLastTime :: SeaProgramState -> Text
-nameOfLastTime state = "last_time_" <> T.pack (show (stateName state))
 
 -- Describes how to assign to a C struct member, this changes for arrays
 type Assignment = Doc -> ValType -> Doc -> Doc

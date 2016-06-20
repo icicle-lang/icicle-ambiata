@@ -34,15 +34,18 @@ import           X.Control.Monad.Trans.Either (EitherT)
 import           X.Control.Monad.Trans.Either (bracketEitherT')
 import           X.Control.Monad.Trans.Either (left)
 
+
 ------------------------------------------------------------------------
 
 seaPsvSnapshotFilePath
   :: SeaFleet PsvState
   -> FilePath
   -> FilePath
+  -> FilePath
   -> Maybe FilePath
+  -> Int
   -> EitherT SeaError IO PsvStats
-seaPsvSnapshotFilePath fleet input output mchords = do
+seaPsvSnapshotFilePath fleet input output dropped mchords maxEntAttr = do
   let mopen mpath =
        case mpath of
          Nothing   -> pure Nothing
@@ -57,29 +60,35 @@ seaPsvSnapshotFilePath fleet input output mchords = do
                   (liftIO . Posix.closeFd) $ \ifd -> do
   bracketEitherT' (liftIO $ Posix.createFile output (Posix.CMode 0O644))
                   (liftIO . Posix.closeFd) $ \ofd -> do
+  bracketEitherT' (liftIO $ Posix.createFile dropped (Posix.CMode 0O644))
+                  (liftIO . Posix.closeFd) $ \dfd -> do
   bracketEitherT' (liftIO $ mopen mchords)
                   (liftIO . mclose) $ \mcfd -> do
-  seaPsvSnapshotFd fleet ifd ofd mcfd
+  seaPsvSnapshotFd fleet ifd ofd dfd mcfd maxEntAttr
 
 
 seaPsvSnapshotFd
   :: SeaFleet PsvState
   -> Posix.Fd
   -> Posix.Fd
+  -> Posix.Fd
   -> Maybe Posix.Fd
+  -> Int
   -> EitherT SeaError IO PsvStats
-seaPsvSnapshotFd fleet input output mchords =
-  withWords 6 $ \pState -> do
+seaPsvSnapshotFd fleet input output dropped mchords maxEntAttr =
+  withWords 8 $ \pState -> do
 
   pokeWordOff pState 0 input
   pokeWordOff pState 1 output
-  pokeWordOff pState 2 (fromMaybe 0 mchords)
+  pokeWordOff pState 2 dropped
+  pokeWordOff pState 3 (fromMaybe 0 mchords)
+  pokeWordOff pState 7 maxEntAttr
 
   liftIO (sfSnapshot fleet pState)
 
-  pError       <- peekWordOff pState 3
-  factsRead    <- peekWordOff pState 4
-  entitiesRead <- peekWordOff pState 5
+  pError       <- peekWordOff pState 4
+  factsRead    <- peekWordOff pState 5
+  entitiesRead <- peekWordOff pState 6
 
   when (pError /= nullPtr) $ do
     msg <- liftIO (peekCString pError)

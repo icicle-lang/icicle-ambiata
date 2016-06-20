@@ -132,7 +132,8 @@ createBenchmark (name, path) = do
   let dict   = (path </> "dictionary.toml")
       input  = (path </> "data.psv")
       output = (path </> "out.psv")
-  b <- I.createBenchmark mode dict input output Nothing
+      dropped= (path </> "drop.psv")
+  b <- I.createBenchmark mode dict input output dropped Nothing Nothing
   return (name, b)
 
 releaseBenchmarks :: [(String, I.Benchmark)] -> EitherT I.BenchError IO ()
