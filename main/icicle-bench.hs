@@ -24,25 +24,38 @@ import           Text.Printf (printf)
 
 import           X.Control.Monad.Trans.Either
 
-import           Prelude (read)
-
 ------------------------------------------------------------------------
 
 main :: IO ()
 main = do
   args <- getArgs
   case args of
-    [d, i, o, s, m, l] -> go d i o s m (Just (read l))
-    [d, i, o, s, m]    -> go d i o s m Nothing
-    _ -> do
-      putStrLn "usage: icicle-bench DICTIONARY INPUT_PSV OUTPUT_PSV OUTPUT_C SNAPSHOT_DATE FACTS_LIMIT"
-      putStrLn "  -or- icicle-bench DICTIONARY INPUT_PSV OUTPUT_PSV OUTPUT_C CHORD_PSV FACTS_LIMIT"
-      putStrLn ("invalid args: " <> show args)
+    argDict : argIn : argOut : argC : argDate : xs
+      -> case xs of
+           [a, argDrop, b]
+             | argLimit   <- readMaybe a
+             , argDiscard <- readDiscard b
+             , isJust argLimit && isJust argDiscard
+             -> go argDict argIn argOut argC argDate argLimit argDrop argDiscard
+             | otherwise
+             -> usage args
+           _ -> go argDict argIn argOut argC argDate Nothing (argOut <> "_dropped.txt") Nothing
+    _ -> usage args
   where
-    go dict inp out src modestr limit = do
+    usage as = do
+      putStrLn "usage: icicle-bench DICTIONARY INPUT_PSV OUTPUT_PSV OUTPUT_C SNAPSHOT_DATE [FACTS_LIMIT] [DROP_TXT] [DISCARD]"
+      putStrLn "  -or- icicle-bench DICTIONARY INPUT_PSV OUTPUT_PSV OUTPUT_C CHORD_PSV [FACTS_LIMIT] [DROP_TXT] [DISCARD]"
+      putStrLn ("invalid args: " <> show as)
+
+    readDiscard x
+      | x == "--discard-over-limit" = Just SeaDiscardOverLimit
+      | x == "--keep-over-limit"    = Just SeaWriteOverLimit
+      | otherwise                   = Nothing
+
+    go dict inp out src modestr limit dr discard = do
+     putStrLn $ "icicle-bench: facts_limit = " <> show limit
      let (mode, mchords) = modeOfString modestr
-     let dr              = out <> "_dropped.txt"
-     xx <- runEitherT (runBench mode dict inp out dr src mchords limit)
+     xx <- runEitherT (runBench mode dict inp out dr src mchords limit discard)
      case xx of
        Left (BenchSeaError err) -> print (pretty err)
        Left err                 -> print err
@@ -65,9 +78,10 @@ runBench
   -> FilePath
   -> Maybe FilePath
   -> Maybe Int
+  -> Maybe SeaFlagDiscard
   -> EitherT BenchError IO ()
 
-runBench mode dictionaryPath inputPath outputPath dropPath sourcePath chordPath limit = do
+runBench mode dictionaryPath inputPath outputPath dropPath sourcePath chordPath limit discard = do
   chordStart <- liftIO getCurrentTime
   when (isJust chordPath) $
     liftIO (putStrLn "icicle-bench: preparing chords")
@@ -85,7 +99,7 @@ runBench mode dictionaryPath inputPath outputPath dropPath sourcePath chordPath 
                                  outputPath
                                  dropPath
                                  packedChordPath
-                                 limit
+                                 limit discard
 
     liftIO (putStrLn "icicle-bench: starting compilation")
     bracketEitherT' create releaseBenchmark $ \bench -> do

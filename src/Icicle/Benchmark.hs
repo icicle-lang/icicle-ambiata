@@ -72,6 +72,7 @@ data Benchmark = Benchmark {
   , benchChordPath       :: Maybe FilePath
   , benchCompilationTime :: NominalDiffTime
   , benchFactsLimit      :: Int
+  , benchLimitDiscard    :: SeaFlagDiscard
   }
 
 data BenchmarkResult = BenchmarkResult {
@@ -89,9 +90,10 @@ createBenchmark
   -> FilePath
   -> Maybe FilePath
   -> Maybe Int
+  -> Maybe SeaFlagDiscard
   -> EitherT BenchError IO Benchmark
 
-createBenchmark mode dictionaryPath inputPath outputPath dropPath packedChordPath limit = do
+createBenchmark mode dictionaryPath inputPath outputPath dropPath packedChordPath limit discard = do
   start <- liftIO getCurrentTime
 
   dictionary <- firstEitherT BenchDictionaryImportError (loadDictionary SC.optionSmallData ImplicitPrelude dictionaryPath)
@@ -121,6 +123,7 @@ createBenchmark mode dictionaryPath inputPath outputPath dropPath packedChordPat
     , benchChordPath       = packedChordPath
     , benchCompilationTime = end `diffUTCTime` start
     , benchFactsLimit      = fromMaybe (1024*1024) limit
+    , benchLimitDiscard    = fromMaybe SeaWriteOverLimit discard
     }
 
 releaseBenchmark :: Benchmark -> EitherT BenchError IO ()
@@ -129,16 +132,17 @@ releaseBenchmark b =
 
 runBenchmark :: Benchmark -> EitherT BenchError IO BenchmarkResult
 runBenchmark b = do
-  let fleet      = benchFleet      b
-      inputPath  = benchInputPath  b
-      outputPath = benchOutputPath b
-      dropPath   = benchDropPath   b
-      chordPath  = benchChordPath  b
-      limit      = benchFactsLimit b
+  let fleet      = benchFleet        b
+      inputPath  = benchInputPath    b
+      outputPath = benchOutputPath   b
+      dropPath   = benchDropPath     b
+      chordPath  = benchChordPath    b
+      limit      = benchFactsLimit   b
+      discard    = benchLimitDiscard b
 
   start <- liftIO getCurrentTime
   stats <- firstEitherT BenchSeaError
-         $ seaPsvSnapshotFilePath fleet inputPath outputPath dropPath chordPath limit
+         $ seaPsvSnapshotFilePath fleet inputPath outputPath dropPath chordPath limit discard
   end   <- liftIO getCurrentTime
 
   size <- liftIO (withFile inputPath ReadMode hFileSize)

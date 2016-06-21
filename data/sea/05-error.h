@@ -116,6 +116,7 @@ static ierror_msg_t NOINLINE ierror_loc_pretty (ierror_loc_t loc, iint_t line)
 {
     size_t  msg_size = error_msg_size;
     char   *msg_text = calloc (msg_size, 1);
+    bzero(msg_text, msg_size);
 
     char *p  = msg_text;
     char *pe = msg_text + msg_size;
@@ -152,7 +153,6 @@ done:
 
     return msg_text;
 }
-
 
 /*
 Debugging
