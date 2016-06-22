@@ -212,14 +212,15 @@ runTest wt (TestOpts showInput showOutput inputFormat allowDupTime) = do
         output  = dir <> "/output.psv"
         dropped = dir <> "/dropped.psv"
         chords  = Nothing
-        maxEA   = 4096
+        limit   = 4096
+        discard = S.SeaWriteOverLimit
 
     liftIO (LT.writeFile program (LT.fromStrict source))
 
     let inputPsv = textOfFacts (wtEntities wt) (wtAttribute wt) (wtFacts wt)
     liftIO (L.writeFile input (LT.encodeUtf8 inputPsv))
 
-    result <- liftIO (runEitherT (S.seaPsvSnapshotFilePath fleet input output dropped chords maxEA))
+    result <- liftIO (runEitherT (S.seaPsvSnapshotFilePath fleet input output dropped chords limit discard))
 
     case result of
       Left err -> do

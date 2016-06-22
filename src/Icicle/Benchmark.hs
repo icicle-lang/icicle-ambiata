@@ -6,6 +6,8 @@ module Icicle.Benchmark (
     BenchError(..)
   , Benchmark(..)
   , BenchmarkResult(..)
+  , BenchInputPsv (..)
+  , BenchOutputPsv (..)
   , createBenchmark
   , releaseBenchmark
   , runBenchmark
@@ -72,6 +74,7 @@ data Benchmark = Benchmark {
   , benchChordPath       :: Maybe FilePath
   , benchCompilationTime :: NominalDiffTime
   , benchFactsLimit      :: Int
+  , benchLimitDiscard    :: SeaFlagDiscard
   }
 
 data BenchmarkResult = BenchmarkResult {
@@ -81,6 +84,9 @@ data BenchmarkResult = BenchmarkResult {
   , benchBytes    :: Int64
   } deriving (Eq, Ord, Show)
 
+data BenchInputPsv  = BenchInputSparse  | BenchInputDense
+data BenchOutputPsv = BenchOutputSparse | BenchOutputDense
+
 createBenchmark
   :: PsvMode
   -> FilePath
@@ -89,17 +95,22 @@ createBenchmark
   -> FilePath
   -> Maybe FilePath
   -> Maybe Int
+  -> Maybe SeaFlagDiscard
+  -> Maybe BenchInputPsv
+  -> Maybe BenchOutputPsv
   -> EitherT BenchError IO Benchmark
 
-createBenchmark mode dictionaryPath inputPath outputPath dropPath packedChordPath limit = do
+createBenchmark mode dictionaryPath inputPath outputPath dropPath packedChordPath limit discard input output = do
   start <- liftIO getCurrentTime
 
-  dictionary <- firstEitherT BenchDictionaryImportError (loadDictionary SC.optionSmallData ImplicitPrelude dictionaryPath)
+  (dictionary, input') <- firstEitherT BenchDictionaryImportError $ inputCfg input
+  let output'           = outputCfg output
+
   avalanche  <- hoistEither (avalancheOfDictionary dictionary)
 
   let cfg = HasInput
-          ( FormatPsv (PsvInputConfig  mode PsvInputSparse)
-                      (PsvOutputConfig mode PsvOutputSparse))
+          ( FormatPsv (PsvInputConfig  mode input')
+                      (PsvOutputConfig mode output'))
           ( InputOpts AllowDupTime
                      (tombstonesOfDictionary dictionary))
 
@@ -121,7 +132,22 @@ createBenchmark mode dictionaryPath inputPath outputPath dropPath packedChordPat
     , benchChordPath       = packedChordPath
     , benchCompilationTime = end `diffUTCTime` start
     , benchFactsLimit      = fromMaybe (1024*1024) limit
+    , benchLimitDiscard    = fromMaybe SeaWriteOverLimit discard
     }
+  where
+    inputCfg x = case x of
+      Just BenchInputDense -> do
+        (dict, dense) <- loadDenseDictionary SC.optionSmallData ImplicitPrelude dictionaryPath Nothing
+        return (dict, PsvInputDense dense (denseSelectedFeed dense))
+      Just BenchInputSparse -> do
+        dict <- loadDictionary SC.optionSmallData ImplicitPrelude dictionaryPath
+        return (dict, PsvInputSparse)
+      Nothing -> inputCfg $ Just BenchInputSparse
+
+    outputCfg x = case x of
+      Just BenchOutputDense  -> PsvOutputDense defaultMissingValue
+      Just BenchOutputSparse -> PsvOutputSparse
+      Nothing                -> outputCfg $ Just BenchOutputSparse
 
 releaseBenchmark :: Benchmark -> EitherT BenchError IO ()
 releaseBenchmark b =
@@ -129,16 +155,17 @@ releaseBenchmark b =
 
 runBenchmark :: Benchmark -> EitherT BenchError IO BenchmarkResult
 runBenchmark b = do
-  let fleet      = benchFleet      b
-      inputPath  = benchInputPath  b
-      outputPath = benchOutputPath b
-      dropPath   = benchDropPath   b
-      chordPath  = benchChordPath  b
-      limit      = benchFactsLimit b
+  let fleet      = benchFleet        b
+      inputPath  = benchInputPath    b
+      outputPath = benchOutputPath   b
+      dropPath   = benchDropPath     b
+      chordPath  = benchChordPath    b
+      limit      = benchFactsLimit   b
+      discard    = benchLimitDiscard b
 
   start <- liftIO getCurrentTime
   stats <- firstEitherT BenchSeaError
-         $ seaPsvSnapshotFilePath fleet inputPath outputPath dropPath chordPath limit
+         $ seaPsvSnapshotFilePath fleet inputPath outputPath dropPath chordPath limit discard
   end   <- liftIO getCurrentTime
 
   size <- liftIO (withFile inputPath ReadMode hFileSize)

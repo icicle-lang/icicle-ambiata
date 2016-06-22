@@ -1,0 +1,12 @@
+line 2: bar|salary|100|1989-12-18
+        ^~~~ entity bar had too many salary facts, they have been dropped starting from here
+total: 1 facts for bar were dropped.
+
+line 4: foo|salary|10|1989-12-18
+        ^~~~ entity foo had too many salary facts, they have been dropped starting from here
+total: 3 facts for foo were dropped.
+
+line 6: foooo|salary|40|1989-12-20
+        ^~~~~~ entity foooo had too many salary facts, they have been dropped starting from here
+total: 1 facts for foooo were dropped.
+

@@ -247,7 +247,7 @@ seaOfReadNamedFactDense opts state
                 , "   ( IERROR_LIMIT_EXCEEDED"
                 , "   , entity_ptr + entity_size"
                 , "   , entity_ptr"
-                , "   , \"%.*s had too many %.*s facts, they have been dropped starting from here\\n\""
+                , "   , \"%.*s had too many %s facts, they have been dropped starting from here\\n\""
                 , "   , entity_size"
                 , "   , entity_ptr"
                 , "   , \"" <> pretty attrib <> "\");"
