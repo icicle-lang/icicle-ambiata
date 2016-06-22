@@ -13,6 +13,7 @@ import           Icicle.Common.Exp.Simp.ANormal
 import qualified Icicle.Common.Exp.Simp.Beta    as B
 import           Icicle.Common.Fresh
 import           Icicle.Common.Type
+import           Icicle.Common.FixT
 import qualified Icicle.Core.Exp                as C
 import           Icicle.Core.Exp.Prim
 import qualified Icicle.Core.Eval.Exp           as CE
@@ -21,6 +22,7 @@ import           P
 
 import qualified Data.Set                       as Set
 import           Data.Hashable                  (Hashable)
+import           Data.Functor.Identity
 
 
 -- | Core Simplifier:
@@ -30,14 +32,11 @@ import           Data.Hashable                  (Hashable)
 --   * ...something exciting???
 --
 simp :: (Hashable n, Eq n) => a -> (C.Exp a n -> Bool) -> C.Exp a n -> Fresh n (C.Exp a n)
-simp a_fresh isValue = anormal a_fresh . deadX . fixp (simpX a_fresh isValue)
- where
-  fixp f x
-   | Just x' <- f x = fixp f x'
-   | otherwise      = x
+simp a_fresh isValue = anormal a_fresh . deadX . runIdentity . fixpoint (simpX a_fresh isValue)
 
 
-simpX :: (Hashable n, Eq n)=> a -> (C.Exp a n -> Bool) -> C.Exp a n -> Maybe (C.Exp a n)
+simpX :: (Monad m, Hashable n, Eq n)
+      => a -> (C.Exp a n -> Bool) -> C.Exp a n -> FixT m (C.Exp a n)
 simpX a_fresh isValue = go . beta
   where
     beta  = B.beta isValue
@@ -50,21 +49,21 @@ simpX a_fresh isValue = go . beta
              case takePrimApps x' of
                Just (prim, as)
                  | Just args <- mapM takeValue as
-                 -> simpP a_fresh prim args
+                 -> case simpP a_fresh prim args of
+                      Just x''
+                        -> progress x''
+                      _ -> return x'
                _ -> return x'
 
       XLam a n t x1
         -> XLam a n t <$> go x1
 
       XLet a n p q
-        | Just p' <- go p, Just q' <- go q -> Just $ XLet a n p' q'
-        | Just p' <- go p, Nothing <- go q -> Just $ XLet a n p' q
-        | Nothing <- go p, Just q' <- go q -> Just $ XLet a n p  q'
-        | otherwise                        -> Nothing
+        -> XLet a n <$> go p <*> go q
 
-      XVar{}   -> Nothing
-      XPrim{}  -> Nothing
-      XValue{} -> Nothing
+      XVar{}   -> return xx
+      XPrim{}  -> return xx
+      XValue{} -> return xx
 
 
 -- | Primitive Simplifier
