@@ -265,10 +265,11 @@ seaOfXValue v t
  where
   prim p args
    = seaOfPrimDocApps (seaOfXPrim p) args
+  -- assume math.h has these
   nan
-   = "0.0/0.0"
+   = "NAN"
   inf
-   = "sqrt(-1.0)" -- assuming math.h
+   = "INFINITY"
 
 seaOfError :: ExceptionInfo -> Doc
 seaOfError e

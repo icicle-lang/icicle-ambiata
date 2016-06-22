@@ -2473,4 +2473,19 @@ void iprogram_0(iprogram_0_t *s)
 [homer, 2029-12-27
 ,marge, 2009-12-12]
 
+> > -- Math
+> ok, c is now off
+ok, flatten (simplified) is now off
+> > - C evaluation:
+[homer, NaN]
+
+- Core evaluation:
+[homer, NaN]
+
+> > - C evaluation:
+[homer, Infinity]
+
+- Core evaluation:
+[homer, Infinity]
+
 > 
