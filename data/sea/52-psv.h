@@ -344,12 +344,17 @@ static ierror_loc_t psv_read_buffer (psv_state_t *s, const size_t facts_limit)
                                      , entity_cur
                                      , entity_cur_size
                                      , s->fleet );
+                if (msg) {
+                    error = ierror_loc_format (0, 0, "%s", msg);
+                    goto on_error;
+                }
+
                 /* we need to flush the output immediately because it might be the case that
                    the result for the new entity will need to be flushed to drop_fd, while the output
                    for the old entity here needs to be flushed to output_fd as usual. */
                 msg = psv_flush_to_output (s);
 
-                if (error) {
+                if (msg) {
                     error = ierror_loc_format (0, 0, "%s", msg);
                     goto on_error;
                 }
