@@ -6,6 +6,8 @@ module Icicle.Benchmark (
     BenchError(..)
   , Benchmark(..)
   , BenchmarkResult(..)
+  , BenchInputPsv (..)
+  , BenchOutputPsv (..)
   , createBenchmark
   , releaseBenchmark
   , runBenchmark
@@ -82,6 +84,9 @@ data BenchmarkResult = BenchmarkResult {
   , benchBytes    :: Int64
   } deriving (Eq, Ord, Show)
 
+data BenchInputPsv  = BenchInputSparse  | BenchInputDense
+data BenchOutputPsv = BenchOutputSparse | BenchOutputDense
+
 createBenchmark
   :: PsvMode
   -> FilePath
@@ -91,17 +96,21 @@ createBenchmark
   -> Maybe FilePath
   -> Maybe Int
   -> Maybe SeaFlagDiscard
+  -> Maybe BenchInputPsv
+  -> Maybe BenchOutputPsv
   -> EitherT BenchError IO Benchmark
 
-createBenchmark mode dictionaryPath inputPath outputPath dropPath packedChordPath limit discard = do
+createBenchmark mode dictionaryPath inputPath outputPath dropPath packedChordPath limit discard input output = do
   start <- liftIO getCurrentTime
 
-  dictionary <- firstEitherT BenchDictionaryImportError (loadDictionary SC.optionSmallData ImplicitPrelude dictionaryPath)
+  (dictionary, input') <- firstEitherT BenchDictionaryImportError $ inputCfg input
+  let output'           = outputCfg output
+
   avalanche  <- hoistEither (avalancheOfDictionary dictionary)
 
   let cfg = HasInput
-          ( FormatPsv (PsvInputConfig  mode PsvInputSparse)
-                      (PsvOutputConfig mode PsvOutputSparse))
+          ( FormatPsv (PsvInputConfig  mode input')
+                      (PsvOutputConfig mode output'))
           ( InputOpts AllowDupTime
                      (tombstonesOfDictionary dictionary))
 
@@ -125,6 +134,20 @@ createBenchmark mode dictionaryPath inputPath outputPath dropPath packedChordPat
     , benchFactsLimit      = fromMaybe (1024*1024) limit
     , benchLimitDiscard    = fromMaybe SeaWriteOverLimit discard
     }
+  where
+    inputCfg x = case x of
+      Just BenchInputDense -> do
+        (dict, dense) <- loadDenseDictionary SC.optionSmallData ImplicitPrelude dictionaryPath Nothing
+        return (dict, PsvInputDense dense (denseSelectedFeed dense))
+      Just BenchInputSparse -> do
+        dict <- loadDictionary SC.optionSmallData ImplicitPrelude dictionaryPath
+        return (dict, PsvInputSparse)
+      Nothing -> inputCfg $ Just BenchInputSparse
+
+    outputCfg x = case x of
+      Just BenchOutputDense  -> PsvOutputDense defaultMissingValue
+      Just BenchOutputSparse -> PsvOutputSparse
+      Nothing                -> outputCfg $ Just BenchOutputSparse
 
 releaseBenchmark :: Benchmark -> EitherT BenchError IO ()
 releaseBenchmark b =

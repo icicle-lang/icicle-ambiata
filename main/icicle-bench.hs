@@ -32,30 +32,49 @@ main = do
   case args of
     argDict : argIn : argOut : argC : argDate : xs
       -> case xs of
-           [a, argDrop, b]
-             | argLimit   <- readMaybe a
-             , argDiscard <- readDiscard b
+           -- it's all
+           [lim, dr, discard, input, output]
+             | argLimit   <- readMaybe     lim
+             , argDiscard <- readDiscard   discard
+             , argInPsv   <- readInputPsv  input
+             , argOutPsv  <- readOutputPsv output
              , isJust argLimit && isJust argDiscard
-             -> go argDict argIn argOut argC argDate argLimit argDrop argDiscard
+             -> go argDict argIn argOut argC argDate
+                   argLimit dr argDiscard
+                   argInPsv argOutPsv
              | otherwise
              -> usage args
-           _ -> go argDict argIn argOut argC argDate Nothing (argOut <> "_dropped.txt") Nothing
+           -- or nothing!
+           _ -> go argDict argIn argOut argC argDate
+                   Nothing (argOut <> "_dropped.txt") Nothing
+                   Nothing Nothing
+
     _ -> usage args
   where
     usage as = do
       putStrLn "usage: icicle-bench DICTIONARY INPUT_PSV OUTPUT_PSV OUTPUT_C SNAPSHOT_DATE [FACTS_LIMIT] [DROP_TXT] [DISCARD]"
-      putStrLn "  -or- icicle-bench DICTIONARY INPUT_PSV OUTPUT_PSV OUTPUT_C CHORD_PSV [FACTS_LIMIT] [DROP_TXT] [DISCARD]"
+      putStrLn "  -or- icicle-bench DICTIONARY INPUT_PSV OUTPUT_PSV OUTPUT_C CHORD_PSV     [FACTS_LIMIT] [DROP_TXT] [DISCARD]"
       putStrLn ("invalid args: " <> show as)
 
     readDiscard x
-      | x == "--discard-over-limit" = Just SeaDiscardOverLimit
-      | x == "--keep-over-limit"    = Just SeaWriteOverLimit
-      | otherwise                   = Nothing
+      | x == "--discard=true" = Just SeaDiscardOverLimit
+      | x == "--discard=false"= Just SeaWriteOverLimit
+      | otherwise             = Nothing
 
-    go dict inp out src modestr limit dr discard = do
+    readInputPsv x
+      | x == "--input=sparse" = Just BenchInputSparse
+      | x == "--input=dense"  = Just BenchInputDense
+      | otherwise             = Nothing
+
+    readOutputPsv x
+      | x == "--output=sparse" = Just BenchOutputSparse
+      | x == "--output=dense"  = Just BenchOutputDense
+      | otherwise              = Nothing
+
+    go dict inp out src modestr limit dr discard input output = do
      putStrLn $ "icicle-bench: facts_limit = " <> show limit
      let (mode, mchords) = modeOfString modestr
-     xx <- runEitherT (runBench mode dict inp out dr src mchords limit discard)
+     xx <- runEitherT (runBench mode dict inp out dr src mchords limit discard input output)
      case xx of
        Left (BenchSeaError err) -> print (pretty err)
        Left err                 -> print err
@@ -79,9 +98,11 @@ runBench
   -> Maybe FilePath
   -> Maybe Int
   -> Maybe SeaFlagDiscard
+  -> Maybe BenchInputPsv
+  -> Maybe BenchOutputPsv
   -> EitherT BenchError IO ()
 
-runBench mode dictionaryPath inputPath outputPath dropPath sourcePath chordPath limit discard = do
+runBench mode dictionaryPath inputPath outputPath dropPath sourcePath chordPath limit discard input output = do
   chordStart <- liftIO getCurrentTime
   when (isJust chordPath) $
     liftIO (putStrLn "icicle-bench: preparing chords")
@@ -100,6 +121,7 @@ runBench mode dictionaryPath inputPath outputPath dropPath sourcePath chordPath 
                                  dropPath
                                  packedChordPath
                                  limit discard
+                                 input output
 
     liftIO (putStrLn "icicle-bench: starting compilation")
     bracketEitherT' create releaseBenchmark $ \bench -> do
