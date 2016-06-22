@@ -219,10 +219,23 @@ seaOfXValue v t
      VUnit         -> "iunit"
      VBool   True  -> "itrue"
      VBool   False -> "ifalse"
-     VInt    x     -> int x
-     VDouble x     -> double x
      VTime   x     -> seaOfTime x
      VString x     -> seaOfString x
+
+     VInt x
+      | isNaN      (fromIntegral x :: Double)
+      -> nan
+      | isInfinite (fromIntegral x :: Double)
+      -> inf
+      | otherwise
+      -> int x
+     VDouble x
+      | isNaN      x
+      -> nan
+      | isInfinite x
+      -> inf
+      | otherwise
+      -> double x
 
      VArray vs
       | ArrayT t' <- t
@@ -252,6 +265,10 @@ seaOfXValue v t
  where
   prim p args
    = seaOfPrimDocApps (seaOfXPrim p) args
+  nan
+   = "0.0/0.0"
+  inf
+   = "sqrt(-1.0)" -- assuming math.h
 
 seaOfError :: ExceptionInfo -> Doc
 seaOfError e
