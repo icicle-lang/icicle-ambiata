@@ -20,13 +20,14 @@ echo "OK!"
 
 ################################################################################
 
-echo "2. Dropping sparse facts that exceed the limit"
+echo "2. Dropping sparse facts that exceed the limit."
+echo "Facts: 2 for bar, 4 for foo, then 2 for foooo"
 
 t2_common_args="--discard=true --input=sparse --output=sparse"
 t2_dict=test/cli/bench/t2-dictionary.toml
 t2_in=test/cli/bench/t2-in.psv
 
-echo "Max 0 fact"
+echo "Limit: 0 fact. Output should be empty. Drop log should point to the first fact for each entity."
 
 t2_expected_psv_0=test/cli/bench/t2-expected-0.psv
 t2_expected_drop_0=test/cli/bench/t2-drop-0.txt
@@ -43,7 +44,7 @@ rm $t2_c_0
 rm $t2_psv_0
 rm $t2_drop_0
 
-echo "Max 1 fact"
+echo "Limit: 1 fact. Output should be empty. Drop log should point to the second fact for each entity."
 
 t2_expected_psv_1=test/cli/bench/t2-expected-1.psv
 t2_expected_drop_1=test/cli/bench/t2-drop-1.txt
@@ -60,7 +61,7 @@ rm $t2_c_1
 rm $t2_psv_1
 rm $t2_drop_1
 
-echo "Max 2 facts"
+echo "Limit: 2 facts. Output should have bar and foooo. Drop log should point to the third fact for foo only."
 
 t2_expected_psv_2=test/cli/bench/t2-expected-2.psv
 t2_expected_drop_2=test/cli/bench/t2-drop-2.txt

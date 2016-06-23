@@ -1,4 +1,5 @@
 line 5: marge|5|UT|{"location":"head","severity":2.5}|1991-12-19
         ^~~~~~ marge had too many person facts, they have been dropped starting from here
+marge|newest_misery|9
 total: 1 facts for marge were dropped.
 

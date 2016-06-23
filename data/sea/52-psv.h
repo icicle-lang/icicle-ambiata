@@ -106,10 +106,18 @@ static ierror_msg_t INLINE psv_write_outputs
   , size_t entity_size
   , ifleet_t *fleet );
 
+static ierror_msg_t INLINE psv_write_to_output
+  ( psv_state_t *s
+  , const char *entity
+  , const size_t entity_size );
+
 static ierror_msg_t INLINE psv_write_to_drop
   ( psv_state_t *s
   , const char *entity
   , const size_t entity_size );
+
+static ierror_msg_t INLINE psv_flush_to_output
+  ( psv_state_t *s );
 
 static ierror_msg_t INLINE psv_flush_to_drop
   ( psv_state_t *s );
@@ -336,8 +344,17 @@ static ierror_loc_t psv_read_buffer (psv_state_t *s, const size_t facts_limit)
                                      , entity_cur
                                      , entity_cur_size
                                      , s->fleet );
+                if (msg) {
+                    error = ierror_loc_format (0, 0, "%s", msg);
+                    goto on_error;
+                }
 
-                if (error) {
+                /* we need to flush the output immediately because it might be the case that
+                   the result for the new entity will need to be flushed to drop_fd, while the output
+                   for the old entity here needs to be flushed to output_fd as usual. */
+                msg = psv_flush_to_output (s);
+
+                if (msg) {
                     error = ierror_loc_format (0, 0, "%s", msg);
                     goto on_error;
                 }
@@ -462,7 +479,7 @@ static ierror_msg_t INLINE psv_flush_to_output (psv_state_t *s)
 
 static ierror_msg_t INLINE psv_flush_to_drop (psv_state_t *s)
 {
-  return psv_output_flush (s->output_fd, s->output_start, &s->output_ptr);
+  return psv_output_flush (s->drop_fd, s->output_start, &s->output_ptr);
 }
 
 #define ENSURE_SIZE(bytes_required)                                   \

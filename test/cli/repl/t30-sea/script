@@ -9,3 +9,10 @@ feature injury ~> mean (double severity) * (filter location == "torso" ~> sd sev
 
 -- Times
 feature salary ~> max (days between `1980-01-06` time days after `2000-01-01`)
+
+-- Math
+:set -c -flatten
+
+feature injury ~> newest (sqrt (-1))
+
+feature injury ~> newest (1/0)
