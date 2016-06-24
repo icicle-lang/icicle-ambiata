@@ -47,7 +47,7 @@ import           X.Control.Monad.Trans.Either
 data DictionaryImportError
   = DictionaryErrorIO          E.SomeException
   | DictionaryErrorParsecTOML  Parsec.ParseError
-  | DictionaryErrorCompilation (P.CompileError Parsec.SourcePos SP.Variable ())
+  | DictionaryErrorCompilation (P.CompileError P.SourceVar)
   | DictionaryErrorParse       [DictionaryValidationError]
   | DictionaryErrorDense       DictionaryDenseError
   deriving (Show)

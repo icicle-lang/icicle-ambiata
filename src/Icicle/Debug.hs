@@ -27,7 +27,7 @@ import           Icicle.Dictionary
 
 import           Icicle.Internal.Pretty (pretty)
 
-import           Icicle.Pipeline
+import qualified Icicle.Pipeline as P
 
 import qualified Icicle.Source.Parser as S
 import qualified Icicle.Source.Query as S
@@ -48,9 +48,7 @@ import           X.Control.Monad.Trans.Either
 
 data DebugError =
     DebugDictionaryImportError DictionaryImportError
-  | DebugSourceError    (CompileError SourcePos S.Variable ())
-  | DebugFusionError    (FusionError S.Variable)
-  | DebugAvalancheError (CompileError () S.Variable A.Prim)
+  | DebugCompileError          (P.CompileError P.SourceVar)
   deriving (Show)
 
 ------------------------------------------------------------------------
@@ -66,9 +64,7 @@ avalancheOrDie' checkOpts dictionaryPath sources = unsafePerformIO $ do
   result <- runEitherT (avalancheFrom checkOpts dictionaryPath sources)
   case result of
     Left (DebugDictionaryImportError x) -> error ("avalancheOrDie: " <> show (pretty x))
-    Left (DebugSourceError           x) -> error ("avalancheOrDie: " <> show (pretty x))
-    Left (DebugFusionError           x) -> error ("avalancheOrDie: " <> show x)
-    Left (DebugAvalancheError        x) -> error ("avalancheOrDie: " <> show (pretty x))
+    Left (DebugCompileError          x) -> error ("avalancheOrDie: " <> show (pretty x))
     Right xs                            -> pure xs
 
 avalancheFrom
@@ -83,71 +79,19 @@ avalancheFrom checkOpts dictionaryPath sources = do
   let dictionary' = dictionary { dictionaryEntries = filter concrete (dictionaryEntries dictionary)
                                                   <> fmap (uncurry entryOfQuery) queries }
 
-  avalanche  <- hoistEither (avalancheOfDictionary checkOpts dictionary')
+  avalanche  <- hoistEither (avalancheOfDictionary dictionary')
   return avalanche
+  where
+    avalancheOfDictionary dict
+      = first DebugCompileError
+      $ P.avalancheOfDictionaryOpt checkOpts dict
 
-------------------------------------------------------------------------
+    queryOfSource checkOpts dict name src
+      = first DebugCompileError
+      $ P.queryOfSourceOpt checkOpts dict name src "namespace-debug"
 
-avalancheOfDictionary :: SC.CheckOptions -> Dictionary -> Either DebugError (Map Attribute (A.Program (Annot ()) S.Variable A.Prim))
-avalancheOfDictionary checkOpts dict = do
-  let virtuals = fmap (second unVirtual) (getVirtualFeatures dict)
-
-  core      <- traverse (coreOfQuery checkOpts dict) virtuals
-  fused     <- traverse fuseCore (Map.unionsWith (<>) core)
-  avalanche <- traverse avalancheOfCore fused
-
-  return avalanche
-
-avalancheOfCore :: C.Program () S.Variable -> Either DebugError (A.Program (Annot ()) S.Variable A.Prim)
-avalancheOfCore core = do
-  flat    <- first DebugAvalancheError (coreFlatten core)
-  checked <- first DebugAvalancheError (checkAvalanche flat)
-  return checked
-
-fuseCore :: [(S.Variable, C.Program () S.Variable)] -> Either DebugError (C.Program () S.Variable)
-fuseCore =
-  first DebugFusionError . C.fuseMultiple ()
-
-coreOfQuery
-  :: SC.CheckOptions
-  -> Dictionary
-  -> (Attribute, S.QueryTop (S.Annot SourcePos S.Variable) S.Variable)
-  -> Either DebugError (Map Attribute [(S.Variable, C.Program () S.Variable)])
-coreOfQuery checkOpts dict (Attribute attr, virtual) =
-  first DebugSourceError $ do
-    let inlined = sourceInline dict virtual
-
-    desugared    <- sourceDesugarQT inlined
-    (checked, _) <- sourceCheckQT checkOpts dict desugared
-
-    let reified = sourceReifyQT checked
-
-    core <- sourceConvert dict reified
-    let simplified = coreSimp core
-
-    let baseattr  = (Attribute . unVar . unName) (S.feature virtual)
-
-    pure (Map.singleton baseattr [(S.Variable attr, simplified)])
-
-queryOfSource
-  :: SC.CheckOptions
-  -> Dictionary
-  -> Text
-  -> Text
-  -> Either DebugError (Attribute, S.QueryTop (S.Annot SourcePos S.Variable) S.Variable)
-queryOfSource checkOpts dict name src =
-  first DebugSourceError $ do
-    parsed       <- sourceParseQT name (Namespace "namespace-debug") src
-    desugared    <- sourceDesugarQT parsed
-    (checked, _) <- sourceCheckQT checkOpts dict desugared
-    pure (Attribute name, checked)
-
-entryOfQuery
-  :: Attribute
-  -> S.QueryTop (S.Annot SourcePos S.Variable) S.Variable
-  -> DictionaryEntry
-entryOfQuery attr query =
-  DictionaryEntry attr (VirtualDefinition (Virtual query)) (Namespace "namespace-debug")
+    entryOfQuery attr query
+      = P.entryOfQuery attr query "namespace-debug"
 
 ------------------------------------------------------------------------
 
