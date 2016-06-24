@@ -6,6 +6,7 @@
 {-# LANGUAGE DeriveGeneric     #-}
 module Icicle.Pipeline
   ( CompileError(..)
+  , STI.InlineOption (..)
 
   , SourceVar
   , AnnotType
@@ -319,10 +320,11 @@ sourceCheckF env parsedImport
  $ runEitherT
  $ SC.checkFs env parsedImport
 
-sourceInline :: Dictionary
+sourceInline :: STI.InlineOption
+             -> Dictionary
              -> QueryTop'T SourceVar
              -> QueryTop' SourceVar
-sourceInline d q
+sourceInline opt d q
  = SQ.reannotQT ST.annAnnot
  $ inline q
  where
@@ -331,7 +333,7 @@ sourceInline d q
             $ Dict.dictionaryFunctions d
   inline q' = snd
             $ Fresh.runFresh
-                (STI.inlineQT funs q')
+                (STI.inlineQT opt funs q')
                 (freshNamer "inline")
 
 ----------------------------------------
@@ -434,15 +436,18 @@ simpFlattened opts av
 -- * dictionary
 
 avalancheOfDictionary :: Dictionary -> Either Error (AvalPrograms SourceVar)
-avalancheOfDictionary = avalancheOfDictionaryOpt SC.optionSmallData
+avalancheOfDictionary = avalancheOfDictionaryOpt SC.optionSmallData STI.InlineByName
 
-avalancheOfDictionaryOpt :: SC.CheckOptions -> Dictionary -> Either Error (AvalPrograms SourceVar)
-avalancheOfDictionaryOpt opt dict = do
+avalancheOfDictionaryOpt :: SC.CheckOptions
+                         -> STI.InlineOption
+                         -> Dictionary
+                         -> Either Error (AvalPrograms SourceVar)
+avalancheOfDictionaryOpt checkOpt inlineOpt dict = do
   let virtuals = fmap (second Dict.unVirtual) (Dict.getVirtualFeatures dict)
 
-  core      <- parTraverse (coreOfSourceOpt opt dict) virtuals
-  fused     <- parTraverse fuseCore                   (M.unionsWith (<>) core)
-  avalanche <- parTraverse avalancheOfCore            fused
+  core      <- parTraverse (coreOfSourceOpt checkOpt inlineOpt dict) virtuals
+  fused     <- parTraverse fuseCore                                 (M.unionsWith (<>) core)
+  avalanche <- parTraverse avalancheOfCore                           fused
 
   return avalanche
 
@@ -462,14 +467,18 @@ fuseCore programs = first CompileErrorFusion $ do
 
 coreOfSource :: Dictionary -> Queries -> Either Error (CorePrograms SourceVar)
 coreOfSource d qs
-  = coreOfSourceOpt SC.optionSmallData d qs
+  = coreOfSourceOpt SC.optionSmallData STI.InlineByName d qs
 
-coreOfSourceOpt :: SC.CheckOptions -> Dictionary -> Queries -> Either Error (CorePrograms SourceVar)
-coreOfSourceOpt opt dict (Attribute attr, virtual) = do
-  let inlined   = sourceInline dict virtual
+coreOfSourceOpt :: SC.CheckOptions
+                -> STI.InlineOption
+                -> Dictionary
+                -> Queries
+                -> Either Error (CorePrograms SourceVar)
+coreOfSourceOpt checkOpt inlineOpt dict (Attribute attr, virtual) = do
+  let inlined   = sourceInline inlineOpt dict virtual
 
   desugared    <- sourceDesugarQT inlined
-  (checked, _) <- sourceCheckQT opt dict desugared
+  (checked, _) <- sourceCheckQT checkOpt dict desugared
 
   let reified = sourceReifyQT checked
 
