@@ -120,7 +120,7 @@ numflips' v t
 # Group by given key, count, and find the most common element.
 # If there are multiple elements with the maximum count we return one of those,
 # but exactly which one is undefined and deterministic.
-mode key
+distribution_mode key
  = group fold (key', count') = (group key ~> count key)
  ~> max_by count' key'.
 

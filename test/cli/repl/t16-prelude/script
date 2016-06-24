@@ -44,5 +44,5 @@ feature salary ~> latest 1 ~> isNone (Some "hi")
 feature salary ~> getOrElse 3 (Some (newest value))
 
 -- Mode example
-feature salary ~> mode (int_div value 1000)
+feature salary ~> distribution_mode (int_div value 300)
 

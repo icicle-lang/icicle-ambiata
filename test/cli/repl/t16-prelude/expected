@@ -135,9 +135,9 @@ ok, loaded test/cli/repl/data.psv, 13 rows
 
 > > -- Mode example
 > - C evaluation:
-[homer, 0,marge, 0]
+[homer, 1,marge, 0]
 
 - Core evaluation:
-[homer, 0,marge, 0]
+[homer, 1,marge, 0]
 
 > > 
