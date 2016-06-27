@@ -1,38 +1,51 @@
 [master]
-  runner = "s3://ambiata-dispensary-v2/dist/master/master-ambiata/master-haskell-library-0.0.1-20160222050525-36fdb70"
+  runner = "s3://ambiata-dispensary-v2/dist/master/master-haskell/linux/x86_64/20160614225955-a2cc8b9/master-haskell-20160614225955-a2cc8b9"
   version = 1
-  sha1 = "b89ee2ce5fc08b8f1ec5d92c6199b5fda9484783"
+  sha1 = "f827e1ff43bcaa325d128662391d95a8b4d65525"
 
-[build.dist]
-  MAFIA_ALEX = "true"
+[build.dist-7-8]
+  GHC_VERSION="7.8.4"
+  CABAL_VERSION="1.22.4.0"
   MAFIA_HAPPY = "true"
-  HADDOCK="true"
-  PUBLISH="icicle-repl"
+  MAFIA_ALEX = "true"
 
-[build.dist-bench]
-  MAFIA_ALEX = "true"
+[build.dist-7-10]
+  GHC_VERSION="7.10.2"
+  CABAL_VERSION="1.22.4.0"
   MAFIA_HAPPY = "true"
-  TEST="false"
-  BENCH="true"
-  PUBLISH_BENCH="icicle"  
+  MAFIA_ALEX = "true"
+  HADDOCK = "true"
+  HADDOCK_S3 = "$AMBIATA_HADDOCK_MASTER"
+  PUBLISH = "true"
+  PUBLISH_S3 = "$AMBIATA_ARTEFACTS_MASTER"
+  PUBLISH_EXECUTABLES = "icicle-repl"
 
-[build.branches]
-  MAFIA_ALEX = "true"
+[build.branches-7-8]
+  GHC_VERSION = "7.8.4"
+  CABAL_VERSION = "1.22.4.0"
   MAFIA_HAPPY = "true"
+  MAFIA_ALEX = "true"
 
-[build.branches-bench]
-  MAFIA_ALEX = "true"
+[build.branches-7-10]
+  GHC_VERSION = "7.10.2"
+  CABAL_VERSION = "1.22.4.0"
   MAFIA_HAPPY = "true"
-  TEST="false"
-  BENCH="true"
+  MAFIA_ALEX = "true"
+  HADDOCK = "true"
+  HADDOCK_S3 = "$AMBIATA_HADDOCK_BRANCHES"
+  PUBLISH = "true"
+  PUBLISH_S3 = "$AMBIATA_ARTEFACTS_BRANCHES"
+  PUBLISH_EXECUTABLES = "icicle-repl"
+
+#
+# Swadling Territory
+#
 
 [build.appshop]
   MAFIA_ALEX = "true"
   MAFIA_HAPPY = "true"
-  PUBLISH_APPSHOP="icicle-repl"
+  PUBLISH_APPSHOP = "icicle-repl"
 
 [build.appshop.master]
-  MAFIA_ALEX = "true"
-  MAFIA_HAPPY = "true"
   runner = "s3://ambiata-dispensary-v2/dist/master/master-ambiata/master-haskell-appshop-0.0.1-20160114232634-a8a6f45"
   sha1 = "7890c390e5088c5b38264341d2451bd2f54de184"
