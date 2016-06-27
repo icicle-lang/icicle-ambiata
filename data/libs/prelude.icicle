@@ -36,7 +36,7 @@ snd x = case x | (a,b) -> b end.
 
 group_keys k = keys (group k ~> 0).
 
-# This only works if inlining is set to by-value (:set inline by-value in the REPL)
+# This only works if inlining is set to with-subst (:set inline with-subst in the REPL)
 group_vals k v = vals (group k ~> v).
 
 return v = newest v.

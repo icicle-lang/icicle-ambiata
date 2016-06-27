@@ -6,7 +6,6 @@
 {-# LANGUAGE DeriveGeneric     #-}
 module Icicle.Pipeline
   ( CompileError(..)
-  , STI.InlineOption (..)
 
   , SourceVar
   , AnnotType
@@ -28,6 +27,9 @@ module Icicle.Pipeline
   , AvalPrograms
 
   , Queries
+
+  , STI.InlineOption (..)
+  , STI.defaultInline
 
   , freshNamer
   , annotOfError
@@ -435,8 +437,9 @@ simpFlattened opts av
 ----------------------------------------
 -- * dictionary
 
-avalancheOfDictionary :: Dictionary -> Either Error (AvalPrograms SourceVar)
-avalancheOfDictionary = avalancheOfDictionaryOpt SC.optionSmallData STI.InlineByName
+avalancheOfDictionary :: STI.InlineOption -> Dictionary -> Either Error (AvalPrograms SourceVar)
+avalancheOfDictionary opt
+  = avalancheOfDictionaryOpt SC.optionSmallData opt
 
 avalancheOfDictionaryOpt :: SC.CheckOptions
                          -> STI.InlineOption
@@ -465,9 +468,9 @@ fuseCore programs = first CompileErrorFusion $ do
   pure (coreSimp fused)
 
 
-coreOfSource :: Dictionary -> Queries -> Either Error (CorePrograms SourceVar)
-coreOfSource d qs
-  = coreOfSourceOpt SC.optionSmallData STI.InlineByName d qs
+coreOfSource :: STI.InlineOption -> Dictionary -> Queries -> Either Error (CorePrograms SourceVar)
+coreOfSource opt d qs
+  = coreOfSourceOpt SC.optionSmallData opt d qs
 
 coreOfSourceOpt :: SC.CheckOptions
                 -> STI.InlineOption

@@ -5,6 +5,7 @@ module Icicle.Source.Transform.Inline (
   , inlineQT
   , inlineQ
   , InlineOption (..)
+  , defaultInline
   ) where
 
 import Icicle.Source.Query
@@ -22,8 +23,11 @@ import              Data.Hashable (Hashable)
 
 
 data InlineOption
-  = InlineByName
-  | InlineByValue
+  = InlineUsingLets
+  | InlineUsingSubst
+
+defaultInline :: InlineOption
+defaultInline = InlineUsingLets
 
 inlineTransform
         :: (Hashable n, Eq n)
@@ -45,7 +49,7 @@ inlineTransform opt funs
    , argNames        <- fmap snd vars
    , length args == length vars
    = case opt of
-      InlineByName -> do
+      InlineUsingLets -> do
        ns      <- mapM (freshPrefixBase . nameBase) argNames
 
        let lets = fmap (mkLet a) (ns `zip` args)
@@ -56,7 +60,7 @@ inlineTransform opt funs
 
        return ((), Nested a (prefixContexts lets body'))
 
-      InlineByValue -> do
+      InlineUsingSubst -> do
        let sub  = Map.fromList
                 $ argNames `zip` args
        body'   <- substQ sub $ body fun

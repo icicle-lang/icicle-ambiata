@@ -97,7 +97,7 @@ createBenchmark mode dictionaryPath inputPath outputPath dropPath packedChordPat
   (dictionary, input') <- firstEitherT BenchDictionaryImportError $ inputCfg input
   let output'           = outputCfg output
 
-  avalanche  <- hoistEither (first BenchCompileError $ P.avalancheOfDictionary dictionary)
+  avalanche  <- hoistEither (first BenchCompileError $ P.avalancheOfDictionary P.defaultInline dictionary)
 
   let cfg = HasInput
           ( FormatPsv (PsvInputConfig  mode input')

@@ -155,7 +155,7 @@ data Command
 
 defaultState :: ReplState
 defaultState
-  = (ReplState [] demographics (unsafeTimeOfYMD 1970 1 1) P.InlineByName False False False False False False False False False False False False False False False False False False False False)
+  = (ReplState [] demographics (unsafeTimeOfYMD 1970 1 1) P.InlineUsingLets False False False False False False False False False False False False False False False False False False False False)
     { hasCoreEval = True
     , doCoreSimp  = True }
 
@@ -247,10 +247,10 @@ readSetCommands ss
        , Just x' <- timeOfYMD y' m' d'
        -> (:) (CurrentTime x') <$> readSetCommands rest
 
-    ("inline" : "by-name" : rest)
-       -> (:) (InlineOpt P.InlineByName) <$> readSetCommands rest
-    ("inline" : "by-value" : rest)
-       -> (:) (InlineOpt P.InlineByValue) <$> readSetCommands rest
+    ("inline" : "with-lets" : rest)
+       -> (:) (InlineOpt P.InlineUsingLets) <$> readSetCommands rest
+    ("inline" : "with-subst" : rest)
+       -> (:) (InlineOpt P.InlineUsingSubst) <$> readSetCommands rest
 
     [] -> Just []
     _  -> Nothing
@@ -549,9 +549,9 @@ handleSetCommand state set
 
     InlineOpt inl -> do
         let inline = case inl of
-                       P.InlineByName  -> "name"
-                       P.InlineByValue -> "value"
-        HL.outputStrLn $ "ok, inline is now by " <> inline
+                       P.InlineUsingLets  -> "lets"
+                       P.InlineUsingSubst -> "subst"
+        HL.outputStrLn $ "ok, inline is now using " <> inline
         return $ state { inlineOpt = inl }
 
     PerformCoreSimp b -> do
