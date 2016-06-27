@@ -4,36 +4,47 @@
 {-# LANGUAGE ViewPatterns      #-}
 {-# LANGUAGE BangPatterns      #-}
 {-# LANGUAGE DeriveGeneric     #-}
+{-# LANGUAGE ConstraintKinds   #-}
+
 module Icicle.Pipeline
   ( CompileError(..)
 
-  , SourceVar
-  , AnnotType
-  , AnnotUnit
+    -- * Type aliases for different types of programs
+  , IsName
 
-  , QueryTop'
-  , QueryTop'T
+  , SourceVar
+  , SourceAnnot
+
+  , AnnotUnit
+  , AnnotType
+
+  , QueryTopPosUntyped
+  , QueryTopPosTyped
+
+  , CoreProgramUntyped
+  , CoreProgramTyped
+  , AvalProgramUntyped
+  , AvalProgramTyped
 
   , Funs
   , FunEnvT
 
-  , AvalProgram
-
-  , CoreProgramNoAnnot
-  , AvalProgramNoAnnot
-
-  , CoreProgramNamed
-  , CorePrograms
-  , AvalPrograms
-
-  , Queries
-
+    -- * Compiler options
+  , IcicleCompileOptions (..)
+  , defaultCompileOptions
   , STI.InlineOption (..)
   , STI.defaultInline
+  , SC.CheckOptions (..)
+  , SC.defaultCheckOptions
 
-  , freshNamer
-  , annotOfError
+    -- * From dictionaires and libraries
+  , queryOfSource
+  , entryOfQuery
+  , readIcicleLibrary
+  , avalancheOfDictionary
+  , coreOfDictionary
 
+    -- * Works on Source programs
   , sourceParseQT
   , sourceParseF
   , sourceDesugarQT
@@ -44,29 +55,29 @@ module Icicle.Pipeline
   , sourceConvert
   , sourceInline
 
+    -- * Works on Core programs
   , coreSimp
   , coreFlatten
   , coreFlatten_
   , coreAvalanche
+  , fuseCore
+  , coreOfSource
 
+    -- * Works on Avalanche programs
   , flattenAvalanche
   , checkAvalanche
   , simpAvalanche
   , simpFlattened
-
-  , avalancheOfDictionary
-  , avalancheOfDictionaryOpt
   , avalancheOfCore
-  , fuseCore
-  , coreOfSource
-  , queryOfSource
-  , queryOfSourceOpt
-  , entryOfQuery
 
+    -- * Eval
   , coreEval
   , avalancheEval
   , seaEval
 
+    -- * Helpers
+  , freshNamer
+  , annotOfError
   , unName
   , unVar
   , parTraverse
@@ -110,8 +121,7 @@ import qualified Icicle.Source.Type                       as ST
 
 import           Icicle.Data
 
-import           Icicle.Sea.Eval                          (SeaError)
-import qualified Icicle.Sea.Eval                          as Sea
+import           Icicle.Sea.Eval                          (SeaError, seaEvalAvalanche)
 
 import qualified Icicle.Simulator                         as S
 
@@ -125,7 +135,7 @@ import           Data.Hashable                            (Hashable)
 
 import           Control.Parallel.Strategies              (withStrategy, parTraversable, rparWith, rseq)
 
-import           Text.ParserCombinators.Parsec            (SourcePos)
+import           Text.ParserCombinators.Parsec            (SourcePos, SourceName)
 import qualified Text.ParserCombinators.Parsec            as Parsec
 
 import           GHC.Generics                             (Generic)
@@ -137,25 +147,15 @@ import           System.IO                                (IO)
 import           X.Control.Monad.Trans.Either
 
 
-unVar :: SP.Variable -> Text
-unVar (SP.Variable x) = x
-
-unName :: Name a -> a
-unName = go . Common.nameBase
-  where
-   go (Common.NameBase  x) = x
-   go (Common.NameMod _ x) = go x
-
-freshNamer :: IsString v => v -> Fresh.NameState v
-freshNamer prefix
- = Fresh.counterPrefixNameState (fromString . show) prefix
-
-parTraverse  :: Traversable t => (a -> Either e b) -> t a -> Either e (t b)
-parTraverse f = sequenceA . parallel . fmap f
- where
-  parallel = withStrategy (parTraversable (rparWith rseq))
-
 --------------------------------------------------------------------------------
+
+data IcicleCompileOptions = IcicleCompileOptions
+  { icicleInline  :: STI.InlineOption
+  , icicleBigData :: SC.CheckOptions
+  }
+
+defaultCompileOptions :: IcicleCompileOptions
+defaultCompileOptions = IcicleCompileOptions STI.defaultInline SC.defaultCheckOptions
 
 data CompileError var
  = CompileErrorParse       !Parsec.ParseError
@@ -166,9 +166,9 @@ data CompileError var
  | CompileErrorConvert     !(STC.ConvertError SourcePos var)
  | CompileErrorFusion      !(Core.FusionError SourceVar)
  -- Avalanche/Flatten
- | CompileErrorFlatten     !(AS.FlattenError  () var)
- | CompileErrorFlattenSimp !(AS.SimpError     () var APF.Prim)
- | CompileErrorAvalanche   !(AC.ProgramError  () var APF.Prim)
+ | CompileErrorFlatten     !(AS.FlattenError  AnnotUnit var)
+ | CompileErrorFlattenSimp !(AS.SimpError     AnnotUnit var APF.Prim)
+ | CompileErrorAvalanche   !(AC.ProgramError  AnnotUnit var APF.Prim)
  deriving (Show, Generic)
 
 -- deepseq stops here, we don't really care about sequencing the error
@@ -229,55 +229,76 @@ instance (Hashable a, Eq a, IsString a, Pretty a, Show a) => Pretty (CompileErro
 
 -- * Compile
 
-type SourceVar   = SP.Variable
-type AnnotType a = ST.Annot a SourceVar
-type AnnotUnit   = Common.Annot ()
 
-type QueryTop'  v = SQ.QueryTop SourcePos v
-type QueryTop'T v = SQ.QueryTop (AnnotType SourcePos) v
+type IsName v = (Hashable v, Eq v, IsString v, Pretty v, Show v, NFData v)
 
+type SourceVar     = SP.Variable
+type SourceAnnot a = ST.Annot a SourceVar
+
+type AnnotUnit = ()
+type AnnotType = Common.Annot AnnotUnit
+
+type QueryTopPosUntyped v = SQ.QueryTop              SourcePos  v
+type QueryTopPosTyped   v = SQ.QueryTop (SourceAnnot SourcePos) v
+
+type CoreProgramTyped v   = Core.Program AnnotType v
+type AvalProgramTyped v p = AP.Program   AnnotType v p
+
+type CoreProgramUntyped v   = Core.Program AnnotUnit v
+type AvalProgramUntyped v p = AP.Program   AnnotUnit v p
 
 type Funs a b = [((a, Name b), SQ.Function a b)]
 type FunEnvT a b = [ ( Name b
                    , ( ST.FunctionType b
-                     , SQ.Function (AnnotType a) b )) ]
-
-
-type AvalProgram v = AP.Program AnnotUnit v APF.Prim
-
-type CoreProgramNoAnnot v   = Core.Program () v
-type AvalProgramNoAnnot v p = AP.Program   () v p
-
-type CoreProgramNamed v = (v, CoreProgramNoAnnot v)
-type CorePrograms v     = Map Attribute [CoreProgramNamed v]
-type AvalPrograms v     = Map Attribute (AP.Program AnnotUnit v APF.Prim)
-
-type Queries = (Attribute, QueryTop'T SourceVar)
+                     , SQ.Function (SourceAnnot a) b )) ]
 
 type Error = CompileError SourceVar
+
+annotUnit :: ()
+annotUnit = ()
+
+annotTypeDummy :: Common.Annot ()
+annotTypeDummy = Common.Annot (Common.FunT [] Common.ErrorT) ()
+
+----------------------------------------
+-- * queries
+
+queryOfSource :: SC.CheckOptions
+              -> Dictionary
+              -> Text
+              -> Text
+              -> Text
+              -> Either Error (Attribute, QueryTopPosTyped SourceVar)
+queryOfSource checkOpts dict name src namespace = do
+  parsed       <- sourceParseQT name (Namespace namespace) src
+  desugared    <- sourceDesugarQT parsed
+  (checked, _) <- sourceCheckQT checkOpts dict desugared
+  pure (Attribute name, checked)
+
+entryOfQuery :: Attribute -> (QueryTopPosTyped SourceVar) -> Text -> Dict.DictionaryEntry
+entryOfQuery attr query nsp
+  = Dict.DictionaryEntry attr (Dict.VirtualDefinition (Dict.Virtual query)) (Namespace nsp)
 
 ----------------------------------------
 -- * source
 
-sourceParseQT
- :: Text
- -> Namespace
- -> Text
- -> Either Error (QueryTop' SourceVar)
+sourceParseQT :: Text
+              -> Namespace
+              -> Text
+              -> Either Error (QueryTopPosUntyped SourceVar)
 sourceParseQT base namespace t
  = first CompileErrorParse
  $ SP.parseQueryTop (Common.OutputName base namespace) t
 
-sourceParseF
-  :: Parsec.SourceName -> Text
-  -> Either Error (Funs SourcePos SourceVar)
+sourceParseF :: SourceName
+             -> Text
+             -> Either Error (Funs SourcePos SourceVar)
 sourceParseF env t
  = first CompileErrorParse
  $ SP.parseFunctions env t
 
-sourceDesugarQT
- :: QueryTop' SourceVar
- -> Either Error (QueryTop' SourceVar)
+sourceDesugarQT ::               QueryTopPosUntyped SourceVar
+                -> Either Error (QueryTopPosUntyped SourceVar)
 sourceDesugarQT q
  = runIdentity . runEitherT . bimapEitherT CompileErrorDesugar snd
  $ Fresh.runFreshT
@@ -292,7 +313,8 @@ sourceDesugarF fun
      (mapM (mapM STD.desugarFun) fun)
      (freshNamer "desugar_f")
 
-sourceReifyQT :: QueryTop'T SourceVar -> QueryTop'T SourceVar
+sourceReifyQT :: QueryTopPosTyped SourceVar
+              -> QueryTopPosTyped SourceVar
 sourceReifyQT q
  = snd
  $ runIdentity
@@ -302,8 +324,8 @@ sourceReifyQT q
 
 sourceCheckQT :: SC.CheckOptions
               -> Dictionary
-              -> QueryTop' SourceVar
-              -> Either Error (QueryTop'T SourceVar, ST.Type SourceVar)
+              -> QueryTopPosUntyped SourceVar
+              -> Either Error (QueryTopPosTyped SourceVar, ST.Type SourceVar)
 sourceCheckQT opts d q
  = let d' = Dict.featureMapOfDictionary d
    in  first CompileErrorCheck
@@ -324,8 +346,8 @@ sourceCheckF env parsedImport
 
 sourceInline :: STI.InlineOption
              -> Dictionary
-             -> QueryTop'T SourceVar
-             -> QueryTop' SourceVar
+             -> QueryTopPosTyped   SourceVar
+             -> QueryTopPosUntyped SourceVar
 sourceInline opt d q
  = SQ.reannotQT ST.annAnnot
  $ inline q
@@ -338,12 +360,9 @@ sourceInline opt d q
                 (STI.inlineQT opt funs q')
                 (freshNamer "inline")
 
-----------------------------------------
--- * core
-
 sourceConvert :: Dictionary
-              -> QueryTop'T SourceVar
-              -> Either Error (CoreProgramNoAnnot SourceVar)
+              -> QueryTopPosTyped SourceVar
+              -> Either Error (CoreProgramUntyped SourceVar)
 sourceConvert d q
  = second snd
  $ first CompileErrorConvert conv
@@ -353,165 +372,162 @@ sourceConvert d q
                 (STC.convertQueryTop d' q)
                 (freshNamer "conv")
 
-coreSimp
- :: (Hashable v, Eq v, IsString v, NFData v)
- => CoreProgramNoAnnot v
- -> CoreProgramNoAnnot v
+----------------------------------------
+-- * core
+
+coreOfDictionary :: IcicleCompileOptions
+                 -> Dictionary
+                 -> Either Error (Map Attribute (CoreProgramUntyped SourceVar))
+coreOfDictionary opts dict = do
+  let virtuals = fmap (second Dict.unVirtual) (Dict.getVirtualFeatures dict)
+
+  core  <- parTraverse (coreOfSource opts dict) virtuals
+  fused <- parTraverse  fuseCore               (M.unionsWith (<>) core)
+
+  return fused
+
+coreSimp :: IsName v
+         => CoreProgramUntyped v
+         -> CoreProgramUntyped v
 coreSimp p
  = Core.condenseProgram ()
  $!! snd
- $!! Fresh.runFresh (Core.simpProgram () p) (freshNamer "simp")
+ $!! Fresh.runFresh (Core.simpProgram annotUnit p) (freshNamer "simp")
+
+
+fuseCore :: [(SourceVar, CoreProgramUntyped SourceVar)]
+         -> Either Error (CoreProgramUntyped SourceVar)
+fuseCore programs = first CompileErrorFusion $ do
+  fused <- Core.fuseMultiple annotUnit programs
+  pure (coreSimp fused)
+
+
+coreOfSource :: IcicleCompileOptions
+             -> Dictionary
+             -> (Attribute, QueryTopPosTyped SourceVar)
+             -> Either Error (Map Attribute [(SourceVar, CoreProgramUntyped SourceVar)])
+coreOfSource opt dict (Attribute attr, virtual) = do
+  let inlined     = sourceInline    (icicleInline  opt) dict virtual
+  desugared      <- sourceDesugarQT  inlined
+  (checked, _)   <- sourceCheckQT   (icicleBigData opt) dict desugared
+  let reified     = sourceReifyQT checked
+  core           <- sourceConvert dict reified
+  let simplified  = coreSimp core
+  let baseattr    = (Attribute . unVar . unName) (SQ.feature virtual)
+
+  pure (M.singleton baseattr [(SP.Variable attr, simplified)])
+
 
 ----------------------------------------
 -- * avalanche
 
-coreFlatten
-  :: (Hashable v, Eq v, IsString v, Pretty v, Show v, NFData v)
-  => CoreProgramNoAnnot v
-  -> Either (CompileError v) (AvalProgramNoAnnot v APF.Prim)
-coreFlatten = coreFlatten_ AS.defaultSimpOpts
-
-coreFlatten_
-  :: (Hashable v, Eq v, IsString v, Pretty v, Show v, NFData v)
-  => AS.SimpOpts
-  -> CoreProgramNoAnnot v
-  -> Either (CompileError v) (AvalProgramNoAnnot v APF.Prim)
-coreFlatten_ opts prog
- =   join
- $!! fmap (simpFlattened opts)
- $!! flattenAvalanche
- $!! coreAvalanche prog
-
-flattenAvalanche
-  :: (IsString v, Pretty v, Hashable v, Eq v, NFData v, Show v)
-  => AvalProgramNoAnnot v Core.Prim
-  -> Either (CompileError v) (AP.Program AnnotUnit v APF.Prim)
-flattenAvalanche av
- = join
- . second snd
- . first CompileErrorFlatten
- $!! Fresh.runFreshT go (freshNamer "flat")
- where
-  go = do s' <- AS.flatten () (AP.statements av)
-          return $ checkAvalanche (av { AP.statements = force s' })
-
-checkAvalanche
-  :: (Hashable v, Eq v)
-  => AvalProgramNoAnnot v APF.Prim
-  -> Either (CompileError v) (AvalProgram v)
-checkAvalanche prog
- = first CompileErrorAvalanche
- $ AC.checkProgram APF.flatFragment prog
-
-coreAvalanche
-  :: (Eq v, Hashable v, Show v, IsString v)
-  => CoreProgramNoAnnot v
-  -> AvalProgramNoAnnot v Core.Prim
-coreAvalanche prog
- = simpAvalanche
- $ snd
- $ Fresh.runFresh (AC.programFromCore (AC.namerText id) prog) (freshNamer "aval")
-
-simpAvalanche
-  :: (Eq v, Hashable v, Show v, IsString v)
-  => AvalProgramNoAnnot v Core.Prim
-  -> AvalProgramNoAnnot v Core.Prim
-simpAvalanche av
- = snd
- $ Fresh.runFresh go (freshNamer "anf")
- where
-  go = AS.simpAvalanche () av
-
-simpFlattened
-  :: (Eq v, Hashable v, Show v, IsString v, Pretty v)
-  => AS.SimpOpts
-  -> AvalProgram v
-  -> Either (CompileError v) (AvalProgramNoAnnot v APF.Prim)
-simpFlattened opts av
- = first CompileErrorFlattenSimp . second AA.eraseAnnotP . snd
- $ Fresh.runFresh (go av) (freshNamer "simpflat")
- where
-  -- Thread through a dummy annotation
-  go = AS.simpFlattened (Common.Annot (Common.FunT [] Common.ErrorT) ()) opts
-
-----------------------------------------
--- * dictionary
-
-avalancheOfDictionary :: STI.InlineOption -> Dictionary -> Either Error (AvalPrograms SourceVar)
-avalancheOfDictionary opt
-  = avalancheOfDictionaryOpt SC.optionSmallData opt
-
-avalancheOfDictionaryOpt :: SC.CheckOptions
-                         -> STI.InlineOption
-                         -> Dictionary
-                         -> Either Error (AvalPrograms SourceVar)
-avalancheOfDictionaryOpt checkOpt inlineOpt dict = do
+avalancheOfDictionary :: IcicleCompileOptions
+                      -> Dictionary
+                      -> Either Error (Map Attribute (AvalProgramTyped SourceVar APF.Prim))
+avalancheOfDictionary opt dict = do
   let virtuals = fmap (second Dict.unVirtual) (Dict.getVirtualFeatures dict)
 
-  core      <- parTraverse (coreOfSourceOpt checkOpt inlineOpt dict) virtuals
-  fused     <- parTraverse fuseCore                                 (M.unionsWith (<>) core)
-  avalanche <- parTraverse avalancheOfCore                           fused
+  core      <- parTraverse (coreOfSource opt dict) virtuals
+  fused     <- parTraverse fuseCore                (M.unionsWith (<>) core)
+  avalanche <- parTraverse avalancheOfCore         fused
 
   return avalanche
 
 
-avalancheOfCore :: CoreProgramNoAnnot SourceVar -> Either Error (AvalProgram SourceVar)
+avalancheOfCore ::               CoreProgramUntyped SourceVar
+                -> Either Error (AvalProgramTyped   SourceVar APF.Prim)
 avalancheOfCore core = do
   flat    <- coreFlatten core
   checked <- checkAvalanche flat
   return checked
 
 
-fuseCore :: [CoreProgramNamed SourceVar] -> Either Error (CoreProgramNoAnnot SourceVar)
-fuseCore programs = first CompileErrorFusion $ do
-  fused <- Core.fuseMultiple () programs
-  pure (coreSimp fused)
+coreFlatten :: IsName v
+            =>                          CoreProgramUntyped v
+            -> Either (CompileError v) (AvalProgramUntyped v APF.Prim)
+coreFlatten = coreFlatten_ AS.defaultSimpOpts
 
 
-coreOfSource :: STI.InlineOption -> Dictionary -> Queries -> Either Error (CorePrograms SourceVar)
-coreOfSource opt d qs
-  = coreOfSourceOpt SC.optionSmallData opt d qs
+coreFlatten_ :: IsName v
+             => AS.SimpOpts
+             ->                          CoreProgramUntyped v
+             -> Either (CompileError v) (AvalProgramUntyped v APF.Prim)
+coreFlatten_ opts prog
+ =   join
+ $!! fmap (simpFlattened opts)
+ $!! flattenAvalanche
+ $!! coreAvalanche prog
 
-coreOfSourceOpt :: SC.CheckOptions
-                -> STI.InlineOption
-                -> Dictionary
-                -> Queries
-                -> Either Error (CorePrograms SourceVar)
-coreOfSourceOpt checkOpt inlineOpt dict (Attribute attr, virtual) = do
-  let inlined   = sourceInline inlineOpt dict virtual
 
-  desugared    <- sourceDesugarQT inlined
-  (checked, _) <- sourceCheckQT checkOpt dict desugared
+flattenAvalanche :: IsName v
+                 =>                          AvalProgramUntyped v Core.Prim
+                 -> Either (CompileError v) (AvalProgramTyped   v APF.Prim)
+flattenAvalanche av
+ = join
+ . second snd
+ . first CompileErrorFlatten
+ $!! Fresh.runFreshT go (freshNamer "flat")
+ where
+  go = do s' <- AS.flatten annotUnit (AP.statements av)
+          return $ checkAvalanche (av { AP.statements = force s' })
 
-  let reified = sourceReifyQT checked
 
-  core <- sourceConvert dict reified
-  let simplified = coreSimp core
+checkAvalanche :: IsName v
+               =>                          AvalProgramUntyped v APF.Prim
+               -> Either (CompileError v) (AvalProgramTyped   v APF.Prim)
+checkAvalanche prog
+ = first CompileErrorAvalanche
+ $ AC.checkProgram APF.flatFragment prog
 
-  let baseattr  = (Attribute . unVar . unName) (SQ.feature virtual)
 
-  pure (M.singleton baseattr [(SP.Variable attr, simplified)])
+coreAvalanche :: IsName v
+              => CoreProgramUntyped v
+              -> AvalProgramUntyped v Core.Prim
+coreAvalanche prog
+ = simpAvalanche
+ $ snd
+ $ Fresh.runFresh (AC.programFromCore (AC.namerText id) prog) (freshNamer "aval")
 
-queryOfSource :: Dictionary -> Text -> Text -> Text -> Either Error Queries
-queryOfSource = queryOfSourceOpt SC.optionSmallData
 
-queryOfSourceOpt :: SC.CheckOptions -> Dictionary -> Text -> Text -> Text -> Either Error Queries
-queryOfSourceOpt checkOpts dict name src namespace = do
-  parsed       <- sourceParseQT name (Namespace namespace) src
-  desugared    <- sourceDesugarQT parsed
-  (checked, _) <- sourceCheckQT checkOpts dict desugared
-  pure (Attribute name, checked)
+simpAvalanche :: IsName v
+              => AvalProgramUntyped v Core.Prim
+              -> AvalProgramUntyped v Core.Prim
+simpAvalanche av
+ = snd
+ $ Fresh.runFresh go (freshNamer "anf")
+ where
+  go = AS.simpAvalanche annotUnit av
 
-entryOfQuery :: Attribute -> (QueryTop'T SourceVar) -> Text -> Dict.DictionaryEntry
-entryOfQuery attr query nsp
-  = Dict.DictionaryEntry attr (Dict.VirtualDefinition (Dict.Virtual query)) (Namespace nsp)
 
+simpFlattened :: IsName v
+              => AS.SimpOpts
+              ->                          AvalProgramTyped   v APF.Prim
+              -> Either (CompileError v) (AvalProgramUntyped v APF.Prim)
+simpFlattened opts av
+ = first CompileErrorFlattenSimp . second AA.eraseAnnotP . snd
+ $ Fresh.runFresh (go av) (freshNamer "simpflat")
+ where
+  -- Thread through a dummy annotation
+  go = AS.simpFlattened annotTypeDummy opts
+
+
+----------------------------------------
+-- * library
+
+readIcicleLibrary :: SourceVar -> SourceName -> Text -> Either Error (FunEnvT SourcePos SourceVar)
+readIcicleLibrary name source input
+ = do input' <- first CompileErrorParse $ SP.parseFunctions source input
+      first CompileErrorCheck
+             $ snd
+             $ flip Fresh.runFresh (freshNamer name)
+             $ runEitherT
+             $ SC.checkFs [] input'
 
 --------------------------------------------------------------------------------
 
 -- * Eval
 
-type SimError = S.SimulateError () SourceVar
+type SimError = S.SimulateError AnnotUnit SourceVar
 
 newtype Result   = Result (Entity, Value)
   deriving (Eq, Show)
@@ -520,12 +536,11 @@ instance Pretty Result where
   pretty (Result (ent, val))
     = pretty ent <> comma <> space <> pretty val
 
-coreEval
-  :: Time
-  -> [AsAt Fact]
-  -> QueryTop'T SourceVar
-  -> CoreProgramNoAnnot SourceVar
-  -> Either SimError [Result]
+coreEval :: Time
+         -> [AsAt Fact]
+         -> QueryTopPosTyped SourceVar
+         -> CoreProgramUntyped  SourceVar
+         -> Either SimError [Result]
 coreEval t fs (renameQT unVar -> query) prog
  = do let partitions = S.streams fs
       let feat       = SQ.feature query
@@ -548,12 +563,11 @@ coreEval t fs (renameQT unVar -> query) prog
     evalV
       = S.evaluateVirtualValue prog t
 
-avalancheEval
-  :: Time
-  -> [AsAt Fact]
-  -> QueryTop'T SourceVar
-  -> AP.Program () SourceVar APF.Prim
-  -> Either SimError [Result]
+avalancheEval :: Time
+              -> [AsAt Fact]
+              -> QueryTopPosTyped SourceVar
+              -> AvalProgramUntyped SourceVar APF.Prim
+              -> Either SimError [Result]
 avalancheEval t fs (renameQT unVar -> query) prog
  = do let partitions = S.streams fs
       let feat       = SQ.feature query
@@ -578,8 +592,8 @@ avalancheEval t fs (renameQT unVar -> query) prog
 
 seaEval :: Time
         -> [AsAt Fact]
-        -> QueryTop'T SourceVar
-        -> AP.Program (Common.Annot ()) SP.Variable APF.Prim
+        -> QueryTopPosTyped  SourceVar
+        -> AvalProgramTyped SourceVar APF.Prim
         -> EitherT SeaError IO [Result]
 seaEval t newFacts (renameQT unVar -> query) program =
   fmap Result . mconcat <$> sequence results
@@ -596,8 +610,28 @@ seaEval t newFacts (renameQT unVar -> query) program =
     evalP featureName (S.Partition entityName attributeName values)
       | Common.NameBase name <- Common.nameBase featureName
       , Attribute name == attributeName
-      = do outputs <- Sea.seaEvalAvalanche program t values
+      = do outputs <- seaEvalAvalanche program t values
            return $ fmap (\out -> (entityName, snd out)) outputs
 
       | otherwise
       = return []
+
+--------------------------------------------------------------------------------
+
+unVar :: SP.Variable -> Text
+unVar (SP.Variable x) = x
+
+unName :: Name a -> a
+unName = go . Common.nameBase
+  where
+   go (Common.NameBase  x) = x
+   go (Common.NameMod _ x) = go x
+
+freshNamer :: IsString v => v -> Fresh.NameState v
+freshNamer prefix
+ = Fresh.counterPrefixNameState (fromString . show) prefix
+
+parTraverse  :: Traversable t => (a -> Either e b) -> t a -> Either e (t b)
+parTraverse f = sequenceA . parallel . fmap f
+ where
+  parallel = withStrategy (parTraversable (rparWith rseq))

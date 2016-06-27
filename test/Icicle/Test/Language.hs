@@ -83,7 +83,7 @@ prop_languages_eval ewt = testIO $ do
 data EvalWellTyped = EvalWellTyped
   { welltyped        :: WellTyped
   , wtEvalFacts      :: [D.AsAt D.Fact]
-  , wtEvalDummyQuery :: P.QueryTop'T P.SourceVar
+  , wtEvalDummyQuery :: P.QueryTopPosTyped P.SourceVar
   } deriving (Show)
 
 instance Arbitrary EvalWellTyped where
@@ -102,7 +102,7 @@ mkFacts wt
       = D.AsAt <$> (D.Fact ent attr <$> factFromCoreValue (D.atFact a))
                <*> pure (D.atTime a)
 
-mkDummyQuery :: WellTyped -> P.QueryTop'T P.SourceVar
+mkDummyQuery :: WellTyped -> P.QueryTopPosTyped P.SourceVar
 mkDummyQuery wt
   = let x = nameOf $ NameBase $ SP.Variable "dummy"
         pos = Parsec.initialPos "dummy"

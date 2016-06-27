@@ -26,13 +26,9 @@ module Icicle.Repl (
   , loadDictionary
   ) where
 
-import qualified Icicle.Avalanche.Program         as AP
 import qualified Icicle.Avalanche.Simp            as AS
 import qualified Icicle.Avalanche.Prim.Flat       as APF
 
-import qualified Icicle.Common.Base               as CommonBase
-import           Icicle.Common.Annot              (Annot(..))
-import qualified Icicle.Common.Fresh              as Fresh
 import           Icicle.Data
 import qualified Icicle.Dictionary                as D
 import           Icicle.Internal.Pretty
@@ -40,8 +36,6 @@ import qualified Icicle.Pipeline                  as P
 import qualified Icicle.Serial                    as S
 import qualified Icicle.Simulator                 as S
 import qualified Icicle.Source.Checker            as SC
-import qualified Icicle.Source.Parser             as SP
-import qualified Icicle.Source.Query              as SQ
 import qualified Icicle.Source.Type               as ST
 import qualified Icicle.Storage.Dictionary.TextV1 as DictionaryText
 import qualified Icicle.Storage.Dictionary.Toml   as DictionaryToml
@@ -111,33 +105,31 @@ data DictionaryLoadType
 
 -- * Check and Convert
 
-sourceParse :: Text -> Either ReplError (P.QueryTop' Var)
+sourceParse :: Text -> Either ReplError (P.QueryTopPosUntyped Var)
 sourceParse = first ReplErrorCompileCore . P.sourceParseQT "repl" (Namespace "namespace-repl")
 
-sourceDesugar :: P.QueryTop' Var -> Either ReplError (P.QueryTop' Var)
+sourceDesugar :: P.QueryTopPosUntyped Var -> Either ReplError (P.QueryTopPosUntyped Var)
 sourceDesugar = first ReplErrorCompileCore . P.sourceDesugarQT
 
-sourceReify :: P.QueryTop'T Var -> P.QueryTop'T Var
+sourceReify :: P.QueryTopPosTyped Var -> P.QueryTopPosTyped Var
 sourceReify = P.sourceReifyQT
 
-sourceCheck :: SC.CheckOptions -> D.Dictionary -> P.QueryTop' Var -> Either ReplError (P.QueryTop'T Var, ST.Type Var)
+sourceCheck :: SC.CheckOptions -> D.Dictionary -> P.QueryTopPosUntyped Var -> Either ReplError (P.QueryTopPosTyped Var, ST.Type Var)
 sourceCheck opts d
  = first ReplErrorCompileCore . P.sourceCheckQT opts d
 
-sourceConvert :: D.Dictionary -> P.QueryTop'T Var -> Either ReplError (P.CoreProgramNoAnnot Var)
+sourceConvert :: D.Dictionary -> P.QueryTopPosTyped Var -> Either ReplError (P.CoreProgramUntyped Var)
 sourceConvert d
  = first ReplErrorCompileCore . P.sourceConvert d
 
-coreFlatten :: P.CoreProgramNoAnnot Var -> Either ReplError (P.AvalProgramNoAnnot Var APF.Prim)
+coreFlatten :: P.CoreProgramUntyped Var -> Either ReplError (P.AvalProgramUntyped Var APF.Prim)
 coreFlatten = first ReplErrorCompileAvalanche . P.coreFlatten
 
-coreFlatten_ :: AS.SimpOpts -> P.CoreProgramNoAnnot Var -> Either ReplError (P.AvalProgramNoAnnot Var APF.Prim)
+coreFlatten_ :: AS.SimpOpts -> P.CoreProgramUntyped Var -> Either ReplError (P.AvalProgramUntyped Var APF.Prim)
 coreFlatten_ opts
  = first ReplErrorCompileAvalanche . P.coreFlatten_ opts
 
-checkAvalanche
-  :: AP.Program () Var APF.Prim
-  -> Either ReplError (AP.Program (Annot ()) Var APF.Prim)
+checkAvalanche :: P.AvalProgramUntyped Var APF.Prim -> Either ReplError (P.AvalProgramTyped Var APF.Prim)
 checkAvalanche
  = first ReplErrorCompileAvalanche . P.checkAvalanche
 
@@ -161,17 +153,5 @@ loadDictionary checkOpts load
     DictionaryLoadToml fp
      -> firstEitherT ReplErrorDictionaryLoad $ DictionaryToml.loadDictionary checkOpts DictionaryToml.ImplicitPrelude fp
 
-readIcicleLibrary
-    :: Parsec.SourceName
-    -> Text
-    -> Either ReplError
-          [ (CommonBase.Name Var
-            , ( ST.FunctionType Var
-              , SQ.Function (ST.Annot Parsec.SourcePos Var) Var)) ]
-readIcicleLibrary source input
- = do input' <- first (ReplErrorCompileCore . P.CompileErrorParse) $ SP.parseFunctions source input
-      first (ReplErrorCompileCore . P.CompileErrorCheck)
-             $ snd
-             $ flip Fresh.runFresh (P.freshNamer "repl")
-             $ runEitherT
-             $ SC.checkFs [] input'
+readIcicleLibrary :: Parsec.SourceName -> Text -> Either ReplError (P.FunEnvT Parsec.SourcePos Var)
+readIcicleLibrary n = first ReplErrorCompileCore . P.readIcicleLibrary "repl" n

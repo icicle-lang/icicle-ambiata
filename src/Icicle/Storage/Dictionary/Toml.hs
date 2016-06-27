@@ -181,7 +181,7 @@ loadImports parentFuncs parsedImports
 checkDefs
   :: SC.CheckOptions
   -> Dictionary
-  -> [(Namespace, Attribute, P.QueryTop' P.SourceVar)]
+  -> [(Namespace, Attribute, P.QueryTopPosUntyped P.SourceVar)]
   -> EitherT DictionaryImportError IO [DictionaryEntry]
 checkDefs checkOpts d defs
  = hoistEither . first DictionaryErrorCompilation

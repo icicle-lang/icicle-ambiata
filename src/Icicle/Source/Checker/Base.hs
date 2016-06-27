@@ -11,6 +11,7 @@ module Icicle.Source.Checker.Base (
   , CheckOptions (..)
   , optionBigData
   , optionSmallData
+  , defaultCheckOptions
 
   , GenEnv, GenConstraintSet
   , Gen(..)
@@ -100,6 +101,8 @@ optionBigData = CheckOptions True True
 optionSmallData :: CheckOptions
 optionSmallData = CheckOptions False True
 
+defaultCheckOptions :: CheckOptions
+defaultCheckOptions = optionSmallData
 
 --------------------------------------------------------------------------------
 
