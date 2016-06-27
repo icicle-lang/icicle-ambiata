@@ -92,6 +92,7 @@ data ReplState
    { facts              :: [AsAt Fact]
    , dictionary         :: Dictionary
    , currentTime        :: Time
+   , inlineOpt          :: P.InlineOption
    , hasType            :: Bool
    , hasBigData         :: Bool
    , hasAnnotated       :: Bool
@@ -136,6 +137,7 @@ data Set
    | CurrentTime             Time
    | PerformCoreSimp         Bool
    | PerformFlattenSimpCheck Bool
+   | InlineOpt               P.InlineOption
 
 -- | REPL commands
 data Command
@@ -153,7 +155,7 @@ data Command
 
 defaultState :: ReplState
 defaultState
-  = (ReplState [] demographics (unsafeTimeOfYMD 1970 1 1) False False False False False False False False False False False False False False False False False False False False)
+  = (ReplState [] demographics (unsafeTimeOfYMD 1970 1 1) P.InlineUsingLets False False False False False False False False False False False False False False False False False False False False)
     { hasCoreEval = True
     , doCoreSimp  = True }
 
@@ -245,6 +247,11 @@ readSetCommands ss
        , Just x' <- timeOfYMD y' m' d'
        -> (:) (CurrentTime x') <$> readSetCommands rest
 
+    ("inline" : "with-lets" : rest)
+       -> (:) (InlineOpt P.InlineUsingLets) <$> readSetCommands rest
+    ("inline" : "with-subst" : rest)
+       -> (:) (InlineOpt P.InlineUsingSubst) <$> readSetCommands rest
+
     [] -> Just []
     _  -> Nothing
 
@@ -319,7 +326,7 @@ handleLine state line = case readCommand line of
 
       prettyOut hasAnnotated "- Annotated:" (SPretty.PrettyAnnot annot)
 
-      let inlined= SR.sourceInline (dictionary state) annot
+      let inlined = SR.sourceInline (inlineOpt state) (dictionary state) annot
 
       blanded     <- hoist $ SR.sourceDesugar inlined
 
@@ -327,7 +334,7 @@ handleLine state line = case readCommand line of
       prettyOut hasDesugar "- Desugar:" blanded
 
       (annobland, _) <- hoist $ SR.sourceCheck checkOpts (dictionary state) blanded
-      prettyOut hasInlined "- Annotated desugar:" (SPretty.PrettyAnnot annobland)
+      prettyOut hasDesugar "- Annotated desugar:" (SPretty.PrettyAnnot annobland)
 
 
       let reified       = SR.sourceReify annobland
@@ -539,6 +546,13 @@ handleSetCommand state set
     CurrentTime d -> do
         HL.outputStrLn $ "ok, time set to " <> T.unpack (renderTime d)
         return $ state { currentTime = d }
+
+    InlineOpt inl -> do
+        let inline = case inl of
+                       P.InlineUsingLets  -> "lets"
+                       P.InlineUsingSubst -> "subst"
+        HL.outputStrLn $ "ok, inline is now using " <> inline
+        return $ state { inlineOpt = inl }
 
     PerformCoreSimp b -> do
         HL.outputStrLn $ "ok, core-simp is now " <> showFlag b

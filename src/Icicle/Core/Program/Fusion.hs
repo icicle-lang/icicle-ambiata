@@ -1,6 +1,7 @@
 -- | Fusing programs together
 {-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE PatternGuards #-}
+{-# LANGUAGE PatternGuards     #-}
+{-# LANGUAGE OverloadedStrings #-}
 module Icicle.Core.Program.Fusion (
     FusionError (..)
   , fusePrograms
@@ -11,6 +12,7 @@ import Icicle.Common.Base
 import Icicle.Common.Type
 import Icicle.Core.Program.Program
 import Icicle.Core.Program.Subst
+import Icicle.Internal.Pretty
 
 import P
 
@@ -22,6 +24,13 @@ data FusionError n
  | FusionErrorNothingToFuse
  deriving (Show)
 
+instance Pretty n => Pretty (FusionError n) where
+  pretty (FusionErrorNotSameType a b)
+    = vsep [ "Fusion error: types do not match: "
+           , "  a = " <> pretty a
+           , "  b = " <> pretty b ]
+  pretty FusionErrorNothingToFuse
+    = "Fusion error: nothing to fuse, hooray!"
 
 -- | Fuse programs together, prefixing each with its name to ensure that the
 -- generated program has no name clashes.
@@ -31,7 +40,7 @@ fusePrograms a_fresh ln lp rn rp
  = fuseProgramsDistinctNames a_fresh (prefix ln lp) (prefix rn rp)
  where
   prefix n = renameProgram (modName n)
-  
+
 
 -- | Fuse programs together, assuming they already have no name clashes.
 fuseProgramsDistinctNames :: (Hashable n, Eq n) => a -> Program a n -> Program a n -> Either (FusionError n) (Program a n)

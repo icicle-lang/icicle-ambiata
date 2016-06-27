@@ -4,6 +4,8 @@ module Icicle.Source.Transform.Inline (
     inlineTransform
   , inlineQT
   , inlineQ
+  , InlineOption (..)
+  , defaultInline
   ) where
 
 import Icicle.Source.Query
@@ -20,11 +22,19 @@ import qualified    Data.Map as Map
 import              Data.Hashable (Hashable)
 
 
+data InlineOption
+  = InlineUsingLets
+  | InlineUsingSubst
+
+defaultInline :: InlineOption
+defaultInline = InlineUsingLets
+
 inlineTransform
         :: (Hashable n, Eq n)
-        => Map.Map (Name n) (Function a n)
+        => InlineOption
+        -> Map.Map (Name n) (Function a n)
         -> Transform (Fresh n) () a n
-inlineTransform funs
+inlineTransform opt funs
  = Transform
  { transformExp     = tranx
  , transformPat     = tranp
@@ -35,18 +45,27 @@ inlineTransform funs
   tranx _ x
    | (Var a n, args) <- takeApps x
    , Just fun        <- Map.lookup n funs
-   , length args == length (arguments fun)
-   = do let argNames
-                    = fmap snd $ arguments fun
-        ns         <- mapM (freshPrefixBase . nameBase) argNames
+   , vars            <- arguments fun
+   , argNames        <- fmap snd vars
+   , length args == length vars
+   = case opt of
+      InlineUsingLets -> do
+       ns      <- mapM (freshPrefixBase . nameBase) argNames
 
-        let sub     = Map.fromList
-                    $ argNames `zip` fmap (Var a) ns
+       let lets = fmap (mkLet a) (ns `zip` args)
+       let sub  = Map.fromList
+                $ argNames `zip` fmap (Var a) ns
 
-        body'      <- substQ sub $ body fun
+       body'   <- substQ sub $ body fun
 
-        let lets = fmap (mkLet a) (ns `zip` args)
-        return ((), Nested a (prefixContexts lets body'))
+       return ((), Nested a (prefixContexts lets body'))
+
+      InlineUsingSubst -> do
+       let sub  = Map.fromList
+                $ argNames `zip` args
+       body'   <- substQ sub $ body fun
+
+       return ((), Nested a body')
 
    | otherwise
    = return ((), x)
@@ -64,16 +83,19 @@ inlineTransform funs
 
 
 inlineQT :: (Hashable n, Eq n)
-        => Map.Map (Name n) (Function a n)
+        => InlineOption
+        -> Map.Map (Name n) (Function a n)
         -> QueryTop a n
         -> Fresh n (QueryTop a n)
-inlineQT funs qt
- = simplifyNestedQT <$> transformQT (inlineTransform funs) qt
+inlineQT opt funs qt
+ = simplifyNestedQT <$> transformQT (inlineTransform opt funs) qt
 
 
 inlineQ :: (Hashable n, Eq n)
-        => Map.Map (Name n) (Function a n)
+        => InlineOption
+        -> Map.Map (Name n) (Function a n)
         -> Query a n
         -> Fresh n (Query a n)
-inlineQ funs
- = transformQ (inlineTransform funs)
+inlineQ opt funs
+ = transformQ (inlineTransform opt funs)
+

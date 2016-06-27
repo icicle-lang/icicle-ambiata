@@ -3,7 +3,7 @@
 
 module Icicle.Repl (
     ReplError (..)
-  , Var, P.QueryTop', P.QueryTop'T, P.CoreProgram'
+  , module P
   , annotOfError
   , sourceParse
   , sourceDesugar
@@ -64,9 +64,9 @@ import           X.Control.Monad.Trans.Either
 type Var = P.SourceVar
 
 data ReplError
- = ReplErrorCompileCore      (P.CompileError  Parsec.SourcePos Var ())
- | ReplErrorCompileAvalanche (P.CompileError  ()               Var APF.Prim)
- | ReplErrorRuntime          (S.SimulateError ()               Var)
+ = ReplErrorCompileCore      (P.CompileError     Var)
+ | ReplErrorCompileAvalanche (P.CompileError     Var)
+ | ReplErrorRuntime          (S.SimulateError () Var)
  | ReplErrorDictionaryLoad   DictionaryToml.DictionaryImportError
  | ReplErrorDecode           S.ParseError
  deriving (Show)
@@ -124,17 +124,14 @@ sourceCheck :: SC.CheckOptions -> D.Dictionary -> P.QueryTop' Var -> Either Repl
 sourceCheck opts d
  = first ReplErrorCompileCore . P.sourceCheckQT opts d
 
-sourceConvert :: D.Dictionary -> P.QueryTop'T Var -> Either ReplError (P.CoreProgram' Var)
+sourceConvert :: D.Dictionary -> P.QueryTop'T Var -> Either ReplError (P.CoreProgramNoAnnot Var)
 sourceConvert d
  = first ReplErrorCompileCore . P.sourceConvert d
 
-coreFlatten
-  :: P.CoreProgram' Var -> Either ReplError (AP.Program () Var APF.Prim)
-coreFlatten
- = first ReplErrorCompileAvalanche . P.coreFlatten
+coreFlatten :: P.CoreProgramNoAnnot Var -> Either ReplError (P.AvalProgramNoAnnot Var APF.Prim)
+coreFlatten = first ReplErrorCompileAvalanche . P.coreFlatten
 
-coreFlatten_
-  :: AS.SimpOpts -> P.CoreProgram' Var -> Either ReplError (AP.Program () Var APF.Prim)
+coreFlatten_ :: AS.SimpOpts -> P.CoreProgramNoAnnot Var -> Either ReplError (P.AvalProgramNoAnnot Var APF.Prim)
 coreFlatten_ opts
  = first ReplErrorCompileAvalanche . P.coreFlatten_ opts
 

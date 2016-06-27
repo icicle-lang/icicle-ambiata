@@ -14,8 +14,20 @@ module Icicle.Benchmark (
   , withChords
   ) where
 
+import           Icicle.Data
+import           Icicle.Dictionary
+
+import qualified Icicle.Pipeline as P
+
+import           Icicle.Sea.Chords.File (writeChordFile)
+import           Icicle.Sea.Chords.Parse (ChordParseError(..), parseChordFile)
+import           Icicle.Sea.Eval
+
+import qualified Icicle.Source.Checker as SC
+
+import           Icicle.Storage.Dictionary.Toml
+
 import           Control.Monad.IO.Class (liftIO)
-import           Control.Parallel.Strategies (withStrategy, parTraversable, rparWith, rseq)
 
 import           Data.Map (Map)
 import qualified Data.Map as Map
@@ -23,31 +35,12 @@ import           Data.Set (Set)
 import qualified Data.Text.Lazy.IO as TL
 import           Data.Time (NominalDiffTime, getCurrentTime, diffUTCTime)
 
-import qualified Icicle.Avalanche.Prim.Flat as A
-import qualified Icicle.Avalanche.Program as A
-import           Icicle.Common.Annot (Annot)
-import           Icicle.Core.Program.Fusion (FusionError)
-import qualified Icicle.Core.Program.Fusion as C
-import qualified Icicle.Core.Program.Program as C
-import           Icicle.Data
-import           Icicle.Dictionary
-import           Icicle.Pipeline
-import           Icicle.Sea.Chords.File (writeChordFile)
-import           Icicle.Sea.Chords.Parse (ChordParseError(..), parseChordFile)
-import           Icicle.Sea.Eval
-import qualified Icicle.Source.Parser as S
-import qualified Icicle.Source.Query as S
-import qualified Icicle.Source.Checker as SC
-import           Icicle.Storage.Dictionary.Toml
-
-import           P
-
 import           System.FilePath (FilePath)
 import           System.IO (IO, IOMode(..), withFile, hFileSize)
 import           System.IO.Temp (createTempDirectory)
 import           System.Directory (getTemporaryDirectory, removeDirectoryRecursive)
 
-import           Text.ParserCombinators.Parsec (SourcePos)
+import           P
 
 import           X.Control.Monad.Trans.Either
 
@@ -55,11 +48,9 @@ import           X.Control.Monad.Trans.Either
 
 data BenchError =
     BenchDictionaryImportError DictionaryImportError
-  | BenchSourceError     (CompileError SourcePos S.Variable ())
-  | BenchFusionError     (FusionError S.Variable)
-  | BenchAvalancheError  (CompileError () S.Variable A.Prim)
-  | BenchSeaError        SeaError
-  | BenchChordParseError ChordParseError
+  | BenchCompileError          (P.CompileError P.SourceVar)
+  | BenchSeaError              SeaError
+  | BenchChordParseError       ChordParseError
   deriving (Show)
 
 ------------------------------------------------------------------------
@@ -106,7 +97,7 @@ createBenchmark mode dictionaryPath inputPath outputPath dropPath packedChordPat
   (dictionary, input') <- firstEitherT BenchDictionaryImportError $ inputCfg input
   let output'           = outputCfg output
 
-  avalanche  <- hoistEither (avalancheOfDictionary dictionary)
+  avalanche  <- hoistEither (first BenchCompileError $ P.avalancheOfDictionary P.defaultInline dictionary)
 
   let cfg = HasInput
           ( FormatPsv (PsvInputConfig  mode input')
@@ -182,55 +173,6 @@ tombstonesOfDictionary dict =
   let go (DictionaryEntry a (ConcreteDefinition _ ts) _) = [(a, ts)]
       go _                                               = []
   in Map.fromList (concatMap go (dictionaryEntries dict))
-
-------------------------------------------------------------------------
-
-avalancheOfDictionary :: Dictionary -> Either BenchError (Map Attribute (A.Program (Annot ()) S.Variable A.Prim))
-avalancheOfDictionary dict = do
-  let virtuals = fmap (second unVirtual) (getVirtualFeatures dict)
-
-  core      <- parTraverse (coreOfSource dict) virtuals
-  fused     <- parTraverse fuseCore (Map.unionsWith (<>) core)
-  avalanche <- parTraverse avalancheOfCore fused
-
-  return avalanche
-
-avalancheOfCore :: C.Program () S.Variable -> Either BenchError (A.Program (Annot ()) S.Variable A.Prim)
-avalancheOfCore core = do
-  flat    <- first BenchAvalancheError (coreFlatten core)
-  checked <- first BenchAvalancheError (checkAvalanche flat)
-  return checked
-
-fuseCore :: [(S.Variable, C.Program () S.Variable)] -> Either BenchError (C.Program () S.Variable)
-fuseCore programs =
-  first BenchFusionError $ do
-    fused <- C.fuseMultiple () programs
-    pure (coreSimp fused)
-
-coreOfSource
-  :: Dictionary
-  -> (Attribute, QueryTop'T SourceVar)
-  -> Either BenchError (Map Attribute [(S.Variable, C.Program () S.Variable)])
-coreOfSource dict (Attribute attr, virtual) =
-  first BenchSourceError $ do
-    let inlined = sourceInline dict virtual
-
-    desugared    <- sourceDesugarQT inlined
-    (checked, _) <- sourceCheckQT SC.optionSmallData dict desugared
-
-    let reified = sourceReifyQT checked
-
-    core <- sourceConvert dict reified
-    let simplified = coreSimp core
-
-    let baseattr  = (Attribute . unVar . unName) (S.feature virtual)
-
-    pure (Map.singleton baseattr [(S.Variable attr, simplified)])
-
-parTraverse  :: Traversable t => (a -> Either e b) -> t a -> Either e (t b)
-parTraverse f = sequenceA . parallel . fmap f
- where
-  parallel = withStrategy (parTraversable (rparWith rseq))
 
 ------------------------------------------------------------------------
 
