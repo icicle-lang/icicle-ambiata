@@ -54,50 +54,52 @@ data DebugError =
 
 ------------------------------------------------------------------------
 
-avalancheOrDie :: SC.CheckOptions
-               -> STI.InlineOption
+avalancheOrDie :: P.IcicleCompileOptions
                -> FilePath
                -> Text
-               -> P.AvalProgram P.SourceVar
-avalancheOrDie checkOpts inlineOpt dictionaryPath source =
-  case Map.minView (avalancheOrDie' checkOpts inlineOpt dictionaryPath [("debug", source)]) of
+               -> P.AvalProgramTyped P.SourceVar A.Prim
+avalancheOrDie opts dictionaryPath source =
+  case Map.minView (avalancheOrDie' opts dictionaryPath [("debug", source)]) of
     Just (x, _) -> x
     Nothing     -> error "avalancheOrDie: program not found"
 
-avalancheOrDie' :: SC.CheckOptions
-                -> STI.InlineOption
+avalancheOrDie' :: P.IcicleCompileOptions
                 -> FilePath
                 -> [(Text, Text)]
-                -> P.AvalPrograms P.SourceVar
-avalancheOrDie' checkOpts inlineOpt dictionaryPath sources = unsafePerformIO $ do
-  result <- runEitherT (avalancheFrom checkOpts inlineOpt dictionaryPath sources)
+                -> Map Attribute (P.AvalProgramTyped P.SourceVar A.Prim)
+avalancheOrDie' opts dictionaryPath sources = unsafePerformIO $ do
+  result <- runEitherT (avalancheFrom opts dictionaryPath sources)
   case result of
     Left (DebugDictionaryImportError x) -> error ("avalancheOrDie: " <> show (pretty x))
     Left (DebugCompileError          x) -> error ("avalancheOrDie: " <> show (pretty x))
     Right xs                            -> pure xs
 
-avalancheFrom :: SC.CheckOptions
-              -> STI.InlineOption
+avalancheFrom :: P.IcicleCompileOptions
               -> FilePath
               -> [(Text, Text)]
-              -> EitherT DebugError IO (P.AvalPrograms P.SourceVar)
-avalancheFrom checkOpts inlineOpt dictionaryPath sources = do
-  dictionary <- firstEitherT DebugDictionaryImportError (loadDictionary checkOpts ImplicitPrelude dictionaryPath)
-  queries    <- hoistEither (traverse (uncurry (queryOfSource checkOpts dictionary)) sources)
+              -> EitherT DebugError IO (Map Attribute (P.AvalProgramTyped P.SourceVar A.Prim))
+avalancheFrom opts dictionaryPath sources = do
+  let checkOpts = P.icicleBigData opts
 
-  let dictionary' = dictionary { dictionaryEntries = filter concrete (dictionaryEntries dictionary)
-                                                  <> fmap (uncurry entryOfQuery) queries }
+  dictionary <- firstEitherT DebugDictionaryImportError
+              $ loadDictionary checkOpts ImplicitPrelude dictionaryPath
+  queries    <- hoistEither
+              $ traverse (uncurry (queryOfSource checkOpts dictionary)) sources
+
+  let dictionary' = dictionary
+                  { dictionaryEntries =  filter concrete (dictionaryEntries dictionary)
+                                      <> fmap (uncurry entryOfQuery) queries }
 
   avalanche  <- hoistEither (avalancheOfDictionary dictionary')
   return avalanche
   where
     avalancheOfDictionary dict
       = first DebugCompileError
-      $ P.avalancheOfDictionaryOpt checkOpts inlineOpt dict
+      $ P.avalancheOfDictionary opts dict
 
     queryOfSource checkOpts dict name src
       = first DebugCompileError
-      $ P.queryOfSourceOpt checkOpts dict name src "namespace-debug"
+      $ P.queryOfSource checkOpts dict name src "namespace-debug"
 
     entryOfQuery attr query
       = P.entryOfQuery attr query "namespace-debug"
