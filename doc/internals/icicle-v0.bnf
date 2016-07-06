@@ -1,0 +1,304 @@
+#
+# Lexical Syntax
+#
+
+<program>      ::= <program-part> <program>
+                |  ε
+
+<program-part> ::= <lexeme>
+                |  <white-space>
+
+<lexeme>       ::= <literal>
+                |  <var-id>
+                |  <var-op>
+                |  <con-id>
+                |  <reserved-id>
+                |  <reserved-op>
+                |  <parens>
+
+<literal>      ::= <integer>
+                |  <float>
+                |  <string>
+                |  <date>
+
+<white-space>  ::= <white-space> <white-stuff>
+                |  ε
+<white-stuff>  ::= <white-char> | <comment>
+
+<white-char>   ::= ' ' | '\t' | '\n' | '\v'
+<white-chars>  ::= <white-chars> <white-char>
+                |  ε
+
+<comment>      ::= # <not-newline> <newline>
+
+<not-newline>  ::= [^\n]
+<not-newlines> ::= <not-newlines> <not-newline>
+                |  ε
+<newline>      ::= '\n'
+
+<lower>        ::= [a-z]
+<upper>        ::= [A-Z]
+
+<octit>        ::= [0-7]
+<digit>        ::= [0-9]
+<hexit>        ::= [0-9] | [a-f] | [A-F]
+
+<octal>        ::= <octal> <octit>
+                |  <octit>
+<decimal>      ::= <decimal> <digit>
+                |  <digit>
+<hexadecimal>  ::= <hexadecimal> <hexit>
+                |  <hexit>
+
+<integer>      ::= <decimal>
+                |  0o <octal>
+                |  0O <octal>
+                |  0x <hexadecimal>
+                |  0X <hexadecimal>
+
+<float>        ::= <decimal> . <decimal>
+                |  <decimal> . <decimal> <exponent>
+                |  <decimal> <exponent>
+
+<exponent>     ::= e <sign-opt> <decimal>
+                |  E <sign-opt> <decimal>
+
+<sign-opt>     ::= <sign>
+                |  ε
+<sign>         ::= -
+                |  +
+
+<projection>   ::= . <var-id>
+<projections>  ::= <projections> <projection>
+                |  ε
+
+<var-id>       ::= <var-head> <var-tails>
+<var-head>     ::= <lower>
+                |  _
+<var-tail>     ::= <lower>
+                |  <upper>
+                |  <digit>
+                |  _
+                |  $
+                |  '
+<var-tails>    ::= <var-tails> <var-tail>
+                |  ε
+
+<con-id>       ::= <con-head> <con-tails>
+<con-head>     ::= <upper>
+                |  _
+<con-tail>     ::=
+                |  <upper>
+                |  <lower>
+                |  <digit>
+                |  _
+                |  $
+                |  '
+<con-tails>    ::= <con-tails> <con-tail>
+                |  ε
+
+<symbol>       ::= /
+                |  *
+                |  +
+                |  ^
+                |  -
+                |  <
+                |  >
+                |  =
+                |  !
+                |  &
+                |  ,
+                |  '|'
+
+<symbols>      ::= <symbols> <symbol>
+                |  <symbol>
+
+<var-op>       ::= <symbols>
+
+<reserved-id>  ::= feature
+                |  window
+                |  group
+                |  fold
+                |  distinct
+                |  filter
+                |  latest
+                |  let
+                |  fold
+                |  fold1
+                |  between
+                |  and
+                |  days
+                |  months
+                |  weeks
+
+<reserved-op>  ::= :
+                |  =
+                |  .
+                |  ~>
+                |  ->
+                |  '|'
+
+<parens>       ::= (
+                |  )
+
+<date>         ::= ` <year> - <month> - <day> `
+<year>         ::= <digit> <digit> <digit> <digit>
+<month>        ::= <digit> <digit>
+<day>          ::= <digit> <digit>
+
+<string>       ::= " <hask-string-chars> "
+
+# From Haskell's Lexical Syntax
+
+<hask-string-char> ::= <hask-graphic-nqs>
+                    |  <hask-space>
+                    |  <hask-escape>
+                    |  <hask-gap>
+
+<hask-escape>      ::= \ <hask-char-escape>
+                    |  \ <hask-ascii>
+                    |  \ <decimal>
+                    |  \ o <octal>
+                    |  \ x <hexadecimal>
+
+<hask-ascii>       ::= ^ <hask-ctrl>
+                    |  NUL | SOH | STX | ETX | EOT | ENQ | ACK
+                    |  BEL | BS  | HT  | LF  | VT  | FF  | CR
+                    |  SO  | SI  | DLE | DC1 | DC2 | DC3 | DC4
+                    |  NAK | SYN | ETB | CAN | EM  | SUB | ESC
+                    |  FS  | GS  | RS  | US  | SP  | DEL
+
+<hask-ctrl>        ::= <hask-large> | @ | [ | \ | ] | ^ | _
+
+<hask-char-escape> ::= a | b | f | n | r | t | v | \ | " | ' | &
+
+<hask-graphic-nqs> ::= <hask-graphic> / without \ or " /
+<hask-graphic>     ::= <hask-small>
+                    |  <hask-large>
+                    |  <hask-symbol>
+                    |  <hask-special>
+                    |  <digit>
+                    |  :
+                    |  "
+                    |  '
+<hask-small>       ::= <lower> | _
+<hask-large>       ::= <upper>
+<hask-symbol>      ::= ! | # | $ | % | & | * | + | . | / | < | = | > | ? | @ | \ | ^ | - | ~ | '|'
+<hask-special>     ::= ( | ) | , | ; | [ | ] | ` | { | }
+<hask-gap>         ::= \ <white-chars> \
+<hask-space>       ::= ' '
+
+
+#
+# Context-Free Syntax
+#
+
+<functions>   ::= <function> <functions>
+               |  ε
+<function>    ::= <var-id> <parameters> = <query>.
+<parameters>  ::= <var-id> <parameters>
+               |  ε
+
+<top>         ::= feature <var-id> ~> <query>
+<query>       ::= <contexts> <exp>
+
+<context>     ::= <context1> ~>
+<contexts>    ::= <contexts> <context>
+               |  <context>
+
+<context1>    ::= window <window>
+               |  group <exp>
+               |  group fold (<var-id>, <var-id>) = <exp>
+               |  distinct <exp>
+               |  filter <exp>
+               |  latest <integer>
+               |  let <var-id> = <exp>
+               |  fold <var-id> = <exp> : <exp>
+               |  fold1 <var-id> = <exp> : <exp>
+
+<exp>         ::= <exp-ops> / after defixing /
+
+<exp-op>      ::= <exp1>
+               |  <op>
+
+<exp-ops>     ::= <exp-ops> <exp-op>
+               |  <exp-op>
+
+<exp1>        ::= ( <query> )
+               |  <literal>
+               |  <var-id> <projections>
+               |  <var-prim>
+               |  <con-prim>
+               |  case <exp> <alts> end
+
+<alts>        ::= <alts> <alt>
+                | <alt>
+
+<alt>         ::= '|' <pat> -> <exp>
+
+<pat>         ::= <pat1>
+               |  <pat-tuple>
+
+<pat-tuple>   ::= <pat1> , <pat>
+
+<pat1>        ::= <pat-var>
+               |  <pat-con>
+               |  ( <pat> )
+
+<pat-var>     ::= _
+               |  <var-id>
+
+<pat-con>     ::= <con-prim> <nested-pats>
+
+<nested-pats> ::= <nested-pats> <nested-pat>
+               |  ε
+
+<nested-pat>  ::= <pat-var>
+               |  <con-prim>
+               |  ( <pat> )
+
+<var-prim>    ::= days <between-opt>
+               |  seconds <between-opt>
+               |  log
+               |  exp
+               |  sqrt
+               |  abs
+               |  double
+               |  floor
+               |  ceil
+               |  round
+               |  trunc
+               |  seq
+               |  box
+               |  keys
+               |  vals
+               |  sort
+               |  length
+               |  index
+               |  map_create
+               |  map_insert
+               |  map_delete
+               |  map_lookup
+               |  day_of
+               |  month_of
+               |  year_of
+
+<between-opt> ::= between
+               |  ε
+
+<con-prim>    ::= Some
+               |  None
+               |  True
+               |  False
+               |  Left
+               |  Right
+               |  ExceptTombstone
+               |  ExceptFold1NoValue
+               |  ExceptScalarVariableNotAvailable
+
+<window>      ::= <integer> <window-unit>
+               |  between <integer> <window-unit> and <integer> <window-unit>
+
+<window-unit> ::= days
+               |  months
+               |  weeks
