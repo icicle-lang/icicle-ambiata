@@ -1,0 +1,369 @@
+#
+# Lexical Syntax
+#
+
+<program>          ::= <program> <program-part>
+                    |  ε
+
+<program-part>     ::= <lexeme>
+                    |  <space>
+
+<lexeme>           ::= <delimiter>
+                    |  <literal>
+                    |  <var-id>
+                    |  <var-op>
+                    |  <con-id>
+                    |  <reserved-id>
+                    |  <reserved-op>
+
+<delimiter>        ::= (
+                    |  )
+                    |  {
+                    |  }
+                    |  [
+                    |  ]
+                    |  ;
+                    |  ,
+                    |  `
+
+<literal>          ::= <integer>
+                    |  <rational>
+                    |  <string>
+                    |  <date>
+
+<number>           ::= <integer>
+                    |  <rational>
+
+<space>            ::= <space> <space-char>
+                    |  ε
+
+<space-char>       ::= ' ' | '\n' | <line-comment>
+
+<line-comment>     ::= -- <non-newlines> '\n'
+
+<non-newline>      ::= [^\n]
+<non-newlines>     ::= <non-newlines> <non-newline>
+                    |  ε
+
+<lower>            ::= [a-z]
+<upper>            ::= [A-Z]
+
+<bit>              ::= [0-1]
+<octit>            ::= [0-7]
+<digit>            ::= [0-9]
+<hexit>            ::= [0-9] | [a-f] | [A-F]
+
+<binary>           ::= <binary> <bit>
+                    |  <bit>
+
+<octal>            ::= <octal> <octit>
+                    |  <octit>
+
+<decimal>          ::= <decimal> <digit>
+                    |  <digit>
+
+<hexadecimal>      ::= <hexadecimal> <hexit>
+                    |  <hexit>
+
+<integer>          ::= <decimal>
+                    |  0b <binary>
+                    |  0o <octal>
+                    |  0x <hexadecimal>
+
+<rational>         ::= <decimal> <rational-tail>
+<rational-tail>    ::= <exponent>
+                    |  . <decimal> <exponent-opt>
+
+<exponent>         ::= e <sign-opt> <decimal>
+<exponent-opt>     ::= <exponent>
+                    |  ε
+
+<sign>             ::= -
+                    |  +
+<sign-opt>         ::= <sign>
+                    |  ε
+
+<prj-id>           ::= . <var-id>
+<var-id>           ::= <var-id-head> <id-tails>
+<var-id-head>      ::= <lower>
+                    |  _
+
+<con-id>           ::= <con-id-head> <id-tails>
+<con-id-head>      ::= <upper>
+
+<id-tail>          ::= <lower>
+                    |  <upper>
+                    |  <digit>
+                    |  _
+                    |  '
+<id-tails>         ::= <id-tails> <id-tail>
+                    |  ε
+
+<var-op>           ::= <var-op-head> <op-tails>
+<var-op-head>      ::= !
+                    |  #
+                    |  $
+                    |  %
+                    |  &
+                    |  *
+                    |  +
+                    |  .
+                    |  /
+                    |  <
+                    |  =
+                    |  >
+                    |  ?
+                    |  @
+                    |  \
+                    |  ^
+                    |  -
+                    |  ~
+                    |  '|'
+
+<con-op>           ::= <con-op-head> <op-tails>
+<con-op-head>      ::= :
+
+<op-tail>          ::= :
+                    |  !
+                    |  #
+                    |  $
+                    |  %
+                    |  &
+                    |  *
+                    |  +
+                    |  .
+                    |  /
+                    |  <
+                    |  =
+                    |  >
+                    |  ?
+                    |  @
+                    |  \
+                    |  ^
+                    |  -
+                    |  ~
+                    |  '|'
+
+<op-tails>         ::= <op-tails> <op-tail>
+                    |  ε
+
+<reserved-id>      ::= from
+                    |  let
+                    |  in
+                    |  of
+                    |  if
+                    |  then
+                    |  else
+                    |  for
+                    |  fold
+                    |  fold1
+                    |  window
+                    |  group
+                    |  fold
+                    |  distinct
+                    |  filter
+                    |  latest
+                    |  between
+                    |  and
+                    |  days
+                    |  months
+                    |  weeks
+
+<reserved-op>      ::= :
+                    |  =
+                    |  <-
+                    |  @
+
+<date>             ::= <year> - <month> - <day>
+<year>             ::= <digit> <digit> <digit> <digit>
+<month>            ::= <digit> <digit>
+<day>              ::= <digit> <digit>
+
+<string>           ::= " <string-chars> "
+<string-chars>     ::= <string-chars> <string-char>
+                    |  ε
+<string-char>      ::= <lower>
+                    |  <upper>
+                    |  <digit>
+                    |  <symbol>
+                    |  <delimiter>
+                    |  _
+                    |  :
+                    |  ' '
+                    |  <escape>
+
+<escape>           ::= \ <char-escape>
+                    |  \ u <hexit> <hexit> <hexit> <hexit>
+                    |  \ U <hexit> <hexit> <hexit> <hexit> <hexit> <hexit> <hexit> <hexit>
+
+<char-escape>      ::= a
+                    |  b
+                    |  f
+                    |  n
+                    |  r
+                    |  t
+                    |  v
+                    |  \
+                    |  "
+                    |  '
+
+
+#
+# Context-Free Syntax
+#
+
+<repl>           ::= from <var-id> in <exp>
+
+<extra>          ::= <decls>
+
+<decls>          ::= { <sep-decls> }
+
+<sep-decls>      ::= <sep-decls> ; <decl>
+                  |  ε
+
+<decl>           ::= <var-id> : <type>
+                  |  <var-id> <args> = <exp>
+                  |  <pat> = <exp>
+                  |  ε
+
+<args>           ::= <args> <var-id>
+                  |  <var-id>
+
+<type>           ::= <type-app> <arr-type-opt>
+
+<arr-type>       ::= -> <type>
+<arr-type-opt>   ::= <arr-type>
+                  |  ε
+
+<type-app>       ::= <simp-type>
+                  |  <type-app> <simp-type>
+
+<simp-type>      ::= <con-id>
+                  |  <var-id>
+                  |  ( <tuple-types> )
+
+<tuple-types>    ::= <tuple-types> , <type>
+                  |  ε
+
+<exp>            ::= <context> in <exp>
+                  |  if <guards> then <exp> <else>
+                  |  <atoms> <tail-opt>
+                  |  <tail>
+
+<tail>           ::= <var-op> <exp>
+                  |  of { <alts> }
+
+<tail-opt>       ::= <tail>
+                  |  ε
+
+<atom>           ::= <literal>
+                  |  <var-id> <projections>
+                  |  <con-id>
+                  |  ( <tuple-exps> )
+
+<atoms>          ::= <atoms> <atom>
+                  |  <atom>
+
+<prj-ids>        ::= <prj-ids> . <prj-id>
+                  |  ε
+
+<tuple-exps>     ::= <tuple-exps> , <exp>
+                  |  ε
+
+<context>        ::= let      <decls>
+                  |  group    <exp>
+                  |  distinct <exp>
+                  |  filter   <exp>
+                  |  latest   <integer>
+                  |  windowed <window>
+
+<else>           ::= if <guards> then <exp> <else>
+                  |  else <exp>
+
+<alts>           ::= <alts> ; <alt>
+                  |  <alt>
+
+<alt>            ::= <pat> <alt-rhs>
+
+<alt-rhs>        ::= then <exp>
+                  |  if <guards> then <exp> <alt-else-opt>
+
+<alt-else>       ::= if <guards> then <exp> <alt-else-opt>
+                  |  else <exp>
+
+<alt-else-opt>   ::= <alt-else>
+                  |  ε
+
+<guards>         ::= <guards> , <guards>
+                  |  <guard>
+
+<guard>          ::= <pat> <- <exp>
+                  |  <exp>
+
+<pat>            ::= <pat1>
+                  |  - <number>
+                  |  <con-id> <pat1s>
+
+<pat1>           ::= <literal>
+                  |  _
+                  |  <con-id>
+                  |  <var-id>
+                  |  ( <tuple-pats> )
+
+<pats>           ::= <pats> <pat>
+                  |  <pat>
+
+<pat1s>          ::= <pat1s> <pat1>
+                  |  <pat1>
+
+<tuple-pats>     ::= <tuple-pats> , <pat>
+                  |  ε
+
+<window>         ::= <integer> <window-unit>
+                  |  between <integer> <window-unit> and <integer> <window-unit>
+
+<window-unit>    ::= days
+                  |  months
+                  |  weeks
+
+<var-prim>       ::= case
+                  |  for
+                  |  fold
+                  |  fold1
+                  |  log
+                  |  exp
+                  |  sqrt
+                  |  abs
+                  |  double
+                  |  floor
+                  |  ceil
+                  |  round
+                  |  trunc
+                  |  seq
+                  |  box
+                  |  keys
+                  |  vals
+                  |  sort
+                  |  length
+                  |  index
+                  |  map_create
+                  |  map_insert
+                  |  map_delete
+                  |  map_lookup
+                  |  days_between
+                  |  seconds_between
+                  |  day_of
+                  |  month_of
+                  |  year_of
+                  |  julian_days
+                  |  julian_seconds
+
+<con-prim>       ::= Some
+                  |  None
+                  |  True
+                  |  False
+                  |  Left
+                  |  Right
+                  |  ExceptTombstone
+                  |  ExceptFold1NoValue
+                  |  ExceptScalarVariableNotAvailable
