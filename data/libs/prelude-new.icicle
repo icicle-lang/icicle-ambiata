@@ -1,0 +1,315 @@
+--------------------------------------------------------------------------------
+-- Base
+--------------------------------------------------------------------------------
+
+-- mod, relying on rounding.
+mod : Int -> Int -> Int
+mod x y =
+  x - (trunc (double x / double y) * y)
+
+-- integer division
+int_div : Int -> Int -> Int
+int_div x y =
+  trunc (double x / double y)
+
+-- Time statements
+newest : Element a -> Aggregate (Possibly a)
+newest v =
+  latest 1 in
+  fold1 v of _ then v
+
+oldest : Element a -> Aggregate (Possibly a)
+oldest v =
+  fold1 v of s then s
+
+-- check if a day is a weekend.
+is_weekend : Time -> Bool
+is_weekend v =
+  let
+    day =
+      day_of_week v
+  in
+    day == 0 ||
+    day == 6
+
+day_of_week : Time -> Int
+day_of_week v =
+  mod (days_since_epoch v - 4) 7
+
+-- starting at epoch 1600/01/03, identify the week that containing this day.
+week_of_day : Time -> Int
+week_of_day d =
+  int_div (days_since_epoch d) 7
+
+-- Boolean statements
+not : Bool -> Bool
+not = of
+  True then
+    False
+  False then
+    True
+
+is_some : Option a -> Bool
+is_some = of
+  Some _ then
+    True
+  None then
+    False
+
+is_none : Option a -> Bool
+is_none = of
+  Some _ then
+    False
+  None then
+    True
+
+get_or_else : a -> Option a -> a
+get_or_else default = of
+  Some x then
+    x
+  None then
+    default
+
+fst : (a, b) -> a
+fst = of
+  (x, _) then x
+
+snd : (a, b) -> b
+snd = of
+  (_, y) then y
+
+group_keys k =
+  keys (group k in 0)
+
+return v =
+  newest v
+
+--------------------------------------------------------------------------------
+-- Statistics
+--------------------------------------------------------------------------------
+
+sum : Num a => Element a -> Aggregate a
+sum v =
+  fold 0 of s then
+    v + s
+
+count : Num a => Element a -> Aggregate a
+count v =
+  fold 0 of c then
+    seq v (c + 1)
+
+-- Numerically stable mean
+mean : Num a => Element a -> Aggregate Double
+mean v =
+  let
+    v' =
+      double v
+  in
+    fst $
+      fold1 (v', 1) of (m,  n) then
+        (m + (v' - m) / (n + 1), n + 1)
+
+max : Element a -> Aggregate (Possibly a)
+max v =
+  fold1 v of s
+    if v > s then
+      v
+    else
+      s
+
+min : Element a -> Aggregate (Possibly a)
+min v =
+  fold1 v of s
+    if v < s then
+      v
+    else
+      s
+
+min_by : Element a -> Element b -> Aggregate (Possibly b)
+min_by a b =
+  snd $
+    fold1 (a, b) of (x, y)
+      if a < x then
+        (a, b)
+      else
+        (x, y)
+
+max_by : Element a -> Element b -> Aggregate (Possibly b)
+max_by a b =
+  snd $
+    fold1 (a, b) of (x, y)
+      if a > x then
+        (a, b)
+      else
+        (x, y)
+
+-- Numerically stable variance
+variance : Num a => Element a -> Aggregate Double
+variance v =
+  let
+    v' = double v
+
+    (x, _, y) =
+      fold (0, 0.0, 0.0) of (n, m, m2) then
+        let
+          nn  = n + 1
+          d   = v' - m
+          mm  = m + d / nn
+          m22 = m2 + d * (v' - mm)
+        in
+          (nn, mm, m22)
+  in
+    y / (x - 1)
+
+sd : Num a => Element a -> Aggregate Double
+sd v =
+  sqrt (variance v)
+
+-- Numerically stable covariance
+covariance : Num a => Element a -> Element a -> Aggregate Double
+covariance a b =
+  let
+    a' = double a
+    b' = double b
+
+    (n, _, _, m12) =
+      fold (0, 0.0, 0.0, 0.0) of (n, m1, m2, m12) then
+        let
+          nn   = n + 1
+          d1   = (a' - m1) / nn
+          mm1  = m1 + d1
+          d2   = (b' - m2) / nn
+          mm2  = m2 + d2
+          mm12 = m12 + n * d1 * d2 - m12 / nn
+        in
+          (nn, mm1, mm2, mm12)
+  in
+    m12 * n / (n - 1)
+
+-- Pearson's product-moment correlation coefficient.
+correlation : Num a => Element a -> Element a -> Aggregate Double
+correlation a b =
+  covariance a b / (sd a * sd b)
+
+-- Gradient with units y/x.
+gradient : Num a => Element a -> Element a -> Aggregate Double
+gradient a b =
+  covariance a b / variance b
+
+-- Version of num flips which should fail upon finding a tombstone value.
+numflips : Element a -> Aggregate Int
+numflips v =
+  snd $
+    fold1 (v, 0) of (s0, i)
+      if s0 == v then
+        (v, i)
+      else
+        (v, i + 1)
+
+-- Version of num flips which will accommodate tombstone values. Must have the tombstone feature passed to it.
+numflips' : Element a -> Element Bool -> Aggregate Int
+numflips' v t =
+ let
+   zero =
+     if t then
+       (None, 0)
+     else
+       (Some v, 0)
+
+   kons =
+     if t then of
+       (Some s, i) then
+         (None, i + 1)
+       (None, i) then
+         (None, i)
+     else of
+       (Some s, i) if s == v then
+         (Some v, i)
+       (_, i) then
+         (Some v, i + 1)
+  in
+    snd $ fold1 zero kons
+
+--------------------------------------------------------------------------------
+-- Example queries
+
+-- Quantiles from a sorted array of ints, same as in R.
+-- TODO safe array_index in Source that maps to unsafe index in Avalanche
+-- (might need a function unbox :: Sum Error a -> Option a)
+quantile_on_sorted : Num a => Double -> Array a -> Option Double
+quantile_on_sorted p array =
+  if p >= 0, p <= 1 then
+    let
+      len = length array
+
+      actual       = p * (double (len - 1))
+      actual_ceil  = ceil  actual
+      actual_floor = floor actual
+
+      floor_weight = double actual_ceil - actual
+
+      val_floor = index array actual_floor
+      val_ceil  = index array actual_ceil
+
+      x = double val_floor * floor_weight
+      y = double val_ceil  * double (1 - floor_weight)
+    in
+      Some (x + y)
+  else
+    None
+
+-- Count the days that an entity has spent in different states.
+-- e.g. days-in state time now = [("NSW", 20), ("QLD", 1)]
+days_in : Element (Possibly a) -> Element (Possibly Time) -> Aggregate (Possibly Time) -> Aggregate (Possibly (Map a Int))
+days_in x tx now =
+  let
+    x_new   = newest x
+    tx_new  = newest tx
+    tx_days = days_between tx_new now
+
+    (_, _, m) =
+      fold (None, 0, map_empty) of
+        (None, _, m) then
+          (Some (x, tx), 1, m)
+
+        (Some (v, tv), nv, m) then
+          let
+            nx = days_between tv tx
+            n  = nv + nx
+          in
+            if v == x then
+              (Some (x, tx), nv + nx, m)
+            else
+              let
+                m' =
+                  case (map_lookup v m) of
+                    None then
+                      map_insert v n m
+                    Some nv' then
+                      map_insert v (n + nv') m
+              in
+                (Some (x, tx), 0, m')
+  in
+    case (map_lookup x_new m) of
+      None then
+        map_insert x_new tx_days m
+      Some n then
+        map_insert x_new (tx_days + n) m
+
+-- The offsets (in days) of facts.
+date_offset_days time =
+  keys . fst $
+    fold1 (map_insert 0 0 map_empty, time) of (map, begin) then
+      let
+        ds = days_between begin time
+      in
+        (map_insert ds 0 map, begin)
+
+-- The offsets (in weeks) of facts.
+date_offset_weeks time =
+  keys . fst $
+    fold1 (map_insert 0 0 map_empty, time) of (map, begin) then
+      let
+        ds = round (double (days_between begin time) / 7)
+      in
+        (map_insert ds 0 map, begin)
