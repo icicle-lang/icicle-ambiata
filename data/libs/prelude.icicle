@@ -119,6 +119,14 @@ numflips' v t
           end
  ~> case s | (s0,i) -> i end.
 
+
+# Group by given key, count, and find the most common element.
+# If there are multiple elements with the maximum count we return one of those,
+# but exactly which one is undefined and deterministic.
+distribution_mode key
+ = group fold (key', count') = (group key ~> count key)
+ ~> max_by count' key'.
+
 #######################
 ### Example queries ###
 #######################
