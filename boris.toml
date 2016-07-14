@@ -8,9 +8,13 @@
   command = [["validate-respect"]]
 
 [build.dist-7-8]
+  command = [["master", "build", "dist-7-8", "-C", "icicle-compiler"]]
 
 [build.dist-7-10]
+  command = [["master", "build", "dist-7-10", "-C", "icicle-compiler"]]
 
 [build.branches-7-8]
+  command = [["master", "build", "branches-7-8", "-C", "icicle-compiler"]]
 
 [build.branches-7-10]
+  command = [["master", "build", "branches-7-10", "-C", "icicle-compiler"]]
