@@ -13,6 +13,7 @@ description:           icicle.
 library
   build-depends:
                        base                            >= 3          && < 5
+                     , icicle-data
                      , ambiata-disorder-corpus
                      , ambiata-jetski
                      , ambiata-p
@@ -105,28 +106,6 @@ library
                        Icicle.Benchmark.Generator
                        Icicle.BubbleGum
 
-                       Icicle.Common.Annot
-                       Icicle.Common.Base
-                       Icicle.Common.Data
-                       Icicle.Common.Fresh
-                       Icicle.Common.FixT
-                       Icicle.Common.Exp
-                       Icicle.Common.Exp.Alpha
-                       Icicle.Common.Exp.Check
-                       Icicle.Common.Exp.Compounds
-                       Icicle.Common.Exp.Error
-                       Icicle.Common.Exp.Exp
-                       Icicle.Common.Exp.Eval
-                       Icicle.Common.Exp.Prim.Minimal
-                       Icicle.Common.Exp.Prim.Builtin
-                       Icicle.Common.Exp.Prim.Eval
-                       Icicle.Common.Exp.Simp
-                       Icicle.Common.Exp.Simp.Beta
-                       Icicle.Common.Exp.Simp.ANormal
-                       Icicle.Common.Fragment
-                       Icicle.Common.Type
-                       Icicle.Common.Value
-
                        Icicle.Core
                        Icicle.Core.Exp.Exp
                        Icicle.Core.Exp.Prim
@@ -149,9 +128,6 @@ library
                        Icicle.Core.Eval.Stream
                        Icicle.Core.Eval.Program
 
-                       Icicle.Data
-                       Icicle.Data.Time
-
                        Icicle.Debug
 
                        Icicle.Dictionary
@@ -159,10 +135,6 @@ library
                        Icicle.Dictionary.Demographics
 
                        Icicle.Encoding
-                       Icicle.Internal.EditDistance
-                       Icicle.Internal.Leijen
-                       Icicle.Internal.Pretty
-                       Icicle.Internal.Rename
                        Icicle.Serial
                        Icicle.Simulator
 
@@ -264,6 +236,8 @@ library
 
                        Icicle.Storage.Encoding
 
+                       Icicle.Internal.Rename
+
                        Icicle.Pipeline
                        Icicle.Repl
 
@@ -271,6 +245,7 @@ executable             icicle-repl
     ghc-options:       -Wall -threaded -O2 -funbox-strict-fields
     main-is:           main/icicle-repl.hs
     build-depends:     base
+                     , icicle-data
                      , ambiata-p
                      , ambiata-x-eithert
                      , ambiata-x-optparse
@@ -290,6 +265,7 @@ executable             icicle-bench
     ghc-options:       -Wall -threaded -O2 -funbox-strict-fields
     main-is:           main/icicle-bench.hs
     build-depends:     base
+                     , icicle-data
                      , ambiata-jetski
                      , ambiata-p
                      , ambiata-x-eithert
@@ -316,6 +292,7 @@ test-suite test
 
   build-depends:
                        base                            >= 3          && < 5
+                     , icicle-data
                      , ambiata-disorder-aeson
                      , ambiata-disorder-core
                      , ambiata-disorder-corpus
@@ -357,6 +334,7 @@ test-suite test-io
 
   build-depends:
                       base                            >= 3          && < 5
+                     , icicle-data
                     , icicle
                     , ambiata-disorder-core
                     , ambiata-disorder-corpus
@@ -398,6 +376,7 @@ benchmark bench
 
   build-depends:
                        base                            >= 3          && < 5
+                     , icicle-data
                      , icicle
                      , ambiata-p
                      , ambiata-x-eithert
