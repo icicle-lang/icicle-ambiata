@@ -1,18 +1,19 @@
-name:                  icicle-data
+name:                  icicle-core
 version:               0.0.1
 license:               AllRightsReserved
 author:                Ambiata <info@ambiata.com>
 maintainer:            Ambiata <info@ambiata.com>
 copyright:             (c) 2015 Ambiata.
-synopsis:              Common bits for the Icicle compiler.
+synopsis:              Icicle Core language definition.
 category:              System
 cabal-version:         >= 1.8
 build-type:            Custom
-description:           Common bits for the Icicle compiler.
+description:           Icicle Core language definition.
 
 library
   build-depends:
                        base                            >= 3          && < 5
+                     , icicle-data
                      , ambiata-disorder-corpus
                      , ambiata-jetski
                      , ambiata-p
@@ -72,33 +73,27 @@ library
                        src
 
   exposed-modules:
-                       Icicle.Common.Annot
-                       Icicle.Common.Base
-                       Icicle.Common.Data
-                       Icicle.Common.Fresh
-                       Icicle.Common.FixT
-                       Icicle.Common.Exp
-                       Icicle.Common.Exp.Alpha
-                       Icicle.Common.Exp.Check
-                       Icicle.Common.Exp.Compounds
-                       Icicle.Common.Exp.Error
-                       Icicle.Common.Exp.Exp
-                       Icicle.Common.Exp.Eval
-                       Icicle.Common.Exp.Prim.Minimal
-                       Icicle.Common.Exp.Prim.Builtin
-                       Icicle.Common.Exp.Prim.Eval
-                       Icicle.Common.Exp.Simp
-                       Icicle.Common.Exp.Simp.Beta
-                       Icicle.Common.Exp.Simp.ANormal
-                       Icicle.Common.Fragment
-                       Icicle.Common.Type
-                       Icicle.Common.Value
+                       Icicle.Core
 
-                       Icicle.Internal.EditDistance
-                       Icicle.Internal.Leijen
-                       Icicle.Internal.Pretty
+                       Icicle.Core.Stream
+                       Icicle.Core.Stream.Stream
+                       Icicle.Core.Stream.Error
+                       Icicle.Core.Stream.Check
 
-                       Icicle.Data
-                       Icicle.Data.Time
+                       Icicle.Core.Program.Program
+                       Icicle.Core.Program.Check
+                       Icicle.Core.Program.Condense
+                       Icicle.Core.Program.Error
+                       Icicle.Core.Program.Simp
+                       Icicle.Core.Program.Fusion
+                       Icicle.Core.Program.Subst
 
-                       Icicle.BubbleGum
+                       Icicle.Core.Exp
+                       Icicle.Core.Exp.Exp
+                       Icicle.Core.Exp.Prim
+                       Icicle.Core.Exp.Combinators
+                       Icicle.Core.Exp.Simp
+
+                       Icicle.Core.Eval.Exp
+                       Icicle.Core.Eval.Stream
+                       Icicle.Core.Eval.Program
