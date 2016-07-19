@@ -1,0 +1,53 @@
+name:                  icicle-core
+version:               0.0.1
+license:               AllRightsReserved
+author:                Ambiata <info@ambiata.com>
+maintainer:            Ambiata <info@ambiata.com>
+copyright:             (c) 2015 Ambiata.
+synopsis:              Icicle Core language definition.
+category:              System
+cabal-version:         >= 1.8
+build-type:            Custom
+description:           Icicle Core language definition.
+
+library
+  build-depends:
+                       base                            >= 3          && < 5
+                     , icicle-data
+                     , ambiata-p
+                     , containers                      == 0.5.*
+                     , hashable                        == 1.2.*
+                     , transformers                    >= 0.3        && < 0.6
+                     , text                            == 1.2.*
+
+  ghc-options:
+                       -Wall
+
+  hs-source-dirs:
+                       src
+
+  exposed-modules:
+                       Icicle.Core
+
+                       Icicle.Core.Stream
+                       Icicle.Core.Stream.Stream
+                       Icicle.Core.Stream.Error
+                       Icicle.Core.Stream.Check
+
+                       Icicle.Core.Program.Program
+                       Icicle.Core.Program.Check
+                       Icicle.Core.Program.Condense
+                       Icicle.Core.Program.Error
+                       Icicle.Core.Program.Simp
+                       Icicle.Core.Program.Fusion
+                       Icicle.Core.Program.Subst
+
+                       Icicle.Core.Exp
+                       Icicle.Core.Exp.Exp
+                       Icicle.Core.Exp.Prim
+                       Icicle.Core.Exp.Combinators
+                       Icicle.Core.Exp.Simp
+
+                       Icicle.Core.Eval.Exp
+                       Icicle.Core.Eval.Stream
+                       Icicle.Core.Eval.Program

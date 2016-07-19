@@ -13,6 +13,9 @@ description:           icicle.
 library
   build-depends:
                        base                            >= 3          && < 5
+                     , icicle-data
+                     , icicle-source
+                     , icicle-core
                      , ambiata-disorder-corpus
                      , ambiata-jetski
                      , ambiata-p
@@ -103,54 +106,6 @@ library
 
                        Icicle.Benchmark
                        Icicle.Benchmark.Generator
-                       Icicle.BubbleGum
-
-                       Icicle.Common.Annot
-                       Icicle.Common.Base
-                       Icicle.Common.Data
-                       Icicle.Common.Fresh
-                       Icicle.Common.FixT
-                       Icicle.Common.Exp
-                       Icicle.Common.Exp.Alpha
-                       Icicle.Common.Exp.Check
-                       Icicle.Common.Exp.Compounds
-                       Icicle.Common.Exp.Error
-                       Icicle.Common.Exp.Exp
-                       Icicle.Common.Exp.Eval
-                       Icicle.Common.Exp.Prim.Minimal
-                       Icicle.Common.Exp.Prim.Builtin
-                       Icicle.Common.Exp.Prim.Eval
-                       Icicle.Common.Exp.Simp
-                       Icicle.Common.Exp.Simp.Beta
-                       Icicle.Common.Exp.Simp.ANormal
-                       Icicle.Common.Fragment
-                       Icicle.Common.Type
-                       Icicle.Common.Value
-
-                       Icicle.Core
-                       Icicle.Core.Exp.Exp
-                       Icicle.Core.Exp.Prim
-                       Icicle.Core.Exp.Combinators
-                       Icicle.Core.Exp.Simp
-                       Icicle.Core.Exp
-                       Icicle.Core.Stream.Stream
-                       Icicle.Core.Stream.Error
-                       Icicle.Core.Stream.Check
-                       Icicle.Core.Stream
-                       Icicle.Core.Program.Program
-                       Icicle.Core.Program.Check
-                       Icicle.Core.Program.Condense
-                       Icicle.Core.Program.Error
-                       Icicle.Core.Program.Simp
-                       Icicle.Core.Program.Fusion
-                       Icicle.Core.Program.Subst
-
-                       Icicle.Core.Eval.Exp
-                       Icicle.Core.Eval.Stream
-                       Icicle.Core.Eval.Program
-
-                       Icicle.Data
-                       Icicle.Data.Time
 
                        Icicle.Debug
 
@@ -159,10 +114,6 @@ library
                        Icicle.Dictionary.Demographics
 
                        Icicle.Encoding
-                       Icicle.Internal.EditDistance
-                       Icicle.Internal.Leijen
-                       Icicle.Internal.Pretty
-                       Icicle.Internal.Rename
                        Icicle.Serial
                        Icicle.Simulator
 
@@ -191,68 +142,6 @@ library
                        Icicle.Sea.IO.Zebra
                        Icicle.Sea.IO.Zebra.Input
 
-                       Icicle.Sorbet.Concrete.Annotation
-                       Icicle.Sorbet.Concrete.Parser
-                       Icicle.Sorbet.Concrete.Pretty
-                       Icicle.Sorbet.Concrete.Syntax
-                       Icicle.Sorbet.Lexical.Escape
-                       Icicle.Sorbet.Lexical.Layout
-                       Icicle.Sorbet.Lexical.Lexer
-                       Icicle.Sorbet.Lexical.Syntax
-                       Icicle.Sorbet.Position
-
-                       Icicle.Source.Eval
-                       Icicle.Source.Query
-                       Icicle.Source.Query.Query
-                       Icicle.Source.Query.Builtin
-                       Icicle.Source.Query.Constructor
-                       Icicle.Source.Query.Context
-                       Icicle.Source.Query.Exp
-                       Icicle.Source.Query.Function
-                       Icicle.Source.Query.Operators
-                       Icicle.Source.Query.Prim
-                       Icicle.Source.Lexer.Token
-                       Icicle.Source.Lexer.Lexer
-
-                       Icicle.Source.Parser
-                       Icicle.Source.Parser.Constructor
-                       Icicle.Source.Parser.Token
-                       Icicle.Source.Parser.Operators
-                       Icicle.Source.Parser.Parser
-
-                       Icicle.Source.Type
-                       Icicle.Source.Type.Base
-                       Icicle.Source.Type.Compounds
-                       Icicle.Source.Type.Constraints
-                       Icicle.Source.Type.Pretty
-                       Icicle.Source.Type.Subst
-
-                       Icicle.Source.Checker
-                       Icicle.Source.Checker.Base
-                       Icicle.Source.Checker.Checker
-                       Icicle.Source.Checker.Constraint
-                       Icicle.Source.Checker.Error
-                       Icicle.Source.Checker.Function
-                       Icicle.Source.Checker.Invariants
-                       Icicle.Source.Checker.Prim
-                       Icicle.Source.Checker.Resumable
-
-                       Icicle.Source.ToCore.Base
-                       Icicle.Source.ToCore.Context
-                       Icicle.Source.ToCore.Exp
-                       Icicle.Source.ToCore.Fold
-                       Icicle.Source.ToCore.ToCore
-                       Icicle.Source.ToCore.Prim
-
-                       Icicle.Source.Transform.Base
-                       Icicle.Source.Transform.SubstX
-                       Icicle.Source.Transform.Inline
-                       Icicle.Source.Transform.Desugar
-                       Icicle.Source.Transform.ReifyPossibility
-                       Icicle.Source.Transform.Simp
-                       Icicle.Source.Transform.Simp.Dumb
-                       Icicle.Source.PrettyAnnot
-
                        Icicle.Storage.Dictionary.TextV1
                        Icicle.Storage.Dictionary.Toml
                        Icicle.Storage.Dictionary.Toml.Types
@@ -264,6 +153,8 @@ library
 
                        Icicle.Storage.Encoding
 
+                       Icicle.Internal.Rename
+
                        Icicle.Pipeline
                        Icicle.Repl
 
@@ -271,6 +162,9 @@ executable             icicle-repl
     ghc-options:       -Wall -threaded -O2 -funbox-strict-fields
     main-is:           main/icicle-repl.hs
     build-depends:     base
+                     , icicle-data
+                     , icicle-source
+                     , icicle-core
                      , ambiata-p
                      , ambiata-x-eithert
                      , ambiata-x-optparse
@@ -290,6 +184,9 @@ executable             icicle-bench
     ghc-options:       -Wall -threaded -O2 -funbox-strict-fields
     main-is:           main/icicle-bench.hs
     build-depends:     base
+                     , icicle-data
+                     , icicle-source
+                     , icicle-core
                      , ambiata-jetski
                      , ambiata-p
                      , ambiata-x-eithert
@@ -316,6 +213,9 @@ test-suite test
 
   build-depends:
                        base                            >= 3          && < 5
+                     , icicle-data
+                     , icicle-source
+                     , icicle-core
                      , ambiata-disorder-aeson
                      , ambiata-disorder-core
                      , ambiata-disorder-corpus
@@ -357,6 +257,9 @@ test-suite test-io
 
   build-depends:
                       base                            >= 3          && < 5
+                    , icicle-data
+                    , icicle-source
+                    , icicle-core
                     , icicle
                     , ambiata-disorder-core
                     , ambiata-disorder-corpus
@@ -398,6 +301,9 @@ benchmark bench
 
   build-depends:
                        base                            >= 3          && < 5
+                     , icicle-data
+                     , icicle-source
+                     , icicle-core
                      , icicle
                      , ambiata-p
                      , ambiata-x-eithert

@@ -1,0 +1,76 @@
+name:                  icicle-data
+version:               0.0.1
+license:               AllRightsReserved
+author:                Ambiata <info@ambiata.com>
+maintainer:            Ambiata <info@ambiata.com>
+copyright:             (c) 2015 Ambiata.
+synopsis:              Common bits for the Icicle compiler.
+category:              System
+cabal-version:         >= 1.8
+build-type:            Custom
+description:           Common bits for the Icicle compiler.
+
+library
+  build-depends:
+                       base                            >= 3          && < 5
+                     , ambiata-p
+                     , annotated-wl-pprint             == 0.7.*
+                     , ansi-terminal                   == 0.6.*
+                     , containers                      == 0.5.*
+                     , hashable                        == 1.2.*
+                     , lens                            >= 4.7        && < 4.15
+                     , text                            == 1.2.*
+                     , thyme                           == 0.3.*
+                     , time                            >= 1.5        && < 1.7
+                     , time-locale-compat              == 0.1.*
+                     , transformers                    >= 0.3        && < 0.6
+                     , vector                          == 0.10.*
+                     , vector-space                    == 0.10.*
+                     -- Well, it might look very odd that we're using both attoparsec
+                     -- and parsec.
+                     -- The thing is, attoparsec only operates on raw strings, and our source parser
+                     -- for Icicle should operate over tokens.
+                     -- Going over tokens instead of strings simplifies the parser itself and makes everything
+                     -- a bit cleaner.
+                     -- As an added benefit, parsec will give us nicer error messages.
+                     , attoparsec                      >= 0.12       && < 0.14
+                     , megaparsec                      == 5.0.*
+                     ,     parsec                      == 3.1.*
+
+  ghc-options:
+                       -Wall
+
+  hs-source-dirs:
+                       src
+
+  exposed-modules:
+                       Icicle.Common.Annot
+                       Icicle.Common.Base
+                       Icicle.Common.Data
+                       Icicle.Common.Fresh
+                       Icicle.Common.FixT
+                       Icicle.Common.Exp
+                       Icicle.Common.Exp.Alpha
+                       Icicle.Common.Exp.Check
+                       Icicle.Common.Exp.Compounds
+                       Icicle.Common.Exp.Error
+                       Icicle.Common.Exp.Exp
+                       Icicle.Common.Exp.Eval
+                       Icicle.Common.Exp.Prim.Minimal
+                       Icicle.Common.Exp.Prim.Builtin
+                       Icicle.Common.Exp.Prim.Eval
+                       Icicle.Common.Exp.Simp
+                       Icicle.Common.Exp.Simp.Beta
+                       Icicle.Common.Exp.Simp.ANormal
+                       Icicle.Common.Fragment
+                       Icicle.Common.Type
+                       Icicle.Common.Value
+
+                       Icicle.Internal.EditDistance
+                       Icicle.Internal.Leijen
+                       Icicle.Internal.Pretty
+
+                       Icicle.Data
+                       Icicle.Data.Time
+
+                       Icicle.BubbleGum

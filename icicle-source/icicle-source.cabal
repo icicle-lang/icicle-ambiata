@@ -1,0 +1,109 @@
+name:                  icicle-source
+version:               0.0.1
+license:               AllRightsReserved
+author:                Ambiata <info@ambiata.com>
+maintainer:            Ambiata <info@ambiata.com>
+copyright:             (c) 2015 Ambiata.
+synopsis:              Icicle Source language parser and type checker.
+category:              System
+cabal-version:         >= 1.8
+build-type:            Custom
+description:           Icicle Source language parser and type checker.
+
+library
+  build-depends:
+                       base                            >= 3          && < 5
+                     , icicle-data
+                     , icicle-core
+                     , ambiata-p
+                     , ambiata-x-eithert
+                     , ambiata-x-show
+                     , ansi-terminal                   == 0.6.*
+                     , containers                      == 0.5.*
+                     , hashable                        == 1.2.*
+                     , mmorph                          == 1.0.*
+                     , scientific                      == 0.3.*
+                     , semigroups                      >= 0.16       && < 0.19
+                     , text                            == 1.2.*
+                     , thyme                           == 0.3.*
+                     , transformers                    >= 0.3        && < 0.6
+                     -- Well, it might look very odd that we're using both attoparsec
+                     -- and parsec.
+                     -- The thing is, attoparsec only operates on raw strings, and our source parser
+                     -- for Icicle should operate over tokens.
+                     -- Going over tokens instead of strings simplifies the parser itself and makes everything
+                     -- a bit cleaner.
+                     -- As an added benefit, parsec will give us nicer error messages.
+                     , attoparsec                      >= 0.12       && < 0.14
+                     , megaparsec                      == 5.0.*
+                     ,     parsec                      == 3.1.*
+
+  ghc-options:
+                       -Wall
+
+  hs-source-dirs:
+                       src
+
+  exposed-modules:
+                       Icicle.Sorbet.Concrete.Annotation
+                       Icicle.Sorbet.Concrete.Parser
+                       Icicle.Sorbet.Concrete.Pretty
+                       Icicle.Sorbet.Concrete.Syntax
+                       Icicle.Sorbet.Lexical.Escape
+                       Icicle.Sorbet.Lexical.Layout
+                       Icicle.Sorbet.Lexical.Lexer
+                       Icicle.Sorbet.Lexical.Syntax
+                       Icicle.Sorbet.Position
+
+                       Icicle.Source.Eval
+                       Icicle.Source.Query
+                       Icicle.Source.Query.Query
+                       Icicle.Source.Query.Builtin
+                       Icicle.Source.Query.Constructor
+                       Icicle.Source.Query.Context
+                       Icicle.Source.Query.Exp
+                       Icicle.Source.Query.Function
+                       Icicle.Source.Query.Operators
+                       Icicle.Source.Query.Prim
+                       Icicle.Source.Lexer.Token
+                       Icicle.Source.Lexer.Lexer
+
+                       Icicle.Source.Parser
+                       Icicle.Source.Parser.Constructor
+                       Icicle.Source.Parser.Token
+                       Icicle.Source.Parser.Operators
+                       Icicle.Source.Parser.Parser
+
+                       Icicle.Source.Type
+                       Icicle.Source.Type.Base
+                       Icicle.Source.Type.Compounds
+                       Icicle.Source.Type.Constraints
+                       Icicle.Source.Type.Pretty
+                       Icicle.Source.Type.Subst
+
+                       Icicle.Source.Checker
+                       Icicle.Source.Checker.Base
+                       Icicle.Source.Checker.Checker
+                       Icicle.Source.Checker.Constraint
+                       Icicle.Source.Checker.Error
+                       Icicle.Source.Checker.Function
+                       Icicle.Source.Checker.Invariants
+                       Icicle.Source.Checker.Prim
+                       Icicle.Source.Checker.Resumable
+
+                       Icicle.Source.ToCore.Base
+                       Icicle.Source.ToCore.Context
+                       Icicle.Source.ToCore.Exp
+                       Icicle.Source.ToCore.Fold
+                       Icicle.Source.ToCore.ToCore
+                       Icicle.Source.ToCore.Prim
+
+                       Icicle.Source.Transform.Base
+                       Icicle.Source.Transform.SubstX
+                       Icicle.Source.Transform.Inline
+                       Icicle.Source.Transform.Desugar
+                       Icicle.Source.Transform.ReifyPossibility
+                       Icicle.Source.Transform.Simp
+                       Icicle.Source.Transform.Simp.Dumb
+                       Icicle.Source.PrettyAnnot
+
