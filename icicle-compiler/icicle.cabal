@@ -14,8 +14,8 @@ library
   build-depends:
                        base                            >= 3          && < 5
                      , icicle-data
-                     , icicle-source
                      , icicle-core
+                     , icicle-source
                      , ambiata-disorder-corpus
                      , ambiata-jetski
                      , ambiata-p
@@ -109,12 +109,6 @@ library
 
                        Icicle.Debug
 
-                       Icicle.Dictionary
-                       Icicle.Dictionary.Data
-                       Icicle.Dictionary.Demographics
-
-                       Icicle.Encoding
-                       Icicle.Serial
                        Icicle.Simulator
 
                        Icicle.Sea.Error
@@ -142,43 +136,10 @@ library
                        Icicle.Sea.IO.Zebra
                        Icicle.Sea.IO.Zebra.Input
 
-                       Icicle.Storage.Dictionary.TextV1
-                       Icicle.Storage.Dictionary.Toml
-                       Icicle.Storage.Dictionary.Toml.Types
-                       Icicle.Storage.Dictionary.Toml.Toml
-                       Icicle.Storage.Dictionary.Toml.Persist
-                       Icicle.Storage.Dictionary.Toml.Prisms
-                       Icicle.Storage.Dictionary.Toml.Dense
-                       Icicle.Storage.Dictionary.Toml.TomlDictionary
-
-                       Icicle.Storage.Encoding
-
                        Icicle.Internal.Rename
 
-                       Icicle.Pipeline
-                       Icicle.Repl
+                       Icicle.Compiler
 
-executable             icicle-repl
-    ghc-options:       -Wall -threaded -O2 -funbox-strict-fields
-    main-is:           main/icicle-repl.hs
-    build-depends:     base
-                     , icicle-data
-                     , icicle-source
-                     , icicle-core
-                     , ambiata-p
-                     , ambiata-x-eithert
-                     , ambiata-x-optparse
-                     , ansi-terminal                   == 0.6.*
-                     , containers
-                     , icicle
-                     , directory
-                     , filepath
-                     , haskeline
-                     , terminal-size
-                     , text
-                     , transformers
-                     , wl-pprint
-                     , parsec
 
 executable             icicle-bench
     ghc-options:       -Wall -threaded -O2 -funbox-strict-fields
@@ -200,6 +161,7 @@ executable             icicle-bench
                      , text                            == 1.2.*
                      , time                            >= 1.5        && < 1.7
                      , transformers                    >= 0.3        && < 0.6
+
 
 test-suite test
   type:                exitcode-stdio-1.0
@@ -242,6 +204,7 @@ test-suite test
                      , text
                      , transformers
 
+
 test-suite test-io
   type:
                     exitcode-stdio-1.0
@@ -275,6 +238,7 @@ test-suite test-io
                     , transformers
                     , filepath
 
+
 test-suite test-cli
   type:                exitcode-stdio-1.0
 
@@ -288,6 +252,7 @@ test-suite test-cli
   build-depends:
                        base                            >= 3          && < 5
                      , ambiata-disorder-core
+
 
 benchmark bench
   type:                exitcode-stdio-1.0

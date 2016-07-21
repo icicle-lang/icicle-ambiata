@@ -17,7 +17,7 @@ import qualified Icicle.Avalanche.Prim.Flat             as Flat
 import           Icicle.Avalanche.Statement.Statement
 import qualified Icicle.Avalanche.Statement.Simp.Mutate as Mutate
 
-import qualified Icicle.Pipeline                        as Pipeline
+import qualified Icicle.Compiler                        as Pipeline
 import           Icicle.Internal.Pretty
 
 import           Icicle.Test.Arbitrary

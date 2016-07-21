@@ -16,7 +16,8 @@ import qualified Icicle.Source.Type as S
 
 import qualified Icicle.Data as D
 
-import qualified Icicle.Pipeline as P
+import qualified Icicle.Compiler.Source as Source
+import qualified Icicle.Compiler as P
 
 import qualified Icicle.Source.Parser  as SP
 
@@ -83,7 +84,7 @@ prop_languages_eval ewt = testIO $ do
 data EvalWellTyped = EvalWellTyped
   { welltyped        :: WellTyped
   , wtEvalFacts      :: [D.AsAt D.Fact]
-  , wtEvalDummyQuery :: P.QueryTopPosTyped P.SourceVar
+  , wtEvalDummyQuery :: P.QueryTyped Source.Var
   } deriving (Show)
 
 instance Arbitrary EvalWellTyped where
@@ -102,7 +103,7 @@ mkFacts wt
       = D.AsAt <$> (D.Fact ent attr <$> factFromCoreValue (D.atFact a))
                <*> pure (D.atTime a)
 
-mkDummyQuery :: WellTyped -> P.QueryTopPosTyped P.SourceVar
+mkDummyQuery :: WellTyped -> P.QueryTyped Source.Var
 mkDummyQuery wt
   = let x = nameOf $ NameBase $ SP.Variable "dummy"
         pos = Parsec.initialPos "dummy"
@@ -145,7 +146,7 @@ factFromCoreValue bv = case bv of
     ( fmap (sequence . first (D.Attribute . nameOfStructField) . second factFromCoreValue)
     $ Map.toList x)
 
-sourceNameFromTestName :: Name Var -> Name P.SourceVar
+sourceNameFromTestName :: Name Var -> Name Source.Var
 sourceNameFromTestName
   = nameOf . NameBase . SP.Variable . Text.pack . show . pretty . nameBase
 

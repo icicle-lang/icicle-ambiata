@@ -29,6 +29,10 @@ main =
    , replHook = \pd lbi uh flags args -> do
        genBuildInfo (fromFlag $ replVerbosity flags) pd
        (replHook hooks) pd lbi uh flags args
+   , testHook = \args pd lbi uh flags -> do
+       genBuildInfo (fromFlag $ testVerbosity flags) pd
+       (buildHook hooks) pd lbi uh defaultBuildFlags { buildArgs = ["icicle-repl"] }
+       (testHook hooks) args pd lbi uh flags
    }
 
 genBuildInfo :: Verbosity -> PackageDescription -> IO ()
