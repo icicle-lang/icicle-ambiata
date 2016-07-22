@@ -17,7 +17,8 @@ module Icicle.Benchmark (
 import           Icicle.Data
 import           Icicle.Dictionary
 
-import qualified Icicle.Pipeline as P
+import qualified Icicle.Compiler.Source as P
+import qualified Icicle.Compiler        as P
 
 import           Icicle.Sea.Chords.File (writeChordFile)
 import           Icicle.Sea.Chords.Parse (ChordParseError(..), parseChordFile)
@@ -48,7 +49,7 @@ import           X.Control.Monad.Trans.Either
 
 data BenchError =
     BenchDictionaryImportError DictionaryImportError
-  | BenchCompileError          (P.CompileError P.SourceVar)
+  | BenchCompileError          (P.ErrorCompile P.Var)
   | BenchSeaError              SeaError
   | BenchChordParseError       ChordParseError
   deriving (Show)

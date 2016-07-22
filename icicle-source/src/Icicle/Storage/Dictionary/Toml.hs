@@ -12,14 +12,19 @@ module Icicle.Storage.Dictionary.Toml (
   ) where
 
 import           Icicle.Common.Base
+
 import           Icicle.Data                                   (Attribute, Namespace(..))
 import           Icicle.Dictionary.Data
+
 import           Icicle.Internal.Pretty                        hiding ((</>))
-import qualified Icicle.Pipeline                               as P
+
+import qualified Icicle.Compiler.Source                        as P
+
 import qualified Icicle.Source.Checker                         as SC
 import qualified Icicle.Source.Parser                          as SP
 import qualified Icicle.Source.Query                           as SQ
 import qualified Icicle.Source.Type                            as ST
+
 import           Icicle.Storage.Dictionary.Toml.Dense
 import           Icicle.Storage.Dictionary.Toml.Toml
 import           Icicle.Storage.Dictionary.Toml.TomlDictionary
@@ -47,7 +52,7 @@ import           X.Control.Monad.Trans.Either
 data DictionaryImportError
   = DictionaryErrorIO          E.SomeException
   | DictionaryErrorParsecTOML  Parsec.ParseError
-  | DictionaryErrorCompilation (P.CompileError P.SourceVar)
+  | DictionaryErrorCompilation (P.ErrorSource P.Var)
   | DictionaryErrorParse       [DictionaryValidationError]
   | DictionaryErrorDense       DictionaryDenseError
   deriving (Show)
@@ -181,7 +186,7 @@ loadImports parentFuncs parsedImports
 checkDefs
   :: SC.CheckOptions
   -> Dictionary
-  -> [(Namespace, Attribute, P.QueryTopPosUntyped P.SourceVar)]
+  -> [(Namespace, Attribute, P.QueryUntyped P.Var)]
   -> EitherT DictionaryImportError IO [DictionaryEntry]
 checkDefs checkOpts d defs
  = hoistEither . first DictionaryErrorCompilation

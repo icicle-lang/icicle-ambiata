@@ -16,7 +16,7 @@ import qualified Icicle.Avalanche.Statement.Flatten.Type as AF
 
 import           Icicle.Internal.Pretty
 
-import qualified Icicle.Pipeline as P
+import qualified Icicle.Compiler as P
 
 import           Icicle.Test.Arbitrary
 

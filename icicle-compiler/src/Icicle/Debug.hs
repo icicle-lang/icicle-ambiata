@@ -27,7 +27,8 @@ import           Icicle.Dictionary
 
 import           Icicle.Internal.Pretty        (pretty)
 
-import qualified Icicle.Pipeline                as P
+import qualified Icicle.Compiler.Source         as P
+import qualified Icicle.Compiler                as P
 
 import qualified Icicle.Source.Parser           as S
 import qualified Icicle.Source.Query            as S
@@ -49,7 +50,7 @@ import           X.Control.Monad.Trans.Either
 
 data DebugError =
     DebugDictionaryImportError DictionaryImportError
-  | DebugCompileError          (P.CompileError P.SourceVar)
+  | DebugCompileError          (P.ErrorCompile P.Var)
   deriving (Show)
 
 ------------------------------------------------------------------------
@@ -57,7 +58,7 @@ data DebugError =
 avalancheOrDie :: P.IcicleCompileOptions
                -> FilePath
                -> Text
-               -> P.AvalProgramTyped P.SourceVar A.Prim
+               -> P.AvalProgramTyped P.Var A.Prim
 avalancheOrDie opts dictionaryPath source =
   case Map.minView (avalancheOrDie' opts dictionaryPath [("debug", source)]) of
     Just (x, _) -> x
@@ -66,7 +67,7 @@ avalancheOrDie opts dictionaryPath source =
 avalancheOrDie' :: P.IcicleCompileOptions
                 -> FilePath
                 -> [(Text, Text)]
-                -> Map Attribute (P.AvalProgramTyped P.SourceVar A.Prim)
+                -> Map Attribute (P.AvalProgramTyped P.Var A.Prim)
 avalancheOrDie' opts dictionaryPath sources = unsafePerformIO $ do
   result <- runEitherT (avalancheFrom opts dictionaryPath sources)
   case result of
@@ -77,7 +78,7 @@ avalancheOrDie' opts dictionaryPath sources = unsafePerformIO $ do
 avalancheFrom :: P.IcicleCompileOptions
               -> FilePath
               -> [(Text, Text)]
-              -> EitherT DebugError IO (Map Attribute (P.AvalProgramTyped P.SourceVar A.Prim))
+              -> EitherT DebugError IO (Map Attribute (P.AvalProgramTyped P.Var A.Prim))
 avalancheFrom opts dictionaryPath sources = do
   let checkOpts = P.icicleBigData opts
 
@@ -98,7 +99,7 @@ avalancheFrom opts dictionaryPath sources = do
       $ P.avalancheOfDictionary opts dict
 
     queryOfSource checkOpts dict name src
-      = first DebugCompileError
+      = first (DebugCompileError . P.ErrorSource)
       $ P.queryOfSource checkOpts dict name src "namespace-debug"
 
     entryOfQuery attr query

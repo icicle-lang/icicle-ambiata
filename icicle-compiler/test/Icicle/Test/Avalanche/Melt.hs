@@ -20,7 +20,7 @@ import           Icicle.Core.Program.Check
 
 import           Icicle.Internal.Pretty
 
-import qualified Icicle.Pipeline                      as P
+import qualified Icicle.Compiler as P
 
 import           P
 
