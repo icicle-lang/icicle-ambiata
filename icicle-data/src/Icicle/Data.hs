@@ -1,15 +1,17 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE DeriveFunctor     #-}
 {-# LANGUAGE DeriveTraversable #-}
-{-# LANGUAGE DeriveFoldable #-}
+{-# LANGUAGE DeriveFoldable    #-}
+
 module Icicle.Data (
     Entity (..)
   , Namespace (..)
   , Attribute (..)
   , FeatureId (..)
+  , NormalisedFact (..)
   , Fact (..)
-  , Fact' (..)
+  , FactMode (..)
   , AsAt (..)
   , Value (..)
   , Struct (..)
@@ -19,7 +21,9 @@ module Icicle.Data (
   , StructField (..)
   , StructFieldType (..)
   , attributeOfStructField
+  , factAsAt
   ) where
+
 
 import           Data.Text
 import           Icicle.Internal.Pretty
@@ -37,6 +41,7 @@ newtype Entity =
 instance Pretty Entity where
   pretty (Entity t) = text (unpack t)
 
+
 newtype Namespace =
   Namespace {
       getNamespace  :: Text
@@ -45,10 +50,15 @@ newtype Namespace =
 instance Pretty Namespace where
   pretty (Namespace x) = text (unpack x)
 
+
 newtype Attribute =
   Attribute {
       getAttribute  :: Text
     } deriving (Eq, Ord, Show)
+
+instance Pretty Attribute where
+  pretty (Attribute t) = text (unpack t)
+
 
 data FeatureId =
   FeatureId {
@@ -57,22 +67,29 @@ data FeatureId =
   }
 
 
-instance Pretty Attribute where
-  pretty (Attribute t) = text (unpack t)
+data FactMode =
+    FactModeEvent
+  | FactModeStateSparse
+  | FactModeStateDense
+  deriving (Eq, Show)
 
-data Fact =
-  Fact {
-      factEntity    :: Entity
-    , factAttribute :: Attribute
-    , factValue     :: Value
-    } deriving (Eq, Show)
+instance Pretty FactMode where
+ pretty FactModeEvent       = "event"
+ pretty FactModeStateSparse = "sparse_state"
+ pretty FactModeStateDense  = "dense_state"
 
-data Fact' =
-  Fact' {
-      factEntity'    :: Entity
-    , factAttribute' :: Attribute
-    , factValue'     :: Text
-    } deriving (Eq, Show)
+
+data NormalisedFact = NormalisedFact {
+    factNormalised :: Fact Value
+  , factMode       :: FactMode }
+  deriving (Eq, Show)
+
+
+data Fact a = Fact {
+    factEntity    :: Entity
+  , factAttribute :: Attribute
+  , factValue     :: a
+  } deriving (Eq, Show)
 
 
 data AsAt a =
@@ -80,6 +97,9 @@ data AsAt a =
       atFact :: a
     , atTime :: Time
     } deriving (Eq, Show, Functor, Foldable, Traversable)
+
+factAsAt :: AsAt NormalisedFact -> Fact Value
+factAsAt = factNormalised . atFact
 
 --------------------------------------------------------------------------------
 
@@ -171,3 +191,4 @@ data StructFieldType =
     Mandatory
   | Optional
   deriving (Eq, Ord, Show)
+

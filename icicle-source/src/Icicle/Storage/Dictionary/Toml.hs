@@ -142,8 +142,8 @@ remakeConcrete
   -> [DictionaryEntry]
 remakeConcrete de cds
  = case de of
-    DictionaryEntry' a (ConcreteDefinition' e t) nsp
-     -> DictionaryEntry a (ConcreteDefinition e (Set.fromList (toList t))) nsp
+    DictionaryEntry' a (ConcreteDefinition' e t ty) nsp
+     -> DictionaryEntry a (ConcreteDefinition e (Set.fromList (toList t)) ty) nsp
       : cds
     _
      -> cds
@@ -214,3 +214,4 @@ instance Pretty DictionaryImportError where
 prelude :: [(FilePath, Text)]
 prelude
  = [("prelude.icicle", T.decodeUtf8 $(embedFile "data/libs/prelude.icicle"))]
+

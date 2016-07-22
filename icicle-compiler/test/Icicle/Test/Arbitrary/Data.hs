@@ -1,8 +1,11 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveGeneric     #-}
-{-# LANGUAGE TemplateHaskell     #-}
+{-# LANGUAGE TemplateHaskell   #-}
+{-# LANGUAGE FlexibleInstances #-}
+
 {-# OPTIONS_GHC -fno-warn-orphans #-}
+
 module Icicle.Test.Arbitrary.Data (
     Var(..)
   , fresh
@@ -59,6 +62,9 @@ instance Arbitrary Attribute where
   arbitrary =
     Attribute <$> elements weather
 
+instance Arbitrary FactMode where
+  arbitrary = oneof_vals [FactModeEvent, FactModeStateSparse, FactModeStateDense]
+
 instance Arbitrary Time where
   arbitrary = do
     potential <- timeOfYMD <$> oneof_vals [2000..2050] <*> oneof_vals [1..12] <*> oneof_vals [1..31]
@@ -66,12 +72,11 @@ instance Arbitrary Time where
       Just a  -> pure a
       Nothing -> discard
 
-instance Arbitrary Fact' where
-  arbitrary =
-    Fact'
-      <$> arbitrary
-      <*> arbitrary
-      <*> elements cooking
+instance Arbitrary (Fact Text) where
+  arbitrary = Fact
+    <$> arbitrary
+    <*> arbitrary
+    <*> elements cooking
 
 instance Arbitrary a => Arbitrary (AsAt a) where
   arbitrary =

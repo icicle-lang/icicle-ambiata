@@ -1,11 +1,14 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE PatternGuards #-}
+{-# LANGUAGE PatternGuards     #-}
+{-# LANGUAGE TupleSections     #-}
+
 module Icicle.Dictionary.Data (
     Dictionary (..)
   , DictionaryEntry (..)
   , Definition (..)
   , Virtual (..)
+  , FactMode (..)
   , getVirtualFeatures
   , featureMapOfDictionary
   , parseFact
@@ -53,7 +56,7 @@ data DictionaryEntry =
   deriving (Eq, Show)
 
 data Definition =
-    ConcreteDefinition Encoding Tombstones
+    ConcreteDefinition Encoding Tombstones FactMode
   | VirtualDefinition  Virtual
   deriving (Eq, Show)
 
@@ -74,24 +77,24 @@ getVirtualFeatures (Dictionary { dictionaryEntries = fs })
   getV _
    = []
 
-parseFact :: Dictionary -> Fact' -> Either DecodeError Fact
-parseFact (Dictionary { dictionaryEntries = dict }) fact'
+parseFact :: Dictionary -> Fact Text -> Either DecodeError (Fact Value, FactMode)
+parseFact (Dictionary { dictionaryEntries = dict }) fact
  = do   def <- maybeToRight
                  (DecodeErrorNotInDictionary attr)
                  (P.find (\(DictionaryEntry attr' _ _) -> (==) attr attr') dict)
         case def of
-         DictionaryEntry _ (ConcreteDefinition enc ts) _
-          -> factOf <$> parseValue enc ts (factValue' fact')
+         DictionaryEntry _ (ConcreteDefinition enc ts mode) _
+          -> (,mode) . factOf <$> parseValue enc ts (factValue fact)
          DictionaryEntry _ (VirtualDefinition _) _
           -> Left (DecodeErrorValueForVirtual attr)
 
  where
-  attr = factAttribute' fact'
+  attr = factAttribute fact
 
   factOf v
    = Fact
-    { factEntity    = factEntity'    fact'
-    , factAttribute = factAttribute' fact'
+    { factEntity    = factEntity fact
+    , factAttribute = attr
     , factValue     = v
     }
 
@@ -108,7 +111,7 @@ featureMapOfDictionary (Dictionary { dictionaryEntries = ds, dictionaryFunctions
          context (k,t,m) = (k, (t, STC.FeatureContext m (var "time")))
      in  fmap context mm
 
-  go (DictionaryEntry (Attribute attr) (ConcreteDefinition enc _) _)
+  go (DictionaryEntry (Attribute attr) (ConcreteDefinition enc _ _) _)
    | en@(StructT st@(StructType fs)) <- sourceTypeOfEncoding enc
    = [ ( var attr
        , baseType     $  sumT en
@@ -197,7 +200,7 @@ prettyDictionarySummary dict
  <> "Features" <> line
  <> indent 2 (vcat $ fmap pprEntry $ dictionaryEntries dict))
  where
-  pprEntry (DictionaryEntry attr (ConcreteDefinition enc _) _)
+  pprEntry (DictionaryEntry attr (ConcreteDefinition enc _ _) _)
    = padDoc 20 (pretty attr) <> " : " <> pretty enc
   pprEntry (DictionaryEntry attr (VirtualDefinition virt) _)
    = padDoc 20 (pretty attr) <> " = " <> indent 0 (pretty virt)

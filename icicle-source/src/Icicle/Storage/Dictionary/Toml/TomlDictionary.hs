@@ -1,5 +1,6 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ViewPatterns      #-}
 
 module Icicle.Storage.Dictionary.Toml.TomlDictionary
   (
@@ -73,7 +74,7 @@ data DictionaryEntry' =
 type Tombstone = Text
 
 data Definition' =
-    ConcreteDefinition' Encoding (Maybe Tombstone)
+  ConcreteDefinition' Encoding (Maybe Tombstone) FactMode
   | VirtualDefinition'  Virtual'
   deriving (Eq, Show)
 
@@ -84,11 +85,12 @@ newtype Virtual' = Virtual' {
 
 
 data DictionaryValidationError =
-  UnknownElement Text Pos.SourcePos
-  | BadType Text Text Pos.SourcePos
+    UnknownElement  Text      Pos.SourcePos
+  | BadType         Text Text Pos.SourcePos
   | MissingRequired Text Text
-  | EncodingError Text Text Pos.SourcePos
-  | ParseError ParseError
+  | EncodingError   Text Text Pos.SourcePos
+  | BadFactMode     Text      Pos.SourcePos
+  | ParseError      ParseError
   deriving (Eq, Show)
 
 instance Pretty DictionaryValidationError where
@@ -104,6 +106,11 @@ instance Pretty DictionaryValidationError where
               , " entry     : " <> pretty n
               , " at        : " <> pretty p
               , " exptected : " <> pretty t
+              ]
+     BadFactMode n p
+      -> vsep [ "Fact has unrecognised type (needs to be event or sparse/dense state):"
+              , " fact : " <> pretty n
+              , " at   : " <> pretty p
               ]
      MissingRequired n ex
       -> vsep [ "Dictionary entry is missing required field:"
@@ -194,6 +201,10 @@ validateFact conf name x =
                 (validateEncoding' fname)
                 (M.lookup "encoding" x)
 
+      -- Fact are events unless otherwise specified
+      type'
+        = maybe (AccSuccess FactModeEvent) (validateFactMode fname) (M.lookup "type" x)
+
       -- If a namespace is given, it must be validated. If not, it must have a parent value.
       namespace'
         = validateNamespace conf name x
@@ -208,7 +219,8 @@ validateFact conf name x =
        <$> pure (Attribute name)
        <*> (   ConcreteDefinition'
            <$> encoding
-           <*> tombstone' )
+           <*> tombstone'
+           <*> type' )
        <*> namespace'
 
 -- | Validate a TOML node is a feature.
@@ -290,6 +302,17 @@ validateEncoding' ofFeature (NTable t, _) =
 -- But all other values should be failures.
 validateEncoding' ofFeature (_, pos) =
   AccFailure $ [BadType (ofFeature <> ".encoding") "string" pos]
+
+-- | Validate a TOML node is a fact type.
+validateFactMode :: Text
+                 -> (Node, Pos.SourcePos)
+                 -> AccValidation [DictionaryValidationError] FactMode
+validateFactMode fname (node, pos) = case node of
+  NTValue (VString (fmap fst -> s))
+   | s == "event"        -> AccSuccess FactModeEvent
+   | s == "sparse_state" -> AccSuccess FactModeStateSparse
+   | s == "dense_state"  -> AccSuccess FactModeStateDense
+  _                      -> AccFailure [BadFactMode fname pos]
 
 
 --------------------------------------------------------------------------------

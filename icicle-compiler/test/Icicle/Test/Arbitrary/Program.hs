@@ -11,7 +11,7 @@ import qualified Data.Map as Map
 import qualified Data.Set as Set
 import qualified Data.List as List
 
-import           Icicle.Data (Entity(..), Attribute(..), AsAt(..))
+import           Icicle.Data (Entity(..), Attribute(..), AsAt(..), FactMode(..))
 import           Icicle.Data.Time (Time)
 
 import qualified Icicle.Core.Program.Program as C
@@ -50,6 +50,7 @@ newtype InputType = InputType {
 data WellTyped = WellTyped {
     wtEntities      :: [Entity]
   , wtAttribute     :: Attribute
+  , wtFactMode      :: FactMode
   , wtFactType      :: ValType
   , wtFacts         :: [AsAt BaseValue]
   , wtTime          :: Time
@@ -65,6 +66,7 @@ instance Show WellTyped where
     [ "well-typed:"
     , "  entities  = " <> pretty (       wtEntities  wt)
     , "  attribute = " <> pretty (       wtAttribute wt)
+    , "  fact mode = " <> pretty (       wtFactMode  wt)
     , "  fact type = " <> pretty (       wtFactType  wt)
     , "  facts     = " <> text   (show $ wtFacts     wt)
     , "  time      = " <> text   (show $ wtTime      wt)
@@ -93,6 +95,7 @@ instance Arbitrary WellTyped where
 tryGenWellTypedWith :: S.InputAllowDupTime -> InputType -> Gen (Maybe WellTyped)
 tryGenWellTypedWith allowDupTime (InputType ty) = do
     entities       <- List.sort . List.nub . getNonEmpty <$> arbitrary
+    mode           <- arbitrary
     attribute      <- arbitrary
     (inputs, time) <- case allowDupTime of
                         S.AllowDupTime
@@ -123,6 +126,7 @@ tryGenWellTypedWith allowDupTime (InputType ty) = do
           wtEntities      = entities
         , wtAttribute     = attribute
         , wtFactType      = ty
+        , wtFactMode      = mode
         , wtFacts         = fmap (fmap snd) inputs
         , wtTime          = time
         , wtCore          = core

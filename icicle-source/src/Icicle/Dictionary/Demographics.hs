@@ -15,13 +15,19 @@ import qualified Data.Set                           as Set
 demographics :: Dictionary
 demographics =
  Dictionary
- [ DictionaryEntry (Attribute "gender")             (ConcreteDefinition StringEncoding Set.empty) nsp
- , DictionaryEntry (Attribute "age")                (ConcreteDefinition IntEncoding Set.empty)    nsp
- , DictionaryEntry (Attribute "state_of_residence") (ConcreteDefinition StringEncoding Set.empty) nsp
- , DictionaryEntry (Attribute "salary")             (ConcreteDefinition IntEncoding Set.empty)    nsp
- , DictionaryEntry (Attribute "injury")             (ConcreteDefinition (StructEncoding
-                        [StructField Mandatory (Attribute "location") StringEncoding
-                        ,StructField Mandatory (Attribute "severity") IntEncoding]) Set.empty)    nsp
+ [ DictionaryEntry (Attribute "gender")
+     (ConcreteDefinition StringEncoding Set.empty FactModeEvent) nsp
+ , DictionaryEntry (Attribute "age")
+     (ConcreteDefinition IntEncoding    Set.empty FactModeEvent) nsp
+ , DictionaryEntry (Attribute "state_of_residence")
+     (ConcreteDefinition StringEncoding Set.empty FactModeEvent) nsp
+ , DictionaryEntry (Attribute "salary")
+     (ConcreteDefinition IntEncoding    Set.empty FactModeEvent) nsp
+ , DictionaryEntry (Attribute "injury")
+     (ConcreteDefinition
+        (StructEncoding
+           [ StructField Mandatory (Attribute "location") StringEncoding
+           , StructField Mandatory (Attribute "severity") IntEncoding]) Set.empty FactModeEvent) nsp
  ]
  []
  where nsp = Namespace "default"

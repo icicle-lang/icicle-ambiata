@@ -1,6 +1,7 @@
--- | This needs cleaning up but the idea is there
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ViewPatterns      #-}
+
 module Icicle.Simulator (
     streams
   , Partition(..)
@@ -11,6 +12,7 @@ module Icicle.Simulator (
 
 import           Data.List
 import           Data.Hashable (Hashable)
+import qualified Data.Set as Set
 
 import           P
 
@@ -30,8 +32,6 @@ import qualified Icicle.Avalanche.Program as A
 import qualified Icicle.Avalanche.Prim.Eval  as APF
 import qualified Icicle.Avalanche.Prim.Flat  as APF
 import qualified Icicle.Avalanche.Eval    as AE
-
-import qualified Data.Set as Set
 
 
 data Partition =
@@ -61,7 +61,7 @@ instance Pretty n => Pretty (SimulateError a n) where
   = "Cannot convert value from Core: " <> pretty v
 
 
-streams :: [AsAt Fact] -> [Partition]
+streams :: [AsAt NormalisedFact] -> [Partition]
 streams =
     P.concatMap makePartition
   . fmap       (sortBy (compare `on` atTime))
@@ -69,18 +69,18 @@ streams =
   . sortBy     (compare `on` partitionBy)
 
 
-partitionBy :: AsAt Fact -> (Entity, Attribute)
-partitionBy f =
-  (factEntity . atFact $ f, factAttribute . atFact $ f)
+partitionBy :: AsAt NormalisedFact -> (Entity, Attribute)
+partitionBy (factAsAt -> f) =
+  (factEntity f, factAttribute f)
 
 
-makePartition :: [AsAt Fact] -> [Partition]
+makePartition :: [AsAt NormalisedFact] -> [Partition]
 makePartition []
  = []
 makePartition fs@(f:_)
- = [ Partition  (factEntity    $ atFact f)
-                (factAttribute $ atFact f)
-                (fmap (\f' -> AsAt (factValue $ atFact f') (atTime f')) fs) ]
+ = [ Partition  (factEntity    $ factAsAt f)
+                (factAttribute $ factAsAt f)
+                (fmap (\f' -> AsAt (factValue $ factAsAt f') (atTime f')) fs) ]
 
 evaluateVirtualValue :: (Hashable n, Eq n) => P.Program a n -> Time -> [AsAt Value] -> Result a n
 evaluateVirtualValue p t vs
