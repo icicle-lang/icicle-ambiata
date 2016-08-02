@@ -71,7 +71,7 @@ data FactMode =
     FactModeEvent
   | FactModeStateSparse
   | FactModeStateDense
-  deriving (Eq, Show)
+  deriving (Eq, Ord, Show)
 
 instance Pretty FactMode where
  pretty FactModeEvent       = "event"

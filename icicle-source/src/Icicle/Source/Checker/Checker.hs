@@ -37,7 +37,7 @@ checkQT :: (Hashable n, Eq n)
         -> Result (QueryTop (Annot a n) n) a n
 checkQT opts features qt
  = case Map.lookup (feature qt) (featuresConcretes features) of
-    Just (_,f)
+    Just (FeatureConcrete _ _ f)
      -> do  let env = Map.unions
                       [ fmap function0 (envOfFeatureContext f)
                       , featuresFunctions features
@@ -53,7 +53,7 @@ checkQT opts features qt
  where
   suggestionForFeatures
    = AvailableFeatures (feature qt)
-   $ fmap (\(k,(t,_)) -> (k, t))
+   $ fmap (\(k, FeatureConcrete t _ _) -> (k, t))
    $ Map.toList
    $ featuresConcretes features
 

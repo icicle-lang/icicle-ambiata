@@ -203,7 +203,7 @@ validateFact conf name x =
 
       -- Fact are events unless otherwise specified
       type'
-        = maybe (AccSuccess FactModeEvent) (validateFactMode fname) (M.lookup "type" x)
+        = maybe (AccSuccess FactModeEvent) (validateFactMode fname) (M.lookup "mode" x)
 
       -- If a namespace is given, it must be validated. If not, it must have a parent value.
       namespace'

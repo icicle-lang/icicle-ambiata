@@ -8,11 +8,9 @@
 
 module Icicle.Compiler
   ( ErrorCompile (..)
-
   , AnnotType
   , Source.QueryUntyped
   , Source.QueryTyped
-
   , Source.CoreProgramUntyped
   , CoreProgramTyped
   , AvalProgramUntyped

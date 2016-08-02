@@ -23,6 +23,7 @@ import qualified Icicle.Common.Exp.Prim.Minimal as Min
 import qualified Icicle.Core.Exp.Combinators    as CE
 import qualified Icicle.Core.Exp                as CE
 
+import           Icicle.Data
 
 import           Icicle.Source.ToCore.Context
 import           Icicle.Source.ToCore.ToCore
@@ -69,6 +70,7 @@ data QueryWithFeature
  , qwfNow       :: Maybe (CB.Name T.Variable)
  , qwfOutput    :: CB.OutputName
  , qwfFeatureT  :: CT.ValType
+ , qwfFeatureM  :: FactMode
  , qwfFeatureN  :: CB.Name T.Variable
  , qwfTimeName  :: CB.Name T.Variable
  }
@@ -78,9 +80,10 @@ data QueryWithFeature
 qwfFeatureMap :: QueryWithFeature -> Features () T.Variable
 qwfFeatureMap qwf
  = Features
-    (Map.singleton (qwfFeatureN qwf) (typeOfValType (qwfFeatureT qwf), featureCtx))
+    (Map.singleton (qwfFeatureN qwf)
+                   (FeatureConcrete (typeOfValType (qwfFeatureT qwf)) (qwfFeatureM qwf) featureCtx))
      Map.empty
-     (qwfNow qwf)
+    (qwfNow qwf)
 
  where
   featureCtx
@@ -121,6 +124,8 @@ genQueryWithFeatureTypedGen tableflipPercent
       q   <- genQuery tgi
 
       o   <- arbitrary
+      md  <- arbitrary
+
       -- Note: Convert to Source type and back in generator
       -- Convert to Source type and back, because this filters out Bufs.
       -- (It actually converts them to Arrays)
@@ -130,7 +135,7 @@ genQueryWithFeatureTypedGen tableflipPercent
       -- part of the resulting Core was using the ValType with Bufs, and
       -- part was using the Source-converted type with Arrays.
       Just t <- (valTypeOfType . typeOfValType) <$> arbitrary
-      return $ QueryWithFeature q (Just now) o t nm tm
+      return $ QueryWithFeature q (Just now) o t md nm tm
 
 -- | Use arbitrary instance to generate query.
 -- Less likely to typecheck, but more likely to cover crazy corner cases.
@@ -143,9 +148,10 @@ genQueryWithFeatureArbitrary
       let tm  = make "timename"
       q   <- arbitrary
       o   <- arbitrary
+      md  <- arbitrary
       -- See "Note: Convert to Source type and back in generator" above
       Just t <- (valTypeOfType . typeOfValType) <$> arbitrary
-      return $ QueryWithFeature q (Just now) o t nm tm
+      return $ QueryWithFeature q (Just now) o t md nm tm
 
 
 -- | Pretty-print the query and stuff

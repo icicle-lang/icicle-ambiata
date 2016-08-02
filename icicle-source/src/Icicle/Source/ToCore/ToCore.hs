@@ -75,9 +75,11 @@ convertQueryTop feats qt
         factid      <- fresh
         facttime    <- fresh
         now         <- fresh
-        (ty,fs) <- lift
-                 $ maybeToRight (ConvertErrorNoSuchFeature (feature qt))
-                 $ Map.lookup (feature qt) (featuresConcretes feats)
+
+        FeatureConcrete ty md fs
+          <- lift
+           $ maybeToRight (ConvertErrorNoSuchFeature (feature qt))
+           $ Map.lookup (feature qt) (featuresConcretes feats)
 
         inpTy <- case valTypeOfType ty of
                   Nothing -> lift $ Left $ ConvertErrorCannotConvertType (annAnnot $ annotOfQuery $ query qt) ty
@@ -88,7 +90,7 @@ convertQueryTop feats qt
                                        maybe (return ()) (flip convertFreshenAddAs now) $ featureNow feats
                                        convertQuery $ query qt)
                                    (ConvertState inp inpTy'dated factid facttime now fs Map.empty)
-        return (programOfBinds (queryName qt) inpTy inp factid facttime now bs () ret)
+        return (programOfBinds (queryName qt) inpTy md inp factid facttime now bs () ret)
 
 
 -- | Convert a Query to Core

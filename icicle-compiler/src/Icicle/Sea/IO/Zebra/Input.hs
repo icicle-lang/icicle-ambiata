@@ -19,7 +19,7 @@ seaInputZebra = Base.SeaInput
   , Base.cnameFunReadFact  = nameOfReadFact
   }
   where
-    seaOfReadFact _ _ _ _ _ = ""
+    seaOfReadFact _ _ _ _ _ _ = ""
     seaOfReadTime = ""
     seaOfReadTombstone _ _ = ""
     nameOfReadFact _ = ""

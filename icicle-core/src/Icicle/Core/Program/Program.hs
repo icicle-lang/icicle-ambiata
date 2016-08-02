@@ -7,9 +7,13 @@ module Icicle.Core.Program.Program (
      ) where
 
 import              Icicle.Internal.Pretty
+
 import              Icicle.Common.Base
 import              Icicle.Common.Type
 import              Icicle.Common.Exp.Exp (renameExp)
+
+import              Icicle.Data
+
 import              Icicle.Core.Exp
 import              Icicle.Core.Stream.Stream
 
@@ -21,6 +25,7 @@ data Program a n =
  Program {
  -- | The type of the input/concrete feature
    inputType    :: !ValType
+ , inputMode    :: !FactMode
  , factValName  :: !(Name n)
  , factIdName   :: !(Name n)
  , factTimeName :: !(Name n)

@@ -141,10 +141,10 @@ meltForeachFacts a_fresh statements
 
   goStmt () stmt
    = case stmt of
-       ForeachFacts binds vt lt ss
+       ForeachFacts binds vt mo lt ss
         -> do (ns', ss') <- meltFix (factBindValue binds) ss
               let binds' = binds { factBindValue = ns' }
-              return ((), ForeachFacts binds' vt lt ss')
+              return ((), ForeachFacts binds' vt mo lt ss')
        _
         -> return ((), stmt)
 

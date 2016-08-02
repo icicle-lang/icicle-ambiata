@@ -119,7 +119,7 @@ seaOfStatement stmt
               , "}"
               ]
 
-     ForeachFacts (FactBinds ntime nfid ns) _ FactLoopNew stmt'
+     ForeachFacts (FactBinds ntime nfid ns) _ _ FactLoopNew stmt'
       -> let structAssign (n, t) = assign (defOfVar' 1 ("const" <+> seaOfValType t)
                                                        ("const" <+> pretty newPrefix <> seaOfName n))
                                           (stNew n) <> semi
@@ -169,7 +169,7 @@ seaOfStatement stmt
 
      -- TODO Implement historical facts
 
-     ForeachFacts _ _ FactLoopHistory _
+     ForeachFacts _ _ _ FactLoopHistory _
       -> Pretty.empty
 
      KeepFactInHistory _

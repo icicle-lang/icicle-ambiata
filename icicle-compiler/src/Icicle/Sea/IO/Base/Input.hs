@@ -50,7 +50,7 @@ import           Icicle.Avalanche.Prim.Flat       (meltType)
 import           Icicle.Common.Type               (ValType(..), StructField(..))
 import           Icicle.Common.Type               (defaultOfType)
 
-import           Icicle.Data                      (Attribute(..))
+import           Icicle.Data                      (Attribute(..), FactMode(..))
 
 import           Icicle.Internal.Pretty
 
@@ -85,6 +85,7 @@ data CheckedInput = CheckedInput {
     inputSumError :: Name
   , inputTime     :: Name
   , inputType     :: ValType
+  , inputMode     :: FactMode
   , inputVars     :: [(Name, ValType)]
   } deriving (Eq, Ord, Show)
 
@@ -99,6 +100,7 @@ checkInputType state
              inputSumError = newPrefix <> sumError
            , inputTime     = newPrefix <> time
            , inputType     = t
+           , inputMode     = stateInputMode state
            , inputVars     = fmap (first (newPrefix <>)) vars
            }
 
@@ -122,10 +124,10 @@ data SeaInputError = SeaInputError
 
 -- Common input statements, for both PSV and Zebra
 data SeaInput = SeaInput
-  { cstmtReadFact     :: SeaProgramState -> Tombstones -> CheckedInput -> CStmt -> CStmt -> CFun
-  -- ^ Generate C code to read input into the `program->input` struct.
+  { cstmtReadFact     :: SeaProgramState -> Tombstones -> CheckedInput -> CStmt -> CStmt -> CStmt -> CFun
+    -- ^ Generate C code to read input into the `program->input` struct.
   , cstmtReadTime     :: CStmt
-  -- ^ Generate C code to read the current fact time.
+    -- ^ Generate C code to read the current fact time.
   , cfunReadTombstone :: CheckedInput -> [Tombstone] -> CStmt
   -- ^ Generate C code to read the tombstone of this input.
   , cnameFunReadFact  :: SeaProgramState -> CName

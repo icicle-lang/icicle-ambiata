@@ -107,14 +107,15 @@ featureMapOfDictionary (Dictionary { dictionaryEntries = ds, dictionaryFunctions
  where
 
   mkFeatureContext d
-   = let mm              = go d
-         context (k,t,m) = (k, (t, STC.FeatureContext m (var "time")))
-     in  fmap context mm
+   = let context (k, t, e, m)
+           = (k, STC.FeatureConcrete t e (STC.FeatureContext m (var "time")))
+     in  fmap context (go d)
 
-  go (DictionaryEntry (Attribute attr) (ConcreteDefinition enc _ _) _)
+  go (DictionaryEntry (Attribute attr) (ConcreteDefinition enc _ mode) _)
    | en@(StructT st@(StructType fs)) <- sourceTypeOfEncoding enc
    = [ ( var attr
        , baseType     $  sumT en
+       , mode
        , Map.fromList $  exps "fields" en
                       <> concatMap (go' Nothing st) (Map.toList fs)
        )
@@ -124,6 +125,7 @@ featureMapOfDictionary (Dictionary { dictionaryEntries = ds, dictionaryFunctions
    = let e' = sourceTypeOfEncoding enc
      in [ ( var attr
           , baseType $ sumT e'
+          , mode
           , Map.fromList $ exps "value" e' ) ]
 
   go _

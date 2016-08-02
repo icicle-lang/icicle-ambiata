@@ -115,8 +115,8 @@ checkStatement frag ctx stmt
 
                ForeachInts t n from' to' <$> go stmts
 
-        ForeachFacts binds vt lo stmts
-         -> ForeachFacts binds vt lo <$> go stmts
+        ForeachFacts binds vt mo lo stmts
+         -> ForeachFacts binds vt mo lo <$> go stmts
 
 
         Block stmts
@@ -214,7 +214,7 @@ statementContext frag ctx stmt
      -> do ctxX' <- insert (ctxExp ctx) n (FunT [] IntT)
            return (ctx { ctxExp = ctxX' })
 
-    ForeachFacts binds _ _ _
+    ForeachFacts binds _ _ _ _
      -> do let inserts m (n,ty) = insert m n (FunT [] ty)
            ctxX' <- foldM inserts (ctxExp ctx) (factBindsAll binds)
            return (ctx { ctxExp = ctxX' })

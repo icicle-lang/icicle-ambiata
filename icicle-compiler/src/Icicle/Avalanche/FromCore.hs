@@ -55,8 +55,9 @@ programFromCore namer p
  = do   (accNames, factStmts) <- makeStatements p namer (C.streams p)
 
         let inputType'  = PairT (C.inputType p) TimeT
+        let inputMode   = C.inputMode p
         let factBinds   = FactBinds (C.factTimeName p) (C.factIdName p) [(C.factValName p, inputType')]
-        let factLoopNew = ForeachFacts factBinds inputType' FactLoopNew
+        let factLoopNew = ForeachFacts factBinds inputType' inputMode FactLoopNew
                         $ Block factStmts
         let inner       = mconcat (fmap loadResumables accNames) <>
                           factLoopNew                            <>
