@@ -13,7 +13,7 @@ import           Icicle.Avalanche.Prim.Flat (Prim(..), PrimUnsafe(..))
 import           Icicle.Avalanche.Prim.Flat (meltType)
 
 import           Icicle.Common.Base (OutputName(..))
-import           Icicle.Common.Type (ValType(..))
+import           Icicle.Common.Type (ValType(..), StructType(..), StructField(..))
 
 import           Icicle.Data (Attribute(..))
 
@@ -318,6 +318,26 @@ seaOfOutput isJSON struct structIndex outName@(OutputName name _) env outType ar
 
               return (Nothing, p', ixb, ts)
 
+
+       StructT fs
+        | fields <- Map.toList (getStructType fs)
+        -> do let go (ix, ts, docs) (n, t) = do
+                    (cond, body, ix', ts') <- seaOfOutput InJSON struct ix outName env' t ts transform
+
+                    let doc = vsep
+                            [ outputChar '\"'
+                            , outputString (nameOfStructField n)
+                            , outputChar '\"'
+                            , outputChar ':'
+                            , body
+                            ]
+                    pure (ix', ts', (cond, doc) : docs)
+
+              (ix, ts, docs) <- foldM go (structIndex, argTypes, mempty) fields
+              let doc         = vsep $ [ outputChar '{' , seaOfOutputStructSep docs , outputChar '}' ]
+              return (Nothing, doc, ix, ts)
+
+
        -- Conditional's
        OptionT otype1
         | (BoolT : ts1) <- argTypes
@@ -364,6 +384,17 @@ seaOfOutput isJSON struct structIndex outName@(OutputName name _) env outType ar
 
    seaOfOutputArraySep c
      = conditional' (c <+> "> 0") seaOfOutputSep
+
+   seaOfOutputStructSep fs
+     = let go (Just cond, body) = conditional' cond $ vsep
+             [ conditional' "need_sep" seaOfOutputSep
+             , body
+             , "need_sep = " <> cond <> ";" ]
+           go (Nothing, body) = vsep
+             [ conditional' "need_sep" seaOfOutputSep
+             , body
+             , "need_sep = itrue;" ]
+       in  vsep ("ibool_t need_sep = ifalse;" : fmap go fs)
 
    seaOfOutputSep
      = outputChar ','
