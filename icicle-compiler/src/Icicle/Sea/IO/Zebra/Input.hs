@@ -17,9 +17,11 @@ seaInputZebra = Base.SeaInput
   , Base.cstmtReadTime     = seaOfReadTime
   , Base.cfunReadTombstone = seaOfReadTombstone
   , Base.cnameFunReadFact  = nameOfReadFact
+  , Base.cnameFunAddLast   = nameOfAddLast
   }
   where
     seaOfReadFact _ _ _ _ _ _ = ""
     seaOfReadTime = ""
     seaOfReadTombstone _ _ = ""
     nameOfReadFact _ = ""
+    nameOfAddLast  _ = ""

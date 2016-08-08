@@ -132,6 +132,8 @@ data SeaInput = SeaInput
   -- ^ Generate C code to read the tombstone of this input.
   , cnameFunReadFact  :: SeaProgramState -> CName
   -- ^ Name of the read_fact function. e.g. psv_read_fact_0.
+  , cnameFunAddLast   :: SeaProgramState -> CName
+  -- ^ Name of the add_last_state function. e.g. psv_add_last_state_0.
   }
 
 seaOfReadNamedFact :: SeaInput

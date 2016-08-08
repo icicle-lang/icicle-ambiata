@@ -1256,11 +1256,19 @@ typedef struct {
 } input_repl_t;
 
 typedef struct {
+    ierror_t         new_conv_0_simpflat_282;
+    istring_t        new_conv_0_simpflat_283;
+    iint_t           new_conv_0_simpflat_284;
+    itime_t          new_conv_0_simpflat_285;
+} state_repl_t;
+
+typedef struct {
     /* runtime */
     imempool_t      *mempool;
 
     /* inputs */
     input_repl_t     input;
+    state_repl_t     fact_state;
 
     /* outputs */
     ierror_t         repl_ix_0;
@@ -2330,11 +2338,18 @@ typedef struct {
 } input_repl_t;
 
 typedef struct {
+    ierror_t         new_conv_0_simpflat_24;
+    iint_t           new_conv_0_simpflat_25;
+    itime_t          new_conv_0_simpflat_26;
+} state_repl_t;
+
+typedef struct {
     /* runtime */
     imempool_t      *mempool;
 
     /* inputs */
     input_repl_t     input;
+    state_repl_t     fact_state;
 
     /* outputs */
     ierror_t         repl_ix_0;

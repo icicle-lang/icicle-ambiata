@@ -1,0 +1,75 @@
+welcome to iREPL
+ok, loaded 38 functions from data/libs/prelude.icicle
+ok, loaded test/cli/repl/data.psv, 13 rows
+> ok, core evaluation is now on
+> ok, c evaluation now on
+                   _________-----_____
+        _____------           __      ----_
+ ___----             ___------              \
+    ----________        ----                 \
+                -----__    |             _____)
+                     __-                /     \
+         _______-----    ___--          \    /)\
+   ------_______      ---____            \__/  /
+                -----__    \ --    _          /\
+                       --__--__     \_____/   \_/\
+                               ----|   /          |
+                                   |  |___________|
+                                   |  | ((_(_)| )_)
+                                   |  \_((_(_)|/(_)
+                                   \             (
+                                    \_____________)
+> > ok, time set to 2016-07-14
+> > -- Fact mode event
+> > ok, loaded dictionary with 4 features and 38 functions
+> > ok, loaded test/cli/repl/t51-modes/pokemon.psv, 4 rows
+> > - C evaluation:
+[bulbasaur, [(age,tombstone)
+            ,(location,"pallet")]
+,charmander, [(age,tombstone)
+             ,(location,"indigo")]]
+
+- Core evaluation:
+[bulbasaur, [(age,tombstone)
+            ,(location,"pallet")]
+,charmander, [(age,tombstone)
+             ,(location,"indigo")]]
+
+> > - C evaluation:
+[bulbasaur, tombstone
+,charmander, [(age,tombstone)
+             ,(location,"indigo")]]
+
+- Core evaluation:
+[bulbasaur, tombstone
+,charmander, [(age,tombstone)
+             ,(location,"indigo")]]
+
+> > -- Fact mode sparse state
+> > ok, loaded dictionary with 3 features and 38 functions
+> > ok, loaded test/cli/repl/t51-modes/pokemon.psv, 6 rows
+> > - C evaluation:
+[bulbasaur, [(age,tombstone)
+            ,(location,"pallet")]
+,charmander, [(age,2)
+             ,(location,"indigo")]]
+
+- Core evaluation:
+[bulbasaur, [(age,tombstone)
+            ,(location,"pallet")]
+,charmander, [(age,2)
+             ,(location,"indigo")]]
+
+> > - C evaluation:
+[bulbasaur, [(age,tombstone)
+            ,(location,"pallet")]
+,charmander, [(age,2)
+             ,(location,"indigo")]]
+
+- Core evaluation:
+[bulbasaur, [(age,tombstone)
+            ,(location,"pallet")]
+,charmander, [(age,2)
+             ,(location,"indigo")]]
+
+> 

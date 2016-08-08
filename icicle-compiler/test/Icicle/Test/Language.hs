@@ -47,7 +47,7 @@ prop_languages_eval ewt = testIO $ do
       time    = wtTime wt
       q       = wtEvalDummyQuery ewt
       fs      = fmap (fmap (, wtFactMode wt)) $ wtEvalFacts ewt
-  case normaliseSparseStates fs of
+  case normaliseFacts time fs of
     Left e ->
       return $ counterexample "Normalising facts failed"
              $ counterexample (show e)

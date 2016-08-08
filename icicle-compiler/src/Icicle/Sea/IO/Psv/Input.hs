@@ -57,10 +57,14 @@ seaInputPsv = Base.SeaInput
   , Base.cstmtReadTime     = seaOfReadTime
   , Base.cfunReadTombstone = seaOfReadTombstone
   , Base.cnameFunReadFact  = nameOfReadFact
+  , Base.cnameFunAddLast   = nameOfAddEndState
   }
 
 nameOfReadFact :: SeaProgramState -> Base.CName
 nameOfReadFact state = pretty ("psv_read_fact_" <> show (stateName state))
+
+nameOfAddEndState :: SeaProgramState -> Base.CName
+nameOfAddEndState state = pretty ("psv_add_end_state_" <> show (stateName state))
 
 seaOfReadTime :: Base.CBlock
 seaOfReadTime
@@ -103,14 +107,13 @@ seaOfReadTombstone input = \case
          <> "    " <> pretty (Base.inputSumError input) <> " = ierror_tombstone;" <> line
          <> "} else " <> seaOfReadTombstone input ts
 
-seaOfReadFact
-  :: SeaProgramState
-  -> Base.Tombstones
-  -> Base.CheckedInput
-  -> Base.CStmt -- ^ C block that loads the fact state (if this is sparse state fact)
-  -> Base.CStmt -- ^ C block that reads the input value
-  -> Base.CStmt -- ^ C block that performs count check after reading
-  -> Base.CFun
+seaOfReadFact :: SeaProgramState
+              -> Base.Tombstones
+              -> Base.CheckedInput
+              -> Base.CStmt -- ^ C block that loads the fact state (if this is sparse state fact)
+              -> Base.CStmt -- ^ C block that reads the input value
+              -> Base.CStmt -- ^ C block that performs count check after reading
+              -> Base.CFun
 seaOfReadFact state tombstones input loadFactState readInput checkCount =
   vsep
     [ "#line 1 \"read fact" <+> seaOfStateInfo state <> "\""
@@ -162,6 +165,8 @@ seaOfReadFact state tombstones input loadFactState readInput checkCount =
     , "    return 0; /* no error */"
     , "}"
     , ""
+    , add
+    , ""
     ]
   where
     err  = Base.inputSumError input
@@ -192,6 +197,9 @@ seaOfReadFact state tombstones input loadFactState readInput checkCount =
       | otherwise
       = mempty
 
+    add
+      = seaOfAddEndState state input
+
 
 seaOfAssignInput :: (Text, ValType) -> Doc
 seaOfAssignInput (n, _)
@@ -209,13 +217,68 @@ seaOfLoadFactState = vsep . fmap go
       = n <> " = program->fact_state." <> n <> ";"
 
 seaOfSaveFactState :: [(Text, ValType)] -> Doc
-seaOfSaveFactState xs = vsep
-  $  ["imempool_t *save_pool = imempool_create ();"]
-  <> fmap cp xs
-  <> ["imempool_free (save_pool);"]
+seaOfSaveFactState = vsep . fmap cp
   where
     cp (pretty -> n, t)
-      = "program->fact_state." <> n <> " = " <> prefixOfValType t <> "copy (save_pool, " <> n <> ");"
+      = "program->fact_state." <> n <> " = " <> prefixOfValType t <> "copy (mempool, " <> n <> ");"
+
+seaOfAddEndStates :: [SeaProgramState] -> Doc
+seaOfAddEndStates states = vsep
+  [ "#line 1 \"add end states \""
+  , "static ierror_loc_t INLINE psv_add_end_states (ifleet_t *fleet)"
+  , "{"
+  , "    ierror_loc_t error;"
+  , ""
+  , indent 4 . vsep . fmap load $ states
+  , ""
+  , "    return error;"
+  , "}"
+  , ""
+  ]
+  where
+    load state
+      | stateInputMode state == FactModeStateSparse
+      , pname <- pretty (nameOfProgram state)
+      = vsep
+      [ "for (iint_t chord_ix = 0; chord_ix < fleet->chord_count; chord_ix++) {"
+      , "    " <> pretty (nameOfStateType state) <+> "*program = &fleet->" <> pname <> "[chord_ix];"
+      , "    error = " <> pretty (nameOfAddEndState state) <+> "(fleet->chord_times[chord_ix], program);"
+      , "    if (error)"
+      , "        break;"
+      , "}"
+      ]
+      | otherwise
+      = mempty
+
+seaOfAddEndState :: SeaProgramState -> Base.CheckedInput -> Doc
+seaOfAddEndState state input = vsep
+  [ "#line 1 \"add end state for fact" <+> seaOfStateInfo state <> "\""
+  , "static ierror_loc_t INLINE"
+      <+> pretty (nameOfAddEndState state) <+> "("
+      <>  "itime_t time, "
+      <>  pretty (nameOfStateType state) <+> "*program)"
+  , "{"
+  , "    iint_t new_count = program->input.new_count;"
+  , ""
+  , "    program->input." <> pretty err  <> "[new_count] = program->fact_state." <> pretty err <> ";"
+  , indent 4 . vsep . fmap go $ vars
+  , "    program->input." <> pretty time <> "[new_count] = time;"
+  , ""
+  , "    new_count++;"
+  , ""
+  , "    program->input.new_count = new_count;"
+  , ""
+  , "    return 0; /* no error */"
+  , "}"
+  , ""
+  ]
+  where
+    err  = Base.inputSumError input
+    time = Base.inputTime     input
+    vars = Base.inputVars     input
+
+    go (pretty -> n, _)
+      = "program->input." <> n <> "[new_count] = program->fact_state." <> n <> ";"
 
 
 seaOfReadAnyFactPsv
@@ -227,9 +290,12 @@ seaOfReadAnyFactPsv opts config states = do
   case inputPsvFormat config of
     PsvInputSparse
       -> do let tss  = fmap (lookupTombstones opts) states
+            let endStates_sea = seaOfAddEndStates states
             readStates_sea <- zipWithM seaOfReadFactSparse states tss
             pure $ vsep
               [ vsep readStates_sea
+              , ""
+              , endStates_sea
               , ""
               , "#line 1 \"read any sparse fact\""
               , "static ierror_loc_t psv_read_fact"
@@ -252,9 +318,12 @@ seaOfReadAnyFactPsv opts config states = do
       -> do state     <- maybeToRight (SeaDenseFeedNotUsed feed)
                        $ List.find ((==) feed . getAttribute . stateAttribute) states
             let ts     = lookupTombstones opts state
+            let end_sea= seaOfAddEndStates states
             read_sea  <- seaOfReadFactDense dict state ts
             pure $ vsep
               [ read_sea
+              , ""
+              , end_sea
               , ""
               , "#line 1 \"read any dense fact\""
               , "static ierror_loc_t psv_read_fact"

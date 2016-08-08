@@ -116,6 +116,7 @@ library
                        Icicle.Sea.FromAvalanche.Analysis
                        Icicle.Sea.FromAvalanche.Base
                        Icicle.Sea.FromAvalanche.Prim
+                       Icicle.Sea.FromAvalanche.Exp
                        Icicle.Sea.FromAvalanche.Program
                        Icicle.Sea.FromAvalanche.State
                        Icicle.Sea.FromAvalanche.Type

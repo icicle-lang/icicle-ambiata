@@ -15,8 +15,7 @@ module Icicle.Encoding (
   , valueOfJSON
   , jsonOfValue
   , sourceTypeOfEncoding
-  , normaliseSparseState
-  , normaliseSparseStates
+  , normaliseFacts
   ) where
 
 import           Data.Attoparsec.ByteString
@@ -46,7 +45,7 @@ data DecodeError =
  | DecodeErrorMissingStructField Attribute
  | DecodeErrorNotInDictionary    Attribute
  | DecodeErrorValueForVirtual    Attribute
- | DecodeErrorMismatchedState    Attribute Value Value
+ | DecodeErrorMismatchedState    Entity Attribute Value Value
    deriving (Eq, Show)
 
 
@@ -59,10 +58,11 @@ renderDecodeError (DecodeErrorNotInDictionary attr) =
   "Given attribute is not in dictionary: " <> getAttribute attr
 renderDecodeError (DecodeErrorValueForVirtual attr) =
   "Cannot set values for virtual features: " <> getAttribute attr
-renderDecodeError (DecodeErrorMismatchedState attr x y) =
+renderDecodeError (DecodeErrorMismatchedState ent attr x y) =
   "Mismatched sparse state values of " <> getAttribute attr
-                                       <> ": "    <> T.pack (show x)
-                                       <> " and " <> T.pack (show y)
+                                       <> " for: " <> T.pack (show ent)
+                                       <> ": "     <> T.pack (show x)
+                                       <> " and "  <> T.pack (show y)
 
 primitiveEncoding :: Encoding -> Bool
 primitiveEncoding e
@@ -393,26 +393,35 @@ normaliseSparseState st fact = do
      = Nothing
 
 -- | Normalise all facts. All raw facts must be provided at once.
-normaliseSparseStates :: [AsAt (Fact Value, FactMode)] -> Either DecodeError [AsAt NormalisedFact]
-normaliseSparseStates facts = P.reverse . snd <$> foldM go mempty facts
+--
+normaliseFacts :: Time -> [AsAt (Fact Value, FactMode)] -> Either DecodeError [AsAt NormalisedFact]
+normaliseFacts now facts = do
+  (states, xs) <- foldM go (Map.empty, []) facts
+  let lasts     = fmap latest $ Map.elems states
+  let facts'    = lasts <> P.reverse xs
+  return facts'
+
   where
-    go (states, xs) (fmap norm -> fact)
-      | modeOf fact == FactModeStateSparse
-      , a <- attrOf fact
-      = case Map.lookup a states of
+    go (states, xs) (fmap norm -> new)
+      | modeOf new == FactModeStateSparse
+      , ent <- entOf new
+      = case Map.lookup ent states of
           Nothing
-            -> return (Map.insert a fact states, fact : xs)
+            -> return (Map.insert ent new states, new : xs)
           Just st
-            -> do f <- maybeToRight (DecodeErrorMismatchedState a (valOf st) (valOf fact))
-                     $ normaliseSparseState (atFact st) (factOf fact)
-                  let st' = st { atFact = f }
-                  return (Map.insert a st' states, st' : xs)
+            -> do f <- maybeToRight (DecodeErrorMismatchedState ent (attrOf new) (valOf st) (valOf new))
+                     $ normaliseSparseState (atFact st) (factOf new)
+                  let st' = AsAt f (atTime new)
+                  return (Map.insert ent st' states, st' : xs)
       | otherwise
-      = return (states, fact : xs)
+      = return (states, new : xs)
 
     attrOf = factAttribute  . factOf
     valOf  = factValue      . factOf
+    entOf  = factEntity     . factOf
     factOf = factNormalised . atFact
     modeOf = factMode       . atFact
+
+    latest (AsAt f _) = AsAt f now
 
     norm = uncurry NormalisedFact

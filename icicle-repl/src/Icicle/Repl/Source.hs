@@ -118,5 +118,7 @@ loadDictionary checkOpts load
 readIcicleLibrary :: Parsec.SourceName -> Text -> Either SourceError (Compiler.FunEnvT Parsec.SourcePos Compiler.Var)
 readIcicleLibrary n = first SourceErrorCompile . Compiler.readIcicleLibrary "repl" n
 
-readNormalisedFacts :: Dictionary -> Text -> Either SourceError [AsAt NormalisedFact]
-readNormalisedFacts dict raw = first SourceErrorSerial $ Serial.readNormalisedFacts dict raw
+readNormalisedFacts :: Time -> Dictionary -> Text -> Either SourceError [AsAt NormalisedFact]
+readNormalisedFacts now dict raw
+  = first SourceErrorSerial
+  $ Serial.readNormalisedFacts now dict raw

@@ -21,9 +21,11 @@ module Icicle.Sea.FromAvalanche.State (
   , stateInput
   , stateInputNew
   , stateInputTime
+  , stateStateTypeName
   , stateNewCount
   , stateInputRes
   , stateInputHas
+  , initOfFactStateStruct
 
   -- * Prefixes for facts/resumables.
   , hasPrefix
@@ -50,6 +52,7 @@ import           Icicle.Internal.Pretty
 import           Icicle.Sea.Error
 import           Icicle.Sea.FromAvalanche.Analysis
 import           Icicle.Sea.FromAvalanche.Base
+import           Icicle.Sea.FromAvalanche.Exp
 import           Icicle.Sea.FromAvalanche.Type
 
 import           P
@@ -185,6 +188,14 @@ defOfFactStateStruct state
 defOfFactStateField :: (Text, ValType) -> Doc
 defOfFactStateField (name, ty)
   = defOfVar_ 0 (seaOfValType ty) (pretty (newPrefix <> name <> ";"))
+
+initOfFactStateStruct :: SeaProgramState -> Doc
+initOfFactStateStruct state
+  = vsep (fmap initOfFactStateField (stateInputVars state))
+
+initOfFactStateField :: (Text, ValType) -> Doc
+initOfFactStateField (name, ty)
+  = "fact_state->" <> pretty (newPrefix <> name) <> " = " <> seaOfXValue (defaultOfType ty) ty <> ";"
 
 ------------------------------------------------------------------------
 

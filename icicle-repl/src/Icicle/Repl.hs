@@ -207,7 +207,8 @@ handleLine state line = let st = sourceState state in
 
   Just (Repl.CommandLoad fp) -> do
     s  <- liftIO $ T.readFile fp
-    case SourceRepl.readNormalisedFacts (SourceRepl.dictionary st) s of
+    let now = SourceRepl.currentTime $ sourceState state
+    case SourceRepl.readNormalisedFacts now (SourceRepl.dictionary st) s of
       Left e   ->
         Repl.prettyHL e >> return state
       Right fs -> do

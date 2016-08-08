@@ -1,0 +1,4 @@
+bulbasaur|bar|{"location":"pallet"}
+bulbasaur|foo|{"location":"pallet"}
+charmander|bar|{"location":"indigo","age":2}
+charmander|foo|{"location":"indigo","age":2}

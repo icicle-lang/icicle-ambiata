@@ -97,6 +97,6 @@ readFacts' d s = fmap (fmap fst) <$> readFacts d s
 -- | Read and normalise all facts. All raw input must be provided at once to normalise
 --   facts correctly.
 --
-readNormalisedFacts :: Dictionary -> Text -> Either SerialError [AsAt NormalisedFact]
-readNormalisedFacts dict raw
-  = readFacts dict raw >>= first SerialErrorDecode . normaliseSparseStates
+readNormalisedFacts :: Time -> Dictionary -> Text -> Either SerialError [AsAt NormalisedFact]
+readNormalisedFacts now dict raw
+  = readFacts dict raw >>= first SerialErrorDecode . normaliseFacts now

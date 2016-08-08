@@ -1,0 +1,17 @@
+title = "test"
+version = 1
+chapter = []
+namespace = """fixed"""
+tombstone = """NA"""
+
+[fact.pokemon]
+  encoding="(age:int*,location:string*)"
+
+[feature.test]
+  expression="feature pokemon ~> newest location"
+
+[feature.foo]
+  expression="feature pokemon ~> newest fields"
+
+[feature.bar]
+  expression="feature pokemon ~> windowed 2 weeks ~> newest fields"

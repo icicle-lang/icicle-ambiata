@@ -275,12 +275,10 @@ seaOfConfigureFleet mode states
  , ""
  , "    for (iint_t ix = 0; ix < chord_count; ix++) {"
  , "        itime_t chord_time = chord_times[ix];"
- , ""
  , indent 8 (vsep (fmap seaOfAssignTime states))
  , "    }"
  , ""
  , indent 4 (vsep (fmap defOfLastTime states))
- , ""
  , indent 4 (vsep (fmap defOfCount states))
  , ""
  , "    return 0;"
@@ -290,9 +288,13 @@ seaOfConfigureFleet mode states
 defOfState :: SeaProgramState -> Doc
 defOfState state
  = let stype  = pretty (nameOfStateType state)
-       var    = "*p" <> pretty (stateName state)
+       var    = "p" <> pretty (stateName state)
        member = "fleet->" <> pretty (nameOfProgram state)
-   in stype <+> var <+> "=" <+> member <> ";"
+   in vsep [ stype <+> "*" <> var <+> "=" <+> member <> ";"
+           , pretty (stateStateTypeName state) <+> "*fact_state = &(" <> var <> "->fact_state);"
+           , "imempool_t *mempool = fleet->mempool;"
+           , initOfFactStateStruct state
+           ]
 
 defOfLastTime :: SeaProgramState -> Doc
 defOfLastTime state

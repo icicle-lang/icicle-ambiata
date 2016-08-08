@@ -1,0 +1,24 @@
+:set +core-eval
+:set +c-eval
+
+:set time 2016 7 14
+
+-- Fact mode event
+
+:dictionary test/cli/repl/t51-modes/pokemon_event.toml
+
+:load test/cli/repl/t51-modes/pokemon.psv
+
+feature pokemon ~> newest fields
+
+feature pokemon ~> windowed 4 weeks ~> newest fields
+
+-- Fact mode sparse state
+
+:dictionary test/cli/repl/t51-modes/pokemon_sparse_state.toml
+
+:load test/cli/repl/t51-modes/pokemon.psv
+
+feature pokemon ~> newest fields
+
+feature pokemon ~> windowed 4 weeks ~> newest fields

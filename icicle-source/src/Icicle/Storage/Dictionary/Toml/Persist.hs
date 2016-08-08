@@ -41,14 +41,14 @@ normalisedTomlDictionary dictionary
   <> vcat (normalisedTomlDictionaryEntry <$> dictionaryEntries dictionary)
 
 normalisedTomlDictionaryEntry :: DictionaryEntry -> Doc
-normalisedTomlDictionaryEntry (DictionaryEntry attr (ConcreteDefinition enc ts ty) namespace) =
+normalisedTomlDictionaryEntry (DictionaryEntry attr (ConcreteDefinition enc ts mo) namespace) =
   brackets ("fact." <> (text $ T.unpack $ getAttribute attr))
   <> line
   <> indent 2 ("encoding" <+> "=" <+> tquotes (text $ T.unpack $ prettyConcrete enc))
   <> line
   <> indent 2 ("namespace" <+> "=" <+> tquotes (pretty namespace))
   <> line
-  <> indent 2 ("type" <+> "=" <+> tquotes (pretty ty))
+  <> indent 2 ("mode" <+> "=" <+> tquotes (pretty mo))
   <> line
   <> tombstoneDoc
     where

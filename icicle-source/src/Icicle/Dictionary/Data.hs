@@ -202,8 +202,8 @@ prettyDictionarySummary dict
  <> "Features" <> line
  <> indent 2 (vcat $ fmap pprEntry $ dictionaryEntries dict))
  where
-  pprEntry (DictionaryEntry attr (ConcreteDefinition enc _ _) _)
-   = padDoc 20 (pretty attr) <> " : " <> pretty enc
+  pprEntry (DictionaryEntry attr (ConcreteDefinition enc _ ty) _)
+   = padDoc 20 (pretty attr) <> " : " <> pretty enc <+> pretty ty
   pprEntry (DictionaryEntry attr (VirtualDefinition virt) _)
    = padDoc 20 (pretty attr) <> " = " <> indent 0 (pretty virt)
 
