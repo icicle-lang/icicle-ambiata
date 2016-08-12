@@ -234,7 +234,7 @@ forwardStmts a_fresh statements
 
       Read n _acc _t _ss
        -> return (Map.delete n e, s)
-      ForeachFacts ns _t  _f _ss
+      ForeachFacts ns _t _m _f _ss
        -> return (foldl (flip Map.delete) e (fmap fst $ factBindsAll ns), s)
       Block{}
        -> return (e,s)
@@ -373,7 +373,7 @@ substXinS a_fresh name payload statements
        | Set.member n frees
        -> freshen n ss $ \n' ss' -> Read n' x z ss'
 
-      ForeachFacts binds@(FactBinds ntime nfid ns) x y ss
+      ForeachFacts binds@(FactBinds ntime nfid ns) x y z ss
        | name `elem` fmap fst (factBindsAll binds)
        -> finished s
        | any (flip Set.member frees . fst) (factBindsAll binds)
@@ -381,7 +381,7 @@ substXinS a_fresh name payload statements
              nfid'   <- fresh
              let subF n n' = substXinS a_fresh n (xVar n')
              ss'     <- subF ntime  ntime' ss >>= subF nfid   nfid'
-             freshenForeach ntime'  nfid' [] ns x y ss'
+             freshenForeach ntime'  nfid' [] ns x y z ss'
 
       _
        -> return (True, s)
@@ -405,12 +405,12 @@ substXinS a_fresh name payload statements
         ss' <- substXinS a_fresh n (xVar n') ss
         trans True (f n' ss')
 
-  freshenForeach ntime nfid ns [] x y ss
-   = return (True, ForeachFacts (FactBinds ntime nfid ns) x y ss)
-  freshenForeach ntime nfid ns ((n,t):ns') x y ss
+  freshenForeach ntime nfid ns [] x y z ss
+   = return (True, ForeachFacts (FactBinds ntime nfid ns) x y z ss)
+  freshenForeach ntime nfid ns ((n,t):ns') x y z ss
    = do n'  <- fresh
         ss' <- substXinS a_fresh n (xVar n') ss
-        freshenForeach ntime nfid (ns <> [(n',t)]) ns' x y ss'
+        freshenForeach ntime nfid (ns <> [(n',t)]) ns' x y z ss'
 
   frees = freevars payload
 
@@ -508,8 +508,8 @@ freevarsStmt = go
          -> While t n nt (freevarsExp x) (rmS n $ go s)
        ForeachInts t n x1 x2 s
          -> ForeachInts t n (freevarsExp x1) (freevarsExp x2) (rmS n $ go s)
-       ForeachFacts ns t  f  s
-         -> ForeachFacts ns t f (go s)
+       ForeachFacts ns t m f s
+         -> ForeachFacts ns t m f (go s)
        Block ss
          -> Block $ fmap go ss
        InitAccumulator acc s
@@ -548,7 +548,7 @@ killNoEffect = fst . go Set.empty
              = (ss', hasEffect)
        in case ss of
          -- Looping over facts is an effect
-         ForeachFacts _ _ FactLoopNew _
+         ForeachFacts _ _ _ FactLoopNew _
            -> (ss, True)
          -- Writing or pushing is an effect,
          -- unless we're explicitly ignoring this accumulator
@@ -600,7 +600,7 @@ killNoEffect = fst . go Set.empty
               in (ss', hasEffect)
          Read _ _ _ s
           -> subStmt s
-         ForeachFacts _ _ FactLoopHistory s
+         ForeachFacts _ _ _ FactLoopHistory s
           -> subStmt s
 
 

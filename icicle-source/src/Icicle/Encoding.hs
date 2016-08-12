@@ -2,7 +2,9 @@
 -- Parsing, rendering etc.
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE PatternGuards #-}
+{-# LANGUAGE PatternGuards     #-}
+{-# LANGUAGE ViewPatterns      #-}
+
 module Icicle.Encoding (
     DecodeError (..)
   , renderDecodeError
@@ -13,6 +15,7 @@ module Icicle.Encoding (
   , valueOfJSON
   , jsonOfValue
   , sourceTypeOfEncoding
+  , normaliseFacts
   ) where
 
 import           Data.Attoparsec.ByteString
@@ -42,6 +45,7 @@ data DecodeError =
  | DecodeErrorMissingStructField Attribute
  | DecodeErrorNotInDictionary    Attribute
  | DecodeErrorValueForVirtual    Attribute
+ | DecodeErrorMismatchedState    Entity Attribute Value Value
    deriving (Eq, Show)
 
 
@@ -54,6 +58,11 @@ renderDecodeError (DecodeErrorNotInDictionary attr) =
   "Given attribute is not in dictionary: " <> getAttribute attr
 renderDecodeError (DecodeErrorValueForVirtual attr) =
   "Cannot set values for virtual features: " <> getAttribute attr
+renderDecodeError (DecodeErrorMismatchedState ent attr x y) =
+  "Mismatched sparse state values of " <> getAttribute attr
+                                       <> " for: " <> T.pack (show ent)
+                                       <> ": "     <> T.pack (show x)
+                                       <> " and "  <> T.pack (show y)
 
 primitiveEncoding :: Encoding -> Bool
 primitiveEncoding e
@@ -369,3 +378,50 @@ sourceTypeOfEncoding e
   goStructField (StructField Optional attr enc)
     = ( IT.StructField $ getAttribute attr
       , IT.OptionT $ sourceTypeOfEncoding enc)
+
+
+normaliseSparseState :: NormalisedFact -> Fact Value -> Maybe NormalisedFact
+normaliseSparseState st fact = do
+  v <- upd (get st) (factValue fact)
+  pure $ NormalisedFact (fact { factValue = v}) (factMode st)
+  where
+    get = factValue . factNormalised
+
+    upd (StructValue (Struct xs)) (StructValue (Struct ys))
+     = Just $ StructValue $ Struct $ Map.toList $ Map.union (Map.fromList ys) (Map.fromList xs)
+    upd _ _
+     = Nothing
+
+-- | Normalise all facts. All raw facts must be provided at once.
+--
+normaliseFacts :: Time -> [AsAt (Fact Value, FactMode)] -> Either DecodeError [AsAt NormalisedFact]
+normaliseFacts now facts = do
+  (states, xs) <- foldM go (Map.empty, []) facts
+  let lasts     = fmap latest $ Map.elems states
+  let facts'    = lasts <> P.reverse xs
+  return facts'
+
+  where
+    go (states, xs) (fmap norm -> new)
+      | modeOf new == FactModeStateSparse
+      , ent <- entOf new
+      = case Map.lookup ent states of
+          Nothing
+            -> return (Map.insert ent new states, new : xs)
+          Just st
+            -> do f <- maybeToRight (DecodeErrorMismatchedState ent (attrOf new) (valOf st) (valOf new))
+                     $ normaliseSparseState (atFact st) (factOf new)
+                  let st' = AsAt f (atTime new)
+                  return (Map.insert ent st' states, st' : xs)
+      | otherwise
+      = return (states, new : xs)
+
+    attrOf = factAttribute  . factOf
+    valOf  = factValue      . factOf
+    entOf  = factEntity     . factOf
+    factOf = factNormalised . atFact
+    modeOf = factMode       . atFact
+
+    latest (AsAt f _) = AsAt f now
+
+    norm = uncurry NormalisedFact

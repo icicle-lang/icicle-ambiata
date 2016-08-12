@@ -69,7 +69,7 @@ instance Arbitrary DictionaryEntry where
  arbitrary
   =   DictionaryEntry
   <$> arbitrary
-  <*> (ConcreteDefinition <$> arbitrary <*> (Set.singleton <$> elements viruses))
+  <*> (ConcreteDefinition <$> arbitrary <*> (Set.singleton <$> elements viruses) <*> arbitrary)
   <*> (Namespace <$> elements simpsons)
 
 instance Show a => Testable (Either a Property) where

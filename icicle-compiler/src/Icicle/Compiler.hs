@@ -8,11 +8,9 @@
 
 module Icicle.Compiler
   ( ErrorCompile (..)
-
   , AnnotType
   , Source.QueryUntyped
   , Source.QueryTyped
-
   , Source.CoreProgramUntyped
   , CoreProgramTyped
   , AvalProgramUntyped
@@ -360,7 +358,7 @@ instance Pretty Result where
     = pretty ent <> comma <> space <> pretty val
 
 coreEval :: Time
-         -> [AsAt Fact]
+         -> [AsAt NormalisedFact]
          -> Source.QueryTyped Source.Var
          -> Source.CoreProgramUntyped  Source.Var
          -> Either SimError [Result]
@@ -387,7 +385,7 @@ coreEval t fs (renameQT unVar -> query) prog
       = Sim.evaluateVirtualValue prog t
 
 avalancheEval :: Time
-              -> [AsAt Fact]
+              -> [AsAt NormalisedFact]
               -> Source.QueryTyped Source.Var
               -> AvalProgramUntyped Source.Var Flat.Prim
               -> Either SimError [Result]
@@ -414,7 +412,7 @@ avalancheEval t fs (renameQT unVar -> query) prog
       = Sim.evaluateVirtualValue' prog t
 
 seaEval :: Time
-        -> [AsAt Fact]
+        -> [AsAt NormalisedFact]
         -> Source.QueryTyped Source.Var
         -> AvalProgramTyped  Source.Var Flat.Prim
         -> EitherT SeaError IO [Result]

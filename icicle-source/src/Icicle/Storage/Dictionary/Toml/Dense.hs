@@ -143,7 +143,7 @@ concreteStructs :: Dictionary -> [DenseStructEncoding]
 concreteStructs dict
   = fmap mappingOfStructs $ foldr go [] $ dictionaryEntries dict
   where
-    go (DictionaryEntry a (ConcreteDefinition (StructEncoding st) _) _) acc
+    go (DictionaryEntry a (ConcreteDefinition (StructEncoding st) _ _) _) acc
       = (a, st) : acc
     go _ acc
       = acc

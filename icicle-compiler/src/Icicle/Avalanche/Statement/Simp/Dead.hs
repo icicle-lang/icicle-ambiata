@@ -71,9 +71,9 @@ deadS us statements
             fU           = usageX from
             tU           = usageX to
         in (mconcat [sU, fU, tU], sK, ForeachInts t n from to sS)
-    ForeachFacts binds vt ty ss
+    ForeachFacts binds vt mo ty ss
      -> let (sU, sK, sS) = deadLoop us ss
-        in  (sU, sK, ForeachFacts binds vt ty sS)
+        in  (sU, sK, ForeachFacts binds vt mo ty sS)
 
     Block []
      -> (us, mempty, statements)

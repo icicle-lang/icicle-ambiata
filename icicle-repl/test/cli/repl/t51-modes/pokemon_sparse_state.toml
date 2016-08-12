@@ -1,0 +1,9 @@
+title = "test"
+version = 1
+chapter = []
+namespace = """fixed"""
+tombstone = """NA"""
+
+[fact.pokemon]
+  mode = "sparse_state"
+  encoding="(age:int*,location:string*)"

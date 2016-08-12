@@ -183,7 +183,8 @@ seaEval' program createPool releasePool time values = do
         dateIx     = 1
         countIx    = 2
         factsIx    = 3
-        outputsIx  = 3 + length psFacts
+        statesIx   = factsIx  + length psFacts
+        outputsIx  = statesIx + length psFacts
 
     pokeWordOff pState dateIx  (packedOfTime time)
     pokeWordOff pState countIx (fromIntegral count :: Int64)
@@ -259,8 +260,8 @@ mkSeaProgram lib name program = do
   let outputs = outputsOfProgram program
 
   factType <- case factVarsOfProgram FactLoopNew program of
-                Nothing     -> left SeaNoFactLoop
-                Just (t, _) -> return t
+                Nothing        -> left SeaNoFactLoop
+                Just (t, _, _) -> return t
 
   size_of_state <- firstEitherT SeaJetskiError (function lib (nameOfStateSize' name) retInt)
   words         <- liftIO (size_of_state [])

@@ -57,8 +57,8 @@ renameProgram f p
         -> While t (f n) nt (renameExp f x) (renameStmt s)
       ForeachInts t n x1 x2 s
         -> ForeachInts t (f n) (renameExp f x1) (renameExp f x2) (renameStmt s)
-      ForeachFacts bs vt ft s
-        -> ForeachFacts (renameFactBinds bs) vt ft (renameStmt s)
+      ForeachFacts bs vt mo ft s
+        -> ForeachFacts (renameFactBinds bs) vt mo ft (renameStmt s)
       Block s
         -> Block (fmap renameStmt s)
       InitAccumulator acc s

@@ -21,9 +21,11 @@ module Icicle.Sea.FromAvalanche.State (
   , stateInput
   , stateInputNew
   , stateInputTime
+  , stateStateTypeName
   , stateNewCount
   , stateInputRes
   , stateInputHas
+  , initOfFactStateStruct
 
   -- * Prefixes for facts/resumables.
   , hasPrefix
@@ -43,13 +45,14 @@ import           Icicle.Common.Annot
 import           Icicle.Common.Base
 import           Icicle.Common.Type
 
-import           Icicle.Data
+import           Icicle.Data (Attribute (..), FactMode (..))
 
 import           Icicle.Internal.Pretty
 
 import           Icicle.Sea.Error
 import           Icicle.Sea.FromAvalanche.Analysis
 import           Icicle.Sea.FromAvalanche.Base
+import           Icicle.Sea.FromAvalanche.Exp
 import           Icicle.Sea.FromAvalanche.Type
 
 import           P
@@ -61,6 +64,7 @@ data SeaProgramState = SeaProgramState {
   , stateAttribute  :: Attribute
   , stateTimeVar    :: Text
   , stateInputType  :: ValType
+  , stateInputMode  :: FactMode
   , stateInputVars  :: [(Text, ValType)]
   , stateResumables :: [(Text, ValType)]
   , stateOutputs    :: [(OutputName, (ValType, [ValType]))]
@@ -79,12 +83,13 @@ stateOfProgram name attrib program
     Nothing
      -> Left SeaNoFactLoop
 
-    Just (factType, factVars)
+    Just (factType, factMode, factVars)
      -> Right SeaProgramState {
           stateName       = name
         , stateAttribute  = attrib
         , stateTimeVar    = textOfName (bindtime program)
         , stateInputType  = factType
+        , stateInputMode  = factMode
         , stateInputVars  = fmap (first textOfName) factVars
         , stateResumables = fmap (first textOfName) (Map.toList (resumablesOfProgram program))
         , stateOutputs    = outputsOfProgram program
@@ -122,7 +127,9 @@ seaOfState state
  = vsep
  [ "#line 1 \"state and input definition" <+> seaOfStateInfo state <> "\""
  , ""
- , defOfFactStruct state
+ , defOfFactStruct      state
+ , ""
+ , defOfFactStateStruct state
  , ""
  , "typedef struct {"
  , "    /* runtime */"
@@ -130,6 +137,7 @@ seaOfState state
  , ""
  , "    /* inputs */"
  , indent 4 (defOfVar_ 0 (pretty (stateInputTypeName state)) "input;")
+ , indent 4 (defOfVar_ 0 (pretty (stateStateTypeName state)) "fact_state;")
  , ""
  , "    /* outputs */"
  , indent 4 . vsep
@@ -165,18 +173,29 @@ defOfFactStruct state
   , "}" <+> pretty (stateInputTypeName state) <> ";"
   ]
 
--- TODO use language-c-quote after fixing their savage pretty printer
---  = let fs = fmap defFactField fields
---        t  = T.unpack typename
---    in  [cedecl|typedef struct { $sdecls:fs } $id:t;|]
-
 defOfFactField :: (Text, ValType) -> Doc
 defOfFactField (name, ty)
   = defOfVar_ 0 (seaOfValType ty) (pretty ("*" <> newPrefix <> name <> ";"))
--- TODO use language-c-quote after fixing their savage pretty printer
---  = let t = show     (seaOfValType ty)
---        n = T.unpack ("*" <> newPrefix <> name)
---    in  [csdecl|typename $id:t $id:n;|]
+
+defOfFactStateStruct :: SeaProgramState -> Doc
+defOfFactStateStruct state
+  = vsep
+  [ "typedef struct {"
+  , indent 4 (vsep (fmap defOfFactStateField (stateInputVars state)))
+  , "}" <+> pretty (stateStateTypeName state) <> ";"
+  ]
+
+defOfFactStateField :: (Text, ValType) -> Doc
+defOfFactStateField (name, ty)
+  = defOfVar_ 0 (seaOfValType ty) (pretty (newPrefix <> name <> ";"))
+
+initOfFactStateStruct :: Doc -> SeaProgramState -> Doc
+initOfFactStateStruct var state
+  = vsep (fmap (initOfFactStateField var) (stateInputVars state))
+
+initOfFactStateField :: Doc -> (Text, ValType) -> Doc
+initOfFactStateField var (name, ty)
+  = var <> "_fact_state->" <> pretty (newPrefix <> name) <> " = " <> seaOfXValue (defaultOfType ty) ty <> ";"
 
 ------------------------------------------------------------------------
 
@@ -215,6 +234,10 @@ stateInputName
 stateInputTypeName :: SeaProgramState -> Text
 stateInputTypeName state
  = "input_" <> getAttribute (stateAttribute state) <> "_t"
+
+stateStateTypeName :: SeaProgramState -> Text
+stateStateTypeName state
+ = "state_" <> getAttribute (stateAttribute state) <> "_t"
 
 stateInput :: Doc
 stateInput = pretty stateInputName

@@ -97,6 +97,8 @@ static ierror_loc_t INLINE psv_read_fact
   , const size_t  max_ent_attr_count);
 #endif
 
+static ierror_loc_t INLINE psv_add_end_states (ifleet_t *fleet);
+
 static ierror_msg_t INLINE psv_write_outputs
   ( int fd
   , char  *output_start
@@ -277,6 +279,7 @@ static ierror_loc_t psv_read_buffer (psv_state_t *s, const size_t facts_limit)
             s->entity_cur      = entity_cur;
             s->entity_cur_size = entity_cur_size;
             s->input_remaining = bytes_remaining;
+            psv_add_end_states (s->fleet);
             return 0;
         }
 
@@ -336,6 +339,9 @@ static ierror_loc_t psv_read_buffer (psv_state_t *s, const size_t facts_limit)
 
         if (new_entity < 0) {
             if (entity_cur_size != 0) {
+                /* for facts that are sparse states, we add one fact at the end that is the final state */
+                psv_add_end_states (s->fleet);
+
                 ierror_msg_t msg = psv_write_outputs
                                      ( s->output_fd
                                      , s->output_start

@@ -39,8 +39,8 @@ reannotS f ss
     ForeachInts t n x1 x2 s
      -> ForeachInts t n (reannotX f x1) (reannotX f x2) (reannotS f s)
 
-    ForeachFacts binds t ft s
-     -> ForeachFacts binds t ft (reannotS f s)
+    ForeachFacts binds t m ft s
+     -> ForeachFacts binds t m ft (reannotS f s)
 
     Block s
      -> Block (fmap (reannotS f) s)

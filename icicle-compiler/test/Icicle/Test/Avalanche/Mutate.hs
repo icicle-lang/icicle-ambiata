@@ -93,7 +93,7 @@ hasArrayUpdate prog = goS (Avalanche.statements prog)
         -> goX x || goS s
       ForeachInts _ _ x1 x2 s
         -> goX x1 || goX x2 || goS s
-      ForeachFacts _ _ _ s
+      ForeachFacts _ _ _ _ s
         -> goS s
       Block xs
         -> any goS xs

@@ -108,5 +108,5 @@ avalancheFrom opts dictionaryPath sources = do
 ------------------------------------------------------------------------
 
 concrete :: DictionaryEntry -> Bool
-concrete (DictionaryEntry _ (ConcreteDefinition _ _) _) = True
-concrete (DictionaryEntry _ (VirtualDefinition  _)   _) = False
+concrete (DictionaryEntry _ (ConcreteDefinition {}) _) = True
+concrete (DictionaryEntry _ (VirtualDefinition  {}) _) = False

@@ -32,10 +32,13 @@ module Icicle.Source.ToCore.Base (
   ) where
 
 import qualified        Icicle.Core             as C
+
 import                  Icicle.Common.Fresh
 import                  Icicle.Common.Base
 import                  Icicle.Common.Type  hiding (Type)
 import qualified        Icicle.Common.Exp       as X
+
+import                  Icicle.Data
 
 import                  Icicle.Source.Query
 import                  Icicle.Source.Type
@@ -59,20 +62,21 @@ data CoreBinds a n
  , postcomps    :: [(Name n, C.Exp    a n)]
  }
 
-programOfBinds
-    :: OutputName
-    -> ValType
-    -> Name n
-    -> Name n
-    -> Name n
-    -> Name n
-    -> CoreBinds a n
-    -> a
-    -> Name n
-    -> C.Program a n
-programOfBinds output inpType factValName factIdName factTimeName postDate binds a_ret ret
+programOfBinds :: OutputName
+               -> ValType
+               -> FactMode
+               -> Name n
+               -> Name n
+               -> Name n
+               -> Name n
+               -> CoreBinds a n
+               -> a
+               -> Name n
+               -> C.Program a n
+programOfBinds output inpType inpMode factValName factIdName factTimeName postDate binds a_ret ret
  = C.Program
  { C.inputType    = inpType
+ , C.inputMode    = inpMode
  , C.factValName  = factValName
  , C.factIdName   = factIdName
  , C.factTimeName = factTimeName

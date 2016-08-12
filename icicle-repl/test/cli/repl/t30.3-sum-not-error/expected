@@ -32,11 +32,18 @@ typedef struct {
 } input_repl_t;
 
 typedef struct {
+    ierror_t         new_conv_0_simpflat_19;
+    iint_t           new_conv_0_simpflat_20;
+    itime_t          new_conv_0_simpflat_21;
+} state_repl_t;
+
+typedef struct {
     /* runtime */
     imempool_t      *mempool;
 
     /* inputs */
     input_repl_t     input;
+    state_repl_t     fact_state;
 
     /* outputs */
     ibool_t          repl_ix_0;

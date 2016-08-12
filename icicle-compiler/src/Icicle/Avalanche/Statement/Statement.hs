@@ -19,6 +19,8 @@ import              Icicle.Common.Base
 import              Icicle.Common.Type
 import              Icicle.Common.Exp
 
+import              Icicle.Data
+
 import              Icicle.Internal.Pretty
 
 import              P
@@ -40,7 +42,7 @@ data Statement a n p
 
  -- | A loop over all the facts.
  -- This should only occur once in the program, and not inside a loop.
- | ForeachFacts !(FactBinds n) !ValType !FactLoopType !(Statement a n p)
+ | ForeachFacts !(FactBinds n) !ValType !FactMode !FactLoopType !(Statement a n p)
 
  -- | Execute several statements in a block.
  | Block ![Statement a n p]
@@ -174,8 +176,8 @@ transformUDStmt fun env statements
            -> While t n vt end <$> go e' ss
           ForeachInts t n from to ss
            -> ForeachInts t n from to <$> go e' ss
-          ForeachFacts binds ty lo ss
-           -> ForeachFacts binds ty lo <$> go e' ss
+          ForeachFacts binds ty mo lo ss
+           -> ForeachFacts binds ty mo lo <$> go e' ss
           Block ss
            -> Block <$> mapM (go e') ss
           InitAccumulator acc ss
@@ -223,7 +225,7 @@ foldStmt down up rjoin env res statements
            -> sub1 ss
           ForeachInts _ _ _ _ ss
            -> sub1 ss
-          ForeachFacts _ _ _ ss
+          ForeachFacts _ _ _ _ ss
            -> sub1 ss
           Block ss
            -> do    rs <- mapM (go e') ss
@@ -259,9 +261,13 @@ instance TransformX Statement where
      ForeachInts t n from to ss
       -> ForeachInts t <$> names n <*> exps from <*> exps to <*> go ss
 
-     ForeachFacts (FactBinds ntime nfid ns) v lo ss
+     ForeachFacts (FactBinds ntime nfid ns) v mo lo ss
       -> let name_go (n, t) = (,) <$> names n <*> pure t
-         in ForeachFacts <$> (FactBinds <$> names ntime <*> names nfid <*> traverse name_go ns) <*> return v <*> return lo <*> go ss
+         in ForeachFacts <$> (FactBinds <$> names ntime <*> names nfid <*> traverse name_go ns)
+                         <*> return v
+                         <*> return mo
+                         <*> return lo
+                         <*> go ss
 
      Block ss
       -> Block <$> gos ss
@@ -327,7 +333,7 @@ instance (Pretty n, Pretty p) => Pretty (Statement a n p) where
       -> "foreach (" <> pretty n <+> "in" <+> pretty from <+> text ".." <+> pretty to <> ")" <> line
       <> subscope stmts
 
-     ForeachFacts binds _ lo stmts
+     ForeachFacts binds _ _ lo stmts
       -> "for_facts" <+> prettyFactParts (factBindsAll binds) <+> "in" <+> pretty lo <> line
       <> subscope stmts
 

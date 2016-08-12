@@ -47,8 +47,8 @@ mutateStmt livevars ss
                               (mutateExp livevars y)
                               (go s)
 
-         ForeachFacts fs vt ft s
-           -> ForeachFacts fs vt ft (go s)
+         ForeachFacts fs vt mo ft s
+           -> ForeachFacts fs vt mo ft (go s)
 
          Block stmts
            -> let f (st:sts) = mutateStmt (livevars <> Set.unions (fmap livevarsStmt sts)) st
@@ -121,7 +121,7 @@ livevarsStmt ss = case ss of
    -> Set.insert n (livevarsExp end <> livevarsStmt body)
 
   -- fact bind is live at the beginning and inside the loop.
-  ForeachFacts bs _ _ body
+  ForeachFacts bs _ _ _ body
    -> livevarsFactBinds bs <> livevarsStmt body
 
   -- something is live at the beginning of the block if it is live

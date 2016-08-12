@@ -177,13 +177,13 @@ evalStmt evalPrim now xh values bubblegum ah stmt
 
     -- TODO: evaluation ignores history/bubblegum.
     -- All inputs are new, so history loop does nothing.
-    ForeachFacts _ _ FactLoopHistory _
+    ForeachFacts _ _ _ FactLoopHistory _
      -> returnHeap ah
 
 
     -- Allow unmelted foreach
     -- (i.e. where ty == ty' and we only have a singleton list of bindings)
-    ForeachFacts (FactBinds ntime nfid [(n, ty)]) ty' FactLoopNew stmts
+    ForeachFacts (FactBinds ntime nfid [(n, ty)]) ty' _ FactLoopNew stmts
      | ty == ty'
      -> do  let evalInput (ah',out,bg) (inp,ix) = do
                   let v0     = snd (atFact inp)
@@ -200,7 +200,7 @@ evalStmt evalPrim now xh values bubblegum ah stmt
 
             foldM evalInput (ah,mempty,mempty) (values `zip` indices)
 
-    ForeachFacts (FactBinds ntime nfid ns) ty FactLoopNew stmts
+    ForeachFacts (FactBinds ntime nfid ns) ty _ FactLoopNew stmts
      -> do  let evalInput (ah',out,bg) (inp,ix) = do
                   let v0  = snd (atFact inp)
                       v1  = VTime (atTime inp)

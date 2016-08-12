@@ -107,3 +107,23 @@ rm $t3_drop_2
 
 echo "OK!"
 
+################################################################################
+
+echo "4. Fact mode: sparse state"
+
+t4_dict=test/cli/bench/t4-dictionary.toml
+t4_in=test/cli/bench/t4-in.psv
+t4_expected_psv=test/cli/bench/t4-expected.psv
+
+t4_c=`mktemp -t icicle-bench-t4-c-XXXXXX`
+t4_psv=`mktemp -t icicle-bench-t4-out-XXXXXX`
+
+dist/build/icicle-bench/icicle-bench $t4_dict $t4_in $t4_psv $t4_c 2016-7-14
+
+diff $t4_expected_psv $t4_psv
+
+rm $t4_c
+rm $t4_psv
+
+echo "OK!"
+

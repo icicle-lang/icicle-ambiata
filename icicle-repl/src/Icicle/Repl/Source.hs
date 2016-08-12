@@ -8,12 +8,12 @@
 -- * Components of REPL for the Source language
 module Icicle.Repl.Source
   ( SourceReplState (..)
-  , ErrorSource (..)
+  , SourceError (..)
   , defaultSourceReplState
   , posOfError
-  , readFacts
   , loadDictionary
   , readIcicleLibrary
+  , readNormalisedFacts
   ) where
 
 import           Control.Monad.Trans.Class
@@ -44,6 +44,7 @@ import           Icicle.Dictionary
 import qualified Icicle.Storage.Dictionary.TextV1 as DictionaryText
 import qualified Icicle.Storage.Dictionary.Toml   as DictionaryToml
 
+import           Icicle.Serial                    (SerialError(..))
 import qualified Icicle.Serial                    as Serial
 
 import qualified Icicle.Compiler.Source           as Compiler
@@ -53,7 +54,7 @@ import qualified Icicle.Repl.Base                 as Repl
 
 data SourceReplState
    = SourceReplState
-   { facts              :: [AsAt Fact]
+   { facts              :: [AsAt NormalisedFact]
    , dictionary         :: Dictionary
    , currentTime        :: Time
    , inlineOpt          :: Compiler.InlineOption
@@ -78,39 +79,33 @@ defaultSourceReplState
 
 --------------------------------------------------------------------------------
 
-data ErrorSource
-  = ErrorCompile    (Compiler.ErrorSource Compiler.Var)
-  | ErrorDecode      Serial.ParseError
-  | ErrorDictionary  DictionaryToml.DictionaryImportError
+data SourceError
+  = SourceErrorCompile    (Compiler.ErrorSource Compiler.Var)
+  | SourceErrorSerial      SerialError
+  | SourceErrorDictionary  DictionaryToml.DictionaryImportError
 
-posOfError :: ErrorSource -> Maybe Parsec.SourcePos
-posOfError (ErrorCompile e) = Compiler.annotOfError e
-posOfError _                = Nothing
+posOfError :: SourceError -> Maybe Parsec.SourcePos
+posOfError (SourceErrorCompile e) = Compiler.annotOfError e
+posOfError _                      = Nothing
 
-instance Pretty ErrorSource where
+instance Pretty SourceError where
  pretty e
   = case e of
-     ErrorCompile d
+     SourceErrorCompile d
       -> pretty d
-     ErrorDictionary d
+     SourceErrorDictionary d
       -> "Dictionary load error:" <> Pretty.line
       <> indent 2 (pretty d)
-     ErrorDecode d
+     SourceErrorSerial d
       -> "Decode error:" <> Pretty.line
       <> indent 2 (pretty d)
 
-
-readFacts :: Dictionary -> Text -> Either ErrorSource [AsAt Fact]
-readFacts dict raw
-  = first ErrorDecode
-  $ TR.traverse (Serial.decodeEavt dict) $ T.lines raw
-
-loadDictionary :: Check.CheckOptions -> Repl.DictionaryLoadType -> EitherT ErrorSource IO Dictionary
+loadDictionary :: Check.CheckOptions -> Repl.DictionaryLoadType -> EitherT SourceError IO Dictionary
 loadDictionary checkOpts load
  = case load of
     Repl.DictionaryLoadTextV1 fp
      -> do  raw <- lift $ T.readFile fp
-            ds  <- firstEitherT ErrorDecode
+            ds  <- firstEitherT SourceErrorSerial
                  $ hoistEither
                  $ TR.traverse DictionaryText.parseDictionaryLineV1
                  $ T.lines raw
@@ -118,8 +113,12 @@ loadDictionary checkOpts load
             return $ Dictionary ds []
 
     Repl.DictionaryLoadToml fp
-     -> firstEitherT ErrorDictionary $ DictionaryToml.loadDictionary checkOpts DictionaryToml.ImplicitPrelude fp
+     -> firstEitherT SourceErrorDictionary $ DictionaryToml.loadDictionary checkOpts DictionaryToml.ImplicitPrelude fp
 
-readIcicleLibrary :: Parsec.SourceName -> Text -> Either ErrorSource (Compiler.FunEnvT Parsec.SourcePos Compiler.Var)
-readIcicleLibrary n = first ErrorCompile . Compiler.readIcicleLibrary "repl" n
+readIcicleLibrary :: Parsec.SourceName -> Text -> Either SourceError (Compiler.FunEnvT Parsec.SourcePos Compiler.Var)
+readIcicleLibrary n = first SourceErrorCompile . Compiler.readIcicleLibrary "repl" n
 
+readNormalisedFacts :: Time -> Dictionary -> Text -> Either SourceError [AsAt NormalisedFact]
+readNormalisedFacts now dict raw
+  = first SourceErrorSerial
+  $ Serial.readNormalisedFacts now dict raw

@@ -237,7 +237,7 @@ instance (Arbitrary a, Arbitrary n, Hashable n) => Arbitrary (Stream a n) where
 
 instance (Arbitrary a, Arbitrary n, Hashable n) => Arbitrary (Program a n) where
  arbitrary =
-   Program <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+   Program <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
 
 
 -- | Make an effort to generate a well typed expression that has some given type.
@@ -393,7 +393,9 @@ programForStreamType streamType
 
 programForStreamType' :: ValType -> Gen (Program () Var)
 programForStreamType' streamType
- = do   Var fresh_name _ <- arbitrary
+ = do   mode <- arbitrary
+
+        Var fresh_name _ <- arbitrary
         let freshN i = nameOf $ NameBase $ Var fresh_name i
         let ninput = freshN 0
         let nid    = freshN 1
@@ -427,6 +429,7 @@ programForStreamType' streamType
 
         return Program
                { P.inputType    = streamType
+               , P.inputMode    = mode
                , P.factValName  = ninput
                , P.factIdName   = nid
                , P.factTimeName = ntime

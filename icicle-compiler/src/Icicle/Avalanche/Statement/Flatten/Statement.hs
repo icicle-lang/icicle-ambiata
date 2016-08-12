@@ -80,9 +80,9 @@ flattenS a_fresh accums s
      $ \to'
      -> ForeachInts t n from' to' <$> flattenS a_fresh accums ss
 
-    ForeachFacts binds vt lo ss
+    ForeachFacts binds vt mo lo ss
      -- Input binds cannot contain Buffers, so no need to flatten the types
-     -> do  loop  <- ForeachFacts binds (flatT vt) lo <$> flattenS a_fresh accums ss
+     -> do  loop  <- ForeachFacts binds (flatT vt) mo lo <$> flattenS a_fresh accums ss
             -- Run through all the accumulators and save the buffers
             save  <- mapM (flattenSaveAccumulator a_fresh) accums
             return $ mconcat (loop : save)

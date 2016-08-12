@@ -1,7 +1,9 @@
 {-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE TemplateHaskell#-}
+{-# LANGUAGE TemplateHaskell   #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TupleSections     #-}
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
+
 module Icicle.Test.Language where
 
 import qualified Icicle.Avalanche.Program as A
@@ -14,7 +16,9 @@ import qualified Icicle.Core.Program.Program as C
 import qualified Icicle.Source.Query as S
 import qualified Icicle.Source.Type as S
 
+import           Icicle.Data (AsAt (..), Fact(..), Value(..))
 import qualified Icicle.Data as D
+import           Icicle.Encoding
 
 import qualified Icicle.Compiler.Source as Source
 import qualified Icicle.Compiler as P
@@ -41,49 +45,55 @@ import           Disorder.Core.IO
 prop_languages_eval ewt = testIO $ do
   let wt      = welltyped ewt
       time    = wtTime wt
-      facts   = wtEvalFacts ewt
       q       = wtEvalDummyQuery ewt
-      coreRes = P.coreEval time facts q
-              $ C.renameProgram sourceNameFromTestName
-              $ wtCore wt
-      flatRes = P.avalancheEval time facts q
-              $ A.renameProgram sourceNameFromTestName
-              $ A.eraseAnnotP
-              $ wtAvalancheFlat wt
-  seaRes     <- runEitherT
-              $ P.seaEval time facts q
-              $ A.renameProgram sourceNameFromTestName
-              $ wtAvalancheFlat wt
-  case coreRes of
-    Left err
-      -> return
-       $ counterexample "Core eval failed"
-       $ counterexample (show $ pretty err)
-       $ counterexample (show $ pretty (wtCore wt))
-       $ failed
-    Right retCore
-     -> case flatRes of
-          Left err
-            -> return
-             $ counterexample "Flat Avalanche eval failed"
-             $ counterexample (show $ pretty err)
-             $ counterexample (show $ pretty (wtAvalancheFlat wt))
+      fs      = fmap (fmap (, wtFactMode wt)) $ wtEvalFacts ewt
+  case normaliseFacts time fs of
+    Left e ->
+      return $ counterexample "Normalising facts failed"
+             $ counterexample (show e)
              $ failed
-          Right retFlat
-            -> case seaRes of
-                 Left err
-                   -> return
-                    $ counterexample "Sea eval failed"
-                    $ counterexample (show $ pretty err)
-                    $ failed
-                 Right retSea
-                   -> return
-                    $ property
-                    $ retCore === retFlat .&&. retFlat === retSea
+    Right facts -> do
+      let coreRes = P.coreEval time facts q
+                  $ C.renameProgram sourceNameFromTestName
+                  $ wtCore wt
+          flatRes = P.avalancheEval time facts q
+                  $ A.renameProgram sourceNameFromTestName
+                  $ A.eraseAnnotP
+                  $ wtAvalancheFlat wt
+      seaRes     <- runEitherT
+                  $ P.seaEval time facts q
+                  $ A.renameProgram sourceNameFromTestName
+                  $ wtAvalancheFlat wt
+      case coreRes of
+        Left err
+          -> return
+           $ counterexample "Core eval failed"
+           $ counterexample (show $ pretty err)
+           $ counterexample (show $ pretty (wtCore wt))
+           $ failed
+        Right retCore
+         -> case flatRes of
+              Left err
+                -> return
+                 $ counterexample "Flat Avalanche eval failed"
+                 $ counterexample (show $ pretty err)
+                 $ counterexample (show $ pretty (wtAvalancheFlat wt))
+                 $ failed
+              Right retFlat
+                -> case seaRes of
+                     Left err
+                       -> return
+                        $ counterexample "Sea eval failed"
+                        $ counterexample (show $ pretty err)
+                        $ failed
+                     Right retSea
+                       -> return
+                        $ property
+                        $ retCore === retFlat .&&. retFlat === retSea
 
 data EvalWellTyped = EvalWellTyped
   { welltyped        :: WellTyped
-  , wtEvalFacts      :: [D.AsAt D.Fact]
+  , wtEvalFacts      :: [AsAt (Fact Value)]
   , wtEvalDummyQuery :: P.QueryTyped Source.Var
   } deriving (Show)
 
@@ -92,7 +102,7 @@ instance Arbitrary EvalWellTyped where
     wt <- arbitrary
     return $ EvalWellTyped wt (mkFacts wt) (mkDummyQuery wt)
 
-mkFacts :: WellTyped -> [D.AsAt D.Fact]
+mkFacts :: WellTyped -> [AsAt (Fact Value)]
 mkFacts wt
   = catMaybes
   $ List.zipWith (mkAsAt (wtAttribute wt))
@@ -100,8 +110,9 @@ mkFacts wt
                  (wtFacts wt)
   where
     mkAsAt attr ent a
-      = D.AsAt <$> (D.Fact ent attr <$> factFromCoreValue (D.atFact a))
-               <*> pure (D.atTime a)
+      =    D.AsAt
+      <$> (D.Fact ent attr <$> factFromCoreValue (D.atFact a))
+      <*> pure (D.atTime a)
 
 mkDummyQuery :: WellTyped -> P.QueryTyped Source.Var
 mkDummyQuery wt

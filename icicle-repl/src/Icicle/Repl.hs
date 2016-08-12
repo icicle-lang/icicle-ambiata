@@ -207,7 +207,8 @@ handleLine state line = let st = sourceState state in
 
   Just (Repl.CommandLoad fp) -> do
     s  <- liftIO $ T.readFile fp
-    case SourceRepl.readFacts (SourceRepl.dictionary st) s of
+    let now = SourceRepl.currentTime $ sourceState state
+    case SourceRepl.readNormalisedFacts now (SourceRepl.dictionary st) s of
       Left e   ->
         Repl.prettyHL e >> return state
       Right fs -> do
@@ -394,18 +395,18 @@ handleLine state line = let st = sourceState state in
       = Source.optionSmallData
 
     sourceParse
-      = first (ErrorCompileSource . SourceRepl.ErrorCompile)
+      = first (ErrorCompileSource . SourceRepl.SourceErrorCompile)
       . Source.sourceParseQT "repl" (Namespace "namespace-repl")
 
     sourceDesugar
-      = first (ErrorCompileSource . SourceRepl.ErrorCompile)
+      = first (ErrorCompileSource . SourceRepl.SourceErrorCompile)
       . Source.sourceDesugarQT
 
     sourceReify
       = Source.sourceReifyQT
 
     sourceCheck opts d
-      = first (ErrorCompileSource . SourceRepl.ErrorCompile)
+      = first (ErrorCompileSource . SourceRepl.SourceErrorCompile)
       . Source.sourceCheckQT opts d
 
     sourceConvert d
@@ -423,7 +424,7 @@ handleLine state line = let st = sourceState state in
 --------------------------------------------------------------------------------
 
 data ErrorRepl
- = ErrorCompileSource    (SourceRepl.ErrorSource)
+ = ErrorCompileSource    (SourceRepl.SourceError)
  | ErrorCompileCore      (Compiler.ErrorCompile     Source.Var)
  | ErrorCompileAvalanche (Compiler.ErrorCompile     Source.Var)
  | ErrorRuntime          (Sim.SimulateError ()      Source.Var)

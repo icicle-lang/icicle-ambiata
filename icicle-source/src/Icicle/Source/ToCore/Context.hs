@@ -1,6 +1,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Source.ToCore.Context (
     Features (..)
+  , FeatureConcrete (..)
   , FeatureContext (..)
   , FeatureVariable (..)
 
@@ -14,6 +15,8 @@ import                  Icicle.Source.Checker.Base
 import                  Icicle.Common.Base
 import qualified        Icicle.Core as C
 
+import                  Icicle.Data
+
 import                  P
 import qualified        Data.Map as Map
 import                  Data.Hashable (Hashable)
@@ -21,9 +24,16 @@ import                  Data.Hashable (Hashable)
 
 data Features a n
  = Features
- { featuresConcretes :: Map.Map (Name n) (Type n, FeatureContext a n)
+ { featuresConcretes :: Map.Map (Name n) (FeatureConcrete a n)
  , featuresFunctions :: Map.Map (Name n) (FunctionType n)
  , featureNow        :: Maybe (Name n)
+ }
+
+data FeatureConcrete a n
+ = FeatureConcrete
+ { featureConcreteType    :: Type n
+ , featureConcreteMode    :: FactMode
+ , featureConcreteContext :: FeatureContext a n
  }
 
 data FeatureContext a n

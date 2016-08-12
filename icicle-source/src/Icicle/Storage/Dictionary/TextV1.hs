@@ -8,7 +8,7 @@ module Icicle.Storage.Dictionary.TextV1 (
 
 import           Icicle.Data
 import           Icicle.Dictionary.Data
-import           Icicle.Serial (ParseError (..))
+import           Icicle.Serial (SerialError (..))
 import           P hiding (concat, intercalate)
 
 import           Data.Attoparsec.Text
@@ -35,18 +35,18 @@ parseIcicleDictionaryV1
  = DictionaryEntry
  <$> (Attribute <$> field)
  <*   p
- <*> (ConcreteDefinition <$> parseEncoding <*> pure (Set.singleton "NA"))
+ <*> (ConcreteDefinition <$> parseEncoding <*> pure (Set.singleton "NA") <*> pure FactModeEvent)
  -- No namespace in this legacy dictionary
  <*> pure (Namespace "default")
     where
       p = char '|'
 
-parseDictionaryLineV1 :: Text -> Either ParseError DictionaryEntry
+parseDictionaryLineV1 :: Text -> Either SerialError DictionaryEntry
 parseDictionaryLineV1 s =
-  first (ParseError . pack) $ parseOnly parseIcicleDictionaryV1 s
+  first (SerialErrorParse . pack) $ parseOnly parseIcicleDictionaryV1 s
 
 writeDictionaryLineV1 :: DictionaryEntry -> Text
-writeDictionaryLineV1 (DictionaryEntry (Attribute a) (ConcreteDefinition e _) _)
+writeDictionaryLineV1 (DictionaryEntry (Attribute a) (ConcreteDefinition e _ _) _)
   = a <> "|" <> prettyConcrete e
 writeDictionaryLineV1 (DictionaryEntry _ (VirtualDefinition _) _)
   = "Virtual features not supported in V1"

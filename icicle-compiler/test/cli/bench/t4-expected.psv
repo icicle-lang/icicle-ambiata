@@ -1,0 +1,15 @@
+bulbasaur|state_count|2
+bulbasaur|state_newest|{"location":"pallet"}
+bulbasaur|state_newest_time|2016-07-14T00:00:00Z
+bulbasaur|state_newest_windowed|{"location":"pallet"}
+bulbasaur|event_count|1
+bulbasaur|event_newest|{"location":"pallet"}
+bulbasaur|event_newest_time|2014-01-01T00:00:00Z
+charmander|state_count|4
+charmander|state_newest|{"location":"indigo","age":2}
+charmander|state_newest_time|2016-07-14T00:00:00Z
+charmander|state_newest_windowed|{"location":"indigo","age":2}
+charmander|event_count|3
+charmander|event_newest|{"location":"indigo"}
+charmander|event_newest_time|2016-07-01T00:00:00Z
+charmander|event_newest_windowed|{"location":"indigo"}

@@ -43,7 +43,11 @@ fusePrograms a_fresh ln lp rn rp
 
 
 -- | Fuse programs together, assuming they already have no name clashes.
-fuseProgramsDistinctNames :: (Hashable n, Eq n) => a -> Program a n -> Program a n -> Either (FusionError n) (Program a n)
+fuseProgramsDistinctNames :: (Hashable n, Eq n)
+                          => a
+                          -> Program a n
+                          -> Program a n
+                          -> Either (FusionError n) (Program a n)
 fuseProgramsDistinctNames _ lp rp
  | inputType lp /= inputType rp
  = Left
@@ -51,15 +55,16 @@ fuseProgramsDistinctNames _ lp rp
  | otherwise
  = return
  $ Program
- { inputType = inputType lp
- , factValName = factValName lp
- , factIdName= factIdName lp
+ { inputType    = inputType lp
+ , inputMode    = inputMode lp
+ , factValName  = factValName lp
+ , factIdName   = factIdName lp
  , factTimeName = factTimeName lp
  , snaptimeName = snaptimeName lp
- , precomps  = precomps  lp <> substSnds (precomps  rp)
- , streams   = streams   lp <> substStms (streams   rp)
- , postcomps = postcomps lp <> substSnds (postcomps rp)
- , returns   = returns   lp <> substSnds (returns   rp)
+ , precomps     = precomps  lp <> substSnds (precomps  rp)
+ , streams      = streams   lp <> substStms (streams   rp)
+ , postcomps    = postcomps lp <> substSnds (postcomps rp)
+ , returns      = returns   lp <> substSnds (returns   rp)
  }
  where
   substSnds = unsafeSubstSnds    inpsubst
