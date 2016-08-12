@@ -279,6 +279,7 @@ static ierror_loc_t psv_read_buffer (psv_state_t *s, const size_t facts_limit)
             s->entity_cur      = entity_cur;
             s->entity_cur_size = entity_cur_size;
             s->input_remaining = bytes_remaining;
+            psv_add_end_states (s->fleet);
             return 0;
         }
 

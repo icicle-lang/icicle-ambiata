@@ -21,7 +21,7 @@ ok, loaded test/cli/repl/data.psv, 13 rows
                                     \_____________)
 > > ok, time set to 2016-07-14
 > > -- Fact mode event
-> > ok, loaded dictionary with 4 features and 38 functions
+> > ok, loaded dictionary with 1 features and 38 functions
 > > ok, loaded test/cli/repl/t51-modes/pokemon.psv, 4 rows
 > > - C evaluation:
 [bulbasaur, [(age,tombstone)
@@ -45,8 +45,22 @@ ok, loaded test/cli/repl/data.psv, 13 rows
 ,charmander, [(age,tombstone)
              ,(location,"indigo")]]
 
+> > - C evaluation:
+[bulbasaur, 1,charmander, 3]
+
+- Core evaluation:
+[bulbasaur, 1,charmander, 3]
+
+> > - C evaluation:
+[bulbasaur, 2014-01-01
+,charmander, 2016-07-01]
+
+- Core evaluation:
+[bulbasaur, 2014-01-01
+,charmander, 2016-07-01]
+
 > > -- Fact mode sparse state
-> > ok, loaded dictionary with 3 features and 38 functions
+> > ok, loaded dictionary with 1 features and 38 functions
 > > ok, loaded test/cli/repl/t51-modes/pokemon.psv, 6 rows
 > > - C evaluation:
 [bulbasaur, [(age,tombstone)
@@ -71,5 +85,19 @@ ok, loaded test/cli/repl/data.psv, 13 rows
             ,(location,"pallet")]
 ,charmander, [(age,2)
              ,(location,"indigo")]]
+
+> > - C evaluation:
+[bulbasaur, 2,charmander, 4]
+
+- Core evaluation:
+[bulbasaur, 2,charmander, 4]
+
+> > - C evaluation:
+[bulbasaur, 2016-07-14
+,charmander, 2016-07-14]
+
+- Core evaluation:
+[bulbasaur, 2016-07-14
+,charmander, 2016-07-14]
 
 > 

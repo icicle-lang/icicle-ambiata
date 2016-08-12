@@ -17,7 +17,7 @@ import qualified Data.List as List
 
 import           Icicle.Common.Type (ValType(..))
 
-import           Icicle.Data (Time)
+import           Icicle.Data (Time, FactMode (..))
 
 import           Icicle.Internal.Pretty
 
@@ -271,6 +271,7 @@ seaOfConfigureFleet mode states
  , "    fleet->chord_count = chord_count;"
  , "    fleet->chord_times = chord_times;"
  , ""
+ , "    imempool_t *mempool = fleet->mempool;"
  , indent 4 (vsep (fmap defOfState states))
  , ""
  , "    for (iint_t ix = 0; ix < chord_count; ix++) {"
@@ -291,9 +292,10 @@ defOfState state
        var    = "p" <> pretty (stateName state)
        member = "fleet->" <> pretty (nameOfProgram state)
    in vsep [ stype <+> "*" <> var <+> "=" <+> member <> ";"
-           , pretty (stateStateTypeName state) <+> "*fact_state = &(" <> var <> "->fact_state);"
-           , "imempool_t *mempool = fleet->mempool;"
-           , initOfFactStateStruct state
+           , pretty (stateStateTypeName state) <+> "*" <> var <> "_fact_state = &(" <> var <> "->fact_state);"
+           , if stateInputMode state == FactModeStateSparse
+             then initOfFactStateStruct var state
+             else mempty
            ]
 
 defOfLastTime :: SeaProgramState -> Doc

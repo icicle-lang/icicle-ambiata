@@ -251,7 +251,9 @@ seaOfAddEndStates states = vsep
       = mempty
 
 seaOfAddEndState :: SeaProgramState -> Base.CheckedInput -> Doc
-seaOfAddEndState state input = vsep
+seaOfAddEndState state input
+  | stateInputMode state == FactModeStateSparse
+  = vsep
   [ "#line 1 \"add end state for fact" <+> seaOfStateInfo state <> "\""
   , "static ierror_loc_t INLINE"
       <+> pretty (nameOfAddEndState state) <+> "("
@@ -265,13 +267,13 @@ seaOfAddEndState state input = vsep
   , "    program->input." <> pretty time <> "[new_count] = time;"
   , ""
   , "    new_count++;"
-  , ""
   , "    program->input.new_count = new_count;"
   , ""
   , "    return 0; /* no error */"
   , "}"
   , ""
   ]
+  | otherwise = mempty
   where
     err  = Base.inputSumError input
     time = Base.inputTime     input

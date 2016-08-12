@@ -8,8 +8,33 @@ tombstone = """NA"""
   mode = "sparse_state"
   encoding="(age:int*,location:string*)"
 
-[feature.foo]
+[fact.pokemon_event]
+  mode = "event"
+  encoding="(age:int*,location:string*)"
+
+
+[feature.state_newest]
   expression="feature pokemon ~> newest fields"
 
-[feature.bar]
+[feature.state_newest_windowed]
   expression="feature pokemon ~> windowed 2 weeks ~> newest fields"
+
+[feature.state_count]
+  expression="feature pokemon ~> count fields"
+
+[feature.state_newest_time]
+  expression="feature pokemon ~> newest time"
+
+
+[feature.event_newest]
+  expression="feature pokemon_event ~> newest fields"
+
+[feature.event_newest_windowed]
+  expression="feature pokemon_event ~> windowed 2 weeks ~> newest fields"
+
+[feature.event_count]
+  expression="feature pokemon_event ~> count fields"
+
+[feature.event_newest_time]
+  expression="feature pokemon_event ~> newest time"
+

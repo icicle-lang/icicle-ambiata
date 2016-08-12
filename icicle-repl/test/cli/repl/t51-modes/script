@@ -13,6 +13,10 @@ feature pokemon ~> newest fields
 
 feature pokemon ~> windowed 4 weeks ~> newest fields
 
+feature pokemon ~> count fields
+
+feature pokemon ~> newest time
+
 -- Fact mode sparse state
 
 :dictionary test/cli/repl/t51-modes/pokemon_sparse_state.toml
@@ -22,3 +26,7 @@ feature pokemon ~> windowed 4 weeks ~> newest fields
 feature pokemon ~> newest fields
 
 feature pokemon ~> windowed 4 weeks ~> newest fields
+
+feature pokemon ~> count fields
+
+feature pokemon ~> newest time

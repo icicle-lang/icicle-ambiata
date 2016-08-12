@@ -189,13 +189,13 @@ defOfFactStateField :: (Text, ValType) -> Doc
 defOfFactStateField (name, ty)
   = defOfVar_ 0 (seaOfValType ty) (pretty (newPrefix <> name <> ";"))
 
-initOfFactStateStruct :: SeaProgramState -> Doc
-initOfFactStateStruct state
-  = vsep (fmap initOfFactStateField (stateInputVars state))
+initOfFactStateStruct :: Doc -> SeaProgramState -> Doc
+initOfFactStateStruct var state
+  = vsep (fmap (initOfFactStateField var) (stateInputVars state))
 
-initOfFactStateField :: (Text, ValType) -> Doc
-initOfFactStateField (name, ty)
-  = "fact_state->" <> pretty (newPrefix <> name) <> " = " <> seaOfXValue (defaultOfType ty) ty <> ";"
+initOfFactStateField :: Doc -> (Text, ValType) -> Doc
+initOfFactStateField var (name, ty)
+  = var <> "_fact_state->" <> pretty (newPrefix <> name) <> " = " <> seaOfXValue (defaultOfType ty) ty <> ";"
 
 ------------------------------------------------------------------------
 
