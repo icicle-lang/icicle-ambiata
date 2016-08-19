@@ -35,7 +35,7 @@ parseIcicleDictionaryV1
  = DictionaryEntry
  <$> (Attribute <$> field)
  <*   p
- <*> (ConcreteDefinition <$> parseEncoding <*> pure (Set.singleton "NA"))
+ <*> (ConcreteDefinition <$> parseEncoding <*> pure (Set.singleton "NA") <*> pure unkeyed)
  -- No namespace in this legacy dictionary
  <*> pure (Namespace "default")
     where
@@ -46,7 +46,7 @@ parseDictionaryLineV1 s =
   first (ParseError . pack) $ parseOnly parseIcicleDictionaryV1 s
 
 writeDictionaryLineV1 :: DictionaryEntry -> Text
-writeDictionaryLineV1 (DictionaryEntry (Attribute a) (ConcreteDefinition e _) _)
+writeDictionaryLineV1 (DictionaryEntry (Attribute a) (ConcreteDefinition e _ _) _)
   = a <> "|" <> prettyConcrete e
 writeDictionaryLineV1 (DictionaryEntry _ (VirtualDefinition _) _)
   = "Virtual features not supported in V1"

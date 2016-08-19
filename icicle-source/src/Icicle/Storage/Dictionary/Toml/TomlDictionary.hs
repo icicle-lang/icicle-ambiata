@@ -2,12 +2,12 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Icicle.Storage.Dictionary.Toml.TomlDictionary
-  (
-    tomlDict
+  ( tomlDict
   , DictionaryConfig (..)
   , DictionaryEntry' (..)
   , Definition' (..)
   , Virtual' (..)
+  , ConcreteKey' (..)
   , DictionaryValidationError (..)
   , toEither
   ) where
@@ -31,6 +31,7 @@ import           Icicle.Data
 import           Icicle.Source.Lexer.Token
 import           Icicle.Source.Lexer.Lexer
 import           Icicle.Source.Parser.Parser
+import qualified Icicle.Source.Parser.Parser as Source
 import           Icicle.Source.Query
 
 import           Icicle.Storage.Encoding
@@ -73,13 +74,17 @@ data DictionaryEntry' =
 type Tombstone = Text
 
 data Definition' =
-    ConcreteDefinition' Encoding (Maybe Tombstone)
+    ConcreteDefinition' Encoding (Maybe Tombstone) ConcreteKey'
   | VirtualDefinition'  Virtual'
   deriving (Eq, Show)
 
 -- A parsed, but still to be typechecked source program.
 newtype Virtual' = Virtual' {
     unVirtual' :: QueryTop Pos.SourcePos Variable
+  } deriving (Eq, Show)
+
+newtype ConcreteKey' = ConcreteKey' {
+    concreteKey :: Maybe (Exp Pos.SourcePos Variable)
   } deriving (Eq, Show)
 
 
@@ -203,13 +208,35 @@ validateFact conf name x =
         =   (<|> tombstone conf)
         <$> (validateText "tombstone") `traverse` (x ^? key "tombstone")
 
+      -- Refutation key can be any expression.
+      key'
+        =   ConcreteKey'
+        <$> ((<|> Nothing)
+        <$> (validateExpression (fname <> ".key")) `traverse` (x ^? key "key"))
+
       -- Todo: ensure that there's no extra data lying around. All valid TOML should be used.
   in DictionaryEntry'
        <$> pure (Attribute name)
        <*> (   ConcreteDefinition'
            <$> encoding
-           <*> tombstone' )
+           <*> tombstone'
+           <*> key' )
        <*> namespace'
+
+
+validateExpression :: Text
+                   -> (Node, SourcePos)
+                   -> AccValidation [DictionaryValidationError] (Exp SourcePos Variable)
+validateExpression fname expression = fromEither $ do
+   expression' <- maybeToRight [BadType fname "string" (expression ^. _2)]
+                $ expression ^? _1 . _NTValue . _VString
+
+   let toks     = lexerPositions expression'
+   e           <- first (pure . ParseError)
+                $ runParser Source.exp () "" toks
+
+   pure e
+
 
 -- | Validate a TOML node is a feature.
 --   e.g.

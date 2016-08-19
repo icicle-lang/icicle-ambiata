@@ -1,11 +1,15 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE PatternGuards #-}
+{-# LANGUAGE PatternGuards     #-}
+{-# LANGUAGE FlexibleInstances #-}
 module Icicle.Dictionary.Data (
     Dictionary (..)
   , DictionaryEntry (..)
   , Definition (..)
   , Virtual (..)
+  , ConcreteKey (..)
+  , AnnotSource
+  , unkeyed
   , getVirtualFeatures
   , featureMapOfDictionary
   , parseFact
@@ -21,10 +25,11 @@ import qualified Icicle.Core                        as X
 import           Icicle.Common.Base
 import           Icicle.Common.Type (ValType(..), StructType(..))
 
-import           Icicle.Source.Query
+import           Icicle.Source.Query (Function (..), QueryTop (..))
+import qualified Icicle.Source.Query                as SQ
 import           Icicle.Source.Lexer.Token
 import qualified Icicle.Source.Type                 as ST
-
+import           Icicle.Source.ToCore.Context (FeatureVariable (..)) 
 import qualified Icicle.Source.ToCore.Context       as STC
 
 import           Text.Parsec.Pos ()
@@ -33,6 +38,7 @@ import           Icicle.Encoding
 
 import           Icicle.Internal.Pretty
 
+import           Data.Map (Map)
 import qualified Data.Map                           as Map
 import qualified Data.Set                           as Set
 import           Data.String
@@ -49,20 +55,35 @@ data Dictionary =
   deriving (Eq, Show)
 
 data DictionaryEntry =
-  DictionaryEntry Attribute Definition Namespace
+  DictionaryEntry
+  { dictionaryEntryAttribute  :: Attribute
+  , dictionaryEntryDefinition :: Definition
+  , dictionaryEntryNamespace  :: Namespace }
   deriving (Eq, Show)
 
 data Definition =
-    ConcreteDefinition Encoding Tombstones
+    ConcreteDefinition Encoding Tombstones (ConcreteKey AnnotSource Variable)
   | VirtualDefinition  Virtual
   deriving (Eq, Show)
 
 type Tombstones = Set.Set Text
 
--- A parsed and typechecked source program.
+-- | A parsed and typechecked source program.
 newtype Virtual = Virtual {
     unVirtual :: QueryTop (ST.Annot SourcePos Variable) Variable
   } deriving (Eq, Show)
+
+-- | The query is keyed by this "virtual key". Facts (for one entity) are nubbed by this key.
+newtype ConcreteKey a n = ConcreteKey {
+    concreteKey :: Maybe (SQ.Exp a n)
+  } deriving (Eq, Show)
+
+type AnnotSource = ST.Annot SourcePos Variable
+
+unkeyed :: ConcreteKey AnnotSource Variable
+unkeyed = ConcreteKey Nothing
+
+--------------------------------------------------------------------------------
 
 -- | Get all virtual features from dictionary
 getVirtualFeatures :: Dictionary -> [(Attribute, Virtual)]
@@ -80,7 +101,7 @@ parseFact (Dictionary { dictionaryEntries = dict }) fact'
                  (DecodeErrorNotInDictionary attr)
                  (P.find (\(DictionaryEntry attr' _ _) -> (==) attr attr') dict)
         case def of
-         DictionaryEntry _ (ConcreteDefinition enc ts) _
+         DictionaryEntry _ (ConcreteDefinition enc ts _) _
           -> factOf <$> parseValue enc ts (factValue' fact')
          DictionaryEntry _ (VirtualDefinition _) _
           -> Left (DecodeErrorValueForVirtual attr)
@@ -95,22 +116,31 @@ parseFact (Dictionary { dictionaryEntries = dict }) fact'
     , factValue     = v
     }
 
-featureMapOfDictionary :: Dictionary -> STC.Features () Variable
+-- | Get all the features and facts from a dictionary.
+--
+featureMapOfDictionary :: Dictionary -> STC.Features () Variable (ConcreteKey AnnotSource Variable)
 featureMapOfDictionary (Dictionary { dictionaryEntries = ds, dictionaryFunctions = functions })
  = STC.Features
- (Map.fromList $ concatMap mkFeatureContext ds)
- (Map.fromList $ fmap (\(a,(b,_)) -> (a,b)) functions)
- (Just $ var "now")
+     (Map.fromList $ concatMap mkFeatureContext ds)
+     (Map.fromList $ fmap (\(a,(b,_)) -> (a,b)) functions)
+     (Just $ var "now")
  where
 
-  mkFeatureContext d
-   = let mm              = go d
-         context (k,t,m) = (k, (t, STC.FeatureContext m (var "time")))
-     in  fmap context mm
+  mkFeatureContext
+   = let context (attr, key, ty, vars)
+           = (attr, STC.FeatureConcrete key ty (STC.FeatureContext vars (var "time")))
+     in  fmap context . go
 
-  go (DictionaryEntry (Attribute attr) (ConcreteDefinition enc _) _)
+  -- If a dictionary entry is a concrete definition, create a feature context with
+  -- implicit names such as `now`, `value`, struct field names, etc.
+  go :: DictionaryEntry -> [( Name Variable
+                            , ConcreteKey AnnotSource Variable
+                            , ST.Type Variable
+                            , Map (Name Variable) (FeatureVariable () Variable))]
+  go (DictionaryEntry (Attribute attr) (ConcreteDefinition enc _ key) _)
    | en@(StructT st@(StructType fs)) <- sourceTypeOfEncoding enc
    = [ ( var attr
+       , key
        , baseType     $  sumT en
        , Map.fromList $  exps "fields" en
                       <> concatMap (go' Nothing st) (Map.toList fs)
@@ -120,6 +150,7 @@ featureMapOfDictionary (Dictionary { dictionaryEntries = ds, dictionaryFunctions
    | otherwise
    = let e' = sourceTypeOfEncoding enc
      in [ ( var attr
+          , key
           , baseType $ sumT e'
           , Map.fromList $ exps "value" e' ) ]
 
@@ -151,6 +182,7 @@ featureMapOfDictionary (Dictionary { dictionaryEntries = ds, dictionaryFunctions
 
   xget f t fs
    = X.XPrim () (X.PrimMinimal $ X.PrimStruct $ X.PrimStructGet f t fs)
+
   xgetsum hasTime f t fs x
    = let e'     = StructT fs
          nVal   = var "_val"
@@ -172,19 +204,26 @@ featureMapOfDictionary (Dictionary { dictionaryEntries = ds, dictionaryFunctions
    = X.XApp () (X.XPrim () (X.PrimMinimal $ X.PrimRelation X.PrimRelationEq $ SumT ErrorT t1))
                (X.XValue () (SumT ErrorT t1) (VLeft $ VError ExceptTombstone))
 
-  xapp = X.XApp ()
+  xapp
+   = X.XApp ()
 
+  exps :: Text -> ValType -> [(Name Variable, FeatureVariable () n)]
   exps str e'
    = [ (var str, STC.FeatureVariable (baseType e') (X.XApp () (xfst (sumT e') TimeT)) True)
      , time_as_snd e'
      , true_when_tombstone e' ]
+
+  time_as_snd :: ValType -> (Name Variable, FeatureVariable () n)
   time_as_snd e'
    = ( var "time"
      , STC.FeatureVariable (baseType TimeT) (X.XApp () (xsnd (sumT e') TimeT)) False)
+
+  true_when_tombstone :: ValType -> (Name Variable, FeatureVariable () n)
   true_when_tombstone e'
-   = (var "tombstone"
+   = ( var "tombstone"
      , STC.FeatureVariable (baseType BoolT) (X.XApp () (xtomb e') . X.XApp () (xfst (sumT e') TimeT)) False)
 
+  var :: Text -> Name Variable
   var = nameOf . NameBase . Variable
 
 prettyDictionarySummary :: Dictionary -> Doc
@@ -192,13 +231,13 @@ prettyDictionarySummary dict
  = "Dictionary" <> line
  <> indent 2
  (  "Functions" <> line
- <> indent 2 (vcat $ (pprInbuilt <$> listOfBuiltinFuns) <> (pprFun <$> dictionaryFunctions dict))
+ <> indent 2 (vcat $ (pprInbuilt <$> SQ.listOfBuiltinFuns) <> (pprFun <$> dictionaryFunctions dict))
  <> line
  <> "Features" <> line
  <> indent 2 (vcat $ fmap pprEntry $ dictionaryEntries dict))
  where
-  pprEntry (DictionaryEntry attr (ConcreteDefinition enc _) _)
-   = padDoc 20 (pretty attr) <> " : " <> pretty enc
+  pprEntry (DictionaryEntry attr (ConcreteDefinition enc _ key) _)
+   = padDoc 20 (pretty attr) <> "by " <> pretty key <> " : " <> pretty enc
   pprEntry (DictionaryEntry attr (VirtualDefinition virt) _)
    = padDoc 20 (pretty attr) <> " = " <> indent 0 (pretty virt)
 
@@ -212,8 +251,8 @@ prettyDictionarySummary dict
    = ST.prettyFunWithLetters
    . snd
    . flip Fresh.runFresh freshNamer
-   . primLookup'
-   . Fun
+   . SQ.primLookup'
+   . SQ.Fun
      where
        freshNamer
         = Fresh.counterPrefixNameState (fromString . show) "inbuilt"
@@ -221,3 +260,6 @@ prettyDictionarySummary dict
 instance Pretty Virtual where
  pretty = pretty . unVirtual
 
+instance Pretty (ConcreteKey AnnotSource Variable) where
+ pretty (ConcreteKey Nothing)  = ""
+ pretty (ConcreteKey (Just x)) = "(" <> pretty x <> ")"

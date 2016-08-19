@@ -19,20 +19,20 @@ import           Test.QuickCheck
 prop_convert_ok :: QueryWithFeature -> Property
 prop_convert_ok qwf
  = counterexample (qwfPretty qwf)
- $ case qwfCheck qwf of
-    Left _
-     -> property Discard
-    Right qt'
-     -> let conv = qwfConvertToCore qwf qt'
+ $ case (qwfCheck qwf, qwfCheckKey qwf) of
+    (Right qt', Right k')
+     -> let conv = qwfConvertToCore qwf k' qt'
         in  counterexample (show conv) $ isRight conv
+    _
+     -> property Discard
 
 
 prop_convert_is_well_typed :: QueryWithFeature -> Property
 prop_convert_is_well_typed qwf
  = counterexample (qwfPretty qwf)
- $ case qwfCheck qwf of
-    Right qt'
-     | Right c' <- qwfConvertToCore qwf qt'
+ $ case (qwfCheck qwf, qwfCheckKey qwf) of
+    (Right qt', Right k')
+     | Right c' <- qwfConvertToCore qwf k' qt'
      , check    <- CCheck.checkProgram c'
      -> counterexample (show $ pretty c')
       $ counterexample (show check)

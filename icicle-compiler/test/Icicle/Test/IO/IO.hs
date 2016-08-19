@@ -66,10 +66,11 @@ instance Arbitrary Dictionary where
   = Dictionary <$> (nubBy ((==) `on` getAttr) <$> arbitrary) <*> pure []
 
 instance Arbitrary DictionaryEntry where
+ -- if we are not generating virtual definitions here, fact keys don't matter
  arbitrary
   =   DictionaryEntry
   <$> arbitrary
-  <*> (ConcreteDefinition <$> arbitrary <*> (Set.singleton <$> elements viruses))
+  <*> (ConcreteDefinition <$> arbitrary <*> (Set.singleton <$> elements viruses) <*> (pure unkeyed))
   <*> (Namespace <$> elements simpsons)
 
 instance Show a => Testable (Either a Property) where

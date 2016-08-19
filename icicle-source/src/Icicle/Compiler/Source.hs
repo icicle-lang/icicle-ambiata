@@ -14,6 +14,7 @@ module Icicle.Compiler.Source
 
   , QueryUntyped
   , QueryTyped
+
   , CoreProgramUntyped
 
   , Funs
@@ -54,7 +55,7 @@ import qualified Icicle.Common.Fresh                      as Fresh
 
 import qualified Icicle.Core.Program.Program              as Core
 
-import           Icicle.Dictionary                        (Dictionary)
+import           Icicle.Dictionary                        (Dictionary, DictionaryEntry(..))
 import qualified Icicle.Dictionary                        as Dict
 
 import           Icicle.Internal.Pretty
@@ -170,9 +171,13 @@ queryOfSource checkOpts dict name src namespace = do
   (checked, _) <- sourceCheckQT checkOpts dict desugared
   pure (Attribute name, checked)
 
-entryOfQuery :: Attribute -> (QueryTyped Var) -> Text -> Dict.DictionaryEntry
+entryOfQuery :: Attribute
+             -> QueryTyped Var
+             -> Text
+             -> DictionaryEntry
 entryOfQuery attr query nsp
-  = Dict.DictionaryEntry attr (Dict.VirtualDefinition (Dict.Virtual query)) (Namespace nsp)
+  = Dict.DictionaryEntry attr
+      (Dict.VirtualDefinition (Dict.Virtual query)) (Namespace nsp)
 
 -- * source
 

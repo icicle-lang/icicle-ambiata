@@ -88,9 +88,8 @@ data Keyword =
  | Year_Of
 
  -- Syntax
- | Case
+ -- queries
  | Distinct
- | End
  | Feature
  | Filter
  | Fold
@@ -98,6 +97,10 @@ data Keyword =
  | Group
  | Latest
  | Let
+ -- expressions
+ | Case
+ | End
+ | By
 
  -- Builtin
  -- math
