@@ -224,8 +224,9 @@ checkKey checkOpts d attr nsp xx = do
                    (SQ.Prim p (SQ.Lit (SQ.LitInt 0))))
 
   (checked, _)  <- first DictionaryErrorCompilation $ do
-    _ <- P.sourceDesugarQT q
-    P.sourceCheckQT checkOpts d q
+    q'       <- P.sourceDesugarQT q
+    (q'', t) <- P.sourceCheckQT checkOpts d q'
+    return (P.sourceReifyQT q'', t)
 
   case contexts . query $ checked of
     SQ.Distinct _ xx' : _

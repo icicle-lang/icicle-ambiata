@@ -629,7 +629,7 @@ convertKey env (ConcreteKey (Just k)) (core, ret) = do
 
   -- Synthesise a type for the key expression.
   t'k       <- lift . lift
-             . first  (ConvertErrorCannotCheckKey (annAnnot (annotOfExp k)))
+             . first  (ConvertErrorCannotCheckKey (annAnnot (annotOfExp k)) k')
              . second (T.functionReturns)
              $ CE.typeExp C.coreFragmentWorkerFun env k'
   let t'key  = T.OptionT t'k

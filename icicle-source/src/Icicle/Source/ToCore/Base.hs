@@ -130,7 +130,7 @@ data ConvertError a n
  | ConvertErrorBadCaseNoDefault              a (Exp (Annot a n) n)
  | ConvertErrorBadCaseNestedConstructors     a (Exp (Annot a n) n)
  | ConvertErrorImpossibleFold1               a
- | ConvertErrorCannotCheckKey                a (X.ExpError () n C.Prim)
+ | ConvertErrorCannotCheckKey                a (X.Exp () n C.Prim) (X.ExpError () n C.Prim)
  deriving (Show, Eq, Ord)
 
 annotOfError :: ConvertError a n -> Maybe a
@@ -164,7 +164,7 @@ annotOfError e
      -> Just a
     ConvertErrorImpossibleFold1 a
      -> Just a
-    ConvertErrorCannotCheckKey a _
+    ConvertErrorCannotCheckKey a _ _
      -> Just a
 
 
@@ -343,7 +343,7 @@ instance (Pretty a, Pretty n) => Pretty (ConvertError a n) where
       -> pretty a <> ": case has nested constructors in pattern; these should be removed by an earlier pass: " <> pretty x
      ConvertErrorImpossibleFold1 a
       -> pretty a <> ": fold1 cannot be converted; desugar first"
-     ConvertErrorCannotCheckKey a x
-      -> pretty a <> ": cannot check type of converted key expression: " <> pretty x
+     ConvertErrorCannotCheckKey a x r
+      -> pretty a <> ": cannot check type of converted key expression: " <> line <> pretty x <> line <> pretty r
 
 
