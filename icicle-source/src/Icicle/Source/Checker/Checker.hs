@@ -14,6 +14,9 @@ import                  Icicle.Source.Checker.Resumable
 import                  Icicle.Source.ToCore.Context
 import                  Icicle.Source.Query
 import                  Icicle.Source.Type
+import                  Icicle.Source.Lexer.Token
+
+import                  Icicle.Dictionary.Data
 
 import qualified        Icicle.Common.Fresh     as Fresh
 
@@ -32,12 +35,12 @@ type Result r a n = EitherT (CheckError a n) (Fresh.Fresh n) (r, Type n)
 -- | Check a top-level Query, returning the query with type annotations and casts inserted.
 checkQT :: (Hashable n, Eq n)
         => CheckOptions
-        -> Features () n
+        -> Features () n (ConcreteKey ann Variable)
         -> QueryTop a n
         -> Result (QueryTop (Annot a n) n) a n
 checkQT opts features qt
- = case Map.lookup (feature qt) (featuresConcretes features) of
-    Just (_,f)
+  = case Map.lookup (feature qt) (featuresConcretes features) of
+    Just (FeatureConcrete _ _ f)
      -> do  let env = Map.unions
                       [ fmap function0 (envOfFeatureContext f)
                       , featuresFunctions features
@@ -53,7 +56,7 @@ checkQT opts features qt
  where
   suggestionForFeatures
    = AvailableFeatures (feature qt)
-   $ fmap (\(k,(t,_)) -> (k, t))
+   $ fmap (\(k, FeatureConcrete _ t _) -> (k, t))
    $ Map.toList
    $ featuresConcretes features
 

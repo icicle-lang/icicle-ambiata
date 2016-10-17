@@ -1,8 +1,8 @@
 -- | Generate type constraints
-{-# LANGUAGE PatternGuards #-}
+{-# LANGUAGE DoAndIfThenElse   #-}
 {-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE TupleSections #-}
-{-# LANGUAGE DoAndIfThenElse #-}
+{-# LANGUAGE PatternGuards     #-}
+{-# LANGUAGE TupleSections     #-}
 module Icicle.Source.Checker.Constraint (
     constraintsQ
   , generateQ
@@ -10,24 +10,24 @@ module Icicle.Source.Checker.Constraint (
   , defaults
   ) where
 
-import                  Icicle.Source.Checker.Base
-import                  Icicle.Source.Checker.Error
-import                  Icicle.Source.Checker.Prim
+import           Icicle.Source.Checker.Base
+import           Icicle.Source.Checker.Error
+import           Icicle.Source.Checker.Prim
 
-import                  Icicle.Source.Query
-import                  Icicle.Source.Type
+import           Icicle.Source.Query
+import           Icicle.Source.Type
 
-import                  Icicle.Common.Base
-import qualified        Icicle.Common.Fresh     as Fresh
+import           Icicle.Common.Base
+import qualified Icicle.Common.Fresh          as Fresh
 
-import                  P
+import           P
 
-import                  Data.List (zip,unzip,unzip3)
-import                  Data.Hashable (Hashable)
-import qualified        Data.Map                as Map
-import qualified        Data.Set                as Set
+import           Data.Hashable                (Hashable)
+import           Data.List                    (unzip, unzip3, zip)
+import qualified Data.Map                     as Map
+import qualified Data.Set                     as Set
 
-import                  X.Control.Monad.Trans.Either
+import           X.Control.Monad.Trans.Either
 
 
 
@@ -124,7 +124,7 @@ defaults topq
            App _ p q -> fa <> freeOfAllX p <> freeOfAllX q
            Prim{} -> fa
            Case _ s pats
-            ->  fa <> freeOfAllX s <> 
+            ->  fa <> freeOfAllX s <>
                (Set.unions $ fmap (freeOfAllX . snd) pats)
 
 
@@ -430,7 +430,7 @@ generateQ qq@(Query (c:_) _) env
     -- an Aggregate itself.
     --
     -- The constraint "let't = ReturnOfLetTemporalities def't body't" is used for this.
-    -- 
+    --
     -- >   let n = ( |- def't def'p def'd )
     -- >    ~> ( n : def't def'p def'd |- body't body'p body'd )
     -- > : (ReturnOfLetTemporalities def't body't) body'p body'd

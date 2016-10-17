@@ -202,10 +202,10 @@ sourceConvert d q
  = second snd
  $ first ErrorConvert conv
  where
-  d'        = Dict.featureMapOfDictionary d
-  conv      = Fresh.runFreshT
-                (ToCore.convertQueryTop d' q)
-                (freshNamer "conv")
+  convDict = Dict.featureMapOfDictionary d
+  conv     = Fresh.runFreshT
+              (ToCore.convertQueryTop convDict q)
+              (freshNamer "conv")
 
 ----------------------------------------
 -- * core

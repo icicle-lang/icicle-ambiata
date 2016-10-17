@@ -1,8 +1,9 @@
-{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TupleSections #-}
+{-# LANGUAGE TemplateHaskell   #-}
+{-# LANGUAGE TupleSections     #-}
+{-# LANGUAGE PatternGuards     #-}
 
 module Icicle.Storage.Dictionary.Toml (
     DictionaryImportError (..)
@@ -13,15 +14,16 @@ module Icicle.Storage.Dictionary.Toml (
 
 import           Icicle.Common.Base
 
-import           Icicle.Data                                   (Attribute, Namespace(..))
+import           Icicle.Data                                   (Attribute(..), Namespace(..))
 import           Icicle.Dictionary.Data
 
 import           Icicle.Internal.Pretty                        hiding ((</>))
 
 import qualified Icicle.Compiler.Source                        as P
 
-import qualified Icicle.Source.Checker                         as SC
+import           Icicle.Source.Checker                         (CheckOptions (..))
 import qualified Icicle.Source.Parser                          as SP
+import           Icicle.Source.Query                           (QueryTop (..), Query (..), Exp)
 import qualified Icicle.Source.Query                           as SQ
 import qualified Icicle.Source.Type                            as ST
 
@@ -42,7 +44,9 @@ import qualified Data.Text                                     as T
 import qualified Data.Text.Encoding                            as T
 import qualified Data.Text.IO                                  as T
 
+import           Text.Parsec                                   (SourcePos)
 import qualified Text.Parsec                                   as Parsec
+import qualified Text.Parsec.Pos                               as Parsec
 
 import           P
 
@@ -55,6 +59,7 @@ data DictionaryImportError
   | DictionaryErrorCompilation (P.ErrorSource P.Var)
   | DictionaryErrorParse       [DictionaryValidationError]
   | DictionaryErrorDense       DictionaryDenseError
+  | DictionaryErrorImpossible
   deriving (Show)
 
 type Funs a  = [((a, Name SP.Variable), SQ.Function a SP.Variable)]
@@ -66,12 +71,12 @@ data ImplicitPrelude = ImplicitPrelude | NoImplicitPrelude
   deriving (Eq, Ord, Show)
 
 -- Top level IO function which loads all dictionaries and imports
-loadDictionary :: SC.CheckOptions -> ImplicitPrelude -> FilePath -> EitherT DictionaryImportError IO Dictionary
+loadDictionary :: CheckOptions -> ImplicitPrelude -> FilePath -> EitherT DictionaryImportError IO Dictionary
 loadDictionary checkOpts impPrelude dictionary
  = loadDictionary' checkOpts impPrelude [] mempty [] dictionary
 
 loadDenseDictionary
-  :: SC.CheckOptions
+  :: CheckOptions
   -> ImplicitPrelude
   -> FilePath
   -> Maybe PsvInputDenseFeedName
@@ -83,7 +88,7 @@ loadDenseDictionary checkOpts impPrelude dictionary feed
        return (d, dd)
 
 loadDictionary'
-  :: SC.CheckOptions
+  :: CheckOptions
   -> ImplicitPrelude
   -> FunEnvT
   -> DictionaryConfig
@@ -105,12 +110,24 @@ loadDictionary' checkOpts impPrelude parentFuncs parentConf parentConcrete dictP
   -- Functions available for virtual features, and visible in sub-dictionaries.
   let availableFunctions = parentFuncs <> importedFunctions
 
-  let concreteDefinitions = foldr remakeConcrete [] definitions'
-  let virtualDefinitions' = foldr remakeVirtuals [] definitions'
+  -- Do a convoluted dance to construct the concrete definitions without the keys
+  -- so that we can check the keys before making the actual concrete definitions.
+  let virtualDefinitions'  = foldr remakeVirtuals [] definitions'
+  let concreteDefinitions' = foldr remakeConcrete [] definitions'
+  let dictUnchecked        = Dictionary (fmap snd concreteDefinitions' <> parentConcrete) availableFunctions
 
-  let d' = Dictionary (concreteDefinitions <> parentConcrete) availableFunctions
-
-  virtualDefinitions <- checkDefs checkOpts d' virtualDefinitions'
+  virtualDefinitions  <- checkDefs checkOpts dictUnchecked virtualDefinitions'
+  concreteDefinitions <- hoistEither
+                       $ forM concreteDefinitions'
+                       $ \(ConcreteKey' k, e@(DictionaryEntry a def n)) -> case k of
+                           Nothing
+                            -> pure e
+                           Just key
+                            | ConcreteDefinition en ts _ <- def
+                            -> do k' <- checkKey checkOpts dictUnchecked a n key
+                                  pure $ DictionaryEntry a (ConcreteDefinition en ts k') n
+                            | otherwise
+                            -> pure e
 
   let loadChapter fp' = loadDictionary' checkOpts
                                         NoImplicitPrelude
@@ -129,35 +146,26 @@ loadDictionary' checkOpts impPrelude parentFuncs parentConf parentConcrete dictP
   let totaldefinitions = concreteDefinitions <> virtualDefinitions <> (join $ dictionaryEntries <$> loadedChapters)
 
   pure $ Dictionary totaldefinitions functions
+  where
+    remakeConcrete (DictionaryEntry' a (ConcreteDefinition' e t k) nsp) cds
+      = (k, DictionaryEntry a (ConcreteDefinition e (Set.fromList (toList t)) unkeyed) nsp)
+      : cds
+    remakeConcrete _ cds
+      = cds
+
+    remakeVirtuals de vds
+     = case de of
+         DictionaryEntry' a (VirtualDefinition' (Virtual' v)) nsp
+          -> (nsp, a, v) : vds
+         _
+          -> vds
+
 
 parseTOML :: FilePath -> EitherT DictionaryImportError IO Table
 parseTOML dictPath = do
   inputText <- firstEitherT DictionaryErrorIO . EitherT $ E.try (readFile dictPath)
   rawToml   <- firstEitherT DictionaryErrorParsecTOML . hoistEither $ Parsec.parse tomlDoc dictPath inputText
   return rawToml
-
-remakeConcrete
-  :: DictionaryEntry'
-  -> [DictionaryEntry]
-  -> [DictionaryEntry]
-remakeConcrete de cds
- = case de of
-    DictionaryEntry' a (ConcreteDefinition' e t) nsp
-     -> DictionaryEntry a (ConcreteDefinition e (Set.fromList (toList t))) nsp
-      : cds
-    _
-     -> cds
-
-remakeVirtuals
-  :: DictionaryEntry'
-  -> [(Namespace, Attribute, SQ.QueryTop Parsec.SourcePos SP.Variable)]
-  -> [(Namespace, Attribute, SQ.QueryTop Parsec.SourcePos SP.Variable)]
-remakeVirtuals de vds
- = case de of
-     DictionaryEntry' a (VirtualDefinition' (Virtual' v)) nsp
-      -> (nsp, a, v) : vds
-     _
-      -> vds
 
 readImport :: FilePath -> FilePath -> EitherT DictionaryImportError IO (FilePath, Text)
 readImport repoPath fileRel
@@ -183,11 +191,10 @@ loadImports parentFuncs parsedImports
         -- Return these functions at the end of the accumulator.
         return $ acc <> f'
 
-checkDefs
-  :: SC.CheckOptions
-  -> Dictionary
-  -> [(Namespace, Attribute, P.QueryUntyped P.Var)]
-  -> EitherT DictionaryImportError IO [DictionaryEntry]
+checkDefs :: CheckOptions
+          -> Dictionary
+          -> [(Namespace, Attribute, P.QueryUntyped P.Var)]
+          -> EitherT DictionaryImportError IO [DictionaryEntry]
 checkDefs checkOpts d defs
  = hoistEither . first DictionaryErrorCompilation
  $ go `traverse` defs
@@ -199,7 +206,32 @@ checkDefs checkOpts d defs
          (checked, _)  <- P.sourceCheckQT checkOpts d q
          pure $ DictionaryEntry a (VirtualDefinition (Virtual checked)) n
 
+checkKey :: CheckOptions
+         -> Dictionary
+         -> Attribute
+         -> Namespace
+         -> Exp SourcePos P.Var
+         -> Either DictionaryImportError (ConcreteKey AnnotSource P.Var)
+checkKey checkOpts d attr nsp xx = do
+  let l = Parsec.initialPos "dummy_pos_ctx"
+  let p = Parsec.initialPos "dummy_pos_final"
+  let q = QueryTop (nameOf (NameBase (SP.Variable (getAttribute attr))))
+                   (OutputName "dummy_output" nsp)
+          -- We know the key must be of Pure or Element temporality,
+          -- so it's ok to wrap it in a Group.
+          (Query   [SQ.Distinct l xx]
+          -- The final expression just needs to be Aggregate.
+                   (SQ.Prim p (SQ.Lit (SQ.LitInt 0))))
 
+  (checked, _)  <- first DictionaryErrorCompilation $ do
+    q'       <- P.sourceDesugarQT q
+    (q'', t) <- P.sourceCheckQT checkOpts d q'
+    return (P.sourceReifyQT q'', t)
+
+  case contexts . query $ checked of
+    SQ.Distinct _ xx' : _
+      -> Right . ConcreteKey . Just $ xx'
+    _ -> Left DictionaryErrorImpossible
 
 instance Pretty DictionaryImportError where
   pretty = \case
@@ -208,6 +240,7 @@ instance Pretty DictionaryImportError where
     DictionaryErrorCompilation e  -> pretty e
     DictionaryErrorParse       es -> "Validation error:" <+> align (vcat (pretty <$> es))
     DictionaryErrorDense       e  -> "Parse dense feeds error:" <+> (text . show) e
+    DictionaryErrorImpossible     -> "Impossible!"
 
 ------------------------------------------------------------------------
 

@@ -8,29 +8,36 @@
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 module Icicle.Test.Arbitrary.Source where
 
+import           Icicle.Common.Fresh
+import qualified Icicle.Common.Base             as CB
+import qualified Icicle.Common.Type             as CT
+import qualified Icicle.Common.Exp.Prim.Minimal as Min
+
+import qualified Icicle.Core.Exp.Combinators    as CE
+import qualified Icicle.Core.Exp                as CE
+import qualified Icicle.Core                    as C
+
 import           Icicle.Internal.Pretty
+import           Icicle.Dictionary.Data
+import           Icicle.Data
+
 import           Icicle.Source.Checker.Base (optionSmallData,optionBigData)
 import           Icicle.Source.Checker.Checker
 import           Icicle.Source.Checker.Error
 import           Icicle.Source.Query
 import           Icicle.Source.Type
 import qualified Icicle.Source.Lexer.Token as T
-import           Icicle.Common.Fresh
-import qualified Icicle.Common.Base             as CB
-import qualified Icicle.Common.Type             as CT
-
-import qualified Icicle.Common.Exp.Prim.Minimal as Min
-import qualified Icicle.Core.Exp.Combinators    as CE
-import qualified Icicle.Core.Exp                as CE
-
-
 import           Icicle.Source.ToCore.Context
 import           Icicle.Source.ToCore.ToCore
+import qualified Icicle.Source.ToCore.Base as S
 import           Icicle.Source.Transform.Desugar
 import           Icicle.Source.Transform.ReifyPossibility
 
+import           Icicle.Compiler.Source
+
 import           Icicle.Test.Arbitrary.Base
 import           Icicle.Test.Arbitrary.Core (testFresh)
+
 import           Disorder.Corpus
 
 import           Test.QuickCheck
@@ -42,7 +49,6 @@ import qualified Data.Text as Text
 import qualified Data.List as List
 import qualified Data.Map as Map
 import           Data.Functor.Identity
-
 import           Data.String   (String)
 
 import           X.Control.Monad.Trans.Either
@@ -65,24 +71,37 @@ freshcheck t
 -- All the stuff needed to typecheck, convert a query and so on
 data QueryWithFeature
  = QueryWithFeature
- { qwfQuery     :: Query    () T.Variable
+ { qwfQuery     :: Query () T.Variable
  , qwfNow       :: Maybe (CB.Name T.Variable)
  , qwfOutput    :: CB.OutputName
  , qwfFeatureT  :: CT.ValType
  , qwfFeatureN  :: CB.Name T.Variable
  , qwfTimeName  :: CB.Name T.Variable
+ , qwfFeatureK  :: ConcreteKey () T.Variable
  }
- deriving Show
+
+instance Show QueryWithFeature where
+  show (QueryWithFeature q now out ty name time key)
+    =  "QueryWithFeature:"
+    <> "\n  Query: " <> show (pretty q)
+    <> "\n  Now: " <> show (pretty now)
+    <> "\n  Output: " <> show (pretty out)
+    <> "\n  Type: " <> show (pretty ty)
+    <> "\n  Name: " <> show (pretty name)
+    <> "\n  Time: " <> show (pretty time)
+    <> "\n  Key: " <> show (pretty $ concreteKey key)
 
 -- | Generate feature map for typechecking and conversion to Core.
-qwfFeatureMap :: QueryWithFeature -> Features () T.Variable
+qwfFeatureMap :: QueryWithFeature -> Features () T.Variable (ConcreteKey () T.Variable)
 qwfFeatureMap qwf
  = Features
-    (Map.singleton (qwfFeatureN qwf) (typeOfValType (qwfFeatureT qwf), featureCtx))
+    (Map.singleton (qwfFeatureN qwf) featureCrt)
      Map.empty
-     (qwfNow qwf)
+    (qwfNow qwf)
 
  where
+  featureCrt
+   = FeatureConcrete (qwfFeatureK qwf) (typeOfValType (qwfFeatureT qwf)) featureCtx
   featureCtx
    = FeatureContext featureMap (qwfTimeName qwf)
   featureMap
@@ -119,7 +138,6 @@ genQueryWithFeatureTypedGen tableflipPercent
               , tgiTemp = TTAgg
               , tgiTableflipPercent = tableflipPercent }
       q   <- genQuery tgi
-
       o   <- arbitrary
       -- Note: Convert to Source type and back in generator
       -- Convert to Source type and back, because this filters out Bufs.
@@ -130,7 +148,8 @@ genQueryWithFeatureTypedGen tableflipPercent
       -- part of the resulting Core was using the ValType with Bufs, and
       -- part was using the Source-converted type with Arrays.
       Just t <- (valTypeOfType . typeOfValType) <$> arbitrary
-      return $ QueryWithFeature q (Just now) o t nm tm
+      k      <- genQueryKey t
+      return $ QueryWithFeature q (Just now) o t nm tm k
 
 -- | Use arbitrary instance to generate query.
 -- Less likely to typecheck, but more likely to cover crazy corner cases.
@@ -145,7 +164,8 @@ genQueryWithFeatureArbitrary
       o   <- arbitrary
       -- See "Note: Convert to Source type and back in generator" above
       Just t <- (valTypeOfType . typeOfValType) <$> arbitrary
-      return $ QueryWithFeature q (Just now) o t nm tm
+      k      <- genQueryKey t
+      return $ QueryWithFeature q (Just now) o t nm tm k
 
 
 -- | Pretty-print the query and stuff
@@ -157,12 +177,34 @@ qwfPretty qwf
 data CheckErr
  = CheckErrTC (CheckError () T.Variable)
  | CheckErrDS (DesugarError () T.Variable)
+ | CheckErrImpossible
  deriving Show
 
-qwfCheck :: QueryWithFeature -> Either CheckErr (QueryTop (Annot () T.Variable) T.Variable)
+qwfCheckKey :: QueryWithFeature -> Either CheckErr (ConcreteKey (Annot () T.Variable) T.Variable)
+qwfCheckKey qwf = case concreteKey (qwfFeatureK qwf) of
+  Nothing -> return $ ConcreteKey Nothing
+  Just k  -> do
+    let q = QueryTop (qwfFeatureN qwf)
+                     (CB.OutputName "dummy_output" (Namespace "dummy_nsp"))
+                     (Query [Distinct () k] (Prim () (Lit (LitInt 0))))
+
+    (checked, _) <- runIdentity
+                  . freshtest "core_key"
+                  . runEitherT $ do
+                      q' <- hoistEither $ first CheckErrDS $ runDesugar (freshNamer "dummy_desugar") (desugarQT q)
+                      firstEitherT CheckErrTC $ checkQT defaultCheckOptions (qwfFeatureMap qwf) q'
+
+    case contexts . query $ checked of
+      Distinct _ xx' : _
+        -> Right . ConcreteKey . Just $ xx'
+      _ -> Left CheckErrImpossible
+
+qwfCheck :: QueryWithFeature -> Either CheckErr (QueryTop (Annot () T.Variable) T.Variable )
 qwfCheck qwf
  = do qd' <- qwfDesugar qwf
-      (qt',_) <- first CheckErrTC $ freshcheck "check" $ checkQT optionSmallData (qwfFeatureMap qwf) qd'
+      (qt',_) <- first CheckErrTC
+               $ freshcheck "check"
+               $ checkQT optionSmallData (qwfFeatureMap qwf) qd'
       return qt'
 
 qwfCheckBigData :: QueryWithFeature -> Either CheckErr (QueryTop (Annot () T.Variable) T.Variable)
@@ -171,7 +213,6 @@ qwfCheckBigData qwf
       (qt',_) <- first CheckErrTC $ freshcheck "check" $ checkQT optionBigData (qwfFeatureMap qwf) qd'
       return qt'
 
-
 qwfDesugar :: QueryWithFeature -> Either CheckErr (QueryTop () T.Variable)
 qwfDesugar qwf
  = first CheckErrDS
@@ -179,9 +220,18 @@ qwfDesugar qwf
  $ desugarQT
  $ qwfQueryTop qwf
 
-qwfConvertToCore qwf qt
- = freshtest "core" $ convertQueryTop (qwfFeatureMap qwf)
-  (runIdentity $ freshtest "reify" $ reifyPossibilityQT qt)
+qwfConvertToCore :: QueryWithFeature
+                 -> ConcreteKey (Annot () T.Variable) T.Variable
+                 -> QueryTop    (Annot () T.Variable) T.Variable
+                 -> Either (S.ConvertError () T.Variable) (C.Program () T.Variable)
+qwfConvertToCore qwf key qt
+ = freshtest "core"
+ $ convertQueryTop
+     (replaceKey key $ qwfFeatureMap qwf)
+     (runIdentity $ freshtest "reify" $ reifyPossibilityQT qt)
+ where
+  replaceKey x f
+    = f { featuresConcretes = fmap (\c -> c { featureConcreteKey = x }) $ featuresConcretes f }
 
 
 
@@ -303,6 +353,20 @@ genCase tgi
         let (args',bss) = List.unzip args
         return (PatCon con args', Map.unions bss)
 
+genQueryKey :: CT.ValType -> Gen (ConcreteKey () T.Variable)
+genQueryKey t
+  = frequency [ (1, pure (ConcreteKey Nothing)), (10, ConcreteKey . Just <$> genKeyExp) ]
+ where
+  var n = (CB.nameOf $ CB.NameBase n, TTElt)
+  genKeyExp = genExp . tgi $ case t of
+    CT.StructT ts
+      ->   var "fields" : fmap (var . T.Variable . CT.nameOfStructField) (Map.keys $ CT.getStructType ts)
+    _ -> [ var "value" ]
+
+  tgi stuff = TypedGenInfo
+   (Map.fromList $ stuff <> [(CB.nameOf (CB.NameBase "time"), TTPure)])
+   TTElt
+   tgiDefaultTableflip
 
 genQuery :: TypedGenInfo -> Gen (Query () T.Variable)
 genQuery toptgi

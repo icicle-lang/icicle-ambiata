@@ -28,7 +28,6 @@ import           Icicle.Avalanche.Statement.Simp
 import           Icicle.Avalanche.Statement.Simp.Constructor
 import           Icicle.Avalanche.Statement.Simp.Eval
 import           Icicle.Avalanche.Statement.Simp.Melt
-import           Icicle.Avalanche.Statement.Simp.Mutate
 import           Icicle.Avalanche.Statement.Statement
 
 import           P
@@ -133,7 +132,6 @@ simpFlattened
 simpFlattened a_fresh opts p
  = do s' <-  return (Right (statements p))
          >>= check1 "simp_exp"       (transformX return (simp a_fresh))
-         >>= check1 "mutate"         (return . mutate)
          >>= check1 "melt"           (melt a_fresh)
          >>= pass                    (transformX return (simpAnn a_fresh))
          >>= traverse (fixpointEither crunch)

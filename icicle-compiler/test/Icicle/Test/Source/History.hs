@@ -50,11 +50,12 @@ instance Arbitrary TestStuff where
         qwf       <- genQueryWithFeatureTypedGen 10
         (vs,d)    <- inputsForType $ qwfFeatureT qwf
         let ret
-              | Right qt' <- qwfCheckBigData qwf
-              , Right c'  <- qwfConvertToCore qwf qt'
-              , aval      <- freshFromCore $ AC.programFromCore avalancheNamer c'
+              | Right qt'   <- qwfCheckBigData qwf
+              , Right k'    <- qwfCheckKey qwf
+              , Right c'    <- qwfConvertToCore qwf k' qt'
+              , aval        <- freshFromCore $ AC.programFromCore avalancheNamer c'
               , Right flatS <- freshFlat $ AF.flatten () $ AP.statements aval
-              , flatP     <- aval { AP.statements = flatS }
+              , flatP       <- aval { AP.statements = flatS }
               = return $ TestStuff qwf vs d c' flatP
               | otherwise
               = discard

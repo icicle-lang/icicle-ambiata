@@ -1,45 +1,62 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Source.ToCore.Context (
     Features (..)
+  , FeatureConcrete (..)
   , FeatureContext (..)
   , FeatureVariable (..)
+  , FeatureKey (..)
 
   , envOfFeatureContext
   , envOfFeatureNow
   , typeOfFeatureVariable
   ) where
 
-import                  Icicle.Source.Type
-import                  Icicle.Source.Checker.Base
 import                  Icicle.Common.Base
+
 import qualified        Icicle.Core as C
 
+import                  Icicle.Source.Type
+import                  Icicle.Source.Checker.Base
+
 import                  P
+
+import                  Data.Map (Map)
 import qualified        Data.Map as Map
 import                  Data.Hashable (Hashable)
 
 
-data Features a n
+data Features a n k
  = Features
- { featuresConcretes :: Map.Map (Name n) (Type n, FeatureContext a n)
- , featuresFunctions :: Map.Map (Name n) (FunctionType n)
+ { featuresConcretes :: Map   (Name n) (FeatureConcrete a n k)
+ , featuresFunctions :: Map   (Name n) (FunctionType n)
  , featureNow        :: Maybe (Name n)
+ }
+
+data FeatureConcrete a n k
+ = FeatureConcrete
+ { featureConcreteKey     :: k
+ , featureConcreteType    :: Type n
+ , featureConcreteContext :: FeatureContext a n
  }
 
 data FeatureContext a n
  = FeatureContext
- { featureContextVariables :: Map.Map (Name n) (FeatureVariable a n)
+ { featureContextVariables :: Map (Name n) (FeatureVariable a n)
  , featureContextFactTime  :: Name n
  }
 
 data FeatureVariable a n
  = FeatureVariable
- { featureVariableType :: Type n
- , featureVariableExp  :: C.Exp a n -> C.Exp a n
+ { featureVariableType     :: Type n
+ , featureVariableExp      :: C.Exp a n -> C.Exp a n
  , featureVariablePossibly :: Bool
  }
 
-envOfFeatureContext :: FeatureContext a n -> Map.Map (Name n) (Type n)
+newtype FeatureKey a n = FeatureKey {
+   featureKey :: Maybe (C.Exp a n)
+ }
+
+envOfFeatureContext :: FeatureContext a n -> Map (Name n) (Type n)
 envOfFeatureContext ff
  = Map.map typeOfFeatureVariable
  $ featureContextVariables ff
@@ -50,7 +67,7 @@ typeOfFeatureVariable fv
  $ Possibility (if featureVariablePossibly fv then PossibilityPossibly else PossibilityDefinitely)
  $ featureVariableType fv
 
-envOfFeatureNow :: (Hashable n, Eq n) => CheckOptions -> Maybe (Name n) -> Map.Map (Name n) (Type n)
+envOfFeatureNow :: (Hashable n, Eq n) => CheckOptions -> Maybe (Name n) -> Map (Name n) (Type n)
 envOfFeatureNow opts
  = Map.fromList
  . maybeToList

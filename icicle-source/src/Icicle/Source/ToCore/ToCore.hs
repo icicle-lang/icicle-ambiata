@@ -17,8 +17,9 @@
 --
 
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE PatternGuards #-}
+{-# LANGUAGE PatternGuards     #-}
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE TupleSections     #-}
 module Icicle.Source.ToCore.ToCore (
     convertQueryTop
   , convertQuery
@@ -41,6 +42,7 @@ import qualified        Icicle.Common.Type as T
 import                  Icicle.Common.Fresh
 import                  Icicle.Common.Base
 
+import                  Icicle.Dictionary.Data
 
 import                  P
 
@@ -65,29 +67,38 @@ import                  Data.Hashable (Hashable)
 --
 -- "AggU" or "Group" computations can be reductions on streams, or postcomputations.
 --
-convertQueryTop
-        :: (Hashable n, Eq n)
-        => Features () n
-        -> QueryTop (Annot a n) n
-        -> FreshT n (Either (ConvertError a n)) (C.Program () n)
+convertQueryTop :: (Hashable n, Eq n)
+                => Features () n (ConcreteKey (Annot a n) n)
+                -> QueryTop (Annot a n) n
+                -> FreshT n (Either (ConvertError a n)) (C.Program () n)
 convertQueryTop feats qt
  = do   inp         <- fresh
         factid      <- fresh
         facttime    <- fresh
         now         <- fresh
-        (ty,fs) <- lift
-                 $ maybeToRight (ConvertErrorNoSuchFeature (feature qt))
-                 $ Map.lookup (feature qt) (featuresConcretes feats)
 
+        -- Lookup the fact that this query refers to.
+        FeatureConcrete key ty fs
+          <- lift
+           $ maybeToRight (ConvertErrorNoSuchFeature (feature qt))
+           $ Map.lookup (feature qt) (featuresConcretes feats)
+
+        -- Extract the type of the input stream, pair with the fact time.
         inpTy <- case valTypeOfType ty of
                   Nothing -> lift $ Left $ ConvertErrorCannotConvertType (annAnnot $ annotOfQuery $ query qt) ty
                   Just t' -> return t'
         let inpTy'dated = T.PairT inpTy T.TimeT
 
-        (bs,ret) <- evalStateT (do
-                                       maybe (return ()) (flip convertFreshenAddAs now) $ featureNow feats
-                                       convertQuery $ query qt)
-                                   (ConvertState inp inpTy'dated factid facttime now fs Map.empty)
+        let convState = ConvertState inp inpTy'dated factid facttime now fs Map.empty
+        let env       = Map.insert facttime (T.funOfVal   T.TimeT)
+                      $ Map.insert factid   (T.funOfVal   T.FactIdentifierT)
+                      $ Map.insert inp      (T.funOfVal $ T.PairT inpTy T.TimeT) Map.empty
+
+        -- Convert the query body.
+        (bs, ret) <- flip evalStateT convState
+                   $ do maybe (return ()) (flip convertFreshenAddAs now) $ featureNow feats
+                        convertQuery (query qt) >>= convertKey env key
+
         return (programOfBinds (queryName qt) inpTy inp factid facttime now bs () ret)
 
 
@@ -96,10 +107,10 @@ convertQueryTop feats qt
 -- and the query to transform.
 -- It returns a list of program bindings, as well as the name of the binding
 -- that is being "returned" in the program - essentially the last added binding.
-convertQuery
-        :: (Hashable n, Eq n)
-        => Query (Annot a n) n
-        -> ConvertM a n (CoreBinds () n, Name n)
+--
+convertQuery :: (Hashable n, Eq n)
+             => Query (Annot a n) n
+             -> ConvertM a n (CoreBinds () n, Name n)
 convertQuery q
  = convertContext
  $ case contexts q of
@@ -430,7 +441,7 @@ convertQuery q
          TemporalityAggregate
           -> do (bs,n')      <- convertReduce    def
                 b'           <- convertFreshenAdd b
-                (bs',n'')    <- convertQuery     q'
+                (bs',n'')    <- convertQuery q'
                 return (bs <> post b' (CE.xVar n') <> bs', n'')
 
          _
@@ -500,15 +511,14 @@ convertQuery q
   convertValType' = convertValType (annAnnot $ annotOfQuery q)
 
 
-
 -- | Convert an Aggregate computation at the end of a query.
 -- This should be an aggregate, some primitive applied to at least one aggregate expression,
 -- or a nested query.
 -- If not, it must be pure, so we can just bind it as a precomputation.
-convertReduce
-        :: (Hashable n, Eq n)
-        => Exp (Annot a n) n
-        -> ConvertM a n (CoreBinds () n, Name n)
+--
+convertReduce :: (Hashable n, Eq n)
+              => Exp (Annot a n) n
+              -> ConvertM a n (CoreBinds () n, Name n)
 convertReduce xx
  -- If it is Pure, just bind it as a precomputation
  | TemporalityPure <- getTemporalityOrPure $ annResult $ annotOfExp xx
@@ -593,3 +603,117 @@ convertReduce xx
  -- so it must be an application of a non-primitive
  | otherwise
  = convertError $ ConvertErrorExpApplicationOfNonPrimitive (annAnnot $ annotOfExp xx) xx
+
+-- | Incorporate the refutation fact key into the query.
+--
+-- @
+--   INIT:
+--     (none, <fold_init>)
+--   KONS:
+--     new_key = nub_exp value
+--     fold_bool
+--       (old_key, acc)
+--       (new_key, <fold_kons>)
+--       (some new_key == old_key)
+-- @
+--
+convertKey :: (Hashable n, Eq n)
+           => T.Env n T.Type
+           -> ConcreteKey (Annot a n) n
+           -> (CoreBinds () n, Name n)
+           -> ConvertM a n (CoreBinds () n, Name n)
+convertKey _   (ConcreteKey Nothing)  bs          = return bs
+convertKey env (ConcreteKey (Just k)) (core, ret) = do
+  -- Convert the key expression to Core.
+  k'        <- convertExp k
+
+  -- Synthesise a type for the key expression.
+  t'k       <- lift . lift
+             . first  (ConvertErrorCannotCheckKey (annAnnot (annotOfExp k)) k')
+             . second (T.functionReturns)
+             $ CE.typeExp C.coreFragmentWorkerFun env k'
+  let t'key  = T.OptionT t'k
+
+  let pairX t u = CE.xPrim . C.PrimMinimal . Min.PrimConst    $ Min.PrimConstPair  t u
+  let fstX  t u = CE.xPrim . C.PrimMinimal . Min.PrimPair     $ Min.PrimPairFst    t u
+  let sndX  t u = CE.xPrim . C.PrimMinimal . Min.PrimPair     $ Min.PrimPairSnd    t u
+  let someX t   = CE.xPrim . C.PrimMinimal . Min.PrimConst    $ Min.PrimConstSome  t
+  let eqX   t   = CE.xPrim . C.PrimMinimal $ Min.PrimRelation   Min.PrimRelationEq t
+
+  let nubKons t'acc n'input xx = do
+        n'acc'old <- lift fresh
+        n'acc'new <- lift fresh
+        n'key'old <- lift fresh
+        n'key'new <- lift fresh
+
+        xx' <- lift $ CE.subst1 () n'input (CE.xVar n'acc'old) xx
+        let a  = CE.makeApps () (sndX  t'key t'acc) [CE.xVar n'input]
+        let x' = CE.xLet n'key'old (CE.makeApps () (fstX  t'key t'acc) [CE.xVar n'input])
+               $ CE.xLet n'acc'old a
+               $ CE.xLet n'key'new (CE.makeApps () (someX t'k        ) [k'             ])
+               $ CE.xLet n'acc'new xx'
+               $ CE.makeApps ()
+                   ( CE.xPrim (C.PrimFold C.PrimFoldBool (T.PairT t'key t'acc)) )
+                   [ CE.xVar n'input
+                   , CE.makeApps () (pairX t'key t'acc) [ CE.xVar n'key'new, CE.xVar n'acc'new ]
+                   , CE.makeApps () (eqX   t'key      ) [ CE.xVar n'key'old, CE.xVar n'key'new ] ]
+
+        pure ( x', Map.singleton n'input a )
+
+  let nubInit t'acc xx
+        = CE.makeApps () (pairX t'key t'acc) [ CE.xValue t'key VNone, xx ]
+
+  -- Substitute the name of the stream input in the body of this stream and all downstreams,
+  -- since the stream input should now refer to the key paired with the original input.
+  let substStream subs (C.SFold f t ini kons)
+        =   C.SFold f t
+        <$> CE.subst () subs ini
+        <*> CE.subst () subs kons
+      substStream subs (C.SFilter f ss)
+        =   C.SFilter f
+        <$> mapM (substStream subs) ss
+
+  let substThen f (s : ss) = do
+        (s', substs)   <- f [s]
+        (ss', substs') <- f =<< lift (mapM (substStream substs) ss)
+        pure (s' <> ss', substs <> substs')
+      substThen _ []
+        = pure ([], Map.empty)
+
+  -- Prefix each streams with the nub expression.
+  let nub (C.SFold n t ini kons : downstreams) = do
+        (x', sub)    <- nubKons t n kons
+        downstreams' <- lift $ mapM (substStream sub) downstreams
+        (ss, subs)   <- nub downstreams'
+        let s = C.SFold n (T.PairT t'key t) (nubInit t ini) x'
+        pure (s : ss, sub <> subs)
+
+      nub (C.SFilter x fs : downstreams) = do
+        (fs', sub)    <- substThen nub fs
+        downstreams'  <- lift $ mapM (substStream sub) downstreams
+        (ss, subs)    <- nub downstreams'
+        let s = C.SFilter x fs'
+        pure (s : ss, sub <> subs)
+
+      nub [] = pure ([], Map.empty)
+
+  -- Remove the key at the end.
+  let unkey ps [C.SFold n t'ret _ _]
+        | n == ret = do
+            n'ret <- lift fresh
+            pure (ps <> [(n'ret, CE.makeApps () (sndX t'key t'ret) [CE.xVar n])], n'ret)
+        | otherwise = pure (ps, ret)
+      unkey p [C.SFilter _ ss] = unkey p ss
+      unkey p (_ : ss)         = unkey p ss
+      unkey p []               = pure (p, ret)
+
+  (streams', subs)    <- hoist runFreshIdentity . nub
+                       . streams $ core
+  postcomps'          <- lift . runFreshIdentity
+                       . mapM (\(n, x) -> (n,) <$> CE.subst () subs x)
+                       . postcomps $ core
+  (postcomps'', ret') <- unkey postcomps' (streams core)
+
+  return ( core { streams = streams'
+                , postcomps = postcomps'' }
+         , ret' )
