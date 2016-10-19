@@ -19,22 +19,20 @@ import           Data.Attoparsec.ByteString
 import           Data.Text              as T
 import           Data.Text.Read         as T
 import           Data.Text.Encoding     as T
-
 import qualified Data.Aeson             as A
 import qualified Data.Scientific        as S
-
 import qualified Data.ByteString.Lazy   as BS
 import qualified Data.HashMap.Strict    as HM
 import qualified Data.Map               as Map
-import qualified Data.List              as List
 import qualified Data.Vector            as V
+import           Data.Set (Set)
+import qualified Data.Set               as Set
 
 import qualified Icicle.Common.Type     as IT
 import           Icicle.Data
 import           Icicle.Data.Time
 
 import           P
-
 
 
 data DecodeError =
@@ -162,9 +160,9 @@ renderValue tombstone val
 
 -- | Attempt to decode value with given encoding.
 -- Some values may fit multiple encodings.
-parseValue :: Encoding -> [Text] -> Text -> Either DecodeError Value
+parseValue :: Encoding -> Set Text -> Text -> Either DecodeError Value
 parseValue e tombstone t
- | List.elem t tombstone
+ | Set.member t tombstone
  = return Tombstone
  | otherwise
  = case e of

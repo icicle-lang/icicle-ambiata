@@ -321,15 +321,9 @@ codeOfPrograms
   -> Either SeaError Text
 codeOfPrograms input programs = do
   let defs = seaOfDefinitions (fmap snd programs)
-      outputTombstone a
-        = case input of
-            HasInput _ (InputOpts _ tombstones)
-              | Just (reverse -> t : _) <- Map.lookup a tombstones
-              -> t
-            _ -> defaultOutputTombstone
 
-  progs   <- zipWithM (\ix (a, p) -> seaOfProgram   ix a (outputTombstone a) p) [0..] programs
-  states  <- zipWithM (\ix (a, p) -> stateOfProgram ix a (outputTombstone a) p) [0..] programs
+  progs   <- zipWithM (\ix (a, p) -> seaOfProgram   ix a p) [0..] programs
+  states  <- zipWithM (\ix (a, p) -> stateOfProgram ix a p) [0..] programs
 
   case input of
     NoInput -> do
@@ -346,9 +340,6 @@ codeOfPrograms input programs = do
 
 textOfDoc :: Doc -> Text
 textOfDoc doc = T.pack (displayS (renderPretty 0.8 80 (pretty doc)) "")
-
-defaultOutputTombstone :: Text
-defaultOutputTombstone = "NA"
 
 ------------------------------------------------------------------------
 

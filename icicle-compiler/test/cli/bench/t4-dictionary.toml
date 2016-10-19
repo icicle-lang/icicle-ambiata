@@ -9,8 +9,13 @@ namespace = """default"""
 tombstone = "foo"
 
 [fact.injury]
-  tombstone  = "none"
   encoding="(location:string,severity:double,action:string*)"
 
 [feature.test]
-   expression = "feature injury ~> newest action"
+   expression = "feature injury ~> latest 2 ~> action"
+
+[feature.test_map]
+   expression = "feature injury ~> group location ~> latest 2 ~> action"
+
+[feature.test_map_struct]
+   expression = "feature injury ~> group location ~> latest 2 ~> fields"

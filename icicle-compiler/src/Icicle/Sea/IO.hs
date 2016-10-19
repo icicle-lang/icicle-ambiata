@@ -6,12 +6,12 @@
 {-# LANGUAGE NamedFieldPuns    #-}
 module Icicle.Sea.IO
   ( seaOfDriver
-  , Psv.defaultMissingValue
   , IOFormat (..)
   , InputOpts (..)
   , InputAllowDupTime (..)
   , Psv.PsvInputConfig(..)
   , Psv.PsvOutputConfig(..)
+  , Psv.defaultOutputMissing
   , Psv.PsvMode(..)
   , Psv.PsvOutputFormat(..)
   , Psv.PsvInputFormat(..)
