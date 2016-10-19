@@ -9,14 +9,12 @@ module Icicle.Storage.Dictionary.TextV1 (
 import           Icicle.Data
 import           Icicle.Dictionary.Data
 import           Icicle.Serial (ParseError (..))
+import           Icicle.Storage.Encoding
+
 import           P hiding (concat, intercalate)
 
 import           Data.Attoparsec.Text
-
 import           Data.Text hiding (takeWhile)
-import qualified Data.Set as Set
-
-import           Icicle.Storage.Encoding
 
 field :: Parser Text
 field = append <$> takeWhile (not . isDelimOrEscape) <*> (concat <$> many (cons <$> escaped <*> field)) <?> "field"
@@ -35,7 +33,7 @@ parseIcicleDictionaryV1
  = DictionaryEntry
  <$> (Attribute <$> field)
  <*   p
- <*> (ConcreteDefinition <$> parseEncoding <*> pure (Set.singleton "NA") <*> pure unkeyed)
+ <*> (ConcreteDefinition <$> parseEncoding <*> pure ["NA"] <*> pure unkeyed)
  -- No namespace in this legacy dictionary
  <*> pure (Namespace "default")
     where

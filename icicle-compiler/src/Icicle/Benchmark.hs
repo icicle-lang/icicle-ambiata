@@ -32,7 +32,6 @@ import           Control.Monad.IO.Class (liftIO)
 
 import           Data.Map (Map)
 import qualified Data.Map as Map
-import           Data.Set (Set)
 import qualified Data.Text.Lazy.IO as TL
 import           Data.Time (NominalDiffTime, getCurrentTime, diffUTCTime)
 
@@ -171,7 +170,7 @@ runBenchmark b = do
     , benchBytes    = fromIntegral size
     }
 
-tombstonesOfDictionary :: Dictionary -> Map Attribute (Set Text)
+tombstonesOfDictionary :: Dictionary -> Map Attribute [Text]
 tombstonesOfDictionary dict =
   let go (DictionaryEntry a (ConcreteDefinition _ ts _) _) = [(a, ts)]
       go _                                                 = []

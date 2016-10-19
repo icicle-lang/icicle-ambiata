@@ -351,7 +351,7 @@ handleLine state line = let st = sourceState state in
            prettyOut hasSeaPreamble "- C preamble:" Sea.seaPreamble
 
            when (hasSea state) $ do
-             let seaProgram = Sea.seaOfProgram 0 (Attribute "repl") f'
+             let seaProgram = Sea.seaOfProgram 0 (Attribute "repl") "NA" f'
              case seaProgram of
                Left  e -> prettyOut (const True) "- C error:" e
                Right r -> prettyOut (const True) "- C:" r

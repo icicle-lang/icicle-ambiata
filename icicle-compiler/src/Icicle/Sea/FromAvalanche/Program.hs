@@ -40,9 +40,9 @@ import qualified Data.Map as Map
 ------------------------------------------------------------------------
 
 seaOfProgram :: (Show a, Show n, Pretty n, Eq n)
-             => Int -> Attribute -> Program (Annot a) n Prim -> Either SeaError Doc
-seaOfProgram name attrib program = do
-  state <- stateOfProgram name attrib program
+             => Int -> Attribute -> Text -> Program (Annot a) n Prim -> Either SeaError Doc
+seaOfProgram name attrib tombstone program = do
+  state <- stateOfProgram name attrib tombstone program
   pure $ vsep
     [ seaOfState state
     , ""

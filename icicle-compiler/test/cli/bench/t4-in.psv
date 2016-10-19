@@ -1,0 +1,3 @@
+homer|injury|{"location":"arm","severity":4}"|1994-01-01
+homer|injury|{"location":"torso","severity":3,"action":"ignore"}"|1999-01-01
+homer|injury|{"location":"torso","severity":1}"|2010-01-01

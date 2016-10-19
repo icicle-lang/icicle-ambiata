@@ -1,0 +1,16 @@
+title = "Dense input example dictionary"
+
+version = 1
+
+chapter = []
+
+namespace = """default"""
+
+tombstone = "foo"
+
+[fact.injury]
+  tombstone  = "none"
+  encoding="(location:string,severity:double,action:string*)"
+
+[feature.test]
+   expression = "feature injury ~> newest action"

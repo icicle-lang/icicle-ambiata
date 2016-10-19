@@ -26,7 +26,7 @@ import qualified Data.Scientific        as S
 import qualified Data.ByteString.Lazy   as BS
 import qualified Data.HashMap.Strict    as HM
 import qualified Data.Map               as Map
-import qualified Data.Set               as Set
+import qualified Data.List              as List
 import qualified Data.Vector            as V
 
 import qualified Icicle.Common.Type     as IT
@@ -162,9 +162,9 @@ renderValue tombstone val
 
 -- | Attempt to decode value with given encoding.
 -- Some values may fit multiple encodings.
-parseValue :: Encoding -> Set.Set Text -> Text -> Either DecodeError Value
+parseValue :: Encoding -> [Text] -> Text -> Either DecodeError Value
 parseValue e tombstone t
- | Set.member t tombstone
+ | List.elem t tombstone
  = return Tombstone
  | otherwise
  = case e of

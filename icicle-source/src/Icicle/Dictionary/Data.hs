@@ -40,7 +40,6 @@ import           Icicle.Internal.Pretty
 
 import           Data.Map (Map)
 import qualified Data.Map                           as Map
-import qualified Data.Set                           as Set
 import           Data.String
 
 import           P
@@ -66,7 +65,7 @@ data Definition =
   | VirtualDefinition  Virtual
   deriving (Eq, Show)
 
-type Tombstones = Set.Set Text
+type Tombstones = [Text]
 
 -- | A parsed and typechecked source program.
 newtype Virtual = Virtual {
