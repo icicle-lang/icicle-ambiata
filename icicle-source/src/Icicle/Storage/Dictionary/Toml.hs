@@ -40,6 +40,7 @@ import           System.FilePath
 import           System.IO
 
 import qualified Data.Set                                      as Set
+import qualified Data.List                                     as List
 import qualified Data.Text                                     as T
 import qualified Data.Text.Encoding                            as T
 import qualified Data.Text.IO                                  as T
@@ -148,7 +149,7 @@ loadDictionary' checkOpts impPrelude parentFuncs parentConf parentConcrete dictP
   pure $ Dictionary totaldefinitions functions
   where
     remakeConcrete (DictionaryEntry' a (ConcreteDefinition' e t k) nsp) cds
-      = (k, DictionaryEntry a (ConcreteDefinition e (Set.fromList (toList t)) unkeyed) nsp)
+      = (k, DictionaryEntry a (ConcreteDefinition e (toList t) unkeyed) nsp)
       : cds
     remakeConcrete _ cds
       = cds

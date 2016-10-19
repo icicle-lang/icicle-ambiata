@@ -107,3 +107,23 @@ rm $t3_drop_2
 
 echo "OK!"
 
+################################################################################
+
+echo "3. Output most recently defined tombstone"
+
+t4_dict=test/cli/bench/t4-dictionary.toml
+t4_in=test/cli/bench/t4-in.psv
+
+t4_expected=test/cli/bench/t4-expected.psv
+t4_out_c=`mktemp -t icicle-bench-t4-c-XXXXXX`
+t4_out_psv=`mktemp -t icicle-bench-t4-out-XXXXXX`
+
+dist/build/icicle-bench/icicle-bench $t4_dict $t4_in $t4_out_psv $t4_out_c 2010-01-01
+
+diff $t4_expected $t4_out_psv
+
+rm $t4_out_c
+rm $t4_out_psv
+
+echo "OK!"
+

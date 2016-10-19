@@ -13,7 +13,6 @@ import           Control.Monad.IO.Class (liftIO)
 import qualified Data.ByteString.Lazy as L
 import qualified Data.List as List
 import qualified Data.Map as Map
-import qualified Data.Set as Set
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as LT
 import qualified Data.Text.Lazy.Encoding as LT
@@ -195,7 +194,7 @@ runTest wt (TestOpts showInput showOutput inputFormat allowDupTime) = do
                 (S.PsvSnapshot (wtTime wt))
                 (S.PsvOutputSparse)
       iformat  = S.FormatPsv iconfig oconfig
-      iopts    = S.InputOpts allowDupTime (Map.singleton (wtAttribute wt) (Set.singleton tombstone))
+      iopts    = S.InputOpts allowDupTime (Map.singleton (wtAttribute wt) [tombstone])
 
   let compile  = S.seaCompile' options (S.HasInput iformat iopts) programs
       release  = S.seaRelease

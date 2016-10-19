@@ -59,6 +59,7 @@ import           P
 data SeaProgramState = SeaProgramState {
     stateName       :: Int
   , stateAttribute  :: Attribute
+  , stateTombstone  :: Text
   , stateTimeVar    :: Text
   , stateInputType  :: ValType
   , stateInputVars  :: [(Text, ValType)]
@@ -72,9 +73,10 @@ stateOfProgram
   :: (Pretty n, Eq n)
   => Int
   -> Attribute
+  -> Text
   -> Program (Annot a) n Prim
   -> Either SeaError SeaProgramState
-stateOfProgram name attrib program
+stateOfProgram name attrib tombstone program
  = case factVarsOfProgram FactLoopNew program of
     Nothing
      -> Left SeaNoFactLoop
@@ -83,6 +85,7 @@ stateOfProgram name attrib program
      -> Right SeaProgramState {
           stateName       = name
         , stateAttribute  = attrib
+        , stateTombstone  = tombstone
         , stateTimeVar    = textOfName (bindtime program)
         , stateInputType  = factType
         , stateInputVars  = fmap (first textOfName) factVars

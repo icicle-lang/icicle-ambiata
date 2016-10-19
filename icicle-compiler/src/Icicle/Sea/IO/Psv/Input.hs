@@ -14,8 +14,6 @@ module Icicle.Sea.IO.Psv.Input
 
 import qualified Data.List as List
 import qualified Data.Map as Map
-import           Data.Set (Set)
-import qualified Data.Set as Set
 
 import           Icicle.Common.Type (ValType(..), StructType(..), StructField(..))
 
@@ -46,7 +44,6 @@ data PsvInputFormat
   deriving (Eq, Ord, Show)
 
 --------------------------------------------------------------------------------
-
 
 -- * Psv input "interface"
 
@@ -104,7 +101,7 @@ seaOfReadTombstone input = \case
 
 seaOfReadFact
   :: SeaProgramState
-  -> Base.Tombstones
+  -> [Text]
   -> Base.CheckedInput
   -> Base.CStmt -- C block that reads the input value
   -> Base.CStmt -- C block that performs some check after reading
@@ -126,7 +123,7 @@ seaOfReadFact state tombstones input readInput checkCount =
     , "    ierror_t " <> pretty (Base.inputSumError input) <> ";"
     , indent 4 . vsep . fmap seaOfDefineInput $ Base.inputVars input
     , ""
-    , "    " <> align (seaOfReadTombstone input (Set.toList tombstones)) <> "{"
+    , "    " <> align (seaOfReadTombstone input tombstones) <> "{"
     , "        " <> pretty (Base.inputSumError input) <> " = ierror_not_an_error;"
     , ""
     , indent 8 readInput
@@ -258,7 +255,7 @@ seaOfReadNamedFactDense opts state
       ]
 
 
-seaOfReadFactDense :: PsvInputDenseDict -> SeaProgramState -> Set Text -> Either SeaError Doc
+seaOfReadFactDense :: PsvInputDenseDict -> SeaProgramState -> [Text] -> Either SeaError Doc
 seaOfReadFactDense dict state tombstones = do
   let feeds  = denseDict dict
   let attr   = getAttribute $ stateAttribute state
@@ -410,7 +407,7 @@ seaOfReadNamedFactSparse opts state
 
 seaOfReadFactSparse
   :: SeaProgramState
-  -> Set Text
+  -> [Text]
   -> Either SeaError Doc
 seaOfReadFactSparse state tombstones = do
   input     <- Base.checkInputType state
@@ -582,7 +579,6 @@ seaOfReadJsonField assign ftype vars = do
     , "    break;"
     ]
 
-lookupTombstones :: Base.InputOpts -> SeaProgramState -> Set Text
+lookupTombstones :: Base.InputOpts -> SeaProgramState -> [Text]
 lookupTombstones opts state =
-  fromMaybe Set.empty (Map.lookup (stateAttribute state) (Base.inputTombstones opts))
-
+  fromMaybe [] (Map.lookup (stateAttribute state) (Base.inputTombstones opts))

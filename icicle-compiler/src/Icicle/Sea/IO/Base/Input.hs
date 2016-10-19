@@ -14,7 +14,6 @@ module Icicle.Sea.IO.Base.Input
   , CBlock
   , CName
   , CFun
-  , Tombstones
   , SeaInput (..)
   , SeaInputError (..)
   , seaOfReadNamedFact
@@ -40,7 +39,6 @@ module Icicle.Sea.IO.Base.Input
 
 import qualified Data.ByteString                  as B
 import           Data.Map                         (Map)
-import           Data.Set                         (Set)
 import qualified Data.Text.Encoding               as T
 import           Data.Word                        (Word8)
 
@@ -67,7 +65,7 @@ type Name = Text
 
 data InputOpts = InputOpts
   { inputAllowDupTime :: InputAllowDupTime
-  , inputTombstones   :: Map Attribute (Set Text)
+  , inputTombstones   :: Map Attribute [Text]
   } deriving (Show, Eq)
 
 -- | Whether fact times must be unique for an entity.
@@ -77,9 +75,6 @@ data InputAllowDupTime
   deriving (Eq, Ord, Show)
 
 --------------------------------------------------------------------------------
-
-type Tombstone  = Text
-type Tombstones = Set Tombstone
 
 data CheckedInput = CheckedInput {
     inputSumError :: Name
@@ -122,11 +117,11 @@ data SeaInputError = SeaInputError
 
 -- Common input statements, for both PSV and Zebra
 data SeaInput = SeaInput
-  { cstmtReadFact     :: SeaProgramState -> Tombstones -> CheckedInput -> CStmt -> CStmt -> CFun
+  { cstmtReadFact     :: SeaProgramState -> [Text] -> CheckedInput -> CStmt -> CStmt -> CFun
   -- ^ Generate C code to read input into the `program->input` struct.
   , cstmtReadTime     :: CStmt
   -- ^ Generate C code to read the current fact time.
-  , cfunReadTombstone :: CheckedInput -> [Tombstone] -> CStmt
+  , cfunReadTombstone :: CheckedInput -> [Text] -> CStmt
   -- ^ Generate C code to read the tombstone of this input.
   , cnameFunReadFact  :: SeaProgramState -> CName
   -- ^ Name of the read_fact function. e.g. psv_read_fact_0.
