@@ -263,7 +263,7 @@ generateQ qq@(Query (c:_) _) env
 
             let tkey = annResult $ annotOfExp x'
 
-            consT          <-  (<>) <$> requireTemporality tkey TemporalityElement
+            consT          <-  (<>) <$> requireTemporalityStrict tkey TemporalityElement
                                     <*> requireAgg tval
             (poss, consp)  <-  requirePossibilityJoin tkey tval
 
@@ -466,6 +466,8 @@ generateQ qq@(Query (c:_) _) env
      in  q' { contexts = c' a' : contexts q' }
 
   -- Helpers for adding constraints
+
+  -- Lax constraint, treats Pure as a "supertype".
   requireTemporality ty tmp
    | (tmp',_,_) <- decomposeT ty
    = case tmp' of
@@ -473,6 +475,15 @@ generateQ qq@(Query (c:_) _) env
       Nothing              -> return []
       Just tmp''
        -> return $ require a (CEquals tmp'' tmp)
+
+  -- Strict constraint, the type must have this exact temporality.
+  requireTemporalityStrict ty tmp
+   | (tmp',_,_) <- decomposeT ty
+   = case tmp' of
+      Just tmp''
+       -> return $ require a (CEquals tmp'' tmp)
+      Nothing
+       -> return $ require a (CEquals ty tmp) -- an impossible constraint
 
   requireAgg t
    = requireTemporality t TemporalityAggregate
