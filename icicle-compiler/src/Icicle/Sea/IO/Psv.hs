@@ -10,7 +10,7 @@ module Icicle.Sea.IO.Psv (
   , PsvInputFormat(..)
   , PsvInputDenseDict(..)
   , seaOfPsvDriver
-  , defaultMissingValue
+  , defaultOutputMissing
   ) where
 
 import qualified Data.List as List

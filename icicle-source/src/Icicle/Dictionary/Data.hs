@@ -32,15 +32,16 @@ import qualified Icicle.Source.Type                 as ST
 import           Icicle.Source.ToCore.Context (FeatureVariable (..)) 
 import qualified Icicle.Source.ToCore.Context       as STC
 
-import           Text.Parsec.Pos ()
-
 import           Icicle.Encoding
 
 import           Icicle.Internal.Pretty
 
 import           Data.Map (Map)
 import qualified Data.Map                           as Map
+import           Data.Set (Set)
 import           Data.String
+
+import           Text.Parsec.Pos ()
 
 import           P
 
@@ -65,7 +66,7 @@ data Definition =
   | VirtualDefinition  Virtual
   deriving (Eq, Show)
 
-type Tombstones = [Text]
+type Tombstones = Set Text
 
 -- | A parsed and typechecked source program.
 newtype Virtual = Virtual {

@@ -15,6 +15,7 @@ import           P hiding (concat, intercalate)
 
 import           Data.Attoparsec.Text
 import           Data.Text hiding (takeWhile)
+import qualified Data.Set as Set
 
 field :: Parser Text
 field = append <$> takeWhile (not . isDelimOrEscape) <*> (concat <$> many (cons <$> escaped <*> field)) <?> "field"
@@ -33,7 +34,7 @@ parseIcicleDictionaryV1
  = DictionaryEntry
  <$> (Attribute <$> field)
  <*   p
- <*> (ConcreteDefinition <$> parseEncoding <*> pure ["NA"] <*> pure unkeyed)
+ <*> (ConcreteDefinition <$> parseEncoding <*> pure (Set.singleton "NA") <*> pure unkeyed)
  -- No namespace in this legacy dictionary
  <*> pure (Namespace "default")
     where

@@ -149,7 +149,7 @@ loadDictionary' checkOpts impPrelude parentFuncs parentConf parentConcrete dictP
   pure $ Dictionary totaldefinitions functions
   where
     remakeConcrete (DictionaryEntry' a (ConcreteDefinition' e t k) nsp) cds
-      = (k, DictionaryEntry a (ConcreteDefinition e (toList t) unkeyed) nsp)
+      = (k, DictionaryEntry a (ConcreteDefinition e (Set.fromList (toList t)) unkeyed) nsp)
       : cds
     remakeConcrete _ cds
       = cds

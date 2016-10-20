@@ -32,21 +32,20 @@ import           Prelude (String)
 
 
 data PsvOutputConfig = PsvOutputConfig {
-    outputPsvMode   :: PsvMode
-  , outputPsvFormat :: PsvOutputFormat
+    outputPsvMode      :: PsvMode
+  , outputPsvFormat    :: PsvOutputFormat
+  , outputPsvMissing   :: Text
   } deriving (Eq, Ord, Show)
 
 data PsvOutputFormat
   = PsvOutputSparse
-  | PsvOutputDense MissingValue
+  | PsvOutputDense
   deriving (Eq, Ord, Show)
-
-type MissingValue = Text
 
 type PsvOutputWhiteList = Maybe [Text]
 
-defaultMissingValue :: Text
-defaultMissingValue = "NA"
+defaultOutputMissing :: Text
+defaultOutputMissing = "NA"
 
 ------------------------------------------------------------------------
 
@@ -58,7 +57,7 @@ seaOfWriteFleetOutput config whitelist states = do
   write_sea  <- traverse (seaOfWriteProgramOutput config) states'
   let (beforeChord, inChord, afterChord)
          = case outputPsvFormat config of
-             PsvOutputDense _
+             PsvOutputDense
               -> (outputEntity, outputChord, outputChar '\n')
              PsvOutputSparse
               -> ("", "", "")
@@ -120,14 +119,14 @@ seaOfWriteProgramOutput config state = do
   let ps    = "p" <> int (stateName state)
       stype = pretty (nameOfStateType state)
       pname = pretty (nameOfProgram state)
-      tb    = stateTombstone state
+      tb    = outputPsvMissing config
 
   let outputState (name, (ty, tys))
         = case outputPsvFormat config of
             PsvOutputSparse
               -> seaOfWriteOutputSparse ps 0 name tb ty tys
-            PsvOutputDense missingValue
-              -> seaOfWriteOutputDense  ps 0 name tb ty tys missingValue
+            PsvOutputDense
+              -> seaOfWriteOutputDense  ps 0 name tb ty tys
 
   let outputRes   name
         = ps <> "->" <> pretty (hasPrefix <> name) <+> "= ifalse;"
@@ -147,7 +146,7 @@ seaOfWriteProgramOutput config state = do
     ]
 
 seaOfWriteOutputSparse :: Doc -> Int -> OutputName -> Text -> ValType -> [ValType] -> Either SeaError Doc
-seaOfWriteOutputSparse struct structIndex outName@(OutputName name _) tombstone outType argTypes
+seaOfWriteOutputSparse struct structIndex outName@(OutputName name _) missing outType argTypes
   = let members = structMembers struct name argTypes structIndex
     in case outType of
          -- Top-level Sum is a special case, to avoid allocating and printing if
@@ -156,13 +155,13 @@ seaOfWriteOutputSparse struct structIndex outName@(OutputName name _) tombstone 
           | (ErrorT : argTypes') <- argTypes
           , (ne     : _)         <- members
           -> do (m, f, body, _, _)
-                   <- seaOfOutput NotInJSON struct (structIndex + 1) outName tombstone Map.empty outType' argTypes' id
+                   <- seaOfOutput NotInJSON struct (structIndex + 1) outName missing Map.empty outType' argTypes' id
                 let body'        = seaOfOutputCond m f body
                 let body''       = go body'
                 pure $ conditionalNotError' ne body''
          _
           -> do (m, f, body, _, _)
-                   <- seaOfOutput NotInJSON struct structIndex outName tombstone Map.empty outType argTypes id
+                   <- seaOfOutput NotInJSON struct structIndex outName missing Map.empty outType argTypes id
                 let body'        = seaOfOutputCond m f body
                 return $ go body'
 
@@ -176,26 +175,26 @@ seaOfWriteOutputSparse struct structIndex outName@(OutputName name _) tombstone 
                   , outputChar '\n'
                   ]
 
-seaOfWriteOutputDense :: Doc -> Int -> OutputName -> Text -> ValType -> [ValType] -> MissingValue -> Either SeaError Doc
-seaOfWriteOutputDense struct structIndex outName@(OutputName name _) tombstone outType argTypes missingValue
+seaOfWriteOutputDense :: Doc -> Int -> OutputName -> Text -> ValType -> [ValType] -> Either SeaError Doc
+seaOfWriteOutputDense struct structIndex outName@(OutputName name _) missing outType argTypes
   = let members = structMembers struct name argTypes structIndex
     in  case outType of
          SumT ErrorT outType'
           | (ErrorT : argTypes') <- argTypes
           , (ne     : _)         <- members
           -> do (m, f, body, _, _)
-                   <- seaOfOutput NotInJSON struct (structIndex + 1) outName tombstone Map.empty outType' argTypes' id
+                   <- seaOfOutput NotInJSON struct (structIndex + 1) outName missing Map.empty outType' argTypes' id
                 let body'        = seaOfOutputCond m f body
                 go $ conditionalNotError ne body' bodyMissingValue
          _
           -> do (m, f, body, _, _)
-                   <- seaOfOutput NotInJSON struct structIndex outName tombstone Map.empty outType argTypes id
+                   <- seaOfOutput NotInJSON struct structIndex outName missing Map.empty outType argTypes id
                 let body'        = seaOfOutputCond m f body
                 go body'
   where
     -- Missing value needs to be unquoted
     bodyMissingValue
-      = outputValue "string" ["\"" <> pretty missingValue <> "\"", pretty (T.length missingValue)]
+      = outputValue "string" ["\"" <> pretty missing <> "\"", pretty (T.length missing)]
 
     go body
       = pure
@@ -242,7 +241,7 @@ seaOfOutput
   -> Doc                           -- ^ Struct of values to output
   -> Int                           -- ^ Current index into the struct of values
   -> OutputName                    -- ^ Use the output name as seed for generated C names
-  -> Text                          -- ^ Tombstone
+  -> Text                          -- ^ Missing
   -> NameEnv                       -- ^ C names in use
   -> ValType                       -- ^ Output type
   -> [ValType]                     -- ^ Types of arguments
@@ -252,7 +251,7 @@ seaOfOutput
                      , Doc         -- The output statement, x
                      , Int         -- Where it's up to
                      , [ValType] ) -- Unconsumed arguments
-seaOfOutput isJSON struct structIndex outName@(OutputName name _) tombstone env outType argTypes transform
+seaOfOutput isJSON struct structIndex outName@(OutputName name _) missing env outType argTypes transform
  = let prefixi         = pretty name <> "_" <> pretty structIndex <> "_i"
        (suffixi, env'')= newName prefixi env
        counter         = prefixi <> suffixi
@@ -268,11 +267,10 @@ seaOfOutput isJSON struct structIndex outName@(OutputName name _) tombstone env 
         | tes@(arg0:_) <- meltType te
         , (arr  : _)   <- members
         -> do (mcond, mfalse, body, ix, ts1)
-                 <- seaOfOutput InJSON struct structIndex outName tombstone env' te tes (arrayIndex arg0 . transform)
+                 <- seaOfOutput InJSON struct structIndex outName missing env' te tes (arrayIndex arg0 . transform)
 
               -- End the body with a comma, if applicable
-              let body' = seaOfOutputCond mcond mfalse
-                        $ vsep [seaOfOutputArraySep counter, body]
+              let body' = seaOfOutputCond mcond (withSep' counter mfalse) (withSep counter body)
 
               -- Array of arrays is allowed, so we apply the transform here
               let arr'  = transform arr
@@ -289,14 +287,14 @@ seaOfOutput isJSON struct structIndex outName@(OutputName name _) tombstone env 
         , tvs@(argv0 : _) <- meltType tv
         , (arr : _)       <- members
         -> do (mcondk, mfalsek, bk, ixk, _)
-                 <- seaOfOutput InJSON struct structIndex outName tombstone env' tk tks (arrayIndex argk0 . transform)
+                 <- seaOfOutput InJSON struct structIndex outName missing env' tk tks (arrayIndex argk0 . transform)
               (mcondv, mfalsev, bv, ixv, ts)
-                 <- seaOfOutput InJSON struct ixk outName tombstone env' tv tvs (arrayIndex argv0 . transform)
+                 <- seaOfOutput InJSON struct ixk outName missing env' tv tvs (arrayIndex argv0 . transform)
 
               let p  = pair bk bv
-              let p' = seaOfOutputCond mcondk mfalsek
-                     $ seaOfOutputCond mcondv mfalsev
-                     $ vsep [seaOfOutputArraySep counter, p]
+              let p' = seaOfOutputCond mcondk (withSep' counter mfalsek)
+                     $ seaOfOutputCond mcondv (withSep' counter mfalsev)
+                     $ withSep counter p
 
               let numElems  = arrayCount arr
               body         <- seaOfOutputArray p' numElems counter countLimit
@@ -307,9 +305,9 @@ seaOfOutput isJSON struct structIndex outName@(OutputName name _) tombstone env 
         | tas <- meltType ta
         , tbs <- meltType tb
         -> do (mcondk, mfalsek, ba, ixa, _)
-                 <- seaOfOutput InJSON struct structIndex outName tombstone env' ta tas transform
+                 <- seaOfOutput InJSON struct structIndex outName missing env' ta tas transform
               (mcondv, mfalsev, bb, ixb, ts)
-                 <- seaOfOutput InJSON struct ixa outName tombstone env' tb tbs transform
+                 <- seaOfOutput InJSON struct ixa outName missing env' tb tbs transform
 
               let p  = pair ba bb
               let p' = seaOfOutputCond mcondk mfalsek
@@ -322,7 +320,7 @@ seaOfOutput isJSON struct structIndex outName@(OutputName name _) tombstone env 
        StructT fs
         | fields <- Map.toList (getStructType fs)
         -> do let go (ix, ts, docs) (n, t) = do
-                    (cond, false, body, ix', ts') <- seaOfOutput InJSON struct ix outName tombstone env' t ts transform
+                    (cond, _, body, ix', ts') <- seaOfOutput InJSON struct ix outName missing env' t ts transform
 
                     let doc = vsep
                             [ outputChar '\"'
@@ -331,7 +329,7 @@ seaOfOutput isJSON struct structIndex outName@(OutputName name _) tombstone env 
                             , outputChar ':'
                             , body
                             ]
-                    pure (ix', ts', (cond, false, doc) : docs)
+                    pure (ix', ts', (cond, doc) : docs)
 
               (ix, ts, docs) <- foldM go (structIndex, argTypes, mempty) fields
               let doc         = vsep $ [ outputChar '{' , seaOfOutputStructSep docs , outputChar '}' ]
@@ -343,21 +341,21 @@ seaOfOutput isJSON struct structIndex outName@(OutputName name _) tombstone env 
         | (BoolT : ts1) <- argTypes
         , (nb    : _)   <- members
         -> do (mcond, mfalse, body, ix, ts)
-                 <- seaOfOutput isJSON struct (structIndex + 1) outName tombstone env' otype1 ts1 transform
+                 <- seaOfOutput isJSON struct (structIndex + 1) outName missing env' otype1 ts1 transform
 
               let body' = seaOfOutputCond mcond mfalse body
               let nb'   = transform nb
-              pure ( Just nb', Just (outputString tombstone), body', ix, ts )
+              pure ( Just nb', Just (outputString missing), body', ix, ts )
 
        SumT ErrorT otype1
         | (ErrorT : ts1) <- argTypes
         , (ne     : _)   <- members
         -> do (mcond, mfalse, body, ix, ts)
-                 <- seaOfOutput isJSON struct (structIndex + 1) outName tombstone env' otype1 ts1 transform
+                 <- seaOfOutput isJSON struct (structIndex + 1) outName missing env' otype1 ts1 transform
 
               let body' = seaOfOutputCond mcond mfalse body
               let ne'   = transform ne
-              pure ( Just (ne' <> " == ierror_not_an_error"), Just (outputString tombstone), body', ix, ts )
+              pure ( Just (ne' <> " == ierror_not_an_error"), Just (outputString missing), body', ix, ts )
 
        -- Base
        _
@@ -379,29 +377,31 @@ seaOfOutput isJSON struct structIndex outName@(OutputName name _) tombstone env 
    arrayCount x
     = "(" <> x <> ")" <> "->count"
 
+   withSep' counter mbody
+      = fmap (vsep . ([seaOfOutputArraySep counter] <>) . pure) mbody
+
+   withSep counter body
+     = vsep [seaOfOutputArraySep counter, body ]
+
    seaOfOutputBase' b
     = seaOfOutputBase b mismatch
 
    seaOfOutputArraySep c
-     = conditional' (c <+> "> 0") seaOfOutputSep
+     = conditional' (c <+> "> 0") (outputChar ',')
+
+   withStructSep body assign
+     = vsep
+     [ conditional' "need_sep" (outputChar ',')
+     , body
+     , assign ]
 
    seaOfOutputStructSep fs
-     = let go (Just cond, Just false, body) = conditional cond false $ vsep
-             [ conditional' "need_sep" seaOfOutputSep
-             , body
-             , "need_sep = " <> cond <> ";" ]
-           go (Just cond, Nothing, body) = conditional' cond $ vsep
-             [ conditional' "need_sep" seaOfOutputSep
-             , body
-             , "need_sep = " <> cond <> ";" ]
-           go (Nothing, _, body) = vsep
-             [ conditional' "need_sep" seaOfOutputSep
-             , body
-             , "need_sep = itrue;" ]
+     = let go (Just cond, body)
+             = conditional' cond
+                (withStructSep body  ("need_sep = " <> cond <> ";"))
+           go (Nothing, body)
+             = withStructSep body "need_sep = itrue;"
        in  vsep ("ibool_t need_sep = ifalse;" : fmap go fs)
-
-   seaOfOutputSep
-     = outputChar ','
 
 --------------------------------------------------------------------------------
 

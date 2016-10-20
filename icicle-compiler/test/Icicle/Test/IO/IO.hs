@@ -10,6 +10,7 @@ module Icicle.Test.IO.IO where
 import           Control.Monad.Trans.Class
 
 import           Data.List (nubBy)
+import qualified Data.Set as Set
 
 import           Disorder.Core.IO
 import           Disorder.Corpus
@@ -69,7 +70,7 @@ instance Arbitrary DictionaryEntry where
  arbitrary
   =   DictionaryEntry
   <$> arbitrary
-  <*> (ConcreteDefinition <$> arbitrary <*> (pure <$> elements viruses) <*> (pure unkeyed))
+  <*> (ConcreteDefinition <$> arbitrary <*> (Set.singleton <$> elements viruses) <*> (pure unkeyed))
   <*> (Namespace <$> elements simpsons)
 
 instance Show a => Testable (Either a Property) where

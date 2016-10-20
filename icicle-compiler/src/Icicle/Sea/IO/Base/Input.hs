@@ -39,6 +39,7 @@ module Icicle.Sea.IO.Base.Input
 
 import qualified Data.ByteString                  as B
 import           Data.Map                         (Map)
+import           Data.Set                         (Set)
 import qualified Data.Text.Encoding               as T
 import           Data.Word                        (Word8)
 
@@ -65,7 +66,7 @@ type Name = Text
 
 data InputOpts = InputOpts
   { inputAllowDupTime :: InputAllowDupTime
-  , inputTombstones   :: Map Attribute [Text]
+  , inputTombstones   :: Map Attribute (Set Text)
   } deriving (Show, Eq)
 
 -- | Whether fact times must be unique for an entity.
@@ -117,7 +118,7 @@ data SeaInputError = SeaInputError
 
 -- Common input statements, for both PSV and Zebra
 data SeaInput = SeaInput
-  { cstmtReadFact     :: SeaProgramState -> [Text] -> CheckedInput -> CStmt -> CStmt -> CFun
+  { cstmtReadFact     :: SeaProgramState -> Set Text -> CheckedInput -> CStmt -> CStmt -> CFun
   -- ^ Generate C code to read input into the `program->input` struct.
   , cstmtReadTime     :: CStmt
   -- ^ Generate C code to read the current fact time.

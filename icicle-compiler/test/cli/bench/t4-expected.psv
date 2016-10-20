@@ -1,1 +1,3 @@
-homer|test|none
+homer|test|["ignore",NA]
+homer|test_map|[["arm",[NA]],["torso",["ignore",NA]]]
+homer|test_map_struct|[["arm",[{"severity":4616189618054758000.0,"location":"arm"}]],["torso",[{"severity":4613937818241073000.0,"location":"torso","action":"ignore"},{"severity":4607182418800017400.0,"location":"torso"}]]]
