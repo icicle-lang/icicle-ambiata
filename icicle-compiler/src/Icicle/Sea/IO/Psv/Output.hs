@@ -150,24 +150,9 @@ seaOfWriteProgramOutput config state = do
 
 seaOfWriteOutputSparse :: Doc -> Int -> OutputName -> ValType -> [ValType] -> Either SeaError Doc
 seaOfWriteOutputSparse struct structIndex outName@(OutputName name _) outType argTypes
-  = let members = structMembers struct name argTypes structIndex
-    in case outType of
-         -- Top-level Sum is a special case, to avoid allocating and printing if
-         -- the whole computation is an error (e.g. tombstone)
-         SumT ErrorT outType'
-          | (ErrorT : argTypes') <- argTypes
-          , (ne     : _)         <- members
-          -> do (m, f, body, _, _)
-                   <- seaOfOutput NotInJSON struct (structIndex + 1) outName PsvDrop Map.empty outType' argTypes' id
-                let body'        = seaOfOutputCond m f body
-                let body''       = go body'
-                pure $ conditionalNotError' ne body''
-         _
-          -> do (m, f, body, _, _)
-                   <- seaOfOutput NotInJSON struct structIndex outName PsvDrop Map.empty outType argTypes id
-                let body'        = seaOfOutputCond m f body
-                return $ go body'
-
+  = do (m, f, body, _, _)
+          <- seaOfOutput NotInJSON struct structIndex outName PsvDrop Map.empty outType argTypes id
+       return $ seaOfOutputCond m f (go body)
   where
     go str = vsep [ outputEntity
                   , outputChar '|'
