@@ -11,11 +11,11 @@ tombstone = "foo"
 [fact.injury]
   encoding="(location:string,severity:double,action:string*)"
 
-[feature.test]
-   expression = "feature injury ~> latest 2 ~> action"
+[feature.latest_four]
+   expression = "feature injury ~> latest 4 ~> action"
+
+[feature.newest]
+   expression = "feature injury ~> newest action"
 
 [feature.test_map]
    expression = "feature injury ~> group location ~> latest 2 ~> action"
-
-[feature.test_map_struct]
-   expression = "feature injury ~> group location ~> latest 2 ~> fields"

@@ -7,7 +7,6 @@ module Icicle.Sea.IO.Psv.Output where
 import qualified Data.List as List
 import           Data.Map (Map)
 import qualified Data.Map as Map
-import qualified Data.Text as T
 
 import           Icicle.Avalanche.Prim.Flat (Prim(..), PrimUnsafe(..))
 import           Icicle.Avalanche.Prim.Flat (meltType)
@@ -43,6 +42,10 @@ data PsvOutputFormat
   deriving (Eq, Ord, Show)
 
 type PsvOutputWhiteList = Maybe [Text]
+
+data PsvMissing
+  = PsvMissing Text
+  | PsvDrop
 
 defaultOutputMissing :: Text
 defaultOutputMissing = "NA"
@@ -124,9 +127,9 @@ seaOfWriteProgramOutput config state = do
   let outputState (name, (ty, tys))
         = case outputPsvFormat config of
             PsvOutputSparse
-              -> seaOfWriteOutputSparse ps 0 name tb ty tys
+              -> seaOfWriteOutputSparse ps 0 name ty tys
             PsvOutputDense
-              -> seaOfWriteOutputDense  ps 0 name tb ty tys
+              -> seaOfWriteOutputDense  ps 0 name ty tys tb
 
   let outputRes   name
         = ps <> "->" <> pretty (hasPrefix <> name) <+> "= ifalse;"
@@ -145,26 +148,11 @@ seaOfWriteProgramOutput config state = do
     , vsep outputs
     ]
 
-seaOfWriteOutputSparse :: Doc -> Int -> OutputName -> Text -> ValType -> [ValType] -> Either SeaError Doc
-seaOfWriteOutputSparse struct structIndex outName@(OutputName name _) missing outType argTypes
-  = let members = structMembers struct name argTypes structIndex
-    in case outType of
-         -- Top-level Sum is a special case, to avoid allocating and printing if
-         -- the whole computation is an error (e.g. tombstone)
-         SumT ErrorT outType'
-          | (ErrorT : argTypes') <- argTypes
-          , (ne     : _)         <- members
-          -> do (m, f, body, _, _)
-                   <- seaOfOutput NotInJSON struct (structIndex + 1) outName missing Map.empty outType' argTypes' id
-                let body'        = seaOfOutputCond m f body
-                let body''       = go body'
-                pure $ conditionalNotError' ne body''
-         _
-          -> do (m, f, body, _, _)
-                   <- seaOfOutput NotInJSON struct structIndex outName missing Map.empty outType argTypes id
-                let body'        = seaOfOutputCond m f body
-                return $ go body'
-
+seaOfWriteOutputSparse :: Doc -> Int -> OutputName -> ValType -> [ValType] -> Either SeaError Doc
+seaOfWriteOutputSparse struct structIndex outName@(OutputName name _) outType argTypes
+  = do (m, f, body, _, _)
+          <- seaOfOutput NotInJSON struct structIndex outName PsvDrop Map.empty outType argTypes id
+       return $ seaOfOutputCond m f (go body)
   where
     go str = vsep [ outputEntity
                   , outputChar '|'
@@ -175,30 +163,12 @@ seaOfWriteOutputSparse struct structIndex outName@(OutputName name _) missing ou
                   , outputChar '\n'
                   ]
 
-seaOfWriteOutputDense :: Doc -> Int -> OutputName -> Text -> ValType -> [ValType] -> Either SeaError Doc
-seaOfWriteOutputDense struct structIndex outName@(OutputName name _) missing outType argTypes
-  = let members = structMembers struct name argTypes structIndex
-    in  case outType of
-         SumT ErrorT outType'
-          | (ErrorT : argTypes') <- argTypes
-          , (ne     : _)         <- members
-          -> do (m, f, body, _, _)
-                   <- seaOfOutput NotInJSON struct (structIndex + 1) outName missing Map.empty outType' argTypes' id
-                let body'        = seaOfOutputCond m f body
-                go $ conditionalNotError ne body' bodyMissingValue
-         _
-          -> do (m, f, body, _, _)
-                   <- seaOfOutput NotInJSON struct structIndex outName missing Map.empty outType argTypes id
-                let body'        = seaOfOutputCond m f body
-                go body'
-  where
-    -- Missing value needs to be unquoted
-    bodyMissingValue
-      = outputValue "string" ["\"" <> pretty missing <> "\"", pretty (T.length missing)]
-
-    go body
-      = pure
-      $ vsep [ outputChar '|', body ]
+seaOfWriteOutputDense :: Doc -> Int -> OutputName -> ValType -> [ValType] -> Text -> Either SeaError Doc
+seaOfWriteOutputDense struct structIndex outName outType argTypes missing
+  = do (m, f, body, _, _)
+          <- seaOfOutput NotInJSON struct structIndex outName (PsvMissing missing) Map.empty outType argTypes id
+       let body' = seaOfOutputCond m f body
+       pure $ vsep [ outputChar '|', body' ]
 
 -- | Construct the struct member names for the output arguments.
 --
@@ -241,13 +211,13 @@ seaOfOutput
   -> Doc                           -- ^ Struct of values to output
   -> Int                           -- ^ Current index into the struct of values
   -> OutputName                    -- ^ Use the output name as seed for generated C names
-  -> Text                          -- ^ Missing
+  -> PsvMissing                    -- ^ Drop missing values or output something
   -> NameEnv                       -- ^ C names in use
   -> ValType                       -- ^ Output type
   -> [ValType]                     -- ^ Types of arguments
   -> (Doc -> Doc)                  -- ^ Transformation to be applied to this struct member, e.g. index
-  -> Either SeaError ( Maybe Doc
-                     , Maybe Doc
+  -> Either SeaError ( Maybe Doc   -- Output the value when this is true
+                     , Maybe Doc   -- Otherwise output this
                      , Doc         -- The output statement, x
                      , Int         -- Where it's up to
                      , [ValType] ) -- Unconsumed arguments
@@ -266,52 +236,46 @@ seaOfOutput isJSON struct structIndex outName@(OutputName name _) missing env ou
        ArrayT te
         | tes@(arg0:_) <- meltType te
         , (arr  : _)   <- members
-        -> do (mcond, mfalse, body, ix, ts1)
-                 <- seaOfOutput InJSON struct structIndex outName missing env' te tes (arrayIndex arg0 . transform)
-
-              -- End the body with a comma, if applicable
-              let body' = seaOfOutputCond mcond (withSep' counter mfalse) (withSep counter body)
+        -> do (mcond, _, body, ix, ts1)
+                 <- seaOfOutput InJSON struct structIndex outName PsvDrop env' te tes (arrayIndex arg0 . transform)
 
               -- Array of arrays is allowed, so we apply the transform here
               let arr'  = transform arr
 
               -- Wrap the body in a for loop
               let numElems  = arrayCount arr'
-              body''       <- seaOfOutputArray body' numElems counter countLimit
+              body'        <- seaOfOutputArray mcond body numElems counter countLimit
 
-              return (Nothing, Nothing, body'', ix, ts1)
+              return (Nothing, Nothing, body', ix, ts1)
 
 
        MapT tk tv
         | tks@(argk0 : _) <- meltType tk
         , tvs@(argv0 : _) <- meltType tv
         , (arr : _)       <- members
-        -> do (mcondk, mfalsek, bk, ixk, _)
-                 <- seaOfOutput InJSON struct structIndex outName missing env' tk tks (arrayIndex argk0 . transform)
-              (mcondv, mfalsev, bv, ixv, ts)
-                 <- seaOfOutput InJSON struct ixk outName missing env' tv tvs (arrayIndex argv0 . transform)
+        -> do (mcondk, _, bk, ixk, _)
+                 <- seaOfOutput InJSON struct structIndex outName PsvDrop env' tk tks (arrayIndex argk0 . transform)
+              (mcondv, _, bv, ixv, ts)
+                 <- seaOfOutput InJSON struct ixk outName PsvDrop env' tv tvs (arrayIndex argv0 . transform)
 
               let p  = pair bk bv
-              let p' = seaOfOutputCond mcondk (withSep' counter mfalsek)
-                     $ seaOfOutputCond mcondv (withSep' counter mfalsev)
-                     $ withSep counter p
 
               let numElems  = arrayCount arr
-              body         <- seaOfOutputArray p' numElems counter countLimit
+              body         <- seaOfOutputArray (condAnd mcondk mcondv) p numElems counter countLimit
               return (Nothing, Nothing, body, ixv, ts)
 
 
        PairT ta tb
         | tas <- meltType ta
         , tbs <- meltType tb
-        -> do (mcondk, mfalsek, ba, ixa, _)
-                 <- seaOfOutput InJSON struct structIndex outName missing env' ta tas transform
-              (mcondv, mfalsev, bb, ixb, ts)
-                 <- seaOfOutput InJSON struct ixa outName missing env' tb tbs transform
+        -> do (mcondk, _, ba, ixa, _)
+                 <- seaOfOutput InJSON struct structIndex outName PsvDrop env' ta tas transform
+              (mcondv, _, bb, ixb, ts)
+                 <- seaOfOutput InJSON struct ixa outName PsvDrop env' tb tbs transform
 
               let p  = pair ba bb
-              let p' = seaOfOutputCond mcondk mfalsek
-                     $ seaOfOutputCond mcondv mfalsev
+              let p' = seaOfOutputCond' mcondk
+                     $ seaOfOutputCond' mcondv
                      $ p
 
               return (Nothing, Nothing, p', ixb, ts)
@@ -320,7 +284,7 @@ seaOfOutput isJSON struct structIndex outName@(OutputName name _) missing env ou
        StructT fs
         | fields <- Map.toList (getStructType fs)
         -> do let go (ix, ts, docs) (n, t) = do
-                    (cond, _, body, ix', ts') <- seaOfOutput InJSON struct ix outName missing env' t ts transform
+                    (cond, _, body, ix', ts') <- seaOfOutput InJSON struct ix outName PsvDrop env' t ts transform
 
                     let doc = vsep
                             [ outputChar '\"'
@@ -345,7 +309,8 @@ seaOfOutput isJSON struct structIndex outName@(OutputName name _) missing env ou
 
               let body' = seaOfOutputCond mcond mfalse body
               let nb'   = transform nb
-              pure ( Just nb', Just (outputString missing), body', ix, ts )
+              pure ( condAnd (Just nb') mcond
+                   , outputMissing, body', ix, ts )
 
        SumT ErrorT otype1
         | (ErrorT : ts1) <- argTypes
@@ -355,7 +320,8 @@ seaOfOutput isJSON struct structIndex outName@(OutputName name _) missing env ou
 
               let body' = seaOfOutputCond mcond mfalse body
               let ne'   = transform ne
-              pure ( Just (ne' <> " == ierror_not_an_error"), Just (outputString missing), body', ix, ts )
+              pure ( condAnd (Just (ne' <> " == ierror_not_an_error")) mcond
+                   , outputMissing, body', ix, ts )
 
        -- Base
        _
@@ -375,33 +341,24 @@ seaOfOutput isJSON struct structIndex outName@(OutputName name _) missing env ou
               $ fmap (\ix -> struct <> "->" <> seaOfNameIx name ix) [structIndex..]
 
    arrayCount x
-    = "(" <> x <> ")" <> "->count"
+     = "(" <> x <> ")" <> "->count"
 
-   withSep' counter mbody
-      = fmap (vsep . ([seaOfOutputArraySep counter] <>) . pure) mbody
+   condAnd Nothing y
+     = y
+   condAnd x Nothing
+     = x
+   condAnd (Just x) (Just y)
+     = Just ("(" <> x <> ") && (" <> y <> ")")
 
-   withSep counter body
-     = vsep [seaOfOutputArraySep counter, body ]
+   outputMissing
+     = case missing of
+         PsvDrop
+           -> Nothing
+         PsvMissing s
+           -> Just (outputString s)
 
    seaOfOutputBase' b
-    = seaOfOutputBase b mismatch
-
-   seaOfOutputArraySep c
-     = conditional' (c <+> "> 0") (outputChar ',')
-
-   withStructSep body assign
-     = vsep
-     [ conditional' "need_sep" (outputChar ',')
-     , body
-     , assign ]
-
-   seaOfOutputStructSep fs
-     = let go (Just cond, body)
-             = conditional' cond
-                (withStructSep body  ("need_sep = " <> cond <> ";"))
-           go (Nothing, body)
-             = withStructSep body "need_sep = itrue;"
-       in  vsep ("ibool_t need_sep = ifalse;" : fmap go fs)
+     = seaOfOutputBase b mismatch
 
 --------------------------------------------------------------------------------
 
@@ -411,16 +368,43 @@ seaOfArrayIndex arr ix typ
                     [ arr, ix ]
 
 -- | Output an array with pre-defined bodies
-seaOfOutputArray :: Applicative f => Doc -> Doc -> Doc -> Doc -> f Doc
-seaOfOutputArray body numElems counter countLimit
- = pure (vsep [ outputChar '['
+seaOfOutputArray :: Applicative f => Maybe Doc -> Doc -> Doc -> Doc -> Doc -> f Doc
+seaOfOutputArray mcond body numElems counter countLimit
+  = let go (Just cond)
+          = conditional' cond (withSep ("need_array_sep = " <> cond <> ";"))
+        go Nothing
+          = withSep "need_array_sep = itrue;"
+
+        withSep assign
+          = vsep
+          [ conditional' "need_array_sep" (outputChar ',')
+          , body
+          , assign ]
+
+    in pure (vsep [ outputChar '['
+              , "ibool_t need_array_sep = ifalse;"
               , forStmt counter countLimit numElems
               , "{"
-              , indent 4 body
+              , indent 4 (go mcond)
               , "}"
               , outputChar ']'
-              ]
-        )
+              ])
+
+seaOfOutputStructSep :: [(Maybe Doc, Doc)] -> Doc
+seaOfOutputStructSep fs
+  = let go (Just cond, body)
+          = conditional' cond
+             (withStructSep body  ("need_struct_sep = " <> cond <> ";"))
+        go (Nothing, body)
+          = withStructSep body "need_struct_sep = itrue;"
+
+        withStructSep body assign
+          = vsep
+          [ conditional' "need_struct_sep" (outputChar ',')
+          , body
+          , assign ]
+
+    in  vsep ("ibool_t need_struct_sep = ifalse;" : fmap go fs)
 
 -- | Output an if statement
 seaOfOutputCond :: Maybe Doc -> Maybe Doc -> Doc -> Doc
@@ -434,6 +418,14 @@ seaOfOutputCond mcond if_false if_true
                -> conditional' cond if_true
              Just x
                -> conditional cond if_true x
+
+seaOfOutputCond' :: Maybe Doc -> Doc -> Doc
+seaOfOutputCond' mcond if_true
+  = case mcond of
+      Nothing
+        -> if_true
+      Just cond
+        -> conditional' cond if_true
 
 -- | Output single types
 seaOfOutputBase :: IsInJSON -> SeaError -> ValType -> Doc -> Either SeaError Doc

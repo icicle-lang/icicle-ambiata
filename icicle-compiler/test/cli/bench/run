@@ -109,21 +109,24 @@ echo "OK!"
 
 ################################################################################
 
-echo "3. Output most recently defined tombstone"
+echo "4. Output missing value"
 
+t4_common_args="--discard=true --input=sparse --output=dense"
 t4_dict=test/cli/bench/t4-dictionary.toml
 t4_in=test/cli/bench/t4-in.psv
 
 t4_expected=test/cli/bench/t4-expected.psv
 t4_out_c=`mktemp -t icicle-bench-t4-c-XXXXXX`
 t4_out_psv=`mktemp -t icicle-bench-t4-out-XXXXXX`
+t4_drop=`mktemp -t icicle-bench-t4-drop-XXXXXX`
 
-dist/build/icicle-bench/icicle-bench $t4_dict $t4_in $t4_out_psv $t4_out_c 2010-01-01
+dist/build/icicle-bench/icicle-bench $t4_dict $t4_in $t4_out_psv $t4_out_c 2010-01-01 1000 $t4_drop $t4_common_args
 
 diff $t4_expected $t4_out_psv
 
 rm $t4_out_c
 rm $t4_out_psv
+rm $t4_drop
 
 echo "OK!"
 
