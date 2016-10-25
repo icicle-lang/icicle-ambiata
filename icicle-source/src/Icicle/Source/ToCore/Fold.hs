@@ -117,12 +117,6 @@ convertFold q
             -- Check if it is a scalar variable or postcomputation
             case bound of
              Just v'
-              | TemporalityPure  <- getTemporalityOrPure retty
-              -> do n'ignore <- lift fresh
-                    retty' <- convertValType' retty
-                    let k = CE.xLam n'ignore retty' $ CE.xVar v'
-                    return $ ConvertFoldResult k (CE.xVar v') k retty' retty'
-
               | TemporalityElement <- getTemporalityOrPure retty
               -> do retty' <- convertValType' retty
                     i <- idFun retty'
