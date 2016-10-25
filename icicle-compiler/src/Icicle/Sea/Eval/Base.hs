@@ -670,6 +670,7 @@ peekArray ptr t = do
 peekArrayIx :: (Functor m, MonadIO m) => Ptr x -> ValType -> Int -> EitherT SeaError m BaseValue
 peekArrayIx ptr t ix =
   case t of
+    UnitT   -> pure VUnit
     IntT    -> VInt    . fromInt64    <$> peekWordOff ptr ix
     DoubleT -> VDouble                <$> peekWordOff ptr ix
     TimeT   -> VTime   . timeOfPacked <$> peekWordOff ptr ix
