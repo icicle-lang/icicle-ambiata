@@ -1,0 +1,15 @@
+:dictionary test/cli/repl/t02.1-group-groups/dictionary.toml
+:load test/cli/repl/t02.1-group-groups/data.psv
+:set time 2016 7 14
+:set +core-eval
+:set +c-eval
+
+-- Nested groups
+feature cylon ~> group (year_of time) ~> group (day_of time) ~> count value
+
+-- Distinct inside groups is also a common use case.
+feature cylon ~> group (year_of time) ~> distinct (day_of time) ~> count value
+
+-- Nested distincts don't really make sense, but technically possible.
+feature cylon ~> distinct (year_of time) ~> distinct (day_of time) ~> count value
+feature cylon ~> distinct (year_of time) ~> group (day_of time) ~> count value

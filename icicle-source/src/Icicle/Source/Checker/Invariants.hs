@@ -33,10 +33,11 @@ invariantQ ctx (Query [] x)
 invariantQ ctx (Query (c:cs) xfinal)
  = case c of
     Windowed{}
-     | allowWindowsOrGroups inv
-     -> go
+     | allowWindows inv
+     -> goBanWindowAndGroupFold
      | otherwise
-     -> errBanGroup "Consider moving the window to the start of the query"
+     -> errBanWindow "Consider moving the window to the start of the query"
+
     Latest{}
      | allowLatest inv
      -- XXX: ban latest inside latests.
@@ -45,22 +46,18 @@ invariantQ ctx (Query (c:cs) xfinal)
      -> goBanAll
      | otherwise
      -> errBanLatest
+
     GroupBy _ x
-     | allowWindowsOrGroups inv
-     -> goX x >> goBanGroup
-     | otherwise
-     -> errBanGroup "Nested groups are not supported"
+     -> goX x >> goBanWindowAndGroupFold
+
     Distinct _ x
-     | allowWindowsOrGroups inv
-     -> goX x >> goBanGroup
-     | otherwise
-     -> errBanGroup "Nested Distinct are not supported"
+     -> goX x >> goBanWindowAndGroupFold
 
     GroupFold _ _ _ x
-     | allowWindowsOrGroups inv
-     -> goX x >> goBanAll
+     | allowWindows inv
+     -> goX x >> goBanWindowAndGroupFold
      | otherwise
-     -> errBanGroup "Nested group folds are not supported"
+     -> errBanGroupFold
 
     Filter _ x
      -> goX x >> go
@@ -76,14 +73,15 @@ invariantQ ctx (Query (c:cs) xfinal)
   goX = invariantX ctx
 
   goBanAll
-     = invariantQ
-        (ctx{ checkInvariants = inv{ allowLatest = False, allowWindowsOrGroups = False }})
-        q'
+     = flip invariantQ q'
+     $ ctx { checkInvariants = inv { allowLatest = False
+                                   , allowWindows = False
+                                   , allowGroupFolds = False }}
 
-  goBanGroup
-     = invariantQ
-        (ctx{ checkInvariants = inv{ allowWindowsOrGroups = False }})
-        q'
+  goBanWindowAndGroupFold
+     = flip invariantQ q'
+     $ ctx { checkInvariants = inv { allowWindows = False
+                                   , allowGroupFolds = False }}
 
   errBanLatest
    = errorSuggestions
@@ -92,11 +90,16 @@ invariantQ ctx (Query (c:cs) xfinal)
       , Suggest "If you are using latest inside a latest, you should be able to rewrite your query to use a single latest."
       , Suggest "Note that 'newest' is implemented using latest, but if you have `latest 5 ~> newest value` you might be able to just use `newest value`."]
 
-  errBanGroup sug
+  errBanWindow sug
    = errorSuggestions
       (ErrorContextNotAllowedHere (annotOfContext c) c)
-      [ Suggest "Groups, distincts, latests and windows cannot be nested"
+      [ Suggest "Windows cannot be inside groups/latest"
       , Suggest sug]
+
+  errBanGroupFold
+   = errorSuggestions
+      (ErrorContextNotAllowedHere (annotOfContext c) c)
+      [ Suggest "Group folds are unsupported inside groups/latests" ]
 
 
 invariantX

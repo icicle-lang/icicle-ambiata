@@ -7,6 +7,9 @@
 module Icicle.Source.ToCore.Fold (
     convertFold
   , ConvertFoldResult(..)
+  , groupMapType
+  , groupFoldType
+  , groupMapSum
   ) where
 
 import           Icicle.Common.Base
@@ -14,8 +17,11 @@ import qualified Icicle.Common.Exp.Prim.Minimal as Min
 import qualified Icicle.Common.Exp.Simp.Beta    as Beta
 import           Icicle.Common.Fresh
 import qualified Icicle.Common.Type             as T
+import qualified Icicle.Common.Exp           as CE
+
 import qualified Icicle.Core                    as C
 import qualified Icicle.Core.Exp.Combinators    as CE
+
 import           Icicle.Source.Query
 import           Icicle.Source.ToCore.Base
 import           Icicle.Source.ToCore.Context
@@ -33,11 +39,11 @@ import qualified Data.Map                       as Map
 
 data ConvertFoldResult n
  = ConvertFoldResult
- { foldKons    :: C.Exp () n
- , foldZero    :: C.Exp () n
- , mapExtract  :: C.Exp () n
- , typeFold    :: T.ValType
- , typeExtract :: T.ValType
+ { foldKons    :: C.Exp () n -- a -> b -> a
+ , foldZero    :: C.Exp () n -- a
+ , mapExtract  :: C.Exp () n -- a -> c
+ , typeFold    :: T.ValType  -- a
+ , typeExtract :: T.ValType  -- c
  } deriving (Eq, Ord, Show)
 
 
@@ -61,9 +67,10 @@ data ConvertFoldResult n
 --  K = (\(s,c) v   -> (s + v, c + 1))
 --  Z =                (0, 0)
 --  X = (\(s,c)     -> s / c)
--- 
--- 
--- Not all subqueries are supported: windowing, grouping and distincts are banned.
+--
+--
+-- Not all subqueries are supported:
+--  windows cannot be inside windows/groups/latests
 --
 --
 convertFold
@@ -297,16 +304,131 @@ convertFold q
 
            return $ ConvertFoldResult kons zero xtra t'buf t'r
 
+    -- Fold over an existing group.
+    (GroupBy (Annot { annAnnot = ann, annResult = retty }) k : _)
+     -> do -- Convert the rest of the query into a fold.
+           res     <- convertFold q'
 
-    (Windowed (Annot { annAnnot = ann }) _ _ : _)
-     -> errNotAllowed ann
-    (GroupBy (Annot { annAnnot = ann }) _ : _)
-     -> errNotAllowed ann
+           -- Construct the map.
+           n'map     <- lift fresh
+           k'        <- convertExp k
+           t'k       <- convertValType' $ annResult $ annotOfExp k
+
+           let t'fold  = typeFold res
+           let t'xtra  = typeExtract res
+           let t'map   = T.MapT t'k t'fold
+
+           let zero = CE.xValue t'map $ VMap Map.empty
+           let kons = CE.xLam n'map t'map
+                    $ CE.makeApps () (primInsUpd t'k t'fold)
+                    [ foldKons res
+                    , foldKons res `CE.xApp` foldZero res
+                    , k'
+                    , CE.xVar n'map ]
+
+           -- Fold over the map, apply the extraction on each value.
+           n'r   <- lift fresh
+           n'r'  <- lift fresh
+           n'k   <- lift fresh
+           n'k'  <- lift fresh
+           n'x   <- lift fresh
+           n'x'  <- lift fresh
+           n'x'r <- lift fresh
+           n'err <- lift fresh
+
+           (t'kr, t'xr) <- getGroupByMapType ann retty
+
+           let isPossibly
+                 = PossibilityPossibly == getPossibilityOrDefinitely retty
+           let (t'sum, x'sumzero)
+                 = groupMapSum isPossibly t'kr t'xr
+           let unwrapSum' chk
+                 = unwrapSum chk t'sum n'err
+           let rewrapSum'
+                 = rewrapSum isPossibly t'sum
+
+           let extract n
+                 = mapExtract res CE.@~ CE.xVar n
+           let ins
+                 = CE.xLam n'r t'sum
+                 $ CE.xLam n'k t'k
+                 $ CE.xLam n'x t'fold
+                 $ unwrapSum'  isPossibly                         (CE.xVar n'r) n'r' t'sum
+                 $ unwrapSum' (isAnnotPossibly $ annotOfExp   k)  (CE.xVar n'k) n'k' t'k
+                 $ unwrapSum' (isAnnotPossibly $ annotOfQuery q') (extract n'x) n'x' t'xtra
+                 $ rewrapSum'
+                 $ CE.makeApps () (primInsUpd t'kr t'xr)
+                 [ CE.xLam n'x'r t'xr $ CE.xVar n'x'r
+                 , CE.xVar n'x'
+                 , CE.xVar n'k'
+                 , CE.xVar n'r' ]
+
+           let xtra
+                = CE.xPrim (C.PrimFold (C.PrimFoldMap t'k t'fold) t'sum)
+                  CE.@~ ins
+                  CE.@~ x'sumzero
+
+           return $ ConvertFoldResult kons zero xtra t'map t'sum
+
+    -- Distinct inside an existing group.
+    (Distinct _ k : _)
+     -> do -- Convert the rest of the query into a fold.
+           res     <- convertFold q'
+
+           -- Construct the map.
+           n'pair <- lift fresh
+           n'_    <- lift fresh
+           n'__   <- lift fresh
+
+           k'     <- convertExp k
+           t'k    <- convertValType' $ annResult $ annotOfExp k
+
+           let t'fold  = typeFold res
+           let t'xtra  = typeExtract res
+           let t'map   = T.MapT t'k T.UnitT
+           let t'pair  = T.PairT t'map t'fold
+
+           let x'fst
+                 = CE.xApp $ CE.xPrim $ C.PrimMinimal $ Min.PrimPair $ Min.PrimPairFst t'map t'fold
+           let x'snd
+                 = CE.xApp $ CE.xPrim $ C.PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd t'map t'fold
+           let x'pair x y
+                 = (CE.xPrim $ C.PrimMinimal $ Min.PrimConst $ Min.PrimConstPair t'map t'fold)
+                    CE.@~ x CE.@~ y
+           let x'unit
+                 = CE.xValue T.UnitT VUnit
+
+           let zero
+                 = x'pair (CE.emptyMap t'k T.UnitT) (foldZero res)
+
+           let ins
+                 = CE.makeApps () (primInsUpd t'k T.UnitT)
+                 [ CE.xLam n'_ T.UnitT x'unit
+                 , x'unit
+                 , k'
+                 , x'fst (CE.xVar n'pair)]
+           let upd
+                 = x'pair ins (foldKons res CE.@~ x'snd (CE.xVar n'pair) )
+           let kons
+                 = CE.xLam n'pair t'pair
+                 ( CE.xPrim (C.PrimFold (C.PrimFoldOption T.UnitT) t'pair)
+                     CE.@~ CE.xLam n'__ T.UnitT (CE.xVar n'pair)
+                     CE.@~ CE.xLam n'__ T.UnitT upd
+                     CE.@~ ( CE.xPrim (C.PrimMap (C.PrimMapLookup t'k T.UnitT))
+                               CE.@~ x'fst (CE.xVar n'pair)
+                               CE.@~ k' ) )
+
+           -- Fold over the map
+           let xtra
+                = CE.xLam n'pair t'pair
+                ( mapExtract res CE.@~ x'snd (CE.xVar n'pair))
+
+           return $ ConvertFoldResult kons zero xtra t'pair t'xtra
+
     (GroupFold (Annot { annAnnot = ann }) _ _ _ : _)
      -> errNotAllowed ann
-    (Distinct (Annot { annAnnot = ann }) _ : _)
+    (Windowed (Annot { annAnnot = ann }) _ _ : _)
      -> errNotAllowed ann
-
 
     (Let _ b def : _)
      | TemporalityPure  <- getTemporalityOrPure $ annResult $ annotOfExp def
@@ -461,5 +583,49 @@ convertFold q
 
             return $ ConvertFoldResult k' z' x' tpair (typeExtract resq)
 
-  convertValType' = convertValType (annAnnot $ annotOfQuery q)
+  convertValType'   = convertValType (annAnnot $ annotOfQuery q)
+  getGroupByMapType = groupMapType  convertValType'
 
+  primInsUpd a b = CE.xPrim $ C.PrimMap $ C.PrimMapInsertOrUpdate a b
+
+
+-- | Group bys can live in either Aggregate or Group universe.
+--   Because Core is explicitly typed, we need to pull out the key type and value type.
+groupMapType :: (Type n -> ConvertM a n T.ValType)
+             -> a
+             -> Type n
+             -> ConvertM a n (T.ValType, T.ValType)
+groupMapType convertValType' ann ty
+ | (_,_,t') <- decomposeT ty
+ , (GroupT tk tv) <- t'
+ = (,) <$> convertValType' tk <*> convertValType' tv
+ | (_,_,t') <- decomposeT ty
+ , (SumT ErrorT (GroupT tk tv)) <- t'
+ = (,) <$> convertValType' tk <*> convertValType' tv
+ | otherwise
+ = convertError $ ConvertErrorGroupByHasNonGroupResult ann ty
+
+-- | Get the key and value type of a group inside a group-fold.
+groupFoldType :: (Type n -> ConvertM a n T.ValType)
+              -> a
+              -> Exp (Annot a n) n
+              -> ConvertM a n (T.ValType, T.ValType)
+groupFoldType convertValType' a e
+ = do t <- convertValType' $ annResult $ annotOfExp e
+      case t of
+       T.MapT tk tv -> return (tk, tv)
+       _            -> convertError $ ConvertErrorGroupFoldNotOnGroup a e
+
+groupMapSum :: Bool -> T.ValType -> T.ValType -> (T.ValType, C.Exp () n)
+groupMapSum isPossibly tk tx
+  = let sumt
+          | isPossibly
+          = T.SumT T.ErrorT $ T.MapT tk tx
+          | otherwise
+          = T.MapT tk tx
+        emptyResult
+          | isPossibly
+          = CE.xValue sumt $ VRight $ VMap Map.empty
+          | otherwise
+          = CE.xValue sumt $ VMap Map.empty
+    in (sumt, emptyResult)
