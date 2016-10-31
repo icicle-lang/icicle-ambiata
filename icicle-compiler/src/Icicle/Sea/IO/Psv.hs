@@ -249,7 +249,7 @@ seaOfConfigureFleet :: PsvMode -> [SeaProgramState] -> Doc
 seaOfConfigureFleet mode states
  = vsep
  [ "#line 1 \"configure fleet state\""
- , "static ierror_loc_t psv_configure_fleet (const char *entity, size_t entity_size, const ichord_t **chord, ifleet_t *fleet)"
+ , "static ierror_loc_t psv_configure_fleet (const iint_t input_fd, const char *entity, size_t entity_size, const ichord_t **chord, ifleet_t *fleet)"
  , "{"
  , "    iint_t max_chord_count = fleet->max_chord_count;"
  , ""
@@ -262,7 +262,7 @@ seaOfConfigureFleet mode states
  , ""
  , "    if (chord_count > max_chord_count) {"
  , "        return ierror_loc_format"
- , "            ( 0, 0"
+ , "            ( input_fd, 0, 0"
  , "            , \"exceeded maximum number of chords per entity (chord_count = %lld, max_chord_count = %lld)\""
  , "            , chord_count"
  , "            , max_chord_count );"

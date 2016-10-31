@@ -63,7 +63,7 @@ nameOfReadFact state = pretty ("psv_read_fact_" <> show (stateName state))
 seaOfReadTime :: Base.CBlock
 seaOfReadTime
   = vsep
-  [ "ierror_loc_t error = fixed_read_itime (time_ptr, time_size, &time);"
+  [ "ierror_loc_t error = fixed_read_itime (input_fd, time_ptr, time_size, &time);"
   , "if (error) return error;"
   ]
 
@@ -115,7 +115,8 @@ seaOfReadFact state tombstones input readInput checkCount =
         <+> pretty (nameOfReadFact state) <+> "("
         <> "const char *value_ptr, const size_t value_size, itime_t time, "
         <> "imempool_t *mempool, iint_t chord_count, "
-        <> pretty (nameOfStateType state) <+> "*programs)"
+        <> pretty (nameOfStateType state) <+> "*programs, "
+        <> "const iint_t input_fd)"
     , "{"
     , "    ierror_loc_t error;"
     , ""
@@ -192,7 +193,8 @@ seaOfReadAnyFactPsv opts config states = do
               , "  , const char   *time_ptr"
               , "  , const size_t  time_size"
               , "  , ifleet_t     *fleet"
-              , "  , const size_t  facts_limit)"
+              , "  , const size_t  facts_limit"
+              , "  , const iint_t  input_fd)"
               , "{"
               , indent 4 (vsep (fmap (seaOfReadNamedFactSparse opts) states))
               , "    return 0;"
@@ -215,7 +217,8 @@ seaOfReadAnyFactPsv opts config states = do
               , "  , const char   *time_ptr"
               , "  , const size_t  time_size"
               , "  , ifleet_t     *fleet"
-              , "  , const size_t  facts_limit)"
+              , "  , const size_t  facts_limit"
+              , "  , const iint_t  input_fd)"
               , "{"
               , indent 4 (seaOfReadNamedFactDense opts state)
               , "    return 0;"
@@ -232,7 +235,8 @@ seaOfReadNamedFactDense opts state
        errs   = Base.SeaInputError
                 ( vsep
                 [ "return ierror_loc_format"
-                , "   ( time_ptr + time_size"
+                , "   ( input_fd"
+                , "   , time_ptr + time_size"
                 , "   , time_ptr"
                 , "   , \"%s: time is out of order: %.*s must be later than %.*s\""
                 , "   , \"" <> pretty attrib <> "\""
@@ -244,6 +248,7 @@ seaOfReadNamedFactDense opts state
                 ( vsep
                 [ "return ierror_loc_tag_format"
                 , "   ( IERROR_LIMIT_EXCEEDED"
+                , "   , input_fd"
                 , "   , entity_ptr + entity_size"
                 , "   , entity_ptr"
                 , "   , \"%.*s had too many %s facts, they have been dropped starting from here\\n\""
@@ -295,7 +300,7 @@ seaOfReadFactValueDense m fields vars = do
   pure $ vsep
     [ "for (;;) {"
     , indent 4 (vsep mappings_sea)
-    , "    return ierror_loc_format (p-1, p-1, \"invalid dense field start\");"
+    , "    return ierror_loc_format (input_fd, p-1, p-1, \"invalid dense field start\");"
     , "}"
     ]
   where
@@ -358,7 +363,7 @@ seaOfDenseFieldMapping m mappings field = do
     , ""
     , "char *term_ptr = p++;"
     , "if (*term_ptr != '|')"
-    , "    return ierror_loc_format (p-1, p-1, \"expect field separator '|'\");"
+    , "    return ierror_loc_format (input_fd, p-1, p-1, \"expect field separator '|'\");"
     , ""
     , "if (term_ptr == pe)"
     , "    break;"
@@ -379,7 +384,8 @@ seaOfReadNamedFactSparse opts state
        errs   = Base.SeaInputError
                 ( vsep
                 [ "return ierror_loc_format"
-                , "   ( time_ptr + time_size"
+                , "   ( input_fd"
+                , "   , time_ptr + time_size"
                 , "   , time_ptr"
                 , "   , \"%.*s: time is out of order: %.*s must be later than %.*s\""
                 , "   , attrib_size"
@@ -392,6 +398,7 @@ seaOfReadNamedFactSparse opts state
                 ( vsep
                 [ "return ierror_loc_tag_format"
                 , "   ( IERROR_LIMIT_EXCEEDED"
+                , "   , input_fd"
                 , "   , entity_ptr + entity_size"
                 , "   , entity_ptr"
                 , "   , \"entity %.*s had too many %.*s facts, they have been dropped starting from here\\n\""
@@ -429,7 +436,7 @@ seaOfCheckCount state = vsep
   , "     " <> pretty (nameOfProgram state) <> " (program);"
   , "     new_count = 0;"
   , "} else if (new_count > psv_max_row_count) {"
-  , "     return ierror_loc_format (0, 0, \"" <> pretty (Base.cnameFunReadFact seaInputPsv state) <> ": new_count > max_count\");"
+  , "     return ierror_loc_format (input_fd, 0, 0, \"" <> pretty (Base.cnameFunReadFact seaInputPsv state) <> ": new_count > max_count\");"
   , "}"
   ]
 
@@ -488,7 +495,7 @@ readValueArg :: Doc -> Doc -> Base.Assignment -> Text -> ValType -> Doc
 readValueArg arg fmt assign n vt
  = vsep
  [ seaOfValType vt <+> "value;"
- , "error = " <> fmt <> "_read_" <> baseOfValType vt <> " (" <> arg <> "&p, pe, &value);"
+ , "error = " <> fmt <> "_read_" <> baseOfValType vt <> " (input_fd, " <> arg <> "&p, pe, &value);"
  , "if (error) return error;"
  , assign (pretty n) vt "value"
  ]
@@ -499,7 +506,7 @@ seaOfReadJsonList vtype avars = do
   value_sea <- seaOfReadJsonValue Base.assignArrayMutable vtype vars
   pure $ vsep
     [ "if (*p++ != '[')"
-    , "    return ierror_loc_format (p-1, p-1, \"array missing '['\");"
+    , "    return ierror_loc_format (input_fd, p-1, p-1, \"array missing '['\");"
     , ""
     , "char term = *p;"
     , ""
@@ -508,7 +515,7 @@ seaOfReadJsonList vtype avars = do
     , "    "
     , "    term = *p++;"
     , "    if (term != ',' && term != ']')"
-    , "        return ierror_loc_format (p-1, p-1, \"array separator ',' or terminator ']' not found\");"
+    , "        return ierror_loc_format (input_fd, p-1, p-1, \"array separator ',' or terminator ']' not found\");"
     , "}"
     ]
 
@@ -522,10 +529,10 @@ seaOfReadJsonUnit :: Base.Assignment -> Text -> Either SeaError Doc
 seaOfReadJsonUnit assign name = do
   pure $ vsep
     [ "if (*p++ != '{')"
-    , "    return ierror_loc_format (p-1, p-1, \"unit missing '{'\");"
+    , "    return ierror_loc_format (input_fd, p-1, p-1, \"unit missing '{'\");"
     , ""
     , "if (*p++ != '}')"
-    , "    return ierror_loc_format (p-1, p-1, \"unit missing '}'\");"
+    , "    return ierror_loc_format (input_fd, p-1, p-1, \"unit missing '}'\");"
     , ""
     , assign (pretty name) UnitT "iunit"
     ]
@@ -537,14 +544,14 @@ seaOfReadJsonStruct assign st@(StructType fields) vars = do
   mappings_sea <- traverse (seaOfFieldMapping assign) mappings
   pure $ vsep
     [ "if (*p++ != '{')"
-    , "    return ierror_loc_format (p-1, p-1, \"struct missing '{'\");"
+    , "    return ierror_loc_format (input_fd, p-1, p-1, \"struct missing '{'\");"
     , ""
     , "for (;;) {"
     , "    if (*p++ != '\"')"
-    , "        return ierror_loc_format (p-1, p-1, \"field name missing opening quote\");"
+    , "        return ierror_loc_format (input_fd, p-1, p-1, \"field name missing opening quote\");"
     , ""
     , indent 4 (vsep mappings_sea)
-    , "    return ierror_loc_format (p-1, p-1, \"invalid json field start\");"
+    , "    return ierror_loc_format (input_fd, p-1, p-1, \"invalid json field start\");"
     , "}"
     ]
 
@@ -569,13 +576,13 @@ seaOfReadJsonField assign ftype vars = do
   value_sea <- seaOfReadJsonValue assign ftype vars
   pure $ vsep
     [ "if (*p++ != ':')"
-    , "    return ierror_loc_format (p-1, p-1, \"field missing ':'\");"
+    , "    return ierror_loc_format (input_fd, p-1, p-1, \"field missing ':'\");"
     , ""
     , value_sea
     , ""
     , "char term = *p++;"
     , "if (term != ',' && term != '}')"
-    , "    return ierror_loc_format (p-1, p-1, \"field separator ',' or terminator '}' not found\");"
+    , "    return ierror_loc_format (input_fd, p-1, p-1, \"field separator ',' or terminator '}' not found\");"
     , ""
     , "if (term == '}')"
     , "    break;"

@@ -182,7 +182,7 @@ seaOfReadNamedFact funs errs allowDupTime state
       , indent 8 $ seaInputErrorCountExceedLimit errs
       , "    }"
       , ""
-      , "    return " <> fun <> " (value_ptr, value_size, time, fleet->mempool, chord_count, fleet->" <> pname <> ");"
+      , "    return " <> fun <> " (input_fd, value_ptr, value_size, time, fleet->mempool, chord_count, fleet->" <> pname <> ");"
       , ""
       , "}"
       , ""
