@@ -71,7 +71,7 @@ static ifleet_t * INLINE psv_alloc_fleet (iint_t max_chord_count);
 
 static void INLINE psv_collect_fleet (ifleet_t *fleet);
 
-static ierror_loc_t INLINE psv_configure_fleet (const char *entity, size_t entity_size, const ichord_t **chord, ifleet_t *fleet);
+static ierror_loc_t INLINE psv_configure_fleet (const iint_t fd, const char *entity, size_t entity_size, const ichord_t **chord, ifleet_t *fleet);
 
 #if ICICLE_PSV_INPUT_SPARSE
 static ierror_loc_t INLINE psv_read_fact
@@ -84,7 +84,8 @@ static ierror_loc_t INLINE psv_read_fact
   , const char   *time_ptr
   , const size_t  time_size
   , ifleet_t     *fleet
-  , const size_t  max_ent_attr_count);
+  , const size_t  max_ent_attr_count
+  , const iint_t  input_fd );
 #else
 static ierror_loc_t INLINE psv_read_fact
   ( const char   *entity_ptr
@@ -94,7 +95,8 @@ static ierror_loc_t INLINE psv_read_fact
   , const char   *time_ptr
   , const size_t  time_size
   , ifleet_t     *fleet
-  , const size_t  max_ent_attr_count);
+  , const size_t  max_ent_attr_count
+  , const iint_t  input_fd );
 #endif
 
 static ierror_msg_t INLINE psv_write_outputs
@@ -251,7 +253,7 @@ static ierror_loc_t psv_write_dropped_entity_cur (psv_state_t *s, const ierror_l
     return 0;
 }
 
-static ierror_loc_t psv_read_buffer (psv_state_t *s, const size_t facts_limit)
+static ierror_loc_t psv_read_buffer (psv_state_t *s, const size_t facts_limit, const iint_t input_fd)
 {
     ierror_loc_t error;
 
@@ -287,12 +289,12 @@ static ierror_loc_t psv_read_buffer (psv_state_t *s, const size_t facts_limit)
         const size_t entity_size = entity_end - entity_ptr;
 
         if (entity_end == 0) {
-            error = ierror_loc_format (entity_ptr, n_ptr, "missing '|' after entity");
+            error = ierror_loc_format (input_fd, entity_ptr, n_ptr, "missing '|' after entity");
             goto on_error;
         }
 
         if (entity_size == 0) {
-            error = ierror_loc_format (entity_ptr, entity_ptr, "entity was empty");
+            error = ierror_loc_format (input_fd, entity_ptr, entity_ptr, "entity was empty");
             goto on_error;
         }
 
@@ -302,7 +304,7 @@ static ierror_loc_t psv_read_buffer (psv_state_t *s, const size_t facts_limit)
         const size_t attrib_size = attrib_end - attrib_ptr;
 
         if (attrib_end == 0) {
-            error = ierror_loc_format (attrib_ptr, n_ptr, "missing '|' after attribute");
+            error = ierror_loc_format (input_fd, attrib_ptr, n_ptr, "missing '|' after attribute");
             goto on_error;
         }
 #endif
@@ -316,7 +318,7 @@ static ierror_loc_t psv_read_buffer (psv_state_t *s, const size_t facts_limit)
         } else if (*n21_ptr == '|') {
             time_ptr = n21_ptr + 1;
         } else {
-            error = ierror_loc_format (0, 0, "time must be in the format 'yyyy-mm-dd' or 'yyyy-mm-ddThh:mm:ssZ'");
+            error = ierror_loc_format (input_fd, 0, 0, "time must be in the format 'yyyy-mm-dd' or 'yyyy-mm-ddThh:mm:ssZ'");
             goto on_error;
         }
 
@@ -345,7 +347,7 @@ static ierror_loc_t psv_read_buffer (psv_state_t *s, const size_t facts_limit)
                                      , entity_cur_size
                                      , s->fleet );
                 if (msg) {
-                    error = ierror_loc_format (0, 0, "%s", msg);
+                    error = ierror_loc_format (input_fd, 0, 0, "%s", msg);
                     goto on_error;
                 }
 
@@ -355,7 +357,7 @@ static ierror_loc_t psv_read_buffer (psv_state_t *s, const size_t facts_limit)
                 msg = psv_flush_to_output (s);
 
                 if (msg) {
-                    error = ierror_loc_format (0, 0, "%s", msg);
+                    error = ierror_loc_format (input_fd, 0, 0, "%s", msg);
                     goto on_error;
                 }
             }
@@ -364,13 +366,14 @@ static ierror_loc_t psv_read_buffer (psv_state_t *s, const size_t facts_limit)
             entity_cur[entity_size] = 0;
             entity_cur_size = entity_size;
 
-            error = psv_configure_fleet (entity_cur, entity_cur_size, &s->chord_cur, s->fleet);
+            error = psv_configure_fleet (input_fd, entity_cur, entity_cur_size, &s->chord_cur, s->fleet);
             if (error) goto on_error;
 
             entity_count++;
         } else if (new_entity > 0 && entity_cur_size != 0) {
             error = ierror_loc_format
-                ( entity_end
+                ( input_fd
+                , entity_end
                 , entity_ptr
                 , "entity out of order: <%.*s> should be before <%.*s>"
                 , entity_size
@@ -381,11 +384,11 @@ static ierror_loc_t psv_read_buffer (psv_state_t *s, const size_t facts_limit)
         }
 
 #if ICICLE_PSV_INPUT_SPARSE
-        error = psv_read_fact (entity_ptr, entity_size, attrib_ptr, attrib_size, value_ptr, value_size, time_ptr, time_size, s->fleet, facts_limit);
+        error = psv_read_fact (entity_ptr, entity_size, attrib_ptr, attrib_size, value_ptr, value_size, time_ptr, time_size, s->fleet, facts_limit, input_fd);
         if (error)
             goto on_error;
 #else
-        error = psv_read_fact (entity_ptr, entity_size, value_ptr, value_size, time_ptr, time_size, s->fleet, facts_limit);
+        error = psv_read_fact (entity_ptr, entity_size, value_ptr, value_size, time_ptr, time_size, s->fleet, facts_limit, input_fd);
         if (error)
           goto on_error;
 #endif
@@ -414,7 +417,7 @@ static ierror_loc_t psv_read_whole_buffer (psv_config_t *cfg, psv_state_t *s)
     ierror_loc_t error    = 0;
 
     while (!read_all) {
-        error = psv_read_buffer (s, cfg->facts_limit);
+        error = psv_read_buffer (s, cfg->facts_limit, cfg->input_fd);
 
         if (error) {
             /* try to skip to the next entity, if there is no new entity

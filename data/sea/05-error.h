@@ -65,47 +65,49 @@ typedef struct ierror_loc {
     const char   *line_end;
     const char   *span_start;
     const char   *span_end;
+    iint_t        fd;
     ierror_tag_t  tag;
     char          message[0];
 } *ierror_loc_t;
 
-static ierror_loc_t NOINLINE v_ierror_loc_tag_format (const ierror_tag_t tag, const char *start, const char *end, const char *fmt, va_list args)
+static ierror_loc_t NOINLINE v_ierror_loc_tag_format (const ierror_tag_t tag, const iint_t fd, const char *start, const char *end, const char *fmt, va_list args)
 {
-  const  size_t message_size = 4 * 1024;
-  struct ierror_loc *error  = calloc (sizeof (struct ierror_loc) + message_size, 1);
+    const  size_t message_size = 4 * 1024;
+    struct ierror_loc *error  = calloc (sizeof (struct ierror_loc) + message_size, 1);
 
-  vsnprintf (error->message, message_size, fmt, args);
+    vsnprintf (error->message, message_size, fmt, args);
 
-  error->span_start = start;
-  error->span_end   = end;
-  error->tag        = tag;
+    error->fd         = fd;
+    error->span_start = start;
+    error->span_end   = end;
+    error->tag        = tag;
 
-  return error;
+    return error;
 }
 
-static ierror_loc_t NOINLINE ierror_loc_tag_format (const ierror_tag_t tag, const char *start, const char *end, const char *fmt, ...)
+static ierror_loc_t NOINLINE ierror_loc_tag_format (const ierror_tag_t tag, const iint_t fd, const char *start, const char *end, const char *fmt, ...)
 {
     va_list args;
     va_start (args, fmt);
 
-    struct ierror_loc *error = v_ierror_loc_tag_format (tag, start, end, fmt, args);
+    struct ierror_loc *error = v_ierror_loc_tag_format (tag, fd, start, end, fmt, args);
 
     va_end (args);
 
     return error;
 }
 
-static ierror_loc_t NOINLINE v_ierror_loc_format (const char *start, const char *end, const char *fmt, va_list args)
+static ierror_loc_t NOINLINE v_ierror_loc_format (const iint_t fd, const char *start, const char *end, const char *fmt, va_list args)
 {
-    return v_ierror_loc_tag_format (IERROR_DISASTER, start, end, fmt, args);
+    return v_ierror_loc_tag_format (IERROR_DISASTER, fd, start, end, fmt, args);
 }
 
-static ierror_loc_t NOINLINE ierror_loc_format (const char *start, const char *end, const char *fmt, ...)
+static ierror_loc_t NOINLINE ierror_loc_format (const iint_t fd, const char *start, const char *end, const char *fmt, ...)
 {
     va_list args;
     va_start (args, fmt);
 
-    struct ierror_loc *error = v_ierror_loc_format (start, end, fmt, args);
+    struct ierror_loc *error = v_ierror_loc_format (fd, start, end, fmt, args);
 
     va_end (args);
 
@@ -120,6 +122,19 @@ static ierror_msg_t NOINLINE ierror_loc_pretty (ierror_loc_t loc, iint_t line)
 
     char *p  = msg_text;
     char *pe = msg_text + msg_size;
+
+    char *filename = calloc (255, 1);
+    char *proc     = calloc (269, 1);
+    const iint_t fd = loc->fd;
+
+    snprintf (proc, 269, "/proc/self/fd/%lld", fd);
+    ssize_t ret = readlink (proc, filename, 255);
+
+    if (ret < 0) {
+        p += snprintf (p, pe - p, "from file descriptor %lld (cannot get filepath)\n", fd);
+    } else {
+        p += snprintf (p, pe - p, "from file: %s\n", filename);
+    }
 
     int prefix_size = snprintf (p, pe - p, "line %lld: ", line);
     p += prefix_size;
