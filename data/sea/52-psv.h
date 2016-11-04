@@ -157,8 +157,8 @@ static ibool_t INLINE psv_is_dropping_this (const psv_state_t *s, const char *en
         && !psv_compare (entity, entity_size, s->entity_dropped, s->entity_dropped_size);
 }
 
-/* Seek to a line where the entity changes, or EOF */
-static int INLINE psv_skip_to_next_entity (psv_state_t *s)
+/* Seek to a line where the entity changes, or EOF. Returns true if we found a new entity. */
+static ibool_t INLINE psv_skip_to_next_entity (psv_state_t *s)
 {
     const char  *end_ptr    = s->input_ptr + s->input_size;
     const char  *start_ptr  = end_ptr - s->input_remaining;
@@ -170,13 +170,15 @@ static int INLINE psv_skip_to_next_entity (psv_state_t *s)
     for (;;) {
         const size_t bytes_remaining = end_ptr - line_ptr;
 
+        /* mark some of the input buffer as skipped, this needs to be reset on the next read_whole_buffer */
         s->input_ptr = line_ptr;
+        s->input_size = bytes_remaining;
         s->input_remaining = bytes_remaining;
 
         n_ptr = memchr (line_ptr, '\n', bytes_remaining);
 
         if (n_ptr == 0) {
-            return 1;
+            return ifalse;
         }
 
         const char  *entity_ptr  = line_ptr;
@@ -188,7 +190,7 @@ static int INLINE psv_skip_to_next_entity (psv_state_t *s)
 
         if (new_entity) {
             /* start the input buffer here */
-            return 0;
+            return itrue;
         } else {
             /* just skip this fact */
             s->entity_dropped_count++;
@@ -410,10 +412,10 @@ static ierror_loc_t psv_read_whole_buffer (psv_config_t *cfg, psv_state_t *s)
 {
     /* we need to read all whole lines in the input buffer
        even if we need to drop some of them */
-    iint_t       read_all = 0;
-    ierror_loc_t error    = 0;
+    ibool_t      keep_going = itrue;
+    ierror_loc_t error      = 0;
 
-    while (!read_all) {
+    while (keep_going) {
         error = psv_read_buffer (s, cfg->facts_limit);
 
         if (error) {
@@ -429,14 +431,16 @@ static ierror_loc_t psv_read_whole_buffer (psv_config_t *cfg, psv_state_t *s)
                     cfg->error = ierror_msg_alloc (error_msg, 0, 0);
                 }
 
-
-                read_all = psv_skip_to_next_entity (s);
+                /* stop if either we have skipped all rows for this entity,
+                   or we have exhausted the buffer */
+                keep_going = psv_skip_to_next_entity (s);
 
             } else {
                 goto on_error;
             }
         } else {
-            read_all = 1;
+            /* we finished reading the buffer, it needs to be refilled */
+            keep_going = ifalse;
         }
     }
 
@@ -636,6 +640,7 @@ void psv_snapshot (psv_config_t *cfg)
 
         size_t input_avail = input_offset + bytes_read;
         state.input_size   = input_avail;
+        state.input_ptr    = input_ptr;
 
         ierror_loc_t error = psv_read_whole_buffer (cfg, &state);
 
