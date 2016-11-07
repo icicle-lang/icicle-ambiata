@@ -8,6 +8,9 @@ module Icicle.Sea.IO.Base.Input
   ( -- * Input options
     InputOpts (..)
   , InputAllowDupTime (..)
+  , InputFactsLimit (..)
+  , InputOverLimit (..)
+  , defaultFactsLimit
 
     -- * C gen
   , CStmt
@@ -66,6 +69,7 @@ type Name = Text
 
 data InputOpts = InputOpts
   { inputAllowDupTime :: InputAllowDupTime
+  , inputFactsLimit   :: InputFactsLimit
   , inputTombstones   :: Map Attribute (Set Text)
   } deriving (Show, Eq)
 
@@ -74,6 +78,17 @@ data InputOpts = InputOpts
 data InputAllowDupTime
   = AllowDupTime | DoNotAllowDupTime
   deriving (Eq, Ord, Show)
+
+data InputFactsLimit
+  = Unlimited | Limited Int InputOverLimit
+  deriving (Eq, Ord, Show)
+
+data InputOverLimit
+  = LogOverLimit | DoNotLogOverLimit
+  deriving (Eq, Ord, Show)
+
+defaultFactsLimit :: Int
+defaultFactsLimit = 1000000
 
 --------------------------------------------------------------------------------
 
@@ -131,9 +146,10 @@ data SeaInput = SeaInput
 seaOfReadNamedFact :: SeaInput
                    -> SeaInputError
                    -> InputAllowDupTime
+                   -> InputFactsLimit
                    -> SeaProgramState
                    -> CStmt
-seaOfReadNamedFact funs errs allowDupTime state
+seaOfReadNamedFact funs errs allowDupTime factsLimit state
  = let fun    = cnameFunReadFact funs  state
        pname  = pretty (nameOfProgram  state)
        tname  = pretty (nameOfLastTime state)
@@ -141,6 +157,13 @@ seaOfReadNamedFact funs errs allowDupTime state
        tcond  = if allowDupTime == AllowDupTime
                 then "if (time < last_time)"
                 else "if (time <= last_time)"
+       lim    = if factsLimit == Unlimited
+                then ""
+                else vsep [ "    if (fleet->" <> cname <> " > facts_limit)"
+                          , "    {"
+                          , indent 8 $ seaInputErrorCountExceedLimit errs
+                          , "    }"
+                          , "" ]
    in vsep
       [ "{"
       , "    itime_t time;"
@@ -177,11 +200,7 @@ seaOfReadNamedFact funs errs allowDupTime state
       , ""
       , "    fleet->" <> cname <> " ++;"
       , ""
-      , "    if (fleet->" <> cname <> " > facts_limit)"
-      , "    {"
-      , indent 8 $ seaInputErrorCountExceedLimit errs
-      , "    }"
-      , ""
+      , lim
       , "    return " <> fun <> " (value_ptr, value_size, time, fleet->mempool, chord_count, fleet->" <> pname <> ");"
       , ""
       , "}"

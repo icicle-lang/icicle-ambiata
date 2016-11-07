@@ -53,7 +53,7 @@ import           X.Control.Monad.Trans.Either (bracketEitherT', left)
 prop_psv wt = testIO $ do
   x <- runEitherT
      $ runTest wt
-     $ TestOpts ShowInputOnError ShowOutputOnError S.PsvInputSparse S.DoNotAllowDupTime
+     $ withDefault ShowInputOnError ShowOutputOnError
   case x of
     Left err -> failWithError wt err
     Right () -> pure (property succeeded)
@@ -65,7 +65,7 @@ prop_entity_out_of_order wt =
     let wt' = wt { wtEntities = List.reverse (wtEntities wt) }
     x <- runEitherT
         $ runTest wt'
-        $ TestOpts ShowInputOnSuccess ShowOutputOnSuccess S.PsvInputSparse S.DoNotAllowDupTime
+        $ withDefault ShowInputOnSuccess ShowOutputOnSuccess
     expectPsvError wt' x
 
 prop_time_out_of_order wt =
@@ -75,7 +75,7 @@ prop_time_out_of_order wt =
     let wt' = wt { wtFacts = List.reverse (wtFacts wt) }
     x <- runEitherT
        $ runTest wt'
-       $ TestOpts ShowInputOnSuccess ShowOutputOnSuccess S.PsvInputSparse S.DoNotAllowDupTime
+       $ withDefault ShowInputOnSuccess ShowOutputOnSuccess
     expectPsvError wt' x
 
 prop_dup_time
@@ -84,14 +84,15 @@ prop_dup_time
                       `suchThat` (\x -> List.length (wtEntities x) > 0
                                      && List.length (wtFacts    x) > 1 )
        let wt' = wt { wtFacts = List.head (wtFacts wt) : wtFacts wt }
+       let opts i o x = TestOpts i o S.PsvInputSparse x S.Unlimited
        a  <- liftIO
            $ runEitherT
            $ runTest wt'
-           $ TestOpts ShowInputOnError ShowOutputOnError S.PsvInputSparse S.AllowDupTime
+           $ opts ShowInputOnError ShowOutputOnError S.AllowDupTime
        b  <- liftIO
            $ runEitherT
            $ runTest wt'
-           $ TestOpts ShowInputOnSuccess ShowOutputOnSuccess S.PsvInputSparse S.DoNotAllowDupTime
+           $ opts ShowInputOnSuccess ShowOutputOnSuccess S.DoNotAllowDupTime
        case a of
          Left err -> stop $ testIO $ failWithError wt' err
          Right _  -> stop $ testIO $ expectPsvError wt' b
@@ -100,6 +101,7 @@ prop_sparse_dense_both_compile
   = monadicIO
   $ do wt <- pick $ genWellTypedWithStruct S.DoNotAllowDupTime
        dict <- pick (denseDictionary (wtAttribute wt) (wtFactType wt))
+       let opts psv = TestOpts ShowInputOnError ShowOutputOnError psv S.DoNotAllowDupTime S.Unlimited
        case dict of
          Nothing -> pure
                   $ counterexample ("Cannot create dense dictionary for:")
@@ -109,17 +111,11 @@ prop_sparse_dense_both_compile
            e <- liftIO
               $ runEitherT
               $ runTest wt
-              $ TestOpts ShowInputOnError
-                         ShowOutputOnError
-                         (S.PsvInputDense d (getAttribute (wtAttribute wt)))
-                         S.DoNotAllowDupTime
+              $ opts (S.PsvInputDense d (getAttribute (wtAttribute wt)))
            s <- liftIO
               $ runEitherT
               $ runTest wt
-              $ TestOpts ShowInputOnError
-                         ShowOutputOnError
-                         S.PsvInputSparse
-                         S.DoNotAllowDupTime
+              $ opts S.PsvInputSparse
            case (s, e) of
              (Right _, Right _) -> pure (property succeeded)
              (Left err, _)      -> stop
@@ -180,10 +176,14 @@ data ShowOutput = ShowOutputOnError | ShowOutputOnSuccess
   deriving (Eq)
 
 
-data TestOpts = TestOpts ShowInput ShowOutput S.PsvInputFormat S.InputAllowDupTime
+data TestOpts = TestOpts ShowInput ShowOutput S.PsvInputFormat S.InputAllowDupTime S.InputFactsLimit
+
+withDefault :: ShowInput -> ShowOutput -> TestOpts
+withDefault input output
+  = TestOpts input output S.PsvInputSparse S.DoNotAllowDupTime S.Unlimited
 
 runTest :: WellTyped -> TestOpts -> EitherT S.SeaError IO ()
-runTest wt (TestOpts showInput showOutput inputFormat allowDupTime) = do
+runTest wt (TestOpts showInput showOutput inputFormat allowDupTime limit) = do
   options0 <- S.getCompilerOptions
 
   let options  = options0 <> ["-O0", "-DICICLE_NOINLINE=1"]
@@ -196,7 +196,7 @@ runTest wt (TestOpts showInput showOutput inputFormat allowDupTime) = do
                 (S.PsvOutputSparse)
                 (S.defaultOutputMissing)
       iformat  = S.FormatPsv iconfig oconfig
-      iopts    = S.InputOpts allowDupTime (Map.singleton (wtAttribute wt) (Set.singleton tombstone))
+      iopts    = S.InputOpts allowDupTime limit (Map.singleton (wtAttribute wt) (Set.singleton tombstone))
 
   let compile  = S.seaCompile' options (S.HasInput iformat iopts) programs
       release  = S.seaRelease
@@ -213,15 +213,13 @@ runTest wt (TestOpts showInput showOutput inputFormat allowDupTime) = do
         output  = dir <> "/output.psv"
         dropped = dir <> "/dropped.psv"
         chords  = Nothing
-        limit   = 4096
-        discard = S.SeaWriteOverLimit
 
     liftIO (LT.writeFile program (LT.fromStrict source))
 
     let inputPsv = textOfFacts (wtEntities wt) (wtAttribute wt) (wtFacts wt)
     liftIO (L.writeFile input (LT.encodeUtf8 inputPsv))
 
-    result <- liftIO (runEitherT (S.seaPsvSnapshotFilePath fleet input output dropped chords limit discard))
+    result <- liftIO (runEitherT (S.seaPsvSnapshotFilePath fleet input output dropped chords limit))
 
     case result of
       Left err -> do

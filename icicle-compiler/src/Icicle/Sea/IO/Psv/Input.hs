@@ -253,7 +253,7 @@ seaOfReadNamedFactDense opts state
                 ])
    in vsep
       [ "/* " <> pretty attrib <> " */"
-      , Base.seaOfReadNamedFact seaInputPsv errs (Base.inputAllowDupTime opts) state
+      , Base.seaOfReadNamedFact seaInputPsv errs (Base.inputAllowDupTime opts) (Base.inputFactsLimit opts) state
       ]
 
 
@@ -404,7 +404,7 @@ seaOfReadNamedFactSparse opts state
    in vsep
       [ "/* " <> pretty attrib <> " */"
       , "if (" <> Base.seaOfStringEq attrib "attrib_ptr" (Just "attrib_size") <> ")"
-      , Base.seaOfReadNamedFact seaInputPsv errs (Base.inputAllowDupTime opts) state
+      , Base.seaOfReadNamedFact seaInputPsv errs (Base.inputAllowDupTime opts) (Base.inputFactsLimit opts) state
       ]
 
 seaOfReadFactSparse

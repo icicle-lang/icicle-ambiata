@@ -11,7 +11,6 @@ module Icicle.Sea.Eval (
   , module Icicle.Sea.IO
   , seaPsvSnapshotFilePath
   , seaPsvSnapshotFd
-  , SeaFlagDiscard (..)
   ) where
 
 import           Control.Monad.IO.Class (MonadIO(..))
@@ -36,9 +35,6 @@ import           X.Control.Monad.Trans.Either (bracketEitherT')
 import           X.Control.Monad.Trans.Either (left)
 
 
-data SeaFlagDiscard = SeaWriteOverLimit | SeaDiscardOverLimit
-  deriving (Eq, Show)
-
 ------------------------------------------------------------------------
 
 seaPsvSnapshotFilePath
@@ -47,10 +43,9 @@ seaPsvSnapshotFilePath
   -> FilePath
   -> FilePath
   -> Maybe FilePath
-  -> Int
-  -> SeaFlagDiscard
+  -> InputFactsLimit
   -> EitherT SeaError IO PsvStats
-seaPsvSnapshotFilePath fleet input output dropped mchords limit discard = do
+seaPsvSnapshotFilePath fleet input output dropped mchords limit = do
   let mopen mpath =
        case mpath of
          Nothing   -> pure Nothing
@@ -69,7 +64,7 @@ seaPsvSnapshotFilePath fleet input output dropped mchords limit discard = do
                   (liftIO . Posix.closeFd) $ \dfd -> do
   bracketEitherT' (liftIO $ mopen mchords)
                   (liftIO . mclose) $ \mcfd -> do
-  seaPsvSnapshotFd fleet ifd ofd dfd mcfd limit discard
+  seaPsvSnapshotFd fleet ifd ofd dfd mcfd limit
 
 
 seaPsvSnapshotFd
@@ -78,18 +73,17 @@ seaPsvSnapshotFd
   -> Posix.Fd
   -> Posix.Fd
   -> Maybe Posix.Fd
-  -> Int
-  -> SeaFlagDiscard
+  -> InputFactsLimit
   -> EitherT SeaError IO PsvStats
-seaPsvSnapshotFd fleet input output dropped mchords limit discard =
+seaPsvSnapshotFd fleet input output dropped mchords limit =
   withWords 9 $ \pState -> do
 
   pokeWordOff pState 0 input
   pokeWordOff pState 1 output
   pokeWordOff pState 2 dropped
   pokeWordOff pState 3 (fromMaybe 0 mchords)
-  pokeWordOff pState 7 limit
-  pokeWordOff pState 8 (discard == SeaDiscardOverLimit)
+  pokeWordOff pState 7 lim
+  pokeWordOff pState 8 discard
 
   liftIO (sfSnapshot fleet pState)
 
@@ -106,3 +100,8 @@ seaPsvSnapshotFd fleet input output dropped mchords limit discard =
       psvFactsRead = factsRead
     , psvEntitiesRead = entitiesRead
     }
+
+  where
+    (lim, discard) = case limit of
+       Limited i d -> (i, d == DoNotLogOverLimit)
+       Unlimited   -> (maxBound :: Int, True)

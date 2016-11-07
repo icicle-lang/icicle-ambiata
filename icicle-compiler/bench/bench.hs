@@ -133,7 +133,7 @@ createBenchmark (name, path) = do
       input  = (path </> "data.psv")
       output = (path </> "out.psv")
       dropped= (path </> "drop.psv")
-  b <- I.createBenchmark mode dict input output dropped Nothing Nothing Nothing Nothing Nothing
+  b <- I.createBenchmark mode dict input output dropped Nothing Nothing Nothing Nothing
   return (name, b)
 
 releaseBenchmarks :: [(String, I.Benchmark)] -> EitherT I.BenchError IO ()

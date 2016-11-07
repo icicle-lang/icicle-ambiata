@@ -14,18 +14,19 @@ module Icicle.Sea.Eval.Base (
   , SeaError(..)
   , Input (..)
   , InputAllowDupTime(..)
+  , InputFactsLimit (..)
   , PsvInputConfig(..)
   , PsvOutputConfig(..)
   , PsvMode(..)
   , PsvOutputFormat(..)
   , PsvInputFormat(..)
   , PsvInputDenseDict(..)
+  , defaultFactsLimit
 
   , seaCompile
   , seaCompile'
   , seaEval
   , seaRelease
-
   , seaEvalAvalanche
 
   , codeOfPrograms
