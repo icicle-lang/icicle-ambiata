@@ -84,7 +84,7 @@ static ierror_loc_t INLINE psv_read_fact
   , const char   *time_ptr
   , const size_t  time_size
   , ifleet_t     *fleet
-  , const size_t  max_ent_attr_count);
+  , const size_t  facts_limit);
 #else
 static ierror_loc_t INLINE psv_read_fact
   ( const char   *entity_ptr
@@ -94,7 +94,7 @@ static ierror_loc_t INLINE psv_read_fact
   , const char   *time_ptr
   , const size_t  time_size
   , ifleet_t     *fleet
-  , const size_t  max_ent_attr_count);
+  , const size_t  facts_limit);
 #endif
 
 static ierror_msg_t INLINE psv_write_outputs

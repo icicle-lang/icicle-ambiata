@@ -65,8 +65,7 @@ data Benchmark = Benchmark {
   , benchDropPath        :: FilePath
   , benchChordPath       :: Maybe FilePath
   , benchCompilationTime :: NominalDiffTime
-  , benchFactsLimit      :: Int
-  , benchLimitDiscard    :: SeaFlagDiscard
+  , benchFactsLimit      :: InputFactsLimit
   }
 
 data BenchmarkResult = BenchmarkResult {
@@ -86,13 +85,12 @@ createBenchmark
   -> FilePath
   -> FilePath
   -> Maybe FilePath
-  -> Maybe Int
-  -> Maybe SeaFlagDiscard
+  -> Maybe InputFactsLimit
   -> Maybe BenchInputPsv
   -> Maybe BenchOutputPsv
   -> EitherT BenchError IO Benchmark
 
-createBenchmark mode dictionaryPath inputPath outputPath dropPath packedChordPath limit discard input output = do
+createBenchmark mode dictionaryPath inputPath outputPath dropPath packedChordPath limit input output = do
   start <- liftIO getCurrentTime
 
   (dictionary, input') <- firstEitherT BenchDictionaryImportError $ inputCfg input
@@ -102,11 +100,14 @@ createBenchmark mode dictionaryPath inputPath outputPath dropPath packedChordPat
               $ first BenchCompileError
               $ P.avalancheOfDictionary P.defaultCompileOptions dictionary
 
+  let lim = fromMaybe (Limited defaultFactsLimit DoNotLogOverLimit) limit
+
   let cfg = HasInput
           ( FormatPsv (PsvInputConfig  mode input')
                       (PsvOutputConfig mode output' defaultOutputMissing))
           ( InputOpts AllowDupTime
-                     (tombstonesOfDictionary dictionary))
+                      lim
+                      (tombstonesOfDictionary dictionary))
 
   let avalancheL = Map.toList avalanche
 
@@ -125,8 +126,7 @@ createBenchmark mode dictionaryPath inputPath outputPath dropPath packedChordPat
     , benchDropPath        = dropPath
     , benchChordPath       = packedChordPath
     , benchCompilationTime = end `diffUTCTime` start
-    , benchFactsLimit      = fromMaybe (1024*1024) limit
-    , benchLimitDiscard    = fromMaybe SeaWriteOverLimit discard
+    , benchFactsLimit      = lim
     }
   where
     inputCfg x = case x of
@@ -155,11 +155,10 @@ runBenchmark b = do
       dropPath   = benchDropPath     b
       chordPath  = benchChordPath    b
       limit      = benchFactsLimit   b
-      discard    = benchLimitDiscard b
 
   start <- liftIO getCurrentTime
   stats <- firstEitherT BenchSeaError
-         $ seaPsvSnapshotFilePath fleet inputPath outputPath dropPath chordPath limit discard
+         $ seaPsvSnapshotFilePath fleet inputPath outputPath dropPath chordPath limit
   end   <- liftIO getCurrentTime
 
   size <- liftIO (withFile inputPath ReadMode hFileSize)

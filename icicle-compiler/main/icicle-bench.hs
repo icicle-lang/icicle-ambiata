@@ -39,15 +39,11 @@ main = do
              , argInPsv   <- readInputPsv  input
              , argOutPsv  <- readOutputPsv output
              , isJust argLimit && isJust argDiscard
-             -> go argDict argIn argOut argC argDate
-                   argLimit dr argDiscard
-                   argInPsv argOutPsv
+             -> go argDict argIn argOut argC argDate (Limited <$> argLimit <*> argDiscard) dr argInPsv argOutPsv
              | otherwise
              -> usage args
            -- or nothing!
-           _ -> go argDict argIn argOut argC argDate
-                   Nothing (argOut <> "_dropped.txt") Nothing
-                   Nothing Nothing
+           _ -> go argDict argIn argOut argC argDate Nothing (argOut <> "_dropped.txt") Nothing Nothing
 
     _ -> usage args
   where
@@ -57,8 +53,8 @@ main = do
       putStrLn ("invalid args: " <> show as)
 
     readDiscard x
-      | x == "--discard=true" = Just SeaDiscardOverLimit
-      | x == "--discard=false"= Just SeaWriteOverLimit
+      | x == "--discard=true" = Just DoNotLogOverLimit
+      | x == "--discard=false"= Just LogOverLimit
       | otherwise             = Nothing
 
     readInputPsv x
@@ -71,10 +67,10 @@ main = do
       | x == "--output=dense"  = Just BenchOutputDense
       | otherwise              = Nothing
 
-    go dict inp out src modestr limit dr discard input output = do
+    go dict inp out src modestr limit dr input output = do
      putStrLn $ "icicle-bench: facts_limit = " <> show limit
      let (mode, mchords) = modeOfString modestr
-     xx <- runEitherT (runBench mode dict inp out dr src mchords limit discard input output)
+     xx <- runEitherT (runBench mode dict inp out dr src mchords limit input output)
      case xx of
        Left (BenchSeaError err) -> print (pretty err)
        Left err                 -> print err
@@ -96,13 +92,12 @@ runBench
   -> FilePath
   -> FilePath
   -> Maybe FilePath
-  -> Maybe Int
-  -> Maybe SeaFlagDiscard
+  -> Maybe InputFactsLimit
   -> Maybe BenchInputPsv
   -> Maybe BenchOutputPsv
   -> EitherT BenchError IO ()
 
-runBench mode dictionaryPath inputPath outputPath dropPath sourcePath chordPath limit discard input output = do
+runBench mode dictionaryPath inputPath outputPath dropPath sourcePath chordPath limit input output = do
   chordStart <- liftIO getCurrentTime
   when (isJust chordPath) $
     liftIO (putStrLn "icicle-bench: preparing chords")
@@ -114,14 +109,7 @@ runBench mode dictionaryPath inputPath outputPath dropPath sourcePath chordPath 
     when (isJust chordPath) $
       liftIO (printf "icicle-bench: chord preparation time = %.2fs\n" chordSecs)
 
-    let create = createBenchmark mode
-                                 dictionaryPath
-                                 inputPath
-                                 outputPath
-                                 dropPath
-                                 packedChordPath
-                                 limit discard
-                                 input output
+    let create = createBenchmark mode dictionaryPath inputPath outputPath dropPath packedChordPath limit input output
 
     liftIO (putStrLn "icicle-bench: starting compilation")
     bracketEitherT' create releaseBenchmark $ \bench -> do

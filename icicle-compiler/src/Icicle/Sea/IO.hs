@@ -9,6 +9,9 @@ module Icicle.Sea.IO
   , IOFormat (..)
   , InputOpts (..)
   , InputAllowDupTime (..)
+  , InputFactsLimit (..)
+  , InputOverLimit (..)
+  , defaultFactsLimit
   , Psv.PsvInputConfig(..)
   , Psv.PsvOutputConfig(..)
   , Psv.defaultOutputMissing
