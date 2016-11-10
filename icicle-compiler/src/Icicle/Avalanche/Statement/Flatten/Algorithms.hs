@@ -150,7 +150,7 @@ copyArrayAcc a_fresh t n'acc
 
       let put_copy = arrUpd t x (num 0) (arrIx t x $ num 0)
 
-      return $ Read n'x n'acc t
+      return $ Read n'x n'acc (ArrayT t)
              $ If is_empty mempty
              $ Write n'acc put_copy
  where
