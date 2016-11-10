@@ -1,0 +1,17 @@
+bulbasaur|keyed_by_time|1|2014-01-01
+bulbasaur|keyed_by_time|3|2014-01-01
+bulbasaur|keyed_by_time|5|2016-01-01
+charmander|keyed_by_time|0|2014-01-01
+charmander|keyed_by_time|2|2014-01-01
+blatoise|keyed_by_year_of_time|foo14|2014-01-01
+blatoise|keyed_by_year_of_time|foo15|2015-01-01
+blatoise|keyed_by_year_of_time|foo16|2016-01-01
+blatoise|keyed_by_year_of_time|foo160302|2016-03-02
+blatoise|keyed_by_year_of_time|foo160307|2016-03-07
+zubat|keyed_by_field|{"transaction_id":0,"dollarydoos":2}|2015-01-01
+zubat|keyed_by_field|{"transaction_id":3,"dollarydoos":1}|2016-01-01
+zubat|keyed_by_field|{"transaction_id":3,"dollarydoos":8}|2016-01-01
+zubat|keyed_by_field|{"transaction_id":3,"dollarydoos":9}|2016-01-05
+zubat|keyed_by_field_time|{"transaction_id":5,"dollarydoos":2}|2015-01-01
+zubat|keyed_by_field_time|{"transaction_id":5,"dollarydoos":5}|2015-01-01
+zubat|keyed_by_field_time|{"transaction_id":5,"dollarydoos":7}|2015-01-03
