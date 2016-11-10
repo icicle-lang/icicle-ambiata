@@ -704,7 +704,7 @@ avalancheMapDelete a_fresh stm flatX tk tv key map
           sz       = xVar n'map'sz
           get'k i  = arrIx  tk x'map'k i
 
-          del'k i  = arrDel tv x'map'k i
+          del'k i  = arrDel tk x'map'k i
           del'v i  = arrDel tv x'map'v i
 
           del'  i  = Block
