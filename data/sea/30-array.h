@@ -252,6 +252,7 @@ Define an array
     MK_ARRAY_PUT_MUTABLE    (t)                                                 \
     MK_ARRAY_PUT_IMMUTABLE  (t)                                                 \
     MK_ARRAY_SWAP           (t)                                                 \
+    MK_ARRAY_DELETE         (t)                                                 \
 
 
 // enable if you need to resolve compiler errors in the macros above
