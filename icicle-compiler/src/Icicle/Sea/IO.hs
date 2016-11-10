@@ -9,13 +9,7 @@ module Icicle.Sea.IO
   , IOFormat (..)
   , InputOpts (..)
   , InputAllowDupTime (..)
-  , Psv.PsvInputConfig(..)
-  , Psv.PsvOutputConfig(..)
-  , Psv.defaultOutputMissing
-  , Psv.PsvMode(..)
-  , Psv.PsvOutputFormat(..)
-  , Psv.PsvInputFormat(..)
-  , Psv.PsvInputDenseDict(..)
+  , module Icicle.Sea.IO.Psv
   ) where
 
 import           Icicle.Internal.Pretty
@@ -24,21 +18,21 @@ import           Icicle.Sea.Error (SeaError(..))
 import           Icicle.Sea.FromAvalanche.State
 
 import           Icicle.Sea.IO.Base
-import qualified Icicle.Sea.IO.Psv   as Psv
-import qualified Icicle.Sea.IO.Zebra as Zebra
+import           Icicle.Sea.IO.Psv
+import           Icicle.Sea.IO.Zebra
 
 import           P
 
 
 data IOFormat
-  = FormatPsv Psv.PsvInputConfig Psv.PsvOutputConfig
+  = FormatPsv    PsvConfig
   | FormatZebra
     deriving (Eq, Show)
 
 seaOfDriver :: IOFormat -> InputOpts -> [SeaProgramState] -> Either SeaError Doc
 seaOfDriver format opts states
   = case format of
-      FormatPsv inputConfig outputConfig
-        -> Psv.seaOfPsvDriver opts inputConfig outputConfig states
+      FormatPsv conf
+        -> seaOfPsvDriver opts conf states
       FormatZebra
-        -> Zebra.seaOfZebraDriver -- todo
+        -> seaOfZebraDriver -- todo

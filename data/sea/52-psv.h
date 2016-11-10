@@ -115,14 +115,6 @@ static ierror_msg_t INLINE psv_flush_to_output
   ( psv_state_t *s );
 
 /*
-Constants
-*/
-
-static const size_t psv_max_row_count      = 128;
-static const size_t psv_input_buffer_size  = 256*1024;
-static const size_t psv_output_buffer_size = 256*1024;
-
-/*
   Input
 */
 

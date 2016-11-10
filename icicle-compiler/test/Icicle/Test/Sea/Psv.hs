@@ -42,7 +42,8 @@ import           System.IO
 import           System.IO.Temp (createTempDirectory)
 import           System.Directory (getTemporaryDirectory, removeDirectoryRecursive)
 
-import           Test.QuickCheck (Gen,arbitrary, elements, suchThat)
+import           Test.QuickCheck (Gen, Arbitrary(..), elements, suchThat)
+import           Test.QuickCheck (getPositive)
 import           Test.QuickCheck (Property, (==>), property, counterexample)
 import           Test.QuickCheck.Property (succeeded, failed)
 import           Test.QuickCheck.Monadic
@@ -50,31 +51,31 @@ import           Test.QuickCheck.Monadic
 import           X.Control.Monad.Trans.Either (EitherT, runEitherT)
 import           X.Control.Monad.Trans.Either (bracketEitherT', left)
 
-prop_psv wt = testIO $ do
+prop_psv (WellTypedPsv wt psv) = testIO $ do
   x <- runEitherT
-     $ runTest wt
+     $ runTest wt psv
      $ TestOpts ShowInputOnError ShowOutputOnError S.PsvInputSparse S.DoNotAllowDupTime
   case x of
     Left err -> failWithError wt err
     Right () -> pure (property succeeded)
 
-prop_entity_out_of_order wt =
+prop_entity_out_of_order (WellTypedPsv wt psv) =
   List.length (wtEntities wt) > 1 ==>
   List.length (wtFacts    wt) > 0 ==>
   testIO $ do
     let wt' = wt { wtEntities = List.reverse (wtEntities wt) }
     x <- runEitherT
-        $ runTest wt'
+        $ runTest wt' psv
         $ TestOpts ShowInputOnSuccess ShowOutputOnSuccess S.PsvInputSparse S.DoNotAllowDupTime
     expectPsvError wt' x
 
-prop_time_out_of_order wt =
+prop_time_out_of_order (WellTypedPsv wt psv) =
   List.length (wtEntities wt) > 0 ==>
   List.length (wtFacts    wt) > 1 ==>
   testIO $ do
     let wt' = wt { wtFacts = List.reverse (wtFacts wt) }
     x <- runEitherT
-       $ runTest wt'
+       $ runTest wt' psv
        $ TestOpts ShowInputOnSuccess ShowOutputOnSuccess S.PsvInputSparse S.DoNotAllowDupTime
     expectPsvError wt' x
 
@@ -84,13 +85,16 @@ prop_dup_time
                       `suchThat` (\x -> List.length (wtEntities x) > 0
                                      && List.length (wtFacts    x) > 1 )
        let wt' = wt { wtFacts = List.head (wtFacts wt) : wtFacts wt }
+
+       psv <- pick $ genPsvOpts wt'
+
        a  <- liftIO
            $ runEitherT
-           $ runTest wt'
+           $ runTest wt' psv
            $ TestOpts ShowInputOnError ShowOutputOnError S.PsvInputSparse S.AllowDupTime
        b  <- liftIO
            $ runEitherT
-           $ runTest wt'
+           $ runTest wt' psv
            $ TestOpts ShowInputOnSuccess ShowOutputOnSuccess S.PsvInputSparse S.DoNotAllowDupTime
        case a of
          Left err -> stop $ testIO $ failWithError wt' err
@@ -99,6 +103,7 @@ prop_dup_time
 prop_sparse_dense_both_compile
   = monadicIO
   $ do wt <- pick $ genWellTypedWithStruct S.DoNotAllowDupTime
+       psv <- pick $ genPsvOpts wt
        dict <- pick (denseDictionary (wtAttribute wt) (wtFactType wt))
        case dict of
          Nothing -> pure
@@ -108,14 +113,14 @@ prop_sparse_dense_both_compile
          Just d  -> do
            e <- liftIO
               $ runEitherT
-              $ runTest wt
+              $ runTest wt psv
               $ TestOpts ShowInputOnError
                          ShowOutputOnError
                          (S.PsvInputDense d (getAttribute (wtAttribute wt)))
                          S.DoNotAllowDupTime
            s <- liftIO
               $ runEitherT
-              $ runTest wt
+              $ runTest wt psv
               $ TestOpts ShowInputOnError
                          ShowOutputOnError
                          S.PsvInputSparse
@@ -174,16 +179,39 @@ failWithError' prints wt = \case
 ------------------------------------------------------------------------
 
 data ShowInput = ShowInputOnError | ShowInputOnSuccess
-  deriving (Eq)
+  deriving (Eq, Show)
 
 data ShowOutput = ShowOutputOnError | ShowOutputOnSuccess
-  deriving (Eq)
+  deriving (Eq, Show)
 
+data PsvOpts  = PsvOpts Int Int Int
+  deriving (Show)
 
 data TestOpts = TestOpts ShowInput ShowOutput S.PsvInputFormat S.InputAllowDupTime
+  deriving (Show)
 
-runTest :: WellTyped -> TestOpts -> EitherT S.SeaError IO ()
-runTest wt (TestOpts showInput showOutput inputFormat allowDupTime) = do
+data WellTypedPsv = WellTypedPsv WellTyped PsvOpts
+  deriving (Show)
+
+instance Arbitrary WellTypedPsv where
+  arbitrary = do
+    wt <- arbitrary
+    psv <- genPsvOpts wt
+    return $ WellTypedPsv wt psv
+
+genPsvOpts :: WellTyped -> Gen PsvOpts
+genPsvOpts wt = do
+  -- maximum number of rows to read before compute
+  let row x = x + 1
+  maxRowCount <- row . getPositive <$> arbitrary
+  -- the buffer needs to be at least as large as a single line
+  let str x = x + longestLine wt + 4
+  inputBuf <- str . getPositive <$> arbitrary
+  let outputBuf = inputBuf
+  return $ PsvOpts maxRowCount inputBuf outputBuf
+
+runTest :: WellTyped -> PsvOpts -> TestOpts -> EitherT S.SeaError IO ()
+runTest wt (PsvOpts psvMaxRowCount psvInputBufferSize psvOutputBufferSize) (TestOpts showInput showOutput inputFormat allowDupTime) = do
   options0 <- S.getCompilerOptions
 
   let options  = options0 <> ["-O0", "-DICICLE_NOINLINE=1"]
@@ -195,7 +223,8 @@ runTest wt (TestOpts showInput showOutput inputFormat allowDupTime) = do
                 (S.PsvSnapshot (wtTime wt))
                 (S.PsvOutputSparse)
                 (S.defaultOutputMissing)
-      iformat  = S.FormatPsv iconfig oconfig
+      conf     = S.PsvConfig iconfig oconfig psvMaxRowCount psvInputBufferSize psvOutputBufferSize
+      iformat  = S.FormatPsv conf
       iopts    = S.InputOpts allowDupTime (Map.singleton (wtAttribute wt) (Set.singleton tombstone))
 
   let compile  = S.seaCompile' options S.NoCacheSea (S.HasInput iformat iopts) programs
@@ -232,16 +261,36 @@ runTest wt (TestOpts showInput showOutput inputFormat allowDupTime) = do
           outputPsv <- liftIO $ LT.readFile output
           liftIO (LT.putStrLn "--- output.psv ---")
           liftIO (LT.putStrLn outputPsv)
+          dropPsv <- liftIO $ LT.readFile dropped
+          liftIO (LT.putStrLn "--- drop.psv ---")
+          liftIO (LT.putStrLn dropPsv)
         left err
-      Right _ -> do
+      Right stats -> do
         when (showInput == ShowInputOnSuccess) $ do
           liftIO (LT.putStrLn "--- input.psv ---")
           liftIO (LT.putStrLn inputPsv)
+          liftIO (LT.putStrLn "--- stats ---")
+          liftIO (putStrLn ("facts read:    " <> show (S.psvFactsRead stats)))
+          liftIO (putStrLn ("entities read: " <> show (S.psvEntitiesRead stats) <> "\n"))
         when (showOutput == ShowOutputOnSuccess) $ do
           outputPsv <- liftIO $ LT.readFile output
           liftIO (LT.putStrLn "--- output.psv ---")
           liftIO (LT.putStrLn outputPsv)
+          dropPsv <- liftIO $ LT.readFile dropped
+          liftIO (LT.putStrLn "--- drop.psv ---")
+          liftIO (LT.putStrLn dropPsv)
         pure ()
+
+longestLine :: WellTyped -> Int
+longestLine wt
+  | List.null (wtFacts wt)
+  = 0
+  | otherwise
+  = fromIntegral
+  $ LT.length
+  $ List.maximumBy (compare `on` LT.length)
+  $ fmap (LT.intercalate "|")
+  $ fieldsOfFacts (wtEntities wt) (wtAttribute wt) (wtFacts wt)
 
 textOfFacts :: [Entity] -> Attribute -> [AsAt BaseValue] -> LT.Text
 textOfFacts entities attribute vs =
