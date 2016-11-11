@@ -18,7 +18,6 @@ extra-source-files:
   ../data/sea/20-simple.h
   ../data/sea/21-time.h
   ../data/sea/30-array.h
-  ../data/sea/30-array.h.gch
   ../data/sea/31-buffer.h
   ../data/sea/40-grisu2-powers.h
   ../data/sea/41-grisu2.h
