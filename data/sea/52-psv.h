@@ -564,6 +564,7 @@ void psv_snapshot (psv_config_t *cfg)
     static const size_t psv_read_error = (size_t) -1;
     ierror_msg_t psv_write_error = 0;
 
+    int fd;
     int input_fd  = (int)cfg->input_fd;
     int output_fd = (int)cfg->output_fd;
     int drop_fd   = (int)cfg->drop_fd;
@@ -624,16 +625,16 @@ void psv_snapshot (psv_config_t *cfg)
                 const int dropping = psv_is_dropping_this (&state, state.entity_cur, state.entity_cur_size);
 
                 if (state.discard_limit && dropping) {
-                    psv_write_error = psv_write_to_drop (&state, state.entity_cur, state.entity_cur_size);
+                    fd = drop_fd;
                 } else {
-                    psv_write_error = psv_write_to_output (&state, state.entity_cur, state.entity_cur_size);
+                    fd = output_fd;
                 }
 
-                if (psv_write_error != 0) {
-                  cfg->error = psv_write_error;
-                  break;
-                }
+                cfg->error = psv_write_outputs (fd, state.output_start, state.output_end, &state.output_ptr, state.entity_cur, state.entity_cur_size, state.fleet);
 
+                if (cfg->error != 0) {
+                    cfg->error = psv_output_flush (fd, state.output_start, &state.output_ptr);
+                }
             }
             break;
         }
