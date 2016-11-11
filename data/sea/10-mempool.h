@@ -36,9 +36,11 @@ static void iblock_free (const iblock_t *block)
     fprintf (stderr, "iblock_free: %p\n", block->ptr);
 #endif
 
-    free (block->ptr);
     const iblock_t *prev = block->prev;
-    free (block);
+
+    free (block->ptr);
+    free ((iblock_t *) block);
+
     iblock_free (prev);
 }
 
@@ -106,7 +108,7 @@ imempool_t * imempool_create ()
 
 void imempool_debug_block_usage (imempool_t *pool)
 {
-    iblock_t *block = pool->last;
+    const iblock_t *block = pool->last;
     uint64_t size = 0;
     uint64_t blocks = 0;
     while (block != 0) {
@@ -114,7 +116,7 @@ void imempool_debug_block_usage (imempool_t *pool)
       blocks++;
       block = block->prev;
     }
-    fprintf (stderr, "imempool_debug_block_usage: %llu blocks, %llu bytes\n", blocks, size);
+    fprintf (stderr, "imempool_debug_block_usage: %" PRIu64 " blocks, %" PRIu64 " bytes\n", blocks, size);
 }
 
 void imempool_free (imempool_t *pool)

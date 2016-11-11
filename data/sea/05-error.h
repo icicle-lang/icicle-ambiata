@@ -45,7 +45,7 @@ static ierror_msg_t NOINLINE ierror_msg_add_line (iint_t line, ierror_msg_t orig
     size_t  error_size = 4 * 1024;
     char   *error_text = calloc (error_size, 1);
 
-    snprintf (error_text, error_size, "line %lld: %s", line, original);
+    snprintf (error_text, error_size, "line %" PRId64 ": %s", line, original);
     free ((char *) original);
 
     return error_text;
@@ -121,7 +121,7 @@ static ierror_msg_t NOINLINE ierror_loc_pretty (ierror_loc_t loc, iint_t line)
     char *p  = msg_text;
     char *pe = msg_text + msg_size;
 
-    int prefix_size = snprintf (p, pe - p, "line %lld: ", line);
+    int prefix_size = snprintf (p, pe - p, "line %" PRId64 ": ", line);
     p += prefix_size;
     p += snprintf (p, pe - p, "%.*s\n", (int)(loc->line_end - loc->line_start), loc->line_start);
 

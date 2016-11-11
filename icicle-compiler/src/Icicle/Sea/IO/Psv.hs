@@ -263,7 +263,7 @@ seaOfConfigureFleet mode states
  , "    if (chord_count > max_chord_count) {"
  , "        return ierror_loc_format"
  , "            ( 0, 0"
- , "            , \"exceeded maximum number of chords per entity (chord_count = %lld, max_chord_count = %lld)\""
+ , "            , \"exceeded maximum number of chords per entity (chord_count = %\" PRId64 \", max_chord_count = %\" PRId64 \")\""
  , "            , chord_count"
  , "            , max_chord_count );"
  , "    }"

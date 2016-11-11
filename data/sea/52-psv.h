@@ -205,7 +205,7 @@ static int psv_write_dropped_count (psv_state_t *s) {
     char *msg = calloc (error_msg_size, 1);
 
     const size_t msg_size = snprintf ( msg, error_msg_size
-                                     , "total: %lld facts for %.*s were dropped.\n\n"
+                                     , "total: %" PRId64 " facts for %.*s were dropped.\n\n"
                                      , s->entity_dropped_count, (int) s->entity_dropped_size, s->entity_dropped);
 
     write (s->drop_fd, msg, msg_size);
