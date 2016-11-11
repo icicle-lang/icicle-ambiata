@@ -1,4 +1,5 @@
 homer|injury|{"location":"arm","severity":4}"|1994-01-01
-homer|injury|{"location":"arm","severity":5}"|1995-01-01
+homer|injury|{"location":"arm","severity":4}"|1995-01-01
+homer|injury|{"location":"arm","severity":4}"|1996-01-01
 homer|injury|{"location":"torso","severity":3,"action":"ignore"}"|1999-01-01
 homer|injury|{"location":"torso","severity":5}"|2000-01-01

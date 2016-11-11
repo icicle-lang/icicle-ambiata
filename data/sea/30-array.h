@@ -222,25 +222,27 @@ Immutable Delete (arr, ix)
 #define MK_ARRAY_DELETE(t)                                                      \
                                                                                 \
 static ARRAY_T(t) INLINE ARRAY_FUN(t,delete)                                    \
-                  (imempool_t *pool, ARRAY_T(t) x, iint_t ix, t##_t v)          \
+                  (imempool_t *pool, ARRAY_T(t) x, iint_t ix_delete)            \
 {                                                                               \
     iint_t count      = x->count;                                               \
-    iint_t sz         = iarray_size(count);                                     \
-    /* total size to allocate for new array. */                                 \
-    /* might be larger than necessary because based off old count */            \
-    size_t bytes      = ARRAY_SIZE(t, sz);                                      \
-    /* total size for head, up to but not including ix */                       \
-    size_t bytes_head = ARRAY_SIZE(t, ix);                                      \
-    /* tail does not include the array header */                                \
-    size_t bytes_tail = ARRAY_ITEM_SIZE(t, sz - ix);                            \
+    if (ix_delete >= count) return x;                                           \
+                                                                                \
+    iint_t capacity   = iarray_size(count - 1);                                 \
+    size_t bytes      = ARRAY_SIZE(t, capacity);                                \
                                                                                 \
     ARRAY_T(t) arr = (ARRAY_T(t))imempool_alloc(pool, bytes);                   \
-    memcpy(arr, x,                               bytes_head);                   \
-    memcpy(arr + bytes_head, x + bytes_head + 1, bytes_tail);                   \
-    x = arr;                                                                    \
                                                                                 \
-    x->count = count - 1;                                                       \
-    return x;                                                                   \
+    for (iint_t ix = 0; ix != ix_delete; ++ix) {                                \
+        t##_t val = ARRAY_PAYLOAD(t,x)[ix];                                     \
+        ARRAY_PAYLOAD(t,arr)[ix] = val;                                         \
+    }                                                                           \
+    for (iint_t ix = ix_delete + 1; ix != count; ++ix) {                        \
+        t##_t val = ARRAY_PAYLOAD(t,x)[ix];                                     \
+        ARRAY_PAYLOAD(t,arr)[ix - 1] = val;                                     \
+    }                                                                           \
+                                                                                \
+    arr->count = count - 1;                                                     \
+    return arr;                                                                 \
 }
 
 
