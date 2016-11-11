@@ -1,7 +1,7 @@
 :set +core-eval
 :set +c-eval
 
-feature injury ~> fold x = map_create : case map_lookup location x | None -> map_insert location severity x | Some _ -> map_delete location x end ~> x
+feature injury ~> fold x = map_create : case map_lookup (Some location) x | None -> map_insert (Some location) (Some severity) x | Some _ -> map_delete (Some location) x end ~> x
 -- fold x = map_create :
 --  case map_lookup location x
 --  | None -> map_insert location severity x
