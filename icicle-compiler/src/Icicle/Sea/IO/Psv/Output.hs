@@ -108,9 +108,12 @@ seaOfChordTime = \case
     , ""
     , "const size_t chord_size = sizeof (\"|yyyy-mm-ddThh:mm:ssZ\") - 1;"
     , "char chord_time[chord_size + 1];"
-    , "snprintf (chord_time, chord_size + 1, \"|" <> timeFmt <> "Z\", "
+    , "snprintf (chord_time, chord_size + 1, \"|" <> timeFmt <> "\", "
              <> "c_year, c_month, c_day, c_hour, c_minute, c_second);"
     ]
+
+timeFmt :: Doc
+timeFmt = "%04\" PRId64 \"-%02\" PRId64 \"-%02\" PRId64 \"T%02\" PRId64 \":%02\" PRId64 \":%02\" PRId64 \"Z"
 
 outputChord :: Doc
 outputChord
@@ -532,9 +535,6 @@ outputString xs
   rounded  = length swords * 8
   size     = sum (fmap swSize swords)
   mkdoc sw = "*(uint64_t *)(buffer_ptr + " <> int (swOffset sw) <> ") = " <> swBits sw <> ";"
-
-timeFmt :: Doc
-timeFmt = "%04lld-%02lld-%02lldT%02lld:%02lld:%02lld"
 
 outputDie :: Doc
 outputDie = "if (error) return error;"

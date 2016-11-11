@@ -4,6 +4,7 @@
 #include <ctype.h>
 #include <execinfo.h>
 #include <fcntl.h>
+#include <inttypes.h>
 #include <math.h>
 #include <signal.h>
 #include <stdarg.h>
@@ -20,8 +21,6 @@
 #pragma GCC diagnostic ignored "-Wunused-function"
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #pragma GCC diagnostic ignored "-Wunused-variable"
-#pragma GCC diagnostic ignored "-Wundefined-internal"
-#pragma GCC diagnostic ignored "-Wself-assign"
 
 typedef uint64_t ierror_t;
 typedef uint64_t iunit_t;

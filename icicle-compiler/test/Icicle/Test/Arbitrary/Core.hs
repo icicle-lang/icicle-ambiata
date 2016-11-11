@@ -185,7 +185,7 @@ instance Arbitrary ValType where
          , TimeT
          , StringT ]
          [ ArrayT  <$> arbitrary
-         , BufT    <$> (getNonNegative <$> arbitrary) <*> arbitrary
+         , BufT    <$> (getPositive <$> arbitrary) <*> arbitrary
          , PairT   <$> arbitrary <*> arbitrary
          , SumT    <$> arbitrary <*> arbitrary
          , MapT    <$> arbitrary <*> arbitrary

@@ -83,7 +83,7 @@ static ierror_loc_t INLINE json_read_iint (char **pp, char *pe, iint_t *output_p
 
 static size_t INLINE text_write_iint (iint_t value, char *p)
 {
-    return snprintf (p, text_iint_max_size, "%lld", value);
+    return snprintf (p, text_iint_max_size, "%" PRId64, value);
 }
 
 
@@ -354,9 +354,21 @@ static size_t INLINE text_write_itime (itime_t value, char *p)
     iint_t year, month, day, hour, minute, second;
     itime_to_gregorian (value, &year, &month, &day, &hour, &minute, &second);
 
-    snprintf ( p, text_itime_max_size
-             , "%04lld-%02lld-%02lldT%02lld:%02lld:%02lldZ"
-             , year, month, day, hour, minute, second );
+    snprintf (
+        p
+      , text_itime_max_size
+      , "%04" PRId64 "-"
+        "%02" PRId64 "-"
+        "%02" PRId64 "T"
+        "%02" PRId64 ":"
+        "%02" PRId64 ":"
+        "%02" PRId64 "Z"
+      , year
+      , month
+      , day
+      , hour
+      , minute
+      , second );
 
     /* don't include the null-termination as part of the written size */
     return text_itime_max_size - 1;

@@ -53,9 +53,9 @@ static ierror_msg_t ichord_file_mmap (int fd, ichord_file_t *file)
 
 #if ICICLE_DEBUG
     fprintf (stderr, "ichord_file_mmap: mapped %zu bytes to %p\n", mapped_size, mapped_ptr);
-    fprintf (stderr, "ichord_file_mmap: magic           = 0x%08llx\n", hdr->magic);
-    fprintf (stderr, "ichord_file_mmap: version         = %lld\n",     hdr->version);
-    fprintf (stderr, "ichord_file_mmap: max_chord_count = %lld\n",     hdr->max_chord_count);
+    fprintf (stderr, "ichord_file_mmap: magic           = 0x%08" PRIx64 "\n", hdr->magic);
+    fprintf (stderr, "ichord_file_mmap: version         = %" PRId64 "\n",     hdr->version);
+    fprintf (stderr, "ichord_file_mmap: max_chord_count = %" PRId64 "\n",     hdr->max_chord_count);
     fprintf (stderr, "ichord_file_mmap: chords          = %p\n",       hdr->chords);
 #endif
 
