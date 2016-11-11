@@ -151,7 +151,7 @@ seaOfWriteProgramOutput config state = do
 seaOfWriteOutputSparse :: Doc -> Int -> OutputName -> ValType -> [ValType] -> Either SeaError Doc
 seaOfWriteOutputSparse struct structIndex outName@(OutputName name _) outType argTypes
   = do (m, f, body, _, _)
-          <- seaOfOutput NotInJSON struct structIndex outName PsvDrop Map.empty outType argTypes id
+          <- seaOfOutput NotInJSON struct structIndex outName PsvDrop Map.empty outType argTypes (const id)
        return $ seaOfOutputCond m f (go body)
   where
     go str = vsep [ outputEntity
@@ -166,7 +166,7 @@ seaOfWriteOutputSparse struct structIndex outName@(OutputName name _) outType ar
 seaOfWriteOutputDense :: Doc -> Int -> OutputName -> ValType -> [ValType] -> Text -> Either SeaError Doc
 seaOfWriteOutputDense struct structIndex outName outType argTypes missing
   = do (m, f, body, _, _)
-          <- seaOfOutput NotInJSON struct structIndex outName (PsvMissing missing) Map.empty outType argTypes id
+          <- seaOfOutput NotInJSON struct structIndex outName (PsvMissing missing) Map.empty outType argTypes (const id)
        let body' = seaOfOutputCond m f body
        pure $ vsep [ outputChar '|', body' ]
 
@@ -215,7 +215,7 @@ seaOfOutput
   -> NameEnv                       -- ^ C names in use
   -> ValType                       -- ^ Output type
   -> [ValType]                     -- ^ Types of arguments
-  -> (Doc -> Doc)                  -- ^ Transformation to be applied to this struct member, e.g. index
+  -> (ValType -> Doc -> Doc)       -- ^ Transformation to be applied to this struct member, e.g. index
   -> Either SeaError ( Maybe Doc   -- Output the value when this is true
                      , Maybe Doc   -- Otherwise output this
                      , Doc         -- The output statement, x
@@ -232,15 +232,17 @@ seaOfOutput isJSON struct structIndex outName@(OutputName name _) missing env ou
 
        arrayIndex t x  = seaOfArrayIndex x counter t
 
+       arrayIndex' t x = arrayIndex t $ transform (ArrayT t) x
+
    in case outType of
        ArrayT te
         | tes@(arg0:_) <- meltType te
         , (arr  : _)   <- members
         -> do (mcond, _, body, ix, ts1)
-                 <- seaOfOutput InJSON struct structIndex outName PsvDrop env' te tes (arrayIndex arg0 . transform)
+                 <- seaOfOutput InJSON struct structIndex outName PsvDrop env' te tes arrayIndex'
 
               -- Array of arrays is allowed, so we apply the transform here
-              let arr'  = transform arr
+              let arr'  = transform (ArrayT arg0) arr
 
               -- Wrap the body in a for loop
               let numElems  = arrayCount arr'
@@ -250,13 +252,13 @@ seaOfOutput isJSON struct structIndex outName@(OutputName name _) missing env ou
 
 
        MapT tk tv
-        | tks@(argk0 : _) <- meltType tk
-        , tvs@(argv0 : _) <- meltType tv
+        | tks <- meltType tk
+        , tvs <- meltType tv
         , (arr : _)       <- members
         -> do (mcondk, _, bk, ixk, _)
-                 <- seaOfOutput InJSON struct structIndex outName PsvDrop env' tk tks (arrayIndex argk0 . transform)
+                 <- seaOfOutput InJSON struct structIndex outName PsvDrop env' tk tks arrayIndex'
               (mcondv, _, bv, ixv, ts)
-                 <- seaOfOutput InJSON struct ixk outName PsvDrop env' tv tvs (arrayIndex argv0 . transform)
+                 <- seaOfOutput InJSON struct ixk outName PsvDrop env' tv tvs arrayIndex'
 
               let p  = pair bk bv
 
@@ -308,7 +310,7 @@ seaOfOutput isJSON struct structIndex outName@(OutputName name _) missing env ou
                  <- seaOfOutput isJSON struct (structIndex + 1) outName missing env' otype1 ts1 transform
 
               let body' = seaOfOutputCond mcond mfalse body
-              let nb'   = transform nb
+              let nb'   = transform BoolT nb
               pure ( condAnd (Just nb') mcond
                    , outputMissing, body', ix, ts )
 
@@ -319,7 +321,7 @@ seaOfOutput isJSON struct structIndex outName@(OutputName name _) missing env ou
                  <- seaOfOutput isJSON struct (structIndex + 1) outName missing env' otype1 ts1 transform
 
               let body' = seaOfOutputCond mcond mfalse body
-              let ne'   = transform ne
+              let ne'   = transform ErrorT ne
               pure ( condAnd (Just (ne' <> " == ierror_not_an_error")) mcond
                    , outputMissing, body', ix, ts )
 
@@ -327,7 +329,7 @@ seaOfOutput isJSON struct structIndex outName@(OutputName name _) missing env ou
        _
         | (t  : ts) <- argTypes
         , (mx : _)  <- members
-        , mx'       <- transform mx
+        , mx'       <- transform t mx
         -> do d <- seaOfOutputBase' isJSON t mx'
               pure (Nothing, Nothing, d, structIndex + 1, ts)
 
