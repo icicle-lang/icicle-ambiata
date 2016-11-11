@@ -1,0 +1,9 @@
+:set +c-eval
+:set +core-eval
+
+:dictionary test/cli/repl/t30.4-array-updates/dictionary.toml
+:load test/cli/repl/t30.4-array-updates/data.psv
+
+feature keyed_by_field ~> group (year_of time) ~> count dollarydoos
+
+feature keyed_by_field ~> group (year_of time) ~> newest dollarydoos

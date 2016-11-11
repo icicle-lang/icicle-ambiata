@@ -5,6 +5,7 @@ gen
 *.hi
 *.chi
 *.chs.h
+*.gch
 .virthualenv
 .cabal-sandbox
 cabal.sandbox.config

@@ -112,6 +112,7 @@ pushArrayAcc a_fresh t n'acc push
  where
   Flat.FlatOps  {..} = Flat.flatOps a_fresh
 
+-- | Immutable put
 putArrayAcc :: (Hashable n, Monad m, IsString n)
              => a -> ValType -> Name n -> Flat.X a n -> Flat.X a n
              -> FreshT n m (Flat.S a n)
@@ -122,6 +123,39 @@ putArrayAcc a_fresh t n'acc idx push
       updateAcc a_fresh n'acc t' (\arr -> put arr idx push)
  where
   Flat.FlatOps  {..} = Flat.flatOps a_fresh
+
+-- | Mutable put
+putArrayAcc' :: (Hashable n, Monad m, IsString n)
+             => a -> ValType -> Name n -> Flat.X a n -> Flat.X a n
+             -> FreshT n m (Flat.S a n)
+putArrayAcc' a_fresh t n'acc idx push
+ = do let t'          = ArrayT t
+          put arr i x = arrUpd' t arr i x
+
+      updateAcc a_fresh n'acc t' (\arr -> put arr idx push)
+ where
+  Flat.FlatOps  {..} = Flat.flatOps a_fresh
+
+
+-- | Copy an array - before mutating
+-- This should just be a copy, but for now we will cheat by using immutable put
+copyArrayAcc :: (Hashable n, Monad m, IsString n)
+             => a -> ValType -> Name n
+             -> FreshT n m (Flat.S a n)
+copyArrayAcc a_fresh t n'acc
+ = do n'x <- freshPrefix "copy_array"
+      let x = xVar n'x
+      let num = xValue IntT . VInt
+      let is_empty = relEq IntT (arrLen t x) (num 0)
+
+      let put_copy = arrUpd t x (num 0) (arrIx t x $ num 0)
+
+      return $ Read n'x n'acc (ArrayT t)
+             $ If is_empty mempty
+             $ Write n'acc put_copy
+ where
+  Flat.FlatOps  {..} = Flat.flatOps a_fresh
+  Flat.FlatCons {..} = Flat.flatCons a_fresh
 
 
 --------------------------------------------------------------------------------
@@ -601,16 +635,20 @@ avalancheMapInsertUpdate a_fresh stm flatX tk tv upd ins key map
             $ \v' -> putArrayAcc a_fresh tv n_acc_vals v_idx v'
 
       -- Otherwise, insert at v_idx.
-      -- First move elements to the right of v_idx.
+      -- Start by creating a copy of the arrays so we can mutate
+      copyk   <- copyArrayAcc a_fresh tk n_acc_keys
+      copyv   <- copyArrayAcc a_fresh tv n_acc_vals
+
+      -- Now move elements to the right of v_idx.
       -- for i from size downto ix+1: A[i] = A[i-1]
       move    <- forI_ a_fresh ForeachStepDown v_size v_idx
-              $ \i -> do k <- putArrayAcc a_fresh tk n_acc_keys i $ get_k (xMinusOne i)
-                         v <- putArrayAcc a_fresh tv n_acc_vals i $ get_v (xMinusOne i)
+              $ \i -> do k <- putArrayAcc' a_fresh tk n_acc_keys i $ get_k (xMinusOne i)
+                         v <- putArrayAcc' a_fresh tv n_acc_vals i $ get_v (xMinusOne i)
                          return (k <> v)
-      putk    <- putArrayAcc a_fresh tk n_acc_keys v_idx key'
+      putk    <- putArrayAcc' a_fresh tk n_acc_keys v_idx key'
       putv    <- flatX' ins
-               $ putArrayAcc a_fresh tv n_acc_vals v_idx
-      let sIns = move <> putk <> putv
+               $ putArrayAcc' a_fresh tv n_acc_vals v_idx
+      let sIns = copyk <> copyv <> move <> putk <> putv
 
       let keyInMap        = relEq BoolT v_found xTrue
       let sInsertOrUpdate = If keyInMap sUpd sIns
@@ -666,7 +704,7 @@ avalancheMapDelete a_fresh stm flatX tk tv key map
           sz       = xVar n'map'sz
           get'k i  = arrIx  tk x'map'k i
 
-          del'k i  = arrDel tv x'map'k i
+          del'k i  = arrDel tk x'map'k i
           del'v i  = arrDel tv x'map'v i
 
           del'  i  = Block
