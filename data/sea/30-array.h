@@ -222,7 +222,7 @@ Immutable Delete (arr, ix)
 #define MK_ARRAY_DELETE(t)                                                      \
                                                                                 \
 static ARRAY_T(t) INLINE ARRAY_FUN(t,delete)                                    \
-                  (imempool_t *pool, ARRAY_T(t) x, iint_t ix_delete, t##_t v)   \
+                  (imempool_t *pool, ARRAY_T(t) x, iint_t ix_delete)            \
 {                                                                               \
     iint_t count      = x->count;                                               \
     if (ix_delete >= count) return x;                                           \

@@ -172,7 +172,7 @@ seaOfPrimArray p
      PrimArraySwap t
       -> PDFun   (prefixOfValType (ArrayT t) <> "swap") Nothing
      PrimArrayDel t
-      -> PDFun   (prefixOfValType (ArrayT t) <> "delete") Nothing
+      -> PDAlloc   (prefixOfValType (ArrayT t) <> "delete") Nothing
      PrimArrayZip _ _
       -> PDFun (seaError "seaOfPrimArray" p) Nothing
 
