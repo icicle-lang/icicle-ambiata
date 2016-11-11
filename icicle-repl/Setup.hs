@@ -5,10 +5,11 @@ import           Data.List (intercalate)
 import           Data.Monoid ((<>))
 import           Data.Version (showVersion)
 
-import           Distribution.PackageDescription
+import           Distribution.PackageDescription (PackageDescription(..))
 import           Distribution.Verbosity
 import           Distribution.Simple
-import           Distribution.Simple.Setup (BuildFlags(..), ReplFlags(..), TestFlags(..), fromFlag, defaultBuildFlags)
+import           Distribution.Simple.Setup (BuildFlags(..), ReplFlags(..), TestFlags(..), Flag(..))
+import           Distribution.Simple.Setup (fromFlag, defaultBuildFlags, defaultDistPref)
 import           Distribution.Simple.LocalBuildInfo
 import           Distribution.Simple.BuildPaths (autogenModulesDir)
 import           Distribution.Simple.Utils (createDirectoryIfMissingVerbose, rewriteFile, rawSystemStdout)
@@ -31,7 +32,15 @@ main =
        (replHook hooks) pd lbi uh flags args
    , testHook = \args pd lbi uh flags -> do
        genBuildInfo (fromFlag $ testVerbosity flags) pd
-       (buildHook hooks) pd lbi uh defaultBuildFlags { buildArgs = ["icicle-repl"] }
+
+       let
+         buildFlags =
+           defaultBuildFlags {
+               buildDistPref = Flag "dist"
+             , buildArgs = ["icicle-repl"]
+             }
+
+       (buildHook hooks) pd lbi uh buildFlags
        (testHook hooks) args pd lbi uh flags
    }
 
