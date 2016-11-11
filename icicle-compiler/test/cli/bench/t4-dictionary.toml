@@ -21,4 +21,4 @@ tombstone = "foo"
    expression = "feature injury ~> group location ~> latest 2 ~> action"
 
 [feature.test_map_double]
-   expression = "feature injury ~> group location ~> (mean (double severity / 100.0))"
+   expression = "feature injury ~> group location ~> Some (mean (double severity / 100.0))"
