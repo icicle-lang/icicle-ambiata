@@ -40,7 +40,6 @@ import           System.FilePath
 import           System.IO
 
 import qualified Data.Set                                      as Set
-import qualified Data.List                                     as List
 import qualified Data.Text                                     as T
 import qualified Data.Text.Encoding                            as T
 import qualified Data.Text.IO                                  as T

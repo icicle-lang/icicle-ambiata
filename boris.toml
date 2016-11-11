@@ -1,20 +1,31 @@
 [boris]
   version = 1
 
-[build.submodules]
+[build.all-submodules]
   command = [["dangling-refs"]]
+[build.all-rebased]
+  command = [["rebased"]]
 
-[build.validate]
+[build.dist-validate]
   command = [["validate-respect"]]
-
-[build.dist-7-8]
-  command = [["master", "build", "dist-7-8", "-C", "icicle-compiler"]]
-
-[build.dist-7-10]
+[build.dist-7-10-compiler]
   command = [["master", "build", "dist-7-10", "-C", "icicle-compiler"]]
+[build.dist-7-10-core]
+  command = [["master", "build", "dist-7-10", "-C", "icicle-core"]]
+[build.dist-7-10-data]
+  command = [["master", "build", "dist-7-10", "-C", "icicle-data"]]
+[build.dist-7-10-repl]
+  command = [["master", "build", "dist-7-10", "-C", "icicle-repl"]]
+[build.dist-7-10-source]
+  command = [["master", "build", "dist-7-10", "-C", "icicle-source"]]
 
-[build.branches-7-8]
-  command = [["master", "build", "branches-7-8", "-C", "icicle-compiler"]]
-
-[build.branches-7-10]
+[build.branches-7-10-compiler]
   command = [["master", "build", "branches-7-10", "-C", "icicle-compiler"]]
+[build.branches-7-10-core]
+  command = [["master", "build", "branches-7-10", "-C", "icicle-core"]]
+[build.branches-7-10-data]
+  command = [["master", "build", "branches-7-10", "-C", "icicle-data"]]
+[build.branches-7-10-repl]
+  command = [["master", "build", "branches-7-10", "-C", "icicle-repl"]]
+[build.branches-7-10-source]
+  command = [["master", "build", "branches-7-10", "-C", "icicle-source"]]
