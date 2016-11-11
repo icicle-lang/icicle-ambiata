@@ -29,7 +29,8 @@ typedef struct
 // then casting to t*
 #define ARRAY_PAYLOAD(t,p) ((t##_t *)(p+1))
 
-#define ARRAY_SIZE(t,n)    ((sizeof(t##_t) * (n)) + sizeof(iarray_struct))
+#define ARRAY_ITEM_SIZE(t,n)  (sizeof(t##_t) * (n))
+#define ARRAY_SIZE(t,n)       (ARRAY_ITEM_SIZE(t,n) + sizeof(iarray_struct))
 
 
 /*
@@ -223,17 +224,22 @@ Immutable Delete (arr, ix)
 static ARRAY_T(t) INLINE ARRAY_FUN(t,delete)                                    \
                   (imempool_t *pool, ARRAY_T(t) x, iint_t ix, t##_t v)          \
 {                                                                               \
-    iint_t count          = x->count;                                           \
+    iint_t count      = x->count;                                               \
     iint_t sz         = iarray_size(count);                                     \
+    /* total size to allocate for new array. */                                 \
+    /* might be larger than necessary because based off old count */            \
+    size_t bytes      = ARRAY_SIZE(t, sz);                                      \
+    /* total size for head, up to but not including ix */                       \
     size_t bytes_head = ARRAY_SIZE(t, ix);                                      \
-    size_t bytes_tail = ARRAY_SIZE(t, sz - ix);                                 \
+    /* tail does not include the array header */                                \
+    size_t bytes_tail = ARRAY_ITEM_SIZE(t, sz - ix);                            \
                                                                                 \
-    ARRAY_T(t) arr = (ARRAY_T(t))imempool_alloc(pool, bytes_old);               \
-    memcpy(arr, x,                      bytes_head_old);                        \
-    memcpy(arr, x + bytes_head_old + 1, bytes_tail_old);                        \
+    ARRAY_T(t) arr = (ARRAY_T(t))imempool_alloc(pool, bytes);                   \
+    memcpy(arr, x,                               bytes_head);                   \
+    memcpy(arr + bytes_head, x + bytes_head + 1, bytes_tail);                   \
     x = arr;                                                                    \
                                                                                 \
-    x->count = ix - 1;                                                          \
+    x->count = count - 1;                                                       \
     return x;                                                                   \
 }
 
