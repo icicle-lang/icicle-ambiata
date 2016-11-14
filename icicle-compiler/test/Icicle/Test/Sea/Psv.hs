@@ -214,7 +214,7 @@ runTest wt (TestOpts showInput showOutput inputFormat allowDupTime) = do
         dropped = dir <> "/dropped.psv"
         chords  = Nothing
         limit   = 4096
-        discard = S.SeaWriteOverLimit
+        discard = S.PsvHasDropFile
 
     liftIO (LT.writeFile program (LT.fromStrict source))
 

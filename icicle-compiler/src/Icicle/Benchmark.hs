@@ -66,7 +66,7 @@ data Benchmark = Benchmark {
   , benchChordPath       :: Maybe FilePath
   , benchCompilationTime :: NominalDiffTime
   , benchFactsLimit      :: Int
-  , benchLimitDiscard    :: SeaFlagDiscard
+  , benchLimitDiscard    :: PsvDrop
   }
 
 data BenchmarkResult = BenchmarkResult {
@@ -87,7 +87,7 @@ createBenchmark
   -> FilePath
   -> Maybe FilePath
   -> Maybe Int
-  -> Maybe SeaFlagDiscard
+  -> Maybe PsvDrop
   -> Maybe BenchInputPsv
   -> Maybe BenchOutputPsv
   -> EitherT BenchError IO Benchmark
@@ -126,7 +126,7 @@ createBenchmark mode dictionaryPath inputPath outputPath dropPath packedChordPat
     , benchChordPath       = packedChordPath
     , benchCompilationTime = end `diffUTCTime` start
     , benchFactsLimit      = fromMaybe (1024*1024) limit
-    , benchLimitDiscard    = fromMaybe SeaWriteOverLimit discard
+    , benchLimitDiscard    = fromMaybe PsvHasDropFile discard
     }
   where
     inputCfg x = case x of

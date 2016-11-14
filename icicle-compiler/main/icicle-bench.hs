@@ -52,14 +52,14 @@ main = do
     _ -> usage args
   where
     usage as = do
-      putStrLn "usage: icicle-bench DICTIONARY INPUT_PSV OUTPUT_PSV OUTPUT_C SNAPSHOT_DATE [FACTS_LIMIT] [DROP_TXT] [DISCARD] [INPUT_PSV] [OUTPUT_PSV]"
-      putStrLn "  -or- icicle-bench DICTIONARY INPUT_PSV OUTPUT_PSV OUTPUT_C CHORD_PSV     [FACTS_LIMIT] [DROP_TXT] [DISCARD] [INPUT_PSV] [OUTPUT_PSV]"
+      putStrLn "usage: icicle-bench DICTIONARY INPUT_PSV OUTPUT_PSV OUTPUT_C SNAPSHOT_DATE [FACTS_LIMIT] [DROP_TXT] [DROP_TO_OUTPUT] [INPUT_PSV] [OUTPUT_PSV]"
+      putStrLn "  -or- icicle-bench DICTIONARY INPUT_PSV OUTPUT_PSV OUTPUT_C CHORD_PSV     [FACTS_LIMIT] [DROP_TXT] [DROP_TO_OUTPUT] [INPUT_PSV] [OUTPUT_PSV]"
       putStrLn ("invalid args: " <> show as)
 
     readDiscard x
-      | x == "--discard=true" = Just SeaDiscardOverLimit
-      | x == "--discard=false"= Just SeaWriteOverLimit
-      | otherwise             = Nothing
+      | x == "--drop-to-output=true" = Just PsvNoDropFile
+      | x == "--drop-to-output=false"= Just PsvHasDropFile
+      | otherwise                    = Nothing
 
     readInputPsv x
       | x == "--input=sparse" = Just BenchInputSparse
@@ -97,7 +97,7 @@ runBench
   -> FilePath
   -> Maybe FilePath
   -> Maybe Int
-  -> Maybe SeaFlagDiscard
+  -> Maybe PsvDrop
   -> Maybe BenchInputPsv
   -> Maybe BenchOutputPsv
   -> EitherT BenchError IO ()
