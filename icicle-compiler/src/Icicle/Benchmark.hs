@@ -112,7 +112,7 @@ createBenchmark mode dictionaryPath inputPath outputPath dropPath packedChordPat
 
   code  <- firstEitherT BenchSeaError (hoistEither (codeOfPrograms cfg avalancheL))
   asm   <- firstEitherT BenchSeaError (assemblyOfPrograms cfg avalancheL)
-  fleet <- firstEitherT BenchSeaError (seaCompile cfg avalanche)
+  fleet <- firstEitherT BenchSeaError (seaCompile NoCacheSea cfg avalanche)
 
   end <- liftIO getCurrentTime
 

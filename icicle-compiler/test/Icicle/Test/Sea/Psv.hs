@@ -198,7 +198,7 @@ runTest wt (TestOpts showInput showOutput inputFormat allowDupTime) = do
       iformat  = S.FormatPsv iconfig oconfig
       iopts    = S.InputOpts allowDupTime (Map.singleton (wtAttribute wt) (Set.singleton tombstone))
 
-  let compile  = S.seaCompile' options (S.HasInput iformat iopts) programs
+  let compile  = S.seaCompile' options S.NoCacheSea (S.HasInput iformat iopts) programs
       release  = S.seaRelease
   bracketEitherT' compile release $ \fleet -> do
 
