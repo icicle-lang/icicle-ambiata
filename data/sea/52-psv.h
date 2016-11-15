@@ -21,7 +21,7 @@ typedef struct {
 
     /* stuff */
     const size_t  facts_limit;   /* maximum number of facts per entity-attribute */
-    const ibool_t discard_limit; /* whether to write discarded facts to output or drop log */
+    const ibool_t has_drop; /* whether to write discarded facts to output or drop log */
 
 } psv_config_t;
 
@@ -61,7 +61,7 @@ typedef struct {
     size_t    entity_dropped_size; /* dropping a new entity, we need to record that. */
     iint_t    entity_dropped_count;
     size_t    facts_limit;
-    int       discard_limit;
+    ibool_t   has_drop;
 
 } psv_state_t;
 
@@ -106,20 +106,12 @@ static ierror_msg_t INLINE psv_write_outputs
   , size_t entity_size
   , ifleet_t *fleet );
 
-static ierror_msg_t INLINE psv_write_to_output
-  ( psv_state_t *s
-  , const char *entity
-  , const size_t entity_size );
-
-static ierror_msg_t INLINE psv_write_to_drop
-  ( psv_state_t *s
-  , const char *entity
-  , const size_t entity_size );
+static ierror_msg_t INLINE psv_output_flush
+  ( int fd
+  , char *ps
+  , char **pp );
 
 static ierror_msg_t INLINE psv_flush_to_output
-  ( psv_state_t *s );
-
-static ierror_msg_t INLINE psv_flush_to_drop
   ( psv_state_t *s );
 
 /*
@@ -232,11 +224,16 @@ static ierror_loc_t psv_write_dropped_entity_cur (psv_state_t *s, const ierror_l
         if (bytes_written == 0)
             return error;
 
-        /* write the partial result */
-        msg = psv_write_to_drop (s, s->entity_cur, s->entity_cur_size);
+        /* write the partial result to drop or output */
+        int fd = s->has_drop ? s->drop_fd : s->output_fd;
+
+        msg = psv_write_outputs (fd, s->output_start, s->output_end, &s->output_ptr, s->entity_cur, s->entity_cur_size, s->fleet);
+
         if (msg)
             return error;
-        msg = psv_flush_to_drop (s);
+
+        msg = psv_output_flush (fd, s->output_start, &s->output_ptr);
+
         if (msg)
             return error;
 
@@ -337,30 +334,41 @@ static ierror_loc_t psv_read_buffer (psv_state_t *s, const size_t facts_limit)
         const int new_entity = psv_compare (entity_cur, entity_cur_size, entity_ptr, entity_size);
 
         if (new_entity < 0) {
-            if (entity_cur_size != 0) {
-                ierror_msg_t msg = psv_write_outputs
-                                     ( s->output_fd
-                                     , s->output_start
-                                     , s->output_end
-                                     , &s->output_ptr
-                                     , entity_cur
-                                     , entity_cur_size
-                                     , s->fleet );
+            ibool_t      dropping = psv_is_dropping_this (s, s->entity_cur, s->entity_cur_size);
+
+#if ICICLE_PSV_OUTPUT_SPARSE
+            int          fd       = s->has_drop && dropping ? s->drop_fd : s->output_fd;
+            ierror_msg_t msg      = psv_write_outputs (fd, s->output_start, s->output_end, &s->output_ptr, entity_cur, entity_cur_size, s->fleet);
+
+            if (msg) {
+              error = ierror_loc_format (0, 0, "%s", msg);
+              goto on_error;
+            }
+
+            msg = psv_output_flush (fd, s->output_start, &s->output_ptr);
+
+            if (msg) {
+              error = ierror_loc_format (0, 0, "%s", msg);
+              goto on_error;
+            }
+#else
+            if (!dropping) {
+                int          fd  = s->output_fd;
+                ierror_msg_t msg = psv_write_outputs (fd, s->output_start, s->output_end, &s->output_ptr, entity_cur, entity_cur_size, s->fleet);
+
                 if (msg) {
-                    error = ierror_loc_format (0, 0, "%s", msg);
-                    goto on_error;
+                  error = ierror_loc_format (0, 0, "%s", msg);
+                  goto on_error;
                 }
 
-                /* we need to flush the output immediately because it might be the case that
-                   the result for the new entity will need to be flushed to drop_fd, while the output
-                   for the old entity here needs to be flushed to output_fd as usual. */
-                msg = psv_flush_to_output (s);
+                msg = psv_output_flush (fd, s->output_start, &s->output_ptr);
 
                 if (msg) {
-                    error = ierror_loc_format (0, 0, "%s", msg);
-                    goto on_error;
+                  error = ierror_loc_format (0, 0, "%s", msg);
+                  goto on_error;
                 }
             }
+#endif
 
             memcpy (entity_cur, entity_ptr, entity_size);
             entity_cur[entity_size] = 0;
@@ -452,16 +460,6 @@ on_error:
 Output
 */
 
-static ierror_msg_t INLINE psv_write_to_output (psv_state_t *s, const char *entity, const size_t entity_size)
-{
-    return psv_write_outputs (s->output_fd, s->output_start, s->output_end, &s->output_ptr, entity, entity_size, s->fleet);
-}
-
-static ierror_msg_t INLINE psv_write_to_drop (psv_state_t *s, const char *entity, const size_t entity_size)
-{
-    return psv_write_outputs (s->drop_fd, s->output_start, s->output_end, &s->output_ptr, entity, entity_size, s->fleet);
-}
-
 static ierror_msg_t INLINE psv_output_flush (int fd, char *ps, char **pp)
 {
     size_t bytes_avail   = *pp - ps;
@@ -479,11 +477,6 @@ static ierror_msg_t INLINE psv_output_flush (int fd, char *ps, char **pp)
 static ierror_msg_t INLINE psv_flush_to_output (psv_state_t *s)
 {
     return psv_output_flush (s->output_fd, s->output_start, &s->output_ptr);
-}
-
-static ierror_msg_t INLINE psv_flush_to_drop (psv_state_t *s)
-{
-  return psv_output_flush (s->drop_fd, s->output_start, &s->output_ptr);
 }
 
 #define ENSURE_SIZE(bytes_required)                                   \
@@ -604,7 +597,7 @@ void psv_snapshot (psv_config_t *cfg)
     state.output_fd    = output_fd;
     state.drop_fd      = drop_fd;
     state.facts_limit  = cfg->facts_limit;
-    state.discard_limit= cfg->discard_limit;
+    state.has_drop     = cfg->has_drop;
 
     size_t input_offset = 0;
 
@@ -621,21 +614,27 @@ void psv_snapshot (psv_config_t *cfg)
         }
 
         if (bytes_read == 0) {
-            if (state.entity_cur_size != 0) {
-                const int dropping = psv_is_dropping_this (&state, state.entity_cur, state.entity_cur_size);
+            ibool_t dropping = psv_is_dropping_this (&state, state.entity_cur, state.entity_cur_size);
+#if ICICLE_PSV_OUTPUT_SPARSE
+            int     fd       = state.has_drop && dropping ? state.drop_fd : state.output_fd;
 
-                if (state.discard_limit && dropping) {
-                    fd = drop_fd;
-                } else {
-                    fd = output_fd;
-                }
+            cfg->error = psv_write_outputs (fd, state.output_start, state.output_end, &state.output_ptr, state.entity_cur, state.entity_cur_size, state.fleet);
+
+            if (cfg->error != 0) {
+                cfg->error = psv_output_flush (fd, state.output_start, &state.output_ptr);
+            }
+#else
+            if (!dropping) {
+                int fd = state.output_fd;
 
                 cfg->error = psv_write_outputs (fd, state.output_start, state.output_end, &state.output_ptr, state.entity_cur, state.entity_cur_size, state.fleet);
 
                 if (cfg->error != 0) {
-                    cfg->error = psv_output_flush (fd, state.output_start, &state.output_ptr);
+                  cfg->error = psv_output_flush (fd, state.output_start, &state.output_ptr);
                 }
             }
+#endif
+
             break;
         }
 

@@ -325,15 +325,26 @@ codeOfPrograms input programs = do
   progs   <- zipWithM (\ix (a, p) -> seaOfProgram   ix a p) [0..] programs
   states  <- zipWithM (\ix (a, p) -> stateOfProgram ix a p) [0..] programs
 
+  let defOfPsvInput conf
+        | inputPsvFormat conf == PsvInputSparse
+        = "#define ICICLE_PSV_INPUT_SPARSE 1"
+        | otherwise
+        = ""
+
+  let defOfPsvOutput conf
+        | outputPsvFormat conf == PsvOutputSparse
+        = "#define ICICLE_PSV_OUTPUT_SPARSE 1"
+        | otherwise
+        = ""
+
   case input of
     NoInput -> do
       pure . textOfDoc . vsep $ ["#define ICICLE_NO_INPUT 1", seaPreamble, defs] <> progs
     HasInput format opts -> do
       doc <- seaOfDriver format opts states
       let def  = case format of
-                   FormatPsv icfg _
-                     | inputPsvFormat icfg == PsvInputSparse
-                     -> "#define ICICLE_PSV_INPUT_SPARSE 1"
+                   FormatPsv icfg ocfg
+                     -> vsep [ defOfPsvInput icfg, defOfPsvOutput ocfg ]
                    _ -> ""
 
       pure . textOfDoc . vsep $ [def, seaPreamble, defs] <> progs <> ["", doc]

@@ -11,7 +11,7 @@ module Icicle.Sea.Eval (
   , module Icicle.Sea.IO
   , seaPsvSnapshotFilePath
   , seaPsvSnapshotFd
-  , SeaFlagDiscard (..)
+  , PsvDrop (..)
   ) where
 
 import           Control.Monad.IO.Class (MonadIO(..))
@@ -36,7 +36,7 @@ import           X.Control.Monad.Trans.Either (bracketEitherT')
 import           X.Control.Monad.Trans.Either (left)
 
 
-data SeaFlagDiscard = SeaWriteOverLimit | SeaDiscardOverLimit
+data PsvDrop = PsvHasDropFile | PsvNoDropFile
   deriving (Eq, Show)
 
 ------------------------------------------------------------------------
@@ -48,7 +48,7 @@ seaPsvSnapshotFilePath
   -> FilePath
   -> Maybe FilePath
   -> Int
-  -> SeaFlagDiscard
+  -> PsvDrop
   -> EitherT SeaError IO PsvStats
 seaPsvSnapshotFilePath fleet input output dropped mchords limit discard = do
   let mopen mpath =
@@ -79,7 +79,7 @@ seaPsvSnapshotFd
   -> Posix.Fd
   -> Maybe Posix.Fd
   -> Int
-  -> SeaFlagDiscard
+  -> PsvDrop
   -> EitherT SeaError IO PsvStats
 seaPsvSnapshotFd fleet input output dropped mchords limit discard =
   withWords 9 $ \pState -> do
@@ -89,7 +89,7 @@ seaPsvSnapshotFd fleet input output dropped mchords limit discard =
   pokeWordOff pState 2 dropped
   pokeWordOff pState 3 (fromMaybe 0 mchords)
   pokeWordOff pState 7 limit
-  pokeWordOff pState 8 (discard == SeaDiscardOverLimit)
+  pokeWordOff pState 8 (discard == PsvHasDropFile)
 
   liftIO (sfSnapshot fleet pState)
 

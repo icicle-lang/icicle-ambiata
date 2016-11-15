@@ -1,0 +1,18 @@
+namespace=""
+import = []
+
+[fact.salary]
+ encoding = "int"
+
+[fact.injury]
+  [fact.injury.encoding]
+    location="string"
+    severity="int"
+    action="string*"
+    admitted="time*"
+
+[feature.long_output]
+ expression = "feature salary ~> newest value + 1000000000"
+
+[feature.more_long_output]
+ expression = "feature salary ~> newest value + 2000000000"

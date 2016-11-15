@@ -1,0 +1,10 @@
+line 5: xxxxxxxx|salary|40|1989-12-20
+        ^~~~~~~~~ entity xxxxxxxx had too many salary facts, they have been dropped starting from here
+xxxxxxxx|1000000020|2000000020
+total: 3 facts for xxxxxxxx were dropped.
+
+line 8: zzz|salary|40|1989-12-20
+        ^~~~ entity zzz had too many salary facts, they have been dropped starting from here
+zzz|1000000020|2000000020
+total: 2 facts for zzz were dropped.
+
