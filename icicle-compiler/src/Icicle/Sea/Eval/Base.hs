@@ -12,7 +12,8 @@ module Icicle.Sea.Eval.Base (
   , SeaFleet(..)
   , SeaProgram(..)
   , SeaError(..)
-  , Input (..)
+  , CacheSea(..)
+  , Input(..)
   , InputAllowDupTime(..)
   , PsvInputConfig(..)
   , PsvOutputConfig(..)
@@ -104,6 +105,11 @@ data Input
 data MemPool
 data SeaState
 
+data CacheSea =
+    NoCacheSea
+  | CacheSea
+    deriving (Eq, Ord, Show)
+
 data SeaFleet st = SeaFleet {
     sfLibrary     :: Library
   , sfPrograms    :: Map Attribute SeaProgram
@@ -146,7 +152,7 @@ seaEvalAvalanche
 seaEvalAvalanche program time values = do
   let attr = Attribute "eval"
       ps   = Map.singleton attr program
-  bracketEitherT' (seaCompile NoInput ps) seaRelease (\fleet -> seaEval attr fleet time values)
+  bracketEitherT' (seaCompile NoCacheSea NoInput ps) seaRelease (\fleet -> seaEval attr fleet time values)
 
 seaEval
   :: (Functor m, MonadIO m, MonadMask m)
@@ -206,24 +212,28 @@ valueFromCore' v =
 seaCompile
   :: (MonadIO m, MonadMask m, Functor m)
   => (Show a, Show n, Pretty n, Eq n)
-  => Input
+  => CacheSea
+  -> Input
   -> Map Attribute (Program (Annot a) n Prim)
   -> EitherT SeaError m (SeaFleet st)
-seaCompile input programs = do
+seaCompile cache input programs = do
   options <- getCompilerOptions
-  seaCompile' options input programs
+  seaCompile' options cache input programs
 
 seaCompile'
   :: (MonadIO m, MonadMask m, Functor m)
   => (Show a, Show n, Pretty n, Eq n)
   => [CompilerOption]
+  -> CacheSea
   -> Input
   -> Map Attribute (Program (Annot a) n Prim)
   -> EitherT SeaError m (SeaFleet st)
-seaCompile' options input programs = do
+seaCompile' options cache input programs = do
   code <- hoistEither (codeOfPrograms input (Map.toList programs))
 
-  lib                  <- firstEitherT SeaJetskiError (compileLibrary options code)
+  let cache' = fromCacheSea cache
+
+  lib                  <- firstEitherT SeaJetskiError (compileLibrary cache' options code)
   imempool_create      <- firstEitherT SeaJetskiError (function lib "imempool_create"      (retPtr retVoid))
   imempool_free        <- firstEitherT SeaJetskiError (function lib "imempool_free"        retVoid)
   segv_install_handler <- firstEitherT SeaJetskiError (function lib "segv_install_handler" retVoid)
@@ -249,6 +259,13 @@ seaCompile' options input programs = do
                       segv_install_handler [argPtr ptr, argCSize (fromIntegral len)]
     , sfSegvRemove  = segv_remove_handler  []
     }
+
+fromCacheSea :: CacheSea -> CacheLibrary
+fromCacheSea = \case
+  NoCacheSea ->
+    NoCacheLibrary
+  CacheSea ->
+    CacheLibrary
 
 mkSeaProgram
   :: (MonadIO m, MonadMask m, Functor m, Eq n)

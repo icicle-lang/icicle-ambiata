@@ -49,7 +49,7 @@ readLibrary code = do
     Just elib -> hoistEither elib
     Nothing   -> do
       opts <- getCompilerOptions
-      elib <- liftIO (runEitherT (compileLibrary opts code))
+      elib <- liftIO (runEitherT (compileLibrary NoCacheLibrary opts code))
       liftIO (writeIORef libraryRef (Just elib))
       hoistEither elib
 
