@@ -1,3 +1,4 @@
+{-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards     #-}
@@ -10,6 +11,7 @@ module Icicle.Dictionary.Data (
   , ConcreteKey (..)
   , AnnotSource
   , unkeyed
+  , tombstonesOfDictionary
   , getVirtualFeatures
   , featureMapOfDictionary
   , parseFact
@@ -82,6 +84,17 @@ type AnnotSource = ST.Annot SourcePos Variable
 
 unkeyed :: ConcreteKey AnnotSource Variable
 unkeyed = ConcreteKey Nothing
+
+tombstonesOfDictionary :: Dictionary -> Map Attribute (Set Text)
+tombstonesOfDictionary =
+  let
+    takeEntry = \case
+      DictionaryEntry a (ConcreteDefinition _ ts _) _ ->
+        [(a, ts)]
+      _ ->
+        []
+  in
+    Map.fromList . concatMap takeEntry . dictionaryEntries
 
 --------------------------------------------------------------------------------
 

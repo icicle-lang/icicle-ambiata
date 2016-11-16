@@ -11,6 +11,7 @@ build-type:            Custom
 description:           icicle.
 
 extra-source-files:
+  data/make/main.c
   data/sea/00-includes.h
   data/sea/05-error.h
   data/sea/06-segv.h
@@ -36,6 +37,7 @@ library
                      , ambiata-p
                      , ambiata-x-eithert
                      , ambiata-x-show
+                     , ambiata-x-file-embed
                      , aeson                           >= 0.8        && < 0.12
                      , annotated-wl-pprint             == 0.7.*
                      , ansi-terminal                   == 0.6.*
@@ -56,6 +58,7 @@ library
                      , pretty-show                     == 1.6.*
                      , scientific                      == 0.3.*
                      , semigroups                      >= 0.16       && < 0.19
+                     , template-haskell                >= 2.7        && < 2.12
                      , temporary                       == 1.2.*
                      , text                            == 1.2.*
                      , thyme                           == 0.3.*
@@ -155,17 +158,17 @@ library
                        Icicle.Compiler
 
 
-executable             icicle-bench
+executable icicle-bench
     ghc-options:       -Wall -threaded -O2 -funbox-strict-fields
     main-is:           main/icicle-bench.hs
     build-depends:     base
+                     , icicle
                      , icicle-data
                      , icicle-source
                      , icicle-core
                      , ambiata-jetski
                      , ambiata-p
                      , ambiata-x-eithert
-                     , icicle
                      , containers                      == 0.5.*
                      , directory                       == 1.2.*
                      , filepath                        >= 1.3        && < 1.5
@@ -176,6 +179,25 @@ executable             icicle-bench
                      , time                            >= 1.5        && < 1.7
                      , transformers                    >= 0.3        && < 0.6
 
+executable icicle-make
+    ghc-options:       -Wall -threaded -O2 -funbox-strict-fields
+    main-is:           main/icicle-make.hs
+    build-depends:     base
+                     , icicle
+                     , icicle-core
+                     , icicle-data
+                     , icicle-source
+                     , ambiata-jetski
+                     , ambiata-p
+                     , ambiata-x-eithert
+                     , bytestring                      == 0.10.*
+                     , containers                      == 0.5.*
+                     , directory                       == 1.2.*
+                     , file-embed                      == 0.0.9
+                     , filepath                        >= 1.3        && < 1.5
+                     , optparse-generic                == 1.1.*
+                     , text                            == 1.2.*
+                     , transformers                    >= 0.3        && < 0.6
 
 test-suite test
   type:                exitcode-stdio-1.0

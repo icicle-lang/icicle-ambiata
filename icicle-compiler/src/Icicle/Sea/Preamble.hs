@@ -1,24 +1,26 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE OverloadedStrings #-}
-
 module Icicle.Sea.Preamble (
     seaPreamble
   ) where
 
-import           Icicle.Internal.Pretty as Pretty
-
-import           P
+import           Icicle.Internal.Pretty (Doc, vsep, text, int)
 
 import           Data.ByteString (ByteString)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
-
-import           Data.FileEmbed
-
 import qualified Data.List as List
 
+import           P
+
+import qualified Prelude as Savage
+
+import           System.FilePath (takeExtension)
 import           System.IO (FilePath)
+
+import           X.Data.FileEmbed (embedWhen)
+
 
 seaPreamble :: Doc
 seaPreamble
@@ -27,7 +29,7 @@ seaPreamble
  where
   files
    = List.sortBy (compare `on` fst)
-   $ $(embedDir "data/sea/")
+   $ $(embedWhen ((== ".h") . takeExtension) "data/sea/")
 
 seaOfExternal :: FilePath -> ByteString -> Doc
 seaOfExternal path bs
@@ -39,9 +41,13 @@ seaOfExternal path bs
  ]
  where
   (includes, file)
-   = List.span (T.isPrefixOf "#include \"")
-   . T.lines
-   $ T.decodeUtf8 bs
+   = case T.decodeUtf8' bs of
+       Left err ->
+         Savage.error $
+           "Icicle.Sea.Preamble.seaOfExternal: failed to decode: " <> path <> "\n" <>
+           show err
+       Right txt ->
+         List.span (T.isPrefixOf "#include \"") $ T.lines txt
 
   lineNo
    = List.length includes + 1

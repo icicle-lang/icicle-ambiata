@@ -14,7 +14,6 @@ module Icicle.Benchmark (
   , withChords
   ) where
 
-import           Icicle.Data
 import           Icicle.Dictionary
 
 import qualified Icicle.Compiler.Source as P
@@ -30,8 +29,6 @@ import           Icicle.Storage.Dictionary.Toml
 
 import           Control.Monad.IO.Class (liftIO)
 
-import           Data.Map (Map)
-import           Data.Set (Set)
 import qualified Data.Map as Map
 import qualified Data.Text.Lazy.IO as TL
 import           Data.Time (NominalDiffTime, getCurrentTime, diffUTCTime)
@@ -170,12 +167,6 @@ runBenchmark b = do
     , benchEntities = psvEntitiesRead stats
     , benchBytes    = fromIntegral size
     }
-
-tombstonesOfDictionary :: Dictionary -> Map Attribute (Set Text)
-tombstonesOfDictionary dict =
-  let go (DictionaryEntry a (ConcreteDefinition _ ts _) _) = [(a, ts)]
-      go _                                                 = []
-  in Map.fromList (concatMap go (dictionaryEntries dict))
 
 ------------------------------------------------------------------------
 

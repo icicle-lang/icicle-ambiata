@@ -33,6 +33,7 @@ import           P
 data IOFormat
   = FormatPsv Psv.PsvInputConfig Psv.PsvOutputConfig
   | FormatZebra
+    deriving (Eq, Show)
 
 seaOfDriver :: IOFormat -> InputOpts -> [SeaProgramState] -> Either SeaError Doc
 seaOfDriver format opts states
