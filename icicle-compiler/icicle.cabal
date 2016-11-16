@@ -11,19 +11,19 @@ build-type:            Custom
 description:           icicle.
 
 extra-source-files:
-  ../data/sea/00-includes.h
-  ../data/sea/05-error.h
-  ../data/sea/06-segv.h
-  ../data/sea/10-mempool.h
-  ../data/sea/20-simple.h
-  ../data/sea/21-time.h
-  ../data/sea/30-array.h
-  ../data/sea/31-buffer.h
-  ../data/sea/40-grisu2-powers.h
-  ../data/sea/41-grisu2.h
-  ../data/sea/42-text-conversion.h
-  ../data/sea/51-chord.h
-  ../data/sea/52-psv.h
+  data/sea/00-includes.h
+  data/sea/05-error.h
+  data/sea/06-segv.h
+  data/sea/10-mempool.h
+  data/sea/20-simple.h
+  data/sea/21-time.h
+  data/sea/30-array.h
+  data/sea/31-buffer.h
+  data/sea/40-grisu2-powers.h
+  data/sea/41-grisu2.h
+  data/sea/42-text-conversion.h
+  data/sea/51-chord.h
+  data/sea/52-psv.h
 
 library
   build-depends:
