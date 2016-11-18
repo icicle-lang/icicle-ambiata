@@ -101,6 +101,7 @@ import           X.Control.Monad.Trans.Either (firstEitherT, hoistEither, left)
 data Input
   = NoInput
   | HasInput IOFormat InputOpts
+    deriving (Eq, Show)
 
 data MemPool
 data SeaState
