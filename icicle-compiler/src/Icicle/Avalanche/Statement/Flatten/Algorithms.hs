@@ -712,7 +712,7 @@ avalancheMapDelete a_fresh stm flatX tk tv key map
                     , Write n'map'v (del'v i)
                     ]
 
-      loop1       <- forI' sz
+      loop1       <- forReverse sz
                    $ \i
                   ->  (read'k
                   <$> (read'v
@@ -735,8 +735,14 @@ avalancheMapDelete a_fresh stm flatX tk tv key map
       return ss
 
   where
-    flatX'= flatX a_fresh
-    forI' = forI  a_fresh
+    flatX'
+      = flatX a_fresh
+
+    forReverse len
+      = forI_ a_fresh ForeachStepDown (xMinusOne len) (XValue a_fresh IntT (VInt (-1)))
+
+    xMinusOne m
+      = xArith Min.PrimArithMinus `xApp` m `xApp` xValue IntT (VInt 1)
 
     Flat.FlatCons {..} = Flat.flatCons a_fresh
     Flat.FlatOps  {..} = Flat.flatOps  a_fresh
