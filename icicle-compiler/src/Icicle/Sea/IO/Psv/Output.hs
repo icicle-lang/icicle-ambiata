@@ -375,19 +375,22 @@ seaOfArrayIndex arr ix typ
 -- | Output an array with pre-defined bodies
 seaOfOutputArray :: Applicative f => Maybe Doc -> Doc -> Doc -> Doc -> Doc -> f Doc
 seaOfOutputArray mcond body numElems counter countLimit
-  = let go (Just cond)
-          = conditional' cond (withSep ("need_array_sep = " <> cond <> ";"))
+  = let needSep
+          = counter <> "_sep"
+
+        go (Just cond)
+          = conditional' cond (withSep (needSep <> " = " <> cond <> ";"))
         go Nothing
-          = withSep "need_array_sep = itrue;"
+          = withSep (needSep <> " = itrue;")
 
         withSep assign
           = vsep
-          [ conditional' "need_array_sep" (outputChar ',')
+          [ conditional' needSep (outputChar ',')
           , body
           , assign ]
 
     in pure (vsep [ outputChar '['
-              , "ibool_t need_array_sep = ifalse;"
+              , "ibool_t " <> needSep <> " = ifalse;"
               , forStmt counter countLimit numElems
               , "{"
               , indent 4 (go mcond)
