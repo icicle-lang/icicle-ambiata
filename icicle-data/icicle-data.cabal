@@ -24,7 +24,7 @@ library
                      , time                            >= 1.5        && < 1.7
                      , time-locale-compat              == 0.1.*
                      , transformers                    >= 0.3        && < 0.6
-                     , vector                          == 0.10.*
+                     , vector                          == 0.11.*
                      , vector-space                    == 0.10.*
                      -- Well, it might look very odd that we're using both attoparsec
                      -- and parsec.
