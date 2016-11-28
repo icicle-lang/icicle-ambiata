@@ -70,12 +70,12 @@ data CheckEnv a n
 --
 data Invariants
  = Invariants {
- -- | We can't have windows or other group-like things inside groups.
- -- This is actually treating all of latests, distincts and groups as "group-like"
- -- because they all require compilation to a single fold.
-   allowWindowsOrGroups :: Bool
- -- | Latest is good now
- , allowLatest :: Bool
+ -- | Unimplemented in Core: windows inside groups/windows/group-folds/latests
+   allowWindows    :: Bool
+ -- | Unimplemented in Core: group-folds inside groups/windows/group-folds/latests
+ , allowGroupFolds :: Bool
+ -- | Unimplemented in Core: latest inside latest
+ , allowLatest     :: Bool
  }
 
 -- | Initial environment at top-level, not inside a group, and allowing contexts
@@ -84,7 +84,7 @@ emptyCheckEnv
  = CheckEnv Map.empty Map.empty emptyInvariants
 
 emptyInvariants :: Invariants
-emptyInvariants = Invariants True True
+emptyInvariants = Invariants True True True
 
 --------------------------------------------------------------------------------
 

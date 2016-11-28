@@ -1,0 +1,8 @@
+title = "test"
+version = 1
+chapter = []
+namespace = """fixed"""
+tombstone = """NA"""
+
+[fact.cylon]
+  encoding="int*"

@@ -485,30 +485,14 @@ convertQuery q
   -- The remaining query after the current context is removed
   q' = q { contexts = drop 1 $ contexts q }
 
-  -- Group bys can live in either Aggregate or Group universe.
-  -- Because Core is explicitly typed, we need to pull out the key type and value type.
-  getGroupByMapType ann ty
-   | (_,_,t') <- decomposeT ty
-   , (GroupT tk tv) <- t'
-   = (,) <$> convertValType' tk <*> convertValType' tv
-   | (_,_,t') <- decomposeT ty
-   , (SumT ErrorT (GroupT tk tv)) <- t'
-   = (,) <$> convertValType' tk <*> convertValType' tv
-   | otherwise
-   = convertError $ ConvertErrorGroupByHasNonGroupResult ann ty
-
-  -- Get the key and value type of a group inside a group-fold.
-  getGroupFoldType a e
-   = do t <- convertValType' $ annResult $ annotOfExp e
-        case t of
-         T.MapT tk tv -> return (tk, tv)
-         _            -> convertError $ ConvertErrorGroupFoldNotOnGroup a e
-
   -- Perform beta reduction, just to simplify the output a tiny bit.
   beta = Beta.betaToLets ()
        . Beta.beta Beta.isSimpleValue
 
   convertValType' = convertValType (annAnnot $ annotOfQuery q)
+
+  getGroupByMapType = groupMapType convertValType'
+  getGroupFoldType  = groupFoldType convertValType'
 
 
 -- | Convert an Aggregate computation at the end of a query.

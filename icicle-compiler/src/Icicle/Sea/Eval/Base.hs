@@ -717,6 +717,12 @@ peekArrayIx ptr t ix =
      -> do strPtr <- wordPtrToPtr <$> peekWordOff ptr ix
            str    <- liftIO (peekCString strPtr)
            pure (VString (T.pack str))
+
+    ArrayT tx
+     -> do a  <- peekWordOff ptr ix
+           as <- peekArray   a   tx
+           pure $ VArray as
+
     _
      -> left (SeaTypeConversionError (ArrayT t))
 
