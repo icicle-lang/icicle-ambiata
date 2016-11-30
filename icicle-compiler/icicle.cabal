@@ -214,6 +214,7 @@ test-suite test
                      , icicle-data
                      , icicle-source
                      , icicle-core
+                     , icicle
                      , ambiata-disorder-aeson
                      , ambiata-disorder-core
                      , ambiata-disorder-corpus
@@ -221,12 +222,14 @@ test-suite test
                      , ambiata-p
                      , ambiata-jetski
                      , ambiata-x-eithert
+                     , ambiata-x-file-embed
                      , bifunctors                      >= 4.2        && < 5.4
-                     , icicle
                      , aeson
                      , bytestring
                      , containers
                      , directory
+                     , libffi                          == 0.1.*
+                     , filepath                        == 1.4.*
                      , geniplate-mirror                >= 0.7.2      && < 0.8
                      , megaparsec                      == 5.0.*
                      , parsec
