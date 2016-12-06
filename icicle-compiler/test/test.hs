@@ -34,6 +34,8 @@ import qualified Icicle.Test.Sea.Psv
 import qualified Icicle.Test.Sea.Seaworthy
 import qualified Icicle.Test.Sea.Text
 
+import qualified Icicle.Test.Foreign.Array
+
 import           Disorder.Core.Main
 
 
@@ -65,6 +67,8 @@ main
         , Icicle.Test.Sea.Psv.tests
         , Icicle.Test.Sea.Seaworthy.tests
         , Icicle.Test.Sea.Text.tests
+
+        , Icicle.Test.Foreign.Array.tests
 
         -- , Icicle.Test.Dictionary.Types.tests
 

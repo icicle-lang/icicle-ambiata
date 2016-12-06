@@ -3,6 +3,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Icicle.Sea.Preamble (
     seaPreamble
+  , seaOfExternal
   ) where
 
 import           Icicle.Internal.Pretty (Doc, vsep, text, int)

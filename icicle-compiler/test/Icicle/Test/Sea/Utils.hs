@@ -4,6 +4,7 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Icicle.Test.Sea.Utils (
     codeOfDoc
+  , textOfDoc
   , readLibrary
   , releaseLibraryAfterTests
   ) where
