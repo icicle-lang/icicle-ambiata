@@ -10,60 +10,92 @@
 module Icicle.Test.Foreign.Array where
 
 import           Control.Monad.IO.Class (liftIO)
+import           Control.Exception (bracket)
 
 import qualified Data.List as List
 
 import           Foreign
-import           Foreign.LibFFI (RetType)
-import           Foreign.LibFFI.Base (mkStorableRetType)
-import           Foreign.LibFFI.FFITypes (ffi_type_uint64)
 import           Foreign.LibFFI.Types as X
 
 import           System.IO
 
 import           Test.QuickCheck
-import           Test.QuickCheck.Property
 
-import qualified Prelude as Savage
-
-import           Disorder.Corpus
 import           Disorder.Core.IO
 
 import           P
 
-import           X.Control.Monad.Trans.Either
-
 import           Jetski
 
-import qualified Icicle.Common.Base as Icicle
-import           Icicle.Data.Time
 import           Icicle.Internal.Pretty
 import           Icicle.Test.Sea.Utils
-import           Icicle.Test.Arbitrary.Base
 import           Icicle.Test.Arbitrary
 
+import           Icicle.Test.Foreign.Utils
 
 
 -- array_eq (x, x) == true
 prop_array_eq_refl input
   = testIO
-  $ runProp input "eq"
+  $ runProp input name_eq
   $ \ptr -> [ argPtr ptr, argPtr ptr]
+
+name_eq
+  = fn "eq"
+
+test_eq input
+  = "ibool_t "
+  <> pretty name_eq
+  <> " (" <> tt <> " x" <> ", " <> tt <> " y) { "
+  <> "return " <> ta <> "_eq(x,y);"
+  <> "}"
+  where
+    (ta, tt) = arrayType input
 
 -- array_eq (x, y) == array_eq (y, x)
 prop_array_eq_comm input1 input2
   = testIO
   $ runWith input1
   $ \ptr1
-  -> runProp input2 "eq_comm"
+  -> runProp input2 name_eq_comm
   $ \ptr2
   -> [ argPtr (wordPtrToPtr ptr1), argPtr ptr2 ]
+
+name_eq_comm
+  = fn "eq_comm"
+
+test_eq_comm input
+  = "ibool_t "
+  <> pretty name_eq_comm
+  <> " (" <> tt <> " x" <> ", " <> tt <> " y) { "
+  <> "ibool_t r1 = " <> ta <> "_eq(x,y);"
+  <> "ibool_t r2 = " <> ta <> "_eq(y,x);"
+  <> "return (r1 && r2) || (!r1 && !r2);"
+  <> "}"
+  where
+    (ta, tt) = arrayType input
 
 -- array_copy (x) == x
 prop_array_copy_eq input
   = testIO
-  $ runProp input "copy_eq"
+  $ runProp input name_copy_eq
   $ \ptr -> [ argPtr ptr ]
+
+name_copy_eq
+  = fn "copy_eq"
+
+test_copy_eq input
+  = "ibool_t "
+  <> pretty name_copy_eq
+  <> " (" <> tt <> " x) { "
+  <> "imempool_t *test_mempool = imempool_create();"
+  <> tt <> " y = " <> ta <> "_copy(test_mempool, x);"
+  <> "ibool_t r = " <> ta <> "_eq(x,y);"
+  <> "imempool_free(test_mempool);"
+  <> "return r;"
+  <> "}"
+  where
+    (ta, tt) = arrayType input
 
 -- y = array_copy (x)
 -- z = array_put_mutable (x, i, a)
@@ -72,11 +104,27 @@ prop_array_put_mutable_diff
   = forAll arbitrary $ \input -> not (univalue (inputType input)) ==>
     forAll arbitrary $ \i -> i >= 0 && i < length (inputArr input) ==>
     forAll (genValForType (inputType input)) $ \v -> putTestCond input i v ==> testIO $ do
-      (vptr, vfree) <- pokeVal v
-      ret <- runProp input "put_mutable_diff"
-           $ \ptr -> [ argPtr ptr, argInt64 (fromIntegral i), argPtr (wordPtrToPtr vptr) ]
-      vfree
-      return ret
+      bracket (pokeVal v) snd $ \(vptr, _) ->
+        runProp input name_mutable_diff
+          $ \ptr -> [ argPtr ptr, argInt64 (fromIntegral i), argPtr (wordPtrToPtr vptr) ]
+
+name_mutable_diff
+  = fn "put_mutable_diff"
+
+test_mutable_diff input
+  = "ibool_t "
+  <> pretty name_mutable_diff
+  <> " (" <> tt <> " x, iint_t i, " <> ty <> "_t v) { "
+  <> "imempool_t *test_mempool = imempool_create();"
+  <> tt  <> " y = " <> ta <> "_copy(test_mempool, x);"
+  <> tt  <> " z = " <> ta <> "_put_mutable(test_mempool, x, i, v);"
+  <> "ibool_t r = " <> ta <> "_eq(x,y);"
+  <> "imempool_free(test_mempool);"
+  <> "return !r;"
+  <> "}"
+  where
+    ty = seaOfType (inputType input)
+    (ta, tt) = arrayType input
 
 -- y = array_copy (x)
 -- z = array_put_immutable (x, i, a)
@@ -85,18 +133,53 @@ prop_array_put_immutable_copy
   = forAll arbitrary $ \input -> not (univalue (inputType input)) ==>
     forAll arbitrary $ \i -> i >= 0 && i <= length (inputArr input) ==>
     forAll (genValForType (inputType input)) $ \v -> putTestCond input i v ==> testIO $ do
-      (vptr, vfree) <- pokeVal v
-      ret <- runProp input "put_immutable_copy"
-           $ \ptr -> [ argPtr ptr, argInt64 (fromIntegral i), argPtr (wordPtrToPtr vptr) ]
-      vfree
-      return ret
+      bracket (pokeVal v) snd $ \(vptr, _) ->
+        runProp input name_immutable_copy
+          $ \ptr -> [ argPtr ptr, argInt64 (fromIntegral i), argPtr (wordPtrToPtr vptr) ]
+
+name_immutable_copy
+  = fn "put_immutable_copy"
+
+test_immutable_copy input
+  = "ibool_t " <> pretty name_immutable_copy
+  <> " (" <> tt <> " x, iint_t i, " <> ty <> "_t v) { "
+  <> "imempool_t *test_mempool = imempool_create();"
+  <> tt  <> " y = " <> ta <> "_copy(test_mempool, x);"
+  <> tt  <> " z = " <> ta <> "_put_immutable(test_mempool, x, i, v);"
+  <> "ibool_t r = " <> ta <> "_eq(x,y);"
+  <> "imempool_free(test_mempool);"
+  <> "return r;"
+  <> "}"
+  where
+    ty = seaOfType (inputType input)
+    (ta, tt) = arrayType input
+
 
 -- swap (swap (x, i, j), j, i) == x
 prop_array_swap_swap_eq input
   = forAll (arbitrary :: Gen Int) $ \i -> i >= 0 && i < length (inputArr input) ==>
-    forAll (arbitrary :: Gen Int) $ \j -> j >= 0 && j < length (inputArr input) ==>
-      testIO $ runProp input "swap_swap_eq"
-             $ \ptr -> [ argPtr ptr, argInt64 (fromIntegral i), argInt64 (fromIntegral j) ]
+    forAll (arbitrary :: Gen Int) $ \j -> j >= 0 && j < length (inputArr input) ==> do
+      testIO
+        $ runProp input name_swap_swap_eq
+        $ \ptr -> [ argPtr ptr, argInt64 (fromIntegral i), argInt64 (fromIntegral j) ]
+
+name_swap_swap_eq
+  = fn "swap_swap_eq"
+
+test_swap_swap_eq input
+  = "ibool_t "
+  <> pretty name_swap_swap_eq
+  <> " (" <> tt <> " x, iint_t i, iint_t j) {"
+  <> "imempool_t *test_mempool = imempool_create();"
+  <> tt  <> " y = " <> ta <> "_copy(test_mempool, x);"
+  <> ta <> "_swap(x, i, j);"
+  <> ta <> "_swap(x, j, i);"
+  <> "ibool_t r = " <> ta <> "_eq(y,x);"
+  <> "imempool_free(test_mempool);"
+  <> "return r;"
+  <> "}"
+  where
+    (ta, tt) = arrayType input
 
 -- y = array_copy (x)
 -- z = array_immutable_delete (x, i)
@@ -104,299 +187,102 @@ prop_array_swap_swap_eq input
 prop_array_delete_copy
   = forAll arbitrary $ \input -> not (univalue (inputType input)) ==>
     forAll arbitrary $ \i -> i >= 0 && i < length (inputArr input) ==>
-      testIO $ runProp input "delete_copy"
-             $ \ptr -> [ argPtr ptr, argInt64 (fromIntegral i) ]
+      testIO
+        $ runProp input name_delete_copy
+        $ \ptr -> [ argPtr ptr, argInt64 (fromIntegral i) ]
+
+name_delete_copy
+  = fn "delete_copy"
+
+test_delete_copy t
+  = "ibool_t "
+  <> pretty name_delete_copy
+  <> " (" <> tt <> " x, iint_t i) { "
+  <> "imempool_t *test_mempool = imempool_create();"
+  <> tt  <> " y = " <> ta <> "_copy(test_mempool, x);"
+  <> tt  <> " z = " <> ta <> "_delete (test_mempool, x, i);"
+  <> "ibool_t r = " <> ta <> "_eq(x,y);"
+  <> "imempool_free(test_mempool);"
+  <> "return r;"
+  <> "}"
+  where (ta, tt) = arrayType t
 
 -- y = array_immutable_delete (x, i)
 -- y->count == x->count - 1
 prop_array_delete_len input
-  = forAll arbitrary $ \i -> i >= 0 && i < length (inputArr input) ==>
-      testIO $ runProp input "delete_len"
-             $ \ptr -> [ argPtr ptr, argInt64 (fromIntegral i) ]
+  = forAll arbitrary $ \i -> i >= 0 && i < length (inputArr input) ==> do
+      testIO
+        $ runProp input name_delete_len
+        $ \ptr -> [ argPtr ptr, argInt64 (fromIntegral i) ]
 
+name_delete_len
+  = fn "delete_len"
 
+test_delete_len input
+  = "ibool_t " <> pretty name_delete_len
+  <> " (" <> tt <> " x, iint_t i) { "
+  <> "imempool_t *test_mempool = imempool_create();"
+  <> tt  <> " y = " <> ta <> "_delete (test_mempool, x, i);"
+  <> "ibool_t r = y->count == x->count - 1;"
+  <> "imempool_free(test_mempool);"
+  <> "return r;"
+  <> "}"
+  where (ta, tt) = arrayType input
+
+--------------------------------------------------------------------------------
+
+fn :: Text -> Text
+fn f = "test_" <> f
+
+arrayType :: Input -> (Doc, Doc)
+arrayType input
+  = let ta = "iarray_" <> pretty (seaOfType (inputType input))
+        tt = ta <> "_t"
+    in (ta, tt)
+
+putTestCond :: Input -> Int -> Val -> Bool
 putTestCond input i v
   | i == length (inputArr input) = True
   | otherwise = v /= (inputArr input) List.!! i
 
+univalue :: Ty -> Bool
 univalue ty = case ty of
   IError -> True
   IUnit  -> True
   _      -> False
 
--- savagery
+runWith :: Input -> (WordPtr -> IO Property) -> IO Property
+runWith (Input _ val) prop = go val
+  where
+    go xs = bracket (pokeArr xs) snd (prop . fst)
 
 runProp :: Input -> Text -> (Ptr a -> [Arg]) -> IO Property
 runProp input fun args = do
   let ty = inputType input
-  let fn = seaTestFunName fun
-  let fs = seprops ty
+  let fs = seprops input
 
   runWith input $ \wptr -> runRight $ do
     let ptr = wordPtrToPtr wptr
     src <- readLibrary fs
-    f   <- function src fn retBool
+    f   <- function src fun retBool
     r   <- liftIO $ f $ args ptr
     arr <- liftIO $ peekArr ty wptr
     return $ counterexample ("array after test: " <> show arr)
            $ property r
 
-seprops :: Ty -> SourceCode
-seprops t = codeOfDoc $ vsep
-  [ "MAKE_ARRAY(" <> ty <> ")"
-
-  , "ibool_t " <> fn "eq"
-               <> " (" <> tt <> " x" <> ", " <> tt <> " y) { "
-               <> "return " <> ta <> "_eq(x,y);"
-               <> "}"
-
-  , "ibool_t " <> fn "eq_comm"
-               <> " (" <> tt <> " x" <> ", " <> tt <> " y) { "
-               <> "ibool_t r1 = " <> ta <> "_eq(x,y);"
-               <> "ibool_t r2 = " <> ta <> "_eq(y,x);"
-               <> "return (r1 && r2) || (!r1 && !r2);"
-               <> "}"
-
-  , "ibool_t " <> fn "copy_eq"
-               <> " (" <> tt <> " x) { "
-               <> "imempool_t *test_mempool = imempool_create();"
-               <> tt <> " y = " <> ta <> "_copy(test_mempool, x);"
-               <> "ibool_t r = " <> ta <> "_eq(x,y);"
-               <> "imempool_free(test_mempool);"
-               <> "return r;"
-               <> "}"
-
-  , "ibool_t " <> fn "put_mutable_diff"
-               <> " (" <> tt <> " x, iint_t i, " <> ty <> "_t v) { "
-               <> "imempool_t *test_mempool = imempool_create();"
-               <> tt  <> " y = " <> ta <> "_copy(test_mempool, x);"
-               <> tt  <> " z = " <> ta <> "_put_mutable(test_mempool, x, i, v);"
-               <> "ibool_t r = " <> ta <> "_eq(x,y);"
-               <> "imempool_free(test_mempool);"
-               <> "return !r;"
-               <> "}"
-
-  , "ibool_t " <> fn "put_immutable_copy"
-               <> " (" <> tt <> " x, iint_t i, " <> ty <> "_t v) { "
-               <> "imempool_t *test_mempool = imempool_create();"
-               <> tt  <> " y = " <> ta <> "_copy(test_mempool, x);"
-               <> tt  <> " z = " <> ta <> "_put_immutable(test_mempool, x, i, v);"
-               <> "ibool_t r = " <> ta <> "_eq(x,y);"
-               <> "imempool_free(test_mempool);"
-               <> "return r;"
-               <> "}"
-
-  , "ibool_t " <> fn "swap_swap_eq"
-               <> " (" <> tt <> " x, iint_t i, iint_t j) {"
-               <> "imempool_t *test_mempool = imempool_create();"
-               <> tt  <> " y = " <> ta <> "_copy(test_mempool, x);"
-               <> ta <> "_swap(x, i, j);"
-               <> ta <> "_swap(x, j, i);"
-               <> "ibool_t r = " <> ta <> "_eq(y,x);"
-               <> "imempool_free(test_mempool);"
-               <> "return r;"
-               <> "}"
-
-  , "ibool_t " <> fn "delete_copy"
-               <> " (" <> tt <> " x, iint_t i) { "
-               <> "imempool_t *test_mempool = imempool_create();"
-               <> tt  <> " y = " <> ta <> "_copy(test_mempool, x);"
-               <> tt  <> " z = " <> ta <> "_delete (test_mempool, x, i);"
-               <> "ibool_t r = " <> ta <> "_eq(x,y);"
-               <> "imempool_free(test_mempool);"
-               <> "return r;"
-               <> "}"
-
-  , "ibool_t " <> fn "delete_len"
-               <> " (" <> tt <> " x, iint_t i) { "
-               <> "imempool_t *test_mempool = imempool_create();"
-               <> tt  <> " y = " <> ta <> "_delete (test_mempool, x, i);"
-               <> "ibool_t r = y->count == x->count - 1;"
-               <> "imempool_free(test_mempool);"
-               <> "return r;"
-               <> "}"
-
+seprops :: Input -> SourceCode
+seprops input = codeOfDoc $ vsep
+  [ "MAKE_ARRAY(" <> seaOfType t <> ")"
+  , test_eq input
+  , test_eq_comm input
+  , test_copy_eq input
+  , test_mutable_diff input
+  , test_immutable_copy input
+  , test_swap_swap_eq input
+  , test_delete_copy input
+  , test_delete_len input
   ]
-  where
-    fn = pretty . seaTestFunName
-    ty = pretty (seaOfType t)
-    ta = "iarray_" <> ty
-    tt = ta <> "_t"
-
---------------------------------------------------------------------------------
-
-data Ty
-  = IDouble
-  | IInt
-  | IError
-  | IBool
-  | ITime
-  | IString
-  | IUnit
-  | IArray Ty
-  deriving (Show)
-
-data Val
-  = VDouble Double
-  | VInt    Int
-  | VError  Icicle.ExceptionInfo
-  | VBool   Bool
-  | VTime   Time
-  | VString [Char]
-  | VUnit
-  | VArray  [Val]
-  deriving (Show, Eq)
-
-data Input = Input
-  { inputType :: Ty
-  , inputArr  :: [Val]
-  } deriving (Show)
-
-instance Arbitrary Ty where
-  arbitrary = oneof_sized
-    (fmap pure [IDouble, IInt, IError, IBool, ITime, IString, IUnit])
-    [IArray <$> arbitrary]
-
-instance Arbitrary Input where
-  arbitrary = genInput
-
-genValForType :: Ty -> Gen Val
-genValForType ty = case ty of
-  IDouble
-    -> VDouble <$> arbitrary
-  IInt
-    -> VInt <$> arbitrary
-  IBool
-    -> VBool <$> arbitrary
-  IError
-    -> return $ VError Icicle.ExceptTombstone
-  ITime
-    -> VTime <$> arbitrary
-  IString
-    -> VString <$> elements simpsons
-  IUnit
-    -> return VUnit
-  IArray t
-    -> VArray . List.take 5 <$> listOf (genValForType t)
-
-genInput :: Gen Input
-genInput = do
-  ty   <- arbitrary
-  val  <- listOf (genValForType ty)
-  return $ Input ty val
-
-seaTestFunName :: Text -> Text
-seaTestFunName fn
-   = "test_" <> fn
-
-seaOfType :: Ty -> Text
-seaOfType ty = case ty of
-  IDouble  -> "idouble"
-  IInt     -> "iint"
-  IError   -> "ierror"
-  IBool    -> "ibool"
-  ITime    -> "itime"
-  IString  -> "istring"
-  IUnit    -> "iunit"
-  IArray t -> "iarray_" <> seaOfType t
-
-runWith :: Input -> (WordPtr -> IO Property) -> IO Property
-runWith (Input _ val) prop = go val
-  where
-    go xs = do
-      (array, afree) <- pokeArr xs
-      !r <- prop array
-      afree
-      return r
-
-peekArr :: Ty -> WordPtr -> IO Val
-peekArr t wptr
-  = let ptr = wordPtrToPtr wptr
-        arr p i len acc
-          | i > len = return acc
-          | otherwise = do
-              w <- peekElemOff p i
-              x <- peekVal t w
-              arr p (i+1) len (acc <> [x])
-    in do len <- peekByteOff ptr 0
-          VArray <$> arr ptr 1 len []
-
-peekVal :: Ty -> WordPtr -> IO Val
-peekVal ty wptr = case ty of
-  IInt
-    -> VInt <$> peekElemOff (wordPtrToPtr wptr) 0
-  IDouble
-    -> VDouble <$> peekElemOff (wordPtrToPtr wptr) 0
-  IError
-    -> return (VError Icicle.ExceptTombstone)
-  IBool
-    -> VBool <$> peekElemOff (wordPtrToPtr wptr) 0
-  ITime
-    -> VTime . timeOfPacked <$> peekElemOff (wordPtrToPtr wptr) 0
-  IUnit
-    -> return VUnit
-  IString
-    -> let str p i acc = do
-             c <- peekElemOff p i
-             if c == '\0' then return acc else str p (i+1) (acc <> [c])
-       in VString <$> str (wordPtrToPtr wptr) 0 []
-  IArray t
-    -> peekArr t wptr
-
-pokeVal :: Val -> IO (WordPtr, IO ())
-pokeVal v = case v of
-  VInt x
-    -> poke64 (fromIntegral x :: Word64)
-  VDouble x
-    -> poke64 x
-  VError _
-    -> poke64 (0 :: Word64)
-  VBool x
-    -> let b :: Word64
-           b = if x then 1 else 0
-       in  poke64 b
-  VTime x
-    -> poke64 (packedOfTime x)
-  VUnit
-    -> poke64 (0 :: Word64)
-  VString xs
-    -> pokeStr xs
-  VArray xs
-    -> pokeArr xs
-
-poke64 :: Storable a => a -> IO (WordPtr, IO ())
-poke64 x = do
-  ptr <- mallocBytes 8
-  pokeElemOff ptr 0 x
-  return (ptrToWordPtr ptr, free ptr)
-
-pokeStr :: [Char] -> IO (WordPtr, IO ())
-pokeStr xs = do
-  ptr <- mallocBytes (sizeOf 'c' * (length xs + 1))
-  zipWithM_ (pokeElemOff ptr) [0..] xs
-  pokeElemOff ptr (length xs) '\0'
-  return (ptrToWordPtr ptr, free ptr)
-
-pokeArr :: [Val] -> IO (WordPtr, IO ())
-pokeArr xs = do
-  ptr <- mallocBytes (sizeOf (Savage.undefined :: WordPtr) * (length xs + 1))
-  pokeByteOff ptr 0 (length xs)
-  (ps, fs) <- List.unzip <$> mapM pokeVal xs
-  zipWithM_ (pokeElemOff ptr) [1..] ps
-  return . (ptrToWordPtr ptr,) $ foldr (>>) (return ()) fs
-
---------------------------------------------------------------------------------
-
-runRight :: (Monad m, Show a) => EitherT a m Property -> m Property
-runRight a = do
-  e <- runEitherT a
-  case e of
-    Left  x -> return (counterexample (show x) failed)
-    Right x -> return x
-
-retBool :: RetType Bool
-retBool = mkStorableRetType ffi_type_uint64
-
+  where t = inputType input
 
 return []
 tests :: IO Bool
