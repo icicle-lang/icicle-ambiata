@@ -435,8 +435,7 @@ static ierror_loc_t psv_read_whole_buffer (psv_config_t *cfg, psv_state_t *s)
                 error = psv_write_dropped_entity_cur (s, error);
                 if (error) {
                     const char *error_pretty = ierror_loc_pretty (error, line);
-                    const char *error_msg    = strncat ("failed to drop entity:\n", error_pretty, error_msg_size);
-                    cfg->error = ierror_msg_alloc (error_msg, 0, 0);
+                    cfg->error = ierror_msg_format ("failed to drop entity:\n%s\n", error_pretty);
                 }
 
                 /* stop if either we have skipped all rows for this entity,
