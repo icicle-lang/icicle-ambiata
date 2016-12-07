@@ -100,8 +100,12 @@ createBenchmark mode dictionaryPath inputPath outputPath dropPath packedChordPat
               $ P.avalancheOfDictionary P.defaultCompileOptions dictionary
 
   let cfg = HasInput
-          ( FormatPsv (PsvInputConfig  mode input')
-                      (PsvOutputConfig mode output' defaultOutputMissing))
+          ( FormatPsv
+          $ PsvConfig (PsvInputConfig  mode input')
+                      (PsvOutputConfig mode output' defaultOutputMissing)
+                      defaultPsvMaxRowCount
+                      defaultPsvInputBufferSize
+                      defaultPsvOutputBufferSize )
           ( InputOpts AllowDupTime
                      (tombstonesOfDictionary dictionary))
 

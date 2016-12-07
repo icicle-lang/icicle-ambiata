@@ -243,7 +243,7 @@ seaCompile' options cache input programs = do
   take_snapshot <- case input of
     NoInput -> do
       return (\_ -> return ())
-    HasInput (FormatPsv _ _) _ -> do
+    HasInput (FormatPsv _) _ -> do
       fn <- firstEitherT SeaJetskiError (function lib "psv_snapshot" retVoid)
       return (\ptr -> fn [argPtr ptr])
     _ -> return (\_ -> return ()) --todo
@@ -357,15 +357,25 @@ codeOfPrograms input programs = do
 
   case input of
     NoInput -> do
-      pure . textOfDoc . vsep $ ["#define ICICLE_NO_INPUT 1", seaPreamble, defs] <> progs
+      let consts = seaOfDefaultConstants
+      pure . textOfDoc . vsep
+        $ [ "#define ICICLE_NO_INPUT 1"
+          , consts
+          , seaPreamble
+          , defs
+          ] <> progs
     HasInput format opts -> do
       doc <- seaOfDriver format opts states
+      let cnst = case format of
+                   FormatPsv conf
+                     -> seaOfConstants conf
+                   _ -> seaOfDefaultConstants
       let def  = case format of
-                   FormatPsv icfg ocfg
-                     -> vsep [ defOfPsvInput icfg, defOfPsvOutput ocfg ]
+                   FormatPsv conf
+                     -> vsep [ defOfPsvInput (psvInputConfig conf), defOfPsvOutput (psvOutputConfig conf) ]
                    _ -> ""
 
-      pure . textOfDoc . vsep $ [def, seaPreamble, defs] <> progs <> ["", doc]
+      pure . textOfDoc . vsep $ [def, cnst, seaPreamble, defs] <> progs <> ["", doc]
 
 textOfDoc :: Doc -> Text
 textOfDoc doc = T.pack (displayS (renderPretty 0.8 80 (pretty doc)) "")
