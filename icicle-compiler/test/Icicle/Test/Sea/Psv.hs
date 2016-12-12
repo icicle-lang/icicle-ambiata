@@ -217,10 +217,10 @@ runTest wt (PsvOpts psvMaxRowCount psvInputBufferSize psvOutputBufferSize) (Test
   let options  = options0 <> ["-O0", "-DICICLE_NOINLINE=1"]
       programs = Map.singleton (wtAttribute wt) (wtAvalancheFlat wt)
       iconfig  = S.PsvInputConfig
-                (S.PsvSnapshot (wtTime wt))
+                (S.Snapshot (wtTime wt))
                  inputFormat
       oconfig  = S.PsvOutputConfig
-                (S.PsvSnapshot (wtTime wt))
+                (S.Snapshot (wtTime wt))
                 (S.PsvOutputSparse)
                 (S.defaultOutputMissing)
       conf     = S.PsvConfig iconfig oconfig psvMaxRowCount psvInputBufferSize psvOutputBufferSize

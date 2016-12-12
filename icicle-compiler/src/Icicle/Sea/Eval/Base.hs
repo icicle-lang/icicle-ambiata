@@ -17,7 +17,7 @@ module Icicle.Sea.Eval.Base (
   , InputAllowDupTime(..)
   , PsvInputConfig(..)
   , PsvOutputConfig(..)
-  , PsvMode(..)
+  , Mode(..)
   , PsvOutputFormat(..)
   , PsvInputFormat(..)
   , PsvInputDenseDict(..)

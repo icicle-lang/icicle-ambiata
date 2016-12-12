@@ -139,8 +139,8 @@ createBenchmark (name, path) = do
 releaseBenchmarks :: [(String, I.Benchmark)] -> EitherT I.BenchError IO ()
 releaseBenchmarks = traverse_ I.releaseBenchmark . fmap snd
 
-mode :: I.PsvMode
-mode = I.PsvSnapshot (fromJust (timeOfText "2015-10-01"))
+mode :: I.Mode
+mode = I.Snapshot (fromJust (timeOfText "2015-10-01"))
 
 dictionary :: Text
 dictionary = T.unlines

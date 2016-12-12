@@ -80,16 +80,16 @@ main = do
        Left err                 -> print err
        Right _                  -> return ()
 
-modeOfString :: String -> (PsvMode, Maybe FilePath)
+modeOfString :: String -> (Mode, Maybe FilePath)
 modeOfString str =
   case timeOfText (T.pack str) of
-    Nothing   -> (PsvChords, Just str)
-    Just time -> (PsvSnapshot time, Nothing)
+    Nothing   -> (Chords, Just str)
+    Just time -> (Snapshot time, Nothing)
 
 ------------------------------------------------------------------------
 
 runBench
-  :: PsvMode
+  :: Mode
   -> FilePath
   -> FilePath
   -> FilePath

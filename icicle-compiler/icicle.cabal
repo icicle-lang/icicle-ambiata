@@ -145,13 +145,10 @@ library
                        Icicle.Sea.Eval.Psv
                        Icicle.Sea.IO
                        Icicle.Sea.IO.Base
-                       Icicle.Sea.IO.Base.Input
                        Icicle.Sea.IO.Psv
-                       Icicle.Sea.IO.Psv.Base
                        Icicle.Sea.IO.Psv.Input
                        Icicle.Sea.IO.Psv.Output
                        Icicle.Sea.IO.Zebra
-                       Icicle.Sea.IO.Zebra.Input
 
                        Icicle.Internal.Rename
 

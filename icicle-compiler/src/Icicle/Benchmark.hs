@@ -77,7 +77,7 @@ data BenchInputPsv  = BenchInputSparse  | BenchInputDense
 data BenchOutputPsv = BenchOutputSparse | BenchOutputDense
 
 createBenchmark
-  :: PsvMode
+  :: Mode
   -> FilePath
   -> FilePath
   -> FilePath

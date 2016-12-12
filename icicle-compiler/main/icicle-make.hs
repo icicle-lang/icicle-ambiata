@@ -97,7 +97,7 @@ main =
 
     let
       mode =
-        PsvSnapshot snapshotDate
+        Snapshot snapshotDate
 
       inputConfig =
         PsvInputConfig mode PsvInputSparse
