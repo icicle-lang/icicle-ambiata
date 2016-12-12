@@ -66,7 +66,7 @@ seaOfWriteFleetOutput config whitelist states = do
 
   pure $ vsep
     [ "#line 1 \"write all outputs\""
-    , "static ierror_msg_t psv_write_outputs"
+    , "static ierror_msg_t psv_write_output"
     , "    ( int fd"
     , "    , char  *buffer"
     , "    , char  *buffer_end"
@@ -525,7 +525,7 @@ outputString :: Text -> Doc
 outputString xs
  = vsep
  [ "if (buffer_end - buffer_ptr < " <> int rounded <> ") {"
- , "    error = psv_output_flush (fd, buffer, &buffer_ptr);"
+ , "    error = psv_flush_output (fd, buffer, &buffer_ptr);"
  , indent 4 outputDie
  , "}"
  , vsep (fmap mkdoc swords)

@@ -243,7 +243,7 @@ runTest wt (PsvOpts psvMaxRowCount psvInputBufferSize psvOutputBufferSize) (Test
         dropped = dir <> "/dropped.psv"
         chords  = Nothing
         limit   = 4096
-        discard = S.PsvHasDropFile
+        discard = S.FlagUseDropFile
 
     liftIO (LT.writeFile program (LT.fromStrict source))
 

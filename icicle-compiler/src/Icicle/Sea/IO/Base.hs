@@ -43,6 +43,9 @@ module Icicle.Sea.IO.Base
   , checkInputType
   , FieldMapping (..)
   , mappingOfFields
+  , seaOfAssignInput'
+  , seaOfAssignInput
+  , seaOfDefineInput
 
     -- * Helpers
   , last
@@ -473,10 +476,22 @@ seaOfReadNamedFact funs errs allowDupTime state
 
 --------------------------------------------------------------------------------
 
+seaOfAssignInput' :: Text -> Doc
+seaOfAssignInput' n
+ = "program->input." <> pretty n <> "[new_count] = " <> pretty n <> ";"
+
+seaOfAssignInput :: (Text, ValType) -> Doc
+seaOfAssignInput (n, _)
+ = seaOfAssignInput' n
+
+seaOfDefineInput :: (Text, ValType) -> Doc
+seaOfDefineInput (n, t)
+ = seaOfValType t <+> pretty n <> initType t
+
 initType :: ValType -> Doc
 initType vt = " = " <> seaOfXValue (defaultOfType vt) vt <> ";"
 
--- Describes how to assign to a C struct member, this changes for arrays
+-- | Describes how to assign to a C struct member, this changes for arrays
 type Assignment = Doc -> ValType -> Doc -> Doc
 
 assignVar :: Assignment

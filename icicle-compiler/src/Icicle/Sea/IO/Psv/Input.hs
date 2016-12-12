@@ -158,15 +158,6 @@ seaOfReadFact state tombstones input readInput checkCount =
     ]
 
 
-seaOfAssignInput :: (Text, ValType) -> Doc
-seaOfAssignInput (n, _)
- = "program->input." <> pretty n <> "[new_count] = " <> pretty n <> ";"
-
-seaOfDefineInput :: (Text, ValType) -> Doc
-seaOfDefineInput (n, t)
- = seaOfValType t <+> pretty n <> initType t
-
-
 seaOfReadAnyFactPsv
   :: InputOpts
   -> PsvInputConfig

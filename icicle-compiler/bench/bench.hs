@@ -137,7 +137,7 @@ createBenchmark (name, path) = do
       dropped = path </> "drop.psv"
       c       = path </> "bench.c"
       mode    = fromJust (timeOfText "2015-10-01")
-  b <- I.createPsvBench $ I.Command dict input output c (Left mode) (1024*1024) dropped I.FlagUseDropFile I.FlagInputPsv I.FlagInputPsvSparse I.PsvOutputSparse
+  b <- I.createPsvBench $ I.Command dict input output c (Left mode) (1024*1024) Nothing I.FlagUseDropFile I.FlagInputPsv I.FlagInputPsvSparse I.PsvOutputSparse
   return (name, b)
 
 releaseBenchmarks :: [(String, Bench)] -> EitherT I.BenchError IO ()

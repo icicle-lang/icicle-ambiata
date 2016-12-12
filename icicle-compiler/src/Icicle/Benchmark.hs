@@ -90,7 +90,7 @@ data Command = Command {
   , optC            :: FilePath
   , optChords       :: Either Time FilePath
   , optFactsLimit   :: Int
-  , optDrop         :: FilePath
+  , optDrop         :: Maybe FilePath
   , optUseDrop      :: FlagUseDrop
   , optInputFormat  :: FlagInput
   , optInputPsv     :: FlagInputPsv
@@ -127,7 +127,7 @@ createBenchmark c = do
 
     (dictionary, format) <- case optInputFormat c of
       FlagInputPsv
-        -> do (d, i) <- psvInputConfig (optDictionary c) (optInputPsv c)
+        -> do (d, i) <- mkPsvInputConfig (optDictionary c) (optInputPsv c)
               let f   = FormatPsv
                       $ PsvConfig
                           (PsvInputConfig  mode i)
@@ -139,7 +139,7 @@ createBenchmark c = do
       FlagInputZebra
         -> do d <- firstEitherT BenchDictionaryImportError
                  $ loadDictionary SC.optionSmallData ImplicitPrelude (optDictionary c)
-              let f = FormatZebra (PsvOutputConfig mode (optOutputPsv c) defaultOutputMissing)
+              let f = FormatZebra mode (PsvOutputConfig mode (optOutputPsv c) defaultOutputMissing)
               return (d, f)
 
     (code, asm, fleet) <- compileBench dictionary format
@@ -154,13 +154,13 @@ createBenchmark c = do
       , benchChordPath       = packedChords
       , benchCompilationTime = end `diffUTCTime` start
       , benchFactsLimit      = optFactsLimit c
-      , benchDropPath        = optDrop c
+      , benchDropPath        = fromMaybe (optOutput c <> "-dropped.txt") (optDrop c)
       , benchUseDrop         = optUseDrop c
       }
 
 
-psvInputConfig :: FilePath -> FlagInputPsv -> EitherT BenchError IO (Dictionary, PsvInputFormat)
-psvInputConfig dictionaryPath x = firstEitherT BenchDictionaryImportError $ case x of
+mkPsvInputConfig :: FilePath -> FlagInputPsv -> EitherT BenchError IO (Dictionary, PsvInputFormat)
+mkPsvInputConfig dictionaryPath x = firstEitherT BenchDictionaryImportError $ case x of
   FlagInputPsvDense
     -> do (dict, dense) <- loadDenseDictionary SC.optionSmallData ImplicitPrelude dictionaryPath Nothing
           return (dict, PsvInputDense dense (denseSelectedFeed dense))

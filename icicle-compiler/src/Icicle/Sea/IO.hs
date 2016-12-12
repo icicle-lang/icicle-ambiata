@@ -6,16 +6,23 @@
 {-# LANGUAGE NamedFieldPuns    #-}
 module Icicle.Sea.IO
   ( seaOfDriver
+  , seaOfConstants
+  , seaOfDefaultConstants
+  , defaultOutputMissing
+  , defaultPsvMaxRowCount
+  , defaultPsvInputBufferSize
+  , defaultPsvOutputBufferSize
+  , psvDefaultConstants
+  , Mode(..)
   , IOFormat (..)
   , InputOpts (..)
   , InputAllowDupTime (..)
-  , Psv.PsvInputConfig(..)
-  , Psv.PsvOutputConfig(..)
-  , Psv.defaultOutputMissing
-  , Mode(..)
-  , Psv.PsvOutputFormat(..)
-  , Psv.PsvInputFormat(..)
-  , Psv.PsvInputDenseDict(..)
+  , PsvConfig(..)
+  , PsvInputConfig(..)
+  , PsvInputFormat(..)
+  , PsvInputDenseDict(..)
+  , PsvOutputConfig(..)
+  , PsvOutputFormat(..)
   ) where
 
 import           Icicle.Internal.Pretty
@@ -31,8 +38,8 @@ import           P
 
 
 data IOFormat
-  = FormatPsv   Psv.PsvInputConfig Psv.PsvOutputConfig
-  | FormatZebra Psv.PsvOutputConfig -- temporary
+  = FormatPsv   PsvConfig
+  | FormatZebra Mode PsvOutputConfig -- temporary
     deriving (Eq, Show)
 
 seaOfDriver :: IOFormat -> InputOpts -> [SeaProgramState] -> Either SeaError Doc
@@ -40,5 +47,9 @@ seaOfDriver format opts states
   = case format of
       FormatPsv conf
         -> seaOfPsvDriver opts conf states
-      FormatZebra outputConfig
-        -> Zebra.seaOfZebraDriver outputConfig states
+      FormatZebra mode outputConfig
+        -> -- FIXME generate code for psv as well when using zebra, because we
+           -- are relying on some psv functions, they should be factored out or something
+           do x <- seaOfPsvDriver opts (psvDefaultConstants (PsvInputConfig mode PsvInputSparse) outputConfig) states
+              y <- seaOfZebraDriver outputConfig states
+              return $ vsep [x, "", y]

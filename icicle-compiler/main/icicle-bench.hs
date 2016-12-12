@@ -61,7 +61,7 @@ pCommand = Command
          Just i  -> return i
          Nothing -> readerError "--facts-limit NUMBER"
    pDrop
-     = strOption $ long "drop"
+     = optional $ strOption $ long "drop"
    pFlagDrop
      = flag FlagUseDropFile FlagNoUseDropFile
      $ long "drop-to-output" <> help "write partial results to dropped-X.txt or normal output"
@@ -72,13 +72,13 @@ pCommand = Command
           "zebra" -> return FlagInputZebra
           _ -> readerError "--input-format <psv or zebra>"
    pInputPsv
-     = flip option (long "input-psv" <> help "dense or sparse")
+     = flip option (long "input-psv" <> value FlagInputPsvSparse <> help "dense or sparse")
      $ readerAsk >>= \case
           "dense" -> return FlagInputPsvDense
           "sparse" -> return FlagInputPsvSparse
           _ -> readerError "--input-psv <sparse or dense"
    pOutputPsv
-     = flip option (long "output-psv" <> help "dense or sparse")
+     = flip option (long "output-psv" <> value PsvOutputSparse <> help "dense or sparse")
      $ readerAsk >>= \case
           "dense" -> return PsvOutputDense
           "sparse" -> return PsvOutputSparse
