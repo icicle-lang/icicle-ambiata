@@ -7,16 +7,22 @@
 {-# LANGUAGE TupleSections #-}
 module Icicle.Sea.Eval (
     module Icicle.Sea.Eval.Base
-  , module Icicle.Sea.Eval.Psv
   , module Icicle.Sea.IO
+  , FlagUseDrop (..)
+  , ZebraState
+  , ZebraStats (..)
+  , seaZebraSnapshotFd
+  , seaZebraSnapshotFilePath
+  , PsvState
+  , PsvStats (..)
   , seaPsvSnapshotFilePath
   , seaPsvSnapshotFd
-  , PsvDrop (..)
   ) where
 
 import           Control.Monad.IO.Class (MonadIO(..))
 
 import qualified Data.Text as T
+import           Data.Typeable
 
 import           Foreign.C.String (peekCString)
 import           Foreign.Marshal (free)
