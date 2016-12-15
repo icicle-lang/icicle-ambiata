@@ -43,7 +43,7 @@ import                  Icicle.Source.ToCore.Context
 
 import                  Icicle.Internal.Pretty
 
-import                  P
+import                  P hiding (with)
 
 import                  Control.Monad.Trans.State.Lazy
 import                  Control.Monad.Trans.Class

@@ -20,7 +20,7 @@ import           Icicle.Source.Type
 import           Icicle.Common.Base
 import qualified Icicle.Common.Fresh          as Fresh
 
-import           P
+import           P hiding (with)
 
 import           Data.Hashable                (Hashable)
 import           Data.List                    (unzip, unzip3, zip)
