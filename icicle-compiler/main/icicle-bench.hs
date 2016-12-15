@@ -26,13 +26,14 @@ import           X.Control.Monad.Trans.Either
 import           X.Options.Applicative
 
 
-
 pCommand :: Parser Command
 pCommand = Command
   <$> pDictionary
   <*> pInput
   <*> pOutput
   <*> pC
+  <*> pMode
+  <*> pDate
   <*> pChords
   <*> pLimit
   <*> pDrop
@@ -43,18 +44,26 @@ pCommand = Command
 
   where
    pDictionary
-     = argument str $ metavar "DICTIONARY"
+     = strOption $ long "dictionary"
    pInput
-     = argument str $ metavar "INPUT_PATH"
+     = strOption $ long "input"
    pOutput
-     = argument str $ metavar "OUTPUT_PATH"
+     = strOption $ long "output"
    pC
-     = argument str $ metavar "C"
+     = strOption $ long "code" <> short 'c'
+   pMode
+     = flip option (long "mode" <> value FlagSnapshot)
+     $ readerAsk >>= \case
+         "snapshot" -> return FlagSnapshot
+         "chords" -> return FlagChords
+         _ -> readerError "snapshot or chords"
+   pDate
+     = optional . flip option (long "snapshot-date")
+     $ readerAsk >>= \s -> case timeOfText (T.pack s) of
+         Just t  -> return t
+         Nothing -> readerError "cannot parse snapshot date"
    pChords
-     = flip argument (metavar "SNAPSHOT_DATE_OR_CHORD_PATH")
-     $ readerAsk >>= \s -> return $ case timeOfText (T.pack s) of
-         Just t  -> Left t
-         Nothing -> Right s
+     = optional . strOption $ long "chords"
    pLimit
      = flip option (long "facts-limit" <> value defaultFactsLimit)
      $ readerAsk >>= \s -> case readMaybe s of
@@ -100,13 +109,15 @@ main = dispatch pCommand >>= go
        Right _                  -> return ()
 
 runCommand :: Command -> EitherT BenchError IO ()
-runCommand c = case optInputFormat c of
-  FlagInputPsv
-    -> bracketEitherT' (createPsvBench c) releaseBenchmark
-     $ runBenchmark runPsvBench (optC c)
-  FlagInputZebra
-    -> bracketEitherT' (createZebraBench c) releaseBenchmark
-    $ runBenchmark runZebraBench (optC c)
+runCommand cmd = withChords (optChords cmd) $ \chords ->
+  let c = cmd { optChords = chords }
+  in case optInputFormat c of
+       FlagInputPsv
+         -> bracketEitherT' (createPsvBench c) releaseBenchmark
+          $ runBenchmark runPsvBench (optC c)
+       FlagInputZebra
+         -> bracketEitherT' (createZebraBench c) releaseBenchmark
+         $ runBenchmark runZebraBench (optC c)
 
 runBenchmark :: MonadIO m => (Benchmark a -> m BenchmarkResult) -> FilePath -> Benchmark a -> m ()
 runBenchmark f sourcePath bench = do

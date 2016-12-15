@@ -2,9 +2,11 @@
 {-# LANGUAGE PatternGuards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE TupleSections #-}
 
 module Icicle.Benchmark (
     Command (..)
+  , FlagMode (..)
   , FlagInput (..)
   , FlagInputPsv (..)
   , FlagOutputPsv
@@ -17,6 +19,7 @@ module Icicle.Benchmark (
   , runPsvBench
   , runZebraBench
   , releaseBenchmark
+  , withChords
   ) where
 
 import           Icicle.Dictionary
@@ -88,7 +91,9 @@ data Command = Command {
   , optInput        :: FilePath
   , optOutput       :: FilePath
   , optC            :: FilePath
-  , optChords       :: Either Time FilePath
+  , optFlagMode     :: FlagMode
+  , optSnapshot     :: Maybe Time
+  , optChords       :: Maybe FilePath
   , optFactsLimit   :: Int
   , optDrop         :: Maybe FilePath
   , optUseDrop      :: FlagUseDrop
@@ -97,6 +102,7 @@ data Command = Command {
   , optOutputPsv    :: FlagOutputPsv
   }
 
+data FlagMode = FlagSnapshot | FlagChords
 data FlagInput = FlagInputPsv | FlagInputZebra
 data FlagInputPsv = FlagInputPsvSparse | FlagInputPsvDense
 type FlagOutputPsv = PsvOutputFormat
@@ -110,53 +116,60 @@ createZebraBench = createBenchmark
 
 createBenchmark :: Command -> EitherT BenchError IO (Benchmark a)
 createBenchmark c = do
-  let mode = either Snapshot (const Chords) (optChords c)
-  let chords = either (const Nothing) Just (optChords c)
+  let errNoSnapshotDate
+        = fail "icicle-bench: need a snapshot date"
+  let errNoChordFile
+        = fail "icicle-bench: need a chord file"
+
+  (mode, chords) <- case optFlagMode c of
+    FlagSnapshot
+      -> maybe errNoSnapshotDate (pure . (, Nothing) . Snapshot) (optSnapshot c)
+    FlagChords
+      -> maybe errNoChordFile (pure . (Chords, ) . Just) (optChords c)
 
   chordStart <- liftIO getCurrentTime
-  withChords chords $ \packedChords -> do
 
-    when (isJust chords) $
-      liftIO (putStrLn "icicle-bench: preparing chords")
-    chordEnd <- liftIO getCurrentTime
-    let chordSecs = realToFrac (chordEnd `diffUTCTime` chordStart) :: Double
-    when (isJust chords) $
-      liftIO (printf "icicle-bench: chord preparation time = %.2fs\n" chordSecs)
+  when (isJust chords) $
+    liftIO (putStrLn "icicle-bench: preparing chords")
+  chordEnd <- liftIO getCurrentTime
+  let chordSecs = realToFrac (chordEnd `diffUTCTime` chordStart) :: Double
+  when (isJust chords) $
+    liftIO (printf "icicle-bench: chord preparation time = %.2fs\n" chordSecs)
 
-    start <- liftIO getCurrentTime
+  start <- liftIO getCurrentTime
 
-    (dictionary, format) <- case optInputFormat c of
-      FlagInputPsv
-        -> do (d, i) <- mkPsvInputConfig (optDictionary c) (optInputPsv c)
-              let f   = FormatPsv
-                      $ PsvConfig
-                          (PsvInputConfig  mode i)
-                          (PsvOutputConfig mode (optOutputPsv c) defaultOutputMissing)
-                          defaultPsvMaxRowCount
-                          defaultPsvInputBufferSize
-                          defaultPsvOutputBufferSize
-              return (d, f)
-      FlagInputZebra
-        -> do d <- firstEitherT BenchDictionaryImportError
-                 $ loadDictionary SC.optionSmallData ImplicitPrelude (optDictionary c)
-              let f = FormatZebra mode (PsvOutputConfig mode (optOutputPsv c) defaultOutputMissing)
-              return (d, f)
+  (dictionary, format) <- case optInputFormat c of
+    FlagInputPsv
+      -> do (d, i) <- mkPsvInputConfig (optDictionary c) (optInputPsv c)
+            let f   = FormatPsv
+                    $ PsvConfig
+                        (PsvInputConfig  mode i)
+                        (PsvOutputConfig mode (optOutputPsv c) defaultOutputMissing)
+                        defaultPsvMaxRowCount
+                        defaultPsvInputBufferSize
+                        defaultPsvOutputBufferSize
+            return (d, f)
+    FlagInputZebra
+      -> do d <- firstEitherT BenchDictionaryImportError
+               $ loadDictionary SC.optionSmallData ImplicitPrelude (optDictionary c)
+            let f = FormatZebra mode (PsvOutputConfig mode (optOutputPsv c) defaultOutputMissing)
+            return (d, f)
 
-    (code, asm, fleet) <- compileBench dictionary format
-    end <- liftIO getCurrentTime
+  (code, asm, fleet) <- compileBench dictionary format
+  end <- liftIO getCurrentTime
 
-    return Benchmark {
-        benchSource          = code
-      , benchAssembly        = asm
-      , benchFleet           = fleet
-      , benchInputPath       = optInput c
-      , benchOutputPath      = optOutput c
-      , benchChordPath       = packedChords
-      , benchCompilationTime = end `diffUTCTime` start
-      , benchFactsLimit      = optFactsLimit c
-      , benchDropPath        = fromMaybe (optOutput c <> "-dropped.txt") (optDrop c)
-      , benchUseDrop         = optUseDrop c
-      }
+  return Benchmark {
+      benchSource          = code
+    , benchAssembly        = asm
+    , benchFleet           = fleet
+    , benchInputPath       = optInput c
+    , benchOutputPath      = optOutput c
+    , benchChordPath       = chords
+    , benchCompilationTime = end `diffUTCTime` start
+    , benchFactsLimit      = optFactsLimit c
+    , benchDropPath        = fromMaybe (optOutput c <> "-dropped.txt") (optDrop c)
+    , benchUseDrop         = optUseDrop c
+    }
 
 
 mkPsvInputConfig :: FilePath -> FlagInputPsv -> EitherT BenchError IO (Dictionary, PsvInputFormat)
@@ -244,7 +257,7 @@ withChords (Just path) io = do
     chordFile <- liftIO (TL.readFile path)
     chordMap  <- firstEitherT BenchChordParseError . hoistEither $ parseChordFile chordFile
 
-    let packedChords = dir <> "/chords"
+    let packedChords = dir <> "/chords.psv"
     liftIO (writeChordFile chordMap packedChords)
 
     io (Just packedChords)
