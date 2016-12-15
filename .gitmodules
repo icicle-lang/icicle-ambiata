@@ -10,3 +10,12 @@
 [submodule "lib/jetski"]
 	path = lib/jetski
 	url = https://github.com/ambiata/jetski
+[submodule "lib/anemone"]
+	path = lib/anemone
+	url = https://github.com/ambiata/anemone
+[submodule "lib/zebra"]
+	path = lib/zebra
+	url = git@github.com:ambiata/zebra
+[submodule "lib/snapper"]
+	path = lib/snapper
+	url = git@github.com:ambiata/snapper

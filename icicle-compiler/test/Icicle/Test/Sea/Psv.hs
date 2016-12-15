@@ -217,10 +217,10 @@ runTest wt (PsvOpts psvMaxRowCount psvInputBufferSize psvOutputBufferSize) (Test
   let options  = options0 <> ["-O0", "-DICICLE_NOINLINE=1"]
       programs = Map.singleton (wtAttribute wt) (wtAvalancheFlat wt)
       iconfig  = S.PsvInputConfig
-                (S.PsvSnapshot (wtTime wt))
+                (S.Snapshot (wtTime wt))
                  inputFormat
       oconfig  = S.PsvOutputConfig
-                (S.PsvSnapshot (wtTime wt))
+                (S.Snapshot (wtTime wt))
                 (S.PsvOutputSparse)
                 (S.defaultOutputMissing)
       conf     = S.PsvConfig iconfig oconfig psvMaxRowCount psvInputBufferSize psvOutputBufferSize
@@ -243,7 +243,7 @@ runTest wt (PsvOpts psvMaxRowCount psvInputBufferSize psvOutputBufferSize) (Test
         dropped = dir <> "/dropped.psv"
         chords  = Nothing
         limit   = 4096
-        discard = S.PsvHasDropFile
+        discard = S.FlagUseDropFile
 
     liftIO (LT.writeFile program (LT.fromStrict source))
 

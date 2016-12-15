@@ -1,27 +1,34 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE PatternGuards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE GADTs #-}
 
 module Icicle.Benchmark (
-    BenchError(..)
+    Command (..)
+  , FlagInput (..)
+  , FlagInputPsv (..)
+  , FlagOutputPsv
+  , BenchError(..)
   , Benchmark(..)
   , BenchmarkResult(..)
-  , BenchInputPsv (..)
-  , BenchOutputPsv (..)
   , createBenchmark
+  , createPsvBench
+  , createZebraBench
+  , runPsvBench
+  , runZebraBench
   , releaseBenchmark
-  , runBenchmark
-  , withChords
   ) where
 
 import           Icicle.Dictionary
 
+import           Icicle.Data.Time (Time(..))
+
 import qualified Icicle.Compiler.Source as P
 import qualified Icicle.Compiler        as P
 
+import           Icicle.Sea.Eval
 import           Icicle.Sea.Chords.File (writeChordFile)
 import           Icicle.Sea.Chords.Parse (ChordParseError(..), parseChordFile)
-import           Icicle.Sea.Eval
 
 import qualified Icicle.Source.Checker as SC
 
@@ -30,17 +37,22 @@ import           Icicle.Storage.Dictionary.Toml
 import           Control.Monad.IO.Class (liftIO)
 
 import qualified Data.Map as Map
-import qualified Data.Text.Lazy.IO as TL
 import           Data.Time (NominalDiffTime, getCurrentTime, diffUTCTime)
+import qualified Data.Text.Lazy.IO as TL
 
-import           System.FilePath (FilePath)
-import           System.IO (IO, IOMode(..), withFile, hFileSize)
 import           System.IO.Temp (createTempDirectory)
 import           System.Directory (getTemporaryDirectory, removeDirectoryRecursive)
+import           System.FilePath (FilePath)
+import           System.IO (IO, IOMode(..), withFile, hFileSize)
+
+import           Text.Printf (printf)
+
+import           Prelude (putStrLn)
 
 import           P
 
 import           X.Control.Monad.Trans.Either
+
 
 ------------------------------------------------------------------------
 
@@ -51,19 +63,17 @@ data BenchError =
   | BenchChordParseError       ChordParseError
   deriving (Show)
 
-------------------------------------------------------------------------
-
-data Benchmark = Benchmark {
+data Benchmark a = Benchmark {
     benchSource          :: Text
   , benchAssembly        :: Text
-  , benchFleet           :: SeaFleet PsvState
+  , benchFleet           :: SeaFleet a
   , benchInputPath       :: FilePath
   , benchOutputPath      :: FilePath
   , benchDropPath        :: FilePath
   , benchChordPath       :: Maybe FilePath
   , benchCompilationTime :: NominalDiffTime
   , benchFactsLimit      :: Int
-  , benchLimitDiscard    :: PsvDrop
+  , benchUseDrop         :: FlagUseDrop
   }
 
 data BenchmarkResult = BenchmarkResult {
@@ -73,41 +83,100 @@ data BenchmarkResult = BenchmarkResult {
   , benchBytes    :: Int64
   } deriving (Eq, Ord, Show)
 
-data BenchInputPsv  = BenchInputSparse  | BenchInputDense
-data BenchOutputPsv = BenchOutputSparse | BenchOutputDense
+data Command = Command {
+    optDictionary   :: FilePath
+  , optInput        :: FilePath
+  , optOutput       :: FilePath
+  , optC            :: FilePath
+  , optChords       :: Either Time FilePath
+  , optFactsLimit   :: Int
+  , optDrop         :: Maybe FilePath
+  , optUseDrop      :: FlagUseDrop
+  , optInputFormat  :: FlagInput
+  , optInputPsv     :: FlagInputPsv
+  , optOutputPsv    :: FlagOutputPsv
+  }
 
-createBenchmark
-  :: PsvMode
-  -> FilePath
-  -> FilePath
-  -> FilePath
-  -> FilePath
-  -> Maybe FilePath
-  -> Maybe Int
-  -> Maybe PsvDrop
-  -> Maybe BenchInputPsv
-  -> Maybe BenchOutputPsv
-  -> EitherT BenchError IO Benchmark
+data FlagInput = FlagInputPsv | FlagInputZebra
+data FlagInputPsv = FlagInputPsvSparse | FlagInputPsvDense
+type FlagOutputPsv = PsvOutputFormat
 
-createBenchmark mode dictionaryPath inputPath outputPath dropPath packedChordPath limit discard input output = do
-  start <- liftIO getCurrentTime
 
-  (dictionary, input') <- firstEitherT BenchDictionaryImportError $ inputCfg input
-  let output'           = outputCfg output
+createPsvBench :: Command -> EitherT BenchError IO (Benchmark PsvState)
+createPsvBench = createBenchmark
 
+createZebraBench :: Command -> EitherT BenchError IO (Benchmark ZebraState)
+createZebraBench = createBenchmark
+
+createBenchmark :: Command -> EitherT BenchError IO (Benchmark a)
+createBenchmark c = do
+  let mode = either Snapshot (const Chords) (optChords c)
+  let chords = either (const Nothing) Just (optChords c)
+
+  chordStart <- liftIO getCurrentTime
+  withChords chords $ \packedChords -> do
+
+    when (isJust chords) $
+      liftIO (putStrLn "icicle-bench: preparing chords")
+    chordEnd <- liftIO getCurrentTime
+    let chordSecs = realToFrac (chordEnd `diffUTCTime` chordStart) :: Double
+    when (isJust chords) $
+      liftIO (printf "icicle-bench: chord preparation time = %.2fs\n" chordSecs)
+
+    start <- liftIO getCurrentTime
+
+    (dictionary, format) <- case optInputFormat c of
+      FlagInputPsv
+        -> do (d, i) <- mkPsvInputConfig (optDictionary c) (optInputPsv c)
+              let f   = FormatPsv
+                      $ PsvConfig
+                          (PsvInputConfig  mode i)
+                          (PsvOutputConfig mode (optOutputPsv c) defaultOutputMissing)
+                          defaultPsvMaxRowCount
+                          defaultPsvInputBufferSize
+                          defaultPsvOutputBufferSize
+              return (d, f)
+      FlagInputZebra
+        -> do d <- firstEitherT BenchDictionaryImportError
+                 $ loadDictionary SC.optionSmallData ImplicitPrelude (optDictionary c)
+              let f = FormatZebra mode (PsvOutputConfig mode (optOutputPsv c) defaultOutputMissing)
+              return (d, f)
+
+    (code, asm, fleet) <- compileBench dictionary format
+    end <- liftIO getCurrentTime
+
+    return Benchmark {
+        benchSource          = code
+      , benchAssembly        = asm
+      , benchFleet           = fleet
+      , benchInputPath       = optInput c
+      , benchOutputPath      = optOutput c
+      , benchChordPath       = packedChords
+      , benchCompilationTime = end `diffUTCTime` start
+      , benchFactsLimit      = optFactsLimit c
+      , benchDropPath        = fromMaybe (optOutput c <> "-dropped.txt") (optDrop c)
+      , benchUseDrop         = optUseDrop c
+      }
+
+
+mkPsvInputConfig :: FilePath -> FlagInputPsv -> EitherT BenchError IO (Dictionary, PsvInputFormat)
+mkPsvInputConfig dictionaryPath x = firstEitherT BenchDictionaryImportError $ case x of
+  FlagInputPsvDense
+    -> do (dict, dense) <- loadDenseDictionary SC.optionSmallData ImplicitPrelude dictionaryPath Nothing
+          return (dict, PsvInputDense dense (denseSelectedFeed dense))
+  FlagInputPsvSparse
+    -> do dict <- loadDictionary SC.optionSmallData ImplicitPrelude dictionaryPath
+          return (dict, PsvInputSparse)
+
+
+compileBench :: Dictionary -> IOFormat -> EitherT BenchError IO (Text, Text, SeaFleet s)
+compileBench dictionary format = do
   avalanche  <- hoistEither
               $ first BenchCompileError
               $ P.avalancheOfDictionary P.defaultCompileOptions dictionary
 
-  let cfg = HasInput
-          ( FormatPsv
-          $ PsvConfig (PsvInputConfig  mode input')
-                      (PsvOutputConfig mode output' defaultOutputMissing)
-                      defaultPsvMaxRowCount
-                      defaultPsvInputBufferSize
-                      defaultPsvOutputBufferSize )
-          ( InputOpts AllowDupTime
-                     (tombstonesOfDictionary dictionary))
+  let cfg = HasInput format
+          $ InputOpts AllowDupTime (tombstonesOfDictionary dictionary)
 
   let avalancheL = Map.toList avalanche
 
@@ -115,55 +184,27 @@ createBenchmark mode dictionaryPath inputPath outputPath dropPath packedChordPat
   asm   <- firstEitherT BenchSeaError (assemblyOfPrograms cfg avalancheL)
   fleet <- firstEitherT BenchSeaError (seaCompile NoCacheSea cfg avalanche)
 
-  end <- liftIO getCurrentTime
+  return (code, asm, fleet)
 
-  return Benchmark {
-      benchSource          = code
-    , benchAssembly        = asm
-    , benchFleet           = fleet
-    , benchInputPath       = inputPath
-    , benchOutputPath      = outputPath
-    , benchDropPath        = dropPath
-    , benchChordPath       = packedChordPath
-    , benchCompilationTime = end `diffUTCTime` start
-    , benchFactsLimit      = fromMaybe (1024*1024) limit
-    , benchLimitDiscard    = fromMaybe PsvHasDropFile discard
-    }
-  where
-    inputCfg x = case x of
-      Just BenchInputDense -> do
-        (dict, dense) <- loadDenseDictionary SC.optionSmallData ImplicitPrelude dictionaryPath Nothing
-        return (dict, PsvInputDense dense (denseSelectedFeed dense))
-      Just BenchInputSparse -> do
-        dict <- loadDictionary SC.optionSmallData ImplicitPrelude dictionaryPath
-        return (dict, PsvInputSparse)
-      Nothing -> inputCfg $ Just BenchInputSparse
-
-    outputCfg x = case x of
-      Just BenchOutputDense  -> PsvOutputDense
-      Just BenchOutputSparse -> PsvOutputSparse
-      Nothing                -> outputCfg $ Just BenchOutputSparse
-
-releaseBenchmark :: Benchmark -> EitherT BenchError IO ()
+releaseBenchmark :: Benchmark a -> EitherT BenchError IO ()
 releaseBenchmark b =
   seaRelease (benchFleet b)
 
-runBenchmark :: Benchmark -> EitherT BenchError IO BenchmarkResult
-runBenchmark b = do
+runPsvBench :: Benchmark PsvState -> EitherT BenchError IO BenchmarkResult
+runPsvBench b = do
   let fleet      = benchFleet        b
       inputPath  = benchInputPath    b
       outputPath = benchOutputPath   b
       dropPath   = benchDropPath     b
       chordPath  = benchChordPath    b
       limit      = benchFactsLimit   b
-      discard    = benchLimitDiscard b
+      discard    = benchUseDrop b
 
   start <- liftIO getCurrentTime
   stats <- firstEitherT BenchSeaError
          $ seaPsvSnapshotFilePath fleet inputPath outputPath dropPath chordPath limit discard
   end   <- liftIO getCurrentTime
-
-  size <- liftIO (withFile inputPath ReadMode hFileSize)
+  size  <- liftIO (withFile inputPath ReadMode hFileSize)
 
   return BenchmarkResult {
       benchTime     = end `diffUTCTime` start
@@ -172,7 +213,26 @@ runBenchmark b = do
     , benchBytes    = fromIntegral size
     }
 
-------------------------------------------------------------------------
+runZebraBench :: Benchmark ZebraState -> EitherT BenchError IO BenchmarkResult
+runZebraBench b = do
+  let fleet      = benchFleet        b
+      inputPath  = benchInputPath    b
+      outputPath = benchOutputPath   b
+      chordPath  = benchChordPath    b
+
+  start <- liftIO getCurrentTime
+  stats <- firstEitherT BenchSeaError
+         $ seaZebraSnapshotFilePath fleet inputPath outputPath chordPath
+  end   <- liftIO getCurrentTime
+  size  <- liftIO (withFile inputPath ReadMode hFileSize)
+
+  return BenchmarkResult {
+      benchTime     = end `diffUTCTime` start
+    , benchFacts    = zebraFactsRead    stats
+    , benchEntities = zebraEntitiesRead stats
+    , benchBytes    = fromIntegral size
+    }
+
 
 withChords :: Maybe FilePath -> (Maybe FilePath -> EitherT BenchError IO a) -> EitherT BenchError IO a
 withChords Nothing     io = io Nothing

@@ -23,15 +23,14 @@ import           Icicle.Sea.FromAvalanche.Base (seaOfAttributeDesc)
 import           Icicle.Sea.FromAvalanche.Base (seaOfNameIx, seaOfChar)
 import           Icicle.Sea.FromAvalanche.Prim
 import           Icicle.Sea.FromAvalanche.State
-
-import           Icicle.Sea.IO.Psv.Base
+import           Icicle.Sea.IO.Base
 
 import           P
 import           Prelude (String)
 
 
 data PsvOutputConfig = PsvOutputConfig {
-    outputPsvMode      :: PsvMode
+    outputPsvMode      :: Mode
   , outputPsvFormat    :: PsvOutputFormat
   , outputPsvMissing   :: Text
   } deriving (Eq, Ord, Show)
@@ -67,7 +66,7 @@ seaOfWriteFleetOutput config whitelist states = do
 
   pure $ vsep
     [ "#line 1 \"write all outputs\""
-    , "static ierror_msg_t psv_write_outputs"
+    , "static ierror_msg_t psv_write_output"
     , "    ( int fd"
     , "    , char  *buffer"
     , "    , char  *buffer_end"
@@ -96,13 +95,13 @@ seaOfWriteFleetOutput config whitelist states = do
     , "}"
     ]
 
-seaOfChordTime :: PsvMode -> Doc
+seaOfChordTime :: Mode -> Doc
 seaOfChordTime = \case
-  PsvSnapshot _ -> vsep
+  Snapshot _ -> vsep
     [ "const char  *chord_time = \"\";"
     , "const size_t chord_size = 0;"
     ]
-  PsvChords     -> vsep
+  Chords     -> vsep
     [ "iint_t c_year, c_month, c_day, c_hour, c_minute, c_second;"
     , "itime_to_gregorian (chord_times[chord_ix], &c_year, &c_month, &c_day, &c_hour, &c_minute, &c_second);"
     , ""
@@ -526,7 +525,7 @@ outputString :: Text -> Doc
 outputString xs
  = vsep
  [ "if (buffer_end - buffer_ptr < " <> int rounded <> ") {"
- , "    error = psv_output_flush (fd, buffer, &buffer_ptr);"
+ , "    error = psv_flush_output (fd, buffer, &buffer_ptr);"
  , indent 4 outputDie
  , "}"
  , vsep (fmap mkdoc swords)

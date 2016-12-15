@@ -22,7 +22,7 @@ echo "OK!"
 
 echo "2a. Dropping facts that exceed the limit: input sparse, output sparse"
 
-t2_common_args="--drop-to-output=false --input=sparse --output=sparse"
+t2_common_args="--input-psv sparse --output-psv sparse"
 t2_dict=test/cli/bench/t2-dictionary.toml
 t2_in=test/cli/bench/t2-in.psv
 
@@ -34,7 +34,7 @@ t2_c_0=`mktemp -t icicle-bench-t2-c-0-XXXXXX`
 t2_psv_0=`mktemp -t icicle-bench-t2-out-0-XXXXXX`
 t2_drop_0=`mktemp -t icicle-bench-t2-drop-0-XXXXXX`
 
-dist/build/icicle-bench/icicle-bench $t2_dict $t2_in $t2_psv_0 $t2_c_0 2010-01-01 0 $t2_drop_0 $t2_common_args
+dist/build/icicle-bench/icicle-bench $t2_dict $t2_in $t2_psv_0 $t2_c_0 2010-01-01 --facts-limit 0 --drop $t2_drop_0 $t2_common_args
 
 diff $t2_expected_psv_0 $t2_psv_0
 diff $t2_expected_drop_0 $t2_drop_0
@@ -51,7 +51,7 @@ t2_c_1=`mktemp -t icicle-bench-t2-c-1-XXXXXX`
 t2_psv_1=`mktemp -t icicle-bench-t2-out-1-XXXXXX`
 t2_drop_1=`mktemp -t icicle-bench-t2-drop-1-XXXXXX`
 
-dist/build/icicle-bench/icicle-bench $t2_dict $t2_in $t2_psv_1 $t2_c_1 2010-01-01 1 $t2_drop_1 $t2_common_args
+dist/build/icicle-bench/icicle-bench $t2_dict $t2_in $t2_psv_1 $t2_c_1 2010-01-01 --facts-limit 1 --drop $t2_drop_1 $t2_common_args
 
 diff $t2_expected_psv_1 $t2_psv_1
 diff $t2_expected_drop_1 $t2_drop_1
@@ -68,7 +68,7 @@ t2_c_2=`mktemp -t icicle-bench-t2-c-2-XXXXXX`
 t2_psv_2=`mktemp -t icicle-bench-t2-out-2-XXXXXX`
 t2_drop_2=`mktemp -t icicle-bench-t2-drop-2-XXXXXX`
 
-dist/build/icicle-bench/icicle-bench $t2_dict $t2_in $t2_psv_2 $t2_c_2 2010-01-01 2 $t2_drop_2 $t2_common_args
+dist/build/icicle-bench/icicle-bench $t2_dict $t2_in $t2_psv_2 $t2_c_2 2010-01-01 --facts-limit 2 --drop $t2_drop_2 $t2_common_args
 
 diff $t2_expected_psv_2 $t2_psv_2
 diff $t2_expected_drop_2 $t2_drop_2
@@ -79,7 +79,7 @@ rm $t2_drop_2
 
 echo "2b. Dropping facts that exceed the limit: input sparse, output dense"
 
-t2b_common_args="--drop-to-output=false --input=sparse --output=dense"
+t2b_common_args="--input-psv sparse --output-psv dense"
 t2b_dict=test/cli/bench/t2b-dictionary.toml
 t2b_in=test/cli/bench/t2b-in.psv
 
@@ -89,7 +89,7 @@ t2b_c=`mktemp -t icicle-bench-t2b-c-XXXXXX`
 t2b_psv=`mktemp -t icicle-bench-t2b-out-XXXXXX`
 t2b_drop=`mktemp -t icicle-bench-t2b-drop-XXXXXX`
 
-dist/build/icicle-bench/icicle-bench $t2b_dict $t2b_in $t2b_psv $t2b_c 2010-01-01 1 $t2b_drop $t2b_common_args
+dist/build/icicle-bench/icicle-bench $t2b_dict $t2b_in $t2b_psv $t2b_c 2010-01-01 --facts-limit 1 --drop $t2b_drop $t2b_common_args
 
 diff $t2b_expected_psv $t2b_psv
 diff $t2b_expected_drop $t2b_drop
@@ -104,7 +104,7 @@ echo "OK!"
 
 echo "3a. Dropping facts that exceed the limit: input dense, output sparse"
 
-t3_common_args="--drop-to-output=false --input=dense --output=sparse"
+t3_common_args="--input-psv dense --output-psv sparse"
 t3_dict=test/cli/bench/t3-dictionary.toml
 t3_in=test/cli/bench/t3-in.psv
 
@@ -116,7 +116,7 @@ t3_c_2=`mktemp -t icicle-bench-t3-c-XXXXXX`
 t3_psv_2=`mktemp -t icicle-bench-t3-out-XXXXXX`
 t3_drop_2=`mktemp -t icicle-bench-t3-drop-XXXXXX`
 
-dist/build/icicle-bench/icicle-bench $t3_dict $t3_in $t3_psv_2 $t3_c_2 2016-01-01 2 $t3_drop_2 $t3_common_args
+dist/build/icicle-bench/icicle-bench $t3_dict $t3_in $t3_psv_2 $t3_c_2 2016-01-01 --facts-limit 2 --drop $t3_drop_2 $t3_common_args
 
 diff $t3_expected_psv_2 $t3_psv_2
 diff $t3_expected_drop_2 $t3_drop_2
@@ -127,7 +127,7 @@ rm $t3_drop_2
 
 echo "3b. Dropping facts that exceed the limit: input dense, output dense"
 
-t3b_common_args="--drop-to-output=false --input=dense --output=dense"
+t3b_common_args="--input-psv dense --output-psv dense"
 t3b_dict=test/cli/bench/t3b-dictionary.toml
 t3b_in=test/cli/bench/t3b-in.psv
 
@@ -137,7 +137,7 @@ t3b_c_2=`mktemp -t icicle-bench-t3b-c-XXXXXX`
 t3b_psv_2=`mktemp -t icicle-bench-t3b-out-XXXXXX`
 t3b_drop_2=`mktemp -t icicle-bench-t3b-drop-XXXXXX`
 
-dist/build/icicle-bench/icicle-bench $t3b_dict $t3b_in $t3b_psv_2 $t3b_c_2 2016-01-01 2 $t3b_drop_2 $t3b_common_args
+dist/build/icicle-bench/icicle-bench $t3b_dict $t3b_in $t3b_psv_2 $t3b_c_2 2016-01-01 --facts-limit 2 --drop $t3b_drop_2 $t3b_common_args
 
 diff $t3b_expected_psv_2 $t3b_psv_2
 diff $t3b_expected_drop_2 $t3b_drop_2
@@ -152,7 +152,7 @@ echo "OK!"
 
 echo "4. Output missing value"
 
-t4_common_args="--drop-to-output=false --input=sparse --output=dense"
+t4_common_args="--input-psv sparse --output-psv dense"
 t4_dict=test/cli/bench/t4-dictionary.toml
 t4_in=test/cli/bench/t4-in.psv
 
@@ -161,7 +161,7 @@ t4_out_c=`mktemp -t icicle-bench-t4-c-XXXXXX`
 t4_out_psv=`mktemp -t icicle-bench-t4-out-XXXXXX`
 t4_drop=`mktemp -t icicle-bench-t4-drop-XXXXXX`
 
-dist/build/icicle-bench/icicle-bench $t4_dict $t4_in $t4_out_psv $t4_out_c 2010-01-01 1000 $t4_drop $t4_common_args
+dist/build/icicle-bench/icicle-bench $t4_dict $t4_in $t4_out_psv $t4_out_c 2010-01-01 --facts-limit 1000 --drop $t4_drop $t4_common_args
 
 diff $t4_expected $t4_out_psv
 

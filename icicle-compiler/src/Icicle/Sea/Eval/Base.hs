@@ -17,7 +17,7 @@ module Icicle.Sea.Eval.Base (
   , InputAllowDupTime(..)
   , PsvInputConfig(..)
   , PsvOutputConfig(..)
-  , PsvMode(..)
+  , Mode(..)
   , PsvOutputFormat(..)
   , PsvInputFormat(..)
   , PsvInputDenseDict(..)
@@ -47,6 +47,7 @@ import           Data.Map (Map)
 import qualified Data.Map as Map
 import           Data.String (String)
 import qualified Data.Text as T
+import qualified Data.Vector as VB
 import qualified Data.Vector.Storable as V
 import           Data.Vector.Storable.Mutable (IOVector)
 import qualified Data.Vector.Storable.Mutable as MV
@@ -56,7 +57,7 @@ import           Foreign.C.String (newCString, peekCString, withCStringLen)
 import           Foreign.ForeignPtr (ForeignPtr, touchForeignPtr, castForeignPtr)
 import           Foreign.ForeignPtr.Unsafe (unsafeForeignPtrToPtr)
 import           Foreign.Marshal (mallocBytes, free)
-import           Foreign.Ptr (Ptr, WordPtr, ptrToWordPtr, wordPtrToPtr, castPtr)
+import           Foreign.Ptr (Ptr, WordPtr, ptrToWordPtr, wordPtrToPtr, castPtr, nullPtr)
 import           Foreign.Storable (Storable(..))
 
 import           Icicle.Avalanche.Prim.Flat (Prim, tryMeltType)
@@ -80,12 +81,17 @@ import           Icicle.Sea.FromAvalanche.State (stateOfProgram, nameOfStateSize
 import           Icicle.Sea.FromAvalanche.Type (seaOfDefinitions)
 import           Icicle.Sea.IO
 
--- comment this out to get syntax checking in haskell mode
 import           Icicle.Sea.Preamble (seaPreamble)
+
+import           Zebra.Foreign.Entity
+import           Zebra.Merge.Puller
+import           Zebra.Merge.BlockC
 
 import           Jetski
 
 import           P hiding (count)
+
+import qualified Prelude as Savage
 
 import           System.Environment (lookupEnv)
 import           System.IO (IO)
@@ -93,7 +99,7 @@ import           System.IO.Unsafe (unsafePerformIO)
 
 import           X.Control.Monad.Trans.Either (EitherT)
 import           X.Control.Monad.Trans.Either (bracketEitherT')
-import           X.Control.Monad.Trans.Either (firstEitherT, hoistEither, left)
+import           X.Control.Monad.Trans.Either (joinErrors, runEitherT, firstEitherT, hoistEither, left)
 
 
 ------------------------------------------------------------------------
@@ -246,7 +252,31 @@ seaCompile' options cache input programs = do
     HasInput (FormatPsv _) _ -> do
       fn <- firstEitherT SeaJetskiError (function lib "psv_snapshot" retVoid)
       return (\ptr -> fn [argPtr ptr])
-    _ -> return (\_ -> return ()) --todo
+    HasInput (FormatZebra _ _) _ -> do
+      step <- firstEitherT SeaJetskiError (function lib "zebra_snapshot_step" (retPtr retCChar))
+      init <- firstEitherT SeaJetskiError (function lib "zebra_alloc_state" (retPtr retVoid))
+      -- FIXME this is savage
+      return $ \ptr -> do
+        input_ptr  <- peekWordOff ptr 0
+        input_path <- peekCString input_ptr
+        p <- runEitherT $ blockChainPuller (VB.singleton input_path)
+        case p of
+          Left e
+            -> Savage.error (show e)
+          Right (puller, pullid)
+            -> do st <- init [argPtr ptr]
+                  let step' e = liftIO $ do
+                        s <- step [argPtr st, argPtr (unCEntity e)]
+                        when (s /= nullPtr) $ do
+                          msg <- liftIO (peekCString s)
+                          Savage.error msg
+
+                  ret <- runEitherT $ joinErrors show show $ mergeBlocks (MergeOptions puller step' 100) pullid
+                  case ret of
+                    Left e
+                      -> Savage.error (show e)
+                    Right _
+                      -> return ()
 
   compiled <- zipWithM (mkSeaProgram lib) [0..] (Map.elems programs)
 
@@ -260,6 +290,7 @@ seaCompile' options cache input programs = do
                       segv_install_handler [argPtr ptr, argCSize (fromIntegral len)]
     , sfSegvRemove  = segv_remove_handler  []
     }
+
 
 fromCacheSea :: CacheSea -> CacheLibrary
 fromCacheSea = \case
@@ -373,7 +404,9 @@ codeOfPrograms input programs = do
       let def  = case format of
                    FormatPsv conf
                      -> vsep [ defOfPsvInput (psvInputConfig conf), defOfPsvOutput (psvOutputConfig conf) ]
-                   _ -> ""
+                   _ -> vsep [ -- FIXME property separate what is needed from psv
+                               "#define ICICLE_PSV_INPUT_SPARSE 1"
+                             , "#define ICICLE_ZEBRA 1" ]
 
       pure . textOfDoc . vsep $ [def, cnst, seaPreamble, defs] <> progs <> ["", doc]
 

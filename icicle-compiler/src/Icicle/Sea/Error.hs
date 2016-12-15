@@ -23,7 +23,9 @@ import           P
 
 data SeaError
   = SeaJetskiError                JetskiError
+  | SeaUnknownInput
   | SeaPsvError                   Text
+  | SeaZebraError                 Text
   | SeaProgramNotFound            Attribute
   | SeaFactConversionError        [D.AsAt D.Value] ValType
   | SeaBaseValueConversionError   BaseValue (Maybe ValType)
@@ -111,5 +113,11 @@ instance Pretty SeaError where
     SeaJetskiError je
      -> pretty (show je)
 
+    SeaUnknownInput
+     -> text "Unsupported input format"
+
     SeaPsvError pe
+     -> pretty pe
+
+    SeaZebraError pe
      -> pretty pe

@@ -97,7 +97,7 @@ static ierror_loc_t INLINE psv_read_fact
   , const size_t  max_ent_attr_count);
 #endif
 
-static ierror_msg_t INLINE psv_write_outputs
+static ierror_msg_t INLINE psv_write_output
   ( int fd
   , char  *output_start
   , char  *output_end
@@ -106,13 +106,42 @@ static ierror_msg_t INLINE psv_write_outputs
   , size_t entity_size
   , ifleet_t *fleet );
 
-static ierror_msg_t INLINE psv_output_flush
-  ( int fd
-  , char *ps
-  , char **pp );
+static ierror_msg_t INLINE psv_write_output_state (int fd, psv_state_t *state)
+{
+    return psv_write_output
+        ( fd
+        , state->output_start
+        , state->output_end
+        , &state->output_ptr
+        , state->entity_cur
+        , state->entity_cur_size
+        , state->fleet );
+}
 
-static ierror_msg_t INLINE psv_flush_to_output
-  ( psv_state_t *s );
+static ierror_msg_t INLINE psv_flush_output (int fd, char *ps, char **pp)
+{
+    size_t bytes_avail   = *pp - ps;
+    size_t bytes_written = write (fd, ps, bytes_avail);
+
+    if (bytes_written < bytes_avail) {
+        return ierror_msg_alloc ("cannot write psv output to file", ps, bytes_avail);
+    }
+
+    *pp = ps;
+
+    return 0;
+}
+
+static ierror_msg_t INLINE psv_flush_output_state (int fd, psv_state_t *state )
+{
+    return psv_flush_output (fd, state->output_start, &state->output_ptr);
+}
+
+static ierror_msg_t INLINE psv_flush_to_output_fd (psv_state_t *s)
+{
+    return psv_flush_output (s->output_fd, s->output_start, &s->output_ptr);
+}
+
 
 /*
   Input
@@ -219,12 +248,12 @@ static ierror_loc_t psv_write_dropped_entity_cur (psv_state_t *s, const ierror_l
         /* write the partial result to drop or output */
         int fd = s->has_drop ? s->drop_fd : s->output_fd;
 
-        msg = psv_write_outputs (fd, s->output_start, s->output_end, &s->output_ptr, s->entity_cur, s->entity_cur_size, s->fleet);
+        msg = psv_write_output (fd, s->output_start, s->output_end, &s->output_ptr, s->entity_cur, s->entity_cur_size, s->fleet);
 
         if (msg)
             return error;
 
-        msg = psv_output_flush (fd, s->output_start, &s->output_ptr);
+        msg = psv_flush_output (fd, s->output_start, &s->output_ptr);
 
         if (msg)
             return error;
@@ -330,14 +359,14 @@ static ierror_loc_t psv_read_buffer (psv_state_t *s, const size_t facts_limit)
 
 #if ICICLE_PSV_OUTPUT_SPARSE
             int          fd       = s->has_drop && dropping ? s->drop_fd : s->output_fd;
-            ierror_msg_t msg      = psv_write_outputs (fd, s->output_start, s->output_end, &s->output_ptr, entity_cur, entity_cur_size, s->fleet);
+            ierror_msg_t msg      = psv_write_output (fd, s->output_start, s->output_end, &s->output_ptr, entity_cur, entity_cur_size, s->fleet);
 
             if (msg) {
               error = ierror_loc_format (0, 0, "%s", msg);
               goto on_error;
             }
 
-            msg = psv_output_flush (fd, s->output_start, &s->output_ptr);
+            msg = psv_flush_output (fd, s->output_start, &s->output_ptr);
 
             if (msg) {
               error = ierror_loc_format (0, 0, "%s", msg);
@@ -346,14 +375,14 @@ static ierror_loc_t psv_read_buffer (psv_state_t *s, const size_t facts_limit)
 #else
             if (!dropping) {
                 int          fd  = s->output_fd;
-                ierror_msg_t msg = psv_write_outputs (fd, s->output_start, s->output_end, &s->output_ptr, entity_cur, entity_cur_size, s->fleet);
+                ierror_msg_t msg = psv_write_output (fd, s->output_start, s->output_end, &s->output_ptr, entity_cur, entity_cur_size, s->fleet);
 
                 if (msg) {
                   error = ierror_loc_format (0, 0, "%s", msg);
                   goto on_error;
                 }
 
-                msg = psv_output_flush (fd, s->output_start, &s->output_ptr);
+                msg = psv_flush_output (fd, s->output_start, &s->output_ptr);
 
                 if (msg) {
                   error = ierror_loc_format (0, 0, "%s", msg);
@@ -451,29 +480,10 @@ on_error:
 Output
 */
 
-static ierror_msg_t INLINE psv_output_flush (int fd, char *ps, char **pp)
-{
-    size_t bytes_avail   = *pp - ps;
-    size_t bytes_written = write (fd, ps, bytes_avail);
-
-    if (bytes_written < bytes_avail) {
-        return ierror_msg_alloc ("cannot write psv output to file", ps, bytes_avail);
-    }
-
-    *pp = ps;
-
-    return 0;
-}
-
-static ierror_msg_t INLINE psv_flush_to_output (psv_state_t *s)
-{
-    return psv_output_flush (s->output_fd, s->output_start, &s->output_ptr);
-}
-
 #define ENSURE_SIZE(bytes_required)                                   \
     size_t bytes_remaining = pe - *pp;                                \
     if (bytes_remaining < bytes_required) {                           \
-        ierror_msg_t error = psv_output_flush (fd, ps, pp);           \
+        ierror_msg_t error = psv_flush_output (fd, ps, pp);           \
         if (error) return error;                                      \
     }
 
@@ -609,19 +619,19 @@ void psv_snapshot (psv_config_t *cfg)
 #if ICICLE_PSV_OUTPUT_SPARSE
             int     fd       = state.has_drop && dropping ? state.drop_fd : state.output_fd;
 
-            cfg->error = psv_write_outputs (fd, state.output_start, state.output_end, &state.output_ptr, state.entity_cur, state.entity_cur_size, state.fleet);
+            cfg->error = psv_write_output (fd, state.output_start, state.output_end, &state.output_ptr, state.entity_cur, state.entity_cur_size, state.fleet);
 
             if (cfg->error != 0) {
-                cfg->error = psv_output_flush (fd, state.output_start, &state.output_ptr);
+                cfg->error = psv_flush_output (fd, state.output_start, &state.output_ptr);
             }
 #else
             if (!dropping) {
                 int fd = state.output_fd;
 
-                cfg->error = psv_write_outputs (fd, state.output_start, state.output_end, &state.output_ptr, state.entity_cur, state.entity_cur_size, state.fleet);
+                cfg->error = psv_write_output (fd, state.output_start, state.output_end, &state.output_ptr, state.entity_cur, state.entity_cur_size, state.fleet);
 
                 if (cfg->error != 0) {
-                  cfg->error = psv_output_flush (fd, state.output_start, &state.output_ptr);
+                  cfg->error = psv_flush_output (fd, state.output_start, &state.output_ptr);
                 }
             }
 #endif
@@ -650,7 +660,7 @@ void psv_snapshot (psv_config_t *cfg)
     }
 
     if (!cfg->error) {
-        cfg->error = psv_flush_to_output (&state);
+        cfg->error = psv_flush_to_output_fd (&state);
     }
 
     ierror_msg_t chord_unmap_error = ichord_file_unmap (&chord_file);

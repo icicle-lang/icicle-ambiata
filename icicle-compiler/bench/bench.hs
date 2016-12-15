@@ -62,7 +62,9 @@ benchConfig =
 
 ------------------------------------------------------------------------
 
-group :: (String, I.Benchmark) -> Benchmark
+type Bench = I.Benchmark I.PsvState
+
+group :: (String, Bench) -> Benchmark
 group (name, b) = do
   bgroup name
     [ bench "icicle" $ nfIO (icicle b)
@@ -71,9 +73,9 @@ group (name, b) = do
     , bench "wc"     $ nfIO (wc  (I.benchInputPath b))
     ]
 
-icicle :: I.Benchmark -> IO ()
+icicle :: Bench -> IO ()
 icicle b = do
-  Right stats <- runEitherT (I.runBenchmark b)
+  Right stats <- runEitherT (I.runPsvBench b)
   hPutStrLn stderr ("  " <> show stats)
 
 cat :: FilePath -> IO ()
@@ -124,23 +126,21 @@ generateRepo root (freq, ys, es) = do
 
   return (name, path)
 
-createBenchmarks :: [(String, FilePath)] -> EitherT I.BenchError IO [(String, I.Benchmark)]
+createBenchmarks :: [(String, FilePath)] -> EitherT I.BenchError IO [(String, Bench)]
 createBenchmarks = traverse createBenchmark
 
-createBenchmark :: (String, FilePath) -> EitherT I.BenchError IO (String, I.Benchmark)
+createBenchmark :: (String, FilePath) -> EitherT I.BenchError IO (String, Bench)
 createBenchmark (name, path) = do
-  let dict   = (path </> "dictionary.toml")
-      input  = (path </> "data.psv")
-      output = (path </> "out.psv")
-      dropped= (path </> "drop.psv")
-  b <- I.createBenchmark mode dict input output dropped Nothing Nothing Nothing Nothing Nothing
+  let dict    = path </> "dictionary.toml"
+      input   = path </> "data.psv"
+      output  = path </> "out.psv"
+      c       = path </> "bench.c"
+      mode    = fromJust (timeOfText "2015-10-01")
+  b <- I.createPsvBench $ I.Command dict input output c (Left mode) (1024*1024) Nothing I.FlagUseDropFile I.FlagInputPsv I.FlagInputPsvSparse I.PsvOutputSparse
   return (name, b)
 
-releaseBenchmarks :: [(String, I.Benchmark)] -> EitherT I.BenchError IO ()
+releaseBenchmarks :: [(String, Bench)] -> EitherT I.BenchError IO ()
 releaseBenchmarks = traverse_ I.releaseBenchmark . fmap snd
-
-mode :: I.PsvMode
-mode = I.PsvSnapshot (fromJust (timeOfText "2015-10-01"))
 
 dictionary :: Text
 dictionary = T.unlines
