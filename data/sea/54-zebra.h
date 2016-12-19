@@ -1,4 +1,4 @@
-#include "53-zebra_data.h"
+#include "53-zebra-data.h"
 
 #if !ICICLE_NO_INPUT
 #if ICICLE_ZEBRA
@@ -16,9 +16,6 @@ typedef struct {
 } zebra_config_t;
 
 typedef struct zebra_state {
-  /* input chords */
-  const ichord_t *chord_cur;
-
   /* output buffer */
   char *output_start;
   char *output_end;
@@ -67,11 +64,11 @@ static ierror_msg_t zebra_translate
     , int         attribute_ix
     , itime_t     chord_time
     , iint_t     *new_count
-    , ierror_t   **new_tombstone
-    , itime_t    **new_fact_time
-    , void       **dst
+    , ierror_t  **new_tombstone
+    , itime_t   **new_fact_time
     , iint_t      columns_to_fill
-    , zebra_entity_t *src)
+    , void      **dst
+    , const zebra_entity_t *src)
 {
     zebra_attribute_t *attribute = &src->attributes[attribute_ix];
     iint_t columns_count = attribute->table.column_count;
@@ -84,17 +81,26 @@ static ierror_msg_t zebra_translate
     iint_t row_count = table->row_count;
     iint_t fact_count = 0;
 
+    /* temporary fix until icicle uses the same time as zebra */
+    itime_t zebra_chord_time = itime_to_epoch_seconds (chord_time);
+
     for (iint_t i = 0; i != row_count; ++i) {
         itime_t time = attribute->times[i];
-        if (chord_time <= time) {
+        if (zebra_chord_time <= time) {
             break;
         }
         fact_count++;
     }
 
+    itime_t *sadface_times = imempool_alloc (mempool, fact_count * sizeof (itime_t));
+
+    for (iint_t i = 0; i != fact_count; ++i) {
+        sadface_times[i] = itime_from_epoch_seconds (attribute->times[i]);
+    }
+
     *new_count = fact_count;
     *new_tombstone = (ierror_t*)attribute->tombstones;
-    *new_fact_time = attribute->times;
+    *new_fact_time = sadface_times;
 
     zebra_translate_table (mempool, 0, fact_count, dst, &attribute->table);
 
@@ -162,7 +168,7 @@ static int64_t zebra_translate_column
     }
 }
 
-zebra_state_t *zebra_alloc_state (zebra_config_t *cfg)
+zebra_state_t *zebra_alloc_state (piano_t *piano, zebra_config_t *cfg)
 {
     zebra_state_t *state = malloc(sizeof(zebra_state_t));
 
@@ -174,19 +180,17 @@ zebra_state_t *zebra_alloc_state (zebra_config_t *cfg)
     psv_set_blocking_mode (output_fd);
     psv_set_blocking_mode (chord_fd);
 
-    ichord_file_t chord_file;
-    ierror_msg_t chord_mmap_error = ichord_file_mmap (chord_fd, &chord_file);
-    if (chord_mmap_error) {
-        cfg->error        = chord_mmap_error;
-        cfg->fact_count   = 0;
-        cfg->entity_count = 0;
-        return 0;
+    /* If we have a piano, we know we are playing a chord */
+    int64_t max_chord_count;
+    if (piano) {
+        max_chord_count = piano_max_count(piano);
+    } else {
+        max_chord_count = 1;
     }
 
-    ifleet_t *fleet = psv_alloc_fleet (chord_file.max_chord_count);
+    ifleet_t *fleet = psv_alloc_fleet (max_chord_count);
     char *output_ptr = calloc (psv_output_buffer_size + 1, 1);
 
-    state->chord_cur    = chord_file.chords;
     state->output_start = output_ptr;
     state->output_end   = output_ptr + psv_output_buffer_size - 1;
     state->output_ptr   = output_ptr;
@@ -196,7 +200,7 @@ zebra_state_t *zebra_alloc_state (zebra_config_t *cfg)
     return state;
 }
 
-ierror_msg_t zebra_snapshot_step (zebra_state_t *state, zebra_entity_t *entity)
+ierror_msg_t zebra_snapshot_step (piano_t *piano, zebra_state_t *state, zebra_entity_t *entity)
 {
     ierror_msg_t  error;
     ifleet_t     *fleet = state->fleet;
@@ -206,7 +210,7 @@ ierror_msg_t zebra_snapshot_step (zebra_state_t *state, zebra_entity_t *entity)
 
     psv_collect_fleet (fleet);
 
-    ierror_loc_t err = psv_configure_fleet ((char*) entity->id_bytes, entity->id_length, &state->chord_cur, state->fleet);
+    ierror_loc_t err = psv_configure_fleet ((char*) entity->id_bytes, entity->id_length, piano, state->fleet);
     if (err) return ierror_loc_pretty (err, 0);
 
     error = zebra_read_entity (state, entity);

@@ -83,11 +83,12 @@ seaOfPsvDriver opts config states = do
                          -> Nothing
                        PsvInputDense _ feed
                          -> Just [feed]
+  let mode         = inputPsvMode inputConfig
 
   let struct_sea  = seaOfFleetState      states
       alloc_sea   = seaOfAllocFleet      states
       collect_sea = seaOfCollectFleet    states
-      config_sea  = seaOfConfigureFleet (inputPsvMode inputConfig) states
+      config_sea  = seaOfConfigureFleet  mode states
 
   read_sea  <- seaOfReadAnyFactPsv   opts inputConfig  states
   write_sea <- seaOfWriteFleetOutput      outputConfig outputList states

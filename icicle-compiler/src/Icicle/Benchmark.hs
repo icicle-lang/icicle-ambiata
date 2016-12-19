@@ -19,7 +19,6 @@ module Icicle.Benchmark (
   , runPsvBench
   , runZebraBench
   , releaseBenchmark
-  , withChords
   ) where
 
 import           Icicle.Dictionary
@@ -30,8 +29,6 @@ import qualified Icicle.Compiler.Source as P
 import qualified Icicle.Compiler        as P
 
 import           Icicle.Sea.Eval
-import           Icicle.Sea.Chords.File (writeChordFile)
-import           Icicle.Sea.Chords.Parse (ChordParseError(..), parseChordFile)
 
 import qualified Icicle.Source.Checker as SC
 
@@ -41,10 +38,7 @@ import           Control.Monad.IO.Class (liftIO)
 
 import qualified Data.Map as Map
 import           Data.Time (NominalDiffTime, getCurrentTime, diffUTCTime)
-import qualified Data.Text.Lazy.IO as TL
 
-import           System.IO.Temp (createTempDirectory)
-import           System.Directory (getTemporaryDirectory, removeDirectoryRecursive)
 import           System.FilePath (FilePath)
 import           System.IO (IO, IOMode(..), withFile, hFileSize)
 
@@ -63,12 +57,10 @@ data BenchError =
     BenchDictionaryImportError DictionaryImportError
   | BenchCompileError          (P.ErrorCompile P.Var)
   | BenchSeaError              SeaError
-  | BenchChordParseError       ChordParseError
   deriving (Show)
 
 data Benchmark a = Benchmark {
     benchSource          :: Text
-  , benchAssembly        :: Text
   , benchFleet           :: SeaFleet a
   , benchInputPath       :: FilePath
   , benchOutputPath      :: FilePath
@@ -155,12 +147,11 @@ createBenchmark c = do
             let f = FormatZebra mode (PsvOutputConfig mode (optOutputPsv c) defaultOutputMissing)
             return (d, f)
 
-  (code, asm, fleet) <- compileBench dictionary format
+  (code, fleet) <- compileBench dictionary format chords
   end <- liftIO getCurrentTime
 
   return Benchmark {
       benchSource          = code
-    , benchAssembly        = asm
     , benchFleet           = fleet
     , benchInputPath       = optInput c
     , benchOutputPath      = optOutput c
@@ -182,8 +173,8 @@ mkPsvInputConfig dictionaryPath x = firstEitherT BenchDictionaryImportError $ ca
           return (dict, PsvInputSparse)
 
 
-compileBench :: Dictionary -> IOFormat -> EitherT BenchError IO (Text, Text, SeaFleet s)
-compileBench dictionary format = do
+compileBench :: Dictionary -> IOFormat -> Maybe FilePath -> EitherT BenchError IO (Text, SeaFleet s)
+compileBench dictionary format chords = do
   avalanche  <- hoistEither
               $ first BenchCompileError
               $ P.avalancheOfDictionary P.defaultCompileOptions dictionary
@@ -194,10 +185,9 @@ compileBench dictionary format = do
   let avalancheL = Map.toList avalanche
 
   code  <- firstEitherT BenchSeaError (hoistEither (codeOfPrograms cfg avalancheL))
-  asm   <- firstEitherT BenchSeaError (assemblyOfPrograms cfg avalancheL)
-  fleet <- firstEitherT BenchSeaError (seaCompile NoCacheSea cfg avalanche)
+  fleet <- firstEitherT BenchSeaError (seaCompile CacheSea cfg avalanche chords)
 
-  return (code, asm, fleet)
+  return (code, fleet)
 
 releaseBenchmark :: Benchmark a -> EitherT BenchError IO ()
 releaseBenchmark b =
@@ -245,19 +235,3 @@ runZebraBench b = do
     , benchEntities = zebraEntitiesRead stats
     , benchBytes    = fromIntegral size
     }
-
-
-withChords :: Maybe FilePath -> (Maybe FilePath -> EitherT BenchError IO a) -> EitherT BenchError IO a
-withChords Nothing     io = io Nothing
-withChords (Just path) io = do
-  let acquire = liftIO (getTemporaryDirectory >>= \tmp -> createTempDirectory tmp "icicle-chords-")
-      release = liftIO . removeDirectoryRecursive
-  bracketEitherT' acquire release $ \dir -> do
-
-    chordFile <- liftIO (TL.readFile path)
-    chordMap  <- firstEitherT BenchChordParseError . hoistEither $ parseChordFile chordFile
-
-    let packedChords = dir <> "/chords.psv"
-    liftIO (writeChordFile chordMap packedChords)
-
-    io (Just packedChords)

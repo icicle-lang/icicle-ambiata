@@ -8,7 +8,6 @@ import           Criterion.Types (Config(..))
 
 import           Data.Char (toLower)
 import qualified Data.Map as Map
-import           Data.Maybe (fromJust)
 import           Data.String (String)
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
@@ -135,8 +134,9 @@ createBenchmark (name, path) = do
       input   = path </> "data.psv"
       output  = path </> "out.psv"
       c       = path </> "bench.c"
-      mode    = fromJust (timeOfText "2015-10-01")
-  b <- I.createPsvBench $ I.Command dict input output c (Left mode) (1024*1024) Nothing I.FlagUseDropFile I.FlagInputPsv I.FlagInputPsvSparse I.PsvOutputSparse
+      time    = timeOfText "2015-10-01"
+  b <- I.createPsvBench
+     $ I.Command dict input output c I.FlagSnapshot time Nothing (1024*1024) Nothing I.FlagUseDropFile I.FlagInputPsv I.FlagInputPsvSparse I.PsvOutputSparse
   return (name, b)
 
 releaseBenchmarks :: [(String, Bench)] -> EitherT I.BenchError IO ()

@@ -1,4 +1,4 @@
-#include "51-chord.h"
+#include "51-piano.h"
 
 #if !ICICLE_NO_INPUT
 
@@ -32,7 +32,7 @@ typedef struct {
     size_t      input_remaining;
 
     /* input chords */
-    const ichord_t *chord_cur;
+    piano_t *piano;
 
     /* output buffer */
     char *output_start;
@@ -71,7 +71,12 @@ static ifleet_t * INLINE psv_alloc_fleet (iint_t max_chord_count);
 
 static void INLINE psv_collect_fleet (ifleet_t *fleet);
 
-static ierror_loc_t INLINE psv_configure_fleet (const char *entity, size_t entity_size, const ichord_t **chord, ifleet_t *fleet);
+static ierror_loc_t INLINE psv_configure_fleet
+  ( const char *entity
+  , size_t entity_size
+  , piano_t *piano
+  , ifleet_t *fleet
+  );
 
 #if ICICLE_PSV_INPUT_SPARSE
 static ierror_loc_t INLINE psv_read_fact
@@ -395,7 +400,7 @@ static ierror_loc_t psv_read_buffer (psv_state_t *s, const size_t facts_limit)
             entity_cur[entity_size] = 0;
             entity_cur_size = entity_size;
 
-            error = psv_configure_fleet (entity_cur, entity_cur_size, &s->chord_cur, s->fleet);
+            error = psv_configure_fleet (entity_cur, entity_cur_size, s->piano, s->fleet);
             if (error) goto on_error;
 
             entity_count++;
@@ -553,7 +558,7 @@ static void psv_set_blocking_mode (int fd)
     fcntl (fd, F_SETFL, flags & ~O_NONBLOCK);
 }
 
-void psv_snapshot (psv_config_t *cfg)
+void psv_snapshot (piano_t *piano, psv_config_t *cfg)
 {
     static const size_t psv_read_error = (size_t) -1;
     ierror_msg_t psv_write_error = 0;
@@ -588,7 +593,7 @@ void psv_snapshot (psv_config_t *cfg)
     static const psv_state_t empty_state;
     psv_state_t state = empty_state;
 
-    state.chord_cur    = chord_file.chords;
+    state.piano        = piano;
     state.input_ptr    = input_ptr;
     state.entity_cur   = entity_cur;
     state.output_start = output_ptr;

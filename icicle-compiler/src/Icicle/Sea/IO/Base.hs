@@ -19,7 +19,6 @@ module Icicle.Sea.IO.Base
   , defOfLastTime
   , defOfCount
   , seaOfAssignTime
-  , seaOfChordScan
   , seaOfChordTimes
 
     -- * Input
@@ -100,16 +99,15 @@ seaOfConfigureFleet :: Mode -> [SeaProgramState] -> Doc
 seaOfConfigureFleet mode states
  = vsep
  [ "#line 1 \"configure fleet state\""
- , "static ierror_loc_t psv_configure_fleet (const char *entity, size_t entity_size, const ichord_t **chord, ifleet_t *fleet)"
+ , "static ierror_loc_t psv_configure_fleet "
+ , "    (const char *entity, size_t entity_size, piano_t *piano, ifleet_t *fleet)"
  , "{"
  , "    iint_t max_chord_count = fleet->max_chord_count;"
  , ""
- , "    iint_t         chord_count;"
- , "    const itime_t *chord_times;"
+ , "    iint_t   chord_count;"
+ , "    itime_t *chord_times;"
  , ""
- , case mode of
-     Snapshot time -> indent 4 (seaOfChordTimes [time])
-     Chords        -> indent 4 seaOfChordScan
+ , indent 4 lookup
  , ""
  , "    if (chord_count > max_chord_count) {"
  , "        return ierror_loc_format"
@@ -120,12 +118,12 @@ seaOfConfigureFleet mode states
  , "    }"
  , ""
  , "    fleet->chord_count = chord_count;"
- , "    fleet->chord_times = chord_times;"
  , ""
+ , indent 4 conv
  , indent 4 (vsep (fmap defOfState states))
  , ""
  , "    for (iint_t ix = 0; ix < chord_count; ix++) {"
- , "        itime_t chord_time = chord_times[ix];"
+ , "        itime_t chord_time = fleet->chord_times[ix];"
  , ""
  , indent 8 (vsep (fmap seaOfAssignTime states))
  , "    }"
@@ -137,17 +135,36 @@ seaOfConfigureFleet mode states
  , "    return 0;"
  , "}"
  ]
+ where
+   (lookup, conv)
+     = case mode of
+         Snapshot time
+           -> (seaOfChordTimes [time], use_times)
+         Chords
+           -> (seaOfPianoLookup, conv_times)
+
+   use_times
+     = "fleet->chord_times = chord_times;"
+
+   conv_times
+     = vsep
+     [ "for (iint_t ix = 0; ix < chord_count; ix++) {"
+     , "    fleet->chord_times[ix] = itime_from_epoch_seconds(chord_times[ix]);"
+     , "}"
+     , ""
+     ]
+
 
 seaOfFleetState :: [SeaProgramState] -> Doc
 seaOfFleetState states
- = let constTime = "const " <> seaOfValType TimeT
+ = let time = seaOfValType TimeT
    in vsep
       [ "#line 1 \"fleet state\""
       , "struct ifleet {"
       , indent 4 (defOfVar' 1 "imempool_t" "mempool")         <> ";"
       , indent 4 (defOfVar  0 IntT         "max_chord_count") <> ";"
       , indent 4 (defOfVar  0 IntT         "chord_count")     <> ";"
-      , indent 4 (defOfVar' 1 constTime    "chord_times")     <> ";"
+      , indent 4 (defOfVar' 1 time         "chord_times")     <> ";"
       , indent 4 (vsep (fmap defOfProgramState states))
       , indent 4 (vsep (fmap defOfProgramTime  states))
       , indent 4 (vsep (fmap defOfProgramCount states))
@@ -170,6 +187,19 @@ defOfProgramCount state
   = defOfVar 0 IntT (pretty (nameOfCount state)) <> ";"
   <+> "/* " <> seaOfAttributeDesc (stateAttribute state) <> " */"
 
+seaOfChordTimes :: [Time] -> Doc
+seaOfChordTimes times
+ = vsep
+ [ "itime_t entity_times[] = { " <> hcat (punctuate ", " (fmap seaOfTime times)) <> " };"
+ , ""
+ , "chord_count = " <> int (length times) <> ";"
+ , "chord_times = entity_times;"
+ ]
+
+seaOfPianoLookup :: Doc
+seaOfPianoLookup
+ = "piano_lookup (piano, (const uint8_t*)entity, entity_size, &chord_count, &chord_times);"
+
 ------------------------------------------------------------------------
 
 seaOfAllocFleet :: [SeaProgramState] -> Doc
@@ -181,6 +211,7 @@ seaOfAllocFleet states
  , "    ifleet_t *fleet = calloc (1, sizeof (ifleet_t));"
  , ""
  , "    fleet->max_chord_count = max_chord_count;"
+ , "    fleet->chord_times     = calloc (max_chord_count, sizeof(itime_t));"
  , ""
  , indent 4 (vsep (fmap seaOfAllocProgram states))
  , "    return fleet;"
@@ -332,19 +363,6 @@ seaOfAssignTime state
  = let ptime = "p" <> pretty (stateName state) <> "[ix].input." <> pretty (stateTimeVar state)
    in  ptime <+> "=" <+> "chord_time;"
 
-seaOfChordTimes :: [Time] -> Doc
-seaOfChordTimes times
- = vsep
- [ "static const itime_t entity_times[] = { " <> hcat (punctuate ", " (fmap seaOfTime times)) <> " };"
- , ""
- , "chord_count = " <> int (length times) <> ";"
- , "chord_times = entity_times;"
- ]
-
-seaOfChordScan :: Doc
-seaOfChordScan
- = "*chord = ichord_scan (*chord, entity, entity_size, &chord_count, &chord_times);"
-
 -- Input
 --------------------------------------------------------------------------------
 
@@ -394,7 +412,7 @@ type CBlock = Doc
 type CFun   = Doc
 type CName  = Doc
 
--- Common input errors, for both PSV and Zebra
+-- FIXME zebra doesn't need this, clean up
 data SeaInputError = SeaInputError
   { seaInputErrorTimeOutOfOrder   :: CStmt
     -- ^ what to do when time is out of order
@@ -402,7 +420,7 @@ data SeaInputError = SeaInputError
     -- ^ what to do when ent-attr count exceeds limit
   }
 
--- Common input statements, for both PSV and Zebra
+-- FIXME zebra doesn't need this, clean up
 data SeaInput = SeaInput
   { cstmtReadFact     :: SeaProgramState -> Set Text -> CheckedInput -> CStmt -> CStmt -> CFun
   -- ^ Generate C code to read input into the `program->input` struct.

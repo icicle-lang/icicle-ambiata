@@ -17,7 +17,6 @@ import           Icicle.Sea.Eval
 
 import           P
 
-import           System.FilePath (replaceExtension)
 import           System.IO (IO, FilePath, putStrLn, print)
 
 import           Text.Printf (printf)
@@ -55,8 +54,8 @@ pCommand = Command
      = flip option (long "mode" <> value FlagSnapshot)
      $ readerAsk >>= \case
          "snapshot" -> return FlagSnapshot
-         "chords" -> return FlagChords
-         _ -> readerError "snapshot or chords"
+         "chord" -> return FlagChords
+         _ -> readerError "snapshot or chord"
    pDate
      = optional . flip option (long "snapshot-date")
      $ readerAsk >>= \s -> case timeOfText (T.pack s) of
@@ -109,15 +108,14 @@ main = dispatch pCommand >>= go
        Right _                  -> return ()
 
 runCommand :: Command -> EitherT BenchError IO ()
-runCommand cmd = withChords (optChords cmd) $ \chords ->
-  let c = cmd { optChords = chords }
-  in case optInputFormat c of
-       FlagInputPsv
-         -> bracketEitherT' (createPsvBench c) releaseBenchmark
-          $ runBenchmark runPsvBench (optC c)
-       FlagInputZebra
-         -> bracketEitherT' (createZebraBench c) releaseBenchmark
-         $ runBenchmark runZebraBench (optC c)
+runCommand c =
+  case optInputFormat c of
+    FlagInputPsv
+      -> bracketEitherT' (createPsvBench c) releaseBenchmark
+       $ runBenchmark runPsvBench (optC c)
+    FlagInputZebra
+      -> bracketEitherT' (createZebraBench c) releaseBenchmark
+      $ runBenchmark runZebraBench (optC c)
 
 runBenchmark :: MonadIO m => (Benchmark a -> m BenchmarkResult) -> FilePath -> Benchmark a -> m ()
 runBenchmark f sourcePath bench = do
@@ -127,7 +125,6 @@ runBenchmark f sourcePath bench = do
   liftIO (printf "icicle-bench: compilation time = %.2fs\n" compSecs)
 
   liftIO (T.writeFile sourcePath (benchSource bench))
-  liftIO (T.writeFile (replaceExtension sourcePath ".s") (benchAssembly bench))
 
   liftIO (putStrLn "icicle-bench: starting snapshot")
 
