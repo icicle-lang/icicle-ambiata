@@ -19,3 +19,6 @@
 [submodule "lib/snapper"]
 	path = lib/snapper
 	url = git@github.com:ambiata/snapper
+[submodule "lib/piano"]
+	path = lib/piano
+	url = git@github.com:ambiata/piano

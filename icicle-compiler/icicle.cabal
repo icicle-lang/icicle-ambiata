@@ -12,35 +12,22 @@ description:           icicle.
 
 extra-source-files:
   data/make/main.c
-  data/sea/00-includes.h
-  data/sea/05-error.h
-  data/sea/06-segv.h
-  data/sea/10-mempool.h
-  data/sea/20-simple.h
-  data/sea/21-time.h
-  data/sea/30-array.h
-  data/sea/31-buffer.h
-  data/sea/40-grisu2-powers.h
-  data/sea/41-grisu2.h
-  data/sea/42-text-conversion.h
-  data/sea/51-chord.h
-  data/sea/52-psv.h
-  data/sea/53-zebra_data.h
-  data/sea/54-zebra.h
+  data/sea/*.h
 
 library
   build-depends:
                        base                            >= 3          && < 5
-                     , icicle-data
-                     , icicle-core
-                     , icicle-source
                      , ambiata-disorder-corpus
                      , ambiata-jetski
                      , ambiata-p
+                     , ambiata-piano
                      , ambiata-x-eithert
-                     , ambiata-x-show
                      , ambiata-x-file-embed
+                     , ambiata-x-show
                      , ambiata-zebra
+                     , icicle-core
+                     , icicle-data
+                     , icicle-source
                      , aeson                           >= 0.8        && < 0.12
                      , annotated-wl-pprint             == 0.7.*
                      , ansi-terminal                   == 0.6.*
@@ -158,7 +145,6 @@ library
 
 
 executable icicle-bench
-    ghc-options:       -Wall -threaded -O2 -funbox-strict-fields
     main-is:           main/icicle-bench.hs
     build-depends:     base
                      , icicle
@@ -179,6 +165,22 @@ executable icicle-bench
                      , text                            == 1.2.*
                      , time                            >= 1.5        && < 1.7
                      , transformers                    >= 0.3        && < 0.6
+ 
+    -- The parallel GC prior to GHC 8.0.1 has pathological behaviour for
+    -- unbalanced workloads:
+    --
+    --   https://ghc.haskell.org/trac/ghc/ticket/11783
+    --
+    -- Even with 8.0.1 there are still issues however, so some tuning can help:
+    --
+    --   https://ghc.haskell.org/trac/ghc/ticket/9221
+    --
+    if impl(ghc >= 8.0)
+      ghc-options:
+                      -Wall -threaded -O2 -funbox-strict-fields -rdynamic -rtsopts "-with-rtsopts=-A128m -n4m"
+    else
+      ghc-options:
+                      -Wall -threaded -O2 -funbox-strict-fields -rdynamic -rtsopts "-with-rtsopts=-A128m -n4m -qg"
 
 executable icicle-make
     ghc-options:       -Wall -threaded -O2 -funbox-strict-fields

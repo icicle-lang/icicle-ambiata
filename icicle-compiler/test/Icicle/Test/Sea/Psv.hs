@@ -227,7 +227,7 @@ runTest wt (PsvOpts psvMaxRowCount psvInputBufferSize psvOutputBufferSize) (Test
       iformat  = S.FormatPsv conf
       iopts    = S.InputOpts allowDupTime (Map.singleton (wtAttribute wt) (Set.singleton tombstone))
 
-  let compile  = S.seaCompile' options S.NoCacheSea (S.HasInput iformat iopts) programs
+  let compile  = S.seaCompile' options S.NoCacheSea (S.HasInput iformat iopts) programs Nothing
       release  = S.seaRelease
   bracketEitherT' compile release $ \fleet -> do
 
@@ -240,7 +240,7 @@ runTest wt (PsvOpts psvMaxRowCount psvInputBufferSize psvOutputBufferSize) (Test
         program = dir <> "/program.c"
         input   = dir <> "/input.psv"
         output  = dir <> "/output.psv"
-        dropped = dir <> "/dropped.psv"
+        dropped = dir <> "/dropped.txt"
         chords  = Nothing
         limit   = 4096
         discard = S.FlagUseDropFile
@@ -262,7 +262,7 @@ runTest wt (PsvOpts psvMaxRowCount psvInputBufferSize psvOutputBufferSize) (Test
           liftIO (LT.putStrLn "--- output.psv ---")
           liftIO (LT.putStrLn outputPsv)
           dropPsv <- liftIO $ LT.readFile dropped
-          liftIO (LT.putStrLn "--- drop.psv ---")
+          liftIO (LT.putStrLn "--- drop.txt ---")
           liftIO (LT.putStrLn dropPsv)
         left err
       Right stats -> do
@@ -277,7 +277,7 @@ runTest wt (PsvOpts psvMaxRowCount psvInputBufferSize psvOutputBufferSize) (Test
           liftIO (LT.putStrLn "--- output.psv ---")
           liftIO (LT.putStrLn outputPsv)
           dropPsv <- liftIO $ LT.readFile dropped
-          liftIO (LT.putStrLn "--- drop.psv ---")
+          liftIO (LT.putStrLn "--- drop.txt ---")
           liftIO (LT.putStrLn dropPsv)
         pure ()
 

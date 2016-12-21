@@ -47,6 +47,7 @@ import           Data.Map (Map)
 import qualified Data.Map as Map
 import           Data.String (String)
 import qualified Data.Text as T
+import qualified Data.ByteString.Char8 as Strict
 import qualified Data.Vector as VB
 import qualified Data.Vector.Storable as V
 import           Data.Vector.Storable.Mutable (IOVector)
@@ -54,7 +55,7 @@ import qualified Data.Vector.Storable.Mutable as MV
 import           Data.Word (Word64)
 
 import           Foreign.C.String (newCString, peekCString, withCStringLen)
-import           Foreign.ForeignPtr (ForeignPtr, touchForeignPtr, castForeignPtr)
+import           Foreign.ForeignPtr (ForeignPtr, touchForeignPtr, castForeignPtr, newForeignPtr_)
 import           Foreign.ForeignPtr.Unsafe (unsafeForeignPtrToPtr)
 import           Foreign.Marshal (mallocBytes, free)
 import           Foreign.Ptr (Ptr, WordPtr, ptrToWordPtr, wordPtrToPtr, castPtr, nullPtr)
@@ -83,6 +84,8 @@ import           Icicle.Sea.IO
 
 import           Icicle.Sea.Preamble (seaPreamble)
 
+import           Piano
+
 import           Zebra.Foreign.Entity
 import           Zebra.Merge.Puller
 import           Zebra.Merge.BlockC
@@ -92,6 +95,7 @@ import           Jetski
 import           P hiding (count)
 
 import qualified Prelude as Savage
+import           Prelude (FilePath)
 
 import           System.Environment (lookupEnv)
 import           System.IO (IO)
@@ -159,7 +163,10 @@ seaEvalAvalanche
 seaEvalAvalanche program time values = do
   let attr = Attribute "eval"
       ps   = Map.singleton attr program
-  bracketEitherT' (seaCompile NoCacheSea NoInput ps) seaRelease (\fleet -> seaEval attr fleet time values)
+  bracketEitherT'
+    (seaCompile CacheSea NoInput ps Nothing)
+    seaRelease
+    (\fleet -> seaEval attr fleet time values)
 
 seaEval
   :: (Functor m, MonadIO m, MonadMask m)
@@ -222,10 +229,11 @@ seaCompile
   => CacheSea
   -> Input
   -> Map Attribute (Program (Annot a) n Prim)
+  -> Maybe FilePath
   -> EitherT SeaError m (SeaFleet st)
-seaCompile cache input programs = do
+seaCompile cache input programs chords = do
   options <- getCompilerOptions
-  seaCompile' options cache input programs
+  seaCompile' options cache input programs chords
 
 seaCompile'
   :: (MonadIO m, MonadMask m, Functor m)
@@ -234,8 +242,9 @@ seaCompile'
   -> CacheSea
   -> Input
   -> Map Attribute (Program (Annot a) n Prim)
+  -> Maybe FilePath
   -> EitherT SeaError m (SeaFleet st)
-seaCompile' options cache input programs = do
+seaCompile' options cache input programs chords = do
   code <- hoistEither (codeOfPrograms input (Map.toList programs))
 
   let cache' = fromCacheSea cache
@@ -246,37 +255,64 @@ seaCompile' options cache input programs = do
   segv_install_handler <- firstEitherT SeaJetskiError (function lib "segv_install_handler" retVoid)
   segv_remove_handler  <- firstEitherT SeaJetskiError (function lib "segv_remove_handler"  retVoid)
 
+  let play f = \ptr -> case chords of
+        Nothing -> do
+          -- FIXME never used in snapshot case, maybe wrap in ifdefs
+          n <- newForeignPtr_ nullPtr
+          withCPiano (ForeignPiano n) (f ptr)
+        Just file -> do
+          bs <- Strict.readFile file
+          case parsePiano bs of
+            Left e ->
+              Savage.error $ show e
+            Right p -> do
+              fp <- newForeignPiano p
+              withCPiano fp (f ptr)
+
   take_snapshot <- case input of
     NoInput -> do
       return (\_ -> return ())
+
     HasInput (FormatPsv _) _ -> do
       fn <- firstEitherT SeaJetskiError (function lib "psv_snapshot" retVoid)
-      return (\ptr -> fn [argPtr ptr])
+      return $ play $ \ptr cpiano -> fn [ argPtr (unCPiano cpiano), argPtr ptr ]
+
     HasInput (FormatZebra _ _) _ -> do
       step <- firstEitherT SeaJetskiError (function lib "zebra_snapshot_step" (retPtr retCChar))
       init <- firstEitherT SeaJetskiError (function lib "zebra_alloc_state" (retPtr retVoid))
-      -- FIXME this is savage
-      return $ \ptr -> do
-        input_ptr  <- peekWordOff ptr 0
-        input_path <- peekCString input_ptr
-        p <- runEitherT $ blockChainPuller (VB.singleton input_path)
-        case p of
-          Left e
-            -> Savage.error (show e)
-          Right (puller, pullid)
-            -> do st <- init [argPtr ptr]
-                  let step' e = liftIO $ do
-                        s <- step [argPtr st, argPtr (unCEntity e)]
-                        when (s /= nullPtr) $ do
-                          msg <- liftIO (peekCString s)
-                          Savage.error msg
 
-                  ret <- runEitherT $ joinErrors show show $ mergeBlocks (MergeOptions puller step' 100) pullid
-                  case ret of
-                    Left e
-                      -> Savage.error (show e)
-                    Right _
-                      -> return ()
+      -- FIXME this is really savage.
+      let go ptr cpiano = do
+            let piano   = unCPiano cpiano
+            input_ptr  <- peekWordOff ptr 0
+            input_path <- peekCString input_ptr
+
+            pull <- runEitherT (blockChainPuller (VB.singleton input_path))
+
+            case pull of
+              Left e ->
+                Savage.error $ "error creating puller: " <> show e
+
+              Right (puller, pullid) -> do
+                st <- init [ argPtr piano, argPtr ptr ]
+
+                let step' e = liftIO $ do
+                      s <- step [ argPtr piano, argPtr st, argPtr (unCEntity e) ]
+                      when (s /= nullPtr) $ do
+                        msg <- liftIO (peekCString s)
+                        Savage.error $ "error step: " <> msg
+
+                ret <- runEitherT
+                     $ joinErrors show show
+                     $ mergeBlocks (MergeOptions puller step' 100) pullid
+
+                case ret of
+                  Left e ->
+                    Savage.error $ "error merge: " <> show e
+                  Right _ ->
+                    return ()
+
+      return $ play go
 
   compiled <- zipWithM (mkSeaProgram lib) [0..] (Map.elems programs)
 
@@ -406,7 +442,8 @@ codeOfPrograms input programs = do
                      -> vsep [ defOfPsvInput (psvInputConfig conf), defOfPsvOutput (psvOutputConfig conf) ]
                    _ -> vsep [ -- FIXME property separate what is needed from psv
                                "#define ICICLE_PSV_INPUT_SPARSE 1"
-                             , "#define ICICLE_ZEBRA 1" ]
+                             , "#define ICICLE_ZEBRA 1"
+                             ]
 
       pure . textOfDoc . vsep $ [def, cnst, seaPreamble, defs] <> progs <> ["", doc]
 
