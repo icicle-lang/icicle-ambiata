@@ -180,7 +180,7 @@ executable icicle-bench
                       -Wall -threaded -O2 -funbox-strict-fields -rdynamic -rtsopts "-with-rtsopts=-A128m -n4m"
     else
       ghc-options:
-                    -Wall -threaded -O2 -funbox-strict-fields -rdynamic -rtsopts "-with-rtsopts=-A128m -n4m -qg"
+                      -Wall -threaded -O2 -funbox-strict-fields -rdynamic -rtsopts "-with-rtsopts=-A128m -n4m -qg"
 
 executable icicle-make
     ghc-options:       -Wall -threaded -O2 -funbox-strict-fields

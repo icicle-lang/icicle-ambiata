@@ -19,4 +19,3 @@
   PUBLISH = "true"
   PUBLISH_S3 = "$AMBIATA_ARTEFACTS_BRANCHES"
   PUBLISH_EXECUTABLES = "icicle-bench"
-  TEST = "false"
