@@ -9,6 +9,9 @@
   ICICLE_CC_OPTIONS = "-Wall -Werror"
   HADDOCK = "true"
   HADDOCK_S3 = "$AMBIATA_HADDOCK_MASTER"
+  PUBLISH = "true"
+  PUBLISH_S3 = "$AMBIATA_ARTEFACTS_MASTER"
+  PUBLISH_EXECUTABLES = "icicle-bench"
 
 [build.branches-7-10]
   GHC_VERSION = "7.10.2"
