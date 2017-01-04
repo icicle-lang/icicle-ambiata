@@ -9,21 +9,20 @@ module Icicle.Test.Foreign.Utils where
 
 import qualified Data.List as List
 
+import           Disorder.Corpus
+
 import           Foreign
-import           Foreign.LibFFI (RetType)
-import           Foreign.LibFFI.Base (mkStorableRetType)
-import           Foreign.LibFFI.FFITypes (ffi_type_uint64)
+
+import           Jetski (Return, retInt64)
+
+import           P
+
+import qualified Prelude as Savage
 
 import           System.IO
 
 import           Test.QuickCheck
 import           Test.QuickCheck.Property
-
-import qualified Prelude as Savage
-
-import           Disorder.Corpus
-
-import           P
 
 import           X.Control.Monad.Trans.Either
 
@@ -190,5 +189,6 @@ runRight a = do
     Left  x -> return (counterexample (show x) failed)
     Right x -> return x
 
-retBool :: RetType Bool
-retBool = mkStorableRetType ffi_type_uint64
+retBool :: Return Bool
+retBool =
+  (/= 0) <$> retInt64

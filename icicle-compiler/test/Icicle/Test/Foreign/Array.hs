@@ -14,18 +14,17 @@ import           Control.Exception (bracket)
 
 import qualified Data.List as List
 
+import           Disorder.Core.IO
+
+import           Jetski
+
 import           Foreign
-import           Foreign.LibFFI.Types as X
+
+import           P
 
 import           System.IO
 
 import           Test.QuickCheck
-
-import           Disorder.Core.IO
-
-import           P
-
-import           Jetski
 
 import           Icicle.Internal.Pretty
 import           Icicle.Test.Sea.Utils
@@ -257,7 +256,7 @@ runWith (Input _ val) prop = go val
   where
     go xs = bracket (pokeArr xs) snd (prop . fst)
 
-runProp :: Input -> Text -> (Ptr a -> [Arg]) -> IO Property
+runProp :: Input -> Text -> (Ptr a -> [Argument]) -> IO Property
 runProp input fun args = do
   let ty = inputType input
   let fs = seprops input
