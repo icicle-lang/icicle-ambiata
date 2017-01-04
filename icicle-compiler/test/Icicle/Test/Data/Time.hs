@@ -36,9 +36,9 @@ prop_time_sea_to_days d
 
   runRight $ do
     library <- readLibrary seaTestables
-    f <- function library "testable_itime_to_epoch_days" retInt
+    f <- function library "testable_itime_to_epoch_days" retInt64
     r <- liftIO $ f [argWord64 $ packedOfTime d]
-    pure $ expected === r
+    pure $ expected === fromIntegral r
 
 prop_time_sea_to_seconds :: Time -> Property
 prop_time_sea_to_seconds d
@@ -48,9 +48,9 @@ prop_time_sea_to_seconds d
 
   runRight $ do
     library <- readLibrary seaTestables
-    f <- function library "testable_itime_to_epoch_seconds" retInt
+    f <- function library "testable_itime_to_epoch_seconds" retInt64
     r <- liftIO $ f [argWord64 $ packedOfTime d]
-    pure $ expected === r
+    pure $ expected === fromIntegral r
 
 prop_time_sea_from_days :: Time -> Property
 prop_time_sea_from_days d
@@ -60,7 +60,7 @@ prop_time_sea_from_days d
 
   runRight $ do
     library <- readLibrary seaTestables
-    f <- function library "testable_itime_from_epoch_days" retInt
+    f <- function library "testable_itime_from_epoch_days" retInt64
     r <- liftIO $ f [argWord64 $ fromIntegral epochDiff]
     pure $ d === timeOfPacked (fromIntegral r)
 
@@ -72,7 +72,7 @@ prop_time_sea_from_seconds d
 
   runRight $ do
     library <- readLibrary seaTestables
-    f <- function library "testable_itime_from_epoch_seconds" retInt
+    f <- function library "testable_itime_from_epoch_seconds" retInt64
     r <- liftIO $ f [argWord64 $ fromIntegral epochDiff]
     pure $ d === timeOfPacked (fromIntegral r)
 
@@ -83,7 +83,7 @@ prop_time_symmetry_sea_days d1 d2
 
   runRight $ do
     library <- readLibrary seaTestables
-    f <- function library "testable_itime_days_diff" retInt
+    f <- function library "testable_itime_days_diff" retInt64
     r <- liftIO $ f [argWord64 (packedOfTime d1), argWord64 (packedOfTime d2)]
     pure $ expected === fromIntegral r
 
@@ -94,7 +94,7 @@ prop_time_symmetry_sea_seconds d1 d2
 
   runRight $ do
     library <- readLibrary seaTestables
-    f <- function library "testable_itime_seconds_diff" retInt
+    f <- function library "testable_itime_seconds_diff" retInt64
     r <- liftIO $ f [argWord64 (packedOfTime d1), argWord64 (packedOfTime d2)]
     pure $ expected === fromIntegral r
 
@@ -107,7 +107,7 @@ prop_time_minus_days d num
 
   runRight $ do
     library <- readLibrary seaTestables
-    f <- function library "testable_itime_minus_days" retInt
+    f <- function library "testable_itime_minus_days" retInt64
     r <- liftIO $ f [argWord64 $ packedOfTime d, argWord64 (fromIntegral num')]
     pure $ expected === timeOfPacked (fromIntegral r)
 
@@ -120,7 +120,7 @@ prop_time_minus_seconds d num
 
   runRight $ do
     library <- readLibrary seaTestables
-    f <- function library "testable_itime_minus_seconds" retInt
+    f <- function library "testable_itime_minus_seconds" retInt64
     r <- liftIO $ f [argWord64 $ packedOfTime d, argWord64 (fromIntegral num')]
     pure $ expected === timeOfPacked (fromIntegral r)
 
@@ -133,7 +133,7 @@ prop_time_minus_months d num
 
   runRight $ do
     library <- readLibrary seaTestables
-    f <- function library "testable_itime_minus_months" retInt
+    f <- function library "testable_itime_minus_months" retInt64
     r <- liftIO $ f [argWord64 $ packedOfTime d, argWord64 (fromIntegral num')]
     pure $ expected === timeOfPacked (fromIntegral r)
 

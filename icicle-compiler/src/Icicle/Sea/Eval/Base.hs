@@ -348,13 +348,13 @@ mkSeaProgram lib name program = do
                 Nothing     -> left SeaNoFactLoop
                 Just (t, _) -> return t
 
-  size_of_state <- firstEitherT SeaJetskiError (function lib (nameOfStateSize' name) retInt)
+  size_of_state <- firstEitherT SeaJetskiError (function lib (nameOfStateSize' name) retInt64)
   words         <- liftIO (size_of_state [])
   compute       <- firstEitherT SeaJetskiError (function lib (nameOfProgram' name) retVoid)
 
   return SeaProgram {
       spName       = name
-    , spStateWords = words
+    , spStateWords = fromIntegral words
     , spFactType   = factType
     , spOutputs    = outputs
     , spCompute    = \ptr -> compute [argPtr ptr]
