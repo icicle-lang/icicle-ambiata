@@ -155,7 +155,7 @@ data WhileType
 -- Transforming -------------
 
 transformUDStmt
-        :: (Applicative m, Functor m, Monad m)
+        :: Monad m
         => (env -> Statement a n p -> m (env, Statement a n p))
         -> env
         -> Statement a n p
@@ -196,7 +196,7 @@ transformUDStmt fun env statements
 
 
 foldStmt
-        :: (Applicative m, Functor m, Monad m)
+        :: Monad m
         => (env ->        Statement a n p -> m env)
         -> (env -> res -> Statement a n p -> m res)
         -> (res -> res -> res)

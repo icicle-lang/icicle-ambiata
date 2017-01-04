@@ -170,7 +170,7 @@ instance (Pretty a, Pretty n) => Pretty (ErrorInfo a n) where
     inp x = indent 0 (pretty x)
 
 
-instance (IsString n, Pretty a, Pretty n, Hashable n, Eq n) => Pretty (ErrorSuggestion a n) where
+instance (IsString n, Pretty n, Hashable n, Eq n) => Pretty (ErrorSuggestion a n) where
  pretty e
   = case e of
      AvailableFeatures n' bs

@@ -32,7 +32,7 @@ import                  Data.Hashable (Hashable)
 -- however fresh variable names are quite ugly.
 -- Instead of actually using nice names, we will clean them up
 -- just before pretty printing.
-prettyFunWithNames :: (Pretty n, Hashable n, Eq n) => [Name n] -> FunctionType n -> Doc
+prettyFunWithNames :: (Pretty n, Eq n) => [Name n] -> FunctionType n -> Doc
 prettyFunWithNames names fun
   =  constrs (functionConstraints   fun')
   <> args    (functionArguments     fun')

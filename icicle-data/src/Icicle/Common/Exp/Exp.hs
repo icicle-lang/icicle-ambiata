@@ -65,7 +65,7 @@ annotOfExp (XLet   a _ _ _) = a
 
 
 class TransformX x where
- transformX :: (Applicative m, Monad m)
+ transformX :: Monad m
             => (Name  n   -> m (Name   n'))
             -> (Exp a n p -> m (Exp a' n' p'))
             ->    x a n p -> m (x   a' n' p')

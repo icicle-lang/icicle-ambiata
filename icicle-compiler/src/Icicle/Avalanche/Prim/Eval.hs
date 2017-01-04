@@ -19,9 +19,8 @@ import              P
 import              Data.List (lookup, zip, zipWith)
 import qualified    Data.List as List
 import qualified    Data.Map  as Map
-import              Data.Hashable (Hashable)
 
-evalPrim :: (Hashable n, Eq n, Show n, Show a) => EvalPrim a n Prim
+evalPrim :: EvalPrim a n Prim
 evalPrim p vs
  = case p of
      PrimMinimal m

@@ -142,7 +142,7 @@ annotOfError e
     ErrorSourceCheck       e'
      -> Check.annotOfError  e'
 
-instance (Hashable a, Eq a, IsString a, Pretty a, Show a) => Pretty (ErrorSource a) where
+instance (Hashable a, Eq a, IsString a, Pretty a) => Pretty (ErrorSource a) where
  pretty e
   = case e of
      ErrorSourceParse p

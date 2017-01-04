@@ -538,7 +538,7 @@ freevarsAcc acc
 -- If it does not update or return, it is probably dead code.
 --
 -- The first argument is a set of accumulators to ignore.
-killNoEffect :: (Hashable n, Eq n) => Statement a n p -> Statement a n p
+killNoEffect :: Eq n => Statement a n p -> Statement a n p
 killNoEffect = fst . go Set.empty
   where
    go ignore ss
@@ -609,11 +609,11 @@ killNoEffect = fst . go Set.empty
 stmtFreeX :: (Hashable n, Eq n) => Statement a n p -> Set (Name n)
 stmtFreeX = stmtFreeX_ freevars
 
-stmtFreeX' :: (Hashable n, Eq n) => Statement (a, Set (Name n)) n p -> Set (Name n)
+stmtFreeX' :: Eq n => Statement (a, Set (Name n)) n p -> Set (Name n)
 stmtFreeX' = stmtFreeX_ (snd . annotOfExp)
 
 stmtFreeX_
- :: (Hashable n, Eq n)
+ :: Eq n
  => (Exp a n p -> Set (Name n))
  -> Statement a n p
  -> Set (Name n)
@@ -683,8 +683,7 @@ stmtFreeX_ frees statements
 -- Note that the above example is only one step: nesting would then be
 -- recursively performed etc.
 nestBlocks
- :: (Hashable n, Eq n)
- => a
+ :: a
  -> Statement (Ann a n) n p
  -> Fresh n (Statement (Ann a n) n p)
 nestBlocks _ statements

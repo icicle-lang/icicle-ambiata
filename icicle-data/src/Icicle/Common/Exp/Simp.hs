@@ -15,7 +15,7 @@ import P
 import Data.Hashable
 
 -- | Just perform beta reduction for now
-simp :: (Show p, Show n, Hashable n, Eq n)
+simp :: (Hashable n, Eq n)
      => a -> Exp a n p -> Fresh n (Exp a n p)
 simp a_fresh xx
  = anormal a_fresh

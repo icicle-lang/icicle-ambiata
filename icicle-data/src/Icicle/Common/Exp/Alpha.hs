@@ -83,7 +83,7 @@ emptyCtx = (Map.empty, Map.empty)
 -- | Insert l=r into bijection map.
 -- If there is already a binding that mentions l, it will be overwritten by the Map.insert.
 -- If there is already a binding that mentions r, we must find its matching left and remove it.
-insertBoth :: (Hashable n, Eq n) => Ctx n -> (Name n, Name n) -> Ctx n
+insertBoth :: Eq n => Ctx n -> (Name n, Name n) -> Ctx n
 insertBoth (ml,mr) (l,r)
  = (Map.insert l r ml, Map.insert r l mr)
 
@@ -91,7 +91,7 @@ insertBoth (ml,mr) (l,r)
 -- If they both occur in the bijection map, check that they both match.
 -- If neither occur in the map they are free variables, and must be equal.
 -- Otherwise one is bound and the other isn't, which means they cannot be equal.
-lookupBoth :: (Hashable n, Eq n) => Ctx n -> (Name n, Name n) -> Bool
+lookupBoth :: Eq n => Ctx n -> (Name n, Name n) -> Bool
 lookupBoth (ml,mr) (l,r)
  = case (Map.lookup l ml, Map.lookup r mr) of
     (Just r', Just l')

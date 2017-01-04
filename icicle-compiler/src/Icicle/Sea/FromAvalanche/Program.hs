@@ -63,7 +63,7 @@ seaOfProgram name attrib program = do
     , "}"
     ]
 
-defOfAccumulator :: (Show n, Pretty n) => (Name n, ValType) -> Doc
+defOfAccumulator :: Pretty n => (Name n, ValType) -> Doc
 defOfAccumulator (n, vt)
  = defOfVar 0 vt (seaOfName n) <> semi
 
