@@ -16,7 +16,6 @@ import              P
 import qualified    Data.Map                        as Map
 import qualified    Data.List                       as List
 import qualified    Data.Text                       as T
-import              Data.Hashable                   (Hashable)
 
 
 -- | Evaluate a primitive, given list of argument values
@@ -27,8 +26,7 @@ import              Data.Hashable                   (Hashable)
 -- Since values can be closures (though they shouldn't be for
 -- these primitives), the values need to be parameterised by
 -- the primitive type.
-evalPrim    :: (Hashable n, Eq n)
-            => Prim
+evalPrim    :: Prim
             -> EvalPrim a n p
 evalPrim p originalP vs
  = let primError = Left $ RuntimeErrorPrimBadArgs originalP vs

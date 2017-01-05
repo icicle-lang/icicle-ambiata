@@ -42,7 +42,7 @@ data Context n
 
 instance NFData (ProgramError a n p) where rnf x = seq x ()
 
-initialContext :: (Hashable n, Eq n) => Program a n p -> Context n
+initialContext :: Program a n p -> Context n
 initialContext p
  = Context
  { ctxExp = Map.singleton (bindtime p) (FunT [] TimeT)

@@ -198,13 +198,13 @@ lookup ann n env
                            [AvailableBindings n $ Map.toList env]
 
 -- | Bind a new to a type in the given context.
-bindT :: (Hashable n, Eq n) => Name n -> Type n -> GenEnv n -> GenEnv n
+bindT :: Eq n => Name n -> Type n -> GenEnv n -> GenEnv n
 bindT n t
  = Map.insert n (function0 t)
 
 -- | Temporarily add the binding to a context, then do something.
 withBind
-  :: (Hashable n, Eq n)
+  :: Eq n
   => Name n
   -> Type n
   -> GenEnv n
@@ -213,7 +213,7 @@ withBind
 withBind n t old gen
  = gen (bindT n t old)
 
-removeElementBinds :: (Hashable n, Eq n) => GenEnv n -> GenEnv n
+removeElementBinds :: Eq n => GenEnv n -> GenEnv n
 removeElementBinds env
  = let elts  = Map.keys $ Map.filter isElementTemporality env
    in  foldr Map.delete env elts
@@ -222,7 +222,7 @@ removeElementBinds env
    = getTemporalityOrPure (functionReturn ft) == TemporalityElement
 
 
-substE :: (Hashable n, Eq n) => SubstT n -> GenEnv n -> GenEnv n
+substE :: Eq n => SubstT n -> GenEnv n -> GenEnv n
 substE s
  = fmap (substFT s)
 

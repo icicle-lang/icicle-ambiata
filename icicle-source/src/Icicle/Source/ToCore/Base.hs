@@ -245,7 +245,7 @@ convertModifyFeatures f
 -- | When adding a variable binding, you need to modify the existing things, and then add something new.
 -- The variable you're adding also needs to be cleared from any other environments, for shadowing to work
 convertModifyFeaturesMap
-        :: (Hashable n, Eq n)
+        :: Eq n
         => (Map.Map (Name n) (FeatureVariable () n) -> Map.Map (Name n) (FeatureVariable () n))
         -> Name n
         -> ConvertM a n ()
@@ -264,13 +264,13 @@ convertFreshenAdd prefix
         convertFreshenAddAs prefix n
         return n
 
-convertFreshenAddAs :: (Hashable n, Eq n) => Name n -> Name n -> ConvertM a n ()
+convertFreshenAddAs :: Eq n => Name n -> Name n -> ConvertM a n ()
 convertFreshenAddAs from to
  = do   o <- get
         put $ o { csFreshen  = Map.insert from to $ csFreshen  o }
 
 
-convertFreshenLookup :: (Hashable n, Eq n) => a -> Name n -> ConvertM a n (Name n)
+convertFreshenLookup :: Eq n => a -> Name n -> ConvertM a n (Name n)
 convertFreshenLookup ann n
  = do   o <- get
         case Map.lookup n $ csFreshen o of
@@ -279,7 +279,7 @@ convertFreshenLookup ann n
          Just n'
           -> return n'
 
-convertFreshenLookupMaybe :: (Hashable n, Eq n) => Name n -> ConvertM a n (Maybe (Name n))
+convertFreshenLookupMaybe :: Eq n => Name n -> ConvertM a n (Maybe (Name n))
 convertFreshenLookupMaybe n
  = do   o <- get
         return $ Map.lookup n $ csFreshen o

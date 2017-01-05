@@ -22,7 +22,6 @@ import                  P
 
 import                  Data.Map (Map)
 import qualified        Data.Map as Map
-import                  Data.Hashable (Hashable)
 
 
 data Features a n k
@@ -67,7 +66,7 @@ typeOfFeatureVariable fv
  $ Possibility (if featureVariablePossibly fv then PossibilityPossibly else PossibilityDefinitely)
  $ featureVariableType fv
 
-envOfFeatureNow :: (Hashable n, Eq n) => CheckOptions -> Maybe (Name n) -> Map (Name n) (Type n)
+envOfFeatureNow :: Eq n => CheckOptions -> Maybe (Name n) -> Map (Name n) (Type n)
 envOfFeatureNow opts
  = Map.fromList
  . maybeToList

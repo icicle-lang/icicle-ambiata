@@ -1,7 +1,26 @@
-{-# LANGUAGE NoImplicitPrelude   #-}
-{-# LANGUAGE PatternGuards       #-}
+{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE CPP #-}
+{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE PatternGuards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE BangPatterns        #-}
+
+#if __GLASGOW_HASKELL__ >= 800
+#if darwin_HOST_OS
+-- Disable pattern checks on OS/X because goX' below hits a pathalogical case
+-- in GHC and we don't want to wait for it on our dev machines.
+{-# OPTIONS_GHC -fno-warn-incomplete-patterns #-}
+{-# OPTIONS_GHC -fno-warn-incomplete-uni-patterns #-}
+{-# OPTIONS_GHC -fno-warn-overlapping-patterns #-}
+#else
+-- On the build bot we want to make sure the pattern matches are still safe but
+-- we need to increase a few limits to allow GHC to do this.
+--
+--   https://ghc.haskell.org/trac/ghc/ticket/11822
+--
+{-# OPTIONS_GHC -fmax-pmcheck-iterations=10000000 #-}
+#endif
+#endif
+
 module Icicle.Avalanche.Statement.Simp.Constructor (
     constructor
   ) where
@@ -23,13 +42,12 @@ import              P
 import qualified    Data.List as List
 import qualified    Data.Set  as Set
 import qualified    Data.Map  as Map
-import              Data.Hashable (Hashable)
 
 
 -- | Simplify applied primitives.
 --
 constructor
-  :: forall a n . (Eq a, Eq n, Hashable n)
+  :: forall a n . Eq n
   => a
   -> Statement (Ann a n) n Prim
   -> FixT (Fresh n) (Statement (Ann a n) n Prim)
@@ -404,7 +422,7 @@ constructor a_fresh statements
 
 -- Either lookup a name, or just return the value if it's already a constant.
 resolve
-  :: (Hashable n, Eq n)
+  :: Eq n
   => ExpEnv a n p
   -> Exp    a n p
   -> Maybe (Exp a n p)

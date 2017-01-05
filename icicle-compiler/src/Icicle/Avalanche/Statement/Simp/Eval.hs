@@ -12,11 +12,9 @@ import           Icicle.Common.FixT
 
 import           P
 
-import           Data.Hashable (Hashable)
 import           Data.Functor.Identity
 
-simpEvalX   :: (Hashable n, Eq n)
-            => EvalPrim a n p
+simpEvalX   :: EvalPrim a n p
             -> (p -> Type)
             -> Exp a n p
             -> Exp a n p
@@ -24,7 +22,7 @@ simpEvalX ev ty xx
  = runIdentity $ once (simpEvalX' ev ty xx)
 
 
-simpEvalX'  :: (Monad m, Hashable n, Eq n)
+simpEvalX'  :: Monad m
             => EvalPrim a n p
             -> (p -> Type)
             -> Exp a n p
@@ -58,8 +56,7 @@ simpEvalX' ev ty = go
 
 -- | Primitive Simplifier
 --
-simpEvalP   :: (Hashable n, Eq n)
-            => EvalPrim a n p
+simpEvalP   :: EvalPrim a n p
             -> (p -> Type)
             -> a
             -> p

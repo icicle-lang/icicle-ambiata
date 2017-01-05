@@ -24,7 +24,7 @@ data FusionError n
  | FusionErrorNothingToFuse
  deriving (Show)
 
-instance Pretty n => Pretty (FusionError n) where
+instance Pretty (FusionError n) where
   pretty (FusionErrorNotSameType a b)
     = vsep [ "Fusion error: types do not match: "
            , "  a = " <> pretty a

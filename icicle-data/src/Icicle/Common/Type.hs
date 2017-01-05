@@ -42,7 +42,6 @@ import              P
 
 import qualified    Data.Map as Map
 import qualified    Data.Text as T
-import              Data.Hashable (Hashable)
 
 
 -- | Real values.
@@ -185,7 +184,7 @@ type Env n t = Map.Map (Name n) t
 
 
 -- | Get from environment or return given error
-lookupOrDie :: (Hashable n, Eq n) => (Name n -> err) -> Env n t -> Name n -> Either err t
+lookupOrDie :: Eq n => (Name n -> err) -> Env n t -> Name n -> Either err t
 lookupOrDie err e n
  = maybeToRight
         (err n)
@@ -201,7 +200,7 @@ lookupOrDie err e n
 --
 -- I think by disallowing shadowing and general lambdas, substitution should be a lot simpler.
 --
-insertOrDie :: (Hashable n, Eq n) => (Name n -> err) -> Env n t -> Name n -> t -> Either err (Env n t)
+insertOrDie :: Eq n => (Name n -> err) -> Env n t -> Name n -> t -> Either err (Env n t)
 insertOrDie err e n t
  = case Map.lookup n e of
     Just _

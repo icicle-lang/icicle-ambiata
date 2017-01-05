@@ -55,7 +55,7 @@ meltOps a_fresh
 
 ------------------------------------------------------------------------
 
-melt :: (Show n, Hashable n, Eq n)
+melt :: (Hashable n, Eq n)
      => a
      -> Statement a n Prim
      -> Fresh n (Statement a n Prim)
@@ -66,7 +66,7 @@ melt a_fresh ss
 
 ------------------------------------------------------------------------
 
-meltAccumulators :: (Show n, Hashable n, Eq n)
+meltAccumulators :: (Hashable n, Eq n)
                  => a
                  -> Statement a n Prim
                  -> Fresh n (Statement a n Prim)
@@ -130,7 +130,7 @@ meltAccumulators a_fresh statements
 
 --------------------------------------------------------------------------------
 
-meltForeachFacts :: forall a n. (Show n, Hashable n, Eq n)
+meltForeachFacts :: forall a n. (Hashable n, Eq n)
                  => a
                  -> Statement a n Prim
                  -> Fresh n (Statement a n Prim)
@@ -182,8 +182,7 @@ meltForeachFacts a_fresh statements
 
 ------------------------------------------------------------------------
 
-meltOutputs :: forall a n. (Show n, Hashable n, Eq n)
-            => a
+meltOutputs :: forall a n. a
             -> Statement a n Prim
             -> Fresh n (Statement a n Prim)
 meltOutputs a_fresh statements

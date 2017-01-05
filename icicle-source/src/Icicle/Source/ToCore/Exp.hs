@@ -133,7 +133,7 @@ convertCaseFreshenPat p
 
 
 convertCase
-        :: (Hashable n, Eq n)
+        :: Hashable n
         => Exp (Annot a n) n
         -> C.Exp () n
         -> [(Pattern n, C.Exp () n)]

@@ -35,7 +35,6 @@ import           P
 import           Control.Monad.Trans.Class
 import           Data.Hashable                               (Hashable)
 
-import Icicle.Internal.Pretty
 
 data SimpOpts = SimpOpts
   { simpOptsCheckCrunch :: Bool
@@ -68,7 +67,7 @@ data SimpError a n p
   = SimpError TransformName (Check.ProgramError a n p)
   deriving (Show)
 
-check :: (Monad m, Pretty x)
+check :: Monad m
       => (x -> Either (Check.ProgramError a n p) b)
       -> TransformName
       -> (y -> m x)
@@ -106,7 +105,7 @@ ret p ss = return $ case ss of
 --------------------------------------------------------------------------------
 
 simpAvalanche
-  :: (Show n, Hashable n, Eq n, Ord a)
+  :: (Hashable n, Eq n)
   => a
   -> Program a n Core.Prim
   -> Fresh n (Program a n Core.Prim)
@@ -124,7 +123,7 @@ simpAvalanche a_fresh p
 
 
 simpFlattened
-  :: forall a n . (Show n, Hashable n, Pretty n, Eq n, Eq a, Ord a, Show a)
+  :: forall a n . (Hashable n, Eq n, Ord a)
   => a
   -> SimpOpts
   -> Program a n Flat.Prim

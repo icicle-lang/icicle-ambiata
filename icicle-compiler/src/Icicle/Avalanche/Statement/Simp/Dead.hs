@@ -146,16 +146,16 @@ deadLoop us ss
 usageX :: (Hashable n, Eq n) => Exp a n p -> Usage n
 usageX x = Usage mempty (freevars x)
 
-usedX :: (Hashable n, Eq n) => Name n -> Usage n -> Bool
+usedX :: Eq n => Name n -> Usage n -> Bool
 usedX n us = Set.member n (usageExp us)
 
-usageA :: (Hashable n, Eq n) => Name n -> Usage n
+usageA :: Eq n => Name n -> Usage n
 usageA n = Usage (Set.singleton n) mempty
 
-usedA :: (Hashable n, Eq n) => Name n -> Usage n -> Bool
+usedA :: Eq n => Name n -> Usage n -> Bool
 usedA n us = Set.member n (usageAcc us)
 
-killAccumulators :: (Hashable n, Eq n) => Kill a n p -> Statement a n p -> Statement a n p
+killAccumulators :: Eq n => Kill a n p -> Statement a n p -> Statement a n p
 killAccumulators accs statements
  = runIdentity
  $ transformUDStmt trans () statements

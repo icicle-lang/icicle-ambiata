@@ -23,8 +23,6 @@ import              Icicle.Common.Type
 import              Icicle.Common.Exp
 import              Icicle.Common.Fresh
 
-import              Icicle.Internal.Pretty
-
 import              P
 
 import              Data.Hashable                  (Hashable)
@@ -293,7 +291,7 @@ avalancheBinarySearch a_fresh t key array found result
 --------------------------------------------------------------------------------
 
 avalancheHeapSortArray
-  :: forall a n . (Pretty n, Hashable n, Eq n, IsString n)
+  :: forall a n . (Hashable n, IsString n)
   => a
   -> StmtX a n
   -> FlatX a n
@@ -318,7 +316,7 @@ avalancheHeapSortArray a_fresh stm flatX t array
 
 
 avalancheHeapSortMap
-  :: forall a n . (Pretty n, Hashable n, Eq n, IsString n)
+  :: forall a n . (Hashable n, IsString n)
   => a
   -> ValType
   -> ValType
@@ -334,7 +332,7 @@ avalancheHeapSortMap a_fresh tk tv n_acc_keys n_acc_vals =
 
 
 avalancheHeapSort_
-  :: forall a n . (Pretty n, Hashable n, Eq n, IsString n)
+  :: forall a n . (Hashable n, IsString n)
   => a
   -> ValType
   -> Name n
@@ -582,7 +580,7 @@ avalancheHeapSort_ a_fresh t array extras = do
 --------------------------------------------------------------------------------
 
 avalancheMapInsertUpdate
-  :: (Hashable n, IsString n, Pretty n, Eq n, Show n, Show a)
+  :: (Hashable n, IsString n)
   => a
   -> StmtX a n
   -> FlatX a n

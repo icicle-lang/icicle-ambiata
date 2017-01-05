@@ -11,7 +11,7 @@ t1_out_psv=`mktemp -t icicle-bench-t1-out-XXXXXX`
 
 dist/build/icicle-bench/icicle-bench --dictionary $t1_dict --input $t1_in --output $t1_out_psv --code $t1_out_c --mode snapshot --snapshot-date 2010-01-01
 
-diff $t1_expected $t1_out_psv
+diff -u $t1_expected $t1_out_psv
 
 rm $t1_out_c
 rm $t1_out_psv
@@ -36,8 +36,8 @@ t2_drop_0=`mktemp -t icicle-bench-t2-drop-0-XXXXXX`
 
 dist/build/icicle-bench/icicle-bench --dictionary $t2_dict --input $t2_in --output $t2_psv_0 --code $t2_c_0 --facts-limit 0 --drop $t2_drop_0 $t2_common_args
 
-diff $t2_expected_psv_0 $t2_psv_0
-diff $t2_expected_drop_0 $t2_drop_0
+diff -u $t2_expected_psv_0 $t2_psv_0
+diff -u $t2_expected_drop_0 $t2_drop_0
 
 rm $t2_c_0
 rm $t2_psv_0
@@ -53,8 +53,8 @@ t2_drop_1=`mktemp -t icicle-bench-t2-drop-1-XXXXXX`
 
 dist/build/icicle-bench/icicle-bench --dictionary $t2_dict --input $t2_in --output $t2_psv_1 --code $t2_c_1 --facts-limit 1 --drop $t2_drop_1 $t2_common_args
 
-diff $t2_expected_psv_1 $t2_psv_1
-diff $t2_expected_drop_1 $t2_drop_1
+diff -u $t2_expected_psv_1 $t2_psv_1
+diff -u $t2_expected_drop_1 $t2_drop_1
 
 rm $t2_c_1
 rm $t2_psv_1
@@ -70,8 +70,8 @@ t2_drop_2=`mktemp -t icicle-bench-t2-drop-2-XXXXXX`
 
 dist/build/icicle-bench/icicle-bench --dictionary $t2_dict --input $t2_in --output $t2_psv_2 --code $t2_c_2 --facts-limit 2 --drop $t2_drop_2 $t2_common_args
 
-diff $t2_expected_psv_2 $t2_psv_2
-diff $t2_expected_drop_2 $t2_drop_2
+diff -u $t2_expected_psv_2 $t2_psv_2
+diff -u $t2_expected_drop_2 $t2_drop_2
 
 rm $t2_c_2
 rm $t2_psv_2
@@ -91,8 +91,8 @@ t2b_drop=`mktemp -t icicle-bench-t2b-drop-XXXXXX`
 
 dist/build/icicle-bench/icicle-bench --dictionary $t2b_dict --input $t2b_in --output $t2b_psv --code $t2b_c --facts-limit 1 --drop $t2b_drop $t2b_common_args
 
-diff $t2b_expected_psv $t2b_psv
-diff $t2b_expected_drop $t2b_drop
+diff -u $t2b_expected_psv $t2b_psv
+diff -u $t2b_expected_drop $t2b_drop
 
 rm $t2b_c
 rm $t2b_psv
@@ -118,8 +118,8 @@ t3_drop_2=`mktemp -t icicle-bench-t3-drop-XXXXXX`
 
 dist/build/icicle-bench/icicle-bench --dictionary $t3_dict --input $t3_in --output $t3_psv_2 --code $t3_c_2 --facts-limit 2 --drop $t3_drop_2 $t3_common_args
 
-diff $t3_expected_psv_2 $t3_psv_2
-diff $t3_expected_drop_2 $t3_drop_2
+diff -u $t3_expected_psv_2 $t3_psv_2
+diff -u $t3_expected_drop_2 $t3_drop_2
 
 rm $t3_c_2
 rm $t3_psv_2
@@ -139,8 +139,8 @@ t3b_drop_2=`mktemp -t icicle-bench-t3b-drop-XXXXXX`
 
 dist/build/icicle-bench/icicle-bench --dictionary $t3b_dict --input $t3b_in --output $t3b_psv_2 --code $t3b_c_2 --facts-limit 2 --drop $t3b_drop_2 $t3b_common_args
 
-diff $t3b_expected_psv_2 $t3b_psv_2
-diff $t3b_expected_drop_2 $t3b_drop_2
+diff -u $t3b_expected_psv_2 $t3b_psv_2
+diff -u $t3b_expected_drop_2 $t3b_drop_2
 
 rm $t3b_c_2
 rm $t3b_psv_2
@@ -163,7 +163,7 @@ t4_drop=`mktemp -t icicle-bench-t4-drop-XXXXXX`
 
 dist/build/icicle-bench/icicle-bench --dictionary $t4_dict --input $t4_in --output $t4_out_psv --code $t4_out_c --facts-limit 1000 --drop $t4_drop $t4_common_args
 
-diff $t4_expected $t4_out_psv
+diff -u $t4_expected $t4_out_psv
 
 rm $t4_out_c
 rm $t4_out_psv

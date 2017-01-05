@@ -83,7 +83,7 @@ simpP a_fresh p vs
 
 
 -- | Dead binding removal
-deadX :: (Hashable n, Eq n) => C.Exp a n -> C.Exp a n
+deadX :: Eq n => C.Exp a n -> C.Exp a n
 deadX = fst . go
   where
     go xx = case xx of
