@@ -4,6 +4,7 @@
 {-# LANGUAGE PatternGuards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
+#if __GLASGOW_HASKELL__ >= 800
 #if darwin_HOST_OS
 -- Disable pattern checks on OS/X because goX' below hits a pathalogical case
 -- in GHC and we don't want to wait for it on our dev machines.
@@ -13,7 +14,11 @@
 #else
 -- On the build bot we want to make sure the pattern matches are still safe but
 -- we need to increase a few limits to allow GHC to do this.
+--
+--   https://ghc.haskell.org/trac/ghc/ticket/11822
+--
 {-# OPTIONS_GHC -fmax-pmcheck-iterations=10000000 #-}
+#endif
 #endif
 
 module Icicle.Avalanche.Statement.Simp.Constructor (
