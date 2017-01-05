@@ -190,7 +190,7 @@ defOfProgramCount state
 seaOfChordTimes :: [Time] -> Doc
 seaOfChordTimes times
  = vsep
- [ "itime_t entity_times[] = { " <> hcat (punctuate ", " (fmap seaOfTime times)) <> " };"
+ [ "static itime_t entity_times[] = { " <> hcat (punctuate ", " (fmap seaOfTime times)) <> " };"
  , ""
  , "chord_count = " <> int (length times) <> ";"
  , "chord_times = entity_times;"
