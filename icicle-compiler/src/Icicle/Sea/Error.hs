@@ -26,6 +26,7 @@ data SeaError
   | SeaUnknownInput
   | SeaPsvError                   Text
   | SeaZebraError                 Text
+  | SeaExternalError              Text
   | SeaProgramNotFound            Attribute
   | SeaFactConversionError        [D.AsAt D.Value] ValType
   | SeaBaseValueConversionError   BaseValue (Maybe ValType)
@@ -120,4 +121,7 @@ instance Pretty SeaError where
      -> pretty pe
 
     SeaZebraError pe
+     -> pretty pe
+
+    SeaExternalError pe
      -> pretty pe

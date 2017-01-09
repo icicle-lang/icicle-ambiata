@@ -6,6 +6,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE DoAndIfThenElse #-}
 module Icicle.Sea.Eval.Base (
     MemPool
   , SeaState
@@ -41,6 +42,7 @@ module Icicle.Sea.Eval.Base (
 
 import           Control.Monad.Catch (MonadMask(..))
 import           Control.Monad.IO.Class (MonadIO(..))
+import           Control.Monad.Morph
 
 import qualified Data.List as List
 import           Data.Map (Map)
@@ -86,6 +88,7 @@ import           Icicle.Sea.Preamble (seaPreamble)
 
 import           Piano
 
+import           Zebra.Data
 import           Zebra.Foreign.Entity
 import           Zebra.Merge.Puller
 import           Zebra.Merge.BlockC
@@ -94,11 +97,8 @@ import           Jetski
 
 import           P hiding (count)
 
-import qualified Prelude as Savage
-import           Prelude (FilePath)
-
 import           System.Environment (lookupEnv)
-import           System.IO (IO)
+import           System.IO (IO, FilePath)
 import           System.IO.Unsafe (unsafePerformIO)
 
 import           X.Control.Monad.Trans.Either (EitherT)
@@ -126,7 +126,7 @@ data SeaFleet st = SeaFleet {
   , sfPrograms    :: Map Attribute SeaProgram
   , sfCreatePool  :: IO (Ptr MemPool)
   , sfReleasePool :: Ptr MemPool  -> IO ()
-  , sfSnapshot    :: Ptr st       -> IO ()
+  , sfSnapshot    :: Ptr st       -> EitherT SeaError IO ()
   , sfSegvInstall :: String       -> IO ()
   , sfSegvRemove  :: IO ()
   }
@@ -224,7 +224,7 @@ valueFromCore' v =
 ------------------------------------------------------------------------
 
 seaCompile
-  :: (MonadIO m, MonadMask m)
+  :: (MonadIO m)
   => (Show a, Show n, Pretty n, Eq n)
   => CacheSea
   -> Input
@@ -236,7 +236,7 @@ seaCompile cache input programs chords = do
   seaCompile' options cache input programs chords
 
 seaCompile'
-  :: (MonadIO m, MonadMask m, Functor m)
+  :: (MonadIO m)
   => (Show a, Show n, Pretty n, Eq n)
   => [CompilerOption]
   -> CacheSea
@@ -255,62 +255,60 @@ seaCompile' options cache input programs chords = do
   segv_install_handler <- firstEitherT SeaJetskiError (function lib "segv_install_handler" retVoid)
   segv_remove_handler  <- firstEitherT SeaJetskiError (function lib "segv_remove_handler"  retVoid)
 
-  let play f = \ptr -> case chords of
-        Nothing -> do
-          -- FIXME never used in snapshot case, maybe wrap in ifdefs
-          n <- newForeignPtr_ nullPtr
-          withCPiano (ForeignPiano n) (f ptr)
-        Just file -> do
-          bs <- Strict.readFile file
-          case parsePiano bs of
-            Left e ->
-              Savage.error $ show e
-            Right p -> do
-              fp <- newForeignPiano p
-              withCPiano fp (f ptr)
+  play <- case chords of
+    Nothing -> do
+      n <- liftIO $ newForeignPtr_ nullPtr
+      return $ \f ptr -> withCPiano (ForeignPiano n) (f ptr)
+
+    Just file -> do
+      bs <- liftIO $ Strict.readFile file
+
+      case parsePiano bs of
+        Left e ->
+          left . SeaExternalError . T.pack $ "piano: " <> show e
+
+        Right p -> do
+          fp <- liftIO $ newForeignPiano p
+          return $ \f ptr -> withCPiano fp (f ptr)
 
   take_snapshot <- case input of
     NoInput -> do
-      return (\_ -> return ())
+      return $ \_ -> return (Right ())
 
     HasInput (FormatPsv _) _ _ -> do
       fn <- firstEitherT SeaJetskiError (function lib "psv_snapshot" retVoid)
-      return $ play $ \ptr cpiano -> fn [ argPtr (unCPiano cpiano), argPtr ptr ]
+      return $ play $ \ptr cpiano -> Right <$> fn [ argPtr (unCPiano cpiano), argPtr ptr ]
 
     HasInput (FormatZebra _ _) _ input_path -> do
       step <- firstEitherT SeaJetskiError (function lib "zebra_snapshot_step" (retPtr retCChar))
       init <- firstEitherT SeaJetskiError (function lib "zebra_alloc_state" (retPtr retVoid))
 
-      -- FIXME this is really savage.
-      let go ptr cpiano = do
-            let piano   = unCPiano cpiano
+      (puller, pullid) <- hoist liftIO
+                        $ firstEitherT (SeaExternalError . T.pack . show)
+                        $ blockChainPuller (VB.singleton input_path)
 
-            pull <- runEitherT (blockChainPuller (VB.singleton input_path))
+      let withPiano :: Ptr a -> CPiano -> IO (Either SeaError ())
+          withPiano ptr cpiano = do
+            let piano = unCPiano cpiano
 
-            case pull of
-              Left e ->
-                Savage.error $ "error creating puller: " <> show e
+            state <- init [ argPtr piano, argPtr ptr ]
 
-              Right (puller, pullid) -> do
-                st <- init [ argPtr piano, argPtr ptr ]
+            let step' :: CEntity -> EitherT SeaError IO ()
+                step' e = do
+                  s <- liftIO $ step [ argPtr piano, argPtr state, argPtr (unCEntity e) ]
+                  if s /= nullPtr
+                  then do
+                    msg <- liftIO $ peekCString s
+                    left . SeaExternalError . T.pack $ "error step: " <> show msg
+                  else return ()
 
-                let step' e = liftIO $ do
-                      s <- step [ argPtr piano, argPtr st, argPtr (unCEntity e) ]
-                      when (s /= nullPtr) $ do
-                        msg <- liftIO (peekCString s)
-                        Savage.error $ "error step: " <> msg
+            let puller' :: PullId -> EitherT SeaError IO (Maybe Block)
+                puller' = firstEitherT (SeaExternalError . T.pack . show) . puller
 
-                ret <- runEitherT
-                     $ joinErrors show show
-                     $ mergeBlocks (MergeOptions puller step' 100) pullid
+            runEitherT . joinErrors (SeaExternalError . T.pack  . show) id
+              $ mergeBlocks (MergeOptions puller' step' 100) pullid
 
-                case ret of
-                  Left e ->
-                    Savage.error $ "error merge: " <> show e
-                  Right _ ->
-                    return ()
-
-      return $ play go
+      return $ play withPiano
 
   compiled <- zipWithM (mkSeaProgram lib) [0..] (Map.elems programs)
 
@@ -319,7 +317,7 @@ seaCompile' options cache input programs chords = do
     , sfPrograms    = Map.fromList (List.zip (Map.keys programs) compiled)
     , sfCreatePool  = castPtr <$> imempool_create []
     , sfReleasePool = \ptr -> imempool_free [argPtr ptr]
-    , sfSnapshot    = take_snapshot
+    , sfSnapshot    = \ptr -> liftIO (take_snapshot ptr) >>= hoistEither
     , sfSegvInstall = \str -> withCStringLen str $ \(ptr, len) ->
                       segv_install_handler [argPtr ptr, argCSize (fromIntegral len)]
     , sfSegvRemove  = segv_remove_handler  []
