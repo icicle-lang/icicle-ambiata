@@ -86,7 +86,7 @@ seaZebraSnapshotFd fleet input output mchords = do
   pokeWordOff pState 1 output
   pokeWordOff pState 2 (fromMaybe 0 mchords)
 
-  liftIO (sfSnapshot fleet pState)
+  sfSnapshot fleet pState
 
   pError       <- peekWordOff pState 3
   factsRead    <- peekWordOff pState 4
@@ -142,7 +142,7 @@ seaPsvSnapshotFd fleet input output dropped mchords limit discard =
   pokeWordOff pState 7 limit
   pokeWordOff pState 8 (discard == FlagUseDropFile)
 
-  liftIO (sfSnapshot fleet pState)
+  sfSnapshot fleet pState
 
   pError       <- peekWordOff pState 4
   factsRead    <- peekWordOff pState 5

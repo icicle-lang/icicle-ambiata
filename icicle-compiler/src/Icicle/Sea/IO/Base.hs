@@ -28,9 +28,6 @@ module Icicle.Sea.IO.Base
   , CBlock
   , CName
   , CFun
-  , SeaInput (..)
-  , SeaInputError (..)
-  , seaOfReadNamedFact
   , initType
   , Assignment
   , assignVar
@@ -411,87 +408,6 @@ type CStmt  = Doc -- lies
 type CBlock = Doc
 type CFun   = Doc
 type CName  = Doc
-
--- FIXME zebra doesn't need this, clean up
-data SeaInputError = SeaInputError
-  { seaInputErrorTimeOutOfOrder   :: CStmt
-    -- ^ what to do when time is out of order
-  , seaInputErrorCountExceedLimit :: CStmt
-    -- ^ what to do when ent-attr count exceeds limit
-  }
-
--- FIXME zebra doesn't need this, clean up
-data SeaInput = SeaInput
-  { cstmtReadFact     :: SeaProgramState -> Set Text -> CheckedInput -> CStmt -> CStmt -> CFun
-  -- ^ Generate C code to read input into the `program->input` struct.
-  , cstmtReadTime     :: CStmt
-  -- ^ Generate C code to read the current fact time.
-  , cfunReadTombstone :: CheckedInput -> [Text] -> CStmt
-  -- ^ Generate C code to read the tombstone of this input.
-  , cnameFunReadFact  :: SeaProgramState -> CName
-  -- ^ Name of the read_fact function. e.g. psv_read_fact_0.
-  }
-
-seaOfReadNamedFact :: SeaInput
-                   -> SeaInputError
-                   -> InputAllowDupTime
-                   -> SeaProgramState
-                   -> CStmt
-seaOfReadNamedFact funs errs allowDupTime state
- = let fun    = cnameFunReadFact funs  state
-       pname  = pretty (nameOfProgram  state)
-       tname  = pretty (nameOfLastTime state)
-       cname  = pretty (nameOfCount    state)
-       tcond  = if allowDupTime == AllowDupTime
-                then "if (time < last_time)"
-                else "if (time <= last_time)"
-   in vsep
-      [ "{"
-      , "    itime_t time;"
-      , indent 4 $ cstmtReadTime funs
-      , ""
-      , "    ibool_t        ignore_time = itrue;"
-      , "    iint_t         chord_count = fleet->chord_count;"
-      , "    const itime_t *chord_times = fleet->chord_times;"
-      , "    itime_t        last_time = fleet->" <> tname <> ";"
-      , ""
-      , indent 4 tcond
-      , "    {"
-      , "        char curr_time_ptr[text_itime_max_size];"
-      , "        size_t curr_time_size = text_write_itime (time, curr_time_ptr);"
-      , ""
-      , "        char last_time_ptr[text_itime_max_size];"
-      , "        size_t last_time_size = text_write_itime (last_time, last_time_ptr);"
-      , ""
-      , indent 8 $ seaInputErrorTimeOutOfOrder errs
-      , "    }"
-      , ""
-      , "    fleet->" <> tname <> " = time;"
-      , ""
-      , "    /* ignore this time if it comes after all the chord times */"
-      , "    for (iint_t chord_ix = 0; chord_ix < chord_count; chord_ix++) {"
-      , "        if (chord_times[chord_ix] >= time) {"
-      , "            ignore_time = ifalse;"
-      , "            break;"
-      , "        }"
-      , "    }"
-      , ""
-      , "    if (ignore_time) return 0;"
-      , ""
-      , "    fleet->" <> cname <> " ++;"
-      , ""
-      , "    if (fleet->" <> cname <> " > facts_limit)"
-      , "    {"
-      , indent 8 $ seaInputErrorCountExceedLimit errs
-      , "    }"
-      , ""
-      , "    return " <> fun <> " (value_ptr, value_size, time, fleet->mempool, chord_count, fleet->" <> pname <> ");"
-      , ""
-      , "}"
-      , ""
-      ]
-
---------------------------------------------------------------------------------
 
 seaOfAssignInput' :: Text -> Doc
 seaOfAssignInput' n

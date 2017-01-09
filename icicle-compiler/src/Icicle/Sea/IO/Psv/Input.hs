@@ -5,7 +5,6 @@
 {-# LANGUAGE TupleSections     #-}
 module Icicle.Sea.IO.Psv.Input
   ( seaOfReadAnyFactPsv
-  , seaInputPsv
   , PsvInputDenseDict (..)
   , PsvInputFormat (..)
   , PsvInputConfig (..)
@@ -46,14 +45,11 @@ data PsvInputFormat
 
 --------------------------------------------------------------------------------
 
--- * Psv input "interface"
-
-seaInputPsv :: SeaInput
-seaInputPsv = SeaInput
-  { cstmtReadFact     = seaOfReadFact
-  , cstmtReadTime     = seaOfReadTime
-  , cfunReadTombstone = seaOfReadTombstone
-  , cnameFunReadFact  = nameOfReadFact
+data SeaInputError = SeaInputError
+  { seaInputErrorTimeOutOfOrder   :: CStmt
+    -- ^ what to do when time is out of order
+  , seaInputErrorCountExceedLimit :: CStmt
+    -- ^ what to do when ent-attr count exceeds limit
   }
 
 nameOfReadFact :: SeaProgramState -> CName
@@ -100,6 +96,64 @@ seaOfReadTombstone input = \case
          <> "    " <> pretty (inputSumError input) <> " = ierror_tombstone;" <> line
          <> "} else " <> seaOfReadTombstone input ts
 
+
+seaOfReadNamedFact :: SeaInputError
+                   -> InputAllowDupTime
+                   -> SeaProgramState
+                   -> CStmt
+seaOfReadNamedFact errs allowDupTime state
+ = let fun    = nameOfReadFact state
+       pname  = pretty (nameOfProgram  state)
+       tname  = pretty (nameOfLastTime state)
+       cname  = pretty (nameOfCount    state)
+       tcond  = if allowDupTime == AllowDupTime
+                then "if (time < last_time)"
+                else "if (time <= last_time)"
+   in vsep
+      [ "{"
+      , "    itime_t time;"
+      , indent 4 seaOfReadTime
+      , ""
+      , "    ibool_t        ignore_time = itrue;"
+      , "    iint_t         chord_count = fleet->chord_count;"
+      , "    const itime_t *chord_times = fleet->chord_times;"
+      , "    itime_t        last_time = fleet->" <> tname <> ";"
+      , ""
+      , indent 4 tcond
+      , "    {"
+      , "        char curr_time_ptr[text_itime_max_size];"
+      , "        size_t curr_time_size = text_write_itime (time, curr_time_ptr);"
+      , ""
+      , "        char last_time_ptr[text_itime_max_size];"
+      , "        size_t last_time_size = text_write_itime (last_time, last_time_ptr);"
+      , ""
+      , indent 8 $ seaInputErrorTimeOutOfOrder errs
+      , "    }"
+      , ""
+      , "    fleet->" <> tname <> " = time;"
+      , ""
+      , "    /* ignore this time if it comes after all the chord times */"
+      , "    for (iint_t chord_ix = 0; chord_ix < chord_count; chord_ix++) {"
+      , "        if (chord_times[chord_ix] >= time) {"
+      , "            ignore_time = ifalse;"
+      , "            break;"
+      , "        }"
+      , "    }"
+      , ""
+      , "    if (ignore_time) return 0;"
+      , ""
+      , "    fleet->" <> cname <> " ++;"
+      , ""
+      , "    if (fleet->" <> cname <> " > facts_limit)"
+      , "    {"
+      , indent 8 $ seaInputErrorCountExceedLimit errs
+      , "    }"
+      , ""
+      , "    return " <> fun <> " (value_ptr, value_size, time, fleet->mempool, chord_count, fleet->" <> pname <> ");"
+      , ""
+      , "}"
+      , ""
+      ]
 seaOfReadFact
   :: SeaProgramState
   -> Set Text
@@ -243,7 +297,7 @@ seaOfReadNamedFactDense opts state
                 ])
    in vsep
       [ "/* " <> pretty attrib <> " */"
-      , seaOfReadNamedFact seaInputPsv errs (inputAllowDupTime opts) state
+      , seaOfReadNamedFact errs (inputAllowDupTime opts) state
       ]
 
 
@@ -256,7 +310,7 @@ seaOfReadFactDense dict state tombstones = do
   input     <- checkInputType state
   let mv     = Map.lookup attr (denseMissingValue dict)
   readInput <- seaOfReadFactValueDense mv fields (inputVars input)
-  pure $ cstmtReadFact seaInputPsv state tombstones input readInput (seaOfCheckCount state)
+  pure $ seaOfReadFact state tombstones input readInput (seaOfCheckCount state)
 
 seaOfReadFactValueDense
   :: Maybe MissingValue
@@ -394,7 +448,7 @@ seaOfReadNamedFactSparse opts state
    in vsep
       [ "/* " <> pretty attrib <> " */"
       , "if (" <> seaOfStringEq attrib "attrib_ptr" (Just "attrib_size") <> ")"
-      , seaOfReadNamedFact seaInputPsv errs (inputAllowDupTime opts) state
+      , seaOfReadNamedFact errs (inputAllowDupTime opts) state
       ]
 
 seaOfReadFactSparse
@@ -404,7 +458,7 @@ seaOfReadFactSparse
 seaOfReadFactSparse state tombstones = do
   input     <- checkInputType state
   readInput <- seaOfReadInputFields (inputType input) (inputVars input)
-  pure $ cstmtReadFact seaInputPsv state tombstones input readInput (seaOfCheckCount state)
+  pure $ seaOfReadFact state tombstones input readInput (seaOfCheckCount state)
 
 ------------------------------------------------------------------------
 
@@ -419,7 +473,7 @@ seaOfCheckCount state = vsep
   , "     " <> pretty (nameOfProgram state) <> " (program);"
   , "     new_count = 0;"
   , "} else if (new_count > psv_max_row_count) {"
-  , "     return ierror_loc_format (0, 0, \"" <> pretty (cnameFunReadFact seaInputPsv state) <> ": new_count > max_count\");"
+  , "     return ierror_loc_format (0, 0, \"" <> pretty (nameOfReadFact state) <> ": new_count > max_count\");"
   , "}"
   ]
 
