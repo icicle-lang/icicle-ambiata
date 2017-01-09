@@ -110,7 +110,7 @@ import           X.Control.Monad.Trans.Either (joinErrors, runEitherT, firstEith
 
 data Input
   = NoInput
-  | HasInput IOFormat InputOpts
+  | HasInput IOFormat InputOpts FilePath
     deriving (Eq, Show)
 
 data MemPool
@@ -273,19 +273,17 @@ seaCompile' options cache input programs chords = do
     NoInput -> do
       return (\_ -> return ())
 
-    HasInput (FormatPsv _) _ -> do
+    HasInput (FormatPsv _) _ _ -> do
       fn <- firstEitherT SeaJetskiError (function lib "psv_snapshot" retVoid)
       return $ play $ \ptr cpiano -> fn [ argPtr (unCPiano cpiano), argPtr ptr ]
 
-    HasInput (FormatZebra _ _) _ -> do
+    HasInput (FormatZebra _ _) _ input_path -> do
       step <- firstEitherT SeaJetskiError (function lib "zebra_snapshot_step" (retPtr retCChar))
       init <- firstEitherT SeaJetskiError (function lib "zebra_alloc_state" (retPtr retVoid))
 
       -- FIXME this is really savage.
       let go ptr cpiano = do
             let piano   = unCPiano cpiano
-            input_ptr  <- peekWordOff ptr 0
-            input_path <- peekCString input_ptr
 
             pull <- runEitherT (blockChainPuller (VB.singleton input_path))
 
@@ -431,7 +429,7 @@ codeOfPrograms input programs = do
           , seaPreamble
           , defs
           ] <> progs
-    HasInput format opts -> do
+    HasInput format opts _ -> do
       doc <- seaOfDriver format opts states
       let cnst = case format of
                    FormatPsv conf

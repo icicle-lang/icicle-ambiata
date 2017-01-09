@@ -147,7 +147,7 @@ createBenchmark c = do
             let f = FormatZebra mode (PsvOutputConfig mode (optOutputPsv c) defaultOutputMissing)
             return (d, f)
 
-  (code, fleet) <- compileBench dictionary format chords
+  (code, fleet) <- compileBench dictionary format (optInput c) chords
   end <- liftIO getCurrentTime
 
   return Benchmark {
@@ -173,14 +173,16 @@ mkPsvInputConfig dictionaryPath x = firstEitherT BenchDictionaryImportError $ ca
           return (dict, PsvInputSparse)
 
 
-compileBench :: Dictionary -> IOFormat -> Maybe FilePath -> EitherT BenchError IO (Text, SeaFleet s)
-compileBench dictionary format chords = do
+compileBench :: Dictionary -> IOFormat -> FilePath -> Maybe FilePath -> EitherT BenchError IO (Text, SeaFleet s)
+compileBench dictionary format input chords = do
   avalanche  <- hoistEither
               $ first BenchCompileError
               $ P.avalancheOfDictionary P.defaultCompileOptions dictionary
 
-  let cfg = HasInput format
-          $ InputOpts AllowDupTime (tombstonesOfDictionary dictionary)
+  let cfg = HasInput
+              format
+              (InputOpts AllowDupTime (tombstonesOfDictionary dictionary))
+              input
 
   let avalancheL = Map.toList avalanche
 
