@@ -132,6 +132,8 @@ library
                        Icicle.Sea.Chords.Parse
                        Icicle.Sea.Eval
                        Icicle.Sea.Eval.Base
+                       Icicle.Sea.Eval.Program
+                       Icicle.Sea.Fleet
                        Icicle.Sea.IO
                        Icicle.Sea.IO.Base
                        Icicle.Sea.IO.Psv
