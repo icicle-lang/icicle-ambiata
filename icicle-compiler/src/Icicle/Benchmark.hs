@@ -6,6 +6,7 @@
 
 module Icicle.Benchmark (
     Command (..)
+  , InputSource (..)
   , FlagMode (..)
   , FlagInput (..)
   , FlagInputPsv (..)
@@ -37,6 +38,7 @@ import           Icicle.Storage.Dictionary.Toml
 import           Control.Monad.IO.Class (liftIO)
 
 import qualified Data.Map as Map
+import qualified Data.Text.IO as Text
 import           Data.Time (NominalDiffTime, getCurrentTime, diffUTCTime)
 
 import           System.FilePath (FilePath)
@@ -79,10 +81,10 @@ data BenchmarkResult = BenchmarkResult {
   } deriving (Eq, Ord, Show)
 
 data Command = Command {
-    optDictionary   :: FilePath
+    optDictOrCode   :: InputSource
   , optInput        :: FilePath
   , optOutput       :: FilePath
-  , optC            :: FilePath
+  , optOutputCode   :: Maybe FilePath
   , optFlagMode     :: FlagMode
   , optSnapshot     :: Maybe Time
   , optChords       :: Maybe FilePath
@@ -93,6 +95,10 @@ data Command = Command {
   , optInputPsv     :: FlagInputPsv
   , optOutputPsv    :: FlagOutputPsv
   }
+
+data InputSource =
+    InputDictionary FilePath
+  | InputCode FilePath
 
 data FlagMode = FlagSnapshot | FlagChords
 data FlagInput = FlagInputPsv | FlagInputZebra
@@ -130,24 +136,26 @@ createBenchmark c = do
 
   start <- liftIO getCurrentTime
 
-  (dictionary, format) <- case optInputFormat c of
-    FlagInputPsv
-      -> do (d, i) <- mkPsvInputConfig (optDictionary c) (optInputPsv c)
-            let f   = FormatPsv
-                    $ PsvConfig
-                        (PsvInputConfig  mode i)
-                        (PsvOutputConfig mode (optOutputPsv c) defaultOutputMissing)
-                        defaultPsvMaxRowCount
-                        defaultPsvInputBufferSize
-                        defaultPsvOutputBufferSize
-            return (d, f)
-    FlagInputZebra
-      -> do d <- firstEitherT BenchDictionaryImportError
-               $ loadDictionary SC.optionSmallData ImplicitPrelude (optDictionary c)
-            let f = FormatZebra mode (PsvOutputConfig mode (optOutputPsv c) defaultOutputMissing)
-            return (d, f)
+  (code, fleet) <- case optDictOrCode c of
+    InputCode p ->
+       mkBenchFleet (optInputFormat c) (optInput c) chords p
 
-  (code, fleet) <- compileBench dictionary format (optInput c) chords
+    InputDictionary p -> do
+      (dictionary, format) <- case optInputFormat c of
+        FlagInputPsv -> do
+          (d, i) <- mkPsvInputConfig p (optInputPsv c)
+          let f   = FormatPsv $ psvDefaultConstants
+                      (PsvInputConfig  mode i)
+                      (PsvOutputConfig mode (optOutputPsv c) defaultOutputMissing)
+          return (d, f)
+        FlagInputZebra -> do
+          d <- firstEitherT BenchDictionaryImportError
+             $ loadDictionary SC.optionSmallData ImplicitPrelude p
+          let f = FormatZebra mode (PsvOutputConfig mode (optOutputPsv c) defaultOutputMissing)
+          return (d, f)
+      compileBench dictionary format (optInput c) chords
+
+
   end <- liftIO getCurrentTime
 
   return Benchmark {
@@ -162,7 +170,6 @@ createBenchmark c = do
     , benchUseDrop         = optUseDrop c
     }
 
-
 mkPsvInputConfig :: FilePath -> FlagInputPsv -> EitherT BenchError IO (Dictionary, PsvInputFormat)
 mkPsvInputConfig dictionaryPath x = firstEitherT BenchDictionaryImportError $ case x of
   FlagInputPsvDense
@@ -172,18 +179,39 @@ mkPsvInputConfig dictionaryPath x = firstEitherT BenchDictionaryImportError $ ca
     -> do dict <- loadDictionary SC.optionSmallData ImplicitPrelude dictionaryPath
           return (dict, PsvInputSparse)
 
+mkBenchFleet ::
+     FlagInput
+  -> FilePath
+  -> Maybe FilePath
+  -> FilePath
+  -> EitherT BenchError IO (Text, SeaFleet s)
+mkBenchFleet flag input chords source = do
+  -- FIXME using a dummy format here as we are not using it to generate C
+  -- we actually only need to differentiate between psv/zebra, make this better
+  let format = case flag of
+                 FlagInputPsv ->
+                   FormatPsv $ psvDefaultConstants
+                     (PsvInputConfig Chords PsvInputSparse)
+                     (PsvOutputConfig Chords PsvOutputSparse defaultOutputMissing)
+                 FlagInputZebra ->
+                   FormatZebra Chords (PsvOutputConfig Chords PsvOutputSparse defaultOutputMissing)
+  let cfg = HasInput format (InputOpts AllowDupTime Map.empty) input
+  code  <- liftIO $ Text.readFile source
+  fleet <- firstEitherT BenchSeaError (seaCreate CacheSea cfg chords code)
+  return (code, fleet)
 
-compileBench :: Dictionary -> IOFormat -> FilePath -> Maybe FilePath -> EitherT BenchError IO (Text, SeaFleet s)
+compileBench ::
+     Dictionary
+  -> IOFormat
+  -> FilePath
+  -> Maybe FilePath
+  -> EitherT BenchError IO (Text, SeaFleet s)
 compileBench dictionary format input chords = do
   avalanche  <- hoistEither
               $ first BenchCompileError
               $ P.avalancheOfDictionary P.defaultCompileOptions dictionary
 
-  let cfg = HasInput
-              format
-              (InputOpts AllowDupTime (tombstonesOfDictionary dictionary))
-              input
-
+  let cfg = HasInput format (InputOpts AllowDupTime (tombstonesOfDictionary dictionary)) input
   let avalancheL = Map.toList avalanche
 
   code  <- firstEitherT BenchSeaError (hoistEither (codeOfPrograms cfg avalancheL))

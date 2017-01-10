@@ -1,4 +1,3 @@
-{-# LANGUAGE EmptyDataDecls #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -6,7 +5,6 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE ViewPatterns #-}
-{-# LANGUAGE DoAndIfThenElse #-}
 module Icicle.Sea.Eval.Base (
     MemPool
   , SeaState
@@ -24,10 +22,11 @@ module Icicle.Sea.Eval.Base (
   , PsvInputDenseDict(..)
 
   , seaCompile
-  , seaCompile'
+  , seaCompileFleet
+  , seaCreate
+  , seaCreateFleet
   , seaEval
   , seaRelease
-
   , seaEvalAvalanche
 
   , codeOfPrograms
@@ -42,56 +41,47 @@ module Icicle.Sea.Eval.Base (
 
 import           Control.Monad.Catch (MonadMask(..))
 import           Control.Monad.IO.Class (MonadIO(..))
-import           Control.Monad.Morph
 
 import qualified Data.List as List
 import           Data.Map (Map)
 import qualified Data.Map as Map
-import           Data.String (String)
 import qualified Data.Text as T
-import qualified Data.ByteString.Char8 as Strict
-import qualified Data.Vector as VB
 import qualified Data.Vector.Storable as V
 import           Data.Vector.Storable.Mutable (IOVector)
 import qualified Data.Vector.Storable.Mutable as MV
 import           Data.Word (Word64)
 
-import           Foreign.C.String (newCString, peekCString, withCStringLen)
-import           Foreign.ForeignPtr (ForeignPtr, touchForeignPtr, castForeignPtr, newForeignPtr_)
+import           Foreign.C.String (newCString, peekCString)
+import           Foreign.ForeignPtr (ForeignPtr, touchForeignPtr, castForeignPtr)
 import           Foreign.ForeignPtr.Unsafe (unsafeForeignPtrToPtr)
 import           Foreign.Marshal (mallocBytes, free)
-import           Foreign.Ptr (Ptr, WordPtr, ptrToWordPtr, wordPtrToPtr, castPtr, nullPtr)
+import           Foreign.Ptr (Ptr, WordPtr, ptrToWordPtr, wordPtrToPtr)
 import           Foreign.Storable (Storable(..))
 
 import           Icicle.Avalanche.Prim.Flat (Prim, tryMeltType)
 import           Icicle.Avalanche.Prim.Eval (unmeltValue)
 import           Icicle.Avalanche.Program (Program)
-import           Icicle.Avalanche.Statement.Statement (FactLoopType(..))
+
 import           Icicle.Common.Annot (Annot)
 import           Icicle.Common.Base
 import           Icicle.Common.Data (asAtValueToCore, valueFromCore)
 import           Icicle.Common.Type (ValType(..), StructType(..), defaultOfType)
+
 import           Icicle.Data (Attribute(..))
 import qualified Icicle.Data as D
 import           Icicle.Data.Time (packedOfTime, timeOfPacked)
+
 import           Icicle.Internal.Pretty (pretty, vsep)
 import           Icicle.Internal.Pretty (Doc, Pretty, displayS, renderPretty)
 
 import           Icicle.Sea.Error (SeaError(..))
-import           Icicle.Sea.FromAvalanche.Analysis (factVarsOfProgram, outputsOfProgram)
-import           Icicle.Sea.FromAvalanche.Program (seaOfProgram, nameOfProgram')
-import           Icicle.Sea.FromAvalanche.State (stateOfProgram, nameOfStateSize')
+import           Icicle.Sea.FromAvalanche.Program (seaOfProgram)
+import           Icicle.Sea.FromAvalanche.State (stateOfProgram)
 import           Icicle.Sea.FromAvalanche.Type (seaOfDefinitions)
 import           Icicle.Sea.IO
-
 import           Icicle.Sea.Preamble (seaPreamble)
-
-import           Piano
-
-import           Zebra.Data
-import           Zebra.Foreign.Entity
-import           Zebra.Merge.Puller
-import           Zebra.Merge.BlockC
+import           Icicle.Sea.Fleet
+import           Icicle.Sea.Eval.Program
 
 import           Jetski
 
@@ -103,41 +93,15 @@ import           System.IO.Unsafe (unsafePerformIO)
 
 import           X.Control.Monad.Trans.Either (EitherT)
 import           X.Control.Monad.Trans.Either (bracketEitherT')
-import           X.Control.Monad.Trans.Either (joinErrors, runEitherT, firstEitherT, hoistEither, left)
+import           X.Control.Monad.Trans.Either (firstEitherT, hoistEither, left)
 
 
 ------------------------------------------------------------------------
-
-data Input
-  = NoInput
-  | HasInput IOFormat InputOpts FilePath
-    deriving (Eq, Show)
-
-data MemPool
-data SeaState
 
 data CacheSea =
     NoCacheSea
   | CacheSea
     deriving (Eq, Ord, Show)
-
-data SeaFleet st = SeaFleet {
-    sfLibrary     :: Library
-  , sfPrograms    :: Map Attribute SeaProgram
-  , sfCreatePool  :: IO (Ptr MemPool)
-  , sfReleasePool :: Ptr MemPool  -> IO ()
-  , sfSnapshot    :: Ptr st       -> EitherT SeaError IO ()
-  , sfSegvInstall :: String       -> IO ()
-  , sfSegvRemove  :: IO ()
-  }
-
-data SeaProgram = SeaProgram {
-    spName        :: Int
-  , spStateWords  :: Int
-  , spFactType    :: ValType
-  , spOutputs     :: [(OutputName, (ValType, [ValType]))]
-  , spCompute     :: Ptr SeaState -> IO ()
-  }
 
 data SeaMVector
   = I64 (IOVector Int64)
@@ -166,17 +130,20 @@ seaEvalAvalanche program time values = do
   bracketEitherT'
     (seaCompile CacheSea NoInput ps Nothing)
     seaRelease
-    (\fleet -> seaEval attr fleet time values)
+    (\fleet -> do
+        programs <- mkSeaPrograms (sfLibrary fleet) ps
+        seaEval attr programs fleet time values)
 
 seaEval
   :: (MonadIO m, MonadMask m)
   => Attribute
+  -> Map Attribute SeaProgram
   -> SeaFleet st
   -> D.Time
   -> [D.AsAt D.Value]
   -> EitherT SeaError m [(OutputName, D.Value)]
-seaEval attribute fleet time values =
-  case Map.lookup attribute (sfPrograms fleet) of
+seaEval attribute programs fleet time values =
+  case Map.lookup attribute programs of
     Nothing      -> left (SeaProgramNotFound attribute)
     Just program -> do
       let create  = liftIO $ sfCreatePool  fleet
@@ -223,8 +190,8 @@ valueFromCore' v =
 
 ------------------------------------------------------------------------
 
-seaCompile
-  :: (MonadIO m)
+seaCompile ::
+     (MonadIO m)
   => (Show a, Show n, Pretty n, Eq n)
   => CacheSea
   -> Input
@@ -233,10 +200,10 @@ seaCompile
   -> EitherT SeaError m (SeaFleet st)
 seaCompile cache input programs chords = do
   options <- getCompilerOptions
-  seaCompile' options cache input programs chords
+  seaCompileFleet options cache input programs chords
 
-seaCompile'
-  :: (MonadIO m)
+seaCompileFleet ::
+     (MonadIO m)
   => (Show a, Show n, Pretty n, Eq n)
   => [CompilerOption]
   -> CacheSea
@@ -244,85 +211,20 @@ seaCompile'
   -> Map Attribute (Program (Annot a) n Prim)
   -> Maybe FilePath
   -> EitherT SeaError m (SeaFleet st)
-seaCompile' options cache input programs chords = do
+seaCompileFleet options cache input programs chords = do
   code <- hoistEither (codeOfPrograms input (Map.toList programs))
+  seaCreateFleet options (fromCacheSea cache) input chords code
 
-  let cache' = fromCacheSea cache
-
-  lib                  <- firstEitherT SeaJetskiError (compileLibrary cache' options code)
-  imempool_create      <- firstEitherT SeaJetskiError (function lib "imempool_create"      (retPtr retVoid))
-  imempool_free        <- firstEitherT SeaJetskiError (function lib "imempool_free"        retVoid)
-  segv_install_handler <- firstEitherT SeaJetskiError (function lib "segv_install_handler" retVoid)
-  segv_remove_handler  <- firstEitherT SeaJetskiError (function lib "segv_remove_handler"  retVoid)
-
-  play <- case chords of
-    Nothing -> do
-      n <- liftIO $ newForeignPtr_ nullPtr
-      return $ \f ptr -> withCPiano (ForeignPiano n) (f ptr)
-
-    Just file -> do
-      bs <- liftIO $ Strict.readFile file
-
-      case parsePiano bs of
-        Left e ->
-          left . SeaExternalError . T.pack $ "piano: " <> show e
-
-        Right p -> do
-          fp <- liftIO $ newForeignPiano p
-          return $ \f ptr -> withCPiano fp (f ptr)
-
-  take_snapshot <- case input of
-    NoInput -> do
-      return $ \_ -> return (Right ())
-
-    HasInput (FormatPsv _) _ _ -> do
-      fn <- firstEitherT SeaJetskiError (function lib "psv_snapshot" retVoid)
-      return $ play $ \ptr cpiano -> Right <$> fn [ argPtr (unCPiano cpiano), argPtr ptr ]
-
-    HasInput (FormatZebra _ _) _ input_path -> do
-      step <- firstEitherT SeaJetskiError (function lib "zebra_snapshot_step" (retPtr retCChar))
-      init <- firstEitherT SeaJetskiError (function lib "zebra_alloc_state" (retPtr retVoid))
-
-      (puller, pullid) <- hoist liftIO
-                        $ firstEitherT (SeaExternalError . T.pack . show)
-                        $ blockChainPuller (VB.singleton input_path)
-
-      let withPiano :: Ptr a -> CPiano -> IO (Either SeaError ())
-          withPiano ptr cpiano = do
-            let piano = unCPiano cpiano
-
-            state <- init [ argPtr piano, argPtr ptr ]
-
-            let step' :: CEntity -> EitherT SeaError IO ()
-                step' e = do
-                  s <- liftIO $ step [ argPtr piano, argPtr state, argPtr (unCEntity e) ]
-                  if s /= nullPtr
-                  then do
-                    msg <- liftIO $ peekCString s
-                    left . SeaExternalError . T.pack $ "error step: " <> show msg
-                  else return ()
-
-            let puller' :: PullId -> EitherT SeaError IO (Maybe Block)
-                puller' = firstEitherT (SeaExternalError . T.pack . show) . puller
-
-            runEitherT . joinErrors (SeaExternalError . T.pack  . show) id
-              $ mergeBlocks (MergeOptions puller' step' 100) pullid
-
-      return $ play withPiano
-
-  compiled <- zipWithM (mkSeaProgram lib) [0..] (Map.elems programs)
-
-  return SeaFleet {
-      sfLibrary     = lib
-    , sfPrograms    = Map.fromList (List.zip (Map.keys programs) compiled)
-    , sfCreatePool  = castPtr <$> imempool_create []
-    , sfReleasePool = \ptr -> imempool_free [argPtr ptr]
-    , sfSnapshot    = \ptr -> liftIO (take_snapshot ptr) >>= hoistEither
-    , sfSegvInstall = \str -> withCStringLen str $ \(ptr, len) ->
-                      segv_install_handler [argPtr ptr, argCSize (fromIntegral len)]
-    , sfSegvRemove  = segv_remove_handler  []
-    }
-
+seaCreate ::
+     (MonadIO m)
+  => CacheSea
+  -> Input
+  -> Maybe FilePath
+  -> Text
+  -> EitherT SeaError m (SeaFleet st)
+seaCreate cache input chords code = do
+  options <- getCompilerOptions
+  seaCreateFleet options (fromCacheSea cache) input chords code
 
 fromCacheSea :: CacheSea -> CacheLibrary
 fromCacheSea = \case
@@ -330,31 +232,6 @@ fromCacheSea = \case
     NoCacheLibrary
   CacheSea ->
     CacheLibrary
-
-mkSeaProgram
-  :: (MonadIO m, Eq n)
-  => Library
-  -> Int
-  -> Program (Annot a) n Prim
-  -> EitherT SeaError m SeaProgram
-mkSeaProgram lib name program = do
-  let outputs = outputsOfProgram program
-
-  factType <- case factVarsOfProgram FactLoopNew program of
-                Nothing     -> left SeaNoFactLoop
-                Just (t, _) -> return t
-
-  size_of_state <- firstEitherT SeaJetskiError (function lib (nameOfStateSize' name) retInt64)
-  words         <- liftIO (size_of_state [])
-  compute       <- firstEitherT SeaJetskiError (function lib (nameOfProgram' name) retVoid)
-
-  return SeaProgram {
-      spName       = name
-    , spStateWords = fromIntegral words
-    , spFactType   = factType
-    , spOutputs    = outputs
-    , spCompute    = \ptr -> compute [argPtr ptr]
-    }
 
 seaRelease :: MonadIO m => SeaFleet st -> m ()
 seaRelease fleet =

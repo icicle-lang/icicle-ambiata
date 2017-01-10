@@ -1,0 +1,34 @@
+title = "Dense input example dictionary"
+
+version = 1
+
+chapter = []
+
+namespace = """default"""
+
+tombstone = "foo"
+
+[fact.injury]
+  encoding="(location:string,severity:double,action:string*)"
+
+[feature.latest_four]
+   expression = "feature injury ~> latest 4 ~> action"
+
+[feature.newest]
+   expression = "feature injury ~> newest action"
+
+[feature.test_map]
+   expression = "feature injury ~> group location ~> latest 2 ~> action"
+
+[feature.test_map_delete]
+   expression = "feature injury ~> fold x = map_create : case map_lookup (Some location) x | None -> map_insert (Some location) (Some severity) x | Some _ -> map_delete (Some location) x end ~> x"
+
+[feature.test_map_delete_end]
+   expression = """
+     feature injury ~>
+     let g = (group time ~> 1) ~>
+     map_delete `1994-01-01` g
+   """
+
+[feature.test_map_double]
+   expression = "feature injury ~> group location ~> Some (mean (double severity / 100.0))"

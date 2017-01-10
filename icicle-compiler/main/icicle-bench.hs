@@ -27,10 +27,10 @@ import           X.Options.Applicative
 
 pCommand :: Parser Command
 pCommand = Command
-  <$> pDictionary
+  <$> (InputDictionary <$> pDictionary <|> InputCode <$> pInputCode)
   <*> pInput
   <*> pOutput
-  <*> pC
+  <*> pOutputCode
   <*> pMode
   <*> pDate
   <*> pChords
@@ -46,10 +46,12 @@ pCommand = Command
      = strOption $ long "dictionary"
    pInput
      = strOption $ long "input"
+   pInputCode
+     = strOption $ long "input-code"
    pOutput
      = strOption $ long "output"
-   pC
-     = strOption $ long "code" <> short 'c'
+   pOutputCode
+     = optional . strOption $ long "output-code"
    pMode
      = flip option (long "mode" <> value FlagSnapshot)
      $ readerAsk >>= \case
@@ -108,23 +110,28 @@ main = dispatch pCommand >>= go
        Right _                  -> return ()
 
 runCommand :: Command -> EitherT BenchError IO ()
-runCommand c =
+runCommand c = do
   case optInputFormat c of
     FlagInputPsv
       -> bracketEitherT' (createPsvBench c) releaseBenchmark
-       $ runBenchmark runPsvBench (optC c)
+       $ runBenchmark runPsvBench (optOutputCode c)
     FlagInputZebra
       -> bracketEitherT' (createZebraBench c) releaseBenchmark
-      $ runBenchmark runZebraBench (optC c)
+       $ runBenchmark runZebraBench (optOutputCode c)
 
-runBenchmark :: MonadIO m => (Benchmark a -> m BenchmarkResult) -> FilePath -> Benchmark a -> m ()
-runBenchmark f sourcePath bench = do
+runBenchmark ::
+      MonadIO m
+  => (Benchmark a -> m BenchmarkResult)
+  -> Maybe FilePath
+  -> Benchmark a
+  -> m ()
+runBenchmark f msrc bench = do
   liftIO (putStrLn "icicle-bench: starting compilation")
 
   let compSecs = realToFrac (benchCompilationTime bench) :: Double
   liftIO (printf "icicle-bench: compilation time = %.2fs\n" compSecs)
 
-  liftIO (T.writeFile sourcePath (benchSource bench))
+  liftIO (maybe (return ()) (flip T.writeFile (benchSource bench)) msrc)
 
   liftIO (putStrLn "icicle-bench: starting snapshot")
 

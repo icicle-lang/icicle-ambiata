@@ -227,7 +227,7 @@ runTest wt (PsvOpts psvMaxRowCount psvInputBufferSize psvOutputBufferSize) (Test
       iformat  = S.FormatPsv conf
       iopts    = S.InputOpts allowDupTime (Map.singleton (wtAttribute wt) (Set.singleton tombstone))
 
-  let compile  = S.seaCompile' options S.NoCacheSea (S.HasInput iformat iopts "dummy_path") programs Nothing
+  let compile  = S.seaCompileFleet options S.NoCacheSea (S.HasInput iformat iopts "dummy_path") programs Nothing
       release  = S.seaRelease
   bracketEitherT' compile release $ \fleet -> do
 
