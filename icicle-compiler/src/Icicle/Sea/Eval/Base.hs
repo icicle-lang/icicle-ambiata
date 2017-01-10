@@ -22,7 +22,8 @@ module Icicle.Sea.Eval.Base (
   , PsvInputDenseDict(..)
 
   , seaCompile
-  , seaCompile'
+  , seaCompileFleet
+  , seaCreate
   , seaCreateFleet
   , seaEval
   , seaRelease
@@ -189,8 +190,8 @@ valueFromCore' v =
 
 ------------------------------------------------------------------------
 
-seaCompile
-  :: (MonadIO m)
+seaCompile ::
+     (MonadIO m)
   => (Show a, Show n, Pretty n, Eq n)
   => CacheSea
   -> Input
@@ -199,10 +200,10 @@ seaCompile
   -> EitherT SeaError m (SeaFleet st)
 seaCompile cache input programs chords = do
   options <- getCompilerOptions
-  seaCompile' options cache input programs chords
+  seaCompileFleet options cache input programs chords
 
-seaCompile'
-  :: (MonadIO m)
+seaCompileFleet ::
+     (MonadIO m)
   => (Show a, Show n, Pretty n, Eq n)
   => [CompilerOption]
   -> CacheSea
@@ -210,8 +211,19 @@ seaCompile'
   -> Map Attribute (Program (Annot a) n Prim)
   -> Maybe FilePath
   -> EitherT SeaError m (SeaFleet st)
-seaCompile' options cache input programs chords = do
+seaCompileFleet options cache input programs chords = do
   code <- hoistEither (codeOfPrograms input (Map.toList programs))
+  seaCreateFleet options (fromCacheSea cache) input chords code
+
+seaCreate ::
+     (MonadIO m)
+  => CacheSea
+  -> Input
+  -> Maybe FilePath
+  -> Text
+  -> EitherT SeaError m (SeaFleet st)
+seaCreate cache input chords code = do
+  options <- getCompilerOptions
   seaCreateFleet options (fromCacheSea cache) input chords code
 
 fromCacheSea :: CacheSea -> CacheLibrary

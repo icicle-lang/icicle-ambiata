@@ -171,3 +171,28 @@ rm $t4_drop
 
 echo "OK!"
 
+
+################################################################################
+
+echo "5. Use C source instead of Icicle dictionary"
+
+t5_common_args="--mode snapshot --snapshot-date 2010-01-01 --input-psv sparse --output-psv dense"
+t5_dict=test/cli/bench/t5-dictionary.toml
+t5_in=test/cli/bench/t5-in.psv
+
+t5_out_c=`mktemp -t icicle-bench-t5-c-XXXXXX`
+t5_out_psv_1=`mktemp -t icicle-bench-t5-out-1-XXXXXX`
+t5_out_psv_2=`mktemp -t icicle-bench-t5-out-2-XXXXXX`
+t5_drop=`mktemp -t icicle-bench-t5-drop-XXXXXX`
+
+dist/build/icicle-bench/icicle-bench --dictionary $t5_dict --input $t5_in --output $t5_out_psv_1 --code $t5_out_c $t5_common_args
+dist/build/icicle-bench/icicle-bench --source c            --input $t5_in --output $t5_out_psv_2 --code $t5_out_c $t5_common_args
+
+diff -u $t5_out_psv_1 $t5_out_psv_2
+
+rm $t5_out_c
+rm $t5_out_psv_1
+rm $t5_out_psv_2
+rm $t5_drop
+
+echo "OK!"

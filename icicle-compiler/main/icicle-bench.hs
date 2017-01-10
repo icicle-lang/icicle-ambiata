@@ -31,6 +31,7 @@ pCommand = Command
   <*> pInput
   <*> pOutput
   <*> pC
+  <*> pSource
   <*> pMode
   <*> pDate
   <*> pChords
@@ -43,13 +44,19 @@ pCommand = Command
 
   where
    pDictionary
-     = strOption $ long "dictionary"
+     = optional . strOption $ long "dictionary"
    pInput
      = strOption $ long "input"
    pOutput
      = strOption $ long "output"
+   pSource
+     = flip option (long "source" <> value FlagFromDictionary)
+     $ readerAsk >>= \case
+         "dictionary" -> return FlagFromDictionary
+         "c" -> return FlagFromC
+         _ -> readerError "dictionary or c"
    pC
-     = strOption $ long "code" <> short 'c'
+     = strOption $ long "code"
    pMode
      = flip option (long "mode" <> value FlagSnapshot)
      $ readerAsk >>= \case
@@ -108,23 +115,32 @@ main = dispatch pCommand >>= go
        Right _                  -> return ()
 
 runCommand :: Command -> EitherT BenchError IO ()
-runCommand c =
+runCommand c = do
+  let code = case optFlagSource c of
+        FlagFromDictionary -> Just (optC c)
+        FlagFromC          -> Nothing
+
   case optInputFormat c of
     FlagInputPsv
       -> bracketEitherT' (createPsvBench c) releaseBenchmark
-       $ runBenchmark runPsvBench (optC c)
+       $ runBenchmark runPsvBench code
     FlagInputZebra
       -> bracketEitherT' (createZebraBench c) releaseBenchmark
-      $ runBenchmark runZebraBench (optC c)
+       $ runBenchmark runZebraBench code
 
-runBenchmark :: MonadIO m => (Benchmark a -> m BenchmarkResult) -> FilePath -> Benchmark a -> m ()
-runBenchmark f sourcePath bench = do
+runBenchmark ::
+      MonadIO m
+  => (Benchmark a -> m BenchmarkResult)
+  -> Maybe FilePath
+  -> Benchmark a
+  -> m ()
+runBenchmark f msrc bench = do
   liftIO (putStrLn "icicle-bench: starting compilation")
 
   let compSecs = realToFrac (benchCompilationTime bench) :: Double
   liftIO (printf "icicle-bench: compilation time = %.2fs\n" compSecs)
 
-  liftIO (T.writeFile sourcePath (benchSource bench))
+  liftIO (maybe (return ()) (flip T.writeFile (benchSource bench)) msrc)
 
   liftIO (putStrLn "icicle-bench: starting snapshot")
 
