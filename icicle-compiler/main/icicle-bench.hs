@@ -27,11 +27,10 @@ import           X.Options.Applicative
 
 pCommand :: Parser Command
 pCommand = Command
-  <$> pDictionary
+  <$> (InputDictionary <$> pDictionary <|> InputCode <$> pInputCode)
   <*> pInput
   <*> pOutput
-  <*> pC
-  <*> pSource
+  <*> pOutputCode
   <*> pMode
   <*> pDate
   <*> pChords
@@ -44,19 +43,15 @@ pCommand = Command
 
   where
    pDictionary
-     = optional . strOption $ long "dictionary"
+     = strOption $ long "dictionary"
    pInput
      = strOption $ long "input"
+   pInputCode
+     = strOption $ long "input-code"
    pOutput
      = strOption $ long "output"
-   pSource
-     = flip option (long "source" <> value FlagFromDictionary)
-     $ readerAsk >>= \case
-         "dictionary" -> return FlagFromDictionary
-         "c" -> return FlagFromC
-         _ -> readerError "dictionary or c"
-   pC
-     = strOption $ long "code"
+   pOutputCode
+     = optional . strOption $ long "output-code"
    pMode
      = flip option (long "mode" <> value FlagSnapshot)
      $ readerAsk >>= \case
@@ -116,17 +111,13 @@ main = dispatch pCommand >>= go
 
 runCommand :: Command -> EitherT BenchError IO ()
 runCommand c = do
-  let code = case optFlagSource c of
-        FlagFromDictionary -> Just (optC c)
-        FlagFromC          -> Nothing
-
   case optInputFormat c of
     FlagInputPsv
       -> bracketEitherT' (createPsvBench c) releaseBenchmark
-       $ runBenchmark runPsvBench code
+       $ runBenchmark runPsvBench (optOutputCode c)
     FlagInputZebra
       -> bracketEitherT' (createZebraBench c) releaseBenchmark
-       $ runBenchmark runZebraBench code
+       $ runBenchmark runZebraBench (optOutputCode c)
 
 runBenchmark ::
       MonadIO m

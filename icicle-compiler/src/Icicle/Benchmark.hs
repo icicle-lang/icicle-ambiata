@@ -6,7 +6,7 @@
 
 module Icicle.Benchmark (
     Command (..)
-  , FlagSource (..)
+  , InputSource (..)
   , FlagMode (..)
   , FlagInput (..)
   , FlagInputPsv (..)
@@ -81,11 +81,10 @@ data BenchmarkResult = BenchmarkResult {
   } deriving (Eq, Ord, Show)
 
 data Command = Command {
-    optDictionary   :: Maybe FilePath
+    optDictOrCode   :: InputSource
   , optInput        :: FilePath
   , optOutput       :: FilePath
-  , optC            :: FilePath
-  , optFlagSource   :: FlagSource
+  , optOutputCode   :: Maybe FilePath
   , optFlagMode     :: FlagMode
   , optSnapshot     :: Maybe Time
   , optChords       :: Maybe FilePath
@@ -97,7 +96,10 @@ data Command = Command {
   , optOutputPsv    :: FlagOutputPsv
   }
 
-data FlagSource = FlagFromDictionary | FlagFromC
+data InputSource =
+    InputDictionary FilePath
+  | InputCode FilePath
+
 data FlagMode = FlagSnapshot | FlagChords
 data FlagInput = FlagInputPsv | FlagInputZebra
 data FlagInputPsv = FlagInputPsvSparse | FlagInputPsvDense
@@ -116,8 +118,6 @@ createBenchmark c = do
         = fail "icicle-bench: need a snapshot date"
   let errNoChordFile
         = fail "icicle-bench: need a chord file"
-  let errNoDictionary
-        = fail "icicle-bench: need an icicle dictionary"
 
   (mode, chords) <- case optFlagMode c of
     FlagSnapshot
@@ -136,14 +136,11 @@ createBenchmark c = do
 
   start <- liftIO getCurrentTime
 
-  (code, fleet) <- case (optFlagSource c, optDictionary c) of
-    (FlagFromC, _) ->
-       mkBenchFleet (optInputFormat c) (optInput c) chords (optC c)
+  (code, fleet) <- case optDictOrCode c of
+    InputCode p ->
+       mkBenchFleet (optInputFormat c) (optInput c) chords p
 
-    (FlagFromDictionary, Nothing) ->
-       errNoDictionary
-
-    (FlagFromDictionary, Just p) -> do
+    InputDictionary p -> do
       (dictionary, format) <- case optInputFormat c of
         FlagInputPsv -> do
           (d, i) <- mkPsvInputConfig p (optInputPsv c)

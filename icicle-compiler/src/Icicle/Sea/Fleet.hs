@@ -1,8 +1,8 @@
+{-# LANGUAGE DoAndIfThenElse   #-}
+{-# LANGUAGE EmptyDataDecls    #-}
+{-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE DoAndIfThenElse #-}
-{-# LANGUAGE EmptyDataDecls #-}
 
 module Icicle.Sea.Fleet (
     MemPool
@@ -12,36 +12,37 @@ module Icicle.Sea.Fleet (
   , seaCreateFleet
   ) where
 
-import           Control.Monad.IO.Class (MonadIO(..))
+import           Control.Monad.IO.Class       (MonadIO (..))
 import           Control.Monad.Morph
 
-import           Data.String (String)
-import qualified Data.Text as T
-import qualified Data.ByteString.Char8 as Strict
-import qualified Data.Vector as VB
+import qualified Data.ByteString.Char8        as Strict
+import           Data.String                  (String)
+import qualified Data.Text                    as T
+import qualified Data.Vector                  as VB
 
-import           Foreign.C.String (peekCString, withCStringLen)
-import           Foreign.ForeignPtr (newForeignPtr_)
-import           Foreign.Ptr (Ptr, castPtr, nullPtr)
+import           Foreign.C.String             (peekCString, withCStringLen)
+import           Foreign.ForeignPtr           (newForeignPtr_)
+import           Foreign.Ptr                  (Ptr, castPtr, nullPtr)
 
-import           System.IO (IO, FilePath)
+import           System.IO                    (FilePath, IO)
 
-import           Icicle.Sea.Error (SeaError(..))
+import           Icicle.Sea.Error             (SeaError (..))
 import           Icicle.Sea.IO
 
 import           Piano
 
 import           Zebra.Data
 import           Zebra.Foreign.Entity
-import           Zebra.Merge.Puller
 import           Zebra.Merge.BlockC
+import           Zebra.Merge.Puller
 
 import           Jetski
 
-import           P hiding (count)
+import           P                            hiding (count)
 
 import           X.Control.Monad.Trans.Either (EitherT)
-import           X.Control.Monad.Trans.Either (joinErrors, runEitherT, firstEitherT, hoistEither, left)
+import           X.Control.Monad.Trans.Either (firstEitherT, hoistEither,
+                                               joinErrors, left, runEitherT)
 
 
 data Input
@@ -63,8 +64,8 @@ data SeaFleet st = SeaFleet {
 
 ------------------------------------------------------------------------
 
-seaCreateFleet
-  :: (MonadIO m)
+seaCreateFleet ::
+     (MonadIO m)
   => [CompilerOption]
   -> CacheLibrary
   -> Input

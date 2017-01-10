@@ -136,7 +136,7 @@ createBenchmark (name, path) = do
       c       = path </> "bench.c"
       time    = timeOfText "2015-10-01"
   b <- I.createPsvBench
-     $ I.Command (Just dict) input output c I.FlagFromDictionary I.FlagSnapshot time Nothing (1024*1024) Nothing I.FlagUseDropFile I.FlagInputPsv I.FlagInputPsvSparse I.PsvOutputSparse
+     $ I.Command (I.InputDictionary dict) input output (Just c) I.FlagSnapshot time Nothing (1024*1024) Nothing I.FlagUseDropFile I.FlagInputPsv I.FlagInputPsvSparse I.PsvOutputSparse
   return (name, b)
 
 releaseBenchmarks :: [(String, Bench)] -> EitherT I.BenchError IO ()
