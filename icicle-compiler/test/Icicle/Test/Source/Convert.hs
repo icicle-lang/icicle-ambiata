@@ -27,8 +27,8 @@ prop_convert_ok qwf
      -> property Discard
 
 
-prop_convert_is_well_typed :: QueryWithFeature -> Property
-prop_convert_is_well_typed qwf
+xprop_convert_is_well_typed :: QueryWithFeature -> Property
+xprop_convert_is_well_typed qwf
  = counterexample (qwfPretty qwf)
  $ case (qwfCheck qwf, qwfCheckKey qwf) of
     (Right qt', Right k')
