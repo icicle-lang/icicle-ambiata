@@ -12,9 +12,9 @@ import           Data.String (String)
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
 
-import qualified Icicle.Benchmark as I
 import           Icicle.Benchmark.Generator (AttributeType(..), Frequency(..))
 import           Icicle.Benchmark.Generator (Generator(..), generateSparse)
+import           Icicle.Command
 import           Icicle.Data.Time (timeOfText)
 import qualified Icicle.Sea.Eval as I
 
@@ -63,20 +63,20 @@ benchConfig =
 
 ------------------------------------------------------------------------
 
-type Bench = I.Benchmark I.PsvState
+type Bench = Query I.PsvState
 
 group :: (String, Bench) -> Benchmark
 group (name, b) = do
   bgroup name
     [ bench "icicle" $ nfIO (icicle b)
-    , bench "cat"    $ nfIO (cat (I.benchInputPath b))
-    , bench "wc -l"  $ nfIO (wcl (I.benchInputPath b))
-    , bench "wc"     $ nfIO (wc  (I.benchInputPath b))
+    , bench "cat"    $ nfIO (cat (queryInputPath b))
+    , bench "wc -l"  $ nfIO (wcl (queryInputPath b))
+    , bench "wc"     $ nfIO (wc  (queryInputPath b))
     ]
 
 icicle :: Bench -> IO ()
 icicle b = do
-  Right stats <- runEitherT (I.runPsvBench b)
+  Right stats <- runEitherT (runPsvQuery b)
   hPutStrLn stderr ("  " <> show stats)
 
 cat :: FilePath -> IO ()
@@ -127,29 +127,29 @@ generateRepo root (freq, ys, es) = do
 
   return (name, path)
 
-createBenchmarks :: [(String, FilePath)] -> EitherT I.BenchError IO [(String, Bench)]
+createBenchmarks :: [(String, FilePath)] -> EitherT IcicleError IO [(String, Bench)]
 createBenchmarks = traverse createBenchmark
 
-createBenchmark :: (String, FilePath) -> EitherT I.BenchError IO (String, Bench)
+createBenchmark :: (String, FilePath) -> EitherT IcicleError IO (String, Bench)
 createBenchmark (name, path) = do
   let dict    = path </> "dictionary.toml"
       input   = path </> "data.psv"
       output  = path </> "out.psv"
       c       = path </> "bench.c"
       time    = fromMaybe (Savage.error "createBenchmark: failed parsing date") $ timeOfText "2015-10-01"
-  b <- I.createPsvBench $ I.Command
-    (I.DictionaryToml dict)
-    (I.InputSparsePsv input)
-    (I.OutputSparsePsv output)
+  b <- createPsvQuery $ QueryOptions
+    (DictionaryToml dict)
+    (InputFile InputSparsePsv input)
+    (OutputFile OutputSparsePsv output)
     (Just c)
-    (I.ScopeSnapshot time)
+    (ScopeSnapshot time)
     (1024*1024)
     Nothing
     I.FlagUseDropFile
   return (name, b)
 
-releaseBenchmarks :: [(String, Bench)] -> EitherT I.BenchError IO ()
-releaseBenchmarks = traverse_ I.releaseBenchmark . fmap snd
+releaseBenchmarks :: [(String, Bench)] -> EitherT IcicleError IO ()
+releaseBenchmarks = traverse_ releaseQuery . fmap snd
 
 dictionary :: Text
 dictionary = T.unlines

@@ -194,7 +194,7 @@ seaCompile ::
      (MonadIO m)
   => (Show a, Show n, Pretty n, Eq n)
   => CacheSea
-  -> Input
+  -> Input FilePath
   -> Map Attribute (Program (Annot a) n Prim)
   -> Maybe FilePath
   -> EitherT SeaError m (SeaFleet st)
@@ -207,7 +207,7 @@ seaCompileFleet ::
   => (Show a, Show n, Pretty n, Eq n)
   => [CompilerOption]
   -> CacheSea
-  -> Input
+  -> Input FilePath
   -> Map Attribute (Program (Annot a) n Prim)
   -> Maybe FilePath
   -> EitherT SeaError m (SeaFleet st)
@@ -218,7 +218,7 @@ seaCompileFleet options cache input programs chords = do
 seaCreate ::
      (MonadIO m)
   => CacheSea
-  -> Input
+  -> Input FilePath
   -> Maybe FilePath
   -> Text
   -> EitherT SeaError m (SeaFleet st)
@@ -254,7 +254,7 @@ defaultCompilerOptions =
 
 assemblyOfPrograms
   :: (Show a, Show n, Pretty n, Eq n)
-  => Input
+  => Input x
   -> [(Attribute, Program (Annot a) n Prim)]
   -> EitherT SeaError IO Text
 assemblyOfPrograms input programs = do
@@ -264,7 +264,7 @@ assemblyOfPrograms input programs = do
 
 irOfPrograms
   :: (Show a, Show n, Pretty n, Eq n)
-  => Input
+  => Input x
   -> [(Attribute, Program (Annot a) n Prim)]
   -> EitherT SeaError IO Text
 irOfPrograms input programs = do
@@ -274,7 +274,7 @@ irOfPrograms input programs = do
 
 codeOfPrograms
   :: (Show a, Show n, Pretty n, Eq n)
-  => Input
+  => Input x
   -> [(Attribute, Program (Annot a) n Prim)]
   -> Either SeaError Text
 codeOfPrograms input programs = do
