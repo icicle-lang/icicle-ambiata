@@ -42,7 +42,7 @@ import           X.Control.Monad.Trans.Either (left)
 
 
 data FlagUseDrop = FlagUseDropFile | FlagNoUseDropFile
-  deriving (Eq, Show)
+  deriving (Eq, Ord, Show)
 
 data ZebraState
   deriving (Typeable)

@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveFunctor     #-}
 {-# LANGUAGE DoAndIfThenElse   #-}
 {-# LANGUAGE EmptyDataDecls    #-}
 {-# LANGUAGE LambdaCase        #-}
@@ -45,10 +46,10 @@ import           X.Control.Monad.Trans.Either (firstEitherT, hoistEither,
                                                joinErrors, left, runEitherT)
 
 
-data Input
+data Input a
   = NoInput
-  | HasInput IOFormat InputOpts FilePath
-    deriving (Eq, Show)
+  | HasInput IOFormat InputOpts a
+    deriving (Eq, Show, Functor)
 
 data MemPool
 data SeaState
@@ -68,7 +69,7 @@ seaCreateFleet ::
      (MonadIO m)
   => [CompilerOption]
   -> CacheLibrary
-  -> Input
+  -> Input FilePath
   -> Maybe FilePath
   -> Text
   -> EitherT SeaError m (SeaFleet st)

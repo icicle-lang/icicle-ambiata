@@ -112,7 +112,7 @@ main =
         InputOpts AllowDupTime $ tombstonesOfDictionary loadedDictionary
 
       input =
-        HasInput format inputOptions "dummy_path"
+        HasInput format inputOptions ()
 
     code <- hoistEither . first MakeSeaError .
       codeOfPrograms input $ Map.toList avalanche
