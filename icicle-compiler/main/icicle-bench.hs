@@ -27,44 +27,48 @@ import           X.Options.Applicative
 
 pCommand :: Parser Command
 pCommand = Command
-  <$> (InputDictionary <$> pDictionary <|> InputCode <$> pInputCode)
-  <*> pInput
-  <*> pOutput
+  <$> (pDictionaryToml <|> pDictionaryCompiled)
+  <*> (pInputSparse <|> pInputDense <|> pInputZebra)
+  <*> (pOutputSparse <|> pOutputDense)
   <*> pOutputCode
-  <*> pMode
-  <*> pDate
-  <*> pChords
+  <*> (pSnapshot <|> pChord)
   <*> pLimit
   <*> pDrop
   <*> pFlagDrop
-  <*> pInputFormat
-  <*> pInputPsv
-  <*> pOutputPsv
 
   where
-   pDictionary
-     = strOption $ long "dictionary"
-   pInput
-     = strOption $ long "input"
-   pInputCode
-     = strOption $ long "input-code"
-   pOutput
-     = strOption $ long "output"
+   pDictionaryToml
+     = fmap DictionaryToml
+     $ strOption (long "dictionary-toml" <> metavar "DICTIONARY_TOML")
+   pDictionaryCompiled
+     = fmap DictionaryCode
+     $ strOption (long "dictionary-code" <> metavar "DICTIONARY_C")
+   pInputSparse
+     = fmap InputSparsePsv
+     $ strOption (long "input-sparse-psv" <> metavar "INPUT_PSV")
+   pInputDense
+     = fmap InputDensePsv
+     $ strOption (long "input-dense-psv" <> metavar "INPUT_PSV")
+   pInputZebra
+     = fmap InputZebra
+     $ strOption (long "input-zebra" <> metavar "INPUT_ZEBRA")
+   pOutputSparse
+     = fmap OutputSparsePsv
+     $ strOption (long "output-sparse-psv" <> metavar "OUTPUT_PSV")
+   pOutputDense
+     = fmap OutputDensePsv
+     $ strOption (long "output-dense-psv" <> metavar "OUTPUT_PSV")
    pOutputCode
-     = optional . strOption $ long "output-code"
-   pMode
-     = flip option (long "mode" <> value FlagSnapshot)
-     $ readerAsk >>= \case
-         "snapshot" -> return FlagSnapshot
-         "chord" -> return FlagChords
-         _ -> readerError "snapshot or chord"
-   pDate
-     = optional . flip option (long "snapshot-date")
+     = optional $ strOption (long "output-code" <> metavar "DICTIONARY_C")
+   pSnapshot
+     = fmap ScopeSnapshot
+     . flip option (long "snapshot" <> metavar "SNAPSHOT_DATE")
      $ readerAsk >>= \s -> case timeOfText (T.pack s) of
          Just t  -> return t
          Nothing -> readerError "cannot parse snapshot date"
-   pChords
-     = optional . strOption $ long "chords"
+   pChord
+     = fmap ScopeChord
+     $ strOption (long "chord" <> metavar "CHORD_DESCRIPTOR")
    pLimit
      = flip option (long "facts-limit" <> value defaultFactsLimit)
      $ readerAsk >>= \s -> case readMaybe s of
@@ -75,24 +79,6 @@ pCommand = Command
    pFlagDrop
      = flag FlagUseDropFile FlagNoUseDropFile
      $ long "drop-to-output" <> help "write partial results to dropped-X.txt or normal output"
-   pInputFormat
-     = flip option (long "input-format" <> help "psv or zebra" <> value FlagInputPsv)
-     $ readerAsk >>= \case
-          "psv" -> return FlagInputPsv
-          "zebra" -> return FlagInputZebra
-          _ -> readerError "--input-format <psv or zebra>"
-   pInputPsv
-     = flip option (long "input-psv" <> value FlagInputPsvSparse <> help "dense or sparse")
-     $ readerAsk >>= \case
-          "dense" -> return FlagInputPsvDense
-          "sparse" -> return FlagInputPsvSparse
-          _ -> readerError "--input-psv <sparse or dense"
-   pOutputPsv
-     = flip option (long "output-psv" <> value PsvOutputSparse <> help "dense or sparse")
-     $ readerAsk >>= \case
-          "dense" -> return PsvOutputDense
-          "sparse" -> return PsvOutputSparse
-          _ -> readerError "--output-psv <sparse or dense"
 
    defaultFactsLimit = 1024*1024
 
@@ -112,10 +98,10 @@ main = dispatch pCommand >>= go
 runCommand :: Command -> EitherT BenchError IO ()
 runCommand c = do
   case optInputFormat c of
-    FlagInputPsv
+    InputFormatPsv
       -> bracketEitherT' (createPsvBench c) releaseBenchmark
        $ runBenchmark runPsvBench (optOutputCode c)
-    FlagInputZebra
+    InputFormatZebra
       -> bracketEitherT' (createZebraBench c) releaseBenchmark
        $ runBenchmark runZebraBench (optOutputCode c)
 

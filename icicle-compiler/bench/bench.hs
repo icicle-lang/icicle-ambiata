@@ -20,6 +20,8 @@ import qualified Icicle.Sea.Eval as I
 
 import           P
 
+import qualified Prelude as Savage
+
 import           System.Directory (createDirectoryIfMissing)
 import           System.Exit (ExitCode(..))
 import           System.FilePath (FilePath, (</>))
@@ -134,9 +136,16 @@ createBenchmark (name, path) = do
       input   = path </> "data.psv"
       output  = path </> "out.psv"
       c       = path </> "bench.c"
-      time    = timeOfText "2015-10-01"
-  b <- I.createPsvBench
-     $ I.Command (I.InputDictionary dict) input output (Just c) I.FlagSnapshot time Nothing (1024*1024) Nothing I.FlagUseDropFile I.FlagInputPsv I.FlagInputPsvSparse I.PsvOutputSparse
+      time    = fromMaybe (Savage.error "createBenchmark: failed parsing date") $ timeOfText "2015-10-01"
+  b <- I.createPsvBench $ I.Command
+    (I.DictionaryToml dict)
+    (I.InputSparsePsv input)
+    (I.OutputSparsePsv output)
+    (Just c)
+    (I.ScopeSnapshot time)
+    (1024*1024)
+    Nothing
+    I.FlagUseDropFile
   return (name, b)
 
 releaseBenchmarks :: [(String, Bench)] -> EitherT I.BenchError IO ()
