@@ -11,8 +11,9 @@ typedef struct {
 
     /* outputs */
     const char  *error;
-    iint_t       fact_count;
-    iint_t       entity_count;
+    iint_t fact_count;
+    iint_t entity_count;
+
 } zebra_config_t;
 
 typedef struct zebra_state {
@@ -34,14 +35,14 @@ typedef struct zebra_state {
 
 
 static int64_t zebra_translate_table
-( imempool_t *mempool
+  ( anemone_mempool_t *mempool
   , iint_t elem_start
   , iint_t count
   , void **dst
   , const zebra_table_t *table );
 
 static int64_t zebra_translate_column
-( imempool_t *mempool
+  ( anemone_mempool_t *mempool
   , iint_t elem_start
   , iint_t count
   , void **dst
@@ -51,16 +52,9 @@ static int64_t zebra_translate_column
 static ierror_msg_t zebra_read_entity (zebra_state_t *state, zebra_entity_t *entity);
 
 
-static void *zebra_copy_array (imempool_t *into, void *src, int64_t nbytes)
-{
-    void *alloc = imempool_alloc (into, nbytes);
-    memcpy (alloc, src, nbytes);
-    return alloc;
-}
-
 /* map a zebra entity to sea fleet inputs */
 static ierror_msg_t zebra_translate
-    ( imempool_t *mempool
+    ( anemone_mempool_t *mempool
     , int         attribute_ix
     , itime_t     chord_time
     , iint_t     *new_count
@@ -92,7 +86,7 @@ static ierror_msg_t zebra_translate
         fact_count++;
     }
 
-    itime_t *sadface_times = imempool_alloc (mempool, fact_count * sizeof (itime_t));
+    itime_t *sadface_times = anemone_mempool_alloc (mempool, fact_count * sizeof (itime_t));
 
     for (iint_t i = 0; i != fact_count; ++i) {
         sadface_times[i] = itime_from_epoch_seconds (attribute->times[i]);
@@ -108,7 +102,7 @@ static ierror_msg_t zebra_translate
 }
 
 static int64_t zebra_translate_table
-    ( imempool_t *mempool
+    ( anemone_mempool_t *mempool
     , iint_t elem_start
     , iint_t count
     , void **dst
@@ -126,7 +120,7 @@ static int64_t zebra_translate_table
 }
 
 static int64_t zebra_translate_column
-    ( imempool_t *mempool
+    ( anemone_mempool_t *mempool
     , iint_t elem_start
     , iint_t count
     , void **dst
@@ -138,7 +132,7 @@ static int64_t zebra_translate_column
     switch (type) {
         case ZEBRA_BYTE:
             {
-                uint8_t* bytes = imempool_alloc(mempool, count + 1);
+                uint8_t* bytes = anemone_mempool_alloc(mempool, count + 1);
                 memcpy(bytes, data.b + elem_start, count);
                 bytes[count] = '\0';
                 *dst = bytes;
@@ -155,7 +149,7 @@ static int64_t zebra_translate_column
 
         case ZEBRA_ARRAY:
             {
-                istring_t *strings = imempool_alloc (mempool, count * sizeof (istring_t));
+                istring_t *strings = anemone_mempool_alloc (mempool, count * sizeof (istring_t));
                 int offset = 1;
                 for (int i = 0; i != count; ++i) {
                     int len = data.a.n[i];

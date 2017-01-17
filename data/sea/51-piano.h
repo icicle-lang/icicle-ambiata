@@ -1,6 +1,5 @@
 #include "50-chord.h"
 
-typedef void error_t;
 typedef struct piano piano_t;
 
 int64_t piano_max_count (

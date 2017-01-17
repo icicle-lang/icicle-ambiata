@@ -58,7 +58,7 @@ seaOfRead ix state = vsep
 -- chords loop:
 --
 -- zebra_read_entity_0
---   ( imempool_t *mempool
+--   ( anemone_mempool_t *mempool
 --   , int chord_count
 --   , int attribute_ix
 --   , iprogram_0_t *programs
@@ -74,7 +74,7 @@ seaOfDefReadProgram state = vsep
   [ "#line 1 \"read entity for program" <+> seaOfStateInfo state <> "\""
   , "static ierror_msg_t INLINE"
       <+> pretty (nameOfRead state) <+> "("
-      <> "imempool_t *mempool, iint_t chord_count, int attribute_ix, "
+      <> "anemone_mempool_t *mempool, iint_t chord_count, int attribute_ix, "
       <> pretty (nameOfStateType state) <+> "*programs, "
       <> "zebra_entity_t *entity)"
   , "{"

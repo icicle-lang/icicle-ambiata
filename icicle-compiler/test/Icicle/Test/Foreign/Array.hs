@@ -87,10 +87,10 @@ test_copy_eq input
   = "ibool_t "
   <> pretty name_copy_eq
   <> " (" <> tt <> " x) { "
-  <> "imempool_t *test_mempool = imempool_create();"
+  <> "anemone_mempool_t *test_mempool = anemone_mempool_create();"
   <> tt <> " y = " <> ta <> "_copy(test_mempool, x);"
   <> "ibool_t r = " <> ta <> "_eq(x,y);"
-  <> "imempool_free(test_mempool);"
+  <> "anemone_mempool_free(test_mempool);"
   <> "return r;"
   <> "}"
   where
@@ -115,11 +115,11 @@ test_mutable_diff input
   = "ibool_t "
   <> pretty name_mutable_diff
   <> " (" <> tt <> " x, iint_t i, " <> ty <> "_t v) { "
-  <> "imempool_t *test_mempool = imempool_create();"
+  <> "anemone_mempool_t *test_mempool = anemone_mempool_create();"
   <> tt  <> " y = " <> ta <> "_copy(test_mempool, x);"
   <> tt  <> " z = " <> ta <> "_put_mutable(test_mempool, x, i, v);"
   <> "ibool_t r = " <> ta <> "_eq(x,y);"
-  <> "imempool_free(test_mempool);"
+  <> "anemone_mempool_free(test_mempool);"
   <> "return !r;"
   <> "}"
   where
@@ -143,11 +143,11 @@ name_immutable_copy
 test_immutable_copy input
   = "ibool_t " <> pretty name_immutable_copy
   <> " (" <> tt <> " x, iint_t i, " <> ty <> "_t v) { "
-  <> "imempool_t *test_mempool = imempool_create();"
+  <> "anemone_mempool_t *test_mempool = anemone_mempool_create();"
   <> tt  <> " y = " <> ta <> "_copy(test_mempool, x);"
   <> tt  <> " z = " <> ta <> "_put_immutable(test_mempool, x, i, v);"
   <> "ibool_t r = " <> ta <> "_eq(x,y);"
-  <> "imempool_free(test_mempool);"
+  <> "anemone_mempool_free(test_mempool);"
   <> "return r;"
   <> "}"
   where
@@ -170,12 +170,12 @@ test_swap_swap_eq input
   = "ibool_t "
   <> pretty name_swap_swap_eq
   <> " (" <> tt <> " x, iint_t i, iint_t j) {"
-  <> "imempool_t *test_mempool = imempool_create();"
+  <> "anemone_mempool_t *test_mempool = anemone_mempool_create();"
   <> tt  <> " y = " <> ta <> "_copy(test_mempool, x);"
   <> ta <> "_swap(x, i, j);"
   <> ta <> "_swap(x, j, i);"
   <> "ibool_t r = " <> ta <> "_eq(y,x);"
-  <> "imempool_free(test_mempool);"
+  <> "anemone_mempool_free(test_mempool);"
   <> "return r;"
   <> "}"
   where
@@ -198,11 +198,11 @@ test_delete_copy t
   = "ibool_t "
   <> pretty name_delete_copy
   <> " (" <> tt <> " x, iint_t i) { "
-  <> "imempool_t *test_mempool = imempool_create();"
+  <> "anemone_mempool_t *test_mempool = anemone_mempool_create();"
   <> tt  <> " y = " <> ta <> "_copy(test_mempool, x);"
   <> tt  <> " z = " <> ta <> "_delete (test_mempool, x, i);"
   <> "ibool_t r = " <> ta <> "_eq(x,y);"
-  <> "imempool_free(test_mempool);"
+  <> "anemone_mempool_free(test_mempool);"
   <> "return r;"
   <> "}"
   where (ta, tt) = arrayType t
@@ -221,10 +221,10 @@ name_delete_len
 test_delete_len input
   = "ibool_t " <> pretty name_delete_len
   <> " (" <> tt <> " x, iint_t i) { "
-  <> "imempool_t *test_mempool = imempool_create();"
+  <> "anemone_mempool_t *test_mempool = anemone_mempool_create();"
   <> tt  <> " y = " <> ta <> "_delete (test_mempool, x, i);"
   <> "ibool_t r = y->count == x->count - 1;"
-  <> "imempool_free(test_mempool);"
+  <> "anemone_mempool_free(test_mempool);"
   <> "return r;"
   <> "}"
   where (ta, tt) = arrayType input

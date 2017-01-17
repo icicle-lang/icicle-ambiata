@@ -158,7 +158,7 @@ seaOfFleetState states
    in vsep
       [ "#line 1 \"fleet state\""
       , "struct ifleet {"
-      , indent 4 (defOfVar' 1 "imempool_t" "mempool")         <> ";"
+      , indent 4 (defOfVar' 1 "anemone_mempool_t" "mempool")  <> ";"
       , indent 4 (defOfVar  0 IntT         "max_chord_count") <> ";"
       , indent 4 (defOfVar  0 IntT         "chord_count")     <> ";"
       , indent 4 (defOfVar' 1 time         "chord_times")     <> ";"
@@ -245,10 +245,10 @@ seaOfCollectFleet states
  [ "#line 1 \"collect fleet state\""
  , "static void psv_collect_fleet (ifleet_t *fleet)"
  , "{"
- , "    imempool_t *into_pool       = imempool_create ();"
- , "    imempool_t *last_pool       = fleet->mempool;"
- , "    iint_t      max_chord_count = fleet->max_chord_count;"
- , "    iint_t      chord_count     = fleet->chord_count;"
+ , "    anemone_mempool_t *into_pool        = anemone_mempool_create ();"
+ , "    anemone_mempool_t *last_pool        = fleet->mempool;"
+ , "    iint_t             max_chord_count  = fleet->max_chord_count;"
+ , "    iint_t             chord_count      = fleet->chord_count;"
  , ""
  , indent 4 (vsep (fmap seaOfCollectProgram states))
  , ""
@@ -259,7 +259,7 @@ seaOfCollectFleet states
  , "    }"
  , ""
  , "    if (last_pool != 0) {"
- , "        imempool_free (last_pool);"
+ , "        anemone_mempool_free (last_pool);"
  , "    }"
  , "}"
  ]

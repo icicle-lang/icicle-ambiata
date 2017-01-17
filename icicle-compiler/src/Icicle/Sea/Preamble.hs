@@ -6,7 +6,7 @@ module Icicle.Sea.Preamble (
   , seaOfExternal
   ) where
 
-import           Icicle.Internal.Pretty (Doc, vsep, text, int)
+import           Icicle.Internal.Pretty (Doc, vsep, text)
 
 import           Data.ByteString (ByteString)
 import qualified Data.Text as T
@@ -26,29 +26,35 @@ import           X.Data.FileEmbed (embedWhen)
 seaPreamble :: Doc
 seaPreamble
  = vsep
- $ fmap (uncurry seaOfExternal) files
+ $ fmap (uncurry seaOfExternal) (includes <> externals <> files)
  where
+  includes
+   = $(embedWhen (== "00-includes.h") "data/sea/")
   files
    = List.sortBy (compare `on` fst)
-   $ $(embedWhen ((== ".h") . takeExtension) "data/sea/")
+   $ $(embedWhen (liftA2 (&&) (/= "00-includes.h") ((== ".h") . takeExtension)) "data/sea/")
+  externals
+   =  $(embedWhen ((== "anemone_base.h")) "../lib/anemone/csrc/")
+   <> $(embedWhen ((== "anemone_mempool.h")) "../lib/anemone/csrc/")
+   <> $(embedWhen ((== "anemone_mempool.c")) "../lib/anemone/csrc/")
 
 seaOfExternal :: FilePath -> ByteString -> Doc
 seaOfExternal path bs
  = vsep
  [ "// " <> text path
- , "#line " <> int lineNo <> " \"" <> text path <> "\""
+ , "#line 1" <> " \"" <> text path <> "\""
  , text (T.unpack (T.unlines file))
  , ""
  ]
  where
-  (includes, file)
+  file
    = case T.decodeUtf8' bs of
        Left err ->
          Savage.error $
            "Icicle.Sea.Preamble.seaOfExternal: failed to decode: " <> path <> "\n" <>
            show err
        Right txt ->
-         List.span (T.isPrefixOf "#include \"") $ T.lines txt
+         fmap (\s -> if prefix s then "" else s) (T.lines txt)
 
-  lineNo
-   = List.length includes + 1
+  prefix
+   = T.isPrefixOf "#include \""
