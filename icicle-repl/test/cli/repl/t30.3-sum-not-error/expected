@@ -33,7 +33,7 @@ typedef struct {
 
 typedef struct {
     /* runtime */
-    imempool_t      *mempool;
+    anemone_mempool_t *mempool;
 
     /* inputs */
     input_repl_t     input;
@@ -76,7 +76,7 @@ void iprogram_0(iprogram_0_t *s)
     ibool_t          flat_0_simpflat_13;
     ibool_t          flat_0_simpflat_10;
 
-    imempool_t      *mempool                  = s->mempool;
+    anemone_mempool_t *mempool                = s->mempool;
     itime_t          conv_3                   = s->input.conv_3;
 
     acc_perhaps_conv_4_simpflat_4             = ifalse;                               /* init */

@@ -167,7 +167,7 @@ seaOfReadFact state tombstones input readInput checkCount =
     , "static ierror_loc_t INLINE"
         <+> pretty (nameOfReadFact state) <+> "("
         <> "const char *value_ptr, const size_t value_size, itime_t time, "
-        <> "imempool_t *mempool, iint_t chord_count, "
+        <> "anemone_mempool_t *mempool, iint_t chord_count, "
         <> pretty (nameOfStateType state) <+> "*programs)"
     , "{"
     , "    ierror_loc_t error;"

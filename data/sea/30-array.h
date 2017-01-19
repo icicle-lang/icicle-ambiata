@@ -120,12 +120,12 @@ Create(size)
 
 #define MK_ARRAY_CREATE(t)                                                      \
                                                                                 \
-static ARRAY_T(t) INLINE ARRAY_FUN(t,create) (imempool_t *pool, iint_t sz)      \
+static ARRAY_T(t) INLINE ARRAY_FUN(t,create)(anemone_mempool_t *pool, iint_t sz)\
 {                                                                               \
     iint_t sz_alloc = iarray_size(sz);                                          \
     size_t bytes    = ARRAY_SIZE(t,sz_alloc);                                   \
                                                                                 \
-    ARRAY_T(t) ret  = (ARRAY_T(t))imempool_alloc(pool, bytes);                  \
+    ARRAY_T(t) ret  = (ARRAY_T(t))anemone_mempool_alloc(pool, bytes);           \
     ret->count      = sz;                                                       \
                                                                                 \
     return ret;                                                                 \
@@ -138,7 +138,7 @@ Copy(arr)
 
 #define MK_ARRAY_COPY(t)                                                        \
                                                                                 \
-static ARRAY_T(t) INLINE ARRAY_FUN(t,copy) (imempool_t *into, ARRAY_T(t) x)     \
+static ARRAY_T(t) INLINE ARRAY_FUN(t,copy) (anemone_mempool_t *into, ARRAY_T(t) x)\
 {                                                                               \
     if (x == 0) return 0;                                                       \
                                                                                 \
@@ -160,7 +160,7 @@ Put(arr, ix, val)
 #define MK_ARRAY_PUT_MUTABLE(t)                                                 \
                                                                                 \
 static ARRAY_T(t) INLINE ARRAY_FUN(t,put_mutable)                               \
-                  (imempool_t *pool, ARRAY_T(t) x, iint_t ix, t##_t v)          \
+                  (anemone_mempool_t *pool, ARRAY_T(t) x, iint_t ix, t##_t v)   \
 {                                                                               \
     iint_t count  = x->count;                                                   \
     iint_t sz_old = iarray_size(count);                                         \
@@ -170,7 +170,7 @@ static ARRAY_T(t) INLINE ARRAY_FUN(t,put_mutable)                               
         size_t bytes_new = ARRAY_SIZE(t, sz_new);                               \
         size_t bytes_old = ARRAY_SIZE(t, sz_old);                               \
                                                                                 \
-        ARRAY_T(t) arr = (ARRAY_T(t))imempool_alloc(pool, bytes_new);           \
+        ARRAY_T(t) arr = (ARRAY_T(t))anemone_mempool_alloc(pool, bytes_new);    \
         memcpy(arr, x, bytes_old);                                              \
         x = arr;                                                                \
                                                                                 \
@@ -191,7 +191,7 @@ Immutable_put(arr, ix, val)
 #define MK_ARRAY_PUT_IMMUTABLE(t)                                               \
                                                                                 \
 static ARRAY_T(t) INLINE ARRAY_FUN(t,put_immutable)                             \
-                  (imempool_t *pool, ARRAY_T(t) x, iint_t ix, t##_t v)          \
+                  (anemone_mempool_t *pool, ARRAY_T(t) x, iint_t ix, t##_t v)   \
 {                                                                               \
     ARRAY_T(t) arr = ARRAY_FUN(t,copy)(pool, x);                                \
     arr = ARRAY_FUN(t,put_mutable)(pool, arr, ix, v);                           \
@@ -222,7 +222,7 @@ Immutable Delete (arr, ix)
 #define MK_ARRAY_DELETE(t)                                                      \
                                                                                 \
 static ARRAY_T(t) INLINE ARRAY_FUN(t,delete)                                    \
-                  (imempool_t *pool, ARRAY_T(t) x, iint_t ix_delete)            \
+                  (anemone_mempool_t *pool, ARRAY_T(t) x, iint_t ix_delete)     \
 {                                                                               \
     iint_t count      = x->count;                                               \
     if (ix_delete >= count) return x;                                           \
@@ -230,7 +230,7 @@ static ARRAY_T(t) INLINE ARRAY_FUN(t,delete)                                    
     iint_t capacity   = iarray_size(count - 1);                                 \
     size_t bytes      = ARRAY_SIZE(t, capacity);                                \
                                                                                 \
-    ARRAY_T(t) arr = (ARRAY_T(t))imempool_alloc(pool, bytes);                   \
+    ARRAY_T(t) arr = (ARRAY_T(t))anemone_mempool_alloc(pool, bytes);            \
                                                                                 \
     for (iint_t ix = 0; ix != ix_delete; ++ix) {                                \
         t##_t val = ARRAY_PAYLOAD(t,x)[ix];                                     \

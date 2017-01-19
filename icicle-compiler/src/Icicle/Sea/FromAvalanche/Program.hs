@@ -55,7 +55,7 @@ seaOfProgram name attrib program = do
                $ accumsOfProgram program `Map.union`
                  readsOfProgram  program
     , ""
-    , indent 4 $ assign (defOfVar' 1 "imempool_t" "mempool") "s->mempool;"
+    , indent 4 $ assign (defOfVar' 1 "anemone_mempool_t" "mempool") "s->mempool;"
     , indent 4 $ assign (defOfVar  0 TimeT (pretty (stateTimeVar state)))
                         ("s->" <> stateInputTime state) <> ";"
     , ""

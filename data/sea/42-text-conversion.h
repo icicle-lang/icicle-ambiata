@@ -181,12 +181,12 @@ static ierror_loc_t INLINE json_try_read_null (char **pp, char *pe, ibool_t *was
 string read/write
 */
 
-static ierror_loc_t INLINE text_read_istring (imempool_t *pool, char **pp, char *pe, istring_t *output_ptr)
+static ierror_loc_t INLINE text_read_istring (anemone_mempool_t *pool, char **pp, char *pe, istring_t *output_ptr)
 {
     char *p = *pp;
 
     size_t output_size = pe - p;
-    char  *output      = imempool_alloc (pool, output_size + 1);
+    char  *output      = anemone_mempool_alloc (pool, output_size + 1);
 
     output[output_size] = 0;
     memcpy (output, p, output_size);
@@ -197,7 +197,7 @@ static ierror_loc_t INLINE text_read_istring (imempool_t *pool, char **pp, char 
     return 0;
 }
 
-static ierror_loc_t INLINE json_read_istring (imempool_t *pool, char **pp, char *pe, istring_t *output_ptr)
+static ierror_loc_t INLINE json_read_istring (anemone_mempool_t *pool, char **pp, char *pe, istring_t *output_ptr)
 {
     char *p = *pp;
 
@@ -210,7 +210,7 @@ static ierror_loc_t INLINE json_read_istring (imempool_t *pool, char **pp, char 
         return ierror_loc_format (p, pe, "string missing closing quote");
 
     size_t output_size = quote_ptr - p;
-    char  *output      = imempool_alloc (pool, output_size + 1);
+    char  *output      = anemone_mempool_alloc (pool, output_size + 1);
 
     output[output_size] = 0;
     memcpy (output, p, output_size);

@@ -75,8 +75,8 @@ seaCreateFleet ::
   -> EitherT SeaError m (SeaFleet st)
 seaCreateFleet options cache input chords code = do
   lib                  <- firstEitherT SeaJetskiError (compileLibrary cache options code)
-  imempool_create      <- firstEitherT SeaJetskiError (function lib "imempool_create"      (retPtr retVoid))
-  imempool_free        <- firstEitherT SeaJetskiError (function lib "imempool_free"        retVoid)
+  imempool_create      <- firstEitherT SeaJetskiError (function lib "anemone_mempool_create" (retPtr retVoid))
+  imempool_free        <- firstEitherT SeaJetskiError (function lib "anemone_mempool_free"   retVoid)
   segv_install_handler <- firstEitherT SeaJetskiError (function lib "segv_install_handler" retVoid)
   segv_remove_handler  <- firstEitherT SeaJetskiError (function lib "segv_remove_handler"  retVoid)
 

@@ -1257,7 +1257,7 @@ typedef struct {
 
 typedef struct {
     /* runtime */
-    imempool_t      *mempool;
+    anemone_mempool_t *mempool;
 
     /* inputs */
     input_repl_t     input;
@@ -1504,7 +1504,7 @@ void iprogram_0(iprogram_0_t *s)
     ierror_t         flat_89_simpflat_264;
     ibool_t          flat_33;
 
-    imempool_t      *mempool                  = s->mempool;
+    anemone_mempool_t *mempool                = s->mempool;
     itime_t          conv_3                   = s->input.conv_3;
 
     acc_conv_7_simpflat_33                    = ierror_not_an_error;                  /* init */
@@ -2331,7 +2331,7 @@ typedef struct {
 
 typedef struct {
     /* runtime */
-    imempool_t      *mempool;
+    anemone_mempool_t *mempool;
 
     /* inputs */
     input_repl_t     input;
@@ -2375,7 +2375,7 @@ void iprogram_0(iprogram_0_t *s)
     ierror_t         flat_0_simpflat_20;
     itime_t          flat_0_simpflat_21;
 
-    imempool_t      *mempool                  = s->mempool;
+    anemone_mempool_t *mempool                = s->mempool;
     itime_t          conv_3                   = s->input.conv_3;
 
     acc_conv_4_simpflat_2                     = 0x7420b1100000000;                    /* init */

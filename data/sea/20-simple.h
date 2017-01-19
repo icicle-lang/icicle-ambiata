@@ -1,4 +1,5 @@
-#include "10-mempool.h"
+#include "06-segv.h"
+#include "../../lib/anemone/csrc/anemone_mempool.h"
 
 #define ibool_and(x, y) (x) && (y)
 #define ibool_or(x, y)  (x) || (y)
@@ -19,7 +20,7 @@ MK_SIMPLE_CMPS(iunit_t,  iunit_)
 MK_SIMPLE_CMPS(ifactid_t,ifactid_)
 
 #define MK_SIMPLE_COPY(t,pre)                                                   \
-    static t    INLINE pre##copy(imempool_t *into, t val) { return val; } \
+    static t    INLINE pre##copy(anemone_mempool_t *into, t val) { return val; }\
 
 MK_SIMPLE_COPY(ierror_t, ierror_)
 MK_SIMPLE_COPY(ibool_t,  ibool_)
@@ -64,12 +65,12 @@ static ibool_t   INLINE istring_le    (istring_t x, istring_t y) { return strcmp
 static ibool_t   INLINE istring_eq    (istring_t x, istring_t y) { return strcmp(x, y) == 0; }
 static ibool_t   INLINE istring_ne    (istring_t x, istring_t y) { return strcmp(x, y) != 0; }
 
-static istring_t INLINE istring_copy(imempool_t *into, istring_t val)
+static istring_t INLINE istring_copy(anemone_mempool_t *into, istring_t val)
 {
     if (val == 0) return 0;
 
     size_t val0_size = strlen (val) + 1;
-    char  *alloc     = imempool_alloc (into, val0_size);
+    char  *alloc     = anemone_mempool_alloc (into, val0_size);
     memcpy (alloc, val, val0_size);
     return alloc;
 }
