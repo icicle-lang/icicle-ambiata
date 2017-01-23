@@ -48,7 +48,7 @@ seaOfDefRead states = vsep
 seaOfRead :: Int -> SeaProgramState -> Doc
 seaOfRead ix state = vsep
   [ "/*" <> i <> ": " <> a <> " */"
-  , "error = zebra_read_entity_" <> i <> "(fleet->mempool, chord_count, " <> i <> ", fleet->iprogram_" <> i <> ", entity);"
+  , "error = zebra_read_entity_" <> i <> "(state, fleet->mempool, chord_count, " <> i <> ", fleet->iprogram_" <> i <> ", entity);"
   , "if (error) return error;"
   ]
   where
@@ -74,7 +74,7 @@ seaOfDefReadProgram state = vsep
   [ "#line 1 \"read entity for program" <+> seaOfStateInfo state <> "\""
   , "static ierror_msg_t INLINE"
       <+> pretty (nameOfRead state) <+> "("
-      <> "anemone_mempool_t *mempool, iint_t chord_count, int attribute_ix, "
+      <> "zebra_state_t *state, anemone_mempool_t *mempool, iint_t chord_count, int attribute_ix, "
       <> pretty (nameOfStateType state) <+> "*programs, "
       <> "zebra_entity_t *entity)"
   , "{"
@@ -103,7 +103,8 @@ seaOfDefReadProgram state = vsep
   , "        itime_t  **fact_time   = (itime_t**) input_start + input_count;"
   , ""
   , "        error = zebra_translate "
-  , "                  ( mempool"
+  , "                  ( state"
+  , "                  , mempool"
   , "                  , attribute_ix"
   , "                  , *chord_time"
   , "                  , fact_count"

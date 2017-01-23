@@ -54,7 +54,8 @@ static ierror_msg_t zebra_read_entity (zebra_state_t *state, zebra_entity_t *ent
 
 /* map a zebra entity to sea fleet inputs */
 static ierror_msg_t zebra_translate
-    ( anemone_mempool_t    *mempool
+    ( zebra_state_t        *state
+    , anemone_mempool_t    *mempool
     , int                   attribute_ix
     , itime_t               chord_time
     , iint_t               *new_count
@@ -97,6 +98,8 @@ static ierror_msg_t zebra_translate
     *new_fact_time = sadface_times;
 
     zebra_translate_table (mempool, 0, fact_count, dst, &attribute->table);
+
+    state->fact_count += fact_count;
 
     return 0;
 }
