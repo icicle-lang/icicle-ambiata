@@ -88,6 +88,8 @@ seaZebraSnapshotFd fleet input output mchords = do
 
   sfSnapshot fleet pState
 
+  liftIO $ free input_path
+
   pError       <- peekWordOff pState 3
   factsRead    <- peekWordOff pState 4
   entitiesRead <- peekWordOff pState 5
