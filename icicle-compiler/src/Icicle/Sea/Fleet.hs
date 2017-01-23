@@ -43,7 +43,7 @@ import           P                            hiding (count)
 
 import           X.Control.Monad.Trans.Either (EitherT)
 import           X.Control.Monad.Trans.Either (firstEitherT, hoistEither,
-                                               joinErrors, left, runEitherT)
+                                               joinErrors, left, runEitherT, bracketEitherT')
 
 
 data Input a
@@ -107,6 +107,7 @@ seaCreateFleet options cache input chords code = do
     HasInput (FormatZebra _ _) _ input_path -> do
       step <- firstEitherT SeaJetskiError (function lib "zebra_snapshot_step" (retPtr retCChar))
       init <- firstEitherT SeaJetskiError (function lib "zebra_alloc_state" (retPtr retVoid))
+      end  <- firstEitherT SeaJetskiError (function lib "zebra_collect_state" (retPtr retVoid))
 
       (puller, pullid) <- hoist liftIO
                         $ firstEitherT (SeaExternalError . T.pack . show)
@@ -130,8 +131,12 @@ seaCreateFleet options cache input chords code = do
             let puller' :: PullId -> EitherT SeaError IO (Maybe Block)
                 puller' = firstEitherT (SeaExternalError . T.pack . show) . puller
 
-            runEitherT . joinErrors (SeaExternalError . T.pack  . show) id
-              $ mergeBlocks (MergeOptions puller' step' 100) pullid
+            runEitherT
+              $ bracketEitherT'
+                  (pure ())
+                  (const (liftIO (end [ argPtr ptr, argPtr state ])))
+                  (const (joinErrors (SeaExternalError . T.pack  . show) id
+                             (mergeBlocks (MergeOptions puller' step' 100) pullid)))
 
       return $ play withPiano
 

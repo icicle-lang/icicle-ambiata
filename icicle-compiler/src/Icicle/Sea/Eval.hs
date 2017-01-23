@@ -81,12 +81,14 @@ seaZebraSnapshotFd :: SeaFleet ZebraState
                    -> EitherT SeaError IO ZebraStats
 seaZebraSnapshotFd fleet input output mchords = do
   withWords 6 $ \pState -> do
-  a <- liftIO $ newCString input
-  pokeWordOff pState 0 a
+  input_path <- liftIO $ newCString input
+  pokeWordOff pState 0 input_path
   pokeWordOff pState 1 output
   pokeWordOff pState 2 (fromMaybe 0 mchords)
 
   sfSnapshot fleet pState
+
+  liftIO $ free input_path
 
   pError       <- peekWordOff pState 3
   factsRead    <- peekWordOff pState 4

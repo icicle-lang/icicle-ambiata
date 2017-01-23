@@ -54,15 +54,16 @@ static ierror_msg_t zebra_read_entity (zebra_state_t *state, zebra_entity_t *ent
 
 /* map a zebra entity to sea fleet inputs */
 static ierror_msg_t zebra_translate
-    ( anemone_mempool_t *mempool
-    , int         attribute_ix
-    , itime_t     chord_time
-    , iint_t     *new_count
-    , ierror_t  **new_tombstone
-    , itime_t   **new_fact_time
-    , iint_t      columns_to_fill
-    , void      **dst
-    , const zebra_entity_t *src)
+    ( zebra_state_t        *state
+    , anemone_mempool_t    *mempool
+    , int                   attribute_ix
+    , itime_t               chord_time
+    , iint_t               *new_count
+    , ierror_t            **new_tombstone
+    , itime_t             **new_fact_time
+    , iint_t                columns_to_fill
+    , void                **dst
+    , const zebra_entity_t *src )
 {
     zebra_attribute_t *attribute = &src->attributes[attribute_ix];
     iint_t columns_count = attribute->table.column_count;
@@ -97,6 +98,8 @@ static ierror_msg_t zebra_translate
     *new_fact_time = sadface_times;
 
     zebra_translate_table (mempool, 0, fact_count, dst, &attribute->table);
+
+    state->fact_count += fact_count;
 
     return 0;
 }
@@ -192,6 +195,13 @@ zebra_state_t *zebra_alloc_state (piano_t *piano, zebra_config_t *cfg)
     state->output_fd    = output_fd;
 
     return state;
+}
+
+void zebra_collect_state (zebra_config_t *cfg, zebra_state_t *state)
+{
+    cfg->entity_count = state->entity_count;
+    cfg->fact_count = state->fact_count;
+    free (state);
 }
 
 ierror_msg_t zebra_snapshot_step (piano_t *piano, zebra_state_t *state, zebra_entity_t *entity)
