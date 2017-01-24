@@ -22,6 +22,7 @@ module Icicle.Source.Eval (
   ) where
 
 import                  Icicle.Common.Base
+import                  Icicle.Source.Type
 import                  Icicle.Source.Query
 import qualified        Icicle.Data.Time                as DT
 
@@ -46,10 +47,10 @@ type Record n
 
 
 evalQ   :: Ord n
-        => Query a n
+        => Query (Annot a n) n
         -> [Record n]
         -> Record n
-        -> Either (EvalError a n) BaseValue
+        -> Either (EvalError (Annot a n) n) BaseValue
 evalQ q vs env
  = case contexts q of
     []
@@ -64,12 +65,13 @@ evalQ q vs env
                     in  evalQ q' vs' env
 
                 Latest _ i
+                 | t' <- annResult $ annotOfQuery q'
+                 , TemporalityElement <- getTemporalityOrPure t'
                  -> let vs' = reverse $ take i $ reverse vs
-                    in  case evalQ q' vs' env of
-                         Left _
-                          -> VArray <$> mapM (evalQ q' []) vs'
-                         Right v
-                          -> return v
+                    in  VArray <$> mapM (evalQ q' []) vs'
+                 | otherwise
+                 -> let vs' = reverse $ take i $ reverse vs
+                    in  evalQ q' vs' env
 
                 GroupBy _ g
                  -> do  gs <- mapM (evalX g []) vs
@@ -140,10 +142,10 @@ evalQ q vs env
 
 
 evalX   :: Ord n
-        => Exp a n
+        => Exp (Annot a n) n
         -> [Record n]
         -> Record n
-        -> Either (EvalError a n) BaseValue
+        -> Either (EvalError (Annot a n) n) BaseValue
 evalX x vs env
  = case x of
     Var a n
@@ -180,12 +182,12 @@ evalX x vs env
 
 
 evalP   :: Ord n
-        => a
+        => Annot a n
         -> Prim
-        -> [Exp a n]
+        -> [Exp (Annot a n) n]
         -> [Record n]
         -> Record n
-        -> Either (EvalError a n) BaseValue
+        -> Either (EvalError (Annot a n) n) BaseValue
 evalP ann p xs vs env
  = do args <- mapM (\x' -> evalX x' vs env) xs
       let err = Left $ EvalErrorPrimBadArgs ann p args
