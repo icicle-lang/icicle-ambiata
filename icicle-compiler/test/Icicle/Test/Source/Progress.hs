@@ -17,6 +17,7 @@ import           Icicle.Source.Transform.Desugar
 
 import qualified Icicle.Common.Base          as CB
 import qualified Icicle.Common.Type          as CT
+import Icicle.Data.Time (unsafeTimeOfYMD)
 
 import           P
 
@@ -45,6 +46,27 @@ prop_progress_no_values f q
     Left _
      -> discard
  | otherwise = discard
+
+
+prop_progress_no_values_QWF :: QueryWithFeature -> Property
+prop_progress_no_values_QWF qwf
+ | Right qt <- qwfCheck qwf
+ = counterexample (qwfPretty qwf)
+ $ let val = evalQ (query qt) [] (valuesForQwf qwf)
+   in  counterexample (show val) $ isRight val
+ | otherwise = discard
+
+valuesForQwf :: QueryWithFeature -> Map.Map (CB.Name T.Variable) CB.BaseValue
+valuesForQwf qwf
+ = Map.fromList
+ ( vnow <> vtime )
+ where
+  vnow = case qwfNow qwf of
+    Nothing -> []
+    Just nm -> [(nm, timezero)]
+  vtime = [(qwfTimeName qwf, timezero)]
+
+  timezero = CB.VTime $ unsafeTimeOfYMD 2000 1 1 
 
 
 return []
