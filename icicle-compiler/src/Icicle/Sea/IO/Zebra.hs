@@ -13,13 +13,15 @@ import           Icicle.Internal.Pretty
 import           Icicle.Sea.Error (SeaError(..))
 import           Icicle.Sea.IO.Base
 import           Icicle.Sea.FromAvalanche.State
-import           Icicle.Sea.IO.Psv.Output
 
 import           P
 
 
-seaOfZebraDriver :: PsvOutputConfig -> [SeaProgramState] -> Either SeaError Doc
-seaOfZebraDriver _ states = return $ seaOfDefRead states
+seaOfZebraDriver :: [Attribute] -> [SeaProgramState] -> Either SeaError Doc
+seaOfZebraDriver concretes states = do
+  let lookup x = maybeToRight (SeaNoAttributeIndex x) $ List.elemIndex x concretes
+  indices <- sequence $ fmap (lookup . stateAttribute) states
+  return $ seaOfDefRead (List.zip indices states)
 
 -- zebra_read_entity ( zebra_state_t *state, zebra_entity_t *entity ) {
 --   /* attribute 0 */
@@ -29,9 +31,9 @@ seaOfZebraDriver _ states = return $ seaOfDefRead states
 --   zebra_read_entity_1 (1, fleet->iprogram_1, entity)
 --   ...
 -- }
-seaOfDefRead :: [SeaProgramState] -> Doc
+seaOfDefRead :: [(Int, SeaProgramState)] -> Doc
 seaOfDefRead states = vsep
-  [ vsep $ fmap seaOfDefReadProgram states
+  [ vsep $ fmap (seaOfDefReadProgram . snd) states
   , "#line 1 \"read entity\""
   , "static ierror_msg_t zebra_read_entity (zebra_state_t *state, zebra_entity_t *entity)"
   , "{"
@@ -39,20 +41,27 @@ seaOfDefRead states = vsep
   , "    iint_t    chord_count = fleet->chord_count;"
   , "    ierror_msg_t error;"
   , ""
-  , indent 4 . vsep $ List.zipWith seaOfRead [0..] states
+  , indent 4 . vsep $ fmap (uncurry seaOfRead) states
   , "    return 0;"
   , "}"
   , ""
   ]
 
 seaOfRead :: Int -> SeaProgramState -> Doc
-seaOfRead ix state = vsep
-  [ "/*" <> i <> ": " <> a <> " */"
-  , "error = zebra_read_entity_" <> i <> "(state, fleet->mempool, chord_count, " <> i <> ", fleet->iprogram_" <> i <> ", entity);"
+seaOfRead index state = vsep
+  [ "/*" <> n <> ": " <> a <> " */"
+  , "error = zebra_read_entity_" <> n
+  , "            ( state"
+  , "            , fleet->mempool"
+  , "            , chord_count"
+  , "            , " <> i
+  , "            , fleet->iprogram_" <> n
+  , "            , entity);"
   , "if (error) return error;"
   ]
   where
-    i = pretty ix
+    n = pretty (stateName state)
+    i = pretty index
     a = pretty (getAttribute (stateAttribute state))
 
 -- chords loop:

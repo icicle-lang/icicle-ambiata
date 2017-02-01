@@ -163,6 +163,8 @@ static int64_t zebra_translate_column
                 return offset;
             }
     }
+
+    return 0;
 }
 
 zebra_state_t *zebra_alloc_state (piano_t *piano, zebra_config_t *cfg)

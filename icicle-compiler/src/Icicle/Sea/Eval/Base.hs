@@ -128,7 +128,7 @@ seaEvalAvalanche program time values = do
   let attr = Attribute "eval"
       ps   = Map.singleton attr program
   bracketEitherT'
-    (seaCompile CacheSea NoInput ps Nothing)
+    (seaCompile CacheSea NoInput [attr] ps Nothing)
     seaRelease
     (\fleet -> do
         programs <- mkSeaPrograms (sfLibrary fleet) ps
@@ -195,12 +195,13 @@ seaCompile ::
   => (Show a, Show n, Pretty n, Eq n)
   => CacheSea
   -> Input FilePath
+  -> [Attribute]
   -> Map Attribute (Program (Annot a) n Prim)
   -> Maybe FilePath
   -> EitherT SeaError m (SeaFleet st)
-seaCompile cache input programs chords = do
+seaCompile cache input attributes programs chords = do
   options <- getCompilerOptions
-  seaCompileFleet options cache input programs chords
+  seaCompileFleet options cache input attributes programs chords
 
 seaCompileFleet ::
      (MonadIO m)
@@ -208,11 +209,12 @@ seaCompileFleet ::
   => [CompilerOption]
   -> CacheSea
   -> Input FilePath
+  -> [Attribute]
   -> Map Attribute (Program (Annot a) n Prim)
   -> Maybe FilePath
   -> EitherT SeaError m (SeaFleet st)
-seaCompileFleet options cache input programs chords = do
-  code <- hoistEither (codeOfPrograms input (Map.toList programs))
+seaCompileFleet options cache input attributes programs chords = do
+  code <- hoistEither (codeOfPrograms input attributes (Map.toList programs))
   seaCreateFleet options (fromCacheSea cache) input chords code
 
 seaCreate ::
@@ -255,29 +257,32 @@ defaultCompilerOptions =
 assemblyOfPrograms
   :: (Show a, Show n, Pretty n, Eq n)
   => Input x
+  -> [Attribute]
   -> [(Attribute, Program (Annot a) n Prim)]
   -> EitherT SeaError IO Text
-assemblyOfPrograms input programs = do
-  code    <- hoistEither (codeOfPrograms input programs)
+assemblyOfPrograms input attributes programs = do
+  code    <- hoistEither (codeOfPrograms input attributes programs)
   options <- getCompilerOptions
   firstEitherT SeaJetskiError (compileAssembly options code)
 
 irOfPrograms
   :: (Show a, Show n, Pretty n, Eq n)
   => Input x
+  -> [Attribute]
   -> [(Attribute, Program (Annot a) n Prim)]
   -> EitherT SeaError IO Text
-irOfPrograms input programs = do
-  code    <- hoistEither (codeOfPrograms input programs)
+irOfPrograms input attributes programs = do
+  code    <- hoistEither (codeOfPrograms input attributes programs)
   options <- getCompilerOptions
   firstEitherT SeaJetskiError (compileIR options code)
 
 codeOfPrograms
   :: (Show a, Show n, Pretty n, Eq n)
   => Input x
+  -> [Attribute]
   -> [(Attribute, Program (Annot a) n Prim)]
   -> Either SeaError Text
-codeOfPrograms input programs = do
+codeOfPrograms input attributes programs = do
   let defs = seaOfDefinitions (fmap snd programs)
 
   progs   <- zipWithM (\ix (a, p) -> seaOfProgram   ix a p) [0..] programs
@@ -305,7 +310,7 @@ codeOfPrograms input programs = do
           , defs
           ] <> progs
     HasInput format opts _ -> do
-      doc <- seaOfDriver format opts states
+      doc <- seaOfDriver format opts attributes states
       let cnst = case format of
                    FormatPsv conf
                      -> seaOfConstants conf

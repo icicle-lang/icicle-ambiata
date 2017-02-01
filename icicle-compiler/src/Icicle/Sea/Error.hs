@@ -28,6 +28,7 @@ data SeaError
   | SeaZebraError                 Text
   | SeaExternalError              Text
   | SeaProgramNotFound            Attribute
+  | SeaNoAttributeIndex           Attribute
   | SeaFactConversionError        [D.AsAt D.Value] ValType
   | SeaBaseValueConversionError   BaseValue (Maybe ValType)
   | SeaTypeConversionError                   ValType
@@ -107,6 +108,9 @@ instance Pretty SeaError where
 
     SeaProgramNotFound attr
      -> text "Program for attribute \"" <> pretty attr <> "\" not found"
+
+    SeaNoAttributeIndex attr
+     -> text "Attribute \"" <> pretty attr <> "\" not found in dictionary"
 
     SeaJetskiError (CompilerError _ _ stderr)
      -> pretty stderr

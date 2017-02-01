@@ -260,6 +260,8 @@ handleLine state line = let st = sourceState state in
                     Repl.prettyHL p
                     Repl.nl
 
+    let attr = Attribute "repl"
+
     checked <- runEitherT $ do
       parsed       <- hoist $ sourceParse (T.pack line)
       (annot, typ) <- hoist $ sourceCheck checkOpts (SourceRepl.dictionary st) parsed
@@ -351,19 +353,19 @@ handleLine state line = let st = sourceState state in
            prettyOut hasSeaPreamble "- C preamble:" Sea.seaPreamble
 
            when (hasSea state) $ do
-             let seaProgram = Sea.seaOfProgram 0 (Attribute "repl") f'
+             let seaProgram = Sea.seaOfProgram 0 attr f'
              case seaProgram of
                Left  e -> prettyOut (const True) "- C error:" e
                Right r -> prettyOut (const True) "- C:" r
 
            when (hasSeaAssembly state) $ do
-             result <- liftIO . runEitherT $ Sea.assemblyOfPrograms Sea.NoInput [(Attribute "repl", f')]
+             result <- liftIO . runEitherT $ Sea.assemblyOfPrograms Sea.NoInput [attr] [(attr, f')]
              case result of
                Left  e -> prettyOut (const True) "- C assembly error:" e
                Right r -> prettyOut (const True) "- C assembly:" r
 
            when (hasSeaLLVMIR state) $ do
-             result <- liftIO . runEitherT $ Sea.irOfPrograms Sea.NoInput [(Attribute "repl", f')]
+             result <- liftIO . runEitherT $ Sea.irOfPrograms Sea.NoInput [attr] [(attr, f')]
              case result of
                Left  e -> prettyOut (const True) "- C LLVM IR error:" e
                Right r -> prettyOut (const True) "- C LLVM IR:" r
