@@ -13,6 +13,7 @@ import           Control.Monad.IO.Class (liftIO)
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString as B
 import           Data.FileEmbed (embedFile)
+import qualified Data.List as List
 import qualified Data.Map as Map
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
@@ -21,7 +22,7 @@ import           Icicle.Compiler (ErrorCompile, avalancheOfDictionary)
 import           Icicle.Compiler.Source (defaultCompileOptions)
 import qualified Icicle.Compiler.Source as Source
 import           Icicle.Data.Time (timeOfText)
-import           Icicle.Dictionary (tombstonesOfDictionary)
+import           Icicle.Dictionary (tombstonesOfDictionary, getConcreteFeatures)
 import           Icicle.Sea.Eval
 import           Icicle.Source.Checker (optionSmallData)
 import           Icicle.Storage.Dictionary.Toml (DictionaryImportError, ImplicitPrelude(..))
@@ -90,6 +91,10 @@ main =
       avalancheOfDictionary defaultCompileOptions loadedDictionary
 
     let
+      attrs =
+        List.sort $ getConcreteFeatures loadedDictionary
+
+    let
       dateText =
         unHelpful $ date options
 
@@ -115,7 +120,7 @@ main =
         HasInput format inputOptions ()
 
     code <- hoistEither . first MakeSeaError .
-      codeOfPrograms input $ Map.toList avalanche
+      codeOfPrograms input attrs $ Map.toList avalanche
 
     compilerOptions <- liftIO $ getCompilerOptions
 

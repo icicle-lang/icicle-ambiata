@@ -46,6 +46,7 @@ import           Control.Monad.IO.Class (liftIO)
 
 import           Data.Map (Map)
 import qualified Data.Map as Map
+import qualified Data.List as List
 import qualified Data.Text as Text
 import qualified Data.Text.IO as Text
 import           Data.Time (NominalDiffTime, getCurrentTime, diffUTCTime)
@@ -248,8 +249,10 @@ compileFleet dictionary format input chords = do
   avalanche <- hoistEither $ compileAvalanche dictionary
   let avalancheL = Map.toList avalanche
 
-  code  <- firstEitherT IcicleSeaError (hoistEither (codeOfPrograms cfg avalancheL))
-  fleet <- firstEitherT IcicleSeaError (seaCompile CacheSea cfg avalanche chords)
+  let attrs = List.sort $ getConcreteFeatures dictionary
+
+  code  <- firstEitherT IcicleSeaError (hoistEither (codeOfPrograms cfg attrs avalancheL))
+  fleet <- firstEitherT IcicleSeaError (seaCompile CacheSea cfg attrs avalanche chords)
 
   return (code, fleet)
 
@@ -313,7 +316,9 @@ compileDictionary dictionaryPath iformat oformat scope = do
   let cfg = HasInput format (InputOpts AllowDupTime (tombstonesOfDictionary dictionary)) ()
   avalanche <- fmap Map.toList . hoistEither $ compileAvalanche dictionary
 
-  firstT IcicleSeaError . hoistEither $ codeOfPrograms cfg avalanche
+  let attrs = List.sort $ getConcreteFeatures dictionary
+
+  firstT IcicleSeaError . hoistEither $ codeOfPrograms cfg attrs avalanche
 
 compileAvalanche ::
      Dictionary

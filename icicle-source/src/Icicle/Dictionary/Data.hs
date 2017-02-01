@@ -13,6 +13,7 @@ module Icicle.Dictionary.Data (
   , unkeyed
   , tombstonesOfDictionary
   , getVirtualFeatures
+  , getConcreteFeatures
   , featureMapOfDictionary
   , parseFact
   , prettyDictionarySummary
@@ -106,6 +107,16 @@ getVirtualFeatures (Dictionary { dictionaryEntries = fs })
   getV (DictionaryEntry a (VirtualDefinition v) _)
    = [(a,v)]
   getV _
+   = []
+
+-- | Get concrete features
+getConcreteFeatures :: Dictionary -> [Attribute]
+getConcreteFeatures (Dictionary { dictionaryEntries = fs })
+ = P.concatMap get fs
+ where
+  get (DictionaryEntry a ConcreteDefinition{} _)
+   = [a]
+  get _
    = []
 
 parseFact :: Dictionary -> Fact' -> Either DecodeError Fact
