@@ -155,7 +155,8 @@ static int64_t zebra_translate_column
                 istring_t *strings = anemone_mempool_alloc (mempool, count * sizeof (istring_t));
                 int offset = 1;
                 for (int i = 0; i != count; ++i) {
-                    int len = data.a.n[i];
+                    // Zebra lengths are stored as a prefix scan, so we take the difference
+                    int len = data.a.n[i+1] - data.a.n[i];
                     offset = zebra_translate_table (mempool, elem_start, len, (void**)(strings + i), &data.a.table);
                     elem_start += len;
                 }
