@@ -302,19 +302,13 @@ codeOfPrograms input attributes programs = do
 
   case input of
     NoInput -> do
-      let consts = seaOfDefaultConstants
       pure . textOfDoc . vsep
         $ [ "#define ICICLE_NO_INPUT 1"
-          , consts
           , seaPreamble
           , defs
           ] <> progs
     HasInput format opts _ -> do
       doc <- seaOfDriver format opts attributes states
-      let cnst = case format of
-                   FormatPsv conf
-                     -> seaOfConstants conf
-                   _ -> seaOfDefaultConstants
       let def  = case format of
                    FormatPsv conf
                      -> vsep [ defOfPsvInput (psvInputConfig conf), defOfPsvOutput (psvOutputConfig conf) ]
@@ -323,7 +317,7 @@ codeOfPrograms input attributes programs = do
                              , "#define ICICLE_ZEBRA 1"
                              ]
 
-      pure . textOfDoc . vsep $ [def, cnst, seaPreamble, defs] <> progs <> ["", doc]
+      pure . textOfDoc . vsep $ [def, seaPreamble, defs] <> progs <> ["", doc]
 
 textOfDoc :: Doc -> Text
 textOfDoc doc = T.pack (displayS (renderPretty 0.8 80 (pretty doc)) "")

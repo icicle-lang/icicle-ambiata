@@ -221,11 +221,11 @@ mkQueryFleet input chord source = do
   -- we actually only need to differentiate between psv/zebra, make this better
   let format = case inputFormat input of
         InputSparsePsv ->
-          FormatPsv $ psvDefaultConstants
+          FormatPsv $ PsvConfig
             (PsvInputConfig Chords PsvInputSparse)
             (PsvOutputConfig Chords PsvOutputSparse defaultOutputMissing)
         InputDensePsv ->
-          FormatPsv $ psvDefaultConstants
+          FormatPsv $ PsvConfig
             (PsvInputConfig Chords PsvInputSparse)
             (PsvOutputConfig Chords PsvOutputSparse defaultOutputMissing)
         InputZebra ->
@@ -272,13 +272,14 @@ loadDictionary path iformat oformat0 scope =
 
     oconfig =
       PsvOutputConfig mode oformat defaultOutputMissing
+
   in
     case iformat of
       InputSparsePsv -> do
         d <- firstEitherT IcicleDictionaryImportError $
           Toml.loadDictionary Source.optionSmallData Toml.ImplicitPrelude path
 
-        let f = FormatPsv $ psvDefaultConstants
+        let f = FormatPsv $ PsvConfig
                   (PsvInputConfig mode PsvInputSparse)
                   oconfig
 
@@ -288,7 +289,7 @@ loadDictionary path iformat oformat0 scope =
         (d, dense) <- firstEitherT IcicleDictionaryImportError $
           Toml.loadDenseDictionary Source.optionSmallData Toml.ImplicitPrelude path Nothing
 
-        let f = FormatPsv $ psvDefaultConstants
+        let f = FormatPsv $ PsvConfig
                   (PsvInputConfig mode (PsvInputDense dense (denseSelectedFeed dense)))
                   oconfig
 
@@ -338,12 +339,12 @@ runPsvQuery b = do
       output     = queryOutputPath   b
       dropPath   = queryDropPath     b
       chordPath  = queryChordPath    b
-      limit      = queryFactsLimit   b
       discard    = queryUseDrop b
+      constants  = defaultPsvConstants { psvFactsLimit = queryFactsLimit b }
 
   start <- liftIO getCurrentTime
   stats <- firstEitherT IcicleSeaError
-         $ seaPsvSnapshotFilePath fleet input output dropPath chordPath limit discard
+         $ seaPsvSnapshotFilePath fleet input output dropPath chordPath discard constants
   end   <- liftIO getCurrentTime
   size  <- liftIO (withFile input ReadMode hFileSize)
 

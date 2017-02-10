@@ -177,13 +177,9 @@ pChord :: Parser (Scope ())
 pChord =
   flag' (ScopeChord ()) (long "chord")
 
-defaultFactsLimit :: Int
-defaultFactsLimit =
-  1024 * 1024
-
 pLimit :: Parser Int
 pLimit =
-  flip option (long "facts-limit" <> value defaultFactsLimit) $
+  flip option (long "facts-limit" <> value defaultPsvFactsLimit) $
     readerAsk >>= \s -> case readMaybe s of
       Just i  -> return i
       Nothing -> readerError "--facts-limit NUMBER"
@@ -211,6 +207,7 @@ runCommand = \case
 
     end <- liftIO getCurrentTime
     let secs = realToFrac (end `diffUTCTime` start) :: Double
+
     liftIO (printf "icicle: compilation time = %.2fs\n" secs)
 
   IcicleQuery q -> do

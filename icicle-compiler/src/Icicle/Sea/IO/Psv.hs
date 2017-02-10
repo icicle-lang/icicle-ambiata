@@ -4,16 +4,16 @@
 {-# LANGUAGE PatternGuards #-}
 module Icicle.Sea.IO.Psv (
     PsvConfig (..)
+  , PsvConstants (..)
   , PsvInputConfig(..)
   , PsvOutputConfig(..)
   , PsvOutputFormat(..)
   , PsvInputFormat(..)
   , PsvInputDenseDict(..)
-  , seaOfConstants
-  , seaOfDefaultConstants
   , seaOfPsvDriver
-  , psvDefaultConstants
+  , defaultPsvConstants
   , defaultOutputMissing
+  , defaultPsvFactsLimit
   , defaultPsvMaxRowCount
   , defaultPsvInputBufferSize
   , defaultPsvOutputBufferSize
@@ -33,15 +33,18 @@ import           P
 data PsvConfig = PsvConfig {
     psvInputConfig      :: PsvInputConfig
   , psvOutputConfig     :: PsvOutputConfig
-  -- static constants to be declared
-  , psvMaxRowCount      :: Int
-  , psvInputBufferSize  :: Int
-  , psvOutputBufferSize :: Int
   } deriving (Eq, Show)
 
-psvDefaultConstants :: PsvInputConfig -> PsvOutputConfig -> PsvConfig
-psvDefaultConstants x y
-  = PsvConfig x y defaultPsvMaxRowCount defaultPsvInputBufferSize defaultPsvOutputBufferSize
+data PsvConstants = PsvConstants {
+    psvMaxRowCount      :: Int
+  , psvInputBufferSize  :: Int
+  , psvOutputBufferSize :: Int
+  , psvFactsLimit       :: Int
+  } deriving (Eq, Ord, Show)
+
+defaultPsvConstants :: PsvConstants
+defaultPsvConstants =
+  PsvConstants defaultPsvMaxRowCount defaultPsvInputBufferSize defaultPsvOutputBufferSize defaultPsvFactsLimit
 
 defaultPsvMaxRowCount :: Int
 defaultPsvMaxRowCount = 128
@@ -52,25 +55,8 @@ defaultPsvInputBufferSize = 256 * 1024
 defaultPsvOutputBufferSize :: Int
 defaultPsvOutputBufferSize = 256 * 1024
 
-seaOfConstants :: PsvConfig -> Doc
-seaOfConstants config
-  = vsep
-  [ seaOfConstant "int" "psv_max_row_count"      (pretty (psvMaxRowCount      config))
-  , seaOfConstant "int" "psv_input_buffer_size"  (pretty (psvInputBufferSize  config))
-  , seaOfConstant "int" "psv_output_buffer_size" (pretty (psvOutputBufferSize config))
-  ]
-
-seaOfDefaultConstants :: Doc
-seaOfDefaultConstants
-  = vsep
-  [ seaOfConstant "int" "psv_max_row_count"      (pretty defaultPsvMaxRowCount)
-  , seaOfConstant "int" "psv_input_buffer_size"  (pretty defaultPsvInputBufferSize)
-  , seaOfConstant "int" "psv_output_buffer_size" (pretty defaultPsvOutputBufferSize)
-  ]
-
-seaOfConstant :: Doc -> Doc -> Doc -> Doc
-seaOfConstant ty name val
-  = "static const" <+> ty <+> name <+> "=" <+> val <> ";"
+defaultPsvFactsLimit :: Int
+defaultPsvFactsLimit = 1024 * 1024
 
 ------------------------------------------------------------------------
 

@@ -13,6 +13,7 @@ typedef struct {
     const char  *error;
     iint_t fact_count;
     iint_t entity_count;
+    const size_t output_buffer_size;
 
 } zebra_config_t;
 
@@ -189,11 +190,12 @@ zebra_state_t *zebra_alloc_state (piano_t *piano, zebra_config_t *cfg)
         max_chord_count = 1;
     }
 
-    ifleet_t *fleet = psv_alloc_fleet (max_chord_count);
-    char *output_ptr = calloc (psv_output_buffer_size + 1, 1);
+    /* max_row_count is unused */
+    ifleet_t *fleet = psv_alloc_fleet (max_chord_count, 0);
+    char *output_ptr = calloc (cfg->output_buffer_size + 1, 1);
 
     state->output_start = output_ptr;
-    state->output_end   = output_ptr + psv_output_buffer_size - 1;
+    state->output_end   = output_ptr + cfg->output_buffer_size - 1;
     state->output_ptr   = output_ptr;
     state->fleet        = fleet;
     state->output_fd    = output_fd;

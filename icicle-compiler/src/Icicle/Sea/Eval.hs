@@ -80,11 +80,12 @@ seaZebraSnapshotFd :: SeaFleet ZebraState
                    -> Maybe Posix.Fd
                    -> EitherT SeaError IO ZebraStats
 seaZebraSnapshotFd fleet input output mchords = do
-  withWords 6 $ \pState -> do
+  withWords 7 $ \pState -> do
   input_path <- liftIO $ newCString input
   pokeWordOff pState 0 input_path
   pokeWordOff pState 1 output
   pokeWordOff pState 2 (fromMaybe 0 mchords)
+  pokeWordOff pState 6 (defaultPsvOutputBufferSize)
 
   sfSnapshot fleet pState
 
@@ -110,10 +111,10 @@ seaPsvSnapshotFilePath :: SeaFleet PsvState
                        -> FilePath
                        -> FilePath
                        -> Maybe FilePath
-                       -> Int
                        -> FlagUseDrop
+                       -> PsvConstants
                        -> EitherT SeaError IO PsvStats
-seaPsvSnapshotFilePath fleet input output dropped mchords limit discard = do
+seaPsvSnapshotFilePath fleet input output dropped mchords discard conf = do
   bracketEitherT' (liftIO $ Posix.openFd input Posix.ReadOnly Nothing Posix.defaultFileFlags)
                   (liftIO . Posix.closeFd) $ \ifd -> do
   bracketEitherT' (liftIO $ Posix.createFile output (Posix.CMode 0O644))
@@ -122,7 +123,7 @@ seaPsvSnapshotFilePath fleet input output dropped mchords limit discard = do
                   (liftIO . Posix.closeFd) $ \dfd -> do
   bracketEitherT' (liftIO $ maybeOpen mchords)
                   (liftIO . maybeClose) $ \mcfd -> do
-  seaPsvSnapshotFd fleet ifd ofd dfd mcfd limit discard
+  seaPsvSnapshotFd fleet ifd ofd dfd mcfd discard conf
 
 
 
@@ -131,18 +132,21 @@ seaPsvSnapshotFd :: SeaFleet PsvState
                  -> Posix.Fd
                  -> Posix.Fd
                  -> Maybe Posix.Fd
-                 -> Int
                  -> FlagUseDrop
+                 -> PsvConstants
                  -> EitherT SeaError IO PsvStats
-seaPsvSnapshotFd fleet input output dropped mchords limit discard =
-  withWords 9 $ \pState -> do
+seaPsvSnapshotFd fleet input output dropped mchords discard conf =
+  withWords 12 $ \pState -> do
 
-  pokeWordOff pState 0 input
-  pokeWordOff pState 1 output
-  pokeWordOff pState 2 dropped
-  pokeWordOff pState 3 (fromMaybe 0 mchords)
-  pokeWordOff pState 7 limit
-  pokeWordOff pState 8 (discard == FlagUseDropFile)
+  pokeWordOff pState 0  input
+  pokeWordOff pState 1  output
+  pokeWordOff pState 2  dropped
+  pokeWordOff pState 3  (fromMaybe 0 mchords)
+  pokeWordOff pState 7  (psvFactsLimit conf)
+  pokeWordOff pState 8  (discard == FlagUseDropFile)
+  pokeWordOff pState 9  (psvInputBufferSize conf)
+  pokeWordOff pState 10 (psvOutputBufferSize conf)
+  pokeWordOff pState 11 (psvMaxRowCount conf)
 
   sfSnapshot fleet pState
 
