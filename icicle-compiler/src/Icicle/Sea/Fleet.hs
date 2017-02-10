@@ -35,7 +35,7 @@ import           Piano
 import           Zebra.Data
 import           Zebra.Foreign.Entity
 import           Zebra.Merge.BlockC
-import           Zebra.Merge.Puller
+import           Zebra.Merge.Puller.File
 
 import           Jetski
 
