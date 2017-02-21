@@ -220,28 +220,6 @@ test-suite test
 
   hs-source-dirs:
                        test
-  other-modules:
-                       -- Icicle.Test.Sea.Bindings
-
-  include-dirs:
-                       data/sea
-
-  install-includes:
-                       00-includes.h
-                       05-error.h
-                       06-segv.h
-                       20-simple.h
-                       21-time.h
-                       30-array.h
-                       31-buffer.h
-                       40-grisu2-powers.h
-                       41-grisu2.h
-                       42-text-conversion.h
-                       50-chord.h
-                       51-piano.h
-                       52-psv.h
-                       53-zebra-data.h
-                       54-zebra.h
 
   build-depends:
                        base                            >= 3          && < 5
@@ -261,7 +239,6 @@ test-suite test
                      , ambiata-zebra
                      , ambiata-zebra-test
                      , bifunctors                      >= 4.2        && < 5.4
-                     , bindings-DSL                    >= 1.0.0      && <= 1.0.23
                      , aeson
                      , bytestring
                      , containers
@@ -302,7 +279,6 @@ test-suite test-io
                     , icicle-source
                     , icicle-core
                     , icicle
-                    , ambiata-zebra
                     , ambiata-disorder-core
                     , ambiata-disorder-corpus
                     , ambiata-p

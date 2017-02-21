@@ -2,11 +2,11 @@
 
 typedef struct piano piano_t;
 
-int64_t piano_max_count (
+static int64_t piano_max_count (
     piano_t *piano
   );
 
-error_t piano_lookup (
+static error_t piano_lookup (
     piano_t *piano
   , const uint8_t *needle_id
   , size_t needle_id_size

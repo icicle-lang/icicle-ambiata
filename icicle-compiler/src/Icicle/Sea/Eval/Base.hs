@@ -38,6 +38,7 @@ module Icicle.Sea.Eval.Base (
   , pokeWordOff
   , peekWordOff
 
+  , peekOutput
   , peekOutputs
   , wordOfError
   , errorOfWord

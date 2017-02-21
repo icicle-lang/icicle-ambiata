@@ -66,7 +66,7 @@ main
         , Icicle.Test.Avalanche.Melt.tests
 
         , Icicle.Test.Sea.Psv.tests
---        , Icicle.Test.Sea.Zebra.tests
+        , Icicle.Test.Sea.Zebra.tests
         , Icicle.Test.Sea.Seaworthy.tests
         , Icicle.Test.Sea.Text.tests
 
