@@ -128,7 +128,7 @@ seaCreateFleet options cache input chords code = do
                     left . SeaExternalError . T.pack $ "error step: " <> show msg
                   else return ()
 
-            let puller' :: PullId -> EitherT SeaError IO (Maybe Block)
+            let puller' :: PullId -> EitherT SeaError IO (Maybe (Block ()))
                 puller' = firstEitherT (SeaExternalError . T.pack . show) . puller
 
             runEitherT

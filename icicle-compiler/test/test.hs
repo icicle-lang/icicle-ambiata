@@ -31,7 +31,7 @@ import qualified Icicle.Test.Source.Convert
 import qualified Icicle.Test.Source.History
 
 import qualified Icicle.Test.Sea.Psv
---import qualified Icicle.Test.Sea.Zebra
+import qualified Icicle.Test.Sea.Zebra
 import qualified Icicle.Test.Sea.Seaworthy
 import qualified Icicle.Test.Sea.Text
 

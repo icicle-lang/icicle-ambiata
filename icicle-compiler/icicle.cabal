@@ -259,12 +259,14 @@ test-suite test
                      , ambiata-x-file-embed
                      , ambiata-anemone
                      , ambiata-zebra
+                     , ambiata-zebra-test
                      , bifunctors                      >= 4.2        && < 5.4
                      , bindings-DSL                    >= 1.0.0      && <= 1.0.23
                      , aeson
                      , bytestring
                      , containers
                      , directory
+                     , exceptions                      == 0.8.*
                      , filepath                        == 1.4.*
                      , geniplate-mirror                >= 0.7.2      && < 0.8
                      , megaparsec                      == 5.0.*
@@ -278,6 +280,7 @@ test-suite test
                      , temporary
                      , text
                      , transformers
+                     , vector                          == 0.11.*
 
 
 test-suite test-io
