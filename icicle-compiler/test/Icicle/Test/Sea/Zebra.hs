@@ -68,8 +68,8 @@ import qualified Icicle.Test.Foreign.Utils as Test
 --
 prop_read_entity :: Property
 prop_read_entity =
-  gamble (justOf zebra) $ \(ZebraWellTyped wt ty entity) ->
-  testIO . withSegv (pp wt entity) . bracket Mempool.create Mempool.free $ \pool -> do
+  gamble (justOf zebra) $ \(ZebraWellTyped wt ty entity rows) ->
+  testIO . withSegv (pp wt entity rows) . bracket Mempool.create Mempool.free $ \pool -> do
     c_entity <- Zebra.foreignOfEntity pool entity
     Test.runRight $ do
       code <- hoistEither $ codeOf wt
@@ -179,11 +179,12 @@ data ZebraWellTyped = ZebraWellTyped {
     zWelltyped    :: WellTyped
   , zFactType     :: ValType -- wtFactType = Sum Error FactType
   , zEntity       :: Zebra.Entity Schema
+  , zRows         :: [Zebra.Value]
   }
 
 instance Show ZebraWellTyped where
-  show (ZebraWellTyped wt _ e) =
-    pp wt e
+  show (ZebraWellTyped wt _ e rs) =
+    pp wt e rs
 
 zebra :: Jack (Maybe ZebraWellTyped)
 zebra = do
@@ -191,7 +192,7 @@ zebra = do
   let
     supportedInputType x =
       case wtFactType x of
-        SumT _ (ArrayT e) -> False
+        SumT _ (ArrayT _) -> False
         _ -> True
   wt <- arbitrary `suchThat` supportedInputType
   zebraOfWellTyped wt
@@ -203,14 +204,14 @@ zebraOfWellTyped wt =
       Savage.error (show e)
     Right Nothing ->
       return Nothing
-    Right (Just (ty, tombstones, table)) -> do
+    Right (Just (ty, tombstones, rows, table)) -> do
       -- FIXME ignoring fact times for now, but to test it we should convert icicle time to 1600 epoch secs here
       -- let ts = fmap (Zebra.Time . fromIntegral . Icicle.secondsCountJulian . atTime) (wtFacts wt)
       let ts = List.replicate (length (wtFacts wt)) 0
       ps <- vectorOf (length ts) Zebra.jFactsetId
       let attribute = Zebra.Attribute (Storable.fromList ts) (Storable.fromList ps) (Storable.fromList tombstones) table
       entity <- uncurry Zebra.Entity <$> Zebra.jEntityHashId <*> pure (Boxed.singleton attribute)
-      pure . Just $ ZebraWellTyped wt ty entity
+      pure . Just $ ZebraWellTyped wt ty entity rows
 
 -- we are not reading nested arrays in zebra right now
 schemaOfType' :: ValType -> Maybe Schema
@@ -385,7 +386,7 @@ zebraOfTopValue t val
 zebraOfFacts ::
       ValType
   -> [BaseValue]
-  -> Either TestError (Maybe (ValType, [Zebra.Tombstone], Table Schema))
+  -> Either TestError (Maybe (ValType, [Zebra.Tombstone], [Zebra.Value], Table Schema))
 zebraOfFacts ty facts
   | SumT ErrorT t <- ty =
     case schemaOfType t of
@@ -398,7 +399,7 @@ zebraOfFacts ty facts
                $ if null tables
                  then pure $ Table.empty schema
                  else Table.concat . Boxed.fromList $ tables
-        pure . Just $ (t, tombstones, table)
+        pure . Just $ (t, tombstones, rows, table)
 
   | otherwise = Left (UnexpectedError ty facts)
 
@@ -441,11 +442,12 @@ codeOf wt = do
     ]
 
 
-pp :: WellTyped -> Zebra.Entity Schema -> String
-pp wt entity =
+pp :: WellTyped -> Zebra.Entity Schema -> [Zebra.Value] -> String
+pp wt entity rs =
   "Fact type = " <> show (wtFactType wt) <> "\n" <>
   "Facts = " <> ppShow (wtFacts wt) <> "\n" <>
-  "As zebra entity = \n" <> ppShow entity
+  "As zebra entity = \n" <> ppShow entity <>
+  "Zebra rows = \n" <> ppShow rs
 
 return []
 tests :: IO Bool
