@@ -28,7 +28,7 @@ library
                      , icicle-core
                      , icicle-data
                      , icicle-source
-                     , aeson                           >= 0.8        && < 0.12
+                     , aeson                           >= 0.8        && < 1.2
                      , annotated-wl-pprint             == 0.7.*
                      , ansi-terminal                   == 0.6.*
                      , bifunctors                      >= 4.2        && < 5.4
@@ -227,7 +227,6 @@ test-suite test
                      , icicle-source
                      , icicle-core
                      , icicle
-                     , ambiata-disorder-aeson
                      , ambiata-disorder-core
                      , ambiata-disorder-corpus
                      , ambiata-disorder-jack
