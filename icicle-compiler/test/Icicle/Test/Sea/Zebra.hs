@@ -187,7 +187,13 @@ instance Show ZebraWellTyped where
 
 zebra :: Jack (Maybe ZebraWellTyped)
 zebra = do
-  wt <- arbitrary
+  -- we don't read arrays (except of bytes) in zebra
+  let
+    supportedInputType x =
+      case wtFactType x of
+        SumT _ (ArrayT e) -> False
+        _ -> True
+  wt <- arbitrary `suchThat` supportedInputType
   zebraOfWellTyped wt
 
 zebraOfWellTyped :: WellTyped -> Jack (Maybe ZebraWellTyped)
