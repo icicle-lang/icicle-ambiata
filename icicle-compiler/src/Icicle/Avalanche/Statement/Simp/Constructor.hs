@@ -74,11 +74,11 @@ constructor a_fresh statements
   primLt  = primRelation Min.PrimRelationLt
   primLe  = primRelation Min.PrimRelationLe
 
-  primFold1 append xs
+  primFold1 def append xs
    = case xs of
-      []     -> xValue UnitT VUnit -- this case shouldn't happen, make it a type error
+      []     -> def
       (y:[]) -> y
-      (y:ys) -> y `append` primFold1 append ys
+      (y:ys) -> y `append` primFold1 def append ys
 
   primLogical op x y
    = xPrim (PrimMinimal (Min.PrimLogical op)) `xApp` x `xApp` y
@@ -327,9 +327,9 @@ constructor a_fresh statements
    , Just tis   <- withIndex tryMeltType t
    , prim       <- relationPrim op
    , ps         <- meltWith prim t
-   , conn       <- connectivePrim op
+   , (conn,def) <- connectivePrim op
    = Just
-   $ primFold1 conn
+   $ primFold1 def conn
    $ fmap (\(p, tvi) -> withPrim p t nx ny tvi) (List.zip ps tis)
 
    | otherwise
@@ -350,12 +350,12 @@ constructor a_fresh statements
     Min.PrimRelationNe -> primNe
 
   connectivePrim p = case p of
-    Min.PrimRelationGt -> primAnd
-    Min.PrimRelationGe -> primAnd
-    Min.PrimRelationLt -> primAnd
-    Min.PrimRelationLe -> primAnd
-    Min.PrimRelationEq -> primAnd
-    Min.PrimRelationNe -> primOr
+    Min.PrimRelationGt -> (primAnd, xFalse)
+    Min.PrimRelationGe -> (primAnd, xTrue)
+    Min.PrimRelationLt -> (primAnd, xFalse)
+    Min.PrimRelationLe -> (primAnd, xTrue)
+    Min.PrimRelationEq -> (primAnd, xTrue)
+    Min.PrimRelationNe -> (primOr, xFalse)
 
 
   -- | For a relation prim applied to t, melt prim to match members of melted t
