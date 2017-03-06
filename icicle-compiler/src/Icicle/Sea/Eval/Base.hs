@@ -220,18 +220,19 @@ seaCompileFleet ::
   -> EitherT SeaError m (SeaFleet st)
 seaCompileFleet options cache input attributes programs chords = do
   code <- hoistEither (codeOfPrograms input attributes (Map.toList programs))
-  seaCreateFleet options (fromCacheSea cache) input chords code
+  seaCreateFleet options (fromCacheSea cache) input chords (length attributes) code
 
 seaCreate ::
      (MonadIO m)
   => CacheSea
   -> Input FilePath
   -> Maybe FilePath
+  -> Int
   -> Text
   -> EitherT SeaError m (SeaFleet st)
-seaCreate cache input chords code = do
+seaCreate cache input chords attribute_count code = do
   options <- getCompilerOptions
-  seaCreateFleet options (fromCacheSea cache) input chords code
+  seaCreateFleet options (fromCacheSea cache) input chords attribute_count code
 
 fromCacheSea :: CacheSea -> CacheLibrary
 fromCacheSea = \case
@@ -314,15 +315,18 @@ codeOfPrograms input attributes programs = do
           ] <> progs
     HasInput format opts _ -> do
       doc <- seaOfDriver format opts attributes states
-      let def  = case format of
-                   FormatPsv conf
-                     -> vsep [ defOfPsvInput (psvInputConfig conf), defOfPsvOutput (psvOutputConfig conf) ]
-                   _ -> vsep [ -- FIXME property separate what is needed from psv
-                               "#define ICICLE_PSV_INPUT_SPARSE 1"
-                             , "#define ICICLE_ZEBRA 1"
-                             ]
+      let def = case format of
+            FormatPsv conf -> vsep
+              [ defOfPsvInput (psvInputConfig conf)
+              , defOfPsvOutput (psvOutputConfig conf) ]
+            -- FIXME property separate what is needed from psv
+            FormatZebra conf _ _ -> vsep
+              [ "#define ICICLE_PSV_INPUT_SPARSE 1"
+              , "#define ICICLE_ZEBRA 1"
+              -- FIXME move to config
+              , "static const int zebra_chunk_fact_count = " <> (pretty (zebraChunkFactCount conf)) <> ";" ]
 
-      pure . textOfDoc . vsep $ [def, seaPreamble, defs] <> progs <> ["", doc]
+      pure . textOfDoc . vsep $ [ def, seaPreamble, defs ] <> progs <> ["", doc]
 
 textOfDoc :: Doc -> Text
 textOfDoc doc = T.pack (displayS (renderPretty 0.8 80 (pretty doc)) "")

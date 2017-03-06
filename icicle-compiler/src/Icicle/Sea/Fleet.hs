@@ -72,9 +72,10 @@ seaCreateFleet ::
   -> CacheLibrary
   -> Input FilePath
   -> Maybe FilePath
+  -> Int
   -> Text
   -> EitherT SeaError m (SeaFleet st)
-seaCreateFleet options cache input chords code = do
+seaCreateFleet options cache input chords attribute_count code = do
   lib                  <- firstEitherT SeaJetskiError (compileLibrary cache options code)
   imempool_create      <- firstEitherT SeaJetskiError (function lib "anemone_mempool_create" (retPtr retVoid))
   imempool_free        <- firstEitherT SeaJetskiError (function lib "anemone_mempool_free"   retVoid)
@@ -105,7 +106,7 @@ seaCreateFleet options cache input chords code = do
       fn <- firstEitherT SeaJetskiError (function lib "psv_snapshot" retVoid)
       return $ play $ \ptr cpiano -> Right <$> fn [ argPtr (unCPiano cpiano), argPtr ptr ]
 
-    HasInput (FormatZebra _ _) _ input_path -> do
+    HasInput (FormatZebra _ _ _) _ input_path -> do
       step <- firstEitherT SeaJetskiError (function lib "zebra_snapshot_step" (retPtr retCChar))
       init <- firstEitherT SeaJetskiError (function lib "zebra_alloc_state" (retPtr retVoid))
       end  <- firstEitherT SeaJetskiError (function lib "zebra_collect_state" (retPtr retVoid))
@@ -118,7 +119,7 @@ seaCreateFleet options cache input chords code = do
           withPiano ptr cpiano = do
             let piano = unCPiano cpiano
 
-            state <- init [ argPtr piano, argPtr ptr ]
+            state <- init [ argPtr piano, argPtr ptr, argInt64 (fromIntegral attribute_count) ]
 
             let step' :: CEntity -> EitherT SeaError IO ()
                 step' e = do

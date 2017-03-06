@@ -12,6 +12,8 @@ module Icicle.Sea.IO
   , defaultPsvMaxRowCount
   , defaultPsvInputBufferSize
   , defaultPsvOutputBufferSize
+  , defaultZebraConfig
+
   , Mode(..)
   , IOFormat (..)
   , InputOpts (..)
@@ -23,6 +25,7 @@ module Icicle.Sea.IO
   , PsvInputDenseDict(..)
   , PsvOutputConfig(..)
   , PsvOutputFormat(..)
+  , ZebraConfig (..)
   ) where
 
 import           Icicle.Internal.Pretty
@@ -41,7 +44,7 @@ import           P
 
 data IOFormat
   = FormatPsv   PsvConfig
-  | FormatZebra Mode PsvOutputConfig -- temporary
+  | FormatZebra ZebraConfig Mode PsvOutputConfig -- temporary
     deriving (Eq, Show)
 
 seaOfDriver :: IOFormat -> InputOpts -> [Attribute] -> [SeaProgramState] -> Either SeaError Doc
@@ -49,7 +52,7 @@ seaOfDriver format opts attributes states
   = case format of
       FormatPsv conf -> do
         seaOfPsvDriver opts conf states
-      FormatZebra mode outputConfig -> do
+      FormatZebra _ mode outputConfig -> do
         -- FIXME generate code for psv as well when using zebra, because we
         -- are relying on some psv functions, they should be factored out or something
         let psvConfig =

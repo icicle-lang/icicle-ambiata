@@ -38,6 +38,7 @@ import           Icicle.Data (Attribute(..))
 import           Icicle.Data.Time (Time(..))
 import           Icicle.Dictionary
 import           Icicle.Internal.Pretty (pretty)
+import           Icicle.Sea.IO
 import           Icicle.Sea.Eval
 import qualified Icicle.Source.Checker as Source
 import qualified Icicle.Storage.Dictionary.Toml as Toml
@@ -229,12 +230,13 @@ mkQueryFleet input chord source = do
             (PsvInputConfig Chords PsvInputSparse)
             (PsvOutputConfig Chords PsvOutputSparse defaultOutputMissing)
         InputZebra ->
-          FormatZebra Chords
+          FormatZebra defaultZebraConfig Chords
             (PsvOutputConfig Chords PsvOutputSparse defaultOutputMissing)
 
   let cfg = HasInput format (InputOpts AllowDupTime Map.empty) (inputPath input)
+
   code  <- liftIO $ Text.readFile source
-  fleet <- firstEitherT IcicleSeaError (seaCreate CacheSea cfg chord code)
+  fleet <- firstEitherT IcicleSeaError (seaCreate CacheSea cfg chord 0 code)
   return (code, fleet)
 
 compileFleet ::
@@ -299,7 +301,7 @@ loadDictionary path iformat oformat0 scope =
         d <- firstEitherT IcicleDictionaryImportError $
           Toml.loadDictionary Source.optionSmallData Toml.ImplicitPrelude path
 
-        let f = FormatZebra mode oconfig
+        let f = FormatZebra defaultZebraConfig mode oconfig
 
         return (d, f)
 

@@ -13,7 +13,6 @@ import           Control.Monad.IO.Class (liftIO)
 import           Data.String
 import qualified Data.List as List
 import qualified Data.Text.Encoding as Text
-import qualified Data.ByteString.Char8 as ByteString
 import qualified Data.Map.Strict as Map
 import qualified Data.Vector as Boxed
 import qualified Data.Vector.Storable as Storable
@@ -69,11 +68,12 @@ import qualified Icicle.Test.Foreign.Utils as Test
 --
 prop_read_entity :: Property
 prop_read_entity =
+  gamble (jZebraChunkSize) $ \zebraChunkSize ->
   gamble (justOf zebra) $ \(ZebraWellTyped wt ty entity rows) ->
-  testIO . withSegv (pp wt entity rows) . bracket Mempool.create Mempool.free $ \pool -> do
+  testIO . withSegv (pp wt entity rows zebraChunkSize) . bracket Mempool.create Mempool.free $ \pool -> do
     c_entity <- Zebra.foreignOfEntity pool entity
     Test.runRight $ do
-      code <- hoistEither $ codeOf wt
+      code <- hoistEither $ codeOf zebraChunkSize wt
       opts <- getCompilerOptions
       bracketEitherT'
         (firstEitherT SeaJetskiError $ compileLibrary NoCacheLibrary opts code)
@@ -81,35 +81,25 @@ prop_read_entity =
         (\src -> do
           init <- firstEitherT SeaJetskiError $ function src "zebra_alloc_state" (retPtr retVoid)
           end <- firstEitherT SeaJetskiError $ function src "zebra_collect_state" (retPtr retVoid)
-          test_fleet <- firstEitherT SeaJetskiError $ function src "test_setup_fleet" (retPtr retVoid)
           test_read_entity <- firstEitherT SeaJetskiError $ function src "test_zebra_read_entity" (retPtr retWord8)
 
           withWords 7 $ \config -> do
             pokeWordOff config 6 defaultPsvOutputBufferSize
             bracketEitherT'
-              (liftIO (init [ argPtr nullPtr, argPtr config ]))
+              (liftIO (init [ argPtr nullPtr, argPtr config, argInt64 1 ]))
               (\state -> (liftIO (end [ argPtr config, argPtr state ])))
               (\state -> do
                  fleet_ptr <- peekWordOff state 5
 
-                 liftIO . withCStringLen (ByteString.unpack . Zebra.unEntityId . Zebra.entityId $ entity)
-                   $ \(id_bytes, id_length) -> do
-                     e1 <- test_fleet
-                             [ argPtr id_bytes
-                             , argInt32 (fromIntegral id_length)
-                             , argPtr nullPtr
-                             , argPtr fleet_ptr ]
+                 liftIO $ do
+                   e <- test_read_entity
+                           [ argPtr nullPtr
+                           , argPtr state
+                           , argPtr (Zebra.unCEntity c_entity) ]
 
-                     when (e1 /= nullPtr) $
-                       fail "failed to configure fleet"
-
-                     e2 <- test_read_entity
-                             [ argPtr state
-                             , argPtr (Zebra.unCEntity c_entity) ]
-
-                     when (e2 /= nullPtr) $ do
-                       err <- peekCString (castPtr e2)
-                       fail $ "failed to read entity: " <> err
+                   when (e /= nullPtr) $ do
+                     err <- peekCString (castPtr e)
+                     fail $ "failed to read entity: " <> err
 
                  -- iprogram: { *mempool, input, ... }
                  -- input: { *chord_time, *fact_count, *tombstone, *input_start, ... }
@@ -185,7 +175,11 @@ data ZebraWellTyped = ZebraWellTyped {
 
 instance Show ZebraWellTyped where
   show (ZebraWellTyped wt _ e rs) =
-    pp wt e rs
+    pp wt e rs 0
+
+jZebraChunkSize :: Jack Int
+jZebraChunkSize =
+  arbitrary `suchThat` (> 0)
 
 zebra :: Jack (Maybe ZebraWellTyped)
 zebra = do
@@ -406,29 +400,27 @@ zebraOfFacts ty facts
 testSnapshotTime :: Time
 testSnapshotTime = Icicle.unsafeTimeOfYMD 9999 1 1
 
-codeOf :: WellTyped -> Either SeaError SourceCode
-codeOf wt = do
+codeOf :: Int -> WellTyped -> Either SeaError SourceCode
+codeOf zebra_chunk_size wt = do
   let
-    dummy = HasInput
-      (FormatZebra (Snapshot testSnapshotTime)
-      (PsvOutputConfig (Snapshot testSnapshotTime) PsvOutputDense defaultOutputMissing))
-      (InputOpts AllowDupTime Map.empty)
-      ("" :: String)
+    input =
+      HasInput
+        (FormatZebra
+          (ZebraConfig zebra_chunk_size)
+          (Snapshot testSnapshotTime)
+          (PsvOutputConfig (Snapshot testSnapshotTime) PsvOutputDense defaultOutputMissing))
+        (InputOpts AllowDupTime Map.empty)
+        ("" :: String)
     attr = wtAttribute wt
     flat = wtAvalancheFlat wt
 
-  src <- codeOfPrograms dummy [attr] [(attr, flat)]
+  src <- codeOfPrograms input [attr] [(attr, flat)]
 
   pure . textOfDoc . PP.vsep $
     [ PP.pretty src
     , ""
-    , "ierror_msg_t test_zebra_read_entity (zebra_state_t *state, zebra_entity_t *entity) {"
-    , "    return zebra_read_entity (state, entity);"
-    , "}"
-    , ""
-    , "ierror_loc_t test_setup_fleet (const char *entity, size_t size, piano_t *piano, ifleet_t *fleet) {"
-    , "    psv_collect_fleet (fleet);"
-    , "    return psv_configure_fleet (entity, size, piano, fleet);"
+    , "ierror_msg_t test_zebra_read_entity (piano_t *piano, zebra_state_t *state, zebra_entity_t *entity) {"
+    , "    return zebra_read_step (piano, state, entity);"
     , "}"
     , ""
     , "int64_t piano_max_count (piano_t *piano) {"
@@ -442,12 +434,14 @@ codeOf wt = do
     ]
 
 
-pp :: WellTyped -> Zebra.Entity Schema -> [Zebra.Value] -> String
-pp wt entity rs =
+pp :: WellTyped -> Zebra.Entity Schema -> [Zebra.Value] -> Int -> String
+pp wt entity rows size =
+  "=== Entity ===\n" <>
+  "Zebra chunk size = " <> show size <> "\n" <>
   "Fact type = " <> show (wtFactType wt) <> "\n" <>
   "Facts = " <> ppShow (wtFacts wt) <> "\n" <>
-  "As zebra entity = \n" <> ppShow entity <> "\n" <>
-  "Zebra rows = \n" <> ppShow rs <>
+  "As Zebra values = \n" <> ppShow rows <> "\n" <>
+  "As Zebra entity = \n" <> ppShow entity
   "Avalanche program = \n" <> show (PP.pretty (wtAvalancheFlat wt))
 
 return []
