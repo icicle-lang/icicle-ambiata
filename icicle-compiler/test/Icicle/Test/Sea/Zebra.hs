@@ -25,7 +25,7 @@ import           Foreign.C.String
 
 import           System.IO
 
-import qualified Prelude as Savage 
+import qualified Prelude as Savage
 
 import           P
 
@@ -41,14 +41,15 @@ import qualified Anemone.Foreign.Mempool as Mempool
 import           Anemone.Foreign.Segv (withSegv)
 
 import qualified Test.Zebra.Jack as Zebra
-import qualified Zebra.Foreign.Entity as Zebra
-import qualified Zebra.Data.Entity as Zebra
 import qualified Zebra.Data.Core as Zebra
-import qualified Zebra.Data.Fact as Zebra
-import           Zebra.Data.Table (Table(..), TableError)
-import qualified Zebra.Data.Table as Table
-import           Zebra.Data.Schema (Schema)
-import qualified Zebra.Data.Schema as Schema
+import qualified Zebra.Data.Entity as Zebra
+import qualified Zebra.Foreign.Entity as Zebra
+import           Zebra.Schema (Schema)
+import qualified Zebra.Schema as Schema
+import           Zebra.Table (Table(..), TableError)
+import qualified Zebra.Table as Table
+import qualified Zebra.Value as Zebra (Value)
+import qualified Zebra.Value as Value
 
 import qualified Icicle.Internal.Pretty as PP
 import           Icicle.Common.Base
@@ -228,7 +229,7 @@ schemaOfType' ty = case ty of
 schemaOfType :: ValType -> Maybe Schema
 schemaOfType ty = case ty of
   BoolT ->
-    pure Schema.Bool
+    pure Schema.bool
 
   TimeT ->
     pure Schema.Int
@@ -265,12 +266,7 @@ schemaOfType ty = case ty of
       , Schema.Field (Schema.FieldName "snd") b' ]
 
   OptionT t ->
-    let
-      none =
-        Schema.Variant (Schema.VariantName "none") (Schema.Struct Boxed.empty)
-      someOf x =
-        Schema.Variant (Schema.VariantName "some") <$> schemaOfType x
-    in Schema.Enum none . Boxed.singleton <$> someOf t
+    Schema.option <$> schemaOfType t
 
   SumT a b ->
     let
@@ -301,73 +297,77 @@ schemaOfType ty = case ty of
 zebraOfValue :: ValType -> BaseValue -> Either TestError Zebra.Value
 zebraOfValue ty val = case val of
   VInt x ->
-    pure . Zebra.Int . fromIntegral $ x
+    pure . Value.Int . fromIntegral $ x
 
   VDouble x ->
-    pure . Zebra.Double $ x
+    pure . Value.Double $ x
 
   VUnit ->
-    pure . Zebra.Struct $ Boxed.empty
+    pure . Value.Struct $ Boxed.empty
 
-  VBool x ->
-    pure . Zebra.Bool $ x
+  VBool False ->
+    pure $ Value.false
+
+  VBool True ->
+    pure $ Value.true
 
   VTime x ->
-    pure . Zebra.Int . fromIntegral . Icicle.packedOfTime $ x
+    pure . Value.Int . fromIntegral . Icicle.packedOfTime $ x
 
   VString x ->
-    pure . Zebra.ByteArray . Text.encodeUtf8 $ x
+    pure . Value.ByteArray . Text.encodeUtf8 $ x
 
   VArray xs
     | ArrayT t <- ty
-    -> Zebra.Array . Boxed.fromList <$> mapM (zebraOfValue t) xs
+    -> Value.Array . Boxed.fromList <$> mapM (zebraOfValue t) xs
 
   VPair a b
     | PairT ta tb <- ty
     -> do a' <- zebraOfValue ta a
           b' <- zebraOfValue tb b
-          pure . Zebra.Struct . Boxed.fromList $ [a', b']
+          pure . Value.Struct . Boxed.fromList $ [a', b']
 
   VLeft x
     | SumT t _ <- ty
-    -> Zebra.Enum 0 <$> zebraOfValue t x
+    -> Value.Enum 0 <$> zebraOfValue t x
 
   VRight x
     | SumT _ t <- ty
-    -> Zebra.Enum 1 <$> zebraOfValue t x
+    -> Value.Enum 1 <$> zebraOfValue t x
 
   VNone
     | OptionT _ <- ty
-    -> pure . Zebra.Enum 0 . Zebra.Struct $ Boxed.empty
+    -> pure $ Value.none
 
   VSome x
     | OptionT t <- ty
-    -> Zebra.Enum 1 <$> zebraOfValue t x
+    -> Value.some <$> zebraOfValue t x
 
   VMap x
     | MapT tk tv <- ty
     -> do keys <- mapM (zebraOfValue tk) (Map.keys x)
           vals <- mapM (zebraOfValue tv) (Map.elems x)
-          pure . Zebra.Struct . Boxed.fromList $
-            [ Zebra.Array (Boxed.fromList keys), Zebra.Array (Boxed.fromList vals) ]
+          pure . Value.Struct . Boxed.fromList $
+            [ Value.Array (Boxed.fromList keys), Value.Array (Boxed.fromList vals) ]
   VStruct xs
     | StructT struct <- ty
     , types <- getStructType struct
     , vs <- Map.elems (Map.intersectionWith (,) types xs)
     , length vs == Map.size types
-    -> Zebra.Struct . Boxed.fromList <$> mapM (uncurry zebraOfValue) vs
+    -> Value.Struct . Boxed.fromList <$> mapM (uncurry zebraOfValue) vs
+
   VBuf xs
     | BufT _ t <- ty
-    -> Zebra.Array . Boxed.fromList <$> mapM (zebraOfValue t) xs
+    -> Value.Array . Boxed.fromList <$> mapM (zebraOfValue t) xs
 
   VFactIdentifier x ->
-    pure . Zebra.Int . fromIntegral . getFactIdentifierIndex $ x
+    pure . Value.Int . fromIntegral . getFactIdentifierIndex $ x
 
   VError ExceptTombstone ->
     Left (UnexpectedError ty [val])
 
   VError e ->
-    pure . Zebra.Int . fromIntegral . wordOfError $ e
+    pure . Value.Int . fromIntegral . wordOfError $ e
 
   _ ->
     Left (UnexpectedError ty [val])
