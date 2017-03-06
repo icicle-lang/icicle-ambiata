@@ -64,12 +64,15 @@ prop_melt_total t
       Right flatProgram
        -> let checked = P.checkAvalanche $ AA.eraseAnnotP flatProgram
           in case checked of
-              Left _
-               -> counterexample (show $ pretty flatProgram) False
+              Left e
+               -> counterexample (show e)
+                $ counterexample (show (pretty coreProgram))
+                $ counterexample (show $ pretty flatProgram) False
               Right p
                -> let u = unmelted (AP.statements p)
-                  in   counterexample (show $ pretty $ P.coreAvalanche coreProgram)
-                     $ counterexample (show $ pretty flatProgram)
+                  in   counterexample ("core:\n" <> show (pretty coreProgram) <> "\n")
+                     $ counterexample ("unflattened:\n" <> show (pretty $ P.coreAvalanche coreProgram) <> "\n")
+                     $ counterexample ("flat:\n" <> show (pretty flatProgram) <> "\n")
                      $ counterexample ("unmelted:\n" <> show u)
                      $ isNothing u
  where
@@ -92,7 +95,9 @@ prop_melt_total t
       InitAccumulator (Accumulator _ _ x) s
        | notAllowed (getType x)  -> Just stm
        | otherwise               -> unmelted s
-      Read _ _ _ s               -> unmelted s
+      Read _ _ vt s
+       | notAllowed vt           -> Just stm
+       | otherwise               -> unmelted s
       Write _ x
        | notAllowed (getType x)  -> Just stm
       _                          -> Nothing

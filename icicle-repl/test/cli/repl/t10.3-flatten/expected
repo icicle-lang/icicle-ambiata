@@ -338,8 +338,6 @@ for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0$simpflat$127@{Error}, 
   read map_insert_loc_vals$flat$6$simpflat$52 = map_insert_acc_vals$flat$2$simpflat$48 [Array (Buf 2 FactIdentifier)];
   read map_insert_loc_vals$flat$6$simpflat$53 = map_insert_acc_vals$flat$2$simpflat$49 [Array (Buf 2 Error)];
   read map_insert_loc_vals$flat$6$simpflat$54 = map_insert_acc_vals$flat$2$simpflat$50 [Array (Buf 2 Int)];
-  read map_insert_loc_bs_found$flat$8 = map_insert_acc_bs_found$flat$4 [Bool];
-  read map_insert_loc_bs_index$flat$7 = map_insert_acc_bs_index$flat$3 [Int];
   let map_insert_size$flat$10 = Array_length#@{Time} map_insert_loc_keys$flat$5;
   init bs_acc_found$flat$18@{Bool} = False@{Bool};
   init bs_acc_mid$flat$15@{Int} = -1@{Int};
@@ -582,8 +580,6 @@ foreach (for_counter$flat$49 in 0@{Int} .. Array_length#@{Time} conv$4$simpflat$
       init map_insert_acc_bs_index$flat$61@{Int} = -1@{Int};
       read map_insert_loc_keys$flat$63 = map_insert_acc_keys$flat$59 [Array Time];
       read map_insert_loc_vals$flat$64 = map_insert_acc_vals$flat$60 [Array Int];
-      read map_insert_loc_bs_found$flat$66 = map_insert_acc_bs_found$flat$62 [Bool];
-      read map_insert_loc_bs_index$flat$65 = map_insert_acc_bs_index$flat$61 [Int];
       let map_insert_size$flat$68 = Array_length#@{Time} map_insert_loc_keys$flat$63;
       init bs_acc_found$flat$76@{Bool} = False@{Bool};
       init bs_acc_mid$flat$73@{Int} = -1@{Int};
@@ -760,8 +756,6 @@ for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0$simpflat$127@{Error}, 
   read map_insert_loc_vals$flat$6$simpflat$52 = map_insert_acc_vals$flat$2$simpflat$48 [Array (Buf 2 FactIdentifier)];
   read map_insert_loc_vals$flat$6$simpflat$53 = map_insert_acc_vals$flat$2$simpflat$49 [Array (Buf 2 Error)];
   read map_insert_loc_vals$flat$6$simpflat$54 = map_insert_acc_vals$flat$2$simpflat$50 [Array (Buf 2 Int)];
-  read map_insert_loc_bs_found$flat$8 = map_insert_acc_bs_found$flat$4 [Bool];
-  read map_insert_loc_bs_index$flat$7 = map_insert_acc_bs_index$flat$3 [Int];
   let map_insert_size$flat$10 = Array_length#@{Time} map_insert_loc_keys$flat$5;
   init bs_acc_found$flat$18@{Bool} = False@{Bool};
   init bs_acc_mid$flat$15@{Int} = -1@{Int};
@@ -1004,8 +998,6 @@ foreach (for_counter$flat$49 in 0@{Int} .. Array_length#@{Time} conv$4$simpflat$
       init map_insert_acc_bs_index$flat$61@{Int} = -1@{Int};
       read map_insert_loc_keys$flat$63 = map_insert_acc_keys$flat$59 [Array Time];
       read map_insert_loc_vals$flat$64 = map_insert_acc_vals$flat$60 [Array Int];
-      read map_insert_loc_bs_found$flat$66 = map_insert_acc_bs_found$flat$62 [Bool];
-      read map_insert_loc_bs_index$flat$65 = map_insert_acc_bs_index$flat$61 [Int];
       let map_insert_size$flat$68 = Array_length#@{Time} map_insert_loc_keys$flat$63;
       init bs_acc_found$flat$76@{Bool} = False@{Bool};
       init bs_acc_mid$flat$73@{Int} = -1@{Int};

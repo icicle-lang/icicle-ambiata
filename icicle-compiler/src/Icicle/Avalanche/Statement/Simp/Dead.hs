@@ -31,8 +31,8 @@ dead ss
 
 data Usage n
  = Usage
- { usageAcc :: Set (Name n)
- , usageExp :: Set (Name n)
+ { usageAcc :: Set (Name n) -- accumulator names
+ , usageExp :: Set (Name n) -- local names
  }
 
 instance Eq n => Monoid (Usage n) where
@@ -57,7 +57,7 @@ deadS us statements
      -> let (sU, sK, sS) = deadS  us ss
             xU           = usageX x
         in  if   usedX n sU
-            then (mconcat [xU, sU], sK, Let n x sS)
+            then (deleteX n (mconcat [xU, sU]), sK, Let n x sS)
             else (sU, sK, sS)
     While t n nt end ss
      -- While is a bit special. We must ensure writes to the while condition are not removed,
@@ -94,7 +94,7 @@ deadS us statements
     Read nx na t ss
      -> let (sU, sK, sS) = deadS us ss
         in  if   usedX nx sU
-            then (mconcat [sU, usageA na], sK, Read nx na t sS)
+            then (deleteX nx (mconcat [sU, usageA na]), sK, Read nx na t sS)
             else (sU, sK, sS)
 
     Write na x
@@ -148,6 +148,9 @@ usageX x = Usage mempty (freevars x)
 
 usedX :: Eq n => Name n -> Usage n -> Bool
 usedX n us = Set.member n (usageExp us)
+
+deleteX :: Eq n => Name n -> Usage n -> Usage n
+deleteX x us = us { usageExp = Set.delete x (usageExp us) }
 
 usageA :: Eq n => Name n -> Usage n
 usageA n = Usage (Set.singleton n) mempty

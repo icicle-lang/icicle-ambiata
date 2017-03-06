@@ -446,8 +446,9 @@ pp :: WellTyped -> Zebra.Entity Schema -> [Zebra.Value] -> String
 pp wt entity rs =
   "Fact type = " <> show (wtFactType wt) <> "\n" <>
   "Facts = " <> ppShow (wtFacts wt) <> "\n" <>
-  "As zebra entity = \n" <> ppShow entity <>
-  "Zebra rows = \n" <> ppShow rs
+  "As zebra entity = \n" <> ppShow entity <> "\n" <>
+  "Zebra rows = \n" <> ppShow rs <>
+  "Avalanche program = \n" <> show (PP.pretty (wtAvalancheFlat wt))
 
 return []
 tests :: IO Bool
