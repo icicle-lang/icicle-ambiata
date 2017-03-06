@@ -33,6 +33,7 @@ import           Icicle.Sea.IO
 import           Piano
 
 import           Zebra.Data
+import           Zebra.Data.Schema
 import           Zebra.Foreign.Entity
 import           Zebra.Merge.BlockC
 import           Zebra.Merge.Puller.File
@@ -128,7 +129,7 @@ seaCreateFleet options cache input chords code = do
                     left . SeaExternalError . T.pack $ "error step: " <> show msg
                   else return ()
 
-            let puller' :: PullId -> EitherT SeaError IO (Maybe Block)
+            let puller' :: PullId -> EitherT SeaError IO (Maybe (Block Schema))
                 puller' = firstEitherT (SeaExternalError . T.pack . show) . puller
 
             runEitherT

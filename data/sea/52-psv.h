@@ -23,6 +23,11 @@ typedef struct {
     const size_t  facts_limit;   /* maximum number of facts per entity-attribute */
     const ibool_t has_drop; /* whether to write discarded facts to output or drop log */
 
+    /* constants */
+    const size_t psv_input_buffer_size;
+    const size_t psv_output_buffer_size;
+    const size_t psv_max_row_count;
+
 } psv_config_t;
 
 typedef struct {
@@ -67,7 +72,7 @@ typedef struct {
 
 
 /* forward declarations for functions, implemented by generated code */
-static ifleet_t * INLINE psv_alloc_fleet (iint_t max_chord_count);
+static ifleet_t * INLINE psv_alloc_fleet (const iint_t max_chord_count, const iint_t max_row_count);
 
 static void INLINE psv_collect_fleet (ifleet_t *fleet);
 
@@ -89,7 +94,8 @@ static ierror_loc_t INLINE psv_read_fact
   , const char   *time_ptr
   , const size_t  time_size
   , ifleet_t     *fleet
-  , const size_t  max_ent_attr_count);
+  , const size_t  facts_limit
+  , const iint_t  max_row_count );
 #else
 static ierror_loc_t INLINE psv_read_fact
   ( const char   *entity_ptr
@@ -99,7 +105,8 @@ static ierror_loc_t INLINE psv_read_fact
   , const char   *time_ptr
   , const size_t  time_size
   , ifleet_t     *fleet
-  , const size_t  max_ent_attr_count);
+  , const size_t  facts_limit
+  , const iint_t  max_row_count );
 #endif
 
 static ierror_msg_t INLINE psv_write_output
@@ -276,7 +283,7 @@ static ierror_loc_t psv_write_dropped_entity_cur (psv_state_t *s, const ierror_l
     return 0;
 }
 
-static ierror_loc_t psv_read_buffer (psv_state_t *s, const size_t facts_limit)
+static ierror_loc_t psv_read_buffer (psv_state_t *s, const size_t facts_limit, const iint_t max_row_count)
 {
     ierror_loc_t error;
 
@@ -417,11 +424,11 @@ static ierror_loc_t psv_read_buffer (psv_state_t *s, const size_t facts_limit)
         }
 
 #if ICICLE_PSV_INPUT_SPARSE
-        error = psv_read_fact (entity_ptr, entity_size, attrib_ptr, attrib_size, value_ptr, value_size, time_ptr, time_size, s->fleet, facts_limit);
+        error = psv_read_fact (entity_ptr, entity_size, attrib_ptr, attrib_size, value_ptr, value_size, time_ptr, time_size, s->fleet, facts_limit, max_row_count);
         if (error)
             goto on_error;
 #else
-        error = psv_read_fact (entity_ptr, entity_size, value_ptr, value_size, time_ptr, time_size, s->fleet, facts_limit);
+        error = psv_read_fact (entity_ptr, entity_size, value_ptr, value_size, time_ptr, time_size, s->fleet, facts_limit, max_row_count);
         if (error)
           goto on_error;
 #endif
@@ -450,7 +457,7 @@ static ierror_loc_t psv_read_whole_buffer (psv_config_t *cfg, psv_state_t *s)
     ierror_loc_t error      = 0;
 
     while (keep_going) {
-        error = psv_read_buffer (s, cfg->facts_limit);
+        error = psv_read_buffer (s, cfg->facts_limit, cfg->psv_max_row_count);
 
         if (error) {
             /* try to skip to the next entity, if there is no new entity
@@ -584,11 +591,11 @@ void psv_snapshot (piano_t *piano, psv_config_t *cfg)
         return;
     }
 
-    ifleet_t *fleet = psv_alloc_fleet (chord_file.max_chord_count);
+    ifleet_t *fleet = psv_alloc_fleet (chord_file.max_chord_count, cfg->psv_max_row_count);
 
-    char *input_ptr  = calloc (psv_input_buffer_size + 1, 1);
-    char *entity_cur = calloc (psv_input_buffer_size + 1, 1);
-    char *output_ptr = calloc (psv_output_buffer_size + 1, 1);
+    char *input_ptr  = calloc (cfg->psv_input_buffer_size + 1, 1);
+    char *entity_cur = calloc (cfg->psv_input_buffer_size + 1, 1);
+    char *output_ptr = calloc (cfg->psv_output_buffer_size + 1, 1);
 
     static const psv_state_t empty_state;
     psv_state_t state = empty_state;
@@ -597,7 +604,7 @@ void psv_snapshot (piano_t *piano, psv_config_t *cfg)
     state.input_ptr    = input_ptr;
     state.entity_cur   = entity_cur;
     state.output_start = output_ptr;
-    state.output_end   = output_ptr + psv_output_buffer_size - 1;
+    state.output_end   = output_ptr + cfg->psv_output_buffer_size - 1;
     state.output_ptr   = output_ptr;
     state.fleet        = fleet;
     state.output_fd    = output_fd;
@@ -612,7 +619,7 @@ void psv_snapshot (piano_t *piano, psv_config_t *cfg)
 
         size_t bytes_read = read ( input_fd
                                  , input_ptr  + input_offset
-                                 , psv_input_buffer_size - input_offset );
+                                 , cfg->psv_input_buffer_size - input_offset );
 
         if (bytes_read == psv_read_error) {
             cfg->error = ierror_msg_alloc ("error reading input", 0, 0);

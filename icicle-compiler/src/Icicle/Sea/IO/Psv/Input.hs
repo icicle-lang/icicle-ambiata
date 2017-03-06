@@ -10,7 +10,6 @@ module Icicle.Sea.IO.Psv.Input
   , PsvInputConfig (..)
   ) where
 
-
 import qualified Data.List as List
 import qualified Data.Map as Map
 import qualified Data.Set as Set
@@ -149,7 +148,14 @@ seaOfReadNamedFact errs allowDupTime state
       , indent 8 $ seaInputErrorCountExceedLimit errs
       , "    }"
       , ""
-      , "    return " <> fun <> " (value_ptr, value_size, time, fleet->mempool, chord_count, fleet->" <> pname <> ");"
+      , "    return " <> fun
+      , "        ( value_ptr"
+      , "        , value_size"
+      , "        , time"
+      , "        , fleet->mempool"
+      , "        , chord_count"
+      , "        , max_row_count"
+      , "        , fleet->" <> pname <> ");"
       , ""
       , "}"
       , ""
@@ -167,7 +173,7 @@ seaOfReadFact state tombstones input readInput checkCount =
     , "static ierror_loc_t INLINE"
         <+> pretty (nameOfReadFact state) <+> "("
         <> "const char *value_ptr, const size_t value_size, itime_t time, "
-        <> "anemone_mempool_t *mempool, iint_t chord_count, "
+        <> "anemone_mempool_t *mempool, iint_t chord_count, iint_t max_row_count, "
         <> pretty (nameOfStateType state) <+> "*programs)"
     , "{"
     , "    ierror_loc_t error;"
@@ -236,7 +242,8 @@ seaOfReadAnyFactPsv opts config states = do
               , "  , const char   *time_ptr"
               , "  , const size_t  time_size"
               , "  , ifleet_t     *fleet"
-              , "  , const size_t  facts_limit)"
+              , "  , const size_t  facts_limit"
+              , "  , const iint_t  max_row_count )"
               , "{"
               , indent 4 (vsep (fmap (seaOfReadNamedFactSparse opts) states))
               , "    return 0;"
@@ -259,7 +266,8 @@ seaOfReadAnyFactPsv opts config states = do
               , "  , const char   *time_ptr"
               , "  , const size_t  time_size"
               , "  , ifleet_t     *fleet"
-              , "  , const size_t  facts_limit)"
+              , "  , const size_t  facts_limit"
+              , "  , const iint_t  max_row_count )"
               , "{"
               , indent 4 (seaOfReadNamedFactDense opts state)
               , "    return 0;"
@@ -466,13 +474,13 @@ seaOfReadFactSparse state tombstones = do
 
 seaOfCheckCount :: SeaProgramState -> CStmt
 seaOfCheckCount state = vsep
-  [ "if (new_count == psv_max_row_count) {"
+  [ "if (new_count == max_row_count) {"
   -- We need to set the program count before executing it.
   -- Otherwise, it won't evaluate the last row
   , "     program->input.new_count = new_count;"
   , "     " <> pretty (nameOfProgram state) <> " (program);"
   , "     new_count = 0;"
-  , "} else if (new_count > psv_max_row_count) {"
+  , "} else if (new_count > max_row_count) {"
   , "     return ierror_loc_format (0, 0, \"" <> pretty (nameOfReadFact state) <> ": new_count > max_count\");"
   , "}"
   ]

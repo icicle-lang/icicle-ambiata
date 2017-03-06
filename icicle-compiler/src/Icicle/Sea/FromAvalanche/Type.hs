@@ -75,9 +75,15 @@ expandType t
 expandedTypesOfProgram :: Program (Annot a) n Prim -> Set ValType
 expandedTypesOfProgram
  = Set.fromList
+ . auxillary
  . concatMap expandType
  . Set.toList
  . typesOfProgram
+
+auxillary :: [ValType] -> [ValType]
+auxillary [] = []
+auxillary (t@(BufT _ a) : ts) = (ArrayT a : t : auxillary ts)
+auxillary (t : ts) = t : auxillary ts
 
 ------------------------------------------------------------------------
 

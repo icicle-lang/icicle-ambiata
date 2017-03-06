@@ -6,6 +6,7 @@
 {-# LANGUAGE TemplateHaskell#-}
 {-# LANGUAGE TupleSections #-}
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
+
 module Icicle.Test.Sea.Psv where
 
 import           Control.Monad.IO.Class (liftIO)
@@ -30,7 +31,9 @@ import           Icicle.Common.Data
 import           Icicle.Common.Base
 import           Icicle.Common.Type
 
+import           Icicle.Sea.Eval (SeaError(..))
 import qualified Icicle.Sea.Eval as S
+import           Icicle.Sea.Fleet
 
 import           Icicle.Test.Arbitrary
 
@@ -210,8 +213,8 @@ genPsvOpts wt = do
   let outputBuf = inputBuf
   return $ PsvOpts maxRowCount inputBuf outputBuf
 
-runTest :: WellTyped -> PsvOpts -> TestOpts -> EitherT S.SeaError IO ()
-runTest wt (PsvOpts psvMaxRowCount psvInputBufferSize psvOutputBufferSize) (TestOpts showInput showOutput inputFormat allowDupTime) = do
+compileTest :: WellTyped -> TestOpts -> EitherT SeaError IO (SeaFleet S.PsvState)
+compileTest wt (TestOpts _ _ inputFormat allowDupTime) = do
   options0 <- S.getCompilerOptions
 
   let options  = options0 <> ["-O0", "-DICICLE_NOINLINE=1"]
@@ -223,13 +226,19 @@ runTest wt (PsvOpts psvMaxRowCount psvInputBufferSize psvOutputBufferSize) (Test
                 (S.Snapshot (wtTime wt))
                 (S.PsvOutputSparse)
                 (S.defaultOutputMissing)
-      conf     = S.PsvConfig iconfig oconfig psvMaxRowCount psvInputBufferSize psvOutputBufferSize
+      conf     = S.PsvConfig iconfig oconfig
       iformat  = S.FormatPsv conf
       iopts    = S.InputOpts allowDupTime (Map.singleton (wtAttribute wt) (Set.singleton tombstone))
       attrs    = [wtAttribute wt]
 
-  let compile  = S.seaCompileFleet options S.NoCacheSea (S.HasInput iformat iopts "dummy_path") attrs programs Nothing
+  S.seaCompileFleet options S.NoCacheSea (S.HasInput iformat iopts "dummy_path") attrs programs Nothing
+
+runTest :: WellTyped -> PsvOpts -> TestOpts -> EitherT S.SeaError IO ()
+runTest wt (PsvOpts psvMaxRowCount psvInputBufferSize psvOutputBufferSize)
+           testOpts@(TestOpts showInput showOutput _ _) = do
+  let compile  = compileTest wt testOpts
       release  = S.seaRelease
+
   bracketEitherT' compile release $ \fleet -> do
 
   let install  = liftIO (S.sfSegvInstall fleet (show wt))
@@ -243,15 +252,16 @@ runTest wt (PsvOpts psvMaxRowCount psvInputBufferSize psvOutputBufferSize) (Test
         output  = dir <> "/output.psv"
         dropped = dir <> "/dropped.txt"
         chords  = Nothing
-        limit   = 4096
         discard = S.FlagUseDropFile
+        limit   = 4096
+        consts  = S.PsvConstants psvMaxRowCount psvInputBufferSize psvOutputBufferSize limit
 
     liftIO (LT.writeFile program (LT.fromStrict source))
 
     let inputPsv = textOfFacts (wtEntities wt) (wtAttribute wt) (wtFacts wt)
     liftIO (L.writeFile input (LT.encodeUtf8 inputPsv))
 
-    result <- liftIO (runEitherT (S.seaPsvSnapshotFilePath fleet input output dropped chords limit discard))
+    result <- liftIO (runEitherT (S.seaPsvSnapshotFilePath fleet input output dropped chords discard consts))
 
     case result of
       Left err -> do

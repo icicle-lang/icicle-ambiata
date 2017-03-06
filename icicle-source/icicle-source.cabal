@@ -18,7 +18,7 @@ library
                      , ambiata-p
                      , ambiata-x-eithert
                      , ambiata-x-show
-                     , aeson                           >= 0.8        && < 0.12
+                     , aeson                           >= 0.8        && < 1.2
                      , ansi-terminal                   == 0.6.*
                      , bifunctors                      >= 4.2        && < 5.4
                      , bytestring                      == 0.10.*

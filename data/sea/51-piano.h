@@ -13,4 +13,3 @@ error_t piano_lookup (
   , int64_t *out_count
   , const int64_t **out_times
   );
-

@@ -111,7 +111,7 @@ main =
         PsvOutputConfig mode PsvOutputSparse defaultOutputMissing
 
       format =
-        FormatPsv (psvDefaultConstants inputConfig outputConfig)
+        FormatPsv (PsvConfig inputConfig outputConfig)
 
       inputOptions =
         InputOpts AllowDupTime $ tombstonesOfDictionary loadedDictionary

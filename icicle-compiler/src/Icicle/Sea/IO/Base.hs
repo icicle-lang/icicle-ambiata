@@ -203,7 +203,7 @@ seaOfAllocFleet :: [SeaProgramState] -> Doc
 seaOfAllocFleet states
  = vsep
  [ "#line 1 \"allocate fleet state\""
- , "static ifleet_t * psv_alloc_fleet (iint_t max_chord_count)"
+ , "static ifleet_t * psv_alloc_fleet (iint_t max_chord_count, iint_t max_row_count)"
  , "{"
  , "    ifleet_t *fleet = calloc (1, sizeof (ifleet_t));"
  , ""
@@ -226,7 +226,7 @@ seaOfAllocProgram state
        go (n, t) = program
                 <> stateInputNew (pretty n)
                 <> " = "
-                <> calloc "psv_max_row_count" (seaOfValType t)
+                <> calloc "max_row_count" (seaOfValType t)
 
    in vsep [ "/* " <> seaOfAttributeDesc (stateAttribute state) <> " */"
            , programs <> " = " <> calloc "max_chord_count" stype

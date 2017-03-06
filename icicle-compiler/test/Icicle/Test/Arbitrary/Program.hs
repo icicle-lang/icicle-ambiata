@@ -42,6 +42,8 @@ import           P
 
 import           Test.QuickCheck
 
+import qualified Prelude as Savage
+
 
 newtype InputType = InputType {
     unInputType :: ValType
@@ -284,7 +286,7 @@ isSupportedOutputBase = \case
   _         -> False
 
 isSupportedType :: ValType -> Bool
-isSupportedType = \case
+isSupportedType ty = case ty of
   UnitT     -> True
   BoolT     -> True
   IntT      -> True
@@ -294,16 +296,19 @@ isSupportedType = \case
             -> True
   StringT   -> True
   ErrorT    -> True
-  MapT{}    -> True
-  PairT{}   -> True
-  OptionT{} -> True
-  StructT{} -> True
   SumT{}    -> True
 
+  -- can't be nested
   BufT _ t          -> not (isBufOrArray t)
   ArrayT (ArrayT t) -> not (isBufOrArray t)
   ArrayT (BufT _ t) -> not (isBufOrArray t)
   ArrayT t          -> not (isBufOrArray t)
+
+  -- should have been melted
+  MapT{}    -> Savage.error ("should have been melted: " <> show ty)
+  PairT{}   -> Savage.error ("should have been melted: " <> show ty)
+  OptionT{} -> Savage.error ("should have been melted: " <> show ty)
+  StructT{} -> Savage.error ("should have been melted: " <> show ty)
 
 isBufOrArray :: ValType -> Bool
 isBufOrArray = \case

@@ -28,7 +28,7 @@ library
                      , icicle-core
                      , icicle-data
                      , icicle-source
-                     , aeson                           >= 0.8        && < 0.12
+                     , aeson                           >= 0.8        && < 1.2
                      , annotated-wl-pprint             == 0.7.*
                      , ansi-terminal                   == 0.6.*
                      , bifunctors                      >= 4.2        && < 5.4
@@ -227,7 +227,6 @@ test-suite test
                      , icicle-source
                      , icicle-core
                      , icicle
-                     , ambiata-disorder-aeson
                      , ambiata-disorder-core
                      , ambiata-disorder-corpus
                      , ambiata-disorder-jack
@@ -235,11 +234,15 @@ test-suite test
                      , ambiata-jetski
                      , ambiata-x-eithert
                      , ambiata-x-file-embed
+                     , ambiata-anemone
+                     , ambiata-zebra
+                     , ambiata-zebra-test
                      , bifunctors                      >= 4.2        && < 5.4
                      , aeson
                      , bytestring
                      , containers
                      , directory
+                     , exceptions                      == 0.8.*
                      , filepath                        == 1.4.*
                      , geniplate-mirror                >= 0.7.2      && < 0.8
                      , megaparsec                      == 5.0.*
@@ -253,6 +256,7 @@ test-suite test
                      , temporary
                      , text
                      , transformers
+                     , vector                          == 0.11.*
 
 
 test-suite test-io
