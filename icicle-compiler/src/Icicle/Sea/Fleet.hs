@@ -33,7 +33,7 @@ import           Icicle.Sea.IO
 import           Piano
 
 import           Zebra.Data
-import           Zebra.Data.Schema
+import           Zebra.Schema (Schema)
 import           Zebra.Foreign.Entity
 import           Zebra.Merge.BlockC
 import           Zebra.Merge.Puller.File
