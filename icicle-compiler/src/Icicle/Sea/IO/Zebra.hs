@@ -1,7 +1,9 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Icicle.Sea.IO.Zebra (
-    seaOfZebraDriver
+    ZebraConfig (..)
+  , defaultZebraConfig
+  , seaOfZebraDriver
   ) where
 
 import qualified Data.List as List
@@ -16,6 +18,13 @@ import           Icicle.Sea.FromAvalanche.State
 
 import           P
 
+
+data ZebraConfig = ZebraConfig
+  { zebraChunkFactCount :: !Int }
+  deriving (Eq, Show)
+
+defaultZebraConfig :: ZebraConfig
+defaultZebraConfig = ZebraConfig (1024*1024)
 
 seaOfZebraDriver :: [Attribute] -> [SeaProgramState] -> Either SeaError Doc
 seaOfZebraDriver concretes states = do
@@ -35,10 +44,10 @@ seaOfDefRead :: [(Int, SeaProgramState)] -> Doc
 seaOfDefRead states = vsep
   [ vsep $ fmap (seaOfDefReadProgram . snd) states
   , "#line 1 \"read entity\""
-  , "static ierror_msg_t zebra_read_entity (zebra_state_t *state, zebra_entity_t *entity)"
+  , "static ierror_msg_t zebra_read_entity (piano_t *piano, zebra_state_t *state, zebra_entity_t *entity)"
   , "{"
-  , "    ifleet_t *fleet = state->fleet;"
-  , "    iint_t    chord_count = fleet->chord_count;"
+  , "    ifleet_t    *fleet = state->fleet;"
+  , "    iint_t       chord_count = fleet->chord_count;"
   , "    ierror_msg_t error;"
   , ""
   , indent 4 . vsep $ fmap (uncurry seaOfRead) states
@@ -51,12 +60,13 @@ seaOfRead :: Int -> SeaProgramState -> Doc
 seaOfRead index state = vsep
   [ "/*" <> n <> ": " <> a <> " */"
   , "error = zebra_read_entity_" <> n
-  , "            ( state"
+  , "            ( piano"
+  , "            , state"
+  , "            , entity"
   , "            , fleet->mempool"
   , "            , chord_count"
   , "            , " <> i
-  , "            , fleet->iprogram_" <> n
-  , "            , entity);"
+  , "            , fleet->iprogram_" <> n <> ");"
   , "if (error) return error;"
   ]
   where
@@ -83,9 +93,9 @@ seaOfDefReadProgram state = vsep
   [ "#line 1 \"read entity for program" <+> seaOfStateInfo state <> "\""
   , "static ierror_msg_t INLINE"
       <+> pretty (nameOfRead state) <+> "("
-      <> "zebra_state_t *state, anemone_mempool_t *mempool, iint_t chord_count, int attribute_ix, "
-      <> pretty (nameOfStateType state) <+> "*programs, "
-      <> "zebra_entity_t *entity)"
+      <> "piano_t *piano, zebra_state_t *state, zebra_entity_t *entity, "
+      <> "anemone_mempool_t *mempool, iint_t chord_count, int attribute_ix, "
+      <> pretty (nameOfStateType state) <+> "*programs)"
   , "{"
   , "    ierror_msg_t error;"
   , ""
@@ -112,7 +122,9 @@ seaOfDefReadProgram state = vsep
   , "        itime_t  **fact_time   = (itime_t**) input_start + input_count;"
   , ""
   , "        error = zebra_translate "
-  , "                  ( state"
+  , "                  ( piano"
+  , "                  , state"
+  , "                  , entity"
   , "                  , mempool"
   , "                  , attribute_ix"
   , "                  , *chord_time"
@@ -124,6 +136,10 @@ seaOfDefReadProgram state = vsep
   , "                  , entity );"
   , "        if (error) return error;"
   , ""
+  , "        /* run compute on the facts read so far */"
+  , "        if (state->entity_fact_offset[attribute_ix] != state->entity_fact_count[attribute_ix]) {"
+  , "            " <> pretty (nameOfProgram state) <+> "(program);"
+  , "        }"
   , "    }"
   , ""
   , "    return 0; /* no error */"
