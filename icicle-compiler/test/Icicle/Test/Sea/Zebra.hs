@@ -12,6 +12,7 @@ import           Control.Monad.IO.Class (liftIO)
 
 import           Data.String
 import qualified Data.List as List
+import qualified Data.ByteString.Char8 as ByteString
 import qualified Data.Text.Encoding as Text
 import qualified Data.Map.Strict as Map
 import qualified Data.Vector as Boxed
@@ -28,11 +29,11 @@ import qualified Prelude as Savage
 
 import           P
 
-import           X.Control.Monad.Trans.Either (hoistEither, firstEitherT, bracketEitherT')
+import           X.Control.Monad.Trans.Either (EitherT, hoistEither, firstEitherT, bracketEitherT')
 
 import           Disorder.Core.IO (testIO)
 import           Disorder.Jack (Property, Jack)
-import           Disorder.Jack (gamble, arbitrary, (===), justOf, vectorOf, suchThat)
+import           Disorder.Jack (gamble, noShrink, arbitrary, (===), justOf, vectorOf, suchThat)
 
 import           Jetski
 
@@ -68,96 +69,112 @@ import qualified Icicle.Test.Foreign.Utils as Test
 --
 prop_read_entity :: Property
 prop_read_entity =
-  gamble (jZebraChunkSize) $ \zebraChunkSize ->
-  gamble (justOf zebra) $ \(ZebraWellTyped wt ty entity rows) ->
-  testIO . withSegv (pp wt entity rows zebraChunkSize) . bracket Mempool.create Mempool.free $ \pool -> do
+  gamble (justOf zebra) $ \(ZebraWellTyped wt ty entity rows chunk_step) ->
+  testIO . withSegv (pp chunk_step wt entity rows) . bracket Mempool.create Mempool.free $ \pool -> do
     c_entity <- Zebra.foreignOfEntity pool entity
     Test.runRight $ do
-      code <- hoistEither $ codeOf zebraChunkSize wt
+      code <- hoistEither $ codeOf chunk_step wt
       opts <- getCompilerOptions
       bracketEitherT'
         (firstEitherT SeaJetskiError $ compileLibrary NoCacheLibrary opts code)
         (firstEitherT SeaJetskiError . releaseLibrary)
         (\src -> do
           init <- firstEitherT SeaJetskiError $ function src "zebra_alloc_state" (retPtr retVoid)
-          end <- firstEitherT SeaJetskiError $ function src "zebra_collect_state" (retPtr retVoid)
+          finish <- firstEitherT SeaJetskiError $ function src "zebra_collect_state" (retPtr retVoid)
           test_read_entity <- firstEitherT SeaJetskiError $ function src "test_zebra_read_entity" (retPtr retWord8)
+          test_fleet <- firstEitherT SeaJetskiError $ function src "test_setup_fleet" (retPtr retVoid)
 
           withWords 7 $ \config -> do
             pokeWordOff config 6 defaultPsvOutputBufferSize
             bracketEitherT'
               (liftIO (init [ argPtr nullPtr, argPtr config, argInt64 1 ]))
-              (\state -> (liftIO (end [ argPtr config, argPtr state ])))
+              (\state -> (liftIO (finish [ argPtr config, argPtr state ])))
               (\state -> do
                  fleet_ptr <- peekWordOff state 5
-
-                 liftIO $ do
-                   e <- test_read_entity
-                           [ argPtr nullPtr
-                           , argPtr state
-                           , argPtr (Zebra.unCEntity c_entity) ]
-
-                   when (e /= nullPtr) $ do
-                     err <- peekCString (castPtr e)
-                     fail $ "failed to read entity: " <> err
-
-                 -- iprogram: { *mempool, input, ... }
-                 -- input: { *chord_time, *fact_count, *tombstone, *input_start, ... }
-                 programs0_ptr <- peekWordOff fleet_ptr 4
-                 tombstones_ptr <- peekWordOff programs0_ptr 3
-
                  struct_count <- (\x -> x - 2) . length . stateInputVars <$>
                    hoistEither (stateOfProgram 0 (wtAttribute wt) (wtAvalancheFlat wt))
-                 buf <- liftIO $ mallocBytes (struct_count * 8)
 
                  let
-                   input_start
-                     = 4
+                   facts =
+                     fmap atFact (wtFacts wt)
 
-                   facts
-                     = fmap atFact (wtFacts wt)
+                   n_facts =
+                     length facts
 
-                   nfacts
-                     = length facts
+                   chunk_lengths =
+                     List.replicate (n_facts `div` chunk_step) chunk_step <> [ n_facts `rem` chunk_step ]
 
-                   -- slice out the input fields at the index (kind of like a transpose)
-                   -- e.g slice out the second fact:
-                   -- src:
-                   --           fact_1 fact_2 ...
-                   --   field_1        A
-                   --   field_2        B
-                   --   ...
-                   -- dst:
-                   --   [ A, B, ... ]
-                   --
-                   slice dst fact_i =
-                     forM_ [0 .. struct_count - 1] $ \field_i -> do
-                       ptr_head <- peekWordOff programs0_ptr (input_start + field_i)
-                       let ptr_src = plusPtr ptr_head (fact_i  * 8)
-                           ptr_dst = plusPtr dst      (field_i * 8)
-                       copyBytes ptr_dst ptr_src 8
+                   entity_id =
+                     ByteString.unpack . Zebra.unEntityId . Zebra.entityId $ entity
 
-                   peekInputs xs 0 =
-                     return xs
+                 inputs <- forM chunk_lengths $ \len -> do
+                   liftIO . withCStringLen entity_id $ \(id_bytes, id_length) -> do
+                       e1 <- test_fleet
+                               [ argPtr id_bytes
+                               , argInt32 (fromIntegral id_length)
+                               , argPtr nullPtr
+                               , argPtr fleet_ptr ]
+                       when (e1 /= nullPtr) $
+                         fail "failed to configure fleet"
 
-                   peekInputs xs index = do
-                     let fact_i = nfacts - index
-                     tombstone <- liftIO $ peekElemOff tombstones_ptr fact_i
+                       e2 <- test_read_entity
+                               [ argPtr nullPtr
+                                , argPtr state
+                               , argPtr (Zebra.unCEntity c_entity) ]
+                       when (e2 /= nullPtr) $ do
+                         err <- peekCString (castPtr e2)
+                         fail $ "failed to read entity: " <> err
 
-                     x <- case errorOfWord tombstone of
-                        ExceptNotAnError -> do
-                          liftIO $ slice buf fact_i
-                          VRight . snd <$> peekOutput buf 0 ty
-                        e ->
-                          pure (VLeft (VError e))
+                   saveInputs ty struct_count len fleet_ptr
 
-                     peekInputs (x:xs) (index - 1)
-
-                 inputs <- peekInputs [] nfacts
-                 liftIO $ free buf
-                 return $ facts === List.reverse inputs
+                 return $ facts === List.concat inputs
               )
         )
+
+saveInputs :: ValType -> Int -> Int -> Ptr a -> EitherT SeaError IO [BaseValue]
+saveInputs ty struct_count fact_count fleet_ptr =
+  bracketEitherT' (liftIO $ mallocBytes (struct_count * 8)) (liftIO . free) $ \buf -> do
+    -- iprogram: { *mempool, input, ... }
+    -- input: { *chord_time, *fact_count, *tombstone, *input_start, ... }
+    program_ptr <- peekWordOff fleet_ptr 4
+    tombstones_ptr <- peekWordOff program_ptr 3
+
+    let
+      input_start
+        = 4
+
+      -- slice out the input fields at the index (kind of like a transpose)
+      -- e.g slice out the second fact:
+      -- src:
+      --           fact_1 fact_2 ...
+      --   field_1        A
+      --   field_2        B
+      --   ...
+      -- dst:
+      --   [ A, B, ... ]
+      --
+      slice dst fact_i =
+        forM_ [0 .. struct_count - 1] $ \field_i -> do
+          ptr_head <- peekWordOff program_ptr (input_start + field_i)
+          let ptr_src = plusPtr ptr_head (fact_i  * 8)
+              ptr_dst = plusPtr dst      (field_i * 8)
+          copyBytes ptr_dst ptr_src 8
+
+      peekInputs xs index
+        | index == fact_count = return xs
+        | otherwise = do
+            tombstone <- liftIO $ peekWordOff tombstones_ptr index
+
+            x <- case errorOfWord tombstone of
+               ExceptNotAnError -> do
+                 liftIO $ slice buf index
+                 VRight . snd <$> peekOutput buf 0 ty
+               e ->
+                 pure (VLeft (VError e))
+
+            peekInputs (x:xs) (index + 1)
+
+    List.reverse <$> peekInputs [] 0
 
 --------------------------------------------------------------------------------
 
@@ -171,18 +188,19 @@ data ZebraWellTyped = ZebraWellTyped {
   , zFactType     :: ValType -- wtFactType = Sum Error FactType
   , zEntity       :: Zebra.Entity Schema
   , zRows         :: [Zebra.Value]
+  , zChunkSize    :: Int
   }
 
 instance Show ZebraWellTyped where
-  show (ZebraWellTyped wt _ e rs) =
-    pp wt e rs 0
+  show (ZebraWellTyped wt _ e rs size) =
+    pp size wt e rs
 
 jZebraChunkSize :: Jack Int
 jZebraChunkSize =
-  arbitrary `suchThat` (> 0)
+  arbitrary `suchThat` (>= 1)
 
 zebra :: Jack (Maybe ZebraWellTyped)
-zebra = do
+zebra = noShrink $ do
   -- we don't read arrays (except of bytes) in zebra
   let
     supportedInputType x =
@@ -206,7 +224,8 @@ zebraOfWellTyped wt =
       ps <- vectorOf (length ts) Zebra.jFactsetId
       let attribute = Zebra.Attribute (Storable.fromList ts) (Storable.fromList ps) (Storable.fromList tombstones) table
       entity <- uncurry Zebra.Entity <$> Zebra.jEntityHashId <*> pure (Boxed.singleton attribute)
-      pure . Just $ ZebraWellTyped wt ty entity rows
+      size <- jZebraChunkSize
+      pure . Just $ ZebraWellTyped wt ty entity rows size
 
 -- we are not reading nested arrays in zebra right now
 schemaOfType' :: ValType -> Maybe Schema
@@ -397,6 +416,8 @@ zebraOfFacts ty facts
 
   | otherwise = Left (UnexpectedError ty facts)
 
+--------------------------------------------------------------------------------
+
 testSnapshotTime :: Time
 testSnapshotTime = Icicle.unsafeTimeOfYMD 9999 1 1
 
@@ -419,8 +440,9 @@ codeOf zebra_chunk_size wt = do
   pure . textOfDoc . PP.vsep $
     [ PP.pretty src
     , ""
-    , "ierror_msg_t test_zebra_read_entity (piano_t *piano, zebra_state_t *state, zebra_entity_t *entity) {"
-    , "    return zebra_read_step (piano, state, entity);"
+    , "ierror_loc_t test_setup_fleet (const char *entity, size_t size, piano_t *piano, ifleet_t *fleet) {"
+    , "    psv_collect_fleet (fleet);"
+    , "    return psv_configure_fleet (entity, size, piano, fleet);"
     , "}"
     , ""
     , "int64_t piano_max_count (piano_t *piano) {"
@@ -431,17 +453,20 @@ codeOf zebra_chunk_size wt = do
     , "    return 0;"
     , "}"
     , ""
+    , "ierror_msg_t test_zebra_read_entity (piano_t *piano, zebra_state_t *state, zebra_entity_t *entity) {"
+    , "    return zebra_read_entity (piano, state, entity);"
+    , "}"
+    , ""
     ]
 
-
-pp :: WellTyped -> Zebra.Entity Schema -> [Zebra.Value] -> Int -> String
-pp wt entity rows size =
+pp :: Int -> WellTyped -> Zebra.Entity Schema -> [Zebra.Value] -> String
+pp size wt entity rows =
   "=== Entity ===\n" <>
   "Zebra chunk size = " <> show size <> "\n" <>
   "Fact type = " <> show (wtFactType wt) <> "\n" <>
   "Facts = " <> ppShow (wtFacts wt) <> "\n" <>
   "As Zebra values = \n" <> ppShow rows <> "\n" <>
-  "As Zebra entity = \n" <> ppShow entity
+  "As Zebra entity = \n" <> ppShow entity <>
   "Avalanche program = \n" <> show (PP.pretty (wtAvalancheFlat wt))
 
 return []

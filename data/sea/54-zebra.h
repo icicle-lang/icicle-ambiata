@@ -34,12 +34,11 @@ typedef struct zebra_state {
     int output_fd;
 
     /* read state */
-    int64_t  entity_alloc_limit;
     int64_t  attribute_count;
     int64_t *entity_fact_offset;
     int64_t *entity_fact_count;
-    ibool_t *entity_attribute_leftover;
-
+    int64_t  alloc_limit;
+    int64_t  entity_alloc_count;
 } zebra_state_t;
 
 
@@ -164,21 +163,6 @@ static int64_t zebra_translate_table
     return offset;
 }
 
-static int64_t zebra_translate_array
-    ( anemone_mempool_t *mempool
-    , iint_t elem_start
-    , iint_t count
-    , void **dst
-    , const zebra_data_t *data )
-{
-    return zebra_translate_table
-       ( mempool
-       , elem_start
-       , count
-       , (void**)dst
-       , &data->a.table );
-}
-
 static int64_t zebra_translate_column
     ( anemone_mempool_t *mempool
     , iint_t elem_start
@@ -216,7 +200,7 @@ static int64_t zebra_translate_column
                     int64_t index = i + elem_start;
                     int64_t start = data.a.n[index]   - data.a.n[0];
                     int64_t len   = data.a.n[index+1] - data.a.n[index];
-                    offset = zebra_translate_array (mempool, start, len, (void**)(strings + i), &data);
+                    offset = zebra_translate_table (mempool, start, len, (void**)(strings + i), &data.a.table);
                 }
                 *dst = strings;
                 return offset;
@@ -258,7 +242,6 @@ zebra_state_t *zebra_alloc_state (piano_t *piano, zebra_config_t *cfg, int64_t a
     state->output_fd    = output_fd;
 
     state->attribute_count    = attribute_count;
-    state->entity_alloc_limit = 0;
     state->entity_fact_offset = calloc(attribute_count, sizeof (int64_t));
     state->entity_fact_count  = calloc(attribute_count, sizeof (int64_t));
 
@@ -269,9 +252,13 @@ void zebra_collect_state (zebra_config_t *cfg, zebra_state_t *state)
 {
     cfg->entity_count = state->entity_count;
     cfg->fact_count = state->fact_count;
+    free (state->output_start);
+    free (state->entity_fact_offset);
+    free (state->entity_fact_count);
     free (state);
 }
 
+/* A read and compute step */
 ierror_msg_t zebra_read_step (piano_t *piano, zebra_state_t *state, zebra_entity_t *entity)
 {
     ifleet_t *fleet = state->fleet;
@@ -280,14 +267,23 @@ ierror_msg_t zebra_read_step (piano_t *piano, zebra_state_t *state, zebra_entity
     ierror_loc_t  error_loc = psv_configure_fleet ((char*) entity->id_bytes, entity->id_length, piano, state->fleet);
     if (error_loc) return ierror_loc_pretty (error_loc, 0);
 
-    ierror_msg_t error = zebra_read_entity (piano, state, entity);
-    if (error) return error;
+    ibool_t read_all = ifalse;
 
-    /* keep going if we have not finished reading all facts for this entity */
-    for (int64_t i = 0; i != state->attribute_count; ++i) {
-        if (state->entity_fact_offset[i] != state->entity_fact_count[i]) {
-            return zebra_read_step (piano, state, entity);
+    while (!read_all) {
+        ierror_msg_t error = zebra_read_entity (piano, state, entity);
+        if (error) return error;
+
+        read_all = itrue;
+
+        for (int64_t i = 0; i != state->attribute_count; ++i) {
+            if (state->entity_fact_offset[i] != state->entity_fact_count[i]) {
+                read_all = ifalse;
+                break;
+            }
         }
+    }
+
+    for (int64_t i = 0; i != state->attribute_count; ++i) {
         state->entity_fact_count [i] = 0;
         state->entity_fact_offset[i] = 0;
     }
