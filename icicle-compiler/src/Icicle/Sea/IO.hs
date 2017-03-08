@@ -13,6 +13,8 @@ module Icicle.Sea.IO
   , defaultPsvInputBufferSize
   , defaultPsvOutputBufferSize
   , defaultZebraConfig
+  , defaultZebraChunkSize
+  , defaultZebraAllocLimit
 
   , Mode(..)
   , IOFormat (..)
@@ -26,6 +28,8 @@ module Icicle.Sea.IO
   , PsvOutputConfig(..)
   , PsvOutputFormat(..)
   , ZebraConfig (..)
+  , ZebraChunkSize (..)
+  , ZebraAllocLimit (..)
   ) where
 
 import           Icicle.Internal.Pretty

@@ -78,6 +78,8 @@ pQuery =
     <*> pLimit
     <*> pDrop
     <*> pFlagDrop
+    <*> pZebraChunkSize
+    <*> pZebraAllocLimit
 
 pDictionaryFile :: Parser DictionaryFile
 pDictionaryFile =
@@ -193,6 +195,20 @@ pFlagDrop =
   flag FlagUseDropFile FlagNoUseDropFile $
     long "drop-to-output" <>
     help "write partial results to dropped-X.txt or normal output"
+
+pZebraChunkSize :: Parser ZebraChunkSize
+pZebraChunkSize =
+  flip option (long "zebra-chunk-size" <> value defaultZebraChunkSize) $
+    readerAsk >>= \s -> case readMaybe s of
+      Just i  -> return (ZebraChunkSize i)
+      Nothing -> readerError "--chunk-size NUMBER_BYTES"
+
+pZebraAllocLimit :: Parser ZebraAllocLimit
+pZebraAllocLimit =
+  flip option (long "zebra-alloc-limit" <> value defaultZebraAllocLimit) $
+    readerAsk >>= \s -> case readMaybe s of
+      Just i  -> return (ZebraAllocLimit i)
+      Nothing -> readerError "--zebra-alloc-limit NUMBER_BYTES"
 
 ------------------------------------------------------------------------
 

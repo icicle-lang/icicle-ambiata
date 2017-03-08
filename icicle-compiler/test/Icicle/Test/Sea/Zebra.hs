@@ -74,7 +74,7 @@ prop_read_entity =
   testIO . withSegv (pp chunk_step wt entity rows) . bracket Mempool.create Mempool.free $ \pool -> do
     c_entity <- Zebra.foreignOfEntity pool entity
     Test.runRight $ do
-      code <- hoistEither $ codeOf chunk_step wt
+      code <- hoistEither $ codeOf chunk_step testAllocLimit wt
       opts <- getCompilerOptions
       bracketEitherT'
         (firstEitherT SeaJetskiError $ compileLibrary NoCacheLibrary opts code)
@@ -102,8 +102,11 @@ prop_read_entity =
                    n_facts =
                      length facts
 
+                   step =
+                     unZebraChunkSize chunk_step
+
                    chunk_lengths =
-                     List.replicate (n_facts `div` chunk_step) chunk_step <> [ n_facts `rem` chunk_step ]
+                     List.replicate (n_facts `div` step) step <> [ n_facts `rem` step ]
 
                    entity_id =
                      ByteString.unpack . Zebra.unEntityId . Zebra.entityId $ entity
@@ -189,15 +192,15 @@ data ZebraWellTyped = ZebraWellTyped {
   , zFactType     :: ValType -- wtFactType = Sum Error FactType
   , zEntity       :: Zebra.Entity Schema
   , zRows         :: [Zebra.Value]
-  , zChunkSize    :: Int
+  , zChunkSize    :: ZebraChunkSize
   }
 
 instance Show ZebraWellTyped where
   show (ZebraWellTyped wt _ e rs size) =
     pp size wt e rs
 
-jZebraChunkSize :: Jack Int
-jZebraChunkSize =
+jZebraChunkSize :: Jack ZebraChunkSize
+jZebraChunkSize = ZebraChunkSize <$>
   arbitrary `suchThat` (>= 1)
 
 zebra :: Jack (Maybe ZebraWellTyped)
@@ -419,16 +422,19 @@ zebraOfFacts ty facts
 
 --------------------------------------------------------------------------------
 
+testAllocLimit :: ZebraAllocLimit
+testAllocLimit = defaultZebraAllocLimit
+
 testSnapshotTime :: Time
 testSnapshotTime = Icicle.unsafeTimeOfYMD 9999 1 1
 
-codeOf :: Int -> WellTyped -> Either SeaError SourceCode
-codeOf zebra_chunk_size wt = do
+codeOf :: ZebraChunkSize -> ZebraAllocLimit -> WellTyped -> Either SeaError SourceCode
+codeOf size limit wt = do
   let
     input =
       HasInput
         (FormatZebra
-          (ZebraConfig zebra_chunk_size)
+          (ZebraConfig size limit)
           (Snapshot testSnapshotTime)
           (PsvOutputConfig (Snapshot testSnapshotTime) PsvOutputDense defaultOutputMissing))
         (InputOpts AllowDupTime Map.empty)
@@ -460,10 +466,10 @@ codeOf zebra_chunk_size wt = do
     , ""
     ]
 
-pp :: Int -> WellTyped -> Zebra.Entity Schema -> [Zebra.Value] -> String
+pp :: ZebraChunkSize -> WellTyped -> Zebra.Entity Schema -> [Zebra.Value] -> String
 pp size wt entity rows =
   "=== Entity ===\n" <>
-  "Zebra chunk size = " <> show size <> "\n" <>
+  "Zebra chunk size = " <> show (unZebraChunkSize size) <> "\n" <>
   "Fact type = " <> show (wtFactType wt) <> "\n" <>
   "Facts = " <> ppShow (wtFacts wt) <> "\n" <>
   "As Zebra values = \n" <> ppShow rows <> "\n" <>
@@ -474,3 +480,4 @@ return []
 tests :: IO Bool
 tests = releaseLibraryAfterTests $ do
   $checkAllWith TestRunMore checkArgs
+  

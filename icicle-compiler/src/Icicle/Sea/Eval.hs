@@ -29,6 +29,7 @@ import           Foreign.Marshal (free)
 import           Foreign.Ptr (nullPtr)
 
 import           Icicle.Sea.IO
+
 import           Icicle.Sea.Eval.Base
 
 import           P hiding (count)
@@ -65,27 +66,31 @@ seaZebraSnapshotFilePath :: SeaFleet ZebraState
                          -> FilePath
                          -> FilePath
                          -> Maybe FilePath
+                         -> ZebraConfig
                          -> EitherT SeaError IO ZebraStats
-seaZebraSnapshotFilePath fleet input output mchords = do
+seaZebraSnapshotFilePath fleet input output mchords conf = do
   bracketEitherT' (liftIO $ Posix.createFile output (Posix.CMode 0O644))
                   (liftIO . Posix.closeFd) $ \ofd -> do
   bracketEitherT' (liftIO $ maybeOpen mchords)
                   (liftIO . maybeClose) $ \mcfd -> do
-  seaZebraSnapshotFd fleet input ofd mcfd
+  seaZebraSnapshotFd fleet input ofd mcfd conf
 
 
 seaZebraSnapshotFd :: SeaFleet ZebraState
                    -> FilePath
                    -> Posix.Fd
                    -> Maybe Posix.Fd
+                   -> ZebraConfig
                    -> EitherT SeaError IO ZebraStats
-seaZebraSnapshotFd fleet input output mchords = do
-  withWords 7 $ \pState -> do
+seaZebraSnapshotFd fleet input output mchords conf = do
+  withWords 9 $ \pState -> do
   input_path <- liftIO $ newCString input
   pokeWordOff pState 0 input_path
   pokeWordOff pState 1 output
   pokeWordOff pState 2 (fromMaybe 0 mchords)
   pokeWordOff pState 6 (defaultPsvOutputBufferSize)
+  pokeWordOff pState 7 (unZebraChunkSize . zebraChunkSize $ conf)
+  pokeWordOff pState 8 (unZebraAllocLimit . zebraAllocLimit $ conf)
 
   sfSnapshot fleet pState
 

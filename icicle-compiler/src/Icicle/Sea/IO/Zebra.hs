@@ -2,7 +2,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Icicle.Sea.IO.Zebra (
     ZebraConfig (..)
+  , ZebraChunkSize (..)
+  , ZebraAllocLimit (..)
   , defaultZebraConfig
+  , defaultZebraChunkSize
+  , defaultZebraAllocLimit
   , seaOfZebraDriver
   ) where
 
@@ -20,12 +24,25 @@ import           Icicle.Sea.FromAvalanche.State
 import           P
 
 
-data ZebraConfig = ZebraConfig
-  { zebraChunkFactCount :: !Int }
-  deriving (Eq, Show)
+data ZebraConfig = ZebraConfig {
+    zebraChunkSize  :: !ZebraChunkSize
+  , zebraAllocLimit :: !ZebraAllocLimit
+  } deriving (Eq, Show)
+
+newtype ZebraChunkSize = ZebraChunkSize { unZebraChunkSize :: Int }
+  deriving (Eq, Ord, Show)
+
+newtype ZebraAllocLimit = ZebraAllocLimit { unZebraAllocLimit :: Int }
+  deriving (Eq, Ord, Show)
 
 defaultZebraConfig :: ZebraConfig
-defaultZebraConfig = ZebraConfig (1024*1024)
+defaultZebraConfig = ZebraConfig defaultZebraChunkSize defaultZebraAllocLimit
+
+defaultZebraChunkSize :: ZebraChunkSize
+defaultZebraChunkSize = ZebraChunkSize 128
+
+defaultZebraAllocLimit :: ZebraAllocLimit
+defaultZebraAllocLimit = ZebraAllocLimit (2 * 1024 * 1024 * 1024)
 
 seaOfZebraDriver :: [Attribute] -> [SeaProgramAttribute] -> Either SeaError Doc
 seaOfZebraDriver concretes states = do
@@ -141,6 +158,8 @@ seaOfDefReadProgram state = vsep
   , "        if (state->entity_fact_offset[attribute_ix] != state->entity_fact_count[attribute_ix]) {"
   , indent 12 $ vsep $ fmap (\i -> pretty (nameOfCompute i) <+> " (program);") computes
   , "        }"
+  , ""
+  , "        state->entity_alloc_count = mempool->total_alloc_size;"
   , "    }"
   , ""
   , "    return 0; /* no error */"

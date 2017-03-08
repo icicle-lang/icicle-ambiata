@@ -322,11 +322,9 @@ codeOfPrograms input attributes programs = do
               [ defOfPsvInput (psvInputConfig conf)
               , defOfPsvOutput (psvOutputConfig conf) ]
             -- FIXME property separate what is needed from psv
-            FormatZebra conf _ _ -> vsep
+            FormatZebra _ _ _ -> vsep
               [ "#define ICICLE_PSV_INPUT_SPARSE 1"
-              , "#define ICICLE_ZEBRA 1"
-              -- FIXME move to config
-              , "static const int zebra_chunk_fact_count = " <> (pretty (zebraChunkFactCount conf)) <> ";" ]
+              , "#define ICICLE_ZEBRA 1" ]
 
       pure . textOfDoc . vsep $ [ def, seaPreamble, defs ] <> progs <> ["", doc]
 
