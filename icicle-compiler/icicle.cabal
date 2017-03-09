@@ -136,6 +136,7 @@ library
                        Icicle.Sea.Eval.Program
                        Icicle.Sea.Fleet
                        Icicle.Sea.IO
+                       Icicle.Sea.IO.Offset
                        Icicle.Sea.IO.Base
                        Icicle.Sea.IO.Psv
                        Icicle.Sea.IO.Psv.Input
