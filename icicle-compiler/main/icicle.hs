@@ -78,8 +78,8 @@ pQuery =
     <*> pLimit
     <*> pDrop
     <*> pFlagDrop
-    <*> pZebraChunkSize
-    <*> pZebraAllocLimit
+    <*> pZebraChunkFactCount
+    <*> pZebraAllocLimitGB
 
 pDictionaryFile :: Parser DictionaryFile
 pDictionaryFile =
@@ -196,19 +196,19 @@ pFlagDrop =
     long "drop-to-output" <>
     help "write partial results to dropped-X.txt or normal output"
 
-pZebraChunkSize :: Parser ZebraChunkSize
-pZebraChunkSize =
-  flip option (long "zebra-chunk-size" <> value defaultZebraChunkSize) $
+pZebraChunkFactCount :: Parser ZebraChunkFactCount
+pZebraChunkFactCount =
+  flip option (long "zebra-chunk-fact-count" <> value defaultZebraChunkFactCount) $
     readerAsk >>= \s -> case readMaybe s of
-      Just i  -> return (ZebraChunkSize i)
-      Nothing -> readerError "--chunk-size NUMBER_BYTES"
+      Just i  -> return (ZebraChunkFactCount i)
+      Nothing -> readerError "--zebra-chunk-fact-count NUMBER_FACTS"
 
-pZebraAllocLimit :: Parser ZebraAllocLimit
-pZebraAllocLimit =
-  flip option (long "zebra-alloc-limit" <> value defaultZebraAllocLimit) $
+pZebraAllocLimitGB :: Parser ZebraAllocLimitGB
+pZebraAllocLimitGB =
+  flip option (long "zebra-alloc-limit-gb" <> value defaultZebraAllocLimitGB) $
     readerAsk >>= \s -> case readMaybe s of
-      Just i  -> return (ZebraAllocLimit i)
-      Nothing -> readerError "--zebra-alloc-limit NUMBER_BYTES"
+      Just i  -> return (ZebraAllocLimitGB i)
+      Nothing -> readerError "--zebra-alloc-limit-gb NUMBER_GB"
 
 ------------------------------------------------------------------------
 

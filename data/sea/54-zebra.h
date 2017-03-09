@@ -17,8 +17,8 @@ typedef struct {
 
     /* stuff */
     const size_t output_buffer_size;
-    const size_t chunk_size;
-    const size_t alloc_limit;
+    const size_t chunk_fact_count;
+    const size_t alloc_limit_bytes;
 
 } zebra_config_t;
 
@@ -43,8 +43,8 @@ typedef struct zebra_state {
     int64_t  attribute_count;
     int64_t *entity_fact_offset;
     int64_t *entity_fact_count;
-    int64_t  chunk_size;
-    int64_t  alloc_limit;
+    int64_t  chunk_fact_count;
+    int64_t  alloc_limit_bytes;
     int64_t  entity_alloc_count;
 
 } zebra_state_t;
@@ -128,11 +128,12 @@ static ierror_msg_t zebra_translate
     iint_t fact_remaining = fact_count - fact_offset;
     iint_t fact_to_read   = 0;
 
-    if (fact_remaining > state->chunk_size) {
-        fact_to_read = state->chunk_size;
+    if (fact_remaining > state->chunk_fact_count) {
+        fact_to_read = state->chunk_fact_count;
     } else {
         fact_to_read = fact_remaining;
     }
+    //printf ("zebra: fact_offset = %d, fact_remaining = %d, fact_to_read = %d\n", fact_offset, fact_remaining, fact_to_read);
 
     state->fact_count                       += fact_to_read;
     state->entity_fact_offset[attribute_ix] += fact_to_read;
@@ -164,7 +165,9 @@ static int64_t zebra_translate_table
     int64_t         cols_count  = table->column_count;
     zebra_column_t *cols = table->columns;
 
+    //printf ("zebra_translate_table: elem_start = %d, count = %d\n", elem_start, count);
     for (int64_t i = 0; i != cols_count; ++i) {
+        //printf ("zebra_translate_table: offset = %d\n", offset);
         offset += zebra_translate_column (mempool, elem_start, count, dst + offset, cols + i);
     }
 
@@ -250,15 +253,14 @@ zebra_state_t *zebra_alloc_state (piano_t *piano, zebra_config_t *cfg, int64_t a
     state->output_end   = output_ptr + cfg->output_buffer_size - 1;
     state->output_ptr   = output_ptr;
     state->output_fd    = output_fd;
-
     state->drop_fd      = drop_fd;
 
     state->attribute_count    = attribute_count;
     state->entity_fact_offset = calloc(attribute_count, sizeof (int64_t));
     state->entity_fact_count  = calloc(attribute_count, sizeof (int64_t));
 
-    state->chunk_size         = cfg->chunk_size;
-    state->alloc_limit        = cfg->alloc_limit;
+    state->chunk_fact_count   = cfg->chunk_fact_count;
+    state->alloc_limit_bytes  = cfg->alloc_limit_bytes;
     state->entity_alloc_count = 0;
 
     return state;
@@ -275,13 +277,13 @@ void zebra_collect_state (zebra_config_t *cfg, zebra_state_t *state)
 
 void zebra_write_dropped_entity (zebra_state_t *state, zebra_entity_t *entity) {
     char *msg = calloc (error_msg_size, 1);
-    const size_t msg_size = snprintf (msg, error_msg_size, "%.*s\n", entity->id_length, entity->id_bytes);
+    const size_t msg_size = snprintf (msg, error_msg_size, "%.*s\n", (int)entity->id_length, entity->id_bytes);
     write (state->drop_fd, msg, msg_size);
     free (msg);
 }
 
 ibool_t zebra_limit_exceeded (zebra_state_t *state) {
-    return state->entity_alloc_count > state->alloc_limit;
+    return state->entity_alloc_count > state->alloc_limit_bytes;
 }
 
 /* A read and compute step */

@@ -93,9 +93,9 @@ data Query a = Query {
   -- ^ only applies to psv input
   , queryUseDrop         :: FlagUseDrop
   -- ^ only applies to psv input
-  , queryChunkSize       :: ZebraChunkSize
+  , queryChunkFactCount       :: ZebraChunkFactCount
   -- ^ only applies to zebra input
-  , queryAllocLimit      :: ZebraAllocLimit
+  , queryAllocLimitGB      :: ZebraAllocLimitGB
   -- ^ only applies to zebra input
   }
 
@@ -116,9 +116,9 @@ data QueryOptions = QueryOptions {
   -- ^ only applies to psv input
   , optDrop         :: Maybe FilePath
   , optUseDrop      :: FlagUseDrop
-  , optChunkSize    :: ZebraChunkSize
+  , optChunkFactCount    :: ZebraChunkFactCount
   -- ^ only applies to zebra input
-  , optAllocLimit   :: ZebraAllocLimit
+  , optAllocLimitGB   :: ZebraAllocLimitGB
   -- ^ only applies to zebra input
   } deriving (Eq, Ord, Show)
 
@@ -223,8 +223,8 @@ createQuery c = do
     , queryFactsLimit      = optFactsLimit c
     , queryDropPath        = dropPath
     , queryUseDrop         = optUseDrop c
-    , queryChunkSize       = optChunkSize c
-    , queryAllocLimit      = optAllocLimit c
+    , queryChunkFactCount       = optChunkFactCount c
+    , queryAllocLimitGB      = optAllocLimitGB c
     }
 
 mkQueryFleet ::
@@ -379,8 +379,8 @@ runZebraQuery b = do
       output     = queryOutputPath   b
       chordPath  = queryChordPath    b
       dropPath   = queryDropPath     b
-      chunkSize  = queryChunkSize    b
-      allocLimit = queryAllocLimit   b
+      chunkSize  = queryChunkFactCount b
+      allocLimit = queryAllocLimitGB   b
 
   start <- liftIO getCurrentTime
   stats <- firstEitherT IcicleSeaError $

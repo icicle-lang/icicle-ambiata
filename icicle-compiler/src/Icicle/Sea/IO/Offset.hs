@@ -48,11 +48,11 @@ zebraConfigEntityCount = 6
 zebraConfigOutputBufferSize :: Int
 zebraConfigOutputBufferSize = 7
 
-zebraConfigChunkSize :: Int
-zebraConfigChunkSize = 8
+zebraConfigChunkFactCount :: Int
+zebraConfigChunkFactCount = 8
 
-zebraConfigAllocLimit :: Int
-zebraConfigAllocLimit = 9
+zebraConfigAllocLimitBytes :: Int
+zebraConfigAllocLimitBytes = 9
 
 --------------------------------------------------------------------------------
 
@@ -109,11 +109,11 @@ zebraStateEntityFactOffset = 9
 zebraStateEntityFactCount :: Int
 zebraStateEntityFactCount = 10
 
-zebraStateChunkSize :: Int
-zebraStateChunkSize = 11
+zebraStateChunkFactCount :: Int
+zebraStateChunkFactCount = 11
 
-zebraStateAllocLimit :: Int
-zebraStateAllocLimit = 12
+zebraStateAllocLimitGB :: Int
+zebraStateAllocLimitGB = 12
 
 zebraStateEntityAllocCount :: Int
 zebraStateEntityAllocCount = 13
@@ -211,7 +211,7 @@ inputError = 2
 inputStart :: Int
 inputStart = 3
 
-inputFieldsCount :: SeaProgramState -> Int
+inputFieldsCount :: SeaProgramAttribute -> Int
 inputFieldsCount state =
   length (stateInputVars state) - 2
 

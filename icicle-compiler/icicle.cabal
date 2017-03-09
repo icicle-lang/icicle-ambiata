@@ -257,6 +257,7 @@ test-suite test
                      , temporary
                      , text
                      , transformers
+                     , unix                            == 2.7.*
                      , vector                          == 0.11.*
                      , semigroups                      >= 0.16       && < 0.19
 

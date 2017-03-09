@@ -13,8 +13,8 @@ module Icicle.Sea.IO
   , defaultPsvInputBufferSize
   , defaultPsvOutputBufferSize
   , defaultZebraConfig
-  , defaultZebraChunkSize
-  , defaultZebraAllocLimit
+  , defaultZebraChunkFactCount
+  , defaultZebraAllocLimitGB
 
   , Mode(..)
   , IOFormat (..)
@@ -28,8 +28,10 @@ module Icicle.Sea.IO
   , PsvOutputConfig(..)
   , PsvOutputFormat(..)
   , ZebraConfig (..)
-  , ZebraChunkSize (..)
-  , ZebraAllocLimit (..)
+  , ZebraChunkFactCount (..)
+  , ZebraAllocLimitGB (..)
+
+  , module Icicle.Sea.IO.Offset
   ) where
 
 import           Icicle.Internal.Pretty
@@ -39,6 +41,7 @@ import           Icicle.Data
 import           Icicle.Sea.Error (SeaError(..))
 import           Icicle.Sea.FromAvalanche.State
 
+import           Icicle.Sea.IO.Offset
 import           Icicle.Sea.IO.Base
 import           Icicle.Sea.IO.Psv
 import           Icicle.Sea.IO.Zebra

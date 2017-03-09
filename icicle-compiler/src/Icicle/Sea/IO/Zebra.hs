@@ -2,11 +2,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Icicle.Sea.IO.Zebra (
     ZebraConfig (..)
-  , ZebraChunkSize (..)
-  , ZebraAllocLimit (..)
+  , ZebraChunkFactCount (..)
+  , ZebraAllocLimitGB (..)
   , defaultZebraConfig
-  , defaultZebraChunkSize
-  , defaultZebraAllocLimit
+  , defaultZebraChunkFactCount
+  , defaultZebraAllocLimitGB
   , seaOfZebraDriver
   ) where
 
@@ -25,24 +25,24 @@ import           P
 
 
 data ZebraConfig = ZebraConfig {
-    zebraChunkSize  :: !ZebraChunkSize
-  , zebraAllocLimit :: !ZebraAllocLimit
+    zebraChunkFactCount  :: !ZebraChunkFactCount
+  , zebraAllocLimitGB :: !ZebraAllocLimitGB
   } deriving (Eq, Show)
 
-newtype ZebraChunkSize = ZebraChunkSize { unZebraChunkSize :: Int }
+newtype ZebraChunkFactCount = ZebraChunkFactCount { unZebraChunkFactCount :: Int }
   deriving (Eq, Ord, Show)
 
-newtype ZebraAllocLimit = ZebraAllocLimit { unZebraAllocLimit :: Int }
+newtype ZebraAllocLimitGB = ZebraAllocLimitGB { unZebraAllocLimitGB :: Int }
   deriving (Eq, Ord, Show)
 
 defaultZebraConfig :: ZebraConfig
-defaultZebraConfig = ZebraConfig defaultZebraChunkSize defaultZebraAllocLimit
+defaultZebraConfig = ZebraConfig defaultZebraChunkFactCount defaultZebraAllocLimitGB
 
-defaultZebraChunkSize :: ZebraChunkSize
-defaultZebraChunkSize = ZebraChunkSize 128
+defaultZebraChunkFactCount :: ZebraChunkFactCount
+defaultZebraChunkFactCount = ZebraChunkFactCount 128
 
-defaultZebraAllocLimit :: ZebraAllocLimit
-defaultZebraAllocLimit = ZebraAllocLimit (2 * 1024 * 1024 * 1024)
+defaultZebraAllocLimitGB :: ZebraAllocLimitGB
+defaultZebraAllocLimitGB = ZebraAllocLimitGB 2
 
 seaOfZebraDriver :: [Attribute] -> [SeaProgramAttribute] -> Either SeaError Doc
 seaOfZebraDriver concretes states = do
