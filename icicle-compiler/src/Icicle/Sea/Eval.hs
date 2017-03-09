@@ -65,40 +65,45 @@ data PsvStats = PsvStats {
 seaZebraSnapshotFilePath :: SeaFleet ZebraState
                          -> FilePath
                          -> FilePath
+                         -> FilePath
                          -> Maybe FilePath
                          -> ZebraConfig
                          -> EitherT SeaError IO ZebraStats
-seaZebraSnapshotFilePath fleet input output mchords conf = do
+seaZebraSnapshotFilePath fleet input output drop_path mchords conf = do
   bracketEitherT' (liftIO $ Posix.createFile output (Posix.CMode 0O644))
                   (liftIO . Posix.closeFd) $ \ofd -> do
+  bracketEitherT' (liftIO $ Posix.createFile drop_path (Posix.CMode 0O644))
+                  (liftIO . Posix.closeFd) $ \dfd -> do
   bracketEitherT' (liftIO $ maybeOpen mchords)
                   (liftIO . maybeClose) $ \mcfd -> do
-  seaZebraSnapshotFd fleet input ofd mcfd conf
+  seaZebraSnapshotFd fleet input ofd dfd mcfd conf
 
 
 seaZebraSnapshotFd :: SeaFleet ZebraState
                    -> FilePath
                    -> Posix.Fd
+                   -> Posix.Fd
                    -> Maybe Posix.Fd
                    -> ZebraConfig
                    -> EitherT SeaError IO ZebraStats
-seaZebraSnapshotFd fleet input output mchords conf = do
-  withWords 9 $ \pState -> do
+seaZebraSnapshotFd fleet input output drop_fd mchords conf = do
+  withWords 10 $ \pState -> do
   input_path <- liftIO $ newCString input
   pokeWordOff pState 0 input_path
   pokeWordOff pState 1 output
   pokeWordOff pState 2 (fromMaybe 0 mchords)
-  pokeWordOff pState 6 (defaultPsvOutputBufferSize)
-  pokeWordOff pState 7 (unZebraChunkSize . zebraChunkSize $ conf)
-  pokeWordOff pState 8 (unZebraAllocLimit . zebraAllocLimit $ conf)
+  pokeWordOff pState 3 drop_fd
+  pokeWordOff pState 7 (defaultPsvOutputBufferSize)
+  pokeWordOff pState 8 (unZebraChunkSize . zebraChunkSize $ conf)
+  pokeWordOff pState 9 (unZebraAllocLimit . zebraAllocLimit $ conf)
 
   sfSnapshot fleet pState
 
   liftIO $ free input_path
 
-  pError       <- peekWordOff pState 3
-  factsRead    <- peekWordOff pState 4
-  entitiesRead <- peekWordOff pState 5
+  pError       <- peekWordOff pState 4
+  factsRead    <- peekWordOff pState 5
+  entitiesRead <- peekWordOff pState 6
 
   when (pError /= nullPtr) $ do
     msg <- liftIO (peekCString pError)

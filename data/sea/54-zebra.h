@@ -8,6 +8,7 @@ typedef struct {
     const char *input_path;
     iint_t output_fd;
     iint_t chord_fd;
+    iint_t drop_fd;
 
     /* outputs */
     const char  *error;
@@ -36,7 +37,7 @@ typedef struct zebra_state {
 
     /* output file descriptor */
     int output_fd;
-    int dropped_entity_fd;
+    int drop_fd;
 
     /* read state */
     int64_t  attribute_count;
@@ -224,10 +225,12 @@ zebra_state_t *zebra_alloc_state (piano_t *piano, zebra_config_t *cfg, int64_t a
     int fd;
     int output_fd = (int)cfg->output_fd;
     int chord_fd  = (int)cfg->chord_fd;
+    int drop_fd   = (int)cfg->drop_fd;
 
     /* System.IO.Handles are in non-blocking mode by default */
     psv_set_blocking_mode (output_fd);
     psv_set_blocking_mode (chord_fd);
+    psv_set_blocking_mode (drop_fd);
 
     /* If we have a piano, we know we are playing a chord */
     int64_t max_chord_count;
@@ -248,6 +251,8 @@ zebra_state_t *zebra_alloc_state (piano_t *piano, zebra_config_t *cfg, int64_t a
     state->output_ptr   = output_ptr;
     state->output_fd    = output_fd;
 
+    state->drop_fd      = drop_fd;
+
     state->attribute_count    = attribute_count;
     state->entity_fact_offset = calloc(attribute_count, sizeof (int64_t));
     state->entity_fact_count  = calloc(attribute_count, sizeof (int64_t));
@@ -263,13 +268,16 @@ void zebra_collect_state (zebra_config_t *cfg, zebra_state_t *state)
 {
     cfg->entity_count = state->entity_count;
     cfg->fact_count = state->fact_count;
-    free (state->output_start);
     free (state->entity_fact_offset);
     free (state->entity_fact_count);
     free (state);
 }
 
 void zebra_write_dropped_entity (zebra_state_t *state, zebra_entity_t *entity) {
+    char *msg = calloc (error_msg_size, 1);
+    const size_t msg_size = snprintf (msg, error_msg_size, "%.*s\n", entity->id_length, entity->id_bytes);
+    write (state->drop_fd, msg, msg_size);
+    free (msg);
 }
 
 ibool_t zebra_limit_exceeded (zebra_state_t *state) {
@@ -330,18 +338,18 @@ ierror_msg_t zebra_snapshot_step (piano_t *piano, zebra_state_t *state, zebra_en
     if (!zebra_limit_exceeded (state)) {
         error = psv_write_output
             ( fd
-              , state->output_start
-              , state->output_end
-              , &state->output_ptr
-              , (char*) entity_id
-              , entity_id_size
-              , state->fleet );
+            , state->output_start
+            , state->output_end
+            , &state->output_ptr
+            , (char*) entity_id
+            , entity_id_size
+            , state->fleet );
         if (error) return error;
 
         error = psv_flush_output
             ( fd
-              , state->output_start
-              , &state->output_ptr );
+            , state->output_start
+            , &state->output_ptr );
         if (error) return error;
     }
 

@@ -53,7 +53,7 @@ import qualified Data.Text as Text
 import qualified Data.Text.IO as Text
 import           Data.Time (NominalDiffTime, getCurrentTime, diffUTCTime)
 
-import           System.FilePath (FilePath)
+import           System.FilePath (FilePath, dropExtension)
 import           System.IO (IO, IOMode(..), withFile, hFileSize)
 
 import           Text.Printf (printf)
@@ -184,6 +184,7 @@ createZebraQuery = createQuery
 
 createQuery :: QueryOptions -> EitherT IcicleError IO (Query a)
 createQuery c = do
+  let dropPath = fromMaybe (dropExtension (outputPath (optOutput c)) <> "_dropped.txt") (optDrop c)
   let chordPath = chordPathOfScope $ optScope c
   chordStart <- liftIO getCurrentTime
 
@@ -220,7 +221,7 @@ createQuery c = do
     , queryChordPath       = chordPath
     , queryCompilationTime = end `diffUTCTime` start
     , queryFactsLimit      = optFactsLimit c
-    , queryDropPath        = fromMaybe (outputPath (optOutput c) <> "-dropped.txt") (optDrop c)
+    , queryDropPath        = dropPath
     , queryUseDrop         = optUseDrop c
     , queryChunkSize       = optChunkSize c
     , queryAllocLimit      = optAllocLimit c
@@ -377,12 +378,13 @@ runZebraQuery b = do
       input      = queryInputPath    b
       output     = queryOutputPath   b
       chordPath  = queryChordPath    b
+      dropPath   = queryDropPath     b
       chunkSize  = queryChunkSize    b
       allocLimit = queryAllocLimit   b
 
   start <- liftIO getCurrentTime
-  stats <- firstEitherT IcicleSeaError
-         $ seaZebraSnapshotFilePath fleet input output chordPath (ZebraConfig chunkSize allocLimit)
+  stats <- firstEitherT IcicleSeaError $
+    seaZebraSnapshotFilePath fleet input output dropPath chordPath (ZebraConfig chunkSize allocLimit)
   end   <- liftIO getCurrentTime
   size  <- liftIO (withFile input ReadMode hFileSize)
 
