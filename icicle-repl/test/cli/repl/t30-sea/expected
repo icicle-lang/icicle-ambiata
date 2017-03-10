@@ -1262,6 +1262,7 @@ typedef struct {
     /* inputs */
     input_repl_t     input;
 
+  /* compute for (0,0) */
     /* outputs */
     ierror_t         repl_ix_0;
     idouble_t        repl_ix_1;
@@ -1301,15 +1302,16 @@ typedef struct {
     ierror_t         res_acc_conv_62_simpflat_64;
     ibool_t          has_acc_conv_62_simpflat_65;
     idouble_t        res_acc_conv_62_simpflat_65;
-} iprogram_0_t;
 
-iint_t size_of_state_iprogram_0 ()
+} iattribute_0_t;
+
+iint_t size_of_state_iattribute_0 ()
 {
-    return sizeof (iprogram_0_t);
+    return sizeof (iattribute_0_t);
 }
 
-#line 1 "compute function #0 - repl"
-void iprogram_0(iprogram_0_t *s)
+#line 1 "compute function #0 - repl icompute_attribute_0_compute_0"
+void icompute_attribute_0_compute_0(iattribute_0_t *s)
 {
     ierror_t         conv_11_aval_2_simpflat_96;
     idouble_t        conv_11_aval_2_simpflat_97;
@@ -2336,6 +2338,7 @@ typedef struct {
     /* inputs */
     input_repl_t     input;
 
+  /* compute for (0,0) */
     /* outputs */
     ierror_t         repl_ix_0;
     itime_t          repl_ix_1;
@@ -2347,15 +2350,16 @@ typedef struct {
     itime_t          res_acc_s_reify_2_conv_5_simpflat_7;
     ibool_t          has_acc_conv_4_simpflat_2;
     itime_t          res_acc_conv_4_simpflat_2;
-} iprogram_0_t;
 
-iint_t size_of_state_iprogram_0 ()
+} iattribute_0_t;
+
+iint_t size_of_state_iattribute_0 ()
 {
-    return sizeof (iprogram_0_t);
+    return sizeof (iattribute_0_t);
 }
 
-#line 1 "compute function #0 - repl"
-void iprogram_0(iprogram_0_t *s)
+#line 1 "compute function #0 - repl icompute_attribute_0_compute_0"
+void icompute_attribute_0_compute_0(iattribute_0_t *s)
 {
     itime_t          flat_4;
     ierror_t         s_reify_2_conv_5_simpflat_22;

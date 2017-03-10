@@ -257,6 +257,7 @@ test-suite test
                      , text
                      , transformers
                      , vector                          == 0.11.*
+                     , semigroups                      >= 0.16       && < 0.19
 
 
 test-suite test-io
