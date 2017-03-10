@@ -151,4 +151,4 @@ seaOfDefReadProgram state = vsep
   computes = NonEmpty.toList $ stateComputes state
 
 nameOfRead :: SeaProgramAttribute -> CName
-nameOfRead state = pretty ("zebra_read_entity_" <> show (stateAttributeName state))
+nameOfRead state = pretty ("zebra_read_entity_" <> pretty (nameOfAttribute state))
