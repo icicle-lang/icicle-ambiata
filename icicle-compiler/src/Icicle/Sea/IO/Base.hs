@@ -61,6 +61,8 @@ import           Data.Set                         (Set)
 import qualified Data.Text.Encoding               as T
 import           Data.Word                        (Word8)
 import qualified Data.List as List
+import qualified Data.List.NonEmpty as NonEmpty
+
 
 import           Text.Printf (printf)
 
@@ -92,7 +94,7 @@ data Mode
 -- State
 --------------------------------------------------------------------------------
 
-seaOfConfigureFleet :: Mode -> [SeaProgramState] -> Doc
+seaOfConfigureFleet :: Mode -> [SeaProgramAttribute] -> Doc
 seaOfConfigureFleet mode states
  = vsep
  [ "#line 1 \"configure fleet state\""
@@ -152,7 +154,7 @@ seaOfConfigureFleet mode states
      ]
 
 
-seaOfFleetState :: [SeaProgramState] -> Doc
+seaOfFleetState :: [SeaProgramAttribute] -> Doc
 seaOfFleetState states
  = let time = seaOfValType TimeT
    in vsep
@@ -168,18 +170,18 @@ seaOfFleetState states
       , "};"
       ]
 
-defOfProgramState :: SeaProgramState -> Doc
+defOfProgramState :: SeaProgramAttribute -> Doc
 defOfProgramState state
  = defOfVar' 1 (pretty (nameOfStateType state))
-               (pretty (nameOfProgram state)) <> ";"
+               (pretty (nameOfAttribute state)) <> ";"
  <+> "/* " <> seaOfAttributeDesc (stateAttribute state) <> " */"
 
-defOfProgramTime :: SeaProgramState -> Doc
+defOfProgramTime :: SeaProgramAttribute -> Doc
 defOfProgramTime state
  = defOfVar 0 TimeT (pretty (nameOfLastTime state)) <> ";"
  <+> "/* " <> seaOfAttributeDesc (stateAttribute state) <> " */"
 
-defOfProgramCount :: SeaProgramState -> Doc
+defOfProgramCount :: SeaProgramAttribute -> Doc
 defOfProgramCount state
   = defOfVar 0 IntT (pretty (nameOfCount state)) <> ";"
   <+> "/* " <> seaOfAttributeDesc (stateAttribute state) <> " */"
@@ -199,7 +201,7 @@ seaOfPianoLookup
 
 ------------------------------------------------------------------------
 
-seaOfAllocFleet :: [SeaProgramState] -> Doc
+seaOfAllocFleet :: [SeaProgramAttribute] -> Doc
 seaOfAllocFleet states
  = vsep
  [ "#line 1 \"allocate fleet state\""
@@ -215,9 +217,9 @@ seaOfAllocFleet states
  , "}"
  ]
 
-seaOfAllocProgram :: SeaProgramState -> Doc
+seaOfAllocProgram :: SeaProgramAttribute -> Doc
 seaOfAllocProgram state
- = let programs  = "fleet->" <> pretty (nameOfProgram state)
+ = let programs  = "fleet->" <> pretty (nameOfAttribute state)
        program   = programs <> "[ix]."
        stype     = pretty (nameOfStateType state)
 
@@ -239,7 +241,7 @@ seaOfAllocProgram state
 
 ------------------------------------------------------------------------
 
-seaOfCollectFleet :: [SeaProgramState] -> Doc
+seaOfCollectFleet :: [SeaProgramAttribute] -> Doc
 seaOfCollectFleet states
  = vsep
  [ "#line 1 \"collect fleet state\""
@@ -264,14 +266,14 @@ seaOfCollectFleet states
  , "}"
  ]
 
-seaOfAssignMempool :: SeaProgramState -> Doc
+seaOfAssignMempool :: SeaProgramAttribute -> Doc
 seaOfAssignMempool state
- = let pname = pretty (nameOfProgram state)
+ = let pname = pretty (nameOfAttribute state)
    in "fleet->" <> pname <> "[ix].mempool = into_pool;"
 
-seaOfCollectProgram :: SeaProgramState -> Doc
+seaOfCollectProgram :: SeaProgramAttribute -> Doc
 seaOfCollectProgram state
- = let pname = pretty (nameOfProgram state)
+ = let pname = pretty (nameOfAttribute state)
        stype = pretty (nameOfStateType state)
        pvar  = "program->"
        pvari = pvar <> "input."
@@ -314,7 +316,7 @@ seaOfCollectProgram state
            , ""
            , "    if (last_pool != 0) {"
            , indent 8 $ vsep $ copyInputs (stateInputVars state)
-                            <> concatMap copyResumable (stateResumables state)
+                            <> concatMap copyResumable (concatMap stateResumables $ NonEmpty.toList $ stateComputes state)
            , "    }"
            , "}"
            ]
@@ -340,24 +342,24 @@ needsCopy = \case
   SumT{}    -> False
   MapT{}    -> False
 
-defOfState :: SeaProgramState -> Doc
+defOfState :: SeaProgramAttribute -> Doc
 defOfState state
  = let stype  = pretty (nameOfStateType state)
-       var    = "*p" <> pretty (stateName state)
-       member = "fleet->" <> pretty (nameOfProgram state)
+       var    = "*p" <> pretty (stateAttributeName state)
+       member = "fleet->" <> pretty (nameOfAttribute state)
    in stype <+> var <+> "=" <+> member <> ";"
 
-defOfLastTime :: SeaProgramState -> Doc
+defOfLastTime :: SeaProgramAttribute -> Doc
 defOfLastTime state
  = "fleet->" <> pretty (nameOfLastTime state) <+> "= 0;"
 
-defOfCount :: SeaProgramState -> Doc
+defOfCount :: SeaProgramAttribute -> Doc
 defOfCount state
  = "fleet->" <> pretty (nameOfCount state) <+> "= 0;"
 
-seaOfAssignTime :: SeaProgramState -> Doc
+seaOfAssignTime :: SeaProgramAttribute -> Doc
 seaOfAssignTime state
- = let ptime = "p" <> pretty (stateName state) <> "[ix].input." <> pretty (stateTimeVar state)
+ = let ptime = "p" <> pretty (stateAttributeName state) <> "[ix].input." <> pretty (stateTimeVar state)
    in  ptime <+> "=" <+> "chord_time;"
 
 -- Input
@@ -385,7 +387,7 @@ data CheckedInput = CheckedInput {
   , inputVars     :: [(Name, ValType)]
   } deriving (Eq, Ord, Show)
 
-checkInputType :: SeaProgramState -> Either SeaError CheckedInput
+checkInputType :: SeaProgramAttribute -> Either SeaError CheckedInput
 checkInputType state
  = case stateInputType state of
      PairT (SumT ErrorT t) TimeT

@@ -92,6 +92,7 @@ import qualified Icicle.Simulator                         as Sim
 import qualified Icicle.Compiler.Source                   as Source
 
 
+import           Data.List.NonEmpty ( NonEmpty(..) )
 import           Data.Map                                 (Map)
 import qualified Data.Map                                 as M
 import           Data.Monoid
@@ -258,7 +259,7 @@ coreOfSource opt dict (Attribute attr, virtual) = do
 
 avalancheOfDictionary :: Source.IcicleCompileOptions
                       -> Dictionary
-                      -> Either Error (Map Attribute (AvalProgramTyped Source.Var Flat.Prim))
+                      -> Either Error (Map Attribute (NonEmpty (AvalProgramTyped Source.Var Flat.Prim)))
 avalancheOfDictionary opt dict = do
   let virtuals = fmap (second Dict.unVirtual) (Dict.getVirtualFeatures dict)
 
@@ -266,7 +267,10 @@ avalancheOfDictionary opt dict = do
   fused     <- parTraverse fuseCore                (M.unionsWith (<>) core)
   avalanche <- parTraverse avalancheOfCore         fused
 
-  return avalanche
+  -- TODO: decide how to fuse, and what not to fuse etc
+  let avalanche' = fmap (\i -> i :| []) avalanche
+
+  return avalanche'
 
 
 avalancheOfCore ::               Source.CoreProgramUntyped Source.Var

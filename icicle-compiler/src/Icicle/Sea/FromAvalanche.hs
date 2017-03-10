@@ -3,7 +3,7 @@
 {-# LANGUAGE PatternGuards #-}
 
 module Icicle.Sea.FromAvalanche (
-    seaOfProgram
+    seaOfPrograms
   , factVarsOfProgram
   , accumsOfProgram
   , outputsOfProgram

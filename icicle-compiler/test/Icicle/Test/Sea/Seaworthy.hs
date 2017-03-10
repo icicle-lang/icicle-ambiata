@@ -13,6 +13,7 @@ import qualified Icicle.Avalanche.FromCore          as A
 
 import           Icicle.Test.Arbitrary
 
+import           Data.List.NonEmpty ( NonEmpty(..) )
 import qualified Data.Map                           as Map
 
 import           P
@@ -34,7 +35,7 @@ namer = A.namerText (flip Var 0)
 prop_seaworthy wt
  = testIO
  $ do let a = Attribute "eval"
-      let seaProgram = Map.singleton a (wtAvalancheFlat wt)
+      let seaProgram = Map.singleton a (wtAvalancheFlat wt :| [])
       x <- runEitherT $ go [a] seaProgram
       return $ case x of
        Right _

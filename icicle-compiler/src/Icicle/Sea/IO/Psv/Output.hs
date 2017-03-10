@@ -5,6 +5,7 @@
 module Icicle.Sea.IO.Psv.Output where
 
 import qualified Data.List as List
+import qualified Data.List.NonEmpty as NonEmpty
 import           Data.Map (Map)
 import qualified Data.Map as Map
 
@@ -51,7 +52,7 @@ defaultOutputMissing = "NA"
 
 ------------------------------------------------------------------------
 
-seaOfWriteFleetOutput :: PsvOutputConfig -> PsvOutputWhiteList -> [SeaProgramState] -> Either SeaError Doc
+seaOfWriteFleetOutput :: PsvOutputConfig -> PsvOutputWhiteList -> [SeaProgramAttribute] -> Either SeaError Doc
 seaOfWriteFleetOutput config whitelist states = do
   let states' = case whitelist of
                   Nothing -> states
@@ -119,11 +120,11 @@ outputChord
   = outputValue "string" ["chord_time", "chord_size"]
 
 
-seaOfWriteProgramOutput :: PsvOutputConfig -> SeaProgramState -> Either SeaError Doc
+seaOfWriteProgramOutput :: PsvOutputConfig -> SeaProgramAttribute -> Either SeaError Doc
 seaOfWriteProgramOutput config state = do
-  let ps    = "p" <> int (stateName state)
+  let ps    = "p" <> int (stateAttributeName state)
       stype = pretty (nameOfStateType state)
-      pname = pretty (nameOfProgram state)
+      attr  = pretty (nameOfAttribute state)
       tb    = outputPsvMissing config
 
   let outputState (name, (ty, tys))
@@ -136,14 +137,16 @@ seaOfWriteProgramOutput config state = do
   let outputRes   name
         = ps <> "->" <> pretty (hasPrefix <> name) <+> "= ifalse;"
 
-  let resumeables  = fmap (outputRes . fst) (stateResumables state)
-  outputs         <- traverse outputState (stateOutputs state)
+  let computes = NonEmpty.toList $ stateComputes state
+  let resumeables  = fmap (outputRes . fst) (concatMap stateResumables computes)
+  outputs         <- traverse outputState (concatMap stateOutputs computes)
+  let callComputes = fmap (\i -> pretty (nameOfCompute i) <+> "(" <> ps <> ");") computes
 
   pure $ vsep
     [ ""
     , "/* " <> seaOfAttributeDesc (stateAttribute state) <> " */"
-    , stype <+> "*" <> ps <+> "=" <+> "&fleet->" <> pname <> "[chord_ix];"
-    , pname <+> "(" <> ps <> ");"
+    , stype <+> "*" <> ps <+> "=" <+> "&fleet->" <> attr <> "[chord_ix];"
+    , vsep callComputes
     , ps <> "->input.new_count = 0;"
     , vsep resumeables
     , ""

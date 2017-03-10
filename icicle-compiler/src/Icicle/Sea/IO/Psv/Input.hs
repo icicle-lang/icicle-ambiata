@@ -11,6 +11,7 @@ module Icicle.Sea.IO.Psv.Input
   ) where
 
 import qualified Data.List as List
+import qualified Data.List.NonEmpty as NonEmpty
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import           Data.Set (Set)
@@ -51,8 +52,8 @@ data SeaInputError = SeaInputError
     -- ^ what to do when ent-attr count exceeds limit
   }
 
-nameOfReadFact :: SeaProgramState -> CName
-nameOfReadFact state = pretty ("psv_read_fact_" <> show (stateName state))
+nameOfReadFact :: SeaProgramAttribute -> CName
+nameOfReadFact state = pretty ("psv_read_fact_" <> show (stateAttributeName state))
 
 seaOfReadTime :: CBlock
 seaOfReadTime
@@ -98,11 +99,11 @@ seaOfReadTombstone input = \case
 
 seaOfReadNamedFact :: SeaInputError
                    -> InputAllowDupTime
-                   -> SeaProgramState
+                   -> SeaProgramAttribute
                    -> CStmt
 seaOfReadNamedFact errs allowDupTime state
  = let fun    = nameOfReadFact state
-       pname  = pretty (nameOfProgram  state)
+       pname  = pretty (nameOfAttribute  state)
        tname  = pretty (nameOfLastTime state)
        cname  = pretty (nameOfCount    state)
        tcond  = if allowDupTime == AllowDupTime
@@ -161,7 +162,7 @@ seaOfReadNamedFact errs allowDupTime state
       , ""
       ]
 seaOfReadFact
-  :: SeaProgramState
+  :: SeaProgramAttribute
   -> Set Text
   -> CheckedInput
   -> CStmt -- C block that reads the input value
@@ -221,7 +222,7 @@ seaOfReadFact state tombstones input readInput checkCount =
 seaOfReadAnyFactPsv
   :: InputOpts
   -> PsvInputConfig
-  -> [SeaProgramState]
+  -> [SeaProgramAttribute]
   -> Either SeaError Doc
 seaOfReadAnyFactPsv opts config states = do
   case inputPsvFormat config of
@@ -278,7 +279,7 @@ seaOfReadAnyFactPsv opts config states = do
 
 -- * Dense PSV
 
-seaOfReadNamedFactDense :: InputOpts -> SeaProgramState -> Doc
+seaOfReadNamedFactDense :: InputOpts -> SeaProgramAttribute -> Doc
 seaOfReadNamedFactDense opts state
  = let attrib = getAttribute (stateAttribute state)
        errs   = SeaInputError
@@ -309,7 +310,7 @@ seaOfReadNamedFactDense opts state
       ]
 
 
-seaOfReadFactDense :: PsvInputDenseDict -> SeaProgramState -> Set Text -> Either SeaError Doc
+seaOfReadFactDense :: PsvInputDenseDict -> SeaProgramAttribute -> Set Text -> Either SeaError Doc
 seaOfReadFactDense dict state tombstones = do
   let feeds  = denseDict dict
   let attr   = getAttribute $ stateAttribute state
@@ -425,7 +426,7 @@ mappingOfDenseFields fields varsoup
 
 -- * Sparse PSV
 
-seaOfReadNamedFactSparse :: InputOpts -> SeaProgramState -> Doc
+seaOfReadNamedFactSparse :: InputOpts -> SeaProgramAttribute -> Doc
 seaOfReadNamedFactSparse opts state
  = let attrib = getAttribute (stateAttribute state)
        errs   = SeaInputError
@@ -460,7 +461,7 @@ seaOfReadNamedFactSparse opts state
       ]
 
 seaOfReadFactSparse
-  :: SeaProgramState
+  :: SeaProgramAttribute
   -> Set Text
   -> Either SeaError Doc
 seaOfReadFactSparse state tombstones = do
@@ -472,18 +473,20 @@ seaOfReadFactSparse state tombstones = do
 
 -- * Generic reading of JSON and stuff in PSV
 
-seaOfCheckCount :: SeaProgramState -> CStmt
+seaOfCheckCount :: SeaProgramAttribute -> CStmt
 seaOfCheckCount state = vsep
   [ "if (new_count == max_row_count) {"
   -- We need to set the program count before executing it.
   -- Otherwise, it won't evaluate the last row
   , "     program->input.new_count = new_count;"
-  , "     " <> pretty (nameOfProgram state) <> " (program);"
+  , indent 6 $ vsep $ fmap (\i -> pretty (nameOfCompute i) <+> " (program);") computes
   , "     new_count = 0;"
   , "} else if (new_count > max_row_count) {"
   , "     return ierror_loc_format (0, 0, \"" <> pretty (nameOfReadFact state) <> ": new_count > max_count\");"
   , "}"
   ]
+ where
+  computes = NonEmpty.toList $ stateComputes state
 
 seaOfReadJsonValue :: Assignment -> ValType -> [(Text, ValType)] -> Either SeaError Doc
 seaOfReadJsonValue assign vtype vars
@@ -633,6 +636,6 @@ seaOfReadJsonField assign ftype vars = do
     , "    break;"
     ]
 
-lookupTombstones :: InputOpts -> SeaProgramState -> Set Text
+lookupTombstones :: InputOpts -> SeaProgramAttribute -> Set Text
 lookupTombstones opts state =
   fromMaybe Set.empty (Map.lookup (stateAttribute state) (inputTombstones opts))

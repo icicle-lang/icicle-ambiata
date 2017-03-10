@@ -8,6 +8,7 @@ module Icicle.Debug (
   , avalancheOrDie'
   ) where
 
+import           Data.List.NonEmpty ( NonEmpty(..) )
 import           Data.Map                      (Map)
 import qualified Data.Map                       as Map
 
@@ -58,7 +59,7 @@ data DebugError =
 avalancheOrDie :: P.IcicleCompileOptions
                -> FilePath
                -> Text
-               -> P.AvalProgramTyped P.Var A.Prim
+               -> NonEmpty (P.AvalProgramTyped P.Var A.Prim)
 avalancheOrDie opts dictionaryPath source =
   case Map.minView (avalancheOrDie' opts dictionaryPath [("debug", source)]) of
     Just (x, _) -> x
@@ -67,7 +68,7 @@ avalancheOrDie opts dictionaryPath source =
 avalancheOrDie' :: P.IcicleCompileOptions
                 -> FilePath
                 -> [(Text, Text)]
-                -> Map Attribute (P.AvalProgramTyped P.Var A.Prim)
+                -> Map Attribute (NonEmpty (P.AvalProgramTyped P.Var A.Prim))
 avalancheOrDie' opts dictionaryPath sources = unsafePerformIO $ do
   result <- runEitherT (avalancheFrom opts dictionaryPath sources)
   case result of
@@ -78,7 +79,7 @@ avalancheOrDie' opts dictionaryPath sources = unsafePerformIO $ do
 avalancheFrom :: P.IcicleCompileOptions
               -> FilePath
               -> [(Text, Text)]
-              -> EitherT DebugError IO (Map Attribute (P.AvalProgramTyped P.Var A.Prim))
+              -> EitherT DebugError IO (Map Attribute (NonEmpty (P.AvalProgramTyped P.Var A.Prim)))
 avalancheFrom opts dictionaryPath sources = do
   let checkOpts = P.icicleBigData opts
 

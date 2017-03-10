@@ -13,6 +13,7 @@ import           Control.Monad.IO.Class (liftIO)
 
 import qualified Data.ByteString.Lazy as L
 import qualified Data.List as List
+import           Data.List.NonEmpty ( NonEmpty(..) )
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import qualified Data.Text as T
@@ -218,7 +219,7 @@ compileTest wt (TestOpts _ _ inputFormat allowDupTime) = do
   options0 <- S.getCompilerOptions
 
   let options  = options0 <> ["-O0", "-DICICLE_NOINLINE=1"]
-      programs = Map.singleton (wtAttribute wt) (wtAvalancheFlat wt)
+      programs = Map.singleton (wtAttribute wt) (wtAvalancheFlat wt :| [])
       iconfig  = S.PsvInputConfig
                 (S.Snapshot (wtTime wt))
                  inputFormat
