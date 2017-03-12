@@ -12,6 +12,7 @@ import           Control.Monad.IO.Class (liftIO)
 
 import           Data.String
 import qualified Data.List as List
+import           Data.List.NonEmpty ( NonEmpty(..) )
 import qualified Data.ByteString.Char8 as ByteString
 import qualified Data.Text.Encoding as Text
 import qualified Data.Map.Strict as Map
@@ -92,7 +93,7 @@ prop_read_entity =
               (\state -> do
                  fleet_ptr <- peekWordOff state 5
                  struct_count <- (\x -> x - 2) . length . stateInputVars <$>
-                   hoistEither (stateOfProgram 0 (wtAttribute wt) (wtAvalancheFlat wt))
+                   hoistEither (stateOfPrograms 0 (wtAttribute wt) (wtAvalancheFlat wt :| []))
 
                  let
                    facts =
@@ -433,7 +434,7 @@ codeOf zebra_chunk_size wt = do
         (InputOpts AllowDupTime Map.empty)
         ("" :: String)
     attr = wtAttribute wt
-    flat = wtAvalancheFlat wt
+    flat = wtAvalancheFlat wt :| []
 
   src <- codeOfPrograms input [attr] [(attr, flat)]
 

@@ -3,10 +3,12 @@
 {-# LANGUAGE PatternGuards #-}
 
 module Icicle.Sea.FromAvalanche.Program (
-    seaOfProgram
+    seaOfPrograms
   , seaOfXValue
-  , nameOfProgram
-  , nameOfProgram'
+  , nameOfAttribute
+  , nameOfAttribute'
+  , nameOfCompute
+  , nameOfCompute'
   , nameOfStateType
   ) where
 
@@ -34,20 +36,26 @@ import           Icicle.Sea.FromAvalanche.Type
 import           P hiding (head)
 
 import qualified Data.List as List
+import qualified Data.List.NonEmpty as NonEmpty
+import           Data.List.NonEmpty ( NonEmpty(..) )
+
 import qualified Data.Map as Map
 
 
 ------------------------------------------------------------------------
 
-seaOfProgram :: (Show a, Show n, Pretty n, Eq n)
-             => Int -> Attribute -> Program (Annot a) n Prim -> Either SeaError Doc
-seaOfProgram name attrib program = do
-  state <- stateOfProgram name attrib program
-  pure $ vsep
-    [ seaOfState state
-    , ""
-    , "#line 1 \"compute function" <+> seaOfStateInfo state <> "\""
-    , "void " <> pretty (nameOfProgram state) <> "(" <> pretty (nameOfStateType state) <+> "*s)"
+seaOfPrograms :: (Show a, Show n, Pretty n, Eq n)
+             => Int -> Attribute -> NonEmpty (Program (Annot a) n Prim) -> Either SeaError Doc
+seaOfPrograms name attrib programs = do
+  state <- stateOfPrograms name attrib programs
+  let computes = NonEmpty.zipWith (seaOfCompute state) (stateComputes state) programs
+  pure $ vsep ( seaOfState state : NonEmpty.toList computes )
+ where
+  seaOfCompute attribute compute program
+   = vsep $
+    [ ""
+    , "#line 1 \"compute function" <+> seaOfStateInfo attribute <+> pretty (nameOfCompute compute) <> "\""
+    , "void " <> pretty (nameOfCompute compute) <> "(" <> pretty (nameOfStateType attribute) <+> "*s)"
     , "{"
     , indent 4 . vsep
                . fmap defOfAccumulator
@@ -56,10 +64,10 @@ seaOfProgram name attrib program = do
                  readsOfProgram  program
     , ""
     , indent 4 $ assign (defOfVar' 1 "anemone_mempool_t" "mempool") "s->mempool;"
-    , indent 4 $ assign (defOfVar  0 TimeT (pretty (stateTimeVar state)))
-                        ("s->" <> stateInputTime state) <> ";"
+    , indent 4 $ assign (defOfVar  0 TimeT (pretty $ textOfName $ bindtime program))
+                        ("s->" <> stateInputTime attribute) <> ";"
     , ""
-    , indent 4 (seaOfStatement (statements program))
+    , indent 4 (seaOfStatement attribute (statements program))
     , "}"
     ]
 
@@ -70,28 +78,28 @@ defOfAccumulator (n, vt)
 ------------------------------------------------------------------------
 
 seaOfStatement :: (Show a, Show n, Pretty n, Eq n)
-               => Statement (Annot a) n Prim -> Doc
-seaOfStatement stmt
+               => SeaProgramAttribute -> Statement (Annot a) n Prim -> Doc
+seaOfStatement state stmt
  = case stmt of
      Block []
       -> Pretty.empty
 
      Block (s:[])
-      -> seaOfStatement s
+      -> seaOfStatement state s
 
      Block (s:ss)
-      -> seaOfStatement s <> line
-      <> seaOfStatement (Block ss)
+      -> seaOfStatement state s <> line
+      <> seaOfStatement state (Block ss)
 
      Let n xx stmt'
       | xt <- valTypeOfExp xx
       -> assign (defOfVar 0 xt (seaOfName n)) (seaOfExp xx) <> semi <> suffix "let" <> line
-      <> seaOfStatement stmt'
+      <> seaOfStatement state stmt'
 
      If ii tt (Block [])
       -> vsep [ ""
               , "if (" <> seaOfExp ii <> ") {"
-              , indent 4 (seaOfStatement tt)
+              , indent 4 (seaOfStatement state tt)
               , "}"
               , ""
               ]
@@ -99,33 +107,36 @@ seaOfStatement stmt
      If ii tt ee
       -> vsep [ ""
               , "if (" <> seaOfExp ii <> ") {"
-              , indent 4 (seaOfStatement tt)
+              , indent 4 (seaOfStatement state tt)
               , "} else {"
-              , indent 4 (seaOfStatement ee)
+              , indent 4 (seaOfStatement state ee)
               , "}"
               , ""
               ]
 
      While t n _ end stmt'
       -> vsep [ "while (" <> seaOfName n <+> seaOfWhileType t <+> seaOfExp end <> ") {"
-              , indent 4 $ seaOfStatement stmt'
+              , indent 4 $ seaOfStatement state stmt'
               , "}"
               ]
      ForeachInts t n start end stmt'
       -> vsep [ "for (iint_t" <+> seaOfName n <+> "=" <+> seaOfExp start <> ";"
                               <+> seaOfName n <+> seaOfForeachCompare t  <+> seaOfExp end <> ";"
                               <+> seaOfName n <>  seaOfForeachStep t     <> ") {"
-              , indent 4 $ seaOfStatement stmt'
+              , indent 4 $ seaOfStatement state stmt'
               , "}"
               ]
 
      ForeachFacts (FactBinds ntime nfid ns) _ FactLoopNew stmt'
-      -> let structAssign (n, t) = assign (defOfVar' 1 ("const" <+> seaOfValType t)
-                                                       ("const" <+> pretty newPrefix <> seaOfName n))
-                                          (stNew n) <> semi
-             loopAssign   (n, t) = assign (defOfVar 0 t (seaOfName n))
-                                          (pretty newPrefix <> seaOfName n <> "[i]") <> semi
-             factTime = case reverse ns of
+      -> let inputStruct = stateInputVars state
+             structAssign (n, t)
+                      = assign (defOfVar' 1 ("const" <+> seaOfValType t)
+                                            ("const" <+> pretty newPrefix <> seaOfName n))
+                               (stNew n) <> semi
+             loopAssign (bindn, t) (inputn,_)
+                      = assign (defOfVar 0 t (seaOfName bindn))
+                               (pretty newPrefix <> seaOfName inputn <> "[i]") <> semi
+             factTime = case reverse inputStruct of
                          [] -> seaError "seaOfStatement: no facts" ()
                          ((n,_):_) -> pretty newPrefix <> seaOfName n <> "[i]"
          in vsep $
@@ -136,7 +147,7 @@ seaOfStatement stmt
             , "for (iint_t i = 0; i < new_count; i++) {"
             , indent 4 $ assign (defOfVar 0 FactIdentifierT (seaOfName nfid))  "i"      <> semi
             , indent 4 $ assign (defOfVar 0 TimeT           (seaOfName ntime)) factTime <> semi
-            , indent 4 $ vsep (fmap loopAssign ns) <> line <> seaOfStatement stmt'
+            , indent 4 $ vsep (List.zipWith loopAssign ns inputStruct) <> line <> seaOfStatement state stmt'
             , "}"
             , ""
             ]
@@ -144,11 +155,11 @@ seaOfStatement stmt
      InitAccumulator acc stmt'
       | Accumulator n _ xx <- acc
       -> assign (seaOfName n) (seaOfExp xx) <> semi <> suffix "init" <> line
-      <> seaOfStatement stmt'
+      <> seaOfStatement state stmt'
 
      Read n_val n_acc _ stmt'
       -> assign (seaOfName n_val) (seaOfName n_acc) <> semi <> suffix "read" <> line
-      <> seaOfStatement stmt'
+      <> seaOfStatement state stmt'
 
      Write n xx
       -> assign (seaOfName n) (seaOfExp xx) <> semi <> suffix "write"

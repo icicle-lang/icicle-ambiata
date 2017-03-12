@@ -38,6 +38,7 @@ typedef struct {
     /* inputs */
     input_repl_t     input;
 
+  /* compute for (0,0) */
     /* outputs */
     ibool_t          repl_ix_0;
     iint_t           repl_ix_1;
@@ -50,15 +51,16 @@ typedef struct {
     ibool_t          res_acc_perhaps_conv_4_simpflat_4;
     ibool_t          has_acc_perhaps_conv_4_simpflat_6;
     idouble_t        res_acc_perhaps_conv_4_simpflat_6;
-} iprogram_0_t;
 
-iint_t size_of_state_iprogram_0 ()
+} iattribute_0_t;
+
+iint_t size_of_state_iattribute_0 ()
 {
-    return sizeof (iprogram_0_t);
+    return sizeof (iattribute_0_t);
 }
 
-#line 1 "compute function #0 - repl"
-void iprogram_0(iprogram_0_t *s)
+#line 1 "compute function #0 - repl icompute_attribute_0_compute_0"
+void icompute_attribute_0_compute_0(iattribute_0_t *s)
 {
     idouble_t        perhaps_conv_4_aval_0_simpflat_9;
     iint_t           perhaps_conv_4_aval_0_simpflat_8;

@@ -60,7 +60,7 @@ defaultPsvFactsLimit = 1024 * 1024
 
 ------------------------------------------------------------------------
 
-seaOfPsvDriver :: InputOpts -> PsvConfig -> [SeaProgramState] -> Either SeaError Doc
+seaOfPsvDriver :: InputOpts -> PsvConfig -> [SeaProgramAttribute] -> Either SeaError Doc
 seaOfPsvDriver opts config states = do
   let inputConfig  = psvInputConfig config
   let outputConfig = psvOutputConfig config

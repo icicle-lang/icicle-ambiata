@@ -48,6 +48,8 @@ import           Control.Monad.Catch (MonadMask(..))
 import           Control.Monad.IO.Class (MonadIO(..))
 
 import qualified Data.List as List
+import qualified Data.List.NonEmpty as NonEmpty
+import           Data.List.NonEmpty ( NonEmpty(..) )
 import           Data.Map (Map)
 import qualified Data.Map as Map
 import qualified Data.Text as T
@@ -80,8 +82,8 @@ import           Icicle.Internal.Pretty (pretty, vsep)
 import           Icicle.Internal.Pretty (Doc, Pretty, displayS, renderPretty)
 
 import           Icicle.Sea.Error (SeaError(..))
-import           Icicle.Sea.FromAvalanche.Program (seaOfProgram)
-import           Icicle.Sea.FromAvalanche.State (stateOfProgram)
+import           Icicle.Sea.FromAvalanche.Program (seaOfPrograms)
+import           Icicle.Sea.FromAvalanche.State (stateOfPrograms)
 import           Icicle.Sea.FromAvalanche.Type (seaOfDefinitions)
 import           Icicle.Sea.IO
 import           Icicle.Sea.Preamble (seaPreamble)
@@ -131,7 +133,7 @@ seaEvalAvalanche
   -> EitherT SeaError IO [(OutputName, D.Value)]
 seaEvalAvalanche program time values = do
   let attr = Attribute "eval"
-      ps   = Map.singleton attr program
+      ps   = Map.singleton attr (program :| [])
   bracketEitherT'
     (seaCompile CacheSea NoInput [attr] ps Nothing)
     seaRelease
@@ -142,7 +144,7 @@ seaEvalAvalanche program time values = do
 seaEval
   :: (MonadIO m, MonadMask m)
   => Attribute
-  -> Map Attribute SeaProgram
+  -> Map Attribute (NonEmpty SeaProgram)
   -> SeaFleet st
   -> D.Time
   -> [D.AsAt D.Value]
@@ -153,7 +155,7 @@ seaEval attribute programs fleet time values =
     Just program -> do
       let create  = liftIO $ sfCreatePool  fleet
           release = liftIO . sfReleasePool fleet
-      seaEval' program create release time values
+      concat <$> mapM (\p -> seaEval' p create release time values) program
 
 seaEval'
   :: (MonadIO m, MonadMask m)
@@ -201,7 +203,7 @@ seaCompile ::
   => CacheSea
   -> Input FilePath
   -> [Attribute]
-  -> Map Attribute (Program (Annot a) n Prim)
+  -> Map Attribute (NonEmpty (Program (Annot a) n Prim))
   -> Maybe FilePath
   -> EitherT SeaError m (SeaFleet st)
 seaCompile cache input attributes programs chords = do
@@ -215,7 +217,7 @@ seaCompileFleet ::
   -> CacheSea
   -> Input FilePath
   -> [Attribute]
-  -> Map Attribute (Program (Annot a) n Prim)
+  -> Map Attribute (NonEmpty (Program (Annot a) n Prim))
   -> Maybe FilePath
   -> EitherT SeaError m (SeaFleet st)
 seaCompileFleet options cache input attributes programs chords = do
@@ -264,7 +266,7 @@ assemblyOfPrograms
   :: (Show a, Show n, Pretty n, Eq n)
   => Input x
   -> [Attribute]
-  -> [(Attribute, Program (Annot a) n Prim)]
+  -> [(Attribute, NonEmpty (Program (Annot a) n Prim))]
   -> EitherT SeaError IO Text
 assemblyOfPrograms input attributes programs = do
   code    <- hoistEither (codeOfPrograms input attributes programs)
@@ -275,7 +277,7 @@ irOfPrograms
   :: (Show a, Show n, Pretty n, Eq n)
   => Input x
   -> [Attribute]
-  -> [(Attribute, Program (Annot a) n Prim)]
+  -> [(Attribute, NonEmpty (Program (Annot a) n Prim))]
   -> EitherT SeaError IO Text
 irOfPrograms input attributes programs = do
   code    <- hoistEither (codeOfPrograms input attributes programs)
@@ -286,13 +288,13 @@ codeOfPrograms
   :: (Show a, Show n, Pretty n, Eq n)
   => Input x
   -> [Attribute]
-  -> [(Attribute, Program (Annot a) n Prim)]
+  -> [(Attribute, NonEmpty (Program (Annot a) n Prim))]
   -> Either SeaError Text
 codeOfPrograms input attributes programs = do
-  let defs = seaOfDefinitions (fmap snd programs)
+  let defs = seaOfDefinitions (concatMap (NonEmpty.toList . snd) programs)
 
-  progs   <- zipWithM (\ix (a, p) -> seaOfProgram   ix a p) [0..] programs
-  states  <- zipWithM (\ix (a, p) -> stateOfProgram ix a p) [0..] programs
+  progs   <- zipWithM (\ix (a, p) -> seaOfPrograms   ix a p) [0..] programs
+  states  <- zipWithM (\ix (a, p) -> stateOfPrograms ix a p) [0..] programs
 
   let defOfPsvInput conf
         | inputPsvFormat conf == PsvInputSparse

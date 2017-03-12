@@ -11,6 +11,7 @@ import           Control.Monad.IO.Class
 import           Control.Monad.Trans.Class
 
 import qualified Data.List                        as L
+import           Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.Text                        as T
 import qualified Data.Text.IO                     as T
 import           Data.String                      (String)
@@ -343,6 +344,7 @@ handleLine state line = let st = sourceState state in
            prettyOut hasFlattenSimp "- Flattened Avalanche (simplified), typechecked:" f'
 
       -- Flattened Avalanche, simplified, eval.
+           let flatList = f' :| []
 
            case Compiler.avalancheEval (SourceRepl.currentTime st) (SourceRepl.facts st) finalSource flatSimped of
             Left  e -> prettyOut hasAvalancheEval "- Flattened Avalanche (simplified) evalutation error:" e
@@ -353,19 +355,19 @@ handleLine state line = let st = sourceState state in
            prettyOut hasSeaPreamble "- C preamble:" Sea.seaPreamble
 
            when (hasSea state) $ do
-             let seaProgram = Sea.seaOfProgram 0 attr f'
+             let seaProgram = Sea.seaOfPrograms 0 attr flatList
              case seaProgram of
                Left  e -> prettyOut (const True) "- C error:" e
                Right r -> prettyOut (const True) "- C:" r
 
            when (hasSeaAssembly state) $ do
-             result <- liftIO . runEitherT $ Sea.assemblyOfPrograms Sea.NoInput [attr] [(attr, f')]
+             result <- liftIO . runEitherT $ Sea.assemblyOfPrograms Sea.NoInput [attr] [(attr, flatList)]
              case result of
                Left  e -> prettyOut (const True) "- C assembly error:" e
                Right r -> prettyOut (const True) "- C assembly:" r
 
            when (hasSeaLLVMIR state) $ do
-             result <- liftIO . runEitherT $ Sea.irOfPrograms Sea.NoInput [attr] [(attr, f')]
+             result <- liftIO . runEitherT $ Sea.irOfPrograms Sea.NoInput [attr] [(attr, flatList)]
              case result of
                Left  e -> prettyOut (const True) "- C LLVM IR error:" e
                Right r -> prettyOut (const True) "- C LLVM IR:" r

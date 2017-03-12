@@ -7,6 +7,7 @@ module Icicle.Sea.IO.Zebra (
   ) where
 
 import qualified Data.List as List
+import qualified Data.List.NonEmpty as NonEmpty
 
 import           Icicle.Data (Attribute (..))
 
@@ -26,7 +27,7 @@ data ZebraConfig = ZebraConfig
 defaultZebraConfig :: ZebraConfig
 defaultZebraConfig = ZebraConfig (1024*1024)
 
-seaOfZebraDriver :: [Attribute] -> [SeaProgramState] -> Either SeaError Doc
+seaOfZebraDriver :: [Attribute] -> [SeaProgramAttribute] -> Either SeaError Doc
 seaOfZebraDriver concretes states = do
   let lookup x = maybeToRight (SeaNoAttributeIndex x) $ List.elemIndex x concretes
   indices <- sequence $ fmap (lookup . stateAttribute) states
@@ -40,7 +41,7 @@ seaOfZebraDriver concretes states = do
 --   zebra_read_entity_1 (1, fleet->iprogram_1, entity)
 --   ...
 -- }
-seaOfDefRead :: [(Int, SeaProgramState)] -> Doc
+seaOfDefRead :: [(Int, SeaProgramAttribute)] -> Doc
 seaOfDefRead states = vsep
   [ vsep $ fmap (seaOfDefReadProgram . snd) states
   , "#line 1 \"read entity\""
@@ -56,7 +57,7 @@ seaOfDefRead states = vsep
   , ""
   ]
 
-seaOfRead :: Int -> SeaProgramState -> Doc
+seaOfRead :: Int -> SeaProgramAttribute -> Doc
 seaOfRead index state = vsep
   [ "/*" <> n <> ": " <> a <> " */"
   , "error = zebra_read_entity_" <> n
@@ -66,11 +67,11 @@ seaOfRead index state = vsep
   , "            , fleet->mempool"
   , "            , chord_count"
   , "            , " <> i
-  , "            , fleet->iprogram_" <> n <> ");"
+  , "            , fleet->" <> n <> ");"
   , "if (error) return error;"
   ]
   where
-    n = pretty (stateName state)
+    n = pretty (nameOfAttribute state)
     i = pretty index
     a = pretty (getAttribute (stateAttribute state))
 
@@ -88,7 +89,7 @@ seaOfRead index state = vsep
 --   }
 -- }
 --
-seaOfDefReadProgram :: SeaProgramState -> Doc
+seaOfDefReadProgram :: SeaProgramAttribute -> Doc
 seaOfDefReadProgram state = vsep
   [ "#line 1 \"read entity for program" <+> seaOfStateInfo state <> "\""
   , "static ierror_msg_t INLINE"
@@ -138,7 +139,7 @@ seaOfDefReadProgram state = vsep
   , ""
   , "        /* run compute on the facts read so far */"
   , "        if (state->entity_fact_offset[attribute_ix] != state->entity_fact_count[attribute_ix]) {"
-  , "            " <> pretty (nameOfProgram state) <+> "(program);"
+  , indent 12 $ vsep $ fmap (\i -> pretty (nameOfCompute i) <+> " (program);") computes
   , "        }"
   , "    }"
   , ""
@@ -146,6 +147,8 @@ seaOfDefReadProgram state = vsep
   , "}"
   , ""
   ]
+ where
+  computes = NonEmpty.toList $ stateComputes state
 
-nameOfRead :: SeaProgramState -> CName
-nameOfRead state = pretty ("zebra_read_entity_" <> show (stateName state))
+nameOfRead :: SeaProgramAttribute -> CName
+nameOfRead state = pretty ("zebra_read_entity_" <> pretty (nameOfAttribute state))

@@ -48,6 +48,7 @@ import           Control.Monad.IO.Class (liftIO)
 import           Data.Map (Map)
 import qualified Data.Map as Map
 import qualified Data.List as List
+import           Data.List.NonEmpty ( NonEmpty(..) )
 import qualified Data.Text as Text
 import qualified Data.Text.IO as Text
 import           Data.Time (NominalDiffTime, getCurrentTime, diffUTCTime)
@@ -325,7 +326,7 @@ compileDictionary dictionaryPath iformat oformat scope = do
 
 compileAvalanche ::
      Dictionary
-  -> Either IcicleError (Map Attribute (Program (Annot Compiler.AnnotUnit) Compiler.Var Prim))
+  -> Either IcicleError (Map Attribute (NonEmpty (Program (Annot Compiler.AnnotUnit) Compiler.Var Prim)))
 compileAvalanche dictionary =
   first IcicleCompileError $
     Compiler.avalancheOfDictionary Compiler.defaultCompileOptions dictionary
