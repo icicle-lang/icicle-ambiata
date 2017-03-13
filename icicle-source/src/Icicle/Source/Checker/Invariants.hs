@@ -48,13 +48,13 @@ invariantQ ctx (Query (c:cs) xfinal)
      -> errBanLatest
 
     GroupBy _ x
-     -> goX x >> go
+     -> goX x >> goBanWindow
 
     Distinct _ x
-     -> goX x >> go
+     -> goX x >> goBanWindow
 
     GroupFold _ _ _ x
-     -> goX x >> go
+     -> goX x >> goBanWindowLatest
 
     Filter _ x
      -> goX x >> go
@@ -78,6 +78,10 @@ invariantQ ctx (Query (c:cs) xfinal)
   goBanWindow
      = flip invariantQ q'
      $ ctx { checkInvariants = inv { allowWindows = False }}
+
+  goBanWindowLatest
+     = flip invariantQ q'
+     $ ctx { checkInvariants = inv { allowWindows = False, allowLatest = False }}
 
   errBanLatest
    = errorSuggestions
