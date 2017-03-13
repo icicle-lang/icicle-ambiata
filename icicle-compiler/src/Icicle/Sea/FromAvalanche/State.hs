@@ -13,6 +13,7 @@ module Icicle.Sea.FromAvalanche.State (
   , nameOfCompute'
   , nameOfCount
   , stateOfPrograms
+  , stateOfProgramCompute
   , seaOfState
   , seaOfStateInfo
   , nameOfStateType
