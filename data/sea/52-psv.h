@@ -263,12 +263,12 @@ static ierror_loc_t psv_write_dropped_entity_cur (psv_state_t *s, const ierror_l
         msg = psv_write_output (fd, s->output_start, s->output_end, &s->output_ptr, s->entity_cur, s->entity_cur_size, s->fleet);
 
         if (msg)
-            return error;
+            return ierror_loc_format (0, 0, "%s", msg);
 
         msg = psv_flush_output (fd, s->output_start, &s->output_ptr);
 
         if (msg)
-            return error;
+            return ierror_loc_format (0, 0, "%s", msg);
 
         if (s->entity_dropped)
             free(s->entity_dropped);
