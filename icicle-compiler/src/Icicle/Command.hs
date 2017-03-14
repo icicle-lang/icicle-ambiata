@@ -53,7 +53,7 @@ import qualified Data.Text as Text
 import qualified Data.Text.IO as Text
 import           Data.Time (NominalDiffTime, getCurrentTime, diffUTCTime)
 
-import           System.FilePath (FilePath)
+import           System.FilePath (FilePath, dropExtension)
 import           System.IO (IO, IOMode(..), withFile, hFileSize)
 
 import           Text.Printf (printf)
@@ -90,7 +90,13 @@ data Query a = Query {
   , queryChordPath       :: Maybe FilePath
   , queryCompilationTime :: NominalDiffTime
   , queryFactsLimit      :: Int
+  -- ^ only applies to psv input
   , queryUseDrop         :: FlagUseDrop
+  -- ^ only applies to psv input
+  , queryChunkFactCount       :: ZebraChunkFactCount
+  -- ^ only applies to zebra input
+  , queryAllocLimitGB      :: ZebraAllocLimitGB
+  -- ^ only applies to zebra input
   }
 
 data QueryStatistics = QueryStatistics {
@@ -107,8 +113,13 @@ data QueryOptions = QueryOptions {
   , optOutputCode   :: Maybe FilePath
   , optScope        :: Scope FilePath
   , optFactsLimit   :: Int
+  -- ^ only applies to psv input
   , optDrop         :: Maybe FilePath
   , optUseDrop      :: FlagUseDrop
+  , optChunkFactCount    :: ZebraChunkFactCount
+  -- ^ only applies to zebra input
+  , optAllocLimitGB   :: ZebraAllocLimitGB
+  -- ^ only applies to zebra input
   } deriving (Eq, Ord, Show)
 
 data DictionaryFile =
@@ -173,6 +184,7 @@ createZebraQuery = createQuery
 
 createQuery :: QueryOptions -> EitherT IcicleError IO (Query a)
 createQuery c = do
+  let dropPath = fromMaybe (dropExtension (outputPath (optOutput c)) <> "_dropped.txt") (optDrop c)
   let chordPath = chordPathOfScope $ optScope c
   chordStart <- liftIO getCurrentTime
 
@@ -209,8 +221,10 @@ createQuery c = do
     , queryChordPath       = chordPath
     , queryCompilationTime = end `diffUTCTime` start
     , queryFactsLimit      = optFactsLimit c
-    , queryDropPath        = fromMaybe (outputPath (optOutput c) <> "-dropped.txt") (optDrop c)
+    , queryDropPath        = dropPath
     , queryUseDrop         = optUseDrop c
+    , queryChunkFactCount       = optChunkFactCount c
+    , queryAllocLimitGB      = optAllocLimitGB c
     }
 
 mkQueryFleet ::
@@ -364,10 +378,13 @@ runZebraQuery b = do
       input      = queryInputPath    b
       output     = queryOutputPath   b
       chordPath  = queryChordPath    b
+      dropPath   = queryDropPath     b
+      chunkSize  = queryChunkFactCount b
+      allocLimit = queryAllocLimitGB   b
 
   start <- liftIO getCurrentTime
-  stats <- firstEitherT IcicleSeaError
-         $ seaZebraSnapshotFilePath fleet input output chordPath
+  stats <- firstEitherT IcicleSeaError $
+    seaZebraSnapshotFilePath fleet input output dropPath chordPath (ZebraConfig chunkSize allocLimit)
   end   <- liftIO getCurrentTime
   size  <- liftIO (withFile input ReadMode hFileSize)
 

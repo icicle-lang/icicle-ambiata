@@ -136,6 +136,7 @@ library
                        Icicle.Sea.Eval.Program
                        Icicle.Sea.Fleet
                        Icicle.Sea.IO
+                       Icicle.Sea.IO.Offset
                        Icicle.Sea.IO.Base
                        Icicle.Sea.IO.Psv
                        Icicle.Sea.IO.Psv.Input
@@ -256,6 +257,7 @@ test-suite test
                      , temporary
                      , text
                      , transformers
+                     , unix                            == 2.7.*
                      , vector                          == 0.11.*
                      , semigroups                      >= 0.16       && < 0.19
 

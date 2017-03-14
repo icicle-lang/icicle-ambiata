@@ -29,6 +29,7 @@ import           Foreign.Marshal (free)
 import           Foreign.Ptr (nullPtr)
 
 import           Icicle.Sea.IO
+
 import           Icicle.Sea.Eval.Base
 
 import           P hiding (count)
@@ -64,36 +65,45 @@ data PsvStats = PsvStats {
 seaZebraSnapshotFilePath :: SeaFleet ZebraState
                          -> FilePath
                          -> FilePath
+                         -> FilePath
                          -> Maybe FilePath
+                         -> ZebraConfig
                          -> EitherT SeaError IO ZebraStats
-seaZebraSnapshotFilePath fleet input output mchords = do
+seaZebraSnapshotFilePath fleet input output drop_path mchords conf = do
   bracketEitherT' (liftIO $ Posix.createFile output (Posix.CMode 0O644))
                   (liftIO . Posix.closeFd) $ \ofd -> do
+  bracketEitherT' (liftIO $ Posix.createFile drop_path (Posix.CMode 0O644))
+                  (liftIO . Posix.closeFd) $ \dfd -> do
   bracketEitherT' (liftIO $ maybeOpen mchords)
                   (liftIO . maybeClose) $ \mcfd -> do
-  seaZebraSnapshotFd fleet input ofd mcfd
+  seaZebraSnapshotFd fleet input ofd dfd mcfd conf
 
 
 seaZebraSnapshotFd :: SeaFleet ZebraState
                    -> FilePath
                    -> Posix.Fd
+                   -> Posix.Fd
                    -> Maybe Posix.Fd
+                   -> ZebraConfig
                    -> EitherT SeaError IO ZebraStats
-seaZebraSnapshotFd fleet input output mchords = do
-  withWords 7 $ \pState -> do
-  input_path <- liftIO $ newCString input
-  pokeWordOff pState 0 input_path
-  pokeWordOff pState 1 output
-  pokeWordOff pState 2 (fromMaybe 0 mchords)
-  pokeWordOff pState 6 (defaultPsvOutputBufferSize)
+seaZebraSnapshotFd fleet inputPath outputFd dropFd mchords conf =
+  withWords zebraConfigCount $ \config -> do
+  input_path <- liftIO $ newCString inputPath
+  pokeWordOff config zebraConfigInputPath input_path
+  pokeWordOff config zebraConfigOutputFd outputFd
+  pokeWordOff config zebraConfigChordFd (fromMaybe 0 mchords)
+  pokeWordOff config zebraConfigDropFd dropFd
+  pokeWordOff config zebraConfigOutputBufferSize (defaultPsvOutputBufferSize)
+  pokeWordOff config zebraConfigChunkFactCount (unZebraChunkFactCount . zebraChunkFactCount $ conf)
+  pokeWordOff config zebraConfigAllocLimitBytes ( ((*) (1024 * 1024 * 1024)). unZebraAllocLimitGB . zebraAllocLimitGB $ conf)
 
-  sfSnapshot fleet pState
+  sfSnapshot fleet config
 
   liftIO $ free input_path
 
-  pError       <- peekWordOff pState 3
-  factsRead    <- peekWordOff pState 4
-  entitiesRead <- peekWordOff pState 5
+  pError       <- peekWordOff config zebraConfigError
+  factsRead    <- peekWordOff config zebraConfigFactCount
+  entitiesRead <- peekWordOff config zebraConfigEntityCount
 
   when (pError /= nullPtr) $ do
     msg <- liftIO (peekCString pError)
