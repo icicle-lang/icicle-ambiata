@@ -1,6 +1,4 @@
 {-# LANGUAGE NoImplicitPrelude #-}
-
--- * Offsets into statically defined or generated C structs.
 module Icicle.Sea.IO.Offset where
 
 import P
