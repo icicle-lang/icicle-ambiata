@@ -615,5 +615,5 @@ withSeaLibrary opts code =
 return []
 tests :: IO Bool
 tests = releaseLibraryAfterTests $ do
-  $checkAllWith TestRunMore checkArgs
+  $checkAllWith TestRunNormal checkArgs
 
