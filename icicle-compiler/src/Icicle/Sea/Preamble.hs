@@ -1,6 +1,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE CPP #-}
 module Icicle.Sea.Preamble (
     seaPreamble
   , seaOfExternal
@@ -33,10 +34,17 @@ seaPreamble
   files
    = List.sortBy (compare `on` fst)
    $ $(embedWhen (liftA2 (&&) (/= "00-includes.h") ((== ".h") . takeExtension)) "data/sea/")
+#ifdef ICICLE_DEP
   externals
-   =  $(embedWhen ((== "anemone_base.h")) "../lib/anemone/csrc/")
+   =  $(embedWhen ((== "anemone_base.h"))    "../../../lib/anemone/csrc/")
+   <> $(embedWhen ((== "anemone_mempool.h")) "../../../lib/anemone/csrc/")
+   <> $(embedWhen ((== "anemone_mempool.c")) "../../../lib/anemone/csrc/")
+#else
+  externals
+   =  $(embedWhen ((== "anemone_base.h"))    "../lib/anemone/csrc/")
    <> $(embedWhen ((== "anemone_mempool.h")) "../lib/anemone/csrc/")
    <> $(embedWhen ((== "anemone_mempool.c")) "../lib/anemone/csrc/")
+#endif
 
 seaOfExternal :: FilePath -> ByteString -> Doc
 seaOfExternal path bs
