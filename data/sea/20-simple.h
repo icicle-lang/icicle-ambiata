@@ -1,5 +1,10 @@
 #include "06-segv.h"
+#ifdef ICICLE_DEP
+#include "../../../../lib/anemone/csrc/anemone_mempool.h"
+#else
 #include "../../lib/anemone/csrc/anemone_mempool.h"
+#endif
+
 
 #define ibool_and(x, y) (x) && (y)
 #define ibool_or(x, y)  (x) || (y)
