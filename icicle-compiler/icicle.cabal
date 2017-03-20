@@ -25,6 +25,7 @@ library
                      , ambiata-x-file-embed
                      , ambiata-x-show
                      , ambiata-zebra
+                     , ambiata-anemone
                      , icicle-core
                      , icicle-data
                      , icicle-source

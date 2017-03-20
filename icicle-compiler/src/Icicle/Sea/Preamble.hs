@@ -23,6 +23,8 @@ import           System.IO (FilePath)
 
 import           X.Data.FileEmbed (embedWhen)
 
+import           Anemone.Embed
+
 
 seaPreamble :: Doc
 seaPreamble
@@ -34,17 +36,10 @@ seaPreamble
   files
    = List.sortBy (compare `on` fst)
    $ $(embedWhen (liftA2 (&&) (/= "00-includes.h") ((== ".h") . takeExtension)) "data/sea/")
-#ifdef ICICLE_DEP
   externals
-   =  $(embedWhen ((== "anemone_base.h"))    "../../../lib/anemone/csrc/")
-   <> $(embedWhen ((== "anemone_mempool.h")) "../../../lib/anemone/csrc/")
-   <> $(embedWhen ((== "anemone_mempool.c")) "../../../lib/anemone/csrc/")
-#else
-  externals
-   =  $(embedWhen ((== "anemone_base.h"))    "../lib/anemone/csrc/")
-   <> $(embedWhen ((== "anemone_mempool.h")) "../lib/anemone/csrc/")
-   <> $(embedWhen ((== "anemone_mempool.c")) "../lib/anemone/csrc/")
-#endif
+   = [ ("anemone_base.h", anemone_base_h)
+     , ("anemone_mempool.h", anemone_mempool_h)
+     , ("anemone_mempool.c", anemone_mempool_c) ]
 
 seaOfExternal :: FilePath -> ByteString -> Doc
 seaOfExternal path bs
