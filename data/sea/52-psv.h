@@ -263,12 +263,12 @@ static ierror_loc_t psv_write_dropped_entity_cur (psv_state_t *s, const ierror_l
         msg = psv_write_output (fd, s->output_start, s->output_end, &s->output_ptr, s->entity_cur, s->entity_cur_size, s->fleet);
 
         if (msg)
-            return error;
+            return ierror_loc_format (0, 0, "%s", msg);
 
         msg = psv_flush_output (fd, s->output_start, &s->output_ptr);
 
         if (msg)
-            return error;
+            return ierror_loc_format (0, 0, "%s", msg);
 
         if (s->entity_dropped)
             free(s->entity_dropped);
@@ -582,16 +582,15 @@ void psv_snapshot (piano_t *piano, psv_config_t *cfg)
     psv_set_blocking_mode (drop_fd);
     psv_set_blocking_mode (chord_fd);
 
-    ichord_file_t chord_file;
-    ierror_msg_t chord_mmap_error = ichord_file_mmap (chord_fd, &chord_file);
-    if (chord_mmap_error) {
-        cfg->error        = chord_mmap_error;
-        cfg->fact_count   = 0;
-        cfg->entity_count = 0;
-        return;
+    /* If we have a piano, we know we are playing a chord */
+    int64_t max_chord_count;
+    if (piano) {
+        max_chord_count = piano_max_count(piano);
+    } else {
+        max_chord_count = 1;
     }
 
-    ifleet_t *fleet = psv_alloc_fleet (chord_file.max_chord_count, cfg->psv_max_row_count);
+    ifleet_t *fleet = psv_alloc_fleet (max_chord_count, cfg->psv_max_row_count);
 
     char *input_ptr  = calloc (cfg->psv_input_buffer_size + 1, 1);
     char *entity_cur = calloc (cfg->psv_input_buffer_size + 1, 1);
@@ -674,10 +673,6 @@ void psv_snapshot (piano_t *piano, psv_config_t *cfg)
     if (!cfg->error) {
         cfg->error = psv_flush_to_output_fd (&state);
     }
-
-    ierror_msg_t chord_unmap_error = ichord_file_unmap (&chord_file);
-    if (cfg->error == 0)
-        cfg->error = chord_unmap_error;
 
     cfg->fact_count   = state.fact_count;
     cfg->entity_count = state.entity_count;
