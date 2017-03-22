@@ -34,7 +34,7 @@ invariantQ ctx (Query (c:cs) xfinal)
  = case c of
     Windowed{}
      | allowWindows inv
-     -> goBanWindowAndGroupFold
+     -> goBanWindow
      | otherwise
      -> errBanWindow "Consider moving the window to the start of the query"
 
@@ -77,6 +77,10 @@ invariantQ ctx (Query (c:cs) xfinal)
      $ ctx { checkInvariants = inv { allowLatest = False
                                    , allowWindows = False
                                    , allowGroupFolds = False }}
+
+  goBanWindow
+     = flip invariantQ q'
+     $ ctx { checkInvariants = inv { allowWindows = False }}
 
   goBanWindowAndGroupFold
      = flip invariantQ q'
