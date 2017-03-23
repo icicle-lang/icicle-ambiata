@@ -55,7 +55,7 @@ invariantQ ctx (Query (c:cs) xfinal)
 
     GroupFold _ _ _ x
      | allowGroupFolds inv
-     -> goX x >> goBanWindowAndGroupFold
+     -> goX x >> goBanAll
      | otherwise
      -> errBanGroupFold
 
