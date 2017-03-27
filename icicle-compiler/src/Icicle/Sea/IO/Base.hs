@@ -105,6 +105,9 @@ seaOfConfigureFleet mode states
  , ""
  , "    iint_t   chord_count;"
  , "    itime_t *chord_times;"
+ , "    int64_t *chord_name_offsets;"
+ , "    int64_t *chord_name_lengths;"
+ , "    uint8_t *chord_name_data;"
  , ""
  , indent 4 lookup
  , ""
@@ -123,6 +126,9 @@ seaOfConfigureFleet mode states
  , ""
  , "    for (iint_t ix = 0; ix < chord_count; ix++) {"
  , "        itime_t chord_time = fleet->chord_times[ix];"
+ , "        int64_t chord_name_offset = fleet->chord_name_offsets[ix];"
+ , "        int64_t chord_name_length = fleet->chord_name_lengths[ix];"
+ , "        uint8_t chord_name_data = fleet->chord_name_data[ix];"
  , ""
  , indent 8 (vsep (fmap seaOfAssignTime states))
  , "    }"
@@ -161,9 +167,12 @@ seaOfFleetState states
       [ "#line 1 \"fleet state\""
       , "struct ifleet {"
       , indent 4 (defOfVar' 1 "anemone_mempool_t" "mempool")  <> ";"
-      , indent 4 (defOfVar  0 IntT         "max_chord_count") <> ";"
-      , indent 4 (defOfVar  0 IntT         "chord_count")     <> ";"
-      , indent 4 (defOfVar' 1 time         "chord_times")     <> ";"
+      , indent 4 (defOfVar  0 IntT      "max_chord_count")     <> ";"
+      , indent 4 (defOfVar  0 IntT      "chord_count")         <> ";"
+      , indent 4 (defOfVar' 1 time      "chord_times")         <> ";"
+      , indent 4 (defOfVar  1 IntT      "chord_name_offsets")  <> ";"
+      , indent 4 (defOfVar  1 IntT      "chord_name_lengths")  <> ";"
+      , indent 4 (defOfVar' 1 "uint8_t" "chord_name_data")     <> ";"
       , indent 4 (vsep (fmap defOfProgramState states))
       , indent 4 (vsep (fmap defOfProgramTime  states))
       , indent 4 (vsep (fmap defOfProgramCount states))
@@ -197,7 +206,18 @@ seaOfChordTimes times
 
 seaOfPianoLookup :: Doc
 seaOfPianoLookup
- = "piano_lookup (piano, (const uint8_t*)entity, entity_size, &chord_count, &chord_times);"
+ = vsep
+ [ "piano_lookup"
+ , "  ( piano"
+ , "  , (const uint8_t*)entity"
+ , "  , entity_size"
+ , "  , &chord_count"
+ , "  , &chord_times"
+ , "  , &chord_name_offsets"
+ , "  , &chord_name_lengths"
+ , "  , &chord_name_data"
+ , "  );"
+ ]
 
 ------------------------------------------------------------------------
 

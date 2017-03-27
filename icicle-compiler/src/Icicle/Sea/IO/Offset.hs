@@ -123,6 +123,9 @@ zebraStateEntityAllocCount = 13
 --    iint_t           max_chord_count;
 --    iint_t           chord_count;
 --    itime_t         *chord_times;
+--    int64_t         *chord_name_offsets;
+--    int64_t         *chord_name_lengths;
+--    uint8_t         *chord_name_data;
 --    iprogram_0_t    *iprogram_0; /* a_double */
 --    iprogram_1_t    *iprogram_1; /* d_string */
 --    ...
@@ -146,14 +149,23 @@ fleetChordCount = 2
 fleetChordTimes :: Int
 fleetChordTimes = 3
 
+fleetChordNameOffsets :: Int
+fleetChordNameOffsets = 4
+
+fleetChordNameLengths :: Int
+fleetChordNameLengths = 5
+
+fleetChordNameData :: Int
+fleetChordNameData = 6
+
 fleetProgramOf :: Int -> Int
-fleetProgramOf ix = 4 + ix
+fleetProgramOf ix = 7 + ix
 
 fleetLastTimeOf :: Int -> Int
-fleetLastTimeOf ix = 4 + 2 * ix
+fleetLastTimeOf ix = 7 + 2 * ix
 
 fleetCountOf :: Int -> Int
-fleetCountOf ix = 4 + 3 * ix
+fleetCountOf ix = 7 + 3 * ix
 
 --------------------------------------------------------------------------------
 
