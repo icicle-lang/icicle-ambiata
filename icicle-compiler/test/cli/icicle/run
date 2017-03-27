@@ -197,4 +197,23 @@ rm $t5_out_psv_1
 rm $t5_out_psv_2
 rm $t5_drop
 
+################################################################################
+
+echo "7. Chord labels"
+
+t7_dict=test/cli/icicle/t7-chord-name-dictionary.toml
+t7_in=test/cli/icicle/t7-chord-name-input.psv
+t7_chord=test/cli/icicle/t7-chord-name-chord.psv
+t7_expect=test/cli/icicle/t7-expected.psv
+
+t7_out_c=`mktemp -t icicle-t7-c-XXXXXX`
+t7_out_psv=`mktemp -t icicle-t7-out-1-XXXXXX`
+
+dist/build/icicle/icicle query --dictionary-toml $t7_dict --input-dense-psv $t7_in --output-dense-psv $t7_out_psv --chord $t7_chord
+
+diff -u $t7_expect $t7_out_psv
+
+rm $t7_out_c
+rm $t7_out_psv
+
 echo "OK!"

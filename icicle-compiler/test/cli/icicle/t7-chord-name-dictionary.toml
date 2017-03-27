@@ -1,0 +1,25 @@
+title = "Dense input example dictionary"
+
+version = 1
+
+chapter = []
+
+namespace = """default"""
+
+tombstone = """NA"""
+
+[feed.person]
+  columns = ["misery", "state", "injury"]
+
+[fact.person]
+  [fact.person.encoding]
+    misery="int"
+    state="string"
+    injury="(location:string,severity:double)"
+
+[feature.newest_misery]
+  namespace  = "miserables"
+  expression = "feature person ~> newest misery"
+
+[feature.mean_misery_by_state]
+  expression = "feature person ~> group state ~> mean misery"

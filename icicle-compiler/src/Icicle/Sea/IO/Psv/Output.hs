@@ -104,10 +104,10 @@ seaOfChordName = \case
     [ "const char  *chord_name = \"\";"
     , "const size_t chord_name_length = 0;"
     ]
-  Chords     -> vsep
-    [ "const int64_t chord_name_offset = chord_name_offsets[chord_ix];"
-    , "const int64_t chord_name_length = chord_name_lengths[chord_ix];"
-    , "const uint8_t chord_name = chord_name_data[chord_name_offset];"
+  Chords -> vsep
+    [ "const int64_t  chord_name_offset = chord_name_offsets[chord_ix];"
+    , "const int64_t  chord_name_length = chord_name_lengths[chord_ix];"
+    , "const char    *chord_name = (char*) (chord_name_data + chord_name_offset);"
     ]
 
 timeFmt :: Doc
@@ -115,8 +115,12 @@ timeFmt = "%04\" PRId64 \"-%02\" PRId64 \"-%02\" PRId64 \"T%02\" PRId64 \":%02\"
 
 outputChord :: Doc
 outputChord
-  = outputValue "string" ["chord_name", "chord_name_length"]
-
+  = vsep
+  [ "if (chord_name_length != 0) {"
+  , indent 4 $ outputChar '|'
+  , indent 4 $ outputValue "string" ["chord_name", "chord_name_length"]
+  , "}"
+  ]
 
 seaOfWriteProgramOutput :: PsvOutputConfig -> SeaProgramAttribute -> Either SeaError Doc
 seaOfWriteProgramOutput config state = do

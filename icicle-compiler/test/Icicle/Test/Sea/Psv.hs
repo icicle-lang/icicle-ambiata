@@ -38,6 +38,7 @@ import           Icicle.Sea.Fleet
 
 import           Icicle.Test.Arbitrary
 import           Icicle.Test.Arbitrary.Corpus
+import           Icicle.Test.Sea.Utils
 
 import qualified Jetski as J
 
@@ -55,7 +56,7 @@ import           Test.QuickCheck.Property (succeeded, failed)
 import           Test.QuickCheck.Monadic
 
 import           X.Control.Monad.Trans.Either (EitherT, runEitherT)
-import           X.Control.Monad.Trans.Either (bracketEitherT', left)
+import           X.Control.Monad.Trans.Either (bracketEitherT', left, hoistEither)
 
 prop_time =
  forAll arbitrary $ \input ->
@@ -268,7 +269,25 @@ compileTest wt (TestOpts _ _ inputFormat allowDupTime) = do
       iopts    = S.InputOpts allowDupTime (Map.singleton (wtAttribute wt) (Set.singleton tombstone))
       attrs    = [wtAttribute wt]
 
-  S.seaCompileFleet options S.NoCacheSea (S.HasInput iformat iopts "dummy_path") attrs programs Nothing
+  let cache = S.NoCacheSea
+      input = HasInput iformat iopts "dummy_path"
+      chords = Nothing
+  code <- hoistEither (S.codeOfPrograms input attrs (Map.toList programs))
+
+  -- This test only uses snapshot so we can do this.
+  let savage = textOfDoc . vsep $
+        [ "int64_t piano_max_count (piano_t *piano) {"
+        , "    return 1;"
+        , "}"
+        , ""
+        , "error_t piano_lookup (piano_t *piano, const uint8_t *needle_id, size_t needle_id_size, int64_t *out_count, const int64_t **out_label_times, const int64_t **out_label_name_offsets, const int64_t **out_label_name_lengths, const uint8_t **out_label_name_data) {"
+        , "    return 0;"
+        , "}"
+        ]
+      code' = code <> savage
+
+  S.seaCreateFleet options (S.fromCacheSea cache) input chords (length attrs) code'
+
 
 runTest :: WellTyped -> S.PsvConstants -> TestOpts -> EitherT S.SeaError IO ()
 runTest wt consts

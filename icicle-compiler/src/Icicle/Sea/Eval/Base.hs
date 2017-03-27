@@ -42,6 +42,7 @@ module Icicle.Sea.Eval.Base (
   , peekOutputs
   , wordOfError
   , errorOfWord
+  , fromCacheSea
   ) where
 
 import           Control.Monad.Catch (MonadMask(..))

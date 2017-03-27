@@ -19,7 +19,7 @@ module Icicle.Sea.IO.Base
   , defOfLastTime
   , defOfCount
   , seaOfAssignTime
-  , seaOfChordTimes
+  , seaOfSnapshotTime
 
     -- * Input
   , InputOpts (..)
@@ -103,11 +103,11 @@ seaOfConfigureFleet mode states
  , "{"
  , "    iint_t max_chord_count = fleet->max_chord_count;"
  , ""
- , "    iint_t   chord_count;"
- , "    itime_t *chord_times;"
- , "    int64_t *chord_name_offsets;"
- , "    int64_t *chord_name_lengths;"
- , "    uint8_t *chord_name_data;"
+ , "    iint_t   chord_count = 0;"
+ , "    itime_t *chord_times = NULL;"
+ , "    int64_t *chord_name_offsets = NULL;"
+ , "    int64_t *chord_name_lengths = NULL;"
+ , "    uint8_t *chord_name_data = NULL;"
  , ""
  , indent 4 lookup
  , ""
@@ -125,11 +125,7 @@ seaOfConfigureFleet mode states
  , indent 4 (vsep (fmap defOfState states))
  , ""
  , "    for (iint_t ix = 0; ix < chord_count; ix++) {"
- , "        itime_t chord_time = fleet->chord_times[ix];"
- , "        int64_t chord_name_offset = fleet->chord_name_offsets[ix];"
- , "        int64_t chord_name_length = fleet->chord_name_lengths[ix];"
- , "        uint8_t chord_name_data = fleet->chord_name_data[ix];"
- , ""
+ , "        itime_t  chord_time = fleet->chord_times[ix];"
  , indent 8 (vsep (fmap seaOfAssignTime states))
  , "    }"
  , ""
@@ -144,7 +140,7 @@ seaOfConfigureFleet mode states
    (lookup, conv)
      = case mode of
          Snapshot time
-           -> (seaOfChordTimes [time], use_times)
+           -> (seaOfSnapshotTime time, use_times)
          Chords
            -> (seaOfPianoLookup, conv_times)
 
@@ -153,7 +149,11 @@ seaOfConfigureFleet mode states
 
    conv_times
      = vsep
-     [ "for (iint_t ix = 0; ix < chord_count; ix++) {"
+     [ "fleet->chord_name_data = chord_name_data;"
+     , "fleet->chord_name_offsets = chord_name_offsets;"
+     , "fleet->chord_name_lengths = chord_name_lengths;"
+     , ""
+     , "for (iint_t ix = 0; ix < chord_count; ix++) {"
      , "    fleet->chord_times[ix] = itime_from_epoch_seconds(chord_times[ix]);"
      , "}"
      , ""
@@ -166,7 +166,7 @@ seaOfFleetState states
    in vsep
       [ "#line 1 \"fleet state\""
       , "struct ifleet {"
-      , indent 4 (defOfVar' 1 "anemone_mempool_t" "mempool")  <> ";"
+      , indent 4 (defOfVar' 1 "anemone_mempool_t" "mempool")   <> ";"
       , indent 4 (defOfVar  0 IntT      "max_chord_count")     <> ";"
       , indent 4 (defOfVar  0 IntT      "chord_count")         <> ";"
       , indent 4 (defOfVar' 1 time      "chord_times")         <> ";"
@@ -195,12 +195,12 @@ defOfProgramCount state
   = defOfVar 0 IntT (pretty (nameOfCount state)) <> ";"
   <+> "/* " <> seaOfAttributeDesc (stateAttribute state) <> " */"
 
-seaOfChordTimes :: [Time] -> Doc
-seaOfChordTimes times
+seaOfSnapshotTime :: Time -> Doc
+seaOfSnapshotTime time
  = vsep
- [ "static itime_t entity_times[] = { " <> hcat (punctuate ", " (fmap seaOfTime times)) <> " };"
+ [ "static itime_t entity_times[] = { " <> seaOfTime time <> " };"
  , ""
- , "chord_count = " <> int (length times) <> ";"
+ , "chord_count = 1;"
  , "chord_times = entity_times;"
  ]
 
@@ -212,10 +212,10 @@ seaOfPianoLookup
  , "  , (const uint8_t*)entity"
  , "  , entity_size"
  , "  , &chord_count"
- , "  , &chord_times"
- , "  , &chord_name_offsets"
- , "  , &chord_name_lengths"
- , "  , &chord_name_data"
+ , "  , (const int64_t**)&chord_times"
+ , "  , (const int64_t**)&chord_name_offsets"
+ , "  , (const int64_t**)&chord_name_lengths"
+ , "  , (const uint8_t**)&chord_name_data"
  , "  );"
  ]
 
@@ -229,8 +229,8 @@ seaOfAllocFleet states
  , "{"
  , "    ifleet_t *fleet = calloc (1, sizeof (ifleet_t));"
  , ""
- , "    fleet->max_chord_count = max_chord_count;"
- , "    fleet->chord_times     = calloc (max_chord_count, sizeof(itime_t));"
+ , "    fleet->max_chord_count    = max_chord_count;"
+ , "    fleet->chord_times        = calloc (max_chord_count, sizeof(itime_t));"
  , ""
  , indent 4 (vsep (fmap seaOfAllocProgram states))
  , "    return fleet;"
