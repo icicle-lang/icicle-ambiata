@@ -125,7 +125,7 @@ static ARRAY_T(t) INLINE ARRAY_FUN(t,create)(anemone_mempool_t *pool, iint_t sz)
     iint_t sz_alloc = iarray_size(sz);                                          \
     size_t bytes    = ARRAY_SIZE(t,sz_alloc);                                   \
                                                                                 \
-    ARRAY_T(t) ret  = (ARRAY_T(t))anemone_mempool_alloc(pool, bytes);           \
+    ARRAY_T(t) ret  = (ARRAY_T(t))anemone_mempool_calloc(pool, bytes, 1);       \
     ret->count      = sz;                                                       \
                                                                                 \
     return ret;                                                                 \

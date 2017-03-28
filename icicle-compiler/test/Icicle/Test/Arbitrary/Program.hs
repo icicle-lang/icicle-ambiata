@@ -44,6 +44,8 @@ import           Test.QuickCheck
 
 import qualified Prelude as Savage
 
+import Text.Show.Pretty (ppShow)
+
 
 newtype InputType = InputType {
     unInputType :: ValType
@@ -98,7 +100,11 @@ tryGenWellTypedWith allowDupTime i@(InputType ty) = do
     tryGenWellTypedFromCore allowDupTime i core
 
 tryGenWellTypedFromCore :: S.InputAllowDupTime -> InputType -> C.Program () Var -> Gen (Maybe WellTyped)
-tryGenWellTypedFromCore allowDupTime (InputType ty) core = do
+tryGenWellTypedFromCore allowDupTime ty core
+ = fromEither <$> tryGenWellTypedFromCoreEither allowDupTime ty core
+
+tryGenWellTypedFromCoreEither :: S.InputAllowDupTime -> InputType -> C.Program () Var -> Gen (Either Savage.String WellTyped)
+tryGenWellTypedFromCoreEither allowDupTime (InputType ty) core = do
     entities       <- List.sort . List.nub . getNonEmpty <$> arbitrary
     attribute      <- arbitrary
     (inputs, time) <- case allowDupTime of
@@ -107,23 +113,23 @@ tryGenWellTypedFromCore allowDupTime (InputType ty) core = do
                         S.DoNotAllowDupTime
                           -> first (List.nubBy ((==) `on` atTime)) <$> inputsForType ty
     return $ do
-      checked <- fromEither (C.checkProgram core)
+      checked <- nobodyCares (C.checkProgram core)
       _       <- traverse (supportedOutput . functionReturns . snd) checked
 
       let avalanche = testFresh "fromCore" $ A.programFromCore namer core
 
-      flatStmts <- fromEither (testFreshT "anf" $ A.flatten () (A.statements avalanche))
+      flatStmts <- nobodyCares (testFreshT "anf" $ A.flatten () (A.statements avalanche))
 
-      flattened <- fromEither (A.checkProgram A.flatFragment (replaceStmts avalanche flatStmts))
+      flattened <- nobodyCares (A.checkProgram A.flatFragment (replaceStmts avalanche flatStmts))
 
-      unchecked <- fromEither (testFresh "simp" $ A.simpFlattened dummyAnn A.defaultSimpOpts flattened)
+      unchecked <- nobodyCares (testFresh "simp" $ A.simpFlattened dummyAnn A.defaultSimpOpts flattened)
 
-      simplified <- fromEither (A.checkProgram A.flatFragment (A.eraseAnnotP unchecked))
+      simplified <- nobodyCares (A.checkProgram A.flatFragment (A.eraseAnnotP unchecked))
 
       let types = Set.toList (S.typesOfProgram simplified)
       case filter (not . isSupportedType) types of
-        []    -> Just ()
-        (_:_) -> Nothing
+        []    -> Right ()
+        ts    -> Left ("Unsupported type: " <> show ts)
 
       return WellTyped {
           wtEntities      = entities
@@ -141,8 +147,8 @@ tryGenWellTypedFromCore allowDupTime (InputType ty) core = do
       namer       = A.namerText (flip Var 0)
       dummyAnn    = Annot (FunT [] UnitT) ()
 
-      supportedOutput t | isSupportedOutput t = Just t
-      supportedOutput _                       = Nothing
+      supportedOutput t | isSupportedOutput t = Right t
+      supportedOutput t                       = Left ("Unsupported output: " <> show t)
 
 
 
@@ -172,6 +178,10 @@ validated n g
 fromEither :: Either x a -> Maybe a
 fromEither (Left _)  = Nothing
 fromEither (Right x) = Just x
+
+nobodyCares :: Show a => Either a b -> Either Savage.String b
+nobodyCares = first (ppShow)
+
 
 ------------------------------------------------------------------------
 
@@ -254,11 +264,11 @@ isSupportedOutput :: ValType -> Bool
 isSupportedOutput = \case
   OptionT t              -> isSupportedOutputElem t
   PairT a b              -> isSupportedOutputElem a && isSupportedOutputElem b
-  SumT ErrorT t          -> isSupportedOutputElem t
+  SumT ErrorT t          -> isSupportedOutput t
 
   ArrayT (ArrayT t)      -> isSupportedOutputElem t
   ArrayT t               -> isSupportedOutputElem t
-  MapT k v               -> isSupportedOutputElem k && isSupportedOutputElem v
+  MapT k v               -> isSupportedOutputElem k && isSupportedOutput v
 
   t                      -> isSupportedOutputBase t
 
