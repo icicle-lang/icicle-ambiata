@@ -93,7 +93,12 @@ instance Arbitrary WellTyped where
   arbitrary = validated 10 (tryGenWellTypedWith S.DoNotAllowDupTime =<< arbitrary)
 
 tryGenWellTypedWith :: S.InputAllowDupTime -> InputType -> Gen (Maybe WellTyped)
-tryGenWellTypedWith allowDupTime (InputType ty) = do
+tryGenWellTypedWith allowDupTime i@(InputType ty) = do
+    core           <- programForStreamType ty
+    tryGenWellTypedFromCore allowDupTime i core
+
+tryGenWellTypedFromCore :: S.InputAllowDupTime -> InputType -> C.Program () Var -> Gen (Maybe WellTyped)
+tryGenWellTypedFromCore allowDupTime (InputType ty) core = do
     entities       <- List.sort . List.nub . getNonEmpty <$> arbitrary
     attribute      <- arbitrary
     (inputs, time) <- case allowDupTime of
@@ -101,7 +106,6 @@ tryGenWellTypedWith allowDupTime (InputType ty) = do
                           -> inputsForType ty
                         S.DoNotAllowDupTime
                           -> first (List.nubBy ((==) `on` atTime)) <$> inputsForType ty
-    core           <- programForStreamType ty
     return $ do
       checked <- fromEither (C.checkProgram core)
       _       <- traverse (supportedOutput . functionReturns . snd) checked
@@ -139,6 +143,7 @@ tryGenWellTypedWith allowDupTime (InputType ty) = do
 
       supportedOutput t | isSupportedOutput t = Just t
       supportedOutput _                       = Nothing
+
 
 
 genWellTypedWithDuplicateTimes :: Gen WellTyped

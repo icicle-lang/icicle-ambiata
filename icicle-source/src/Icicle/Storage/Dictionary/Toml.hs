@@ -10,6 +10,7 @@ module Icicle.Storage.Dictionary.Toml (
   , ImplicitPrelude (..)
   , loadDictionary
   , loadDenseDictionary
+  , prelude
   ) where
 
 import           Icicle.Common.Base
