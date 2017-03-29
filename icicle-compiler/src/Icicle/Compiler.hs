@@ -32,6 +32,7 @@ module Icicle.Compiler
   , coreAvalanche
   , fuseCore
   , coreOfSource
+  , coreOfSource1
 
     -- * Works on Avalanche programs
   , flattenAvalanche
@@ -243,15 +244,21 @@ coreOfSource :: Source.IcicleCompileOptions
              -> (Attribute, Source.QueryTyped Source.Var)
              -> Either Error (Map Attribute [(Source.Var, Source.CoreProgramUntyped Source.Var)])
 coreOfSource opt dict (Attribute attr, virtual) = do
+  core <- coreOfSource1 opt dict virtual
+  let baseattr    = (Attribute . unVar . unName) (Query.feature virtual)
+  pure (M.singleton baseattr [(Source.Variable attr, core)])
+
+coreOfSource1 :: Source.IcicleCompileOptions
+             -> Dictionary
+             -> Source.QueryTyped Source.Var
+             -> Either Error (Source.CoreProgramUntyped Source.Var)
+coreOfSource1 opt dict virtual = do
   let inlined     = Source.sourceInline    (Source.icicleInline  opt) dict virtual
   desugared      <- first ErrorSource $ Source.sourceDesugarQT  inlined
   (checked, _)   <- first ErrorSource $ Source.sourceCheckQT   (Source.icicleBigData opt) dict desugared
   let reified     = Source.sourceReifyQT checked
   core           <- sourceConvert dict reified
-  let simplified  = coreSimp core
-  let baseattr    = (Attribute . unVar . unName) (Query.feature virtual)
-
-  pure (M.singleton baseattr [(Source.Variable attr, simplified)])
+  return $ coreSimp core
 
 
 ----------------------------------------

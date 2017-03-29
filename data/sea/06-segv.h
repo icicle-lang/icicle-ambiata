@@ -44,3 +44,26 @@ void segv_install_handler (const char *user_data, size_t user_data_size)
 
     sigaction (SIGSEGV, &act, NULL);
 }
+
+static void INLINE iassert(const char *file, const int line, const char *func, const char *msg, ibool_t p)
+{
+    if (!p) {
+        fprintf(stderr, "assertion failed");
+        fprintf (stderr, "SEGV_USER_DATA:\n");
+        fprintf (stderr, "%s\n", segv_user_data);
+        fprintf(stderr, "assertion failed:\n%s:%d %s\n\t%s\n", file, line, func, msg);
+
+        void *frames[50];
+        size_t n_frames = backtrace (frames, sizeof(frames));
+
+        backtrace_symbols_fd (frames, n_frames, STDERR_FILENO);
+
+        exit(1);
+    }
+}
+
+#if ICICLE_ASSERT
+#   define IASSERT(p) iassert(__FILE__, __LINE__, __func__, #p , p)
+#else
+#   define IASSERT(p) 
+#endif

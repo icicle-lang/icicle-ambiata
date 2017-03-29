@@ -25,7 +25,7 @@ import           Disorder.Core.IO
 
 import           Icicle.Data (Entity(..), Attribute(..), AsAt(..), Value(..))
 import           Icicle.Data.Time (Time, renderTime)
-import           Icicle.Encoding (renderValue)
+import           Icicle.Encoding (renderValue, renderOutputValue)
 import           Icicle.Internal.Pretty
 
 import           Icicle.Common.Data
@@ -37,16 +37,18 @@ import qualified Icicle.Sea.Eval as S
 import           Icicle.Sea.Fleet
 
 import           Icicle.Test.Arbitrary
+import           Icicle.Test.Arbitrary.Corpus
 
 import qualified Jetski as J
 
 import           P
+import qualified Prelude as Savage
 
 import           System.IO
 import           System.IO.Temp (createTempDirectory)
 import           System.Directory (getTemporaryDirectory, removeDirectoryRecursive)
 
-import           Test.QuickCheck (Gen, Arbitrary(..), elements, suchThat)
+import           Test.QuickCheck (Gen, Arbitrary(..), elements, suchThat, forAll)
 import           Test.QuickCheck (getPositive)
 import           Test.QuickCheck (Property, (==>), property, counterexample)
 import           Test.QuickCheck.Property (succeeded, failed)
@@ -54,6 +56,16 @@ import           Test.QuickCheck.Monadic
 
 import           X.Control.Monad.Trans.Either (EitherT, runEitherT)
 import           X.Control.Monad.Trans.Either (bracketEitherT', left)
+
+prop_psv_corpus
+ = testAllCorpus $ \wt ->
+   forAll (genPsvConstants wt) $ \psv -> testIO $ do
+  x <- runEitherT
+     $ runTest wt psv
+     $ TestOpts ShowInputOnError ShowOutputOnError S.PsvInputSparse S.AllowDupTime
+  case x of
+    Left err -> failWithError wt err
+    Right () -> pure (property succeeded)
 
 prop_psv (WellTypedPsv wt psv) = testIO $ do
   x <- runEitherT
@@ -90,7 +102,7 @@ prop_dup_time
                                      && List.length (wtFacts    x) > 1 )
        let wt' = wt { wtFacts = List.head (wtFacts wt) : wtFacts wt }
 
-       psv <- pick $ genPsvOpts wt'
+       psv <- pick $ genPsvConstants wt'
 
        a  <- liftIO
            $ runEitherT
@@ -107,7 +119,7 @@ prop_dup_time
 prop_sparse_dense_both_compile
   = monadicIO
   $ do wt <- pick $ genWellTypedWithStruct S.DoNotAllowDupTime
-       psv <- pick $ genPsvOpts wt
+       psv <- pick $ genPsvConstants wt
        dict <- pick (denseDictionary (wtAttribute wt) (wtFactType wt))
        case dict of
          Nothing -> pure
@@ -188,37 +200,36 @@ data ShowInput = ShowInputOnError | ShowInputOnSuccess
 data ShowOutput = ShowOutputOnError | ShowOutputOnSuccess
   deriving (Eq, Show)
 
-data PsvOpts  = PsvOpts Int Int Int
-  deriving (Show)
-
 data TestOpts = TestOpts ShowInput ShowOutput S.PsvInputFormat S.InputAllowDupTime
   deriving (Show)
 
-data WellTypedPsv = WellTypedPsv WellTyped PsvOpts
+data WellTypedPsv = WellTypedPsv WellTyped S.PsvConstants
   deriving (Show)
 
 instance Arbitrary WellTypedPsv where
   arbitrary = do
     wt <- arbitrary
-    psv <- genPsvOpts wt
+    psv <- genPsvConstants wt
     return $ WellTypedPsv wt psv
 
-genPsvOpts :: WellTyped -> Gen PsvOpts
-genPsvOpts wt = do
+genPsvConstants :: WellTyped -> Gen S.PsvConstants
+genPsvConstants wt = do
   -- maximum number of rows to read before compute
-  let row x = x + 1
-  maxRowCount <- row . getPositive <$> arbitrary
+  let inc x = x + 1
+  maxRowCount <- inc . getPositive <$> arbitrary
   -- the buffer needs to be at least as large as a single line
   let str x = x + longestLine wt + 4
   inputBuf <- str . getPositive <$> arbitrary
   let outputBuf = inputBuf
-  return $ PsvOpts maxRowCount inputBuf outputBuf
+  factsLimit <- inc . getPositive <$> arbitrary
+  return $ S.PsvConstants maxRowCount inputBuf outputBuf factsLimit
 
 compileTest :: WellTyped -> TestOpts -> EitherT SeaError IO (SeaFleet S.PsvState)
 compileTest wt (TestOpts _ _ inputFormat allowDupTime) = do
   options0 <- S.getCompilerOptions
 
-  let options  = options0 <> ["-O0", "-DICICLE_NOINLINE=1"]
+  let optionsAssert = ["-DICICLE_ASSERT=1", "-DICICLE_ASSERT_MAXIMUM_ARRAY_COUNT=" <> T.pack (show (100 * (length $ wtFacts wt))) ]
+      options  = options0 <> ["-O0", "-DICICLE_NOINLINE=1"] <> optionsAssert
       programs = Map.singleton (wtAttribute wt) (wtAvalancheFlat wt :| [])
       iconfig  = S.PsvInputConfig
                 (S.Snapshot (wtTime wt))
@@ -234,15 +245,21 @@ compileTest wt (TestOpts _ _ inputFormat allowDupTime) = do
 
   S.seaCompileFleet options S.NoCacheSea (S.HasInput iformat iopts "dummy_path") attrs programs Nothing
 
-runTest :: WellTyped -> PsvOpts -> TestOpts -> EitherT S.SeaError IO ()
-runTest wt (PsvOpts psvMaxRowCount psvInputBufferSize psvOutputBufferSize)
+runTest :: WellTyped -> S.PsvConstants -> TestOpts -> EitherT S.SeaError IO ()
+runTest wt consts
            testOpts@(TestOpts showInput showOutput _ _) = do
   let compile  = compileTest wt testOpts
       release  = S.seaRelease
+      expect_values = evalWellTyped wt
+      expect   
+       | length (wtFacts wt) <= S.psvFactsLimit consts
+       = textOfOutputs (wtEntities wt) expect_values
+       | otherwise
+       = ""
 
   bracketEitherT' compile release $ \fleet -> do
 
-  let install  = liftIO (S.sfSegvInstall fleet (show wt))
+  let install  = liftIO (S.sfSegvInstall fleet (show consts <> "\n" <> show wt))
       remove _ = liftIO (S.sfSegvRemove  fleet)
   bracketEitherT' install remove  $ \() -> do
 
@@ -254,8 +271,6 @@ runTest wt (PsvOpts psvMaxRowCount psvInputBufferSize psvOutputBufferSize)
         dropped = dir <> "/dropped.txt"
         chords  = Nothing
         discard = S.FlagUseDropFile
-        limit   = 4096
-        consts  = S.PsvConstants psvMaxRowCount psvInputBufferSize psvOutputBufferSize limit
 
     liftIO (LT.writeFile program (LT.fromStrict source))
 
@@ -291,7 +306,13 @@ runTest wt (PsvOpts psvMaxRowCount psvInputBufferSize psvOutputBufferSize)
           dropPsv <- liftIO $ LT.readFile dropped
           liftIO (LT.putStrLn "--- drop.txt ---")
           liftIO (LT.putStrLn dropPsv)
+
+        outputPsv <- liftIO $ LT.readFile output
+        when (outputPsv /= expect) $ do
+          Savage.error ("Expected values:\n" <> show expect_values <> "\nExpected:\n" <> LT.unpack expect <> "\nGot:\n" <> LT.unpack outputPsv)
+
         pure ()
+
 
 longestLine :: WellTyped -> Int
 longestLine wt
@@ -303,6 +324,28 @@ longestLine wt
   $ List.maximumBy (compare `on` LT.length)
   $ fmap (LT.intercalate "|")
   $ fieldsOfFacts (wtEntities wt) (wtAttribute wt) (wtFacts wt)
+
+textOfOutputs :: [Entity] -> [(OutputName, BaseValue)] -> LT.Text
+textOfOutputs entities outputs =
+  LT.unlines (fmap (LT.intercalate "|") (fieldsOfOutputs entities outputs))
+
+fieldsOfOutputs :: [Entity] -> [(OutputName, BaseValue)] -> [[LT.Text]]
+fieldsOfOutputs entities outputs =
+  [ [ LT.fromStrict entity, LT.fromStrict (outputName name), output ]
+  | Entity entity         <- entities
+  , (name,value)          <- outputs
+  , Just output           <- [textOfOutputValue value]
+  , output /= LT.fromStrict tombstone ]
+
+textOfOutputValue :: BaseValue -> Maybe LT.Text
+textOfOutputValue v
+ = do v' <- valueFromCore v
+      t  <- renderOutputValue v'
+      return $ LT.replace "\n" "\\n" $ LT.fromStrict t
+
+textSubstitution :: LT.Text -> LT.Text
+textSubstitution = LT.replace "\n" "\\n"
+
 
 textOfFacts :: [Entity] -> Attribute -> [AsAt BaseValue] -> LT.Text
 textOfFacts entities attribute vs =
@@ -329,9 +372,6 @@ textOfValue
 
 textOfTime :: Time -> LT.Text
 textOfTime = LT.fromStrict . renderTime
-
-tombstone :: Text
-tombstone = "💀"
 
 withSystemTempDirectory :: FilePath -> (FilePath -> EitherT S.SeaError IO a) -> EitherT S.SeaError IO a
 withSystemTempDirectory template action = do
@@ -388,4 +428,4 @@ genMissingValue = elements [Nothing, Just "NA", Just ""]
 
 return []
 tests :: IO Bool
-tests = $checkAllWith TestRunNormal (checkArgsSized 10)
+tests = $checkAllWith TestRunNormal (checkArgsSized 100)

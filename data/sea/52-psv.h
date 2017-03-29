@@ -633,7 +633,7 @@ void psv_snapshot (piano_t *piano, psv_config_t *cfg)
 
             cfg->error = psv_write_output (fd, state.output_start, state.output_end, &state.output_ptr, state.entity_cur, state.entity_cur_size, state.fleet);
 
-            if (cfg->error != 0) {
+            if (cfg->error == 0) {
                 cfg->error = psv_flush_output (fd, state.output_start, &state.output_ptr);
             }
 #else
@@ -642,7 +642,7 @@ void psv_snapshot (piano_t *piano, psv_config_t *cfg)
 
                 cfg->error = psv_write_output (fd, state.output_start, state.output_end, &state.output_ptr, state.entity_cur, state.entity_cur_size, state.fleet);
 
-                if (cfg->error != 0) {
+                if (cfg->error == 0) {
                   cfg->error = psv_flush_output (fd, state.output_start, &state.output_ptr);
                 }
             }
@@ -669,10 +669,6 @@ void psv_snapshot (piano_t *piano, psv_config_t *cfg)
                 , input_remaining );
 
         input_offset = input_remaining;
-    }
-
-    if (!cfg->error) {
-        cfg->error = psv_flush_to_output_fd (&state);
     }
 
     ierror_msg_t chord_unmap_error = ichord_file_unmap (&chord_file);

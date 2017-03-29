@@ -13,6 +13,9 @@ module Icicle.Encoding (
   , valueOfJSON
   , jsonOfValue
   , sourceTypeOfEncoding
+
+  , renderOutputValue
+  , jsonOfOutputValue
   ) where
 
 import           Data.Attoparsec.ByteString
@@ -367,3 +370,77 @@ sourceTypeOfEncoding e
   goStructField (StructField Optional attr enc)
     = ( IT.StructField $ getAttribute attr
       , IT.OptionT $ sourceTypeOfEncoding enc)
+
+
+
+
+-- | RENDER OUTPUT VALUE TO MATCH PSV OUTPUT CODE
+renderOutputValue :: Value -> Maybe Text
+renderOutputValue val
+ = case val of
+   StringValue v
+    -> return v
+   IntValue v
+    -> return $ T.pack $ show v
+   DoubleValue v
+    -> return $ T.pack $ show v
+   BooleanValue False
+    -> return "false"
+   BooleanValue True
+    -> return "true"
+   TimeValue v
+    -> return $ renderOutputTime v
+
+   StructValue _
+    -> json
+   ListValue _
+    -> json
+   Tombstone
+    -> Nothing
+
+   PairValue{}
+    -> json
+   MapValue{}
+    -> json
+ where
+  json
+   = T.decodeUtf8 . BS.toStrict . A.encode <$> jsonOfOutputValue val
+
+jsonOfOutputValue :: Value -> Maybe A.Value
+jsonOfOutputValue val
+ = case val of
+    StringValue v
+     -> return $ A.String v
+    IntValue v
+     -> return $ A.Number $ P.fromIntegral v
+    DoubleValue v
+     -> return $ A.Number $ S.fromFloatDigits v
+    BooleanValue v
+     -> return $ A.Bool   v
+    TimeValue    v
+     -> return $ A.String $ renderOutputTime v
+    StructValue (Struct sfs)
+     -> return $ A.Object $ P.foldl insert HM.empty sfs
+    ListValue (List l)
+     -> let es = mapMaybe jsonOfOutputValue l
+        in return $ A.Array $ V.fromList $ es
+    Tombstone
+     -> Nothing
+    PairValue k v
+      -> pair k v
+    MapValue kvs
+     -> let es = mapMaybe (jsonOfOutputValue . uncurry PairValue) kvs
+        in return $ A.Array $ V.fromList $ es
+ where
+  insert hm (attr,v)
+   | Just v' <- jsonOfOutputValue v
+   = HM.insert (getAttribute attr) v' hm
+   | otherwise
+   = hm
+
+  pair k v = do
+    k' <- jsonOfOutputValue k
+    v' <- jsonOfOutputValue v
+    return $ A.Array $ V.fromList [ k', v' ]
+
+
