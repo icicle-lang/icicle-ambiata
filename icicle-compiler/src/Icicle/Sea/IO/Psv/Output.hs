@@ -246,7 +246,12 @@ seaOfOutput isJSON struct structIndex outName@(OutputName name _) missing env ou
         -> do (mcond, _, body, ix, ts1)
                  <- seaOfOutput InJSON struct structIndex outName PsvDrop env' te tes arrayIndex'
 
-              -- Array of arrays is allowed, so we apply the transform here
+              -- For nested arrays, we get the inner array out first,
+              -- so we can retrieve the correct count. For flat arrays the transform
+              -- is just id.
+              --
+              -- Maps are similar (see below).
+              --
               let arr'  = transform (ArrayT arg0) arr
 
               -- Wrap the body in a for loop
@@ -257,7 +262,7 @@ seaOfOutput isJSON struct structIndex outName@(OutputName name _) missing env ou
 
 
        MapT tk tv
-        | tks <- meltType tk
+        | tks@(arg0:_) <- meltType tk
         , tvs <- meltType tv
         , (arr : _)       <- members
         -> do (mcondk, _, bk, ixk, _)
@@ -265,10 +270,12 @@ seaOfOutput isJSON struct structIndex outName@(OutputName name _) missing env ou
               (mcondv, _, bv, ixv, ts)
                  <- seaOfOutput InJSON struct ixk outName PsvDrop env' tv tvs arrayIndex'
 
-              let p  = pair bk bv
+              let p         = pair bk bv
+              let arr'      = transform (ArrayT arg0) arr
+              let numElems  = arrayCount arr'
 
-              let numElems  = arrayCount arr
-              body         <- seaOfOutputArray (condAnd mcondk mcondv) p numElems counter countLimit
+              body <- seaOfOutputArray (condAnd mcondk mcondv) p numElems counter countLimit
+
               return (Nothing, Nothing, body, ixv, ts)
 
 
