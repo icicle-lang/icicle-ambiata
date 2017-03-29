@@ -425,15 +425,15 @@ jsonOfOutputValue t val
     StructValue (Struct sfs)
      -> return $ A.Object $ P.foldl insert HM.empty sfs
     ListValue (List l)
-     -> let es = mapM (jsonOfOutputValue t) $ P.filter (/=Tombstone) l
-        in A.Array . V.fromList <$> es
+     -> let es = mapMaybe (jsonOfOutputValue t) l
+        in return $ A.Array $ V.fromList $ es
     Tombstone
      -> Nothing
     PairValue k v
       -> pair k v
     MapValue kvs
-     -> let es = mapM (jsonOfOutputValue t . uncurry PairValue) $ P.filter (\(k,v) -> k /= Tombstone && v /= Tombstone) kvs
-        in A.Array . V.fromList <$> es
+     -> let es = mapMaybe (jsonOfOutputValue t . uncurry PairValue) kvs
+        in return $ A.Array $ V.fromList $ es
  where
   insert hm (attr,v)
    | Just v' <- jsonOfOutputValue t v
