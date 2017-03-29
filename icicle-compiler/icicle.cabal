@@ -277,24 +277,25 @@ test-suite test-io
                     test
 
   build-depends:
-                      base                            >= 3          && < 5
-                    , icicle-data
-                    , icicle-source
-                    , icicle-core
-                    , icicle
-                    , ambiata-disorder-core
-                    , ambiata-disorder-corpus
-                    , ambiata-p
-                    , ambiata-x-eithert
-                    , containers
-                    , hashable                        == 1.2.*
-                    , text
-                    , QuickCheck                      == 2.8.*
-                    , quickcheck-instances            == 0.3.*
-                    , template-haskell                >= 2.4
-                    , temporary
-                    , transformers
-                    , filepath
+                       base                            >= 3          && < 5
+                     , icicle-data
+                     , icicle-source
+                     , icicle-core
+                     , icicle
+                     , ambiata-disorder-core
+                     , ambiata-disorder-corpus
+                     , ambiata-p
+                     , ambiata-x-eithert
+                     , containers
+                     , hashable                        == 1.2.*
+                     , text
+                     , QuickCheck                      == 2.8.*
+                     , quickcheck-instances            == 0.3.*
+                     , template-haskell                >= 2.4
+                     , pretty-show                     == 1.6.*
+                     , temporary
+                     , transformers
+                     , filepath
 
 
 test-suite test-cli
