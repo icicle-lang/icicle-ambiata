@@ -290,7 +290,7 @@ seaOfOutput isJSON struct structIndex outName@(OutputName name _) missing env ou
               let p  = pair ba bb
               let p' = seaOfOutputCond' (condAnd mcondk mcondv) $ p
 
-              return (Nothing, Nothing, p', ixb, ts)
+              return (condAnd mcondk mcondv, outputMissing, p', ixb, ts)
 
 
        StructT fs
