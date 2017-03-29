@@ -309,7 +309,7 @@ runTest wt consts
 
         outputPsv <- liftIO $ LT.readFile output
         when (outputPsv /= expect) $ do
-          Savage.error ("Welltyped:\n" <> show wt <> "\nExpected values:\n" <> show expect_values <> "\nExpected:\n" <> LT.unpack expect <> "\nGot:\n" <> LT.unpack outputPsv)
+          Savage.error ("Expected values:\n" <> show expect_values <> "\nExpected:\n" <> LT.unpack expect <> "\nGot:\n" <> LT.unpack outputPsv)
 
         pure ()
 
