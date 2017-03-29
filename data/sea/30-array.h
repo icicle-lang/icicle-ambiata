@@ -160,8 +160,8 @@ Copy(arr)
                                                                                 \
 static ARRAY_T(t) INLINE ARRAY_FUN(t,copy) (anemone_mempool_t *into, ARRAY_T(t) x)\
 {                                                                               \
-    VALID_ARRAY(x)                                                              \
     if (x == 0) return 0;                                                       \
+    VALID_ARRAY(x)                                                              \
                                                                                 \
     ARRAY_T(t) arr = ARRAY_FUN(t,create)(into, x->count);                       \
                                                                                 \

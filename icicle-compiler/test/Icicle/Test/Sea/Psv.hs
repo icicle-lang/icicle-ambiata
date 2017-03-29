@@ -25,7 +25,7 @@ import           Disorder.Core.IO
 
 import           Icicle.Data (Entity(..), Attribute(..), AsAt(..), Value(..))
 import           Icicle.Data.Time (Time, renderTime)
-import           Icicle.Encoding (renderValue)
+import           Icicle.Encoding (renderValue, renderOutputValue)
 import           Icicle.Internal.Pretty
 
 import           Icicle.Common.Data
@@ -42,6 +42,7 @@ import           Icicle.Test.Arbitrary.Corpus
 import qualified Jetski as J
 
 import           P
+import qualified Prelude as Savage
 
 import           System.IO
 import           System.IO.Temp (createTempDirectory)
@@ -219,15 +220,15 @@ genPsvConstants wt = do
   -- the buffer needs to be at least as large as a single line
   let str x = x + longestLine wt + 4
   inputBuf <- str . getPositive <$> arbitrary
-  let outputBuf = 10000 + inputBuf
+  let outputBuf = inputBuf
   factsLimit <- inc . getPositive <$> arbitrary
-  return $ S.PsvConstants (maxRowCount + 1000) (inputBuf + 10000) outputBuf (factsLimit + 1000)
+  return $ S.PsvConstants maxRowCount inputBuf outputBuf factsLimit
 
 compileTest :: WellTyped -> TestOpts -> EitherT SeaError IO (SeaFleet S.PsvState)
 compileTest wt (TestOpts _ _ inputFormat allowDupTime) = do
   options0 <- S.getCompilerOptions
 
-  let optionsAssert = ["-DICICLE_ASSERT=1", "-DICICLE_ASSERT_MAXIMUM_ARRAY_COUNT=" <> T.pack (show $ length $ wtFacts wt) ]
+  let optionsAssert = ["-DICICLE_ASSERT=1", "-DICICLE_ASSERT_MAXIMUM_ARRAY_COUNT=" <> T.pack (show (100 * (length $ wtFacts wt))) ]
       options  = options0 <> ["-O0", "-DICICLE_NOINLINE=1"] <> optionsAssert
       programs = Map.singleton (wtAttribute wt) (wtAvalancheFlat wt :| [])
       iconfig  = S.PsvInputConfig
@@ -249,6 +250,11 @@ runTest wt consts
            testOpts@(TestOpts showInput showOutput _ _) = do
   let compile  = compileTest wt testOpts
       release  = S.seaRelease
+      expect   
+       | length (wtFacts wt) <= S.psvFactsLimit consts
+       = textOfOutputs (wtEntities wt) $ evalWellTyped wt
+       | otherwise
+       = ""
 
   bracketEitherT' compile release $ \fleet -> do
 
@@ -299,7 +305,13 @@ runTest wt consts
           dropPsv <- liftIO $ LT.readFile dropped
           liftIO (LT.putStrLn "--- drop.txt ---")
           liftIO (LT.putStrLn dropPsv)
+
+        outputPsv <- liftIO $ LT.readFile output
+        when (outputPsv /= expect) $ do
+          Savage.error ("Expected\n" <> show expect <> "\nGot:\n" <> show outputPsv)
+
         pure ()
+
 
 longestLine :: WellTyped -> Int
 longestLine wt
@@ -311,6 +323,29 @@ longestLine wt
   $ List.maximumBy (compare `on` LT.length)
   $ fmap (LT.intercalate "|")
   $ fieldsOfFacts (wtEntities wt) (wtAttribute wt) (wtFacts wt)
+
+textOfOutputs :: [Entity] -> [(OutputName, BaseValue)] -> LT.Text
+textOfOutputs entities outputs =
+  LT.unlines (fmap (LT.intercalate "|") (fieldsOfOutputs entities outputs))
+
+fieldsOfOutputs :: [Entity] -> [(OutputName, BaseValue)] -> [[LT.Text]]
+fieldsOfOutputs entities outputs =
+  [ [ LT.fromStrict entity, LT.fromStrict (outputName name), output ]
+  | Entity entity         <- entities
+  , (name,value)          <- outputs
+  , Just output           <- [textOfOutputValue value]
+  , output /= LT.fromStrict tombstone ]
+
+textOfOutputValue :: BaseValue -> Maybe LT.Text
+textOfOutputValue v
+ = LT.replace "\n" "\\n" -- this is the only really special character, not sure how we should deal with this
+ . LT.fromStrict
+ . renderOutputValue tombstone
+ <$> valueFromCore v
+
+textSubstitution :: LT.Text -> LT.Text
+textSubstitution = LT.replace "\n" "\\n"
+
 
 textOfFacts :: [Entity] -> Attribute -> [AsAt BaseValue] -> LT.Text
 textOfFacts entities attribute vs =

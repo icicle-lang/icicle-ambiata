@@ -13,6 +13,9 @@ module Icicle.Encoding (
   , valueOfJSON
   , jsonOfValue
   , sourceTypeOfEncoding
+
+  , renderOutputValue
+  , jsonOfOutputValue
   ) where
 
 import           Data.Attoparsec.ByteString
@@ -367,3 +370,72 @@ sourceTypeOfEncoding e
   goStructField (StructField Optional attr enc)
     = ( IT.StructField $ getAttribute attr
       , IT.OptionT $ sourceTypeOfEncoding enc)
+
+
+
+
+-- | RENDER OUTPUT VALUE TO MATCH PSV OUTPUT CODE
+renderOutputValue :: Text -> Value -> Text
+renderOutputValue tombstone val
+ = case val of
+   StringValue v
+    -> v
+   IntValue v
+    -> T.pack $ show v
+   DoubleValue v
+    -> T.pack $ show v
+   BooleanValue False
+    -> "false"
+   BooleanValue True
+    -> "true"
+   TimeValue v
+    -> renderOutputTime v
+
+   StructValue _
+    -> json
+   ListValue _
+    -> json
+   Tombstone
+    -> tombstone
+
+   PairValue{}
+    -> json
+   MapValue{}
+    -> json
+ where
+  json
+   = T.decodeUtf8
+   $ BS.toStrict
+   $ A.encode
+   $ jsonOfOutputValue tombstone val
+
+jsonOfOutputValue :: Text -> Value -> A.Value
+jsonOfOutputValue t val
+ = case val of
+    StringValue v
+     -> A.String v
+    IntValue v
+     -> A.Number $ P.fromIntegral v
+    DoubleValue v
+     -> A.Number $ S.fromFloatDigits v
+    BooleanValue v
+     -> A.Bool   v
+    TimeValue    v
+     -> A.String $ renderTime v
+    StructValue (Struct sfs)
+     -> A.Object $ P.foldl insert HM.empty sfs
+    ListValue (List l)
+     -> A.Array  $ V.fromList $ fmap (jsonOfOutputValue t) l
+    Tombstone
+     -> A.Null
+    PairValue k v
+      -> pair k v
+    MapValue kvs
+     -> A.Array $ V.fromList $ fmap (jsonOfOutputValue t . uncurry PairValue) kvs
+ where
+  insert hm (attr,v)
+   = HM.insert (getAttribute attr) (jsonOfOutputValue t v) hm
+  pair k v
+   = A.Array $ V.fromList [ jsonOfOutputValue t k, jsonOfOutputValue t v ]
+
+

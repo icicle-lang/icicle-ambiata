@@ -12,11 +12,13 @@ import qualified Data.Set as Set
 import qualified Data.List as List
 
 import           Icicle.Data (Entity(..), Attribute(..), AsAt(..))
+import           Icicle.BubbleGum (BubbleGumFact(..), Flavour(..))
 import           Icicle.Data.Time (Time)
 
 import qualified Icicle.Core.Program.Program as C
 import qualified Icicle.Core.Program.Check as C
 import qualified Icicle.Core.Exp.Prim      as C
+import qualified Icicle.Core.Eval.Program   as PV
 
 import qualified Icicle.Avalanche.Annot as A
 import qualified Icicle.Avalanche.Check as A
@@ -163,6 +165,20 @@ genWellTypedWithStruct :: S.InputAllowDupTime -> Gen WellTyped
 genWellTypedWithStruct allowDupTime = validated 10 $ do
   st <- arbitrary :: Gen StructType
   tryGenWellTypedWith allowDupTime (inputTypeOf $ StructT st)
+
+evalWellTyped :: WellTyped -> [(OutputName, BaseValue)]
+evalWellTyped wt
+ | null $ wtFacts wt
+ = []
+ | otherwise
+ = case PV.eval (wtTime wt) inputs (wtCore wt) of
+    Left err -> Savage.error ("Evaluating Core: " <> show err)
+    Right r  -> PV.value r
+ where
+  inputs
+   = List.zipWith mkInput [0..] (wtFacts wt)
+  mkInput ix (AsAt fact time)
+   = AsAt (BubbleGumFact (Flavour ix time), fact) time
 
 ------------------------------------------------------------------------
 

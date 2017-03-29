@@ -33,6 +33,8 @@ module Icicle.Data.Time (
   -- * Parsing and Printing
   , renderTime
   , pTime
+
+  , renderOutputTime
   ) where
 import           Data.Attoparsec.Text
 
@@ -185,6 +187,11 @@ packedOfTime t@(gregorianDay -> d)
 
 renderTime  :: Time -> Text
 renderTime = T.pack . C.showGregorian . Thyme.fromThyme . julianDay
+
+renderOutputTime  :: Time -> Text
+renderOutputTime t
+ = (T.pack . C.showGregorian . Thyme.fromThyme $ julianDay t) <> "T00:00:00Z"
+
 
 pTime :: Parser Time
 pTime
