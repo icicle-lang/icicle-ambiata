@@ -69,7 +69,7 @@ ok, loaded test/cli/repl/data.psv, 13 rows
 ,marge, NaN]
 
 - Core evaluation:
-[homer, 17.533363405944193
+[homer, 17.53336340594424
 ,marge, NaN]
 
 > > -- Pearsons correlation example
@@ -78,7 +78,7 @@ ok, loaded test/cli/repl/data.psv, 13 rows
 ,marge, NaN]
 
 - Core evaluation:
-[homer, 0.927982944131114
+[homer, 0.9279829441311143
 ,marge, NaN]
 
 > > -- Newest example
