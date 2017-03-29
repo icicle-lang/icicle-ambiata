@@ -252,7 +252,7 @@ seaOfXValue v t
       | ArrayT t' <- t
       -> let len = length vs
              writes arr (v',i)
-              = prim (PrimArray $ PrimArrayPutImmutable t')
+              = prim (PrimArray $ PrimArrayPutMutable t')
                      [arr, int i, seaOfXValue v' t']
              init
               = prim (PrimUnsafe $ PrimUnsafeArrayCreate t')

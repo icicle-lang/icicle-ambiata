@@ -43,6 +43,8 @@ import qualified Jetski as J
 
 import           P
 
+import qualified Prelude as Savage
+
 import           System.IO
 import           System.IO.Temp (createTempDirectory)
 import           System.Directory (getTemporaryDirectory, removeDirectoryRecursive)
@@ -57,7 +59,7 @@ import           X.Control.Monad.Trans.Either (EitherT, runEitherT)
 import           X.Control.Monad.Trans.Either (bracketEitherT', left)
 
 prop_psv_corpus
- = forAll wellTypedCorpus $ \wt ->
+ = testAllCorpus $ \wt ->
    forAll (genPsvConstants wt) $ \psv -> testIO $ do
   x <- runEitherT
      $ runTest wt psv
@@ -219,9 +221,9 @@ genPsvConstants wt = do
   -- the buffer needs to be at least as large as a single line
   let str x = x + longestLine wt + 4
   inputBuf <- str . getPositive <$> arbitrary
-  let outputBuf = inputBuf
+  let outputBuf = 10000 + inputBuf
   factsLimit <- inc . getPositive <$> arbitrary
-  return $ S.PsvConstants maxRowCount inputBuf outputBuf factsLimit
+  return $ S.PsvConstants (maxRowCount + 1000) (inputBuf + 10000) outputBuf (factsLimit + 1000)
 
 compileTest :: WellTyped -> TestOpts -> EitherT SeaError IO (SeaFleet S.PsvState)
 compileTest wt (TestOpts _ _ inputFormat allowDupTime) = do
@@ -251,7 +253,7 @@ runTest wt consts
 
   bracketEitherT' compile release $ \fleet -> do
 
-  let install  = liftIO (S.sfSegvInstall fleet (show wt))
+  let install  = liftIO (S.sfSegvInstall fleet (show consts <> "\n" <> show wt))
       remove _ = liftIO (S.sfSegvRemove  fleet)
   bracketEitherT' install remove  $ \() -> do
 

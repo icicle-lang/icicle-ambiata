@@ -7,18 +7,12 @@
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 module Icicle.Test.Arbitrary.Corpus where
 
-import qualified Data.Map as Map
 import qualified Data.Set as Set
-import qualified Data.List as List
 import qualified Data.Text as Text
 
 import           Icicle.Common.Base
-import           Icicle.Common.Type
-import qualified Icicle.Common.Type as Type
-import           Icicle.Common.Annot
 
 import           Icicle.Test.Arbitrary.Program
-import           Icicle.Test.Arbitrary.Source
 import           Icicle.Test.Arbitrary.Data
 
 -- import qualified Icicle.Sea.FromAvalanche.Analysis as S
@@ -28,15 +22,10 @@ import           Icicle.Dictionary.Data
 import           Icicle.Data
 import qualified Icicle.Storage.Dictionary.Toml as DictionaryLoad
 
-import qualified Icicle.Source.Query as Source
-import qualified Icicle.Source.Parser as Source
-
 import qualified Icicle.Compiler.Source as Source
 import qualified Icicle.Compiler        as Compiler
 
 import           P
-
-import           Data.List (zipWith)
 
 import           Test.QuickCheck
 
@@ -68,15 +57,28 @@ queries =
 
 
 wellTypedCorpus :: Gen WellTyped
-wellTypedCorpus
- = do (name,core) <- genCore
-      wt <- tryGenWellTypedFromCoreEither S.AllowDupTime (streamType core) core
+wellTypedCorpus = genCore >>= genWellTyped
+
+testAllCorpus :: (WellTyped -> Property) -> Property
+testAllCorpus prop
+ = conjoin $ fmap run queries
+ where
+  run q = forAll (gen q) prop
+
+  gen (name,src)
+   = case coreOfSource name src of
+      Left u -> Savage.error (Text.unpack name <> ":\n" <> Text.unpack src <> "\n\n" <> u)
+      Right core -> genWellTyped (name, core)
+
+genWellTyped :: (Text, C.Program () Var) -> Gen WellTyped
+genWellTyped (name,core)
+ = do wt <- tryGenWellTypedFromCoreEither S.AllowDupTime (streamType core) core
       case wt of
        Left err  -> Savage.error (Text.unpack name <> "\n\n" <> err)
        Right wt' -> return wt'
  where
   streamType c
-   = InputType $ C.inputType c -- inputTypeOf (Type.PairT Type.TimeT (C.inputType c))
+   = InputType $ C.inputType c
 
 
 genCore :: Gen (Text, C.Program () Var)
