@@ -339,10 +339,9 @@ fieldsOfOutputs entities outputs =
 
 textOfOutputValue :: BaseValue -> Maybe LT.Text
 textOfOutputValue v
- = LT.replace "\n" "\\n" -- this is the only really special character, not sure how we should deal with this
- . LT.fromStrict
- . renderOutputValue tombstone
- <$> valueFromCore v
+ = do v' <- valueFromCore v
+      t  <- renderOutputValue v'
+      return $ LT.replace "\n" "\\n" $ LT.fromStrict t
 
 textSubstitution :: LT.Text -> LT.Text
 textSubstitution = LT.replace "\n" "\\n"

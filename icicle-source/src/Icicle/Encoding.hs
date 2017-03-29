@@ -375,28 +375,28 @@ sourceTypeOfEncoding e
 
 
 -- | RENDER OUTPUT VALUE TO MATCH PSV OUTPUT CODE
-renderOutputValue :: Text -> Value -> Text
-renderOutputValue tombstone val
+renderOutputValue :: Value -> Maybe Text
+renderOutputValue val
  = case val of
    StringValue v
-    -> v
+    -> return v
    IntValue v
-    -> T.pack $ show v
+    -> return $ T.pack $ show v
    DoubleValue v
-    -> T.pack $ show v
+    -> return $ T.pack $ show v
    BooleanValue False
-    -> "false"
+    -> return "false"
    BooleanValue True
-    -> "true"
+    -> return "true"
    TimeValue v
-    -> renderOutputTime v
+    -> return $ renderOutputTime v
 
    StructValue _
     -> json
    ListValue _
     -> json
    Tombstone
-    -> tombstone
+    -> Nothing
 
    PairValue{}
     -> json
@@ -404,13 +404,10 @@ renderOutputValue tombstone val
     -> json
  where
   json
-   = T.decodeUtf8
-   $ BS.toStrict
-   $ fromMaybe ""
-   ( A.encode <$> jsonOfOutputValue tombstone val )
+   = T.decodeUtf8 . BS.toStrict . A.encode <$> jsonOfOutputValue val
 
-jsonOfOutputValue :: Text -> Value -> Maybe A.Value
-jsonOfOutputValue t val
+jsonOfOutputValue :: Value -> Maybe A.Value
+jsonOfOutputValue val
  = case val of
     StringValue v
      -> return $ A.String v
@@ -425,25 +422,25 @@ jsonOfOutputValue t val
     StructValue (Struct sfs)
      -> return $ A.Object $ P.foldl insert HM.empty sfs
     ListValue (List l)
-     -> let es = mapMaybe (jsonOfOutputValue t) l
+     -> let es = mapMaybe jsonOfOutputValue l
         in return $ A.Array $ V.fromList $ es
     Tombstone
      -> Nothing
     PairValue k v
       -> pair k v
     MapValue kvs
-     -> let es = mapMaybe (jsonOfOutputValue t . uncurry PairValue) kvs
+     -> let es = mapMaybe (jsonOfOutputValue . uncurry PairValue) kvs
         in return $ A.Array $ V.fromList $ es
  where
   insert hm (attr,v)
-   | Just v' <- jsonOfOutputValue t v
+   | Just v' <- jsonOfOutputValue v
    = HM.insert (getAttribute attr) v' hm
    | otherwise
    = hm
 
   pair k v = do
-    k' <- jsonOfOutputValue t k
-    v' <- jsonOfOutputValue t v
+    k' <- jsonOfOutputValue k
+    v' <- jsonOfOutputValue v
     return $ A.Array $ V.fromList [ k', v' ]
 
 
