@@ -406,36 +406,44 @@ renderOutputValue tombstone val
   json
    = T.decodeUtf8
    $ BS.toStrict
-   $ A.encode
-   $ jsonOfOutputValue tombstone val
+   $ fromMaybe ""
+   ( A.encode <$> jsonOfOutputValue tombstone val )
 
-jsonOfOutputValue :: Text -> Value -> A.Value
+jsonOfOutputValue :: Text -> Value -> Maybe A.Value
 jsonOfOutputValue t val
  = case val of
     StringValue v
-     -> A.String v
+     -> return $ A.String v
     IntValue v
-     -> A.Number $ P.fromIntegral v
+     -> return $ A.Number $ P.fromIntegral v
     DoubleValue v
-     -> A.Number $ S.fromFloatDigits v
+     -> return $ A.Number $ S.fromFloatDigits v
     BooleanValue v
-     -> A.Bool   v
+     -> return $ A.Bool   v
     TimeValue    v
-     -> A.String $ renderTime v
+     -> return $ A.String $ renderOutputTime v
     StructValue (Struct sfs)
-     -> A.Object $ P.foldl insert HM.empty sfs
+     -> return $ A.Object $ P.foldl insert HM.empty sfs
     ListValue (List l)
-     -> A.Array  $ V.fromList $ fmap (jsonOfOutputValue t) l
+     -> let es = mapM (jsonOfOutputValue t) $ P.filter (/=Tombstone) l
+        in A.Array . V.fromList <$> es
     Tombstone
-     -> A.Null
+     -> Nothing
     PairValue k v
       -> pair k v
     MapValue kvs
-     -> A.Array $ V.fromList $ fmap (jsonOfOutputValue t . uncurry PairValue) kvs
+     -> let es = mapM (jsonOfOutputValue t . uncurry PairValue) $ P.filter (\(k,v) -> k /= Tombstone && v /= Tombstone) kvs
+        in A.Array . V.fromList <$> es
  where
   insert hm (attr,v)
-   = HM.insert (getAttribute attr) (jsonOfOutputValue t v) hm
-  pair k v
-   = A.Array $ V.fromList [ jsonOfOutputValue t k, jsonOfOutputValue t v ]
+   | Just v' <- jsonOfOutputValue t v
+   = HM.insert (getAttribute attr) v' hm
+   | otherwise
+   = hm
+
+  pair k v = do
+    k' <- jsonOfOutputValue t k
+    v' <- jsonOfOutputValue t v
+    return $ A.Array $ V.fromList [ k', v' ]
 
 

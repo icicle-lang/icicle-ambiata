@@ -10,8 +10,8 @@ module Icicle.Data.Time (
   , localHour
   , localMinute
   , localSecond
-  , daysCountJulian
-  , secondsCountJulian
+  , daysCountIvory
+  , secondsCountIvory
   , timeOfText
   , timeOfYMD
   , timeOfDays
@@ -38,7 +38,7 @@ module Icicle.Data.Time (
   ) where
 import           Data.Attoparsec.Text
 
-import qualified Data.Time.Calendar as C
+import qualified Data.Time          as C
 import qualified Data.Thyme         as Thyme
 import qualified Data.Thyme.Time    as Thyme
 import           Data.AffineSpace
@@ -114,20 +114,23 @@ localMinute x = timeOfDay x ^. Thyme._todMin
 localSecond :: Time -> Int
 localSecond x = timeOfDay x ^. Thyme._todHour
 
--- | Number of days since Julian zero, 1858-11-17T00:00:00Z
-daysCountJulian :: Time -> Int
-daysCountJulian
-  = Thyme.toModifiedJulianDay . julianDay
+-- | Number of days since Ivory epoch
+daysCountIvory :: Time -> Int
+daysCountIvory d
+  = Thyme.toModifiedJulianDay (julianDay d) - Thyme.toModifiedJulianDay ivoryEpoch 
 
--- | Number of seconds since Julian zero, 1858-11-17T00:00:00Z
---   Hope it's not too big.
-secondsCountJulian :: Time -> Int
-secondsCountJulian t
-  = let days  = daysCountJulian t
+-- | Number of seconds since Ivory epoch
+secondsCountIvory :: Time -> Int
+secondsCountIvory t
+  = let days  = daysCountIvory  t
         hours = localHour       t
         mins  = localMinute     t
         secs  = localSecond     t
     in (days * 24 * 3600) + (hours * 3600) + (mins * 60) + secs
+
+ivoryEpoch :: Thyme.Day
+ivoryEpoch =
+  Thyme.ModifiedJulianDay (-94493) -- 1600-03-01
 
 --------------------------------------------------------------------------------
 
@@ -190,8 +193,10 @@ renderTime = T.pack . C.showGregorian . Thyme.fromThyme . julianDay
 
 renderOutputTime  :: Time -> Text
 renderOutputTime t
- = (T.pack . C.showGregorian . Thyme.fromThyme $ julianDay t) <> "T00:00:00Z"
-
+ = let fmt = "%Y-%m-%dT%H:%M:%SZ"
+       t' = Thyme.fromThyme (getDateTime t) :: C.UTCTime 
+       str = C.formatTime C.defaultTimeLocale fmt t'
+   in  T.pack str
 
 pTime :: Parser Time
 pTime
@@ -215,7 +220,7 @@ withinWindow fact now window
 -- | Find number of days between two times
 daysDifference :: Time -> Time -> Int
 daysDifference fact now
-  = daysCountJulian now - daysCountJulian fact
+  = daysCountIvory now - daysCountIvory fact
 
 -- | Numer of seconds between two times
 secondsDifference :: Time -> Time -> Int

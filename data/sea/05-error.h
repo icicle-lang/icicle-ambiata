@@ -166,26 +166,3 @@ static void NOINLINE idebug (const char *msg, const char *value_ptr, const size_
     fprintf (stderr, "icicle-debug: %s: %s\n", msg, value_text);
 }
 
-static void INLINE iassert(const char *file, const int line, const char *func, const char *msg, ibool_t p)
-{
-    // #if ICICLE_DEBUG
-    if (!p) {
-	fprintf(stderr, "assertion failed:\n%s:%d %s\n\t%s\n", file, line, func, msg);
-
-	void *frames[50];
-	size_t n_frames = backtrace (frames, sizeof(frames));
-
-	backtrace_symbols_fd (frames, n_frames, STDERR_FILENO);
-
-	exit(1);
-    }
-}
-
-#define STRINGIFY(x) #x
-
-#if ICICLE_ASSERT
-#   define IASSERT(p) iassert(__FILE__, __LINE__, __func__, #p , p)
-#else
-#   define IASSERT(p) 
-#endif
-

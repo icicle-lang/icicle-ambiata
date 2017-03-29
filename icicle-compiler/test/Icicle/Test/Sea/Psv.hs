@@ -250,9 +250,10 @@ runTest wt consts
            testOpts@(TestOpts showInput showOutput _ _) = do
   let compile  = compileTest wt testOpts
       release  = S.seaRelease
+      expect_values = evalWellTyped wt
       expect   
        | length (wtFacts wt) <= S.psvFactsLimit consts
-       = textOfOutputs (wtEntities wt) $ evalWellTyped wt
+       = textOfOutputs (wtEntities wt) expect_values
        | otherwise
        = ""
 
@@ -308,7 +309,7 @@ runTest wt consts
 
         outputPsv <- liftIO $ LT.readFile output
         when (outputPsv /= expect) $ do
-          Savage.error ("Expected\n" <> show expect <> "\nGot:\n" <> show outputPsv)
+          Savage.error ("Welltyped:\n" <> show wt <> "\nExpected values:\n" <> show expect_values <> "\nExpected:\n" <> LT.unpack expect <> "\nGot:\n" <> LT.unpack outputPsv)
 
         pure ()
 

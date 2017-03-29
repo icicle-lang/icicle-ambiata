@@ -287,7 +287,7 @@ evalP ann p xs vs env
              | otherwise -> err
             BuiltinTime DaysJulianEpoch
              | [VTime i] <- args
-             -> return $ VDouble $ fromIntegral $ DT.daysCountJulian i
+             -> return $ VDouble $ fromIntegral $ DT.daysCountIvory i
              | otherwise -> err
             BuiltinTime SecondsBetween
              | [VTime i, VTime j] <- args
@@ -295,7 +295,7 @@ evalP ann p xs vs env
              | otherwise -> err
             BuiltinTime SecondsJulianEpoch
              | [VTime i] <- args
-             -> return $ VDouble $ fromIntegral $ DT.secondsCountJulian i
+             -> return $ VDouble $ fromIntegral $ DT.secondsCountIvory i
              | otherwise -> err
             BuiltinTime ProjectDay
              | [VTime i] <- args

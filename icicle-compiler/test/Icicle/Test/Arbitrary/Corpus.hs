@@ -20,6 +20,7 @@ import qualified Icicle.Sea.Eval as S
 
 import           Icicle.Dictionary.Data
 import           Icicle.Data
+import qualified Icicle.Data as Data
 import qualified Icicle.Storage.Dictionary.Toml as DictionaryLoad
 
 import qualified Icicle.Compiler.Source as Source
@@ -38,7 +39,14 @@ concretes :: [(Text, Encoding)]
 concretes =
  [ ("int", IntEncoding)
  , ("string", StringEncoding)
+ , ("injury", StructEncoding [field "location" StringEncoding, optfield "action" StringEncoding, field "severity" IntEncoding])
  ]
+ where
+  optfield name encoding
+   = Data.StructField Data.Optional (Attribute name) encoding
+  field name encoding
+   = Data.StructField Data.Mandatory (Attribute name) encoding
+
 
 queries :: [(Text,Text)]
 queries =
@@ -52,6 +60,10 @@ queries =
    , "feature string ~> group value ~> count value")
  , ("string_group2"
    , "feature string ~> group value ~> group value ~> count value")
+ , ("injury_group2"
+   , "feature injury ~> group location ~> group action ~> sum severity")
+ , ("injury_group_pair"
+   , "feature injury ~> group (location, action) ~> sum severity")
  ]
 
 
