@@ -43,8 +43,6 @@ import qualified Jetski as J
 
 import           P
 
-import qualified Prelude as Savage
-
 import           System.IO
 import           System.IO.Temp (createTempDirectory)
 import           System.Directory (getTemporaryDirectory, removeDirectoryRecursive)
@@ -229,7 +227,8 @@ compileTest :: WellTyped -> TestOpts -> EitherT SeaError IO (SeaFleet S.PsvState
 compileTest wt (TestOpts _ _ inputFormat allowDupTime) = do
   options0 <- S.getCompilerOptions
 
-  let options  = options0 <> ["-O0", "-DICICLE_NOINLINE=1"]
+  let optionsAssert = ["-DICICLE_ASSERT=1", "-DICICLE_ASSERT_MAXIMUM_ARRAY_COUNT=" <> T.pack (show $ length $ wtFacts wt) ]
+      options  = options0 <> ["-O0", "-DICICLE_NOINLINE=1"] <> optionsAssert
       programs = Map.singleton (wtAttribute wt) (wtAvalancheFlat wt :| [])
       iconfig  = S.PsvInputConfig
                 (S.Snapshot (wtTime wt))

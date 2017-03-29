@@ -462,7 +462,7 @@ seaOfOutputBase quoteStrings err t val
      DoubleT
       -> pure $ outputValue "double" [val]
      StringT
-      -> pure $ quotedOutput quoteStrings (outputValue "string" [val, "strlen(" <> val <> ")"])
+      -> pure $ quotedOutput quoteStrings (outputValue "string" [val, "istring_size(" <> val <> ")"])
      TimeT
       -> pure $ quotedOutput quoteStrings (outputValue "time" [val])
      FactIdentifierT

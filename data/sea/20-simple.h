@@ -67,10 +67,19 @@ static ibool_t   INLINE istring_ne    (istring_t x, istring_t y) { return strcmp
 
 static istring_t INLINE istring_copy(anemone_mempool_t *into, istring_t val)
 {
+    // Allow null pointers as strings to copy, as uninitialised arrays may contain null strings.
+    // Most of the time uninitialised arrays should be updated with put_mutable, but sometimes
+    // put_immutable is used instead, which copies the entire array - including uninitialised elements.
     if (val == 0) return 0;
 
     size_t val0_size = strlen (val) + 1;
     char  *alloc     = anemone_mempool_alloc (into, val0_size);
     memcpy (alloc, val, val0_size);
     return alloc;
+}
+
+static iint_t INLINE istring_size(istring_t val)
+{
+    IASSERT(val != NULL);
+    return strlen (val);
 }

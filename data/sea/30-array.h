@@ -32,6 +32,19 @@ typedef struct
 #define ARRAY_ITEM_SIZE(t,n)  (sizeof(t##_t) * (n))
 #define ARRAY_SIZE(t,n)       (ARRAY_ITEM_SIZE(t,n) + sizeof(iarray_struct))
 
+#ifndef ICICLE_ASSERT_MAXIMUM_ARRAY_COUNT
+#define ICICLE_ASSERT_MAXIMUM_ARRAY_COUNT 1000000000
+#endif
+
+#define VALID_ARRAY(x)                                                          \
+    IASSERT(x->count <= ICICLE_ASSERT_MAXIMUM_ARRAY_COUNT);                     \
+    IASSERT(x->count >= 0);                                                     \
+
+#define VALID_INDEX(ix, x)                                                      \
+    IASSERT(ix < x->count);                                                     \
+    IASSERT(ix >= 0);                                                           \
+
+
 
 /*
 Length(arr)
@@ -41,6 +54,7 @@ Length(arr)
                                                                                 \
 static iint_t INLINE ARRAY_FUN(t,length) (ARRAY_T(t) arr)                       \
 {                                                                               \
+    VALID_ARRAY(arr)                                                            \
     return arr->count;                                                          \
 }
 
@@ -54,6 +68,8 @@ Ne(arr_x, arr_y)
                                                                                 \
 static ibool_t INLINE ARRAY_FUN(t,eq) (ARRAY_T(t) x, ARRAY_T(t) y)              \
 {                                                                               \
+    VALID_ARRAY(x)                                                              \
+    VALID_ARRAY(y)                                                              \
     if (x->count != y->count) return ifalse;                                    \
                                                                                 \
     for (iint_t ix = 0; ix != x->count; ++ix) {                                 \
@@ -81,6 +97,8 @@ Gt(arr_x, arr_y)
                                                                                 \
 static ibool_t INLINE ARRAY_FUN(t,op) (ARRAY_T(t) x, ARRAY_T(t) y)              \
 {                                                                               \
+    VALID_ARRAY(x)                                                              \
+    VALID_ARRAY(y)                                                              \
     iint_t x_count = x->count;                                                  \
     iint_t y_count = y->count;                                                  \
     iint_t min     = x_count < y_count ? x_count : y_count;                     \
@@ -101,7 +119,6 @@ static ibool_t INLINE ARRAY_FUN(t,op) (ARRAY_T(t) x, ARRAY_T(t) y)              
     MK_ARRAY_CMP(t,gt)                                                          \
     MK_ARRAY_CMP(t,ge)                        
 
-
 /*
 Index(arr, ix)
 */
@@ -110,6 +127,8 @@ Index(arr, ix)
                                                                                 \
 static t##_t INLINE ARRAY_FUN(t,index) (ARRAY_T(t) x, iint_t ix)                \
 {                                                                               \
+    VALID_INDEX(ix, x)                                                          \
+    VALID_ARRAY(x)                                                              \
     return ARRAY_PAYLOAD(t,x)[ix];                                              \
 }
 
@@ -128,6 +147,7 @@ static ARRAY_T(t) INLINE ARRAY_FUN(t,create)(anemone_mempool_t *pool, iint_t sz)
     ARRAY_T(t) ret  = (ARRAY_T(t))anemone_mempool_calloc(pool, bytes, 1);       \
     ret->count      = sz;                                                       \
                                                                                 \
+    VALID_ARRAY(ret)                                                            \
     return ret;                                                                 \
 }
 
@@ -140,6 +160,7 @@ Copy(arr)
                                                                                 \
 static ARRAY_T(t) INLINE ARRAY_FUN(t,copy) (anemone_mempool_t *into, ARRAY_T(t) x)\
 {                                                                               \
+    VALID_ARRAY(x)                                                              \
     if (x == 0) return 0;                                                       \
                                                                                 \
     ARRAY_T(t) arr = ARRAY_FUN(t,create)(into, x->count);                       \
@@ -149,6 +170,7 @@ static ARRAY_T(t) INLINE ARRAY_FUN(t,copy) (anemone_mempool_t *into, ARRAY_T(t) 
         ARRAY_PAYLOAD(t,arr)[ix] = t##_copy(into, cp);                          \
     }                                                                           \
                                                                                 \
+    VALID_ARRAY(arr)                                                            \
     return arr;                                                                 \
 }
 
@@ -162,8 +184,11 @@ Put(arr, ix, val)
 static ARRAY_T(t) INLINE ARRAY_FUN(t,put_mutable)                               \
                   (anemone_mempool_t *pool, ARRAY_T(t) x, iint_t ix, t##_t v)   \
 {                                                                               \
+    VALID_ARRAY(x)                                                              \
     iint_t count  = x->count;                                                   \
     iint_t sz_old = iarray_size(count);                                         \
+                                                                                \
+    IASSERT(ix < count + 1);                                                    \
                                                                                 \
     if (ix >= sz_old) {                                                         \
         iint_t sz_new    = iarray_size(ix+1);                                   \
@@ -180,6 +205,8 @@ static ARRAY_T(t) INLINE ARRAY_FUN(t,put_mutable)                               
     }                                                                           \
                                                                                 \
     ARRAY_PAYLOAD(t,x)[ix] = v;                                                 \
+    VALID_ARRAY(x)                                                              \
+    VALID_INDEX(ix, x)                                                          \
     return x;                                                                   \
 }
 
@@ -208,6 +235,10 @@ Swap(arr, ix1, ix2)
 static ARRAY_T(t) INLINE ARRAY_FUN(t,swap)                                      \
                   (ARRAY_T(t) x, iint_t ix1, iint_t ix2)                        \
 {                                                                               \
+    VALID_ARRAY(x)                                                              \
+    VALID_INDEX(ix1, x)                                                         \
+    VALID_INDEX(ix2, x)                                                         \
+                                                                                \
     t##_t tmp = ARRAY_PAYLOAD(t,x)[ix1];                                        \
     ARRAY_PAYLOAD(t,x)[ix1] = ARRAY_PAYLOAD(t,x)[ix2];                          \
     ARRAY_PAYLOAD(t,x)[ix2] = tmp;                                              \
@@ -224,9 +255,10 @@ Immutable Delete (arr, ix)
 static ARRAY_T(t) INLINE ARRAY_FUN(t,delete)                                    \
                   (anemone_mempool_t *pool, ARRAY_T(t) x, iint_t ix_delete)     \
 {                                                                               \
-    iint_t count      = x->count;                                               \
-    if (ix_delete >= count) return x;                                           \
+    VALID_ARRAY(x)                                                              \
+    VALID_INDEX(ix_delete, x)                                                   \
                                                                                 \
+    iint_t count      = x->count;                                               \
     iint_t capacity   = iarray_size(count - 1);                                 \
     size_t bytes      = ARRAY_SIZE(t, capacity);                                \
                                                                                 \
@@ -242,6 +274,8 @@ static ARRAY_T(t) INLINE ARRAY_FUN(t,delete)                                    
     }                                                                           \
                                                                                 \
     arr->count = count - 1;                                                     \
+                                                                                \
+    VALID_ARRAY(arr)                                                            \
     return arr;                                                                 \
 }
 
