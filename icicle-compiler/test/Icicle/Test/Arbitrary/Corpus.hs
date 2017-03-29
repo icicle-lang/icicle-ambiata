@@ -15,7 +15,6 @@ import           Icicle.Common.Base
 import           Icicle.Test.Arbitrary.Program
 import           Icicle.Test.Arbitrary.Data
 
--- import qualified Icicle.Sea.FromAvalanche.Analysis as S
 import qualified Icicle.Sea.Eval as S
 
 import           Icicle.Dictionary.Data

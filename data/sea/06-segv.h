@@ -47,7 +47,6 @@ void segv_install_handler (const char *user_data, size_t user_data_size)
 
 static void INLINE iassert(const char *file, const int line, const char *func, const char *msg, ibool_t p)
 {
-    // #if ICICLE_DEBUG
     if (!p) {
         fprintf(stderr, "assertion failed");
         fprintf (stderr, "SEGV_USER_DATA:\n");
@@ -63,11 +62,8 @@ static void INLINE iassert(const char *file, const int line, const char *func, c
     }
 }
 
-#define STRINGIFY(x) #x
-
 #if ICICLE_ASSERT
 #   define IASSERT(p) iassert(__FILE__, __LINE__, __func__, #p , p)
 #else
 #   define IASSERT(p) 
 #endif
-

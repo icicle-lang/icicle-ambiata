@@ -165,4 +165,3 @@ static void NOINLINE idebug (const char *msg, const char *value_ptr, const size_
 
     fprintf (stderr, "icicle-debug: %s: %s\n", msg, value_text);
 }
-
