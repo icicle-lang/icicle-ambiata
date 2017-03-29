@@ -288,9 +288,7 @@ seaOfOutput isJSON struct structIndex outName@(OutputName name _) missing env ou
                  <- seaOfOutput InJSON struct ixa outName PsvDrop env' tb tbs transform
 
               let p  = pair ba bb
-              let p' = seaOfOutputCond' mcondk
-                     $ seaOfOutputCond' mcondv
-                     $ p
+              let p' = seaOfOutputCond' (condAnd mcondk mcondv) $ p
 
               return (Nothing, Nothing, p', ixb, ts)
 
