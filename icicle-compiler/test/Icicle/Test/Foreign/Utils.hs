@@ -58,7 +58,12 @@ data Val
 data Input = Input
   { inputType :: Ty
   , inputArr  :: [Val]
-  } deriving (Show)
+  }
+
+instance Show Input where
+  show (Input ty vs) =
+    "Input: " <> show ty <> "\n" <>
+    "       " <> show vs
 
 instance Arbitrary Ty where
   arbitrary = oneof_sized

@@ -98,11 +98,11 @@ test_copy_eq input
 
 -- y = array_copy (x)
 -- z = array_put_mutable (x, i, a)
--- array_eq (x, y) == false
+-- array_eq (y, z) == false
 -- TODO flakey segfaulty test -- the values are always as expected but it might segfault
-zprop_array_put_mutable_diff
+prop_array_put_mutable_diff
   = forAll arbitrary $ \input -> not (univalue (inputType input)) ==>
-    forAll arbitrary $ \i -> i >= 0 && i < length (inputArr input) ==>
+    forAll arbitrary $ \i -> i >= 0 && i <= length (inputArr input) ==>
     forAll (genValForType (inputType input)) $ \v -> putTestCond input i v ==> testIO $ do
       bracket (pokeVal v) snd $ \(vptr, _) ->
         runProp input name_mutable_diff
@@ -118,7 +118,7 @@ test_mutable_diff input
   <> "anemone_mempool_t *test_mempool = anemone_mempool_create();"
   <> tt  <> " y = " <> ta <> "_copy(test_mempool, x);"
   <> tt  <> " z = " <> ta <> "_put_mutable(test_mempool, x, i, v);"
-  <> "ibool_t r = " <> ta <> "_eq(x,y);"
+  <> "ibool_t r = " <> ta <> "_eq(y,z);"
   <> "anemone_mempool_free(test_mempool);"
   <> "return !r;"
   <> "}"
@@ -258,17 +258,16 @@ runWith (Input _ val) prop = go val
 
 runProp :: Input -> Text -> (Ptr a -> [Argument]) -> IO Property
 runProp input fun args = do
-  let ty = inputType input
+  -- let ty = inputType input
   let fs = seprops input
-
   runWith input $ \wptr -> runRight $ do
     let ptr = wordPtrToPtr wptr
-    src <- readLibrary fs
+    src <- readLibraryWith ["-DICICLE_ASSERT=1"] fs
     f   <- function src fun retBool
     r   <- liftIO $ f $ args ptr
-    arr <- liftIO $ peekArr ty wptr
-    return $ counterexample ("array after test: " <> show arr)
-           $ property r
+    -- arr <- liftIO $ peekArr ty wptr
+    -- return $ counterexample ("array after test:\n" <> show arr)
+    return $ property r
 
 seprops :: Input -> SourceCode
 seprops input = codeOfDoc $ vsep
