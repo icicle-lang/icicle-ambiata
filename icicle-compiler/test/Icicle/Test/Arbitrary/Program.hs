@@ -329,11 +329,8 @@ isSupportedType ty = case ty of
   ErrorT    -> True
   SumT{}    -> True
 
-  -- can't be nested
-  BufT _ t          -> not (isBufOrArray t)
-  ArrayT (ArrayT t) -> not (isBufOrArray t)
-  ArrayT (BufT _ t) -> not (isBufOrArray t)
-  ArrayT t          -> not (isBufOrArray t)
+  BufT _ t  -> isSupportedType t
+  ArrayT t  -> isSupportedType t
 
   -- should have been melted
   MapT{}    -> Savage.error ("should have been melted: " <> show ty)

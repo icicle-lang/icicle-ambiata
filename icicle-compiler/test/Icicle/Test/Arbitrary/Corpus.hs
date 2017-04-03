@@ -59,9 +59,12 @@ queries =
    , "feature string ~> group value ~> count value")
  , ("string_group2"
    , "feature string ~> group value ~> group value ~> count value")
+
  , ("injury_group2"
    , "feature injury ~> group location ~> group action ~> sum severity")
- -- Re-enable this once melting relation ops is fixed
+ , ("injury_group3"
+   , "feature injury ~> group location ~> group action ~> group severity ~> sum severity")
+
  , ("injury_group_pair"
    , "feature injury ~> group (location, action) ~> sum severity")
 
@@ -78,13 +81,15 @@ queries =
    , "       | None ->"
    , "         case is_homer"
    , "         | True -> (map_insert location severity (fst x), Some time)"
-   , "         | False -> (fst x, Some time) end"
+   , "         | False -> (fst x, Some time)"
+   , "         end"
    , "       | Some t ->"
    , "         case time == t"
    , "         | True ->"
    , "           case is_homer"
    , "           | True -> (map_insert location severity (fst x), Some time)"
-   , "           | False -> (fst x, Some time) end"
+   , "           | False -> (fst x, Some time)"
+   , "           end"
    , "         | False ->"
    , "           case is_homer"
    , "           | True -> (map_insert location severity map_create, Some time)"
