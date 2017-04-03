@@ -96,9 +96,9 @@ instance (Hashable n, Arbitrary n) => Arbitrary (Name n) where
 instance Arbitrary PM.Prim where
  arbitrary
   = oneof
-     [ PM.PrimArithUnary  <$> arbitrary <*> pure ArithIntT
-     , PM.PrimArithBinary <$> arbitrary <*> pure ArithIntT
-     , PM.PrimRelation    <$> arbitrary <*> pure IntT
+     [ PM.PrimArithUnary  <$> arbitrary <*> arbitrary
+     , PM.PrimArithBinary <$> arbitrary <*> arbitrary
+     , PM.PrimRelation    <$> arbitrary <*> arbitrary
      , PM.PrimLogical     <$> arbitrary
      , PM.PrimTime        <$> arbitrary
 
@@ -114,6 +114,11 @@ instance Arbitrary PM.Prim where
 
      , PM.PrimBuiltinFun <$> arbitrary
      ]
+
+instance Arbitrary ArithType where
+ arbitrary = oneof
+   [ return ArithIntT
+   , return ArithDoubleT ]
 
 instance Arbitrary PM.PrimArithUnary where
  arbitrary = arbitraryBoundedEnum

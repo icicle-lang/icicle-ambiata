@@ -5,6 +5,7 @@
 {-# LANGUAGE DoAndIfThenElse   #-}
 module Icicle.Avalanche.Eval (
     evalProgram
+  , evalStmt
   , RuntimeError
   ) where
 

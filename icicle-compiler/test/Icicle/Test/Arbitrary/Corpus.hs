@@ -62,8 +62,8 @@ queries =
  , ("injury_group2"
    , "feature injury ~> group location ~> group action ~> sum severity")
  -- Re-enable this once melting relation ops is fixed
- -- , ("injury_group_pair"
- --   , "feature injury ~> group (location, action) ~> sum severity")
+ , ("injury_group_pair"
+   , "feature injury ~> group (location, action) ~> sum severity")
  ]
 
 
