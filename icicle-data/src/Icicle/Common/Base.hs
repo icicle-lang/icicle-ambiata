@@ -90,8 +90,8 @@ data BaseValue
  | VPair     !BaseValue !BaseValue
  | VLeft     !BaseValue
  | VRight    !BaseValue
- | VSome     !BaseValue
  | VNone
+ | VSome     !BaseValue
  | VMap      !(Map.Map BaseValue    BaseValue)
  | VStruct   !(Map.Map StructField  BaseValue)
  | VBuf      ![BaseValue]
