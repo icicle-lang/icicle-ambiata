@@ -65,6 +65,7 @@ main
         , Icicle.Test.Avalanche.SimpCommutes.tests
         , Icicle.Test.Avalanche.Flatten.tests
         , Icicle.Test.Avalanche.Melt.tests
+        , Icicle.Test.Avalanche.MeltPrim.tests
 
         , Icicle.Test.Sea.Psv.tests
         , Icicle.Test.Sea.Zebra.tests
