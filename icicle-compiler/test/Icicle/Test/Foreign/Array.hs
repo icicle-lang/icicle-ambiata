@@ -97,8 +97,8 @@ test_copy_eq input
     (ta, tt) = arrayType input
 
 -- y = array_copy (x)
--- z = array_put_mutable (x, i, a)
--- array_eq (y, z) == false
+-- z = array_put_mutable (y, i, a)
+-- array_eq (x, z) == false
 -- TODO flakey segfaulty test -- the values are always as expected but it might segfault
 prop_array_put_mutable_diff
   = forAll arbitrary $ \input -> not (univalue (inputType input)) ==>
@@ -117,8 +117,8 @@ test_mutable_diff input
   <> " (" <> tt <> " x, iint_t i, " <> ty <> "_t v) { "
   <> "anemone_mempool_t *test_mempool = anemone_mempool_create();"
   <> tt  <> " y = " <> ta <> "_copy(test_mempool, x);"
-  <> tt  <> " z = " <> ta <> "_put_mutable(test_mempool, x, i, v);"
-  <> "ibool_t r = " <> ta <> "_eq(y,z);"
+  <> tt  <> " z = " <> ta <> "_put_mutable(test_mempool, y, i, v);"
+  <> "ibool_t r = " <> ta <> "_eq(x,z);"
   <> "anemone_mempool_free(test_mempool);"
   <> "return !r;"
   <> "}"

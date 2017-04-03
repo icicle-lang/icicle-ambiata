@@ -204,16 +204,7 @@ static ARRAY_T(t) INLINE ARRAY_FUN(t,put_mutable)                               
         x->count = ix + 1;                                                      \
     }                                                                           \
                                                                                 \
-    anemone_block_t *last = pool->last;\
-    printf ("put_mutable: payload    = %p = %lld\n", (void*) v, (int64_t) v); \
-    printf ("put_mutable: pool->last = %p\n", pool->last);\
-    t##_t a = ARRAY_PAYLOAD(t,x)[ix];\
-    printf ("put_mutable: element    = %p = %lld\n", (void*) a, (int64_t) a); \
     ARRAY_PAYLOAD(t,x)[ix] = v;                                                 \
-    a = ARRAY_PAYLOAD(t,x)[ix];\
-    printf ("put_mutable: element    = %p = %lld\n", (void*) a, (int64_t) a); \
-    printf ("put_mutable: pool->last = %p\n", pool->last);       \
-    assert(last == pool->last);                                         \
     VALID_ARRAY(x)                                                              \
     VALID_INDEX(ix, x)                                                          \
     return x;                                                                   \
