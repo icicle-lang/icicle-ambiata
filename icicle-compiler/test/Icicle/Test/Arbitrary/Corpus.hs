@@ -64,6 +64,37 @@ queries =
  -- Re-enable this once melting relation ops is fixed
  , ("injury_group_pair"
    , "feature injury ~> group (location, action) ~> sum severity")
+
+ , ("injury_group_crazy"
+   , Text.unlines
+   [ "feature injury"
+   , "~> windowed 7 days"
+   , "~> let is_homer = location == \"homer\""
+   , "~> fold x = (map_create, None)"
+   , "   : case tombstone"
+   , "     | True -> (map_create, Some time)"
+   , "     | False ->"
+   , "       case snd x"
+   , "       | None ->"
+   , "         case is_homer"
+   , "         | True -> (map_insert location severity (fst x), Some time)"
+   , "         | False -> (fst x, Some time) end"
+   , "       | Some t ->"
+   , "         case time == t"
+   , "         | True ->"
+   , "           case is_homer"
+   , "           | True -> (map_insert location severity (fst x), Some time)"
+   , "           | False -> (fst x, Some time) end"
+   , "         | False ->"
+   , "           case is_homer"
+   , "           | True -> (map_insert location severity map_create, Some time)"
+   , "           | False -> (map_create, Some time)"
+   , "           end"
+   , "         end"
+   , "       end"
+   , "     end"
+   , "~> (group fold (k, v) = fst x ~> min v)"
+   ])
  ]
 
 
