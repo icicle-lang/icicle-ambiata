@@ -324,13 +324,26 @@ constructor a_fresh statements
    , Just tis   <- withIndex tryMeltType t
    = let with0 p tvi = withPrim p t nx ny tvi
          mk = makeComparisons with0 tis
+
+         -- init `join` prim x0 y0 `join` prim x1 y1 `join` ...
          simple init0 join0 prim0
             = primFold1 init0 join0
             $ fmap (withPrim prim0 t nx ny) tis
      in Just $ case op of
+          -- True && x0 == y0 && x1 == y1 && ...
           Min.PrimRelationEq -> simple xTrue  primAnd  primEq
+          -- False || x0 /= y0 || x1 /= y1 || ...
           Min.PrimRelationNe -> simple xFalse primOr   primNe
 
+          -- (x0,x1) < (y0,y1)
+          -- ==>
+          -- > case compare x0 y0 of
+          -- >  LT -> True
+          -- >  EQ -> case compare x1 y1 of
+          -- >         LT -> True
+          -- >         EQ -> False
+          -- >         GT -> False
+          -- >  GT -> False
           Min.PrimRelationLt -> mk xTrue  xFalse xFalse
           Min.PrimRelationLe -> mk xTrue  xTrue  xFalse
           Min.PrimRelationGt -> mk xFalse xFalse xTrue
@@ -345,6 +358,32 @@ constructor a_fresh statements
   withIndex f t
    = fmap (flip List.zip [0..]) (f t)
 
+  -- Lexicographic ordering on melted tuples: start by comparing the firsts, and if they are
+  -- greater or lesser, use "gt" or "lt".
+  -- If the firsts are equal, move on to the seconds.
+  -- Once you reach the end, you know all are equal, so use "eq".
+  --
+  -- > case compare x0 y0 of
+  -- >  LT -> lt
+  -- >  EQ -> case compare x1 y1 of
+  -- >         LT -> lt
+  -- >         EQ -> eq
+  -- >         GT -> gt
+  -- >  GT -> gt
+  --
+  -- However, because we don't have cases and the comparison primitive isn't exposed, this becomes:
+  --
+  -- > (x0 <  y0 && lt) ||
+  -- > (x0 == y0 &&
+  -- >   (
+  -- >    (x1 <  y1 && lt) ||
+  -- >    (x1 == y1 && eq) ||
+  -- >    (x1 >  y1 && gt)
+  -- >   )) ||
+  -- > (x0 >  y0 && gt)
+  --
+  -- Pretty terrible.
+  --
   makeComparisons with0 tis0 lt eq gt
    = let go [] = eq
          go (ti:tis) =

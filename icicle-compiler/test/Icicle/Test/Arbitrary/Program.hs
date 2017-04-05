@@ -329,7 +329,7 @@ isSupportedType ty = case ty of
   ErrorT    -> True
   SumT{}    -> True
 
-  BufT _ t  -> isSupportedType t
+  BufT _ t  -> not (isBufOrArray t)
   ArrayT t  -> isSupportedType t
 
   -- should have been melted

@@ -213,34 +213,38 @@ instance Arbitrary ValType where
 -- Core: True
 -- Melted: False
 --
+-- This case could be fixed easily enough, but it gets more complicated with flattened array of pairs vs pair of arrays:
+--
+-- [(1, 1), (2, 2)] < [(1,2), (0,0)]
+-- = True
+-- ([1, 2], [1, 2]) < ([1, 0], [2, 0])
+-- = False
+--
+-- The lexicographic comparison on the flattened pairs compares the entire array of firsts, then the array of seconds,
+-- whereas the unflattened one compares the firsts and seconds interspersed.
+--
+-- It is possible to fix this, but since the pair of arrays representation is itself a valid ordering, there is not much point.
+--
 genOrdValType :: Gen ValType
-genOrdValType =
-  oneof_sized_vals
+genOrdValType = oneof_sized_vals
          [ IntT
          , UnitT
          , BoolT
          , TimeT
          , StringT ]
-         [-- ArrayT  <$> genPrimType
-         --, BufT    <$> (getPositive <$> arbitrary) <*> genPrimType
-           PairT   <$> genOrdValType <*> genOrdValType
+         [ PairT   <$> genOrdValType <*> genOrdValType
          , SumT    <$> genOrdValType <*> genOrdValType
-         -- , MapT    <$> genPrimType <*> genPrimType
          , OptionT <$> genOrdValType
          , StructT <$> genStructType genOrdValType
          ]
 
 genPrimType :: Gen ValType
-genPrimType =
-  oneof_sized_vals
+genPrimType = elements
          [ IntT
          , UnitT
          , BoolT
          , TimeT
          , StringT ]
-         [ -- PairT   <$> genPrimType <*> genPrimType
-           -- StructT <$> genStructType genPrimType
-         ]
 
 genStructType :: Gen ValType -> Gen StructType
 genStructType genT
