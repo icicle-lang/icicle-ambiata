@@ -95,6 +95,8 @@ convertValues a_fresh statements
   goB' t v
    | BufT n t' <- t
    = goB (xValue t v) n t' v
+   | ArrayT t' <- t
+   = goA (xValue t v) t' v
    | otherwise
    = xValue t v
 

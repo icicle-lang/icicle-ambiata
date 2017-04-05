@@ -329,7 +329,7 @@ isSupportedType ty = case ty of
   ErrorT    -> True
   SumT{}    -> True
 
-  BufT _ t  -> not (isBufOrArray t)
+  BufT _ t  -> not (containsBuf t)
   ArrayT t  -> isSupportedType t
 
   -- should have been melted
@@ -338,8 +338,9 @@ isSupportedType ty = case ty of
   OptionT{} -> Savage.error ("should have been melted: " <> show ty)
   StructT{} -> Savage.error ("should have been melted: " <> show ty)
 
-isBufOrArray :: ValType -> Bool
-isBufOrArray = \case
+containsBuf :: ValType -> Bool
+containsBuf = \case
   BufT{}    -> True
-  ArrayT{}  -> True
+  ArrayT t' -> containsBuf t'
+  SumT a b  -> containsBuf a || containsBuf b
   _         -> False
