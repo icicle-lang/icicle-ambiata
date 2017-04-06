@@ -67,16 +67,17 @@ seaZebraSnapshotFilePath :: SeaFleet ZebraState
                          -> FilePath
                          -> FilePath
                          -> Maybe FilePath
-                         -> ZebraConfig
+                         -> ZebraInputConfig
+                         -> Bool
                          -> EitherT SeaError IO ZebraStats
-seaZebraSnapshotFilePath fleet input output drop_path mchords conf = do
+seaZebraSnapshotFilePath fleet input output drop_path mchords conf output_zebra = do
   bracketEitherT' (liftIO $ Posix.createFile output (Posix.CMode 0O644))
                   (liftIO . Posix.closeFd) $ \ofd -> do
   bracketEitherT' (liftIO $ Posix.createFile drop_path (Posix.CMode 0O644))
                   (liftIO . Posix.closeFd) $ \dfd -> do
   bracketEitherT' (liftIO $ maybeOpen mchords)
                   (liftIO . maybeClose) $ \mcfd -> do
-  seaZebraSnapshotFd fleet input ofd dfd mcfd conf
+  seaZebraSnapshotFd fleet input ofd dfd mcfd conf output_zebra
 
 
 seaZebraSnapshotFd :: SeaFleet ZebraState
@@ -84,15 +85,17 @@ seaZebraSnapshotFd :: SeaFleet ZebraState
                    -> Posix.Fd
                    -> Posix.Fd
                    -> Maybe Posix.Fd
-                   -> ZebraConfig
+                   -> ZebraInputConfig
+                   -> Bool
                    -> EitherT SeaError IO ZebraStats
-seaZebraSnapshotFd fleet inputPath outputFd dropFd mchords conf =
+seaZebraSnapshotFd fleet inputPath outputFd dropFd mchords conf output_zebra =
   withWords zebraConfigCount $ \config -> do
   input_path <- liftIO $ newCString inputPath
   pokeWordOff config zebraConfigInputPath input_path
   pokeWordOff config zebraConfigOutputFd outputFd
   pokeWordOff config zebraConfigChordFd (fromMaybe 0 mchords)
   pokeWordOff config zebraConfigDropFd dropFd
+  pokeWordOff config zebraConfigOutput output_zebra
   pokeWordOff config zebraConfigOutputBufferSize (defaultPsvOutputBufferSize)
   pokeWordOff config zebraConfigChunkFactCount (unZebraChunkFactCount . zebraChunkFactCount $ conf)
   pokeWordOff config zebraConfigAllocLimitBytes ( ((*) (1024 * 1024 * 1024)). unZebraAllocLimitGB . zebraAllocLimitGB $ conf)

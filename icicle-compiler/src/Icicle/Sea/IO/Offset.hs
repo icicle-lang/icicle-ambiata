@@ -11,6 +11,7 @@ import Icicle.Sea.FromAvalanche.State
 --     iint_t output_fd;
 --     iint_t chord_fd;
 --     iint_t drop_fd;
+--     ibool_t zebra_output;
 --     const char  *error;
 --     iint_t fact_count;
 --     iint_t entity_count;
@@ -20,7 +21,7 @@ import Icicle.Sea.FromAvalanche.State
 -- } zebra_config_t;
 
 zebraConfigCount :: Int
-zebraConfigCount = 10
+zebraConfigCount = 11
 
 zebraConfigInputPath :: Int
 zebraConfigInputPath = 0
@@ -34,54 +35,58 @@ zebraConfigChordFd = 2
 zebraConfigDropFd :: Int
 zebraConfigDropFd = 3
 
+zebraConfigOutput :: Int
+zebraConfigOutput = 4
+
 zebraConfigError :: Int
-zebraConfigError = 4
+zebraConfigError = 5
 
 zebraConfigFactCount :: Int
-zebraConfigFactCount = 5
+zebraConfigFactCount = 6
 
 zebraConfigEntityCount :: Int
-zebraConfigEntityCount = 6
+zebraConfigEntityCount = 7
 
 zebraConfigOutputBufferSize :: Int
-zebraConfigOutputBufferSize = 7
+zebraConfigOutputBufferSize = 8
 
 zebraConfigChunkFactCount :: Int
-zebraConfigChunkFactCount = 8
+zebraConfigChunkFactCount = 9
 
 zebraConfigAllocLimitBytes :: Int
-zebraConfigAllocLimitBytes = 9
+zebraConfigAllocLimitBytes = 10
 
 --------------------------------------------------------------------------------
 
 -- typedef struct zebra_state {
---     char *output_start;
---     char *output_end;
---     char *output_ptr;
---     iint_t fact_count;
---     iint_t entity_count;
+--     int fd_output;
+--     int fd_dropped_entities;
 --     ifleet_t *fleet;
---     int output_fd;
---     int drop_fd;
+--     int64_t fact_count;
+--     int64_t entity_count;
 --     int64_t  attribute_count;
 --     int64_t *entity_fact_offset;
 --     int64_t *entity_fact_count;
---     int64_t  chunk_size;
---     int64_t  alloc_limit;
+--     int64_t  chunk_fact_count;
+--     int64_t  alloc_limit_bytes;
 --     int64_t  entity_alloc_count;
+--     ibool_t zebra_output;
+--     char *psv_output_start;
+--     char *psv_output_end;
+--     char *psv_output_ptr;
 -- } zebra_state_t;
 
 zebraStateCount :: Int
-zebraStateCount = 14
+zebraStateCount = 15
 
-zebraStateOutputStart :: Int
-zebraStateOutputStart = 0
+zebraStateOutputFd :: Int
+zebraStateOutputFd = 0
 
-zebraStateOutputEnd :: Int
-zebraStateOutputEnd = 1
+zebraStateDropFd :: Int
+zebraStateDropFd = 1
 
-zebraStateOutputPtr :: Int
-zebraStateOutputPtr = 2
+zebraStateFleet :: Int
+zebraStateFleet = 2
 
 zebraStateFactCount :: Int
 zebraStateFactCount = 3
@@ -89,32 +94,35 @@ zebraStateFactCount = 3
 zebraStateEntityCount :: Int
 zebraStateEntityCount = 4
 
-zebraStateFleet :: Int
-zebraStateFleet = 5
-
-zebraStateOutputFd :: Int
-zebraStateOutputFd = 6
-
-zebraStateDropFd :: Int
-zebraStateDropFd = 7
-
 zebraStateAttributeCount :: Int
-zebraStateAttributeCount = 8
+zebraStateAttributeCount = 5
 
 zebraStateEntityFactOffset :: Int
-zebraStateEntityFactOffset = 9
+zebraStateEntityFactOffset = 6
 
 zebraStateEntityFactCount :: Int
-zebraStateEntityFactCount = 10
+zebraStateEntityFactCount = 7
 
 zebraStateChunkFactCount :: Int
-zebraStateChunkFactCount = 11
+zebraStateChunkFactCount = 8
 
 zebraStateAllocLimitGB :: Int
-zebraStateAllocLimitGB = 12
+zebraStateAllocLimitGB = 9
 
 zebraStateEntityAllocCount :: Int
-zebraStateEntityAllocCount = 13
+zebraStateEntityAllocCount = 10
+
+zebraStateOutputZebra :: Int
+zebraStateOutputZebra = 11
+
+zebraStateOutputStart :: Int
+zebraStateOutputStart = 12
+
+zebraStateOutputEnd :: Int
+zebraStateOutputEnd = 13
+
+zebraStateOutputPtr :: Int
+zebraStateOutputPtr = 14
 
 --------------------------------------------------------------------------------
 
@@ -223,7 +231,7 @@ inputStart = 3
 
 inputFieldsCount :: SeaProgramAttribute -> Int
 inputFieldsCount state =
-  length (stateInputVars state) - 2
+  length (stateInputVars state) + 2
 
 programInputFactTime :: Int
 programInputFactTime = 1
@@ -236,3 +244,5 @@ programInputError = 3
 
 programInputStart :: Int
 programInputStart = 4
+
+

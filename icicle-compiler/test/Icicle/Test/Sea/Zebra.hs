@@ -45,7 +45,6 @@ import           Disorder.Jack (gamble, arbitrary, (===), justOf, vectorOf, such
 
 import           Jetski
 
-import           Anemone.Foreign.Mempool (Mempool)
 import qualified Anemone.Foreign.Mempool as Mempool
 import           Anemone.Foreign.Segv (withSegv)
 
@@ -66,7 +65,7 @@ import           Icicle.Common.Type
 import           Icicle.Data
 import qualified Icicle.Data.Time as Icicle
 import           Icicle.Sea.FromAvalanche.State
-import           Icicle.Sea.IO
+import           Icicle.Sea.IO hiding (init)
 import           Icicle.Sea.Eval.Base
 import           Icicle.Test.Sea.Utils
 import           Icicle.Test.Arbitrary
@@ -536,18 +535,22 @@ testSnapshotTime = Icicle.unsafeTimeOfYMD 9999 1 1
 codeOf :: WellTyped -> Either SeaError SourceCode
 codeOf wt = do
   let
-    dummy =
+    dummyInput =
       HasInput
-        (FormatZebra
-          (ZebraConfig (ZebraChunkFactCount 0) (ZebraAllocLimitGB 0))
-          (Snapshot testSnapshotTime)
-          (PsvOutputConfig (Snapshot testSnapshotTime) PsvOutputDense defaultOutputMissing))
+        (InputFormatZebra
+           (ZebraInputConfig (ZebraChunkFactCount 0) (ZebraAllocLimitGB 0))
+           (Snapshot testSnapshotTime))
         (InputOpts AllowDupTime Map.empty)
         ("" :: String)
+    dummyOutput =
+      HasOutput $ OutputFormatPsv $ PsvOutputConfig
+        (Snapshot testSnapshotTime)
+        PsvOutputDense
+        defaultOutputMissing
     attr = wtAttribute wt
     flat = wtAvalancheFlat wt :| []
 
-  src <- codeOfPrograms dummy [attr] [(attr, flat)]
+  src <- codeOfPrograms dummyInput dummyOutput [attr] [(attr, flat)]
 
   pure . textOfDoc . PP.vsep $
     [ PP.pretty src

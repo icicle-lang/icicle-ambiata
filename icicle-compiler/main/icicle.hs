@@ -33,10 +33,9 @@ import           X.Options.Applicative
 
 
 data IcicleCommand =
-    IcicleCompile FilePath FilePath InputFormat OutputFormat (Scope ()) CompilerFlags
+    IcicleCompile FilePath FilePath InputFormatFlag OutputFormatFlag (Scope ())
   | IcicleQuery QueryOptions
     deriving (Eq, Ord, Show)
-
 
 main :: IO ()
 main = do
@@ -106,7 +105,7 @@ pInputFile :: Parser InputFile
 pInputFile =
   pInputSparse <|> pInputDense <|> pInputZebra
 
-pInputFormat :: Parser InputFormat
+pInputFormat :: Parser InputFormatFlag
 pInputFormat =
   pInputSparseFormat <|> pInputDenseFormat <|> pInputZebraFormat
 
@@ -115,7 +114,7 @@ pInputSparse =
   fmap (InputFile InputSparsePsv) $
     strOption (long "input-sparse-psv" <> metavar "INPUT_PSV")
 
-pInputSparseFormat :: Parser InputFormat
+pInputSparseFormat :: Parser InputFormatFlag
 pInputSparseFormat =
   flag' InputSparsePsv (long "input-sparse-psv")
 
@@ -124,7 +123,7 @@ pInputDense =
   fmap (InputFile InputDensePsv) $
     strOption (long "input-dense-psv" <> metavar "INPUT_PSV")
 
-pInputDenseFormat :: Parser InputFormat
+pInputDenseFormat :: Parser InputFormatFlag
 pInputDenseFormat =
   flag' InputDensePsv (long "input-dense-psv")
 
@@ -133,24 +132,24 @@ pInputZebra =
   fmap (InputFile InputZebra) $
     strOption (long "input-zebra" <> metavar "INPUT_ZEBRA")
 
-pInputZebraFormat :: Parser InputFormat
+pInputZebraFormat :: Parser InputFormatFlag
 pInputZebraFormat =
   flag' InputZebra (long "input-zebra")
 
 pOutputFile :: Parser OutputFile
 pOutputFile =
-  pOutputSparse <|> pOutputDense
+  pOutputSparse <|> pOutputDense <|> pOutputZebra
 
-pOutputFormat :: Parser OutputFormat
+pOutputFormat :: Parser OutputFormatFlag
 pOutputFormat =
-  pOutputSparseFormat <|> pOutputDenseFormat
+  pOutputSparseFormat <|> pOutputDenseFormat <|> pOutputZebraFormat
 
 pOutputSparse :: Parser OutputFile
 pOutputSparse =
   fmap (OutputFile OutputSparsePsv) $
     strOption (long "output-sparse-psv" <> metavar "OUTPUT_PSV")
 
-pOutputSparseFormat :: Parser OutputFormat
+pOutputSparseFormat :: Parser OutputFormatFlag
 pOutputSparseFormat =
   flag' OutputSparsePsv (long "output-sparse-psv")
 
@@ -159,9 +158,18 @@ pOutputDense =
   fmap (OutputFile OutputDensePsv) $
     strOption (long "output-dense-psv" <> metavar "OUTPUT_PSV")
 
-pOutputDenseFormat :: Parser OutputFormat
+pOutputDenseFormat :: Parser OutputFormatFlag
 pOutputDenseFormat =
   flag' OutputDensePsv (long "output-dense-psv")
+
+pOutputZebra :: Parser OutputFile
+pOutputZebra =
+  fmap (OutputFile OutputZebra) $
+    strOption (long "output-zebra" <> metavar "OUTPUT_ZEBRA")
+
+pOutputZebraFormat :: Parser OutputFormatFlag
+pOutputZebraFormat =
+  flag' OutputZebra (long "output-zebra")
 
 pOutputCode :: Parser FilePath
 pOutputCode =

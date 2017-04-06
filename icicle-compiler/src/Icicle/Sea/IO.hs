@@ -5,33 +5,13 @@
 {-# LANGUAGE TupleSections     #-}
 {-# LANGUAGE NamedFieldPuns    #-}
 module Icicle.Sea.IO
-  ( seaOfDriver
-  , defaultOutputMissing
-  , defaultPsvConstants
-  , defaultPsvFactsLimit
-  , defaultPsvMaxRowCount
-  , defaultPsvInputBufferSize
-  , defaultPsvOutputBufferSize
-  , defaultZebraConfig
-  , defaultZebraChunkFactCount
-  , defaultZebraAllocLimitGB
-
-  , Mode(..)
-  , IOFormat (..)
-  , InputOpts (..)
-  , InputAllowDupTime (..)
-  , PsvConstants (..)
-  , PsvConfig(..)
-  , PsvInputConfig(..)
-  , PsvInputFormat(..)
-  , PsvInputDenseDict(..)
-  , PsvOutputConfig(..)
-  , PsvOutputFormat(..)
-  , ZebraConfig (..)
-  , ZebraChunkFactCount (..)
-  , ZebraAllocLimitGB (..)
-
+  ( InputFormat (..)
+  , OutputFormat (..)
+  , seaOfDriver
+  , module Icicle.Sea.IO.Psv
+  , module Icicle.Sea.IO.Zebra
   , module Icicle.Sea.IO.Offset
+  , module Icicle.Sea.IO.Base
   ) where
 
 import           Icicle.Internal.Pretty
@@ -49,21 +29,54 @@ import           Icicle.Sea.IO.Zebra
 import           P
 
 
-data IOFormat
-  = FormatPsv   PsvConfig
-  | FormatZebra ZebraConfig Mode PsvOutputConfig -- temporary
-    deriving (Eq, Show)
+data InputFormat
+  = InputFormatPsv   PsvInputConfig
+  | InputFormatZebra ZebraInputConfig Mode
+    deriving (Eq, Ord, Show)
 
-seaOfDriver :: IOFormat -> InputOpts -> [Attribute] -> [SeaProgramAttribute] -> Either SeaError Doc
-seaOfDriver format opts attributes states
-  = case format of
-      FormatPsv conf -> do
-        seaOfPsvDriver opts conf states
-      FormatZebra _ mode outputConfig -> do
-        -- FIXME generate code for psv as well when using zebra, because we
-        -- are relying on some psv functions, they should be factored out or something
-        let psvConfig =
-              PsvConfig (PsvInputConfig mode PsvInputSparse) outputConfig
-        x <- seaOfPsvDriver opts psvConfig states
-        y <- seaOfZebraDriver attributes states
-        return $ vsep [x, "", y]
+data OutputFormat
+  = OutputFormatPsv PsvOutputConfig
+  | OutputFormatZebra
+    deriving (Eq, Ord, Show)
+
+-- TODO Psv code always needs to be generated because it defines the fleet.
+-- TODO When we remove Psv, compile times should be better.
+--
+seaOfDriver ::
+     InputFormat
+  -> OutputFormat
+  -> InputOpts
+  -> [Attribute]
+  -> [SeaProgramAttribute]
+  -> Either SeaError Doc
+seaOfDriver inputFormat outputFormat opts attributes states =
+  case (inputFormat, outputFormat) of
+    (InputFormatPsv inputConfig, OutputFormatPsv outputConfig) ->
+      seaOfPsvDriver opts inputConfig outputConfig states
+
+    (InputFormatPsv inputConfig, OutputFormatZebra) -> do
+      let
+        dummyPsvOutputConfig =
+          PsvOutputConfig Chords PsvOutputDense defaultOutputMissing
+      psv <- seaOfPsvDriver opts inputConfig dummyPsvOutputConfig states
+      zebra <- seaOfZebraDriver attributes states
+      return . vsep $ [psv, zebra]
+
+    (InputFormatZebra{}, OutputFormatPsv outputConfig) -> do
+      let
+        dummyPsvInputConfig =
+          PsvInputConfig Chords PsvInputSparse
+      psv <- seaOfPsvDriver opts dummyPsvInputConfig outputConfig states
+      zebra <- seaOfZebraDriver attributes states
+      return . vsep $ [psv, zebra]
+
+    (InputFormatZebra{}, OutputFormatZebra) -> do
+      let
+        dummyPsvInputConfig =
+          PsvInputConfig Chords PsvInputSparse
+      let
+        dummyPsvOutputConfig =
+          PsvOutputConfig Chords PsvOutputDense defaultOutputMissing
+      psv <- seaOfPsvDriver opts dummyPsvInputConfig dummyPsvOutputConfig states
+      zebra <- seaOfZebraDriver attributes states
+      return . vsep $ [psv, zebra]

@@ -6,16 +6,17 @@
 typedef struct {
     /* inputs */
     const char *input_path;
-    iint_t output_fd;
-    iint_t chord_fd;
-    iint_t drop_fd;
+    int64_t output_fd;
+    int64_t chord_fd;
+    int64_t drop_fd;
+    ibool_t zebra_output;
 
     /* outputs */
-    const char  *error;
-    iint_t fact_count;
-    iint_t entity_count;
+    const char *error;
+    int64_t fact_count;
+    int64_t entity_count;
 
-    /* stuff */
+    /* configurable */
     const size_t output_buffer_size;
     const size_t chunk_fact_count;
     const size_t alloc_limit_bytes;
@@ -23,29 +24,32 @@ typedef struct {
 } zebra_config_t;
 
 typedef struct zebra_state {
-    /* output buffer */
-    char *output_start;
-    char *output_end;
-    char *output_ptr;
+    /* file descriptors */
+    int fd_output;
+    int fd_dropped_entities;
 
-    /* stats */
-    iint_t fact_count;
-    iint_t entity_count;
-
-    /* fleet state */
+    /* icicle fleet state */
     ifleet_t *fleet;
 
-    /* output file descriptor */
-    int output_fd;
-    int drop_fd;
+    /* zebra input stats */
+    int64_t fact_count;
+    int64_t entity_count;
 
-    /* read state */
+    /* zebra input state */
     int64_t  attribute_count;
     int64_t *entity_fact_offset;
     int64_t *entity_fact_count;
     int64_t  chunk_fact_count;
     int64_t  alloc_limit_bytes;
     int64_t  entity_alloc_count;
+
+    /* output mode */
+    ibool_t zebra_output;
+
+    /* psv output buffer */
+    char *psv_output_start;
+    char *psv_output_end;
+    char *psv_output_ptr;
 
 } zebra_state_t;
 
@@ -67,6 +71,16 @@ static int64_t zebra_translate_table
     , int64_t elem_count
     , void **dst
     , const zebra_table_t *src );
+
+static ierror_msg_t zebra_output_fleet
+    ( zebra_state_t *state
+    , zebra_table_t **dst );
+
+int64_t zebra_output_column
+    ( void **src
+    , zebra_column_t *empty );
+
+anemone_mempool_t *fleet_get_mempool (ifleet_t *fleet);
 
 
 /* map a zebra entity to sea fleet inputs */
@@ -149,7 +163,7 @@ static ierror_msg_t zebra_translate
 static int64_t zebra_translate_column_tags
     ( const int64_t variant_count
     , void **dst
-    , int64_t *src )
+    , const int64_t *src )
 {
     if (variant_count > 2) {
         fprintf (stderr, "Fatal error: found an enum with %" PRId64 " variants. Icicle does not support Zebra enums with more than two variants.\n", variant_count);
@@ -324,6 +338,56 @@ static int64_t zebra_translate_table
     exit (1);
 }
 
+static int64_t zebra_translate_table
+    ( anemone_mempool_t *mempool
+    , int64_t elem_start
+    , int64_t elem_count
+    , void **dst
+    , const zebra_table_t *src )
+{
+    const int64_t row_count = src->row_count;
+    const zebra_table_tag_t tag = src->tag;
+    const zebra_table_variant_t data = src->of;
+
+    IASSERT (elem_start + elem_count <= row_count);
+
+    switch (tag) {
+    case ZEBRA_TABLE_BINARY: {
+            char *bytes = anemone_mempool_alloc(mempool, elem_count + 1);
+            memcpy(bytes, data._binary.bytes + elem_start, elem_count);
+            bytes[elem_count] = '\0';
+            *dst = bytes;
+            return 1;
+        }
+
+        case ZEBRA_TABLE_ARRAY: {
+            return zebra_translate_column
+                ( mempool
+                , elem_start
+                , elem_count
+                , dst
+                , data._array.values );
+        }
+
+        case ZEBRA_TABLE_MAP: {
+            int64_t offset = 0;
+            offset += zebra_translate_column
+                ( mempool
+                , elem_start
+                , elem_count
+                , dst
+                , data._map.keys );
+            offset += zebra_translate_column
+                ( mempool
+                , elem_start
+                , elem_count
+                , dst + offset
+                , data._map.values );
+            return offset;
+        }
+    }
+}
+
 zebra_state_t *zebra_alloc_state (piano_t *piano, zebra_config_t *cfg)
 {
     zebra_state_t *state = malloc(sizeof(zebra_state_t));
@@ -350,10 +414,10 @@ zebra_state_t *zebra_alloc_state (piano_t *piano, zebra_config_t *cfg)
 
     state->fleet = fleet;
 
-    state->output_fd = output_fd;
-    state->drop_fd   = drop_fd;
-
     int64_t attribute_count = zebra_attribute_count ();
+
+    state->fd_output           = output_fd;
+    state->fd_dropped_entities = drop_fd;
 
     state->attribute_count    = attribute_count;
     state->entity_fact_offset = calloc(attribute_count, sizeof (int64_t));
@@ -363,10 +427,18 @@ zebra_state_t *zebra_alloc_state (piano_t *piano, zebra_config_t *cfg)
     state->alloc_limit_bytes  = cfg->alloc_limit_bytes;
     state->entity_alloc_count = 0;
 
-    char *output_ptr = calloc (cfg->output_buffer_size + 1, 1);
-    state->output_start = output_ptr;
-    state->output_end   = output_ptr + cfg->output_buffer_size - 1;
-    state->output_ptr   = output_ptr;
+    state->zebra_output = cfg->zebra_output;
+
+    if (state->zebra_output) {
+        state->psv_output_start = NULL;
+        state->psv_output_end   = NULL;
+        state->psv_output_ptr   = NULL;
+    } else {
+        char *output_ptr = calloc (cfg->output_buffer_size + 1, 1);
+        state->psv_output_start = output_ptr;
+        state->psv_output_end   = output_ptr + cfg->output_buffer_size - 1;
+        state->psv_output_ptr   = output_ptr;
+    }
 
     return state;
 }
@@ -383,7 +455,7 @@ void zebra_collect_state (zebra_config_t *cfg, zebra_state_t *state)
 void zebra_write_dropped_entity (zebra_state_t *state, zebra_entity_t *entity) {
     char *msg = calloc (error_msg_size, 1);
     const size_t msg_size = snprintf (msg, error_msg_size, "%.*s\n", (int)entity->id_length, entity->id_bytes);
-    write (state->drop_fd, msg, msg_size);
+    write (state->fd_dropped_entities, msg, msg_size);
     free (msg);
 }
 
@@ -428,7 +500,147 @@ ierror_msg_t zebra_read_step (piano_t *piano, zebra_state_t *state, zebra_entity
     return 0;
 }
 
-ierror_msg_t zebra_snapshot_step
+/*
+ * Output
+ */
+
+int64_t zebra_output_named_column
+    ( void **src
+    , zebra_named_columns_t *dst )
+{
+    int64_t offset = 0;
+
+    for (int64_t i = 0; i < dst->count; ++i) {
+        offset += zebra_output_column (src, &dst->columns[i]);
+    }
+
+    return offset;
+}
+
+int64_t zebra_output_column_nested
+    ( void **src
+    , int64_t *dst_indices
+    , int64_t *dst_table )
+{
+}
+
+int64_t zebra_output_column
+    ( void **src
+    , zebra_column_t *empty )
+{
+    const zebra_column_tag_t tag = empty->tag;
+    zebra_column_variant_t dst = empty->of;
+
+    switch (tag) {
+        case ZEBRA_COLUMN_UNIT: {
+            return 1;
+        }
+
+        case ZEBRA_COLUMN_INT: {
+            iint_t a = *((iint_t*)src);
+            *dst._int.values = a;
+            return 1;
+        }
+
+        case ZEBRA_COLUMN_DOUBLE: {
+            idouble_t a = *((idouble_t*)src);
+            *dst._double.values = a;
+            return 1;
+        }
+
+        case ZEBRA_COLUMN_ENUM: {
+            int64_t enum_tag = *((int64_t*)src);
+
+            switch (enum_tag) {
+                case 0: {
+                    *dst._enum.tags = 0;
+                    return 2;
+                }
+                case 1: {
+                    *dst._enum.tags = 1;
+                    int64_t offset = 1;
+                    offset += zebra_output_named_column (src, &dst._enum.columns);
+                    return offset;
+                }
+                fprintf (stderr, "Fatal error: encountered enum type with more than two variants. Icicle should never produce such a type.\n");
+                exit (1);
+            }
+        }
+
+        case ZEBRA_COLUMN_STRUCT: {
+            return zebra_output_named_column (src, &dst._enum.columns);
+        }
+
+        case ZEBRA_COLUMN_NESTED: {
+            return zebra_output_column_nested (src, dst._nested.indices, &dst._nested.table);
+            return 0;
+        }
+
+        case ZEBRA_COLUMN_REVERSED: {
+            fprintf (stderr, "Fatal error: encountered a reversed Zebra column. Icicle should never produce this.\n");
+            exit (1);
+        }
+    }
+}
+
+static int64_t zebra_output_table
+    ( void **src
+    , zebra_table_t *empty )
+{
+    const zebra_table_tag_t tag = empty->tag;
+    zebra_table_variant_t data = empty->of;
+
+    switch (tag) {
+        case ZEBRA_TABLE_BINARY: {
+            const zebra_binary_encoding_t encoding = data._binary.encoding;
+
+            switch (encoding) {
+                case ZEBRA_BINARY_NONE: {
+                    fprintf (stderr, "Fatal error: encountered raw bytes encoding. Icicle should never output this.\n");
+                    exit (1);
+                }
+                case ZEBRA_BINARY_UTF8: {
+                    istring_t str = *((istring_t*)src);
+                    data._binary.bytes = str;
+                    return 1;
+                }
+            }
+        }
+
+        case ZEBRA_TABLE_ARRAY: {
+            return zebra_output_column (src, empty);
+        }
+    }
+}
+
+ierror_msg_t zebra_snapshot_step_output_zebra
+    ( piano_t *piano
+    , zebra_state_t *state
+    , zebra_entity_t *entity
+    , zebra_table_t *outputs )
+{
+    ierror_msg_t  error;
+    ierror_loc_t  error_loc;
+
+    uint8_t *entity_id     = entity->id_bytes;
+    int64_t entity_id_size = entity->id_length;
+
+    int       fd              = state->fd_dropped_entities;
+    int64_t   attribute_count = state->attribute_count;
+
+    state->entity_count++;
+
+    error = zebra_read_step (piano, state, entity);
+    if (error) return error;
+
+    if (!zebra_limit_exceeded (state)) {
+        zebra_output_fleet (state, &outputs);
+    }
+
+    return 0;
+}
+
+ierror_msg_t zebra_snapshot_step_output_psv
     ( piano_t *piano
     , zebra_state_t *state
     , zebra_entity_t *entity )
@@ -440,7 +652,7 @@ ierror_msg_t zebra_snapshot_step
     int64_t entity_id_size = entity->id_length;
 
     ifleet_t *fleet = state->fleet;
-    int       fd    = state->output_fd;
+    int       fd    = state->fd_output;
 
     state->entity_count++;
 
@@ -450,9 +662,9 @@ ierror_msg_t zebra_snapshot_step
     if (!zebra_limit_exceeded (state)) {
         error = psv_write_output
             ( fd
-            , state->output_start
-            , state->output_end
-            , &state->output_ptr
+            , state->psv_output_start
+            , state->psv_output_end
+            , &state->psv_output_ptr
             , (char*) entity_id
             , entity_id_size
             , state->fleet );
@@ -460,12 +672,17 @@ ierror_msg_t zebra_snapshot_step
 
         error = psv_flush_output
             ( fd
-            , state->output_start
-            , &state->output_ptr );
+            , state->psv_output_start
+            , &state->psv_output_ptr );
         if (error) return error;
     }
 
     return 0;
+}
+
+anemone_mempool_t *zebra_get_mempool (zebra_state_t *state)
+{
+    return fleet_get_mempool (state->fleet); /* roundabout dereference because fleet is generated */
 }
 
 #endif

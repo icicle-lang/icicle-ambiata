@@ -110,17 +110,21 @@ main =
       outputConfig =
         PsvOutputConfig mode PsvOutputSparse defaultOutputMissing
 
-      format =
-        FormatPsv (PsvConfig inputConfig outputConfig)
+      inputFormat =
+        InputFormatPsv inputConfig
+      outputFormat =
+        OutputFormatPsv outputConfig
 
       inputOptions =
         InputOpts AllowDupTime $ tombstonesOfDictionary loadedDictionary
 
-      input =
-        HasInput format inputOptions ()
+      hasInput =
+        HasInput inputFormat inputOptions ()
+      hasOutput =
+        HasOutput outputFormat
 
     code <- hoistEither . first MakeSeaError .
-      codeOfPrograms input attrs $ Map.toList avalanche
+            codeOfPrograms hasInput hasOutput attrs $ Map.toList avalanche
 
     compilerOptions <- liftIO $ getCompilerOptions
 

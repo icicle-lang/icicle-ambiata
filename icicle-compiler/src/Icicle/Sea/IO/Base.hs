@@ -177,6 +177,11 @@ seaOfFleetState states
       , indent 4 (vsep (fmap defOfProgramTime  states))
       , indent 4 (vsep (fmap defOfProgramCount states))
       , "};"
+      , ""
+      , "anemone_mempool_t *fleet_get_mempool (ifleet_t *fleet)"
+      , "{"
+      , indent 4 "return fleet->mempool;"
+      , "}"
       ]
 
 defOfProgramState :: SeaProgramAttribute -> Doc

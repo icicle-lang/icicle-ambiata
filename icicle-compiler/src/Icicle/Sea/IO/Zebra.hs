@@ -1,17 +1,59 @@
+-- {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PatternGuards     #-}
+{-# LANGUAGE LambdaCase        #-}
+
 module Icicle.Sea.IO.Zebra (
-    ZebraConfig (..)
+    seaOfZebraDriver
+
+    -- * Input
+  , ZebraInputConfig (..)
   , ZebraChunkFactCount (..)
   , ZebraAllocLimitGB (..)
-  , defaultZebraConfig
+  , defaultZebraInputConfig
   , defaultZebraChunkFactCount
   , defaultZebraAllocLimitGB
-  , seaOfZebraDriver
+
+    -- * Output
+  , ZebraOutputConfig (..)
+  , ZebraOutputError (..)
+  , zebraEmptyTable
+  , schemaOfFleetOutput
+  , foreignSchemaOfFleetOutput
   ) where
 
+import           Control.Monad.IO.Class
+
 import qualified Data.List as List
+import qualified Data.Map as Map
+import           Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.List.NonEmpty as NonEmpty
+
+import           System.IO (IO, FilePath)
+
+import           Foreign.Storable (pokeElemOff)
+import           Foreign.Ptr (Ptr)
+import           Foreign.Marshal.Array (mallocArray)
+
+import           P
+
+import qualified X.Data.Vector.Cons as Cons
+import           X.Control.Monad.Trans.Either
+
+import           Anemone.Foreign.Mempool (Mempool)
+
+import qualified Zebra.Table.Striped as Striped
+import qualified Zebra.Table.Schema as Schema
+import qualified Zebra.Table.Data as Table
+import qualified Zebra.Table.Encoding as Table
+
+import qualified Zebra.Foreign.Table as Zebra
+import qualified Zebra.Foreign.Bindings as Zebra
+
+import qualified Zebra.Serial.Binary.Striped as Zebra
+
+import           Icicle.Common.Type
 
 import           Icicle.Data (Attribute (..))
 
@@ -19,38 +61,18 @@ import           Icicle.Internal.Pretty
 
 import           Icicle.Sea.Error (SeaError(..))
 import           Icicle.Sea.IO.Base
+import           Icicle.Sea.IO.Offset
 import           Icicle.Sea.FromAvalanche.State
 
-import           P
-
-
-data ZebraConfig = ZebraConfig {
-    zebraChunkFactCount  :: !ZebraChunkFactCount
-  , zebraAllocLimitGB :: !ZebraAllocLimitGB
-  } deriving (Eq, Show)
-
-newtype ZebraChunkFactCount = ZebraChunkFactCount { unZebraChunkFactCount :: Int }
-  deriving (Eq, Ord, Show)
-
-newtype ZebraAllocLimitGB = ZebraAllocLimitGB { unZebraAllocLimitGB :: Int }
-  deriving (Eq, Ord, Show)
-
-defaultZebraConfig :: ZebraConfig
-defaultZebraConfig = ZebraConfig defaultZebraChunkFactCount defaultZebraAllocLimitGB
-
-defaultZebraChunkFactCount :: ZebraChunkFactCount
-defaultZebraChunkFactCount = ZebraChunkFactCount 128
-
-defaultZebraAllocLimitGB :: ZebraAllocLimitGB
-defaultZebraAllocLimitGB = ZebraAllocLimitGB 2
 
 seaOfZebraDriver :: [Attribute] -> [SeaProgramAttribute] -> Either SeaError Doc
 seaOfZebraDriver concretes states = do
-  let lookup x = maybeToRight (SeaNoAttributeIndex x) $ List.elemIndex x concretes
-  indices <- sequence $ fmap (lookup . stateAttribute) states
+  sea_read <- seaOfReadZebraDriver concretes states
+  sea_write <- seaOfWriteZebraDriver concretes states
   return . vsep $
     [ seaOfAttributeCount concretes
-    , seaOfDefRead (List.zip indices states)
+    , sea_read
+    , sea_write
     ]
 
 seaOfAttributeCount :: [Attribute] -> Doc
@@ -61,6 +83,42 @@ seaOfAttributeCount all_attributes = vsep
   , "}"
   , ""
   ]
+
+seaOfReadZebraDriver :: [Attribute] -> [SeaProgramAttribute] -> Either SeaError Doc
+seaOfReadZebraDriver concretes states =
+  seaOfDefRead <$> indexedPrograms concretes states
+
+seaOfWriteZebraDriver :: [Attribute] -> [SeaProgramAttribute] -> Either SeaError Doc
+seaOfWriteZebraDriver concretes states =
+  seaOfDefWrite <$> indexedPrograms concretes states
+
+indexedPrograms :: [Attribute] -> [SeaProgramAttribute] -> Either SeaError [(Int, SeaProgramAttribute)]
+indexedPrograms concretes states = do
+  let lookup x = maybeToRight (SeaNoAttributeIndex x) $ List.elemIndex x concretes
+  indices <- sequence $ fmap (lookup . stateAttribute) states
+  return $ List.zip indices states
+
+-- * Input
+
+data ZebraInputConfig = ZebraInputConfig {
+    zebraChunkFactCount  :: !ZebraChunkFactCount
+  , zebraAllocLimitGB :: !ZebraAllocLimitGB
+  } deriving (Eq, Ord, Show)
+
+newtype ZebraChunkFactCount = ZebraChunkFactCount { unZebraChunkFactCount :: Int }
+  deriving (Eq, Ord, Show)
+
+newtype ZebraAllocLimitGB = ZebraAllocLimitGB { unZebraAllocLimitGB :: Int }
+  deriving (Eq, Ord, Show)
+
+defaultZebraInputConfig :: ZebraInputConfig
+defaultZebraInputConfig = ZebraInputConfig defaultZebraChunkFactCount defaultZebraAllocLimitGB
+
+defaultZebraChunkFactCount :: ZebraChunkFactCount
+defaultZebraChunkFactCount = ZebraChunkFactCount 128
+
+defaultZebraAllocLimitGB :: ZebraAllocLimitGB
+defaultZebraAllocLimitGB = ZebraAllocLimitGB 2
 
 -- zebra_read_entity ( zebra_state_t *state, zebra_entity_t *entity ) {
 --   /* attribute 0 */
@@ -183,3 +241,149 @@ seaOfDefReadProgram state = vsep
 
 nameOfRead :: SeaProgramAttribute -> CName
 nameOfRead state = pretty ("zebra_read_entity_" <> pretty (nameOfAttribute state))
+
+--------------------------------------------------------------------------------
+
+-- * Output
+
+data ZebraOutputConfig = ZebraOutputConfig {
+    zebraOutputFilePath :: FilePath
+  } deriving (Eq, Show)
+
+data ZebraOutputError =
+    ZebraUnexpectedStruct StructType
+  | ZebraEncodeError Zebra.BinaryStripedEncodeError
+  deriving (Show)
+
+instance Pretty ZebraOutputError where
+  pretty = \case
+    ZebraUnexpectedStruct st ->
+      "Zebra output encounters empty struct type: " <> pretty st
+    ZebraEncodeError e ->
+      "Zebra encode error: " <> pretty (show e)
+
+-- zebra_output_fleet ( zebra_state_t *stae, zebra_table_t **dst ) {
+--   int64_t input_fields_count = ...;
+--   /* attribute 0 */
+--   zebra_output_table (&(fleet->iprogram_0->mempool) + input_fields_count , dst)
+--   ...
+-- }
+seaOfDefWrite :: [(Int, SeaProgramAttribute)] -> Doc
+seaOfDefWrite states = vsep
+  [ "#line 1 \"write fleet\""
+  , "static ierror_msg_t zebra_output_fleet (zebra_state_t *state, zebra_table_t **dst)"
+  , "{"
+  , "    ifleet_t    *fleet = state->fleet;"
+  , "    int64_t      input_fields_count = 0;"
+  , "    int64_t      offset = 0;"
+  , ""
+  , indent 4 . vsep $ fmap (uncurry seaOfWrite) states
+  , "    return 0;"
+  , "}"
+  , ""
+  ]
+
+
+-- typedef struct {
+--     anemone_mempool_t *mempool;
+--     input_pixel_article_t input;
+--     /* outputs */
+--     ierror_t         a_ix_0;
+--     ibool_t          a_ix_1;
+-- ...
+-- } iattribute0_t
+--
+seaOfWrite :: Int -> SeaProgramAttribute -> Doc
+seaOfWrite index state = vsep
+  [ "/*" <> n <> " (index " <> pretty index <> "): " <> a <> " */"
+  , "input_fields_count = " <> pretty (inputFieldsCount state) <> ";"
+  , "offset = zebra_output_table"
+  , "            ( &(fleet->" <> n <> "->mempool) + input_fields_count"
+  , "            , dst + offset);"
+  ]
+  where
+    n = pretty (nameOfAttribute state)
+    a = pretty (getAttribute (stateAttribute state))
+
+foreignSchemaOfFleetOutput ::
+     Mempool
+  -> [SeaProgramAttribute]
+  -> EitherT ZebraOutputError IO (Ptr (Ptr Zebra.C'zebra_table))
+foreignSchemaOfFleetOutput pool states = do
+  tables <- schemaOfFleetOutput states
+  ptrs <- mapM (Zebra.foreignOfTable pool) tables
+  array <- liftIO $ mallocArray (length ptrs)
+  forM_ (List.zip ptrs [0..]) $ \(ptr, ix) ->
+    liftIO $ pokeElemOff array ix (Zebra.unCTable ptr)
+  return array
+
+schemaOfFleetOutput :: [SeaProgramAttribute] -> EitherT ZebraOutputError IO [Striped.Table]
+schemaOfFleetOutput =
+  fmap concat . traverse schemaOfProgramOutput
+
+schemaOfProgramOutput ::
+     SeaProgramAttribute
+  -> EitherT ZebraOutputError IO [Striped.Table]
+schemaOfProgramOutput state = do
+  let
+    outputs =
+      fmap (fst . snd) (stateOutputs . NonEmpty.head . stateComputes $ state)
+  hoistEither . sequence . fmap zebraEmptyTable $ outputs
+
+zebraEmptyTable :: ValType -> Either ZebraOutputError Striped.Table
+zebraEmptyTable outputType =
+  Striped.Array <$> zebraEmptyColumn outputType
+
+zebraEmptyColumn :: ValType -> Either ZebraOutputError Striped.Column
+zebraEmptyColumn = fmap Striped.emptyColumn . zebraColumnSchema
+
+zebraColumnSchema :: ValType -> Either ZebraOutputError Schema.Column
+zebraColumnSchema outputType =
+  case outputType of
+    BoolT ->
+      pure . Schema.Enum $ Cons.from2 Schema.true Schema.false
+    TimeT ->
+      pure $ Schema.Int
+    DoubleT ->
+      pure $ Schema.Double
+    IntT ->
+      pure $ Schema.Int
+    StringT ->
+      pure . Schema.Nested . Schema.Binary . Just $ Table.Utf8
+    UnitT ->
+      pure $ Schema.Unit
+    ErrorT ->
+      pure $ Schema.Int
+    FactIdentifierT ->
+      pure $ Schema.Int
+    ArrayT e ->
+      Schema.Nested . Schema.Array <$> zebraColumnSchema e
+    MapT k v ->
+      fmap Schema.Nested . Schema.Map <$> zebraColumnSchema k <*> zebraColumnSchema v
+    OptionT e -> do
+      c <- zebraColumnSchema e
+      pure . Schema.Enum $ Cons.from2 (Table.Variant "none" c) (Table.Variant "some" c)
+    PairT a b ->
+      fmap Schema.Struct . Cons.from2
+        <$> (Table.Field "fst" <$> zebraColumnSchema a)
+        <*> (Table.Field "snd" <$> zebraColumnSchema b)
+    SumT a b ->
+      fmap Schema.Enum . Cons.from2
+        <$> (Table.Variant "left"  <$> zebraColumnSchema a)
+        <*> (Table.Variant "right" <$> zebraColumnSchema b)
+    StructT st
+      | (f:fs) <- Map.toList $ getStructType st
+      -> let
+           fieldOf (k,v) =
+             Table.Field
+               (Table.FieldName . nameOfStructField $ k) <$> zebraColumnSchema v
+         in do
+           f' <- fieldOf f
+           fs' <- mapM fieldOf fs
+           pure . Schema.Struct . Cons.fromNonEmpty $ f' :| fs'
+      | otherwise ->
+          Left (ZebraUnexpectedStruct st)
+    BufT _ e ->
+      Schema.Nested . Schema.Array <$> zebraColumnSchema e
+
+

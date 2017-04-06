@@ -48,9 +48,11 @@ library
                      , old-locale                      == 1.0.*
                      , parallel                        == 3.2.*
                      , pretty-show                     == 1.6.*
-                     , resourcet                       >= 1.1        && < 2
+                     , resourcet                       >= 1.1        && < 1.2
                      , scientific                      == 0.3.*
                      , semigroups                      >= 0.16       && < 0.19
+                     , streaming                       == 0.1.*
+                     , streaming-bytestring            == 0.1.*
                      , template-haskell                >= 2.7        && < 2.12
                      , temporary                       == 1.2.*
                      , text                            == 1.2.*

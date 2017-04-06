@@ -3,8 +3,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards #-}
 module Icicle.Sea.IO.Psv (
-    PsvConfig (..)
-  , PsvConstants (..)
+    PsvConstants (..)
   , PsvInputConfig(..)
   , PsvOutputConfig(..)
   , PsvOutputFormat(..)
@@ -29,11 +28,6 @@ import           Icicle.Sea.IO.Psv.Output
 
 import           P
 
-
-data PsvConfig = PsvConfig {
-    psvInputConfig      :: PsvInputConfig
-  , psvOutputConfig     :: PsvOutputConfig
-  } deriving (Eq, Show)
 
 data PsvConstants = PsvConstants {
     psvMaxRowCount      :: Int
@@ -60,10 +54,8 @@ defaultPsvFactsLimit = 1024 * 1024
 
 ------------------------------------------------------------------------
 
-seaOfPsvDriver :: InputOpts -> PsvConfig -> [SeaProgramAttribute] -> Either SeaError Doc
-seaOfPsvDriver opts config states = do
-  let inputConfig  = psvInputConfig config
-  let outputConfig = psvOutputConfig config
+seaOfPsvDriver :: InputOpts -> PsvInputConfig -> PsvOutputConfig -> [SeaProgramAttribute] -> Either SeaError Doc
+seaOfPsvDriver opts inputConfig outputConfig states = do
   let outputList   = case inputPsvFormat inputConfig of
                        PsvInputSparse
                          -> Nothing

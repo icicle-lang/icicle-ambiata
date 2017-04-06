@@ -8,9 +8,9 @@
 module Icicle.Command (
     DictionaryFile(..)
   , InputFile(..)
-  , InputFormat(..)
+  , InputFormatFlag (..)
   , OutputFile(..)
-  , OutputFormat(..)
+  , OutputFormatFlag (..)
   , Scope(..)
   , Query(..)
   , QueryStatistics(..)
@@ -41,8 +41,8 @@ import           Icicle.Data (Attribute(..))
 import           Icicle.Data.Time (Time(..))
 import           Icicle.Dictionary
 import           Icicle.Internal.Pretty (pretty)
-import           Icicle.Sea.IO
-import           Icicle.Sea.Eval
+import qualified Icicle.Sea.IO as Sea
+import qualified Icicle.Sea.Eval as Sea
 import qualified Icicle.Source.Checker as Source
 import qualified Icicle.Storage.Dictionary.Toml as Toml
 
@@ -74,7 +74,7 @@ import           X.Control.Monad.Trans.Either
 data IcicleError =
     IcicleDictionaryImportError Toml.DictionaryImportError
   | IcicleCompileError          (Compiler.ErrorCompile Compiler.Var)
-  | IcicleSeaError              SeaError
+  | IcicleSeaError              Sea.SeaError
     deriving (Show)
 
 renderIcicleError :: IcicleError -> Text
@@ -88,7 +88,7 @@ renderIcicleError = \case
 
 data Query a = Query {
     querySource          :: Text
-  , queryFleet           :: SeaFleet a
+  , queryFleet           :: Sea.SeaFleet a
   , queryInputPath       :: FilePath
   , queryOutputPath      :: FilePath
   , queryDropPath        :: FilePath
@@ -96,12 +96,13 @@ data Query a = Query {
   , queryCompilationTime :: NominalDiffTime
   , queryFactsLimit      :: Int
   -- ^ only applies to psv input
-  , queryUseDrop         :: FlagUseDrop
+  , queryUseDrop         :: Sea.FlagUseDrop
   -- ^ only applies to psv input
-  , queryChunkFactCount       :: ZebraChunkFactCount
+  , queryChunkFactCount       :: Sea.ZebraChunkFactCount
   -- ^ only applies to zebra input
-  , queryAllocLimitGB      :: ZebraAllocLimitGB
+  , queryAllocLimitGB      :: Sea.ZebraAllocLimitGB
   -- ^ only applies to zebra input
+  , queryOutputFormatFlag :: OutputFormatFlag
   }
 
 data QueryStatistics = QueryStatistics {
@@ -120,10 +121,10 @@ data QueryOptions = QueryOptions {
   , optFactsLimit   :: Int
   -- ^ only applies to psv input
   , optDrop         :: Maybe FilePath
-  , optUseDrop      :: FlagUseDrop
-  , optChunkFactCount    :: ZebraChunkFactCount
+  , optUseDrop      :: Sea.FlagUseDrop
+  , optChunkFactCount :: Sea.ZebraChunkFactCount
   -- ^ only applies to zebra input
-  , optAllocLimitGB   :: ZebraAllocLimitGB
+  , optAllocLimitGB :: Sea.ZebraAllocLimitGB
   -- ^ only applies to zebra input
   } deriving (Eq, Ord, Show)
 
@@ -134,11 +135,11 @@ data DictionaryFile =
 
 data InputFile =
   InputFile {
-      inputFormat :: InputFormat
+      inputFormat :: InputFormatFlag
     , inputPath :: FilePath
     } deriving (Eq, Ord, Show)
 
-data InputFormat =
+data InputFormatFlag =
     InputSparsePsv
   | InputDensePsv
   | InputZebra
@@ -146,13 +147,14 @@ data InputFormat =
 
 data OutputFile =
   OutputFile {
-      outputFormat :: OutputFormat
+      outputFormat :: OutputFormatFlag
     , outputPath :: FilePath
     } deriving (Eq, Ord, Show)
 
-data OutputFormat =
+data OutputFormatFlag =
     OutputSparsePsv
   | OutputDensePsv
+  | OutputZebra
     deriving (Eq, Ord, Show)
 
 data Scope a =
@@ -170,13 +172,6 @@ defaultCompilerFlags :: CompilerFlags
 defaultCompilerFlags = CompilerFlags 100
 
 
-psvOfOutputFormat :: OutputFormat -> PsvOutputFormat
-psvOfOutputFormat = \case
-  OutputSparsePsv ->
-    PsvOutputSparse
-  OutputDensePsv ->
-    PsvOutputDense
-
 chordPathOfScope :: Scope a -> Maybe a
 chordPathOfScope = \case
   ScopeSnapshot _ ->
@@ -184,12 +179,12 @@ chordPathOfScope = \case
   ScopeChord path ->
     Just path
 
-modeOfScope :: Scope a -> Mode
+modeOfScope :: Scope a -> Sea.Mode
 modeOfScope = \case
   ScopeSnapshot time ->
-    Snapshot time
+    Sea.Snapshot time
   ScopeChord _ ->
-    Chords
+    Sea.Chords
 
 createPsvQuery :: QueryOptions -> EitherT IcicleError (ResourceT IO) (Query PsvState)
 createPsvQuery = createQuery
@@ -214,17 +209,17 @@ createQuery c = do
 
   (code, fleet) <- case optDictionary c of
     DictionaryCode dictionaryPath ->
-       mkQueryFleet (optInput c) chordPath dictionaryPath
+       mkQueryFleet (optInput c) (optOutput c) chordPath dictionaryPath
 
     DictionaryToml dictionaryPath -> do
-      (dictionary, format) <-
+      (dictionary, inputFormat', outputFormat') <-
         hoist liftIO $ loadDictionary
           dictionaryPath
           (inputFormat $ optInput c)
           (outputFormat $ optOutput c)
           (optScope c)
 
-      compileFleet dictionary format (inputPath $ optInput c) chordPath
+      compileFleet dictionary inputFormat' outputFormat' (inputPath (optInput c)) chordPath
 
   end <- liftIO getCurrentTime
 
@@ -238,121 +233,134 @@ createQuery c = do
     , queryFactsLimit      = optFactsLimit c
     , queryDropPath        = dropPath
     , queryUseDrop         = optUseDrop c
-    , queryChunkFactCount       = optChunkFactCount c
-    , queryAllocLimitGB      = optAllocLimitGB c
+    , queryChunkFactCount = optChunkFactCount c
+    , queryAllocLimitGB = optAllocLimitGB c
+    , queryOutputFormatFlag = outputFormat (optOutput c)
     }
 
+-- FIXME Using dummy formats here as we are not using it to generate C
+-- At this stage we actually only need to differentiate between Psv and Zebra
 mkQueryFleet ::
      InputFile
+  -> OutputFile
   -> Maybe FilePath
   -> FilePath
-  -> EitherT IcicleError (ResourceT IO) (Text, SeaFleet s)
-mkQueryFleet input chord source = do
+  -> EitherT IcicleError IO (Text, Sea.SeaFleet s)
+mkQueryFleet input output chord source = do
   -- FIXME using a dummy format here as we are not using it to generate C
   -- we actually only need to differentiate between psv/zebra, make this better
-  let format = case inputFormat input of
+  let
+    inputFormat' =
+      case inputFormat input of
         InputSparsePsv ->
-          FormatPsv $ PsvConfig
-            (PsvInputConfig Chords PsvInputSparse)
-            (PsvOutputConfig Chords PsvOutputSparse defaultOutputMissing)
+          Sea.InputFormatPsv . Sea.PsvInputConfig Sea.Chords $ Sea.PsvInputSparse
         InputDensePsv ->
-          FormatPsv $ PsvConfig
-            (PsvInputConfig Chords PsvInputSparse)
-            (PsvOutputConfig Chords PsvOutputSparse defaultOutputMissing)
+          Sea.InputFormatPsv . Sea.PsvInputConfig Sea.Chords $ Sea.PsvInputSparse
         InputZebra ->
-          FormatZebra defaultZebraConfig Chords
-            (PsvOutputConfig Chords PsvOutputSparse defaultOutputMissing)
+          Sea.InputFormatZebra Sea.defaultZebraInputConfig $ Sea.Chords
+    outputFormat' =
+      case outputFormat output of
+        OutputSparsePsv ->
+          Sea.OutputFormatPsv . Sea.PsvOutputConfig Sea.Chords Sea.PsvOutputSparse $ Sea.defaultOutputMissing
+        OutputDensePsv ->
+          Sea.OutputFormatPsv . Sea.PsvOutputConfig Sea.Chords Sea.PsvOutputSparse $ Sea.defaultOutputMissing
+        OutputZebra ->
+          Sea.OutputFormatZebra
 
-  let cfg = HasInput format (InputOpts AllowDupTime Map.empty) (inputPath input)
+  let
+    hasInput =
+      Sea.HasInput inputFormat' (Sea.InputOpts Sea.AllowDupTime Map.empty) (inputPath input)
+    hasOutput =
+      Sea.HasOutput outputFormat'
 
   code  <- liftIO $ Text.readFile source
-  fleet <- firstEitherT IcicleSeaError (seaCreate CacheSea cfg chord code)
+  fleet <- firstEitherT IcicleSeaError (Sea.seaCreate Sea.CacheSea hasInput hasOutput chord code [])
   return (code, fleet)
 
 compileFleet ::
      Dictionary
-  -> IOFormat
+  -> Sea.InputFormat
+  -> Sea.OutputFormat
   -> FilePath
   -> Maybe FilePath
   -> EitherT IcicleError (ResourceT IO) (Text, SeaFleet s)
-compileFleet dictionary format input chords = do
-  let cfg = HasInput format (InputOpts AllowDupTime (tombstonesOfDictionary dictionary)) input
+compileFleet dictionary inputFormat0 outputFormat0 input chords = do
+  let
+    hasInput =
+      Sea.HasInput inputFormat0 (Sea.InputOpts Sea.AllowDupTime (tombstonesOfDictionary dictionary)) input
+    hasOutput =
+      Sea.HasOutput outputFormat0
 
   avalanche <- hoistEither $ compileAvalanche dictionary defaultCompilerFlags
   let avalancheL = Map.toList avalanche
 
   let attrs = List.sort $ getConcreteFeatures dictionary
 
-  code  <- firstEitherT IcicleSeaError (hoistEither (codeOfPrograms cfg attrs avalancheL))
-  fleet <- firstEitherT IcicleSeaError (seaCompile CacheSea cfg attrs avalanche chords)
+  code  <- firstEitherT IcicleSeaError (hoistEither (Sea.codeOfPrograms hasInput hasOutput attrs avalancheL))
+  fleet <- firstEitherT IcicleSeaError (Sea.seaCompile Sea.CacheSea hasInput hasOutput attrs avalanche chords)
 
   return (code, fleet)
 
 loadDictionary ::
      FilePath
-  -> InputFormat
-  -> OutputFormat
+  -> InputFormatFlag
+  -> OutputFormatFlag
   -> Scope a
-  -> EitherT IcicleError IO (Dictionary, IOFormat)
-loadDictionary path iformat oformat0 scope =
+  -> EitherT IcicleError IO (Dictionary, Sea.InputFormat, Sea.OutputFormat)
+loadDictionary path inputFormat0 outputFormat0 scope = do
   let
     mode =
       modeOfScope scope
 
-    oformat =
-      psvOfOutputFormat oformat0
+  (dictionary, inputFormat1) <- case inputFormat0 of
+    InputSparsePsv -> do
+      d <- firstEitherT IcicleDictionaryImportError $ Toml.loadDictionary Source.optionSmallData Toml.ImplicitPrelude path
+      let f = Sea.InputFormatPsv (Sea.PsvInputConfig mode Sea.PsvInputSparse)
+      return (d, f)
 
-    oconfig =
-      PsvOutputConfig mode oformat defaultOutputMissing
+    InputDensePsv -> do
+      (d, dense) <- firstEitherT IcicleDictionaryImportError $ Toml.loadDenseDictionary Source.optionSmallData Toml.ImplicitPrelude path Nothing
+      let f = Sea.InputFormatPsv . Sea.PsvInputConfig mode . Sea.PsvInputDense dense . Sea.denseSelectedFeed $ dense
+      return (d, f)
 
-  in
-    case iformat of
-      InputSparsePsv -> do
-        d <- firstEitherT IcicleDictionaryImportError $
-          Toml.loadDictionary Source.optionSmallData Toml.ImplicitPrelude path
+    InputZebra -> do
+      d <- firstEitherT IcicleDictionaryImportError $ Toml.loadDictionary Source.optionSmallData Toml.ImplicitPrelude path
+      let f = Sea.InputFormatZebra Sea.defaultZebraInputConfig mode
+      return (d, f)
 
-        let f = FormatPsv $ PsvConfig
-                  (PsvInputConfig mode PsvInputSparse)
-                  oconfig
+  let
+    outputFormat1 =
+      case outputFormat0 of
+        OutputSparsePsv ->
+          Sea.OutputFormatPsv . Sea.PsvOutputConfig mode Sea.PsvOutputSparse $ Sea.defaultOutputMissing
+        OutputDensePsv ->
+          Sea.OutputFormatPsv . Sea.PsvOutputConfig mode Sea.PsvOutputDense $ Sea.defaultOutputMissing
+        OutputZebra ->
+          Sea.OutputFormatZebra
 
-        return (d, f)
-
-      InputDensePsv -> do
-        (d, dense) <- firstEitherT IcicleDictionaryImportError $
-          Toml.loadDenseDictionary Source.optionSmallData Toml.ImplicitPrelude path Nothing
-
-        let f = FormatPsv $ PsvConfig
-                  (PsvInputConfig mode (PsvInputDense dense (denseSelectedFeed dense)))
-                  oconfig
-
-        return (d, f)
-
-      InputZebra -> do
-        d <- firstEitherT IcicleDictionaryImportError $
-          Toml.loadDictionary Source.optionSmallData Toml.ImplicitPrelude path
-
-        let f = FormatZebra defaultZebraConfig mode oconfig
-
-        return (d, f)
+  return (dictionary, inputFormat1, outputFormat1)
 
 compileDictionary ::
      FilePath
-  -> InputFormat
-  -> OutputFormat
+  -> InputFormatFlag
+  -> OutputFormatFlag
   -> Scope a
   -> CompilerFlags
   -> EitherT IcicleError IO Text
 compileDictionary dictionaryPath iformat oformat scope cflags = do
   -- FIXME We really need to include InputFormat/OutputFormat/Scope in the compiled
   -- FIXME code so that we don't accidentally run with the wrong options.
-  (dictionary, format) <- loadDictionary dictionaryPath iformat oformat scope
+  (dictionary, inputFormat1, outputFormat1) <- loadDictionary dictionaryPath iformat oformat scope
 
-  let cfg = HasInput format (InputOpts AllowDupTime (tombstonesOfDictionary dictionary)) ()
+  let
+    hasInput =
+      Sea.HasInput inputFormat1 (Sea.InputOpts Sea.AllowDupTime (tombstonesOfDictionary dictionary)) ()
+    hasOutput =
+      Sea.HasOutput outputFormat1
+
   avalanche <- fmap Map.toList . hoistEither $ compileAvalanche dictionary cflags
-
   let attrs = List.sort $ getConcreteFeatures dictionary
-
-  firstT IcicleSeaError . hoistEither $ codeOfPrograms cfg attrs avalanche
+  firstT IcicleSeaError . hoistEither $ Sea.codeOfPrograms hasInput hasOutput attrs avalanche
 
 compileAvalanche ::
      Dictionary
@@ -370,9 +378,9 @@ compileOptionsOfCompilerFlags cflags =
 
 releaseQuery :: Query a -> EitherT IcicleError IO ()
 releaseQuery b =
-  seaRelease (queryFleet b)
+  Sea.seaRelease (queryFleet b)
 
-runPsvQuery :: Query PsvState -> EitherT IcicleError IO QueryStatistics
+runPsvQuery :: Query Sea.PsvState -> EitherT IcicleError IO QueryStatistics
 runPsvQuery b = do
   let fleet      = queryFleet        b
       input      = queryInputPath    b
@@ -380,22 +388,22 @@ runPsvQuery b = do
       dropPath   = queryDropPath     b
       chordPath  = queryChordPath    b
       discard    = queryUseDrop b
-      constants  = defaultPsvConstants { psvFactsLimit = queryFactsLimit b }
+      constants  = Sea.defaultPsvConstants { Sea.psvFactsLimit = queryFactsLimit b }
 
   start <- liftIO getCurrentTime
   stats <- firstEitherT IcicleSeaError
-         $ seaPsvSnapshotFilePath fleet input output dropPath chordPath discard constants
+         $ Sea.seaPsvSnapshotFilePath fleet input output dropPath chordPath discard constants
   end   <- liftIO getCurrentTime
   size  <- liftIO (withFile input ReadMode hFileSize)
 
   return QueryStatistics {
       queryTime     = end `diffUTCTime` start
-    , queryFacts    = psvFactsRead    stats
-    , queryEntities = psvEntitiesRead stats
+    , queryFacts    = Sea.psvFactsRead    stats
+    , queryEntities = Sea.psvEntitiesRead stats
     , queryBytes    = fromIntegral size
     }
 
-runZebraQuery :: Query ZebraState -> EitherT IcicleError IO QueryStatistics
+runZebraQuery :: Query Sea.ZebraState -> EitherT IcicleError IO QueryStatistics
 runZebraQuery b = do
   let fleet      = queryFleet        b
       input      = queryInputPath    b
@@ -407,13 +415,14 @@ runZebraQuery b = do
 
   start <- liftIO getCurrentTime
   stats <- firstEitherT IcicleSeaError $
-    seaZebraSnapshotFilePath fleet input output dropPath chordPath (ZebraConfig chunkSize allocLimit)
+    Sea.seaZebraSnapshotFilePath fleet input output dropPath chordPath (Sea.ZebraInputConfig chunkSize allocLimit) (queryOutputFormatFlag b == OutputZebra)
+
   end   <- liftIO getCurrentTime
   size  <- liftIO (withFile input ReadMode hFileSize)
 
   return QueryStatistics {
       queryTime     = end `diffUTCTime` start
-    , queryFacts    = zebraFactsRead    stats
-    , queryEntities = zebraEntitiesRead stats
+    , queryFacts    = Sea.zebraFactsRead    stats
+    , queryEntities = Sea.zebraEntitiesRead stats
     , queryBytes    = fromIntegral size
     }

@@ -49,7 +49,7 @@ prop_seaworthy wt
         $  failed
  where
   go a p
-   = bracketEitherT' (S.seaCompile S.NoCacheSea S.NoInput a p Nothing) S.seaRelease (const $ return ())
+   = bracketEitherT' (S.seaCompile S.NoCacheSea S.NoInput S.NoOutput a p Nothing) S.seaRelease (const $ return ())
 
 
 return []

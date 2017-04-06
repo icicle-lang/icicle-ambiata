@@ -6,13 +6,14 @@
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE ViewPatterns #-}
 module Icicle.Sea.Eval.Base (
-    MemPool
+    Mempool
   , SeaState
   , SeaFleet(..)
   , SeaProgram(..)
   , SeaError(..)
   , CacheSea(..)
   , Input(..)
+  , Output(..)
   , InputAllowDupTime(..)
   , PsvInputConfig(..)
   , PsvOutputConfig(..)
@@ -86,9 +87,9 @@ import           Icicle.Internal.Pretty (Doc, Pretty, displayS, renderPretty)
 
 import           Icicle.Sea.Error (SeaError(..))
 import           Icicle.Sea.FromAvalanche.Program (seaOfPrograms)
-import           Icicle.Sea.FromAvalanche.State (stateOfPrograms)
+import           Icicle.Sea.FromAvalanche.State (stateOfPrograms, SeaProgramAttribute)
 import           Icicle.Sea.FromAvalanche.Type (seaOfDefinitions)
-import           Icicle.Sea.IO
+import           Icicle.Sea.IO hiding (unArray)
 import           Icicle.Sea.Preamble (seaPreamble)
 import           Icicle.Sea.Fleet
 import           Icicle.Sea.Eval.Program
@@ -163,8 +164,8 @@ seaEval attribute programs fleet time values =
 seaEval'
   :: (MonadIO m, MonadMask m)
   => SeaProgram
-  -> (EitherT SeaError m (Ptr MemPool))
-  -> (Ptr MemPool -> EitherT SeaError m ())
+  -> (EitherT SeaError m (Ptr Mempool))
+  -> (Ptr Mempool -> EitherT SeaError m ())
   -> D.Time
   -> [D.AsAt D.Value]
   -> EitherT SeaError m [(OutputName, D.Value)]
@@ -204,6 +205,7 @@ seaCompile ::
      (Show a, Show n, Pretty n, Eq n)
   => CacheSea
   -> Input FilePath
+  -> Output
   -> [Attribute]
   -> Map Attribute (NonEmpty (Program (Annot a) n Prim))
   -> Maybe FilePath
@@ -217,23 +219,28 @@ seaCompileFleet ::
   => [CompilerOption]
   -> CacheSea
   -> Input FilePath
+  -> Output
   -> [Attribute]
   -> Map Attribute (NonEmpty (Program (Annot a) n Prim))
   -> Maybe FilePath
   -> EitherT SeaError (ResourceT IO) (SeaFleet st)
-seaCompileFleet options cache input attributes programs chords = do
-  code <- hoistEither (codeOfPrograms input attributes (Map.toList programs))
-  seaCreateFleet options (fromCacheSea cache) input chords code
+seaCompileFleet options cache input output attributes programs chords = do
+  let progs = Map.toList programs
+  code <- hoistEither (codeOfPrograms input output attributes progs)
+  states  <- hoistEither (zipWithM (\ix (a, p) -> stateOfPrograms ix a p) [0..] progs)
+  seaCreateFleet options (fromCacheSea cache) input output chords code states
 
 seaCreate ::
      CacheSea
   -> Input FilePath
+  -> Output
   -> Maybe FilePath
   -> Text
+  -> [SeaProgramAttribute]
   -> EitherT SeaError (ResourceT IO) (SeaFleet st)
-seaCreate cache input chords code = do
+seaCreate cache input output chords code states = do
   options <- getCompilerOptions
-  seaCreateFleet options (fromCacheSea cache) input chords code
+  seaCreateFleet options (fromCacheSea cache) input output chords code states
 
 fromCacheSea :: CacheSea -> CacheLibrary
 fromCacheSea = \case
@@ -264,68 +271,72 @@ defaultCompilerOptions =
 assemblyOfPrograms
   :: (Show a, Show n, Pretty n, Eq n)
   => Input x
+  -> Output
   -> [Attribute]
   -> [(Attribute, NonEmpty (Program (Annot a) n Prim))]
   -> EitherT SeaError IO Text
-assemblyOfPrograms input attributes programs = do
-  code    <- hoistEither (codeOfPrograms input attributes programs)
+assemblyOfPrograms input output attributes programs = do
+  code    <- hoistEither (codeOfPrograms input output attributes programs)
   options <- getCompilerOptions
   firstEitherT SeaJetskiError (compileAssembly options code)
 
 irOfPrograms
   :: (Show a, Show n, Pretty n, Eq n)
   => Input x
+  -> Output
   -> [Attribute]
   -> [(Attribute, NonEmpty (Program (Annot a) n Prim))]
   -> EitherT SeaError IO Text
-irOfPrograms input attributes programs = do
-  code    <- hoistEither (codeOfPrograms input attributes programs)
+irOfPrograms input output attributes programs = do
+  code    <- hoistEither (codeOfPrograms input output attributes programs)
   options <- getCompilerOptions
   firstEitherT SeaJetskiError (compileIR options code)
 
 codeOfPrograms
   :: (Show a, Show n, Pretty n, Eq n)
   => Input x
+  -> Output
   -> [Attribute]
   -> [(Attribute, NonEmpty (Program (Annot a) n Prim))]
   -> Either SeaError Text
-codeOfPrograms input attributes programs = do
+codeOfPrograms input output attributes programs = do
   let defs = seaOfDefinitions (concatMap (NonEmpty.toList . snd) programs)
 
   progs   <- zipWithM (\ix (a, p) -> seaOfPrograms   ix a p) [0..] programs
   states  <- zipWithM (\ix (a, p) -> stateOfPrograms ix a p) [0..] programs
 
-  let defOfPsvInput conf
-        | inputPsvFormat conf == PsvInputSparse
-        = "#define ICICLE_PSV_INPUT_SPARSE 1"
-        | otherwise
-        = ""
+  case (input, output) of
+    (HasInput inputFormat inputOpts _, HasOutput outputFormat) -> do
+      doc <- seaOfDriver inputFormat outputFormat inputOpts attributes states
+      let
+        inputDef =
+          case inputFormat of
+            InputFormatPsv conf
+              | inputPsvFormat conf == PsvInputSparse
+              -> "#define ICICLE_PSV_INPUT_SPARSE 1"
+              | otherwise
+              -> ""
+            InputFormatZebra _ _ -> vsep
+              [ "#define ICICLE_PSV_INPUT_SPARSE 1"
+              , "#define ICICLE_ZEBRA 1" ]
+      let
+        outputDef =
+          case outputFormat of
+            OutputFormatPsv conf
+              | outputPsvFormat conf == PsvOutputSparse
+              -> "#define ICICLE_PSV_OUTPUT_SPARSE 1"
+            OutputFormatZebra
+              -> "#define ICICLE_ZEBRA 1"
+            _ -> ""
 
-  let defOfPsvOutput conf
-        | outputPsvFormat conf == PsvOutputSparse
-        = "#define ICICLE_PSV_OUTPUT_SPARSE 1"
-        | otherwise
-        = ""
+      pure . textOfDoc . vsep $ [ inputDef, outputDef, seaPreamble, defs ] <> progs <> ["", doc]
 
-  case input of
-    NoInput -> do
+    _ -> do
       pure . textOfDoc . vsep
         $ [ "#define ICICLE_NO_INPUT 1"
           , seaPreamble
           , defs
           ] <> progs
-    HasInput format opts _ -> do
-      doc <- seaOfDriver format opts attributes states
-      let def = case format of
-            FormatPsv conf -> vsep
-              [ defOfPsvInput (psvInputConfig conf)
-              , defOfPsvOutput (psvOutputConfig conf) ]
-            -- FIXME property separate what is needed from psv
-            FormatZebra _ _ _ -> vsep
-              [ "#define ICICLE_PSV_INPUT_SPARSE 1"
-              , "#define ICICLE_ZEBRA 1" ]
-
-      pure . textOfDoc . vsep $ [ def, seaPreamble, defs ] <> progs <> ["", doc]
 
 textOfDoc :: Doc -> Text
 textOfDoc doc = T.pack (displayS (renderPretty 0.8 80 (pretty doc)) "")

@@ -1,4 +1,4 @@
-{-# LANGUAGE LambdaCase #-}
+icicle-compiler/src/Icicle/Sea/IO/Zebra.hs{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards#-}
@@ -266,13 +266,14 @@ compileTest wt (TestOpts _ _ inputFormat allowDupTime) = do
                 (S.Snapshot (wtTime wt))
                 (S.PsvOutputSparse)
                 (S.defaultOutputMissing)
-      conf     = S.PsvConfig iconfig oconfig
-      iformat  = S.FormatPsv conf
+      iformat  = S.InputFormatPsv iconfig
+      oformat  = S.OutputFormatPsv oconfig
       iopts    = S.InputOpts allowDupTime (Map.singleton (wtAttribute wt) (Set.singleton tombstone))
       attrs    = [wtAttribute wt]
 
   let cache = S.NoCacheSea
       input = HasInput iformat iopts "dummy_path"
+      output = HasOutput oformat
       chords = Nothing
   code <- hoistEither (S.codeOfPrograms input attrs (Map.toList programs))
 
@@ -288,7 +289,7 @@ compileTest wt (TestOpts _ _ inputFormat allowDupTime) = do
         ]
       code' = code <> savage
 
-  S.seaCreateFleet options (S.fromCacheSea cache) input chords code'
+  S.seaCreateFleet options (S.fromCacheSea cache) input output chords code'
 
 
 runTest :: WellTyped -> S.PsvConstants -> TestOpts -> EitherT S.SeaError IO ()
