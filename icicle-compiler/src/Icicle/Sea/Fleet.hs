@@ -15,6 +15,7 @@ module Icicle.Sea.Fleet (
 
 import           Control.Monad.IO.Class       (MonadIO (..))
 import           Control.Monad.Morph
+import           Control.Monad.Trans.Resource
 
 import qualified Data.ByteString.Char8        as Strict
 import           Data.String                  (String)
@@ -32,8 +33,7 @@ import           Icicle.Sea.IO
 
 import           Piano
 
-import           Zebra.Data
-import           Zebra.Schema (Schema)
+import           Zebra.Factset.Block
 import           Zebra.Foreign.Entity
 import           Zebra.Merge.BlockC
 import           Zebra.Merge.Puller.File
@@ -67,13 +67,12 @@ data SeaFleet st = SeaFleet {
 ------------------------------------------------------------------------
 
 seaCreateFleet ::
-     (MonadIO m)
-  => [CompilerOption]
+     [CompilerOption]
   -> CacheLibrary
   -> Input FilePath
   -> Maybe FilePath
   -> Text
-  -> EitherT SeaError m (SeaFleet st)
+  -> EitherT SeaError IO (SeaFleet st)
 seaCreateFleet options cache input chords code = do
   lib                  <- firstEitherT SeaJetskiError (compileLibrary cache options code)
   imempool_create      <- firstEitherT SeaJetskiError (function lib "anemone_mempool_create" (retPtr retVoid))
@@ -110,7 +109,7 @@ seaCreateFleet options cache input chords code = do
       init <- firstEitherT SeaJetskiError (function lib "zebra_alloc_state" (retPtr retVoid))
       end  <- firstEitherT SeaJetskiError (function lib "zebra_collect_state" (retPtr retVoid))
 
-      (puller, pullid) <- hoist liftIO
+      (puller, pullid) <- hoist runResourceT
                         $ firstEitherT (SeaExternalError . T.pack . show)
                         $ blockChainPuller (VB.singleton input_path)
 
@@ -129,8 +128,8 @@ seaCreateFleet options cache input chords code = do
                     left . SeaExternalError . T.pack $ "error step: " <> show msg
                   else return ()
 
-            let puller' :: PullId -> EitherT SeaError IO (Maybe (Block Schema))
-                puller' = firstEitherT (SeaExternalError . T.pack . show) . puller
+            let puller' :: PullId -> EitherT SeaError IO (Maybe Block)
+                puller' = hoist runResourceT . firstEitherT (SeaExternalError . T.pack . show) . puller
 
             runEitherT
               $ bracketEitherT'

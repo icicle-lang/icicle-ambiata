@@ -37,6 +37,7 @@ import qualified Prelude as Savage
 import           P
 
 import           X.Control.Monad.Trans.Either (EitherT, hoistEither, firstEitherT, bracketEitherT', runEitherT, hoistMaybe)
+import qualified X.Data.Vector.Cons as Cons
 
 import           Disorder.Core.IO (testIO)
 import           Disorder.Jack (Property, Jack)
@@ -49,15 +50,15 @@ import qualified Anemone.Foreign.Mempool as Mempool
 import           Anemone.Foreign.Segv (withSegv)
 
 import qualified Test.Zebra.Jack as Zebra
-import qualified Zebra.Data.Core as Zebra
-import qualified Zebra.Data.Entity as Zebra
+
 import qualified Zebra.Foreign.Entity as Zebra
-import           Zebra.Schema (Schema)
-import qualified Zebra.Schema as Schema
-import           Zebra.Table (Table(..), TableError)
-import qualified Zebra.Table as Table
-import qualified Zebra.Value as Zebra (Value)
-import qualified Zebra.Value as Value
+import qualified Zebra.Factset.Data as Zebra
+import qualified Zebra.Factset.Entity as Zebra
+import qualified Zebra.Table.Encoding as Zebra
+import qualified Zebra.Table.Striped as Striped
+import qualified Zebra.Table.Logical as Logical
+import qualified Zebra.Table.Data as Schema
+import qualified Zebra.Table.Schema as Schema
 
 import qualified Icicle.Internal.Pretty as PP
 import           Icicle.Common.Base
@@ -94,8 +95,8 @@ prop_read_entity =
 --
 -- Each entity is either read or dropped if they exceed the allocation limit
 --
-prop_read_or_drop_entity :: Property
-prop_read_or_drop_entity =
+zprop_read_or_drop_entity :: Property
+zprop_read_or_drop_entity =
   gamble jZebraChunkFactCount $ \chunkFactCount ->
   gamble jZebraAllocLimitBytes $ \allocLimitBytes ->
   gamble jZebraWellTyped $ \zwt ->
@@ -262,7 +263,7 @@ saveInputs ty struct_count fact_count fleet_ptr =
 --------------------------------------------------------------------------------
 
 data TestError
-  = ZebraError (TableError Schema)
+  = ZebraError Striped.StripedError
   | UnexpectedError ValType [BaseValue]
   deriving (Show)
 
@@ -270,7 +271,7 @@ data ZebraWellTyped = ZebraWellTyped {
     zWellTyped    :: WellTyped
   , zFacts        :: Map Entity [BaseValue]
   -- ^ facts grouped by entity
-  , zEntity       :: [(ValType, Zebra.Entity Schema)]
+  , zEntity       :: [(ValType, Zebra.Entity)]
   -- ^ zebra entity and type where wtFactType = Sum Error type
   }
 
@@ -315,6 +316,7 @@ zebraOfWellTyped wt@(WellTyped entities _ ty facts _ _ _ _)= do
     ins (k, x) m =
       Map.insertWith (<>) k [atFact x] m
 
+    -- group facts by entity
     grouped =
       foldr ins Map.empty (List.zip entities facts)
 
@@ -342,20 +344,7 @@ zebraOfWellTyped wt@(WellTyped entities _ ty facts _ _ _ _)= do
 
   return (ZebraWellTyped wt grouped <$> sequence xs)
 
-
--- we are not reading nested arrays in zebra right now
-schemaOfType' :: ValType -> Maybe Schema
-schemaOfType' ty = case ty of
-  ArrayT {} ->
-    Nothing
-  BufT {} ->
-    Nothing
-  MapT {} ->
-    Nothing
-  _ ->
-    schemaOfType ty
-
-schemaOfType :: ValType -> Maybe Schema
+schemaOfType :: ValType -> Maybe Schema.Column
 schemaOfType ty = case ty of
   BoolT ->
     pure Schema.bool
@@ -370,29 +359,29 @@ schemaOfType ty = case ty of
     pure Schema.Int
 
   StringT ->
-    pure $ Schema.Array Schema.Byte
+    pure . Schema.Nested . Schema.Binary . Just $ Zebra.Utf8
 
   ErrorT ->
     pure Schema.Int
 
   UnitT ->
-    pure $ Schema.Struct Boxed.empty
+    pure $ Schema.Unit
 
   FactIdentifierT ->
     pure Schema.Int
 
   ArrayT t ->
-    Schema.Array <$> schemaOfType' t
+    Schema.Nested . Schema.Array <$> schemaOfType t
 
   BufT _ t ->
-    Schema.Array <$> schemaOfType' t
+    Schema.Nested . Schema.Array <$> schemaOfType t
 
   PairT a b -> do
     a' <- schemaOfType a
     b' <- schemaOfType b
-    pure . Schema.Struct . Boxed.fromList $
-      [ Schema.Field (Schema.FieldName "fst") a'
-      , Schema.Field (Schema.FieldName "snd") b' ]
+    pure . Schema.Struct $ Cons.from2
+      (Schema.Field (Schema.FieldName "fst") a')
+      (Schema.Field (Schema.FieldName "snd") b')
 
   OptionT t ->
     Schema.option <$> schemaOfType t
@@ -403,105 +392,111 @@ schemaOfType ty = case ty of
         Schema.Variant (Schema.VariantName "left")  <$> schemaOfType x
       rightOf x =
         Schema.Variant (Schema.VariantName "right") <$> schemaOfType x
-    in Schema.Enum <$> leftOf a <*> (Boxed.singleton <$> rightOf b)
+    in do
+      a' <- leftOf a
+      b' <- rightOf b
+      pure . Schema.Enum $ Cons.from2 a' b'
 
   MapT k v -> do
-    k' <- schemaOfType' k
-    v' <- schemaOfType' v
-    pure . Schema.Struct . Boxed.fromList $
-      [ Schema.Field (Schema.FieldName "keys") (Schema.Array k')
-      , Schema.Field (Schema.FieldName "vals") (Schema.Array v') ]
+    k' <- schemaOfType k
+    v' <- schemaOfType v
+    pure . Schema.Nested $ Schema.Map k' v'
 
   StructT struct
-    -- An empty icicle struct is not unit (unlike zebra), it has no input variable.
-    | fields <- getStructType struct
-    , not (Map.null fields) ->
-        let
-          fieldOf (f, t) =
-            Schema.Field (Schema.FieldName (nameOfStructField f)) <$> schemaOfType t
-        in Schema.Struct . Boxed.fromList <$> mapM fieldOf (Map.toList fields)
+    -- structs must have at leaast one field in both zebra and icicle
+    | (f:fs) <- Map.toList (getStructType struct) ->
+      let
+        fieldOf (x, t) =
+          Schema.Field (Schema.FieldName (nameOfStructField x)) <$> schemaOfType t
+      in do
+        f' <- fieldOf f
+        fs' <- mapM fieldOf fs
+        pure . Schema.Struct . Cons.fromNonEmpty $ f' :| fs'
 
   _ -> Nothing
 
-zebraOfValue :: ValType -> BaseValue -> Either TestError Zebra.Value
+zebraOfValue :: ValType -> BaseValue -> Either TestError Logical.Value
 zebraOfValue ty val = case val of
   VInt x ->
-    pure . Value.Int . fromIntegral $ x
+    pure . Logical.Int . fromIntegral $ x
 
   VDouble x ->
-    pure . Value.Double $ x
+    pure . Logical.Double $ x
 
   VUnit ->
-    pure . Value.Struct $ Boxed.empty
+    pure $ Logical.Unit
 
   VBool False ->
-    pure $ Value.false
+    pure $ Logical.false
 
   VBool True ->
-    pure $ Value.true
+    pure $ Logical.true
 
   VTime x ->
-    pure . Value.Int . fromIntegral . Icicle.packedOfTime $ x
+    pure . Logical.Int . fromIntegral . Icicle.packedOfTime $ x
 
   VString x ->
-    pure . Value.ByteArray . Text.encodeUtf8 $ x
+    pure . Logical.Nested . Logical.Binary . Text.encodeUtf8 $ x
 
   VArray xs
     | ArrayT t <- ty
-    -> Value.Array . Boxed.fromList <$> mapM (zebraOfValue t) xs
+    -> Logical.Nested . Logical.Array . Boxed.fromList <$> mapM (zebraOfValue t) xs
 
   VPair a b
     | PairT ta tb <- ty
     -> do a' <- zebraOfValue ta a
           b' <- zebraOfValue tb b
-          pure . Value.Struct . Boxed.fromList $ [a', b']
+          pure . Logical.Struct $ Cons.from2 a' b'
 
   VLeft x
     | SumT t _ <- ty
-    -> Value.Enum 0 <$> zebraOfValue t x
+    -> Logical.Enum 0 <$> zebraOfValue t x
 
   VRight x
     | SumT _ t <- ty
-    -> Value.Enum 1 <$> zebraOfValue t x
+    -> Logical.Enum 1 <$> zebraOfValue t x
 
   VNone
     | OptionT _ <- ty
-    -> pure $ Value.none
+    -> pure $ Logical.none
 
   VSome x
     | OptionT t <- ty
-    -> Value.some <$> zebraOfValue t x
+    -> Logical.some <$> zebraOfValue t x
 
   VMap x
     | MapT tk tv <- ty
-    -> do keys <- mapM (zebraOfValue tk) (Map.keys x)
-          vals <- mapM (zebraOfValue tv) (Map.elems x)
-          pure . Value.Struct . Boxed.fromList $
-            [ Value.Array (Boxed.fromList keys), Value.Array (Boxed.fromList vals) ]
+    , ks <- Map.keys x
+    , vs <- Map.elems x
+    -> do ks' <- mapM (zebraOfValue tk) ks
+          vs' <- mapM (zebraOfValue tv) vs
+          pure . Logical.Nested . Logical.Map . Map.fromList $ List.zip ks' vs'
+
   VStruct xs
     | StructT struct <- ty
     , types <- getStructType struct
-    , vs <- Map.elems (Map.intersectionWith (,) types xs)
-    , length vs == Map.size types
-    -> Value.Struct . Boxed.fromList <$> mapM (uncurry zebraOfValue) vs
+    , (v:vs) <- Map.elems (Map.intersectionWith (,) types xs)
+    -> do v' <- uncurry zebraOfValue $ v
+          vs' <- mapM (uncurry zebraOfValue) vs
+          pure . Logical.Struct . Cons.fromNonEmpty $ v' :| vs'
 
   VBuf xs
     | BufT _ t <- ty
-    -> Value.Array . Boxed.fromList <$> mapM (zebraOfValue t) xs
+    -> Logical.Nested . Logical.Array . Boxed.fromList <$> mapM (zebraOfValue t) xs
 
   VFactIdentifier x ->
-    pure . Value.Int . fromIntegral . getFactIdentifierIndex $ x
+    pure . Logical.Int . fromIntegral . getFactIdentifierIndex $ x
 
   VError ExceptTombstone ->
     Left (UnexpectedError ty [val])
 
   VError e ->
-    pure . Value.Int . fromIntegral . wordOfError $ e
+    pure . Logical.Int . fromIntegral . wordOfError $ e
 
   _ ->
     Left (UnexpectedError ty [val])
 
-zebraOfTopValue :: ValType -> BaseValue -> Either TestError (Zebra.Tombstone, Zebra.Value)
+zebraOfTopValue :: ValType -> BaseValue -> Either TestError (Zebra.Tombstone, Logical.Value)
 zebraOfTopValue t val
   | VRight v <- val
   = (Zebra.NotTombstone,) <$> zebraOfValue t v
@@ -512,10 +507,11 @@ zebraOfTopValue t val
   | otherwise
   = Left (UnexpectedError t [val])
 
+-- | Convert rows of facts into zebra logical tables.
 zebraOfFacts ::
       ValType
   -> [BaseValue]
-  -> Either TestError (Maybe (ValType, [Zebra.Tombstone], [Zebra.Value], Table Schema))
+  -> Either TestError (Maybe (ValType, [Zebra.Tombstone], [Logical.Value], Striped.Table))
 zebraOfFacts ty facts
   | SumT ErrorT t <- ty =
     case schemaOfType t of
@@ -523,11 +519,8 @@ zebraOfFacts ty facts
         pure Nothing
       Just schema -> do
         (tombstones, rows) <- List.unzip <$> mapM (zebraOfTopValue t) facts
-        tables <- first ZebraError $ mapM (Table.fromRow schema) rows
-        table <- first ZebraError
-               $ if null tables
-                 then pure $ Table.empty schema
-                 else Table.concat . Boxed.fromList $ tables
+        rows' <- first ZebraError . Striped.fromValues schema . Boxed.fromList $ rows
+        let table = Striped.Array rows'
         pure . Just $ (t, tombstones, rows, table)
 
   | otherwise = Left (UnexpectedError ty facts)

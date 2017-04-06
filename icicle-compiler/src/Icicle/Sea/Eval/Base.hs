@@ -199,39 +199,36 @@ valueFromCore' v =
 ------------------------------------------------------------------------
 
 seaCompile ::
-     (MonadIO m)
-  => (Show a, Show n, Pretty n, Eq n)
+     (Show a, Show n, Pretty n, Eq n)
   => CacheSea
   -> Input FilePath
   -> [Attribute]
   -> Map Attribute (NonEmpty (Program (Annot a) n Prim))
   -> Maybe FilePath
-  -> EitherT SeaError m (SeaFleet st)
+  -> EitherT SeaError IO (SeaFleet st)
 seaCompile cache input attributes programs chords = do
   options <- getCompilerOptions
   seaCompileFleet options cache input attributes programs chords
 
 seaCompileFleet ::
-     (MonadIO m)
-  => (Show a, Show n, Pretty n, Eq n)
+     (Show a, Show n, Pretty n, Eq n)
   => [CompilerOption]
   -> CacheSea
   -> Input FilePath
   -> [Attribute]
   -> Map Attribute (NonEmpty (Program (Annot a) n Prim))
   -> Maybe FilePath
-  -> EitherT SeaError m (SeaFleet st)
+  -> EitherT SeaError IO (SeaFleet st)
 seaCompileFleet options cache input attributes programs chords = do
   code <- hoistEither (codeOfPrograms input attributes (Map.toList programs))
   seaCreateFleet options (fromCacheSea cache) input chords code
 
 seaCreate ::
-     (MonadIO m)
-  => CacheSea
+     CacheSea
   -> Input FilePath
   -> Maybe FilePath
   -> Text
-  -> EitherT SeaError m (SeaFleet st)
+  -> EitherT SeaError IO (SeaFleet st)
 seaCreate cache input chords code = do
   options <- getCompilerOptions
   seaCreateFleet options (fromCacheSea cache) input chords code
