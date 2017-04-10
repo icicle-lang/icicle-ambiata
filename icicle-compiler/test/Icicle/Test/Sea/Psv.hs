@@ -69,7 +69,17 @@ prop_time =
     Left err -> failWithError wt err
     Right () -> pure (property succeeded)
 
-prop_psv_corpus
+prop_array_of_struct_input =
+ forAll (((ArrayT . StructT) <$> arbitrary) `suchThat` isSupportedInput) $ \input ->
+ forAll (validated 100 $ tryGenWellTypedWith S.DoNotAllowDupTime (inputTypeOf input)) $ \wt ->
+ forAll (genPsvConstants wt) $ \psv ->
+ testIO $ do
+  x <- runEitherT
+     $ runTest wt psv
+     $ TestOpts ShowInputOnError ShowOutputOnError S.PsvInputSparse S.DoNotAllowDupTime
+  case x of
+    Left err -> failWithError wt err
+    Right () -> pure (property succeeded)
  = testAllCorpus $ \wt ->
    forAll (genPsvConstants wt) $ \psv -> testIO $ do
   x <- runEitherT
