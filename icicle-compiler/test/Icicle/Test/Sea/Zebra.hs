@@ -136,10 +136,11 @@ runTest pool chunk_step alloc_limit_bytes zwt@(ZebraWellTyped wt facts entities)
       runEitherT $ do
         code <- hoistEither $ codeOf wt
         opts <- getCompilerOptions
+        let opts' = ["-DICICLE_ASSERT=1", "-DICICLE_ASSERT_MAXIMUM_ARRAY_COUNT=" <> Text.pack (show (100 * length facts)) ] <> opts
 
         withSystemTempDirectory "zebra-test-" $ \dir -> let drop_fp = dir <> "/drop.txt" in
           withWritableFd drop_fp $ \drop_fd ->
-            withSeaLibrary opts code $ \src -> do
+            withSeaLibrary opts' code $ \src -> do
               init <- firstEitherT SeaJetskiError $ function src "zebra_alloc_state" (retPtr retVoid)
               finish <- firstEitherT SeaJetskiError $ function src "zebra_collect_state" (retPtr retVoid)
               test_read_entity <- firstEitherT SeaJetskiError $ function src "test_zebra_read_entity" (retPtr retWord8)

@@ -57,6 +57,18 @@ import           Test.QuickCheck.Monadic
 import           X.Control.Monad.Trans.Either (EitherT, runEitherT)
 import           X.Control.Monad.Trans.Either (bracketEitherT', left)
 
+prop_time =
+ forAll arbitrary $ \input ->
+ forAll (validated 100 $ tryGenWellTypedWithOutput S.DoNotAllowDupTime input TimeT) $ \wt ->
+ forAll (genPsvConstants wt) $ \psv ->
+ testIO $ do
+  x <- runEitherT
+     $ runTest wt psv
+     $ TestOpts ShowInputOnError ShowOutputOnError S.PsvInputSparse S.DoNotAllowDupTime
+  case x of
+    Left err -> failWithError wt err
+    Right () -> pure (property succeeded)
+
 prop_psv_corpus
  = testAllCorpus $ \wt ->
    forAll (genPsvConstants wt) $ \psv -> testIO $ do

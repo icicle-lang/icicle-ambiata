@@ -101,6 +101,18 @@ tryGenWellTypedWith allowDupTime i@(InputType ty) = do
     core           <- programForStreamType ty
     tryGenWellTypedFromCore allowDupTime i core
 
+tryGenWellTypedWithOutput :: S.InputAllowDupTime -> InputType -> ValType -> Gen (Maybe WellTyped)
+tryGenWellTypedWithOutput allowDupTime i out = do
+ wt <- tryGenWellTypedWith allowDupTime i
+ case wt of
+  Just wt' -> return $ do
+    checked <- fromEither $ C.checkProgram $ wtCore wt'
+    case any ((==out) . functionReturns . snd) $ checked of
+     True -> return wt'
+     False -> Nothing
+
+  _ -> return Nothing
+
 tryGenWellTypedFromCore :: S.InputAllowDupTime -> InputType -> C.Program () Var -> Gen (Maybe WellTyped)
 tryGenWellTypedFromCore allowDupTime ty core
  = fromEither <$> tryGenWellTypedFromCoreEither allowDupTime ty core

@@ -112,7 +112,7 @@ localMinute :: Time -> Int
 localMinute x = timeOfDay x ^. Thyme._todMin
 
 localSecond :: Time -> Int
-localSecond x = timeOfDay x ^. Thyme._todHour
+localSecond x = truncate (timeOfDay x ^. Thyme._todSec)
 
 -- | Number of days since Ivory epoch
 daysCountIvory :: Time -> Int
