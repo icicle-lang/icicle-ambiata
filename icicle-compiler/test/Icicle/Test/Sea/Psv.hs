@@ -80,6 +80,8 @@ prop_array_of_struct_input =
   case x of
     Left err -> failWithError wt err
     Right () -> pure (property succeeded)
+
+prop_psv_corpus
  = testAllCorpus $ \wt ->
    forAll (genPsvConstants wt) $ \psv -> testIO $ do
   x <- runEitherT
@@ -88,6 +90,7 @@ prop_array_of_struct_input =
   case x of
     Left err -> failWithError wt err
     Right () -> pure (property succeeded)
+
 
 prop_psv (WellTypedPsv wt psv) = testIO $ do
   x <- runEitherT
