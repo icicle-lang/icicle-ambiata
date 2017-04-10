@@ -26,7 +26,7 @@ Streams:
     STREAMS:
       STREAM_FOLD (conv$10 : ((Sum Error Int), ((Sum Error Int), Time)))
         INIT:
-          (Left ExceptNotAnError, (Left ExceptNotAnError, 1858-11-17))@{((Sum Error Int), ((Sum Error Int), Time))}
+          (Left ExceptNotAnError, (Left ExceptNotAnError, 1858-11-17T00:00:00Z))@{((Sum Error Int), ((Sum Error Int), Time))}
         KONS:
           
             let simp$2 = fst#@{(Sum Error Int), Time} conv$0

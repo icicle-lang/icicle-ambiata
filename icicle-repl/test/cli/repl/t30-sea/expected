@@ -2194,25 +2194,25 @@ void icompute_attribute_0_compute_0(iattribute_0_t *s)
 > > -- Times
 > - Flattened (simplified), not typechecked:
 conv$3 = TIME
-init acc$conv$4$simpflat$2@{Time} = 1858-11-17@{Time};
+init acc$conv$4$simpflat$2@{Time} = 1858-11-17T00:00:00Z@{Time};
 init acc$s$reify$2$conv$5$simpflat$6@{Error} = ExceptFold1NoValue@{Error};
-init acc$s$reify$2$conv$5$simpflat$7@{Time} = 1858-11-17@{Time};
+init acc$s$reify$2$conv$5$simpflat$7@{Time} = 1858-11-17T00:00:00Z@{Time};
 load_resumable@{Error} acc$s$reify$2$conv$5$simpflat$6;
 load_resumable@{Time} acc$s$reify$2$conv$5$simpflat$7;
 load_resumable@{Time} acc$conv$4$simpflat$2;
 for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0$simpflat$24@{Error}, conv$0$simpflat$25@{Int}, conv$0$simpflat$26@{Time}) in new
 {
-  let anf$1 = Time_daysDifference# (1980-01-06@{Time}) conv$0$simpflat$26;
+  let anf$1 = Time_daysDifference# (1980-01-06T00:00:00Z@{Time}) conv$0$simpflat$26;
   let anf$2 = negate#@{Int} anf$1;
-  write acc$conv$4$simpflat$2 = Time_minusDays# (2000-01-01@{Time}) anf$2;
+  write acc$conv$4$simpflat$2 = Time_minusDays# (2000-01-01T00:00:00Z@{Time}) anf$2;
   read conv$4$aval$1$simpflat$8 = acc$conv$4$simpflat$2 [Time];
   read s$reify$2$conv$5$aval$0$simpflat$12 = acc$s$reify$2$conv$5$simpflat$6 [Error];
   read s$reify$2$conv$5$aval$0$simpflat$13 = acc$s$reify$2$conv$5$simpflat$7 [Time];
   init flat$0$simpflat$14@{Error} = ExceptNotAnError@{Error};
-  init flat$0$simpflat$15@{Time} = 1858-11-17@{Time};
+  init flat$0$simpflat$15@{Time} = 1858-11-17T00:00:00Z@{Time};
   if (eq#@{Error} s$reify$2$conv$5$aval$0$simpflat$12 (ExceptNotAnError@{Error}))
   {
-    init flat$4@{Time} = 1858-11-17@{Time};
+    init flat$4@{Time} = 1858-11-17T00:00:00Z@{Time};
     if (gt#@{Time} conv$4$aval$1$simpflat$8 s$reify$2$conv$5$aval$0$simpflat$13)
     {
       write flat$4 = conv$4$aval$1$simpflat$8;
@@ -2228,7 +2228,7 @@ for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0$simpflat$24@{Error}, c
   else
   {
     init flat$3$simpflat$16@{Error} = ExceptNotAnError@{Error};
-    init flat$3$simpflat$17@{Time} = 1858-11-17@{Time};
+    init flat$3$simpflat$17@{Time} = 1858-11-17T00:00:00Z@{Time};
     if (eq#@{Error} (ExceptFold1NoValue@{Error}) s$reify$2$conv$5$aval$0$simpflat$12)
     {
       write flat$3$simpflat$16 = ExceptNotAnError@{Error};
@@ -2237,7 +2237,7 @@ for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0$simpflat$24@{Error}, c
     else
     {
       write flat$3$simpflat$16 = s$reify$2$conv$5$aval$0$simpflat$12;
-      write flat$3$simpflat$17 = 1858-11-17@{Time};
+      write flat$3$simpflat$17 = 1858-11-17T00:00:00Z@{Time};
     }
     read flat$3$simpflat$18 = flat$3$simpflat$16 [Error];
     read flat$3$simpflat$19 = flat$3$simpflat$17 [Time];
@@ -2258,25 +2258,25 @@ output@{(Sum Error Time)} repl (s$reify$2$conv$5$simpflat$22@{Error}, s$reify$2$
 
 - Flattened Avalanche (simplified), typechecked:
 conv$3 = TIME
-init acc$conv$4$simpflat$2@{Time} = 1858-11-17@{Time};
+init acc$conv$4$simpflat$2@{Time} = 1858-11-17T00:00:00Z@{Time};
 init acc$s$reify$2$conv$5$simpflat$6@{Error} = ExceptFold1NoValue@{Error};
-init acc$s$reify$2$conv$5$simpflat$7@{Time} = 1858-11-17@{Time};
+init acc$s$reify$2$conv$5$simpflat$7@{Time} = 1858-11-17T00:00:00Z@{Time};
 load_resumable@{Error} acc$s$reify$2$conv$5$simpflat$6;
 load_resumable@{Time} acc$s$reify$2$conv$5$simpflat$7;
 load_resumable@{Time} acc$conv$4$simpflat$2;
 for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0$simpflat$24@{Error}, conv$0$simpflat$25@{Int}, conv$0$simpflat$26@{Time}) in new
 {
-  let anf$1 = Time_daysDifference# (1980-01-06@{Time}) conv$0$simpflat$26;
+  let anf$1 = Time_daysDifference# (1980-01-06T00:00:00Z@{Time}) conv$0$simpflat$26;
   let anf$2 = negate#@{Int} anf$1;
-  write acc$conv$4$simpflat$2 = Time_minusDays# (2000-01-01@{Time}) anf$2;
+  write acc$conv$4$simpflat$2 = Time_minusDays# (2000-01-01T00:00:00Z@{Time}) anf$2;
   read conv$4$aval$1$simpflat$8 = acc$conv$4$simpflat$2 [Time];
   read s$reify$2$conv$5$aval$0$simpflat$12 = acc$s$reify$2$conv$5$simpflat$6 [Error];
   read s$reify$2$conv$5$aval$0$simpflat$13 = acc$s$reify$2$conv$5$simpflat$7 [Time];
   init flat$0$simpflat$14@{Error} = ExceptNotAnError@{Error};
-  init flat$0$simpflat$15@{Time} = 1858-11-17@{Time};
+  init flat$0$simpflat$15@{Time} = 1858-11-17T00:00:00Z@{Time};
   if (eq#@{Error} s$reify$2$conv$5$aval$0$simpflat$12 (ExceptNotAnError@{Error}))
   {
-    init flat$4@{Time} = 1858-11-17@{Time};
+    init flat$4@{Time} = 1858-11-17T00:00:00Z@{Time};
     if (gt#@{Time} conv$4$aval$1$simpflat$8 s$reify$2$conv$5$aval$0$simpflat$13)
     {
       write flat$4 = conv$4$aval$1$simpflat$8;
@@ -2292,7 +2292,7 @@ for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0$simpflat$24@{Error}, c
   else
   {
     init flat$3$simpflat$16@{Error} = ExceptNotAnError@{Error};
-    init flat$3$simpflat$17@{Time} = 1858-11-17@{Time};
+    init flat$3$simpflat$17@{Time} = 1858-11-17T00:00:00Z@{Time};
     if (eq#@{Error} (ExceptFold1NoValue@{Error}) s$reify$2$conv$5$aval$0$simpflat$12)
     {
       write flat$3$simpflat$16 = ExceptNotAnError@{Error};
@@ -2301,7 +2301,7 @@ for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0$simpflat$24@{Error}, c
     else
     {
       write flat$3$simpflat$16 = s$reify$2$conv$5$aval$0$simpflat$12;
-      write flat$3$simpflat$17 = 1858-11-17@{Time};
+      write flat$3$simpflat$17 = 1858-11-17T00:00:00Z@{Time};
     }
     read flat$3$simpflat$18 = flat$3$simpflat$16 [Error];
     read flat$3$simpflat$19 = flat$3$simpflat$17 [Time];

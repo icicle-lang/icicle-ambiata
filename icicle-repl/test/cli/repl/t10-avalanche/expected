@@ -7,7 +7,7 @@ ok, avalanche is now on
 > > -- A rather complicated feature to convert to Avalanche
 > - Avalanche (simplified):
 conv$3 = TIME
-init acc$conv$10@{((Sum Error Int), ((Sum Error Int), Time))} = (Left ExceptNotAnError, (Left ExceptNotAnError, 1858-11-17))@{((Sum Error Int), ((Sum Error Int), Time))};
+init acc$conv$10@{((Sum Error Int), ((Sum Error Int), Time))} = (Left ExceptNotAnError, (Left ExceptNotAnError, 1858-11-17T00:00:00Z))@{((Sum Error Int), ((Sum Error Int), Time))};
 init acc$c$conv$11@{(Sum Error Int)} = Right 0@{(Sum Error Int)};
 init acc$conv$26@{Buf 3 (Sum Error Int)} = Buf []@{Buf 3 (Sum Error Int)};
 load_resumable@{Buf 3 (Sum Error Int)} acc$conv$26;
