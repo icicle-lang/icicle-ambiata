@@ -67,7 +67,7 @@ seaOfPrograms name attrib programs = do
     , indent 4 $ assign (defOfVar  0 TimeT (pretty $ textOfName $ bindtime program))
                         ("s->" <> stateInputTime attribute) <> ";"
     , ""
-    , indent 4 (seaOfStatement attribute (statements program))
+    , indent 4 (seaOfStatement attribute compute (statements program))
     , "}"
     ]
 
@@ -78,28 +78,28 @@ defOfAccumulator (n, vt)
 ------------------------------------------------------------------------
 
 seaOfStatement :: (Show a, Show n, Pretty n, Eq n)
-               => SeaProgramAttribute -> Statement (Annot a) n Prim -> Doc
-seaOfStatement state stmt
+               => SeaProgramAttribute -> SeaProgramCompute -> Statement (Annot a) n Prim -> Doc
+seaOfStatement state compute stmt
  = case stmt of
      Block []
       -> Pretty.empty
 
      Block (s:[])
-      -> seaOfStatement state s
+      -> seaOfStatement state compute s
 
      Block (s:ss)
-      -> seaOfStatement state s <> line
-      <> seaOfStatement state (Block ss)
+      -> seaOfStatement state compute s <> line
+      <> seaOfStatement state compute (Block ss)
 
      Let n xx stmt'
       | xt <- valTypeOfExp xx
       -> assign (defOfVar 0 xt (seaOfName n)) (seaOfExp xx) <> semi <> suffix "let" <> line
-      <> seaOfStatement state stmt'
+      <> seaOfStatement state compute stmt'
 
      If ii tt (Block [])
       -> vsep [ ""
               , "if (" <> seaOfExp ii <> ") {"
-              , indent 4 (seaOfStatement state tt)
+              , indent 4 (seaOfStatement state compute tt)
               , "}"
               , ""
               ]
@@ -107,23 +107,23 @@ seaOfStatement state stmt
      If ii tt ee
       -> vsep [ ""
               , "if (" <> seaOfExp ii <> ") {"
-              , indent 4 (seaOfStatement state tt)
+              , indent 4 (seaOfStatement state compute tt)
               , "} else {"
-              , indent 4 (seaOfStatement state ee)
+              , indent 4 (seaOfStatement state compute ee)
               , "}"
               , ""
               ]
 
      While t n _ end stmt'
       -> vsep [ "while (" <> seaOfName n <+> seaOfWhileType t <+> seaOfExp end <> ") {"
-              , indent 4 $ seaOfStatement state stmt'
+              , indent 4 $ seaOfStatement state compute stmt'
               , "}"
               ]
      ForeachInts t n start end stmt'
       -> vsep [ "for (iint_t" <+> seaOfName n <+> "=" <+> seaOfExp start <> ";"
                               <+> seaOfName n <+> seaOfForeachCompare t  <+> seaOfExp end <> ";"
                               <+> seaOfName n <>  seaOfForeachStep t     <> ") {"
-              , indent 4 $ seaOfStatement state stmt'
+              , indent 4 $ seaOfStatement state compute stmt'
               , "}"
               ]
 
@@ -147,7 +147,7 @@ seaOfStatement state stmt
             , "for (iint_t i = 0; i < new_count; i++) {"
             , indent 4 $ assign (defOfVar 0 FactIdentifierT (seaOfName nfid))  "i"      <> semi
             , indent 4 $ assign (defOfVar 0 TimeT           (seaOfName ntime)) factTime <> semi
-            , indent 4 $ vsep (List.zipWith loopAssign ns inputStruct) <> line <> seaOfStatement state stmt'
+            , indent 4 $ vsep (List.zipWith loopAssign ns inputStruct) <> line <> seaOfStatement state compute stmt'
             , "}"
             , ""
             ]
@@ -155,11 +155,11 @@ seaOfStatement state stmt
      InitAccumulator acc stmt'
       | Accumulator n _ xx <- acc
       -> assign (seaOfName n) (seaOfExp xx) <> semi <> suffix "init" <> line
-      <> seaOfStatement state stmt'
+      <> seaOfStatement state compute stmt'
 
      Read n_val n_acc _ stmt'
       -> assign (seaOfName n_val) (seaOfName n_acc) <> semi <> suffix "read" <> line
-      <> seaOfStatement state stmt'
+      <> seaOfStatement state compute stmt'
 
      Write n xx
       -> assign (seaOfName n) (seaOfExp xx) <> semi <> suffix "write"
@@ -187,8 +187,8 @@ seaOfStatement state stmt
       -> Pretty.empty
   where
    stNew   n = "s->" <> stateInputNew (seaOfName n)
-   stRes   n = "s->" <> stateInputRes (seaOfName n)
-   stHas   n = "s->" <> stateInputHas (seaOfName n)
+   stRes   n = "s->" <> stateInputRes (nameOfResumable compute $ seaOfName n)
+   stHas   n = "s->" <> stateInputHas (nameOfResumable compute $ seaOfName n)
    stCount   = "s->" <> stateNewCount
 
 
