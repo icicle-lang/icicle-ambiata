@@ -546,7 +546,7 @@ seaOfDefault assign vtype var
     TimeT
      -> pure $ assign (pretty var) vtype "0"
     StringT
-     -> pure $ assign (pretty var) vtype "NULL"
+     -> pure $ assign (pretty var) vtype "\"\""
     _
      -> Left (SeaInputTypeMismatch vtype [(var,vtype)])
 
