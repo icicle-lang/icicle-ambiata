@@ -142,7 +142,7 @@ seaOfStatement state stmt
          in vsep $
             [ ""
             , assign (defOfVar' 0 ("const" <+> seaOfValType IntT) "new_count") (stCount <> ";")
-            ] <> fmap structAssign ns <>
+            ] <> fmap structAssign inputStruct <>
             [ ""
             , "for (iint_t i = 0; i < new_count; i++) {"
             , indent 4 $ assign (defOfVar 0 FactIdentifierT (seaOfName nfid))  "i"      <> semi
