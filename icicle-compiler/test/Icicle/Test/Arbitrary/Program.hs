@@ -101,6 +101,18 @@ tryGenWellTypedWith allowDupTime i@(InputType ty) = do
     core           <- programForStreamType ty
     tryGenWellTypedFromCore allowDupTime i core
 
+tryGenWellTypedWithOutput :: S.InputAllowDupTime -> InputType -> ValType -> Gen (Maybe WellTyped)
+tryGenWellTypedWithOutput allowDupTime i out = do
+ wt <- tryGenWellTypedWith allowDupTime i
+ case wt of
+  Just wt' -> return $ do
+    checked <- fromEither $ C.checkProgram $ wtCore wt'
+    case any ((==out) . functionReturns . snd) $ checked of
+     True -> return wt'
+     False -> Nothing
+
+  _ -> return Nothing
+
 tryGenWellTypedFromCore :: S.InputAllowDupTime -> InputType -> C.Program () Var -> Gen (Maybe WellTyped)
 tryGenWellTypedFromCore allowDupTime ty core
  = fromEither <$> tryGenWellTypedFromCoreEither allowDupTime ty core
@@ -329,11 +341,8 @@ isSupportedType ty = case ty of
   ErrorT    -> True
   SumT{}    -> True
 
-  -- can't be nested
-  BufT _ t          -> not (isBufOrArray t)
-  ArrayT (ArrayT t) -> not (isBufOrArray t)
-  ArrayT (BufT _ t) -> not (isBufOrArray t)
-  ArrayT t          -> not (isBufOrArray t)
+  BufT _ t  -> not (containsBuf t)
+  ArrayT t  -> isSupportedType t
 
   -- should have been melted
   MapT{}    -> Savage.error ("should have been melted: " <> show ty)
@@ -341,8 +350,9 @@ isSupportedType ty = case ty of
   OptionT{} -> Savage.error ("should have been melted: " <> show ty)
   StructT{} -> Savage.error ("should have been melted: " <> show ty)
 
-isBufOrArray :: ValType -> Bool
-isBufOrArray = \case
+containsBuf :: ValType -> Bool
+containsBuf = \case
   BufT{}    -> True
-  ArrayT{}  -> True
+  ArrayT t' -> containsBuf t'
+  SumT a b  -> containsBuf a || containsBuf b
   _         -> False

@@ -70,9 +70,7 @@ constructor a_fresh statements
   primEq  = primRelation Min.PrimRelationEq
   primNe  = primRelation Min.PrimRelationNe
   primGt  = primRelation Min.PrimRelationGt
-  primGe  = primRelation Min.PrimRelationGe
   primLt  = primRelation Min.PrimRelationLt
-  primLe  = primRelation Min.PrimRelationLe
 
   primFold1 def append xs
    = case xs of
@@ -322,15 +320,34 @@ constructor a_fresh statements
    $ fmap (\(t, ix) -> primArrayDel i t (primUnpack ix (ArrayT tx) na))
      tis
 
-   -- comparison
    | (PrimMinimal (Min.PrimRelation op t), [nx, ny]) <- prima
    , Just tis   <- withIndex tryMeltType t
-   , prim       <- relationPrim op
-   , ps         <- meltWith prim t
-   , (conn,def) <- connectivePrim op
-   = Just
-   $ primFold1 def conn
-   $ fmap (\(p, tvi) -> withPrim p t nx ny tvi) (List.zip ps tis)
+   = let with0 p tvi = withPrim p t nx ny tvi
+         mk = makeComparisons with0 tis
+
+         -- init `join` prim x0 y0 `join` prim x1 y1 `join` ...
+         simple init0 join0 prim0
+            = primFold1 init0 join0
+            $ fmap (withPrim prim0 t nx ny) tis
+     in Just $ case op of
+          -- True && x0 == y0 && x1 == y1 && ...
+          Min.PrimRelationEq -> simple xTrue  primAnd  primEq
+          -- False || x0 /= y0 || x1 /= y1 || ...
+          Min.PrimRelationNe -> simple xFalse primOr   primNe
+
+          -- (x0,x1) < (y0,y1)
+          -- ==>
+          -- > case compare x0 y0 of
+          -- >  LT -> True
+          -- >  EQ -> case compare x1 y1 of
+          -- >         LT -> True
+          -- >         EQ -> False
+          -- >         GT -> False
+          -- >  GT -> False
+          Min.PrimRelationLt -> mk xTrue  xFalse xFalse
+          Min.PrimRelationLe -> mk xTrue  xTrue  xFalse
+          Min.PrimRelationGt -> mk xFalse xFalse xTrue
+          Min.PrimRelationGe -> mk xFalse xTrue  xTrue
 
    | otherwise
    = Nothing
@@ -341,42 +358,39 @@ constructor a_fresh statements
   withIndex f t
    = fmap (flip List.zip [0..]) (f t)
 
-  relationPrim p = case p of
-    Min.PrimRelationGt -> primGt
-    Min.PrimRelationGe -> primGe
-    Min.PrimRelationLt -> primLt
-    Min.PrimRelationLe -> primLe
-    Min.PrimRelationEq -> primEq
-    Min.PrimRelationNe -> primNe
-
-  connectivePrim p = case p of
-    Min.PrimRelationGt -> (primAnd, xFalse)
-    Min.PrimRelationGe -> (primAnd, xTrue)
-    Min.PrimRelationLt -> (primAnd, xFalse)
-    Min.PrimRelationLe -> (primAnd, xTrue)
-    Min.PrimRelationEq -> (primAnd, xTrue)
-    Min.PrimRelationNe -> (primOr, xFalse)
-
-
-  -- | For a relation prim applied to t, melt prim to match members of melted t
-  meltWith prim t = case t of
-    UnitT            -> [prim]
-    IntT             -> [prim]
-    DoubleT          -> [prim]
-    BoolT            -> [prim]
-    TimeT            -> [prim]
-    StringT          -> [prim]
-    ErrorT           -> [prim]
-    FactIdentifierT  -> [prim]
-    PairT   a      b -> meltWith prim a <> meltWith prim b
-    SumT    ErrorT b -> [primEq] <> meltWith prim b
-    SumT    a      b -> [primEq] <> meltWith prim a <> meltWith prim b
-    OptionT a        -> [primEq] <> meltWith prim a
-    ArrayT  a        -> meltWith prim a
-    BufT    _      a -> meltWith prim a
-    MapT    k      v -> meltWith prim k <> meltWith prim v
-    StructT (StructType fs)
-     -> concatMap (meltWith prim) (Map.elems fs)
+  -- Lexicographic ordering on melted tuples: start by comparing the firsts, and if they are
+  -- greater or lesser, use "gt" or "lt".
+  -- If the firsts are equal, move on to the seconds.
+  -- Once you reach the end, you know all are equal, so use "eq".
+  --
+  -- > case compare x0 y0 of
+  -- >  LT -> lt
+  -- >  EQ -> case compare x1 y1 of
+  -- >         LT -> lt
+  -- >         EQ -> eq
+  -- >         GT -> gt
+  -- >  GT -> gt
+  --
+  -- However, because we don't have cases and the comparison primitive isn't exposed, this becomes:
+  --
+  -- > (x0 <  y0 && lt) ||
+  -- > (x0 == y0 &&
+  -- >   (
+  -- >    (x1 <  y1 && lt) ||
+  -- >    (x1 == y1 && eq) ||
+  -- >    (x1 >  y1 && gt)
+  -- >   )) ||
+  -- > (x0 >  y0 && gt)
+  --
+  -- Pretty terrible.
+  --
+  makeComparisons with0 tis0 lt eq gt
+   = let go [] = eq
+         go (ti:tis) =
+          (with0 primLt ti `primAnd` lt) `primOr`
+          (with0 primEq ti `primAnd` go tis) `primOr`
+          (with0 primGt ti `primAnd` gt)
+     in go tis0
 
 
   -- | Unpack a packed value

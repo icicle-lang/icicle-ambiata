@@ -96,9 +96,16 @@ instance (Hashable n, Arbitrary n) => Arbitrary (Name n) where
 instance Arbitrary PM.Prim where
  arbitrary
   = oneof
-     [ PM.PrimArithUnary  <$> arbitrary <*> pure ArithIntT
-     , PM.PrimArithBinary <$> arbitrary <*> pure ArithIntT
-     , PM.PrimRelation    <$> arbitrary <*> pure IntT
+     [ PM.PrimArithUnary  <$> arbitrary <*> arbitrary
+     , PM.PrimArithBinary <$> arbitrary <*> arbitrary
+
+     -- Relational operators *do* work on certain types, but for some types, such as complex Maps and Arrays,
+     -- it doesn't match the Data.Map and [] semantics.
+     -- We can cheat and only generate Ord functions on simpler types, while generating (==) and (/=) for anything.
+     , PM.PrimRelation    <$> arbitrary <*> genOrdValType
+     , PM.PrimRelation PM.PrimRelationEq <$> arbitrary
+     , PM.PrimRelation PM.PrimRelationNe <$> arbitrary
+
      , PM.PrimLogical     <$> arbitrary
      , PM.PrimTime        <$> arbitrary
 
@@ -174,6 +181,11 @@ instance Arbitrary PM.PrimBuiltinMath where
 
 --------------------------------------------------------------------------------
 
+instance Arbitrary ArithType where
+ arbitrary = oneof
+   [ return ArithIntT
+   , return ArithDoubleT ]
+
 instance Arbitrary ValType where
   arbitrary =
    -- Need to be careful about making smaller things.
@@ -193,16 +205,60 @@ instance Arbitrary ValType where
          , StructT <$> arbitrary
          ]
 
+-- Generate an "Ord-able" ValType.
+-- Some of the Ord instances for values are different to the flattened/melted instances:
+-- particularly arrays and maps of non-primitives.
+--
+-- [1, 2] > [3]
+-- Core: True
+-- Melted: False
+--
+-- This case could be fixed easily enough, but it gets more complicated with flattened array of pairs vs pair of arrays:
+--
+-- [(1, 1), (2, 2)] < [(1,2), (0,0)]
+-- = True
+-- ([1, 2], [1, 2]) < ([1, 0], [2, 0])
+-- = False
+--
+-- The lexicographic comparison on the flattened pairs compares the entire array of firsts, then the array of seconds,
+-- whereas the unflattened one compares the firsts and seconds interspersed.
+--
+-- It is possible to fix this, but since the pair of arrays representation is itself a valid ordering, there is not much point.
+--
+genOrdValType :: Gen ValType
+genOrdValType = oneof_sized_vals
+         [ IntT
+         , UnitT
+         , BoolT
+         , TimeT
+         , StringT ]
+         [ PairT   <$> genOrdValType <*> genOrdValType
+         , SumT    <$> genOrdValType <*> genOrdValType
+         , OptionT <$> genOrdValType
+         , StructT <$> genStructType genOrdValType
+         ]
+
+genPrimType :: Gen ValType
+genPrimType = elements
+         [ IntT
+         , UnitT
+         , BoolT
+         , TimeT
+         , StringT ]
+
+genStructType :: Gen ValType -> Gen StructType
+genStructType genT
+ = StructType . Map.fromList . List.take 10 <$> listOf genField
+ where
+   genField = (,) <$> arbitrary <*> genT
+
 instance Arbitrary StructType where
   -- Structs have at most five fields, to prevent them from being too large.
   -- Field types are much more likely to be "primimtives", so that they are not too deep.
   arbitrary
-   = StructType . Map.fromList . List.take 10 <$> listOf genField
+   = genStructType genFieldType
    where
-    genField
-      = (,) <$> arbitrary <*> genFieldType
-    genFieldType
-      = oneof_sized (fmap pure [IntT, UnitT, BoolT, TimeT, StringT]) [arbitrary]
+    genFieldType = oneof_sized (fmap pure [IntT, UnitT, BoolT, TimeT, StringT]) [arbitrary]
 
 instance Arbitrary StructField where
   arbitrary =

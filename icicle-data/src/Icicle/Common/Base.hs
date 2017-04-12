@@ -90,8 +90,8 @@ data BaseValue
  | VPair     !BaseValue !BaseValue
  | VLeft     !BaseValue
  | VRight    !BaseValue
- | VSome     !BaseValue
  | VNone
+ | VSome     !BaseValue
  | VMap      !(Map.Map BaseValue    BaseValue)
  | VStruct   !(Map.Map StructField  BaseValue)
  | VBuf      ![BaseValue]
@@ -170,7 +170,7 @@ instance Pretty BaseValue where
      VBool b
       -> pretty b
      VTime t
-      -> text $ T.unpack $ renderTime t
+      -> text $ T.unpack $ renderOutputTime t
      VString t
       -> text $ show t
      VArray vs

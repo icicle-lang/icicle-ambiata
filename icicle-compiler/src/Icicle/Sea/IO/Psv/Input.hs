@@ -493,6 +493,7 @@ seaOfReadJsonValue assign vtype vars
  = case (vars, vtype) of
      ([(nb, BoolT), nx], OptionT t) -> do
        val_sea <- seaOfReadJsonValue assign t [nx]
+       val_def <- seaOfDefault       assign t (fst nx)
        pure $ vsep
          [ "ibool_t is_null;"
          , "error = json_try_read_null (&p, pe, &is_null);"
@@ -500,6 +501,8 @@ seaOfReadJsonValue assign vtype vars
          , ""
          , "if (is_null) {"
          , indent 4 (assign (pretty nb) BoolT "ifalse")
+         , ""
+         , indent 4 val_def
          , "} else {"
          , indent 4 (assign (pretty nb) BoolT "itrue")
          , ""
@@ -530,6 +533,22 @@ seaOfReadJsonValue assign vtype vars
 
      _
       -> Left (SeaInputTypeMismatch vtype vars)
+
+seaOfDefault :: Assignment -> ValType -> Text -> Either SeaError Doc
+seaOfDefault assign vtype var
+ = case vtype of
+    BoolT
+     -> pure $ assign (pretty var) vtype "ifalse"
+    IntT
+     -> pure $ assign (pretty var) vtype "0"
+    DoubleT
+     -> pure $ assign (pretty var) vtype "0"
+    TimeT
+     -> pure $ assign (pretty var) vtype "0"
+    StringT
+     -> pure $ assign (pretty var) vtype "\"\""
+    _
+     -> Left (SeaInputTypeMismatch vtype [(var,vtype)])
 
 readValue :: Doc -> Assignment -> Text -> ValType -> Doc
 readValue
