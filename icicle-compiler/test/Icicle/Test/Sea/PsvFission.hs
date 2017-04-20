@@ -117,14 +117,13 @@ runTest2 wt1 wt2 consts testOpts = do
         output  = dir <> "/output.psv"
         dropped = dir <> "/dropped.txt"
         chords  = Nothing
-        discard = S.FlagUseDropFile
 
     liftIO (LT.writeFile program (LT.fromStrict source))
 
     let inputPsv = textOfFacts (wtEntities wt1) (wtAttribute wt1) (wtFacts wt1)
     liftIO (L.writeFile input (LT.encodeUtf8 inputPsv))
 
-    result <- liftIO (runEitherT (S.seaPsvSnapshotFilePath fleet input output dropped chords discard consts))
+    result <- liftIO (runEitherT (S.seaPsvSnapshotFilePath fleet input output dropped chords S.FlagUseDropFile consts))
 
     case result of
       Left err -> do
