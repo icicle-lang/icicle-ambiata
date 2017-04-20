@@ -31,9 +31,10 @@ import           X.Options.Applicative
 
 
 data IcicleCommand =
-    IcicleCompile FilePath FilePath InputFormat OutputFormat (Scope ())
+    IcicleCompile FilePath FilePath InputFormat OutputFormat (Scope ()) CompilerFlags
   | IcicleQuery QueryOptions
     deriving (Eq, Ord, Show)
+
 
 main :: IO ()
 main = do
@@ -65,6 +66,7 @@ pCompile =
     <*> pInputFormat
     <*> pOutputFormat
     <*> (pSnapshot <|> pChord)
+    <*> pCompilerFlags
 
 pQuery :: Parser IcicleCommand
 pQuery =
@@ -166,9 +168,7 @@ pOutputCode =
 pSnapshot :: Parser (Scope a)
 pSnapshot =
   fmap ScopeSnapshot . flip option (long "snapshot" <> metavar "SNAPSHOT_DATE") $
-    readerAsk >>= \s -> case timeOfText (T.pack s) of
-      Just t  -> return t
-      Nothing -> readerError "cannot parse snapshot date"
+    tryRead "cannot parse snapshot date" (timeOfText . T.pack) id
 
 pChordPath :: Parser (Scope FilePath)
 pChordPath =
@@ -182,9 +182,7 @@ pChord =
 pLimit :: Parser Int
 pLimit =
   flip option (long "facts-limit" <> value defaultPsvFactsLimit) $
-    readerAsk >>= \s -> case readMaybe s of
-      Just i  -> return i
-      Nothing -> readerError "--facts-limit NUMBER"
+    tryRead "--facts-limit NUMBER" readMaybe id
 
 pDrop :: Parser (Maybe FilePath)
 pDrop =
@@ -199,26 +197,34 @@ pFlagDrop =
 pZebraChunkFactCount :: Parser ZebraChunkFactCount
 pZebraChunkFactCount =
   flip option (long "zebra-chunk-fact-count" <> value defaultZebraChunkFactCount) $
-    readerAsk >>= \s -> case readMaybe s of
-      Just i  -> return (ZebraChunkFactCount i)
-      Nothing -> readerError "--zebra-chunk-fact-count NUMBER_FACTS"
+    tryRead "--zebra-chunk-fact-count NUMBER_FACTS" readMaybe ZebraChunkFactCount
 
 pZebraAllocLimitGB :: Parser ZebraAllocLimitGB
 pZebraAllocLimitGB =
   flip option (long "zebra-alloc-limit-gb" <> value defaultZebraAllocLimitGB) $
-    readerAsk >>= \s -> case readMaybe s of
-      Just i  -> return (ZebraAllocLimitGB i)
-      Nothing -> readerError "--zebra-alloc-limit-gb NUMBER_GB"
+    tryRead "--zebra-alloc-limit-gb NUMBER_GB" readMaybe ZebraAllocLimitGB
+
+pCompilerFlags :: Parser CompilerFlags
+pCompilerFlags = CompilerFlags <$> maximumQueries
+ where
+  maximumQueries = flip option (long "fuse-maximum-per-kernel" <> value (compilerMaximumQueriesPerKernel defaultCompilerFlags)) $
+    tryRead "--fuse-maximum-per-kernel NUMBER_QUERIES" readMaybe id
+
+tryRead :: [Char] -> ([Char] -> Maybe a) -> (a -> b) -> Parser b
+tryRead err f g =
+  readerAsk >>= \s -> case f s of
+    Just i  -> return $ g i
+    Nothing -> readerError err
 
 ------------------------------------------------------------------------
 
 runCommand :: IcicleCommand -> EitherT IcicleError IO ()
 runCommand = \case
-  IcicleCompile tomlPath opath iformat oformat scope -> do
+  IcicleCompile tomlPath opath iformat oformat scope cflags -> do
     start <- liftIO getCurrentTime
     liftIO $ putStrLn "icicle: starting compilation"
 
-    code <- compileDictionary tomlPath iformat oformat scope
+    code <- compileDictionary tomlPath iformat oformat scope cflags
     writeUtf8 opath code
 
     end <- liftIO getCurrentTime
