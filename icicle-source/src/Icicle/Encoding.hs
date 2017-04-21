@@ -37,8 +37,6 @@ import           Icicle.Data.Time
 
 import           P
 
-import           Numeric (showFFloat)
-
 
 data DecodeError =
    DecodeErrorBadInput           Text Encoding
@@ -385,7 +383,7 @@ renderOutputValue val
    IntValue v
     -> return $ T.pack $ show v
    DoubleValue v
-    -> return $ T.pack $ showFFloat Nothing v ""
+    -> return $ T.pack $ show v
    BooleanValue False
     -> return "false"
    BooleanValue True

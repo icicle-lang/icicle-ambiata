@@ -214,13 +214,12 @@ sourceConvert d q
 
 coreOfDictionary :: Source.IcicleCompileOptions
                  -> Dictionary
-                 -> Either Error (Map Attribute (NonEmpty (Source.CoreProgramUntyped Source.Var)))
+                 -> Either Error (Map Attribute (Source.CoreProgramUntyped Source.Var))
 coreOfDictionary opts dict = do
-  let virtuals   = fmap (second Dict.unVirtual) (Dict.getVirtualFeatures dict)
-  let fusionOpts = Source.icicleFusionOptions opts
+  let virtuals = fmap (second Dict.unVirtual) (Dict.getVirtualFeatures dict)
 
   core  <- parTraverse (coreOfSource opts dict) virtuals
-  fused <- parTraverse (fuseCore fusionOpts)   (M.unionsWith (<>) core)
+  fused <- parTraverse  fuseCore               (M.unionsWith (<>) core)
 
   return fused
 
@@ -233,24 +232,11 @@ coreSimp p
  $!! Fresh.runFresh (Core.simpProgram annotUnit p) (freshNamer "simp")
 
 
-fuseCore :: Source.FusionOptions
-         -> [(Source.Var, Source.CoreProgramUntyped Source.Var)]
-         -> Either Error (NonEmpty (Source.CoreProgramUntyped Source.Var))
-fuseCore opts programs = do
-  fs <- mapM go $ chunk programs
-  case fs of
-   [] -> Left $ ErrorFusion Core.FusionErrorNothingToFuse
-   (p:ps) -> return (p :| ps)
- where
-  go ps
-   = first ErrorFusion $ do
-      fused <- Core.fuseMultiple annotUnit ps
-      pure (coreSimp fused)
-
-  chunk [] = []
-  chunk ps
-   = let (as,bs) = splitAt (Source.fusionMaximumPerKernel opts) ps
-     in  as : chunk bs
+fuseCore :: [(Source.Var, Source.CoreProgramUntyped Source.Var)]
+         -> Either Error (Source.CoreProgramUntyped Source.Var)
+fuseCore programs = first ErrorFusion $ do
+  fused <- Core.fuseMultiple annotUnit programs
+  pure (coreSimp fused)
 
 
 coreOfSource :: Source.IcicleCompileOptions
@@ -281,15 +267,17 @@ coreOfSource1 opt dict virtual = do
 avalancheOfDictionary :: Source.IcicleCompileOptions
                       -> Dictionary
                       -> Either Error (Map Attribute (NonEmpty (AvalProgramTyped Source.Var Flat.Prim)))
-avalancheOfDictionary opts dict = do
-  let virtuals   = fmap (second Dict.unVirtual) (Dict.getVirtualFeatures dict)
-  let fusionOpts = Source.icicleFusionOptions opts
+avalancheOfDictionary opt dict = do
+  let virtuals = fmap (second Dict.unVirtual) (Dict.getVirtualFeatures dict)
 
-  core      <- parTraverse (coreOfSource opts dict)   virtuals
-  fused     <- parTraverse (fuseCore fusionOpts)     (M.unionsWith (<>) core)
-  avalanche <- parTraverse (traverse avalancheOfCore) fused
+  core      <- parTraverse (coreOfSource opt dict) virtuals
+  fused     <- parTraverse fuseCore                (M.unionsWith (<>) core)
+  avalanche <- parTraverse avalancheOfCore         fused
 
-  return avalanche
+  -- TODO: decide how to fuse, and what not to fuse etc
+  let avalanche' = fmap (\i -> i :| []) avalanche
+
+  return avalanche'
 
 
 avalancheOfCore ::               Source.CoreProgramUntyped Source.Var

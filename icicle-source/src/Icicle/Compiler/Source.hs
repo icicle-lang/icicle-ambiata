@@ -23,8 +23,6 @@ module Icicle.Compiler.Source
     -- * Compiler options
   , IcicleCompileOptions (..)
   , defaultCompileOptions
-  , FusionOptions (..)
-  , defaultFusionOptions
   , Inline.InlineOption (..)
   , Inline.defaultInline
   , Check.CheckOptions (..)
@@ -114,20 +112,12 @@ freshNamer prefix
 --------------------------------------------------------------------------------
 
 data IcicleCompileOptions = IcicleCompileOptions
-  { icicleInline        :: Inline.InlineOption
-  , icicleBigData       :: Check.CheckOptions
-  , icicleFusionOptions :: FusionOptions
+  { icicleInline  :: Inline.InlineOption
+  , icicleBigData :: Check.CheckOptions
   }
 
 defaultCompileOptions :: IcicleCompileOptions
-defaultCompileOptions = IcicleCompileOptions Inline.defaultInline Check.defaultCheckOptions defaultFusionOptions
-
-data FusionOptions = FusionOptions
-  { fusionMaximumPerKernel :: Int
-  }
-
-defaultFusionOptions :: FusionOptions
-defaultFusionOptions = FusionOptions 10
+defaultCompileOptions = IcicleCompileOptions Inline.defaultInline Check.defaultCheckOptions
 
 --------------------------------------------------------------------------------
 

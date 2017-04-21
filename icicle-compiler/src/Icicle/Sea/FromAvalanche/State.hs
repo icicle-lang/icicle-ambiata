@@ -27,7 +27,6 @@ module Icicle.Sea.FromAvalanche.State (
   , stateNewCount
   , stateInputRes
   , stateInputHas
-  , nameOfResumable
 
   -- * Prefixes for facts/resumables.
   , hasPrefix
@@ -187,7 +186,7 @@ seaOfStateCompute state
  , ""
  , "    /* resumables */"
  , indent 4 . vsep
-            . fmap (defOfResumable state)
+            . fmap defOfResumable
             . stateResumables
             $ state
  ]
@@ -221,15 +220,10 @@ defOfFactField (name, ty)
 
 ------------------------------------------------------------------------
 
-defOfResumable :: SeaProgramCompute -> (Text, ValType) -> Doc
-defOfResumable compute (n, t)
- =  defOfVar 0 BoolT (pretty hasPrefix <> nameOfResumable compute (pretty n)) <> semi <> line
- <> defOfVar 0 t     (pretty resPrefix <> nameOfResumable compute (pretty n)) <> semi
-
-nameOfResumable :: SeaProgramCompute -> Doc -> Doc
-nameOfResumable compute n
- = let (i,j) = stateComputeName compute
-   in  pretty i <> "_" <> pretty j <> "_" <> n
+defOfResumable :: (Text, ValType) -> Doc
+defOfResumable (n, t)
+ =  defOfVar 0 BoolT (pretty hasPrefix <> pretty n) <> semi <> line
+ <> defOfVar 0 t     (pretty resPrefix <> pretty n) <> semi
 
 defsOfOutput :: (OutputName, (ValType, [ValType])) -> [Doc]
 defsOfOutput (n, (_, ts))
