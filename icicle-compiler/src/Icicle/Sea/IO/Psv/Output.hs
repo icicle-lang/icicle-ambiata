@@ -134,11 +134,11 @@ seaOfWriteProgramOutput config state = do
             PsvOutputDense
               -> seaOfWriteOutputDense  ps 0 name ty tys tb
 
-  let outputRes compute name
-        = ps <> "->" <> pretty hasPrefix <> nameOfResumable compute (pretty name) <+> "= ifalse;"
+  let outputRes   name
+        = ps <> "->" <> pretty (hasPrefix <> name) <+> "= ifalse;"
 
   let computes = NonEmpty.toList $ stateComputes state
-  let resumeables  = concatMap (\c -> fmap (outputRes c . fst) (stateResumables c)) computes
+  let resumeables  = fmap (outputRes . fst) (concatMap stateResumables computes)
   outputs         <- traverse outputState (concatMap stateOutputs computes)
   let callComputes = fmap (\i -> pretty (nameOfCompute i) <+> "(" <> ps <> ");") computes
 

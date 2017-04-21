@@ -45,12 +45,12 @@ typedef struct {
     idouble_t        repl_ix_2;
 
     /* resumables */
-    ibool_t          has_0_0_acc_perhaps_conv_4_simpflat_5;
-    iint_t           res_0_0_acc_perhaps_conv_4_simpflat_5;
-    ibool_t          has_0_0_acc_perhaps_conv_4_simpflat_4;
-    ibool_t          res_0_0_acc_perhaps_conv_4_simpflat_4;
-    ibool_t          has_0_0_acc_perhaps_conv_4_simpflat_6;
-    idouble_t        res_0_0_acc_perhaps_conv_4_simpflat_6;
+    ibool_t          has_acc_perhaps_conv_4_simpflat_5;
+    iint_t           res_acc_perhaps_conv_4_simpflat_5;
+    ibool_t          has_acc_perhaps_conv_4_simpflat_4;
+    ibool_t          res_acc_perhaps_conv_4_simpflat_4;
+    ibool_t          has_acc_perhaps_conv_4_simpflat_6;
+    idouble_t        res_acc_perhaps_conv_4_simpflat_6;
 
 } iattribute_0_t;
 
@@ -85,16 +85,16 @@ void icompute_attribute_0_compute_0(iattribute_0_t *s)
     acc_perhaps_conv_4_simpflat_5             = 0;                                    /* init */
     acc_perhaps_conv_4_simpflat_6             = 0.0;                                  /* init */
     
-    if (s->has_0_0_acc_perhaps_conv_4_simpflat_4) {
-        acc_perhaps_conv_4_simpflat_4         = s->res_0_0_acc_perhaps_conv_4_simpflat_4; /* load */
+    if (s->has_acc_perhaps_conv_4_simpflat_4) {
+        acc_perhaps_conv_4_simpflat_4         = s->res_acc_perhaps_conv_4_simpflat_4; /* load */
     }
     
-    if (s->has_0_0_acc_perhaps_conv_4_simpflat_5) {
-        acc_perhaps_conv_4_simpflat_5         = s->res_0_0_acc_perhaps_conv_4_simpflat_5; /* load */
+    if (s->has_acc_perhaps_conv_4_simpflat_5) {
+        acc_perhaps_conv_4_simpflat_5         = s->res_acc_perhaps_conv_4_simpflat_5; /* load */
     }
     
-    if (s->has_0_0_acc_perhaps_conv_4_simpflat_6) {
-        acc_perhaps_conv_4_simpflat_6         = s->res_0_0_acc_perhaps_conv_4_simpflat_6; /* load */
+    if (s->has_acc_perhaps_conv_4_simpflat_6) {
+        acc_perhaps_conv_4_simpflat_6         = s->res_acc_perhaps_conv_4_simpflat_6; /* load */
     }
     
     const iint_t     new_count                = s->input.new_count;
@@ -135,14 +135,14 @@ void icompute_attribute_0_compute_0(iattribute_0_t *s)
         acc_perhaps_conv_4_simpflat_6         = flat_0_simpflat_15;                   /* write */
     }
     
-    s->has_0_0_acc_perhaps_conv_4_simpflat_4  = itrue;                                /* save */
-    s->res_0_0_acc_perhaps_conv_4_simpflat_4  = acc_perhaps_conv_4_simpflat_4;        /* save */
+    s->has_acc_perhaps_conv_4_simpflat_4      = itrue;                                /* save */
+    s->res_acc_perhaps_conv_4_simpflat_4      = acc_perhaps_conv_4_simpflat_4;        /* save */
     
-    s->has_0_0_acc_perhaps_conv_4_simpflat_5  = itrue;                                /* save */
-    s->res_0_0_acc_perhaps_conv_4_simpflat_5  = acc_perhaps_conv_4_simpflat_5;        /* save */
+    s->has_acc_perhaps_conv_4_simpflat_5      = itrue;                                /* save */
+    s->res_acc_perhaps_conv_4_simpflat_5      = acc_perhaps_conv_4_simpflat_5;        /* save */
     
-    s->has_0_0_acc_perhaps_conv_4_simpflat_6  = itrue;                                /* save */
-    s->res_0_0_acc_perhaps_conv_4_simpflat_6  = acc_perhaps_conv_4_simpflat_6;        /* save */
+    s->has_acc_perhaps_conv_4_simpflat_6      = itrue;                                /* save */
+    s->res_acc_perhaps_conv_4_simpflat_6      = acc_perhaps_conv_4_simpflat_6;        /* save */
     
     perhaps_conv_4_simpflat_16                = acc_perhaps_conv_4_simpflat_4;        /* read */
     perhaps_conv_4_simpflat_17                = acc_perhaps_conv_4_simpflat_5;        /* read */
