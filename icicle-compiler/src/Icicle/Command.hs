@@ -165,7 +165,7 @@ data CompilerFlags =
   deriving (Eq, Ord, Show)
 
 defaultCompilerFlags :: CompilerFlags
-defaultCompilerFlags = CompilerFlags 10
+defaultCompilerFlags = CompilerFlags 100
 
 
 psvOfOutputFormat :: OutputFormat -> PsvOutputFormat

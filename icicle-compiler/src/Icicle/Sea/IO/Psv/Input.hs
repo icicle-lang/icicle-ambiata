@@ -171,7 +171,7 @@ seaOfReadFact
 seaOfReadFact state tombstones input readInput checkCount =
   vsep
     [ "#line 1 \"read fact" <+> seaOfStateInfo state <> "\""
-    , "static ierror_loc_t INLINE"
+    , "static ierror_loc_t NOINLINE"
         <+> pretty (nameOfReadFact state) <+> "("
         <> "const char *value_ptr, const size_t value_size, itime_t time, "
         <> "anemone_mempool_t *mempool, iint_t chord_count, iint_t max_row_count, "

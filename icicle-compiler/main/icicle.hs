@@ -210,7 +210,7 @@ pCompilerFlags = CompilerFlags <$> maximumQueries
   maximumQueries = flip option (long "fuse-maximum-per-kernel" <> value (compilerMaximumQueriesPerKernel defaultCompilerFlags)) $
     tryRead "--fuse-maximum-per-kernel NUMBER_QUERIES" readMaybe id
 
-tryRead :: [Char] -> ([Char] -> Maybe a) -> (a -> b) -> Parser b
+tryRead :: [Char] -> ([Char] -> Maybe a) -> (a -> b) -> ReadM b
 tryRead err f g =
   readerAsk >>= \s -> case f s of
     Just i  -> return $ g i

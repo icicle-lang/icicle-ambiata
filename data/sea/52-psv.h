@@ -72,11 +72,11 @@ typedef struct {
 
 
 /* forward declarations for functions, implemented by generated code */
-static ifleet_t * INLINE psv_alloc_fleet (const iint_t max_chord_count, const iint_t max_row_count);
+static ifleet_t * NOINLINE psv_alloc_fleet (const iint_t max_chord_count, const iint_t max_row_count);
 
-static void INLINE psv_collect_fleet (ifleet_t *fleet);
+static void NOINLINE psv_collect_fleet (ifleet_t *fleet);
 
-static ierror_loc_t INLINE psv_configure_fleet
+static ierror_loc_t NOINLINE psv_configure_fleet
   ( const char *entity
   , size_t entity_size
   , piano_t *piano
@@ -84,7 +84,7 @@ static ierror_loc_t INLINE psv_configure_fleet
   );
 
 #if ICICLE_PSV_INPUT_SPARSE
-static ierror_loc_t INLINE psv_read_fact
+static ierror_loc_t NOINLINE psv_read_fact
   ( const char   *entity_ptr
   , const size_t  entity_size
   , const char   *attrib_ptr
@@ -97,7 +97,7 @@ static ierror_loc_t INLINE psv_read_fact
   , const size_t  facts_limit
   , const iint_t  max_row_count );
 #else
-static ierror_loc_t INLINE psv_read_fact
+static ierror_loc_t NOINLINE psv_read_fact
   ( const char   *entity_ptr
   , const size_t  entity_size
   , const char   *value_ptr
@@ -109,7 +109,7 @@ static ierror_loc_t INLINE psv_read_fact
   , const iint_t  max_row_count );
 #endif
 
-static ierror_msg_t INLINE psv_write_output
+static ierror_msg_t NOINLINE psv_write_output
   ( int fd
   , char  *output_start
   , char  *output_end
@@ -183,7 +183,7 @@ static ibool_t INLINE psv_is_dropping_this (const psv_state_t *s, const char *en
 }
 
 /* Seek to a line where the entity changes, or EOF. Returns true if we found a new entity. */
-static ibool_t INLINE psv_skip_to_next_entity (psv_state_t *s)
+static ibool_t NOINLINE psv_skip_to_next_entity (psv_state_t *s)
 {
     const char  *end_ptr    = s->input_ptr + s->input_size;
     const char  *start_ptr  = end_ptr - s->input_remaining;

@@ -127,7 +127,7 @@ data FusionOptions = FusionOptions
   }
 
 defaultFusionOptions :: FusionOptions
-defaultFusionOptions = FusionOptions 10
+defaultFusionOptions = FusionOptions 100
 
 --------------------------------------------------------------------------------
 
