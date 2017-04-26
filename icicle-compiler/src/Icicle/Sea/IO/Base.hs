@@ -279,7 +279,7 @@ seaOfCollectProgram state
        pvari = pvar <> "input."
 
        new n = pvari <> pretty (newPrefix <> n)
-       res n = pvar  <> pretty (resPrefix <> n)
+       res n = pvar  <> pretty resPrefix <> n
 
        copyInputs nts
         = let docs = concatMap copyInput (stateInputVars state)
@@ -299,14 +299,14 @@ seaOfCollectProgram state
         | otherwise
         = [ new n <> "[ix] = " <> prefixOfValType t <> "copy (into_pool, " <> new n <> "[ix]);" ]
 
-       copyResumable (n, t)
+       copyResumable c (n, t)
         | not (needsCopy t)
         = []
 
         | otherwise
         = [ ""
-          , "if (" <> pvar <> pretty (hasPrefix <> n) <> ") {"
-          , indent 4 (res n <> " = " <> prefixOfValType t <> "copy (into_pool, " <> res n <> ");")
+          , "if (" <> pvar <> pretty hasPrefix <> nameOfResumable c (pretty n) <> ") {"
+          , indent 4 (res (nameOfResumable c $ pretty n) <> " = " <> prefixOfValType t <> "copy (into_pool, " <> res (nameOfResumable c $ pretty n) <> ");")
           , "}"
           ]
 
@@ -316,7 +316,7 @@ seaOfCollectProgram state
            , ""
            , "    if (last_pool != 0) {"
            , indent 8 $ vsep $ copyInputs (stateInputVars state)
-                            <> concatMap copyResumable (concatMap stateResumables $ NonEmpty.toList $ stateComputes state)
+                            <> concatMap (\c -> concatMap (copyResumable c) $ stateResumables c) (NonEmpty.toList $ stateComputes state)
            , "    }"
            , "}"
            ]
