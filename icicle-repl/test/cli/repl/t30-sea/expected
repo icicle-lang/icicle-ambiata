@@ -1267,41 +1267,46 @@ typedef struct {
     ierror_t         repl_ix_0;
     idouble_t        repl_ix_1;
 
-    /* resumables */
-    ibool_t          has_0_0_acc_conv_7_simpflat_33;
+    /* resumables: values */
     ierror_t         res_0_0_acc_conv_7_simpflat_33;
-    ibool_t          has_0_0_acc_conv_7_simpflat_34;
     idouble_t        res_0_0_acc_conv_7_simpflat_34;
-    ibool_t          has_0_0_acc_conv_11_simpflat_39;
     ierror_t         res_0_0_acc_conv_11_simpflat_39;
-    ibool_t          has_0_0_acc_conv_11_simpflat_40;
     idouble_t        res_0_0_acc_conv_11_simpflat_40;
-    ibool_t          has_0_0_acc_a_conv_63_simpflat_74;
     ierror_t         res_0_0_acc_a_conv_63_simpflat_74;
-    ibool_t          has_0_0_acc_a_conv_63_simpflat_75;
     idouble_t        res_0_0_acc_a_conv_63_simpflat_75;
-    ibool_t          has_0_0_acc_a_conv_63_simpflat_76;
     idouble_t        res_0_0_acc_a_conv_63_simpflat_76;
-    ibool_t          has_0_0_acc_a_conv_63_simpflat_77;
     idouble_t        res_0_0_acc_a_conv_63_simpflat_77;
-    ibool_t          has_0_0_acc_s_reify_6_conv_12_simpflat_49;
     idouble_t        res_0_0_acc_s_reify_6_conv_12_simpflat_49;
-    ibool_t          has_0_0_acc_s_reify_6_conv_12_simpflat_48;
     idouble_t        res_0_0_acc_s_reify_6_conv_12_simpflat_48;
-    ibool_t          has_0_0_acc_s_reify_6_conv_12_simpflat_47;
     ierror_t         res_0_0_acc_s_reify_6_conv_12_simpflat_47;
-    ibool_t          has_0_0_acc_conv_57_simpflat_50;
     ierror_t         res_0_0_acc_conv_57_simpflat_50;
-    ibool_t          has_0_0_acc_conv_57_simpflat_51;
     iint_t           res_0_0_acc_conv_57_simpflat_51;
-    ibool_t          has_0_0_acc_conv_58_simpflat_56;
     ierror_t         res_0_0_acc_conv_58_simpflat_56;
-    ibool_t          has_0_0_acc_conv_58_simpflat_57;
     iint_t           res_0_0_acc_conv_58_simpflat_57;
-    ibool_t          has_0_0_acc_conv_62_simpflat_64;
     ierror_t         res_0_0_acc_conv_62_simpflat_64;
-    ibool_t          has_0_0_acc_conv_62_simpflat_65;
     idouble_t        res_0_0_acc_conv_62_simpflat_65;
+
+    /* resumables: has flags */
+    ibool_t          has_flags_start_0_0;
+    ibool_t          has_0_0_acc_conv_7_simpflat_33;
+    ibool_t          has_0_0_acc_conv_7_simpflat_34;
+    ibool_t          has_0_0_acc_conv_11_simpflat_39;
+    ibool_t          has_0_0_acc_conv_11_simpflat_40;
+    ibool_t          has_0_0_acc_a_conv_63_simpflat_74;
+    ibool_t          has_0_0_acc_a_conv_63_simpflat_75;
+    ibool_t          has_0_0_acc_a_conv_63_simpflat_76;
+    ibool_t          has_0_0_acc_a_conv_63_simpflat_77;
+    ibool_t          has_0_0_acc_s_reify_6_conv_12_simpflat_49;
+    ibool_t          has_0_0_acc_s_reify_6_conv_12_simpflat_48;
+    ibool_t          has_0_0_acc_s_reify_6_conv_12_simpflat_47;
+    ibool_t          has_0_0_acc_conv_57_simpflat_50;
+    ibool_t          has_0_0_acc_conv_57_simpflat_51;
+    ibool_t          has_0_0_acc_conv_58_simpflat_56;
+    ibool_t          has_0_0_acc_conv_58_simpflat_57;
+    ibool_t          has_0_0_acc_conv_62_simpflat_64;
+    ibool_t          has_0_0_acc_conv_62_simpflat_65;
+    ibool_t          has_flags_end_0_0;
+
 
 } iattribute_0_t;
 
@@ -2343,13 +2348,18 @@ typedef struct {
     ierror_t         repl_ix_0;
     itime_t          repl_ix_1;
 
-    /* resumables */
-    ibool_t          has_0_0_acc_s_reify_2_conv_5_simpflat_6;
+    /* resumables: values */
     ierror_t         res_0_0_acc_s_reify_2_conv_5_simpflat_6;
-    ibool_t          has_0_0_acc_s_reify_2_conv_5_simpflat_7;
     itime_t          res_0_0_acc_s_reify_2_conv_5_simpflat_7;
-    ibool_t          has_0_0_acc_conv_4_simpflat_2;
     itime_t          res_0_0_acc_conv_4_simpflat_2;
+
+    /* resumables: has flags */
+    ibool_t          has_flags_start_0_0;
+    ibool_t          has_0_0_acc_s_reify_2_conv_5_simpflat_6;
+    ibool_t          has_0_0_acc_s_reify_2_conv_5_simpflat_7;
+    ibool_t          has_0_0_acc_conv_4_simpflat_2;
+    ibool_t          has_flags_end_0_0;
+
 
 } iattribute_0_t;
 

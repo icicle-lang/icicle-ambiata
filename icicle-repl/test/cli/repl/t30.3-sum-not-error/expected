@@ -44,13 +44,18 @@ typedef struct {
     iint_t           repl_ix_1;
     idouble_t        repl_ix_2;
 
-    /* resumables */
-    ibool_t          has_0_0_acc_perhaps_conv_4_simpflat_5;
+    /* resumables: values */
     iint_t           res_0_0_acc_perhaps_conv_4_simpflat_5;
-    ibool_t          has_0_0_acc_perhaps_conv_4_simpflat_4;
     ibool_t          res_0_0_acc_perhaps_conv_4_simpflat_4;
-    ibool_t          has_0_0_acc_perhaps_conv_4_simpflat_6;
     idouble_t        res_0_0_acc_perhaps_conv_4_simpflat_6;
+
+    /* resumables: has flags */
+    ibool_t          has_flags_start_0_0;
+    ibool_t          has_0_0_acc_perhaps_conv_4_simpflat_5;
+    ibool_t          has_0_0_acc_perhaps_conv_4_simpflat_4;
+    ibool_t          has_0_0_acc_perhaps_conv_4_simpflat_6;
+    ibool_t          has_flags_end_0_0;
+
 
 } iattribute_0_t;
 
