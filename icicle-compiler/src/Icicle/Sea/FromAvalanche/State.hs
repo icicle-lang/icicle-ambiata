@@ -27,6 +27,9 @@ module Icicle.Sea.FromAvalanche.State (
   , stateNewCount
   , stateInputRes
   , stateInputHas
+  , nameOfResumable
+  , nameOfResumableHasFlagsStart
+  , nameOfResumableHasFlagsEnd
 
   -- * Prefixes for facts/resumables.
   , hasPrefix
@@ -184,11 +187,22 @@ seaOfStateCompute state
             . stateOutputs
             $ state
  , ""
- , "    /* resumables */"
+ , "    /* resumables: values */"
  , indent 4 . vsep
-            . fmap defOfResumable
+            . fmap (defValueOfResumable state)
             . stateResumables
             $ state
+ , ""
+ -- Grouping all the has_* flags together lets us set them all to false with a single memset.
+ -- Surprisingly, this can save a large amount of compilation time.
+ , "    /* resumables: has flags */"
+ , indent 4 ( defOfVar 0 BoolT (nameOfResumableHasFlagsStart state) <> semi )
+ , indent 4 . vsep
+            . fmap (defHasOfResumable state)
+            . stateResumables
+            $ state
+ , indent 4 ( defOfVar 0 BoolT (nameOfResumableHasFlagsEnd state) <> semi )
+ , ""
  ]
 
 ------------------------------------------------------------------------
@@ -220,10 +234,28 @@ defOfFactField (name, ty)
 
 ------------------------------------------------------------------------
 
-defOfResumable :: (Text, ValType) -> Doc
-defOfResumable (n, t)
- =  defOfVar 0 BoolT (pretty hasPrefix <> pretty n) <> semi <> line
- <> defOfVar 0 t     (pretty resPrefix <> pretty n) <> semi
+defValueOfResumable :: SeaProgramCompute -> (Text, ValType) -> Doc
+defValueOfResumable compute (n, t)
+ =  defOfVar 0 t     (pretty resPrefix <> nameOfResumable compute (pretty n)) <> semi
+
+defHasOfResumable :: SeaProgramCompute -> (Text, ValType) -> Doc
+defHasOfResumable compute (n, _)
+ =  defOfVar 0 BoolT (pretty hasPrefix <> nameOfResumable compute (pretty n)) <> semi
+
+nameOfResumable :: SeaProgramCompute -> Doc -> Doc
+nameOfResumable compute n
+ = let (i,j) = stateComputeName compute
+   in  pretty i <> "_" <> pretty j <> "_" <> n
+
+nameOfResumableHasFlagsStart :: SeaProgramCompute -> Doc
+nameOfResumableHasFlagsStart compute
+ = let (i,j) = stateComputeName compute
+   in  "has_flags_start_" <> pretty i <> "_" <> pretty j
+
+nameOfResumableHasFlagsEnd :: SeaProgramCompute -> Doc
+nameOfResumableHasFlagsEnd compute
+ = let (i,j) = stateComputeName compute
+   in  "has_flags_end_" <> pretty i <> "_" <> pretty j
 
 defsOfOutput :: (OutputName, (ValType, [ValType])) -> [Doc]
 defsOfOutput (n, (_, ts))

@@ -134,11 +134,13 @@ seaOfWriteProgramOutput config state = do
             PsvOutputDense
               -> seaOfWriteOutputDense  ps 0 name ty tys tb
 
-  let outputRes   name
-        = ps <> "->" <> pretty (hasPrefix <> name) <+> "= ifalse;"
+  let resStart compute = "(void*)(&" <> ps <> "->" <> nameOfResumableHasFlagsStart compute <> ")"
+  let resEnd   compute = "(void*)(&" <> ps <> "->" <> nameOfResumableHasFlagsEnd   compute <> ")"
+  let clearResumables compute
+        = "memset (" <> resStart compute <> ", 0, " <> resEnd compute <> " - " <> resStart compute <> ");"
 
   let computes = NonEmpty.toList $ stateComputes state
-  let resumeables  = fmap (outputRes . fst) (concatMap stateResumables computes)
+  let resumeables  = fmap clearResumables computes
   outputs         <- traverse outputState (concatMap stateOutputs computes)
   let callComputes = fmap (\i -> pretty (nameOfCompute i) <+> "(" <> ps <> ");") computes
 

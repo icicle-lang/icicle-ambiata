@@ -16,6 +16,9 @@ module Icicle.Command (
   , QueryStatistics(..)
   , QueryOptions(..)
 
+  , CompilerFlags(..)
+  , defaultCompilerFlags
+
   , IcicleError(..)
   , renderIcicleError
 
@@ -155,6 +158,16 @@ data Scope a =
   | ScopeChord a
     deriving (Eq, Ord, Show, Functor)
 
+data CompilerFlags =
+  CompilerFlags {
+    compilerMaximumQueriesPerKernel :: Int
+  }
+  deriving (Eq, Ord, Show)
+
+defaultCompilerFlags :: CompilerFlags
+defaultCompilerFlags = CompilerFlags 100
+
+
 psvOfOutputFormat :: OutputFormat -> PsvOutputFormat
 psvOfOutputFormat = \case
   OutputSparsePsv ->
@@ -263,7 +276,7 @@ compileFleet ::
 compileFleet dictionary format input chords = do
   let cfg = HasInput format (InputOpts AllowDupTime (tombstonesOfDictionary dictionary)) input
 
-  avalanche <- hoistEither $ compileAvalanche dictionary
+  avalanche <- hoistEither $ compileAvalanche dictionary defaultCompilerFlags
   let avalancheL = Map.toList avalanche
 
   let attrs = List.sort $ getConcreteFeatures dictionary
@@ -325,14 +338,15 @@ compileDictionary ::
   -> InputFormat
   -> OutputFormat
   -> Scope a
+  -> CompilerFlags
   -> EitherT IcicleError IO Text
-compileDictionary dictionaryPath iformat oformat scope = do
+compileDictionary dictionaryPath iformat oformat scope cflags = do
   -- FIXME We really need to include InputFormat/OutputFormat/Scope in the compiled
   -- FIXME code so that we don't accidentally run with the wrong options.
   (dictionary, format) <- loadDictionary dictionaryPath iformat oformat scope
 
   let cfg = HasInput format (InputOpts AllowDupTime (tombstonesOfDictionary dictionary)) ()
-  avalanche <- fmap Map.toList . hoistEither $ compileAvalanche dictionary
+  avalanche <- fmap Map.toList . hoistEither $ compileAvalanche dictionary cflags
 
   let attrs = List.sort $ getConcreteFeatures dictionary
 
@@ -340,10 +354,17 @@ compileDictionary dictionaryPath iformat oformat scope = do
 
 compileAvalanche ::
      Dictionary
+  -> CompilerFlags
   -> Either IcicleError (Map Attribute (NonEmpty (Program (Annot Compiler.AnnotUnit) Compiler.Var Prim)))
-compileAvalanche dictionary =
-  first IcicleCompileError $
-    Compiler.avalancheOfDictionary Compiler.defaultCompileOptions dictionary
+compileAvalanche dictionary cflags =
+  first IcicleCompileError $ Compiler.avalancheOfDictionary (compileOptionsOfCompilerFlags cflags) dictionary
+
+
+compileOptionsOfCompilerFlags :: CompilerFlags -> Compiler.IcicleCompileOptions
+compileOptionsOfCompilerFlags cflags =
+  Compiler.defaultCompileOptions
+  { Compiler.icicleFusionOptions = Compiler.FusionOptions $ compilerMaximumQueriesPerKernel cflags }
+
 
 releaseQuery :: Query a -> EitherT IcicleError IO ()
 releaseQuery b =
