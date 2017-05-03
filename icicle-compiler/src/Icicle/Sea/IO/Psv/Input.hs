@@ -66,19 +66,19 @@ seaOfReadInputFields :: ValType -> [(Text, ValType)] -> Either SeaError CStmt
 seaOfReadInputFields inType inVars
  = case (inVars, inType) of
     ([(nx, BoolT)], BoolT)
-     -> pure (readValue "text" assignVar nx BoolT)
+     -> readValue "text" assignVar nx BoolT
 
     ([(nx, DoubleT)], DoubleT)
-     -> pure (readValue "text" assignVar nx DoubleT)
+     -> readValue "text" assignVar nx DoubleT
 
     ([(nx, IntT)], IntT)
-     -> pure (readValue "text" assignVar nx IntT)
+     -> readValue "text" assignVar nx IntT
 
     ([(nx, TimeT)], TimeT)
-     -> pure (readValue "text" assignVar nx TimeT)
+     -> readValue "text" assignVar nx TimeT
 
     ([(nx, StringT)], StringT)
-     -> pure (readValuePool "text" assignVar nx StringT)
+     -> readValuePool "text" assignVar nx StringT
 
     (_, t@(ArrayT _))
      -> seaOfReadJsonValue assignVar t inVars
@@ -111,7 +111,7 @@ seaOfReadNamedFact errs allowDupTime state
                 else "if (time <= last_time)"
    in vsep
       [ "{"
-      , "    itime_t time;"
+      , "    itime_t time = 0;"
       , indent 4 seaOfReadTime
       , ""
       , "    ibool_t        ignore_time = itrue;"
@@ -511,19 +511,19 @@ seaOfReadJsonValue assign vtype vars
          ]
 
      ([(nx, BoolT)], BoolT)
-      -> pure (readValue "json" assign nx BoolT)
+      -> readValue "json" assign nx BoolT
 
      ([(nx, IntT)], IntT)
-      -> pure (readValue "json" assign nx IntT)
+      -> readValue "json" assign nx IntT
 
      ([(nx, DoubleT)], DoubleT)
-      -> pure (readValue "json" assign nx DoubleT)
+      -> readValue "json" assign nx DoubleT
 
      ([(nx, TimeT)], TimeT)
-      -> pure (readValue "json" assign nx TimeT)
+      -> readValue "json" assign nx TimeT
 
      ([(nx, StringT)], StringT)
-      -> pure (readValuePool "json" assign nx StringT)
+      -> readValuePool "json" assign nx StringT
 
      (ns, StructT t)
        -> seaOfReadJsonObject assign t ns
@@ -550,22 +550,24 @@ seaOfDefault assign vtype var
     _
      -> Left (SeaInputTypeMismatch vtype [(var,vtype)])
 
-readValue :: Doc -> Assignment -> Text -> ValType -> Doc
+readValue :: Doc -> Assignment -> Text -> ValType -> Either SeaError Doc
 readValue
  = readValueArg ""
 
-readValuePool :: Doc -> Assignment -> Text -> ValType -> Doc
+readValuePool :: Doc -> Assignment -> Text -> ValType -> Either SeaError Doc
 readValuePool
  = readValueArg "mempool, "
 
-readValueArg :: Doc -> Doc -> Assignment -> Text -> ValType -> Doc
-readValueArg arg fmt assign n vt
- = vsep
- [ seaOfValType vt <+> "value;"
- , "error = " <> fmt <> "_read_" <> baseOfValType vt <> " (" <> arg <> "&p, pe, &value);"
- , "if (error) return error;"
- , assign (pretty n) vt "value"
- ]
+readValueArg :: Doc -> Doc -> Assignment -> Text -> ValType -> Either SeaError Doc
+readValueArg arg fmt assign n vt = do
+  valDefault <- seaOfDefault assignVar vt "value"
+  pure $ vsep
+    [ seaOfValType vt <+> "value;"
+    , valDefault
+    , "error = " <> fmt <> "_read_" <> baseOfValType vt <> " (" <> arg <> "&p, pe, &value);"
+    , "if (error) return error;"
+    , assign (pretty n) vt "value"
+    ]
 
 seaOfReadJsonList :: ValType -> [(Text, ValType)] -> Either SeaError Doc
 seaOfReadJsonList vtype avars = do
