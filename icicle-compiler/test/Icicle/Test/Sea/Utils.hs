@@ -50,7 +50,9 @@ readLibrary code =
   flip readLibraryWith code =<< liftIO getCompilerOptions
 
 readLibraryWith :: [CompilerOption] -> SourceCode -> EitherT JetskiError IO Library
-readLibraryWith opts code = do
+readLibraryWith userOpts code = do
+  defaultOpts <- getCompilerOptions
+  let opts = userOpts <> defaultOpts
   mlib <- liftIO (readIORef libraryRef)
   case mlib of
     Just elib -> hoistEither elib
