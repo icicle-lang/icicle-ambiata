@@ -197,23 +197,4 @@ rm $t5_out_psv_1
 rm $t5_out_psv_2
 rm $t5_drop
 
-################################################################################
-
-echo "6. Zebra input"
-
-t6_common_args="--snapshot 2018-01-01"
-t6_dict=test/cli/icicle/t6-zebra.toml
-t6_in=test/cli/icicle/t6-input
-t6_expect=test/cli/icicle/t6-expected.psv
-
-t6_out_c=`mktemp -t icicle-t6-c-XXXXXX`
-t6_out_psv=`mktemp -t icicle-t6-out-1-XXXXXX`
-
-dist/build/icicle/icicle query --dictionary-toml $t6_dict --input-zebra $t6_in --output-dense-psv $t6_out_psv $t6_common_args
-
-diff -u $t6_expect $t6_out_psv
-
-rm $t6_out_c
-rm $t6_out_psv
-
 echo "OK!"

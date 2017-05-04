@@ -17,8 +17,6 @@ import           Jetski (Return, retInt64)
 
 import           P
 
-import qualified Prelude as Savage
-
 import           System.IO
 
 import           Test.QuickCheck
@@ -58,7 +56,12 @@ data Val
 data Input = Input
   { inputType :: Ty
   , inputArr  :: [Val]
-  } deriving (Show)
+  }
+
+instance Show Input where
+  show (Input ty vs) =
+    "Input: " <> show ty <> "\n" <>
+    "       " <> show vs
 
 instance Arbitrary Ty where
   arbitrary = oneof_sized
@@ -174,7 +177,15 @@ pokeStr xs = do
 
 pokeArr :: [Val] -> IO (WordPtr, IO ())
 pokeArr xs = do
-  ptr <- mallocBytes (sizeOf (Savage.undefined :: WordPtr) * (length xs + 1))
+  -- needs to be rounded up to the nearest power of two because the mempool assumes that
+  let
+    roundUp len n
+      | len >= n
+      = roundUp len (2*n)
+      | otherwise
+      = n
+  let alloc = roundUp (8 * length xs) 4
+  ptr <- mallocBytes alloc
   pokeByteOff ptr 0 (length xs)
   (ps, fs) <- List.unzip <$> mapM pokeVal xs
   zipWithM_ (pokeElemOff ptr) [1..] ps

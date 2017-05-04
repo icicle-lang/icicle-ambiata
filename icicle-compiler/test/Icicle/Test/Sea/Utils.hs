@@ -1,31 +1,33 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell   #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Icicle.Test.Sea.Utils (
     codeOfDoc
   , textOfDoc
   , readLibrary
+  , readLibraryWith
   , releaseLibraryAfterTests
   ) where
 
-import qualified Icicle.Internal.Pretty as PP
-import           Icicle.Sea.Eval (getCompilerOptions)
-import           Icicle.Sea.Preamble (seaPreamble)
-import           Icicle.Test.Arbitrary ()
+import qualified Icicle.Internal.Pretty       as PP
+import           Icicle.Sea.Eval              (getCompilerOptions)
+import           Icicle.Sea.Preamble          (seaPreamble)
+import           Icicle.Test.Arbitrary        ()
 
-import           Control.Exception (finally)
-import           Control.Monad.IO.Class (liftIO)
+import           Control.Exception            (finally)
+import           Control.Monad.IO.Class       (liftIO)
 
-import           Data.IORef (IORef, newIORef, readIORef, writeIORef)
-import qualified Data.Text as T
+import           Data.IORef                   (IORef, newIORef, readIORef,
+                                               writeIORef)
+import qualified Data.Text                    as T
 
 import           Jetski
 
 import           P
 
 import           System.IO
-import           System.IO.Unsafe (unsafePerformIO)
+import           System.IO.Unsafe             (unsafePerformIO)
 
 import           X.Control.Monad.Trans.Either
 
@@ -44,12 +46,17 @@ libraryRef = unsafePerformIO (newIORef Nothing)
 {-# NOINLINE libraryRef #-}
 
 readLibrary :: SourceCode -> EitherT JetskiError IO Library
-readLibrary code = do
+readLibrary code =
+  flip readLibraryWith code =<< liftIO getCompilerOptions
+
+readLibraryWith :: [CompilerOption] -> SourceCode -> EitherT JetskiError IO Library
+readLibraryWith userOpts code = do
+  defaultOpts <- getCompilerOptions
+  let opts = userOpts <> defaultOpts
   mlib <- liftIO (readIORef libraryRef)
   case mlib of
     Just elib -> hoistEither elib
     Nothing   -> do
-      opts <- getCompilerOptions
       elib <- liftIO (runEitherT (compileLibrary NoCacheLibrary opts code))
       liftIO (writeIORef libraryRef (Just elib))
       hoistEither elib
