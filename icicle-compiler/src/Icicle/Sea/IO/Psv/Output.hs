@@ -101,7 +101,7 @@ seaOfWriteFleetOutput config whitelist states = do
 seaOfChordName :: Mode -> Doc
 seaOfChordName = \case
   Snapshot _ -> vsep
-    [ "const char  *chord_name = \"\";"
+    [ "const char  *chord_name = NULL;"
     , "const size_t chord_name_length = 0;"
     ]
   Chords -> vsep
@@ -116,7 +116,7 @@ timeFmt = "%04\" PRId64 \"-%02\" PRId64 \"-%02\" PRId64 \"T%02\" PRId64 \":%02\"
 outputChord :: Doc
 outputChord
   = vsep
-  [ "if (chord_name_length != 0) {"
+  [ "if (chord_name != NULL) {"
   , indent 4 $ outputChar '|'
   , indent 4 $ outputValue "string" ["chord_name", "chord_name_length"]
   , "}"
