@@ -77,14 +77,16 @@ seaOfWriteFleetOutput config whitelist states = do
     , "    , ifleet_t *fleet )"
     , "{"
     , "    iint_t         chord_count = fleet->chord_count;"
-    , "    const itime_t *chord_times = fleet->chord_times;"
+    , "    const int64_t *chord_name_lengths = fleet->chord_name_lengths;"
+    , "    const int64_t *chord_name_offsets = fleet->chord_name_offsets;"
+    , "    const uint8_t *chord_name_data = fleet->chord_name_data;"
     , "    ierror_msg_t   error;"
     , ""
     , "    char *buffer_ptr = *buffer_ptr_ptr;"
     , ""
     , "    for (iint_t chord_ix = 0; chord_ix < chord_count; chord_ix++) {"
     , indent 8 beforeChord
-    , indent 8 (seaOfChordTime $ outputPsvMode config)
+    , indent 8 (seaOfChordName $ outputPsvMode config)
     , indent 8 (vsep write_sea)
     , indent 8 inChord
     , indent 8 afterChord
@@ -96,20 +98,16 @@ seaOfWriteFleetOutput config whitelist states = do
     , "}"
     ]
 
-seaOfChordTime :: Mode -> Doc
-seaOfChordTime = \case
+seaOfChordName :: Mode -> Doc
+seaOfChordName = \case
   Snapshot _ -> vsep
-    [ "const char  *chord_time = \"\";"
-    , "const size_t chord_size = 0;"
+    [ "const char  *chord_name = NULL;"
+    , "const size_t chord_name_length = 0;"
     ]
-  Chords     -> vsep
-    [ "iint_t c_year, c_month, c_day, c_hour, c_minute, c_second;"
-    , "itime_to_gregorian (chord_times[chord_ix], &c_year, &c_month, &c_day, &c_hour, &c_minute, &c_second);"
-    , ""
-    , "const size_t chord_size = sizeof (\"|yyyy-mm-ddThh:mm:ssZ\") - 1;"
-    , "char chord_time[chord_size + 1];"
-    , "snprintf (chord_time, chord_size + 1, \"|" <> timeFmt <> "\", "
-             <> "c_year, c_month, c_day, c_hour, c_minute, c_second);"
+  Chords -> vsep
+    [ "const int64_t  chord_name_offset = chord_name_offsets[chord_ix];"
+    , "const int64_t  chord_name_length = chord_name_lengths[chord_ix];"
+    , "const char    *chord_name = (char*) (chord_name_data + chord_name_offset);"
     ]
 
 timeFmt :: Doc
@@ -117,8 +115,12 @@ timeFmt = "%04\" PRId64 \"-%02\" PRId64 \"-%02\" PRId64 \"T%02\" PRId64 \":%02\"
 
 outputChord :: Doc
 outputChord
-  = outputValue "string" ["chord_time", "chord_size"]
-
+  = vsep
+  [ "if (chord_name != NULL) {"
+  , indent 4 $ outputChar '|'
+  , indent 4 $ outputValue "string" ["chord_name", "chord_name_length"]
+  , "}"
+  ]
 
 seaOfWriteProgramOutput :: PsvOutputConfig -> SeaProgramAttribute -> Either SeaError Doc
 seaOfWriteProgramOutput config state = do
