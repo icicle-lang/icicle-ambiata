@@ -46,7 +46,7 @@ import           Test.QuickCheck (Arbitrary(..), forAll)
 import           Test.QuickCheck (property, discard)
 import           Test.QuickCheck.Property (succeeded)
 
-import           X.Control.Monad.Trans.Either (EitherT, runEitherT)
+import           X.Control.Monad.Trans.Either (EitherT, runEitherT, hoistEither)
 import           X.Control.Monad.Trans.Either (bracketEitherT', left)
 
 
@@ -89,8 +89,20 @@ compileTest2 wt1 wt2 (TestOpts _ _ inputFormat allowDupTime) = do
       iformat  = S.FormatPsv conf
       iopts    = S.InputOpts allowDupTime (Map.singleton (wtAttribute wt1) (Set.singleton tombstone))
       attrs    = [wtAttribute wt1]
+      -- psv now uses piano, so we need this trick for testing.
+      piano = T.concat
+        [ "int64_t piano_max_count (piano_t *piano) {"
+        , "    return 1;"
+        , "}"
+        , ""
+        , "error_t piano_lookup (piano_t *piano, const uint8_t *needle_id, size_t needle_id_size, int64_t *out_count, const int64_t **out_label_times, const int64_t **out_label_name_offsets, const int64_t **out_label_name_lengths, const uint8_t **out_label_name_data) {"
+        , "    return 0;"
+        , "}"
+        ]
 
-  S.seaCompileFleet options S.NoCacheSea (S.HasInput iformat iopts "dummy_path") attrs programs Nothing
+  let input = HasInput iformat iopts "dummy_path"
+  code <- hoistEither (S.codeOfPrograms input attrs (Map.toList programs))
+  S.seaCreateFleet options (S.fromCacheSea S.NoCacheSea) input Nothing (length attrs) (code <> piano)
 
 runTest2 :: WellTyped -> WellTyped -> S.PsvConstants -> TestOpts -> EitherT S.SeaError IO ()
 runTest2 wt1 wt2 consts testOpts = do
