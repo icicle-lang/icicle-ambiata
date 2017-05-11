@@ -223,19 +223,18 @@ seaCompileFleet ::
   -> EitherT SeaError m (SeaFleet st)
 seaCompileFleet options cache input attributes programs chords = do
   code <- hoistEither (codeOfPrograms input attributes (Map.toList programs))
-  seaCreateFleet options (fromCacheSea cache) input chords (length attributes) code
+  seaCreateFleet options (fromCacheSea cache) input chords code
 
 seaCreate ::
      (MonadIO m)
   => CacheSea
   -> Input FilePath
   -> Maybe FilePath
-  -> Int
   -> Text
   -> EitherT SeaError m (SeaFleet st)
-seaCreate cache input chords attribute_count code = do
+seaCreate cache input chords code = do
   options <- getCompilerOptions
-  seaCreateFleet options (fromCacheSea cache) input chords attribute_count code
+  seaCreateFleet options (fromCacheSea cache) input chords code
 
 fromCacheSea :: CacheSea -> CacheLibrary
 fromCacheSea = \case

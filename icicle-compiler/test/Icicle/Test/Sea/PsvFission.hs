@@ -102,7 +102,7 @@ compileTest2 wt1 wt2 (TestOpts _ _ inputFormat allowDupTime) = do
 
   let input = HasInput iformat iopts "dummy_path"
   code <- hoistEither (S.codeOfPrograms input attrs (Map.toList programs))
-  S.seaCreateFleet options (S.fromCacheSea S.NoCacheSea) input Nothing (length attrs) (code <> piano)
+  S.seaCreateFleet options (S.fromCacheSea S.NoCacheSea) input Nothing (code <> piano)
 
 runTest2 :: WellTyped -> WellTyped -> S.PsvConstants -> TestOpts -> EitherT S.SeaError IO ()
 runTest2 wt1 wt2 consts testOpts = do
