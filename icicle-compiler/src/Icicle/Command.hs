@@ -264,7 +264,7 @@ mkQueryFleet input chord source = do
   let cfg = HasInput format (InputOpts AllowDupTime Map.empty) (inputPath input)
 
   code  <- liftIO $ Text.readFile source
-  fleet <- firstEitherT IcicleSeaError (seaCreate CacheSea cfg chord 0 code)
+  fleet <- firstEitherT IcicleSeaError (seaCreate CacheSea cfg chord code)
   return (code, fleet)
 
 compileFleet ::

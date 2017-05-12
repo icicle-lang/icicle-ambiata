@@ -48,7 +48,19 @@ seaOfZebraDriver :: [Attribute] -> [SeaProgramAttribute] -> Either SeaError Doc
 seaOfZebraDriver concretes states = do
   let lookup x = maybeToRight (SeaNoAttributeIndex x) $ List.elemIndex x concretes
   indices <- sequence $ fmap (lookup . stateAttribute) states
-  return $ seaOfDefRead (List.zip indices states)
+  return . vsep $
+    [ seaOfAttributeCount concretes
+    , seaOfDefRead (List.zip indices states)
+    ]
+
+seaOfAttributeCount :: [Attribute] -> Doc
+seaOfAttributeCount all_attributes = vsep
+  [ "static int64_t zebra_attribute_count()"
+  , "{"
+  , "    return " <> pretty (length all_attributes) <> ";"
+  , "}"
+  , ""
+  ]
 
 -- zebra_read_entity ( zebra_state_t *state, zebra_entity_t *entity ) {
 --   /* attribute 0 */

@@ -72,10 +72,9 @@ seaCreateFleet ::
   -> CacheLibrary
   -> Input FilePath
   -> Maybe FilePath
-  -> Int
   -> Text
   -> EitherT SeaError m (SeaFleet st)
-seaCreateFleet options cache input chords attribute_count code = do
+seaCreateFleet options cache input chords code = do
   lib                  <- firstEitherT SeaJetskiError (compileLibrary cache options code)
   imempool_create      <- firstEitherT SeaJetskiError (function lib "anemone_mempool_create" (retPtr retVoid))
   imempool_free        <- firstEitherT SeaJetskiError (function lib "anemone_mempool_free"   retVoid)
@@ -119,7 +118,7 @@ seaCreateFleet options cache input chords attribute_count code = do
           withPiano ptr cpiano = do
             let piano = unCPiano cpiano
 
-            state <- init [ argPtr piano, argPtr ptr, argInt64 (fromIntegral attribute_count) ]
+            state <- init [ argPtr piano, argPtr ptr ]
 
             let step' :: CEntity -> EitherT SeaError IO ()
                 step' e = do

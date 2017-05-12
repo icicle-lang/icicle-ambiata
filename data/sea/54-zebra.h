@@ -49,6 +49,7 @@ typedef struct zebra_state {
 
 } zebra_state_t;
 
+static int64_t zebra_attribute_count ();
 
 static int64_t zebra_translate_table
   ( anemone_mempool_t *mempool
@@ -221,7 +222,7 @@ static int64_t zebra_translate_column
     return 0;
 }
 
-zebra_state_t *zebra_alloc_state (piano_t *piano, zebra_config_t *cfg, int64_t attribute_count)
+zebra_state_t *zebra_alloc_state (piano_t *piano, zebra_config_t *cfg)
 {
     zebra_state_t *state = malloc(sizeof(zebra_state_t));
 
@@ -254,6 +255,8 @@ zebra_state_t *zebra_alloc_state (piano_t *piano, zebra_config_t *cfg, int64_t a
     state->output_ptr   = output_ptr;
     state->output_fd    = output_fd;
     state->drop_fd      = drop_fd;
+
+    int64_t attribute_count = zebra_attribute_count ();
 
     state->attribute_count    = attribute_count;
     state->entity_fact_offset = calloc(attribute_count, sizeof (int64_t));

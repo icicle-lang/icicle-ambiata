@@ -286,7 +286,7 @@ compileTest wt (TestOpts _ _ inputFormat allowDupTime) = do
         ]
       code' = code <> savage
 
-  S.seaCreateFleet options (S.fromCacheSea cache) input chords (length attrs) code'
+  S.seaCreateFleet options (S.fromCacheSea cache) input chords code'
 
 
 runTest :: WellTyped -> S.PsvConstants -> TestOpts -> EitherT S.SeaError IO ()
