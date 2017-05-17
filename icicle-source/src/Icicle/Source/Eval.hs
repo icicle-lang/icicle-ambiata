@@ -72,11 +72,14 @@ evalQ q vs env
                  -- and
                  -- > q' : t'
                  -- then we need to wrap the result in an Array.
+                 -- There is another case for possiblies, where result has type
+                 -- > latest i ~> q' : Array (Sum Error t')
+                 -- These correspond to the "dataOfLatest" rules in Source.Type.Constraints.
                  | t  <- annResult $ annotOfQuery q
                  , t' <- annResult $ annotOfQuery q'
                  , Just (ArrayT t0) <- getBaseType t
                  , Just t0' <- getBaseType t'
-                 , t0 == t0'
+                 , t0 == t0' || t0 == SumT ErrorT t0'
                  -> let vs' = reverse $ take i $ reverse vs
                     in  VArray <$> mapM (evalQ q' []) vs'
                  | otherwise
