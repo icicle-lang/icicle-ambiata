@@ -180,6 +180,7 @@ t5_common_args="--snapshot 2010-01-01"
 t5_dict=test/cli/icicle/t5-dictionary.toml
 t5_in=test/cli/icicle/t5-in.psv
 
+t5_expected=test/cli/icicle/t5-expected.psv
 t5_out_c=`mktemp -t icicle-t5-c-XXXXXX`
 t5_out_psv_1=`mktemp -t icicle-t5-out-1-XXXXXX`
 t5_out_psv_2=`mktemp -t icicle-t5-out-2-XXXXXX`
@@ -190,7 +191,8 @@ dist/build/icicle/icicle query --dictionary-toml $t5_dict --input-sparse-psv $t5
 dist/build/icicle/icicle compile --dictionary-toml $t5_dict --input-sparse-psv --output-dense-psv --output-code $t5_out_c $t5_common_args
 dist/build/icicle/icicle query --dictionary-code $t5_out_c --input-sparse-psv $t5_in --output-dense-psv $t5_out_psv_2 $t5_common_args
 
-diff -u $t5_out_psv_1 $t5_out_psv_2
+diff -u $t5_expected $t5_out_psv_1
+diff -u $t5_expected $t5_out_psv_2
 
 rm $t5_out_c
 rm $t5_out_psv_1

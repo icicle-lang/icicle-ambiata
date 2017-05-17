@@ -1,0 +1,70 @@
+{
+  "version": "v0",
+  "schema": {
+    "map": {
+      "key": {
+        "struct": {
+          "fields": [
+            { "name": "entity_hash",
+              "schema": {
+                "int": {}}},
+            { "name": "entity_id",
+              "schema": {
+                "binary": {
+                  "encoding": {
+                    "utf8": {}}}}}]}},
+      "value": {
+        "struct": {
+          "fields": [
+            { "name": "default:injury",
+              "schema": {
+                "map": {
+                  "key": {
+                    "struct": {
+                      "fields": [
+                        {
+                          "name": "time",
+                          "schema": {
+                            "int": {}}},
+                        {
+                          "name": "factset_id",
+                          "schema": {
+                            "reversed": {
+                              "int": {}}}}]}},
+                  "value": {
+                    "array": {
+                      "element": {
+                        "enum": {
+                          "variants": [
+                          { "name": "none"
+                          , "schema": {
+                              "unit": {}}},
+                          {
+                            "name": "some",
+                            "schema": {
+                        "struct": {
+                          "fields": [
+                            { "name": "action"
+                            , "schema": {
+                                "enum": {
+                                  "variants": [
+                                  {
+                                    "name": "none",
+                                    "schema": {
+                                      "unit": {}}},
+                                  {
+                                    "name": "some",
+                                    "schema": {
+                                      "binary": {
+                                        "encoding": {
+                                          "utf8": {}}}}}]
+                                  } } },
+                            { "name": "location"
+                            , "schema": {
+                                "binary": {
+                                  "encoding": {
+                                    "utf8": {}
+                                  } } } },
+                            { "name": "severity"
+                            , "schema": { "double": {}}}]}
+                          } } ] }}}}}}}]}}}}}
