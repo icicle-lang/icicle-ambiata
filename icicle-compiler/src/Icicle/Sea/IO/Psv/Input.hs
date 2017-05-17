@@ -99,13 +99,18 @@ seaOfReadTombstone input = \case
 
 seaOfReadNamedFact :: SeaInputError
                    -> InputAllowDupTime
+                   -> [SeaProgramAttribute]
                    -> SeaProgramAttribute
                    -> CStmt
-seaOfReadNamedFact errs allowDupTime state
+seaOfReadNamedFact errs allowDupTime all_states state
  = let fun    = nameOfReadFact state
        pname  = pretty (nameOfAttribute  state)
        tname  = pretty (nameOfLastTime state)
        cname  = pretty (nameOfCount    state)
+       counts = hsep
+              $ punctuate (" || ")
+              $ fmap (\s -> "fleet->" <> pretty (nameOfCount s) <> " > facts_limit")
+                all_states
        tcond  = if allowDupTime == AllowDupTime
                 then "if (time < last_time)"
                 else "if (time <= last_time)"
@@ -144,7 +149,7 @@ seaOfReadNamedFact errs allowDupTime state
       , ""
       , "    fleet->" <> cname <> " ++;"
       , ""
-      , "    if (fleet->" <> cname <> " > facts_limit)"
+      , "    if (" <> counts <> ")"
       , "    {"
       , indent 8 $ seaInputErrorCountExceedLimit errs
       , "    }"
@@ -161,6 +166,7 @@ seaOfReadNamedFact errs allowDupTime state
       , "}"
       , ""
       ]
+
 seaOfReadFact
   :: SeaProgramAttribute
   -> Set Text
@@ -246,7 +252,7 @@ seaOfReadAnyFactPsv opts config states = do
               , "  , const size_t  facts_limit"
               , "  , const iint_t  max_row_count )"
               , "{"
-              , indent 4 (vsep (fmap (seaOfReadNamedFactSparse opts) states))
+              , indent 4 (vsep (fmap (seaOfReadNamedFactSparse opts states) states))
               , "    return 0;"
               , "}"
               ]
@@ -306,7 +312,7 @@ seaOfReadNamedFactDense opts state
                 ])
    in vsep
       [ "/* " <> pretty attrib <> " */"
-      , seaOfReadNamedFact errs (inputAllowDupTime opts) state
+      , seaOfReadNamedFact errs (inputAllowDupTime opts) [state] state
       ]
 
 
@@ -426,8 +432,8 @@ mappingOfDenseFields fields varsoup
 
 -- * Sparse PSV
 
-seaOfReadNamedFactSparse :: InputOpts -> SeaProgramAttribute -> Doc
-seaOfReadNamedFactSparse opts state
+seaOfReadNamedFactSparse :: InputOpts -> [SeaProgramAttribute] -> SeaProgramAttribute -> Doc
+seaOfReadNamedFactSparse opts all_states state
  = let attrib = getAttribute (stateAttribute state)
        errs   = SeaInputError
                 ( vsep
@@ -457,7 +463,7 @@ seaOfReadNamedFactSparse opts state
    in vsep
       [ "/* " <> pretty attrib <> " */"
       , "if (" <> seaOfStringEq attrib "attrib_ptr" (Just "attrib_size") <> ")"
-      , seaOfReadNamedFact errs (inputAllowDupTime opts) state
+      , seaOfReadNamedFact errs (inputAllowDupTime opts) all_states state
       ]
 
 seaOfReadFactSparse
