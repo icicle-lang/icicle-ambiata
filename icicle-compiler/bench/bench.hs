@@ -2,6 +2,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 import           Control.Monad.IO.Class (liftIO)
+import           Control.Monad.Trans.Resource (ResourceT, runResourceT)
+import           Control.Monad.Morph (hoist)
 
 import           Criterion.Main
 import           Criterion.Types (Config(..))
@@ -48,9 +50,12 @@ main =
       ]
 
     hPutStrLn stderr "Compiling"
-    _ <- runEitherT . bracketEitherT' (createBenchmarks repos) releaseBenchmarks $ \bs -> do
-      liftIO $ hPutStrLn stderr "Running benchmarks"
-      liftIO $ defaultMainWith benchConfig (fmap group bs)
+    _ <- runResourceT . runEitherT $ bracketEitherT'
+      (createBenchmarks repos)
+      (hoist liftIO .  releaseBenchmarks)
+      (\bs -> hoist liftIO $ do
+        liftIO $ hPutStrLn stderr "Running benchmarks"
+        liftIO $ defaultMainWith benchConfig (fmap group bs))
 
     return ()
 
@@ -127,10 +132,10 @@ generateRepo root (freq, ys, es) = do
 
   return (name, path)
 
-createBenchmarks :: [(String, FilePath)] -> EitherT IcicleError IO [(String, Bench)]
+createBenchmarks :: [(String, FilePath)] -> EitherT IcicleError (ResourceT IO) [(String, Bench)]
 createBenchmarks = traverse createBenchmark
 
-createBenchmark :: (String, FilePath) -> EitherT IcicleError IO (String, Bench)
+createBenchmark :: (String, FilePath) -> EitherT IcicleError (ResourceT IO) (String, Bench)
 createBenchmark (name, path) = do
   let dict    = path </> "dictionary.toml"
       input   = path </> "data.psv"

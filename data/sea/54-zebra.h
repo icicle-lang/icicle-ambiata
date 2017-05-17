@@ -75,7 +75,7 @@ static ierror_msg_t zebra_translate
     , zebra_state_t        *state
     , zebra_entity_t       *entity
     , anemone_mempool_t    *mempool
-    , int                   attribute_ix
+    , int64_t               attribute_ix
     , itime_t               chord_time
     , int64_t               *new_fact_count
     , ierror_t            **new_tombstone
@@ -149,7 +149,7 @@ static ierror_msg_t zebra_translate
 static int64_t zebra_translate_column_tags
     ( const int64_t variant_count
     , void **dst
-    , const int64_t *src )
+    , int64_t *src )
 {
     if (variant_count > 2) {
         fprintf (stderr, "Fatal error: found an enum with %" PRId64 " variants. Icicle does not support Zebra enums with more than two variants.\n", variant_count);
@@ -171,7 +171,7 @@ static int64_t zebra_translate_column_nested
     /* Only read nested tables of type binary now.
        FIXME: slice out nested tables, when we need to support them. */
     if (src->tag != ZEBRA_TABLE_BINARY) {
-        fprintf (stderr, "Fatal error: found a nested table with tag %" PRId64 ". Icicle only supports nested binary table for now.\n", src->tag);
+        fprintf (stderr, "Fatal error: found a nested table with tag %ud. Icicle only supports nested binary table for now.\n", src->tag);
         exit(1);
     }
 
@@ -319,6 +319,7 @@ static int64_t zebra_translate_table
             return offset;
         }
     }
+    return 0;
 }
 
 zebra_state_t *zebra_alloc_state (piano_t *piano, zebra_config_t *cfg)

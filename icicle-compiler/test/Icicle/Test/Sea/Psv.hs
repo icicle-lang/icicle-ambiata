@@ -10,6 +10,8 @@
 module Icicle.Test.Sea.Psv where
 
 import           Control.Monad.IO.Class (liftIO)
+import           Control.Monad.Trans.Resource (runResourceT, ResourceT)
+import           Control.Monad.Morph (hoist)
 
 import qualified Data.ByteString.Lazy as L
 import qualified Data.List as List
@@ -250,7 +252,7 @@ genPsvConstants wt = do
   factsLimit <- inc . getPositive <$> arbitrary
   return $ S.PsvConstants maxRowCount inputBuf outputBuf factsLimit
 
-compileTest :: WellTyped -> TestOpts -> EitherT SeaError IO (SeaFleet S.PsvState)
+compileTest :: WellTyped -> TestOpts -> EitherT SeaError (ResourceT IO) (SeaFleet S.PsvState)
 compileTest wt (TestOpts _ _ inputFormat allowDupTime) = do
   options0 <- S.getCompilerOptions
 
@@ -301,7 +303,7 @@ runTest wt consts
        | otherwise
        = ""
 
-  bracketEitherT' compile release $ \fleet -> do
+  hoist runResourceT $ bracketEitherT' compile (hoist liftIO . release) $ \fleet -> hoist liftIO $ do
 
   let install  = liftIO (S.sfSegvInstall fleet (show consts <> "\n" <> show wt))
       remove _ = liftIO (S.sfSegvRemove  fleet)

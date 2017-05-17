@@ -172,8 +172,10 @@ executable icicle
                      , directory                       == 1.2.*
                      , filepath                        >= 1.3        && < 1.5
                      , optparse-applicative            == 0.12.*
+                     , mmorph                          == 1.0.*
                      , parallel                        == 3.2.*
                      , parsec                          == 3.1.*
+                     , resourcet                       >= 1.1        && < 2
                      , temporary                       == 1.2.*
                      , text                            == 1.2.*
                      , time                            >= 1.5        && < 1.7
@@ -257,6 +259,8 @@ test-suite test
                      , unordered-containers            == 0.2.*
                      , QuickCheck                      == 2.8.*
                      , quickcheck-instances            == 0.3.*
+                     , resourcet                       >= 1.1        && < 2
+                     , mmorph                          == 1.0.*
                      , template-haskell                >= 2.4
                      , temporary
                      , text

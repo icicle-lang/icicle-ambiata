@@ -6,7 +6,7 @@ echo "Separate compilation + Zebra"
 
 common_args="--snapshot 2010-01-01"
 dict=test/cli/zebra/dictionary.toml
-in=test/cli/zebra/input.zbin2
+in=test/cli/zebra/input.zbin3
 
 expected=test/cli/zebra/expected.psv
 out_c=`mktemp -t icicle-c-XXXXXX`

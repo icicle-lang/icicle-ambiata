@@ -14,7 +14,6 @@ module Icicle.Sea.Fleet (
   ) where
 
 import           Control.Monad.IO.Class       (MonadIO (..))
-import           Control.Monad.Morph
 import           Control.Monad.Trans.Resource
 
 import qualified Data.ByteString.Char8        as Strict
@@ -72,7 +71,7 @@ seaCreateFleet ::
   -> Input FilePath
   -> Maybe FilePath
   -> Text
-  -> EitherT SeaError IO (SeaFleet st)
+  -> EitherT SeaError (ResourceT IO) (SeaFleet st)
 seaCreateFleet options cache input chords code = do
   lib                  <- firstEitherT SeaJetskiError (compileLibrary cache options code)
   imempool_create      <- firstEitherT SeaJetskiError (function lib "anemone_mempool_create" (retPtr retVoid))
@@ -83,7 +82,7 @@ seaCreateFleet options cache input chords code = do
   play <- case chords of
     Nothing -> do
       n <- liftIO $ newForeignPtr_ nullPtr
-      return $ \f ptr -> withCPiano (ForeignPiano n) (f ptr)
+      return $ \f ptr -> withCPiano (ForeignPiano n) (runResourceT . f ptr)
 
     Just file -> do
       bs <- liftIO $ Strict.readFile file
@@ -94,7 +93,7 @@ seaCreateFleet options cache input chords code = do
 
         Right p -> do
           fp <- liftIO $ newForeignPiano p
-          return $ \f ptr -> withCPiano fp (f ptr)
+          return $ \f ptr -> withCPiano fp (runResourceT . f ptr)
 
   take_snapshot <- case input of
     NoInput -> do
@@ -102,24 +101,23 @@ seaCreateFleet options cache input chords code = do
 
     HasInput (FormatPsv _) _ _ -> do
       fn <- firstEitherT SeaJetskiError (function lib "psv_snapshot" retVoid)
-      return $ play $ \ptr cpiano -> Right <$> fn [ argPtr (unCPiano cpiano), argPtr ptr ]
+      return $ play $ \ptr cpiano -> Right <$> liftIO (fn [ argPtr (unCPiano cpiano), argPtr ptr ])
 
     HasInput (FormatZebra _ _ _) _ input_path -> do
       step <- firstEitherT SeaJetskiError (function lib "zebra_snapshot_step" (retPtr retCChar))
       init <- firstEitherT SeaJetskiError (function lib "zebra_alloc_state" (retPtr retVoid))
       end  <- firstEitherT SeaJetskiError (function lib "zebra_collect_state" (retPtr retVoid))
 
-      (puller, pullid) <- hoist runResourceT
-                        $ firstEitherT (SeaExternalError . T.pack . show)
+      (puller, pullid) <- firstEitherT (SeaExternalError . T.pack . show)
                         $ blockChainPuller (VB.singleton input_path)
 
-      let withPiano :: Ptr a -> CPiano -> IO (Either SeaError ())
+      let withPiano :: Ptr a -> CPiano -> ResourceT IO (Either SeaError ())
           withPiano ptr cpiano = do
             let piano = unCPiano cpiano
 
-            state <- init [ argPtr piano, argPtr ptr ]
+            state <- liftIO $ init [ argPtr piano, argPtr ptr ]
 
-            let step' :: CEntity -> EitherT SeaError IO ()
+            let step' :: CEntity -> EitherT SeaError (ResourceT IO) ()
                 step' e = do
                   s <- liftIO $ step [ argPtr piano, argPtr state, argPtr (unCEntity e) ]
                   if s /= nullPtr
@@ -128,8 +126,8 @@ seaCreateFleet options cache input chords code = do
                     left . SeaExternalError . T.pack $ "error step: " <> show msg
                   else return ()
 
-            let puller' :: PullId -> EitherT SeaError IO (Maybe Block)
-                puller' = hoist runResourceT . firstEitherT (SeaExternalError . T.pack . show) . puller
+            let puller' :: PullId -> EitherT SeaError (ResourceT IO) (Maybe Block)
+                puller' = firstEitherT (SeaExternalError . T.pack . show) . puller
 
             runEitherT
               $ bracketEitherT'
