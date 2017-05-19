@@ -262,13 +262,14 @@ static int64_t zebra_translate_column
                 ( mempool
                 , elem_start
                 , elem_count
-                , dst + offset
-                , data._reversed );
+                , dst
+                , (const zebra_column_t *) &data._reversed );
         }
 
     }
 
-    return 0;
+    fprintf (stderr, "Fatal error: unknown Zebra column tag: %ud\n", tag);
+    exit (1);
 }
 
 static int64_t zebra_translate_table
@@ -319,7 +320,8 @@ static int64_t zebra_translate_table
             return offset;
         }
     }
-    return 0;
+    fprintf (stderr, "Fatal error: unknown Zebra table tag: %ud\n", tag);
+    exit (1);
 }
 
 zebra_state_t *zebra_alloc_state (piano_t *piano, zebra_config_t *cfg)
