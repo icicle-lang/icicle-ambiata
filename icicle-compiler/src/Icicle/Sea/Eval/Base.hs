@@ -47,6 +47,8 @@ module Icicle.Sea.Eval.Base (
 
 import           Control.Monad.Catch (MonadMask(..))
 import           Control.Monad.IO.Class (MonadIO(..))
+import           Control.Monad.Trans.Resource (ResourceT, runResourceT)
+import           Control.Monad.Morph
 
 import qualified Data.List as List
 import qualified Data.List.NonEmpty as NonEmpty
@@ -135,7 +137,7 @@ seaEvalAvalanche
 seaEvalAvalanche program time values = do
   let attr = Attribute "eval"
       ps   = Map.singleton attr (program :| [])
-  bracketEitherT'
+  hoist runResourceT $ bracketEitherT'
     (seaCompile CacheSea NoInput [attr] ps Nothing)
     seaRelease
     (\fleet -> do
@@ -199,39 +201,36 @@ valueFromCore' v =
 ------------------------------------------------------------------------
 
 seaCompile ::
-     (MonadIO m)
-  => (Show a, Show n, Pretty n, Eq n)
+     (Show a, Show n, Pretty n, Eq n)
   => CacheSea
   -> Input FilePath
   -> [Attribute]
   -> Map Attribute (NonEmpty (Program (Annot a) n Prim))
   -> Maybe FilePath
-  -> EitherT SeaError m (SeaFleet st)
+  -> EitherT SeaError (ResourceT IO) (SeaFleet st)
 seaCompile cache input attributes programs chords = do
-  options <- getCompilerOptions
+  options <- liftIO getCompilerOptions
   seaCompileFleet options cache input attributes programs chords
 
 seaCompileFleet ::
-     (MonadIO m)
-  => (Show a, Show n, Pretty n, Eq n)
+     (Show a, Show n, Pretty n, Eq n)
   => [CompilerOption]
   -> CacheSea
   -> Input FilePath
   -> [Attribute]
   -> Map Attribute (NonEmpty (Program (Annot a) n Prim))
   -> Maybe FilePath
-  -> EitherT SeaError m (SeaFleet st)
+  -> EitherT SeaError (ResourceT IO) (SeaFleet st)
 seaCompileFleet options cache input attributes programs chords = do
   code <- hoistEither (codeOfPrograms input attributes (Map.toList programs))
   seaCreateFleet options (fromCacheSea cache) input chords code
 
 seaCreate ::
-     (MonadIO m)
-  => CacheSea
+     CacheSea
   -> Input FilePath
   -> Maybe FilePath
   -> Text
-  -> EitherT SeaError m (SeaFleet st)
+  -> EitherT SeaError (ResourceT IO) (SeaFleet st)
 seaCreate cache input chords code = do
   options <- getCompilerOptions
   seaCreateFleet options (fromCacheSea cache) input chords code

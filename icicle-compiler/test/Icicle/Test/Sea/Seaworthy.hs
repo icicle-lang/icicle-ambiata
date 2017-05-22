@@ -13,6 +13,8 @@ import qualified Icicle.Avalanche.FromCore          as A
 
 import           Icicle.Test.Arbitrary
 
+import           Control.Monad.Trans.Resource (runResourceT)
+
 import           Data.List.NonEmpty ( NonEmpty(..) )
 import qualified Data.Map                           as Map
 
@@ -36,7 +38,7 @@ prop_seaworthy wt
  = testIO
  $ do let a = Attribute "eval"
       let seaProgram = Map.singleton a (wtAvalancheFlat wt :| [])
-      x <- runEitherT $ go [a] seaProgram
+      x <- runResourceT $ runEitherT $ go [a] seaProgram
       return $ case x of
        Right _
         -> property succeeded

@@ -8,6 +8,8 @@ import           BuildInfo_icicle
 import           DependencyInfo_icicle
 
 import           Control.Monad.IO.Class (MonadIO, liftIO)
+import           Control.Monad.Trans.Resource
+import           Control.Monad.Morph
 
 import qualified Data.ByteString as B
 import qualified Data.Text as T
@@ -237,14 +239,23 @@ runCommand = \case
     liftIO $ putStrLn "icicle: starting compilation"
     case inputFormat $ optInput q of
       InputSparsePsv
-        -> bracketEitherT' (createPsvQuery q) releaseQuery
-         $ runQuery runPsvQuery (optOutputCode q)
+        -> hoist runResourceT
+         $ bracketEitherT'
+             (createPsvQuery q)
+             (hoist liftIO . releaseQuery)
+             (hoist liftIO . runQuery runPsvQuery (optOutputCode q))
       InputDensePsv
-        -> bracketEitherT' (createPsvQuery q) releaseQuery
-         $ runQuery runPsvQuery (optOutputCode q)
+        -> hoist runResourceT
+         $ bracketEitherT'
+             (createPsvQuery q)
+             (hoist liftIO . releaseQuery)
+             (hoist liftIO . runQuery runPsvQuery (optOutputCode q))
       InputZebra
-        -> bracketEitherT' (createZebraQuery q) releaseQuery
-         $ runQuery runZebraQuery (optOutputCode q)
+        -> hoist runResourceT
+         $ bracketEitherT'
+             (createZebraQuery q)
+             (hoist liftIO . releaseQuery)
+             (hoist liftIO . runQuery runZebraQuery (optOutputCode q))
 
 runQuery ::
       MonadIO m

@@ -12,6 +12,8 @@ module Icicle.Test.Sea.PsvFission where
 import Icicle.Test.Sea.Psv
 
 import           Control.Monad.IO.Class (liftIO)
+import           Control.Monad.Trans.Resource (runResourceT, ResourceT)
+import           Control.Monad.Morph (hoist)
 
 import qualified Data.ByteString.Lazy as L
 import           Data.List.NonEmpty ( NonEmpty(..) )
@@ -71,7 +73,7 @@ prop_psv_fission =
       Right () -> pure (property succeeded)
 
 
-compileTest2 :: WellTyped -> WellTyped -> TestOpts -> EitherT SeaError IO (SeaFleet S.PsvState)
+compileTest2 :: WellTyped -> WellTyped -> TestOpts -> EitherT SeaError (ResourceT IO) (SeaFleet S.PsvState)
 compileTest2 wt1 wt2 (TestOpts _ _ inputFormat allowDupTime) = do
   options0 <- S.getCompilerOptions
 
@@ -116,7 +118,7 @@ runTest2 wt1 wt2 consts testOpts = do
        | otherwise
        = ""
 
-  bracketEitherT' compile release $ \fleet -> do
+  hoist runResourceT $ bracketEitherT' compile (hoist liftIO . release) $ \fleet -> hoist liftIO $ do
 
   let install  = liftIO (S.sfSegvInstall fleet (show consts <> "\n" <> show wt1 <> "\n" <> show wt2))
       remove _ = liftIO (S.sfSegvRemove  fleet)
