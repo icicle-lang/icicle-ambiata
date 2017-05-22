@@ -338,56 +338,6 @@ static int64_t zebra_translate_table
     exit (1);
 }
 
-static int64_t zebra_translate_table
-    ( anemone_mempool_t *mempool
-    , int64_t elem_start
-    , int64_t elem_count
-    , void **dst
-    , const zebra_table_t *src )
-{
-    const int64_t row_count = src->row_count;
-    const zebra_table_tag_t tag = src->tag;
-    const zebra_table_variant_t data = src->of;
-
-    IASSERT (elem_start + elem_count <= row_count);
-
-    switch (tag) {
-    case ZEBRA_TABLE_BINARY: {
-            char *bytes = anemone_mempool_alloc(mempool, elem_count + 1);
-            memcpy(bytes, data._binary.bytes + elem_start, elem_count);
-            bytes[elem_count] = '\0';
-            *dst = bytes;
-            return 1;
-        }
-
-        case ZEBRA_TABLE_ARRAY: {
-            return zebra_translate_column
-                ( mempool
-                , elem_start
-                , elem_count
-                , dst
-                , data._array.values );
-        }
-
-        case ZEBRA_TABLE_MAP: {
-            int64_t offset = 0;
-            offset += zebra_translate_column
-                ( mempool
-                , elem_start
-                , elem_count
-                , dst
-                , data._map.keys );
-            offset += zebra_translate_column
-                ( mempool
-                , elem_start
-                , elem_count
-                , dst + offset
-                , data._map.values );
-            return offset;
-        }
-    }
-}
-
 zebra_state_t *zebra_alloc_state (piano_t *piano, zebra_config_t *cfg)
 {
     zebra_state_t *state = malloc(sizeof(zebra_state_t));
