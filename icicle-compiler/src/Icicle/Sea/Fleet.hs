@@ -121,9 +121,9 @@ seaCreateFleet options cache input output chords code states = do
     HasInput (InputFormatPsv _) _ _ -> do
       fn <- firstEitherT SeaJetskiError (function lib "psv_snapshot" retVoid)
       let
-        withPiano :: Ptr a -> CPiano -> IO (Either SeaError ())
+        withPiano :: Ptr a -> CPiano -> ResourceT IO (Either SeaError ())
         withPiano ptr cpiano =
-          Right <$> fn [ argPtr (unCPiano cpiano), argPtr ptr ]
+          Right <$> liftIO (fn [ argPtr (unCPiano cpiano), argPtr ptr ])
       return $ play withPiano
 
     HasInput (InputFormatZebra _ _) _ input_path -> do
@@ -134,24 +134,25 @@ seaCreateFleet options cache input output chords code states = do
                         $ blockChainPuller (VB.singleton input_path)
 
       let withPiano :: Ptr a -> CPiano -> ResourceT IO (Either SeaError ())
-          withPiano ptr cpiano = do
+          withPiano ptr cpiano = runEitherT $ do
             let
               piano =
                 unCPiano cpiano
 
             state <- liftIO $ init [ argPtr piano, argPtr ptr ]
 
-            NoOutput ->
-              return $ \_ -> return nullPtr
+            step <- hoist liftIO $ case output of
+              NoOutput ->
+                return $ \_ -> return nullPtr
 
-            HasOutput (OutputFormatPsv _) ->
-              firstEitherT SeaJetskiError (function lib "zebra_snapshot_step_output_psv" (retPtr retCChar))
+              HasOutput (OutputFormatPsv _) ->
+                firstEitherT SeaJetskiError (function lib "zebra_snapshot_step_output_psv" (retPtr retCChar))
 
-            HasOutput OutputFormatZebra -> do
-              pool <- liftIO $ imempool_get [ argPtr state ]
-              ctable <- firstEitherT (SeaZebraError . T.pack . show) $ foreignSchemaOfFleetOutput (Mempool pool) states
-              fun <- firstEitherT SeaJetskiError (function lib "zebra_snapshot_step_output_zebra" (retPtr retCChar))
-              return $ \args -> fun (args <> [argPtr ctable])
+              HasOutput OutputFormatZebra -> do
+                pool <- liftIO $ imempool_get [ argPtr state ]
+                ctable <- firstEitherT (SeaZebraError . T.pack . show) $ foreignSchemaOfFleetOutput (Mempool pool) states
+                fun <- firstEitherT SeaJetskiError (function lib "zebra_snapshot_step_output_zebra" (retPtr retCChar))
+                return $ \args -> fun (args <> [argPtr ctable])
 
             let step' :: CEntity -> EitherT SeaError (ResourceT IO) ()
                 step' e = do
@@ -165,12 +166,11 @@ seaCreateFleet options cache input output chords code states = do
             let puller' :: PullId -> EitherT SeaError (ResourceT IO) (Maybe Block)
                 puller' = firstEitherT (SeaExternalError . T.pack . show) . puller
 
-            runEitherT
-              $ bracketEitherT'
-                  (pure ())
-                  (const (liftIO (end [ argPtr ptr, argPtr state ])))
-                  (const (joinErrors (SeaExternalError . T.pack  . show) id
-                             (mergeBlocks (MergeOptions puller' step' 100) pullid)))
+            bracketEitherT'
+               (pure ())
+               (const (liftIO (end [ argPtr ptr, argPtr state ])))
+               (const (joinErrors (SeaExternalError . T.pack  . show) id
+                          (mergeBlocks (MergeOptions puller' step' 100) pullid)))
 
       return $ play withPiano
 

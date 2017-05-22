@@ -186,10 +186,10 @@ modeOfScope = \case
   ScopeChord _ ->
     Sea.Chords
 
-createPsvQuery :: QueryOptions -> EitherT IcicleError (ResourceT IO) (Query PsvState)
+createPsvQuery :: QueryOptions -> EitherT IcicleError (ResourceT IO) (Query Sea.PsvState)
 createPsvQuery = createQuery
 
-createZebraQuery :: QueryOptions -> EitherT IcicleError (ResourceT IO) (Query ZebraState)
+createZebraQuery :: QueryOptions -> EitherT IcicleError (ResourceT IO) (Query Sea.ZebraState)
 createZebraQuery = createQuery
 
 createQuery :: QueryOptions -> EitherT IcicleError (ResourceT IO) (Query a)
@@ -245,7 +245,7 @@ mkQueryFleet ::
   -> OutputFile
   -> Maybe FilePath
   -> FilePath
-  -> EitherT IcicleError IO (Text, Sea.SeaFleet s)
+  -> EitherT IcicleError (ResourceT IO) (Text, Sea.SeaFleet s)
 mkQueryFleet input output chord source = do
   -- FIXME using a dummy format here as we are not using it to generate C
   -- we actually only need to differentiate between psv/zebra, make this better
@@ -283,7 +283,7 @@ compileFleet ::
   -> Sea.OutputFormat
   -> FilePath
   -> Maybe FilePath
-  -> EitherT IcicleError (ResourceT IO) (Text, SeaFleet s)
+  -> EitherT IcicleError (ResourceT IO) (Text, Sea.SeaFleet s)
 compileFleet dictionary inputFormat0 outputFormat0 input chords = do
   let
     hasInput =

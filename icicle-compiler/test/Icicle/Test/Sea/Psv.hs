@@ -1,4 +1,4 @@
-icicle-compiler/src/Icicle/Sea/IO/Zebra.hs{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards#-}
@@ -275,7 +275,7 @@ compileTest wt (TestOpts _ _ inputFormat allowDupTime) = do
       input = HasInput iformat iopts "dummy_path"
       output = HasOutput oformat
       chords = Nothing
-  code <- hoistEither (S.codeOfPrograms input attrs (Map.toList programs))
+  code <- hoistEither (S.codeOfPrograms input output attrs (Map.toList programs))
 
   -- This test only uses snapshot so we can do this.
   let savage = textOfDoc . vsep $
@@ -289,7 +289,7 @@ compileTest wt (TestOpts _ _ inputFormat allowDupTime) = do
         ]
       code' = code <> savage
 
-  S.seaCreateFleet options (S.fromCacheSea cache) input output chords code'
+  S.seaCreateFleet options (S.fromCacheSea cache) input output chords code' []
 
 
 runTest :: WellTyped -> S.PsvConstants -> TestOpts -> EitherT S.SeaError IO ()

@@ -87,8 +87,8 @@ compileTest2 wt1 wt2 (TestOpts _ _ inputFormat allowDupTime) = do
                 (S.Snapshot (wtTime wt1))
                 (S.PsvOutputSparse)
                 (S.defaultOutputMissing)
-      conf     = S.PsvConfig iconfig oconfig
-      iformat  = S.FormatPsv conf
+      iformat  = S.InputFormatPsv iconfig
+      oformat  = S.OutputFormatPsv oconfig
       iopts    = S.InputOpts allowDupTime (Map.singleton (wtAttribute wt1) (Set.singleton tombstone))
       attrs    = [wtAttribute wt1]
       -- psv now uses piano, so we need this trick for testing.
@@ -102,9 +102,11 @@ compileTest2 wt1 wt2 (TestOpts _ _ inputFormat allowDupTime) = do
         , "}"
         ]
 
-  let input = HasInput iformat iopts "dummy_path"
-  code <- hoistEither (S.codeOfPrograms input attrs (Map.toList programs))
-  S.seaCreateFleet options (S.fromCacheSea S.NoCacheSea) input Nothing (code <> piano)
+  let
+    input = HasInput iformat iopts "dummy_path"
+    output = HasOutput oformat
+  code <- hoistEither (S.codeOfPrograms input output attrs (Map.toList programs))
+  S.seaCreateFleet options (S.fromCacheSea S.NoCacheSea) input output Nothing (code <> piano) []
 
 runTest2 :: WellTyped -> WellTyped -> S.PsvConstants -> TestOpts -> EitherT S.SeaError IO ()
 runTest2 wt1 wt2 consts testOpts = do

@@ -33,7 +33,7 @@ import           X.Options.Applicative
 
 
 data IcicleCommand =
-    IcicleCompile FilePath FilePath InputFormatFlag OutputFormatFlag (Scope ())
+    IcicleCompile FilePath FilePath InputFormatFlag OutputFormatFlag (Scope ()) CompilerFlags
   | IcicleQuery QueryOptions
     deriving (Eq, Ord, Show)
 

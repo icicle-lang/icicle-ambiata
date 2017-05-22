@@ -139,7 +139,7 @@ seaEvalAvalanche program time values = do
   let attr = Attribute "eval"
       ps   = Map.singleton attr (program :| [])
   hoist runResourceT $ bracketEitherT'
-    (seaCompile CacheSea NoInput [attr] ps Nothing)
+    (seaCompile CacheSea NoInput NoOutput [attr] ps Nothing)
     seaRelease
     (\fleet -> do
         programs <- mkSeaPrograms (sfLibrary fleet) ps
@@ -210,9 +210,9 @@ seaCompile ::
   -> Map Attribute (NonEmpty (Program (Annot a) n Prim))
   -> Maybe FilePath
   -> EitherT SeaError (ResourceT IO) (SeaFleet st)
-seaCompile cache input attributes programs chords = do
+seaCompile cache input output attributes programs chords = do
   options <- liftIO getCompilerOptions
-  seaCompileFleet options cache input attributes programs chords
+  seaCompileFleet options cache input output attributes programs chords
 
 seaCompileFleet ::
      (Show a, Show n, Pretty n, Eq n)

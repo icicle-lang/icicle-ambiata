@@ -18,6 +18,7 @@ import qualified Icicle.Test.Avalanche.CheckCommutes
 import qualified Icicle.Test.Avalanche.SimpCommutes
 import qualified Icicle.Test.Avalanche.Flatten
 import qualified Icicle.Test.Avalanche.Melt
+import qualified Icicle.Test.Avalanche.MeltPrim
 
 -- Superseded
 -- import qualified Icicle.Test.Dictionary.Types
