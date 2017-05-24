@@ -38,6 +38,7 @@ module Icicle.Sea.FromAvalanche.State (
   ) where
 
 import qualified Data.List          as List
+import           Data.Map (Map)
 import qualified Data.Map           as Map
 import qualified Data.Text          as T
 
@@ -72,6 +73,7 @@ data SeaProgramAttribute = SeaProgramAttribute {
   , stateTimeVar        :: Text
   , stateInputVars      :: [(Text, ValType)]
   , stateComputes       :: NonEmpty SeaProgramCompute
+  , stateOutputsAll     :: Map OutputName (ValType, [ValType])
   } deriving (Eq, Ord, Show)
 
 data SeaProgramCompute = SeaProgramCompute {
@@ -102,6 +104,7 @@ stateOfPrograms name attrib programs@(program :| _)
         , stateInputType      = factType
         , stateInputVars      = fmap (first textOfName) factVars
         , stateComputes       = NonEmpty.zipWith (stateOfProgramCompute name) (0 :| [1..]) programs
+        , stateOutputsAll     = Map.fromList . concatMap outputsOfProgram $ NonEmpty.toList programs
         }
 
 stateOfProgramCompute
