@@ -143,7 +143,7 @@ seaOfWriteProgramOutput config state = do
 
   let computes = NonEmpty.toList $ stateComputes state
   let resumeables  = fmap clearResumables computes
-  outputs         <- traverse outputState (concatMap stateOutputs computes)
+  outputs         <- traverse outputState . Map.toList $ stateOutputsAll state
   let callComputes = fmap (\i -> pretty (nameOfCompute i) <+> "(" <> ps <> ");") computes
 
   pure $ vsep
