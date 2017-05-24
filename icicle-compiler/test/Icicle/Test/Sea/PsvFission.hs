@@ -9,7 +9,7 @@
 
 module Icicle.Test.Sea.PsvFission where
 
-import Icicle.Test.Sea.Psv
+import           Icicle.Test.Sea.Psv hiding (tests)
 
 import           Control.Monad.IO.Class (liftIO)
 import           Control.Monad.Trans.Resource (runResourceT, ResourceT)
@@ -110,11 +110,11 @@ runTest2 :: WellTyped -> WellTyped -> S.PsvConstants -> TestOpts -> EitherT S.Se
 runTest2 wt1 wt2 consts testOpts = do
   let compile  = compileTest2 wt1 wt2 testOpts
       release  = S.seaRelease
-      expect_values1 = evalWellTyped wt1
-      expect_values2 = evalWellTyped wt1 { wtCore = wtCore wt2 }
+      expect_values1 = Map.fromList $ evalWellTyped wt1
+      expect_values2 = Map.fromList $ evalWellTyped wt1 { wtCore = wtCore wt2 }
       expect   
        | length (wtFacts wt1) <= S.psvFactsLimit consts
-       = textOfOutputs (wtEntities wt1) (expect_values1 <> expect_values2)
+       = textOfOutputs (wtEntities wt1) (Map.toList $ Map.union expect_values1 expect_values2)
        | otherwise
        = ""
 
