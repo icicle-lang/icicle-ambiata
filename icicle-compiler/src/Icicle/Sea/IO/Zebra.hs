@@ -167,8 +167,9 @@ seaOfDefReadProgram state = vsep
   , "        if (error) return error;"
   , ""
   , "        /* run compute on the facts read so far */"
-  , "        if (state->entity_fact_offset[attribute_ix] != state->entity_fact_count[attribute_ix]) {"
+  , "        if (*fact_count != 0) {"
   , indent 12 $ vsep $ fmap (\i -> pretty (nameOfCompute i) <+> " (program);") computes
+  , "            *fact_count = 0;"
   , "        }"
   , ""
   , "        state->entity_alloc_count = mempool->total_alloc_size;"
