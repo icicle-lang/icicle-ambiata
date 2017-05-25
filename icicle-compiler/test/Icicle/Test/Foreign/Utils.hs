@@ -13,7 +13,7 @@ import           Disorder.Corpus
 
 import           Foreign
 
-import           Jetski (Return, retInt64)
+import           Jetski (Return, retInt64, Argument, argPtr)
 
 import           P
 
@@ -25,11 +25,11 @@ import           Test.QuickCheck.Property
 import           X.Control.Monad.Trans.Either
 
 import           Icicle.Internal.Pretty
-import qualified Icicle.Common.Base as Icicle
 import           Icicle.Data.Time
 import           Icicle.Test.Arbitrary.Base
 import           Icicle.Test.Arbitrary ()
 
+import qualified Anemone.Foreign.Mempool as Mempool
 
 data Ty
   = IDouble
@@ -40,12 +40,12 @@ data Ty
   | IString
   | IUnit
   | IArray Ty
-  deriving (Show)
+  deriving (Show, Eq)
 
 data Val
   = VDouble Double
   | VInt    Int
-  | VError  Icicle.ExceptionInfo
+  | VErrorTombstone
   | VBool   Bool
   | VTime   Time
   | VString [Char]
@@ -80,7 +80,7 @@ genValForType ty = case ty of
   IBool
     -> VBool <$> arbitrary
   IError
-    -> return $ VError Icicle.ExceptTombstone
+    -> return $ VErrorTombstone
   ITime
     -> VTime <$> arbitrary
   IString
@@ -107,89 +107,69 @@ seaOfType ty = case ty of
   IUnit    -> "iunit"
   IArray t -> "iarray_" <> seaOfType t
 
-peekArr :: Ty -> WordPtr -> IO Val
-peekArr t wptr
-  = let ptr = wordPtrToPtr wptr
-        arr p i len acc
-          | i > len = return acc
-          | otherwise = do
-              w <- peekElemOff p i
-              x <- peekVal t w
-              arr p (i+1) len (acc <> [x])
-    in do len <- peekByteOff ptr 0
-          VArray <$> arr ptr 1 len []
+allSubArrays :: Ty -> [Ty]
+allSubArrays ty = case ty of
+  IArray t' -> allSubArrays t' <> [ty]
+  _         -> [ty]
 
-peekVal :: Ty -> WordPtr -> IO Val
-peekVal ty wptr = case ty of
-  IInt
-    -> VInt <$> peekElemOff (wordPtrToPtr wptr) 0
-  IDouble
-    -> VDouble <$> peekElemOff (wordPtrToPtr wptr) 0
-  IError
-    -> return (VError Icicle.ExceptTombstone)
-  IBool
-    -> VBool <$> peekElemOff (wordPtrToPtr wptr) 0
-  ITime
-    -> VTime . timeOfPacked <$> peekElemOff (wordPtrToPtr wptr) 0
-  IUnit
-    -> return VUnit
-  IString
-    -> let str p i acc = do
-             c <- peekElemOff p i
-             if c == '\0' then return acc else str p (i+1) (acc <> [c])
-       in VString <$> str (wordPtrToPtr wptr) 0 []
-  IArray t
-    -> peekArr t wptr
+--------------------------------------------------------------------------------
 
-pokeVal :: Val -> IO (WordPtr, IO ())
-pokeVal v = case v of
+pokeVal :: Mempool.Mempool -> WordPtr -> Val -> IO ()
+pokeVal mempool ptr v = case v of
   VInt x
-    -> poke64 (fromIntegral x :: Word64)
+    -> poke ptr' (fromIntegral x :: Word64)
   VDouble x
-    -> poke64 x
-  VError _
-    -> poke64 (0 :: Word64)
+    -> poke (wordPtrToPtr ptr) x
+  VErrorTombstone
+    -> poke ptr' (1 :: Word64)
   VBool x
     -> let b :: Word64
            b = if x then 1 else 0
-       in  poke64 b
-  VTime x
-    -> poke64 (packedOfTime x)
+       in  poke ptr' b
+  VTime x -> poke ptr' (packedOfTime x)
   VUnit
-    -> poke64 (0 :: Word64)
+    -> poke ptr' (0 :: Word64)
   VString xs
-    -> pokeStr xs
+    -> pokeStr mempool ptr xs
   VArray xs
-    -> pokeArr xs
+    -> pokeArr mempool ptr xs
+ where
+  ptr' = wordPtrToPtr ptr :: Ptr Word64
 
-poke64 :: Storable a => a -> IO (WordPtr, IO ())
-poke64 x = do
-  ptr <- mallocBytes 8
-  pokeElemOff ptr 0 x
-  return (ptrToWordPtr ptr, free ptr)
+pokeStr :: Mempool.Mempool -> WordPtr -> [Char] -> IO ()
+pokeStr mempool ptrRef xs = do
+  let bytes = fromIntegral $ (length xs + 1)
+  ptr <- Mempool.allocBytes mempool bytes
+  zipWithM_ (pokeByteOff ptr) [0..] xs
+  pokeByteOff ptr (length xs) '\0'
+  poke (wordPtrToPtr ptrRef) ptr
 
-pokeStr :: [Char] -> IO (WordPtr, IO ())
-pokeStr xs = do
-  ptr <- mallocBytes (sizeOf 'c' * (length xs + 1))
-  zipWithM_ (pokeElemOff ptr) [0..] xs
-  pokeElemOff ptr (length xs) '\0'
-  return (ptrToWordPtr ptr, free ptr)
-
-pokeArr :: [Val] -> IO (WordPtr, IO ())
-pokeArr xs = do
-  -- needs to be rounded up to the nearest power of two because the mempool assumes that
+pokeArr :: Mempool.Mempool -> WordPtr -> [Val] -> IO ()
+pokeArr mempool ptrRef xs = do
+  -- needs to be rounded up to the nearest power of two because the iarray_* functions assume that
   let
     roundUp len n
       | len >= n
       = roundUp len (2*n)
       | otherwise
       = n
-  let alloc = roundUp (8 * length xs) 4
-  ptr <- mallocBytes alloc
-  pokeByteOff ptr 0 (length xs)
-  (ps, fs) <- List.unzip <$> mapM pokeVal xs
-  zipWithM_ (pokeElemOff ptr) [1..] ps
-  return . (ptrToWordPtr ptr,) $ foldr (>>) (return ()) fs
+  let alloc = fromIntegral $ roundUp (8 * length xs) (4 * 8)
+  let len = fromIntegral (length xs) :: Word64
+  -- Include length header after rounding up
+  ptr <- Mempool.allocBytes mempool (alloc + 8)
+  pokeByteOff ptr 0 len
+  let ptrOff off = ptrToWordPtr $ plusPtr ptr (off * 8)
+  zipWithM_ (\off v -> pokeVal mempool (ptrOff off) v) [1..] xs
+  poke (wordPtrToPtr ptrRef) ptr
+
+allocValuePtr :: Mempool.Mempool -> Val -> IO Argument
+allocValuePtr mempool v = do
+  ptr <- Mempool.allocBytes mempool 8
+  pokeVal mempool (ptrToWordPtr ptr) v
+  return $ argPtr ptr
+
+allocInput :: Mempool.Mempool -> Input -> IO Argument
+allocInput mempool (Input _ vs) = allocValuePtr mempool (VArray vs)
 
 --------------------------------------------------------------------------------
 
