@@ -99,8 +99,8 @@ test_copy_eq input
 -- y = array_copy (x)
 -- z = array_put_mutable (y, i, a)
 -- array_eq (x, z) == false
--- FIXME flakey segfaulty test -- the values are always as expected but it might segfault
-x_FIXME_prop_array_put_mutable_diff
+-- TODO flakey segfaulty test -- the values are always as expected but it might segfault
+prop_array_put_mutable_diff
   = forAll arbitrary $ \input -> not (univalue (inputType input)) ==>
     forAll arbitrary $ \i -> i >= 0 && i <= length (inputArr input) ==>
     forAll (genValForType (inputType input)) $ \v -> putTestCond input i v ==> testIO $ do
