@@ -221,7 +221,7 @@ static int64_t zebra_translate_column
             int64_t offset = zebra_translate_column_tags
                 ( column_count
                 , dst
-                , data._enum.tags );
+                , data._enum.tags + elem_start );
             for (int64_t i = 0; i != column_count; ++i) {
                 offset += zebra_translate_column
                     ( mempool
