@@ -348,27 +348,35 @@ static ierror_loc_t INLINE json_read_itime (char **pp, char *pe, itime_t *output
 }
 
 const size_t text_itime_max_size = sizeof ("yyyy-mm-ddThh:mm:ssZ");
+const char * text_itime_minimum = "0000-00-00T00:00:00Z";
+const char * text_itime_maximum = "9999-12-31T23:59:59Z";
 
 static size_t INLINE text_write_itime (itime_t value, char *p)
 {
     iint_t year, month, day, hour, minute, second;
     itime_to_gregorian (value, &year, &month, &day, &hour, &minute, &second);
 
-    snprintf (
-        p
-      , text_itime_max_size
-      , "%04" PRId64 "-"
-        "%02" PRId64 "-"
-        "%02" PRId64 "T"
-        "%02" PRId64 ":"
-        "%02" PRId64 ":"
-        "%02" PRId64 "Z"
-      , year
-      , month
-      , day
-      , hour
-      , minute
-      , second );
+    if (year < 0) {
+        memcpy (p, text_itime_minimum, text_itime_max_size);
+    } else if (year > 9999) {
+        memcpy (p, text_itime_maximum, text_itime_max_size);
+    } else {
+        snprintf (
+            p
+          , text_itime_max_size
+          , "%04" PRId64 "-"
+            "%02" PRId64 "-"
+            "%02" PRId64 "T"
+            "%02" PRId64 ":"
+            "%02" PRId64 ":"
+            "%02" PRId64 "Z"
+          , year
+          , month
+          , day
+          , hour
+          , minute
+          , second );
+    }
 
     /* don't include the null-termination as part of the written size */
     return text_itime_max_size - 1;
