@@ -17,19 +17,19 @@ purpose
 Icicle is a small language for expressing (and statically verifying)
 a certain set of streaming computations.
 
-The driver for this language is the [ivory](https://github.com/ambiata/ivory)
+The driver for this language is the [ivory](https://speakerdeck.com/ambiata/ivory-concepts)
 data-store, and the rest of this documents things in terms of ivory,
 however the problems being addressed are not unique to ivory, and it
 is plausible that this could be adapted to different contexts. For more
 context on ivory see:
-
- - [https://github.com/ambiata/ivory](https://github.com/ambiata/ivory)
 
  - [https://speakerdeck.com/ambiata/ivory-concepts](https://speakerdeck.com/ambiata/ivory-concepts)
 
  - [https://speakerdeck.com/ambiata/ivory-a-data-store-for-data-science](https://speakerdeck.com/ambiata/ivory-a-data-store-for-data-science)
 
  - [https://speakerdeck.com/ambiata/ivory-data-modelling](https://speakerdeck.com/ambiata/ivory-data-modelling)
+
+ - [https://github.com/ambiata/ivory](https://github.com/ambiata/ivory) *(internal Ambiata only)*
 
 
 facts & values
@@ -84,7 +84,7 @@ expressions
 
 Ivory contains notes on some required expressions:
 
- - https://github.com/ambiata/ivory/blob/master/doc/design/feature-gen.md
+ - https://github.com/ambiata/ivory/blob/master/doc/design/feature-gen.md *(internal Ambiata only)*
 
 Supporting this will be the existing corpus of ivory dictionaries.
 
