@@ -194,6 +194,7 @@ instance Arbitrary ValType where
          [ IntT
          , UnitT
          , BoolT
+         , DoubleT
          , TimeT
          , StringT ]
          [ ArrayT  <$> arbitrary
@@ -230,6 +231,7 @@ genOrdValType = oneof_sized_vals
          [ IntT
          , UnitT
          , BoolT
+         , DoubleT
          , TimeT
          , StringT ]
          [ PairT   <$> genOrdValType <*> genOrdValType
@@ -243,6 +245,7 @@ genPrimType = elements
          [ IntT
          , UnitT
          , BoolT
+         , DoubleT
          , TimeT
          , StringT ]
 
@@ -258,7 +261,7 @@ instance Arbitrary StructType where
   arbitrary
    = genStructType genFieldType
    where
-    genFieldType = oneof_sized (fmap pure [IntT, UnitT, BoolT, TimeT, StringT]) [arbitrary]
+    genFieldType = oneof_sized (fmap pure [IntT, UnitT, BoolT, DoubleT, TimeT, StringT]) [arbitrary]
 
 instance Arbitrary StructField where
   arbitrary =
@@ -560,6 +563,7 @@ genInputType
          [ IntT
          , UnitT
          , BoolT
+         , DoubleT
          , TimeT
          , StringT ]
          [ ArrayT  <$> genInputType
