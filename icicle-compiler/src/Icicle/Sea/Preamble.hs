@@ -39,7 +39,10 @@ seaPreamble
   externals
    = [ ("anemone_base.h", anemone_base_h)
      , ("anemone_mempool.h", anemone_mempool_h)
-     , ("anemone_mempool.c", anemone_mempool_c) ]
+     , ("anemone_mempool.c", anemone_mempool_c)
+     , ("anemone_grisu2.h", anemone_grisu2_h)
+     , ("anemone_grisu2.c", anemone_grisu2_c)
+     ]
 
 seaOfExternal :: FilePath -> ByteString -> Doc
 seaOfExternal path bs

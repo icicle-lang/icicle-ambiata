@@ -1,4 +1,5 @@
-#include "41-grisu2.h"
+#include "21-time.h"
+#include "../../lib/anemone/csrc/anemone_grisu2.h"
 
 /*
 utils
@@ -106,7 +107,7 @@ static ierror_loc_t INLINE json_read_idouble (char **pp, char *pe, idouble_t *ou
 
 static size_t INLINE text_write_idouble (idouble_t value, char *p)
 {
-    return grisu2_double_to_string (value, p);
+    return anemone_grisu2 (value, p);
 }
 
 

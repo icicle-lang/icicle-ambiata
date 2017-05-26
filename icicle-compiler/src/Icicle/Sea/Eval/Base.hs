@@ -6,8 +6,7 @@
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE ViewPatterns #-}
 module Icicle.Sea.Eval.Base (
-    MemPool
-  , SeaState
+    SeaState
   , SeaFleet(..)
   , SeaProgram(..)
   , SeaError(..)
@@ -44,6 +43,8 @@ module Icicle.Sea.Eval.Base (
   , errorOfWord
   , fromCacheSea
   ) where
+
+import qualified Anemone.Foreign.Mempool as Mempool
 
 import           Control.Monad.Catch (MonadMask(..))
 import           Control.Monad.IO.Class (MonadIO(..))
@@ -142,33 +143,28 @@ seaEvalAvalanche program time values = do
     seaRelease
     (\fleet -> do
         programs <- mkSeaPrograms (sfLibrary fleet) ps
-        seaEval attr programs fleet time values)
+        seaEval attr programs time values)
 
 seaEval
   :: (MonadIO m, MonadMask m)
   => Attribute
   -> Map Attribute (NonEmpty SeaProgram)
-  -> SeaFleet st
   -> D.Time
   -> [D.AsAt D.Value]
   -> EitherT SeaError m [(OutputName, D.Value)]
-seaEval attribute programs fleet time values =
+seaEval attribute programs time values =
   case Map.lookup attribute programs of
     Nothing      -> left (SeaProgramNotFound attribute)
     Just program -> do
-      let create  = liftIO $ sfCreatePool  fleet
-          release = liftIO . sfReleasePool fleet
-      concat <$> mapM (\p -> seaEval' p create release time values) program
+      concat <$> mapM (\p -> seaEval' p time values) program
 
 seaEval'
   :: (MonadIO m, MonadMask m)
   => SeaProgram
-  -> (EitherT SeaError m (Ptr MemPool))
-  -> (Ptr MemPool -> EitherT SeaError m ())
   -> D.Time
   -> [D.AsAt D.Value]
   -> EitherT SeaError m [(OutputName, D.Value)]
-seaEval' program createPool releasePool time values = do
+seaEval' program time values = do
   let words              = spStateWords program
       acquireFacts       = vectorsOfFacts values (spFactType program)
       releaseFacts facts = traverse_ freeSeaVector facts
@@ -188,7 +184,7 @@ seaEval' program createPool releasePool time values = do
 
     zipWithM_ (pokeWordOff pState) [factsIx..] psFacts
 
-    bracketEitherT' createPool releasePool $ \poolPtr -> do
+    bracketEitherT' (liftIO Mempool.create) (liftIO . Mempool.free) $ \poolPtr -> do
       pokeWordOff pState mempoolIx poolPtr
       _       <- liftIO (spCompute program pState)
       outputs <- peekNamedOutputs pState outputsIx (spOutputs program)

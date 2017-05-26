@@ -6,8 +6,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Icicle.Sea.Fleet (
-    MemPool
-  , SeaState
+    SeaState
   , SeaFleet (..)
   , Input(..)
   , seaCreateFleet
@@ -23,7 +22,7 @@ import qualified Data.Vector                  as VB
 
 import           Foreign.C.String             (peekCString, withCStringLen)
 import           Foreign.ForeignPtr           (newForeignPtr_)
-import           Foreign.Ptr                  (Ptr, castPtr, nullPtr)
+import           Foreign.Ptr                  (Ptr, nullPtr)
 
 import           System.IO                    (FilePath, IO)
 
@@ -51,15 +50,12 @@ data Input a
   | HasInput IOFormat InputOpts a
     deriving (Eq, Show, Functor)
 
-data MemPool
 data SeaState
 
 data SeaFleet st = SeaFleet {
     sfLibrary     :: Library
-  , sfCreatePool  :: IO (Ptr MemPool)
-  , sfReleasePool :: Ptr MemPool  -> IO ()
-  , sfSnapshot    :: Ptr st       -> EitherT SeaError IO ()
-  , sfSegvInstall :: String       -> IO ()
+  , sfSnapshot    :: Ptr st -> EitherT SeaError IO ()
+  , sfSegvInstall :: String -> IO ()
   , sfSegvRemove  :: IO ()
   }
 
@@ -74,8 +70,6 @@ seaCreateFleet ::
   -> EitherT SeaError (ResourceT IO) (SeaFleet st)
 seaCreateFleet options cache input chords code = do
   lib                  <- firstEitherT SeaJetskiError (compileLibrary cache options code)
-  imempool_create      <- firstEitherT SeaJetskiError (function lib "anemone_mempool_create" (retPtr retVoid))
-  imempool_free        <- firstEitherT SeaJetskiError (function lib "anemone_mempool_free"   retVoid)
   segv_install_handler <- firstEitherT SeaJetskiError (function lib "segv_install_handler" retVoid)
   segv_remove_handler  <- firstEitherT SeaJetskiError (function lib "segv_remove_handler"  retVoid)
 
@@ -141,8 +135,6 @@ seaCreateFleet options cache input chords code = do
 
   return SeaFleet {
       sfLibrary     = lib
-    , sfCreatePool  = castPtr <$> imempool_create []
-    , sfReleasePool = \ptr -> imempool_free [argPtr ptr]
     , sfSnapshot    = \ptr -> liftIO (take_snapshot ptr) >>= hoistEither
     , sfSegvInstall = \str -> withCStringLen str $ \(ptr, len) ->
                       segv_install_handler [argPtr ptr, argCSize (fromIntegral len)]

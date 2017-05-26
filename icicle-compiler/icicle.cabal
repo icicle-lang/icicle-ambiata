@@ -17,6 +17,7 @@ extra-source-files:
 library
   build-depends:
                        base                            >= 3          && < 5
+                     , ambiata-anemone
                      , ambiata-disorder-corpus
                      , ambiata-jetski
                      , ambiata-p
@@ -26,7 +27,6 @@ library
                      , ambiata-x-show
                      , ambiata-x-vector
                      , ambiata-zebra-core
-                     , ambiata-anemone
                      , icicle-core
                      , icicle-data
                      , icicle-source
