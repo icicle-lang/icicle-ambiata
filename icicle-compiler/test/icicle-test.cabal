@@ -1,0 +1,58 @@
+name:                  icicle-test
+version:               0.0.1
+license:               AllRightsReserved
+author:                Ambiata <info@ambiata.com>
+maintainer:            Ambiata <info@ambiata.com>
+copyright:             (c) 2015 Ambiata.
+synopsis:              icicle test generators
+category:              System
+cabal-version:         >= 1.8
+build-type:            Simple
+description:           icicle test generators.
+
+library
+  ghc-options:         -Wall
+
+  build-depends:
+                       base                            >= 3          && < 5
+                     , icicle-data
+                     , icicle-source
+                     , icicle-core
+                     , icicle
+                     , ambiata-disorder-core
+                     , ambiata-disorder-corpus
+                     , ambiata-disorder-jack
+                     , ambiata-p
+                     , ambiata-jetski
+                     , ambiata-x-eithert
+                     , ambiata-x-file-embed
+                     , ambiata-anemone
+                     , ambiata-zebra
+                     , ambiata-zebra-test
+                     , bifunctors                      >= 4.2        && < 5.4
+                     , aeson
+                     , bytestring
+                     , containers
+                     , directory
+                     , exceptions                      == 0.8.*
+                     , filepath                        == 1.4.*
+                     , geniplate-mirror                >= 0.7.2      && < 0.8
+                     , megaparsec                      == 5.0.*
+                     , parsec
+                     , pretty-show                     == 1.6.*
+                     , hashable                        == 1.2.*
+                     , unordered-containers            == 0.2.*
+                     , QuickCheck                      == 2.8.*
+                     , quickcheck-instances            == 0.3.*
+                     , template-haskell                >= 2.4
+                     , temporary
+                     , text
+                     , transformers
+                     , unix                            == 2.7.*
+                     , vector                          == 0.11.*
+                     , semigroups                      >= 0.16       && < 0.19
+
+  exposed-modules:
+                       Icicle.Test.Arbitrary
+                       Icicle.Test.Sea.Utils
+                       Icicle.Test.Foreign.Utils
