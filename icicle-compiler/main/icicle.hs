@@ -278,13 +278,13 @@ runQuery f msrc query = do
       bytes    = queryBytes stats
       secs     = realToFrac (queryTime stats) :: Double
       mbps     = (fromIntegral bytes / secs) / (1024 * 1024)
-      mfps     = (fromIntegral facts / secs) / (1000 * 1000)
+      fps      = fromIntegral facts / secs
 
-  liftIO (printf "icicle: query time      = %.2fs\n"                secs)
-  liftIO (printf "icicle: total entities  = %d\n"                   entities)
-  liftIO (printf "icicle: total facts     = %d\n"                   facts)
-  liftIO (printf "icicle: fact throughput = %.2f million facts/s\n" mfps)
-  liftIO (printf "icicle: byte throughput = %.2f MB/s\n"            mbps)
+  liftIO (printf "icicle: query time      = %.2fs\n" secs)
+  liftIO (printf "icicle: total entities  = %d\n" entities)
+  liftIO (printf "icicle: total facts     = %d\n" facts)
+  liftIO (printf "icicle: fact throughput = %.0f facts/s\n" kfps)
+  liftIO (printf "icicle: byte throughput = %.2f MiB/s\n" mbps)
 
 writeUtf8 :: MonadIO m => FilePath -> Text -> m ()
 writeUtf8 path txt =
