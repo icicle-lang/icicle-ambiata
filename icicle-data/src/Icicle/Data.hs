@@ -1,8 +1,9 @@
+{-# LANGUAGE DeriveFoldable #-}
+{-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE DeriveFunctor #-}
-{-# LANGUAGE DeriveTraversable #-}
-{-# LANGUAGE DeriveFoldable #-}
 module Icicle.Data (
     Entity (..)
   , Namespace (..)
@@ -22,9 +23,11 @@ module Icicle.Data (
   ) where
 
 import           Data.Text
-import           Icicle.Internal.Pretty
 
+import           Icicle.Internal.Pretty
 import           Icicle.Data.Time
+
+import           GHC.Generics
 
 import           P
 
@@ -32,7 +35,7 @@ import           P
 newtype Entity =
   Entity {
       getEntity     :: Text
-    } deriving (Eq, Ord, Show)
+    } deriving (Eq, Ord, Show, Generic)
 
 instance Pretty Entity where
   pretty (Entity t) = text (unpack t)
@@ -40,7 +43,7 @@ instance Pretty Entity where
 newtype Namespace =
   Namespace {
       getNamespace  :: Text
-    } deriving (Eq, Ord, Show)
+    } deriving (Eq, Ord, Show, Generic)
 
 instance Pretty Namespace where
   pretty (Namespace x) = text (unpack x)
@@ -48,13 +51,13 @@ instance Pretty Namespace where
 newtype Attribute =
   Attribute {
       getAttribute  :: Text
-    } deriving (Eq, Ord, Show)
+    } deriving (Eq, Ord, Show, Generic)
 
 data FeatureId =
   FeatureId {
     fidNamespace :: Namespace
   , fidAttribute :: Attribute
-  }
+  } deriving (Generic)
 
 
 instance Pretty Attribute where
@@ -65,21 +68,21 @@ data Fact =
       factEntity    :: Entity
     , factAttribute :: Attribute
     , factValue     :: Value
-    } deriving (Eq, Show)
+    } deriving (Eq, Show, Generic)
 
 data Fact' =
   Fact' {
       factEntity'    :: Entity
     , factAttribute' :: Attribute
     , factValue'     :: Text
-    } deriving (Eq, Show)
+    } deriving (Eq, Show, Generic)
 
 
 data AsAt a =
   AsAt {
       atFact :: a
     , atTime :: Time
-    } deriving (Eq, Show, Functor, Foldable, Traversable)
+    } deriving (Eq, Show, Generic, Functor, Foldable, Traversable)
 
 --------------------------------------------------------------------------------
 
@@ -94,7 +97,7 @@ data Value =
   | PairValue       Value Value
   | MapValue        [(Value, Value)]
   | Tombstone
-  deriving (Eq, Show)
+  deriving (Eq, Show, Generic)
 
 instance Pretty Value where
   pretty v = case v of
@@ -114,7 +117,7 @@ instance Pretty Value where
 
 data Struct =
   Struct    [(Attribute, Value)]
-  deriving (Eq, Show)
+  deriving (Eq, Show, Generic)
 
 instance Pretty Struct where
   pretty (Struct avs) = pretty avs
@@ -123,7 +126,7 @@ instance Pretty Struct where
 
 data List =
   List      [Value]
-  deriving (Eq, Show)
+  deriving (Eq, Show, Generic)
 
 instance Pretty List where
   pretty (List vs) = pretty vs
@@ -138,7 +141,7 @@ data Encoding =
   | TimeEncoding
   | StructEncoding  [StructField]
   | ListEncoding    Encoding
-  deriving (Eq, Show)
+  deriving (Eq, Show, Generic)
 
 instance Pretty Encoding where
   pretty e
@@ -154,7 +157,7 @@ instance Pretty Encoding where
 
 data StructField =
     StructField StructFieldType Attribute Encoding
-  deriving (Eq, Show)
+  deriving (Eq, Show, Generic)
 
 instance Pretty StructField where
  pretty (StructField Mandatory attr enc)
@@ -170,4 +173,4 @@ attributeOfStructField (StructField _ attr _)
 data StructFieldType =
     Mandatory
   | Optional
-  deriving (Eq, Ord, Show)
+  deriving (Eq, Ord, Show, Generic)

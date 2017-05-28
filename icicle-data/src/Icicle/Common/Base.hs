@@ -32,7 +32,7 @@ import              GHC.Generics (Generic)
 data Name n = Name {
     nameHash :: {-# UNPACK #-} !Int
   , nameBase ::                !(NameBase n)
-  } deriving (Show)
+  } deriving (Show, Generic)
 
 instance Hashable (Name n) where
   hash           (Name h _) = h
@@ -71,7 +71,7 @@ data WindowUnit
  = Days   !Int
  | Months !Int
  | Weeks  !Int
- deriving (Show, Eq, Ord)
+ deriving (Show, Eq, Ord, Generic)
 
 instance NFData WindowUnit where rnf x = seq x ()
 
@@ -97,7 +97,7 @@ data BaseValue
  | VBuf      ![BaseValue]
  | VError    !ExceptionInfo
  | VFactIdentifier !FactIdentifier
- deriving (Show, Ord, Eq)
+ deriving (Show, Ord, Eq, Generic)
 
 instance NFData BaseValue where rnf x = seq x ()
 
@@ -108,7 +108,7 @@ instance NFData BaseValue where rnf x = seq x ()
 newtype FactIdentifier
  = FactIdentifier
  { getFactIdentifierIndex :: Int }
- deriving (Eq, Ord, Show)
+ deriving (Eq, Ord, Show, Generic)
 
 instance NFData FactIdentifier where rnf x = seq x ()
 
@@ -121,7 +121,7 @@ data ExceptionInfo
  | ExceptTombstone
  | ExceptFold1NoValue
  | ExceptScalarVariableNotAvailable
- deriving (Show, Ord, Eq)
+ deriving (Show, Ord, Eq, Generic)
 
 instance NFData ExceptionInfo where rnf x = seq x ()
 
@@ -129,7 +129,7 @@ newtype StructField
  = StructField
  { nameOfStructField :: T.Text
  }
- deriving (Ord, Eq)
+ deriving (Ord, Eq, Generic)
 
 instance NFData StructField where rnf x = seq x ()
 

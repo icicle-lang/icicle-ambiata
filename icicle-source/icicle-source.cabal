@@ -15,6 +15,7 @@ library
                        base                            >= 3          && < 5
                      , icicle-data
                      , icicle-core
+                     , ambiata-anemone
                      , ambiata-p
                      , ambiata-x-eithert
                      , ambiata-x-show

@@ -1,5 +1,6 @@
 -- | Working with values and their encodings.
 -- Parsing, rendering etc.
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards #-}
@@ -15,8 +16,10 @@ module Icicle.Encoding (
   , sourceTypeOfEncoding
 
   , renderOutputValue
-  , jsonOfOutputValue
+  , renderJsonValue
   ) where
+
+import           Anemone.Pretty (renderDouble)
 
 import           Data.Attoparsec.ByteString
 import           Data.Text              as T
@@ -36,8 +39,6 @@ import           Icicle.Data
 import           Icicle.Data.Time
 
 import           P
-
-import           Numeric (showFFloat)
 
 
 data DecodeError =
@@ -375,74 +376,73 @@ sourceTypeOfEncoding e
 
 
 
+renderJsonString :: Text -> Text
+renderJsonString =
+  T.decodeUtf8 . BS.toStrict . A.encode . A.String
+
+renderJsonStruct :: Struct -> Text
+renderJsonStruct (Struct kvs0) =
+  let
+    kvs =
+      flip mapMaybe kvs0 $ \(k, v0) -> do
+        v <- renderJsonValue v0
+        pure $
+          renderJsonString (getAttribute k) <> ":" <> v
+  in
+    "{" <> T.intercalate "," kvs <> "}"
+
+renderJsonList :: List -> Text
+renderJsonList (List xs0) =
+  "[" <> T.intercalate "," (mapMaybe renderJsonValue xs0) <> "]"
+
+renderJsonPair :: Value -> Value -> Maybe Text
+renderJsonPair x0 y0 = do
+  x <- renderJsonValue x0
+  y <- renderJsonValue y0
+  pure $
+    "[" <> x <> "," <> y <> "]"
+
+renderJsonValue :: Value -> Maybe Text
+renderJsonValue = \case
+   Tombstone ->
+     Nothing
+   StringValue v ->
+     pure $ renderJsonString v
+   IntValue v ->
+     pure . T.pack $ show v
+   DoubleValue v ->
+     pure . T.decodeUtf8 $ renderDouble v
+   BooleanValue False ->
+     pure "false"
+   BooleanValue True ->
+     pure "true"
+   TimeValue v ->
+     pure . renderJsonString $ renderOutputTime v
+   StructValue kvs ->
+     pure $ renderJsonStruct kvs
+   ListValue xs ->
+     pure $ renderJsonList xs
+   PairValue x y ->
+     renderJsonPair x y
+   MapValue kvs0 ->
+     pure . renderJsonList . List $ fmap (uncurry PairValue) kvs0
 
 -- | RENDER OUTPUT VALUE TO MATCH PSV OUTPUT CODE
 renderOutputValue :: Value -> Maybe Text
-renderOutputValue val
- = case val of
-   StringValue v
-    -> return v
-   IntValue v
-    -> return $ T.pack $ show v
-   DoubleValue v
-    -> return $ T.pack $ showFFloat Nothing v ""
-   BooleanValue False
-    -> return "false"
-   BooleanValue True
-    -> return "true"
-   TimeValue v
-    -> return $ renderOutputTime v
-
-   StructValue _
-    -> json
-   ListValue _
-    -> json
-   Tombstone
-    -> Nothing
-
-   PairValue{}
-    -> json
-   MapValue{}
-    -> json
- where
-  json
-   = T.decodeUtf8 . BS.toStrict . A.encode <$> jsonOfOutputValue val
-
-jsonOfOutputValue :: Value -> Maybe A.Value
-jsonOfOutputValue val
- = case val of
-    StringValue v
-     -> return $ A.String v
-    IntValue v
-     -> return $ A.Number $ P.fromIntegral v
-    DoubleValue v
-     -> return $ A.Number $ S.fromFloatDigits v
-    BooleanValue v
-     -> return $ A.Bool   v
-    TimeValue    v
-     -> return $ A.String $ renderOutputTime v
-    StructValue (Struct sfs)
-     -> return $ A.Object $ P.foldl insert HM.empty sfs
-    ListValue (List l)
-     -> let es = mapMaybe jsonOfOutputValue l
-        in return $ A.Array $ V.fromList $ es
-    Tombstone
-     -> Nothing
-    PairValue k v
-      -> pair k v
-    MapValue kvs
-     -> let es = mapMaybe (jsonOfOutputValue . uncurry PairValue) kvs
-        in return $ A.Array $ V.fromList $ es
- where
-  insert hm (attr,v)
-   | Just v' <- jsonOfOutputValue v
-   = HM.insert (getAttribute attr) v' hm
-   | otherwise
-   = hm
-
-  pair k v = do
-    k' <- jsonOfOutputValue k
-    v' <- jsonOfOutputValue v
-    return $ A.Array $ V.fromList [ k', v' ]
-
-
+renderOutputValue = \case
+   Tombstone ->
+     Nothing
+   StringValue v ->
+     pure v
+   IntValue v ->
+     pure . T.pack $ show v
+   DoubleValue v ->
+     pure . T.decodeUtf8 $ renderDouble v
+   BooleanValue False ->
+     pure "false"
+   BooleanValue True ->
+     pure "true"
+   TimeValue v ->
+     pure $ renderOutputTime v
+   x ->
+     renderJsonValue x

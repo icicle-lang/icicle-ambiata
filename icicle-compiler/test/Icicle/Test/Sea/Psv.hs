@@ -297,7 +297,7 @@ runTest wt consts
   let compile  = compileTest wt testOpts
       release  = S.seaRelease
       expect_values = evalWellTyped wt
-      expect   
+      expect
        | length (wtFacts wt) <= S.psvFactsLimit consts
        = textOfOutputs (wtEntities wt) expect_values
        | otherwise
