@@ -131,9 +131,6 @@ library
                        Icicle.Sea.FromAvalanche.State
                        Icicle.Sea.FromAvalanche.Type
                        Icicle.Sea.Preamble
-                       Icicle.Sea.Chords
-                       Icicle.Sea.Chords.File
-                       Icicle.Sea.Chords.Parse
                        Icicle.Sea.Eval
                        Icicle.Sea.Eval.Base
                        Icicle.Sea.Eval.Program
