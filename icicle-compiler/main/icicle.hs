@@ -283,7 +283,7 @@ runQuery f msrc query = do
   liftIO (printf "icicle: query time      = %.2fs\n" secs)
   liftIO (printf "icicle: total entities  = %d\n" entities)
   liftIO (printf "icicle: total facts     = %d\n" facts)
-  liftIO (printf "icicle: fact throughput = %.0f facts/s\n" kfps)
+  liftIO (printf "icicle: fact throughput = %.0f facts/s\n" fps)
   liftIO (printf "icicle: byte throughput = %.2f MiB/s\n" mbps)
 
 writeUtf8 :: MonadIO m => FilePath -> Text -> m ()
