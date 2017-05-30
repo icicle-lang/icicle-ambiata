@@ -11,6 +11,7 @@ module Icicle.Core.Eval.Program (
 import              Icicle.BubbleGum
 
 import              Icicle.Common.Base
+import              Icicle.Common.Eval
 import              Icicle.Common.Type
 import              Icicle.Common.Value as V
 import              Icicle.Core.Exp
@@ -83,12 +84,14 @@ type InitialStreamValue
 -- | Evaluate a program.
 -- We take no environments, but do take the concrete feature values.
 eval    :: (Hashable n, Eq n)
-        => Time
+        => EvalContext
         -> InitialStreamValue
         -> P.Program a n
         -> Either (RuntimeError a n) (ProgramValue n)
-eval d sv p
- = do   let env0 = Map.singleton (P.snaptimeName p) (VBase $ VTime d)
+eval ctx sv p
+ = do   let env0 = Map.fromList 
+                 [ (P.snaptimeName p, VBase $ VTime $ evalSnapshotTime ctx)
+                 , (P.maxMapSize   p, VBase $ VInt  $ evalMaxMapSize ctx)]
         pres    <- first RuntimeErrorPre
                  $ XV.evalExps XV.evalPrim  env0   (P.precomps     p)
 

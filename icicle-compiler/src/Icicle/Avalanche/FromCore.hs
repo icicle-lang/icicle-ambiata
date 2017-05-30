@@ -71,6 +71,7 @@ programFromCore namer p
         return (A.Program
                 { A.input       = C.inputType p
                 , A.bindtime    = C.snaptimeName p
+                , A.maxMapSize  = C.maxMapSize   p
                 , A.statements  = stmts })
 
  where

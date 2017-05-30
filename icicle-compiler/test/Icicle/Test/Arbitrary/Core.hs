@@ -296,7 +296,7 @@ instance (Arbitrary a, Arbitrary n, Hashable n) => Arbitrary (Stream a n) where
 
 instance (Arbitrary a, Arbitrary n, Hashable n) => Arbitrary (Program a n) where
  arbitrary =
-   Program <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+   Program <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
 
 
 -- | Make an effort to generate a well typed expression that has some given type.
@@ -458,6 +458,7 @@ programForStreamType' streamType
         let nid    = freshN 1
         let ntime  = freshN 2
         let ndate  = freshN 3
+        let nmapsz = freshN 4
 
         let avoid = Map.fromList [ ( ninput, FunT [] (PairT streamType TimeT))
                                  , ( nid,    FunT [] FactIdentifierT)
@@ -490,6 +491,7 @@ programForStreamType' streamType
                , P.factIdName   = nid
                , P.factTimeName = ntime
                , P.snaptimeName = ndate
+               , P.maxMapSize   = nmapsz
                , P.precomps     = pres
                , P.streams      = strs
                , P.postcomps    = posts

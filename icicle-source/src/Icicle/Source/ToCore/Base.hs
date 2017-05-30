@@ -13,6 +13,7 @@ module Icicle.Source.ToCore.Base (
   , convertDateName
   , convertFactIdName
   , convertFactTimeName
+  , convertMaxMapSize
   , convertWithInput
   , convertWithInputName
   , convertError
@@ -66,17 +67,19 @@ programOfBinds
     -> Name n
     -> Name n
     -> Name n
+    -> Name n
     -> CoreBinds a n
     -> a
     -> Name n
     -> C.Program a n
-programOfBinds output inpType factValName factIdName factTimeName postDate binds a_ret ret
+programOfBinds output inpType factValName factIdName factTimeName postDate maxMapSize binds a_ret ret
  = C.Program
  { C.inputType    = inpType
  , C.factValName  = factValName
  , C.factIdName   = factIdName
  , C.factTimeName = factTimeName
  , C.snaptimeName = postDate
+ , C.maxMapSize   = maxMapSize
  , C.precomps     = precomps  binds
  , C.streams      = streams   binds
  , C.postcomps    = postcomps binds
@@ -179,6 +182,7 @@ data ConvertState n
  , csFactIdName   :: Name n
  , csFactTimeName :: Name n
  , csDateName     :: Name n
+ , csMaxMapSize   :: Name n
  , csFeatures     :: FeatureContext () n
  , csFreshen      :: Map.Map (Name n) (Name n)
  }
@@ -207,6 +211,10 @@ convertFactTimeName
 convertDateName :: ConvertM a n (Name n)
 convertDateName
  = csDateName <$> get
+
+convertMaxMapSize :: ConvertM a n (Name n)
+convertMaxMapSize
+ = csMaxMapSize <$> get
 
 convertFeatures :: ConvertM a n (FeatureContext () n)
 convertFeatures

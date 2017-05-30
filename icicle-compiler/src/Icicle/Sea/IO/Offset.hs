@@ -203,6 +203,7 @@ programOutputStart inputSize = 3 + inputSize
 
 -- typedef struct {
 --     itime_t          a_conv_3;
+--     iint_t           max_map_size;
 --     iint_t           new_count;
 --     ierror_t         *new_a_conv_0_simpflat_96;
 --     idouble_t        *new_a_conv_0_simpflat_97;
@@ -212,14 +213,17 @@ programOutputStart inputSize = 3 + inputSize
 inputFactTime :: Int
 inputFactTime = 0
 
+inputMaxMapSize :: Int
+inputMaxMapSize = 1
+
 inputNewCount :: Int
-inputNewCount = 1
+inputNewCount = 2
 
 inputError :: Int
-inputError = 2
+inputError = 3
 
 inputStart :: Int
-inputStart = 3
+inputStart = 4
 
 inputFieldsCount :: SeaProgramAttribute -> Int
 inputFieldsCount state =

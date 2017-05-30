@@ -25,6 +25,7 @@ data Program a n =
  , factIdName   :: !(Name n)
  , factTimeName :: !(Name n)
  , snaptimeName :: !(Name n)
+ , maxMapSize   :: !(Name n)
 
  -- | All precomputations, made before starting to read from feature source
  , precomps     :: ![(Name n, Exp a n)]
@@ -45,16 +46,17 @@ instance NFData (Program a n) where rnf x = seq x ()
 renameProgram :: (Name n -> Name n') -> Program a n -> Program a n'
 renameProgram f p
   = p
-  { factValName  = f $ factValName    p
+  { factValName  = f $ factValName  p
   , factIdName   = f $ factIdName   p
   , factTimeName = f $ factTimeName p
   , snaptimeName = f $ snaptimeName p
-  , precomps     = binds  renameExp      (precomps   p)
-  , streams      = fmap  (renameStream f)(streams    p)
-  , postcomps    = binds  renameExp      (postcomps  p)
+  , maxMapSize   = f $ maxMapSize   p
+  , precomps       = binds  renameExp      (precomps   p)
+  , streams        = fmap  (renameStream f)(streams    p)
+  , postcomps      = binds  renameExp      (postcomps  p)
   -- Now, we actually do not want to modify the names of the outputs.
   -- They should stay the same over the entire life of the program.
-  , returns      = fmap (\(a,b) -> (a, renameExp f b)) (returns    p)
+  , returns        = fmap (\(a,b) -> (a, renameExp f b)) (returns    p)
   }
   where
    binds r = fmap (\(a,b) -> (f a, r f b))
@@ -68,7 +70,8 @@ instance Pretty n => Pretty (Program a n) where
   <> pretty (factValName  p) <> " : " <> pretty (inputType p) <> ", "
   <> pretty (factIdName   p) <> " : FactIdentifier, "
   <> pretty (factTimeName p) <> " : Time, "
-  <> pretty (snaptimeName p) <> " : SNAPSHOT_TIME)" <> line
+  <> pretty (snaptimeName p) <> " : SNAPSHOT_TIME, "
+  <> pretty (maxMapSize   p) <> " : MaxMapSize)" <> line
 
   <>    "Precomputations:"                             <> line
   <>    ppbinds (precomps p)                           <> line

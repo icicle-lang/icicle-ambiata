@@ -66,6 +66,8 @@ seaOfPrograms name attrib programs = do
     , indent 4 $ assign (defOfVar' 1 "anemone_mempool_t" "mempool") "s->mempool;"
     , indent 4 $ assign (defOfVar  0 TimeT (pretty $ textOfName $ bindtime program))
                         ("s->" <> stateInputTime attribute) <> ";"
+    , indent 4 $ assign (defOfVar  0 TimeT (pretty $ textOfName $ maxMapSize program))
+                        ("s->" <> stateMaxMapSize attribute) <> ";"
     , ""
     , indent 4 (seaOfStatement attribute compute (statements program))
     , "}"

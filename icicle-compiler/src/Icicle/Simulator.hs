@@ -16,6 +16,7 @@ import           P
 
 import qualified Icicle.BubbleGum   as B
 import           Icicle.Common.Base
+import           Icicle.Common.Eval
 import           Icicle.Common.Type
 import           Icicle.Common.Data (valueToCore, valueFromCore)
 import           Icicle.Data
@@ -82,12 +83,12 @@ makePartition fs@(f:_)
                 (factAttribute $ atFact f)
                 (fmap (\f' -> AsAt (factValue $ atFact f') (atTime f')) fs) ]
 
-evaluateVirtualValue :: (Hashable n, Eq n) => P.Program a n -> Time -> [AsAt Value] -> Result a n
-evaluateVirtualValue p t vs
+evaluateVirtualValue :: (Hashable n, Eq n) => P.Program a n -> EvalContext -> [AsAt Value] -> Result a n
+evaluateVirtualValue p ctx vs
  = do   vs' <- zipWithM toCore [1..] vs
 
         xv  <- first SimulateErrorRuntime
-             $ PV.eval t vs' p
+             $ PV.eval ctx vs' p
 
         v'  <- traverse (\(k,v) -> (,) <$> pure k <*> valueFromCore' v) (PV.value xv)
         return (v', PV.history xv)
@@ -96,13 +97,13 @@ evaluateVirtualValue p t vs
    = do v' <- valueToCore' (atFact a) (P.inputType p)
         return $ a { atFact = (B.BubbleGumFact $ B.Flavour n $ atTime a, v') }
 
-evaluateVirtualValue' :: (Hashable n, Eq n, Show n, Show a) => A.Program a n APF.Prim -> Time -> [AsAt Value] -> Result a n
-evaluateVirtualValue' p t vs
+evaluateVirtualValue' :: (Hashable n, Eq n, Show n, Show a) => A.Program a n APF.Prim -> EvalContext -> [AsAt Value] -> Result a n
+evaluateVirtualValue' p ctx vs
  = do   vs' <- zipWithM toCore [1..] vs
 
         (outs,bgs)
             <- first SimulateErrorRuntime'
-             $ AE.evalProgram APF.evalPrim t vs' p
+             $ AE.evalProgram APF.evalPrim ctx vs' p
 
         v'  <- traverse (\(k,v) -> (,) <$> pure k <*> valueFromCore' v) outs
         -- bg' <- traverse (traverse valueFromCore') (fst xv)

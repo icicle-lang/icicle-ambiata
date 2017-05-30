@@ -29,6 +29,7 @@ import qualified Icicle.Avalanche.Simp as A
 import qualified Icicle.Avalanche.Statement.Flatten as A
 
 import           Icicle.Common.Base
+import           Icicle.Common.Eval
 import           Icicle.Common.Type
 import           Icicle.Common.Annot
 
@@ -59,6 +60,7 @@ data WellTyped = WellTyped {
   , wtFactType      :: ValType
   , wtFacts         :: [AsAt BaseValue]
   , wtTime          :: Time
+  , wtMaxMapSize    :: Int
   , wtCore          :: C.Program ()         Var
   , wtAvalanche     :: A.Program ()         Var C.Prim
   , wtAvalancheFlat :: A.Program (Annot ()) Var A.Prim
@@ -126,6 +128,7 @@ tryGenWellTypedFromCoreEither allowDupTime (InputType ty) core = do
                           -> inputsForType ty
                         S.DoNotAllowDupTime
                           -> first (List.nubBy ((==) `on` atTime)) <$> inputsForType ty
+    maxMapSize     <- arbitrary
     return $ do
       checked <- nobodyCares (C.checkProgram core)
       _       <- traverse (supportedOutput . functionReturns . snd) checked
@@ -151,6 +154,7 @@ tryGenWellTypedFromCoreEither allowDupTime (InputType ty) core = do
         , wtFactType      = ty
         , wtFacts         = fmap (fmap snd) inputs
         , wtTime          = time
+        , wtMaxMapSize    = maxMapSize
         , wtCore          = core
         , wtAvalanche     = avalanche
         , wtAvalancheFlat = simplified
@@ -183,7 +187,7 @@ evalWellTyped wt
  | null $ wtFacts wt
  = []
  | otherwise
- = case PV.eval (wtTime wt) inputs (wtCore wt) of
+ = case PV.eval (wellTypedEvalContext wt) inputs (wtCore wt) of
     Left err -> Savage.error ("Evaluating Core: " <> show err)
     Right r  -> PV.value r
  where
@@ -191,6 +195,9 @@ evalWellTyped wt
    = List.zipWith mkInput [0..] (wtFacts wt)
   mkInput ix (AsAt fact time)
    = AsAt (BubbleGumFact (Flavour ix time), fact) time
+
+wellTypedEvalContext :: WellTyped -> EvalContext
+wellTypedEvalContext wt = EvalContext (wtTime wt) (wtMaxMapSize wt) 
 
 ------------------------------------------------------------------------
 

@@ -64,6 +64,7 @@ import qualified Icicle.Avalanche.Prim.Flat               as Flat
 
 import qualified Icicle.Common.Annot                      as Common
 import qualified Icicle.Common.Base                       as Common
+import qualified Icicle.Common.Eval                       as Common
 import qualified Icicle.Common.Fresh                      as Fresh
 import qualified Icicle.Common.Type                       as Common
 
@@ -382,12 +383,12 @@ instance Pretty Result where
   pretty (Result (ent, val))
     = pretty ent <> comma <> space <> pretty val
 
-coreEval :: Time
+coreEval :: Common.EvalContext
          -> [AsAt Fact]
          -> Source.QueryTyped Source.Var
          -> Source.CoreProgramUntyped  Source.Var
          -> Either SimError [Result]
-coreEval t fs (renameQT unVar -> query) prog
+coreEval ctx fs (renameQT unVar -> query) prog
  = do let partitions = Sim.streams fs
       let feat       = Query.feature query
       let results    = fmap (evalP feat) partitions
@@ -407,14 +408,14 @@ coreEval t fs (renameQT unVar -> query) prog
       = return []
 
     evalV
-      = Sim.evaluateVirtualValue prog t
+      = Sim.evaluateVirtualValue prog ctx
 
-avalancheEval :: Time
+avalancheEval :: Common.EvalContext
               -> [AsAt Fact]
               -> Source.QueryTyped Source.Var
               -> AvalProgramUntyped Source.Var Flat.Prim
               -> Either SimError [Result]
-avalancheEval t fs (renameQT unVar -> query) prog
+avalancheEval ctx fs (renameQT unVar -> query) prog
  = do let partitions = Sim.streams fs
       let feat       = Query.feature query
       let results    = fmap (evalP feat) partitions
@@ -434,14 +435,14 @@ avalancheEval t fs (renameQT unVar -> query) prog
       = return []
 
     evalV
-      = Sim.evaluateVirtualValue' prog t
+      = Sim.evaluateVirtualValue' prog ctx
 
-seaEval :: Time
+seaEval :: Common.EvalContext
         -> [AsAt Fact]
         -> Source.QueryTyped Source.Var
         -> AvalProgramTyped  Source.Var Flat.Prim
         -> EitherT SeaError IO [Result]
-seaEval t newFacts (renameQT unVar -> query) program =
+seaEval ctx newFacts (renameQT unVar -> query) program =
   fmap Result . mconcat <$> sequence results
   where
     partitions :: [Sim.Partition]
@@ -456,7 +457,7 @@ seaEval t newFacts (renameQT unVar -> query) program =
     evalP featureName (Sim.Partition entityName attributeName values)
       | Common.NameBase name <- Common.nameBase featureName
       , Attribute name == attributeName
-      = do outputs <- seaEvalAvalanche program t values
+      = do outputs <- seaEvalAvalanche program ctx values
            return $ fmap (\out -> (entityName, snd out)) outputs
 
       | otherwise
