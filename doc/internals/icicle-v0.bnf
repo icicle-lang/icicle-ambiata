@@ -294,7 +294,7 @@
                |  Right
                |  ExceptTombstone
                |  ExceptFold1NoValue
-               |  ExceptScalarVariableNotAvailable
+               |  ExceptCannotCompute
 
 <window>      ::= <integer> <window-unit>
                |  between <integer> <window-unit> and <integer> <window-unit>

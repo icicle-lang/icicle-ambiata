@@ -728,14 +728,12 @@ wordOfError = \case
   ExceptNotAnError                 -> 0
   ExceptTombstone                  -> 1
   ExceptFold1NoValue               -> 2
-  ExceptScalarVariableNotAvailable -> 3
-  ExceptCannotCompute              -> 4
+  ExceptCannotCompute              -> 3
 
 errorOfWord :: Word64 -> ExceptionInfo
 errorOfWord = \case
   0 -> ExceptNotAnError
   1 -> ExceptTombstone
   2 -> ExceptFold1NoValue
-  3 -> ExceptScalarVariableNotAvailable
-  4 -> ExceptCannotCompute
+  3 -> ExceptCannotCompute
   _ -> ExceptTombstone

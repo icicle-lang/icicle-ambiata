@@ -334,9 +334,6 @@ seaOfError e
      ExceptFold1NoValue
       -> "ierror_fold1_no_value"
 
-     ExceptScalarVariableNotAvailable
-      -> "ierror_variable_not_available"
-
      ExceptCannotCompute
       -> "ierror_cannot_compute"
 

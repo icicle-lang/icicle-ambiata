@@ -365,4 +365,4 @@
                   |  Right
                   |  ExceptTombstone
                   |  ExceptFold1NoValue
-                  |  ExceptScalarVariableNotAvailable
+                  |  ExceptCannotCompute
