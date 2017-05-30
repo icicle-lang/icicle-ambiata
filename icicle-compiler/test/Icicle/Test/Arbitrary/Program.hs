@@ -4,12 +4,15 @@
 {-# LANGUAGE PatternGuards#-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell#-}
+{-# LANGUAGE TupleSections #-}
+{-# LANGUAGE ViewPatterns #-}
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 module Icicle.Test.Arbitrary.Program where
 
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import qualified Data.List as List
+import qualified Data.Text as Text
 
 import           Icicle.BubbleGum (BubbleGumFact(..), Flavour(..))
 import           Icicle.Data (Entity(..), AsAt(..))
@@ -46,8 +49,9 @@ import           P
 
 import           Test.QuickCheck
 
-import qualified Prelude as Savage
+import           Disorder.Corpus
 
+import qualified Prelude as Savage
 import           Text.Show.Pretty (ppShow)
 
 
@@ -56,35 +60,70 @@ newtype InputType = InputType {
   } deriving (Show)
 
 data WellTyped = WellTyped {
-    wtEntities      :: [Entity]
-  , wtInputId       :: InputId
-  , wtFactType      :: ValType
-  , wtFacts         :: [AsAt BaseValue]
-  , wtTime          :: Time
-  , wtMaxMapSize    :: Int
-  , wtCore          :: C.Program ()         Var
-  , wtAvalanche     :: A.Program ()         Var C.Prim
-  , wtAvalancheFlat :: A.Program (Annot ()) Var A.Prim
+    wtChordTime  :: !Time
+  , wtFacts      :: [WellTypedValue]
+  , wtAttributes :: [WellTypedAttribute]
+  }
+
+data WellTypedValue = WellTypedValue {
+    eavtEntity    :: !Entity
+  , eavtAttribute :: !Attribute
+  , eavtValue     :: !(AsAt BaseValue)
+  }
+
+-- FIXME
+-- This currently generates one compute kernel per attribute only.
+-- We leave the testing of multiple compute kernels to PsvFission, which does its own thing.
+-- But perhaps it's better to generate multiple compute kernels here too.
+data WellTypedAttribute = WellTypedAttribute {
+    wtInputId       :: InputId
+  , wtFactType      :: !ValType
+  , wtInputType     :: !InputType -- SumT ErrorT FactType
+  , wtCore          :: !(C.Program () Var)
+  , wtAvalanche     :: !(A.Program () Var C.Prim)
+  , wtAvalancheFlat :: !(A.Program (Annot ()) Var A.Prim)
   }
 
 instance Show WellTyped where
-  show wt
-    = show
-    $ vsep
-    [ "well-typed:"
-    , "  entities   = " <> pretty (       wtEntities   wt)
-    , "  input-id   = " <> pretty (       wtInputId    wt)
-    , "  fact type  = " <> pretty (       wtFactType   wt)
-    , "  facts      = " <> text   (show $ wtFacts      wt)
-    , "  time       = " <> text   (show $ wtTime       wt)
-    , "  maxMapSize = " <> text   (show $ wtMaxMapSize wt)
-    , "  core       ="
-    , indent 4 $ pretty (wtCore      wt)
-    , "  avalanche  ="
-    , indent 4 $ pretty (wtAvalanche wt)
-    , "  flat       ="
-    , indent 4 $ pretty (wtAvalancheFlat wt)
-    ]
+  show x = displayS (renderPretty 0.8 80 (pretty x)) ""
+
+instance Show WellTypedValue where
+  show x = displayS (renderPretty 0.8 80 (pretty x)) ""
+
+instance Show WellTypedAttribute where
+  show x = displayS (renderPretty 0.8 80 (pretty x)) ""
+
+instance Pretty WellTyped where
+  pretty wt =
+    vsep $
+      [ "Well-typed:"
+      , indent 2 $ "Attributes ="
+      , indent 4 $ vsep (fmap pretty (wtAttributes wt))
+      , indent 2 $ "Chord time  = " <> text (show (wtChordTime wt))
+      , indent 2 $ "EAVTs ="
+      , indent 4 $ vsep (fmap pretty (wtFacts wt))
+      ]
+
+instance Pretty WellTypedValue where
+  pretty eavt =
+    encloseSep lbracket rbracket comma $
+      [ pretty (eavtEntity eavt)
+      , pretty (eavtAttribute eavt)
+      , text $ show (eavtValue eavt) ]
+
+instance Pretty WellTypedAttribute where
+  pretty wt =
+    vsep $
+      [ "Input ID = " <> pretty (wtInputId wt)
+      , "Fact type = " <> pretty (wtFactType  wt)
+      , "Core ="
+      , indent 2 $ pretty (wtCore wt)
+      , "Avalanche ="
+      , indent 2 $ pretty (wtAvalanche wt)
+      , "Flat ="
+      , indent 2 $ pretty (wtAvalancheFlat wt)
+      ]
+>>>>>>> Test: rework WellTyped generator to generate multiple entities and attributes
 
 instance Arbitrary InputType where
   arbitrary = validated 100 $ do
@@ -93,87 +132,195 @@ instance Arbitrary InputType where
        then pure . Just . inputTypeOf $ ty
        else pure Nothing
 
+instance Arbitrary WellTyped where
+  arbitrary =
+    validated 10 (tryGenWellTypedWith S.DoNotAllowDupTime =<< arbitrary)
+
+instance Arbitrary WellTypedAttribute where
+  arbitrary =
+    validated 10 (tryGenAttributeWithInput =<< arbitrary)
+
+tryGenWellTypedWith ::
+     S.InputAllowDupTime
+  -> InputType
+  -> Gen (Maybe WellTyped)
+tryGenWellTypedWith allowDupTime ty = do
+  as <- validatedNonEmpty 10 (tryGenAttributeWithInput ty)
+  let
+    replaceAttributeName =
+      List.zipWith (\i x -> x { wtAttribute = Attribute ("attribute" <> Text.pack (show i))}) [0..]
+    as' =
+      replaceAttributeName as
+  (facts, time) <- genFactsForAttributes allowDupTime as'
+  return . Just . WellTyped time facts $ as'
+
+tryGenWellTypedFromCore' ::
+     S.InputAllowDupTime
+  -> InputType
+  -> C.Program () Var
+  -> Gen (Either Savage.String WellTyped)
+tryGenWellTypedFromCore' allowDupTime ty core = do
+  attrs <- validatedNonEmpty' 10 (tryGenAttributeFromCore' ty core)
+  case attrs of
+    Left e ->
+      return (Left e)
+    Right as -> do
+      (facts, time) <- genFactsForAttributes allowDupTime as
+      return . Right . WellTyped time facts $ as
+
+genWellTypedWithDuplicateTimes :: Gen WellTyped
+genWellTypedWithDuplicateTimes
+ = validated 10 (tryGenWellTypedWith S.AllowDupTime =<< arbitrary)
+
+evalWellTypedCore :: WellTyped -> [(OutputName, BaseValue)]
+evalWellTypedCore wt
+ | null (wtFacts wt) = []
+ | otherwise =
+     let
+       mkInput ix (WellTypedValue _ attr (AsAt fact time)) =
+        (attr, AsAt (BubbleGumFact (Flavour ix time), fact) time)
+       inputs =
+        List.zipWith mkInput [0..] (wtFacts wt)
+       eval (WellTypedAttribute attr _ _ core _ _) =
+         let
+           xs = fmap snd . List.filter ((== attr) . fst) $ inputs
+         in PV.eval (wtChordTime wt) xs core
+       boom (Left e) =
+         Savage.error ("Impossible! Failed to evaluate well-typed Core: " <> show e <> "\n" <> show wt)
+       boom (Right a) =
+         PV.value a
+     in concatMap (boom . eval) . wtAttributes $ wt
+
+--------------------------------------------------------------------------------
+
+genVTs ::
+     S.InputAllowDupTime
+  -> InputType
+  -> Gen [AsAt BaseValue]
+genVTs allowDupTime (unInputType -> ty) = do
+  (inputs, _) <-
+    case allowDupTime of
+      S.AllowDupTime ->
+        inputsForType ty
+      S.DoNotAllowDupTime ->
+        first (List.sortBy (compare `on` atTime) . List.nubBy ((==) `on` atTime)) <$> inputsForType ty
+  let
+    valueOrTombstone (VLeft (VError _)) =
+      VLeft (VError ExceptTombstone)
+    valueOrTombstone v =
+      v
+  return . fmap (fmap (valueOrTombstone . snd)) $ inputs
+
+genEAVTs ::
+     S.InputAllowDupTime
+  -> [(Attribute, InputType)]
+  -> Gen [WellTypedValue]
+genEAVTs allowDupTime tys = do
+  e <- Entity <$> elements southpark
+  -- es <- arbitrary
+  let
+    entities =
+      [e]
+  vs <-
+    forM entities $ \entity -> do
+      forM tys $ \(attr, ty) -> do
+        vs <- genVTs allowDupTime ty
+        return . fmap (WellTypedValue entity attr) $ vs
+
+  return . List.concat . List.concat $ vs
+
+genFactsForAttributes ::
+     S.InputAllowDupTime
+  -> [WellTypedAttribute]
+  -> Gen ([WellTypedValue], Time)
+genFactsForAttributes allowDupTime as = do
+  facts <- genEAVTs allowDupTime (fmap (\wt -> (wtAttribute wt, wtInputType wt)) as)
+  case facts of
+    [] ->
+      (facts,) <$> arbitrary
+    _ ->
+      return (facts, List.maximum . fmap (atTime . eavtValue) $ facts)
+
+--------------------------------------------------------------------------------
+
 inputTypeOf :: ValType -> InputType
 inputTypeOf ty
     = InputType $ SumT ErrorT ty
 
-instance Arbitrary WellTyped where
-  arbitrary = validated 10 (tryGenWellTypedWith S.DoNotAllowDupTime =<< arbitrary)
+tryGenAttributeWithInput ::
+     InputType
+  -> Gen (Maybe WellTypedAttribute)
+tryGenAttributeWithInput ty = do
+  core <- programForStreamType (unInputType ty)
+  tryGenAttributeFromCore ty core
 
-tryGenWellTypedWith :: S.InputAllowDupTime -> InputType -> Gen (Maybe WellTyped)
-tryGenWellTypedWith allowDupTime i@(InputType ty) = do
-    core           <- programForStreamType ty
-    tryGenWellTypedFromCore allowDupTime i core
-
-tryGenWellTypedWithOutput :: S.InputAllowDupTime -> InputType -> ValType -> Gen (Maybe WellTyped)
-tryGenWellTypedWithOutput allowDupTime i out = do
- wt <- tryGenWellTypedWith allowDupTime i
+tryGenAttributeWithInputAndOutput ::
+     InputType
+  -> ValType
+  -> Gen (Maybe WellTypedAttribute)
+tryGenAttributeWithInputAndOutput i out = do
+ wt <- tryGenAttributeWithInput i
  case wt of
   Just wt' -> return $ do
     checked <- fromEither $ C.checkProgram $ wtCore wt'
     case any ((==out) . functionReturns . snd) $ checked of
      True -> return wt'
      False -> Nothing
-
   _ -> return Nothing
 
-tryGenWellTypedFromCore :: S.InputAllowDupTime -> InputType -> C.Program () Var -> Gen (Maybe WellTyped)
-tryGenWellTypedFromCore allowDupTime ty core
- = fromEither <$> tryGenWellTypedFromCoreEither allowDupTime ty core
+tryGenAttributeFromCore ::
+     InputType
+  -> C.Program () Var
+  -> Gen (Maybe WellTypedAttribute)
+tryGenAttributeFromCore ty core =
+   fromEither <$> tryGenAttributeFromCore' ty core
 
-tryGenWellTypedFromCoreEither :: S.InputAllowDupTime -> InputType -> C.Program () Var -> Gen (Either Savage.String WellTyped)
-tryGenWellTypedFromCoreEither allowDupTime (InputType ty) core = do
-    entities       <- List.sort . List.nub . getNonEmpty <$> arbitrary
-    attribute      <- arbitrary
-    (inputs, ctx) <- case allowDupTime of
-                        S.AllowDupTime
-                          -> inputsForType ty
-                        S.DoNotAllowDupTime
-                          -> first (List.nubBy ((==) `on` atTime)) <$> inputsForType ty
-    return $ do
-      checked <- nobodyCares (C.checkProgram core)
-      _       <- traverse (supportedOutput . functionReturns . snd) checked
+tryGenAttributeFromCore' ::
+     InputType
+  -> C.Program () Var
+  -> Gen (Either Savage.String WellTypedAttribute)
+tryGenAttributeFromCore' sty core
+  | SumT ErrorT ty <- unInputType sty = do
+      let
+        replaceStmts prog stms
+          = prog { A.statements = stms }
 
-      let avalanche = testFresh "fromCore" $ A.programFromCore namer core
+        namer =
+          A.namerText (flip Var 0)
 
-      flatStmts <- nobodyCares (testFreshT "anf" $ A.flatten () (A.statements avalanche))
+        dummyAnn =
+          Annot (FunT [] UnitT) ()
 
-      flattened <- nobodyCares (A.checkProgram A.flatFragment (replaceStmts avalanche flatStmts))
+        supportedOutput t
+          | isSupportedOutput t = Right t
+        supportedOutput t =
+          Left ("Unsupported output: " <> show t)
 
-      unchecked <- nobodyCares (testFresh "simp" $ A.simpFlattened dummyAnn A.defaultSimpOpts flattened)
+      attribute <- arbitrary
+      return $ do
+        checked <- nobodyCares (C.checkProgram core)
+        _       <- traverse (supportedOutput . functionReturns . snd) checked
+        let avalanche = testFresh "fromCore" $ A.programFromCore namer core
+        flatStmts <- nobodyCares (testFreshT "anf" $ A.flatten () (A.statements avalanche))
+        flattened <- nobodyCares (A.checkProgram A.flatFragment (replaceStmts avalanche flatStmts))
+        unchecked <- nobodyCares (testFresh "simp" $ A.simpFlattened dummyAnn A.defaultSimpOpts flattened)
+        simplified <- nobodyCares (A.checkProgram A.flatFragment (A.eraseAnnotP unchecked))
 
-      simplified <- nobodyCares (A.checkProgram A.flatFragment (A.eraseAnnotP unchecked))
+        let types = Set.toList (S.typesOfProgram simplified)
+        case filter (not . isSupportedType) types of
+          []    -> Right ()
+          ts    -> Left ("Unsupported type: " <> show ts)
 
-      let types = Set.toList (S.typesOfProgram simplified)
-      case filter (not . isSupportedType) types of
-        []    -> Right ()
-        ts    -> Left ("Unsupported type: " <> show ts)
-
-      return WellTyped {
-          wtEntities      = entities
-        , wtInputId       = attribute
-        , wtFactType      = ty
-        , wtFacts         = fmap (fmap snd) inputs
-        , wtTime          = evalSnapshotTime ctx
-        , wtMaxMapSize    = evalMaxMapSize   ctx
-        , wtCore          = core
-        , wtAvalanche     = avalanche
-        , wtAvalancheFlat = simplified
-        }
-    where
-      replaceStmts prog stms = prog { A.statements = stms }
-
-      namer       = A.namerText (flip Var 0)
-      dummyAnn    = Annot (FunT [] UnitT) ()
-
-      supportedOutput t | isSupportedOutput t = Right t
-      supportedOutput t                       = Left ("Unsupported output: " <> show t)
-
-
-
-genWellTypedWithDuplicateTimes :: Gen WellTyped
-genWellTypedWithDuplicateTimes
- = validated 10 (tryGenWellTypedWith S.AllowDupTime =<< arbitrary)
+        return WellTypedAttribute {
+            wtInputId       = attribute
+          , wtFactType      = ty
+          , wtInputType     = sty
+          , wtCore          = core
+          , wtAvalanche     = avalanche
+          , wtAvalancheFlat = simplified
+          }
+  | otherwise =
+      Savage.error "Impossible! Generated an input type that is not Sum Error."
 
 -- If the input are structs, we can pretend it's a dense value
 -- We can't treat other values as a single-field dense struct because the
@@ -182,23 +329,6 @@ genWellTypedWithStruct :: S.InputAllowDupTime -> Gen WellTyped
 genWellTypedWithStruct allowDupTime = validated 10 $ do
   st <- arbitrary :: Gen StructType
   tryGenWellTypedWith allowDupTime (inputTypeOf $ StructT st)
-
-evalWellTyped :: WellTyped -> [(OutputId, BaseValue)]
-evalWellTyped wt
- | null $ wtFacts wt
- = []
- | otherwise
- = case PV.eval (wellTypedEvalContext wt) inputs (wtCore wt) of
-    Left err -> Savage.error ("Evaluating Core: " <> show err)
-    Right r  -> PV.value r
- where
-  inputs
-   = List.zipWith mkInput [0..] (wtFacts wt)
-  mkInput ix (AsAt fact time)
-   = AsAt (BubbleGumFact (Flavour ix time), fact) time
-
-wellTypedEvalContext :: WellTyped -> EvalContext
-wellTypedEvalContext wt = EvalContext (wtTime wt) (wtMaxMapSize wt) 
 
 ------------------------------------------------------------------------
 
@@ -211,6 +341,16 @@ validated n g
         Nothing -> validated (n-1) g
         Just x  -> pure x
 
+validated' :: Int -> Gen (Either Savage.String a) -> Gen (Either Savage.String a)
+validated' n g
+  | n < 0 = discard
+  | n == 0 = g
+  | otherwise = do
+      m <- g
+      case m of
+        Left _ -> validated' (n-1) g
+        Right x  -> pure (Right x)
+
 fromEither :: Either x a -> Maybe a
 fromEither (Left _)  = Nothing
 fromEither (Right x) = Just x
@@ -218,6 +358,21 @@ fromEither (Right x) = Just x
 nobodyCares :: Show a => Either a b -> Either Savage.String b
 nobodyCares = first (ppShow)
 
+validatedNonEmpty :: Int -> Gen (Maybe a) -> Gen [a]
+validatedNonEmpty n g = do
+  x <- validated n g
+  xs <- catMaybes <$> listOf g
+  return (x:xs)
+
+validatedNonEmpty' :: Int -> Gen (Either Savage.String a) -> Gen (Either Savage.String [a])
+validatedNonEmpty' n g = do
+  x <- validated' n g
+  case x of
+    Left a ->
+      return (Left a)
+    Right b -> do
+      xs <- catMaybes . fmap (either (const Nothing) Just) <$> listOf g
+      return (Right (b:xs))
 
 ------------------------------------------------------------------------
 

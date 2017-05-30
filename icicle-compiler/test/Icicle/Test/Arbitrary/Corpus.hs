@@ -123,10 +123,12 @@ testAllCorpus prop
 
 genWellTyped :: (OutputId, C.Program () Var) -> Gen WellTyped
 genWellTyped (name, core)
- = do wt <- tryGenWellTypedFromCoreEither S.AllowDupTime (streamType core) core
-      case wt of
-       Left err  -> Savage.error (Text.unpack (renderOutputId name) <> "\n\n" <> err)
-       Right wt' -> return wt'
+ wt <- tryGenWellTypedFromCore' S.AllowDupTime (streamType core) core
+ case wt of
+  Left err  ->
+    Savage.error ("Generating well-typed failed: " <> Text.unpack (renderOutputId name) <> "\n" <> err)
+  Right wt' ->
+    return wt'
  where
   streamType c
    = InputType $ C.inputType c
