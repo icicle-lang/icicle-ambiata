@@ -65,8 +65,21 @@ evalQ q vs env
                     in  evalQ q' vs' env
 
                 Latest _ i
-                 | t' <- annResult $ annotOfQuery q'
-                 , TemporalityElement <- getTemporalityOrPure t'
+                 -- Latest can return either an array or a value, depending on the temporality of its argument.
+                 -- We need to know whether to return an array here, so we might as well just look at the return type.
+                 -- If the return type of the
+                 -- > latest i ~> q' : Array t'
+                 -- and
+                 -- > q' : t'
+                 -- then we need to wrap the result in an Array.
+                 -- There is another case for possiblies, where result has type
+                 -- > latest i ~> q' : Array (Sum Error t')
+                 -- These correspond to the "dataOfLatest" rules in Source.Type.Constraints.
+                 | t  <- annResult $ annotOfQuery q
+                 , t' <- annResult $ annotOfQuery q'
+                 , Just (ArrayT t0) <- getBaseType t
+                 , Just t0' <- getBaseType t'
+                 , t0 == t0' || t0 == SumT ErrorT t0'
                  -> let vs' = reverse $ take i $ reverse vs
                     in  VArray <$> mapM (evalQ q' []) vs'
                  | otherwise
