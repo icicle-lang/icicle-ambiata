@@ -275,7 +275,16 @@ makeApps a fun (arg:rest) doWrap
             -- Bare value. Note that this is now definite, but with same (bare) type
             bare  = Var (extractValueAnnot arga) nValue
 
-        fun' <- makeApps a (App a fun bare) rest True
+        -- Check if we're calling a primitive which already returns its result wrapped.
+        -- If so, we do not need to perform rewrapping of the value.
+        let doWrap'
+              | Just (p, _, _) <- takePrimApps fun
+              , primReturnsPossibly p
+              = False
+              | otherwise
+              = True
+
+        fun' <- makeApps a (App a fun bare) rest doWrap'
 
         let app'  = Case a' arg
                   [ ( PatCon ConLeft  [ PatVariable nError ]
