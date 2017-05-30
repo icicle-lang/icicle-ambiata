@@ -121,6 +121,7 @@ data ExceptionInfo
  | ExceptTombstone
  | ExceptFold1NoValue
  | ExceptScalarVariableNotAvailable
+ | ExceptCannotCompute
  deriving (Show, Ord, Eq, Generic)
 
 instance NFData ExceptionInfo where rnf x = seq x ()

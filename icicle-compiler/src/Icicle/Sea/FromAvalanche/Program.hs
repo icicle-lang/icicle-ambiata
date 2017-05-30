@@ -337,3 +337,6 @@ seaOfError e
      ExceptScalarVariableNotAvailable
       -> "ierror_variable_not_available"
 
+     ExceptCannotCompute
+      -> "ierror_cannot_compute"
+
