@@ -120,7 +120,6 @@ data ExceptionInfo
  = ExceptNotAnError
  | ExceptTombstone
  | ExceptFold1NoValue
- | ExceptScalarVariableNotAvailable
  | ExceptCannotCompute
  deriving (Show, Ord, Eq, Generic)
 

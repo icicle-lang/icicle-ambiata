@@ -37,7 +37,6 @@ constructors
    ,("Right",Q.ConRight)
    ,("ExceptTombstone",         Q.ConError ExceptTombstone)
    ,("ExceptFold1NoValue",      Q.ConError ExceptFold1NoValue)
-   ,("ExceptScalarVariableNotAvailable",      Q.ConError ExceptScalarVariableNotAvailable)
    ,("ExceptCannotCompute",     Q.ConError ExceptCannotCompute)
    ]
 
