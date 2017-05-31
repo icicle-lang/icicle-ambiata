@@ -14,6 +14,7 @@ module Icicle.Repl.Source
   , readFacts
   , loadDictionary
   , readIcicleLibrary
+  , stateEvalContext
   ) where
 
 import           Control.Monad.Trans.Class
@@ -36,6 +37,8 @@ import qualified Icicle.Internal.Pretty           as Pretty
 
 import qualified Icicle.Source.Checker            as Check
 
+import           Icicle.Common.Eval
+
 import           Icicle.Data
 import           Icicle.Data.Time
 
@@ -56,6 +59,7 @@ data SourceReplState
    { facts              :: [AsAt Fact]
    , dictionary         :: Dictionary
    , currentTime        :: Time
+   , maxMapSize         :: Int
    , inlineOpt          :: Compiler.InlineOption
    , hasType            :: Bool
    , hasBigData         :: Bool
@@ -71,10 +75,14 @@ defaultSourceReplState
        []
        demographics
        (unsafeTimeOfYMD 1970 1 1)
+       (1024*1024)
        Compiler.InlineUsingLets
        False False False False False False )
     { hasType = True
     , hasBigData = False }
+
+stateEvalContext :: SourceReplState -> EvalContext
+stateEvalContext s = EvalContext (currentTime s) (maxMapSize s)
 
 --------------------------------------------------------------------------------
 

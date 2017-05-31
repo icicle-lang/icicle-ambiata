@@ -101,6 +101,7 @@ data Set
    | ShowSeaLLVMIR           Bool
    | ShowSeaEval             Bool
    | CurrentTime             Time
+   | SetMaxMapSize           Int
    | PerformCoreSimp         Bool
    | PerformFlattenSimpCheck Bool
 
@@ -182,6 +183,10 @@ readSetCommands ss
        , Just d' <- readMaybe d
        , Just x' <- timeOfYMD y' m' d'
        -> (:) (CurrentTime x') <$> readSetCommands rest
+
+    ("max-map-size" : m : rest)
+       | Just m' <- readMaybe m
+       -> (:) (SetMaxMapSize m') <$> readSetCommands rest
 
     [] -> Just []
     _  -> Nothing
@@ -346,7 +351,7 @@ handleLine state line = let st = sourceState state in
       -- Flattened Avalanche, simplified, eval.
            let flatList = f' :| []
 
-           case Compiler.avalancheEval (SourceRepl.currentTime st) (SourceRepl.facts st) finalSource flatSimped of
+           case Compiler.avalancheEval (SourceRepl.stateEvalContext st) (SourceRepl.facts st) finalSource flatSimped of
             Left  e -> prettyOut hasAvalancheEval "- Flattened Avalanche (simplified) evalutation error:" e
             Right r -> prettyOut hasAvalancheEval "- Flattened Avalanche (simplified) evaluation:" r
 
@@ -373,12 +378,12 @@ handleLine state line = let st = sourceState state in
                Right r -> prettyOut (const True) "- C LLVM IR:" r
 
            when (hasSeaEval state) $ do
-             result <- liftIO . runEitherT $ Compiler.seaEval (SourceRepl.currentTime st) (SourceRepl.facts st) finalSource f'
+             result <- liftIO . runEitherT $ Compiler.seaEval (SourceRepl.stateEvalContext st) (SourceRepl.facts st) finalSource f'
              case result of
                Left  e -> prettyOut (const True) "- C error:" e
                Right r -> prettyOut (const True) "- C evaluation:" r
 
-      case Compiler.coreEval (SourceRepl.currentTime st) (SourceRepl.facts st) finalSource core of
+      case Compiler.coreEval (SourceRepl.stateEvalContext st) (SourceRepl.facts st) finalSource core of
        Left  e -> prettyOut hasCoreEval "- Core error:" e
        Right r -> prettyOut hasCoreEval "- Core evaluation:" r
 
@@ -486,6 +491,7 @@ showState state = let st = sourceState state in do
     , flag "c-llvm-ir:       " hasSeaLLVMIR
     , flag "c-eval:          " hasSeaEval
     ,      "now:             " <> T.unpack (renderTime $ SourceRepl.currentTime st)
+    ,      "max-map-size:    " <> show (SourceRepl.maxMapSize st)
     ,      "data:            " <> show (length $ SourceRepl.facts st) <> " rows"
     ]
  Repl.prettyHL $ prettyDictionarySummary (SourceRepl.dictionary st)
@@ -623,6 +629,10 @@ handleSetCommand state set = let st = sourceState state in
     CurrentTime d -> do
         HL.outputStrLn $ "ok, time set to " <> T.unpack (renderTime d)
         return $ state { sourceState = st { SourceRepl.currentTime = d } }
+
+    SetMaxMapSize m -> do
+        HL.outputStrLn $ "ok, max-map-size set to " <> show m
+        return $ state { sourceState = st { SourceRepl.maxMapSize = m } }
 
     PerformCoreSimp b -> do
         HL.outputStrLn $ "ok, core-simp is now " <> Repl.showFlag b

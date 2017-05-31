@@ -7,18 +7,19 @@ ok, flatten (simplified) is now on
 > > -- A rather complicated feature to convert to Avalanche
 > - Flattened (simplified), not typechecked:
 conv$3 = TIME
-init acc$conv$10$simpflat$8@{Error} = ExceptNotAnError@{Error};
-init acc$c$conv$11$simpflat$13@{Error} = ExceptNotAnError@{Error};
-init acc$c$conv$11$simpflat$14@{Int} = 0@{Int};
-init acc$conv$26$simpflat$15@{Buf 3 FactIdentifier} = Buf_make#@{Buf 3 FactIdentifier} (()@{Unit});
-init acc$conv$26$simpflat$16@{Buf 3 Error} = Buf_make#@{Buf 3 Error} (()@{Unit});
-init acc$conv$26$simpflat$17@{Buf 3 Int} = Buf_make#@{Buf 3 Int} (()@{Unit});
-load_resumable@{Buf 3 FactIdentifier} acc$conv$26$simpflat$15;
-load_resumable@{Buf 3 Error} acc$conv$26$simpflat$16;
-load_resumable@{Buf 3 Int} acc$conv$26$simpflat$17;
-load_resumable@{Error} acc$c$conv$11$simpflat$13;
-load_resumable@{Int} acc$c$conv$11$simpflat$14;
-load_resumable@{Error} acc$conv$10$simpflat$8;
+conv$4 = MAX_MAP_SIZE
+init acc$conv$11$simpflat$8@{Error} = ExceptNotAnError@{Error};
+init acc$c$conv$12$simpflat$13@{Error} = ExceptNotAnError@{Error};
+init acc$c$conv$12$simpflat$14@{Int} = 0@{Int};
+init acc$conv$27$simpflat$15@{Buf 3 FactIdentifier} = Buf_make#@{Buf 3 FactIdentifier} (()@{Unit});
+init acc$conv$27$simpflat$16@{Buf 3 Error} = Buf_make#@{Buf 3 Error} (()@{Unit});
+init acc$conv$27$simpflat$17@{Buf 3 Int} = Buf_make#@{Buf 3 Int} (()@{Unit});
+load_resumable@{Buf 3 FactIdentifier} acc$conv$27$simpflat$15;
+load_resumable@{Buf 3 Error} acc$conv$27$simpflat$16;
+load_resumable@{Buf 3 Int} acc$conv$27$simpflat$17;
+load_resumable@{Error} acc$c$conv$12$simpflat$13;
+load_resumable@{Int} acc$c$conv$12$simpflat$14;
+load_resumable@{Error} acc$conv$11$simpflat$8;
 for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0$simpflat$60@{Error}, conv$0$simpflat$61@{Int}, conv$0$simpflat$62@{Time}) in new
 {
   init flat$0$simpflat$18@{Error} = ExceptNotAnError@{Error};
@@ -47,24 +48,24 @@ for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0$simpflat$60@{Error}, c
   read flat$1 = flat$1 [Bool];
   if (flat$1)
   {
-    write acc$conv$10$simpflat$8 = conv$0$simpflat$60;
-    read conv$10$aval$1$simpflat$22 = acc$conv$10$simpflat$8 [Error];
-    read c$conv$11$aval$0$simpflat$27 = acc$c$conv$11$simpflat$13 [Error];
-    read c$conv$11$aval$0$simpflat$28 = acc$c$conv$11$simpflat$14 [Int];
+    write acc$conv$11$simpflat$8 = conv$0$simpflat$60;
+    read conv$11$aval$1$simpflat$22 = acc$conv$11$simpflat$8 [Error];
+    read c$conv$12$aval$0$simpflat$27 = acc$c$conv$12$simpflat$13 [Error];
+    read c$conv$12$aval$0$simpflat$28 = acc$c$conv$12$simpflat$14 [Int];
     init flat$2$simpflat$29@{Error} = ExceptNotAnError@{Error};
     init flat$2$simpflat$30@{Int} = 0@{Int};
-    if (eq#@{Error} conv$10$aval$1$simpflat$22 (ExceptNotAnError@{Error}))
+    if (eq#@{Error} conv$11$aval$1$simpflat$22 (ExceptNotAnError@{Error}))
     {
       init flat$5$simpflat$31@{Error} = ExceptNotAnError@{Error};
       init flat$5$simpflat$32@{Int} = 0@{Int};
-      if (eq#@{Error} c$conv$11$aval$0$simpflat$27 (ExceptNotAnError@{Error}))
+      if (eq#@{Error} c$conv$12$aval$0$simpflat$27 (ExceptNotAnError@{Error}))
       {
         write flat$5$simpflat$31 = ExceptNotAnError@{Error};
-        write flat$5$simpflat$32 = add#@{Int} c$conv$11$aval$0$simpflat$28 (1@{Int});
+        write flat$5$simpflat$32 = add#@{Int} c$conv$12$aval$0$simpflat$28 (1@{Int});
       }
       else
       {
-        write flat$5$simpflat$31 = c$conv$11$aval$0$simpflat$27;
+        write flat$5$simpflat$31 = c$conv$12$aval$0$simpflat$27;
         write flat$5$simpflat$32 = 0@{Int};
       }
       read flat$5$simpflat$33 = flat$5$simpflat$31 [Error];
@@ -88,61 +89,61 @@ for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0$simpflat$60@{Error}, c
     }
     else
     {
-      write flat$2$simpflat$29 = conv$10$aval$1$simpflat$22;
+      write flat$2$simpflat$29 = conv$11$aval$1$simpflat$22;
       write flat$2$simpflat$30 = 0@{Int};
     }
     read flat$2$simpflat$39 = flat$2$simpflat$29 [Error];
     read flat$2$simpflat$40 = flat$2$simpflat$30 [Int];
-    write acc$c$conv$11$simpflat$13 = flat$2$simpflat$39;
-    write acc$c$conv$11$simpflat$14 = flat$2$simpflat$40;
+    write acc$c$conv$12$simpflat$13 = flat$2$simpflat$39;
+    write acc$c$conv$12$simpflat$14 = flat$2$simpflat$40;
   }
-  read acc$conv$26$simpflat$15 = acc$conv$26$simpflat$15 [Buf 3 FactIdentifier];
+  read acc$conv$27$simpflat$15 = acc$conv$27$simpflat$15 [Buf 3 FactIdentifier];
   
-  write acc$conv$26$simpflat$15 = Buf_push#@{Buf 3 FactIdentifier} acc$conv$26$simpflat$15 conv$1;
-  read acc$conv$26$simpflat$16 = acc$conv$26$simpflat$16 [Buf 3 Error];
-  
-  
-  write acc$conv$26$simpflat$16 = Buf_push#@{Buf 3 Error} acc$conv$26$simpflat$16 conv$0$simpflat$60;
-  read acc$conv$26$simpflat$17 = acc$conv$26$simpflat$17 [Buf 3 Int];
+  write acc$conv$27$simpflat$15 = Buf_push#@{Buf 3 FactIdentifier} acc$conv$27$simpflat$15 conv$1;
+  read acc$conv$27$simpflat$16 = acc$conv$27$simpflat$16 [Buf 3 Error];
   
   
-  write acc$conv$26$simpflat$17 = Buf_push#@{Buf 3 Int} acc$conv$26$simpflat$17 conv$0$simpflat$61;
+  write acc$conv$27$simpflat$16 = Buf_push#@{Buf 3 Error} acc$conv$27$simpflat$16 conv$0$simpflat$60;
+  read acc$conv$27$simpflat$17 = acc$conv$27$simpflat$17 [Buf 3 Int];
+  
+  
+  write acc$conv$27$simpflat$17 = Buf_push#@{Buf 3 Int} acc$conv$27$simpflat$17 conv$0$simpflat$61;
   
   
   
   
 }
-read acc$conv$26$flat$16$simpflat$44 = acc$conv$26$simpflat$15 [Buf 3 FactIdentifier];
-let flat$17 = Buf_read#@{Array FactIdentifier} acc$conv$26$flat$16$simpflat$44;
+read acc$conv$27$flat$16$simpflat$44 = acc$conv$27$simpflat$15 [Buf 3 FactIdentifier];
+let flat$17 = Buf_read#@{Array FactIdentifier} acc$conv$27$flat$16$simpflat$44;
 foreach (flat$18 in 0@{Int} .. Array_length#@{FactIdentifier} flat$17)
 {
   keep_fact_in_history unsafe_Array_index#@{FactIdentifier} flat$17 flat$18;
 }
 
-save_resumable@{Buf 3 FactIdentifier} acc$conv$26$simpflat$15;
-save_resumable@{Buf 3 Error} acc$conv$26$simpflat$16;
-save_resumable@{Buf 3 Int} acc$conv$26$simpflat$17;
-save_resumable@{Error} acc$c$conv$11$simpflat$13;
-save_resumable@{Int} acc$c$conv$11$simpflat$14;
-save_resumable@{Error} acc$conv$10$simpflat$8;
-read conv$26$simpflat$48 = acc$conv$26$simpflat$16 [Buf 3 Error];
-read conv$26$simpflat$49 = acc$conv$26$simpflat$17 [Buf 3 Int];
-read c$conv$11$simpflat$50 = acc$c$conv$11$simpflat$13 [Error];
-read c$conv$11$simpflat$51 = acc$c$conv$11$simpflat$14 [Int];
+save_resumable@{Buf 3 FactIdentifier} acc$conv$27$simpflat$15;
+save_resumable@{Buf 3 Error} acc$conv$27$simpflat$16;
+save_resumable@{Buf 3 Int} acc$conv$27$simpflat$17;
+save_resumable@{Error} acc$c$conv$12$simpflat$13;
+save_resumable@{Int} acc$c$conv$12$simpflat$14;
+save_resumable@{Error} acc$conv$11$simpflat$8;
+read conv$27$simpflat$48 = acc$conv$27$simpflat$16 [Buf 3 Error];
+read conv$27$simpflat$49 = acc$conv$27$simpflat$17 [Buf 3 Int];
+read c$conv$12$simpflat$50 = acc$c$conv$12$simpflat$13 [Error];
+read c$conv$12$simpflat$51 = acc$c$conv$12$simpflat$14 [Int];
 init flat$23$simpflat$52@{Error} = ExceptNotAnError@{Error};
 init flat$23$simpflat$53@{Int} = 0@{Int};
 init flat$23$simpflat$54@{Array Error} = unsafe_Array_create#@{Error} (0@{Int});
 init flat$23$simpflat$55@{Array Int} = unsafe_Array_create#@{Int} (0@{Int});
-if (eq#@{Error} c$conv$11$simpflat$50 (ExceptNotAnError@{Error}))
+if (eq#@{Error} c$conv$12$simpflat$50 (ExceptNotAnError@{Error}))
 {
   write flat$23$simpflat$52 = ExceptNotAnError@{Error};
-  write flat$23$simpflat$53 = c$conv$11$simpflat$51;
-  write flat$23$simpflat$54 = Buf_read#@{Array Error} conv$26$simpflat$48;
-  write flat$23$simpflat$55 = Buf_read#@{Array Int} conv$26$simpflat$49;
+  write flat$23$simpflat$53 = c$conv$12$simpflat$51;
+  write flat$23$simpflat$54 = Buf_read#@{Array Error} conv$27$simpflat$48;
+  write flat$23$simpflat$55 = Buf_read#@{Array Int} conv$27$simpflat$49;
 }
 else
 {
-  write flat$23$simpflat$52 = c$conv$11$simpflat$50;
+  write flat$23$simpflat$52 = c$conv$12$simpflat$50;
   write flat$23$simpflat$53 = 0@{Int};
   write flat$23$simpflat$54 = unsafe_Array_create#@{Error} (0@{Int});
   write flat$23$simpflat$55 = unsafe_Array_create#@{Int} (0@{Int});
@@ -155,18 +156,19 @@ output@{(Sum Error (Int, Array (Sum Error Int)))} repl (flat$23$simpflat$56@{Err
 
 - Flattened Avalanche (simplified), typechecked:
 conv$3 = TIME
-init acc$conv$10$simpflat$8@{Error} = ExceptNotAnError@{Error};
-init acc$c$conv$11$simpflat$13@{Error} = ExceptNotAnError@{Error};
-init acc$c$conv$11$simpflat$14@{Int} = 0@{Int};
-init acc$conv$26$simpflat$15@{Buf 3 FactIdentifier} = Buf_make#@{Buf 3 FactIdentifier} (()@{Unit});
-init acc$conv$26$simpflat$16@{Buf 3 Error} = Buf_make#@{Buf 3 Error} (()@{Unit});
-init acc$conv$26$simpflat$17@{Buf 3 Int} = Buf_make#@{Buf 3 Int} (()@{Unit});
-load_resumable@{Buf 3 FactIdentifier} acc$conv$26$simpflat$15;
-load_resumable@{Buf 3 Error} acc$conv$26$simpflat$16;
-load_resumable@{Buf 3 Int} acc$conv$26$simpflat$17;
-load_resumable@{Error} acc$c$conv$11$simpflat$13;
-load_resumable@{Int} acc$c$conv$11$simpflat$14;
-load_resumable@{Error} acc$conv$10$simpflat$8;
+conv$4 = MAX_MAP_SIZE
+init acc$conv$11$simpflat$8@{Error} = ExceptNotAnError@{Error};
+init acc$c$conv$12$simpflat$13@{Error} = ExceptNotAnError@{Error};
+init acc$c$conv$12$simpflat$14@{Int} = 0@{Int};
+init acc$conv$27$simpflat$15@{Buf 3 FactIdentifier} = Buf_make#@{Buf 3 FactIdentifier} (()@{Unit});
+init acc$conv$27$simpflat$16@{Buf 3 Error} = Buf_make#@{Buf 3 Error} (()@{Unit});
+init acc$conv$27$simpflat$17@{Buf 3 Int} = Buf_make#@{Buf 3 Int} (()@{Unit});
+load_resumable@{Buf 3 FactIdentifier} acc$conv$27$simpflat$15;
+load_resumable@{Buf 3 Error} acc$conv$27$simpflat$16;
+load_resumable@{Buf 3 Int} acc$conv$27$simpflat$17;
+load_resumable@{Error} acc$c$conv$12$simpflat$13;
+load_resumable@{Int} acc$c$conv$12$simpflat$14;
+load_resumable@{Error} acc$conv$11$simpflat$8;
 for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0$simpflat$60@{Error}, conv$0$simpflat$61@{Int}, conv$0$simpflat$62@{Time}) in new
 {
   init flat$0$simpflat$18@{Error} = ExceptNotAnError@{Error};
@@ -195,24 +197,24 @@ for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0$simpflat$60@{Error}, c
   read flat$1 = flat$1 [Bool];
   if (flat$1)
   {
-    write acc$conv$10$simpflat$8 = conv$0$simpflat$60;
-    read conv$10$aval$1$simpflat$22 = acc$conv$10$simpflat$8 [Error];
-    read c$conv$11$aval$0$simpflat$27 = acc$c$conv$11$simpflat$13 [Error];
-    read c$conv$11$aval$0$simpflat$28 = acc$c$conv$11$simpflat$14 [Int];
+    write acc$conv$11$simpflat$8 = conv$0$simpflat$60;
+    read conv$11$aval$1$simpflat$22 = acc$conv$11$simpflat$8 [Error];
+    read c$conv$12$aval$0$simpflat$27 = acc$c$conv$12$simpflat$13 [Error];
+    read c$conv$12$aval$0$simpflat$28 = acc$c$conv$12$simpflat$14 [Int];
     init flat$2$simpflat$29@{Error} = ExceptNotAnError@{Error};
     init flat$2$simpflat$30@{Int} = 0@{Int};
-    if (eq#@{Error} conv$10$aval$1$simpflat$22 (ExceptNotAnError@{Error}))
+    if (eq#@{Error} conv$11$aval$1$simpflat$22 (ExceptNotAnError@{Error}))
     {
       init flat$5$simpflat$31@{Error} = ExceptNotAnError@{Error};
       init flat$5$simpflat$32@{Int} = 0@{Int};
-      if (eq#@{Error} c$conv$11$aval$0$simpflat$27 (ExceptNotAnError@{Error}))
+      if (eq#@{Error} c$conv$12$aval$0$simpflat$27 (ExceptNotAnError@{Error}))
       {
         write flat$5$simpflat$31 = ExceptNotAnError@{Error};
-        write flat$5$simpflat$32 = add#@{Int} c$conv$11$aval$0$simpflat$28 (1@{Int});
+        write flat$5$simpflat$32 = add#@{Int} c$conv$12$aval$0$simpflat$28 (1@{Int});
       }
       else
       {
-        write flat$5$simpflat$31 = c$conv$11$aval$0$simpflat$27;
+        write flat$5$simpflat$31 = c$conv$12$aval$0$simpflat$27;
         write flat$5$simpflat$32 = 0@{Int};
       }
       read flat$5$simpflat$33 = flat$5$simpflat$31 [Error];
@@ -236,61 +238,61 @@ for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0$simpflat$60@{Error}, c
     }
     else
     {
-      write flat$2$simpflat$29 = conv$10$aval$1$simpflat$22;
+      write flat$2$simpflat$29 = conv$11$aval$1$simpflat$22;
       write flat$2$simpflat$30 = 0@{Int};
     }
     read flat$2$simpflat$39 = flat$2$simpflat$29 [Error];
     read flat$2$simpflat$40 = flat$2$simpflat$30 [Int];
-    write acc$c$conv$11$simpflat$13 = flat$2$simpflat$39;
-    write acc$c$conv$11$simpflat$14 = flat$2$simpflat$40;
+    write acc$c$conv$12$simpflat$13 = flat$2$simpflat$39;
+    write acc$c$conv$12$simpflat$14 = flat$2$simpflat$40;
   }
-  read acc$conv$26$simpflat$15 = acc$conv$26$simpflat$15 [Buf 3 FactIdentifier];
+  read acc$conv$27$simpflat$15 = acc$conv$27$simpflat$15 [Buf 3 FactIdentifier];
   
-  write acc$conv$26$simpflat$15 = Buf_push#@{Buf 3 FactIdentifier} acc$conv$26$simpflat$15 conv$1;
-  read acc$conv$26$simpflat$16 = acc$conv$26$simpflat$16 [Buf 3 Error];
-  
-  
-  write acc$conv$26$simpflat$16 = Buf_push#@{Buf 3 Error} acc$conv$26$simpflat$16 conv$0$simpflat$60;
-  read acc$conv$26$simpflat$17 = acc$conv$26$simpflat$17 [Buf 3 Int];
+  write acc$conv$27$simpflat$15 = Buf_push#@{Buf 3 FactIdentifier} acc$conv$27$simpflat$15 conv$1;
+  read acc$conv$27$simpflat$16 = acc$conv$27$simpflat$16 [Buf 3 Error];
   
   
-  write acc$conv$26$simpflat$17 = Buf_push#@{Buf 3 Int} acc$conv$26$simpflat$17 conv$0$simpflat$61;
+  write acc$conv$27$simpflat$16 = Buf_push#@{Buf 3 Error} acc$conv$27$simpflat$16 conv$0$simpflat$60;
+  read acc$conv$27$simpflat$17 = acc$conv$27$simpflat$17 [Buf 3 Int];
+  
+  
+  write acc$conv$27$simpflat$17 = Buf_push#@{Buf 3 Int} acc$conv$27$simpflat$17 conv$0$simpflat$61;
   
   
   
   
 }
-read acc$conv$26$flat$16$simpflat$44 = acc$conv$26$simpflat$15 [Buf 3 FactIdentifier];
-let flat$17 = Buf_read#@{Array FactIdentifier} acc$conv$26$flat$16$simpflat$44;
+read acc$conv$27$flat$16$simpflat$44 = acc$conv$27$simpflat$15 [Buf 3 FactIdentifier];
+let flat$17 = Buf_read#@{Array FactIdentifier} acc$conv$27$flat$16$simpflat$44;
 foreach (flat$18 in 0@{Int} .. Array_length#@{FactIdentifier} flat$17)
 {
   keep_fact_in_history unsafe_Array_index#@{FactIdentifier} flat$17 flat$18;
 }
 
-save_resumable@{Buf 3 FactIdentifier} acc$conv$26$simpflat$15;
-save_resumable@{Buf 3 Error} acc$conv$26$simpflat$16;
-save_resumable@{Buf 3 Int} acc$conv$26$simpflat$17;
-save_resumable@{Error} acc$c$conv$11$simpflat$13;
-save_resumable@{Int} acc$c$conv$11$simpflat$14;
-save_resumable@{Error} acc$conv$10$simpflat$8;
-read conv$26$simpflat$48 = acc$conv$26$simpflat$16 [Buf 3 Error];
-read conv$26$simpflat$49 = acc$conv$26$simpflat$17 [Buf 3 Int];
-read c$conv$11$simpflat$50 = acc$c$conv$11$simpflat$13 [Error];
-read c$conv$11$simpflat$51 = acc$c$conv$11$simpflat$14 [Int];
+save_resumable@{Buf 3 FactIdentifier} acc$conv$27$simpflat$15;
+save_resumable@{Buf 3 Error} acc$conv$27$simpflat$16;
+save_resumable@{Buf 3 Int} acc$conv$27$simpflat$17;
+save_resumable@{Error} acc$c$conv$12$simpflat$13;
+save_resumable@{Int} acc$c$conv$12$simpflat$14;
+save_resumable@{Error} acc$conv$11$simpflat$8;
+read conv$27$simpflat$48 = acc$conv$27$simpflat$16 [Buf 3 Error];
+read conv$27$simpflat$49 = acc$conv$27$simpflat$17 [Buf 3 Int];
+read c$conv$12$simpflat$50 = acc$c$conv$12$simpflat$13 [Error];
+read c$conv$12$simpflat$51 = acc$c$conv$12$simpflat$14 [Int];
 init flat$23$simpflat$52@{Error} = ExceptNotAnError@{Error};
 init flat$23$simpflat$53@{Int} = 0@{Int};
 init flat$23$simpflat$54@{Array Error} = unsafe_Array_create#@{Error} (0@{Int});
 init flat$23$simpflat$55@{Array Int} = unsafe_Array_create#@{Int} (0@{Int});
-if (eq#@{Error} c$conv$11$simpflat$50 (ExceptNotAnError@{Error}))
+if (eq#@{Error} c$conv$12$simpflat$50 (ExceptNotAnError@{Error}))
 {
   write flat$23$simpflat$52 = ExceptNotAnError@{Error};
-  write flat$23$simpflat$53 = c$conv$11$simpflat$51;
-  write flat$23$simpflat$54 = Buf_read#@{Array Error} conv$26$simpflat$48;
-  write flat$23$simpflat$55 = Buf_read#@{Array Int} conv$26$simpflat$49;
+  write flat$23$simpflat$53 = c$conv$12$simpflat$51;
+  write flat$23$simpflat$54 = Buf_read#@{Array Error} conv$27$simpflat$48;
+  write flat$23$simpflat$55 = Buf_read#@{Array Int} conv$27$simpflat$49;
 }
 else
 {
-  write flat$23$simpflat$52 = c$conv$11$simpflat$50;
+  write flat$23$simpflat$52 = c$conv$12$simpflat$50;
   write flat$23$simpflat$53 = 0@{Int};
   write flat$23$simpflat$54 = unsafe_Array_create#@{Error} (0@{Int});
   write flat$23$simpflat$55 = unsafe_Array_create#@{Int} (0@{Int});
@@ -308,30 +310,31 @@ output@{(Sum Error (Int, Array (Sum Error Int)))} repl (flat$23$simpflat$56@{Err
 > > -- Something involves the abstract buffer type
 > - Flattened (simplified), not typechecked:
 conv$3 = TIME
-init acc$conv$4$simpflat$38@{Array Time} = unsafe_Array_create#@{Time} (0@{Int});
-init acc$conv$4$simpflat$39@{Array (Buf 2 FactIdentifier)} = unsafe_Array_create#@{Buf 2 FactIdentifier} (0@{Int});
-init acc$conv$4$simpflat$40@{Array (Buf 2 Error)} = unsafe_Array_create#@{Buf 2 Error} (0@{Int});
-init acc$conv$4$simpflat$41@{Array (Buf 2 Int)} = unsafe_Array_create#@{Buf 2 Int} (0@{Int});
-load_resumable@{Array Time} acc$conv$4$simpflat$38;
-load_resumable@{Array (Buf 2 FactIdentifier)} acc$conv$4$simpflat$39;
-load_resumable@{Array (Buf 2 Error)} acc$conv$4$simpflat$40;
-load_resumable@{Array (Buf 2 Int)} acc$conv$4$simpflat$41;
+conv$4 = MAX_MAP_SIZE
+init acc$conv$5$simpflat$38@{Array Time} = unsafe_Array_create#@{Time} (0@{Int});
+init acc$conv$5$simpflat$39@{Array (Buf 2 FactIdentifier)} = unsafe_Array_create#@{Buf 2 FactIdentifier} (0@{Int});
+init acc$conv$5$simpflat$40@{Array (Buf 2 Error)} = unsafe_Array_create#@{Buf 2 Error} (0@{Int});
+init acc$conv$5$simpflat$41@{Array (Buf 2 Int)} = unsafe_Array_create#@{Buf 2 Int} (0@{Int});
+load_resumable@{Array Time} acc$conv$5$simpflat$38;
+load_resumable@{Array (Buf 2 FactIdentifier)} acc$conv$5$simpflat$39;
+load_resumable@{Array (Buf 2 Error)} acc$conv$5$simpflat$40;
+load_resumable@{Array (Buf 2 Int)} acc$conv$5$simpflat$41;
 for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0$simpflat$127@{Error}, conv$0$simpflat$128@{Int}, conv$0$simpflat$129@{Time}) in new
 {
-  read conv$4$aval$0$simpflat$43 = acc$conv$4$simpflat$38 [Array Time];
-  read conv$4$aval$0$simpflat$44 = acc$conv$4$simpflat$39 [Array (Buf 2 FactIdentifier)];
-  read conv$4$aval$0$simpflat$45 = acc$conv$4$simpflat$40 [Array (Buf 2 Error)];
-  read conv$4$aval$0$simpflat$46 = acc$conv$4$simpflat$41 [Array (Buf 2 Int)];
+  read conv$5$aval$0$simpflat$43 = acc$conv$5$simpflat$38 [Array Time];
+  read conv$5$aval$0$simpflat$44 = acc$conv$5$simpflat$39 [Array (Buf 2 FactIdentifier)];
+  read conv$5$aval$0$simpflat$45 = acc$conv$5$simpflat$40 [Array (Buf 2 Error)];
+  read conv$5$aval$0$simpflat$46 = acc$conv$5$simpflat$41 [Array (Buf 2 Int)];
   let simpflat$475 = Buf_make#@{Buf 2 FactIdentifier} (()@{Unit});
   let simpflat$268 = Buf_push#@{Buf 2 FactIdentifier} simpflat$475 conv$1;
   let simpflat$476 = Buf_make#@{Buf 2 Error} (()@{Unit});
   let simpflat$271 = Buf_push#@{Buf 2 Error} simpflat$476 conv$0$simpflat$127;
   let simpflat$477 = Buf_make#@{Buf 2 Int} (()@{Unit});
   let simpflat$274 = Buf_push#@{Buf 2 Int} simpflat$477 conv$0$simpflat$128;
-  init map_insert_acc_keys$flat$1@{Array Time} = conv$4$aval$0$simpflat$43;
-  init map_insert_acc_vals$flat$2$simpflat$48@{Array (Buf 2 FactIdentifier)} = conv$4$aval$0$simpflat$44;
-  init map_insert_acc_vals$flat$2$simpflat$49@{Array (Buf 2 Error)} = conv$4$aval$0$simpflat$45;
-  init map_insert_acc_vals$flat$2$simpflat$50@{Array (Buf 2 Int)} = conv$4$aval$0$simpflat$46;
+  init map_insert_acc_keys$flat$1@{Array Time} = conv$5$aval$0$simpflat$43;
+  init map_insert_acc_vals$flat$2$simpflat$48@{Array (Buf 2 FactIdentifier)} = conv$5$aval$0$simpflat$44;
+  init map_insert_acc_vals$flat$2$simpflat$49@{Array (Buf 2 Error)} = conv$5$aval$0$simpflat$45;
+  init map_insert_acc_vals$flat$2$simpflat$50@{Array (Buf 2 Int)} = conv$5$aval$0$simpflat$46;
   init map_insert_acc_bs_found$flat$4@{Bool} = False@{Bool};
   init map_insert_acc_bs_index$flat$3@{Int} = -1@{Int};
   read map_insert_loc_keys$flat$5 = map_insert_acc_keys$flat$1 [Array Time];
@@ -488,39 +491,39 @@ for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0$simpflat$127@{Error}, 
   read map_insert_loc_vals$flat$6$simpflat$72 = map_insert_acc_vals$flat$2$simpflat$48 [Array (Buf 2 FactIdentifier)];
   read map_insert_loc_vals$flat$6$simpflat$73 = map_insert_acc_vals$flat$2$simpflat$49 [Array (Buf 2 Error)];
   read map_insert_loc_vals$flat$6$simpflat$74 = map_insert_acc_vals$flat$2$simpflat$50 [Array (Buf 2 Int)];
-  write acc$conv$4$simpflat$38 = map_insert_loc_keys$flat$5;
-  write acc$conv$4$simpflat$39 = map_insert_loc_vals$flat$6$simpflat$72;
-  write acc$conv$4$simpflat$40 = map_insert_loc_vals$flat$6$simpflat$73;
-  write acc$conv$4$simpflat$41 = map_insert_loc_vals$flat$6$simpflat$74;
+  write acc$conv$5$simpflat$38 = map_insert_loc_keys$flat$5;
+  write acc$conv$5$simpflat$39 = map_insert_loc_vals$flat$6$simpflat$72;
+  write acc$conv$5$simpflat$40 = map_insert_loc_vals$flat$6$simpflat$73;
+  write acc$conv$5$simpflat$41 = map_insert_loc_vals$flat$6$simpflat$74;
 }
-read acc$conv$4$flat$36$simpflat$77 = acc$conv$4$simpflat$39 [Array (Buf 2 FactIdentifier)];
-foreach (flat$38 in 0@{Int} .. Array_length#@{Buf 2 FactIdentifier} acc$conv$4$flat$36$simpflat$77)
+read acc$conv$5$flat$36$simpflat$77 = acc$conv$5$simpflat$39 [Array (Buf 2 FactIdentifier)];
+foreach (flat$38 in 0@{Int} .. Array_length#@{Buf 2 FactIdentifier} acc$conv$5$flat$36$simpflat$77)
 {
-  let simpflat$409 = unsafe_Array_index#@{Buf 2 FactIdentifier} acc$conv$4$flat$36$simpflat$77 flat$38;
+  let simpflat$409 = unsafe_Array_index#@{Buf 2 FactIdentifier} acc$conv$5$flat$36$simpflat$77 flat$38;
   let flat$39 = Buf_read#@{Array FactIdentifier} simpflat$409;
   foreach (flat$40 in 0@{Int} .. Array_length#@{FactIdentifier} flat$39)
   {
     keep_fact_in_history unsafe_Array_index#@{FactIdentifier} flat$39 flat$40;
   }
 }
-save_resumable@{Array Time} acc$conv$4$simpflat$38;
-save_resumable@{Array (Buf 2 FactIdentifier)} acc$conv$4$simpflat$39;
-save_resumable@{Array (Buf 2 Error)} acc$conv$4$simpflat$40;
-save_resumable@{Array (Buf 2 Int)} acc$conv$4$simpflat$41;
-read conv$4$simpflat$81 = acc$conv$4$simpflat$38 [Array Time];
-read conv$4$simpflat$83 = acc$conv$4$simpflat$40 [Array (Buf 2 Error)];
-read conv$4$simpflat$84 = acc$conv$4$simpflat$41 [Array (Buf 2 Int)];
+save_resumable@{Array Time} acc$conv$5$simpflat$38;
+save_resumable@{Array (Buf 2 FactIdentifier)} acc$conv$5$simpflat$39;
+save_resumable@{Array (Buf 2 Error)} acc$conv$5$simpflat$40;
+save_resumable@{Array (Buf 2 Int)} acc$conv$5$simpflat$41;
+read conv$5$simpflat$81 = acc$conv$5$simpflat$38 [Array Time];
+read conv$5$simpflat$83 = acc$conv$5$simpflat$40 [Array (Buf 2 Error)];
+read conv$5$simpflat$84 = acc$conv$5$simpflat$41 [Array (Buf 2 Int)];
 init flat$48$simpflat$86@{Error} = ExceptNotAnError@{Error};
 init flat$48$simpflat$87@{Array Time} = unsafe_Array_create#@{Time} (0@{Int});
 init flat$48$simpflat$88@{Array Int} = unsafe_Array_create#@{Int} (0@{Int});
-foreach (for_counter$flat$49 in 0@{Int} .. Array_length#@{Time} conv$4$simpflat$81)
+foreach (for_counter$flat$49 in 0@{Int} .. Array_length#@{Time} conv$5$simpflat$81)
 {
   read flat$48$simpflat$89 = flat$48$simpflat$86 [Error];
   read flat$48$simpflat$90 = flat$48$simpflat$87 [Array Time];
   read flat$48$simpflat$91 = flat$48$simpflat$88 [Array Int];
-  let simpflat$424 = unsafe_Array_index#@{Time} conv$4$simpflat$81 for_counter$flat$49;
-  let simpflat$428 = unsafe_Array_index#@{Buf 2 Error} conv$4$simpflat$83 for_counter$flat$49;
-  let simpflat$430 = unsafe_Array_index#@{Buf 2 Int} conv$4$simpflat$84 for_counter$flat$49;
+  let simpflat$424 = unsafe_Array_index#@{Time} conv$5$simpflat$81 for_counter$flat$49;
+  let simpflat$428 = unsafe_Array_index#@{Buf 2 Error} conv$5$simpflat$83 for_counter$flat$49;
+  let simpflat$430 = unsafe_Array_index#@{Buf 2 Int} conv$5$simpflat$84 for_counter$flat$49;
   init flat$51$simpflat$92@{Error} = ExceptNotAnError@{Error};
   init flat$51$simpflat$93@{Array Time} = unsafe_Array_create#@{Time} (0@{Int});
   init flat$51$simpflat$94@{Array Int} = unsafe_Array_create#@{Int} (0@{Int});
@@ -726,30 +729,31 @@ output@{(Sum Error (Map Time Int))} repl (flat$48$simpflat$124@{Error}, flat$48$
 
 - Flattened Avalanche (simplified), typechecked:
 conv$3 = TIME
-init acc$conv$4$simpflat$38@{Array Time} = unsafe_Array_create#@{Time} (0@{Int});
-init acc$conv$4$simpflat$39@{Array (Buf 2 FactIdentifier)} = unsafe_Array_create#@{Buf 2 FactIdentifier} (0@{Int});
-init acc$conv$4$simpflat$40@{Array (Buf 2 Error)} = unsafe_Array_create#@{Buf 2 Error} (0@{Int});
-init acc$conv$4$simpflat$41@{Array (Buf 2 Int)} = unsafe_Array_create#@{Buf 2 Int} (0@{Int});
-load_resumable@{Array Time} acc$conv$4$simpflat$38;
-load_resumable@{Array (Buf 2 FactIdentifier)} acc$conv$4$simpflat$39;
-load_resumable@{Array (Buf 2 Error)} acc$conv$4$simpflat$40;
-load_resumable@{Array (Buf 2 Int)} acc$conv$4$simpflat$41;
+conv$4 = MAX_MAP_SIZE
+init acc$conv$5$simpflat$38@{Array Time} = unsafe_Array_create#@{Time} (0@{Int});
+init acc$conv$5$simpflat$39@{Array (Buf 2 FactIdentifier)} = unsafe_Array_create#@{Buf 2 FactIdentifier} (0@{Int});
+init acc$conv$5$simpflat$40@{Array (Buf 2 Error)} = unsafe_Array_create#@{Buf 2 Error} (0@{Int});
+init acc$conv$5$simpflat$41@{Array (Buf 2 Int)} = unsafe_Array_create#@{Buf 2 Int} (0@{Int});
+load_resumable@{Array Time} acc$conv$5$simpflat$38;
+load_resumable@{Array (Buf 2 FactIdentifier)} acc$conv$5$simpflat$39;
+load_resumable@{Array (Buf 2 Error)} acc$conv$5$simpflat$40;
+load_resumable@{Array (Buf 2 Int)} acc$conv$5$simpflat$41;
 for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0$simpflat$127@{Error}, conv$0$simpflat$128@{Int}, conv$0$simpflat$129@{Time}) in new
 {
-  read conv$4$aval$0$simpflat$43 = acc$conv$4$simpflat$38 [Array Time];
-  read conv$4$aval$0$simpflat$44 = acc$conv$4$simpflat$39 [Array (Buf 2 FactIdentifier)];
-  read conv$4$aval$0$simpflat$45 = acc$conv$4$simpflat$40 [Array (Buf 2 Error)];
-  read conv$4$aval$0$simpflat$46 = acc$conv$4$simpflat$41 [Array (Buf 2 Int)];
+  read conv$5$aval$0$simpflat$43 = acc$conv$5$simpflat$38 [Array Time];
+  read conv$5$aval$0$simpflat$44 = acc$conv$5$simpflat$39 [Array (Buf 2 FactIdentifier)];
+  read conv$5$aval$0$simpflat$45 = acc$conv$5$simpflat$40 [Array (Buf 2 Error)];
+  read conv$5$aval$0$simpflat$46 = acc$conv$5$simpflat$41 [Array (Buf 2 Int)];
   let simpflat$475 = Buf_make#@{Buf 2 FactIdentifier} (()@{Unit});
   let simpflat$268 = Buf_push#@{Buf 2 FactIdentifier} simpflat$475 conv$1;
   let simpflat$476 = Buf_make#@{Buf 2 Error} (()@{Unit});
   let simpflat$271 = Buf_push#@{Buf 2 Error} simpflat$476 conv$0$simpflat$127;
   let simpflat$477 = Buf_make#@{Buf 2 Int} (()@{Unit});
   let simpflat$274 = Buf_push#@{Buf 2 Int} simpflat$477 conv$0$simpflat$128;
-  init map_insert_acc_keys$flat$1@{Array Time} = conv$4$aval$0$simpflat$43;
-  init map_insert_acc_vals$flat$2$simpflat$48@{Array (Buf 2 FactIdentifier)} = conv$4$aval$0$simpflat$44;
-  init map_insert_acc_vals$flat$2$simpflat$49@{Array (Buf 2 Error)} = conv$4$aval$0$simpflat$45;
-  init map_insert_acc_vals$flat$2$simpflat$50@{Array (Buf 2 Int)} = conv$4$aval$0$simpflat$46;
+  init map_insert_acc_keys$flat$1@{Array Time} = conv$5$aval$0$simpflat$43;
+  init map_insert_acc_vals$flat$2$simpflat$48@{Array (Buf 2 FactIdentifier)} = conv$5$aval$0$simpflat$44;
+  init map_insert_acc_vals$flat$2$simpflat$49@{Array (Buf 2 Error)} = conv$5$aval$0$simpflat$45;
+  init map_insert_acc_vals$flat$2$simpflat$50@{Array (Buf 2 Int)} = conv$5$aval$0$simpflat$46;
   init map_insert_acc_bs_found$flat$4@{Bool} = False@{Bool};
   init map_insert_acc_bs_index$flat$3@{Int} = -1@{Int};
   read map_insert_loc_keys$flat$5 = map_insert_acc_keys$flat$1 [Array Time];
@@ -906,39 +910,39 @@ for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0$simpflat$127@{Error}, 
   read map_insert_loc_vals$flat$6$simpflat$72 = map_insert_acc_vals$flat$2$simpflat$48 [Array (Buf 2 FactIdentifier)];
   read map_insert_loc_vals$flat$6$simpflat$73 = map_insert_acc_vals$flat$2$simpflat$49 [Array (Buf 2 Error)];
   read map_insert_loc_vals$flat$6$simpflat$74 = map_insert_acc_vals$flat$2$simpflat$50 [Array (Buf 2 Int)];
-  write acc$conv$4$simpflat$38 = map_insert_loc_keys$flat$5;
-  write acc$conv$4$simpflat$39 = map_insert_loc_vals$flat$6$simpflat$72;
-  write acc$conv$4$simpflat$40 = map_insert_loc_vals$flat$6$simpflat$73;
-  write acc$conv$4$simpflat$41 = map_insert_loc_vals$flat$6$simpflat$74;
+  write acc$conv$5$simpflat$38 = map_insert_loc_keys$flat$5;
+  write acc$conv$5$simpflat$39 = map_insert_loc_vals$flat$6$simpflat$72;
+  write acc$conv$5$simpflat$40 = map_insert_loc_vals$flat$6$simpflat$73;
+  write acc$conv$5$simpflat$41 = map_insert_loc_vals$flat$6$simpflat$74;
 }
-read acc$conv$4$flat$36$simpflat$77 = acc$conv$4$simpflat$39 [Array (Buf 2 FactIdentifier)];
-foreach (flat$38 in 0@{Int} .. Array_length#@{Buf 2 FactIdentifier} acc$conv$4$flat$36$simpflat$77)
+read acc$conv$5$flat$36$simpflat$77 = acc$conv$5$simpflat$39 [Array (Buf 2 FactIdentifier)];
+foreach (flat$38 in 0@{Int} .. Array_length#@{Buf 2 FactIdentifier} acc$conv$5$flat$36$simpflat$77)
 {
-  let simpflat$409 = unsafe_Array_index#@{Buf 2 FactIdentifier} acc$conv$4$flat$36$simpflat$77 flat$38;
+  let simpflat$409 = unsafe_Array_index#@{Buf 2 FactIdentifier} acc$conv$5$flat$36$simpflat$77 flat$38;
   let flat$39 = Buf_read#@{Array FactIdentifier} simpflat$409;
   foreach (flat$40 in 0@{Int} .. Array_length#@{FactIdentifier} flat$39)
   {
     keep_fact_in_history unsafe_Array_index#@{FactIdentifier} flat$39 flat$40;
   }
 }
-save_resumable@{Array Time} acc$conv$4$simpflat$38;
-save_resumable@{Array (Buf 2 FactIdentifier)} acc$conv$4$simpflat$39;
-save_resumable@{Array (Buf 2 Error)} acc$conv$4$simpflat$40;
-save_resumable@{Array (Buf 2 Int)} acc$conv$4$simpflat$41;
-read conv$4$simpflat$81 = acc$conv$4$simpflat$38 [Array Time];
-read conv$4$simpflat$83 = acc$conv$4$simpflat$40 [Array (Buf 2 Error)];
-read conv$4$simpflat$84 = acc$conv$4$simpflat$41 [Array (Buf 2 Int)];
+save_resumable@{Array Time} acc$conv$5$simpflat$38;
+save_resumable@{Array (Buf 2 FactIdentifier)} acc$conv$5$simpflat$39;
+save_resumable@{Array (Buf 2 Error)} acc$conv$5$simpflat$40;
+save_resumable@{Array (Buf 2 Int)} acc$conv$5$simpflat$41;
+read conv$5$simpflat$81 = acc$conv$5$simpflat$38 [Array Time];
+read conv$5$simpflat$83 = acc$conv$5$simpflat$40 [Array (Buf 2 Error)];
+read conv$5$simpflat$84 = acc$conv$5$simpflat$41 [Array (Buf 2 Int)];
 init flat$48$simpflat$86@{Error} = ExceptNotAnError@{Error};
 init flat$48$simpflat$87@{Array Time} = unsafe_Array_create#@{Time} (0@{Int});
 init flat$48$simpflat$88@{Array Int} = unsafe_Array_create#@{Int} (0@{Int});
-foreach (for_counter$flat$49 in 0@{Int} .. Array_length#@{Time} conv$4$simpflat$81)
+foreach (for_counter$flat$49 in 0@{Int} .. Array_length#@{Time} conv$5$simpflat$81)
 {
   read flat$48$simpflat$89 = flat$48$simpflat$86 [Error];
   read flat$48$simpflat$90 = flat$48$simpflat$87 [Array Time];
   read flat$48$simpflat$91 = flat$48$simpflat$88 [Array Int];
-  let simpflat$424 = unsafe_Array_index#@{Time} conv$4$simpflat$81 for_counter$flat$49;
-  let simpflat$428 = unsafe_Array_index#@{Buf 2 Error} conv$4$simpflat$83 for_counter$flat$49;
-  let simpflat$430 = unsafe_Array_index#@{Buf 2 Int} conv$4$simpflat$84 for_counter$flat$49;
+  let simpflat$424 = unsafe_Array_index#@{Time} conv$5$simpflat$81 for_counter$flat$49;
+  let simpflat$428 = unsafe_Array_index#@{Buf 2 Error} conv$5$simpflat$83 for_counter$flat$49;
+  let simpflat$430 = unsafe_Array_index#@{Buf 2 Int} conv$5$simpflat$84 for_counter$flat$49;
   init flat$51$simpflat$92@{Error} = ExceptNotAnError@{Error};
   init flat$51$simpflat$93@{Array Time} = unsafe_Array_create#@{Time} (0@{Int});
   init flat$51$simpflat$94@{Array Int} = unsafe_Array_create#@{Int} (0@{Int});
