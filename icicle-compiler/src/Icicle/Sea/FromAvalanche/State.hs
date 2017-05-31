@@ -24,7 +24,6 @@ module Icicle.Sea.FromAvalanche.State (
   , stateInput
   , stateInputNew
   , stateInputTime
-  , stateMaxMapSize
   , stateNewCount
   , stateInputRes
   , stateInputHas
@@ -72,7 +71,6 @@ data SeaProgramAttribute = SeaProgramAttribute {
   , stateAttribute      :: Attribute
   , stateInputType      :: ValType
   , stateTimeVar        :: Text
-  , stateMaxMapSizeVar  :: Text
   , stateInputVars      :: [(Text, ValType)]
   , stateComputes       :: NonEmpty SeaProgramCompute
   , stateOutputsAll     :: Map OutputName (ValType, [ValType])
@@ -103,7 +101,6 @@ stateOfPrograms name attrib programs@(program :| _)
           stateAttributeName  = name
         , stateAttribute      = attrib
         , stateTimeVar        = textOfName (bindtime program)
-        , stateMaxMapSizeVar  = textOfName (maxMapSize program)
         , stateInputType      = factType
         , stateInputVars      = fmap (first textOfName) factVars
         , stateComputes       = NonEmpty.zipWith (stateOfProgramCompute name) (0 :| [1..]) programs
@@ -165,6 +162,7 @@ seaOfState state
  , "typedef struct {"
  , "    /* runtime */"
  , indent 4 (defOfVar' 1 "anemone_mempool_t" "mempool;")
+ , indent 4 (defOfVar' 0 "iint_t" "max_map_size;")
  , ""
  , "    /* inputs */"
  , indent 4 (defOfVar_ 0 (pretty (stateInputTypeName state)) "input;")
@@ -220,7 +218,6 @@ defOfFactStruct state
   = vsep
   [ "typedef struct {"
   , indent 4 (defOfVar  0 TimeT (pretty (stateTimeVar state) <> ";"))
-  , indent 4 (defOfVar  0 IntT  (pretty (stateMaxMapSizeVar state) <> ";"))
   , indent 4 (defOfVar  0 IntT  "new_count;")
   , indent 4 (vsep (fmap defOfFactField (stateInputVars state)))
   , "}" <+> pretty (stateInputTypeName state) <> ";"
@@ -303,9 +300,6 @@ stateInputNew n = pretty stateInputName <> "." <> pretty newPrefix <> n
 
 stateInputTime :: SeaProgramAttribute -> Doc
 stateInputTime state = pretty stateInputName <> "." <> pretty (stateTimeVar state)
-
-stateMaxMapSize :: SeaProgramAttribute -> Doc
-stateMaxMapSize state = pretty stateInputName <> "." <> pretty (stateMaxMapSizeVar state)
 
 stateNewCount :: Doc
 stateNewCount = "input.new_count"

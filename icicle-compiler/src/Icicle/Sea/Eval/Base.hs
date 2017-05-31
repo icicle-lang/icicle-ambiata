@@ -91,6 +91,7 @@ import           Icicle.Sea.FromAvalanche.Program (seaOfPrograms)
 import           Icicle.Sea.FromAvalanche.State (stateOfPrograms)
 import           Icicle.Sea.FromAvalanche.Type (seaOfDefinitions)
 import           Icicle.Sea.IO
+import qualified Icicle.Sea.IO.Offset as Offset
 import           Icicle.Sea.Preamble (seaPreamble)
 import           Icicle.Sea.Fleet
 import           Icicle.Sea.Eval.Program
@@ -174,15 +175,16 @@ seaEval' program ctx values = do
   withWords      words $ \pState -> do
   withSeaVectors facts $ \count psFacts -> do
 
-    let mempoolIx  = 0 :: Int
-        dateIx     = 1
-        maxMapIx   = 2
-        countIx    = 3
-        factsIx    = 4
-        outputsIx  = 4 + length psFacts
+    let mempoolIx  = Offset.programMempool
+        maxMapIx   = Offset.programMaxMapSize
+        dateIx     = Offset.programInput + Offset.inputFactTime
+        countIx    = Offset.programInput + Offset.inputNewCount
+        -- Error is included in the input facts, so use offset of error instead of values start
+        factsIx    = Offset.programInput + Offset.inputError
+        outputsIx  = Offset.programOutputStart (length psFacts)
 
+    pokeWordOff pState maxMapIx               (evalMaxMapSize   ctx)
     pokeWordOff pState dateIx  (packedOfTime $ evalSnapshotTime ctx)
-    pokeWordOff pState maxMapIx               (evalMaxMapSize ctx)
     pokeWordOff pState countIx (fromIntegral count :: Int64)
 
     zipWithM_ (pokeWordOff pState) [factsIx..] psFacts

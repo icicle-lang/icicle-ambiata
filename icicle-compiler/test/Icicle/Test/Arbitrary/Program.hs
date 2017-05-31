@@ -71,16 +71,17 @@ instance Show WellTyped where
     = show
     $ vsep
     [ "well-typed:"
-    , "  entities  = " <> pretty (       wtEntities  wt)
-    , "  attribute = " <> pretty (       wtAttribute wt)
-    , "  fact type = " <> pretty (       wtFactType  wt)
-    , "  facts     = " <> text   (show $ wtFacts     wt)
-    , "  time      = " <> text   (show $ wtTime      wt)
-    , "  core      ="
+    , "  entities   = " <> pretty (       wtEntities   wt)
+    , "  attribute  = " <> pretty (       wtAttribute  wt)
+    , "  fact type  = " <> pretty (       wtFactType   wt)
+    , "  facts      = " <> text   (show $ wtFacts      wt)
+    , "  time       = " <> text   (show $ wtTime       wt)
+    , "  maxMapSize = " <> text   (show $ wtMaxMapSize wt)
+    , "  core       ="
     , indent 4 $ pretty (wtCore      wt)
-    , "  avalanche ="
+    , "  avalanche  ="
     , indent 4 $ pretty (wtAvalanche wt)
-    , "  flat      ="
+    , "  flat       ="
     , indent 4 $ pretty (wtAvalancheFlat wt)
     ]
 
@@ -123,12 +124,11 @@ tryGenWellTypedFromCoreEither :: S.InputAllowDupTime -> InputType -> C.Program (
 tryGenWellTypedFromCoreEither allowDupTime (InputType ty) core = do
     entities       <- List.sort . List.nub . getNonEmpty <$> arbitrary
     attribute      <- arbitrary
-    (inputs, time) <- case allowDupTime of
+    (inputs, ctx) <- case allowDupTime of
                         S.AllowDupTime
                           -> inputsForType ty
                         S.DoNotAllowDupTime
                           -> first (List.nubBy ((==) `on` atTime)) <$> inputsForType ty
-    maxMapSize     <- arbitrary
     return $ do
       checked <- nobodyCares (C.checkProgram core)
       _       <- traverse (supportedOutput . functionReturns . snd) checked
@@ -153,8 +153,8 @@ tryGenWellTypedFromCoreEither allowDupTime (InputType ty) core = do
         , wtAttribute     = attribute
         , wtFactType      = ty
         , wtFacts         = fmap (fmap snd) inputs
-        , wtTime          = time
-        , wtMaxMapSize    = maxMapSize
+        , wtTime          = evalSnapshotTime ctx
+        , wtMaxMapSize    = evalMaxMapSize   ctx
         , wtCore          = core
         , wtAvalanche     = avalanche
         , wtAvalancheFlat = simplified

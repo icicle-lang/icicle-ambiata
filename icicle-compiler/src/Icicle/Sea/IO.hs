@@ -12,9 +12,11 @@ module Icicle.Sea.IO
   , defaultPsvMaxRowCount
   , defaultPsvInputBufferSize
   , defaultPsvOutputBufferSize
+  , defaultPsvMaxMapSize
   , defaultZebraConfig
   , defaultZebraChunkFactCount
   , defaultZebraAllocLimitGB
+  , defaultZebraMaxMapSize
 
   , Mode(..)
   , IOFormat (..)

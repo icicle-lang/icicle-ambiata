@@ -250,7 +250,7 @@ genPsvConstants wt = do
   inputBuf <- str . getPositive <$> arbitrary
   let outputBuf = inputBuf
   factsLimit <- inc . getPositive <$> arbitrary
-  return $ S.PsvConstants maxRowCount inputBuf outputBuf factsLimit
+  return $ S.PsvConstants maxRowCount inputBuf outputBuf factsLimit (wtMaxMapSize wt)
 
 compileTest :: WellTyped -> TestOpts -> EitherT SeaError (ResourceT IO) (SeaFleet S.PsvState)
 compileTest wt (TestOpts _ _ inputFormat allowDupTime) = do

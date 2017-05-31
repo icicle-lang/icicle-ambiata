@@ -84,6 +84,7 @@ pQuery =
     <*> pFlagDrop
     <*> pZebraChunkFactCount
     <*> pZebraAllocLimitGB
+    <*> pMaxMapSize
 
 pDictionaryFile :: Parser DictionaryFile
 pDictionaryFile =
@@ -205,6 +206,11 @@ pZebraAllocLimitGB :: Parser ZebraAllocLimitGB
 pZebraAllocLimitGB =
   flip option (long "zebra-alloc-limit-gb" <> value defaultZebraAllocLimitGB) $
     tryRead "--zebra-alloc-limit-gb NUMBER_GB" readMaybe ZebraAllocLimitGB
+
+pMaxMapSize :: Parser Int
+pMaxMapSize =
+  flip option (long "max-map-size" <> value defaultZebraMaxMapSize) $
+    tryRead "--max-map-size NUMBER_ELEMENTS" readMaybe id
 
 pCompilerFlags :: Parser CompilerFlags
 pCompilerFlags = CompilerFlags <$> maximumQueries

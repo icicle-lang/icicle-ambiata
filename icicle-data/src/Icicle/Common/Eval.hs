@@ -12,4 +12,5 @@ data EvalContext
  { evalSnapshotTime :: Time
  , evalMaxMapSize   :: Int
  }
+ deriving (Show)
 

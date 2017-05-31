@@ -11,6 +11,7 @@ import           Icicle.Data            (AsAt(..), Namespace(..))
 import           Icicle.Data.Time
 
 import           Icicle.Common.Base
+import           Icicle.Common.Eval
 import           Icicle.Common.Exp
 import           Icicle.Common.Type
 import           Icicle.Common.Value
@@ -463,7 +464,8 @@ programForStreamType' streamType
         let avoid = Map.fromList [ ( ninput, FunT [] (PairT streamType TimeT))
                                  , ( nid,    FunT [] FactIdentifierT)
                                  , ( ntime,  FunT [] TimeT)
-                                 , ( ndate,  FunT [] TimeT) ]
+                                 , ( ndate,  FunT [] TimeT)
+                                 , ( nmapsz, FunT [] IntT) ]
 
         -- Generate a few precomputation expressions
         Positive npres       <- arbitrary :: Gen (Positive Int)
@@ -624,12 +626,14 @@ baseValueForType t
       (VStruct <$> traverse baseValueForType fs)
 
 
-inputsForType :: ValType -> Gen ([AsAt (BubbleGumFact, BaseValue)], Time)
+inputsForType :: ValType -> Gen ([AsAt (BubbleGumFact, BaseValue)], EvalContext)
 inputsForType t
  = sized
- $ \s -> do start   <- arbitrary
-            num     <- choose (0, s)
-            go num [] start
+ $ \s -> do start         <- arbitrary
+            num           <- choose (0, s)
+            maxMap        <- arbitrary
+            (facts, time) <- go num [] start
+            return (facts, EvalContext time maxMap)
  where
   go 0 acc d
    = return (acc, timeOfDays d)

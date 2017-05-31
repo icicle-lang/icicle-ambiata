@@ -311,7 +311,7 @@ jZebraWellTyped = justOf $ do
 -- FIXME ignoring fact times for now, but to test it we should convert icicle time to 1600 epoch secs here
 -- let ts = fmap (Zebra.Time . fromIntegral . Icicle.secondsCountJulian . atTime) (wtFacts wt)
 zebraOfWellTyped :: WellTyped -> Jack (Maybe ZebraWellTyped)
-zebraOfWellTyped wt@(WellTyped entities _ ty facts _ _ _ _)= do
+zebraOfWellTyped wt@(WellTyped entities _ ty facts _ _ _ _ _)= do
   let
     ins (k, x) m =
       Map.insertWith (<>) k [atFact x] m
@@ -539,7 +539,7 @@ codeOf wt = do
     dummy =
       HasInput
         (FormatZebra
-          (ZebraConfig (ZebraChunkFactCount 0) (ZebraAllocLimitGB 0))
+          (ZebraConfig (ZebraChunkFactCount 0) (ZebraAllocLimitGB 0) (wtMaxMapSize wt))
           (Snapshot testSnapshotTime)
           (PsvOutputConfig (Snapshot testSnapshotTime) PsvOutputDense defaultOutputMissing))
         (InputOpts AllowDupTime Map.empty)

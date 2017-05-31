@@ -10,6 +10,7 @@ import           Icicle.Test.Arbitrary
 import           Icicle.Core.Program.Check
 import           Icicle.Core.Program.Fusion
 import qualified Icicle.Core.Eval.Program   as PV
+import           Icicle.Common.Eval
 
 import           Icicle.Data.Time
 import           Icicle.Internal.Pretty
@@ -23,7 +24,8 @@ import           Test.QuickCheck
 
 -- Just choose some date; it doesn't matter
 someTime = unsafeTimeOfYMD 2015 1 1
-eval = PV.eval someTime []
+evalContext = EvalContext someTime 100
+eval = PV.eval evalContext []
 
 left = Var "left" 0
 right = Var "right" 0
@@ -99,12 +101,12 @@ prop_fuseeval2_values t =
  forAll (programForStreamType t)
  $ \p2 ->
  forAll (inputsForType t)
- $ \(vs,d) ->
+ $ \(vs,ctx) ->
  -- Evaluate both input programs and try to fuse together
- case (PV.eval d vs p1, PV.eval d vs p2, fusePrograms () left p1 right p2) of
+ case (PV.eval ctx vs p1, PV.eval ctx vs p2, fusePrograms () left p1 right p2) of
   (Right v1, Right v2, Right p')
       -- Evaluate the fused program
-   -> case PV.eval d vs p' of
+   -> case PV.eval ctx vs p' of
        -- It should not be an error
        Left  _  -> property False
        -- It evaluated fine, so the values should match
