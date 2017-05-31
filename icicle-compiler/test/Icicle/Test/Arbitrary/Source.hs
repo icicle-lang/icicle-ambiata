@@ -398,9 +398,9 @@ genQuery toptgi
    = oneof_sized
       [ genWindow tgi
       , nobinds tgi . Latest   () . abs <$> arbitrary ]
-      [ nobinds tgi . GroupBy  () <$> genExp tgi
-      , nobinds tgi . Distinct () <$> genExp tgi
-      , nobinds tgi . Filter   () <$> genExp tgi
+      [ nobinds tgi . GroupBy  () <$> genExp tgi { tgiTemp = TTElt}
+      , nobinds tgi . Distinct () <$> genExp tgi { tgiTemp = TTElt}
+      , nobinds tgi . Filter   () <$> genExp tgi { tgiTemp = TTElt}
       , genFold tgi
       , genLet tgi
       , genGroupFold tgi

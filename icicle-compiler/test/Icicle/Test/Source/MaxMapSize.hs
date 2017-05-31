@@ -66,7 +66,7 @@ checkMaxMapSize maxSize = go
   ok = property True
 
   checkLength vs
-   = length vs < maxSize
+   = length vs < maxSize || maxSize <= 0
 
 
 return []
