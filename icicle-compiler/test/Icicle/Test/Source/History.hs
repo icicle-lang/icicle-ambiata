@@ -26,6 +26,7 @@ import           Icicle.Internal.Pretty
 import qualified Icicle.Source.Lexer.Token as T
 import           Icicle.Test.Arbitrary
 import           Icicle.Test.Arbitrary.NanEq
+import           Icicle.Test.Arbitrary.SourceWithCore
 
 import           P
 
@@ -33,57 +34,6 @@ import           System.IO
 
 import           Test.QuickCheck
 
-
-data TestStuff
- = TestStuff
- { tsQwf    :: QueryWithFeature
- , tsInputs :: [AsAt (BubbleGumFact, BaseValue)]
- , tsEvalCtx:: EvalContext
- , tsCore   :: C.Program () T.Variable
- , tsAval   :: AP.Program () T.Variable AF.Prim
- }
- deriving Show
-
-instance Arbitrary TestStuff where
- arbitrary
-  = do  -- we can be conservative with these expressions
-        qwf       <- genQueryWithFeatureTypedGen 10
-        (vs,d)    <- inputsForType $ qwfFeatureT qwf
-        let ret
-              | Right qt'   <- qwfCheckBigData qwf
-              , Right k'    <- qwfCheckKey qwf
-              , Right c'    <- qwfConvertToCore qwf k' qt'
-              , aval        <- freshFromCore $ AC.programFromCore avalancheNamer c'
-              , Right flatS <- freshFlat $ AF.flatten () $ AP.statements aval
-              , flatP       <- aval { AP.statements = flatS }
-              = return $ TestStuff qwf vs d c' flatP
-              | otherwise
-              = discard
-        ret
-
-  where
-   avalancheNamer :: AC.Namer T.Variable
-   avalancheNamer = AC.namerText T.Variable -- (flip Var 0)
-
-   freshFlat prog
-    = fmap snd
-    $ Fresh.runFreshT prog
-    $ Fresh.counterNameState (counter "flat") 0
- 
-   freshFromCore prog
-    = snd
-    $ Fresh.runFresh prog
-    $ Fresh.counterNameState (counter "fromCore") 0
-
-   counter desc i =
-    NameBase $ T.Variable (desc <> T.pack (show i))
- 
-
-evalCore ts vs
- = CV.eval (tsEvalCtx ts) vs (tsCore ts)
-
-evalAval ts vs
- = AE.evalProgram AE.evalPrim (tsEvalCtx ts) vs (tsAval ts)
 
 
 extractFacts inps fids
@@ -100,7 +50,7 @@ extractFacts inps fids
  $ filter (\(ix,_) -> FactIdentifier ix `Set.member` fids)
  $ zip [0..] inps
 
-prop_check_history_core :: TestStuff -> Property
+prop_check_history_core :: TestSourceConvert -> Property
 prop_check_history_core ts
  = counterexample (qwfPretty $ tsQwf ts)
  $ counterexample (show $ tsInputs ts)
@@ -117,7 +67,7 @@ prop_check_history_core ts
         = discard
    in ret
 
-prop_check_history_aval :: TestStuff -> Property
+prop_check_history_aval :: TestSourceConvert -> Property
 prop_check_history_aval ts
  = counterexample (qwfPretty $ tsQwf ts)
  $ counterexample (show $ tsInputs ts)
@@ -133,7 +83,7 @@ prop_check_history_aval ts
    in ret
 
 
-prop_check_history_core_same_aval :: TestStuff -> Property
+prop_check_history_core_same_aval :: TestSourceConvert -> Property
 prop_check_history_core_same_aval ts
  = counterexample (qwfPretty $ tsQwf ts)
  $ counterexample (show $ tsInputs ts)

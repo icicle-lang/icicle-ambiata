@@ -633,7 +633,7 @@ inputsForType t
  = sized
  $ \s -> do start         <- arbitrary
             num           <- choose (0, s)
-            maxMap        <- arbitrary
+            maxMap        <- choose (1, s)
             (facts, time) <- go num [] start
             return (facts, EvalContext time maxMap)
  where
