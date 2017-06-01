@@ -23,6 +23,9 @@ is_weekend v
 week_of_day d
   = trunc (double (days d) / 7).
 
+day_of_week v =
+  = mod (days v - 4) 7
+
 # Boolean statements
 not a = case a | True -> False | False -> True end.
 
@@ -37,7 +40,7 @@ snd x = case x | (a,b) -> b end.
 group_keys k = keys (group k ~> 0).
 
 # This only works if inlining is set to with-subst (:set inline with-subst in the REPL)
-group_vals k v = vals (group k ~> v).
+# group_vals k v = vals (group k ~> v).
 
 return v = newest v.
 
@@ -124,8 +127,6 @@ numflips' v t
 #######################
 
 # Quantiles from a sorted array of ints, same as in R.
-# TODO safe array_index in Source that maps to unsafe index in Avalanche
-# (might need a function unbox :: Sum Error a -> Option a)
 quantile_on_sorted p array
  = case (p >= 0 && p <= 1)
     | True
