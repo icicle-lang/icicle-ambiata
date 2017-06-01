@@ -17,7 +17,6 @@ import qualified Icicle.Avalanche.Eval      as Eval
 import           Icicle.Avalanche.Statement.Simp (freevarsStmt)
 
 import           Icicle.Data (Namespace(..))
-import           Icicle.Data.Time (timeOfDays)
 import           Icicle.Common.Base
 import           Icicle.Common.Exp
 import           Icicle.Common.Type
@@ -90,7 +89,7 @@ prop_melt_prim = forAll genPrimApps $ \(prim, vals) ->
 evalOut :: Statement () Var Flat.Prim
         -> Either [Char] [(OutputName,BaseValue)]
 evalOut ss
- = case Eval.evalStmt FlatEval.evalPrim (timeOfDays 0) Map.empty [] Nothing Map.empty ss of
+ = case Eval.evalStmt FlatEval.evalPrim Map.empty [] Nothing Map.empty ss of
     Left err
      -> Left ("Evaluating: got " <> show err)
     Right (acc,outs,_)

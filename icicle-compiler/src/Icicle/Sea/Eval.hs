@@ -96,6 +96,7 @@ seaZebraSnapshotFd fleet inputPath outputFd dropFd mchords conf =
   pokeWordOff config zebraConfigOutputBufferSize (defaultPsvOutputBufferSize)
   pokeWordOff config zebraConfigChunkFactCount (unZebraChunkFactCount . zebraChunkFactCount $ conf)
   pokeWordOff config zebraConfigAllocLimitBytes ( ((*) (1024 * 1024 * 1024)). unZebraAllocLimitGB . zebraAllocLimitGB $ conf)
+  pokeWordOff config zebraConfigMaxMapSize (zebraMaxMapSize $ conf)
 
   sfSnapshot fleet config
 
@@ -146,7 +147,7 @@ seaPsvSnapshotFd :: SeaFleet PsvState
                  -> PsvConstants
                  -> EitherT SeaError IO PsvStats
 seaPsvSnapshotFd fleet input output dropped mchords discard conf =
-  withWords 12 $ \pState -> do
+  withWords 13 $ \pState -> do
 
   pokeWordOff pState 0  input
   pokeWordOff pState 1  output
@@ -157,6 +158,7 @@ seaPsvSnapshotFd fleet input output dropped mchords discard conf =
   pokeWordOff pState 9  (psvInputBufferSize conf)
   pokeWordOff pState 10 (psvOutputBufferSize conf)
   pokeWordOff pState 11 (psvMaxRowCount conf)
+  pokeWordOff pState 12 (psvMaxMapSize conf)
 
   sfSnapshot fleet pState
 

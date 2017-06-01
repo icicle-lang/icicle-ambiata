@@ -17,6 +17,7 @@ module Icicle.Sea.IO.Psv (
   , defaultPsvMaxRowCount
   , defaultPsvInputBufferSize
   , defaultPsvOutputBufferSize
+  , defaultPsvMaxMapSize
   ) where
 
 import           Icicle.Internal.Pretty
@@ -40,11 +41,12 @@ data PsvConstants = PsvConstants {
   , psvInputBufferSize  :: Int
   , psvOutputBufferSize :: Int
   , psvFactsLimit       :: Int
+  , psvMaxMapSize       :: Int
   } deriving (Eq, Ord, Show)
 
 defaultPsvConstants :: PsvConstants
 defaultPsvConstants =
-  PsvConstants defaultPsvMaxRowCount defaultPsvInputBufferSize defaultPsvOutputBufferSize defaultPsvFactsLimit
+  PsvConstants defaultPsvMaxRowCount defaultPsvInputBufferSize defaultPsvOutputBufferSize defaultPsvFactsLimit defaultPsvMaxMapSize
 
 defaultPsvMaxRowCount :: Int
 defaultPsvMaxRowCount = 128
@@ -57,6 +59,9 @@ defaultPsvOutputBufferSize = 256 * 1024
 
 defaultPsvFactsLimit :: Int
 defaultPsvFactsLimit = 1024 * 1024
+
+defaultPsvMaxMapSize :: Int
+defaultPsvMaxMapSize = 1024 * 1024
 
 ------------------------------------------------------------------------
 

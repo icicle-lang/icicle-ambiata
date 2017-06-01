@@ -27,6 +27,7 @@ typedef struct {
     const size_t psv_input_buffer_size;
     const size_t psv_output_buffer_size;
     const size_t psv_max_row_count;
+    const iint_t max_map_size;
 
 } psv_config_t;
 
@@ -72,7 +73,7 @@ typedef struct {
 
 
 /* forward declarations for functions, implemented by generated code */
-static ifleet_t * NOINLINE psv_alloc_fleet (const iint_t max_chord_count, const iint_t max_row_count);
+static ifleet_t * NOINLINE psv_alloc_fleet (const iint_t max_chord_count, const iint_t max_row_count, const iint_t max_map_size);
 
 static void NOINLINE psv_collect_fleet (ifleet_t *fleet);
 
@@ -590,7 +591,7 @@ void psv_snapshot (piano_t *piano, psv_config_t *cfg)
         max_chord_count = 1;
     }
 
-    ifleet_t *fleet = psv_alloc_fleet (max_chord_count, cfg->psv_max_row_count);
+    ifleet_t *fleet = psv_alloc_fleet (max_chord_count, cfg->psv_max_row_count, cfg->max_map_size);
 
     char *input_ptr  = calloc (cfg->psv_input_buffer_size + 1, 1);
     char *entity_cur = calloc (cfg->psv_input_buffer_size + 1, 1);

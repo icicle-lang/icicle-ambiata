@@ -29,6 +29,7 @@ import qualified Icicle.Avalanche.Simp as A
 import qualified Icicle.Avalanche.Statement.Flatten as A
 
 import           Icicle.Common.Base
+import           Icicle.Common.Eval
 import           Icicle.Common.Type
 import           Icicle.Common.Annot
 
@@ -59,6 +60,7 @@ data WellTyped = WellTyped {
   , wtFactType      :: ValType
   , wtFacts         :: [AsAt BaseValue]
   , wtTime          :: Time
+  , wtMaxMapSize    :: Int
   , wtCore          :: C.Program ()         Var
   , wtAvalanche     :: A.Program ()         Var C.Prim
   , wtAvalancheFlat :: A.Program (Annot ()) Var A.Prim
@@ -69,16 +71,17 @@ instance Show WellTyped where
     = show
     $ vsep
     [ "well-typed:"
-    , "  entities  = " <> pretty (       wtEntities  wt)
-    , "  attribute = " <> pretty (       wtAttribute wt)
-    , "  fact type = " <> pretty (       wtFactType  wt)
-    , "  facts     = " <> text   (show $ wtFacts     wt)
-    , "  time      = " <> text   (show $ wtTime      wt)
-    , "  core      ="
+    , "  entities   = " <> pretty (       wtEntities   wt)
+    , "  attribute  = " <> pretty (       wtAttribute  wt)
+    , "  fact type  = " <> pretty (       wtFactType   wt)
+    , "  facts      = " <> text   (show $ wtFacts      wt)
+    , "  time       = " <> text   (show $ wtTime       wt)
+    , "  maxMapSize = " <> text   (show $ wtMaxMapSize wt)
+    , "  core       ="
     , indent 4 $ pretty (wtCore      wt)
-    , "  avalanche ="
+    , "  avalanche  ="
     , indent 4 $ pretty (wtAvalanche wt)
-    , "  flat      ="
+    , "  flat       ="
     , indent 4 $ pretty (wtAvalancheFlat wt)
     ]
 
@@ -121,7 +124,7 @@ tryGenWellTypedFromCoreEither :: S.InputAllowDupTime -> InputType -> C.Program (
 tryGenWellTypedFromCoreEither allowDupTime (InputType ty) core = do
     entities       <- List.sort . List.nub . getNonEmpty <$> arbitrary
     attribute      <- arbitrary
-    (inputs, time) <- case allowDupTime of
+    (inputs, ctx) <- case allowDupTime of
                         S.AllowDupTime
                           -> inputsForType ty
                         S.DoNotAllowDupTime
@@ -150,7 +153,8 @@ tryGenWellTypedFromCoreEither allowDupTime (InputType ty) core = do
         , wtAttribute     = attribute
         , wtFactType      = ty
         , wtFacts         = fmap (fmap snd) inputs
-        , wtTime          = time
+        , wtTime          = evalSnapshotTime ctx
+        , wtMaxMapSize    = evalMaxMapSize   ctx
         , wtCore          = core
         , wtAvalanche     = avalanche
         , wtAvalancheFlat = simplified
@@ -183,7 +187,7 @@ evalWellTyped wt
  | null $ wtFacts wt
  = []
  | otherwise
- = case PV.eval (wtTime wt) inputs (wtCore wt) of
+ = case PV.eval (wellTypedEvalContext wt) inputs (wtCore wt) of
     Left err -> Savage.error ("Evaluating Core: " <> show err)
     Right r  -> PV.value r
  where
@@ -191,6 +195,9 @@ evalWellTyped wt
    = List.zipWith mkInput [0..] (wtFacts wt)
   mkInput ix (AsAt fact time)
    = AsAt (BubbleGumFact (Flavour ix time), fact) time
+
+wellTypedEvalContext :: WellTyped -> EvalContext
+wellTypedEvalContext wt = EvalContext (wtTime wt) (wtMaxMapSize wt) 
 
 ------------------------------------------------------------------------
 

@@ -11,6 +11,7 @@ import           Icicle.Data            (AsAt(..), Namespace(..))
 import           Icicle.Data.Time
 
 import           Icicle.Common.Base
+import           Icicle.Common.Eval
 import           Icicle.Common.Exp
 import           Icicle.Common.Type
 import           Icicle.Common.Value
@@ -296,7 +297,7 @@ instance (Arbitrary a, Arbitrary n, Hashable n) => Arbitrary (Stream a n) where
 
 instance (Arbitrary a, Arbitrary n, Hashable n) => Arbitrary (Program a n) where
  arbitrary =
-   Program <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+   Program <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
 
 
 -- | Make an effort to generate a well typed expression that has some given type.
@@ -458,11 +459,13 @@ programForStreamType' streamType
         let nid    = freshN 1
         let ntime  = freshN 2
         let ndate  = freshN 3
+        let nmapsz = freshN 4
 
         let avoid = Map.fromList [ ( ninput, FunT [] (PairT streamType TimeT))
                                  , ( nid,    FunT [] FactIdentifierT)
                                  , ( ntime,  FunT [] TimeT)
-                                 , ( ndate,  FunT [] TimeT) ]
+                                 , ( ndate,  FunT [] TimeT)
+                                 , ( nmapsz, FunT [] IntT) ]
 
         -- Generate a few precomputation expressions
         Positive npres       <- arbitrary :: Gen (Positive Int)
@@ -490,6 +493,7 @@ programForStreamType' streamType
                , P.factIdName   = nid
                , P.factTimeName = ntime
                , P.snaptimeName = ndate
+               , P.maxMapSize   = nmapsz
                , P.precomps     = pres
                , P.streams      = strs
                , P.postcomps    = posts
@@ -622,12 +626,14 @@ baseValueForType t
       (VStruct <$> traverse baseValueForType fs)
 
 
-inputsForType :: ValType -> Gen ([AsAt (BubbleGumFact, BaseValue)], Time)
+inputsForType :: ValType -> Gen ([AsAt (BubbleGumFact, BaseValue)], EvalContext)
 inputsForType t
  = sized
- $ \s -> do start   <- arbitrary
-            num     <- choose (0, s)
-            go num [] start
+ $ \s -> do start         <- arbitrary
+            num           <- choose (0, s)
+            maxMap        <- arbitrary
+            (facts, time) <- go num [] start
+            return (facts, EvalContext time maxMap)
  where
   go 0 acc d
    = return (acc, timeOfDays d)

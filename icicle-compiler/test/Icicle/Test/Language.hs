@@ -40,18 +40,18 @@ import           Disorder.Core.IO
 
 prop_languages_eval ewt = testIO $ do
   let wt      = welltyped ewt
-      time    = wtTime wt
+      ctx     = wellTypedEvalContext wt
       facts   = wtEvalFacts ewt
       q       = wtEvalDummyQuery ewt
-      coreRes = P.coreEval time facts q
+      coreRes = P.coreEval ctx facts q
               $ C.renameProgram sourceNameFromTestName
               $ wtCore wt
-      flatRes = P.avalancheEval time facts q
+      flatRes = P.avalancheEval ctx facts q
               $ A.renameProgram sourceNameFromTestName
               $ A.eraseAnnotP
               $ wtAvalancheFlat wt
   seaRes     <- runEitherT
-              $ P.seaEval time facts q
+              $ P.seaEval ctx facts q
               $ A.renameProgram sourceNameFromTestName
               $ wtAvalancheFlat wt
   case coreRes of

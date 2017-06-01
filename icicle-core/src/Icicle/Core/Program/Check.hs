@@ -34,6 +34,7 @@ checkProgram p
         kenv    <- ins (factValName  p) (funOfVal $ PairT (inputType p) TimeT) Map.empty
                >>= ins (factIdName   p) (funOfVal $ FactIdentifierT)
                >>= ins (factTimeName p) (funOfVal $ TimeT)
+               >>= ins (maxMapSize p)   (funOfVal $ IntT)
 
         -- Check stream computations with precomputations in environment
         stms    <- checkStreams pres kenv (P.streams      p)

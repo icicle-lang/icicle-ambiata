@@ -75,6 +75,7 @@ import           Icicle.Avalanche.Program (Program)
 
 import           Icicle.Common.Annot (Annot)
 import           Icicle.Common.Base
+import           Icicle.Common.Eval
 import           Icicle.Common.Data (asAtValueToCore, valueFromCore)
 import           Icicle.Common.Type (ValType(..), StructType(..), defaultOfType)
 
@@ -90,6 +91,7 @@ import           Icicle.Sea.FromAvalanche.Program (seaOfPrograms)
 import           Icicle.Sea.FromAvalanche.State (stateOfPrograms)
 import           Icicle.Sea.FromAvalanche.Type (seaOfDefinitions)
 import           Icicle.Sea.IO
+import qualified Icicle.Sea.IO.Offset as Offset
 import           Icicle.Sea.Preamble (seaPreamble)
 import           Icicle.Sea.Fleet
 import           Icicle.Sea.Eval.Program
@@ -132,10 +134,10 @@ instance Show SeaMVector where
 seaEvalAvalanche
   :: (Show a, Show n, Pretty n, Eq n)
   => Program (Annot a) n Prim
-  -> D.Time
+  -> EvalContext
   -> [D.AsAt D.Value]
   -> EitherT SeaError IO [(OutputName, D.Value)]
-seaEvalAvalanche program time values = do
+seaEvalAvalanche program ctx values = do
   let attr = Attribute "eval"
       ps   = Map.singleton attr (program :| [])
   hoist runResourceT $ bracketEitherT'
@@ -143,28 +145,28 @@ seaEvalAvalanche program time values = do
     seaRelease
     (\fleet -> do
         programs <- mkSeaPrograms (sfLibrary fleet) ps
-        seaEval attr programs time values)
+        seaEval attr programs ctx values)
 
 seaEval
   :: (MonadIO m, MonadMask m)
   => Attribute
   -> Map Attribute (NonEmpty SeaProgram)
-  -> D.Time
+  -> EvalContext
   -> [D.AsAt D.Value]
   -> EitherT SeaError m [(OutputName, D.Value)]
-seaEval attribute programs time values =
+seaEval attribute programs ctx values =
   case Map.lookup attribute programs of
     Nothing      -> left (SeaProgramNotFound attribute)
     Just program -> do
-      concat <$> mapM (\p -> seaEval' p time values) program
+      concat <$> mapM (\p -> seaEval' p ctx values) program
 
 seaEval'
   :: (MonadIO m, MonadMask m)
   => SeaProgram
-  -> D.Time
+  -> EvalContext
   -> [D.AsAt D.Value]
   -> EitherT SeaError m [(OutputName, D.Value)]
-seaEval' program time values = do
+seaEval' program ctx values = do
   let words              = spStateWords program
       acquireFacts       = vectorsOfFacts values (spFactType program)
       releaseFacts facts = traverse_ freeSeaVector facts
@@ -173,13 +175,16 @@ seaEval' program time values = do
   withWords      words $ \pState -> do
   withSeaVectors facts $ \count psFacts -> do
 
-    let mempoolIx  = 0 :: Int
-        dateIx     = 1
-        countIx    = 2
-        factsIx    = 3
-        outputsIx  = 3 + length psFacts
+    let mempoolIx  = Offset.programMempool
+        maxMapIx   = Offset.programMaxMapSize
+        dateIx     = Offset.programInput + Offset.inputFactTime
+        countIx    = Offset.programInput + Offset.inputNewCount
+        -- Error is included in the input facts, so use offset of error instead of values start
+        factsIx    = Offset.programInput + Offset.inputError
+        outputsIx  = Offset.programOutputStart (length psFacts)
 
-    pokeWordOff pState dateIx  (packedOfTime time)
+    pokeWordOff pState maxMapIx               (evalMaxMapSize   ctx)
+    pokeWordOff pState dateIx  (packedOfTime $ evalSnapshotTime ctx)
     pokeWordOff pState countIx (fromIntegral count :: Int64)
 
     zipWithM_ (pokeWordOff pState) [factsIx..] psFacts

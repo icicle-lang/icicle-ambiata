@@ -153,6 +153,7 @@ createBenchmark (name, path) = do
     I.FlagUseDropFile
     I.defaultZebraChunkFactCount
     I.defaultZebraAllocLimitGB
+    (1024*1024)
   return (name, b)
 
 releaseBenchmarks :: [(String, Bench)] -> EitherT IcicleError IO ()

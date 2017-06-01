@@ -20,7 +20,7 @@ import Icicle.Sea.FromAvalanche.State
 -- } zebra_config_t;
 
 zebraConfigCount :: Int
-zebraConfigCount = 10
+zebraConfigCount = 11
 
 zebraConfigInputPath :: Int
 zebraConfigInputPath = 0
@@ -51,6 +51,9 @@ zebraConfigChunkFactCount = 8
 
 zebraConfigAllocLimitBytes :: Int
 zebraConfigAllocLimitBytes = 9
+
+zebraConfigMaxMapSize :: Int
+zebraConfigMaxMapSize = 10
 
 --------------------------------------------------------------------------------
 
@@ -171,6 +174,7 @@ fleetCountOf ix = 7 + 3 * ix
 
 --typedef struct {
 --    anemone_mempool_t *mempool;
+--    iint_t            max_map_size;
 --    input_a_double_t input;
 --    ierror_t         a_ix_0;
 --    idouble_t        a_ix_1;
@@ -188,16 +192,19 @@ fleetCountOf ix = 7 + 3 * ix
 --    ierror_t         res_acc_a_s_reify_4_conv_9_simpflat_25;
 --    ibool_t          has_acc_a_s_reify_4_conv_9_simpflat_27;
 --    idouble_t        res_acc_a_s_reify_4_conv_9_simpflat_27;
---} iprogram_0_t;
+--} iattribute_0_t;
 
 programMempool :: Int
 programMempool = 0
 
+programMaxMapSize :: Int
+programMaxMapSize = 1
+
 programInput :: Int
-programInput = 1
+programInput = 2
 
 programOutputStart :: Int -> Int
-programOutputStart inputSize = 3 + inputSize
+programOutputStart inputSize = 4 + inputSize
 
 --------------------------------------------------------------------------------
 
@@ -226,13 +233,13 @@ inputFieldsCount state =
   length (stateInputVars state) - 2
 
 programInputFactTime :: Int
-programInputFactTime = 1
+programInputFactTime = programInput + inputFactTime
 
 programInputNewCount :: Int
-programInputNewCount = 2
+programInputNewCount = programInput + inputNewCount
 
 programInputError :: Int
-programInputError = 3
+programInputError = programInput + inputError
 
 programInputStart :: Int
-programInputStart = 4
+programInputStart = programInput + inputStart

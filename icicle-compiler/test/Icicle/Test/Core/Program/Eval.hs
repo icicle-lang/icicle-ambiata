@@ -11,6 +11,8 @@ import           Icicle.Core.Program.Check
 import qualified Icicle.Core.Eval.Program   as PV
 import           Icicle.Internal.Pretty
 
+import           Icicle.Common.Eval
+
 import           Icicle.Data.Time
 
 import           P
@@ -21,6 +23,7 @@ import           Test.QuickCheck
 
 -- Just choose some date; it doesn't matter
 someTime = unsafeTimeOfYMD 2015 1 1
+evalContext = EvalContext someTime 100
 
 -- Well typed programs don't go wrong
 -- =====================
@@ -29,7 +32,7 @@ someTime = unsafeTimeOfYMD 2015 1 1
 prop_progress t =
  forAll (programForStreamType t)
  $ \p ->
-    let ev = PV.eval someTime [] p
+    let ev = PV.eval evalContext [] p
     in counterexample (show $ pretty p)
      $ counterexample (show ev)
      $ isRight     (checkProgram p) ==> isRight ev
@@ -40,8 +43,8 @@ prop_progress_values t =
  forAll (programForStreamType t)
  $ \p ->
  forAll (inputsForType t)
- $ \(vs,d) ->
-    let ev = PV.eval d vs p
+ $ \(vs,ctx) ->
+    let ev = PV.eval ctx vs p
     in counterexample (show $ pretty p)
      $ counterexample (show ev)
      $ isRight     (checkProgram p) ==> isRight ev
@@ -50,7 +53,7 @@ prop_progress_values t =
 -- Also, try the inverse: if it has a runtime error, it can't be type safe.
 -- Most randomly generated programs will have runtime errors, and won't type check
 prop_progress_inverse x =
- isLeft      (PV.eval someTime [] x)
+ isLeft      (PV.eval evalContext [] x)
  ==> isLeft  (checkProgram x)
 
 

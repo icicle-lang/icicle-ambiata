@@ -20,6 +20,7 @@ data Program a n p =
   Program
   { input       :: !ValType
   , bindtime    :: !(Name n)
+  , maxMapSize  :: !(Name n)
   , statements  :: !(Statement a n p)
   }
  deriving (Eq, Ord, Show)
@@ -29,17 +30,20 @@ instance NFData (Program a n p) where rnf x = seq x ()
 instance TransformX Program where
  transformX names exps p
   = do  bindtime'   <-      names                  $ bindtime   p
+        maxMapSize' <-      names                  $ maxMapSize p
         statements' <-      transformX names exps  $ statements p
 
         return $ Program
                { input      = input p
                , bindtime   = bindtime'
+               , maxMapSize = maxMapSize'
                , statements = statements'
                }
 
 renameProgram :: (Name n -> Name n') -> Program a n p -> Program a n' p
 renameProgram f p
-  = p { bindtime   = f          $ bindtime p
+  = p { bindtime   = f          $ bindtime   p
+      , maxMapSize = f          $ maxMapSize p
       , statements = renameStmt $ statements p}
   where
     renameFactBinds (FactBinds t i vs)
@@ -82,6 +86,7 @@ renameProgram f p
 instance (Pretty n, Pretty p) => Pretty (Program a n p) where
  pretty p
   =   pretty (bindtime   p) <> text " = TIME" <> line
+  <>  pretty (maxMapSize p) <> text " = MAX_MAP_SIZE" <> line
   <>  pretty (statements p)
 
 

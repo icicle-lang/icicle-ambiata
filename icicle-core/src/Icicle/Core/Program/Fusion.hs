@@ -56,6 +56,7 @@ fuseProgramsDistinctNames _ lp rp
  , factIdName= factIdName lp
  , factTimeName = factTimeName lp
  , snaptimeName = snaptimeName lp
+ , maxMapSize   = maxMapSize lp
  , precomps  = precomps  lp <> substSnds (precomps  rp)
  , streams   = streams   lp <> substStms (streams   rp)
  , postcomps = postcomps lp <> substSnds (postcomps rp)
@@ -69,7 +70,8 @@ fuseProgramsDistinctNames _ lp rp
    = [ (factValName  rp, factValName  lp)
      , (factIdName   rp, factIdName   lp)
      , (factTimeName rp, factTimeName lp)
-     , (snaptimeName rp, snaptimeName lp) ]
+     , (snaptimeName rp, snaptimeName lp)
+     , (maxMapSize   rp, maxMapSize   lp) ]
 
 
 -- | Fuse a list of programs together, prefixing each with its name

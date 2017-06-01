@@ -76,6 +76,7 @@ convertQueryTop feats qt
         factid      <- fresh
         facttime    <- fresh
         now         <- fresh
+        maxMapSize  <- fresh
 
         -- Lookup the fact that this query refers to.
         FeatureConcrete key ty fs
@@ -89,7 +90,7 @@ convertQueryTop feats qt
                   Just t' -> return t'
         let inpTy'dated = T.PairT inpTy T.TimeT
 
-        let convState = ConvertState inp inpTy'dated factid facttime now fs Map.empty
+        let convState = ConvertState inp inpTy'dated factid facttime now maxMapSize fs Map.empty
         let env       = Map.insert facttime (T.funOfVal   T.TimeT)
                       $ Map.insert factid   (T.funOfVal   T.FactIdentifierT)
                       $ Map.insert inp      (T.funOfVal $ T.PairT inpTy T.TimeT) Map.empty
@@ -99,7 +100,7 @@ convertQueryTop feats qt
                    $ do maybe (return ()) (flip convertFreshenAddAs now) $ featureNow feats
                         convertQuery (query qt) >>= convertKey env key
 
-        return (programOfBinds (queryName qt) inpTy inp factid facttime now bs () ret)
+        return (programOfBinds (queryName qt) inpTy inp factid facttime now maxMapSize bs () ret)
 
 
 -- | Convert a Query to Core

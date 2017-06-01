@@ -7,6 +7,7 @@ module Icicle.Sea.IO.Zebra (
   , defaultZebraConfig
   , defaultZebraChunkFactCount
   , defaultZebraAllocLimitGB
+  , defaultZebraMaxMapSize
   , seaOfZebraDriver
   ) where
 
@@ -26,7 +27,8 @@ import           P
 
 data ZebraConfig = ZebraConfig {
     zebraChunkFactCount  :: !ZebraChunkFactCount
-  , zebraAllocLimitGB :: !ZebraAllocLimitGB
+  , zebraAllocLimitGB    :: !ZebraAllocLimitGB
+  , zebraMaxMapSize      :: !Int
   } deriving (Eq, Show)
 
 newtype ZebraChunkFactCount = ZebraChunkFactCount { unZebraChunkFactCount :: Int }
@@ -36,13 +38,16 @@ newtype ZebraAllocLimitGB = ZebraAllocLimitGB { unZebraAllocLimitGB :: Int }
   deriving (Eq, Ord, Show)
 
 defaultZebraConfig :: ZebraConfig
-defaultZebraConfig = ZebraConfig defaultZebraChunkFactCount defaultZebraAllocLimitGB
+defaultZebraConfig = ZebraConfig defaultZebraChunkFactCount defaultZebraAllocLimitGB defaultZebraMaxMapSize
 
 defaultZebraChunkFactCount :: ZebraChunkFactCount
 defaultZebraChunkFactCount = ZebraChunkFactCount 128
 
 defaultZebraAllocLimitGB :: ZebraAllocLimitGB
 defaultZebraAllocLimitGB = ZebraAllocLimitGB 2
+
+defaultZebraMaxMapSize :: Int
+defaultZebraMaxMapSize = 1024 * 1024
 
 seaOfZebraDriver :: [Attribute] -> [SeaProgramAttribute] -> Either SeaError Doc
 seaOfZebraDriver concretes states = do

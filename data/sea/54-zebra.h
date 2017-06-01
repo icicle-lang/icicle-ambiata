@@ -19,6 +19,7 @@ typedef struct {
     const size_t output_buffer_size;
     const size_t chunk_fact_count;
     const size_t alloc_limit_bytes;
+    const iint_t max_map_size;
 
 } zebra_config_t;
 
@@ -346,7 +347,7 @@ zebra_state_t *zebra_alloc_state (piano_t *piano, zebra_config_t *cfg)
         max_chord_count = 1;
     }
 
-    ifleet_t *fleet = psv_alloc_fleet (max_chord_count, 0);
+    ifleet_t *fleet = psv_alloc_fleet (max_chord_count, 0, cfg->max_map_size);
 
     state->fleet = fleet;
 

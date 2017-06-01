@@ -162,6 +162,7 @@ seaOfState state
  , "typedef struct {"
  , "    /* runtime */"
  , indent 4 (defOfVar' 1 "anemone_mempool_t" "mempool;")
+ , indent 4 (defOfVar' 0 "iint_t" "max_map_size;")
  , ""
  , "    /* inputs */"
  , indent 4 (defOfVar_ 0 (pretty (stateInputTypeName state)) "input;")

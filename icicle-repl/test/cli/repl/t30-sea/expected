@@ -25,40 +25,41 @@ ok, c is now on
 > > -- An interesting expression with structs and strings
 > - Flattened (simplified), not typechecked:
 conv$3 = TIME
-init acc$conv$7$simpflat$33@{Error} = ExceptNotAnError@{Error};
-init acc$conv$7$simpflat$34@{Double} = 0.0@{Double};
-init acc$conv$11$simpflat$39@{Error} = ExceptNotAnError@{Error};
-init acc$conv$11$simpflat$40@{Double} = 0.0@{Double};
-init acc$s$reify$6$conv$12$simpflat$47@{Error} = ExceptFold1NoValue@{Error};
-init acc$s$reify$6$conv$12$simpflat$48@{Double} = 0.0@{Double};
-init acc$s$reify$6$conv$12$simpflat$49@{Double} = 0.0@{Double};
-init acc$conv$57$simpflat$50@{Error} = ExceptNotAnError@{Error};
-init acc$conv$57$simpflat$51@{Int} = 0@{Int};
-init acc$conv$58$simpflat$56@{Error} = ExceptNotAnError@{Error};
-init acc$conv$58$simpflat$57@{Int} = 0@{Int};
-init acc$conv$62$simpflat$64@{Error} = ExceptNotAnError@{Error};
-init acc$conv$62$simpflat$65@{Double} = 0.0@{Double};
-init acc$a$conv$63$simpflat$74@{Error} = ExceptNotAnError@{Error};
-init acc$a$conv$63$simpflat$75@{Double} = 0.0@{Double};
-init acc$a$conv$63$simpflat$76@{Double} = 0.0@{Double};
-init acc$a$conv$63$simpflat$77@{Double} = 0.0@{Double};
-load_resumable@{Error} acc$a$conv$63$simpflat$74;
-load_resumable@{Double} acc$a$conv$63$simpflat$75;
-load_resumable@{Double} acc$a$conv$63$simpflat$76;
-load_resumable@{Double} acc$a$conv$63$simpflat$77;
-load_resumable@{Error} acc$conv$62$simpflat$64;
-load_resumable@{Double} acc$conv$62$simpflat$65;
-load_resumable@{Error} acc$conv$58$simpflat$56;
-load_resumable@{Int} acc$conv$58$simpflat$57;
-load_resumable@{Error} acc$conv$57$simpflat$50;
-load_resumable@{Int} acc$conv$57$simpflat$51;
-load_resumable@{Error} acc$s$reify$6$conv$12$simpflat$47;
-load_resumable@{Double} acc$s$reify$6$conv$12$simpflat$48;
-load_resumable@{Double} acc$s$reify$6$conv$12$simpflat$49;
-load_resumable@{Error} acc$conv$11$simpflat$39;
-load_resumable@{Double} acc$conv$11$simpflat$40;
-load_resumable@{Error} acc$conv$7$simpflat$33;
-load_resumable@{Double} acc$conv$7$simpflat$34;
+conv$4 = MAX_MAP_SIZE
+init acc$conv$8$simpflat$33@{Error} = ExceptNotAnError@{Error};
+init acc$conv$8$simpflat$34@{Double} = 0.0@{Double};
+init acc$conv$12$simpflat$39@{Error} = ExceptNotAnError@{Error};
+init acc$conv$12$simpflat$40@{Double} = 0.0@{Double};
+init acc$s$reify$6$conv$13$simpflat$47@{Error} = ExceptFold1NoValue@{Error};
+init acc$s$reify$6$conv$13$simpflat$48@{Double} = 0.0@{Double};
+init acc$s$reify$6$conv$13$simpflat$49@{Double} = 0.0@{Double};
+init acc$conv$58$simpflat$50@{Error} = ExceptNotAnError@{Error};
+init acc$conv$58$simpflat$51@{Int} = 0@{Int};
+init acc$conv$59$simpflat$56@{Error} = ExceptNotAnError@{Error};
+init acc$conv$59$simpflat$57@{Int} = 0@{Int};
+init acc$conv$63$simpflat$64@{Error} = ExceptNotAnError@{Error};
+init acc$conv$63$simpflat$65@{Double} = 0.0@{Double};
+init acc$a$conv$64$simpflat$74@{Error} = ExceptNotAnError@{Error};
+init acc$a$conv$64$simpflat$75@{Double} = 0.0@{Double};
+init acc$a$conv$64$simpflat$76@{Double} = 0.0@{Double};
+init acc$a$conv$64$simpflat$77@{Double} = 0.0@{Double};
+load_resumable@{Error} acc$a$conv$64$simpflat$74;
+load_resumable@{Double} acc$a$conv$64$simpflat$75;
+load_resumable@{Double} acc$a$conv$64$simpflat$76;
+load_resumable@{Double} acc$a$conv$64$simpflat$77;
+load_resumable@{Error} acc$conv$63$simpflat$64;
+load_resumable@{Double} acc$conv$63$simpflat$65;
+load_resumable@{Error} acc$conv$59$simpflat$56;
+load_resumable@{Int} acc$conv$59$simpflat$57;
+load_resumable@{Error} acc$conv$58$simpflat$50;
+load_resumable@{Int} acc$conv$58$simpflat$51;
+load_resumable@{Error} acc$s$reify$6$conv$13$simpflat$47;
+load_resumable@{Double} acc$s$reify$6$conv$13$simpflat$48;
+load_resumable@{Double} acc$s$reify$6$conv$13$simpflat$49;
+load_resumable@{Error} acc$conv$12$simpflat$39;
+load_resumable@{Double} acc$conv$12$simpflat$40;
+load_resumable@{Error} acc$conv$8$simpflat$33;
+load_resumable@{Double} acc$conv$8$simpflat$34;
 for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0$simpflat$282@{Error}, conv$0$simpflat$283@{String}, conv$0$simpflat$284@{Int}, conv$0$simpflat$285@{Time}) in new
 {
   init flat$0$simpflat$78@{Error} = ExceptNotAnError@{Error};
@@ -89,51 +90,51 @@ for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0$simpflat$282@{Error}, 
   }
   read flat$1$simpflat$84 = flat$1$simpflat$82 [Error];
   read flat$1$simpflat$85 = flat$1$simpflat$83 [Double];
-  write acc$conv$7$simpflat$33 = flat$1$simpflat$84;
-  write acc$conv$7$simpflat$34 = flat$1$simpflat$85;
-  read conv$7$aval$0$simpflat$86 = acc$conv$7$simpflat$33 [Error];
-  read conv$7$aval$0$simpflat$87 = acc$conv$7$simpflat$34 [Double];
+  write acc$conv$8$simpflat$33 = flat$1$simpflat$84;
+  write acc$conv$8$simpflat$34 = flat$1$simpflat$85;
+  read conv$8$aval$0$simpflat$86 = acc$conv$8$simpflat$33 [Error];
+  read conv$8$aval$0$simpflat$87 = acc$conv$8$simpflat$34 [Double];
   init flat$2$simpflat$92@{Error} = ExceptNotAnError@{Error};
   init flat$2$simpflat$93@{Double} = 0.0@{Double};
-  if (eq#@{Error} conv$7$aval$0$simpflat$86 (ExceptNotAnError@{Error}))
+  if (eq#@{Error} conv$8$aval$0$simpflat$86 (ExceptNotAnError@{Error}))
   {
     write flat$2$simpflat$92 = ExceptNotAnError@{Error};
-    write flat$2$simpflat$93 = conv$7$aval$0$simpflat$87;
+    write flat$2$simpflat$93 = conv$8$aval$0$simpflat$87;
   }
   else
   {
-    write flat$2$simpflat$92 = conv$7$aval$0$simpflat$86;
+    write flat$2$simpflat$92 = conv$8$aval$0$simpflat$86;
     write flat$2$simpflat$93 = 0.0@{Double};
   }
   read flat$2$simpflat$94 = flat$2$simpflat$92 [Error];
   read flat$2$simpflat$95 = flat$2$simpflat$93 [Double];
-  write acc$conv$11$simpflat$39 = flat$2$simpflat$94;
-  write acc$conv$11$simpflat$40 = flat$2$simpflat$95;
-  read conv$11$aval$2$simpflat$96 = acc$conv$11$simpflat$39 [Error];
-  read conv$11$aval$2$simpflat$97 = acc$conv$11$simpflat$40 [Double];
-  read s$reify$6$conv$12$aval$1$simpflat$104 = acc$s$reify$6$conv$12$simpflat$47 [Error];
-  read s$reify$6$conv$12$aval$1$simpflat$105 = acc$s$reify$6$conv$12$simpflat$48 [Double];
-  read s$reify$6$conv$12$aval$1$simpflat$106 = acc$s$reify$6$conv$12$simpflat$49 [Double];
+  write acc$conv$12$simpflat$39 = flat$2$simpflat$94;
+  write acc$conv$12$simpflat$40 = flat$2$simpflat$95;
+  read conv$12$aval$2$simpflat$96 = acc$conv$12$simpflat$39 [Error];
+  read conv$12$aval$2$simpflat$97 = acc$conv$12$simpflat$40 [Double];
+  read s$reify$6$conv$13$aval$1$simpflat$104 = acc$s$reify$6$conv$13$simpflat$47 [Error];
+  read s$reify$6$conv$13$aval$1$simpflat$105 = acc$s$reify$6$conv$13$simpflat$48 [Double];
+  read s$reify$6$conv$13$aval$1$simpflat$106 = acc$s$reify$6$conv$13$simpflat$49 [Double];
   init flat$9$simpflat$107@{Error} = ExceptNotAnError@{Error};
   init flat$9$simpflat$108@{Double} = 0.0@{Double};
   init flat$9$simpflat$109@{Double} = 0.0@{Double};
-  if (eq#@{Error} s$reify$6$conv$12$aval$1$simpflat$104 (ExceptNotAnError@{Error}))
+  if (eq#@{Error} s$reify$6$conv$13$aval$1$simpflat$104 (ExceptNotAnError@{Error}))
   {
     init flat$16$simpflat$110@{Error} = ExceptNotAnError@{Error};
     init flat$16$simpflat$111@{Double} = 0.0@{Double};
     init flat$16$simpflat$112@{Double} = 0.0@{Double};
-    if (eq#@{Error} s$reify$6$conv$12$aval$1$simpflat$104 (ExceptNotAnError@{Error}))
+    if (eq#@{Error} s$reify$6$conv$13$aval$1$simpflat$104 (ExceptNotAnError@{Error}))
     {
       init flat$19$simpflat$113@{Error} = ExceptNotAnError@{Error};
       init flat$19$simpflat$114@{Double} = 0.0@{Double};
-      if (eq#@{Error} conv$11$aval$2$simpflat$96 (ExceptNotAnError@{Error}))
+      if (eq#@{Error} conv$12$aval$2$simpflat$96 (ExceptNotAnError@{Error}))
       {
         write flat$19$simpflat$113 = ExceptNotAnError@{Error};
-        write flat$19$simpflat$114 = sub#@{Double} conv$11$aval$2$simpflat$97 s$reify$6$conv$12$aval$1$simpflat$105;
+        write flat$19$simpflat$114 = sub#@{Double} conv$12$aval$2$simpflat$97 s$reify$6$conv$13$aval$1$simpflat$105;
       }
       else
       {
-        write flat$19$simpflat$113 = conv$11$aval$2$simpflat$96;
+        write flat$19$simpflat$113 = conv$12$aval$2$simpflat$96;
         write flat$19$simpflat$114 = 0.0@{Double};
       }
       read flat$19$simpflat$115 = flat$19$simpflat$113 [Error];
@@ -143,7 +144,7 @@ for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0$simpflat$282@{Error}, 
       if (eq#@{Error} flat$19$simpflat$115 (ExceptNotAnError@{Error}))
       {
         write flat$20$simpflat$117 = ExceptNotAnError@{Error};
-        let simpflat$354 = add#@{Double} s$reify$6$conv$12$aval$1$simpflat$106 (1.0@{Double});
+        let simpflat$354 = add#@{Double} s$reify$6$conv$13$aval$1$simpflat$106 (1.0@{Double});
         write flat$20$simpflat$118 = div# flat$19$simpflat$116 simpflat$354;
       }
       else
@@ -158,7 +159,7 @@ for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0$simpflat$282@{Error}, 
       if (eq#@{Error} flat$20$simpflat$119 (ExceptNotAnError@{Error}))
       {
         write flat$21$simpflat$121 = ExceptNotAnError@{Error};
-        write flat$21$simpflat$122 = add#@{Double} s$reify$6$conv$12$aval$1$simpflat$105 flat$20$simpflat$120;
+        write flat$21$simpflat$122 = add#@{Double} s$reify$6$conv$13$aval$1$simpflat$105 flat$20$simpflat$120;
       }
       else
       {
@@ -174,7 +175,7 @@ for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0$simpflat$282@{Error}, 
       {
         write flat$22$simpflat$125 = ExceptNotAnError@{Error};
         write flat$22$simpflat$126 = flat$21$simpflat$124;
-        write flat$22$simpflat$127 = add#@{Double} s$reify$6$conv$12$aval$1$simpflat$106 (1.0@{Double});
+        write flat$22$simpflat$127 = add#@{Double} s$reify$6$conv$13$aval$1$simpflat$106 (1.0@{Double});
       }
       else
       {
@@ -191,7 +192,7 @@ for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0$simpflat$282@{Error}, 
     }
     else
     {
-      write flat$16$simpflat$110 = s$reify$6$conv$12$aval$1$simpflat$104;
+      write flat$16$simpflat$110 = s$reify$6$conv$13$aval$1$simpflat$104;
       write flat$16$simpflat$111 = 0.0@{Double};
       write flat$16$simpflat$112 = 0.0@{Double};
     }
@@ -207,20 +208,20 @@ for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0$simpflat$282@{Error}, 
     init flat$12$simpflat$134@{Error} = ExceptNotAnError@{Error};
     init flat$12$simpflat$135@{Double} = 0.0@{Double};
     init flat$12$simpflat$136@{Double} = 0.0@{Double};
-    if (eq#@{Error} (ExceptFold1NoValue@{Error}) s$reify$6$conv$12$aval$1$simpflat$104)
+    if (eq#@{Error} (ExceptFold1NoValue@{Error}) s$reify$6$conv$13$aval$1$simpflat$104)
     {
       init flat$13$simpflat$137@{Error} = ExceptNotAnError@{Error};
       init flat$13$simpflat$138@{Double} = 0.0@{Double};
       init flat$13$simpflat$139@{Double} = 0.0@{Double};
-      if (eq#@{Error} conv$11$aval$2$simpflat$96 (ExceptNotAnError@{Error}))
+      if (eq#@{Error} conv$12$aval$2$simpflat$96 (ExceptNotAnError@{Error}))
       {
         write flat$13$simpflat$137 = ExceptNotAnError@{Error};
-        write flat$13$simpflat$138 = conv$11$aval$2$simpflat$97;
+        write flat$13$simpflat$138 = conv$12$aval$2$simpflat$97;
         write flat$13$simpflat$139 = 1.0@{Double};
       }
       else
       {
-        write flat$13$simpflat$137 = conv$11$aval$2$simpflat$96;
+        write flat$13$simpflat$137 = conv$12$aval$2$simpflat$96;
         write flat$13$simpflat$138 = 0.0@{Double};
         write flat$13$simpflat$139 = 0.0@{Double};
       }
@@ -233,7 +234,7 @@ for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0$simpflat$282@{Error}, 
     }
     else
     {
-      write flat$12$simpflat$134 = s$reify$6$conv$12$aval$1$simpflat$104;
+      write flat$12$simpflat$134 = s$reify$6$conv$13$aval$1$simpflat$104;
       write flat$12$simpflat$135 = 0.0@{Double};
       write flat$12$simpflat$136 = 0.0@{Double};
     }
@@ -247,9 +248,9 @@ for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0$simpflat$282@{Error}, 
   read flat$9$simpflat$146 = flat$9$simpflat$107 [Error];
   read flat$9$simpflat$147 = flat$9$simpflat$108 [Double];
   read flat$9$simpflat$148 = flat$9$simpflat$109 [Double];
-  write acc$s$reify$6$conv$12$simpflat$47 = flat$9$simpflat$146;
-  write acc$s$reify$6$conv$12$simpflat$48 = flat$9$simpflat$147;
-  write acc$s$reify$6$conv$12$simpflat$49 = flat$9$simpflat$148;
+  write acc$s$reify$6$conv$13$simpflat$47 = flat$9$simpflat$146;
+  write acc$s$reify$6$conv$13$simpflat$48 = flat$9$simpflat$147;
+  write acc$s$reify$6$conv$13$simpflat$49 = flat$9$simpflat$148;
   init flat$31$simpflat$149@{Error} = ExceptNotAnError@{Error};
   init flat$31$simpflat$150@{String} = ""@{String};
   if (eq#@{Error} conv$0$simpflat$282 (ExceptNotAnError@{Error}))
@@ -304,53 +305,53 @@ for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0$simpflat$282@{Error}, 
     }
     read flat$34$simpflat$159 = flat$34$simpflat$157 [Error];
     read flat$34$simpflat$160 = flat$34$simpflat$158 [Int];
-    write acc$conv$57$simpflat$50 = flat$34$simpflat$159;
-    write acc$conv$57$simpflat$51 = flat$34$simpflat$160;
-    read conv$57$aval$3$simpflat$161 = acc$conv$57$simpflat$50 [Error];
-    read conv$57$aval$3$simpflat$162 = acc$conv$57$simpflat$51 [Int];
-    write acc$conv$58$simpflat$56 = conv$57$aval$3$simpflat$161;
-    write acc$conv$58$simpflat$57 = conv$57$aval$3$simpflat$162;
-    read conv$58$aval$4$simpflat$167 = acc$conv$58$simpflat$56 [Error];
-    read conv$58$aval$4$simpflat$168 = acc$conv$58$simpflat$57 [Int];
+    write acc$conv$58$simpflat$50 = flat$34$simpflat$159;
+    write acc$conv$58$simpflat$51 = flat$34$simpflat$160;
+    read conv$58$aval$3$simpflat$161 = acc$conv$58$simpflat$50 [Error];
+    read conv$58$aval$3$simpflat$162 = acc$conv$58$simpflat$51 [Int];
+    write acc$conv$59$simpflat$56 = conv$58$aval$3$simpflat$161;
+    write acc$conv$59$simpflat$57 = conv$58$aval$3$simpflat$162;
+    read conv$59$aval$4$simpflat$167 = acc$conv$59$simpflat$56 [Error];
+    read conv$59$aval$4$simpflat$168 = acc$conv$59$simpflat$57 [Int];
     init flat$35$simpflat$175@{Error} = ExceptNotAnError@{Error};
     init flat$35$simpflat$176@{Double} = 0.0@{Double};
-    if (eq#@{Error} conv$58$aval$4$simpflat$167 (ExceptNotAnError@{Error}))
+    if (eq#@{Error} conv$59$aval$4$simpflat$167 (ExceptNotAnError@{Error}))
     {
       write flat$35$simpflat$175 = ExceptNotAnError@{Error};
-      write flat$35$simpflat$176 = doubleOfInt# conv$58$aval$4$simpflat$168;
+      write flat$35$simpflat$176 = doubleOfInt# conv$59$aval$4$simpflat$168;
     }
     else
     {
-      write flat$35$simpflat$175 = conv$58$aval$4$simpflat$167;
+      write flat$35$simpflat$175 = conv$59$aval$4$simpflat$167;
       write flat$35$simpflat$176 = 0.0@{Double};
     }
     read flat$35$simpflat$177 = flat$35$simpflat$175 [Error];
     read flat$35$simpflat$178 = flat$35$simpflat$176 [Double];
-    write acc$conv$62$simpflat$64 = flat$35$simpflat$177;
-    write acc$conv$62$simpflat$65 = flat$35$simpflat$178;
-    read conv$62$aval$6$simpflat$179 = acc$conv$62$simpflat$64 [Error];
-    read conv$62$aval$6$simpflat$180 = acc$conv$62$simpflat$65 [Double];
-    read a$conv$63$aval$5$simpflat$189 = acc$a$conv$63$simpflat$74 [Error];
-    read a$conv$63$aval$5$simpflat$190 = acc$a$conv$63$simpflat$75 [Double];
-    read a$conv$63$aval$5$simpflat$191 = acc$a$conv$63$simpflat$76 [Double];
-    read a$conv$63$aval$5$simpflat$192 = acc$a$conv$63$simpflat$77 [Double];
+    write acc$conv$63$simpflat$64 = flat$35$simpflat$177;
+    write acc$conv$63$simpflat$65 = flat$35$simpflat$178;
+    read conv$63$aval$6$simpflat$179 = acc$conv$63$simpflat$64 [Error];
+    read conv$63$aval$6$simpflat$180 = acc$conv$63$simpflat$65 [Double];
+    read a$conv$64$aval$5$simpflat$189 = acc$a$conv$64$simpflat$74 [Error];
+    read a$conv$64$aval$5$simpflat$190 = acc$a$conv$64$simpflat$75 [Double];
+    read a$conv$64$aval$5$simpflat$191 = acc$a$conv$64$simpflat$76 [Double];
+    read a$conv$64$aval$5$simpflat$192 = acc$a$conv$64$simpflat$77 [Double];
     init flat$36$simpflat$193@{Error} = ExceptNotAnError@{Error};
     init flat$36$simpflat$194@{Double} = 0.0@{Double};
     init flat$36$simpflat$195@{Double} = 0.0@{Double};
     init flat$36$simpflat$196@{Double} = 0.0@{Double};
-    if (eq#@{Error} a$conv$63$aval$5$simpflat$189 (ExceptNotAnError@{Error}))
+    if (eq#@{Error} a$conv$64$aval$5$simpflat$189 (ExceptNotAnError@{Error}))
     {
-      let nn$conv$70 = add#@{Double} a$conv$63$aval$5$simpflat$190 (1.0@{Double});
+      let nn$conv$71 = add#@{Double} a$conv$64$aval$5$simpflat$190 (1.0@{Double});
       init flat$39$simpflat$197@{Error} = ExceptNotAnError@{Error};
       init flat$39$simpflat$198@{Double} = 0.0@{Double};
-      if (eq#@{Error} conv$62$aval$6$simpflat$179 (ExceptNotAnError@{Error}))
+      if (eq#@{Error} conv$63$aval$6$simpflat$179 (ExceptNotAnError@{Error}))
       {
         write flat$39$simpflat$197 = ExceptNotAnError@{Error};
-        write flat$39$simpflat$198 = sub#@{Double} conv$62$aval$6$simpflat$180 a$conv$63$aval$5$simpflat$191;
+        write flat$39$simpflat$198 = sub#@{Double} conv$63$aval$6$simpflat$180 a$conv$64$aval$5$simpflat$191;
       }
       else
       {
-        write flat$39$simpflat$197 = conv$62$aval$6$simpflat$179;
+        write flat$39$simpflat$197 = conv$63$aval$6$simpflat$179;
         write flat$39$simpflat$198 = 0.0@{Double};
       }
       read flat$39$simpflat$199 = flat$39$simpflat$197 [Error];
@@ -360,7 +361,7 @@ for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0$simpflat$282@{Error}, 
       if (eq#@{Error} flat$39$simpflat$199 (ExceptNotAnError@{Error}))
       {
         write flat$40$simpflat$201 = ExceptNotAnError@{Error};
-        write flat$40$simpflat$202 = div# flat$39$simpflat$200 nn$conv$70;
+        write flat$40$simpflat$202 = div# flat$39$simpflat$200 nn$conv$71;
       }
       else
       {
@@ -374,7 +375,7 @@ for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0$simpflat$282@{Error}, 
       if (eq#@{Error} flat$40$simpflat$203 (ExceptNotAnError@{Error}))
       {
         write flat$41$simpflat$205 = ExceptNotAnError@{Error};
-        write flat$41$simpflat$206 = add#@{Double} a$conv$63$aval$5$simpflat$191 flat$40$simpflat$204;
+        write flat$41$simpflat$206 = add#@{Double} a$conv$64$aval$5$simpflat$191 flat$40$simpflat$204;
       }
       else
       {
@@ -389,14 +390,14 @@ for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0$simpflat$282@{Error}, 
       {
         init flat$57$simpflat$211@{Error} = ExceptNotAnError@{Error};
         init flat$57$simpflat$212@{Double} = 0.0@{Double};
-        if (eq#@{Error} conv$62$aval$6$simpflat$179 (ExceptNotAnError@{Error}))
+        if (eq#@{Error} conv$63$aval$6$simpflat$179 (ExceptNotAnError@{Error}))
         {
           init flat$63$simpflat$213@{Error} = ExceptNotAnError@{Error};
           init flat$63$simpflat$214@{Double} = 0.0@{Double};
           if (eq#@{Error} flat$41$simpflat$207 (ExceptNotAnError@{Error}))
           {
             write flat$63$simpflat$213 = ExceptNotAnError@{Error};
-            write flat$63$simpflat$214 = sub#@{Double} conv$62$aval$6$simpflat$180 flat$41$simpflat$208;
+            write flat$63$simpflat$214 = sub#@{Double} conv$63$aval$6$simpflat$180 flat$41$simpflat$208;
           }
           else
           {
@@ -410,7 +411,7 @@ for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0$simpflat$282@{Error}, 
         }
         else
         {
-          write flat$57$simpflat$211 = conv$62$aval$6$simpflat$179;
+          write flat$57$simpflat$211 = conv$63$aval$6$simpflat$179;
           write flat$57$simpflat$212 = 0.0@{Double};
         }
         read flat$57$simpflat$217 = flat$57$simpflat$211 [Error];
@@ -444,7 +445,7 @@ for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0$simpflat$282@{Error}, 
       if (eq#@{Error} flat$42$simpflat$223 (ExceptNotAnError@{Error}))
       {
         write flat$43$simpflat$225 = ExceptNotAnError@{Error};
-        write flat$43$simpflat$226 = add#@{Double} a$conv$63$aval$5$simpflat$192 flat$42$simpflat$224;
+        write flat$43$simpflat$226 = add#@{Double} a$conv$64$aval$5$simpflat$192 flat$42$simpflat$224;
       }
       else
       {
@@ -459,7 +460,7 @@ for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0$simpflat$282@{Error}, 
       if (eq#@{Error} flat$41$simpflat$207 (ExceptNotAnError@{Error}))
       {
         write flat$44$simpflat$229 = ExceptNotAnError@{Error};
-        write flat$44$simpflat$230 = add#@{Double} a$conv$63$aval$5$simpflat$190 (1.0@{Double});
+        write flat$44$simpflat$230 = add#@{Double} a$conv$64$aval$5$simpflat$190 (1.0@{Double});
         write flat$44$simpflat$231 = flat$41$simpflat$208;
       }
       else
@@ -522,7 +523,7 @@ for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0$simpflat$282@{Error}, 
     }
     else
     {
-      write flat$36$simpflat$193 = a$conv$63$aval$5$simpflat$189;
+      write flat$36$simpflat$193 = a$conv$64$aval$5$simpflat$189;
       write flat$36$simpflat$194 = 0.0@{Double};
       write flat$36$simpflat$195 = 0.0@{Double};
       write flat$36$simpflat$196 = 0.0@{Double};
@@ -531,44 +532,44 @@ for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0$simpflat$282@{Error}, 
     read flat$36$simpflat$252 = flat$36$simpflat$194 [Double];
     read flat$36$simpflat$253 = flat$36$simpflat$195 [Double];
     read flat$36$simpflat$254 = flat$36$simpflat$196 [Double];
-    write acc$a$conv$63$simpflat$74 = flat$36$simpflat$251;
-    write acc$a$conv$63$simpflat$75 = flat$36$simpflat$252;
-    write acc$a$conv$63$simpflat$76 = flat$36$simpflat$253;
-    write acc$a$conv$63$simpflat$77 = flat$36$simpflat$254;
+    write acc$a$conv$64$simpflat$74 = flat$36$simpflat$251;
+    write acc$a$conv$64$simpflat$75 = flat$36$simpflat$252;
+    write acc$a$conv$64$simpflat$76 = flat$36$simpflat$253;
+    write acc$a$conv$64$simpflat$77 = flat$36$simpflat$254;
   }
 }
-save_resumable@{Error} acc$a$conv$63$simpflat$74;
-save_resumable@{Double} acc$a$conv$63$simpflat$75;
-save_resumable@{Double} acc$a$conv$63$simpflat$76;
-save_resumable@{Double} acc$a$conv$63$simpflat$77;
-save_resumable@{Error} acc$conv$62$simpflat$64;
-save_resumable@{Double} acc$conv$62$simpflat$65;
-save_resumable@{Error} acc$conv$58$simpflat$56;
-save_resumable@{Int} acc$conv$58$simpflat$57;
-save_resumable@{Error} acc$conv$57$simpflat$50;
-save_resumable@{Int} acc$conv$57$simpflat$51;
-save_resumable@{Error} acc$s$reify$6$conv$12$simpflat$47;
-save_resumable@{Double} acc$s$reify$6$conv$12$simpflat$48;
-save_resumable@{Double} acc$s$reify$6$conv$12$simpflat$49;
-save_resumable@{Error} acc$conv$11$simpflat$39;
-save_resumable@{Double} acc$conv$11$simpflat$40;
-save_resumable@{Error} acc$conv$7$simpflat$33;
-save_resumable@{Double} acc$conv$7$simpflat$34;
-read a$conv$63$simpflat$255 = acc$a$conv$63$simpflat$74 [Error];
-read a$conv$63$simpflat$256 = acc$a$conv$63$simpflat$75 [Double];
-read a$conv$63$simpflat$258 = acc$a$conv$63$simpflat$77 [Double];
-read s$reify$6$conv$12$simpflat$259 = acc$s$reify$6$conv$12$simpflat$47 [Error];
-read s$reify$6$conv$12$simpflat$260 = acc$s$reify$6$conv$12$simpflat$48 [Double];
+save_resumable@{Error} acc$a$conv$64$simpflat$74;
+save_resumable@{Double} acc$a$conv$64$simpflat$75;
+save_resumable@{Double} acc$a$conv$64$simpflat$76;
+save_resumable@{Double} acc$a$conv$64$simpflat$77;
+save_resumable@{Error} acc$conv$63$simpflat$64;
+save_resumable@{Double} acc$conv$63$simpflat$65;
+save_resumable@{Error} acc$conv$59$simpflat$56;
+save_resumable@{Int} acc$conv$59$simpflat$57;
+save_resumable@{Error} acc$conv$58$simpflat$50;
+save_resumable@{Int} acc$conv$58$simpflat$51;
+save_resumable@{Error} acc$s$reify$6$conv$13$simpflat$47;
+save_resumable@{Double} acc$s$reify$6$conv$13$simpflat$48;
+save_resumable@{Double} acc$s$reify$6$conv$13$simpflat$49;
+save_resumable@{Error} acc$conv$12$simpflat$39;
+save_resumable@{Double} acc$conv$12$simpflat$40;
+save_resumable@{Error} acc$conv$8$simpflat$33;
+save_resumable@{Double} acc$conv$8$simpflat$34;
+read a$conv$64$simpflat$255 = acc$a$conv$64$simpflat$74 [Error];
+read a$conv$64$simpflat$256 = acc$a$conv$64$simpflat$75 [Double];
+read a$conv$64$simpflat$258 = acc$a$conv$64$simpflat$77 [Double];
+read s$reify$6$conv$13$simpflat$259 = acc$s$reify$6$conv$13$simpflat$47 [Error];
+read s$reify$6$conv$13$simpflat$260 = acc$s$reify$6$conv$13$simpflat$48 [Double];
 init flat$89$simpflat$262@{Error} = ExceptNotAnError@{Error};
 init flat$89$simpflat$263@{Double} = 0.0@{Double};
-if (eq#@{Error} s$reify$6$conv$12$simpflat$259 (ExceptNotAnError@{Error}))
+if (eq#@{Error} s$reify$6$conv$13$simpflat$259 (ExceptNotAnError@{Error}))
 {
   write flat$89$simpflat$262 = ExceptNotAnError@{Error};
-  write flat$89$simpflat$263 = s$reify$6$conv$12$simpflat$260;
+  write flat$89$simpflat$263 = s$reify$6$conv$13$simpflat$260;
 }
 else
 {
-  write flat$89$simpflat$262 = s$reify$6$conv$12$simpflat$259;
+  write flat$89$simpflat$262 = s$reify$6$conv$13$simpflat$259;
   write flat$89$simpflat$263 = 0.0@{Double};
 }
 read flat$89$simpflat$264 = flat$89$simpflat$262 [Error];
@@ -579,16 +580,16 @@ if (eq#@{Error} flat$89$simpflat$264 (ExceptNotAnError@{Error}))
 {
   init flat$93$simpflat$268@{Error} = ExceptNotAnError@{Error};
   init flat$93$simpflat$269@{Double} = 0.0@{Double};
-  if (eq#@{Error} a$conv$63$simpflat$255 (ExceptNotAnError@{Error}))
+  if (eq#@{Error} a$conv$64$simpflat$255 (ExceptNotAnError@{Error}))
   {
-    let conv$118 = sub#@{Double} a$conv$63$simpflat$256 (1.0@{Double});
-    let simpflat$749 = div# a$conv$63$simpflat$258 conv$118;
+    let conv$119 = sub#@{Double} a$conv$64$simpflat$256 (1.0@{Double});
+    let simpflat$749 = div# a$conv$64$simpflat$258 conv$119;
     write flat$93$simpflat$268 = ExceptNotAnError@{Error};
     write flat$93$simpflat$269 = simpflat$749;
   }
   else
   {
-    write flat$93$simpflat$268 = a$conv$63$simpflat$255;
+    write flat$93$simpflat$268 = a$conv$64$simpflat$255;
     write flat$93$simpflat$269 = 0.0@{Double};
   }
   read flat$93$simpflat$270 = flat$93$simpflat$268 [Error];
@@ -635,40 +636,41 @@ output@{(Sum Error Double)} repl (flat$90$simpflat$280@{Error}, flat$90$simpflat
 
 - Flattened Avalanche (simplified), typechecked:
 conv$3 = TIME
-init acc$conv$7$simpflat$33@{Error} = ExceptNotAnError@{Error};
-init acc$conv$7$simpflat$34@{Double} = 0.0@{Double};
-init acc$conv$11$simpflat$39@{Error} = ExceptNotAnError@{Error};
-init acc$conv$11$simpflat$40@{Double} = 0.0@{Double};
-init acc$s$reify$6$conv$12$simpflat$47@{Error} = ExceptFold1NoValue@{Error};
-init acc$s$reify$6$conv$12$simpflat$48@{Double} = 0.0@{Double};
-init acc$s$reify$6$conv$12$simpflat$49@{Double} = 0.0@{Double};
-init acc$conv$57$simpflat$50@{Error} = ExceptNotAnError@{Error};
-init acc$conv$57$simpflat$51@{Int} = 0@{Int};
-init acc$conv$58$simpflat$56@{Error} = ExceptNotAnError@{Error};
-init acc$conv$58$simpflat$57@{Int} = 0@{Int};
-init acc$conv$62$simpflat$64@{Error} = ExceptNotAnError@{Error};
-init acc$conv$62$simpflat$65@{Double} = 0.0@{Double};
-init acc$a$conv$63$simpflat$74@{Error} = ExceptNotAnError@{Error};
-init acc$a$conv$63$simpflat$75@{Double} = 0.0@{Double};
-init acc$a$conv$63$simpflat$76@{Double} = 0.0@{Double};
-init acc$a$conv$63$simpflat$77@{Double} = 0.0@{Double};
-load_resumable@{Error} acc$a$conv$63$simpflat$74;
-load_resumable@{Double} acc$a$conv$63$simpflat$75;
-load_resumable@{Double} acc$a$conv$63$simpflat$76;
-load_resumable@{Double} acc$a$conv$63$simpflat$77;
-load_resumable@{Error} acc$conv$62$simpflat$64;
-load_resumable@{Double} acc$conv$62$simpflat$65;
-load_resumable@{Error} acc$conv$58$simpflat$56;
-load_resumable@{Int} acc$conv$58$simpflat$57;
-load_resumable@{Error} acc$conv$57$simpflat$50;
-load_resumable@{Int} acc$conv$57$simpflat$51;
-load_resumable@{Error} acc$s$reify$6$conv$12$simpflat$47;
-load_resumable@{Double} acc$s$reify$6$conv$12$simpflat$48;
-load_resumable@{Double} acc$s$reify$6$conv$12$simpflat$49;
-load_resumable@{Error} acc$conv$11$simpflat$39;
-load_resumable@{Double} acc$conv$11$simpflat$40;
-load_resumable@{Error} acc$conv$7$simpflat$33;
-load_resumable@{Double} acc$conv$7$simpflat$34;
+conv$4 = MAX_MAP_SIZE
+init acc$conv$8$simpflat$33@{Error} = ExceptNotAnError@{Error};
+init acc$conv$8$simpflat$34@{Double} = 0.0@{Double};
+init acc$conv$12$simpflat$39@{Error} = ExceptNotAnError@{Error};
+init acc$conv$12$simpflat$40@{Double} = 0.0@{Double};
+init acc$s$reify$6$conv$13$simpflat$47@{Error} = ExceptFold1NoValue@{Error};
+init acc$s$reify$6$conv$13$simpflat$48@{Double} = 0.0@{Double};
+init acc$s$reify$6$conv$13$simpflat$49@{Double} = 0.0@{Double};
+init acc$conv$58$simpflat$50@{Error} = ExceptNotAnError@{Error};
+init acc$conv$58$simpflat$51@{Int} = 0@{Int};
+init acc$conv$59$simpflat$56@{Error} = ExceptNotAnError@{Error};
+init acc$conv$59$simpflat$57@{Int} = 0@{Int};
+init acc$conv$63$simpflat$64@{Error} = ExceptNotAnError@{Error};
+init acc$conv$63$simpflat$65@{Double} = 0.0@{Double};
+init acc$a$conv$64$simpflat$74@{Error} = ExceptNotAnError@{Error};
+init acc$a$conv$64$simpflat$75@{Double} = 0.0@{Double};
+init acc$a$conv$64$simpflat$76@{Double} = 0.0@{Double};
+init acc$a$conv$64$simpflat$77@{Double} = 0.0@{Double};
+load_resumable@{Error} acc$a$conv$64$simpflat$74;
+load_resumable@{Double} acc$a$conv$64$simpflat$75;
+load_resumable@{Double} acc$a$conv$64$simpflat$76;
+load_resumable@{Double} acc$a$conv$64$simpflat$77;
+load_resumable@{Error} acc$conv$63$simpflat$64;
+load_resumable@{Double} acc$conv$63$simpflat$65;
+load_resumable@{Error} acc$conv$59$simpflat$56;
+load_resumable@{Int} acc$conv$59$simpflat$57;
+load_resumable@{Error} acc$conv$58$simpflat$50;
+load_resumable@{Int} acc$conv$58$simpflat$51;
+load_resumable@{Error} acc$s$reify$6$conv$13$simpflat$47;
+load_resumable@{Double} acc$s$reify$6$conv$13$simpflat$48;
+load_resumable@{Double} acc$s$reify$6$conv$13$simpflat$49;
+load_resumable@{Error} acc$conv$12$simpflat$39;
+load_resumable@{Double} acc$conv$12$simpflat$40;
+load_resumable@{Error} acc$conv$8$simpflat$33;
+load_resumable@{Double} acc$conv$8$simpflat$34;
 for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0$simpflat$282@{Error}, conv$0$simpflat$283@{String}, conv$0$simpflat$284@{Int}, conv$0$simpflat$285@{Time}) in new
 {
   init flat$0$simpflat$78@{Error} = ExceptNotAnError@{Error};
@@ -699,51 +701,51 @@ for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0$simpflat$282@{Error}, 
   }
   read flat$1$simpflat$84 = flat$1$simpflat$82 [Error];
   read flat$1$simpflat$85 = flat$1$simpflat$83 [Double];
-  write acc$conv$7$simpflat$33 = flat$1$simpflat$84;
-  write acc$conv$7$simpflat$34 = flat$1$simpflat$85;
-  read conv$7$aval$0$simpflat$86 = acc$conv$7$simpflat$33 [Error];
-  read conv$7$aval$0$simpflat$87 = acc$conv$7$simpflat$34 [Double];
+  write acc$conv$8$simpflat$33 = flat$1$simpflat$84;
+  write acc$conv$8$simpflat$34 = flat$1$simpflat$85;
+  read conv$8$aval$0$simpflat$86 = acc$conv$8$simpflat$33 [Error];
+  read conv$8$aval$0$simpflat$87 = acc$conv$8$simpflat$34 [Double];
   init flat$2$simpflat$92@{Error} = ExceptNotAnError@{Error};
   init flat$2$simpflat$93@{Double} = 0.0@{Double};
-  if (eq#@{Error} conv$7$aval$0$simpflat$86 (ExceptNotAnError@{Error}))
+  if (eq#@{Error} conv$8$aval$0$simpflat$86 (ExceptNotAnError@{Error}))
   {
     write flat$2$simpflat$92 = ExceptNotAnError@{Error};
-    write flat$2$simpflat$93 = conv$7$aval$0$simpflat$87;
+    write flat$2$simpflat$93 = conv$8$aval$0$simpflat$87;
   }
   else
   {
-    write flat$2$simpflat$92 = conv$7$aval$0$simpflat$86;
+    write flat$2$simpflat$92 = conv$8$aval$0$simpflat$86;
     write flat$2$simpflat$93 = 0.0@{Double};
   }
   read flat$2$simpflat$94 = flat$2$simpflat$92 [Error];
   read flat$2$simpflat$95 = flat$2$simpflat$93 [Double];
-  write acc$conv$11$simpflat$39 = flat$2$simpflat$94;
-  write acc$conv$11$simpflat$40 = flat$2$simpflat$95;
-  read conv$11$aval$2$simpflat$96 = acc$conv$11$simpflat$39 [Error];
-  read conv$11$aval$2$simpflat$97 = acc$conv$11$simpflat$40 [Double];
-  read s$reify$6$conv$12$aval$1$simpflat$104 = acc$s$reify$6$conv$12$simpflat$47 [Error];
-  read s$reify$6$conv$12$aval$1$simpflat$105 = acc$s$reify$6$conv$12$simpflat$48 [Double];
-  read s$reify$6$conv$12$aval$1$simpflat$106 = acc$s$reify$6$conv$12$simpflat$49 [Double];
+  write acc$conv$12$simpflat$39 = flat$2$simpflat$94;
+  write acc$conv$12$simpflat$40 = flat$2$simpflat$95;
+  read conv$12$aval$2$simpflat$96 = acc$conv$12$simpflat$39 [Error];
+  read conv$12$aval$2$simpflat$97 = acc$conv$12$simpflat$40 [Double];
+  read s$reify$6$conv$13$aval$1$simpflat$104 = acc$s$reify$6$conv$13$simpflat$47 [Error];
+  read s$reify$6$conv$13$aval$1$simpflat$105 = acc$s$reify$6$conv$13$simpflat$48 [Double];
+  read s$reify$6$conv$13$aval$1$simpflat$106 = acc$s$reify$6$conv$13$simpflat$49 [Double];
   init flat$9$simpflat$107@{Error} = ExceptNotAnError@{Error};
   init flat$9$simpflat$108@{Double} = 0.0@{Double};
   init flat$9$simpflat$109@{Double} = 0.0@{Double};
-  if (eq#@{Error} s$reify$6$conv$12$aval$1$simpflat$104 (ExceptNotAnError@{Error}))
+  if (eq#@{Error} s$reify$6$conv$13$aval$1$simpflat$104 (ExceptNotAnError@{Error}))
   {
     init flat$16$simpflat$110@{Error} = ExceptNotAnError@{Error};
     init flat$16$simpflat$111@{Double} = 0.0@{Double};
     init flat$16$simpflat$112@{Double} = 0.0@{Double};
-    if (eq#@{Error} s$reify$6$conv$12$aval$1$simpflat$104 (ExceptNotAnError@{Error}))
+    if (eq#@{Error} s$reify$6$conv$13$aval$1$simpflat$104 (ExceptNotAnError@{Error}))
     {
       init flat$19$simpflat$113@{Error} = ExceptNotAnError@{Error};
       init flat$19$simpflat$114@{Double} = 0.0@{Double};
-      if (eq#@{Error} conv$11$aval$2$simpflat$96 (ExceptNotAnError@{Error}))
+      if (eq#@{Error} conv$12$aval$2$simpflat$96 (ExceptNotAnError@{Error}))
       {
         write flat$19$simpflat$113 = ExceptNotAnError@{Error};
-        write flat$19$simpflat$114 = sub#@{Double} conv$11$aval$2$simpflat$97 s$reify$6$conv$12$aval$1$simpflat$105;
+        write flat$19$simpflat$114 = sub#@{Double} conv$12$aval$2$simpflat$97 s$reify$6$conv$13$aval$1$simpflat$105;
       }
       else
       {
-        write flat$19$simpflat$113 = conv$11$aval$2$simpflat$96;
+        write flat$19$simpflat$113 = conv$12$aval$2$simpflat$96;
         write flat$19$simpflat$114 = 0.0@{Double};
       }
       read flat$19$simpflat$115 = flat$19$simpflat$113 [Error];
@@ -753,7 +755,7 @@ for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0$simpflat$282@{Error}, 
       if (eq#@{Error} flat$19$simpflat$115 (ExceptNotAnError@{Error}))
       {
         write flat$20$simpflat$117 = ExceptNotAnError@{Error};
-        let simpflat$354 = add#@{Double} s$reify$6$conv$12$aval$1$simpflat$106 (1.0@{Double});
+        let simpflat$354 = add#@{Double} s$reify$6$conv$13$aval$1$simpflat$106 (1.0@{Double});
         write flat$20$simpflat$118 = div# flat$19$simpflat$116 simpflat$354;
       }
       else
@@ -768,7 +770,7 @@ for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0$simpflat$282@{Error}, 
       if (eq#@{Error} flat$20$simpflat$119 (ExceptNotAnError@{Error}))
       {
         write flat$21$simpflat$121 = ExceptNotAnError@{Error};
-        write flat$21$simpflat$122 = add#@{Double} s$reify$6$conv$12$aval$1$simpflat$105 flat$20$simpflat$120;
+        write flat$21$simpflat$122 = add#@{Double} s$reify$6$conv$13$aval$1$simpflat$105 flat$20$simpflat$120;
       }
       else
       {
@@ -784,7 +786,7 @@ for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0$simpflat$282@{Error}, 
       {
         write flat$22$simpflat$125 = ExceptNotAnError@{Error};
         write flat$22$simpflat$126 = flat$21$simpflat$124;
-        write flat$22$simpflat$127 = add#@{Double} s$reify$6$conv$12$aval$1$simpflat$106 (1.0@{Double});
+        write flat$22$simpflat$127 = add#@{Double} s$reify$6$conv$13$aval$1$simpflat$106 (1.0@{Double});
       }
       else
       {
@@ -801,7 +803,7 @@ for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0$simpflat$282@{Error}, 
     }
     else
     {
-      write flat$16$simpflat$110 = s$reify$6$conv$12$aval$1$simpflat$104;
+      write flat$16$simpflat$110 = s$reify$6$conv$13$aval$1$simpflat$104;
       write flat$16$simpflat$111 = 0.0@{Double};
       write flat$16$simpflat$112 = 0.0@{Double};
     }
@@ -817,20 +819,20 @@ for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0$simpflat$282@{Error}, 
     init flat$12$simpflat$134@{Error} = ExceptNotAnError@{Error};
     init flat$12$simpflat$135@{Double} = 0.0@{Double};
     init flat$12$simpflat$136@{Double} = 0.0@{Double};
-    if (eq#@{Error} (ExceptFold1NoValue@{Error}) s$reify$6$conv$12$aval$1$simpflat$104)
+    if (eq#@{Error} (ExceptFold1NoValue@{Error}) s$reify$6$conv$13$aval$1$simpflat$104)
     {
       init flat$13$simpflat$137@{Error} = ExceptNotAnError@{Error};
       init flat$13$simpflat$138@{Double} = 0.0@{Double};
       init flat$13$simpflat$139@{Double} = 0.0@{Double};
-      if (eq#@{Error} conv$11$aval$2$simpflat$96 (ExceptNotAnError@{Error}))
+      if (eq#@{Error} conv$12$aval$2$simpflat$96 (ExceptNotAnError@{Error}))
       {
         write flat$13$simpflat$137 = ExceptNotAnError@{Error};
-        write flat$13$simpflat$138 = conv$11$aval$2$simpflat$97;
+        write flat$13$simpflat$138 = conv$12$aval$2$simpflat$97;
         write flat$13$simpflat$139 = 1.0@{Double};
       }
       else
       {
-        write flat$13$simpflat$137 = conv$11$aval$2$simpflat$96;
+        write flat$13$simpflat$137 = conv$12$aval$2$simpflat$96;
         write flat$13$simpflat$138 = 0.0@{Double};
         write flat$13$simpflat$139 = 0.0@{Double};
       }
@@ -843,7 +845,7 @@ for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0$simpflat$282@{Error}, 
     }
     else
     {
-      write flat$12$simpflat$134 = s$reify$6$conv$12$aval$1$simpflat$104;
+      write flat$12$simpflat$134 = s$reify$6$conv$13$aval$1$simpflat$104;
       write flat$12$simpflat$135 = 0.0@{Double};
       write flat$12$simpflat$136 = 0.0@{Double};
     }
@@ -857,9 +859,9 @@ for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0$simpflat$282@{Error}, 
   read flat$9$simpflat$146 = flat$9$simpflat$107 [Error];
   read flat$9$simpflat$147 = flat$9$simpflat$108 [Double];
   read flat$9$simpflat$148 = flat$9$simpflat$109 [Double];
-  write acc$s$reify$6$conv$12$simpflat$47 = flat$9$simpflat$146;
-  write acc$s$reify$6$conv$12$simpflat$48 = flat$9$simpflat$147;
-  write acc$s$reify$6$conv$12$simpflat$49 = flat$9$simpflat$148;
+  write acc$s$reify$6$conv$13$simpflat$47 = flat$9$simpflat$146;
+  write acc$s$reify$6$conv$13$simpflat$48 = flat$9$simpflat$147;
+  write acc$s$reify$6$conv$13$simpflat$49 = flat$9$simpflat$148;
   init flat$31$simpflat$149@{Error} = ExceptNotAnError@{Error};
   init flat$31$simpflat$150@{String} = ""@{String};
   if (eq#@{Error} conv$0$simpflat$282 (ExceptNotAnError@{Error}))
@@ -914,53 +916,53 @@ for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0$simpflat$282@{Error}, 
     }
     read flat$34$simpflat$159 = flat$34$simpflat$157 [Error];
     read flat$34$simpflat$160 = flat$34$simpflat$158 [Int];
-    write acc$conv$57$simpflat$50 = flat$34$simpflat$159;
-    write acc$conv$57$simpflat$51 = flat$34$simpflat$160;
-    read conv$57$aval$3$simpflat$161 = acc$conv$57$simpflat$50 [Error];
-    read conv$57$aval$3$simpflat$162 = acc$conv$57$simpflat$51 [Int];
-    write acc$conv$58$simpflat$56 = conv$57$aval$3$simpflat$161;
-    write acc$conv$58$simpflat$57 = conv$57$aval$3$simpflat$162;
-    read conv$58$aval$4$simpflat$167 = acc$conv$58$simpflat$56 [Error];
-    read conv$58$aval$4$simpflat$168 = acc$conv$58$simpflat$57 [Int];
+    write acc$conv$58$simpflat$50 = flat$34$simpflat$159;
+    write acc$conv$58$simpflat$51 = flat$34$simpflat$160;
+    read conv$58$aval$3$simpflat$161 = acc$conv$58$simpflat$50 [Error];
+    read conv$58$aval$3$simpflat$162 = acc$conv$58$simpflat$51 [Int];
+    write acc$conv$59$simpflat$56 = conv$58$aval$3$simpflat$161;
+    write acc$conv$59$simpflat$57 = conv$58$aval$3$simpflat$162;
+    read conv$59$aval$4$simpflat$167 = acc$conv$59$simpflat$56 [Error];
+    read conv$59$aval$4$simpflat$168 = acc$conv$59$simpflat$57 [Int];
     init flat$35$simpflat$175@{Error} = ExceptNotAnError@{Error};
     init flat$35$simpflat$176@{Double} = 0.0@{Double};
-    if (eq#@{Error} conv$58$aval$4$simpflat$167 (ExceptNotAnError@{Error}))
+    if (eq#@{Error} conv$59$aval$4$simpflat$167 (ExceptNotAnError@{Error}))
     {
       write flat$35$simpflat$175 = ExceptNotAnError@{Error};
-      write flat$35$simpflat$176 = doubleOfInt# conv$58$aval$4$simpflat$168;
+      write flat$35$simpflat$176 = doubleOfInt# conv$59$aval$4$simpflat$168;
     }
     else
     {
-      write flat$35$simpflat$175 = conv$58$aval$4$simpflat$167;
+      write flat$35$simpflat$175 = conv$59$aval$4$simpflat$167;
       write flat$35$simpflat$176 = 0.0@{Double};
     }
     read flat$35$simpflat$177 = flat$35$simpflat$175 [Error];
     read flat$35$simpflat$178 = flat$35$simpflat$176 [Double];
-    write acc$conv$62$simpflat$64 = flat$35$simpflat$177;
-    write acc$conv$62$simpflat$65 = flat$35$simpflat$178;
-    read conv$62$aval$6$simpflat$179 = acc$conv$62$simpflat$64 [Error];
-    read conv$62$aval$6$simpflat$180 = acc$conv$62$simpflat$65 [Double];
-    read a$conv$63$aval$5$simpflat$189 = acc$a$conv$63$simpflat$74 [Error];
-    read a$conv$63$aval$5$simpflat$190 = acc$a$conv$63$simpflat$75 [Double];
-    read a$conv$63$aval$5$simpflat$191 = acc$a$conv$63$simpflat$76 [Double];
-    read a$conv$63$aval$5$simpflat$192 = acc$a$conv$63$simpflat$77 [Double];
+    write acc$conv$63$simpflat$64 = flat$35$simpflat$177;
+    write acc$conv$63$simpflat$65 = flat$35$simpflat$178;
+    read conv$63$aval$6$simpflat$179 = acc$conv$63$simpflat$64 [Error];
+    read conv$63$aval$6$simpflat$180 = acc$conv$63$simpflat$65 [Double];
+    read a$conv$64$aval$5$simpflat$189 = acc$a$conv$64$simpflat$74 [Error];
+    read a$conv$64$aval$5$simpflat$190 = acc$a$conv$64$simpflat$75 [Double];
+    read a$conv$64$aval$5$simpflat$191 = acc$a$conv$64$simpflat$76 [Double];
+    read a$conv$64$aval$5$simpflat$192 = acc$a$conv$64$simpflat$77 [Double];
     init flat$36$simpflat$193@{Error} = ExceptNotAnError@{Error};
     init flat$36$simpflat$194@{Double} = 0.0@{Double};
     init flat$36$simpflat$195@{Double} = 0.0@{Double};
     init flat$36$simpflat$196@{Double} = 0.0@{Double};
-    if (eq#@{Error} a$conv$63$aval$5$simpflat$189 (ExceptNotAnError@{Error}))
+    if (eq#@{Error} a$conv$64$aval$5$simpflat$189 (ExceptNotAnError@{Error}))
     {
-      let nn$conv$70 = add#@{Double} a$conv$63$aval$5$simpflat$190 (1.0@{Double});
+      let nn$conv$71 = add#@{Double} a$conv$64$aval$5$simpflat$190 (1.0@{Double});
       init flat$39$simpflat$197@{Error} = ExceptNotAnError@{Error};
       init flat$39$simpflat$198@{Double} = 0.0@{Double};
-      if (eq#@{Error} conv$62$aval$6$simpflat$179 (ExceptNotAnError@{Error}))
+      if (eq#@{Error} conv$63$aval$6$simpflat$179 (ExceptNotAnError@{Error}))
       {
         write flat$39$simpflat$197 = ExceptNotAnError@{Error};
-        write flat$39$simpflat$198 = sub#@{Double} conv$62$aval$6$simpflat$180 a$conv$63$aval$5$simpflat$191;
+        write flat$39$simpflat$198 = sub#@{Double} conv$63$aval$6$simpflat$180 a$conv$64$aval$5$simpflat$191;
       }
       else
       {
-        write flat$39$simpflat$197 = conv$62$aval$6$simpflat$179;
+        write flat$39$simpflat$197 = conv$63$aval$6$simpflat$179;
         write flat$39$simpflat$198 = 0.0@{Double};
       }
       read flat$39$simpflat$199 = flat$39$simpflat$197 [Error];
@@ -970,7 +972,7 @@ for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0$simpflat$282@{Error}, 
       if (eq#@{Error} flat$39$simpflat$199 (ExceptNotAnError@{Error}))
       {
         write flat$40$simpflat$201 = ExceptNotAnError@{Error};
-        write flat$40$simpflat$202 = div# flat$39$simpflat$200 nn$conv$70;
+        write flat$40$simpflat$202 = div# flat$39$simpflat$200 nn$conv$71;
       }
       else
       {
@@ -984,7 +986,7 @@ for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0$simpflat$282@{Error}, 
       if (eq#@{Error} flat$40$simpflat$203 (ExceptNotAnError@{Error}))
       {
         write flat$41$simpflat$205 = ExceptNotAnError@{Error};
-        write flat$41$simpflat$206 = add#@{Double} a$conv$63$aval$5$simpflat$191 flat$40$simpflat$204;
+        write flat$41$simpflat$206 = add#@{Double} a$conv$64$aval$5$simpflat$191 flat$40$simpflat$204;
       }
       else
       {
@@ -999,14 +1001,14 @@ for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0$simpflat$282@{Error}, 
       {
         init flat$57$simpflat$211@{Error} = ExceptNotAnError@{Error};
         init flat$57$simpflat$212@{Double} = 0.0@{Double};
-        if (eq#@{Error} conv$62$aval$6$simpflat$179 (ExceptNotAnError@{Error}))
+        if (eq#@{Error} conv$63$aval$6$simpflat$179 (ExceptNotAnError@{Error}))
         {
           init flat$63$simpflat$213@{Error} = ExceptNotAnError@{Error};
           init flat$63$simpflat$214@{Double} = 0.0@{Double};
           if (eq#@{Error} flat$41$simpflat$207 (ExceptNotAnError@{Error}))
           {
             write flat$63$simpflat$213 = ExceptNotAnError@{Error};
-            write flat$63$simpflat$214 = sub#@{Double} conv$62$aval$6$simpflat$180 flat$41$simpflat$208;
+            write flat$63$simpflat$214 = sub#@{Double} conv$63$aval$6$simpflat$180 flat$41$simpflat$208;
           }
           else
           {
@@ -1020,7 +1022,7 @@ for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0$simpflat$282@{Error}, 
         }
         else
         {
-          write flat$57$simpflat$211 = conv$62$aval$6$simpflat$179;
+          write flat$57$simpflat$211 = conv$63$aval$6$simpflat$179;
           write flat$57$simpflat$212 = 0.0@{Double};
         }
         read flat$57$simpflat$217 = flat$57$simpflat$211 [Error];
@@ -1054,7 +1056,7 @@ for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0$simpflat$282@{Error}, 
       if (eq#@{Error} flat$42$simpflat$223 (ExceptNotAnError@{Error}))
       {
         write flat$43$simpflat$225 = ExceptNotAnError@{Error};
-        write flat$43$simpflat$226 = add#@{Double} a$conv$63$aval$5$simpflat$192 flat$42$simpflat$224;
+        write flat$43$simpflat$226 = add#@{Double} a$conv$64$aval$5$simpflat$192 flat$42$simpflat$224;
       }
       else
       {
@@ -1069,7 +1071,7 @@ for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0$simpflat$282@{Error}, 
       if (eq#@{Error} flat$41$simpflat$207 (ExceptNotAnError@{Error}))
       {
         write flat$44$simpflat$229 = ExceptNotAnError@{Error};
-        write flat$44$simpflat$230 = add#@{Double} a$conv$63$aval$5$simpflat$190 (1.0@{Double});
+        write flat$44$simpflat$230 = add#@{Double} a$conv$64$aval$5$simpflat$190 (1.0@{Double});
         write flat$44$simpflat$231 = flat$41$simpflat$208;
       }
       else
@@ -1132,7 +1134,7 @@ for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0$simpflat$282@{Error}, 
     }
     else
     {
-      write flat$36$simpflat$193 = a$conv$63$aval$5$simpflat$189;
+      write flat$36$simpflat$193 = a$conv$64$aval$5$simpflat$189;
       write flat$36$simpflat$194 = 0.0@{Double};
       write flat$36$simpflat$195 = 0.0@{Double};
       write flat$36$simpflat$196 = 0.0@{Double};
@@ -1141,44 +1143,44 @@ for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0$simpflat$282@{Error}, 
     read flat$36$simpflat$252 = flat$36$simpflat$194 [Double];
     read flat$36$simpflat$253 = flat$36$simpflat$195 [Double];
     read flat$36$simpflat$254 = flat$36$simpflat$196 [Double];
-    write acc$a$conv$63$simpflat$74 = flat$36$simpflat$251;
-    write acc$a$conv$63$simpflat$75 = flat$36$simpflat$252;
-    write acc$a$conv$63$simpflat$76 = flat$36$simpflat$253;
-    write acc$a$conv$63$simpflat$77 = flat$36$simpflat$254;
+    write acc$a$conv$64$simpflat$74 = flat$36$simpflat$251;
+    write acc$a$conv$64$simpflat$75 = flat$36$simpflat$252;
+    write acc$a$conv$64$simpflat$76 = flat$36$simpflat$253;
+    write acc$a$conv$64$simpflat$77 = flat$36$simpflat$254;
   }
 }
-save_resumable@{Error} acc$a$conv$63$simpflat$74;
-save_resumable@{Double} acc$a$conv$63$simpflat$75;
-save_resumable@{Double} acc$a$conv$63$simpflat$76;
-save_resumable@{Double} acc$a$conv$63$simpflat$77;
-save_resumable@{Error} acc$conv$62$simpflat$64;
-save_resumable@{Double} acc$conv$62$simpflat$65;
-save_resumable@{Error} acc$conv$58$simpflat$56;
-save_resumable@{Int} acc$conv$58$simpflat$57;
-save_resumable@{Error} acc$conv$57$simpflat$50;
-save_resumable@{Int} acc$conv$57$simpflat$51;
-save_resumable@{Error} acc$s$reify$6$conv$12$simpflat$47;
-save_resumable@{Double} acc$s$reify$6$conv$12$simpflat$48;
-save_resumable@{Double} acc$s$reify$6$conv$12$simpflat$49;
-save_resumable@{Error} acc$conv$11$simpflat$39;
-save_resumable@{Double} acc$conv$11$simpflat$40;
-save_resumable@{Error} acc$conv$7$simpflat$33;
-save_resumable@{Double} acc$conv$7$simpflat$34;
-read a$conv$63$simpflat$255 = acc$a$conv$63$simpflat$74 [Error];
-read a$conv$63$simpflat$256 = acc$a$conv$63$simpflat$75 [Double];
-read a$conv$63$simpflat$258 = acc$a$conv$63$simpflat$77 [Double];
-read s$reify$6$conv$12$simpflat$259 = acc$s$reify$6$conv$12$simpflat$47 [Error];
-read s$reify$6$conv$12$simpflat$260 = acc$s$reify$6$conv$12$simpflat$48 [Double];
+save_resumable@{Error} acc$a$conv$64$simpflat$74;
+save_resumable@{Double} acc$a$conv$64$simpflat$75;
+save_resumable@{Double} acc$a$conv$64$simpflat$76;
+save_resumable@{Double} acc$a$conv$64$simpflat$77;
+save_resumable@{Error} acc$conv$63$simpflat$64;
+save_resumable@{Double} acc$conv$63$simpflat$65;
+save_resumable@{Error} acc$conv$59$simpflat$56;
+save_resumable@{Int} acc$conv$59$simpflat$57;
+save_resumable@{Error} acc$conv$58$simpflat$50;
+save_resumable@{Int} acc$conv$58$simpflat$51;
+save_resumable@{Error} acc$s$reify$6$conv$13$simpflat$47;
+save_resumable@{Double} acc$s$reify$6$conv$13$simpflat$48;
+save_resumable@{Double} acc$s$reify$6$conv$13$simpflat$49;
+save_resumable@{Error} acc$conv$12$simpflat$39;
+save_resumable@{Double} acc$conv$12$simpflat$40;
+save_resumable@{Error} acc$conv$8$simpflat$33;
+save_resumable@{Double} acc$conv$8$simpflat$34;
+read a$conv$64$simpflat$255 = acc$a$conv$64$simpflat$74 [Error];
+read a$conv$64$simpflat$256 = acc$a$conv$64$simpflat$75 [Double];
+read a$conv$64$simpflat$258 = acc$a$conv$64$simpflat$77 [Double];
+read s$reify$6$conv$13$simpflat$259 = acc$s$reify$6$conv$13$simpflat$47 [Error];
+read s$reify$6$conv$13$simpflat$260 = acc$s$reify$6$conv$13$simpflat$48 [Double];
 init flat$89$simpflat$262@{Error} = ExceptNotAnError@{Error};
 init flat$89$simpflat$263@{Double} = 0.0@{Double};
-if (eq#@{Error} s$reify$6$conv$12$simpflat$259 (ExceptNotAnError@{Error}))
+if (eq#@{Error} s$reify$6$conv$13$simpflat$259 (ExceptNotAnError@{Error}))
 {
   write flat$89$simpflat$262 = ExceptNotAnError@{Error};
-  write flat$89$simpflat$263 = s$reify$6$conv$12$simpflat$260;
+  write flat$89$simpflat$263 = s$reify$6$conv$13$simpflat$260;
 }
 else
 {
-  write flat$89$simpflat$262 = s$reify$6$conv$12$simpflat$259;
+  write flat$89$simpflat$262 = s$reify$6$conv$13$simpflat$259;
   write flat$89$simpflat$263 = 0.0@{Double};
 }
 read flat$89$simpflat$264 = flat$89$simpflat$262 [Error];
@@ -1189,16 +1191,16 @@ if (eq#@{Error} flat$89$simpflat$264 (ExceptNotAnError@{Error}))
 {
   init flat$93$simpflat$268@{Error} = ExceptNotAnError@{Error};
   init flat$93$simpflat$269@{Double} = 0.0@{Double};
-  if (eq#@{Error} a$conv$63$simpflat$255 (ExceptNotAnError@{Error}))
+  if (eq#@{Error} a$conv$64$simpflat$255 (ExceptNotAnError@{Error}))
   {
-    let conv$118 = sub#@{Double} a$conv$63$simpflat$256 (1.0@{Double});
-    let simpflat$749 = div# a$conv$63$simpflat$258 conv$118;
+    let conv$119 = sub#@{Double} a$conv$64$simpflat$256 (1.0@{Double});
+    let simpflat$749 = div# a$conv$64$simpflat$258 conv$119;
     write flat$93$simpflat$268 = ExceptNotAnError@{Error};
     write flat$93$simpflat$269 = simpflat$749;
   }
   else
   {
-    write flat$93$simpflat$268 = a$conv$63$simpflat$255;
+    write flat$93$simpflat$268 = a$conv$64$simpflat$255;
     write flat$93$simpflat$269 = 0.0@{Double};
   }
   read flat$93$simpflat$270 = flat$93$simpflat$268 [Error];
@@ -1258,6 +1260,7 @@ typedef struct {
 typedef struct {
     /* runtime */
     anemone_mempool_t *mempool;
+    iint_t           max_map_size;
 
     /* inputs */
     input_repl_t     input;
@@ -1268,43 +1271,43 @@ typedef struct {
     idouble_t        repl_ix_1;
 
     /* resumables: values */
-    ierror_t         res_0_0_acc_conv_7_simpflat_33;
-    idouble_t        res_0_0_acc_conv_7_simpflat_34;
-    ierror_t         res_0_0_acc_conv_11_simpflat_39;
-    idouble_t        res_0_0_acc_conv_11_simpflat_40;
-    ierror_t         res_0_0_acc_a_conv_63_simpflat_74;
-    idouble_t        res_0_0_acc_a_conv_63_simpflat_75;
-    idouble_t        res_0_0_acc_a_conv_63_simpflat_76;
-    idouble_t        res_0_0_acc_a_conv_63_simpflat_77;
-    idouble_t        res_0_0_acc_s_reify_6_conv_12_simpflat_49;
-    idouble_t        res_0_0_acc_s_reify_6_conv_12_simpflat_48;
-    ierror_t         res_0_0_acc_s_reify_6_conv_12_simpflat_47;
-    ierror_t         res_0_0_acc_conv_57_simpflat_50;
-    iint_t           res_0_0_acc_conv_57_simpflat_51;
-    ierror_t         res_0_0_acc_conv_58_simpflat_56;
-    iint_t           res_0_0_acc_conv_58_simpflat_57;
-    ierror_t         res_0_0_acc_conv_62_simpflat_64;
-    idouble_t        res_0_0_acc_conv_62_simpflat_65;
+    idouble_t        res_0_0_acc_conv_8_simpflat_34;
+    ierror_t         res_0_0_acc_conv_8_simpflat_33;
+    ierror_t         res_0_0_acc_conv_12_simpflat_39;
+    idouble_t        res_0_0_acc_conv_12_simpflat_40;
+    idouble_t        res_0_0_acc_a_conv_64_simpflat_76;
+    idouble_t        res_0_0_acc_a_conv_64_simpflat_77;
+    ierror_t         res_0_0_acc_a_conv_64_simpflat_74;
+    idouble_t        res_0_0_acc_a_conv_64_simpflat_75;
+    ierror_t         res_0_0_acc_s_reify_6_conv_13_simpflat_47;
+    idouble_t        res_0_0_acc_s_reify_6_conv_13_simpflat_49;
+    idouble_t        res_0_0_acc_s_reify_6_conv_13_simpflat_48;
+    ierror_t         res_0_0_acc_conv_58_simpflat_50;
+    iint_t           res_0_0_acc_conv_58_simpflat_51;
+    ierror_t         res_0_0_acc_conv_59_simpflat_56;
+    iint_t           res_0_0_acc_conv_59_simpflat_57;
+    ierror_t         res_0_0_acc_conv_63_simpflat_64;
+    idouble_t        res_0_0_acc_conv_63_simpflat_65;
 
     /* resumables: has flags */
     ibool_t          has_flags_start_0_0;
-    ibool_t          has_0_0_acc_conv_7_simpflat_33;
-    ibool_t          has_0_0_acc_conv_7_simpflat_34;
-    ibool_t          has_0_0_acc_conv_11_simpflat_39;
-    ibool_t          has_0_0_acc_conv_11_simpflat_40;
-    ibool_t          has_0_0_acc_a_conv_63_simpflat_74;
-    ibool_t          has_0_0_acc_a_conv_63_simpflat_75;
-    ibool_t          has_0_0_acc_a_conv_63_simpflat_76;
-    ibool_t          has_0_0_acc_a_conv_63_simpflat_77;
-    ibool_t          has_0_0_acc_s_reify_6_conv_12_simpflat_49;
-    ibool_t          has_0_0_acc_s_reify_6_conv_12_simpflat_48;
-    ibool_t          has_0_0_acc_s_reify_6_conv_12_simpflat_47;
-    ibool_t          has_0_0_acc_conv_57_simpflat_50;
-    ibool_t          has_0_0_acc_conv_57_simpflat_51;
-    ibool_t          has_0_0_acc_conv_58_simpflat_56;
-    ibool_t          has_0_0_acc_conv_58_simpflat_57;
-    ibool_t          has_0_0_acc_conv_62_simpflat_64;
-    ibool_t          has_0_0_acc_conv_62_simpflat_65;
+    ibool_t          has_0_0_acc_conv_8_simpflat_34;
+    ibool_t          has_0_0_acc_conv_8_simpflat_33;
+    ibool_t          has_0_0_acc_conv_12_simpflat_39;
+    ibool_t          has_0_0_acc_conv_12_simpflat_40;
+    ibool_t          has_0_0_acc_a_conv_64_simpflat_76;
+    ibool_t          has_0_0_acc_a_conv_64_simpflat_77;
+    ibool_t          has_0_0_acc_a_conv_64_simpflat_74;
+    ibool_t          has_0_0_acc_a_conv_64_simpflat_75;
+    ibool_t          has_0_0_acc_s_reify_6_conv_13_simpflat_47;
+    ibool_t          has_0_0_acc_s_reify_6_conv_13_simpflat_49;
+    ibool_t          has_0_0_acc_s_reify_6_conv_13_simpflat_48;
+    ibool_t          has_0_0_acc_conv_58_simpflat_50;
+    ibool_t          has_0_0_acc_conv_58_simpflat_51;
+    ibool_t          has_0_0_acc_conv_59_simpflat_56;
+    ibool_t          has_0_0_acc_conv_59_simpflat_57;
+    ibool_t          has_0_0_acc_conv_63_simpflat_64;
+    ibool_t          has_0_0_acc_conv_63_simpflat_65;
     ibool_t          has_flags_end_0_0;
 
 
@@ -1318,11 +1321,11 @@ iint_t size_of_state_iattribute_0 ()
 #line 1 "compute function #0 - repl icompute_attribute_0_compute_0"
 void icompute_attribute_0_compute_0(iattribute_0_t *s)
 {
-    ierror_t         conv_11_aval_2_simpflat_96;
-    idouble_t        conv_11_aval_2_simpflat_97;
+    ierror_t         conv_12_aval_2_simpflat_96;
+    idouble_t        conv_12_aval_2_simpflat_97;
     idouble_t        flat_22_simpflat_130;
-    ierror_t         acc_conv_7_simpflat_33;
-    idouble_t        acc_conv_7_simpflat_34;
+    idouble_t        acc_conv_8_simpflat_34;
+    ierror_t         acc_conv_8_simpflat_33;
     iint_t           flat_34_simpflat_160;
     idouble_t        flat_35_simpflat_176;
     ierror_t         flat_35_simpflat_177;
@@ -1368,14 +1371,14 @@ void icompute_attribute_0_compute_0(iattribute_0_t *s)
     ierror_t         flat_1_simpflat_84;
     idouble_t        flat_1_simpflat_83;
     ierror_t         flat_1_simpflat_82;
-    ierror_t         conv_7_aval_0_simpflat_86;
-    idouble_t        conv_7_aval_0_simpflat_87;
-    ierror_t         acc_conv_11_simpflat_39;
-    idouble_t        acc_conv_11_simpflat_40;
-    ierror_t         acc_a_conv_63_simpflat_74;
-    idouble_t        acc_a_conv_63_simpflat_75;
-    idouble_t        acc_a_conv_63_simpflat_76;
-    idouble_t        acc_a_conv_63_simpflat_77;
+    ierror_t         conv_8_aval_0_simpflat_86;
+    idouble_t        conv_8_aval_0_simpflat_87;
+    ierror_t         acc_conv_12_simpflat_39;
+    idouble_t        acc_conv_12_simpflat_40;
+    idouble_t        acc_a_conv_64_simpflat_76;
+    idouble_t        acc_a_conv_64_simpflat_77;
+    ierror_t         acc_a_conv_64_simpflat_74;
+    idouble_t        acc_a_conv_64_simpflat_75;
     ierror_t         flat_21_simpflat_121;
     idouble_t        flat_21_simpflat_122;
     idouble_t        flat_21_simpflat_124;
@@ -1438,10 +1441,10 @@ void icompute_attribute_0_compute_0(iattribute_0_t *s)
     ierror_t         flat_41_simpflat_205;
     idouble_t        flat_41_simpflat_208;
     idouble_t        flat_42_simpflat_210;
-    idouble_t        acc_s_reify_6_conv_12_simpflat_49;
-    idouble_t        acc_s_reify_6_conv_12_simpflat_48;
-    ierror_t         acc_s_reify_6_conv_12_simpflat_47;
-    ierror_t         conv_62_aval_6_simpflat_179;
+    ierror_t         acc_s_reify_6_conv_13_simpflat_47;
+    idouble_t        acc_s_reify_6_conv_13_simpflat_49;
+    idouble_t        acc_s_reify_6_conv_13_simpflat_48;
+    ierror_t         conv_63_aval_6_simpflat_179;
     idouble_t        flat_42_simpflat_224;
     ierror_t         flat_42_simpflat_223;
     ierror_t         flat_44_simpflat_229;
@@ -1464,13 +1467,13 @@ void icompute_attribute_0_compute_0(iattribute_0_t *s)
     ierror_t         flat_57_simpflat_211;
     idouble_t        flat_57_simpflat_218;
     ierror_t         flat_58_simpflat_219;
-    ierror_t         acc_conv_57_simpflat_50;
-    iint_t           acc_conv_57_simpflat_51;
-    ierror_t         acc_conv_58_simpflat_56;
-    iint_t           acc_conv_58_simpflat_57;
-    idouble_t        a_conv_63_simpflat_256;
-    ierror_t         a_conv_63_simpflat_255;
-    idouble_t        a_conv_63_simpflat_258;
+    ierror_t         acc_conv_58_simpflat_50;
+    iint_t           acc_conv_58_simpflat_51;
+    ierror_t         acc_conv_59_simpflat_56;
+    iint_t           acc_conv_59_simpflat_57;
+    idouble_t        a_conv_64_simpflat_258;
+    idouble_t        a_conv_64_simpflat_256;
+    ierror_t         a_conv_64_simpflat_255;
     idouble_t        flat_48_simpflat_244;
     idouble_t        flat_48_simpflat_246;
     idouble_t        flat_48_simpflat_240;
@@ -1489,22 +1492,22 @@ void icompute_attribute_0_compute_0(iattribute_0_t *s)
     ierror_t         flat_63_simpflat_215;
     idouble_t        flat_63_simpflat_216;
     idouble_t        flat_63_simpflat_214;
-    idouble_t        a_conv_63_aval_5_simpflat_191;
-    idouble_t        a_conv_63_aval_5_simpflat_190;
-    idouble_t        a_conv_63_aval_5_simpflat_192;
-    ierror_t         acc_conv_62_simpflat_64;
-    idouble_t        acc_conv_62_simpflat_65;
-    idouble_t        s_reify_6_conv_12_simpflat_260;
-    idouble_t        conv_62_aval_6_simpflat_180;
-    ierror_t         a_conv_63_aval_5_simpflat_189;
-    ierror_t         s_reify_6_conv_12_simpflat_259;
-    idouble_t        s_reify_6_conv_12_aval_1_simpflat_105;
-    ierror_t         s_reify_6_conv_12_aval_1_simpflat_104;
-    idouble_t        s_reify_6_conv_12_aval_1_simpflat_106;
-    iint_t           conv_58_aval_4_simpflat_168;
-    ierror_t         conv_58_aval_4_simpflat_167;
-    ierror_t         conv_57_aval_3_simpflat_161;
-    iint_t           conv_57_aval_3_simpflat_162;
+    idouble_t        a_conv_64_aval_5_simpflat_192;
+    idouble_t        a_conv_64_aval_5_simpflat_191;
+    idouble_t        a_conv_64_aval_5_simpflat_190;
+    ierror_t         acc_conv_63_simpflat_64;
+    idouble_t        acc_conv_63_simpflat_65;
+    idouble_t        s_reify_6_conv_13_simpflat_260;
+    idouble_t        conv_63_aval_6_simpflat_180;
+    ierror_t         a_conv_64_aval_5_simpflat_189;
+    ierror_t         s_reify_6_conv_13_simpflat_259;
+    idouble_t        s_reify_6_conv_13_aval_1_simpflat_106;
+    ierror_t         s_reify_6_conv_13_aval_1_simpflat_104;
+    idouble_t        s_reify_6_conv_13_aval_1_simpflat_105;
+    iint_t           conv_58_aval_3_simpflat_162;
+    ierror_t         conv_58_aval_3_simpflat_161;
+    ierror_t         conv_59_aval_4_simpflat_167;
+    iint_t           conv_59_aval_4_simpflat_168;
     idouble_t        flat_89_simpflat_263;
     ierror_t         flat_89_simpflat_262;
     idouble_t        flat_89_simpflat_265;
@@ -1513,91 +1516,92 @@ void icompute_attribute_0_compute_0(iattribute_0_t *s)
 
     anemone_mempool_t *mempool                = s->mempool;
     itime_t          conv_3                   = s->input.conv_3;
+    iint_t           conv_4                   = s->max_map_size;
 
-    acc_conv_7_simpflat_33                    = ierror_not_an_error;                  /* init */
-    acc_conv_7_simpflat_34                    = 0.0;                                  /* init */
-    acc_conv_11_simpflat_39                   = ierror_not_an_error;                  /* init */
-    acc_conv_11_simpflat_40                   = 0.0;                                  /* init */
-    acc_s_reify_6_conv_12_simpflat_47         = ierror_fold1_no_value;                /* init */
-    acc_s_reify_6_conv_12_simpflat_48         = 0.0;                                  /* init */
-    acc_s_reify_6_conv_12_simpflat_49         = 0.0;                                  /* init */
-    acc_conv_57_simpflat_50                   = ierror_not_an_error;                  /* init */
-    acc_conv_57_simpflat_51                   = 0;                                    /* init */
-    acc_conv_58_simpflat_56                   = ierror_not_an_error;                  /* init */
-    acc_conv_58_simpflat_57                   = 0;                                    /* init */
-    acc_conv_62_simpflat_64                   = ierror_not_an_error;                  /* init */
-    acc_conv_62_simpflat_65                   = 0.0;                                  /* init */
-    acc_a_conv_63_simpflat_74                 = ierror_not_an_error;                  /* init */
-    acc_a_conv_63_simpflat_75                 = 0.0;                                  /* init */
-    acc_a_conv_63_simpflat_76                 = 0.0;                                  /* init */
-    acc_a_conv_63_simpflat_77                 = 0.0;                                  /* init */
+    acc_conv_8_simpflat_33                    = ierror_not_an_error;                  /* init */
+    acc_conv_8_simpflat_34                    = 0.0;                                  /* init */
+    acc_conv_12_simpflat_39                   = ierror_not_an_error;                  /* init */
+    acc_conv_12_simpflat_40                   = 0.0;                                  /* init */
+    acc_s_reify_6_conv_13_simpflat_47         = ierror_fold1_no_value;                /* init */
+    acc_s_reify_6_conv_13_simpflat_48         = 0.0;                                  /* init */
+    acc_s_reify_6_conv_13_simpflat_49         = 0.0;                                  /* init */
+    acc_conv_58_simpflat_50                   = ierror_not_an_error;                  /* init */
+    acc_conv_58_simpflat_51                   = 0;                                    /* init */
+    acc_conv_59_simpflat_56                   = ierror_not_an_error;                  /* init */
+    acc_conv_59_simpflat_57                   = 0;                                    /* init */
+    acc_conv_63_simpflat_64                   = ierror_not_an_error;                  /* init */
+    acc_conv_63_simpflat_65                   = 0.0;                                  /* init */
+    acc_a_conv_64_simpflat_74                 = ierror_not_an_error;                  /* init */
+    acc_a_conv_64_simpflat_75                 = 0.0;                                  /* init */
+    acc_a_conv_64_simpflat_76                 = 0.0;                                  /* init */
+    acc_a_conv_64_simpflat_77                 = 0.0;                                  /* init */
     
-    if (s->has_0_0_acc_a_conv_63_simpflat_74) {
-        acc_a_conv_63_simpflat_74             = s->res_0_0_acc_a_conv_63_simpflat_74; /* load */
+    if (s->has_0_0_acc_a_conv_64_simpflat_74) {
+        acc_a_conv_64_simpflat_74             = s->res_0_0_acc_a_conv_64_simpflat_74; /* load */
     }
     
-    if (s->has_0_0_acc_a_conv_63_simpflat_75) {
-        acc_a_conv_63_simpflat_75             = s->res_0_0_acc_a_conv_63_simpflat_75; /* load */
+    if (s->has_0_0_acc_a_conv_64_simpflat_75) {
+        acc_a_conv_64_simpflat_75             = s->res_0_0_acc_a_conv_64_simpflat_75; /* load */
     }
     
-    if (s->has_0_0_acc_a_conv_63_simpflat_76) {
-        acc_a_conv_63_simpflat_76             = s->res_0_0_acc_a_conv_63_simpflat_76; /* load */
+    if (s->has_0_0_acc_a_conv_64_simpflat_76) {
+        acc_a_conv_64_simpflat_76             = s->res_0_0_acc_a_conv_64_simpflat_76; /* load */
     }
     
-    if (s->has_0_0_acc_a_conv_63_simpflat_77) {
-        acc_a_conv_63_simpflat_77             = s->res_0_0_acc_a_conv_63_simpflat_77; /* load */
+    if (s->has_0_0_acc_a_conv_64_simpflat_77) {
+        acc_a_conv_64_simpflat_77             = s->res_0_0_acc_a_conv_64_simpflat_77; /* load */
     }
     
-    if (s->has_0_0_acc_conv_62_simpflat_64) {
-        acc_conv_62_simpflat_64               = s->res_0_0_acc_conv_62_simpflat_64;   /* load */
+    if (s->has_0_0_acc_conv_63_simpflat_64) {
+        acc_conv_63_simpflat_64               = s->res_0_0_acc_conv_63_simpflat_64;   /* load */
     }
     
-    if (s->has_0_0_acc_conv_62_simpflat_65) {
-        acc_conv_62_simpflat_65               = s->res_0_0_acc_conv_62_simpflat_65;   /* load */
+    if (s->has_0_0_acc_conv_63_simpflat_65) {
+        acc_conv_63_simpflat_65               = s->res_0_0_acc_conv_63_simpflat_65;   /* load */
     }
     
-    if (s->has_0_0_acc_conv_58_simpflat_56) {
-        acc_conv_58_simpflat_56               = s->res_0_0_acc_conv_58_simpflat_56;   /* load */
+    if (s->has_0_0_acc_conv_59_simpflat_56) {
+        acc_conv_59_simpflat_56               = s->res_0_0_acc_conv_59_simpflat_56;   /* load */
     }
     
-    if (s->has_0_0_acc_conv_58_simpflat_57) {
-        acc_conv_58_simpflat_57               = s->res_0_0_acc_conv_58_simpflat_57;   /* load */
+    if (s->has_0_0_acc_conv_59_simpflat_57) {
+        acc_conv_59_simpflat_57               = s->res_0_0_acc_conv_59_simpflat_57;   /* load */
     }
     
-    if (s->has_0_0_acc_conv_57_simpflat_50) {
-        acc_conv_57_simpflat_50               = s->res_0_0_acc_conv_57_simpflat_50;   /* load */
+    if (s->has_0_0_acc_conv_58_simpflat_50) {
+        acc_conv_58_simpflat_50               = s->res_0_0_acc_conv_58_simpflat_50;   /* load */
     }
     
-    if (s->has_0_0_acc_conv_57_simpflat_51) {
-        acc_conv_57_simpflat_51               = s->res_0_0_acc_conv_57_simpflat_51;   /* load */
+    if (s->has_0_0_acc_conv_58_simpflat_51) {
+        acc_conv_58_simpflat_51               = s->res_0_0_acc_conv_58_simpflat_51;   /* load */
     }
     
-    if (s->has_0_0_acc_s_reify_6_conv_12_simpflat_47) {
-        acc_s_reify_6_conv_12_simpflat_47     = s->res_0_0_acc_s_reify_6_conv_12_simpflat_47; /* load */
+    if (s->has_0_0_acc_s_reify_6_conv_13_simpflat_47) {
+        acc_s_reify_6_conv_13_simpflat_47     = s->res_0_0_acc_s_reify_6_conv_13_simpflat_47; /* load */
     }
     
-    if (s->has_0_0_acc_s_reify_6_conv_12_simpflat_48) {
-        acc_s_reify_6_conv_12_simpflat_48     = s->res_0_0_acc_s_reify_6_conv_12_simpflat_48; /* load */
+    if (s->has_0_0_acc_s_reify_6_conv_13_simpflat_48) {
+        acc_s_reify_6_conv_13_simpflat_48     = s->res_0_0_acc_s_reify_6_conv_13_simpflat_48; /* load */
     }
     
-    if (s->has_0_0_acc_s_reify_6_conv_12_simpflat_49) {
-        acc_s_reify_6_conv_12_simpflat_49     = s->res_0_0_acc_s_reify_6_conv_12_simpflat_49; /* load */
+    if (s->has_0_0_acc_s_reify_6_conv_13_simpflat_49) {
+        acc_s_reify_6_conv_13_simpflat_49     = s->res_0_0_acc_s_reify_6_conv_13_simpflat_49; /* load */
     }
     
-    if (s->has_0_0_acc_conv_11_simpflat_39) {
-        acc_conv_11_simpflat_39               = s->res_0_0_acc_conv_11_simpflat_39;   /* load */
+    if (s->has_0_0_acc_conv_12_simpflat_39) {
+        acc_conv_12_simpflat_39               = s->res_0_0_acc_conv_12_simpflat_39;   /* load */
     }
     
-    if (s->has_0_0_acc_conv_11_simpflat_40) {
-        acc_conv_11_simpflat_40               = s->res_0_0_acc_conv_11_simpflat_40;   /* load */
+    if (s->has_0_0_acc_conv_12_simpflat_40) {
+        acc_conv_12_simpflat_40               = s->res_0_0_acc_conv_12_simpflat_40;   /* load */
     }
     
-    if (s->has_0_0_acc_conv_7_simpflat_33) {
-        acc_conv_7_simpflat_33                = s->res_0_0_acc_conv_7_simpflat_33;    /* load */
+    if (s->has_0_0_acc_conv_8_simpflat_33) {
+        acc_conv_8_simpflat_33                = s->res_0_0_acc_conv_8_simpflat_33;    /* load */
     }
     
-    if (s->has_0_0_acc_conv_7_simpflat_34) {
-        acc_conv_7_simpflat_34                = s->res_0_0_acc_conv_7_simpflat_34;    /* load */
+    if (s->has_0_0_acc_conv_8_simpflat_34) {
+        acc_conv_8_simpflat_34                = s->res_0_0_acc_conv_8_simpflat_34;    /* load */
     }
     
     const iint_t     new_count                = s->input.new_count;
@@ -1639,48 +1643,48 @@ void icompute_attribute_0_compute_0(iattribute_0_t *s)
         
         flat_1_simpflat_84                    = flat_1_simpflat_82;                   /* read */
         flat_1_simpflat_85                    = flat_1_simpflat_83;                   /* read */
-        acc_conv_7_simpflat_33                = flat_1_simpflat_84;                   /* write */
-        acc_conv_7_simpflat_34                = flat_1_simpflat_85;                   /* write */
-        conv_7_aval_0_simpflat_86             = acc_conv_7_simpflat_33;               /* read */
-        conv_7_aval_0_simpflat_87             = acc_conv_7_simpflat_34;               /* read */
+        acc_conv_8_simpflat_33                = flat_1_simpflat_84;                   /* write */
+        acc_conv_8_simpflat_34                = flat_1_simpflat_85;                   /* write */
+        conv_8_aval_0_simpflat_86             = acc_conv_8_simpflat_33;               /* read */
+        conv_8_aval_0_simpflat_87             = acc_conv_8_simpflat_34;               /* read */
         flat_2_simpflat_92                    = ierror_not_an_error;                  /* init */
         flat_2_simpflat_93                    = 0.0;                                  /* init */
         
-        if (ierror_eq (conv_7_aval_0_simpflat_86, ierror_not_an_error)) {
+        if (ierror_eq (conv_8_aval_0_simpflat_86, ierror_not_an_error)) {
             flat_2_simpflat_92                = ierror_not_an_error;                  /* write */
-            flat_2_simpflat_93                = conv_7_aval_0_simpflat_87;            /* write */
+            flat_2_simpflat_93                = conv_8_aval_0_simpflat_87;            /* write */
         } else {
-            flat_2_simpflat_92                = conv_7_aval_0_simpflat_86;            /* write */
+            flat_2_simpflat_92                = conv_8_aval_0_simpflat_86;            /* write */
             flat_2_simpflat_93                = 0.0;                                  /* write */
         }
         
         flat_2_simpflat_94                    = flat_2_simpflat_92;                   /* read */
         flat_2_simpflat_95                    = flat_2_simpflat_93;                   /* read */
-        acc_conv_11_simpflat_39               = flat_2_simpflat_94;                   /* write */
-        acc_conv_11_simpflat_40               = flat_2_simpflat_95;                   /* write */
-        conv_11_aval_2_simpflat_96            = acc_conv_11_simpflat_39;              /* read */
-        conv_11_aval_2_simpflat_97            = acc_conv_11_simpflat_40;              /* read */
-        s_reify_6_conv_12_aval_1_simpflat_104 = acc_s_reify_6_conv_12_simpflat_47;    /* read */
-        s_reify_6_conv_12_aval_1_simpflat_105 = acc_s_reify_6_conv_12_simpflat_48;    /* read */
-        s_reify_6_conv_12_aval_1_simpflat_106 = acc_s_reify_6_conv_12_simpflat_49;    /* read */
+        acc_conv_12_simpflat_39               = flat_2_simpflat_94;                   /* write */
+        acc_conv_12_simpflat_40               = flat_2_simpflat_95;                   /* write */
+        conv_12_aval_2_simpflat_96            = acc_conv_12_simpflat_39;              /* read */
+        conv_12_aval_2_simpflat_97            = acc_conv_12_simpflat_40;              /* read */
+        s_reify_6_conv_13_aval_1_simpflat_104 = acc_s_reify_6_conv_13_simpflat_47;    /* read */
+        s_reify_6_conv_13_aval_1_simpflat_105 = acc_s_reify_6_conv_13_simpflat_48;    /* read */
+        s_reify_6_conv_13_aval_1_simpflat_106 = acc_s_reify_6_conv_13_simpflat_49;    /* read */
         flat_9_simpflat_107                   = ierror_not_an_error;                  /* init */
         flat_9_simpflat_108                   = 0.0;                                  /* init */
         flat_9_simpflat_109                   = 0.0;                                  /* init */
         
-        if (ierror_eq (s_reify_6_conv_12_aval_1_simpflat_104, ierror_not_an_error)) {
+        if (ierror_eq (s_reify_6_conv_13_aval_1_simpflat_104, ierror_not_an_error)) {
             flat_16_simpflat_110              = ierror_not_an_error;                  /* init */
             flat_16_simpflat_111              = 0.0;                                  /* init */
             flat_16_simpflat_112              = 0.0;                                  /* init */
             
-            if (ierror_eq (s_reify_6_conv_12_aval_1_simpflat_104, ierror_not_an_error)) {
+            if (ierror_eq (s_reify_6_conv_13_aval_1_simpflat_104, ierror_not_an_error)) {
                 flat_19_simpflat_113          = ierror_not_an_error;                  /* init */
                 flat_19_simpflat_114          = 0.0;                                  /* init */
                 
-                if (ierror_eq (conv_11_aval_2_simpflat_96, ierror_not_an_error)) {
+                if (ierror_eq (conv_12_aval_2_simpflat_96, ierror_not_an_error)) {
                     flat_19_simpflat_113      = ierror_not_an_error;                  /* write */
-                    flat_19_simpflat_114      = idouble_sub (conv_11_aval_2_simpflat_97, s_reify_6_conv_12_aval_1_simpflat_105); /* write */
+                    flat_19_simpflat_114      = idouble_sub (conv_12_aval_2_simpflat_97, s_reify_6_conv_13_aval_1_simpflat_105); /* write */
                 } else {
-                    flat_19_simpflat_113      = conv_11_aval_2_simpflat_96;           /* write */
+                    flat_19_simpflat_113      = conv_12_aval_2_simpflat_96;           /* write */
                     flat_19_simpflat_114      = 0.0;                                  /* write */
                 }
                 
@@ -1691,7 +1695,7 @@ void icompute_attribute_0_compute_0(iattribute_0_t *s)
                 
                 if (ierror_eq (flat_19_simpflat_115, ierror_not_an_error)) {
                     flat_20_simpflat_117      = ierror_not_an_error;                  /* write */
-                    idouble_t        simpflat_354 = idouble_add (s_reify_6_conv_12_aval_1_simpflat_106, 1.0); /* let */
+                    idouble_t        simpflat_354 = idouble_add (s_reify_6_conv_13_aval_1_simpflat_106, 1.0); /* let */
                     flat_20_simpflat_118      = idouble_div (flat_19_simpflat_116, simpflat_354); /* write */
                 } else {
                     flat_20_simpflat_117      = flat_19_simpflat_115;                 /* write */
@@ -1705,7 +1709,7 @@ void icompute_attribute_0_compute_0(iattribute_0_t *s)
                 
                 if (ierror_eq (flat_20_simpflat_119, ierror_not_an_error)) {
                     flat_21_simpflat_121      = ierror_not_an_error;                  /* write */
-                    flat_21_simpflat_122      = idouble_add (s_reify_6_conv_12_aval_1_simpflat_105, flat_20_simpflat_120); /* write */
+                    flat_21_simpflat_122      = idouble_add (s_reify_6_conv_13_aval_1_simpflat_105, flat_20_simpflat_120); /* write */
                 } else {
                     flat_21_simpflat_121      = flat_20_simpflat_119;                 /* write */
                     flat_21_simpflat_122      = 0.0;                                  /* write */
@@ -1720,7 +1724,7 @@ void icompute_attribute_0_compute_0(iattribute_0_t *s)
                 if (ierror_eq (flat_21_simpflat_123, ierror_not_an_error)) {
                     flat_22_simpflat_125      = ierror_not_an_error;                  /* write */
                     flat_22_simpflat_126      = flat_21_simpflat_124;                 /* write */
-                    flat_22_simpflat_127      = idouble_add (s_reify_6_conv_12_aval_1_simpflat_106, 1.0); /* write */
+                    flat_22_simpflat_127      = idouble_add (s_reify_6_conv_13_aval_1_simpflat_106, 1.0); /* write */
                 } else {
                     flat_22_simpflat_125      = flat_21_simpflat_123;                 /* write */
                     flat_22_simpflat_126      = 0.0;                                  /* write */
@@ -1734,7 +1738,7 @@ void icompute_attribute_0_compute_0(iattribute_0_t *s)
                 flat_16_simpflat_111          = flat_22_simpflat_129;                 /* write */
                 flat_16_simpflat_112          = flat_22_simpflat_130;                 /* write */
             } else {
-                flat_16_simpflat_110          = s_reify_6_conv_12_aval_1_simpflat_104; /* write */
+                flat_16_simpflat_110          = s_reify_6_conv_13_aval_1_simpflat_104; /* write */
                 flat_16_simpflat_111          = 0.0;                                  /* write */
                 flat_16_simpflat_112          = 0.0;                                  /* write */
             }
@@ -1750,17 +1754,17 @@ void icompute_attribute_0_compute_0(iattribute_0_t *s)
             flat_12_simpflat_135              = 0.0;                                  /* init */
             flat_12_simpflat_136              = 0.0;                                  /* init */
             
-            if (ierror_eq (ierror_fold1_no_value, s_reify_6_conv_12_aval_1_simpflat_104)) {
+            if (ierror_eq (ierror_fold1_no_value, s_reify_6_conv_13_aval_1_simpflat_104)) {
                 flat_13_simpflat_137          = ierror_not_an_error;                  /* init */
                 flat_13_simpflat_138          = 0.0;                                  /* init */
                 flat_13_simpflat_139          = 0.0;                                  /* init */
                 
-                if (ierror_eq (conv_11_aval_2_simpflat_96, ierror_not_an_error)) {
+                if (ierror_eq (conv_12_aval_2_simpflat_96, ierror_not_an_error)) {
                     flat_13_simpflat_137      = ierror_not_an_error;                  /* write */
-                    flat_13_simpflat_138      = conv_11_aval_2_simpflat_97;           /* write */
+                    flat_13_simpflat_138      = conv_12_aval_2_simpflat_97;           /* write */
                     flat_13_simpflat_139      = 1.0;                                  /* write */
                 } else {
-                    flat_13_simpflat_137      = conv_11_aval_2_simpflat_96;           /* write */
+                    flat_13_simpflat_137      = conv_12_aval_2_simpflat_96;           /* write */
                     flat_13_simpflat_138      = 0.0;                                  /* write */
                     flat_13_simpflat_139      = 0.0;                                  /* write */
                 }
@@ -1772,7 +1776,7 @@ void icompute_attribute_0_compute_0(iattribute_0_t *s)
                 flat_12_simpflat_135          = flat_13_simpflat_141;                 /* write */
                 flat_12_simpflat_136          = flat_13_simpflat_142;                 /* write */
             } else {
-                flat_12_simpflat_134          = s_reify_6_conv_12_aval_1_simpflat_104; /* write */
+                flat_12_simpflat_134          = s_reify_6_conv_13_aval_1_simpflat_104; /* write */
                 flat_12_simpflat_135          = 0.0;                                  /* write */
                 flat_12_simpflat_136          = 0.0;                                  /* write */
             }
@@ -1788,9 +1792,9 @@ void icompute_attribute_0_compute_0(iattribute_0_t *s)
         flat_9_simpflat_146                   = flat_9_simpflat_107;                  /* read */
         flat_9_simpflat_147                   = flat_9_simpflat_108;                  /* read */
         flat_9_simpflat_148                   = flat_9_simpflat_109;                  /* read */
-        acc_s_reify_6_conv_12_simpflat_47     = flat_9_simpflat_146;                  /* write */
-        acc_s_reify_6_conv_12_simpflat_48     = flat_9_simpflat_147;                  /* write */
-        acc_s_reify_6_conv_12_simpflat_49     = flat_9_simpflat_148;                  /* write */
+        acc_s_reify_6_conv_13_simpflat_47     = flat_9_simpflat_146;                  /* write */
+        acc_s_reify_6_conv_13_simpflat_48     = flat_9_simpflat_147;                  /* write */
+        acc_s_reify_6_conv_13_simpflat_49     = flat_9_simpflat_148;                  /* write */
         flat_31_simpflat_149                  = ierror_not_an_error;                  /* init */
         flat_31_simpflat_150                  = "";                                   /* init */
         
@@ -1841,50 +1845,50 @@ void icompute_attribute_0_compute_0(iattribute_0_t *s)
             
             flat_34_simpflat_159              = flat_34_simpflat_157;                 /* read */
             flat_34_simpflat_160              = flat_34_simpflat_158;                 /* read */
-            acc_conv_57_simpflat_50           = flat_34_simpflat_159;                 /* write */
-            acc_conv_57_simpflat_51           = flat_34_simpflat_160;                 /* write */
-            conv_57_aval_3_simpflat_161       = acc_conv_57_simpflat_50;              /* read */
-            conv_57_aval_3_simpflat_162       = acc_conv_57_simpflat_51;              /* read */
-            acc_conv_58_simpflat_56           = conv_57_aval_3_simpflat_161;          /* write */
-            acc_conv_58_simpflat_57           = conv_57_aval_3_simpflat_162;          /* write */
-            conv_58_aval_4_simpflat_167       = acc_conv_58_simpflat_56;              /* read */
-            conv_58_aval_4_simpflat_168       = acc_conv_58_simpflat_57;              /* read */
+            acc_conv_58_simpflat_50           = flat_34_simpflat_159;                 /* write */
+            acc_conv_58_simpflat_51           = flat_34_simpflat_160;                 /* write */
+            conv_58_aval_3_simpflat_161       = acc_conv_58_simpflat_50;              /* read */
+            conv_58_aval_3_simpflat_162       = acc_conv_58_simpflat_51;              /* read */
+            acc_conv_59_simpflat_56           = conv_58_aval_3_simpflat_161;          /* write */
+            acc_conv_59_simpflat_57           = conv_58_aval_3_simpflat_162;          /* write */
+            conv_59_aval_4_simpflat_167       = acc_conv_59_simpflat_56;              /* read */
+            conv_59_aval_4_simpflat_168       = acc_conv_59_simpflat_57;              /* read */
             flat_35_simpflat_175              = ierror_not_an_error;                  /* init */
             flat_35_simpflat_176              = 0.0;                                  /* init */
             
-            if (ierror_eq (conv_58_aval_4_simpflat_167, ierror_not_an_error)) {
+            if (ierror_eq (conv_59_aval_4_simpflat_167, ierror_not_an_error)) {
                 flat_35_simpflat_175          = ierror_not_an_error;                  /* write */
-                flat_35_simpflat_176          = iint_extend (conv_58_aval_4_simpflat_168); /* write */
+                flat_35_simpflat_176          = iint_extend (conv_59_aval_4_simpflat_168); /* write */
             } else {
-                flat_35_simpflat_175          = conv_58_aval_4_simpflat_167;          /* write */
+                flat_35_simpflat_175          = conv_59_aval_4_simpflat_167;          /* write */
                 flat_35_simpflat_176          = 0.0;                                  /* write */
             }
             
             flat_35_simpflat_177              = flat_35_simpflat_175;                 /* read */
             flat_35_simpflat_178              = flat_35_simpflat_176;                 /* read */
-            acc_conv_62_simpflat_64           = flat_35_simpflat_177;                 /* write */
-            acc_conv_62_simpflat_65           = flat_35_simpflat_178;                 /* write */
-            conv_62_aval_6_simpflat_179       = acc_conv_62_simpflat_64;              /* read */
-            conv_62_aval_6_simpflat_180       = acc_conv_62_simpflat_65;              /* read */
-            a_conv_63_aval_5_simpflat_189     = acc_a_conv_63_simpflat_74;            /* read */
-            a_conv_63_aval_5_simpflat_190     = acc_a_conv_63_simpflat_75;            /* read */
-            a_conv_63_aval_5_simpflat_191     = acc_a_conv_63_simpflat_76;            /* read */
-            a_conv_63_aval_5_simpflat_192     = acc_a_conv_63_simpflat_77;            /* read */
+            acc_conv_63_simpflat_64           = flat_35_simpflat_177;                 /* write */
+            acc_conv_63_simpflat_65           = flat_35_simpflat_178;                 /* write */
+            conv_63_aval_6_simpflat_179       = acc_conv_63_simpflat_64;              /* read */
+            conv_63_aval_6_simpflat_180       = acc_conv_63_simpflat_65;              /* read */
+            a_conv_64_aval_5_simpflat_189     = acc_a_conv_64_simpflat_74;            /* read */
+            a_conv_64_aval_5_simpflat_190     = acc_a_conv_64_simpflat_75;            /* read */
+            a_conv_64_aval_5_simpflat_191     = acc_a_conv_64_simpflat_76;            /* read */
+            a_conv_64_aval_5_simpflat_192     = acc_a_conv_64_simpflat_77;            /* read */
             flat_36_simpflat_193              = ierror_not_an_error;                  /* init */
             flat_36_simpflat_194              = 0.0;                                  /* init */
             flat_36_simpflat_195              = 0.0;                                  /* init */
             flat_36_simpflat_196              = 0.0;                                  /* init */
             
-            if (ierror_eq (a_conv_63_aval_5_simpflat_189, ierror_not_an_error)) {
-                idouble_t        nn_conv_70   = idouble_add (a_conv_63_aval_5_simpflat_190, 1.0); /* let */
+            if (ierror_eq (a_conv_64_aval_5_simpflat_189, ierror_not_an_error)) {
+                idouble_t        nn_conv_71   = idouble_add (a_conv_64_aval_5_simpflat_190, 1.0); /* let */
                 flat_39_simpflat_197          = ierror_not_an_error;                  /* init */
                 flat_39_simpflat_198          = 0.0;                                  /* init */
                 
-                if (ierror_eq (conv_62_aval_6_simpflat_179, ierror_not_an_error)) {
+                if (ierror_eq (conv_63_aval_6_simpflat_179, ierror_not_an_error)) {
                     flat_39_simpflat_197      = ierror_not_an_error;                  /* write */
-                    flat_39_simpflat_198      = idouble_sub (conv_62_aval_6_simpflat_180, a_conv_63_aval_5_simpflat_191); /* write */
+                    flat_39_simpflat_198      = idouble_sub (conv_63_aval_6_simpflat_180, a_conv_64_aval_5_simpflat_191); /* write */
                 } else {
-                    flat_39_simpflat_197      = conv_62_aval_6_simpflat_179;          /* write */
+                    flat_39_simpflat_197      = conv_63_aval_6_simpflat_179;          /* write */
                     flat_39_simpflat_198      = 0.0;                                  /* write */
                 }
                 
@@ -1895,7 +1899,7 @@ void icompute_attribute_0_compute_0(iattribute_0_t *s)
                 
                 if (ierror_eq (flat_39_simpflat_199, ierror_not_an_error)) {
                     flat_40_simpflat_201      = ierror_not_an_error;                  /* write */
-                    flat_40_simpflat_202      = idouble_div (flat_39_simpflat_200, nn_conv_70); /* write */
+                    flat_40_simpflat_202      = idouble_div (flat_39_simpflat_200, nn_conv_71); /* write */
                 } else {
                     flat_40_simpflat_201      = flat_39_simpflat_199;                 /* write */
                     flat_40_simpflat_202      = 0.0;                                  /* write */
@@ -1908,7 +1912,7 @@ void icompute_attribute_0_compute_0(iattribute_0_t *s)
                 
                 if (ierror_eq (flat_40_simpflat_203, ierror_not_an_error)) {
                     flat_41_simpflat_205      = ierror_not_an_error;                  /* write */
-                    flat_41_simpflat_206      = idouble_add (a_conv_63_aval_5_simpflat_191, flat_40_simpflat_204); /* write */
+                    flat_41_simpflat_206      = idouble_add (a_conv_64_aval_5_simpflat_191, flat_40_simpflat_204); /* write */
                 } else {
                     flat_41_simpflat_205      = flat_40_simpflat_203;                 /* write */
                     flat_41_simpflat_206      = 0.0;                                  /* write */
@@ -1923,13 +1927,13 @@ void icompute_attribute_0_compute_0(iattribute_0_t *s)
                     flat_57_simpflat_211      = ierror_not_an_error;                  /* init */
                     flat_57_simpflat_212      = 0.0;                                  /* init */
                     
-                    if (ierror_eq (conv_62_aval_6_simpflat_179, ierror_not_an_error)) {
+                    if (ierror_eq (conv_63_aval_6_simpflat_179, ierror_not_an_error)) {
                         flat_63_simpflat_213  = ierror_not_an_error;                  /* init */
                         flat_63_simpflat_214  = 0.0;                                  /* init */
                         
                         if (ierror_eq (flat_41_simpflat_207, ierror_not_an_error)) {
                             flat_63_simpflat_213 = ierror_not_an_error;               /* write */
-                            flat_63_simpflat_214 = idouble_sub (conv_62_aval_6_simpflat_180, flat_41_simpflat_208); /* write */
+                            flat_63_simpflat_214 = idouble_sub (conv_63_aval_6_simpflat_180, flat_41_simpflat_208); /* write */
                         } else {
                             flat_63_simpflat_213 = flat_41_simpflat_207;              /* write */
                             flat_63_simpflat_214 = 0.0;                               /* write */
@@ -1940,7 +1944,7 @@ void icompute_attribute_0_compute_0(iattribute_0_t *s)
                         flat_57_simpflat_211  = flat_63_simpflat_215;                 /* write */
                         flat_57_simpflat_212  = flat_63_simpflat_216;                 /* write */
                     } else {
-                        flat_57_simpflat_211  = conv_62_aval_6_simpflat_179;          /* write */
+                        flat_57_simpflat_211  = conv_63_aval_6_simpflat_179;          /* write */
                         flat_57_simpflat_212  = 0.0;                                  /* write */
                     }
                     
@@ -1973,7 +1977,7 @@ void icompute_attribute_0_compute_0(iattribute_0_t *s)
                 
                 if (ierror_eq (flat_42_simpflat_223, ierror_not_an_error)) {
                     flat_43_simpflat_225      = ierror_not_an_error;                  /* write */
-                    flat_43_simpflat_226      = idouble_add (a_conv_63_aval_5_simpflat_192, flat_42_simpflat_224); /* write */
+                    flat_43_simpflat_226      = idouble_add (a_conv_64_aval_5_simpflat_192, flat_42_simpflat_224); /* write */
                 } else {
                     flat_43_simpflat_225      = flat_42_simpflat_223;                 /* write */
                     flat_43_simpflat_226      = 0.0;                                  /* write */
@@ -1987,7 +1991,7 @@ void icompute_attribute_0_compute_0(iattribute_0_t *s)
                 
                 if (ierror_eq (flat_41_simpflat_207, ierror_not_an_error)) {
                     flat_44_simpflat_229      = ierror_not_an_error;                  /* write */
-                    flat_44_simpflat_230      = idouble_add (a_conv_63_aval_5_simpflat_190, 1.0); /* write */
+                    flat_44_simpflat_230      = idouble_add (a_conv_64_aval_5_simpflat_190, 1.0); /* write */
                     flat_44_simpflat_231      = flat_41_simpflat_208;                 /* write */
                 } else {
                     flat_44_simpflat_229      = flat_41_simpflat_207;                 /* write */
@@ -2045,7 +2049,7 @@ void icompute_attribute_0_compute_0(iattribute_0_t *s)
                 flat_36_simpflat_195          = flat_45_simpflat_249;                 /* write */
                 flat_36_simpflat_196          = flat_45_simpflat_250;                 /* write */
             } else {
-                flat_36_simpflat_193          = a_conv_63_aval_5_simpflat_189;        /* write */
+                flat_36_simpflat_193          = a_conv_64_aval_5_simpflat_189;        /* write */
                 flat_36_simpflat_194          = 0.0;                                  /* write */
                 flat_36_simpflat_195          = 0.0;                                  /* write */
                 flat_36_simpflat_196          = 0.0;                                  /* write */
@@ -2055,78 +2059,78 @@ void icompute_attribute_0_compute_0(iattribute_0_t *s)
             flat_36_simpflat_252              = flat_36_simpflat_194;                 /* read */
             flat_36_simpflat_253              = flat_36_simpflat_195;                 /* read */
             flat_36_simpflat_254              = flat_36_simpflat_196;                 /* read */
-            acc_a_conv_63_simpflat_74         = flat_36_simpflat_251;                 /* write */
-            acc_a_conv_63_simpflat_75         = flat_36_simpflat_252;                 /* write */
-            acc_a_conv_63_simpflat_76         = flat_36_simpflat_253;                 /* write */
-            acc_a_conv_63_simpflat_77         = flat_36_simpflat_254;                 /* write */
+            acc_a_conv_64_simpflat_74         = flat_36_simpflat_251;                 /* write */
+            acc_a_conv_64_simpflat_75         = flat_36_simpflat_252;                 /* write */
+            acc_a_conv_64_simpflat_76         = flat_36_simpflat_253;                 /* write */
+            acc_a_conv_64_simpflat_77         = flat_36_simpflat_254;                 /* write */
         }
         
     }
     
-    s->has_0_0_acc_a_conv_63_simpflat_74      = itrue;                                /* save */
-    s->res_0_0_acc_a_conv_63_simpflat_74      = acc_a_conv_63_simpflat_74;            /* save */
+    s->has_0_0_acc_a_conv_64_simpflat_74      = itrue;                                /* save */
+    s->res_0_0_acc_a_conv_64_simpflat_74      = acc_a_conv_64_simpflat_74;            /* save */
     
-    s->has_0_0_acc_a_conv_63_simpflat_75      = itrue;                                /* save */
-    s->res_0_0_acc_a_conv_63_simpflat_75      = acc_a_conv_63_simpflat_75;            /* save */
+    s->has_0_0_acc_a_conv_64_simpflat_75      = itrue;                                /* save */
+    s->res_0_0_acc_a_conv_64_simpflat_75      = acc_a_conv_64_simpflat_75;            /* save */
     
-    s->has_0_0_acc_a_conv_63_simpflat_76      = itrue;                                /* save */
-    s->res_0_0_acc_a_conv_63_simpflat_76      = acc_a_conv_63_simpflat_76;            /* save */
+    s->has_0_0_acc_a_conv_64_simpflat_76      = itrue;                                /* save */
+    s->res_0_0_acc_a_conv_64_simpflat_76      = acc_a_conv_64_simpflat_76;            /* save */
     
-    s->has_0_0_acc_a_conv_63_simpflat_77      = itrue;                                /* save */
-    s->res_0_0_acc_a_conv_63_simpflat_77      = acc_a_conv_63_simpflat_77;            /* save */
+    s->has_0_0_acc_a_conv_64_simpflat_77      = itrue;                                /* save */
+    s->res_0_0_acc_a_conv_64_simpflat_77      = acc_a_conv_64_simpflat_77;            /* save */
     
-    s->has_0_0_acc_conv_62_simpflat_64        = itrue;                                /* save */
-    s->res_0_0_acc_conv_62_simpflat_64        = acc_conv_62_simpflat_64;              /* save */
+    s->has_0_0_acc_conv_63_simpflat_64        = itrue;                                /* save */
+    s->res_0_0_acc_conv_63_simpflat_64        = acc_conv_63_simpflat_64;              /* save */
     
-    s->has_0_0_acc_conv_62_simpflat_65        = itrue;                                /* save */
-    s->res_0_0_acc_conv_62_simpflat_65        = acc_conv_62_simpflat_65;              /* save */
+    s->has_0_0_acc_conv_63_simpflat_65        = itrue;                                /* save */
+    s->res_0_0_acc_conv_63_simpflat_65        = acc_conv_63_simpflat_65;              /* save */
     
-    s->has_0_0_acc_conv_58_simpflat_56        = itrue;                                /* save */
-    s->res_0_0_acc_conv_58_simpflat_56        = acc_conv_58_simpflat_56;              /* save */
+    s->has_0_0_acc_conv_59_simpflat_56        = itrue;                                /* save */
+    s->res_0_0_acc_conv_59_simpflat_56        = acc_conv_59_simpflat_56;              /* save */
     
-    s->has_0_0_acc_conv_58_simpflat_57        = itrue;                                /* save */
-    s->res_0_0_acc_conv_58_simpflat_57        = acc_conv_58_simpflat_57;              /* save */
+    s->has_0_0_acc_conv_59_simpflat_57        = itrue;                                /* save */
+    s->res_0_0_acc_conv_59_simpflat_57        = acc_conv_59_simpflat_57;              /* save */
     
-    s->has_0_0_acc_conv_57_simpflat_50        = itrue;                                /* save */
-    s->res_0_0_acc_conv_57_simpflat_50        = acc_conv_57_simpflat_50;              /* save */
+    s->has_0_0_acc_conv_58_simpflat_50        = itrue;                                /* save */
+    s->res_0_0_acc_conv_58_simpflat_50        = acc_conv_58_simpflat_50;              /* save */
     
-    s->has_0_0_acc_conv_57_simpflat_51        = itrue;                                /* save */
-    s->res_0_0_acc_conv_57_simpflat_51        = acc_conv_57_simpflat_51;              /* save */
+    s->has_0_0_acc_conv_58_simpflat_51        = itrue;                                /* save */
+    s->res_0_0_acc_conv_58_simpflat_51        = acc_conv_58_simpflat_51;              /* save */
     
-    s->has_0_0_acc_s_reify_6_conv_12_simpflat_47 = itrue;                             /* save */
-    s->res_0_0_acc_s_reify_6_conv_12_simpflat_47 = acc_s_reify_6_conv_12_simpflat_47; /* save */
+    s->has_0_0_acc_s_reify_6_conv_13_simpflat_47 = itrue;                             /* save */
+    s->res_0_0_acc_s_reify_6_conv_13_simpflat_47 = acc_s_reify_6_conv_13_simpflat_47; /* save */
     
-    s->has_0_0_acc_s_reify_6_conv_12_simpflat_48 = itrue;                             /* save */
-    s->res_0_0_acc_s_reify_6_conv_12_simpflat_48 = acc_s_reify_6_conv_12_simpflat_48; /* save */
+    s->has_0_0_acc_s_reify_6_conv_13_simpflat_48 = itrue;                             /* save */
+    s->res_0_0_acc_s_reify_6_conv_13_simpflat_48 = acc_s_reify_6_conv_13_simpflat_48; /* save */
     
-    s->has_0_0_acc_s_reify_6_conv_12_simpflat_49 = itrue;                             /* save */
-    s->res_0_0_acc_s_reify_6_conv_12_simpflat_49 = acc_s_reify_6_conv_12_simpflat_49; /* save */
+    s->has_0_0_acc_s_reify_6_conv_13_simpflat_49 = itrue;                             /* save */
+    s->res_0_0_acc_s_reify_6_conv_13_simpflat_49 = acc_s_reify_6_conv_13_simpflat_49; /* save */
     
-    s->has_0_0_acc_conv_11_simpflat_39        = itrue;                                /* save */
-    s->res_0_0_acc_conv_11_simpflat_39        = acc_conv_11_simpflat_39;              /* save */
+    s->has_0_0_acc_conv_12_simpflat_39        = itrue;                                /* save */
+    s->res_0_0_acc_conv_12_simpflat_39        = acc_conv_12_simpflat_39;              /* save */
     
-    s->has_0_0_acc_conv_11_simpflat_40        = itrue;                                /* save */
-    s->res_0_0_acc_conv_11_simpflat_40        = acc_conv_11_simpflat_40;              /* save */
+    s->has_0_0_acc_conv_12_simpflat_40        = itrue;                                /* save */
+    s->res_0_0_acc_conv_12_simpflat_40        = acc_conv_12_simpflat_40;              /* save */
     
-    s->has_0_0_acc_conv_7_simpflat_33         = itrue;                                /* save */
-    s->res_0_0_acc_conv_7_simpflat_33         = acc_conv_7_simpflat_33;               /* save */
+    s->has_0_0_acc_conv_8_simpflat_33         = itrue;                                /* save */
+    s->res_0_0_acc_conv_8_simpflat_33         = acc_conv_8_simpflat_33;               /* save */
     
-    s->has_0_0_acc_conv_7_simpflat_34         = itrue;                                /* save */
-    s->res_0_0_acc_conv_7_simpflat_34         = acc_conv_7_simpflat_34;               /* save */
+    s->has_0_0_acc_conv_8_simpflat_34         = itrue;                                /* save */
+    s->res_0_0_acc_conv_8_simpflat_34         = acc_conv_8_simpflat_34;               /* save */
     
-    a_conv_63_simpflat_255                    = acc_a_conv_63_simpflat_74;            /* read */
-    a_conv_63_simpflat_256                    = acc_a_conv_63_simpflat_75;            /* read */
-    a_conv_63_simpflat_258                    = acc_a_conv_63_simpflat_77;            /* read */
-    s_reify_6_conv_12_simpflat_259            = acc_s_reify_6_conv_12_simpflat_47;    /* read */
-    s_reify_6_conv_12_simpflat_260            = acc_s_reify_6_conv_12_simpflat_48;    /* read */
+    a_conv_64_simpflat_255                    = acc_a_conv_64_simpflat_74;            /* read */
+    a_conv_64_simpflat_256                    = acc_a_conv_64_simpflat_75;            /* read */
+    a_conv_64_simpflat_258                    = acc_a_conv_64_simpflat_77;            /* read */
+    s_reify_6_conv_13_simpflat_259            = acc_s_reify_6_conv_13_simpflat_47;    /* read */
+    s_reify_6_conv_13_simpflat_260            = acc_s_reify_6_conv_13_simpflat_48;    /* read */
     flat_89_simpflat_262                      = ierror_not_an_error;                  /* init */
     flat_89_simpflat_263                      = 0.0;                                  /* init */
     
-    if (ierror_eq (s_reify_6_conv_12_simpflat_259, ierror_not_an_error)) {
+    if (ierror_eq (s_reify_6_conv_13_simpflat_259, ierror_not_an_error)) {
         flat_89_simpflat_262                  = ierror_not_an_error;                  /* write */
-        flat_89_simpflat_263                  = s_reify_6_conv_12_simpflat_260;       /* write */
+        flat_89_simpflat_263                  = s_reify_6_conv_13_simpflat_260;       /* write */
     } else {
-        flat_89_simpflat_262                  = s_reify_6_conv_12_simpflat_259;       /* write */
+        flat_89_simpflat_262                  = s_reify_6_conv_13_simpflat_259;       /* write */
         flat_89_simpflat_263                  = 0.0;                                  /* write */
     }
     
@@ -2139,13 +2143,13 @@ void icompute_attribute_0_compute_0(iattribute_0_t *s)
         flat_93_simpflat_268                  = ierror_not_an_error;                  /* init */
         flat_93_simpflat_269                  = 0.0;                                  /* init */
         
-        if (ierror_eq (a_conv_63_simpflat_255, ierror_not_an_error)) {
-            idouble_t        conv_118         = idouble_sub (a_conv_63_simpflat_256, 1.0); /* let */
-            idouble_t        simpflat_749     = idouble_div (a_conv_63_simpflat_258, conv_118); /* let */
+        if (ierror_eq (a_conv_64_simpflat_255, ierror_not_an_error)) {
+            idouble_t        conv_119         = idouble_sub (a_conv_64_simpflat_256, 1.0); /* let */
+            idouble_t        simpflat_749     = idouble_div (a_conv_64_simpflat_258, conv_119); /* let */
             flat_93_simpflat_268              = ierror_not_an_error;                  /* write */
             flat_93_simpflat_269              = simpflat_749;                         /* write */
         } else {
-            flat_93_simpflat_268              = a_conv_63_simpflat_255;               /* write */
+            flat_93_simpflat_268              = a_conv_64_simpflat_255;               /* write */
             flat_93_simpflat_269              = 0.0;                                  /* write */
         }
         
@@ -2199,32 +2203,33 @@ void icompute_attribute_0_compute_0(iattribute_0_t *s)
 > > -- Times
 > - Flattened (simplified), not typechecked:
 conv$3 = TIME
-init acc$conv$4$simpflat$2@{Time} = 1858-11-17T00:00:00Z@{Time};
-init acc$s$reify$2$conv$5$simpflat$6@{Error} = ExceptFold1NoValue@{Error};
-init acc$s$reify$2$conv$5$simpflat$7@{Time} = 1858-11-17T00:00:00Z@{Time};
-load_resumable@{Error} acc$s$reify$2$conv$5$simpflat$6;
-load_resumable@{Time} acc$s$reify$2$conv$5$simpflat$7;
-load_resumable@{Time} acc$conv$4$simpflat$2;
+conv$4 = MAX_MAP_SIZE
+init acc$conv$5$simpflat$2@{Time} = 1858-11-17T00:00:00Z@{Time};
+init acc$s$reify$2$conv$6$simpflat$6@{Error} = ExceptFold1NoValue@{Error};
+init acc$s$reify$2$conv$6$simpflat$7@{Time} = 1858-11-17T00:00:00Z@{Time};
+load_resumable@{Error} acc$s$reify$2$conv$6$simpflat$6;
+load_resumable@{Time} acc$s$reify$2$conv$6$simpflat$7;
+load_resumable@{Time} acc$conv$5$simpflat$2;
 for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0$simpflat$24@{Error}, conv$0$simpflat$25@{Int}, conv$0$simpflat$26@{Time}) in new
 {
   let anf$1 = Time_daysDifference# (1980-01-06T00:00:00Z@{Time}) conv$0$simpflat$26;
   let anf$2 = negate#@{Int} anf$1;
-  write acc$conv$4$simpflat$2 = Time_minusDays# (2000-01-01T00:00:00Z@{Time}) anf$2;
-  read conv$4$aval$1$simpflat$8 = acc$conv$4$simpflat$2 [Time];
-  read s$reify$2$conv$5$aval$0$simpflat$12 = acc$s$reify$2$conv$5$simpflat$6 [Error];
-  read s$reify$2$conv$5$aval$0$simpflat$13 = acc$s$reify$2$conv$5$simpflat$7 [Time];
+  write acc$conv$5$simpflat$2 = Time_minusDays# (2000-01-01T00:00:00Z@{Time}) anf$2;
+  read conv$5$aval$1$simpflat$8 = acc$conv$5$simpflat$2 [Time];
+  read s$reify$2$conv$6$aval$0$simpflat$12 = acc$s$reify$2$conv$6$simpflat$6 [Error];
+  read s$reify$2$conv$6$aval$0$simpflat$13 = acc$s$reify$2$conv$6$simpflat$7 [Time];
   init flat$0$simpflat$14@{Error} = ExceptNotAnError@{Error};
   init flat$0$simpflat$15@{Time} = 1858-11-17T00:00:00Z@{Time};
-  if (eq#@{Error} s$reify$2$conv$5$aval$0$simpflat$12 (ExceptNotAnError@{Error}))
+  if (eq#@{Error} s$reify$2$conv$6$aval$0$simpflat$12 (ExceptNotAnError@{Error}))
   {
     init flat$4@{Time} = 1858-11-17T00:00:00Z@{Time};
-    if (gt#@{Time} conv$4$aval$1$simpflat$8 s$reify$2$conv$5$aval$0$simpflat$13)
+    if (gt#@{Time} conv$5$aval$1$simpflat$8 s$reify$2$conv$6$aval$0$simpflat$13)
     {
-      write flat$4 = conv$4$aval$1$simpflat$8;
+      write flat$4 = conv$5$aval$1$simpflat$8;
     }
     else
     {
-      write flat$4 = s$reify$2$conv$5$aval$0$simpflat$13;
+      write flat$4 = s$reify$2$conv$6$aval$0$simpflat$13;
     }
     read flat$4 = flat$4 [Time];
     write flat$0$simpflat$14 = ExceptNotAnError@{Error};
@@ -2234,14 +2239,14 @@ for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0$simpflat$24@{Error}, c
   {
     init flat$3$simpflat$16@{Error} = ExceptNotAnError@{Error};
     init flat$3$simpflat$17@{Time} = 1858-11-17T00:00:00Z@{Time};
-    if (eq#@{Error} (ExceptFold1NoValue@{Error}) s$reify$2$conv$5$aval$0$simpflat$12)
+    if (eq#@{Error} (ExceptFold1NoValue@{Error}) s$reify$2$conv$6$aval$0$simpflat$12)
     {
       write flat$3$simpflat$16 = ExceptNotAnError@{Error};
-      write flat$3$simpflat$17 = conv$4$aval$1$simpflat$8;
+      write flat$3$simpflat$17 = conv$5$aval$1$simpflat$8;
     }
     else
     {
-      write flat$3$simpflat$16 = s$reify$2$conv$5$aval$0$simpflat$12;
+      write flat$3$simpflat$16 = s$reify$2$conv$6$aval$0$simpflat$12;
       write flat$3$simpflat$17 = 1858-11-17T00:00:00Z@{Time};
     }
     read flat$3$simpflat$18 = flat$3$simpflat$16 [Error];
@@ -2251,44 +2256,45 @@ for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0$simpflat$24@{Error}, c
   }
   read flat$0$simpflat$20 = flat$0$simpflat$14 [Error];
   read flat$0$simpflat$21 = flat$0$simpflat$15 [Time];
-  write acc$s$reify$2$conv$5$simpflat$6 = flat$0$simpflat$20;
-  write acc$s$reify$2$conv$5$simpflat$7 = flat$0$simpflat$21;
+  write acc$s$reify$2$conv$6$simpflat$6 = flat$0$simpflat$20;
+  write acc$s$reify$2$conv$6$simpflat$7 = flat$0$simpflat$21;
 }
-save_resumable@{Error} acc$s$reify$2$conv$5$simpflat$6;
-save_resumable@{Time} acc$s$reify$2$conv$5$simpflat$7;
-save_resumable@{Time} acc$conv$4$simpflat$2;
-read s$reify$2$conv$5$simpflat$22 = acc$s$reify$2$conv$5$simpflat$6 [Error];
-read s$reify$2$conv$5$simpflat$23 = acc$s$reify$2$conv$5$simpflat$7 [Time];
-output@{(Sum Error Time)} repl (s$reify$2$conv$5$simpflat$22@{Error}, s$reify$2$conv$5$simpflat$23@{Time});
+save_resumable@{Error} acc$s$reify$2$conv$6$simpflat$6;
+save_resumable@{Time} acc$s$reify$2$conv$6$simpflat$7;
+save_resumable@{Time} acc$conv$5$simpflat$2;
+read s$reify$2$conv$6$simpflat$22 = acc$s$reify$2$conv$6$simpflat$6 [Error];
+read s$reify$2$conv$6$simpflat$23 = acc$s$reify$2$conv$6$simpflat$7 [Time];
+output@{(Sum Error Time)} repl (s$reify$2$conv$6$simpflat$22@{Error}, s$reify$2$conv$6$simpflat$23@{Time});
 
 - Flattened Avalanche (simplified), typechecked:
 conv$3 = TIME
-init acc$conv$4$simpflat$2@{Time} = 1858-11-17T00:00:00Z@{Time};
-init acc$s$reify$2$conv$5$simpflat$6@{Error} = ExceptFold1NoValue@{Error};
-init acc$s$reify$2$conv$5$simpflat$7@{Time} = 1858-11-17T00:00:00Z@{Time};
-load_resumable@{Error} acc$s$reify$2$conv$5$simpflat$6;
-load_resumable@{Time} acc$s$reify$2$conv$5$simpflat$7;
-load_resumable@{Time} acc$conv$4$simpflat$2;
+conv$4 = MAX_MAP_SIZE
+init acc$conv$5$simpflat$2@{Time} = 1858-11-17T00:00:00Z@{Time};
+init acc$s$reify$2$conv$6$simpflat$6@{Error} = ExceptFold1NoValue@{Error};
+init acc$s$reify$2$conv$6$simpflat$7@{Time} = 1858-11-17T00:00:00Z@{Time};
+load_resumable@{Error} acc$s$reify$2$conv$6$simpflat$6;
+load_resumable@{Time} acc$s$reify$2$conv$6$simpflat$7;
+load_resumable@{Time} acc$conv$5$simpflat$2;
 for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0$simpflat$24@{Error}, conv$0$simpflat$25@{Int}, conv$0$simpflat$26@{Time}) in new
 {
   let anf$1 = Time_daysDifference# (1980-01-06T00:00:00Z@{Time}) conv$0$simpflat$26;
   let anf$2 = negate#@{Int} anf$1;
-  write acc$conv$4$simpflat$2 = Time_minusDays# (2000-01-01T00:00:00Z@{Time}) anf$2;
-  read conv$4$aval$1$simpflat$8 = acc$conv$4$simpflat$2 [Time];
-  read s$reify$2$conv$5$aval$0$simpflat$12 = acc$s$reify$2$conv$5$simpflat$6 [Error];
-  read s$reify$2$conv$5$aval$0$simpflat$13 = acc$s$reify$2$conv$5$simpflat$7 [Time];
+  write acc$conv$5$simpflat$2 = Time_minusDays# (2000-01-01T00:00:00Z@{Time}) anf$2;
+  read conv$5$aval$1$simpflat$8 = acc$conv$5$simpflat$2 [Time];
+  read s$reify$2$conv$6$aval$0$simpflat$12 = acc$s$reify$2$conv$6$simpflat$6 [Error];
+  read s$reify$2$conv$6$aval$0$simpflat$13 = acc$s$reify$2$conv$6$simpflat$7 [Time];
   init flat$0$simpflat$14@{Error} = ExceptNotAnError@{Error};
   init flat$0$simpflat$15@{Time} = 1858-11-17T00:00:00Z@{Time};
-  if (eq#@{Error} s$reify$2$conv$5$aval$0$simpflat$12 (ExceptNotAnError@{Error}))
+  if (eq#@{Error} s$reify$2$conv$6$aval$0$simpflat$12 (ExceptNotAnError@{Error}))
   {
     init flat$4@{Time} = 1858-11-17T00:00:00Z@{Time};
-    if (gt#@{Time} conv$4$aval$1$simpflat$8 s$reify$2$conv$5$aval$0$simpflat$13)
+    if (gt#@{Time} conv$5$aval$1$simpflat$8 s$reify$2$conv$6$aval$0$simpflat$13)
     {
-      write flat$4 = conv$4$aval$1$simpflat$8;
+      write flat$4 = conv$5$aval$1$simpflat$8;
     }
     else
     {
-      write flat$4 = s$reify$2$conv$5$aval$0$simpflat$13;
+      write flat$4 = s$reify$2$conv$6$aval$0$simpflat$13;
     }
     read flat$4 = flat$4 [Time];
     write flat$0$simpflat$14 = ExceptNotAnError@{Error};
@@ -2298,14 +2304,14 @@ for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0$simpflat$24@{Error}, c
   {
     init flat$3$simpflat$16@{Error} = ExceptNotAnError@{Error};
     init flat$3$simpflat$17@{Time} = 1858-11-17T00:00:00Z@{Time};
-    if (eq#@{Error} (ExceptFold1NoValue@{Error}) s$reify$2$conv$5$aval$0$simpflat$12)
+    if (eq#@{Error} (ExceptFold1NoValue@{Error}) s$reify$2$conv$6$aval$0$simpflat$12)
     {
       write flat$3$simpflat$16 = ExceptNotAnError@{Error};
-      write flat$3$simpflat$17 = conv$4$aval$1$simpflat$8;
+      write flat$3$simpflat$17 = conv$5$aval$1$simpflat$8;
     }
     else
     {
-      write flat$3$simpflat$16 = s$reify$2$conv$5$aval$0$simpflat$12;
+      write flat$3$simpflat$16 = s$reify$2$conv$6$aval$0$simpflat$12;
       write flat$3$simpflat$17 = 1858-11-17T00:00:00Z@{Time};
     }
     read flat$3$simpflat$18 = flat$3$simpflat$16 [Error];
@@ -2315,15 +2321,15 @@ for_facts (conv$2@{Time}, conv$1@{FactIdentifier}, conv$0$simpflat$24@{Error}, c
   }
   read flat$0$simpflat$20 = flat$0$simpflat$14 [Error];
   read flat$0$simpflat$21 = flat$0$simpflat$15 [Time];
-  write acc$s$reify$2$conv$5$simpflat$6 = flat$0$simpflat$20;
-  write acc$s$reify$2$conv$5$simpflat$7 = flat$0$simpflat$21;
+  write acc$s$reify$2$conv$6$simpflat$6 = flat$0$simpflat$20;
+  write acc$s$reify$2$conv$6$simpflat$7 = flat$0$simpflat$21;
 }
-save_resumable@{Error} acc$s$reify$2$conv$5$simpflat$6;
-save_resumable@{Time} acc$s$reify$2$conv$5$simpflat$7;
-save_resumable@{Time} acc$conv$4$simpflat$2;
-read s$reify$2$conv$5$simpflat$22 = acc$s$reify$2$conv$5$simpflat$6 [Error];
-read s$reify$2$conv$5$simpflat$23 = acc$s$reify$2$conv$5$simpflat$7 [Time];
-output@{(Sum Error Time)} repl (s$reify$2$conv$5$simpflat$22@{Error}, s$reify$2$conv$5$simpflat$23@{Time});
+save_resumable@{Error} acc$s$reify$2$conv$6$simpflat$6;
+save_resumable@{Time} acc$s$reify$2$conv$6$simpflat$7;
+save_resumable@{Time} acc$conv$5$simpflat$2;
+read s$reify$2$conv$6$simpflat$22 = acc$s$reify$2$conv$6$simpflat$6 [Error];
+read s$reify$2$conv$6$simpflat$23 = acc$s$reify$2$conv$6$simpflat$7 [Time];
+output@{(Sum Error Time)} repl (s$reify$2$conv$6$simpflat$22@{Error}, s$reify$2$conv$6$simpflat$23@{Time});
 
 - C:
 #line 1 "state and input definition #0 - repl"
@@ -2339,6 +2345,7 @@ typedef struct {
 typedef struct {
     /* runtime */
     anemone_mempool_t *mempool;
+    iint_t           max_map_size;
 
     /* inputs */
     input_repl_t     input;
@@ -2349,15 +2356,15 @@ typedef struct {
     itime_t          repl_ix_1;
 
     /* resumables: values */
-    ierror_t         res_0_0_acc_s_reify_2_conv_5_simpflat_6;
-    itime_t          res_0_0_acc_s_reify_2_conv_5_simpflat_7;
-    itime_t          res_0_0_acc_conv_4_simpflat_2;
+    ierror_t         res_0_0_acc_s_reify_2_conv_6_simpflat_6;
+    itime_t          res_0_0_acc_s_reify_2_conv_6_simpflat_7;
+    itime_t          res_0_0_acc_conv_5_simpflat_2;
 
     /* resumables: has flags */
     ibool_t          has_flags_start_0_0;
-    ibool_t          has_0_0_acc_s_reify_2_conv_5_simpflat_6;
-    ibool_t          has_0_0_acc_s_reify_2_conv_5_simpflat_7;
-    ibool_t          has_0_0_acc_conv_4_simpflat_2;
+    ibool_t          has_0_0_acc_s_reify_2_conv_6_simpflat_6;
+    ibool_t          has_0_0_acc_s_reify_2_conv_6_simpflat_7;
+    ibool_t          has_0_0_acc_conv_5_simpflat_2;
     ibool_t          has_flags_end_0_0;
 
 
@@ -2372,40 +2379,41 @@ iint_t size_of_state_iattribute_0 ()
 void icompute_attribute_0_compute_0(iattribute_0_t *s)
 {
     itime_t          flat_4;
-    ierror_t         s_reify_2_conv_5_simpflat_22;
-    itime_t          s_reify_2_conv_5_simpflat_23;
-    itime_t          conv_4_aval_1_simpflat_8;
-    ierror_t         acc_s_reify_2_conv_5_simpflat_6;
-    itime_t          acc_s_reify_2_conv_5_simpflat_7;
-    ierror_t         s_reify_2_conv_5_aval_0_simpflat_12;
-    itime_t          s_reify_2_conv_5_aval_0_simpflat_13;
+    itime_t          s_reify_2_conv_6_simpflat_23;
+    ierror_t         s_reify_2_conv_6_simpflat_22;
+    itime_t          conv_5_aval_1_simpflat_8;
+    ierror_t         acc_s_reify_2_conv_6_simpflat_6;
+    itime_t          acc_s_reify_2_conv_6_simpflat_7;
+    ierror_t         s_reify_2_conv_6_aval_0_simpflat_12;
+    itime_t          s_reify_2_conv_6_aval_0_simpflat_13;
     itime_t          flat_0_simpflat_15;
     ierror_t         flat_0_simpflat_14;
     ierror_t         flat_3_simpflat_16;
     ierror_t         flat_3_simpflat_18;
     itime_t          flat_3_simpflat_19;
     itime_t          flat_3_simpflat_17;
-    itime_t          acc_conv_4_simpflat_2;
+    itime_t          acc_conv_5_simpflat_2;
     ierror_t         flat_0_simpflat_20;
     itime_t          flat_0_simpflat_21;
 
     anemone_mempool_t *mempool                = s->mempool;
     itime_t          conv_3                   = s->input.conv_3;
+    iint_t           conv_4                   = s->max_map_size;
 
-    acc_conv_4_simpflat_2                     = 0x7420b1100000000;                    /* init */
-    acc_s_reify_2_conv_5_simpflat_6           = ierror_fold1_no_value;                /* init */
-    acc_s_reify_2_conv_5_simpflat_7           = 0x7420b1100000000;                    /* init */
+    acc_conv_5_simpflat_2                     = 0x7420b1100000000;                    /* init */
+    acc_s_reify_2_conv_6_simpflat_6           = ierror_fold1_no_value;                /* init */
+    acc_s_reify_2_conv_6_simpflat_7           = 0x7420b1100000000;                    /* init */
     
-    if (s->has_0_0_acc_s_reify_2_conv_5_simpflat_6) {
-        acc_s_reify_2_conv_5_simpflat_6       = s->res_0_0_acc_s_reify_2_conv_5_simpflat_6; /* load */
+    if (s->has_0_0_acc_s_reify_2_conv_6_simpflat_6) {
+        acc_s_reify_2_conv_6_simpflat_6       = s->res_0_0_acc_s_reify_2_conv_6_simpflat_6; /* load */
     }
     
-    if (s->has_0_0_acc_s_reify_2_conv_5_simpflat_7) {
-        acc_s_reify_2_conv_5_simpflat_7       = s->res_0_0_acc_s_reify_2_conv_5_simpflat_7; /* load */
+    if (s->has_0_0_acc_s_reify_2_conv_6_simpflat_7) {
+        acc_s_reify_2_conv_6_simpflat_7       = s->res_0_0_acc_s_reify_2_conv_6_simpflat_7; /* load */
     }
     
-    if (s->has_0_0_acc_conv_4_simpflat_2) {
-        acc_conv_4_simpflat_2                 = s->res_0_0_acc_conv_4_simpflat_2;     /* load */
+    if (s->has_0_0_acc_conv_5_simpflat_2) {
+        acc_conv_5_simpflat_2                 = s->res_0_0_acc_conv_5_simpflat_2;     /* load */
     }
     
     const iint_t     new_count                = s->input.new_count;
@@ -2421,20 +2429,20 @@ void icompute_attribute_0_compute_0(iattribute_0_t *s)
         itime_t          conv_0_simpflat_26   = new_conv_0_simpflat_26[i];
         iint_t           anf_1                = itime_days_diff (0x7bc010600000000, conv_0_simpflat_26); /* let */
         iint_t           anf_2                = iint_neg (anf_1);                     /* let */
-        acc_conv_4_simpflat_2                 = itime_minus_days (0x7d0010100000000, anf_2); /* write */
-        conv_4_aval_1_simpflat_8              = acc_conv_4_simpflat_2;                /* read */
-        s_reify_2_conv_5_aval_0_simpflat_12   = acc_s_reify_2_conv_5_simpflat_6;      /* read */
-        s_reify_2_conv_5_aval_0_simpflat_13   = acc_s_reify_2_conv_5_simpflat_7;      /* read */
+        acc_conv_5_simpflat_2                 = itime_minus_days (0x7d0010100000000, anf_2); /* write */
+        conv_5_aval_1_simpflat_8              = acc_conv_5_simpflat_2;                /* read */
+        s_reify_2_conv_6_aval_0_simpflat_12   = acc_s_reify_2_conv_6_simpflat_6;      /* read */
+        s_reify_2_conv_6_aval_0_simpflat_13   = acc_s_reify_2_conv_6_simpflat_7;      /* read */
         flat_0_simpflat_14                    = ierror_not_an_error;                  /* init */
         flat_0_simpflat_15                    = 0x7420b1100000000;                    /* init */
         
-        if (ierror_eq (s_reify_2_conv_5_aval_0_simpflat_12, ierror_not_an_error)) {
+        if (ierror_eq (s_reify_2_conv_6_aval_0_simpflat_12, ierror_not_an_error)) {
             flat_4                            = 0x7420b1100000000;                    /* init */
             
-            if (itime_gt (conv_4_aval_1_simpflat_8, s_reify_2_conv_5_aval_0_simpflat_13)) {
-                flat_4                        = conv_4_aval_1_simpflat_8;             /* write */
+            if (itime_gt (conv_5_aval_1_simpflat_8, s_reify_2_conv_6_aval_0_simpflat_13)) {
+                flat_4                        = conv_5_aval_1_simpflat_8;             /* write */
             } else {
-                flat_4                        = s_reify_2_conv_5_aval_0_simpflat_13;  /* write */
+                flat_4                        = s_reify_2_conv_6_aval_0_simpflat_13;  /* write */
             }
             
             flat_4                            = flat_4;                               /* read */
@@ -2444,11 +2452,11 @@ void icompute_attribute_0_compute_0(iattribute_0_t *s)
             flat_3_simpflat_16                = ierror_not_an_error;                  /* init */
             flat_3_simpflat_17                = 0x7420b1100000000;                    /* init */
             
-            if (ierror_eq (ierror_fold1_no_value, s_reify_2_conv_5_aval_0_simpflat_12)) {
+            if (ierror_eq (ierror_fold1_no_value, s_reify_2_conv_6_aval_0_simpflat_12)) {
                 flat_3_simpflat_16            = ierror_not_an_error;                  /* write */
-                flat_3_simpflat_17            = conv_4_aval_1_simpflat_8;             /* write */
+                flat_3_simpflat_17            = conv_5_aval_1_simpflat_8;             /* write */
             } else {
-                flat_3_simpflat_16            = s_reify_2_conv_5_aval_0_simpflat_12;  /* write */
+                flat_3_simpflat_16            = s_reify_2_conv_6_aval_0_simpflat_12;  /* write */
                 flat_3_simpflat_17            = 0x7420b1100000000;                    /* write */
             }
             
@@ -2460,23 +2468,23 @@ void icompute_attribute_0_compute_0(iattribute_0_t *s)
         
         flat_0_simpflat_20                    = flat_0_simpflat_14;                   /* read */
         flat_0_simpflat_21                    = flat_0_simpflat_15;                   /* read */
-        acc_s_reify_2_conv_5_simpflat_6       = flat_0_simpflat_20;                   /* write */
-        acc_s_reify_2_conv_5_simpflat_7       = flat_0_simpflat_21;                   /* write */
+        acc_s_reify_2_conv_6_simpflat_6       = flat_0_simpflat_20;                   /* write */
+        acc_s_reify_2_conv_6_simpflat_7       = flat_0_simpflat_21;                   /* write */
     }
     
-    s->has_0_0_acc_s_reify_2_conv_5_simpflat_6 = itrue;                               /* save */
-    s->res_0_0_acc_s_reify_2_conv_5_simpflat_6 = acc_s_reify_2_conv_5_simpflat_6;     /* save */
+    s->has_0_0_acc_s_reify_2_conv_6_simpflat_6 = itrue;                               /* save */
+    s->res_0_0_acc_s_reify_2_conv_6_simpflat_6 = acc_s_reify_2_conv_6_simpflat_6;     /* save */
     
-    s->has_0_0_acc_s_reify_2_conv_5_simpflat_7 = itrue;                               /* save */
-    s->res_0_0_acc_s_reify_2_conv_5_simpflat_7 = acc_s_reify_2_conv_5_simpflat_7;     /* save */
+    s->has_0_0_acc_s_reify_2_conv_6_simpflat_7 = itrue;                               /* save */
+    s->res_0_0_acc_s_reify_2_conv_6_simpflat_7 = acc_s_reify_2_conv_6_simpflat_7;     /* save */
     
-    s->has_0_0_acc_conv_4_simpflat_2          = itrue;                                /* save */
-    s->res_0_0_acc_conv_4_simpflat_2          = acc_conv_4_simpflat_2;                /* save */
+    s->has_0_0_acc_conv_5_simpflat_2          = itrue;                                /* save */
+    s->res_0_0_acc_conv_5_simpflat_2          = acc_conv_5_simpflat_2;                /* save */
     
-    s_reify_2_conv_5_simpflat_22              = acc_s_reify_2_conv_5_simpflat_6;      /* read */
-    s_reify_2_conv_5_simpflat_23              = acc_s_reify_2_conv_5_simpflat_7;      /* read */
-    s->repl_ix_0                              = s_reify_2_conv_5_simpflat_22;         /* output */
-    s->repl_ix_1                              = s_reify_2_conv_5_simpflat_23;         /* output */
+    s_reify_2_conv_6_simpflat_22              = acc_s_reify_2_conv_6_simpflat_6;      /* read */
+    s_reify_2_conv_6_simpflat_23              = acc_s_reify_2_conv_6_simpflat_7;      /* read */
+    s->repl_ix_0                              = s_reify_2_conv_6_simpflat_22;         /* output */
+    s->repl_ix_1                              = s_reify_2_conv_6_simpflat_23;         /* output */
 }
 
 - C evaluation:

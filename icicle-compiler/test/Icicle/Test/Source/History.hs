@@ -17,6 +17,7 @@ import qualified Icicle.Avalanche.Program as AP
 import qualified Icicle.Avalanche.Statement.Flatten as AF
 import           Icicle.BubbleGum
 import           Icicle.Common.Base
+import           Icicle.Common.Eval
 import qualified Icicle.Common.Fresh as Fresh
 import qualified Icicle.Core.Eval.Program as CV
 import qualified Icicle.Core.Program.Program as C
@@ -37,7 +38,7 @@ data TestStuff
  = TestStuff
  { tsQwf    :: QueryWithFeature
  , tsInputs :: [AsAt (BubbleGumFact, BaseValue)]
- , tsTime   :: Time
+ , tsEvalCtx:: EvalContext
  , tsCore   :: C.Program () T.Variable
  , tsAval   :: AP.Program () T.Variable AF.Prim
  }
@@ -79,10 +80,10 @@ instance Arbitrary TestStuff where
  
 
 evalCore ts vs
- = CV.eval (tsTime ts) vs (tsCore ts)
+ = CV.eval (tsEvalCtx ts) vs (tsCore ts)
 
 evalAval ts vs
- = AE.evalProgram AE.evalPrim (tsTime ts) vs (tsAval ts)
+ = AE.evalProgram AE.evalPrim (tsEvalCtx ts) vs (tsAval ts)
 
 
 extractFacts inps fids

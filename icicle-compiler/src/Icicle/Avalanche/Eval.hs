@@ -16,11 +16,11 @@ import              Icicle.Avalanche.Program
 import              Icicle.BubbleGum
 
 import              Icicle.Common.Base
+import              Icicle.Common.Eval
 import              Icicle.Common.Type
 import              Icicle.Common.Value
 import qualified    Icicle.Common.Exp as XV
 
-import              Icicle.Data.Time
 import              Icicle.Data         (AsAt(..))
 
 import              P
@@ -96,20 +96,22 @@ baseValue v
 evalProgram
         :: (Hashable n, Eq n, Show n, Show p, Show a)
         => XV.EvalPrim a n p
-        -> Time
+        -> EvalContext
         -> [AsAt (BubbleGumFact, BaseValue)]
         -> Program a n p
         -> Either (RuntimeError a n p) ([(OutputName,BaseValue)], Set.Set FactIdentifier)
 
-evalProgram evalPrim now values p
+evalProgram evalPrim ctx values p
  = do   -- Precomputations are just expressions
 
         -- Keep evaluating the same loop for every value
         -- with accumulator and scalar heaps threaded through
         let stmts = statements p
-        let xh    = Map.singleton (bindtime p) $ VBase $ VTime $ now
+        let xh    = Map.fromList
+                  [ (bindtime   p, VBase $ VTime $ evalSnapshotTime ctx)
+                  , (maxMapSize p, VBase $ VInt  $ evalMaxMapSize   ctx) ]
         let ah    = Map.empty
-        (_,ret,bgs) <- evalStmt evalPrim now xh values Nothing ah stmts
+        (_,ret,bgs) <- evalStmt evalPrim xh values Nothing ah stmts
 
         return (ret, bgs)
 
@@ -118,7 +120,6 @@ evalProgram evalPrim now values p
 evalStmt
         :: (Hashable n, Eq n, Show n, Show p, Show a)
         => XV.EvalPrim a n p
-        -> Time
         -> Heap a n p
         -> [AsAt (BubbleGumFact, BaseValue)]
         -> Maybe BubbleGumFact
@@ -126,7 +127,7 @@ evalStmt
         -> Statement a n p
         -> Either (RuntimeError a n p) (AccumulatorHeap n, [(OutputName, BaseValue)], Set.Set FactIdentifier)
 
-evalStmt evalPrim now xh values bubblegum ah stmt
+evalStmt evalPrim xh values bubblegum ah stmt
  = case stmt of
     If x stmts elses
      -> do  v   <- eval x >>= baseValue
@@ -195,7 +196,7 @@ evalStmt evalPrim now xh values bubblegum ah stmt
                              $ Map.insert nfid  (VBase ix) xh
                       bgf    = Just $ fst $ atFact inp
 
-                  appendOutputs out bg <$> evalStmt evalPrim now input' [] bgf ah' stmts
+                  appendOutputs out bg <$> evalStmt evalPrim input' [] bgf ah' stmts
 
                 indices = fmap (VFactIdentifier . FactIdentifier) [0..]
 
@@ -222,7 +223,7 @@ evalStmt evalPrim now xh values bubblegum ah stmt
                      , nvs    <- zip (fmap fst ns) vs
                      , input' <- foldr (\(n, v) -> Map.insert n (VBase v)) input1 nvs
                      , bgf    <- Just $ fst $ atFact inp
-                     -> appendOutputs out bg <$> evalStmt evalPrim now input' [] bgf ah' stmts
+                     -> appendOutputs out bg <$> evalStmt evalPrim input' [] bgf ah' stmts
 
                 indices = fmap (VFactIdentifier . FactIdentifier) [0..]
 
@@ -291,7 +292,7 @@ evalStmt evalPrim now xh values bubblegum ah stmt
 
  where
   -- Go through all the substatements
-  go xh' = evalStmt evalPrim now xh' values bubblegum
+  go xh' = evalStmt evalPrim xh' values bubblegum
   go' = go xh ah
 
   appendOutputs out bg (ah', out', bg')
