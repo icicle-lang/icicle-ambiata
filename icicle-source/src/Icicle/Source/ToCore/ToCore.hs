@@ -158,142 +158,11 @@ convertQuery q
             let bs' = filt e' (streams bs) <> bs { streams = [] }
             return (bs', b)
 
-
-    -- TODO: latest can actually have multiple 'aggregate passes',
-    -- eg you should be able to do
-    --
-    -- > latest 5 ~> value / sum value
-    --
-    -- since this only requires a second pass over the small array that is
-    -- already in memory.
-    --
-    -- However, at the moment we only support folds with single pass,
-    -- and not returning the whole array.
     (Latest _ _ : _)
-     -> do  -- We can cheat!
-            -- Convert the entire latest query as a fold.
-            res        <- convertFold q
-            n'red      <- lift fresh
-            n'ret      <- lift fresh
+     -> convertAsFold
 
-            let k'      = beta
-                        ( foldKons res CE.@~ CE.xVar n'red)
-
-            let b'red   = sfold  n'red (typeFold res) (foldZero res) k'
-            let b'ret   = post n'ret $ beta (mapExtract res CE.@~ CE.xVar n'red)
-
-            return (b'red <> b'ret, n'ret)
-
-    -- Convert a group by into the construction of a Map.
-    -- The key is the "by" of the group, while the value is the result of the
-    -- aggregate over the partitioned results.
-    --
-    -- The result of a group by must be an aggregate, which means we have a
-    -- relatively good idea of an upper bound on memory here,
-    -- as long as the "by" is something like an enum, and the "value" has bounded memory.
-    --
-    (GroupBy (Annot { annAnnot = ann, annResult = retty }) e : _)
-     -> do  n'      <- lift fresh
-
-            -- Convert the rest of the query into a fold.
-            -- We have the "k"onstructor, the "z"ero, and the e"x"tract,
-            -- as well as the intermediate result type before extraction.
-            -- See convertFold.
-            res     <- convertFold q'
-
-            tK      <- convertValType' $ annResult $ annotOfExp e
-            let tV   = typeFold res
-
-            -- Convert the "by" to a simple expression.
-            -- This becomes the map insertion key.
-            e'      <- convertExp e
-
-            let mapt = T.MapT tK tV
-
-            -- For each input element, we use the group by as the key, and insert into a map.
-            --
-            -- If the map already has the key, we perform the "k" on the current element
-            -- and the existing value - the fold accumulator.
-            --
-            -- If the map doesn't have the key, we insert the "k" of the current element
-            -- with the zero accumulator.
-            -- This is because the map doesn't start with "zero"s in it, unlike a normal fold.
-            let priminsert
-                    = C.PrimMapInsertOrUpdate tK tV
-
-            let insertOrUpdate
-                    = beta
-                    $ CE.makeApps () (CE.xPrim $ C.PrimMap $ priminsert)
-                    [ foldKons res
-                    , foldKons res `CE.xApp` foldZero res
-                    , e'
-                    , CE.xVar n']
-
-            let emptyMap
-                    = CE.emptyMap tK tV
-
-            -- Perform the map fold
-            let r = sfold n' mapt emptyMap insertOrUpdate
-
-            -- After all the elements have been seen, we go through the map and perform
-            -- the "extract" on each value.
-            -- This performs any fixups that couldn't be performed during the fold.
-
-            -- Unwrapped results
-            (tKr,tXr) <- getGroupByMapType ann retty
-            let isPossibly = PossibilityPossibly == getPossibilityOrDefinitely retty
-                sumt | isPossibly
-                     = T.SumT T.ErrorT $ T.MapT tKr tXr
-                     | otherwise
-                     = T.MapT tKr tXr
-                emptyResult
-                     | isPossibly
-                     = CE.xValue sumt $ VRight $ VMap Map.empty
-                     | otherwise
-                     = CE.xValue sumt $ VMap Map.empty
-
-            nkey    <- lift fresh
-            nkey'   <- lift fresh
-            nval    <- lift fresh
-            nval'   <- lift fresh
-            nval''  <- lift fresh
-            nmap    <- lift fresh
-            nmap'   <- lift fresh
-
-            nErr    <- lift fresh
-
-            let unwrapSum' chk = unwrapSum chk sumt nErr
-
-            let rewrapSum' = rewrapSum isPossibly sumt
-
-            let ins = CE.xLam nmap sumt
-                    $ CE.xLam nkey tK
-                    $ CE.xLam nval tV
-                    $ unwrapSum' isPossibly
-                                 (CE.xVar nmap) nmap' sumt
-                    $ unwrapSum' (isAnnotPossibly $ annotOfExp e)
-                                 (CE.xVar nkey) nkey' tK
-                    $ unwrapSum' (isAnnotPossibly $ annotOfQuery q')
-                                 (beta (mapExtract res CE.@~ CE.xVar nval)) nval' (typeExtract res)
-                    $ rewrapSum'
-                    $ CE.makeApps () (CE.xPrim $ C.PrimMap $ C.PrimMapInsertOrUpdate tKr tXr)
-                    [ CE.xLam nval'' tXr $ CE.xVar nval''
-                    , CE.xVar nval'
-                    , CE.xVar nkey'
-                    , CE.xVar nmap']
-
-
-            let mapResult
-                    = CE.xPrim (C.PrimFold (C.PrimFoldMap tK tV) sumt)
-                    CE.@~ beta ins
-                    CE.@~ emptyResult
-                    CE.@~ CE.xVar n'
-
-            n''     <- lift fresh
-            let p   = post n'' mapResult
-
-            return (r <> p, n'')
-
+    (GroupBy _ _ : _)
+     -> convertAsFold
 
     -- Convert a group fold using a Map. Very similar to Group By, with an additional
     -- postcomputation.
@@ -333,74 +202,8 @@ convertQuery q
 
             return (bs <> p, n')
 
-    -- Distinct is very similar to a group by, except instead of performing the fold
-    -- as the elements are seen into the map,
-    -- we insert/update the element in the map, then fold over essentially the last-seen
-    -- for each group.
-    (Distinct _ e : _)
-     -> do  tkey <- convertValType' $ annResult $ annotOfExp e
-
-            n'      <- lift fresh
-            n''     <- lift fresh
-            n'key   <- lift fresh
-            n'ignore<- lift fresh
-            n'ignore2<- lift fresh
-
-            -- Convert the rest of the query into a fold.
-            -- This is executed as a Map fold at the end, rather than
-            -- as a stream fold.
-            res     <- convertFold q'
-
-            let tV'  = typeFold res
-
-            -- Convert the "by" to a simple expression.
-            -- This becomes the map insertion key.
-            e'      <- convertExp e
-
-            let mapt    = T.MapT tkey T.UnitT
-            let pairt   = T.PairT mapt tV'
-
-            let xfst    = CE.xApp
-                        $ CE.xPrim $ C.PrimMinimal $ Min.PrimPair $ Min.PrimPairFst mapt tV'
-            let xsnd    = CE.xApp
-                        $ CE.xPrim $ C.PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd mapt tV'
-
-            let pair x y= (CE.xPrim $ C.PrimMinimal $ Min.PrimConst $ Min.PrimConstPair mapt tV')
-                        CE.@~ x CE.@~ y
-
-            -- This is a little bit silly -
-            -- this "insertOrUpdate" should really just be an insert.
-            -- Just put each element in the map, potentially overwriting the last one.
-            let insert_map mm kk vv
-                  = CE.xPrim (C.PrimMap $ C.PrimMapInsertOrUpdate tkey T.UnitT)
-                    CE.@~ (CE.xLam n'ignore T.UnitT $ vv)
-                    CE.@~ vv
-                    CE.@~ kk
-                    CE.@~ mm
-
-            let update_step
-                        = pair
-                        ( insert_map (xfst $ CE.xVar n') (CE.xVar n'key) (CE.xValue T.UnitT VUnit) )
-                        ( foldKons res CE.@~ xsnd (CE.xVar n') )
-
-            let check_if_exists
-                        = CE.xPrim (C.PrimMap (C.PrimMapLookup tkey T.UnitT))
-                        CE.@~ xfst (CE.xVar n')
-                        CE.@~ CE.xVar n'key
-
-            let kons    = CE.xLet n'key e'
-                        ( CE.xPrim (C.PrimFold (C.PrimFoldOption T.UnitT) pairt)
-                        CE.@~ CE.xLam n'ignore2 T.UnitT (CE.xVar n')
-                        CE.@~ CE.xLam n'ignore2 T.UnitT update_step
-                        CE.@~ check_if_exists )
-
-            -- Perform the map fold
-            let r = sfold n' pairt (pair (CE.emptyMap tkey T.UnitT) (foldZero res)) (beta kons)
-
-            -- Perform a fold over that map
-            let p = post n'' $ beta (mapExtract res CE.@~ xsnd (CE.xVar n'))
-
-            return (r <> p, n'')
+    (Distinct _ _ : _)
+     -> convertAsFold
 
     (Let _ b def : _)
      -> case getTemporalityOrPure $ annResult $ annotOfExp def of
@@ -492,8 +295,21 @@ convertQuery q
 
   convertValType' = convertValType (annAnnot $ annotOfQuery q)
 
-  getGroupByMapType = groupMapType convertValType'
   getGroupFoldType  = groupFoldType convertValType'
+
+  -- When the convertFold and convertQuery are exactly the same, just use convertFold instead.
+  convertAsFold = do
+    res        <- convertFold q
+    n'red      <- lift fresh
+    n'ret      <- lift fresh
+
+    let k'      = beta
+                ( foldKons res CE.@~ CE.xVar n'red)
+
+    let b'red   = sfold  n'red (typeFold res) (foldZero res) k'
+    let b'ret   = post n'ret $ beta (mapExtract res CE.@~ CE.xVar n'red)
+
+    return (b'red <> b'ret, n'ret)
 
 
 -- | Convert an Aggregate computation at the end of a query.
