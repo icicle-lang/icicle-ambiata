@@ -23,8 +23,8 @@ is_weekend v
 week_of_day d
   = trunc (double (days d) / 7).
 
-day_of_week v =
-  = mod (days v - 4) 7
+day_of_week v
+  = mod (days v - 4) 7.
 
 # Boolean statements
 not a = case a | True -> False | False -> True end.
