@@ -42,5 +42,5 @@ prop_check_commutes t =
 
 return []
 tests :: IO Bool
-tests = $checkAllWith TestRunNormal (checkArgsSized 10)
+tests = $checkAllWith TestRunMore (checkArgsSized 10)
 

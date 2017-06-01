@@ -251,7 +251,9 @@ substAnn a_fresh envmap into
  | Map.null envmap
  = return into
  | otherwise
- = fst <$> subst' envmap (Set.unions $ Map.elems $ Map.map freevars envmap) into
+ -- Use the set of all variables as the "capture set" of what that needs to be renamed.
+ -- Using the set of free variables here would be ok, except it leads to shadowing.
+ = fst <$> subst' envmap (Set.unions $ Map.elems $ Map.map allvars envmap) into
  where
    xVar n
     = XVar (a_fresh, Set.singleton n) n
@@ -272,8 +274,8 @@ substAnn a_fresh envmap into
     | hasSubst  = xLet a   n x1 x2
     | otherwise = XLet ann n x1 x2
 
-   subst' env frees xx
-    = let go      = subst' env frees
+   subst' env captures xx
+    = let go      = subst' env captures
           noSubst = return (xx, False)
       in case xx of
 
@@ -297,15 +299,15 @@ substAnn a_fresh envmap into
         -> noSubst
 
        XLam a n t x
-        -- If the name is in the free set of all payloads or it *has* a payload,
+        -- If the name is in the name set of all payloads or it *has* a payload,
         -- might as well rename it.
-        | n `Set.member` frees || n `Map.member` env
+        | n `Set.member` captures || n `Map.member` env
         -> do  -- Generate fresh name and add to environment
                -- We do not actually need to insert n' into the free set
                -- because it is fresh, and cannot occur in the expression.
                !n'           <- fresh
                let !env'      = Map.insert n (xVar n') env
-               !(x', substX) <- subst' env' frees x
+               !(x', substX) <- subst' env' captures x
                return (xLam' substX a n' t x', substX)
 
         -- Name is mentioned and no clashes, so proceed
@@ -315,11 +317,11 @@ substAnn a_fresh envmap into
 
        XLet a n x1 x2
         -- As with lambda
-        | n `Set.member` frees || n `Map.member` env
+        | n `Set.member` captures || n `Map.member` env
         -> do  n'              <- fresh
                let !env'        = Map.insert n (xVar n') env
                !(x1', substX1) <- go x1
-               !(x2', substX2) <- subst' env' frees x2
+               !(x2', substX2) <- subst' env' captures x2
                let !substX      = substX1 || substX2
                return (xLet' substX a n' x1' x2', substX)
 
