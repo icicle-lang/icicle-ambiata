@@ -3,6 +3,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Source.ToCore.Prim (
     convertPrim
+  , primInsert
   ) where
 
 import                  Icicle.Source.Query
@@ -395,8 +396,9 @@ primInsert tk tv xm xk xv = do
              [ apps (bf $ Min.PrimBuiltinMap   $ Min.PrimBuiltinKeys tk tv)
              [ CE.XVar () n' ] ]
 
+  maxMapSize <- convertMaxMapSize
   let lenchk = apps (C.PrimMinimal $ Min.PrimRelation Min.PrimRelationLt T.IntT)
-             [ len, CE.XValue () T.IntT $ V.VInt 2 ]
+             [ len, CE.XVar () maxMapSize ]
 
   return     $ CE.makeLets () [ (n', insert) ]
              $ apps (C.PrimFold C.PrimFoldBool $ tsum)
