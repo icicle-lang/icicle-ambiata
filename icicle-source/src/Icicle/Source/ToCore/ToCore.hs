@@ -202,7 +202,7 @@ convertQuery q
 
             return (bs <> p, n')
 
-    (Distinct _ e : _)
+    (Distinct _ _ : _)
      -> convertAsFold
 
     (Let _ b def : _)
@@ -295,7 +295,6 @@ convertQuery q
 
   convertValType' = convertValType (annAnnot $ annotOfQuery q)
 
-  getGroupByMapType = groupMapType convertValType'
   getGroupFoldType  = groupFoldType convertValType'
 
   -- When the convertFold and convertQuery are exactly the same, just use convertFold instead.
