@@ -26,7 +26,6 @@ import           Icicle.Test.Arbitrary
 import           Icicle.Internal.Pretty
 
 import           Data.Bitraversable
-import qualified Data.List as List
 import qualified Data.Map  as Map
 import qualified Data.Text as Text
 import           Test.QuickCheck
@@ -41,8 +40,9 @@ import           Disorder.Core.IO
 
 
 prop_languages_eval ewt = testIO $ do
-  let wt      = welltyped ewt
-      ctx     = wellTypedEvalContext wt
+  let wtyp    = welltyped ewt
+      wt:_    = wtAttributes wtyp
+      ctx     = wtEvalContext wtyp
       facts   = wtEvalFacts ewt
       q       = wtEvalDummyQuery ewt
       coreRes = P.coreEval ctx facts q
@@ -95,13 +95,10 @@ instance Arbitrary EvalWellTyped where
     return $ EvalWellTyped wt (mkFacts wt) (mkDummyQuery wt)
 
 mkFacts :: WellTyped -> [D.AsAt D.Fact]
-mkFacts wt
-  = catMaybes
-  $ List.zipWith (mkAsAt (D.inputName $ wtInputId wt))
-                 (wtEntities wt)
-                 (wtFacts wt)
+mkFacts wt =
+  catMaybes . fmap mkAsAt . wtFacts $ wt
   where
-    mkAsAt attr ent a
+    mkAsAt (WellTypedValue ent attr a)
       = D.AsAt <$> (D.Fact ent attr <$> factFromCoreValue (D.atFact a))
                <*> pure (D.atTime a)
 

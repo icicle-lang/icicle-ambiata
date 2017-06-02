@@ -64,6 +64,7 @@ import qualified Zebra.Table.Schema as Schema
 import qualified Icicle.Internal.Pretty as PP
 import           Icicle.Common.Base
 import           Icicle.Common.Type
+import           Icicle.Common.Eval
 import           Icicle.Data
 import qualified Icicle.Data.Time as Icicle
 import           Icicle.Sea.FromAvalanche.State
@@ -333,7 +334,7 @@ jZebraWellTyped = justOf $ do
 
 gWellTyped :: InputType -> Gen WellTyped
 gWellTyped ty = do
-  !wt <- tryGenWellTypedWith AllowDupTime ty
+  !wt <- tryGenWellTypedWithInput AllowDupTime ty
   case wt of
     Nothing ->
       discard
@@ -589,7 +590,7 @@ codeOf wt = do
     dummy =
       HasInput
         (FormatZebra
-          (ZebraConfig (wtMaxMapSize wt))
+          (ZebraConfig (eavlMaxMapSize (wtEvalContext wt)))
           (Snapshot testSnapshotTime)
           (PsvOutputConfig (Snapshot testSnapshotTime) PsvOutputDense defaultOutputMissing))
         (InputOpts AllowDupTime Map.empty)

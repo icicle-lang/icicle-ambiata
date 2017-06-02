@@ -627,7 +627,7 @@ baseValueForType t
 inputsForType :: ValType -> Gen ([AsAt (BubbleGumFact, BaseValue)], EvalContext)
 inputsForType t
  = sized
- $ \s -> do start         <- arbitrary
+ $ \s -> do start         <- getPositive <$> arbitrary
             num           <- choose (0, s)
             maxMap        <- choose (1, s)
             (facts, time) <- go num [] start
