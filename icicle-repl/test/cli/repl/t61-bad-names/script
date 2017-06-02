@@ -1,0 +1,7 @@
+:dictionary test/cli/repl/t61-bad-names/dict.toml
+:load test/cli/repl/t61-bad-names/data.psv
+:set +core-eval
+:set +c-eval
+
+feature "x$b" ~> latest 4 ~> value
+feature "a!" ~> latest 4 ~> value

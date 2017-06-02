@@ -39,11 +39,19 @@ textOfName :: Pretty n => n -> Text
 textOfName = T.pack . show . seaOfName
 
 seaOfName :: Pretty n => n -> Doc
-seaOfName = string . fmap mangle . show . pretty
+seaOfName = string . concatMap mangle . show . pretty
   where
-    mangle '$' = '_'
-    mangle ' ' = '_'
-    mangle  c  =  c
+    mangle c
+     | c >= '0' && c <= '9'
+     = [c]
+     | c >= 'a' && c <= 'z'
+     = [c]
+     | c >= 'A' && c <= 'Z'
+     = [c]
+     | c == '_'
+     = "__"
+     | otherwise
+     = "_" <> showHex (ord c) ""
 
 seaOfNameIx :: Pretty n => n -> Int -> Doc
 seaOfNameIx n ix = seaOfName (pretty n <> text "$ix$" <> int ix)
