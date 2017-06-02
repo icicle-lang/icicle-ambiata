@@ -251,7 +251,6 @@ statementContext frag ctx stmt
    = do _ <- checkAccumulator frag ctx acc
         return (n, ty)
 
-  -- insert = insertOrDie ProgramErrorNameNotUnique
-  insert m n t = return $ Map.insert n t m
+  insert = insertOrDie ProgramErrorNameNotUnique
 
 
