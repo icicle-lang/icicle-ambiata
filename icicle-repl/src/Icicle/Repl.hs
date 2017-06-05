@@ -15,6 +15,7 @@ import           Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.Text                        as T
 import qualified Data.Text.IO                     as T
 import           Data.String                      (String)
+import           Data.Maybe
 
 import           System.Console.Haskeline         as HL
 import           System.IO
@@ -266,7 +267,7 @@ handleLine state line = let st = sourceState state in
                     Repl.prettyHL p
                     Repl.nl
 
-    let attr = Attribute "repl"
+    let Just attr = asAttributeName "repl"
 
     checked <- runEitherT $ do
       parsed       <- hoist $ sourceParse (T.pack line)
@@ -404,7 +405,7 @@ handleLine state line = let st = sourceState state in
 
     sourceParse
       = first (ErrorCompileSource . SourceRepl.ErrorCompile)
-      . Source.sourceParseQT "repl" (Namespace "namespace-repl")
+      . Source.sourceParseQT "repl" (fromJust . asNamespace $ "namespace-repl")
 
     sourceDesugar
       = first (ErrorCompileSource . SourceRepl.ErrorCompile)

@@ -17,7 +17,7 @@ module Icicle.Common.Base (
     ) where
 
 import              Icicle.Internal.Pretty
-import              Icicle.Data (Namespace(..))
+import              Icicle.Data (Namespace)
 import              Icicle.Data.Time
 
 import              P

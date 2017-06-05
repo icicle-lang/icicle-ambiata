@@ -53,11 +53,11 @@ renderDecodeError :: DecodeError -> Text
 renderDecodeError (DecodeErrorBadInput val enc) =
   "Could not decode value '" <> val <> "' of type " <> T.pack (show enc)
 renderDecodeError (DecodeErrorMissingStructField attr) =
-  "Missing struct field " <> getAttribute attr
+  "Missing struct field " <> takeAttributeName attr
 renderDecodeError (DecodeErrorNotInDictionary attr) =
-  "Given attribute is not in dictionary: " <> getAttribute attr
+  "Given attribute is not in dictionary: " <> takeAttributeName attr
 renderDecodeError (DecodeErrorValueForVirtual attr) =
-  "Cannot set values for virtual features: " <> getAttribute attr
+  "Cannot set values for virtual features: " <> takeAttributeName attr
 
 primitiveEncoding :: Encoding -> Bool
 primitiveEncoding e
@@ -291,7 +291,7 @@ valueOfJSON e v
        -> return []
 
   getField obj attr
-   = HM.lookup (getAttribute attr) obj
+   = HM.lookup (takeAttributeName attr) obj
 
 -- Render as json. This is as close to Ivory output as
 -- is possible. "No Value" or "Tombstoned" values are
@@ -327,7 +327,7 @@ jsonOfValue t val
      -> A.Array $ V.fromList $ fmap (jsonOfValue t . uncurry PairValue) kvs
  where
   insert hm (attr,v)
-   = HM.insert (getAttribute attr) (jsonOfValue t v) hm
+   = HM.insert (takeAttributeName attr) (jsonOfValue t v) hm
   pair k v
    = HM.singleton (renderValue t k) (jsonOfValue t v)
 
@@ -367,11 +367,11 @@ sourceTypeOfEncoding e
  where
 
   goStructField (StructField Mandatory attr enc)
-    = ( IT.StructField $ getAttribute attr
+    = ( IT.StructField $ takeAttributeName attr
       , sourceTypeOfEncoding enc)
 
   goStructField (StructField Optional attr enc)
-    = ( IT.StructField $ getAttribute attr
+    = ( IT.StructField $ takeAttributeName attr
       , IT.OptionT $ sourceTypeOfEncoding enc)
 
 
@@ -387,7 +387,7 @@ renderJsonStruct (Struct kvs0) =
       flip mapMaybe kvs0 $ \(k, v0) -> do
         v <- renderJsonValue v0
         pure $
-          renderJsonString (getAttribute k) <> ":" <> v
+          renderJsonString (takeAttributeName k) <> ":" <> v
   in
     "{" <> T.intercalate "," kvs <> "}"
 

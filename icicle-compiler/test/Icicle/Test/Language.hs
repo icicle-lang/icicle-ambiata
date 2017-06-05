@@ -107,9 +107,10 @@ mkDummyQuery :: WellTyped -> P.QueryTyped Source.Var
 mkDummyQuery wt
   = let x = nameOf $ NameBase $ SP.Variable "dummy"
         pos = Parsec.initialPos "dummy"
+        Just n = D.asNamespace "dummy"
     in  S.QueryTop
-          (nameOf $ NameBase $ SP.Variable $ D.getAttribute $ wtAttribute wt)
-          (OutputName (D.getAttribute $ wtAttribute wt) (D.Namespace "dummy"))
+          (nameOf . NameBase . SP.Variable . D.takeAttributeName . wtAttribute $ wt)
+          (OutputName (D.takeAttributeName . wtAttribute $ wt) n)
           (S.Query [] $ S.Var (S.Annot pos S.UnitT []) x)
 
 factFromCoreValue :: BaseValue -> Maybe D.Value
@@ -143,7 +144,7 @@ factFromCoreValue bv = case bv of
    |  otherwise
    ->  D.StructValue . D.Struct
    <$> sequence
-    ( fmap (sequence . first (D.Attribute . nameOfStructField) . second factFromCoreValue)
+    ( fmap (bisequence . first (D.asAttributeName . nameOfStructField) . second factFromCoreValue)
     $ Map.toList x)
 
 sourceNameFromTestName :: Name Var -> Name Source.Var

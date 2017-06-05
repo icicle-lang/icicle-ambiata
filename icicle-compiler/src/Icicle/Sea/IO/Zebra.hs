@@ -14,12 +14,13 @@ module Icicle.Sea.IO.Zebra (
 import qualified Data.List as List
 import qualified Data.List.NonEmpty as NonEmpty
 
-import           Icicle.Data (Attribute (..))
+import           Icicle.Data (Attribute)
 
 import           Icicle.Internal.Pretty
 
 import           Icicle.Sea.Error (SeaError(..))
 import           Icicle.Sea.IO.Base
+import           Icicle.Sea.FromAvalanche.Base
 import           Icicle.Sea.FromAvalanche.State
 
 import           P
@@ -107,7 +108,7 @@ seaOfRead index state = vsep
   where
     n = pretty (nameOfAttribute state)
     i = pretty index
-    a = pretty (getAttribute (stateAttribute state))
+    a = pretty (attributeAsSeaString (stateAttribute state))
 
 -- chords loop:
 --

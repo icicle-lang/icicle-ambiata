@@ -16,7 +16,7 @@ import qualified Icicle.Avalanche.Prim.Flat as Flat
 import qualified Icicle.Avalanche.Eval      as Eval
 import           Icicle.Avalanche.Statement.Simp (freevarsStmt)
 
-import           Icicle.Data (Namespace(..))
+import           Icicle.Data (asNamespace)
 import           Icicle.Common.Base
 import           Icicle.Common.Exp
 import           Icicle.Common.Type
@@ -52,7 +52,8 @@ prop_melt_prim = forAll genPrimApps $ \(prim, vals) ->
       resT = functionReturns funT
       args = fmap (\(t,v) -> XValue () t v) vals
       xpp  = makeApps () (XPrim () prim) args
-      out  = OutputName "out" (Namespace "out")
+      Just n = asNamespace "out"
+      out  = OutputName "out" n
       inits :: Statement () Var Flat.Prim
       inits = Output out resT [(xpp, resT)] 
       melts = testFresh "melt" $ do

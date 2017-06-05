@@ -135,6 +135,7 @@ data ErrorSource var
  = ErrorSourceParse       !Parsec.ParseError
  | ErrorSourceDesugar     !(Desugar.DesugarError Parsec.SourcePos var)
  | ErrorSourceCheck       !(Check.CheckError     Parsec.SourcePos var)
+ | ErrorSourceName        Text
  deriving (Show, Generic)
 
 -- deepseq stops here, we don't really care about sequencing the error
@@ -151,6 +152,8 @@ annotOfError e
      -> Desugar.annotOfError e'
     ErrorSourceCheck       e'
      -> Check.annotOfError  e'
+    ErrorSourceName _
+     -> Nothing
 
 instance (Hashable a, Eq a, IsString a, Pretty a) => Pretty (ErrorSource a) where
  pretty e
@@ -164,6 +167,9 @@ instance (Hashable a, Eq a, IsString a, Pretty a) => Pretty (ErrorSource a) wher
      ErrorSourceCheck ce
       -> "Check error:" <> line
       <> indent 2 (pretty ce)
+     ErrorSourceName t
+      -> "Name restriction error (must be a valid Ivory name):" <> line
+      <> indent 2 (pretty t)
 
 --------------------------------------------------------------------------------
 
@@ -176,18 +182,21 @@ queryOfSource :: Check.CheckOptions
               -> Text
               -> Either Error (Attribute, QueryTyped Var)
 queryOfSource checkOpts dict name src namespace = do
-  parsed       <- sourceParseQT name (Namespace namespace) src
+  nsp          <- maybeToRight (ErrorSourceName namespace) (asNamespace namespace)
+  attribute    <- maybeToRight (ErrorSourceName name) (asAttributeName name)
+  parsed       <- sourceParseQT name nsp src
   desugared    <- sourceDesugarQT parsed
   (checked, _) <- sourceCheckQT checkOpts dict desugared
-  pure (Attribute name, checked)
+  pure (attribute, checked)
 
-entryOfQuery :: Attribute
-             -> QueryTyped Var
-             -> Text
-             -> DictionaryEntry
-entryOfQuery attr query nsp
+entryOfQuery ::
+     Namespace
+  -> Attribute
+  -> QueryTyped Var
+  -> DictionaryEntry
+entryOfQuery nsp attr query
   = Dict.DictionaryEntry attr
-      (Dict.VirtualDefinition (Dict.Virtual query)) (Namespace nsp)
+      (Dict.VirtualDefinition (Dict.Virtual query)) nsp
 
 -- * source
 

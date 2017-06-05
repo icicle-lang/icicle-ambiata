@@ -25,8 +25,8 @@ import qualified Data.Text.Lazy.IO as LT
 
 import           Disorder.Core.IO
 
-import           Icicle.Data (Entity(..), Attribute(..), AsAt(..), Value(..))
-import           Icicle.Data.Time (Time, renderTime)
+import           Icicle.Data
+import           Icicle.Data.Time (renderTime)
 import           Icicle.Encoding (renderValue, renderOutputValue)
 import           Icicle.Internal.Pretty
 
@@ -160,7 +160,7 @@ prop_sparse_dense_both_compile
               $ runTest wt psv
               $ TestOpts ShowInputOnError
                          ShowOutputOnError
-                         (S.PsvInputDense d (getAttribute (wtAttribute wt)))
+                         (S.PsvInputDense d (takeAttributeName (wtAttribute wt)))
                          S.DoNotAllowDupTime
            s <- liftIO
               $ runEitherT
@@ -398,8 +398,8 @@ textOfFacts entities attribute vs =
   LT.unlines (fmap (LT.intercalate "|") (fieldsOfFacts entities attribute vs))
 
 fieldsOfFacts :: [Entity] -> Attribute -> [AsAt BaseValue] -> [[LT.Text]]
-fieldsOfFacts entities (Attribute attribute) vs =
-  [ [ LT.fromStrict entity, LT.fromStrict attribute, valueText, timeText ]
+fieldsOfFacts entities attribute vs =
+  [ [ LT.fromStrict entity, LT.fromStrict (takeAttributeName attribute), valueText, timeText ]
   | Entity entity         <- entities
   , (valueText, timeText) <- textsOfValues vs ]
 
@@ -457,12 +457,12 @@ denseTextsOfValues vs =
 denseDictionary :: Attribute -> ValType -> Gen (Maybe S.PsvInputDenseDict)
 denseDictionary denseName (StructT (StructType m))
   = do missingValue <- genMissingValue
-       let n         = getAttribute denseName
+       let n         = takeAttributeName denseName
        fs           <- mapM (\(t,v) -> pure . (t,) . (,v) =<< arbitrary)
                             (Map.toList $ Map.mapKeys nameOfStructField m)
        return $ Just
               $ S.PsvInputDenseDict
-                  (Map.singleton (getAttribute denseName) fs)
+                  (Map.singleton (takeAttributeName denseName) fs)
                   (maybe Map.empty (Map.singleton n) missingValue)
                   n
 denseDictionary _ _ = return Nothing

@@ -161,9 +161,9 @@ featureMapOfDictionary (Dictionary { dictionaryEntries = ds, dictionaryFunctions
                             , ConcreteKey AnnotSource Variable
                             , ST.Type Variable
                             , Map (Name Variable) (FeatureVariable () Variable))]
-  go (DictionaryEntry (Attribute attr) (ConcreteDefinition enc _ key) _)
+  go (DictionaryEntry attr (ConcreteDefinition enc _ key) _)
    | en@(StructT st@(StructType fs)) <- sourceTypeOfEncoding enc
-   = [ ( var attr
+   = [ ( var (takeAttributeName attr)
        , key
        , baseType     $  sumT en
        , Map.fromList $  exps "fields" en
@@ -173,7 +173,7 @@ featureMapOfDictionary (Dictionary { dictionaryEntries = ds, dictionaryFunctions
 
    | otherwise
    = let e' = sourceTypeOfEncoding enc
-     in [ ( var attr
+     in [ ( var (takeAttributeName attr)
           , key
           , baseType $ sumT e'
           , Map.fromList $ exps "value" e' ) ]

@@ -18,7 +18,7 @@ import           Data.Set (Set)
 
 import           Icicle.Common.Type (ValType(..), StructType(..), StructField(..))
 
-import           Icicle.Data (Attribute(..), StructFieldType(..))
+import qualified Icicle.Data as Source
 
 import           Icicle.Storage.Dictionary.Toml.Dense (PsvInputDenseDict(..), MissingValue, PsvInputDenseFeedName)
 
@@ -258,7 +258,7 @@ seaOfReadAnyFactPsv opts config states = do
               ]
     PsvInputDense dict feed
       -> do state     <- maybeToRight (SeaDenseFeedNotUsed feed)
-                       $ List.find ((==) feed . getAttribute . stateAttribute) states
+                       $ List.find ((==) feed . Source.takeAttributeName . stateAttribute) states
             let ts     = lookupTombstones opts state
             read_sea  <- seaOfReadFactDense dict state ts
             pure $ vsep
@@ -287,7 +287,7 @@ seaOfReadAnyFactPsv opts config states = do
 
 seaOfReadNamedFactDense :: InputOpts -> SeaProgramAttribute -> Doc
 seaOfReadNamedFactDense opts state
- = let attrib = getAttribute (stateAttribute state)
+ = let attrib = Source.takeAttributeName (stateAttribute state)
        errs   = SeaInputError
                 ( vsep
                 [ "return ierror_loc_format"
@@ -319,7 +319,7 @@ seaOfReadNamedFactDense opts state
 seaOfReadFactDense :: PsvInputDenseDict -> SeaProgramAttribute -> Set Text -> Either SeaError Doc
 seaOfReadFactDense dict state tombstones = do
   let feeds  = denseDict dict
-  let attr   = getAttribute $ stateAttribute state
+  let attr   = Source.takeAttributeName . stateAttribute $ state
   fields    <- maybeToRight (SeaDenseFeedNotDefined attr $ fmap (fmap (second snd)) feeds)
              $ Map.lookup attr feeds
   input     <- checkInputType state
@@ -329,7 +329,7 @@ seaOfReadFactDense dict state tombstones = do
 
 seaOfReadFactValueDense
   :: Maybe MissingValue
-  -> [(Text, (StructFieldType, ValType))]
+  -> [(Text, (Source.StructFieldType, ValType))]
   -> [(Text, ValType)]
   -> Either SeaError Doc
 seaOfReadFactValueDense m fields vars = do
@@ -360,8 +360,8 @@ seaOfReadFactValueDense m fields vars = do
   where
     expandOptional (n, (op, t))
       = case op of
-          Optional  -> (n,OptionT t)
-          Mandatory -> (n,t)
+          Source.Optional  -> (n,OptionT t)
+          Source.Mandatory -> (n,t)
 
 seaOfReadDenseInput
  :: Maybe MissingValue
@@ -434,7 +434,7 @@ mappingOfDenseFields fields varsoup
 
 seaOfReadNamedFactSparse :: InputOpts -> [SeaProgramAttribute] -> SeaProgramAttribute -> Doc
 seaOfReadNamedFactSparse opts all_states state
- = let attrib = getAttribute (stateAttribute state)
+ = let attrib = Source.takeAttributeName (stateAttribute state)
        errs   = SeaInputError
                 ( vsep
                 [ "return ierror_loc_format"

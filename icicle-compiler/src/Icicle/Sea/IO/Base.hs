@@ -72,14 +72,14 @@ import           Icicle.Avalanche.Prim.Flat       (meltType)
 import           Icicle.Common.Type               (ValType(..), StructField(..))
 import           Icicle.Common.Type               (defaultOfType)
 
-import           Icicle.Data                      (Attribute(..), Time)
+import           Icicle.Data                      (Attribute, Time)
 
 import           Icicle.Internal.Pretty
 
 import           Icicle.Sea.Error (SeaError(..))
 import           Icicle.Sea.FromAvalanche.Prim
 import           Icicle.Sea.FromAvalanche.Program (seaOfXValue)
-import           Icicle.Sea.FromAvalanche.Base (seaOfAttributeDesc, seaOfTime)
+import           Icicle.Sea.FromAvalanche.Base
 import           Icicle.Sea.FromAvalanche.State
 import           Icicle.Sea.FromAvalanche.Type
 
@@ -183,17 +183,17 @@ defOfProgramState :: SeaProgramAttribute -> Doc
 defOfProgramState state
  = defOfVar' 1 (pretty (nameOfStateType state))
                (pretty (nameOfAttribute state)) <> ";"
- <+> "/* " <> seaOfAttributeDesc (stateAttribute state) <> " */"
+ <+> "/* " <> pretty (attributeAsSeaString (stateAttribute state)) <> " */"
 
 defOfProgramTime :: SeaProgramAttribute -> Doc
 defOfProgramTime state
  = defOfVar 0 TimeT (pretty (nameOfLastTime state)) <> ";"
- <+> "/* " <> seaOfAttributeDesc (stateAttribute state) <> " */"
+ <+> "/* " <> pretty (attributeAsSeaString (stateAttribute state)) <> " */"
 
 defOfProgramCount :: SeaProgramAttribute -> Doc
 defOfProgramCount state
   = defOfVar 0 IntT (pretty (nameOfCount state)) <> ";"
-  <+> "/* " <> seaOfAttributeDesc (stateAttribute state) <> " */"
+  <+> "/* " <> pretty (attributeAsSeaString (stateAttribute state)) <> " */"
 
 seaOfSnapshotTime :: Time -> Doc
 seaOfSnapshotTime time
@@ -250,7 +250,7 @@ seaOfAllocProgram state
                 <> " = "
                 <> calloc "max_row_count" (seaOfValType t)
 
-   in vsep [ "/* " <> seaOfAttributeDesc (stateAttribute state) <> " */"
+   in vsep [ "/* " <> pretty (attributeAsSeaString (stateAttribute state)) <> " */"
            , programs <> " = " <> calloc "max_chord_count" stype
            , ""
            , "for (iint_t ix = 0; ix < max_chord_count; ix++) {"
@@ -331,7 +331,7 @@ seaOfCollectProgram state
           , "}"
           ]
 
-   in vsep [ "/* " <> seaOfAttributeDesc (stateAttribute state) <> " */"
+   in vsep [ "/* " <> pretty (attributeAsSeaString (stateAttribute state)) <> " */"
            , "for (iint_t chord_ix = 0; chord_ix < chord_count; chord_ix++) {"
            , indent 4 $ stype <+> "*program = &fleet->" <> pname <> "[chord_ix];"
            , ""

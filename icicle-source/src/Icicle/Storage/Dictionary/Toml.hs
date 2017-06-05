@@ -15,7 +15,8 @@ module Icicle.Storage.Dictionary.Toml (
 
 import           Icicle.Common.Base
 
-import           Icicle.Data                                   (Attribute(..), Namespace(..))
+import           Icicle.Data                                   (Attribute, Namespace)
+import           Icicle.Data                                   (takeAttributeName)
 import           Icicle.Dictionary.Data
 
 import           Icicle.Internal.Pretty                        hiding ((</>))
@@ -216,7 +217,7 @@ checkKey :: CheckOptions
 checkKey checkOpts d attr nsp xx = do
   let l = Parsec.initialPos "dummy_pos_ctx"
   let p = Parsec.initialPos "dummy_pos_final"
-  let q = QueryTop (nameOf (NameBase (SP.Variable (getAttribute attr))))
+  let q = QueryTop (nameOf (NameBase (SP.Variable (takeAttributeName attr))))
                    (OutputName "dummy_output" nsp)
           -- We know the key must be of Pure or Element temporality,
           -- so it's ok to wrap it in a Group.

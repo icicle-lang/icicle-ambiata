@@ -6,9 +6,10 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Icicle.Data (
     Entity (..)
-  , Namespace (..)
-  , Attribute (..)
+  , Namespace
+  , Attribute
   , FeatureId (..)
+  , FeatureName
   , Fact (..)
   , Fact' (..)
   , AsAt (..)
@@ -20,48 +21,50 @@ module Icicle.Data (
   , StructField (..)
   , StructFieldType (..)
   , attributeOfStructField
+  , asAttributeName
+  , takeAttributeName
+  , asNamespace
+  , takeNamespace
   ) where
 
-import           Data.Text
 
 import           Icicle.Internal.Pretty
 import           Icicle.Data.Time
 
+import qualified Data.Text as Text
 import           GHC.Generics
 
 import           P
 
 
-newtype Entity =
-  Entity {
-      getEntity     :: Text
-    } deriving (Eq, Ord, Show, Generic)
+newtype Entity = Entity {
+    getEntity :: Text
+  } deriving (Eq, Ord, Show, Generic)
 
 instance Pretty Entity where
-  pretty (Entity t) = text (unpack t)
+  pretty =
+    pretty . getEntity
 
-newtype Namespace =
-  Namespace {
-      getNamespace  :: Text
-    } deriving (Eq, Ord, Show, Generic)
+newtype Namespace = Namespace {
+    getNamespace :: NamespaceName
+  } deriving (Eq, Ord, Show, Generic)
 
 instance Pretty Namespace where
-  pretty (Namespace x) = text (unpack x)
+  pretty =
+    pretty . getNamespace
 
-newtype Attribute =
-  Attribute {
-      getAttribute  :: Text
-    } deriving (Eq, Ord, Show, Generic)
+newtype Attribute = Attribute {
+    getAttribute :: FeatureName
+  } deriving (Eq, Ord, Show, Generic)
 
-data FeatureId =
-  FeatureId {
+instance Pretty Attribute where
+  pretty =
+    pretty . getAttribute
+
+data FeatureId = FeatureId {
     fidNamespace :: Namespace
   , fidAttribute :: Attribute
   } deriving (Generic)
-
-
-instance Pretty Attribute where
-  pretty (Attribute t) = text (unpack t)
 
 data Fact =
   Fact {
@@ -77,12 +80,95 @@ data Fact' =
     , factValue'     :: Text
     } deriving (Eq, Show, Generic)
 
-
 data AsAt a =
   AsAt {
       atFact :: a
     , atTime :: Time
     } deriving (Eq, Show, Generic, Functor, Foldable, Traversable)
+
+-- | A name value that must:
+--     * Be a valid Ivory feature name.
+--     * Have a conversion to a SeaName (valid C identifier).
+--
+newtype FeatureName = FeatureName {
+    getFeatureName :: Text
+  } deriving (Eq, Ord, Show)
+
+-- | As `FeatureName`, but can also be empty.
+newtype NamespaceName = NamespaceName {
+    getNamespaceName :: Text
+  } deriving (Eq, Ord, Show)
+
+instance Pretty FeatureName where
+  pretty (FeatureName x) =
+    text (Text.unpack x)
+
+instance Pretty NamespaceName where
+  pretty (NamespaceName x) =
+    text (Text.unpack x)
+
+featureNameValidHead :: Char -> Bool
+featureNameValidHead c =
+  c >= 'a' && c <= 'z'
+{-# INLINE featureNameValidHead #-}
+
+featureNameValidTail :: Char -> Bool
+featureNameValidTail c =
+  featureNameValidHead c ||
+  (c >= 'A' && c <= 'Z') ||
+  (c >= '0' && c <= '9') ||
+  (c == '-') ||
+  (c == '+') ||
+  (c == '_') ||
+  (c == '/') ||
+  (c == '%') ||
+  (c == '.') ||
+  (c == ',') ||
+  (c == '(') ||
+  (c == ')') ||
+  (c == '?')
+{-# INLINE featureNameValidTail #-}
+
+asFeatureName :: Text -> Maybe FeatureName
+asFeatureName t =
+  case Text.unpack t of
+    x:xs | featureNameValidHead x && all featureNameValidTail xs ->
+      Just (FeatureName t)
+    _ ->
+      Nothing
+{-# INLINE asFeatureName #-}
+
+asNamespaceName :: Text -> Maybe NamespaceName
+asNamespaceName t
+  | Text.null t =
+      Just (NamespaceName t)
+  | otherwise =
+      case Text.unpack t of
+        x:xs | featureNameValidHead x && all featureNameValidTail xs ->
+          Just (NamespaceName t)
+        _ ->
+          Nothing
+{-# INLINE asNamespaceName #-}
+
+asAttributeName :: Text -> Maybe Attribute
+asAttributeName t =
+  Attribute <$> asFeatureName t
+{-# INLINE asAttributeName #-}
+
+takeAttributeName :: Attribute -> Text
+takeAttributeName =
+  getFeatureName . getAttribute
+{-# INLINE takeAttributeName #-}
+
+asNamespace :: Text -> Maybe Namespace
+asNamespace t =
+  Namespace <$> asNamespaceName t
+{-# INLINE asNamespace #-}
+
+takeNamespace :: Namespace -> Text
+takeNamespace =
+  getNamespaceName . getNamespace
+{-# INLINE takeNamespace #-}
 
 --------------------------------------------------------------------------------
 

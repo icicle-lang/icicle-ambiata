@@ -117,7 +117,9 @@ instance NanEq Time where
 
 instance NanEq OutputName
 
-instance NanEq Namespace
+instance NanEq Namespace where
+  nanEq =
+    (==)
 
 instance NanEq ExceptionInfo
 

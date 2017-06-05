@@ -149,6 +149,6 @@ concreteStructs dict
       = acc
 
     mappingOfStructs (fname, fs)
-      = DenseStructEncoding (getAttribute fname)
+      = DenseStructEncoding (takeAttributeName fname)
       $ Map.fromList
-      $ fmap (\(StructField t a e) -> (getAttribute a, (t,e))) fs
+      $ fmap (\(StructField t a e) -> (takeAttributeName a, (t,e))) fs
