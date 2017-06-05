@@ -82,10 +82,13 @@ tableHeader = between (char '[') (char ']') headerValue
 
 -- | Parses the value of any header (names separated by dots), into a list of 'Text'.
 headerValue :: Parser [Text]
-headerValue = (pack <$> many1 headerNameChar) `sepBy1` (char '.')
+headerValue = (pack <$> (str <|> many1 headerNameChar)) `sepBy1` (char '.')
   where
     headerNameChar = satisfy (\c -> c /= ' ' && c /= '\t' && c /= '\n' &&
                                     c /= '[' && c /= ']'  && c /= '.'  && c /= '#')
+    str = between dQuote dQuote (many strChar)
+    strChar = try escSeq <|> try (satisfy (\c -> c /= '"' && c /= '\\'))
+    dQuote  = char '\"'
 
 
 -- | Parses a key-value assignment.
