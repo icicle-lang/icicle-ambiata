@@ -6,10 +6,9 @@ module Icicle.Sea.FromAvalanche.Base (
     SeaName
   , SeaString
   , takeSeaName
+  , takeSeaString
   , asSeaName
   , mangleToSeaName
-  , mangleToSeaNameText
-  , mangleToSeaNameDoc
   , mangleToSeaNameIx
   , attributeAsSeaString
   , seaOfChar
@@ -50,26 +49,23 @@ newtype SeaString = SeaString {
     getSeaString :: Text
  } deriving (Eq, Ord, Show)
 
-instance Pretty SeaName where
-  pretty =
-    string . Text.unpack . takeSeaName
-
-instance Pretty SeaString where
-  pretty =
-    string . Text.unpack . getSeaString
-
 takeSeaName :: SeaName -> Text
 takeSeaName = getSeaName
 
+takeSeaString :: SeaString -> Text
+takeSeaString = getSeaString
+
 seaNameValidHead :: Char -> Bool
 seaNameValidHead c =
-  c >= 'a' && c <= 'z'
+  (c >= 'a' && c <= 'z') ||
+  (c >= 'A' && c <= 'Z')
 {-# INLINE seaNameValidHead #-}
 
 seaNameValidTail :: Char -> Bool
 seaNameValidTail c =
   seaNameValidHead c ||
-  (c >= '0' && c <= '9')
+  (c >= '0' && c <= '9') ||
+  (c == '_')
 {-# INLINE seaNameValidTail #-}
 
 asSeaName :: Text -> Maybe SeaName
@@ -91,17 +87,9 @@ mangleToSeaName = SeaName . Text.pack . concatMap mangle . show . pretty
      | c >= 'A' && c <= 'Z'
      = [c]
      | c == '_'
-     = "_"
+     = "__"
      | otherwise
      = "_" <> showHex (ord c) ""
-
-mangleToSeaNameText :: Pretty n => n -> Text
-mangleToSeaNameText =
-  takeSeaName . mangleToSeaName
-
-mangleToSeaNameDoc :: Pretty n => n -> Doc
-mangleToSeaNameDoc =
-  pretty . mangleToSeaName
 
 mangleToSeaNameIx :: Pretty n => n -> Int -> SeaName
 mangleToSeaNameIx n ix = mangleToSeaName (pretty n <> text "$ix$" <> int ix)

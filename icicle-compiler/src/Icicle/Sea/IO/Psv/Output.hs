@@ -147,7 +147,7 @@ seaOfWriteProgramOutput config state = do
 
   pure $ vsep
     [ ""
-    , "/* " <> pretty (attributeAsSeaString (stateAttribute state)) <> " */"
+    , "/* " <> (prettyText . takeSeaString . attributeAsSeaString . stateAttribute $ state) <> " */"
     , stype <+> "*" <> ps <+> "=" <+> "&fleet->" <> attr <> "[chord_ix];"
     , vsep callComputes
     , ps <> "->input.new_count = 0;"
@@ -180,10 +180,10 @@ seaOfWriteOutputDense struct structIndex outName outType argTypes missing
 
 -- | Construct the struct member names for the output arguments.
 --
-structMembers :: Doc -> Text -> [ValType] -> Int -> [Doc]
+structMembers :: Doc -> SeaName -> [ValType] -> Int -> [Doc]
 structMembers struct name argTypes structIndex
   = List.take (length argTypes)
-  $ fmap (\ix -> struct <> "->" <> pretty (mangleToSeaNameIx name ix))
+  $ fmap (\ix -> struct <> "->" <> (prettyText . takeSeaName . flip mangleToSeaNameIx ix . takeSeaName $ name))
          [structIndex..]
 
 -- | Output the entity, e.g "homer|"
@@ -353,7 +353,7 @@ seaOfOutput isJSON struct structIndex outName@(OutputName name _) missing env ou
    unsupported = SeaUnsupportedOutputType outType
 
    members    = List.take (length argTypes)
-              $ fmap (\ix -> struct <> "->" <> pretty (mangleToSeaNameIx name ix)) [structIndex..]
+              $ fmap (\ix -> struct <> "->" <> (prettyText . takeSeaName . mangleToSeaNameIx name $ ix)) [structIndex..]
 
    arrayCount x
      = "(" <> x <> ")" <> "->count"

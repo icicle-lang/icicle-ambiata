@@ -31,6 +31,7 @@ import qualified Icicle.Test.Source.Progress
 import qualified Icicle.Test.Source.Convert
 import qualified Icicle.Test.Source.History
 
+import qualified Icicle.Test.Sea.Name
 import qualified Icicle.Test.Sea.Psv
 import qualified Icicle.Test.Sea.PsvFission
 import qualified Icicle.Test.Sea.Zebra
@@ -68,6 +69,7 @@ main
         , Icicle.Test.Avalanche.Melt.tests
         , Icicle.Test.Avalanche.MeltPrim.tests
 
+        , Icicle.Test.Sea.Name.tests
         , Icicle.Test.Sea.Psv.tests
         , Icicle.Test.Sea.PsvFission.tests
         , Icicle.Test.Sea.Zebra.tests

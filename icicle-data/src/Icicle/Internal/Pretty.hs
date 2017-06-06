@@ -24,6 +24,7 @@ module Icicle.Internal.Pretty (
     , annSepByComma
     , annTypeArgs
     , annotateTypeArgs
+    , prettyText
     ) where
 
 -- The one we want to export without <> or <$>
@@ -58,6 +59,9 @@ annTypeArgs = annSepByComma . fmap pretty
 
 annotateTypeArgs :: Pretty a => [a] -> Doc -> Doc
 annotateTypeArgs ts = annotate (annTypeArgs ts)
+
+prettyText :: Text -> Doc
+prettyText = string . T.unpack
 
 instance Monoid Doc where
  mempty  =  PJOIN.empty

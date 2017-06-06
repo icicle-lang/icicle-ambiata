@@ -108,7 +108,7 @@ seaOfRead index state = vsep
   where
     n = pretty (nameOfAttribute state)
     i = pretty index
-    a = pretty (attributeAsSeaString (stateAttribute state))
+    a = prettyText . takeSeaString . attributeAsSeaString . stateAttribute $ state
 
 -- chords loop:
 --

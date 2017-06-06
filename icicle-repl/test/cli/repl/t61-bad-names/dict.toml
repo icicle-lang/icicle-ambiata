@@ -4,10 +4,10 @@ import = []
 
 namespace = "test"
 
-[fact.x$b]
+[fact.x+(b)]
   encoding = "string"
   tombstone = "T"
 
-[fact.a!]
+[fact.a???b]
   encoding = "string"
   tombstone = "T"

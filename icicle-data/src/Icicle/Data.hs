@@ -64,7 +64,7 @@ instance Pretty Attribute where
 data FeatureId = FeatureId {
     fidNamespace :: Namespace
   , fidAttribute :: Attribute
-  } deriving (Generic)
+  } deriving (Eq, Ord, Show, Generic)
 
 data Fact =
   Fact {
@@ -92,12 +92,12 @@ data AsAt a =
 --
 newtype FeatureName = FeatureName {
     getFeatureName :: Text
-  } deriving (Eq, Ord, Show)
+  } deriving (Eq, Ord, Show, Generic)
 
 -- | As `FeatureName`, but can also be empty.
 newtype NamespaceName = NamespaceName {
     getNamespaceName :: Text
-  } deriving (Eq, Ord, Show)
+  } deriving (Eq, Ord, Show, Generic)
 
 instance Pretty FeatureName where
   pretty (FeatureName x) =
