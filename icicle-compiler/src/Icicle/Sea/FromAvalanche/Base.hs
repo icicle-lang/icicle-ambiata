@@ -89,7 +89,7 @@ mangleToSeaName = SeaName . Text.pack . concatMap mangle . show . pretty
      | c == '_'
      = "__"
      | otherwise
-     = "_" <> showHex (ord c) ""
+     = "u_" <> showHex (ord c) ""
 
 mangleToSeaNameIx :: Pretty n => n -> Int -> SeaName
 mangleToSeaNameIx n ix = mangleToSeaName (pretty n <> text "$ix$" <> int ix)
