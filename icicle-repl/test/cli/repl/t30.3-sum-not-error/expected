@@ -47,14 +47,14 @@ typedef struct {
 
     /* resumables: values */
     idouble_t        res_0_0_accu_24perhapsu_24convu_245u_24simpflatu_246;
-    ibool_t          res_0_0_accu_24perhapsu_24convu_245u_24simpflatu_244;
     iint_t           res_0_0_accu_24perhapsu_24convu_245u_24simpflatu_245;
+    ibool_t          res_0_0_accu_24perhapsu_24convu_245u_24simpflatu_244;
 
     /* resumables: has flags */
     ibool_t          has_flags_start_0_0;
     ibool_t          has_0_0_accu_24perhapsu_24convu_245u_24simpflatu_246;
-    ibool_t          has_0_0_accu_24perhapsu_24convu_245u_24simpflatu_244;
     ibool_t          has_0_0_accu_24perhapsu_24convu_245u_24simpflatu_245;
+    ibool_t          has_0_0_accu_24perhapsu_24convu_245u_24simpflatu_244;
     ibool_t          has_flags_end_0_0;
 
 
@@ -68,21 +68,21 @@ iint_t size_of_state_iattribute_0 ()
 #line 1 "compute function #0 - repl icompute_attribute_0_compute_0"
 void icompute_attribute_0_compute_0(iattribute_0_t *s)
 {
-    ibool_t          flatu_240u_24simpflatu_2413;
-    idouble_t        flatu_240u_24simpflatu_2412;
-    iint_t           flatu_240u_24simpflatu_2411;
-    ibool_t          flatu_240u_24simpflatu_2410;
-    idouble_t        flatu_240u_24simpflatu_2415;
-    iint_t           flatu_240u_24simpflatu_2414;
-    iint_t           perhapsu_24convu_245u_24avalu_240u_24simpflatu_248;
     idouble_t        perhapsu_24convu_245u_24avalu_240u_24simpflatu_249;
+    iint_t           perhapsu_24convu_245u_24avalu_240u_24simpflatu_248;
     ibool_t          perhapsu_24convu_245u_24avalu_240u_24simpflatu_247;
-    idouble_t        accu_24perhapsu_24convu_245u_24simpflatu_246;
-    ibool_t          accu_24perhapsu_24convu_245u_24simpflatu_244;
-    iint_t           accu_24perhapsu_24convu_245u_24simpflatu_245;
-    idouble_t        perhapsu_24convu_245u_24simpflatu_2418;
     iint_t           perhapsu_24convu_245u_24simpflatu_2417;
+    idouble_t        perhapsu_24convu_245u_24simpflatu_2418;
     ibool_t          perhapsu_24convu_245u_24simpflatu_2416;
+    idouble_t        accu_24perhapsu_24convu_245u_24simpflatu_246;
+    iint_t           accu_24perhapsu_24convu_245u_24simpflatu_245;
+    ibool_t          accu_24perhapsu_24convu_245u_24simpflatu_244;
+    idouble_t        flatu_240u_24simpflatu_2415;
+    idouble_t        flatu_240u_24simpflatu_2412;
+    iint_t           flatu_240u_24simpflatu_2414;
+    iint_t           flatu_240u_24simpflatu_2411;
+    ibool_t          flatu_240u_24simpflatu_2413;
+    ibool_t          flatu_240u_24simpflatu_2410;
 
     anemone_mempool_t *mempool                = s->mempool;
     itime_t          convu_243                = s->input.convu_243;
