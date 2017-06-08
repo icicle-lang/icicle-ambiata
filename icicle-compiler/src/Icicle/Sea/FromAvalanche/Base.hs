@@ -2,6 +2,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards #-}
+{-# LANGUAGE ViewPatterns #-}
 module Icicle.Sea.FromAvalanche.Base (
     SeaName
   , SeaString
@@ -22,7 +23,7 @@ module Icicle.Sea.FromAvalanche.Base (
   , tuple
   ) where
 
-import           Data.Char (ord)
+import           Data.Char (ord, isAlpha)
 import qualified Data.List as List
 import qualified Data.Text as Text
 
@@ -77,19 +78,30 @@ asSeaName t =
       Nothing
 
 mangleToSeaName :: Pretty n => n -> SeaName
-mangleToSeaName = SeaName . Text.pack . concatMap mangle . show . pretty
-  where
-    mangle c
-     | c >= '0' && c <= '9'
-     = [c]
-     | c >= 'a' && c <= 'z'
-     = [c]
-     | c >= 'A' && c <= 'Z'
-     = [c]
-     | c == '_'
-     = "__"
-     | otherwise
-     = "u_" <> showHex (ord c) ""
+mangleToSeaName (show . pretty -> n) =
+  case n of
+    [] ->
+      -- Technically not right as "" is not a legal C identifier.
+      -- This is just how we chose to treat "".
+      SeaName ""
+    x:_  ->
+      let
+        n'
+          | isAlpha x = n
+          | otherwise = "x_" <> n
+        mangle c
+          | c >= '0' && c <= '9'
+          = [c]
+          | c >= 'a' && c <= 'z'
+          = [c]
+          | c >= 'A' && c <= 'Z'
+          = [c]
+          | c == '_'
+          = "__"
+          | otherwise
+          = "u_" <> showHex (ord c) ""
+      in
+        SeaName . Text.pack . concatMap mangle $ n'
 
 mangleToSeaNameIx :: Pretty n => n -> Int -> SeaName
 mangleToSeaNameIx n ix = mangleToSeaName (pretty n <> text "$ix$" <> int ix)
