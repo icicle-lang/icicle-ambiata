@@ -1,11 +1,12 @@
 [master]
-  runner = "s3://ambiata-dispensary-v2/dist/master/master-haskell/linux/x86_64/20170104233312-ee8addd/master-haskell-20170104233312-ee8addd"
+  runner = "s3://ambiata-dispensary-v2/dist/master/master-haskell/linux/x86_64/20170609055811-189e18a/master-haskell-20170609055811-189e18a"
   version = 1
-  sha1 = "3b707a2ba2d74ee13fe81a658bed191a5808e6f5"
+  sha1 = "b11f877a5f5cfda3594edbb11b911ccb2d3ee90f"
 
 [build.dist-7-10]
   GHC_VERSION="7.10.2"
-  CABAL_VERSION="1.22.4.0"
+  CABAL_VERSION="1.24.0.0"
+  CACHE = "true"
   ICICLE_CC_OPTIONS = "-Wall -Werror"
   PUBLISH = "true"
   PUBLISH_S3 = "$AMBIATA_ARTEFACTS_MASTER"
@@ -14,10 +15,12 @@
 [build.dist-8-0]
   GHC_VERSION = "8.0.1"
   CABAL_VERSION = "1.24.0.0"
+  CACHE = "true"
 
 [build.branches-7-10]
   GHC_VERSION = "7.10.2"
-  CABAL_VERSION = "1.22.4.0"
+  CABAL_VERSION = "1.24.0.0"
+  CACHE = "true"
   ICICLE_CC_OPTIONS = "-Wall -Werror"
   PUBLISH = "true"
   PUBLISH_S3 = "$AMBIATA_ARTEFACTS_BRANCHES"
@@ -26,6 +29,7 @@
 [build.branches-8-0]
   GHC_VERSION = "8.0.1"
   CABAL_VERSION = "1.24.0.0"
+  CACHE = "true"
 
 #
 # Swadling Territory
