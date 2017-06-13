@@ -1,7 +1,7 @@
 [master]
-  runner = "s3://ambiata-dispensary-v2/dist/master/master-haskell/linux/x86_64/20170609055811-189e18a/master-haskell-20170609055811-189e18a"
+  runner = "s3://ambiata-dispensary-v2/dist/master/master-haskell/linux/x86_64/20170613033625-fddfe03/master-haskell-20170613033625-fddfe03"
   version = 1
-  sha1 = "b11f877a5f5cfda3594edbb11b911ccb2d3ee90f"
+  sha1 = "0a9e91a8c3373a402c5f2c4fc8d9aabb210c03b3"
 
 [build.dist-7-10]
   GHC_VERSION="7.10.2"
