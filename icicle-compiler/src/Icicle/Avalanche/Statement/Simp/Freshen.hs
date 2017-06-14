@@ -44,9 +44,12 @@ freshenS payload a_fresh statements
     ForeachInts t n from to ss
      -> do (n', go') <- insertName n
            ForeachInts t n' <$> goX from <*> goX to <*> go' ss
-    -- TODO
-    ForeachFacts binds vt ty ss
-     -> ForeachFacts binds vt ty <$> go ss
+
+    ForeachFacts (FactBinds fbTime fbId fbValues) vt ty ss
+     -> do (fbTime',   payload1) <- insertName'     fbTime   payload
+           (fbId',     payload2) <- insertName'     fbId     payload1
+           (fbValues', payload3) <- insertFactBinds fbValues payload2
+           ForeachFacts (FactBinds fbTime' fbId' fbValues') vt ty <$> freshenS payload3 a_fresh ss
 
     Block ss
      -> Block <$> mapM go ss
@@ -80,14 +83,24 @@ freshenS payload a_fresh statements
 
   go = freshenS payload a_fresh
 
+  insertFactBinds [] p = return ([], p)
+  insertFactBinds ((n,t):fbs) p = do
+   (n',p')  <- insertName' n p
+   (fbs',p'') <- insertFactBinds fbs p'
+   return ((n',t):fbs', p'')
+
   insertName n = do
+    (n',payload') <- insertName' n payload
+    return (n', freshenS payload' a_fresh)
+
+  insertName' n payload0 = do
     us <- get
     case Set.member n us of
      True -> do
       n' <- lift fresh
-      let payload' = Map.insert n (XVar a_fresh n') payload
-      return (n', freshenS payload' a_fresh)
+      let payload' = Map.insert n (XVar a_fresh n') payload0
+      return (n', payload')
      False -> do
       put (Set.insert n us)
-      return (n, freshenS payload a_fresh)
+      return (n, payload0)
 

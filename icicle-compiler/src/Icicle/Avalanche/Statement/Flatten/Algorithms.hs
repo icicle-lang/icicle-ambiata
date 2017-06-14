@@ -430,11 +430,11 @@ avalancheHeapSort_ a_fresh t array extras = do
     maxHeap n_acc_arr n_acc_heapSize n_acc_index n_acc_av tv
      = do n_acc_left      <- freshPrefix "max_heap_acc_left"
           n_acc_right     <- freshPrefix "max_heap_acc_right"
-          n_acc_largest   <- freshPrefix "max_heap_acc_largest "
+          n_acc_largest   <- freshPrefix "max_heap_acc_largest"
           n_acc_end       <- freshPrefix "max_heap_acc_end"
           n_loc_left      <- freshPrefix "max_heap_left"
           n_loc_right     <- freshPrefix "max_heap_right"
-          n_loc_largest   <- freshPrefix "max_heap_largest "
+          n_loc_largest   <- freshPrefix "max_heap_largest"
           n_loc_arr       <- freshPrefix "max_heap_array"
           n_loc_av        <- freshPrefix "max_heap_av"
           n_loc_heapSize  <- freshPrefix "max_heap_size"
