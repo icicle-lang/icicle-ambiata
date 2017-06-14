@@ -217,7 +217,7 @@ coreOfDictionary :: Source.IcicleCompileOptions
                  -> Dictionary
                  -> Either Error (Map Attribute (NonEmpty (Source.CoreProgramUntyped Source.Var)))
 coreOfDictionary opts dict = do
-  let virtuals   = fmap (second Dict.unVirtual) (Dict.getVirtualFeatures dict)
+  let virtuals   = fmap (second Dict.unVirtual) (Dict.virtualFeaturesIn dict)
   let fusionOpts = Source.icicleFusionOptions opts
 
   core  <- parTraverse (coreOfSource opts dict) virtuals
@@ -283,7 +283,7 @@ avalancheOfDictionary :: Source.IcicleCompileOptions
                       -> Dictionary
                       -> Either Error (Map Attribute (NonEmpty (AvalProgramTyped Source.Var Flat.Prim)))
 avalancheOfDictionary opts dict = do
-  let virtuals   = fmap (second Dict.unVirtual) (Dict.getVirtualFeatures dict)
+  let virtuals   = fmap (second Dict.unVirtual) (Dict.virtualFeaturesIn dict)
   let fusionOpts = Source.icicleFusionOptions opts
 
   core      <- parTraverse (coreOfSource opts dict)   virtuals

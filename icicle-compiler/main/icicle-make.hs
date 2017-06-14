@@ -22,7 +22,7 @@ import           Icicle.Compiler (ErrorCompile, avalancheOfDictionary)
 import           Icicle.Compiler.Source (defaultCompileOptions)
 import qualified Icicle.Compiler.Source as Source
 import           Icicle.Data.Time (timeOfText)
-import           Icicle.Dictionary (tombstonesOfDictionary, getConcreteFeatures)
+import           Icicle.Dictionary (tombstonesOfDictionary, orderedConcreteFeaturesIn)
 import           Icicle.Sea.Eval
 import           Icicle.Source.Checker (optionSmallData)
 import           Icicle.Storage.Dictionary.Toml (DictionaryImportError, ImplicitPrelude(..))
@@ -92,7 +92,7 @@ main =
 
     let
       attrs =
-        List.sort $ getConcreteFeatures loadedDictionary
+        List.sort $ orderedConcreteFeaturesIn loadedDictionary
 
     let
       dateText =

@@ -12,8 +12,11 @@ module Icicle.Dictionary.Data (
   , AnnotSource
   , unkeyed
   , tombstonesOfDictionary
-  , getVirtualFeatures
-  , getConcreteFeatures
+  , orderedConcreteFeaturesIn
+  , orderedVirtualFeaturesIn
+  , concreteFeaturesIn
+  , virtualFeaturesIn
+  , canonicalOrderOf
   , featureMapOfDictionary
   , parseFact
   , prettyDictionarySummary
@@ -39,6 +42,7 @@ import           Icicle.Encoding
 
 import           Icicle.Internal.Pretty
 
+import qualified Data.List                          as List
 import           Data.Map (Map)
 import qualified Data.Map                           as Map
 import           Data.Set (Set)
@@ -99,25 +103,61 @@ tombstonesOfDictionary =
 
 --------------------------------------------------------------------------------
 
--- | Get all virtual features from dictionary
-getVirtualFeatures :: Dictionary -> [(Attribute, Virtual)]
-getVirtualFeatures (Dictionary { dictionaryEntries = fs })
- = P.concatMap getV fs
- where
-  getV (DictionaryEntry a (VirtualDefinition v) _)
-   = [(a,v)]
-  getV _
-   = []
+virtualFeaturesIn :: Dictionary -> [(Attribute, Virtual)]
+virtualFeaturesIn = getVirtualFeatures . dictionaryEntries
 
--- | Get concrete features
-getConcreteFeatures :: Dictionary -> [Attribute]
-getConcreteFeatures (Dictionary { dictionaryEntries = fs })
- = P.concatMap get fs
- where
-  get (DictionaryEntry a ConcreteDefinition{} _)
-   = [a]
-  get _
-   = []
+concreteFeaturesIn :: Dictionary -> [Attribute]
+concreteFeaturesIn = getConcreteFeatures . dictionaryEntries
+
+getVirtualFeatures :: [DictionaryEntry] -> [(Attribute, Virtual)]
+getVirtualFeatures =
+  let
+    add x acc =
+      case x of
+        DictionaryEntry a (VirtualDefinition v) _ ->
+          (a,v):acc
+        _ ->
+          acc
+  in
+    foldr add []
+
+getConcreteFeatures :: [DictionaryEntry] -> [Attribute]
+getConcreteFeatures =
+  let
+    add x acc =
+      case x of
+        DictionaryEntry a ConcreteDefinition{} _ ->
+          a:acc
+        _ ->
+          acc
+  in
+    foldr add []
+
+orderedVirtualFeaturesIn :: Dictionary -> [(Attribute, Virtual)]
+orderedVirtualFeaturesIn =
+  getVirtualFeatures . canonicalOrderOf . dictionaryEntries
+
+orderedConcreteFeaturesIn :: Dictionary -> [Attribute]
+orderedConcreteFeaturesIn =
+  getConcreteFeatures . canonicalOrderOf . dictionaryEntries
+
+-- | Order dictionary entries by namspace, and in each namespace order by name.
+--
+canonicalOrderOf :: [DictionaryEntry] -> [DictionaryEntry]
+canonicalOrderOf entries =
+  let
+    cmpNamespace =
+      comparing dictionaryEntryNamespace
+    cmpName =
+      comparing dictionaryEntryAttribute
+    eqNamespace =
+      (==) `on` dictionaryEntryNamespace
+  in
+    List.concat .
+    fmap (List.sortBy cmpName) .
+    List.groupBy eqNamespace .
+    List.sortBy cmpNamespace $
+      entries
 
 parseFact :: Dictionary -> Fact' -> Either DecodeError Fact
 parseFact (Dictionary { dictionaryEntries = dict }) fact'
