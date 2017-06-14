@@ -19,14 +19,18 @@ import              Data.Map.Strict (Map)
 import qualified    Data.Map.Strict as Map
 import              Data.Hashable (Hashable)
 
+import              Control.Monad.Trans.Class (lift)
+import              Control.Monad.Trans.State
+
 
 -- | Freshen names as required
---
+-- Set Name     - all seen names, including in other binding contexts - not just shadowing.
+-- Map Name Exp - current substitution, just shadowing
 freshen :: (Hashable n, Eq n) => a -> Statement a n p -> Fresh n (Statement a n p)
-freshen = freshenS mempty mempty
+freshen a s = evalStateT (freshenS mempty a s) mempty
 
-freshenS :: (Hashable n, Eq n) => Set (Name n) -> Map (Name n) (Exp a n p) -> a -> Statement a n p -> Fresh n (Statement a n p)
-freshenS us payload a_fresh statements
+freshenS :: (Hashable n, Eq n) => Map (Name n) (Exp a n p) -> a -> Statement a n p -> StateT (Set (Name n)) (Fresh n) (Statement a n p)
+freshenS payload a_fresh statements
  = case statements of
     If x ts fs
      -> If <$> goX x <*> go ts <*> go fs
@@ -72,15 +76,18 @@ freshenS us payload a_fresh statements
    | Map.null payload
    = return x
    | otherwise
-   = subst (annotOfExp x) payload x
+   = lift $ subst (annotOfExp x) payload x
 
-  go = freshenS us payload a_fresh
+  go = freshenS payload a_fresh
 
-  insertName n
-   | Set.member n us
-   = do n' <- fresh
-        let payload' = Map.insert n (XVar a_fresh n') payload
-        return (n', freshenS us payload' a_fresh)
-   | otherwise
-   = do return (n, freshenS (Set.insert n us) payload a_fresh)
+  insertName n = do
+    us <- get
+    case Set.member n us of
+     True -> do
+      n' <- lift fresh
+      let payload' = Map.insert n (XVar a_fresh n') payload
+      return (n', freshenS payload' a_fresh)
+     False -> do
+      put (Set.insert n us)
+      return (n, freshenS payload a_fresh)
 
