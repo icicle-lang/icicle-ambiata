@@ -303,13 +303,15 @@ avalancheHeapSortArray a_fresh stm flatX t array
       n_acc_arr <- freshPrefix "sort_acc_array"
       n_loc_arr <- freshPrefix "sort_array_result"
 
+      copyArr      <- copyArrayAcc a_fresh t n_acc_arr
       sort         <- avalancheHeapSort_ a_fresh t n_acc_arr Nothing
       array_sorted <- stm (xVar n_loc_arr)
 
       return
         $ initArr t n_acc_arr array'
         $ Block
-        [ sort
+        [ copyArr
+        , sort
         , readArr t n_loc_arr n_acc_arr array_sorted ]
   where
     Flat.FlatCons{..} = Flat.flatCons a_fresh
