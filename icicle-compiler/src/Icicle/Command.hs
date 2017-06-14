@@ -52,7 +52,6 @@ import           Control.Monad.Morph (hoist)
 
 import           Data.Map (Map)
 import qualified Data.Map as Map
-import qualified Data.List as List
 import           Data.List.NonEmpty ( NonEmpty(..) )
 import qualified Data.Text as Text
 import qualified Data.Text.IO as Text
@@ -284,7 +283,7 @@ compileFleet dictionary format input chords = do
   avalanche <- hoistEither $ compileAvalanche dictionary defaultCompilerFlags
   let avalancheL = Map.toList avalanche
 
-  let attrs = List.sort $ getConcreteFeatures dictionary
+  let attrs = orderedConcreteFeaturesIn dictionary
 
   code  <- firstEitherT IcicleSeaError (hoistEither (codeOfPrograms cfg attrs avalancheL))
   fleet <- firstEitherT IcicleSeaError (seaCompile CacheSea cfg attrs avalanche chords)
@@ -353,7 +352,7 @@ compileDictionary dictionaryPath iformat oformat scope cflags = do
   let cfg = HasInput format (InputOpts AllowDupTime (tombstonesOfDictionary dictionary)) ()
   avalanche <- fmap Map.toList . hoistEither $ compileAvalanche dictionary cflags
 
-  let attrs = List.sort $ getConcreteFeatures dictionary
+  let attrs = orderedConcreteFeaturesIn dictionary
 
   firstT IcicleSeaError . hoistEither $ codeOfPrograms cfg attrs avalanche
 
