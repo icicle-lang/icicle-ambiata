@@ -25,7 +25,10 @@ checkProgram
         -> Either (ProgramError a n) [(OutputName, Type)]
 checkProgram p
  = do   -- Check precomputations, starting with an empty environment
-        let env0 = Map.singleton (snaptimeName p) (funOfVal $ TimeT)
+        let env0 = Map.fromList
+                 [ (snaptimeName p, funOfVal TimeT)
+                 , (maxMapSize   p, funOfVal IntT) ]
+
         pres    <- checkExps ProgramErrorPre env0 (P.precomps     p)
 
         let ins k v env = insertOrDie ProgramErrorNameNotUnique env k v
@@ -34,7 +37,6 @@ checkProgram p
         kenv    <- ins (factValName  p) (funOfVal $ PairT (inputType p) TimeT) Map.empty
                >>= ins (factIdName   p) (funOfVal $ FactIdentifierT)
                >>= ins (factTimeName p) (funOfVal $ TimeT)
-               >>= ins (maxMapSize p)   (funOfVal $ IntT)
 
         -- Check stream computations with precomputations in environment
         stms    <- checkStreams pres kenv (P.streams      p)
