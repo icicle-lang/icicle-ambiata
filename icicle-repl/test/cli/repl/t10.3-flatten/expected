@@ -395,27 +395,27 @@ for_facts (conv/2@{Time}, conv/1@{FactIdentifier}, conv/0/simpflat/127@{Error}, 
     write map_insert_acc_bs_found/flat/4 = False@{Bool};
     write map_insert_acc_bs_index/flat/3 = bs_loc_ins/flat/16;
   }
-  read map_insert_loc_bs_found/flat/8 = map_insert_acc_bs_found/flat/4 [Bool];
-  read map_insert_loc_bs_index/flat/7 = map_insert_acc_bs_index/flat/3 [Int];
-  if (eq#@{Bool} map_insert_loc_bs_found/flat/8 (True@{Bool}))
+  read flat/101 = map_insert_acc_bs_found/flat/4 [Bool];
+  read flat/102 = map_insert_acc_bs_index/flat/3 [Int];
+  if (eq#@{Bool} flat/101 (True@{Bool}))
   {
-    let simpflat/281 = unsafe_Array_index#@{Buf 2 FactIdentifier} map_insert_loc_vals/flat/6/simpflat/52 map_insert_loc_bs_index/flat/7;
-    let simpflat/283 = unsafe_Array_index#@{Buf 2 Error} map_insert_loc_vals/flat/6/simpflat/53 map_insert_loc_bs_index/flat/7;
-    let simpflat/285 = unsafe_Array_index#@{Buf 2 Int} map_insert_loc_vals/flat/6/simpflat/54 map_insert_loc_bs_index/flat/7;
+    let simpflat/281 = unsafe_Array_index#@{Buf 2 FactIdentifier} map_insert_loc_vals/flat/6/simpflat/52 flat/102;
+    let simpflat/283 = unsafe_Array_index#@{Buf 2 Error} map_insert_loc_vals/flat/6/simpflat/53 flat/102;
+    let simpflat/285 = unsafe_Array_index#@{Buf 2 Int} map_insert_loc_vals/flat/6/simpflat/54 flat/102;
     let simpflat/292 = Buf_push#@{Buf 2 FactIdentifier} simpflat/281 conv/1;
     let simpflat/295 = Buf_push#@{Buf 2 Error} simpflat/283 conv/0/simpflat/127;
     let simpflat/298 = Buf_push#@{Buf 2 Int} simpflat/285 conv/0/simpflat/128;
     read map_insert_acc_vals/flat/2/simpflat/48 = map_insert_acc_vals/flat/2/simpflat/48 [Array (Buf 2 FactIdentifier)];
     
-    write map_insert_acc_vals/flat/2/simpflat/48 = Array_put_immutable#@{Buf 2 FactIdentifier} map_insert_acc_vals/flat/2/simpflat/48 map_insert_loc_bs_index/flat/7 simpflat/292;
+    write map_insert_acc_vals/flat/2/simpflat/48 = Array_put_immutable#@{Buf 2 FactIdentifier} map_insert_acc_vals/flat/2/simpflat/48 flat/102 simpflat/292;
     read map_insert_acc_vals/flat/2/simpflat/49 = map_insert_acc_vals/flat/2/simpflat/49 [Array (Buf 2 Error)];
     
     
-    write map_insert_acc_vals/flat/2/simpflat/49 = Array_put_immutable#@{Buf 2 Error} map_insert_acc_vals/flat/2/simpflat/49 map_insert_loc_bs_index/flat/7 simpflat/295;
+    write map_insert_acc_vals/flat/2/simpflat/49 = Array_put_immutable#@{Buf 2 Error} map_insert_acc_vals/flat/2/simpflat/49 flat/102 simpflat/295;
     read map_insert_acc_vals/flat/2/simpflat/50 = map_insert_acc_vals/flat/2/simpflat/50 [Array (Buf 2 Int)];
     
     
-    write map_insert_acc_vals/flat/2/simpflat/50 = Array_put_immutable#@{Buf 2 Int} map_insert_acc_vals/flat/2/simpflat/50 map_insert_loc_bs_index/flat/7 simpflat/298;
+    write map_insert_acc_vals/flat/2/simpflat/50 = Array_put_immutable#@{Buf 2 Int} map_insert_acc_vals/flat/2/simpflat/50 flat/102 simpflat/298;
     
     
     
@@ -451,7 +451,7 @@ for_facts (conv/2@{Time}, conv/1@{FactIdentifier}, conv/0/simpflat/127@{Error}, 
       let simpflat/336 = unsafe_Array_index#@{Buf 2 Int} copy_array/flat/30/simpflat/62 (0@{Int});
       write map_insert_acc_vals/flat/2/simpflat/50 = Array_put_immutable#@{Buf 2 Int} copy_array/flat/30/simpflat/62 (0@{Int}) simpflat/336;
     }
-    foreach (for_counter/flat/31 in map_insert_size/flat/10 .. map_insert_loc_bs_index/flat/7)
+    foreach (for_counter/flat/31 in map_insert_size/flat/10 .. flat/102)
     {
       read update_acc/flat/32 = map_insert_acc_keys/flat/1 [Array Time];
       let simpflat/183 = sub#@{Int} for_counter/flat/31 (1@{Int});
@@ -469,32 +469,32 @@ for_facts (conv/2@{Time}, conv/1@{FactIdentifier}, conv/0/simpflat/127@{Error}, 
     }
     read map_insert_acc_keys/flat/1 = map_insert_acc_keys/flat/1 [Array Time];
     
-    write map_insert_acc_keys/flat/1 = Array_put_mutable#@{Time} map_insert_acc_keys/flat/1 map_insert_loc_bs_index/flat/7 conv/0/simpflat/129;
+    write map_insert_acc_keys/flat/1 = Array_put_mutable#@{Time} map_insert_acc_keys/flat/1 flat/102 conv/0/simpflat/129;
     
     read map_insert_acc_vals/flat/2/simpflat/48 = map_insert_acc_vals/flat/2/simpflat/48 [Array (Buf 2 FactIdentifier)];
     
-    write map_insert_acc_vals/flat/2/simpflat/48 = Array_put_mutable#@{Buf 2 FactIdentifier} map_insert_acc_vals/flat/2/simpflat/48 map_insert_loc_bs_index/flat/7 simpflat/268;
+    write map_insert_acc_vals/flat/2/simpflat/48 = Array_put_mutable#@{Buf 2 FactIdentifier} map_insert_acc_vals/flat/2/simpflat/48 flat/102 simpflat/268;
     read map_insert_acc_vals/flat/2/simpflat/49 = map_insert_acc_vals/flat/2/simpflat/49 [Array (Buf 2 Error)];
     
     
-    write map_insert_acc_vals/flat/2/simpflat/49 = Array_put_mutable#@{Buf 2 Error} map_insert_acc_vals/flat/2/simpflat/49 map_insert_loc_bs_index/flat/7 simpflat/271;
+    write map_insert_acc_vals/flat/2/simpflat/49 = Array_put_mutable#@{Buf 2 Error} map_insert_acc_vals/flat/2/simpflat/49 flat/102 simpflat/271;
     read map_insert_acc_vals/flat/2/simpflat/50 = map_insert_acc_vals/flat/2/simpflat/50 [Array (Buf 2 Int)];
     
     
-    write map_insert_acc_vals/flat/2/simpflat/50 = Array_put_mutable#@{Buf 2 Int} map_insert_acc_vals/flat/2/simpflat/50 map_insert_loc_bs_index/flat/7 simpflat/274;
+    write map_insert_acc_vals/flat/2/simpflat/50 = Array_put_mutable#@{Buf 2 Int} map_insert_acc_vals/flat/2/simpflat/50 flat/102 simpflat/274;
     
     
     
     
   }
-  read map_insert_loc_keys/flat/5 = map_insert_acc_keys/flat/1 [Array Time];
-  read map_insert_loc_vals/flat/6/simpflat/72 = map_insert_acc_vals/flat/2/simpflat/48 [Array (Buf 2 FactIdentifier)];
-  read map_insert_loc_vals/flat/6/simpflat/73 = map_insert_acc_vals/flat/2/simpflat/49 [Array (Buf 2 Error)];
-  read map_insert_loc_vals/flat/6/simpflat/74 = map_insert_acc_vals/flat/2/simpflat/50 [Array (Buf 2 Int)];
-  write acc/conv/40/simpflat/38 = map_insert_loc_keys/flat/5;
-  write acc/conv/40/simpflat/39 = map_insert_loc_vals/flat/6/simpflat/72;
-  write acc/conv/40/simpflat/40 = map_insert_loc_vals/flat/6/simpflat/73;
-  write acc/conv/40/simpflat/41 = map_insert_loc_vals/flat/6/simpflat/74;
+  read flat/103 = map_insert_acc_keys/flat/1 [Array Time];
+  read flat/104/simpflat/72 = map_insert_acc_vals/flat/2/simpflat/48 [Array (Buf 2 FactIdentifier)];
+  read flat/104/simpflat/73 = map_insert_acc_vals/flat/2/simpflat/49 [Array (Buf 2 Error)];
+  read flat/104/simpflat/74 = map_insert_acc_vals/flat/2/simpflat/50 [Array (Buf 2 Int)];
+  write acc/conv/40/simpflat/38 = flat/103;
+  write acc/conv/40/simpflat/39 = flat/104/simpflat/72;
+  write acc/conv/40/simpflat/40 = flat/104/simpflat/73;
+  write acc/conv/40/simpflat/41 = flat/104/simpflat/74;
 }
 read acc/conv/40/flat/36/simpflat/77 = acc/conv/40/simpflat/39 [Array (Buf 2 FactIdentifier)];
 foreach (flat/38 in 0@{Int} .. Array_length#@{Buf 2 FactIdentifier} acc/conv/40/flat/36/simpflat/77)
@@ -570,12 +570,12 @@ foreach (for_counter/flat/49 in 0@{Int} .. Array_length#@{Time} conv/40/simpflat
       write flat/55/simpflat/97 = flat/95/simpflat/109;
       write flat/55/simpflat/98 = flat/95/simpflat/110;
     }
-    read flat/55/simpflat/113 = flat/55/simpflat/97 [Error];
-    read flat/55/simpflat/114 = flat/55/simpflat/98 [Int];
+    read flat/105/simpflat/113 = flat/55/simpflat/97 [Error];
+    read flat/105/simpflat/114 = flat/55/simpflat/98 [Int];
     init flat/56/simpflat/115@{Error} = ExceptNotAnError@{Error};
     init flat/56/simpflat/116@{Array Time} = unsafe_Array_create#@{Time} (0@{Int});
     init flat/56/simpflat/117@{Array Int} = unsafe_Array_create#@{Int} (0@{Int});
-    if (eq#@{Error} flat/55/simpflat/113 (ExceptNotAnError@{Error}))
+    if (eq#@{Error} flat/105/simpflat/113 (ExceptNotAnError@{Error}))
     {
       init map_insert_acc_keys/flat/59@{Array Time} = flat/48/simpflat/90;
       init map_insert_acc_vals/flat/60@{Array Int} = flat/48/simpflat/91;
@@ -637,14 +637,14 @@ foreach (for_counter/flat/49 in 0@{Int} .. Array_length#@{Time} conv/40/simpflat
         write map_insert_acc_bs_found/flat/62 = False@{Bool};
         write map_insert_acc_bs_index/flat/61 = bs_loc_ins/flat/74;
       }
-      read map_insert_loc_bs_found/flat/66 = map_insert_acc_bs_found/flat/62 [Bool];
-      read map_insert_loc_bs_index/flat/65 = map_insert_acc_bs_index/flat/61 [Int];
-      if (eq#@{Bool} map_insert_loc_bs_found/flat/66 (True@{Bool}))
+      read flat/106 = map_insert_acc_bs_found/flat/62 [Bool];
+      read flat/107 = map_insert_acc_bs_index/flat/61 [Int];
+      if (eq#@{Bool} flat/106 (True@{Bool}))
       {
-        let map_insert_loc_old/flat/84 = unsafe_Array_index#@{Int} map_insert_loc_vals/flat/64 map_insert_loc_bs_index/flat/65;
+        let map_insert_loc_old/flat/84 = unsafe_Array_index#@{Int} map_insert_loc_vals/flat/64 flat/107;
         read map_insert_acc_vals/flat/60 = map_insert_acc_vals/flat/60 [Array Int];
         
-        write map_insert_acc_vals/flat/60 = Array_put_immutable#@{Int} map_insert_acc_vals/flat/60 map_insert_loc_bs_index/flat/65 map_insert_loc_old/flat/84;
+        write map_insert_acc_vals/flat/60 = Array_put_immutable#@{Int} map_insert_acc_vals/flat/60 flat/107 map_insert_loc_old/flat/84;
         
       }
       else
@@ -671,7 +671,7 @@ foreach (for_counter/flat/49 in 0@{Int} .. Array_length#@{Time} conv/40/simpflat
           let simpflat/247 = unsafe_Array_index#@{Int} copy_array/flat/87 (0@{Int});
           write map_insert_acc_vals/flat/60 = Array_put_immutable#@{Int} copy_array/flat/87 (0@{Int}) simpflat/247;
         }
-        foreach (for_counter/flat/88 in map_insert_size/flat/68 .. map_insert_loc_bs_index/flat/65)
+        foreach (for_counter/flat/88 in map_insert_size/flat/68 .. flat/107)
         {
           read update_acc/flat/89 = map_insert_acc_keys/flat/59 [Array Time];
           let simpflat/248 = sub#@{Int} for_counter/flat/88 (1@{Int});
@@ -683,22 +683,22 @@ foreach (for_counter/flat/49 in 0@{Int} .. Array_length#@{Time} conv/40/simpflat
         }
         read map_insert_acc_keys/flat/59 = map_insert_acc_keys/flat/59 [Array Time];
         
-        write map_insert_acc_keys/flat/59 = Array_put_mutable#@{Time} map_insert_acc_keys/flat/59 map_insert_loc_bs_index/flat/65 simpflat/424;
+        write map_insert_acc_keys/flat/59 = Array_put_mutable#@{Time} map_insert_acc_keys/flat/59 flat/107 simpflat/424;
         
         read map_insert_acc_vals/flat/60 = map_insert_acc_vals/flat/60 [Array Int];
         
-        write map_insert_acc_vals/flat/60 = Array_put_mutable#@{Int} map_insert_acc_vals/flat/60 map_insert_loc_bs_index/flat/65 flat/55/simpflat/114;
+        write map_insert_acc_vals/flat/60 = Array_put_mutable#@{Int} map_insert_acc_vals/flat/60 flat/107 flat/105/simpflat/114;
         
       }
-      read map_insert_loc_keys/flat/63 = map_insert_acc_keys/flat/59 [Array Time];
-      read map_insert_loc_vals/flat/64 = map_insert_acc_vals/flat/60 [Array Int];
+      read flat/108 = map_insert_acc_keys/flat/59 [Array Time];
+      read flat/109 = map_insert_acc_vals/flat/60 [Array Int];
       write flat/56/simpflat/115 = ExceptNotAnError@{Error};
-      write flat/56/simpflat/116 = map_insert_loc_keys/flat/63;
-      write flat/56/simpflat/117 = map_insert_loc_vals/flat/64;
+      write flat/56/simpflat/116 = flat/108;
+      write flat/56/simpflat/117 = flat/109;
     }
     else
     {
-      write flat/56/simpflat/115 = flat/55/simpflat/113;
+      write flat/56/simpflat/115 = flat/105/simpflat/113;
       write flat/56/simpflat/116 = unsafe_Array_create#@{Time} (0@{Int});
       write flat/56/simpflat/117 = unsafe_Array_create#@{Int} (0@{Int});
     }
@@ -722,10 +722,10 @@ foreach (for_counter/flat/49 in 0@{Int} .. Array_length#@{Time} conv/40/simpflat
   write flat/48/simpflat/87 = flat/51/simpflat/122;
   write flat/48/simpflat/88 = flat/51/simpflat/123;
 }
-read flat/48/simpflat/124 = flat/48/simpflat/86 [Error];
-read flat/48/simpflat/125 = flat/48/simpflat/87 [Array Time];
-read flat/48/simpflat/126 = flat/48/simpflat/88 [Array Int];
-output@{(Sum Error (Map Time Int))} repl (flat/48/simpflat/124@{Error}, flat/48/simpflat/125@{Array Time}, flat/48/simpflat/126@{Array Int});
+read flat/110/simpflat/124 = flat/48/simpflat/86 [Error];
+read flat/110/simpflat/125 = flat/48/simpflat/87 [Array Time];
+read flat/110/simpflat/126 = flat/48/simpflat/88 [Array Int];
+output@{(Sum Error (Map Time Int))} repl (flat/110/simpflat/124@{Error}, flat/110/simpflat/125@{Array Time}, flat/110/simpflat/126@{Array Int});
 
 - Flattened Avalanche (simplified), typechecked:
 conv/3 = TIME
@@ -814,27 +814,27 @@ for_facts (conv/2@{Time}, conv/1@{FactIdentifier}, conv/0/simpflat/127@{Error}, 
     write map_insert_acc_bs_found/flat/4 = False@{Bool};
     write map_insert_acc_bs_index/flat/3 = bs_loc_ins/flat/16;
   }
-  read map_insert_loc_bs_found/flat/8 = map_insert_acc_bs_found/flat/4 [Bool];
-  read map_insert_loc_bs_index/flat/7 = map_insert_acc_bs_index/flat/3 [Int];
-  if (eq#@{Bool} map_insert_loc_bs_found/flat/8 (True@{Bool}))
+  read flat/101 = map_insert_acc_bs_found/flat/4 [Bool];
+  read flat/102 = map_insert_acc_bs_index/flat/3 [Int];
+  if (eq#@{Bool} flat/101 (True@{Bool}))
   {
-    let simpflat/281 = unsafe_Array_index#@{Buf 2 FactIdentifier} map_insert_loc_vals/flat/6/simpflat/52 map_insert_loc_bs_index/flat/7;
-    let simpflat/283 = unsafe_Array_index#@{Buf 2 Error} map_insert_loc_vals/flat/6/simpflat/53 map_insert_loc_bs_index/flat/7;
-    let simpflat/285 = unsafe_Array_index#@{Buf 2 Int} map_insert_loc_vals/flat/6/simpflat/54 map_insert_loc_bs_index/flat/7;
+    let simpflat/281 = unsafe_Array_index#@{Buf 2 FactIdentifier} map_insert_loc_vals/flat/6/simpflat/52 flat/102;
+    let simpflat/283 = unsafe_Array_index#@{Buf 2 Error} map_insert_loc_vals/flat/6/simpflat/53 flat/102;
+    let simpflat/285 = unsafe_Array_index#@{Buf 2 Int} map_insert_loc_vals/flat/6/simpflat/54 flat/102;
     let simpflat/292 = Buf_push#@{Buf 2 FactIdentifier} simpflat/281 conv/1;
     let simpflat/295 = Buf_push#@{Buf 2 Error} simpflat/283 conv/0/simpflat/127;
     let simpflat/298 = Buf_push#@{Buf 2 Int} simpflat/285 conv/0/simpflat/128;
     read map_insert_acc_vals/flat/2/simpflat/48 = map_insert_acc_vals/flat/2/simpflat/48 [Array (Buf 2 FactIdentifier)];
     
-    write map_insert_acc_vals/flat/2/simpflat/48 = Array_put_immutable#@{Buf 2 FactIdentifier} map_insert_acc_vals/flat/2/simpflat/48 map_insert_loc_bs_index/flat/7 simpflat/292;
+    write map_insert_acc_vals/flat/2/simpflat/48 = Array_put_immutable#@{Buf 2 FactIdentifier} map_insert_acc_vals/flat/2/simpflat/48 flat/102 simpflat/292;
     read map_insert_acc_vals/flat/2/simpflat/49 = map_insert_acc_vals/flat/2/simpflat/49 [Array (Buf 2 Error)];
     
     
-    write map_insert_acc_vals/flat/2/simpflat/49 = Array_put_immutable#@{Buf 2 Error} map_insert_acc_vals/flat/2/simpflat/49 map_insert_loc_bs_index/flat/7 simpflat/295;
+    write map_insert_acc_vals/flat/2/simpflat/49 = Array_put_immutable#@{Buf 2 Error} map_insert_acc_vals/flat/2/simpflat/49 flat/102 simpflat/295;
     read map_insert_acc_vals/flat/2/simpflat/50 = map_insert_acc_vals/flat/2/simpflat/50 [Array (Buf 2 Int)];
     
     
-    write map_insert_acc_vals/flat/2/simpflat/50 = Array_put_immutable#@{Buf 2 Int} map_insert_acc_vals/flat/2/simpflat/50 map_insert_loc_bs_index/flat/7 simpflat/298;
+    write map_insert_acc_vals/flat/2/simpflat/50 = Array_put_immutable#@{Buf 2 Int} map_insert_acc_vals/flat/2/simpflat/50 flat/102 simpflat/298;
     
     
     
@@ -870,7 +870,7 @@ for_facts (conv/2@{Time}, conv/1@{FactIdentifier}, conv/0/simpflat/127@{Error}, 
       let simpflat/336 = unsafe_Array_index#@{Buf 2 Int} copy_array/flat/30/simpflat/62 (0@{Int});
       write map_insert_acc_vals/flat/2/simpflat/50 = Array_put_immutable#@{Buf 2 Int} copy_array/flat/30/simpflat/62 (0@{Int}) simpflat/336;
     }
-    foreach (for_counter/flat/31 in map_insert_size/flat/10 .. map_insert_loc_bs_index/flat/7)
+    foreach (for_counter/flat/31 in map_insert_size/flat/10 .. flat/102)
     {
       read update_acc/flat/32 = map_insert_acc_keys/flat/1 [Array Time];
       let simpflat/183 = sub#@{Int} for_counter/flat/31 (1@{Int});
@@ -888,32 +888,32 @@ for_facts (conv/2@{Time}, conv/1@{FactIdentifier}, conv/0/simpflat/127@{Error}, 
     }
     read map_insert_acc_keys/flat/1 = map_insert_acc_keys/flat/1 [Array Time];
     
-    write map_insert_acc_keys/flat/1 = Array_put_mutable#@{Time} map_insert_acc_keys/flat/1 map_insert_loc_bs_index/flat/7 conv/0/simpflat/129;
+    write map_insert_acc_keys/flat/1 = Array_put_mutable#@{Time} map_insert_acc_keys/flat/1 flat/102 conv/0/simpflat/129;
     
     read map_insert_acc_vals/flat/2/simpflat/48 = map_insert_acc_vals/flat/2/simpflat/48 [Array (Buf 2 FactIdentifier)];
     
-    write map_insert_acc_vals/flat/2/simpflat/48 = Array_put_mutable#@{Buf 2 FactIdentifier} map_insert_acc_vals/flat/2/simpflat/48 map_insert_loc_bs_index/flat/7 simpflat/268;
+    write map_insert_acc_vals/flat/2/simpflat/48 = Array_put_mutable#@{Buf 2 FactIdentifier} map_insert_acc_vals/flat/2/simpflat/48 flat/102 simpflat/268;
     read map_insert_acc_vals/flat/2/simpflat/49 = map_insert_acc_vals/flat/2/simpflat/49 [Array (Buf 2 Error)];
     
     
-    write map_insert_acc_vals/flat/2/simpflat/49 = Array_put_mutable#@{Buf 2 Error} map_insert_acc_vals/flat/2/simpflat/49 map_insert_loc_bs_index/flat/7 simpflat/271;
+    write map_insert_acc_vals/flat/2/simpflat/49 = Array_put_mutable#@{Buf 2 Error} map_insert_acc_vals/flat/2/simpflat/49 flat/102 simpflat/271;
     read map_insert_acc_vals/flat/2/simpflat/50 = map_insert_acc_vals/flat/2/simpflat/50 [Array (Buf 2 Int)];
     
     
-    write map_insert_acc_vals/flat/2/simpflat/50 = Array_put_mutable#@{Buf 2 Int} map_insert_acc_vals/flat/2/simpflat/50 map_insert_loc_bs_index/flat/7 simpflat/274;
+    write map_insert_acc_vals/flat/2/simpflat/50 = Array_put_mutable#@{Buf 2 Int} map_insert_acc_vals/flat/2/simpflat/50 flat/102 simpflat/274;
     
     
     
     
   }
-  read map_insert_loc_keys/flat/5 = map_insert_acc_keys/flat/1 [Array Time];
-  read map_insert_loc_vals/flat/6/simpflat/72 = map_insert_acc_vals/flat/2/simpflat/48 [Array (Buf 2 FactIdentifier)];
-  read map_insert_loc_vals/flat/6/simpflat/73 = map_insert_acc_vals/flat/2/simpflat/49 [Array (Buf 2 Error)];
-  read map_insert_loc_vals/flat/6/simpflat/74 = map_insert_acc_vals/flat/2/simpflat/50 [Array (Buf 2 Int)];
-  write acc/conv/40/simpflat/38 = map_insert_loc_keys/flat/5;
-  write acc/conv/40/simpflat/39 = map_insert_loc_vals/flat/6/simpflat/72;
-  write acc/conv/40/simpflat/40 = map_insert_loc_vals/flat/6/simpflat/73;
-  write acc/conv/40/simpflat/41 = map_insert_loc_vals/flat/6/simpflat/74;
+  read flat/103 = map_insert_acc_keys/flat/1 [Array Time];
+  read flat/104/simpflat/72 = map_insert_acc_vals/flat/2/simpflat/48 [Array (Buf 2 FactIdentifier)];
+  read flat/104/simpflat/73 = map_insert_acc_vals/flat/2/simpflat/49 [Array (Buf 2 Error)];
+  read flat/104/simpflat/74 = map_insert_acc_vals/flat/2/simpflat/50 [Array (Buf 2 Int)];
+  write acc/conv/40/simpflat/38 = flat/103;
+  write acc/conv/40/simpflat/39 = flat/104/simpflat/72;
+  write acc/conv/40/simpflat/40 = flat/104/simpflat/73;
+  write acc/conv/40/simpflat/41 = flat/104/simpflat/74;
 }
 read acc/conv/40/flat/36/simpflat/77 = acc/conv/40/simpflat/39 [Array (Buf 2 FactIdentifier)];
 foreach (flat/38 in 0@{Int} .. Array_length#@{Buf 2 FactIdentifier} acc/conv/40/flat/36/simpflat/77)
@@ -989,12 +989,12 @@ foreach (for_counter/flat/49 in 0@{Int} .. Array_length#@{Time} conv/40/simpflat
       write flat/55/simpflat/97 = flat/95/simpflat/109;
       write flat/55/simpflat/98 = flat/95/simpflat/110;
     }
-    read flat/55/simpflat/113 = flat/55/simpflat/97 [Error];
-    read flat/55/simpflat/114 = flat/55/simpflat/98 [Int];
+    read flat/105/simpflat/113 = flat/55/simpflat/97 [Error];
+    read flat/105/simpflat/114 = flat/55/simpflat/98 [Int];
     init flat/56/simpflat/115@{Error} = ExceptNotAnError@{Error};
     init flat/56/simpflat/116@{Array Time} = unsafe_Array_create#@{Time} (0@{Int});
     init flat/56/simpflat/117@{Array Int} = unsafe_Array_create#@{Int} (0@{Int});
-    if (eq#@{Error} flat/55/simpflat/113 (ExceptNotAnError@{Error}))
+    if (eq#@{Error} flat/105/simpflat/113 (ExceptNotAnError@{Error}))
     {
       init map_insert_acc_keys/flat/59@{Array Time} = flat/48/simpflat/90;
       init map_insert_acc_vals/flat/60@{Array Int} = flat/48/simpflat/91;
@@ -1056,14 +1056,14 @@ foreach (for_counter/flat/49 in 0@{Int} .. Array_length#@{Time} conv/40/simpflat
         write map_insert_acc_bs_found/flat/62 = False@{Bool};
         write map_insert_acc_bs_index/flat/61 = bs_loc_ins/flat/74;
       }
-      read map_insert_loc_bs_found/flat/66 = map_insert_acc_bs_found/flat/62 [Bool];
-      read map_insert_loc_bs_index/flat/65 = map_insert_acc_bs_index/flat/61 [Int];
-      if (eq#@{Bool} map_insert_loc_bs_found/flat/66 (True@{Bool}))
+      read flat/106 = map_insert_acc_bs_found/flat/62 [Bool];
+      read flat/107 = map_insert_acc_bs_index/flat/61 [Int];
+      if (eq#@{Bool} flat/106 (True@{Bool}))
       {
-        let map_insert_loc_old/flat/84 = unsafe_Array_index#@{Int} map_insert_loc_vals/flat/64 map_insert_loc_bs_index/flat/65;
+        let map_insert_loc_old/flat/84 = unsafe_Array_index#@{Int} map_insert_loc_vals/flat/64 flat/107;
         read map_insert_acc_vals/flat/60 = map_insert_acc_vals/flat/60 [Array Int];
         
-        write map_insert_acc_vals/flat/60 = Array_put_immutable#@{Int} map_insert_acc_vals/flat/60 map_insert_loc_bs_index/flat/65 map_insert_loc_old/flat/84;
+        write map_insert_acc_vals/flat/60 = Array_put_immutable#@{Int} map_insert_acc_vals/flat/60 flat/107 map_insert_loc_old/flat/84;
         
       }
       else
@@ -1090,7 +1090,7 @@ foreach (for_counter/flat/49 in 0@{Int} .. Array_length#@{Time} conv/40/simpflat
           let simpflat/247 = unsafe_Array_index#@{Int} copy_array/flat/87 (0@{Int});
           write map_insert_acc_vals/flat/60 = Array_put_immutable#@{Int} copy_array/flat/87 (0@{Int}) simpflat/247;
         }
-        foreach (for_counter/flat/88 in map_insert_size/flat/68 .. map_insert_loc_bs_index/flat/65)
+        foreach (for_counter/flat/88 in map_insert_size/flat/68 .. flat/107)
         {
           read update_acc/flat/89 = map_insert_acc_keys/flat/59 [Array Time];
           let simpflat/248 = sub#@{Int} for_counter/flat/88 (1@{Int});
@@ -1102,22 +1102,22 @@ foreach (for_counter/flat/49 in 0@{Int} .. Array_length#@{Time} conv/40/simpflat
         }
         read map_insert_acc_keys/flat/59 = map_insert_acc_keys/flat/59 [Array Time];
         
-        write map_insert_acc_keys/flat/59 = Array_put_mutable#@{Time} map_insert_acc_keys/flat/59 map_insert_loc_bs_index/flat/65 simpflat/424;
+        write map_insert_acc_keys/flat/59 = Array_put_mutable#@{Time} map_insert_acc_keys/flat/59 flat/107 simpflat/424;
         
         read map_insert_acc_vals/flat/60 = map_insert_acc_vals/flat/60 [Array Int];
         
-        write map_insert_acc_vals/flat/60 = Array_put_mutable#@{Int} map_insert_acc_vals/flat/60 map_insert_loc_bs_index/flat/65 flat/55/simpflat/114;
+        write map_insert_acc_vals/flat/60 = Array_put_mutable#@{Int} map_insert_acc_vals/flat/60 flat/107 flat/105/simpflat/114;
         
       }
-      read map_insert_loc_keys/flat/63 = map_insert_acc_keys/flat/59 [Array Time];
-      read map_insert_loc_vals/flat/64 = map_insert_acc_vals/flat/60 [Array Int];
+      read flat/108 = map_insert_acc_keys/flat/59 [Array Time];
+      read flat/109 = map_insert_acc_vals/flat/60 [Array Int];
       write flat/56/simpflat/115 = ExceptNotAnError@{Error};
-      write flat/56/simpflat/116 = map_insert_loc_keys/flat/63;
-      write flat/56/simpflat/117 = map_insert_loc_vals/flat/64;
+      write flat/56/simpflat/116 = flat/108;
+      write flat/56/simpflat/117 = flat/109;
     }
     else
     {
-      write flat/56/simpflat/115 = flat/55/simpflat/113;
+      write flat/56/simpflat/115 = flat/105/simpflat/113;
       write flat/56/simpflat/116 = unsafe_Array_create#@{Time} (0@{Int});
       write flat/56/simpflat/117 = unsafe_Array_create#@{Int} (0@{Int});
     }
@@ -1141,10 +1141,10 @@ foreach (for_counter/flat/49 in 0@{Int} .. Array_length#@{Time} conv/40/simpflat
   write flat/48/simpflat/87 = flat/51/simpflat/122;
   write flat/48/simpflat/88 = flat/51/simpflat/123;
 }
-read flat/48/simpflat/124 = flat/48/simpflat/86 [Error];
-read flat/48/simpflat/125 = flat/48/simpflat/87 [Array Time];
-read flat/48/simpflat/126 = flat/48/simpflat/88 [Array Int];
-output@{(Sum Error (Map Time Int))} repl (flat/48/simpflat/124@{Error}, flat/48/simpflat/125@{Array Time}, flat/48/simpflat/126@{Array Int});
+read flat/110/simpflat/124 = flat/48/simpflat/86 [Error];
+read flat/110/simpflat/125 = flat/48/simpflat/87 [Array Time];
+read flat/110/simpflat/126 = flat/48/simpflat/88 [Array Int];
+output@{(Sum Error (Map Time Int))} repl (flat/110/simpflat/124@{Error}, flat/110/simpflat/125@{Array Time}, flat/110/simpflat/126@{Array Int});
 
 - Core evaluation:
 [homer, [(1989-12-17,100)
