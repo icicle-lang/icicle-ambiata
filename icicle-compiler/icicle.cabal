@@ -64,6 +64,7 @@ library
                      , vector                          == 0.11.*
                      , vector-space                    == 0.10.*
                      , void                            >= 0.5        && < 0.8
+                     , zenc                            == 0.1.*
 
                      -- Used for benchmark data generation
                      , QuickCheck                      == 2.8.*

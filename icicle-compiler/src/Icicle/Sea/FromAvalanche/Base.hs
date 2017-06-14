@@ -11,6 +11,7 @@ module Icicle.Sea.FromAvalanche.Base (
   , asSeaName
   , mangleToSeaName
   , mangleToSeaNameIx
+  , unmangleSeaName
   , attributeAsSeaString
   , seaOfChar
   , seaOfString
@@ -23,7 +24,7 @@ module Icicle.Sea.FromAvalanche.Base (
   , tuple
   ) where
 
-import           Data.Char (ord, isAlpha)
+import           Data.Char (ord)
 import qualified Data.List as List
 import qualified Data.Text as Text
 
@@ -36,6 +37,7 @@ import           Numeric (showHex)
 
 import           P
 
+import           Text.Encoding.Z (zEncodeString, zDecodeString)
 import           Text.Printf (printf)
 
 ------------------------------------------------------------------------
@@ -80,32 +82,14 @@ asSeaName t =
 
 mangleToSeaName :: Pretty n => n -> SeaName
 mangleToSeaName (show . pretty -> n) =
-  case n of
-    [] ->
-      -- Technically not right as "" is not a legal C identifier.
-      -- This is just how we chose to treat "".
-      SeaName ""
-    x:_  ->
-      let
-        n'
-          | isAlpha x = n
-          | otherwise = "x_" <> n
-        mangle c
-          | c >= '0' && c <= '9'
-          = [c]
-          | c >= 'a' && c <= 'z'
-          = [c]
-          | c >= 'A' && c <= 'Z'
-          = [c]
-          | c == '_'
-          = "__"
-          | otherwise
-          = "u_" <> showHex (ord c) "" <> "_"
-      in
-        SeaName . Text.pack . concatMap mangle $ n'
+  SeaName . Text.pack $ zEncodeString n
 
 mangleToSeaNameIx :: Pretty n => n -> Int -> SeaName
 mangleToSeaNameIx n ix = mangleToSeaName (pretty n <> text "$ix$" <> int ix)
+
+unmangleSeaName :: SeaName -> Text
+unmangleSeaName =
+  Text.pack . zDecodeString . Text.unpack . getSeaName
 
 attributeAsSeaString :: Attribute -> SeaString
 attributeAsSeaString =

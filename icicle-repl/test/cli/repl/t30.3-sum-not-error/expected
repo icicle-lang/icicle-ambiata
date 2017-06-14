@@ -24,11 +24,11 @@ ok, loaded test/cli/repl/data.psv, 13 rows
 #line 1 "state and input definition #0 - repl"
 
 typedef struct {
-    itime_t          convu_24_3;
+    itime_t          convzd3;
     iint_t           new_count;
-    ierror_t         *new_convu_24_0u_24_simpflatu_24_19;
-    iint_t           *new_convu_24_0u_24_simpflatu_24_20;
-    itime_t          *new_convu_24_0u_24_simpflatu_24_21;
+    ierror_t         *new_convzd0zdsimpflatzd19;
+    iint_t           *new_convzd0zdsimpflatzd20;
+    itime_t          *new_convzd0zdsimpflatzd21;
 } input_repl_t;
 
 typedef struct {
@@ -41,20 +41,20 @@ typedef struct {
 
   /* compute for (0,0) */
     /* outputs */
-    ibool_t          replu_24_ixu_24_0;
-    iint_t           replu_24_ixu_24_1;
-    idouble_t        replu_24_ixu_24_2;
+    ibool_t          replzdixzd0;
+    iint_t           replzdixzd1;
+    idouble_t        replzdixzd2;
 
     /* resumables: values */
-    idouble_t        res_0_0_accu_24_perhapsu_24_convu_24_5u_24_simpflatu_24_6;
-    iint_t           res_0_0_accu_24_perhapsu_24_convu_24_5u_24_simpflatu_24_5;
-    ibool_t          res_0_0_accu_24_perhapsu_24_convu_24_5u_24_simpflatu_24_4;
+    idouble_t        res_0_0_acczdperhapszdconvzd5zdsimpflatzd6;
+    iint_t           res_0_0_acczdperhapszdconvzd5zdsimpflatzd5;
+    ibool_t          res_0_0_acczdperhapszdconvzd5zdsimpflatzd4;
 
     /* resumables: has flags */
     ibool_t          has_flags_start_0_0;
-    ibool_t          has_0_0_accu_24_perhapsu_24_convu_24_5u_24_simpflatu_24_6;
-    ibool_t          has_0_0_accu_24_perhapsu_24_convu_24_5u_24_simpflatu_24_5;
-    ibool_t          has_0_0_accu_24_perhapsu_24_convu_24_5u_24_simpflatu_24_4;
+    ibool_t          has_0_0_acczdperhapszdconvzd5zdsimpflatzd6;
+    ibool_t          has_0_0_acczdperhapszdconvzd5zdsimpflatzd5;
+    ibool_t          has_0_0_acczdperhapszdconvzd5zdsimpflatzd4;
     ibool_t          has_flags_end_0_0;
 
 
@@ -68,95 +68,95 @@ iint_t size_of_state_iattribute_0 ()
 #line 1 "compute function #0 - repl icompute_attribute_0_compute_0"
 void icompute_attribute_0_compute_0(iattribute_0_t *s)
 {
-    idouble_t        perhapsu_24_convu_24_5u_24_avalu_24_0u_24_simpflatu_24_9;
-    iint_t           perhapsu_24_convu_24_5u_24_avalu_24_0u_24_simpflatu_24_8;
-    ibool_t          perhapsu_24_convu_24_5u_24_avalu_24_0u_24_simpflatu_24_7;
-    iint_t           perhapsu_24_convu_24_5u_24_simpflatu_24_17;
-    idouble_t        perhapsu_24_convu_24_5u_24_simpflatu_24_18;
-    ibool_t          perhapsu_24_convu_24_5u_24_simpflatu_24_16;
-    idouble_t        accu_24_perhapsu_24_convu_24_5u_24_simpflatu_24_6;
-    iint_t           accu_24_perhapsu_24_convu_24_5u_24_simpflatu_24_5;
-    ibool_t          accu_24_perhapsu_24_convu_24_5u_24_simpflatu_24_4;
-    idouble_t        flatu_24_0u_24_simpflatu_24_15;
-    idouble_t        flatu_24_0u_24_simpflatu_24_12;
-    iint_t           flatu_24_0u_24_simpflatu_24_14;
-    iint_t           flatu_24_0u_24_simpflatu_24_11;
-    ibool_t          flatu_24_0u_24_simpflatu_24_13;
-    ibool_t          flatu_24_0u_24_simpflatu_24_10;
+    idouble_t        perhapszdconvzd5zdavalzd0zdsimpflatzd9;
+    iint_t           perhapszdconvzd5zdavalzd0zdsimpflatzd8;
+    ibool_t          perhapszdconvzd5zdavalzd0zdsimpflatzd7;
+    iint_t           perhapszdconvzd5zdsimpflatzd17;
+    idouble_t        perhapszdconvzd5zdsimpflatzd18;
+    ibool_t          perhapszdconvzd5zdsimpflatzd16;
+    idouble_t        acczdperhapszdconvzd5zdsimpflatzd6;
+    iint_t           acczdperhapszdconvzd5zdsimpflatzd5;
+    ibool_t          acczdperhapszdconvzd5zdsimpflatzd4;
+    idouble_t        flatzd0zdsimpflatzd15;
+    idouble_t        flatzd0zdsimpflatzd12;
+    iint_t           flatzd0zdsimpflatzd14;
+    iint_t           flatzd0zdsimpflatzd11;
+    ibool_t          flatzd0zdsimpflatzd13;
+    ibool_t          flatzd0zdsimpflatzd10;
 
     anemone_mempool_t *mempool                = s->mempool;
-    itime_t          convu_24_3               = s->input.convu_24_3;
-    iint_t           convu_24_4               = s->max_map_size;
+    itime_t          convzd3                  = s->input.convzd3;
+    iint_t           convzd4                  = s->max_map_size;
 
-    accu_24_perhapsu_24_convu_24_5u_24_simpflatu_24_4 = ifalse;                       /* init */
-    accu_24_perhapsu_24_convu_24_5u_24_simpflatu_24_5 = 0;                            /* init */
-    accu_24_perhapsu_24_convu_24_5u_24_simpflatu_24_6 = 0.0;                          /* init */
+    acczdperhapszdconvzd5zdsimpflatzd4        = ifalse;                               /* init */
+    acczdperhapszdconvzd5zdsimpflatzd5        = 0;                                    /* init */
+    acczdperhapszdconvzd5zdsimpflatzd6        = 0.0;                                  /* init */
     
-    if (s->has_0_0_accu_24_perhapsu_24_convu_24_5u_24_simpflatu_24_4) {
-        accu_24_perhapsu_24_convu_24_5u_24_simpflatu_24_4 = s->res_0_0_accu_24_perhapsu_24_convu_24_5u_24_simpflatu_24_4; /* load */
+    if (s->has_0_0_acczdperhapszdconvzd5zdsimpflatzd4) {
+        acczdperhapszdconvzd5zdsimpflatzd4    = s->res_0_0_acczdperhapszdconvzd5zdsimpflatzd4; /* load */
     }
     
-    if (s->has_0_0_accu_24_perhapsu_24_convu_24_5u_24_simpflatu_24_5) {
-        accu_24_perhapsu_24_convu_24_5u_24_simpflatu_24_5 = s->res_0_0_accu_24_perhapsu_24_convu_24_5u_24_simpflatu_24_5; /* load */
+    if (s->has_0_0_acczdperhapszdconvzd5zdsimpflatzd5) {
+        acczdperhapszdconvzd5zdsimpflatzd5    = s->res_0_0_acczdperhapszdconvzd5zdsimpflatzd5; /* load */
     }
     
-    if (s->has_0_0_accu_24_perhapsu_24_convu_24_5u_24_simpflatu_24_6) {
-        accu_24_perhapsu_24_convu_24_5u_24_simpflatu_24_6 = s->res_0_0_accu_24_perhapsu_24_convu_24_5u_24_simpflatu_24_6; /* load */
+    if (s->has_0_0_acczdperhapszdconvzd5zdsimpflatzd6) {
+        acczdperhapszdconvzd5zdsimpflatzd6    = s->res_0_0_acczdperhapszdconvzd5zdsimpflatzd6; /* load */
     }
     
     const iint_t     new_count                = s->input.new_count;
-    const ierror_t  *const new_convu_24_0u_24_simpflatu_24_19 = s->input.new_convu_24_0u_24_simpflatu_24_19;
-    const iint_t    *const new_convu_24_0u_24_simpflatu_24_20 = s->input.new_convu_24_0u_24_simpflatu_24_20;
-    const itime_t   *const new_convu_24_0u_24_simpflatu_24_21 = s->input.new_convu_24_0u_24_simpflatu_24_21;
+    const ierror_t  *const new_convzd0zdsimpflatzd19 = s->input.new_convzd0zdsimpflatzd19;
+    const iint_t    *const new_convzd0zdsimpflatzd20 = s->input.new_convzd0zdsimpflatzd20;
+    const itime_t   *const new_convzd0zdsimpflatzd21 = s->input.new_convzd0zdsimpflatzd21;
     
     for (iint_t i = 0; i < new_count; i++) {
-        ifactid_t        convu_24_1           = i;
-        itime_t          convu_24_2           = new_convu_24_0u_24_simpflatu_24_21[i];
-        ierror_t         convu_24_0u_24_simpflatu_24_19 = new_convu_24_0u_24_simpflatu_24_19[i];
-        iint_t           convu_24_0u_24_simpflatu_24_20 = new_convu_24_0u_24_simpflatu_24_20[i];
-        itime_t          convu_24_0u_24_simpflatu_24_21 = new_convu_24_0u_24_simpflatu_24_21[i];
-        perhapsu_24_convu_24_5u_24_avalu_24_0u_24_simpflatu_24_7 = accu_24_perhapsu_24_convu_24_5u_24_simpflatu_24_4; /* read */
-        perhapsu_24_convu_24_5u_24_avalu_24_0u_24_simpflatu_24_8 = accu_24_perhapsu_24_convu_24_5u_24_simpflatu_24_5; /* read */
-        perhapsu_24_convu_24_5u_24_avalu_24_0u_24_simpflatu_24_9 = accu_24_perhapsu_24_convu_24_5u_24_simpflatu_24_6; /* read */
-        flatu_24_0u_24_simpflatu_24_10        = ifalse;                               /* init */
-        flatu_24_0u_24_simpflatu_24_11        = 0;                                    /* init */
-        flatu_24_0u_24_simpflatu_24_12        = 0.0;                                  /* init */
+        ifactid_t        convzd1              = i;
+        itime_t          convzd2              = new_convzd0zdsimpflatzd21[i];
+        ierror_t         convzd0zdsimpflatzd19 = new_convzd0zdsimpflatzd19[i];
+        iint_t           convzd0zdsimpflatzd20 = new_convzd0zdsimpflatzd20[i];
+        itime_t          convzd0zdsimpflatzd21 = new_convzd0zdsimpflatzd21[i];
+        perhapszdconvzd5zdavalzd0zdsimpflatzd7 = acczdperhapszdconvzd5zdsimpflatzd4;  /* read */
+        perhapszdconvzd5zdavalzd0zdsimpflatzd8 = acczdperhapszdconvzd5zdsimpflatzd5;  /* read */
+        perhapszdconvzd5zdavalzd0zdsimpflatzd9 = acczdperhapszdconvzd5zdsimpflatzd6;  /* read */
+        flatzd0zdsimpflatzd10                 = ifalse;                               /* init */
+        flatzd0zdsimpflatzd11                 = 0;                                    /* init */
+        flatzd0zdsimpflatzd12                 = 0.0;                                  /* init */
         
-        if (perhapsu_24_convu_24_5u_24_avalu_24_0u_24_simpflatu_24_7) {
-            flatu_24_0u_24_simpflatu_24_10    = ifalse;                               /* write */
-            iint_t           simpflatu_24_28  = idouble_trunc (perhapsu_24_convu_24_5u_24_avalu_24_0u_24_simpflatu_24_9); /* let */
-            flatu_24_0u_24_simpflatu_24_11    = iint_add (simpflatu_24_28, 1);        /* write */
-            flatu_24_0u_24_simpflatu_24_12    = 0.0;                                  /* write */
+        if (perhapszdconvzd5zdavalzd0zdsimpflatzd7) {
+            flatzd0zdsimpflatzd10             = ifalse;                               /* write */
+            iint_t           simpflatzd28     = idouble_trunc (perhapszdconvzd5zdavalzd0zdsimpflatzd9); /* let */
+            flatzd0zdsimpflatzd11             = iint_add (simpflatzd28, 1);           /* write */
+            flatzd0zdsimpflatzd12             = 0.0;                                  /* write */
         } else {
-            flatu_24_0u_24_simpflatu_24_10    = itrue;                                /* write */
-            flatu_24_0u_24_simpflatu_24_11    = 0;                                    /* write */
-            idouble_t        simpflatu_24_41  = iint_extend (perhapsu_24_convu_24_5u_24_avalu_24_0u_24_simpflatu_24_8); /* let */
-            flatu_24_0u_24_simpflatu_24_12    = idouble_add (simpflatu_24_41, 1.0);   /* write */
+            flatzd0zdsimpflatzd10             = itrue;                                /* write */
+            flatzd0zdsimpflatzd11             = 0;                                    /* write */
+            idouble_t        simpflatzd41     = iint_extend (perhapszdconvzd5zdavalzd0zdsimpflatzd8); /* let */
+            flatzd0zdsimpflatzd12             = idouble_add (simpflatzd41, 1.0);      /* write */
         }
         
-        flatu_24_0u_24_simpflatu_24_13        = flatu_24_0u_24_simpflatu_24_10;       /* read */
-        flatu_24_0u_24_simpflatu_24_14        = flatu_24_0u_24_simpflatu_24_11;       /* read */
-        flatu_24_0u_24_simpflatu_24_15        = flatu_24_0u_24_simpflatu_24_12;       /* read */
-        accu_24_perhapsu_24_convu_24_5u_24_simpflatu_24_4 = flatu_24_0u_24_simpflatu_24_13; /* write */
-        accu_24_perhapsu_24_convu_24_5u_24_simpflatu_24_5 = flatu_24_0u_24_simpflatu_24_14; /* write */
-        accu_24_perhapsu_24_convu_24_5u_24_simpflatu_24_6 = flatu_24_0u_24_simpflatu_24_15; /* write */
+        flatzd0zdsimpflatzd13                 = flatzd0zdsimpflatzd10;                /* read */
+        flatzd0zdsimpflatzd14                 = flatzd0zdsimpflatzd11;                /* read */
+        flatzd0zdsimpflatzd15                 = flatzd0zdsimpflatzd12;                /* read */
+        acczdperhapszdconvzd5zdsimpflatzd4    = flatzd0zdsimpflatzd13;                /* write */
+        acczdperhapszdconvzd5zdsimpflatzd5    = flatzd0zdsimpflatzd14;                /* write */
+        acczdperhapszdconvzd5zdsimpflatzd6    = flatzd0zdsimpflatzd15;                /* write */
     }
     
-    s->has_0_0_accu_24_perhapsu_24_convu_24_5u_24_simpflatu_24_4 = itrue;             /* save */
-    s->res_0_0_accu_24_perhapsu_24_convu_24_5u_24_simpflatu_24_4 = accu_24_perhapsu_24_convu_24_5u_24_simpflatu_24_4; /* save */
+    s->has_0_0_acczdperhapszdconvzd5zdsimpflatzd4 = itrue;                            /* save */
+    s->res_0_0_acczdperhapszdconvzd5zdsimpflatzd4 = acczdperhapszdconvzd5zdsimpflatzd4; /* save */
     
-    s->has_0_0_accu_24_perhapsu_24_convu_24_5u_24_simpflatu_24_5 = itrue;             /* save */
-    s->res_0_0_accu_24_perhapsu_24_convu_24_5u_24_simpflatu_24_5 = accu_24_perhapsu_24_convu_24_5u_24_simpflatu_24_5; /* save */
+    s->has_0_0_acczdperhapszdconvzd5zdsimpflatzd5 = itrue;                            /* save */
+    s->res_0_0_acczdperhapszdconvzd5zdsimpflatzd5 = acczdperhapszdconvzd5zdsimpflatzd5; /* save */
     
-    s->has_0_0_accu_24_perhapsu_24_convu_24_5u_24_simpflatu_24_6 = itrue;             /* save */
-    s->res_0_0_accu_24_perhapsu_24_convu_24_5u_24_simpflatu_24_6 = accu_24_perhapsu_24_convu_24_5u_24_simpflatu_24_6; /* save */
+    s->has_0_0_acczdperhapszdconvzd5zdsimpflatzd6 = itrue;                            /* save */
+    s->res_0_0_acczdperhapszdconvzd5zdsimpflatzd6 = acczdperhapszdconvzd5zdsimpflatzd6; /* save */
     
-    perhapsu_24_convu_24_5u_24_simpflatu_24_16 = accu_24_perhapsu_24_convu_24_5u_24_simpflatu_24_4; /* read */
-    perhapsu_24_convu_24_5u_24_simpflatu_24_17 = accu_24_perhapsu_24_convu_24_5u_24_simpflatu_24_5; /* read */
-    perhapsu_24_convu_24_5u_24_simpflatu_24_18 = accu_24_perhapsu_24_convu_24_5u_24_simpflatu_24_6; /* read */
-    s->replu_24_ixu_24_0                      = perhapsu_24_convu_24_5u_24_simpflatu_24_16; /* output */
-    s->replu_24_ixu_24_1                      = perhapsu_24_convu_24_5u_24_simpflatu_24_17; /* output */
-    s->replu_24_ixu_24_2                      = perhapsu_24_convu_24_5u_24_simpflatu_24_18; /* output */
+    perhapszdconvzd5zdsimpflatzd16            = acczdperhapszdconvzd5zdsimpflatzd4;   /* read */
+    perhapszdconvzd5zdsimpflatzd17            = acczdperhapszdconvzd5zdsimpflatzd5;   /* read */
+    perhapszdconvzd5zdsimpflatzd18            = acczdperhapszdconvzd5zdsimpflatzd6;   /* read */
+    s->replzdixzd0                            = perhapszdconvzd5zdsimpflatzd16;       /* output */
+    s->replzdixzd1                            = perhapszdconvzd5zdsimpflatzd17;       /* output */
+    s->replzdixzd2                            = perhapszdconvzd5zdsimpflatzd18;       /* output */
 }
 
 - C evaluation:
