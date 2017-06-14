@@ -59,7 +59,8 @@ takeSeaString = getSeaString
 seaNameValidHead :: Char -> Bool
 seaNameValidHead c =
   (c >= 'a' && c <= 'z') ||
-  (c >= 'A' && c <= 'Z')
+  (c >= 'A' && c <= 'Z') ||
+  (c == '_')
 {-# INLINE seaNameValidHead #-}
 
 seaNameValidTail :: Char -> Bool
@@ -99,7 +100,7 @@ mangleToSeaName (show . pretty -> n) =
           | c == '_'
           = "__"
           | otherwise
-          = "u_" <> showHex (ord c) ""
+          = "u_" <> showHex (ord c) "" <> "_"
       in
         SeaName . Text.pack . concatMap mangle $ n'
 
