@@ -66,8 +66,11 @@ static int64_t zebra_translate_table
     ( anemone_mempool_t *mempool
     , int64_t elem_start
     , int64_t elem_count
-    , void **dst
-    , const zebra_table_t *src );
+    , const zebra_table_t *src
+    , iarray_iany_t *dst );
+
+static int64_t zebra_compute_offset_column(const zebra_column_t *src);
+static int64_t zebra_compute_offset_table(const zebra_table_t *src);
 
 
 /* map a zebra entity to sea fleet inputs */
@@ -87,13 +90,23 @@ static ierror_msg_t zebra_translate
 {
     const int64_t attribute_count = src->attribute_count;
     if (attribute_ix >= attribute_count) {
+        fprintf (stderr, "Fatal error: Icicle dictionary does not match Zebra schema.\n");
         fprintf (stderr, "Fatal error: attribute index (%" PRId64 ") is out of bounds for attribute count (%" PRId64 ")\n", attribute_ix, attribute_count);
+        exit(1);
     }
 
     zebra_attribute_t *attribute = &src->attributes[attribute_ix];
     zebra_table_t *table = &attribute->table;
     int64_t row_count = table->row_count;
     int64_t fact_count = 0;
+
+    int64_t compute_offset   = zebra_compute_offset_table (table);
+
+    if (compute_offset != columns_to_fill) {
+        fprintf (stderr, "Fatal error: Icicle dictionary does not match Zebra schema.\n");
+        fprintf (stderr, "Total column count for Zebra: %" PRId64 "\nTotal column count for Icicle: %"PRId64"\n", compute_offset, columns_to_fill);
+        exit(1);
+    }
 
     /* number of total facts for this entity */
     if (state->entity_fact_count[attribute_ix] == 0) {
@@ -138,9 +151,31 @@ static ierror_msg_t zebra_translate
     *new_tombstone  = (ierror_t*) attribute->tombstones + fact_offset;
     *new_fact_time  = sadface_times;
 
-    zebra_translate_table (mempool, fact_offset, fact_to_read, dst, &attribute->table);
+    iarray_iany_t *dst_arrays = anemone_mempool_alloc (mempool, columns_to_fill * sizeof(iarray_iany_t));
+
+    int64_t translate_offset = zebra_translate_table (mempool, fact_offset, fact_to_read, table, dst_arrays);
+    for (int i = 0; i != columns_to_fill; ++i) {
+        dst[i] = ARRAY_PAYLOAD(iany, dst_arrays[i]);
+    }
+
+    if (compute_offset != translate_offset) {
+        fprintf (stderr, "Fatal internal error: computed offset does not match translated offset.\n");
+        fprintf (stderr, "Expected offset: %" PRId64 "\nTranslate offset: %"PRId64"\n", compute_offset, translate_offset);
+        exit(1);
+    }
 
     return 0;
+}
+
+static iarray_iany_t zebra_iarray_copy
+    ( anemone_mempool_t *mempool
+    , int64_t elem_start
+    , int64_t elem_count
+    , iany_t *src)
+{
+    iarray_iany_t arr = iarray_iany_create (mempool, elem_count);
+    memcpy (ARRAY_PAYLOAD (iany, arr), src + elem_start, elem_count * sizeof(iany_t));
+    return arr;
 }
 
 /* Translate Zebra enum tags to Icicle bool flags, e.g. is_some, is_right, etc.
@@ -148,56 +183,51 @@ static ierror_msg_t zebra_translate
    of enums is unsuitable for more.
  */
 static int64_t zebra_translate_column_tags
-    ( const int64_t variant_count
-    , void **dst
-    , int64_t *src )
+    ( anemone_mempool_t *mempool
+    , const int64_t variant_count
+    , int64_t elem_start
+    , int64_t elem_count
+    , int64_t *src
+    , iarray_iany_t *dst )
 {
     if (variant_count > 2) {
         fprintf (stderr, "Fatal error: found an enum with %" PRId64 " variants. Icicle does not support Zebra enums with more than two variants.\n", variant_count);
         exit(1);
     }
 
-    *dst = src;
+    *dst = zebra_iarray_copy (mempool, elem_start, elem_count, src);
     return 1;
 }
 
-static int64_t zebra_translate_column_nested
-    ( anemone_mempool_t *mempool
-    , int64_t elem_start
-    , int64_t elem_count
-    , void **dst
-    , const int64_t *indices
-    , const zebra_table_t *src )
+static int64_t zebra_compute_offset_table(const zebra_table_t *src)
 {
-    /* Only read nested tables of type binary now.
-       FIXME: slice out nested tables, when we need to support them. */
-    if (src->tag != ZEBRA_TABLE_BINARY) {
-        fprintf (stderr, "Fatal error: found a nested table with tag %ud. Icicle only supports nested binary table for now.\n", src->tag);
-        exit(1);
+    const zebra_table_tag_t tag = src->tag;
+    const zebra_table_variant_t data = src->of;
+
+    switch (tag) {
+        case ZEBRA_TABLE_BINARY: {
+            return 1;
+        }
+
+        case ZEBRA_TABLE_ARRAY: {
+            return zebra_compute_offset_column
+                ( data._array.values );
+        }
+
+        case ZEBRA_TABLE_MAP: {
+            int64_t offset = 0;
+            offset += zebra_compute_offset_column
+                ( data._map.keys );
+            offset += zebra_compute_offset_column
+                ( data._map.values );
+            return offset;
+        }
     }
-
-    int64_t offset = 1;
-    void **target = anemone_mempool_alloc (mempool, elem_count * 8);
-
-    for (int i = 0; i != elem_count; ++i) {
-        const int64_t elem_index = elem_start + i;
-        const int64_t table_start = indices[elem_index] - indices[0];
-        const int64_t table_row_count = indices[elem_index + 1] - indices[elem_index];
-
-        /* read the inner tables */
-        zebra_translate_table (mempool, table_start, table_row_count, target + i, src);
-    }
-
-    *dst = target;
-    return offset;
+    fprintf (stderr, "Fatal error: unknown Zebra table tag: %u\n", tag);
+    exit (1);
 }
 
-static int64_t zebra_translate_column
-    ( anemone_mempool_t *mempool
-    , int64_t elem_start
-    , int64_t elem_count
-    , void **dst
-    , const zebra_column_t *src )
+static int64_t zebra_compute_offset_column(const zebra_column_t *src)
 {
     const zebra_column_tag_t tag = src->tag;
     const zebra_column_variant_t data = src->of;
@@ -208,28 +238,143 @@ static int64_t zebra_translate_column
         }
 
         case ZEBRA_COLUMN_INT: {
-            *dst = data._int.values + elem_start;
             return 1;
         }
 
         case ZEBRA_COLUMN_DOUBLE: {
-            *dst = data._double.values + elem_start;
+            return 1;
+        }
+
+        case ZEBRA_COLUMN_ENUM: {
+            int64_t column_count = data._enum.columns.count;
+            int64_t offset = 1; // tags
+            for (int64_t i = 0; i != column_count; ++i) {
+                offset += zebra_compute_offset_column
+                    ( data._enum.columns.columns + i );
+            }
+            return offset;
+        }
+
+        case ZEBRA_COLUMN_STRUCT: {
+            int64_t offset = 0;
+            int64_t column_count = data._struct.columns.count;
+            for (int64_t i = 0; i != column_count; ++i) {
+                offset += zebra_compute_offset_column
+                    ( data._struct.columns.columns + i );
+            }
+            return offset;
+        }
+
+        case ZEBRA_COLUMN_NESTED: {
+            return zebra_compute_offset_table
+                ( &data._nested.table );
+        }
+
+        case ZEBRA_COLUMN_REVERSED: {
+            return zebra_compute_offset_column
+                ( data._reversed.column );
+        }
+
+    }
+
+    fprintf (stderr, "Fatal error: unknown Zebra column tag: %u\n", tag);
+    exit (1);
+}
+
+
+static int64_t zebra_translate_column_nested
+    ( anemone_mempool_t *mempool
+    , int64_t elem_start
+    , int64_t elem_count
+    , const int64_t *indices
+    , const zebra_table_t *src
+    , iarray_iany_t *dst )
+{
+    switch (src->tag) {
+        case ZEBRA_TABLE_BINARY: {
+            iarray_iany_t strings = iarray_iany_create (mempool, elem_count);
+            const int64_t index_0 = indices[0];
+
+            for (int i = 0; i != elem_count; ++i) {
+                const int64_t elem_index     = elem_start + i;
+                const int64_t index_i        = indices[elem_index];
+                const int64_t string_start   = index_i - index_0;
+                const int64_t string_length  = indices[elem_index + 1] - index_i;
+
+                char *bytes = anemone_mempool_alloc (mempool, string_length + 1);
+                memcpy(bytes, src->of._binary.bytes + string_start, string_length);
+                bytes[string_length] = '\0';
+
+                ARRAY_PAYLOAD(iany, strings)[i] = bytes;
+            }
+
+            *dst = strings;
+            return 1;
+        }
+
+        case ZEBRA_TABLE_ARRAY: {
+            // XXX
+            int64_t offset = zebra_compute_offset_table ( src );
+
+            for (int i = 0; i != offset; ++i) {
+                dst[i] = anemone_mempool_alloc (mempool, elem_count * sizeof(iarray_iany_t*));
+            }
+
+            // iarray_iany_t *
+
+        }
+
+        case ZEBRA_TABLE_MAP: {
+            fprintf (stderr, "Fatal error: nested ZEBRA_TABLE_MAP: unsupported\n");
+            exit (1);
+        }
+    }
+    fprintf (stderr, "Fatal error: unknown Zebra table tag: %u\n", src->tag);
+    exit (1);
+
+}
+
+static int64_t zebra_translate_column
+    ( anemone_mempool_t *mempool
+    , int64_t elem_start
+    , int64_t elem_count
+    , const zebra_column_t *src
+    , iarray_iany_t *dst )
+{
+    const zebra_column_tag_t tag = src->tag;
+    const zebra_column_variant_t data = src->of;
+
+    switch (tag) {
+        case ZEBRA_COLUMN_UNIT: {
+            return 0;
+        }
+
+        case ZEBRA_COLUMN_INT: {
+            *dst = zebra_iarray_copy (mempool, elem_start, elem_count, data._int.values);
+            return 1;
+        }
+
+        case ZEBRA_COLUMN_DOUBLE: {
+            *dst = zebra_iarray_copy (mempool, elem_start, elem_count, data._double.values);
             return 1;
         }
 
         case ZEBRA_COLUMN_ENUM: {
             int64_t column_count = data._enum.columns.count;
             int64_t offset = zebra_translate_column_tags
-                ( column_count
-                , dst
-                , data._enum.tags + elem_start );
+                ( mempool
+                , column_count
+                , elem_start
+                , elem_count
+                , data._enum.tags
+                , dst );
             for (int64_t i = 0; i != column_count; ++i) {
                 offset += zebra_translate_column
                     ( mempool
                     , elem_start
                     , elem_count
-                    , dst + offset
-                    , data._enum.columns.columns + i );
+                    , data._enum.columns.columns + i
+                    , dst + offset );
             }
             return offset;
         }
@@ -242,8 +387,8 @@ static int64_t zebra_translate_column
                     ( mempool
                     , elem_start
                     , elem_count
-                    , dst + offset
-                    , data._struct.columns.columns + i );
+                    , data._struct.columns.columns + i
+                    , dst + offset );
             }
             return offset;
         }
@@ -253,9 +398,9 @@ static int64_t zebra_translate_column
                 ( mempool
                 , elem_start
                 , elem_count
-                , dst
                 , data._nested.indices
-                , &data._nested.table );
+                , &data._nested.table
+                , dst );
         }
 
         case ZEBRA_COLUMN_REVERSED: {
@@ -263,13 +408,13 @@ static int64_t zebra_translate_column
                 ( mempool
                 , elem_start
                 , elem_count
-                , dst
-                , (const zebra_column_t *) &data._reversed );
+                , data._reversed.column
+                , dst );
         }
 
     }
 
-    fprintf (stderr, "Fatal error: unknown Zebra column tag: %ud\n", tag);
+    fprintf (stderr, "Fatal error: unknown Zebra column tag: %u\n", tag);
     exit (1);
 }
 
@@ -277,8 +422,8 @@ static int64_t zebra_translate_table
     ( anemone_mempool_t *mempool
     , int64_t elem_start
     , int64_t elem_count
-    , void **dst
-    , const zebra_table_t *src )
+    , const zebra_table_t *src
+    , iarray_iany_t *dst )
 {
     const int64_t row_count = src->row_count;
     const zebra_table_tag_t tag = src->tag;
@@ -287,12 +432,9 @@ static int64_t zebra_translate_table
     IASSERT (elem_start + elem_count <= row_count);
 
     switch (tag) {
-    case ZEBRA_TABLE_BINARY: {
-            char *bytes = anemone_mempool_alloc(mempool, elem_count + 1);
-            memcpy(bytes, data._binary.bytes + elem_start, elem_count);
-            bytes[elem_count] = '\0';
-            *dst = bytes;
-            return 1;
+        case ZEBRA_TABLE_BINARY: {
+            fprintf (stderr, "Fatal error: ZEBRA_TABLE_BINARY disallowed at top-level\n");
+            exit (1);
         }
 
         case ZEBRA_TABLE_ARRAY: {
@@ -300,8 +442,8 @@ static int64_t zebra_translate_table
                 ( mempool
                 , elem_start
                 , elem_count
-                , dst
-                , data._array.values );
+                , data._array.values
+                , dst );
         }
 
         case ZEBRA_TABLE_MAP: {
@@ -310,18 +452,18 @@ static int64_t zebra_translate_table
                 ( mempool
                 , elem_start
                 , elem_count
-                , dst
-                , data._map.keys );
+                , data._map.keys
+                , dst );
             offset += zebra_translate_column
                 ( mempool
                 , elem_start
                 , elem_count
-                , dst + offset
-                , data._map.values );
+                , data._map.values
+                , dst + offset );
             return offset;
         }
     }
-    fprintf (stderr, "Fatal error: unknown Zebra table tag: %ud\n", tag);
+    fprintf (stderr, "Fatal error: unknown Zebra table tag: %u\n", tag);
     exit (1);
 }
 

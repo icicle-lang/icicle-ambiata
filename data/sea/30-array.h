@@ -315,3 +315,10 @@ MAKE_ARRAY(ARRAY(itime))
 MAKE_ARRAY(ARRAY(istring))
 MAKE_ARRAY(ARRAY(iunit))
 #endif
+
+
+typedef void* iany_t;
+MK_SIMPLE_CMPS(iany_t, iany_)
+MK_SIMPLE_COPY(iany_t, iany_)
+MAKE_ARRAY(iany);
+
