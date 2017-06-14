@@ -92,7 +92,7 @@ main =
 
     let
       attrs =
-        List.sort $ orderedConcreteFeaturesIn loadedDictionary
+        orderedConcreteFeaturesIn loadedDictionary
 
     let
       dateText =

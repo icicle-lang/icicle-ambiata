@@ -284,7 +284,7 @@ compileFleet dictionary format input chords = do
   avalanche <- hoistEither $ compileAvalanche dictionary defaultCompilerFlags
   let avalancheL = Map.toList avalanche
 
-  let attrs = List.sort $ orderedConcreteFeaturesIn dictionary
+  let attrs = orderedConcreteFeaturesIn dictionary
 
   code  <- firstEitherT IcicleSeaError (hoistEither (codeOfPrograms cfg attrs avalancheL))
   fleet <- firstEitherT IcicleSeaError (seaCompile CacheSea cfg attrs avalanche chords)
@@ -353,7 +353,7 @@ compileDictionary dictionaryPath iformat oformat scope cflags = do
   let cfg = HasInput format (InputOpts AllowDupTime (tombstonesOfDictionary dictionary)) ()
   avalanche <- fmap Map.toList . hoistEither $ compileAvalanche dictionary cflags
 
-  let attrs = List.sort $ orderedConcreteFeaturesIn dictionary
+  let attrs = orderedConcreteFeaturesIn dictionary
 
   firstT IcicleSeaError . hoistEither $ codeOfPrograms cfg attrs avalanche
 
