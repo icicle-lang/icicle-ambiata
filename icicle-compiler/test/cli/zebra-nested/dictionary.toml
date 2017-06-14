@@ -24,6 +24,6 @@ tombstone = "foo"
    expression = "feature nested ~> let l = (latest 5 ~> value) ~> length l"
 
 # FIXME:
-# [feature.sorted]
-#    expression = "feature nested ~> sort (newest value)"
+[feature.sorted]
+   expression = "feature nested ~> sort (newest value)"
 
