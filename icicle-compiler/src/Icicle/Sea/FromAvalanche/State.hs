@@ -53,7 +53,7 @@ import           Icicle.Common.Annot
 import           Icicle.Common.Base
 import           Icicle.Common.Type
 
-import           Icicle.Data
+import qualified Icicle.Data as Source
 
 import           Icicle.Internal.Pretty
 
@@ -68,17 +68,17 @@ import           P
 
 data SeaProgramAttribute = SeaProgramAttribute {
     stateAttributeName  :: Int
-  , stateAttribute      :: Attribute
+  , stateAttribute      :: Source.Attribute
   , stateInputType      :: ValType
   , stateTimeVar        :: Text
-  , stateInputVars      :: [(Text, ValType)]
+  , stateInputVars      :: [(SeaName, ValType)]
   , stateComputes       :: NonEmpty SeaProgramCompute
   , stateOutputsAll     :: Map OutputName (ValType, [ValType])
   } deriving (Eq, Ord, Show)
 
 data SeaProgramCompute = SeaProgramCompute {
     stateComputeName    :: (Int,Int)
-  , stateResumables     :: [(Text, ValType)]
+  , stateResumables     :: [(SeaName, ValType)]
   , stateOutputs        :: [(OutputName, (ValType, [ValType]))]
   } deriving (Eq, Ord, Show)
 
@@ -88,7 +88,7 @@ data SeaProgramCompute = SeaProgramCompute {
 stateOfPrograms
   :: (Pretty n, Eq n)
   => Int
-  -> Attribute
+  -> Source.Attribute
   -> NonEmpty (Program (Annot a) n Prim)
   -> Either SeaError SeaProgramAttribute
 stateOfPrograms name attrib programs@(program :| _)
@@ -100,9 +100,9 @@ stateOfPrograms name attrib programs@(program :| _)
      -> Right SeaProgramAttribute {
           stateAttributeName  = name
         , stateAttribute      = attrib
-        , stateTimeVar        = textOfName (bindtime program)
+        , stateTimeVar        = takeSeaName . mangleToSeaName . bindtime $ program
         , stateInputType      = factType
-        , stateInputVars      = fmap (first textOfName) factVars
+        , stateInputVars      = fmap (first mangleToSeaName) factVars
         , stateComputes       = NonEmpty.zipWith (stateOfProgramCompute name) (0 :| [1..]) programs
         , stateOutputsAll     = Map.fromList . concatMap outputsOfProgram $ NonEmpty.toList programs
         }
@@ -114,7 +114,7 @@ stateOfProgramCompute
 stateOfProgramCompute attributeName computeName program
  = SeaProgramCompute {
    stateComputeName = (attributeName, computeName)
- , stateResumables  = fmap (first textOfName) (Map.toList (resumablesOfProgram program))
+ , stateResumables  = fmap (first mangleToSeaName) (Map.toList (resumablesOfProgram program))
  , stateOutputs     = outputsOfProgram program
  }
 
@@ -150,7 +150,11 @@ nameOfStateSize state = nameOfStateSize' (stateAttributeName state)
 
 
 seaOfStateInfo :: SeaProgramAttribute -> Doc
-seaOfStateInfo state = "#" <> int (stateAttributeName state) <+> "-" <+> seaOfAttributeDesc (stateAttribute state)
+seaOfStateInfo state =
+  "#" <>
+  int (stateAttributeName state) <+>
+  "-" <+>
+  (prettyText . takeSeaString . attributeAsSeaString . stateAttribute $ state)
 
 seaOfState :: SeaProgramAttribute -> Doc
 seaOfState state
@@ -193,7 +197,7 @@ seaOfStateCompute state
  , ""
  , "    /* resumables: values */"
  , indent 4 . vsep
-            . fmap (defValueOfResumable state)
+            . fmap (defValueOfResumable state . first takeSeaName)
             . stateResumables
             $ state
  , ""
@@ -202,7 +206,7 @@ seaOfStateCompute state
  , "    /* resumables: has flags */"
  , indent 4 ( defOfVar 0 BoolT (nameOfResumableHasFlagsStart state) <> semi )
  , indent 4 . vsep
-            . fmap (defHasOfResumable state)
+            . fmap (defHasOfResumable state . first takeSeaName)
             . stateResumables
             $ state
  , indent 4 ( defOfVar 0 BoolT (nameOfResumableHasFlagsEnd state) <> semi )
@@ -219,7 +223,7 @@ defOfFactStruct state
   [ "typedef struct {"
   , indent 4 (defOfVar  0 TimeT (pretty (stateTimeVar state) <> ";"))
   , indent 4 (defOfVar  0 IntT  "new_count;")
-  , indent 4 (vsep (fmap defOfFactField (stateInputVars state)))
+  , indent 4 (vsep (fmap (defOfFactField . first takeSeaName) (stateInputVars state)))
   , "}" <+> pretty (stateInputTypeName state) <> ";"
   ]
 
@@ -267,7 +271,7 @@ defsOfOutput (n, (_, ts))
 
 defOfOutputIx :: OutputName -> Int -> ValType -> Doc
 defOfOutputIx n ix t
- = defOfVar 0 t (seaOfNameIx n ix) <> semi
+ = defOfVar 0 t (prettyText . takeSeaName . mangleToSeaNameIx n $ ix) <> semi
 
 ------------------------------------------------------------------------
 
@@ -290,7 +294,7 @@ stateInputName
 
 stateInputTypeName :: SeaProgramAttribute -> Text
 stateInputTypeName state
- = "input_" <> getAttribute (stateAttribute state) <> "_t"
+ = "input_" <> Source.takeAttributeName (stateAttribute state) <> "_t"
 
 stateInput :: Doc
 stateInput = pretty stateInputName

@@ -16,6 +16,7 @@ import           P hiding (concat, intercalate)
 import           Data.Attoparsec.Text
 import           Data.Text hiding (takeWhile)
 import qualified Data.Set as Set
+import           Data.Maybe
 
 field :: Parser Text
 field = append <$> takeWhile (not . isDelimOrEscape) <*> (concat <$> many (cons <$> escaped <*> field)) <?> "field"
@@ -32,11 +33,11 @@ field = append <$> takeWhile (not . isDelimOrEscape) <*> (concat <$> many (cons 
 parseIcicleDictionaryV1 :: Parser DictionaryEntry
 parseIcicleDictionaryV1
  = DictionaryEntry
- <$> (Attribute <$> field)
+ <$> (toAttributeName =<< field)
  <*   p
  <*> (ConcreteDefinition <$> parseEncoding <*> pure (Set.singleton "NA") <*> pure unkeyed)
  -- No namespace in this legacy dictionary
- <*> pure (Namespace "default")
+ <*> pure (fromJust . asNamespace $ "default")
     where
       p = char '|'
 
@@ -45,7 +46,7 @@ parseDictionaryLineV1 s =
   first (ParseError . pack) $ parseOnly parseIcicleDictionaryV1 s
 
 writeDictionaryLineV1 :: DictionaryEntry -> Text
-writeDictionaryLineV1 (DictionaryEntry (Attribute a) (ConcreteDefinition e _ _) _)
-  = a <> "|" <> prettyConcrete e
+writeDictionaryLineV1 (DictionaryEntry a (ConcreteDefinition e _ _) _)
+  = takeAttributeName a <> "|" <> prettyConcrete e
 writeDictionaryLineV1 (DictionaryEntry _ (VirtualDefinition _) _)
   = "Virtual features not supported in V1"

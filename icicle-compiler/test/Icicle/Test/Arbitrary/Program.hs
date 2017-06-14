@@ -11,7 +11,7 @@ import qualified Data.Map as Map
 import qualified Data.Set as Set
 import qualified Data.List as List
 
-import           Icicle.Data (Entity(..), Attribute(..), AsAt(..))
+import           Icicle.Data (Entity(..), Attribute, AsAt(..))
 import           Icicle.BubbleGum (BubbleGumFact(..), Flavour(..))
 import           Icicle.Data.Time (Time)
 

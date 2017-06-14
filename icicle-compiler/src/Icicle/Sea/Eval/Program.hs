@@ -24,7 +24,7 @@ import           Icicle.Avalanche.Prim.Flat (Prim)
 import           Icicle.Avalanche.Program (Program)
 import           Icicle.Avalanche.Statement.Statement (FactLoopType(..))
 
-import           Icicle.Data (Attribute(..))
+import           Icicle.Data (Attribute)
 
 import           Icicle.Common.Annot (Annot)
 import           Icicle.Common.Base

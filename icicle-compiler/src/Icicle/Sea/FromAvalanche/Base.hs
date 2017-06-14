@@ -2,11 +2,16 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards #-}
+{-# LANGUAGE ViewPatterns #-}
 module Icicle.Sea.FromAvalanche.Base (
-    textOfName
-  , seaOfName
-  , seaOfNameIx
-  , seaOfAttributeDesc
+    SeaName
+  , SeaString
+  , takeSeaName
+  , takeSeaString
+  , asSeaName
+  , mangleToSeaName
+  , mangleToSeaNameIx
+  , attributeAsSeaString
   , seaOfChar
   , seaOfString
   , seaOfEscaped
@@ -18,9 +23,9 @@ module Icicle.Sea.FromAvalanche.Base (
   , tuple
   ) where
 
-import           Data.Char (isLower, isUpper, ord)
+import           Data.Char (ord, isAlpha)
 import qualified Data.List as List
-import qualified Data.Text as T
+import qualified Data.Text as Text
 
 import           Icicle.Data
 import           Icicle.Data.Time (packedOfTime)
@@ -35,25 +40,76 @@ import           Text.Printf (printf)
 
 ------------------------------------------------------------------------
 
-textOfName :: Pretty n => n -> Text
-textOfName = T.pack . show . seaOfName
+-- | A legal C identifier.
+newtype SeaName = SeaName {
+    getSeaName :: Text
+ } deriving (Eq, Ord, Show)
 
-seaOfName :: Pretty n => n -> Doc
-seaOfName = string . fmap mangle . show . pretty
-  where
-    mangle '$' = '_'
-    mangle ' ' = '_'
-    mangle  c  =  c
+-- | A value that will need be quoted in C.
+newtype SeaString = SeaString {
+    getSeaString :: Text
+ } deriving (Eq, Ord, Show)
 
-seaOfNameIx :: Pretty n => n -> Int -> Doc
-seaOfNameIx n ix = seaOfName (pretty n <> text "$ix$" <> int ix)
+takeSeaName :: SeaName -> Text
+takeSeaName = getSeaName
 
-seaOfAttributeDesc :: Attribute -> Doc
-seaOfAttributeDesc (Attribute xs)
-  | T.null xs = string ""
-  | otherwise = pretty (T.filter isLegal xs)
- where
-  isLegal c = isLower c || isUpper c || c == ' ' || c == '_'
+takeSeaString :: SeaString -> Text
+takeSeaString = getSeaString
+
+seaNameValidHead :: Char -> Bool
+seaNameValidHead c =
+  (c >= 'a' && c <= 'z') ||
+  (c >= 'A' && c <= 'Z') ||
+  (c == '_')
+{-# INLINE seaNameValidHead #-}
+
+seaNameValidTail :: Char -> Bool
+seaNameValidTail c =
+  seaNameValidHead c ||
+  (c >= '0' && c <= '9') ||
+  (c == '_')
+{-# INLINE seaNameValidTail #-}
+
+asSeaName :: Text -> Maybe SeaName
+asSeaName t =
+  case Text.unpack t of
+    x:xs | seaNameValidHead x && all seaNameValidTail xs ->
+      Just (SeaName t)
+    _ ->
+      Nothing
+
+mangleToSeaName :: Pretty n => n -> SeaName
+mangleToSeaName (show . pretty -> n) =
+  case n of
+    [] ->
+      -- Technically not right as "" is not a legal C identifier.
+      -- This is just how we chose to treat "".
+      SeaName ""
+    x:_  ->
+      let
+        n'
+          | isAlpha x = n
+          | otherwise = "x_" <> n
+        mangle c
+          | c >= '0' && c <= '9'
+          = [c]
+          | c >= 'a' && c <= 'z'
+          = [c]
+          | c >= 'A' && c <= 'Z'
+          = [c]
+          | c == '_'
+          = "__"
+          | otherwise
+          = "u_" <> showHex (ord c) "" <> "_"
+      in
+        SeaName . Text.pack . concatMap mangle $ n'
+
+mangleToSeaNameIx :: Pretty n => n -> Int -> SeaName
+mangleToSeaNameIx n ix = mangleToSeaName (pretty n <> text "$ix$" <> int ix)
+
+attributeAsSeaString :: Attribute -> SeaString
+attributeAsSeaString =
+  SeaString . takeAttributeName
 
 ------------------------------------------------------------------------
 
@@ -64,7 +120,7 @@ seaOfString :: Text -> Doc
 seaOfString txt = "\"" <> seaOfEscaped txt <> "\""
 
 seaOfEscaped :: Text -> Doc
-seaOfEscaped = text . escapeChars . T.unpack
+seaOfEscaped = text . escapeChars . Text.unpack
 
 escapeChars :: [Char] -> [Char]
 escapeChars = \case

@@ -42,9 +42,15 @@ concretes =
  ]
  where
   optfield name encoding
-   = Data.StructField Data.Optional (Attribute name) encoding
+   | Just attr <- asAttributeName name
+   = Data.StructField Data.Optional attr encoding
+   | otherwise
+   = Savage.error "Impossible! Invalid attribute name in tests"
   field name encoding
-   = Data.StructField Data.Mandatory (Attribute name) encoding
+   | Just attr <- asAttributeName name
+   = Data.StructField Data.Mandatory attr encoding
+   | otherwise
+   = Savage.error "Impossible! Invalid attribute name in tests"
 
 
 queries :: [(Text,Text)]
@@ -142,7 +148,13 @@ prelude = mconcat <$> nobodyCares (mapM (uncurry $ Source.readIcicleLibrary "che
 concreteDictionary :: Either Savage.String Dictionary
 concreteDictionary
  = do let def enc = ConcreteDefinition enc (Set.singleton tombstone) (ConcreteKey Nothing)
-      let entries = fmap (\(k,v) -> DictionaryEntry (Attribute k) (def v) (Namespace namespace)) concretes
+      let mkEntry (k,v)
+            | Just a <- asAttributeName k
+            , Just n <- asNamespace namespace
+            = DictionaryEntry a (def v) n
+            | otherwise
+            = Savage.error "Impossible! Invalid attribute name in tests"
+      let entries = fmap mkEntry concretes
       Dictionary entries <$> prelude
 
 coreOfSource :: Text -> Text -> Either Savage.String (C.Program () Var)

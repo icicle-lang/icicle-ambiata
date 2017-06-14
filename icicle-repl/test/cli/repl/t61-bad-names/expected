@@ -1,0 +1,36 @@
+welcome to iREPL
+ok, loaded 38 functions from data/libs/prelude.icicle
+ok, loaded test/cli/repl/data.psv, 13 rows
+> ok, loaded dictionary with 2 features and 38 functions
+> ok, loaded test/cli/repl/t61-bad-names/data.psv, 8 rows
+> ok, core evaluation is now on
+> ok, c evaluation now on
+                   _________-----_____
+        _____------           __      ----_
+ ___----             ___------              \
+    ----________        ----                 \
+                -----__    |             _____)
+                     __-                /     \
+         _______-----    ___--          \    /)\
+   ------_______      ---____            \__/  /
+                -----__    \ --    _          /\
+                       --__--__     \_____/   \_/\
+                               ----|   /          |
+                                   |  |___________|
+                                   |  | ((_(_)| )_)
+                                   |  \_((_(_)|/(_)
+                                   \             (
+                                    \_____________)
+> > - C evaluation:
+[homer, ["NY","CA","OR","NY"]]
+
+- Core evaluation:
+[homer, ["NY","CA","OR","NY"]]
+
+> - C evaluation:
+[homer, ["NY","CA","OR","NY"]]
+
+- Core evaluation:
+[homer, ["NY","CA","OR","NY"]]
+
+> 

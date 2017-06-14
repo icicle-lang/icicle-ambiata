@@ -1,0 +1,13 @@
+title = "Test dictionary"
+version = 1
+import = []
+
+namespace = "test"
+
+[fact.x+(b)]
+  encoding = "string"
+  tombstone = "T"
+
+[fact.a???b]
+  encoding = "string"
+  tombstone = "T"

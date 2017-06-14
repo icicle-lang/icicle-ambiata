@@ -56,8 +56,10 @@ instance Arbitrary Entity where
     Entity <$> elements simpsons
 
 instance Arbitrary Attribute where
-  arbitrary =
-    Attribute <$> elements weather
+  arbitrary = do
+    -- fail violently if not the case
+    Just a <- asAttributeName <$> elements weather
+    return a
 
 instance Arbitrary Time where
   arbitrary = do

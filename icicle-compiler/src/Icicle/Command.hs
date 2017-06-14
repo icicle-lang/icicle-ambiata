@@ -37,7 +37,7 @@ import           Icicle.Avalanche.Program (Program)
 import           Icicle.Common.Annot (Annot)
 import qualified Icicle.Compiler as Compiler
 import qualified Icicle.Compiler.Source as Compiler
-import           Icicle.Data (Attribute(..))
+import           Icicle.Data (Attribute)
 import           Icicle.Data.Time (Time(..))
 import           Icicle.Dictionary
 import           Icicle.Internal.Pretty (pretty)

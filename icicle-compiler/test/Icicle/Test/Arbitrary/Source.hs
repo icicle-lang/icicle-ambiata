@@ -184,8 +184,9 @@ qwfCheckKey :: QueryWithFeature -> Either CheckErr (ConcreteKey (Annot () T.Vari
 qwfCheckKey qwf = case concreteKey (qwfFeatureK qwf) of
   Nothing -> return $ ConcreteKey Nothing
   Just k  -> do
+    let Just n = asNamespace "dummy_nsp"
     let q = QueryTop (qwfFeatureN qwf)
-                     (CB.OutputName "dummy_output" (Namespace "dummy_nsp"))
+                     (CB.OutputName "dummy_output" n)
                      (Query [Distinct () k] (Prim () (Lit (LitInt 0))))
 
     (checked, _) <- runIdentity

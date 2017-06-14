@@ -49,7 +49,7 @@ data DictionaryConfig =
   DictionaryConfig {
     title     :: Maybe Text
   , version   :: Maybe Int64
-  , namespace :: Maybe Text
+  , namespace :: Maybe Namespace
   , tombstone :: Maybe Text
   , imports   :: [Text]
   , chapter   :: [Text]
@@ -94,6 +94,7 @@ data DictionaryValidationError =
   | MissingRequired Text Text
   | EncodingError Text Text Pos.SourcePos
   | ParseError ParseError
+  | InvalidName Text
   deriving (Eq, Show)
 
 instance Pretty DictionaryValidationError where
@@ -126,6 +127,10 @@ instance Pretty DictionaryValidationError where
               , indent 2 $ (text . show) p
               ]
 
+     InvalidName n
+      -> vsep [ "Invalid name format (must be an Ivory feature name):"
+              ,  indent 2 . text . unpack $ n ]
+
 type Name = Text
 
 --------------------------------------------------------------------------------
@@ -135,10 +140,16 @@ tomlDict
   -> Table
   -> AccValidation [DictionaryValidationError] (DictionaryConfig, [DictionaryEntry'])
 tomlDict parentConf x = fromEither $ do
+  n <- toEither . textFocus "namespace" $ x
+  nsp <- case n of
+           Nothing ->
+             pure Nothing
+           Just a ->
+             fmap Just . maybeToRight [InvalidName a] . asNamespace $ a
   let config =   DictionaryConfig
              <$> textFocus "title" x
              <*> intFocus  "version" x
-             <*> textFocus "namespace" x
+             <*> pure nsp
              <*> textFocus "tombstone" x
              <*> textArrayFocus "import" x
              <*> textArrayFocus "chapter" x
@@ -171,16 +182,18 @@ validateNamespace
   -> Text
   -> Table
   -> AccValidation [DictionaryValidationError] Namespace
-validateNamespace conf name x =
-  let valParent n
-        = maybe (AccFailure [MissingRequired ("fact." <> name) n])
-                AccSuccess
-                (namespace conf)
-      valFeatureOrParent n
-        = maybe (valParent n)
-                (validateText n)
-                (x ^? key n)
-  in Namespace <$> valFeatureOrParent "namespace"
+validateNamespace parent name x =
+  let
+    k =
+      "namespace"
+
+    valParent =
+      maybeToRight [MissingRequired ("fact." <> name) k] (namespace parent)
+
+  in maybe
+       (either AccFailure AccSuccess valParent)
+       (andThen asNamespace [InvalidName name] . validateText k)
+       (x ^? key k)
 
 -- | Validate a TOML node is a fact.
 --
@@ -214,9 +227,12 @@ validateFact conf name x =
         <$> ((<|> Nothing)
         <$> (validateExpression (fname <> ".key")) `traverse` (x ^? key "key"))
 
+      attribute
+        = maybe (AccFailure [InvalidName name]) pure (asAttributeName name)
+
       -- Todo: ensure that there's no extra data lying around. All valid TOML should be used.
   in DictionaryEntry'
-       <$> pure (Attribute name)
+       <$> attribute
        <*> (   ConcreteDefinition'
            <$> encoding
            <*> tombstone'
@@ -269,8 +285,10 @@ validateFeature conf name x = fromEither $ do
   q           <- first (pure . ParseError)
                $ runParser (top $ OutputName name nsp) () "" toks
 
+  attribute <- maybeToRight [InvalidName name] (asAttributeName name)
+
   -- Todo: ensure that there's no extra data lying around. All valid TOML should be used.
-  pure $ DictionaryEntry' (Attribute name) (VirtualDefinition' (Virtual' q)) nsp
+  pure $ DictionaryEntry' attribute (VirtualDefinition' (Virtual' q)) nsp
 
 -- | Validate a TOML node is a fact encoding.
 --
@@ -309,8 +327,9 @@ validateEncoding' ofFeature (NTable t, _) =
                                            <*> (Optional <$ char '*' <|> pure Mandatory)
                                            <*  endOfInput)
                                       (pack enc')
+             attribute <- maybe (Left [InvalidName name]) Right (asAttributeName name)
 
-             pure $ StructField fieldType (Attribute name) enc''
+             pure $ StructField fieldType attribute enc''
   -- We should get an error for every failed encoding listed.
   in StructEncoding . toList <$> M.traverseWithKey validated t
 
@@ -408,4 +427,10 @@ accValidation :: (a -> c) -> (b -> c) -> AccValidation a b -> c
 accValidation f _ (AccFailure a) = f a
 accValidation _ f (AccSuccess b) = f b
 
-
+andThen :: (b -> Maybe c) -> a -> AccValidation a b -> AccValidation a c
+andThen f e v =
+  case toEither v of
+    Left t ->
+      AccFailure t
+    Right x ->
+      maybe (AccFailure e) AccSuccess (f x)

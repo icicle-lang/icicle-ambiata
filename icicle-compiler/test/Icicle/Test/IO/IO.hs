@@ -67,11 +67,13 @@ instance Arbitrary Dictionary where
 
 instance Arbitrary DictionaryEntry where
  -- if we are not generating virtual definitions here, fact keys don't matter
- arbitrary
-  =   DictionaryEntry
-  <$> arbitrary
-  <*> (ConcreteDefinition <$> arbitrary <*> (Set.singleton <$> elements viruses) <*> (pure unkeyed))
-  <*> (Namespace <$> elements simpsons)
+ arbitrary = do
+  Just n <- asNamespace <$> elements simpsons
+  c <- ConcreteDefinition <$> arbitrary <*> (Set.singleton <$> elements viruses) <*> (pure unkeyed)
+  DictionaryEntry
+    <$> arbitrary
+    <*> pure c
+    <*> pure n
 
 instance Show a => Testable (Either a Property) where
   property (Right x) = x

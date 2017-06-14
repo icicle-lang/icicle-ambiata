@@ -103,8 +103,11 @@ avalancheFrom opts dictionaryPath sources = do
       = first (DebugCompileError . P.ErrorSource)
       $ P.queryOfSource checkOpts dict name src "namespace-debug"
 
-    entryOfQuery attr query
-      = P.entryOfQuery attr query "namespace-debug"
+    Just nsp
+      = asNamespace "namespace-debug"
+
+    entryOfQuery
+      = P.entryOfQuery nsp
 
 ------------------------------------------------------------------------
 

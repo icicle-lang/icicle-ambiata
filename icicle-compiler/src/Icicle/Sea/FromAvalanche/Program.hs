@@ -50,32 +50,45 @@ seaOfPrograms name attrib programs = do
   state <- stateOfPrograms name attrib programs
   let computes = NonEmpty.zipWith (seaOfCompute state) (stateComputes state) programs
   pure $ vsep ( seaOfState state : NonEmpty.toList computes )
- where
-  seaOfCompute attribute compute program
-   = vsep $
-    [ ""
-    , "#line 1 \"compute function" <+> seaOfStateInfo attribute <+> pretty (nameOfCompute compute) <> "\""
-    , "void " <> pretty (nameOfCompute compute) <> "(" <> pretty (nameOfStateType attribute) <+> "*s)"
-    , "{"
-    , indent 4 . vsep
-               . fmap defOfAccumulator
-               . Map.toList
-               $ accumsOfProgram program `Map.union`
-                 readsOfProgram  program
-    , ""
-    , indent 4 $ assign (defOfVar' 1 "anemone_mempool_t" "mempool") "s->mempool;"
-    , indent 4 $ assign (defOfVar  0 TimeT (pretty $ textOfName $ bindtime program))
-                        ("s->" <> stateInputTime attribute) <> ";"
-    , indent 4 $ assign (defOfVar  0 IntT (pretty $ textOfName $ maxMapSize program))
-                        "s->max_map_size;"
-    , ""
-    , indent 4 (seaOfStatement attribute compute (statements program))
-    , "}"
-    ]
 
-defOfAccumulator :: Pretty n => (Name n, ValType) -> Doc
-defOfAccumulator (n, vt)
- = defOfVar 0 vt (seaOfName n) <> semi
+seaOfCompute ::
+     (Show a, Show n, Pretty n, Eq n)
+  => SeaProgramAttribute
+  -> SeaProgramCompute
+  -> Program (Annot a) n Prim
+  -> Doc
+seaOfCompute attribute compute program =
+  let
+    acc_names =
+      fmap (first mangleToSeaName) . Map.toList $
+        accumsOfProgram program `Map.union` readsOfProgram  program
+    time_name =
+      mangleToSeaName . bindtime $ program
+    max_heap_name =
+      mangleToSeaName . maxMapSize  $ program
+  in
+    vsep
+      [ ""
+      , "#line 1 \"compute function" <+> seaOfStateInfo attribute <+> pretty (nameOfCompute compute) <> "\""
+      , "void " <> pretty (nameOfCompute compute) <> "(" <> pretty (nameOfStateType attribute) <+> "*s)"
+      , "{"
+      , indent 4 . vsep . fmap (uncurry defOfAccumulator) $ acc_names
+      , ""
+      , indent 4 $ assign (defOfVar' 1 "anemone_mempool_t" "mempool") "s->mempool;"
+      , indent 4 $ assign
+          (defOfVar  0 TimeT . prettyText . takeSeaName $ time_name)
+          ("s->" <> stateInputTime attribute) <> ";"
+      , indent 4 $ assign
+          (defOfVar  0 IntT . prettyText . takeSeaName $ max_heap_name)
+          "s->max_map_size;"
+      , ""
+      , indent 4 (seaOfStatement attribute compute (statements program))
+      , "}"
+      ]
+
+defOfAccumulator :: SeaName -> ValType -> Doc
+defOfAccumulator n t
+ = defOfVar 0 t (prettyText . takeSeaName $ n) <> semi
 
 ------------------------------------------------------------------------
 
@@ -93,9 +106,10 @@ seaOfStatement state compute stmt
       -> seaOfStatement state compute s <> line
       <> seaOfStatement state compute (Block ss)
 
-     Let n xx stmt'
-      | xt <- valTypeOfExp xx
-      -> assign (defOfVar 0 xt (seaOfName n)) (seaOfExp xx) <> semi <> suffix "let" <> line
+     Let name xx stmt'
+      | n <- mangleToSeaName name
+      , xt <- valTypeOfExp xx
+      -> assign (defOfVar 0 xt . prettyText . takeSeaName $ n) (seaOfExp xx) <> semi <> suffix "let" <> line
       <> seaOfStatement state compute stmt'
 
      If ii tt (Block [])
@@ -116,68 +130,92 @@ seaOfStatement state compute stmt
               , ""
               ]
 
-     While t n _ end stmt'
-      -> vsep [ "while (" <> seaOfName n <+> seaOfWhileType t <+> seaOfExp end <> ") {"
+     While t name _ end stmt'
+      | n <- mangleToSeaName name
+      -> vsep [ "while (" <> prettyText (takeSeaName n) <+> seaOfWhileType t <+> seaOfExp end <> ") {"
               , indent 4 $ seaOfStatement state compute stmt'
               , "}"
               ]
-     ForeachInts t n start end stmt'
-      -> vsep [ "for (iint_t" <+> seaOfName n <+> "=" <+> seaOfExp start <> ";"
-                              <+> seaOfName n <+> seaOfForeachCompare t  <+> seaOfExp end <> ";"
-                              <+> seaOfName n <>  seaOfForeachStep t     <> ") {"
+     ForeachInts t name start end stmt'
+      | n <- mangleToSeaName name
+      -> vsep [ "for (iint_t" <+> (prettyText . takeSeaName $ n) <+> "=" <+> seaOfExp start <> ";"
+                              <+> (prettyText . takeSeaName $ n) <+> seaOfForeachCompare t  <+> seaOfExp end <> ";"
+                              <+> (prettyText . takeSeaName $ n) <>  seaOfForeachStep t     <> ") {"
               , indent 4 $ seaOfStatement state compute stmt'
               , "}"
               ]
 
      ForeachFacts (FactBinds ntime nfid ns) _ FactLoopNew stmt'
-      -> let inputStruct = stateInputVars state
-             structAssign (n, t)
-                      = assign (defOfVar' 1 ("const" <+> seaOfValType t)
-                                            ("const" <+> pretty newPrefix <> seaOfName n))
-                               (stNew n) <> semi
-             loopAssign (bindn, t) (inputn,_)
-                      = assign (defOfVar 0 t (seaOfName bindn))
-                               (pretty newPrefix <> seaOfName inputn <> "[i]") <> semi
-             factTime = case reverse inputStruct of
-                         [] -> seaError "seaOfStatement: no facts" ()
-                         ((n,_):_) -> pretty newPrefix <> seaOfName n <> "[i]"
+      | inputStruct <- stateInputVars state
+      , nfid' <- mangleToSeaName nfid
+      , ntime' <- mangleToSeaName ntime
+      , ns' <- fmap (first mangleToSeaName) ns
+      -> let
+           structAssign :: (SeaName, ValType) -> Doc
+           structAssign (n, t)
+             | ndoc <- prettyText . takeSeaName $ n =
+                 assign
+                   (defOfVar' 1 ("const" <+> seaOfValType t) ("const" <+> pretty newPrefix <> ndoc))
+                   (stNew n) <> semi
+
+           loopAssign :: (SeaName, ValType) -> (SeaName, a) -> Doc
+           loopAssign (bindn, t) (inputn,_) =
+             assign (defOfVar 0 t . prettyText . takeSeaName $ bindn)
+                    (pretty newPrefix <> (prettyText . takeSeaName $ inputn) <> "[i]") <> semi
+
+
+           factTime = case reverse inputStruct of
+                       [] -> seaError "seaOfStatement: no facts" ()
+                       ((n,_):_) -> pretty newPrefix <> (prettyText . takeSeaName $ n) <> "[i]"
+
          in vsep $
             [ ""
             , assign (defOfVar' 0 ("const" <+> seaOfValType IntT) "new_count") (stCount <> ";")
             ] <> fmap structAssign inputStruct <>
             [ ""
             , "for (iint_t i = 0; i < new_count; i++) {"
-            , indent 4 $ assign (defOfVar 0 FactIdentifierT (seaOfName nfid))  "i"      <> semi
-            , indent 4 $ assign (defOfVar 0 TimeT           (seaOfName ntime)) factTime <> semi
-            , indent 4 $ vsep (List.zipWith loopAssign ns inputStruct) <> line <> seaOfStatement state compute stmt'
+            , indent 4 $
+                assign (defOfVar 0 FactIdentifierT . prettyText . takeSeaName $ nfid') "i" <> semi
+            , indent 4 $
+                assign (defOfVar 0 TimeT . prettyText . takeSeaName $ ntime') factTime <> semi
+            , indent 4 $
+                vsep (List.zipWith loopAssign ns' inputStruct) <> line <> seaOfStatement state compute stmt'
             , "}"
             , ""
             ]
 
      InitAccumulator acc stmt'
-      | Accumulator n _ xx <- acc
-      -> assign (seaOfName n) (seaOfExp xx) <> semi <> suffix "init" <> line
+      | Accumulator name _ xx <- acc
+      , n <- mangleToSeaName name
+      -> assign (prettyText . takeSeaName $ n) (seaOfExp xx) <> semi <> suffix "init" <> line
       <> seaOfStatement state compute stmt'
 
-     Read n_val n_acc _ stmt'
-      -> assign (seaOfName n_val) (seaOfName n_acc) <> semi <> suffix "read" <> line
+     Read name_val name_acc _ stmt'
+      | n_val <- mangleToSeaName name_val
+      , n_acc <- mangleToSeaName name_acc
+      -> assign (prettyText . takeSeaName $ n_val) (prettyText . takeSeaName $ n_acc) <> semi <> suffix "read" <> line
       <> seaOfStatement state compute stmt'
 
-     Write n xx
-      -> assign (seaOfName n) (seaOfExp xx) <> semi <> suffix "write"
+     Write name xx
+      | n <- mangleToSeaName name
+      -> assign (prettyText . takeSeaName $ n) (seaOfExp xx) <> semi <> suffix "write"
 
-     LoadResumable n _
+     LoadResumable name _
+      | n <- mangleToSeaName name
+      , nd <- prettyText . takeSeaName $ n
       -> vsep [ ""
               , "if (" <> stHas n <> ") {"
-              , indent 4 $ assign (seaOfName n) (stRes n) <> semi <> suffix "load"
+              , indent 4 $ assign nd (stRes n) <> semi <> suffix "load"
               , "}" ]
 
-     SaveResumable n _
+     SaveResumable name _
+      | n <- mangleToSeaName name
+      , nd <- prettyText . takeSeaName $ n
       -> assign (stHas n) "itrue"       <> semi <> suffix "save" <> line
-      <> assign (stRes n) (seaOfName n) <> semi <> suffix "save" <> line
+      <> assign (stRes n) nd <> semi <> suffix "save" <> line
 
      Output n _ xts
-      | ixAssign <- \ix xx -> assign ("s->" <> seaOfNameIx n ix) (seaOfExp xx) <> semi <> suffix "output"
+      | ixAssign <- \ix xx -> assign ("s->" <> (prettyText . takeSeaName . mangleToSeaNameIx n $ ix)) (seaOfExp xx) <> semi <> suffix "output"
       -> vsep (List.zipWith ixAssign [0..] (fmap fst xts))
 
      -- TODO Implement historical facts
@@ -188,9 +226,9 @@ seaOfStatement state compute stmt
      KeepFactInHistory _
       -> Pretty.empty
   where
-   stNew   n = "s->" <> stateInputNew (seaOfName n)
-   stRes   n = "s->" <> stateInputRes (nameOfResumable compute $ seaOfName n)
-   stHas   n = "s->" <> stateInputHas (nameOfResumable compute $ seaOfName n)
+   stNew   n = "s->" <> stateInputNew (prettyText . takeSeaName $ n)
+   stRes   n = "s->" <> stateInputRes (nameOfResumable compute . prettyText . takeSeaName $ n)
+   stHas   n = "s->" <> stateInputHas (nameOfResumable compute . prettyText . takeSeaName $ n)
    stCount   = "s->" <> stateNewCount
 
 
@@ -216,7 +254,7 @@ seaOfExp xx
       -> seaOfXValue v t
 
      XVar _ n
-      -> seaOfName n
+      -> prettyText . takeSeaName . mangleToSeaName $ n
 
      XApp{}
       | Just (p, xs) <- takePrimApps xx

@@ -42,7 +42,7 @@ normalisedTomlDictionary dictionary
 
 normalisedTomlDictionaryEntry :: DictionaryEntry -> Doc
 normalisedTomlDictionaryEntry (DictionaryEntry attr (ConcreteDefinition enc ts key) namespace) =
-  brackets ("fact." <> (text $ T.unpack $ getAttribute attr))
+  brackets ("fact." <> (text . T.unpack . takeAttributeName $ attr))
   <> line
   <> indent 2 ("encoding" <+> "=" <+> tquotes (text $ T.unpack $ prettyConcrete enc))
   <> line
@@ -61,7 +61,7 @@ normalisedTomlDictionaryEntry (DictionaryEntry attr (ConcreteDefinition enc ts k
                    = empty
 
 normalisedTomlDictionaryEntry (DictionaryEntry attr (VirtualDefinition virtual) _) =
-  brackets ("feature." <> (text $ T.unpack $ getAttribute attr))
+  brackets ("feature." <> (text . T.unpack . takeAttributeName $ attr))
   <> line
   <> indent 2  "expression" <+> "=" <+> tquotes (pretty virtual)
 

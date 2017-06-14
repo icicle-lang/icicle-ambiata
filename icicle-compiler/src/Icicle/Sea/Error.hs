@@ -7,10 +7,11 @@ module Icicle.Sea.Error (
 
 import           Data.Map  (Map)
 import qualified Data.Map as Map
+import qualified Data.Text as Text
 
 import           Icicle.Common.Base (BaseValue, OutputName)
 import           Icicle.Common.Type (ValType, StructType)
-import           Icicle.Data (Attribute(..))
+import           Icicle.Data (Attribute)
 import qualified Icicle.Data as D
 import           Icicle.Internal.Pretty ((<+>), pretty, text, vsep)
 import           Icicle.Internal.Pretty (Pretty)
@@ -41,6 +42,7 @@ data SeaError
   | SeaDenseFieldsMismatch        [(Text, ValType)] [(Text, ValType)]
   | SeaDenseFeedNotDefined        Text (Map Text [(Text, ValType)])
   | SeaDenseFeedNotUsed           Text
+  | SeaInvalidIdentitifier        Text
   | SeaNoFactLoop
   | SeaNoOutputs
   deriving (Eq, Show)
@@ -120,6 +122,9 @@ instance Pretty SeaError where
 
     SeaUnknownInput
      -> text "Unsupported input format"
+
+    SeaInvalidIdentitifier t
+     -> text ("Invalid identifier: " <> Text.unpack t)
 
     SeaPsvError pe
      -> pretty pe

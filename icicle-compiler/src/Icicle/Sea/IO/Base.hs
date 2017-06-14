@@ -72,14 +72,14 @@ import           Icicle.Avalanche.Prim.Flat       (meltType)
 import           Icicle.Common.Type               (ValType(..), StructField(..))
 import           Icicle.Common.Type               (defaultOfType)
 
-import           Icicle.Data                      (Attribute(..), Time)
+import           Icicle.Data                      (Attribute, Time)
 
 import           Icicle.Internal.Pretty
 
 import           Icicle.Sea.Error (SeaError(..))
 import           Icicle.Sea.FromAvalanche.Prim
 import           Icicle.Sea.FromAvalanche.Program (seaOfXValue)
-import           Icicle.Sea.FromAvalanche.Base (seaOfAttributeDesc, seaOfTime)
+import           Icicle.Sea.FromAvalanche.Base
 import           Icicle.Sea.FromAvalanche.State
 import           Icicle.Sea.FromAvalanche.Type
 
@@ -183,17 +183,17 @@ defOfProgramState :: SeaProgramAttribute -> Doc
 defOfProgramState state
  = defOfVar' 1 (pretty (nameOfStateType state))
                (pretty (nameOfAttribute state)) <> ";"
- <+> "/* " <> seaOfAttributeDesc (stateAttribute state) <> " */"
+ <+> "/* " <> (prettyText . takeSeaString . attributeAsSeaString . stateAttribute $ state) <> " */"
 
 defOfProgramTime :: SeaProgramAttribute -> Doc
 defOfProgramTime state
  = defOfVar 0 TimeT (pretty (nameOfLastTime state)) <> ";"
- <+> "/* " <> seaOfAttributeDesc (stateAttribute state) <> " */"
+ <+> "/* " <> (prettyText . takeSeaString . attributeAsSeaString . stateAttribute $ state) <> " */"
 
 defOfProgramCount :: SeaProgramAttribute -> Doc
 defOfProgramCount state
   = defOfVar 0 IntT (pretty (nameOfCount state)) <> ";"
-  <+> "/* " <> seaOfAttributeDesc (stateAttribute state) <> " */"
+  <+> "/* " <> (prettyText . takeSeaString . attributeAsSeaString . stateAttribute $ state) <> " */"
 
 seaOfSnapshotTime :: Time -> Doc
 seaOfSnapshotTime time
@@ -250,12 +250,14 @@ seaOfAllocProgram state
                 <> " = "
                 <> calloc "max_row_count" (seaOfValType t)
 
-   in vsep [ "/* " <> seaOfAttributeDesc (stateAttribute state) <> " */"
+       inputVars = fmap (first takeSeaName) . stateInputVars $ state
+
+   in vsep [ "/* " <> (prettyText . takeSeaString . attributeAsSeaString . stateAttribute $ state) <> " */"
            , programs <> " = " <> calloc "max_chord_count" stype
            , ""
            , "for (iint_t ix = 0; ix < max_chord_count; ix++) {"
            , indent 4 (program <> "max_map_size = max_map_size;")
-           , indent 4 (vsep (fmap go (stateInputVars state)))
+           , indent 4 (vsep (fmap go inputVars))
            , "}"
            , ""
            ]
@@ -302,8 +304,11 @@ seaOfCollectProgram state
        new n = pvari <> pretty (newPrefix <> n)
        res n = pvar  <> pretty resPrefix <> n
 
+       inputVars = fmap (first takeSeaName) . stateInputVars $ state
+       resVarsOf c = fmap (first takeSeaName) . stateResumables $ c
+
        copyInputs nts
-        = let docs = concatMap copyInput (stateInputVars state)
+        = let docs = concatMap copyInput inputVars
           in if List.null docs
              then []
              else [ "iint_t new_count = " <> pvari <> "new_count;"
@@ -331,13 +336,15 @@ seaOfCollectProgram state
           , "}"
           ]
 
-   in vsep [ "/* " <> seaOfAttributeDesc (stateAttribute state) <> " */"
+   in vsep [ "/* " <> (prettyText . takeSeaString . attributeAsSeaString . stateAttribute $ state) <> " */"
            , "for (iint_t chord_ix = 0; chord_ix < chord_count; chord_ix++) {"
            , indent 4 $ stype <+> "*program = &fleet->" <> pname <> "[chord_ix];"
            , ""
            , "    if (last_pool != 0) {"
-           , indent 8 $ vsep $ copyInputs (stateInputVars state)
-                            <> concatMap (\c -> concatMap (copyResumable c) $ stateResumables c) (NonEmpty.toList $ stateComputes state)
+           , indent 8 $ vsep $ copyInputs inputVars
+                            <> concatMap
+                                 (\c -> concatMap (copyResumable c) (resVarsOf c))
+                                 (NonEmpty.toList (stateComputes state))
            , "    }"
            , "}"
            ]
@@ -416,10 +423,10 @@ checkInputType state
       , Just vars                <- init xs0
       , Just (time, TimeT)       <- last xs0
       -> Right CheckedInput {
-             inputSumError = newPrefix <> sumError
-           , inputTime     = newPrefix <> time
+             inputSumError = newPrefix <> takeSeaName sumError
+           , inputTime     = newPrefix <> takeSeaName time
            , inputType     = t
-           , inputVars     = fmap (first (newPrefix <>)) vars
+           , inputVars     = fmap (first ((newPrefix <>) . takeSeaName)) vars
            }
 
      t

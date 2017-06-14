@@ -8,32 +8,34 @@ import           Icicle.Data
 import           Icicle.Dictionary.Data
 
 import qualified Data.Set as Set
+import           Data.Maybe
 
+import           P
 
 -- | Example demographics dictionary
 -- Hard-coded for now
 demographics :: Dictionary
 demographics =
  Dictionary
- [ DictionaryEntry (Attribute "gender")
+ [ DictionaryEntry (fromJust . asAttributeName $ "gender")
                    (ConcreteDefinition StringEncoding Set.empty unkeyed)
                    nsp
- , DictionaryEntry (Attribute "age")
+ , DictionaryEntry (fromJust . asAttributeName $ "age")
                    (ConcreteDefinition IntEncoding    Set.empty unkeyed)
                    nsp
- , DictionaryEntry (Attribute "state_of_residence")
+ , DictionaryEntry (fromJust . asAttributeName $ "state_of_residence")
                    (ConcreteDefinition StringEncoding Set.empty unkeyed)
                    nsp
- , DictionaryEntry (Attribute "salary")
+ , DictionaryEntry (fromJust . asAttributeName $ "salary")
                    (ConcreteDefinition IntEncoding    Set.empty unkeyed)
                    nsp
- , DictionaryEntry (Attribute "injury")
+ , DictionaryEntry (fromJust . asAttributeName $ "injury")
                    (ConcreteDefinition
                       (StructEncoding
-                        [StructField Mandatory (Attribute "location") StringEncoding
-                        ,StructField Mandatory (Attribute "severity") IntEncoding])
+                        [StructField Mandatory (fromJust . asAttributeName $ "location") StringEncoding
+                        ,StructField Mandatory (fromJust . asAttributeName $ "severity") IntEncoding])
                       Set.empty unkeyed)
                    nsp
  ]
  []
- where nsp = Namespace "default"
+ where nsp = fromJust . asNamespace $ "default"

@@ -169,15 +169,9 @@ annotOfError e
 instance (Hashable a, Eq a, IsString a, Pretty a, Show a) => Pretty (ErrorCompile a) where
  pretty e
   = case e of
-     ErrorSource (Source.ErrorSourceParse p)
-      -> "Parse error:" <> line
-      <> indent 2 (text $ show p)
-     ErrorSource (Source.ErrorSourceDesugar d)
-      -> "Desugar error:" <> line
-      <> indent 2 (pretty d)
-     ErrorSource (Source.ErrorSourceCheck ce)
-      -> "Check error:" <> line
-      <> indent 2 (pretty ce)
+     ErrorSource se
+      -> "Source error:" <> line
+      <> indent 2 (pretty se)
      ErrorConvert ce
       -> "Convert error:" <> line
       <> indent 2 (pretty ce)
@@ -258,10 +252,11 @@ coreOfSource :: Source.IcicleCompileOptions
              -> Dictionary
              -> (Attribute, Source.QueryTyped Source.Var)
              -> Either Error (Map Attribute [(Source.Var, Source.CoreProgramUntyped Source.Var)])
-coreOfSource opt dict (Attribute attr, virtual) = do
+coreOfSource opt dict (attr, virtual) = do
   core <- coreOfSource1 opt dict virtual
-  let baseattr    = (Attribute . unVar . unName) (Query.feature virtual)
-  pure (M.singleton baseattr [(Source.Variable attr, core)])
+  let ba = unVar . unName . Query.feature $ virtual
+  baseattr <- maybeToRight (ErrorSource (Source.ErrorSourceName ba)) . asAttributeName $ ba
+  pure (M.singleton baseattr [(Source.Variable (takeAttributeName attr), core)])
 
 coreOfSource1 :: Source.IcicleCompileOptions
              -> Dictionary
@@ -400,7 +395,7 @@ coreEval ctx fs (renameQT unVar -> query) prog
   where
     evalP feat (Sim.Partition ent attr values)
       | Common.NameBase feat' <- Common.nameBase feat
-      , attr == Attribute feat'
+      , Just attr == asAttributeName feat'
       = do  (vs',_) <- evalV values
             return $ fmap (\v -> Result (ent, snd v)) vs'
 
@@ -427,7 +422,7 @@ avalancheEval ctx fs (renameQT unVar -> query) prog
   where
     evalP feat (Sim.Partition ent attr values)
       | Common.NameBase feat' <- Common.nameBase feat
-      , attr == Attribute feat'
+      , Just attr == asAttributeName feat'
       = do  (vs',_) <- evalV values
             return $ fmap (\v -> Result (ent, snd v)) vs'
 
@@ -456,7 +451,7 @@ seaEval ctx newFacts (renameQT unVar -> query) program =
           -> EitherT SeaError IO [(Entity, Value)]
     evalP featureName (Sim.Partition entityName attributeName values)
       | Common.NameBase name <- Common.nameBase featureName
-      , Attribute name == attributeName
+      , name == takeAttributeName attributeName
       = do outputs <- seaEvalAvalanche program ctx values
            return $ fmap (\out -> (entityName, snd out)) outputs
 

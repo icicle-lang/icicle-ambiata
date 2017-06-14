@@ -36,7 +36,7 @@ namer = A.namerText (flip Var 0)
 --   Like prop_psv, but without psv.
 prop_seaworthy wt
  = testIO
- $ do let a = Attribute "eval"
+ $ do let Just a = asAttributeName "eval"
       let seaProgram = Map.singleton a (wtAvalancheFlat wt :| [])
       x <- runResourceT $ runEitherT $ go [a] seaProgram
       return $ case x of
