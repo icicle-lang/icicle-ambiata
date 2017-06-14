@@ -1,0 +1,29 @@
+title = "Dense input example dictionary"
+
+version = 1
+
+chapter = []
+
+namespace = """default"""
+
+tombstone = "foo"
+
+[fact.nested]
+  encoding="[string]"
+
+[feature.newest_strings]
+   expression = "feature nested ~> newest value"
+
+[feature.latest_couple]
+   expression = "feature nested ~> latest 5 ~> value"
+
+[feature.length]
+   expression = "feature nested ~> length (newest value)"
+
+[feature.length_outer]
+   expression = "feature nested ~> let l = (latest 5 ~> value) ~> length l"
+
+# FIXME:
+# [feature.sorted]
+#    expression = "feature nested ~> sort (newest value)"
+

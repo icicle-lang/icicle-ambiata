@@ -299,13 +299,7 @@ jZebraAllocLimitBytes =
 
 jZebraWellTyped :: Jack ZebraWellTyped
 jZebraWellTyped = justOf $ do
-  -- we don't read arrays (except of bytes) in zebra
-  let
-    supportedInputType x =
-      case wtFactType x of
-        SumT _ (ArrayT _) -> False
-        _ -> True
-  wt <- arbitrary `suchThat` supportedInputType
+  wt <- arbitrary
   zebraOfWellTyped wt
 
 -- FIXME ignoring fact times for now, but to test it we should convert icicle time to 1600 epoch secs here

@@ -1,0 +1,2 @@
+zebra import -s test/cli/zebra-nested/input.zschema test/cli/zebra-nested/input.ztxt -o test/cli/zebra-nested/input.zbin3
+zebra merge test/cli/zebra-nested/input.zbin3 -o test/cli/zebra-nested/input.zbin2 --output-v2
