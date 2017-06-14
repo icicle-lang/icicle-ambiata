@@ -59,7 +59,6 @@ import qualified Icicle.Avalanche.Check                   as Avalanche
 import qualified Icicle.Avalanche.FromCore                as Avalanche
 import qualified Icicle.Avalanche.Program                 as Avalanche
 import qualified Icicle.Avalanche.Simp                    as Avalanche
-import qualified Icicle.Avalanche.Statement.Simp.Freshen  as Avalanche
 import qualified Icicle.Avalanche.Statement.Flatten       as Avalanche
 import qualified Icicle.Avalanche.Prim.Flat               as Flat
 
@@ -324,8 +323,7 @@ flattenAvalanche av
  $!! Fresh.runFreshT go (freshNamer "flat")
  where
   go = do s'  <- Avalanche.flatten annotUnit (Avalanche.statements av)
-          s'' <- Fresh.runFreshIdentity $ Avalanche.freshen annotUnit s'
-          return $ checkAvalanche (av { Avalanche.statements = force s'' })
+          return $ checkAvalanche (av { Avalanche.statements = force s' })
 
 
 checkAvalanche :: IsName v
