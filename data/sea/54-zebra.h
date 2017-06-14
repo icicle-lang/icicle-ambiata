@@ -312,21 +312,32 @@ static int64_t zebra_translate_column_nested
             return 1;
         }
 
-        case ZEBRA_TABLE_ARRAY: {
-            // XXX
+        case ZEBRA_TABLE_ARRAY:
+        case ZEBRA_TABLE_MAP: {
             int64_t offset = zebra_compute_offset_table ( src );
 
             for (int i = 0; i != offset; ++i) {
-                dst[i] = anemone_mempool_alloc (mempool, elem_count * sizeof(iarray_iany_t*));
+                dst[i] = iarray_iany_create (mempool, elem_count);
             }
 
-            // iarray_iany_t *
+            iarray_iany_t *tmp_into = anemone_mempool_alloc (mempool, offset * sizeof(iarray_iany_t));
+            const int64_t index_0 = indices[0];
 
-        }
+            for (int nested_ix = 0; nested_ix != elem_count; ++nested_ix) {
+                const int64_t elem_index     = elem_start + nested_ix;
+                const int64_t index_i        = indices[elem_index];
+                const int64_t array_start    = index_i - index_0;
+                const int64_t array_length   = indices[elem_index + 1] - index_i;
 
-        case ZEBRA_TABLE_MAP: {
-            fprintf (stderr, "Fatal error: nested ZEBRA_TABLE_MAP: unsupported\n");
-            exit (1);
+                int64_t translate_offset = zebra_translate_table (mempool, array_start, array_length, src, tmp_into);
+                IASSERT (offset == translate_offset);
+
+                for (int offset_ix = 0; offset_ix != offset; ++offset_ix) {
+                    ARRAY_PAYLOAD(iany, dst[offset_ix])[nested_ix] = tmp_into[offset_ix];
+                }
+            }
+
+            return offset;
         }
     }
     fprintf (stderr, "Fatal error: unknown Zebra table tag: %u\n", src->tag);
