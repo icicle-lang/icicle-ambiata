@@ -195,7 +195,7 @@ static int64_t zebra_translate_column_tags
         exit(1);
     }
 
-    *dst = zebra_iarray_copy (mempool, elem_start, elem_count, src);
+    *dst = zebra_iarray_copy (mempool, elem_start, elem_count, (iany_t*)src);
     return 1;
 }
 
@@ -361,12 +361,12 @@ static int64_t zebra_translate_column
         }
 
         case ZEBRA_COLUMN_INT: {
-            *dst = zebra_iarray_copy (mempool, elem_start, elem_count, data._int.values);
+            *dst = zebra_iarray_copy (mempool, elem_start, elem_count, (iany_t*)data._int.values);
             return 1;
         }
 
         case ZEBRA_COLUMN_DOUBLE: {
-            *dst = zebra_iarray_copy (mempool, elem_start, elem_count, data._double.values);
+            *dst = zebra_iarray_copy (mempool, elem_start, elem_count, (iany_t*)data._double.values);
             return 1;
         }
 
