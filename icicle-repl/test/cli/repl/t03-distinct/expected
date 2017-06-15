@@ -17,15 +17,15 @@ ok, loaded test/cli/repl/data.psv, 13 rows
 > - Core evaluation:
 [homer, 3]
 
-> > -- Try all other combinations of Possibly: '1' is definitely, while 'location' is possibly.
+> > -- Try all other combinations of Possibly: 'time' is definitely, while 'location' is possibly.
 > - Core evaluation:
 [homer, 3]
 
 > - Core evaluation:
-[homer, 1]
+[homer, 5]
 
 > - Core evaluation:
-[homer, 1]
+[homer, 5]
 
 > > -- Expect CannotCompute - exceeds map size
 > ok, max-map-size set to 2
