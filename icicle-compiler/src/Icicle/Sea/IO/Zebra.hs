@@ -1,5 +1,6 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 module Icicle.Sea.IO.Zebra (
     ZebraConfig (..)
   , ZebraChunkFactCount (..)
@@ -23,6 +24,8 @@ import           Icicle.Sea.IO.Base
 import           Icicle.Sea.FromAvalanche.State
 
 import           P
+
+import           Text.Printf (printf)
 
 
 data ZebraConfig = ZebraConfig {
@@ -54,18 +57,28 @@ seaOfZebraDriver concretes states = do
   let lookup x = maybeToRight (SeaNoAttributeIndex x) $ List.elemIndex x concretes
   indices <- sequence $ fmap (lookup . stateAttribute) states
   return . vsep $
-    [ seaOfAttributeCount concretes
-    , seaOfDefRead (List.zip indices states)
+    [ seaOfDefRead (List.zip indices states)
+    , seaOfAttributeCount concretes
     ]
 
 seaOfAttributeCount :: [Attribute] -> Doc
-seaOfAttributeCount all_attributes = vsep
-  [ "static int64_t zebra_attribute_count()"
-  , "{"
-  , "    return " <> pretty (length all_attributes) <> ";"
-  , "}"
-  , ""
-  ]
+seaOfAttributeCount all_attributes =
+  let
+    n =
+      length all_attributes
+
+    attributes =
+      with (List.zip [0..] all_attributes) $ \(ix :: Int, x) ->
+        "// " <> pretty (printf "% 5d" ix :: [Char]) <> " = " <> pretty x
+  in
+    vsep $
+      attributes <>
+      [ "static int64_t zebra_attribute_count()"
+      , "{"
+      , "    return " <> pretty n <> ";"
+      , "}"
+      , ""
+      ]
 
 -- zebra_read_entity ( zebra_state_t *state, zebra_entity_t *entity ) {
 --   /* attribute 0 */
