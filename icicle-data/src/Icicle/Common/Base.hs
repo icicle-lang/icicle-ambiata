@@ -156,7 +156,7 @@ instance Pretty n => Pretty (Name n) where
 
 instance Pretty n => Pretty (NameBase n) where
  pretty (NameBase n)   = pretty n
- pretty (NameMod  p n) = pretty p <> text "$" <> pretty n
+ pretty (NameMod  p n) = pretty p <> text "/" <> pretty n
 
 instance Pretty BaseValue where
  pretty v
