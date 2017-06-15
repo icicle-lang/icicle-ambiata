@@ -72,9 +72,14 @@ seaOfAttributeCount all_attributes =
       with (List.zip [0..] all_attributes) $ \(ix :: Int, x) ->
         "// " <> pretty (printf "% 5d" ix :: [Char]) <> " = " <> pretty x
   in
-    vsep $
-      attributes <>
-      [ "static int64_t zebra_attribute_count()"
+    vsep $ [
+        "//"
+      , "// Expected Attribute Ordering"
+      , "// ==========================="
+      , "//"
+      ] <> attributes <> [
+        "//"
+      , "static int64_t zebra_attribute_count()"
       , "{"
       , "    return " <> pretty n <> ";"
       , "}"
