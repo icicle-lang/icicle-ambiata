@@ -31,7 +31,7 @@ Check error:
 REPL Error:
 Check error:
   For resumable queries, folds, groups and distincts must be inside windowed or latest at 48:9:data/libs/prelude.icicle
-  Fold: fold s = 0 : v$inline$0
+  Fold: fold s = 0 : v/inline/0
         + s
         ~> s
   Extra information:
@@ -43,7 +43,7 @@ Check error:
 REPL Error:
 Check error:
   For resumable queries, folds, groups and distincts must be inside windowed or latest at 48:9:data/libs/prelude.icicle
-  Fold: fold s = 0 : v$inline$0
+  Fold: fold s = 0 : v/inline/0
         + s
         ~> s
   Extra information:
@@ -56,7 +56,7 @@ Check error:
 REPL Error:
 Check error:
   For resumable queries, folds, groups and distincts must be inside windowed or latest at 48:9:data/libs/prelude.icicle
-  Fold: fold s = 0 : v$inline$0
+  Fold: fold s = 0 : v/inline/0
         + s
         ~> s
   Extra information:
@@ -83,7 +83,7 @@ Check error:
 REPL Error:
 Check error:
   For resumable queries, folds, groups and distincts must be inside windowed or latest at 48:9:data/libs/prelude.icicle
-  Fold: fold s = 0 : v$inline$0
+  Fold: fold s = 0 : v/inline/0
         + s
         ~> s
   Extra information:
@@ -95,7 +95,7 @@ Check error:
 REPL Error:
 Check error:
   For resumable queries, folds, groups and distincts must be inside windowed or latest at 48:9:data/libs/prelude.icicle
-  Fold: fold s = 0 : v$inline$0
+  Fold: fold s = 0 : v/inline/0
         + s
         ~> s
   Extra information:

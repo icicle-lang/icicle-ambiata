@@ -24,11 +24,11 @@ ok, loaded test/cli/repl/data.psv, 13 rows
 #line 1 "state and input definition #0 - repl"
 
 typedef struct {
-    itime_t          convzd3;
+    itime_t          convzs3;
     iint_t           new_count;
-    ierror_t         *new_convzd0zdsimpflatzd19;
-    iint_t           *new_convzd0zdsimpflatzd20;
-    itime_t          *new_convzd0zdsimpflatzd21;
+    ierror_t         *new_convzs0zssimpflatzs19;
+    iint_t           *new_convzs0zssimpflatzs20;
+    itime_t          *new_convzs0zssimpflatzs21;
 } input_repl_t;
 
 typedef struct {
@@ -41,20 +41,20 @@ typedef struct {
 
   /* compute for (0,0) */
     /* outputs */
-    ibool_t          replzdixzd0;
-    iint_t           replzdixzd1;
-    idouble_t        replzdixzd2;
+    ibool_t          replzsixzs0;
+    iint_t           replzsixzs1;
+    idouble_t        replzsixzs2;
 
     /* resumables: values */
-    idouble_t        res_0_0_acczdperhapszdconvzd5zdsimpflatzd6;
-    iint_t           res_0_0_acczdperhapszdconvzd5zdsimpflatzd5;
-    ibool_t          res_0_0_acczdperhapszdconvzd5zdsimpflatzd4;
+    idouble_t        res_0_0_acczsperhapszsconvzs5zssimpflatzs6;
+    iint_t           res_0_0_acczsperhapszsconvzs5zssimpflatzs5;
+    ibool_t          res_0_0_acczsperhapszsconvzs5zssimpflatzs4;
 
     /* resumables: has flags */
     ibool_t          has_flags_start_0_0;
-    ibool_t          has_0_0_acczdperhapszdconvzd5zdsimpflatzd6;
-    ibool_t          has_0_0_acczdperhapszdconvzd5zdsimpflatzd5;
-    ibool_t          has_0_0_acczdperhapszdconvzd5zdsimpflatzd4;
+    ibool_t          has_0_0_acczsperhapszsconvzs5zssimpflatzs6;
+    ibool_t          has_0_0_acczsperhapszsconvzs5zssimpflatzs5;
+    ibool_t          has_0_0_acczsperhapszsconvzs5zssimpflatzs4;
     ibool_t          has_flags_end_0_0;
 
 
@@ -68,95 +68,95 @@ iint_t size_of_state_iattribute_0 ()
 #line 1 "compute function #0 - repl icompute_attribute_0_compute_0"
 void icompute_attribute_0_compute_0(iattribute_0_t *s)
 {
-    idouble_t        perhapszdconvzd5zdavalzd0zdsimpflatzd9;
-    iint_t           perhapszdconvzd5zdavalzd0zdsimpflatzd8;
-    ibool_t          perhapszdconvzd5zdavalzd0zdsimpflatzd7;
-    iint_t           perhapszdconvzd5zdsimpflatzd17;
-    idouble_t        perhapszdconvzd5zdsimpflatzd18;
-    ibool_t          perhapszdconvzd5zdsimpflatzd16;
-    idouble_t        acczdperhapszdconvzd5zdsimpflatzd6;
-    iint_t           acczdperhapszdconvzd5zdsimpflatzd5;
-    ibool_t          acczdperhapszdconvzd5zdsimpflatzd4;
-    idouble_t        flatzd0zdsimpflatzd15;
-    idouble_t        flatzd0zdsimpflatzd12;
-    iint_t           flatzd0zdsimpflatzd14;
-    iint_t           flatzd0zdsimpflatzd11;
-    ibool_t          flatzd0zdsimpflatzd13;
-    ibool_t          flatzd0zdsimpflatzd10;
+    idouble_t        perhapszsconvzs5zsavalzs0zssimpflatzs9;
+    iint_t           perhapszsconvzs5zsavalzs0zssimpflatzs8;
+    ibool_t          perhapszsconvzs5zsavalzs0zssimpflatzs7;
+    iint_t           perhapszsconvzs5zssimpflatzs17;
+    idouble_t        perhapszsconvzs5zssimpflatzs18;
+    ibool_t          perhapszsconvzs5zssimpflatzs16;
+    idouble_t        acczsperhapszsconvzs5zssimpflatzs6;
+    iint_t           acczsperhapszsconvzs5zssimpflatzs5;
+    ibool_t          acczsperhapszsconvzs5zssimpflatzs4;
+    idouble_t        flatzs0zssimpflatzs15;
+    idouble_t        flatzs0zssimpflatzs12;
+    iint_t           flatzs0zssimpflatzs14;
+    iint_t           flatzs0zssimpflatzs11;
+    ibool_t          flatzs0zssimpflatzs13;
+    ibool_t          flatzs0zssimpflatzs10;
 
     anemone_mempool_t *mempool                = s->mempool;
-    itime_t          convzd3                  = s->input.convzd3;
-    iint_t           convzd4                  = s->max_map_size;
+    itime_t          convzs3                  = s->input.convzs3;
+    iint_t           convzs4                  = s->max_map_size;
 
-    acczdperhapszdconvzd5zdsimpflatzd4        = ifalse;                               /* init */
-    acczdperhapszdconvzd5zdsimpflatzd5        = 0;                                    /* init */
-    acczdperhapszdconvzd5zdsimpflatzd6        = 0.0;                                  /* init */
+    acczsperhapszsconvzs5zssimpflatzs4        = ifalse;                               /* init */
+    acczsperhapszsconvzs5zssimpflatzs5        = 0;                                    /* init */
+    acczsperhapszsconvzs5zssimpflatzs6        = 0.0;                                  /* init */
     
-    if (s->has_0_0_acczdperhapszdconvzd5zdsimpflatzd4) {
-        acczdperhapszdconvzd5zdsimpflatzd4    = s->res_0_0_acczdperhapszdconvzd5zdsimpflatzd4; /* load */
+    if (s->has_0_0_acczsperhapszsconvzs5zssimpflatzs4) {
+        acczsperhapszsconvzs5zssimpflatzs4    = s->res_0_0_acczsperhapszsconvzs5zssimpflatzs4; /* load */
     }
     
-    if (s->has_0_0_acczdperhapszdconvzd5zdsimpflatzd5) {
-        acczdperhapszdconvzd5zdsimpflatzd5    = s->res_0_0_acczdperhapszdconvzd5zdsimpflatzd5; /* load */
+    if (s->has_0_0_acczsperhapszsconvzs5zssimpflatzs5) {
+        acczsperhapszsconvzs5zssimpflatzs5    = s->res_0_0_acczsperhapszsconvzs5zssimpflatzs5; /* load */
     }
     
-    if (s->has_0_0_acczdperhapszdconvzd5zdsimpflatzd6) {
-        acczdperhapszdconvzd5zdsimpflatzd6    = s->res_0_0_acczdperhapszdconvzd5zdsimpflatzd6; /* load */
+    if (s->has_0_0_acczsperhapszsconvzs5zssimpflatzs6) {
+        acczsperhapszsconvzs5zssimpflatzs6    = s->res_0_0_acczsperhapszsconvzs5zssimpflatzs6; /* load */
     }
     
     const iint_t     new_count                = s->input.new_count;
-    const ierror_t  *const new_convzd0zdsimpflatzd19 = s->input.new_convzd0zdsimpflatzd19;
-    const iint_t    *const new_convzd0zdsimpflatzd20 = s->input.new_convzd0zdsimpflatzd20;
-    const itime_t   *const new_convzd0zdsimpflatzd21 = s->input.new_convzd0zdsimpflatzd21;
+    const ierror_t  *const new_convzs0zssimpflatzs19 = s->input.new_convzs0zssimpflatzs19;
+    const iint_t    *const new_convzs0zssimpflatzs20 = s->input.new_convzs0zssimpflatzs20;
+    const itime_t   *const new_convzs0zssimpflatzs21 = s->input.new_convzs0zssimpflatzs21;
     
     for (iint_t i = 0; i < new_count; i++) {
-        ifactid_t        convzd1              = i;
-        itime_t          convzd2              = new_convzd0zdsimpflatzd21[i];
-        ierror_t         convzd0zdsimpflatzd19 = new_convzd0zdsimpflatzd19[i];
-        iint_t           convzd0zdsimpflatzd20 = new_convzd0zdsimpflatzd20[i];
-        itime_t          convzd0zdsimpflatzd21 = new_convzd0zdsimpflatzd21[i];
-        perhapszdconvzd5zdavalzd0zdsimpflatzd7 = acczdperhapszdconvzd5zdsimpflatzd4;  /* read */
-        perhapszdconvzd5zdavalzd0zdsimpflatzd8 = acczdperhapszdconvzd5zdsimpflatzd5;  /* read */
-        perhapszdconvzd5zdavalzd0zdsimpflatzd9 = acczdperhapszdconvzd5zdsimpflatzd6;  /* read */
-        flatzd0zdsimpflatzd10                 = ifalse;                               /* init */
-        flatzd0zdsimpflatzd11                 = 0;                                    /* init */
-        flatzd0zdsimpflatzd12                 = 0.0;                                  /* init */
+        ifactid_t        convzs1              = i;
+        itime_t          convzs2              = new_convzs0zssimpflatzs21[i];
+        ierror_t         convzs0zssimpflatzs19 = new_convzs0zssimpflatzs19[i];
+        iint_t           convzs0zssimpflatzs20 = new_convzs0zssimpflatzs20[i];
+        itime_t          convzs0zssimpflatzs21 = new_convzs0zssimpflatzs21[i];
+        perhapszsconvzs5zsavalzs0zssimpflatzs7 = acczsperhapszsconvzs5zssimpflatzs4;  /* read */
+        perhapszsconvzs5zsavalzs0zssimpflatzs8 = acczsperhapszsconvzs5zssimpflatzs5;  /* read */
+        perhapszsconvzs5zsavalzs0zssimpflatzs9 = acczsperhapszsconvzs5zssimpflatzs6;  /* read */
+        flatzs0zssimpflatzs10                 = ifalse;                               /* init */
+        flatzs0zssimpflatzs11                 = 0;                                    /* init */
+        flatzs0zssimpflatzs12                 = 0.0;                                  /* init */
         
-        if (perhapszdconvzd5zdavalzd0zdsimpflatzd7) {
-            flatzd0zdsimpflatzd10             = ifalse;                               /* write */
-            iint_t           simpflatzd28     = idouble_trunc (perhapszdconvzd5zdavalzd0zdsimpflatzd9); /* let */
-            flatzd0zdsimpflatzd11             = iint_add (simpflatzd28, 1);           /* write */
-            flatzd0zdsimpflatzd12             = 0.0;                                  /* write */
+        if (perhapszsconvzs5zsavalzs0zssimpflatzs7) {
+            flatzs0zssimpflatzs10             = ifalse;                               /* write */
+            iint_t           simpflatzs28     = idouble_trunc (perhapszsconvzs5zsavalzs0zssimpflatzs9); /* let */
+            flatzs0zssimpflatzs11             = iint_add (simpflatzs28, 1);           /* write */
+            flatzs0zssimpflatzs12             = 0.0;                                  /* write */
         } else {
-            flatzd0zdsimpflatzd10             = itrue;                                /* write */
-            flatzd0zdsimpflatzd11             = 0;                                    /* write */
-            idouble_t        simpflatzd41     = iint_extend (perhapszdconvzd5zdavalzd0zdsimpflatzd8); /* let */
-            flatzd0zdsimpflatzd12             = idouble_add (simpflatzd41, 1.0);      /* write */
+            flatzs0zssimpflatzs10             = itrue;                                /* write */
+            flatzs0zssimpflatzs11             = 0;                                    /* write */
+            idouble_t        simpflatzs41     = iint_extend (perhapszsconvzs5zsavalzs0zssimpflatzs8); /* let */
+            flatzs0zssimpflatzs12             = idouble_add (simpflatzs41, 1.0);      /* write */
         }
         
-        flatzd0zdsimpflatzd13                 = flatzd0zdsimpflatzd10;                /* read */
-        flatzd0zdsimpflatzd14                 = flatzd0zdsimpflatzd11;                /* read */
-        flatzd0zdsimpflatzd15                 = flatzd0zdsimpflatzd12;                /* read */
-        acczdperhapszdconvzd5zdsimpflatzd4    = flatzd0zdsimpflatzd13;                /* write */
-        acczdperhapszdconvzd5zdsimpflatzd5    = flatzd0zdsimpflatzd14;                /* write */
-        acczdperhapszdconvzd5zdsimpflatzd6    = flatzd0zdsimpflatzd15;                /* write */
+        flatzs0zssimpflatzs13                 = flatzs0zssimpflatzs10;                /* read */
+        flatzs0zssimpflatzs14                 = flatzs0zssimpflatzs11;                /* read */
+        flatzs0zssimpflatzs15                 = flatzs0zssimpflatzs12;                /* read */
+        acczsperhapszsconvzs5zssimpflatzs4    = flatzs0zssimpflatzs13;                /* write */
+        acczsperhapszsconvzs5zssimpflatzs5    = flatzs0zssimpflatzs14;                /* write */
+        acczsperhapszsconvzs5zssimpflatzs6    = flatzs0zssimpflatzs15;                /* write */
     }
     
-    s->has_0_0_acczdperhapszdconvzd5zdsimpflatzd4 = itrue;                            /* save */
-    s->res_0_0_acczdperhapszdconvzd5zdsimpflatzd4 = acczdperhapszdconvzd5zdsimpflatzd4; /* save */
+    s->has_0_0_acczsperhapszsconvzs5zssimpflatzs4 = itrue;                            /* save */
+    s->res_0_0_acczsperhapszsconvzs5zssimpflatzs4 = acczsperhapszsconvzs5zssimpflatzs4; /* save */
     
-    s->has_0_0_acczdperhapszdconvzd5zdsimpflatzd5 = itrue;                            /* save */
-    s->res_0_0_acczdperhapszdconvzd5zdsimpflatzd5 = acczdperhapszdconvzd5zdsimpflatzd5; /* save */
+    s->has_0_0_acczsperhapszsconvzs5zssimpflatzs5 = itrue;                            /* save */
+    s->res_0_0_acczsperhapszsconvzs5zssimpflatzs5 = acczsperhapszsconvzs5zssimpflatzs5; /* save */
     
-    s->has_0_0_acczdperhapszdconvzd5zdsimpflatzd6 = itrue;                            /* save */
-    s->res_0_0_acczdperhapszdconvzd5zdsimpflatzd6 = acczdperhapszdconvzd5zdsimpflatzd6; /* save */
+    s->has_0_0_acczsperhapszsconvzs5zssimpflatzs6 = itrue;                            /* save */
+    s->res_0_0_acczsperhapszsconvzs5zssimpflatzs6 = acczsperhapszsconvzs5zssimpflatzs6; /* save */
     
-    perhapszdconvzd5zdsimpflatzd16            = acczdperhapszdconvzd5zdsimpflatzd4;   /* read */
-    perhapszdconvzd5zdsimpflatzd17            = acczdperhapszdconvzd5zdsimpflatzd5;   /* read */
-    perhapszdconvzd5zdsimpflatzd18            = acczdperhapszdconvzd5zdsimpflatzd6;   /* read */
-    s->replzdixzd0                            = perhapszdconvzd5zdsimpflatzd16;       /* output */
-    s->replzdixzd1                            = perhapszdconvzd5zdsimpflatzd17;       /* output */
-    s->replzdixzd2                            = perhapszdconvzd5zdsimpflatzd18;       /* output */
+    perhapszsconvzs5zssimpflatzs16            = acczsperhapszsconvzs5zssimpflatzs4;   /* read */
+    perhapszsconvzs5zssimpflatzs17            = acczsperhapszsconvzs5zssimpflatzs5;   /* read */
+    perhapszsconvzs5zssimpflatzs18            = acczsperhapszsconvzs5zssimpflatzs6;   /* read */
+    s->replzsixzs0                            = perhapszsconvzs5zssimpflatzs16;       /* output */
+    s->replzsixzs1                            = perhapszsconvzs5zssimpflatzs17;       /* output */
+    s->replzsixzs2                            = perhapszsconvzs5zssimpflatzs18;       /* output */
 }
 
 - C evaluation:

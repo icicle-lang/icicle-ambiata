@@ -85,7 +85,7 @@ mangleToSeaName (show . pretty -> n) =
   SeaName . Text.pack $ zEncodeString n
 
 mangleToSeaNameIx :: Pretty n => n -> Int -> SeaName
-mangleToSeaNameIx n ix = mangleToSeaName (pretty n <> text "$ix$" <> int ix)
+mangleToSeaNameIx n ix = mangleToSeaName (pretty n <> text "/ix/" <> int ix)
 
 unmangleSeaName :: SeaName -> Text
 unmangleSeaName =
