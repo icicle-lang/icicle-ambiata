@@ -67,6 +67,7 @@ flatPrimMinimal prim
     PrimConst p'     -> PrimConst $ primConst  p'
     PrimPair  p'     -> PrimPair  $ primPair   p'
     PrimStruct p'    -> PrimStruct$ primStruct p'
+    PrimBuiltinFun p'-> PrimBuiltinFun $ primBuiltinFun p'
     _                -> prim
 
  where
@@ -80,6 +81,20 @@ flatPrimMinimal prim
 
   primStruct(PrimStructGet f t st)
                                  = PrimStructGet f (flatT t) (flatTS st)
+
+  primBuiltinFun c = case c of
+   PrimBuiltinMath a
+      -> PrimBuiltinMath a
+   PrimBuiltinMap (PrimBuiltinKeys k v)
+      -> PrimBuiltinMap $ PrimBuiltinKeys (flatT k) (flatT v)
+   PrimBuiltinMap (PrimBuiltinVals k v)
+      -> PrimBuiltinMap $ PrimBuiltinVals (flatT k) (flatT v)
+   PrimBuiltinArray (PrimBuiltinSort t)
+      -> PrimBuiltinArray $ PrimBuiltinSort (flatT t)
+   PrimBuiltinArray (PrimBuiltinLength t)
+      -> PrimBuiltinArray $ PrimBuiltinLength (flatT t)
+   PrimBuiltinArray (PrimBuiltinIndex t)
+      -> PrimBuiltinArray $ PrimBuiltinIndex (flatT t)
 
 
 flatV :: BaseValue -> BaseValue
