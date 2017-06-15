@@ -6,3 +6,15 @@ feature salary ~> distinct time ~> count value
 
 -- Average of distincts. That is, find the *first* for each time, and average all lasts
 feature salary ~> distinct time ~> mean value
+
+-- Distinct location and count. Expect 3
+feature injury ~> distinct location ~> count location
+
+-- Try all other combinations of Possibly: '1' is definitely, while 'location' is possibly.
+feature injury ~> distinct location ~> count 1
+feature injury ~> distinct 1 ~> count 1
+feature injury ~> distinct 1 ~> count location
+
+-- Expect CannotCompute - exceeds map size
+:set max-map-size 2
+feature injury ~> distinct location ~> count location

@@ -7,9 +7,7 @@
 module Icicle.Source.ToCore.Fold (
     convertFold
   , ConvertFoldResult(..)
-  , groupMapType
   , groupFoldType
-  , groupMapSum
   ) where
 
 import           Icicle.Common.Base
@@ -373,57 +371,77 @@ convertFold q
     -- Distinct inside an existing group.
     (Distinct _ k : _)
      -> do -- Convert the rest of the query into a fold.
-           res     <- convertFold q'
-
-           -- Construct the map.
-           n'pair <- lift fresh
-           n'_    <- lift fresh
-           n'__   <- lift fresh
-
-           k'     <- convertExp k
+           res    <- convertFold q'
+           k'     <- convertExp  k
            t'k    <- convertValType' $ annResult $ annotOfExp k
 
-           let t'fold  = typeFold res
-           let t'xtra  = typeExtract res
-           let t'map   = T.MapT t'k T.UnitT
-           let t'pair  = T.PairT t'map t'fold
+           let q'possibly = isAnnotPossibly $ annotOfQuery q'
 
-           let x'fst
-                 = CE.xApp $ CE.xPrim $ C.PrimMinimal $ Min.PrimPair $ Min.PrimPairFst t'map t'fold
-           let x'snd
-                 = CE.xApp $ CE.xPrim $ C.PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd t'map t'fold
-           let x'pair x y
-                 = (CE.xPrim $ C.PrimMinimal $ Min.PrimConst $ Min.PrimConstPair t'map t'fold)
-                    CE.@~ x CE.@~ y
-           let x'unit
-                 = CE.xValue T.UnitT VUnit
+           let t'fold     = typeFold         res
+           let t'map      = T.MapT  t'k      T.UnitT
+           let t'pair     = T.PairT t'map    t'fold
+           let t'sum      = T.SumT  T.ErrorT t'pair
 
-           let zero
-                 = x'pair (CE.emptyMap t'k T.UnitT) (foldZero res)
+           let t'xtra0    = typeExtract      res
+           let t'xtra     | q'possibly
+                          = t'xtra0
+                          | otherwise
+                          = T.SumT T.ErrorT t'xtra0
 
-           let ins
-                 = CE.makeApps () (primInsUpd t'k T.UnitT)
-                 [ CE.xLam n'_ T.UnitT x'unit
-                 , x'unit
-                 , k'
-                 , x'fst (CE.xVar n'pair)]
-           let upd
-                 = x'pair ins (foldKons res CE.@~ x'snd (CE.xVar n'pair) )
-           let kons
-                 = CE.xLam n'pair t'pair
-                 ( CE.xPrim (C.PrimFold (C.PrimFoldOption T.UnitT) t'pair)
-                     CE.@~ CE.xLam n'__ T.UnitT (CE.xVar n'pair)
-                     CE.@~ CE.xLam n'__ T.UnitT upd
-                     CE.@~ ( CE.xPrim (C.PrimMap (C.PrimMapLookup t'k T.UnitT))
-                               CE.@~ x'fst (CE.xVar n'pair)
-                               CE.@~ k' ) )
+           -- (map, fold) -> map
+           let x'fst      = CE.xApp $ CE.xPrim $ C.PrimMinimal $ Min.PrimPair $ Min.PrimPairFst t'map t'fold
+           -- (map, fold) -> fold
+           let x'snd      = CE.xApp $ CE.xPrim $ C.PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd t'map t'fold
+           -- map -> fold -> (map, fold)
+           let x'pair x y = (CE.xPrim $ C.PrimMinimal $ Min.PrimConst $ Min.PrimConstPair t'map t'fold) CE.@~ x CE.@~ y
+           -- (map, fold) -> Sum Error (map, fold)
+           let x'right    = CE.xApp $ CE.xPrim $ C.PrimMinimal $ Min.PrimConst $ Min.PrimConstRight T.ErrorT t'pair
+           -- ()
+           let x'unit     = CE.xValue T.UnitT VUnit
+
+           -- Right (Map.empty, zero q)
+           let zero       = x'right $ x'pair (CE.emptyMap t'k T.UnitT) (foldZero res)
+
+           -- sum        :: Sum Error (map, fold)
+           n'sum         <- lift fresh
+           -- pair       :: (map, fold)
+           n'pair        <- lift fresh
+           -- map        :: map
+           n'map         <- lift fresh
+           -- error      :: Error
+           n'error       <- lift fresh
+
+           -- unit       :: ()
+           n'unit1       <- lift fresh
+           n'unit2       <- lift fresh
+           n'unit3       <- lift fresh
+
+           mapInsert     <- primInsert t'k T.UnitT (x'fst $ CE.xVar n'pair) k' x'unit
+
+           let unwrapSum' = unwrapSum True t'sum n'error
+
+           let upd        = unwrapSum' mapInsert       n'map  (T.SumT T.ErrorT t'map)
+                          $ x'right
+                          $ x'pair 
+                              (CE.xVar n'map)
+                              (foldKons res CE.@~ x'snd (CE.xVar n'pair) )
+
+           let kons       = CE.xLam n'sum t'sum
+                          $ unwrapSum' (CE.xVar n'sum) n'pair t'sum
+                          ( CE.xPrim (C.PrimFold (C.PrimFoldOption T.UnitT) t'sum)
+                              CE.@~ CE.xLam n'unit2 T.UnitT (CE.xVar n'sum)
+                              CE.@~ CE.xLam n'unit3 T.UnitT upd
+                              CE.@~ ( CE.xPrim (C.PrimMap (C.PrimMapLookup t'k T.UnitT))
+                                        CE.@~ x'fst (CE.xVar n'pair)
+                                        CE.@~ k' ) )
 
            -- Fold over the map
-           let xtra
-                = CE.xLam n'pair t'pair
-                ( mapExtract res CE.@~ x'snd (CE.xVar n'pair))
+           let xtra       = CE.xLam n'sum t'sum
+                          $ unwrapSum True t'xtra n'error (CE.xVar n'sum) n'pair t'sum 
+                          $ rewrapSum (not q'possibly) t'xtra
+                          ( mapExtract res CE.@~ x'snd (CE.xVar n'pair))
 
-           return $ ConvertFoldResult kons zero xtra t'pair t'xtra
+           return $ ConvertFoldResult kons zero xtra t'sum t'xtra
 
     (GroupFold (Annot { annAnnot = ann }) _ _ _ : _)
      -> errNotAllowed ann
