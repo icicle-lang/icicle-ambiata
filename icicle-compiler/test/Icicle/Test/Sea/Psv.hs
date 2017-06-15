@@ -15,6 +15,7 @@ import           Control.Monad.Morph (hoist)
 import qualified Data.ByteString.Lazy as L
 import qualified Data.List as List
 import           Data.List.NonEmpty (NonEmpty(..))
+import           Data.String
 import           Data.Map (Map)
 import qualified Data.Map as Map
 import qualified Data.Set as Set
@@ -56,8 +57,8 @@ import           Test.QuickCheck (Property, (==>), property, counterexample)
 import           Test.QuickCheck.Property (succeeded, failed)
 import           Test.QuickCheck.Monadic
 
-import           X.Control.Monad.Trans.Either (EitherT, runEitherT)
-import           X.Control.Monad.Trans.Either (bracketEitherT', left, hoistEither)
+import           X.Control.Monad.Trans.Either (left)
+import           X.Control.Monad.Trans.Either (EitherT, hoistEither, bracketEitherT', runEitherT)
 
 
 optSuccess =
@@ -81,54 +82,63 @@ testForSuccess dup wt psv =
      Right _ ->
        pure (property succeeded)
 
-genWT d x y =
-  validated 100 $
+genWT1 d x =
+  validated 10 $
+    tryGenWellTypedWithInput d x
+
+genWT2 d x y =
+  validated 10 $
     tryGenWellTypedWithInputAndOutput d x y
 
 
-prop_success_output_type_is_time
+zprop_success_output_type_is_time
  | dup <- DoNotAllowDupTime
  =  forAll arbitrary $ \inputType ->
-    forAll (genWT dup inputType TimeT) $ \wt ->
+    forAll (genWT2 dup inputType TimeT) $ \wt ->
     forAll (genPsvConstants wt) $ \psvConstants ->
       testForSuccess dup wt psvConstants
 
 prop_success_array_of_struct_input
  | dup <- DoNotAllowDupTime
- = forAll ((ArrayT . StructT <$> arbitrary) `suchThat` isSupportedInput) $ \factType ->
-   forAll arbitrary $ \outputType ->
-   forAll (genWT dup (inputTypeOf factType) outputType) $ \wt ->
+ = forAll genSupportedArrayStructFactType $ \factType ->
+   forAll (genWT1 dup (inputTypeOf factType)) $ \wt ->
    forAll (genPsvConstants wt) $ \psvConstants ->
      testForSuccess dup wt psvConstants
 
-prop_success_psv_corpus
+zprop_success_psv_corpus
  | dup <- AllowDupTime
  = testAllCorpus $ \wt ->
    forAll (genPsvConstants wt) $ \psv ->
      testForSuccess dup wt psv
 
-prop_success_psv
+zprop_success_psv
  | dup <- DoNotAllowDupTime
- = forAll arbitrary $ \(WellTypedPsv wt psv) ->
+ = forAll arbitrary $ \inputType ->
+   forAll (genWT1 dup inputType) $ \wt ->
+   forAll (genPsvConstants wt) $ \psv ->
      testForSuccess dup wt psv
 
-prop_failure_entity_out_of_order
+zprop_failure_entity_out_of_order
  | dup <- DoNotAllowDupTime
- = forAll arbitrary $ \(WellTypedPsv wt psv) ->
+ = forAll arbitrary $ \inputType ->
+   forAll (genWT1 dup inputType) $ \wt ->
+   forAll (genPsvConstants wt) $ \psv ->
    List.length (wtFacts wt) > 1 ==>
      testIO $ do
        let wt' = wt { wtFacts = List.reverse (wtFacts wt) }
        expectPsvError wt' =<< (runEitherT . runTest wt' psv . optFailure $ dup)
 
-prop_failure_time_out_of_order
+zprop_failure_time_out_of_order
  | dup <- DoNotAllowDupTime
- = forAll arbitrary $ \(WellTypedPsv wt psv) ->
+ = forAll arbitrary $ \inputType ->
+   forAll (genWT1 dup inputType) $ \wt ->
+   forAll (genPsvConstants wt) $ \psv ->
    List.length (wtFacts wt) > 1 ==>
      testIO $ do
        let wt' = wt { wtFacts = List.reverse (wtFacts wt) }
        expectPsvError wt' =<< (runEitherT . runTest wt' psv . optFailure $ dup)
 
-prop_dup_time
+zprop_dup_time
   = forAll (genWellTypedWithDuplicateTimes `suchThat` ((> 1) . List.length . wtFacts)) $ \wt ->
     forAll (genPsvConstants wt) $ \psv ->
       monadicIO $ do
@@ -205,30 +215,51 @@ genPsvConstants wt = do
 compileTest :: WellTyped -> TestOpts -> EitherT SeaError (ResourceT IO) (SeaFleet PsvState)
 compileTest wt (TestOpts _ _ inputFormat allowDupTime) = do
   options0 <- getCompilerOptions
-
-  let optionsAssert = ["-DICICLE_ASSERT=1", "-DICICLE_ASSERT_MAXIMUM_ARRAY_COUNT=" <> T.pack (show (100 * (length $ wtFacts wt))) ]
-      options  = options0 <> ["-O0", "-DICICLE_NOINLINE=1"] <> optionsAssert
-      programs = Map.fromList . fmap (\wta -> (wtInputId wta, wtAvalancheFlat wta :| [])) . wtAttributes $ wt
-      time     = evalSnapshotTime (wtEvalContext wt)
-      iconfig  = PsvInputConfig
-                (Snapshot time)
+  let
+    optionsAssert =
+      [ "-DICICLE_ASSERT=1"
+      , "-DICICLE_ASSERT_MAXIMUM_ARRAY_COUNT=" <> T.pack (show (100 * (length $ wtFacts wt))) ]
+    options =
+      options0 <>
+      ["-O0", "-DICICLE_NOINLINE=1"] <>
+      optionsAssert
+    time
+      = evalSnapshotTime (wtEvalContext wt)
+    hasInput =
+      HasInput
+        (FormatPsv
+           (PsvConfig
+              (PsvInputConfig
+                 (Snapshot time)
                  inputFormat
-      oconfig  = PsvOutputConfig
-                (Snapshot time)
-                (PsvOutputSparse)
-                (defaultOutputMissing)
-      conf     = PsvConfig iconfig oconfig
-      iformat  = FormatPsv conf
-      iopts    = InputOpts allowDupTime . Map.fromList . fmap (\wta -> (wtAttribute wta, Set.singleton tombstone)) . wtAttributes $ wt
-      attrs    = fmap wtAttribute $ wtAttributes wt
+              (PsvOutputConfig
+                 (Snapshot time)
+                 PsvOutputSparse
+                 defaultOutputMissing
+              )
+           )
+        )
+        (InputOpts
+           allowDupTime .
+           Map.fromList .
+           fmap (\wta -> (wtInputId wta, Set.singleton tombstone)) .
+           wtAttributes $
+             wt
+        )
+        ("" :: String)
+    attrs =
+      fmap (\w -> (wtInputId w, wtAvalancheFlat w :| [])) (wtAttributes wt)
+    chords =
+      Nothing
+    cache =
+      NoCacheSea
 
-  let cache = NoCacheSea
-      input = HasInput iformat iopts "dummy_path"
-      chords = Nothing
-  code <- hoistEither (codeOfPrograms "Icicle.Test.Sea.Psv.compileTest" input attrs (Map.toList programs))
+  code <- hoistEither $ codeOfPrograms "Icicle.Test.Sea.Psv.compileTest"  hasInput (fmap fst attrs) attrs
 
   -- This test only uses snapshot so we can do this.
-  let savage = textOfDoc . vsep $
+  let
+    savage =
+      textOfDoc . vsep $
         [ "int64_t piano_max_count (piano_t *piano) {"
         , "    return 1;"
         , "}"
@@ -237,9 +268,10 @@ compileTest wt (TestOpts _ _ inputFormat allowDupTime) = do
         , "    return 0;"
         , "}"
         ]
-      code' = code <> savage
+    textCode =
+      code <> savage
 
-  seaCreateFleet options (fromCacheSea cache) input chords code'
+  seaCreateFleet options (fromCacheSea cache) hasInput chords textCode
 
 wtEntities =
   List.nub . fmap eavtEntity . wtFacts

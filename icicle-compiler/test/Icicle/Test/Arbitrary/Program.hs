@@ -9,6 +9,7 @@
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 module Icicle.Test.Arbitrary.Program where
 
+import           Data.String
 import           Data.Map (Map)
 import qualified Data.Map as Map
 import qualified Data.Set as Set
@@ -43,6 +44,7 @@ import           Icicle.Internal.Pretty
 import qualified Icicle.Sea.FromAvalanche.Analysis as S
 import qualified Icicle.Sea.Eval as S
 
+import           Icicle.Test.Arbitrary.Base
 import           Icicle.Test.Arbitrary.Data
 import           Icicle.Test.Arbitrary.Core
 
@@ -129,11 +131,9 @@ instance Pretty WellTypedAttribute where
       ]
 
 instance Arbitrary InputType where
-  arbitrary = validated 100 $ do
-    ty <- arbitrary
-    if isSupportedInput ty
-       then pure . Just . inputTypeOf $ ty
-       else pure Nothing
+  arbitrary =
+    inputTypeOf <$>
+      genSupportedFactType
 
 instance Arbitrary WellTyped where
   arbitrary =
@@ -155,7 +155,7 @@ tryGenWellTypedWithInput allowDupTime ty = do
   as <- validatedNonEmpty 10 (tryGenAttributeWithInput ty)
   let
     replaceAttributeName =
-      List.zipWith (\i x -> x { wtAttribute = Attribute ("attribute" <> Text.pack (show i))}) [(0::Int)..]
+      List.zipWith (\i x -> x { wtAttribute = Attribute ("concrete_" <> Text.pack (show i))}) [(0::Int)..]
     as' =
       replaceAttributeName as
   (facts, time) <- genFactsForAttributes allowDupTime as'
@@ -171,7 +171,7 @@ tryGenWellTypedWithInputAndOutput allowDupTime inputType outputType = do
   as <- validatedNonEmpty 10 (tryGenAttributeWithInputAndOutput inputType outputType)
   let
     replaceAttributeName =
-      List.zipWith (\i x -> x { wtAttribute = Attribute ("attribute" <> Text.pack (show i))}) [(0::Int)..]
+      List.zipWith (\i x -> x { wtAttribute = Attribute ("concrete_" <> Text.pack (show i))}) [(0::Int)..]
     as' =
       replaceAttributeName as
   (facts, time) <- genFactsForAttributes allowDupTime as'
@@ -199,7 +199,8 @@ genWellTypedWithDuplicateTimes
 
 evalWellTyped :: WellTyped -> Map Entity [(OutputName, BaseValue)]
 evalWellTyped wt =
-  Map.unionsWith (<>) .
+  fmap (foldr (\(n,vs) acc -> acc <> List.zip (List.replicate (length vs) n) vs) [] . Map.toList) .
+  Map.unionsWith (Map.unionWith (<>)) .
   fmap (evalWellTypedAttribute (wtEvalContext wt) (wtFacts wt)) .
   wtAttributes $
     wt
@@ -208,32 +209,37 @@ evalWellTypedAttribute ::
      EvalContext
   -> [WellTypedValue]
   -> WellTypedAttribute
-  -> Map Entity [(OutputName, BaseValue)]
-evalWellTypedAttribute evalContext wvs (WellTypedAttribute attr _ _ core _ _) =
-  let
-    mkInput ix (WellTypedValue entity a (AsAt fact time)) =
-      (a, (entity, AsAt (BubbleGumFact (Flavour ix time), fact) time))
+  -> Map Entity (Map OutputName [BaseValue])
+evalWellTypedAttribute evalContext wvs (WellTypedAttribute attr _ _ core _ _)
+  | null wvs =
+      Map.empty
+  | otherwise =
+      let
+        mkInput ix (WellTypedValue entity a (AsAt fact time)) =
+          (a, (entity, AsAt (BubbleGumFact (Flavour ix time), fact) time))
 
-    inputs' =
-      Map.fromListWith (<>) .
-      fmap (fmap (:[]) . snd) .
-      List.filter ((== attr) . fst) .
-      List.zipWith mkInput [0..] $
-        wvs
+        -- use facts for this attribute only
+        inputs' =
+          Map.fromListWith (<>) .
+          fmap (fmap (:[]) . snd) .
+          List.filter ((== attr) . fst) .
+          List.zipWith mkInput [0..] $
+          List.filter ((== attr) . eavtAttribute) $
+            wvs
 
-    boom (Left e) =
-      Savage.error
-       ("Impossible! Failed to evaluate well-typed Core: " <> show e)
-    boom (Right xs) =
-      xs
+        boom (Left e) =
+          Savage.error
+           ("Impossible! Failed to evaluate well-typed Core: " <> show e)
+        boom (Right xs) =
+          xs
 
-  in
-    Map.fromList .
-    fmap (second PV.value) .
-    boom .
-    forM (Map.toList inputs') $
-      \(entity, values) -> (entity,) <$>
-        PV.eval evalContext values core
+      in
+        Map.fromList .
+        fmap (second (foldr (\(k,v) m -> Map.insertWith (<>) k [v] m) Map.empty . PV.value)) .
+        boom .
+        forM (Map.toList inputs') $
+          \(entity, values) -> (entity,) <$>
+            PV.eval evalContext values core
 
 
 --------------------------------------------------------------------------------
@@ -339,25 +345,22 @@ tryGenAttributeFromCore' sty core
         dummyAnn =
           Annot (FunT [] UnitT) ()
 
-        supportedOutput t
-          | isSupportedOutput t = Right t
-        supportedOutput t =
-          Left ("Unsupported output: " <> show t)
-
       attribute <- arbitrary
       return $ do
         checked <- nobodyCares (C.checkProgram core)
-        _       <- traverse (supportedOutput . functionReturns . snd) checked
+        _       <- traverse (supportedOutputType . functionReturns . snd) checked
         let avalanche = testFresh "fromCore" $ A.programFromCore namer core
         flatStmts <- nobodyCares (testFreshT "anf" $ A.flatten () (A.statements avalanche))
         flattened <- nobodyCares (A.checkProgram A.flatFragment (replaceStmts avalanche flatStmts))
         unchecked <- nobodyCares (testFresh "simp" $ A.simpFlattened dummyAnn A.defaultSimpOpts flattened)
         simplified <- nobodyCares (A.checkProgram A.flatFragment (A.eraseAnnotP unchecked))
 
-        let types = Set.toList (S.typesOfProgram simplified)
-        case filter (not . isSupportedType) types of
-          []    -> Right ()
-          ts    -> Left ("Unsupported type: " <> show ts)
+        _ <-
+          sequence .
+          fmap supportedOutputType .
+          Set.toList .
+          S.typesOfProgram $
+            simplified
 
         let
           wta = WellTypedAttribute {
@@ -372,7 +375,7 @@ tryGenAttributeFromCore' sty core
         return wta
 
   | otherwise =
-      Savage.error "Impossible! Generated an input type that is not Sum Error."
+      Savage.error "Impossible! Generator given an input type that is not Sum Error."
 
 -- If the input are structs, we can pretend it's a dense value
 -- We can't treat other values as a single-field dense struct because the
@@ -428,160 +431,144 @@ validatedNonEmpty' n g = do
 
 ------------------------------------------------------------------------
 
--- * Specialised generators to avoid too many discards.
+-- * Specialised WellTyped fact type generators to avoid too many discards.
 
-genSupportedArrayStructType :: Gen ValType
-genSupportedArrayStructType =
-  ArrayT . StructT <$> genSupportedStructType
+genSupportedArrayStructFactType :: Gen ValType
+genSupportedArrayStructFactType =
+  ArrayT . StructT <$> genSupportedStructFactType
 
-genSupportedStructType :: Gen StructType
-genSupportedStructType =
-  StructType . Map.fromList <$> (List.zip <$> listOf arbitrary <*> listOf genSupportedStructFieldType)
+genSupportedFactType :: Gen ValType
+genSupportedFactType =
+  oneof_sized_vals
+    [ BoolT
+    , IntT
+    , DoubleT
+    , TimeT
+    , StringT
+    ]
+    [ ArrayT <$> genSupportedArrayElemFactType
+    , StructT <$> genSupportedStructFactType
+    ]
 
-genSupportedStructFieldType :: Gen ValType
-genSupportedStructFieldType =
-  genInputType `suchThat` isSupportedInputField
+genSupportedArrayElemFactType :: Gen ValType
+genSupportedArrayElemFactType =
+  -- other types should have been melted
+  oneof_sized_vals
+    [ BoolT
+    , IntT
+    , DoubleT
+    , TimeT
+    , StringT
+    ]
+    [ StructT <$> genSupportedStructFactType
+    ]
 
-isSupportedInput :: ValType -> Bool
-isSupportedInput = \case
-  BoolT     -> True
-  IntT      -> True
-  DoubleT   -> True
-  TimeT     -> True
-  FactIdentifierT
-            -> True
-  StringT   -> True
+genSupportedStructFactType :: Gen StructType
+genSupportedStructFactType =
+  StructType . Map.fromList <$>
+    (List.zip <$>
+       listOf1 arbitrary <*>
+       listOf1 genSupportedStructFieldFactType
+    )
 
-  UnitT     -> False
-  ErrorT    -> False
-  BufT{}    -> False
-  MapT{}    -> False
-  PairT{}   -> False
-  SumT{}    -> False
-  OptionT{} -> False
+genSupportedStructFieldFactType :: Gen ValType
+genSupportedStructFieldFactType =
+  oneof_sized_vals
+    [ BoolT
+    , IntT
+    , DoubleT
+    , TimeT
+    , StringT
+    ]
+    [ OptionT <$> genPrimitiveFactType
+    , StructT <$> genSupportedStructFactType
+    ]
 
-  ArrayT t
-   -> isSupportedInputElem t
+genPrimitiveFactType :: Gen ValType
+genPrimitiveFactType =
+  oneof_vals
+    [ BoolT
+    , IntT
+    , DoubleT
+    , TimeT
+    , StringT
+    ]
 
-  StructT (StructType fs)
-   | Map.null fs
-   -> False
-   | otherwise
-   -> all isSupportedInputField (Map.elems fs)
+--------------------------------------------------------------------------------
 
-isSupportedInputElem :: ValType -> Bool
-isSupportedInputElem = \case
-  BoolT     -> True
-  IntT      -> True
-  DoubleT   -> True
-  TimeT     -> True
-  FactIdentifierT
-            -> True
-  StringT   -> True
+-- * Generated WellTyped programs must have those output types.
 
-  UnitT     -> False
-  ErrorT    -> False
-  ArrayT{}  -> False
-  BufT{}    -> False
-  MapT{}    -> False
-  PairT{}   -> False
-  SumT{}    -> False
-  OptionT{} -> False
+supportedOutputType :: ValType -> Either String ValType
+supportedOutputType t
+  | isSupportedRightOutputType t =
+      Right t
+  | otherwise =
+      Left ("Unsupported output: " <> show t)
 
-  StructT (StructType fs)
-   -> all isSupportedInputField (Map.elems fs)
+isSupportedTopOutputType :: ValType -> Bool
+isSupportedTopOutputType = \case
+  SumT ErrorT t ->
+    isSupportedRightOutputType t
+  _ ->
+    False
 
-isSupportedInputField :: ValType -> Bool
-isSupportedInputField = \case
-  BoolT           -> True
-  IntT            -> True
-  DoubleT         -> True
-  TimeT           -> True
-  FactIdentifierT -> True
-  StringT         -> True
-  OptionT BoolT   -> True
-  OptionT IntT    -> True
-  OptionT DoubleT -> True
-  OptionT TimeT   -> True
-  OptionT StringT -> True
+isSupportedRightOutputType :: ValType -> Bool
+isSupportedRightOutputType = \case
+  OptionT t ->
+    isSupportedRightOutputType t
+  PairT a b ->
+    isSupportedRightOutputType a && isSupportedRightOutputType b
+  SumT a b ->
+    isSupportedRightOutputType a && isSupportedRightOutputType b
+  ArrayT t ->
+    isSupportedRightOutputType t
+  BufT _ t ->
+    isSupportedBufferElemOutputType t
+  MapT k v ->
+    isSupportedRightOutputType k && isSupportedRightOutputType v
+  StructT s ->
+    isSupportedStructOutputType s
+  t ->
+    isSupportedPrimitiveOutputType t
 
-  UnitT     -> False
-  ErrorT    -> False
-  ArrayT{}  -> False
-  BufT{}    -> False
-  MapT{}    -> False
-  PairT{}   -> False
-  SumT{}    -> False
-  OptionT{} -> False
+isSupportedStructOutputType :: StructType -> Bool
+isSupportedStructOutputType =
+  all isSupportedStructFieldOutputType . Map.elems . getStructType
 
-  StructT (StructType fs)
-   -> all isSupportedInputField (Map.elems fs)
+isSupportedStructFieldOutputType :: ValType -> Bool
+isSupportedStructFieldOutputType =
+  isSupportedRightOutputType
 
-isSupportedOutput :: ValType -> Bool
-isSupportedOutput = \case
-  OptionT t              -> isSupportedOutputElem t
-  PairT a b              -> isSupportedOutputElem a && isSupportedOutputElem b
-  SumT ErrorT t          -> isSupportedOutput t
+isSupportedPrimitiveOutputType :: ValType -> Bool
+isSupportedPrimitiveOutputType = \case
+  BoolT ->
+    True
+  IntT ->
+    True
+  DoubleT ->
+    True
+  TimeT ->
+    True
+  FactIdentifierT ->
+    True
+  StringT ->
+    True
+  ErrorT ->
+    True
+  _ ->
+    False
 
-  ArrayT (ArrayT t)      -> isSupportedOutputElem t
-  ArrayT t               -> isSupportedOutputElem t
-  MapT k v               -> isSupportedOutputElem k && isSupportedOutput v
-
-  t                      -> isSupportedOutputBase t
-
-isSupportedOutputElem :: ValType -> Bool
-isSupportedOutputElem = \case
-  OptionT t              -> isSupportedOutputElem t
-  PairT a b              -> isSupportedOutputElem a && isSupportedOutputElem b
-  SumT ErrorT t          -> isSupportedOutputElem t
-
-  ArrayT _               -> False
-  MapT   _ _             -> False
-
-  t                      -> isSupportedOutputBase t
-
-isSupportedOutputBase :: ValType -> Bool
-isSupportedOutputBase = \case
-  BoolT     -> True
-  IntT      -> True
-  DoubleT   -> True
-  TimeT     -> True
-  FactIdentifierT
-            -> True
-  StringT   -> True
-
-  UnitT     -> False
-  ErrorT    -> False
-  BufT{}    -> False
-  StructT{} -> False
-
-  _         -> False
-
-isSupportedType :: ValType -> Bool
-isSupportedType ty = case ty of
-  UnitT     -> True
-  BoolT     -> True
-  IntT      -> True
-  DoubleT   -> True
-  TimeT     -> True
-  FactIdentifierT
-            -> True
-  StringT   -> True
-  ErrorT    -> True
-  SumT{}    -> True
-
-  BufT _ t  -> not (containsBuf t)
-  ArrayT t  -> isSupportedType t
-
-  -- should have been melted
-  MapT{}    -> Savage.error ("should have been melted: " <> show ty)
-  PairT{}   -> Savage.error ("should have been melted: " <> show ty)
-  OptionT{} -> Savage.error ("should have been melted: " <> show ty)
-  StructT{} -> Savage.error ("should have been melted: " <> show ty)
+isSupportedBufferElemOutputType :: ValType -> Bool
+isSupportedBufferElemOutputType =
+  not . containsBuf
 
 containsBuf :: ValType -> Bool
 containsBuf = \case
-  BufT{}    -> True
-  ArrayT t' -> containsBuf t'
-  SumT a b  -> containsBuf a || containsBuf b
-  _         -> False
+  BufT{} ->
+    True
+  ArrayT t ->
+    containsBuf t
+  SumT a b ->
+    containsBuf a || containsBuf b
+  _ ->
+    False

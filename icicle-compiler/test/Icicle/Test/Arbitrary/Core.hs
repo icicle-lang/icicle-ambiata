@@ -82,6 +82,12 @@ instance Arbitrary Var where
    sized $ \size ->
     Var <$> elements viruses <*> choose (0, size)
 
+instance Arbitrary OutputName where
+  arbitrary =
+    OutputName <$>
+      (((<>) "output_") <$> elements muppets) <*>
+      (Namespace . ((<>) "namspace_") <$> elements simpsons)
+
 instance (Hashable n, Arbitrary n) => Arbitrary (Name n) where
   arbitrary =
     nameOf . NameBase <$> arbitrary
