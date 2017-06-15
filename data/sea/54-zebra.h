@@ -395,6 +395,14 @@ ibool_t zebra_limit_exceeded (zebra_state_t *state) {
 /* A read and compute step */
 ierror_msg_t zebra_read_step (piano_t *piano, zebra_state_t *state, zebra_entity_t *entity)
 {
+     int64_t attribute_count = zebra_attribute_count ();
+     if (attribute_count != entity->attribute_count) {
+        fprintf (stderr, "Fatal error: Icicle dictionary does not match Zebra schema.\n");
+        fprintf (stderr, "Total attribute count for Zebra: %" PRId64 "\n", entity->attribute_count);
+        fprintf (stderr, "Total attribute count for Icicle: %" PRId64 "\n", attribute_count);
+        exit(1);
+     }
+
     ifleet_t *fleet = state->fleet;
     psv_collect_fleet (fleet);
 
