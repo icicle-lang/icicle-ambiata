@@ -10,11 +10,6 @@ feature salary ~> distinct time ~> mean value
 -- Distinct location and count. Expect 3
 feature injury ~> distinct location ~> count location
 
--- Try all other combinations of Possibly: 'time' is definitely, while 'location' is possibly.
-feature injury ~> distinct location ~> count time
-feature injury ~> distinct time ~> count time
-feature injury ~> distinct time ~> count location
-
 -- Expect CannotCompute - exceeds map size
 :set max-map-size 2
 feature injury ~> distinct location ~> count location

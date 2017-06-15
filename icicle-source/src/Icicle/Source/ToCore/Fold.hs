@@ -376,9 +376,16 @@ convertFold q
            t'k    <- convertValType' $ annResult $ annotOfExp k
 
            let q'possibly = isAnnotPossibly $ annotOfQuery q'
+           let k'possibly = isAnnotPossibly $ annotOfExp   k
+
+           let t'kr       | k'possibly
+                          , T.SumT T.ErrorT tt <- t'k
+                          = tt
+                          | otherwise
+                          = t'k
 
            let t'fold     = typeFold         res
-           let t'map      = T.MapT  t'k      T.UnitT
+           let t'map      = T.MapT  t'kr     T.UnitT
            let t'pair     = T.PairT t'map    t'fold
            let t'sum      = T.SumT  T.ErrorT t'pair
 
@@ -400,12 +407,14 @@ convertFold q
            let x'unit     = CE.xValue T.UnitT VUnit
 
            -- Right (Map.empty, zero q)
-           let zero       = x'right $ x'pair (CE.emptyMap t'k T.UnitT) (foldZero res)
+           let zero       = x'right $ x'pair (CE.emptyMap t'kr T.UnitT) (foldZero res)
 
            -- sum        :: Sum Error (map, fold)
            n'sum         <- lift fresh
            -- pair       :: (map, fold)
            n'pair        <- lift fresh
+           -- key        :: kr
+           n'key         <- lift fresh
            -- map        :: map
            n'map         <- lift fresh
            -- error      :: Error
@@ -416,7 +425,7 @@ convertFold q
            n'unit2       <- lift fresh
            n'unit3       <- lift fresh
 
-           mapInsert     <- primInsert t'k T.UnitT (x'fst $ CE.xVar n'pair) k' x'unit
+           mapInsert     <- primInsert t'kr T.UnitT (x'fst $ CE.xVar n'pair) (CE.xVar n'key) x'unit
 
            let unwrapSum' = unwrapSum True t'sum n'error
 
@@ -427,13 +436,14 @@ convertFold q
                               (foldKons res CE.@~ x'snd (CE.xVar n'pair) )
 
            let kons       = CE.xLam n'sum t'sum
-                          $ unwrapSum' (CE.xVar n'sum) n'pair t'sum
+                          $ unwrapSum'                         (CE.xVar n'sum) n'pair t'sum
+                          $ unwrapSum k'possibly t'sum n'error  k'             n'key  t'k
                           ( CE.xPrim (C.PrimFold (C.PrimFoldOption T.UnitT) t'sum)
                               CE.@~ CE.xLam n'unit2 T.UnitT (CE.xVar n'sum)
                               CE.@~ CE.xLam n'unit3 T.UnitT upd
-                              CE.@~ ( CE.xPrim (C.PrimMap (C.PrimMapLookup t'k T.UnitT))
+                              CE.@~ ( CE.xPrim (C.PrimMap (C.PrimMapLookup t'kr T.UnitT))
                                         CE.@~ x'fst (CE.xVar n'pair)
-                                        CE.@~ k' ) )
+                                        CE.@~ CE.xVar n'key ) )
 
            -- Fold over the map
            let xtra       = CE.xLam n'sum t'sum
