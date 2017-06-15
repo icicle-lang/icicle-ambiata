@@ -4,6 +4,7 @@
 module Icicle.Source.ToCore.Prim (
     convertPrim
   , primInsert
+  , primInsertOrUpdate
   ) where
 
 import                  Icicle.Source.Query
@@ -374,8 +375,19 @@ primInsert
         -> C.Exp () n
         -> C.Exp () n
         -> ConvertM a n (C.Exp () n)
-primInsert tk tv xm xk xv = do
-  -- let n' = insertOrUpdate (\n. v) v k m
+primInsert tk tv xm xk xv = primInsertOrUpdate tk tv xm xk xv (const xv)
+
+primInsertOrUpdate
+        :: (Hashable n)
+        => T.ValType
+        -> T.ValType
+        -> C.Exp () n
+        -> C.Exp () n
+        -> C.Exp () n
+        -> (C.Exp () n -> C.Exp () n)
+        -> ConvertM a n (C.Exp () n)
+primInsertOrUpdate tk tv xm xk xvz xvu = do
+  -- let n' = insertOrUpdate (\n. vu n) vz k m
   -- if length (keys n') >= MAX_SIZE
   -- then Left ExceptCannotCompute
   -- else Right n'
@@ -386,7 +398,7 @@ primInsert tk tv xm xk xv = do
   let tsum   = T.SumT T.ErrorT tm
 
   let insert = apps (C.PrimMap $ C.PrimMapInsertOrUpdate tk tv)
-             [ CE.XLam () n tv xv, xv, xk, xm ]
+             [ CE.XLam () n tv $ xvu $ CE.XVar () n, xvz, xk, xm ]
 
   let verr   = CE.XValue () (T.SumT T.ErrorT tm) $ (V.VLeft $ V.VError V.ExceptCannotCompute)
   let vright = apps (C.PrimMinimal $ Min.PrimConst $ Min.PrimConstRight T.ErrorT tm)
