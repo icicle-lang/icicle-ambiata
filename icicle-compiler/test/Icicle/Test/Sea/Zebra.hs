@@ -80,6 +80,7 @@ import qualified Icicle.Test.Foreign.Utils as Test
 --
 prop_read_entity :: Property
 prop_read_entity =
+  gamble jInputType $ \ty ->
   forAll (gWellTyped ty) $ \wt ->
   gamble (jZebraWellTyped wt) $ \zwt ->
   testIO . bracket Mempool.create Mempool.free $ \pool -> Test.runRight $ do
@@ -89,147 +90,92 @@ prop_read_entity =
         Map.mapKeys (Entity . Text.decodeUtf8 . Zebra.unEntityId . Zebra.entityId) .
         zFacts $
           zwt
-    Result inputs dropped <- runTest pool zwt
+    Result inputs <- runTest pool zwt
     return $ counterexample ("Read Inputs = " <> ppShow inputs)
-           $ counterexample ("Dropped Entities = " <> ppShow dropped)
            $ inputs === expected
 
---
--- Each entity is either read or dropped if they exceed the allocation limit
---
-prop_read_or_drop_entity :: Property
-prop_read_or_drop_entity =
-  gamble jInputType $ \ty ->
-  forAll (gWellTyped ty) $ \wt ->
-  gamble (jZebraWellTyped wt) $ \zwt ->
-  testIO . bracket Mempool.create Mempool.free $ \pool -> Test.runRight $ do
-    let
-      entities =
-        fmap (Entity . Text.decodeUtf8 . Zebra.unEntityId . Zebra.entityId) . Map.keys . zFacts $ zwt
-    Result inputs dropped <- runTest pool chunkFactCount allocLimitBytes zwt
-    return $ counterexample ("Read Inputs = " <> ppShow inputs)
-           $ counterexample ("Dropped Entities = " <> ppShow dropped)
-           $ List.sort ((fmap fst . Map.toList $ inputs) <> dropped) === List.sort entities
-
-
-data Result = Result {
+newtype Result = Result {
     resultRead :: Map Entity [BaseValue]
-  , resultDropped :: [Entity]
   } deriving (Eq, Show)
 
 instance Monoid Result where
   mempty =
-    Result mempty mempty
-  mappend (Result xs ys) (Result as bs) =
-    Result (Map.unionWith (<>) xs as) (ys <> bs)
+    Result mempty
+  mappend (Result xs) (Result as) =
+    Result (Map.unionWith (<>) xs as)
 
 runTest ::
      Mempool
   -> ZebraWellTyped
   -> EitherT SeaError IO Result
 runTest pool zwt@(ZebraWellTyped wt facts entities) =
- = join . liftIO . fmap hoistEither . withSegv (pp zwt) $ do
-    let
-      step =
-        unZebraChunkFactCount chunk_step
+ = join . liftIO . fmap hoistEither . withSegv (pp zwt) $
+   runEitherT . fmap (Result . Map.fromList) . forM (Map.toList entities) $ \(entity, attributes) -> do
+     let
+       entity_id =
+         ByteString.unpack . Zebra.unEntityId . Zebra.entityId $ entity
+       entity_text =
+         Entity . Text.pack $ entity_id
+       fact_count =
+         length . List.concat . fmap snd $ attributes
 
-      result (Left e) =
-        Result Map.empty [e]
-      result (Right (e,v)) =
-        Result (Map.singleton e v) []
+     bracketEitherT'
+       (liftIO . newCStringLen $ entity_id)
+       (liftIO . free . fst) $ \(id_bytes, id_length) ->
+       fmap (entity_text,) $ do
+         c_entity <- Zebra.foreignOfEntity pool entity
+         code <- hoistEither $ codeOf wt
+         opts <- getCompilerOptions
+         let
+           opts' =
+             ["-DICICLE_ASSERT=1", "-DICICLE_ASSERT_MAXIMUM_ARRAY_COUNT=" <> Text.pack "1000000"] <> opts
 
-    runEitherT . fmap (mconcat . fmap result) . forM (Map.toList entities) $ \(entity, attributes) -> do
-      let
-        entity_id =
-          ByteString.unpack . Zebra.unEntityId . Zebra.entityId $ entity
-        entity_text =
-          Entity . Text.pack $ entity_id
-        fact_count =
-          length . List.concat . fmap snd $ attributes
-        last_chunk
-          | r <- fact_count `rem` step
-          , r /= 0
-          = [r]
-          | otherwise
-          = []
-        chunk_lengths =
-            List.replicate (fact_count `div` step) step <> last_chunk
+         withSystemTempDirectory "zebra-test-" $ \dir -> do
+           let
+             drop_fp =
+               dir <> "/drop.txt"
 
+           withWritableFd drop_fp $ \drop_fd ->
+             withSeaLibrary opts' code $ \src -> do
 
-      bracketEitherT'
-        (liftIO . newCStringLen $ entity_id)
-        (liftIO . free . fst) $ \(id_bytes, id_length) ->
-        fmap (maybe (Left entity_text) (Right . (entity_text,))) $ do
-          c_entity <- Zebra.foreignOfEntity pool entity
-          code <- hoistEither $ codeOf wt
-          opts <- getCompilerOptions
-          let
-            opts' =
-              ["-DICICLE_ASSERT=1", "-DICICLE_ASSERT_MAXIMUM_ARRAY_COUNT=" <> Text.pack "1000000"] <> opts
+               init <- firstEitherT SeaJetskiError $
+                 function src "zebra_alloc_state" (retPtr retVoid)
+               finish <- firstEitherT SeaJetskiError $
+                 function src "zebra_collect_state" (retPtr retVoid)
+               test_read_entity <- firstEitherT SeaJetskiError $
+                 function src "test_zebra_read_entity" (retPtr retWord8)
+               test_fleet <- firstEitherT SeaJetskiError $
+                 function src "test_setup_fleet" (retPtr retVoid)
 
-          withSystemTempDirectory "zebra-test-" $ \dir -> do
-            let
-              drop_fp =
-                dir <> "/drop.txt"
+               withWords zebraConfigCount $ \config -> do
+                 pokeWordOff config zebraConfigDropFd drop_fd
+                 pokeWordOff config zebraConfigOutputBufferSize defaultPsvOutputBufferSize
 
-            withWritableFd drop_fp $ \drop_fd ->
-              withSeaLibrary opts' code $ \src -> do
+                 bracketEitherT'
+                   (liftIO (init [ argPtr nullPtr, argPtr config, argInt64 1 ]))
+                   (\state -> (liftIO (finish [ argPtr config, argPtr state ])))
+                   (\state -> do
+                      fleet_ptr <- liftIO $ peekWordOff state zebraStateFleet
+                      e1 <- liftIO $ test_fleet
+                              [ argPtr id_bytes
+                              , argInt32 (fromIntegral id_length)
+                              , argPtr nullPtr
+                              , argPtr fleet_ptr ]
+                      when (e1 /= nullPtr) $
+                        fail "failed to configure fleet"
 
-                init <- firstEitherT SeaJetskiError $
-                  function src "zebra_alloc_state" (retPtr retVoid)
-                finish <- firstEitherT SeaJetskiError $
-                  function src "zebra_collect_state" (retPtr retVoid)
-                test_read_entity <- firstEitherT SeaJetskiError $
-                  function src "test_zebra_read_entity" (retPtr retWord8)
-                test_fleet <- firstEitherT SeaJetskiError $
-                  function src "test_setup_fleet" (retPtr retVoid)
+                      e2 <- liftIO $ test_read_entity
+                              [ argPtr nullPtr
+                              , argPtr state
+                              , argPtr (Zebra.unCEntity c_entity) ]
+                      when (e2 /= nullPtr) $ do
+                        err <- liftIO $ peekCString (castPtr e2)
+                        fail $ "failed to read entity: " <> err
 
-                withWords zebraConfigCount $ \config -> do
-                  pokeWordOff config zebraConfigDropFd drop_fd
-                  pokeWordOff config zebraConfigOutputBufferSize defaultPsvOutputBufferSize
-                  pokeWordOff config zebraConfigChunkFactCount (unZebraChunkFactCount chunk_step)
-                  pokeWordOff config zebraConfigAllocLimitBytes alloc_limit_bytes
+                      read_inputs <- saveInputs fleet_ptr (fmap fst $ attributes) programs
 
-                  bracketEitherT'
-                    (liftIO (init [ argPtr nullPtr, argPtr config, argInt64 1 ]))
-                    (\state -> (liftIO (finish [ argPtr config, argPtr state ])))
-                    (\state -> do
-                       fleet_ptr <- liftIO $ peekWordOff state zebraStateFleet
-                       groupedByChunk <- forM (List.replicate (length chunk_lengths) ()) $ \_ -> do
-                         dropped <- do
-                             e1 <- liftIO $ test_fleet
-                                     [ argPtr id_bytes
-                                     , argInt32 (fromIntegral id_length)
-                                     , argPtr nullPtr
-                                     , argPtr fleet_ptr ]
-                             when (e1 /= nullPtr) $
-                               fail "failed to configure fleet"
-
-                             e2 <- liftIO $ test_read_entity
-                                     [ argPtr nullPtr
-                                     , argPtr state
-                                     , argPtr (Zebra.unCEntity c_entity) ]
-                             when (e2 /= nullPtr) $ do
-                               err <- liftIO $ peekCString (castPtr e2)
-                               fail $ "failed to read entity: " <> err
-
-                             x <- liftIO $ test_check_limit
-                                    [ argPtr state
-                                    , argPtr (Zebra.unCEntity c_entity) ]
-                             return x
-
-                         if dropped
-                         then
-                           return Nothing
-                         else
-                           Just <$> saveInputs fleet_ptr (fmap fst $ attributes) programs
-
-                       let
-                         groupedByAttribute =
-                           fmap (List.transpose) . sequence $ groupedByChunk
-
-                       return . fmap (List.concat . fmap (List.concat . fmap snd)) $ groupedByAttribute
-                    )
+                      return . concatMap snd $ read_inputs
+                   )
 
 -- for each attribute, read a `new_fact_count` number of facts
 saveInputs ::
@@ -242,7 +188,7 @@ saveInputs fleet_ptr attributes programs =
     case List.find ((== attribute) . wtAttribute) programs of
       Nothing ->
         hoistEither . Left . SeaProgramNotFound $ attribute
-      Just (WellTypedAttribute _ _ _ _ _ flat) -> do
+      Just (WellTypedAttribute _ _ _ _ _ _ flat) -> do
         struct_count <-
           inputFieldsCount <$>
             hoistEither (stateOfPrograms index attribute (flat :| []))
@@ -327,22 +273,12 @@ jInputType = do
           True
   arbitrary `suchThat` zebraSupported
 
-jZebraWellTyped :: Jack ZebraWellTyped
-jZebraWellTyped = justOf $ do
-  wt <- arbitrary
-  zebraOfWellTyped wt
-
 gWellTyped :: InputType -> Gen WellTyped
-gWellTyped ty = do
-  !wt <- tryGenWellTypedWithInput AllowDupTime ty
-  case wt of
-    Nothing ->
-      discard
-    Just w ->
-      return w
+gWellTyped =
+  validated 10 . tryGenWellTypedWithInput AllowDupTime
 
-zebraOfWellTyped :: WellTyped -> Jack ZebraWellTyped
-zebraOfWellTyped welltyped = do
+jZebraWellTyped :: WellTyped -> Jack ZebraWellTyped
+jZebraWellTyped welltyped = do
   let
     -- FIXME ignoring fact times for now, but to test it we should convert icicle time to 1600 epoch secs here
     ignoreTime eavt =
@@ -590,7 +526,7 @@ codeOf wt = do
     dummy =
       HasInput
         (FormatZebra
-          (ZebraConfig (eavlMaxMapSize (wtEvalContext wt)))
+          (ZebraConfig (evalMaxMapSize (wtEvalContext wt)))
           (Snapshot testSnapshotTime)
           (PsvOutputConfig (Snapshot testSnapshotTime) PsvOutputDense defaultOutputMissing))
         (InputOpts AllowDupTime Map.empty)
@@ -624,12 +560,6 @@ pp :: ZebraWellTyped -> String
 pp wt =
   "=== Entity ===\n" <>
   show wt
-
-withSystemTempDirectory :: FilePath -> (FilePath -> EitherT SeaError IO a) -> EitherT SeaError IO a
-withSystemTempDirectory template action = do
-  let acquire = liftIO (getTemporaryDirectory >>= \tmp -> createTempDirectory tmp template)
-      release = liftIO . removeDirectoryRecursive
-  bracketEitherT' acquire release action
 
 withWritableFd :: FilePath -> (Posix.Fd -> EitherT SeaError IO a) -> EitherT SeaError IO a
 withWritableFd path =

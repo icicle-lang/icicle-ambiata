@@ -111,52 +111,6 @@ seaOfRead index cluster = vsep
     i = pretty index
     a = prettyText . renderInputId $ clusterInputId cluster
 
-seaOfClearFactCount :: [SeaProgramAttribute] -> Doc
-seaOfClearFactCount states =
-  let
-    defProgramsFor s =
-      let
-        n =
-          pretty (nameOfStateType s)
-      in
-        n <+> "*" <> n <> "_programs = fleet->" <> pretty (nameOfAttribute s) <> ";"
-
-    defProgramFor s =
-      let
-        n =
-          pretty (nameOfStateType s)
-      in
-        n <+> "*" <> n <> "_program = &" <> n <> "_programs[chord_ix];"
-
-    defFactCountFor s =
-      let
-        n =
-          pretty (nameOfStateType s)
-      in
-        "iint_t *" <> n <> "_fact_count = &(" <> n <> "_program->input." <> pretty (stateTimeVar s) <> ") + 1;"
-
-    clearFactCountFor s =
-      let
-        n =
-          pretty (nameOfStateType s)
-      in
-        "*" <> n <>　"_fact_count = 0;"
-  in
-    vsep
-      [ "#line 1 \"Clear the fact counts after all compute and bookkeeping is finished for these facts\""
-      , "static ierror_msg_t zebra_clear_fact_count (ifleet_t *fleet)"
-      , "{"
-      , indent 4 . vsep . fmap defProgramsFor $ states
-      , indent 4 "iint_t chord_count = fleet->chord_count;"
-      , indent 4 "for (iint_t chord_ix = 0; chord_ix != chord_count; chord_ix++) {"
-      , indent 8 . vsep . fmap defProgramFor $ states
-      , indent 8 . vsep . fmap defFactCountFor $ states
-      , indent 8 . vsep . fmap clearFactCountFor $ states
-      , indent 4 "}"
-      , indent 4 "return 0;"
-      , "}"
-      ]
-
 -- chords loop:
 --
 -- zebra_read_entity_0
@@ -224,12 +178,8 @@ seaOfDefReadProgram cluster = vsep
   , ""
   , "        /* run compute on the facts read so far */"
   , "        if (*fact_count != 0) {"
-<<<<<<< HEAD
   , indent 12 $ vsep $ fmap (\i -> pretty (nameOfKernel i) <+> " (program);") kernels
   , "            *fact_count = 0;"
-=======
-  , indent 12 $ vsep $ fmap (\i -> pretty (nameOfCompute i) <+> " (program);") computes
->>>>>>> Psv: prevent possible shadowing from different programs
   , "        }"
   , "    }"
   , ""

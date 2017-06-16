@@ -44,7 +44,6 @@ typedef struct zebra_state {
 } zebra_state_t;
 
 static int64_t zebra_attribute_count ();
-static ierror_msg_t zebra_clear_fact_count (ifleet_t *fleet);
 
 static ierror_msg_t zebra_read_entity
     ( piano_t *piano

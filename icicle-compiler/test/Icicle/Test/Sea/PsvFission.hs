@@ -13,11 +13,15 @@ import           Icicle.Test.Sea.Psv hiding (tests)
 
 import           Control.Monad.IO.Class (liftIO)
 import           Control.Monad.Morph (hoist)
+import           Control.Arrow ((&&&))
 
 import qualified Data.ByteString.Lazy as L
 import           Data.List.NonEmpty ( NonEmpty(..) )
+import           Data.Maybe
+import           Data.String
 import qualified Data.Map as Map
 import qualified Data.Set as Set
+import qualified Data.List as List
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as LT
 import qualified Data.Text.Lazy.Encoding as LT
@@ -25,18 +29,20 @@ import qualified Data.Text.Lazy.IO as LT
 
 import           Disorder.Core.IO
 
+import           Icicle.Internal.Pretty
 import           Icicle.Common.Base
 import           Icicle.Common.Eval
-
 import           Icicle.Sea.Eval (SeaError(..))
 import qualified Icicle.Sea.Eval as Sea
 import           Icicle.Sea.Fleet
 import qualified Icicle.Core.Program.Program as C
 import           Icicle.Data.Name
 import           Icicle.Data
-
 import           Icicle.Test.Arbitrary
 import           Icicle.Test.Arbitrary.Corpus
+import qualified Icicle.Avalanche.Prim.Flat as Flat
+import qualified Icicle.Avalanche.Program as Flat
+import           Icicle.Common.Annot
 
 import qualified Jetski as J
 
@@ -54,7 +60,6 @@ import           X.Control.Monad.Trans.Either (bracketEitherT', left)
 
 
 prop_psv_fission =
-  forAll genMaxMapSize $ \maxMapSize ->
   forAll arbitrary $ \inputType ->
   forAll (validated 100 . tryGenAttributeWithInput $ inputType) $ \wta1 ->
   forAll (validated 100 . tryGenAttributeWithInput $ inputType) $ \wta2 -> do
@@ -71,70 +76,83 @@ prop_psv_fission =
      True ->
        discard
      False ->
-       forAll (genFactsForAttributes timeOpt [wta1]) $ \(wtvs1, chordTime) ->
-       forAll (genFactsForAttributes timeOpt [wta2]) $ \(wtvs2, _) ->
+       forAll (genFactsForAttributes timeOpt [wta1, wta2]) $ \(vals, chordTime) ->
+       forAll (genSufficientMaxMapSize (length vals)) $ \maxMapSize ->
          let
+           -- sort the facts by time because we are going to run them with
+           -- different attributes separately, but they are only guaranteed
+           -- to be sorted within one attribute.
+           wtvs =
+             let
+               sortByEAT =
+                 List.sortBy (comparing (eavtEntity &&& eavtAttribute &&& (atTime . eavtValue)))
+               forAttribute1 w =
+                  w { eavtAttribute = wtAttribute wta1 }
+               forAttribute2 w =
+                  w { eavtAttribute = wtAttribute wta2 }
+             in
+               sortByEAT $ fmap forAttribute1 vals <> fmap forAttribute2 vals
            evalContext =
              EvalContext chordTime maxMapSize
-           wt1 =
-             WellTyped evalContext wtvs1 [wta1]
+           dummyWt =
+             WellTyped evalContext wtvs [wta1]
          in
-           forAll (genPsvConstants wt1) $ \psvOpts -> testIO $ do
+           forAll (genPsvConstants dummyWt) $ \psvOpts -> testIO $ do
              x <- runEitherT
-                $ runTest2 evalContext psvOpts wta1 wtvs1 wta2 wtvs2
-                $ TestOpts ShowInputOnError ShowOutputOnError Sea.PsvInputSparse timeOpt
+                $ runTwoAsOne evalContext psvOpts wta1 wta2 wtvs
+                $ TestOpts ExpectSuccess Sea.PsvInputSparse timeOpt
              case x of
                Left err ->
-                 failWithError wt1 err
+                 failWithError dummyWt err
                Right () ->
                  pure (property succeeded)
 
 --------------------------------------------------------------------------------
 
-timeOpt = Sea.DoNotAllowDupTime
+timeOpt = Sea.AllowDupTime
 
-runTest2 ::
+runTwoAsOne ::
      EvalContext
   -> Sea.PsvConstants
   -> WellTypedAttribute
-  -> [WellTypedValue]
   -> WellTypedAttribute
   -> [WellTypedValue]
   -> TestOpts
   -> EitherT SeaError IO ()
-runTest2 evalContext psvConstants wta1 wtvs1 wta2 wtvs2 testOpts = do
+runTwoAsOne evalContext psvConstants wta1 wta2 wtvs testOpts = do
   let
-    wtOf =
-      WellTyped evalContext
-    wt1 =
-      wtOf wtvs1 [wta1]
-    wt2 =
-      wtOf wtvs2 [wta2]
-    limit =
-      Sea.psvFactsLimit psvConstants
     compile =
-      compileTest2 wt1 wt2 testOpts
+      compileTwoAsOne
+        testOpts
+        evalContext
+        (wtAttribute wta1)
+        (wtAvalancheFlat wta1)
+        (wtAvalancheFlat wta2)
     release
       = Sea.seaRelease
+    inputPsv =
+      textOfFacts wtvs
 
+  -- Same input, different attributes (of the same type).
   let
+    limit =
+      Sea.psvFactsLimit psvConstants
     expect1 =
-      evalWellTyped wt1
+      evalWellTyped (WellTyped evalContext wtvs [wta1]) limit
     expect2 =
-      evalWellTyped wt2
-    expect
-     | length wtvs1 < limit
-     , length wtvs2 < limit
-     = textOfOutputs (Map.union expect1 expect2)
-     | otherwise
-     = ""
+      evalWellTyped (WellTyped evalContext wtvs [wta2]) limit
+    expect =
+      fmap (List.sortBy (comparing fst)) $
+      Map.unionWith (<>) expect1 expect2
+    expectPsv =
+      textOfOutputs expect
 
-  hoist runResourceT $ bracketEitherT' compile (hoist liftIO . release) $ \fleet -> hoist liftIO $ do
+  bracketEitherT' compile (hoist liftIO . release) $ \fleet -> hoist liftIO $ do
     let
       install =
-        liftIO . Sea.sfSegvInstall fleet $ show psvConstants <> "\n" <> show wt1 <> "\n" <> show wt2
+        liftIO $ Sea.sfSegvInstall fleet ""
       remove _ =
-        liftIO . Sea.sfSegvRemove $ fleet
+        liftIO $ Sea.sfSegvRemove fleet
 
     bracketEitherT' install remove  $ \_ -> do
       withSystemTempDirectory "psv-test-" $ \dir -> do
@@ -151,77 +169,101 @@ runTest2 evalContext psvConstants wta1 wtvs1 wta2 wtvs2 testOpts = do
             dir <> "/dropped.txt"
           chords =
             Nothing
-          inputPsv =
-            textOfFacts (wtFacts wt1)
+          beautiful =
+            vsep . fmap (text . LT.unpack) . LT.lines
 
         liftIO (LT.writeFile program (LT.fromStrict source))
         liftIO (L.writeFile input (LT.encodeUtf8 inputPsv))
-        result <- liftIO . runEitherT $
-                    Sea.seaPsvSnapshotFilePath fleet input output dropped chords Sea.FlagUseDropFile psvConstants
+        result <-
+          liftIO .
+          runEitherT .
+          Sea.seaPsvSnapshotFilePath fleet input output dropped chords Sea.FlagUseDropFile $
+            psvConstants
 
         case result of
           Left err -> do
             left err
-          Right _ -> do
+          Right (Sea.PsvStats nf ne) -> do
             outputPsv <- liftIO $ LT.readFile output
-            when (outputPsv /= expect) $ do
-              Savage.error ("Expected:\n" <> LT.unpack expect <> "\nGot:\n" <> LT.unpack outputPsv)
+            dropPsv <- liftIO $ LT.readFile dropped
+            when (outputPsv /= expectPsv) $ do
+              Savage.error . show . vsep $
+                [ "*** You are a disappointment! ***"
+                , "Running PSV Snapshot OK: " <> pretty (show ne) <> " entities, " <> pretty (show nf) <> " facts."
+                , "Expected from combined :"
+                , indent 2 . beautiful $ expectPsv
+                , "Got PSV:"
+                , indent 2 . beautiful $ outputPsv
+                , "Input: "
+                , indent 2 . beautiful $ inputPsv
+                , "Dropped: "
+                , indent 2 . beautiful $ dropPsv
+                , "Expect from WellTyped 1:"
+                , indent 2 . text . show . Map.toList $ expect1
+                , "Expect from WellTyped 2:"
+                , indent 2 . text . show . Map.toList $ expect2
+                , "---"
+                ]
 
-compileTest2 ::
-     WellTyped
-  -> WellTyped
-  -> TestOpts
-  -> EitherT SeaError (ResourceT IO) (SeaFleet Sea.PsvState)
-compileTest2 wt1 wt2 (TestOpts _ _ inputFormat allowDupTime)
-  | [wta1] <- wtAttributes wt1
-  , [wta2] <- wtAttributes wt2
-  = do
-      options0 <- Sea.getCompilerOptions
-      let
-        optionsAssert =
-          [ "-DICICLE_ASSERT=1"
-          , "-DICICLE_ASSERT_MAXIMUM_ARRAY_COUNT=" <> T.pack (show (100 * (length $ wtFacts wt1))) ]
+compileTwoAsOne ::
+     TestOpts
+  -> EvalContext
+  -> Attribute
+  -> Flat.Program (Annot ()) Var Flat.Prim
+  -> Flat.Program (Annot ()) Var Flat.Prim
+  -> EitherT SeaError IO (SeaFleet Sea.PsvState)
+compileTwoAsOne (TestOpts _ inputFormat allowDupTime) evalContext theAttribute program1 program2 = do
+   defaultOptions <- Sea.getCompilerOptions
 
-        options =
-          options0 <> ["-O0", "-DICICLE_NOINLINE=1"] <> optionsAssert
+   let
+     options =
+       [ "-DICICLE_ASSERT=1"
+       , "-DICICLE_ASSERT_MAXIMUM_ARRAY_COUNT=1000000000"
+       , "-O0"
+       , "-DICICLE_NOINLINE=1"
+       ] <> defaultOptions
 
-        programs =
-          Map.singleton (Attribute "huge") (wtAvalancheFlat wta1 :| [wtAvalancheFlat wta2])
+     theProgram =
+       (theAttribute, program1 :| [program2])
 
-        time =
-          evalSnapshotTime (wtEvalContext wt1)
+     theTime =
+       evalSnapshotTime evalContext
 
-        iconfig  =
-          Sea.PsvInputConfig
-            (Sea.Snapshot time)
-            inputFormat
+     theInput =
+       HasInput
+         (Sea.FormatPsv
+            (Sea.PsvConfig
+               (Sea.PsvInputConfig
+                  (Sea.Snapshot theTime)
+                  inputFormat
+               )
+               (Sea.PsvOutputConfig
+                  (Sea.Snapshot theTime)
+                  Sea.PsvOutputSparse
+                  Sea.defaultOutputMissing
+               )
+            )
+         )
+         (Sea.InputOpts
+            allowDupTime .
+            Map.fromList $
+             [(theAttribute, Set.singleton tombstone)]
+         )
+         ("" :: String)
 
-        oconfig =
-          Sea.PsvOutputConfig
-            (Sea.Snapshot time)
-            (Sea.PsvOutputSparse)
-            Sea.defaultOutputMissing
+     -- psv now uses piano, so we need this trick for testing.
+     piano = T.concat
+       [ "int64_t piano_max_count (piano_t *piano) {"
+       , "    return 1;"
+       , "}"
+       , ""
+       , "error_t piano_lookup (piano_t *piano, const uint8_t *needle_id, size_t needle_id_size, int64_t *out_count, const int64_t **out_label_times, const int64_t **out_label_name_offsets, const int64_t **out_label_name_lengths, const uint8_t **out_label_name_data) {"
+       , "    return 0;"
+       , "}"
+       ]
 
-        conf     = Sea.PsvConfig iconfig oconfig
-        iformat  = Sea.FormatPsv conf
-        attr     = wtAttribute wta1
-        iopts    = Sea.InputOpts allowDupTime (Map.singleton attr (Set.singleton tombstone))
-        -- psv now uses piano, so we need this trick for testing.
-        piano = T.concat
-          [ "int64_t piano_max_count (piano_t *piano) {"
-          , "    return 1;"
-          , "}"
-          , ""
-          , "error_t piano_lookup (piano_t *piano, const uint8_t *needle_id, size_t needle_id_size, int64_t *out_count, const int64_t **out_label_times, const int64_t **out_label_name_offsets, const int64_t **out_label_name_lengths, const uint8_t **out_label_name_data) {"
-          , "    return 0;"
-          , "}"
-          ]
-
-      let input = HasInput iformat iopts "dummy_path"
-      code <- hoistEither (Sea.codeOfPrograms input [attr] (Map.toList programs))
-      Sea.seaCreateFleet options (Sea.fromCacheSea Sea.NoCacheSea) input Nothing (code <> piano)
-  | otherwise =
-      Savage.error "Impossible! PSV Fission tests should generate single-attribute programs"
+   code <- hoistEither $ Sea.codeOfPrograms theInput [theAttribute] [theProgram]
+   Sea.seaCreateFleet options (Sea.fromCacheSea Sea.NoCacheSea) theInput Nothing (code <> piano)
 
 
 return []

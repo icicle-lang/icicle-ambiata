@@ -10,6 +10,7 @@ module Icicle.Test.Arbitrary.Corpus where
 
 import qualified Data.Set as Set
 import qualified Data.Text as Text
+import           Data.Maybe
 
 import           Icicle.Common.Base
 
@@ -105,33 +106,34 @@ queries =
    ])
  ]
 
+testAllCorpus :: Show a => S.InputAllowDupTime -> (WellTyped -> Gen a) -> (WellTyped -> a -> Property) -> Property
+testAllCorpus dup genExtras prop =
+  let
+    runForQuery q =
+      forAll (genAttributeForQuery q) $ \wta ->
+      forAll (validated 10 $ tryGenWellTypedForSingleAttribute dup wta) $ \wt ->
+      forAll (genExtras wt) $ \a ->
+        prop wt a
+
+    genAttributeForQuery (name, src) =
+      case coreOfSource name src of
+        Left u -> Savage.error (Text.unpack name <> ":\n" <> Text.unpack src <> "\n\n" <> u)
+        Right core -> genWellTypedAttributeForQuery (name, core)
+  in
+    conjoin . fmap runForQuery $ queries
 
 
-wellTypedCorpus :: Gen WellTyped
-wellTypedCorpus = genCore >>= genWellTyped
-
-testAllCorpus :: (WellTyped -> Property) -> Property
-testAllCorpus prop
- = conjoin $ fmap run queries
- where
-  run q = forAll (gen q) prop
-
-  gen (name,src)
-   = case coreOfSource name src of
-      Left u -> Savage.error (Text.unpack (renderOutputId name) <> ":\n" <> Text.unpack src <> "\n\n" <> u)
-      Right core -> genWellTyped (name, core)
-
-genWellTyped :: (OutputId, C.Program () Var) -> Gen WellTyped
-genWellTyped (name, core)
- wt <- tryGenWellTypedFromCore' S.AllowDupTime (streamType core) core
- case wt of
-  Left err  ->
-    Savage.error ("Generating well-typed failed: " <> Text.unpack (renderOutputId name) <> "\n" <> err)
-  Right wt' ->
-    return wt'
- where
-  streamType c
-   = InputType $ C.inputType c
+genWellTypedAttributeForQuery :: (OutputId, C.Program () Var) -> Gen WellTypedAttribute
+genWellTypedAttributeForQuery (name, core) = do
+  let
+    streamType
+      = InputType . C.inputType $ core
+  wta <- tryGenAttributeFromCore' streamType core
+  case wta of
+   Left err  ->
+     Savage.error ("Generating attribute for corpus failed: " <> Text.unpack (renderOutputId name) <> "\n" <> err)
+   Right wta' ->
+     return $ wta' { wtAttribute = fromJust . asAttributeName $ name }
 
 
 genCore :: Gen (OutputId, C.Program () Var)
@@ -167,6 +169,3 @@ coreOfSource oid src
 
 varOfVariable :: Name T.Variable -> Name Var
 varOfVariable = nameOf . fmap (\(T.Variable v) -> Var v 0) . nameBase
-
-tombstone :: Text
-tombstone = "💀"

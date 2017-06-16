@@ -375,14 +375,19 @@ seaOfOutput isJSON struct structIndex outId missing env outType argTypes transfo
                    , outputMissing, body', ix, ts )
 
        -- Base
-       _
-        | (t  : ts) <- argTypes
+       typ
+        | typ `elem` [BoolT, TimeT, DoubleT, IntT, StringT, FactIdentifierT]
+        , (t  : ts) <- argTypes
         , (mx : _)  <- members
         , mx'       <- transform t mx
         -> do d <- seaOfOutputBase' isJSON t mx'
               pure (Nothing, Nothing, d, structIndex + 1, ts)
 
-       _ -> Left unsupported
+       BufT _ a ->
+         seaOfOutput isJSON struct structIndex outName missing env (ArrayT a) argTypes transform
+
+       _ ->
+         Left unsupported
 
   where
    mismatch    = SeaOutputTypeMismatch    outId outType argTypes
@@ -458,7 +463,7 @@ seaOfOutputStructSep fs
           , body
           , assign ]
 
-    in  vsep ("ibool_t need_struct_sep = ifalse;" : fmap go fs)
+    in  vsep [ "{", "ibool_t need_struct_sep = ifalse;", vsep $ fmap go fs, "}" ]
 
 -- | Output an if statement
 seaOfOutputCond :: Maybe Doc -> Maybe Doc -> Doc -> Doc

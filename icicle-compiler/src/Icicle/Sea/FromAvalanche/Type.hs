@@ -27,9 +27,10 @@ import           Icicle.Common.Type
 import           Icicle.Internal.Pretty
 
 import           Icicle.Sea.FromAvalanche.Analysis
-import           Icicle.Sea.FromAvalanche.Base
 
 import           P
+import qualified Prelude as Savage
+
 
 ------------------------------------------------------------------------
 
@@ -49,11 +50,15 @@ seaOfDefinitions programs
  ]
 
 seaOfDefinition :: ValType -> Maybe Doc
-seaOfDefinition t
- = case t of
-     BufT n t' -> Just ("MAKE_BUF   (" <> int n <> ", " <> baseOfValType t' <> ")")
-     ArrayT t' -> Just ("MAKE_ARRAY ("                  <> baseOfValType t' <> ")")
-     _         -> Nothing
+seaOfDefinition expandedType
+ = case expandedType of
+     BufT n t' ->
+       Just $
+         "MAKE_BUF (" <> int n <> ", " <> baseOfValType t' <> ")"
+     ArrayT t' ->
+       Just $
+         "MAKE_ARRAY (" <> baseOfValType t' <> ")"
+     _  -> Nothing
 
 defDepth :: ValType -> Int
 defDepth t
@@ -65,25 +70,20 @@ defDepth t
 -- If we have a program that has an empty 'ArrayT (ArrayT a)' but it is never
 -- used then the type 'ArrayT a' may not be mentioned anywhere in the program,
 -- even though its definition is required to construct an 'ArrayT (ArrayT a)'.
+--
 expandType :: ValType -> [ValType]
 expandType t
  = case t of
-     BufT  _ t' -> t : expandType t'
+     BufT  _ t' -> t : ArrayT t' : expandType t'
      ArrayT  t' -> t : expandType t'
      _          -> [t]
 
 expandedTypesOfProgram :: Program (Annot a) n Prim -> Set ValType
 expandedTypesOfProgram
  = Set.fromList
- . auxillary
  . concatMap expandType
  . Set.toList
  . typesOfProgram
-
-auxillary :: [ValType] -> [ValType]
-auxillary [] = []
-auxillary (t@(BufT _ a) : ts) = (ArrayT a : t : auxillary ts)
-auxillary (t : ts) = t : auxillary ts
 
 ------------------------------------------------------------------------
 
@@ -123,25 +123,24 @@ valTypeOfExp = functionReturns . annType . annotOfExp
 ------------------------------------------------------------------------
 
 baseOfValType :: ValType -> Doc
-baseOfValType t
- = let nope = seaError "prefixOfValType" . string
-   in case t of
-     UnitT     -> "iunit"
-     BoolT     -> "ibool"
-     IntT      -> "iint"
-     DoubleT   -> "idouble"
-     TimeT     -> "itime"
-     ErrorT    -> "ierror"
-     FactIdentifierT
-               -> "ifactid"
+baseOfValType t =
+ case t of
+  UnitT     -> "iunit"
+  BoolT     -> "ibool"
+  IntT      -> "iint"
+  DoubleT   -> "idouble"
+  TimeT     -> "itime"
+  ErrorT    -> "ierror"
+  FactIdentifierT
+            -> "ifactid"
 
-     StringT   -> "istring"
-     BufT n t' -> "ibuf_" <> int n <> "_" <> baseOfValType t'
-     ArrayT t' -> "iarray_"               <> baseOfValType t'
-     MapT{}    -> nope "maps not implemented"
+  StringT   -> "istring"
+  BufT n t' -> "ibuf_" <> int n <> "_" <> baseOfValType t'
+  ArrayT t' -> "iarray_"               <> baseOfValType t'
 
-     StructT{} -> nope "structs should have been melted"
-     OptionT{} -> nope "options should have been melted"
-     PairT{}   -> nope "pairs should have been melted"
-     SumT{}    -> nope "sums should have been melted"
+  MapT{}    -> Savage.error "maps should have been melted"
+  StructT{} -> Savage.error "structs should have been melted"
+  OptionT{} -> Savage.error "options should have been melted"
+  PairT{}   -> Savage.error "pairs should have been melted"
+  SumT{}    -> Savage.error "sums should have been melted"
 

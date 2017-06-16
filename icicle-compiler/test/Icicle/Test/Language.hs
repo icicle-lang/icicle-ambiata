@@ -25,6 +25,7 @@ import           Icicle.Test.Arbitrary
 
 import           Icicle.Internal.Pretty
 
+import           Data.Maybe
 import           Data.Bitraversable
 import qualified Data.Map  as Map
 import qualified Data.Text as Text

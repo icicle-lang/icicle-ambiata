@@ -33,6 +33,7 @@ import           Test.QuickCheck.Instances ()
 
 import           P
 
+import           Data.Maybe
 import           Data.Text  as T
 import qualified Data.List  as List
 import qualified Data.Map   as Map
@@ -86,7 +87,7 @@ instance Arbitrary OutputName where
   arbitrary =
     OutputName <$>
       (((<>) "output_") <$> elements muppets) <*>
-      (Namespace . ((<>) "namspace_") <$> elements simpsons)
+      (fromJust . asNamespace . ((<>) "namspace_") <$> elements simpsons)
 
 instance (Hashable n, Arbitrary n) => Arbitrary (Name n) where
   arbitrary =
