@@ -32,6 +32,7 @@ data SeaError
   = SeaJetskiError                JetskiError
   | SeaUnknownInput
   | SeaPsvError                   Text
+  | SeaZebraError                 Text
   | SeaZebraForeignError          Zebra.ForeignError
   | SeaZebraDecodeError           Zebra.BinaryStripedDecodeError
   | SeaZebraIOError               IOError
@@ -134,6 +135,11 @@ instance Pretty SeaError where
 
     SeaPsvError pe
      -> pretty pe
+
+    SeaZebraError pe
+     -> vsep [ "Zebra error:"
+             , indent 2 . pretty $ pe
+             ]
 
     SeaZebraForeignError pe
      -> vsep [ "Zebra foreign error:"
