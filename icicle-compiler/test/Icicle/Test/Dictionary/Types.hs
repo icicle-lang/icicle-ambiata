@@ -5,6 +5,7 @@
 module Icicle.Test.Dictionary.Types where
 
 import              Icicle.Dictionary
+import              Icicle.Dictionary.Data
 import              Icicle.Dictionary.Parse
 
 import              Icicle.Core.Program.Check
@@ -43,6 +44,20 @@ prop_dictionary_symmetry attr encoding =
   let original  = DictionaryEntry attr (ConcreteDefinition encoding)
       recreated = parseDictionaryLineV1 (writeDictionaryLineV1 original)
   in (Right original) === recreated
+
+-- This is a bit unecessary but it is important that this ordering does not change.
+prop_attribute_ordering (Dictionary attributes) =
+  let
+    attributes' =
+      canonicalOrderOf attributes
+
+    good (DictionaryEntry a _ n) (DictionaryEntry a' _ n')
+     | a < a' = True
+     | a == a' = n <= n'
+     | otherwise = False
+  in
+    and $ zipWith good attributes' (List.drop 1 attributes')
+
 
 return []
 tests :: IO Bool
