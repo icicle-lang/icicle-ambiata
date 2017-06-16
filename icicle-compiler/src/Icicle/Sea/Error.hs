@@ -8,12 +8,19 @@ module Icicle.Sea.Error (
 import           Data.Map  (Map)
 import qualified Data.Map as Map
 
+import           GHC.IO.Exception (IOError)
+
 import           Icicle.Common.Base (BaseValue, OutputName)
 import           Icicle.Common.Type (ValType, StructType)
 import           Icicle.Data (Attribute(..))
 import qualified Icicle.Data as D
-import           Icicle.Internal.Pretty ((<+>), pretty, text, vsep)
+import           Icicle.Internal.Pretty ((<+>), pretty, text, vsep, indent)
 import           Icicle.Internal.Pretty (Pretty)
+
+import qualified Zebra.Foreign.Util as Zebra
+import qualified Zebra.Serial.Binary as Zebra
+import qualified Zebra.Factset.Table as Zebra
+import qualified Zebra.Factset.Block as Zebra
 
 import           Jetski
 
@@ -25,7 +32,11 @@ data SeaError
   = SeaJetskiError                JetskiError
   | SeaUnknownInput
   | SeaPsvError                   Text
-  | SeaZebraError                 Text
+  | SeaZebraForeignError          Zebra.ForeignError
+  | SeaZebraDecodeError           Zebra.BinaryStripedDecodeError
+  | SeaZebraIOError               IOError
+  | SeaZebraBlockTableError       Zebra.BlockTableError
+  | SeaZebraEntityError           Zebra.EntityError
   | SeaExternalError              Text
   | SeaProgramNotFound            Attribute
   | SeaNoAttributeIndex           Attribute
@@ -124,8 +135,30 @@ instance Pretty SeaError where
     SeaPsvError pe
      -> pretty pe
 
-    SeaZebraError pe
-     -> pretty pe
+    SeaZebraForeignError pe
+     -> vsep [ "Zebra foreign error:"
+             , indent 2 . text . show $ pe
+             ]
+
+    SeaZebraDecodeError pe
+     -> vsep [ "Zebra decode error:"
+             , indent 2 . text . show $ pe
+             ]
+
+    SeaZebraIOError pe
+     -> vsep [ "Zebra IO error:"
+             , indent 2 . text . show $ pe
+             ]
+
+    SeaZebraBlockTableError pe
+     -> vsep [ "Zebra block table error:"
+             , indent 2 . text . show $ pe
+             ]
+
+    SeaZebraEntityError pe
+     -> vsep [ "Zebra entity error:"
+             , indent 2 . text . show $ pe
+             ]
 
     SeaExternalError pe
      -> pretty pe

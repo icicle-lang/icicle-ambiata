@@ -14,6 +14,7 @@ module Icicle.Sea.Fleet (
 
 import           Control.Monad.IO.Class       (MonadIO (..))
 import           Control.Monad.Trans.Resource
+import           Control.Monad.Morph
 
 import qualified Data.ByteString.Char8        as Strict
 import           Data.String                  (String)
@@ -31,18 +32,21 @@ import           Icicle.Sea.IO
 
 import           Piano
 
-import           Zebra.Factset.Block
-import           Zebra.Foreign.Entity
-import           Zebra.Merge.BlockC
-import           Zebra.Merge.Puller.File
+import qualified Anemone.Foreign.Mempool as Mempool
+
+import qualified Zebra.Factset.Block          as Zebra
+import qualified Zebra.Foreign.Entity         as Zebra
+import qualified Zebra.Factset.Table          as Zebra
+import qualified Zebra.Serial.Binary          as Binary
+import qualified Zebra.X.Stream as Stream
+import qualified Zebra.X.ByteStream as ByteStream
 
 import           Jetski
 
 import           P                            hiding (count)
 
 import           X.Control.Monad.Trans.Either (EitherT)
-import           X.Control.Monad.Trans.Either (firstEitherT, hoistEither,
-                                               joinErrors, left, runEitherT, bracketEitherT')
+import           X.Control.Monad.Trans.Either (firstEitherT, hoistEither, left, runEitherT, bracketEitherT')
 
 
 data Input a
@@ -98,39 +102,52 @@ seaCreateFleet options cache input chords code = do
       return $ play $ \ptr cpiano -> Right <$> liftIO (fn [ argPtr (unCPiano cpiano), argPtr ptr ])
 
     HasInput (FormatZebra _ _ _) _ input_path -> do
-      step <- firstEitherT SeaJetskiError (function lib "zebra_snapshot_step" (retPtr retCChar))
-      init <- firstEitherT SeaJetskiError (function lib "zebra_alloc_state" (retPtr retVoid))
-      end  <- firstEitherT SeaJetskiError (function lib "zebra_collect_state" (retPtr retVoid))
+      entityStep <- firstEitherT SeaJetskiError (function lib "zebra_snapshot_step" (retPtr retCChar))
+      entityInit <- firstEitherT SeaJetskiError (function lib "zebra_alloc_state" (retPtr retVoid))
+      entityEnd <- firstEitherT SeaJetskiError (function lib "zebra_collect_state" (retPtr retVoid))
 
-      (puller, pullid) <- firstEitherT (SeaExternalError . T.pack . show)
-                        $ blockChainPuller (VB.singleton input_path)
+      let
+        tables =
+          hoist (firstEitherT SeaZebraDecodeError) .
+          Binary.decodeStriped .
+          ByteStream.readFile $
+            input_path
 
-      let withPiano :: Ptr a -> CPiano -> ResourceT IO (Either SeaError ())
-          withPiano ptr cpiano = do
-            let piano = unCPiano cpiano
+        withPianoReadEntity :: Ptr a -> CPiano -> ResourceT IO (Either SeaError ())
+        withPianoReadEntity cfg cpiano = do
+          let
+            piano =
+              unCPiano cpiano
 
-            state <- liftIO $ init [ argPtr piano, argPtr ptr ]
 
-            let step' :: CEntity -> EitherT SeaError (ResourceT IO) ()
-                step' e = do
-                  s <- liftIO $ step [ argPtr piano, argPtr state, argPtr (unCEntity e) ]
-                  if s /= nullPtr
-                  then do
-                    msg <- liftIO $ peekCString s
-                    left . SeaExternalError . T.pack $ "error step: " <> show msg
-                  else return ()
+          let
+            readCEntity :: Ptr a -> Zebra.CEntity -> EitherT SeaError (ResourceT IO) ()
+            readCEntity state entity = do
+              s <- liftIO $ entityStep [ argPtr piano, argPtr state, argPtr (Zebra.unCEntity entity) ]
+              if s /= nullPtr
+              then do
+                msg <- liftIO $ peekCString s
+                left . SeaExternalError . T.pack $ "error step: " <> show msg
+              else return ()
 
-            let puller' :: PullId -> EitherT SeaError (ResourceT IO) (Maybe Block)
-                puller' = firstEitherT (SeaExternalError . T.pack . show) . puller
+          runEitherT $
+            bracketEitherT'
+              (liftIO Mempool.create)
+              (liftIO . Mempool.free)
+              (\pool -> squash . Stream.effects . Stream.for (hoist (hoist (firstT SeaZebraIOError)) tables) $
+                 \table -> do
+                    block <- lift . hoistEither . first SeaZebraBlockTableError . Zebra.blockOfTable $ table
+                    entities <- lift . hoistEither . first SeaZebraEntityError . Zebra.entitiesOfBlock $ block
+                    lift . hoist lift . VB.forM entities $ \entity -> do
+                      bracketEitherT'
+                        (liftIO $ entityInit [ argPtr piano, argPtr cfg ])
+                        (\state -> liftIO $ entityEnd [ argPtr cfg , argPtr state ])
+                        (\state -> do
+                           centity <- Zebra.foreignOfEntity pool entity
+                           readCEntity state centity)
+              )
 
-            runEitherT
-              $ bracketEitherT'
-                  (pure ())
-                  (const (liftIO (end [ argPtr ptr, argPtr state ])))
-                  (const (joinErrors (SeaExternalError . T.pack  . show) id
-                             (mergeBlocks (MergeOptions puller' step' 100) pullid)))
-
-      return $ play withPiano
+      return $ play withPianoReadEntity
 
 
   return SeaFleet {
