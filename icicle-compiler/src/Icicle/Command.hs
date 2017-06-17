@@ -47,8 +47,6 @@ import qualified Icicle.Source.Checker as Source
 import qualified Icicle.Storage.Dictionary.Toml as Toml
 
 import           Control.Monad.IO.Class (liftIO)
-import           Control.Monad.Trans.Resource (ResourceT)
-import           Control.Monad.Morph (hoist)
 
 import           Data.Map (Map)
 import qualified Data.Map as Map
@@ -192,13 +190,13 @@ modeOfScope = \case
   ScopeChord _ ->
     Chords
 
-createPsvQuery :: QueryOptions -> EitherT IcicleError (ResourceT IO) (Query PsvState)
+createPsvQuery :: QueryOptions -> EitherT IcicleError IO (Query PsvState)
 createPsvQuery = createQuery
 
-createZebraQuery :: QueryOptions -> EitherT IcicleError (ResourceT IO) (Query ZebraState)
+createZebraQuery :: QueryOptions -> EitherT IcicleError IO (Query ZebraState)
 createZebraQuery = createQuery
 
-createQuery :: QueryOptions -> EitherT IcicleError (ResourceT IO) (Query a)
+createQuery :: QueryOptions -> EitherT IcicleError IO (Query a)
 createQuery c = do
   let dropPath = fromMaybe (dropExtension (outputPath (optOutput c)) <> "_dropped.txt") (optDrop c)
   let chordPath = chordPathOfScope $ optScope c
@@ -219,7 +217,7 @@ createQuery c = do
 
     DictionaryToml dictionaryPath -> do
       (dictionary, format) <-
-        hoist liftIO $ loadDictionary
+        loadDictionary
           dictionaryPath
           (inputFormat $ optInput c)
           (outputFormat $ optOutput c)
@@ -248,7 +246,7 @@ mkQueryFleet ::
      InputFile
   -> Maybe FilePath
   -> FilePath
-  -> EitherT IcicleError (ResourceT IO) (Text, SeaFleet s)
+  -> EitherT IcicleError IO (Text, SeaFleet s)
 mkQueryFleet input chord source = do
   -- FIXME using a dummy format here as we are not using it to generate C
   -- we actually only need to differentiate between psv/zebra, make this better
@@ -276,7 +274,7 @@ compileFleet ::
   -> IOFormat
   -> FilePath
   -> Maybe FilePath
-  -> EitherT IcicleError (ResourceT IO) (Text, SeaFleet s)
+  -> EitherT IcicleError IO (Text, SeaFleet s)
 compileFleet dictionary format input chords = do
   let cfg = HasInput format (InputOpts AllowDupTime (tombstonesOfDictionary dictionary)) input
 
