@@ -45,7 +45,6 @@ import qualified Zebra.Factset.Block as Zebra
 import qualified Zebra.Factset.Entity as Zebra
 import qualified Zebra.Factset.Table as Zebra
 import qualified Zebra.Foreign.Entity as Zebra
-import qualified Zebra.Foreign.Block as Zebra
 import qualified Zebra.Serial.Binary as Binary
 import qualified Zebra.Table.Striped as Striped
 import qualified Zebra.X.ByteStream as ByteStream
@@ -53,7 +52,7 @@ import           Zebra.X.Stream (Stream, Of)
 import qualified Zebra.X.Stream as Stream
 
 import           X.Control.Monad.Trans.Either (EitherT, pattern EitherT)
-import           X.Control.Monad.Trans.Either (hoistEither, runEitherT, firstJoin)
+import           X.Control.Monad.Trans.Either (hoistEither, runEitherT, firstJoin, left)
 
 
 data Input a =
@@ -95,55 +94,39 @@ initPsvSnapshot library piano = do
     liftIO . withCPiano piano $ \cpiano ->
       c_psv_snapshot [ argPtr (unCPiano cpiano), argPtr state ]
 
+bracketIO :: IO a -> (a -> IO ()) -> (a -> EitherT x IO b) -> EitherT x IO b
+bracketIO acquire release body =
+  EitherT $ bracket acquire release (runEitherT . body)
+
 initZebraSnapshotStep ::
      Library
-  -> EitherT SeaError IO (Ptr config -> CPiano -> Zebra.CEntity -> EitherT SeaError IO ())
+  -> EitherT SeaError IO (CPiano -> Ptr state -> Zebra.Entity -> EitherT SeaError IO ())
 initZebraSnapshotStep library = do
-  c_zebra_alloc_state <-
-    firstT SeaJetskiError $ function library "zebra_alloc_state" (retPtr retVoid)
-
-  c_zebra_collect_state <-
-    firstT SeaJetskiError $ function library "zebra_collect_state" retVoid
-
   c_zebra_snapshot_step <-
     firstT SeaJetskiError $ function library "zebra_snapshot_step" (retPtr retCChar)
 
-  pure $ \config cpiano centity ->
+  pure $ \cpiano state entity ->
     let
-      allocState :: IO (Ptr ())
-      allocState =
-        c_zebra_alloc_state [
-            argPtr (unCPiano cpiano)
-          , argPtr config
-          ]
-
-      collectState :: Ptr () -> IO ()
-      collectState state =
-        c_zebra_collect_state [
-            argPtr config
-          , argPtr state
-          ]
-
-      snapshotStep :: Ptr () -> Zebra.CEntity -> IO (Ptr CChar)
-      snapshotStep state centity =
+      snapshotStep :: Zebra.CEntity -> IO (Ptr CChar)
+      snapshotStep centity =
         c_zebra_snapshot_step [
             argPtr (unCPiano cpiano)
           , argPtr state
           , argPtr (Zebra.unCEntity centity)
           ]
     in
-      EitherT . bracket allocState collectState $ \state -> do
-        --centity <-
-        --  Zebra.foreignOfEntity pool entity
+      bracketIO Mempool.create Mempool.free $ \pool -> do
+        centity <-
+          liftIO $ Zebra.foreignOfEntity pool entity
 
         errorPtr <-
-          snapshotStep state centity
+          liftIO $ snapshotStep centity
 
         if errorPtr == nullPtr then
-          pure $ Right ()
+          pure ()
         else do
-          err <- peekCString errorPtr
-          pure . Left . SeaExternalError $
+          err <- liftIO $ peekCString errorPtr
+          left . SeaExternalError $
             "zebra_snapshot_step failed: " <> Text.pack err
 
 initZebraSnapshot ::
@@ -152,12 +135,37 @@ initZebraSnapshot ::
   -> FilePath
   -> EitherT SeaError IO (Ptr config -> EitherT SeaError IO ())
 initZebraSnapshot library piano input = do
+  c_zebra_alloc_state <-
+    firstT SeaJetskiError $ function library "zebra_alloc_state" (retPtr retVoid)
+
+  c_zebra_collect_state <-
+    firstT SeaJetskiError $ function library "zebra_collect_state" retVoid
+
   step <-
     initZebraSnapshotStep library
 
   pure $ \config ->
     EitherT . withCPiano piano $ \cpiano -> runResourceT . runEitherT $
       let
+        allocState :: IO (Ptr ())
+        allocState =
+          c_zebra_alloc_state [
+              argPtr (unCPiano cpiano)
+            , argPtr config
+            ]
+
+        --
+        -- FIXME This doesn't clean up properly, ensure that 'allocState' is
+        -- FIXME only called once per program run or we will leak memory like
+        -- FIXME crazy.
+        --
+        collectState :: Ptr () -> IO ()
+        collectState state =
+          c_zebra_collect_state [
+              argPtr config
+            , argPtr state
+            ]
+
         tables :: Stream (Of Striped.Table) (EitherT SeaError (ResourceT IO)) ()
         tables =
           hoist (firstJoin SeaZebraDecodeError) .
@@ -166,18 +174,14 @@ initZebraSnapshot library piano input = do
             ByteStream.readFile input
       in
         flip Stream.mapM_ tables $ \table ->
-          hoist lift . EitherT . bracket Mempool.create Mempool.free $ \pool ->
-            runEitherT $ do
-              block <-
-                hoistEither . first SeaZebraBlockTableError $ Zebra.blockOfTable table
+        hoist lift . bracketIO allocState collectState $ \state -> do
+          block <-
+            hoistEither . first SeaZebraBlockTableError $ Zebra.blockOfTable table
 
-              cblock <-
-                firstT SeaZebraEntityError $ Zebra.foreignOfBlock pool block
+          entities <-
+            hoistEither . first SeaZebraEntityError $ Zebra.entitiesOfBlock block
 
-              centities <-
-                firstT SeaZebraForeignError $ Zebra.foreignEntitiesOfBlock pool cblock
-
-              Boxed.mapM_ (step config cpiano) centities
+          Boxed.mapM_ (step cpiano state) entities
 
 initSnapshot ::
      Library
