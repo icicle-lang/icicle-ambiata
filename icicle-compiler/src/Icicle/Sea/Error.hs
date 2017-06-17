@@ -17,6 +17,8 @@ import qualified Icicle.Data as D
 import           Icicle.Internal.Pretty ((<+>), pretty, text, vsep, indent)
 import           Icicle.Internal.Pretty (Pretty)
 
+import qualified Piano
+
 import qualified Zebra.Foreign.Util as Zebra
 import qualified Zebra.Serial.Binary as Zebra
 import qualified Zebra.Factset.Table as Zebra
@@ -32,6 +34,7 @@ data SeaError
   = SeaJetskiError                JetskiError
   | SeaUnknownInput
   | SeaPsvError                   Text
+  | SeaPianoError                 Piano.ParserError
   | SeaZebraError                 Text
   | SeaZebraForeignError          Zebra.ForeignError
   | SeaZebraDecodeError           Zebra.BinaryStripedDecodeError
@@ -136,9 +139,14 @@ instance Pretty SeaError where
     SeaPsvError pe
      -> pretty pe
 
+    SeaPianoError pe
+     -> vsep [ "Piano error:"
+             , indent 2 . pretty $ Piano.renderParserError pe
+             ]
+
     SeaZebraError pe
      -> vsep [ "Zebra error:"
-             , indent 2 . pretty $ pe
+             , indent 2 $ pretty pe
              ]
 
     SeaZebraForeignError pe
@@ -148,7 +156,7 @@ instance Pretty SeaError where
 
     SeaZebraDecodeError pe
      -> vsep [ "Zebra decode error:"
-             , indent 2 . text . show $ pe
+             , indent 2 . pretty $ Zebra.renderBinaryStripedDecodeError pe
              ]
 
     SeaZebraIOError pe
@@ -158,7 +166,7 @@ instance Pretty SeaError where
 
     SeaZebraBlockTableError pe
      -> vsep [ "Zebra block table error:"
-             , indent 2 . text . show $ pe
+             , indent 2 . pretty $ Zebra.renderBlockTableError pe
              ]
 
     SeaZebraEntityError pe

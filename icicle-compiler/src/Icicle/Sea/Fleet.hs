@@ -1,69 +1,195 @@
-{-# LANGUAGE DeriveFunctor     #-}
-{-# LANGUAGE DoAndIfThenElse   #-}
-{-# LANGUAGE EmptyDataDecls    #-}
-{-# LANGUAGE LambdaCase        #-}
+{-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE DoAndIfThenElse #-}
+{-# LANGUAGE EmptyDataDecls #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
-
+{-# LANGUAGE PatternSynonyms #-}
 module Icicle.Sea.Fleet (
     SeaState
-  , SeaFleet (..)
+  , SeaFleet(..)
   , Input(..)
   , seaCreateFleet
   ) where
 
-import           Control.Monad.IO.Class       (MonadIO (..))
-import           Control.Monad.Trans.Resource
-import           Control.Monad.Morph
-
-import qualified Data.ByteString.Char8        as Strict
-import           Data.String                  (String)
-import qualified Data.Text                    as T
-import qualified Data.Vector                  as VB
-
-import           Foreign.C.String             (peekCString, withCStringLen)
-import           Foreign.ForeignPtr           (newForeignPtr_)
-import           Foreign.Ptr                  (Ptr, nullPtr)
-
-import           System.IO                    (FilePath, IO)
-
-import           Icicle.Sea.Error             (SeaError (..))
-import           Icicle.Sea.IO
-
-import           Piano
-
 import qualified Anemone.Foreign.Mempool as Mempool
 
-import qualified Zebra.Factset.Block          as Zebra
-import qualified Zebra.Foreign.Entity         as Zebra
-import qualified Zebra.Factset.Table          as Zebra
-import qualified Zebra.Serial.Binary          as Binary
-import qualified Zebra.X.Stream as Stream
-import qualified Zebra.X.ByteStream as ByteStream
+import           Control.Monad.Catch (bracket)
+import           Control.Monad.IO.Class (MonadIO(..))
+import           Control.Monad.Morph (hoist)
+import           Control.Monad.Trans.Class (lift)
+import           Control.Monad.Trans.Resource (ResourceT, runResourceT)
+
+import qualified Data.ByteString.Char8 as ByteString
+import           Data.String (String)
+import qualified Data.Text as Text
+import qualified Data.Vector as Boxed
+
+import           Foreign.C.String (peekCString, withCStringLen)
+import           Foreign.C.Types (CChar)
+import           Foreign.ForeignPtr (newForeignPtr_)
+import           Foreign.Ptr (Ptr, nullPtr)
+
+import           Icicle.Sea.Error (SeaError (..))
+import           Icicle.Sea.IO
 
 import           Jetski
 
 import           P                            hiding (count)
 
-import           X.Control.Monad.Trans.Either (EitherT)
-import           X.Control.Monad.Trans.Either (firstEitherT, hoistEither, left, runEitherT, bracketEitherT')
+import           Piano
+
+import           System.IO (FilePath, IO)
+
+import qualified Zebra.Factset.Block as Zebra
+import qualified Zebra.Factset.Entity as Zebra
+import qualified Zebra.Factset.Table as Zebra
+import qualified Zebra.Foreign.Entity as Zebra
+import qualified Zebra.Serial.Binary as Binary
+import qualified Zebra.Table.Striped as Striped
+import qualified Zebra.X.ByteStream as ByteStream
+import           Zebra.X.Stream (Stream, Of)
+import qualified Zebra.X.Stream as Stream
+
+import           X.Control.Monad.Trans.Either (EitherT, pattern EitherT)
+import           X.Control.Monad.Trans.Either (hoistEither, runEitherT, firstJoin)
 
 
-data Input a
-  = NoInput
+data Input a =
+    NoInput
   | HasInput IOFormat InputOpts a
     deriving (Eq, Show, Functor)
 
 data SeaState
 
-data SeaFleet st = SeaFleet {
-    sfLibrary     :: Library
-  , sfSnapshot    :: Ptr st -> EitherT SeaError IO ()
-  , sfSegvInstall :: String -> IO ()
-  , sfSegvRemove  :: IO ()
-  }
+data SeaFleet config =
+  SeaFleet {
+      sfLibrary :: Library
+    , sfSnapshot :: Ptr config -> EitherT SeaError IO ()
+    , sfSegvInstall :: String -> IO ()
+    , sfSegvRemove :: IO ()
+    }
 
 ------------------------------------------------------------------------
+
+readChordDescriptor :: Maybe FilePath -> EitherT SeaError IO ForeignPiano
+readChordDescriptor = \case
+  Nothing ->
+    ForeignPiano <$> liftIO (newForeignPtr_ nullPtr)
+
+  Just path -> do
+    bs <- liftIO $ ByteString.readFile path
+    piano <- hoistEither . first SeaPianoError $ parsePiano bs
+    liftIO $ newForeignPiano piano
+
+initPsvSnapshot ::
+     Library
+  -> ForeignPiano
+  -> EitherT SeaError IO (Ptr state -> EitherT SeaError IO ())
+initPsvSnapshot library piano = do
+  c_psv_snapshot <-
+    firstT SeaJetskiError $ function library "psv_snapshot" retVoid
+
+  pure $ \state ->
+    liftIO . withCPiano piano $ \cpiano ->
+      c_psv_snapshot [ argPtr (unCPiano cpiano), argPtr state ]
+
+initZebraSnapshotStep ::
+     Library
+  -> EitherT SeaError IO (Ptr config -> CPiano -> Zebra.Entity -> EitherT SeaError IO ())
+initZebraSnapshotStep library = do
+  c_zebra_alloc_state <-
+    firstT SeaJetskiError $ function library "zebra_alloc_state" (retPtr retVoid)
+
+  c_zebra_collect_state <-
+    firstT SeaJetskiError $ function library "zebra_collect_state" retVoid
+
+  c_zebra_snapshot_step <-
+    firstT SeaJetskiError $ function library "zebra_snapshot_step" (retPtr retCChar)
+
+  pure $ \config cpiano entity ->
+    let
+      allocState :: IO (Ptr ())
+      allocState =
+        c_zebra_alloc_state [
+            argPtr (unCPiano cpiano)
+          , argPtr config
+          ]
+
+      collectState :: Ptr () -> IO ()
+      collectState state =
+        c_zebra_collect_state [
+            argPtr config
+          , argPtr state
+          ]
+
+      snapshotStep :: Ptr () -> Zebra.CEntity -> IO (Ptr CChar)
+      snapshotStep state centity =
+        c_zebra_snapshot_step [
+            argPtr (unCPiano cpiano)
+          , argPtr state
+          , argPtr (Zebra.unCEntity centity)
+          ]
+    in
+      EitherT .
+        bracket Mempool.create Mempool.free $ \pool ->
+        bracket allocState collectState $ \state -> do
+          centity <-
+            Zebra.foreignOfEntity pool entity
+
+          errorPtr <-
+            snapshotStep state centity
+
+          if errorPtr == nullPtr then
+            pure $ Right ()
+          else do
+            err <- peekCString errorPtr
+            pure . Left . SeaExternalError $
+              "zebra_snapshot_step failed: " <> Text.pack err
+
+initZebraSnapshot ::
+     Library
+  -> ForeignPiano
+  -> FilePath
+  -> EitherT SeaError IO (Ptr config -> EitherT SeaError IO ())
+initZebraSnapshot library piano input = do
+  step <-
+    initZebraSnapshotStep library
+
+  pure $ \config ->
+    EitherT . withCPiano piano $ \cpiano -> runResourceT . runEitherT $
+      let
+        tables :: Stream (Of Striped.Table) (EitherT SeaError (ResourceT IO)) ()
+        tables =
+          hoist (firstJoin SeaZebraDecodeError) .
+            Binary.decodeStriped .
+          hoist (firstT SeaZebraIOError) $
+            ByteStream.readFile input
+      in
+        flip Stream.mapM_ tables $ \table -> hoist lift $ do
+          block <-
+            hoistEither . first SeaZebraBlockTableError $ Zebra.blockOfTable table
+
+          entities <-
+            hoistEither . first SeaZebraEntityError $ Zebra.entitiesOfBlock block
+
+          Boxed.mapM_ (step config cpiano) entities
+
+initSnapshot ::
+     Library
+  -> ForeignPiano
+  -> Input FilePath
+  -> EitherT SeaError IO (Ptr config -> EitherT SeaError IO ())
+initSnapshot library piano = \case
+  NoInput -> do
+    pure $ \_config ->
+      pure ()
+
+  HasInput (FormatPsv _) _ _ ->
+    initPsvSnapshot library piano
+
+  HasInput (FormatZebra _ _ _) _ input ->
+    initZebraSnapshot library piano input
 
 seaCreateFleet ::
      [CompilerOption]
@@ -71,89 +197,34 @@ seaCreateFleet ::
   -> Input FilePath
   -> Maybe FilePath
   -> Text
-  -> EitherT SeaError (ResourceT IO) (SeaFleet st)
-seaCreateFleet options cache input chords code = do
-  lib                  <- firstEitherT SeaJetskiError (compileLibrary cache options code)
-  segv_install_handler <- firstEitherT SeaJetskiError (function lib "segv_install_handler" retVoid)
-  segv_remove_handler  <- firstEitherT SeaJetskiError (function lib "segv_remove_handler"  retVoid)
+  -> EitherT SeaError IO (SeaFleet config)
+seaCreateFleet options cache input chordDescriptor code = do
+  library <-
+    firstT SeaJetskiError $ compileLibrary cache options code
 
-  play <- case chords of
-    Nothing -> do
-      n <- liftIO $ newForeignPtr_ nullPtr
-      return $ \f ptr -> withCPiano (ForeignPiano n) (runResourceT . f ptr)
+  c_segv_install_handler <-
+    firstT SeaJetskiError $ function library "segv_install_handler" retVoid
 
-    Just file -> do
-      bs <- liftIO $ Strict.readFile file
+  c_segv_remove_handler <-
+    firstT SeaJetskiError $ function library "segv_remove_handler"  retVoid
 
-      case parsePiano bs of
-        Left e ->
-          left . SeaExternalError . T.pack $ "piano: " <> show e
+  piano <-
+    readChordDescriptor chordDescriptor
 
-        Right p -> do
-          fp <- liftIO $ newForeignPiano p
-          return $ \f ptr -> withCPiano fp (runResourceT . f ptr)
+  snapshot <-
+    initSnapshot library piano input
 
-  take_snapshot <- case input of
-    NoInput -> do
-      return $ \_ -> return (Right ())
+  pure SeaFleet {
+      sfLibrary =
+        library
 
-    HasInput (FormatPsv _) _ _ -> do
-      fn <- firstEitherT SeaJetskiError (function lib "psv_snapshot" retVoid)
-      return $ play $ \ptr cpiano -> Right <$> liftIO (fn [ argPtr (unCPiano cpiano), argPtr ptr ])
+    , sfSnapshot =
+        snapshot
 
-    HasInput (FormatZebra _ _ _) _ input_path -> do
-      entityStep <- firstEitherT SeaJetskiError (function lib "zebra_snapshot_step" (retPtr retCChar))
-      entityInit <- firstEitherT SeaJetskiError (function lib "zebra_alloc_state" (retPtr retVoid))
-      entityEnd <- firstEitherT SeaJetskiError (function lib "zebra_collect_state" (retPtr retVoid))
+    , sfSegvInstall = \str ->
+        withCStringLen str $ \(ptr, len) ->
+          c_segv_install_handler [ argPtr ptr, argCSize (fromIntegral len) ]
 
-      let
-        tables =
-          hoist (firstEitherT SeaZebraDecodeError) .
-          Binary.decodeStriped .
-          ByteStream.readFile $
-            input_path
-
-        withPianoReadEntity :: Ptr a -> CPiano -> ResourceT IO (Either SeaError ())
-        withPianoReadEntity cfg cpiano = do
-          let
-            piano =
-              unCPiano cpiano
-
-
-          let
-            readCEntity :: Ptr a -> Zebra.CEntity -> EitherT SeaError (ResourceT IO) ()
-            readCEntity state entity = do
-              s <- liftIO $ entityStep [ argPtr piano, argPtr state, argPtr (Zebra.unCEntity entity) ]
-              if s /= nullPtr
-              then do
-                msg <- liftIO $ peekCString s
-                left . SeaExternalError . T.pack $ "error step: " <> show msg
-              else return ()
-
-          runEitherT $
-            bracketEitherT'
-              (liftIO Mempool.create)
-              (liftIO . Mempool.free)
-              (\pool -> squash . Stream.effects . Stream.for (hoist (hoist (firstT SeaZebraIOError)) tables) $
-                 \table -> do
-                    block <- lift . hoistEither . first SeaZebraBlockTableError . Zebra.blockOfTable $ table
-                    entities <- lift . hoistEither . first SeaZebraEntityError . Zebra.entitiesOfBlock $ block
-                    lift . hoist lift . VB.forM entities $ \entity -> do
-                      bracketEitherT'
-                        (liftIO $ entityInit [ argPtr piano, argPtr cfg ])
-                        (\state -> liftIO $ entityEnd [ argPtr cfg , argPtr state ])
-                        (\state -> do
-                           centity <- Zebra.foreignOfEntity pool entity
-                           readCEntity state centity)
-              )
-
-      return $ play withPianoReadEntity
-
-
-  return SeaFleet {
-      sfLibrary     = lib
-    , sfSnapshot    = \ptr -> liftIO (take_snapshot ptr) >>= hoistEither
-    , sfSegvInstall = \str -> withCStringLen str $ \(ptr, len) ->
-                      segv_install_handler [argPtr ptr, argCSize (fromIntegral len)]
-    , sfSegvRemove  = segv_remove_handler  []
+    , sfSegvRemove =
+        c_segv_remove_handler []
     }

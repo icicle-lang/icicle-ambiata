@@ -13,7 +13,6 @@ import           Control.Monad.IO.Class (liftIO)
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString as B
 import           Data.FileEmbed (embedFile)
-import qualified Data.List as List
 import qualified Data.Map as Map
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
