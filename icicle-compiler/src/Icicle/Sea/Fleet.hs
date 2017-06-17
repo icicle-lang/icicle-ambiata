@@ -45,6 +45,7 @@ import qualified Zebra.Factset.Block as Zebra
 import qualified Zebra.Factset.Entity as Zebra
 import qualified Zebra.Factset.Table as Zebra
 import qualified Zebra.Foreign.Entity as Zebra
+import qualified Zebra.Foreign.Block as Zebra
 import qualified Zebra.Serial.Binary as Binary
 import qualified Zebra.Table.Striped as Striped
 import qualified Zebra.X.ByteStream as ByteStream
@@ -96,7 +97,7 @@ initPsvSnapshot library piano = do
 
 initZebraSnapshotStep ::
      Library
-  -> EitherT SeaError IO (Ptr config -> CPiano -> Zebra.Entity -> EitherT SeaError IO ())
+  -> EitherT SeaError IO (Ptr config -> CPiano -> Zebra.CEntity -> EitherT SeaError IO ())
 initZebraSnapshotStep library = do
   c_zebra_alloc_state <-
     firstT SeaJetskiError $ function library "zebra_alloc_state" (retPtr retVoid)
@@ -107,7 +108,7 @@ initZebraSnapshotStep library = do
   c_zebra_snapshot_step <-
     firstT SeaJetskiError $ function library "zebra_snapshot_step" (retPtr retCChar)
 
-  pure $ \config cpiano entity ->
+  pure $ \config cpiano centity ->
     let
       allocState :: IO (Ptr ())
       allocState =
@@ -131,21 +132,19 @@ initZebraSnapshotStep library = do
           , argPtr (Zebra.unCEntity centity)
           ]
     in
-      EitherT .
-        bracket Mempool.create Mempool.free $ \pool ->
-        bracket allocState collectState $ \state -> do
-          centity <-
-            Zebra.foreignOfEntity pool entity
+      EitherT . bracket allocState collectState $ \state -> do
+        --centity <-
+        --  Zebra.foreignOfEntity pool entity
 
-          errorPtr <-
-            snapshotStep state centity
+        errorPtr <-
+          snapshotStep state centity
 
-          if errorPtr == nullPtr then
-            pure $ Right ()
-          else do
-            err <- peekCString errorPtr
-            pure . Left . SeaExternalError $
-              "zebra_snapshot_step failed: " <> Text.pack err
+        if errorPtr == nullPtr then
+          pure $ Right ()
+        else do
+          err <- peekCString errorPtr
+          pure . Left . SeaExternalError $
+            "zebra_snapshot_step failed: " <> Text.pack err
 
 initZebraSnapshot ::
      Library
@@ -166,14 +165,19 @@ initZebraSnapshot library piano input = do
           hoist (firstT SeaZebraIOError) $
             ByteStream.readFile input
       in
-        flip Stream.mapM_ tables $ \table -> hoist lift $ do
-          block <-
-            hoistEither . first SeaZebraBlockTableError $ Zebra.blockOfTable table
+        flip Stream.mapM_ tables $ \table ->
+          hoist lift . EitherT . bracket Mempool.create Mempool.free $ \pool ->
+            runEitherT $ do
+              block <-
+                hoistEither . first SeaZebraBlockTableError $ Zebra.blockOfTable table
 
-          entities <-
-            hoistEither . first SeaZebraEntityError $ Zebra.entitiesOfBlock block
+              cblock <-
+                firstT SeaZebraEntityError $ Zebra.foreignOfBlock pool block
 
-          Boxed.mapM_ (step config cpiano) entities
+              centities <-
+                firstT SeaZebraForeignError $ Zebra.foreignEntitiesOfBlock pool cblock
+
+              Boxed.mapM_ (step config cpiano) centities
 
 initSnapshot ::
      Library
