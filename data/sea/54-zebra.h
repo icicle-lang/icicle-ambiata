@@ -529,6 +529,11 @@ void zebra_collect_state (zebra_config_t *cfg, zebra_state_t *state)
 {
     cfg->entity_count = state->entity_count;
     cfg->fact_count = state->fact_count;
+
+    //
+    // FIXME currently there is no way to free state->fleet
+    //
+
     free (state->entity_fact_offset);
     free (state->entity_fact_count);
     free (state);

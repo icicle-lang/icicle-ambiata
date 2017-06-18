@@ -48,8 +48,6 @@ import qualified Anemone.Foreign.Mempool as Mempool
 
 import           Control.Monad.Catch (MonadMask(..))
 import           Control.Monad.IO.Class (MonadIO(..))
-import           Control.Monad.Trans.Resource (ResourceT, runResourceT)
-import           Control.Monad.Morph
 
 import qualified Data.List as List
 import qualified Data.List.NonEmpty as NonEmpty
@@ -139,7 +137,7 @@ seaEvalAvalanche
 seaEvalAvalanche program ctx values = do
   let Just attr = Source.asAttributeName "eval"
       ps   = Map.singleton attr (program :| [])
-  hoist runResourceT $ bracketEitherT'
+  bracketEitherT'
     (seaCompile CacheSea NoInput [attr] ps Nothing)
     seaRelease
     (\fleet -> do
@@ -207,7 +205,7 @@ seaCompile ::
   -> [Source.Attribute]
   -> Map Source.Attribute (NonEmpty (Program (Annot a) n Prim))
   -> Maybe FilePath
-  -> EitherT SeaError (ResourceT IO) (SeaFleet st)
+  -> EitherT SeaError IO (SeaFleet st)
 seaCompile cache input attributes programs chords = do
   options <- liftIO getCompilerOptions
   seaCompileFleet options cache input attributes programs chords
@@ -220,7 +218,7 @@ seaCompileFleet ::
   -> [Source.Attribute]
   -> Map Source.Attribute (NonEmpty (Program (Annot a) n Prim))
   -> Maybe FilePath
-  -> EitherT SeaError (ResourceT IO) (SeaFleet st)
+  -> EitherT SeaError IO (SeaFleet st)
 seaCompileFleet options cache input attributes programs chords = do
   code <- hoistEither (codeOfPrograms input attributes (Map.toList programs))
   seaCreateFleet options (fromCacheSea cache) input chords code
@@ -230,7 +228,7 @@ seaCreate ::
   -> Input FilePath
   -> Maybe FilePath
   -> Text
-  -> EitherT SeaError (ResourceT IO) (SeaFleet st)
+  -> EitherT SeaError IO (SeaFleet st)
 seaCreate cache input chords code = do
   options <- getCompilerOptions
   seaCreateFleet options (fromCacheSea cache) input chords code
