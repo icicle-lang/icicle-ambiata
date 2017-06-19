@@ -31,6 +31,7 @@ library
                      , icicle-data
                      , icicle-source
                      , aeson                           >= 0.8        && < 1.2
+                     , aeson-pretty                    >= 0.8        && < 0.9
                      , annotated-wl-pprint             == 0.7.*
                      , ansi-terminal                   == 0.6.*
                      , bifunctors                      >= 4.2        && < 5.4
@@ -143,6 +144,7 @@ library
                        Icicle.Sea.IO.Psv
                        Icicle.Sea.IO.Psv.Input
                        Icicle.Sea.IO.Psv.Output
+                       Icicle.Sea.IO.Psv.Schema
                        Icicle.Sea.IO.Zebra
 
                        Icicle.Internal.Rename

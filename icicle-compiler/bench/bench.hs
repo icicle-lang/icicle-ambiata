@@ -146,6 +146,7 @@ createBenchmark (name, path) = do
     (InputFile InputSparsePsv input)
     (OutputFile OutputSparsePsv output)
     (Just c)
+    Nothing
     (ScopeSnapshot time)
     (1024*1024)
     Nothing

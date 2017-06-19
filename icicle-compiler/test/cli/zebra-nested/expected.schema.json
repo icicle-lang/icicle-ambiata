@@ -1,0 +1,47 @@
+{
+  "version": "1",
+  "encoding_version": "1",
+  "global_properties": {
+    "missing_value": "NA"
+  },
+  "entity_id": {
+    "index": 0,
+    "encoding": "string"
+  },
+  "attributes": [
+    {
+      "index": 1,
+      "name": "default:latest_couple",
+      "encoding": {
+        "listof": {
+          "listof": {
+            "primitive": "string"
+          }
+        }
+      }
+    },
+    {
+      "index": 2,
+      "name": "default:length",
+      "encoding": {
+        "primitive": "int"
+      }
+    },
+    {
+      "index": 3,
+      "name": "default:length_outer",
+      "encoding": {
+        "primitive": "int"
+      }
+    },
+    {
+      "index": 4,
+      "name": "default:newest_strings",
+      "encoding": {
+        "listof": {
+          "primitive": "string"
+        }
+      }
+    }
+  ]
+}
