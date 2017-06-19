@@ -27,7 +27,7 @@ data InlineOption
   | InlineUsingSubst
 
 defaultInline :: InlineOption
-defaultInline = InlineUsingLets
+defaultInline = InlineUsingSubst
 
 inlineTransform
         :: (Hashable n, Eq n)

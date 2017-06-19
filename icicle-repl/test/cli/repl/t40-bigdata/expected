@@ -31,8 +31,7 @@ Check error:
 REPL Error:
 Check error:
   For resumable queries, folds, groups and distincts must be inside windowed or latest at 48:9:data/libs/prelude.icicle
-  Fold: fold s = 0 : v/inline/0
-        + s
+  Fold: fold s = 0 : value + s
         ~> s
   Extra information:
     You are in 'big data mode', which restricts the queries you can perform.
@@ -43,8 +42,7 @@ Check error:
 REPL Error:
 Check error:
   For resumable queries, folds, groups and distincts must be inside windowed or latest at 48:9:data/libs/prelude.icicle
-  Fold: fold s = 0 : v/inline/0
-        + s
+  Fold: fold s = 0 : value + s
         ~> s
   Extra information:
     You are in 'big data mode', which restricts the queries you can perform.
@@ -56,8 +54,7 @@ Check error:
 REPL Error:
 Check error:
   For resumable queries, folds, groups and distincts must be inside windowed or latest at 48:9:data/libs/prelude.icicle
-  Fold: fold s = 0 : v/inline/0
-        + s
+  Fold: fold s = 0 : value + s
         ~> s
   Extra information:
     You are in 'big data mode', which restricts the queries you can perform.
@@ -83,8 +80,7 @@ Check error:
 REPL Error:
 Check error:
   For resumable queries, folds, groups and distincts must be inside windowed or latest at 48:9:data/libs/prelude.icicle
-  Fold: fold s = 0 : v/inline/0
-        + s
+  Fold: fold s = 0 : value + s
         ~> s
   Extra information:
     You are in 'big data mode', which restricts the queries you can perform.
@@ -95,9 +91,7 @@ Check error:
 REPL Error:
 Check error:
   For resumable queries, folds, groups and distincts must be inside windowed or latest at 48:9:data/libs/prelude.icicle
-  Fold: fold s = 0 : v/inline/0
-        + s
-        ~> s
+  Fold: fold s = 0 : x + s ~> s
   Extra information:
     You are in 'big data mode', which restricts the queries you can perform.
     For very large data, we cannot perform folds over all the data
