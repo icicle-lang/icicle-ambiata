@@ -102,8 +102,9 @@ library
                        Icicle.Avalanche.Statement.Simp.Dead
                        Icicle.Avalanche.Statement.Simp.Eval
                        Icicle.Avalanche.Statement.Simp.ExpEnv
-                       Icicle.Avalanche.Statement.Simp.ThreshOrd
+                       Icicle.Avalanche.Statement.Simp.Freshen
                        Icicle.Avalanche.Statement.Simp.Melt
+                       Icicle.Avalanche.Statement.Simp.ThreshOrd
                        Icicle.Avalanche.Statement.Flatten
                        Icicle.Avalanche.Statement.Flatten.Algorithms
                        Icicle.Avalanche.Statement.Flatten.Base

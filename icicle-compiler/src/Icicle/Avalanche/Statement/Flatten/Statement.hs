@@ -14,6 +14,8 @@ import              Icicle.Avalanche.Statement.Flatten.Save
 
 import              Icicle.Avalanche.Statement.Statement
 import qualified    Icicle.Avalanche.Prim.Flat     as Flat
+import qualified    Icicle.Avalanche.Statement.Simp.Freshen  as Freshen
+import qualified    Icicle.Common.Fresh                      as Fresh
 
 import qualified    Icicle.Core.Exp.Prim           as Core
 
@@ -29,7 +31,10 @@ flatten :: (Pretty n, Hashable n, Eq n, IsString n, Show n, Show a)
         => a
         -> Statement a n Core.Prim
         -> FlatM a n
-flatten a_fresh s = flattenS a_fresh [] s
+flatten a_fresh s = do
+  s'  <- flattenS a_fresh [] s
+  s'' <- Fresh.runFreshIdentity $ Freshen.freshen a_fresh s'
+  return s''
 
 -- Extracting FactIdentifiers from Buffers:
 --

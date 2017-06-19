@@ -322,7 +322,7 @@ flattenAvalanche av
  . first ErrorFlatten
  $!! Fresh.runFreshT go (freshNamer "flat")
  where
-  go = do s' <- Avalanche.flatten annotUnit (Avalanche.statements av)
+  go = do s'  <- Avalanche.flatten annotUnit (Avalanche.statements av)
           return $ checkAvalanche (av { Avalanche.statements = force s' })
 
 
