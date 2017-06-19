@@ -3,6 +3,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Source.ToCore.Prim (
     convertPrim
+  , primInsert
   ) where
 
 import                  Icicle.Source.Query
@@ -314,17 +315,16 @@ convertPrim p ann resT xts = go p
    = return $ CE.emptyMap tk tv
    | otherwise
    = convertError $ ConvertErrorCannotConvertType ann resT
+
   gomap MapInsert
    | ((xk, _) : (xv, _) : (xm, tm) : _) <- xts
    = case valTypeOfType tm of
        Just (T.MapT tk tv)
-         -> do n <- lift F.fresh
-               return $ CE.makeApps ()
-                        (CE.XPrim () . C.PrimMap $ C.PrimMapInsertOrUpdate tk tv)
-                        [CE.XLam () n tv xv, xv, xk, xm]
+         -> primInsert tk tv xm xk xv
        _ -> convertError $ ConvertErrorCannotConvertType ann tm
    | otherwise
    = convertError $ ConvertErrorPrimNoArguments ann 3 p
+
   gomap MapDelete
    | (_ : (_, tm) : _) <- xts
    = case valTypeOfType tm of
@@ -365,3 +365,45 @@ convertPrim p ann resT xts = go p
    = return $ primbuiltin $ Min.PrimBuiltinArray $ prim t
    | otherwise
    = convertError $ ConvertErrorCannotConvertType ann tt
+
+primInsert
+        :: (Hashable n)
+        => T.ValType
+        -> T.ValType
+        -> C.Exp () n
+        -> C.Exp () n
+        -> C.Exp () n
+        -> ConvertM a n (C.Exp () n)
+primInsert tk tv xm xk xv = do
+  -- let n' = insertOrUpdate (\n. v) v k m
+  -- if length (keys n') >= MAX_SIZE
+  -- then Left ExceptCannotCompute
+  -- else Right n'
+
+  n  <- lift F.fresh
+  n' <- lift F.fresh
+  let tm     = T.MapT tk tv
+  let tsum   = T.SumT T.ErrorT tm
+
+  let insert = apps (C.PrimMap $ C.PrimMapInsertOrUpdate tk tv)
+             [ CE.XLam () n tv xv, xv, xk, xm ]
+
+  let verr   = CE.XValue () (T.SumT T.ErrorT tm) $ (V.VLeft $ V.VError V.ExceptCannotCompute)
+  let vright = apps (C.PrimMinimal $ Min.PrimConst $ Min.PrimConstRight T.ErrorT tm)
+             [ CE.XVar () n' ]
+
+  let len    = apps (bf $ Min.PrimBuiltinArray $ Min.PrimBuiltinLength tk)
+             [ apps (bf $ Min.PrimBuiltinMap   $ Min.PrimBuiltinKeys tk tv)
+             [ CE.XVar () n' ] ]
+
+  maxMapSize <- convertMaxMapSize
+  let lenchk = apps (C.PrimMinimal $ Min.PrimRelation Min.PrimRelationLt T.IntT)
+             [ len, CE.XVar () maxMapSize ]
+
+  return     $ CE.makeLets () [ (n', insert) ]
+             $ apps (C.PrimFold C.PrimFoldBool $ tsum)
+             [ vright, verr, lenchk ]
+ where
+  apps f xs = CE.makeApps () (CE.XPrim () f) xs
+  bf = C.PrimMinimal . Min.PrimBuiltinFun
+

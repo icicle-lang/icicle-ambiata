@@ -1,0 +1,15 @@
+welcome to iREPL
+ok, loaded 38 functions from data/libs/prelude.icicle
+ok, loaded test/cli/repl/data.psv, 13 rows
+> ok, core evaluation is now on
+> > ok, max-map-size set to 100
+> - Core evaluation:
+[homer, [("arm",4)
+        ,("head",1)
+        ,("torso",1)]]
+
+> > ok, max-map-size set to 2
+> - Core evaluation:
+[homer, tombstone]
+
+> 

@@ -22,7 +22,7 @@ prop_convert_ok qwf
  $ case (qwfCheck qwf, qwfCheckKey qwf) of
     (Right qt', Right k')
      -> let conv = qwfConvertToCore qwf k' qt'
-        in  counterexample (show conv) $ isRight conv
+        in  counterexample (show $ pretty conv) $ isRight conv
     _
      -> property Discard
 
@@ -35,7 +35,7 @@ prop_convert_is_well_typed qwf
      | Right c' <- qwfConvertToCore qwf k' qt'
      , check    <- CCheck.checkProgram c'
      -> counterexample (show $ pretty c')
-      $ counterexample (show check)
+      $ counterexample (show $ pretty check)
       $ isRight check
     _
      -> property Discard
