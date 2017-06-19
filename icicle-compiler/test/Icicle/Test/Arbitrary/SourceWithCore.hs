@@ -8,7 +8,6 @@ import Icicle.Test.Arbitrary.Source
 
 import qualified Data.Text as T
 import qualified Data.Set as Set
-import           Data.List (zip)
 
 import qualified Icicle.Avalanche.Eval as AE
 import qualified Icicle.Avalanche.FromCore as AC
@@ -23,14 +22,11 @@ import qualified Icicle.Common.Fresh as Fresh
 import qualified Icicle.Core.Eval.Program as CV
 import qualified Icicle.Core.Program.Program as C
 import           Icicle.Data
-import           Icicle.Internal.Pretty
 import qualified Icicle.Source.Lexer.Token as T
 import           Icicle.Test.Arbitrary
-import           Icicle.Test.Arbitrary.NanEq
 
 import           P
 
-import           System.IO
 
 import           Test.QuickCheck
 

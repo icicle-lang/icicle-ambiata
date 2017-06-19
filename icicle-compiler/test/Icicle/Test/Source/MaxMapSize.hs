@@ -5,10 +5,9 @@
 module Icicle.Test.Source.MaxMapSize where
 
 import           Icicle.Test.Arbitrary.SourceWithCore
+import           Icicle.Test.Arbitrary.Corpus
 import           Icicle.Test.Arbitrary
-import           Icicle.Core.Program.Check
 import qualified Icicle.Core.Eval.Program   as PV
-import           Icicle.Internal.Pretty
 
 import           Icicle.Common.Eval
 import           Icicle.Common.Base
@@ -31,8 +30,16 @@ prop_maxsize ts =
            props = fmap (checkMaxMapSize $ evalMaxMapSize $ tsEvalCtx ts) vals
        in  conjoin props
 
+prop_maxsize_corpus :: Property
+prop_maxsize_corpus = testAllCorpus $ \wt ->
+  let ev = evalWellTyped wt
+      vals  = fmap snd ev
+      props = fmap (checkMaxMapSize $ wtMaxMapSize wt) vals
+  in counterexample (show ev)
+   $ conjoin props
+
 checkMaxMapSize :: Int -> BaseValue -> Property
-checkMaxMapSize maxSize = go
+checkMaxMapSize maxMapSize = go
  where
   go v = case v of
    VMap m
@@ -66,7 +73,7 @@ checkMaxMapSize maxSize = go
   ok = property True
 
   checkLength vs
-   = length vs < maxSize || maxSize <= 0
+   = length vs < maxMapSize || maxMapSize <= 0
 
 
 return []

@@ -5,25 +5,12 @@
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 module Icicle.Test.Source.History where
 
-import qualified Data.Text as T
 import qualified Data.Set as Set
 import           Data.List (zip)
 
-import qualified Icicle.Avalanche.Eval as AE
-import qualified Icicle.Avalanche.FromCore as AC
-import qualified Icicle.Avalanche.Prim.Eval as AE
-import qualified Icicle.Avalanche.Prim.Flat as AF
-import qualified Icicle.Avalanche.Program as AP
-import qualified Icicle.Avalanche.Statement.Flatten as AF
-import           Icicle.BubbleGum
 import           Icicle.Common.Base
-import           Icicle.Common.Eval
-import qualified Icicle.Common.Fresh as Fresh
 import qualified Icicle.Core.Eval.Program as CV
-import qualified Icicle.Core.Program.Program as C
-import           Icicle.Data
 import           Icicle.Internal.Pretty
-import qualified Icicle.Source.Lexer.Token as T
 import           Icicle.Test.Arbitrary
 import           Icicle.Test.Arbitrary.NanEq
 import           Icicle.Test.Arbitrary.SourceWithCore
