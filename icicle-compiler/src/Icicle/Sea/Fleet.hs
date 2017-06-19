@@ -145,43 +145,46 @@ initZebraSnapshot library piano input = do
     initZebraSnapshotStep library
 
   pure $ \config ->
-    EitherT . withCPiano piano $ \cpiano -> runResourceT . runEitherT $
-      let
-        allocState :: IO (Ptr ())
-        allocState =
-          c_zebra_alloc_state [
-              argPtr (unCPiano cpiano)
-            , argPtr config
-            ]
+    let
+      allocState :: CPiano -> IO (Ptr ())
+      allocState cpiano =
+        c_zebra_alloc_state [
+            argPtr (unCPiano cpiano)
+          , argPtr config
+          ]
 
-        --
-        -- FIXME This doesn't clean up properly, ensure that 'allocState' is
-        -- FIXME only called once per program run or we will leak memory like
-        -- FIXME crazy.
-        --
-        collectState :: Ptr () -> IO ()
-        collectState state =
-          c_zebra_collect_state [
-              argPtr config
-            , argPtr state
-            ]
+      --
+      -- FIXME This doesn't clean up properly, ensure that 'allocState' is
+      -- FIXME only called once per program run or we will leak memory like
+      -- FIXME crazy.
+      --
+      collectState :: Ptr () -> IO ()
+      collectState state =
+        c_zebra_collect_state [
+            argPtr config
+          , argPtr state
+          ]
+    in
+      EitherT . withCPiano piano $ \cpiano ->
+      bracket (allocState cpiano) collectState $ \state ->
+      runResourceT . runEitherT $
+        let
+          tables :: Stream (Of Striped.Table) (EitherT SeaError (ResourceT IO)) ()
+          tables =
+            hoist (firstJoin SeaZebraDecodeError) .
+              Binary.decodeStriped .
+            hoist (firstT SeaZebraIOError) $
+              ByteStream.readFile input
+        in
+          flip Stream.mapM_ tables $ \table ->
+          hoist lift $ do
+            block <-
+              hoistEither . first SeaZebraBlockTableError $ Zebra.blockOfTable table
 
-        tables :: Stream (Of Striped.Table) (EitherT SeaError (ResourceT IO)) ()
-        tables =
-          hoist (firstJoin SeaZebraDecodeError) .
-            Binary.decodeStriped .
-          hoist (firstT SeaZebraIOError) $
-            ByteStream.readFile input
-      in
-        flip Stream.mapM_ tables $ \table ->
-        hoist lift . bracketIO allocState collectState $ \state -> do
-          block <-
-            hoistEither . first SeaZebraBlockTableError $ Zebra.blockOfTable table
+            entities <-
+              hoistEither . first SeaZebraEntityError $ Zebra.entitiesOfBlock block
 
-          entities <-
-            hoistEither . first SeaZebraEntityError $ Zebra.entitiesOfBlock block
-
-          Boxed.mapM_ (step cpiano state) entities
+            Boxed.mapM_ (step cpiano state) entities
 
 initSnapshot ::
      Library
