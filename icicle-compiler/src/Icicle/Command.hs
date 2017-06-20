@@ -115,7 +115,6 @@ data QueryOptions = QueryOptions {
   , optInput        :: InputFile
   , optOutput       :: OutputFile
   , optOutputCode   :: Maybe FilePath
-  , optOutputSchema :: Maybe FilePath
   , optScope        :: Scope FilePath
   , optFactsLimit   :: Int
   -- ^ only applies to psv input
@@ -149,6 +148,7 @@ data OutputFile =
   OutputFile {
       outputFormat :: OutputFormat
     , outputPath :: FilePath
+    , outputSchema :: Maybe FilePath
     } deriving (Eq, Ord, Show)
 
 data OutputFormat =
@@ -201,7 +201,7 @@ createZebraQuery = createQuery
 createQuery :: QueryOptions -> EitherT IcicleError IO (Query a)
 createQuery c = do
   let dropPath = fromMaybe (outputPath (optOutput c) <> ".dropped") (optDrop c)
-  let schemaPath = fromMaybe (outputPath (optOutput c) <> ".schema.json") (optOutputSchema c)
+  let schemaPath = fromMaybe (outputPath (optOutput c) <> ".schema.json") (outputSchema (optOutput c))
   let chordPath = chordPathOfScope $ optScope c
   chordStart <- liftIO getCurrentTime
 

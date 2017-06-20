@@ -78,7 +78,6 @@ pQuery =
     <*> pInputFile
     <*> pOutputFile
     <*> optional pOutputCode
-    <*> optional pOutputSchema
     <*> (pSnapshot <|> pChordPath)
     <*> pLimit
     <*> pDrop
@@ -149,7 +148,7 @@ pOutputFormat =
 
 pOutputSparse :: Parser OutputFile
 pOutputSparse =
-  fmap (OutputFile OutputSparsePsv) $
+  fmap (\path -> OutputFile OutputSparsePsv path Nothing) $
     strOption (long "output-sparse-psv" <> metavar "OUTPUT_PSV")
 
 pOutputSparseFormat :: Parser OutputFormat
@@ -158,8 +157,9 @@ pOutputSparseFormat =
 
 pOutputDense :: Parser OutputFile
 pOutputDense =
-  fmap (OutputFile OutputDensePsv) $
-    strOption (long "output-dense-psv" <> metavar "OUTPUT_PSV")
+  OutputFile OutputDensePsv
+    <$> strOption (long "output-dense-psv" <> metavar "OUTPUT_PSV")
+    <*> optional pOutputSchema
 
 pOutputDenseFormat :: Parser OutputFormat
 pOutputDenseFormat =
