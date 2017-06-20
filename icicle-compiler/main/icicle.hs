@@ -1,5 +1,6 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators #-}
@@ -147,7 +148,7 @@ pOutputFormat =
 
 pOutputSparse :: Parser OutputFile
 pOutputSparse =
-  fmap (OutputFile OutputSparsePsv) $
+  fmap (\path -> OutputFile OutputSparsePsv path Nothing) $
     strOption (long "output-sparse-psv" <> metavar "OUTPUT_PSV")
 
 pOutputSparseFormat :: Parser OutputFormat
@@ -156,8 +157,9 @@ pOutputSparseFormat =
 
 pOutputDense :: Parser OutputFile
 pOutputDense =
-  fmap (OutputFile OutputDensePsv) $
-    strOption (long "output-dense-psv" <> metavar "OUTPUT_PSV")
+  OutputFile OutputDensePsv
+    <$> strOption (long "output-dense-psv" <> metavar "OUTPUT_PSV")
+    <*> optional pOutputSchema
 
 pOutputDenseFormat :: Parser OutputFormat
 pOutputDenseFormat =
@@ -166,6 +168,14 @@ pOutputDenseFormat =
 pOutputCode :: Parser FilePath
 pOutputCode =
   strOption (long "output-code" <> metavar "DICTIONARY_C")
+
+pOutputSchema :: Parser FilePath
+pOutputSchema =
+  strOption $
+       long "output-schema"
+    <> metavar "OUTPUT_PSV_SCHEMA_JSON"
+    <> help
+         "Location to write the output schema when using dense PSV output. (defaults to <output-path>.schema.json)"
 
 pSnapshot :: Parser (Scope a)
 pSnapshot =
@@ -269,7 +279,19 @@ runQuery f msrc query = do
   let compSecs = realToFrac (queryCompilationTime query) :: Double
   liftIO (printf "icicle: compilation time = %.2fs\n" compSecs)
 
-  liftIO (maybe (return ()) (flip writeUtf8 (querySource query)) msrc)
+  case msrc of
+    Nothing ->
+      pure ()
+    Just src ->
+      writeUtf8 src (querySource query)
+
+  case sfOutputSchema (queryFleet query) of
+    Nothing ->
+      pure ()
+    Just schema -> do
+      let path = queryOutputSchemaPath query
+      liftIO . putStrLn $ "icicle: writing output schema to " <> path
+      writeUtf8 path (renderPrettyPsvSchema schema)
 
   liftIO (putStrLn "icicle: starting query")
 

@@ -66,6 +66,7 @@ data SeaFleet config =
   SeaFleet {
       sfLibrary :: Library
     , sfSnapshot :: Ptr config -> EitherT SeaError IO ()
+    , sfOutputSchema :: Maybe PsvSchema
     , sfSegvInstall :: String -> IO ()
     , sfSegvRemove :: IO ()
     }
@@ -202,6 +203,25 @@ initSnapshot library piano = \case
   HasInput (FormatZebra _ _ _) _ input ->
     initZebraSnapshot library piano input
 
+getOutputSchema :: Library -> Input a -> EitherT SeaError IO (Maybe PsvSchema)
+getOutputSchema library = \case
+  NoInput ->
+    pure Nothing
+
+  HasInput _ _ _ -> do
+    c_psv_get_output_schema <-
+      firstT SeaJetskiError $ function library "psv_get_output_schema" (retPtr retCChar)
+
+    schemaPtr <- liftIO $ c_psv_get_output_schema []
+
+    if schemaPtr == nullPtr then
+      pure Nothing
+    else do
+      txt <- Text.pack <$> liftIO (peekCString schemaPtr)
+      schema <- hoistEither . first SeaPsvSchemaDecodeError $ parsePsvSchema txt
+      pure $
+        Just schema
+
 seaCreateFleet ::
      [CompilerOption]
   -> CacheLibrary
@@ -225,12 +245,18 @@ seaCreateFleet options cache input chordDescriptor code = do
   snapshot <-
     initSnapshot library piano input
 
+  schema <-
+    getOutputSchema library input
+
   pure SeaFleet {
       sfLibrary =
         library
 
     , sfSnapshot =
         snapshot
+
+    , sfOutputSchema =
+        schema
 
     , sfSegvInstall = \str ->
         withCStringLen str $ \(ptr, len) ->

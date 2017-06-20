@@ -55,7 +55,7 @@ import qualified Data.Text as Text
 import qualified Data.Text.IO as Text
 import           Data.Time (NominalDiffTime, getCurrentTime, diffUTCTime)
 
-import           System.FilePath (FilePath, dropExtension)
+import           System.FilePath (FilePath)
 import           System.IO (IO, IOMode(..), withFile, hFileSize)
 
 import           Text.Printf (printf)
@@ -89,6 +89,7 @@ data Query a = Query {
   , queryInputPath       :: FilePath
   , queryOutputPath      :: FilePath
   , queryDropPath        :: FilePath
+  , queryOutputSchemaPath :: FilePath
   , queryChordPath       :: Maybe FilePath
   , queryCompilationTime :: NominalDiffTime
   , queryFactsLimit      :: Int
@@ -147,6 +148,7 @@ data OutputFile =
   OutputFile {
       outputFormat :: OutputFormat
     , outputPath :: FilePath
+    , outputSchema :: Maybe FilePath
     } deriving (Eq, Ord, Show)
 
 data OutputFormat =
@@ -198,7 +200,8 @@ createZebraQuery = createQuery
 
 createQuery :: QueryOptions -> EitherT IcicleError IO (Query a)
 createQuery c = do
-  let dropPath = fromMaybe (dropExtension (outputPath (optOutput c)) <> "_dropped.txt") (optDrop c)
+  let dropPath = fromMaybe (outputPath (optOutput c) <> ".dropped") (optDrop c)
+  let schemaPath = fromMaybe (outputPath (optOutput c) <> ".schema.json") (outputSchema (optOutput c))
   let chordPath = chordPathOfScope $ optScope c
   chordStart <- liftIO getCurrentTime
 
@@ -232,6 +235,7 @@ createQuery c = do
     , queryFleet           = fleet
     , queryInputPath       = inputPath $ optInput c
     , queryOutputPath      = outputPath $ optOutput c
+    , queryOutputSchemaPath = schemaPath
     , queryChordPath       = chordPath
     , queryCompilationTime = end `diffUTCTime` start
     , queryFactsLimit      = optFactsLimit c

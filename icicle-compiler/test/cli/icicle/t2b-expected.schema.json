@@ -1,0 +1,27 @@
+{
+  "version": "1",
+  "encoding_version": "1",
+  "global_properties": {
+    "missing_value": "NA"
+  },
+  "entity_id": {
+    "index": 0,
+    "encoding": "string"
+  },
+  "attributes": [
+    {
+      "index": 1,
+      "name": ":long_output",
+      "encoding": {
+        "primitive": "int"
+      }
+    },
+    {
+      "index": 2,
+      "name": ":more_long_output",
+      "encoding": {
+        "primitive": "int"
+      }
+    }
+  ]
+}

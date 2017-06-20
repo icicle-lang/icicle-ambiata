@@ -144,7 +144,7 @@ createBenchmark (name, path) = do
   b <- createPsvQuery $ QueryOptions
     (DictionaryToml dict)
     (InputFile InputSparsePsv input)
-    (OutputFile OutputSparsePsv output)
+    (OutputFile OutputSparsePsv output Nothing)
     (Just c)
     (ScopeSnapshot time)
     (1024*1024)

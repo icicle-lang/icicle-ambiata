@@ -17,6 +17,7 @@ import           Icicle.Data (Attribute)
 import qualified Icicle.Data as D
 import           Icicle.Internal.Pretty ((<+>), pretty, text, vsep, indent)
 import           Icicle.Internal.Pretty (Pretty)
+import           Icicle.Sea.IO.Psv.Schema
 
 import qualified Piano
 
@@ -60,6 +61,8 @@ data SeaError
   | SeaInvalidIdentitifier        Text
   | SeaNoFactLoop
   | SeaNoOutputs
+  | SeaCannotGenerateSchemaForSparseOutput
+  | SeaPsvSchemaDecodeError PsvSchemaDecodeError
   deriving (Eq, Show)
 
 instance Pretty SeaError where
@@ -122,6 +125,12 @@ instance Pretty SeaError where
 
     SeaNoOutputs
      -> text "No outputs"
+
+    SeaCannotGenerateSchemaForSparseOutput
+     -> text "Cannot generate output schema for sparse output"
+
+    SeaPsvSchemaDecodeError err
+     -> pretty $ renderPsvSchemaDecodeError err
 
     SeaProgramNotFound attr
      -> text "Program for attribute \"" <> pretty attr <> "\" not found"

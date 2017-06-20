@@ -33,6 +33,14 @@ module Icicle.Sea.IO
   , ZebraChunkFactCount (..)
   , ZebraAllocLimitGB (..)
 
+  , PsvSchema
+  , renderPrettyPsvSchema
+  , renderCompactPsvSchema
+  , parsePsvSchema
+
+  , PsvSchemaDecodeError
+  , renderPsvSchemaDecodeError
+
   , module Icicle.Sea.IO.Offset
   ) where
 

@@ -1,0 +1,95 @@
+{
+  "version": "1",
+  "encoding_version": "1",
+  "global_properties": {
+    "missing_value": "NA"
+  },
+  "entity_id": {
+    "index": 0,
+    "encoding": "string"
+  },
+  "attributes": [
+    {
+      "index": 1,
+      "name": "default:latest_four",
+      "encoding": {
+        "listof": {
+          "primitive": "string"
+        }
+      }
+    },
+    {
+      "index": 2,
+      "name": "default:newest",
+      "encoding": {
+        "primitive": "string"
+      }
+    },
+    {
+      "index": 3,
+      "name": "default:test_map",
+      "encoding": {
+        "listof": {
+          "pairof": [
+            {
+              "primitive": "string"
+            },
+            {
+              "listof": {
+                "primitive": "string"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "index": 4,
+      "name": "default:test_map_delete",
+      "encoding": {
+        "listof": {
+          "pairof": [
+            {
+              "primitive": "string"
+            },
+            {
+              "primitive": "double"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "index": 5,
+      "name": "default:test_map_delete_end",
+      "encoding": {
+        "listof": {
+          "pairof": [
+            {
+              "primitive": "string"
+            },
+            {
+              "primitive": "int"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "index": 6,
+      "name": "default:test_map_double",
+      "encoding": {
+        "listof": {
+          "pairof": [
+            {
+              "primitive": "string"
+            },
+            {
+              "primitive": "double"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
