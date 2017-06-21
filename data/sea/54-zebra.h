@@ -607,30 +607,30 @@ ierror_msg_t zebra_snapshot_step
     int64_t entity_id_size = entity->id_length;
 
     ifleet_t *fleet = state->fleet;
-    int       fd    = state->output_fd;
 
     state->entity_count++;
 
     error = zebra_read_step (piano, state, entity);
     if (error) return error;
 
-    if (!zebra_limit_exceeded (state)) {
-        error = psv_write_output
-            ( fd
-            , state->output_start
-            , state->output_end
-            , &state->output_ptr
-            , (char*) entity_id
-            , entity_id_size
-            , state->fleet );
-        if (error) return error;
+    int fd = zebra_limit_exceeded (state) ? state->drop_fd : state->output_fd;
 
-        error = psv_flush_output
-            ( fd
-            , state->output_start
-            , &state->output_ptr );
-        if (error) return error;
-    }
+    /* launch the missiles */
+    error = psv_write_output
+        ( fd
+        , state->output_start
+        , state->output_end
+        , &state->output_ptr
+        , (char*) entity_id
+        , entity_id_size
+        , state->fleet );
+    if (error) return error;
+
+    error = psv_flush_output
+        ( fd
+        , state->output_start
+        , &state->output_ptr );
+    if (error) return error;
 
     return 0;
 }
