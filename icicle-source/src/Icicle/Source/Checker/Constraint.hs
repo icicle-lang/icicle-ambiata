@@ -256,7 +256,7 @@ generateQ qq@(Query (c:_) _) env
             return (q'', sq, cons')
 
     -- >   group (Element k'p k'd) ~> Aggregate v'p v'd
-    -- > : Aggregate (PossibilityJoin k'p v'p) (Group k'd v'd)
+    -- > : Aggregate Possibly (Group k'd v'd)
     GroupBy _ x
      -> do  (x', sx, consk)       <- generateX x env
             (q', sq, tval, consr) <- rest $ substE sx env
@@ -265,14 +265,13 @@ generateQ qq@(Query (c:_) _) env
 
             consT          <-  (<>) <$> requireTemporality tkey TemporalityElement
                                     <*> requireAgg tval
-            (poss, consp)  <-  requirePossibilityJoin tkey tval
 
             let t'  = canonT
                     $ Temporality TemporalityAggregate
-                    $ Possibility poss
+                    $ Possibility PossibilityPossibly
                     $ GroupT tkey tval
 
-            let cons' = concat [consk, consr, consT, consp]
+            let cons' = concat [consk, consr, consT]
 
             let ss  = compose sx sq
             let q'' = with cons' q' t' $ \a' -> GroupBy a' x'
@@ -311,7 +310,7 @@ generateQ qq@(Query (c:_) _) env
             return (q'', ss, cons')
 
     -- >   distinct (Element k'p k'd) ~> Aggregate v'p v'd
-    -- > : Aggregate (PossibilityJoin k'p v'p) v'd
+    -- > : Aggregate Possibly v'd
     Distinct _ x
      -> do  (x', sx, consk)     <- generateX x env
             (q', sq, t', consr) <- rest $ substE sx env
@@ -320,13 +319,12 @@ generateQ qq@(Query (c:_) _) env
 
             consT          <-  (<>) <$> requireTemporality tkey TemporalityElement
                                     <*> requireAgg t'
-            (poss, consp)  <-  requirePossibilityJoin tkey t'
 
             let t'' = canonT
                     $ Temporality TemporalityAggregate
-                    $ Possibility poss t'
+                    $ Possibility PossibilityPossibly t'
 
-            let cons' = concat [consk, consr, consT, consp]
+            let cons' = concat [consk, consr, consT]
 
             let ss  = compose sx sq
             let q'' = with cons' q' t'' $ \a' -> Distinct a' x'

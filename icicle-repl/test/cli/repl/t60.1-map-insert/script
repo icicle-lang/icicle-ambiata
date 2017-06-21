@@ -1,0 +1,7 @@
+:set +core-eval
+
+:set max-map-size 100
+feature injury ~> fold x = map_create : map_insert location severity x ~> x
+
+:set max-map-size 2
+feature injury ~> fold x = map_create : map_insert location severity x ~> x

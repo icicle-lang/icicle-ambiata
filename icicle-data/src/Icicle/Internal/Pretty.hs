@@ -113,6 +113,11 @@ instance Pretty a => Pretty (Maybe a) where
 instance Pretty T.Text where
   pretty t = text (T.unpack t)
 
+instance (Pretty l, Pretty r) => Pretty (Either l r) where
+  pretty (Left  l) = "Left"  <+> pretty l
+  pretty (Right r) = "Right" <+> pretty r
+
+
 -- | Concatenate two possibly-empty documents, separated by spaces.
 -- This probably shouldn't be used for large documents.
 (<+?>) :: Doc -> Doc -> Doc

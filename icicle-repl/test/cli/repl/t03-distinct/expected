@@ -13,4 +13,13 @@ ok, loaded test/cli/repl/data.psv, 13 rows
 > - Core evaluation:
 [homer, 300.0,marge, 0.0]
 
+> > -- Distinct location and count. Expect 3
+> - Core evaluation:
+[homer, 3]
+
+> > -- Expect CannotCompute - exceeds map size
+> ok, max-map-size set to 2
+> - Core evaluation:
+[homer, tombstone]
+
 > 

@@ -1,0 +1,42 @@
+welcome to iREPL
+ok, loaded 38 functions from data/libs/prelude.icicle
+ok, loaded test/cli/repl/data.psv, 13 rows
+> ok, loaded dictionary with 8 features and 38 functions
+> ok, loaded test/cli/repl/data-tomb.psv, 15 rows
+> > -- Try all combinations of Possibly: 'time' is definitely, while 'location' is possibly.
+> - Core evaluation:
+[homer, tombstone,marge, 1]
+
+> - Core evaluation:
+[homer, tombstone,marge, 1]
+
+> - Core evaluation:
+[homer, tombstone,marge, 2]
+
+> - Core evaluation:
+[homer, 5,marge, 2]
+
+> > -- Groups
+> - Core evaluation:
+[homer, tombstone
+,marge, [("head",2)]]
+
+> - Core evaluation:
+[homer, tombstone
+,marge, [("head",2)]]
+
+> - Core evaluation:
+[homer, tombstone
+,marge, [(1989-12-17,1)
+        ,(1990-01-01,1)]]
+
+> - Core evaluation:
+[homer, [(1989-12-17,1)
+        ,(1990-01-01,1)
+        ,(1994-01-01,1)
+        ,(1999-01-01,1)
+        ,(2010-01-01,1)]
+,marge, [(1989-12-17,1)
+        ,(1990-01-01,1)]]
+
+> 

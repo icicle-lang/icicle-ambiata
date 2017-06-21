@@ -6,6 +6,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Icicle.Source.Query.Prim (
     primLookup'
+  , primReturnsPossibly
   ) where
 
 import                  Icicle.Source.Query.Constructor
@@ -109,7 +110,7 @@ primLookup' p
     Fun (BuiltinMap MapCreate)
      -> f2 $ \k kt v vt -> FunctionType [k, v] [] [] (GroupT kt vt)
     Fun (BuiltinMap MapInsert)
-     -> f2 $ \k kt v vt -> FunctionType [k, v] [] [kt, vt, GroupT kt vt] (GroupT kt vt)
+     -> f2 $ \k kt v vt -> FunctionType [k, v] [] [kt, vt, GroupT kt vt] (Possibility PossibilityPossibly (GroupT kt vt))
     Fun (BuiltinMap MapDelete)
      -> f2 $ \k kt v vt -> FunctionType [k, v] [] [kt, GroupT kt vt] (GroupT kt vt)
     Fun (BuiltinMap MapLookup)
@@ -153,3 +154,10 @@ primLookup' p
    = do n1 <- Fresh.fresh
         n2 <- Fresh.fresh
         return $ f n1 (TypeVar n1) n2 (TypeVar n2)
+
+
+primReturnsPossibly :: Prim -> Bool
+primReturnsPossibly (Fun (BuiltinData Box))      = True
+primReturnsPossibly (Fun (BuiltinMap MapInsert)) = True
+primReturnsPossibly _                            = False
+
