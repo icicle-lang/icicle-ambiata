@@ -82,8 +82,6 @@ pQuery =
     <*> pLimit
     <*> pDrop
     <*> pFlagDrop
-    <*> pZebraChunkFactCount
-    <*> pZebraAllocLimitGB
     <*> pMaxMapSize
 
 pDictionaryFile :: Parser DictionaryFile
@@ -205,16 +203,6 @@ pFlagDrop =
   flag FlagUseDropFile FlagNoUseDropFile $
     long "drop-to-output" <>
     help "write partial results to dropped-X.txt or normal output"
-
-pZebraChunkFactCount :: Parser ZebraChunkFactCount
-pZebraChunkFactCount =
-  flip option (long "zebra-chunk-fact-count" <> value defaultZebraChunkFactCount) $
-    tryRead "--zebra-chunk-fact-count NUMBER_FACTS" readMaybe ZebraChunkFactCount
-
-pZebraAllocLimitGB :: Parser ZebraAllocLimitGB
-pZebraAllocLimitGB =
-  flip option (long "zebra-alloc-limit-gb" <> value defaultZebraAllocLimitGB) $
-    tryRead "--zebra-alloc-limit-gb NUMBER_GB" readMaybe ZebraAllocLimitGB
 
 pMaxMapSize :: Parser Int
 pMaxMapSize =

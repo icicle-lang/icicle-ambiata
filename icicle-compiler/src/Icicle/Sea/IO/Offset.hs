@@ -15,12 +15,11 @@ import Icicle.Sea.FromAvalanche.State
 --     iint_t fact_count;
 --     iint_t entity_count;
 --     const size_t output_buffer_size;
---     const size_t chunk_size;
---     const size_t alloc_limit;
+--     const iint_t max_map_size;
 -- } zebra_config_t;
 
 zebraConfigCount :: Int
-zebraConfigCount = 11
+zebraConfigCount = 9
 
 zebraConfigInputPath :: Int
 zebraConfigInputPath = 0
@@ -46,14 +45,8 @@ zebraConfigEntityCount = 6
 zebraConfigOutputBufferSize :: Int
 zebraConfigOutputBufferSize = 7
 
-zebraConfigChunkFactCount :: Int
-zebraConfigChunkFactCount = 8
-
-zebraConfigAllocLimitBytes :: Int
-zebraConfigAllocLimitBytes = 9
-
 zebraConfigMaxMapSize :: Int
-zebraConfigMaxMapSize = 10
+zebraConfigMaxMapSize = 8
 
 --------------------------------------------------------------------------------
 
@@ -67,15 +60,10 @@ zebraConfigMaxMapSize = 10
 --     int output_fd;
 --     int drop_fd;
 --     int64_t  attribute_count;
---     int64_t *entity_fact_offset;
---     int64_t *entity_fact_count;
---     int64_t  chunk_size;
---     int64_t  alloc_limit;
---     int64_t  entity_alloc_count;
 -- } zebra_state_t;
 
 zebraStateCount :: Int
-zebraStateCount = 14
+zebraStateCount = 9
 
 zebraStateOutputStart :: Int
 zebraStateOutputStart = 0
@@ -103,21 +91,6 @@ zebraStateDropFd = 7
 
 zebraStateAttributeCount :: Int
 zebraStateAttributeCount = 8
-
-zebraStateEntityFactOffset :: Int
-zebraStateEntityFactOffset = 9
-
-zebraStateEntityFactCount :: Int
-zebraStateEntityFactCount = 10
-
-zebraStateChunkFactCount :: Int
-zebraStateChunkFactCount = 11
-
-zebraStateAllocLimitGB :: Int
-zebraStateAllocLimitGB = 12
-
-zebraStateEntityAllocCount :: Int
-zebraStateEntityAllocCount = 13
 
 --------------------------------------------------------------------------------
 

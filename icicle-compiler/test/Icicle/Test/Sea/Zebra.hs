@@ -15,7 +15,6 @@ import qualified Data.List as List
 import           Data.List.NonEmpty ( NonEmpty(..) )
 import qualified Data.ByteString.Char8 as ByteString
 import qualified Data.Text.Encoding as Text
-import qualified Data.Text.IO as Text
 import qualified Data.Text as Text
 import           Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
@@ -41,7 +40,7 @@ import qualified X.Data.Vector.Cons as Cons
 
 import           Disorder.Core.IO (testIO)
 import           Disorder.Jack (Property, Jack)
-import           Disorder.Jack (gamble, arbitrary, (===), justOf, vectorOf, suchThat, counterexample)
+import           Disorder.Jack (gamble, arbitrary, (===), justOf, vectorOf, counterexample)
 
 import           Jetski
 
@@ -78,7 +77,6 @@ import qualified Icicle.Test.Foreign.Utils as Test
 --
 prop_read_entity :: Property
 prop_read_entity =
-  gamble jZebraChunkFactCount $ \chunkFactCount ->
   gamble jZebraWellTyped $ \zwt ->
   testIO . bracket Mempool.create Mempool.free $ \pool -> Test.runRight $ do
     let
@@ -86,9 +84,8 @@ prop_read_entity =
         zWellTyped $ zwt
       hasFacts =
         fmap (atFact . snd) $ List.zip (wtEntities wt) (wtFacts wt)
-    Result inputs dropped <- runTest pool chunkFactCount testAllocLimitBytes zwt
+    Result inputs <- runTest pool zwt
     return $ counterexample ("Read Inputs = " <> ppShow inputs)
-           $ counterexample ("Dropped Entities = " <> ppShow dropped)
            $ counterexample ("Facts = " <> ppShow (zFacts zwt))
            $ concatMap snd inputs === hasFacts
 
@@ -97,8 +94,6 @@ prop_read_entity =
 --
 zprop_read_or_drop_entity :: Property
 zprop_read_or_drop_entity =
-  gamble jZebraChunkFactCount $ \chunkFactCount ->
-  gamble jZebraAllocLimitBytes $ \allocLimitBytes ->
   gamble jZebraWellTyped $ \zwt ->
   testIO . bracket Mempool.create Mempool.free $ \pool -> Test.runRight $ do
     let
@@ -106,32 +101,28 @@ zprop_read_or_drop_entity =
         zWellTyped $ zwt
       hasFacts =
         fmap fst $ List.zip (wtEntities wt) (wtFacts wt)
-    Result inputs dropped <- runTest pool chunkFactCount allocLimitBytes zwt
+    Result inputs <- runTest pool zwt
     return $ counterexample ("Read Inputs = " <> ppShow inputs)
-           $ counterexample ("Dropped Entities = " <> ppShow dropped)
            $ counterexample ("Facts = " <> ppShow (zFacts zwt))
-           $ List.sort (fmap fst inputs <> dropped) === List.sort hasFacts
+           $ List.sort (fmap fst inputs) === List.sort hasFacts
 
 
 data Result = Result {
     resultRead :: [(Entity, [BaseValue])]
-  , resultDropped :: [Entity]
   } deriving (Eq, Show)
 
 instance Monoid Result where
   mempty =
-    Result mempty mempty
-  mappend (Result xs ys) (Result as bs) =
-    Result (xs <> as) (ys <> bs)
+    Result mempty
+  mappend (Result xs) (Result as) =
+    Result (xs <> as)
 
 runTest ::
      Mempool
-  -> ZebraChunkFactCount
-  -> Int
   -> ZebraWellTyped
   -> EitherT SeaError IO Result
-runTest pool chunk_step alloc_limit_bytes zwt@(ZebraWellTyped wt facts entities) =
-  join . liftIO . liftM hoistEither . withSegv (pp chunk_step alloc_limit_bytes zwt) $ do
+runTest pool zwt@(ZebraWellTyped wt facts entities) =
+  join . liftIO . liftM hoistEither . withSegv (pp zwt) $ do
     results <- forM entities $ \(ty, entity) -> do
       c_entity <- Zebra.foreignOfEntity pool entity
       runEitherT $ do
@@ -146,13 +137,10 @@ runTest pool chunk_step alloc_limit_bytes zwt@(ZebraWellTyped wt facts entities)
               finish <- firstEitherT SeaJetskiError $ function src "zebra_collect_state" (retPtr retVoid)
               test_read_entity <- firstEitherT SeaJetskiError $ function src "test_zebra_read_entity" (retPtr retWord8)
               test_fleet <- firstEitherT SeaJetskiError $ function src "test_setup_fleet" (retPtr retVoid)
-              test_check_limit <- firstEitherT SeaJetskiError $ function src "test_check_limit" Test.retBool
 
               withWords zebraConfigCount $ \config -> do
                 pokeWordOff config zebraConfigDropFd drop_fd
                 pokeWordOff config zebraConfigOutputBufferSize defaultPsvOutputBufferSize
-                pokeWordOff config zebraConfigChunkFactCount (unZebraChunkFactCount chunk_step)
-                pokeWordOff config zebraConfigAllocLimitBytes alloc_limit_bytes
 
                 bracketEitherT'
                   (liftIO (init [ argPtr nullPtr, argPtr config, argInt64 1 ]))
@@ -166,54 +154,40 @@ runTest pool chunk_step alloc_limit_bytes zwt@(ZebraWellTyped wt facts entities)
 
 
                      let
-                       step =
-                         unZebraChunkFactCount chunk_step
-
-                       chunk_lengths =
-                         List.replicate (fact_count `div` step) step <> [ fact_count `rem` step ]
-
                        entity_id =
                          ByteString.unpack . Zebra.unEntityId . Zebra.entityId $ entity
 
-                     read_inputs <- forM chunk_lengths $ \len -> do
-                       dropped <- liftIO . withCStringLen entity_id $ \(id_bytes, id_length) -> do
-                           e1 <- test_fleet
-                                   [ argPtr id_bytes
-                                   , argInt32 (fromIntegral id_length)
-                                   , argPtr nullPtr
-                                   , argPtr fleet_ptr ]
-                           when (e1 /= nullPtr) $
-                             fail "failed to configure fleet"
+                     read_inputs <- do
+                       liftIO . withCStringLen entity_id $ \(id_bytes, id_length) -> do
+                         e1 <- test_fleet
+                                 [ argPtr id_bytes
+                                 , argInt32 (fromIntegral id_length)
+                                 , argPtr nullPtr
+                                 , argPtr fleet_ptr ]
+                         when (e1 /= nullPtr) $
+                           fail "failed to configure fleet"
 
-                           e2 <- test_read_entity
-                                   [ argPtr nullPtr
-                                   , argPtr state
-                                   , argPtr (Zebra.unCEntity c_entity) ]
-                           when (e2 /= nullPtr) $ do
-                             err <- peekCString (castPtr e2)
-                             fail $ "failed to read entity: " <> err
+                         e2 <- test_read_entity
+                                 [ argPtr nullPtr
+                                 , argPtr state
+                                 , argPtr (Zebra.unCEntity c_entity) ]
+                         when (e2 /= nullPtr) $ do
+                           err <- peekCString (castPtr e2)
+                           fail $ "failed to read entity: " <> err
 
-                           x <- test_check_limit
-                                  [ argPtr state
-                                  , argPtr (Zebra.unCEntity c_entity) ]
-                           return x
+                         pure ()
 
                        let
-                         saveIt
-                           | dropped =
-                               return Nothing
-                           | otherwise = do
-                               x <- saveInputs ty struct_count len fleet_ptr
-                               return . Just $ (Entity . Text.pack $ entity_id, x)
+                         saveIt = do
+                           x <- saveInputs ty struct_count fact_count fleet_ptr
+                           return (Entity . Text.pack $ entity_id, x)
 
                        saveIt
 
-                     dropped_entity <- liftIO (fmap Entity . List.nub . Text.lines <$> Text.readFile drop_fp)
-
                      let
-                       inputs = catMaybes read_inputs
+                       inputs = [read_inputs]
 
-                     return (Result inputs dropped_entity)
+                     return (Result inputs)
                   )
     return . fmap mconcat . sequence $ results
 
@@ -287,15 +261,6 @@ instance Show ZebraWellTyped where
       "As Zebra entities = \n" <> ppShow (zEntity z) <>
       -- "Avalanche program = \n" <> show (PP.pretty (wtAvalancheFlat wt)) <>
       "\n"
-
-jZebraChunkFactCount :: Jack ZebraChunkFactCount
-jZebraChunkFactCount = ZebraChunkFactCount <$>
-  arbitrary `suchThat` (>= 1)
-
--- Use bytes instead of GBs for testing
-jZebraAllocLimitBytes :: Jack Int
-jZebraAllocLimitBytes =
-  arbitrary `suchThat` (> 0)
 
 jZebraWellTyped :: Jack ZebraWellTyped
 jZebraWellTyped = justOf $ do
@@ -533,7 +498,7 @@ codeOf wt = do
     dummy =
       HasInput
         (FormatZebra
-          (ZebraConfig (ZebraChunkFactCount 0) (ZebraAllocLimitGB 0) (wtMaxMapSize wt))
+          (ZebraConfig (wtMaxMapSize wt))
           (Snapshot testSnapshotTime)
           (PsvOutputConfig (Snapshot testSnapshotTime) PsvOutputDense defaultOutputMissing))
         (InputOpts AllowDupTime Map.empty)
@@ -560,27 +525,13 @@ codeOf wt = do
     , "}"
     , ""
     , "ierror_msg_t test_zebra_read_entity (piano_t *piano, zebra_state_t *state, zebra_entity_t *entity) {"
-    , "    if (!zebra_limit_exceeded (state)) {"
-    , "        return zebra_read_entity (piano, state, entity);"
-    , "    }"
-    , "    return 0;"
+    , "    return zebra_read_entity (piano, state, entity);"
     , "}"
-    , ""
-    , "int64_t test_check_limit (zebra_state_t *state, zebra_entity_t *entity) {"
-    , "    if (zebra_limit_exceeded (state)) {"
-    , "        zebra_write_dropped_entity (state, entity);"
-    , "        return 1;"
-    , "    }"
-    , "    return 0;"
-    , "}"
-    , ""
     ]
 
-pp :: ZebraChunkFactCount -> Int -> ZebraWellTyped -> String
-pp size limit wt =
+pp :: ZebraWellTyped -> String
+pp wt =
   "=== Entity ===\n" <>
-  "Zebra chunk size = " <> show (unZebraChunkFactCount size) <> " facts\n" <>
-  "Zebra alloc limit = " <> show limit  <> " bytes\n" <>
   show wt
 
 withSystemTempDirectory :: FilePath -> (FilePath -> EitherT SeaError IO a) -> EitherT SeaError IO a

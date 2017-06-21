@@ -150,8 +150,6 @@ createBenchmark (name, path) = do
     (1024*1024)
     Nothing
     I.FlagUseDropFile
-    I.defaultZebraChunkFactCount
-    I.defaultZebraAllocLimitGB
     (1024*1024)
   return (name, b)
 

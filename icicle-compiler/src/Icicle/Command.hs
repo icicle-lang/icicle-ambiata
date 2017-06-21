@@ -96,10 +96,6 @@ data Query a = Query {
   -- ^ only applies to psv input
   , queryUseDrop         :: FlagUseDrop
   -- ^ only applies to psv input
-  , queryChunkFactCount       :: ZebraChunkFactCount
-  -- ^ only applies to zebra input
-  , queryAllocLimitGB      :: ZebraAllocLimitGB
-  -- ^ only applies to zebra input
   , queryMaxMapSize       :: Int
   }
 
@@ -120,10 +116,6 @@ data QueryOptions = QueryOptions {
   -- ^ only applies to psv input
   , optDrop         :: Maybe FilePath
   , optUseDrop      :: FlagUseDrop
-  , optChunkFactCount    :: ZebraChunkFactCount
-  -- ^ only applies to zebra input
-  , optAllocLimitGB   :: ZebraAllocLimitGB
-  -- ^ only applies to zebra input
   , optMaxMapSize   :: Int
   } deriving (Eq, Ord, Show)
 
@@ -241,8 +233,6 @@ createQuery c = do
     , queryFactsLimit      = optFactsLimit c
     , queryDropPath        = dropPath
     , queryUseDrop         = optUseDrop c
-    , queryChunkFactCount  = optChunkFactCount c
-    , queryAllocLimitGB    = optAllocLimitGB   c
     , queryMaxMapSize      = optMaxMapSize     c
     }
 
@@ -406,13 +396,11 @@ runZebraQuery b = do
       output     = queryOutputPath   b
       chordPath  = queryChordPath    b
       dropPath   = queryDropPath     b
-      chunkSize  = queryChunkFactCount b
-      allocLimit = queryAllocLimitGB   b
       maxMapSize = queryMaxMapSize     b
 
   start <- liftIO getCurrentTime
   stats <- firstEitherT IcicleSeaError $
-    seaZebraSnapshotFilePath fleet input output dropPath chordPath (ZebraConfig chunkSize allocLimit maxMapSize)
+    seaZebraSnapshotFilePath fleet input output dropPath chordPath (ZebraConfig maxMapSize)
   end   <- liftIO getCurrentTime
   size  <- liftIO (withFile input ReadMode hFileSize)
 

@@ -14,8 +14,6 @@ module Icicle.Sea.IO
   , defaultPsvOutputBufferSize
   , defaultPsvMaxMapSize
   , defaultZebraConfig
-  , defaultZebraChunkFactCount
-  , defaultZebraAllocLimitGB
   , defaultZebraMaxMapSize
 
   , Mode(..)
@@ -30,8 +28,6 @@ module Icicle.Sea.IO
   , PsvOutputConfig(..)
   , PsvOutputFormat(..)
   , ZebraConfig (..)
-  , ZebraChunkFactCount (..)
-  , ZebraAllocLimitGB (..)
 
   , PsvSchema
   , renderPrettyPsvSchema
