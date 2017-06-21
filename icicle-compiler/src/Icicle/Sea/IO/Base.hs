@@ -127,6 +127,9 @@ seaOfConfigureFleet mode states
  , "    for (iint_t ix = 0; ix < chord_count; ix++) {"
  , "        itime_t  chord_time = fleet->chord_times[ix];"
  , indent 8 (vsep (fmap seaOfAssignTime states))
+ , ""
+ , indent 8 (vsep (fmap seaOfResetState states))
+ , ""
  , "    }"
  , ""
  , indent 4 (vsep (fmap defOfLastTime states))
@@ -218,6 +221,27 @@ seaOfPianoLookup
  , "  , (const uint8_t**)&chord_name_data"
  , "  );"
  ]
+
+seaOfResetState :: SeaProgramAttribute -> Doc
+seaOfResetState state =
+  let
+    attributeState =
+      "p" <> pretty (stateAttributeName state) <> "[ix]"
+
+    start compute =
+      "(void*)(&" <> attributeState <> "." <> nameOfResumableHasFlagsStart compute <> ")"
+
+    end compute =
+      "(void*)(&" <> attributeState <> "." <> nameOfResumableHasFlagsEnd   compute <> ")"
+
+    clearResumables compute =
+      "memset (" <> start compute <> ", 0, " <> end compute <> " - " <> start compute <> ");"
+
+  in
+    vsep [
+        attributeState <> ".input.new_count = 0;"
+      , vsep (fmap clearResumables . NonEmpty.toList $ stateComputes state)
+      ]
 
 ------------------------------------------------------------------------
 

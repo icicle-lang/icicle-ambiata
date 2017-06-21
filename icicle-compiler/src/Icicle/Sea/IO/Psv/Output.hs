@@ -193,8 +193,11 @@ seaOfWriteProgramOutput config state = do
     , "/* " <> (prettyText . takeSeaString . attributeAsSeaString . stateAttribute $ state) <> " */"
     , stype <+> "*" <> ps <+> "=" <+> "&fleet->" <> attr <> "[chord_ix];"
     , vsep callComputes
-    , ps <> "->input.new_count = 0;"
-    , vsep resumeables
+    --
+    -- @tran it works if you put 'vsep resumables' back in
+    --
+    -- , ps <> "->input.new_count = 0;"
+    -- , vsep resumeables
     , ""
     , vsep outputs
     ]
