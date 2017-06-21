@@ -24,50 +24,42 @@ Streams:
           (\reify/2/conv/8@{Error} True@{Bool}) 
           (\reify/3/conv/9@{Bool} reify/3/conv/9) simp/1
     STREAMS:
-      STREAM_FOLD (conv/11 : ((Sum Error Int), ((Sum Error Int), Time)))
-        INIT:
-          (Left ExceptNotAnError, (Left ExceptNotAnError, 1858-11-17T00:00:00Z))@{((Sum Error Int), ((Sum Error Int), Time))}
-        KONS:
-          
-            let simp/2 = fst#@{(Sum Error Int), Time} conv/0
-             in pair#@{(Sum Error Int), ((Sum Error Int), Time)} simp/2 conv/0
-      
-      STREAM_FOLD (c/conv/12 : (Sum Error Int))
+      STREAM_FOLD (c/conv/11 : (Sum Error Int))
         INIT:
           Right 0@{(Sum Error Int)}
         KONS:
           
-            let simp/3 = fst#@{(Sum Error Int), ((Sum Error Int), Time)} conv/11
+            let simp/2 = fst#@{(Sum Error Int), Time} conv/0
              in Sum_fold#@{(Error,Int)}@{(Sum Error Int)} 
-              (\reify/6/conv/13@{Error} left#@{Error, Int} reify/6/conv/13) 
-              (\reify/7/conv/14@{Int} Sum_fold#@{(Error,Int)}@{(Sum Error Int)} 
-                (\reify/8/conv/18@{Error} left#@{Error, Int} reify/8/conv/18) 
-                (\reify/9/conv/19@{Int} right#@{Error, Int} reify/9/conv/19) (Sum_fold#@{(Error,Int)}@{(Sum Error Int)} 
-                (\reify/4/conv/15@{Error} left#@{Error, Int} reify/4/conv/15) 
-                (\reify/5/conv/16@{Int} right#@{Error, Int} (add#@{Int} reify/5/conv/16 (1@{Int}))) c/conv/12)) simp/3
+              (\reify/6/conv/12@{Error} left#@{Error, Int} reify/6/conv/12) 
+              (\reify/7/conv/13@{Int} Sum_fold#@{(Error,Int)}@{(Sum Error Int)} 
+                (\reify/8/conv/17@{Error} left#@{Error, Int} reify/8/conv/17) 
+                (\reify/9/conv/18@{Int} right#@{Error, Int} reify/9/conv/18) (Sum_fold#@{(Error,Int)}@{(Sum Error Int)} 
+                (\reify/4/conv/14@{Error} left#@{Error, Int} reify/4/conv/14) 
+                (\reify/5/conv/15@{Int} right#@{Error, Int} (add#@{Int} reify/5/conv/15 (1@{Int}))) c/conv/11)) simp/2
       
-  STREAM_FOLD (conv/27 : Buf 3 (Sum Error Int))
+  STREAM_FOLD (conv/26 : Buf 3 (Sum Error Int))
     INIT:
       Buf []@{Buf 3 (Sum Error Int)}
     KONS:
       
-        let simp/4 = fst#@{(Sum Error Int), Time} conv/0
-         in Latest_push#@{Buf 3 (Sum Error Int)} conv/27 conv/1 simp/4
+        let simp/3 = fst#@{(Sum Error Int), Time} conv/0
+         in Latest_push#@{Buf 3 (Sum Error Int)} conv/26 conv/1 simp/3
   
 
 Postcomputations:
-  conv/32              = Sum_fold#@{(Error,Int)}@{(Sum Error (Int, Array (Sum Error Int)))} 
-                           (\reify/10/conv/22@{Error} 
-                             let conv/23 = left#@{Error, (Int, Array (Sum Error Int))} reify/10/conv/22
-                              in conv/23) 
-                           (\reify/11/conv/24@{Int} 
-                             let conv/28 = Latest_read#@{Array (Sum Error Int)} conv/27
-                             let conv/29 = pair#@{Int, Array (Sum Error Int)} reify/11/conv/24 conv/28
-                             let conv/30 = right#@{Error, (Int, Array (Sum Error Int))} conv/29
-                              in conv/30) c/conv/12
+  conv/31              = Sum_fold#@{(Error,Int)}@{(Sum Error (Int, Array (Sum Error Int)))} 
+                           (\reify/10/conv/21@{Error} 
+                             let conv/22 = left#@{Error, (Int, Array (Sum Error Int))} reify/10/conv/21
+                              in conv/22) 
+                           (\reify/11/conv/23@{Int} 
+                             let conv/27 = Latest_read#@{Array (Sum Error Int)} conv/26
+                             let conv/28 = pair#@{Int, Array (Sum Error Int)} reify/11/conv/23 conv/27
+                             let conv/29 = right#@{Error, (Int, Array (Sum Error Int))} conv/28
+                              in conv/29) c/conv/11
 
 Returning:
-  repl                 = conv/32
+  repl                 = conv/31
 
 
 - Core type:
@@ -85,7 +77,7 @@ Precomputations:
 
 
 Streams:
-  STREAM_FOLD (conv/40 : Map Time (Buf 2 ((Sum Error Int), Time)))
+  STREAM_FOLD (conv/32 : Map Time (Buf 2 ((Sum Error Int), Time)))
     INIT:
       Map []@{Map Time (Buf 2 ((Sum Error Int), Time))}
     KONS:
@@ -93,35 +85,31 @@ Streams:
         let simp/0 = Latest_push#@{Buf 2 ((Sum Error Int), Time)} (Buf []@{Buf 2 ((Sum Error Int), Time)}) conv/1 conv/0
         let simp/1 = snd#@{(Sum Error Int), Time} conv/0
          in Map_insertOrUpdate#@{(Time,Buf 2 ((Sum Error Int), Time))} 
-          (\conv/6@{Buf 2 ((Sum Error Int), Time)} Latest_push#@{Buf 2 ((Sum Error Int), Time)} conv/6 conv/1 conv/0) simp/0 simp/1 conv/40
+          (\conv/6@{Buf 2 ((Sum Error Int), Time)} Latest_push#@{Buf 2 ((Sum Error Int), Time)} conv/6 conv/1 conv/0) simp/0 simp/1 conv/32
   
 
 Postcomputations:
-  conv/41              = Map_fold#@{(Time,Buf 2 ((Sum Error Int), Time))}@{(Sum Error (Map Time Int))} 
-                           (\conv/32@{(Sum Error (Map Time Int))} \conv/34@{Time} \conv/36@{Buf 2 ((Sum Error Int), Time)} Sum_fold#@{(Error,Map Time Int)}@{(Sum Error (Map Time Int))} 
-                             (\conv/39@{Error} left#@{Error, Map Time Int} conv/39) 
-                             (\conv/33@{Map Time Int} Sum_fold#@{(Error,Int)}@{(Sum Error (Map Time Int))} 
-                               (\conv/39@{Error} left#@{Error, Map Time Int} conv/39) 
-                               (\conv/37@{Int} right#@{Error, Map Time Int} (Map_insertOrUpdate#@{(Time,Int)} 
-                                 (\conv/38@{Int} conv/38) conv/37 conv/34 conv/33)) (
+  conv/33              = Map_fold#@{(Time,Buf 2 ((Sum Error Int), Time))}@{(Sum Error (Map Time Int))} 
+                           (\conv/24@{(Sum Error (Map Time Int))} \conv/26@{Time} \conv/28@{Buf 2 ((Sum Error Int), Time)} Sum_fold#@{(Error,Map Time Int)}@{(Sum Error (Map Time Int))} 
+                             (\conv/31@{Error} left#@{Error, Map Time Int} conv/31) 
+                             (\conv/25@{Map Time Int} Sum_fold#@{(Error,Int)}@{(Sum Error (Map Time Int))} 
+                               (\conv/31@{Error} left#@{Error, Map Time Int} conv/31) 
+                               (\conv/29@{Int} right#@{Error, Map Time Int} (Map_insertOrUpdate#@{(Time,Int)} 
+                                 (\conv/30@{Int} conv/30) conv/29 conv/26 conv/25)) (
                                let conv/10 = 
-                                 let conv/5 = Latest_read#@{Array ((Sum Error Int), Time)} conv/36
-                                  in Array_fold#@{((Sum Error Int), Time)}@{((Sum Error Int), (Sum Error Int))} 
-                                   (\conv/9@{((Sum Error Int), (Sum Error Int))} \conv/8@{((Sum Error Int), Time)} 
-                                     let conv/27 = snd#@{(Sum Error Int), (Sum Error Int)} conv/9
-                                     let v/inline/0/conv/12 = fst#@{(Sum Error Int), Time} conv/8
-                                      in pair#@{(Sum Error Int), (Sum Error Int)} v/inline/0/conv/12 (
-                                       let s/conv/21 = Sum_fold#@{(Error,Int)}@{(Sum Error Int)} 
-                                         (\reify/0/conv/14@{Error} left#@{Error, Int} reify/0/conv/14) 
-                                         (\reify/1/conv/15@{Int} Sum_fold#@{(Error,Int)}@{(Sum Error Int)} 
-                                           (\reify/2/conv/16@{Error} left#@{Error, Int} reify/2/conv/16) 
-                                           (\reify/3/conv/17@{Int} right#@{Error, Int} (add#@{Int} reify/1/conv/15 reify/3/conv/17)) conv/27) v/inline/0/conv/12
-                                        in s/conv/21)) ((Left ExceptNotAnError, Right 0)@{((Sum Error Int), (Sum Error Int))}) conv/5
-                               let conv/30 = snd#@{(Sum Error Int), (Sum Error Int)} conv/10
-                                in conv/30)) conv/32) (Right Map []@{(Sum Error (Map Time Int))}) conv/40
+                                 let conv/5 = Latest_read#@{Array ((Sum Error Int), Time)} conv/28
+                                  in Array_fold#@{((Sum Error Int), Time)}@{(Sum Error Int)} 
+                                   (\conv/9@{(Sum Error Int)} \conv/8@{((Sum Error Int), Time)} 
+                                     let s/conv/19 = Sum_fold#@{(Error,Int)}@{(Sum Error Int)} 
+                                       (\reify/0/conv/12@{Error} left#@{Error, Int} reify/0/conv/12) 
+                                       (\reify/1/conv/13@{Int} Sum_fold#@{(Error,Int)}@{(Sum Error Int)} 
+                                         (\reify/2/conv/14@{Error} left#@{Error, Int} reify/2/conv/14) 
+                                         (\reify/3/conv/15@{Int} right#@{Error, Int} (add#@{Int} reify/1/conv/13 reify/3/conv/15)) conv/9) (fst#@{(Sum Error Int), Time} conv/8)
+                                      in s/conv/19) (Right 0@{(Sum Error Int)}) conv/5
+                                in conv/10)) conv/24) (Right Map []@{(Sum Error (Map Time Int))}) conv/32
 
 Returning:
-  repl                 = conv/41
+  repl                 = conv/33
 
 
 - Core type:

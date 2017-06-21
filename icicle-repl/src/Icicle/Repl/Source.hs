@@ -76,7 +76,7 @@ defaultSourceReplState
        demographics
        (unsafeTimeOfYMD 1970 1 1)
        (1024*1024)
-       Compiler.InlineUsingLets
+       Compiler.InlineUsingSubst
        False False False False False False )
     { hasType = True
     , hasBigData = False }
