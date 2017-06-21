@@ -49,6 +49,7 @@ library
                      , old-locale                      == 1.0.*
                      , parallel                        == 3.2.*
                      , pretty-show                     == 1.6.*
+                     , primitive                       == 0.6.*
                      , resourcet                       >= 1.1        && < 2
                      , scientific                      == 0.3.*
                      , semigroups                      >= 0.16       && < 0.19
@@ -117,11 +118,17 @@ library
                        Icicle.Avalanche.Prim.Eval
                        Icicle.Avalanche.Prim.Compounds
 
-                       Icicle.Command
-
                        Icicle.Benchmark.Generator
 
+                       Icicle.Command
+
+                       Icicle.Compiler
+
                        Icicle.Debug
+
+                       Icicle.Internal.Rename
+
+                       Icicle.Runtime.Array
 
                        Icicle.Simulator
 
@@ -146,10 +153,6 @@ library
                        Icicle.Sea.IO.Psv.Output
                        Icicle.Sea.IO.Psv.Schema
                        Icicle.Sea.IO.Zebra
-
-                       Icicle.Internal.Rename
-
-                       Icicle.Compiler
 
 
 executable icicle
@@ -181,7 +184,7 @@ executable icicle
                      , text                            == 1.2.*
                      , time                            >= 1.5        && < 1.7
                      , transformers                    >= 0.3        && < 0.6
- 
+
     -- The parallel GC prior to GHC 8.0.1 has pathological behaviour for
     -- unbalanced workloads:
     --
