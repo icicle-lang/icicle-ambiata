@@ -252,11 +252,21 @@ getCompilerOptions = do
     Just env -> return $ defaultCompilerOptions <> T.splitOn " " (T.pack env)
 
 defaultCompilerOptions :: [CompilerOption]
-defaultCompilerOptions =
-  [ "-O3"           -- 🔨
-  , "-g3"           -- include debug information (3 = as much as possible)
-  , "-march=native" -- all optimisations valid for the current CPU (AVX512, etc)
-  , "-std=c99"      -- variable declarations anywhere!
+defaultCompilerOptions = [
+  -- 🔨
+    "-O3"
+
+  -- include debug information (3 = as much as possible)
+  , "-g3"
+
+  -- all optimisations valid for the current CPU (AVX512, etc)
+  , "-march=native"
+
+  -- variable declarations anywhere!
+  , "-std=c99"
+
+  -- can't segfault if we exit(1) first!
+  , "-DICICLE_ASSERT=1"
   ]
 
 assemblyOfPrograms
