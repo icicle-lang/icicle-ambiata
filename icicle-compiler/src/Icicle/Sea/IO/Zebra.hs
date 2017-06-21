@@ -3,11 +3,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 module Icicle.Sea.IO.Zebra (
     ZebraConfig (..)
-  , ZebraChunkFactCount (..)
-  , ZebraAllocLimitGB (..)
   , defaultZebraConfig
-  , defaultZebraChunkFactCount
-  , defaultZebraAllocLimitGB
   , defaultZebraMaxMapSize
   , seaOfZebraDriver
   ) where
@@ -30,25 +26,11 @@ import           Text.Printf (printf)
 
 
 data ZebraConfig = ZebraConfig {
-    zebraChunkFactCount  :: !ZebraChunkFactCount
-  , zebraAllocLimitGB    :: !ZebraAllocLimitGB
-  , zebraMaxMapSize      :: !Int
+    zebraMaxMapSize      :: !Int
   } deriving (Eq, Show)
 
-newtype ZebraChunkFactCount = ZebraChunkFactCount { unZebraChunkFactCount :: Int }
-  deriving (Eq, Ord, Show)
-
-newtype ZebraAllocLimitGB = ZebraAllocLimitGB { unZebraAllocLimitGB :: Int }
-  deriving (Eq, Ord, Show)
-
 defaultZebraConfig :: ZebraConfig
-defaultZebraConfig = ZebraConfig defaultZebraChunkFactCount defaultZebraAllocLimitGB defaultZebraMaxMapSize
-
-defaultZebraChunkFactCount :: ZebraChunkFactCount
-defaultZebraChunkFactCount = ZebraChunkFactCount 128
-
-defaultZebraAllocLimitGB :: ZebraAllocLimitGB
-defaultZebraAllocLimitGB = ZebraAllocLimitGB 2
+defaultZebraConfig = ZebraConfig defaultZebraMaxMapSize
 
 defaultZebraMaxMapSize :: Int
 defaultZebraMaxMapSize = 1024 * 1024
@@ -152,6 +134,7 @@ seaOfDefReadProgram state = vsep
       <> pretty (nameOfStateType state) <+> "*programs)"
   , "{"
   , "    ierror_msg_t error;"
+  , "    iint_t max_fact_count = 0;"
   , ""
   , "    /* compute each chord */"
   , "    for (iint_t chord_ix = 0; chord_ix < chord_count; chord_ix++) {"
@@ -190,15 +173,16 @@ seaOfDefReadProgram state = vsep
   , "                  , entity );"
   , "        if (error) return error;"
   , ""
+  , "        max_fact_count = MAX (max_fact_count, *fact_count);"
+  , ""
   , "        /* run compute on the facts read so far */"
   , "        if (*fact_count != 0) {"
   , indent 12 $ vsep $ fmap (\i -> pretty (nameOfCompute i) <+> " (program);") computes
   , "            *fact_count = 0;"
   , "        }"
-  , ""
-  , "        state->entity_alloc_count = mempool->total_alloc_size;"
   , "    }"
   , ""
+  , "    state->fact_count += max_fact_count;"
   , "    return 0; /* no error */"
   , "}"
   , ""

@@ -94,8 +94,6 @@ seaZebraSnapshotFd fleet inputPath outputFd dropFd mchords conf =
   pokeWordOff config zebraConfigChordFd (fromMaybe 0 mchords)
   pokeWordOff config zebraConfigDropFd dropFd
   pokeWordOff config zebraConfigOutputBufferSize (defaultPsvOutputBufferSize)
-  pokeWordOff config zebraConfigChunkFactCount (unZebraChunkFactCount . zebraChunkFactCount $ conf)
-  pokeWordOff config zebraConfigAllocLimitBytes ( ((*) (1024 * 1024 * 1024)). unZebraAllocLimitGB . zebraAllocLimitGB $ conf)
   pokeWordOff config zebraConfigMaxMapSize (zebraMaxMapSize $ conf)
 
   sfSnapshot fleet config

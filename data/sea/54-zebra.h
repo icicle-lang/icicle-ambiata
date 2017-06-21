@@ -17,8 +17,6 @@ typedef struct {
 
     /* stuff */
     const size_t output_buffer_size;
-    const size_t chunk_fact_count;
-    const size_t alloc_limit_bytes;
     const iint_t max_map_size;
 
 } zebra_config_t;
@@ -42,11 +40,6 @@ typedef struct zebra_state {
 
     /* read state */
     int64_t  attribute_count;
-    int64_t *entity_fact_offset;
-    int64_t *entity_fact_count;
-    int64_t  chunk_fact_count;
-    int64_t  alloc_limit_bytes;
-    int64_t  entity_alloc_count;
 
 } zebra_state_t;
 
@@ -98,7 +91,6 @@ static ierror_msg_t zebra_translate
     zebra_attribute_t *attribute = &src->attributes[attribute_ix];
     zebra_table_t *table = &attribute->table;
     int64_t row_count = table->row_count;
-    int64_t fact_count = 0;
 
     int64_t compute_offset   = zebra_compute_offset_table (table);
 
@@ -108,52 +100,33 @@ static ierror_msg_t zebra_translate
         exit(1);
     }
 
-    /* number of total facts for this entity */
-    if (state->entity_fact_count[attribute_ix] == 0) {
-        /* temporary fix until icicle uses the same time as zebra */
-        itime_t zebra_chord_time = itime_to_epoch_seconds (chord_time);
+    /* temporary fix until icicle uses the same time as zebra */
+    itime_t zebra_chord_time = itime_to_epoch_seconds (chord_time);
 
-        /* the number of facts before chord time for this entity */
-        for (int64_t i = 0; i != row_count; ++i) {
-            itime_t time = attribute->times[i];
-            if (zebra_chord_time <= time) {
-                break;
-            }
-            fact_count++;
+    /* the number of facts before chord time for this entity */
+    int64_t fact_count = 0;
+    for (int64_t i = 0; i != row_count; ++i) {
+        itime_t time = attribute->times[i];
+        if (zebra_chord_time <= time) {
+            break;
         }
-        state->entity_fact_count[attribute_ix] = fact_count;
-    } else {
-        fact_count = state->entity_fact_count[attribute_ix];
+        fact_count++;
     }
-
-    /* number of unread facts for this entity */
-    int64_t fact_offset    = state->entity_fact_offset[attribute_ix];
-    int64_t fact_remaining = fact_count - fact_offset;
-    int64_t fact_to_read   = 0;
-
-    if (fact_remaining > state->chunk_fact_count) {
-        fact_to_read = state->chunk_fact_count;
-    } else {
-        fact_to_read = fact_remaining;
-    }
-
-    state->fact_count                       += fact_to_read;
-    state->entity_fact_offset[attribute_ix] += fact_to_read;
 
     /* temporary fix until icicle uses the same time as zebra */
-    itime_t *sadface_times = anemone_mempool_alloc (mempool, fact_to_read * sizeof (itime_t));
+    itime_t *sadface_times = anemone_mempool_alloc (mempool, fact_count * sizeof (itime_t));
 
-    for (int64_t i = 0; i != fact_to_read; ++i) {
-        sadface_times[i] = itime_from_epoch_seconds (attribute->times[i + fact_offset]);
+    for (int64_t i = 0; i != fact_count; ++i) {
+        sadface_times[i] = itime_from_epoch_seconds (attribute->times[i]);
     }
 
-    *new_fact_count = fact_to_read;
-    *new_tombstone  = (ierror_t*) attribute->tombstones + fact_offset;
+    *new_fact_count = fact_count;
+    *new_tombstone  = (ierror_t*) attribute->tombstones;
     *new_fact_time  = sadface_times;
 
     iarray_iany_t *dst_arrays = anemone_mempool_alloc (mempool, columns_to_fill * sizeof(iarray_iany_t));
 
-    int64_t translate_offset = zebra_translate_table (mempool, fact_offset, fact_to_read, table, dst_arrays);
+    int64_t translate_offset = zebra_translate_table (mempool, 0, fact_count, table, dst_arrays);
     for (int i = 0; i != columns_to_fill; ++i) {
         dst[i] = ARRAY_PAYLOAD(iany, dst_arrays[i]);
     }
@@ -508,14 +481,7 @@ zebra_state_t *zebra_alloc_state (piano_t *piano, zebra_config_t *cfg)
     state->drop_fd   = drop_fd;
 
     int64_t attribute_count = zebra_attribute_count ();
-
-    state->attribute_count    = attribute_count;
-    state->entity_fact_offset = calloc(attribute_count, sizeof (int64_t));
-    state->entity_fact_count  = calloc(attribute_count, sizeof (int64_t));
-
-    state->chunk_fact_count   = cfg->chunk_fact_count;
-    state->alloc_limit_bytes  = cfg->alloc_limit_bytes;
-    state->entity_alloc_count = 0;
+    state->attribute_count = attribute_count;
 
     char *output_ptr = calloc (cfg->output_buffer_size + 1, 1);
     state->output_start = output_ptr;
@@ -534,20 +500,7 @@ void zebra_collect_state (zebra_config_t *cfg, zebra_state_t *state)
     // FIXME currently there is no way to free state->fleet
     //
 
-    free (state->entity_fact_offset);
-    free (state->entity_fact_count);
     free (state);
-}
-
-void zebra_write_dropped_entity (zebra_state_t *state, zebra_entity_t *entity) {
-    char *msg = calloc (error_msg_size, 1);
-    const size_t msg_size = snprintf (msg, error_msg_size, "%.*s\n", (int)entity->id_length, entity->id_bytes);
-    write (state->drop_fd, msg, msg_size);
-    free (msg);
-}
-
-ibool_t zebra_limit_exceeded (zebra_state_t *state) {
-    return state->entity_alloc_count > state->alloc_limit_bytes;
 }
 
 /* A read and compute step */
@@ -567,30 +520,8 @@ ierror_msg_t zebra_read_step (piano_t *piano, zebra_state_t *state, zebra_entity
     ierror_loc_t  error_loc = psv_configure_fleet ((char*) entity->id_bytes, entity->id_length, piano, state->fleet);
     if (error_loc) return ierror_loc_pretty (error_loc, 0);
 
-    ibool_t read_all = ifalse;
-
-    while (!read_all) {
-        ierror_msg_t error = zebra_read_entity (piano, state, entity);
-        if (error) return error;
-
-        if (zebra_limit_exceeded (state)) {
-            zebra_write_dropped_entity (state, entity);
-            break;
-        }
-
-        read_all = itrue;
-        for (int64_t i = 0; i != state->attribute_count; ++i) {
-            if (state->entity_fact_offset[i] != state->entity_fact_count[i]) {
-                read_all = ifalse;
-                break;
-            }
-        }
-    }
-
-    for (int64_t i = 0; i != state->attribute_count; ++i) {
-        state->entity_fact_count [i] = 0;
-        state->entity_fact_offset[i] = 0;
-    }
+    ierror_msg_t error = zebra_read_entity (piano, state, entity);
+    if (error) return error;
 
     return 0;
 }
@@ -613,7 +544,7 @@ ierror_msg_t zebra_snapshot_step
     error = zebra_read_step (piano, state, entity);
     if (error) return error;
 
-    int fd = zebra_limit_exceeded (state) ? state->drop_fd : state->output_fd;
+    int fd = state->output_fd;
 
     /* launch the missiles */
     error = psv_write_output
