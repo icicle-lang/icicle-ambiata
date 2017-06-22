@@ -54,6 +54,7 @@ static idouble_t INLINE idouble_log   (idouble_t x)              { return log(x)
 static idouble_t INLINE idouble_exp   (idouble_t x)              { return exp(x); }
 static idouble_t INLINE idouble_sqrt  (idouble_t x)              { return sqrt(x); }
 static idouble_t INLINE idouble_abs   (idouble_t x)              { return fabs(x); }
+static idouble_t INLINE idouble_is_valid(idouble_t x)            { return isfinite(x); }
 
 MK_SIMPLE_CMPS(idouble_t, idouble_)
 MK_SIMPLE_COPY(idouble_t, idouble_)
