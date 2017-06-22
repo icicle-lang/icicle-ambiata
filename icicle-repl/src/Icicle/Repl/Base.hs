@@ -41,6 +41,7 @@ data Command setcmd
    | CommandImportLibrary  FilePath
    | CommandComment        String
    | CommandUnknown        String
+   | CommandLetFunction    String
    | CommandSetShow
 
 
@@ -63,6 +64,11 @@ readCommand readSetCommands ss = case words ss of
   [":dictionary-deprecated", f]    -> Just $ CommandLoadDictionary $ DictionaryLoadTextV1 f
   [":dictionary", f]               -> Just $ CommandLoadDictionary $ DictionaryLoadToml f
   [":import", f]                   -> Just $ CommandImportLibrary f
+  -- For :let function binding, make sure the text retains the same source positions.
+  -- ":let inc x = x + 1" ==>
+  -- "     inc x = x + 1"
+  (":let":_)                       -> Just $ CommandLetFunction ("    " <> drop 4 ss)
+
   ('-':'-':_):_                    -> Just $ CommandComment $ ss
   (':':_):_                        -> Just $ CommandUnknown $ ss
   _                                -> Nothing

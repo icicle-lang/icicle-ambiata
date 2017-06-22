@@ -11,6 +11,7 @@ import           Control.Monad.IO.Class
 import           Control.Monad.Trans.Class
 
 import qualified Data.List                        as L
+import qualified Data.Set                         as Set
 import           Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.Text                        as T
 import qualified Data.Text.IO                     as T
@@ -35,6 +36,7 @@ import           Icicle.Storage.Dictionary.Toml
 
 import qualified Icicle.Source.Checker            as Source
 import qualified Icicle.Source.PrettyAnnot        as Source
+import qualified Icicle.Source.Type               as SourceType
 
 import qualified Icicle.Core.Program.Check        as Core
 
@@ -257,21 +259,26 @@ handleLine state line = let st = sourceState state in
   Just (Repl.CommandSet sets) ->
     foldM handleSetCommand state sets
 
+  Just (Repl.CommandLetFunction funtext) -> withError $ do
+    parsed <- hoist $ wrapSourceError $ Source.sourceParseF "repl" (T.pack funtext)
+    let d      = SourceRepl.dictionary st
+    let names  = Set.fromList $ fmap (snd . fst) parsed
+    -- Remove the old bindings with these names
+    let funEnv = filter (\(n,_) -> not $ Set.member n names)
+               $ dictionaryFunctions   d
+
+    fun       <- hoist $ wrapSourceError $ Source.sourceCheckF funEnv parsed
+    forM_ fun $ \(nm, (typ, annot)) -> do
+      prettyOut (SourceRepl.hasType      . sourceState) ("- Type: " <> show (pretty nm))      (SourceType.prettyFunWithLetters typ)
+      prettyOut (SourceRepl.hasType      . sourceState) ("- Type: " <> show (pretty nm))      typ
+      prettyOut (SourceRepl.hasAnnotated . sourceState) ("- Annotated: " <> show (pretty nm)) (Source.PrettyAnnot annot)
+
+    let funEnv' = fun <> funEnv
+    return $ state { sourceState = st { SourceRepl.dictionary = d { dictionaryFunctions = funEnv' } } }
 
   -- We use the simulator to evaluate the Icicle expression.
-  Nothing -> do
-
-    let hoist c = hoistEither c
-    let prettyOut setting heading p
-            = lift
-            $ when (setting state)
-            $ do    HL.outputStrLn heading
-                    Repl.prettyHL p
-                    Repl.nl
-
-    let iid = [inputid|repl:input|]
-
-    checked <- runEitherT $ do
+  Nothing -> withError $ do
+      let iid = [inputid|repl:input|]
       parsed       <- hoist $ sourceParse (T.pack line)
       (annot, typ) <- hoist $ sourceCheck checkOpts (SourceRepl.dictionary st) parsed
 
@@ -390,34 +397,48 @@ handleLine state line = let st = sourceState state in
        Left  e -> prettyOut hasCoreEval "- Core error:" e
        Right r -> prettyOut hasCoreEval "- Core evaluation:" r
 
-      return ()
-
-    case checked of
-      Left  e -> Repl.renderReplError e posOfError
-      Right _ -> return ()
-
-    return state
+      return state
 
   where
+
+    hoist c = hoistEither c
+    prettyOut setting heading p
+            = lift
+            $ when (setting state)
+            $ do    HL.outputStrLn heading
+                    Repl.prettyHL p
+                    Repl.nl
+
+    withError f = do
+     c <- runEitherT f
+     case c of
+       Left  e -> do
+        Repl.renderReplError e posOfError
+        return state
+       Right state' -> return state'
+
+
     checkOpts
       | SourceRepl.hasBigData (sourceState state)
       = Source.optionBigData
       | otherwise
       = Source.optionSmallData
 
+    wrapSourceError = first (ErrorCompileSource . SourceRepl.ErrorCompile)
+
     sourceParse
       = first (ErrorCompileSource . SourceRepl.ErrorCompile)
       . Source.sourceParseQT [outputid|repl:output|]
 
     sourceDesugar
-      = first (ErrorCompileSource . SourceRepl.ErrorCompile)
+      = wrapSourceError
       . Source.sourceDesugarQT
 
     sourceReify
       = Source.sourceReifyQT
 
     sourceCheck opts d
-      = first (ErrorCompileSource . SourceRepl.ErrorCompile)
+      = wrapSourceError
       . Source.sourceCheckQT opts d
 
     sourceConvert d

@@ -131,4 +131,10 @@ instance (Pretty a, Pretty n) => Pretty (PrettyAnnot (QueryTop (Annot a n) n)) w
   = case getPrettyAnnot qq of
      QueryTop f _ q -> "feature" <+> pretty (show (renderUnresolvedInputId f)) <> line <> "~>" <+> pretty (PrettyAnnot q)
 
+instance (Pretty a, Pretty n) => Pretty (PrettyAnnot (Function (Annot a n) n)) where
+ pretty (PrettyAnnot q) =
+  let p = fmap (\(a,n) -> annotate (AnnType a) (pretty n)) (arguments q)
+  in (sep p) <> line <> indent 2 ("=" <+> pretty (PrettyAnnot (body q)))
+
+
 

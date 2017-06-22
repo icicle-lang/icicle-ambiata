@@ -30,7 +30,6 @@ top name
         v <- pUnresolvedInputId                                 <?> "input source"
         pFlowsInto
         q <- query                                              <?> "query"
-        eof
         return $ Q.QueryTop v name q
 
 functions :: Parser [((T.SourcePos, Name Var), (Q.Function T.SourcePos Var))]
