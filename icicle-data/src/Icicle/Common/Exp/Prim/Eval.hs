@@ -139,6 +139,12 @@ evalPrim p originalP vs
       | otherwise
       -> primError
 
+     PrimBuiltinFun (PrimBuiltinMath  PrimBuiltinDoubleIsValid)
+      | [VBase (VDouble i)] <- vs
+      -> return $ VBase $ VBool $ not (isNaN i || isInfinite i)
+      | otherwise
+      -> primError
+
      PrimBuiltinFun (PrimBuiltinMap (PrimBuiltinKeys _ _))
       | [VBase (VMap m)] <- vs
       -> return $ VBase $ VArray $ Map.keys m

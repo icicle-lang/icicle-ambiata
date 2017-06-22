@@ -126,6 +126,7 @@ seaOfPrimBuiltinMath p = case p of
   M.PrimBuiltinRound           -> "idouble_round"
   M.PrimBuiltinTruncate        -> "idouble_trunc"
   M.PrimBuiltinToDoubleFromInt -> "iint_extend"
+  M.PrimBuiltinDoubleIsValid   -> "idouble_is_valid"
 
 seaOfPrimRelation :: M.PrimRelation -> Doc
 seaOfPrimRelation p
