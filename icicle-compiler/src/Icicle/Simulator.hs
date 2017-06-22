@@ -38,11 +38,11 @@ import qualified Data.Set as Set
 data Partition =
   Partition
     Entity
-    Attribute
+    InputName
     [AsAt Value]
   deriving (Eq,Show)
 
-type Result a n = Either (SimulateError a n) ([(OutputName, Value)], Set.Set FactIdentifier)
+type Result a n = Either (SimulateError a n) ([(OutputId, Value)], Set.Set FactIdentifier)
 
 data SimulateError a n
  = SimulateErrorRuntime (PV.RuntimeError a n)
@@ -70,7 +70,7 @@ streams =
   . sortBy     (compare `on` partitionBy)
 
 
-partitionBy :: AsAt Fact -> (Entity, Attribute)
+partitionBy :: AsAt Fact -> (Entity, InputName)
 partitionBy f =
   (factEntity . atFact $ f, factAttribute . atFact $ f)
 

@@ -11,7 +11,7 @@ module Icicle.Sea.IO.Zebra (
 import qualified Data.List as List
 import qualified Data.List.NonEmpty as NonEmpty
 
-import           Icicle.Data (Attribute)
+import           Icicle.Data (InputId)
 
 import           Icicle.Internal.Pretty
 
@@ -35,31 +35,31 @@ defaultZebraConfig = ZebraConfig defaultZebraMaxMapSize
 defaultZebraMaxMapSize :: Int
 defaultZebraMaxMapSize = 1024 * 1024
 
-seaOfZebraDriver :: [Attribute] -> [SeaProgramAttribute] -> Either SeaError Doc
-seaOfZebraDriver concretes states = do
-  let lookup x = maybeToRight (SeaNoAttributeIndex x) $ List.elemIndex x concretes
-  indices <- sequence $ fmap (lookup . stateAttribute) states
+seaOfZebraDriver :: [InputId] -> [SeaProgramAttribute] -> Either SeaError Doc
+seaOfZebraDriver inputs states = do
+  let lookup x = maybeToRight (SeaNoInputIndex x) $ List.elemIndex x inputs
+  indices <- sequence $ fmap (lookup . stateInputId) states
   return . vsep $
     [ seaOfDefRead (List.zip indices states)
-    , seaOfAttributeCount concretes
+    , seaOfInputCount inputs
     ]
 
-seaOfAttributeCount :: [Attribute] -> Doc
-seaOfAttributeCount all_attributes =
+seaOfInputCount :: [InputId] -> Doc
+seaOfInputCount all_inputs =
   let
     n =
-      length all_attributes
+      length all_inputs
 
-    attributes =
-      with (List.zip [0..] all_attributes) $ \(ix :: Int, x) ->
+    inputs =
+      with (List.zip [0..] all_inputs) $ \(ix :: Int, x) ->
         "// " <> pretty (printf "% 5d" ix :: [Char]) <> " = " <> pretty x
   in
     vsep $ [
         "//"
-      , "// Expected Attribute Ordering"
-      , "// ==========================="
+      , "// Expected Input Ordering"
+      , "// ======================="
       , "//"
-      ] <> attributes <> [
+      ] <> inputs <> [
         "//"
       , "static int64_t zebra_attribute_count()"
       , "{"
@@ -108,7 +108,7 @@ seaOfRead index state = vsep
   where
     n = pretty (nameOfAttribute state)
     i = pretty index
-    a = prettyText . takeSeaString . attributeAsSeaString . stateAttribute $ state
+    a = prettyText . takeSeaString . inputIdAsSeaString . stateInputId $ state
 
 -- chords loop:
 --

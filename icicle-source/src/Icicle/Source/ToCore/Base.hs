@@ -37,6 +37,7 @@ import                  Icicle.Common.Fresh
 import                  Icicle.Common.Base
 import                  Icicle.Common.Type  hiding (Type)
 import qualified        Icicle.Common.Exp       as X
+import                  Icicle.Data.Name
 
 import                  Icicle.Source.Query
 import                  Icicle.Source.Type
@@ -61,7 +62,7 @@ data CoreBinds a n
  }
 
 programOfBinds
-    :: OutputName
+    :: OutputId
     -> ValType
     -> Name n
     -> Name n
@@ -119,7 +120,7 @@ post :: Name n -> C.Exp a n -> CoreBinds a n
 post n x = mempty { postcomps = [(n,x)] }
 
 data ConvertError a n
- = ConvertErrorNoSuchFeature (Name n)
+ = ConvertErrorNoSuchFeature UnresolvedInputId
  | ConvertErrorPrimNoArguments               a Int Prim
  | ConvertErrorPrimAggregate                 a Prim
  | ConvertErrorGroupByHasNonGroupResult      a (Type n)

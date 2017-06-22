@@ -1,7 +1,8 @@
-namespace=""
+namespace="default"
 import = []
 
 [fact.salary]
+ namespace = "employee-input"
  encoding = "int"
 
 [fact.injury]
@@ -11,5 +12,14 @@ import = []
     action="string*"
     admitted="time*"
 
+[feature.mean_severity]
+ expression = """
+   feature injury ~> mean severity
+ """
+
 [feature.mean_salary]
- expression = "feature salary ~> mean value"
+ namespace = "employee-output"
+ expression = """
+   feature "employee-input:salary"
+     ~> mean value
+ """

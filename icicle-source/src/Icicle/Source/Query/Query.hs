@@ -22,11 +22,13 @@ module Icicle.Source.Query.Query (
   , allvarsX, allvarsC, allvarsQ
   ) where
 
+import                  Icicle.Common.Base
+import                  Icicle.Data.Name
+import                  Icicle.Internal.Pretty
 import                  Icicle.Source.Query.Constructor
 import                  Icicle.Source.Query.Context
 import                  Icicle.Source.Query.Exp
-import                  Icicle.Internal.Pretty
-import                  Icicle.Common.Base
+
 import qualified        Data.Set                as Set
 
 import                  P
@@ -34,9 +36,9 @@ import                  P
 
 data QueryTop a n
  = QueryTop
- { feature   :: Name n
- , queryName :: OutputName
- , query     :: Query a n }
+ { queryInput :: UnresolvedInputId
+ , queryName  :: OutputId
+ , query      :: Query a n }
  deriving (Show, Eq, Ord)
 
 data Query a n
@@ -52,7 +54,7 @@ type Context a n = Context' (Query a n) a n
 
 instance Pretty n => Pretty (QueryTop a n) where
  pretty q
-  =   "feature"   <+> pretty (feature q)
+  =   "feature"   <+> pretty (show (renderUnresolvedInputId (queryInput q)))
   <> line <> "~>" <+> pretty (query   q)
 
 instance Pretty n => Pretty (Query a n) where

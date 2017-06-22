@@ -42,6 +42,8 @@ import qualified        Icicle.Common.Type as T
 import                  Icicle.Common.Fresh
 import                  Icicle.Common.Base
 
+import                  Icicle.Data.Name
+
 import                  Icicle.Dictionary.Data
 
 import                  P
@@ -68,7 +70,7 @@ import                  Data.Hashable (Hashable)
 -- "AggU" or "Group" computations can be reductions on streams, or postcomputations.
 --
 convertQueryTop :: (Hashable n, Eq n)
-                => Features () n (ConcreteKey (Annot a n) n)
+                => Features () n (InputKey (Annot a n) n)
                 -> QueryTop (Annot a n) n
                 -> FreshT n (Either (ConvertError a n)) (C.Program () n)
 convertQueryTop feats qt
@@ -81,8 +83,8 @@ convertQueryTop feats qt
         -- Lookup the fact that this query refers to.
         FeatureConcrete key ty fs
           <- lift
-           $ maybeToRight (ConvertErrorNoSuchFeature (feature qt))
-           $ Map.lookup (feature qt) (featuresConcretes feats)
+           $ maybeToRight (ConvertErrorNoSuchFeature (queryInput qt))
+           $ lookupInputId (queryInput qt) (featuresConcretes feats)
 
         -- Extract the type of the input stream, pair with the fact time.
         inpTy <- case valTypeOfType ty of
@@ -420,11 +422,11 @@ convertReduce xx
 --
 convertKey :: (Hashable n, Eq n)
            => T.Env n T.Type
-           -> ConcreteKey (Annot a n) n
+           -> InputKey (Annot a n) n
            -> (CoreBinds () n, Name n)
            -> ConvertM a n (CoreBinds () n, Name n)
-convertKey _   (ConcreteKey Nothing)  bs          = return bs
-convertKey env (ConcreteKey (Just k)) (core, ret) = do
+convertKey _   (InputKey Nothing)  bs          = return bs
+convertKey env (InputKey (Just k)) (core, ret) = do
   -- Convert the key expression to Core.
   k'        <- convertExp k
 

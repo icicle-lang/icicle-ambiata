@@ -60,8 +60,8 @@ data IOFormat
   | FormatZebra ZebraConfig Mode PsvOutputConfig -- temporary
     deriving (Eq, Show)
 
-seaOfDriver :: IOFormat -> InputOpts -> [Attribute] -> [SeaProgramAttribute] -> Either SeaError Doc
-seaOfDriver format opts attributes states
+seaOfDriver :: IOFormat -> InputOpts -> [InputId] -> [SeaProgramAttribute] -> Either SeaError Doc
+seaOfDriver format opts inputs states
   = case format of
       FormatPsv conf -> do
         seaOfPsvDriver opts conf states
@@ -71,5 +71,5 @@ seaOfDriver format opts attributes states
         let psvConfig =
               PsvConfig (PsvInputConfig mode PsvInputSparse) outputConfig
         x <- seaOfPsvDriver opts psvConfig states
-        y <- seaOfZebraDriver attributes states
+        y <- seaOfZebraDriver inputs states
         return $ vsep [x, "", y]

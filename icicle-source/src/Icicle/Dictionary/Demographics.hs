@@ -1,5 +1,6 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE QuasiQuotes #-}
 module Icicle.Dictionary.Demographics (
     demographics
   ) where
@@ -8,7 +9,6 @@ import           Icicle.Data
 import           Icicle.Dictionary.Data
 
 import qualified Data.Set as Set
-import           Data.Maybe
 
 import           P
 
@@ -16,26 +16,35 @@ import           P
 -- Hard-coded for now
 demographics :: Dictionary
 demographics =
- Dictionary
- [ DictionaryEntry (fromJust . asAttributeName $ "gender")
-                   (ConcreteDefinition StringEncoding Set.empty unkeyed)
-                   nsp
- , DictionaryEntry (fromJust . asAttributeName $ "age")
-                   (ConcreteDefinition IntEncoding    Set.empty unkeyed)
-                   nsp
- , DictionaryEntry (fromJust . asAttributeName $ "state_of_residence")
-                   (ConcreteDefinition StringEncoding Set.empty unkeyed)
-                   nsp
- , DictionaryEntry (fromJust . asAttributeName $ "salary")
-                   (ConcreteDefinition IntEncoding    Set.empty unkeyed)
-                   nsp
- , DictionaryEntry (fromJust . asAttributeName $ "injury")
-                   (ConcreteDefinition
-                      (StructEncoding
-                        [StructField Mandatory (fromJust . asAttributeName $ "location") StringEncoding
-                        ,StructField Mandatory (fromJust . asAttributeName $ "severity") IntEncoding])
-                      Set.empty unkeyed)
-                   nsp
- ]
- []
- where nsp = fromJust . asNamespace $ "default"
+  let
+    input i e =
+      DictionaryInput i e Set.empty unkeyed
+
+    inputs =
+      mapOfInputs [
+          input [inputid|default:gender|]
+            StringEncoding
+
+        , input [inputid|default:age|]
+            IntEncoding
+
+        , input [inputid|default:state_of_residence|]
+            StringEncoding
+
+        , input [inputid|default:salary|]
+            IntEncoding
+
+        , input [inputid|default:injury|] $
+            StructEncoding [
+                StructField Mandatory "location" StringEncoding
+              , StructField Mandatory "severity" IntEncoding
+              ]
+        ]
+
+    outputs =
+      mapOfOutputs []
+
+    functions =
+      []
+  in
+    Dictionary inputs outputs functions

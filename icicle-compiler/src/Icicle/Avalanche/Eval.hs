@@ -22,6 +22,7 @@ import              Icicle.Common.Value
 import qualified    Icicle.Common.Exp as XV
 
 import              Icicle.Data         (AsAt(..))
+import              Icicle.Data.Name
 
 import              P
 
@@ -47,7 +48,7 @@ data RuntimeError a n p
  | RuntimeErrorIfNotBool     BaseValue
  | RuntimeErrorForeachNotInt BaseValue BaseValue
  | RuntimeErrorForeachTypeMismatch [(Name n, ValType)] ValType BaseValue
- | RuntimeErrorOutputTypeMismatch  OutputName ValType [BaseValue]
+ | RuntimeErrorOutputTypeMismatch  OutputId ValType [BaseValue]
  | RuntimeErrorNotBaseValue  (Value a n p)
  | RuntimeErrorKeepFactTypeMismatch BaseValue
  | RuntimeErrorAccumulatorLatestNotInt  BaseValue
@@ -99,7 +100,7 @@ evalProgram
         -> EvalContext
         -> [AsAt (BubbleGumFact, BaseValue)]
         -> Program a n p
-        -> Either (RuntimeError a n p) ([(OutputName,BaseValue)], Set.Set FactIdentifier)
+        -> Either (RuntimeError a n p) ([(OutputId, BaseValue)], Set.Set FactIdentifier)
 
 evalProgram evalPrim ctx values p
  = do   -- Precomputations are just expressions
@@ -125,7 +126,7 @@ evalStmt
         -> Maybe BubbleGumFact
         -> AccumulatorHeap n
         -> Statement a n p
-        -> Either (RuntimeError a n p) (AccumulatorHeap n, [(OutputName, BaseValue)], Set.Set FactIdentifier)
+        -> Either (RuntimeError a n p) (AccumulatorHeap n, [(OutputId, BaseValue)], Set.Set FactIdentifier)
 
 evalStmt evalPrim xh values bubblegum ah stmt
  = case stmt of

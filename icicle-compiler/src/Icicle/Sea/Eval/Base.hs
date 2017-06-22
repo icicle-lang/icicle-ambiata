@@ -2,6 +2,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards #-}
+{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE ViewPatterns #-}
@@ -78,6 +79,7 @@ import           Icicle.Common.Data (asAtValueToCore, valueFromCore)
 import           Icicle.Common.Type (ValType(..), StructType(..), defaultOfType)
 
 import qualified Icicle.Data as Source
+import           Icicle.Data.Name
 import           Icicle.Data.Time (packedOfTime, timeOfPacked)
 
 import           Icicle.Internal.Pretty (pretty, vsep)
@@ -133,24 +135,24 @@ seaEvalAvalanche
   => Program (Annot a) n Prim
   -> EvalContext
   -> [Source.AsAt Source.Value]
-  -> EitherT SeaError IO [(OutputName, Source.Value)]
+  -> EitherT SeaError IO [(OutputId, Source.Value)]
 seaEvalAvalanche program ctx values = do
-  let Just attr = Source.asAttributeName "eval"
-      ps   = Map.singleton attr (program :| [])
+  let iid = [inputid|default:eval|]
+      ps = Map.singleton iid (program :| [])
   bracketEitherT'
-    (seaCompile CacheSea NoInput [attr] ps Nothing)
+    (seaCompile CacheSea NoInput [iid] ps Nothing)
     seaRelease
     (\fleet -> do
         programs <- mkSeaPrograms (sfLibrary fleet) ps
-        seaEval attr programs ctx values)
+        seaEval iid programs ctx values)
 
 seaEval
   :: (MonadIO m, MonadMask m)
-  => Source.Attribute
-  -> Map Source.Attribute (NonEmpty SeaProgram)
+  => InputId
+  -> Map InputId (NonEmpty SeaProgram)
   -> EvalContext
   -> [Source.AsAt Source.Value]
-  -> EitherT SeaError m [(OutputName, Source.Value)]
+  -> EitherT SeaError m [(OutputId, Source.Value)]
 seaEval attribute programs ctx values =
   case Map.lookup attribute programs of
     Nothing      -> left (SeaProgramNotFound attribute)
@@ -162,7 +164,7 @@ seaEval'
   => SeaProgram
   -> EvalContext
   -> [Source.AsAt Source.Value]
-  -> EitherT SeaError m [(OutputName, Source.Value)]
+  -> EitherT SeaError m [(OutputId, Source.Value)]
 seaEval' program ctx values = do
   let words              = spStateWords program
       acquireFacts       = vectorsOfFacts values (spFactType program)
@@ -202,25 +204,25 @@ seaCompile ::
      (Show a, Show n, Pretty n, Eq n)
   => CacheSea
   -> Input FilePath
-  -> [Source.Attribute]
-  -> Map Source.Attribute (NonEmpty (Program (Annot a) n Prim))
+  -> [InputId]
+  -> Map InputId (NonEmpty (Program (Annot a) n Prim))
   -> Maybe FilePath
   -> EitherT SeaError IO (SeaFleet st)
-seaCompile cache input attributes programs chords = do
+seaCompile cache input inputs programs chords = do
   options <- liftIO getCompilerOptions
-  seaCompileFleet options cache input attributes programs chords
+  seaCompileFleet options cache input inputs programs chords
 
 seaCompileFleet ::
      (Show a, Show n, Pretty n, Eq n)
   => [CompilerOption]
   -> CacheSea
   -> Input FilePath
-  -> [Source.Attribute]
-  -> Map Source.Attribute (NonEmpty (Program (Annot a) n Prim))
+  -> [InputId]
+  -> Map InputId (NonEmpty (Program (Annot a) n Prim))
   -> Maybe FilePath
   -> EitherT SeaError IO (SeaFleet st)
-seaCompileFleet options cache input attributes programs chords = do
-  code <- hoistEither (codeOfPrograms input attributes (Map.toList programs))
+seaCompileFleet options cache input inputs programs chords = do
+  code <- hoistEither (codeOfPrograms input inputs (Map.toList programs))
   seaCreateFleet options (fromCacheSea cache) input chords code
 
 seaCreate ::
@@ -272,32 +274,32 @@ defaultCompilerOptions = [
 assemblyOfPrograms
   :: (Show a, Show n, Pretty n, Eq n)
   => Input x
-  -> [Source.Attribute]
-  -> [(Source.Attribute, NonEmpty (Program (Annot a) n Prim))]
+  -> [InputId]
+  -> [(InputId, NonEmpty (Program (Annot a) n Prim))]
   -> EitherT SeaError IO Text
-assemblyOfPrograms input attributes programs = do
-  code    <- hoistEither (codeOfPrograms input attributes programs)
+assemblyOfPrograms input inputs programs = do
+  code    <- hoistEither (codeOfPrograms input inputs programs)
   options <- getCompilerOptions
   firstEitherT SeaJetskiError (compileAssembly options code)
 
 irOfPrograms
   :: (Show a, Show n, Pretty n, Eq n)
   => Input x
-  -> [Source.Attribute]
-  -> [(Source.Attribute, NonEmpty (Program (Annot a) n Prim))]
+  -> [InputId]
+  -> [(InputId, NonEmpty (Program (Annot a) n Prim))]
   -> EitherT SeaError IO Text
-irOfPrograms input attributes programs = do
-  code    <- hoistEither (codeOfPrograms input attributes programs)
+irOfPrograms input inputs programs = do
+  code    <- hoistEither (codeOfPrograms input inputs programs)
   options <- getCompilerOptions
   firstEitherT SeaJetskiError (compileIR options code)
 
 codeOfPrograms
   :: (Show a, Show n, Pretty n, Eq n)
   => Input x
-  -> [Source.Attribute]
-  -> [(Source.Attribute, NonEmpty (Program (Annot a) n Prim))]
+  -> [InputId]
+  -> [(InputId, NonEmpty (Program (Annot a) n Prim))]
   -> Either SeaError Text
-codeOfPrograms input attributes programs = do
+codeOfPrograms input inputs programs = do
   let defs = seaOfDefinitions (concatMap (NonEmpty.toList . snd) programs)
 
   progs   <- zipWithM (\ix (a, p) -> seaOfPrograms   ix a p) [0..] programs
@@ -323,7 +325,7 @@ codeOfPrograms input attributes programs = do
           , defs
           ] <> progs
     HasInput format opts _ -> do
-      doc <- seaOfDriver format opts attributes states
+      doc <- seaOfDriver format opts inputs states
       let def = case format of
             FormatPsv conf -> vsep
               [ defOfPsvInput (psvInputConfig conf)
@@ -543,8 +545,8 @@ peekNamedOutputs
   :: MonadIO m
   => Ptr a
   -> Int
-  -> [(OutputName, (ValType, [ValType]))]
-  -> EitherT SeaError m [(OutputName, BaseValue)]
+  -> [(OutputId, (ValType, [ValType]))]
+  -> EitherT SeaError m [(OutputId, BaseValue)]
 
 peekNamedOutputs _ _ []                     = pure []
 peekNamedOutputs ptr ix ((n, (t, _)) : ots) = do

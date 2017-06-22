@@ -11,8 +11,9 @@ import qualified Data.Map as Map
 import qualified Data.Set as Set
 import qualified Data.List as List
 
-import           Icicle.Data (Entity(..), Attribute, AsAt(..))
 import           Icicle.BubbleGum (BubbleGumFact(..), Flavour(..))
+import           Icicle.Data (Entity(..), AsAt(..))
+import           Icicle.Data.Name
 import           Icicle.Data.Time (Time)
 
 import qualified Icicle.Core.Program.Program as C
@@ -47,7 +48,7 @@ import           Test.QuickCheck
 
 import qualified Prelude as Savage
 
-import Text.Show.Pretty (ppShow)
+import           Text.Show.Pretty (ppShow)
 
 
 newtype InputType = InputType {
@@ -56,7 +57,7 @@ newtype InputType = InputType {
 
 data WellTyped = WellTyped {
     wtEntities      :: [Entity]
-  , wtAttribute     :: Attribute
+  , wtInputId       :: InputId
   , wtFactType      :: ValType
   , wtFacts         :: [AsAt BaseValue]
   , wtTime          :: Time
@@ -72,7 +73,7 @@ instance Show WellTyped where
     $ vsep
     [ "well-typed:"
     , "  entities   = " <> pretty (       wtEntities   wt)
-    , "  attribute  = " <> pretty (       wtAttribute  wt)
+    , "  input-id   = " <> pretty (       wtInputId    wt)
     , "  fact type  = " <> pretty (       wtFactType   wt)
     , "  facts      = " <> text   (show $ wtFacts      wt)
     , "  time       = " <> text   (show $ wtTime       wt)
@@ -150,7 +151,7 @@ tryGenWellTypedFromCoreEither allowDupTime (InputType ty) core = do
 
       return WellTyped {
           wtEntities      = entities
-        , wtAttribute     = attribute
+        , wtInputId       = attribute
         , wtFactType      = ty
         , wtFacts         = fmap (fmap snd) inputs
         , wtTime          = evalSnapshotTime ctx
@@ -182,7 +183,7 @@ genWellTypedWithStruct allowDupTime = validated 10 $ do
   st <- arbitrary :: Gen StructType
   tryGenWellTypedWith allowDupTime (inputTypeOf $ StructT st)
 
-evalWellTyped :: WellTyped -> [(OutputName, BaseValue)]
+evalWellTyped :: WellTyped -> [(OutputId, BaseValue)]
 evalWellTyped wt
  | null $ wtFacts wt
  = []

@@ -1,4 +1,4 @@
-namespace=""
+namespace="default"
 import = []
 
 [fact.salary]

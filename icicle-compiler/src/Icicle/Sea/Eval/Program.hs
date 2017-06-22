@@ -1,7 +1,6 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
-
 module Icicle.Sea.Eval.Program (
     SeaProgram (..)
   , mkSeaProgram
@@ -24,10 +23,9 @@ import           Icicle.Avalanche.Prim.Flat (Prim)
 import           Icicle.Avalanche.Program (Program)
 import           Icicle.Avalanche.Statement.Statement (FactLoopType(..))
 
-import           Icicle.Data (Attribute)
+import           Icicle.Data (InputId, OutputId)
 
 import           Icicle.Common.Annot (Annot)
-import           Icicle.Common.Base
 import           Icicle.Common.Type (ValType(..))
 
 import           Icicle.Sea.Error (SeaError(..))
@@ -48,22 +46,22 @@ data SeaProgram = SeaProgram {
     spName        :: (Int,Int)
   , spStateWords  :: Int
   , spFactType    :: ValType
-  , spOutputs     :: [(OutputName, (ValType, [ValType]))]
+  , spOutputs     :: [(OutputId, (ValType, [ValType]))]
   , spCompute     :: Ptr SeaState -> IO ()
   }
 
 mkSeaPrograms ::
      (MonadIO m, Eq n)
   => Library
-  -> Map Attribute (NonEmpty (Program (Annot a) n Prim))
-  -> EitherT SeaError m (Map Attribute (NonEmpty SeaProgram))
+  -> Map InputId (NonEmpty (Program (Annot a) n Prim))
+  -> EitherT SeaError m (Map InputId (NonEmpty SeaProgram))
 mkSeaPrograms lib programs = do
   compiled <- zipWithM go [0..] (Map.elems programs)
   return $ Map.fromList (List.zip (Map.keys programs) compiled)
  where
   go i ps
    = mapM (\(j,p) -> mkSeaProgram lib (i,j) p) (NonEmpty.zip (0 :| [1..]) ps)
-    
+
 
 mkSeaProgram ::
      (MonadIO m, Eq n)

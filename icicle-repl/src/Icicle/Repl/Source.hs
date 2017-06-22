@@ -123,7 +123,7 @@ loadDictionary checkOpts load
                  $ TR.traverse DictionaryText.parseDictionaryLineV1
                  $ T.lines raw
 
-            return $ Dictionary ds []
+            return $ Dictionary (mapOfInputs ds) (mapOfOutputs []) []
 
     Repl.DictionaryLoadToml fp
      -> firstEitherT ErrorDictionary $ DictionaryToml.loadDictionary checkOpts DictionaryToml.ImplicitPrelude fp

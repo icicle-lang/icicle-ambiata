@@ -2,6 +2,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards#-}
+{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell#-}
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
@@ -34,47 +35,43 @@ import qualified Icicle.Source.Lexer.Token as T
 
 import qualified Prelude as Savage
 
-concretes :: [(Text, Encoding)]
-concretes =
- [ ("int", IntEncoding)
- , ("string", StringEncoding)
- , ("injury", StructEncoding [field "location" StringEncoding, optfield "action" StringEncoding, field "severity" IntEncoding])
+inputs :: [(InputName, Encoding)]
+inputs =
+ [ ([inputname|int|]
+   , IntEncoding)
+ , ([inputname|string|]
+   , StringEncoding)
+ , ([inputname|injury|]
+   , StructEncoding [field "location" StringEncoding, optfield "action" StringEncoding, field "severity" IntEncoding])
  ]
  where
   optfield name encoding
-   | Just attr <- asAttributeName name
-   = Data.StructField Data.Optional attr encoding
-   | otherwise
-   = Savage.error "Impossible! Invalid attribute name in tests"
+   = Data.StructField Data.Optional name encoding
   field name encoding
-   | Just attr <- asAttributeName name
-   = Data.StructField Data.Mandatory attr encoding
-   | otherwise
-   = Savage.error "Impossible! Invalid attribute name in tests"
+   = Data.StructField Data.Mandatory name encoding
 
-
-queries :: [(Text,Text)]
+queries :: [(OutputId, Text)]
 queries =
- [ ("int_oldest"
+ [ ([outputid|s:int_oldest|]
    , "feature int ~> oldest value")
- , ("string_oldest"
+ , ([outputid|s:string_oldest|]
    , "feature string ~> oldest value")
- , ("string_count"
+ , ([outputid|s:string_count|]
    , "feature string ~> count value")
- , ("string_group"
+ , ([outputid|s:string_group|]
    , "feature string ~> group value ~> count value")
- , ("string_group2"
+ , ([outputid|s:string_group2|]
    , "feature string ~> group value ~> group value ~> count value")
 
- , ("injury_group2"
+ , ([outputid|i:injury_group2|]
    , "feature injury ~> group location ~> group action ~> sum severity")
- , ("injury_group3"
+ , ([outputid|i:injury_group3|]
    , "feature injury ~> group location ~> group action ~> group severity ~> sum severity")
 
- , ("injury_group_pair"
+ , ([outputid|i:injury_group_pair|]
    , "feature injury ~> group (location, action) ~> sum severity")
 
- , ("injury_group_crazy"
+ , ([outputid|i:injury_group_crazy|]
    , Text.unlines
    [ "feature injury"
    , "~> windowed 7 days"
@@ -121,46 +118,47 @@ testAllCorpus prop
 
   gen (name,src)
    = case coreOfSource name src of
-      Left u -> Savage.error (Text.unpack name <> ":\n" <> Text.unpack src <> "\n\n" <> u)
+      Left u -> Savage.error (Text.unpack (renderOutputId name) <> ":\n" <> Text.unpack src <> "\n\n" <> u)
       Right core -> genWellTyped (name, core)
 
-genWellTyped :: (Text, C.Program () Var) -> Gen WellTyped
-genWellTyped (name,core)
+genWellTyped :: (OutputId, C.Program () Var) -> Gen WellTyped
+genWellTyped (name, core)
  = do wt <- tryGenWellTypedFromCoreEither S.AllowDupTime (streamType core) core
       case wt of
-       Left err  -> Savage.error (Text.unpack name <> "\n\n" <> err)
+       Left err  -> Savage.error (Text.unpack (renderOutputId name) <> "\n\n" <> err)
        Right wt' -> return wt'
  where
   streamType c
    = InputType $ C.inputType c
 
 
-genCore :: Gen (Text, C.Program () Var)
+genCore :: Gen (OutputId, C.Program () Var)
 genCore = do
   (name,src) <- elements queries
   case coreOfSource name src of
-   Left u -> Savage.error (Text.unpack name <> ":\n" <> Text.unpack src <> "\n\n" <> u)
+   Left u -> Savage.error (Text.unpack (renderOutputId name) <> ":\n" <> Text.unpack src <> "\n\n" <> u)
    Right core -> return (name, core)
 
-prelude :: Either Savage.String (Source.FunEnvT T.SourcePos Source.Var)
-prelude = mconcat <$> nobodyCares (mapM (uncurry $ Source.readIcicleLibrary "check") DictionaryLoad.prelude)
+prelude :: Either Savage.String [DictionaryFunction]
+prelude =
+  DictionaryLoad.fromFunEnv . mconcat <$>
+    nobodyCares (mapM (uncurry $ Source.readIcicleLibrary "check") DictionaryLoad.prelude)
 
-concreteDictionary :: Either Savage.String Dictionary
-concreteDictionary
- = do let def enc = ConcreteDefinition enc (Set.singleton tombstone) (ConcreteKey Nothing)
-      let mkEntry (k,v)
-            | Just a <- asAttributeName k
-            , Just n <- asNamespace namespace
-            = DictionaryEntry a (def v) n
-            | otherwise
-            = Savage.error "Impossible! Invalid attribute name in tests"
-      let entries = fmap mkEntry concretes
-      Dictionary entries <$> prelude
+inputDictionary :: Either Savage.String Dictionary
+inputDictionary =
+  let
+    mkEntry (n, v) =
+      DictionaryInput (InputId [namespace|corpus|] n) v (Set.singleton tombstone) (InputKey Nothing)
+  in
+    Dictionary
+      (mapOfInputs $ fmap mkEntry inputs)
+      (mapOfOutputs [])
+      <$> prelude
 
-coreOfSource :: Text -> Text -> Either Savage.String (C.Program () Var)
-coreOfSource name src
- = do d0 <- concreteDictionary
-      (_,parsed) <- nobodyCares $ Source.queryOfSource Source.defaultCheckOptions d0 name src namespace
+coreOfSource :: OutputId -> Text -> Either Savage.String (C.Program () Var)
+coreOfSource oid src
+ = do d0 <- inputDictionary
+      parsed <- nobodyCares $ Source.queryOfSource Source.defaultCheckOptions d0 oid src
       core0 <- nobodyCares $ Compiler.coreOfSource1 Source.defaultCompileOptions d0 parsed
       let core1 = C.renameProgram varOfVariable core0
       return core1
@@ -170,6 +168,3 @@ varOfVariable = nameOf . fmap (\(T.Variable v) -> Var v 0) . nameBase
 
 tombstone :: Text
 tombstone = "💀"
-
-namespace :: Text
-namespace = "ns"

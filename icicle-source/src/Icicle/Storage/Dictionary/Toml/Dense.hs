@@ -141,14 +141,14 @@ denseEncodings toml = do
 
 concreteStructs :: Dictionary -> [DenseStructEncoding]
 concreteStructs dict
-  = fmap mappingOfStructs $ foldr go [] $ dictionaryEntries dict
+  = fmap mappingOfStructs $ foldr go [] $ dictionaryInputs dict
   where
-    go (DictionaryEntry a (ConcreteDefinition (StructEncoding st) _ _) _) acc
+    go (DictionaryInput (InputId _ a) (StructEncoding st) _ _) acc
       = (a, st) : acc
     go _ acc
       = acc
 
     mappingOfStructs (fname, fs)
-      = DenseStructEncoding (takeAttributeName fname)
+      = DenseStructEncoding (renderInputName fname)
       $ Map.fromList
-      $ fmap (\(StructField t a e) -> (takeAttributeName a, (t,e))) fs
+      $ fmap (\(StructField t a e) -> (a, (t,e))) fs

@@ -11,10 +11,10 @@ import qualified Data.Text as Text
 
 import           GHC.IO.Exception (IOError)
 
-import           Icicle.Common.Base (BaseValue, OutputName)
+import           Icicle.Common.Base (BaseValue)
 import           Icicle.Common.Type (ValType, StructType)
-import           Icicle.Data (Attribute)
 import qualified Icicle.Data as D
+import           Icicle.Data.Name
 import           Icicle.Internal.Pretty ((<+>), pretty, text, vsep, indent)
 import           Icicle.Internal.Pretty (Pretty)
 import           Icicle.Sea.IO.Psv.Schema
@@ -44,15 +44,15 @@ data SeaError
   | SeaZebraBlockTableError       Zebra.BlockTableError
   | SeaZebraEntityError           Zebra.EntityError
   | SeaExternalError              Text
-  | SeaProgramNotFound            Attribute
-  | SeaNoAttributeIndex           Attribute
+  | SeaProgramNotFound            InputId
+  | SeaNoInputIndex               InputId
   | SeaFactConversionError        [D.AsAt D.Value] ValType
   | SeaBaseValueConversionError   BaseValue (Maybe ValType)
   | SeaTypeConversionError                   ValType
   | SeaUnsupportedInputType                  ValType
   | SeaInputTypeMismatch                     ValType    [(Text, ValType)]
   | SeaUnsupportedOutputType                 ValType
-  | SeaOutputTypeMismatch         OutputName ValType    [ValType]
+  | SeaOutputTypeMismatch         OutputId   ValType    [ValType]
   | SeaStructFieldsMismatch                  StructType [(Text, ValType)]
   | SeaDenseFieldNotDefined      Text              [Text]
   | SeaDenseFieldsMismatch        [(Text, ValType)] [(Text, ValType)]
@@ -132,11 +132,11 @@ instance Pretty SeaError where
     SeaPsvSchemaDecodeError err
      -> pretty $ renderPsvSchemaDecodeError err
 
-    SeaProgramNotFound attr
-     -> text "Program for attribute \"" <> pretty attr <> "\" not found"
+    SeaProgramNotFound input
+     -> text "Program for input \"" <> pretty input <> "\" not found"
 
-    SeaNoAttributeIndex attr
-     -> text "Attribute \"" <> pretty attr <> "\" not found in dictionary"
+    SeaNoInputIndex input
+     -> text "Input \"" <> pretty input <> "\" not found in dictionary"
 
     SeaJetskiError (CompilerError _ _ stderr)
      -> pretty stderr

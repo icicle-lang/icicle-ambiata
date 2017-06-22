@@ -31,7 +31,7 @@ import           Icicle.Sea.Eval (SeaError(..))
 import qualified Icicle.Sea.Eval as S
 import           Icicle.Sea.Fleet
 import qualified Icicle.Core.Program.Program as C
-import           Icicle.Common.Base (outputName)
+import           Icicle.Data.Name
 
 import           Icicle.Test.Arbitrary
 import           Icicle.Test.Arbitrary.Corpus
@@ -78,7 +78,7 @@ compileTest2 wt1 wt2 (TestOpts _ _ inputFormat allowDupTime) = do
 
   let optionsAssert = ["-DICICLE_ASSERT=1", "-DICICLE_ASSERT_MAXIMUM_ARRAY_COUNT=" <> T.pack (show (100 * (length $ wtFacts wt1))) ]
       options  = options0 <> ["-O0", "-DICICLE_NOINLINE=1"] <> optionsAssert
-      programs = Map.singleton (wtAttribute wt1) (wtAvalancheFlat wt1 :| [wtAvalancheFlat wt2])
+      programs = Map.singleton (wtInputId wt1) (wtAvalancheFlat wt1 :| [wtAvalancheFlat wt2])
       iconfig  = S.PsvInputConfig
                 (S.Snapshot (wtTime wt1))
                  inputFormat
@@ -88,8 +88,8 @@ compileTest2 wt1 wt2 (TestOpts _ _ inputFormat allowDupTime) = do
                 (S.defaultOutputMissing)
       conf     = S.PsvConfig iconfig oconfig
       iformat  = S.FormatPsv conf
-      iopts    = S.InputOpts allowDupTime (Map.singleton (wtAttribute wt1) (Set.singleton tombstone))
-      attrs    = [wtAttribute wt1]
+      iopts    = S.InputOpts allowDupTime (Map.singleton (wtInputId wt1) (Set.singleton tombstone))
+      attrs    = [wtInputId wt1]
       -- psv now uses piano, so we need this trick for testing.
       piano = T.concat
         [ "int64_t piano_max_count (piano_t *piano) {"
@@ -133,7 +133,7 @@ runTest2 wt1 wt2 consts testOpts = do
 
     liftIO (LT.writeFile program (LT.fromStrict source))
 
-    let inputPsv = textOfFacts (wtEntities wt1) (wtAttribute wt1) (wtFacts wt1)
+    let inputPsv = textOfFacts (wtEntities wt1) (inputName $ wtInputId wt1) (wtFacts wt1)
     liftIO (L.writeFile input (LT.encodeUtf8 inputPsv))
 
     result <- liftIO (runEitherT (S.seaPsvSnapshotFilePath fleet input output dropped chords S.FlagUseDropFile consts))

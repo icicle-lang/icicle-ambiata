@@ -19,6 +19,8 @@ import              Icicle.Common.Base
 import              Icicle.Common.Type
 import              Icicle.Common.Exp
 
+import              Icicle.Data.Name
+
 import              Icicle.Internal.Pretty
 
 import              P
@@ -61,7 +63,7 @@ data Statement a n p
  | Write  !(Name n) !(Exp a n p)
 
  -- | Emit a value to output
- | Output !OutputName !ValType ![(Exp a n p, ValType)]
+ | Output !OutputId !ValType ![(Exp a n p, ValType)]
 
  -- | Mark the current fact as being historically relevant
  | KeepFactInHistory (Exp a n p)

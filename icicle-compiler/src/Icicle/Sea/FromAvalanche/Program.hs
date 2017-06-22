@@ -45,9 +45,9 @@ import qualified Data.Map as Map
 ------------------------------------------------------------------------
 
 seaOfPrograms :: (Show a, Show n, Pretty n, Eq n)
-             => Int -> Attribute -> NonEmpty (Program (Annot a) n Prim) -> Either SeaError Doc
-seaOfPrograms name attrib programs = do
-  state <- stateOfPrograms name attrib programs
+             => Int -> InputId -> NonEmpty (Program (Annot a) n Prim) -> Either SeaError Doc
+seaOfPrograms name iid programs = do
+  state <- stateOfPrograms name iid programs
   let computes = NonEmpty.zipWith (seaOfCompute state) (stateComputes state) programs
   pure $ vsep ( seaOfState state : NonEmpty.toList computes )
 

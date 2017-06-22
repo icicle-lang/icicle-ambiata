@@ -16,7 +16,7 @@ import           P
 
 renameQT :: Hashable m => (n -> m) -> SQ.QueryTop a n -> SQ.QueryTop a m
 renameQT f (SQ.QueryTop x queryName q)
-  = SQ.QueryTop (renameN f x) queryName (renameQ f q)
+  = SQ.QueryTop x queryName (renameQ f q)
 
 renameQ :: Hashable m => (n -> m) -> SQ.Query a n -> SQ.Query a m
 renameQ f (SQ.Query cs x)

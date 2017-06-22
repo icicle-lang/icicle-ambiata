@@ -52,12 +52,13 @@ module Icicle.Compiler.Source
 
 
 import           Icicle.Common.Base                       (Name)
-import qualified Icicle.Common.Base                       as Common
 import qualified Icicle.Common.Fresh                      as Fresh
 
 import qualified Icicle.Core.Program.Program              as Core
 
-import           Icicle.Dictionary                        (Dictionary, DictionaryEntry(..))
+import           Icicle.Data.Name
+
+import           Icicle.Dictionary                        (Dictionary, DictionaryOutput(..))
 import qualified Icicle.Dictionary                        as Dict
 
 import           Icicle.Internal.Pretty
@@ -69,8 +70,6 @@ import qualified Icicle.Source.Transform.Desugar          as Desugar
 import qualified Icicle.Source.Transform.Inline           as Inline
 import qualified Icicle.Source.Transform.ReifyPossibility as Reify
 import qualified Icicle.Source.Type                       as Type
-
-import           Icicle.Data
 
 import           Data.Functor.Identity
 import qualified Data.Map                                 as M
@@ -135,7 +134,7 @@ data ErrorSource var
  = ErrorSourceParse       !Parsec.ParseError
  | ErrorSourceDesugar     !(Desugar.DesugarError Parsec.SourcePos var)
  | ErrorSourceCheck       !(Check.CheckError     Parsec.SourcePos var)
- | ErrorSourceName        Text
+ | ErrorSourceResolveError UnresolvedInputId
  deriving (Show, Generic)
 
 -- deepseq stops here, we don't really care about sequencing the error
@@ -152,7 +151,7 @@ annotOfError e
      -> Desugar.annotOfError e'
     ErrorSourceCheck       e'
      -> Check.annotOfError  e'
-    ErrorSourceName _
+    ErrorSourceResolveError _
      -> Nothing
 
 instance (Hashable a, Eq a, IsString a, Pretty a) => Pretty (ErrorSource a) where
@@ -167,8 +166,8 @@ instance (Hashable a, Eq a, IsString a, Pretty a) => Pretty (ErrorSource a) wher
      ErrorSourceCheck ce
       -> "Check error:" <> line
       <> indent 2 (pretty ce)
-     ErrorSourceName t
-      -> "Name restriction error (must be a valid Ivory name):" <> line
+     ErrorSourceResolveError t
+      -> "Could not resolve input name:" <> line
       <> indent 2 (pretty t)
 
 --------------------------------------------------------------------------------
@@ -177,36 +176,31 @@ instance (Hashable a, Eq a, IsString a, Pretty a) => Pretty (ErrorSource a) wher
 
 queryOfSource :: Check.CheckOptions
               -> Dictionary
+              -> OutputId
               -> Text
-              -> Text
-              -> Text
-              -> Either Error (Attribute, QueryTyped Var)
-queryOfSource checkOpts dict name src namespace = do
-  nsp          <- maybeToRight (ErrorSourceName namespace) (asNamespace namespace)
-  attribute    <- maybeToRight (ErrorSourceName name) (asAttributeName name)
-  parsed       <- sourceParseQT name nsp src
+              -> Either Error (QueryTyped Var)
+queryOfSource checkOpts dict oid src = do
+  parsed       <- sourceParseQT oid src
   desugared    <- sourceDesugarQT parsed
   (checked, _) <- sourceCheckQT checkOpts dict desugared
-  pure (attribute, checked)
+  pure checked
 
 entryOfQuery ::
      Namespace
-  -> Attribute
+  -> OutputName
   -> QueryTyped Var
-  -> DictionaryEntry
-entryOfQuery nsp attr query
-  = Dict.DictionaryEntry attr
-      (Dict.VirtualDefinition (Dict.Virtual query)) nsp
+  -> DictionaryOutput
+entryOfQuery nsp oname query
+  = DictionaryOutput (OutputId nsp oname) query
 
 -- * source
 
-sourceParseQT :: Text
-              -> Namespace
+sourceParseQT :: OutputId
               -> Text
               -> Either Error (QueryUntyped Var)
-sourceParseQT base namespace t
+sourceParseQT oid t
  = first ErrorSourceParse
- $ Parse.parseQueryTop (Common.OutputName base namespace) t
+ $ Parse.parseQueryTop oid t
 
 sourceParseF :: Parsec.SourceName
              -> Text
@@ -270,8 +264,8 @@ sourceInline opt d q
  = Query.reannotQT Type.annAnnot
  $ inline q
  where
-  funs      = M.map snd
-            $ M.fromList
+  funs      = M.fromList
+            $ fmap (\x -> (Dict.functionName x, Dict.functionDefinition x))
             $ Dict.dictionaryFunctions d
   inline q' = snd
             $ Fresh.runFresh

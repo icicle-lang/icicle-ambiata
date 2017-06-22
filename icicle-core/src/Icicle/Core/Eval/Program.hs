@@ -69,7 +69,7 @@ instance (Pretty n) => Pretty (RuntimeError a n) where
 -- some value, and the minimum facts needed to compute next value.
 data ProgramValue n =
  ProgramValue {
-    value   :: [(OutputName, BaseValue)]
+    value   :: [(OutputId, BaseValue)]
  ,  history :: Set.Set FactIdentifier
  }
  deriving (Show, Eq)

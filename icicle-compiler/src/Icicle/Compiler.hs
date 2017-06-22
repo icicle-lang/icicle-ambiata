@@ -1,13 +1,12 @@
+{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE PatternGuards     #-}
-{-# LANGUAGE ViewPatterns      #-}
-{-# LANGUAGE BangPatterns      #-}
-{-# LANGUAGE DeriveGeneric     #-}
-{-# LANGUAGE ConstraintKinds   #-}
-
-module Icicle.Compiler
-  ( ErrorCompile (..)
+{-# LANGUAGE PatternGuards #-}
+{-# LANGUAGE ViewPatterns #-}
+module Icicle.Compiler (
+    ErrorCompile(..)
 
   , AnnotType
   , Source.QueryUntyped
@@ -94,12 +93,14 @@ import qualified Icicle.Simulator                         as Sim
 import qualified Icicle.Compiler.Source                   as Source
 
 
+import           Data.Hashable                            (Hashable)
 import           Data.List.NonEmpty ( NonEmpty(..) )
 import           Data.Map                                 (Map)
-import qualified Data.Map                                 as M
 import           Data.Monoid
 import           Data.String
-import           Data.Hashable                            (Hashable)
+import qualified Data.List                                as List
+import qualified Data.Map                                 as M
+import qualified Data.Text                                as Text
 
 import           Control.Parallel.Strategies              (withStrategy, parTraversable, rparWith, rseq)
 
@@ -209,12 +210,12 @@ sourceConvert d q
 
 coreOfDictionary :: Source.IcicleCompileOptions
                  -> Dictionary
-                 -> Either Error (Map Attribute (NonEmpty (Source.CoreProgramUntyped Source.Var)))
+                 -> Either Error (Map InputId (NonEmpty (Source.CoreProgramUntyped Source.Var)))
 coreOfDictionary opts dict = do
-  let virtuals   = fmap (second Dict.unVirtual) (Dict.virtualFeaturesIn dict)
+  let queries    = fmap Dict.outputQuery . M.elems $ Dict.dictionaryOutputs dict
   let fusionOpts = Source.icicleFusionOptions opts
 
-  core  <- parTraverse (coreOfSource opts dict) virtuals
+  core  <- parTraverse (coreOfSource opts dict) queries
   fused <- parTraverse (fuseCore fusionOpts)   (M.unionsWith (<>) core)
 
   return fused
@@ -229,7 +230,7 @@ coreSimp p
 
 
 fuseCore :: Source.FusionOptions
-         -> [(Source.Var, Source.CoreProgramUntyped Source.Var)]
+         -> [Source.CoreProgramUntyped Source.Var]
          -> Either Error (NonEmpty (Source.CoreProgramUntyped Source.Var))
 fuseCore opts programs = do
   fs <- mapM go $ chunk programs
@@ -239,24 +240,34 @@ fuseCore opts programs = do
  where
   go ps
    = first ErrorFusion $ do
-      fused <- Core.fuseMultiple annotUnit ps
+      fused <- Core.fuseMultiple annotUnit $ indexed ps
       pure (coreSimp fused)
+
+  indexed ps
+   = List.zipWith (\ix p -> (Source.Variable . Text.pack $ show ix, p)) ([0..] :: [Int]) ps
 
   chunk [] = []
   chunk ps
    = let (as,bs) = splitAt (Source.fusionMaximumPerKernel opts) ps
      in  as : chunk bs
 
+queryInputId :: Source.QueryTyped Source.Var -> Dictionary -> Either Error InputId
+queryInputId query d =
+  let
+    iid =
+      Query.queryInput query
+  in
+    maybeToRight (ErrorSource (Source.ErrorSourceResolveError iid)) $
+      resolveInputId iid (M.keys $ Dict.dictionaryInputs d)
 
 coreOfSource :: Source.IcicleCompileOptions
              -> Dictionary
-             -> (Attribute, Source.QueryTyped Source.Var)
-             -> Either Error (Map Attribute [(Source.Var, Source.CoreProgramUntyped Source.Var)])
-coreOfSource opt dict (attr, virtual) = do
-  core <- coreOfSource1 opt dict virtual
-  let ba = unVar . unName . Query.feature $ virtual
-  baseattr <- maybeToRight (ErrorSource (Source.ErrorSourceName ba)) . asAttributeName $ ba
-  pure (M.singleton baseattr [(Source.Variable (takeAttributeName attr), core)])
+             -> Source.QueryTyped Source.Var
+             -> Either Error (Map InputId [Source.CoreProgramUntyped Source.Var])
+coreOfSource opt dict query = do
+  core <- coreOfSource1 opt dict query
+  iid <- queryInputId query dict
+  pure (M.singleton iid [core])
 
 coreOfSource1 :: Source.IcicleCompileOptions
              -> Dictionary
@@ -276,12 +287,12 @@ coreOfSource1 opt dict virtual = do
 
 avalancheOfDictionary :: Source.IcicleCompileOptions
                       -> Dictionary
-                      -> Either Error (Map Attribute (NonEmpty (AvalProgramTyped Source.Var Flat.Prim)))
+                      -> Either Error (Map InputId (NonEmpty (AvalProgramTyped Source.Var Flat.Prim)))
 avalancheOfDictionary opts dict = do
-  let virtuals   = fmap (second Dict.unVirtual) (Dict.virtualFeaturesIn dict)
+  let queries    = fmap Dict.outputQuery . M.elems $ Dict.dictionaryOutputs dict
   let fusionOpts = Source.icicleFusionOptions opts
 
-  core      <- parTraverse (coreOfSource opts dict)   virtuals
+  core      <- parTraverse (coreOfSource opts dict)   queries
   fused     <- parTraverse (fuseCore fusionOpts)     (M.unionsWith (<>) core)
   avalanche <- parTraverse (traverse avalancheOfCore) fused
 
@@ -385,7 +396,7 @@ coreEval :: Common.EvalContext
          -> Either SimError [Result]
 coreEval ctx fs (renameQT unVar -> query) prog
  = do let partitions = Sim.streams fs
-      let feat       = Query.feature query
+      let feat       = Query.queryInput query
       let results    = fmap (evalP feat) partitions
 
       res' <- sequence results
@@ -394,8 +405,7 @@ coreEval ctx fs (renameQT unVar -> query) prog
 
   where
     evalP feat (Sim.Partition ent attr values)
-      | Common.NameBase feat' <- Common.nameBase feat
-      , Just attr == asAttributeName feat'
+      | attr == unresolvedInputName feat
       = do  (vs',_) <- evalV values
             return $ fmap (\v -> Result (ent, snd v)) vs'
 
@@ -412,7 +422,7 @@ avalancheEval :: Common.EvalContext
               -> Either SimError [Result]
 avalancheEval ctx fs (renameQT unVar -> query) prog
  = do let partitions = Sim.streams fs
-      let feat       = Query.feature query
+      let feat       = Query.queryInput query
       let results    = fmap (evalP feat) partitions
 
       res' <- sequence results
@@ -421,8 +431,7 @@ avalancheEval ctx fs (renameQT unVar -> query) prog
 
   where
     evalP feat (Sim.Partition ent attr values)
-      | Common.NameBase feat' <- Common.nameBase feat
-      , Just attr == asAttributeName feat'
+      | attr == unresolvedInputName feat
       = do  (vs',_) <- evalV values
             return $ fmap (\v -> Result (ent, snd v)) vs'
 
@@ -444,14 +453,13 @@ seaEval ctx newFacts (renameQT unVar -> query) program =
     partitions  = Sim.streams newFacts
 
     results :: [EitherT SeaError IO [(Entity, Value)]]
-    results = fmap (evalP (Query.feature query)) partitions
+    results = fmap (evalP (Query.queryInput query)) partitions
 
-    evalP :: Common.Name Text
+    evalP :: UnresolvedInputId
           -> Sim.Partition
           -> EitherT SeaError IO [(Entity, Value)]
-    evalP featureName (Sim.Partition entityName attributeName values)
-      | Common.NameBase name <- Common.nameBase featureName
-      , name == takeAttributeName attributeName
+    evalP name (Sim.Partition entityName attributeName values)
+      | unresolvedInputName name == attributeName
       = do outputs <- seaEvalAvalanche program ctx values
            return $ fmap (\out -> (entityName, snd out)) outputs
 

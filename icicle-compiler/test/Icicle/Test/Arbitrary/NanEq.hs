@@ -20,8 +20,9 @@ import qualified Data.Map.Lazy as Map
 import           Disorder.Jack.Property (Property, counterexample)
 import           Disorder.Jack.Property.Diff (renderDiffs)
 
-import           Icicle.Common.Base (OutputName, BaseValue, StructField, ExceptionInfo, FactIdentifier)
-import           Icicle.Data (Time, Namespace)
+import           Icicle.Common.Base (BaseValue, StructField, ExceptionInfo, FactIdentifier)
+import           Icicle.Data.Time (Time)
+import           Icicle.Data.Name (Namespace, InputName, InputId, OutputName, OutputId)
 
 import           GHC.Generics
 import           GHC.Exts
@@ -115,11 +116,15 @@ instance NanEq Time where
   nanEq =
     (==)
 
+instance NanEq Namespace
+
+instance NanEq InputName
+
+instance NanEq InputId
+
 instance NanEq OutputName
 
-instance NanEq Namespace where
-  nanEq =
-    (==)
+instance NanEq OutputId
 
 instance NanEq ExceptionInfo
 

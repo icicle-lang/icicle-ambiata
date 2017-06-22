@@ -19,6 +19,7 @@ import           Data.Set (Set)
 import           Icicle.Common.Type (ValType(..), StructType(..), StructField(..))
 
 import qualified Icicle.Data as Source
+import           Icicle.Data.Name
 
 import           Icicle.Storage.Dictionary.Toml.Dense (PsvInputDenseDict(..), MissingValue, PsvInputDenseFeedName)
 
@@ -53,7 +54,7 @@ data SeaInputError = SeaInputError
   }
 
 nameOfReadFact :: SeaProgramAttribute -> CName
-nameOfReadFact state = pretty ("psv_read_fact_" <> show (stateAttributeName state))
+nameOfReadFact state = pretty ("psv_read_fact_" <> show (stateInputIndex state))
 
 seaOfReadTime :: CBlock
 seaOfReadTime
@@ -258,7 +259,7 @@ seaOfReadAnyFactPsv opts config states = do
               ]
     PsvInputDense dict feed
       -> do state     <- maybeToRight (SeaDenseFeedNotUsed feed)
-                       $ List.find ((==) feed . Source.takeAttributeName . stateAttribute) states
+                       $ List.find ((==) feed . renderInputName . inputName . stateInputId) states
             let ts     = lookupTombstones opts state
             read_sea  <- seaOfReadFactDense dict state ts
             pure $ vsep
@@ -287,7 +288,7 @@ seaOfReadAnyFactPsv opts config states = do
 
 seaOfReadNamedFactDense :: InputOpts -> SeaProgramAttribute -> Doc
 seaOfReadNamedFactDense opts state
- = let attrib = Source.takeAttributeName (stateAttribute state)
+ = let attrib = renderInputName (inputName (stateInputId state))
        errs   = SeaInputError
                 ( vsep
                 [ "return ierror_loc_format"
@@ -319,7 +320,7 @@ seaOfReadNamedFactDense opts state
 seaOfReadFactDense :: PsvInputDenseDict -> SeaProgramAttribute -> Set Text -> Either SeaError Doc
 seaOfReadFactDense dict state tombstones = do
   let feeds  = denseDict dict
-  let attr   = Source.takeAttributeName . stateAttribute $ state
+  let attr   = renderInputName . inputName . stateInputId $ state
   fields    <- maybeToRight (SeaDenseFeedNotDefined attr $ fmap (fmap (second snd)) feeds)
              $ Map.lookup attr feeds
   input     <- checkInputType state
@@ -434,7 +435,7 @@ mappingOfDenseFields fields varsoup
 
 seaOfReadNamedFactSparse :: InputOpts -> [SeaProgramAttribute] -> SeaProgramAttribute -> Doc
 seaOfReadNamedFactSparse opts all_states state
- = let attrib = Source.takeAttributeName (stateAttribute state)
+ = let attrib = renderInputName (inputName (stateInputId state))
        errs   = SeaInputError
                 ( vsep
                 [ "return ierror_loc_format"
@@ -665,4 +666,4 @@ seaOfReadJsonField assign ftype vars = do
 
 lookupTombstones :: InputOpts -> SeaProgramAttribute -> Set Text
 lookupTombstones opts state =
-  fromMaybe Set.empty (Map.lookup (stateAttribute state) (inputTombstones opts))
+  fromMaybe Set.empty (Map.lookup (stateInputId state) (inputTombstones opts))

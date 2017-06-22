@@ -4,19 +4,16 @@
 {-# LANGUAGE PatternGuards     #-}
 {-# LANGUAGE FlexibleInstances #-}
 module Icicle.Dictionary.Data (
-    Dictionary (..)
-  , DictionaryEntry (..)
-  , Definition (..)
-  , Virtual (..)
-  , ConcreteKey (..)
+    Dictionary(..)
+  , DictionaryInput(..)
+  , DictionaryOutput(..)
+  , DictionaryFunction(..)
+  , InputKey(..)
   , AnnotSource
+  , mapOfInputs
+  , mapOfOutputs
   , unkeyed
   , tombstonesOfDictionary
-  , orderedConcreteFeaturesIn
-  , orderedVirtualFeaturesIn
-  , concreteFeaturesIn
-  , virtualFeaturesIn
-  , canonicalOrderOf
   , featureMapOfDictionary
   , parseFact
   , prettyDictionarySummary
@@ -42,7 +39,6 @@ import           Icicle.Encoding
 
 import           Icicle.Internal.Pretty
 
-import qualified Data.List                          as List
 import           Data.Map (Map)
 import qualified Data.Map                           as Map
 import           Data.Set (Set)
@@ -54,121 +50,66 @@ import           P
 
 
 data Dictionary =
-  Dictionary
-  { dictionaryEntries   :: [DictionaryEntry]
-  , dictionaryFunctions :: [ (Name Variable
-                           , ( ST.FunctionType Variable
-                             , Function (ST.Annot SourcePos Variable) Variable)) ] }
-  deriving (Eq, Show)
+  Dictionary {
+      dictionaryInputs :: Map InputId DictionaryInput
+    , dictionaryOutputs :: Map OutputId DictionaryOutput
+    , dictionaryFunctions :: [DictionaryFunction]
+    } deriving (Eq, Show)
 
-data DictionaryEntry =
-  DictionaryEntry
-  { dictionaryEntryAttribute  :: Attribute
-  , dictionaryEntryDefinition :: Definition
-  , dictionaryEntryNamespace  :: Namespace }
-  deriving (Eq, Show)
+data DictionaryInput =
+  DictionaryInput {
+      inputId :: InputId
+    , inputEncoding :: Encoding
+    , inputTombstones :: Set Text
+    , inputKey :: InputKey AnnotSource Variable
+    } deriving (Eq, Show)
 
-data Definition =
-    ConcreteDefinition Encoding Tombstones (ConcreteKey AnnotSource Variable)
-  | VirtualDefinition  Virtual
-  deriving (Eq, Show)
+data DictionaryOutput =
+  DictionaryOutput {
+      outputId :: OutputId
+    , outputQuery :: QueryTop (ST.Annot SourcePos Variable) Variable
+    } deriving (Eq, Show)
 
-type Tombstones = Set Text
-
--- | A parsed and typechecked source program.
-newtype Virtual = Virtual {
-    unVirtual :: QueryTop (ST.Annot SourcePos Variable) Variable
-  } deriving (Eq, Show)
+data DictionaryFunction =
+ DictionaryFunction {
+     functionName :: Name Variable
+   , functionType :: ST.FunctionType Variable
+   , functionDefinition :: Function (ST.Annot SourcePos Variable) Variable
+   } deriving (Eq, Show)
 
 -- | The query is keyed by this "virtual key". Facts (for one entity) are nubbed by this key.
-newtype ConcreteKey a n = ConcreteKey {
-    concreteKey :: Maybe (SQ.Exp a n)
-  } deriving (Eq, Show)
+newtype InputKey a n =
+  InputKey {
+      unInputKey :: Maybe (SQ.Exp a n)
+    } deriving (Eq, Show)
 
 type AnnotSource = ST.Annot SourcePos Variable
 
-unkeyed :: ConcreteKey AnnotSource Variable
-unkeyed = ConcreteKey Nothing
+unkeyed :: InputKey AnnotSource Variable
+unkeyed = InputKey Nothing
 
-tombstonesOfDictionary :: Dictionary -> Map Attribute (Set Text)
+tombstonesOfDictionary :: Dictionary -> Map InputId (Set Text)
 tombstonesOfDictionary =
-  let
-    takeEntry = \case
-      DictionaryEntry a (ConcreteDefinition _ ts _) _ ->
-        [(a, ts)]
-      _ ->
-        []
-  in
-    Map.fromList . concatMap takeEntry . dictionaryEntries
+  fmap inputTombstones . dictionaryInputs
+
+mapOfInputs :: [DictionaryInput] -> Map InputId DictionaryInput
+mapOfInputs =
+  Map.fromList . fmap (\x -> (inputId x, x))
+
+mapOfOutputs :: [DictionaryOutput] -> Map OutputId DictionaryOutput
+mapOfOutputs =
+  Map.fromList . fmap (\x -> (outputId x, x))
 
 --------------------------------------------------------------------------------
 
-virtualFeaturesIn :: Dictionary -> [(Attribute, Virtual)]
-virtualFeaturesIn = getVirtualFeatures . dictionaryEntries
-
-concreteFeaturesIn :: Dictionary -> [Attribute]
-concreteFeaturesIn = getConcreteFeatures . dictionaryEntries
-
-getVirtualFeatures :: [DictionaryEntry] -> [(Attribute, Virtual)]
-getVirtualFeatures =
-  let
-    add x acc =
-      case x of
-        DictionaryEntry a (VirtualDefinition v) _ ->
-          (a,v):acc
-        _ ->
-          acc
-  in
-    foldr add []
-
-getConcreteFeatures :: [DictionaryEntry] -> [Attribute]
-getConcreteFeatures =
-  let
-    add x acc =
-      case x of
-        DictionaryEntry a ConcreteDefinition{} _ ->
-          a:acc
-        _ ->
-          acc
-  in
-    foldr add []
-
-orderedVirtualFeaturesIn :: Dictionary -> [(Attribute, Virtual)]
-orderedVirtualFeaturesIn =
-  getVirtualFeatures . canonicalOrderOf . dictionaryEntries
-
-orderedConcreteFeaturesIn :: Dictionary -> [Attribute]
-orderedConcreteFeaturesIn =
-  getConcreteFeatures . canonicalOrderOf . dictionaryEntries
-
--- | Order dictionary entries by namspace, and in each namespace order by name.
---
-canonicalOrderOf :: [DictionaryEntry] -> [DictionaryEntry]
-canonicalOrderOf entries =
-  let
-    cmpNamespace =
-      comparing dictionaryEntryNamespace
-    cmpName =
-      comparing dictionaryEntryAttribute
-    eqNamespace =
-      (==) `on` dictionaryEntryNamespace
-  in
-    List.concat .
-    fmap (List.sortBy cmpName) .
-    List.groupBy eqNamespace .
-    List.sortBy cmpNamespace $
-      entries
-
 parseFact :: Dictionary -> Fact' -> Either DecodeError Fact
-parseFact (Dictionary { dictionaryEntries = dict }) fact'
+parseFact (Dictionary { dictionaryInputs = dict }) fact'
  = do   def <- maybeToRight
                  (DecodeErrorNotInDictionary attr)
-                 (P.find (\(DictionaryEntry attr' _ _) -> (==) attr attr') dict)
+                 (P.find (\(DictionaryInput (InputId _ attr') _ _ _) -> (==) attr attr') dict)
         case def of
-         DictionaryEntry _ (ConcreteDefinition enc ts _) _
+         DictionaryInput _ enc ts _
           -> factOf <$> parseValue enc ts (factValue' fact')
-         DictionaryEntry _ (VirtualDefinition _) _
-          -> Left (DecodeErrorValueForVirtual attr)
 
  where
   attr = factAttribute' fact'
@@ -182,11 +123,11 @@ parseFact (Dictionary { dictionaryEntries = dict }) fact'
 
 -- | Get all the features and facts from a dictionary.
 --
-featureMapOfDictionary :: Dictionary -> STC.Features () Variable (ConcreteKey AnnotSource Variable)
-featureMapOfDictionary (Dictionary { dictionaryEntries = ds, dictionaryFunctions = functions })
+featureMapOfDictionary :: Dictionary -> STC.Features () Variable (InputKey AnnotSource Variable)
+featureMapOfDictionary (Dictionary { dictionaryInputs = ds, dictionaryFunctions = functions })
  = STC.Features
      (Map.fromList $ concatMap mkFeatureContext ds)
-     (Map.fromList $ fmap (\(a,(b,_)) -> (a,b)) functions)
+     (Map.fromList $ fmap (\x -> (functionName x, functionType x)) functions)
      (Just $ var "now")
  where
 
@@ -197,13 +138,13 @@ featureMapOfDictionary (Dictionary { dictionaryEntries = ds, dictionaryFunctions
 
   -- If a dictionary entry is a concrete definition, create a feature context with
   -- implicit names such as `now`, `value`, struct field names, etc.
-  go :: DictionaryEntry -> [( Name Variable
-                            , ConcreteKey AnnotSource Variable
+  go :: DictionaryInput -> [( InputId
+                            , InputKey AnnotSource Variable
                             , ST.Type Variable
                             , Map (Name Variable) (FeatureVariable () Variable))]
-  go (DictionaryEntry attr (ConcreteDefinition enc _ key) _)
+  go (DictionaryInput iid enc _ key)
    | en@(StructT st@(StructType fs)) <- sourceTypeOfEncoding enc
-   = [ ( var (takeAttributeName attr)
+   = [ ( iid
        , key
        , baseType     $  sumT en
        , Map.fromList $  exps "fields" en
@@ -213,13 +154,10 @@ featureMapOfDictionary (Dictionary { dictionaryEntries = ds, dictionaryFunctions
 
    | otherwise
    = let e' = sourceTypeOfEncoding enc
-     in [ ( var (takeAttributeName attr)
+     in [ ( iid
           , key
           , baseType $ sumT e'
           , Map.fromList $ exps "value" e' ) ]
-
-  go _
-   = []
 
   go' parentGet parent (fn, ft)
    = let getsum b   = xgetsum b fn ft parent
@@ -297,15 +235,18 @@ prettyDictionarySummary dict
  (  "Functions" <> line
  <> indent 2 (vcat $ (pprInbuilt <$> SQ.listOfBuiltinFuns) <> (pprFun <$> dictionaryFunctions dict))
  <> line
- <> "Features" <> line
- <> indent 2 (vcat $ fmap pprEntry $ dictionaryEntries dict))
+ <> "Inputs" <> line
+ <> indent 2 (vcat $ fmap pprInput $ Map.elems $ dictionaryInputs dict)
+ <> "Outputs" <> line
+ <> indent 2 (vcat $ fmap pprOutput $ Map.elems $ dictionaryOutputs dict))
  where
-  pprEntry (DictionaryEntry attr (ConcreteDefinition enc _ key) _)
-   = padDoc 20 (pretty attr) <> "by " <> pretty key <> " : " <> pretty enc
-  pprEntry (DictionaryEntry attr (VirtualDefinition virt) _)
-   = padDoc 20 (pretty attr) <> " = " <> indent 0 (pretty virt)
+  pprInput (DictionaryInput attr enc _ key)
+   = padDoc 20 (pretty attr) <> " by " <> pretty key <> " : " <> pretty enc
 
-  pprFun (f,(t,_))
+  pprOutput (DictionaryOutput attr q)
+   = padDoc 20 (pretty attr) <> " = " <> indent 0 (pretty q)
+
+  pprFun (DictionaryFunction f t _)
    = padDoc 20 (pretty f) <> " : " <> ST.prettyFunWithLetters t
 
   pprInbuilt f
@@ -321,9 +262,6 @@ prettyDictionarySummary dict
        freshNamer
         = Fresh.counterPrefixNameState (fromString . show) "inbuilt"
 
-instance Pretty Virtual where
- pretty = pretty . unVirtual
-
-instance Pretty (ConcreteKey AnnotSource Variable) where
- pretty (ConcreteKey Nothing)  = ""
- pretty (ConcreteKey (Just x)) = "(" <> pretty x <> ")"
+instance Pretty (InputKey AnnotSource Variable) where
+ pretty (InputKey Nothing)  = ""
+ pretty (InputKey (Just x)) = "(" <> pretty x <> ")"

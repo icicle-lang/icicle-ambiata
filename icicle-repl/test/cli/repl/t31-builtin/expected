@@ -1,7 +1,7 @@
 welcome to iREPL
 ok, loaded 38 functions from data/libs/prelude.icicle
 ok, loaded test/cli/repl/data.psv, 13 rows
-> ok, loaded dictionary with 8 features and 38 functions
+> ok, loaded dictionary with 4 inputs, 4 outputs, 38 functions
 > ok, loaded data/example/demographics.psv, 24 rows
 > ok, core evaluation is now on
 > ok, c evaluation now on
@@ -91,7 +91,7 @@ ok, loaded test/cli/repl/data.psv, 13 rows
 [homer, (tombstone
         ,[9496,8035,6209,2191])]
 
-> > ok, loaded dictionary with 1 features and 38 functions
+> > ok, loaded dictionary with 1 inputs, 0 outputs, 38 functions
 > ok, loaded test/cli/repl/t31-builtin/data.psv, 4 rows
 > > -- NY should be 1.5 years, CA should be 3 years, OR should be 0.5 years
 > - C evaluation:

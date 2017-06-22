@@ -43,9 +43,9 @@ import           P
 
 data DecodeError =
    DecodeErrorBadInput           Text Encoding
- | DecodeErrorMissingStructField Attribute
- | DecodeErrorNotInDictionary    Attribute
- | DecodeErrorValueForVirtual    Attribute
+ | DecodeErrorMissingStructField Text
+ | DecodeErrorNotInDictionary    InputName
+ | DecodeErrorValueForVirtual    InputName
    deriving (Eq, Show)
 
 
@@ -53,11 +53,11 @@ renderDecodeError :: DecodeError -> Text
 renderDecodeError (DecodeErrorBadInput val enc) =
   "Could not decode value '" <> val <> "' of type " <> T.pack (show enc)
 renderDecodeError (DecodeErrorMissingStructField attr) =
-  "Missing struct field " <> takeAttributeName attr
+  "Missing struct field " <> attr
 renderDecodeError (DecodeErrorNotInDictionary attr) =
-  "Given attribute is not in dictionary: " <> takeAttributeName attr
+  "Given attribute is not in dictionary: " <> renderInputName attr
 renderDecodeError (DecodeErrorValueForVirtual attr) =
-  "Cannot set values for virtual features: " <> takeAttributeName attr
+  "Cannot set values for virtual features: " <> renderInputName attr
 
 primitiveEncoding :: Encoding -> Bool
 primitiveEncoding e
@@ -110,7 +110,7 @@ valueSatisfiesEncoding val enc
      -> False
  where
   valueHasField fields (attr,v)
-   | Just f <- P.find ((==attr).attributeOfStructField) fields
+   | Just f <- P.find ((==attr).structFieldName) fields
    , StructField _ _ e <- f
    = valueSatisfiesEncoding v e
    | otherwise
@@ -291,7 +291,7 @@ valueOfJSON e v
        -> return []
 
   getField obj attr
-   = HM.lookup (takeAttributeName attr) obj
+   = HM.lookup attr obj
 
 -- Render as json. This is as close to Ivory output as
 -- is possible. "No Value" or "Tombstoned" values are
@@ -327,7 +327,7 @@ jsonOfValue t val
      -> A.Array $ V.fromList $ fmap (jsonOfValue t . uncurry PairValue) kvs
  where
   insert hm (attr,v)
-   = HM.insert (takeAttributeName attr) (jsonOfValue t v) hm
+   = HM.insert attr (jsonOfValue t v) hm
   pair k v
    = HM.singleton (renderValue t k) (jsonOfValue t v)
 
@@ -367,11 +367,11 @@ sourceTypeOfEncoding e
  where
 
   goStructField (StructField Mandatory attr enc)
-    = ( IT.StructField $ takeAttributeName attr
+    = ( IT.StructField attr
       , sourceTypeOfEncoding enc)
 
   goStructField (StructField Optional attr enc)
-    = ( IT.StructField $ takeAttributeName attr
+    = ( IT.StructField attr
       , IT.OptionT $ sourceTypeOfEncoding enc)
 
 
@@ -387,7 +387,7 @@ renderJsonStruct (Struct kvs0) =
       flip mapMaybe kvs0 $ \(k, v0) -> do
         v <- renderJsonValue v0
         pure $
-          renderJsonString (takeAttributeName k) <> ":" <> v
+          renderJsonString k <> ":" <> v
   in
     "{" <> T.intercalate "," kvs <> "}"
 

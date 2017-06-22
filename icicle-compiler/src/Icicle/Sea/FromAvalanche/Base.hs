@@ -12,7 +12,7 @@ module Icicle.Sea.FromAvalanche.Base (
   , mangleToSeaName
   , mangleToSeaNameIx
   , unmangleSeaName
-  , attributeAsSeaString
+  , inputIdAsSeaString
   , seaOfChar
   , seaOfString
   , seaOfEscaped
@@ -91,9 +91,9 @@ unmangleSeaName :: SeaName -> Text
 unmangleSeaName =
   Text.pack . zDecodeString . Text.unpack . getSeaName
 
-attributeAsSeaString :: Attribute -> SeaString
-attributeAsSeaString =
-  SeaString . takeAttributeName
+inputIdAsSeaString :: InputId -> SeaString
+inputIdAsSeaString =
+  SeaString . renderInputId
 
 ------------------------------------------------------------------------
 

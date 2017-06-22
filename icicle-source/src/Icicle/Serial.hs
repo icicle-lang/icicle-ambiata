@@ -17,7 +17,6 @@ import           Icicle.Data
 import           Icicle.Data.Time
 import           Icicle.Dictionary
 import           Icicle.Encoding
-import           Icicle.Storage.Encoding
 
 import qualified Icicle.Internal.Pretty as PP
 
@@ -40,7 +39,7 @@ instance PP.Pretty ParseError where
 renderEavt :: AsAt Fact' -> Text
 renderEavt f =
             (getEntity . factEntity' . atFact) f
-  <> "|" <> (takeAttributeName . factAttribute' . atFact) f
+  <> "|" <> (renderInputName . factAttribute' . atFact) f
   <> "|" <> (factValue' . atFact) f
   <> "|" <> (renderTime . atTime) f
 
@@ -54,11 +53,20 @@ eavtParser =
    <$> (Fact'
          <$> (Entity <$> column)
          <* pipe
-         <*> (toAttributeName =<< column)
+         <*> inputNameParser
          <* pipe
          <*> column
          <* pipe)
    <*> pTime
+
+inputNameParser :: Parser InputName
+inputNameParser = do
+  x <- column
+  case parseInputName x of
+    Nothing ->
+      fail $ "Invalid attribute name: " <> T.unpack x
+    Just a ->
+      pure a
 
 column :: Parser Text
 column =

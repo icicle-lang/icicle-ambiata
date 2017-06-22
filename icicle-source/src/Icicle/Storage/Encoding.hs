@@ -5,7 +5,6 @@ module Icicle.Storage.Encoding (
     parsePrimitiveEncoding
   , parseEncoding
   , prettyConcrete
-  , toAttributeName
   ) where
 
 import           Icicle.Data
@@ -30,24 +29,16 @@ parseEncoding = parsePrimitiveEncoding
        <|> StructEncoding  <$ char '(' <*> (structField `sepBy` char ',') <* char ')'
   where
     structField = do
-      n <- parseAttribute
+      n <- parseFieldName
       e <- parseEncoding
       o <- Optional <$ char '*' <|> pure Mandatory
       pure $ StructField o n e
 
-parseAttribute :: Parser Attribute
-parseAttribute = do
-  n <- takeWhile (/= ':') >>= toAttributeName
+parseFieldName :: Parser Text
+parseFieldName = do
+  n <- takeWhile (/= ':')
   _ <- char ':'
   pure n
-
-toAttributeName :: Text -> Parser Attribute
-toAttributeName t =
-  case asAttributeName t of
-    Just n ->
-      return n
-    Nothing ->
-      fail ("Not a valid feature name: " <> unpack t)
 
 prettyConcrete :: Encoding -> Text
 prettyConcrete = \case
@@ -60,5 +51,5 @@ prettyConcrete = \case
   StructEncoding s -> "(" <> intercalate "," (prettyStructField <$> s) <> ")"
 
 prettyStructField :: StructField -> Text
-prettyStructField (StructField Mandatory n e) = takeAttributeName n <> ":" <> prettyConcrete e
-prettyStructField (StructField Optional n e) = takeAttributeName n <> ":" <> prettyConcrete e <> "*"
+prettyStructField (StructField Mandatory n e) = n <> ":" <> prettyConcrete e
+prettyStructField (StructField Optional n e) = n <> ":" <> prettyConcrete e <> "*"
