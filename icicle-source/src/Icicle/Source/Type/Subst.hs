@@ -70,8 +70,8 @@ substC ss cc
  = case cc of
     CEquals p q
      -> CEquals (substT ss p) (substT ss q)
-    CIsNum p
-     -> CIsNum (substT ss p)
+    CPossibilityOfNum p t
+     -> CPossibilityOfNum (substT ss p) (substT ss t)
     CTemporalityJoin a b c
      -> CTemporalityJoin (substT ss a) (substT ss b) (substT ss c)
     CReturnOfLetTemporalities ret def body

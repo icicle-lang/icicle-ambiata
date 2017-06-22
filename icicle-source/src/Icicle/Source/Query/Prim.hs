@@ -24,12 +24,17 @@ import                  Data.Hashable (Hashable)
 primLookup' :: Hashable n => Prim -> Fresh.Fresh n (FunctionType n)
 primLookup' p
  = case p of
-    Op (ArithUnary _)
-     -> fNum $ \at -> ([at], at)
+    -- Negate on Doubles will not introduce NaN or Inf
+    Op (ArithUnary Negate)
+     -> fNumDefinitely $ \at -> ([at], at)
+
+    -- Pretty much any binary operation on Doubles might return NaN or Inf. This includes addition when the numbers are very large.
     Op (ArithBinary _)
-     -> fNum $ \at -> ([at, at], at)
+     -> fNumPossibly $ \at -> ([at, at], at)
+
+    -- Division will almost certainly return NaN or Inf
     Op (ArithDouble Div)
-     -> f0 [DoubleT, DoubleT] DoubleT
+     -> f0 [DoubleT, DoubleT] possiblyDouble
 
     Op (Relation _)
      -> f1 $ \a at -> FunctionType [a] [] [at, at] BoolT
@@ -48,8 +53,9 @@ primLookup' p
            let bt = TypeVar b
            return $ FunctionType [a,b] [] [at, bt] (PairT at bt)
 
+    -- Literals will not be NaN or Inf
     Lit (LitInt _)
-     -> fNum $ \at -> ([], at)
+     -> fNumDefinitely $ \at -> ([], at)
     Lit (LitDouble _)
      -> f0 [] DoubleT
     Lit (LitString _)
@@ -57,24 +63,26 @@ primLookup' p
     Lit (LitTime _)
      -> f0 [] TimeT
 
+    -- Most Double operations can introduce NaN or Inf
     Fun (BuiltinMath Log)
-     -> f0 [DoubleT] DoubleT
+     -> f0 [DoubleT] possiblyDouble
     Fun (BuiltinMath Exp)
-     -> f0 [DoubleT] DoubleT
+     -> f0 [DoubleT] possiblyDouble
     Fun (BuiltinMath Sqrt)
-     -> f0 [DoubleT] DoubleT
+     -> f0 [DoubleT] possiblyDouble
+    -- But conversions are OK
     Fun (BuiltinMath ToDouble)
-     -> fNum $ \at -> ([at], DoubleT)
+     -> fNumDefinitely $ \at -> ([at], DoubleT)
     Fun (BuiltinMath Abs)
-     -> fNum $ \at -> ([at], at)
+     -> fNumDefinitely $ \at -> ([at], at)
     Fun (BuiltinMath Floor)
-     -> fNum $ \at -> ([at], IntT)
+     -> fNumDefinitely $ \at -> ([at], IntT)
     Fun (BuiltinMath Ceiling)
-     -> fNum $ \at -> ([at], IntT)
+     -> fNumDefinitely $ \at -> ([at], IntT)
     Fun (BuiltinMath Round)
-     -> fNum $ \at -> ([at], IntT)
+     -> fNumDefinitely $ \at -> ([at], IntT)
     Fun (BuiltinMath Truncate)
-     -> fNum $ \at -> ([at], IntT)
+     -> fNumDefinitely $ \at -> ([at], IntT)
 
     Fun (BuiltinTime DaysBetween)
      -> f0 [TimeT, TimeT] IntT
@@ -143,8 +151,22 @@ primLookup' p
   f0 argsT resT
    = return $ FunctionType [] [] argsT resT
 
+  -- A num operation that can introduce NaN or Inf and must be checked
+  fNumPossibly f
+   = fNum $ \pt at ->
+     let (args,ret) = f at
+     in  (args, Possibility pt ret)
+
+  -- Safe number operations
+  fNumDefinitely f
+   = fNum $ \_ at ->
+     let (args,ret) = f at
+     in  (args, ret)
+
   fNum f
-   = f1 (\a at -> uncurry (FunctionType [a] [CIsNum at]) (f at))
+   = f2 (\a at p pt -> uncurry (FunctionType [a,p] [CPossibilityOfNum pt at]) (f pt at))
+
+  possiblyDouble = Possibility PossibilityPossibly DoubleT
 
   f1 f
    = do n <- Fresh.fresh

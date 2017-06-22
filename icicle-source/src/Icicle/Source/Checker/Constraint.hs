@@ -74,13 +74,10 @@ defaults topq
 
 
 
-  defaultOfConstraint (CIsNum t)
+  defaultOfConstraint (CPossibilityOfNum poss t)
    -- It must be a type variable - if it isn't it either already has a concrete
    -- Num type such as Int, or it is a type error
-   | TypeVar n <- t
-   = [(n, IntT)]
-   | otherwise
-   = []
+   = defaultTo t IntT <> defaultTo poss PossibilityDefinitely 
   -- Everything else should really be known by this stage.
   -- These shouldn't actually occur.
   defaultOfConstraint (CEquals _ _)
@@ -94,6 +91,12 @@ defaults topq
   defaultOfConstraint (CPossibilityJoin _ _ _)
    = []
   defaultOfConstraint (CTemporalityJoin _ _ _)
+   = []
+
+  defaultTo tv tr
+   | TypeVar n <- tv
+   = [(n, tr)]
+   | otherwise
    = []
 
   -- Compute free *type* variables of queries and expressions
@@ -151,8 +154,8 @@ constraintsQ env q
                (annotOfQuery q)
                (filter (not . isNumConstraint . snd) cons)
  where
-  isNumConstraint (CIsNum _) = True
-  isNumConstraint _          = False
+  isNumConstraint CPossibilityOfNum{} = True
+  isNumConstraint _                   = False
 
 
 -- | Generate constraints for top-level query.
