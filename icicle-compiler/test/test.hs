@@ -20,9 +20,6 @@ import qualified Icicle.Test.Avalanche.Flatten
 import qualified Icicle.Test.Avalanche.Melt
 import qualified Icicle.Test.Avalanche.MeltPrim
 
--- Superseded
--- import qualified Icicle.Test.Dictionary.Types
-
 import qualified Icicle.Test.Data.Time
 import qualified Icicle.Test.Internal.EditDistance
 
@@ -30,6 +27,7 @@ import qualified Icicle.Test.Source.PrettyParse
 import qualified Icicle.Test.Source.Progress
 import qualified Icicle.Test.Source.Convert
 import qualified Icicle.Test.Source.History
+import qualified Icicle.Test.Source.MaxMapSize
 
 import qualified Icicle.Test.Sea.Name
 import qualified Icicle.Test.Sea.Psv
@@ -62,7 +60,6 @@ main
         , Icicle.Test.Core.Program.Fusion.tests
         , Icicle.Test.Core.Program.Condense.tests
 
-
         , Icicle.Test.Avalanche.EvalCommutes.tests
         , Icicle.Test.Avalanche.CheckCommutes.tests
         , Icicle.Test.Avalanche.SimpCommutes.tests
@@ -80,8 +77,6 @@ main
 
         , Icicle.Test.Foreign.Array.tests
 
-        -- , Icicle.Test.Dictionary.Types.tests
-
         , Icicle.Test.Data.Time.tests
         , Icicle.Test.Internal.EditDistance.tests
 
@@ -89,4 +84,5 @@ main
         , Icicle.Test.Source.Progress.tests
         , Icicle.Test.Source.Convert.tests
         , Icicle.Test.Source.History.tests
+        , Icicle.Test.Source.MaxMapSize.tests
         ]
