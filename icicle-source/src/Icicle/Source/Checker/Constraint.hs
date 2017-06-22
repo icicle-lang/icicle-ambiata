@@ -19,6 +19,7 @@ import           Icicle.Source.Type
 
 import           Icicle.Common.Base
 import qualified Icicle.Common.Fresh          as Fresh
+import           Icicle.Internal.Pretty (Pretty)
 
 import           P hiding (with)
 
@@ -135,12 +136,12 @@ defaults topq
 -- | Generate constraints for an entire query.
 --   We take the map of types of all imported functions.
 constraintsQ
-  :: (Hashable n, Eq n)
+  :: (Hashable n, Eq n, Pretty n)
   => Map.Map (Name n) (FunctionType n)
   -> Query a n
   -> EitherT (CheckError a n) (Fresh.Fresh n) (Query'C a n)
 constraintsQ env q
- = do (x, _, cons) <- evalGen $ generateQ q env
+ = do (x, _, cons) <- evalGenNoLog $ generateQ q env
       -- We must have been able to solve all constraints except numeric requirements.
       if   all (isNumConstraint . snd) cons
       then right x
@@ -165,7 +166,7 @@ constraintsQ env q
 -- nested subexpressions and so on.
 --
 generateQ
-  :: (Hashable n, Eq n)
+  :: (Hashable n, Eq n, Pretty n)
   => Query a n
   -> GenEnv n
   -> Gen a n (Query'C a n, SubstT n, GenConstraintSet a n)
@@ -490,7 +491,7 @@ generateQ qq@(Query (c:_) _) env
 
 -- | Generate constraints for expression
 generateX
-  :: (Hashable n, Eq n)
+  :: (Hashable n, Eq n, Pretty n)
   => Exp a n
   -> GenEnv n
   -> Gen a n (Exp'C a n, SubstT n, GenConstraintSet a n)
@@ -502,7 +503,7 @@ generateX x env
      -> do (fErr, argsT, resT, cons') <- lookup a n env
 
            when (not $ null argsT)
-             $ Gen . hoistEither
+             $ genHoistEither
              $ errorNoSuggestions (ErrorFunctionWrongArgs a x fErr [])
 
            let x' = annotate cons' resT
@@ -541,7 +542,7 @@ generateX x env
                         | Var _ n  <- f
                         = lookup a n env
                         | otherwise
-                        = Gen . hoistEither
+                        = genHoistEither
                         $ errorNoSuggestions (ErrorApplicationNotFunction a x)
             genXs [] _  = return []
             genXs (xx:xs) env'
@@ -555,7 +556,7 @@ generateX x env
                 let argsT'                  = fmap (annResult.annotOfExp) args'
 
                 when (length argsT /= length args)
-                 $ Gen. hoistEither
+                 $ genHoistEither
                  $ errorNoSuggestions (ErrorFunctionWrongArgs a x fErr argsT')
 
                 let go (t, c) u     = appType a t u c
@@ -573,7 +574,7 @@ generateX x env
      -> do (fErr, argsT, resT, cons') <- primLookup a p
 
            when (not $ null argsT)
-             $ Gen . hoistEither
+             $ genHoistEither
              $ errorNoSuggestions (ErrorFunctionWrongArgs a x fErr [])
 
            let x' = annotate cons' resT
@@ -625,7 +626,7 @@ generateX x env
 
 
 generateP
-  :: (Hashable n, Eq n)
+  :: (Hashable n, Eq n, Pretty n)
   => a
   -> Type n                 -- ^ scrutinee type
   -> Type n                 -- ^ result base type
@@ -712,7 +713,7 @@ generateP ann scrutTy resTy resTm resPs ((pat, alt):rest) env
         return ( SumT l r , e' )
 
   goPat _ _
-   = Gen . hoistEither
+   = genHoistEither
    $ errorNoSuggestions (ErrorCaseBadPattern (annotOfExp alt) pat)
 
 

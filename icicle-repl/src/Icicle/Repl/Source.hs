@@ -62,6 +62,7 @@ data SourceReplState
    , maxMapSize         :: Int
    , inlineOpt          :: Compiler.InlineOption
    , hasType            :: Bool
+   , hasTypeCheckLog    :: Bool
    , hasBigData         :: Bool
    , hasAnnotated       :: Bool
    , hasInlined         :: Bool
@@ -71,15 +72,13 @@ data SourceReplState
 
 defaultSourceReplState :: SourceReplState
 defaultSourceReplState
-  = (SourceReplState
+  = SourceReplState
        []
        demographics
        (unsafeTimeOfYMD 1970 1 1)
        (1024*1024)
        Compiler.InlineUsingSubst
-       False False False False False False )
-    { hasType = True
-    , hasBigData = False }
+       False False False False False False False
 
 stateEvalContext :: SourceReplState -> EvalContext
 stateEvalContext s = EvalContext (currentTime s) (maxMapSize s)

@@ -36,7 +36,6 @@ import           Icicle.Storage.Dictionary.Toml
 
 import qualified Icicle.Source.Checker            as Source
 import qualified Icicle.Source.PrettyAnnot        as Source
-import qualified Icicle.Source.Type               as SourceType
 
 import qualified Icicle.Core.Program.Check        as Core
 
@@ -77,7 +76,7 @@ data ReplState
 defaultState :: ReplState
 defaultState
   = (ReplState
-      (SourceRepl.defaultSourceReplState { SourceRepl.hasType = False })
+      SourceRepl.defaultSourceReplState
       False False False False False False False False False False False False False False)
       { hasCoreEval = True
       , doCoreSimp  = True }
@@ -85,6 +84,7 @@ defaultState
 
 data Set
    = ShowType                Bool
+   | ShowTypeCheckLog        Bool
    | ShowBigData             Bool
    | ShowAnnotated           Bool
    | ShowInlined             Bool
@@ -114,6 +114,9 @@ readSetCommands ss
  = case ss of
     ("+type":rest)               -> (:) (ShowType                True)  <$> readSetCommands rest
     ("-type":rest)               -> (:) (ShowType                False) <$> readSetCommands rest
+
+    ("+type-check-log":rest)     -> (:) (ShowTypeCheckLog        True)  <$> readSetCommands rest
+    ("-type-check-log":rest)     -> (:) (ShowTypeCheckLog        False) <$> readSetCommands rest
 
     ("+big-data":rest)           -> (:) (ShowBigData             True)  <$> readSetCommands rest
     ("-big-data":rest)           -> (:) (ShowBigData             False) <$> readSetCommands rest
@@ -267,11 +270,13 @@ handleLine state line = let st = sourceState state in
     let funEnv = filter (\(n,_) -> not $ Set.member n names)
                $ dictionaryFunctions   d
 
-    fun       <- hoist $ wrapSourceError $ Source.sourceCheckF funEnv parsed
-    forM_ fun $ \(nm, (typ, annot)) -> do
-      prettyOut (SourceRepl.hasType      . sourceState) ("- Type: " <> show (pretty nm))      (SourceType.prettyFunWithLetters typ)
+    (fun,logs) <- hoist $ wrapSourceError $ Source.sourceCheckFunLog funEnv parsed
+    forM_ (fun `L.zip` logs) $ \((nm, (typ, annot)),log0) -> do
       prettyOut (SourceRepl.hasType      . sourceState) ("- Type: " <> show (pretty nm))      typ
       prettyOut (SourceRepl.hasAnnotated . sourceState) ("- Annotated: " <> show (pretty nm)) (Source.PrettyAnnot annot)
+      lift $ when (SourceRepl.hasTypeCheckLog $ sourceState state) $ forM_ log0 $ \l -> do
+        Repl.prettyHL l
+        Repl.nl
 
     let funEnv' = fun <> funEnv
     return $ state { sourceState = st { SourceRepl.dictionary = d { dictionaryFunctions = funEnv' } } }
@@ -497,6 +502,7 @@ showState :: ReplState -> HL.InputT IO ()
 showState state = let st = sourceState state in do
  mapM_ HL.outputStrLn
     [ flag "type:            " (SourceRepl.hasType      . sourceState)
+    , flag "type-check-log:  " (SourceRepl.hasTypeCheckLog . sourceState)
     , flag "big-data:        " (SourceRepl.hasBigData   . sourceState)
     , flag "annotated:       " (SourceRepl.hasAnnotated . sourceState)
     , flag "inlined:         " (SourceRepl.hasInlined   . sourceState)
@@ -564,6 +570,10 @@ handleSetCommand state set = let st = sourceState state in
     ShowType b -> do
         HL.outputStrLn $ "ok, type is now " <> Repl.showFlag b
         return $ state { sourceState = st { SourceRepl.hasType = b } }
+
+    ShowTypeCheckLog b -> do
+        HL.outputStrLn $ "ok, type-check-log is now " <> Repl.showFlag b
+        return $ state { sourceState = st { SourceRepl.hasTypeCheckLog = b } }
 
     ShowBigData b -> do
         HL.outputStrLn $ "ok, big-data is now " <> Repl.showFlag b

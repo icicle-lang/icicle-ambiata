@@ -22,7 +22,7 @@ import                  Icicle.Data.Name
 
 import                  P hiding (exp)
 
-import                  Text.Parsec (many1, parserFail, getPosition, eof, (<?>), sepEndBy, try, notFollowedBy)
+import                  Text.Parsec (many1, parserFail, getPosition, (<?>), sepEndBy, try, notFollowedBy)
 
 top :: OutputId -> Parser (Q.QueryTop T.SourcePos Var)
 top name
