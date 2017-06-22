@@ -39,50 +39,93 @@ import qualified Icicle.Test.Sea.Text
 
 import qualified Icicle.Test.Foreign.Array
 
+import           Data.Map (Map)
+import qualified Data.Map.Strict as Map
+
 import           Disorder.Core.Main
 
+import           System.Environment (lookupEnv)
+
+
+data TestSuite =
+  TestSuite {
+      suiteName :: String
+    , suiteTests :: [IO Bool]
+    }
+
+psv :: TestSuite
+psv =
+  TestSuite "psv" [
+      Icicle.Test.Sea.Psv.tests
+    ]
+
+sea :: TestSuite
+sea =
+  TestSuite "sea" [
+      Icicle.Test.Sea.Name.tests
+    , Icicle.Test.Sea.Psv.Schema.tests
+    , Icicle.Test.Sea.PsvFission.tests
+    , Icicle.Test.Sea.Seaworthy.tests
+    , Icicle.Test.Sea.Text.tests
+    , Icicle.Test.Sea.Zebra.tests
+    ]
+
+sundry :: TestSuite
+sundry =
+  TestSuite "sundry" [
+      Icicle.Test.Avalanche.CheckCommutes.tests
+    , Icicle.Test.Avalanche.EvalCommutes.tests
+    , Icicle.Test.Avalanche.Flatten.tests
+    , Icicle.Test.Avalanche.Melt.tests
+    , Icicle.Test.Avalanche.MeltPrim.tests
+    , Icicle.Test.Avalanche.SimpCommutes.tests
+    , Icicle.Test.Common.Data.tests
+    , Icicle.Test.Core.Exp.Alpha.tests
+    , Icicle.Test.Core.Exp.Check.tests
+    , Icicle.Test.Core.Exp.Eval.tests
+    , Icicle.Test.Core.Exp.Simp.tests
+    , Icicle.Test.Core.Program.Condense.tests
+    , Icicle.Test.Core.Program.Eval.tests
+    , Icicle.Test.Core.Program.Fusion.tests
+    , Icicle.Test.Data.Time.tests
+    , Icicle.Test.Encoding.tests
+    , Icicle.Test.Foreign.Array.tests
+    , Icicle.Test.Internal.EditDistance.tests
+    , Icicle.Test.Language.tests
+    , Icicle.Test.Serial.tests
+    , Icicle.Test.Source.Convert.tests
+    , Icicle.Test.Source.History.tests
+    , Icicle.Test.Source.MaxMapSize.tests
+    , Icicle.Test.Source.PrettyParse.tests
+    , Icicle.Test.Source.Progress.tests
+    ]
+
+suites :: Map String TestSuite
+suites =
+  Map.fromList $ fmap (\x -> (suiteName x, x)) [
+      psv
+    , sea
+    , sundry
+    ]
+
+runTestSuite :: TestSuite -> IO ()
+runTestSuite x = do
+  putStrLn ""
+  putStrLn "────────────────────────────────────────────────────────────"
+  putStrLn $ "🚀 Running " ++ (suiteName x) ++ " test suite 🚀"
+  putStrLn "────────────────────────────────────────────────────────────"
+  putStrLn ""
+  disorderMain (suiteTests x)
 
 main :: IO ()
-main
- = disorderMain
-        [ Icicle.Test.Encoding.tests
-        , Icicle.Test.Serial.tests
-        , Icicle.Test.Language.tests
-
-        , Icicle.Test.Common.Data.tests
-
-        , Icicle.Test.Core.Exp.Alpha.tests
-        , Icicle.Test.Core.Exp.Check.tests
-        , Icicle.Test.Core.Exp.Eval.tests
-        , Icicle.Test.Core.Exp.Simp.tests
-
-        , Icicle.Test.Core.Program.Eval.tests
-        , Icicle.Test.Core.Program.Fusion.tests
-        , Icicle.Test.Core.Program.Condense.tests
-
-        , Icicle.Test.Avalanche.EvalCommutes.tests
-        , Icicle.Test.Avalanche.CheckCommutes.tests
-        , Icicle.Test.Avalanche.SimpCommutes.tests
-        , Icicle.Test.Avalanche.Flatten.tests
-        , Icicle.Test.Avalanche.Melt.tests
-        , Icicle.Test.Avalanche.MeltPrim.tests
-
-        , Icicle.Test.Sea.Name.tests
-        , Icicle.Test.Sea.Psv.tests
-        , Icicle.Test.Sea.Psv.Schema.tests
-        , Icicle.Test.Sea.PsvFission.tests
-        , Icicle.Test.Sea.Zebra.tests
-        , Icicle.Test.Sea.Seaworthy.tests
-        , Icicle.Test.Sea.Text.tests
-
-        , Icicle.Test.Foreign.Array.tests
-
-        , Icicle.Test.Data.Time.tests
-        , Icicle.Test.Internal.EditDistance.tests
-
-        , Icicle.Test.Source.PrettyParse.tests
-        , Icicle.Test.Source.Progress.tests
-        , Icicle.Test.Source.Convert.tests
-        , Icicle.Test.Source.History.tests
-        , Icicle.Test.Source.MaxMapSize.tests
-        ]
+main = do
+  msuite <- lookupEnv "TEST_SUITE"
+  case msuite of
+    Nothing ->
+      mapM_ runTestSuite $ Map.elems suites
+    Just suite ->
+      case Map.lookup suite suites of
+        Nothing ->
+          putStrLn $ "Unknown test suite: " ++ suite
+        Just x ->
+          runTestSuite x
