@@ -19,3 +19,10 @@ feature salary ~> latest 1 ~> case (0,sum value) | (z,s) -> s end
 
 -- Constructing a Right of a Possibility was causing an issue before
 feature salary ~> fold x = 0 : value ~> Right x
+
+-- Primitive returning possibly (map_insert), applied to a definite primitive (,)
+feature salary ~> (map_insert 0 0 map_create, 0)
+
+-- Same deal, more or less
+feature salary ~> fold x = (map_insert 0 0 map_create, 0) : (map_insert value value (fst x), snd x + 1) ~> x
+

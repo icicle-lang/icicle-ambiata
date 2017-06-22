@@ -34,4 +34,21 @@ ok, loaded test/cli/repl/data.psv, 13 rows
 > - Core evaluation:
 [homer, 500,marge, 20]
 
-> 
+> > -- Primitive returning possibly (map_insert), applied to a definite primitive (,)
+> - Core evaluation:
+[homer, ([(0,0)],0)
+,marge, ([(0,0)],0)]
+
+> > -- Same deal, more or less
+> - Core evaluation:
+[homer, ([(0,0)
+         ,(100,100)
+         ,(200,200)
+         ,(300,300)
+         ,(400,400)
+         ,(500,500)]
+        ,5)
+,marge, ([(0,0),(10,10),(20,20)]
+        ,3)]
+
+> > 
