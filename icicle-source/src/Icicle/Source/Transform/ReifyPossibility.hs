@@ -284,7 +284,7 @@ makeApps a fun (arg:rest) doWrap
               | otherwise
               = True
 
-        fun' <- makeApps a (App a fun bare) rest doWrap'
+        fun' <- makeApps a (App annotWrapPrim fun bare) rest doWrap'
 
         let app'  = Case a' arg
                   [ ( PatCon ConLeft  [ PatVariable nError ]
@@ -296,7 +296,15 @@ makeApps a fun (arg:rest) doWrap
 
  -- If argument is a definitely, just apply it as usual
  | otherwise
- =  makeApps a (App a fun arg) rest doWrap
+ =  makeApps a (App annotWrapPrim fun arg) rest doWrap
+
+ where
+  annotWrapPrim
+   | Just (p, _, _) <- takePrimApps fun
+   , primReturnsPossibly p
+   = wrapAnnotReally a
+   | otherwise
+   = a
 
 
 con0 :: Annot a n -> Constructor -> Exp (Annot a n) n
