@@ -42,6 +42,15 @@
           "primitive": "string"
         }
       }
+    },
+    {
+      "index": 5,
+      "name": "default:sorted",
+      "encoding": {
+        "listof": {
+          "primitive": "string"
+        }
+      }
     }
   ]
 }
