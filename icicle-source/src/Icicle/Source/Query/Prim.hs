@@ -22,8 +22,8 @@ import                  Data.Hashable (Hashable)
 
 
 primLookup' :: Hashable n => Prim -> Fresh.Fresh n (FunctionType n)
-primLookup' p
- = case p of
+primLookup' prim
+ = case prim of
     -- Negate on Doubles will not introduce NaN or Inf
     Op (ArithUnary Negate)
      -> fNumDefinitely $ \at -> ([at], at)

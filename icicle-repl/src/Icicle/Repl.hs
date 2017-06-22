@@ -36,7 +36,6 @@ import           Icicle.Storage.Dictionary.Toml
 
 import qualified Icicle.Source.Checker            as Source
 import qualified Icicle.Source.PrettyAnnot        as Source
-import qualified Icicle.Source.Type               as SourceType
 
 import qualified Icicle.Core.Program.Check        as Core
 
