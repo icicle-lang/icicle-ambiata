@@ -409,16 +409,8 @@ generateQ qq@(Query (c:_) _) env
             let conseq = concat
                        [ require a (CEquals it wt)
                        , require a (CPossibilityJoin iniPos wp' ip') ]
-            -- XXX HACK: if possibility of worker is still a variable (after generateX discharged constraints)
-            -- then it must be a Definitely; nothing else can constrain it to be Possibly
-            let conshack
-                       | ip == PossibilityDefinitely
-                       , TypeVar _ <- wp'
-                       = require a (CEquals wp' PossibilityDefinitely)
-                       | otherwise
-                       = []
 
-            let cons' = concat [csi, csw, consr, consf, consT, conseq, conshack]
+            let cons' = concat [csi, csw, consr, consf, consT, conseq]
 
             let t'' = canonT $ Temporality TemporalityAggregate t'
             let s'  = si `compose` sw `compose` sq
