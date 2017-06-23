@@ -563,7 +563,7 @@ generateX x env
                  $ errorNoSuggestions (ErrorFunctionWrongArgs a x fErr argsT')
 
                 let go (t, c) u     = appType a t u c
-                let (resT', consap) = foldl' go (resT, []) (argsT `zip` argsT')
+                (resT', consap) <- foldM go (resT, []) (argsT `zip` argsT')
 
                 let s' = foldl compose Map.empty subs'
                 let cons' = concat (consf : consap : consxs)
@@ -721,41 +721,47 @@ generateP ann scrutTy resTy resTm resPs ((pat, alt):rest) env
 
 
 appType
- :: a
+ :: (Hashable n, Eq n)
+ => a
  -> Type n
  -> (Type n, Type n)
  -> GenConstraintSet a n
- -> (Type n, GenConstraintSet a n)
-appType ann resT (expT,actT) cons
- = let (tmpE,posE,datE) = decomposeT $ canonT expT
-       (tmpA,posA,datA) = decomposeT $ canonT actT
-       (tmpR,posR,datR) = decomposeT $ canonT resT
+ -> Gen a n (Type n, GenConstraintSet a n)
+appType ann resT (expT,actT) cons = do
+  let (tmpE,posE,datE) = decomposeT $ canonT expT
+  let (tmpA,posA,datA) = decomposeT $ canonT actT
+  let (tmpR,posR,datR) = decomposeT $ canonT resT
+  let consD            = require ann (CEquals datE datA)
 
-       consD = require ann (CEquals datE datA)
+  (tmpR', consT) <- checkTemp (purely tmpE) (purely tmpA) (purely tmpR)
+  (posR', consP) <- checkPoss (definitely posE) (definitely posA) (definitely posR)
 
-       (tmpR', consT)  = checkTemp (purely tmpE) (purely tmpA) (purely tmpR)
-       (posR', consP) = checkPoss (definitely posE) (definitely posA) (definitely posR)
-
-       t = recomposeT (tmpR', posR', datR)
-   in  (t, concat [cons, consD, consT, consP])
+  let t = recomposeT (tmpR', posR', datR)
+  return (t, concat [cons, consD, consT, consP])
 
  where
-  checkTemp = check' TemporalityPure
-  checkPoss = check' PossibilityDefinitely
+  checkTemp = check' TemporalityPure       CTemporalityJoin
+  checkPoss = check' PossibilityDefinitely CPossibilityJoin
 
-  check' pureMode modE modA modR
+  check' pureMode joinMode modE modA modR
    | Nothing <- modA
-   = (modR, [])
+   = return (modR, [])
    | Just _  <- modA
    , Nothing <- modE
    , Nothing <- modR
-   = (modA, [])
+   = return (modA, [])
    | Just a' <- modA
    , Nothing <- modE
    , Just r' <- modR
-   = (modR, require ann (CEquals a' r'))
+   = do r'' <- TypeVar <$> fresh
+        let j = joinMode r'' a' r'
+        return (Just r'', require ann j)
+   -- Just <- modA
+   -- Just <- modR
+   -- ?    <- modE
    | otherwise
-   = (modR, require ann (CEquals (maybe pureMode id modE) (maybe pureMode id modA)))
+   = do let j = CEquals (maybe pureMode id modE) (maybe pureMode id modA)
+        return (modR, require ann j)
 
 
   purely (Just TemporalityPure) = Nothing
