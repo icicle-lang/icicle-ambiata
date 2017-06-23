@@ -179,7 +179,7 @@ generateQ (Query [] x) env
 -- Query with a context
 generateQ qq@(Query (c:_) _) env
  -- Discharge any constraints on the result
- =   discharge (annAnnot.annotOfQuery) substTQ
+ =   discharge annotOfQuery substTQ
  =<< case c of
     -- In the following "rules",
     --  x't stands for "temporality of x";
@@ -496,7 +496,7 @@ generateX
   -> GenEnv n
   -> Gen a n (Exp'C a n, SubstT n, GenConstraintSet a n)
 generateX x env
- =   discharge (annAnnot.annotOfExp) substTX
+ =   discharge annotOfExp substTX
  =<< case x of
     -- Variables can only be values, not functions.
     Var a n

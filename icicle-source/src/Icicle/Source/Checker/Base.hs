@@ -118,20 +118,31 @@ defaultCheckOptions = optionSmallData
 type GenEnv n             = Map.Map (Name n) (FunctionType n)
 type GenConstraintSet a n = [(a, Constraint n)]
 
-data DischargeInfo a n = DischargeInfo (GenConstraintSet a n) (SubstT n)
+data DischargeInfo a n = DischargeInfo
+  { dischargeType :: Type n
+  , dischargeConstraints :: GenConstraintSet a n
+  , dischargeSubst :: SubstT n
+  }
  deriving Show
 
 instance (Pretty a, Pretty n) => Pretty (DischargeInfo a n) where
- pretty (DischargeInfo cs s)
-  = "C: " <> indent 0 cons <> line <>
-    "S: " <> indent 0 sub
+ pretty (DischargeInfo t cs s)
+  = vsep ([ty] <> cons' <> subs')
   where
-   cons = vsep
-        $ fmap (pretty . snd)
-          cs
-   sub = vsep
-       $ fmap (\(k,v) -> pretty k <> " = " <> pretty v)
-       $ Map.toList s
+   ty = "T: " <> indent 0 (pretty t)
+   cons'
+    | null cs
+    = []
+    | otherwise
+    = [cons]
+   subs'
+    | null s
+    = []
+    | otherwise
+    = [subs]
+
+   cons = "C: " <> indent 0 (vsep $ fmap (pretty . snd) cs)
+   subs = "S: " <> indent 0 (vsep $ fmap (\(k,v) -> pretty k <> " = " <> pretty v) $ Map.toList s)
 
 
 data CheckLog a n
@@ -141,15 +152,22 @@ data CheckLog a n
 
 instance (Pretty a, Pretty n) => Pretty (CheckLog a n) where
  pretty (CheckLogDischargeOk s i0 i1)
+  | emptyi i0 && emptyi i1
+  = "visit     " <> indent 0 (pretty s <> " : " <> pretty (dischargeType i0))
+  | otherwise
   = "discharge " <> indent 0 (pretty s) <> line <>
     "  before: " <> indent 0 (pretty i0) <> line <>
     "  after:  " <> indent 0 (pretty i1)
+  where
+   emptyi (DischargeInfo _ cs s) = null cs && null s
  pretty (CheckLogDischargeError s i0 errs)
   = "discharge " <> indent 0 (pretty s) <> line <>
     "  before: " <> indent 0 (pretty i0) <> line <>
     "  errors: " <> indent 0 (pretty errs)
 
 
+-- TODO: want EitherT (StateT ...) ...
+-- in order to get log in failure case
 newtype Gen a n t
  = Gen { constraintGen :: StateT [CheckLog a n] (EitherT (CheckError a n) (Fresh.Fresh n)) t }
  deriving (Functor, Applicative, Monad)
@@ -184,21 +202,25 @@ require a c = [(a,c)]
 --
 discharge
   :: (Hashable n, Eq n, Pretty q)
-  => (q -> a)
+  => (q -> Annot a n)
   -> (SubstT n -> q -> q)
   -> (q, SubstT n, GenConstraintSet a n)
   -> Gen a n (q, SubstT n, GenConstraintSet a n)
 discharge annotOf sub (q, s, conset)
- = do let log_ppr   = pretty q
-      let log_info0 = DischargeInfo conset s
+ = do let annot     = annotOf q
+      let log_ppr   = pretty q
+      let log_info0 = DischargeInfo (annResult annot) conset s
       let cs = nubConstraints $ fmap (\(a,c) -> (a, substC s c)) conset
+
       case dischargeCS cs of
        Left errs -> do
         checkLog (CheckLogDischargeError log_ppr log_info0 errs) 
-        genHoistEither $ errorNoSuggestions (ErrorConstraintsNotSatisfied (annotOf q) errs)
+        genHoistEither $ errorNoSuggestions (ErrorConstraintsNotSatisfied (annAnnot annot) errs)
        Right (s', cs') -> do
         let s'' = compose s s'
-        let log_info1 = DischargeInfo cs' s''
+        let q'  = sub s'' q
+        let annot' = annotOf q
+        let log_info1 = DischargeInfo (annResult annot') cs' s''
         checkLog (CheckLogDischargeOk log_ppr log_info0 log_info1) 
         return (sub s'' q, s'', cs')
 
