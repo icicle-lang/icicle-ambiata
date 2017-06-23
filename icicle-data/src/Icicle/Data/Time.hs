@@ -31,10 +31,9 @@ module Icicle.Data.Time (
   , timeOfPacked
 
   -- * Parsing and Printing
+  , TimeSerialisation (..)
   , renderTime
   , pTime
-
-  , renderOutputTime
   ) where
 import           Data.Attoparsec.Text
 
@@ -188,15 +187,19 @@ packedOfTime t@(gregorianDay -> d)
 
 --------------------------------------------------------------------------------
 
-renderTime  :: Time -> Text
-renderTime = T.pack . C.showGregorian . Thyme.fromThyme . julianDay
+data TimeSerialisation =
+    TimeSerialisationInput -- ^ Y-M-D since Julian epoch
+  | TimeSerialisationOutput -- ^ Y-M-DTH:M:SZ since something
+  deriving (Show, Eq)
 
-renderOutputTime  :: Time -> Text
-renderOutputTime t
- = let fmt = "%Y-%m-%dT%H:%M:%SZ"
-       t' = Thyme.fromThyme (getDateTime t) :: C.UTCTime 
-       str = C.formatTime C.defaultTimeLocale fmt t'
-   in  T.pack str
+renderTime :: TimeSerialisation -> Time -> Text
+renderTime TimeSerialisationInput t =
+  T.pack . C.showGregorian . Thyme.fromThyme . julianDay $ t
+renderTime TimeSerialisationOutput t =
+ let fmt = "%Y-%m-%dT%H:%M:%SZ"
+     t' = Thyme.fromThyme (getDateTime t) :: C.UTCTime
+     str = C.formatTime C.defaultTimeLocale fmt t'
+ in  T.pack str
 
 pTime :: Parser Time
 pTime

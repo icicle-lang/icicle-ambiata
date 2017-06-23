@@ -30,16 +30,15 @@ import qualified Data.Text.Lazy.IO as LT
 import           Disorder.Core.IO
 
 import           Icicle.Internal.Pretty
-import           Icicle.Common.Base
 import           Icicle.Common.Eval
 import           Icicle.Sea.Eval (SeaError(..))
 import qualified Icicle.Sea.Eval as Sea
+import           Icicle.Sea.Data
 import           Icicle.Sea.Fleet
 import qualified Icicle.Core.Program.Program as C
 import           Icicle.Data.Name
 import           Icicle.Data
 import           Icicle.Test.Arbitrary
-import           Icicle.Test.Arbitrary.Corpus
 import qualified Icicle.Avalanche.Prim.Flat as Flat
 import qualified Icicle.Avalanche.Program as Flat
 import           Icicle.Common.Annot
@@ -85,11 +84,11 @@ prop_psv_fission =
            wtvs =
              let
                sortByEAT =
-                 List.sortBy (comparing (eavtEntity &&& eavtAttribute &&& (atTime . eavtValue)))
+                 List.sortBy (comparing (eavtEntity &&& eavtInputId &&& (atTime . eavtValue)))
                forAttribute1 w =
-                  w { eavtAttribute = wtAttribute wta1 }
+                  w { eavtInputId = clusterInputId . wtCluster $ wta1 }
                forAttribute2 w =
-                  w { eavtAttribute = wtAttribute wta2 }
+                  w { eavtInputId = clusterInputId . wtCluster $ wta2 }
              in
                sortByEAT $ fmap forAttribute1 vals <> fmap forAttribute2 vals
            evalContext =
@@ -114,8 +113,8 @@ timeOpt = Sea.AllowDupTime
 runTwoAsOne ::
      EvalContext
   -> Sea.PsvConstants
-  -> WellTypedAttribute
-  -> WellTypedAttribute
+  -> WellTypedCluster
+  -> WellTypedCluster
   -> [WellTypedValue]
   -> TestOpts
   -> EitherT SeaError IO ()
@@ -125,7 +124,7 @@ runTwoAsOne evalContext psvConstants wta1 wta2 wtvs testOpts = do
       compileTwoAsOne
         testOpts
         evalContext
-        (wtAttribute wta1)
+        (clusterInputId . wtCluster $ wta1)
         (wtAvalancheFlat wta1)
         (wtAvalancheFlat wta2)
     release
@@ -208,7 +207,7 @@ runTwoAsOne evalContext psvConstants wta1 wta2 wtvs testOpts = do
 compileTwoAsOne ::
      TestOpts
   -> EvalContext
-  -> Attribute
+  -> InputId
   -> Flat.Program (Annot ()) Var Flat.Prim
   -> Flat.Program (Annot ()) Var Flat.Prim
   -> EitherT SeaError IO (SeaFleet Sea.PsvState)

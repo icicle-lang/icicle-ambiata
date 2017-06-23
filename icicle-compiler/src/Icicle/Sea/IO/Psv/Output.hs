@@ -344,7 +344,7 @@ seaOfOutput isJSON struct structIndex outId missing env outType argTypes transfo
                             , outputChar ':'
                             , body
                             ]
-                    pure (ix', ts', (cond, doc) : docs)
+                    pure (ix', ts', docs <> [(cond, doc)])
 
               (ix, ts, docs) <- foldM go (structIndex, argTypes, mempty) fields
               let doc         = vsep $ [ outputChar '{' , seaOfOutputStructSep docs , outputChar '}' ]
@@ -369,10 +369,10 @@ seaOfOutput isJSON struct structIndex outId missing env outType argTypes transfo
         -> do (mcond, mfalse, body, ix, ts)
                  <- seaOfOutput isJSON struct (structIndex + 1) outId missing env' otype1 ts1 transform
 
-              let body' = seaOfOutputCond mcond mfalse body
               let ne'   = transform ErrorT ne
-              pure ( condAnd (Just (ne' <> " == ierror_not_an_error")) mcond
-                   , outputMissing, body', ix, ts )
+              let cond  = condAnd (Just (seaOfValueOrTombstone ne')) mcond
+              let body' = seaOfOutputCond cond mfalse body
+              pure ( cond, outputMissing, body', ix, ts )
 
        -- Base
        typ
@@ -384,7 +384,7 @@ seaOfOutput isJSON struct structIndex outId missing env outType argTypes transfo
               pure (Nothing, Nothing, d, structIndex + 1, ts)
 
        BufT _ a ->
-         seaOfOutput isJSON struct structIndex outName missing env (ArrayT a) argTypes transform
+         seaOfOutput isJSON struct structIndex outId missing env (ArrayT a) argTypes transform
 
        _ ->
          Left unsupported
@@ -415,6 +415,13 @@ seaOfOutput isJSON struct structIndex outId missing env outType argTypes transfo
 
    seaOfOutputBase' b
      = seaOfOutputBase b mismatch
+
+-- | Even if the input value is a tombstone, we still run compute on it and we
+--   need to output the result of that compute here.
+--
+seaOfValueOrTombstone :: Doc -> Doc
+seaOfValueOrTombstone v =
+  "((" <> v <> " == ierror_tombstone) || (" <> v <> " == ierror_not_an_error))"
 
 --------------------------------------------------------------------------------
 
@@ -537,14 +544,6 @@ conditional n body1 body2
         , "} else {"
         , indent 4 body2
         , "}"]
-
-conditionalNotError' :: Doc -> Doc -> Doc
-conditionalNotError' n body
- = conditional' (n <> " == ierror_not_an_error") body
-
-conditionalNotError :: Doc -> Doc -> Doc -> Doc
-conditionalNotError n body1 body2
- = conditional (n <> " == ierror_not_an_error") body1 body2
 
 pair :: Doc -> Doc -> Doc
 pair x y

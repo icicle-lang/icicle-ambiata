@@ -33,6 +33,7 @@ import           Icicle.Common.Type
 import           Icicle.Common.Eval
 
 import           Icicle.Sea.Eval
+import           Icicle.Sea.Data
 
 import           Icicle.Test.Arbitrary
 import           Icicle.Test.Arbitrary.Corpus
@@ -45,7 +46,7 @@ import qualified Prelude as Savage
 
 import           System.IO
 
-import           Test.QuickCheck (Arbitrary(..), suchThat, forAll)
+import           Test.QuickCheck (Arbitrary(..), forAll)
 import           Test.QuickCheck (Property, (==>), property, counterexample)
 import           Test.QuickCheck.Property (succeeded, failed)
 import           Test.QuickCheck.Monadic
@@ -108,7 +109,8 @@ prop_success_psv
 prop_failure_entity_out_of_order
  | dup <- DoNotAllowDupTime
  = forAll arbitrary $ \inputType ->
-   forAll (genWT1 dup inputType) $ \wt ->
+   forAll (validated 100 $ tryGenAttributeWithInput inputType) $ \wta ->
+   forAll (validated 100 $ tryGenWellTypedForSingleAttribute dup wta) $ \wt ->
    List.length (wtFacts wt) > 1 ==>
    forAll (genPsvConstants wt) $ \psv ->
      testIO $ do
@@ -143,7 +145,10 @@ prop_failure_time_out_of_order
        expectPsvError wtOutOfOrderTimes result
 
 prop_dup_time
-  = forAll (genWellTypedWithDuplicateTimes `suchThat` ((> 1) . List.length . wtFacts)) $ \wt ->
+ = forAll arbitrary $ \inputType ->
+   forAll (validated 100 $ tryGenAttributeWithInput inputType) $ \wta ->
+   forAll (validated 100 $ tryGenWellTypedForSingleAttribute AllowDupTime wta) $ \wt ->
+   List.length (wtFacts wt) > 1 ==>
     forAll (genPsvConstants wt) $ \psv ->
       monadicIO $ do
         let wt' = wt { wtFacts = List.head (wtFacts wt) : wtFacts wt }
@@ -177,20 +182,18 @@ failWithError :: WellTyped -> SeaError -> IO Property
 failWithError = failWithError' id
 
 failWithError' :: (Property -> Property) -> WellTyped -> SeaError -> IO Property
-failWithError' prints wt = \case
+failWithError' prints _ = \case
   SeaJetskiError (J.CompilerError _ src err)
    -> pure
     $ prints
     $ counterexample (show (pretty src))
     $ counterexample (show (pretty err))
-    $ counterexample (show (pretty (fmap (pretty . wtCore) (wtAttributes wt))))
     $ failed
 
   err
    -> pure
     $ prints
     $ counterexample (show (pretty err))
-    $ counterexample (show (pretty (fmap (pretty . wtCore) (wtAttributes wt))))
     $ failed
 
 ------------------------------------------------------------------------
@@ -220,7 +223,7 @@ compileTest wt (TestOpts _ inputFormat allowDupTime) = do
       evalSnapshotTime (wtEvalContext wt)
 
     missingValuesFor wta =
-      (wtInputId wta, Set.singleton tombstone)
+      (clusterInputId . wtCluster $ wta, Set.singleton tombstone)
 
     hasInput =
       HasInput
@@ -240,16 +243,16 @@ compileTest wt (TestOpts _ inputFormat allowDupTime) = do
            allowDupTime .
            Map.fromList .
            fmap missingValuesFor .
-           wtAttributes $
+           wtClusters $
              wt
         )
         ("" :: String)
 
     programFrom w =
-      (wtInputId w, wtAvalancheFlat w :| [])
+      (clusterInputId . wtCluster $ w, wtAvalancheFlat w :| [])
 
     programs =
-      fmap programFrom . wtAttributes $ wt
+      fmap programFrom . wtClusters $ wt
 
     chords =
       Nothing
@@ -337,142 +340,32 @@ runTest wt consts testOpts@(TestOpts yourParents _ _) = do
              || (yourParents == ExpectFailure)) .
           Savage.error . show . vsep $
             [ "*** You are a disappointment! " <> pretty (show yourParents) <> " ***"
-            , "Running PSV Snapshot OK: " <> pretty (show ne) <> " entities, " <> pretty (show nf) <> " facts."
-            , "PSV facts limit per entity attribute = " <> pretty (psvFactsLimit consts)
+            , "Running PSV Snapshot OK: " <> pretty (show ne) <> " entities, " <> pretty (show nf) <> " facts"
+            , "PSV facts limit = " <> pretty (psvFactsLimit consts)
+            , "----------------------------------------"
             , "Output types: "
-            , indent 2 . vsep . fmap (\(n,t) -> pretty n <> ": " <> pretty t) . List.concat . fmap wtOutputs . wtAttributes $ wt
+            , indent 2 . vsep . fmap (\(n,t) -> pretty n <> " :: " <> pretty t) . List.concat . fmap wtOutputs . wtClusters $ wt
+            , "----------------------------------------"
             , "Expected values from Core:"
             , indent 2 . pretty . Map.toList $ expectValues
+            , "----------------------------------------"
             , "Expected PSV:"
             , indent 2 . beautiful $ expectText
+            , "----------------------------------------"
             , "Got PSV:"
             , indent 2 . beautiful $ outputPsv
+            , "----------------------------------------"
             , "Input: "
             , indent 2 . beautiful $ inputPsv
+            , "----------------------------------------"
             , "Dropped: "
             , indent 2 . beautiful $ dropPsv
+            , "----------------------------------------"
+            -- , "Sea:"
+            -- , indent 2 . beautiful . LT.fromStrict $ source
+            -- , "----------------------------------------"
             ]
         pure ()
-
-
-longestLine :: WellTyped -> Int
-longestLine wt
-  | List.null (wtFacts wt)
-  = 0
-  | otherwise
-  = fromIntegral
-  $ LT.length
-  $ List.maximumBy (compare `on` LT.length)
-  $ fmap (LT.intercalate "|")
-  $ fmap fieldsOfFact $ wtFacts wt
-
-textOfOutputs :: Map Entity [(OutputName, BaseValue)] -> LT.Text
-textOfOutputs =
-  LT.unlines . linesOfOutputs
-
-linesOfOutputs :: Map Entity [(OutputName, BaseValue)] -> [LT.Text]
-linesOfOutputs =
-  let
-    lineOf e (n, v) =
-      case textOfOutputValue v of
-        Nothing ->
-          Nothing
-        Just u
-          | u == LT.fromStrict tombstone ->
-              Nothing
-          | otherwise ->
-              Just . LT.intercalate "|" $
-                [ LT.fromStrict . getEntity $ e
-                , LT.fromStrict . outputName $ n
-                , u ]
-  in
-    List.concat . fmap (catMaybes . (\(e, vs) -> fmap (lineOf e) vs)) . Map.toList
-
-textOfOutputValue :: BaseValue -> Maybe LT.Text
-textOfOutputValue v
- = do v' <- valueFromCore v
-      t  <- renderOutputValue v'
-      return $ LT.replace "\n" "\\n" $ LT.fromStrict t
-
-textSubstitution :: LT.Text -> LT.Text
-textSubstitution = LT.replace "\n" "\\n"
-
-
-textOfFacts :: [WellTypedValue] -> LT.Text
-textOfFacts vs =
-  LT.unlines (fmap (LT.intercalate "|") (fmap fieldsOfFact vs))
-
-fieldsOfFact :: WellTypedValue -> [LT.Text]
-fieldsOfFact (WellTypedValue e a v) =
-  let
-    (valueText, timeText) = textsOfValue v
-  in [ LT.fromStrict (getEntity e), LT.fromStrict (renderInputName a), valueText, timeText ]
-
-textsOfValue :: AsAt BaseValue -> (LT.Text, LT.Text)
-textsOfValue v =
-  (textOfValue (atFact v), textOfTime (atTime v))
-
-textOfValue :: BaseValue -> LT.Text
-textOfValue
- = LT.replace "\n" "\\n" -- this is the only really special character, not sure how we should deal with this
- . LT.fromStrict
- . renderValue tombstone
- . fromMaybe Tombstone
- . valueFromCore
-
-textOfTime :: Time -> LT.Text
-textOfTime = LT.fromStrict . renderTime
-
-withSystemTempDirectory :: FilePath -> (FilePath -> EitherT SeaError IO a) -> EitherT SeaError IO a
-withSystemTempDirectory template action = do
-  let acquire = liftIO (getTemporaryDirectory >>= \tmp -> createTempDirectory tmp template)
-      release = liftIO . removeDirectoryRecursive
-  bracketEitherT' acquire release action
-
-
-denseTextOfFacts :: [Entity] -> [AsAt BaseValue] -> LT.Text
-denseTextOfFacts entities vs =
-  LT.unlines (fmap (LT.intercalate "|") (denseFieldsOfFacts entities vs))
-
-denseFieldsOfFacts :: [Entity] -> [AsAt BaseValue] -> [[LT.Text]]
-denseFieldsOfFacts entities vs
-  | Just (AsAt v t) <- sequence' vs
-  , Just fs  <- sequence $ fmap (sequence . flip AsAt t . structValues) v
-  =  [ [ LT.fromStrict entity, valueText, timeText ]
-     | Entity entity         <- entities
-     , (valueText, timeText) <- denseTextsOfValues fs ]
-  | otherwise
-  =  [ [ LT.fromStrict entity, valueText, timeText ]
-     | Entity entity         <- entities
-     , (valueText, timeText) <- fmap textsOfValue vs ]
-  where
-    sequence' [] = Nothing
-    sequence' (AsAt x t : xs) = Just $ AsAt (x : fmap atFact xs) t
-    structValues
-      = \case VStruct m -> Just (Map.elems m)
-              _         -> Nothing
-
-denseTextsOfValues :: [AsAt [BaseValue]] -> [(LT.Text, LT.Text)]
-denseTextsOfValues vs =
-  List.zip
-    (fmap (LT.intercalate "|" . fmap textOfValue . atFact) vs)
-    (fmap (textOfTime . atTime) vs)
-
-denseDictionary :: InputName -> ValType -> Gen (Maybe S.PsvInputDenseDict)
-denseDictionary denseName (StructT (StructType m))
-  = do missingValue <- genMissingValue
-       let n         = renderInputName denseName
-       fs           <- mapM (\(t,v) -> pure . (t,) . (,v) =<< arbitrary)
-                            (Map.toList $ Map.mapKeys nameOfStructField m)
-       return $ Just
-              $ S.PsvInputDenseDict
-                  (Map.singleton (renderInputName denseName) fs)
-                  (maybe Map.empty (Map.singleton n) missingValue)
-                  n
-denseDictionary _ _ = return Nothing
-
-genMissingValue :: Gen (Maybe Text)
-genMissingValue = elements [Nothing, Just "NA", Just ""]
 
 ------------------------------------------------------------------------
 

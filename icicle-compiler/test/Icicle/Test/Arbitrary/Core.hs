@@ -1,6 +1,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards #-}
+{-# LANGUAGE TupleSections #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Icicle.Test.Arbitrary.Core where
 
@@ -33,7 +34,6 @@ import           Test.QuickCheck.Instances ()
 
 import           P
 
-import           Data.Maybe
 import           Data.Text  as T
 import qualified Data.List  as List
 import qualified Data.Map   as Map
@@ -82,12 +82,6 @@ instance Arbitrary Var where
   arbitrary =
    sized $ \size ->
     Var <$> elements viruses <*> choose (0, size)
-
-instance Arbitrary OutputName where
-  arbitrary =
-    OutputName <$>
-      (((<>) "output_") <$> elements muppets) <*>
-      (fromJust . asNamespace . ((<>) "namspace_") <$> elements simpsons)
 
 instance (Hashable n, Arbitrary n) => Arbitrary (Name n) where
   arbitrary =
@@ -256,10 +250,16 @@ genPrimType = elements
          , StringT ]
 
 genStructType :: Gen ValType -> Gen StructType
-genStructType genT
- = StructType . Map.fromList . List.take 10 <$> listOf genField
- where
-   genField = (,) <$> arbitrary <*> genT
+genStructType genT =
+  let
+    fieldName i =
+      (StructField ("field_" <> T.pack (show i)),)
+  in
+    StructType .
+    Map.fromList .
+    List.zipWith fieldName [(0::Int)..] .
+    List.take 10 <$>
+      listOf genT
 
 instance Arbitrary StructType where
   -- Structs have at most five fields, to prevent them from being too large.

@@ -143,7 +143,7 @@ renderValue tombstone val
    BooleanValue True
     -> "true"
    TimeValue v
-    -> renderTime v
+    -> renderTime TimeSerialisationInput v
 
    StructValue _
     -> json
@@ -314,7 +314,7 @@ jsonOfValue t val
     BooleanValue v
      -> A.Bool   v
     TimeValue    v
-     -> A.String $ renderTime v
+     -> A.String . renderTime TimeSerialisationInput $ v
     StructValue (Struct sfs)
      -> A.Object $ P.foldl insert HM.empty sfs
     ListValue (List l)
@@ -417,7 +417,7 @@ renderJsonValue = \case
    BooleanValue True ->
      pure "true"
    TimeValue v ->
-     pure . renderJsonString $ renderOutputTime v
+     pure . renderJsonString . renderTime TimeSerialisationOutput $ v
    StructValue kvs ->
      pure $ renderJsonStruct kvs
    ListValue xs ->
@@ -443,6 +443,6 @@ renderOutputValue = \case
    BooleanValue True ->
      pure "true"
    TimeValue v ->
-     pure $ renderOutputTime v
+     pure . renderTime TimeSerialisationOutput $ v
    x ->
      renderJsonValue x

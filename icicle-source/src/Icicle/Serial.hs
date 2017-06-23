@@ -41,7 +41,7 @@ renderEavt f =
             (getEntity . factEntity' . atFact) f
   <> "|" <> (renderInputName . factAttribute' . atFact) f
   <> "|" <> (factValue' . atFact) f
-  <> "|" <> (renderTime . atTime) f
+  <> "|" <> (renderTime TimeSerialisationInput . atTime) f
 
 parseEavt :: Text -> Either ParseError (AsAt Fact')
 parseEavt =

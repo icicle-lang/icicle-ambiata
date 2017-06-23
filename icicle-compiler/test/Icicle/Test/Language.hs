@@ -21,6 +21,9 @@ import qualified Icicle.Compiler as P
 
 import qualified Icicle.Source.Parser  as SP
 
+import           Icicle.Sea.Eval
+import qualified Icicle.Sea.Data as Sea
+
 import           Icicle.Test.Arbitrary
 
 import           Icicle.Internal.Pretty
@@ -40,29 +43,32 @@ import           X.Control.Monad.Trans.Either
 import           Disorder.Core.IO
 
 
-prop_languages_eval ewt = testIO $ do
-  let wtyp    = welltyped ewt
-      wt:_    = wtAttributes wtyp
-      ctx     = wtEvalContext wtyp
+prop_languages_eval =
+  forAll arbitrary $ \inputType ->
+  forAll (validated 100 $ tryGenAttributeWithInput inputType) $ \wtc ->
+  forAll (gEvalWellTyped wtc) $ \ewt ->
+  testIO $ do
+  let wt      = welltyped ewt
+      ctx     = wtEvalContext wt
       facts   = wtEvalFacts ewt
       q       = wtEvalDummyQuery ewt
       coreRes = P.coreEval ctx facts q
               $ C.renameProgram sourceNameFromTestName
-              $ wtCore wt
+              $ wtCore wtc
       flatRes = P.avalancheEval ctx facts q
               $ A.renameProgram sourceNameFromTestName
               $ A.eraseAnnotP
-              $ wtAvalancheFlat wt
+              $ wtAvalancheFlat wtc
   seaRes     <- runEitherT
               $ P.seaEval ctx facts q
               $ A.renameProgram sourceNameFromTestName
-              $ wtAvalancheFlat wt
+              $ wtAvalancheFlat wtc
   case coreRes of
     Left err
       -> return
        $ counterexample "Core eval failed"
        $ counterexample (show $ pretty err)
-       $ counterexample (show $ pretty (wtCore wt))
+       $ counterexample (show $ pretty (wtCore wtc))
        $ failed
     Right retCore
      -> case flatRes of
@@ -70,7 +76,7 @@ prop_languages_eval ewt = testIO $ do
             -> return
              $ counterexample "Flat Avalanche eval failed"
              $ counterexample (show $ pretty err)
-             $ counterexample (show $ pretty (wtAvalancheFlat wt))
+             $ counterexample (show $ pretty (wtAvalancheFlat wtc))
              $ failed
           Right retFlat
             -> case seaRes of
@@ -90,26 +96,27 @@ data EvalWellTyped = EvalWellTyped
   , wtEvalDummyQuery :: P.QueryTyped Source.Var
   } deriving (Show)
 
-instance Arbitrary EvalWellTyped where
-  arbitrary = do
-    wt <- arbitrary
-    return $ EvalWellTyped wt (mkFacts wt) (mkDummyQuery wt)
+gEvalWellTyped :: WellTypedCluster -> Gen EvalWellTyped
+gEvalWellTyped wta = do
+  wt <- validated 10 $ tryGenWellTypedForSingleAttribute AllowDupTime wta
+  return $ EvalWellTyped wt (mkFacts wt) (dummySourceOf wta)
 
 mkFacts :: WellTyped -> [D.AsAt D.Fact]
 mkFacts wt =
   catMaybes . fmap mkAsAt . wtFacts $ wt
   where
     mkAsAt (WellTypedValue ent attr a)
-      = D.AsAt <$> (D.Fact ent attr <$> factFromCoreValue (D.atFact a))
+      = D.AsAt <$> (D.Fact ent (D.inputName attr) <$> factFromCoreValue (D.atFact a))
                <*> pure (D.atTime a)
 
-mkDummyQuery :: WellTyped -> P.QueryTyped Source.Var
-mkDummyQuery wt
+dummySourceOf :: WellTypedCluster -> P.QueryTyped Source.Var
+dummySourceOf wt
   = let x = nameOf $ NameBase $ SP.Variable "dummy"
         pos = Parsec.initialPos "dummy"
+        input = Sea.clusterInputId . wtCluster $ wt
     in  S.QueryTop
-          (D.QualifiedInput $ wtInputId wt)
-          (fromMaybe (Savage.error "dummy") . D.parseOutputId . D.renderInputId $ wtInputId wt)
+          (D.QualifiedInput input)
+          (fromMaybe (Savage.error "dummy") . D.parseOutputId . D.renderInputId $ input)
           (S.Query [] $ S.Var (S.Annot pos S.UnitT []) x)
 
 factFromCoreValue :: BaseValue -> Maybe D.Value

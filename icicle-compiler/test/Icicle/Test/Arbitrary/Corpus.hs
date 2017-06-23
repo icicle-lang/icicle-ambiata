@@ -12,6 +12,8 @@ import qualified Data.Set as Set
 import qualified Data.Text as Text
 import           Data.Maybe
 
+import           Icicle.Internal.Pretty
+
 import           Icicle.Common.Base
 
 import           Icicle.Test.Arbitrary.Program
@@ -117,14 +119,21 @@ testAllCorpus dup genExtras prop =
 
     genAttributeForQuery (name, src) =
       case coreOfSource name src of
-        Left u -> Savage.error (Text.unpack name <> ":\n" <> Text.unpack src <> "\n\n" <> u)
-        Right core -> genWellTypedAttributeForQuery (name, core)
+        Left u ->
+          Savage.error . show . vsep $
+            [ "Corpus program cannot be converted to Core:"
+            , pretty u
+            , text . Text.unpack . renderOutputId $ name
+            , text . Text.unpack $ src
+            ]
+        Right core ->
+          genWellTypedClusterForQuery (name, core)
   in
     conjoin . fmap runForQuery $ queries
 
 
-genWellTypedAttributeForQuery :: (OutputId, C.Program () Var) -> Gen WellTypedAttribute
-genWellTypedAttributeForQuery (name, core) = do
+genWellTypedClusterForQuery :: (OutputId, C.Program () Var) -> Gen WellTypedCluster
+genWellTypedClusterForQuery (name, core) = do
   let
     streamType
       = InputType . C.inputType $ core
@@ -133,7 +142,7 @@ genWellTypedAttributeForQuery (name, core) = do
    Left err  ->
      Savage.error ("Generating attribute for corpus failed: " <> Text.unpack (renderOutputId name) <> "\n" <> err)
    Right wta' ->
-     return $ wta' { wtAttribute = fromJust . asAttributeName $ name }
+     return wta'
 
 
 genCore :: Gen (OutputId, C.Program () Var)

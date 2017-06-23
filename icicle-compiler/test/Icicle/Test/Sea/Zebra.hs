@@ -28,8 +28,6 @@ import           Foreign
 import           Foreign.C.String
 
 import           System.IO
-import           System.IO.Temp (createTempDirectory)
-import           System.Directory (getTemporaryDirectory, removeDirectoryRecursive)
 import qualified System.Posix as Posix
 
 import qualified Prelude as Savage
@@ -41,7 +39,7 @@ import qualified X.Data.Vector.Cons as Cons
 
 import           Disorder.Core.IO (testIO)
 import           Disorder.Jack (Property, Jack)
-import           Disorder.Jack (gamble, arbitrary, (===), vectorOf, suchThat, counterexample, discard)
+import           Disorder.Jack (gamble, arbitrary, (===), vectorOf, suchThat, counterexample)
 
 import           Jetski
 
@@ -67,7 +65,7 @@ import           Icicle.Common.Type
 import           Icicle.Common.Eval
 import           Icicle.Data
 import qualified Icicle.Data.Time as Icicle
-import           Icicle.Sea.FromAvalanche.State
+import           Icicle.Sea.Data
 import           Icicle.Sea.IO
 import           Icicle.Sea.Eval.Base
 import           Icicle.Test.Sea.Utils
@@ -108,17 +106,14 @@ runTest ::
      Mempool
   -> ZebraWellTyped
   -> EitherT SeaError IO Result
-runTest pool zwt@(ZebraWellTyped wt facts entities) =
- = join . liftIO . fmap hoistEither . withSegv (pp zwt) $
+runTest pool zwt@(ZebraWellTyped wt entities) =
+ join . liftIO . fmap hoistEither . withSegv (pp zwt) $
    runEitherT . fmap (Result . Map.fromList) . forM (Map.toList entities) $ \(entity, attributes) -> do
      let
        entity_id =
          ByteString.unpack . Zebra.unEntityId . Zebra.entityId $ entity
        entity_text =
          Entity . Text.pack $ entity_id
-       fact_count =
-         length . List.concat . fmap snd $ attributes
-
      bracketEitherT'
        (liftIO . newCStringLen $ entity_id)
        (liftIO . free . fst) $ \(id_bytes, id_length) ->
@@ -172,67 +167,58 @@ runTest pool zwt@(ZebraWellTyped wt facts entities) =
                         err <- liftIO $ peekCString (castPtr e2)
                         fail $ "failed to read entity: " <> err
 
-                      read_inputs <- saveInputs fleet_ptr (fmap fst $ attributes) programs
-
-                      return . concatMap snd $ read_inputs
+                      List.concat <$> saveInputs (fmap fst attributes) fleet_ptr
                    )
 
--- for each attribute, read a `new_fact_count` number of facts
-saveInputs ::
-     Ptr a
-  -> [(Attribute, ValType)]
-  -> [WellTypedAttribute]
-  -> EitherT SeaError IO [(Attribute, [BaseValue])]
-saveInputs fleet_ptr attributes programs =
-  forM (List.zip [0..] attributes) $ \(index, (attribute, ty)) -> do
-    case List.find ((== attribute) . wtAttribute) programs of
-      Nothing ->
-        hoistEither . Left . SeaProgramNotFound $ attribute
-      Just (WellTypedAttribute _ _ _ _ _ _ flat) -> do
-        struct_count <-
-          inputFieldsCount <$>
-            hoistEither (stateOfPrograms index attribute (flat :| []))
-        x <- bracketEitherT' (liftIO $ mallocBytes (struct_count * 8)) (liftIO . free) $ \buf -> do
-          program_ptr <- peekWordOff fleet_ptr (fleetProgramOf index)
-          tombstones_ptr <- peekWordOff program_ptr programInputError
-          fact_count <- peekWordOff program_ptr programInputNewCount
-          let
-            input_start
-              = programInputStart
+saveInputs :: [WellTypedCluster] -> Ptr a -> EitherT SeaError IO [[BaseValue]]
+saveInputs clusters fleet_ptr =
+  fmap (fmap snd) $
+  forM (List.zip [0..] clusters) $ \(index, cluster) -> do
+    let
+      ty =
+        clusterInputType . wtCluster $ cluster
+      struct_count =
+        inputFieldsCount . wtCluster $ cluster
+    bracketEitherT' (liftIO $ mallocBytes (struct_count * 8)) (liftIO . free) $ \buf -> do
+      program_ptr <- peekWordOff fleet_ptr (fleetProgramOf index)
+      tombstones_ptr <- peekWordOff program_ptr programInputError
+      fact_count <- peekWordOff program_ptr programInputNewCount
+      let
+        input_start
+          = programInputStart
 
-            -- slice out the input fields at the index (kind of like a transpose)
-            -- e.g slice out the second fact:
-            -- src:
-            --           fact_1 fact_2 ...
-            --   field_1        A
-            --   field_2        B
-            --   ...
-            -- dst:
-            --   [ A, B, ... ]
-            --
-            slice dst fact_index =
-              forM_ [0 .. struct_count - 1] $ \field_index -> do
-                ptr_head <- peekWordOff program_ptr (input_start + field_index)
-                let ptr_src = plusPtr ptr_head (fact_index  * 8)
-                    ptr_dst = plusPtr dst      (field_index * 8)
-                copyBytes ptr_dst ptr_src 8
+        -- slice out the input fields at the index (kind of like a transpose)
+        -- e.g slice out the second fact:
+        -- src:
+        --           fact_1 fact_2 ...
+        --   field_1        A
+        --   field_2        B
+        --   ...
+        -- dst:
+        --   [ A, B, ... ]
+        --
+        slice dst fact_index =
+          forM_ [0 .. struct_count - 1] $ \field_index -> do
+            ptr_head <- peekWordOff program_ptr (input_start + field_index)
+            let ptr_src = plusPtr ptr_head (fact_index  * 8)
+                ptr_dst = plusPtr dst      (field_index * 8)
+            copyBytes ptr_dst ptr_src 8
 
-            peekInputs xs fact_index
-              | fact_index == fact_count = return xs
-              | otherwise = do
-                  tombstone <- liftIO $ peekWordOff tombstones_ptr fact_index
+        peekInputs xs fact_index
+          | fact_index == fact_count = return xs
+          | otherwise = do
+              tombstone_value <- liftIO $ peekWordOff tombstones_ptr fact_index
 
-                  x <- case errorOfWord tombstone of
-                     ExceptNotAnError -> do
-                       liftIO $ slice buf fact_index
-                       VRight . snd <$> peekOutput buf 0 ty
-                     e ->
-                       pure (VLeft (VError e))
+              x <- case errorOfWord tombstone_value of
+                 ExceptNotAnError -> do
+                   liftIO $ slice buf fact_index
+                   VRight . snd <$> peekOutput buf 0 ty
+                 e ->
+                   pure (VLeft (VError e))
 
-                  peekInputs (xs <> [x]) (fact_index + 1)
+              peekInputs (xs <> [x]) (fact_index + 1)
 
-          (attribute,) <$> peekInputs [] 0
-        return x
+      (cluster,) <$> peekInputs [] 0
 
 --------------------------------------------------------------------------------
 
@@ -245,8 +231,8 @@ data TestError
 
 data ZebraWellTyped = ZebraWellTyped {
     zWellTyped :: WellTyped
-  , zFacts     :: Map Zebra.Entity [((Attribute, ValType), [BaseValue])]
-  -- ^ Facts grouped by entity attribute, for checking against values translated from zebra.
+  , zFacts     :: Map Zebra.Entity [(WellTypedCluster, [BaseValue])]
+  -- ^ facts grouped by entity attribute, for checking against values translated from zebra.
   }
 
 instance Show ZebraWellTyped where
@@ -290,14 +276,12 @@ jZebraWellTyped welltyped = do
     groupedByEntityAttribute =
       Map.fromList $
         flip fmap (List.nub . fmap eavtEntity . wtFacts $ wt) $ \entity ->
-          (entity,) $ flip fmap (wtAttributes wt) $ \attribute ->
-              let
-                a = wtAttribute attribute
-              in
-                ((a, wtFactType attribute),
-                  fmap (atFact . eavtValue) .
-                  List.filter (\w -> eavtEntity w == entity && eavtAttribute w == a) $
-                    wtFacts wt)
+          (entity,) $ flip fmap (wtClusters wt) $ \attribute ->
+             ( attribute
+             , fmap (atFact . eavtValue) .
+               flip List.filter (wtFacts wt) $ \w ->
+                 eavtEntity w == entity && eavtInputId w == clusterInputId (wtCluster attribute)
+             )
 
   xs <-
     forM (Map.toList groupedByEntityAttribute) $ \(entity, groupedByAttribute) -> do
@@ -305,8 +289,8 @@ jZebraWellTyped welltyped = do
         e =
           Zebra.EntityId (Text.encodeUtf8 (getEntity entity))
       zAttributes <-
-        forM groupedByAttribute $ \((_, ty), values) -> do
-          case zebraOfFacts ty values of
+        forM groupedByAttribute $ \(cluster, values) -> do
+          case zebraOfFacts (wtFactType cluster) values of
             Left err ->
               Savage.error (show err)
             Right (_, tombstones, _, table) -> do
@@ -531,7 +515,7 @@ codeOf wt = do
           (PsvOutputConfig (Snapshot testSnapshotTime) PsvOutputDense defaultOutputMissing))
         (InputOpts AllowDupTime Map.empty)
         ("" :: String)
-    attrs = fmap (\w -> (wtInputId w, wtAvalancheFlat w :| [])) (wtAttributes wt)
+    attrs = fmap (second (:|[]) . takeFlatProgram) . wtClusters $ wt
 
   src <- codeOfPrograms "Icicle.Test.Sea.Zebra.codeOf" dummy (fmap fst attrs) attrs
 

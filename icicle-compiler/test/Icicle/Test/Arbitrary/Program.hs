@@ -16,7 +16,7 @@ import           Icicle.Common.Data
 import           Icicle.Common.Eval
 import           Icicle.Common.Type
 import           Icicle.Data
-import           Icicle.Data.Time (renderTime, unsafeTimeOfYMD)
+import           Icicle.Data.Time
 import           Icicle.Encoding (renderValue, renderOutputValue)
 import           Icicle.Internal.Pretty
 import           Icicle.Sea.Eval
@@ -30,12 +30,14 @@ import qualified Icicle.Avalanche.Prim.Flat as A
 import qualified Icicle.Avalanche.Program as A
 import qualified Icicle.Avalanche.Simp as A
 import qualified Icicle.Avalanche.Statement.Flatten as A
-import qualified Icicle.Core.Eval.Program   as PV
-import qualified Icicle.Core.Exp.Prim      as C
-import qualified Icicle.Core.Program.Check as C
-import qualified Icicle.Core.Program.Program as C
-import qualified Icicle.Sea.Eval as S
-import qualified Icicle.Sea.FromAvalanche.Analysis as S
+import qualified Icicle.Core.Eval.Program   as Core
+import qualified Icicle.Core.Exp.Prim      as Core
+import qualified Icicle.Core.Program.Check as Core
+import qualified Icicle.Core.Program.Program as Core
+import qualified Icicle.Sea.Eval as Sea
+import qualified Icicle.Sea.FromAvalanche.Analysis as Sea
+import qualified Icicle.Sea.FromAvalanche.State as Sea
+import qualified Icicle.Sea.Data as Sea
 
 import           Control.Monad.IO.Class (liftIO)
 
@@ -47,6 +49,7 @@ import qualified Data.Map as Map
 import qualified Data.Set as Set
 import qualified Data.Text as Text
 import qualified Data.Text.Lazy as LT
+import qualified Data.List.NonEmpty as NonEmpty
 
 import           Text.Show.Pretty (ppShow)
 
@@ -73,26 +76,27 @@ newtype InputType = InputType {
 data WellTyped = WellTyped {
     wtEvalContext :: EvalContext
   , wtFacts       :: [WellTypedValue]
-  , wtAttributes  :: [WellTypedAttribute]
+  , wtClusters    :: [WellTypedCluster]
   }
 
 data WellTypedValue = WellTypedValue {
-    eavtEntity    :: !Entity
-  , eavtAttribute :: !Attribute
-  , eavtValue     :: !(AsAt BaseValue)
+    eavtEntity  :: !Entity
+  , eavtInputId :: !InputId
+  , eavtValue   :: !(AsAt BaseValue)
   }
 
 -- FIXME
--- This currently generates one compute kernel per attribute only.
--- We leave the testing of multiple compute kernels to PsvFission, which does its own thing.
--- But perhaps it's better to generate multiple compute kernels here too.
-data WellTypedAttribute = WellTypedAttribute {
-    wtInputId       :: InputId
-  , wtFactType      :: !ValType
-  , wtInputType     :: !InputType -- SumT ErrorT FactType
-  , wtOutputs       :: [(OutputName, ValType)]
-  , wtCore          :: !(C.Program () Var)
-  , wtAvalanche     :: !(A.Program () Var C.Prim)
+--
+-- This only gnerates one compute kernel for each cluster.
+-- PsvFission tests multiple kernels by doing its own thing.
+-- Perhaps roll that into this as well.
+--
+data WellTypedCluster = WellTypedCluster {
+    wtCluster       :: Sea.Cluster
+  , wtFactType      :: !ValType -- clusterInputType == SumT ErrorT wtFactType
+  , wtOutputs       :: [(OutputId, ValType)]
+  , wtCore          :: !(Core.Program () Var)
+  , wtAvalanche     :: !(A.Program () Var Core.Prim)
   , wtAvalancheFlat :: !(A.Program (Annot ()) Var A.Prim)
   }
 
@@ -102,7 +106,7 @@ instance Show WellTyped where
 instance Show WellTypedValue where
   show x = displayS (renderPretty 0.8 80 (pretty x)) ""
 
-instance Show WellTypedAttribute where
+instance Show WellTypedCluster where
   show x = displayS (renderPretty 0.8 80 (pretty x)) ""
 
 instance Pretty WellTyped where
@@ -110,8 +114,8 @@ instance Pretty WellTyped where
     vsep $
       [ "Well-typed:"
       , indent 2 $ "Attributes ="
-      , indent 4 $ vsep (fmap pretty (wtAttributes wt))
-      , indent 2 $ "Chord time  = " <> (text . show . renderTime . evalSnapshotTime . wtEvalContext $ wt)
+      , indent 4 $ vsep (fmap pretty (wtClusters wt))
+      , indent 2 $ "Chord time  = " <> (text . show . renderTime TimeSerialisationOutput . evalSnapshotTime . wtEvalContext $ wt)
       , indent 2 $ "Max map size = " <> (text . show . evalMaxMapSize . wtEvalContext $ wt)
       , indent 2 $ "EAVTs ="
       , indent 4 $ vsep (fmap pretty (wtFacts wt))
@@ -121,18 +125,18 @@ instance Pretty WellTypedValue where
   pretty eavt =
     encloseSep lbracket rbracket comma $
       [ pretty (eavtEntity eavt)
-      , pretty (eavtAttribute eavt)
+      , pretty (eavtInputId eavt)
       , text . show . atFact . eavtValue $ eavt
-      , text . show . renderTime . atTime . eavtValue $ eavt
+      , text . show . renderTime TimeSerialisationInput . atTime . eavtValue $ eavt
       ]
 
-instance Pretty WellTypedAttribute where
+instance Pretty WellTypedCluster where
   pretty wt =
     vsep $
-      [ "Input ID = " <> pretty (wtInputId wt)
-      , "Fact type = " <> pretty (wtFactType  wt)
-      --, "Core ="
-      --, indent 2 $ pretty (wtCore wt)
+      [ "Cluster input Id = " <> pretty (Sea.clusterInputId . wtCluster $ wt)
+      , "Cluster fact type = " <> pretty (wtFactType wt)
+      , "Core ="
+      , indent 2 $ pretty (wtCore wt)
       --, "Avalanche ="
       --, indent 2 $ pretty (wtAvalanche wt)
       --, "Flat ="
@@ -146,11 +150,15 @@ instance Arbitrary InputType where
 
 instance Arbitrary WellTyped where
   arbitrary =
-    validated 10 (tryGenWellTypedWithInput S.DoNotAllowDupTime =<< arbitrary)
+    validated 10 (tryGenWellTypedWithInput Sea.DoNotAllowDupTime =<< arbitrary)
 
-instance Arbitrary WellTypedAttribute where
+instance Arbitrary WellTypedCluster where
   arbitrary =
     validated 10 (tryGenAttributeWithInput =<< arbitrary)
+
+takeFlatProgram :: WellTypedCluster -> (InputId, A.Program (Annot ()) Var A.Prim)
+takeFlatProgram cluster =
+  (Sea.clusterInputId . wtCluster $ cluster, wtAvalancheFlat cluster)
 
 -- | Savagely big (hopefully enough) max map size
 genSufficientMaxMapSize :: Int -> Gen Int
@@ -159,8 +167,8 @@ genSufficientMaxMapSize numFacts = do
   return (n * numFacts)
 
 tryGenWellTypedForSingleAttribute ::
-     S.InputAllowDupTime
-  -> WellTypedAttribute
+     Sea.InputAllowDupTime
+  -> WellTypedCluster
   -> Gen (Maybe WellTyped)
 tryGenWellTypedForSingleAttribute allowDupTime attribute = do
   (facts, time) <- genFactsForAttributes allowDupTime [attribute]
@@ -168,12 +176,12 @@ tryGenWellTypedForSingleAttribute allowDupTime attribute = do
   return . Just . WellTyped (EvalContext time maxMapSize) facts $ [attribute]
 
 tryGenWellTypedWithInput ::
-     S.InputAllowDupTime
+     Sea.InputAllowDupTime
   -> InputType
   -> Gen (Maybe WellTyped)
 tryGenWellTypedWithInput allowDupTime ty = do
   as <-
-    replaceAttributeNames <$>
+    replaceInputNamesWithUniques <$>
       validatedNonEmpty 10
         (tryGenAttributeWithInput ty)
   (facts, time) <- genFactsForAttributes allowDupTime as
@@ -181,13 +189,13 @@ tryGenWellTypedWithInput allowDupTime ty = do
   return . Just . WellTyped (EvalContext time maxMapSize) facts $ as
 
 tryGenWellTypedWithInputAndOutput ::
-     S.InputAllowDupTime
+     Sea.InputAllowDupTime
   -> InputType
   -> ValType
   -> Gen (Maybe WellTyped)
 tryGenWellTypedWithInputAndOutput allowDupTime inputType outputType = do
   as <-
-    replaceAttributeNames <$>
+    replaceInputNamesWithUniques <$>
       validatedNonEmpty 10
         (tryGenAttributeWithInputAndOutput inputType outputType)
   (facts, time) <- genFactsForAttributes allowDupTime as
@@ -195,13 +203,13 @@ tryGenWellTypedWithInputAndOutput allowDupTime inputType outputType = do
   return . Just . WellTyped (EvalContext time maxMapSize) facts $ as
 
 tryGenWellTypedFromCore' ::
-     S.InputAllowDupTime
+     Sea.InputAllowDupTime
   -> InputType
-  -> C.Program () Var
+  -> Core.Program () Var
   -> Gen (Either Savage.String WellTyped)
 tryGenWellTypedFromCore' allowDupTime ty core = do
   attrs <-
-    fmap replaceAttributeNames <$>
+    fmap replaceInputNamesWithUniques <$>
       validatedNonEmpty' 10
         (tryGenAttributeFromCore' ty core)
   case attrs of
@@ -212,75 +220,107 @@ tryGenWellTypedFromCore' allowDupTime ty core = do
       maxMapSize <- genSufficientMaxMapSize (length facts)
       return . Right . WellTyped (EvalContext time maxMapSize) facts $ as
 
-replaceAttributeNames :: [WellTypedAttribute] -> [WellTypedAttribute]
-replaceAttributeNames =
-  flip List.zipWith [(0::Int)..] $ \i x ->
-    x { wtAttribute = fromJust . asAttributeName $ ("concrete_" <> Text.pack (show i))}
+replaceInputNamesWithUniques :: [WellTypedCluster] -> [WellTypedCluster]
+replaceInputNamesWithUniques =
+  flip List.zipWith [(0::Int)..] $ \i w ->
+    w
+      { wtCluster =
+          (wtCluster w)
+            { Sea.clusterInputId
+                = fromJust (parseInputId ("test:input_" <> Text.pack (show i)))
+            }
+       }
 
 genWellTypedWithDuplicateTimes :: Gen WellTyped
 genWellTypedWithDuplicateTimes
- = validated 10 (tryGenWellTypedWithInput S.AllowDupTime =<< arbitrary)
+ = validated 10 (tryGenWellTypedWithInput Sea.AllowDupTime =<< arbitrary)
 
-evalWellTyped :: WellTyped -> Int -> Map Entity [(OutputName, BaseValue)]
+evalWellTyped :: WellTyped -> Int -> Map Entity [(OutputId, BaseValue)]
 evalWellTyped wt factsLimit =
     Map.unionsWith (<>) .
-    fmap (evalWellTypedAttribute factsLimit (wtEvalContext wt) (wtFacts wt)) .
-    wtAttributes $
+    fmap (evalWellTypedCluster factsLimit (wtEvalContext wt) (wtFacts wt)) .
+    wtClusters $
       wt
 
 -- | NOTE
 --   This duals as a specification for PSV dropping semantics.
 --
-evalWellTypedAttribute ::
+evalWellTypedCluster ::
      Int
   -> EvalContext
   -> [WellTypedValue]
-  -> WellTypedAttribute
-  -> Map Entity [(OutputName, BaseValue)]
-evalWellTypedAttribute factsLimit evalContext wellTypedValues (WellTypedAttribute attr factType _ _ core _ _) =
+  -> WellTypedCluster
+  -> Map Entity [(OutputId, BaseValue)]
+evalWellTypedCluster factsLimit evalContext wellTypedValues wtc =
   let
-    -- 1. check if the entity has any attribute with a fact count exceeding the facts limit.
-    --    if so drop the entity (i.e. this entity will not be in the psv sparse or dense output)
-    aboveLimit =
+    cluster =
+      wtCluster wtc
+    inputId =
+      Sea.clusterInputId cluster
+    factType =
+      wtFactType wtc
+    core =
+      wtCore wtc
+
+    -- Check if the entity has any attribute with a fact count exceeding the facts limit.
+    -- If so drop the entity (i.e. this entity will not be in the psv sparse or dense output)
+    -- This needs to be done before we add the dummy entities so that entities that exceed
+    -- the limnit still get an output if the query returns a constant.
+    entitiesExceedingLimit =
       List.nub .
       fmap fst .
       Map.keys .
       Map.filter (\c -> c > factsLimit) .
-      foldr (\v m -> Map.insertWith (+) (eavtEntity v, eavtAttribute v) 1 m) Map.empty $
+      foldr (\v m -> Map.insertWith (+) (eavtEntity v, eavtInputId v) 1 m) Map.empty $
         wellTypedValues
 
-    -- 2. check if the entity has any fact for this attribute.
-    --    if not drop the entity (i.e. this entity will not be in the psv sparse or dense output)
-    noFactsForThisAttribute =
+    -- If there is no fact or if all facts are tombstones for this attribute, we still
+    -- want to run compute.
+    -- e.g. input: homer|tombstone|2000-1-1
+    --      query: feature foo  ~> None
+    --      should still gives:
+    --      homer|None
+    --      marge|None
+    factsNotForThisInputId v =
+      eavtInputId v /= inputId ||
+      atFact (eavtValue v) == VError ExceptTombstone
+
+    entitiesWithNoFactsOrAllTombstones =
       List.nub .
       fmap eavtEntity .
-      List.filter ((/= attr) . eavtAttribute) $
+      List.concat .
+      List.filter (not . null) .
+      List.groupBy ((==) `on` eavtEntity).
+      List.filter factsNotForThisInputId $
         wellTypedValues
 
-    -- 3. only use the facts for this attribute.
-    inputs =
-      List.filter ((== attr) . fst) .
-      List.zipWith mkInput [0..] $
-        wellTypedValues
+    entitiesThatWillNotBeComputed =
+      entitiesExceedingLimit <> entitiesWithNoFactsOrAllTombstones
 
-    -- 4. if there is no fact for this attribute, still run compute.
-    inputs' =
-      inputs <> fmap ((attr,) . (, dummy)) noFactsForThisAttribute
+    dummyValue =
+      AsAt
+        (BubbleGumFact (Flavour 0 (unsafeTimeOfYMD 0 0 0)), defaultOfType factType)
+        (unsafeTimeOfYMD 0 0 0)
 
-    inputs'' =
-      List.groupBy ((==) `on` fst) .
-      fmap snd .
-      List.filter (not . (`elem` aboveLimit) . fst . snd) $
-        inputs'
+    dummyEntities =
+      fmap ((inputId,) . (, dummyValue)) entitiesThatWillNotBeComputed
 
-    dummy =
-      AsAt (BubbleGumFact (Flavour 0 (unsafeTimeOfYMD 0 0 0)), defaultOfType factType) (unsafeTimeOfYMD 0 0 0)
-
-    mkInput ix (WellTypedValue entity a (AsAt fact time)) =
+    -- Only run compute on the facts for this attribute.
+    mkComputeInput ix (WellTypedValue entity a (AsAt fact time)) =
       (a, (entity, AsAt (BubbleGumFact (Flavour ix time), fact) time))
 
+    actualInputs =
+      List.zipWith mkComputeInput [0..] .
+      List.filter (not . (`elem` entitiesThatWillNotBeComputed) . eavtEntity) $
+        wellTypedValues
+
+    inputs =
+      List.groupBy ((==) `on` fst) .
+      fmap snd $
+        actualInputs <> dummyEntities
+
     eval values =
-      case PV.eval evalContext values core of
+      case Core.eval evalContext values core of
         Left e ->
           Savage.error ("Impossible! Failed to evaluate well-typed Core: " <> show e)
         Right xs ->
@@ -294,23 +334,23 @@ evalWellTypedAttribute factsLimit evalContext wellTypedValues (WellTypedAttribut
           [(e,x:fmap snd xss)]
   in
     Map.fromList .
-    fmap (second (PV.value . eval)) .
+    fmap (second (Core.value . eval)) .
     concatMap groupByEntity $
-      inputs''
+      inputs
 
 
 --------------------------------------------------------------------------------
 
 genVTs ::
-     S.InputAllowDupTime
+     Sea.InputAllowDupTime
   -> InputType
   -> Gen [AsAt BaseValue]
 genVTs allowDupTime (unInputType -> ty) = do
   (inputs, _) <-
     case allowDupTime of
-      S.AllowDupTime ->
+      Sea.AllowDupTime ->
         inputsForType ty
-      S.DoNotAllowDupTime ->
+      Sea.DoNotAllowDupTime ->
         first (List.sortBy (compare `on` atTime) . List.nubBy ((==) `on` atTime)) <$> inputsForType ty
   let
     valueOrTombstone (VLeft (VError _)) =
@@ -320,8 +360,8 @@ genVTs allowDupTime (unInputType -> ty) = do
   return (fmap (fmap (valueOrTombstone . snd)) $ inputs)
 
 genEAVTs ::
-     S.InputAllowDupTime
-  -> [(Attribute, InputType)]
+     Sea.InputAllowDupTime
+  -> [(InputId, InputType)]
   -> Gen [WellTypedValue]
 genEAVTs allowDupTime tys = do
   e <- Entity <$> elements southpark
@@ -337,11 +377,11 @@ genEAVTs allowDupTime tys = do
   return . List.concat . List.concat $ vs
 
 genFactsForAttributes ::
-     S.InputAllowDupTime
-  -> [WellTypedAttribute]
+     Sea.InputAllowDupTime
+  -> [WellTypedCluster]
   -> Gen ([WellTypedValue], Time)
 genFactsForAttributes allowDupTime as = do
-  facts <- genEAVTs allowDupTime (fmap (\wt -> (wtAttribute wt, wtInputType wt)) as)
+  facts <- genEAVTs allowDupTime (fmap takeInput as)
   case facts of
     [] ->
       (facts,) <$> arbitrary
@@ -352,6 +392,10 @@ genFactsForAttributes allowDupTime as = do
       in
         return (facts, latestTime)
 
+takeInput :: WellTypedCluster -> (InputId, InputType)
+takeInput w =
+  (Sea.clusterInputId . wtCluster $ w, InputType . Sea.clusterInputType . wtCluster $ w)
+
 --------------------------------------------------------------------------------
 
 inputTypeOf :: ValType -> InputType
@@ -360,7 +404,7 @@ inputTypeOf ty
 
 tryGenAttributeWithInput ::
      InputType
-  -> Gen (Maybe WellTypedAttribute)
+  -> Gen (Maybe WellTypedCluster)
 tryGenAttributeWithInput ty = do
   core <- programForStreamType (unInputType ty)
   tryGenAttributeFromCore ty core
@@ -368,12 +412,12 @@ tryGenAttributeWithInput ty = do
 tryGenAttributeWithInputAndOutput ::
      InputType
   -> ValType
-  -> Gen (Maybe WellTypedAttribute)
+  -> Gen (Maybe WellTypedCluster)
 tryGenAttributeWithInputAndOutput i out = do
  wt <- tryGenAttributeWithInput i
  case wt of
   Just wt' -> return $ do
-    checked <- fromEither $ C.checkProgram $ wtCore wt'
+    checked <- fromEither $ Core.checkProgram $ wtCore wt'
     case any ((==out) . functionReturns . snd) $ checked of
      True -> return wt'
      False -> Nothing
@@ -381,17 +425,17 @@ tryGenAttributeWithInputAndOutput i out = do
 
 tryGenAttributeFromCore ::
      InputType
-  -> C.Program () Var
-  -> Gen (Maybe WellTypedAttribute)
+  -> Core.Program () Var
+  -> Gen (Maybe WellTypedCluster)
 tryGenAttributeFromCore ty core =
    fromEither <$> tryGenAttributeFromCore' ty core
 
 tryGenAttributeFromCore' ::
      InputType
-  -> C.Program () Var
-  -> Gen (Either Savage.String WellTypedAttribute)
-tryGenAttributeFromCore' sty core
-  | SumT ErrorT ty <- unInputType sty = do
+  -> Core.Program () Var
+  -> Gen (Either Savage.String WellTypedCluster)
+tryGenAttributeFromCore' (InputType sty) core
+  | SumT ErrorT ty <- sty = do
       let
         replaceStmts prog stms
           = prog { A.statements = stms }
@@ -403,8 +447,9 @@ tryGenAttributeFromCore' sty core
           Annot (FunT [] UnitT) ()
 
       attribute <- arbitrary
+
       return $ do
-        checked <- nobodyCares (C.checkProgram core)
+        checked <- nobodyCares (Core.checkProgram core)
         let outputs = fmap (second functionReturns) checked
         _       <- traverse (supportedOutputType . functionReturns . snd) checked
         let avalanche = testFresh "fromCore" $ A.programFromCore namer core
@@ -417,14 +462,18 @@ tryGenAttributeFromCore' sty core
           sequence .
           fmap supportedOutputType .
           Set.toList .
-          S.typesOfProgram $
+          Sea.typesOfProgram $
             simplified
 
+        -- FIXME
+        -- Single-kernel cluster only (see comment above).
+        let clusterId = Sea.ClusterId 0 -- nobody cares
+        cluster <- nobodyCares (Sea.clusterOfPrograms clusterId attribute (NonEmpty.fromList [simplified]))
+
         let
-          wta = WellTypedAttribute {
-            wtInputId       = attribute
+          wta = WellTypedCluster {
+            wtCluster       = cluster
           , wtFactType      = ty
-          , wtInputType     = sty
           , wtOutputs       = outputs
           , wtCore          = core
           , wtAvalanche     = avalanche
@@ -439,7 +488,7 @@ tryGenAttributeFromCore' sty core
 -- If the input are structs, we can pretend it's a dense value
 -- We can't treat other values as a single-field dense struct because the
 -- generated programs do not treat them as such.
-genWellTypedWithStruct :: S.InputAllowDupTime -> Gen WellTyped
+genWellTypedWithStruct :: Sea.InputAllowDupTime -> Gen WellTyped
 genWellTypedWithStruct allowDupTime = validated 10 $ do
   st <- arbitrary :: Gen StructType
   tryGenWellTypedWithInput allowDupTime (inputTypeOf $ StructT st)
@@ -628,7 +677,7 @@ isSupportedPsvOutputTypeNoBuf = \case
 
 --------------------------------------------------------------------------------
 
-genPsvConstants :: WellTyped -> Gen S.PsvConstants
+genPsvConstants :: WellTyped -> Gen Sea.PsvConstants
 genPsvConstants wt = do
   -- maximum number of rows to read before compute
   let inc x = x + 1
@@ -638,7 +687,7 @@ genPsvConstants wt = do
   inputBuf <- str . getPositive <$> arbitrary
   let outputBuf = inputBuf
   factsLimit <- inc . getPositive <$> arbitrary
-  return $ S.PsvConstants maxRowCount inputBuf outputBuf factsLimit (evalMaxMapSize (wtEvalContext wt))
+  return $ Sea.PsvConstants maxRowCount inputBuf outputBuf factsLimit (evalMaxMapSize (wtEvalContext wt))
 
 longestLine :: WellTyped -> Int
 longestLine wt
@@ -651,11 +700,11 @@ longestLine wt
   $ fmap (LT.intercalate "|")
   $ fmap fieldsOfFact $ wtFacts wt
 
-textOfOutputs :: Map Entity [(OutputName, BaseValue)] -> LT.Text
+textOfOutputs :: Map Entity [(OutputId, BaseValue)] -> LT.Text
 textOfOutputs =
   LT.unlines . linesOfOutputs
 
-linesOfOutputs :: Map Entity [(OutputName, BaseValue)] -> [LT.Text]
+linesOfOutputs :: Map Entity [(OutputId, BaseValue)] -> [LT.Text]
 linesOfOutputs =
   let
     lineOf e (n, v) =
@@ -668,7 +717,7 @@ linesOfOutputs =
           | otherwise ->
               Just . LT.intercalate "|" $
                 [ LT.fromStrict . getEntity $ e
-                , LT.fromStrict . outputName $ n
+                , LT.fromStrict . renderOutputId $ n
                 , u ]
   in
     List.concat . fmap (catMaybes . (\(e, vs) -> fmap (lineOf e) vs)) . Map.toList
@@ -690,12 +739,12 @@ textOfFacts vs =
 fieldsOfFact :: WellTypedValue -> [LT.Text]
 fieldsOfFact (WellTypedValue e a v) =
   let
-    (valueText, timeText) = textsOfValue v
-  in [ LT.fromStrict (getEntity e), LT.fromStrict (takeAttributeName a), valueText, timeText ]
+    (valueText, timeText) = textOfInputValues v
+  in [ LT.fromStrict (getEntity e), LT.fromStrict (renderInputId a), valueText, timeText ]
 
-textsOfValue :: AsAt BaseValue -> (LT.Text, LT.Text)
-textsOfValue v =
-  (textOfValue (atFact v), textOfTime (atTime v))
+textOfInputValues :: AsAt BaseValue -> (LT.Text, LT.Text)
+textOfInputValues v =
+  (textOfValue (atFact v), textOfInputTime (atTime v))
 
 textOfValue :: BaseValue -> LT.Text
 textOfValue
@@ -705,8 +754,8 @@ textOfValue
  . fromMaybe Tombstone
  . valueFromCore
 
-textOfTime :: Time -> LT.Text
-textOfTime = LT.fromStrict . renderTime
+textOfInputTime :: Time -> LT.Text
+textOfInputTime = LT.fromStrict . renderTime TimeSerialisationInput
 
 withSystemTempDirectory :: FilePath -> (FilePath -> EitherT SeaError IO a) -> EitherT SeaError IO a
 withSystemTempDirectory template action = do
@@ -725,11 +774,11 @@ denseFieldsOfFacts entities vs
   , Just fs  <- sequence $ fmap (sequence . flip AsAt t . structValues) v
   =  [ [ LT.fromStrict entity, valueText, timeText ]
      | Entity entity         <- entities
-     , (valueText, timeText) <- denseTextsOfValues fs ]
+     , (valueText, timeText) <- denseTextOfInputValues fs ]
   | otherwise
   =  [ [ LT.fromStrict entity, valueText, timeText ]
      | Entity entity         <- entities
-     , (valueText, timeText) <- fmap textsOfValue vs ]
+     , (valueText, timeText) <- fmap textOfInputValues vs ]
   where
     sequence' [] = Nothing
     sequence' (AsAt x t : xs) = Just $ AsAt (x : fmap atFact xs) t
@@ -737,21 +786,21 @@ denseFieldsOfFacts entities vs
       = \case VStruct m -> Just (Map.elems m)
               _         -> Nothing
 
-denseTextsOfValues :: [AsAt [BaseValue]] -> [(LT.Text, LT.Text)]
-denseTextsOfValues vs =
+denseTextOfInputValues :: [AsAt [BaseValue]] -> [(LT.Text, LT.Text)]
+denseTextOfInputValues vs =
   List.zip
     (fmap (LT.intercalate "|" . fmap textOfValue . atFact) vs)
-    (fmap (textOfTime . atTime) vs)
+    (fmap (textOfInputTime . atTime) vs)
 
-denseDictionary :: Attribute -> ValType -> Gen (Maybe PsvInputDenseDict)
+denseDictionary :: OutputId -> ValType -> Gen (Maybe PsvInputDenseDict)
 denseDictionary denseName (StructT (StructType m))
   = do missingValue <- genMissingValue
-       let n         = takeAttributeName denseName
+       let n         = renderOutputId denseName
        fs           <- mapM (\(t,v) -> pure . (t,) . (,v) =<< arbitrary)
                             (Map.toList $ Map.mapKeys nameOfStructField m)
        return $ Just
               $ PsvInputDenseDict
-                  (Map.singleton (takeAttributeName denseName) fs)
+                  (Map.singleton (renderOutputId denseName) fs)
                   (maybe Map.empty (Map.singleton n) missingValue)
                   n
 denseDictionary _ _ = return Nothing
