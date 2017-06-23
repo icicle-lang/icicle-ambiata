@@ -270,15 +270,15 @@ handleLine state line = let st = sourceState state in
     let funEnv = filter (\(n,_) -> not $ Set.member n names)
                $ dictionaryFunctions   d
 
-    (fun,logs) <- hoist $ wrapSourceError $ Source.sourceCheckFunLog funEnv parsed
-    forM_ (fun `L.zip` logs) $ \((nm, (typ, annot)),log0) -> do
+    (funEnv',logs) <- hoist $ wrapSourceError $ Source.sourceCheckFunLog funEnv parsed
+    let fundefs = filter (\(n,_) -> Set.member n names) funEnv'
+    forM_ (fundefs `L.zip` logs) $ \((nm, (typ, annot)),log0) -> do
       prettyOut (SourceRepl.hasType      . sourceState) ("- Type: " <> show (pretty nm))      typ
       prettyOut (SourceRepl.hasAnnotated . sourceState) ("- Annotated: " <> show (pretty nm)) (Source.PrettyAnnot annot)
       lift $ when (SourceRepl.hasTypeCheckLog $ sourceState state) $ forM_ log0 $ \l -> do
         Repl.prettyHL l
         Repl.nl
 
-    let funEnv' = fun <> funEnv
     return $ state { sourceState = st { SourceRepl.dictionary = d { dictionaryFunctions = funEnv' } } }
 
   -- We use the simulator to evaluate the Icicle expression.
