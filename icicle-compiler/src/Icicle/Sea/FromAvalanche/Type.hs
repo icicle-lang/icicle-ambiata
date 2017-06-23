@@ -16,6 +16,7 @@ module Icicle.Sea.FromAvalanche.Type (
 import           Data.Set (Set)
 import qualified Data.Set           as Set
 import qualified Data.List          as List
+import           Data.Functor.Identity
 
 import           Icicle.Avalanche.Prim.Flat
 import           Icicle.Avalanche.Program
@@ -23,6 +24,7 @@ import           Icicle.Avalanche.Program
 import           Icicle.Common.Annot
 import           Icicle.Common.Exp
 import           Icicle.Common.Type
+import           Icicle.Common.FixT
 
 import           Icicle.Internal.Pretty
 
@@ -67,23 +69,55 @@ defDepth t
      ArrayT t' -> 1 + defDepth t'
      _         -> 1
 
--- If we have a program that has an empty 'ArrayT (ArrayT a)' but it is never
--- used then the type 'ArrayT a' may not be mentioned anywhere in the program,
--- even though its definition is required to construct an 'ArrayT (ArrayT a)'.
---
-expandType :: ValType -> [ValType]
-expandType t
- = case t of
-     BufT  _ t' -> t : ArrayT t' : expandType t'
-     ArrayT  t' -> t : expandType t'
-     _          -> [t]
-
 expandedTypesOfProgram :: Program (Annot a) n Prim -> Set ValType
-expandedTypesOfProgram
- = Set.fromList
- . concatMap expandType
- . Set.toList
- . typesOfProgram
+expandedTypesOfProgram =
+ expandedTypesOf . typesOfProgram
+
+-- | Expand the set of types mentioned in a Flat program.
+--
+--   1. Every definition of (ArrayT (ArrayT a)) requires a definition for
+--      (ArrayT a) even if (ArrayT a) is not mentioned by itself in
+--      the program.
+--
+--   2. Every definition of (BufT i a) requires a definition for
+--      (ArrayT a), since (Read : BufT i a -> ArrayT a).
+--
+--   3. Every definition of (ArrayT (BufT i a)) requires a definiton for
+--      ArrayT (ArrayT a) because generated PSV output Sea code uses
+--      iarray_iarray_*_index to access the buffers inside.
+--
+--   Since each of these might introduce more types, we need to apply
+--   them to a fixpoint.
+--
+expandedTypesOf :: Set ValType -> Set ValType
+expandedTypesOf set =
+  runIdentity . flip fixpoint set $ \ts ->
+  let
+    fixup t =
+      t : case t of
+        ArrayT e ->
+          e : case e of
+            BufT _ a ->
+              [ArrayT (ArrayT a)]
+            _ ->
+              []
+
+        BufT _ e ->
+          [e , ArrayT e]
+        _ ->
+
+          []
+
+    ts' =
+      Set.fromList .
+      concatMap fixup .
+      Set.toList $
+        ts
+
+  in
+    if ts' == ts
+    then return ts
+    else progress ts'
 
 ------------------------------------------------------------------------
 
