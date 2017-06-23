@@ -749,8 +749,8 @@ appType ann resT (expT,actT) cons = do
         let j = joinMode r'' a' r'
         return (Just r'', require ann j)
    -- Just <- modA
-   -- Just <- modR
-   -- ?    <- modE
+   -- Just <- modE
+   -- ?    <- modR
    | otherwise
    = do let j = CEquals (maybe pureMode id modE) (maybe pureMode id modA)
         return (modR, require ann j)
