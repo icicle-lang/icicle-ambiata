@@ -85,15 +85,16 @@ import           Icicle.Data.Time (packedOfTime, timeOfPacked)
 import           Icicle.Internal.Pretty (pretty, vsep)
 import           Icicle.Internal.Pretty (Doc, Pretty, displayS, renderPretty)
 
+import           Icicle.Sea.Data
 import           Icicle.Sea.Error (SeaError(..))
+import           Icicle.Sea.Eval.Program
+import           Icicle.Sea.Fleet
 import           Icicle.Sea.FromAvalanche.Program (seaOfPrograms)
-import           Icicle.Sea.FromAvalanche.State (stateOfPrograms)
+import           Icicle.Sea.FromAvalanche.State (clusterOfPrograms)
 import           Icicle.Sea.FromAvalanche.Type (seaOfDefinitions)
 import           Icicle.Sea.IO
 import qualified Icicle.Sea.IO.Offset as Offset
 import           Icicle.Sea.Preamble (seaPreamble)
-import           Icicle.Sea.Fleet
-import           Icicle.Sea.Eval.Program
 
 import           Jetski
 
@@ -302,8 +303,8 @@ codeOfPrograms
 codeOfPrograms input inputs programs = do
   let defs = seaOfDefinitions (concatMap (NonEmpty.toList . snd) programs)
 
-  progs   <- zipWithM (\ix (a, p) -> seaOfPrograms   ix a p) [0..] programs
-  states  <- zipWithM (\ix (a, p) -> stateOfPrograms ix a p) [0..] programs
+  progs <- zipWithM (\ix (a, p) -> seaOfPrograms ix a p) [0..] programs
+  clusters <- zipWithM (\ix (a, p) -> clusterOfPrograms ix a p) [0..] programs
 
   let defOfPsvInput conf
         | inputPsvFormat conf == PsvInputSparse
@@ -325,7 +326,7 @@ codeOfPrograms input inputs programs = do
           , defs
           ] <> progs
     HasInput format opts _ -> do
-      doc <- seaOfDriver format opts inputs states
+      doc <- seaOfDriver format opts inputs clusters
       let def = case format of
             FormatPsv conf -> vsep
               [ defOfPsvInput (psvInputConfig conf)
@@ -545,11 +546,11 @@ peekNamedOutputs
   :: MonadIO m
   => Ptr a
   -> Int
-  -> [(OutputId, (ValType, [ValType]))]
+  -> [(OutputId, MeltedType)]
   -> EitherT SeaError m [(OutputId, BaseValue)]
 
 peekNamedOutputs _ _ []                     = pure []
-peekNamedOutputs ptr ix ((n, (t, _)) : ots) = do
+peekNamedOutputs ptr ix ((n, MeltedType t _) : ots) = do
   nvs    <- peekNamedOutputs ptr (ix+1) ots
   (_, v) <- peekOutput  ptr ix t
   pure ((n, v) : nvs)

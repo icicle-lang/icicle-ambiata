@@ -26,10 +26,12 @@ import           Icicle.Storage.Dictionary.Toml.Dense (PsvInputDenseDict(..), Mi
 import           Icicle.Internal.Pretty
 import qualified Icicle.Internal.Pretty as Pretty
 
+import           Icicle.Sea.Data
 import           Icicle.Sea.Error (SeaError(..))
 import           Icicle.Sea.FromAvalanche.State
 import           Icicle.Sea.FromAvalanche.Type
 import           Icicle.Sea.IO.Base
+import           Icicle.Sea.Name
 
 import           P
 
@@ -53,8 +55,8 @@ data SeaInputError = SeaInputError
     -- ^ what to do when ent-attr count exceeds limit
   }
 
-nameOfReadFact :: SeaProgramAttribute -> CName
-nameOfReadFact state = pretty ("psv_read_fact_" <> show (stateInputIndex state))
+nameOfReadFact :: Cluster -> CName
+nameOfReadFact cluster = pretty ("psv_read_fact_" <> renderClusterId (clusterId cluster))
 
 seaOfReadTime :: CBlock
 seaOfReadTime
@@ -100,18 +102,18 @@ seaOfReadTombstone input = \case
 
 seaOfReadNamedFact :: SeaInputError
                    -> InputAllowDupTime
-                   -> [SeaProgramAttribute]
-                   -> SeaProgramAttribute
+                   -> [Cluster]
+                   -> Cluster
                    -> CStmt
-seaOfReadNamedFact errs allowDupTime all_states state
- = let fun    = nameOfReadFact state
-       pname  = pretty (nameOfAttribute  state)
-       tname  = pretty (nameOfLastTime state)
-       cname  = pretty (nameOfCount    state)
+seaOfReadNamedFact errs allowDupTime all_clusters cluster
+ = let fun    = nameOfReadFact cluster
+       pname  = pretty (nameOfCluster  cluster)
+       tname  = pretty (nameOfLastTime cluster)
+       cname  = pretty (nameOfCount    cluster)
        counts = hsep
               $ punctuate (" || ")
               $ fmap (\s -> "fleet->" <> pretty (nameOfCount s) <> " > facts_limit")
-                all_states
+                all_clusters
        tcond  = if allowDupTime == AllowDupTime
                 then "if (time < last_time)"
                 else "if (time <= last_time)"
@@ -169,20 +171,20 @@ seaOfReadNamedFact errs allowDupTime all_states state
       ]
 
 seaOfReadFact
-  :: SeaProgramAttribute
+  :: Cluster
   -> Set Text
   -> CheckedInput
   -> CStmt -- C block that reads the input value
   -> CStmt -- C block that performs some check after reading
   -> CFun
-seaOfReadFact state tombstones input readInput checkCount =
+seaOfReadFact cluster tombstones input readInput checkCount =
   vsep
-    [ "#line 1 \"read fact" <+> seaOfStateInfo state <> "\""
+    [ "#line 1 \"read fact" <+> seaOfClusterInfo cluster <> "\""
     , "static ierror_loc_t NOINLINE"
-        <+> pretty (nameOfReadFact state) <+> "("
+        <+> pretty (nameOfReadFact cluster) <+> "("
         <> "const char *value_ptr, const size_t value_size, itime_t time, "
         <> "anemone_mempool_t *mempool, iint_t chord_count, iint_t max_row_count, "
-        <> pretty (nameOfStateType state) <+> "*programs)"
+        <> pretty (nameOfClusterState cluster) <+> "*programs)"
     , "{"
     , "    ierror_loc_t error;"
     , ""
@@ -199,10 +201,10 @@ seaOfReadFact state tombstones input readInput checkCount =
     , "    }"
     , ""
     , "    for (iint_t chord_ix = 0; chord_ix < chord_count; chord_ix++) {"
-    , "        " <> pretty (nameOfStateType state) <+> "*program = &programs[chord_ix];"
+    , "        " <> pretty (nameOfClusterState cluster) <+> "*program = &programs[chord_ix];"
     , ""
     , "        /* don't read values after the chord time */"
-    , "        if (time > program->input." <> pretty (stateTimeVar state) <> ")"
+    , "        if (time > program->input." <> prettySeaName (clusterTimeVar cluster) <> ")"
     , "            continue;"
     , ""
     , "        iint_t new_count = program->input.new_count;"
@@ -229,13 +231,13 @@ seaOfReadFact state tombstones input readInput checkCount =
 seaOfReadAnyFactPsv
   :: InputOpts
   -> PsvInputConfig
-  -> [SeaProgramAttribute]
+  -> [Cluster]
   -> Either SeaError Doc
-seaOfReadAnyFactPsv opts config states = do
+seaOfReadAnyFactPsv opts config clusters = do
   case inputPsvFormat config of
     PsvInputSparse
-      -> do let tss  = fmap (lookupTombstones opts) states
-            readStates_sea <- zipWithM seaOfReadFactSparse states tss
+      -> do let tss  = fmap (lookupTombstones opts) clusters
+            readStates_sea <- zipWithM seaOfReadFactSparse clusters tss
             pure $ vsep
               [ vsep readStates_sea
               , ""
@@ -253,15 +255,15 @@ seaOfReadAnyFactPsv opts config states = do
               , "  , const size_t  facts_limit"
               , "  , const iint_t  max_row_count )"
               , "{"
-              , indent 4 (vsep (fmap (seaOfReadNamedFactSparse opts states) states))
+              , indent 4 (vsep (fmap (seaOfReadNamedFactSparse opts clusters) clusters))
               , "    return 0;"
               , "}"
               ]
     PsvInputDense dict feed
-      -> do state     <- maybeToRight (SeaDenseFeedNotUsed feed)
-                       $ List.find ((==) feed . renderInputName . inputName . stateInputId) states
-            let ts     = lookupTombstones opts state
-            read_sea  <- seaOfReadFactDense dict state ts
+      -> do cluster     <- maybeToRight (SeaDenseFeedNotUsed feed)
+                       $ List.find ((==) feed . renderInputName . inputName . clusterInputId) clusters
+            let ts     = lookupTombstones opts cluster
+            read_sea  <- seaOfReadFactDense dict cluster ts
             pure $ vsep
               [ read_sea
               , ""
@@ -277,7 +279,7 @@ seaOfReadAnyFactPsv opts config states = do
               , "  , const size_t  facts_limit"
               , "  , const iint_t  max_row_count )"
               , "{"
-              , indent 4 (seaOfReadNamedFactDense opts state)
+              , indent 4 (seaOfReadNamedFactDense opts cluster)
               , "    return 0;"
               , "}"
               ]
@@ -286,9 +288,9 @@ seaOfReadAnyFactPsv opts config states = do
 
 -- * Dense PSV
 
-seaOfReadNamedFactDense :: InputOpts -> SeaProgramAttribute -> Doc
-seaOfReadNamedFactDense opts state
- = let attrib = renderInputName (inputName (stateInputId state))
+seaOfReadNamedFactDense :: InputOpts -> Cluster -> Doc
+seaOfReadNamedFactDense opts cluster
+ = let attrib = renderInputName (inputName (clusterInputId cluster))
        errs   = SeaInputError
                 ( vsep
                 [ "return ierror_loc_format"
@@ -313,20 +315,20 @@ seaOfReadNamedFactDense opts state
                 ])
    in vsep
       [ "/* " <> pretty attrib <> " */"
-      , seaOfReadNamedFact errs (inputAllowDupTime opts) [state] state
+      , seaOfReadNamedFact errs (inputAllowDupTime opts) [cluster] cluster
       ]
 
 
-seaOfReadFactDense :: PsvInputDenseDict -> SeaProgramAttribute -> Set Text -> Either SeaError Doc
-seaOfReadFactDense dict state tombstones = do
+seaOfReadFactDense :: PsvInputDenseDict -> Cluster -> Set Text -> Either SeaError Doc
+seaOfReadFactDense dict cluster tombstones = do
   let feeds  = denseDict dict
-  let attr   = renderInputName . inputName . stateInputId $ state
+  let attr   = renderInputName . inputName . clusterInputId $ cluster
   fields    <- maybeToRight (SeaDenseFeedNotDefined attr $ fmap (fmap (second snd)) feeds)
              $ Map.lookup attr feeds
-  input     <- checkInputType state
+  input     <- checkInputType cluster
   let mv     = Map.lookup attr (denseMissingValue dict)
   readInput <- seaOfReadFactValueDense mv fields (inputVars input)
-  pure $ seaOfReadFact state tombstones input readInput (seaOfCheckCount state)
+  pure $ seaOfReadFact cluster tombstones input readInput (seaOfCheckCount cluster)
 
 seaOfReadFactValueDense
   :: Maybe MissingValue
@@ -433,9 +435,9 @@ mappingOfDenseFields fields varsoup
 
 -- * Sparse PSV
 
-seaOfReadNamedFactSparse :: InputOpts -> [SeaProgramAttribute] -> SeaProgramAttribute -> Doc
-seaOfReadNamedFactSparse opts all_states state
- = let attrib = renderInputName (inputName (stateInputId state))
+seaOfReadNamedFactSparse :: InputOpts -> [Cluster] -> Cluster -> Doc
+seaOfReadNamedFactSparse opts all_clusters cluster
+ = let attrib = renderInputName (inputName (clusterInputId cluster))
        errs   = SeaInputError
                 ( vsep
                 [ "return ierror_loc_format"
@@ -464,36 +466,36 @@ seaOfReadNamedFactSparse opts all_states state
    in vsep
       [ "/* " <> pretty attrib <> " */"
       , "if (" <> seaOfStringEq attrib "attrib_ptr" (Just "attrib_size") <> ")"
-      , seaOfReadNamedFact errs (inputAllowDupTime opts) all_states state
+      , seaOfReadNamedFact errs (inputAllowDupTime opts) all_clusters cluster
       ]
 
 seaOfReadFactSparse
-  :: SeaProgramAttribute
+  :: Cluster
   -> Set Text
   -> Either SeaError Doc
-seaOfReadFactSparse state tombstones = do
-  input     <- checkInputType state
+seaOfReadFactSparse cluster tombstones = do
+  input     <- checkInputType cluster
   readInput <- seaOfReadInputFields (inputType input) (inputVars input)
-  pure $ seaOfReadFact state tombstones input readInput (seaOfCheckCount state)
+  pure $ seaOfReadFact cluster tombstones input readInput (seaOfCheckCount cluster)
 
 ------------------------------------------------------------------------
 
 -- * Generic reading of JSON and stuff in PSV
 
-seaOfCheckCount :: SeaProgramAttribute -> CStmt
-seaOfCheckCount state = vsep
+seaOfCheckCount :: Cluster -> CStmt
+seaOfCheckCount cluster = vsep
   [ "if (new_count == max_row_count) {"
   -- We need to set the program count before executing it.
   -- Otherwise, it won't evaluate the last row
   , "     program->input.new_count = new_count;"
-  , indent 6 $ vsep $ fmap (\i -> pretty (nameOfCompute i) <+> " (program);") computes
+  , indent 6 $ vsep $ fmap (\i -> pretty (nameOfKernel i) <+> " (program);") kernels
   , "     new_count = 0;"
   , "} else if (new_count > max_row_count) {"
-  , "     return ierror_loc_format (0, 0, \"" <> pretty (nameOfReadFact state) <> ": new_count > max_count\");"
+  , "     return ierror_loc_format (0, 0, \"" <> pretty (nameOfReadFact cluster) <> ": new_count > max_count\");"
   , "}"
   ]
  where
-  computes = NonEmpty.toList $ stateComputes state
+  kernels = NonEmpty.toList $ clusterKernels cluster
 
 seaOfReadJsonValue :: Assignment -> ValType -> [(Text, ValType)] -> Either SeaError Doc
 seaOfReadJsonValue assign vtype vars
@@ -664,6 +666,6 @@ seaOfReadJsonField assign ftype vars = do
     , "    break;"
     ]
 
-lookupTombstones :: InputOpts -> SeaProgramAttribute -> Set Text
-lookupTombstones opts state =
-  fromMaybe Set.empty (Map.lookup (stateInputId state) (inputTombstones opts))
+lookupTombstones :: InputOpts -> Cluster -> Set Text
+lookupTombstones opts cluster =
+  fromMaybe Set.empty (Map.lookup (clusterInputId cluster) (inputTombstones opts))

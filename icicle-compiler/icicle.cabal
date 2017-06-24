@@ -130,7 +130,12 @@ library
 
                        Icicle.Simulator
 
+                       Icicle.Sea.Data
                        Icicle.Sea.Error
+                       Icicle.Sea.Eval
+                       Icicle.Sea.Eval.Base
+                       Icicle.Sea.Eval.Program
+                       Icicle.Sea.Fleet
                        Icicle.Sea.FromAvalanche
                        Icicle.Sea.FromAvalanche.Analysis
                        Icicle.Sea.FromAvalanche.Base
@@ -138,19 +143,16 @@ library
                        Icicle.Sea.FromAvalanche.Program
                        Icicle.Sea.FromAvalanche.State
                        Icicle.Sea.FromAvalanche.Type
-                       Icicle.Sea.Preamble
-                       Icicle.Sea.Eval
-                       Icicle.Sea.Eval.Base
-                       Icicle.Sea.Eval.Program
-                       Icicle.Sea.Fleet
                        Icicle.Sea.IO
-                       Icicle.Sea.IO.Offset
                        Icicle.Sea.IO.Base
+                       Icicle.Sea.IO.Offset
                        Icicle.Sea.IO.Psv
                        Icicle.Sea.IO.Psv.Input
                        Icicle.Sea.IO.Psv.Output
                        Icicle.Sea.IO.Psv.Schema
                        Icicle.Sea.IO.Zebra
+                       Icicle.Sea.Name
+                       Icicle.Sea.Preamble
 
 
 executable icicle

@@ -148,7 +148,7 @@ runTest pool zwt@(ZebraWellTyped wt facts entities) =
                   (\state -> do
                      fleet_ptr <- peekWordOff state zebraStateFleet
                      struct_count <- inputFieldsCount <$>
-                       hoistEither (stateOfPrograms 0 (wtInputId wt) (wtAvalancheFlat wt :| []))
+                       hoistEither (clusterOfPrograms 0 (wtInputId wt) (wtAvalancheFlat wt :| []))
                      fact_count <- hoistMaybe (SeaZebraError "test_impossible") . fmap length $
                        Map.lookup (Entity . Text.decodeUtf8 . Zebra.unEntityId . Zebra.entityId $ entity) facts
 

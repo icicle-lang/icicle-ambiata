@@ -3,30 +3,27 @@
 {-# LANGUAGE PatternGuards     #-}
 {-# LANGUAGE TemplateHaskell   #-}
 {-# LANGUAGE QuasiQuotes       #-}
-
 module Icicle.Sea.FromAvalanche.State (
-    SeaProgramAttribute(..)
-  , SeaProgramCompute(..)
-  , nameOfAttribute
-  , nameOfAttribute'
-  , nameOfCompute
-  , nameOfCompute'
+    nameOfCluster
+  , nameOfCluster'
+  , nameOfKernel
+  , nameOfKernel'
   , nameOfCount
-  , stateOfPrograms
-  , seaOfState
-  , seaOfStateInfo
-  , nameOfStateType
-  , nameOfStateSize
-  , nameOfStateSize'
+  , clusterOfPrograms
+  , seaOfClusterState
+  , seaOfClusterInfo
+  , nameOfClusterState
+  , nameOfClusterStateSize
+  , nameOfClusterStateSize'
   , nameOfLastTime
-  , stateInputTypeName
-  , stateInputName
-  , stateInput
-  , stateInputNew
-  , stateInputTime
-  , stateNewCount
-  , stateInputRes
-  , stateInputHas
+  , clusterInputTypeName
+  , clusterInputName
+  , clusterInput
+  , clusterInputNew
+  , clusterInputTime
+  , clusterNewCount
+  , clusterInputRes
+  , clusterInputHas
   , nameOfResumable
   , nameOfResumableHasFlagsStart
   , nameOfResumableHasFlagsEnd
@@ -37,13 +34,11 @@ module Icicle.Sea.FromAvalanche.State (
   , newPrefix
   ) where
 
-import qualified Data.List          as List
-import           Data.Map (Map)
-import qualified Data.Map           as Map
-import qualified Data.Text          as T
+import qualified Data.List as List
+import qualified Data.Map as Map
 
 import qualified Data.List.NonEmpty as NonEmpty
-import           Data.List.NonEmpty ( NonEmpty(..) )
+import           Data.List.NonEmpty (NonEmpty(..))
 
 import           Icicle.Avalanche.Prim.Flat
 import           Icicle.Avalanche.Program
@@ -56,261 +51,271 @@ import           Icicle.Data.Name
 
 import           Icicle.Internal.Pretty
 
+import           Icicle.Sea.Data
 import           Icicle.Sea.Error
 import           Icicle.Sea.FromAvalanche.Analysis
-import           Icicle.Sea.FromAvalanche.Base
 import           Icicle.Sea.FromAvalanche.Type
+import           Icicle.Sea.Name
 
 import           P
 
-------------------------------------------------------------------------
 
-data SeaProgramAttribute = SeaProgramAttribute {
-    stateInputIndex     :: Int
-  , stateInputId        :: InputId
-  , stateInputType      :: ValType
-  , stateTimeVar        :: Text
-  , stateInputVars      :: [(SeaName, ValType)]
-  , stateComputes       :: NonEmpty SeaProgramCompute
-  , stateOutputsAll     :: Map OutputId (ValType, [ValType])
-  } deriving (Eq, Ord, Show)
-
-data SeaProgramCompute = SeaProgramCompute {
-    stateComputeName    :: (Int, Int)
-  , stateResumables     :: [(SeaName, ValType)]
-  , stateOutputs        :: [(OutputId, (ValType, [ValType]))]
-  } deriving (Eq, Ord, Show)
-
-
-------------------------------------------------------------------------
-
-stateOfPrograms
-  :: (Pretty n, Eq n)
-  => Int
+clusterOfPrograms ::
+     (Pretty n, Eq n)
+  => ClusterId
   -> InputId
   -> NonEmpty (Program (Annot a) n Prim)
-  -> Either SeaError SeaProgramAttribute
-stateOfPrograms name attrib programs@(program :| _)
- = case factVarsOfProgram FactLoopNew program of
-    Nothing
-     -> Left SeaNoFactLoop
+  -> Either SeaError Cluster
+clusterOfPrograms cid iid programs@(program :| _) =
+  case factVarsOfProgram FactLoopNew program of
+    Nothing ->
+      Left SeaNoFactLoop
 
-    Just (factType, factVars)
-     -> Right SeaProgramAttribute {
-          stateInputIndex  = name
-        , stateInputId      = attrib
-        , stateTimeVar        = takeSeaName . mangleToSeaName . bindtime $ program
-        , stateInputType      = factType
-        , stateInputVars      = fmap (first mangleToSeaName) factVars
-        , stateComputes       = NonEmpty.zipWith (stateOfProgramCompute name) (0 :| [1..]) programs
-        , stateOutputsAll     = Map.fromList . concatMap outputsOfProgram $ NonEmpty.toList programs
+    Just (factType, factVars) ->
+      Right Cluster {
+          clusterId =
+            cid
+
+        , clusterInputId =
+            iid
+
+        , clusterTimeVar =
+            mangle $ bindtime program
+
+        , clusterInputType =
+            factType
+
+        , clusterInputVars =
+            fmap (first mangle) factVars
+
+        , clusterKernels =
+            NonEmpty.zipWith (kernelOfProgram cid) (0 :| [1..]) programs
+
+        , clusterOutputs =
+            Map.fromList . concatMap outputsOfProgram $ NonEmpty.toList programs
         }
 
-stateOfProgramCompute
-  :: (Pretty n, Eq n)
-  => Int -> Int -> Program (Annot a) n Prim
-  -> SeaProgramCompute
-stateOfProgramCompute attributeName computeName program
- = SeaProgramCompute {
-   stateComputeName = (attributeName, computeName)
- , stateResumables  = fmap (first mangleToSeaName) (Map.toList (resumablesOfProgram program))
- , stateOutputs     = outputsOfProgram program
- }
+kernelOfProgram ::
+     (Pretty n, Eq n)
+  => ClusterId
+  -> KernelIndex
+  -> Program (Annot a) n Prim
+  -> Kernel
+kernelOfProgram cid kix program =
+  Kernel {
+      kernelId =
+        KernelId cid kix
+
+    , kernelResumables =
+        fmap (first mangle) $ Map.toList (resumablesOfProgram program)
+
+    , kernelOutputs =
+        outputsOfProgram program
+    }
 
 ------------------------------------------------------------------------
 
-nameOfLastTime :: SeaProgramAttribute -> Text
-nameOfLastTime state = "last_time_" <> T.pack (show (stateInputIndex state))
+nameOfLastTime :: Cluster -> Text
+nameOfLastTime cluster =
+  "last_time_" <> renderClusterId (clusterId cluster)
 
-nameOfAttribute :: SeaProgramAttribute -> Text
-nameOfAttribute state = nameOfAttribute' (stateInputIndex state)
+nameOfCluster :: Cluster -> Text
+nameOfCluster cluster =
+  nameOfCluster' (clusterId cluster)
 
-nameOfAttribute' :: Int -> Text
-nameOfAttribute' name = "iattribute_" <> T.pack (show name)
+nameOfCluster' :: ClusterId -> Text
+nameOfCluster' name =
+  "icluster_" <> renderClusterId name
 
-nameOfCompute :: SeaProgramCompute -> Text
-nameOfCompute state = nameOfCompute' (stateComputeName state)
+nameOfKernel :: Kernel -> Text
+nameOfKernel kernel =
+  nameOfKernel' (kernelId kernel)
 
-nameOfCompute' :: (Int,Int) -> Text
-nameOfCompute' (attribute,compute) = "icompute_attribute_" <> T.pack (show attribute) <> "_compute_" <> T.pack (show compute)
+nameOfKernel' :: KernelId -> Text
+nameOfKernel' (KernelId cluster kernel) =
+  "icluster_" <> renderClusterId cluster <> "_kernel_" <> renderKernelIndex kernel
 
+nameOfCount :: Cluster -> Text
+nameOfCount cluster =
+  "icount_" <> renderClusterId (clusterId cluster)
 
-nameOfCount :: SeaProgramAttribute -> Text
-nameOfCount state = "icount_" <> T.pack (show (stateInputIndex state))
+nameOfClusterState :: Cluster -> Text
+nameOfClusterState cluster =
+  nameOfCluster cluster <> "_t"
 
-nameOfStateType :: SeaProgramAttribute -> Text
-nameOfStateType state = nameOfAttribute state <> "_t"
+nameOfClusterStateSize' :: ClusterId -> Text
+nameOfClusterStateSize' name =
+  "size_of_" <> nameOfCluster' name
 
-nameOfStateSize' :: Int -> Text
-nameOfStateSize' name = "size_of_state_" <> nameOfAttribute' name
+nameOfClusterStateSize :: Cluster -> Text
+nameOfClusterStateSize cluster =
+  nameOfClusterStateSize' (clusterId cluster)
 
-nameOfStateSize :: SeaProgramAttribute -> Text
-nameOfStateSize state = nameOfStateSize' (stateInputIndex state)
-
-
-seaOfStateInfo :: SeaProgramAttribute -> Doc
-seaOfStateInfo state =
+seaOfClusterInfo :: Cluster -> Doc
+seaOfClusterInfo cluster =
   "#" <>
-  int (stateInputIndex state) <+>
+  prettyClusterId (clusterId cluster) <+>
   "-" <+>
-  (prettyText . takeSeaString . inputIdAsSeaString . stateInputId $ state)
+  prettyText (renderInputId (clusterInputId cluster))
 
-seaOfState :: SeaProgramAttribute -> Doc
-seaOfState state
- = vsep
- [ "#line 1 \"state and input definition" <+> seaOfStateInfo state <> "\""
- , ""
- , defOfFactStruct state
- , ""
- , "typedef struct {"
- , "    /* runtime */"
- , indent 4 (defOfVar' 1 "anemone_mempool_t" "mempool;")
- , indent 4 (defOfVar' 0 "iint_t" "max_map_size;")
- , ""
- , "    /* inputs */"
- , indent 4 (defOfVar_ 0 (pretty (stateInputTypeName state)) "input;")
- , ""
- , vsep . fmap seaOfStateCompute
-        . NonEmpty.toList
-        . stateComputes
-        $ state
- , ""
- , "}" <+> pretty (nameOfStateType state) <> ";"
- , ""
- , "iint_t " <> pretty (nameOfStateSize state) <+> "()"
- , "{"
- , "    return sizeof (" <> pretty (nameOfStateType state) <> ");"
- , "}"
- ]
+seaOfClusterState :: Cluster -> Doc
+seaOfClusterState cluster =
+  vsep [
+      "#line 1 \"cluster state" <+> seaOfClusterInfo cluster <> "\""
+    , ""
+    , defOfInputStruct cluster
+    , ""
+    , "typedef struct {"
+    , "    /* runtime */"
+    , indent 4 (defOfVar' 1 "anemone_mempool_t" "mempool;")
+    , indent 4 (defOfVar' 0 "iint_t" "max_map_size;")
+    , ""
+    , "    /* inputs */"
+    , indent 4 (defOfVar_ 0 (pretty (clusterInputTypeName cluster)) "input;")
+    , ""
+    , vsep . fmap seaOfKernelState . NonEmpty.toList $ clusterKernels cluster
+    , ""
+    , "}" <+> pretty (nameOfClusterState cluster) <> ";"
+    , ""
+    , "iint_t " <> pretty (nameOfClusterStateSize cluster) <+> "()"
+    , "{"
+    , "    return sizeof (" <> pretty (nameOfClusterState cluster) <> ");"
+    , "}"
+    ]
 
-seaOfStateCompute :: SeaProgramCompute -> Doc
-seaOfStateCompute state
- = vsep
- [ "  /* compute for " <> pretty (stateComputeName state) <> " */"
- , "    /* outputs */"
- , indent 4 . vsep
-            . concat
-            . fmap defsOfOutput
-            . stateOutputs
-            $ state
- , ""
- , "    /* resumables: values */"
- , indent 4 . vsep
-            . fmap (defValueOfResumable state . first takeSeaName)
-            . stateResumables
-            $ state
- , ""
- -- Grouping all the has_* flags together lets us set them all to false with a single memset.
- -- Surprisingly, this can save a large amount of compilation time.
- , "    /* resumables: has flags */"
- , indent 4 ( defOfVar 0 BoolT (nameOfResumableHasFlagsStart state) <> semi )
- , indent 4 . vsep
-            . fmap (defHasOfResumable state . first takeSeaName)
-            . stateResumables
-            $ state
- , indent 4 ( defOfVar 0 BoolT (nameOfResumableHasFlagsEnd state) <> semi )
- , ""
- ]
+seaOfKernelState :: Kernel -> Doc
+seaOfKernelState kernel =
+  vsep [
+      "  /* kernel " <> prettyKernelId (kernelId kernel) <> " */"
+    , "    /* outputs */"
+    , indent 4 .
+        vsep . concat . fmap defsOfOutput $ kernelOutputs kernel
+    , ""
+    , "    /* resumables: values */"
+    , indent 4 .
+        vsep . fmap (defValueOfResumable kernel . first renderSeaName) $ kernelResumables kernel
+    , ""
+    -- Grouping all the has_* flags together lets us set them all to false with a single memset.
+    -- Surprisingly, this can save a large amount of compilation time.
+    , "    /* resumables: has flags */"
+    , indent 4 $
+        defOfVar 0 BoolT (nameOfResumableHasFlagsStart kernel) <> semi
+
+    , indent 4 .
+        vsep . fmap (defHasOfResumable kernel . first renderSeaName) $ kernelResumables kernel
+
+    , indent 4 $
+        defOfVar 0 BoolT (nameOfResumableHasFlagsEnd kernel) <> semi
+    , ""
+    ]
 
 ------------------------------------------------------------------------
 
 -- | Define a struct where the fields are the melted types.
 --
-defOfFactStruct :: SeaProgramAttribute -> Doc
-defOfFactStruct state
-  = vsep
-  [ "typedef struct {"
-  , indent 4 (defOfVar  0 TimeT (pretty (stateTimeVar state) <> ";"))
-  , indent 4 (defOfVar  0 IntT  "new_count;")
-  , indent 4 (vsep (fmap (defOfFactField . first takeSeaName) (stateInputVars state)))
-  , "}" <+> pretty (stateInputTypeName state) <> ";"
-  ]
+defOfInputStruct :: Cluster -> Doc
+defOfInputStruct cluster =
+  vsep [
+      "typedef struct {"
 
--- TODO use language-c-quote after fixing their savage pretty printer
---  = let fs = fmap defFactField fields
---        t  = T.unpack typename
---    in  [cedecl|typedef struct { $sdecls:fs } $id:t;|]
+    , indent 4 $
+        defOfVar 0 TimeT (prettySeaName (clusterTimeVar cluster)) <> ";"
+
+    , indent 4 $
+        defOfVar 0 IntT  "new_count;"
+
+    , indent 4 .
+        vsep . fmap (defOfFactField . first renderSeaName) $ clusterInputVars cluster
+
+    , "}" <+> pretty (clusterInputTypeName cluster) <> ";"
+    ]
 
 defOfFactField :: (Text, ValType) -> Doc
-defOfFactField (name, ty)
-  = defOfVar_ 0 (seaOfValType ty) (pretty ("*" <> newPrefix <> name <> ";"))
--- TODO use language-c-quote after fixing their savage pretty printer
---  = let t = show     (seaOfValType ty)
---        n = T.unpack ("*" <> newPrefix <> name)
---    in  [csdecl|typename $id:t $id:n;|]
+defOfFactField (name, ty) =
+  defOfVar_ 0 (seaOfValType ty) (pretty ("*" <> newPrefix <> name <> ";"))
 
 ------------------------------------------------------------------------
 
-defValueOfResumable :: SeaProgramCompute -> (Text, ValType) -> Doc
+defValueOfResumable :: Kernel -> (Text, ValType) -> Doc
 defValueOfResumable compute (n, t)
  =  defOfVar 0 t     (pretty resPrefix <> nameOfResumable compute (pretty n)) <> semi
 
-defHasOfResumable :: SeaProgramCompute -> (Text, ValType) -> Doc
+defHasOfResumable :: Kernel -> (Text, ValType) -> Doc
 defHasOfResumable compute (n, _)
  =  defOfVar 0 BoolT (pretty hasPrefix <> nameOfResumable compute (pretty n)) <> semi
 
-nameOfResumable :: SeaProgramCompute -> Doc -> Doc
-nameOfResumable compute n
- = let (i,j) = stateComputeName compute
-   in  pretty i <> "_" <> pretty j <> "_" <> n
+nameOfKernelId :: KernelId -> Doc
+nameOfKernelId (KernelId cid kix) =
+  prettyClusterId cid <> "_" <> prettyKernelIndex kix
 
-nameOfResumableHasFlagsStart :: SeaProgramCompute -> Doc
-nameOfResumableHasFlagsStart compute
- = let (i,j) = stateComputeName compute
-   in  "has_flags_start_" <> pretty i <> "_" <> pretty j
+nameOfResumable :: Kernel -> Doc -> Doc
+nameOfResumable kernel n =
+  nameOfKernelId (kernelId kernel) <> "_" <> n
 
-nameOfResumableHasFlagsEnd :: SeaProgramCompute -> Doc
-nameOfResumableHasFlagsEnd compute
- = let (i,j) = stateComputeName compute
-   in  "has_flags_end_" <> pretty i <> "_" <> pretty j
+nameOfResumableHasFlagsStart :: Kernel -> Doc
+nameOfResumableHasFlagsStart kernel =
+  "has_flags_start_" <> nameOfKernelId (kernelId kernel)
 
-defsOfOutput :: (OutputId, (ValType, [ValType])) -> [Doc]
-defsOfOutput (n, (_, ts))
- = List.zipWith (defOfOutputIx n) [0..] ts
+nameOfResumableHasFlagsEnd :: Kernel -> Doc
+nameOfResumableHasFlagsEnd kernel =
+  "has_flags_end_" <> nameOfKernelId (kernelId kernel)
+
+defsOfOutput :: (OutputId, MeltedType) -> [Doc]
+defsOfOutput (n, MeltedType _ ts) =
+  List.zipWith (defOfOutputIx n) [0..] ts
 
 defOfOutputIx :: OutputId -> Int -> ValType -> Doc
-defOfOutputIx n ix t
- = defOfVar 0 t (prettyText . takeSeaName . mangleToSeaNameIx n $ ix) <> semi
+defOfOutputIx n ix t =
+  defOfVar 0 t (prettySeaName $ mangleIx n ix) <> semi
 
 ------------------------------------------------------------------------
 
 -- | Prefix used for the member that represents whether its companion resumable
 -- is set or not.
 hasPrefix :: Text
-hasPrefix = "has_"
+hasPrefix =
+  "has_"
 
 -- | Prefix used for the member that represents a resumable.
 resPrefix :: Text
-resPrefix = "res_"
+resPrefix =
+  "res_"
 
 -- | Prefix for new facts.
 newPrefix :: Text
-newPrefix = "new_"
+newPrefix =
+  "new_"
 
-stateInputName :: Text
-stateInputName
- = "input"
+clusterInputName :: Text
+clusterInputName =
+  "input"
 
-stateInputTypeName :: SeaProgramAttribute -> Text
-stateInputTypeName state
- = "input_" <> takeSeaName (mangleToSeaName (stateInputId state)) <> "_t"
+clusterInputTypeName :: Cluster -> Text
+clusterInputTypeName cluster =
+  "input_" <> renderSeaName (mangle (clusterInputId cluster)) <> "_t"
 
-stateInput :: Doc
-stateInput = pretty stateInputName
+clusterInput :: Doc
+clusterInput =
+  pretty clusterInputName
 
-stateInputNew :: Doc -> Doc
-stateInputNew n = pretty stateInputName <> "." <> pretty newPrefix <> n
+clusterInputNew :: Doc -> Doc
+clusterInputNew n =
+  clusterInput <> "." <> pretty newPrefix <> n
 
-stateInputTime :: SeaProgramAttribute -> Doc
-stateInputTime state = pretty stateInputName <> "." <> pretty (stateTimeVar state)
+clusterInputTime :: Cluster -> Doc
+clusterInputTime cluster =
+  clusterInput <> "." <> prettySeaName (clusterTimeVar cluster)
 
-stateNewCount :: Doc
-stateNewCount = "input.new_count"
+clusterNewCount :: Doc
+clusterNewCount =
+  "input.new_count"
 
 -- Resumables are not in the input struct for now.
 
-stateInputRes :: Doc -> Doc
-stateInputRes n = pretty resPrefix <> n
+clusterInputRes :: Doc -> Doc
+clusterInputRes n =
+  pretty resPrefix <> n
 
-stateInputHas :: Doc -> Doc
-stateInputHas n = pretty hasPrefix <> n
+clusterInputHas :: Doc -> Doc
+clusterInputHas n =
+  pretty hasPrefix <> n

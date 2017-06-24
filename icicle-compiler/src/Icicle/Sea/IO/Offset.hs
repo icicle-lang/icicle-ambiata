@@ -1,9 +1,9 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Sea.IO.Offset where
 
-import P
+import           Icicle.Sea.Data
 
-import Icicle.Sea.FromAvalanche.State
+import           P
 
 
 -- typedef struct {
@@ -201,9 +201,9 @@ inputError = 2
 inputStart :: Int
 inputStart = 3
 
-inputFieldsCount :: SeaProgramAttribute -> Int
-inputFieldsCount state =
-  length (stateInputVars state) - 2
+inputFieldsCount :: Cluster -> Int
+inputFieldsCount cluster =
+  length (clusterInputVars cluster) - 2
 
 programInputFactTime :: Int
 programInputFactTime = programInput + inputFactTime

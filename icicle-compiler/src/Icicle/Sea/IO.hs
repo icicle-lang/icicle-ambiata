@@ -44,8 +44,8 @@ import           Icicle.Internal.Pretty
 
 import           Icicle.Data
 
+import           Icicle.Sea.Data
 import           Icicle.Sea.Error (SeaError(..))
-import           Icicle.Sea.FromAvalanche.State
 
 import           Icicle.Sea.IO.Offset
 import           Icicle.Sea.IO.Base
@@ -60,16 +60,16 @@ data IOFormat
   | FormatZebra ZebraConfig Mode PsvOutputConfig -- temporary
     deriving (Eq, Show)
 
-seaOfDriver :: IOFormat -> InputOpts -> [InputId] -> [SeaProgramAttribute] -> Either SeaError Doc
-seaOfDriver format opts inputs states
+seaOfDriver :: IOFormat -> InputOpts -> [InputId] -> [Cluster] -> Either SeaError Doc
+seaOfDriver format opts inputs clusters
   = case format of
       FormatPsv conf -> do
-        seaOfPsvDriver opts conf states
+        seaOfPsvDriver opts conf clusters
       FormatZebra _ mode outputConfig -> do
         -- FIXME generate code for psv as well when using zebra, because we
         -- are relying on some psv functions, they should be factored out or something
         let psvConfig =
               PsvConfig (PsvInputConfig mode PsvInputSparse) outputConfig
-        x <- seaOfPsvDriver opts psvConfig states
-        y <- seaOfZebraDriver inputs states
+        x <- seaOfPsvDriver opts psvConfig clusters
+        y <- seaOfZebraDriver inputs clusters
         return $ vsep [x, "", y]

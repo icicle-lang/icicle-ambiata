@@ -19,12 +19,14 @@ import           Icicle.Data.Name
 
 import           Icicle.Internal.Pretty
 
+import           Icicle.Sea.Data
 import           Icicle.Sea.Error (SeaError(..))
 import           Icicle.Sea.FromAvalanche.Base hiding (assign)
 import           Icicle.Sea.FromAvalanche.Prim
 import           Icicle.Sea.FromAvalanche.State
 import           Icicle.Sea.IO.Base
 import           Icicle.Sea.IO.Psv.Schema
+import           Icicle.Sea.Name
 
 import           P
 import           Prelude (String)
@@ -52,11 +54,11 @@ defaultOutputMissing = "NA"
 
 ------------------------------------------------------------------------
 
-seaOfWriteFleetOutput :: PsvOutputConfig -> PsvOutputWhiteList -> [SeaProgramAttribute] -> Either SeaError Doc
+seaOfWriteFleetOutput :: PsvOutputConfig -> PsvOutputWhiteList -> [Cluster] -> Either SeaError Doc
 seaOfWriteFleetOutput config whitelist states = do
   let states' = case whitelist of
                   Nothing -> states
-                  Just as -> filter (flip List.elem as . renderInputName . inputName . stateInputId) states
+                  Just as -> filter (flip List.elem as . renderInputName . inputName . clusterInputId) states
 
   write_sea <- traverse (seaOfWriteProgramOutput config) states'
   schema_sea <- seaOfGetOutputSchema config states'
@@ -142,8 +144,8 @@ textGroups80 xs =
     else
       hd : textGroups80 tl
 
-seaOfGetOutputSchema :: PsvOutputConfig -> [SeaProgramAttribute] -> Either SeaError Doc
-seaOfGetOutputSchema config programs =
+seaOfGetOutputSchema :: PsvOutputConfig -> [Cluster] -> Either SeaError Doc
+seaOfGetOutputSchema config clusters =
   case outputPsvFormat config of
     PsvOutputSparse ->
       pure $ vsep [
@@ -154,7 +156,7 @@ seaOfGetOutputSchema config programs =
         ]
 
     PsvOutputDense -> do
-      schema <- renderCompactPsvSchema <$> schemaOfFleet config programs
+      schema <- renderCompactPsvSchema <$> schemaOfFleet config clusters
       pure $ vsep [
           "istring_t psv_get_output_schema ()"
         , "{"
@@ -163,14 +165,14 @@ seaOfGetOutputSchema config programs =
         , "}"
         ]
 
-seaOfWriteProgramOutput :: PsvOutputConfig -> SeaProgramAttribute -> Either SeaError Doc
-seaOfWriteProgramOutput config state = do
-  let ps    = "p" <> int (stateInputIndex state)
-      stype = pretty (nameOfStateType state)
-      attr  = pretty (nameOfAttribute state)
+seaOfWriteProgramOutput :: PsvOutputConfig -> Cluster -> Either SeaError Doc
+seaOfWriteProgramOutput config cluster = do
+  let ps    = "p" <> prettyClusterId (clusterId cluster)
+      stype = pretty (nameOfClusterState cluster)
+      attr  = pretty (nameOfCluster cluster)
       tb    = outputPsvMissing config
 
-  let outputState (name, (ty, tys))
+  let outputState (name, MeltedType ty tys)
         = case outputPsvFormat config of
             PsvOutputSparse
               -> seaOfWriteOutputSparse ps 0 name ty tys
@@ -182,16 +184,16 @@ seaOfWriteProgramOutput config state = do
   let clearResumables compute
         = "memset (" <> resStart compute <> ", 0, " <> resEnd compute <> " - " <> resStart compute <> ");"
 
-  let computes = NonEmpty.toList $ stateComputes state
-  let resumeables  = fmap clearResumables computes
-  outputs         <- traverse outputState . Map.toList $ stateOutputsAll state
-  let callComputes = fmap (\i -> pretty (nameOfCompute i) <+> "(" <> ps <> ");") computes
+  let kernels = NonEmpty.toList $ clusterKernels cluster
+  let resumeables  = fmap clearResumables kernels
+  outputs         <- traverse outputState . Map.toList $ clusterOutputs cluster
+  let callKernels = fmap (\i -> pretty (nameOfKernel i) <+> "(" <> ps <> ");") kernels
 
   pure $ vsep
     [ ""
-    , "/* " <> (prettyText . takeSeaString . inputIdAsSeaString . stateInputId $ state) <> " */"
+    , "/* " <> prettyText (renderInputId $ clusterInputId cluster) <> " */"
     , stype <+> "*" <> ps <+> "=" <+> "&fleet->" <> attr <> "[chord_ix];"
-    , vsep callComputes
+    , vsep callKernels
     , ps <> "->input.new_count = 0;"
     , vsep resumeables
     , ""
@@ -219,14 +221,6 @@ seaOfWriteOutputDense struct structIndex outId outType argTypes missing
           <- seaOfOutput NotInJSON struct structIndex outId (PsvMissing missing) Map.empty outType argTypes (const id)
        let body' = seaOfOutputCond m f body
        pure $ vsep [ outputChar '|', body' ]
-
--- | Construct the struct member names for the output arguments.
---
-structMembers :: Doc -> SeaName -> [ValType] -> Int -> [Doc]
-structMembers struct name argTypes structIndex
-  = List.take (length argTypes)
-  $ fmap (\ix -> struct <> "->" <> (prettyText . takeSeaName . flip mangleToSeaNameIx ix . takeSeaName $ name))
-         [structIndex..]
 
 -- | Output the entity, e.g "homer|"
 --
@@ -272,11 +266,11 @@ seaOfOutput
                      , Int         -- Where it's up to
                      , [ValType] ) -- Unconsumed arguments
 seaOfOutput isJSON struct structIndex outId missing env outType argTypes transform
- = let prefixi         = prettyText (takeSeaName $ mangleToSeaNameIx outId structIndex) <> "_i"
+ = let prefixi         = prettySeaName (mangleIx outId structIndex) <> "_i"
        (suffixi, env'')= newName prefixi env
        counter         = prefixi <> suffixi
 
-       prefixn         = prettyText (takeSeaName $ mangleToSeaNameIx outId structIndex) <> "_n"
+       prefixn         = prettySeaName (mangleIx outId structIndex) <> "_n"
        (suffixn, env') = newName prefixn env''
        countLimit      = prefixn <> suffixn
 
@@ -395,7 +389,7 @@ seaOfOutput isJSON struct structIndex outId missing env outType argTypes transfo
    unsupported = SeaUnsupportedOutputType outType
 
    members    = List.take (length argTypes)
-              $ fmap (\ix -> struct <> "->" <> (prettyText . takeSeaName $ mangleToSeaNameIx outId ix)) [structIndex..]
+              $ fmap (\ix -> struct <> "->" <> prettySeaName (mangleIx outId ix)) [structIndex..]
 
    arrayCount x
      = "(" <> x <> ")" <> "->count"
@@ -656,10 +650,10 @@ schemaOfOutput :: OutputId -> ValType -> Either SeaError PsvColumn
 schemaOfOutput outputId typ =
   PsvColumn (renderOutputId outputId) <$> schemaOfValType typ
 
-schemaOfProgram :: SeaProgramAttribute -> Either SeaError [PsvColumn]
+schemaOfProgram :: Cluster -> Either SeaError [PsvColumn]
 schemaOfProgram =
   -- NOTE the order of the columns here must match 'seaOfWriteProgramOutput' above
-  traverse (\(n, (t, _)) -> schemaOfOutput n t) . Map.toList . stateOutputsAll
+  traverse (\(n, MeltedType t _) -> schemaOfOutput n t) . Map.toList . clusterOutputs
 
 schemaOfLabel :: Mode -> [PsvColumn]
 schemaOfLabel = \case
@@ -668,14 +662,14 @@ schemaOfLabel = \case
   Chords ->
     [PsvColumn "timestamp" (PsvPrimitive PsvString)]
 
-schemaOfFleet :: PsvOutputConfig -> [SeaProgramAttribute] -> Either SeaError PsvSchema
-schemaOfFleet config programs =
+schemaOfFleet :: PsvOutputConfig -> [Cluster] -> Either SeaError PsvSchema
+schemaOfFleet config clusters =
   case outputPsvFormat config of
     PsvOutputSparse ->
       Left SeaCannotGenerateSchemaForSparseOutput
 
     PsvOutputDense -> do
-      columns0 <- concat <$> traverse schemaOfProgram programs
+      columns0 <- concat <$> traverse schemaOfProgram clusters
 
       let
         columns =

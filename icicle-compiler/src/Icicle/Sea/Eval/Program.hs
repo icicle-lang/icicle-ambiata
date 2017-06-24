@@ -28,11 +28,12 @@ import           Icicle.Data (InputId, OutputId)
 import           Icicle.Common.Annot (Annot)
 import           Icicle.Common.Type (ValType(..))
 
+import           Icicle.Sea.Data
 import           Icicle.Sea.Error (SeaError(..))
-import           Icicle.Sea.FromAvalanche.Analysis (factVarsOfProgram, outputsOfProgram)
-import           Icicle.Sea.FromAvalanche.Program (nameOfCompute')
-import           Icicle.Sea.FromAvalanche.State (nameOfStateSize')
 import           Icicle.Sea.Fleet
+import           Icicle.Sea.FromAvalanche.Analysis (factVarsOfProgram, outputsOfProgram)
+import           Icicle.Sea.FromAvalanche.Program (nameOfKernel')
+import           Icicle.Sea.FromAvalanche.State (nameOfClusterStateSize')
 
 import           P hiding (count)
 
@@ -43,10 +44,10 @@ import           X.Control.Monad.Trans.Either (firstEitherT, left)
 
 
 data SeaProgram = SeaProgram {
-    spName        :: (Int,Int)
+    spKernelId    :: KernelId
   , spStateWords  :: Int
   , spFactType    :: ValType
-  , spOutputs     :: [(OutputId, (ValType, [ValType]))]
+  , spOutputs     :: [(OutputId, MeltedType)]
   , spCompute     :: Ptr SeaState -> IO ()
   }
 
@@ -60,30 +61,30 @@ mkSeaPrograms lib programs = do
   return $ Map.fromList (List.zip (Map.keys programs) compiled)
  where
   go i ps
-   = mapM (\(j,p) -> mkSeaProgram lib (i,j) p) (NonEmpty.zip (0 :| [1..]) ps)
+   = mapM (\(j,p) -> mkSeaProgram lib (KernelId i j) p) (NonEmpty.zip (0 :| [1..]) ps)
 
 
 mkSeaProgram ::
      (MonadIO m, Eq n)
   => Library
-  -> (Int,Int)
+  -> KernelId
   -> Program (Annot a) n Prim
   -> EitherT SeaError m SeaProgram
-mkSeaProgram lib name@(attribute,_) program = do
+mkSeaProgram lib kid@(KernelId cid _) program = do
   let outputs = outputsOfProgram program
 
   factType <- case factVarsOfProgram FactLoopNew program of
                 Nothing     -> left SeaNoFactLoop
                 Just (t, _) -> return t
 
-  size_of_state <- firstEitherT SeaJetskiError (function lib (nameOfStateSize' attribute) retInt64)
+  size_of_state <- firstEitherT SeaJetskiError (function lib (nameOfClusterStateSize' cid) retInt64)
   words         <- liftIO (size_of_state [])
-  compute       <- firstEitherT SeaJetskiError (function lib (nameOfCompute' name) retVoid)
+  kernel        <- firstEitherT SeaJetskiError (function lib (nameOfKernel' kid) retVoid)
 
   return SeaProgram {
-      spName       = name
+      spKernelId   = kid
     , spStateWords = fromIntegral words
     , spFactType   = factType
     , spOutputs    = outputs
-    , spCompute    = \ptr -> compute [argPtr ptr]
+    , spCompute    = \ptr -> kernel [argPtr ptr]
     }
