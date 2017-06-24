@@ -72,7 +72,7 @@ import           Icicle.Avalanche.Prim.Flat       (meltType)
 import           Icicle.Common.Type               (ValType(..), StructField(..))
 import           Icicle.Common.Type               (defaultOfType)
 
-import           Icicle.Data                      (Attribute, Time)
+import           Icicle.Data                      (Time, InputId)
 
 import           Icicle.Internal.Pretty
 
@@ -183,17 +183,17 @@ defOfProgramState :: SeaProgramAttribute -> Doc
 defOfProgramState state
  = defOfVar' 1 (pretty (nameOfStateType state))
                (pretty (nameOfAttribute state)) <> ";"
- <+> "/* " <> (prettyText . takeSeaString . attributeAsSeaString . stateAttribute $ state) <> " */"
+ <+> "/* " <> (prettyText . takeSeaString . inputIdAsSeaString . stateInputId $ state) <> " */"
 
 defOfProgramTime :: SeaProgramAttribute -> Doc
 defOfProgramTime state
  = defOfVar 0 TimeT (pretty (nameOfLastTime state)) <> ";"
- <+> "/* " <> (prettyText . takeSeaString . attributeAsSeaString . stateAttribute $ state) <> " */"
+ <+> "/* " <> (prettyText . takeSeaString . inputIdAsSeaString . stateInputId $ state) <> " */"
 
 defOfProgramCount :: SeaProgramAttribute -> Doc
 defOfProgramCount state
   = defOfVar 0 IntT (pretty (nameOfCount state)) <> ";"
-  <+> "/* " <> (prettyText . takeSeaString . attributeAsSeaString . stateAttribute $ state) <> " */"
+  <+> "/* " <> (prettyText . takeSeaString . inputIdAsSeaString . stateInputId $ state) <> " */"
 
 seaOfSnapshotTime :: Time -> Doc
 seaOfSnapshotTime time
@@ -252,7 +252,7 @@ seaOfAllocProgram state
 
        inputVars = fmap (first takeSeaName) . stateInputVars $ state
 
-   in vsep [ "/* " <> (prettyText . takeSeaString . attributeAsSeaString . stateAttribute $ state) <> " */"
+   in vsep [ "/* " <> (prettyText . takeSeaString . inputIdAsSeaString . stateInputId $ state) <> " */"
            , programs <> " = " <> calloc "max_chord_count" stype
            , ""
            , "for (iint_t ix = 0; ix < max_chord_count; ix++) {"
@@ -336,7 +336,7 @@ seaOfCollectProgram state
           , "}"
           ]
 
-   in vsep [ "/* " <> (prettyText . takeSeaString . attributeAsSeaString . stateAttribute $ state) <> " */"
+   in vsep [ "/* " <> (prettyText . takeSeaString . inputIdAsSeaString . stateInputId $ state) <> " */"
            , "for (iint_t chord_ix = 0; chord_ix < chord_count; chord_ix++) {"
            , indent 4 $ stype <+> "*program = &fleet->" <> pname <> "[chord_ix];"
            , ""
@@ -373,7 +373,7 @@ needsCopy = \case
 defOfState :: SeaProgramAttribute -> Doc
 defOfState state
  = let stype  = pretty (nameOfStateType state)
-       var    = "*p" <> pretty (stateAttributeName state)
+       var    = "*p" <> pretty (stateInputIndex state)
        member = "fleet->" <> pretty (nameOfAttribute state)
    in stype <+> var <+> "=" <+> member <> ";"
 
@@ -387,7 +387,7 @@ defOfCount state
 
 seaOfAssignTime :: SeaProgramAttribute -> Doc
 seaOfAssignTime state
- = let ptime = "p" <> pretty (stateAttributeName state) <> "[ix].input." <> pretty (stateTimeVar state)
+ = let ptime = "p" <> pretty (stateInputIndex state) <> "[ix].input." <> pretty (stateTimeVar state)
    in  ptime <+> "=" <+> "chord_time;"
 
 -- Input
@@ -397,7 +397,7 @@ type Name = Text
 
 data InputOpts = InputOpts
   { inputAllowDupTime :: InputAllowDupTime
-  , inputTombstones   :: Map Attribute (Set Text)
+  , inputTombstones   :: Map InputId (Set Text)
   } deriving (Show, Eq)
 
 -- | Whether fact times must be unique for an entity.

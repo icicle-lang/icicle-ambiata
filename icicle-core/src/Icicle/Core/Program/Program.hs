@@ -6,12 +6,13 @@ module Icicle.Core.Program.Program (
      , renameProgram
      ) where
 
-import              Icicle.Internal.Pretty
 import              Icicle.Common.Base
-import              Icicle.Common.Type
 import              Icicle.Common.Exp.Exp (renameExp)
+import              Icicle.Common.Type
 import              Icicle.Core.Exp
 import              Icicle.Core.Stream.Stream
+import              Icicle.Data.Name
+import              Icicle.Internal.Pretty
 
 import              P
 
@@ -37,7 +38,7 @@ data Program a n =
  , postcomps    :: ![(Name n, Exp a n)]
 
  -- | The return values
- , returns      :: ![(OutputName, Exp a n)]
+ , returns      :: ![(OutputId, Exp a n)]
  }
  deriving (Show, Eq, Ord)
 

@@ -80,7 +80,7 @@ evalCore :: TestSourceConvert -> [AsAt (BubbleGumFact, BaseValue)] -> Either (CV
 evalCore ts vs
  = CV.eval (tsEvalCtx ts) vs (tsCore ts)
 
-evalAval :: TestSourceConvert -> [AsAt (BubbleGumFact, BaseValue)] -> Either (AE.RuntimeError () T.Variable AF.Prim) ([(OutputName, BaseValue)], Set.Set FactIdentifier)
+evalAval :: TestSourceConvert -> [AsAt (BubbleGumFact, BaseValue)] -> Either (AE.RuntimeError () T.Variable AF.Prim) ([(OutputId, BaseValue)], Set.Set FactIdentifier)
 evalAval ts vs
  = AE.evalProgram AE.evalPrim (tsEvalCtx ts) vs (tsAval ts)
 

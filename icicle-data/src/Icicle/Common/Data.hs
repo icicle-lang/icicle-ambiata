@@ -51,8 +51,7 @@ valueToCore dv vt
       -> let vs' = Map.fromList vs
 
              go (k@(C.StructField f), tf) = do
-               a <- D.asAttributeName f
-               let v = fromMaybe D.Tombstone (Map.lookup a vs')
+               let v = fromMaybe D.Tombstone (Map.lookup f vs')
                (,) <$> pure k <*> valueToCore v tf
 
          in C.VStruct . Map.fromList <$> traverse go (Map.toList ts)
@@ -96,6 +95,6 @@ valueFromCore = \case
       in D.MapValue <$> traverse go (Map.toList kvs)
 
   C.VStruct xs
-   -> let go (C.StructField k, v) = (,) <$> D.asAttributeName k <*> valueFromCore v
+   -> let go (C.StructField k, v) = (,) <$> pure k <*> valueFromCore v
       in D.StructValue . D.Struct <$> traverse go (Map.toList xs)
 

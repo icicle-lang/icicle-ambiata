@@ -10,6 +10,7 @@ module Icicle.Source.PrettyAnnot (
 import                  Icicle.Source.Type
 import                  Icicle.Source.Query
 import                  Icicle.Internal.Pretty
+import                  Icicle.Data.Name
 
 import                  P
 
@@ -128,6 +129,6 @@ instance (Pretty a, Pretty n) => Pretty (PrettyAnnot (Query (Annot a n) n)) wher
 instance (Pretty a, Pretty n) => Pretty (PrettyAnnot (QueryTop (Annot a n) n)) where
  pretty qq
   = case getPrettyAnnot qq of
-     QueryTop f _ q -> "feature" <+> pretty f <> line <> "~>" <+> pretty (PrettyAnnot q)
+     QueryTop f _ q -> "feature" <+> pretty (show (renderUnresolvedInputId f)) <> line <> "~>" <+> pretty (PrettyAnnot q)
 
 

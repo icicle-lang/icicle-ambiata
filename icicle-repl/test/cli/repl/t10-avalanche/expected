@@ -48,7 +48,7 @@ let conv/31 = Sum_fold#@{(Error,Int)}@{(Sum Error (Int, Array (Sum Error Int)))}
     let conv/28 = pair#@{Int, Array (Sum Error Int)} reify/11/conv/23 conv/27
     let conv/29 = right#@{Error, (Int, Array (Sum Error Int))} conv/28
      in conv/29) c/conv/11;
-output@{(Sum Error (Int, Array (Sum Error Int)))} repl (conv/31@{(Sum Error (Int, Array (Sum Error Int)))});
+output@{(Sum Error (Int, Array (Sum Error Int)))} repl:output (conv/31@{(Sum Error (Int, Array (Sum Error Int)))});
 
 - Core evaluation:
 [homer, (5,[300,400,500])
@@ -97,7 +97,7 @@ let conv/36 = Sum_fold#@{(Error,Map Time (Buf 2 ((Sum Error Int), Time)))}@{(Sum
                   (\reify/3/conv/15@{Int} right#@{Error, Int} (add#@{Int} reify/1/conv/13 reify/3/conv/15)) conv/9) (fst#@{(Sum Error Int), Time} conv/8)
                in s/conv/19) (Right 0@{(Sum Error Int)}) conv/5
          in conv/10)) conv/24) (Right Map []@{(Sum Error (Map Time Int))}) conv/27) conv/35;
-output@{(Sum Error (Map Time Int))} repl (conv/36@{(Sum Error (Map Time Int))});
+output@{(Sum Error (Map Time Int))} repl:output (conv/36@{(Sum Error (Map Time Int))});
 
 - Core evaluation:
 [homer, [(1989-12-17,100)

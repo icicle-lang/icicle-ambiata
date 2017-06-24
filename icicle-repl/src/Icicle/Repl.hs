@@ -1,8 +1,8 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE DoAndIfThenElse   #-}
-{-# LANGUAGE PatternGuards     #-}
-
+{-# LANGUAGE DoAndIfThenElse #-}
+{-# LANGUAGE PatternGuards #-}
+{-# LANGUAGE QuasiQuotes #-}
 module Icicle.Repl where
 
 import           P
@@ -15,7 +15,6 @@ import           Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.Text                        as T
 import qualified Data.Text.IO                     as T
 import           Data.String                      (String)
-import           Data.Maybe
 
 import           System.Console.Haskeline         as HL
 import           System.IO
@@ -32,6 +31,7 @@ import           Icicle.Dictionary
 import           Icicle.Internal.Pretty           (Pretty, pretty)
 import qualified Icicle.Internal.Pretty           as Pretty
 import qualified Icicle.Simulator                 as Sim
+import           Icicle.Storage.Dictionary.Toml
 
 import qualified Icicle.Source.Checker            as Source
 import qualified Icicle.Source.PrettyAnnot        as Source
@@ -231,8 +231,10 @@ handleLine state line = let st = sourceState state in
       Left e   -> Repl.prettyHL e >> return state
       Right d -> do
         HL.outputStrLn $  "ok, loaded dictionary with "
-                       <> show (length $ dictionaryEntries d)
-                       <> " features and "
+                       <> show (length $ dictionaryInputs d)
+                       <> " inputs, "
+                       <> show (length $ dictionaryOutputs d)
+                       <> " outputs, "
                        <> show (length $ dictionaryFunctions d)
                        <> " functions"
         return $ state { sourceState = (st { SourceRepl.dictionary = d }) }
@@ -245,7 +247,7 @@ handleLine state line = let st = sourceState state in
         HL.outputStrLn $ "ok, loaded " <> show (length is) <> " functions from " <> fp
         let d = SourceRepl.dictionary st
         -- Merge in the new functions with new functions taking precedence over existing ones
-        let f = L.nubBy ((==) `on` fst) $ is <> (dictionaryFunctions d)
+        let f = L.nubBy ((==) `on` functionName) $ fromFunEnv is <> dictionaryFunctions d
         return $ state { sourceState = st { SourceRepl.dictionary = d { dictionaryFunctions = f } } }
 
   Just (Repl.CommandComment comment) -> do
@@ -267,7 +269,7 @@ handleLine state line = let st = sourceState state in
                     Repl.prettyHL p
                     Repl.nl
 
-    let Just attr = asAttributeName "repl"
+    let iid = [inputid|repl:input|]
 
     checked <- runEitherT $ do
       parsed       <- hoist $ sourceParse (T.pack line)
@@ -361,19 +363,19 @@ handleLine state line = let st = sourceState state in
            prettyOut hasSeaPreamble "- C preamble:" Sea.seaPreamble
 
            when (hasSea state) $ do
-             let seaProgram = Sea.seaOfPrograms 0 attr flatList
+             let seaProgram = Sea.seaOfPrograms 0 iid flatList
              case seaProgram of
                Left  e -> prettyOut (const True) "- C error:" e
                Right r -> prettyOut (const True) "- C:" r
 
            when (hasSeaAssembly state) $ do
-             result <- liftIO . runEitherT $ Sea.assemblyOfPrograms Sea.NoInput [attr] [(attr, flatList)]
+             result <- liftIO . runEitherT $ Sea.assemblyOfPrograms Sea.NoInput [iid] [(iid, flatList)]
              case result of
                Left  e -> prettyOut (const True) "- C assembly error:" e
                Right r -> prettyOut (const True) "- C assembly:" r
 
            when (hasSeaLLVMIR state) $ do
-             result <- liftIO . runEitherT $ Sea.irOfPrograms Sea.NoInput [attr] [(attr, flatList)]
+             result <- liftIO . runEitherT $ Sea.irOfPrograms Sea.NoInput [iid] [(iid, flatList)]
              case result of
                Left  e -> prettyOut (const True) "- C LLVM IR error:" e
                Right r -> prettyOut (const True) "- C LLVM IR:" r
@@ -405,7 +407,7 @@ handleLine state line = let st = sourceState state in
 
     sourceParse
       = first (ErrorCompileSource . SourceRepl.ErrorCompile)
-      . Source.sourceParseQT "repl" (fromJust . asNamespace $ "namespace-repl")
+      . Source.sourceParseQT [outputid|repl:output|]
 
     sourceDesugar
       = first (ErrorCompileSource . SourceRepl.ErrorCompile)

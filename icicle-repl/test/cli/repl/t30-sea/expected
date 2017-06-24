@@ -602,7 +602,7 @@ else
 }
 read flat/87/simpflat/228 = flat/87/simpflat/214 [Error];
 read flat/87/simpflat/229 = flat/87/simpflat/215 [Double];
-output@{(Sum Error Double)} repl (flat/87/simpflat/228@{Error}, flat/87/simpflat/229@{Double});
+output@{(Sum Error Double)} repl:output (flat/87/simpflat/228@{Error}, flat/87/simpflat/229@{Double});
 
 - Flattened Avalanche (simplified), typechecked:
 conv/3 = TIME
@@ -1183,10 +1183,10 @@ else
 }
 read flat/87/simpflat/228 = flat/87/simpflat/214 [Error];
 read flat/87/simpflat/229 = flat/87/simpflat/215 [Double];
-output@{(Sum Error Double)} repl (flat/87/simpflat/228@{Error}, flat/87/simpflat/229@{Double});
+output@{(Sum Error Double)} repl:output (flat/87/simpflat/228@{Error}, flat/87/simpflat/229@{Double});
 
 - C:
-#line 1 "state and input definition #0 - repl"
+#line 1 "state and input definition #0 - repl:input"
 
 typedef struct {
     itime_t          convzs3;
@@ -1195,7 +1195,7 @@ typedef struct {
     istring_t        *new_convzs0zssimpflatzs231;
     iint_t           *new_convzs0zssimpflatzs232;
     itime_t          *new_convzs0zssimpflatzs233;
-} input_repl_t;
+} input_replZCinput_t;
 
 typedef struct {
     /* runtime */
@@ -1203,12 +1203,12 @@ typedef struct {
     iint_t           max_map_size;
 
     /* inputs */
-    input_repl_t     input;
+    input_replZCinput_t input;
 
   /* compute for (0,0) */
     /* outputs */
-    ierror_t         replzsixzs0;
-    idouble_t        replzsixzs1;
+    ierror_t         replZCoutputzsixzs0;
+    idouble_t        replZCoutputzsixzs1;
 
     /* resumables: values */
     idouble_t        res_0_0_acczsconvzs11zssimpflatzs34;
@@ -1246,7 +1246,7 @@ iint_t size_of_state_iattribute_0 ()
     return sizeof (iattribute_0_t);
 }
 
-#line 1 "compute function #0 - repl icompute_attribute_0_compute_0"
+#line 1 "compute function #0 - repl:input icompute_attribute_0_compute_0"
 void icompute_attribute_0_compute_0(iattribute_0_t *s)
 {
     idouble_t        flatzs29zssimpflatzs130;
@@ -2046,8 +2046,8 @@ void icompute_attribute_0_compute_0(iattribute_0_t *s)
     
     flatzs87zssimpflatzs228                   = flatzs87zssimpflatzs214;              /* read */
     flatzs87zssimpflatzs229                   = flatzs87zssimpflatzs215;              /* read */
-    s->replzsixzs0                            = flatzs87zssimpflatzs228;              /* output */
-    s->replzsixzs1                            = flatzs87zssimpflatzs229;              /* output */
+    s->replZCoutputzsixzs0                    = flatzs87zssimpflatzs228;              /* output */
+    s->replZCoutputzsixzs1                    = flatzs87zssimpflatzs229;              /* output */
 }
 
 - C evaluation:
@@ -2120,7 +2120,7 @@ save_resumable@{Error} acc/s/reify/2/conv/5/simpflat/11;
 save_resumable@{Time} acc/s/reify/2/conv/5/simpflat/12;
 read s/reify/2/conv/5/simpflat/23 = acc/s/reify/2/conv/5/simpflat/11 [Error];
 read s/reify/2/conv/5/simpflat/24 = acc/s/reify/2/conv/5/simpflat/12 [Time];
-output@{(Sum Error Time)} repl (s/reify/2/conv/5/simpflat/23@{Error}, s/reify/2/conv/5/simpflat/24@{Time});
+output@{(Sum Error Time)} repl:output (s/reify/2/conv/5/simpflat/23@{Error}, s/reify/2/conv/5/simpflat/24@{Time});
 
 - Flattened Avalanche (simplified), typechecked:
 conv/3 = TIME
@@ -2185,10 +2185,10 @@ save_resumable@{Error} acc/s/reify/2/conv/5/simpflat/11;
 save_resumable@{Time} acc/s/reify/2/conv/5/simpflat/12;
 read s/reify/2/conv/5/simpflat/23 = acc/s/reify/2/conv/5/simpflat/11 [Error];
 read s/reify/2/conv/5/simpflat/24 = acc/s/reify/2/conv/5/simpflat/12 [Time];
-output@{(Sum Error Time)} repl (s/reify/2/conv/5/simpflat/23@{Error}, s/reify/2/conv/5/simpflat/24@{Time});
+output@{(Sum Error Time)} repl:output (s/reify/2/conv/5/simpflat/23@{Error}, s/reify/2/conv/5/simpflat/24@{Time});
 
 - C:
-#line 1 "state and input definition #0 - repl"
+#line 1 "state and input definition #0 - repl:input"
 
 typedef struct {
     itime_t          convzs3;
@@ -2196,7 +2196,7 @@ typedef struct {
     ierror_t         *new_convzs0zssimpflatzs25;
     iint_t           *new_convzs0zssimpflatzs26;
     itime_t          *new_convzs0zssimpflatzs27;
-} input_repl_t;
+} input_replZCinput_t;
 
 typedef struct {
     /* runtime */
@@ -2204,12 +2204,12 @@ typedef struct {
     iint_t           max_map_size;
 
     /* inputs */
-    input_repl_t     input;
+    input_replZCinput_t input;
 
   /* compute for (0,0) */
     /* outputs */
-    ierror_t         replzsixzs0;
-    itime_t          replzsixzs1;
+    ierror_t         replZCoutputzsixzs0;
+    itime_t          replZCoutputzsixzs1;
 
     /* resumables: values */
     itime_t          res_0_0_acczsszsreifyzs2zsconvzs5zssimpflatzs12;
@@ -2229,7 +2229,7 @@ iint_t size_of_state_iattribute_0 ()
     return sizeof (iattribute_0_t);
 }
 
-#line 1 "compute function #0 - repl icompute_attribute_0_compute_0"
+#line 1 "compute function #0 - repl:input icompute_attribute_0_compute_0"
 void icompute_attribute_0_compute_0(iattribute_0_t *s)
 {
     itime_t          flatzs4;
@@ -2330,8 +2330,8 @@ void icompute_attribute_0_compute_0(iattribute_0_t *s)
     
     szsreifyzs2zsconvzs5zssimpflatzs23        = acczsszsreifyzs2zsconvzs5zssimpflatzs11; /* read */
     szsreifyzs2zsconvzs5zssimpflatzs24        = acczsszsreifyzs2zsconvzs5zssimpflatzs12; /* read */
-    s->replzsixzs0                            = szsreifyzs2zsconvzs5zssimpflatzs23;   /* output */
-    s->replzsixzs1                            = szsreifyzs2zsconvzs5zssimpflatzs24;   /* output */
+    s->replZCoutputzsixzs0                    = szsreifyzs2zsconvzs5zssimpflatzs23;   /* output */
+    s->replZCoutputzsixzs1                    = szsreifyzs2zsconvzs5zssimpflatzs24;   /* output */
 }
 
 - C evaluation:

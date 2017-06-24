@@ -1,2 +1,2 @@
-bar|newest_salary|100
-foooo|newest_salary|40
+bar|default:newest_salary|100
+foooo|default:newest_salary|40

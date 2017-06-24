@@ -19,7 +19,7 @@ ok, loaded test/cli/repl/data.psv, 13 rows
                                    \             (
                                     \_____________)
 > ok, core evaluation is now on
-> > ok, loaded dictionary with 5 features and 38 functions
+> > ok, loaded dictionary with 5 inputs, 0 outputs, 38 functions
 > ok, loaded test/cli/repl/t30.4-array-updates/data.psv, 17 rows
 > > - C evaluation:
 [zubat, [(2015,1),(2016,1)]]

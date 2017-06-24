@@ -59,11 +59,11 @@ Postcomputations:
                               in conv/29) c/conv/11
 
 Returning:
-  repl                 = conv/31
+  repl:output          = conv/31
 
 
 - Core type:
-[(repl
+[(repl:output
  ,(Sum Error (Int, Array (Sum Error Int))))]
 
 - Core evaluation:
@@ -115,11 +115,11 @@ Postcomputations:
                                   in conv/10)) conv/24) (Right Map []@{(Sum Error (Map Time Int))}) conv/27) conv/35
 
 Returning:
-  repl                 = conv/36
+  repl:output          = conv/36
 
 
 - Core type:
-[(repl
+[(repl:output
  ,(Sum Error (Map Time Int)))]
 
 - Core evaluation:

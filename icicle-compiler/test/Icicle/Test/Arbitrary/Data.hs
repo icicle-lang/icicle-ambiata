@@ -55,11 +55,38 @@ instance Arbitrary Entity where
   arbitrary =
     Entity <$> elements simpsons
 
-instance Arbitrary Attribute where
+instance Arbitrary Namespace where
   arbitrary = do
     -- fail violently if not the case
-    Just a <- asAttributeName <$> elements weather
+    Just ns <- parseNamespace <$> elements simpsons
+    pure ns
+
+instance Arbitrary InputName where
+  arbitrary = do
+    -- fail violently if not the case
+    Just a <- parseInputName <$> elements weather
     return a
+
+instance Arbitrary InputId where
+  arbitrary =
+    InputId <$> arbitrary <*> arbitrary
+
+instance Arbitrary UnresolvedInputId where
+  arbitrary =
+    oneof [
+        UnqualifiedInput <$> arbitrary
+      , QualifiedInput <$> arbitrary
+      ]
+
+instance Arbitrary OutputName where
+  arbitrary = do
+    -- fail violently if not the case
+    Just n <- parseOutputName <$> elements muppets
+    pure n
+
+instance Arbitrary OutputId where
+  arbitrary =
+    OutputId <$> arbitrary <*> arbitrary
 
 instance Arbitrary Time where
   arbitrary = do
@@ -93,7 +120,7 @@ instance Arbitrary Encoding where
           , ListEncoding           <$> arbitrary ]
    where
     nubEq
-     = List.nubBy ((==) `on` attributeOfStructField)
+     = List.nubBy ((==) `on` structFieldName)
 
 instance Arbitrary StructField where
   arbitrary =

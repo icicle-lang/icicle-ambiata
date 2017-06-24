@@ -1,6 +1,7 @@
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE LambdaCase       #-}
+{-# LANGUAGE QuasiQuotes #-}
 module Icicle.Storage.Dictionary.TextV1 (
     parseDictionaryLineV1
   , writeDictionaryLineV1
@@ -14,12 +15,11 @@ import           Icicle.Storage.Encoding
 import           P hiding (concat, intercalate)
 
 import           Data.Attoparsec.Text
-import           Data.Text hiding (takeWhile)
+import qualified Data.Text as Text
 import qualified Data.Set as Set
-import           Data.Maybe
 
 field :: Parser Text
-field = append <$> takeWhile (not . isDelimOrEscape) <*> (concat <$> many (cons <$> escaped <*> field)) <?> "field"
+field = Text.append <$> takeWhile (not . isDelimOrEscape) <*> (Text.concat <$> many (Text.cons <$> escaped <*> field)) <?> "field"
   where
     escaped :: Parser Char
     escaped = repEscape =<< (char '\\' >> satisfy (inClass "|rn\\")) <?> "Escaped char"
@@ -30,23 +30,28 @@ field = append <$> takeWhile (not . isDelimOrEscape) <*> (concat <$> many (cons 
     repEscape '\\' = pure '\\'
     repEscape _    = mempty -- Unreachable
 
-parseIcicleDictionaryV1 :: Parser DictionaryEntry
+parseIcicleDictionaryV1 :: Parser DictionaryInput
 parseIcicleDictionaryV1
- = DictionaryEntry
- <$> (toAttributeName =<< field)
- <*   p
- <*> (ConcreteDefinition <$> parseEncoding <*> pure (Set.singleton "NA") <*> pure unkeyed)
- -- No namespace in this legacy dictionary
- <*> pure (fromJust . asNamespace $ "default")
-    where
-      p = char '|'
+ = DictionaryInput
+ <$> (InputId <$> pure [namespace|default|] <*> inputNameParser)
+ <*   char '|'
+ <*> parseEncoding
+ <*> pure (Set.singleton "NA")
+ <*> pure unkeyed
 
-parseDictionaryLineV1 :: Text -> Either ParseError DictionaryEntry
+inputNameParser :: Parser InputName
+inputNameParser = do
+  x <- field
+  case parseInputName x of
+    Nothing ->
+      fail $ "Invalid input name: " <> Text.unpack x
+    Just a ->
+      pure a
+
+parseDictionaryLineV1 :: Text -> Either ParseError DictionaryInput
 parseDictionaryLineV1 s =
-  first (ParseError . pack) $ parseOnly parseIcicleDictionaryV1 s
+  first (ParseError . Text.pack) $ parseOnly parseIcicleDictionaryV1 s
 
-writeDictionaryLineV1 :: DictionaryEntry -> Text
-writeDictionaryLineV1 (DictionaryEntry a (ConcreteDefinition e _ _) _)
-  = takeAttributeName a <> "|" <> prettyConcrete e
-writeDictionaryLineV1 (DictionaryEntry _ (VirtualDefinition _) _)
-  = "Virtual features not supported in V1"
+writeDictionaryLineV1 :: DictionaryInput -> Text
+writeDictionaryLineV1 (DictionaryInput (InputId _ a) e _ _)
+  = renderInputName a <> "|" <> prettyConcrete e

@@ -20,6 +20,8 @@ import           Icicle.Common.Base
 import           Icicle.Common.Exp
 import           Icicle.Common.Type
 
+import           Icicle.Data.Name
+
 import           P
 
 import           Data.Map (Map)
@@ -155,10 +157,10 @@ readsOfStatement stmt
 
 ------------------------------------------------------------------------
 
-outputsOfProgram :: Program (Annot a) n Prim -> [(OutputName, (ValType, [ValType]))]
+outputsOfProgram :: Program (Annot a) n Prim -> [(OutputId, (ValType, [ValType]))]
 outputsOfProgram = Map.toList . outputsOfStatement . statements
 
-outputsOfStatement :: Statement (Annot a) n Prim -> Map OutputName (ValType, [ValType])
+outputsOfStatement :: Statement (Annot a) n Prim -> Map OutputId (ValType, [ValType])
 outputsOfStatement stmt
  = case stmt of
      Block []                -> Map.empty

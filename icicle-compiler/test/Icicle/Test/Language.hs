@@ -34,6 +34,8 @@ import           Test.QuickCheck.Property
 import qualified Text.Parsec.Pos as Parsec
 
 import           P
+import qualified Prelude as Savage
+
 import           X.Control.Monad.Trans.Either
 import           Disorder.Core.IO
 
@@ -95,7 +97,7 @@ instance Arbitrary EvalWellTyped where
 mkFacts :: WellTyped -> [D.AsAt D.Fact]
 mkFacts wt
   = catMaybes
-  $ List.zipWith (mkAsAt (wtAttribute wt))
+  $ List.zipWith (mkAsAt (D.inputName $ wtInputId wt))
                  (wtEntities wt)
                  (wtFacts wt)
   where
@@ -107,10 +109,9 @@ mkDummyQuery :: WellTyped -> P.QueryTyped Source.Var
 mkDummyQuery wt
   = let x = nameOf $ NameBase $ SP.Variable "dummy"
         pos = Parsec.initialPos "dummy"
-        Just n = D.asNamespace "dummy"
     in  S.QueryTop
-          (nameOf . NameBase . SP.Variable . D.takeAttributeName . wtAttribute $ wt)
-          (OutputName (D.takeAttributeName . wtAttribute $ wt) n)
+          (D.QualifiedInput $ wtInputId wt)
+          (fromMaybe (Savage.error "dummy") . D.parseOutputId . D.renderInputId $ wtInputId wt)
           (S.Query [] $ S.Var (S.Annot pos S.UnitT []) x)
 
 factFromCoreValue :: BaseValue -> Maybe D.Value
@@ -144,7 +145,7 @@ factFromCoreValue bv = case bv of
    |  otherwise
    ->  D.StructValue . D.Struct
    <$> sequence
-    ( fmap (bisequence . first (D.asAttributeName . nameOfStructField) . second factFromCoreValue)
+    ( fmap (bisequence . bimap (pure . nameOfStructField) factFromCoreValue)
     $ Map.toList x)
 
 sourceNameFromTestName :: Name Var -> Name Source.Var

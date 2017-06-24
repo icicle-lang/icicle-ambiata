@@ -146,7 +146,7 @@ read flat/22/simpflat/46 = flat/22/simpflat/42 [Error];
 read flat/22/simpflat/47 = flat/22/simpflat/43 [Int];
 read flat/22/simpflat/48 = flat/22/simpflat/44 [Array Error];
 read flat/22/simpflat/49 = flat/22/simpflat/45 [Array Int];
-output@{(Sum Error (Int, Array (Sum Error Int)))} repl (flat/22/simpflat/46@{Error}, flat/22/simpflat/47@{Int}, flat/22/simpflat/48@{Array Error}, flat/22/simpflat/49@{Array Int});
+output@{(Sum Error (Int, Array (Sum Error Int)))} repl:output (flat/22/simpflat/46@{Error}, flat/22/simpflat/47@{Int}, flat/22/simpflat/48@{Array Error}, flat/22/simpflat/49@{Array Int});
 
 - Flattened Avalanche (simplified), typechecked:
 conv/3 = TIME
@@ -289,7 +289,7 @@ read flat/22/simpflat/46 = flat/22/simpflat/42 [Error];
 read flat/22/simpflat/47 = flat/22/simpflat/43 [Int];
 read flat/22/simpflat/48 = flat/22/simpflat/44 [Array Error];
 read flat/22/simpflat/49 = flat/22/simpflat/45 [Array Int];
-output@{(Sum Error (Int, Array (Sum Error Int)))} repl (flat/22/simpflat/46@{Error}, flat/22/simpflat/47@{Int}, flat/22/simpflat/48@{Array Error}, flat/22/simpflat/49@{Array Int});
+output@{(Sum Error (Int, Array (Sum Error Int)))} repl:output (flat/22/simpflat/46@{Error}, flat/22/simpflat/47@{Int}, flat/22/simpflat/48@{Array Error}, flat/22/simpflat/49@{Array Int});
 
 - Core evaluation:
 [homer, (5,[300,400,500])
@@ -812,7 +812,7 @@ else
 read flat/47/simpflat/167 = flat/47/simpflat/123 [Error];
 read flat/47/simpflat/168 = flat/47/simpflat/124 [Array Time];
 read flat/47/simpflat/169 = flat/47/simpflat/125 [Array Int];
-output@{(Sum Error (Map Time Int))} repl (flat/47/simpflat/167@{Error}, flat/47/simpflat/168@{Array Time}, flat/47/simpflat/169@{Array Int});
+output@{(Sum Error (Map Time Int))} repl:output (flat/47/simpflat/167@{Error}, flat/47/simpflat/168@{Array Time}, flat/47/simpflat/169@{Array Int});
 
 - Flattened Avalanche (simplified), typechecked:
 conv/3 = TIME
@@ -1330,7 +1330,7 @@ else
 read flat/47/simpflat/167 = flat/47/simpflat/123 [Error];
 read flat/47/simpflat/168 = flat/47/simpflat/124 [Array Time];
 read flat/47/simpflat/169 = flat/47/simpflat/125 [Array Int];
-output@{(Sum Error (Map Time Int))} repl (flat/47/simpflat/167@{Error}, flat/47/simpflat/168@{Array Time}, flat/47/simpflat/169@{Array Int});
+output@{(Sum Error (Map Time Int))} repl:output (flat/47/simpflat/167@{Error}, flat/47/simpflat/168@{Array Time}, flat/47/simpflat/169@{Array Int});
 
 - Core evaluation:
 [homer, [(1989-12-17,100)

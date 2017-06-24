@@ -1,9 +1,10 @@
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards #-}
-{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TypeSynonymInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 module Icicle.Test.Arbitrary.Source where
@@ -73,29 +74,31 @@ data QueryWithFeature
  = QueryWithFeature
  { qwfQuery     :: Query () T.Variable
  , qwfNow       :: Maybe (CB.Name T.Variable)
- , qwfOutput    :: CB.OutputName
+ , qwfOutput    :: OutputId
  , qwfFeatureT  :: CT.ValType
  , qwfFeatureN  :: CB.Name T.Variable
+ , qwfFeatureId :: InputId
  , qwfTimeName  :: CB.Name T.Variable
- , qwfFeatureK  :: ConcreteKey () T.Variable
+ , qwfFeatureK  :: InputKey () T.Variable
  }
 
 instance Show QueryWithFeature where
-  show (QueryWithFeature q now out ty name time key)
+  show (QueryWithFeature q now out ty name iid time key)
     =  "QueryWithFeature:"
     <> "\n  Query: " <> show (pretty q)
     <> "\n  Now: " <> show (pretty now)
     <> "\n  Output: " <> show (pretty out)
     <> "\n  Type: " <> show (pretty ty)
     <> "\n  Name: " <> show (pretty name)
+    <> "\n  Input: " <> show (pretty iid)
     <> "\n  Time: " <> show (pretty time)
-    <> "\n  Key: " <> show (pretty $ concreteKey key)
+    <> "\n  Key: " <> show (pretty $ unInputKey key)
 
 -- | Generate feature map for typechecking and conversion to Core.
-qwfFeatureMap :: QueryWithFeature -> Features () T.Variable (ConcreteKey () T.Variable)
+qwfFeatureMap :: QueryWithFeature -> Features () T.Variable (InputKey () T.Variable)
 qwfFeatureMap qwf
  = Features
-    (Map.singleton (qwfFeatureN qwf) featureCrt)
+    (Map.singleton (qwfFeatureId qwf) featureCrt)
      Map.empty
     (qwfNow qwf)
 
@@ -121,7 +124,7 @@ qwfFeatureMap qwf
 
 qwfQueryTop :: QueryWithFeature -> QueryTop () T.Variable
 qwfQueryTop qwf
- = QueryTop (qwfFeatureN qwf) (qwfOutput qwf) (qwfQuery qwf)
+ = QueryTop (QualifiedInput $ qwfFeatureId qwf) (qwfOutput qwf) (qwfQuery qwf)
 
 -- | Try to generate a well-typed query.
 -- The argument defines how likely it is to "table flip" and generate crazy expressions.
@@ -132,6 +135,7 @@ genQueryWithFeatureTypedGen tableflipPercent
       let make f = CB.nameOf $ CB.NameBase $ T.Variable (namebase <> f)
       let now = make "now"
       let nm  = make "featurename"
+      let iid = [inputid|ns:id|]
       let tm  = make "timename"
       let tgi = TypedGenInfo
               { tgiVars = Map.fromList [(now, TTAgg), (nm, TTElt), (tm, TTElt)]
@@ -149,7 +153,7 @@ genQueryWithFeatureTypedGen tableflipPercent
       -- part was using the Source-converted type with Arrays.
       Just t <- (valTypeOfType . typeOfValType) <$> arbitrary
       k      <- genQueryKey t
-      return $ QueryWithFeature q (Just now) o t nm tm k
+      return $ QueryWithFeature q (Just now) o t nm iid tm k
 
 -- | Use arbitrary instance to generate query.
 -- Less likely to typecheck, but more likely to cover crazy corner cases.
@@ -158,14 +162,15 @@ genQueryWithFeatureArbitrary
  = do namebase <- elements muppets
       let make f = CB.nameOf $ CB.NameBase $ T.Variable (namebase <> f)
       let now = make "now"
-      let nm  = make "featurename"
+      let nm  = make "namespace:featurename"
+      let Just iid = parseInputId (namebase <> "namespace:featurename")
       let tm  = make "timename"
       q   <- arbitrary
       o   <- arbitrary
       -- See "Note: Convert to Source type and back in generator" above
       Just t <- (valTypeOfType . typeOfValType) <$> arbitrary
       k      <- genQueryKey t
-      return $ QueryWithFeature q (Just now) o t nm tm k
+      return $ QueryWithFeature q (Just now) o t nm iid tm k
 
 
 -- | Pretty-print the query and stuff
@@ -180,13 +185,12 @@ data CheckErr
  | CheckErrImpossible
  deriving Show
 
-qwfCheckKey :: QueryWithFeature -> Either CheckErr (ConcreteKey (Annot () T.Variable) T.Variable)
-qwfCheckKey qwf = case concreteKey (qwfFeatureK qwf) of
-  Nothing -> return $ ConcreteKey Nothing
+qwfCheckKey :: QueryWithFeature -> Either CheckErr (InputKey (Annot () T.Variable) T.Variable)
+qwfCheckKey qwf = case unInputKey (qwfFeatureK qwf) of
+  Nothing -> return $ InputKey Nothing
   Just k  -> do
-    let Just n = asNamespace "dummy_nsp"
-    let q = QueryTop (qwfFeatureN qwf)
-                     (CB.OutputName "dummy_output" n)
+    let q = QueryTop (QualifiedInput $ qwfFeatureId qwf)
+                     [outputid|dummy_nsp:dummy_output|]
                      (Query [Distinct () k] (Prim () (Lit (LitInt 0))))
 
     (checked, _) <- runIdentity
@@ -197,7 +201,7 @@ qwfCheckKey qwf = case concreteKey (qwfFeatureK qwf) of
 
     case contexts . query $ checked of
       Distinct _ xx' : _
-        -> Right . ConcreteKey . Just $ xx'
+        -> Right . InputKey . Just $ xx'
       _ -> Left CheckErrImpossible
 
 qwfCheck :: QueryWithFeature -> Either CheckErr (QueryTop (Annot () T.Variable) T.Variable )
@@ -222,7 +226,7 @@ qwfDesugar qwf
  $ qwfQueryTop qwf
 
 qwfConvertToCore :: QueryWithFeature
-                 -> ConcreteKey (Annot () T.Variable) T.Variable
+                 -> InputKey (Annot () T.Variable) T.Variable
                  -> QueryTop    (Annot () T.Variable) T.Variable
                  -> Either (S.ConvertError () T.Variable) (C.Program () T.Variable)
 qwfConvertToCore qwf key qt
@@ -354,9 +358,9 @@ genCase tgi
         let (args',bss) = List.unzip args
         return (PatCon con args', Map.unions bss)
 
-genQueryKey :: CT.ValType -> Gen (ConcreteKey () T.Variable)
+genQueryKey :: CT.ValType -> Gen (InputKey () T.Variable)
 genQueryKey t
-  = frequency [ (1, pure (ConcreteKey Nothing)), (10, ConcreteKey . Just <$> genKeyExp) ]
+  = frequency [ (1, pure (InputKey Nothing)), (10, InputKey . Just <$> genKeyExp) ]
  where
   var n = (CB.nameOf $ CB.NameBase n, TTElt)
   genKeyExp = genExp . tgi $ case t of

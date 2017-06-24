@@ -21,7 +21,7 @@ import           Icicle.Compiler (ErrorCompile, avalancheOfDictionary)
 import           Icicle.Compiler.Source (defaultCompileOptions)
 import qualified Icicle.Compiler.Source as Source
 import           Icicle.Data.Time (timeOfText)
-import           Icicle.Dictionary (tombstonesOfDictionary, orderedConcreteFeaturesIn)
+import           Icicle.Dictionary (tombstonesOfDictionary, dictionaryInputs)
 import           Icicle.Sea.Eval
 import           Icicle.Source.Checker (optionSmallData)
 import           Icicle.Storage.Dictionary.Toml (DictionaryImportError, ImplicitPrelude(..))
@@ -90,8 +90,8 @@ main =
       avalancheOfDictionary defaultCompileOptions loadedDictionary
 
     let
-      attrs =
-        orderedConcreteFeaturesIn loadedDictionary
+      inputs =
+        Map.keys $ dictionaryInputs loadedDictionary
 
     let
       dateText =
@@ -119,7 +119,7 @@ main =
         HasInput format inputOptions ()
 
     code <- hoistEither . first MakeSeaError .
-      codeOfPrograms input attrs $ Map.toList avalanche
+      codeOfPrograms input inputs $ Map.toList avalanche
 
     compilerOptions <- liftIO $ getCompilerOptions
 

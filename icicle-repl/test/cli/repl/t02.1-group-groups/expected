@@ -1,7 +1,7 @@
 welcome to iREPL
 ok, loaded 38 functions from data/libs/prelude.icicle
 ok, loaded test/cli/repl/data.psv, 13 rows
-> ok, loaded dictionary with 1 features and 38 functions
+> ok, loaded dictionary with 1 inputs, 0 outputs, 38 functions
 > ok, loaded test/cli/repl/t02.1-group-groups/data.psv, 6 rows
 > ok, time set to 2016-07-14
 > ok, core evaluation is now on

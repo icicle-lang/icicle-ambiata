@@ -17,6 +17,7 @@ import           Icicle.Source.Type
 
 import           Icicle.Common.Base
 import qualified Icicle.Common.Fresh                as Fresh
+import           Icicle.Data.Name
 import           Icicle.Internal.EditDistance
 import           Icicle.Internal.Pretty
 
@@ -32,7 +33,7 @@ data CheckError a n
 
 data ErrorInfo a n
  = ErrorNoSuchVariable a (Name n)
- | ErrorNoSuchFeature a (Name n)
+ | ErrorNoSuchInput a UnresolvedInputId
  | ErrorContextNotAllowedHere  a (Context a n)
  | ErrorFunctionWrongArgs      a (Exp a n) (FunctionType n) [Type n]
  | ErrorApplicationNotFunction a (Exp a n)
@@ -51,7 +52,7 @@ annotOfError (CheckError e _)
  = case e of
     ErrorNoSuchVariable a _
      -> Just a
-    ErrorNoSuchFeature a _
+    ErrorNoSuchInput a _
      -> Just a
     ErrorContextNotAllowedHere  a _
      -> Just a
@@ -78,7 +79,7 @@ annotOfError (CheckError e _)
 
 
 data ErrorSuggestion a n
- = AvailableFeatures (Name n) [(Name n, Type n)]
+ = AvailableFeatures UnresolvedInputId [(InputId, Type n)]
  | AvailableBindings (Name n) [(Name n, FunctionType n)]
  | Suggest String
  deriving (Show, Eq)
@@ -116,8 +117,8 @@ instance (Pretty a, Pretty n) => Pretty (ErrorInfo a n) where
   = case e of
      ErrorNoSuchVariable a n
       -> "Unknown variable" <+> pretty n <+> "at" <+> pretty a
-     ErrorNoSuchFeature a n
-      -> "The dictionary has no feature called" <+> pretty n <+> "at" <+> pretty a
+     ErrorNoSuchInput a n
+      -> "The dictionary has no input called" <+> pretty n <+> "at" <+> pretty a
 
      ErrorContextNotAllowedHere  a c
       -> "Context is not allowed at" <+> pretty a <> line

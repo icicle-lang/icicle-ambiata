@@ -18,21 +18,20 @@ import                  Icicle.Source.Parser.Constructor
 import qualified        Icicle.Source.Query        as Q
 
 import                  Icicle.Common.Base         as B
+import                  Icicle.Data.Name
 
 import                  P hiding (exp)
 
 import                  Text.Parsec (many1, parserFail, getPosition, eof, (<?>), sepEndBy, try, notFollowedBy)
 
-top :: OutputName -> Parser (Q.QueryTop T.SourcePos Var)
+top :: OutputId -> Parser (Q.QueryTop T.SourcePos Var)
 top name
  = do   pKeyword T.Feature                                      <?> "feature start"
-        v <- factName <?> "concrete feature name"
+        v <- pUnresolvedInputId                                 <?> "input source"
         pFlowsInto
         q <- query                                              <?> "query"
         eof
         return $ Q.QueryTop v name q
- where
-  factName = pVariable <|> (nameOf . NameBase <$> pConstructor) <|> (nameOf . NameBase . T.Variable <$> pLitString)
 
 functions :: Parser [((T.SourcePos, Name Var), (Q.Function T.SourcePos Var))]
 functions

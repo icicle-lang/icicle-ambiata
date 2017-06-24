@@ -19,7 +19,7 @@ ok, loaded test/cli/repl/data.psv, 13 rows
                                    |  \_((_(_)|/(_)
                                    \             (
                                     \_____________)
-> > ok, loaded dictionary with 2 features and 38 functions
+> > ok, loaded dictionary with 2 inputs, 0 outputs, 38 functions
 > ok, loaded test/cli/repl/t30.2-array-strings/data.psv, 5 rows
 > > - C evaluation:
 [ID00000000, 2

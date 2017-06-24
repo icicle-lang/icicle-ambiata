@@ -8,6 +8,7 @@ module Icicle.Source.Parser.Token (
   , pSatisfy
   , pEq
   , pKeyword
+  , pUnresolvedInputId
   , pConstructor
   , pVariable
   , pProjections
@@ -24,6 +25,7 @@ module Icicle.Source.Parser.Token (
 import qualified        Icicle.Source.Lexer.Token as T
 import                  Icicle.Common.Base
 import                  Icicle.Data.Time
+import                  Icicle.Data.Name
 
 import                  P hiding ((<|>))
 
@@ -71,6 +73,14 @@ pOperator
   months = pKeyword T.Months *> (T.Operator ("months before") <$ pKeyword T.Before
                              <|> T.Operator ("months after")  <$ pKeyword T.After)
 
+pUnresolvedInputId :: Parser UnresolvedInputId
+pUnresolvedInputId
+ = pTok get <?> "input identifier"
+ where
+  get (T.TVariable (T.Variable v))    = parseUnresolvedInputId v
+  get (T.TConstructor (T.Variable v)) = parseUnresolvedInputId v
+  get (T.TLiteral (T.LitString v))    = parseUnresolvedInputId v
+  get  _                              = Nothing
 
 pVariable :: Parser (Name Var)
 pVariable

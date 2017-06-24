@@ -11,14 +11,14 @@
   "attributes": [
     {
       "index": 1,
-      "name": ":long_output",
+      "name": "default:long_output",
       "encoding": {
         "primitive": "int"
       }
     },
     {
       "index": 2,
-      "name": ":more_long_output",
+      "name": "default:more_long_output",
       "encoding": {
         "primitive": "int"
       }

@@ -1,6 +1,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TemplateHaskell   #-}
+{-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE TemplateHaskell #-}
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 module Icicle.Test.Sea.Seaworthy where
 
@@ -34,7 +35,7 @@ namer = A.namerText (flip Var 0)
 --   Like prop_psv, but without psv.
 prop_seaworthy wt
  = testIO
- $ do let Just a = asAttributeName "eval"
+ $ do let a = [inputid|default:eval|]
       let seaProgram = Map.singleton a (wtAvalancheFlat wt :| [])
       x <- runEitherT $ go [a] seaProgram
       return $ case x of

@@ -124,8 +124,6 @@ library
 
                        Icicle.Compiler
 
-                       Icicle.Debug
-
                        Icicle.Internal.Rename
 
                        Icicle.Runtime.Array

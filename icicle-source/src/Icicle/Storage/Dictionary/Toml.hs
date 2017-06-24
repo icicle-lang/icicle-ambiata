@@ -1,22 +1,23 @@
-{-# LANGUAGE LambdaCase        #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TemplateHaskell   #-}
-{-# LANGUAGE TupleSections     #-}
-{-# LANGUAGE PatternGuards     #-}
-
+{-# LANGUAGE PatternGuards #-}
+{-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TupleSections #-}
 module Icicle.Storage.Dictionary.Toml (
     DictionaryImportError (..)
   , ImplicitPrelude (..)
   , loadDictionary
   , loadDenseDictionary
   , prelude
+  , fromFunEnv
+  , toFunEnv
   ) where
 
 import           Icicle.Common.Base
 
-import           Icicle.Data                                   (Attribute, Namespace)
-import           Icicle.Data                                   (takeAttributeName)
+import           Icicle.Data
 import           Icicle.Dictionary.Data
 
 import           Icicle.Internal.Pretty                        hiding ((</>))
@@ -37,6 +38,7 @@ import           Icicle.Storage.Dictionary.Toml.Types
 import qualified Control.Exception                             as E
 
 import           Data.FileEmbed (embedFile)
+import qualified Data.Map.Strict                               as Map
 
 import           System.FilePath
 import           System.IO
@@ -92,19 +94,19 @@ loadDenseDictionary checkOpts impPrelude dictionary feed
 loadDictionary'
   :: CheckOptions
   -> ImplicitPrelude
-  -> FunEnvT
+  -> [DictionaryFunction]
   -> DictionaryConfig
-  -> [DictionaryEntry]
+  -> [DictionaryInput]
   -> FilePath
   -> EitherT DictionaryImportError IO Dictionary
-loadDictionary' checkOpts impPrelude parentFuncs parentConf parentConcrete dictPath = do
+loadDictionary' checkOpts impPrelude parentFuncs parentConf parentInputs dictPath = do
   rawToml              <- parseTOML dictPath
-  (conf, definitions') <- firstEitherT DictionaryErrorParse . hoistEither . toEither
+  (conf, inputs0', outputs0') <- firstEitherT DictionaryErrorParse . hoistEither . toEither
                         $ tomlDict parentConf rawToml
 
   let repoPath = takeDirectory dictPath
 
-  rawImports        <- traverse (readImport repoPath) (fmap T.unpack (imports conf))
+  rawImports        <- traverse (readImport repoPath) (fmap T.unpack (configImports conf))
   let prelude'      =  if impPrelude == ImplicitPrelude then prelude else []
   parsedImports     <- hoistEither $ traverse (uncurry parseImport) (prelude' <> rawImports)
   importedFunctions <- loadImports parentFuncs parsedImports
@@ -114,53 +116,45 @@ loadDictionary' checkOpts impPrelude parentFuncs parentConf parentConcrete dictP
 
   -- Do a convoluted dance to construct the concrete definitions without the keys
   -- so that we can check the keys before making the actual concrete definitions.
-  let virtualDefinitions'  = foldr remakeVirtuals [] definitions'
-  let concreteDefinitions' = foldr remakeConcrete [] definitions'
-  let dictUnchecked        = Dictionary (fmap snd concreteDefinitions' <> parentConcrete) availableFunctions
+  let outputs' = foldr remakeVirtuals [] outputs0'
+  let inputs' = foldr remakeConcrete [] inputs0'
+  let dictUnchecked = Dictionary (mapOfInputs $ fmap snd inputs' <> parentInputs) Map.empty availableFunctions
 
-  virtualDefinitions  <- checkDefs checkOpts dictUnchecked virtualDefinitions'
-  concreteDefinitions <- hoistEither
-                       $ forM concreteDefinitions'
-                       $ \(ConcreteKey' k, e@(DictionaryEntry a def n)) -> case k of
-                           Nothing
-                            -> pure e
-                           Just key
-                            | ConcreteDefinition en ts _ <- def
-                            -> do k' <- checkKey checkOpts dictUnchecked a n key
-                                  pure $ DictionaryEntry a (ConcreteDefinition en ts k') n
-                            | otherwise
-                            -> pure e
+  outputs <- checkDefs checkOpts dictUnchecked outputs'
+  inputs <-
+    hoistEither . forM inputs' $ \(ConcreteKey' k, e@(DictionaryInput a en ts _)) ->
+      case k of
+       Nothing ->
+         pure e
+       Just key -> do
+         k' <- checkKey checkOpts dictUnchecked a key
+         pure $ DictionaryInput a en ts k'
 
   let loadChapter fp' = loadDictionary' checkOpts
                                         NoImplicitPrelude
                                         availableFunctions
                                         conf
-                                        concreteDefinitions
+                                        inputs
                                         (repoPath </> T.unpack fp')
 
-  loadedChapters <- traverse loadChapter (chapter conf)
+  loadedChapters <- traverse loadChapter (configChapter conf)
 
   -- Dictionaries loaded after one another can see the functions of previous
   -- dictionaries. So sub-dictionaries imports can use prelude functions.
   -- Export the dictionaries loaded here, and in sub dictionaries (but not
   -- parent functions, as the parent already knows about those).
   let functions = join $ [importedFunctions] <> (dictionaryFunctions <$> loadedChapters)
-  let totaldefinitions = concreteDefinitions <> virtualDefinitions <> (join $ dictionaryEntries <$> loadedChapters)
+  let totalinputs = Map.unions $ mapOfInputs inputs : fmap dictionaryInputs loadedChapters
+  let totaldefinitions = Map.unions $ mapOfOutputs outputs : fmap dictionaryOutputs loadedChapters
 
-  pure $ Dictionary totaldefinitions functions
+  pure $ Dictionary totalinputs totaldefinitions functions
   where
-    remakeConcrete (DictionaryEntry' a (ConcreteDefinition' e t k) nsp) cds
-      = (k, DictionaryEntry a (ConcreteDefinition e (Set.fromList (toList t)) unkeyed) nsp)
+    remakeConcrete (DictionaryInput' a e t k) cds
+      = (k, DictionaryInput a e (Set.fromList (toList t)) unkeyed)
       : cds
-    remakeConcrete _ cds
-      = cds
 
-    remakeVirtuals de vds
-     = case de of
-         DictionaryEntry' a (VirtualDefinition' (Virtual' v)) nsp
-          -> (nsp, a, v) : vds
-         _
-          -> vds
+    remakeVirtuals (DictionaryOutput' a v) vds
+     = (a, v) : vds
 
 
 parseTOML :: FilePath -> EitherT DictionaryImportError IO Table
@@ -180,10 +174,11 @@ parseImport :: FilePath -> Text -> Either DictionaryImportError (Funs Parsec.Sou
 parseImport path src
  = first DictionaryErrorCompilation (P.sourceParseF path src)
 
-loadImports :: FunEnvT -> [Funs Parsec.SourcePos] -> EitherT DictionaryImportError IO FunEnvT
+loadImports :: [DictionaryFunction] -> [Funs Parsec.SourcePos] -> EitherT DictionaryImportError IO [DictionaryFunction]
 loadImports parentFuncs parsedImports
  = hoistEither . first DictionaryErrorCompilation
- $ foldlM (go parentFuncs) [] parsedImports
+ $ fmap fromFunEnv
+ $ foldlM (go (toFunEnv parentFuncs)) [] parsedImports
  where
   go env acc f
    = do -- Run desugar to ensure pattern matches are complete.
@@ -193,32 +188,40 @@ loadImports parentFuncs parsedImports
         -- Return these functions at the end of the accumulator.
         return $ acc <> f'
 
+toFunEnv :: [DictionaryFunction] -> FunEnvT
+toFunEnv =
+  fmap $ \(DictionaryFunction n t f) ->
+    (n, (t, f))
+
+fromFunEnv :: FunEnvT -> [DictionaryFunction]
+fromFunEnv =
+  fmap $ \(n, (t, f)) ->
+    DictionaryFunction n t f
+
 checkDefs :: CheckOptions
           -> Dictionary
-          -> [(Namespace, Attribute, P.QueryUntyped P.Var)]
-          -> EitherT DictionaryImportError IO [DictionaryEntry]
+          -> [(OutputId, QueryTop SourcePos SP.Variable)]
+          -> EitherT DictionaryImportError IO [DictionaryOutput]
 checkDefs checkOpts d defs
  = hoistEither . first DictionaryErrorCompilation
  $ go `traverse` defs
  where
-  go (n, a, q)
+  go (oid, q)
    = do  -- Run desugar to ensure pattern matches are complete.
          _             <- P.sourceDesugarQT q
          -- Type check the virtual definition.
          (checked, _)  <- P.sourceCheckQT checkOpts d q
-         pure $ DictionaryEntry a (VirtualDefinition (Virtual checked)) n
+         pure $ DictionaryOutput oid checked
 
 checkKey :: CheckOptions
          -> Dictionary
-         -> Attribute
-         -> Namespace
+         -> InputId
          -> Exp SourcePos P.Var
-         -> Either DictionaryImportError (ConcreteKey AnnotSource P.Var)
-checkKey checkOpts d attr nsp xx = do
+         -> Either DictionaryImportError (InputKey AnnotSource P.Var)
+checkKey checkOpts d iid xx = do
   let l = Parsec.initialPos "dummy_pos_ctx"
   let p = Parsec.initialPos "dummy_pos_final"
-  let q = QueryTop (nameOf (NameBase (SP.Variable (takeAttributeName attr))))
-                   (OutputName "dummy_output" nsp)
+  let q = QueryTop (QualifiedInput iid) [outputid|dummy_namespace:dummy_output|]
           -- We know the key must be of Pure or Element temporality,
           -- so it's ok to wrap it in a Group.
           (Query   [SQ.Distinct l xx]
@@ -232,7 +235,7 @@ checkKey checkOpts d attr nsp xx = do
 
   case contexts . query $ checked of
     SQ.Distinct _ xx' : _
-      -> Right . ConcreteKey . Just $ xx'
+      -> Right . InputKey . Just $ xx'
     _ -> Left DictionaryErrorImpossible
 
 instance Pretty DictionaryImportError where

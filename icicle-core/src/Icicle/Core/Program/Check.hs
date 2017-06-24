@@ -8,6 +8,7 @@ import              Icicle.Common.Base
 import              Icicle.Common.Type
 import              Icicle.Core.Exp             as X
 import              Icicle.Core.Stream          as S
+import              Icicle.Data.Name
 
 import              Icicle.Core.Program.Program as P
 import              Icicle.Core.Program.Error
@@ -22,7 +23,7 @@ import              Data.Hashable (Hashable)
 checkProgram
         :: (Hashable n, Eq n)
         => Program a n
-        -> Either (ProgramError a n) [(OutputName, Type)]
+        -> Either (ProgramError a n) [(OutputId, Type)]
 checkProgram p
  = do   -- Check precomputations, starting with an empty environment
         let env0 = Map.fromList

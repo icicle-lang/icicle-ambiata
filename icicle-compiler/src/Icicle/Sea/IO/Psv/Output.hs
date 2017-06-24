@@ -13,10 +13,9 @@ import qualified Data.Text as Text
 import           Icicle.Avalanche.Prim.Flat (Prim(..), PrimUnsafe(..))
 import           Icicle.Avalanche.Prim.Flat (meltType)
 
-import           Icicle.Common.Base (OutputName(..))
 import           Icicle.Common.Type (ValType(..), StructType(..), StructField(..))
 
-import qualified Icicle.Data as Source
+import           Icicle.Data.Name
 
 import           Icicle.Internal.Pretty
 
@@ -57,7 +56,7 @@ seaOfWriteFleetOutput :: PsvOutputConfig -> PsvOutputWhiteList -> [SeaProgramAtt
 seaOfWriteFleetOutput config whitelist states = do
   let states' = case whitelist of
                   Nothing -> states
-                  Just as -> filter (flip List.elem as . Source.takeAttributeName . stateAttribute) states
+                  Just as -> filter (flip List.elem as . renderInputName . inputName . stateInputId) states
 
   write_sea <- traverse (seaOfWriteProgramOutput config) states'
   schema_sea <- seaOfGetOutputSchema config states'
@@ -166,7 +165,7 @@ seaOfGetOutputSchema config programs =
 
 seaOfWriteProgramOutput :: PsvOutputConfig -> SeaProgramAttribute -> Either SeaError Doc
 seaOfWriteProgramOutput config state = do
-  let ps    = "p" <> int (stateAttributeName state)
+  let ps    = "p" <> int (stateInputIndex state)
       stype = pretty (nameOfStateType state)
       attr  = pretty (nameOfAttribute state)
       tb    = outputPsvMissing config
@@ -190,7 +189,7 @@ seaOfWriteProgramOutput config state = do
 
   pure $ vsep
     [ ""
-    , "/* " <> (prettyText . takeSeaString . attributeAsSeaString . stateAttribute $ state) <> " */"
+    , "/* " <> (prettyText . takeSeaString . inputIdAsSeaString . stateInputId $ state) <> " */"
     , stype <+> "*" <> ps <+> "=" <+> "&fleet->" <> attr <> "[chord_ix];"
     , vsep callComputes
     , ps <> "->input.new_count = 0;"
@@ -199,25 +198,25 @@ seaOfWriteProgramOutput config state = do
     , vsep outputs
     ]
 
-seaOfWriteOutputSparse :: Doc -> Int -> OutputName -> ValType -> [ValType] -> Either SeaError Doc
-seaOfWriteOutputSparse struct structIndex outName@(OutputName name _) outType argTypes
+seaOfWriteOutputSparse :: Doc -> Int -> OutputId -> ValType -> [ValType] -> Either SeaError Doc
+seaOfWriteOutputSparse struct structIndex outId outType argTypes
   = do (m, f, body, _, _)
-          <- seaOfOutput NotInJSON struct structIndex outName PsvDrop Map.empty outType argTypes (const id)
+          <- seaOfOutput NotInJSON struct structIndex outId PsvDrop Map.empty outType argTypes (const id)
        return $ seaOfOutputCond m f (go body)
   where
     go str = vsep [ outputEntity
                   , outputChar '|'
-                  , outputAttr name
+                  , outputAttr outId
                   , outputChar '|'
                   , str
                   , outputChord
                   , outputChar '\n'
                   ]
 
-seaOfWriteOutputDense :: Doc -> Int -> OutputName -> ValType -> [ValType] -> Text -> Either SeaError Doc
-seaOfWriteOutputDense struct structIndex outName outType argTypes missing
+seaOfWriteOutputDense :: Doc -> Int -> OutputId -> ValType -> [ValType] -> Text -> Either SeaError Doc
+seaOfWriteOutputDense struct structIndex outId outType argTypes missing
   = do (m, f, body, _, _)
-          <- seaOfOutput NotInJSON struct structIndex outName (PsvMissing missing) Map.empty outType argTypes (const id)
+          <- seaOfOutput NotInJSON struct structIndex outId (PsvMissing missing) Map.empty outType argTypes (const id)
        let body' = seaOfOutputCond m f body
        pure $ vsep [ outputChar '|', body' ]
 
@@ -235,10 +234,10 @@ outputEntity :: Doc
 outputEntity
   = outputValue  "string" ["entity", "entity_size"]
 
--- | Output the attribute, e.g "salary|"
+-- | Output the attribute, e.g "employment:salary|"
 --
-outputAttr :: Text -> Doc
-outputAttr = outputString
+outputAttr :: OutputId -> Doc
+outputAttr = outputString . renderOutputId
 
 
 --------------------------------------------------------------------------------
@@ -261,7 +260,7 @@ seaOfOutput
   :: IsInJSON                      -- ^ Indicates whether to quote strings
   -> Doc                           -- ^ Struct of values to output
   -> Int                           -- ^ Current index into the struct of values
-  -> OutputName                    -- ^ Use the output name as seed for generated C names
+  -> OutputId                      -- ^ Use the output name as seed for generated C names
   -> PsvMissing                    -- ^ Drop missing values or output something
   -> NameEnv                       -- ^ C names in use
   -> ValType                       -- ^ Output type
@@ -272,12 +271,12 @@ seaOfOutput
                      , Doc         -- The output statement, x
                      , Int         -- Where it's up to
                      , [ValType] ) -- Unconsumed arguments
-seaOfOutput isJSON struct structIndex outName@(OutputName name _) missing env outType argTypes transform
- = let prefixi         = pretty name <> "_" <> pretty structIndex <> "_i"
+seaOfOutput isJSON struct structIndex outId missing env outType argTypes transform
+ = let prefixi         = prettyText (takeSeaName $ mangleToSeaNameIx outId structIndex) <> "_i"
        (suffixi, env'')= newName prefixi env
        counter         = prefixi <> suffixi
 
-       prefixn         = pretty name <> "_" <> pretty structIndex <> "_n"
+       prefixn         = prettyText (takeSeaName $ mangleToSeaNameIx outId structIndex) <> "_n"
        (suffixn, env') = newName prefixn env''
        countLimit      = prefixn <> suffixn
 
@@ -290,7 +289,7 @@ seaOfOutput isJSON struct structIndex outName@(OutputName name _) missing env ou
         | tes@(arg0:_) <- meltType te
         , (arr  : _)   <- members
         -> do (mcond, _, body, ix, ts1)
-                 <- seaOfOutput InJSON struct structIndex outName PsvDrop env' te tes arrayIndex'
+                 <- seaOfOutput InJSON struct structIndex outId PsvDrop env' te tes arrayIndex'
 
               -- For nested arrays, we get the inner array out first,
               -- so we can retrieve the correct count. For flat arrays the transform
@@ -312,9 +311,9 @@ seaOfOutput isJSON struct structIndex outName@(OutputName name _) missing env ou
         , tvs <- meltType tv
         , (arr : _)       <- members
         -> do (mcondk, _, bk, ixk, _)
-                 <- seaOfOutput InJSON struct structIndex outName PsvDrop env' tk tks arrayIndex'
+                 <- seaOfOutput InJSON struct structIndex outId PsvDrop env' tk tks arrayIndex'
               (mcondv, _, bv, ixv, ts)
-                 <- seaOfOutput InJSON struct ixk outName PsvDrop env' tv tvs arrayIndex'
+                 <- seaOfOutput InJSON struct ixk outId PsvDrop env' tv tvs arrayIndex'
 
               let p         = pair bk bv
               let arr'      = transform (ArrayT arg0) arr
@@ -329,9 +328,9 @@ seaOfOutput isJSON struct structIndex outName@(OutputName name _) missing env ou
         | tas <- meltType ta
         , tbs <- meltType tb
         -> do (mcondk, _, ba, ixa, _)
-                 <- seaOfOutput InJSON struct structIndex outName PsvDrop env' ta tas transform
+                 <- seaOfOutput InJSON struct structIndex outId PsvDrop env' ta tas transform
               (mcondv, _, bb, ixb, ts)
-                 <- seaOfOutput InJSON struct ixa outName PsvDrop env' tb tbs transform
+                 <- seaOfOutput InJSON struct ixa outId PsvDrop env' tb tbs transform
 
               let p  = pair ba bb
               let p' = seaOfOutputCond' (condAnd mcondk mcondv) $ p
@@ -342,7 +341,7 @@ seaOfOutput isJSON struct structIndex outName@(OutputName name _) missing env ou
        StructT fs
         | fields <- Map.toList (getStructType fs)
         -> do let go (ix, ts, docs) (n, t) = do
-                    (cond, _, body, ix', ts') <- seaOfOutput InJSON struct ix outName PsvDrop env' t ts transform
+                    (cond, _, body, ix', ts') <- seaOfOutput InJSON struct ix outId PsvDrop env' t ts transform
 
                     let doc = vsep
                             [ outputChar '\"'
@@ -363,7 +362,7 @@ seaOfOutput isJSON struct structIndex outName@(OutputName name _) missing env ou
         | (BoolT : ts1) <- argTypes
         , (nb    : _)   <- members
         -> do (mcond, mfalse, body, ix, ts)
-                 <- seaOfOutput isJSON struct (structIndex + 1) outName missing env' otype1 ts1 transform
+                 <- seaOfOutput isJSON struct (structIndex + 1) outId missing env' otype1 ts1 transform
 
               let body' = seaOfOutputCond mcond mfalse body
               let nb'   = transform BoolT nb
@@ -374,7 +373,7 @@ seaOfOutput isJSON struct structIndex outName@(OutputName name _) missing env ou
         | (ErrorT : ts1) <- argTypes
         , (ne     : _)   <- members
         -> do (mcond, mfalse, body, ix, ts)
-                 <- seaOfOutput isJSON struct (structIndex + 1) outName missing env' otype1 ts1 transform
+                 <- seaOfOutput isJSON struct (structIndex + 1) outId missing env' otype1 ts1 transform
 
               let body' = seaOfOutputCond mcond mfalse body
               let ne'   = transform ErrorT ne
@@ -392,11 +391,11 @@ seaOfOutput isJSON struct structIndex outName@(OutputName name _) missing env ou
        _ -> Left unsupported
 
   where
-   mismatch    = SeaOutputTypeMismatch    outName outType argTypes
+   mismatch    = SeaOutputTypeMismatch    outId outType argTypes
    unsupported = SeaUnsupportedOutputType outType
 
    members    = List.take (length argTypes)
-              $ fmap (\ix -> struct <> "->" <> (prettyText . takeSeaName . mangleToSeaNameIx name $ ix)) [structIndex..]
+              $ fmap (\ix -> struct <> "->" <> (prettyText . takeSeaName $ mangleToSeaNameIx outId ix)) [structIndex..]
 
    arrayCount x
      = "(" <> x <> ")" <> "->count"
@@ -653,13 +652,9 @@ schemaOfValType = \case
   FactIdentifierT ->
     Left $ SeaUnsupportedOutputType FactIdentifierT
 
-schemaOfOutput :: OutputName -> ValType -> Either SeaError PsvColumn
+schemaOfOutput :: OutputId -> ValType -> Either SeaError PsvColumn
 schemaOfOutput outputId typ =
-  let
-    name =
-      Source.takeNamespace (outputNamespace outputId) <> ":" <> outputName outputId
-  in
-    PsvColumn name <$> schemaOfValType typ
+  PsvColumn (renderOutputId outputId) <$> schemaOfValType typ
 
 schemaOfProgram :: SeaProgramAttribute -> Either SeaError [PsvColumn]
 schemaOfProgram =

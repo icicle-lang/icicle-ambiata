@@ -1,7 +1,5 @@
 import           Disorder.Core.Main
 
-import qualified Icicle.Test.IO.IO
-
 import           System.Environment (lookupEnv)
 
 
@@ -19,5 +17,4 @@ main = do
 runTests :: IO ()
 runTests =
   disorderMain [
-      Icicle.Test.IO.IO.tests
     ]

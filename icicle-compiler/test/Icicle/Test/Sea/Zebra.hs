@@ -148,7 +148,7 @@ runTest pool zwt@(ZebraWellTyped wt facts entities) =
                   (\state -> do
                      fleet_ptr <- peekWordOff state zebraStateFleet
                      struct_count <- inputFieldsCount <$>
-                       hoistEither (stateOfPrograms 0 (wtAttribute wt) (wtAvalancheFlat wt :| []))
+                       hoistEither (stateOfPrograms 0 (wtInputId wt) (wtAvalancheFlat wt :| []))
                      fact_count <- hoistMaybe (SeaZebraError "test_impossible") . fmap length $
                        Map.lookup (Entity . Text.decodeUtf8 . Zebra.unEntityId . Zebra.entityId $ entity) facts
 
@@ -503,10 +503,10 @@ codeOf wt = do
           (PsvOutputConfig (Snapshot testSnapshotTime) PsvOutputDense defaultOutputMissing))
         (InputOpts AllowDupTime Map.empty)
         ("" :: String)
-    attr = wtAttribute wt
+    iid  = wtInputId wt
     flat = wtAvalancheFlat wt :| []
 
-  src <- codeOfPrograms dummy [attr] [(attr, flat)]
+  src <- codeOfPrograms dummy [iid] [(iid, flat)]
 
   pure . textOfDoc . PP.vsep $
     [ PP.pretty src

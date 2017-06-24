@@ -4,7 +4,6 @@
 {-# LANGUAGE PatternGuards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TupleSections #-}
-
 module Icicle.Command (
     DictionaryFile(..)
   , InputFile(..)
@@ -37,7 +36,7 @@ import           Icicle.Avalanche.Program (Program)
 import           Icicle.Common.Annot (Annot)
 import qualified Icicle.Compiler as Compiler
 import qualified Icicle.Compiler.Source as Compiler
-import           Icicle.Data (Attribute)
+import           Icicle.Data.Name (InputId)
 import           Icicle.Data.Time (Time(..))
 import           Icicle.Dictionary
 import           Icicle.Internal.Pretty (pretty)
@@ -275,10 +274,10 @@ compileFleet dictionary format input chords = do
   avalanche <- hoistEither $ compileAvalanche dictionary defaultCompilerFlags
   let avalancheL = Map.toList avalanche
 
-  let attrs = orderedConcreteFeaturesIn dictionary
+  let inputs = Map.keys $ dictionaryInputs dictionary
 
-  code  <- firstEitherT IcicleSeaError (hoistEither (codeOfPrograms cfg attrs avalancheL))
-  fleet <- firstEitherT IcicleSeaError (seaCompile CacheSea cfg attrs avalanche chords)
+  code  <- firstEitherT IcicleSeaError (hoistEither (codeOfPrograms cfg inputs avalancheL))
+  fleet <- firstEitherT IcicleSeaError (seaCompile CacheSea cfg inputs avalanche chords)
 
   return (code, fleet)
 
@@ -344,14 +343,14 @@ compileDictionary dictionaryPath iformat oformat scope cflags = do
   let cfg = HasInput format (InputOpts AllowDupTime (tombstonesOfDictionary dictionary)) ()
   avalanche <- fmap Map.toList . hoistEither $ compileAvalanche dictionary cflags
 
-  let attrs = orderedConcreteFeaturesIn dictionary
+  let inputs = Map.keys $ dictionaryInputs dictionary
 
-  firstT IcicleSeaError . hoistEither $ codeOfPrograms cfg attrs avalanche
+  firstT IcicleSeaError . hoistEither $ codeOfPrograms cfg inputs avalanche
 
 compileAvalanche ::
      Dictionary
   -> CompilerFlags
-  -> Either IcicleError (Map Attribute (NonEmpty (Program (Annot Compiler.AnnotUnit) Compiler.Var Prim)))
+  -> Either IcicleError (Map InputId (NonEmpty (Program (Annot Compiler.AnnotUnit) Compiler.Var Prim)))
 compileAvalanche dictionary cflags =
   first IcicleCompileError $ Compiler.avalancheOfDictionary (compileOptionsOfCompilerFlags cflags) dictionary
 

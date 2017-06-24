@@ -1,14 +1,12 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
-
-module Icicle.Storage.Dictionary.Toml.TomlDictionary
-  ( tomlDict
-  , DictionaryConfig (..)
-  , DictionaryEntry' (..)
-  , Definition' (..)
-  , Virtual' (..)
-  , ConcreteKey' (..)
-  , DictionaryValidationError (..)
+module Icicle.Storage.Dictionary.Toml.TomlDictionary (
+    DictionaryConfig(..)
+  , DictionaryInput'(..)
+  , DictionaryOutput'(..)
+  , ConcreteKey'(..)
+  , DictionaryValidationError(..)
+  , tomlDict
   , toEither
   ) where
 
@@ -26,7 +24,6 @@ import qualified Text.Parsec.Pos as Pos
 import           Text.Parsec (runParser)
 import           Text.Parsec.Error
 
-import           Icicle.Common.Base (OutputName(..))
 import           Icicle.Data
 import           Icicle.Source.Lexer.Token
 import           Icicle.Source.Lexer.Lexer
@@ -47,12 +44,12 @@ import           Icicle.Internal.Pretty hiding (char)
 --   inside a specific fact or feature.
 data DictionaryConfig =
   DictionaryConfig {
-    title     :: Maybe Text
-  , version   :: Maybe Int64
-  , namespace :: Maybe Namespace
-  , tombstone :: Maybe Text
-  , imports   :: [Text]
-  , chapter   :: [Text]
+    configTitle     :: Maybe Text
+  , configVersion   :: Maybe Int64
+  , configNamespace :: Maybe Namespace
+  , configTombstone :: Maybe Text
+  , configImports   :: [Text]
+  , configChapter   :: [Text]
   } deriving (Eq, Show)
 
 instance Monoid DictionaryConfig where
@@ -65,23 +62,19 @@ instance Monoid DictionaryConfig where
     (DictionaryConfig b1 b2 b3 b4 _  _ ) =
       (DictionaryConfig (a1 CA.<|> b1) (a2 CA.<|> b2) (a3 CA.<|> b3) (a4 CA.<|> b4) a6 a7)
 
--- Intermediate states so that parsing can be pure.
--- Will need to typecheck once flow through and imports are done.
-data DictionaryEntry' =
-  DictionaryEntry' Attribute Definition' Namespace
-  deriving (Eq, Show)
+data DictionaryInput' =
+  DictionaryInput' {
+      inputId' :: InputId
+    , inputEncoding' :: Encoding
+    , inputTombstone' :: Maybe Text
+    , inputKey' :: ConcreteKey'
+    } deriving (Eq, Show)
 
-type Tombstone = Text
-
-data Definition' =
-    ConcreteDefinition' Encoding (Maybe Tombstone) ConcreteKey'
-  | VirtualDefinition'  Virtual'
-  deriving (Eq, Show)
-
--- A parsed, but still to be typechecked source program.
-newtype Virtual' = Virtual' {
-    unVirtual' :: QueryTop Pos.SourcePos Variable
-  } deriving (Eq, Show)
+data DictionaryOutput' =
+  DictionaryOutput' {
+      outputId' :: OutputId
+    , outputQuery' :: QueryTop Pos.SourcePos Variable
+    } deriving (Eq, Show)
 
 newtype ConcreteKey' = ConcreteKey' {
     concreteKey :: Maybe (Exp Pos.SourcePos Variable)
@@ -95,6 +88,7 @@ data DictionaryValidationError =
   | EncodingError Text Text Pos.SourcePos
   | ParseError ParseError
   | InvalidName Text
+  | InvalidNamespace Text
   deriving (Eq, Show)
 
 instance Pretty DictionaryValidationError where
@@ -131,6 +125,10 @@ instance Pretty DictionaryValidationError where
       -> vsep [ "Invalid name format (must be an Ivory feature name):"
               ,  indent 2 . text . unpack $ n ]
 
+     InvalidNamespace n
+      -> vsep [ "Invalid namespace (must be an Ivory namespace):"
+              ,  indent 2 . text . unpack $ n ]
+
 type Name = Text
 
 --------------------------------------------------------------------------------
@@ -138,14 +136,14 @@ type Name = Text
 tomlDict
   :: DictionaryConfig
   -> Table
-  -> AccValidation [DictionaryValidationError] (DictionaryConfig, [DictionaryEntry'])
+  -> AccValidation [DictionaryValidationError] (DictionaryConfig, [DictionaryInput'], [DictionaryOutput'])
 tomlDict parentConf x = fromEither $ do
   n <- toEither . textFocus "namespace" $ x
   nsp <- case n of
            Nothing ->
              pure Nothing
            Just a ->
-             fmap Just . maybeToRight [InvalidName a] . asNamespace $ a
+             fmap Just . maybeToRight [InvalidNamespace a] . parseNamespace $ a
   let config =   DictionaryConfig
              <$> textFocus "title" x
              <*> intFocus  "version" x
@@ -173,7 +171,7 @@ tomlDict parentConf x = fromEither $ do
                         (x ^? key "feature")
 
   -- Todo: ensure that there's no extra data lying around. All valid TOML should be used.
-  pure (config'', facts <> features)
+  pure (config'', facts, features)
 
 
 -- | If a namespace is given, it must be validated. If not, it must have a parent value.
@@ -188,11 +186,11 @@ validateNamespace parent name x =
       "namespace"
 
     valParent =
-      maybeToRight [MissingRequired ("fact." <> name) k] (namespace parent)
+      maybeToRight [MissingRequired ("fact." <> name) k] (configNamespace parent)
 
   in maybe
        (either AccFailure AccSuccess valParent)
-       (andThen asNamespace [InvalidName name] . validateText k)
+       (andThen parseNamespace [InvalidNamespace name] . validateText k)
        (x ^? key k)
 
 -- | Validate a TOML node is a fact.
@@ -201,7 +199,7 @@ validateFact
   :: DictionaryConfig
   -> Name
   -> Table
-  -> AccValidation [DictionaryValidationError] DictionaryEntry'
+  -> AccValidation [DictionaryValidationError] DictionaryInput'
 validateFact conf name x =
   let fname
         = "fact." <> name
@@ -218,7 +216,7 @@ validateFact conf name x =
 
       -- Tombstones are not mandatory, but can be inherited.
       tombstone'
-        =   (<|> tombstone conf)
+        =   (<|> configTombstone conf)
         <$> (validateText "tombstone") `traverse` (x ^? key "tombstone")
 
       -- Refutation key can be any expression.
@@ -228,16 +226,14 @@ validateFact conf name x =
         <$> (validateExpression (fname <> ".key")) `traverse` (x ^? key "key"))
 
       attribute
-        = maybe (AccFailure [InvalidName name]) pure (asAttributeName name)
+        = maybe (AccFailure [InvalidName name]) pure (parseInputName name)
 
       -- Todo: ensure that there's no extra data lying around. All valid TOML should be used.
-  in DictionaryEntry'
-       <$> attribute
-       <*> (   ConcreteDefinition'
-           <$> encoding
-           <*> tombstone'
-           <*> key' )
-       <*> namespace'
+  in DictionaryInput'
+       <$> (InputId <$> namespace' <*> attribute)
+       <*> encoding
+       <*> tombstone'
+       <*> key'
 
 
 validateExpression :: Text
@@ -263,7 +259,7 @@ validateFeature
   :: DictionaryConfig
   -> Name
   -> Table
-  -> AccValidation [DictionaryValidationError] DictionaryEntry'
+  -> AccValidation [DictionaryValidationError] DictionaryOutput'
 validateFeature conf name x = fromEither $ do
   let fname     = "feature." <> name
       fexp      = fname <> ".expression"
@@ -280,15 +276,17 @@ validateFeature conf name x = fromEither $ do
   expression' <- maybeToRight [BadType fexp "string" (expression ^. _2)]
                $ expression ^? _1 . _NTValue . _VString
 
+  attribute <- maybeToRight [InvalidName name] (parseOutputName name)
+
+  let oid = OutputId nsp attribute
+
   -- Run the icicle expression parser
   let toks     = lexerPositions expression'
   q           <- first (pure . ParseError)
-               $ runParser (top $ OutputName name nsp) () "" toks
-
-  attribute <- maybeToRight [InvalidName name] (asAttributeName name)
+               $ runParser (top oid) () "" toks
 
   -- Todo: ensure that there's no extra data lying around. All valid TOML should be used.
-  pure $ DictionaryEntry' attribute (VirtualDefinition' (Virtual' q)) nsp
+  pure $ DictionaryOutput' oid q
 
 -- | Validate a TOML node is a fact encoding.
 --
@@ -327,9 +325,8 @@ validateEncoding' ofFeature (NTable t, _) =
                                            <*> (Optional <$ char '*' <|> pure Mandatory)
                                            <*  endOfInput)
                                       (pack enc')
-             attribute <- maybe (Left [InvalidName name]) Right (asAttributeName name)
 
-             pure $ StructField fieldType attribute enc''
+             pure $ StructField fieldType name enc''
   -- We should get an error for every failed encoding listed.
   in StructEncoding . toList <$> M.traverseWithKey validated t
 

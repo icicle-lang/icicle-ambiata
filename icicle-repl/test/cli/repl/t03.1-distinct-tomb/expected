@@ -1,7 +1,7 @@
 welcome to iREPL
 ok, loaded 38 functions from data/libs/prelude.icicle
 ok, loaded test/cli/repl/data.psv, 13 rows
-> ok, loaded dictionary with 8 features and 38 functions
+> ok, loaded dictionary with 4 inputs, 4 outputs, 38 functions
 > ok, loaded test/cli/repl/data-tomb.psv, 15 rows
 > > -- Try all combinations of Possibly: 'time' is definitely, while 'location' is possibly.
 > - Core evaluation:

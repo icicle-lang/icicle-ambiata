@@ -15,6 +15,8 @@ import                  Icicle.Common.Base
 
 import qualified        Icicle.Core as C
 
+import                  Icicle.Data.Name
+
 import                  Icicle.Source.Type
 import                  Icicle.Source.Checker.Base
 
@@ -26,7 +28,7 @@ import qualified        Data.Map as Map
 
 data Features a n k
  = Features
- { featuresConcretes :: Map   (Name n) (FeatureConcrete a n k)
+ { featuresConcretes :: Map InputId (FeatureConcrete a n k)
  , featuresFunctions :: Map   (Name n) (FunctionType n)
  , featureNow        :: Maybe (Name n)
  }

@@ -21,7 +21,7 @@ ok, loaded test/cli/repl/data.psv, 13 rows
                                     \_____________)
 > ok, c is now on
 > > - C:
-#line 1 "state and input definition #0 - repl"
+#line 1 "state and input definition #0 - repl:input"
 
 typedef struct {
     itime_t          convzs3;
@@ -29,7 +29,7 @@ typedef struct {
     ierror_t         *new_convzs0zssimpflatzs19;
     iint_t           *new_convzs0zssimpflatzs20;
     itime_t          *new_convzs0zssimpflatzs21;
-} input_repl_t;
+} input_replZCinput_t;
 
 typedef struct {
     /* runtime */
@@ -37,13 +37,13 @@ typedef struct {
     iint_t           max_map_size;
 
     /* inputs */
-    input_repl_t     input;
+    input_replZCinput_t input;
 
   /* compute for (0,0) */
     /* outputs */
-    ibool_t          replzsixzs0;
-    iint_t           replzsixzs1;
-    idouble_t        replzsixzs2;
+    ibool_t          replZCoutputzsixzs0;
+    iint_t           replZCoutputzsixzs1;
+    idouble_t        replZCoutputzsixzs2;
 
     /* resumables: values */
     idouble_t        res_0_0_acczsperhapszsconvzs5zssimpflatzs6;
@@ -65,7 +65,7 @@ iint_t size_of_state_iattribute_0 ()
     return sizeof (iattribute_0_t);
 }
 
-#line 1 "compute function #0 - repl icompute_attribute_0_compute_0"
+#line 1 "compute function #0 - repl:input icompute_attribute_0_compute_0"
 void icompute_attribute_0_compute_0(iattribute_0_t *s)
 {
     idouble_t        perhapszsconvzs5zsavalzs0zssimpflatzs9;
@@ -154,9 +154,9 @@ void icompute_attribute_0_compute_0(iattribute_0_t *s)
     perhapszsconvzs5zssimpflatzs16            = acczsperhapszsconvzs5zssimpflatzs4;   /* read */
     perhapszsconvzs5zssimpflatzs17            = acczsperhapszsconvzs5zssimpflatzs5;   /* read */
     perhapszsconvzs5zssimpflatzs18            = acczsperhapszsconvzs5zssimpflatzs6;   /* read */
-    s->replzsixzs0                            = perhapszsconvzs5zssimpflatzs16;       /* output */
-    s->replzsixzs1                            = perhapszsconvzs5zssimpflatzs17;       /* output */
-    s->replzsixzs2                            = perhapszsconvzs5zssimpflatzs18;       /* output */
+    s->replZCoutputzsixzs0                    = perhapszsconvzs5zssimpflatzs16;       /* output */
+    s->replZCoutputzsixzs1                    = perhapszsconvzs5zssimpflatzs17;       /* output */
+    s->replZCoutputzsixzs2                    = perhapszsconvzs5zssimpflatzs18;       /* output */
 }
 
 - C evaluation:

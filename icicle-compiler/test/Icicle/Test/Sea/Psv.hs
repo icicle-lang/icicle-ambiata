@@ -147,7 +147,7 @@ prop_sparse_dense_both_compile
   = monadicIO
   $ do wt <- pick $ genWellTypedWithStruct S.DoNotAllowDupTime
        psv <- pick $ genPsvConstants wt
-       dict <- pick (denseDictionary (wtAttribute wt) (wtFactType wt))
+       dict <- pick (denseDictionary (inputName $ wtInputId wt) (wtFactType wt))
        case dict of
          Nothing -> pure
                   $ counterexample ("Cannot create dense dictionary for:")
@@ -159,7 +159,7 @@ prop_sparse_dense_both_compile
               $ runTest wt psv
               $ TestOpts ShowInputOnError
                          ShowOutputOnError
-                         (S.PsvInputDense d (takeAttributeName (wtAttribute wt)))
+                         (S.PsvInputDense d (renderInputName (inputName (wtInputId wt))))
                          S.DoNotAllowDupTime
            s <- liftIO
               $ runEitherT
@@ -257,7 +257,7 @@ compileTest wt (TestOpts _ _ inputFormat allowDupTime) = do
 
   let optionsAssert = ["-DICICLE_ASSERT=1", "-DICICLE_ASSERT_MAXIMUM_ARRAY_COUNT=" <> T.pack (show (100 * (length $ wtFacts wt))) ]
       options  = options0 <> ["-O0", "-DICICLE_NOINLINE=1"] <> optionsAssert
-      programs = Map.singleton (wtAttribute wt) (wtAvalancheFlat wt :| [])
+      programs = Map.singleton (wtInputId wt) (wtAvalancheFlat wt :| [])
       iconfig  = S.PsvInputConfig
                 (S.Snapshot (wtTime wt))
                  inputFormat
@@ -267,8 +267,8 @@ compileTest wt (TestOpts _ _ inputFormat allowDupTime) = do
                 (S.defaultOutputMissing)
       conf     = S.PsvConfig iconfig oconfig
       iformat  = S.FormatPsv conf
-      iopts    = S.InputOpts allowDupTime (Map.singleton (wtAttribute wt) (Set.singleton tombstone))
-      attrs    = [wtAttribute wt]
+      iopts    = S.InputOpts allowDupTime (Map.singleton (wtInputId wt) (Set.singleton tombstone))
+      attrs    = [wtInputId wt]
 
   let cache = S.NoCacheSea
       input = HasInput iformat iopts "dummy_path"
@@ -319,7 +319,7 @@ runTest wt consts
 
     liftIO (LT.writeFile program (LT.fromStrict source))
 
-    let inputPsv = textOfFacts (wtEntities wt) (wtAttribute wt) (wtFacts wt)
+    let inputPsv = textOfFacts (wtEntities wt) (inputName $ wtInputId wt) (wtFacts wt)
     liftIO (L.writeFile input (LT.encodeUtf8 inputPsv))
 
     result <- liftIO (runEitherT (S.seaPsvSnapshotFilePath fleet input output dropped chords discard consts))
@@ -368,15 +368,15 @@ longestLine wt
   $ LT.length
   $ List.maximumBy (compare `on` LT.length)
   $ fmap (LT.intercalate "|")
-  $ fieldsOfFacts (wtEntities wt) (wtAttribute wt) (wtFacts wt)
+  $ fieldsOfFacts (wtEntities wt) (inputName $ wtInputId wt) (wtFacts wt)
 
-textOfOutputs :: [Entity] -> [(OutputName, BaseValue)] -> LT.Text
+textOfOutputs :: [Entity] -> [(OutputId, BaseValue)] -> LT.Text
 textOfOutputs entities outputs =
   LT.unlines (fmap (LT.intercalate "|") (fieldsOfOutputs entities outputs))
 
-fieldsOfOutputs :: [Entity] -> [(OutputName, BaseValue)] -> [[LT.Text]]
+fieldsOfOutputs :: [Entity] -> [(OutputId, BaseValue)] -> [[LT.Text]]
 fieldsOfOutputs entities outputs =
-  [ [ LT.fromStrict entity, LT.fromStrict (outputName name), output ]
+  [ [ LT.fromStrict entity, LT.fromStrict (renderOutputId name), output ]
   | Entity entity         <- entities
   , (name,value)          <- outputs
   , Just output           <- [textOfOutputValue value]
@@ -392,13 +392,13 @@ textSubstitution :: LT.Text -> LT.Text
 textSubstitution = LT.replace "\n" "\\n"
 
 
-textOfFacts :: [Entity] -> Attribute -> [AsAt BaseValue] -> LT.Text
+textOfFacts :: [Entity] -> InputName -> [AsAt BaseValue] -> LT.Text
 textOfFacts entities attribute vs =
   LT.unlines (fmap (LT.intercalate "|") (fieldsOfFacts entities attribute vs))
 
-fieldsOfFacts :: [Entity] -> Attribute -> [AsAt BaseValue] -> [[LT.Text]]
+fieldsOfFacts :: [Entity] -> InputName -> [AsAt BaseValue] -> [[LT.Text]]
 fieldsOfFacts entities attribute vs =
-  [ [ LT.fromStrict entity, LT.fromStrict (takeAttributeName attribute), valueText, timeText ]
+  [ [ LT.fromStrict entity, LT.fromStrict (renderInputName attribute), valueText, timeText ]
   | Entity entity         <- entities
   , (valueText, timeText) <- textsOfValues vs ]
 
@@ -453,15 +453,15 @@ denseTextsOfValues vs =
     (fmap (LT.intercalate "|" . fmap textOfValue . atFact) vs)
     (fmap (textOfTime . atTime) vs)
 
-denseDictionary :: Attribute -> ValType -> Gen (Maybe S.PsvInputDenseDict)
+denseDictionary :: InputName -> ValType -> Gen (Maybe S.PsvInputDenseDict)
 denseDictionary denseName (StructT (StructType m))
   = do missingValue <- genMissingValue
-       let n         = takeAttributeName denseName
+       let n         = renderInputName denseName
        fs           <- mapM (\(t,v) -> pure . (t,) . (,v) =<< arbitrary)
                             (Map.toList $ Map.mapKeys nameOfStructField m)
        return $ Just
               $ S.PsvInputDenseDict
-                  (Map.singleton (takeAttributeName denseName) fs)
+                  (Map.singleton (renderInputName denseName) fs)
                   (maybe Map.empty (Map.singleton n) missingValue)
                   n
 denseDictionary _ _ = return Nothing

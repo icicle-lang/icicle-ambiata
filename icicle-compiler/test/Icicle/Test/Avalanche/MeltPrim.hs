@@ -1,7 +1,8 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TemplateHaskell   #-}
-{-# LANGUAGE PatternGuards   #-}
+{-# LANGUAGE PatternGuards #-}
+{-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE TemplateHaskell #-}
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 module Icicle.Test.Avalanche.MeltPrim where
 
@@ -16,7 +17,7 @@ import qualified Icicle.Avalanche.Prim.Flat as Flat
 import qualified Icicle.Avalanche.Eval      as Eval
 import           Icicle.Avalanche.Statement.Simp (freevarsStmt)
 
-import           Icicle.Data (asNamespace)
+import           Icicle.Data
 import           Icicle.Common.Base
 import           Icicle.Common.Exp
 import           Icicle.Common.Type
@@ -52,8 +53,7 @@ prop_melt_prim = forAll genPrimApps $ \(prim, vals) ->
       resT = functionReturns funT
       args = fmap (\(t,v) -> XValue () t v) vals
       xpp  = makeApps () (XPrim () prim) args
-      Just n = asNamespace "out"
-      out  = OutputName "out" n
+      out  = [outputid|out:out|]
       inits :: Statement () Var Flat.Prim
       inits = Output out resT [(xpp, resT)] 
       melts = testFresh "melt" $ do
@@ -88,7 +88,7 @@ prop_melt_prim = forAll genPrimApps $ \(prim, vals) ->
 
 
 evalOut :: Statement () Var Flat.Prim
-        -> Either [Char] [(OutputName,BaseValue)]
+        -> Either [Char] [(OutputId, BaseValue)]
 evalOut ss
  = case Eval.evalStmt FlatEval.evalPrim Map.empty [] Nothing Map.empty ss of
     Left err
