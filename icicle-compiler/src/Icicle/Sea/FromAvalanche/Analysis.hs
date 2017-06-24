@@ -1,7 +1,6 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards #-}
-
 module Icicle.Sea.FromAvalanche.Analysis (
     factVarsOfProgram
   , resumablesOfProgram
@@ -21,6 +20,8 @@ import           Icicle.Common.Exp
 import           Icicle.Common.Type
 
 import           Icicle.Data.Name
+
+import           Icicle.Sea.Data
 
 import           P
 
@@ -157,10 +158,10 @@ readsOfStatement stmt
 
 ------------------------------------------------------------------------
 
-outputsOfProgram :: Program (Annot a) n Prim -> [(OutputId, (ValType, [ValType]))]
+outputsOfProgram :: Program (Annot a) n Prim -> [(OutputId, MeltedType)]
 outputsOfProgram = Map.toList . outputsOfStatement . statements
 
-outputsOfStatement :: Statement (Annot a) n Prim -> Map OutputId (ValType, [ValType])
+outputsOfStatement :: Statement (Annot a) n Prim -> Map OutputId MeltedType
 outputsOfStatement stmt
  = case stmt of
      Block []                -> Map.empty
@@ -180,7 +181,7 @@ outputsOfStatement stmt
      KeepFactInHistory _     -> Map.empty
 
      Output n t xts
-      -> Map.singleton n (t, fmap snd xts)
+      -> Map.singleton n $ MeltedType t (fmap snd xts)
 
 ------------------------------------------------------------------------
 

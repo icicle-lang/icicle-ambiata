@@ -4,15 +4,8 @@
 {-# LANGUAGE PatternGuards #-}
 {-# LANGUAGE ViewPatterns #-}
 module Icicle.Sea.FromAvalanche.Base (
-    SeaName
-  , SeaString
-  , takeSeaName
+    SeaString
   , takeSeaString
-  , asSeaName
-  , mangleToSeaName
-  , mangleToSeaNameIx
-  , unmangleSeaName
-  , inputIdAsSeaString
   , seaOfChar
   , seaOfString
   , seaOfEscaped
@@ -37,63 +30,17 @@ import           Numeric (showHex)
 
 import           P
 
-import           Text.Encoding.Z (zEncodeString, zDecodeString)
 import           Text.Printf (printf)
 
 ------------------------------------------------------------------------
-
--- | A legal C identifier.
-newtype SeaName = SeaName {
-    getSeaName :: Text
- } deriving (Eq, Ord, Show)
 
 -- | A value that will need be quoted in C.
 newtype SeaString = SeaString {
     getSeaString :: Text
  } deriving (Eq, Ord, Show)
 
-takeSeaName :: SeaName -> Text
-takeSeaName = getSeaName
-
 takeSeaString :: SeaString -> Text
 takeSeaString = getSeaString
-
-seaNameValidHead :: Char -> Bool
-seaNameValidHead c =
-  (c >= 'a' && c <= 'z') ||
-  (c >= 'A' && c <= 'Z') ||
-  (c == '_')
-{-# INLINE seaNameValidHead #-}
-
-seaNameValidTail :: Char -> Bool
-seaNameValidTail c =
-  seaNameValidHead c ||
-  (c >= '0' && c <= '9') ||
-  (c == '_')
-{-# INLINE seaNameValidTail #-}
-
-asSeaName :: Text -> Maybe SeaName
-asSeaName t =
-  case Text.unpack t of
-    x:xs | seaNameValidHead x && all seaNameValidTail xs ->
-      Just (SeaName t)
-    _ ->
-      Nothing
-
-mangleToSeaName :: Pretty n => n -> SeaName
-mangleToSeaName (show . pretty -> n) =
-  SeaName . Text.pack $ zEncodeString n
-
-mangleToSeaNameIx :: Pretty n => n -> Int -> SeaName
-mangleToSeaNameIx n ix = mangleToSeaName (pretty n <> text "/ix/" <> int ix)
-
-unmangleSeaName :: SeaName -> Text
-unmangleSeaName =
-  Text.pack . zDecodeString . Text.unpack . getSeaName
-
-inputIdAsSeaString :: InputId -> SeaString
-inputIdAsSeaString =
-  SeaString . renderInputId
 
 ------------------------------------------------------------------------
 

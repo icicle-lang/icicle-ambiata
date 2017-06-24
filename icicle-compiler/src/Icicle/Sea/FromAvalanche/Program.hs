@@ -1,15 +1,14 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards #-}
-
 module Icicle.Sea.FromAvalanche.Program (
     seaOfPrograms
   , seaOfXValue
-  , nameOfAttribute
-  , nameOfAttribute'
-  , nameOfCompute
-  , nameOfCompute'
-  , nameOfStateType
+  , nameOfCluster
+  , nameOfCluster'
+  , nameOfKernel
+  , nameOfKernel'
+  , nameOfClusterState
   ) where
 
 import           Icicle.Avalanche.Prim.Flat
@@ -26,12 +25,14 @@ import           Icicle.Data
 import           Icicle.Internal.Pretty
 import qualified Icicle.Internal.Pretty as Pretty
 
+import           Icicle.Sea.Data
 import           Icicle.Sea.Error
 import           Icicle.Sea.FromAvalanche.Analysis
 import           Icicle.Sea.FromAvalanche.Base
 import           Icicle.Sea.FromAvalanche.Prim
 import           Icicle.Sea.FromAvalanche.State
 import           Icicle.Sea.FromAvalanche.Type
+import           Icicle.Sea.Name
 
 import           P hiding (head)
 
@@ -44,78 +45,91 @@ import qualified Data.Map as Map
 
 ------------------------------------------------------------------------
 
-seaOfPrograms :: (Show a, Show n, Pretty n, Eq n)
-             => Int -> InputId -> NonEmpty (Program (Annot a) n Prim) -> Either SeaError Doc
-seaOfPrograms name iid programs = do
-  state <- stateOfPrograms name iid programs
-  let computes = NonEmpty.zipWith (seaOfCompute state) (stateComputes state) programs
-  pure $ vsep ( seaOfState state : NonEmpty.toList computes )
-
-seaOfCompute ::
+seaOfPrograms ::
      (Show a, Show n, Pretty n, Eq n)
-  => SeaProgramAttribute
-  -> SeaProgramCompute
+  => ClusterId
+  -> InputId
+  -> NonEmpty (Program (Annot a) n Prim)
+  -> Either SeaError Doc
+seaOfPrograms cid iid programs = do
+  cluster <- clusterOfPrograms cid iid programs
+  let kernels = NonEmpty.zipWith (seaOfKernel cluster) (clusterKernels cluster) programs
+  pure . vsep $
+    seaOfClusterState cluster : NonEmpty.toList kernels
+
+seaOfKernel ::
+     (Show a, Show n, Pretty n, Eq n)
+  => Cluster
+  -> Kernel
   -> Program (Annot a) n Prim
   -> Doc
-seaOfCompute attribute compute program =
+seaOfKernel cluster kernel program =
   let
     acc_names =
-      fmap (first mangleToSeaName) . Map.toList $
-        accumsOfProgram program `Map.union` readsOfProgram  program
+      fmap (first mangle) . Map.toList $
+        accumsOfProgram program `Map.union` readsOfProgram program
+
     time_name =
-      mangleToSeaName . bindtime $ program
+      mangle . bindtime $ program
+
     max_heap_name =
-      mangleToSeaName . maxMapSize  $ program
+      mangle . maxMapSize  $ program
   in
-    vsep
-      [ ""
-      , "#line 1 \"compute function" <+> seaOfStateInfo attribute <+> pretty (nameOfCompute compute) <> "\""
-      , "void " <> pretty (nameOfCompute compute) <> "(" <> pretty (nameOfStateType attribute) <+> "*s)"
+    vsep [
+        ""
+      , "#line 1 \"kernel function" <+> seaOfClusterInfo cluster <+> pretty (nameOfKernel kernel) <> "\""
+      , "void " <> pretty (nameOfKernel kernel) <> "(" <> pretty (nameOfClusterState cluster) <+> "*s)"
       , "{"
       , indent 4 . vsep . fmap (uncurry defOfAccumulator) $ acc_names
       , ""
-      , indent 4 $ assign (defOfVar' 1 "anemone_mempool_t" "mempool") "s->mempool;"
-      , indent 4 $ assign
-          (defOfVar  0 TimeT . prettyText . takeSeaName $ time_name)
-          ("s->" <> stateInputTime attribute) <> ";"
-      , indent 4 $ assign
-          (defOfVar  0 IntT . prettyText . takeSeaName $ max_heap_name)
-          "s->max_map_size;"
+      , indent 4 $
+          assign (defOfVar' 1 "anemone_mempool_t" "mempool") "s->mempool;"
+
+      , indent 4 $
+          assign (defOfVar  0 TimeT $ prettySeaName time_name) ("s->" <> clusterInputTime cluster) <> ";"
+
+      , indent 4 $
+          assign (defOfVar  0 IntT $ prettySeaName max_heap_name) "s->max_map_size;"
+
       , ""
-      , indent 4 (seaOfStatement attribute compute (statements program))
+      , indent 4 (seaOfStatement cluster kernel (statements program))
       , "}"
       ]
 
 defOfAccumulator :: SeaName -> ValType -> Doc
-defOfAccumulator n t
- = defOfVar 0 t (prettyText . takeSeaName $ n) <> semi
+defOfAccumulator n t =
+  defOfVar 0 t (prettySeaName n) <> semi
 
 ------------------------------------------------------------------------
 
-seaOfStatement :: (Show a, Show n, Pretty n, Eq n)
-               => SeaProgramAttribute -> SeaProgramCompute -> Statement (Annot a) n Prim -> Doc
-seaOfStatement state compute stmt
+seaOfStatement ::
+     (Show a, Show n, Pretty n, Eq n)
+  => Cluster
+  -> Kernel
+  -> Statement (Annot a) n Prim
+  -> Doc
+seaOfStatement cluster kernel stmt
  = case stmt of
      Block []
       -> Pretty.empty
 
      Block (s:[])
-      -> seaOfStatement state compute s
+      -> seaOfStatement cluster kernel s
 
      Block (s:ss)
-      -> seaOfStatement state compute s <> line
-      <> seaOfStatement state compute (Block ss)
+      -> seaOfStatement cluster kernel s <> line
+      <> seaOfStatement cluster kernel (Block ss)
 
      Let name xx stmt'
-      | n <- mangleToSeaName name
+      | n <- mangle name
       , xt <- valTypeOfExp xx
-      -> assign (defOfVar 0 xt . prettyText . takeSeaName $ n) (seaOfExp xx) <> semi <> suffix "let" <> line
-      <> seaOfStatement state compute stmt'
+      -> assign (defOfVar 0 xt $ prettySeaName n) (seaOfExp xx) <> semi <> suffix "let" <> line
+      <> seaOfStatement cluster kernel stmt'
 
      If ii tt (Block [])
       -> vsep [ ""
               , "if (" <> seaOfExp ii <> ") {"
-              , indent 4 (seaOfStatement state compute tt)
+              , indent 4 (seaOfStatement cluster kernel tt)
               , "}"
               , ""
               ]
@@ -123,50 +137,50 @@ seaOfStatement state compute stmt
      If ii tt ee
       -> vsep [ ""
               , "if (" <> seaOfExp ii <> ") {"
-              , indent 4 (seaOfStatement state compute tt)
+              , indent 4 (seaOfStatement cluster kernel tt)
               , "} else {"
-              , indent 4 (seaOfStatement state compute ee)
+              , indent 4 (seaOfStatement cluster kernel ee)
               , "}"
               , ""
               ]
 
      While t name _ end stmt'
-      | n <- mangleToSeaName name
-      -> vsep [ "while (" <> prettyText (takeSeaName n) <+> seaOfWhileType t <+> seaOfExp end <> ") {"
-              , indent 4 $ seaOfStatement state compute stmt'
+      | n <- mangle name
+      -> vsep [ "while (" <> prettySeaName n <+> seaOfWhileType t <+> seaOfExp end <> ") {"
+              , indent 4 $ seaOfStatement cluster kernel stmt'
               , "}"
               ]
      ForeachInts t name start end stmt'
-      | n <- mangleToSeaName name
-      -> vsep [ "for (iint_t" <+> (prettyText . takeSeaName $ n) <+> "=" <+> seaOfExp start <> ";"
-                              <+> (prettyText . takeSeaName $ n) <+> seaOfForeachCompare t  <+> seaOfExp end <> ";"
-                              <+> (prettyText . takeSeaName $ n) <>  seaOfForeachStep t     <> ") {"
-              , indent 4 $ seaOfStatement state compute stmt'
+      | n <- mangle name
+      -> vsep [ "for (iint_t" <+> prettySeaName n <+> "=" <+> seaOfExp start <> ";"
+                              <+> prettySeaName n <+> seaOfForeachCompare t  <+> seaOfExp end <> ";"
+                              <+> prettySeaName n <>  seaOfForeachStep t     <> ") {"
+              , indent 4 $ seaOfStatement cluster kernel stmt'
               , "}"
               ]
 
      ForeachFacts (FactBinds ntime nfid ns) _ FactLoopNew stmt'
-      | inputStruct <- stateInputVars state
-      , nfid' <- mangleToSeaName nfid
-      , ntime' <- mangleToSeaName ntime
-      , ns' <- fmap (first mangleToSeaName) ns
+      | inputStruct <- clusterInputVars cluster
+      , nfid' <- mangle nfid
+      , ntime' <- mangle ntime
+      , ns' <- fmap (first mangle) ns
       -> let
            structAssign :: (SeaName, ValType) -> Doc
            structAssign (n, t)
-             | ndoc <- prettyText . takeSeaName $ n =
+             | ndoc <- prettySeaName n =
                  assign
                    (defOfVar' 1 ("const" <+> seaOfValType t) ("const" <+> pretty newPrefix <> ndoc))
                    (stNew n) <> semi
 
            loopAssign :: (SeaName, ValType) -> (SeaName, a) -> Doc
            loopAssign (bindn, t) (inputn,_) =
-             assign (defOfVar 0 t . prettyText . takeSeaName $ bindn)
-                    (pretty newPrefix <> (prettyText . takeSeaName $ inputn) <> "[i]") <> semi
+             assign (defOfVar 0 t $ prettySeaName bindn)
+                    (pretty newPrefix <> prettySeaName inputn <> "[i]") <> semi
 
 
            factTime = case reverse inputStruct of
                        [] -> seaError "seaOfStatement: no facts" ()
-                       ((n,_):_) -> pretty newPrefix <> (prettyText . takeSeaName $ n) <> "[i]"
+                       ((n,_):_) -> pretty newPrefix <> prettySeaName n <> "[i]"
 
          in vsep $
             [ ""
@@ -175,47 +189,47 @@ seaOfStatement state compute stmt
             [ ""
             , "for (iint_t i = 0; i < new_count; i++) {"
             , indent 4 $
-                assign (defOfVar 0 FactIdentifierT . prettyText . takeSeaName $ nfid') "i" <> semi
+                assign (defOfVar 0 FactIdentifierT $ prettySeaName nfid') "i" <> semi
             , indent 4 $
-                assign (defOfVar 0 TimeT . prettyText . takeSeaName $ ntime') factTime <> semi
+                assign (defOfVar 0 TimeT $ prettySeaName ntime') factTime <> semi
             , indent 4 $
-                vsep (List.zipWith loopAssign ns' inputStruct) <> line <> seaOfStatement state compute stmt'
+                vsep (List.zipWith loopAssign ns' inputStruct) <> line <> seaOfStatement cluster kernel stmt'
             , "}"
             , ""
             ]
 
      InitAccumulator acc stmt'
       | Accumulator name _ xx <- acc
-      , n <- mangleToSeaName name
-      -> assign (prettyText . takeSeaName $ n) (seaOfExp xx) <> semi <> suffix "init" <> line
-      <> seaOfStatement state compute stmt'
+      , n <- mangle name
+      -> assign (prettySeaName n) (seaOfExp xx) <> semi <> suffix "init" <> line
+      <> seaOfStatement cluster kernel stmt'
 
      Read name_val name_acc _ stmt'
-      | n_val <- mangleToSeaName name_val
-      , n_acc <- mangleToSeaName name_acc
-      -> assign (prettyText . takeSeaName $ n_val) (prettyText . takeSeaName $ n_acc) <> semi <> suffix "read" <> line
-      <> seaOfStatement state compute stmt'
+      | n_val <- mangle name_val
+      , n_acc <- mangle name_acc
+      -> assign (prettySeaName n_val) (prettySeaName n_acc) <> semi <> suffix "read" <> line
+      <> seaOfStatement cluster kernel stmt'
 
      Write name xx
-      | n <- mangleToSeaName name
-      -> assign (prettyText . takeSeaName $ n) (seaOfExp xx) <> semi <> suffix "write"
+      | n <- mangle name
+      -> assign (prettySeaName n) (seaOfExp xx) <> semi <> suffix "write"
 
      LoadResumable name _
-      | n <- mangleToSeaName name
-      , nd <- prettyText . takeSeaName $ n
+      | n <- mangle name
+      , nd <- prettySeaName n
       -> vsep [ ""
               , "if (" <> stHas n <> ") {"
               , indent 4 $ assign nd (stRes n) <> semi <> suffix "load"
               , "}" ]
 
      SaveResumable name _
-      | n <- mangleToSeaName name
-      , nd <- prettyText . takeSeaName $ n
+      | n <- mangle name
+      , nd <- prettySeaName n
       -> assign (stHas n) "itrue"       <> semi <> suffix "save" <> line
       <> assign (stRes n) nd <> semi <> suffix "save" <> line
 
      Output n _ xts
-      | ixAssign <- \ix xx -> assign ("s->" <> (prettyText . takeSeaName . mangleToSeaNameIx n $ ix)) (seaOfExp xx) <> semi <> suffix "output"
+      | ixAssign <- \ix xx -> assign ("s->" <> (prettySeaName $ mangleIx n ix)) (seaOfExp xx) <> semi <> suffix "output"
       -> vsep (List.zipWith ixAssign [0..] (fmap fst xts))
 
      -- TODO Implement historical facts
@@ -226,10 +240,10 @@ seaOfStatement state compute stmt
      KeepFactInHistory _
       -> Pretty.empty
   where
-   stNew   n = "s->" <> stateInputNew (prettyText . takeSeaName $ n)
-   stRes   n = "s->" <> stateInputRes (nameOfResumable compute . prettyText . takeSeaName $ n)
-   stHas   n = "s->" <> stateInputHas (nameOfResumable compute . prettyText . takeSeaName $ n)
-   stCount   = "s->" <> stateNewCount
+   stNew   n = "s->" <> clusterInputNew (prettySeaName n)
+   stRes   n = "s->" <> clusterInputRes (nameOfResumable kernel $ prettySeaName n)
+   stHas   n = "s->" <> clusterInputHas (nameOfResumable kernel $ prettySeaName n)
+   stCount   = "s->" <> clusterNewCount
 
 
 seaOfForeachCompare :: ForeachType -> Doc
@@ -254,7 +268,7 @@ seaOfExp xx
       -> seaOfXValue v t
 
      XVar _ n
-      -> prettyText . takeSeaName . mangleToSeaName $ n
+      -> prettySeaName $ mangle n
 
      XApp{}
       | Just (p, xs) <- takePrimApps xx

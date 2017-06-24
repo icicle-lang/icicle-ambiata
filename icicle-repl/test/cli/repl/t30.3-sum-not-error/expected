@@ -21,7 +21,7 @@ ok, loaded test/cli/repl/data.psv, 13 rows
                                     \_____________)
 > ok, c is now on
 > > - C:
-#line 1 "state and input definition #0 - repl:input"
+#line 1 "cluster state #0 - repl:input"
 
 typedef struct {
     itime_t          convzs3;
@@ -39,7 +39,7 @@ typedef struct {
     /* inputs */
     input_replZCinput_t input;
 
-  /* compute for (0,0) */
+  /* kernel 0/0 */
     /* outputs */
     ibool_t          replZCoutputzsixzs0;
     iint_t           replZCoutputzsixzs1;
@@ -58,15 +58,15 @@ typedef struct {
     ibool_t          has_flags_end_0_0;
 
 
-} iattribute_0_t;
+} icluster_0_t;
 
-iint_t size_of_state_iattribute_0 ()
+iint_t size_of_icluster_0 ()
 {
-    return sizeof (iattribute_0_t);
+    return sizeof (icluster_0_t);
 }
 
-#line 1 "compute function #0 - repl:input icompute_attribute_0_compute_0"
-void icompute_attribute_0_compute_0(iattribute_0_t *s)
+#line 1 "kernel function #0 - repl:input icluster_0_kernel_0"
+void icluster_0_kernel_0(icluster_0_t *s)
 {
     idouble_t        perhapszsconvzs5zsavalzs0zssimpflatzs9;
     iint_t           perhapszsconvzs5zsavalzs0zssimpflatzs8;

@@ -72,16 +72,19 @@ import           Icicle.Avalanche.Prim.Flat       (meltType)
 import           Icicle.Common.Type               (ValType(..), StructField(..))
 import           Icicle.Common.Type               (defaultOfType)
 
-import           Icicle.Data                      (Time, InputId)
+import           Icicle.Data.Name
+import           Icicle.Data.Time (Time)
 
 import           Icicle.Internal.Pretty
 
+import           Icicle.Sea.Data
 import           Icicle.Sea.Error (SeaError(..))
+import           Icicle.Sea.FromAvalanche.Base
 import           Icicle.Sea.FromAvalanche.Prim
 import           Icicle.Sea.FromAvalanche.Program (seaOfXValue)
-import           Icicle.Sea.FromAvalanche.Base
 import           Icicle.Sea.FromAvalanche.State
 import           Icicle.Sea.FromAvalanche.Type
+import           Icicle.Sea.Name
 
 import           P
 
@@ -94,8 +97,8 @@ data Mode
 -- State
 --------------------------------------------------------------------------------
 
-seaOfConfigureFleet :: Mode -> [SeaProgramAttribute] -> Doc
-seaOfConfigureFleet mode states
+seaOfConfigureFleet :: Mode -> [Cluster] -> Doc
+seaOfConfigureFleet mode clusters
  = vsep
  [ "#line 1 \"configure fleet state\""
  , "static ierror_loc_t psv_configure_fleet "
@@ -122,16 +125,16 @@ seaOfConfigureFleet mode states
  , "    fleet->chord_count = chord_count;"
  , ""
  , indent 4 conv
- , indent 4 (vsep (fmap defOfState states))
+ , indent 4 (vsep (fmap defOfState clusters))
  , ""
  , "    for (iint_t ix = 0; ix < chord_count; ix++) {"
  , "        itime_t  chord_time = fleet->chord_times[ix];"
- , indent 8 (vsep (fmap seaOfAssignTime states))
+ , indent 8 (vsep (fmap seaOfAssignTime clusters))
  , "    }"
  , ""
- , indent 4 (vsep (fmap defOfLastTime states))
+ , indent 4 (vsep (fmap defOfLastTime clusters))
  , ""
- , indent 4 (vsep (fmap defOfCount states))
+ , indent 4 (vsep (fmap defOfCount clusters))
  , ""
  , "    return 0;"
  , "}"
@@ -160,8 +163,8 @@ seaOfConfigureFleet mode states
      ]
 
 
-seaOfFleetState :: [SeaProgramAttribute] -> Doc
-seaOfFleetState states
+seaOfFleetState :: [Cluster] -> Doc
+seaOfFleetState clusters
  = let time = seaOfValType TimeT
    in vsep
       [ "#line 1 \"fleet state\""
@@ -173,27 +176,27 @@ seaOfFleetState states
       , indent 4 (defOfVar  1 IntT      "chord_name_offsets")  <> ";"
       , indent 4 (defOfVar  1 IntT      "chord_name_lengths")  <> ";"
       , indent 4 (defOfVar' 1 "uint8_t" "chord_name_data")     <> ";"
-      , indent 4 (vsep (fmap defOfProgramState states))
-      , indent 4 (vsep (fmap defOfProgramTime  states))
-      , indent 4 (vsep (fmap defOfProgramCount states))
+      , indent 4 (vsep (fmap defOfProgramState clusters))
+      , indent 4 (vsep (fmap defOfProgramTime  clusters))
+      , indent 4 (vsep (fmap defOfProgramCount clusters))
       , "};"
       ]
 
-defOfProgramState :: SeaProgramAttribute -> Doc
-defOfProgramState state
- = defOfVar' 1 (pretty (nameOfStateType state))
-               (pretty (nameOfAttribute state)) <> ";"
- <+> "/* " <> (prettyText . takeSeaString . inputIdAsSeaString . stateInputId $ state) <> " */"
+defOfProgramState :: Cluster -> Doc
+defOfProgramState cluster
+ = defOfVar' 1 (pretty (nameOfClusterState cluster))
+               (pretty (nameOfCluster cluster)) <> ";"
+ <+> "/* " <> (prettyText . renderInputId $ clusterInputId cluster) <> " */"
 
-defOfProgramTime :: SeaProgramAttribute -> Doc
-defOfProgramTime state
- = defOfVar 0 TimeT (pretty (nameOfLastTime state)) <> ";"
- <+> "/* " <> (prettyText . takeSeaString . inputIdAsSeaString . stateInputId $ state) <> " */"
+defOfProgramTime :: Cluster -> Doc
+defOfProgramTime cluster
+ = defOfVar 0 TimeT (pretty (nameOfLastTime cluster)) <> ";"
+ <+> "/* " <> (prettyText . renderInputId $ clusterInputId cluster) <> " */"
 
-defOfProgramCount :: SeaProgramAttribute -> Doc
-defOfProgramCount state
-  = defOfVar 0 IntT (pretty (nameOfCount state)) <> ";"
-  <+> "/* " <> (prettyText . takeSeaString . inputIdAsSeaString . stateInputId $ state) <> " */"
+defOfProgramCount :: Cluster -> Doc
+defOfProgramCount cluster
+  = defOfVar 0 IntT (pretty (nameOfCount cluster)) <> ";"
+  <+> "/* " <> (prettyText . renderInputId $ clusterInputId cluster) <> " */"
 
 seaOfSnapshotTime :: Time -> Doc
 seaOfSnapshotTime time
@@ -221,8 +224,8 @@ seaOfPianoLookup
 
 ------------------------------------------------------------------------
 
-seaOfAllocFleet :: [SeaProgramAttribute] -> Doc
-seaOfAllocFleet states
+seaOfAllocFleet :: [Cluster] -> Doc
+seaOfAllocFleet clusters
  = vsep
  [ "#line 1 \"allocate fleet state\""
  , "static ifleet_t * psv_alloc_fleet (iint_t max_chord_count, iint_t max_row_count, iint_t max_map_size)"
@@ -232,27 +235,27 @@ seaOfAllocFleet states
  , "    fleet->max_chord_count    = max_chord_count;"
  , "    fleet->chord_times        = calloc (max_chord_count, sizeof(itime_t));"
  , ""
- , indent 4 (vsep (fmap seaOfAllocProgram states))
+ , indent 4 (vsep (fmap seaOfAllocProgram clusters))
  , "    return fleet;"
  , "}"
  ]
 
-seaOfAllocProgram :: SeaProgramAttribute -> Doc
-seaOfAllocProgram state
- = let programs  = "fleet->" <> pretty (nameOfAttribute state)
+seaOfAllocProgram :: Cluster -> Doc
+seaOfAllocProgram cluster
+ = let programs  = "fleet->" <> pretty (nameOfCluster cluster)
        program   = programs <> "[ix]."
-       stype     = pretty (nameOfStateType state)
+       stype     = pretty (nameOfClusterState cluster)
 
        calloc n t = "calloc (" <> n <> ", sizeof (" <> t <> "));"
 
        go (n, t) = program
-                <> stateInputNew (pretty n)
+                <> clusterInputNew (pretty n)
                 <> " = "
                 <> calloc "max_row_count" (seaOfValType t)
 
-       inputVars = fmap (first takeSeaName) . stateInputVars $ state
+       inputVars = fmap (first renderSeaName) $ clusterInputVars cluster
 
-   in vsep [ "/* " <> (prettyText . takeSeaString . inputIdAsSeaString . stateInputId $ state) <> " */"
+   in vsep [ "/* " <> (prettyText . renderInputId $ clusterInputId cluster) <> " */"
            , programs <> " = " <> calloc "max_chord_count" stype
            , ""
            , "for (iint_t ix = 0; ix < max_chord_count; ix++) {"
@@ -264,8 +267,8 @@ seaOfAllocProgram state
 
 ------------------------------------------------------------------------
 
-seaOfCollectFleet :: [SeaProgramAttribute] -> Doc
-seaOfCollectFleet states
+seaOfCollectFleet :: [Cluster] -> Doc
+seaOfCollectFleet clusters
  = vsep
  [ "#line 1 \"collect fleet state\""
  , "static void psv_collect_fleet (ifleet_t *fleet)"
@@ -275,12 +278,12 @@ seaOfCollectFleet states
  , "    iint_t             max_chord_count  = fleet->max_chord_count;"
  , "    iint_t             chord_count      = fleet->chord_count;"
  , ""
- , indent 4 (vsep (fmap seaOfCollectProgram states))
+ , indent 4 (vsep (fmap seaOfCollectProgram clusters))
  , ""
  , "    fleet->mempool = into_pool;"
  , ""
  , "    for (iint_t ix = 0; ix < max_chord_count; ix++) {"
- , indent 8 (vsep (fmap seaOfAssignMempool states))
+ , indent 8 (vsep (fmap seaOfAssignMempool clusters))
  , "    }"
  , ""
  , "    if (last_pool != 0) {"
@@ -289,23 +292,23 @@ seaOfCollectFleet states
  , "}"
  ]
 
-seaOfAssignMempool :: SeaProgramAttribute -> Doc
-seaOfAssignMempool state
- = let pname = pretty (nameOfAttribute state)
+seaOfAssignMempool :: Cluster -> Doc
+seaOfAssignMempool cluster
+ = let pname = pretty (nameOfCluster cluster)
    in "fleet->" <> pname <> "[ix].mempool = into_pool;"
 
-seaOfCollectProgram :: SeaProgramAttribute -> Doc
-seaOfCollectProgram state
- = let pname = pretty (nameOfAttribute state)
-       stype = pretty (nameOfStateType state)
+seaOfCollectProgram :: Cluster -> Doc
+seaOfCollectProgram cluster
+ = let pname = pretty (nameOfCluster cluster)
+       stype = pretty (nameOfClusterState cluster)
        pvar  = "program->"
        pvari = pvar <> "input."
 
        new n = pvari <> pretty (newPrefix <> n)
        res n = pvar  <> pretty resPrefix <> n
 
-       inputVars = fmap (first takeSeaName) . stateInputVars $ state
-       resVarsOf c = fmap (first takeSeaName) . stateResumables $ c
+       inputVars = fmap (first renderSeaName) $ clusterInputVars cluster
+       resVarsOf k = fmap (first renderSeaName) $ kernelResumables k
 
        copyInputs nts
         = let docs = concatMap copyInput inputVars
@@ -336,7 +339,7 @@ seaOfCollectProgram state
           , "}"
           ]
 
-   in vsep [ "/* " <> (prettyText . takeSeaString . inputIdAsSeaString . stateInputId $ state) <> " */"
+   in vsep [ "/* " <> (prettyText . renderInputId $ clusterInputId cluster) <> " */"
            , "for (iint_t chord_ix = 0; chord_ix < chord_count; chord_ix++) {"
            , indent 4 $ stype <+> "*program = &fleet->" <> pname <> "[chord_ix];"
            , ""
@@ -344,7 +347,7 @@ seaOfCollectProgram state
            , indent 8 $ vsep $ copyInputs inputVars
                             <> concatMap
                                  (\c -> concatMap (copyResumable c) (resVarsOf c))
-                                 (NonEmpty.toList (stateComputes state))
+                                 (NonEmpty.toList (clusterKernels cluster))
            , "    }"
            , "}"
            ]
@@ -370,25 +373,29 @@ needsCopy = \case
   SumT{}    -> False
   MapT{}    -> False
 
-defOfState :: SeaProgramAttribute -> Doc
-defOfState state
- = let stype  = pretty (nameOfStateType state)
-       var    = "*p" <> pretty (stateInputIndex state)
-       member = "fleet->" <> pretty (nameOfAttribute state)
+defOfState :: Cluster -> Doc
+defOfState cluster
+ = let stype  = pretty (nameOfClusterState cluster)
+       var    = "*p" <> prettyClusterId (clusterId cluster)
+       member = "fleet->" <> pretty (nameOfCluster cluster)
    in stype <+> var <+> "=" <+> member <> ";"
 
-defOfLastTime :: SeaProgramAttribute -> Doc
-defOfLastTime state
- = "fleet->" <> pretty (nameOfLastTime state) <+> "= 0;"
+defOfLastTime :: Cluster -> Doc
+defOfLastTime cluster
+ = "fleet->" <> pretty (nameOfLastTime cluster) <+> "= 0;"
 
-defOfCount :: SeaProgramAttribute -> Doc
-defOfCount state
- = "fleet->" <> pretty (nameOfCount state) <+> "= 0;"
+defOfCount :: Cluster -> Doc
+defOfCount cluster
+ = "fleet->" <> pretty (nameOfCount cluster) <+> "= 0;"
 
-seaOfAssignTime :: SeaProgramAttribute -> Doc
-seaOfAssignTime state
- = let ptime = "p" <> pretty (stateInputIndex state) <> "[ix].input." <> pretty (stateTimeVar state)
-   in  ptime <+> "=" <+> "chord_time;"
+seaOfAssignTime :: Cluster -> Doc
+seaOfAssignTime cluster =
+  let
+    ptime =
+      "p" <> prettyClusterId (clusterId cluster) <>
+      "[ix].input." <> prettySeaName (clusterTimeVar cluster)
+  in
+    ptime <+> "=" <+> "chord_time;"
 
 -- Input
 --------------------------------------------------------------------------------
@@ -415,18 +422,18 @@ data CheckedInput = CheckedInput {
   , inputVars     :: [(Name, ValType)]
   } deriving (Eq, Ord, Show)
 
-checkInputType :: SeaProgramAttribute -> Either SeaError CheckedInput
-checkInputType state
- = case stateInputType state of
+checkInputType :: Cluster -> Either SeaError CheckedInput
+checkInputType cluster
+ = case clusterInputType cluster of
      PairT (SumT ErrorT t) TimeT
-      | (sumError, ErrorT) : xs0 <- stateInputVars state
+      | (sumError, ErrorT) : xs0 <- clusterInputVars cluster
       , Just vars                <- init xs0
       , Just (time, TimeT)       <- last xs0
       -> Right CheckedInput {
-             inputSumError = newPrefix <> takeSeaName sumError
-           , inputTime     = newPrefix <> takeSeaName time
+             inputSumError = newPrefix <> renderSeaName sumError
+           , inputTime     = newPrefix <> renderSeaName time
            , inputType     = t
-           , inputVars     = fmap (first ((newPrefix <>) . takeSeaName)) vars
+           , inputVars     = fmap (first ((newPrefix <>) . renderSeaName)) vars
            }
 
      t

@@ -11,14 +11,15 @@ module Icicle.Sea.IO.Zebra (
 import qualified Data.List as List
 import qualified Data.List.NonEmpty as NonEmpty
 
-import           Icicle.Data (InputId)
+import           Icicle.Data.Name
 
 import           Icicle.Internal.Pretty
 
+import           Icicle.Sea.Data
 import           Icicle.Sea.Error (SeaError(..))
-import           Icicle.Sea.IO.Base
-import           Icicle.Sea.FromAvalanche.Base
 import           Icicle.Sea.FromAvalanche.State
+import           Icicle.Sea.IO.Base
+import           Icicle.Sea.Name
 
 import           P
 
@@ -35,10 +36,10 @@ defaultZebraConfig = ZebraConfig defaultZebraMaxMapSize
 defaultZebraMaxMapSize :: Int
 defaultZebraMaxMapSize = 1024 * 1024
 
-seaOfZebraDriver :: [InputId] -> [SeaProgramAttribute] -> Either SeaError Doc
+seaOfZebraDriver :: [InputId] -> [Cluster] -> Either SeaError Doc
 seaOfZebraDriver inputs states = do
   let lookup x = maybeToRight (SeaNoInputIndex x) $ List.elemIndex x inputs
-  indices <- sequence $ fmap (lookup . stateInputId) states
+  indices <- sequence $ fmap (lookup . clusterInputId) states
   return . vsep $
     [ seaOfDefRead (List.zip indices states)
     , seaOfInputCount inputs
@@ -76,7 +77,7 @@ seaOfInputCount all_inputs =
 --   zebra_read_entity_1 (1, fleet->iprogram_1, entity)
 --   ...
 -- }
-seaOfDefRead :: [(Int, SeaProgramAttribute)] -> Doc
+seaOfDefRead :: [(Int, Cluster)] -> Doc
 seaOfDefRead states = vsep
   [ vsep $ fmap (seaOfDefReadProgram . snd) states
   , "#line 1 \"read entity\""
@@ -92,8 +93,8 @@ seaOfDefRead states = vsep
   , ""
   ]
 
-seaOfRead :: Int -> SeaProgramAttribute -> Doc
-seaOfRead index state = vsep
+seaOfRead :: Int -> Cluster -> Doc
+seaOfRead index cluster = vsep
   [ "/*" <> n <> ": " <> a <> " */"
   , "error = zebra_read_entity_" <> n
   , "            ( piano"
@@ -106,9 +107,9 @@ seaOfRead index state = vsep
   , "if (error) return error;"
   ]
   where
-    n = pretty (nameOfAttribute state)
+    n = pretty (nameOfCluster cluster)
     i = pretty index
-    a = prettyText . takeSeaString . inputIdAsSeaString . stateInputId $ state
+    a = prettyText . renderInputId $ clusterInputId cluster
 
 -- chords loop:
 --
@@ -124,21 +125,21 @@ seaOfRead index state = vsep
 --   }
 -- }
 --
-seaOfDefReadProgram :: SeaProgramAttribute -> Doc
-seaOfDefReadProgram state = vsep
-  [ "#line 1 \"read entity for program" <+> seaOfStateInfo state <> "\""
+seaOfDefReadProgram :: Cluster -> Doc
+seaOfDefReadProgram cluster = vsep
+  [ "#line 1 \"read entity for program" <+> seaOfClusterInfo cluster <> "\""
   , "static ierror_msg_t INLINE"
-      <+> pretty (nameOfRead state) <+> "("
+      <+> pretty (nameOfRead cluster) <+> "("
       <> "piano_t *piano, zebra_state_t *state, zebra_entity_t *entity, "
       <> "anemone_mempool_t *mempool, iint_t chord_count, int attribute_ix, "
-      <> pretty (nameOfStateType state) <+> "*programs)"
+      <> pretty (nameOfClusterState cluster) <+> "*programs)"
   , "{"
   , "    ierror_msg_t error;"
   , "    iint_t max_fact_count = 0;"
   , ""
   , "    /* compute each chord */"
   , "    for (iint_t chord_ix = 0; chord_ix < chord_count; chord_ix++) {"
-  , "        " <> pretty (nameOfStateType state) <+> "*program = &programs[chord_ix];"
+  , "        " <> pretty (nameOfClusterState cluster) <+> "*program = &programs[chord_ix];"
   , ""
   , "        /* map zebra entity into an input struct:"
   , "           struct input {"
@@ -151,11 +152,11 @@ seaOfDefReadProgram state = vsep
   , "               itime_t  *fact_time;"
   , "           } */"
   , ""
-  , "        itime_t   *chord_time  = &(program->input." <> pretty (stateTimeVar state) <> ");"
+  , "        itime_t   *chord_time  = &(program->input." <> prettySeaName (clusterTimeVar cluster) <> ");"
   , "        iint_t    *fact_count  = (iint_t*) chord_time + 1;"
   , "        ierror_t **tombstone   = (ierror_t**) chord_time + 2;"
   , "        void     **input_start = (void**) chord_time + 3;"
-  , "        iint_t     input_count = " <> pretty (length (stateInputVars state) - 2) <> "; // minus fact_count and tombstone"
+  , "        iint_t     input_count = " <> pretty (length (clusterInputVars cluster) - 2) <> "; // minus fact_count and tombstone"
   , "        itime_t  **fact_time   = (itime_t**) input_start + input_count;"
   , ""
   , "        error = zebra_translate "
@@ -177,7 +178,7 @@ seaOfDefReadProgram state = vsep
   , ""
   , "        /* run compute on the facts read so far */"
   , "        if (*fact_count != 0) {"
-  , indent 12 $ vsep $ fmap (\i -> pretty (nameOfCompute i) <+> " (program);") computes
+  , indent 12 $ vsep $ fmap (\i -> pretty (nameOfKernel i) <+> " (program);") kernels
   , "            *fact_count = 0;"
   , "        }"
   , "    }"
@@ -188,7 +189,8 @@ seaOfDefReadProgram state = vsep
   , ""
   ]
  where
-  computes = NonEmpty.toList $ stateComputes state
+  kernels = NonEmpty.toList $ clusterKernels cluster
 
-nameOfRead :: SeaProgramAttribute -> CName
-nameOfRead state = pretty ("zebra_read_entity_" <> pretty (nameOfAttribute state))
+nameOfRead :: Cluster -> CName
+nameOfRead cluster =
+  pretty ("zebra_read_entity_" <> pretty (nameOfCluster cluster))

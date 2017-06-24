@@ -31,8 +31,8 @@ module Icicle.Sea.IO.Psv (
 
 import           Icicle.Internal.Pretty
 
+import           Icicle.Sea.Data
 import           Icicle.Sea.Error (SeaError(..))
-import           Icicle.Sea.FromAvalanche.State
 import           Icicle.Sea.IO.Base
 import           Icicle.Sea.IO.Psv.Input
 import           Icicle.Sea.IO.Psv.Output
@@ -75,8 +75,8 @@ defaultPsvMaxMapSize = 1024 * 1024
 
 ------------------------------------------------------------------------
 
-seaOfPsvDriver :: InputOpts -> PsvConfig -> [SeaProgramAttribute] -> Either SeaError Doc
-seaOfPsvDriver opts config states = do
+seaOfPsvDriver :: InputOpts -> PsvConfig -> [Cluster] -> Either SeaError Doc
+seaOfPsvDriver opts config clusters = do
   let inputConfig  = psvInputConfig config
   let outputConfig = psvOutputConfig config
   let outputList   = case inputPsvFormat inputConfig of
@@ -86,13 +86,13 @@ seaOfPsvDriver opts config states = do
                          -> Just [feed]
   let mode         = inputPsvMode inputConfig
 
-  let struct_sea  = seaOfFleetState      states
-      alloc_sea   = seaOfAllocFleet      states
-      collect_sea = seaOfCollectFleet    states
-      config_sea  = seaOfConfigureFleet  mode states
+  let struct_sea  = seaOfFleetState      clusters
+      alloc_sea   = seaOfAllocFleet      clusters
+      collect_sea = seaOfCollectFleet    clusters
+      config_sea  = seaOfConfigureFleet  mode clusters
 
-  read_sea  <- seaOfReadAnyFactPsv   opts inputConfig  states
-  write_sea <- seaOfWriteFleetOutput      outputConfig outputList states
+  read_sea  <- seaOfReadAnyFactPsv   opts inputConfig  clusters
+  write_sea <- seaOfWriteFleetOutput      outputConfig outputList clusters
 
   pure $ vsep
     [ struct_sea
