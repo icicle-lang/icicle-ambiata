@@ -480,6 +480,9 @@ zebra_state_t *zebra_alloc_state (piano_t *piano, zebra_config_t *cfg)
     state->output_fd = output_fd;
     state->drop_fd   = drop_fd;
 
+    state->entity_count = cfg->entity_count;
+    state->fact_count = cfg->fact_count;
+
     int64_t attribute_count = zebra_attribute_count ();
     state->attribute_count = attribute_count;
 
