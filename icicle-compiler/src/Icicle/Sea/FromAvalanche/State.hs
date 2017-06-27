@@ -90,9 +90,6 @@ clusterOfPrograms cid iid programs@(program :| _) =
 
         , clusterKernels =
             NonEmpty.zipWith (kernelOfProgram cid) (0 :| [1..]) programs
-
-        , clusterOutputs =
-            Map.fromList . concatMap outputsOfProgram $ NonEmpty.toList programs
         }
 
 kernelOfProgram ::
