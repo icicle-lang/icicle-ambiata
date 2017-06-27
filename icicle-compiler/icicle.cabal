@@ -124,6 +124,7 @@ library
 
                        Icicle.Compiler
 
+                       Icicle.Internal.Aeson
                        Icicle.Internal.Rename
 
                        Icicle.Runtime.Array
@@ -143,6 +144,7 @@ library
                        Icicle.Sea.FromAvalanche.Program
                        Icicle.Sea.FromAvalanche.State
                        Icicle.Sea.FromAvalanche.Type
+                       Icicle.Sea.Header
                        Icicle.Sea.IO
                        Icicle.Sea.IO.Base
                        Icicle.Sea.IO.Offset

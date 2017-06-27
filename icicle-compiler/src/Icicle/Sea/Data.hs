@@ -5,6 +5,7 @@
 module Icicle.Sea.Data (
     Cluster(..)
   , ClusterId(..)
+  , clusterOutputs
   , renderClusterId
   , prettyClusterId
 
@@ -20,7 +21,9 @@ module Icicle.Sea.Data (
   ) where
 
 import           Data.List.NonEmpty (NonEmpty)
+import qualified Data.List.NonEmpty as NonEmpty
 import           Data.Map (Map)
+import qualified Data.Map.Strict as Map
 import qualified Data.Text as Text
 
 import           GHC.Generics (Generic)
@@ -43,7 +46,6 @@ data Cluster =
     , clusterInputVars :: ![(SeaName, ValType)]
     , clusterTimeVar :: !SeaName
     , clusterKernels :: !(NonEmpty Kernel)
-    , clusterOutputs :: !(Map OutputId MeltedType)
     } deriving (Eq, Ord, Show, Generic)
 
 data Kernel =
@@ -86,6 +88,10 @@ instance Show KernelIndex where
 instance Show KernelId where
   showsPrec =
     gshowsPrec
+
+clusterOutputs :: Cluster -> Map OutputId MeltedType
+clusterOutputs =
+  Map.fromList . concatMap kernelOutputs . NonEmpty.toList . clusterKernels
 
 renderClusterId :: ClusterId -> Text
 renderClusterId =
