@@ -80,17 +80,17 @@ genWT2 d x y =
 
 -- This test shouldn't be necessary. The other properties should cover it.
 -- Perhaps useful for debugging only.
-zprop_success_output_type_is_time
+zzprop_success_output_type_is_time
  | dup <- DoNotAllowDupTime
  =  forAll arbitrary $ \inputType ->
     forAll (genWT2 dup inputType TimeT) $ \wt ->
     forAll (genPsvConstants wt) $ \psvConstants ->
       testForSuccess dup wt psvConstants
 
-prop_success_array_of_struct_input
+zprop_success_array_of_struct_input
  | dup <- DoNotAllowDupTime
- = forAll genSupportedArrayStructFactType $ \factType ->
-   forAll (genWT1 dup (inputTypeOf factType)) $ \wt ->
+ = forAll genSupportedArrayStructFactType $ \ft ->
+   forAll (genWT1 dup (SumErrorFactT ft)) $ \wt ->
    forAll (genPsvConstants wt) $ \psvConstants ->
      testForSuccess dup wt psvConstants
 
@@ -99,14 +99,14 @@ prop_success_psv_corpus
  = testAllCorpus dup genPsvConstants $ \wt psv ->
      testForSuccess dup wt psv
 
-prop_success_psv
+zprop_success_psv
  | dup <- DoNotAllowDupTime
  = forAll arbitrary $ \inputType ->
    forAll (genWT1 dup inputType) $ \wt ->
    forAll (genPsvConstants wt) $ \psv ->
      testForSuccess dup wt psv
 
-prop_failure_entity_out_of_order
+zprop_failure_entity_out_of_order
  | dup <- DoNotAllowDupTime
  = forAll arbitrary $ \inputType ->
    forAll (validated 100 $ tryGenAttributeWithInput inputType) $ \wta ->
@@ -126,7 +126,7 @@ prop_failure_entity_out_of_order
            dup
        expectPsvError wtOutOfOrderEntities result
 
-prop_failure_time_out_of_order
+zprop_failure_time_out_of_order
  | dup <- DoNotAllowDupTime
  = forAll arbitrary $ \inputType ->
    forAll (validated 100 $ tryGenAttributeWithInput inputType) $ \wta ->
@@ -144,7 +144,7 @@ prop_failure_time_out_of_order
            dup
        expectPsvError wtOutOfOrderTimes result
 
-prop_dup_time
+zprop_dup_time
  = forAll arbitrary $ \inputType ->
    forAll (validated 100 $ tryGenAttributeWithInput inputType) $ \wta ->
    forAll (validated 100 $ tryGenWellTypedForSingleAttribute AllowDupTime wta) $ \wt ->

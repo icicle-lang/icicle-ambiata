@@ -427,7 +427,7 @@ renderJsonValue = \case
    MapValue kvs0 ->
      pure . renderJsonList . List $ fmap (uncurry PairValue) kvs0
 
--- | RENDER OUTPUT VALUE TO MATCH PSV OUTPUT CODE
+-- | This must match PSV output.
 renderOutputValue :: Value -> Maybe Text
 renderOutputValue = \case
    Tombstone ->

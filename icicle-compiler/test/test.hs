@@ -111,8 +111,8 @@ suites :: Map String TestSuite
 suites =
   Map.fromList $ fmap (\x -> (suiteName x, x)) [
       psv
-    , sea
-    , sundry
+    -- , sea
+    --, sundry
     ]
 
 runTestSuite :: TestSuite -> IO ()

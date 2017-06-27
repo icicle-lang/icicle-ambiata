@@ -45,7 +45,7 @@ import           Data.Text  as T
 import           Data.Word (Word64)
 import           Data.Bits
 
-import           Control.Lens ((^.))
+import           Control.Lens ((^.), re)
 
 import           P
 
@@ -193,12 +193,21 @@ data TimeSerialisation =
   deriving (Show, Eq)
 
 renderTime :: TimeSerialisation -> Time -> Text
+-- FIXME
+-- Ensure: renderTime TimeSerialisationInput (parsedFromSource time) == time.
 renderTime TimeSerialisationInput t =
   T.pack . C.showGregorian . Thyme.fromThyme . julianDay $ t
+-- FIXME
+-- Ensure: this matches text_write_itime at least for the values that we
+-- will output in C. Or make PSV go away all together please.
 renderTime TimeSerialisationOutput t =
- let fmt = "%Y-%m-%dT%H:%M:%SZ"
-     t' = Thyme.fromThyme (getDateTime t) :: C.UTCTime
-     str = C.formatTime C.defaultTimeLocale fmt t'
+ let
+   fmt =
+     "%Y-%m-%dT%H:%M:%SZ"
+   str =
+     C.formatTime C.defaultTimeLocale fmt .
+     Thyme.fromThyme $
+       getDateTime t
  in  T.pack str
 
 pTime :: Parser Time

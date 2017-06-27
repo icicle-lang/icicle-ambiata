@@ -76,7 +76,7 @@ prop_psv_fission =
        discard
      False ->
        forAll (genFactsForAttributes timeOpt [wta1, wta2]) $ \(vals, chordTime) ->
-       forAll (genSufficientMaxMapSize (length vals)) $ \maxMapSize ->
+       forAll (genMaxMapSize (length vals)) $ \maxMapSize ->
          let
            -- sort the facts by time because we are going to run them with
            -- different attributes separately, but they are only guaranteed
@@ -84,11 +84,11 @@ prop_psv_fission =
            wtvs =
              let
                sortByEAT =
-                 List.sortBy (comparing (eavtEntity &&& eavtInputId &&& (atTime . eavtValue)))
+                 List.sortBy (comparing (eavtEntity &&& eavtInputName &&& (atTime . eavtValue)))
                forAttribute1 w =
-                  w { eavtInputId = clusterInputId . wtCluster $ wta1 }
+                  w { eavtInputName = inputName . clusterInputId . wtCluster $ wta1 }
                forAttribute2 w =
-                  w { eavtInputId = clusterInputId . wtCluster $ wta2 }
+                  w { eavtInputName = inputName . clusterInputId . wtCluster $ wta2 }
              in
                sortByEAT $ fmap forAttribute1 vals <> fmap forAttribute2 vals
            evalContext =

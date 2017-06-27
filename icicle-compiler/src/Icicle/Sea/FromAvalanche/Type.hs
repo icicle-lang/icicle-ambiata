@@ -82,9 +82,12 @@ expandedTypesOfProgram =
 --   2. Every definition of (BufT i a) requires a definition for
 --      (ArrayT a), since (Read : BufT i a -> ArrayT a).
 --
---   3. Every definition of (ArrayT (BufT i a)) requires a definiton for
+--      Every definition of (ArrayT (BufT i a)) requires a definiton for
 --      ArrayT (ArrayT a) because generated PSV output Sea code uses
 --      iarray_iarray_*_index to access the buffers inside.
+--
+--      This means any type that contains a BufT needs an ArrayT equivalent,
+--      including arbitrarily nested ones, e.g. ArrayT (ArrayT (ArrayT BufT))
 --
 --   Since each of these might introduce more types, we need to apply
 --   them to a fixpoint.
@@ -95,17 +98,14 @@ expandedTypesOf set =
   let
     fixup t =
       t : case t of
+        -- Look inside ArrayT for any BufT.
         ArrayT e ->
-          e : case e of
-            BufT _ a ->
-              [ArrayT (ArrayT a)]
-            _ ->
-              []
+          e : fmap ArrayT (fixup e)
 
+        -- We don't generate any nested BufTs so there is no need to look inside.
         BufT _ e ->
-          [e , ArrayT e]
+          [ArrayT e]
         _ ->
-
           []
 
     ts' =

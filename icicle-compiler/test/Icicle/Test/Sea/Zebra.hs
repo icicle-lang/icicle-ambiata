@@ -39,7 +39,7 @@ import qualified X.Data.Vector.Cons as Cons
 
 import           Disorder.Core.IO (testIO)
 import           Disorder.Jack (Property, Jack)
-import           Disorder.Jack (gamble, arbitrary, (===), vectorOf, suchThat, counterexample)
+import           Disorder.Jack (gamble, arbitrary, (===), vectorOf, counterexample)
 
 import           Jetski
 
@@ -78,8 +78,8 @@ import qualified Icicle.Test.Foreign.Utils as Test
 --
 prop_read_entity :: Property
 prop_read_entity =
-  gamble jInputType $ \ty ->
-  forAll (gWellTyped ty) $ \wt ->
+  gamble arbitrary $ \sumErrorFactTy ->
+  forAll (gWellTyped sumErrorFactTy) $ \wt ->
   gamble (jZebraWellTyped wt) $ \zwt ->
   testIO . bracket Mempool.create Mempool.free $ \pool -> Test.runRight $ do
     let
@@ -247,19 +247,7 @@ instance PP.Pretty ZebraWellTyped where
       , PP.indent 2 . PP.vsep . fmap PP.pretty . List.concat . List.concat . fmap (fmap snd) . Map.elems . zFacts $ z
       ]
 
--- We don't read arrays (except of bytes -- which are icicle strings) in zebra
-jInputType :: Jack InputType
-jInputType = do
-  let
-    zebraSupported t =
-      case unInputType t of
-        SumT _ (ArrayT _) ->
-          False
-        _ ->
-          True
-  arbitrary `suchThat` zebraSupported
-
-gWellTyped :: InputType -> Gen WellTyped
+gWellTyped :: SumErrorFactT -> Gen WellTyped
 gWellTyped =
   validated 10 . tryGenWellTypedWithInput AllowDupTime
 
@@ -280,7 +268,7 @@ jZebraWellTyped welltyped = do
              ( attribute
              , fmap (atFact . eavtValue) .
                flip List.filter (wtFacts wt) $ \w ->
-                 eavtEntity w == entity && eavtInputId w == clusterInputId (wtCluster attribute)
+                 eavtEntity w == entity && eavtInputName w == inputName (clusterInputId (wtCluster attribute))
              )
 
   xs <-

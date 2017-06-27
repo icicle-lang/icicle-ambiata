@@ -38,6 +38,7 @@ import qualified Icicle.Sea.Eval as Sea
 import qualified Icicle.Sea.FromAvalanche.Analysis as Sea
 import qualified Icicle.Sea.FromAvalanche.State as Sea
 import qualified Icicle.Sea.Data as Sea
+import qualified Icicle.Compiler as Compiler
 
 import           Control.Monad.IO.Class (liftIO)
 
@@ -63,14 +64,16 @@ import           System.IO.Temp (createTempDirectory)
 
 import           Disorder.Corpus
 
+
 import           Test.QuickCheck (Gen, Arbitrary(..), elements, getPositive, discard)
 import           Test.QuickCheck (listOf, listOf1)
 
 import           X.Control.Monad.Trans.Either (EitherT, bracketEitherT')
 
 
-newtype InputType = InputType {
-    unInputType :: ValType
+-- | inputType = SumT ErrorT factType
+newtype SumErrorFactT = SumErrorFactT {
+    factType :: ValType
   } deriving (Show)
 
 data WellTyped = WellTyped {
@@ -80,9 +83,9 @@ data WellTyped = WellTyped {
   }
 
 data WellTypedValue = WellTypedValue {
-    eavtEntity  :: !Entity
-  , eavtInputId :: !InputId
-  , eavtValue   :: !(AsAt BaseValue)
+    eavtEntity    :: !Entity
+  , eavtInputName :: !InputName -- PSV input has no namespace
+  , eavtValue     :: !(AsAt BaseValue)
   }
 
 -- FIXME
@@ -125,7 +128,7 @@ instance Pretty WellTypedValue where
   pretty eavt =
     encloseSep lbracket rbracket comma $
       [ pretty (eavtEntity eavt)
-      , pretty (eavtInputId eavt)
+      , pretty (eavtInputName eavt)
       , text . show . atFact . eavtValue $ eavt
       , text . show . renderTime TimeSerialisationInput . atTime . eavtValue $ eavt
       ]
@@ -143,9 +146,9 @@ instance Pretty WellTypedCluster where
       --, indent 2 $ pretty (wtAvalancheFlat wt)
       ]
 
-instance Arbitrary InputType where
+instance Arbitrary SumErrorFactT where
   arbitrary =
-    inputTypeOf <$>
+    SumErrorFactT <$>
       genSupportedFactType
 
 instance Arbitrary WellTyped where
@@ -161,10 +164,14 @@ takeFlatProgram cluster =
   (Sea.clusterInputId . wtCluster $ cluster, wtAvalancheFlat cluster)
 
 -- | Savagely big (hopefully enough) max map size
-genSufficientMaxMapSize :: Int -> Gen Int
-genSufficientMaxMapSize numFacts = do
+genMaxMapSize :: Int -> Gen Int
+genMaxMapSize numFacts = do
   n <- getPositive <$> arbitrary
   return (n * numFacts)
+
+genEvalContext :: [WellTypedValue] -> Time -> Gen EvalContext
+genEvalContext facts upperBoundTimeExclusive =
+  EvalContext <$> pure upperBoundTimeExclusive <*> genMaxMapSize (length facts)
 
 tryGenWellTypedForSingleAttribute ::
      Sea.InputAllowDupTime
@@ -172,12 +179,12 @@ tryGenWellTypedForSingleAttribute ::
   -> Gen (Maybe WellTyped)
 tryGenWellTypedForSingleAttribute allowDupTime attribute = do
   (facts, time) <- genFactsForAttributes allowDupTime [attribute]
-  maxMapSize <- genSufficientMaxMapSize (length facts)
-  return . Just . WellTyped (EvalContext time maxMapSize) facts $ [attribute]
+  evalContext <- genEvalContext facts time
+  return . Just . WellTyped evalContext facts $ [attribute]
 
 tryGenWellTypedWithInput ::
      Sea.InputAllowDupTime
-  -> InputType
+  -> SumErrorFactT
   -> Gen (Maybe WellTyped)
 tryGenWellTypedWithInput allowDupTime ty = do
   as <-
@@ -185,12 +192,12 @@ tryGenWellTypedWithInput allowDupTime ty = do
       validatedNonEmpty 10
         (tryGenAttributeWithInput ty)
   (facts, time) <- genFactsForAttributes allowDupTime as
-  maxMapSize <- genSufficientMaxMapSize (length facts)
-  return . Just . WellTyped (EvalContext time maxMapSize) facts $ as
+  evalContext <- genEvalContext facts time
+  return . Just . WellTyped evalContext facts $ as
 
 tryGenWellTypedWithInputAndOutput ::
      Sea.InputAllowDupTime
-  -> InputType
+  -> SumErrorFactT
   -> ValType
   -> Gen (Maybe WellTyped)
 tryGenWellTypedWithInputAndOutput allowDupTime inputType outputType = do
@@ -199,26 +206,25 @@ tryGenWellTypedWithInputAndOutput allowDupTime inputType outputType = do
       validatedNonEmpty 10
         (tryGenAttributeWithInputAndOutput inputType outputType)
   (facts, time) <- genFactsForAttributes allowDupTime as
-  maxMapSize <- genSufficientMaxMapSize (length facts)
-  return . Just . WellTyped (EvalContext time maxMapSize) facts $ as
+  evalContext <- genEvalContext facts time
+  return . Just . WellTyped evalContext facts $ as
 
 tryGenWellTypedFromCore' ::
      Sea.InputAllowDupTime
-  -> InputType
   -> Core.Program () Var
   -> Gen (Either Savage.String WellTyped)
-tryGenWellTypedFromCore' allowDupTime ty core = do
+tryGenWellTypedFromCore' allowDupTime core = do
   attrs <-
     fmap replaceInputNamesWithUniques <$>
       validatedNonEmpty' 10
-        (tryGenAttributeFromCore' ty core)
+        (tryGenAttributeFromCore' core)
   case attrs of
     Left e ->
       return (Left e)
     Right as -> do
       (facts, time) <- genFactsForAttributes allowDupTime as
-      maxMapSize <- genSufficientMaxMapSize (length facts)
-      return . Right . WellTyped (EvalContext time maxMapSize) facts $ as
+      evalContext <- genEvalContext facts time
+      return . Right . WellTyped evalContext facts $ as
 
 replaceInputNamesWithUniques :: [WellTypedCluster] -> [WellTypedCluster]
 replaceInputNamesWithUniques =
@@ -242,8 +248,8 @@ evalWellTyped wt factsLimit =
     wtClusters $
       wt
 
--- | NOTE
---   This duals as a specification for PSV dropping semantics.
+-- | This is used to ensure the Core evaluation semnatics matches the C code.
+--   It might be roundabout and redundant but useful for printing traces.
 --
 evalWellTypedCluster ::
      Int
@@ -257,8 +263,6 @@ evalWellTypedCluster factsLimit evalContext wellTypedValues wtc =
       wtCluster wtc
     inputId =
       Sea.clusterInputId cluster
-    factType =
-      wtFactType wtc
     core =
       wtCore wtc
 
@@ -271,7 +275,7 @@ evalWellTypedCluster factsLimit evalContext wellTypedValues wtc =
       fmap fst .
       Map.keys .
       Map.filter (\c -> c > factsLimit) .
-      foldr (\v m -> Map.insertWith (+) (eavtEntity v, eavtInputId v) 1 m) Map.empty $
+      foldr (\v m -> Map.insertWith (+) (eavtEntity v, eavtInputName v) 1 m) Map.empty $
         wellTypedValues
 
     -- If there is no fact or if all facts are tombstones for this attribute, we still
@@ -282,7 +286,7 @@ evalWellTypedCluster factsLimit evalContext wellTypedValues wtc =
     --      homer|None
     --      marge|None
     factsNotForThisInputId v =
-      eavtInputId v /= inputId ||
+      eavtInputName v /= inputName inputId ||
       atFact (eavtValue v) == VError ExceptTombstone
 
     entitiesWithNoFactsOrAllTombstones =
@@ -297,27 +301,16 @@ evalWellTypedCluster factsLimit evalContext wellTypedValues wtc =
     entitiesThatWillNotBeComputed =
       entitiesExceedingLimit <> entitiesWithNoFactsOrAllTombstones
 
-    dummyValue =
-      AsAt
-        (BubbleGumFact (Flavour 0 (unsafeTimeOfYMD 0 0 0)), defaultOfType factType)
-        (unsafeTimeOfYMD 0 0 0)
-
-    dummyEntities =
-      fmap ((inputId,) . (, dummyValue)) entitiesThatWillNotBeComputed
-
     -- Only run compute on the facts for this attribute.
     mkComputeInput ix (WellTypedValue entity a (AsAt fact time)) =
       (a, (entity, AsAt (BubbleGumFact (Flavour ix time), fact) time))
 
-    actualInputs =
+    inputs =
+      List.groupBy ((==) `on` fst) .
+      fmap snd .
       List.zipWith mkComputeInput [0..] .
       List.filter (not . (`elem` entitiesThatWillNotBeComputed) . eavtEntity) $
         wellTypedValues
-
-    inputs =
-      List.groupBy ((==) `on` fst) .
-      fmap snd $
-        actualInputs <> dummyEntities
 
     eval values =
       case Core.eval evalContext values core of
@@ -332,9 +325,21 @@ evalWellTypedCluster factsLimit evalContext wellTypedValues wtc =
           []
         (e,x):xss ->
           [(e,x:fmap snd xss)]
+
+    dummyValue =
+      AsAt
+        (BubbleGumFact (Flavour 0 (unsafeTimeOfYMD 0 0 0)), VError ExceptTombstone)
+        (unsafeTimeOfYMD 0 0 0)
+
+    dummyEntities =
+      fmap (, [dummyValue]) $ entitiesThatWillNotBeComputed
+
   in
     Map.fromList .
     fmap (second (Core.value . eval)) .
+    Map.toList .
+    Map.fromList .
+    (<>) dummyEntities .
     concatMap groupByEntity $
       inputs
 
@@ -343,25 +348,30 @@ evalWellTypedCluster factsLimit evalContext wellTypedValues wtc =
 
 genVTs ::
      Sea.InputAllowDupTime
-  -> InputType
+  -> SumErrorFactT
   -> Gen [AsAt BaseValue]
-genVTs allowDupTime (unInputType -> ty) = do
-  (inputs, _) <-
-    case allowDupTime of
-      Sea.AllowDupTime ->
-        inputsForType ty
-      Sea.DoNotAllowDupTime ->
-        first (List.sortBy (compare `on` atTime) . List.nubBy ((==) `on` atTime)) <$> inputsForType ty
+genVTs allowDupTime (SumErrorFactT ft) = do
+  xs <- inputsForType (SumT ErrorT ft)
   let
-    valueOrTombstone (VLeft (VError _)) =
-      VLeft (VError ExceptTombstone)
-    valueOrTombstone v =
-      v
-  return (fmap (fmap (valueOrTombstone . snd)) $ inputs)
+    (inputs, _) =
+      case allowDupTime of
+        Sea.AllowDupTime ->
+          xs
+        Sea.DoNotAllowDupTime ->
+          first (List.sortBy (compare `on` atTime) . List.nubBy ((==) `on` atTime)) $ xs
+
+    valueOrTombstone (VLeft _) =
+      VError ExceptTombstone
+    valueOrTombstone (VRight a) =
+      a
+    valueOrTombstone a =
+      Savage.error $ "Impossible! Generated an input value that is not a Sum Error: " <> show a
+
+  return . fmap (fmap (valueOrTombstone . snd)) $ inputs
 
 genEAVTs ::
      Sea.InputAllowDupTime
-  -> [(InputId, InputType)]
+  -> [(InputName, SumErrorFactT)]
   -> Gen [WellTypedValue]
 genEAVTs allowDupTime tys = do
   e <- Entity <$> elements southpark
@@ -388,29 +398,28 @@ genFactsForAttributes allowDupTime as = do
     _ ->
       let
         latestTime =
-          List.maximum . fmap (atTime . eavtValue) $ facts
+          unsafeTimeOfYMD 9999 12 31
       in
         return (facts, latestTime)
 
-takeInput :: WellTypedCluster -> (InputId, InputType)
+takeInput :: WellTypedCluster -> (InputName, SumErrorFactT)
 takeInput w =
-  (Sea.clusterInputId . wtCluster $ w, InputType . Sea.clusterInputType . wtCluster $ w)
+  (inputName . Sea.clusterInputId . wtCluster $ w, SumErrorFactT . Sea.clusterInputType . wtCluster $ w)
 
 --------------------------------------------------------------------------------
 
-inputTypeOf :: ValType -> InputType
-inputTypeOf ty
-    = InputType $ SumT ErrorT ty
-
 tryGenAttributeWithInput ::
-     InputType
+     SumErrorFactT
   -> Gen (Maybe WellTypedCluster)
 tryGenAttributeWithInput ty = do
-  core <- programForStreamType (unInputType ty)
-  tryGenAttributeFromCore ty core
+  core <- programForStreamType . SumT ErrorT . factType $ ty
+  let
+    simped =
+      Compiler.coreSimp core
+  tryGenAttributeFromCore simped
 
 tryGenAttributeWithInputAndOutput ::
-     InputType
+     SumErrorFactT
   -> ValType
   -> Gen (Maybe WellTypedCluster)
 tryGenAttributeWithInputAndOutput i out = do
@@ -423,19 +432,15 @@ tryGenAttributeWithInputAndOutput i out = do
      False -> Nothing
   _ -> return Nothing
 
-tryGenAttributeFromCore ::
-     InputType
-  -> Core.Program () Var
-  -> Gen (Maybe WellTypedCluster)
-tryGenAttributeFromCore ty core =
-   fromEither <$> tryGenAttributeFromCore' ty core
+tryGenAttributeFromCore :: Core.Program () Var -> Gen (Maybe WellTypedCluster)
+tryGenAttributeFromCore core =
+   fromEither <$> tryGenAttributeFromCore' core
 
-tryGenAttributeFromCore' ::
-     InputType
-  -> Core.Program () Var
-  -> Gen (Either Savage.String WellTypedCluster)
-tryGenAttributeFromCore' (InputType sty) core
-  | SumT ErrorT ty <- sty = do
+tryGenAttributeFromCore' :: Core.Program () Var -> Gen (Either Savage.String WellTypedCluster)
+tryGenAttributeFromCore' core
+  | sty <- Core.inputType core
+  , SumT ErrorT ty <- sty
+  = do
       let
         replaceStmts prog stms
           = prog { A.statements = stms }
@@ -491,7 +496,7 @@ tryGenAttributeFromCore' (InputType sty) core
 genWellTypedWithStruct :: Sea.InputAllowDupTime -> Gen WellTyped
 genWellTypedWithStruct allowDupTime = validated 10 $ do
   st <- arbitrary :: Gen StructType
-  tryGenWellTypedWithInput allowDupTime (inputTypeOf $ StructT st)
+  tryGenWellTypedWithInput allowDupTime . SumErrorFactT . StructT $ st
 
 ------------------------------------------------------------------------
 
@@ -740,7 +745,7 @@ fieldsOfFact :: WellTypedValue -> [LT.Text]
 fieldsOfFact (WellTypedValue e a v) =
   let
     (valueText, timeText) = textOfInputValues v
-  in [ LT.fromStrict (getEntity e), LT.fromStrict (renderInputId a), valueText, timeText ]
+  in [ LT.fromStrict (getEntity e), LT.fromStrict (renderInputName a), valueText, timeText ]
 
 textOfInputValues :: AsAt BaseValue -> (LT.Text, LT.Text)
 textOfInputValues v =

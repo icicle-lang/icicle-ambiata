@@ -106,7 +106,7 @@ mkFacts wt =
   catMaybes . fmap mkAsAt . wtFacts $ wt
   where
     mkAsAt (WellTypedValue ent attr a)
-      = D.AsAt <$> (D.Fact ent (D.inputName attr) <$> factFromCoreValue (D.atFact a))
+      = D.AsAt <$> (D.Fact ent attr <$> factFromCoreValue (D.atFact a))
                <*> pure (D.atTime a)
 
 dummySourceOf :: WellTypedCluster -> P.QueryTyped Source.Var
