@@ -46,13 +46,13 @@ prop_maxsize_corpus
  | dup <- AllowDupTime
  = testAllCorpus dup genPsvConstants $ \wt psv ->
      let
+       evalContext =
+         wellTypedEvalContext (psvFactsLimit psv) (psvMaxMapSize psv)
        props =
-         fmap (checkMaxMapSize (evalMaxMapSize (wtEvalContext wt))) .
+         fmap (checkMaxMapSize (psvMaxMapSize psv)) .
          concatMap (fmap snd) .
-         Map.elems .
-         evalWellTyped wt .
-         psvFactsLimit $
-           psv
+         Map.elems $
+         evalWellTyped evalContext wt
      in
        conjoin props
 

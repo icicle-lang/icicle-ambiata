@@ -317,7 +317,6 @@ test-suite test-io
                      , ambiata-x-eithert
                      , containers
                      , hashable                        == 1.2.*
-                     , directory                       == 1.2.*
                      , text
                      , QuickCheck                      == 2.8.*
                      , quickcheck-instances            == 0.3.*

@@ -58,16 +58,36 @@ corpusQueries =
     -- Tombstones/no values treament between Core and C
 
     ( [inputname|int|]
-    , [outputid|corpse:bool_sane|]
+    , [outputid|tombstone:bool|]
     , "feature int ~> fold x = False : True ~> x")
 
-  , ( [inputname|int|]
-    , [outputid|corpse:int_sane|]
-    , "feature int ~> fold x = 1 : 2 ~> x")
+  , ( [inputname|injury|]
+    , [outputid|tombstone:group|]
+    , "feature injury ~> group location ~> count location ")
+
+  , ( [inputname|injury|]
+    , [outputid|tombstone:group_group|]
+    , "feature injury ~> group location ~> group location ~> count location ")
+
+  , ( [inputname|injury|]
+    , [outputid|tombstone:group_group_group|]
+    , "feature injury ~> group location ~> group location ~> group location ~> count location ")
 
   , ( [inputname|int|]
-    , [outputid|corpse:tombstone_count|]
+    , [outputid|tombstone:filter|]
     , "feature int ~> filter tombstone ~> count value")
+
+  , ( [inputname|injury|]
+    , [outputid|tombstone:filter_group|]
+    , "feature injury ~> filter tombstone ~> group location ~> count location ")
+
+  , ( [inputname|injury|]
+    , [outputid|tombstone:filter_group_group|]
+    , "feature injury ~> filter tombstone ~> group location ~> group location ~> count location ")
+
+  , ( [inputname|injury|]
+    , [outputid|tombstone:filter_group_group_group|]
+    , "feature injury ~> filter tombstone ~> group location ~> group location ~> group location ~> count location ")
 
     -- Basic queries
 
@@ -172,7 +192,7 @@ testAllCorpus :: Show a => Sea.InputAllowDupTime -> (WellTyped -> Gen a) -> (Wel
 testAllCorpus dup genExtras prop =
   conjoin . flip fmap corpusQueries $ \query ->
     forAll (genWellTypedClusterFromSource query) $ \cluster ->
-    forAll (validated 10 $ tryGenWellTypedForSingleAttribute dup cluster) $ \wt ->
+    forAll (genWellTypedForSingleAttribute dup cluster) $ \wt ->
     forAll (genExtras wt) $
       prop wt
 

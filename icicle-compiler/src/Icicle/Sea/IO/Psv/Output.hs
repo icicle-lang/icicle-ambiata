@@ -370,9 +370,12 @@ seaOfOutput isJSON struct structIndex outId missing env outType argTypes transfo
                  <- seaOfOutput isJSON struct (structIndex + 1) outId missing env' otype1 ts1 transform
 
               let ne'   = transform ErrorT ne
-              let cond  = condAnd (Just (seaOfValueOrTombstone ne')) mcond
-              let body' = seaOfOutputCond cond mfalse body
-              pure ( cond, outputMissing, body', ix, ts )
+              let body' = seaOfOutputCond mcond mfalse body
+              let condSum = condAnd (Just (seaOfNotAnError ne')) mcond
+              pure ( condSum, outputMissing, body', ix, ts )
+
+       BufT _ a ->
+         seaOfOutput isJSON struct structIndex outId missing env (ArrayT a) argTypes transform
 
        -- Base
        typ
@@ -383,15 +386,11 @@ seaOfOutput isJSON struct structIndex outId missing env outType argTypes transfo
         -> do d <- seaOfOutputBase' isJSON t mx'
               pure (Nothing, Nothing, d, structIndex + 1, ts)
 
-       BufT _ a ->
-         seaOfOutput isJSON struct structIndex outId missing env (ArrayT a) argTypes transform
-
        _ ->
-         Left unsupported
+         Left mismatch
 
   where
    mismatch    = SeaOutputTypeMismatch    outId outType argTypes
-   unsupported = SeaUnsupportedOutputType outType
 
    members    = List.take (length argTypes)
               $ fmap (\ix -> struct <> "->" <> prettySeaName (mangleIx outId ix)) [structIndex..]
@@ -416,12 +415,9 @@ seaOfOutput isJSON struct structIndex outId missing env outType argTypes transfo
    seaOfOutputBase' b
      = seaOfOutputBase b mismatch
 
--- | Even if the input value is a tombstone, we still run compute on it and we
---   need to output the result of that compute here.
---
-seaOfValueOrTombstone :: Doc -> Doc
-seaOfValueOrTombstone v =
-  "((" <> v <> " == ierror_tombstone) || (" <> v <> " == ierror_not_an_error))"
+seaOfNotAnError :: Doc -> Doc
+seaOfNotAnError v =
+  "(" <> v <> " == ierror_not_an_error)"
 
 --------------------------------------------------------------------------------
 
@@ -447,13 +443,16 @@ seaOfOutputArray mcond body numElems counter countLimit
           , body
           , assign ]
 
-    in pure (vsep [ outputChar '['
+    in pure (vsep [
+                outputChar '['
+              , "{"
               , "ibool_t " <> needSep <> " = ifalse;"
               , forStmt counter countLimit numElems
               , "{"
               , indent 4 (go mcond)
               , "}"
               , outputChar ']'
+              , "}"
               ])
 
 seaOfOutputStructSep :: [(Maybe Doc, Doc)] -> Doc
@@ -615,6 +614,10 @@ schemaOfValType = \case
   TimeT ->
     pure $ PsvPrimitive PsvString
 
+  -- NOTE in generated C code, fact identifiers are treated as ints.
+  FactIdentifierT ->
+    pure $ PsvPrimitive PsvInt
+
   UnitT ->
     Left $ SeaUnsupportedOutputType UnitT
   ErrorT ->
@@ -646,9 +649,6 @@ schemaOfValType = \case
 
   BufT _ a ->
     PsvList <$> schemaOfValType a
-
-  FactIdentifierT ->
-    Left $ SeaUnsupportedOutputType FactIdentifierT
 
 schemaOfOutput :: OutputId -> ValType -> Either SeaError PsvColumn
 schemaOfOutput outputId typ =

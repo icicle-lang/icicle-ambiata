@@ -586,9 +586,7 @@ seaOfReadJsonList vtype avars = do
     [ "if (*p++ != '[')"
     , "    return ierror_loc_format (p-1, p-1, \"array missing '['\");"
     , ""
-    , "char term = *p;"
-    , ""
-    , "for (iint_t ix = 0; term != ']'; ix++) {"
+    , "for (iint_t ix = 0, term = *p; term != ']'; ix++) {"
     , indent 4 value_sea
     , "    "
     , "    term = *p++;"

@@ -213,4 +213,4 @@ instance Pretty Lit where
  pretty (LitInt i) = text $ show i
  pretty (LitDouble i) = text $ show i
  pretty (LitString i) = text $ show i
- pretty (LitTime i) = "`" <> (text . unpack . renderTime TimeSerialisationInput $ i) <> "`"
+ pretty (LitTime i) = "`" <> (text $ unpack $ renderTime i) <> "`"

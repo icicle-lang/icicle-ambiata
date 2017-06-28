@@ -1,7 +1,6 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards #-}
-{-# LANGUAGE TupleSections #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Icicle.Test.Arbitrary.Core where
 
@@ -250,16 +249,10 @@ genPrimType = elements
          , StringT ]
 
 genStructType :: Gen ValType -> Gen StructType
-genStructType genT =
-  let
-    fieldName i =
-      (StructField ("field_" <> T.pack (show i)),)
-  in
-    StructType .
-    Map.fromList .
-    List.zipWith fieldName [(0::Int)..] .
-    List.take 10 <$>
-      listOf genT
+genStructType genT
+ = StructType . Map.fromList . List.take 10 <$> listOf genField
+ where
+   genField = (,) <$> arbitrary <*> genT
 
 instance Arbitrary StructType where
   -- Structs have at most five fields, to prevent them from being too large.
@@ -634,7 +627,7 @@ baseValueForType t
 inputsForType :: ValType -> Gen ([AsAt (BubbleGumFact, BaseValue)], EvalContext)
 inputsForType t
  = sized
- $ \s -> do start         <- getPositive <$> arbitrary
+ $ \s -> do start         <- arbitrary
             num           <- choose (0, s)
             maxMap        <- choose (1, s)
             (facts, time) <- go num [] start

@@ -31,9 +31,10 @@ module Icicle.Data.Time (
   , timeOfPacked
 
   -- * Parsing and Printing
-  , TimeSerialisation (..)
   , renderTime
   , pTime
+
+  , renderOutputTime
   ) where
 import           Data.Attoparsec.Text
 
@@ -45,7 +46,7 @@ import           Data.Text  as T
 import           Data.Word (Word64)
 import           Data.Bits
 
-import           Control.Lens ((^.), re)
+import           Control.Lens ((^.))
 
 import           P
 
@@ -187,28 +188,15 @@ packedOfTime t@(gregorianDay -> d)
 
 --------------------------------------------------------------------------------
 
-data TimeSerialisation =
-    TimeSerialisationInput -- ^ Y-M-D since Julian epoch
-  | TimeSerialisationOutput -- ^ Y-M-DTH:M:SZ since something
-  deriving (Show, Eq)
+renderTime  :: Time -> Text
+renderTime = T.pack . C.showGregorian . Thyme.fromThyme . julianDay
 
-renderTime :: TimeSerialisation -> Time -> Text
--- FIXME
--- Ensure: renderTime TimeSerialisationInput (parsedFromSource time) == time.
-renderTime TimeSerialisationInput t =
-  T.pack . C.showGregorian . Thyme.fromThyme . julianDay $ t
--- FIXME
--- Ensure: this matches text_write_itime at least for the values that we
--- will output in C. Or make PSV go away all together please.
-renderTime TimeSerialisationOutput t =
- let
-   fmt =
-     "%Y-%m-%dT%H:%M:%SZ"
-   str =
-     C.formatTime C.defaultTimeLocale fmt .
-     Thyme.fromThyme $
-       getDateTime t
- in  T.pack str
+renderOutputTime  :: Time -> Text
+renderOutputTime t
+ = let fmt = "%Y-%m-%dT%H:%M:%SZ"
+       t' = Thyme.fromThyme (getDateTime t) :: C.UTCTime 
+       str = C.formatTime C.defaultTimeLocale fmt t'
+   in  T.pack str
 
 pTime :: Parser Time
 pTime

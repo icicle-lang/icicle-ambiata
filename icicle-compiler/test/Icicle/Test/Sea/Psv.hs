@@ -29,7 +29,6 @@ import           Disorder.Core.IO
 import           Icicle.Data
 import           Icicle.Internal.Pretty
 
-import           Icicle.Common.Type
 import           Icicle.Common.Eval
 
 import           Icicle.Sea.Eval
@@ -46,7 +45,7 @@ import qualified Prelude as Savage
 
 import           System.IO
 
-import           Test.QuickCheck (Arbitrary(..), forAll)
+import           Test.QuickCheck (forAll)
 import           Test.QuickCheck (Property, (==>), property, counterexample)
 import           Test.QuickCheck.Property (succeeded, failed)
 import           Test.QuickCheck.Monadic
@@ -71,24 +70,22 @@ testForSuccess dup wt psv =
        pure (property succeeded)
 
 genWT1 d x =
-  validated 10 $
+  -- if this welltyped is discarded, we can try again
+  validated tryCountInputType $
     tryGenWellTypedWithInput d x
 
 genWT2 d x y =
-  validated 10 $
+  -- if this welltyped is discarded, the output type is no good
+  -- there is no point in trying again
+  validated tryCountOutputType $
     tryGenWellTypedWithInputAndOutput d x y
 
--- This test shouldn't be necessary. The other properties should cover it.
--- Perhaps useful for debugging only.
-zzprop_success_output_type_is_time
- | dup <- DoNotAllowDupTime
- =  forAll arbitrary $ \inputType ->
-    forAll (genWT2 dup inputType TimeT) $ \wt ->
-    forAll (genPsvConstants wt) $ \psvConstants ->
-      testForSuccess dup wt psvConstants
+genWTA1 x =
+  validated tryCountInputType $
+    tryGenAttributeWithInput x
 
-zprop_success_array_of_struct_input
- | dup <- DoNotAllowDupTime
+prop_success_array_of_struct_input
+ | dup <- AllowDupTime
  = forAll genSupportedArrayStructFactType $ \ft ->
    forAll (genWT1 dup (SumErrorFactT ft)) $ \wt ->
    forAll (genPsvConstants wt) $ \psvConstants ->
@@ -99,26 +96,24 @@ prop_success_psv_corpus
  = testAllCorpus dup genPsvConstants $ \wt psv ->
      testForSuccess dup wt psv
 
-zprop_success_psv
- | dup <- DoNotAllowDupTime
- = forAll arbitrary $ \inputType ->
+prop_success_psv
+ | dup <- AllowDupTime
+ = forAll genSumErrorFactType $ \inputType ->
    forAll (genWT1 dup inputType) $ \wt ->
    forAll (genPsvConstants wt) $ \psv ->
      testForSuccess dup wt psv
 
-zprop_failure_entity_out_of_order
+prop_failure_entity_out_of_order
  | dup <- DoNotAllowDupTime
- = forAll arbitrary $ \inputType ->
-   forAll (validated 100 $ tryGenAttributeWithInput inputType) $ \wta ->
-   forAll (validated 100 $ tryGenWellTypedForSingleAttribute dup wta) $ \wt ->
-   List.length (wtFacts wt) > 1 ==>
+ = forAll genSumErrorFactType $ \inputType ->
+   forAll (genWTA1 inputType) $ \wta ->
+   forAll (genWellTypedForSingleAttribute dup wta) $ \wt ->
+   List.length (List.nub (fmap eavtEntity (wtFacts wt))) > 1 ==>
    forAll (genPsvConstants wt) $ \psv ->
      testIO $ do
        let
-         replaceEntity i wtv =
-           wtv { eavtEntity = Entity ("entity_" <> T.pack (show i)) }
          wtOutOfOrderEntities =
-           wt { wtFacts = List.reverse . List.zipWith replaceEntity [(0::Int)..] . wtFacts $ wt }
+           wt { wtFacts = List.reverse . List.sortBy (comparing eavtEntity) . wtFacts $ wt }
        result <-
          runEitherT .
          runTest wtOutOfOrderEntities psv .
@@ -126,28 +121,29 @@ zprop_failure_entity_out_of_order
            dup
        expectPsvError wtOutOfOrderEntities result
 
-zprop_failure_time_out_of_order
- | dup <- DoNotAllowDupTime
- = forAll arbitrary $ \inputType ->
-   forAll (validated 100 $ tryGenAttributeWithInput inputType) $ \wta ->
-   forAll (validated 100 $ tryGenWellTypedForSingleAttribute dup wta) $ \wt ->
+prop_failure_time_out_of_order
+ = forAll genSumErrorFactType $ \inputType ->
+   forAll (genWTA1 inputType) $ \wta ->
+   forAll (genWellTypedForSingleAttribute DoNotAllowDupTime wta) $ \wt ->
    List.length (wtFacts wt) > 1 ==>
+   List.all (>1)
+     (fmap (List.length . List.nubBy ((==) `on` (atTime . eavtValue))) .
+      List.groupBy ((==) `on` eavtEntity) . wtFacts $ wt) ==>
    forAll (genPsvConstants wt) $ \psv ->
      testIO $ do
        let
          wtOutOfOrderTimes =
-           wt { wtFacts = List.reverse . wtFacts $ wt }
+           wt { wtFacts = List.reverse . List.sortBy (comparing (atTime . eavtValue)). wtFacts $ wt }
        result <-
          runEitherT .
          runTest wtOutOfOrderTimes psv .
-         optExpectFailure $
-           dup
+         optExpectFailure $ DoNotAllowDupTime
        expectPsvError wtOutOfOrderTimes result
 
-zprop_dup_time
- = forAll arbitrary $ \inputType ->
-   forAll (validated 100 $ tryGenAttributeWithInput inputType) $ \wta ->
-   forAll (validated 100 $ tryGenWellTypedForSingleAttribute AllowDupTime wta) $ \wt ->
+prop_dup_time
+ = forAll genSumErrorFactType $ \inputType ->
+   forAll (genWTA1 inputType) $ \wta ->
+   forAll (genWellTypedForSingleAttribute AllowDupTime wta) $ \wt ->
    List.length (wtFacts wt) > 1 ==>
     forAll (genPsvConstants wt) $ \psv ->
       monadicIO $ do
@@ -204,8 +200,13 @@ data Expect = ExpectSuccess | ExpectFailure
 data TestOpts = TestOpts Expect PsvInputFormat InputAllowDupTime
   deriving (Eq, Show)
 
-compileTest :: WellTyped -> TestOpts -> EitherT SeaError  IO (SeaFleet PsvState)
-compileTest wt (TestOpts _ inputFormat allowDupTime) = do
+--
+-- FIXME
+-- We wouldn't need WellTypedEval to compile the test if the snapshot time
+-- wasn't rolled into the C code.
+--
+compileTest :: WellTypedEval -> WellTyped -> TestOpts -> EitherT SeaError  IO (SeaFleet PsvState)
+compileTest wte wt (TestOpts _ inputFormat allowDupTime) = do
   defaultOptions <- getCompilerOptions
 
   let
@@ -220,7 +221,7 @@ compileTest wt (TestOpts _ inputFormat allowDupTime) = do
       ] <> defaultOptions
 
     time =
-      evalSnapshotTime (wtEvalContext wt)
+      evalSnapshotTime . wtEvalContext $ wte
 
     missingValuesFor wta =
       (clusterInputId . wtCluster $ wta, Set.singleton tombstone)
@@ -232,6 +233,7 @@ compileTest wt (TestOpts _ inputFormat allowDupTime) = do
               (PsvInputConfig
                  (Snapshot time)
                  inputFormat
+              )
               (PsvOutputConfig
                  (Snapshot time)
                  PsvOutputSparse
@@ -260,7 +262,7 @@ compileTest wt (TestOpts _ inputFormat allowDupTime) = do
     cache =
       NoCacheSea
 
-  code <- hoistEither $ codeOfPrograms "Icicle.Test.Sea.Psv.compileTest"  hasInput (fmap fst programs) programs
+  code <- hoistEither $ codeOfPrograms "Icicle.Test.Sea.Psv.compileTest" hasInput (fmap fst programs) programs
 
   -- This test only uses snapshot so we can do this.
   let
@@ -284,14 +286,17 @@ wtEntities =
 
 runTest :: WellTyped -> PsvConstants -> TestOpts -> EitherT SeaError IO ()
 runTest wt consts testOpts@(TestOpts yourParents _ _) = do
-  let compile =
-        compileTest wt testOpts
-      release =
-        seaRelease
-      expectValues =
-        evalWellTyped wt (psvFactsLimit consts)
-      expectText =
-       textOfOutputs expectValues
+  let
+    evalCtx =
+      wellTypedEvalContext (psvFactsLimit consts) (psvMaxMapSize consts)
+    compile =
+        compileTest evalCtx wt testOpts
+    release =
+      seaRelease
+    expectValues =
+      evalWellTyped (wellTypedEvalContext (psvFactsLimit consts) (psvMaxMapSize consts)) wt
+    expectText =
+     textOfOutputs expectValues
 
   bracketEitherT' compile (hoist liftIO . release) $ \fleet -> hoist liftIO $ do
 
@@ -360,10 +365,9 @@ runTest wt consts testOpts@(TestOpts yourParents _ _) = do
             , "----------------------------------------"
             , "Dropped: "
             , indent 2 . beautiful $ dropPsv
-            , "----------------------------------------"
+            -- , "----------------------------------------"
             -- , "Sea:"
             -- , indent 2 . beautiful . LT.fromStrict $ source
-            -- , "----------------------------------------"
             ]
         pure ()
 

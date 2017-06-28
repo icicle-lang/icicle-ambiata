@@ -44,21 +44,22 @@ import           Disorder.Core.IO
 
 
 prop_languages_eval =
-  forAll arbitrary $ \inputType ->
-  forAll (validated 100 $ tryGenAttributeWithInput inputType) $ \wtc ->
+  forAll genSumErrorFactType $ \inputType ->
+  forAll (validated 10 $ tryGenAttributeWithInput inputType) $ \wtc ->
   forAll (gEvalWellTyped wtc) $ \ewt ->
+  forAll genWellTypedEvalContext $ \wte ->
   testIO $ do
-  let wt      = welltyped ewt
-      ctx     = wtEvalContext wt
-      facts   = wtEvalFacts ewt
-      q       = wtEvalDummyQuery ewt
-      coreRes = P.coreEval ctx facts q
-              $ C.renameProgram sourceNameFromTestName
-              $ wtCore wtc
-      flatRes = P.avalancheEval ctx facts q
-              $ A.renameProgram sourceNameFromTestName
-              $ A.eraseAnnotP
-              $ wtAvalancheFlat wtc
+  let
+    ctx     = wtEvalContext wte
+    facts   = wtEvalFacts ewt
+    q       = wtEvalDummyQuery ewt
+    coreRes = P.coreEval ctx facts q
+            $ C.renameProgram sourceNameFromTestName
+            $ wtCore wtc
+    flatRes = P.avalancheEval ctx facts q
+            $ A.renameProgram sourceNameFromTestName
+            $ A.eraseAnnotP
+            $ wtAvalancheFlat wtc
   seaRes     <- runEitherT
               $ P.seaEval ctx facts q
               $ A.renameProgram sourceNameFromTestName
@@ -98,7 +99,7 @@ data EvalWellTyped = EvalWellTyped
 
 gEvalWellTyped :: WellTypedCluster -> Gen EvalWellTyped
 gEvalWellTyped wta = do
-  wt <- validated 10 $ tryGenWellTypedForSingleAttribute AllowDupTime wta
+  wt <- genWellTypedForSingleAttribute AllowDupTime wta
   return $ EvalWellTyped wt (mkFacts wt) (dummySourceOf wta)
 
 mkFacts :: WellTyped -> [D.AsAt D.Fact]

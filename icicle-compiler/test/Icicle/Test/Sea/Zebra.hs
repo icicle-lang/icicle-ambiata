@@ -39,7 +39,7 @@ import qualified X.Data.Vector.Cons as Cons
 
 import           Disorder.Core.IO (testIO)
 import           Disorder.Jack (Property, Jack)
-import           Disorder.Jack (gamble, arbitrary, (===), vectorOf, counterexample)
+import           Disorder.Jack (gamble, (===), vectorOf, counterexample)
 
 import           Jetski
 
@@ -48,7 +48,7 @@ import qualified Anemone.Foreign.Mempool as Mempool
 import           Anemone.Foreign.Segv (withSegv)
 
 import qualified Test.Zebra.Jack as Zebra
-import           Test.QuickCheck (forAll, Gen)
+import           Test.QuickCheck (forAll)
 
 import qualified Zebra.Foreign.Entity as Zebra
 import qualified Zebra.Factset.Data as Zebra
@@ -78,9 +78,10 @@ import qualified Icicle.Test.Foreign.Utils as Test
 --
 prop_read_entity :: Property
 prop_read_entity =
-  gamble arbitrary $ \sumErrorFactTy ->
-  forAll (gWellTyped sumErrorFactTy) $ \wt ->
-  gamble (jZebraWellTyped wt) $ \zwt ->
+  forAll genSumErrorFactType $ \sumErrorFactTy ->
+  forAll (validated tryCountInputType (tryGenWellTypedWithInput AllowDupTime sumErrorFactTy)) $ \wt ->
+  forAll (genWellTypedEvalContext) $ \wte ->
+  gamble (jZebraWellTyped wte wt) $ \zwt ->
   testIO . bracket Mempool.create Mempool.free $ \pool -> Test.runRight $ do
     let
       expected =
@@ -106,7 +107,7 @@ runTest ::
      Mempool
   -> ZebraWellTyped
   -> EitherT SeaError IO Result
-runTest pool zwt@(ZebraWellTyped wt entities) =
+runTest pool zwt@(ZebraWellTyped wt entities evalContext) =
  join . liftIO . fmap hoistEither . withSegv (pp zwt) $
    runEitherT . fmap (Result . Map.fromList) . forM (Map.toList entities) $ \(entity, attributes) -> do
      let
@@ -119,7 +120,7 @@ runTest pool zwt@(ZebraWellTyped wt entities) =
        (liftIO . free . fst) $ \(id_bytes, id_length) ->
        fmap (entity_text,) $ do
          c_entity <- Zebra.foreignOfEntity pool entity
-         code <- hoistEither $ codeOf wt
+         code <- hoistEither $ codeOf evalContext wt
          opts <- getCompilerOptions
          let
            opts' =
@@ -167,22 +168,22 @@ runTest pool zwt@(ZebraWellTyped wt entities) =
                         err <- liftIO $ peekCString (castPtr e2)
                         fail $ "failed to read entity: " <> err
 
-                      List.concat <$> saveInputs (fmap fst attributes) fleet_ptr
+                      -- We read the whole entity in Zebra, no dropping shenanigans.
+                      List.concat <$> saveInputs attributes fleet_ptr
                    )
 
-saveInputs :: [WellTypedCluster] -> Ptr a -> EitherT SeaError IO [[BaseValue]]
+saveInputs :: [(WellTypedCluster, [BaseValue])] -> Ptr a -> EitherT SeaError IO [[BaseValue]]
 saveInputs clusters fleet_ptr =
   fmap (fmap snd) $
-  forM (List.zip [0..] clusters) $ \(index, cluster) -> do
+  forM (List.zip [0..] clusters) $ \(index, (cluster, expect_vals)) -> do
     let
       ty =
-        clusterInputType . wtCluster $ cluster
+        wtFactType cluster
       struct_count =
         inputFieldsCount . wtCluster $ cluster
     bracketEitherT' (liftIO $ mallocBytes (struct_count * 8)) (liftIO . free) $ \buf -> do
       program_ptr <- peekWordOff fleet_ptr (fleetProgramOf index)
       tombstones_ptr <- peekWordOff program_ptr programInputError
-      fact_count <- peekWordOff program_ptr programInputNewCount
       let
         input_start
           = programInputStart
@@ -204,11 +205,10 @@ saveInputs clusters fleet_ptr =
                 ptr_dst = plusPtr dst      (field_index * 8)
             copyBytes ptr_dst ptr_src 8
 
-        peekInputs xs fact_index
+        peekInputs xs fact_index fact_count
           | fact_index == fact_count = return xs
           | otherwise = do
               tombstone_value <- liftIO $ peekWordOff tombstones_ptr fact_index
-
               x <- case errorOfWord tombstone_value of
                  ExceptNotAnError -> do
                    liftIO $ slice buf fact_index
@@ -216,9 +216,9 @@ saveInputs clusters fleet_ptr =
                  e ->
                    pure (VLeft (VError e))
 
-              peekInputs (xs <> [x]) (fact_index + 1)
+              peekInputs (xs <> [x]) (fact_index + 1) fact_count
 
-      (cluster,) <$> peekInputs [] 0
+      (cluster,) <$> peekInputs [] 0 (length expect_vals)
 
 --------------------------------------------------------------------------------
 
@@ -233,6 +233,7 @@ data ZebraWellTyped = ZebraWellTyped {
     zWellTyped :: WellTyped
   , zFacts     :: Map Zebra.Entity [(WellTypedCluster, [BaseValue])]
   -- ^ facts grouped by entity attribute, for checking against values translated from zebra.
+  , zWellTypedEval :: WellTypedEval
   }
 
 instance Show ZebraWellTyped where
@@ -247,12 +248,8 @@ instance PP.Pretty ZebraWellTyped where
       , PP.indent 2 . PP.vsep . fmap PP.pretty . List.concat . List.concat . fmap (fmap snd) . Map.elems . zFacts $ z
       ]
 
-gWellTyped :: SumErrorFactT -> Gen WellTyped
-gWellTyped =
-  validated 10 . tryGenWellTypedWithInput AllowDupTime
-
-jZebraWellTyped :: WellTyped -> Jack ZebraWellTyped
-jZebraWellTyped welltyped = do
+jZebraWellTyped :: WellTypedEval -> WellTyped -> Jack ZebraWellTyped
+jZebraWellTyped evalContext welltyped = do
   let
     -- FIXME ignoring fact times for now, but to test it we should convert icicle time to 1600 epoch secs here
     ignoreTime eavt =
@@ -295,7 +292,7 @@ jZebraWellTyped welltyped = do
           Zebra.Entity (Zebra.hashEntityId e) e . Boxed.fromList $ zAttributes
       return (zEntity, groupedByAttribute)
 
-  return . ZebraWellTyped wt . Map.fromList $ xs
+  return $ ZebraWellTyped wt (Map.fromList xs) evalContext
 
 schemaOfType :: ValType -> Schema.Column
 schemaOfType ty = case ty of
@@ -329,12 +326,12 @@ schemaOfType ty = case ty of
   BufT _ t ->
     Schema.Nested . Schema.Array Schema.DenyDefault $ schemaOfType t
 
-  PairT a b -> do
+  PairT a b ->
     let
       a' = schemaOfType a
       b' = schemaOfType b
     in
-      Schema.Struct $ Cons.from2
+      Schema.Struct Schema.DenyDefault $ Cons.from2
         (Schema.Field (Schema.FieldName "fst") a')
         (Schema.Field (Schema.FieldName "snd") b')
 
@@ -354,7 +351,7 @@ schemaOfType ty = case ty of
     in
       Schema.Enum Schema.DenyDefault $ Cons.from2 a' b'
 
-  MapT k v -> do
+  MapT k v ->
     let
       k' =
         schemaOfType k
@@ -489,16 +486,15 @@ zebraOfFacts t facts = do
 testAllocLimitBytes :: Int
 testAllocLimitBytes = 10 * 1024 * 1024 * 1024
 
-testSnapshotTime :: Time
-testSnapshotTime = Icicle.unsafeTimeOfYMD 9999 1 1
-
-codeOf :: WellTyped -> Either SeaError SourceCode
-codeOf wt = do
+codeOf :: WellTypedEval -> WellTyped -> Either SeaError SourceCode
+codeOf wte wt = do
   let
+    testSnapshotTime =
+      evalSnapshotTime . wtEvalContext $ wte
     dummy =
       HasInput
         (FormatZebra
-          (ZebraConfig (evalMaxMapSize (wtEvalContext wt)))
+          (ZebraConfig (evalMaxMapSize (wtEvalContext wte)))
           (Snapshot testSnapshotTime)
           (PsvOutputConfig (Snapshot testSnapshotTime) PsvOutputDense defaultOutputMissing))
         (InputOpts AllowDupTime Map.empty)

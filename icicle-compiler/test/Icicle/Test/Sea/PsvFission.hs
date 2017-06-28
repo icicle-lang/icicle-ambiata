@@ -50,7 +50,7 @@ import qualified Prelude as Savage
 
 import           System.IO
 
-import           Test.QuickCheck (Arbitrary(..), forAll)
+import           Test.QuickCheck (forAll)
 import           Test.QuickCheck (property, discard)
 import           Test.QuickCheck.Property (succeeded)
 
@@ -59,9 +59,9 @@ import           X.Control.Monad.Trans.Either (bracketEitherT', left)
 
 
 prop_psv_fission =
-  forAll arbitrary $ \inputType ->
-  forAll (validated 100 . tryGenAttributeWithInput $ inputType) $ \wta1 ->
-  forAll (validated 100 . tryGenAttributeWithInput $ inputType) $ \wta2 -> do
+  forAll genSumErrorFactType $ \inputType ->
+  forAll (validated tryCountInputType $ tryGenAttributeWithInput inputType) $ \wta1 ->
+  forAll (validated tryCountInputType $ tryGenAttributeWithInput inputType) $ \wta2 -> do
     let
       retOf =
         fmap (outputName . fst) . C.returns . wtCore
@@ -75,8 +75,7 @@ prop_psv_fission =
      True ->
        discard
      False ->
-       forAll (genFactsForAttributes timeOpt [wta1, wta2]) $ \(vals, chordTime) ->
-       forAll (genMaxMapSize (length vals)) $ \maxMapSize ->
+       forAll (genEAVTs timeOpt [wta1, wta2]) $ \vals ->
          let
            -- sort the facts by time because we are going to run them with
            -- different attributes separately, but they are only guaranteed
@@ -91,14 +90,12 @@ prop_psv_fission =
                   w { eavtInputName = inputName . clusterInputId . wtCluster $ wta2 }
              in
                sortByEAT $ fmap forAttribute1 vals <> fmap forAttribute2 vals
-           evalContext =
-             EvalContext chordTime maxMapSize
            dummyWt =
-             WellTyped evalContext wtvs [wta1]
+             WellTyped wtvs [wta1]
          in
            forAll (genPsvConstants dummyWt) $ \psvOpts -> testIO $ do
              x <- runEitherT
-                $ runTwoAsOne evalContext psvOpts wta1 wta2 wtvs
+                $ runTwoAsOne psvOpts wta1 wta2 wtvs
                 $ TestOpts ExpectSuccess Sea.PsvInputSparse timeOpt
              case x of
                Left err ->
@@ -111,15 +108,23 @@ prop_psv_fission =
 timeOpt = Sea.AllowDupTime
 
 runTwoAsOne ::
-     EvalContext
-  -> Sea.PsvConstants
+     Sea.PsvConstants
   -> WellTypedCluster
   -> WellTypedCluster
   -> [WellTypedValue]
   -> TestOpts
   -> EitherT SeaError IO ()
-runTwoAsOne evalContext psvConstants wta1 wta2 wtvs testOpts = do
+runTwoAsOne constants wta1 wta2 wtvs testOpts = do
   let
+    -- if dropping occurs, we cannot use the same facts limit for the combined program
+    -- and we cannot just double the facts limit (the entities dropped will still be
+    -- different) so we just ignore dropping in this test.
+    factsLimit =
+      1000000000
+    psvConstants =
+      constants { Sea.psvFactsLimit = factsLimit }
+    evalContext =
+      wellTypedEvalContext factsLimit (Sea.psvMaxMapSize psvConstants)
     compile =
       compileTwoAsOne
         testOpts
@@ -134,12 +139,10 @@ runTwoAsOne evalContext psvConstants wta1 wta2 wtvs testOpts = do
 
   -- Same input, different attributes (of the same type).
   let
-    limit =
-      Sea.psvFactsLimit psvConstants
     expect1 =
-      evalWellTyped (WellTyped evalContext wtvs [wta1]) limit
+      evalWellTyped evalContext . WellTyped wtvs $ [wta1]
     expect2 =
-      evalWellTyped (WellTyped evalContext wtvs [wta2]) limit
+      evalWellTyped evalContext . WellTyped wtvs $ [wta2]
     expect =
       fmap (List.sortBy (comparing fst)) $
       Map.unionWith (<>) expect1 expect2
@@ -188,25 +191,32 @@ runTwoAsOne evalContext psvConstants wta1 wta2 wtvs testOpts = do
             when (outputPsv /= expectPsv) $ do
               Savage.error . show . vsep $
                 [ "*** You are a disappointment! ***"
-                , "Running PSV Snapshot OK: " <> pretty (show ne) <> " entities, " <> pretty (show nf) <> " facts."
-                , "Expected from combined :"
+                , "Running PSV Snapshot OK: " <> pretty (show ne) <> " entities, " <> pretty (show nf) <> " facts"
+                , "PSV facts limit = " <> pretty (Sea.psvFactsLimit psvConstants)
+                , "----------------------------------------"
+                , "Expected combined PSV:"
                 , indent 2 . beautiful $ expectPsv
+                , "----------------------------------------"
+                , "Expect from evaluating WellTyped 1:"
+                , indent 2 . text . show . Map.toList $ expect1
+                , "----------------------------------------"
+                , "Expect from evaluating WellTyped 2:"
+                , indent 2 . text . show . Map.toList $ expect2
+                , "----------------------------------------"
                 , "Got PSV:"
                 , indent 2 . beautiful $ outputPsv
+                , "----------------------------------------"
                 , "Input: "
                 , indent 2 . beautiful $ inputPsv
+                , "----------------------------------------"
                 , "Dropped: "
                 , indent 2 . beautiful $ dropPsv
-                , "Expect from WellTyped 1:"
-                , indent 2 . text . show . Map.toList $ expect1
-                , "Expect from WellTyped 2:"
-                , indent 2 . text . show . Map.toList $ expect2
-                , "---"
+                , "----------------------------------------"
                 ]
 
 compileTwoAsOne ::
      TestOpts
-  -> EvalContext
+  -> WellTypedEval
   -> InputId
   -> Flat.Program (Annot ()) Var Flat.Prim
   -> Flat.Program (Annot ()) Var Flat.Prim
@@ -226,7 +236,7 @@ compileTwoAsOne (TestOpts _ inputFormat allowDupTime) evalContext theAttribute p
        (theAttribute, program1 :| [program2])
 
      theTime =
-       evalSnapshotTime evalContext
+       evalSnapshotTime . wtEvalContext $ evalContext
 
      theInput =
        HasInput
@@ -261,7 +271,7 @@ compileTwoAsOne (TestOpts _ inputFormat allowDupTime) evalContext theAttribute p
        , "}"
        ]
 
-   code <- hoistEither $ Sea.codeOfPrograms theInput [theAttribute] [theProgram]
+   code <- hoistEither $ Sea.codeOfPrograms "Icicle.Test.Sea.PsvFission.compileTwoAsOne" theInput [theAttribute] [theProgram]
    Sea.seaCreateFleet options (Sea.fromCacheSea Sea.NoCacheSea) theInput Nothing (code <> piano)
 
 

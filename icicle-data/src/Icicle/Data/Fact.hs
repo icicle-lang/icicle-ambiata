@@ -77,7 +77,7 @@ instance Pretty Value where
     IntValue     i  -> int i
     DoubleValue  d  -> double d
     BooleanValue b  -> pretty b
-    TimeValue    d  -> pretty . renderTime TimeSerialisationInput $ d
+    TimeValue    d  -> pretty $ renderTime d
     StructValue  s  -> pretty s
     ListValue    l  -> pretty l
     PairValue v1 v2 -> encloseSep lparen rparen comma
