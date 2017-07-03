@@ -369,13 +369,13 @@ handleLine state line = let st = sourceState state in
                Right r -> prettyOut (const True) "- C:" r
 
            when (hasSeaAssembly state) $ do
-             result <- liftIO . runEitherT $ Sea.assemblyOfPrograms Sea.NoInput [iid] [(iid, flatList)]
+             result <- liftIO . runEitherT $ Sea.assemblyOfPrograms "icicle-repl" Sea.NoInput [iid] [(iid, flatList)]
              case result of
                Left  e -> prettyOut (const True) "- C assembly error:" e
                Right r -> prettyOut (const True) "- C assembly:" r
 
            when (hasSeaLLVMIR state) $ do
-             result <- liftIO . runEitherT $ Sea.irOfPrograms Sea.NoInput [iid] [(iid, flatList)]
+             result <- liftIO . runEitherT $ Sea.irOfPrograms "icicle-repl" Sea.NoInput [iid] [(iid, flatList)]
              case result of
                Left  e -> prettyOut (const True) "- C LLVM IR error:" e
                Right r -> prettyOut (const True) "- C LLVM IR:" r

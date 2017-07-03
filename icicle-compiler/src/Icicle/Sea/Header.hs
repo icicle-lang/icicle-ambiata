@@ -1,5 +1,6 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -49,6 +50,7 @@ import           Data.Aeson ((.=))
 import qualified Data.Aeson as Aeson
 import qualified Data.Aeson.Types as Aeson
 import qualified Data.List as List
+import           Data.String (IsString)
 import qualified Data.Text as Text
 
 import           Icicle.Avalanche.Prim.Flat (meltType)
@@ -73,7 +75,7 @@ data Header =
 newtype Fingerprint =
   Fingerprint {
       unFingerprint :: Text
-    } deriving (Eq, Ord, Generic)
+    } deriving (Eq, Ord, IsString, Generic)
 
 instance Show Fingerprint where
   showsPrec =

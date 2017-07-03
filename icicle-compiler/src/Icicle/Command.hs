@@ -183,14 +183,14 @@ modeOfScope = \case
   ScopeChord _ ->
     Chords
 
-createPsvQuery :: QueryOptions -> EitherT IcicleError IO (Query PsvState)
+createPsvQuery :: Fingerprint -> QueryOptions -> EitherT IcicleError IO (Query PsvState)
 createPsvQuery = createQuery
 
-createZebraQuery :: QueryOptions -> EitherT IcicleError IO (Query ZebraState)
+createZebraQuery :: Fingerprint -> QueryOptions -> EitherT IcicleError IO (Query ZebraState)
 createZebraQuery = createQuery
 
-createQuery :: QueryOptions -> EitherT IcicleError IO (Query a)
-createQuery c = do
+createQuery :: Fingerprint -> QueryOptions -> EitherT IcicleError IO (Query a)
+createQuery fingerprint c = do
   let dropPath = fromMaybe (outputPath (optOutput c) <> ".dropped") (optDrop c)
   let schemaPath = fromMaybe (outputPath (optOutput c) <> ".schema.json") (outputSchema (optOutput c))
   let chordPath = chordPathOfScope $ optScope c
@@ -217,7 +217,7 @@ createQuery c = do
           (outputFormat $ optOutput c)
           (optScope c)
 
-      compileFleet dictionary format (inputPath $ optInput c) chordPath
+      compileFleet fingerprint dictionary format (inputPath $ optInput c) chordPath
 
   end <- liftIO getCurrentTime
 
@@ -263,12 +263,13 @@ mkQueryFleet input chord source = do
   return (code, fleet)
 
 compileFleet ::
-     Dictionary
+     Fingerprint
+  -> Dictionary
   -> IOFormat
   -> FilePath
   -> Maybe FilePath
   -> EitherT IcicleError IO (Text, SeaFleet s)
-compileFleet dictionary format input chords = do
+compileFleet fingerprint dictionary format input chords = do
   let cfg = HasInput format (InputOpts AllowDupTime (tombstonesOfDictionary dictionary)) input
 
   avalanche <- hoistEither $ compileAvalanche dictionary defaultCompilerFlags
@@ -276,8 +277,8 @@ compileFleet dictionary format input chords = do
 
   let inputs = Map.keys $ dictionaryInputs dictionary
 
-  code  <- firstEitherT IcicleSeaError (hoistEither (codeOfPrograms cfg inputs avalancheL))
-  fleet <- firstEitherT IcicleSeaError (seaCompile CacheSea cfg inputs avalanche chords)
+  code  <- firstEitherT IcicleSeaError (hoistEither (codeOfPrograms fingerprint cfg inputs avalancheL))
+  fleet <- firstEitherT IcicleSeaError (seaCompile fingerprint CacheSea cfg inputs avalanche chords)
 
   return (code, fleet)
 
@@ -329,13 +330,14 @@ loadDictionary path iformat oformat0 scope =
         return (d, f)
 
 compileDictionary ::
-     FilePath
+     Fingerprint
+  -> FilePath
   -> InputFormat
   -> OutputFormat
   -> Scope a
   -> CompilerFlags
   -> EitherT IcicleError IO Text
-compileDictionary dictionaryPath iformat oformat scope cflags = do
+compileDictionary fingerprint dictionaryPath iformat oformat scope cflags = do
   -- FIXME We really need to include InputFormat/OutputFormat/Scope in the compiled
   -- FIXME code so that we don't accidentally run with the wrong options.
   (dictionary, format) <- loadDictionary dictionaryPath iformat oformat scope
@@ -345,7 +347,7 @@ compileDictionary dictionaryPath iformat oformat scope cflags = do
 
   let inputs = Map.keys $ dictionaryInputs dictionary
 
-  firstT IcicleSeaError . hoistEither $ codeOfPrograms cfg inputs avalanche
+  firstT IcicleSeaError . hoistEither $ codeOfPrograms fingerprint cfg inputs avalanche
 
 compileAvalanche ::
      Dictionary

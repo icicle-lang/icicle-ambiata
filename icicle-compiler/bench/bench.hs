@@ -141,7 +141,7 @@ createBenchmark (name, path) = do
       output  = path </> "out.psv"
       c       = path </> "bench.c"
       time    = fromMaybe (Savage.error "createBenchmark: failed parsing date") $ timeOfText "2015-10-01"
-  b <- createPsvQuery $ QueryOptions
+  b <- createPsvQuery "icicle-bench" $ QueryOptions
     (DictionaryToml dict)
     (InputFile InputSparsePsv input)
     (OutputFile OutputSparsePsv output Nothing)
