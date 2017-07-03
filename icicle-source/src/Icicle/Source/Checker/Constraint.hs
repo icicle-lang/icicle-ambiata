@@ -162,7 +162,7 @@ constraintsQ env q
 
   -- Perform top-level discharge of any silly leftover Possibility or Temporality joins
   top = do
-   (q',sub,cons) <- generateQ q env
+   (q',_,cons) <- generateQ q env
    case dischargeCS' dischargeC'toplevel cons of
     Left errs
      -> genHoistEither

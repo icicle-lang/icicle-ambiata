@@ -4,6 +4,7 @@
 -- So we must generate a fresh name for any forall binders.
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PatternGuards #-}
 module Icicle.Source.Query.Prim (
     primLookup'
   , primReturnsPossibly
