@@ -615,19 +615,17 @@ generateX x env
            returnPoss' <- TypeVar <$> fresh
            let consPs  =  require a (CPossibilityJoin returnPoss' scrutPs returnPoss)
 
-           (patsubs, consA) <- generateP a scrutT returnType returnTemp returnPoss pats (substE sub env)
-           let (pats', subs) = unzip patsubs
+           (pats', subs, consA) <- generateP a scrutT returnType returnTemp returnPoss pats (substE sub env)
 
            let t'    = canonT
                      $ Temporality returnTemp'
                      $ Possibility returnPoss' returnType
-           let subst = foldl' compose sub subs
            let cons' = concat [consS, consTj, consPs, consA]
 
            let x' = annotate cons' t'
                   $ \a' -> Case a' scrut' pats'
 
-           return (x', subst, cons')
+           return (x', subs, cons')
   where
   annotate cs t' f
    = let a' = Annot (annotOfExp x) t' cs
@@ -643,12 +641,12 @@ generateP
   -> Type n                 -- ^ result possibility
   -> [(Pattern n, Exp a n)] -- ^ pattern and alternative
   -> GenEnv n
-  -> Gen a n ([((Pattern n, Exp'C a n), SubstT n)], GenConstraintSet a n)
+  -> Gen a n ([(Pattern n, Exp'C a n)], SubstT n, GenConstraintSet a n)
 
 generateP ann _ _ resTm resPs [] _
  = do   let consT = require ann (CEquals resTm TemporalityPure)
         let consP = require ann (CEquals resPs PossibilityDefinitely)
-        return ([], concat [consT, consP])
+        return ([], Map.empty, concat [consT, consP])
 
 generateP ann scrutTy resTy resTm resPs ((pat, alt):rest) env
  = do   (t, envp) <- goPat pat env
@@ -674,11 +672,12 @@ generateP ann scrutTy resTy resTm resPs ((pat, alt):rest) env
                   , require (annotOfExp alt) (CPossibilityJoin resPs resPs' altPs)
                   ]
 
-        (rest', consr) <- generateP ann scrutTy resTy resTp' resPs' rest (substE sub env)
-        let cons' = concat [conss, consa, consT, consr]
-        let patsubs     = ((pat, alt'), sub) : rest'
-
-        return (patsubs, cons')
+        (rest', subs, consr) <- generateP ann scrutTy resTy resTp' resPs' rest (substE sub env)
+        let cons'       = concat [conss, consa, consT, consr]
+        let alt''       = substTX subs alt'
+        let subs'       = compose sub subs
+        let patalts     = (pat, alt'') : rest'
+        return (patalts, subs', cons')
 
  where
   requireData t1 t2
