@@ -223,13 +223,18 @@ tryRead err f g =
 
 ------------------------------------------------------------------------
 
+icicleFingerprint :: Fingerprint
+icicleFingerprint =
+  Fingerprint $
+    "icicle-" <> T.pack buildInfoVersion
+
 runCommand :: IcicleCommand -> EitherT IcicleError IO ()
 runCommand = \case
   IcicleCompile tomlPath opath iformat oformat scope cflags -> do
     start <- liftIO getCurrentTime
     liftIO $ putStrLn "icicle: starting compilation"
 
-    code <- compileDictionary tomlPath iformat oformat scope cflags
+    code <- compileDictionary icicleFingerprint tomlPath iformat oformat scope cflags
     writeUtf8 opath code
 
     end <- liftIO getCurrentTime
@@ -243,17 +248,17 @@ runCommand = \case
     case inputFormat $ optInput q of
       InputSparsePsv
         -> bracketEitherT'
-             (createPsvQuery q)
+             (createPsvQuery icicleFingerprint q)
              (hoist liftIO . releaseQuery)
              (hoist liftIO . runQuery runPsvQuery (optOutputCode q))
       InputDensePsv
         -> bracketEitherT'
-             (createPsvQuery q)
+             (createPsvQuery icicleFingerprint q)
              (hoist liftIO . releaseQuery)
              (hoist liftIO . runQuery runPsvQuery (optOutputCode q))
       InputZebra
         -> bracketEitherT'
-             (createZebraQuery q)
+             (createZebraQuery icicleFingerprint q)
              (hoist liftIO . releaseQuery)
              (hoist liftIO . runQuery runZebraQuery (optOutputCode q))
 

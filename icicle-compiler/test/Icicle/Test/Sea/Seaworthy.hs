@@ -48,7 +48,7 @@ prop_seaworthy wt
         $  failed
  where
   go a p
-   = bracketEitherT' (S.seaCompile S.NoCacheSea S.NoInput a p Nothing) S.seaRelease (const $ return ())
+   = bracketEitherT' (S.seaCompile "Icicle.Test.Sea.Seaworthy.prop_seaworthy" S.NoCacheSea S.NoInput a p Nothing) S.seaRelease (const $ return ())
 
 
 return []

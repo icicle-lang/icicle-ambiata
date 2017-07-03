@@ -273,7 +273,7 @@ compileTest wt (TestOpts _ _ inputFormat allowDupTime) = do
   let cache = S.NoCacheSea
       input = HasInput iformat iopts "dummy_path"
       chords = Nothing
-  code <- hoistEither (S.codeOfPrograms input attrs (Map.toList programs))
+  code <- hoistEither (S.codeOfPrograms "Icicle.Test.Sea.Psv.compileTest" input attrs (Map.toList programs))
 
   -- This test only uses snapshot so we can do this.
   let savage = textOfDoc . vsep $

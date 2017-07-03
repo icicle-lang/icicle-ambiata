@@ -506,7 +506,7 @@ codeOf wt = do
     iid  = wtInputId wt
     flat = wtAvalancheFlat wt :| []
 
-  src <- codeOfPrograms dummy [iid] [(iid, flat)]
+  src <- codeOfPrograms "Icicle.Test.Sea.Zebra.codeOf" dummy [iid] [(iid, flat)]
 
   pure . textOfDoc . PP.vsep $
     [ PP.pretty src

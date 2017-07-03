@@ -119,7 +119,7 @@ main =
         HasInput format inputOptions ()
 
     code <- hoistEither . first MakeSeaError .
-      codeOfPrograms input inputs $ Map.toList avalanche
+      codeOfPrograms "icicle-make" input inputs $ Map.toList avalanche
 
     compilerOptions <- liftIO $ getCompilerOptions
 

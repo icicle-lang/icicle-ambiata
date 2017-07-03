@@ -11,6 +11,7 @@ module Icicle.Sea.Eval.Base (
   , SeaFleet(..)
   , SeaProgram(..)
   , SeaError(..)
+  , Fingerprint(..)
   , CacheSea(..)
   , Input(..)
   , InputAllowDupTime(..)
@@ -92,6 +93,7 @@ import           Icicle.Sea.Fleet
 import           Icicle.Sea.FromAvalanche.Program (seaOfPrograms)
 import           Icicle.Sea.FromAvalanche.State (clusterOfPrograms)
 import           Icicle.Sea.FromAvalanche.Type (seaOfDefinitions)
+import           Icicle.Sea.Header
 import           Icicle.Sea.IO
 import qualified Icicle.Sea.IO.Offset as Offset
 import           Icicle.Sea.Preamble (seaPreamble)
@@ -141,7 +143,7 @@ seaEvalAvalanche program ctx values = do
   let iid = [inputid|default:eval|]
       ps = Map.singleton iid (program :| [])
   bracketEitherT'
-    (seaCompile CacheSea NoInput [iid] ps Nothing)
+    (seaCompile "Icicle.sea.Eval.Base.seaEvalAvalanche" CacheSea NoInput [iid] ps Nothing)
     seaRelease
     (\fleet -> do
         programs <- mkSeaPrograms (sfLibrary fleet) ps
@@ -203,27 +205,29 @@ valueFromCore' v =
 
 seaCompile ::
      (Show a, Show n, Pretty n, Eq n)
-  => CacheSea
-  -> Input FilePath
-  -> [InputId]
-  -> Map InputId (NonEmpty (Program (Annot a) n Prim))
-  -> Maybe FilePath
-  -> EitherT SeaError IO (SeaFleet st)
-seaCompile cache input inputs programs chords = do
-  options <- liftIO getCompilerOptions
-  seaCompileFleet options cache input inputs programs chords
-
-seaCompileFleet ::
-     (Show a, Show n, Pretty n, Eq n)
-  => [CompilerOption]
+  => Fingerprint
   -> CacheSea
   -> Input FilePath
   -> [InputId]
   -> Map InputId (NonEmpty (Program (Annot a) n Prim))
   -> Maybe FilePath
   -> EitherT SeaError IO (SeaFleet st)
-seaCompileFleet options cache input inputs programs chords = do
-  code <- hoistEither (codeOfPrograms input inputs (Map.toList programs))
+seaCompile fingerprint cache input inputs programs chords = do
+  options <- liftIO getCompilerOptions
+  seaCompileFleet options fingerprint cache input inputs programs chords
+
+seaCompileFleet ::
+     (Show a, Show n, Pretty n, Eq n)
+  => [CompilerOption]
+  -> Fingerprint
+  -> CacheSea
+  -> Input FilePath
+  -> [InputId]
+  -> Map InputId (NonEmpty (Program (Annot a) n Prim))
+  -> Maybe FilePath
+  -> EitherT SeaError IO (SeaFleet st)
+seaCompileFleet options fingerprint cache input inputs programs chords = do
+  code <- hoistEither (codeOfPrograms fingerprint input inputs (Map.toList programs))
   seaCreateFleet options (fromCacheSea cache) input chords code
 
 seaCreate ::
@@ -271,69 +275,81 @@ defaultCompilerOptions = [
 
 assemblyOfPrograms
   :: (Show a, Show n, Pretty n, Eq n)
-  => Input x
+  => Fingerprint
+  -> Input x
   -> [InputId]
   -> [(InputId, NonEmpty (Program (Annot a) n Prim))]
   -> EitherT SeaError IO Text
-assemblyOfPrograms input inputs programs = do
-  code    <- hoistEither (codeOfPrograms input inputs programs)
+assemblyOfPrograms fingerprint input inputs programs = do
+  code    <- hoistEither (codeOfPrograms fingerprint input inputs programs)
   options <- getCompilerOptions
   firstEitherT SeaJetskiError (compileAssembly options code)
 
 irOfPrograms
   :: (Show a, Show n, Pretty n, Eq n)
-  => Input x
+  => Fingerprint
+  -> Input x
   -> [InputId]
   -> [(InputId, NonEmpty (Program (Annot a) n Prim))]
   -> EitherT SeaError IO Text
-irOfPrograms input inputs programs = do
-  code    <- hoistEither (codeOfPrograms input inputs programs)
+irOfPrograms fingerprint input inputs programs = do
+  code    <- hoistEither (codeOfPrograms fingerprint input inputs programs)
   options <- getCompilerOptions
   firstEitherT SeaJetskiError (compileIR options code)
 
 codeOfPrograms
   :: (Show a, Show n, Pretty n, Eq n)
-  => Input x
+  => Fingerprint
+  -> Input x
   -> [InputId]
   -> [(InputId, NonEmpty (Program (Annot a) n Prim))]
   -> Either SeaError Text
-codeOfPrograms input inputs programs = do
+codeOfPrograms fingerprint input inputs programs = do
   let defs = seaOfDefinitions (concatMap (NonEmpty.toList . snd) programs)
 
   progs <- zipWithM (\ix (a, p) -> seaOfPrograms ix a p) [0..] programs
   clusters <- zipWithM (\ix (a, p) -> clusterOfPrograms ix a p) [0..] programs
 
-  let defOfPsvInput conf
-        | inputPsvFormat conf == PsvInputSparse
-        = "#define ICICLE_PSV_INPUT_SPARSE 1"
-        | otherwise
-        = ""
+  let
+    header0 =
+      Header fingerprint clusters
 
-  let defOfPsvOutput conf
-        | outputPsvFormat conf == PsvOutputSparse
-        = "#define ICICLE_PSV_OUTPUT_SPARSE 1"
-        | otherwise
-        = ""
+    header =
+      renderHeader header0
 
-  case input of
-    NoInput -> do
-      pure . textOfDoc . vsep
-        $ [ "#define ICICLE_NO_INPUT 1"
-          , seaPreamble
-          , defs
-          ] <> progs
-    HasInput format opts _ -> do
-      doc <- seaOfDriver format opts inputs clusters
-      let def = case format of
-            FormatPsv conf -> vsep
-              [ defOfPsvInput (psvInputConfig conf)
-              , defOfPsvOutput (psvOutputConfig conf) ]
-            -- FIXME property separate what is needed from psv
-            FormatZebra _ _ _ -> vsep
-              [ "#define ICICLE_PSV_INPUT_SPARSE 1"
-              , "#define ICICLE_ZEBRA 1" ]
+    defOfPsvInput conf =
+      if inputPsvFormat conf == PsvInputSparse then
+        "#define ICICLE_PSV_INPUT_SPARSE 1"
+      else
+        ""
 
-      pure . textOfDoc . vsep $ [ def, seaPreamble, defs ] <> progs <> ["", doc]
+    defOfPsvOutput conf =
+      if outputPsvFormat conf == PsvOutputSparse then
+        "#define ICICLE_PSV_OUTPUT_SPARSE 1"
+      else
+        ""
+
+  fmap (header <>) $
+    case input of
+      NoInput -> do
+        pure . textOfDoc . vsep
+          $ [ "#define ICICLE_NO_INPUT 1"
+            , seaPreamble
+            , defs
+            ] <> progs
+
+      HasInput format opts _ -> do
+        doc <- seaOfDriver format opts inputs clusters
+        let def = case format of
+              FormatPsv conf -> vsep
+                [ defOfPsvInput (psvInputConfig conf)
+                , defOfPsvOutput (psvOutputConfig conf) ]
+              -- FIXME property separate what is needed from psv
+              FormatZebra _ _ _ -> vsep
+                [ "#define ICICLE_PSV_INPUT_SPARSE 1"
+                , "#define ICICLE_ZEBRA 1" ]
+
+        pure . textOfDoc . vsep $ [ def, seaPreamble, defs ] <> progs <> ["", doc]
 
 textOfDoc :: Doc -> Text
 textOfDoc doc = T.pack (displayS (renderPretty 0.8 80 (pretty doc)) "")
