@@ -65,7 +65,7 @@ clusterOfPrograms ::
   => ClusterId
   -> InputId
   -> NonEmpty (Program (Annot a) n Prim)
-  -> Either SeaError Cluster
+  -> Either SeaError (Cluster ())
 clusterOfPrograms cid iid programs@(program :| _) =
   case factVarsOfProgram FactLoopNew program of
     Nothing ->
@@ -97,7 +97,7 @@ kernelOfProgram ::
   => ClusterId
   -> KernelIndex
   -> Program (Annot a) n Prim
-  -> Kernel
+  -> Kernel ()
 kernelOfProgram cid kix program =
   Kernel {
       kernelId =
@@ -108,15 +108,18 @@ kernelOfProgram cid kix program =
 
     , kernelOutputs =
         outputsOfProgram program
+
+    , kernelAnnotation =
+        () -- FIXME would it ever be interesting to put 'program' here?
     }
 
 ------------------------------------------------------------------------
 
-nameOfLastTime :: Cluster -> Text
+nameOfLastTime :: Cluster a -> Text
 nameOfLastTime cluster =
   "last_time_" <> renderClusterId (clusterId cluster)
 
-nameOfCluster :: Cluster -> Text
+nameOfCluster :: Cluster a -> Text
 nameOfCluster cluster =
   nameOfCluster' (clusterId cluster)
 
@@ -124,7 +127,7 @@ nameOfCluster' :: ClusterId -> Text
 nameOfCluster' name =
   "icluster_" <> renderClusterId name
 
-nameOfKernel :: Kernel -> Text
+nameOfKernel :: Kernel a -> Text
 nameOfKernel kernel =
   nameOfKernel' (kernelId kernel)
 
@@ -132,11 +135,11 @@ nameOfKernel' :: KernelId -> Text
 nameOfKernel' (KernelId cluster kernel) =
   "icluster_" <> renderClusterId cluster <> "_kernel_" <> renderKernelIndex kernel
 
-nameOfCount :: Cluster -> Text
+nameOfCount :: Cluster a -> Text
 nameOfCount cluster =
   "icount_" <> renderClusterId (clusterId cluster)
 
-nameOfClusterState :: Cluster -> Text
+nameOfClusterState :: Cluster a -> Text
 nameOfClusterState cluster =
   nameOfCluster cluster <> "_t"
 
@@ -144,18 +147,18 @@ nameOfClusterStateSize' :: ClusterId -> Text
 nameOfClusterStateSize' name =
   "size_of_" <> nameOfCluster' name
 
-nameOfClusterStateSize :: Cluster -> Text
+nameOfClusterStateSize :: Cluster a -> Text
 nameOfClusterStateSize cluster =
   nameOfClusterStateSize' (clusterId cluster)
 
-seaOfClusterInfo :: Cluster -> Doc
+seaOfClusterInfo :: Cluster a -> Doc
 seaOfClusterInfo cluster =
   "#" <>
   prettyClusterId (clusterId cluster) <+>
   "-" <+>
   prettyText (renderInputId (clusterInputId cluster))
 
-seaOfClusterState :: Cluster -> Doc
+seaOfClusterState :: Cluster a -> Doc
 seaOfClusterState cluster =
   vsep [
       "#line 1 \"cluster state" <+> seaOfClusterInfo cluster <> "\""
@@ -180,7 +183,7 @@ seaOfClusterState cluster =
     , "}"
     ]
 
-seaOfKernelState :: Kernel -> Doc
+seaOfKernelState :: Kernel a -> Doc
 seaOfKernelState kernel =
   vsep [
       "  /* kernel " <> prettyKernelId (kernelId kernel) <> " */"
@@ -210,7 +213,7 @@ seaOfKernelState kernel =
 
 -- | Define a struct where the fields are the melted types.
 --
-defOfInputStruct :: Cluster -> Doc
+defOfInputStruct :: Cluster a -> Doc
 defOfInputStruct cluster =
   vsep [
       "typedef struct {"
@@ -233,11 +236,11 @@ defOfFactField (name, ty) =
 
 ------------------------------------------------------------------------
 
-defValueOfResumable :: Kernel -> (Text, ValType) -> Doc
+defValueOfResumable :: Kernel a -> (Text, ValType) -> Doc
 defValueOfResumable compute (n, t)
  =  defOfVar 0 t     (pretty resPrefix <> nameOfResumable compute (pretty n)) <> semi
 
-defHasOfResumable :: Kernel -> (Text, ValType) -> Doc
+defHasOfResumable :: Kernel a -> (Text, ValType) -> Doc
 defHasOfResumable compute (n, _)
  =  defOfVar 0 BoolT (pretty hasPrefix <> nameOfResumable compute (pretty n)) <> semi
 
@@ -245,15 +248,15 @@ nameOfKernelId :: KernelId -> Doc
 nameOfKernelId (KernelId cid kix) =
   prettyClusterId cid <> "_" <> prettyKernelIndex kix
 
-nameOfResumable :: Kernel -> Doc -> Doc
+nameOfResumable :: Kernel a -> Doc -> Doc
 nameOfResumable kernel n =
   nameOfKernelId (kernelId kernel) <> "_" <> n
 
-nameOfResumableHasFlagsStart :: Kernel -> Doc
+nameOfResumableHasFlagsStart :: Kernel a -> Doc
 nameOfResumableHasFlagsStart kernel =
   "has_flags_start_" <> nameOfKernelId (kernelId kernel)
 
-nameOfResumableHasFlagsEnd :: Kernel -> Doc
+nameOfResumableHasFlagsEnd :: Kernel a -> Doc
 nameOfResumableHasFlagsEnd kernel =
   "has_flags_end_" <> nameOfKernelId (kernelId kernel)
 
@@ -287,7 +290,7 @@ clusterInputName :: Text
 clusterInputName =
   "input"
 
-clusterInputTypeName :: Cluster -> Text
+clusterInputTypeName :: Cluster a -> Text
 clusterInputTypeName cluster =
   "input_" <> renderSeaName (mangle (clusterInputId cluster)) <> "_t"
 
@@ -299,7 +302,7 @@ clusterInputNew :: Doc -> Doc
 clusterInputNew n =
   clusterInput <> "." <> pretty newPrefix <> n
 
-clusterInputTime :: Cluster -> Doc
+clusterInputTime :: Cluster a -> Doc
 clusterInputTime cluster =
   clusterInput <> "." <> prettySeaName (clusterTimeVar cluster)
 
