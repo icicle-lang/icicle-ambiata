@@ -178,8 +178,25 @@ primLookup' prim
         return $ f n1 (TypeVar n1) n2 (TypeVar n2)
 
 
-primReturnsPossibly :: Prim -> Bool
-primReturnsPossibly (Fun (BuiltinData Box))      = True
-primReturnsPossibly (Fun (BuiltinMap MapInsert)) = True
-primReturnsPossibly _                            = False
+-- There must be a better way.
+-- When an expression returns Possibly, it is hard to know whether that's because the function returns Possibly,
+-- or if it's a pure function applied to a Possibly argument which needs to be reboxed.
+-- This should probably be figured out and inserted during type inference.
+-- As it is, we're looking at the expression and the result of type inference to decide - trying to work backwards to
+-- figure out what inference did.
+primReturnsPossibly :: Prim -> Type n -> Bool
+primReturnsPossibly (Fun (BuiltinData Box))      _ = True
+primReturnsPossibly (Fun (BuiltinMap MapInsert)) _ = True
+primReturnsPossibly p ty
+ | (_, pos, dat)       <- decomposeT ty
+ , DoubleT             <- dat
+ , Just PossibilityPossibly <- pos
+ = case p of
+    Op (ArithBinary _)     -> True
+    Op (ArithDouble Div)   -> True
+    Fun (BuiltinMath Log)  -> True
+    Fun (BuiltinMath Exp)  -> True
+    Fun (BuiltinMath Sqrt) -> True
+    _                      -> False
+primReturnsPossibly _ _                          = False
 
