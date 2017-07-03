@@ -146,7 +146,7 @@ constraintsQ
   -> Query a n
   -> EitherT (CheckError a n) (Fresh.Fresh n) (Query'C a n)
 constraintsQ env q
- = do (x, _, cons) <- evalGenNoLog $ generateQ q env
+ = do (x, cons) <- evalGenNoLog $ top
       -- We must have been able to solve all constraints except numeric requirements.
       if   all (isNumConstraint . snd) cons
       then right x
@@ -159,6 +159,17 @@ constraintsQ env q
   isNumConstraint CIsNum{}            = True
   isNumConstraint CPossibilityOfNum{} = True
   isNumConstraint _                   = False
+
+  -- Perform top-level discharge of any silly leftover Possibility or Temporality joins
+  top = do
+   (q',sub,cons) <- generateQ q env
+   case dischargeCS' dischargeC'toplevel cons of
+    Left errs
+     -> genHoistEither
+      $ errorNoSuggestions (ErrorConstraintsNotSatisfied (annotOfQuery q) errs)
+    Right (sub', cons') 
+     -> let q'' = substTQ sub' q'
+        in  return (q'', cons')
 
 
 -- | Generate constraints for top-level query.
