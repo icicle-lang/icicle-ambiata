@@ -60,8 +60,7 @@ data SeaContext =
 data Runtime =
   Runtime {
       runtimeLibrary :: !Jetski.Library
-    , runtimeClusters :: !(Map InputId Cluster)
-    , runtimeKernels :: !(Map KernelId KernelIO)
+    , runtimeClusters :: !(Map InputId (Cluster KernelIO))
     }
 
 data KernelIO =
@@ -73,27 +72,32 @@ compileAvalanche :: (Show a, Show n, Pretty n, Eq n) => AvalancheContext a n -> 
 compileAvalanche context =
   let
     fingerprint =
-      icicleFingerprint context
+      avalancheFingerprint context
 
     programs =
-      Map.toList $ iciclePrograms context
+      Map.toList $ avalanchePrograms context
   in
     fmap SeaContext . hoistEither . first RuntimeSeaError $
       Sea.codeOfPrograms fingerprint Sea.NoInput [] programs
 
-findKernel :: Jetski.Library -> KernelId -> EitherT RuntimeError IO KernelIO
-findKernel library kid = do
-  compute <- firstT RuntimeJetskiError $ Jetski.function library (Sea.nameOfKernel' kid) Jetski.retVoid
-  pure $ KernelIO $ \ptr ->
-    compute [Jetski.argPtr ptr]
+resolveKernelIO :: Jetski.Library -> Kernel a -> EitherT RuntimeError IO (Kernel KernelIO)
+resolveKernelIO library kernel = do
+  compute <- firstT RuntimeJetskiError $
+    Jetski.function library (Sea.nameOfKernel kernel) Jetski.retVoid
 
-findClusterKernels :: Jetski.Library -> Cluster -> EitherT RuntimeError IO (Map KernelId KernelIO)
-findClusterKernels library =
   let
-    fromKid kid =
-      (kid, ) <$> findKernel library kid
-  in
-    fmap Map.fromList . traverse fromKid . fmap kernelId . toList . clusterKernels
+    kio =
+      KernelIO $ \ptr ->
+        compute [Jetski.argPtr ptr]
+
+  pure $
+    kernel { kernelAnnotation = kio }
+
+resolveClusterKernelIO :: Jetski.Library -> Cluster a -> EitherT RuntimeError IO (Cluster KernelIO)
+resolveClusterKernelIO library cluster = do
+  kernels <- traverse (resolveKernelIO library) (clusterKernels cluster)
+  pure $
+    cluster { clusterKernels = kernels }
 
 compileSea :: SeaContext -> EitherT RuntimeError IO Runtime
 compileSea context = do
@@ -104,14 +108,11 @@ compileSea context = do
     firstT RuntimeJetskiError $
       Jetski.compileLibrary Jetski.CacheLibrary options code
 
-  let
-    clusters0 =
-      headerClusters header
+  clusters0 <- traverse (resolveClusterKernelIO library) (headerClusters header)
 
+  let
     clusters =
       Map.fromList $ fmap (\x -> (clusterInputId x, x)) clusters0
 
-  kernels <- Map.unions <$> traverse (findClusterKernels library) clusters0
-
   pure $
-    Runtime library clusters kernels
+    Runtime library clusters

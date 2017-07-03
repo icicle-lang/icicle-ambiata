@@ -201,7 +201,7 @@ inputError = 2
 inputStart :: Int
 inputStart = 3
 
-inputFieldsCount :: Cluster -> Int
+inputFieldsCount :: Cluster a -> Int
 inputFieldsCount cluster =
   length (clusterInputVars cluster) - 2
 

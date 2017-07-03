@@ -60,7 +60,7 @@ data IOFormat
   | FormatZebra ZebraConfig Mode PsvOutputConfig -- temporary
     deriving (Eq, Show)
 
-seaOfDriver :: IOFormat -> InputOpts -> [InputId] -> [Cluster] -> Either SeaError Doc
+seaOfDriver :: IOFormat -> InputOpts -> [InputId] -> [Cluster a] -> Either SeaError Doc
 seaOfDriver format opts inputs clusters
   = case format of
       FormatPsv conf -> do
