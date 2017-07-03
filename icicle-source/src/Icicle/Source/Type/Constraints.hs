@@ -68,6 +68,15 @@ instance Pretty n => Pretty (DischargeError n) where
 dischargeC :: (Hashable n, Eq n) => Constraint n -> Either (DischargeError n) (DischargeResult n)
 dischargeC c
  = case c of
+    CIsNum IntT
+     -> return $ DischargeSubst Map.empty
+    CIsNum DoubleT
+     -> return $ DischargeSubst Map.empty
+    CIsNum (TypeVar _)
+     -> return $ DischargeLeftover c
+    CIsNum t
+     -> Left   $ NotANumber t
+
     CPossibilityOfNum _ IntT
      -> return $ DischargeSubst $ Map.empty
     CPossibilityOfNum poss DoubleT

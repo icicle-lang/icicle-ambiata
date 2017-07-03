@@ -70,6 +70,8 @@ substC ss cc
  = case cc of
     CEquals p q
      -> CEquals (substT ss p) (substT ss q)
+    CIsNum t
+     -> CIsNum (substT ss t)
     CPossibilityOfNum p t
      -> CPossibilityOfNum (substT ss p) (substT ss t)
     CTemporalityJoin a b c

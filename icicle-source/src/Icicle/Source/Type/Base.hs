@@ -112,6 +112,7 @@ valTypeOfType bt
 
 data Constraint n
  = CEquals (Type n) (Type n)
+ | CIsNum (Type n)
  | CPossibilityOfNum (Type n) (Type n)
  | CTemporalityJoin (Type n) (Type n) (Type n)
  | CReturnOfLetTemporalities (Type n) (Type n) (Type n)
@@ -175,6 +176,8 @@ instance Pretty n => Pretty (Type n) where
 instance Pretty n => Pretty (Constraint n) where
  pretty (CEquals p q)
   = pretty p <+> "=:" <+> pretty q
+ pretty (CIsNum t)
+  = "IsNum" <+> pretty t
  pretty (CPossibilityOfNum ret t)
   = pretty ret <+> "=: PossibilityOfNum" <+> pretty t
  pretty (CTemporalityJoin ret a b)

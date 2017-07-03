@@ -69,6 +69,7 @@ freeC :: (Hashable n, Eq n) => Constraint n -> Set.Set (Name n)
 freeC c
  = case c of
     CEquals p q             -> Set.union (freeT p) (freeT q)
+    CIsNum              t   -> freeT t
     CPossibilityOfNum p t   -> Set.union (freeT p) (freeT t)
     CReturnOfLetTemporalities
                     p q r   -> Set.unions

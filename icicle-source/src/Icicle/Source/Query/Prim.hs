@@ -159,9 +159,9 @@ primLookup' prim
 
   -- Safe number operations
   fNumDefinitely f
-   = fNum $ \_ at ->
+   = f1 $ \a at ->
      let (args,ret) = f at
-     in  (args, ret)
+     in  FunctionType [a] [CIsNum at] args ret
 
   fNum f
    = f2 (\a at p pt -> uncurry (FunctionType [a,p] [CPossibilityOfNum pt at]) (f pt at))

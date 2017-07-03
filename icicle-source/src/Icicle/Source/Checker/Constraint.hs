@@ -74,9 +74,11 @@ defaults topq
 
 
 
-  defaultOfConstraint (CPossibilityOfNum poss t)
+  defaultOfConstraint (CIsNum t)
    -- It must be a type variable - if it isn't it either already has a concrete
    -- Num type such as Int, or it is a type error
+   = defaultTo t IntT
+  defaultOfConstraint (CPossibilityOfNum poss t)
    = defaultTo t IntT <> defaultTo poss PossibilityDefinitely 
   -- Everything else should really be known by this stage.
   -- These shouldn't actually occur.
@@ -154,6 +156,7 @@ constraintsQ env q
                (annotOfQuery q)
                (filter (not . isNumConstraint . snd) cons)
  where
+  isNumConstraint CIsNum{}            = True
   isNumConstraint CPossibilityOfNum{} = True
   isNumConstraint _                   = False
 
