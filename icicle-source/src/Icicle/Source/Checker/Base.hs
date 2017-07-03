@@ -151,11 +151,11 @@ data CheckLog a n
  deriving Show
 
 instance (Pretty a, Pretty n) => Pretty (CheckLog a n) where
- pretty (CheckLogDischargeOk s i0 i1)
+ pretty (CheckLogDischargeOk e i0 i1)
   | emptyi i0 && emptyi i1
-  = "visit     " <> indent 0 (pretty s <> " : " <> pretty (dischargeType i0))
+  = "visit     " <> indent 0 (pretty e <> " : " <> pretty (dischargeType i0))
   | otherwise
-  = "discharge " <> indent 0 (pretty s) <> line <>
+  = "discharge " <> indent 0 (pretty e) <> line <>
     "  before: " <> indent 0 (pretty i0) <> line <>
     "  after:  " <> indent 0 (pretty i1)
   where
@@ -219,10 +219,10 @@ discharge annotOf sub (q, s, conset)
        Right (s', cs') -> do
         let s'' = compose s s'
         let q'  = sub s'' q
-        let annot' = annotOf q
+        let annot' = annotOf q'
         let log_info1 = DischargeInfo (annResult annot') cs' s''
         checkLog (CheckLogDischargeOk log_ppr log_info0 log_info1) 
-        return (sub s'' q, s'', cs')
+        return (q', s'', cs')
 
 fresh :: Hashable n => Gen a n (Name n)
 fresh
