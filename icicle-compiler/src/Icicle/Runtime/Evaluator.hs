@@ -3,14 +3,14 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TupleSections #-}
 module Icicle.Runtime.Evaluator (
-    IcicleContext(..)
+    AvalancheContext(..)
   , SeaContext(..)
 
   , Runtime(..)
   , KernelIO(..)
   , RuntimeError(..)
 
-  , compileIcicle
+  , compileAvalanche
   , compileSea
   ) where
 
@@ -46,10 +46,10 @@ data RuntimeError =
   | RuntimeHeaderError !HeaderDecodeError
     deriving (Eq, Show)
 
-data IcicleContext a n =
-  IcicleContext {
-      icicleFingerprint :: !Fingerprint
-    , iciclePrograms :: !(Map InputId (NonEmpty (Avalanche.Program (Annot a) n Avalanche.Prim)))
+data AvalancheContext a n =
+  AvalancheContext {
+      avalancheFingerprint :: !Fingerprint
+    , avalanchePrograms :: !(Map InputId (NonEmpty (Avalanche.Program (Annot a) n Avalanche.Prim)))
     }
 
 data SeaContext =
@@ -69,8 +69,8 @@ data KernelIO =
       kernelIO :: forall state. Ptr state -> IO ()
     }
 
-compileIcicle :: (Show a, Show n, Pretty n, Eq n) => IcicleContext a n -> EitherT RuntimeError IO SeaContext
-compileIcicle context =
+compileAvalanche :: (Show a, Show n, Pretty n, Eq n) => AvalancheContext a n -> EitherT RuntimeError IO SeaContext
+compileAvalanche context =
   let
     fingerprint =
       icicleFingerprint context
