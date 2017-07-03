@@ -162,7 +162,7 @@ checkF' fun env
         return (Annot a (substT subs t) [], n)
 
 
-dischargeF :: (Hashable n, Eq n, Pretty n) => a -> SubstT n -> [(a, Constraint n)] -> Gen a n (SubstT n, [(a, Constraint n)])
+dischargeF :: (Hashable n, Eq n) => a -> SubstT n -> [(a, Constraint n)] -> Gen a n (SubstT n, [(a, Constraint n)])
 dischargeF ann sub cons
  = case dischargeCS' dischargeC'toplevel cons of
     Left errs
