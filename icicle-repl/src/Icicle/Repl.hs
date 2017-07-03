@@ -268,7 +268,8 @@ handleLine state line = let st = sourceState state in
     let names  = Set.fromList $ fmap (snd . fst) parsed
     -- Remove the old bindings with these names
     let funEnv = filter (\(n,_) -> not $ Set.member n names)
-               $ dictionaryFunctions   d
+               $ toFunEnv
+               $ dictionaryFunctions d
 
     (funEnv',logs) <- hoist $ wrapSourceError $ Source.sourceCheckFunLog funEnv parsed
     let fundefs = filter (\(n,_) -> Set.member n names) funEnv'
@@ -279,7 +280,7 @@ handleLine state line = let st = sourceState state in
         Repl.prettyHL l
         Repl.nl
 
-    return $ state { sourceState = st { SourceRepl.dictionary = d { dictionaryFunctions = funEnv' } } }
+    return $ state { sourceState = st { SourceRepl.dictionary = d { dictionaryFunctions = fromFunEnv funEnv' } } }
 
   -- We use the simulator to evaluate the Icicle expression.
   Nothing -> withError $ do
