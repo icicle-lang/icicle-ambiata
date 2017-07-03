@@ -77,8 +77,8 @@ dischargeC c
     CIsNum t
      -> Left   $ NotANumber t
 
-    CPossibilityOfNum _ IntT
-     -> return $ DischargeSubst $ Map.empty
+    CPossibilityOfNum poss IntT
+     -> dischargeC (CEquals poss PossibilityDefinitely)
     CPossibilityOfNum poss DoubleT
      -> dischargeC (CEquals poss PossibilityPossibly)
     CPossibilityOfNum _ (TypeVar _)
