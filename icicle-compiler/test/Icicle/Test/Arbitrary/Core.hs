@@ -175,7 +175,8 @@ instance Arbitrary PM.PrimBuiltinMath where
     , PM.PrimBuiltinFloor
     , PM.PrimBuiltinTruncate
     , PM.PrimBuiltinRound
-    , PM.PrimBuiltinToDoubleFromInt ]
+    , PM.PrimBuiltinToDoubleFromInt
+    , PM.PrimBuiltinDoubleIsValid ]
 
 --------------------------------------------------------------------------------
 
