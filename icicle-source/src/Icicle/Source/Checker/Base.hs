@@ -125,7 +125,7 @@ data DischargeInfo a n = DischargeInfo
   }
  deriving Show
 
-instance (Pretty a, Pretty n) => Pretty (DischargeInfo a n) where
+instance (Pretty n) => Pretty (DischargeInfo a n) where
  pretty (DischargeInfo t cs s)
   = vsep ([ty] <> cons' <> subs')
   where
