@@ -256,11 +256,8 @@ getCompilerOptions = do
 
 defaultCompilerOptions :: [CompilerOption]
 defaultCompilerOptions = [
-  -- 🔨
-    "-O3"
-
-  -- include debug information (3 = as much as possible)
-  , "-g3"
+  -- 😊
+    "-O1"
 
   -- all optimisations valid for the current CPU (AVX512, etc)
   , "-march=native"
