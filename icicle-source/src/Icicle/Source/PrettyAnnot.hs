@@ -137,10 +137,3 @@ instance (Pretty a, Pretty n) => Pretty (PrettyAnnot (Function (Annot a n) n)) w
   in (sep p) <> line <> indent 2 ("=" <+> pretty (PrettyAnnot (body q)))
 
 
-instance (Pretty a, Pretty n) => Pretty (PrettyAnnot (Function (Annot a n) n)) where
- pretty (PrettyAnnot q) =
-  let p = fmap (\(a,n) -> annotate (AnnType a) (pretty n)) (arguments q)
-  in (sep p) <> line <> indent 2 ("=" <+> pretty (PrettyAnnot (body q)))
-
-
-
