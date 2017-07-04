@@ -3,13 +3,13 @@ ok, loaded 38 functions from data/libs/prelude.icicle
 ok, loaded test/cli/repl/data.psv, 13 rows
 > ok, type is now on
 > - Type:
-Aggregate Definitely (Sum Int Double)
+Aggregate Possibly (Sum Int Double)
 
 - Core evaluation:
 [homer, 5.0,marge, 3.0]
 
 > - Type:
-Aggregate Definitely (Sum Int Double)
+Aggregate Possibly (Sum Int Double)
 
 - Core evaluation:
 [homer, 5.0,marge, 3.0]
