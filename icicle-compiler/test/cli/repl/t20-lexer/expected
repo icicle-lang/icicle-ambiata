@@ -28,7 +28,7 @@ Check error:
     Suggested bindings are:
       max                  : Element a -> Aggregate Possibly a
       mean                 : (Num a) => Element a -> Aggregate Possibly Double
-      exp                  : Double -> Double
+      exp                  : Double -> Possibly Double
       day                  : Time -> Int
       year                 : Time -> Int
 
