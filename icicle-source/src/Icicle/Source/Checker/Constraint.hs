@@ -762,11 +762,7 @@ appType ann resT (expT,actT) cons = do
    -- Just <- modE
    -- ?    <- modR
    | otherwise
-   = do ignore <- TypeVar <$> fresh
-        -- XXX: this is wrong.
-        -- Should be:
-        -- Either modE and modA are the same, or if they're not the same, it needs to wrap the result type.
-        let j = joinMode ignore (maybe pureMode id modE) (maybe pureMode id modA)
+   = do let j = CEquals (maybe pureMode id modE) (maybe pureMode id modA)
         return (modR, require ann j)
 
 
