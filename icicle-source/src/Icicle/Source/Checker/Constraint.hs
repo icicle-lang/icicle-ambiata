@@ -24,9 +24,8 @@ import           Icicle.Internal.Pretty (Pretty)
 import           P hiding (with)
 
 import           Data.Hashable                (Hashable)
-import           Data.List                    (unzip, unzip3, zip)
+import           Data.List                    (unzip3, zip)
 import qualified Data.Map                     as Map
-import qualified Data.Set                     as Set
 
 import           X.Control.Monad.Trans.Either
 
@@ -53,18 +52,9 @@ defaults :: (Hashable n, Eq n)
          => Query'C a n
          -> Query'C a n
 defaults topq
-  -- Just substitute the type vars in
-  = substTQ defaultRest topq
+  -- Substitute the defaults in. Num takes precedence because defaultOfAllQ would substitute numbers to Unit.
+  = substTQ (Map.union defaultNums (defaultOfAllQ topq)) topq
  where
-  -- Convert remaining type variables to units
-  defaultRest
-   = let go s v
-            | Nothing <- Map.lookup v s
-            = Map.insert v UnitT s
-            | otherwise
-            = s
-     in  foldl go defaultNums (freeOfAllQ topq)
-
   -- Convert numeric constraints to Ints
   defaultNums
    = Map.fromList
@@ -102,19 +92,19 @@ defaults topq
    = []
 
   -- Compute free *type* variables of queries and expressions
-  freeOfAllQ (Query cs x)
-   = Set.unions
-   ( freeOfAllX x : fmap freeOfAllC cs )
+  defaultOfAllQ (Query cs x)
+   = Map.unions
+   ( defaultOfAllX x : fmap defaultOfAllC cs )
 
-  freeOfAllC c
-   = let fa   = freeOfAllA (annotOfContext c)
-         fv x = fa <> freeOfAllX x
+  defaultOfAllC c
+   = let fa   = defaultOfAllA (annotOfContext c)
+         fv x = fa <> defaultOfAllX x
      in case c of
           Let _ _ x -> fv x
           LetFold _ f
            -> fa                      <>
-              freeOfAllX (foldInit f) <>
-              freeOfAllX (foldWork f)
+              defaultOfAllX (foldInit f) <>
+              defaultOfAllX (foldWork f)
           Windowed{} -> fa
           Latest{} -> fa
           GroupBy _ x -> fv x
@@ -122,20 +112,27 @@ defaults topq
           Distinct _ x -> fv x
           Filter _ x -> fv x
 
-  freeOfAllX x
-   = let fa   = freeOfAllA (annotOfExp x)
+  defaultOfAllX x
+   = let fa   = defaultOfAllA (annotOfExp x)
      in  case x of
            Var{} -> fa
-           Nested _ q -> fa <> freeOfAllQ q
-           App _ p q -> fa <> freeOfAllX p <> freeOfAllX q
+           Nested _ q -> fa <> defaultOfAllQ q
+           App _ p q -> fa <> defaultOfAllX p <> defaultOfAllX q
            Prim{} -> fa
            Case _ s pats
-            ->  fa <> freeOfAllX s <>
-               (Set.unions $ fmap (freeOfAllX . snd) pats)
+            ->  fa <> defaultOfAllX s <>
+               (Map.unions $ fmap (defaultOfAllX . snd) pats)
 
 
-  freeOfAllA a
-   = freeT $ annResult a
+  defaultOfAllA a = defaultOfAllT $ annResult a
+
+  defaultOfAllT fullty
+   = let (tmp,pos,dat) = decomposeT fullty
+         fv def t = Map.fromSet (const def) (freeT t)
+         tmp' = maybe Map.empty (fv TemporalityPure) tmp
+         pos' = maybe Map.empty (fv PossibilityDefinitely) pos
+         dat' = fv UnitT dat
+     in  Map.unions [tmp', pos', dat']
 
 
 -- | Generate constraints for an entire query.
