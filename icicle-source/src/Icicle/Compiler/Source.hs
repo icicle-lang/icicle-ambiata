@@ -43,6 +43,7 @@ module Icicle.Compiler.Source
   , sourceReifyQT
   , sourceCheckQT
   , sourceCheckF
+  , sourceCheckFunLog
   , sourceInline
 
     -- * Helpers
@@ -250,6 +251,13 @@ sourceCheckF :: FunEnvT Parsec.SourcePos Var
              -> Funs    Parsec.SourcePos Var
              -> Either  Error (FunEnvT Parsec.SourcePos Var)
 sourceCheckF env parsedImport
+ = second fst
+ $ sourceCheckFunLog env parsedImport
+
+sourceCheckFunLog :: FunEnvT Parsec.SourcePos Var
+             -> Funs    Parsec.SourcePos Var
+             -> Either  Error (FunEnvT Parsec.SourcePos Var, [[Check.CheckLog Parsec.SourcePos Var]])
+sourceCheckFunLog env parsedImport
  = first ErrorSourceCheck
  $ snd
  $ flip Fresh.runFresh (freshNamer "check")
@@ -276,6 +284,7 @@ readIcicleLibrary :: Var -> Parsec.SourceName -> Text -> Either Error (FunEnvT P
 readIcicleLibrary name source input
  = do input' <- first ErrorSourceParse $ Parse.parseFunctions source input
       first ErrorSourceCheck
+             $ second fst
              $ snd
              $ flip Fresh.runFresh (freshNamer name)
              $ runEitherT

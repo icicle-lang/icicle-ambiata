@@ -22,7 +22,7 @@ import                  Icicle.Data.Name
 
 import                  P hiding (exp)
 
-import                  Text.Parsec (many1, parserFail, getPosition, eof, (<?>), sepEndBy, try, notFollowedBy)
+import                  Text.Parsec (many1, parserFail, getPosition, (<?>), sepEndBy, try, notFollowedBy)
 
 top :: OutputId -> Parser (Q.QueryTop T.SourcePos Var)
 top name
@@ -30,7 +30,6 @@ top name
         v <- pUnresolvedInputId                                 <?> "input source"
         pFlowsInto
         q <- query                                              <?> "query"
-        eof
         return $ Q.QueryTop v name q
 
 functions :: Parser [((T.SourcePos, Name Var), (Q.Function T.SourcePos Var))]

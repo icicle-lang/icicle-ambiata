@@ -11,6 +11,7 @@ import           Control.Monad.IO.Class
 import           Control.Monad.Trans.Class
 
 import qualified Data.List                        as L
+import qualified Data.Set                         as Set
 import           Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.Text                        as T
 import qualified Data.Text.IO                     as T
@@ -75,7 +76,7 @@ data ReplState
 defaultState :: ReplState
 defaultState
   = (ReplState
-      (SourceRepl.defaultSourceReplState { SourceRepl.hasType = False })
+      SourceRepl.defaultSourceReplState
       False False False False False False False False False False False False False False)
       { hasCoreEval = True
       , doCoreSimp  = True }
@@ -83,6 +84,7 @@ defaultState
 
 data Set
    = ShowType                Bool
+   | ShowTypeCheckLog        Bool
    | ShowBigData             Bool
    | ShowAnnotated           Bool
    | ShowInlined             Bool
@@ -112,6 +114,9 @@ readSetCommands ss
  = case ss of
     ("+type":rest)               -> (:) (ShowType                True)  <$> readSetCommands rest
     ("-type":rest)               -> (:) (ShowType                False) <$> readSetCommands rest
+
+    ("+type-check-log":rest)     -> (:) (ShowTypeCheckLog        True)  <$> readSetCommands rest
+    ("-type-check-log":rest)     -> (:) (ShowTypeCheckLog        False) <$> readSetCommands rest
 
     ("+big-data":rest)           -> (:) (ShowBigData             True)  <$> readSetCommands rest
     ("-big-data":rest)           -> (:) (ShowBigData             False) <$> readSetCommands rest
@@ -257,21 +262,29 @@ handleLine state line = let st = sourceState state in
   Just (Repl.CommandSet sets) ->
     foldM handleSetCommand state sets
 
+  Just (Repl.CommandLetFunction funtext) -> withError $ do
+    parsed <- hoist $ wrapSourceError $ Source.sourceParseF "repl" (T.pack funtext)
+    let d      = SourceRepl.dictionary st
+    let names  = Set.fromList $ fmap (snd . fst) parsed
+    -- Remove the old bindings with these names
+    let funEnv = filter (\(n,_) -> not $ Set.member n names)
+               $ toFunEnv
+               $ dictionaryFunctions d
+
+    (funEnv',logs) <- hoist $ wrapSourceError $ Source.sourceCheckFunLog funEnv parsed
+    let fundefs = filter (\(n,_) -> Set.member n names) funEnv'
+    forM_ (fundefs `L.zip` logs) $ \((nm, (typ, annot)),log0) -> do
+      prettyOut (SourceRepl.hasType      . sourceState) ("- Type: " <> show (pretty nm))      typ
+      prettyOut (SourceRepl.hasAnnotated . sourceState) ("- Annotated: " <> show (pretty nm)) (Source.PrettyAnnot annot)
+      lift $ when (SourceRepl.hasTypeCheckLog $ sourceState state) $ forM_ log0 $ \l -> do
+        Repl.prettyHL l
+        Repl.nl
+
+    return $ state { sourceState = st { SourceRepl.dictionary = d { dictionaryFunctions = fromFunEnv funEnv' } } }
 
   -- We use the simulator to evaluate the Icicle expression.
-  Nothing -> do
-
-    let hoist c = hoistEither c
-    let prettyOut setting heading p
-            = lift
-            $ when (setting state)
-            $ do    HL.outputStrLn heading
-                    Repl.prettyHL p
-                    Repl.nl
-
-    let iid = [inputid|repl:input|]
-
-    checked <- runEitherT $ do
+  Nothing -> withError $ do
+      let iid = [inputid|repl:input|]
       parsed       <- hoist $ sourceParse (T.pack line)
       (annot, typ) <- hoist $ sourceCheck checkOpts (SourceRepl.dictionary st) parsed
 
@@ -390,34 +403,48 @@ handleLine state line = let st = sourceState state in
        Left  e -> prettyOut hasCoreEval "- Core error:" e
        Right r -> prettyOut hasCoreEval "- Core evaluation:" r
 
-      return ()
-
-    case checked of
-      Left  e -> Repl.renderReplError e posOfError
-      Right _ -> return ()
-
-    return state
+      return state
 
   where
+
+    hoist c = hoistEither c
+    prettyOut setting heading p
+            = lift
+            $ when (setting state)
+            $ do    HL.outputStrLn heading
+                    Repl.prettyHL p
+                    Repl.nl
+
+    withError f = do
+     c <- runEitherT f
+     case c of
+       Left  e -> do
+        Repl.renderReplError e posOfError
+        return state
+       Right state' -> return state'
+
+
     checkOpts
       | SourceRepl.hasBigData (sourceState state)
       = Source.optionBigData
       | otherwise
       = Source.optionSmallData
 
+    wrapSourceError = first (ErrorCompileSource . SourceRepl.ErrorCompile)
+
     sourceParse
       = first (ErrorCompileSource . SourceRepl.ErrorCompile)
       . Source.sourceParseQT [outputid|repl:output|]
 
     sourceDesugar
-      = first (ErrorCompileSource . SourceRepl.ErrorCompile)
+      = wrapSourceError
       . Source.sourceDesugarQT
 
     sourceReify
       = Source.sourceReifyQT
 
     sourceCheck opts d
-      = first (ErrorCompileSource . SourceRepl.ErrorCompile)
+      = wrapSourceError
       . Source.sourceCheckQT opts d
 
     sourceConvert d
@@ -476,6 +503,7 @@ showState :: ReplState -> HL.InputT IO ()
 showState state = let st = sourceState state in do
  mapM_ HL.outputStrLn
     [ flag "type:            " (SourceRepl.hasType      . sourceState)
+    , flag "type-check-log:  " (SourceRepl.hasTypeCheckLog . sourceState)
     , flag "big-data:        " (SourceRepl.hasBigData   . sourceState)
     , flag "annotated:       " (SourceRepl.hasAnnotated . sourceState)
     , flag "inlined:         " (SourceRepl.hasInlined   . sourceState)
@@ -543,6 +571,10 @@ handleSetCommand state set = let st = sourceState state in
     ShowType b -> do
         HL.outputStrLn $ "ok, type is now " <> Repl.showFlag b
         return $ state { sourceState = st { SourceRepl.hasType = b } }
+
+    ShowTypeCheckLog b -> do
+        HL.outputStrLn $ "ok, type-check-log is now " <> Repl.showFlag b
+        return $ state { sourceState = st { SourceRepl.hasTypeCheckLog = b } }
 
     ShowBigData b -> do
         HL.outputStrLn $ "ok, big-data is now " <> Repl.showFlag b

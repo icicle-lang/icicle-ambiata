@@ -16,6 +16,7 @@ import                  Icicle.Source.Type
 
 import                  Icicle.Common.Base
 import qualified        Icicle.Common.Fresh     as Fresh
+import                  Icicle.Internal.Pretty (Pretty)
 
 import                  P
 
@@ -32,34 +33,34 @@ type FunEnvT a n = [ ( Name n
                      , Function (Annot a n) n ) ) ]
 
 
-checkFs :: (Hashable n, Eq n)
+checkFs :: (Hashable n, Eq n, Pretty n)
         => FunEnvT a n
         -> Funs a n
         -> EitherT (CheckError a n) (Fresh.Fresh n)
-                   (FunEnvT a n)
+                   (FunEnvT a n, [[CheckLog a n]])
 
 checkFs env functions
- = foldlM go env functions
+ = foldlM go (env,[]) functions
  where
-  go env' (name,fun)
+  go (env0,logs0) (name,fun)
    = do
-    (annotfun, funtype) <- checkF (fst <$> Map.fromList env') fun
-    if List.elem (snd name) (fmap fst env')
+    ((annotfun, funtype),logs') <- checkF (fst <$> Map.fromList env0) fun
+    if List.elem (snd name) (fmap fst env0)
     then hoistEither $ Left $ CheckError (ErrorDuplicateFunctionNames (fst name) (snd name)) []
-    else pure (env' <> [(snd name , (funtype, annotfun))])
+    else pure (env0 <> [(snd name , (funtype, annotfun))], logs0 <> [logs'])
 
-checkF  :: (Hashable n, Eq n)
+checkF  :: (Hashable n, Eq n, Pretty n)
         => Map.Map (Name n) (FunctionType n)
         -> Function a n
         -> EitherT (CheckError a n) (Fresh.Fresh n)
-                   (Function (Annot a n) n, FunctionType n)
+                   ((Function (Annot a n) n, FunctionType n), [CheckLog a n])
 
 checkF env fun
  = evalGen $ checkF' fun env
 
 
 -- | Typecheck a function definition, generalising types and pulling out constraints
-checkF' :: (Hashable n, Eq n)
+checkF' :: (Hashable n, Eq n, Pretty n)
         => Function a n
         -> GenEnv n
         -> Gen a n (Function (Annot a n) n, FunctionType n)
@@ -165,7 +166,7 @@ dischargeF :: (Hashable n, Eq n) => a -> SubstT n -> [(a, Constraint n)] -> Gen 
 dischargeF ann sub cons
  = case dischargeCS' dischargeC'toplevel cons of
     Left errs
-     -> Gen . hoistEither
+     -> genHoistEither
       $ errorNoSuggestions (ErrorConstraintsNotSatisfied ann errs)
     Right (sub', cons')
      -> return (compose sub sub', cons')

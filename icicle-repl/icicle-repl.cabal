@@ -29,6 +29,7 @@ executable             icicle-repl
                      , transformers                    >= 0.3        && < 0.6
                      ,     parsec                      == 3.1.*
                      , semigroups                      >= 0.16       && < 0.19
+                     , containers                      == 0.5.*
 
 test-suite test-cli
   type:                exitcode-stdio-1.0

@@ -23,5 +23,5 @@ primLookup
  => a -> Prim
  -> Gen a n (FunctionType n, [Type n], Type n, GenConstraintSet a n)
 primLookup ann p
- = do ft <- Gen . lift $ primLookup' p
+ = do ft <- Gen . lift . lift $ primLookup' p
       introForalls ann ft
