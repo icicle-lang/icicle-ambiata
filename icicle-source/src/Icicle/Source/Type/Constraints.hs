@@ -81,7 +81,7 @@ dischargeC c
      -> dischargeC (CEquals poss PossibilityDefinitely)
     CPossibilityOfNum poss DoubleT
      -> dischargeC (CEquals poss PossibilityPossibly)
-    CPossibilityOfNum poss (TypeVar _)
+    CPossibilityOfNum _ (TypeVar _)
      -> return $ DischargeLeftover c
     CPossibilityOfNum _ t
      -> Left   $ NotANumber t

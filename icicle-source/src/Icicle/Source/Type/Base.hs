@@ -177,7 +177,7 @@ instance Pretty n => Pretty (Constraint n) where
  pretty (CEquals p q)
   = pretty p <+> "=:" <+> pretty q
  pretty (CIsNum t)
-  = "IsNum" <+> pretty t
+  = "Num" <+> pretty t
  pretty (CPossibilityOfNum ret t)
   = pretty ret <+> "=: PossibilityOfNum" <+> pretty t
  pretty (CTemporalityJoin ret a b)
