@@ -70,16 +70,14 @@ checkF' fun env
       env' <- foldM bindArg env $ arguments fun
       -- Get the annotated body
       (q, subs, cons)  <- generateQ (body fun) env'
-      (subs',cons')     <- dischargeF (annotOfQuery $ body fun) subs cons
-      let q' = substTQ subs' q
 
       -- Look up the argument types after solving all constraints.
       -- Because they started as fresh unification variables,
       -- they will end up being unified to the actual types.
-      args <- mapM (lookupArg subs' env') (arguments fun)
+      args <- mapM (lookupArg subs env') (arguments fun)
 
       -- Find all leftover constraints and nub them
-      let constrs = fmap snd cons'
+      let constrs = fmap snd cons
 
       -- We want to remove any modes (temporalities or possibilities)
       -- that are bound by foralls with no constraints on them.
@@ -136,7 +134,7 @@ checkF' fun env
 
       -- Fix the modes of all the argument and result types
       let argTs = fmap (fixmodes . annResult . fst) args
-      let resT  = fixmodes $ annResult $ annotOfQuery q'
+      let resT  = fixmodes $ annResult $ annotOfQuery q
 
       -- Find free variables in types and constraints - these have to be bound as foralls.
       let binds = Set.toList
@@ -146,7 +144,7 @@ checkF' fun env
       -- Put it all together
       let funT  = FunctionType binds constrs argTs resT
 
-      return (Function args q', funT)
+      return (Function args q, funT)
  where
   bindArg cx (_,n)
    = do t <- freshType
@@ -161,13 +159,4 @@ checkF' fun env
    = do (_,_,t,_) <- lookup a n e
         return (Annot a (substT subs t) [], n)
 
-
-dischargeF :: (Hashable n, Eq n, Pretty n) => a -> SubstT n -> [(a, Constraint n)] -> Gen a n (SubstT n, [(a, Constraint n)])
-dischargeF ann sub cons
- = case dischargeCS' dischargeC'toplevel cons of
-    Left errs
-     -> genHoistEither
-      $ errorNoSuggestions (ErrorConstraintsNotSatisfied ann errs)
-    Right (sub', cons')
-     -> return (compose sub sub', cons')
 
