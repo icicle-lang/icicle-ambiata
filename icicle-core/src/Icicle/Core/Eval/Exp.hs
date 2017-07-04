@@ -29,9 +29,9 @@ evalPrim p vs
      -- Folds and destructions
      PrimFold PrimFoldBool _
       | [t, _, VBase (VBool True)] <- vs
-      -> return t
+      -> applies' t [VBase VUnit]
       | [_, f, VBase (VBool False)] <- vs
-      -> return f
+      -> applies' f [VBase VUnit]
       | otherwise
       -> primError
 

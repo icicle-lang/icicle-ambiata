@@ -394,6 +394,7 @@ primInsertOrUpdate tk tv xm xk xvz xvu = do
 
   n  <- lift F.fresh
   n' <- lift F.fresh
+  n''<- lift F.fresh
   let tm     = T.MapT tk tv
   let tsum   = T.SumT T.ErrorT tm
 
@@ -414,7 +415,7 @@ primInsertOrUpdate tk tv xm xk xvz xvu = do
 
   return     $ CE.makeLets () [ (n', insert) ]
              $ apps (C.PrimFold C.PrimFoldBool $ tsum)
-             [ vright, verr, lenchk ]
+             [ CE.xLam n'' T.UnitT vright, CE.xLam n'' T.UnitT verr, lenchk ]
  where
   apps f xs = CE.makeApps () (CE.XPrim () f) xs
   bf = C.PrimMinimal . Min.PrimBuiltinFun

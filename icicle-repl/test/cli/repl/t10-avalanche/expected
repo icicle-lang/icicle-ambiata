@@ -58,24 +58,26 @@ output@{(Sum Error (Int, Array (Sum Error Int)))} repl:output (conv/31@{(Sum Err
 > - Avalanche (simplified):
 conv/3 = TIME
 conv/4 = MAX_MAP_SIZE
-init acc/conv/35@{(Sum Error (Map Time (Buf 2 ((Sum Error Int), Time))))} = Right Map []@{(Sum Error (Map Time (Buf 2 ((Sum Error Int), Time))))};
-load_resumable@{(Sum Error (Map Time (Buf 2 ((Sum Error Int), Time))))} acc/conv/35;
+init acc/conv/37@{(Sum Error (Map Time (Buf 2 ((Sum Error Int), Time))))} = Right Map []@{(Sum Error (Map Time (Buf 2 ((Sum Error Int), Time))))};
+load_resumable@{(Sum Error (Map Time (Buf 2 ((Sum Error Int), Time))))} acc/conv/37;
 
 for_facts (conv/2@{Time}, conv/1@{FactIdentifier}, conv/0@{((Sum Error Int), Time)}) in new
 {
-  read conv/35/aval/0 = acc/conv/35 [(Sum Error (Map Time (Buf 2 ((Sum Error Int), Time))))];
-  write acc/conv/35 = Sum_fold#@{(Error,Map Time (Buf 2 ((Sum Error Int), Time)))}@{(Sum Error (Map Time (Buf 2 ((Sum Error Int), Time))))} 
+  read conv/37/aval/0 = acc/conv/37 [(Sum Error (Map Time (Buf 2 ((Sum Error Int), Time))))];
+  write acc/conv/37 = Sum_fold#@{(Error,Map Time (Buf 2 ((Sum Error Int), Time)))}@{(Sum Error (Map Time (Buf 2 ((Sum Error Int), Time))))} 
     (\conv/30@{Error} left#@{Error, Map Time (Buf 2 ((Sum Error Int), Time))} conv/30) 
     (\conv/27@{Map Time (Buf 2 ((Sum Error Int), Time))} 
       let conv/26 = snd#@{(Sum Error Int), Time} conv/0
       let conv/32 = Map_insertOrUpdate#@{(Time,Buf 2 ((Sum Error Int), Time))} 
         (\conv/31@{Buf 2 ((Sum Error Int), Time)} Latest_push#@{Buf 2 ((Sum Error Int), Time)} conv/31 conv/1 conv/0) (Latest_push#@{Buf 2 ((Sum Error Int), Time)} (Buf []@{Buf 2 ((Sum Error Int), Time)}) conv/1 conv/0) conv/26 conv/27
-       in if#@{(Sum Error (Map Time (Buf 2 ((Sum Error Int), Time))))} (right#@{Error, Map Time (Buf 2 ((Sum Error Int), Time))} conv/32) (Left ExceptCannotCompute@{(Sum Error (Map Time (Buf 2 ((Sum Error Int), Time))))}) (lt#@{Int} (length#@{Array Time} (keys#@{Map Time (Buf 2 ((Sum Error Int), Time))} conv/32)) conv/4)) conv/35/aval/0;
+       in if#@{(Sum Error (Map Time (Buf 2 ((Sum Error Int), Time))))} 
+        (\conv/33@{Unit} right#@{Error, Map Time (Buf 2 ((Sum Error Int), Time))} conv/32) 
+        (\conv/33@{Unit} Left ExceptCannotCompute@{(Sum Error (Map Time (Buf 2 ((Sum Error Int), Time))))}) (lt#@{Int} (length#@{Array Time} (keys#@{Map Time (Buf 2 ((Sum Error Int), Time))} conv/32)) conv/4)) conv/37/aval/0;
 }
-save_resumable@{(Sum Error (Map Time (Buf 2 ((Sum Error Int), Time))))} acc/conv/35;
+save_resumable@{(Sum Error (Map Time (Buf 2 ((Sum Error Int), Time))))} acc/conv/37;
 
-read conv/35 = acc/conv/35 [(Sum Error (Map Time (Buf 2 ((Sum Error Int), Time))))];
-let conv/36 = Sum_fold#@{(Error,Map Time (Buf 2 ((Sum Error Int), Time)))}@{(Sum Error (Map Time Int))} 
+read conv/37 = acc/conv/37 [(Sum Error (Map Time (Buf 2 ((Sum Error Int), Time))))];
+let conv/38 = Sum_fold#@{(Error,Map Time (Buf 2 ((Sum Error Int), Time)))}@{(Sum Error (Map Time Int))} 
   (\conv/30@{Error} left#@{Error, Map Time Int} conv/30) 
   (\conv/27@{Map Time (Buf 2 ((Sum Error Int), Time))} Map_fold#@{(Time,Buf 2 ((Sum Error Int), Time))}@{(Sum Error (Map Time Int))} 
     (\conv/24@{(Sum Error (Map Time Int))} \conv/26@{Time} \conv/28@{Buf 2 ((Sum Error Int), Time)} Sum_fold#@{(Error,Map Time Int)}@{(Sum Error (Map Time Int))} 
@@ -83,9 +85,11 @@ let conv/36 = Sum_fold#@{(Error,Map Time (Buf 2 ((Sum Error Int), Time)))}@{(Sum
       (\conv/25@{Map Time Int} Sum_fold#@{(Error,Int)}@{(Sum Error (Map Time Int))} 
         (\conv/30@{Error} left#@{Error, Map Time Int} conv/30) 
         (\conv/29@{Int} 
-          let conv/34 = Map_insertOrUpdate#@{(Time,Int)} 
-            (\conv/33@{Int} conv/29) conv/29 conv/26 conv/25
-           in if#@{(Sum Error (Map Time Int))} (right#@{Error, Map Time Int} conv/34) (Left ExceptCannotCompute@{(Sum Error (Map Time Int))}) (lt#@{Int} (length#@{Array Time} (keys#@{Map Time Int} conv/34)) conv/4)) (
+          let conv/35 = Map_insertOrUpdate#@{(Time,Int)} 
+            (\conv/34@{Int} conv/29) conv/29 conv/26 conv/25
+           in if#@{(Sum Error (Map Time Int))} 
+            (\conv/36@{Unit} right#@{Error, Map Time Int} conv/35) 
+            (\conv/36@{Unit} Left ExceptCannotCompute@{(Sum Error (Map Time Int))}) (lt#@{Int} (length#@{Array Time} (keys#@{Map Time Int} conv/35)) conv/4)) (
         let conv/10 = 
           let conv/5 = Latest_read#@{Array ((Sum Error Int), Time)} conv/28
            in Array_fold#@{((Sum Error Int), Time)}@{(Sum Error Int)} 
@@ -96,8 +100,8 @@ let conv/36 = Sum_fold#@{(Error,Map Time (Buf 2 ((Sum Error Int), Time)))}@{(Sum
                   (\reify/2/conv/14@{Error} left#@{Error, Int} reify/2/conv/14) 
                   (\reify/3/conv/15@{Int} right#@{Error, Int} (add#@{Int} reify/1/conv/13 reify/3/conv/15)) conv/9) (fst#@{(Sum Error Int), Time} conv/8)
                in s/conv/19) (Right 0@{(Sum Error Int)}) conv/5
-         in conv/10)) conv/24) (Right Map []@{(Sum Error (Map Time Int))}) conv/27) conv/35;
-output@{(Sum Error (Map Time Int))} repl:output (conv/36@{(Sum Error (Map Time Int))});
+         in conv/10)) conv/24) (Right Map []@{(Sum Error (Map Time Int))}) conv/27) conv/37;
+output@{(Sum Error (Map Time Int))} repl:output (conv/38@{(Sum Error (Map Time Int))});
 
 - Core evaluation:
 [homer, [(1989-12-17,100)

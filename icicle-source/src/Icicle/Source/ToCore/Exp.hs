@@ -156,7 +156,8 @@ convertCase x scrut pats scrutT resT
           | Just ([],tru) <- Map.lookup ConTrue     m
           , Just ([],fal) <- Map.lookup ConFalse    m
           -> return ((CE.xPrim $ C.PrimFold C.PrimFoldBool resT)
-                     CE.@~ tru CE.@~ fal
+                     CE.@~ CE.xLam sn T.UnitT tru
+                     CE.@~ CE.xLam sn T.UnitT fal
                      CE.@~ scrut)
 
          T.PairT ta tb
