@@ -278,8 +278,8 @@ makeApps a fun (arg:rest) doWrap
         -- Check if we're calling a primitive which already returns its result wrapped.
         -- If so, we do not need to perform rewrapping of the value.
         let doWrap'
-              | Just (p, _, _) <- takePrimApps fun
-              , primReturnsPossibly p
+              | Just (p, pa, _) <- takePrimApps fun
+              , primReturnsPossibly p (annResult pa)
               = False
               | otherwise
               = True
@@ -300,8 +300,8 @@ makeApps a fun (arg:rest) doWrap
 
  where
   annotWrapPrim
-   | Just (p, _, _) <- takePrimApps fun
-   , primReturnsPossibly p
+   | Just (p, pa, _) <- takePrimApps fun
+   , primReturnsPossibly p (annResult pa)
    = wrapAnnotReally a
    | otherwise
    = a

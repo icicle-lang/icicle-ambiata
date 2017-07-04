@@ -137,4 +137,3 @@ instance (Pretty a, Pretty n) => Pretty (PrettyAnnot (Function (Annot a n) n)) w
   in (sep p) <> line <> indent 2 ("=" <+> pretty (PrettyAnnot (body q)))
 
 
-

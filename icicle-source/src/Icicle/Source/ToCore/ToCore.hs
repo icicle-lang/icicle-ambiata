@@ -448,6 +448,7 @@ convertKey env (InputKey (Just k)) (core, ret) = do
         n'acc'new <- lift fresh
         n'key'old <- lift fresh
         n'key'new <- lift fresh
+        n'unit    <- lift fresh
 
         xx' <- lift $ CE.subst1 () n'input (CE.xVar n'acc'old) xx
         let a  = CE.makeApps () (sndX  t'key t'acc) [CE.xVar n'input]
@@ -457,8 +458,8 @@ convertKey env (InputKey (Just k)) (core, ret) = do
                $ CE.xLet n'acc'new xx'
                $ CE.makeApps ()
                    ( CE.xPrim (C.PrimFold C.PrimFoldBool (T.PairT t'key t'acc)) )
-                   [ CE.xVar n'input
-                   , CE.makeApps () (pairX t'key t'acc) [ CE.xVar n'key'new, CE.xVar n'acc'new ]
+                   [ CE.xLam n'unit T.UnitT $ CE.xVar n'input
+                   , CE.xLam n'unit T.UnitT $ CE.makeApps () (pairX t'key t'acc) [ CE.xVar n'key'new, CE.xVar n'acc'new ]
                    , CE.makeApps () (eqX   t'key      ) [ CE.xVar n'key'old, CE.xVar n'key'new ] ]
 
         pure ( x', Map.singleton n'input a )

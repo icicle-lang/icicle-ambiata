@@ -220,11 +220,12 @@ convertFold q
      -> do  res <- convertFold q'
             e'         <- convertExp  e
             prev       <- lift fresh
+            n'unit     <- lift fresh
             let tt'    = typeFold res
             let prev'  = CE.xVar prev
             let k' = CE.xLam prev tt'
                    ( CE.xPrim (C.PrimFold C.PrimFoldBool tt')
-                     CE.@~ (foldKons res CE.@~ prev') CE.@~ prev' CE.@~ e' )
+                     CE.@~ CE.xLam n'unit T.UnitT (foldKons res CE.@~ prev') CE.@~ CE.xLam n'unit T.UnitT prev' CE.@~ e' )
             return (res { foldKons = k' })
 
     (Latest _ i : _)

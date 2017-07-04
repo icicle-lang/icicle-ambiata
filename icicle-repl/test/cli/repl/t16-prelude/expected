@@ -66,20 +66,20 @@ ok, loaded test/cli/repl/data.psv, 13 rows
 > > -- Gradient example
 > - C evaluation:
 [homer, 17.53336340594424
-,marge, NaN]
+,marge, tombstone]
 
 - Core evaluation:
 [homer, 17.53336340594424
-,marge, NaN]
+,marge, tombstone]
 
 > > -- Pearsons correlation example
 > - C evaluation:
 [homer, 0.9279829441311143
-,marge, NaN]
+,marge, tombstone]
 
 - Core evaluation:
 [homer, 0.9279829441311143
-,marge, NaN]
+,marge, tombstone]
 
 > > -- Newest example
 > - C evaluation:
