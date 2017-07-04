@@ -717,7 +717,7 @@ generateP ann scrutTy resTy resTm resPs ((pat, alt):rest) env
 
 
 appType
- :: (Hashable n, Eq n)
+ :: (Hashable n)
  => a
  -> Type n
  -> (Type n, Type n)
