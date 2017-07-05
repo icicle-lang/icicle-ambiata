@@ -12,9 +12,11 @@ module Icicle.Runtime.Data.Striped (
 
   , schema
 
-  , arrayCount
+  , meltedCount
   , toArrays
+  , headAnys
   , fromArrays
+  , fromAnys
 
   , toLogical
   , fromLogical
@@ -37,9 +39,13 @@ import qualified Data.Map.Strict as Map
 import qualified Data.Text as Text
 import qualified Data.Vector as Boxed
 
+import           Foreign.Storable (Storable)
+
 import           GHC.Generics (Generic)
 
-import           Icicle.Runtime.Array (Array, ArrayError, ArrayLength)
+import           Icicle.Runtime.Any (Any, AnyError)
+import qualified Icicle.Runtime.Any as Any
+import           Icicle.Runtime.Array (Array, ArrayError)
 import qualified Icicle.Runtime.Array as Array
 import           Icicle.Runtime.Data.Logical (LogicalError)
 import qualified Icicle.Runtime.Data.Logical as Logical
@@ -47,7 +53,7 @@ import           Icicle.Runtime.Data.Primitive
 import           Icicle.Runtime.Data.Schema (Schema)
 import qualified Icicle.Runtime.Data.Schema as Schema
 
-import           P hiding (Sum, lefts, rights, empty)
+import           P hiding (Any, Sum, lefts, rights, empty)
 
 import           System.IO (IO)
 
@@ -80,8 +86,10 @@ data Column =
 
 data StripedError =
     StripedArrayError !ArrayError
-  | StripedArraysExhausted !Schema
-  | StripedArraysRemaining !Schema !Int
+  | StripedAnyError !AnyError
+  | StripedHeadEmptyColumn !Schema
+  | StripedMeltedExhausted !Schema
+  | StripedMeltedRemaining !Schema !Int
   | StripedMismatchedMeltedArrays !Schema
   | StripedNestedEmpty
   | StripedNestedLengthMismatch !Schema !Segment.SegmentError
@@ -93,11 +101,17 @@ renderStripedError = \case
   StripedArrayError x ->
     Array.renderArrayError x
 
-  StripedArraysExhausted x ->
-    "The stack of icicle runtime arrays was exhausted while trying to translate: " <> Text.pack (show x)
+  StripedAnyError x ->
+    Any.renderAnyError x
 
-  StripedArraysRemaining x n ->
-    "The stack of icicle runtime arrays had <" <> Text.pack (show n) <> "> leftovers while trying to translate: " <> Text.pack (show x)
+  StripedHeadEmptyColumn x ->
+    "Tried to take head of empty column: " <> Text.pack (show x)
+
+  StripedMeltedExhausted x ->
+    "The stack of melted icicle runtime arrays/values was exhausted while trying to translate: " <> Text.pack (show x)
+
+  StripedMeltedRemaining x n ->
+    "The stack of melted icicle runtime arrays/values had <" <> Text.pack (show n) <> "> leftovers while trying to translate: " <> Text.pack (show x)
 
   StripedMismatchedMeltedArrays x ->
     "Melted arrays had mismatched lengths for: " <> Text.pack (show x)
@@ -175,8 +189,8 @@ empty = \case
   x + y
 {-# INLINE (+!) #-}
 
-arrayCount :: Schema -> Int
-arrayCount = \case
+meltedCount :: Schema -> Int
+meltedCount = \case
   Schema.Unit ->
     1
   Schema.Bool ->
@@ -188,21 +202,21 @@ arrayCount = \case
   Schema.Time ->
     1
   Schema.Sum x y ->
-    1 +! arrayCount x +! arrayCount y
+    1 +! meltedCount x +! meltedCount y
   Schema.Option x ->
-    1 +! arrayCount x
+    1 +! meltedCount x
   Schema.Result x ->
-    1 +! arrayCount x
+    1 +! meltedCount x
   Schema.Pair x y ->
-    arrayCount x +! arrayCount y
+    meltedCount x +! meltedCount y
   Schema.Struct fields ->
-    Boxed.sum $! Cons.toVector $! fmap (arrayCount . fieldData) fields
+    Boxed.sum $! Cons.toVector $! fmap (meltedCount . fieldData) fields
   Schema.String ->
     1
   Schema.Array x ->
-    arrayCount x
+    meltedCount x
   Schema.Map k v ->
-    arrayCount k +! arrayCount v
+    meltedCount k +! meltedCount v
 
 toArrays :: Mempool -> Column -> EitherT StripedError IO [Array]
 toArrays pool = \case
@@ -262,30 +276,102 @@ toArrays pool = \case
     xss <- (<>) <$> toArrays pool k <*> toArrays pool v
     traverse (firstT StripedArrayError . Array.fromArraySegments pool (Array.makeDescriptor ns)) xss
 
-take1 :: Schema -> EitherT StripedError (StateT [Array] IO) Array
+headValue :: Storable a => Schema -> Storable.Vector a -> EitherT StripedError IO a
+headValue s xs =
+  if Storable.null xs then
+    left $ StripedHeadEmptyColumn s
+  else
+    pure $! Storable.unsafeHead xs
+
+headAny :: Storable a => Schema -> Storable.Vector a -> EitherT StripedError IO [Any]
+headAny s xs = do
+  x <- headValue s xs
+  hoistEither . bimap StripedAnyError pure $ Any.from x
+
+headAnys :: Mempool -> Column -> EitherT StripedError IO [Any]
+headAnys pool = \case
+  Unit _ ->
+    hoistEither . bimap StripedAnyError pure $
+      Any.from unit
+
+  Bool xs ->
+    headAny Schema.Bool xs
+
+  Int xs ->
+    headAny Schema.Int xs
+
+  Double xs ->
+    headAny Schema.Double xs
+
+  Time xs ->
+    headAny Schema.Time xs
+
+  Sum isLefts x0 y0 -> do
+    (\i x y -> i <> x <> y)
+      <$> headAny (schema $ Sum isLefts x0 y0) isLefts
+      <*> headAnys pool x0
+      <*> headAnys pool y0
+
+  Option isSomes x -> do
+    (<>)
+      <$> headAny (schema $ Option isSomes x) isSomes
+      <*> headAnys pool x
+
+  Result isErrors x -> do
+    (<>)
+      <$> headAny (schema $ Result isErrors x) isErrors
+      <*> headAnys pool x
+
+  Pair x y ->
+    (<>)
+      <$> headAnys pool x
+      <*> headAnys pool y
+
+  Struct fields ->
+    concat <$> traverse (headAnys pool . fieldData) (toList fields)
+
+  String ns bss -> do
+    n <- headValue Schema.String ns
+    fmap pure . liftIO . Any.fromString pool $ ByteString.take (fromIntegral n) bss
+
+  Array ns x -> do
+    n <- headValue Schema.String ns
+    xss0 <- toArrays pool x -- FIXME this could be more efficient
+    xss <- liftIO $ traverse (\array -> Array.grow pool array (fromIntegral n)) xss0
+    pure $
+      fmap Any.fromArray xss
+
+  Map ns k v -> do
+    n <- headValue Schema.String ns
+    xss0 <- (<>) <$> toArrays pool k <*> toArrays pool v -- FIXME this could be more efficient
+    xss <- liftIO $ traverse (\array -> Array.grow pool array (fromIntegral n)) xss0
+    pure $
+      fmap Any.fromArray xss
+
+take1 :: Schema -> EitherT StripedError (StateT [a] IO) a
 take1 s = do
   xs0 <- get
   case xs0 of
     [] ->
-      left $ StripedArraysExhausted s
+      left $ StripedMeltedExhausted s
     x : xs -> do
       put xs
       pure x
 
-takeN :: Schema -> EitherT StripedError (StateT [Array] IO) [Array]
+takeN :: Schema -> EitherT StripedError (StateT [a] IO) [a]
 takeN s = do
   xs0 <- get
 
   let
     !n =
-      arrayCount s
+      meltedCount s
 
   if n > length xs0 then
-    left $ StripedArraysExhausted s
+    left $ StripedMeltedExhausted s
   else do
     let
       (xs1, xs2) =
-        splitAt (arrayCount s) xs0
+        splitAt (meltedCount s) xs0
 
     put xs2
     pure xs1
@@ -295,38 +381,73 @@ takeUnit = do
   x <- take1 Schema.Unit
   liftIO . fmap (Unit . fromIntegral) $ Array.length x
 
+takeUnit1 :: EitherT StripedError (StateT [Any] IO) Column
+takeUnit1 = do
+  _ <- take1 Schema.Unit
+  pure $ Unit 1
+
 takeBool :: EitherT StripedError (StateT [Array] IO) Column
 takeBool = do
   x <- take1 Schema.Bool
   hoist lift . bimapT StripedArrayError Bool $ Array.toVector x
+
+takeBool1 :: EitherT StripedError (StateT [Any] IO) Column
+takeBool1 = do
+  x <- take1 Schema.Bool
+  hoistEither . bimap StripedAnyError (Bool . Storable.singleton) $ Any.read x
 
 takeInt :: EitherT StripedError (StateT [Array] IO) Column
 takeInt = do
   x <- take1 Schema.Int
   hoist lift . bimapT StripedArrayError Int $ Array.toVector x
 
+takeInt1 :: EitherT StripedError (StateT [Any] IO) Column
+takeInt1 = do
+  x <- take1 Schema.Int
+  hoistEither . bimap StripedAnyError (Int . Storable.singleton) $ Any.read x
+
 takeDouble :: EitherT StripedError (StateT [Array] IO) Column
 takeDouble = do
   x <- take1 Schema.Double
   hoist lift . bimapT StripedArrayError Double $ Array.toVector x
+
+takeDouble1 :: EitherT StripedError (StateT [Any] IO) Column
+takeDouble1 = do
+  x <- take1 Schema.Double
+  hoistEither . bimap StripedAnyError (Double . Storable.singleton) $ Any.read x
 
 takeTime :: EitherT StripedError (StateT [Array] IO) Column
 takeTime = do
   x <- take1 Schema.Time
   hoist lift . bimapT StripedArrayError Time $ Array.toVector x
 
+takeTime1 :: EitherT StripedError (StateT [Any] IO) Column
+takeTime1 = do
+  x <- take1 Schema.Time
+  hoistEither . bimap StripedAnyError (Time . Storable.singleton) $ Any.read x
+
 takeBoolTag :: Schema -> EitherT StripedError (StateT [Array] IO) (Storable.Vector Bool64)
 takeBoolTag s = do
   x <- take1 s
   hoist lift . firstT StripedArrayError $ Array.toVector x
+
+takeBoolTag1 :: Schema -> EitherT StripedError (StateT [Any] IO) (Storable.Vector Bool64)
+takeBoolTag1 s = do
+  x <- take1 s
+  hoistEither . bimap StripedAnyError Storable.singleton $ Any.read x
 
 takeErrorTag :: Schema -> EitherT StripedError (StateT [Array] IO) (Storable.Vector Error64)
 takeErrorTag s = do
   x <- take1 s
   hoist lift . firstT StripedArrayError $ Array.toVector x
 
-checkLengths :: Monad m => Schema -> [Storable.Vector ArrayLength] -> EitherT StripedError m ()
-checkLengths s = \case
+takeErrorTag1 :: Schema -> EitherT StripedError (StateT [Any] IO) (Storable.Vector Error64)
+takeErrorTag1 s = do
+  x <- take1 s
+  hoistEither . bimap StripedAnyError Storable.singleton $ Any.read x
+
+checkAllEq :: (Monad m, Eq a) => Schema -> [a] -> EitherT StripedError m ()
+checkAllEq s = \case
   [] ->
     pure ()
   ns : nss ->
@@ -340,7 +461,7 @@ takeNested pool s = do
   xss0 <- takeN s
 
   nxss0 <- liftIO $ traverse (Array.toArraySegments pool) xss0
-  checkLengths s $ fmap fst nxss0
+  checkAllEq s $ fmap fst nxss0
 
   case nxss0 of
     [] ->
@@ -349,6 +470,20 @@ takeNested pool s = do
     (ns, xs) : nxss -> do
       column <- hoist lift $ fromArrays pool s (xs : fmap snd nxss)
       pure (Array.takeDescriptor ns, column)
+
+takeNested1 :: Mempool -> Schema -> EitherT StripedError (StateT [Any] IO) (Int64, Column)
+takeNested1 pool s = do
+  xss0 <- takeN s
+  case fmap Any.toArray xss0 of
+    [] ->
+      left StripedNestedEmpty
+    xs : xss -> do
+      n <- liftIO $ Array.length xs
+      ns <- liftIO $ traverse Array.length xss
+      checkAllEq s (n : ns)
+
+      column <- hoist lift $ fromArrays pool s (xs : xss)
+      pure (fromIntegral n, column)
 
 takeColumn :: Mempool -> Schema -> EitherT StripedError (StateT [Array] IO) Column
 takeColumn pool s =
@@ -413,6 +548,69 @@ takeColumn pool s =
         pure $
           Map nsk k v
 
+takeColumn1 :: Mempool -> Schema -> EitherT StripedError (StateT [Any] IO) Column
+takeColumn1 pool s =
+  case s of
+    Schema.Unit ->
+      takeUnit1
+
+    Schema.Bool ->
+      takeBool1
+
+    Schema.Int ->
+      takeInt1
+
+    Schema.Double ->
+      takeDouble1
+
+    Schema.Time ->
+      takeTime1
+
+    Schema.Sum x y ->
+      Sum
+        <$> takeBoolTag1 (Schema.Sum x y)
+        <*> takeColumn1 pool x
+        <*> takeColumn1 pool y
+
+    Schema.Option x ->
+      Option
+        <$> takeBoolTag1 (Schema.Option x)
+        <*> takeColumn1 pool x
+
+    Schema.Result x ->
+      Result
+        <$> takeErrorTag1 (Schema.Result x)
+        <*> takeColumn1 pool x
+
+    Schema.Pair x y ->
+      Pair
+        <$> takeColumn1 pool x
+        <*> takeColumn1 pool y
+
+    Schema.Struct fields ->
+     Struct
+       <$> traverse (traverse (takeColumn1 pool)) fields
+
+    Schema.String -> do
+      x <- take1 Schema.String
+      bs <- liftIO $ Any.toString x
+      pure $
+        String (Storable.singleton . fromIntegral $ ByteString.length bs) bs
+
+    Schema.Array sx -> do
+      (n, x) <- takeNested1 pool sx
+      pure $
+        Array (Storable.singleton n) x
+
+    Schema.Map sk sv -> do
+      (nk, k) <- takeNested1 pool sk
+      (nv, v) <- takeNested1 pool sv
+      if nk /= nv then
+        left $ StripedMismatchedMeltedArrays (Schema.Map sk sv)
+      else
+        pure $
+          Map (Storable.singleton nk) k v
+
 fromArrays :: Mempool -> Schema -> [Array] -> EitherT StripedError IO Column
 fromArrays pool s xs0 = do
   (ecolumn, xs) <- liftIO $ runStateT (runEitherT (takeColumn pool s)) xs0
@@ -421,7 +619,17 @@ fromArrays pool s xs0 = do
     [] ->
       pure column
     _ ->
-      left $ StripedArraysRemaining s (length xs)
+      left $ StripedMeltedRemaining s (length xs)
+
+fromAnys :: Mempool -> Schema -> [Any] -> EitherT StripedError IO Column
+fromAnys pool s xs0 = do
+  (ecolumn, xs) <- liftIO $ runStateT (runEitherT (takeColumn1 pool s)) xs0
+  column <- hoistEither ecolumn
+  case xs of
+    [] ->
+      pure column
+    _ ->
+      left $ StripedMeltedRemaining s (length xs)
 
 toLogical :: Column -> Either StripedError (Boxed.Vector Logical.Value)
 toLogical = \case
