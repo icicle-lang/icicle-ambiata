@@ -54,7 +54,7 @@ defaultOutputMissing = "NA"
 
 ------------------------------------------------------------------------
 
-seaOfWriteFleetOutput :: PsvOutputConfig -> PsvOutputWhiteList -> [Cluster] -> Either SeaError Doc
+seaOfWriteFleetOutput :: PsvOutputConfig -> PsvOutputWhiteList -> [Cluster c k] -> Either SeaError Doc
 seaOfWriteFleetOutput config whitelist states = do
   let states' = case whitelist of
                   Nothing -> states
@@ -144,7 +144,7 @@ textGroups80 xs =
     else
       hd : textGroups80 tl
 
-seaOfGetOutputSchema :: PsvOutputConfig -> [Cluster] -> Either SeaError Doc
+seaOfGetOutputSchema :: PsvOutputConfig -> [Cluster c k] -> Either SeaError Doc
 seaOfGetOutputSchema config clusters =
   case outputPsvFormat config of
     PsvOutputSparse ->
@@ -165,7 +165,7 @@ seaOfGetOutputSchema config clusters =
         , "}"
         ]
 
-seaOfWriteProgramOutput :: PsvOutputConfig -> Cluster -> Either SeaError Doc
+seaOfWriteProgramOutput :: PsvOutputConfig -> Cluster c k -> Either SeaError Doc
 seaOfWriteProgramOutput config cluster = do
   let ps    = "p" <> prettyClusterId (clusterId cluster)
       stype = pretty (nameOfClusterState cluster)
@@ -650,7 +650,7 @@ schemaOfOutput :: OutputId -> ValType -> Either SeaError PsvColumn
 schemaOfOutput outputId typ =
   PsvColumn (renderOutputId outputId) <$> schemaOfValType typ
 
-schemaOfProgram :: Cluster -> Either SeaError [PsvColumn]
+schemaOfProgram :: Cluster c k -> Either SeaError [PsvColumn]
 schemaOfProgram =
   -- NOTE the order of the columns here must match 'seaOfWriteProgramOutput' above
   traverse (\(n, MeltedType t _) -> schemaOfOutput n t) . Map.toList . clusterOutputs
@@ -662,7 +662,7 @@ schemaOfLabel = \case
   Chords ->
     [PsvColumn "timestamp" (PsvPrimitive PsvString)]
 
-schemaOfFleet :: PsvOutputConfig -> [Cluster] -> Either SeaError PsvSchema
+schemaOfFleet :: PsvOutputConfig -> [Cluster c k] -> Either SeaError PsvSchema
 schemaOfFleet config clusters =
   case outputPsvFormat config of
     PsvOutputSparse ->

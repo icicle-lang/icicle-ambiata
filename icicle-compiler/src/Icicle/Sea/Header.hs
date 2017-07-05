@@ -69,7 +69,7 @@ import           X.Text.Show (gshowsPrec)
 data Header =
   Header {
       headerFingerprint :: !Fingerprint
-    , headerClusters :: ![Cluster]
+    , headerClusters :: ![Cluster () ()]
     } deriving (Eq, Ord, Show, Generic)
 
 newtype Fingerprint =
@@ -380,15 +380,16 @@ ppNamedType (name, vtype) =
         ppValType vtype
     ]
 
-pKernel :: Aeson.Value -> Aeson.Parser Kernel
+pKernel :: Aeson.Value -> Aeson.Parser (Kernel ())
 pKernel =
   Aeson.withObject "Kernel" $ \o ->
     Kernel
       <$> withKey "kernel_id" o pKernelId
       <*> withKey "resumables" o (pList "Array (SeaName, ValType)" pNamedType)
       <*> withKey "outputs" o (pList "Array (OutputId, MeltedType)" pMeltedOutput)
+      <*> pure ()
 
-ppKernel :: Kernel -> Aeson.Value
+ppKernel :: Kernel () -> Aeson.Value
 ppKernel x =
   Aeson.object [
       "kernel_id" .=
@@ -399,7 +400,7 @@ ppKernel x =
         ppList ppMeltedOutput (kernelOutputs x)
     ]
 
-pCluster :: Aeson.Value -> Aeson.Parser Cluster
+pCluster :: Aeson.Value -> Aeson.Parser (Cluster () ())
 pCluster =
   Aeson.withObject "Cluster" $ \o ->
     Cluster
@@ -409,8 +410,9 @@ pCluster =
       <*> withKey "input_vars" o (pList "Array (SeaName, ValType)" pNamedType)
       <*> withKey "time_var" o pSeaName
       <*> withKey "kernels" o (pNonEmpty "NonEmpty Kernel" pKernel)
+      <*> pure ()
 
-ppCluster :: Cluster -> Aeson.Value
+ppCluster :: Cluster () () -> Aeson.Value
 ppCluster x =
   Aeson.object [
       "cluster_id" .=

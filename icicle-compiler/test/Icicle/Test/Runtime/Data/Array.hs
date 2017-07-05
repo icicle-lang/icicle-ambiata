@@ -1,7 +1,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
-module Icicle.Test.Runtime.Array where
+module Icicle.Test.Runtime.Data.Array where
 
 import qualified Anemone.Foreign.Mempool as Mempool
 
@@ -18,8 +18,8 @@ import           Disorder.Core.IO (testIO)
 import           Disorder.Corpus (muppets)
 import           Disorder.Jack
 
-import           Icicle.Runtime.Array (ArrayLength(..))
-import qualified Icicle.Runtime.Array as Array
+import           Icicle.Runtime.Data.Array (ArrayLength(..))
+import qualified Icicle.Runtime.Data.Array as Array
 import           Icicle.Test.Arbitrary.Run
 
 import           P

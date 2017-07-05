@@ -179,7 +179,7 @@ seaEval' program ctx values = do
 
     let mempoolIx  = Offset.programMempool
         maxMapIx   = Offset.programMaxMapSize
-        dateIx     = Offset.programInput + Offset.inputFactTime
+        dateIx     = Offset.programInput + Offset.inputQueryTime
         countIx    = Offset.programInput + Offset.inputNewCount
         -- Error is included in the input facts, so use offset of error instead of values start
         factsIx    = Offset.programInput + Offset.inputError

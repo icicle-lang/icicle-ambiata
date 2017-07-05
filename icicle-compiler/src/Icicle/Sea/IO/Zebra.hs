@@ -36,7 +36,7 @@ defaultZebraConfig = ZebraConfig defaultZebraMaxMapSize
 defaultZebraMaxMapSize :: Int
 defaultZebraMaxMapSize = 1024 * 1024
 
-seaOfZebraDriver :: [InputId] -> [Cluster] -> Either SeaError Doc
+seaOfZebraDriver :: [InputId] -> [Cluster c k] -> Either SeaError Doc
 seaOfZebraDriver inputs states = do
   let lookup x = maybeToRight (SeaNoInputIndex x) $ List.elemIndex x inputs
   indices <- sequence $ fmap (lookup . clusterInputId) states
@@ -77,7 +77,7 @@ seaOfInputCount all_inputs =
 --   zebra_read_entity_1 (1, fleet->iprogram_1, entity)
 --   ...
 -- }
-seaOfDefRead :: [(Int, Cluster)] -> Doc
+seaOfDefRead :: [(Int, Cluster c k)] -> Doc
 seaOfDefRead states = vsep
   [ vsep $ fmap (seaOfDefReadProgram . snd) states
   , "#line 1 \"read entity\""
@@ -93,7 +93,7 @@ seaOfDefRead states = vsep
   , ""
   ]
 
-seaOfRead :: Int -> Cluster -> Doc
+seaOfRead :: Int -> Cluster c k -> Doc
 seaOfRead index cluster = vsep
   [ "/*" <> n <> ": " <> a <> " */"
   , "error = zebra_read_entity_" <> n
@@ -125,7 +125,7 @@ seaOfRead index cluster = vsep
 --   }
 -- }
 --
-seaOfDefReadProgram :: Cluster -> Doc
+seaOfDefReadProgram :: Cluster c k -> Doc
 seaOfDefReadProgram cluster = vsep
   [ "#line 1 \"read entity for program" <+> seaOfClusterInfo cluster <> "\""
   , "static ierror_msg_t INLINE"
@@ -191,6 +191,6 @@ seaOfDefReadProgram cluster = vsep
  where
   kernels = NonEmpty.toList $ clusterKernels cluster
 
-nameOfRead :: Cluster -> CName
+nameOfRead :: Cluster c k -> CName
 nameOfRead cluster =
   pretty ("zebra_read_entity_" <> pretty (nameOfCluster cluster))

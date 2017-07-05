@@ -1,4 +1,7 @@
+{-# LANGUAGE DeriveFoldable #-}
+{-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -38,22 +41,24 @@ import           P
 import           X.Text.Show (gshowsPrec)
 
 
-data Cluster =
+data Cluster c k =
   Cluster {
       clusterId :: !ClusterId
     , clusterInputId :: !InputId
     , clusterInputType :: !ValType
     , clusterInputVars :: ![(SeaName, ValType)]
     , clusterTimeVar :: !SeaName
-    , clusterKernels :: !(NonEmpty Kernel)
-    } deriving (Eq, Ord, Show, Generic)
+    , clusterKernels :: !(NonEmpty (Kernel k))
+    , clusterAnnotation :: !c
+    } deriving (Eq, Ord, Show, Generic, Functor, Foldable, Traversable)
 
-data Kernel =
+data Kernel k =
   Kernel {
       kernelId :: !KernelId
     , kernelResumables :: ![(SeaName, ValType)]
     , kernelOutputs :: ![(OutputId, MeltedType)]
-    } deriving (Eq, Ord, Show, Generic)
+    , kernelAnnotation :: !k
+    } deriving (Eq, Ord, Show, Generic, Functor, Foldable, Traversable)
 
 newtype ClusterId =
   ClusterId {
@@ -89,7 +94,7 @@ instance Show KernelId where
   showsPrec =
     gshowsPrec
 
-clusterOutputs :: Cluster -> Map OutputId MeltedType
+clusterOutputs :: Cluster c k -> Map OutputId MeltedType
 clusterOutputs =
   Map.fromList . concatMap kernelOutputs . NonEmpty.toList . clusterKernels
 

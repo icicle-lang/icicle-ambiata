@@ -97,7 +97,7 @@ data Mode
 -- State
 --------------------------------------------------------------------------------
 
-seaOfConfigureFleet :: Mode -> [Cluster] -> Doc
+seaOfConfigureFleet :: Mode -> [Cluster c k] -> Doc
 seaOfConfigureFleet mode clusters
  = vsep
  [ "#line 1 \"configure fleet state\""
@@ -163,7 +163,7 @@ seaOfConfigureFleet mode clusters
      ]
 
 
-seaOfFleetState :: [Cluster] -> Doc
+seaOfFleetState :: [Cluster c k] -> Doc
 seaOfFleetState clusters
  = let time = seaOfValType TimeT
    in vsep
@@ -182,18 +182,18 @@ seaOfFleetState clusters
       , "};"
       ]
 
-defOfProgramState :: Cluster -> Doc
+defOfProgramState :: Cluster c k -> Doc
 defOfProgramState cluster
  = defOfVar' 1 (pretty (nameOfClusterState cluster))
                (pretty (nameOfCluster cluster)) <> ";"
  <+> "/* " <> (prettyText . renderInputId $ clusterInputId cluster) <> " */"
 
-defOfProgramTime :: Cluster -> Doc
+defOfProgramTime :: Cluster c k -> Doc
 defOfProgramTime cluster
  = defOfVar 0 TimeT (pretty (nameOfLastTime cluster)) <> ";"
  <+> "/* " <> (prettyText . renderInputId $ clusterInputId cluster) <> " */"
 
-defOfProgramCount :: Cluster -> Doc
+defOfProgramCount :: Cluster c k -> Doc
 defOfProgramCount cluster
   = defOfVar 0 IntT (pretty (nameOfCount cluster)) <> ";"
   <+> "/* " <> (prettyText . renderInputId $ clusterInputId cluster) <> " */"
@@ -224,7 +224,7 @@ seaOfPianoLookup
 
 ------------------------------------------------------------------------
 
-seaOfAllocFleet :: [Cluster] -> Doc
+seaOfAllocFleet :: [Cluster c k] -> Doc
 seaOfAllocFleet clusters
  = vsep
  [ "#line 1 \"allocate fleet state\""
@@ -240,7 +240,7 @@ seaOfAllocFleet clusters
  , "}"
  ]
 
-seaOfAllocProgram :: Cluster -> Doc
+seaOfAllocProgram :: Cluster c k -> Doc
 seaOfAllocProgram cluster
  = let programs  = "fleet->" <> pretty (nameOfCluster cluster)
        program   = programs <> "[ix]."
@@ -267,7 +267,7 @@ seaOfAllocProgram cluster
 
 ------------------------------------------------------------------------
 
-seaOfCollectFleet :: [Cluster] -> Doc
+seaOfCollectFleet :: [Cluster c k] -> Doc
 seaOfCollectFleet clusters
  = vsep
  [ "#line 1 \"collect fleet state\""
@@ -292,12 +292,12 @@ seaOfCollectFleet clusters
  , "}"
  ]
 
-seaOfAssignMempool :: Cluster -> Doc
+seaOfAssignMempool :: Cluster c k -> Doc
 seaOfAssignMempool cluster
  = let pname = pretty (nameOfCluster cluster)
    in "fleet->" <> pname <> "[ix].mempool = into_pool;"
 
-seaOfCollectProgram :: Cluster -> Doc
+seaOfCollectProgram :: Cluster c k -> Doc
 seaOfCollectProgram cluster
  = let pname = pretty (nameOfCluster cluster)
        stype = pretty (nameOfClusterState cluster)
@@ -373,22 +373,22 @@ needsCopy = \case
   SumT{}    -> False
   MapT{}    -> False
 
-defOfState :: Cluster -> Doc
+defOfState :: Cluster c k -> Doc
 defOfState cluster
  = let stype  = pretty (nameOfClusterState cluster)
        var    = "*p" <> prettyClusterId (clusterId cluster)
        member = "fleet->" <> pretty (nameOfCluster cluster)
    in stype <+> var <+> "=" <+> member <> ";"
 
-defOfLastTime :: Cluster -> Doc
+defOfLastTime :: Cluster c k -> Doc
 defOfLastTime cluster
  = "fleet->" <> pretty (nameOfLastTime cluster) <+> "= 0;"
 
-defOfCount :: Cluster -> Doc
+defOfCount :: Cluster c k -> Doc
 defOfCount cluster
  = "fleet->" <> pretty (nameOfCount cluster) <+> "= 0;"
 
-seaOfAssignTime :: Cluster -> Doc
+seaOfAssignTime :: Cluster c k -> Doc
 seaOfAssignTime cluster =
   let
     ptime =
@@ -422,7 +422,7 @@ data CheckedInput = CheckedInput {
   , inputVars     :: [(Name, ValType)]
   } deriving (Eq, Ord, Show)
 
-checkInputType :: Cluster -> Either SeaError CheckedInput
+checkInputType :: Cluster c k -> Either SeaError CheckedInput
 checkInputType cluster
  = case clusterInputType cluster of
      PairT (SumT ErrorT t) TimeT

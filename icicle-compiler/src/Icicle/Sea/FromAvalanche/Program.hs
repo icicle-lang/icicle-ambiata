@@ -59,8 +59,8 @@ seaOfPrograms cid iid programs = do
 
 seaOfKernel ::
      (Show a, Show n, Pretty n, Eq n)
-  => Cluster
-  -> Kernel
+  => Cluster c k
+  -> Kernel k
   -> Program (Annot a) n Prim
   -> Doc
 seaOfKernel cluster kernel program =
@@ -104,8 +104,8 @@ defOfAccumulator n t =
 
 seaOfStatement ::
      (Show a, Show n, Pretty n, Eq n)
-  => Cluster
-  -> Kernel
+  => Cluster c k
+  -> Kernel k
   -> Statement (Annot a) n Prim
   -> Doc
 seaOfStatement cluster kernel stmt

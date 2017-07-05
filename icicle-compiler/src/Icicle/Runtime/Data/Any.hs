@@ -7,8 +7,8 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-module Icicle.Runtime.Any (
-    Any(..)
+module Icicle.Runtime.Data.Any (
+    Any64(..)
   , from
   , read
   , unsafeFrom
@@ -40,9 +40,9 @@ import           Foreign.Storable (Storable(..))
 
 import           GHC.Generics (Generic)
 
-import           Icicle.Runtime.Array (Array)
+import           Icicle.Runtime.Data.Array (Array)
 
-import           P hiding (Any, any)
+import           P hiding (any)
 
 import qualified Prelude as Savage
 
@@ -54,22 +54,22 @@ import           X.Text.Show (gshowsPrec)
 
 -- | The @iany_t@ runtime type.
 --
-newtype Any =
-  Any {
-      unAny :: Word64
+newtype Any64 =
+  Any64 {
+      unAny64 :: Word64
     } deriving (Eq, Ord, Generic, Storable)
 
-instance Show Any where
+instance Show Any64 where
   showsPrec =
     gshowsPrec
 
 data AnyError =
-    AnyMustBeWordSize !Int
+    Any64MustBeWordSize !Int
     deriving (Eq, Ord, Show)
 
 renderAnyError :: AnyError -> Text
 renderAnyError = \case
-  AnyMustBeWordSize n ->
+  Any64MustBeWordSize n ->
     "Value for any must be exactly 8 bytes, found value with <" <> Text.pack (show n) <> " bytes>"
 
 valueSize :: Num a => a
@@ -80,43 +80,43 @@ valueSize =
 checkValueSize :: Storable a => a -> Either AnyError ()
 checkValueSize x = do
  if sizeOf x /= valueSize then
-   Left $ AnyMustBeWordSize (sizeOf x)
+   Left $ Any64MustBeWordSize (sizeOf x)
  else
    pure ()
 {-# INLINE checkValueSize #-}
 
-unsafeFrom :: Storable a => a -> Any
+unsafeFrom :: Storable a => a -> Any64
 unsafeFrom !x =
-  Any $! unsafePerformIO $! alloca $ \ptr -> do
+  Any64 $! unsafePerformIO $! alloca $ \ptr -> do
     poke (castPtr ptr) x
     peek ptr
 {-# INLINE unsafeFrom #-}
 
-from :: forall a. Storable a => a -> Either AnyError Any
+from :: forall a. Storable a => a -> Either AnyError Any64
 from !x = do
   checkValueSize (Savage.undefined :: a)
   pure $! unsafeFrom x
 {-# INLINE from #-}
 
-unsafeRead :: Storable a => Any -> a
-unsafeRead (Any any) =
+unsafeRead :: Storable a => Any64 -> a
+unsafeRead (Any64 any) =
   unsafePerformIO $! alloca $ \ptr -> do
     poke ptr any
     peek (castPtr ptr)
 {-# INLINE unsafeRead #-}
 
-read :: forall a. Storable a => Any -> Either AnyError a
+read :: forall a. Storable a => Any64 -> Either AnyError a
 read !any = do
   checkValueSize (Savage.undefined :: a)
   pure $! unsafeRead any
 {-# INLINE read #-}
 
-toString :: Any -> IO ByteString
+toString :: Any64 -> IO ByteString
 toString any = do
   liftIO $! ByteString.packCString $! unsafeRead any
 {-# INLINE toString #-}
 
-fromString :: Mempool -> ByteString -> IO Any
+fromString :: Mempool -> ByteString -> IO Any64
 fromString pool (PS fp off len) =
   withForeignPtr fp $ \src -> do
     let
@@ -131,12 +131,12 @@ fromString pool (PS fp off len) =
     pure $! unsafeFrom dst
 {-# INLINE fromString #-}
 
-toArray :: Any -> Array
+toArray :: Any64 -> Array
 toArray any =
   unsafeRead any
 {-# INLINE toArray #-}
 
-fromArray :: Array -> Any
+fromArray :: Array -> Any64
 fromArray any =
   unsafeFrom any
 {-# INLINE fromArray #-}
