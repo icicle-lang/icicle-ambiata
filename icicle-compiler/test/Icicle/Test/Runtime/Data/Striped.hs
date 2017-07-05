@@ -2,6 +2,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TupleSections #-}
 module Icicle.Test.Runtime.Data.Striped where
 
 import qualified Anemone.Foreign.Mempool as Mempool
@@ -97,7 +98,7 @@ genValue = \case
   Schema.Time ->
     Logical.Time <$> genTime64
   Schema.String ->
-    Logical.String . Char8.pack . filter (/= '\0') <$> arbitrary
+    Logical.String . Char8.pack . filter (/= '\0') <$> listOfN 0 20 arbitrary
   Schema.Sum x y ->
     oneOf [
         Logical.Left <$> genValue x
@@ -127,6 +128,12 @@ genColumn schema =
   justOf $
     rightToMaybe . Striped.fromLogical schema . Boxed.fromList <$> listOfN 0 20 (genValue schema)
 
+genSingleton :: Schema -> Jack (Value, Column)
+genSingleton schema =
+  justOf $ do
+    x <- genValue schema
+    pure . fmap (x,) . rightToMaybe . Striped.fromLogical schema $ Boxed.singleton x
+
 prop_roundtrip_striped_logical :: Property
 prop_roundtrip_striped_logical =
   gamble genSchema $ \schema ->
@@ -146,6 +153,18 @@ prop_roundtrip_striped_arrays =
   bracket Mempool.create Mempool.free $ \pool -> do
     arrays <- runEitherIO $ Striped.toArrays pool column0
     column <- runEitherIO $ Striped.fromArrays pool schema arrays
+    pure $
+      column0 === column
+
+prop_roundtrip_striped_anys :: Property
+prop_roundtrip_striped_anys =
+  gamble genSchema $ \schema ->
+  gamble (genSingleton schema) $ \(_, column0) ->
+  testIO .
+  Segv.withSegv (ppShow column0) .
+  bracket Mempool.create Mempool.free $ \pool -> do
+    anys <- runEitherIO $ Striped.headAnys pool column0
+    column <- runEitherIO $ Striped.fromAnys pool schema anys
     pure $
       column0 === column
 
