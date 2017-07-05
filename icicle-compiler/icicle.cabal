@@ -46,6 +46,7 @@ library
                      , hashable                        == 1.2.*
                      , lens                            >= 4.7        && < 4.15
                      , mmorph                          == 1.0.*
+                     , mtl                             == 2.2.*
                      , old-locale                      == 1.0.*
                      , parallel                        == 3.2.*
                      , pretty-show                     == 1.6.*
@@ -128,6 +129,11 @@ library
                        Icicle.Internal.Rename
 
                        Icicle.Runtime.Array
+                       Icicle.Runtime.Data
+                       Icicle.Runtime.Data.Logical
+                       Icicle.Runtime.Data.Primitive
+                       Icicle.Runtime.Data.Schema
+                       Icicle.Runtime.Data.Striped
 
                        Icicle.Simulator
 

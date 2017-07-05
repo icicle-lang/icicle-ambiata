@@ -24,6 +24,7 @@ import qualified Icicle.Test.Data.Time
 import qualified Icicle.Test.Internal.EditDistance
 
 import qualified Icicle.Test.Runtime.Array
+import qualified Icicle.Test.Runtime.Data.Striped
 
 import qualified Icicle.Test.Source.PrettyParse
 import qualified Icicle.Test.Source.Progress
@@ -92,10 +93,10 @@ sundry =
     , Icicle.Test.Data.Time.tests
     , Icicle.Test.Encoding.tests
     , Icicle.Test.Foreign.Array.tests
-    , Icicle.Test.Foreign.Array.tests
     , Icicle.Test.Internal.EditDistance.tests
     , Icicle.Test.Language.tests
     , Icicle.Test.Runtime.Array.tests
+    , Icicle.Test.Runtime.Data.Striped.tests
     , Icicle.Test.Serial.tests
     , Icicle.Test.Source.Convert.tests
     , Icicle.Test.Source.History.tests

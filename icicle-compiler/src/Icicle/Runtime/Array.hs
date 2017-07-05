@@ -20,17 +20,27 @@ module Icicle.Runtime.Array (
   , read
   , write
   , grow
+  , replicate
   , fromVector
   , fromList
+  , fromStringSegments
+  , fromArraySegments
   , toVector
   , toList
+  , toStringSegments
+  , toArraySegments
+
+  , makeDescriptor
+  , takeDescriptor
 
   , unsafeRead
   , unsafeWrite
   , unsafeFromMVector
   , unsafeFromVector
-  , unsafeToMVector
-  , unsafeToVector
+  , unsafeFromStringSegments
+  , unsafeFromArraySegments
+  , unsafeViewMVector
+  , unsafeViewVector
 
   , ArrayError(..)
   , renderArrayError
@@ -44,8 +54,10 @@ module Icicle.Runtime.Array (
   , unsafeLengthPtr
   , unsafeElementPtr
   , unsafeAllocate
+  , unsafeViewCString
   , checkElementSize
   , checkBounds
+  , checkSegmentDescriptor
   ) where
 
 import           Anemone.Foreign.Mempool (Mempool)
@@ -55,13 +67,18 @@ import           Control.Monad.IO.Class (liftIO)
 import           Control.Monad.Primitive (PrimState)
 
 import           Data.Bits (countLeadingZeros, shiftL)
+import qualified Data.ByteString as ByteString
+import           Data.ByteString.Internal (ByteString(..))
 import qualified Data.Text as Text
+import qualified Data.Vector as Boxed
 import qualified Data.Vector.Storable as Storable
 import qualified Data.Vector.Storable.Mutable as MStorable
 import           Data.Void (Void)
+import           Data.Word (Word8)
 
 import           Foreign.C.Types (CSize(..))
-import           Foreign.ForeignPtr (newForeignPtr_)
+import           Foreign.C.String (CString)
+import           Foreign.ForeignPtr (newForeignPtr_, withForeignPtr)
 import           Foreign.Ptr (Ptr, plusPtr, castPtr)
 import           Foreign.Storable (Storable(..))
 
@@ -115,6 +132,7 @@ newtype ArrayFootprint =
 data ArrayError =
     ArrayElementsMustBeWordSize !Int
   | ArrayIndexOutOfBounds !ArrayIndex !ArrayLength
+  | ArraySegmentDescriptorMismatch !ArrayLength !ArrayLength
     deriving (Eq, Ord, Show)
 
 renderArrayError :: ArrayError -> Text
@@ -123,6 +141,8 @@ renderArrayError = \case
     "Array elements must be exactly 8 bytes, found element with <" <> Text.pack (show n) <> " bytes>"
   ArrayIndexOutOfBounds (ArrayIndex ix) (ArrayLength len) ->
     "Array index <" <> Text.pack (show ix) <> "> was out of bounds [0, " <> Text.pack (show len) <> ")"
+  ArraySegmentDescriptorMismatch (ArrayLength m) (ArrayLength n) ->
+    "Array length <" <> Text.pack (show n) <> "> did not match segment descriptor length <" <> Text.pack (show m) <> ">"
 
 instance Show Array where
   showsPrec =
@@ -230,6 +250,18 @@ checkBounds array (ArrayIndex ix) = do
     left $ ArrayIndexOutOfBounds (ArrayIndex ix) (ArrayLength n)
 {-# INLINE checkBounds #-}
 
+checkSegmentDescriptor :: Storable.Vector ArrayLength -> ArrayLength -> EitherT ArrayError IO ()
+checkSegmentDescriptor ns m =
+  let
+    n =
+      Storable.sum ns
+  in
+    if m == n then
+      pure ()
+    else
+      left $ ArraySegmentDescriptorMismatch m n
+{-# INLINE checkSegmentDescriptor #-}
+
 unsafeRead :: Storable a => Array -> ArrayIndex -> IO a
 unsafeRead array (ArrayIndex ix) =
   peekByteOff (unsafeElementPtr array) (fromIntegral (elementSize * ix))
@@ -284,23 +316,38 @@ grow pool arrayOld@(Array ptrOld) lengthNew = do
     pure arrayNew
 {-# INLINABLE grow #-}
 
-unsafeToMVector :: Storable a => Array -> IO (MStorable.MVector (PrimState IO) a)
-unsafeToMVector array = do
+replicate :: Storable a => Mempool -> ArrayLength -> a -> IO Array
+replicate pool n x = do
+  !array <- new pool n
+
+  let
+    loop !ix =
+      if ix < fromIntegral n then do
+        unsafeWrite array ix x
+        loop (ix + 1)
+      else
+        pure array
+
+  loop 0
+{-# INLINABLE replicate #-}
+
+unsafeViewMVector :: Storable a => Array -> IO (MStorable.MVector (PrimState IO) a)
+unsafeViewMVector array = do
   !n <- length array
   !fp <- newForeignPtr_ (unsafeElementPtr array)
   pure $! MStorable.unsafeFromForeignPtr0 fp (fromIntegral n)
-{-# INLINE unsafeToMVector #-}
+{-# INLINE unsafeViewMVector #-}
 
-unsafeToVector :: Storable a => Array -> IO (Storable.Vector a)
-unsafeToVector array =
-  Storable.unsafeFreeze =<<! unsafeToMVector array
-{-# INLINE unsafeToVector #-}
+unsafeViewVector :: Storable a => Array -> IO (Storable.Vector a)
+unsafeViewVector array =
+  Storable.unsafeFreeze =<<! unsafeViewMVector array
+{-# INLINE unsafeViewVector #-}
 
 toVector :: forall a. Storable a => Array -> EitherT ArrayError IO (Storable.Vector a)
 toVector array = do
   checkElementSize (Savage.undefined :: a)
   liftIO $!
-    Storable.freeze =<<! unsafeToMVector array
+    Storable.freeze =<<! unsafeViewMVector array
 {-# INLINE toVector #-}
 
 seqList :: [a] -> b -> b
@@ -314,7 +361,7 @@ seqList xs0 o =
 
 unsafeToList :: Storable a => Array -> IO [a]
 unsafeToList array = do
-  xs <- Storable.toList <$> unsafeToVector array
+  xs <- Storable.toList <$> unsafeViewVector array
   xs `seqList` pure xs
 {-# INLINE unsafeToList #-}
 
@@ -358,5 +405,148 @@ fromList pool xs =
   fromVector pool $! Storable.fromList xs
 {-# INLINE fromList #-}
 
+makeDescriptor :: Storable.Vector Int64 -> Storable.Vector ArrayLength
+makeDescriptor =
+  Storable.unsafeCast
+{-# INLINE makeDescriptor #-}
+
+takeDescriptor :: Storable.Vector ArrayLength -> Storable.Vector Int64
+takeDescriptor =
+  Storable.unsafeCast
+{-# INLINE takeDescriptor #-}
+
+unsafeFromStringSegments :: Mempool -> Storable.Vector ArrayLength -> ByteString -> IO Array
+unsafeFromStringSegments pool ns (PS fp off0 _) =
+  withForeignPtr fp $ \srcPtr -> do
+    let
+      !dstLength =
+        Storable.length ns
+
+    !dstArray <- new pool (fromIntegral dstLength)
+
+    let
+      loop (!ix, !off) n = do
+        let
+          !n_csize =
+            fromIntegral n
+
+          !n_int =
+            fromIntegral n
+
+        dstElemPtr <- Mempool.allocBytes pool (n_csize + 1)
+
+        c_memcpy dstElemPtr (srcPtr `plusPtr` off) n_csize
+        pokeByteOff dstElemPtr n_int (0 :: Word8)
+
+        unsafeWrite dstArray ix dstElemPtr
+
+        pure (ix + 1, off + n_int)
+
+    Storable.foldM_ loop (0, off0) ns
+
+    pure dstArray
+{-# INLINABLE unsafeFromStringSegments #-}
+
+fromStringSegments :: Mempool -> Storable.Vector ArrayLength -> ByteString -> EitherT ArrayError IO Array
+fromStringSegments pool ns bs = do
+  checkSegmentDescriptor ns . fromIntegral $ ByteString.length bs
+  liftIO $! unsafeFromStringSegments pool ns bs
+{-# INLINE fromStringSegments #-}
+
+unsafeViewCString :: CString -> IO ByteString
+unsafeViewCString ptr = do
+  !n <- c_strlen ptr
+  !fp <- newForeignPtr_ (castPtr ptr)
+  pure $! PS fp 0 (fromIntegral n)
+{-# INLINE unsafeViewCString #-}
+
+toStringSegments :: Array -> IO (Storable.Vector ArrayLength, ByteString)
+toStringSegments array = do
+  !cstrs <- unsafeViewVector array
+  !bss <- Boxed.mapM unsafeViewCString $ Storable.convert cstrs
+
+  let
+    !ns =
+      Storable.convert $ fmap (fromIntegral . ByteString.length) bss
+
+    !bs =
+      ByteString.concat $ Boxed.toList bss
+
+  pure (ns, bs)
+{-# INLINE toStringSegments #-}
+
+unsafeFromArraySegments :: Mempool -> Storable.Vector ArrayLength -> Array -> IO Array
+unsafeFromArraySegments pool ns srcArray = do
+  let
+    !dstLength =
+      Storable.length ns
+
+  !dstArrayArray <- new pool (fromIntegral dstLength)
+
+  let
+    !srcPtr =
+      unsafeElementPtr srcArray
+
+    loop (!ix, !off) !n = do
+      dstArray <- new pool n
+
+      let
+        !dstPtr =
+          unsafeElementPtr dstArray
+
+        !size =
+          fromIntegral n * elementSize
+
+      c_memcpy dstPtr (srcPtr `plusPtr` off) (fromIntegral size)
+
+      unsafeWrite dstArrayArray ix dstArray
+
+      pure (ix + 1, off + size)
+
+  Storable.foldM_ loop (0, 0) ns
+
+  pure dstArrayArray
+{-# INLINABLE unsafeFromArraySegments #-}
+
+fromArraySegments :: Mempool -> Storable.Vector ArrayLength -> Array -> EitherT ArrayError IO Array
+fromArraySegments pool ns array = do
+  m <- liftIO $ length array
+  checkSegmentDescriptor ns m
+  liftIO $! unsafeFromArraySegments pool ns array
+{-# INLINE fromArraySegments #-}
+
+toArraySegments :: Mempool -> Array -> IO (Storable.Vector ArrayLength, Array)
+toArraySegments pool srcArrayArray = do
+  !srcArrays <- unsafeViewVector srcArrayArray
+  !ns <- Storable.mapM length srcArrays
+
+  !dstArray <- new pool (Storable.sum ns)
+
+  let
+    !dstPtr =
+      unsafeElementPtr dstArray
+
+    loop !off !srcArray = do
+      !n <- length srcArray
+
+      let
+        !srcPtr =
+          unsafeElementPtr srcArray
+
+        !size =
+          fromIntegral n * elementSize
+
+      c_memcpy (dstPtr `plusPtr` off) srcPtr (fromIntegral size)
+
+      pure (off + size)
+
+  Storable.foldM_ loop 0 srcArrays
+
+  pure (ns, dstArray)
+{-# INLINE toArraySegments #-}
+
 foreign import ccall unsafe "string.h memcpy"
   c_memcpy :: Ptr a -> Ptr a -> CSize -> IO ()
+
+foreign import ccall unsafe "string.h strlen"
+  c_strlen :: CString -> IO CSize
