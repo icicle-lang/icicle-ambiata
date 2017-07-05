@@ -83,7 +83,7 @@ typeOfPrim p
 
     -- Folds
     PrimFold PrimFoldBool ret
-     -> FunT [funOfVal ret, funOfVal ret, funOfVal BoolT] ret
+     -> FunT [FunT [funOfVal UnitT] ret, FunT [funOfVal UnitT] ret, funOfVal BoolT] ret
     PrimFold (PrimFoldArray a) ret
      -> FunT [FunT [funOfVal ret, funOfVal a] ret, funOfVal ret, funOfVal (ArrayT a)] ret
     PrimFold (PrimFoldOption a) ret
