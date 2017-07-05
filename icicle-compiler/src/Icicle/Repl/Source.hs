@@ -5,7 +5,7 @@
 {-# LANGUAGE PatternGuards     #-}
 {-# LANGUAGE TupleSections     #-}
 
--- * Components of REPL for the Source language
+-- | Components of REPL for the Source language
 module Icicle.Repl.Source
   ( SourceReplState (..)
   , ErrorSource (..)

@@ -12,12 +12,16 @@ import           Control.Monad.IO.Class (MonadIO, liftIO)
 import           Control.Monad.Morph
 
 import qualified Data.ByteString as B
+import           Data.String (String)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import           Data.Time (getCurrentTime, diffUTCTime)
 
 import           Icicle.Command
 import           Icicle.Data.Time (timeOfText)
+import qualified Icicle.Repl as Repl
+import           Icicle.Repl.Base (ReplOptions(..))
+import qualified Icicle.Repl.Base as Repl
 import           Icicle.Sea.Eval
 
 import           P
@@ -33,7 +37,8 @@ import           X.Options.Applicative
 
 
 data IcicleCommand =
-    IcicleCompile FilePath FilePath InputFormat OutputFormat (Scope ()) CompilerFlags
+    IcicleRepl ReplOptions
+  | IcicleCompile FilePath FilePath InputFormat OutputFormat (Scope ()) CompilerFlags
   | IcicleQuery QueryOptions
     deriving (Eq, Ord, Show)
 
@@ -51,6 +56,10 @@ parser =
 commands :: [Mod CommandFields IcicleCommand]
 commands = [
     command'
+      "repl"
+      "Interactively evaluate icicle expressions."
+      pRepl
+  , command'
       "compile"
       "Compile a dictionary to its C intermediate form."
       pCompile
@@ -59,6 +68,12 @@ commands = [
       "Run an icicle query over some data."
       pQuery
   ]
+
+pRepl :: Parser IcicleCommand
+pRepl =
+  fmap IcicleRepl $
+  ReplOptions
+    <$> many pReplCommand
 
 pCompile :: Parser IcicleCommand
 pCompile =
@@ -83,6 +98,13 @@ pQuery =
     <*> pDrop
     <*> pFlagDrop
     <*> pMaxMapSize
+
+pReplCommand :: Parser String
+pReplCommand =
+  strOption $
+    long "init" <>
+    metavar "COMMAND" <>
+    help "A command to execute in the REPL before interative evaluation begins."
 
 pDictionaryFile :: Parser DictionaryFile
 pDictionaryFile =
@@ -230,6 +252,9 @@ icicleFingerprint =
 
 runCommand :: IcicleCommand -> EitherT IcicleError IO ()
 runCommand = \case
+  IcicleRepl evals ->
+    liftIO $ Repl.runRepl Repl.defaultState Repl.handleLine evals
+
   IcicleCompile tomlPath opath iformat oformat scope cflags -> do
     start <- liftIO getCurrentTime
     liftIO $ putStrLn "icicle: starting compilation"
