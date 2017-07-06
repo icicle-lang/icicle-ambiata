@@ -5,11 +5,25 @@
 
 typedef int64_t bool64_t;
 
+// Default
+typedef enum zebra_default {
+    ZEBRA_DEFAULT_DENY,
+    ZEBRA_DEFAULT_ALLOW
+} zebra_default_t;
+
 // Encodings
 typedef enum zebra_binary_encoding {
     ZEBRA_BINARY_NONE,
     ZEBRA_BINARY_UTF8
 } zebra_binary_encoding_t;
+
+typedef enum zebra_int_encoding {
+    ZEBRA_INT_NONE,
+    ZEBRA_INT_DATE,
+    ZEBRA_INT_TIME_SECONDS,
+    ZEBRA_INT_TIME_MILLISECONDS,
+    ZEBRA_INT_TIME_MICROSECONDS
+} zebra_int_encoding_t;
 
 // Forward declarations for recursive structures
 struct zebra_column;
@@ -27,15 +41,18 @@ typedef enum zebra_table_tag {
 typedef union zebra_table_variant {
     // ZEBRA_TABLE_BINARY
     struct {
+        zebra_default_t default_;
         zebra_binary_encoding_t encoding;
         char* bytes;
     } _binary;
     // ZEBRA_TABLE_ARRAY
     struct {
+        zebra_default_t default_;
         zebra_column_t* values;
     } _array;
     // ZEBRA_TABLE_MAP
     struct {
+        zebra_default_t default_;
         zebra_column_t* keys;
         zebra_column_t* values;
     } _map;
@@ -55,7 +72,6 @@ typedef struct zebra_table {
 } zebra_table_t;
 
 
-
 // ------------------------
 // Vector (Variant, Column)
 // Vector (Field,   Column)
@@ -73,7 +89,7 @@ typedef struct zebra_named_columns {
 
 
 // ------------------------
-// Zebra.Table.Column
+// Zebra.Table.Striped.Column
 // ------------------------
 typedef enum zebra_column_tag {
     ZEBRA_COLUMN_UNIT,
@@ -89,16 +105,21 @@ typedef union zebra_column_variant {
     struct {
     } _unit;
     struct {
+        zebra_default_t default_;
+        zebra_int_encoding_t encoding;
         int64_t *values;
     } _int;
     struct {
+        zebra_default_t default_;
         double *values;
     } _double;
     struct {
+        zebra_default_t default_;
         int64_t *tags;
         zebra_named_columns_t columns;
     } _enum;
     struct {
+        zebra_default_t default_;
         zebra_named_columns_t columns;
     } _struct;
     struct {
@@ -111,7 +132,7 @@ typedef union zebra_column_variant {
         // This requires a little more computation to remove the offset,
         // but allows us to reuse prefix sums from the middle of other arrays
         // without copying them.
-        // 
+        //
         // Example nested array:
         //
         //            [ [ 1 2 3 ]  [ 4 5 ]  [ 6 7 8 ] ]
@@ -127,7 +148,7 @@ typedef union zebra_column_variant {
         //  Lengths[i] = Scans[i+1] - Scans[i]
         //  Starts[i]  = Scans[i]   - Scans[0]
         //  Ends[i]    = Scans[i+1] - Scans[0]
-        // 
+        //
         // The inner table's row count is the total number of elements:
         //  table.row_count = Scans[length] - Scans[0]
         int64_t *indices;
