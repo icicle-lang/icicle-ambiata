@@ -14,8 +14,6 @@
   command = [["master", "build", "dist-7-10", "-C", "icicle-core"]]
 [build.dist-7-10-data]
   command = [["master", "build", "dist-7-10", "-C", "icicle-data"]]
-[build.dist-7-10-repl]
-  command = [["master", "build", "dist-7-10", "-C", "icicle-repl"]]
 [build.dist-7-10-source]
   command = [["master", "build", "dist-7-10", "-C", "icicle-source"]]
 
@@ -25,8 +23,6 @@
   command = [["master", "build", "dist-8-0", "-C", "icicle-core"]]
 [build.dist-8-0-data]
   command = [["master", "build", "dist-8-0", "-C", "icicle-data"]]
-[build.dist-8-0-repl]
-  command = [["master", "build", "dist-8-0", "-C", "icicle-repl"]]
 [build.dist-8-0-source]
   command = [["master", "build", "dist-8-0", "-C", "icicle-source"]]
 
@@ -42,8 +38,6 @@
   command = [["master", "build", "branches-7-10", "-C", "icicle-core"]]
 [build.branches-7-10-data]
   command = [["master", "build", "branches-7-10", "-C", "icicle-data"]]
-[build.branches-7-10-repl]
-  command = [["master", "build", "branches-7-10", "-C", "icicle-repl"]]
 [build.branches-7-10-source]
   command = [["master", "build", "branches-7-10", "-C", "icicle-source"]]
 
@@ -59,7 +53,5 @@
   command = [["master", "build", "branches-8-0", "-C", "icicle-core"]]
 [build.branches-8-0-data]
   command = [["master", "build", "branches-8-0", "-C", "icicle-data"]]
-[build.branches-8-0-repl]
-  command = [["master", "build", "branches-8-0", "-C", "icicle-repl"]]
 [build.branches-8-0-source]
   command = [["master", "build", "branches-8-0", "-C", "icicle-source"]]

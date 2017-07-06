@@ -2,10 +2,10 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE PatternGuards     #-}
-
-module Icicle.Repl.Base
-  ( Command (..)
-  , DictionaryLoadType (..)
+module Icicle.Repl.Base (
+    ReplOptions(..)
+  , Command(..)
+  , DictionaryLoadType(..)
   , readCommand
   , runRepl
   , nl
@@ -32,6 +32,11 @@ import           Icicle.Internal.Pretty           (Pretty)
 import qualified Icicle.Internal.Pretty           as PP
 
 
+data ReplOptions =
+  ReplOptions {
+      replInit :: [String]
+    } deriving (Eq, Ord, Show)
+
 data Command setcmd
    = CommandBlank
    | CommandHelp
@@ -43,7 +48,6 @@ data Command setcmd
    | CommandUnknown        String
    | CommandLetFunction    String
    | CommandSetShow
-
 
 data DictionaryLoadType
  = DictionaryLoadTextV1 FilePath
@@ -74,10 +78,8 @@ readCommand readSetCommands ss = case words ss of
   _                                -> Nothing
 
 
-runRepl :: a
-        -> (a -> String -> HL.InputT IO a)
-        -> [String] -> IO ()
-runRepl defaultState handleLine inits
+runRepl :: a -> (a -> String -> HL.InputT IO a) -> ReplOptions -> IO ()
+runRepl defaultState handleLine options
   = do putStrLn "welcome to iREPL"
        h <- getHomeDirectory
        c <- getCurrentDirectory
@@ -85,7 +87,7 @@ runRepl defaultState handleLine inits
        HL.runInputT s
         $ do dot1   <- liftIO $ dotfile (h <> "/.icicle")
              dot2   <- liftIO $ dotfile (c <> "/.icicle")
-             state' <- foldM handleLine defaultState (dot1 <> dot2 <> inits)
+             state' <- foldM handleLine defaultState (dot1 <> dot2 <> replInit options)
              withInterrupt $ loop state'
   where
     settings home
