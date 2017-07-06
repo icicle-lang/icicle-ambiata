@@ -46,7 +46,7 @@ data Pattern n
 
 boundOfPattern :: Eq n => Pattern n -> Set.Set (Name n)
 boundOfPattern p = case p of
- PatCon c ps   -> Set.unions $ fmap boundOfPattern ps
+ PatCon _ ps   -> Set.unions $ fmap boundOfPattern ps
  PatDefault    -> Set.empty
  PatVariable n -> Set.singleton n
 
