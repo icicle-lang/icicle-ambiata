@@ -32,6 +32,7 @@ module Icicle.Compiler (
   , fuseCore
   , coreOfSource
   , coreOfSource1
+  , checkCore
 
     -- * Works on Avalanche programs
   , flattenAvalanche
@@ -68,7 +69,9 @@ import qualified Icicle.Common.Fresh                      as Fresh
 import qualified Icicle.Common.Type                       as Common
 
 import qualified Icicle.Core.Exp.Prim                     as Core
+import qualified Icicle.Core.Program.Check                as Core
 import qualified Icicle.Core.Program.Condense             as Core
+import qualified Icicle.Core.Program.Error                as Core
 import qualified Icicle.Core.Program.Fusion               as Core
 import qualified Icicle.Core.Program.Program              as Core
 import qualified Icicle.Core.Program.Simp                 as Core
@@ -140,6 +143,7 @@ data ErrorCompile var
  -- Core
  | ErrorConvert     !(ToCore.ConvertError     Parsec.SourcePos var                  )
  | ErrorFusion      !(Core.FusionError                         Source.Var           )
+ | ErrorCoreCheck   !(Core.ProgramError       Source.AnnotUnit var                  )
  -- Avalanche/Flatten
  | ErrorFlatten     !(Avalanche.FlattenError  Source.AnnotUnit var                  )
  | ErrorFlattenSimp !(Avalanche.SimpError     Source.AnnotUnit var         Flat.Prim)
@@ -158,6 +162,8 @@ annotOfError e
      -> Source.annotOfError e'
     ErrorConvert e'
      -> ToCore.annotOfError e'
+    ErrorCoreCheck _
+     -> Nothing
     ErrorFusion _
      -> Nothing
     ErrorFlatten _
@@ -178,6 +184,9 @@ instance (Hashable a, Eq a, IsString a, Pretty a, Show a) => Pretty (ErrorCompil
       <> indent 2 (pretty ce)
      ErrorFusion ce
       -> "Fusion error:" <> line
+      <> indent 2 (pretty ce)
+     ErrorCoreCheck ce
+      -> "Core error:" <> line
       <> indent 2 (pretty ce)
      ErrorFlatten d
       -> "Flatten error:" <> line
@@ -279,7 +288,15 @@ coreOfSource1 opt dict virtual = do
   (checked, _)   <- first ErrorSource $ Source.sourceCheckQT   (Source.icicleBigData opt) dict desugared
   let reified     = Source.sourceReifyQT checked
   core           <- sourceConvert dict reified
+  _              <- checkCore core
   return $ coreSimp core
+
+checkCore      :: IsName v
+               => Source.CoreProgramUntyped v
+               -> Either (ErrorCompile v) [(OutputId, Common.Type)]
+checkCore prog
+ = first ErrorCoreCheck
+ $ Core.checkProgram prog
 
 
 ----------------------------------------

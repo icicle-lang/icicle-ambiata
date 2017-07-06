@@ -58,7 +58,6 @@ import           System.FilePath (FilePath)
 import           System.IO (IO, IOMode(..), withFile, hFileSize)
 
 import           Text.Printf (printf)
-import           Text.Show.Pretty (ppShow)
 
 import           Prelude (putStrLn)
 
@@ -76,9 +75,9 @@ data IcicleError =
 renderIcicleError :: IcicleError -> Text
 renderIcicleError = \case
   IcicleDictionaryImportError x ->
-    Text.pack $ ppShow x
+    Text.pack . show $ pretty x
   IcicleCompileError x ->
-    Text.pack $ ppShow x
+    Text.pack . show $ pretty x
   IcicleSeaError err ->
     Text.pack . show $ pretty err
 
