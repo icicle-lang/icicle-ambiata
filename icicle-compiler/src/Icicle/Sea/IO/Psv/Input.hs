@@ -55,7 +55,7 @@ data SeaInputError = SeaInputError
     -- ^ what to do when ent-attr count exceeds limit
   }
 
-nameOfReadFact :: Cluster -> CName
+nameOfReadFact :: Cluster c k -> CName
 nameOfReadFact cluster = pretty ("psv_read_fact_" <> renderClusterId (clusterId cluster))
 
 seaOfReadTime :: CBlock
@@ -102,8 +102,8 @@ seaOfReadTombstone input = \case
 
 seaOfReadNamedFact :: SeaInputError
                    -> InputAllowDupTime
-                   -> [Cluster]
-                   -> Cluster
+                   -> [Cluster c k]
+                   -> Cluster c k
                    -> CStmt
 seaOfReadNamedFact errs allowDupTime all_clusters cluster
  = let fun    = nameOfReadFact cluster
@@ -171,7 +171,7 @@ seaOfReadNamedFact errs allowDupTime all_clusters cluster
       ]
 
 seaOfReadFact
-  :: Cluster
+  :: Cluster c k
   -> Set Text
   -> CheckedInput
   -> CStmt -- C block that reads the input value
@@ -231,7 +231,7 @@ seaOfReadFact cluster tombstones input readInput checkCount =
 seaOfReadAnyFactPsv
   :: InputOpts
   -> PsvInputConfig
-  -> [Cluster]
+  -> [Cluster c k]
   -> Either SeaError Doc
 seaOfReadAnyFactPsv opts config clusters = do
   case inputPsvFormat config of
@@ -288,7 +288,7 @@ seaOfReadAnyFactPsv opts config clusters = do
 
 -- * Dense PSV
 
-seaOfReadNamedFactDense :: InputOpts -> Cluster -> Doc
+seaOfReadNamedFactDense :: InputOpts -> Cluster c k -> Doc
 seaOfReadNamedFactDense opts cluster
  = let attrib = renderInputName (inputName (clusterInputId cluster))
        errs   = SeaInputError
@@ -319,7 +319,7 @@ seaOfReadNamedFactDense opts cluster
       ]
 
 
-seaOfReadFactDense :: PsvInputDenseDict -> Cluster -> Set Text -> Either SeaError Doc
+seaOfReadFactDense :: PsvInputDenseDict -> Cluster c k -> Set Text -> Either SeaError Doc
 seaOfReadFactDense dict cluster tombstones = do
   let feeds  = denseDict dict
   let attr   = renderInputName . inputName . clusterInputId $ cluster
@@ -435,7 +435,7 @@ mappingOfDenseFields fields varsoup
 
 -- * Sparse PSV
 
-seaOfReadNamedFactSparse :: InputOpts -> [Cluster] -> Cluster -> Doc
+seaOfReadNamedFactSparse :: InputOpts -> [Cluster c k] -> Cluster c k -> Doc
 seaOfReadNamedFactSparse opts all_clusters cluster
  = let attrib = renderInputName (inputName (clusterInputId cluster))
        errs   = SeaInputError
@@ -470,7 +470,7 @@ seaOfReadNamedFactSparse opts all_clusters cluster
       ]
 
 seaOfReadFactSparse
-  :: Cluster
+  :: Cluster c k
   -> Set Text
   -> Either SeaError Doc
 seaOfReadFactSparse cluster tombstones = do
@@ -482,7 +482,7 @@ seaOfReadFactSparse cluster tombstones = do
 
 -- * Generic reading of JSON and stuff in PSV
 
-seaOfCheckCount :: Cluster -> CStmt
+seaOfCheckCount :: Cluster c k -> CStmt
 seaOfCheckCount cluster = vsep
   [ "if (new_count == max_row_count) {"
   -- We need to set the program count before executing it.
@@ -666,6 +666,6 @@ seaOfReadJsonField assign ftype vars = do
     , "    break;"
     ]
 
-lookupTombstones :: InputOpts -> Cluster -> Set Text
+lookupTombstones :: InputOpts -> Cluster c k -> Set Text
 lookupTombstones opts cluster =
   fromMaybe Set.empty (Map.lookup (clusterInputId cluster) (inputTombstones opts))

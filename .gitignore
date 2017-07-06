@@ -1,6 +1,5 @@
 dist
 cabal-dev
-gen
 *.o
 *.hi
 *.chi
@@ -12,3 +11,9 @@ cabal.sandbox.config
 data/*.psv
 data/part.*
 *.class
+
+icicle-compiler/gen
+icicle-core/gen
+icicle-data/gen
+icicle-repl/gen
+icicle-source/gen

@@ -10,7 +10,10 @@
 module Icicle.Runtime.Data.Striped (
     Column(..)
 
+  , empty
   , schema
+  , unsafeConcat
+  , unsafeAppend
 
   , meltedCount
   , toArrays
@@ -43,10 +46,10 @@ import           Foreign.Storable (Storable)
 
 import           GHC.Generics (Generic)
 
-import           Icicle.Runtime.Any (Any, AnyError)
-import qualified Icicle.Runtime.Any as Any
-import           Icicle.Runtime.Array (Array, ArrayError)
-import qualified Icicle.Runtime.Array as Array
+import           Icicle.Runtime.Data.Any (Any64, AnyError)
+import qualified Icicle.Runtime.Data.Any as Any
+import           Icicle.Runtime.Data.Array (Array, ArrayError)
+import qualified Icicle.Runtime.Data.Array as Array
 import           Icicle.Runtime.Data.Logical (LogicalError)
 import qualified Icicle.Runtime.Data.Logical as Logical
 import           Icicle.Runtime.Data.Primitive
@@ -94,6 +97,9 @@ data StripedError =
   | StripedNestedEmpty
   | StripedNestedLengthMismatch !Schema !Segment.SegmentError
   | StripedLogicalError !LogicalError
+  | StripedAppendColumnMismatch !Schema !Schema
+  | StripedAppendFieldMismatch !(Field Schema) !(Field Schema)
+  | StripedConcatEmptyVector
     deriving (Eq, Show)
 
 renderStripedError :: StripedError -> Text
@@ -125,6 +131,23 @@ renderStripedError = \case
 
   StripedLogicalError x ->
     Logical.renderLogicalError x
+
+  StripedAppendColumnMismatch x y ->
+    "Cannot append columns with different schemas:" <>
+    "\n  first = " <>
+    "\n    " <> Text.pack (show x) <>
+    "\n  second = " <>
+    "\n    " <> Text.pack (show y)
+
+  StripedAppendFieldMismatch x y ->
+    "Cannot append fields with different schemas:" <>
+    "\n  first = " <>
+    "\n    " <> Text.pack (show x) <>
+    "\n  second = " <>
+    "\n    " <> Text.pack (show y)
+
+  StripedConcatEmptyVector ->
+    "Internal error, tried to concat empty vector"
 
 schema :: Column -> Schema
 schema = \case
@@ -283,12 +306,12 @@ headValue s xs =
   else
     pure $! Storable.unsafeHead xs
 
-headAny :: Storable a => Schema -> Storable.Vector a -> EitherT StripedError IO [Any]
+headAny :: Storable a => Schema -> Storable.Vector a -> EitherT StripedError IO [Any64]
 headAny s xs = do
   x <- headValue s xs
   hoistEither . bimap StripedAnyError pure $ Any.from x
 
-headAnys :: Mempool -> Column -> EitherT StripedError IO [Any]
+headAnys :: Mempool -> Column -> EitherT StripedError IO [Any64]
 headAnys pool = \case
   Unit _ ->
     hoistEither . bimap StripedAnyError pure $
@@ -381,7 +404,7 @@ takeUnit = do
   x <- take1 Schema.Unit
   liftIO . fmap (Unit . fromIntegral) $ Array.length x
 
-takeUnit1 :: EitherT StripedError (StateT [Any] IO) Column
+takeUnit1 :: EitherT StripedError (StateT [Any64] IO) Column
 takeUnit1 = do
   _ <- take1 Schema.Unit
   pure $ Unit 1
@@ -391,7 +414,7 @@ takeBool = do
   x <- take1 Schema.Bool
   hoist lift . bimapT StripedArrayError Bool $ Array.toVector x
 
-takeBool1 :: EitherT StripedError (StateT [Any] IO) Column
+takeBool1 :: EitherT StripedError (StateT [Any64] IO) Column
 takeBool1 = do
   x <- take1 Schema.Bool
   hoistEither . bimap StripedAnyError (Bool . Storable.singleton) $ Any.read x
@@ -401,7 +424,7 @@ takeInt = do
   x <- take1 Schema.Int
   hoist lift . bimapT StripedArrayError Int $ Array.toVector x
 
-takeInt1 :: EitherT StripedError (StateT [Any] IO) Column
+takeInt1 :: EitherT StripedError (StateT [Any64] IO) Column
 takeInt1 = do
   x <- take1 Schema.Int
   hoistEither . bimap StripedAnyError (Int . Storable.singleton) $ Any.read x
@@ -411,7 +434,7 @@ takeDouble = do
   x <- take1 Schema.Double
   hoist lift . bimapT StripedArrayError Double $ Array.toVector x
 
-takeDouble1 :: EitherT StripedError (StateT [Any] IO) Column
+takeDouble1 :: EitherT StripedError (StateT [Any64] IO) Column
 takeDouble1 = do
   x <- take1 Schema.Double
   hoistEither . bimap StripedAnyError (Double . Storable.singleton) $ Any.read x
@@ -421,7 +444,7 @@ takeTime = do
   x <- take1 Schema.Time
   hoist lift . bimapT StripedArrayError Time $ Array.toVector x
 
-takeTime1 :: EitherT StripedError (StateT [Any] IO) Column
+takeTime1 :: EitherT StripedError (StateT [Any64] IO) Column
 takeTime1 = do
   x <- take1 Schema.Time
   hoistEither . bimap StripedAnyError (Time . Storable.singleton) $ Any.read x
@@ -431,7 +454,7 @@ takeBoolTag s = do
   x <- take1 s
   hoist lift . firstT StripedArrayError $ Array.toVector x
 
-takeBoolTag1 :: Schema -> EitherT StripedError (StateT [Any] IO) (Storable.Vector Bool64)
+takeBoolTag1 :: Schema -> EitherT StripedError (StateT [Any64] IO) (Storable.Vector Bool64)
 takeBoolTag1 s = do
   x <- take1 s
   hoistEither . bimap StripedAnyError Storable.singleton $ Any.read x
@@ -441,7 +464,7 @@ takeErrorTag s = do
   x <- take1 s
   hoist lift . firstT StripedArrayError $ Array.toVector x
 
-takeErrorTag1 :: Schema -> EitherT StripedError (StateT [Any] IO) (Storable.Vector Error64)
+takeErrorTag1 :: Schema -> EitherT StripedError (StateT [Any64] IO) (Storable.Vector Error64)
 takeErrorTag1 s = do
   x <- take1 s
   hoistEither . bimap StripedAnyError Storable.singleton $ Any.read x
@@ -471,7 +494,7 @@ takeNested pool s = do
       column <- hoist lift $ fromArrays pool s (xs : fmap snd nxss)
       pure (Array.takeDescriptor ns, column)
 
-takeNested1 :: Mempool -> Schema -> EitherT StripedError (StateT [Any] IO) (Int64, Column)
+takeNested1 :: Mempool -> Schema -> EitherT StripedError (StateT [Any64] IO) (Int64, Column)
 takeNested1 pool s = do
   xss0 <- takeN s
   case fmap Any.toArray xss0 of
@@ -548,7 +571,7 @@ takeColumn pool s =
         pure $
           Map nsk k v
 
-takeColumn1 :: Mempool -> Schema -> EitherT StripedError (StateT [Any] IO) Column
+takeColumn1 :: Mempool -> Schema -> EitherT StripedError (StateT [Any64] IO) Column
 takeColumn1 pool s =
   case s of
     Schema.Unit ->
@@ -621,7 +644,7 @@ fromArrays pool s xs0 = do
     _ ->
       left $ StripedMeltedRemaining s (length xs)
 
-fromAnys :: Mempool -> Schema -> [Any] -> EitherT StripedError IO Column
+fromAnys :: Mempool -> Schema -> [Any64] -> EitherT StripedError IO Column
 fromAnys pool s xs0 = do
   (ecolumn, xs) <- liftIO $ runStateT (runEitherT (takeColumn1 pool s)) xs0
   column <- hoistEither ecolumn
@@ -805,3 +828,85 @@ fromField field =
   fmap (field $>) .
   fromLogical (fieldData field)
 {-# INLINABLE fromField #-}
+
+unsafeConcat :: Cons Boxed.Vector Column -> Either StripedError Column
+unsafeConcat cxs =
+  let
+    loop !xs =
+      case Boxed.length xs of
+        0 ->
+          Left StripedConcatEmptyVector
+
+        1 ->
+          pure $ Boxed.unsafeIndex xs 0
+
+        2 ->
+          unsafeAppend
+            (Boxed.unsafeIndex xs 0)
+            (Boxed.unsafeIndex xs 1)
+
+        n -> do
+          let
+            (xs0, xs1) =
+              Boxed.splitAt (n `div` 2) xs
+
+          x0 <- loop xs0
+          x1 <- loop xs1
+
+          unsafeAppend x0 x1
+  in
+    loop $! Cons.toVector cxs
+{-# INLINABLE unsafeConcat #-}
+
+unsafeAppend :: Column -> Column -> Either StripedError Column
+unsafeAppend c0 c1 =
+  case (c0, c1) of
+    (Unit n0, Unit n1) ->
+      pure $ Unit (n0 + n1)
+
+    (Bool xs0, Bool xs1) ->
+      pure $ Bool (xs0 <> xs1)
+
+    (Int xs0, Int xs1) ->
+      pure $ Int (xs0 <> xs1)
+
+    (Double xs0, Double xs1) ->
+      pure $ Double (xs0 <> xs1)
+
+    (Time xs0, Time xs1) ->
+      pure $ Time (xs0 <> xs1)
+
+    (Sum tags0 xs0 ys0, Sum tags1 xs1 ys1) ->
+      Sum (tags0 <> tags1) <$> unsafeAppend xs0 xs1 <*> unsafeAppend ys0 ys1
+
+    (Option tags0 xs0, Option tags1 xs1) ->
+      Option (tags0 <> tags1) <$> unsafeAppend xs0 xs1
+
+    (Result tags0 xs0, Result tags1 xs1) ->
+      Result (tags0 <> tags1) <$> unsafeAppend xs0 xs1
+
+    (Struct fs0, Struct fs1)
+      | Cons.length fs0 == Cons.length fs1
+      ->
+        Struct <$> Cons.zipWithM unsafeAppendField fs0 fs1
+
+    (String ns0 x0, String ns1 x1) ->
+      pure $ String (ns0 <> ns1) (x0 <> x1)
+
+    (Array ns0 x0, Array ns1 x1) ->
+      Array (ns0 <> ns1) <$> unsafeAppend x0 x1
+
+    (Map ns0 k0 v0, Map ns1 k1 v1) ->
+      Map (ns0 <> ns1) <$> unsafeAppend k0 k1 <*> unsafeAppend v0 v1
+
+    _ ->
+      Left $ StripedAppendColumnMismatch (schema c0) (schema c1)
+{-# INLINABLE unsafeAppend #-}
+
+unsafeAppendField :: Field Column -> Field Column -> Either StripedError (Field Column)
+unsafeAppendField f0 f1 =
+  if fieldName f0 == fieldName f1 then
+    (f0 $>) <$> unsafeAppend (fieldData f0) (fieldData f1)
+  else
+    Left $ StripedAppendFieldMismatch (fmap schema f0) (fmap schema f1)
+{-# INLINABLE unsafeAppendField #-}

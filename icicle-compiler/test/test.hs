@@ -23,7 +23,8 @@ import qualified Icicle.Test.Avalanche.MeltPrim
 import qualified Icicle.Test.Data.Time
 import qualified Icicle.Test.Internal.EditDistance
 
-import qualified Icicle.Test.Runtime.Array
+import qualified Icicle.Test.Runtime.Data.Array
+import qualified Icicle.Test.Runtime.Data.Schema
 import qualified Icicle.Test.Runtime.Data.Striped
 
 import qualified Icicle.Test.Source.PrettyParse
@@ -95,7 +96,8 @@ sundry =
     , Icicle.Test.Foreign.Array.tests
     , Icicle.Test.Internal.EditDistance.tests
     , Icicle.Test.Language.tests
-    , Icicle.Test.Runtime.Array.tests
+    , Icicle.Test.Runtime.Data.Array.tests
+    , Icicle.Test.Runtime.Data.Schema.tests
     , Icicle.Test.Runtime.Data.Striped.tests
     , Icicle.Test.Serial.tests
     , Icicle.Test.Source.Convert.tests

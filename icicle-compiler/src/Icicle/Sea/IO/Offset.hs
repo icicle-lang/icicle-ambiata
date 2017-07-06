@@ -189,8 +189,8 @@ programOutputStart inputSize = 4 + inputSize
 --     itime_t          *new_a_conv_0_simpflat_98;
 -- } input_a_double_t;
 
-inputFactTime :: Int
-inputFactTime = 0
+inputQueryTime :: Int
+inputQueryTime = 0
 
 inputNewCount :: Int
 inputNewCount = 1
@@ -201,12 +201,12 @@ inputError = 2
 inputStart :: Int
 inputStart = 3
 
-inputFieldsCount :: Cluster -> Int
+inputFieldsCount :: Cluster c k -> Int
 inputFieldsCount cluster =
   length (clusterInputVars cluster) - 2
 
-programInputFactTime :: Int
-programInputFactTime = programInput + inputFactTime
+programInputQueryTime :: Int
+programInputQueryTime = programInput + inputQueryTime
 
 programInputNewCount :: Int
 programInputNewCount = programInput + inputNewCount

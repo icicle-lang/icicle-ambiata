@@ -46,6 +46,7 @@ library
                      , hashable                        == 1.2.*
                      , haskeline                       == 0.7.*
                      , lens                            >= 4.7        && < 4.15
+                     , lifted-base                     == 0.2.*
                      , mmorph                          == 1.0.*
                      , mtl                             == 2.2.*
                      , old-locale                      == 1.0.*
@@ -134,13 +135,15 @@ library
                        Icicle.Repl.Base
                        Icicle.Repl.Source
 
-                       Icicle.Runtime.Any
-                       Icicle.Runtime.Array
                        Icicle.Runtime.Data
+                       Icicle.Runtime.Data.Any
+                       Icicle.Runtime.Data.Array
+                       Icicle.Runtime.Data.IO
                        Icicle.Runtime.Data.Logical
                        Icicle.Runtime.Data.Primitive
                        Icicle.Runtime.Data.Schema
                        Icicle.Runtime.Data.Striped
+                       Icicle.Runtime.Evaluator
 
                        Icicle.Simulator
 

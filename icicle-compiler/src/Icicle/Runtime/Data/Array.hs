@@ -8,7 +8,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-module Icicle.Runtime.Array (
+module Icicle.Runtime.Data.Array (
     Array(..)
   , ArrayIndex(..)
   , ArrayLength(..)

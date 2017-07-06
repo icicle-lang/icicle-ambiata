@@ -75,7 +75,7 @@ defaultPsvMaxMapSize = 1024 * 1024
 
 ------------------------------------------------------------------------
 
-seaOfPsvDriver :: InputOpts -> PsvConfig -> [Cluster] -> Either SeaError Doc
+seaOfPsvDriver :: InputOpts -> PsvConfig -> [Cluster c k] -> Either SeaError Doc
 seaOfPsvDriver opts config clusters = do
   let inputConfig  = psvInputConfig config
   let outputConfig = psvOutputConfig config
