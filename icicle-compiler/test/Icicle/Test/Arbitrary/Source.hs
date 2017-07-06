@@ -236,7 +236,15 @@ qwfConvertToCore qwf key qt
      (runIdentity $ freshtest "reify" $ reifyPossibilityQT qt)
  where
   replaceKey x f
-    = f { featuresConcretes = fmap (\c -> c { featureConcreteKey = x }) $ featuresConcretes f }
+    = let x' = reifyKey x
+      in f { featuresConcretes = fmap (\c -> c { featureConcreteKey = x' }) $ featuresConcretes f }
+
+  -- Need to reifyPossibility for the key as well as the query.
+  -- The real dictionary parser does this as well.
+  reifyKey (InputKey k)
+    = InputKey
+    $ fmap (runIdentity . freshtest "reify" . reifyPossibilityX)
+      k
 
 
 
