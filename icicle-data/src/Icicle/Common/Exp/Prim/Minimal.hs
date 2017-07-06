@@ -143,6 +143,8 @@ typeOfPrim p
      -> FunT [funOfVal DoubleT] IntT
     PrimBuiltinFun    (PrimBuiltinMath PrimBuiltinTruncate)
      -> FunT [funOfVal DoubleT] IntT
+    PrimBuiltinFun    (PrimBuiltinMath PrimBuiltinDoubleIsValid)
+     -> FunT [funOfVal DoubleT] BoolT
     PrimBuiltinFun    (PrimBuiltinMath PrimBuiltinRound)
      -> FunT [funOfVal DoubleT] IntT
     PrimBuiltinFun    (PrimBuiltinMath PrimBuiltinDiv)

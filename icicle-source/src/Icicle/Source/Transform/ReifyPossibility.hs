@@ -85,8 +85,8 @@ reifyPossibilityX' wrap x
              args' <- mapM (reifyPossibilityX' wrap) args
              makeApps a fun' args' False
 
-      -- Primitives do not need their annotation to be wrapped:
-      -- if they are Possiblies, their outer use will be wrapped in a Right.
+      -- Primitives are dealt with by makeApps, because we can only wrap their annotations after unwrapping the arguments.
+      -- There are no zero-argument primitives that return Possibly, but if there ever are, this would need to wrap them here.
       Prim a p
        -> return $ Prim a p
 
@@ -253,8 +253,6 @@ reifyPossibilityQ (Query (c:cs) final_x)
   ins ctx (Query ctxs x)
    = Query (ctx:ctxs) x
 
--- XXX this is ignoring the possibility of functions that return differing modes.
--- This is true of all current primitives, and at this stage we can only have primitives.
 makeApps
         :: Hashable n
         => Annot a n
@@ -263,6 +261,17 @@ makeApps
         -> Bool
         -> Fresh n (Exp (Annot a n) n)
 makeApps _ fun [] doWrap
+ -- After unwrapping the arguments, check if primitive introduces Possibly.
+ -- If so, we need to wrap all the return type annotations with (SumT ErrorT).
+ -- We also do not want to wrap it in a Right, since the prim will do that itself.
+ | Just (p, pa, args) <- takePrimApps fun
+ , primReturnsPossibly p (annResult pa)
+ = let pa'  = wrapAnnotReally pa
+       fun' = Prim pa' p
+       apps = foldl (App pa') fun' args
+   in  return apps
+
+ | otherwise
  = let funR = conRight fun
    in  if   doWrap
        then return funR
@@ -281,16 +290,7 @@ makeApps a fun (arg:rest) doWrap
             -- Bare value. Note that this is now definite, but with same (bare) type
             bare  = Var (extractValueAnnot arga) nValue
 
-        -- Check if we're calling a primitive which already returns its result wrapped.
-        -- If so, we do not need to perform rewrapping of the value.
-        let doWrap'
-              | Just (p, _, _) <- takePrimApps fun
-              , primReturnsPossibly p
-              = False
-              | otherwise
-              = True
-
-        fun' <- makeApps a (App annotWrapPrim fun bare) rest doWrap'
+        fun' <- makeApps a (App a fun bare) rest True
 
         let app'  = Case a' arg
                   [ ( PatCon ConLeft  [ PatVariable nError ]
@@ -302,15 +302,7 @@ makeApps a fun (arg:rest) doWrap
 
  -- If argument is a definitely, just apply it as usual
  | otherwise
- =  makeApps a (App annotWrapPrim fun arg) rest doWrap
-
- where
-  annotWrapPrim
-   | Just (p, _, _) <- takePrimApps fun
-   , primReturnsPossibly p
-   = wrapAnnotReally a
-   | otherwise
-   = a
+ =  makeApps a (App a fun arg) rest doWrap
 
 
 con0 :: Annot a n -> Constructor -> Exp (Annot a n) n

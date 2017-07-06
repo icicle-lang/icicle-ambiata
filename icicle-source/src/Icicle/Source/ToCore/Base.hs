@@ -51,6 +51,7 @@ import                  Control.Monad.Trans.State.Lazy
 import                  Control.Monad.Trans.Class
 
 import qualified        Data.Map as Map
+import qualified        Data.Set as Set
 import                  Data.Hashable (Hashable)
 
 
@@ -91,13 +92,28 @@ programOfBinds output inpType factValName factIdName factTimeName postDate maxMa
 -- | Rip out the postcomputations into lets.
 -- The result expression has the postcomputations as lets,
 -- the result bindings have no postcomputations.
-pullPosts :: a
-          -> (CoreBinds a n, Name n)
+pullPosts :: (Hashable n, Eq n)
+          => a
+          -> (Pattern n, (CoreBinds a n, Name n))
           -> (CoreBinds a n, C.Exp a n)
-pullPosts a (bs,ret)
- = let ps  = postcomps bs
-       bs' = bs { postcomps = [] }
+pullPosts a (pat, (bs,ret))
+ = let (pre0,post0) = deferBinds (boundOfPattern pat) (precomps bs)
+       ps  = post0 <> postcomps bs
+       bs' = bs { precomps = pre0, postcomps = [] }
    in  (bs', X.makeLets a ps $ X.XVar a ret)
+
+deferBinds :: (Hashable n, Eq n) => Set.Set (Name n) -> [(Name n, C.Exp a n)] -> ([(Name n, C.Exp a n)], [(Name n, C.Exp a n)])
+deferBinds defer0 binds0 = go [] [] defer0 binds0
+ where
+  go pres posts _ []
+   = (reverse pres, reverse posts)
+  go pres posts defer ((n,e):bs)
+   = let b       = (n,e)
+         fv      = X.freevars e
+         mention = Set.intersection defer fv
+     in if Set.null mention
+        then go (b:pres) posts defer bs
+        else go pres (b:posts) (Set.insert n defer) bs
 
 
 instance Monoid (CoreBinds a n) where

@@ -64,7 +64,6 @@ convertPrim p ann resT xts = go p
          Nothing -> convertError $ ConvertErrorPrimNoArguments ann num_args p
          Just a' -> return a'
 
-
   -- Literals
   go (Lit (LitInt i))
    | (_, _, DoubleT) <- decomposeT resT
@@ -126,16 +125,23 @@ convertPrim p ann resT xts = go p
   -- Arithmetic
   goop (ArithUnary Negate)
    = primmin <$> (Min.PrimArithUnary Min.PrimArithNegate <$> tArithArg 1)
-  goop (ArithBinary Add)
-   = primmin <$> (Min.PrimArithBinary Min.PrimArithPlus <$> tArithArg 2)
-  goop (ArithBinary Sub)
-   = primmin <$> (Min.PrimArithBinary Min.PrimArithMinus <$> tArithArg 2)
-  goop (ArithBinary Mul)
-   = primmin <$> (Min.PrimArithBinary Min.PrimArithMul <$> tArithArg 2)
-  goop (ArithBinary Pow)
-   = primmin <$> (Min.PrimArithBinary Min.PrimArithPow <$> tArithArg 2)
+
+  goop (ArithBinary f) = do
+   tt <- tArithArg 2
+   let p' = case f of
+             Add -> Min.PrimArithPlus
+             Sub -> Min.PrimArithMinus
+             Mul -> Min.PrimArithMul
+             Pow -> Min.PrimArithPow
+   let fx = primmin (Min.PrimArithBinary p' tt)
+   case tt of
+    T.ArithDoubleT ->
+      primCheckDouble fx
+    T.ArithIntT ->
+      return fx
+
   goop (ArithDouble Div)
-   = return $ primbuiltin $ Min.PrimBuiltinMath Min.PrimBuiltinDiv
+   = primCheckDouble $ primbuiltin $ Min.PrimBuiltinMath Min.PrimBuiltinDiv
 
   -- Logic
   goop (LogicalUnary Not)
@@ -243,11 +249,11 @@ convertPrim p ann resT xts = go p
 
   -- Source built-in primitives that map to common built-ins.
   gomath Log
-   = return $ primbuiltin $ Min.PrimBuiltinMath Min.PrimBuiltinLog
+   = primCheckDouble $ primbuiltin $ Min.PrimBuiltinMath Min.PrimBuiltinLog
   gomath Exp
-   = return $ primbuiltin $ Min.PrimBuiltinMath Min.PrimBuiltinExp
+   = primCheckDouble $ primbuiltin $ Min.PrimBuiltinMath Min.PrimBuiltinExp
   gomath Sqrt
-   = return $ primbuiltin $ Min.PrimBuiltinMath Min.PrimBuiltinSqrt
+   = primCheckDouble $ primbuiltin $ Min.PrimBuiltinMath Min.PrimBuiltinSqrt
 
   gomath Abs
    = case xts of
@@ -420,3 +426,25 @@ primInsertOrUpdate tk tv xm xk xvz xvu = do
   apps f xs = CE.makeApps () (CE.XPrim () f) xs
   bf = C.PrimMinimal . Min.PrimBuiltinFun
 
+primCheckDouble :: Hashable n => C.Exp () n -> ConvertM a n (C.Exp () n)
+primCheckDouble fx = do
+  n'x <- lift F.fresh
+  n'unit <- lift F.fresh
+  let v'x    = CE.XVar () n'x
+  let tsum   = T.SumT T.ErrorT T.DoubleT
+
+  let xvalid = apps (bf $ Min.PrimBuiltinMath $ Min.PrimBuiltinDoubleIsValid) [ v'x ]
+
+  -- TODO: add ExceptNotANumber
+  let verr   = CE.XValue () (T.SumT T.ErrorT T.DoubleT)
+             $ V.VLeft $ V.VError V.ExceptCannotCompute
+  let vright = apps (C.PrimMinimal $ Min.PrimConst $ Min.PrimConstRight T.ErrorT T.DoubleT)
+             [ v'x ]
+
+  return $ CE.makeLets () [(n'x, fx)]
+         $ apps (C.PrimFold C.PrimFoldBool tsum)
+         [ CE.xLam n'unit T.UnitT vright, CE.xLam n'unit T.UnitT verr, xvalid ]
+
+ where
+  apps f xs = CE.makeApps () (CE.XPrim () f) xs
+  bf = C.PrimMinimal . Min.PrimBuiltinFun

@@ -67,10 +67,9 @@ defaults topq
   defaultOfConstraint (CIsNum t)
    -- It must be a type variable - if it isn't it either already has a concrete
    -- Num type such as Int, or it is a type error
-   | TypeVar n <- t
-   = [(n, IntT)]
-   | otherwise
-   = []
+   = defaultTo t IntT
+  defaultOfConstraint (CPossibilityOfNum poss t)
+   = defaultTo t IntT <> defaultTo poss PossibilityDefinitely 
   -- Everything else should really be known by this stage.
   -- These shouldn't actually occur.
   defaultOfConstraint (CEquals _ _)
@@ -84,6 +83,12 @@ defaults topq
   defaultOfConstraint (CPossibilityJoin _ _ _)
    = []
   defaultOfConstraint (CTemporalityJoin _ _ _)
+   = []
+
+  defaultTo tv tr
+   | TypeVar n <- tv
+   = [(n, tr)]
+   | otherwise
    = []
 
   -- Compute free *type* variables of queries and expressions
@@ -148,8 +153,9 @@ constraintsQ env q
                (annotOfQuery q)
                (filter (not . isNumConstraint . snd) cons)
  where
-  isNumConstraint (CIsNum _) = True
-  isNumConstraint _          = False
+  isNumConstraint CIsNum{}            = True
+  isNumConstraint CPossibilityOfNum{} = True
+  isNumConstraint _                   = False
 
   -- Perform top-level discharge of any silly leftover Possibility or Temporality joins
   top = do
@@ -606,7 +612,7 @@ generateX x env
            returnPoss' <- TypeVar <$> fresh
            let consPs  =  require a (CPossibilityJoin returnPoss' scrutPs returnPoss)
 
-           (pats', subs, consA) <- generateP a scrutT returnType returnTemp returnPoss pats (substE sub env)
+           (pats', subs, consA) <- generateP a scrutT returnType returnTemp' returnTemp returnPoss pats (substE sub env)
 
            let t'    = canonT
                      $ Temporality returnTemp'
@@ -628,18 +634,19 @@ generateP
   => a
   -> Type n                 -- ^ scrutinee type
   -> Type n                 -- ^ result base type
-  -> Type n                 -- ^ result temporality
+  -> Type n                 -- ^ top-level result temporality
+  -> Type n                 -- ^ chained result temporality of previous alternative
   -> Type n                 -- ^ result possibility
   -> [(Pattern n, Exp a n)] -- ^ pattern and alternative
   -> GenEnv n
   -> Gen a n ([(Pattern n, Exp'C a n)], SubstT n, GenConstraintSet a n)
 
-generateP ann _ _ resTm resPs [] _
+generateP ann _ _ _ resTm resPs [] _
  = do   let consT = require ann (CEquals resTm TemporalityPure)
         let consP = require ann (CEquals resPs PossibilityDefinitely)
         return ([], Map.empty, concat [consT, consP])
 
-generateP ann scrutTy resTy resTm resPs ((pat, alt):rest) env
+generateP ann scrutTy resTy resTmTop resTm resPs ((pat, alt):rest) env
  = do   (t, envp) <- goPat pat env
 
         let (_,_,datS) = decomposeT $ canonT scrutTy
@@ -663,7 +670,7 @@ generateP ann scrutTy resTy resTm resPs ((pat, alt):rest) env
                   , require (annotOfExp alt) (CPossibilityJoin resPs resPs' altPs)
                   ]
 
-        (rest', subs, consr) <- generateP ann scrutTy resTy resTp' resPs' rest (substE sub env)
+        (rest', subs, consr) <- generateP ann scrutTy resTy resTmTop resTp' resPs' rest (substE sub env)
         let cons'       = concat [conss, consa, consT, consr]
         let alt''       = substTX subs alt'
         let subs'       = compose sub subs
@@ -680,11 +687,23 @@ generateP ann scrutTy resTy resTm resPs ((pat, alt):rest) env
    = (,e) . TypeVar <$> fresh
 
   goPat (PatVariable n) e
-   = do let (tmpS,_,_)  = decomposeT $ canonT scrutTy
-        datV              <- TypeVar <$> fresh
+   = do datV              <- TypeVar <$> fresh
         -- The bound variable is actually Definite, because the case will only succeed
         -- if the scrutinee is an actual value.
-        let env'           = bindT n (recomposeT (tmpS, Nothing, datV)) e
+        --
+        -- CASEHACK: pattern bindings have the temporality of the whole case.
+        -- This is to work around a flaw in the conversion to Core.
+        -- We cannot convert this:
+        -- > case (Left 0)
+        -- >  | Left l  -> fold a = l : l * 2 ~> a
+        -- >  | Right r -> fold b = r : r / 2 ~> b
+        -- > end
+        -- Because conversion would require a case at each step: in the zero of the fold,
+        -- and in the kons of the fold, as well as in pre and eject.
+        -- So we outlaw this, by making sure the pattern binding has temporality of the
+        -- return: which means this example is ill-typed, as the binding (l :: Aggregate _)
+        -- could only be used at the end of the fold.
+        let env'           = bindT n (recomposeT (Just resTmTop, Nothing, datV)) e
         return (datV, env')
 
   goPat (PatCon ConSome  [p]) e
@@ -756,7 +775,8 @@ appType ann resT (expT,actT) cons = do
    -- Just <- modE
    -- ?    <- modR
    | otherwise
-   = do let j = CEquals (maybe pureMode id modE) (maybe pureMode id modA)
+   = do ignore <- TypeVar <$> fresh
+        let j = joinMode ignore (maybe pureMode id modE) (maybe pureMode id modA)
         return (modR, require ann j)
 
 

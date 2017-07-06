@@ -4,6 +4,7 @@
 -- So we must generate a fresh name for any forall binders.
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PatternGuards #-}
 module Icicle.Source.Query.Prim (
     primLookup'
   , primReturnsPossibly
@@ -22,14 +23,19 @@ import                  Data.Hashable (Hashable)
 
 
 primLookup' :: Hashable n => Prim -> Fresh.Fresh n (FunctionType n)
-primLookup' p
- = case p of
-    Op (ArithUnary _)
-     -> fNum $ \at -> ([at], at)
+primLookup' prim
+ = case prim of
+    -- Negate on Doubles will not introduce NaN or Inf
+    Op (ArithUnary Negate)
+     -> fNumDefinitely $ \at -> ([at], at)
+
+    -- Pretty much any binary operation on Doubles might return NaN or Inf. This includes addition when the numbers are very large.
     Op (ArithBinary _)
-     -> fNum $ \at -> ([at, at], at)
+     -> fNumPossibly $ \at -> ([at, at], at)
+
+    -- Division will almost certainly return NaN or Inf
     Op (ArithDouble Div)
-     -> f0 [DoubleT, DoubleT] DoubleT
+     -> f0 [DoubleT, DoubleT] possiblyDouble
 
     Op (Relation _)
      -> f1 $ \a at -> FunctionType [a] [] [at, at] BoolT
@@ -48,8 +54,9 @@ primLookup' p
            let bt = TypeVar b
            return $ FunctionType [a,b] [] [at, bt] (PairT at bt)
 
+    -- Literals will not be NaN or Inf
     Lit (LitInt _)
-     -> fNum $ \at -> ([], at)
+     -> fNumDefinitely $ \at -> ([], at)
     Lit (LitDouble _)
      -> f0 [] DoubleT
     Lit (LitString _)
@@ -57,24 +64,26 @@ primLookup' p
     Lit (LitTime _)
      -> f0 [] TimeT
 
+    -- Most Double operations can introduce NaN or Inf
     Fun (BuiltinMath Log)
-     -> f0 [DoubleT] DoubleT
+     -> f0 [DoubleT] possiblyDouble
     Fun (BuiltinMath Exp)
-     -> f0 [DoubleT] DoubleT
+     -> f0 [DoubleT] possiblyDouble
     Fun (BuiltinMath Sqrt)
-     -> f0 [DoubleT] DoubleT
+     -> f0 [DoubleT] possiblyDouble
+    -- But conversions are OK
     Fun (BuiltinMath ToDouble)
-     -> fNum $ \at -> ([at], DoubleT)
+     -> fNumDefinitely $ \at -> ([at], DoubleT)
     Fun (BuiltinMath Abs)
-     -> fNum $ \at -> ([at], at)
+     -> fNumDefinitely $ \at -> ([at], at)
     Fun (BuiltinMath Floor)
-     -> fNum $ \at -> ([at], IntT)
+     -> fNumDefinitely $ \at -> ([at], IntT)
     Fun (BuiltinMath Ceiling)
-     -> fNum $ \at -> ([at], IntT)
+     -> fNumDefinitely $ \at -> ([at], IntT)
     Fun (BuiltinMath Round)
-     -> fNum $ \at -> ([at], IntT)
+     -> fNumDefinitely $ \at -> ([at], IntT)
     Fun (BuiltinMath Truncate)
-     -> fNum $ \at -> ([at], IntT)
+     -> fNumDefinitely $ \at -> ([at], IntT)
 
     Fun (BuiltinTime DaysBetween)
      -> f0 [TimeT, TimeT] IntT
@@ -143,8 +152,22 @@ primLookup' p
   f0 argsT resT
    = return $ FunctionType [] [] argsT resT
 
+  -- A num operation that can introduce NaN or Inf and must be checked
+  fNumPossibly f
+   = fNum $ \pt at ->
+     let (args,ret) = f at
+     in  (args, Possibility pt ret)
+
+  -- Safe number operations
+  fNumDefinitely f
+   = f1 $ \a at ->
+     let (args,ret) = f at
+     in  FunctionType [a] [CIsNum at] args ret
+
   fNum f
-   = f1 (\a at -> uncurry (FunctionType [a] [CIsNum at]) (f at))
+   = f2 (\a at p pt -> uncurry (FunctionType [a,p] [CPossibilityOfNum pt at]) (f pt at))
+
+  possiblyDouble = Possibility PossibilityPossibly DoubleT
 
   f1 f
    = do n <- Fresh.fresh
@@ -156,8 +179,25 @@ primLookup' p
         return $ f n1 (TypeVar n1) n2 (TypeVar n2)
 
 
-primReturnsPossibly :: Prim -> Bool
-primReturnsPossibly (Fun (BuiltinData Box))      = True
-primReturnsPossibly (Fun (BuiltinMap MapInsert)) = True
-primReturnsPossibly _                            = False
+-- There must be a better way.
+-- When an expression returns Possibly, it is hard to know whether that's because the function returns Possibly,
+-- or if it's a pure function applied to a Possibly argument which needs to be reboxed.
+-- This should probably be figured out and inserted during type inference.
+-- As it is, we're looking at the expression and the result of type inference to decide - trying to work backwards to
+-- figure out what inference did.
+primReturnsPossibly :: Prim -> Type n -> Bool
+primReturnsPossibly (Fun (BuiltinData Box))      _ = True
+primReturnsPossibly (Fun (BuiltinMap MapInsert)) _ = True
+primReturnsPossibly p ty
+ | (_, pos, dat)       <- decomposeT ty
+ , DoubleT             <- dat
+ , Just PossibilityPossibly <- pos
+ = case p of
+    Op (ArithBinary _)     -> True
+    Op (ArithDouble Div)   -> True
+    Fun (BuiltinMath Log)  -> True
+    Fun (BuiltinMath Exp)  -> True
+    Fun (BuiltinMath Sqrt) -> True
+    _                      -> False
+primReturnsPossibly _ _                          = False
 

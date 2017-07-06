@@ -382,7 +382,7 @@ convertReduce xx
                   = (,) <$> convertCaseFreshenPat p <*> convertReduce alt
         patalts' <- mapM goPatAlt patalts
         let pats' = fmap                 fst  patalts'
-            alts' = fmap (pullPosts () . snd) patalts'
+            alts' = fmap (pullPosts ())       patalts'
 
         let bs' = fst scrut' <> mconcat (fmap fst alts')
 
