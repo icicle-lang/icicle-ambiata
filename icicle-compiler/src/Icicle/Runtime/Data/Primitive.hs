@@ -11,8 +11,10 @@
 module Icicle.Runtime.Data.Primitive (
     Unit64(..)
   , Bool64(..)
-  , Time64(..)
   , Error64(..)
+
+  , Time64(..)
+  , UnpackedTime64(..)
 
   , Field(..)
 
@@ -30,15 +32,26 @@ module Icicle.Runtime.Data.Primitive (
   , fromExceptionInfo
   , fromError64
   , isError
+
+  , packTime
+  , packTimeVector
+  , unpackTime
+  , unpackTimeVector
   ) where
 
-import           Data.Word (Word64)
+import           Data.Bits ((.|.), (.&.), unsafeShiftL, unsafeShiftR)
+import qualified Data.List as List
+import qualified Data.Vector.Storable as Storable
+import           Data.Word (Word64, Word32, Word8)
 
-import           Foreign.Storable (Storable)
+import           Foreign.Ptr (castPtr)
+import           Foreign.Storable (Storable(..))
 
 import           GHC.Generics (Generic)
 
 import           Icicle.Common.Base (ExceptionInfo(..))
+
+import           Numeric (showHex)
 
 import           P
 
@@ -80,8 +93,57 @@ newtype Time64 =
     } deriving (Eq, Ord, Generic, Storable)
 
 instance Show Time64 where
-  showsPrec =
-    gshowsPrec
+  showsPrec p (Time64 x) =
+    let
+      showPadding hx rest =
+        '0' : 'x' : List.replicate (16 - length hx) '0' <> hx <> rest
+    in
+      showParen (p > 10) $
+        showString "Time64 " .
+        showPadding (showHex x "")
+
+-- | The @itime_t@ runtime type in unpacked form.
+--
+data UnpackedTime64 =
+  UnpackedTime64 {
+      timeYear :: !Int16
+    , timeMonth :: !Word8
+    , timeDay :: !Word8
+    , timeSeconds :: !Word32
+    } deriving (Eq, Ord, Show, Generic)
+
+instance Storable UnpackedTime64 where
+  sizeOf _ =
+    8
+  {-# INLINE sizeOf #-}
+
+  alignment _ =
+    8
+  {-# INLINE alignment #-}
+
+  peek ptr =
+    fmap unpackTime (peek (castPtr ptr))
+  {-# INLINE peek #-}
+
+  peekElemOff ptr off =
+    fmap unpackTime (peekElemOff (castPtr ptr) off)
+  {-# INLINE peekElemOff #-}
+
+  peekByteOff ptr off =
+    fmap unpackTime (peekByteOff (castPtr ptr) off)
+  {-# INLINE peekByteOff #-}
+
+  poke ptr x =
+    poke (castPtr ptr) (packTime x)
+  {-# INLINE poke #-}
+
+  pokeElemOff ptr off x =
+    pokeElemOff (castPtr ptr) off (packTime x)
+  {-# INLINE pokeElemOff #-}
+
+  pokeByteOff ptr off x =
+    pokeByteOff (castPtr ptr) off (packTime x)
+  {-# INLINE pokeByteOff #-}
 
 -- | The @ierror_t@ runtime type.
 --
@@ -196,3 +258,36 @@ fromError64 = \case
   _ ->
     Nothing
 {-# INLINE fromError64 #-}
+
+packTime :: UnpackedTime64 -> Time64
+packTime x =
+  Time64 $!
+        unsafeShiftL (fromIntegral $ timeYear x) 48
+    .|. unsafeShiftL (fromIntegral $ timeMonth x) 40
+    .|. unsafeShiftL (fromIntegral $ timeDay x) 32
+    .|. fromIntegral (timeSeconds x)
+{-# INLINE packTime #-}
+
+unpackTime :: Time64 -> UnpackedTime64
+unpackTime (Time64 x) =
+  UnpackedTime64 {
+      timeYear =
+        fromIntegral (unsafeShiftR x 48)
+    , timeMonth =
+        fromIntegral (unsafeShiftR x 40) .&. 0xff
+    , timeDay =
+        fromIntegral (unsafeShiftR x 32) .&. 0xff
+    , timeSeconds =
+        fromIntegral x .&. 0xffffffff
+    }
+{-# INLINE unpackTime #-}
+
+packTimeVector :: Storable.Vector UnpackedTime64 -> Storable.Vector Time64
+packTimeVector x =
+  Storable.unsafeCast x
+{-# INLINE packTimeVector #-}
+
+unpackTimeVector :: Storable.Vector Time64 -> Storable.Vector UnpackedTime64
+unpackTimeVector x =
+  Storable.unsafeCast x
+{-# INLINE unpackTimeVector #-}

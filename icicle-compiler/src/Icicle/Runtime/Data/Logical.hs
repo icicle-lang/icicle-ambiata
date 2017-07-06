@@ -159,7 +159,7 @@ defaultValue = \case
   Schema.Double ->
     Double 0
   Schema.Time ->
-    Time $ Time64 0
+    Time (Time64 0)
   Schema.Sum x _ ->
     Left $ defaultValue x
   Schema.Option _ ->

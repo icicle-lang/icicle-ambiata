@@ -2,7 +2,9 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Runtime.Data.IO (
-    EntityId(..)
+    EntityHash(..)
+  , EntityId(..)
+  , EntityKey(..)
   , MaximumMapSize(..)
 
   , SnapshotKey(..)
@@ -16,11 +18,18 @@ module Icicle.Runtime.Data.IO (
   , InputColumn(..)
 
   , Output(..)
+
+  , concatInputColumn
+
+  -- * Icicle.Data.Name re-exports
+  , InputId(..)
+  , OutputId(..)
   ) where
 
 import           Data.ByteString (ByteString)
 import           Data.Map (Map)
 import           Data.Set (Set)
+import           Data.Word (Word32)
 import qualified Data.Vector as Boxed
 import qualified Data.Vector.Storable as Storable
 
@@ -30,12 +39,24 @@ import           GHC.Generics (Generic)
 
 import           Icicle.Data.Name
 import           Icicle.Runtime.Data.Primitive
+import           Icicle.Runtime.Data.Striped (StripedError)
 import qualified Icicle.Runtime.Data.Striped as Striped
 
 import           P
 
+import           X.Data.Vector.Cons (Cons)
+import qualified X.Data.Vector.Cons as Cons
 import           X.Text.Show (gshowsPrec)
 
+
+newtype EntityHash =
+  EntityHash {
+      unEntityHash :: Word32
+    } deriving (Eq, Ord, Generic)
+
+instance Show EntityHash where
+  showsPrec =
+    gshowsPrec
 
 newtype EntityId =
   EntityId {
@@ -43,6 +64,16 @@ newtype EntityId =
     } deriving (Eq, Ord, Generic)
 
 instance Show EntityId where
+  showsPrec =
+    gshowsPrec
+
+data EntityKey =
+  EntityKey {
+      entityHash :: !EntityHash
+    , entityId :: !EntityId
+    } deriving (Eq, Ord, Generic)
+
+instance Show EntityKey where
   showsPrec =
     gshowsPrec
 
@@ -81,7 +112,7 @@ instance Show Label where
 
 newtype SnapshotKey =
   SnapshotKey {
-      snapshotEntityId :: EntityId
+      snapshotEntity :: EntityKey
     } deriving (Eq, Ord, Generic)
 
 instance Show SnapshotKey where
@@ -90,7 +121,7 @@ instance Show SnapshotKey where
 
 data ChordKey =
   ChordKey {
-      chordEntityId :: !EntityId
+      chordEntity :: !EntityKey
     , chordLabel :: !ByteString
     } deriving (Eq, Ord, Generic)
 
@@ -100,7 +131,7 @@ instance Show ChordKey where
 
 data Input =
   Input {
-      inputEntityId :: !(Boxed.Vector EntityId)
+      inputEntity :: !(Boxed.Vector EntityKey)
 
     -- | /invariant: all ((length inputEntityId ==) . length . inputLength) inputColumns
     --
@@ -120,11 +151,18 @@ data InputColumn =
     , inputColumn :: !Striped.Column
     } deriving (Eq, Ord, Show, Generic)
 
-data Output i =
+data Output key =
   Output {
-      outputEntityId :: !(Boxed.Vector i)
+      outputEntity :: !(Boxed.Vector key)
 
     -- | /invariant: all ((length outputEntityId ==) . length) outputColumns
     --
     , outputColumns :: !(Map OutputId Striped.Column)
     } deriving (Eq, Ord, Show, Generic)
+
+concatInputColumn :: Cons Boxed.Vector InputColumn -> Either StripedError InputColumn
+concatInputColumn xss =
+  InputColumn
+    (Storable.concat . Cons.toList $ fmap inputLength xss)
+    (Storable.concat . Cons.toList $ fmap inputTime xss)
+    <$> Striped.unsafeConcat (fmap inputColumn xss)

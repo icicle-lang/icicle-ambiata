@@ -385,7 +385,7 @@ snapshot :: Runtime -> MaximumMapSize -> SnapshotTime -> Input -> EitherT Runtim
 snapshot runtime maxsize stime input =
   let
     eids =
-      inputEntityId input
+      inputEntity input
 
     keys =
       fmap SnapshotKey eids

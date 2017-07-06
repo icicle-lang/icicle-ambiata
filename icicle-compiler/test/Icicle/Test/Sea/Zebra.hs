@@ -306,44 +306,44 @@ zebraOfWellTyped wt@(WellTyped entities _ ty facts _ _ _ _ _)= do
 schemaOfType :: ValType -> Maybe Schema.Column
 schemaOfType ty = case ty of
   BoolT ->
-    pure Schema.bool
+    pure $ Schema.bool Schema.DenyDefault
 
   TimeT ->
-    pure Schema.Int
+    pure $ Schema.Int Schema.DenyDefault Zebra.TimeSeconds
 
   DoubleT ->
-    pure Schema.Double
+    pure $ Schema.Double Schema.DenyDefault
 
   IntT ->
-    pure Schema.Int
+    pure $ Schema.Int Schema.DenyDefault Zebra.Int
 
   StringT ->
-    pure . Schema.Nested . Schema.Binary . Just $ Zebra.Utf8
+    pure . Schema.Nested $ Schema.Binary Schema.DenyDefault Zebra.Utf8
 
   ErrorT ->
-    pure Schema.Int
+    pure $ Schema.Int Schema.DenyDefault Zebra.Int
 
   UnitT ->
     pure $ Schema.Unit
 
   FactIdentifierT ->
-    pure Schema.Int
+    pure $ Schema.Int Schema.DenyDefault Zebra.Int
 
   ArrayT t ->
-    Schema.Nested . Schema.Array <$> schemaOfType t
+    Schema.Nested . Schema.Array Schema.DenyDefault <$> schemaOfType t
 
   BufT _ t ->
-    Schema.Nested . Schema.Array <$> schemaOfType t
+    Schema.Nested . Schema.Array Schema.DenyDefault <$> schemaOfType t
 
   PairT a b -> do
     a' <- schemaOfType a
     b' <- schemaOfType b
-    pure . Schema.Struct $ Cons.from2
+    pure . Schema.Struct Schema.DenyDefault $ Cons.from2
       (Schema.Field (Schema.FieldName "fst") a')
       (Schema.Field (Schema.FieldName "snd") b')
 
   OptionT t ->
-    Schema.option <$> schemaOfType t
+    Schema.option Schema.DenyDefault <$> schemaOfType t
 
   SumT a b ->
     let
@@ -354,12 +354,12 @@ schemaOfType ty = case ty of
     in do
       a' <- leftOf a
       b' <- rightOf b
-      pure . Schema.Enum $ Cons.from2 a' b'
+      pure . Schema.Enum Schema.DenyDefault $ Cons.from2 a' b'
 
   MapT k v -> do
     k' <- schemaOfType k
     v' <- schemaOfType v
-    pure . Schema.Nested $ Schema.Map k' v'
+    pure . Schema.Nested $ Schema.Map Schema.DenyDefault k' v'
 
   StructT struct
     -- structs must have at leaast one field in both zebra and icicle
@@ -370,7 +370,7 @@ schemaOfType ty = case ty of
       in do
         f' <- fieldOf f
         fs' <- mapM fieldOf fs
-        pure . Schema.Struct . Cons.fromNonEmpty $ f' :| fs'
+        pure . Schema.Struct Schema.DenyDefault . Cons.fromNonEmpty $ f' :| fs'
 
   _ -> Nothing
 
@@ -479,7 +479,7 @@ zebraOfFacts ty facts
       Just schema -> do
         (tombstones, rows) <- List.unzip <$> mapM (zebraOfTopValue t) facts
         rows' <- first ZebraError . Striped.fromValues schema . Boxed.fromList $ rows
-        let table = Striped.Array rows'
+        let table = Striped.Array Schema.DenyDefault rows'
         pure . Just $ (t, tombstones, rows, table)
 
   | otherwise = Left (UnexpectedError ty facts)

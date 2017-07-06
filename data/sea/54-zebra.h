@@ -334,6 +334,8 @@ static int64_t zebra_translate_column
         }
 
         case ZEBRA_COLUMN_INT: {
+            // FIXME We should support decoding dates/times if the encoding is set.
+            // FIXME Hopefully we remove all this code before that happens!
             *dst = zebra_iarray_copy (mempool, elem_start, elem_count, (iany_t*)data._int.values);
             return 1;
         }

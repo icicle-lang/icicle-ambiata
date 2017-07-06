@@ -12,6 +12,7 @@ module Icicle.Runtime.Data.Striped (
 
   , empty
   , schema
+  , length
   , unsafeConcat
   , unsafeAppend
 
@@ -38,6 +39,7 @@ import           Control.Monad.Trans.State.Strict (StateT(..))
 
 import qualified Data.ByteString as ByteString
 import           Data.ByteString.Internal (ByteString(..))
+import qualified Data.List as List
 import qualified Data.Map.Strict as Map
 import qualified Data.Text as Text
 import qualified Data.Vector as Boxed
@@ -56,7 +58,7 @@ import           Icicle.Runtime.Data.Primitive
 import           Icicle.Runtime.Data.Schema (Schema)
 import qualified Icicle.Runtime.Data.Schema as Schema
 
-import           P hiding (Any, Sum, lefts, rights, empty)
+import           P hiding (Sum, lefts, rights, empty, length)
 
 import           System.IO (IO)
 
@@ -177,6 +179,35 @@ schema = \case
     Schema.Array (schema x)
   Map _ k v ->
     Schema.Map (schema k) (schema v)
+
+length :: Column -> Int
+length = \case
+  Unit n ->
+    n
+  Bool xs ->
+    Storable.length xs
+  Int xs ->
+    Storable.length xs
+  Double xs ->
+    Storable.length xs
+  Time xs ->
+    Storable.length xs
+  Sum xs _ _ ->
+    Storable.length xs
+  Option xs _ ->
+    Storable.length xs
+  Result xs _ ->
+    Storable.length xs
+  Pair xs _ ->
+    length xs
+  Struct fields ->
+    length . fieldData $ Cons.head fields
+  String xs _ ->
+    Storable.length xs
+  Array xs _ ->
+    Storable.length xs
+  Map xs _ _ ->
+    Storable.length xs
 
 empty :: Schema -> Column
 empty = \case
@@ -389,7 +420,7 @@ takeN s = do
     !n =
       meltedCount s
 
-  if n > length xs0 then
+  if n > List.length xs0 then
     left $ StripedMeltedExhausted s
   else do
     let
@@ -642,7 +673,7 @@ fromArrays pool s xs0 = do
     [] ->
       pure column
     _ ->
-      left $ StripedMeltedRemaining s (length xs)
+      left $ StripedMeltedRemaining s (List.length xs)
 
 fromAnys :: Mempool -> Schema -> [Any64] -> EitherT StripedError IO Column
 fromAnys pool s xs0 = do
@@ -652,7 +683,7 @@ fromAnys pool s xs0 = do
     [] ->
       pure column
     _ ->
-      left $ StripedMeltedRemaining s (length xs)
+      left $ StripedMeltedRemaining s (List.length xs)
 
 toLogical :: Column -> Either StripedError (Boxed.Vector Logical.Value)
 toLogical = \case
