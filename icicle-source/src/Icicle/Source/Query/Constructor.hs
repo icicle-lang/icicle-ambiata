@@ -6,6 +6,7 @@ module Icicle.Source.Query.Constructor (
     Constructor (..)
   , Pattern (..)
   , substOfPattern
+  , boundOfPattern
   , arityOfConstructor
   ) where
 
@@ -15,6 +16,7 @@ import                  Icicle.Internal.Pretty
 import                  P
 
 import qualified        Data.Map as Map
+import qualified        Data.Set as Set
 
 data Constructor
  -- Option
@@ -42,6 +44,11 @@ data Pattern n
  | PatVariable (Name n)
  deriving (Show, Eq, Ord)
 
+boundOfPattern :: Eq n => Pattern n -> Set.Set (Name n)
+boundOfPattern p = case p of
+ PatCon c ps   -> Set.unions $ fmap boundOfPattern ps
+ PatDefault    -> Set.empty
+ PatVariable n -> Set.singleton n
 
 -- | Given a pattern and a value,
 -- check if the value matches the pattern, and if so,
