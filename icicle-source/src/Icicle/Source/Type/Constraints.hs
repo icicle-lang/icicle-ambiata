@@ -77,6 +77,15 @@ dischargeC c
     CIsNum t
      -> Left   $ NotANumber t
 
+    CPossibilityOfNum poss IntT
+     -> dischargeC (CEquals poss PossibilityDefinitely)
+    CPossibilityOfNum poss DoubleT
+     -> dischargeC (CEquals poss PossibilityPossibly)
+    CPossibilityOfNum _ (TypeVar _)
+     -> return $ DischargeLeftover c
+    CPossibilityOfNum _ t
+     -> Left   $ NotANumber t
+
     CEquals a b
      -> case unifyT a b of
          Nothing -> Left $ CannotUnify a b

@@ -27,6 +27,7 @@ data PrimBuiltinMath
  | PrimBuiltinLog
  | PrimBuiltinExp
  | PrimBuiltinSqrt
+ | PrimBuiltinDoubleIsValid
  deriving (Eq, Ord, Show, Enum, Bounded)
 
 -- | Built-in map functions
@@ -64,6 +65,7 @@ instance Pretty PrimBuiltinMath where
    PrimBuiltinRound           -> "round#"
    PrimBuiltinTruncate        -> "trunc#"
    PrimBuiltinToDoubleFromInt -> "doubleOfInt#"
+   PrimBuiltinDoubleIsValid   -> "doubleIsValid#"
 
 instance Pretty PrimBuiltinMap where
  pretty p = case p of

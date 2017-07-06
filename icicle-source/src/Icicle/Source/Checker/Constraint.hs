@@ -67,10 +67,9 @@ defaults topq
   defaultOfConstraint (CIsNum t)
    -- It must be a type variable - if it isn't it either already has a concrete
    -- Num type such as Int, or it is a type error
-   | TypeVar n <- t
-   = [(n, IntT)]
-   | otherwise
-   = []
+   = defaultTo t IntT
+  defaultOfConstraint (CPossibilityOfNum poss t)
+   = defaultTo t IntT <> defaultTo poss PossibilityDefinitely 
   -- Everything else should really be known by this stage.
   -- These shouldn't actually occur.
   defaultOfConstraint (CEquals _ _)
@@ -84,6 +83,12 @@ defaults topq
   defaultOfConstraint (CPossibilityJoin _ _ _)
    = []
   defaultOfConstraint (CTemporalityJoin _ _ _)
+   = []
+
+  defaultTo tv tr
+   | TypeVar n <- tv
+   = [(n, tr)]
+   | otherwise
    = []
 
   -- Compute free *type* variables of queries and expressions
@@ -148,8 +153,9 @@ constraintsQ env q
                (annotOfQuery q)
                (filter (not . isNumConstraint . snd) cons)
  where
-  isNumConstraint (CIsNum _) = True
-  isNumConstraint _          = False
+  isNumConstraint CIsNum{}            = True
+  isNumConstraint CPossibilityOfNum{} = True
+  isNumConstraint _                   = False
 
   -- Perform top-level discharge of any silly leftover Possibility or Temporality joins
   top = do
@@ -756,7 +762,8 @@ appType ann resT (expT,actT) cons = do
    -- Just <- modE
    -- ?    <- modR
    | otherwise
-   = do let j = CEquals (maybe pureMode id modE) (maybe pureMode id modA)
+   = do ignore <- TypeVar <$> fresh
+        let j = joinMode ignore (maybe pureMode id modE) (maybe pureMode id modA)
         return (modR, require ann j)
 
 
