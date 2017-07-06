@@ -24,9 +24,8 @@ import           Icicle.Internal.Pretty (Pretty)
 import           P hiding (with)
 
 import           Data.Hashable                (Hashable)
-import           Data.List                    (unzip, unzip3, zip)
+import           Data.List                    (unzip3, zip)
 import qualified Data.Map                     as Map
-import qualified Data.Set                     as Set
 
 import           X.Control.Monad.Trans.Either
 
@@ -53,18 +52,9 @@ defaults :: (Hashable n, Eq n)
          => Query'C a n
          -> Query'C a n
 defaults topq
-  -- Just substitute the type vars in
-  = substTQ defaultRest topq
+  -- Substitute the defaults in. Num takes precedence because defaultOfAllQ would substitute numbers to Unit.
+  = substTQ (Map.union defaultNums (defaultOfAllQ topq)) topq
  where
-  -- Convert remaining type variables to units
-  defaultRest
-   = let go s v
-            | Nothing <- Map.lookup v s
-            = Map.insert v UnitT s
-            | otherwise
-            = s
-     in  foldl go defaultNums (freeOfAllQ topq)
-
   -- Convert numeric constraints to Ints
   defaultNums
    = Map.fromList
@@ -97,19 +87,19 @@ defaults topq
    = []
 
   -- Compute free *type* variables of queries and expressions
-  freeOfAllQ (Query cs x)
-   = Set.unions
-   ( freeOfAllX x : fmap freeOfAllC cs )
+  defaultOfAllQ (Query cs x)
+   = Map.unions
+   ( defaultOfAllX x : fmap defaultOfAllC cs )
 
-  freeOfAllC c
-   = let fa   = freeOfAllA (annotOfContext c)
-         fv x = fa <> freeOfAllX x
+  defaultOfAllC c
+   = let fa   = defaultOfAllA (annotOfContext c)
+         fv x = fa <> defaultOfAllX x
      in case c of
           Let _ _ x -> fv x
           LetFold _ f
            -> fa                      <>
-              freeOfAllX (foldInit f) <>
-              freeOfAllX (foldWork f)
+              defaultOfAllX (foldInit f) <>
+              defaultOfAllX (foldWork f)
           Windowed{} -> fa
           Latest{} -> fa
           GroupBy _ x -> fv x
@@ -117,20 +107,27 @@ defaults topq
           Distinct _ x -> fv x
           Filter _ x -> fv x
 
-  freeOfAllX x
-   = let fa   = freeOfAllA (annotOfExp x)
+  defaultOfAllX x
+   = let fa   = defaultOfAllA (annotOfExp x)
      in  case x of
            Var{} -> fa
-           Nested _ q -> fa <> freeOfAllQ q
-           App _ p q -> fa <> freeOfAllX p <> freeOfAllX q
+           Nested _ q -> fa <> defaultOfAllQ q
+           App _ p q -> fa <> defaultOfAllX p <> defaultOfAllX q
            Prim{} -> fa
            Case _ s pats
-            ->  fa <> freeOfAllX s <>
-               (Set.unions $ fmap (freeOfAllX . snd) pats)
+            ->  fa <> defaultOfAllX s <>
+               (Map.unions $ fmap (defaultOfAllX . snd) pats)
 
 
-  freeOfAllA a
-   = freeT $ annResult a
+  defaultOfAllA a = defaultOfAllT $ annResult a
+
+  defaultOfAllT fullty
+   = let (tmp,pos,dat) = decomposeT fullty
+         fv def t = Map.fromSet (const def) (freeT t)
+         tmp' = maybe Map.empty (fv TemporalityPure) tmp
+         pos' = maybe Map.empty (fv PossibilityDefinitely) pos
+         dat' = fv UnitT dat
+     in  Map.unions [tmp', pos', dat']
 
 
 -- | Generate constraints for an entire query.
@@ -141,7 +138,7 @@ constraintsQ
   -> Query a n
   -> EitherT (CheckError a n) (Fresh.Fresh n) (Query'C a n)
 constraintsQ env q
- = do (x, _, cons) <- evalGenNoLog $ generateQ q env
+ = do (x, cons) <- evalGenNoLog $ top
       -- We must have been able to solve all constraints except numeric requirements.
       if   all (isNumConstraint . snd) cons
       then right x
@@ -153,6 +150,17 @@ constraintsQ env q
  where
   isNumConstraint (CIsNum _) = True
   isNumConstraint _          = False
+
+  -- Perform top-level discharge of any silly leftover Possibility or Temporality joins
+  top = do
+   (q',_,cons) <- generateQ q env
+   case dischargeCS' dischargeC'toplevel cons of
+    Left errs
+     -> genHoistEither
+      $ errorNoSuggestions (ErrorConstraintsNotSatisfied (annotOfQuery q) errs)
+    Right (sub', cons') 
+     -> let q'' = substTQ sub' q'
+        in  return (q'', cons')
 
 
 -- | Generate constraints for top-level query.
@@ -406,16 +414,8 @@ generateQ qq@(Query (c:_) _) env
             let conseq = concat
                        [ require a (CEquals it wt)
                        , require a (CPossibilityJoin iniPos wp' ip') ]
-            -- XXX HACK: if possibility of worker is still a variable (after generateX discharged constraints)
-            -- then it must be a Definitely; nothing else can constrain it to be Possibly
-            let conshack
-                       | ip == PossibilityDefinitely
-                       , TypeVar _ <- wp'
-                       = require a (CEquals wp' PossibilityDefinitely)
-                       | otherwise
-                       = []
 
-            let cons' = concat [csi, csw, consr, consf, consT, conseq, conshack]
+            let cons' = concat [csi, csw, consr, consf, consT, conseq]
 
             let t'' = canonT $ Temporality TemporalityAggregate t'
             let s'  = si `compose` sw `compose` sq
@@ -560,7 +560,7 @@ generateX x env
                  $ errorNoSuggestions (ErrorFunctionWrongArgs a x fErr argsT')
 
                 let go (t, c) u     = appType a t u c
-                let (resT', consap) = foldl' go (resT, []) (argsT `zip` argsT')
+                (resT', consap) <- foldM go (resT, []) (argsT `zip` argsT')
 
                 let s' = foldl compose Map.empty subs'
                 let cons' = concat (consf : consap : consxs)
@@ -606,19 +606,17 @@ generateX x env
            returnPoss' <- TypeVar <$> fresh
            let consPs  =  require a (CPossibilityJoin returnPoss' scrutPs returnPoss)
 
-           (patsubs, consA) <- generateP a scrutT returnType returnTemp returnPoss pats (substE sub env)
-           let (pats', subs) = unzip patsubs
+           (pats', subs, consA) <- generateP a scrutT returnType returnTemp returnPoss pats (substE sub env)
 
            let t'    = canonT
                      $ Temporality returnTemp'
                      $ Possibility returnPoss' returnType
-           let subst = foldl' compose sub subs
            let cons' = concat [consS, consTj, consPs, consA]
 
            let x' = annotate cons' t'
                   $ \a' -> Case a' scrut' pats'
 
-           return (x', subst, cons')
+           return (x', subs, cons')
   where
   annotate cs t' f
    = let a' = Annot (annotOfExp x) t' cs
@@ -634,12 +632,12 @@ generateP
   -> Type n                 -- ^ result possibility
   -> [(Pattern n, Exp a n)] -- ^ pattern and alternative
   -> GenEnv n
-  -> Gen a n ([((Pattern n, Exp'C a n), SubstT n)], GenConstraintSet a n)
+  -> Gen a n ([(Pattern n, Exp'C a n)], SubstT n, GenConstraintSet a n)
 
 generateP ann _ _ resTm resPs [] _
  = do   let consT = require ann (CEquals resTm TemporalityPure)
         let consP = require ann (CEquals resPs PossibilityDefinitely)
-        return ([], concat [consT, consP])
+        return ([], Map.empty, concat [consT, consP])
 
 generateP ann scrutTy resTy resTm resPs ((pat, alt):rest) env
  = do   (t, envp) <- goPat pat env
@@ -665,11 +663,12 @@ generateP ann scrutTy resTy resTm resPs ((pat, alt):rest) env
                   , require (annotOfExp alt) (CPossibilityJoin resPs resPs' altPs)
                   ]
 
-        (rest', consr) <- generateP ann scrutTy resTy resTp' resPs' rest (substE sub env)
-        let cons' = concat [conss, consa, consT, consr]
-        let patsubs     = ((pat, alt'), sub) : rest'
-
-        return (patsubs, cons')
+        (rest', subs, consr) <- generateP ann scrutTy resTy resTp' resPs' rest (substE sub env)
+        let cons'       = concat [conss, consa, consT, consr]
+        let alt''       = substTX subs alt'
+        let subs'       = compose sub subs
+        let patalts     = (pat, alt'') : rest'
+        return (patalts, subs', cons')
 
  where
   requireData t1 t2
@@ -718,41 +717,47 @@ generateP ann scrutTy resTy resTm resPs ((pat, alt):rest) env
 
 
 appType
- :: a
+ :: (Hashable n)
+ => a
  -> Type n
  -> (Type n, Type n)
  -> GenConstraintSet a n
- -> (Type n, GenConstraintSet a n)
-appType ann resT (expT,actT) cons
- = let (tmpE,posE,datE) = decomposeT $ canonT expT
-       (tmpA,posA,datA) = decomposeT $ canonT actT
-       (tmpR,posR,datR) = decomposeT $ canonT resT
+ -> Gen a n (Type n, GenConstraintSet a n)
+appType ann resT (expT,actT) cons = do
+  let (tmpE,posE,datE) = decomposeT $ canonT expT
+  let (tmpA,posA,datA) = decomposeT $ canonT actT
+  let (tmpR,posR,datR) = decomposeT $ canonT resT
+  let consD            = require ann (CEquals datE datA)
 
-       consD = require ann (CEquals datE datA)
+  (tmpR', consT) <- checkTemp (purely tmpE) (purely tmpA) (purely tmpR)
+  (posR', consP) <- checkPoss (definitely posE) (definitely posA) (definitely posR)
 
-       (tmpR', consT)  = checkTemp (purely tmpE) (purely tmpA) (purely tmpR)
-       (posR', consP) = checkPoss (definitely posE) (definitely posA) (definitely posR)
-
-       t = recomposeT (tmpR', posR', datR)
-   in  (t, concat [cons, consD, consT, consP])
+  let t = recomposeT (tmpR', posR', datR)
+  return (t, concat [cons, consD, consT, consP])
 
  where
-  checkTemp = check' TemporalityPure
-  checkPoss = check' PossibilityDefinitely
+  checkTemp = check' TemporalityPure       CTemporalityJoin
+  checkPoss = check' PossibilityDefinitely CPossibilityJoin
 
-  check' pureMode modE modA modR
+  check' pureMode joinMode modE modA modR
    | Nothing <- modA
-   = (modR, [])
+   = return (modR, [])
    | Just _  <- modA
    , Nothing <- modE
    , Nothing <- modR
-   = (modA, [])
+   = return (modA, [])
    | Just a' <- modA
    , Nothing <- modE
    , Just r' <- modR
-   = (modR, require ann (CEquals a' r'))
+   = do r'' <- TypeVar <$> fresh
+        let j = joinMode r'' a' r'
+        return (Just r'', require ann j)
+   -- Just <- modA
+   -- Just <- modE
+   -- ?    <- modR
    | otherwise
-   = (modR, require ann (CEquals (maybe pureMode id modE) (maybe pureMode id modA)))
+   = do let j = CEquals (maybe pureMode id modE) (maybe pureMode id modA)
+        return (modR, require ann j)
 
 
   purely (Just TemporalityPure) = Nothing
